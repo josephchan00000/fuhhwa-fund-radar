@@ -1,0 +1,49 @@
+name: FH-ARM 每日情報 routine
+
+# 每日雲端 routine（M4-7）。需先把本 repo 推到（私有）GitHub，並在
+# Settings → Secrets and variables → Actions 設定所需金鑰（皆選用，未設該層誠實降級）：
+#   FINMIND_TOKEN       全分點（付費 sponsor；未設時券商分點走 Histock 免費前 N 大）
+#   YOUTUBE_API_KEY     YouTube 社群監看
+#   FB_ACCESS_TOKEN     Facebook 粉專監看（搭配 config/social_fb_pages.json）
+#   ANTHROPIC_API_KEY   KOL 逐則 Claude 深析 + 文案層
+# 排程：台北時間週一~五 17:40（= UTC 09:40）盤後。也可手動 workflow_dispatch 觸發。
+
+on:
+  schedule:
+    - cron: "40 9 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write          # 把當日報告 commit 回 repo（如不需要，改 read 並改用 artifact）
+
+jobs:
+  routine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安裝相依（純標準庫；certifi + 選用 anthropic）
+        run: pip install certifi anthropic
+      - name: 跑每日 routine
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: bash scripts/daily_routine.sh
+      - name: 上傳當日報告為 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fh-arm-reports
+          path: reports/*.md
+          if-no-files-found: warn
+      - name: （選用）把報告 commit 回 repo
+        run: |
+          git config user.name "fh-arm-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -f reports/*.md 2>/dev/null || true
+          git commit -m "chore: 每日情報報告 $(date +%F)" || echo "無變更"
+          git push || echo "push 略過（無遠端寫入權或無變更）"

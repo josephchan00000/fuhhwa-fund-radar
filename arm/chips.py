@@ -31,11 +31,16 @@ def _by_broker(flows: list[BrokerFlow]) -> dict[str, dict]:
     return agg
 
 
-def consecutive_buy_days(by_date: dict[str, int]) -> int:
-    """從最近交易日往回數、連續『淨買超(>0)』的天數。"""
+def consecutive_buy_days(by_date: dict[str, int], all_dates: list[str] | None = None) -> int:
+    """從最近交易日往回數、連續『淨買超(>0)』的天數。
+
+    給 `all_dates`（窗內所有交易日）時，分點**當日未上榜＝視為中斷**（更嚴謹的連續定義）；
+    不給則只看該分點有資料的日子（向後相容）。
+    """
+    days = sorted(all_dates if all_dates is not None else by_date, reverse=True)
     streak = 0
-    for d in sorted(by_date, reverse=True):
-        if by_date[d] > 0:
+    for d in days:
+        if by_date.get(d, 0) > 0:
             streak += 1
         else:
             break
@@ -52,8 +57,13 @@ def buy_ratio(net: int, day_volume: dict[str, int]) -> float | None:
 
 def key_brokers(tf: TargetFlows, *, top: int = 3, min_net: int = 1,
                 bmap: dict | None = None) -> list[dict]:
-    """窗內淨買超最多的關鍵分點（≥ min_net 張），附連續買超天數/佔比/身份推估。"""
+    """窗內淨買超最多的關鍵分點（≥ min_net 張），附連續買超天數/佔比/身份推估。
+
+    多日窗：`net` 為窗內累積淨買超、`days` 為（以窗內交易日為準的）真實連續買超天數、
+    `window_days` 為窗涵蓋的交易日數。
+    """
     agg = _by_broker(tf.flows)
+    all_dates = sorted({f.date for f in tf.flows if f.date})
     out: list[dict] = []
     for bid, slot in agg.items():
         if slot["net_total"] < min_net:
@@ -62,12 +72,31 @@ def key_brokers(tf: TargetFlows, *, top: int = 3, min_net: int = 1,
             "broker_id": bid,
             "broker_name": slot["name"],
             "net": slot["net_total"],
-            "days": consecutive_buy_days(slot["by_date"]),
+            "days": consecutive_buy_days(slot["by_date"], all_dates),
+            "window_days": len(all_dates),
             "buy_ratio": buy_ratio(slot["net_total"], tf.day_volume),
             "identity": classify(bid, slot["name"], bmap),
         })
     out.sort(key=lambda x: (-x["net"], -x["days"]))
     return out[:top]
+
+
+def aggregate_by_identity(tf: TargetFlows, *, bmap: dict | None = None) -> dict:
+    """把窗內買超分點按『推估身份』合計 → {kind: {net, n}}，並挑出最強身份買盤。
+
+    『外資分點合計買超 +X 張（N 家外資分點同步）』比單一分點更有說服力（聰明錢共識）。
+    """
+    agg = _by_broker(tf.flows)
+    by_kind: dict[str, dict] = {}
+    for bid, slot in agg.items():
+        if slot["net_total"] <= 0:                # 只計買超側
+            continue
+        kind = classify(bid, slot["name"], bmap)["kind"]
+        k = by_kind.setdefault(kind, {"net": 0, "n": 0, "brokers": []})
+        k["net"] += slot["net_total"]
+        k["n"] += 1
+        k["brokers"].append(slot["name"])
+    return dict(sorted(by_kind.items(), key=lambda kv: -kv[1]["net"]))
 
 
 def analyze_target(tf: TargetFlows, *, top: int = 3, min_net: int = 1,
@@ -76,9 +105,13 @@ def analyze_target(tf: TargetFlows, *, top: int = 3, min_net: int = 1,
     kb = key_brokers(tf, top=top, min_net=min_net, bmap=bmap)
     if not kb:
         return None
+    ident = aggregate_by_identity(tf, bmap=bmap)
+    foreign = ident.get("外資", {})
     return {"target_id": tf.target_id, "target_name": tf.target_name,
             "as_of": tf.as_of, "tier": tf.tier,
-            "key_brokers": kb, "top_buyer": kb[0]}
+            "key_brokers": kb, "top_buyer": kb[0],
+            "identity_net": ident,
+            "foreign_net": foreign.get("net", 0), "foreign_n": foreign.get("n", 0)}
 
 
 # ───────────────────────── 主動ETF/投信籌碼（法人層級，etfinfo 可得替代源）─────────────────────────

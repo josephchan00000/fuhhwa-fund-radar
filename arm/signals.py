@@ -281,11 +281,26 @@ def d_institutional_buy(ctx: dict) -> Signal | None:
                    "weight": t["weight"], "source": "etfinfo 主動ETF籌碼追蹤（法人層級・Tier B 待核對）"})
 
 
+def d_foreign_branch(ctx: dict) -> Signal | None:
+    # 外資分點合計買超（多家外資分點同步＝聰明錢共識，比單一分點更有說服力）
+    chips = ctx.get("chips") or {}
+    cands = ([chips["fund"]] if chips.get("fund") else []) + (chips.get("holdings") or [])
+    cands = [c for c in cands if c.get("foreign_net", 0) > 0 and c.get("foreign_n", 0) >= 2]
+    if not cands:
+        return None
+    t = max(cands, key=lambda c: c["foreign_net"])
+    return Signal("FOREIGN_BRANCH_BUY", _clamp(40 + t["foreign_net"] / 200 + t["foreign_n"] * 4),
+                  f"{t['target_name']} 今日 {t['foreign_n']} 家外資分點同步買超、合計 +{t['foreign_net']:,} 張"
+                  f"（推估外資・非確認）",
+                  {"target": t["target_id"], "foreign_net": t["foreign_net"],
+                   "foreign_n": t["foreign_n"], "confidence": "推估"})
+
+
 DETECTORS = [d_alpha_beat, d_multi_win, d_peer_champion, d_beat_named,
              d_price_high, d_volume_spike, d_manager_add, d_hit_hot_stock,
              d_theme_tailwind, d_concentration, d_fund_inflow, d_milestone,
              d_active_share, d_unique_holding, d_divergent_bet, d_lead_position,
-             d_smart_money, d_institutional_buy]
+             d_smart_money, d_institutional_buy, d_foreign_branch]
 
 
 def run_all(ctx: dict) -> list[Signal]:

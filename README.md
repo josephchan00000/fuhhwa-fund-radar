@@ -27,9 +27,9 @@ Python 資料管線 + PostgreSQL + FastAPI（後端 / 公開資料）｜Next.js 
 - 績效改 **NAV 含息總報酬**（全球股/債無 TWSE 市價，NAV 是唯一權威績效源）；受益人數接 **集保 TDCC**；資金流偵測（規模週增/破關卡）；多檔輪播今日主角。
 - **M2 跨家持股差異化（✅ 完成）**：主動度 Active Share（vs 0050）**即時真實**（00991A 76%）；獨門股/權重偏離/Jaccard 重疊/領先卡位由 `arm/diff_engine.py` 計算。**競品逐日持股已接 etfinfo.tw**（6 競品落地）→ 00991A 重押國巨 8.9%（同業均 2.5%、偏離 +6.4pt 居同業之冠）、與統一重疊 Jaccard 40%、與元大僅 15%，全部真實可追溯。
 - **M5 題材/時事引擎上線**：題材熱度由 `STOCK_DAY_ALL` 全市場個股漲幅**每日動態算出**（非固定清單），`arm/themes.py`＋`THEME_TAILWIND` 偵測器＋想法引擎「重倉產業＝當日強勢題材」。題材表改 **stock_id 為鍵**（跨 TWSE/復華零歧義）。實測 2026-06-12：重倉【AI半導體龍頭】台積電+聯發科 19.3% 全紅順風。
-- **M3 籌碼推敲（✅ 完成，雙源 live）**：(1) **券商分點已接 Histock live**（`arm/connectors/brokers/histock.py`）→ 實測 00991A 本檔港商野村 +7,899 張、重倉南亞科/國巨/台積電皆外資分點大買，身份經 `broker_map` 推估、**一律標「推估・非確認」**；(2) **法人籌碼已接 etfinfo**（主動ETF/投信估算新進 → `INSTITUTIONAL_BUY`＋想法「聰明錢共識」）→ 重倉國巨被 4 ETF/3 投信新進約 29 億。`SMART_MONEY`(分點) + `INSTITUTIONAL_BUY`(法人) 並存。`pytest` **60 綠**。
-- **🆕 第三方資料源**：`arm/connectors/etfinfo.py`（競品持股/配息/殖利率/法人籌碼）+ `arm/connectors/brokers/histock.py`（券商分點）。**皆 Tier B「先給可能值、待投信官網/證交所核實」**。
-- **M4 創意情報層介面完成（本機半）**：本機 `git init`（`.gitignore` 讓 `data/` 不入庫）。新增 `arm/connectors/social/` source-agnostic 社群/KOL 介面（`SocialMention` + drop-in `config/social_mentions/{date}.json`），`analyze()` 確定性 baseline（情緒/賣點/**疑似業配**/聲量）＋預留 LLM 接口；`g_kol` 由樁改真實（社群熱議賣點＋業配反推投放，Tier B、不對外指控）。**與 M3 brokers/chips 完全解耦**。live 爬取/雲端 routine/推遠端 repo 為對外動作、slot 全備待授權。`+11` 社群測試。
+- **M3 籌碼推敲（✅ 完成，多源 live）**：券商分點 **Histock**（免費前 N 大，每日落快照累積成多日窗→真實「連續買超天數」）＋ **FinMind**（付費 `FINMIND_TOKEN`：全分點+多日+量，優先序最高）；**外資分點合計** `FOREIGN_BRANCH_BUY`（實測南亞科 6 家外資 +21,081 張）；法人籌碼 **etfinfo** `INSTITUTIONAL_BUY`＋「聰明錢共識」。身份經 `broker_map` 推估、**一律標「推估・非確認」**。
+- **M4 創意情報（live + Claude 深析）**：`arm/connectors/social/{news,ptt,dcard,facebook,youtube}.py`（免費 news/ptt/dcard 永遠註冊、YouTube/FB 需金鑰）；`analyze(m, llm=)` 接 **Claude（claude-opus-4-8）逐則深析**（`ANTHROPIC_API_KEY`，缺則 baseline）。**每日雲端 routine**：`scripts/daily_routine.sh` + `.github/workflows/daily.yml`（cron 週一~五 17:40）。
+- **🆕 第三方資料源（皆 Tier B、缺金鑰即誠實降級不崩）**：etfinfo（競品持股/配息/法人籌碼）、Histock + FinMind（券商分點）、RSS/PTT/Dcard/YouTube/FB（社群）。`pytest` **83 綠**。
 
 ### 跑跑看（零安裝，純標準庫 + SQLite；TLS 走 certifi）
 ```bash

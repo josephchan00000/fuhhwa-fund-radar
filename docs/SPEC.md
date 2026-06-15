@@ -171,6 +171,8 @@ fh-arm/
 | **競品每日持股 / 配息 / 殖利率** | **etfinfo.tw**（Nuxt JSON API：`/api/etf/{code}`、`/api/etf/list`） | REST JSON | 日 | 中（Tier B 第三方彙整，`source` 多為 issuer-official，**上線前以投信官網核實**） |
 | **主動ETF/投信籌碼追蹤（估算新進）** | **etfinfo.tw** `/api/active/tracking` | REST JSON | 日 | 中（Tier B，法人層級非券商分點，§18.4 聰明錢替代源） |
 | **券商分點買賣超（個別買家）** | **Histock** `histock.tw/stock/branch.aspx?no={code}` | 靜態 HTML 表 | 日 | 中（Tier B，買家身份經 broker_map 推估、標『推估・非確認』；§18.4） |
+| **券商分點（全分點+多日+量，最完整）** | **FinMind** `TaiwanStockTradingDailyReport` | REST JSON | 日 | 中（Tier B，需 `FINMIND_TOKEN` 付費 sponsor；§18.4） |
+| **社群/KOL/新聞（§18.5）** | RSS（鉅亨/Yahoo）、PTT、Dcard、YouTube Data API、FB Graph | REST/HTML/RSS | 日 | 低（Tier B，聲量/業配推估；YouTube/FB 需金鑰） |
 
 設計重點：
 - **每家投信一個 holdings adapter**（`connectors/issuers.py` 下分模組），抽象成統一 `Holding(etf_id, date, stock_id, weight, shares)`。
@@ -944,6 +946,7 @@ CREATE TABLE competitor_tactics (
 
 ## 變更紀錄 Changelog
 
+- **v0.12（外接最大化 + M4 live adapters + 雲端 routine，2026-06-16）**：**功能最大化** —— (1) **券商分點外接最完整源 FinMind**（`arm/connectors/brokers/finmind.py`，`TaiwanStockTradingDailyReport`：全分點+多日+量；需 `FINMIND_TOKEN` 付費），`load_flows` 優先序 drop-in > FinMind > Histock。(2) **Histock 多日歷史**（`arm/connectors/brokers/history.py` 每日落快照累積，`chips.consecutive_buy_days` 加 `all_dates` 缺席中斷→真實「連續買超天數」）。(3) **外資分點合計**（`chips.aggregate_by_identity` + `FOREIGN_BRANCH_BUY` 偵測器 + 想法「外資共識」）——實測 南亞科 6 家外資分點同步 +21,081 張。(4) **M4 社群 live adapters 全接**（`social/{news,ptt,dcard,facebook,youtube}.py`，免費源 news/ptt/dcard 永遠註冊、YouTube/FB 需金鑰才註冊；`http.get_bytes` 加 headers/cookie 支援）；Dcard 現多被 Cloudflare 擋（需 `DCARD_COOKIE`/合作金鑰）、FB 受 Graph API 限制（只讀有權限粉專）。(5) **Claude 逐則深析接上**（`social/llm.py`，`claude-opus-4-8` 結構化輸出，`analyze(m, llm=)` 經 `default_analyzer()` 注入 `g_kol`；需 `ANTHROPIC_API_KEY`）。(6) **每日雲端 routine**（`scripts/daily_routine.sh` + `.github/workflows/daily.yml`，cron 週一~五 17:40 台北，金鑰走 Actions secrets，未設則該層誠實降級）。所有外接 Tier B、缺金鑰即降級不崩。`tests/`（+chips identity/finmind/histock/broker_history/social_adapters）。
 - **v0.11（M4 引擎/介面完成，2026-06-16）**：創意情報層自動化第一階段。**本機 `git init`**（`.gitignore` 讓 `data/` 執行期快取/DB/log 不入庫，初始 commit 於 `main`；推遠端待授權）。新增 **`arm/connectors/social/`** source-agnostic 社群/KOL 介面（統一 `SocialMention`，與 M2/M3 同雙軌：`LIVE_ADAPTERS` slot + drop-in `config/social_mentions/{date}.json`）；`social.analyze()` 確定性 baseline（情緒/賣點命中/**疑似業配**/聲量分級）＋預留 `analyze(m, llm=...)` LLM 深析接口。想法引擎 `g_kol` 由樁改真實（社群熱議賣點＋疑似業配反推投放＋負評→反擊話術，全標 Tier B「推估・待核實」、業配不對外指控）。**嚴格與 M3 brokers/chips 解耦、不打架**。live 爬取/雲端 routine/Claude 逐則深析為對外動作，slot 全備、待授權。`tests/` 68 passed（+11）。
 
 - **v0.11（M3 完成：券商分點 Histock live，2026-06-16）**：新增 `arm/connectors/brokers/histock.py`——Histock「分公司進出」靜態 HTML 表逐 `<tr>` 解析成 `BrokerFlow`（無 API/登入），`brokers.load_flows` 預設 live（drop-in 可覆蓋）。**個別券商分點缺口已補**：實測 00991A 本檔港商野村 +7,899 張、重倉南亞科/國巨/台積電皆外資分點大買（經 `broker_map` 名稱關鍵字推估外資/投信/中實戶、一律標「推估・非確認」）。修掉解析錯位 bug（買/賣兩側空白欄須保留、逐列 10 欄對齊）。M3 升 ✅（`SMART_MONEY` 分點 + `INSTITUTIONAL_BUY` 法人雙源並存）。`tests/test_histock.py`（含空白欄對齊回歸），`tests/` 60 passed（+3）。

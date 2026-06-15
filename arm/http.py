@@ -37,16 +37,25 @@ def _cache_path(url: str) -> Path:
 
 
 def get_bytes(url: str, *, retries: int = 3, timeout: int = 25,
-              use_cache: bool = True, cache_ttl: int = 3600) -> bytes:
-    """抓 URL 回傳 bytes。預設快取 1 小時，避免重複打外部站。"""
-    cp = _cache_path(url)
+              use_cache: bool = True, cache_ttl: int = 3600,
+              headers: dict | None = None) -> bytes:
+    """抓 URL 回傳 bytes。預設快取 1 小時，避免重複打外部站。
+
+    `headers`：額外標頭（如 PTT 的 over18 cookie、Dcard 的瀏覽器標頭）；併入快取鍵，
+    避免「帶/不帶 cookie」拿到同一份快取。
+    """
+    cache_key = url + ("|" + json.dumps(headers, sort_keys=True) if headers else "")
+    cp = _cache_path(cache_key)
     if use_cache and cp.exists() and (time.time() - cp.stat().st_mtime) < cache_ttl:
         return cp.read_bytes()
 
+    h = {"User-Agent": UA}
+    if headers:
+        h.update(headers)
     last_err: Exception | None = None
     for attempt in range(retries):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": UA})
+            req = urllib.request.Request(url, headers=h)
             with urllib.request.urlopen(req, timeout=timeout, context=_CTX) as resp:
                 data = resp.read()
             if use_cache:

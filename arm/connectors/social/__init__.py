@@ -8,19 +8,33 @@
 """
 from __future__ import annotations
 
-from . import base
+from . import base, dcard, facebook, llm, news, ptt, youtube
 from .base import (NoData, SocialMention, analyze, curated_mentions)  # re-export
 
-# 逐家 live adapter slot（授權後在此註冊；簽名 (as_of, window_days)->list[SocialMention]）。
-# 例：LIVE_ADAPTERS["youtube"] = youtube.fetch —— 接上後 recent_mentions 自動納入、不改呼叫端。
+
+def default_analyzer():
+    """M4-3：有 ANTHROPIC_API_KEY 時回傳 Claude 逐則深析 callable，否則 None（用 baseline）。"""
+    return llm.claude_analyzer()
+
 SOURCES: dict[str, str] = {
-    "youtube": "YouTube Data API（需 API key；M4-2，待授權 adapter）",
-    "ptt": "PTT 股票板/股票公社（公開頁 / RSS；待 adapter）",
-    "dcard": "Dcard 股票看板（公開 API/頁；待 adapter）",
-    "vocus": "方格子 vocus（RSS；待 adapter）",
-    "news": "鉅亨/MoneyDJ/Yahoo股市 等新聞（RSS；待 adapter）",
+    "news": "鉅亨/Yahoo股市 RSS（免費，已接 news.py）",
+    "ptt": "PTT 股票板（公開頁 over18，已接 ptt.py；沙箱可能擋）",
+    "dcard": "Dcard 股票看板（公開 API，現多由 Cloudflare 擋→需 DCARD_COOKIE/合作金鑰）",
+    "youtube": "YouTube Data API v3（需 YOUTUBE_API_KEY）",
+    "fb": "Facebook Graph API 粉專貼文（需 FB_ACCESS_TOKEN + config/social_fb_pages.json）",
 }
-LIVE_ADAPTERS: dict[str, callable] = {}        # 預留：授權後逐家填入
+
+# 免費/公開來源：永遠註冊（抓不到時各 adapter 自己回 [] 誠實降級）。
+LIVE_ADAPTERS: dict[str, callable] = {
+    "news": news.fetch,
+    "ptt": ptt.fetch,
+    "dcard": dcard.fetch,
+}
+# 需金鑰的來源：有憑證才註冊（避免空打）。
+if youtube.available():
+    LIVE_ADAPTERS["youtube"] = youtube.fetch
+if facebook.available():
+    LIVE_ADAPTERS["fb"] = facebook.fetch
 
 
 def recent_mentions(as_of: str | None = None, window_days: int = 7) -> list[SocialMention]:
