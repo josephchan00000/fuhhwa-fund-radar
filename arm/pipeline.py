@@ -351,8 +351,10 @@ def _print_report(ctx, sigs):
         for tag, r in rows:
             b = r["top_buyer"]
             ratio = f"、佔成交 {b['buy_ratio']:.0%}" if b.get("buy_ratio") is not None else ""
+            fgn = (f"；外資 {r['foreign_n']} 家合計 +{r['foreign_net']:,} 張"
+                   if r.get("foreign_n", 0) >= 2 else "")
             print(f"  [分點/{tag}] {r['target_name']}：{b['broker_name']} 買超 {b['net']:+,} 張"
-                  f"（連 {b['days']} 日{ratio}）→ 推估 {b['identity']['kind']}")
+                  f"（連 {b['days']} 日{ratio}）→ 推估 {b['identity']['kind']}{fgn}")
         for t in inst[:5]:
             print(f"  [法人] {t['name']}（權重 {t['weight']:.1f}%）：{t['reason']}"
                   f"，估算新進+加碼約 {t['est_yi']:.1f} 億")

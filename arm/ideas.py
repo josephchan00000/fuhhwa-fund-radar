@@ -292,6 +292,14 @@ def g_chip_branch(ctx, intel):
             out.append(Idea("分點推敲",
                 f"重倉 {h['target_name']} 關鍵分點{streak}買超 {b['net']:+,} 張，籌碼面佐證（推估為{b['identity']['label']}・非確認）",
                 f"命中飆股的籌碼面；身份推估、as-of {h.get('as_of') or 'n/a'}", 56 + b["days"] * 4))
+        # 外資分點合計（多家同步＝聰明錢共識，比單一分點強）
+        allt = ([chips["fund"]] if chips.get("fund") else []) + (chips.get("holdings") or [])
+        fgn = [t for t in allt if t.get("foreign_n", 0) >= 2]
+        if fgn:
+            t = max(fgn, key=lambda x: x["foreign_net"])
+            out.append(Idea("分點推敲",
+                f"外資共識：{t['target_name']} 今日 {t['foreign_n']} 家外資分點同步買超、合計 +{t['foreign_net']:,} 張（推估・非確認）",
+                f"多家外資分點同向＝聰明錢共識；分點僅到分公司、身份推估", 60 + t["foreign_n"] * 3))
     # 法人籌碼替代源（etfinfo 主動ETF/投信估算新進，非個別券商分點）
     for t in (chips.get("institutional") or [])[:2]:
         out.append(Idea("分點推敲",
@@ -312,13 +320,18 @@ def g_kol(ctx, intel):
     rel = [m for m in mentions if (not m.etfs) or (etf in m.etfs)]
     if rel:
         out = []
-        analyzed = [(m, social.analyze(m)) for m in rel]
+        _llm = social.default_analyzer()         # M4-3：有 ANTHROPIC_API_KEY 才啟用 Claude 深析
+        analyzed = [(m, social.analyze(m, llm=_llm)) for m in rel]
         top_m, top_a = max(analyzed, key=lambda x: x[0].reach)
         sp = "、".join(top_a["selling_points"][:3]) if top_a["selling_points"] else "未對齊標準賣點"
         ad = "・疑似業配" if top_a["suspected_ad"] else ""
+        deep = f"；Claude深析：{top_a['llm_summary']}" if top_a.get("llm") and top_a.get("llm_summary") else ""
         out.append(Idea("社群KOL",
             f"社群熱議賣點：{top_m.author}（{top_m.platform}）主打「{sp}」，聲量約 {top_m.reach:,}{ad}",
-            f"當週 {len(rel)} 則提及、情緒偏{top_a['sentiment']}；可直接當素材庫。Tier B（聲量/業配推估、待核實）", 60))
+            f"當週 {len(rel)} 則提及、情緒偏{top_a['sentiment']}；可直接當素材庫。Tier B（聲量/業配推估、待核實）{deep}", 60))
+        if top_a.get("llm") and top_a.get("llm_fh_adaptation"):
+            out.append(Idea("社群KOL", f"可借用說法→復華改法：{top_a['llm_fh_adaptation']}",
+                            f"原說法：{top_a.get('llm_reusable_phrasing', '')}（Claude 深析・Tier B）", 57))
         ads = sorted({m.author for m, a in analyzed if a["suspected_ad"]})
         if ads:
             out.append(Idea("社群KOL",

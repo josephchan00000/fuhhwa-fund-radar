@@ -64,13 +64,19 @@ def parse_branch(html_text: str, code: str) -> tuple[str | None, list[BrokerFlow
     return date, flows
 
 
-def fetch(code: str) -> TargetFlows:
-    """抓 Histock 分點頁並解析成 TargetFlows；無資料 → NoData（誠實降級）。"""
+def fetch_day(code: str) -> tuple[str, list[BrokerFlow]]:
+    """抓 Histock 分點頁、回傳 (資料日, 當日 [BrokerFlow])；無資料 → NoData（誠實降級）。"""
     try:
         raw = get_bytes(URL.format(code=code), cache_ttl=3 * 3600)
     except Exception as e:
         raise NoData(f"Histock 分點取得失敗 {code}：{e}") from e
     date, flows = parse_branch(raw.decode("utf-8", "ignore"), code)
-    if not flows:
+    if not flows or not date:
         raise NoData(f"Histock 無 {code} 分點資料（非上市/當日無揭露）")
+    return date, flows
+
+
+def fetch(code: str) -> TargetFlows:
+    """單日 TargetFlows（不累積歷史）；多日窗請走 brokers.load_flows / history。"""
+    date, flows = fetch_day(code)
     return TargetFlows(code, code, flows, {}, as_of=date, tier="B")

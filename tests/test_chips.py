@@ -60,6 +60,27 @@ def test_key_brokers_ranks_net_buyer_first():
     assert all(b["broker_id"] != "9200" for b in kb)
 
 
+def test_aggregate_by_identity_and_foreign():
+    bmap = {"by_id": {}, "by_name_keyword": {"摩根": "外資", "高盛": "外資"}, "kinds": {}}
+    # 三家外資買超 + 一家中實戶；賣超側不計
+    tf = TargetFlows("2330", "台積電", _flows("2330", [
+        ("2026-06-12", "1470", "台灣摩根士丹利", 1200),
+        ("2026-06-12", "8440", "摩根大通", 800),
+        ("2026-06-12", "9268", "美商高盛", 500),
+        ("2026-06-12", "9200", "凱基-台北", 300),
+        ("2026-06-12", "1110", "富邦", -900),
+    ]), {})
+    ident = chips.aggregate_by_identity(tf, bmap=bmap)
+    assert ident["外資"]["net"] == 2500 and ident["外資"]["n"] == 3   # 摩根+摩根大通+高盛
+    res = chips.analyze_target(tf, bmap=bmap)
+    assert res["foreign_net"] == 2500 and res["foreign_n"] == 3
+    sig = signals.d_foreign_branch({"chips": {"fund": res, "holdings": []}})
+    assert sig and sig.detector == "FOREIGN_BRANCH_BUY"
+    assert "3 家外資分點" in sig.headline and "推估" in sig.headline
+    # 外資家數 < 2 → 不觸發
+    assert signals.d_foreign_branch({"chips": {"fund": None, "holdings": []}}) is None
+
+
 def test_analyze_and_compute_data_status():
     fund = TargetFlows("00991A", "復華台灣未來50", _flows("00991A", [
         ("2026-06-12", "1470", "台灣摩根士丹利", 500),

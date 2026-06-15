@@ -1,0 +1,10 @@
+{
+  "_note": "Facebook 監看粉專清單（M4，facebook.py 用）。Graph API 只能讀『有權限的粉專』貼文，故在此列要監看的粉專 id 或 username。需搭配環境變數 FB_ACCESS_TOKEN（具 pages_read_engagement 權限的 Page/User token）。個人/社團/他人貼文爬取違反 FB 條款，不做。",
+  "_howto": "id 可填粉專數字 id 或 username（網址 facebook.com/<username> 的部分）。name 為顯示用。先放官方+財經媒體粉專，上線前確認 token 對這些粉專有讀取權限。",
+  "pages": [
+    { "username": "FHTrust", "name": "復華投信" },
+    { "username": "moneydj", "name": "MoneyDJ理財網" },
+    { "username": "cnyestw", "name": "鉅亨網" },
+    { "username": "businessweekly", "name": "商業周刊" }
+  ]
+}
