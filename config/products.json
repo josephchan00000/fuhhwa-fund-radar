@@ -1,0 +1,29 @@
+{
+  "benchmarks": { "market_etf": "0050" },
+  "periods": { "1d": 1, "3d": 3, "1w": 5, "2w": 10, "1m": 20, "3m": 60, "ytd": null, "si": null },
+  "fh_products": [
+    {
+      "id": "00991A", "fund_id": "ETF23", "name": "復華台灣未來50主動式ETF",
+      "theme": "台股大型主動選股", "asset_class": "tw_equity",
+      "price_source": "twse", "benchmark": "0050",
+      "inception": "2025-12-18", "dividend_freq": "半年",
+      "audience": ["成長型", "核心配置"]
+    },
+    {
+      "id": "00998A", "fund_id": "ETF24", "name": "復華全球金融股票入息主動式ETF",
+      "theme": "全球金融股入息", "asset_class": "global_equity",
+      "price_source": "nav_only", "benchmark": null,
+      "benchmark_note": "全球金融股無 TWSE 可比序列；績效以 NAV 含息總報酬為準，0050 僅作台股大盤參照",
+      "inception": "2026-03-31", "dividend_freq": "季",
+      "audience": ["入息族", "存股族"]
+    },
+    {
+      "id": "00986D", "fund_id": "ETF25", "name": "復華全球金融債券入息主動式ETF",
+      "theme": "全球金融債入息", "asset_class": "global_bond",
+      "price_source": "nav_only", "benchmark": null,
+      "benchmark_note": "全球金融債無 TWSE 可比序列；績效以 NAV 含息總報酬為準",
+      "inception": "2026-03-31", "dividend_freq": "月",
+      "audience": ["保守入息", "退休族"]
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+# 復華主角產品 + 對照基準（人類可讀版；程式實讀 products.json）。
+# fund_id 為復華官網 assetsExcel 的代碼；asset_class 驅動解析/閘門/績效分流。
+benchmarks:
+  market_etf: "0050"          # 台股大盤參照（00991A 以此算 Alpha）
+
+fh_products:
+  - id: "00991A"
+    fund_id: "ETF23"          # /api/assetsExcel/ETF23/{date}（已驗證）
+    name: "復華台灣未來50主動式ETF"
+    theme: "台股大型主動選股"
+    asset_class: "tw_equity"  # 台股股票：有 TWSE 市價、同類排名、命中飆股
+    price_source: "twse"
+    benchmark: "0050"
+    inception: "2025-12-18"
+    dividend_freq: "半年"      # 6/12 月底評價
+    audience: ["成長型", "核心配置"]
+  - id: "00998A"
+    fund_id: "ETF24"          # M1-1 確認
+    name: "復華全球金融股票入息主動式ETF"
+    theme: "全球金融股入息"
+    asset_class: "global_equity"  # 外股 ticker；無 TWSE 市價 → 績效用 NAV 含息
+    price_source: "nav_only"
+    benchmark: null           # 全球金融股無 TWSE 可比序列
+    inception: "2026-03-31"
+    dividend_freq: "季"        # 2/5/8/11 月底評價，年化配息率逾10%（官方＋媒體）
+    audience: ["入息族", "存股族"]
+  - id: "00986D"
+    fund_id: "ETF25"          # M1-1 確認
+    name: "復華全球金融債券入息主動式ETF"
+    theme: "全球金融債入息"
+    asset_class: "global_bond"   # 期貨(口數可負)+債券(ISIN/面額)；績效用 NAV 含息
+    price_source: "nav_only"
+    benchmark: null
+    inception: "2026-03-31"
+    dividend_freq: "月"        # 目標息率 6~7%（官方＋媒體）
+    audience: ["保守入息", "退休族"]
+
+# 多週期設定（交易日數）。SI=成立以來。
+periods:
+  "1d": 1
+  "3d": 3
+  "1w": 5
+  "2w": 10
+  "1m": 20
+  "3m": 60
+  "ytd": null      # 由年初第一個交易日計
+  "si": null       # 由成立日計
