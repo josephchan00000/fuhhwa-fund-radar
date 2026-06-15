@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from . import themes
+from .connectors import social
 
 # 類別權重（使用者加重：籌碼/題材/內容創意）
 CAT_WEIGHT = {
@@ -305,10 +306,36 @@ def g_chip_branch(ctx, intel):
 
 
 def g_kol(ctx, intel):
+    # M4：社群/KOL 由樁改真實（drop-in 落檔即生效）；聲量/情緒/業配為推估、Tier B
+    etf = ctx.get("etf_id")
+    mentions = social.recent_mentions(as_of=ctx.get("trade_date"), window_days=7)
+    rel = [m for m in mentions if (not m.etfs) or (etf in m.etfs)]
+    if rel:
+        out = []
+        analyzed = [(m, social.analyze(m)) for m in rel]
+        top_m, top_a = max(analyzed, key=lambda x: x[0].reach)
+        sp = "、".join(top_a["selling_points"][:3]) if top_a["selling_points"] else "未對齊標準賣點"
+        ad = "・疑似業配" if top_a["suspected_ad"] else ""
+        out.append(Idea("社群KOL",
+            f"社群熱議賣點：{top_m.author}（{top_m.platform}）主打「{sp}」，聲量約 {top_m.reach:,}{ad}",
+            f"當週 {len(rel)} 則提及、情緒偏{top_a['sentiment']}；可直接當素材庫。Tier B（聲量/業配推估、待核實）", 60))
+        ads = sorted({m.author for m, a in analyzed if a["suspected_ad"]})
+        if ads:
+            out.append(Idea("社群KOL",
+                f"疑似業配 {len(ads)} 位 KOL → 反推同業投放佈局，可借力打力或補位空缺",
+                f"含 {('、'.join(ads))[:40]}…；僅內部素材、標『疑似・推估』，不對外指控", 58))
+        neg = [m for m, a in analyzed if a["sentiment"] == "負面"]
+        if neg:
+            out.append(Idea("社群KOL",
+                f"社群有 {len(neg)} 則負評（費用率/集中/估值）→ 先備反擊話術、轉成誠實溝通",
+                "把質疑當FAQ，反向建立信任（對齊逆向誠實面向）", 54))
+        return out
+    # 後援：仍無社群 drop-in → 誠實標 intel（介面已就緒）
     seed = intel.get("social_seed", [])
     msg = seed[0] if seed else "地毯搜尋 KOL/社群當日揭露的賣點與聲量"
     return [Idea("社群KOL", f"社群情報：{msg}",
-                 "監看：" + "、".join(intel.get("kol_watch", [])[:5]) + "…", 58, status="intel")]
+                 "社群情報引擎已就緒，落入 config/social_mentions/{date}.json 即生效"
+                 "（YouTube/PTT/Dcard/RSS adapter 待授權後接）", 58, status="intel")]
 
 
 def g_competitor(ctx, intel):

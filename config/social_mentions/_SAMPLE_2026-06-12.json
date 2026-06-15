@@ -1,0 +1,36 @@
+{
+  "as_of": "2026-06-12",
+  "provenance": "格式範例（_ 開頭不載入）；真實資料請落成 {date}.json，標來源與 as-of",
+  "mentions": [
+    {
+      "platform": "youtube",
+      "author": "某財經YouTuber",
+      "date": "2026-06-11",
+      "text": "復華這檔主動式ETF主動度很高、經理人選股積極，今年績效贏0050，值得長期佈局（本影片與廠商合作）",
+      "url": "https://example.com/v1",
+      "etfs": ["00991A"],
+      "reach": 52000,
+      "tier": "B"
+    },
+    {
+      "platform": "ptt",
+      "author": "Stock板鄉民",
+      "date": "2026-06-12",
+      "text": "主動式ETF費用率偏高又集中科技股，怕系統性回檔套牢，這價位有點貴",
+      "url": "https://example.com/p1",
+      "etfs": ["00991A"],
+      "reach": 800,
+      "tier": "B"
+    },
+    {
+      "platform": "vocus",
+      "author": "存股部落客",
+      "date": "2026-06-10",
+      "text": "金融債月配、月月領現金流，殖利率6~7%很適合小資定期定額",
+      "url": "https://example.com/b1",
+      "etfs": ["00986D"],
+      "reach": 3500,
+      "tier": "B"
+    }
+  ]
+}
