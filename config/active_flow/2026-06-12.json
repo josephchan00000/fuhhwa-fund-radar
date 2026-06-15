@@ -1,0 +1,7641 @@
+{
+  "as_of": "2026-06-12",
+  "side": "buy",
+  "tier": "B",
+  "provenance": "etfinfo.tw /api/active/tracking（主動ETF/投信估算新進，法人層級非券商分點）；Tier B，待核對",
+  "meta": {
+    "date": "2026-06-12",
+    "side": "buy",
+    "baselineDate": "2026-05-13",
+    "signalStartDate": "2026-05-14",
+    "rangeStartDate": "2026-05-13",
+    "snapshotRangeDays": 30,
+    "updatedAt": "2026-06-12T16:40:00.010Z"
+  },
+  "items": [
+    {
+      "_id": "6a2c366350e6a19775f554bc",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6531",
+      "stockName": "愛普*",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 932,
+      "ma20": 1021.25,
+      "ma20DistancePct": -8.74,
+      "reason": "5 檔 ETF / 4 家投信新進，後續加碼 8 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・偏多"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "5 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "4 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.2 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+5.0 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00982A 5/19建倉→5/20加碼→5/29加碼",
+            "00995A 5/21建倉→5/26加碼→6/1加碼",
+            "00401A 5/27建倉→5/28加碼→5/29加碼",
+            "00993A 5/27建倉→5/28加碼",
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 5,
+        "issuerCount": 4,
+        "addCount": 8,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 627236000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554bd",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2327",
+      "stockName": "國巨*",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "突破一年新高",
+      "price": 855,
+      "ma20": 715.65,
+      "ma20DistancePct": 19.47,
+      "reason": "4 檔 ETF / 3 家投信新進，後續加碼 6 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "4 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "3 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3.7 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+25.4 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00992A 5/14建倉→5/20加碼",
+            "00982A 5/15建倉→5/19加碼→5/20加碼",
+            "00400A 5/18建倉→5/19加碼→5/20加碼→6/12加碼",
+            "00984A 6/11建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 4,
+        "issuerCount": 3,
+        "addCount": 6,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 2905290000,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554be",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2382",
+      "stockName": "廣達",
+      "industry": "電腦及週邊設備業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "站上MA20",
+      "price": 372,
+      "ma20": 347.75,
+      "ma20DistancePct": 6.97,
+      "reason": "3 檔 ETF / 3 家投信新進，後續加碼 6 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "3 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "3 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+9.8 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+12.0 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00981A 5/29建倉→6/1加碼→6/2加碼",
+            "00994A 5/29建倉→6/1加碼→6/2加碼→6/3加碼",
+            "00995A 6/2建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 3,
+        "issuerCount": 3,
+        "addCount": 6,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 2179920000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554bf",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2376",
+      "stockName": "技嘉",
+      "industry": "電腦及週邊設備業",
+      "latestSignalDate": "2026-06-04",
+      "priceState": "跌破MA20",
+      "price": 342,
+      "ma20": 346.95,
+      "ma20DistancePct": -1.43,
+      "reason": "4 檔 ETF / 4 家投信新進，後續加碼 4 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・偏多"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "4 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "4 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3.4 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+3.3 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00982A 5/19建倉→5/20加碼→5/21加碼→6/4加碼",
+            "00994A 5/29建倉",
+            "00984A 6/1建倉→6/3加碼",
+            "00985A 6/2建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 4,
+        "issuerCount": 4,
+        "addCount": 4,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 667926000,
+        "latestSignalDate": "2026-06-04"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554c0",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6196",
+      "stockName": "帆宣",
+      "industry": "其他電子業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "突破一年新高",
+      "price": 548,
+      "ma20": 484.88,
+      "ma20DistancePct": 13.02,
+      "reason": "3 檔 ETF / 2 家投信新進，後續加碼 4 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "3 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.3 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+3.9 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00403A 5/21建倉→5/22加碼→5/26加碼",
+            "00984A 6/1建倉→6/3加碼",
+            "00993A 6/10建倉→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 3,
+        "issuerCount": 2,
+        "addCount": 4,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 516216000,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554c1",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2451",
+      "stockName": "創見",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 305.5,
+      "ma20": 321.57,
+      "ma20DistancePct": -5,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 4 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+9,012 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2.9 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00982A 5/19建倉→5/20加碼→5/21加碼→6/1加碼",
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 4,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 375459500,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554c2",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2377",
+      "stockName": "微星",
+      "industry": "電腦及週邊設備業",
+      "latestSignalDate": "2026-05-25",
+      "priceState": "站上MA20",
+      "price": 136.5,
+      "ma20": 129.85,
+      "ma20DistancePct": 5.12,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 4 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+5,938 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+7.3 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00982A 5/19建倉→5/20加碼→5/21加碼→5/22加碼→5/25加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 4,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 794020500,
+        "latestSignalDate": "2026-05-25"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554c3",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3042",
+      "stockName": "晶技",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "站上MA20",
+      "price": 224.5,
+      "ma20": 198.45,
+      "ma20DistancePct": 13.13,
+      "reason": "3 檔 ETF / 3 家投信新進，後續加碼 3 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・偏多"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "3 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "3 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+9.5 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+3.5 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00991A 5/26建倉→5/27加碼",
+            "00993A 5/27建倉→5/28加碼",
+            "00996A 6/11建倉→6/12加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 3,
+        "issuerCount": 3,
+        "addCount": 3,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 1305018500,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554c4",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "7769",
+      "stockName": "鴻勁",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 7210,
+      "ma20": 7345.25,
+      "ma20DistancePct": -1.84,
+      "reason": "3 檔 ETF / 3 家投信新進，後續加碼 3 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "3 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "3 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3.3 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+4.8 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00982A 5/19建倉→5/20加碼→5/21加碼",
+            "00400A 6/1建倉",
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 3,
+        "issuerCount": 3,
+        "addCount": 3,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 807520000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554c5",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2347",
+      "stockName": "聯強",
+      "industry": "電子通路業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "均線附近",
+      "price": 89.1,
+      "ma20": 86.91,
+      "ma20DistancePct": 2.51,
+      "reason": "3 檔 ETF / 2 家投信新進，後續加碼 3 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "3 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.5 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+9,427 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00999A 5/15建倉→5/18加碼",
+            "00984A 6/1建倉→6/3加碼",
+            "00993A 6/10建倉→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 3,
+        "issuerCount": 2,
+        "addCount": 3,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 248143500,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554c6",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6187",
+      "stockName": "萬潤",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-09",
+      "priceState": "跌破MA20",
+      "price": 1085,
+      "ma20": 1109.5,
+      "ma20DistancePct": -2.21,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 3 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+4.9 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+8.6 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00995A 5/22建倉→5/27加碼",
+            "00992A 6/4建倉→6/5加碼→6/9加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 3,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 1349740000,
+        "latestSignalDate": "2026-06-09"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554c7",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3036",
+      "stockName": "文曄",
+      "industry": "電子通路業",
+      "latestSignalDate": "2026-06-05",
+      "priceState": "跌破MA20",
+      "price": 228.5,
+      "ma20": 274.55,
+      "ma20DistancePct": -16.77,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 3 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3.2 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+4.2 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00982A 5/19建倉→5/20加碼→5/21加碼",
+            "00985A 5/22建倉→6/5加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 3,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 744681500,
+        "latestSignalDate": "2026-06-05"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554c8",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2408",
+      "stockName": "南亞科",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "站上MA20",
+      "price": 374,
+      "ma20": 337.38,
+      "ma20DistancePct": 10.86,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 3 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・偏多"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.7 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1.4 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00994A 5/29建倉→6/1加碼→6/12加碼",
+            "00993A 6/10建倉→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 3,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 314908000,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554c9",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6831",
+      "stockName": "邁科",
+      "industry": "電腦及週邊設備業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 727,
+      "ma20": 750.9,
+      "ma20DistancePct": -3.18,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 3 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+7,997 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1.3 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00982A 5/19建倉→5/20加碼→5/21加碼",
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 3,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 205014000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554ca",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "1303",
+      "stockName": "南亞",
+      "industry": "塑膠工業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "站上MA20",
+      "price": 106.5,
+      "ma20": 96.3,
+      "ma20DistancePct": 10.59,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 3 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.7 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+5.0 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00403A 6/3建倉→6/4加碼→6/8加碼→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 3,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 670950000,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554cb",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3045",
+      "stockName": "台灣大",
+      "industry": "通信網路業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "突破一年新高",
+      "price": 119.5,
+      "ma20": 114.58,
+      "ma20DistancePct": 4.3,
+      "reason": "3 檔 ETF / 3 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "3 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "3 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.7 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+3,227 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00999A 5/15建倉",
+            "00994A 6/5建倉→6/8加碼",
+            "00993A 6/10建倉→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 3,
+        "issuerCount": 3,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 205301000,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554cc",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6147",
+      "stockName": "頎邦",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-02",
+      "priceState": "跌破MA20",
+      "price": 224,
+      "ma20": 247.9,
+      "ma20DistancePct": -9.64,
+      "reason": "3 檔 ETF / 3 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "3 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "3 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.5 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2,688 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00994A 5/20建倉→5/29加碼",
+            "00993A 5/28建倉",
+            "00995A 6/1建倉→6/2加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 3,
+        "issuerCount": 3,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 172480000,
+        "latestSignalDate": "2026-06-02"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554cd",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3533",
+      "stockName": "嘉澤",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-05-21",
+      "priceState": "跌破MA20",
+      "price": 2240,
+      "ma20": 2444.25,
+      "ma20DistancePct": -8.36,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・偏多"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+6.0 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+11.5 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00981A 5/19建倉→5/20加碼→5/21加碼",
+            "00994A 5/21建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 1751680000,
+        "latestSignalDate": "2026-05-21"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554ce",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6278",
+      "stockName": "台表科",
+      "industry": "光電業",
+      "latestSignalDate": "2026-05-20",
+      "priceState": "跌破MA20",
+      "price": 211,
+      "ma20": 215.4,
+      "ma20DistancePct": -2.04,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+7.3 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+4.7 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00981A 5/14建倉→5/18加碼",
+            "00982A 5/19建倉→5/20加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 1201645000,
+        "latestSignalDate": "2026-05-20"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554cf",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "8021",
+      "stockName": "尖點",
+      "industry": "其他電子業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "站上MA20",
+      "price": 522,
+      "ma20": 454.2,
+      "ma20DistancePct": 14.93,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.0 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+7.8 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00992A 5/22建倉→5/25加碼→6/12加碼",
+            "00984A 6/11建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 884268000,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554d0",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2303",
+      "stockName": "聯電",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-08",
+      "priceState": "站上MA20",
+      "price": 133.5,
+      "ma20": 127.38,
+      "ma20DistancePct": 4.81,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・偏多"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3.4 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2.1 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 5/27建倉→5/28加碼→5/29加碼",
+            "00400A 6/8建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 554826000,
+        "latestSignalDate": "2026-06-08"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554d1",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3653",
+      "stockName": "健策",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-06-09",
+      "priceState": "均線附近",
+      "price": 3690,
+      "ma20": 3624.25,
+      "ma20DistancePct": 1.81,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+6,273 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2.1 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00400A 6/8建倉→6/9加碼",
+            "00994A 6/8建倉→6/9加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 276750000,
+        "latestSignalDate": "2026-06-09"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554d2",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3081",
+      "stockName": "聯亞",
+      "industry": "通信網路業",
+      "latestSignalDate": "2026-06-01",
+      "priceState": "跌破MA20",
+      "price": 2195,
+      "ma20": 2609.75,
+      "ma20DistancePct": -15.89,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.9 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+9,000 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00400A 5/14建倉→5/22加碼",
+            "00996A 5/25建倉→6/1加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 276570000,
+        "latestSignalDate": "2026-06-01"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554d3",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "9939",
+      "stockName": "宏全",
+      "industry": "其他",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "突破半年新高",
+      "price": 133.5,
+      "ma20": 125.88,
+      "ma20DistancePct": 6.06,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+5,781 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+4,632 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00999A 5/15建倉→5/18加碼",
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 104130000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554d4",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3008",
+      "stockName": "大立光",
+      "industry": "光電業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "站上MA20",
+      "price": 4020,
+      "ma20": 3686,
+      "ma20DistancePct": 9.06,
+      "reason": "2 檔 ETF / 1 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+8.3 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+9.6 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00982A 5/19建倉→5/20加碼",
+            "00992A 6/4建倉→6/12加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 1,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 1784880000,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554d5",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6446",
+      "stockName": "藥華藥",
+      "industry": "生技醫療業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "站上MA20",
+      "price": 949,
+      "ma20": 890.45,
+      "ma20DistancePct": 6.58,
+      "reason": "2 檔 ETF / 1 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,278 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+3,511 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 5/27建倉→5/28加碼",
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 1,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 57889000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554d6",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "8016",
+      "stockName": "矽創",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-21",
+      "priceState": "跌破MA20",
+      "price": 289.5,
+      "ma20": 294.15,
+      "ma20DistancePct": -1.58,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2.1 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+4.5 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00982A 5/19建倉→5/20加碼→5/21加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 661218000,
+        "latestSignalDate": "2026-05-21"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554d7",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3702",
+      "stockName": "大聯大",
+      "industry": "電子通路業",
+      "latestSignalDate": "2026-05-21",
+      "priceState": "跌破MA20",
+      "price": 105,
+      "ma20": 115.58,
+      "ma20DistancePct": -9.15,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+4,788 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+5.4 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00982A 5/19建倉→5/20加碼→5/21加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 588525000,
+        "latestSignalDate": "2026-05-21"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554d8",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2316",
+      "stockName": "楠梓電",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-05-21",
+      "priceState": "跌破MA20",
+      "price": 156,
+      "ma20": 158.72,
+      "ma20DistancePct": -1.72,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.5 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+3.9 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00982A 5/19建倉→5/20加碼→5/21加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 543816000,
+        "latestSignalDate": "2026-05-21"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554d9",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2351",
+      "stockName": "順德",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-21",
+      "priceState": "跌破MA20",
+      "price": 183,
+      "ma20": 195.8,
+      "ma20DistancePct": -6.54,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "單 ETF 追買",
+        "多空分歧・偏多"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+5,179 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2.0 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00982A 5/19建倉→5/20加碼→5/21加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 254919000,
+        "latestSignalDate": "2026-05-21"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554da",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2881",
+      "stockName": "富邦金",
+      "industry": "金融保險業",
+      "latestSignalDate": "2026-06-10",
+      "priceState": "站上MA20",
+      "price": 122,
+      "ma20": 109.53,
+      "ma20DistancePct": 11.39,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,513 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+7,491 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 5/27建倉→5/28加碼→6/10加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 100040000,
+        "latestSignalDate": "2026-06-10"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554db",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2344",
+      "stockName": "華邦電",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-01",
+      "priceState": "站上MA20",
+      "price": 172,
+      "ma20": 149.43,
+      "ma20DistancePct": 15.11,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,440 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+6,536 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00994A 5/27建倉→5/29加碼→6/1加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 99760000,
+        "latestSignalDate": "2026-06-01"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554dc",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "8028",
+      "stockName": "昇陽半導體",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-10",
+      "priceState": "均線附近",
+      "price": 315,
+      "ma20": 310.7,
+      "ma20DistancePct": 1.38,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "單 ETF 追買",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,457 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+5,229 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 5/27建倉→5/28加碼→6/10加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 76860000,
+        "latestSignalDate": "2026-06-10"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554dd",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2606",
+      "stockName": "裕民",
+      "industry": "航運業",
+      "latestSignalDate": "2026-06-10",
+      "priceState": "跌破MA20",
+      "price": 68.3,
+      "ma20": 68.48,
+      "ma20DistancePct": -0.27,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "單 ETF 追買",
+        "多空分歧・偏多"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,701 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+3,879 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 5/27建倉→5/28加碼→6/10加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 55801100,
+        "latestSignalDate": "2026-06-10"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554de",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "8464",
+      "stockName": "億豐",
+      "industry": "居家生活",
+      "latestSignalDate": "2026-06-04",
+      "priceState": "站上MA20",
+      "price": 348.5,
+      "ma20": 322.82,
+      "ma20DistancePct": 7.95,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,673 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2,335 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00401A 5/25建倉→6/1加碼→6/4加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 40077500,
+        "latestSignalDate": "2026-06-04"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554df",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "4991",
+      "stockName": "環宇-KY",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-04",
+      "priceState": "跌破MA20",
+      "price": 554,
+      "ma20": 694.2,
+      "ma20DistancePct": -20.2,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 2 筆",
+      "tags": [
+        "單 ETF 追買",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,219 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+665 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 5/27建倉→6/3加碼→6/4加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 2,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 18836000,
+        "latestSignalDate": "2026-06-04"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554e0",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6139",
+      "stockName": "亞翔",
+      "industry": "其他電子業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "站上MA20",
+      "price": 805,
+      "ma20": 771.95,
+      "ma20DistancePct": 4.28,
+      "reason": "4 檔 ETF / 4 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "4 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "4 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3.0 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1,369 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00992A 5/22建倉",
+            "00993A 6/10建倉→6/11加碼",
+            "00987A 6/11建倉",
+            "00400A 6/12建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 4,
+        "issuerCount": 4,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 311535000,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554e1",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3090",
+      "stockName": "日電貿",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "突破一年新高",
+      "price": 256,
+      "ma20": 214.35,
+      "ma20DistancePct": 19.43,
+      "reason": "3 檔 ETF / 3 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "3 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "3 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3.9 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+8,294 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00999A 5/15建倉",
+            "00400A 6/11建倉→6/12加碼",
+            "00984A 6/11建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 3,
+        "issuerCount": 3,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 476672000,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554e2",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6805",
+      "stockName": "富世達",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-06-02",
+      "priceState": "跌破MA20",
+      "price": 1825,
+      "ma20": 1865,
+      "ma20DistancePct": -2.14,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+9.3 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2.2 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00992A 5/22建倉",
+            "00991A 6/1建倉→6/2加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 1153400000,
+        "latestSignalDate": "2026-06-02"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554e3",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3711",
+      "stockName": "日月光投控",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-28",
+      "priceState": "站上MA20",
+      "price": 590,
+      "ma20": 569.9,
+      "ma20DistancePct": 3.53,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・偏多"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2.7 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1.1 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00400A 5/26建倉",
+            "00993A 5/27建倉→5/28加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 382320000,
+        "latestSignalDate": "2026-05-28"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554e4",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2049",
+      "stockName": "上銀",
+      "industry": "電機機械",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 323.5,
+      "ma20": 366.02,
+      "ma20DistancePct": -11.62,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・偏多"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2.6 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+647 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00985A 5/18建倉",
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 271416500,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554e5",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "7734",
+      "stockName": "印能科技",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 2780,
+      "ma20": 3346.5,
+      "ma20DistancePct": -16.93,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.8 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+556 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00992A 5/22建倉",
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 189040000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554e6",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "4904",
+      "stockName": "遠傳",
+      "industry": "通信網路業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "站上MA20",
+      "price": 109,
+      "ma20": 99.2,
+      "ma20DistancePct": 9.88,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.7 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1,918 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00999A 5/15建倉",
+            "00993A 6/10建倉→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 184646000,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554e7",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "5904",
+      "stockName": "寶雅",
+      "industry": "居家生活",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "突破一年新高",
+      "price": 647,
+      "ma20": 575.95,
+      "ma20DistancePct": 12.34,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+5,305 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2,006 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 6/10建倉→6/11加碼",
+            "00401A 6/11建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 73111000,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554e8",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6285",
+      "stockName": "啟碁",
+      "industry": "通信網路業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 270,
+      "ma20": 292.85,
+      "ma20DistancePct": -7.8,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "多 ETF 追買",
+        "多空分歧・偏多"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+4,509 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+702 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00994A 5/29建倉",
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 52110000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554e9",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "8358",
+      "stockName": "金居",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-06-04",
+      "priceState": "站上MA20",
+      "price": 574,
+      "ma20": 553.6,
+      "ma20DistancePct": 3.68,
+      "reason": "2 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "多 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.1 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2,239 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/3建倉",
+            "00993A 6/3建倉→6/4加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 132020000,
+        "latestSignalDate": "2026-06-04"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554ea",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6488",
+      "stockName": "環球晶",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-28",
+      "priceState": "站上MA20",
+      "price": 864,
+      "ma20": 823.1,
+      "ma20DistancePct": 4.97,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+8.6 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2.7 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00403A 5/27建倉→5/28加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 1131840000,
+        "latestSignalDate": "2026-05-28"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554eb",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3189",
+      "stockName": "景碩",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-27",
+      "priceState": "跌破MA20",
+      "price": 610,
+      "ma20": 656.15,
+      "ma20DistancePct": -7.03,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+4.9 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+3.5 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00403A 5/26建倉→5/27加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 841800000,
+        "latestSignalDate": "2026-05-27"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554ec",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2317",
+      "stockName": "鴻海",
+      "industry": "其他電子業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 260.5,
+      "ma20": 268.88,
+      "ma20DistancePct": -3.11,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3.1 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+5.2 億",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00403A 6/2建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 833600000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554ed",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6271",
+      "stockName": "同欣電",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "站上MA20",
+      "price": 238.5,
+      "ma20": 230.1,
+      "ma20DistancePct": 3.65,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.6 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+9,063 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00981A 5/21建倉→6/12加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 254241000,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554ee",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3665",
+      "stockName": "貿聯-KY",
+      "industry": "其他電子業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "站上MA20",
+      "price": 2310,
+      "ma20": 2155.75,
+      "ma20DistancePct": 7.16,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.1 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+6,237 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 6/10建倉→6/12加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 170940000,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554ef",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2412",
+      "stockName": "中華電",
+      "industry": "通信網路業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "站上MA20",
+      "price": 145,
+      "ma20": 139.82,
+      "ma20DistancePct": 3.7,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.3 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+3,176 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 158630000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554f0",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3034",
+      "stockName": "聯詠",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "均線附近",
+      "price": 488.5,
+      "ma20": 485.05,
+      "ma20DistancePct": 0.71,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.2 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+3,175 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 155343000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554f1",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2885",
+      "stockName": "元大金",
+      "industry": "金融保險業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "站上MA20",
+      "price": 63.9,
+      "ma20": 59.59,
+      "ma20DistancePct": 7.23,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+7,872 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+4,933 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 6/10建倉→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 128055600,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554f2",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2882",
+      "stockName": "國泰金",
+      "industry": "金融保險業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "站上MA20",
+      "price": 100.5,
+      "ma20": 88.75,
+      "ma20DistancePct": 13.25,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+6,764 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+4,492 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 6/10建倉→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 112560000,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554f3",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2404",
+      "stockName": "漢唐",
+      "industry": "其他電子業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "突破一年新高",
+      "price": 1310,
+      "ma20": 1162.25,
+      "ma20DistancePct": 12.71,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+7,467 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1,965 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 94320000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554f4",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3293",
+      "stockName": "鈊象",
+      "industry": "文化創意業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 755,
+      "ma20": 761.95,
+      "ma20DistancePct": -0.91,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+6,191 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1,586 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 77765000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554f5",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3661",
+      "stockName": "世芯-KY",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-21",
+      "priceState": "跌破MA20",
+      "price": 4105,
+      "ma20": 4472.5,
+      "ma20DistancePct": -8.22,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+5,747 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1,642 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00996A 5/20建倉→5/21加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 73890000,
+        "latestSignalDate": "2026-05-21"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554f6",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "5876",
+      "stockName": "上海商銀",
+      "industry": "金融保險業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "站上MA20",
+      "price": 42.5,
+      "ma20": 40.51,
+      "ma20DistancePct": 4.92,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+5,678 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1,441 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 71187500,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554f7",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "9958",
+      "stockName": "世紀鋼",
+      "industry": "鋼鐵工業",
+      "latestSignalDate": "2026-05-18",
+      "priceState": "站上MA20",
+      "price": 112.5,
+      "ma20": 107.47,
+      "ma20DistancePct": 4.68,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,454 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+3,454 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00999A 5/15建倉→5/18加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 69075000,
+        "latestSignalDate": "2026-05-18"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554f8",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "5871",
+      "stockName": "中租-KY",
+      "industry": "其他",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "站上MA20",
+      "price": 121.5,
+      "ma20": 113.4,
+      "ma20DistancePct": 7.14,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+5,504 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1,397 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 69012000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554f9",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "8996",
+      "stockName": "高力",
+      "industry": "電機機械",
+      "latestSignalDate": "2026-05-28",
+      "priceState": "均線附近",
+      "price": 1145,
+      "ma20": 1128.7,
+      "ma20DistancePct": 1.44,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,779 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+3,092 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00987A 5/15建倉→5/28加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 68700000,
+        "latestSignalDate": "2026-05-28"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554fa",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2059",
+      "stockName": "川湖",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-05-29",
+      "priceState": "突破一年新高",
+      "price": 6910,
+      "ma20": 5383.25,
+      "ma20DistancePct": 28.36,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+4,837 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1,382 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 5/28建倉→5/29加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 62190000,
+        "latestSignalDate": "2026-05-29"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554fb",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "1215",
+      "stockName": "卜蜂",
+      "industry": "食品工業",
+      "latestSignalDate": "2026-05-18",
+      "priceState": "跌破MA20",
+      "price": 118,
+      "ma20": 127.53,
+      "ma20DistancePct": -7.47,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,021 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+3,021 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00999A 5/15建倉→5/18加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 60416000,
+        "latestSignalDate": "2026-05-18"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554fc",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2891",
+      "stockName": "中信金",
+      "industry": "金融保險業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "站上MA20",
+      "price": 67.6,
+      "ma20": 62.31,
+      "ma20DistancePct": 8.49,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,481 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2,190 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 6/10建倉→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 56716400,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554fd",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6146",
+      "stockName": "耕興",
+      "industry": "其他電子業",
+      "latestSignalDate": "2026-05-18",
+      "priceState": "跌破MA20",
+      "price": 196.5,
+      "ma20": 217.9,
+      "ma20DistancePct": -9.82,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,830 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2,830 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00999A 5/15建倉→5/18加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 56592000,
+        "latestSignalDate": "2026-05-18"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554fe",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "5274",
+      "stockName": "信驊",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-28",
+      "priceState": "站上MA20",
+      "price": 18445,
+      "ma20": 17522.25,
+      "ma20DistancePct": 5.27,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,689 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1,845 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00987A 5/25建倉→5/28加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 55335000,
+        "latestSignalDate": "2026-05-28"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f554ff",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2637",
+      "stockName": "慧洋-KY",
+      "industry": "航運業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "站上MA20",
+      "price": 78.5,
+      "ma20": 76,
+      "ma20DistancePct": 3.29,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,344 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2,174 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 6/10建倉→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 55185500,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55500",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2027",
+      "stockName": "大成鋼",
+      "industry": "鋼鐵工業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "均線附近",
+      "price": 43.55,
+      "ma20": 42.39,
+      "ma20DistancePct": 2.74,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,519 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1,886 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 6/10建倉→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 54045550,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55501",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "1560",
+      "stockName": "中砂",
+      "industry": "電機機械",
+      "latestSignalDate": "2026-05-28",
+      "priceState": "跌破MA20",
+      "price": 652,
+      "ma20": 682.05,
+      "ma20DistancePct": -4.41,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,760 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+3,586 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 5/27建倉→5/28加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 53464000,
+        "latestSignalDate": "2026-05-28"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55502",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3023",
+      "stockName": "信邦",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "均線附近",
+      "price": 314,
+      "ma20": 313.18,
+      "ma20DistancePct": 0.26,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,046 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1,884 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 6/10建倉→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 49298000,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55503",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "4938",
+      "stockName": "和碩",
+      "industry": "電腦及週邊設備業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "站上MA20",
+      "price": 93.1,
+      "ma20": 87.94,
+      "ma20DistancePct": 5.86,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,892 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+987 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 48784400,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55504",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6782",
+      "stockName": "視陽",
+      "industry": "生技醫療業",
+      "latestSignalDate": "2026-05-18",
+      "priceState": "均線附近",
+      "price": 194.5,
+      "ma20": 193.88,
+      "ma20DistancePct": 0.32,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,315 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2,315 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00999A 5/15建倉→5/18加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 46291000,
+        "latestSignalDate": "2026-05-18"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55505",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "5536",
+      "stockName": "聖暉*",
+      "industry": "其他電子業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "突破一年新高",
+      "price": 1180,
+      "ma20": 1031.55,
+      "ma20DistancePct": 14.39,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,950 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1,652 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 6/10建倉→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 46020000,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55506",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2912",
+      "stockName": "統一超",
+      "industry": "貿易百貨",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "均線附近",
+      "price": 230,
+      "ma20": 223.78,
+      "ma20DistancePct": 2.78,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,611 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+920 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 45310000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55507",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "7828",
+      "stockName": "創新服務",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "突破一年新高",
+      "price": 1920,
+      "ma20": 1434.5,
+      "ma20DistancePct": 33.84,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,920 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+2,112 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00401A 6/10建倉→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 40320000,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55508",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "4722",
+      "stockName": "國精化",
+      "industry": "化學工業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "跌破MA20",
+      "price": 226.5,
+      "ma20": 260.82,
+      "ma20DistancePct": -13.16,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,446 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1,586 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 6/10建倉→6/11加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 40317000,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55509",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "7750",
+      "stockName": "新代",
+      "industry": "電機機械",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 2230,
+      "ma20": 2338.25,
+      "ma20DistancePct": -4.63,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,676 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+892 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 35680000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5550a",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6715",
+      "stockName": "嘉基",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 391.5,
+      "ma20": 447.35,
+      "ma20DistancePct": -12.48,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,780 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+744 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 35235000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5550b",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3006",
+      "stockName": "晶豪科",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 217,
+      "ma20": 232.5,
+      "ma20DistancePct": -6.67,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,756 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+694 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 34503000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5550c",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2426",
+      "stockName": "鼎元",
+      "industry": "光電業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 68,
+      "ma20": 72.12,
+      "ma20DistancePct": -5.71,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,632 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+666 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 32980000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5550d",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2464",
+      "stockName": "盟立",
+      "industry": "其他電子業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 149,
+      "ma20": 158.47,
+      "ma20DistancePct": -5.98,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,518 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+656 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 31737000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5550e",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "4764",
+      "stockName": "雙鍵",
+      "industry": "化學工業",
+      "latestSignalDate": "2026-06-04",
+      "priceState": "跌破MA20",
+      "price": 263,
+      "ma20": 300.45,
+      "ma20DistancePct": -12.46,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,473 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+1,631 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00987A 6/3建倉→6/4加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 31034000,
+        "latestSignalDate": "2026-06-04"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5550f",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6890",
+      "stockName": "來億-KY",
+      "industry": "運動休閒",
+      "latestSignalDate": "2026-06-08",
+      "priceState": "站上MA20",
+      "price": 256,
+      "ma20": 203.57,
+      "ma20DistancePct": 25.75,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,176 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+794 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/8加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 29696000,
+        "latestSignalDate": "2026-06-08"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55510",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2645",
+      "stockName": "長榮航太",
+      "industry": "航運業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "均線附近",
+      "price": 166.5,
+      "ma20": 163.65,
+      "ma20DistancePct": 1.74,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,998 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+516 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 25141500,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55511",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "5269",
+      "stockName": "祥碩",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 1375,
+      "ma20": 1458.75,
+      "ma20DistancePct": -5.74,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,650 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+550 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 22000000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55512",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2393",
+      "stockName": "億光",
+      "industry": "光電業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "站上MA20",
+      "price": 70.9,
+      "ma20": 65.2,
+      "ma20DistancePct": 8.74,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,645 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+418 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 20631900,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55513",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6670",
+      "stockName": "復盛應用",
+      "industry": "運動休閒",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "突破半年新高",
+      "price": 285,
+      "ma20": 269.23,
+      "ma20DistancePct": 5.86,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,539 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+428 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 19665000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55514",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6592",
+      "stockName": "和潤企業",
+      "industry": "其他",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "站上MA20",
+      "price": 65.3,
+      "ma20": 62.61,
+      "ma20DistancePct": 4.29,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,567 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+398 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 19655300,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55515",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6197",
+      "stockName": "佳必琪",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "站上MA20",
+      "price": 327.5,
+      "ma20": 289.55,
+      "ma20DistancePct": 13.11,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,572 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+393 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 19650000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55516",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2548",
+      "stockName": "華固",
+      "industry": "建材營造",
+      "latestSignalDate": "2026-06-08",
+      "priceState": "跌破MA20",
+      "price": 106,
+      "ma20": 113.79,
+      "ma20DistancePct": -6.85,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,283 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+572 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/8加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 18550000,
+        "latestSignalDate": "2026-06-08"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55517",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "4766",
+      "stockName": "南寶",
+      "industry": "化學工業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "均線附近",
+      "price": 369.5,
+      "ma20": 367.8,
+      "ma20DistancePct": 0.46,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,441 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+406 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 18475000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55518",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "5434",
+      "stockName": "崇越",
+      "industry": "電子通路業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "站上MA20",
+      "price": 466,
+      "ma20": 449,
+      "ma20DistancePct": 3.79,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,445 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+373 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 18174000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55519",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "8081",
+      "stockName": "致新",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "均線附近",
+      "price": 283,
+      "ma20": 277.98,
+      "ma20DistancePct": 1.81,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,415 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+368 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 17829000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5551a",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "1736",
+      "stockName": "喬山",
+      "industry": "運動休閒",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 116,
+      "ma20": 116.85,
+      "ma20DistancePct": -0.73,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,392 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+371 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 17632000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5551b",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3592",
+      "stockName": "瑞鼎",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "均線附近",
+      "price": 272,
+      "ma20": 270,
+      "ma20DistancePct": 0.74,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,387 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+354 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 17408000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5551c",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "8261",
+      "stockName": "富鼎",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "站上MA20",
+      "price": 173.5,
+      "ma20": 166.85,
+      "ma20DistancePct": 3.99,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,388 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+347 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 17350000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5551d",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6409",
+      "stockName": "旭隼",
+      "industry": "其他電子業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "站上MA20",
+      "price": 930,
+      "ma20": 768.85,
+      "ma20DistancePct": 20.96,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+558 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+186 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 7440000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5551e",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "1477",
+      "stockName": "聚陽",
+      "industry": "紡織纖維",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "均線附近",
+      "price": 224,
+      "ma20": 220.45,
+      "ma20DistancePct": 1.61,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+538 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+157 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 6944000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5551f",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "1795",
+      "stockName": "美時",
+      "industry": "生技醫療業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "均線附近",
+      "price": 196.5,
+      "ma20": 195.7,
+      "ma20DistancePct": 0.41,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 1 筆",
+      "tags": [
+        "單 ETF 追買"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+550 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+138 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/1建倉→6/3加碼"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 1,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 6877500,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55520",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "4958",
+      "stockName": "臻鼎-KY",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "突破一年新高",
+      "price": 552,
+      "ma20": 501.9,
+      "ma20DistancePct": 9.98,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "多 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+18.9 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00981A 6/12建倉",
+            "00991A 6/12建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 1892256000,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55521",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2467",
+      "stockName": "志聖",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-05-22",
+      "priceState": "跌破MA20",
+      "price": 552,
+      "ma20": 597.9,
+      "ma20DistancePct": -7.68,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "多 ETF 新進",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2.1 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00992A 5/22建倉",
+            "00995A 5/22建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 206448000,
+        "latestSignalDate": "2026-05-22"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55522",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6239",
+      "stockName": "力成",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-28",
+      "priceState": "站上MA20",
+      "price": 347.5,
+      "ma20": 317.18,
+      "ma20DistancePct": 9.56,
+      "reason": "2 檔 ETF / 2 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "多 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "2 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+6,637 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00400A 5/26建倉",
+            "00993A 5/28建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 2,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 66372500,
+        "latestSignalDate": "2026-05-28"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55523",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "8150",
+      "stockName": "南茂",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "站上MA20",
+      "price": 97,
+      "ma20": 91.68,
+      "ma20DistancePct": 5.8,
+      "reason": "2 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "多 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "2 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,880 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00406A 6/12建倉",
+            "00995A 6/12建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 2,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 38800000,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55524",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3211",
+      "stockName": "順達",
+      "industry": "電腦及週邊設備業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "均線附近",
+      "price": 418,
+      "ma20": 414.4,
+      "ma20DistancePct": 0.87,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2.9 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00403A 6/12建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 292600000,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55525",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "5289",
+      "stockName": "宜鼎",
+      "industry": "電腦及週邊設備業",
+      "latestSignalDate": "2026-05-22",
+      "priceState": "均線附近",
+      "price": 1805,
+      "ma20": 1786.5,
+      "ma20DistancePct": 1.04,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進",
+        "多空分歧・偏多"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2.8 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00992A 5/22建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 283385000,
+        "latestSignalDate": "2026-05-22"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55526",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3363",
+      "stockName": "上詮",
+      "industry": "通信網路業",
+      "latestSignalDate": "2026-06-08",
+      "priceState": "跌破MA20",
+      "price": 737,
+      "ma20": 816.6,
+      "ma20DistancePct": -9.75,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2.2 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00992A 6/8建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 221100000,
+        "latestSignalDate": "2026-06-08"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55527",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2337",
+      "stockName": "旺宏",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-22",
+      "priceState": "跌破MA20",
+      "price": 146.5,
+      "ma20": 152.63,
+      "ma20DistancePct": -4.01,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2.1 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00992A 5/22建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 214622500,
+        "latestSignalDate": "2026-05-22"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55528",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3529",
+      "stockName": "力旺",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-04",
+      "priceState": "跌破MA20",
+      "price": 3090,
+      "ma20": 3374.75,
+      "ma20DistancePct": -8.44,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.9 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00980A 6/4建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 185400000,
+        "latestSignalDate": "2026-06-04"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55529",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "8046",
+      "stockName": "南電",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-06-04",
+      "priceState": "跌破MA20",
+      "price": 819,
+      "ma20": 862.25,
+      "ma20DistancePct": -5.02,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.8 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00980A 6/4建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 179361000,
+        "latestSignalDate": "2026-06-04"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5552a",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6274",
+      "stockName": "台燿",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-06-01",
+      "priceState": "跌破MA20",
+      "price": 1430,
+      "ma20": 1518,
+      "ma20DistancePct": -5.8,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.7 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00400A 6/1建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 174460000,
+        "latestSignalDate": "2026-06-01"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5552b",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "8112",
+      "stockName": "至上",
+      "industry": "電子通路業",
+      "latestSignalDate": "2026-05-15",
+      "priceState": "突破一年新高",
+      "price": 98.8,
+      "ma20": 89.1,
+      "ma20DistancePct": 10.89,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.7 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00999A 5/15建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 165292400,
+        "latestSignalDate": "2026-05-15"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5552c",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "8069",
+      "stockName": "元太",
+      "industry": "光電業",
+      "latestSignalDate": "2026-05-14",
+      "priceState": "跌破MA20",
+      "price": 196,
+      "ma20": 219,
+      "ma20DistancePct": -10.5,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.4 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00400A 5/14建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 138180000,
+        "latestSignalDate": "2026-05-14"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5552d",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6515",
+      "stockName": "穎崴",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-01",
+      "priceState": "站上MA20",
+      "price": 9590,
+      "ma20": 8893,
+      "ma20DistancePct": 7.84,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.2 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00400A 6/1建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 115080000,
+        "latestSignalDate": "2026-06-01"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5552e",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3443",
+      "stockName": "創意",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "跌破MA20",
+      "price": 4380,
+      "ma20": 4632.5,
+      "ma20DistancePct": -5.45,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1.1 億",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00400A 6/11建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 109500000,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5552f",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3227",
+      "stockName": "原相",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-15",
+      "priceState": "跌破MA20",
+      "price": 216,
+      "ma20": 224.93,
+      "ma20DistancePct": -3.97,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+9,979 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00999A 5/15建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 99792000,
+        "latestSignalDate": "2026-05-15"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55530",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "4749",
+      "stockName": "新應材",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-14",
+      "priceState": "跌破MA20",
+      "price": 921,
+      "ma20": 1036.55,
+      "ma20DistancePct": -11.15,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+8,289 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00400A 5/14建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 82890000,
+        "latestSignalDate": "2026-05-14"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55531",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2454",
+      "stockName": "聯發科",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-27",
+      "priceState": "均線附近",
+      "price": 4180,
+      "ma20": 4119.25,
+      "ma20DistancePct": 1.47,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+7,106 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00987A 5/27建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 71060000,
+        "latestSignalDate": "2026-05-27"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55532",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3406",
+      "stockName": "玉晶光",
+      "industry": "光電業",
+      "latestSignalDate": "2026-06-11",
+      "priceState": "站上MA20",
+      "price": 662,
+      "ma20": 616.3,
+      "ma20DistancePct": 7.42,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+6,289 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 6/11建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 62890000,
+        "latestSignalDate": "2026-06-11"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55533",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2481",
+      "stockName": "強茂",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-28",
+      "priceState": "跌破MA20",
+      "price": 145,
+      "ma20": 145.03,
+      "ma20DistancePct": -0.02,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+5,046 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00993A 5/28建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 50460000,
+        "latestSignalDate": "2026-05-28"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55534",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3481",
+      "stockName": "群創",
+      "industry": "光電業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "均線附近",
+      "price": 48.55,
+      "ma20": 47.96,
+      "ma20DistancePct": 1.23,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,743 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/3建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 37432050,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55535",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "8064",
+      "stockName": "東捷",
+      "industry": "光電業",
+      "latestSignalDate": "2026-06-03",
+      "priceState": "跌破MA20",
+      "price": 134.5,
+      "ma20": 144.38,
+      "ma20DistancePct": -6.84,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,685 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/3建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 36853000,
+        "latestSignalDate": "2026-06-03"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55536",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "4919",
+      "stockName": "新唐",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "跌破MA20",
+      "price": 175.5,
+      "ma20": 184.85,
+      "ma20DistancePct": -5.06,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+3,668 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/12建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 36679500,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55537",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3105",
+      "stockName": "穩懋",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-22",
+      "priceState": "均線附近",
+      "price": 505,
+      "ma20": 501.75,
+      "ma20DistancePct": 0.65,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,778 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00994A 5/22建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 27775000,
+        "latestSignalDate": "2026-05-22"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55538",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "2455",
+      "stockName": "全新",
+      "industry": "通信網路業",
+      "latestSignalDate": "2026-05-20",
+      "priceState": "跌破MA20",
+      "price": 352,
+      "ma20": 394.65,
+      "ma20DistancePct": -10.81,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,112 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00994A 5/20建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 21120000,
+        "latestSignalDate": "2026-05-20"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f55539",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6173",
+      "stockName": "信昌電",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "突破一年新高",
+      "price": 276.5,
+      "ma20": 215.3,
+      "ma20DistancePct": 28.43,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+2,074 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00984A 6/12建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 20737500,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5553a",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6510",
+      "stockName": "精測",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-04",
+      "priceState": "站上MA20",
+      "price": 3610,
+      "ma20": 3379,
+      "ma20DistancePct": 6.84,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,805 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00994A 6/4建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 18050000,
+        "latestSignalDate": "2026-06-04"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5553b",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "3264",
+      "stockName": "欣銓",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-06-12",
+      "priceState": "均線附近",
+      "price": 227.5,
+      "ma20": 223.43,
+      "ma20DistancePct": 1.82,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,638 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00992A 6/12建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 16380000,
+        "latestSignalDate": "2026-06-12"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5553c",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6415",
+      "stockName": "矽力*-KY",
+      "industry": "半導體業",
+      "latestSignalDate": "2026-05-20",
+      "priceState": "跌破MA20",
+      "price": 487,
+      "ma20": 560.13,
+      "ma20DistancePct": -13.06,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進",
+        "多空分歧・拉鋸"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,461 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00994A 5/20建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 14610000,
+        "latestSignalDate": "2026-05-20"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    },
+    {
+      "_id": "6a2c366350e6a19775f5553d",
+      "date": "2026-06-12",
+      "side": "buy",
+      "stockCode": "6213",
+      "stockName": "聯茂",
+      "industry": "電子零組件業",
+      "latestSignalDate": "2026-06-02",
+      "priceState": "跌破MA20",
+      "price": 252.5,
+      "ma20": 259.3,
+      "ma20DistancePct": -2.62,
+      "reason": "1 檔 ETF / 1 家投信新進，後續加碼 0 筆",
+      "tags": [
+        "單 ETF 新進"
+      ],
+      "tagCounts": {},
+      "metrics": [
+        {
+          "label": "新進 ETF",
+          "value": "1 檔",
+          "detail": "主動 ETF 新建倉"
+        },
+        {
+          "label": "投信",
+          "value": "1 家",
+          "detail": "參與建倉"
+        },
+        {
+          "label": "估算新進",
+          "value": "+1,263 萬",
+          "detail": "依最新收盤價估算"
+        },
+        {
+          "label": "估算加碼",
+          "value": "+0 萬",
+          "detail": "依最新收盤價估算"
+        }
+      ],
+      "timeline": [
+        {
+          "title": "建倉脈絡",
+          "items": [
+            "00995A 6/2建倉"
+          ]
+        }
+      ],
+      "sort": {
+        "etfCount": 1,
+        "issuerCount": 1,
+        "addCount": 0,
+        "reduceOrClearCount": 0,
+        "clearCount": 0,
+        "estimatedAmount": 12625000,
+        "latestSignalDate": "2026-06-02"
+      },
+      "syncedAt": "2026-06-12T16:40:00.010Z"
+    }
+  ]
+}

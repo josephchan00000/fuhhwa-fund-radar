@@ -1,0 +1,261 @@
+{
+  "fund_id": "00992A",
+  "issuer": "群益",
+  "as_of": "2026-06-15",
+  "tier": "B",
+  "provenance": "etfinfo.tw 第三方彙整（/api/etf/00992A，holdings.source=issuer-official）；Tier B，數字待以投信官網/公開說明書核對",
+  "holdings": [
+    {
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "weight": 8.6479,
+      "shares": 1706000
+    },
+    {
+      "stock_id": "2383",
+      "stock_name": "台光電",
+      "weight": 6.0442,
+      "shares": 563000
+    },
+    {
+      "stock_id": "3017",
+      "stock_name": "奇鋐",
+      "weight": 5.1901,
+      "shares": 1009000
+    },
+    {
+      "stock_id": "2345",
+      "stock_name": "智邦",
+      "weight": 5.0672,
+      "shares": 977000
+    },
+    {
+      "stock_id": "3665",
+      "stock_name": "貿聯-KY",
+      "weight": 4.6167,
+      "shares": 955000
+    },
+    {
+      "stock_id": "6223",
+      "stock_name": "旺矽",
+      "weight": 4.4774,
+      "shares": 326000
+    },
+    {
+      "stock_id": "8996",
+      "stock_name": "高力",
+      "weight": 4.3661,
+      "shares": 1630000
+    },
+    {
+      "stock_id": "2059",
+      "stock_name": "川湖",
+      "weight": 4.3525,
+      "shares": 293000
+    },
+    {
+      "stock_id": "3037",
+      "stock_name": "欣興",
+      "weight": 4.2967,
+      "shares": 2097000
+    },
+    {
+      "stock_id": "2454",
+      "stock_name": "聯發科",
+      "weight": 3.8734,
+      "shares": 406000
+    },
+    {
+      "stock_id": "3443",
+      "stock_name": "創意",
+      "weight": 3.1961,
+      "shares": 311000
+    },
+    {
+      "stock_id": "2327",
+      "stock_name": "國巨*",
+      "weight": 3.1418,
+      "shares": 1566000
+    },
+    {
+      "stock_id": "6515",
+      "stock_name": "穎崴",
+      "weight": 3.0716,
+      "shares": 145000
+    },
+    {
+      "stock_id": "6187",
+      "stock_name": "萬潤",
+      "weight": 2.9424,
+      "shares": 1220000
+    },
+    {
+      "stock_id": "6584",
+      "stock_name": "南俊國際",
+      "weight": 2.94,
+      "shares": 2204000
+    },
+    {
+      "stock_id": "2368",
+      "stock_name": "金像電",
+      "weight": 2.6624,
+      "shares": 945000
+    },
+    {
+      "stock_id": "3008",
+      "stock_name": "大立光",
+      "weight": 2.4528,
+      "shares": 260000
+    },
+    {
+      "stock_id": "6669",
+      "stock_name": "緯穎",
+      "weight": 2.3845,
+      "shares": 228000
+    },
+    {
+      "stock_id": "3661",
+      "stock_name": "世芯-KY",
+      "weight": 2.3766,
+      "shares": 262000
+    },
+    {
+      "stock_id": "8299",
+      "stock_name": "群聯",
+      "weight": 2.2035,
+      "shares": 445000
+    },
+    {
+      "stock_id": "2455",
+      "stock_name": "全新",
+      "weight": 2.1682,
+      "shares": 2753000
+    },
+    {
+      "stock_id": "3105",
+      "stock_name": "穩懋",
+      "weight": 2.1256,
+      "shares": 1949000
+    },
+    {
+      "stock_id": "3711",
+      "stock_name": "日月光投控",
+      "weight": 2.0513,
+      "shares": 1629000
+    },
+    {
+      "stock_id": "3653",
+      "stock_name": "健策",
+      "weight": 1.7516,
+      "shares": 214000
+    },
+    {
+      "stock_id": "2308",
+      "stock_name": "台達電",
+      "weight": 1.6226,
+      "shares": 344000
+    },
+    {
+      "stock_id": "8021",
+      "stock_name": "尖點",
+      "weight": 1.621,
+      "shares": 1501000
+    },
+    {
+      "stock_id": "7769",
+      "stock_name": "鴻勁",
+      "weight": 1.3994,
+      "shares": 91000
+    },
+    {
+      "stock_id": "8046",
+      "stock_name": "南電",
+      "weight": 1.3179,
+      "shares": 718000
+    },
+    {
+      "stock_id": "7751",
+      "stock_name": "竑騰",
+      "weight": 1.1125,
+      "shares": 375000
+    },
+    {
+      "stock_id": "3583",
+      "stock_name": "辛耘",
+      "weight": 0.9869,
+      "shares": 566000
+    },
+    {
+      "stock_id": "2360",
+      "stock_name": "致茂",
+      "weight": 0.9668,
+      "shares": 200000
+    },
+    {
+      "stock_id": "3189",
+      "stock_name": "景碩",
+      "weight": 0.6198,
+      "shares": 440013
+    },
+    {
+      "stock_id": "2303",
+      "stock_name": "聯電",
+      "weight": 0.604,
+      "shares": 2000000
+    },
+    {
+      "stock_id": "6139",
+      "stock_name": "亞翔",
+      "weight": 0.4722,
+      "shares": 250000
+    },
+    {
+      "stock_id": "2337",
+      "stock_name": "旺宏",
+      "weight": 0.4557,
+      "shares": 1343000
+    },
+    {
+      "stock_id": "3363",
+      "stock_name": "上詮",
+      "weight": 0.4526,
+      "shares": 300000
+    },
+    {
+      "stock_id": "6805",
+      "stock_name": "富世達",
+      "weight": 0.4036,
+      "shares": 109000
+    },
+    {
+      "stock_id": "5289",
+      "stock_name": "宜鼎",
+      "weight": 0.4016,
+      "shares": 98000
+    },
+    {
+      "stock_id": "7734",
+      "stock_name": "印能科技",
+      "weight": 0.3502,
+      "shares": 56000
+    },
+    {
+      "stock_id": "3260",
+      "stock_name": "威剛",
+      "weight": 0.3232,
+      "shares": 358000
+    },
+    {
+      "stock_id": "3264",
+      "stock_name": "欣銓",
+      "weight": 0.035,
+      "shares": 72000
+    },
+    {
+      "stock_id": "3491",
+      "stock_name": "昇達科",
+      "weight": 0.0033,
+      "shares": 1000
+    }
+  ]
+}

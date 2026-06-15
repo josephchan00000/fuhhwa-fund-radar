@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# 執行期產物（HTTP 快取 / SQLite / log）— 全由管線重建，不入庫
+data/
+
+# 每日報告為輸出產物（如需保留歷史可移除此行）
+reports/*.md
+
+# OS
+.DS_Store

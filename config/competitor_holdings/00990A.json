@@ -1,0 +1,321 @@
+{
+  "fund_id": "00990A",
+  "issuer": "元大",
+  "as_of": "2026-06-12",
+  "tier": "B",
+  "provenance": "etfinfo.tw 第三方彙整（/api/etf/00990A，holdings.source=pocket）；Tier B，數字待以投信官網/公開說明書核對",
+  "holdings": [
+    {
+      "stock_id": "SNDK US",
+      "stock_name": "SANDISK CORP",
+      "weight": 6.55,
+      "shares": 43653
+    },
+    {
+      "stock_id": "MU US",
+      "stock_name": "MICRON TECHNOLOGY INC",
+      "weight": 5.93,
+      "shares": 79671
+    },
+    {
+      "stock_id": "LITE US",
+      "stock_name": "LUMENTUM HOLDINGS INC",
+      "weight": 4.95,
+      "shares": 70905
+    },
+    {
+      "stock_id": "285A JP",
+      "stock_name": "KIOXIA HOLDINGS CORP",
+      "weight": 4.52,
+      "shares": 117700
+    },
+    {
+      "stock_id": "009150 KP",
+      "stock_name": "SAMSUNG ELECTRO-MECHANICS CO",
+      "weight": 4.01,
+      "shares": 46909
+    },
+    {
+      "stock_id": "2308",
+      "stock_name": "台達電",
+      "weight": 3.95,
+      "shares": 744000
+    },
+    {
+      "stock_id": "AMD US",
+      "stock_name": "ADVANCED MICRO DEVICES",
+      "weight": 3.87,
+      "shares": 99679
+    },
+    {
+      "stock_id": "MRVL US",
+      "stock_name": "MARVELL TECHNOLOGY INC",
+      "weight": 3.42,
+      "shares": 161300
+    },
+    {
+      "stock_id": "6976 JP",
+      "stock_name": "TAIYO YUDEN CO LTD",
+      "weight": 3.37,
+      "shares": 453700
+    },
+    {
+      "stock_id": "2454",
+      "stock_name": "聯發科",
+      "weight": 2.94,
+      "shares": 294000
+    },
+    {
+      "stock_id": "AMAT US",
+      "stock_name": "APPLIED MATERIALS INC",
+      "weight": 2.66,
+      "shares": 61746
+    },
+    {
+      "stock_id": "IFX GR",
+      "stock_name": "INFINEON TECHNOLOGIES AG",
+      "weight": 2.28,
+      "shares": 326919
+    },
+    {
+      "stock_id": "BE US",
+      "stock_name": "BLOOM ENERGY CORP- A",
+      "weight": 2.18,
+      "shares": 110600
+    },
+    {
+      "stock_id": "6981 JP",
+      "stock_name": "MURATA MANUFACTURING CO LTD",
+      "weight": 2.04,
+      "shares": 504700
+    },
+    {
+      "stock_id": "LRCX US",
+      "stock_name": "LAM RESEARCH CORP",
+      "weight": 2.03,
+      "shares": 73173
+    },
+    {
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "weight": 2.01,
+      "shares": 363000
+    },
+    {
+      "stock_id": "SNOW US",
+      "stock_name": "SNOWFLAKE INC",
+      "weight": 1.96,
+      "shares": 111000
+    },
+    {
+      "stock_id": "4062 JP",
+      "stock_name": "IBIDEN CO LTD",
+      "weight": 1.81,
+      "shares": 200000
+    },
+    {
+      "stock_id": "000660 KP",
+      "stock_name": "SK HYNIX INC",
+      "weight": 1.69,
+      "shares": 15788
+    },
+    {
+      "stock_id": "2383",
+      "stock_name": "台光電",
+      "weight": 1.67,
+      "shares": 144000
+    },
+    {
+      "stock_id": "3037",
+      "stock_name": "欣興",
+      "weight": 1.67,
+      "shares": 773000
+    },
+    {
+      "stock_id": "WDC US",
+      "stock_name": "WESTERN DIGITAL CORP",
+      "weight": 1.55,
+      "shares": 36262
+    },
+    {
+      "stock_id": "ARM US",
+      "stock_name": "ARM HOLDINGS PLC-ADR",
+      "weight": 1.51,
+      "shares": 52242
+    },
+    {
+      "stock_id": "STM US",
+      "stock_name": "STMICROELECTRONICS NV-NY SHS",
+      "weight": 1.49,
+      "shares": 254800
+    },
+    {
+      "stock_id": "COHR US",
+      "stock_name": "COHERENT CORP",
+      "weight": 1.45,
+      "shares": 49560
+    },
+    {
+      "stock_id": "STX US",
+      "stock_name": "SEAGATE TECHNOLOGY HOLDINGS",
+      "weight": 1.3,
+      "shares": 18360
+    },
+    {
+      "stock_id": "6723 JP",
+      "stock_name": "RENESAS ELECTRONICS CORP",
+      "weight": 1.24,
+      "shares": 604000
+    },
+    {
+      "stock_id": "SMTC US",
+      "stock_name": "SEMTECH CORP",
+      "weight": 1.22,
+      "shares": 96600
+    },
+    {
+      "stock_id": "VSH US",
+      "stock_name": "VISHAY INTERTECHNOLOGY INC",
+      "weight": 1.21,
+      "shares": 267800
+    },
+    {
+      "stock_id": "VECO US",
+      "stock_name": "VEECO INSTRUMENTS INC",
+      "weight": 1.1,
+      "shares": 187300
+    },
+    {
+      "stock_id": "5706 JP",
+      "stock_name": "MITSUI KINZOKU CO LTD",
+      "weight": 1.04,
+      "shares": 50100
+    },
+    {
+      "stock_id": "3436 JP",
+      "stock_name": "SUMCO CORP",
+      "weight": 1.02,
+      "shares": 587700
+    },
+    {
+      "stock_id": "5347",
+      "stock_name": "世界",
+      "weight": 1.01,
+      "shares": 2498000
+    },
+    {
+      "stock_id": "AIXA GR",
+      "stock_name": "AIXTRON SE",
+      "weight": 1.01,
+      "shares": 202732
+    },
+    {
+      "stock_id": "NOK US",
+      "stock_name": "NOKIA CORP-SPON ADR",
+      "weight": 1.01,
+      "shares": 901410
+    },
+    {
+      "stock_id": "MKSI US",
+      "stock_name": "MKS INC",
+      "weight": 1.01,
+      "shares": 37300
+    },
+    {
+      "stock_id": "VICR US",
+      "stock_name": "VICOR CORP",
+      "weight": 1.0,
+      "shares": 43400
+    },
+    {
+      "stock_id": "6146 JP",
+      "stock_name": "DISCO CORP",
+      "weight": 0.99,
+      "shares": 26100
+    },
+    {
+      "stock_id": "6223",
+      "stock_name": "旺矽",
+      "weight": 0.96,
+      "shares": 62000
+    },
+    {
+      "stock_id": "TSEM US",
+      "stock_name": "TOWER SEMICONDUCTOR LTD",
+      "weight": 0.96,
+      "shares": 48382
+    },
+    {
+      "stock_id": "WOLF US",
+      "stock_name": "WOLFSPEED INC",
+      "weight": 0.95,
+      "shares": 289800
+    },
+    {
+      "stock_id": "NVTS US",
+      "stock_name": "NAVITAS SEMICONDUCTOR CORP",
+      "weight": 0.95,
+      "shares": 537686
+    },
+    {
+      "stock_id": "6997 JP",
+      "stock_name": "NIPPON CHEMI-CON CORP",
+      "weight": 0.95,
+      "shares": 479600
+    },
+    {
+      "stock_id": "6787 JP",
+      "stock_name": "MEIKO ELECTRONICS CO LTD",
+      "weight": 0.94,
+      "shares": 64100
+    },
+    {
+      "stock_id": "6274",
+      "stock_name": "台燿",
+      "weight": 0.92,
+      "shares": 268000
+    },
+    {
+      "stock_id": "7220 JP",
+      "stock_name": "MUSASHI SEIMITSU INDUSTRY CO",
+      "weight": 0.82,
+      "shares": 355300
+    },
+    {
+      "stock_id": "3665",
+      "stock_name": "貿聯-KY",
+      "weight": 0.8,
+      "shares": 144000
+    },
+    {
+      "stock_id": "3017",
+      "stock_name": "奇鋐",
+      "weight": 0.75,
+      "shares": 130000
+    },
+    {
+      "stock_id": "3443",
+      "stock_name": "創意",
+      "weight": 0.72,
+      "shares": 69000
+    },
+    {
+      "stock_id": "2360",
+      "stock_name": "致茂",
+      "weight": 0.57,
+      "shares": 103000
+    },
+    {
+      "stock_id": "4958",
+      "stock_name": "臻鼎-KY",
+      "weight": 0.48,
+      "shares": 363000
+    },
+    {
+      "stock_id": "5274",
+      "stock_name": "信驊",
+      "weight": 0.44,
+      "shares": 10000
+    }
+  ]
+}
