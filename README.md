@@ -21,15 +21,16 @@ Python 資料管線 + PostgreSQL + FastAPI（後端 / 公開資料）｜Next.js 
   - **Part II 建置路線圖**：里程碑勾選清單（M0✅～M9）、依賴、驗收(DoD)、建議執行順序 ← 想知道「下一步做什麼」看這
   - （原 todo.md 已併入 Part II）
 
-## 現況（M0 + M1 + M2 + M3 + M5 完成；M4 創意情報層介面完成；競品/籌碼已接 etfinfo + Histock live）
-- 規格 v0.10（含進階情報引擎 + 合規事後標注 + §20 資料正確性保證 + etfinfo 第三方彙整源）。
+## 現況（M0–M6 完成；競品/籌碼已接 etfinfo + Histock/FinMind live；社群 live + Claude 深析；M6 文案層上線）
+- 規格 v0.13（含進階情報引擎 + 合規事後標注 + §20 資料正確性保證 + etfinfo 第三方彙整源 + M6 文案層）。
 - **三檔主角全上線**（00991A 台股、00998A 全球金融股、00986D 全球金融債），皆用權威資料端到端跑通並過 100% 正確性閘門。
 - 績效改 **NAV 含息總報酬**（全球股/債無 TWSE 市價，NAV 是唯一權威績效源）；受益人數接 **集保 TDCC**；資金流偵測（規模週增/破關卡）；多檔輪播今日主角。
 - **M2 跨家持股差異化（✅ 完成）**：主動度 Active Share（vs 0050）**即時真實**（00991A 76%）；獨門股/權重偏離/Jaccard 重疊/領先卡位由 `arm/diff_engine.py` 計算。**競品逐日持股已接 etfinfo.tw**（6 競品落地）→ 00991A 重押國巨 8.9%（同業均 2.5%、偏離 +6.4pt 居同業之冠）、與統一重疊 Jaccard 40%、與元大僅 15%，全部真實可追溯。
 - **M5 題材/時事引擎上線**：題材熱度由 `STOCK_DAY_ALL` 全市場個股漲幅**每日動態算出**（非固定清單），`arm/themes.py`＋`THEME_TAILWIND` 偵測器＋想法引擎「重倉產業＝當日強勢題材」。題材表改 **stock_id 為鍵**（跨 TWSE/復華零歧義）。實測 2026-06-12：重倉【AI半導體龍頭】台積電+聯發科 19.3% 全紅順風。
 - **M3 籌碼推敲（✅ 完成，多源 live）**：券商分點 **Histock**（免費前 N 大，每日落快照累積成多日窗→真實「連續買超天數」）＋ **FinMind**（付費 `FINMIND_TOKEN`：全分點+多日+量，優先序最高）；**外資分點合計** `FOREIGN_BRANCH_BUY`（實測南亞科 6 家外資 +21,081 張）；法人籌碼 **etfinfo** `INSTITUTIONAL_BUY`＋「聰明錢共識」。身份經 `broker_map` 推估、**一律標「推估・非確認」**。
 - **M4 創意情報（live + Claude 深析）**：`arm/connectors/social/{news,ptt,dcard,facebook,youtube}.py`（免費 news/ptt/dcard 永遠註冊、YouTube/FB 需金鑰）；`analyze(m, llm=)` 接 **Claude（claude-opus-4-8）逐則深析**（`ANTHROPIC_API_KEY`，缺則 baseline）。**每日雲端 routine**：`scripts/daily_routine.sh` + `.github/workflows/daily.yml`（cron 週一~五 17:40）。
-- **🆕 第三方資料源（皆 Tier B、缺金鑰即誠實降級不崩）**：etfinfo（競品持股/配息/法人籌碼）、Histock + FinMind（券商分點）、RSS/PTT/Dcard/YouTube/FB（社群）。`pytest` **83 綠**。
+- **M6 文案層（✅ 完成）**：`arm/copy/` 讀已發布想法報告 → 產 **4 通路文案**（punchy/line/ig/sales）。**LLM-agnostic**：baseline 模板恆可出稿；`llm=` **雙路**＝自動 API（`claude-opus-4-8`）＋ **prompt-pack 手動（預設、免 key）**（產 prompt→貼進自己的 Claude→`--ingest` 回灌）。**數字不得杜撰**（證據外的數字標 🔴）＋**合規兩層皆不擋**（規則層 `config/compliance.yaml` + LLM 語意層，只標注補揭露）。`scripts/gen_copy.py`，**零碰** pipeline/ideas/brokers/chips/etfinfo。
+- **🆕 第三方資料源（皆 Tier B、缺金鑰即誠實降級不崩）**：etfinfo（競品持股/配息/法人籌碼）、Histock + FinMind（券商分點）、RSS/PTT/Dcard/YouTube/FB（社群）。`pytest` **95 綠**。
 
 ### 跑跑看（零安裝，純標準庫 + SQLite；TLS 走 certifi）
 ```bash
@@ -81,6 +82,7 @@ arm/themes.py                      題材熱度（STOCK_DAY_ALL 全市場漲幅�
 arm/signals.py                     賣點偵測器 + 評分
 arm/ideas.py                       多元想法組合引擎 + 合規事後標注
 arm/pipeline.py                    端到端流程（多檔輪播）
+arm/copy/                          M6 文案層：讀想法報告→4通路文案＋合規兩層標注＋數字防杜撰＋llm=雙路(API/prompt-pack)
 ```
 
 ### 同類排名（v0.4，全市場 21 檔台股主動ETF，官方價 100% 正確）
@@ -97,6 +99,19 @@ python3 scripts/run_daily.py 00991A      # 即時跑一次
 cat reports/2026-06-12_00991A.md         # 看當日想法報告
 ```
 多樣性：類別加權（籌碼/題材/內容創意加重）＋主題日輪換＋防重複＋wildcard。
+
+### 每日文案（M6，免 API key 也能用）
+讀想法報告 → 每則想法產 **4 通路文案**（punchy/line/ig/sales），合規事後標注、數字只取自證據。
+```bash
+python3 scripts/gen_copy.py 00991A            # baseline 文案 + 產 prompt-pack
+cat reports/copy/2026-06-12_00991A.copy.md    # 看文案表（🟢baseline / ✨潤稿；🔴杜撰數字/禁用語標注）
+
+# 想要 Claude 潤稿但不接 API key → prompt-pack：
+#   1) 把 reports/copy/prompts/2026-06-12_00991A.md 貼進你的 Claude
+#   2) 回覆 JSON 存成 reports/copy/responses/2026-06-12_00991A.json
+python3 scripts/gen_copy.py 00991A --ingest    # 回灌潤稿（仍逐字把關杜撰數字＋合規）
+```
+有 `ANTHROPIC_API_KEY` 時 `gen_copy.py` 自動走 API 潤稿，無須 prompt-pack。兩路同把關。
 
 ### 每日自動排程（已設定）
 launchd `com.fhtrust.fharm.daily` 週一～五 17:40 自動跑 → `reports/{date}.md`、log 在 `data/daily.log`。
@@ -115,8 +130,8 @@ launchd `com.fhtrust.fharm.daily` 週一～五 17:40 自動跑 → `reports/{dat
 
 > 註：分點買賣超無單一權威 live 源（證交所 `bsr` 逐檔 + 驗證碼、第三方為 SPA/付費，性質同 M2 競品持股）→ 已備統一 `BrokerFlow` 介面 + drop-in 承接層，待第三方 adapter 補實（見 docs/SPEC.md §18.4）。**買家身份只到分公司層級，一律標「推估・非確認」。**
 
-### 下一步（M4 後半 / M6）
-M2/M3/M5 引擎、**M4 社群介面＋本機 git** 皆完成。M4 剩**對外動作待授權**：(1) 推私有 repo、(2) 接 live adapter（YouTube/PTT/Dcard/RSS，逐家填 `social.LIVE_ADAPTERS`）、(3) 每日雲端 routine、(4) Claude 逐則 LLM 深析（`analyze(m, llm=...)` 接口已備）。其餘：Claude 文案層（M6）、Next.js 儀表板（M7）、逐期配息金額做完整含息再投入。
+### 下一步（M7 / 待授權對外動作）
+M1–M6 引擎全完成（含 M4 社群 live＋Claude 深析、M6 文案層）。剩**對外/待授權**：(1) 推私有 repo 跑雲端 routine（需 GitHub URL/PAT）、(2) 社群登入牆來源金鑰（`DCARD_COOKIE`/`FB_ACCESS_TOKEN`/`YOUTUBE_API_KEY`）、(3) 文案 LLM 潤稿可走 prompt-pack（免 key）或接 `ANTHROPIC_API_KEY` 自動化。其餘：Next.js 儀表板（M7）、入息比較引擎（etfinfo 配息/殖利率已可取）、逐期配息金額做完整含息再投入。
 
 ---
 

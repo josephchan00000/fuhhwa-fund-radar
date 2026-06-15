@@ -1,0 +1,62 @@
+{
+  "_comment": "由 config/compliance.yaml 同步而來（雲端無 PyYAML 時讀此檔）。請以 compliance.yaml 為編輯來源。",
+  "version": 1,
+  "disclosures": {
+    "perf": "過去績效不代表未來，亦不保證最低投資收益",
+    "prospectus": "投資前請詳閱公開說明書",
+    "dividend_principal": "配息來源可能為本金，配息率非預期報酬率",
+    "active": "主動式ETF 之主動操作不保證優於指數或大盤",
+    "not_advice": "本資料為行銷素材，非投資建議或要約"
+  },
+  "rules": [
+    {
+      "id": "perf_claim",
+      "severity": "中",
+      "name": "績效陳述未附免責",
+      "any": ["報酬", "Alpha", "alpha", "漲", "贏", "翻倍", "領先", "超額", "績效", "%"],
+      "unless": ["過去績效"],
+      "disclosure": ["perf", "prospectus"],
+      "fix": "句尾補『過去績效不代表未來』與公開說明書提示"
+    },
+    {
+      "id": "absolute_words",
+      "severity": "高",
+      "name": "絕對化／保證字眼（禁用）",
+      "any": ["保證", "穩賺", "必賺", "包賺", "一定賺", "零風險", "無風險", "穩定獲利", "穩定配息", "穩賺不賠"],
+      "fix": "刪除絕對化用語，改為機率／歷史陳述"
+    },
+    {
+      "id": "dividend_source",
+      "severity": "中",
+      "name": "配息未揭露來源",
+      "any": ["配息", "月配", "季配", "月月領", "領息", "現金流", "殖利率", "息率", "入息"],
+      "unless": ["本金"],
+      "disclosure": ["dividend_principal"],
+      "fix": "補『配息來源可能為本金、配息率非預期報酬率』"
+    },
+    {
+      "id": "ranking_claim",
+      "severity": "中",
+      "name": "排名／最高未註明比較基礎",
+      "any": ["第一", "冠軍", "最強", "最高", "稱霸", "No.1", "no1", "霸榜"],
+      "unless": ["同類", "期間", "資料來源", "截至"],
+      "fix": "註明統計期間、同類比較基礎與資料來源"
+    },
+    {
+      "id": "active_beat",
+      "severity": "低",
+      "name": "主動操作打敗指數陳述",
+      "any": ["打敗", "贏過大盤", "超越0050", "勝過指數", "完勝", "海放"],
+      "disclosure": ["active"],
+      "fix": "提示主動操作不保證優於指數"
+    },
+    {
+      "id": "solicitation",
+      "severity": "低",
+      "name": "個股／進場推介語",
+      "any": ["建議買", "快買", "搶進", "卡位", "上車", "撿便宜", "閉眼買", "all in", "梭哈"],
+      "disclosure": ["not_advice"],
+      "fix": "改中性陳述並補『非投資建議』"
+    }
+  ]
+}
