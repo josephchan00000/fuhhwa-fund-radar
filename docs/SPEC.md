@@ -773,7 +773,7 @@ CREATE TABLE competitor_tactics (
 | M1 | 多檔產品 + 資料正確性強化（NAV含息、規模受益人） | §4, §7, §20 | ✅ 完成 |
 | M2 ★ | 跨家持股差異化（獨門/重疊/主動度） | §18.1 | ✅ 完成（主動度即時真實；**競品持股已接 etfinfo live**） |
 | M3 ★ | 籌碼分點推敲買家 | §18.4 | ✅ 完成（**券商分點 Histock live + 法人籌碼 etfinfo live**） |
-| M4 ★ | 創意情報層自動化（KOL/社群/同業招數） | §18.5, §18.6 | ⏳ 待辦 |
+| M4 ★ | 創意情報層自動化（KOL/社群/同業招數） | §18.5, §18.6 | 🟡 引擎/介面完成（live adapters + 雲端 routine 待授權） |
 | M5 ★ | 題材/時事引擎（動態熱點） | §8(#13), §21 | 🟢 引擎完成（盤面熱度動態化；新聞熱搜/自動擴充待補） |
 | M6 | Claude 文案層 + 合規 LLM 標注 | §10 | ⏳ 待辦 |
 | M7 | 後端服務化 + Next.js 儀表板 | §11, §12 | ⏳ 待辦 |
@@ -846,20 +846,21 @@ CREATE TABLE competitor_tactics (
 
 ---
 
-## M4 ★ — 創意情報層自動化（KOL / 社群 / 同業招數）　⏳　（規格 §18.5, §18.6）
+## M4 ★ — 創意情報層自動化（KOL / 社群 / 同業招數）　🟡 引擎/介面完成（live adapters + 雲端 routine 待授權）　→需:M1　（規格 §18.5, §18.6）
 
-> 目前此層由 Claude 在 session 補；本里程碑讓它全自動。需先把 repo 進 git。
+> 此層原由 Claude 在 session 補；本里程碑做成「落檔即生效」的引擎＋source-agnostic 介面。
+> live 爬取（涉 ToS/個資/著作權）與雲端 routine 為**對外動作，待使用者授權**逐家接（slot 已備）。
 
-- [ ] M4-1 `git init` + 推私有 repo（讓雲端 routine 可 clone 執行）
-- [ ] M4-2 社群/KOL 監看：YouTube Data API、PTT/Dcard/vocus/論壇（合規爬取/RSS）、新聞
-- [ ] M4-3 Claude 逐則分析：情緒、賣點、用語、**疑似業配**、觸及 → 入庫 `social_mentions`
-- [ ] M4-4 同業招數自動蒐集：各投信官網新聞稿/活動頁 → `competitor_tactics`（附復華改法）
-- [ ] M4-5 話術複製庫檢索 + 每日「可借用招數/社群賣點」餵進想法引擎
-- [ ] M4-6 業配偵測 → 反推同業投放哪些 KOL
-- [ ] M4-7 **每日雲端 routine**：跑資料 + 地毯搜尋 + 想法 + 文案，推給使用者
-- [ ] M4-8 法務風險事後標注（爬取條款/個資/著作權）
+- [~] M4-1 **本機 `git init` 完成**（含 `.gitignore`：`data/` 執行期快取/DB/log 不入庫；初始 commit 已建於 `main`）。**推私有 repo 待授權**（讓雲端 routine 可 clone）。
+- [~] M4-2 社群/KOL 監看：`arm/connectors/social/` source-agnostic 介面 + drop-in（`config/social_mentions/{date}.json`，`_` 開頭不載入）。**live adapter slot 已備**（`SOURCES`：YouTube/PTT/Dcard/vocus/新聞；`LIVE_ADAPTERS` 待授權後逐家填入、自動納入不改呼叫端）。
+- [~] M4-3 逐則分析：`social.analyze()` **確定性 baseline**（情緒、賣點命中、**疑似業配**、聲量分級）；**`analyze(m, llm=...)` 預留 Claude 逐則深析接口**（接上不動呼叫端）。
+- [ ] M4-4 同業招數自動蒐集：投信官網新聞稿/活動頁 → `competitor_tactics`（爬取待授權；現由 `intel_seed.competitor_tactics` 人工維護 + `g_competitor` 每日輪換餵入）。
+- [x] M4-5 話術複製庫餵想法：`g_kol` 由樁改真實——把社群賣點（最高聲量、賣點命中、情緒）餵進想法引擎；同業招數續由 `g_competitor` 餵入。
+- [x] M4-6 業配偵測 → 反推同業投放：`g_kol` 產「疑似業配 N 位 KOL → 反推投放佈局」想法（**僅內部素材、標『疑似・推估』、不對外指控**）。
+- [ ] M4-7 **每日雲端 routine**（跑資料 + 地毯搜尋 + 想法 + 文案推送）：待 M4-1 後半（遠端 repo）+ 使用者授權。
+- [~] M4-8 法務風險事後標注：社群情報一律 Tier B、標來源/as-of；drop-in README 載明 ToS/個資/著作權鐵則；疑似業配只作內部反推。逐則法務 LLM 標注待 M4-3 LLM 接上。
 
-✓DoD：每天自動產出「社群在講什麼賣點、同業出什麼新招、可複製話術」，含來源與疑似業配標記。
+✓DoD（部分達成）：社群情報「落檔即生效」——`config/social_mentions/{date}.json` 一落地，`g_kol` 即輸出「社群熱議賣點（聲量/情緒）＋疑似業配反推投放＋負評→反擊話術」，含來源與 Tier B 標記（`tests/test_social.py` 11 綠）。**未達成（待授權）：live 自動爬取、每日雲端 routine、Claude 逐則 LLM 深析**——介面/slot 全備，授權後 drop-in 不改碼。
 
 ---
 
@@ -942,6 +943,8 @@ CREATE TABLE competitor_tactics (
 ---
 
 ## 變更紀錄 Changelog
+
+- **v0.11（M4 引擎/介面完成，2026-06-16）**：創意情報層自動化第一階段。**本機 `git init`**（`.gitignore` 讓 `data/` 執行期快取/DB/log 不入庫，初始 commit 於 `main`；推遠端待授權）。新增 **`arm/connectors/social/`** source-agnostic 社群/KOL 介面（統一 `SocialMention`，與 M2/M3 同雙軌：`LIVE_ADAPTERS` slot + drop-in `config/social_mentions/{date}.json`）；`social.analyze()` 確定性 baseline（情緒/賣點命中/**疑似業配**/聲量分級）＋預留 `analyze(m, llm=...)` LLM 深析接口。想法引擎 `g_kol` 由樁改真實（社群熱議賣點＋疑似業配反推投放＋負評→反擊話術，全標 Tier B「推估・待核實」、業配不對外指控）。**嚴格與 M3 brokers/chips 解耦、不打架**。live 爬取/雲端 routine/Claude 逐則深析為對外動作，slot 全備、待授權。`tests/` 68 passed（+11）。
 
 - **v0.11（M3 完成：券商分點 Histock live，2026-06-16）**：新增 `arm/connectors/brokers/histock.py`——Histock「分公司進出」靜態 HTML 表逐 `<tr>` 解析成 `BrokerFlow`（無 API/登入），`brokers.load_flows` 預設 live（drop-in 可覆蓋）。**個別券商分點缺口已補**：實測 00991A 本檔港商野村 +7,899 張、重倉南亞科/國巨/台積電皆外資分點大買（經 `broker_map` 名稱關鍵字推估外資/投信/中實戶、一律標「推估・非確認」）。修掉解析錯位 bug（買/賣兩側空白欄須保留、逐列 10 欄對齊）。M3 升 ✅（`SMART_MONEY` 分點 + `INSTITUTIONAL_BUY` 法人雙源並存）。`tests/test_histock.py`（含空白欄對齊回歸），`tests/` 60 passed（+3）。
 - **v0.10（etfinfo 第三方彙整源接入，2026-06-16）**：新增 `arm/connectors/etfinfo.py`（etfinfo.tw Nuxt JSON API：`/api/etf/{code}`、`/api/etf/list`、`/api/active/tracking`）＋ `scripts/fetch_etfinfo.py` 落地器。**補實 M2 競品逐日持股**（6 競品 → `config/competitor_holdings/{code}.json`，Tier B 標 as-of/source）→ 00991A 獨門/偏離/重疊/領先即時真實（國巨偏離 +6.4pt 居同業之冠、與統一重疊 Jaccard 40%）；M2 升 ✅。**補實 M3 法人籌碼替代源**（主動ETF/投信估算新進 → `arm/chips.institutional_flow` + `INSTITUTIONAL_BUY` 偵測器 + 想法「聰明錢共識」+ `config/active_flow/{date}.json`）→ 實測國巨被 4 ETF/3 投信新進約 29 億（與復華重押互證）。etfinfo **無券商分點**，個別分點仍 drop-in 待接；所有 etfinfo 數字標 Tier B「待投信官網核實」。`tests/` 57 passed（+8：institutional/active-flow/etfinfo 正規化）。

@@ -21,7 +21,7 @@ Python 資料管線 + PostgreSQL + FastAPI（後端 / 公開資料）｜Next.js 
   - **Part II 建置路線圖**：里程碑勾選清單（M0✅～M9）、依賴、驗收(DoD)、建議執行順序 ← 想知道「下一步做什麼」看這
   - （原 todo.md 已併入 Part II）
 
-## 現況（M0 + M1 + M2 + M3 + M5 完成；競品/籌碼已接 etfinfo + Histock live）
+## 現況（M0 + M1 + M2 + M3 + M5 完成；M4 創意情報層介面完成；競品/籌碼已接 etfinfo + Histock live）
 - 規格 v0.10（含進階情報引擎 + 合規事後標注 + §20 資料正確性保證 + etfinfo 第三方彙整源）。
 - **三檔主角全上線**（00991A 台股、00998A 全球金融股、00986D 全球金融債），皆用權威資料端到端跑通並過 100% 正確性閘門。
 - 績效改 **NAV 含息總報酬**（全球股/債無 TWSE 市價，NAV 是唯一權威績效源）；受益人數接 **集保 TDCC**；資金流偵測（規模週增/破關卡）；多檔輪播今日主角。
@@ -29,6 +29,7 @@ Python 資料管線 + PostgreSQL + FastAPI（後端 / 公開資料）｜Next.js 
 - **M5 題材/時事引擎上線**：題材熱度由 `STOCK_DAY_ALL` 全市場個股漲幅**每日動態算出**（非固定清單），`arm/themes.py`＋`THEME_TAILWIND` 偵測器＋想法引擎「重倉產業＝當日強勢題材」。題材表改 **stock_id 為鍵**（跨 TWSE/復華零歧義）。實測 2026-06-12：重倉【AI半導體龍頭】台積電+聯發科 19.3% 全紅順風。
 - **M3 籌碼推敲（✅ 完成，雙源 live）**：(1) **券商分點已接 Histock live**（`arm/connectors/brokers/histock.py`）→ 實測 00991A 本檔港商野村 +7,899 張、重倉南亞科/國巨/台積電皆外資分點大買，身份經 `broker_map` 推估、**一律標「推估・非確認」**；(2) **法人籌碼已接 etfinfo**（主動ETF/投信估算新進 → `INSTITUTIONAL_BUY`＋想法「聰明錢共識」）→ 重倉國巨被 4 ETF/3 投信新進約 29 億。`SMART_MONEY`(分點) + `INSTITUTIONAL_BUY`(法人) 並存。`pytest` **60 綠**。
 - **🆕 第三方資料源**：`arm/connectors/etfinfo.py`（競品持股/配息/殖利率/法人籌碼）+ `arm/connectors/brokers/histock.py`（券商分點）。**皆 Tier B「先給可能值、待投信官網/證交所核實」**。
+- **M4 創意情報層介面完成（本機半）**：本機 `git init`（`.gitignore` 讓 `data/` 不入庫）。新增 `arm/connectors/social/` source-agnostic 社群/KOL 介面（`SocialMention` + drop-in `config/social_mentions/{date}.json`），`analyze()` 確定性 baseline（情緒/賣點/**疑似業配**/聲量）＋預留 LLM 接口；`g_kol` 由樁改真實（社群熱議賣點＋業配反推投放，Tier B、不對外指控）。**與 M3 brokers/chips 完全解耦**。live 爬取/雲端 routine/推遠端 repo 為對外動作、slot 全備待授權。`+11` 社群測試。
 
 ### 跑跑看（零安裝，純標準庫 + SQLite；TLS 走 certifi）
 ```bash
@@ -68,6 +69,7 @@ arm/connectors/{twse,fhtrust,tdcc}.py  權威資料連接器（市價/持股NAV/
 arm/connectors/etfinfo.py          Tier B 第三方彙整（競品持股/配息/法人籌碼；etfinfo.tw JSON API）
 arm/connectors/issuers/            跨家持股統一介面（Holding + 競品註冊表 + drop-in 承接）
 arm/connectors/brokers/            分點進出統一介面（BrokerFlow + histock live adapter + drop-in 覆蓋）
+arm/connectors/social/             社群/KOL 情報統一介面（SocialMention + analyze + adapter slot + drop-in）
 arm/calendar.py                    TWSE 交易日曆（由 0050 序列判定）
 arm/navhist.py                     NAV 含息總報酬骨幹（回補 + 配息再投入）
 arm/quality.py                     100% 正確性閘門（fail-loud；股/債分流）
@@ -113,8 +115,8 @@ launchd `com.fhtrust.fharm.daily` 週一～五 17:40 自動跑 → `reports/{dat
 
 > 註：分點買賣超無單一權威 live 源（證交所 `bsr` 逐檔 + 驗證碼、第三方為 SPA/付費，性質同 M2 競品持股）→ 已備統一 `BrokerFlow` 介面 + drop-in 承接層，待第三方 adapter 補實（見 docs/SPEC.md §18.4）。**買家身份只到分公司層級，一律標「推估・非確認」。**
 
-### 下一步（M4）
-M2/M3/M5 引擎皆已完成。剩下高優先：**M4 創意情報層自動化**（需先 `git init` → KOL/社群/同業招數雲端 routine）。其餘：為 M2/M3 補實競品持股/分點 live 來源（drop-in 已可承接）、逐期配息金額接入做完整含息再投入、Claude 文案層（M6）、Next.js 儀表板（M7）。
+### 下一步（M4 後半 / M6）
+M2/M3/M5 引擎、**M4 社群介面＋本機 git** 皆完成。M4 剩**對外動作待授權**：(1) 推私有 repo、(2) 接 live adapter（YouTube/PTT/Dcard/RSS，逐家填 `social.LIVE_ADAPTERS`）、(3) 每日雲端 routine、(4) Claude 逐則 LLM 深析（`analyze(m, llm=...)` 接口已備）。其餘：Claude 文案層（M6）、Next.js 儀表板（M7）、逐期配息金額做完整含息再投入。
 
 ---
 
