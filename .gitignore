@@ -12,5 +12,10 @@ data/
 # 每日報告為輸出產物（如需保留歷史可移除此行）
 reports/*.md
 
+# M6 文案層產物（由 gen_copy.py 重建；responses 為手動回灌內容，不入庫）
+reports/copy/*.copy.md
+reports/copy/prompts/
+reports/copy/responses/
+
 # OS
 .DS_Store

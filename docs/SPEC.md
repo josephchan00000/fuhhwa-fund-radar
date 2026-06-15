@@ -446,6 +446,18 @@ score = 0.40 × strength      # 賣點本身有多強
 
 > 法規定位：內部行銷發想輔助。對外正式發布前仍建議經法遵核可——但發想階段不被合規綁手。
 
+### 10.3 實作現況（M6，2026-06-16）
+
+文案層落地在**全新 `arm/copy/`**，**唯一輸入是已發布的想法報告 `reports/{date}_{etf}.md`**（與 pipeline/ideas/籌碼引擎徹底解耦，零既有檔編輯）：
+
+- **`parse.py`**：報告 → 結構化 `Idea`（面向/想法/佐證/內容形式/信心燈號）。
+- **`baseline.py`**：LLM-agnostic 模板，恆可出 **4 通路**（`punchy`/`line`/`ig`/`sales`），純重組證據、不自創數字。
+- **`numbers.py`（數字不得杜撰）**：可用數字 = 證據（想法+佐證+表頭）＋識別碼（產品名/代號/0050）；文案內其他數字 → 標 🔴「疑似杜撰」。baseline 恆 0 違規，主要把關 LLM 輸出。
+- **`compliance.py`（兩層、皆不擋）**：規則層讀 **`config/compliance.yaml`**（無 PyYAML 退讀 `compliance.json`），關鍵字＋`unless` 條件 → 命中規則/須補揭露/建議改法；嚴重度 高🔴(禁用語)/中🟡(須揭露)/低🟢(提醒)。**只標注、補揭露、永不阻擋、不丟例外**。LLM 語意層為選用第二層。
+- **`llm.py` + `prompt_pack.py`（`llm=` 雙路）**：① 自動 API（`claude-opus-4-8` 結構化輸出，需 `ANTHROPIC_API_KEY`）；② **prompt-pack 手動（預設、免 key）**——系統產 prompt → 貼進自己的 Claude → 存回覆 JSON → `--ingest` 注入。兩路同形狀、共用 `generate(idea, llm=)` 注入點；**回灌不信任輸入**，數字防杜撰＋合規仍照常把關。
+- **`scripts/gen_copy.py`**：`gen_copy.py <code|all> [--date D] [--ingest [path]]` → `reports/copy/{date}_{etf}.copy.md` ＋ `reports/copy/prompts/...`；已併入 `daily_routine.sh` 第 3 步。
+- 實測 00991A：10 則想法 × 4 通路、疑似杜撰 0、績效則自動補免責；植入「三年漲 120%」與「穩賺」回灌即被 🔴 攔標。
+
 ---
 
 ## 11. 後端 API 合約（FastAPI）
@@ -940,12 +952,13 @@ CREATE TABLE competitor_tactics (
 4. **M4 ★** 創意情報層自動化（需先 git）
 5. **M6** 文案層 → **M7** 儀表板 → **M8** 通路/回饋 → **M9** 維運
 
-> 進度：**M1 / M2 / M3 / M5 完成**（NAV 含息、跨家差異化＋競品持股 etfinfo live、籌碼推敲＝券商分點 Histock live＋法人籌碼 etfinfo live、題材動態）。新增 `arm/connectors/etfinfo.py`（第三方彙整：競品持股/配息/法人籌碼）＋ `arm/connectors/brokers/histock.py`（券商分點 live）。下一步建議：**M4 創意情報層**（需先 `git init` 跑雲端 routine）＋ 入息比較引擎（etfinfo 配息/殖利率已可取）＋ 分點連續天數歷史（Histock 多日）。
+> 進度：**M1 / M2 / M3 / M4 / M5 / M6 完成**（NAV 含息、跨家差異化＋競品持股 etfinfo live、籌碼推敲＝券商分點 Histock 多日 live＋FinMind 全分點＋外資合計＋法人籌碼 etfinfo live、題材動態、創意情報層 social live adapters＋Claude 深析、**M6 文案層＝baseline 四通路＋合規兩層標注＋數字防杜撰＋`llm=` 雙路 prompt-pack**）。新增 `arm/copy/`（文案層，唯讀 `reports/*.md`、零碰隔壁）＋ `scripts/gen_copy.py`（已併入 `daily_routine.sh`）。下一步建議：**M7 儀表板（Next.js）**＋ 入息比較引擎（etfinfo 配息/殖利率已可取）＋ 推私有 repo 跑雲端 routine（待授權 URL/PAT）。
 
 ---
 
 ## 變更紀錄 Changelog
 
+- **v0.13（M6 文案層 + prompt-pack，2026-06-16）**：智能文案層上線（**全新 `arm/copy/`**，唯一輸入＝已發布想法報告 `reports/*.md`，**零碰 pipeline/ideas/brokers/chips/etfinfo**）。四關鍵設計皆落地：(1) **LLM-agnostic**——`baseline.py` 模板恆可出 4 通路（punchy/line/ig/sales），LLM 為選用覆寫層。(2) **數字不得杜撰**——`numbers.py` 以證據＋識別碼為可用數字集，文案內其他數字標 🔴；baseline 恆 0 違規、把關 LLM 輸出。(3) **合規兩層皆不擋**——規則外部化到 **`config/compliance.yaml`(+json fallback)**，`compliance.py` 命中規則/補揭露/建議改法，高🔴/中🟡/低🟢，只標注不阻擋不丟例外。(4) **`llm=` 雙路**——自動 API（`claude-opus-4-8`，需 `ANTHROPIC_API_KEY`）＋ **prompt-pack 手動（預設、免 key）**：產 prompt→貼進自己的 Claude→`--ingest` 回灌，**不信任輸入、把關照舊**。`scripts/gen_copy.py`（已併入 `daily_routine.sh` 第 3 步）。實測 00991A 10 則×4 通路、杜撰 0、植入「漲 120%/穩賺」回灌即被攔標。`tests/test_copy.py`（+12），`tests/` 95 passed。
 - **v0.12（外接最大化 + M4 live adapters + 雲端 routine，2026-06-16）**：**功能最大化** —— (1) **券商分點外接最完整源 FinMind**（`arm/connectors/brokers/finmind.py`，`TaiwanStockTradingDailyReport`：全分點+多日+量；需 `FINMIND_TOKEN` 付費），`load_flows` 優先序 drop-in > FinMind > Histock。(2) **Histock 多日歷史**（`arm/connectors/brokers/history.py` 每日落快照累積，`chips.consecutive_buy_days` 加 `all_dates` 缺席中斷→真實「連續買超天數」）。(3) **外資分點合計**（`chips.aggregate_by_identity` + `FOREIGN_BRANCH_BUY` 偵測器 + 想法「外資共識」）——實測 南亞科 6 家外資分點同步 +21,081 張。(4) **M4 社群 live adapters 全接**（`social/{news,ptt,dcard,facebook,youtube}.py`，免費源 news/ptt/dcard 永遠註冊、YouTube/FB 需金鑰才註冊；`http.get_bytes` 加 headers/cookie 支援）；Dcard 現多被 Cloudflare 擋（需 `DCARD_COOKIE`/合作金鑰）、FB 受 Graph API 限制（只讀有權限粉專）。(5) **Claude 逐則深析接上**（`social/llm.py`，`claude-opus-4-8` 結構化輸出，`analyze(m, llm=)` 經 `default_analyzer()` 注入 `g_kol`；需 `ANTHROPIC_API_KEY`）。(6) **每日雲端 routine**（`scripts/daily_routine.sh` + `.github/workflows/daily.yml`，cron 週一~五 17:40 台北，金鑰走 Actions secrets，未設則該層誠實降級）。所有外接 Tier B、缺金鑰即降級不崩。`tests/`（+chips identity/finmind/histock/broker_history/social_adapters）。
 - **v0.11（M4 引擎/介面完成，2026-06-16）**：創意情報層自動化第一階段。**本機 `git init`**（`.gitignore` 讓 `data/` 執行期快取/DB/log 不入庫，初始 commit 於 `main`；推遠端待授權）。新增 **`arm/connectors/social/`** source-agnostic 社群/KOL 介面（統一 `SocialMention`，與 M2/M3 同雙軌：`LIVE_ADAPTERS` slot + drop-in `config/social_mentions/{date}.json`）；`social.analyze()` 確定性 baseline（情緒/賣點命中/**疑似業配**/聲量分級）＋預留 `analyze(m, llm=...)` LLM 深析接口。想法引擎 `g_kol` 由樁改真實（社群熱議賣點＋疑似業配反推投放＋負評→反擊話術，全標 Tier B「推估・待核實」、業配不對外指控）。**嚴格與 M3 brokers/chips 解耦、不打架**。live 爬取/雲端 routine/Claude 逐則深析為對外動作，slot 全備、待授權。`tests/` 68 passed（+11）。
 
