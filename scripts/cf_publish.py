@@ -8,7 +8,10 @@
   4. 讀回 app+policy 驗證『鎖已生效、只有這些 email 能進』。
   5. 重產儀表板 → wrangler pages deploy（用同一顆 token）。
 
-token 來源：環境變數 CLOUDFLARE_API_TOKEN，否則讀 /tmp/.cf_tok。白名單 email 由 argv 給（預設見下）。
+token 來源（依序）：環境變數 CLOUDFLARE_API_TOKEN → data/.cf_tok（持久、gitignore 內）
+→ ~/.fh_cf_token → /tmp/.cf_tok（暫存）。白名單 email 由 argv 給（預設見下）。
+一次性設定：到 Cloudflare 建一顆有 Pages:Edit + Access:Edit 權限的 API token，存進
+data/.cf_tok（不入庫）；之後本腳本即可非互動部署（免瀏覽器登入），且部署前自動上鎖＋驗證。
 用法：python3 scripts/cf_publish.py [email1] [email2] ...
 """
 import json
@@ -34,12 +37,12 @@ API = "https://api.cloudflare.com/client/v4"
 
 
 def _token() -> str:
-    t = os.environ.get("CLOUDFLARE_API_TOKEN")
+    t = os.environ.get("CLOUDFLARE_API_TOKEN") or ""
+    for p in (ROOT / "data" / ".cf_tok", Path.home() / ".fh_cf_token", Path("/tmp/.cf_tok")):
+        if not t and p.exists():
+            t = p.read_text().strip()
     if not t:
-        p = Path("/tmp/.cf_tok")
-        t = p.read_text().strip() if p.exists() else ""
-    if not t:
-        sys.exit("✘ 找不到 token（設 CLOUDFLARE_API_TOKEN 或 /tmp/.cf_tok）")
+        sys.exit("✘ 找不到 token（設 CLOUDFLARE_API_TOKEN 或 data/.cf_tok）")
     return t
 
 
