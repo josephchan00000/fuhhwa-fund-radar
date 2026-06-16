@@ -7,10 +7,15 @@ from __future__ import annotations
 
 from datetime import date
 
-from ..http import get_json
+from ..http import _cache_path, get_json
 
 ALL_URL = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
 DAY_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date={ymd}&stockNo={code}"
+
+
+def _stat_ok(b: bytes) -> bool:
+    """STOCK_DAY 回應是否為有效（stat=OK）；只有有效才值得寫快取。"""
+    return b'"stat":"OK"' in b or b'"stat": "OK"' in b
 
 
 def _roc_compact_to_iso(s: str) -> str:
@@ -54,12 +59,24 @@ def latest_trade_date(all_today: dict[str, dict] | None = None) -> str:
 
 
 def fetch_month(code: str, year: int, month: int) -> list[tuple[str, float, int]]:
-    """單月逐日 (iso_date, close, volume)；無資料回空。"""
+    """單月逐日 (iso_date, close, volume)；無資料回空。
+
+    只快取 stat=OK 回應；若讀到的是先前被毒化的非 OK 舊快取，清掉重抓一次（self-heal），
+    避免 TWSE 偶發「查無資料」卡住 6 小時 TTL（曾導致部分新檔近月誤判成無歷史）。
+    """
     url = DAY_URL.format(ymd=f"{year:04d}{month:02d}01", code=code)
     try:
-        data = get_json(url, cache_ttl=6 * 3600)
+        data = get_json(url, cache_ttl=6 * 3600, cache_ok=_stat_ok)
     except Exception:
         return []
+    if not isinstance(data, dict) or data.get("stat") != "OK":
+        cp = _cache_path(url)                      # 舊快取可能是暫時性失敗被毒化 → 清掉重抓一次
+        if cp.exists():
+            cp.unlink()
+            try:
+                data = get_json(url, cache_ttl=6 * 3600, cache_ok=_stat_ok)
+            except Exception:
+                return []
     if not isinstance(data, dict) or data.get("stat") != "OK":
         return []
     out: list[tuple[str, float, int]] = []

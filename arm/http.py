@@ -38,11 +38,13 @@ def _cache_path(url: str) -> Path:
 
 def get_bytes(url: str, *, retries: int = 3, timeout: int = 25,
               use_cache: bool = True, cache_ttl: int = 3600,
-              headers: dict | None = None) -> bytes:
+              headers: dict | None = None, cache_ok=None) -> bytes:
     """抓 URL 回傳 bytes。預設快取 1 小時，避免重複打外部站。
 
     `headers`：額外標頭（如 PTT 的 over18 cookie、Dcard 的瀏覽器標頭）；併入快取鍵，
     避免「帶/不帶 cookie」拿到同一份快取。
+    `cache_ok`：可選 predicate(bytes)->bool；只在為真時才寫快取。用來避免把暫時性的
+    「查無資料／錯誤」回應寫進快取毒化後續 TTL（如 TWSE STOCK_DAY 偶發 stat!=OK）。
     """
     cache_key = url + ("|" + json.dumps(headers, sort_keys=True) if headers else "")
     cp = _cache_path(cache_key)
@@ -58,7 +60,7 @@ def get_bytes(url: str, *, retries: int = 3, timeout: int = 25,
             req = urllib.request.Request(url, headers=h)
             with urllib.request.urlopen(req, timeout=timeout, context=_CTX) as resp:
                 data = resp.read()
-            if use_cache:
+            if use_cache and (cache_ok is None or cache_ok(data)):
                 CACHE_DIR.mkdir(parents=True, exist_ok=True)
                 cp.write_bytes(data)
             return data
