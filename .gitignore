@@ -17,5 +17,8 @@ reports/copy/*.copy.md
 reports/copy/prompts/
 reports/copy/responses/
 
+# M7 儀表板產物（由 gen_dashboard.py 重建）
+dashboard/index.html
+
 # OS
 .DS_Store
