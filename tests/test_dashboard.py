@@ -1,92 +1,65 @@
-"""M7 儀表板測試（離線）：資料模型、5 大創意切角策展、HTML 自含與 JSON 可解析。"""
+"""M7 儀表板測試（離線）：render_html 自含、內嵌 JSON 可解析、含多週期與當日新欄位。
+
+註：M7 改寫後儀表板由 build_etf_model 產『數據切點 / 競品 / 口碑』模型（非舊的 idea/angle/
+channels）。本測試以最小但符合現行 model 形狀的假資料驗 render，不依賴 DB / 報告。
+"""
 import json
 import re
 
 from arm import dashboard as d
-from arm.copy.parse import parse_text
-
-_REPORT = """# 每日想法組合 — 復華台灣未來50主動式ETF（00991A）  資料日 2026-06-15
-> 收盤 19.69　折溢價 +0.15%　AUM 612億　績效基準：NAV 含息總報酬
-
-### 1. [績效] 🟡
-- **想法**：成立以來超額報酬 +33.9%，主動贏 0050
-- 佐證：本檔 +103.9% / 基準 +70.0%
-- 內容形式：vs 0050 對比動圖
-
-### 2. [題材] 🟡
-- **想法**：搭【AI載板】熱題：本檔押 23.1%
-- 佐證：題材熱度 100
-- 內容形式：題材連連看
-
-### 3. [績效] 🟢
-- **想法**：成立以來淨值翻倍
-- 佐證：+103.9%
-- 內容形式：戰報卡
-
-### 4. [籌碼] 🟢
-- **想法**：經理人新建倉 臻鼎-KY +2,000張
-- 佐證：權重 1.93%
-- 內容形式：換股快報
-
-### 5. [配息時程] 🟢
-- **想法**：距配息評價日剩 15 天
-- 佐證：每年6月底評價
-- 內容形式：倒數限動
-
-### 6. [資金流] 🟡
-- **想法**：近一週規模成長 +7.7%
-- 佐證：現約 612 億
-- 內容形式：成長曲線
-"""
 
 
-def _model():
-    doc = parse_text(_REPORT)
-    from arm import copy as cp
-    results = cp.generate_doc(doc)
-    ideas = [d._idea_model(r) for r in results]
-    return doc, ideas
+def _min_model() -> dict:
+    etf = {
+        "id": "00991A", "name": "主動復華未來50", "short_name": "未來50",
+        "date": "2026-06-15", "header": "收 19.69", "is_nav": False,
+        "mkt_date": "2026-06-15", "price_src": None, "close": 19.69, "change_pct": 0.0336,
+        "data_cuts": [{
+            "icon": "📈", "label": "當日漲跌", "type": "短期績效出色", "priority": 90,
+            "group": "hot", "group_label": "熱度與績效", "group_icon": "🔥",
+            "tldr": "今日 +3.36%", "fact": "今日 +3.36%", "suggest": "x", "example": "y", "links": []}],
+        "perf": {
+            "as_of": "2026-06-15", "peer_mean_label": "主動同類均",
+            "benches": [{"code": "0050", "label": "0050", "issuer": "元大", "is_index": True},
+                        {"code": "00981A", "label": "00981A", "issuer": "統一", "is_index": False}],
+            "rows": [{"period": "近1日", "etf": 3.36, "vals": {"0050": 3.24, "00981A": 2.84},
+                      "peer_mean": 2.84, "excess": 0.52}]},
+        "peers": [{"code": "00991A", "name": "主動復華未來50", "issuer": "復華", "close": 19.69,
+                   "change_pct": 3.36, "volume": 93616913, "trade_date": "2026-06-15"}],
+        "scan": [], "edges": [], "competitor_notes": {}, "topic": [], "voice": [],
+        "intel_src": "baseline", "intel_note": "",
+        "stats": {"data": 1, "peers": 1, "scan": 0, "topic": 0, "voice": 0},
+    }
+    return {"generated_at": "2026-06-16 09:00", "today": "2026-06-16", "etfs": [etf]}
 
 
-def test_idea_model_has_angle_and_channels():
-    _, ideas = _model()
-    m = ideas[0]
-    assert m["angle_label"] == "翻倍實證"           # 績效 → 創意框架
-    assert set(m["channels"]) == {"punchy", "line", "ig", "sales"}
-    assert m["channels"]["punchy"]["source"] == "baseline"
-    assert m["allowed"]                              # 有可用數字
-
-
-def test_top5_are_distinct_angles():
-    _, ideas = _model()
-    top = d.top5_angles(ideas)
-    assert len(top) == 5
-    cats = [next(m["category"] for m in ideas if m["idx"] == i) for i in top]
-    assert len(set(cats)) == 5                       # 五個不同面向（創意切角）
-
-
-def test_top5_fills_to_five_when_few_categories():
-    # 只有 2 種面向 → 仍補滿 5（不足面向時用剩餘想法填）
-    ideas = [{"idx": i, "category": "績效" if i % 2 else "籌碼"} for i in range(1, 8)]
-    assert len(d.top5_angles(ideas)) == 5
-
-
-def test_all_known_categories_have_angle():
-    for cat in ["績效", "資金流", "同類排名", "籌碼", "分點推敲", "持股差異化",
-                "題材", "配息時程", "逆向誠實", "同業招數", "社群KOL", "成交量"]:
-        assert cat in d.CREATIVE_ANGLE
+def _embedded_json(html: str) -> dict:
+    blob = re.search(r"const DATA = (\{.*\});\nconst SRC", html, re.S).group(1)
+    return json.loads(blob.replace("<\\/", "</"))   # render_html 把 </ 跳脫成 <\/，解析前還原
 
 
 def test_render_html_selfcontained_and_json_parses():
-    doc, ideas = _model()
-    model = {"generated_at": "2026-06-16 09:00", "etfs": [{
-        "id": doc.etf_id, "name": doc.name, "short_name": "復華台灣未來50",
-        "date": doc.date, "header": doc.header, "ideas": ideas,
-        "top5": d.top5_angles(ideas), "enhanced_src": "baseline",
-        "stats": {"ideas": len(ideas), "fabricated": 0, "banned": 0}}]}
-    html = d.render_html(model)
-    assert "<!DOCTYPE html>" in html and "今日 5 大創意切角" in html
-    assert "http://" not in html and "https://" not in html   # 零外部依賴
-    blob = re.search(r"const DATA = (\{.*\});\nconst CH", html, re.S).group(1)
-    back = json.loads(blob)                          # 內嵌資料可被瀏覽器 JSON 解析
+    html = d.render_html(_min_model())
+    assert "<!DOCTYPE html>" in html
+    assert "/*__DATA__*/" not in html               # 佔位符已完全置換
+    back = _embedded_json(html)
     assert back["etfs"][0]["id"] == "00991A"
+    assert back["today"] == "2026-06-16"             # 當日基準有帶入（黃字標註用）
+
+
+def test_perf_multibench_and_freshness_markup_present():
+    html = d.render_html(_min_model())
+    assert "多週期報酬" in html                       # 多週期區塊
+    assert "今日最新" in html                         # 當日資料黃字標註
+    assert ".fresh{" in html                          # 黃字樣式
+    # 內嵌資料保有多競品多週期結構
+    perf = _embedded_json(html)["etfs"][0]["perf"]
+    assert [b["code"] for b in perf["benches"]] == ["0050", "00981A"]
+    assert perf["rows"][0]["vals"]["00981A"] == 2.84
+
+
+def test_market_price_is_close_not_nav():
+    # 抓的是市價(close/change_pct) 而非淨值；模型欄位齊備供 render 標當日
+    etf = _min_model()["etfs"][0]
+    assert etf["close"] == 19.69 and etf["change_pct"] == 0.0336
+    assert etf["mkt_date"] == "2026-06-15"
