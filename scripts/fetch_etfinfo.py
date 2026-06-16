@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from arm.connectors import etfinfo, issuers  # noqa: E402
+from arm.connectors import etfinfo  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 COMP_DIR = ROOT / "config" / "competitor_holdings"
@@ -25,9 +25,27 @@ PROV = ("etfinfo.tw 第三方彙整（/api/etf/{code}，holdings.source={src}）
         "Tier B，數字待以投信官網/公開說明書核對")
 
 
+def _competitor_codes() -> dict[str, str]:
+    """全主角各競品群的代號 ∪（排除 0050 與主角本身）→ {code: issuer}。
+
+    清單以 config/peer_groups.json 為單一真相，新增/調整競品只改該檔，本腳本自動跟上。
+    （含 00998A 的金融/高股息競品、00986D 的債券競品。）
+    """
+    pg = json.loads((ROOT / "config" / "peer_groups.json").read_text(encoding="utf-8"))
+    homes = set((pg.get("groups") or {}).keys())
+    issuer = pg.get("issuer", {})
+    out: dict[str, str] = {}
+    for grp in (pg.get("groups") or {}).values():
+        for code in grp:
+            if code == "0050" or code in homes:
+                continue
+            out.setdefault(code, issuer.get(code, ""))
+    return out
+
+
 def fetch_holdings() -> None:
     COMP_DIR.mkdir(parents=True, exist_ok=True)
-    for code, issuer in issuers.COMPETITORS.items():
+    for code, issuer in _competitor_codes().items():
         try:
             hs, meta = etfinfo.holdings(code)
         except Exception as e:
@@ -36,6 +54,9 @@ def fetch_holdings() -> None:
         if not hs:
             print(f"  ⚠ {code} 無持股資料（etfinfo 未揭露或代碼不符）")
             continue
+        kind = "bond" if code.endswith("B") else "equity"
+        if kind == "bond":                         # 債券ETF：持有為債券（非股票），標 kind 供下游正確處理
+            hs = [{**h, "kind": "bond"} for h in hs]
         doc = {
             "fund_id": code,
             "issuer": meta.get("issuer") or issuer,

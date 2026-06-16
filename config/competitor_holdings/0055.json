@@ -1,0 +1,105 @@
+{
+  "fund_id": "0055",
+  "issuer": "元大",
+  "as_of": "2026-06-15",
+  "tier": "B",
+  "provenance": "etfinfo.tw 第三方彙整（/api/etf/0055，holdings.source=pocket）；Tier B，數字待以投信官網/公開說明書核對",
+  "holdings": [
+    {
+      "stock_id": "2891",
+      "stock_name": "中信金",
+      "weight": 14.5,
+      "shares": 7150045
+    },
+    {
+      "stock_id": "2881",
+      "stock_name": "富邦金",
+      "weight": 13.26,
+      "shares": 3593975
+    },
+    {
+      "stock_id": "2882",
+      "stock_name": "國泰金",
+      "weight": 12.27,
+      "shares": 4076044
+    },
+    {
+      "stock_id": "2885",
+      "stock_name": "元大金",
+      "weight": 8.58,
+      "shares": 4559521
+    },
+    {
+      "stock_id": "2887",
+      "stock_name": "台新新光金",
+      "weight": 8.26,
+      "shares": 9035024
+    },
+    {
+      "stock_id": "2886",
+      "stock_name": "兆豐金",
+      "weight": 6.26,
+      "shares": 4917760
+    },
+    {
+      "stock_id": "2884",
+      "stock_name": "玉山金",
+      "weight": 6.07,
+      "shares": 6054162
+    },
+    {
+      "stock_id": "2883",
+      "stock_name": "凱基金",
+      "weight": 5.45,
+      "shares": 6535397
+    },
+    {
+      "stock_id": "2890",
+      "stock_name": "永豐金",
+      "weight": 5.21,
+      "shares": 5115464
+    },
+    {
+      "stock_id": "2892",
+      "stock_name": "第一金",
+      "weight": 4.32,
+      "shares": 4767520
+    },
+    {
+      "stock_id": "2880",
+      "stock_name": "華南金",
+      "weight": 4.11,
+      "shares": 3867214
+    },
+    {
+      "stock_id": "5880",
+      "stock_name": "合庫金",
+      "weight": 3.28,
+      "shares": 4692366
+    },
+    {
+      "stock_id": "5871",
+      "stock_name": "中租-KY",
+      "weight": 2.2,
+      "shares": 641585
+    },
+    {
+      "stock_id": "5876",
+      "stock_name": "上海商銀",
+      "weight": 2.0,
+      "shares": 1611508
+    },
+    {
+      "stock_id": "2801",
+      "stock_name": "彰銀",
+      "weight": 1.98,
+      "shares": 3017447
+    },
+    {
+      "stock_id": "2834",
+      "stock_name": "臺企銀",
+      "weight": 1.46,
+      "shares": 2910286
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "as_of": "2026-06-12",
+  "etf": "00998A",
+  "note": "復華全球金融股票入息主動式ETF（國內首檔金融股主動式ETF・NAV型）；績效以 NAV 含息計、非市價。配息率非保證、來源可能含本金。話題口碑為 Tier B 推估。",
+  "edge": [
+    {
+      "point": "差異化定位：國內首檔『金融股』主動式ETF，避開台股科技集中的紅海，搶入息利基市場"
+    }
+  ],
+  "competitor_notes": {},
+  "topic": [
+    {
+      "type": "對標比較，幫投資人分析",
+      "status": "國內首檔金融股主動式ETF；以『全球金融股』區隔台股科技集中的同業，搶入息差異化市場。",
+      "example": "【避開科技股紅海！00998A 國內首檔金融股主動ETF】",
+      "links": [
+        {
+          "label": "etfinfo 基金頁",
+          "url": "https://www.etfinfo.tw/etf/00998A"
+        },
+        {
+          "label": "MoneyDJ 基本/績效",
+          "url": "https://www.moneydj.com/etf/x/basic/basic0004.xdjhtm?etfid=00998A.TW"
+        }
+      ]
+    },
+    {
+      "type": "配息預告或公告",
+      "status": "季配，每年 2/5/8/11 月底評價；近一期每單位約 0.404 元、年化配息率逾 10%（官方/媒體，非保證、來源可能含本金）。",
+      "example": "【年化配息逾 10%！00998A 季配下一次評價倒數】",
+      "links": [
+        {
+          "label": "配息公告",
+          "url": "https://www.etfinfo.tw/etf/00998A/dividend"
+        },
+        {
+          "label": "etfinfo 配息",
+          "url": "https://www.etfinfo.tw/etf/00998A/dividend"
+        }
+      ]
+    },
+    {
+      "type": "持股亮點／新題材",
+      "status": "全球金融股、前十大集中 44%；前 3 大：義大利西恩那銀行、Piraeus Bank、Unipol 保險（歐洲金融題材）。",
+      "example": "【押歐洲金融股！00998A 前十大集中 44% 重兵精選】",
+      "links": [
+        {
+          "label": "持股明細",
+          "url": "https://www.etfinfo.tw/etf/00998A"
+        },
+        {
+          "label": "etfinfo 持股",
+          "url": "https://www.etfinfo.tw/etf/00998A"
+        }
+      ]
+    },
+    {
+      "type": "經理人選股理念",
+      "status": "經理人新建倉荷蘭保險公司 +500,000 股（權重 4.27%），主動押全球金融新動能；成立以來 NAV 含息 +12.2%。",
+      "example": "【經理人剛加碼歐洲保險！00998A 主動選股、成立來 +12.2%】",
+      "links": [
+        {
+          "label": "基金資料",
+          "url": "https://www.etfinfo.tw/etf/00998A"
+        }
+      ]
+    }
+  ],
+  "voice": [
+    {
+      "source": "vocus · 存股部落客",
+      "kind": "社群輿論",
+      "summary": "金融股入息、年化逾 10%、月月領現金流很適合小資定期定額。",
+      "intent": "自然分享／帶『被動收入』風向，對小資族訴求穩定現金流。",
+      "sentiment": "正面",
+      "suspected_ad": false,
+      "ad_reason": "無明顯業配訊號。",
+      "reusable": "『年化逾 10%』數字對入息族最吸睛。",
+      "fh_play": "沿用入息訴求但補『非保證、來源可能含本金』揭露，用透明度做差異。",
+      "url": "https://news.google.com/search?q=00998A 配息"
+    },
+    {
+      "source": "聲量缺口觀察",
+      "kind": "情報",
+      "summary": "00998A 為新上市利基型（金融股）主動ETF，KOL 聲量明顯不足。",
+      "intent": "KOL 投放缺口——入息/存股型 KOL 尚未充分覆蓋此檔。",
+      "sentiment": "中性",
+      "suspected_ad": false,
+      "ad_reason": "—",
+      "reusable": "缺口即先機。",
+      "fh_play": "優先鎖定存股/被動收入型 KOL，用『全球金融股入息、年化逾 10%』做差異化開箱。",
+      "url": "https://www.youtube.com/results?search_query=金融股 ETF 入息"
+    }
+  ]
+}
