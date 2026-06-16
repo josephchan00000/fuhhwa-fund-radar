@@ -21,8 +21,8 @@ Python 資料管線 + PostgreSQL + FastAPI（後端 / 公開資料）｜Next.js 
   - **Part II 建置路線圖**：里程碑勾選清單（M0✅～M9）、依賴、驗收(DoD)、建議執行順序 ← 想知道「下一步做什麼」看這
   - （原 todo.md 已併入 Part II）
 
-## 現況（M0–M6 完成；競品/籌碼已接 etfinfo + Histock/FinMind live；社群 live + Claude 深析；M6 文案層上線）
-- 規格 v0.13（含進階情報引擎 + 合規事後標注 + §20 資料正確性保證 + etfinfo 第三方彙整源 + M6 文案層）。
+## 現況（M0–M7 完成；競品/籌碼已接 etfinfo + Histock/FinMind live；社群 live + Claude 深析；M6 文案層 + M7 零安裝儀表板上線）
+- 規格 v0.14（含進階情報引擎 + 合規事後標注 + §20 資料正確性保證 + etfinfo 第三方彙整源 + M6 文案層 + M7 儀表板）。
 - **三檔主角全上線**（00991A 台股、00998A 全球金融股、00986D 全球金融債），皆用權威資料端到端跑通並過 100% 正確性閘門。
 - 績效改 **NAV 含息總報酬**（全球股/債無 TWSE 市價，NAV 是唯一權威績效源）；受益人數接 **集保 TDCC**；資金流偵測（規模週增/破關卡）；多檔輪播今日主角。
 - **M2 跨家持股差異化（✅ 完成）**：主動度 Active Share（vs 0050）**即時真實**（00991A 76%）；獨門股/權重偏離/Jaccard 重疊/領先卡位由 `arm/diff_engine.py` 計算。**競品逐日持股已接 etfinfo.tw**（6 競品落地）→ 00991A 重押國巨 8.9%（同業均 2.5%、偏離 +6.4pt 居同業之冠）、與統一重疊 Jaccard 40%、與元大僅 15%，全部真實可追溯。
@@ -30,7 +30,8 @@ Python 資料管線 + PostgreSQL + FastAPI（後端 / 公開資料）｜Next.js 
 - **M3 籌碼推敲（✅ 完成，多源 live）**：券商分點 **Histock**（免費前 N 大，每日落快照累積成多日窗→真實「連續買超天數」）＋ **FinMind**（付費 `FINMIND_TOKEN`：全分點+多日+量，優先序最高）；**外資分點合計** `FOREIGN_BRANCH_BUY`（實測南亞科 6 家外資 +21,081 張）；法人籌碼 **etfinfo** `INSTITUTIONAL_BUY`＋「聰明錢共識」。身份經 `broker_map` 推估、**一律標「推估・非確認」**。
 - **M4 創意情報（live + Claude 深析）**：`arm/connectors/social/{news,ptt,dcard,facebook,youtube}.py`（免費 news/ptt/dcard 永遠註冊、YouTube/FB 需金鑰）；`analyze(m, llm=)` 接 **Claude（claude-opus-4-8）逐則深析**（`ANTHROPIC_API_KEY`，缺則 baseline）。**每日雲端 routine**：`scripts/daily_routine.sh` + `.github/workflows/daily.yml`（cron 週一~五 17:40）。
 - **M6 文案層（✅ 完成）**：`arm/copy/` 讀已發布想法報告 → 產 **4 通路文案**（punchy/line/ig/sales）。**LLM-agnostic**：baseline 模板恆可出稿；`llm=` **雙路**＝自動 API（`claude-opus-4-8`）＋ **prompt-pack 手動（預設、免 key）**（產 prompt→貼進自己的 Claude→`--ingest` 回灌）。**數字不得杜撰**（證據外的數字標 🔴）＋**合規兩層皆不擋**（規則層 `config/compliance.yaml` + LLM 語意層，只標注補揭露）。`scripts/gen_copy.py`，**零碰** pipeline/ideas/brokers/chips/etfinfo。
-- **🆕 第三方資料源（皆 Tier B、缺金鑰即誠實降級不崩）**：etfinfo（競品持股/配息/法人籌碼）、Histock + FinMind（券商分點）、RSS/PTT/Dcard/YouTube/FB（社群）。`pytest` **95 綠**。
+- **M7 零安裝儀表板（✅ 完成）**：`arm/dashboard.py` + `scripts/gen_dashboard.py` 讀報告+文案 → **單一 `dashboard/index.html`**（vanilla JS、零外部請求、雙擊即開，無 npm/node）。主秀 **今日 5 大創意切角**（每天挑 5 個不同面向、各配創意框架）＋四通路文案分頁（一鍵複製）＋🔴🟡🟢 合規燈。有 prompt-pack 回灌/API key 自動顯示 ✨ 升級版。**B/C 升級**：同份資料模型可換 Next.js SSG / FastAPI 全棧、引擎不動。
+- **🆕 第三方資料源（皆 Tier B、缺金鑰即誠實降級不崩）**：etfinfo（競品持股/配息/法人籌碼）、Histock + FinMind（券商分點）、RSS/PTT/Dcard/YouTube/FB（社群）。`pytest` **101 綠**。
 
 ### 跑跑看（零安裝，純標準庫 + SQLite；TLS 走 certifi）
 ```bash
@@ -83,6 +84,7 @@ arm/signals.py                     賣點偵測器 + 評分
 arm/ideas.py                       多元想法組合引擎 + 合規事後標注
 arm/pipeline.py                    端到端流程（多檔輪播）
 arm/copy/                          M6 文案層：讀想法報告→4通路文案＋合規兩層標注＋數字防杜撰＋llm=雙路(API/prompt-pack)
+arm/dashboard.py                   M7 零安裝儀表板：讀報告+文案→單檔HTML(今日5大創意切角＋4通路＋合規燈)
 ```
 
 ### 同類排名（v0.4，全市場 21 檔台股主動ETF，官方價 100% 正確）
@@ -112,6 +114,13 @@ cat reports/copy/2026-06-12_00991A.copy.md    # 看文案表（🟢baseline / �
 python3 scripts/gen_copy.py 00991A --ingest    # 回灌潤稿（仍逐字把關杜撰數字＋合規）
 ```
 有 `ANTHROPIC_API_KEY` 時 `gen_copy.py` 自動走 API 潤稿，無須 prompt-pack。兩路同把關。
+
+### 每日儀表板（M7，零安裝、雙擊即開）
+讀報告+文案 → 產**單一 HTML**，主秀「今日 5 大創意切角」（每天挑 5 個不同面向）＋四通路文案＋合規燈。
+```bash
+python3 scripts/gen_dashboard.py --open    # 產 dashboard/index.html 並用瀏覽器開
+```
+無 npm/node/server、零外部請求。有 prompt-pack 回灌或 `ANTHROPIC_API_KEY` 時自動顯示 ✨ Claude 創意升級版。
 
 ### 每日自動排程（已設定）
 launchd `com.fhtrust.fharm.daily` 週一～五 17:40 自動跑 → `reports/{date}.md`、log 在 `data/daily.log`。
