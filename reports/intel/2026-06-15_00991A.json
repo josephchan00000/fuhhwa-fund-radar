@@ -1,0 +1,130 @@
+{
+  "as_of": "2026-06-15",
+  "etf": "00991A",
+  "note": "數據切點與競品價量為第一手（TWSE/FHTrust/signals）；話題口碑為 Tier B 推估，業配僅『疑似・推估』非指控。",
+  "edge": [
+    {
+      "point": "量能同類第 4/9 但『質』勝『量』：統一00403A/00981A靠權值股堆出8.2億/2.9億量，我們主動度高、不靠權值堆量"
+    }
+  ],
+  "competitor_notes": {
+    "00403A": "統一量能王（8.2億股）、台積電18.4%重壓＝高度貼權值；我們打『主動選股Alpha、不靠權值堆量』差異化。",
+    "00981A": "統一台光電7.68%重壓PCB；我們也押PCB（今日加碼台燿/台光電）但更分散、主動度更高，打『同題材我們選得更廣』。",
+    "00992A": "群益押台光電/奇鋐（散熱+PCB）；題材重疊，我們用『經理人加碼動向＋獨門南亞科』做出區隔。",
+    "00990A": "元大今日+6.34%最猛、押美系記憶體（SANDISK/MICRON/LUMENTUM）；我們押台廠AI供應鏈，打『在地AI供應鏈純度』地域差異化。",
+    "00980A": "野村押川湖/鴻勁/穎崴（散熱/測試介面純AI）；我們端獨門成分股對打『誰的AI更純』。",
+    "00985A": "野村台積電超集中23.77%＝接近被動；我們主動度76%『真的在選股』正面對打。"
+  },
+  "topic": [
+    {
+      "type": "對標比較，幫投資人分析",
+      "status": "主動度 76% vs 0050；7 個觀察週期全贏 0050，近 3 月把安聯00993A、野村00985A、群益00992A、野村00980A 比下去。",
+      "example": "【打 0050 軟肋！00991A 主動度 76%、7 週期全贏大盤】",
+      "links": [
+        {
+          "label": "etfinfo 基金頁",
+          "url": "https://www.etfinfo.tw/etf/00991A"
+        },
+        {
+          "label": "MoneyDJ 基本/績效",
+          "url": "https://www.moneydj.com/etf/x/basic/basic0004.xdjhtm?etfid=00991A.TW"
+        }
+      ]
+    },
+    {
+      "type": "配息預告或公告",
+      "status": "半年配，距配息評價日 2026-06-30 剩 15 天，最後布局期倒數（配息率非保證、來源可能含本金）。",
+      "example": "【配息評價倒數 15 天！00991A 半年配最後布局期（6/30）】",
+      "links": [
+        {
+          "label": "配息公告",
+          "url": "https://www.etfinfo.tw/etf/00991A/dividend"
+        },
+        {
+          "label": "etfinfo 配息",
+          "url": "https://www.etfinfo.tw/etf/00991A/dividend"
+        }
+      ]
+    },
+    {
+      "type": "持股亮點／新題材",
+      "status": "押 AI 載板/PCB/CCL 達 23.1%；今日經理人加碼國巨、台燿、台光電（PCB）＋南亞科（記憶體），題材順風 5/7 檔翻紅。",
+      "example": "【含 AI 載板五大廠！00991A 題材押 23.1%、經理人加碼 PCB】",
+      "links": [
+        {
+          "label": "持股明細",
+          "url": "https://www.etfinfo.tw/etf/00991A"
+        },
+        {
+          "label": "etfinfo 持股",
+          "url": "https://www.etfinfo.tw/etf/00991A"
+        }
+      ]
+    },
+    {
+      "type": "經理人選股理念",
+      "status": "主動度 76%、非換包裝指數；新建倉臻鼎-KY +2,000 張，國巨配置居同業之冠（9.4% vs 同業最高 6.8%）。",
+      "example": "【不是亂買 50 檔！00991A 經理人主動選股、國巨配置同業之冠】",
+      "links": [
+        {
+          "label": "基金資料",
+          "url": "https://www.etfinfo.tw/etf/00991A"
+        },
+        {
+          "label": "MoneyDJ 基本/績效",
+          "url": "https://www.moneydj.com/etf/x/basic/basic0004.xdjhtm?etfid=00991A.TW"
+        }
+      ]
+    }
+  ],
+  "voice": [
+    {
+      "source": "YouTube · 某財經YouTuber",
+      "kind": "KOL",
+      "summary": "主打主動度高、經理人積極選股、贏 0050、值得長期佈局；片尾標『本影片與廠商合作』。",
+      "intent": "疑似業配——以『主動度/選股力』賣點包裝、導流長期持有；通篇正面、缺風險揭露。",
+      "sentiment": "正面",
+      "suspected_ad": true,
+      "ad_reason": "片尾明示『與廠商合作』＋單向看多無風險提示（疑似・推估，非指控）。",
+      "reusable": "『主動度高、經理人積極選股』社群已驗證有共鳴。",
+      "fh_play": "官方素材沿用『主動度 76%』數據版但補風險揭露，做出比業配更可信的差異。",
+      "url": "https://www.youtube.com/results?search_query=00991A"
+    },
+    {
+      "source": "PTT · Stock 板",
+      "kind": "社群輿論",
+      "summary": "主動式ETF費用率偏高、過度集中科技股、估值偏貴、怕回檔套牢。",
+      "intent": "自然負評／避雷風向——濃縮潛在客戶最核心三大疑慮（費用率/集中/估值）。",
+      "sentiment": "負面",
+      "suspected_ad": false,
+      "ad_reason": "無明顯業配訊號。",
+      "reusable": "最該預先回應的反對意見，當 FAQ 素材庫。",
+      "fh_play": "備話術：①費用率對應主動超額（+33.9%）②集中是主動選股特色③定期定額化解擇時。",
+      "url": "https://www.ptt.cc/bbs/Stock/search?q=00991A"
+    },
+    {
+      "source": "udn／媒體輿論",
+      "kind": "新聞",
+      "summary": "媒體曾批部分主動式ETF『荒謬行銷、把ETF當追飆股』。",
+      "intent": "媒體替主動式ETF行銷踩煞車、塑造『理性投資』社會風向。",
+      "sentiment": "負面",
+      "suspected_ad": false,
+      "ad_reason": "無明顯業配訊號（媒體評論）。",
+      "reusable": "理性敘事正當紅。",
+      "fh_play": "避開追飆式話術，走『主動度/選股邏輯/長期超額』理性敘事，吃媒體風向紅利。",
+      "url": "https://news.google.com/search?q=主動式ETF 行銷"
+    },
+    {
+      "source": "聲量缺口觀察",
+      "kind": "情報",
+      "summary": "00991A 解析型文章多，但強力 KOL 推播聲量相對 00981A／00403A 偏弱。",
+      "intent": "競品 KOL 投放領先、復華有 KOL 經營缺口。",
+      "sentiment": "中性",
+      "suspected_ad": false,
+      "ad_reason": "—",
+      "reusable": "缺口即先機。",
+      "fh_play": "鎖定中型財經 KOL，用『經理人換股快報／獨門股清單』差異化投放。",
+      "url": "https://www.youtube.com/results?search_query=主動式ETF"
+    }
+  ]
+}

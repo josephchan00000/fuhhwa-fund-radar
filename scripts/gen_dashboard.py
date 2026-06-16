@@ -32,10 +32,11 @@ def main() -> None:
         return
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(dashboard.render_html(model), encoding="utf-8")
-    n_ideas = sum(e["stats"]["ideas"] for e in model["etfs"])
-    fab = sum(e["stats"]["fabricated"] for e in model["etfs"])
+    n_data = sum(e["stats"]["data"] for e in model["etfs"])
+    n_scan = sum(e["stats"]["scan"] for e in model["etfs"])
+    n_voice = sum(e["stats"]["voice"] for e in model["etfs"])
     print(f"✅ 儀表板 → {OUT.relative_to(OUT.parent.parent)}"
-          f"（{len(model['etfs'])} 檔 / {n_ideas} 想法 / 疑似杜撰 {fab}）")
+          f"（{len(model['etfs'])} 檔 / {n_data} 數據切點 / {n_scan} 競品掃描 / {n_voice} 口碑）")
     print(f"   雙擊開啟：{OUT}")
     if args.open:
         try:

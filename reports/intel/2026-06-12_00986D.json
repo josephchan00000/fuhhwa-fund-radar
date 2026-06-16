@@ -1,0 +1,95 @@
+{
+  "as_of": "2026-06-12",
+  "etf": "00986D",
+  "note": "復華全球金融債券入息主動式ETF（國內首檔金融債主動式ETF・NAV型）；績效以 NAV 含息計、非市價。月配、目標息率非保證、來源可能含本金或收益平準金。話題口碑為 Tier B 推估。",
+  "edge": [
+    {
+      "point": "差異化定位：國內首檔『金融債』主動式ETF，主動精選金融債（非被動全市場撒網），鎖定存續 8~12 年"
+    }
+  ],
+  "competitor_notes": {},
+  "topic": [
+    {
+      "type": "對標比較，幫投資人分析",
+      "status": "國內首檔金融債主動式ETF；以『主動精選金融債、月配』區隔被動債 ETF 與台股高息。",
+      "example": "【不只是被動債！00986D 國內首檔主動金融債 ETF】",
+      "links": [
+        {
+          "label": "etfinfo 基金頁",
+          "url": "https://www.etfinfo.tw/etf/00986D"
+        },
+        {
+          "label": "MoneyDJ 基本/績效",
+          "url": "https://www.moneydj.com/etf/x/basic/basic0004.xdjhtm?etfid=00986D.TW"
+        }
+      ]
+    },
+    {
+      "type": "配息預告或公告",
+      "status": "月配，距配息評價日 2026-06-28 剩 16 天；目標息率 6~7%、近一期每單位約 0.09 元（非保證、來源可能含本金/收益平準金）。",
+      "example": "【月配評價倒數 16 天！00986D 目標息率 6~7%（6/28）】",
+      "links": [
+        {
+          "label": "配息公告",
+          "url": "https://www.etfinfo.tw/etf/00986D/dividend"
+        },
+        {
+          "label": "etfinfo 配息",
+          "url": "https://www.etfinfo.tw/etf/00986D/dividend"
+        }
+      ]
+    },
+    {
+      "type": "持股亮點／新題材",
+      "status": "全球金融債、前十大集中 59%、存續 8~12 年；前 3 大：JPM 8¾、SOCGEN 7.367、OXY 8⅞（高息金融債）。",
+      "example": "【精選全球金融債！00986D 前十大集中 59% 重兵布局】",
+      "links": [
+        {
+          "label": "持股明細",
+          "url": "https://www.etfinfo.tw/etf/00986D"
+        },
+        {
+          "label": "etfinfo 持股",
+          "url": "https://www.etfinfo.tw/etf/00986D"
+        }
+      ]
+    },
+    {
+      "type": "經理人選股理念",
+      "status": "主動精選全球金融債、集中 59%、鎖定存續 8~12 年，與被動債 ETF 全市場分散明顯不同；成立以來 NAV 含息 -0.7%（逆勢守住）。",
+      "example": "【不是全市場撒網！00986D 經理人主動精選金融債】",
+      "links": [
+        {
+          "label": "基金資料",
+          "url": "https://www.etfinfo.tw/etf/00986D"
+        }
+      ]
+    }
+  ],
+  "voice": [
+    {
+      "source": "vocus · 存股部落客",
+      "kind": "社群輿論",
+      "summary": "金融債月配、月月領現金流、殖利率 6~7% 很適合小資定期定額。",
+      "intent": "自然分享／帶『被動收入』風向，主打月月領對小資的穩定感。",
+      "sentiment": "正面",
+      "suspected_ad": false,
+      "ad_reason": "無明顯業配訊號。",
+      "reusable": "『月月領 6~7%』是月配債最有共鳴的鉤子。",
+      "fh_play": "沿用月月領訴求但補『非保證、來源可能含本金/平準金』，並用『主動精選金融債』強化專業差異。",
+      "url": "https://news.google.com/search?q=00986D 月配"
+    },
+    {
+      "source": "FAQ／空方視角",
+      "kind": "情報",
+      "summary": "主動式債 ETF 費用率偏高、成立以來 NAV -0.7%，可能被質疑『不如直接買被動債 ETF』。",
+      "intent": "潛在反對意見——成本與短期績效是月配債的主要攻擊點。",
+      "sentiment": "負面",
+      "suspected_ad": false,
+      "ad_reason": "—",
+      "reusable": "把質疑當 FAQ 預先回應。",
+      "fh_play": "備話術：①債券重點在長期息收與存續、非短期淨值②主動精選可避開違約/弱勢券③月配提供持續現金流緩衝。",
+      "url": "https://www.ptt.cc/bbs/Stock/search?q=00986D"
+    }
+  ]
+}
