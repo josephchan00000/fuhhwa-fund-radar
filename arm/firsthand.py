@@ -245,6 +245,7 @@ def perf_periods(etf: str = "00991A") -> dict | None:
     start, latest = a_dates[0], a_dates[-1]
 
     series: dict[str, tuple[list[str], dict[str, float]]] = {}
+    last_chg: dict[str, tuple[str, float]] = {}      # 各對手最新一筆官方當日漲跌率(%)，供近1日斷層補值
     for b in benches:
         s = db_series(b)
         if not s or s[0][0] > "2026-01-05":          # 深層歷史不足 → TWSE 單檔逐日回補過去（近月以快照為準）
@@ -258,6 +259,10 @@ def perf_periods(etf: str = "00991A") -> dict | None:
         s = [(d, p) for d, p in s if d >= start and p]
         if len(s) >= 2:
             series[b] = ([d for d, _ in s], dict(s))
+        pq = _q(c, "SELECT trade_date,change_pct FROM peer_quotes WHERE code=? "
+                   "ORDER BY trade_date DESC LIMIT 1", (b,))
+        if pq and pq[0]["change_pct"] is not None:
+            last_chg[b] = (pq[0]["trade_date"], pq[0]["change_pct"])
     c.close()
 
     def period_ret(dates, cmap, end_d, start_d):
@@ -280,6 +285,11 @@ def perf_periods(etf: str = "00991A") -> dict | None:
         if ea is None:
             continue
         vals = {b: pct(period_ret(dts, cm, latest, sd)) for b, (dts, cm) in series.items()}
+        if label == "近1日":                          # 連續序列有斷層(如00981A六月缺)→ 用當日官方漲跌率補
+            for b in series:
+                d_chg = last_chg.get(b)
+                if vals.get(b) is None and d_chg and d_chg[0] == latest:  # 須為本檔近1日同一收盤日，口徑才一致
+                    vals[b] = round(d_chg[1], 2)
         actives = [vals[b] for b in series if b != "0050" and vals[b] is not None]
         pm = round(sum(actives) / len(actives), 2) if actives else None
         rows.append({"period": label, "etf": pct(ea), "vals": vals,
