@@ -434,8 +434,10 @@ def build_etf_model(etf_id: str, *, date=None) -> dict:
         "whatsnew": intel.get("whatsnew") or None,
         # 配息率/配息比較/稅賦優惠/海外持股(中文對照) drop-in（NAV 型海外入息檔專用，無則不顯示）
         "income": intel.get("income") or None,
-        # 經理人持股操作＋為什麼（換股快報式）drop-in：放進績效歸因、常駐顯示（續抱日也標）；無則不顯示
-        "swaps": intel.get("swaps") or None,
+        # 經理人持股操作＋為什麼（換股快報式）：動作/張數一律由 DB 自動算（firsthand.latest_swaps、
+        # 取最近一次實際換股），intel.swap_notes 以股票代號疊加為什麼/新聞；intel.swaps 為完整手動覆寫(優先)。
+        "swaps": (intel.get("swaps")
+                  or firsthand.latest_swaps(doc.etf_id, intel.get("swap_notes")) or None),
         "intel_src": intel_src, "intel_note": intel.get("note", ""),
         "stats": {"data": len(data_cuts), "peers": len(peers), "scan": len(scan),
                   "topic": len(intel.get("topic") or []), "voice": len(voice), "youtube": len(youtube)},
