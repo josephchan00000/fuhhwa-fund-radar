@@ -273,9 +273,11 @@ def perf_periods(etf: str = "00991A") -> dict | None:
     def n_back(n):
         return a_dates[-1 - n] if len(a_dates) > n else None
 
-    jan = next((d for d in a_dates if d >= "2026-01-01"), None)
+    # 年初以來(YTD)：以前一年最後交易日（≤ {year-1}-12-31）收盤為基準（標準 YTD 口徑）
+    year = int(latest[:4])
+    ytd_base = next((d for d in reversed(a_dates) if d <= f"{year - 1}-12-31"), None)
     specs = [("近1日", n_back(1)), ("近1週", n_back(5)), ("近1月", n_back(20)),
-             ("近3月", n_back(60)), ("年初以來", jan), ("成立以來", start)]
+             ("近3月", n_back(60)), ("年初以來", ytd_base), (f"{etf} 成立以來", start)]
     pct = lambda v: round(v * 100, 2) if v is not None else None
     rows = []
     for label, sd in specs:

@@ -15,13 +15,20 @@ def period_return(series: list[tuple[str, float, int]], n: int) -> float | None:
 
 
 def ytd_return(series: list[tuple[str, float, int]], year: int) -> float | None:
-    ys = [s for s in series if s[0][:4] == str(year)]
-    if len(ys) < 2:
+    """年初以來報酬：標準口徑以『前一年最後交易日(≤ {year-1}-12-31)收盤』為基準。
+
+    若序列無前一年資料（如今年才掛牌），退回當年首個交易日為基準；年中(>1/15)才掛牌者
+    無可比 YTD → 回 None（避免拿掛牌日當年初基準虛報）。
+    """
+    cur = [s for s in series if s[0][:4] == str(year)]
+    if not cur:
         return None
-    # 公平性：年中才掛牌者無可比 YTD（避免拿上市日當年初基準虛報）
-    if ys[0][0] > f"{year}-01-15":
+    prior = [s for s in series if s[0] <= f"{year - 1}-12-31"]
+    if prior:                                   # 以去年最後交易日收盤為基準（12/31 口徑）
+        return cur[-1][1] / prior[-1][1] - 1
+    if len(cur) < 2 or cur[0][0] > f"{year}-01-15":
         return None
-    return ys[-1][1] / ys[0][1] - 1
+    return cur[-1][1] / cur[0][1] - 1
 
 
 def si_return(series: list[tuple[str, float, int]]) -> float | None:

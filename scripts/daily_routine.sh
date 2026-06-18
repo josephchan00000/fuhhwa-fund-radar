@@ -15,7 +15,14 @@ python3 scripts/run_daily.py all
 echo "[3/4] 產每日文案（M6：baseline 四通路 + 合規標注 + 數字防杜撰；有金鑰走 API，否則出 prompt-pack）…"
 python3 scripts/gen_copy.py all || echo "  ⚠ 文案層失敗，續跑（想法報告已產出）"
 
-echo "[4/4] 產靜態儀表板（M7：今日 5 大創意切角 + 四通路文案 + 合規燈；零安裝單檔 HTML）…"
+echo "[4/6] 同日求鮮（13:30 收盤後即更新，不等晚間批次）：官方即時(MIS) 市價 + FHTrust 官方 NAV/持股 → 績效歸因…"
+python3 scripts/fetch_peers.py  || echo "  ⚠ 競品價量失敗，續跑"
+python3 scripts/fetch_fast.py   || echo "  ⚠ 同日求鮮失敗，續跑（用既有 DB 數據）"
+
+echo "[5/6] 自動新聞（近 7 天、帶發文時間）：Google News 台灣繁中 → 本檔話題+口碑自動更新…"
+python3 scripts/fetch_news.py   || echo "  ⚠ 自動新聞失敗，續跑"
+
+echo "[6/6] 產靜態儀表板（M7：績效歸因同日最新 + 今日切角 + 自動新聞 + 四通路文案）…"
 python3 scripts/gen_dashboard.py || echo "  ⚠ 儀表板產製失敗，續跑（文案/報告已產出）"
 
 echo "✅ routine 完成。想法 reports/{date}_{etf}.md；文案 reports/copy/{date}_{etf}.copy.md；儀表板 dashboard/index.html"

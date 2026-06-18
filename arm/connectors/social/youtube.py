@@ -15,6 +15,7 @@ from .base import SocialMention
 from .filters import extract_etfs
 
 SEARCH = "https://www.googleapis.com/youtube/v3/search"
+# 控制查詢數＝控制 API 額度（search.list 每次 100 單位/日上限 10000）；4 組已涵蓋主角，避免額度用盡。
 QUERIES = ["復華 主動式 ETF", "00991A", "00998A 復華", "00986D 復華"]
 
 

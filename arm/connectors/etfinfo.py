@@ -22,9 +22,29 @@ from ..http import get_json
 API = "https://www.etfinfo.tw/api"
 
 
-def fetch_etf(code: str) -> dict:
-    """單檔完整記錄（info/latestMarket/holdings/dividends/trailingYield/returnStats）。"""
-    return get_json(f"{API}/etf/{code}", cache_ttl=6 * 3600)  # type: ignore[return-value]
+def fetch_etf(code: str, *, cache_ttl: int = 6 * 3600) -> dict:
+    """單檔完整記錄（info/latestMarket/holdings/dividends/trailingYield/returnStats）。
+
+    `cache_ttl`：同日盤後求鮮（latestMarket/holdings 當日即更新）→ 快取路徑傳短 TTL（如 600s）。
+    """
+    return get_json(f"{API}/etf/{code}", cache_ttl=cache_ttl)  # type: ignore[return-value]
+
+
+def latest_market(code: str, *, cache_ttl: int = 600) -> dict:
+    """單檔同日最新市況 → {date, price, nav, change, premium, aum, beneficiaries}。
+
+    etfinfo `latestMarket` 13:30 收盤後即帶當日（早於 TWSE STOCK_DAY_ALL 晚間批次）；
+    用短 TTL 求鮮。取不到回 {}。Tier B：上線前以投信官網/公開資訊核對。
+    """
+    lm = (fetch_etf(code, cache_ttl=cache_ttl).get("latestMarket") or {})
+    return {"date": lm.get("date"), "price": lm.get("price"), "nav": lm.get("nav"),
+            "change": lm.get("change"), "premium": lm.get("premium"),
+            "aum": lm.get("aum"), "beneficiaries": lm.get("beneficiaries")}
+
+
+def holdings_fresh(code: str, *, cache_ttl: int = 600) -> tuple[list[dict], dict]:
+    """同 holdings()，但走短 TTL 求當日最新快照（盤後常有當日 snapshotDate）。"""
+    return _holdings_from(fetch_etf(code, cache_ttl=cache_ttl))
 
 
 def list_etfs() -> list[dict]:
@@ -32,12 +52,7 @@ def list_etfs() -> list[dict]:
     return (get_json(f"{API}/etf/list", cache_ttl=6 * 3600) or {}).get("items", [])  # type: ignore[union-attr]
 
 
-def holdings(code: str) -> tuple[list[dict], dict]:
-    """正規化持股 → ([{stock_id,stock_name,weight,shares}], meta)。
-
-    meta：{issuer, name, as_of(snapshotDate), source}。取不到回 ([], meta)。
-    """
-    d = fetch_etf(code)
+def _holdings_from(d: dict) -> tuple[list[dict], dict]:
     h = d.get("holdings") or {}
     raw = h.get("stocks") or h.get("holdings") or []
     out = [{"stock_id": str(r["code"]), "stock_name": r.get("name", ""),
@@ -47,6 +62,14 @@ def holdings(code: str) -> tuple[list[dict], dict]:
     meta = {"issuer": info.get("issuer"), "name": info.get("name"),
             "as_of": h.get("snapshotDate"), "source": h.get("source")}
     return out, meta
+
+
+def holdings(code: str) -> tuple[list[dict], dict]:
+    """正規化持股 → ([{stock_id,stock_name,weight,shares}], meta)。
+
+    meta：{issuer, name, as_of(snapshotDate), source}。取不到回 ([], meta)。
+    """
+    return _holdings_from(fetch_etf(code))
 
 
 def dividends(code: str) -> tuple[list[dict], float | None]:
