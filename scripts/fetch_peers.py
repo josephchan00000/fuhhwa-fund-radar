@@ -43,15 +43,40 @@ def _merged_quotes() -> dict[str, dict]:
     try:
         tpx = tpex.fetch_today_all()
     except Exception as e:
-        print(f"  ⚠ TPEx 上櫃價量取得失敗（{type(e).__name__}）→ 僅用 TWSE；債券/自家上櫃檔本日略過")
+        print(f"  ⚠ TPEx 上櫃價量取得失敗（{type(e).__name__}）→ 僅用 TWSE；改由即時(MIS) 補上櫃")
         tpx = {}
     for code, d in tpx.items():           # 上市沒有的（上櫃 ETF）才補
         allt.setdefault(code, d)
     return allt
 
 
+def _mis_topup(allt: dict, codes: list[str]) -> int:
+    """官方批次(STOCK_DAY_ALL/TPEx)傍晚才更新；收盤後先用即時(MIS) 把 PEERS 補到當日。
+
+    對每個 peer 代號：若 allt 無資料或日期落後 MIS 當日 → 以 MIS（官方即時收盤）覆蓋。
+    回傳補了幾檔。MIS 量為『張』→ 轉股數 ×1000，與 STOCK_DAY 對齊。
+    """
+    from arm.connectors import twse_mis
+    try:
+        q = twse_mis.quotes(codes)
+    except Exception as e:
+        print(f"  ⚠ 即時(MIS) 補值失敗（{type(e).__name__}）→ 沿用官方批次（可能仍為前一交易日）")
+        return 0
+    n = 0
+    for code, m in q.items():
+        cur = allt.get(code)
+        if (not cur) or (cur.get("date") or "") < (m["date"] or ""):   # MIS 較新才覆蓋
+            allt[code] = {"date": m["date"], "name": m["name"], "close": m["close"],
+                          "change": m["change"], "volume": (m["volume_lots"] or 0) * 1000}
+            n += 1
+    return n
+
+
 def main() -> None:
     allt = _merged_quotes()
+    topped = _mis_topup(allt, list(PEERS))      # 收盤後即時補當日（含上市/上櫃 peer）
+    if topped:
+        print(f"  ⚡ 即時(MIS) 補當日 {topped} 檔（官方批次未更新時，peer 仍到當日）")
     conn = sqlite3.connect(DB)
     conn.execute(DDL)
     n = 0

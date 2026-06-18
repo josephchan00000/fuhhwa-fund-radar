@@ -48,13 +48,34 @@ def _aum_change(aum_rows: list[tuple[str, float]], n: int = 5):
     return chg, now, prev
 
 
+def _fund_latest(fund_id: str, market_latest: str, back: int = 6) -> str:
+    """本檔『官方(FHTrust)持股快照可得的最新日』(≤ market_latest)；當日官方未公布 → 退到最近可得日。
+
+    讓同日求鮮（市價已到當日）時，官方淨值/持股尚未公布的檔（如 00998A/00986D 傍晚）誠實退到
+    最近可得交易日，而非硬取當日 NoData 中斷。台股型(00991A)官方常當日即有 → 取當日。
+    """
+    from datetime import date, timedelta
+    d = date.fromisoformat(market_latest)
+    for _ in range(back + 1):
+        iso = d.isoformat()
+        try:
+            fhtrust.fetch_holdings(fund_id, iso)
+            return iso
+        except fhtrust.NoData:
+            d -= timedelta(days=1)
+        except Exception:
+            return market_latest
+    return market_latest
+
+
 def build_context(etf_id: str, *, all_today=None, conn=None) -> dict:
     """組出單檔 ctx（含品質報告），供偵測器 / 想法引擎 / 報告共用。"""
     cfg = config.load()
     p = config.product(etf_id)
     ac = p["asset_class"]
     all_today = all_today if all_today is not None else twse.fetch_today_all()
-    latest = cal.latest_trading_day(all_today)
+    # 本檔資料日：以官方持股快照可得的最新日為準（官方當日未公布 → 退到最近可得日，不中斷）。
+    latest = _fund_latest(p["fund_id"], cal.latest_trading_day(all_today))
     conn = conn or db.connect()
     year = int(latest[:4])
 
@@ -232,11 +253,46 @@ def run(etf_id: str = "00991A", *, all_today=None, conn=None, star=False) -> dic
     return {"etf_id": etf_id, "n_signals": len(sigs), "n_ideas": len(portfolio)}
 
 
+def _topup_today(all_today: dict) -> int:
+    """官方全市場批次(STOCK_DAY_ALL)傍晚才更新；收盤後先用即時(MIS) 把『本檔成分+同類+題材股』
+    補到當日，讓資料日與賣點訊號跟到當日。回傳補了幾檔（MIS 量為張→股 ×1000）。"""
+    from .connectors import twse_mis
+    codes: set[str] = set()
+    try:
+        pg = json.loads((INTEL.parent / "peer_groups.json").read_text(encoding="utf-8"))
+        codes |= set((pg.get("issuer") or {}))
+        for g in (pg.get("groups") or {}).values():
+            codes |= set(g)
+        tm = json.loads(INTEL.read_text(encoding="utf-8")).get("theme_map", {})
+        for m in tm.values():
+            codes |= set(m)
+        conn = db.connect()
+        for r in conn.execute("SELECT DISTINCT stock_id FROM holdings_daily WHERE trade_date="
+                              "(SELECT MAX(trade_date) FROM holdings_daily)"):
+            codes.add(r[0])
+        conn.close()
+        q = twse_mis.quotes([c for c in codes if c])
+    except Exception as e:
+        print(f"  ⚠ 即時(MIS) 補當日失敗（{type(e).__name__}）→ 沿用官方批次")
+        return 0
+    n = 0
+    for code, m in q.items():
+        cur = all_today.get(code)
+        if (not cur) or (cur.get("date") or "") < (m["date"] or ""):
+            all_today[code] = {"date": m["date"], "name": m["name"], "close": m["close"],
+                               "change": m["change"], "volume": (m["volume_lots"] or 0) * 1000}
+            n += 1
+    return n
+
+
 def run_all(star_id: str | None = None) -> None:
     """M1-3：跑全部主角；指定（或依日期輪播）一檔為今日主角。"""
     cfg = config.load()
     prods = cfg["fh_products"]
     all_today = twse.fetch_today_all()
+    topped = _topup_today(all_today)            # 收盤後即時補當日 → 資料日/訊號跟到當日
+    if topped:
+        print(f"  ⚡ 即時(MIS) 補當日 {topped} 檔（官方全市場批次未更新時，賣點訊號仍到當日）")
     conn = db.connect()
     latest = cal.latest_trading_day(all_today)
     if star_id is None:                       # 依交易日序數輪播主角

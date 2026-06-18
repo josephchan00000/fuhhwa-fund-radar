@@ -1,191 +1,224 @@
-# TODO — M6 Claude 文案層 + 合規 LLM 標注（詳細執行清單）
+# TODO — 每日「更新 {代號}」作業手冊（逐段逐細節審視，不漏更新、不重複故事）
 
-> 本檔是 **M6 的執行層細節**，補充 `docs/SPEC.md` Part II 的高階勾選與 §10 設計。SPEC 仍是單一規格來源；本檔只展開「怎麼做、碰哪些檔、驗收條件、待授權項」。
-> 規格依據：SPEC §10（智能文案層 + 合規事後標注）、Part II M6。
-> 狀態圖例：`[ ]` 待辦　`[~]` 部分　`[x]` 完成。
-
----
-
-## 0. 目標與 DoD
-
-**目標**：每個「想法（Idea）」自動長出 **3~4 種長度/通路的文案**，附 **逐句合規標注**（🟢🟡🔴 不擋），並給 **一鍵合規改寫版**。
-
-**DoD（驗收）**：
-- 跑 `run_daily` 後，每個想法附 `line / ig / sales / punchy` 至少 3 版文案。
-- 每版文案有 `annotations[]`（span+風險+規則+建議）+ `overall_risk` + `compliant_rewrite`。
-- **數字 100% 可追溯**：文案中的所有數字皆來自該想法的 `evidence/headline`，杜撰數字會被偵測並標 🔴。
-- 合規**不攔截**：所有版本都能複製，標注只是把風險攤開（沿用事後標注精神）。
-- `tests/test_copy.py` 全綠；既有測試不破。
+> **這是什麼**：使用者打「**更新 00991A**」（單檔；或 00998A／00986D）或「**全部更新**」（三檔一次，見 §1 兩種模式）時，我（Claude）要照本手冊
+> **逐段、逐欄位、逐數字**重新審視並更新「**數據 → 敘事 → 分析**」三層，並做**反重複檢查**，
+> 確保(1) 沒有任何一段停在昨天的舊資料、(2) 今天的故事不與近幾天雷同。
+> **驗收精神**：寧缺勿錯、先給最強可能值再標來源/信心（Tier B）、配息類必揭露、發布前法遵自核。
+>
+> **狀態圖例**：`[ ]` 待辦　`[~]` 部分／降級　`[x]` 完成且已驗鮮。
+> **相關**：`docs/SPEC.md`（規格）、`docs/M6_copy_todo.md`（文案層歷史）、記憶 `daily-intel-workflow`。
 
 ---
 
-## 1. 核心設計決策（先確定，再寫碼）
+## 0. 鐵則（每次更新都成立，違反即視為沒更新完）
 
-### 1.1 LLM-agnostic：baseline 一定能離線跑，LLM 是可注入的增強
-本專案是「純標準庫 + SQLite、零安裝、launchd 每日自動」。**文案層不可硬依賴 Anthropic SDK / API key**（那是對外動作、待授權），否則每日排程會斷。
-→ 比照 M4 `social.analyze(m, llm=...)` 的模式：
-- **baseline（確定性、純 stdlib、必做）**：用模板從 `idea.evidence` 結構化數字產生各通路文案 + 規則式合規標注 + 規則式改寫版。**每日排程只靠 baseline 就能完整產出**。
-- **LLM 層（可注入、待授權）**：`generate(idea, ctx, llm=None)`、`review(text, rules, llm=None)`。`llm` 是一個 callable（簽名見 §4），接上 `claude-opus-4-8`（Anthropic SDK）後「火力全開」覆蓋/增補 baseline，**呼叫端不改**。未授權時 `llm=None`，自動走 baseline。
-
-### 1.2 數字不得杜撰（硬底線，對齊 Tier A 正確性）
-SPEC §10.1：唯一硬底線=數字只能用 evidence 內真實數據。
-→ 機制：
-1. 從 `idea.evidence + idea.headline` 抽出 **allowed tokens**（數字、`%`、`+/-`、`倍/億/張/萬/pt`、個股/競品名）。
-2. baseline 模板**只插入** allowed 欄位 → 天生不會杜撰。
-3. LLM 產出做 **post-check**：掃描輸出的每個數字 token，正規化後若不在 allowed set → 標 🔴「數字未見於 evidence、疑似杜撰」，並可選擇丟棄該版或保留+重警示（預設保留+🔴，交人決定）。
-4. `tests/` 必含：注入一個假數字 → 偵測器要抓到。
-
-### 1.3 合規兩層、皆不擋（事後標注）
-- **規則層（必做）**：把現有 `ideas.annotate()` 的 `BANNED` + 必揭露邏輯**外移到 `config/compliance.yaml`**，升級成 span 級 + 風險分級（高/中/低）+ `compliant_rewrite`（規則式）。
-- **LLM 法遵層（待授權）**：第二次呼叫 Claude 扮「投信投顧公會法遵」逐句判讀（SPEC §10.2 JSON 格式），`review(text, rules, llm=)` 注入；未授權走規則層。
-- 風險分級沿用：高=絕對化/保證/最高級；中=缺揭露/比較未標基準；低=用語偏軟。
-- 沿用 `ideas.py` 既有 🟢🟡🔴 與 `_violates()`（「非保證」不誤判）邏輯，**不要重寫、要重用**。
-
-### 1.4 打架邊界（多 session 協作鐵則）
-- **隔壁的禁區，一律不碰**：`arm/connectors/brokers/`、`arm/chips.py`、`arm/connectors/etfinfo.py`、`config/broker_flows/`、`config/active_flow/`、`config/competitor_holdings/`。
-- **本 session（M6）只新增/碰**：`arm/copy/`（新）、`config/compliance.yaml`（新）、`tests/test_copy.py`（新）、`scripts/gen_copy.py`（新，見 §5）、`arm/db.py`（只**新增** copy 表，不動既有）、`docs/SPEC.md`+`README.md`（只動 M6 段落）。
-- **`arm/ideas.py` / `arm/pipeline.py` 是共用熱區**：M6 盡量**不改** ideas.py、**最小改或不改** pipeline.py。優先採 §5 的「獨立 `scripts/gen_copy.py`」串接（零 pipeline 編輯=零打架）；要動 pipeline 前先確認隔壁沒在改。
+1. **三層都要動**：每一段都檢查 ── ①**數據**對不對且是今天的、②**敘事**是不是新寫的、③**分析**有沒有換角度。三者缺一不算更新。
+2. **全段對齊同一資料日**：腳本刷新的數據層與我手寫的 drop-in，`as_of` 必須是**同一個資料日**（通常=今天交易日）。任何一段日期落後 → 紅旗、補到齊。
+3. **不重複**：今天的「主切角(lead)、標題範例、競品對打點、口碑取材」要與**近 5 天輪動**，不可照抄昨天（見 §4）。
+4. **數字 100% 可追溯**：每個數字都能回到第一手（`data/fast/{etf}.json` / `arm/firsthand` / 官方）。不確定 → 給最強可能值並標 Tier B／信心，不杜撰。
+5. **誠實降級**：若今天非交易日／資料真的沒變（無新換股、無新新聞）→ **明說「今日無新變化、沿用 X」**，不硬掰一個假的新故事。
+6. **配息合規**：凡碰配息 → 必帶「配息率非報酬率、來源可能含本金／收益平準金」。
 
 ---
 
-## 2. 檔案計畫
+## 1. 更新流程總覽（順序不可顛倒）
 
-| 檔案 | 動作 | 內容 |
-|---|---|---|
-| `arm/copy/__init__.py` | 新 | re-export `generate_for_idea` / `review` / `write_for_portfolio` |
-| `arm/copy/generator.py` | 新 | 模板文案生成（line/ig/sales/punchy）+ allowed-token 抽取 + LLM 注入點 |
-| `arm/copy/compliance.py` | 新 | 載 `compliance.yaml` → span 級標注 + overall_risk + 規則式 `compliant_rewrite` + 數字杜撰偵測 + LLM 法遵注入點 |
-| `arm/copy/templates.py` | 新 | 各通路模板與字數規則（line ≤60、ig、sales、punchy） |
-| `config/compliance.yaml` | 新 | 禁詞（分級）、必揭露語句、改寫對照表、通路設定 |
-| `arm/db.py` | 改(加表) | `CREATE TABLE copy(...)`；用既有 `upsert` 落地 |
-| `scripts/gen_copy.py` | 新 | 獨立 CLI：讀當日想法 → 產文案/標注 → 落 DB + 出 `reports/{date}_{etf}_copy.md` |
-| `tests/test_copy.py` | 新 | 見 §6 |
-| `docs/SPEC.md` / `README.md` | 改(M6段) | 勾選 + 現況；標 baseline 完成 / LLM 待授權 |
-
----
-
-## 3. 逐任務（對應 SPEC M6-1~M6-4）
-
-### M6-1 文案生成器 `arm/copy/generator.py`
-- [ ] 定義 `CopyVariant(channel, text, length, source)`（source: `template` / `llm`）。
-- [ ] `allowed_tokens(idea) -> set[str]`：regex 從 `evidence + headline` 抽數字/`%`/`+-`/單位/名稱。
-- [ ] `generate_for_idea(idea, ctx, llm=None) -> list[CopyVariant]`：
-  - 依 `idea.category` 選模板族（績效/籌碼/題材/配息/差異化/逆向誠實/社群KOL…）。
-  - 產 `line`(≤60字短訊)、`ig`(社群貼文)、`sales`(通路話術)、`punchy`(最敢講吸睛版)。
-  - 數字只從結構化欄位插入（§1.2）。
-  - `llm is not None` 時呼叫 LLM 產增強版並做數字 post-check（§1.2.3）。
-- DoD：給定一個想法→回 ≥3 版、每版數字皆 ⊆ allowed。
-
-### M6-2 合規升級 `arm/copy/compliance.py`
-- [ ] `load_rules()` 讀 `config/compliance.yaml`（禁詞分級 + 必揭露 + 改寫表）。
-- [ ] `annotate_spans(text, rules) -> list[ann]`：span 級（沿用 `_violates` 不誤判「非保證」）。
-- [ ] `overall_risk(anns)`：取最高。
-- [ ] `compliant_rewrite(text, rules)`：規則式——禁詞替換（保證→可能/刪、完勝→領先、最強→表現突出、翻倍賺→大幅成長）+ 缺免責則補「（過去績效不代表未來，投資有風險）」+ 軟化絕對化。
-- [ ] `detect_fabricated_numbers(text, allowed) -> list[ann]`：🔴 杜撰數字（§1.2）。
-- [ ] `review(text, rules, allowed, llm=None)`：合併規則層 + 數字檢查（+ LLM 法遵層 if llm）。回 SPEC §10.2 JSON 結構。
-- DoD：`報酬完勝大盤` → 高風險 + 改寫版「…報酬領先對標指數…（附免責）」；假數字被抓。
-
-### M6-3 文案入庫 + 輸出 `arm/db.py` + `scripts/gen_copy.py`
-- [ ] `db.py` 加 `copy` 表（§4 schema），用既有 `upsert`。
-- [ ] `scripts/gen_copy.py`：對指定/全部主角，讀「當日想法組合」→ 逐想法 `generate_for_idea` + `review` → 落 `copy` 表 + 寫 `reports/{date}_{etf}_copy.md`（原文 + 🟡🔴 標注 + 改寫版並陳）。
-- [ ] 想法來源：優先**重跑 `ideas.build_portfolio`**（離線、不需網路重抓；用既有 `pipeline.build_context`？會觸發網路→改為讀已存 `reports/{date}_{etf}.md` 解析想法，或讀 `signals` 表）。**決策點見 §5**。
-- DoD：跑 `gen_copy.py 00991A` 產出 copy 報告 + DB 有列。
-
-### M6-4 設定化 `config/compliance.yaml`
-- [ ] 禁詞（沿用現有 `BANNED` + 分級）、必揭露語句、改寫對照、通路字數上限、各通路 tone。
-- [ ] `ideas.annotate()` 可選擇改為讀同一份 yaml（**保持向後相容**，不破既有 28+ 測試）——或先不動 ideas，只讓 copy 層用 yaml，待穩定再收斂（避免打架 ideas.py）。
-- DoD：改 yaml 即改標注行為，無需動碼。
-
----
-
-## 4. 介面 / 資料結構（草案）
-
-```python
-# arm/copy/generator.py
-@dataclass
-class CopyVariant:
-    channel: str          # line / ig / sales / punchy
-    text: str
-    length: int
-    source: str = "template"   # template | llm
-    annotations: list = field(default_factory=list)
-    overall_risk: str = "低"
-    compliant_rewrite: str = ""
-
-# LLM 注入點簽名（待授權接 claude-opus-4-8）
-#   gen_llm(idea: dict, ctx: dict, channels: list[str]) -> dict[channel, str]
-#   review_llm(text: str, rules: dict) -> dict   # 回 SPEC §10.2 JSON
+```
+Step 1  刷數據層（跑腳本）          → §2   先把所有自動數據拉到當日
+Step 2  驗鮮（每個產物 as_of=今天） → §2   任何一支落後就重跑/查原因
+Step 3  讀新鮮數據、定今日主軸      → §3   先看 fast.json 歸因，決定「今天的故事」
+Step 4  手寫/改 drop-in 意圖深析    → §3   切角 / 競品意圖 / KOL新聞意圖（reports/intel）
+Step 5  反重複檢查                  → §4   對比近 5 天，輪動角度與標題
+Step 6  重產儀表板 + 逐段驗收       → §5   gen_dashboard，逐段打勾
+Step 7  部署（公開上線）            → §6   Vercel 直推
 ```
 
-```sql
--- arm/db.py 新增（不動既有表）
-CREATE TABLE IF NOT EXISTS copy (
-    etf_id      TEXT, trade_date TEXT,
-    idea_idx    INTEGER, category TEXT,
-    channel     TEXT,  text TEXT,
-    overall_risk TEXT, compliant_rewrite TEXT,
-    src         TEXT,  created_at TEXT,
-    PRIMARY KEY (etf_id, trade_date, idea_idx, channel)
-);
+**兩種模式：**
+- **`更新 {代號}`**（單檔）：只跑該檔的 §2 腳本（`fetch_fast/fetch_news {code}`＋共用的 `fetch_peers`）、只重寫該檔 drop-in，§3~§7 針對該檔。部署時 `index.html` 仍含三分頁，但只該檔是新的（其餘維持上次）。
+- **`全部更新`**（三檔）：對 00991A／00998A／00986D 各跑一次 §2~§5（可用 `bash scripts/daily_routine.sh` 一鍵刷數據；或 `fetch_fast`/`fetch_news` 不帶代號＝全跑、`run_daily.py all`、`fetch_etfinfo.py` 競品持股），**三檔 drop-in 都重寫**，§4 反重複要做到「三檔互不重疊 + 各自跳開昨天」，最後 §6 **一次部署**（一個 commit 帶三檔更新）。
+- 上櫃 NAV 型（00998A/00986D）官方當日 NAV 常未出 → 無 `fast.json` 歸因；市價走 TPEx（`fetch_peers`）、NAV/換股誠實停最近交易日並標。台股型（00991A）才有同日 MIS 歸因三卡。
+
+---
+
+## 2. 數據層刷新（腳本）── 每支都要確認「資料日 = 今天」
+
+**一鍵：** `bash scripts/daily_routine.sh`（會依序跑下列）。逐檔更新時可只跑該檔：在腳本末段腳本接代號（如 `python3 scripts/fetch_fast.py 00991A`）。
+
+| # | 腳本 | 刷新什麼 | 產物 | 驗鮮檢查（必做） |
+|---|---|---|---|---|
+| 1 | `scripts/fetch_etfinfo.py` | 競品持股(Tier B) + 主動ETF/投信法人籌碼 | `config/competitor_holdings/*.json`、`config/active_flow/` | 競品 `as_of` 有推進；失敗→沿用舊 drop-in 並標 |
+| 2 | `scripts/run_daily.py {code\|all}` | signals + 多元想法 + 報告 | `reports/{date}_{etf}.md`、DB `signals` | 報告檔名日期=今天；通過品質閘門 |
+| 3 | `scripts/gen_copy.py {code\|all}` | 四通路文案 + 合規標注 | `reports/copy/{date}_{etf}.copy.md` | 數字皆 ⊆ evidence；無新杜撰 🔴 |
+| 4 | `scripts/fetch_peers.py` | 競品/0050 當日價量 | DB `peer_quotes` | 本檔群各代號最新 `trade_date`；今日者前端標黃 |
+| 5 | `scripts/fetch_fast.py {code}` | **同日求鮮**：MIS 市價＋FHTrust NAV/持股 → 績效歸因 | `data/fast/{etf}.json`、DB `etf_daily`/`holdings_daily` | **`as_of` == 今天**；`attribution.n_priced` 夠；`tier` A/B |
+| 6 | `scripts/fetch_news.py {code}` | 近 7 天新聞（帶發文時間） | `data/fast/news_{etf}.json` | `items[].date` 皆近 7 天；有當日/近兩日新聞 |
+| 7 | `scripts/gen_dashboard.py` | 靜態儀表板 | `dashboard/index.html` | `generated_at` 為現在；各段 `today` 標記正確 |
+
+> **驗鮮硬指標**：開 `data/fast/{etf}.json` 看 `as_of`；開 `data/fast/news_{etf}.json` 看最新 `items[].date`。
+> 上市(TWSE)約晚間才有當日批次、上櫃(TPEx)約 16:00；收盤後傍晚跑時靠 MIS/TPEx 求鮮到當日（見 §0.2）。
+> 上櫃 NAV 型(00998A/00986D) 官方當日 NAV 常未出 → 市價走 TPEx、NAV 誠實停最近交易日並標。
+
+---
+
+## 3. 逐段審視清單（核心）── 每段都查「數據對／敘事新／分析換角度」
+
+> 我手寫的深析 drop-in 檔：**`reports/intel/{今天日期}_{代號}.json`**（複製最近一份改，或新建）。
+> 寫完務必把 `as_of` 改成今天、檔名日期改成今天。儀表板會自動抓該檔最新一份。
+
+### 3.0 檔頭
+
+- [ ] `as_of` → 今天資料日（與 `fast.json` 的 `as_of` 一致）。
+- [ ] `etf` → 代號正確。
+- [ ] `note` → 確認 provenance／合規語句仍適用（第一手 vs Tier B、配息揭露、業配僅「疑似・推估」）。
+
+### 3.0b 🆕 `whatsnew`（置頂「今日新變化＋最該打的新賣點」卡）── 每檔必填
+
+> 因各來源更新時點不同，使用者要「一眼抓到本次有什麼新東西、哪些可變賣點」(2026-06-17 定)。每次更新都要**重填** `whatsnew`，渲染成分頁最上方置頂卡。
+
+- [ ] `prev_date` → 比較基準（通常「06-15（官方）／早盤」之類，誠實標數據基準）。
+- [ ] `top_plays[]`（2~3 個，依**賣點潛力**排序）：`{stars(1~3), title(賣點), why(為什麼現在打), concept(可搭概念)}`。挑「今日最該打」的新賣點，每個用今日可佐證數字。
+- [ ] `changes[]`（本次所有異動清單）：`{cat(數據/持股/籌碼/新聞/切角/規模), dir(up▲/down▼/new🆕/flat•), text}`。把數據/換股/新文章/新切角的異動逐條列出、標方向。
+- [ ] 三檔的 `top_plays` 互不重疊；與昨天的 `whatsnew` 不照抄（同 §4 反重複）。
+- [ ] 數據型異動的數字可回溯（firsthand/fast/官方）；`flat•`＝沿用未變要誠實標（如上櫃檔持股停 06-15）。
+
+### 3.1 切角 `topic[]`（=「本檔話題＋口碑」的話題型卡片）
+
+四種固定切角，每種都要用**今天的數字**重寫 `status`、**換新的** `example` 標題：
+
+| `type` | 取數來源 | 每日要更新 | 反重複 |
+|---|---|---|---|
+| 持股亮點／新題材（數據型） | `fast.attribution.up_top`（今日推漲 Top） | 今日第一貢獻股、貢獻 pp、佔當日漲幅% | 換主角股或換題材，別天天南亞科同句 |
+| 經理人選股理念（換股快報） | `fast.holdings_diff.adds/cuts` | 今日加碼/減碼前 3（權重 pp） | 沒換股就誠實說「今日無顯著換股」 |
+| 對標比較（引戰/對比） | `perf_periods` + `vs_bench`（主動度/獨門） | 對 0050 或同類均的實際領先 pp | 輪動對打對象（0050↔某競品） |
+| 配息預告（官方） | `config` 配息評價日 | 距評價日天數倒數 | **必揭露**配息率非保證/含本金 |
+
+- [ ] 每張 `status` 含「今日」字樣與當日數字；`example` 是新標題（見 §4 反重複）。
+- [ ] `links[]` 連結可點、對得上（etfinfo/MoneyDJ/官方/新聞）。
+
+### 3.2 競品意圖 `competitor_notes{}`（=「競品切點掃描」每張卡的旁白）
+
+對本檔競品群（見 `config/peer_groups.json`）每一個競品代號各一句：**它今天/近期在主打什麼 + 我們怎麼對打**。
+
+- [ ] 每個競品都覆蓋到（00991A 群：00981A/00403A/00992A/00990A/00980A/00985A/00993A/00995A…）。
+- [ ] 數字用今天的：競品規模、YTD/近期報酬、今日價量、重壓題材（`competitor_scan` + 競品持股快照）。
+- [ ] **我們的對打點**要具體（用本檔今日歸因/換股/超額），不是空話。
+- [ ] 反重複：今天「主動挑哪家對打」要輪動，別每天打同一家同一句（§4）。
+
+### 3.3 KOL／新聞口碑意圖 `voice[]`（=「本檔話題＋口碑」口碑列；新聞另由 `fetch_news` 自動置頂）
+
+每則：`source`(含發文時間)／`kind`(新聞/KOL)／`summary`／`intent`(發文意圖)／`sentiment`／`suspected_ad`+`ad_reason`／`reusable`／`fh_play`／`url`。
+
+- [ ] 只收**近一週**且**標發文時間**；過期的清掉。
+- [ ] 每則都寫「**意圖**」與「**fh_play**（我們怎麼接）」，且 `fh_play` 用本檔可佐證數字。
+- [ ] 業配判讀只標「疑似・推估」附 `ad_reason`，不指控。
+- [ ] 反重複：今天取材的新聞/KOL 要有新進來的，不是昨天那兩則原封不動（§4）。
+
+### 3.4 我們好在哪 `edge[]`（=「競品操作比較·我們好在哪」上方優勢點）
+
+3 點左右，**用今日歸因/差異化講「為什麼是主動選股賺到的」**。
+
+- [ ] 每點都掛今日可佐證數字（貢獻度、佔當日漲幅、主動加碼、主動度 Active Share）。
+- [ ] 與 §3.1 持股亮點不要逐字重覆，角度要互補（一個講「吃到」、一個講「被動吃不到」、一個講「分散非單壓」）。
+
+### 3.5 自動數據段（腳本產，但我要驗鮮 + 看一眼合理性）
+
+這幾段不手寫，但**必須確認已刷新到今天且數字合理**，否則回 §2 重跑：
+
+- [ ] **本檔第一手數據切點**（`data_cuts` ← `firsthand.our_facts`）：成交量/漲跌/規模週增/受益人/持股加減碼/signals 是今天的。
+- [ ] **績效歸因（同日最新）**（`fast`）：市況 + 持股異動 + 推漲/下跌 Top3 + 貢獻度排行，`as_of`=今天。
+- [ ] **競品價量排行**（`peers`/`scan` ← `peer_quotes`）：今日者標黃；上櫃/上市更新時點差異已正確處理。
+- [ ] **多週期報酬**（`perf` ← `perf_periods`，目前僅 00991A）：近1日/週/月/3月/YTD/成立以來，對手斷層誠實顯「—」。
+- [ ] **自動新聞 / YouTube**：近 7 天、標日期。
+
+---
+
+## 4. 反重複機制（不讓每天故事雷同）── 寫 drop-in 前後都要做
+
+**做法：先讀近 5 天，建「已用清單」，今天必須輪動。**
+
+1. **讀近 5 天 drop-in**：`reports/intel/` 下最近 5 個 `*_{代號}.json`，列出每天的：
+   - `topic[].example`（標題）、`topic[].status` 主切角；
+   - `edge[]` 主論點；
+   - `competitor_notes` 今天主打哪家；
+   - `voice[]` 取材來源。
+2. **建「近 5 天已用」清單**（可寫在本檔 §7 的表裡）。
+3. **今天強制輪動至少這幾項**：
+   - [ ] **主切角(lead)** 與昨天不同（昨天打歸因 → 今天可打換股/差異化/配息倒數）。
+   - [ ] **標題範例 `example`** 全部重寫，不照抄句型（避免「押中 X，扛起當日 Y%」連用三天）。
+   - [ ] **競品對打對象**輪動（昨天打 00981A 規模 → 今天打 00992A 散熱輪動）。
+   - [ ] **口碑取材**有新進新聞/KOL（至少一則是新的）。
+   - [ ] **題材聚焦**輪動（記憶體↔散熱↔網通↔金融↔債），別天天同一族群。
+4. **每段至少一個「今日新事實」**：今天的數字 / 今天的新聞 / 今天的換股 / 今天的排名變化。找不到新事實的段 → 誠實標「今日無新變化，沿用 X（日期）」。
+5. **重複偵測自檢**：寫完後把今天的 `example` 與近 5 天清單比對，若 >1 句與某天高度相似 → 改寫。
+
+---
+
+## 5. 重產儀表板 + 逐段驗收（DoD）
+
+```
+python3 scripts/gen_dashboard.py        # 產 dashboard/index.html
 ```
 
-```yaml
-# config/compliance.yaml（草案）
-banned:
-  high:  [保證, 穩賺, 必漲, 完勝, 最強, 包賺, 穩賺不賠, 零風險, 絕對, 鐵定, 翻倍賺]
-required_disclaimers:
-  performance: "過去績效不代表未來，投資有風險"
-  dividend:    "配息率非報酬率，配息可能含本金"
-rewrite_map:
-  完勝: 領先
-  最強: 表現突出
-  翻倍賺: 大幅成長
-  保證: ""          # 刪除或改「可能」
-channels:
-  line:  {max_len: 60, tone: 精簡好轉傳}
-  ig:    {max_len: 280, tone: 情境+emoji}
-  sales: {max_len: 200, tone: 顧問口吻、附數字佐證}
-  punchy:{max_len: 120, tone: 最敢講吸睛、必過合規標注}
+逐段打勾（缺一不算完成）：
+
+- [ ] **檔頭/價格基準日**：大字資料日=今天；上櫃檔市價來源標 TPEx、NAV 日期誠實。
+- [ ] **① 本檔第一手數據切點**：每筆有 fact + 建議切點 + 連結；數字今天。
+- [ ] **② 競品操作比較·我們好在哪**：`edge[]` 已更新；同類量能排行今天。
+- [ ] **③ 競品切點掃描**：每個競品有今日價量(排名)+重壓題材+`competitor_notes`新旁白。
+- [ ] **④ 本檔話題＋口碑**：`topic[]` 四切角今日數字+新標題；`voice[]`/自動新聞近 7 天標日期。
+- [ ] **⑤ 績效歸因（同日最新）**：市況/持股異動/推漲下跌Top3/貢獻度排行，`as_of`=今天。
+- [ ] **⑥ YouTube 口碑**：有則標日期，無則誠實空。
+- [ ] **全域驗鮮**：頁面 `generated_at`=現在；找不到任何一段還停在昨天的數字。
+- [ ] **反重複**：對照 §4，今天故事與昨天明顯不同。
+- [ ] **合規**：配息揭露在位；無保證/絕對化未標；業配僅「疑似」。
+- [ ] **數字可追溯**：每個關鍵數字能指回 `fast.json`/firsthand/官方。
+
+---
+
+## 6. 部署（公開上線，資料皆公開來源、不需保護）
+
+> ⚠️ **部署前一定先問使用者要推哪個網址**（兩個都是公開正式站，使用者每次自己選；不要預設）。
+
+**目標 A — https://etf-lovat.vercel.app**（git push 自動部署；已驗證 Claude 可直推）：
+```bash
+cp dashboard/index.html ~/fh-arm-deploy/index.html
+git -C ~/fh-arm-deploy add -A
+git -C ~/fh-arm-deploy commit -m "更新 ... 2026-06-DD（盤中/收盤）：<各檔一句故事>"   # email 須 justinitsuj0428@gmail.com（已設）
+git -C ~/fh-arm-deploy push origin main          # 被安全層擋 → 改請使用者 push
 ```
 
----
+**目標 B — https://dashboard-delta-eight-41.vercel.app**（Vercel CLI 直接部署；`dashboard/` 已 link）：
+```bash
+bash scripts/publish_public.sh                   # 內含 cd dashboard && npx vercel deploy --prod
+```
 
-## 5. 串接方式（打架關鍵決策）
+部署後**必做**上線驗證（poll 到當日新內容才算數，避免吃舊快取）：
 
-**選項 A（最小 pipeline hook）**：在 `pipeline.run()` 產完 portfolio 後呼叫 copy 層、一起落地。
-- 優點：單一指令出全部。缺點：**改 pipeline.py（隔壁熱區）→ 有打架風險**。
+```bash
+URL=https://etf-lovat.vercel.app
+for i in $(seq 1 20); do b=$(curl -s --max-time 15 "$URL");
+  echo "$b" | grep -q "<今天某句獨特新文案>" && { echo "✅ $(curl -s -o /dev/null -w '%{http_code}' "$URL")"; break; }; sleep 6; done
+```
 
-**選項 B（獨立 `scripts/gen_copy.py`，推薦）**：copy 完全獨立，讀「已產出的當日想法」再生成。
-- 優點：**零 pipeline/ideas 編輯 = 零打架**；可單獨重跑、不重抓網路。
-- 想法來源二選一：(B1) 解析既有 `reports/{date}_{etf}.md` 的「**想法**/佐證」行（已有穩定格式，`_recent_headlines` 證明可解析）；(B2) 從 `signals` 表讀。**建議 B1**（想法層的 evidence 完整在報告裡）。
-
-> **預設走 B**。待隔壁工作告一段落、確認不衝突，再評估是否補 A 的一鍵整合。
-
----
-
-## 6. 測試計畫 `tests/test_copy.py`
-- [ ] `generate_for_idea` 對各 category 產 ≥3 版；每版數字 ⊆ allowed_tokens。
-- [ ] `compliant_rewrite`：禁詞被替換/刪、缺免責被補。
-- [ ] `detect_fabricated_numbers`：在文案塞一個 evidence 沒有的「99%」→ 必須被標 🔴。
-- [ ] `annotate_spans`：「完勝」高風險；「過去績效不代表未來」不再觸發缺免責；「非保證」不誤判（回歸）。
-- [ ] `review` 回傳結構含 `annotations/overall_risk/compliant_rewrite`。
-- [ ] LLM 注入點：傳一個假 `llm` callable → 能覆蓋 baseline 且仍跑數字 post-check。
-- [ ] 既有 25→68+ 測試不破。
+- [ ] push 成功（看到 `oldsha..newsha main -> main`）。
+- [ ] 線上 HTTP 200 且 grep 得到「今天才有的獨特句」（每檔挑一句驗，確認非舊快取）。
+- [ ] 線上抽查數字與本機 `fast.json`/drop-in 一致。
+- [ ] 盤中部署 → 頁面已標「盤中 HH:MM、收盤前會變動」；收盤後應重跑覆蓋成定稿。
 
 ---
 
-## 7. 待使用者授權（對外動作，slot 先備）
-- [ ] **Anthropic API key / claude-opus-4-8 接入**：`generate(...llm=)` / `review(...llm=)` 的真 LLM callable。未授權前 baseline 全功能運作。
-- [ ] （與 M4 共用）每日雲端 routine 觸發 LLM 文案 + 法遵審查。
+## 7. 近 7 天「已用角度」log（反重複用，每次更新後補一列）
+
+> 每次更新完，把今天各檔的主切角/標題記一列，明天寫 drop-in 前先看這張表避免重覆。
+
+| 日期 | 代號 | 主切角(lead) | 主標題 example | 主打競品 | 主題材 | 取材口碑(新) |
+|---|---|---|---|---|---|---|
+| 2026-06-16 | 00991A | 記憶體歸因 | 押中南亞科扛起當日56% | 00981A 規模 | 記憶體 | 鉅亨記憶體又火 |
+| 2026-06-17 | 00991A | 收盤反攻·同類最強+0.91% | 國巨領軍反攻、收盤同類最強+0.91% | 00990A 美系記憶體唯一收黑 | 被動元件/散熱/載板 | FTNN 外資掃主動式ETF |
+| 2026-06-17 | 00998A | 除息首日填息+NAV新高+規模破30億 | 首配落袋、除息首日就填息、NAV創新高 | 台灣金融齊漲(0055/00917) | 全球金融/海外稅務優勢 | (沿用06-16死亡之組除息亂象) |
+| 2026-06-17 | 00986D | 聯博00984D同台+FOMC息差防禦 | 月月領金融債、海外債息免二代健保 | 聯博00984D 非投等債主動ETF | 金融債/久期/海外稅務 | 鉅亨 聯博00984D年殖利率10.09% |
+| _(下次更新填)_ | | | | | | |
 
 ---
 
-## 8. 建議執行順序
-1. `config/compliance.yaml` + `arm/copy/compliance.py`（規則層 + 數字杜撰偵測）→ 測試。
-2. `arm/copy/templates.py` + `generator.py`（baseline 文案）→ 測試。
-3. `arm/db.py` 加 `copy` 表 + `scripts/gen_copy.py`（選項 B1：讀當日報告）→ 端到端跑 00991A。
-4. 文件同步（SPEC M6 勾選 + README 現況）。
-5.（待授權）接 LLM callable，baseline → LLM 增強。
-
----
-*合規定位：內部行銷發想輔助，非投顧；對外發布前經法遵核可。文案層先給最強、再誠實標風險、不擋發布（SPEC §10、§16）。*
+*定位：內部行銷發想輔助，非投顧；數字第一手可追溯、不確定先給最強可能值並標 Tier B；對外發布前法遵自核。先發揮、事後標注、不擋發布（SPEC §10、§16）。*
