@@ -1,122 +1,122 @@
 {
   "fund_id": "00917",
   "issuer": "中國信託",
-  "as_of": "2026-06-16",
+  "as_of": "2026-06-17",
   "tier": "B",
   "provenance": "etfinfo.tw 第三方彙整（/api/etf/00917，holdings.source=pocket）；Tier B，數字待以投信官網/公開說明書核對",
   "holdings": [
     {
       "stock_id": "JPM US",
       "stock_name": "摩根大通銀行",
-      "weight": 10.17,
+      "weight": 10.34,
       "shares": 13990
     },
     {
       "stock_id": "MS US",
       "stock_name": "摩根士丹利",
-      "weight": 9.29,
+      "weight": 9.51,
       "shares": 19090
     },
     {
       "stock_id": "BAC US",
       "stock_name": "美國銀行",
-      "weight": 6.21,
+      "weight": 6.2,
       "shares": 49540
     },
     {
       "stock_id": "BLK US",
       "stock_name": "貝萊德公司",
-      "weight": 5.26,
+      "weight": 5.32,
       "shares": 2270
     },
     {
       "stock_id": "HSBA LN",
       "stock_name": "匯豐控股",
-      "weight": 4.95,
+      "weight": 5.07,
       "shares": 118790
     },
     {
       "stock_id": "GS US",
       "stock_name": "高盛集團",
-      "weight": 4.87,
+      "weight": 4.93,
       "shares": 2025
     },
     {
       "stock_id": "SPGI US",
       "stock_name": "標準普爾全球公司",
-      "weight": 4.52,
+      "weight": 4.38,
       "shares": 4730
     },
     {
       "stock_id": "WFC US",
       "stock_name": "富國銀行",
-      "weight": 3.97,
+      "weight": 3.93,
       "shares": 21160
     },
     {
       "stock_id": "C US",
       "stock_name": "花旗集團",
-      "weight": 3.73,
+      "weight": 3.77,
       "shares": 11830
-    },
-    {
-      "stock_id": "CME US",
-      "stock_name": "芝加哥商品交易所集團",
-      "weight": 3.3,
-      "shares": 5730
     },
     {
       "stock_id": "BX US",
       "stock_name": "黑石公司",
-      "weight": 3.28,
+      "weight": 3.22,
       "shares": 11640
+    },
+    {
+      "stock_id": "CME US",
+      "stock_name": "芝加哥商品交易所集團",
+      "weight": 3.21,
+      "shares": 5730
     },
     {
       "stock_id": "MCO US",
       "stock_name": "穆迪",
-      "weight": 2.9,
+      "weight": 2.83,
       "shares": 2805
     },
     {
       "stock_id": "ICE US",
       "stock_name": "洲際交易所",
-      "weight": 2.78,
+      "weight": 2.66,
       "shares": 8925
     },
     {
       "stock_id": "388 HK",
       "stock_name": "香港交易及結算所有限公司",
-      "weight": 2.05,
+      "weight": 2.04,
       "shares": 18840
     },
     {
       "stock_id": "LSEG LN",
       "stock_name": "倫敦證券交易所",
-      "weight": 1.87,
+      "weight": 1.86,
       "shares": 6990
     },
     {
       "stock_id": "BNP FP",
       "stock_name": "法國巴黎銀行",
-      "weight": 1.75,
+      "weight": 1.78,
       "shares": 6840
-    },
-    {
-      "stock_id": "939 HK",
-      "stock_name": "建設銀行",
-      "weight": 1.53,
-      "shares": 610940
     },
     {
       "stock_id": "BNY US",
       "stock_name": "紐約梅隆銀行",
-      "weight": 1.5,
+      "weight": 1.52,
       "shares": 4700
+    },
+    {
+      "stock_id": "939 HK",
+      "stock_name": "建設銀行",
+      "weight": 1.5,
+      "shares": 610940
     },
     {
       "stock_id": "MSCI US",
       "stock_name": "MSCI 明晟",
-      "weight": 1.49,
+      "weight": 1.47,
       "shares": 1110
     },
     {
@@ -126,33 +126,33 @@
       "shares": 2780
     },
     {
-      "stock_id": "NDAQ US",
-      "stock_name": "那斯達克有限公司",
-      "weight": 1.4,
-      "shares": 7100
-    },
-    {
       "stock_id": "BARC LN",
       "stock_name": "巴克萊集團",
-      "weight": 1.36,
+      "weight": 1.42,
       "shares": 94690
+    },
+    {
+      "stock_id": "NDAQ US",
+      "stock_name": "那斯達克有限公司",
+      "weight": 1.31,
+      "shares": 7100
     },
     {
       "stock_id": "LLOY LN",
       "stock_name": "勞埃德銀行集團",
-      "weight": 1.25,
+      "weight": 1.27,
       "shares": 405390
     },
     {
       "stock_id": "1398 HK",
       "stock_name": "工商銀行",
-      "weight": 1.21,
+      "weight": 1.2,
       "shares": 600520
     },
     {
       "stock_id": "NTRS US",
       "stock_name": "北方信託公司",
-      "weight": 1.11,
+      "weight": 1.12,
       "shares": 2880
     },
     {
@@ -164,43 +164,43 @@
     {
       "stock_id": "NWG LN",
       "stock_name": "國民西敏集團公開有限公司",
-      "weight": 1.03,
+      "weight": 1.05,
       "shares": 55230
-    },
-    {
-      "stock_id": "CBOE US",
-      "stock_name": "芝加哥選擇權交易所全球市場公",
-      "weight": 0.96,
-      "shares": 1650
-    },
-    {
-      "stock_id": "FICO US",
-      "stock_name": "Fair Isaac Corp",
-      "weight": 0.94,
-      "shares": 359
     },
     {
       "stock_id": "DBK GY",
       "stock_name": "德意志銀行",
-      "weight": 0.93,
+      "weight": 0.96,
       "shares": 12070
+    },
+    {
+      "stock_id": "CBOE US",
+      "stock_name": "芝加哥選擇權交易所全球市場公",
+      "weight": 0.93,
+      "shares": 1650
     },
     {
       "stock_id": "STAN LN",
       "stock_name": "渣打集團",
-      "weight": 0.9,
+      "weight": 0.92,
       "shares": 15230
+    },
+    {
+      "stock_id": "FICO US",
+      "stock_name": "Fair Isaac Corp",
+      "weight": 0.9,
+      "shares": 359
     },
     {
       "stock_id": "GLE FP",
       "stock_name": "法國興業銀行",
-      "weight": 0.86,
+      "weight": 0.87,
       "shares": 4360
     },
     {
       "stock_id": "PFG US",
       "stock_name": "信安金融保險集團",
-      "weight": 0.84,
+      "weight": 0.83,
       "shares": 3410
     },
     {
@@ -218,7 +218,7 @@
     {
       "stock_id": "EFX US",
       "stock_name": "易速傳真公司",
-      "weight": 0.7,
+      "weight": 0.65,
       "shares": 1900
     },
     {
@@ -228,10 +228,10 @@
       "shares": 1500
     },
     {
-      "stock_id": "TRU US",
-      "stock_name": "環聯資訊有限公司",
-      "weight": 0.46,
-      "shares": 3020
+      "stock_id": "EQH US",
+      "stock_name": "公平控股公司",
+      "weight": 0.45,
+      "shares": 4430
     },
     {
       "stock_id": "IVZ US",
@@ -240,10 +240,10 @@
       "shares": 6990
     },
     {
-      "stock_id": "EQH US",
-      "stock_name": "公平控股公司",
-      "weight": 0.44,
-      "shares": 4430
+      "stock_id": "TRU US",
+      "stock_name": "環聯資訊有限公司",
+      "weight": 0.43,
+      "shares": 3020
     },
     {
       "stock_id": "TW US",
@@ -254,7 +254,7 @@
     {
       "stock_id": "2388 HK",
       "stock_name": "中銀香港",
-      "weight": 0.34,
+      "weight": 0.33,
       "shares": 24370
     },
     {
@@ -266,7 +266,7 @@
     {
       "stock_id": "FDS US",
       "stock_name": "FactSet Research Systems Inc",
-      "weight": 0.3,
+      "weight": 0.29,
       "shares": 573
     },
     {
@@ -290,7 +290,7 @@
     {
       "stock_id": "MKTX US",
       "stock_name": "MarketAxess控股公司",
-      "weight": 0.15,
+      "weight": 0.14,
       "shares": 544
     },
     {
