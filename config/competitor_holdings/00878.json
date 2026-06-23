@@ -1,111 +1,99 @@
 {
   "fund_id": "00878",
   "issuer": "國泰",
-  "as_of": "2026-06-18",
+  "as_of": "2026-06-22",
   "tier": "B",
   "provenance": "etfinfo.tw 第三方彙整（/api/etf/00878，holdings.source=pocket）；Tier B，數字待以投信官網/公開說明書核對",
   "holdings": [
     {
-      "stock_id": "2891",
-      "stock_name": "中信金",
-      "weight": 10.27,
-      "shares": 885744000
-    },
-    {
       "stock_id": "2382",
       "stock_name": "廣達",
-      "weight": 10.24,
+      "weight": 10.21,
       "shares": 168841000
+    },
+    {
+      "stock_id": "2891",
+      "stock_name": "中信金",
+      "weight": 9.93,
+      "shares": 885744000
     },
     {
       "stock_id": "2882",
       "stock_name": "國泰金",
-      "weight": 6.98,
+      "weight": 6.74,
       "shares": 374689486
-    },
-    {
-      "stock_id": "2357",
-      "stock_name": "華碩",
-      "weight": 4.72,
-      "shares": 37065000
     },
     {
       "stock_id": "2303",
       "stock_name": "聯電",
-      "weight": 4.33,
+      "weight": 4.69,
       "shares": 184380000
+    },
+    {
+      "stock_id": "2357",
+      "stock_name": "華碩",
+      "weight": 4.65,
+      "shares": 37065000
+    },
+    {
+      "stock_id": "2379",
+      "stock_name": "瑞昱",
+      "weight": 3.69,
+      "shares": 25748000
     },
     {
       "stock_id": "2454",
       "stock_name": "聯發科",
-      "weight": 3.53,
+      "weight": 3.54,
       "shares": 4979000
     },
     {
       "stock_id": "2603",
       "stock_name": "長榮",
-      "weight": 3.5,
+      "weight": 3.45,
       "shares": 112424000
-    },
-    {
-      "stock_id": "2379",
-      "stock_name": "瑞昱",
-      "weight": 3.4,
-      "shares": 25748000
     },
     {
       "stock_id": "2881",
       "stock_name": "富邦金",
-      "weight": 2.98,
+      "weight": 2.95,
       "shares": 133920945
     },
     {
       "stock_id": "2887",
       "stock_name": "台新新光金",
-      "weight": 2.98,
+      "weight": 2.9,
       "shares": 569427000
-    },
-    {
-      "stock_id": "4958",
-      "stock_name": "臻鼎-KY",
-      "weight": 2.94,
-      "shares": 28430000
     },
     {
       "stock_id": "5347",
       "stock_name": "世界先進",
-      "weight": 2.62,
+      "weight": 2.84,
       "shares": 93188442
+    },
+    {
+      "stock_id": "4958",
+      "stock_name": "臻鼎-KY",
+      "weight": 2.81,
+      "shares": 28430000
     },
     {
       "stock_id": "3711",
       "stock_name": "日月光投控",
-      "weight": 2.55,
+      "weight": 2.77,
       "shares": 25824000
     },
     {
       "stock_id": "3034",
       "stock_name": "聯詠",
-      "weight": 2.53,
+      "weight": 2.74,
       "shares": 30366000
-    },
-    {
-      "stock_id": "2886",
-      "stock_name": "兆豐金",
-      "weight": 2.52,
-      "shares": 343589964
     },
     {
       "stock_id": "4904",
       "stock_name": "遠傳",
-      "weight": 2.52,
+      "weight": 2.48,
       "shares": 144292000
-    },
-    {
-      "stock_id": "3045",
-      "stock_name": "台灣大",
-      "weight": 2.49,
-      "shares": 129747000
     },
     {
       "stock_id": "2885",
@@ -114,76 +102,88 @@
       "shares": 226166516
     },
     {
+      "stock_id": "2886",
+      "stock_name": "兆豐金",
+      "weight": 2.45,
+      "shares": 343589964
+    },
+    {
+      "stock_id": "3045",
+      "stock_name": "台灣大",
+      "weight": 2.45,
+      "shares": 129747000
+    },
+    {
+      "stock_id": "2301",
+      "stock_name": "光寶科",
+      "weight": 2.29,
+      "shares": 62290000
+    },
+    {
       "stock_id": "1216",
       "stock_name": "統一",
-      "weight": 2.3,
+      "weight": 2.26,
       "shares": 191517000
     },
     {
       "stock_id": "2412",
       "stock_name": "中華電",
-      "weight": 2.27,
+      "weight": 2.25,
       "shares": 97767000
     },
     {
       "stock_id": "2880",
       "stock_name": "華南金",
-      "weight": 2.16,
+      "weight": 2.09,
       "shares": 348675000
-    },
-    {
-      "stock_id": "2301",
-      "stock_name": "光寶科",
-      "weight": 2.11,
-      "shares": 62290000
     },
     {
       "stock_id": "3231",
       "stock_name": "緯創",
-      "weight": 2.07,
+      "weight": 2.05,
       "shares": 79488000
     },
     {
       "stock_id": "2356",
       "stock_name": "英業達",
-      "weight": 1.95,
+      "weight": 1.93,
       "shares": 178956000
     },
     {
       "stock_id": "2376",
       "stock_name": "技嘉",
-      "weight": 1.86,
+      "weight": 1.81,
       "shares": 33450000
-    },
-    {
-      "stock_id": "2618",
-      "stock_name": "長榮航",
-      "weight": 1.85,
-      "shares": 269366000
     },
     {
       "stock_id": "2912",
       "stock_name": "統一超",
-      "weight": 1.83,
+      "weight": 1.79,
       "shares": 50817000
+    },
+    {
+      "stock_id": "2618",
+      "stock_name": "長榮航",
+      "weight": 1.78,
+      "shares": 269366000
     },
     {
       "stock_id": "3293",
       "stock_name": "鈊  象",
-      "weight": 1.82,
+      "weight": 1.76,
       "shares": 14243000
-    },
-    {
-      "stock_id": "5876",
-      "stock_name": "上海商銀",
-      "weight": 1.66,
-      "shares": 242825590
     },
     {
       "stock_id": "5871",
       "stock_name": "中租-KY",
-      "weight": 1.57,
+      "weight": 1.6,
       "shares": 85399080
+    },
+    {
+      "stock_id": "5876",
+      "stock_name": "上海商銀",
+      "weight": 1.6,
+      "shares": 242825590
     }
   ]
 }

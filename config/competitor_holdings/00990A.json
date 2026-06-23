@@ -1,80 +1,80 @@
 {
   "fund_id": "00990A",
   "issuer": "元大",
-  "as_of": "2026-06-17",
+  "as_of": "2026-06-18",
   "tier": "B",
   "provenance": "etfinfo.tw 第三方彙整（/api/etf/00990A，holdings.source=pocket）；Tier B，數字待以投信官網/公開說明書核對",
   "holdings": [
     {
       "stock_id": "SNDK US",
       "stock_name": "SANDISK CORP",
-      "weight": 6.03,
+      "weight": 6.45,
       "shares": 43653
     },
     {
       "stock_id": "MU US",
       "stock_name": "MICRON TECHNOLOGY INC",
-      "weight": 5.86,
+      "weight": 6.11,
       "shares": 79671
     },
     {
       "stock_id": "285A JP",
       "stock_name": "KIOXIA HOLDINGS CORP",
-      "weight": 5.47,
+      "weight": 5.28,
       "shares": 129500
     },
     {
       "stock_id": "009150 KP",
       "stock_name": "SAMSUNG ELECTRO-MECHANICS CO",
-      "weight": 4.44,
-      "shares": 46909
+      "weight": 4.75,
+      "shares": 48865
+    },
+    {
+      "stock_id": "AMD US",
+      "stock_name": "ADVANCED MICRO DEVICES",
+      "weight": 4.09,
+      "shares": 112579
     },
     {
       "stock_id": "LITE US",
       "stock_name": "LUMENTUM HOLDINGS INC",
-      "weight": 4.35,
+      "weight": 4.07,
       "shares": 70905
     },
     {
       "stock_id": "6976 JP",
       "stock_name": "TAIYO YUDEN CO LTD",
-      "weight": 4.16,
+      "weight": 3.79,
       "shares": 453700
-    },
-    {
-      "stock_id": "AMD US",
-      "stock_name": "ADVANCED MICRO DEVICES",
-      "weight": 4.07,
-      "shares": 112579
     },
     {
       "stock_id": "2308",
       "stock_name": "台達電",
-      "weight": 3.58,
+      "weight": 3.42,
       "shares": 744000
     },
     {
       "stock_id": "MRVL US",
       "stock_name": "MARVELL TECHNOLOGY INC",
-      "weight": 3.29,
+      "weight": 3.39,
       "shares": 161300
     },
     {
       "stock_id": "WDC US",
       "stock_name": "WESTERN DIGITAL CORP",
-      "weight": 3.18,
+      "weight": 3.19,
       "shares": 63342
     },
     {
       "stock_id": "6981 JP",
       "stock_name": "MURATA MANUFACTURING CO LTD",
-      "weight": 3.0,
+      "weight": 3.1,
       "shares": 627100
     },
     {
       "stock_id": "2454",
       "stock_name": "聯發科",
-      "weight": 2.93,
+      "weight": 2.76,
       "shares": 294000
     },
     {
@@ -86,152 +86,152 @@
     {
       "stock_id": "IFX GR",
       "stock_name": "INFINEON TECHNOLOGIES AG",
-      "weight": 2.52,
+      "weight": 2.58,
       "shares": 403406
+    },
+    {
+      "stock_id": "4062 JP",
+      "stock_name": "IBIDEN CO LTD",
+      "weight": 2.54,
+      "shares": 235100
     },
     {
       "stock_id": "BE US",
       "stock_name": "BLOOM ENERGY CORP- A",
-      "weight": 2.22,
+      "weight": 2.46,
       "shares": 110600
     },
     {
       "stock_id": "000660 KP",
       "stock_name": "SK HYNIX INC",
-      "weight": 2.17,
+      "weight": 2.19,
       "shares": 18426
-    },
-    {
-      "stock_id": "4062 JP",
-      "stock_name": "IBIDEN CO LTD",
-      "weight": 2.11,
-      "shares": 200000
-    },
-    {
-      "stock_id": "2330",
-      "stock_name": "台積電",
-      "weight": 1.93,
-      "shares": 363000
     },
     {
       "stock_id": "LRCX US",
       "stock_name": "LAM RESEARCH CORP",
-      "weight": 1.93,
+      "weight": 1.92,
       "shares": 73173
     },
     {
-      "stock_id": "SNOW US",
-      "stock_name": "SNOWFLAKE INC",
-      "weight": 1.84,
-      "shares": 111000
-    },
-    {
-      "stock_id": "STX US",
-      "stock_name": "SEAGATE TECHNOLOGY HOLDINGS",
-      "weight": 1.77,
-      "shares": 23600
-    },
-    {
-      "stock_id": "3436 JP",
-      "stock_name": "SUMCO CORP",
-      "weight": 1.74,
-      "shares": 954000
-    },
-    {
-      "stock_id": "3037",
-      "stock_name": "欣興",
-      "weight": 1.71,
-      "shares": 773000
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "weight": 1.87,
+      "shares": 363000
     },
     {
       "stock_id": "2383",
       "stock_name": "台光電",
-      "weight": 1.67,
+      "weight": 1.73,
       "shares": 144000
+    },
+    {
+      "stock_id": "3436 JP",
+      "stock_name": "SUMCO CORP",
+      "weight": 1.73,
+      "shares": 954000
+    },
+    {
+      "stock_id": "STX US",
+      "stock_name": "SEAGATE TECHNOLOGY HOLDINGS",
+      "weight": 1.71,
+      "shares": 23600
     },
     {
       "stock_id": "STM US",
       "stock_name": "STMICROELECTRONICS NV-NY SHS",
-      "weight": 1.65,
+      "weight": 1.69,
       "shares": 319900
+    },
+    {
+      "stock_id": "3037",
+      "stock_name": "欣興",
+      "weight": 1.6,
+      "shares": 773000
     },
     {
       "stock_id": "ARM US",
       "stock_name": "ARM HOLDINGS PLC-ADR",
-      "weight": 1.54,
+      "weight": 1.55,
       "shares": 52242
     },
     {
       "stock_id": "VECO US",
       "stock_name": "VEECO INSTRUMENTS INC",
-      "weight": 1.37,
+      "weight": 1.38,
       "shares": 255500
     },
     {
       "stock_id": "COHR US",
       "stock_name": "COHERENT CORP",
-      "weight": 1.32,
+      "weight": 1.3,
       "shares": 49560
-    },
-    {
-      "stock_id": "6723 JP",
-      "stock_name": "RENESAS ELECTRONICS CORP",
-      "weight": 1.19,
-      "shares": 604000
-    },
-    {
-      "stock_id": "VSH US",
-      "stock_name": "VISHAY INTERTECHNOLOGY INC",
-      "weight": 1.14,
-      "shares": 267800
-    },
-    {
-      "stock_id": "6997 JP",
-      "stock_name": "NIPPON CHEMI-CON CORP",
-      "weight": 1.11,
-      "shares": 479600
     },
     {
       "stock_id": "WOLF US",
       "stock_name": "WOLFSPEED INC",
-      "weight": 1.1,
+      "weight": 1.24,
       "shares": 320400
     },
     {
-      "stock_id": "6223",
-      "stock_name": "旺矽",
-      "weight": 1.08,
-      "shares": 75000
+      "stock_id": "VSH US",
+      "stock_name": "VISHAY INTERTECHNOLOGY INC",
+      "weight": 1.17,
+      "shares": 267800
+    },
+    {
+      "stock_id": "6723 JP",
+      "stock_name": "RENESAS ELECTRONICS CORP",
+      "weight": 1.16,
+      "shares": 604000
+    },
+    {
+      "stock_id": "6997 JP",
+      "stock_name": "NIPPON CHEMI-CON CORP",
+      "weight": 1.12,
+      "shares": 479600
     },
     {
       "stock_id": "6274",
       "stock_name": "台燿",
-      "weight": 1.0,
+      "weight": 1.05,
       "shares": 268000
     },
     {
-      "stock_id": "VICR US",
-      "stock_name": "VICOR CORP",
-      "weight": 0.99,
-      "shares": 43400
-    },
-    {
-      "stock_id": "AIXA GR",
-      "stock_name": "AIXTRON SE",
-      "weight": 0.98,
-      "shares": 202732
+      "stock_id": "6223",
+      "stock_name": "旺矽",
+      "weight": 1.03,
+      "shares": 75000
     },
     {
       "stock_id": "MKSI US",
       "stock_name": "MKS INC",
-      "weight": 0.98,
+      "weight": 1.02,
       "shares": 37300
     },
     {
-      "stock_id": "6146 JP",
-      "stock_name": "DISCO CORP",
+      "stock_id": "SNOW US",
+      "stock_name": "SNOWFLAKE INC",
+      "weight": 0.98,
+      "shares": 62700
+    },
+    {
+      "stock_id": "VICR US",
+      "stock_name": "VICOR CORP",
+      "weight": 0.97,
+      "shares": 43400
+    },
+    {
+      "stock_id": "8035 JP",
+      "stock_name": "TOKYO ELECTRON LTD",
       "weight": 0.96,
-      "shares": 26100
+      "shares": 30000
+    },
+    {
+      "stock_id": "AIXA GR",
+      "stock_name": "AIXTRON SE",
+      "weight": 0.95,
+      "shares": 202732
     },
     {
       "stock_id": "5347",
@@ -240,40 +240,40 @@
       "shares": 2498000
     },
     {
-      "stock_id": "TSEM US",
-      "stock_name": "TOWER SEMICONDUCTOR LTD",
-      "weight": 0.91,
-      "shares": 48382
+      "stock_id": "6146 JP",
+      "stock_name": "DISCO CORP",
+      "weight": 0.93,
+      "shares": 26100
     },
     {
       "stock_id": "NOK US",
       "stock_name": "NOKIA CORP-SPON ADR",
-      "weight": 0.88,
+      "weight": 0.82,
       "shares": 901410
-    },
-    {
-      "stock_id": "7220 JP",
-      "stock_name": "MUSASHI SEIMITSU INDUSTRY CO",
-      "weight": 0.85,
-      "shares": 355300
     },
     {
       "stock_id": "3443",
       "stock_name": "創意",
-      "weight": 0.78,
+      "weight": 0.72,
       "shares": 69000
     },
     {
       "stock_id": "3665",
       "stock_name": "貿聯-KY",
-      "weight": 0.67,
+      "weight": 0.65,
       "shares": 144000
     },
     {
       "stock_id": "4958",
       "stock_name": "臻鼎-KY",
-      "weight": 0.67,
+      "weight": 0.64,
       "shares": 468000
+    },
+    {
+      "stock_id": "6920 JP",
+      "stock_name": "LASERTEC CORP",
+      "weight": 0.62,
+      "shares": 26300
     },
     {
       "stock_id": "2360",

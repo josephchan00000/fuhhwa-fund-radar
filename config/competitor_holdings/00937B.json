@@ -1,14 +1,14 @@
 {
   "fund_id": "00937B",
   "issuer": "群益",
-  "as_of": "2026-06-17",
+  "as_of": "2026-06-18",
   "tier": "B",
   "provenance": "etfinfo.tw 第三方彙整（/api/etf/00937B，holdings.source=pocket）；Tier B，數字待以投信官網/公開說明書核對",
   "holdings": [
     {
       "stock_id": "XS2638076187",
       "stock_name": "ISPIM 7.778 06/20/54",
-      "weight": 2.65,
+      "weight": 2.66,
       "shares": 177900000,
       "kind": "bond"
     },
@@ -22,14 +22,14 @@
     {
       "stock_id": "US83368TBY38",
       "stock_name": "SOCGEN 7.132 01/19/55",
-      "weight": 1.98,
+      "weight": 1.99,
       "shares": 150200000,
       "kind": "bond"
     },
     {
       "stock_id": "US83368TBT43",
       "stock_name": "SOCGEN 7.367 01/10/53",
-      "weight": 1.75,
+      "weight": 1.76,
       "shares": 129880000,
       "kind": "bond"
     },
@@ -41,17 +41,17 @@
       "kind": "bond"
     },
     {
-      "stock_id": "USU2100VAC73",
-      "stock_name": "CPGX 6.544 11/15/53",
-      "weight": 1.7,
-      "shares": 129740000,
-      "kind": "bond"
-    },
-    {
       "stock_id": "US68389XCK90",
       "stock_name": "ORCL 6.9 11/09/52",
       "weight": 1.69,
       "shares": 141540000,
+      "kind": "bond"
+    },
+    {
+      "stock_id": "USU2100VAC73",
+      "stock_name": "CPGX 6.544 11/15/53",
+      "weight": 1.69,
+      "shares": 129740000,
       "kind": "bond"
     },
     {
@@ -92,14 +92,14 @@
     {
       "stock_id": "US03740MAF77",
       "stock_name": "AON 5 3/4 03/01/54",
-      "weight": 1.33,
+      "weight": 1.34,
       "shares": 109120000,
       "kind": "bond"
     },
     {
       "stock_id": "US161175BN35",
       "stock_name": "CHTR 5 3/4 04/01/48",
-      "weight": 1.33,
+      "weight": 1.32,
       "shares": 127900000,
       "kind": "bond"
     },
@@ -111,17 +111,17 @@
       "kind": "bond"
     },
     {
-      "stock_id": "US501044DW87",
-      "stock_name": "KR 5 1/2 09/15/54",
+      "stock_id": "US682680DD20",
+      "stock_name": "OKE 6 1/4 10/15/55",
       "weight": 1.28,
-      "shares": 109300000,
+      "shares": 103150000,
       "kind": "bond"
     },
     {
-      "stock_id": "US682680DD20",
-      "stock_name": "OKE 6 1/4 10/15/55",
+      "stock_id": "US501044DW87",
+      "stock_name": "KR 5 1/2 09/15/54",
       "weight": 1.27,
-      "shares": 103150000,
+      "shares": 109300000,
       "kind": "bond"
     },
     {
@@ -134,7 +134,7 @@
     {
       "stock_id": "US682680CF86",
       "stock_name": "OKE 5.7 11/01/54",
-      "weight": 1.23,
+      "weight": 1.24,
       "shares": 108000000,
       "kind": "bond"
     },
@@ -169,7 +169,7 @@
     {
       "stock_id": "USU52932BQ97",
       "stock_name": "LIBMUT 5 1/2 06/15/52",
-      "weight": 1.16,
+      "weight": 1.17,
       "shares": 101260000,
       "kind": "bond"
     },
@@ -216,13 +216,6 @@
       "kind": "bond"
     },
     {
-      "stock_id": "US68389XDT90",
-      "stock_name": "ORCL 6.1 09/26/65",
-      "weight": 1.06,
-      "shares": 100600000,
-      "kind": "bond"
-    },
-    {
       "stock_id": "US30161NBL47",
       "stock_name": "EXC 5.6 03/15/53",
       "weight": 1.06,
@@ -230,17 +223,17 @@
       "kind": "bond"
     },
     {
+      "stock_id": "US68389XDT90",
+      "stock_name": "ORCL 6.1 09/26/65",
+      "weight": 1.05,
+      "shares": 100600000,
+      "kind": "bond"
+    },
+    {
       "stock_id": "US260543DH36",
       "stock_name": "DOW 6.9 05/15/53",
       "weight": 1.02,
       "shares": 78500000,
-      "kind": "bond"
-    },
-    {
-      "stock_id": "US161175CK86",
-      "stock_name": "CHTR 5 1/4 04/01/53",
-      "weight": 1.01,
-      "shares": 104750000,
       "kind": "bond"
     },
     {
@@ -265,6 +258,13 @@
       "kind": "bond"
     },
     {
+      "stock_id": "US161175CK86",
+      "stock_name": "CHTR 5 1/4 04/01/53",
+      "weight": 1.0,
+      "shares": 104750000,
+      "kind": "bond"
+    },
+    {
       "stock_id": "US073952AB93",
       "stock_name": "LIBMUT 6.266 08/15/54",
       "weight": 0.98,
@@ -281,7 +281,7 @@
     {
       "stock_id": "US552081AM30",
       "stock_name": "LYB 4 5/8 02/26/55",
-      "weight": 0.97,
+      "weight": 0.96,
       "shares": 99980000,
       "kind": "bond"
     },
@@ -363,6 +363,13 @@
       "kind": "bond"
     },
     {
+      "stock_id": "US26441CBU80",
+      "stock_name": "DUK 5 08/15/52",
+      "weight": 0.87,
+      "shares": 79720000,
+      "kind": "bond"
+    },
+    {
       "stock_id": "US548661EM57",
       "stock_name": "LOW 5 5/8 04/15/53",
       "weight": 0.87,
@@ -374,13 +381,6 @@
       "stock_name": "AMGN 5.65 03/02/53",
       "weight": 0.86,
       "shares": 70980000,
-      "kind": "bond"
-    },
-    {
-      "stock_id": "US26441CBU80",
-      "stock_name": "DUK 5 08/15/52",
-      "weight": 0.86,
-      "shares": 79720000,
       "kind": "bond"
     },
     {
@@ -433,9 +433,23 @@
       "kind": "bond"
     },
     {
+      "stock_id": "US87264ACW36",
+      "stock_name": "TMUS 5.65 01/15/53",
+      "weight": 0.79,
+      "shares": 65850000,
+      "kind": "bond"
+    },
+    {
+      "stock_id": "US458140CM03",
+      "stock_name": "INTC 5.6 02/21/54",
+      "weight": 0.78,
+      "shares": 66700000,
+      "kind": "bond"
+    },
+    {
       "stock_id": "US161175BL78",
       "stock_name": "CHTR 5 3/8 05/01/47",
-      "weight": 0.79,
+      "weight": 0.78,
       "shares": 79290000,
       "kind": "bond"
     },
@@ -447,23 +461,9 @@
       "kind": "bond"
     },
     {
-      "stock_id": "US458140CM03",
-      "stock_name": "INTC 5.6 02/21/54",
-      "weight": 0.78,
-      "shares": 66700000,
-      "kind": "bond"
-    },
-    {
-      "stock_id": "US87264ACW36",
-      "stock_name": "TMUS 5.65 01/15/53",
-      "weight": 0.78,
-      "shares": 65850000,
-      "kind": "bond"
-    },
-    {
       "stock_id": "US35137LAK17",
       "stock_name": "FOXA 5.576 01/25/49",
-      "weight": 0.71,
+      "weight": 0.72,
       "shares": 61460000,
       "kind": "bond"
     },
@@ -512,7 +512,7 @@
     {
       "stock_id": "US115236AN13",
       "stock_name": "BRO 6 1/4 06/23/55",
-      "weight": 0.64,
+      "weight": 0.65,
       "shares": 50880000,
       "kind": "bond"
     },
@@ -526,7 +526,7 @@
     {
       "stock_id": "US87938WAU71",
       "stock_name": "TELEFO 5.213 03/08/47",
-      "weight": 0.63,
+      "weight": 0.64,
       "shares": 57640000,
       "kind": "bond"
     },
@@ -685,13 +685,6 @@
       "kind": "bond"
     },
     {
-      "stock_id": "USN7163RAY91",
-      "stock_name": "PRXNA 4.987 01/19/52",
-      "weight": 0.32,
-      "shares": 31420000,
-      "kind": "bond"
-    },
-    {
       "stock_id": "US303901BR22",
       "stock_name": "FFHCN 6.35 03/22/54",
       "weight": 0.31,
@@ -699,17 +692,10 @@
       "kind": "bond"
     },
     {
-      "stock_id": "US472140AK81",
-      "stock_name": "JBS 6 3/8 04/15/66",
-      "weight": 0.3,
-      "shares": 24950000,
-      "kind": "bond"
-    },
-    {
-      "stock_id": "US126650EA42",
-      "stock_name": "CVS 6 06/01/63",
-      "weight": 0.3,
-      "shares": 25000000,
+      "stock_id": "USN7163RAY91",
+      "stock_name": "PRXNA 4.987 01/19/52",
+      "weight": 0.31,
+      "shares": 31420000,
       "kind": "bond"
     },
     {
@@ -731,6 +717,20 @@
       "stock_name": "RCICN 4.55 03/15/52",
       "weight": 0.3,
       "shares": 30310000,
+      "kind": "bond"
+    },
+    {
+      "stock_id": "US472140AK81",
+      "stock_name": "JBS 6 3/8 04/15/66",
+      "weight": 0.3,
+      "shares": 24950000,
+      "kind": "bond"
+    },
+    {
+      "stock_id": "US126650EA42",
+      "stock_name": "CVS 6 06/01/63",
+      "weight": 0.3,
+      "shares": 25000000,
       "kind": "bond"
     },
     {
@@ -1049,6 +1049,13 @@
       "kind": "bond"
     },
     {
+      "stock_id": "US0778FPAN98",
+      "stock_name": "BCECN 5.55 02/15/54",
+      "weight": 0.05,
+      "shares": 3800000,
+      "kind": "bond"
+    },
+    {
       "stock_id": "US87938WAW38",
       "stock_name": "TELEFO 4.895 03/06/48",
       "weight": 0.05,
@@ -1067,13 +1074,6 @@
       "stock_name": "TMUS 5.85 02/15/56",
       "weight": 0.04,
       "shares": 3000000,
-      "kind": "bond"
-    },
-    {
-      "stock_id": "US0778FPAN98",
-      "stock_name": "BCECN 5.55 02/15/54",
-      "weight": 0.04,
-      "shares": 3800000,
       "kind": "bond"
     },
     {
@@ -1553,6 +1553,13 @@
       "kind": "bond"
     },
     {
+      "stock_id": "B401DV",
+      "stock_name": "P14南亞2A",
+      "weight": 0.0,
+      "shares": 350000000,
+      "kind": "bond"
+    },
+    {
       "stock_id": "B50182",
       "stock_name": "P13遠東新2",
       "weight": 0.0,
@@ -1581,6 +1588,13 @@
       "kind": "bond"
     },
     {
+      "stock_id": "B98919",
+      "stock_name": "P14國泰金3",
+      "weight": 0.0,
+      "shares": 150000000,
+      "kind": "bond"
+    },
+    {
       "stock_id": "B99210",
       "stock_name": "P14三商3",
       "weight": 0.0,
@@ -1598,28 +1612,21 @@
       "stock_id": "C_NTD",
       "stock_name": "CASH",
       "weight": 0.0,
-      "shares": 4423963525,
+      "shares": 1717975284,
       "kind": "bond"
     },
     {
       "stock_id": "C_USD",
       "stock_name": "CASH",
       "weight": 0.0,
-      "shares": 645226,
+      "shares": 329353,
       "kind": "bond"
     },
     {
       "stock_id": "PFUR_NTD",
       "stock_name": "PAYABLES FOR UNITS REDEEMED",
       "weight": 0.0,
-      "shares": -6645952849,
-      "kind": "bond"
-    },
-    {
-      "stock_id": "RDI_USD",
-      "stock_name": "RECEIVABLES FOR DISPOSAL OF INVESTMENTS",
-      "weight": 0.0,
-      "shares": -63315873,
+      "shares": -6646749301,
       "kind": "bond"
     }
   ]
