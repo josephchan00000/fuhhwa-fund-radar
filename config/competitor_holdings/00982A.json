@@ -1,7 +1,7 @@
 {
   "fund_id": "00982A",
   "issuer": "群益",
-  "as_of": "2026-06-22",
+  "as_of": "2026-06-23",
   "tier": "B",
   "provenance": "etfinfo.tw 第三方彙整（/api/etf/00982A，holdings.source=issuer-official）；Tier B，數字待以投信官網/公開說明書核對",
   "holdings": [

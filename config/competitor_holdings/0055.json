@@ -1,105 +1,105 @@
 {
   "fund_id": "0055",
   "issuer": "元大",
-  "as_of": "2026-06-18",
+  "as_of": "2026-06-22",
   "tier": "B",
   "provenance": "etfinfo.tw 第三方彙整（/api/etf/0055，holdings.source=pocket）；Tier B，數字待以投信官網/公開說明書核對",
   "holdings": [
     {
       "stock_id": "2891",
       "stock_name": "中信金",
-      "weight": 14.14,
-      "shares": 7578315
+      "weight": 13.97,
+      "shares": 7621145
     },
     {
       "stock_id": "2881",
       "stock_name": "富邦金",
-      "weight": 13.64,
-      "shares": 3809165
+      "weight": 13.79,
+      "shares": 3830686
     },
     {
       "stock_id": "2882",
       "stock_name": "國泰金",
-      "weight": 12.95,
-      "shares": 4320184
+      "weight": 12.77,
+      "shares": 4344600
     },
     {
       "stock_id": "2885",
       "stock_name": "元大金",
-      "weight": 8.53,
-      "shares": 4832591
+      "weight": 8.69,
+      "shares": 4859900
     },
     {
       "stock_id": "2887",
       "stock_name": "台新新光金",
-      "weight": 8.06,
-      "shares": 9576214
+      "weight": 8.03,
+      "shares": 9630338
     },
     {
       "stock_id": "2886",
       "stock_name": "兆豐金",
-      "weight": 6.15,
-      "shares": 5212110
+      "weight": 6.1,
+      "shares": 5241547
     },
     {
       "stock_id": "2884",
       "stock_name": "玉山金",
-      "weight": 5.89,
-      "shares": 6416522
+      "weight": 6.01,
+      "shares": 6452761
     },
     {
       "stock_id": "2890",
       "stock_name": "永豐金",
-      "weight": 5.6,
-      "shares": 5421464
+      "weight": 5.64,
+      "shares": 5452080
     },
     {
       "stock_id": "2883",
       "stock_name": "凱基金",
-      "weight": 5.53,
-      "shares": 6926567
+      "weight": 5.5,
+      "shares": 6965687
     },
     {
       "stock_id": "2892",
       "stock_name": "第一金",
       "weight": 4.27,
-      "shares": 5052860
+      "shares": 5081396
     },
     {
       "stock_id": "2880",
       "stock_name": "華南金",
-      "weight": 4.08,
-      "shares": 4098834
+      "weight": 4.03,
+      "shares": 4121998
     },
     {
       "stock_id": "5880",
       "stock_name": "合庫金",
-      "weight": 3.19,
-      "shares": 4973416
+      "weight": 3.18,
+      "shares": 5001523
     },
     {
       "stock_id": "5871",
       "stock_name": "中租-KY",
-      "weight": 2.01,
-      "shares": 679925
+      "weight": 2.1,
+      "shares": 683759
     },
     {
       "stock_id": "2801",
       "stock_name": "彰銀",
-      "weight": 1.9,
-      "shares": 3198207
+      "weight": 1.91,
+      "shares": 3216284
     },
     {
       "stock_id": "5876",
       "stock_name": "上海商銀",
-      "weight": 1.88,
-      "shares": 1707978
+      "weight": 1.85,
+      "shares": 1717626
     },
     {
       "stock_id": "2834",
       "stock_name": "臺企銀",
-      "weight": 1.4,
-      "shares": 3084466
+      "weight": 1.41,
+      "shares": 3101885
     }
   ]
 }

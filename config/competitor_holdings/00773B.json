@@ -1,22 +1,22 @@
 {
   "fund_id": "00773B",
   "issuer": "中國信託",
-  "as_of": "2026-06-17",
+  "as_of": "2026-06-18",
   "tier": "B",
   "provenance": "etfinfo.tw 第三方彙整（/api/etf/00773B，holdings.source=pocket）；Tier B，數字待以投信官網/公開說明書核對",
   "holdings": [
+    {
+      "stock_id": "US404280DW61",
+      "stock_name": "HSBC V6.332 03/09/44",
+      "weight": 3.51,
+      "shares": 94990000,
+      "kind": "bond"
+    },
     {
       "stock_id": "US06051GJA85",
       "stock_name": "BAC V4.083 03/20/51 MTN",
       "weight": 3.48,
       "shares": 127500000,
-      "kind": "bond"
-    },
-    {
-      "stock_id": "US404280DW61",
-      "stock_name": "HSBC V6.332 03/09/44",
-      "weight": 3.47,
-      "shares": 94990000,
       "kind": "bond"
     },
     {
@@ -36,21 +36,21 @@
     {
       "stock_id": "US38141GGM06",
       "stock_name": "GS 6.25 02/01/41",
-      "weight": 2.55,
+      "weight": 2.54,
       "shares": 69800000,
       "kind": "bond"
     },
     {
       "stock_id": "US902613AY48",
       "stock_name": "UBS 4.875 05/15/45",
-      "weight": 2.45,
+      "weight": 2.46,
       "shares": 78700000,
       "kind": "bond"
     },
     {
       "stock_id": "US06051GFC87",
       "stock_name": "BAC 5 01/21/44 MTN",
-      "weight": 2.41,
+      "weight": 2.4,
       "shares": 74200000,
       "kind": "bond"
     },
@@ -71,7 +71,7 @@
     {
       "stock_id": "US21685WCJ45",
       "stock_name": "RABOBK 5.25 05/24/41 BKNT",
-      "weight": 2.17,
+      "weight": 2.16,
       "shares": 64150000,
       "kind": "bond"
     },
@@ -155,7 +155,7 @@
     {
       "stock_id": "US06051GHU67",
       "stock_name": "BAC V4.078 04/23/40 MTN",
-      "weight": 1.65,
+      "weight": 1.64,
       "shares": 54800000,
       "kind": "bond"
     },
@@ -204,14 +204,14 @@
     {
       "stock_id": "US06051GGM50",
       "stock_name": "BAC V4.244 04/24/38",
-      "weight": 1.56,
+      "weight": 1.55,
       "shares": 49600000,
       "kind": "bond"
     },
     {
       "stock_id": "US46625HHV50",
       "stock_name": "JPM 5.5 10/15/40",
-      "weight": 1.54,
+      "weight": 1.53,
       "shares": 43900000,
       "kind": "bond"
     },
@@ -258,17 +258,17 @@
       "kind": "bond"
     },
     {
-      "stock_id": "US172967MM08",
-      "stock_name": "C V5.316 03/26/41",
-      "weight": 1.27,
-      "shares": 37500000,
-      "kind": "bond"
-    },
-    {
       "stock_id": "US46647PAN69",
       "stock_name": "JPM V3.897 01/23/49",
       "weight": 1.26,
       "shares": 46700000,
+      "kind": "bond"
+    },
+    {
+      "stock_id": "US172967MM08",
+      "stock_name": "C V5.316 03/26/41",
+      "weight": 1.26,
+      "shares": 37500000,
       "kind": "bond"
     },
     {
@@ -288,14 +288,14 @@
     {
       "stock_id": "US46647PAJ57",
       "stock_name": "JPM V3.882 07/24/38",
-      "weight": 1.16,
+      "weight": 1.15,
       "shares": 38100000,
       "kind": "bond"
     },
     {
       "stock_id": "US95000U2M49",
       "stock_name": "WFC V5.013 04/04/51 MTN",
-      "weight": 1.07,
+      "weight": 1.08,
       "shares": 34700000,
       "kind": "bond"
     },
@@ -358,7 +358,7 @@
     {
       "stock_id": "US172967JU60",
       "stock_name": "C 4.65 07/30/45",
-      "weight": 0.9,
+      "weight": 0.89,
       "shares": 29400000,
       "kind": "bond"
     },
@@ -447,13 +447,6 @@
       "kind": "bond"
     },
     {
-      "stock_id": "C_NTD",
-      "stock_name": "CASH",
-      "weight": 0.54,
-      "shares": 498788340,
-      "kind": "bond"
-    },
-    {
       "stock_id": "US95000U2Q52",
       "stock_name": "WFC V3.068 04/30/41",
       "weight": 0.45,
@@ -493,6 +486,13 @@
       "stock_name": "JPM V5.534 11/29/45",
       "weight": 0.27,
       "shares": 8000000,
+      "kind": "bond"
+    },
+    {
+      "stock_id": "C_NTD",
+      "stock_name": "CASH",
+      "weight": 0.27,
+      "shares": 246776499,
       "kind": "bond"
     },
     {
