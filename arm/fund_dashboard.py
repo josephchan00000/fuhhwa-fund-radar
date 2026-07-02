@@ -22,33 +22,44 @@ def _esc(s) -> str:
 
 
 def _md(text: str) -> str:
-    """極簡 Markdown → HTML（標題/粗體/連結/清單/水平線/段落）；先跳脫再套規則。"""
+    """極簡 Markdown → HTML（標題/粗體/連結/有序＋無序清單/水平線/段落）；先跳脫再套規則。"""
     if not text:
         return ""
-    out, in_ul = [], False
+    out: list[str] = []
+    listtag: str | None = None
+
+    def close():
+        nonlocal listtag
+        if listtag:
+            out.append(f"</{listtag}>")
+            listtag = None
+
+    def open_list(tag):
+        nonlocal listtag
+        if listtag != tag:
+            close()
+            out.append(f"<{tag}>")
+            listtag = tag
+
     for raw in text.splitlines():
         line = raw.rstrip()
         if re.match(r"^\s*---\s*$", line):
-            if in_ul:
-                out.append("</ul>"); in_ul = False
-            out.append("<hr>"); continue
+            close(); out.append("<hr>"); continue
         m = re.match(r"^(#{1,6})\s+(.*)$", line)
         if m:
-            if in_ul:
-                out.append("</ul>"); in_ul = False
+            close()
             lvl = min(len(m.group(1)) + 1, 6)
             out.append(f"<h{lvl}>{_inline(m.group(2))}</h{lvl}>"); continue
-        m = re.match(r"^\s*[-*]\s+(.*)$", line)
+        m = re.match(r"^\s*[-*]\s+(.*)$", line)                 # 無序清單
         if m:
-            if not in_ul:
-                out.append("<ul>"); in_ul = True
-            out.append(f"<li>{_inline(m.group(1))}</li>"); continue
-        if in_ul:
-            out.append("</ul>"); in_ul = False
+            open_list("ul"); out.append(f"<li>{_inline(m.group(1))}</li>"); continue
+        m = re.match(r"^\s*(\d+)\.\s+(.*)$", line)              # 有序清單（新聞卡 1.~6. 條列）
+        if m:
+            open_list("ol"); out.append(f"<li>{_inline(m.group(2))}</li>"); continue
+        close()
         if line.strip():
             out.append(f"<p>{_inline(line)}</p>")
-    if in_ul:
-        out.append("</ul>")
+    close()
     return "\n".join(out)
 
 
@@ -58,6 +69,7 @@ def _inline(s: str) -> str:
                r'<a href="\2" target="_blank" rel="noopener">\1</a>', s)
     s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)          # 非貪婪：允許粗體內含斜體 **a *b* c**
     s = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<i>\1</i>", s)
+    s = re.sub(r"【([^】]+)】", r'<span class="tag">【\1】</span>', s)   # 消息屬性徽章
     return s
 
 
@@ -181,15 +193,26 @@ header h1{{font-size:22px;margin:0 0 3px}} .lede{{color:var(--mut);font-size:13p
 .section>.st{{font-weight:700;font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:8px}}
 .muted{{color:var(--mut)}}
 /* news */
-.newsbar{{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px}}
-.ndate{{font-weight:700}} .lamp{{color:var(--mut);font-size:13px}}
+.newsbar{{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}}
+.ndate{{font-weight:700;font-size:15px}} .lamp{{color:var(--mut);font-size:13px}}
 .nswitch{{margin-left:auto;display:flex;gap:6px}}
-.nb{{background:var(--card2);color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:5px 12px;cursor:pointer;font-size:13px}}
+.nb{{background:var(--card2);color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:6px 14px;cursor:pointer;font-size:13px}}
 .nb.on{{background:var(--acc);color:#fff;border-color:var(--acc)}}
-.ndoc{{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:6px 16px;max-height:520px;overflow:auto}}
-.ndoc h2{{font-size:17px;border-bottom:1px solid var(--line);padding-bottom:6px}}
-.ndoc h3,.ndoc h4{{font-size:14.5px;color:#cfe0ff}} .ndoc hr{{border:0;border-top:1px solid var(--line)}}
-.ndoc p,.ndoc li{{font-size:13.5px}} .ndoc small{{color:var(--mut)}}
+.ndoc{{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 30px 24px;line-height:1.85;font-size:15px;color:#dbe4ee}}
+.ndoc>*:first-child{{margin-top:14px}}
+.ndoc h2{{font-size:14.5px;color:var(--mut);font-weight:600;letter-spacing:.02em;margin:30px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}}
+.ndoc h3{{font-size:16.5px;color:#fff;font-weight:700;line-height:1.55;margin:26px 0 10px;padding:12px 16px;background:linear-gradient(90deg,rgba(91,141,239,.16),rgba(91,141,239,.03));border-left:3px solid var(--acc);border-radius:0 10px 10px 0}}
+.ndoc h4{{font-size:14.5px;color:#cfe0ff;margin:18px 0 6px}}
+.ndoc p{{margin:9px 0}}
+.ndoc ul,.ndoc ol{{margin:10px 0;padding-left:0;list-style:none;counter-reset:n}}
+.ndoc ul li{{position:relative;margin:8px 0;padding-left:20px}}
+.ndoc ul li:before{{content:"";position:absolute;left:4px;top:12px;width:5px;height:5px;border-radius:50%;background:var(--acc)}}
+.ndoc ol li{{position:relative;margin:11px 0;padding-left:36px;counter-increment:n}}
+.ndoc ol li:before{{content:counter(n);position:absolute;left:0;top:2px;width:23px;height:23px;border-radius:50%;background:var(--acc);color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:23px}}
+.ndoc b{{color:#fff}} .ndoc a{{text-decoration:none;border-bottom:1px dashed var(--acc);word-break:break-all}}
+.ndoc hr{{border:0;border-top:1px solid var(--line);margin:22px 0}}
+.ndoc small,.ndoc i{{color:var(--mut);font-style:normal}}
+.tag{{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:20px;background:rgba(91,141,239,.18);color:#9ecbff;border:1px solid rgba(91,141,239,.35);white-space:nowrap}}
 /* tabs */
 .tabs{{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px}}
 .tab{{background:var(--card2);color:var(--mut);border:1px solid var(--line);border-radius:9px;padding:6px 11px;cursor:pointer;font-size:13px}}

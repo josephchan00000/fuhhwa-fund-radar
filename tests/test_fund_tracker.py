@@ -110,6 +110,13 @@ def test_md_escapes_html():
     assert "<script>" not in fund_dashboard._inline("<script>alert(1)</script>")
 
 
+def test_md_ordered_list_and_badge():
+    # 新聞卡 1.~6. 條列應成有序清單；【消息屬性】應成徽章
+    out = fund_dashboard._md("1. 摘要\n2. 重點\n\n【新消息】標題")
+    assert out.count("<ol>") == 1 and out.count("<li>") == 2
+    assert '<span class="tag">【新消息】</span>' in out
+
+
 def test_compliance_negation_not_flagged():
     for ok in ["本文並非保證獲利", "投資並非無風險", "非零風險", "不保證最低收益"]:
         assert usnews.compliance_scan(ok) == [], ok
