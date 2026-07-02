@@ -1,0 +1,124 @@
+{
+  "fund_id": "123",
+  "name": "復華台灣科技高股息基金B類型",
+  "short_name": "台灣科技高股息B",
+  "en_name": "Fuh Hwa Taiwan Technology High Dividend Fund B",
+  "category": "國內股票型",
+  "region": "台灣",
+  "asset_kind": "股票型",
+  "currency": "新臺幣",
+  "inception": "2024/04/30",
+  "risk_level": "RR5",
+  "mgmt_fee": "1.60%",
+  "size_twd": 1691196513.0,
+  "nav": 16.56,
+  "nav_date": "2026/07/02",
+  "nav_change": 0.02,
+  "nav_change_pct": "0.12%",
+  "returns": {
+    "ytd": "56.40%",
+    "3m": "52.00%",
+    "6m": "56.40%",
+    "1y": "96.63%",
+    "2y": "78.25%",
+    "3y": "0.00%",
+    "since": "85.21%"
+  },
+  "managers": [
+    "戎宜蘋"
+  ],
+  "strategy": "投資於國內上市上櫃公司中，科技相關產業及具有高股息特性之股票，參與長期較佳之企業獲利成長性與股息收益機會。 本基金B類型受益權單位每月評估收益分配，為投資人提供現金流之機會。",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/123.pdf",
+  "dist_date": "2026/06/30",
+  "dist_rate": "—",
+  "as_of": "2026/05/31",
+  "top_holdings": [
+    {
+      "sector": "半導體",
+      "name": "台積電",
+      "weight": 14.76
+    },
+    {
+      "sector": "半導體",
+      "name": "聯發科",
+      "weight": 8.18
+    },
+    {
+      "sector": "電子零組件",
+      "name": "台光電",
+      "weight": 8.17
+    },
+    {
+      "sector": "通信網路",
+      "name": "智邦",
+      "weight": 6.92
+    },
+    {
+      "sector": "電子零組件",
+      "name": "台達電",
+      "weight": 6.73
+    },
+    {
+      "sector": "電腦及週邊設備",
+      "name": "廣達",
+      "weight": 6.44
+    },
+    {
+      "sector": "金融保險",
+      "name": "元大金",
+      "weight": 5.66
+    },
+    {
+      "sector": "金融保險",
+      "name": "中信金",
+      "weight": 4.94
+    },
+    {
+      "sector": "金融保險",
+      "name": "群益證",
+      "weight": 4.83
+    },
+    {
+      "sector": "其他電子",
+      "name": "漢唐",
+      "weight": 4.58
+    }
+  ],
+  "country_alloc": [],
+  "sector_alloc": [
+    {
+      "name": "半導體",
+      "weight": 31.09
+    },
+    {
+      "name": "電子零組件",
+      "weight": 21.17
+    },
+    {
+      "name": "金融保險",
+      "weight": 19.0
+    },
+    {
+      "name": "電腦及週邊設備",
+      "weight": 11.33
+    },
+    {
+      "name": "通信網路",
+      "weight": 6.92
+    },
+    {
+      "name": "其他電子",
+      "weight": 4.58
+    },
+    {
+      "name": "航運業",
+      "weight": 3.24
+    },
+    {
+      "name": "流動資產",
+      "weight": 2.66
+    }
+  ],
+  "group": "tw_equity",
+  "fetched_at": "2026-07-02 23:12"
+}
