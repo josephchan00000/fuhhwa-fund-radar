@@ -122,12 +122,12 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
 <div class="topbar">
   <div class="tb-in">
     <span class="tb-brand">復華基金雷達</span>
-    <span class="mkswitch"><button class="mk on" data-mk="tw">台股</button><button class="mk" data-mk="gl">全球</button></span>
+    <span class="mkswitch"><label class="mk" for="mkt-tw">台股</label><label class="mk" for="mkt-gl">全球</label></span>
     <span class="tb-meta">持股基準 {_esc(as_of)}｜產表 {_esc(now)}</span>
     <span class="tb-lamp">{_esc(lamp)}</span>
     <nav class="tb-nav">
       <a href="#brief">今日重點</a><a href="#newsdigest">新聞重點</a>
-      <a href="#newslinks">新聞連動</a><a href="#overview">基金總覽</a>
+      <a href="#newslinks">焦點個股</a><a href="#overview">基金總覽</a>
       <a href="#details">基金詳情</a><a href="#news">新聞全文</a>
     </nav>
     <button class="tb-print" onclick="window.print()">🖨 晨會版</button>
@@ -184,34 +184,33 @@ def _digest_view(cards: list[dict], empty_hint: str) -> str:
     return "".join(out)
 
 
-# ── ③ 新聞 × 持股連動 ────────────────────────────────────────
+# ── ③ 當日焦點個股（新聞連動） ────────────────────────────────
 
-def _newslinks_view(linked: list[dict], as_of: str, empty_hint: str) -> str:
-    if not linked:
-        return (f'<div class="muted">{empty_hint}——'
-                f'這本身也是可以講的資訊（本波題材非本公司基金主要持倉）。</div>')
-    cards = []
+def _newslinks_view(linked: list[dict], empty_hint: str) -> str:
+    """新聞連動的個股彙總：每檔焦點個股一列——持有基金＋持有%。跨卡去重、權重高→低。"""
+    stocks: dict[str, dict] = {}
     for c in linked:
-        rows = []
         for m in c["matched"]:
-            fs = "　".join(
-                f'<a class="fw" href="#fund-{_esc(f["fund_id"])}">'
-                f'{_esc(_short(f["short_name"]))} <b>{f["weight"]:.2f}%</b></a>'
-                for f in m["funds"])
-            tk = f' <span class="tk">{_esc(m["ticker"])}</span>' if m.get("ticker") else ""
-            rows.append(f'<div class="nlrow"><span class="nlco">{_esc(m["display"])}{tk}</span>'
-                        f'<span class="nlfs">{fs}</span></div>')
-        script, hits = fund_insights.talk_script(c, as_of)
-        if hits:
-            talk = (f'<div class="talk bad">🔴 話術含禁用詞（{_esc("、".join(hits))}），'
-                    f'已停用複製。</div>')
-        else:
-            talk = (f'<div class="talk"><span class="tlab">💬 可講素材（中性）</span>'
-                    f'{_esc(script)} <button class="copy" data-copy="{_esc(script)}">📋 複製</button></div>')
-        one = f'<div class="nlone">{_esc(c["oneline"])}</div>' if c.get("oneline") else ""
-        cards.append(f'<div class="nlcard"><div class="nlt">{_esc(c["title"])}</div>{one}'
-                     f'{"".join(rows)}{talk}</div>')
-    return "".join(cards)
+            ent = stocks.setdefault(m["name"], {"display": m["display"],
+                                                "ticker": m.get("ticker"), "funds": {}})
+            ent["ticker"] = ent["ticker"] or m.get("ticker")
+            for f in m["funds"]:
+                ent["funds"][f["fund_id"]] = f
+    if not stocks:
+        return f'<div class="muted">{empty_hint}。</div>'
+    rows = []
+    for ent in sorted(stocks.values(),
+                      key=lambda e: max(f["weight"] for f in e["funds"].values()),
+                      reverse=True):
+        funds = sorted(ent["funds"].values(), key=lambda f: f["weight"], reverse=True)
+        fs = "　".join(
+            f'<a class="fw" href="#fund-{_esc(f["fund_id"])}">'
+            f'{_esc(_short(f["short_name"]))} <b>{f["weight"]:.2f}%</b></a>'
+            for f in funds)
+        tk = f' <span class="tk">{_esc(ent["ticker"])}</span>' if ent.get("ticker") else ""
+        rows.append(f'<div class="nlrow"><span class="nlco">{_esc(ent["display"])}{tk}</span>'
+                    f'<span class="nlfs">{fs}</span></div>')
+    return f'<div class="nlcard">{"".join(rows)}</div>'
 
 
 # ── ④ 基金總覽表 ─────────────────────────────────────────────
@@ -266,12 +265,7 @@ def _overview_view(rows: list[dict], leaders: set, fund_links: dict[str, int],
     if not blocks:
         blocks.append('<div class="muted">尚無基金資料。請先執行 '
                       '<code>python3 scripts/fetch_holdings.py</code>。</div>')
-    hint = ""
-    if pending:
-        hint = (f'<div class="pendhint">⏳ {len(pending)} 檔基金已列入追蹤、數據待抓取：'
-                f'請執行 <code>python3 scripts/fetch_holdings.py</code>'
-                f'（或到 GitHub Actions 手動觸發每日 routine）後重產儀表板。</div>')
-    return hint + "".join(blocks)
+    return "".join(blocks)
 
 
 # ── ⑤ 基金詳情 ───────────────────────────────────────────────
@@ -441,13 +435,15 @@ a{color:var(--acc)} code{background:#0b0e13;padding:1px 6px;border-radius:5px;co
 .stsub{font-weight:400;font-size:12px;color:var(--mut)}
 .muted{color:var(--mut)} .na{color:#5c6773}
 .gain{color:var(--gain);font-weight:700}.loss{color:var(--loss);font-weight:700}.flat{color:var(--mut)}
-/* 市場雙視圖 */
-body[data-mkt="tw"] .mkt[data-mkt="gl"]{display:none}
-body[data-mkt="gl"] .mkt[data-mkt="tw"]{display:none}
+/* 市場雙視圖（純 CSS radio 切換——JS 被停用也能按） */
+.mkradio{position:fixed;opacity:0;pointer-events:none}
+#mkt-tw:checked ~ * .mkt[data-mkt="gl"]{display:none}
+#mkt-gl:checked ~ * .mkt[data-mkt="tw"]{display:none}
 .mkswitch{display:flex;gap:0;border:1px solid var(--acc);border-radius:10px;overflow:hidden}
-.mk{background:var(--card2);color:#cfe0ff;border:0;padding:7px 20px;cursor:pointer;font-size:15px;font-weight:800}
-.mk.on{background:var(--acc);color:#fff}
-.mk:not(.on):hover{background:rgba(91,141,239,.18)}
+.mk{background:var(--card2);color:#cfe0ff;border:0;padding:7px 20px;cursor:pointer;font-size:15px;font-weight:800;user-select:none}
+.mk:hover{background:rgba(91,141,239,.18)}
+#mkt-tw:checked ~ .topbar .mk[for="mkt-tw"],
+#mkt-gl:checked ~ .topbar .mk[for="mkt-gl"]{background:var(--acc);color:#fff}
 /* ⓪ topbar */
 .topbar{position:sticky;top:0;z-index:50;background:rgba(14,17,22,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .tb-in{max-width:1240px;margin:0 auto;padding:9px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -602,17 +598,17 @@ a.chip:hover{border-color:var(--acc);background:rgba(91,141,239,.16)}
 """
 
 _JS = """
-// 台股/全球視圖切換（記住選擇；錨點跳到隱藏視圖時自動切換）
-const mkbtns=document.querySelectorAll('.mk');
-function setMkt(m){document.body.dataset.mkt=m;
-  mkbtns.forEach(b=>b.classList.toggle('on',b.dataset.mk===m));
+// 台股/全球切換本體為純 CSS radio（JS 停用也能按）；JS 只負責記住選擇＋錨點自動切換
+function curMkt(){return document.getElementById('mkt-gl').checked?'gl':'tw'}
+function setMkt(m){document.getElementById('mkt-'+m).checked=true;
   try{localStorage.setItem('mkt',m)}catch(e){}}
-mkbtns.forEach(b=>b.onclick=()=>setMkt(b.dataset.mk));
-(function(){let m='tw';try{m=localStorage.getItem('mkt')||'tw'}catch(e){}setMkt(m)})();
+document.querySelectorAll('.mkradio').forEach(r=>r.addEventListener('change',()=>{
+  try{localStorage.setItem('mkt',curMkt())}catch(e){}}));
+(function(){try{const m=localStorage.getItem('mkt');if(m)setMkt(m)}catch(e){}})();
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>{
   const el=document.querySelector(a.getAttribute('href'));
   const mv=el&&el.closest('.mkt');
-  if(mv&&mv.dataset.mkt!==document.body.dataset.mkt)setMkt(mv.dataset.mkt);
+  if(mv&&mv.dataset.mkt!==curMkt())setMkt(mv.dataset.mkt);
 }));
 // 美股 v1/v2 版型切換
 document.querySelectorAll('.nb').forEach(b=>b.onclick=()=>{
@@ -717,18 +713,17 @@ def render() -> str:
                   f'<span class="stsub">摘要＋原文連結（↗ 可點開來源）｜全文收合於頁面最下方</span></div>'
                   f'{_mkt(d_tw, d_gl)}</div>')
 
-    # ③ 新聞 × 持股連動
-    l_tw = _newslinks_view(linked_tw, as_of, "今日台股新聞與追蹤基金前十大持股無直接連動")
-    l_gl = _newslinks_view(linked_us, as_of, "昨夜美股新聞與追蹤基金前十大持股無直接連動")
-    sec_links = (f'<div class="section" id="newslinks"><div class="st">🔗 新聞 × 持股連動 '
-                 f'<span class="stsub">新聞 ↔ 前十大持股 ↔ 持有基金（權重％）</span></div>'
+    # ③ 當日焦點個股（新聞連動）
+    l_tw = _newslinks_view(linked_tw, "今日台股新聞與追蹤基金前十大持股無直接連動")
+    l_gl = _newslinks_view(linked_us, "昨夜美股新聞與追蹤基金前十大持股無直接連動")
+    sec_links = (f'<div class="section" id="newslinks"><div class="st">🎯 當日焦點個股 '
+                 f'<span class="stsub">持有基金＋持有％</span></div>'
                  f'{_mkt(l_tw, l_gl)}</div>')
 
     # ④ 基金總覽
     o_tw = _overview_view(rows_tw, leaders, fund_links, tw_pend)
     o_gl = _overview_view(rows_gl, leaders, fund_links, gl_pend)
-    sec_over = (f'<div class="section" id="overview"><div class="st">📊 基金總覽 '
-                f'<span class="stsub">點欄位標題可排序（↑↓）｜點基金名稱跳詳情｜紅漲綠跌</span></div>'
+    sec_over = (f'<div class="section" id="overview"><div class="st">📊 基金總覽</div>'
                 f'{_mkt(o_tw, o_gl)}</div>')
 
     # ⑤ 基金詳情
@@ -748,7 +743,9 @@ def render() -> str:
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>復華基金雷達 · 台股/全球雙視圖</title>
 <style>{_CSS}</style></head>
-<body data-mkt="tw">
+<body>
+<input class="mkradio" type="radio" name="mkt" id="mkt-tw" checked>
+<input class="mkradio" type="radio" name="mkt" id="mkt-gl">
 {_topbar(banned, bool(news or tw), as_of, now)}
 <div class="wrap">
 {sec_brief}
