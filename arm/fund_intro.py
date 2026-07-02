@@ -46,6 +46,7 @@ def load(fund_id: str, market: str = "global") -> dict | None:
     for h in doc.get("top_holdings", []):
         p = profs.get(h.get("name")) or {}
         h["intro"] = p.get("intro")
+        h["detail"] = p.get("detail")        # 選配：2–3 句深入介紹（業務結構/客戶/供應鏈地位）
         h["ticker"] = p.get("ticker")
         h["country"] = p.get("country")
     doc["group_label"] = GROUP_LABEL.get(doc.get("group"), doc.get("category") or "")

@@ -14,7 +14,7 @@ import html
 import re
 from datetime import datetime
 
-from . import fund_intro, markets, twnews, usnews
+from . import fund_intro, indicators, markets, twnews, usnews
 
 _NEWS_MODULES = {"us": usnews, "tw": twnews}
 
@@ -110,9 +110,11 @@ def _holdings_table(doc: dict) -> str:
         ct = f'<span class="pill">{_esc(h["country"])}</span>' if h.get("country") else ""
         sec = f' <span class="sec">{_esc(h.get("sector"))}</span>' if h.get("sector") else ""
         intro = f'<div class="hintro">{_esc(h["intro"])}</div>' if h.get("intro") else ""
+        more = (f'<details class="hmore"><summary>更多介紹</summary>{_esc(h["detail"])}</details>'
+                if h.get("detail") else "")
         rows.append(
             f'<tr><td class="rk">{i}</td>'
-            f'<td class="nm"><b>{_esc(h.get("name"))}</b>{tk}{sec} {ct}{intro}</td>'
+            f'<td class="nm"><b>{_esc(h.get("name"))}</b>{tk}{sec} {ct}{intro}{more}</td>'
             f'<td class="wt">{(h.get("weight") or 0):.2f}%</td></tr>')
     label = "投資標的（基金／ETF）" if is_fund else "標的（重點標的簡介）"
     return (f'<table class="htbl"><thead><tr><th></th>'
@@ -302,6 +304,29 @@ def _news_section(news: str = "us", market: str = "global") -> str:
 _ON = "background:var(--acc);color:#fff;border-color:var(--acc)"
 
 
+def _indicators_section(market: str) -> str:
+    """📈 重點觀察數據速覽格（總經／籌碼／產業報價）；無資料回空字串（區塊不顯示）。"""
+    doc = indicators.load_latest()
+    items = indicators.for_market(doc, market)
+    if not items:
+        return ""
+    chips = []
+    for it in items:
+        chg = it.get("change") or ""
+        cls = "up" if chg[:1] in "▲＋+" else ("dn" if chg[:1] in "▼－-" else "")
+        tip = "｜".join(filter(None, [f"基準 {it.get('as_of')}", f"來源 {it.get('source')}",
+                                     it.get("note")]))
+        chips.append(
+            f'<div class="ind" title="{_esc(tip)}"><div class="ik">{_esc(it.get("name"))}</div>'
+            f'<div class="iv">{_esc(it.get("value"))}</div>'
+            f'<div class="ic {cls}">{_esc(chg)}</div>'
+            f'<div class="ia">{_esc(it.get("as_of"))}</div></div>')
+    return f"""<div class="section">
+  <div class="st">📈 重點觀察數據　<span class="asof">{_esc(doc.get('date'))}｜滑鼠停留看來源與備註；數據皆可追溯、查不到者不列</span></div>
+  <div class="igrid">{''.join(chips)}</div>
+</div>"""
+
+
 def _market_panel(market: str, single: bool) -> tuple[str, str, str, int]:
     """單一市場面板（新聞區塊 ＋ 基金分頁 ＋ 卡片），供 render / render_combined 共用。
 
@@ -328,6 +353,7 @@ def _market_panel(market: str, single: bool) -> tuple[str, str, str, int]:
     as_of = funds[0].get("as_of") if funds else "—"
     empty = "" if funds else '<div class="muted">尚無持股快照；請先執行 fetch_holdings。</div>'
     panel = f"""<div class="market{' on' if single else ''}" data-market="{mid}">
+{_indicators_section(market)}
 <div class="section">
   <div class="st">🗞️ {_esc(mk['news_label'])}</div>
   {_news_section(mk['news'], market)}
@@ -402,6 +428,14 @@ header h1{{font-size:22px;margin:0 0 3px}} .lede{{color:var(--mut);font-size:13p
 .ndate{{font-weight:700;font-size:15px}} .lamp{{color:var(--mut);font-size:13px}}
 .nswitch{{margin-left:auto;display:flex;gap:6px}}
 .nb{{display:inline-block;background:var(--card2);color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:6px 14px;cursor:pointer;font-size:13px;user-select:none}}
+/* 重點觀察數據速覽格 */
+.igrid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:10px}}
+.ind{{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:10px 12px;cursor:help}}
+.ik{{font-size:12px;color:var(--mut);line-height:1.4}}
+.iv{{font-size:17px;font-weight:800;margin:3px 0 1px;color:#fff}}
+.ic{{font-size:12px;color:var(--mut);line-height:1.45}}
+.ic.up{{color:var(--up)}} .ic.dn{{color:var(--dn)}}
+.ia{{font-size:10.5px;color:var(--mut);opacity:.7;margin-top:3px}}
 /* 新聞卡片版型（重點置頂） */
 .quick{{border:1px dashed var(--acc);border-radius:12px;padding:10px 16px;margin:14px 0;background:rgba(91,141,239,.06)}}
 .quick .qt{{font-weight:800;font-size:14px;color:#9ecbff;margin-bottom:4px}}
@@ -469,6 +503,9 @@ details.fineprint>div{{margin-top:6px;border-left:2px solid var(--line);padding-
 .htbl .sec{{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin-left:4px}}
 .tk{{font-size:11px;color:#9ecbff}} .pill{{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin-left:4px}}
 .hintro{{color:var(--mut);font-size:12px;margin-top:3px}}
+.hmore{{margin-top:3px;font-size:12px;color:var(--mut)}}
+.hmore summary{{cursor:pointer;color:var(--acc);font-size:11.5px}}
+.hmore[open]{{background:rgba(91,141,239,.05);border-radius:6px;padding:4px 8px;line-height:1.7}}
 .foot{{color:var(--mut);font-size:11.5px;margin-top:22px;border-top:1px solid var(--line);padding-top:12px}}
 @media(max-width:720px){{.cols{{grid-template-columns:1fr}}.rets{{grid-template-columns:repeat(3,1fr)}}.navbox{{text-align:left}}}}
 /* ── 動態分頁規則（依基金清單產生的 :checked 顯示規則）── */

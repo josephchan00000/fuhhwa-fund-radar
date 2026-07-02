@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from arm import config, fund_dashboard, fund_intro, markets, twnews, usnews
+from arm import config, fund_dashboard, fund_intro, indicators, markets, twnews, usnews
 from arm.connectors import fhfund
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -321,3 +321,76 @@ def test_known_tw_holdings_have_profiles():
     profs = fund_intro._profiles()
     for name in ["台積電", "台達電", "欣興", "台光電", "旺矽"]:
         assert profs.get(name) and profs[name].get("intro"), name
+
+
+# ── 重點觀察數據（indicators）────────────────────────────────
+def test_indicators_validate():
+    ok = {"date": "2026-07-02", "items": [
+        {"market": "tw", "name": "x", "value": "1", "as_of": "2026/07/02", "source": "s"}]}
+    assert indicators.validate(ok) == []
+    assert indicators.validate({"date": "bad", "items": []})            # 兩項錯誤
+    assert any("market" in e for e in indicators.validate(
+        {"date": "2026-07-02", "items": [{"market": "xx", "name": "x", "value": "1",
+                                          "as_of": "d", "source": "s"}]}))
+
+
+def test_indicators_for_market_filter():
+    doc = {"date": "2026-07-02", "items": [
+        {"market": "us", "name": "a", "value": "1", "as_of": "d", "source": "s"},
+        {"market": "tw", "name": "b", "value": "2", "as_of": "d", "source": "s"},
+        {"market": "both", "name": "c", "value": "3", "as_of": "d", "source": "s"}]}
+    assert [i["name"] for i in indicators.for_market(doc, "global")] == ["a", "c"]
+    assert [i["name"] for i in indicators.for_market(doc, "tw")] == ["b", "c"]
+    assert indicators.for_market(None, "tw") == []
+
+
+def test_indicators_latest_loads_and_renders():
+    doc = indicators.load_latest()
+    if not doc:
+        pytest.skip("尚無 reports/indicators/{date}.json")
+    assert indicators.validate(doc) == []
+    html = fund_dashboard._indicators_section("tw")
+    assert "重點觀察數據" in html and 'class="ind"' in html
+
+
+def test_indicators_change_color_class():
+    html = fund_dashboard._indicators_section("tw")
+    if not html:
+        pytest.skip("尚無指標資料")
+    assert 'class="ic dn"' in html or 'class="ic up"' in html   # ▲/▼ 有配色
+
+
+# ── 持股深入介紹（detail）────────────────────────────────────
+def test_profiles_detail_on_major_holdings():
+    profs = fund_intro._profiles()
+    for name in ["台積電", "台達電", "台光電", "群聯", "智邦", "MICRON TECHNOLOGY INC"]:
+        assert profs[name].get("detail"), f"{name} 缺 detail"
+        assert len(profs[name]["detail"]) > len(profs[name]["intro"]), name
+
+
+def test_holdings_table_renders_detail_expandable():
+    doc = {"fund_id": "x", "group": "domestic_equity", "returns": {},
+           "top_holdings": [{"name": "台積電", "weight": 8.72, "sector": "半導體",
+                             "intro": "一句話", "detail": "更深入的兩三句介紹。"}]}
+    html = fund_dashboard._holdings_table(doc)
+    assert '<details class="hmore">' in html and "更深入的兩三句介紹" in html
+
+
+def test_load_attaches_detail():
+    tw_dir = fund_intro.funds_dir("tw")
+    tw_dir.mkdir(parents=True, exist_ok=True)
+    fp = tw_dir / "999997.json"
+    fp.write_text(json.dumps({"fund_id": "999997", "group": "domestic_equity",
+                              "top_holdings": [{"name": "台積電", "weight": 1}]},
+                             ensure_ascii=False), encoding="utf-8")
+    try:
+        doc = fund_intro.load("999997", "tw")
+        assert doc["top_holdings"][0]["detail"]          # detail 已掛上
+    finally:
+        fp.unlink(missing_ok=True)
+
+
+# ── 台股新聞 spec：重大分析（非技術面）──────────────────────
+def test_twnews_spec_requires_fundamental_analysis():
+    assert "重大分析與基本面觀察" in twnews.SPEC_V1
+    assert "非技術面" in twnews.SPEC_V1
