@@ -73,7 +73,9 @@ python3 scripts/gen_fund_dashboard.py --open
 bash scripts/daily_fund.sh
 ```
 
-儀表板為**單一 `dashboard/index.html`**（**零 JS**——分頁切換以純 CSS radio+label 實現，任何禁 script 的預覽環境也能操作；零外部請求、雙擊即開，無 npm/node）：上層「海外／台股」切換，各市場頂部為新聞區塊（⚡本日重點速覽＋重點置頂新聞卡＋兩版型切換＋🟢/🔴 合規燈），下方每檔基金分頁的持股介紹。
+儀表板為**單一 `dashboard/index.html`**（**零 JS**——分頁切換以純 CSS radio+label 實現，任何禁 script 的預覽環境也能操作；零外部請求、雙擊即開，無 npm/node）：上層「海外／台股」切換，各市場面板由上而下為——**📈 重點觀察數據**（非農/失業率/CPI/Fed 利率/外資台指期淨未平倉/三大法人/記憶體報價等速覽格，滑鼠停留看來源）→ 新聞區塊（⚡本日重點速覽＋重點置頂新聞卡＋兩版型切換＋🟢/🔴 合規燈；台股版含**重大分析與基本面觀察**）→ 每檔基金分頁的持股介紹（重點標的簡介＋可展開「更多介紹」）。
+
+**每日自動更新**：`.github/workflows/daily.yml` 台北時間週一~六 08:30 自動抓 NAV/持股、重建儀表板並**部署到 GitHub Pages**（固定網址）；新聞與觀察數據內容由 LLM 依提示包查證回填（`gen_usnews.py` / `gen_twnews.py` / `gen_indicators.py`）。首次啟用需在 repo Settings → Pages → Source 選「GitHub Actions」。
 
 ---
 

@@ -1,9 +1,13 @@
 name: 復華基金追蹤版本 每日 routine
 
-# 每日雲端 routine：抓海外 11 檔 + 台股 12 檔基金持股介紹（NAV 每日更新）→ 產昨夜美股＋台股新聞提示包 → 產儀表板（整合頁 index.html + 台股獨立頁 tw.html）。
-# 註：昨夜美股「新聞內容」需會上網查證的 LLM 產出（見 scripts/daily_fund.sh 檔頭）；
-#     CI 只自動刷新持股快照與提示包＋重建儀表板，新聞內容另由 Claude/人工補 reports/usnews/{date}_v*.md。
+# 每日雲端 routine：抓海外 11 檔 + 台股 12 檔基金持股介紹（NAV 每日更新）→ 產昨夜美股＋台股新聞
+# ＋重點觀察數據提示包 → 產儀表板（整合頁 index.html + 台股獨立頁 tw.html）→ 部署 GitHub Pages。
+# 註：新聞內容與觀察數據需會上網查證的 LLM 產出（見 scripts/daily_fund.sh 檔頭）；
+#     CI 只自動刷新持股快照與提示包＋重建儀表板，內容另由 Claude/人工補
+#     reports/usnews|twnews/{date}_v*.md 與 reports/indicators/{date}.json。
 # 排程：台北時間週一~六 08:30（= UTC 前一日 00:30，抓昨夜美股後的當日 NAV/新聞）。可手動 workflow_dispatch。
+# 網頁：dashboard/ 於每次跑完自動部署到 GitHub Pages（僅 main 分支）；
+#      首次需在 repo Settings → Pages → Source 選「GitHub Actions」。
 
 on:
   schedule:
@@ -12,6 +16,8 @@ on:
 
 permissions:
   contents: write          # 把當日持股快照 commit 回 repo
+  pages: write             # 部署 GitHub Pages
+  id-token: write          # Pages OIDC
 
 jobs:
   routine:
@@ -24,7 +30,7 @@ jobs:
           python-version: "3.12"
       - name: 安裝相依（純標準庫 + certifi）
         run: pip install certifi
-      - name: 跑每日 routine（持股介紹 + 昨夜美股提示包 + 儀表板）
+      - name: 跑每日 routine（持股介紹 + 新聞/數據提示包 + 儀表板）
         run: bash scripts/daily_fund.sh
       - name: 上傳儀表板與持股快照為 artifact
         uses: actions/upload-artifact@v4
@@ -37,6 +43,7 @@ jobs:
             data/funds_tw/*.json
             reports/usnews/*.md
             reports/twnews/*.md
+            reports/indicators/*.json
           if-no-files-found: warn
       - name: 把當日持股快照 commit 回 repo
         run: |
@@ -46,5 +53,24 @@ jobs:
           git add -f data/funds_tw/*.json 2>/dev/null || true      # 台股版持股快照
           git add -f reports/usnews/*_v*.md 2>/dev/null || true
           git add -f reports/twnews/*_v*.md 2>/dev/null || true    # 台股新聞內容
+          git add -f reports/indicators/*.json 2>/dev/null || true # 重點觀察數據
           git commit -m "chore: 每日持股介紹更新（海外+台股）$(date +%F)" || echo "無變更"
           git push || echo "push 略過（無遠端寫入權或無變更）"
+      - name: 打包 dashboard/ 為 Pages artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dashboard
+
+  deploy-pages:
+    # 每日自動把最新儀表板發布成網頁（GitHub Pages，固定網址）；僅 main 分支
+    if: github.ref == 'refs/heads/main'
+    needs: routine
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
