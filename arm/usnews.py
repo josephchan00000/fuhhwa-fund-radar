@@ -47,7 +47,9 @@ Top 3 列入須至少符合四項中三項：(1) 同現於 Reuters/Bloomberg/WSJ
   🔹Top 3 新聞卡（每則 120–180 字）：
      標題（來源＋日期＋TST｜消息屬性）
      1. 新聞摘要（2–3 句聚焦事實） 2. 一句話重點 3. 對公司影響
-     4. 對競爭者／合作方影響 5. 對市場情緒與股價影響 6. 參考資料（逐條列來源與機構評論日期）
+     4. 對競爭者／合作方影響 5. 對市場情緒與股價影響
+     6. 參考資料（逐條列來源與機構評論日期；**每卡至少 1 條以 [標題](URL) markdown
+        格式附可點的原文連結**，儀表板「新聞重點」卡會直接取用）
   🔹次級觀察摘要（不足三則時補延伸觀察：法說會效應／分析師報告／行業趨勢）
   I. 合規揭露（附完整揭露段）
 用語合規：僅市場資訊彙編/教育用途、非投資建議；禁用詞見 BANNED；機構觀點以
@@ -65,6 +67,7 @@ SPEC_V2 = """【版型二：昨夜美股重點（精簡版）】
 每則輸出：
   新聞標題（來源 + 日期｜消息屬性）
   1. 新聞摘要 2. 濃縮成一句話（簡短有力） 3. 對公司影響 4. 對競爭者/合作方影響 5. 對市場情緒與股價影響
+  6. 參考連結（每卡至少 1 條 [來源標題](URL) markdown 可點連結）
 末尾附合規短語（非投資建議）。"""
 
 
@@ -101,7 +104,17 @@ def compliance_scan(text: str) -> list[str]:
     return sorted(hits)
 
 
-# ── 結構化萃取（供儀表板「今日重點」與「新聞×持股連動」使用；萃取失敗回空、不擋版面） ──
+# ── 結構化萃取（供儀表板「今日重點」「新聞重點」「新聞×持股連動」使用；萃取失敗回空、不擋版面） ──
+
+# 隱形/控制字元（零寬空白、方向控制、BOM、軟連字號）——來源複製貼上常夾帶，
+# 部分字型會顯示為亂碼方框；渲染與萃取前一律刷掉。
+_INVISIBLE = re.compile("[\\u00ad\\u200b-\\u200f\\u2028\\u2029\\u2060\\ufeff]")
+
+
+def scrub(text: str) -> str:
+    """去隱形/控制字元。"""
+    return _INVISIBLE.sub("", text or "")
+
 
 _IDX_LABELS = [(("那斯達克", "Nasdaq", "NASDAQ"), "Nasdaq"),
                (("費城半導體", "費半", "SOX"), "費半 SOX"),
@@ -115,7 +128,7 @@ def extract_indices(md: str, labels: list[tuple[tuple[str, ...], str]] | None = 
     回 [{label, close, pct, up}]（依 labels 順序、去重取首見）；解析不到回 []。"""
     _IDX = labels if labels is not None else _IDX_LABELS
     out: dict[str, dict] = {}
-    for line in (md or "").splitlines():
+    for line in scrub(md).splitlines():
         m = re.match(r"^\s*[-*]\s+\*\*(.+?)\*\*[：:](.*)$", line)
         if not m:
             continue
@@ -135,20 +148,28 @@ def extract_indices(md: str, labels: list[tuple[tuple[str, ...], str]] | None = 
 
 
 _CARD_HEAD = re.compile(r"^#{2,3}\s+(?:卡\s*\d+｜|[一二三四五六七八九十]+、)(.+)$")
+_MD_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\s)]+)\)")
 
 
 def extract_cards(md: str) -> list[dict]:
     """切出新聞卡（v1『### 卡 N｜…』／v2『## 一、…』）。
 
-    回 [{title, oneline, body}]；title 去掉尾端（來源…）括注，oneline 取
-    『一句話重點／一句話』行，缺則空字串。"""
+    回 [{title, meta, oneline, summary, links, body}]：
+      title＝去尾端括注的標題；meta＝尾端（來源：…｜日期｜…）括注內容；
+      oneline＝『一句話重點／一句話』行；summary＝『新聞摘要』行；
+      links＝卡內 markdown 連結 [(文字, URL)]（原文出處）。缺者為空。"""
     cards: list[dict] = []
     cur: dict | None = None
-    for line in (md or "").splitlines():
+    for line in scrub(md).splitlines():
         m = _CARD_HEAD.match(line.strip())
         if m:
-            title = re.sub(r"（[^）]*）\s*$", "", m.group(1)).strip()
-            cur = {"title": title, "oneline": "", "body": ""}
+            raw = m.group(1).strip()
+            meta = ""
+            mm = re.search(r"（([^（）]*)）\s*$", raw)
+            if mm:
+                meta, raw = mm.group(1).strip(), raw[:mm.start()].strip()
+            cur = {"title": raw, "meta": meta, "oneline": "", "summary": "",
+                   "links": [], "body": ""}
             cards.append(cur)
             continue
         if line.strip().startswith(("## ", "---")) and not _CARD_HEAD.match(line.strip()):
@@ -159,6 +180,11 @@ def extract_cards(md: str) -> list[dict]:
             mo = re.match(r"^\s*\d*\.?\s*\*\*一句話(?:重點)?\*\*[：:]\s*(.+)$", line)
             if mo and not cur["oneline"]:
                 cur["oneline"] = mo.group(1).strip().rstrip("。")
+            ms = re.match(r"^\s*\d*\.?\s*\*\*新聞摘要\*\*[：:]\s*(.+)$", line)
+            if ms and not cur["summary"]:
+                cur["summary"] = ms.group(1).strip()
+    for c in cards:
+        c["links"] = [(t, u) for t, u in _MD_LINK.findall(c["body"])]
     return cards
 
 
