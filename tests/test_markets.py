@@ -211,6 +211,26 @@ def test_stock_extract_holdings_three_col():
     assert fhfund._extract_holdings(rows) == [{"sector": "半導體", "name": "台積電", "weight": 8.72}]
 
 
+def test_kind_of_uses_sector_shape_not_heading():
+    # 實測發現：79 台灣智能的持股仍掛在標準「十大持有標的」標題下，但無產業欄
+    # （因持有的是其他基金）；判定應看欄位形狀，不能只看抓到哪個標題。
+    assert fhfund._kind_of([{"sector": "半導體", "name": "台積電", "weight": 8.72}]) == "stock"
+    assert fhfund._kind_of([{"sector": None, "name": "元大台灣50", "weight": 8.59}]) == "fund"
+    assert fhfund._kind_of([]) is None
+
+
+def test_fund79_real_snapshot_labelled_fund_not_stock():
+    # 迴歸測試：實抓（GitHub Actions daily.yml 手動觸發）驗證 79 十大持有標的表確實存在，
+    # 只是無產業欄；holdings_kind 須為 fund 而非 stock（曾經誤標）。
+    fp = ROOT / "data" / "funds_tw" / "79.json"
+    if not fp.exists():
+        pytest.skip("data/funds_tw/79.json 尚未抓取（需可連外環境）")
+    doc = json.loads(fp.read_text(encoding="utf-8"))
+    assert doc.get("holdings_kind") == "fund"
+    assert doc.get("top_holdings"), "79 應有持股（掛在十大持有標的標題下，僅無產業欄）"
+    assert all(h.get("sector") is None for h in doc["top_holdings"])
+
+
 def test_fof_heading_fallback_parses():
     html = ('<h3>前十大投資標的</h3><table class="fundTable"><tbody>'
             '<tr><td>復華台灣科技優息ETF</td><td><span>18.20%</span></td></tr>'

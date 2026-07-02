@@ -66,6 +66,28 @@
     "國泰金": { "intro": "台灣國泰金融控股（Cathay），綜合金控，核心為國泰人壽與國泰世華銀行。", "ticker": "2882", "country": "臺灣", "verified": true },
     "兆豐金": { "intro": "台灣兆豐金融控股（Mega），金控集團，核心為兆豐國際商業銀行。", "ticker": "2886", "country": "臺灣", "verified": true },
     "玉山金": { "intro": "台灣玉山金融控股（E.SUN），金控集團，核心為玉山商業銀行。", "ticker": "2884", "country": "臺灣", "verified": true },
-    "元大金": { "intro": "台灣元大金融控股（Yuanta），金控集團，核心為元大證券與元大銀行。", "ticker": "2885", "country": "臺灣", "verified": true }
+    "元大金": { "intro": "台灣元大金融控股（Yuanta），金控集團，核心為元大證券與元大銀行。", "ticker": "2885", "country": "臺灣", "verified": true },
+
+    "_tw_verified_note": "以下為 2026-07-02 GitHub Actions 手動觸發 daily.yml 實抓台股 12 檔後，比對持股聯集找出的缺漏，已補齊（全覆蓋檢查）。",
+    "群聯": { "intro": "台灣群聯電子（Phison），NAND Flash 控制晶片（IC）設計廠，主攻固態硬碟（SSD）主控與嵌入式儲存方案。", "ticker": "8299", "country": "臺灣", "verified": true },
+    "致茂": { "intro": "台灣致茂電子（Chroma ATE），自動化測試與量測設備廠，產品含電源/電池測試、半導體測試系統。", "ticker": "2360", "country": "臺灣", "verified": true },
+    "奇鋐": { "intro": "台灣奇鋐科技（AVC），散熱解決方案廠，主攻伺服器與資料中心散熱模組、風扇。", "ticker": "3017", "country": "臺灣", "verified": true },
+    "金像電": { "intro": "台灣金像電子（Gold Circuit Electronics），印刷電路板（PCB）製造商，供應伺服器與高速傳輸用板。", "ticker": "2368", "country": "臺灣", "verified": true },
+    "嘉澤": { "intro": "台灣嘉澤端子（Lotes），精密連接器製造商，主攻伺服器 CPU/GPU 插槽與高速訊號連接器。", "ticker": "3533", "country": "臺灣", "verified": true },
+    "群益證": { "intro": "台灣群益金鼎證券（Capital Securities），綜合證券商，經營經紀、承銷與自營業務。", "ticker": "6005", "country": "臺灣", "verified": true },
+    "漢唐": { "intro": "台灣漢唐集成（Hantech Integration），半導體與科技廠房無塵室工程統包（EPC）廠商。", "ticker": "2404", "country": "臺灣", "verified": true },
+    "南亞科": { "intro": "台灣南亞科技（Nanya Technology），DRAM 記憶體製造商，隸屬台塑集團。", "ticker": "2408", "country": "臺灣", "verified": true },
+
+    "_fof_underlying_note": "以下為復華台灣智能基金（79，組合型 fof）持有之子基金／ETF；多為未上市之共同基金，無公開交易代號（ticker 留空）。中性描述其類型，非投資建議。",
+    "元大台灣加權股價指數證券投資信託基金 A 類型 (新台幣)": { "intro": "台灣元大投信發行之指數型基金，追蹤台灣發行量加權股價指數（TAIEX）表現。", "ticker": "", "country": "臺灣", "verified": true },
+    "復華股債指數傘型證券投資信託基金之復華5至10年期投資等級債券指數證券投資信託基金 (新臺幣)": { "intro": "復華投信發行之債券指數型基金，追蹤 5 至 10 年期投資等級公司債指數。", "ticker": "", "country": "臺灣", "verified": true },
+    "安聯台灣科技證券投資信託基金": { "intro": "安聯投信發行之主動式股票型基金，聚焦台灣科技產業成分股。", "ticker": "", "country": "臺灣", "verified": true },
+    "元大台灣50": { "intro": "元大投信發行之 ETF（0050），追蹤台灣市值前 50 大上市公司指數。", "ticker": "0050", "country": "臺灣", "verified": true },
+    "國泰台灣高股息傘型證券投資信託基金之台灣高股息證券投資信託基金 A類型 (新臺幣)": { "intro": "國泰投信發行之股票型基金，聚焦台灣高股息殖利率成分股。", "ticker": "", "country": "臺灣", "verified": true },
+    "統一黑馬證券投資信託基金": { "intro": "統一投信發行之主動式股票型基金，投資策略聚焦中小型成長股。", "ticker": "", "country": "臺灣", "verified": true },
+    "野村高科技證券投資信託基金 累積 (新臺幣)": { "intro": "野村投信發行之主動式股票型基金，聚焦台灣科技產業成分股（累積型股份類別）。", "ticker": "", "country": "臺灣", "verified": true },
+    "野村優質證券投資信託基金 S (新臺幣)": { "intro": "野村投信發行之主動式股票型基金，投資策略聚焦體質優質之台股成分股（S 股份類別）。", "ticker": "", "country": "臺灣", "verified": true },
+    "富邦科技": { "intro": "富邦投信發行之 ETF（0052），追蹤台灣資訊科技產業指數。", "ticker": "0052", "country": "臺灣", "verified": true },
+    "復華復華證券投資信託基金": { "intro": "復華投信旗艦主動式股票型基金（本追蹤版本亦列為海外/台股清單之「復華復華基金」，id=01）。", "ticker": "", "country": "臺灣", "verified": true }
   }
 }

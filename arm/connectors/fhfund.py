@@ -158,6 +158,15 @@ def _extract_holdings(rows: list[list[str]]) -> list[dict]:
     return out
 
 
+def _kind_of(holdings: list[dict]) -> str | None:
+    """依欄位形狀（有無產業欄）判定持股種類，而非依標題來源：實測發現部分 fof（如台灣智能79）
+    的持股仍掛在標準「十大持有標的」標題下，只是少了產業欄（因持有的是其他基金而非個股），
+    若只依標題判斷會誤標為 stock。"""
+    if not holdings:
+        return None
+    return "stock" if any(h.get("sector") for h in holdings) else "fund"
+
+
 def fetch_holdings(fund_id: str | int) -> dict:
     """月底十大持有標的（含每檔所屬產業）＋ 國家配置 ＋ 產業配置 ＋ 資料日期。
 
@@ -166,7 +175,7 @@ def fetch_holdings(fund_id: str | int) -> dict:
     html = get_bytes(PAGE.format(fid=fund_id), cache_ttl=6 * 3600).decode("utf-8", "replace")
 
     holdings = _extract_holdings(_rows_of_table_after(html, "十大持有標的"))
-    holdings_kind = "stock" if holdings else None
+    holdings_kind = _kind_of(holdings)
     holdings_heading = "十大持有標的" if holdings else None
     if not holdings:                                   # fof 退路：改抓基金／ETF 標的表
         for hd in _FOF_HEADINGS:
