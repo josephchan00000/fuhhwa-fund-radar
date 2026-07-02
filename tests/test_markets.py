@@ -167,11 +167,48 @@ def test_render_combined_has_market_switch():
     assert "海外" in html and "台股" in html
 
 
-def test_render_combined_scoped_js():
-    # 分頁與新聞切換須作用域限縮於各自 .market（避免跨市場干擾）
+def test_render_combined_css_only_tabs():
+    # 分頁切換為純 CSS（radio+label）：沙箱預覽/禁 script 環境也能按，頁面零 JS
     html = fund_dashboard.render_combined(("global", "tw"))
-    assert "querySelectorAll('.market')" in html
-    assert "mkt.querySelectorAll('.tab')" in html
+    assert "<script>" not in html
+    assert 'id="mkt-tw"' in html and 'id="mkt-global"' in html
+    assert '#mkt-tw:checked~.market[data-market="tw"]{display:block}' in html
+    # 每檔基金都有對應的顯示規則與分頁 label
+    for m in ("global", "tw"):
+        for f in config.funds(m):
+            fid = f["id"]
+            assert f'#fund-{m}-{fid}:checked~.fund[data-fund="{fid}"]' in html, (m, fid)
+            assert f'for="fund-{m}-{fid}"' in html, (m, fid)
+    # 新聞版型切換 radio（各市場獨立 name，不互相干擾）
+    assert 'name="nv-tw"' in html and 'name="nv-global"' in html
+
+
+def test_news_doc_card_parse_and_lead():
+    md = ("### 卡 1｜台積電法說前震盪（聯合新聞網｜2026/07/02｜【事件更新】）\n"
+          "1. **新聞摘要**：ADR 重挫 7%。\n"
+          "2. **一句話重點**：ADR 重挫、現股抗跌。\n"
+          "3. **對公司影響**：短線評價修正。\n"
+          "6. **參考資料**：聯合新聞網（2026/07/02）。\n")
+    out = fund_dashboard._render_news_doc(md)
+    assert 'class="ncard"' in out
+    assert 'class="nlead"' in out and "ADR 重挫、現股抗跌" in out   # 一句話重點置頂
+    assert '<span class="tag">事件更新</span>' in out              # 屬性成徽章
+    assert "<details" in out and "參考資料" in out                 # 參考資料摺疊
+
+
+def test_news_doc_fallback_to_md():
+    # 無新聞卡結構 → 整段回退 markdown 渲染，不噴錯
+    out = fund_dashboard._render_news_doc("## 標題\n\n一般段落而已。")
+    assert "ncard" not in out and "一般段落而已" in out
+
+
+def test_news_doc_fineprint_collapsed():
+    md = ("### 卡 1｜X（來源｜2026/07/02｜【新消息】）\n"
+          "1. **新聞摘要**：a。\n2. **一句話重點**：b。\n\n"
+          "## 資料侷限說明\n- 某數字未及查證。\n\n## I. 合規揭露\n本資料僅供參考。\n")
+    out = fund_dashboard._render_news_doc(md)
+    assert out.count('class="fineprint"') == 2                     # 兩段雜訊皆摺疊
+    assert "某數字未及查證" in out and "本資料僅供參考" in out
 
 
 def test_render_single_market_has_one_panel():
