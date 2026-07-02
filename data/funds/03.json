@@ -1,0 +1,112 @@
+{
+  "fund_id": "03",
+  "name": "復華高成長基金",
+  "short_name": "高成長",
+  "en_name": "Fuh-Hwa High Growth Fund",
+  "category": "國內股票型",
+  "region": "台灣",
+  "asset_kind": "股票型",
+  "currency": "新臺幣",
+  "inception": "1998/10/17",
+  "risk_level": "RR4",
+  "mgmt_fee": "1.60%",
+  "size_twd": 18984689044.0,
+  "nav": 514.04,
+  "nav_date": "2026/07/02",
+  "nav_change": -7.08,
+  "nav_change_pct": "-1.36%",
+  "returns": {
+    "ytd": "108.94%",
+    "3m": "89.15%",
+    "6m": "108.94%",
+    "1y": "247.33%",
+    "2y": "208.00%",
+    "3y": "367.59%",
+    "since": "5,060.30%"
+  },
+  "managers": [
+    "呂宏宇"
+  ],
+  "strategy": "以公司營收及稅後盈餘成長率等指標，篩選出具成長潛力的國內上市櫃公司股票 主要布局具成長題材及發展潛力之國內股票，參與企業獲利增長之投資機會",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/03.pdf",
+  "dist_date": "2026/06/30",
+  "dist_rate": "—",
+  "as_of": "2026/05/31",
+  "top_holdings": [
+    {
+      "sector": "電子零組件",
+      "name": "台光電",
+      "weight": 11.46
+    },
+    {
+      "sector": "電子零組件",
+      "name": "欣興",
+      "weight": 10.56
+    },
+    {
+      "sector": "電子零組件",
+      "name": "國巨*",
+      "weight": 8.16
+    },
+    {
+      "sector": "半導體",
+      "name": "旺矽",
+      "weight": 7.06
+    },
+    {
+      "sector": "半導體",
+      "name": "聯發科",
+      "weight": 7.04
+    },
+    {
+      "sector": "半導體",
+      "name": "群聯",
+      "weight": 6.78
+    },
+    {
+      "sector": "半導體",
+      "name": "台積電",
+      "weight": 6.2
+    },
+    {
+      "sector": "電子零組件",
+      "name": "台達電",
+      "weight": 5.92
+    },
+    {
+      "sector": "半導體",
+      "name": "南亞科",
+      "weight": 5.85
+    },
+    {
+      "sector": "半導體",
+      "name": "鴻勁",
+      "weight": 5.22
+    }
+  ],
+  "country_alloc": [],
+  "sector_alloc": [
+    {
+      "name": "電子零組件",
+      "weight": 46.66
+    },
+    {
+      "name": "半導體",
+      "weight": 42.65
+    },
+    {
+      "name": "電腦及週邊設備",
+      "weight": 5.05
+    },
+    {
+      "name": "通信網路",
+      "weight": 4.61
+    },
+    {
+      "name": "流動資產",
+      "weight": 1.03
+    }
+  ],
+  "group": "tw_equity",
+  "fetched_at": "2026-07-02 23:12"
+}
