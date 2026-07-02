@@ -16,6 +16,10 @@ data/funds/*
 !data/funds_tw/
 data/funds_tw/*
 !data/funds_tw/*.json
+# 基金動態雷達自動新聞快照（fetch_mentions.py 產出、儀表板資料源）
+!data/mentions/
+data/mentions/*
+!data/mentions/*.json
 # GitHub PAT（建 repo 用）絕不入庫
 .gh_tok
 data/.gh_tok
@@ -28,6 +32,8 @@ reports/usnews/prompts/
 reports/twnews/prompts/
 # 重點觀察數據提示包為可重建產物（gen_indicators.py）；{date}.json 數據保留入庫
 reports/indicators/prompts/
+# 社群/廣告提及提示包為可重建產物（gen_mentions.py）；{date}.json 保留入庫
+reports/mentions/prompts/
 
 # M6 文案層產物（由 gen_copy.py 重建；responses 為手動回灌內容，不入庫）
 reports/copy/*.copy.md

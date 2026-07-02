@@ -103,10 +103,15 @@ arm/connectors/fhfund.py       復華共同基金連接器（meta+NAV+報酬 / �
 arm/fund_intro.py              持股介紹組裝（掛簡介、摘要句、集中度；依 market 決定資料夾）
 arm/usnews.py                  昨夜美股：兩版型規格常數 + 產出讀取 + 禁用詞合規掃描
 arm/twnews.py                  台股新聞：台股盤後重點＋盤前美股影響（沿用 usnews 合規掃描）
-arm/fund_dashboard.py          零安裝儀表板（render(market) 單市場 / render_combined 整合頁上層切換）
+arm/indicators.py              重點觀察數據（非農/失業率/CPI/Fed/外資期貨部位…；LLM 查證回填 JSON）
+arm/fund_mentions.py           基金動態雷達（Google News 自動新聞 + LLM 查證社群/廣告，合併呈現）
+arm/fund_dashboard.py          零安裝儀表板（render(market) 單市場 / render_combined 整合頁上層切換；行動優先版面）
 scripts/fetch_holdings.py      抓持股介紹 → data/funds/{id}.json（--market tw → data/funds_tw/）
+scripts/fetch_mentions.py      抓基金動態雷達自動新聞（Google News RSS）→ data/mentions/{market}.json
 scripts/gen_usnews.py          產昨夜美股提示包 / --check 合規掃描
-scripts/gen_twnews.py          產台股新聞提示包 / --check 合規掃描
+scripts/gen_twnews.py          產台股新聞提示包（含重大分析）/ --check 合規掃描
+scripts/gen_indicators.py      產重點觀察數據提示包 / --check 結構驗證
+scripts/gen_mentions.py        產社群/廣告提及提示包 / --check
 scripts/gen_fund_dashboard.py  產整合頁 dashboard/index.html（--market tw → 台股獨立頁 dashboard/tw.html）
 scripts/daily_fund.sh          每日 routine 單一進入點（重建海外版 + 台股版整合頁）
 tests/test_fund_tracker.py     新模組單測（fhfund 解析 / usnews / fund_intro）

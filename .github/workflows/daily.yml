@@ -41,9 +41,11 @@ jobs:
             dashboard/tw.html
             data/funds/*.json
             data/funds_tw/*.json
+            data/mentions/*.json
             reports/usnews/*.md
             reports/twnews/*.md
             reports/indicators/*.json
+            reports/mentions/*.json
           if-no-files-found: warn
       - name: 把當日持股快照 commit 回 repo
         run: |
@@ -54,6 +56,8 @@ jobs:
           git add -f reports/usnews/*_v*.md 2>/dev/null || true
           git add -f reports/twnews/*_v*.md 2>/dev/null || true    # 台股新聞內容
           git add -f reports/indicators/*.json 2>/dev/null || true # 重點觀察數據
+          git add -f data/mentions/*.json 2>/dev/null || true      # 基金動態雷達（自動新聞）
+          git add -f reports/mentions/*.json 2>/dev/null || true   # 社群/廣告提及
           git commit -m "chore: 每日持股介紹更新（海外+台股）$(date +%F)" || echo "無變更"
           git push || echo "push 略過（無遠端寫入權或無變更）"
       - name: 打包 dashboard/ 為 Pages artifact
