@@ -1,0 +1,17 @@
+{
+  "_note": "復華台股基金追蹤版本追蹤清單（12 檔）。id＝fhtrust.com.tw/funds/funds_detail/{id}；group∈{domestic_equity,domestic_balanced,fof}。name/category 以 /api/fund 回傳為權威，scripts/fetch_holdings.py --market tw 會覆寫進 data/funds_tw/{id}.json。D3(b)：同基金多類別只留主類別（台灣科技高股息留 A 類型122，捨 B 類型123；全方位留 A 類型15，捨 TISA 類型125），避免重複。",
+  "funds": [
+    { "id": "08",  "name": "復華中小精選基金",                "group": "domestic_equity" },
+    { "id": "117", "name": "復華台灣好收益基金",              "group": "domestic_equity" },
+    { "id": "122", "name": "復華台灣科技高股息基金A類型",     "group": "domestic_equity" },
+    { "id": "15",  "name": "復華全方位基金A類型",            "group": "domestic_equity" },
+    { "id": "03",  "name": "復華高成長基金",                  "group": "domestic_equity" },
+    { "id": "01",  "name": "復華復華基金",                    "group": "domestic_equity" },
+    { "id": "06",  "name": "復華數位經濟基金",                "group": "domestic_equity" },
+    { "id": "11",  "name": "復華人生目標基金",                "group": "domestic_balanced" },
+    { "id": "13",  "name": "復華神盾基金",                    "group": "domestic_balanced" },
+    { "id": "04",  "name": "復華傳家基金",                    "group": "domestic_balanced" },
+    { "id": "07",  "name": "復華傳家二號基金",                "group": "domestic_balanced" },
+    { "id": "79",  "name": "復華台灣智能基金",                "group": "fof" }
+  ]
+}

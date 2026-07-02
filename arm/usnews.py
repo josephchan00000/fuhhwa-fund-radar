@@ -17,6 +17,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 NEWS_DIR = ROOT / "reports" / "usnews"
 
+# 版型切換鈕顯示名（dashboard 用；與 twnews 對稱以便通用分派）
+V1_LABEL = "Top 3 速寫包"
+V2_LABEL = "精簡版"
+
+# 新聞區塊尚無產出時的提示
+EMPTY_HINT = ("尚無昨夜美股新聞。請執行 <code>python scripts/gen_usnews.py</code> 產提示包，"
+              "再由 Claude 產出兩版型。")
+
 # 新聞版型硬性禁用詞（用戶規格 F ＋ compliance 絕對化字眼）
 BANNED = ["保證", "穩賺", "必賺", "包賺", "唯一", "建議買賣", "建議買", "建議賣",
           "目標價", "零風險", "無風險", "穩賺不賠"]
