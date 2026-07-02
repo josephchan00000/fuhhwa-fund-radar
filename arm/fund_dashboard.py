@@ -329,6 +329,9 @@ def _bars(items: list[dict], accent: str) -> str:
 def _holdings_table(doc: dict, linked_names: set[str]) -> str:
     hs = doc.get("top_holdings") or []
     if not hs:
+        if doc.get("group") == "tw_fof":
+            return ('<div class="muted">本基金為組合型（fund-of-funds），主要持有基金／ETF，'
+                    '官網不揭露「十大持有標的」表；成分揭露請見基金月報。</div>')
         return '<div class="muted">十大持有標的暫無資料。</div>'
     rows = []
     for i, h in enumerate(hs, 1):
