@@ -14,7 +14,9 @@ import html
 import re
 from datetime import datetime
 
-from . import fund_intro, usnews
+from . import fund_intro, markets, twnews, usnews
+
+_NEWS_MODULES = {"us": usnews, "tw": twnews}
 
 
 def _esc(s) -> str:
@@ -87,22 +89,34 @@ def _bars(items: list[dict], accent: str) -> str:
     return "".join(rows)
 
 
+def _fof_note(doc: dict) -> str:
+    """組合型（fof）持股抓不到時的說明（D4）：導向月報，並說明揭露結構不同。"""
+    mr = (f'　<a href="{_esc(doc["monthly_report"])}" target="_blank" rel="noopener">📄 基金月報</a>'
+          if doc.get("monthly_report") else "")
+    return ('<div class="muted">本基金為<b>組合型（fund-of-funds）</b>，主要投資於其他基金／ETF，'
+            f'官網詳情頁未提供標準「十大持有標的」表；完整持有標的請參基金月報。{mr}</div>')
+
+
 def _holdings_table(doc: dict) -> str:
     hs = doc.get("top_holdings") or []
     if not hs:
+        if doc.get("group") == "fof" or doc.get("holdings_kind") == "fund":
+            return _fof_note(doc)
         return '<div class="muted">十大持有標的暫無資料。</div>'
+    is_fund = doc.get("holdings_kind") == "fund"
     rows = []
     for i, h in enumerate(hs, 1):
         tk = f' <span class="tk">{_esc(h["ticker"])}</span>' if h.get("ticker") else ""
         ct = f'<span class="pill">{_esc(h["country"])}</span>' if h.get("country") else ""
+        sec = f' <span class="sec">{_esc(h.get("sector"))}</span>' if h.get("sector") else ""
         intro = f'<div class="hintro">{_esc(h["intro"])}</div>' if h.get("intro") else ""
         rows.append(
             f'<tr><td class="rk">{i}</td>'
-            f'<td class="nm"><b>{_esc(h.get("name"))}</b>{tk} '
-            f'<span class="sec">{_esc(h.get("sector"))}</span> {ct}{intro}</td>'
+            f'<td class="nm"><b>{_esc(h.get("name"))}</b>{tk}{sec} {ct}{intro}</td>'
             f'<td class="wt">{(h.get("weight") or 0):.2f}%</td></tr>')
+    label = "投資標的（基金／ETF）" if is_fund else "標的（重點標的簡介）"
     return (f'<table class="htbl"><thead><tr><th></th>'
-            f'<th class="l">標的（重點標的簡介）</th><th>投資比例</th></tr></thead>'
+            f'<th class="l">{label}</th><th>投資比例</th></tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table>')
 
 
@@ -142,18 +156,19 @@ def _fund_card(doc: dict, idx: int) -> str:
       <div class="ctitle" style="margin-top:14px">🏭 產業配置</div>{_bars(doc.get('sector_alloc') or [], 'var(--c2)')}
     </div>
     <div class="col">
-      <div class="ctitle">📋 十大持有標的　<span class="asof">持股基準 {_esc(doc.get('as_of') or '—')}｜前十大合計 {_esc(fund_intro.top_concentration(doc) if fund_intro.top_concentration(doc) is not None else '—')}%</span></div>
+      <div class="ctitle">📋 {'十大投資標的' if doc.get('holdings_kind') == 'fund' else '十大持有標的'}　<span class="asof">持股基準 {_esc(doc.get('as_of') or '—')}｜前十大合計 {_esc(fund_intro.top_concentration(doc) if fund_intro.top_concentration(doc) is not None else '—')}%</span></div>
       {_holdings_table(doc)}
     </div>
   </div>
 </section>"""
 
 
-def _news_section() -> str:
-    n = usnews.load_latest()
+def _news_section(news: str = "us") -> str:
+    """依市場新聞來源分派（"us"→usnews、"tw"→twnews），兩模組介面對稱。"""
+    mod = _NEWS_MODULES.get(news, usnews)
+    n = mod.load_latest()
     if not n:
-        return ('<div class="muted">尚無昨夜美股新聞。請執行 '
-                '<code>python scripts/gen_usnews.py</code> 產提示包，再由 Claude 產出兩版型。</div>')
+        return f'<div class="muted">{mod.EMPTY_HINT}</div>'
     lamp = ("🟢 合規掃描通過" if not n["banned_hits"]
             else f'🔴 出現禁用詞：{"、".join(n["banned_hits"])}')
     v1 = _md(n.get("v1") or "") or '<div class="muted">（無版型一）</div>'
@@ -162,25 +177,75 @@ def _news_section() -> str:
   <div class="newsbar">
     <span class="ndate">📅 {_esc(n['date'])}</span>
     <span class="lamp">{_esc(lamp)}</span>
-    <span class="nswitch"><button class="nb on" data-nv="v1">Top 3 速寫包</button>
-      <button class="nb" data-nv="v2">精簡版</button></span>
+    <span class="nswitch"><button class="nb on" data-nv="v1">{_esc(mod.V1_LABEL)}</button>
+      <button class="nb" data-nv="v2">{_esc(mod.V2_LABEL)}</button></span>
   </div>
   <div class="ndoc" data-nv="v1">{v1}</div>
   <div class="ndoc hidden" data-nv="v2">{v2}</div>"""
 
 
-def render() -> str:
-    funds = fund_intro.all_funds()
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+def _market_panel(market: str, active: bool) -> tuple[str, str, int]:
+    """單一市場面板（新聞區塊 ＋ 基金分頁 ＋ 卡片），供 render / render_combined 共用。
+
+    回傳 (panel_html, as_of, n_funds)。以 .market 容器包住，整合頁上層切換即以此顯示／隱藏。"""
+    mk = markets.get(market)
+    funds = fund_intro.all_funds(market)
     tabs = "".join(
         f'<button class="tab{" on" if i == 0 else ""}" data-fund="{_esc(d.get("fund_id"))}">'
         f'{_esc((d.get("name") or "").replace("復華", "").replace("-新臺幣", ""))}</button>'
         for i, d in enumerate(funds))
     cards = "".join(_fund_card(d, i) for i, d in enumerate(funds))
     as_of = funds[0].get("as_of") if funds else "—"
+    empty = "" if funds else '<div class="muted">尚無持股快照；請先執行 fetch_holdings。</div>'
+    panel = f"""<div class="market{'' if active else ' hidden'}" data-market="{_esc(market)}">
+<div class="section">
+  <div class="st">🗞️ {_esc(mk['news_label'])}</div>
+  {_news_section(mk['news'])}
+</div>
+<div class="section">
+  <div class="st">📊 基金持股介紹　<span class="asof">持股基準 {_esc(as_of)}｜共 {len(funds)} 檔</span></div>
+  <div class="tabs">{tabs}</div>
+</div>
+{cards}{empty}
+</div>"""
+    return panel, as_of, len(funds)
+
+
+def render(market: str = "global") -> str:
+    """單一市場整頁（向後相容；CI 單市場 artifact 與測試用）。"""
+    mk = markets.get(market)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    panel, as_of, n = _market_panel(market, active=True)
+    lede = (f"持股介紹（月度快照，基準 {_esc(as_of)}）＋ {_esc(mk['news_label'])}"
+            f"　·　產表 {_esc(now)}　·　共 {n} 檔追蹤基金")
+    return _page(mk["title"], mk["subtitle"], lede, "", panel)
+
+
+def render_combined(market_keys: tuple[str, ...] = ("global", "tw")) -> str:
+    """整合頁（D2(b)）：同一頁上層「海外／台股」切換，各市場自帶新聞區塊與基金分頁。"""
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    switch_btns, panels, parts = [], [], []
+    for i, key in enumerate(market_keys):
+        mk = markets.get(key)
+        switch_btns.append(
+            f'<button class="mtab{" on" if i == 0 else ""}" data-market="{_esc(key)}">'
+            f'{_esc(mk["tab_label"])}</button>')
+        panel, _as_of, n = _market_panel(key, active=(i == 0))
+        panels.append(panel)
+        parts.append(f"{_esc(mk['tab_label'])} {n} 檔")
+    top_switch = f'<div class="mtabs">{"".join(switch_btns)}</div>'
+    lede = (f"持股介紹（月度官方揭露快照）＋ 昨夜美股／台股新聞　·　產表 {_esc(now)}"
+            f"　·　{_esc(' · '.join(parts))}")
+    title = "復華基金追蹤版本"
+    subtitle = "Fuh Hwa Fund Radar｜海外＋台股"
+    return _page(title, subtitle, lede, top_switch, "".join(panels))
+
+
+def _page(title: str, subtitle: str, lede: str, top_switch: str, body: str) -> str:
+    """整頁 HTML 外殼（CSS ＋ 頁首 ＋ 市場切換 ＋ body ＋ 頁尾 ＋ 容器內作用域 JS）。"""
     return f"""<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>復華基金追蹤版本 · 持股介紹＋昨夜美股新聞</title>
+<title>{_esc(title)} · 持股介紹＋昨夜美股／台股新聞</title>
 <style>
 :root{{--bg:#0e1116;--card:#161b22;--card2:#1c232d;--ink:#e6edf3;--mut:#9aa7b4;
 --line:#2a323c;--red:#e5484d;--c1:#3b82f6;--c2:#f59e0b;--up:#3fb950;--dn:#e5484d;--acc:#5b8def}}
@@ -213,6 +278,11 @@ header h1{{font-size:22px;margin:0 0 3px}} .lede{{color:var(--mut);font-size:13p
 .ndoc hr{{border:0;border-top:1px solid var(--line);margin:22px 0}}
 .ndoc small,.ndoc i{{color:var(--mut);font-style:normal}}
 .tag{{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:20px;background:rgba(91,141,239,.18);color:#9ecbff;border:1px solid rgba(91,141,239,.35);white-space:nowrap}}
+/* 上層市場切換（海外／台股） */
+.mtabs{{display:flex;gap:8px;margin:2px 0 4px}}
+.mtab{{background:var(--card2);color:var(--mut);border:1px solid var(--line);border-radius:11px;padding:9px 24px;cursor:pointer;font-size:15px;font-weight:700}}
+.mtab.on{{background:var(--acc);color:#fff;border-color:var(--acc)}}
+.market.hidden{{display:none}}
 /* tabs */
 .tabs{{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px}}
 .tab{{background:var(--card2);color:var(--mut);border:1px solid var(--line);border-radius:9px;padding:6px 11px;cursor:pointer;font-size:13px}}
@@ -247,38 +317,38 @@ header h1{{font-size:22px;margin:0 0 3px}} .lede{{color:var(--mut);font-size:13p
 </style></head>
 <body><div class="wrap">
 <header>
-  <h1>復華基金追蹤版本　<span style="font-size:13px;color:var(--mut)">Fuh Hwa Fund Radar</span></h1>
-  <div class="lede">持股介紹（月度快照，基準 {_esc(as_of)}）＋ 昨夜美股重大新聞　·　產表 {_esc(now)}　·　共 {len(funds)} 檔追蹤基金</div>
+  <h1>{_esc(title)}　<span style="font-size:13px;color:var(--mut)">{_esc(subtitle)}</span></h1>
+  <div class="lede">{lede}</div>
 </header>
-
-<div class="section">
-  <div class="st">🗞️ 昨夜美股重大新聞（公司與產業面）</div>
-  {_news_section()}
-</div>
-
-<div class="section">
-  <div class="st">📊 基金持股介紹</div>
-  <div class="tabs">{tabs}</div>
-</div>
-{cards}
+{top_switch}
+{body}
 
 <div class="foot">
   資料來源：復華投信官網（fhtrust.com.tw）基金淨值／持股揭露（月度）；重點標的簡介為中性事實敘述、非投資建議。
-  昨夜美股新聞為公開來源彙編、教育用途，非投資建議或招攬；過去績效不代表未來表現，淨值可能因市場變動而上下；
-  境外基金涉及匯率與國際市場風險。投資人申購本基金係持有基金受益憑證，非本文提及之投資資產或標的。
-  申購前應詳閱公開說明書／投資人須知。本版本不呈現「每天持股變化」（共同基金無逐日持股張數）。
+  昨夜美股／台股新聞為公開來源彙編、教育用途，非投資建議或招攬；過去績效不代表未來表現，淨值可能因市場變動而上下；
+  境外基金涉及匯率與國際市場風險，國內平衡型基金另涉債券之利率與信用風險。投資人申購本基金係持有基金受益憑證，
+  非本文提及之投資資產或標的。申購前應詳閱公開說明書／投資人須知。本版本不呈現「每天持股變化」（共同基金無逐日持股張數）。
 </div>
 </div>
 <script>
-document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{{
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
-  const id=t.dataset.fund;
-  document.querySelectorAll('.fund').forEach(f=>f.classList.toggle('hidden',f.dataset.fund!==id));
+// 上層市場切換（海外／台股）：顯示對應 .market 面板
+document.querySelectorAll('.mtab').forEach(t=>t.onclick=()=>{{
+  document.querySelectorAll('.mtab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
+  const m=t.dataset.market;
+  document.querySelectorAll('.market').forEach(p=>p.classList.toggle('hidden',p.dataset.market!==m));
 }});
-document.querySelectorAll('.nb').forEach(b=>b.onclick=()=>{{
-  document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  const v=b.dataset.nv;
-  document.querySelectorAll('.ndoc').forEach(d=>d.classList.toggle('hidden',d.dataset.nv!==v));
+// 基金分頁與新聞版型切換：作用域限縮於各自的 .market 面板（避免整合頁跨市場互相干擾）
+document.querySelectorAll('.market').forEach(mkt=>{{
+  mkt.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{{
+    mkt.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
+    const id=t.dataset.fund;
+    mkt.querySelectorAll('.fund').forEach(f=>f.classList.toggle('hidden',f.dataset.fund!==id));
+  }});
+  mkt.querySelectorAll('.nb').forEach(b=>b.onclick=()=>{{
+    mkt.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+    const v=b.dataset.nv;
+    mkt.querySelectorAll('.ndoc').forEach(d=>d.classList.toggle('hidden',d.dataset.nv!==v));
+  }});
 }});
 </script>
 </body></html>"""

@@ -6,13 +6,22 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from . import config
+from . import config, markets
 
 ROOT = Path(__file__).resolve().parent.parent
-FUNDS_DIR = ROOT / "data" / "funds"
+FUNDS_DIR = ROOT / "data" / "funds"          # 海外版預設資料夾（向後相容）
 PROFILES = ROOT / "config" / "holding_profiles.json"
 
-GROUP_LABEL = {"global_equity": "全球股票型", "global_balanced": "全球平衡型"}
+GROUP_LABEL = {
+    "global_equity": "全球股票型", "global_balanced": "全球平衡型",
+    "domestic_equity": "國內股票型", "domestic_balanced": "國內平衡型",
+    "fof": "組合型",
+}
+
+
+def funds_dir(market: str = "global") -> Path:
+    """某市場的持股快照資料夾（data/{market.data}）。"""
+    return ROOT / "data" / markets.get(market)["data"]
 
 
 def _profiles() -> dict:
@@ -24,9 +33,9 @@ def _profiles() -> dict:
         return {}
 
 
-def load(fund_id: str) -> dict | None:
+def load(fund_id: str, market: str = "global") -> dict | None:
     """讀一檔基金快照，並把每檔持股的『重點標的簡介』掛上去（依原字串精確對應）。"""
-    fp = FUNDS_DIR / f"{fund_id}.json"
+    fp = funds_dir(market) / f"{fund_id}.json"
     if not fp.exists():
         return None
     try:                                    # 空檔/半寫入的壞 JSON 視同缺檔，跳過該檔、不讓整份儀表板崩
@@ -43,11 +52,11 @@ def load(fund_id: str) -> dict | None:
     return doc
 
 
-def all_funds() -> list[dict]:
-    """依 config/funds.json 的順序回傳所有已抓到的基金持股介紹。"""
+def all_funds(market: str = "global") -> list[dict]:
+    """依該市場追蹤清單的順序回傳所有已抓到的基金持股介紹。"""
     out = []
-    for f in config.funds():
-        doc = load(str(f["id"]))
+    for f in config.funds(market):
+        doc = load(str(f["id"]), market)
         if doc:
             out.append(doc)
     return out

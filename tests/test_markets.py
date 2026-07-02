@@ -1,0 +1,243 @@
+"""多市場參數化單測（含 D1b/D2b/D3b/D4 決策）：市場註冊表、台股 config 完整性、
+台股新聞模組、整合頁上層切換、fof 持股解析。全離線、零網路。
+"""
+import json
+from datetime import date
+from pathlib import Path
+
+import pytest
+
+from arm import config, fund_dashboard, fund_intro, markets, twnews, usnews
+from arm.connectors import fhfund
+
+ROOT = Path(__file__).resolve().parent.parent
+# D3(b)：同基金多類別只留主類別（捨 123 台灣科技高股息B、125 全方位TISA）→ 12 檔
+TW_IDS = {"08", "117", "122", "15", "03", "01", "06", "11", "13", "04", "07", "79"}
+
+
+# ── 市場註冊表 ────────────────────────────────────────────────
+def test_markets_registry_has_global_and_tw():
+    assert "global" in markets.MARKETS and "tw" in markets.MARKETS
+    assert markets.DEFAULT == "global"
+
+
+def test_markets_get_unknown_raises():
+    with pytest.raises(KeyError):
+        markets.get("nope")
+
+
+def test_markets_get_none_is_default():
+    assert markets.get(None) is markets.MARKETS["global"]
+
+
+def test_market_fields_present():
+    for key in ("global", "tw"):
+        m = markets.get(key)
+        for f in ("funds", "data", "out", "title", "subtitle", "news",
+                  "news_label", "tab_label"):
+            assert m.get(f), f"{key} 缺欄位 {f}"
+
+
+def test_tw_market_outputs_distinct_from_global():
+    g, tw = markets.get("global"), markets.get("tw")
+    assert g["out"] != tw["out"] and g["data"] != tw["data"] and g["funds"] != tw["funds"]
+    assert tw["out"] == "tw.html" and tw["data"] == "funds_tw"
+    assert g["news"] == "us" and tw["news"] == "tw"       # D1(b)：台股專用新聞源
+    assert g["tab_label"] == "海外" and tw["tab_label"] == "台股"
+
+
+# ── 台股 config 完整性（D3b）──────────────────────────────────
+def test_funds_tw_json_exists_and_valid():
+    fp = ROOT / "config" / "funds_tw.json"
+    assert fp.exists()
+    assert "funds" in json.loads(fp.read_text(encoding="utf-8"))
+
+
+def test_funds_tw_has_12_expected_ids():
+    tw = config.funds("tw")
+    assert len(tw) == 12
+    assert {str(f["id"]) for f in tw} == TW_IDS
+
+
+def test_funds_tw_drops_duplicate_classes():
+    ids = {str(f["id"]) for f in config.funds("tw")}
+    assert "123" not in ids and "125" not in ids       # 捨 B類型/ TISA類型
+    assert "122" in ids and "15" in ids                # 留 A類型主類別
+
+
+def test_funds_tw_ids_unique():
+    ids = [str(f["id"]) for f in config.funds("tw")]
+    assert len(ids) == len(set(ids))
+
+
+def test_funds_tw_groups_valid():
+    counts = {}
+    for f in config.funds("tw"):
+        assert f.get("name"), f"{f.get('id')} 缺 name"
+        g = f.get("group")
+        assert g in {"domestic_equity", "domestic_balanced", "fof"}, g
+        counts[g] = counts.get(g, 0) + 1
+    assert counts == {"domestic_equity": 7, "domestic_balanced": 4, "fof": 1}
+
+
+def test_funds_tw_fund_lookup():
+    assert config.fund("79", "tw")["group"] == "fof"
+    with pytest.raises(KeyError):
+        config.fund("999", "tw")
+
+
+def test_global_funds_unchanged_by_default():
+    g = config.funds()
+    assert config.funds("global") == g
+    assert all(f["group"] in {"global_equity", "global_balanced"} for f in g)
+
+
+# ── group label / 資料夾 ──────────────────────────────────────
+def test_group_labels_cover_tw_groups():
+    for g, label in [("domestic_equity", "國內股票型"),
+                     ("domestic_balanced", "國內平衡型"), ("fof", "組合型")]:
+        assert fund_intro.GROUP_LABEL[g] == label
+
+
+def test_funds_dir_by_market():
+    assert fund_intro.funds_dir("global").name == "funds"
+    assert fund_intro.funds_dir("tw").name == "funds_tw"
+
+
+def test_all_funds_tw_returns_list():
+    assert isinstance(fund_intro.all_funds("tw"), list)
+
+
+def test_load_reads_tw_dir():
+    tw_dir = fund_intro.funds_dir("tw")
+    tw_dir.mkdir(parents=True, exist_ok=True)
+    fp = tw_dir / "999998.json"
+    fp.write_text(json.dumps({
+        "fund_id": "999998", "group": "domestic_equity", "name": "測試基金",
+        "top_holdings": [{"name": "台積電", "weight": 8.72}],
+    }, ensure_ascii=False), encoding="utf-8")
+    try:
+        doc = fund_intro.load("999998", "tw")
+        assert doc is not None
+        assert doc["group_label"] == "國內股票型"
+        assert doc["top_holdings"][0]["intro"] and doc["top_holdings"][0]["ticker"] == "2330"
+    finally:
+        fp.unlink(missing_ok=True)
+
+
+# ── 台股新聞模組（D1b）────────────────────────────────────────
+def test_twnews_specs_and_labels():
+    assert "台股盤後" in twnews.SPEC_V1
+    assert "盤前美股" in twnews.SPEC_V2 and "ADR" in twnews.SPEC_V2
+    assert twnews.V1_LABEL == "台股盤後重點" and twnews.V2_LABEL == "盤前美股影響"
+
+
+def test_twnews_reuses_usnews_compliance():
+    assert twnews.BANNED is usnews.BANNED
+    assert twnews.compliance_scan("目標價 100 元") == ["目標價"]
+    assert twnews.compliance_scan("並非保證獲利") == []          # 否定詞不誤判
+    assert twnews.compliance_scan(twnews.DISCLOSURE) == []       # 揭露段乾淨
+
+
+def test_twnews_session_dates():
+    assert twnews.tw_session_date(date(2026, 7, 6)) == date(2026, 7, 6)  # Mon
+    assert twnews.tw_session_date(date(2026, 7, 5)) == date(2026, 7, 3)  # Sun→Fri
+    assert twnews.us_session_date(date(2026, 7, 6)) == date(2026, 7, 3)
+
+
+def test_twnews_disclosure_is_domestic():
+    # 台股（境內）揭露段：談受益憑證與平衡型債券風險，不談境外匯率
+    assert "受益憑證" in twnews.DISCLOSURE and "債券" in twnews.DISCLOSURE
+    assert "境外" not in twnews.DISCLOSURE
+
+
+def test_news_modules_have_symmetric_interface():
+    for mod in (usnews, twnews):
+        assert hasattr(mod, "load_latest") and hasattr(mod, "V1_LABEL")
+        assert hasattr(mod, "V2_LABEL") and hasattr(mod, "EMPTY_HINT")
+
+
+# ── 整合頁上層切換（D2b）─────────────────────────────────────
+def test_render_combined_has_market_switch():
+    html = fund_dashboard.render_combined(("global", "tw"))
+    assert '<!doctype html>' in html.lower()
+    assert 'class="mtab' in html
+    assert 'data-market="global"' in html and 'data-market="tw"' in html
+    assert html.count('class="market') == 2       # 兩個市場面板
+    assert "海外" in html and "台股" in html
+
+
+def test_render_combined_scoped_js():
+    # 分頁與新聞切換須作用域限縮於各自 .market（避免跨市場干擾）
+    html = fund_dashboard.render_combined(("global", "tw"))
+    assert "querySelectorAll('.market')" in html
+    assert "mkt.querySelectorAll('.tab')" in html
+
+
+def test_render_single_market_has_one_panel():
+    assert fund_dashboard.render("global").count('class="market') == 1
+    assert fund_dashboard.render("tw").count('class="market') == 1
+
+
+def test_render_tw_smoke():
+    html = fund_dashboard.render("tw")
+    assert "復華台股基金追蹤版本" in html
+    assert "Fuh Hwa Taiwan Fund Radar" in html
+
+
+def test_render_global_title_unchanged():
+    html = fund_dashboard.render("global")
+    assert "復華基金追蹤版本" in html and "Fuh Hwa Fund Radar" in html
+
+
+def test_news_dispatch_by_market():
+    # tw 面板應嵌台股新聞區塊標題；global 面板為昨夜美股標題
+    tw = fund_dashboard.render("tw")
+    assert "台股盤後重點 ＋ 盤前美股影響" in tw
+    g = fund_dashboard.render("global")
+    assert "昨夜美股重大新聞" in g
+
+
+# ── fof 持股解析與呈現（D4）──────────────────────────────────
+def test_fof_extract_holdings_two_col():
+    rows = [["復華台灣科技優息ETF", "18.20%"], ["元大台灣50", "12.50%"]]
+    hs = fhfund._extract_holdings(rows)
+    assert hs[0] == {"sector": None, "name": "復華台灣科技優息ETF", "weight": 18.2}
+    assert hs[1]["weight"] == 12.5
+
+
+def test_stock_extract_holdings_three_col():
+    rows = [["半導體", "台積電", "8.72%"]]
+    assert fhfund._extract_holdings(rows) == [{"sector": "半導體", "name": "台積電", "weight": 8.72}]
+
+
+def test_fof_heading_fallback_parses():
+    html = ('<h3>前十大投資標的</h3><table class="fundTable"><tbody>'
+            '<tr><td>復華台灣科技優息ETF</td><td><span>18.20%</span></td></tr>'
+            '</tbody></table>')
+    rows = fhfund._rows_of_table_after(html, "前十大投資標的")
+    hs = fhfund._extract_holdings(rows)
+    assert hs and hs[0]["name"] == "復華台灣科技優息ETF"
+
+
+def test_dashboard_fof_note_when_empty():
+    doc = {"fund_id": "79", "name": "復華台灣智能基金", "group": "fof",
+           "group_label": "組合型", "top_holdings": [], "returns": {},
+           "monthly_report": "https://x/m.pdf"}
+    card = fund_dashboard._fund_card(doc, 0)
+    assert "fund-of-funds" in card and "基金月報" in card
+
+
+def test_dashboard_fof_fund_holdings_labelled():
+    doc = {"fund_id": "79", "name": "復華台灣智能基金", "group": "fof",
+           "group_label": "組合型", "holdings_kind": "fund", "returns": {},
+           "top_holdings": [{"sector": None, "name": "元大台灣50", "weight": 12.5}]}
+    card = fund_dashboard._fund_card(doc, 0)
+    assert "投資標的（基金／ETF）" in card and "十大投資標的" in card
+
+
+# ── 台股個股簡介覆蓋（todo 實測提及的個股）──────────────────
+def test_known_tw_holdings_have_profiles():
+    profs = fund_intro._profiles()
+    for name in ["台積電", "台達電", "欣興", "台光電", "旺矽"]:
+        assert profs.get(name) and profs[name].get("intro"), name
