@@ -29,7 +29,10 @@ def load(fund_id: str) -> dict | None:
     fp = FUNDS_DIR / f"{fund_id}.json"
     if not fp.exists():
         return None
-    doc = json.loads(fp.read_text(encoding="utf-8"))
+    try:                                    # 空檔/半寫入的壞 JSON 視同缺檔，跳過該檔、不讓整份儀表板崩
+        doc = json.loads(fp.read_text(encoding="utf-8"))
+    except Exception:
+        return None
     profs = _profiles()
     for h in doc.get("top_holdings", []):
         p = profs.get(h.get("name")) or {}

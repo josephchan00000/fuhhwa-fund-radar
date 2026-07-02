@@ -3,7 +3,7 @@ from datetime import date
 
 import pytest
 
-from arm import fund_intro, usnews
+from arm import fund_dashboard, fund_intro, usnews
 from arm.connectors import fhfund
 
 
@@ -86,3 +86,33 @@ def test_group_label_mapping():
 def test_all_funds_reads_config(tmp_path, monkeypatch):
     # 至少不報錯，且回傳 list（實際內容依 data/funds 是否已抓）
     assert isinstance(fund_intro.all_funds(), list)
+
+
+def test_load_handles_corrupt_json():
+    # 空檔/壞 JSON 應視同缺檔回 None（不讓整份儀表板崩）
+    p = fund_intro.FUNDS_DIR / "999999.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("", encoding="utf-8")
+    try:
+        assert fund_intro.load("999999") is None
+    finally:
+        p.unlink(missing_ok=True)
+
+
+# ── 回歸：review 修正 ─────────────────────────────────────────
+def test_md_bold_can_contain_italic():
+    out = fund_dashboard._inline("**a *b* c**")
+    assert "<b>a <i>b</i> c</b>" in out              # 粗體內含斜體不再殘留字面 **
+    assert fund_dashboard._inline("**x** and **y**").count("<b>") == 2
+
+
+def test_md_escapes_html():
+    assert "<script>" not in fund_dashboard._inline("<script>alert(1)</script>")
+
+
+def test_compliance_negation_not_flagged():
+    for ok in ["本文並非保證獲利", "投資並非無風險", "非零風險", "不保證最低收益"]:
+        assert usnews.compliance_scan(ok) == [], ok
+    # 真正違規（前方無否定詞）仍要抓到
+    assert "保證" in usnews.compliance_scan("本檔保證獲利")
+    assert "目標價" in usnews.compliance_scan("目標價 100 元")
