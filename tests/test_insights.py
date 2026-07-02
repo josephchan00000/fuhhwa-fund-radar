@@ -170,17 +170,36 @@ def test_pending_funds_have_group_label():
 
 
 # ── 儀表板 render（吃 repo 內真實資料，離線） ──────────────────
-def test_render_sections_and_taiwan_colors():
+def test_render_sections_order_and_taiwan_colors():
     html = fund_dashboard.render()
-    for sec in ('id="brief"', 'id="overview"', 'id="newslinks"', 'id="twnews"',
-                'id="news"', 'id="details"'):
-        assert sec in html
+    secs = ['id="brief"', 'id="newsdigest"', 'id="newslinks"',
+            'id="overview"', 'id="details"', 'id="news"']
+    idx = [html.find(s) for s in secs]
+    assert all(i >= 0 for i in idx)
+    assert idx == sorted(idx)                          # 順序：重點→新聞→連動→總覽→詳情→全文(底)
     assert "--gain:#f0524f" in html and "--loss:#2ea94f" in html    # 紅漲綠跌
     assert 'class="topbar"' in html and "@media print" in html
     assert 'th class="sk"' in html                     # 可排序表頭
     assert "data-copy=" in html                        # 複製鈕
     assert 'class="openbtn"' in html                   # 展開全文按鈕（可點性）
     assert "background:#eeddb7" in html                # 新聞重點深咖啡標注
+
+
+def test_render_market_views():
+    html = fund_dashboard.render()
+    assert 'class="mkswitch"' in html                  # 左上台股/全球切換
+    assert html.count('data-mkt="tw"') >= 6 and html.count('data-mkt="gl"') >= 6
+    assert '<body data-mkt="tw">' in html              # 預設台股視圖
+    assert 'class="nglink"' in html or "無原文連結" in html   # 新聞重點卡的來源連結
+
+
+def test_scrub_removes_invisible():
+    assert usnews.scrub("a​b‏ c﻿") == "ab c"
+    cards = usnews.extract_cards("### 卡 1｜標題（來源：X｜2026/07/02）\n"
+                                 "1. **新聞摘要**：內容 [媒體](https://x.tw/a)。\n")
+    assert cards[0]["meta"].startswith("來源：X")
+    assert cards[0]["summary"].startswith("內容")
+    assert cards[0]["links"] == [("媒體", "https://x.tw/a")]
 
 
 def test_render_short_name_strips_suffix():
