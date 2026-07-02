@@ -7,10 +7,25 @@ from pathlib import Path
 CFG_DIR = Path(__file__).resolve().parent.parent / "config"
 CFG = CFG_DIR / "products.json"
 DIST = CFG_DIR / "distributions.json"
+FUNDS = CFG_DIR / "funds.json"
 
 
 def load() -> dict:
     return json.loads(CFG.read_text(encoding="utf-8"))
+
+
+def funds() -> list[dict]:
+    """復華基金追蹤版本的追蹤清單（config/funds.json:funds）；每筆含 id/name/group。"""
+    if not FUNDS.exists():
+        return []
+    return json.loads(FUNDS.read_text(encoding="utf-8")).get("funds", [])
+
+
+def fund(fund_id: str) -> dict:
+    for f in funds():
+        if str(f.get("id")) == str(fund_id):
+            return f
+    raise KeyError(f"funds.json 找不到 {fund_id}")
 
 
 def product(etf_id: str) -> dict:

@@ -1,0 +1,150 @@
+{
+  "fund_id": "47",
+  "name": "復華美國新星基金-新臺幣",
+  "short_name": "美國新星新臺幣",
+  "en_name": "Fuh Hwa US Equity Fund-TWD",
+  "category": "跨國投資股票型",
+  "region": "美國",
+  "asset_kind": "股票型",
+  "currency": "新臺幣",
+  "inception": "2013/11/13",
+  "risk_level": "RR4",
+  "mgmt_fee": "2.00%",
+  "size_twd": 5296363360.0,
+  "nav": 47.58,
+  "nav_date": "2026/07/01",
+  "nav_change": -1.69,
+  "nav_change_pct": "-3.43%",
+  "returns": {
+    "ytd": "69.73%",
+    "3m": "65.28%",
+    "6m": "69.73%",
+    "1y": "101.02%",
+    "2y": "99.58%",
+    "3y": "154.28%",
+    "since": "372.20%"
+  },
+  "managers": [
+    "黃俊瑞",
+    "郭俊宏"
+  ],
+  "strategy": "以全球各產業創新的主要發源地「美國」為主要投資地區，為投資人在步調最快速的市場中尋找可能萌發的成長機會。 以績優大型股，搭配創新、流動性高的中小型股，追求報酬同時，透過分散持股來降低風險。",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/47.pdf",
+  "dist_date": "2026/06/30",
+  "dist_rate": "—",
+  "as_of": "2026/05/31",
+  "top_holdings": [
+    {
+      "sector": "資訊技術",
+      "name": "SANDISK CORP",
+      "weight": 4.58
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SAMSUNG ELECTRO-MECHANICS CO",
+      "weight": 3.97
+    },
+    {
+      "sector": "資訊技術",
+      "name": "IBIDEN CO LTD",
+      "weight": 3.86
+    },
+    {
+      "sector": "資訊技術",
+      "name": "聯發科",
+      "weight": 3.78
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MICRON TECHNOLOGY INC",
+      "weight": 3.63
+    },
+    {
+      "sector": "資訊技術",
+      "name": "KIOXIA HOLDINGS CORP",
+      "weight": 3.42
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MURATA MANUFACTURING CO LTD",
+      "weight": 3.24
+    },
+    {
+      "sector": "資訊技術",
+      "name": "禾伸堂",
+      "weight": 3.18
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MARVELL TECHNOLOGY INC",
+      "weight": 3.15
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SK HYNIX INC",
+      "weight": 2.82
+    }
+  ],
+  "country_alloc": [
+    {
+      "name": "美國",
+      "weight": 60.76
+    },
+    {
+      "name": "臺灣",
+      "weight": 16.71
+    },
+    {
+      "name": "日本",
+      "weight": 10.76
+    },
+    {
+      "name": "韓國",
+      "weight": 8.04
+    },
+    {
+      "name": "德國",
+      "weight": 2.44
+    },
+    {
+      "name": "印度",
+      "weight": 0.43
+    },
+    {
+      "name": "流動資產",
+      "weight": 0.85
+    }
+  ],
+  "sector_alloc": [
+    {
+      "name": "資訊技術",
+      "weight": 85.97
+    },
+    {
+      "name": "工業",
+      "weight": 6.71
+    },
+    {
+      "name": "通訊服務",
+      "weight": 2.91
+    },
+    {
+      "name": "能源",
+      "weight": 1.99
+    },
+    {
+      "name": "非核心消費品",
+      "weight": 0.84
+    },
+    {
+      "name": "核心消費品",
+      "weight": 0.72
+    },
+    {
+      "name": "流動資產",
+      "weight": 0.85
+    }
+  ],
+  "group": "global_equity",
+  "fetched_at": "2026-07-02 18:24"
+}

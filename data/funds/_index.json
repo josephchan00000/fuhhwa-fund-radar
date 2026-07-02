@@ -1,0 +1,126 @@
+{
+  "as_of": "2026-07-02 18:24",
+  "funds": [
+    {
+      "id": "47",
+      "name": "復華美國新星基金-新臺幣",
+      "group": "global_equity",
+      "category": "跨國投資股票型",
+      "region": "美國",
+      "nav": 47.58,
+      "nav_date": "2026/07/01",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "23",
+      "name": "復華全球大趨勢基金-新臺幣",
+      "group": "global_equity",
+      "category": "跨國投資股票型",
+      "region": "全球",
+      "nav": 101.83,
+      "nav_date": "2026/07/01",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "77",
+      "name": "復華全球物聯網科技基金-新臺幣",
+      "group": "global_equity",
+      "category": "跨國投資股票型",
+      "region": "全球",
+      "nav": 107.5,
+      "nav_date": "2026/07/01",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "24",
+      "name": "復華華人世紀基金",
+      "group": "global_equity",
+      "category": "跨國投資股票型",
+      "region": "大中華地區",
+      "nav": 101.07,
+      "nav_date": "2026/07/01",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "18",
+      "name": "復華亞太成長基金",
+      "group": "global_equity",
+      "category": "跨國投資股票型",
+      "region": "亞太地區",
+      "nav": 58.47,
+      "nav_date": "2026/07/01",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "82",
+      "name": "復華亞太神龍科技基金-新臺幣",
+      "group": "global_equity",
+      "category": "跨國投資股票型",
+      "region": "亞太地區",
+      "nav": 65.44,
+      "nav_date": "2026/07/01",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "57",
+      "name": "復華中國新經濟A股基金-新臺幣",
+      "group": "global_equity",
+      "category": "跨國投資股票型",
+      "region": "大中華地區",
+      "nav": 14.77,
+      "nav_date": "2026/07/01",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "29",
+      "name": "復華大中華中小策略基金",
+      "group": "global_equity",
+      "category": "跨國投資股票型",
+      "region": "大中華地區",
+      "nav": 22.67,
+      "nav_date": "2026/07/01",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "12",
+      "name": "復華全球平衡基金-新臺幣",
+      "group": "global_balanced",
+      "category": "跨國投資平衡型",
+      "region": "全球",
+      "nav": 72.11,
+      "nav_date": "2026/07/01",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "53",
+      "name": "復華中國新經濟平衡基金-新臺幣",
+      "group": "global_balanced",
+      "category": "跨國投資平衡型",
+      "region": "大中華地區",
+      "nav": 22.74,
+      "nav_date": "2026/07/01",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "16",
+      "name": "復華亞太平衡基金",
+      "group": "global_balanced",
+      "category": "跨國投資平衡型",
+      "region": "亞太地區",
+      "nav": 45.68,
+      "nav_date": "2026/07/01",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    }
+  ]
+}

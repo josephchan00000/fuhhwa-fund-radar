@@ -7,10 +7,19 @@ __pycache__/
 venv/
 
 # 執行期產物（HTTP 快取 / SQLite / log）— 全由管線重建，不入庫
-data/
+data/*
+# …但保留追蹤版本的「持股介紹」快照（data/funds/*.json 為 fetch_holdings.py 產出、儀表板資料源）
+!data/funds/
+data/funds/*
+!data/funds/*.json
+# GitHub PAT（建 repo 用）絕不入庫
+.gh_tok
+data/.gh_tok
 
-# 每日報告為輸出產物（如需保留歷史可移除此行）
+# 每日報告為輸出產物（如需保留歷史可移除此行）；昨夜美股新聞（reports/usnews/*.md）保留入庫
 reports/*.md
+# 昨夜美股提示包為可重建產物（gen_usnews.py）
+reports/usnews/prompts/
 
 # M6 文案層產物（由 gen_copy.py 重建；responses 為手動回灌內容，不入庫）
 reports/copy/*.copy.md

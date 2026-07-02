@@ -1,0 +1,138 @@
+{
+  "fund_id": "53",
+  "name": "復華中國新經濟平衡基金-新臺幣",
+  "short_name": "中國新經濟平衡新臺幣",
+  "en_name": "Fuh Hwa China New Economy Balance Fund - TWD",
+  "category": "跨國投資平衡型",
+  "region": "大中華地區",
+  "asset_kind": "平衡型",
+  "currency": "新臺幣",
+  "inception": "2015/05/26",
+  "risk_level": "RR4",
+  "mgmt_fee": "1.60%",
+  "size_twd": 2525491945.0,
+  "nav": 22.74,
+  "nav_date": "2026/07/01",
+  "nav_change": -0.53,
+  "nav_change_pct": "-2.28%",
+  "returns": {
+    "ytd": "76.00%",
+    "3m": "61.79%",
+    "6m": "76.00%",
+    "1y": "138.72%",
+    "2y": "181.56%",
+    "3y": "234.43%",
+    "since": "124.40%"
+  },
+  "managers": [
+    "胡家菱",
+    "吳承恩"
+  ],
+  "strategy": "參與中國及其主要貿易地區受惠於大陸地區新經濟相關產業之投資機會，包括經濟結構轉型、社會結構變遷、政府政策方向等主題。 透過股票與債券低度相關特性及穩定的債息累積，降低投資組合波動度，提供攻守兼備的投資組合。",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/53.pdf",
+  "dist_date": "2026/06/30",
+  "dist_rate": "—",
+  "as_of": "2026/05/31",
+  "top_holdings": [
+    {
+      "sector": "資訊技術",
+      "name": "SANDISK CORP",
+      "weight": 6.53
+    },
+    {
+      "sector": "資訊技術",
+      "name": "KIOXIA HOLDINGS CORP",
+      "weight": 5.33
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MICRON TECHNOLOGY INC",
+      "weight": 4.4
+    },
+    {
+      "sector": "資訊技術",
+      "name": "台光電",
+      "weight": 4.27
+    },
+    {
+      "sector": "資訊技術",
+      "name": "TAIYO YUDEN CO LTD",
+      "weight": 3.75
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MURATA MANUFACTURING CO LTD",
+      "weight": 3.21
+    },
+    {
+      "sector": "資訊技術",
+      "name": "國巨*",
+      "weight": 3.12
+    },
+    {
+      "sector": "資訊技術",
+      "name": "IBIDEN CO LTD",
+      "weight": 3.05
+    },
+    {
+      "sector": "資訊技術",
+      "name": "聯發科",
+      "weight": 3.04
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MARVELL TECHNOLOGY INC",
+      "weight": 2.89
+    }
+  ],
+  "country_alloc": [
+    {
+      "name": "美國",
+      "weight": 43.35
+    },
+    {
+      "name": "臺灣",
+      "weight": 24.23
+    },
+    {
+      "name": "日本",
+      "weight": 21.12
+    },
+    {
+      "name": "澳大利亞",
+      "weight": 3.75
+    },
+    {
+      "name": "中國",
+      "weight": 1.38
+    },
+    {
+      "name": "流動資產",
+      "weight": 6.17
+    }
+  ],
+  "sector_alloc": [
+    {
+      "name": "資訊技術",
+      "weight": 79.96
+    },
+    {
+      "name": "債券",
+      "weight": 9.57
+    },
+    {
+      "name": "工業",
+      "weight": 3.19
+    },
+    {
+      "name": "醫療保健",
+      "weight": 1.11
+    },
+    {
+      "name": "流動資產",
+      "weight": 6.17
+    }
+  ],
+  "group": "global_balanced",
+  "fetched_at": "2026-07-02 18:24"
+}

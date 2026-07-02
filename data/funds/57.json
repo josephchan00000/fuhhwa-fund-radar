@@ -1,0 +1,142 @@
+{
+  "fund_id": "57",
+  "name": "復華中國新經濟A股基金-新臺幣",
+  "short_name": "中國新經濟A股新臺幣",
+  "en_name": "Fuh Hwa China New Economy A Shares Equity Fund - TWD",
+  "category": "跨國投資股票型",
+  "region": "大中華地區",
+  "asset_kind": "股票型",
+  "currency": "新臺幣",
+  "inception": "2015/05/26",
+  "risk_level": "RR5",
+  "mgmt_fee": "2.00%",
+  "size_twd": 3237401573.0,
+  "nav": 14.77,
+  "nav_date": "2026/07/01",
+  "nav_change": -0.34,
+  "nav_change_pct": "-2.25%",
+  "returns": {
+    "ytd": "61.15%",
+    "3m": "62.60%",
+    "6m": "61.15%",
+    "1y": "107.73%",
+    "2y": "105.67%",
+    "3y": "93.86%",
+    "since": "45.35%"
+  },
+  "managers": [
+    "楊書婷",
+    "廖偉吉"
+  ],
+  "strategy": "主要投資與大陸A股相關及受惠大陸地區「新經濟」之相關標的，包括經濟結構轉型、社會結構變遷、政府政策方向等主題。 篩選成長趨勢向上、獲利能力佳或可望轉佳之產業，找出獲利加速成長且股價相對便宜之個股，參與新經濟發展及成長潛力較大的投資機會。",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/57.pdf",
+  "dist_date": "2026/06/30",
+  "dist_rate": "—",
+  "as_of": "2026/05/31",
+  "top_holdings": [
+    {
+      "sector": "資訊技術",
+      "name": "中際旭創股份有限公司",
+      "weight": 6.57
+    },
+    {
+      "sector": "資訊技術",
+      "name": "成都新易盛通信技術股份有限公",
+      "weight": 5.33
+    },
+    {
+      "sector": "資訊技術",
+      "name": "景碩",
+      "weight": 4.26
+    },
+    {
+      "sector": "資訊技術",
+      "name": "陝西源傑半導體科技股份有限公",
+      "weight": 4.26
+    },
+    {
+      "sector": "資訊技術",
+      "name": "拓荊科技股份有限公司",
+      "weight": 3.73
+    },
+    {
+      "sector": "資訊技術",
+      "name": "廣東生益科技股份有限公司",
+      "weight": 3.61
+    },
+    {
+      "sector": "資訊技術",
+      "name": "台積電",
+      "weight": 3.43
+    },
+    {
+      "sector": "資訊技術",
+      "name": "長飛光纖光纜股份有限公司",
+      "weight": 3.17
+    },
+    {
+      "sector": "資訊技術",
+      "name": "中微半導體設備（上海）股份有",
+      "weight": 3.02
+    },
+    {
+      "sector": "資訊技術",
+      "name": "滬士電子股份有限公司",
+      "weight": 2.96
+    }
+  ],
+  "country_alloc": [
+    {
+      "name": "中國",
+      "weight": 56.94
+    },
+    {
+      "name": "臺灣",
+      "weight": 21.04
+    },
+    {
+      "name": "美國",
+      "weight": 9.02
+    },
+    {
+      "name": "日本",
+      "weight": 6.03
+    },
+    {
+      "name": "香港",
+      "weight": 5.54
+    },
+    {
+      "name": "韓國",
+      "weight": 0.83
+    },
+    {
+      "name": "流動資產",
+      "weight": 0.61
+    }
+  ],
+  "sector_alloc": [
+    {
+      "name": "資訊技術",
+      "weight": 83.48
+    },
+    {
+      "name": "工業",
+      "weight": 11.79
+    },
+    {
+      "name": "原材料",
+      "weight": 2.83
+    },
+    {
+      "name": "其他",
+      "weight": 1.28
+    },
+    {
+      "name": "流動資產",
+      "weight": 0.61
+    }
+  ],
+  "group": "global_equity",
+  "fetched_at": "2026-07-02 18:24"
+}

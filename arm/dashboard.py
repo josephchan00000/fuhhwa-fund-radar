@@ -434,10 +434,7 @@ def build_etf_model(etf_id: str, *, date=None) -> dict:
         "whatsnew": intel.get("whatsnew") or None,
         # 配息率/配息比較/稅賦優惠/海外持股(中文對照) drop-in（NAV 型海外入息檔專用，無則不顯示）
         "income": intel.get("income") or None,
-        # 經理人持股操作＋為什麼（換股快報式）：動作/張數一律由 DB 自動算（firsthand.latest_swaps、
-        # 取最近一次實際換股），intel.swap_notes 以股票代號疊加為什麼/新聞；intel.swaps 為完整手動覆寫(優先)。
-        "swaps": (intel.get("swaps")
-                  or firsthand.latest_swaps(doc.etf_id, intel.get("swap_notes")) or None),
+        # 註：「每天持股變化／換股快報」功能已於復華基金追蹤版本移除（共同基金無逐日持股張數）。
         "intel_src": intel_src, "intel_note": intel.get("note", ""),
         "stats": {"data": len(data_cuts), "peers": len(peers), "scan": len(scan),
                   "topic": len(intel.get("topic") or []), "voice": len(voice), "youtube": len(youtube)},
@@ -956,23 +953,7 @@ function attribBlock(e){
       tradedTbl+pricedTbl+
       `<div class="attnote"><b>權重變化(%)＝今日權重−昨日權重</b>（為占 ETF 權重的百分點差）。權重同時受『張數加減碼（經理人買賣）』與『個股當日漲跌』影響：『經理人實際買賣』看<b>張數</b>（1 張＝1,000 股）；張數未變者，權重變動純由股價造成（例：南亞科今日 +7.46% 推升權重，但張數未動，非加碼）。</div></div>`;
   }
-  // ①b 經理人持股操作 ＋ 為什麼（intel 編輯・換股快報式，常駐；續抱日也標、有實際換股時上方張數異動表並存）
-  let swaps="";
-  const SW=e.swaps;
-  if(SW&&SW.rows&&SW.rows.length){
-    const mvc=m=>m==='減碼'?'cut':(m==='加碼'?'add':'new');
-    const srows=SW.rows.map(r=>{
-      const news=(r.news||[]).map(n=>`<a class="lnk" href="${esc(n.url)}" target="_blank" rel="noopener">📰 ${esc(n.source||'來源')}${n.date?' '+esc(n.date):''}：${esc(n.title||'')}</a>`).join("");
-      return `<div class="hncard ${mvc(r.move)}"><div class="hntop">`+
-        `<span class="mv ${mvc(r.move)}">${esc(r.move)} ${esc(r.delta||'')}</span>`+
-        `<b>${esc(r.name_zh)}</b>${r.name_en?`<small style="color:var(--mut)"> ${esc(r.name_en)}</small>`:''}${r.sector?`<span class="wtag">${esc(r.sector)}</span>`:''}</div>`+
-        (r.why?`<div class="hnwhy">${esc(r.why)}</div>`:'')+
-        (news?`<div class="links" style="margin-top:6px">${news}</div>`:'')+`</div>`;
-    }).join("");
-    swaps=`<div class="acard"><div class="alab">🔄 經理人持股操作 ＋ 為什麼這樣動 <small>${esc(SW.title||'')}</small></div>`+
-      (SW.intro?`<div class="cdisc" style="margin-bottom:6px">${esc(SW.intro)}</div>`:'')+srows+
-      (SW.disclosure?`<div class="attnote">⚠ ${esc(SW.disclosure)}</div>`:'')+`</div>`;
-  }
+  // 註：「①b 經理人持股操作＋為什麼（換股快報）」已於復華基金追蹤版本移除。
   // ② 推漲/下跌 Top3 + 貢獻度排行
   let att="";
   if(a){
@@ -996,7 +977,7 @@ function attribBlock(e){
     ? '官方即時(MIS)市價 + FHTrust 官方 NAV/持股，13:30 收盤後即更新（不必等晚間批次）'
     : 'etfinfo 第三方彙整 + 交易所即時(MIS)，Tier B 待核對';
   return `<div class="sec" style="border-color:var(--red)">⚡ 績效歸因 · 同日最新 ${fresh}`+
-    `<span class="pill">${esc(src)}</span></div>${mline}${diff}${swaps}${att}`;
+    `<span class="pill">${esc(src)}</span></div>${mline}${diff}${att}`;
 }
 
 function renderETF(e){
