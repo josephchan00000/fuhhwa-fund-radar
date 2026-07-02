@@ -60,83 +60,8 @@ def _holdings_delta(c, etf: str) -> dict:
             "prev_date": a, "date": b}
 
 
-# ── 換股自動偵測：動作＋張數一律由 DB 持股快照算（不手寫，避免事實出錯；2026-06-18 起）。
-#    編輯層（為什麼/新聞/產業）由 intel 的 swap_notes 以『股票代號』疊加，無則只呈現事實。
-_SWAP_MIN_LOTS = 10        # 只顯示張數變動 ≥ 10 張（1 張＝1,000 股）的個股，濾掉零股雜訊
-_SWAP_MIN_WEIGHT = 0.2     # 或權重 ≥ 0.2% 的新進/出清也算數（避免漏掉小張數但高權重的調整）
-
-
-def _compute_swaps(prev: dict, cur: dict) -> list[dict]:
-    """純函式：比兩日持股快照 → 實際換股列（新進/出清/加碼/減碼，含張數與權重）。
-    prev/cur 形如 {code: {"name","shares","weight"}}。濾掉零股雜訊（見 _SWAP_MIN_*）。有單測。"""
-    rows = []
-    for code in set(prev) | set(cur):
-        p, c = prev.get(code), cur.get(code)
-        ps = (p or {}).get("shares") or 0
-        cs = (c or {}).get("shares") or 0
-        sd = cs - ps                                  # 股數變化（>0 加碼/新進）
-        if sd == 0:
-            continue
-        name = (c or p or {}).get("name") or code
-        w = (c or {}).get("weight") or (p or {}).get("weight") or 0.0
-        lots = round(sd / 1000)                        # 股 → 張
-        if abs(lots) < _SWAP_MIN_LOTS and (w or 0) < _SWAP_MIN_WEIGHT:
-            continue                                   # 零股/極小部位雜訊（如 1 張零股出清）→ 忽略
-        plots, clots = round(ps / 1000), round(cs / 1000)
-        if ps == 0:
-            move, delta = "新進", f"+{clots:,} 張（新建倉，約 {w:.1f}% 權重）"
-        elif cs == 0:
-            move, delta = "出清", f"−{plots:,} 張（出清）"
-        else:
-            move = "加碼" if sd > 0 else "減碼"
-            delta = f"{'+' if sd > 0 else '−'}{abs(lots):,} 張（{plots:,}→{clots:,} 張）"
-        rows.append({"code": code, "name_zh": name, "name_en": code, "move": move,
-                     "delta": delta, "share_delta": sd, "weight": round(w, 2)})
-    rows.sort(key=lambda r: -abs(r["share_delta"]))
-    return rows[:8]
-
-
-def latest_swaps(etf: str, notes: dict | None = None) -> dict | None:
-    """最近一次『實際換股』區塊（動作/張數一律來自 DB、不手寫）：從最新日往回找第一個有實質
-    換股的快照對。notes＝intel.swap_notes（鍵＝股票代號）疊加為什麼/新聞/產業，無則只呈現事實。"""
-    notes = notes or {}
-    c = _conn()
-    try:
-        dates = [r[0] for r in _q(c, "SELECT DISTINCT trade_date FROM holdings_daily "
-                                     "WHERE etf_id=? ORDER BY trade_date DESC", (etf,))]
-        chosen = None
-        for i in range(len(dates) - 1):
-            cur_d, prev_d = dates[i], dates[i + 1]
-            snap = lambda d: {r["stock_id"]: {"name": r["stock_name"], "shares": r["shares"],
-                                              "weight": r["weight"]}
-                              for r in _q(c, "SELECT stock_id,stock_name,shares,weight FROM "
-                                             "holdings_daily WHERE etf_id=? AND trade_date=?", (etf, d))}
-            rows = _compute_swaps(snap(prev_d), snap(cur_d))
-            if rows:
-                chosen = (cur_d, prev_d, rows)
-                break
-    finally:
-        c.close()
-    if not chosen:
-        return None
-    cur_d, prev_d, rows = chosen
-    for r in rows:                                      # 疊加編輯層（為什麼/新聞/產業）
-        n = notes.get(r["code"]) or {}
-        if n.get("sector"):
-            r["sector"] = n["sector"]
-        if n.get("why"):
-            r["why"] = n["why"]
-        if n.get("news"):
-            r["news"] = n["news"]
-    return {
-        "title": f"近期實際換股 ─ 最新一次加減碼在 {cur_d}（依官方持股快照，張數＝實際買賣）",
-        "intro": (f"經理人最近一次實際換股在 {cur_d}（vs {prev_d}）；其後若無新動作則延用此最近一次"
-                  "換股。動作與張數由官方持股快照自動計算（1 張＝1,000 股），權重變化另含股價。"),
-        "as_of": cur_d, "prev_date": prev_d, "rows": rows,
-        "disclosure": ("持股異動為投信官方揭露快照逐日自動比對（張數＝實際買賣）、已濾零股雜訊；"
-                       "投資理由/新聞關聯為合理推測(Tier B)、非投信官方說法；權重另受股價影響。"
-                       "基金成分隨經理人主動調整而變動；績效訴求需附『過去績效不代表未來』。"),
-    }
+# 註：「每天持股變化／換股快報自動偵測（_compute_swaps / latest_swaps）」已於復華基金追蹤版本移除。
+#     共同基金僅月底揭露前十大持股、無逐日持股張數，故追蹤版本改以「持股介紹」呈現（arm/fund_intro.py）。
 
 
 def our_facts(etf: str) -> dict:

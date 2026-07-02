@@ -1,0 +1,125 @@
+{
+  "fund_id": "29",
+  "name": "復華大中華中小策略基金",
+  "short_name": "大中華中小策略",
+  "en_name": "Fuh Hwa Greater China Mid and Small Cap Fund",
+  "category": "跨國投資股票型",
+  "region": "大中華地區",
+  "asset_kind": "股票型",
+  "currency": "新臺幣",
+  "inception": "2010/12/27",
+  "risk_level": "RR5",
+  "mgmt_fee": "2.00%",
+  "size_twd": 1452870497.0,
+  "nav": 22.67,
+  "nav_date": "2026/07/01",
+  "nav_change": 0.1,
+  "nav_change_pct": "0.44%",
+  "returns": {
+    "ytd": "106.31%",
+    "3m": "70.73%",
+    "6m": "106.31%",
+    "1y": "184.26%",
+    "2y": "161.53%",
+    "3y": "182.83%",
+    "since": "125.70%"
+  },
+  "managers": [
+    "楊書婷"
+  ],
+  "strategy": "主要投資於大中華地區之中小型企業股票，追求受惠該地區經濟成長、龐大內需、產業競爭優勢及中小型企業獲利成長潛力等。 研究團隊深入研究中小型公司， 尋找具成長潛力之個股，並根據多重面向判斷大中華區股市多空，靈活決定出較適投資策略。",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/29.pdf",
+  "dist_date": "2026/06/30",
+  "dist_rate": "—",
+  "as_of": "2026/05/31",
+  "top_holdings": [
+    {
+      "sector": "資訊技術",
+      "name": "旺矽",
+      "weight": 6.15
+    },
+    {
+      "sector": "資訊技術",
+      "name": "台燿",
+      "weight": 5.47
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SK HYNIX INC",
+      "weight": 4.35
+    },
+    {
+      "sector": "資訊技術",
+      "name": "KIOXIA HOLDINGS CORP",
+      "weight": 4.02
+    },
+    {
+      "sector": "資訊技術",
+      "name": "台光電",
+      "weight": 3.88
+    },
+    {
+      "sector": "資訊技術",
+      "name": "欣興",
+      "weight": 3.78
+    },
+    {
+      "sector": "資訊技術",
+      "name": "信驊",
+      "weight": 3.65
+    },
+    {
+      "sector": "資訊技術",
+      "name": "大量",
+      "weight": 3.39
+    },
+    {
+      "sector": "資訊技術",
+      "name": "臻鼎-KY",
+      "weight": 3.37
+    },
+    {
+      "sector": "資訊技術",
+      "name": "禾伸堂",
+      "weight": 3.26
+    }
+  ],
+  "country_alloc": [
+    {
+      "name": "臺灣",
+      "weight": 77.4
+    },
+    {
+      "name": "美國",
+      "weight": 11.03
+    },
+    {
+      "name": "日本",
+      "weight": 5.78
+    },
+    {
+      "name": "韓國",
+      "weight": 4.35
+    },
+    {
+      "name": "流動資產",
+      "weight": 1.44
+    }
+  ],
+  "sector_alloc": [
+    {
+      "name": "資訊技術",
+      "weight": 93.47
+    },
+    {
+      "name": "工業",
+      "weight": 5.09
+    },
+    {
+      "name": "流動資產",
+      "weight": 1.44
+    }
+  ],
+  "group": "global_equity",
+  "fetched_at": "2026-07-02 18:24"
+}

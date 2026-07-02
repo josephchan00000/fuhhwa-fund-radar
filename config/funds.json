@@ -1,0 +1,16 @@
+{
+  "_note": "復華基金追蹤版本追蹤清單。id＝fhtrust.com.tw/funds/funds_detail/{id}；group∈{global_equity,global_balanced}。name/category 以 /api/fund 回傳為權威，scripts/fetch_holdings.py 會覆寫進 data/funds/{id}.json。",
+  "funds": [
+    { "id": "47", "name": "復華美國新星基金-新臺幣",        "group": "global_equity" },
+    { "id": "23", "name": "復華全球大趨勢基金-新臺幣",      "group": "global_equity" },
+    { "id": "77", "name": "復華全球物聯網科技基金-新臺幣",  "group": "global_equity" },
+    { "id": "24", "name": "復華華人世紀基金",              "group": "global_equity" },
+    { "id": "18", "name": "復華亞太成長基金",              "group": "global_equity" },
+    { "id": "82", "name": "復華亞太神龍科技基金-新臺幣",    "group": "global_equity" },
+    { "id": "57", "name": "復華中國新經濟A股基金-新臺幣",   "group": "global_equity" },
+    { "id": "29", "name": "復華大中華中小策略基金",        "group": "global_equity" },
+    { "id": "12", "name": "復華全球平衡基金-新臺幣",        "group": "global_balanced" },
+    { "id": "53", "name": "復華中國新經濟平衡基金-新臺幣",  "group": "global_balanced" },
+    { "id": "16", "name": "復華亞太平衡基金",              "group": "global_balanced" }
+  ]
+}

@@ -1,49 +1,44 @@
-name: FH-ARM 每日情報 routine
+name: 復華基金追蹤版本 每日 routine
 
-# 每日雲端 routine（M4-7）。需先把本 repo 推到（私有）GitHub，並在
-# Settings → Secrets and variables → Actions 設定所需金鑰（皆選用，未設該層誠實降級）：
-#   FINMIND_TOKEN       全分點（付費 sponsor；未設時券商分點走 Histock 免費前 N 大）
-#   YOUTUBE_API_KEY     YouTube 社群監看
-#   FB_ACCESS_TOKEN     Facebook 粉專監看（搭配 config/social_fb_pages.json）
-#   ANTHROPIC_API_KEY   KOL 逐則 Claude 深析 + 文案層
-# 排程：台北時間週一~五 17:40（= UTC 09:40）盤後。也可手動 workflow_dispatch 觸發。
+# 每日雲端 routine：抓 11 檔基金持股介紹（NAV 每日更新）→ 產昨夜美股提示包 → 產儀表板。
+# 註：昨夜美股「新聞內容」需會上網查證的 LLM 產出（見 scripts/daily_fund.sh 檔頭）；
+#     CI 只自動刷新持股快照與提示包＋重建儀表板，新聞內容另由 Claude/人工補 reports/usnews/{date}_v*.md。
+# 排程：台北時間週一~六 08:30（= UTC 前一日 00:30，抓昨夜美股後的當日 NAV/新聞）。可手動 workflow_dispatch。
 
 on:
   schedule:
-    - cron: "40 9 * * 1-5"
+    - cron: "30 0 * * 1-6"
   workflow_dispatch: {}
 
 permissions:
-  contents: write          # 把當日報告 commit 回 repo（如不需要，改 read 並改用 artifact）
+  contents: write          # 把當日持股快照 commit 回 repo
 
 jobs:
   routine:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: 安裝相依（純標準庫；certifi + 選用 anthropic）
-        run: pip install certifi anthropic
-      - name: 跑每日 routine
-        env:
-          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
-          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-          FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: bash scripts/daily_routine.sh
-      - name: 上傳當日報告為 artifact
+      - name: 安裝相依（純標準庫 + certifi）
+        run: pip install certifi
+      - name: 跑每日 routine（持股介紹 + 昨夜美股提示包 + 儀表板）
+        run: bash scripts/daily_fund.sh
+      - name: 上傳儀表板與持股快照為 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fh-arm-reports
-          path: reports/*.md
+          name: fuhhwa-fund-radar
+          path: |
+            dashboard/index.html
+            data/funds/*.json
+            reports/usnews/*.md
           if-no-files-found: warn
-      - name: （選用）把報告 commit 回 repo
+      - name: 把當日持股快照 commit 回 repo
         run: |
-          git config user.name "fh-arm-bot"
+          git config user.name "fund-radar-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add -f reports/*.md 2>/dev/null || true
-          git commit -m "chore: 每日情報報告 $(date +%F)" || echo "無變更"
+          git add -f data/funds/*.json reports/usnews/*_v*.md 2>/dev/null || true
+          git commit -m "chore: 每日持股介紹更新 $(date +%F)" || echo "無變更"
           git push || echo "push 略過（無遠端寫入權或無變更）"

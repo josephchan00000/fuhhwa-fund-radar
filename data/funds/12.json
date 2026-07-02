@@ -1,0 +1,166 @@
+{
+  "fund_id": "12",
+  "name": "復華全球平衡基金-新臺幣",
+  "short_name": "全球平衡新臺幣",
+  "en_name": "Fuh Hwa Global Balanced Fund-TWD",
+  "category": "跨國投資平衡型",
+  "region": "全球",
+  "asset_kind": "平衡型",
+  "currency": "新臺幣",
+  "inception": "2004/01/02",
+  "risk_level": "RR3",
+  "mgmt_fee": "1.50%",
+  "size_twd": 27129350177.0,
+  "nav": 72.11,
+  "nav_date": "2026/07/01",
+  "nav_change": -1.57,
+  "nav_change_pct": "-2.13%",
+  "returns": {
+    "ytd": "78.42%",
+    "3m": "64.07%",
+    "6m": "78.42%",
+    "1y": "145.01%",
+    "2y": "132.11%",
+    "3y": "170.02%",
+    "since": "614.20%"
+  },
+  "managers": [
+    "胡家菱",
+    "陳俊諺"
+  ],
+  "strategy": "網羅全球多元投資主題，參與多重趨勢上漲契機，挖掘成長機會大的潛力股，並避免投資風險過度集中於單一產業、趨勢或國家。 透過股票及債券部位的彈性調整配置，因應景氣循環波動，追求長期績效成長。",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/12.pdf",
+  "dist_date": "2026/06/30",
+  "dist_rate": "—",
+  "as_of": "2026/05/31",
+  "top_holdings": [
+    {
+      "sector": "資訊技術",
+      "name": "SAMSUNG ELECTRO-MECHANICS CO",
+      "weight": 5.98
+    },
+    {
+      "sector": "資訊技術",
+      "name": "KIOXIA HOLDINGS CORP",
+      "weight": 5.68
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SANDISK CORP",
+      "weight": 5.57
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SK HYNIX INC",
+      "weight": 4.84
+    },
+    {
+      "sector": "資訊技術",
+      "name": "台光電",
+      "weight": 4.52
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MURATA MANUFACTURING CO LTD",
+      "weight": 3.96
+    },
+    {
+      "sector": "資訊技術",
+      "name": "聯發科",
+      "weight": 3.48
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SAMSUNG ELECTRONICS CO LTD",
+      "weight": 3.36
+    },
+    {
+      "sector": "資訊技術",
+      "name": "IBIDEN CO LTD",
+      "weight": 3.29
+    },
+    {
+      "sector": "資訊技術",
+      "name": "國巨*",
+      "weight": 3.22
+    }
+  ],
+  "country_alloc": [
+    {
+      "name": "美國",
+      "weight": 28.87
+    },
+    {
+      "name": "臺灣",
+      "weight": 24.95
+    },
+    {
+      "name": "日本",
+      "weight": 18.68
+    },
+    {
+      "name": "韓國",
+      "weight": 14.33
+    },
+    {
+      "name": "德國",
+      "weight": 3.29
+    },
+    {
+      "name": "澳大利亞",
+      "weight": 1.74
+    },
+    {
+      "name": "英國",
+      "weight": 0.82
+    },
+    {
+      "name": "義大利",
+      "weight": 0.61
+    },
+    {
+      "name": "其他",
+      "weight": 1.57
+    },
+    {
+      "name": "流動資產",
+      "weight": 5.14
+    }
+  ],
+  "sector_alloc": [
+    {
+      "name": "資訊技術",
+      "weight": 80.49
+    },
+    {
+      "name": "債券",
+      "weight": 8.35
+    },
+    {
+      "name": "工業",
+      "weight": 2.62
+    },
+    {
+      "name": "通訊服務",
+      "weight": 1.03
+    },
+    {
+      "name": "金融",
+      "weight": 1.0
+    },
+    {
+      "name": "醫療保健",
+      "weight": 0.96
+    },
+    {
+      "name": "其他",
+      "weight": 0.41
+    },
+    {
+      "name": "流動資產",
+      "weight": 5.14
+    }
+  ],
+  "group": "global_balanced",
+  "fetched_at": "2026-07-02 18:24"
+}

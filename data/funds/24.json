@@ -1,0 +1,129 @@
+{
+  "fund_id": "24",
+  "name": "復華華人世紀基金",
+  "short_name": "華人世紀",
+  "en_name": "Fuh Hwa Greater China Fund",
+  "category": "跨國投資股票型",
+  "region": "大中華地區",
+  "asset_kind": "股票型",
+  "currency": "新臺幣",
+  "inception": "2009/01/05",
+  "risk_level": "RR5",
+  "mgmt_fee": "1.80%",
+  "size_twd": 26813492492.0,
+  "nav": 101.07,
+  "nav_date": "2026/07/01",
+  "nav_change": -2.14,
+  "nav_change_pct": "-2.07%",
+  "returns": {
+    "ytd": "115.77%",
+    "3m": "89.08%",
+    "6m": "115.77%",
+    "1y": "214.14%",
+    "2y": "292.55%",
+    "3y": "443.80%",
+    "since": "890.80%"
+  },
+  "managers": [
+    "胡家菱"
+  ],
+  "strategy": "主要投資於因中國代工產業發展及龐大內需市場興起，造就長期經貿優勢而受惠之相關國家及產業；基金可投資之區域及產業廣泛多元，參與多種投資商機。 從產業研究及由下而上的選股策略，追求在多頭時期掌握股價上漲動能較佳的潛力股，創造投資報酬。",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/24.pdf",
+  "dist_date": "2026/06/30",
+  "dist_rate": "—",
+  "as_of": "2026/05/31",
+  "top_holdings": [
+    {
+      "sector": "資訊技術",
+      "name": "KIOXIA HOLDINGS CORP",
+      "weight": 7.45
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SK HYNIX INC",
+      "weight": 7.35
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SAMSUNG ELECTRO-MECHANICS CO",
+      "weight": 6.52
+    },
+    {
+      "sector": "資訊技術",
+      "name": "台光電",
+      "weight": 5.23
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SANDISK CORP",
+      "weight": 5.1
+    },
+    {
+      "sector": "資訊技術",
+      "name": "聯發科",
+      "weight": 4.66
+    },
+    {
+      "sector": "資訊技術",
+      "name": "IBIDEN CO LTD",
+      "weight": 4.5
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SAMSUNG ELECTRONICS CO LTD",
+      "weight": 4.24
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MURATA MANUFACTURING CO LTD",
+      "weight": 3.4
+    },
+    {
+      "sector": "資訊技術",
+      "name": "國巨*",
+      "weight": 2.93
+    }
+  ],
+  "country_alloc": [
+    {
+      "name": "臺灣",
+      "weight": 28.24
+    },
+    {
+      "name": "美國",
+      "weight": 27.43
+    },
+    {
+      "name": "日本",
+      "weight": 23.97
+    },
+    {
+      "name": "韓國",
+      "weight": 18.11
+    },
+    {
+      "name": "德國",
+      "weight": 1.51
+    },
+    {
+      "name": "流動資產",
+      "weight": 0.73
+    }
+  ],
+  "sector_alloc": [
+    {
+      "name": "資訊技術",
+      "weight": 96.26
+    },
+    {
+      "name": "工業",
+      "weight": 3.01
+    },
+    {
+      "name": "流動資產",
+      "weight": 0.73
+    }
+  ],
+  "group": "global_equity",
+  "fetched_at": "2026-07-02 18:24"
+}
