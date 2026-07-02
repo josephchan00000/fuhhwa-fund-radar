@@ -189,8 +189,11 @@ def test_render_market_views():
     html = fund_dashboard.render()
     assert 'class="mkswitch"' in html                  # 左上台股/全球切換
     assert html.count('data-mkt="tw"') >= 6 and html.count('data-mkt="gl"') >= 6
-    assert '<body data-mkt="tw">' in html              # 預設台股視圖
+    assert 'id="mkt-tw" checked' in html and 'id="mkt-gl"' in html   # 純 CSS radio（JS 停用也能切）
+    assert '#mkt-gl:checked ~ * .mkt[data-mkt="tw"]{display:none}' in html
     assert 'class="nglink"' in html or "無原文連結" in html   # 新聞重點卡的來源連結
+    assert "可講素材" not in html                       # 話術已移除，焦點個股極簡呈現
+    assert "當日焦點個股" in html
 
 
 def test_scrub_removes_invisible():
