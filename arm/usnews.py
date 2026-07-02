@@ -108,17 +108,19 @@ _IDX_LABELS = [(("那斯達克", "Nasdaq", "NASDAQ"), "Nasdaq"),
                (("標普", "S&P"), "S&P 500")]
 
 
-def extract_indices(md: str) -> list[dict]:
-    """從新聞 markdown 的指數速覽／總覽條列萃取三大指數收盤與漲跌幅。
+def extract_indices(md: str, labels: list[tuple[tuple[str, ...], str]] | None = None) -> list[dict]:
+    """從新聞 markdown 的指數速覽／總覽條列萃取指數收盤與漲跌幅。
 
-    回 [{label, close, pct, up}]（依 Nasdaq→費半→S&P 排序、去重取首見）；解析不到回 []。"""
+    labels 預設美股三大指數；twnews 傳台股標籤組。
+    回 [{label, close, pct, up}]（依 labels 順序、去重取首見）；解析不到回 []。"""
+    _IDX = labels if labels is not None else _IDX_LABELS
     out: dict[str, dict] = {}
     for line in (md or "").splitlines():
         m = re.match(r"^\s*[-*]\s+\*\*(.+?)\*\*[：:](.*)$", line)
         if not m:
             continue
         label_raw, body = m.group(1), m.group(2)
-        label = next((std for keys, std in _IDX_LABELS
+        label = next((std for keys, std in _IDX
                       if any(k in label_raw for k in keys)), None)
         if not label or label in out:
             continue
@@ -128,7 +130,7 @@ def extract_indices(md: str) -> list[dict]:
             continue
         out[label] = {"label": label, "close": mc.group(1),
                       "pct": float(mp.group(2)), "up": mp.group(1) == "上漲"}
-    order = [std for _, std in _IDX_LABELS]
+    order = [std for _, std in _IDX]
     return sorted(out.values(), key=lambda d: order.index(d["label"]))
 
 

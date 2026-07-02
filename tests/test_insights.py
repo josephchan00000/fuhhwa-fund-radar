@@ -1,7 +1,7 @@
-"""fund_insights（跨基金洞察層）＋ usnews 結構化萃取 ＋ 新版儀表板 render 單測（離線）。"""
+"""fund_insights（跨基金洞察層）＋ usnews/twnews 結構化萃取 ＋ 新版儀表板 render 單測（離線）。"""
 from datetime import date
 
-from arm import fund_dashboard, fund_insights, usnews
+from arm import fund_dashboard, fund_insights, fund_intro, twnews, usnews
 
 
 # ── 假資料 ───────────────────────────────────────────────────
@@ -143,20 +143,50 @@ def test_upcoming_distributions_window():
     assert fund_insights.upcoming_distributions(fs, today=date(2026, 6, 20)) == []  # 太遠不提醒
 
 
+# ── twnews（台股盤後）─────────────────────────────────────────
+def test_twnews_extract_indices_tw_labels():
+    md = ("- **加權指數（TAIEX）**：終場收 46,744.16、下跌約 0.58%（-274.83 點）。\n"
+          "- **櫃買指數（OTC）**：逆勢收 439.51、上漲約 1.92%（+8.28 點）。\n")
+    ix = twnews.extract_indices(md)
+    assert [i["label"] for i in ix] == ["加權指數", "櫃買指數"]
+    assert ix[0]["up"] is False and ix[1]["pct"] == 1.92
+
+
+def test_twnews_load_latest_shape():
+    tw = twnews.load_latest()
+    if tw is not None:                                 # repo 內有產出時驗形狀與合規
+        assert tw["date"] and tw["md"]
+        assert isinstance(tw["banned_hits"], list) and not tw["banned_hits"]
+
+
+def test_tw_group_labels_present():
+    for g in ("tw_equity", "tw_balanced", "tw_fof"):
+        assert g in fund_intro.GROUP_LABEL
+
+
+def test_pending_funds_have_group_label():
+    for p in fund_intro.pending_funds():               # 待抓取者必有組別標籤（總覽分組用）
+        assert p["fund_id"] and p["group_label"]
+
+
 # ── 儀表板 render（吃 repo 內真實資料，離線） ──────────────────
 def test_render_sections_and_taiwan_colors():
     html = fund_dashboard.render()
-    for sec in ('id="brief"', 'id="overview"', 'id="newslinks"', 'id="news"', 'id="details"'):
+    for sec in ('id="brief"', 'id="overview"', 'id="newslinks"', 'id="twnews"',
+                'id="news"', 'id="details"'):
         assert sec in html
     assert "--gain:#f0524f" in html and "--loss:#2ea94f" in html    # 紅漲綠跌
     assert 'class="topbar"' in html and "@media print" in html
     assert 'th class="sk"' in html                     # 可排序表頭
     assert "data-copy=" in html                        # 複製鈕
+    assert 'class="openbtn"' in html                   # 展開全文按鈕（可點性）
+    assert "background:#eeddb7" in html                # 新聞重點深咖啡標注
 
 
 def test_render_short_name_strips_suffix():
     assert fund_dashboard._short("復華美國新星基金-新臺幣") == "美國新星基金"
     assert fund_dashboard._short({"short_name": "全球平衡新臺幣"}) == "全球平衡"
+    assert fund_dashboard._short("復華復華基金") == "復華基金"      # 只去品牌前綴一次
 
 
 def test_pct_span_taiwan_convention():
