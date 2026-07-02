@@ -135,6 +135,16 @@ def test_fund_intro_copy_fields():
     assert "非投資建議" in txt                         # 免責必附
 
 
+def test_futu_url_markets():
+    assert fund_insights.futu_url("MU", "美國") == "https://www.futunn.com/stock/MU-US"
+    assert fund_insights.futu_url("600183", "中國") == "https://www.futunn.com/stock/600183-SH"
+    assert fund_insights.futu_url("300308", "中國") == "https://www.futunn.com/stock/300308-SZ"
+    assert fund_insights.futu_url("688498", "中國") == "https://www.futunn.com/stock/688498-SH"
+    assert fund_insights.futu_url("000660", "韓國") is None    # 韓/日/台格式不確定 → 不亂連
+    assert fund_insights.futu_url("2330", "臺灣") is None
+    assert fund_insights.futu_url(None, "美國") is None
+
+
 def test_upcoming_distributions_window():
     fs = _funds()
     assert fund_insights.upcoming_distributions(fs, today=date(2026, 7, 2)) == \

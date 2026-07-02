@@ -36,8 +36,9 @@ SPEC_V1 = """【版型一：昨夜美股公司與產業面 Top 3 速寫包】
 範圍：只收「公司與產業動因」（AI/晶片/雲端/電動車/通訊/製造鏈；企業合作、併購、
 產品發表、重大投資/資本支出；財報/財測/營收預告、公司聲明；供應鏈調整、人事異動；
 具實質營運影響的監管/法律事件）。排除單純 Fed/利率/大盤漲跌。
-主要訊源 Reuters/Bloomberg/WSJ/FT，可各補 ≤1 段 JPMorgan/Goldman Sachs/Morgan Stanley/
-BlackRock 當日評論（附日期）。每則附來源連結與台北時間戳（例：2026/07/02 05:30 TST）。
+主要訊源 Reuters/Bloomberg/WSJ/FT，可輔以 CNBC 與富途牛牛（news.futunn.com，中文美股快訊）
+等公開彙整；可各補 ≤1 段 JPMorgan/Goldman Sachs/Morgan Stanley/BlackRock 當日評論（附日期）。
+每則附來源連結與台北時間戳（例：2026/07/02 05:30 TST）。
 Top 3 列入須至少符合四項中三項：(1) 同現於 Reuters/Bloomberg/WSJ/FT 首頁或 Most Read/Lead；
 (2) 被 ≥2 家主要外資機構評論引用/延伸；(3) 對 Nasdaq/費半/S&P500 任一成分股造成隔夜 ±2% 以上；
 (4) 具結構性影響（產業鏈或營運前景 >3 個月）。僅符合 1–2 項→次級觀察摘要。

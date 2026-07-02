@@ -192,8 +192,10 @@ def _newslinks_view(linked: list[dict], empty_hint: str) -> str:
     for c in linked:
         for m in c["matched"]:
             ent = stocks.setdefault(m["name"], {"display": m["display"],
-                                                "ticker": m.get("ticker"), "funds": {}})
+                                                "ticker": m.get("ticker"),
+                                                "country": m.get("country"), "funds": {}})
             ent["ticker"] = ent["ticker"] or m.get("ticker")
+            ent["country"] = ent["country"] or m.get("country")
             for f in m["funds"]:
                 ent["funds"][f["fund_id"]] = f
     if not stocks:
@@ -208,7 +210,10 @@ def _newslinks_view(linked: list[dict], empty_hint: str) -> str:
             f'{_esc(_short(f["short_name"]))} <b>{f["weight"]:.2f}%</b></a>'
             for f in funds)
         tk = f' <span class="tk">{_esc(ent["ticker"])}</span>' if ent.get("ticker") else ""
-        rows.append(f'<div class="nlrow"><span class="nlco">{_esc(ent["display"])}{tk}</span>'
+        fu = fund_insights.futu_url(ent.get("ticker"), ent.get("country"))
+        futu = (f' <a class="futu" href="{_esc(fu)}" target="_blank" rel="noopener" '
+                f'title="富途牛牛即時行情">富途行情 ↗</a>') if fu else ""
+        rows.append(f'<div class="nlrow"><span class="nlco">{_esc(ent["display"])}{tk}{futu}</span>'
                     f'<span class="nlfs">{fs}</span></div>')
     return f'<div class="nlcard">{"".join(rows)}</div>'
 
@@ -293,7 +298,10 @@ def _holdings_table(doc: dict, linked_names: set[str]) -> str:
         return '<div class="muted">十大持有標的暫無資料。</div>'
     rows = []
     for i, h in enumerate(hs, 1):
-        tk = f' <span class="tk">{_esc(h["ticker"])}</span>' if h.get("ticker") else ""
+        fu = fund_insights.futu_url(h.get("ticker"), h.get("country"))
+        tk = (f' <a class="tk" href="{_esc(fu)}" target="_blank" rel="noopener" '
+              f'title="富途牛牛即時行情">{_esc(h["ticker"])} ↗</a>' if fu else
+              (f' <span class="tk">{_esc(h["ticker"])}</span>' if h.get("ticker") else ""))
         ct = f'<span class="pill">{_esc(h["country"])}</span>' if h.get("country") else ""
         intro = f'<div class="hintro">{_esc(h["intro"])}</div>' if h.get("intro") else ""
         hl = h.get("name") in linked_names
@@ -483,6 +491,10 @@ a.chip:hover{border-color:var(--acc);background:rgba(91,141,239,.16)}
 .nlco{font-weight:700;min-width:110px} .nlfs{color:var(--mut)}
 .fw{color:#9ecbff;font-size:14px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(158,203,255,.5);margin-right:8px;white-space:nowrap}
 .fw b{color:#fff} .fw:hover{color:#fff;text-decoration-color:var(--acc)}
+.futu{display:inline-block;font-size:12px;font-weight:700;color:#ffb432;border:1px solid rgba(255,180,50,.5);border-radius:8px;padding:1px 9px;margin-left:6px;text-decoration:none;vertical-align:1px}
+.futu:hover{color:#0e1116;background:#ffb432}
+a.tk{text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(158,203,255,.5)}
+a.tk:hover{color:#fff}
 .talk{margin-top:10px;background:#0b0e13;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13px;color:#dbe4ee;line-height:1.7}
 .talk.bad{color:var(--mut)}
 .tlab{display:block;font-size:11.5px;color:var(--mut);margin-bottom:3px}
