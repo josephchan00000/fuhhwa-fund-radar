@@ -56,7 +56,7 @@ def _inline(s: str) -> str:
     s = _esc(s)
     s = re.sub(r"\[([^\]]+)\]\((https?://[^\s)]+)\)",
                r'<a href="\2" target="_blank" rel="noopener">\1</a>', s)
-    s = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", s)
+    s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)          # 非貪婪：允許粗體內含斜體 **a *b* c**
     s = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<i>\1</i>", s)
     return s
 

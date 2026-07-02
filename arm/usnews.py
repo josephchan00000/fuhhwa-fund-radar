@@ -79,14 +79,26 @@ def us_session_date(today: date | None = None) -> date:
     return d
 
 
+# 否定詞：緊鄰禁用詞前方者視為合規揭露語（沿用 arm/copy/compliance.py 的 _NEG 慣例）。
+_NEG = ("非", "不", "無", "未", "免")
+
+
 def compliance_scan(text: str) -> list[str]:
     """回傳文中出現的禁用詞（去重）。空＝乾淨。
 
-    先移除合規的否定用法（如強制揭露段的『不保證』『非唯一』），避免把必附揭露誤判為違規。"""
-    t = (text or "")
-    for ok in ("不保證", "無法保證", "不能保證", "非唯一"):
-        t = t.replace(ok, "")
-    return sorted({w for w in BANNED if w in t})
+    命中禁用詞時，若其前兩字內含否定詞（非／不／無／未／免），視為合規揭露語（如『並非保證』
+    『並非無風險』『非零風險』『不保證』），不計入違規；避免把必附揭露或否定句誤判為違規。"""
+    t = text or ""
+    hits: set[str] = set()
+    for w in BANNED:
+        i = t.find(w)
+        while i != -1:
+            prev = t[max(0, i - 2):i]
+            if not any(n in prev for n in _NEG):
+                hits.add(w)
+                break                      # 出現一次未被否定即算違規
+            i = t.find(w, i + 1)           # 此處被否定，繼續找下一個同詞
+    return sorted(hits)
 
 
 def _latest_pair() -> dict | None:
