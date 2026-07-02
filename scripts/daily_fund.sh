@@ -9,22 +9,26 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "[1/6] 抓海外版持股介紹（復華官網：NAV / 十大持有標的 / 國家・產業配置 / 月報）…"
+echo "[1/7] 抓海外版持股介紹（復華官網：NAV / 十大持有標的 / 國家・產業配置 / 月報）…"
 python3 scripts/fetch_holdings.py || echo "  ⚠ 海外版持股抓取失敗，續跑（用既有 data/funds 快照）"
 
-echo "[2/6] 抓台股版持股介紹（12 檔 → data/funds_tw/）…"
+echo "[2/7] 抓台股版持股介紹（12 檔 → data/funds_tw/）…"
 python3 scripts/fetch_holdings.py --market tw || echo "  ⚠ 台股版持股抓取失敗，續跑（用既有 data/funds_tw 快照）"
 
-echo "[3/6] 產昨夜美股新聞提示包…（新聞內容由 LLM 上網查證產出，見檔頭說明）"
+echo "[3/7] 抓基金動態雷達（Google News：公司層＋逐檔基金新聞提及 → data/mentions/）…"
+python3 scripts/fetch_mentions.py --market all || echo "  ⚠ 動態雷達抓取失敗，續跑（用既有快照）"
+
+echo "[4/7] 產昨夜美股新聞提示包…（新聞內容由 LLM 上網查證產出，見檔頭說明）"
 python3 scripts/gen_usnews.py || echo "  ⚠ 昨夜美股提示包產製失敗，續跑"
 
-echo "[4/6] 產台股新聞提示包（台股盤後重點＋盤前美股影響＋重大分析）…"
+echo "[5/7] 產台股新聞提示包（台股盤後重點＋盤前美股影響＋重大分析）…"
 python3 scripts/gen_twnews.py || echo "  ⚠ 台股新聞提示包產製失敗，續跑"
 
-echo "[5/6] 產重點觀察數據提示包（非農/失業率/CPI/Fed/外資期貨部位/記憶體報價…）…"
+echo "[6/7] 產重點觀察數據＋社群/廣告提及提示包…"
 python3 scripts/gen_indicators.py || echo "  ⚠ 重點觀察數據提示包產製失敗，續跑"
+python3 scripts/gen_mentions.py || echo "  ⚠ 社群/廣告提示包產製失敗，續跑"
 
-echo "[6/6] 產儀表板（整合頁 index.html：海外／台股切換 ＋ 台股獨立頁 tw.html）…"
+echo "[7/7] 產儀表板（整合頁 index.html：海外／台股切換 ＋ 台股獨立頁 tw.html）…"
 python3 scripts/gen_fund_dashboard.py || echo "  ⚠ 整合頁儀表板產製失敗"
 python3 scripts/gen_fund_dashboard.py --market tw || echo "  ⚠ 台股獨立頁產製失敗"
 

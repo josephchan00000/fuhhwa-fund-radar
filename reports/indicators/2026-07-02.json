@@ -16,10 +16,6 @@
       "as_of": "2026/07/02", "source": "證交所／聯合新聞網" },
     { "market": "tw", "name": "新台幣兌美元", "value": "31.860", "change": "當週貶 0.86%",
       "as_of": "2026/06/26", "source": "台北外匯經紀／MoneyDJ", "note": "7/2 收盤未及查證，沿用最近查證值" },
-    { "market": "both", "name": "伺服器 DRAM 合約價", "value": "2026Q1 季增逾 60%", "change": "▲ 產能近乎售罄至 2027",
-      "as_of": "2026/06", "source": "TrendForce" },
-    { "market": "both", "name": "DDR5 現貨價", "value": "自高點回落約 30%", "change": "▼ 現貨修正、與合約價分歧",
-      "as_of": "2026/06下旬–07上旬", "source": "TrendForce 現貨行情／電腦王阿達彙整" },
     { "market": "both", "name": "費城半導體指數（7/1）", "value": "約 -6.3%", "change": "▼ 台積電 ADR -7%",
       "as_of": "2026/07/01", "source": "聯合新聞網（另有來源約 -5.4%）" }
   ]

@@ -7,7 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from arm import config, fund_dashboard, fund_intro, indicators, markets, twnews, usnews
+from arm import (config, fund_dashboard, fund_intro, fund_mentions, indicators,
+                 markets, twnews, usnews)
 from arm.connectors import fhfund
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -394,3 +395,65 @@ def test_load_attaches_detail():
 def test_twnews_spec_requires_fundamental_analysis():
     assert "重大分析與基本面觀察" in twnews.SPEC_V1
     assert "非技術面" in twnews.SPEC_V1
+
+
+# ── 基金動態雷達（fund_mentions）────────────────────────────
+def test_query_terms_strips_suffixes():
+    assert '"復華中小精選"' in fund_mentions.query_terms("復華中小精選基金")
+    assert '"復華台灣科技高股息"' in fund_mentions.query_terms("復華台灣科技高股息基金A類型")
+    t = fund_mentions.query_terms("復華美國新星基金-新臺幣")
+    assert '"復華美國新星"' in t
+    assert fund_mentions.query_terms("") == []
+
+
+def test_mentions_merged_combines_auto_and_social(tmp_path, monkeypatch):
+    auto_dir = tmp_path / "auto"; social_dir = tmp_path / "social"
+    auto_dir.mkdir(); social_dir.mkdir()
+    monkeypatch.setattr(fund_mentions, "AUTO_DIR", auto_dir)
+    monkeypatch.setattr(fund_mentions, "SOCIAL_DIR", social_dir)
+    (auto_dir / "tw.json").write_text(json.dumps({
+        "fetched_at": "2026-07-02 08:30", "market": "tw",
+        "company": [{"title": "復華投信新聞", "source": "經濟日報", "date": "2026-07-02 07:00"}],
+        "funds": [{"id": "06", "name": "復華數位經濟基金",
+                   "items": [{"title": "數位經濟基金報導", "source": "鉅亨網",
+                              "date": "2026-07-01 10:00", "url": "https://x"}]}],
+    }, ensure_ascii=False), encoding="utf-8")
+    (social_dir / "2026-07-02.json").write_text(json.dumps({
+        "date": "2026-07-02", "items": [
+            {"fund_id": "06", "kind": "social", "title": "Dcard 討論串",
+             "source": "Dcard", "date": "2026-07-02"},
+            {"fund_id": "", "kind": "ad", "title": "FB 形象廣告",
+             "source": "Facebook", "date": "2026-06-30"}]}, ensure_ascii=False),
+        encoding="utf-8")
+    cfg = [{"id": "06", "name": "復華數位經濟基金"}, {"id": "11", "name": "復華人生目標基金"}]
+    doc = fund_mentions.merged("tw", cfg)
+    assert doc["as_of"] == "2026-07-02 08:30"
+    assert len(doc["company"]) == 2                      # 公司新聞 + 對不到基金的廣告
+    f06 = next(f for f in doc["funds"] if f["id"] == "06")
+    assert len(f06["items"]) == 2                        # 自動新聞 + 社群
+    assert {i["kind"] for i in f06["items"]} == {"news", "social"}
+    assert all(i.get("date") for i in f06["items"])      # 每筆皆有資料時間
+    f11 = next(f for f in doc["funds"] if f["id"] == "11")
+    assert f11["items"] == []
+
+
+def test_mentions_merged_empty_is_safe():
+    doc = fund_mentions.merged("nope", [{"id": "1", "name": "x"}])
+    assert doc["company"] == [] and doc["funds"][0]["items"] == []
+
+
+def test_mentions_section_renders_or_hints():
+    html = fund_dashboard._mentions_section("tw")
+    assert "基金動態雷達" in html
+    assert "資料時間" in html                              # 區塊標頭附資料時間
+    # 無資料時給啟用提示、不崩
+    assert ("fetch_mentions" in html) or ('class="mit"' in html)
+
+
+def test_indicators_no_memory_price():
+    # 記憶體報價已依需求移除（indicators 資料與 SPEC 皆不含）
+    doc = indicators.load_latest()
+    if doc:
+        names = " ".join(i["name"] for i in doc["items"])
+        assert "DRAM" not in names and "DDR5" not in names
+    assert "DRAM" not in indicators.SPEC

@@ -14,7 +14,7 @@ import html
 import re
 from datetime import datetime
 
-from . import fund_intro, indicators, markets, twnews, usnews
+from . import config, fund_intro, fund_mentions, indicators, markets, twnews, usnews
 
 _NEWS_MODULES = {"us": usnews, "tw": twnews}
 
@@ -249,8 +249,9 @@ def _render_news_doc(text: str) -> str:
                 lm = next((v for l, v in
                            (_ITEM_RE.match(b).groups() for b in body if _ITEM_RE.match(b))
                            if "一句話" in l), None)
-                if lm:
-                    leads.append(lm.strip())
+                if lm:                                   # 速覽項附各卡日期（資料時間可追溯）
+                    dm = re.search(r"\d{4}/\d{2}/\d{2}", m3.group(1))
+                    leads.append(f"{lm.strip()}〔{dm.group()}〕" if dm else lm.strip())
             else:                                # 結構不符 → 整卡回退 md
                 md_buf.extend([ln, *body])
             continue
@@ -327,6 +328,48 @@ def _indicators_section(market: str) -> str:
 </div>"""
 
 
+def _mention_item(it: dict) -> str:
+    """單筆提及：kind 徽章＋標題（連結）＋來源＋發文時間（每筆必附資料時間）。"""
+    kind = fund_mentions.KIND_LABEL.get(it.get("kind"), it.get("kind") or "—")
+    title = _esc(it.get("title") or "")
+    if it.get("url"):
+        title = f'<a href="{_esc(it["url"])}" target="_blank" rel="noopener">{title}</a>'
+    meta = "｜".join(filter(None, [_esc(it.get("source") or ""), _esc(it.get("date") or "")]))
+    return (f'<li class="mit"><span class="mk k-{_esc(it.get("kind") or "news")}">{_esc(kind)}</span>'
+            f'<span class="mtt">{title}<span class="mmeta">{meta}</span></span></li>')
+
+
+def _mentions_section(market: str) -> str:
+    """🔎 基金動態雷達：公司層＋逐檔基金的新聞/社群/廣告提及（缺資料顯示啟用提示）。"""
+    doc = fund_mentions.merged(market, config.funds(market))
+    total = len(doc["company"]) + sum(len(f["items"]) for f in doc["funds"])
+    if not total:
+        hint = ('<div class="muted">尚無提及資料。新聞：<code>python scripts/fetch_mentions.py '
+                f'--market {_esc(market)}</code>（CI 每日自動）；社群/廣告：'
+                '<code>python scripts/gen_mentions.py</code> 產提示包後由 LLM 查證回填。</div>')
+        body = hint
+    else:
+        parts = []
+        if doc["company"]:
+            parts.append('<div class="mgrp"><div class="mgt">🏢 復華投信（公司/品牌層）</div><ul class="mlist">'
+                         + "".join(_mention_item(i) for i in doc["company"][:6]) + "</ul></div>")
+        for f in doc["funds"]:
+            if not f["items"]:
+                continue
+            nm = _esc((f.get("name") or "").replace("-新臺幣", ""))
+            latest = _esc(f["items"][0].get("date") or "")
+            parts.append(
+                f'<details class="mgrp"><summary class="mgt">{nm}'
+                f'<span class="mcnt">{len(f["items"])} 則｜最新 {latest}</span></summary>'
+                f'<ul class="mlist">{"".join(_mention_item(i) for i in f["items"][:5])}</ul></details>')
+        body = "".join(parts) or '<div class="muted">近 7 天無各檔基金之提及。</div>'
+    as_of = _esc(doc.get("as_of") or "—")
+    return f"""<div class="section">
+  <div class="st">🔎 基金動態雷達　<span class="asof">新聞/社群/廣告提及｜資料時間 {as_of}｜近 7 天</span></div>
+  {body}
+</div>"""
+
+
 def _market_panel(market: str, single: bool) -> tuple[str, str, str, int]:
     """單一市場面板（新聞區塊 ＋ 基金分頁 ＋ 卡片），供 render / render_combined 共用。
 
@@ -358,6 +401,7 @@ def _market_panel(market: str, single: bool) -> tuple[str, str, str, int]:
   <div class="st">🗞️ {_esc(mk['news_label'])}</div>
   {_news_section(mk['news'], market)}
 </div>
+{_mentions_section(market)}
 {''.join(radios)}
 <div class="section">
   <div class="st">📊 基金持股介紹　<span class="asof">持股基準 {_esc(as_of)}｜共 {len(funds)} 檔</span></div>
@@ -428,14 +472,27 @@ header h1{{font-size:22px;margin:0 0 3px}} .lede{{color:var(--mut);font-size:13p
 .ndate{{font-weight:700;font-size:15px}} .lamp{{color:var(--mut);font-size:13px}}
 .nswitch{{margin-left:auto;display:flex;gap:6px}}
 .nb{{display:inline-block;background:var(--card2);color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:6px 14px;cursor:pointer;font-size:13px;user-select:none}}
-/* 重點觀察數據速覽格 */
-.igrid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:10px}}
-.ind{{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:10px 12px;cursor:help}}
+/* 重點觀察數據：手機橫向滑動速覽列、桌機格狀 */
+.igrid{{display:flex;gap:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;padding-bottom:4px}}
+.ind{{flex:0 0 176px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:10px 12px;cursor:help}}
+@media(min-width:721px){{.igrid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));overflow:visible}}.ind{{flex:none}}}}
 .ik{{font-size:12px;color:var(--mut);line-height:1.4}}
 .iv{{font-size:17px;font-weight:800;margin:3px 0 1px;color:#fff}}
 .ic{{font-size:12px;color:var(--mut);line-height:1.45}}
 .ic.up{{color:var(--up)}} .ic.dn{{color:var(--dn)}}
 .ia{{font-size:10.5px;color:var(--mut);opacity:.7;margin-top:3px}}
+/* 基金動態雷達（新聞/社群/廣告提及） */
+.mgrp{{border:1px solid var(--line);border-radius:11px;padding:10px 14px;margin:10px 0;background:var(--card2)}}
+.mgt{{font-weight:700;font-size:14px;cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;gap:8px}}
+.mcnt{{font-weight:400;font-size:11.5px;color:var(--mut)}}
+.mlist{{list-style:none;margin:8px 0 2px;padding:0}}
+.mit{{display:flex;gap:8px;align-items:flex-start;margin:8px 0;font-size:13.5px;line-height:1.55}}
+.mk{{flex:0 0 auto;font-size:11px;font-weight:700;padding:1px 8px;border-radius:20px;border:1px solid var(--line);color:var(--mut);margin-top:2px}}
+.mk.k-news{{color:#9ecbff;border-color:rgba(91,141,239,.4);background:rgba(91,141,239,.12)}}
+.mk.k-social{{color:#7ee2a8;border-color:rgba(63,185,80,.4);background:rgba(63,185,80,.1)}}
+.mk.k-ad{{color:#ffd479;border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.1)}}
+.mtt{{flex:1;min-width:0;word-break:break-word}}
+.mmeta{{display:block;font-size:11.5px;color:var(--mut);margin-top:1px}}
 /* 新聞卡片版型（重點置頂） */
 .quick{{border:1px dashed var(--acc);border-radius:12px;padding:10px 16px;margin:14px 0;background:rgba(91,141,239,.06)}}
 .quick .qt{{font-weight:800;font-size:14px;color:#9ecbff;margin-bottom:4px}}
@@ -473,12 +530,13 @@ details.fineprint>div{{margin-top:6px;border-left:2px solid var(--line);padding-
 .vh{{position:absolute;opacity:0;pointer-events:none;width:0;height:0}}
 .market,.fund,.ndoc{{display:none}}
 .market.on{{display:block}}
-/* 上層市場切換（海外／台股） */
-.mtabs{{display:flex;gap:8px;margin:2px 0 4px}}
-.mtab{{display:inline-block;background:var(--card2);color:var(--mut);border:1px solid var(--line);border-radius:11px;padding:9px 24px;cursor:pointer;font-size:15px;font-weight:700;user-select:none}}
-/* tabs */
-.tabs{{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px}}
-.tab{{display:inline-block;background:var(--card2);color:var(--mut);border:1px solid var(--line);border-radius:9px;padding:6px 11px;cursor:pointer;font-size:13px;user-select:none}}
+/* 上層市場切換（海外／台股）：黏性置頂 segmented control，手機好按 */
+.mtabs{{position:sticky;top:0;z-index:9;display:flex;gap:8px;padding:10px 0 8px;margin:0 0 4px;background:var(--bg)}}
+.mtab{{flex:1;text-align:center;background:var(--card2);color:var(--mut);border:1px solid var(--line);border-radius:11px;padding:11px 10px;cursor:pointer;font-size:15px;font-weight:700;user-select:none}}
+/* 基金分頁：手機橫向滑動（不佔高度）、桌機換行 */
+.tabs{{display:flex;flex-wrap:nowrap;gap:6px;margin:6px 0 2px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;padding-bottom:4px}}
+.tab{{flex:0 0 auto;white-space:nowrap;background:var(--card2);color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:8px 14px;cursor:pointer;font-size:13px;user-select:none}}
+@media(min-width:721px){{.tabs{{flex-wrap:wrap;overflow:visible}}}}
 /* fund card */
 .fund{{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:12px}}
 .fhead{{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}}
@@ -507,7 +565,27 @@ details.fineprint>div{{margin-top:6px;border-left:2px solid var(--line);padding-
 .hmore summary{{cursor:pointer;color:var(--acc);font-size:11.5px}}
 .hmore[open]{{background:rgba(91,141,239,.05);border-radius:6px;padding:4px 8px;line-height:1.7}}
 .foot{{color:var(--mut);font-size:11.5px;margin-top:22px;border-top:1px solid var(--line);padding-top:12px}}
-@media(max-width:720px){{.cols{{grid-template-columns:1fr}}.rets{{grid-template-columns:repeat(3,1fr)}}.navbox{{text-align:left}}}}
+/* ── 行動版（≤720px）：單欄、緊湊間距、可讀字級 ── */
+@media(max-width:720px){{
+.wrap{{padding:0 12px 44px}}
+header{{padding-top:12px}} header h1{{font-size:18px}} .lede{{font-size:12px;line-height:1.55}}
+.section{{padding:12px 12px;margin:12px 0;border-radius:12px}}
+.section>.st{{font-size:15px;flex-wrap:wrap;row-gap:2px}}
+.cols{{grid-template-columns:1fr;gap:14px}}
+.rets{{grid-template-columns:repeat(3,1fr);gap:6px}} .rv{{font-size:13px}}
+.fhead{{flex-direction:column;gap:8px}}
+.navbox{{text-align:left;min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}}
+.nav{{font-size:22px}}
+.fund{{padding:13px 12px}} .fhead h2{{font-size:16.5px}}
+.ndoc{{padding:6px 14px 18px;font-size:14.5px}}
+.ndoc h3{{font-size:15px;padding:10px 12px}}
+.ncard{{padding:12px 12px}} .ntitle{{font-size:14.5px}} .nlead{{font-size:15px;padding:8px 12px}}
+.quick{{padding:9px 12px}} .quick li{{font-size:13.5px}}
+.htbl td{{padding:6px 3px;font-size:13px}} .htbl .rk{{width:16px}}
+.blab{{width:64px;flex:0 0 64px;font-size:11.5px}}
+.newsbar{{gap:6px}} .nswitch{{margin-left:0;width:100%}} .nswitch .nb{{flex:1;text-align:center}}
+.foot{{font-size:11px}}
+}}
 /* ── 動態分頁規則（依基金清單產生的 :checked 顯示規則）── */
 {dyn_css}
 </style></head>
