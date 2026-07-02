@@ -73,7 +73,7 @@ python3 scripts/gen_fund_dashboard.py --open
 bash scripts/daily_fund.sh
 ```
 
-儀表板為**單一 `dashboard/index.html`**（vanilla JS、零外部請求、雙擊即開，無 npm/node）：頂部昨夜美股新聞（兩版型可切換＋🟢/🔴 合規燈），下方每檔基金分頁的持股介紹。
+儀表板為**單一 `dashboard/index.html`**（**零 JS**——分頁切換以純 CSS radio+label 實現，任何禁 script 的預覽環境也能操作；零外部請求、雙擊即開，無 npm/node）：上層「海外／台股」切換，各市場頂部為新聞區塊（⚡本日重點速覽＋重點置頂新聞卡＋兩版型切換＋🟢/🔴 合規燈），下方每檔基金分頁的持股介紹。
 
 ---
 
