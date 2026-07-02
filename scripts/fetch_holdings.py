@@ -8,7 +8,7 @@
 用法：
   python scripts/fetch_holdings.py                 # 海外版全部追蹤基金 → data/funds/
   python scripts/fetch_holdings.py 47 12           # 海外版指定 fundID
-  python scripts/fetch_holdings.py --market tw      # 台股版全部 14 檔 → data/funds_tw/
+  python scripts/fetch_holdings.py --market tw      # 台股版全部 12 檔 → data/funds_tw/
   python scripts/fetch_holdings.py --market tw 06   # 台股版指定 fundID
 """
 import json
@@ -60,6 +60,8 @@ def _parse_args(argv: list[str]) -> tuple[str, list[str]]:
     while i < len(argv):
         a = argv[i]
         if a == "--market":
+            if i + 1 >= len(argv):
+                raise SystemExit("--market 需要指定市場名（如 --market tw）")
             market = argv[i + 1]
             i += 2
             continue

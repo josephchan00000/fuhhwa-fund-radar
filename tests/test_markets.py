@@ -220,6 +220,29 @@ def test_fof_heading_fallback_parses():
     assert hs and hs[0]["name"] == "復華台灣科技優息ETF"
 
 
+def test_svg_pairs_end_anchor_fallback():
+    # fof 頁無「十大持有標的」標題 → sector_alloc 端錨點退用 fof 標的表標題
+    html = ('產業配置<text>50.00 %</text><text>ETF</text>前十大投資標的')
+    assert fhfund._svg_pairs(html, "產業配置", "十大持有標的") == []          # 單一端錨點缺 → 空
+    pairs = fhfund._svg_pairs(html, "產業配置", ["十大持有標的", "前十大投資標的"])
+    assert pairs == [{"name": "ETF", "weight": 50.0}]                        # 候選清單退路可抓到
+    # 既有 str 介面不變（向後相容）
+    html2 = ('國家配置<text>60.76 %</text><text>美國</text>產業配置')
+    assert fhfund._svg_pairs(html2, "國家配置", "產業配置") == [{"name": "美國", "weight": 60.76}]
+
+
+def test_fetch_holdings_market_flag_requires_value():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "fetch_holdings", ROOT / "scripts" / "fetch_holdings.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod._parse_args(["--market", "tw", "06"]) == ("tw", ["06"])
+    assert mod._parse_args(["--market=tw"]) == ("tw", [])
+    with pytest.raises(SystemExit):
+        mod._parse_args(["--market"])          # 缺值 → 明確報錯而非 IndexError
+
+
 def test_dashboard_fof_note_when_empty():
     doc = {"fund_id": "79", "name": "復華台灣智能基金", "group": "fof",
            "group_label": "組合型", "top_holdings": [], "returns": {},
