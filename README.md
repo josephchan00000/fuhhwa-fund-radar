@@ -59,7 +59,7 @@ bash scripts/daily_fund.sh
 | 基本資料 / NAV / 多期報酬 / 經理人 / 月報 / 投資策略 | 復華投信官網 | `GET /api/fund?fundID={id}`（JSON） | 每日 NAV |
 | 十大持有標的（含產業）/ 國家配置 / 產業配置 / 資料日期 | 復華投信官網 | `/funds/funds_detail/{id}`（SSR HTML／SVG 解析） | 月底 |
 | 重點標的簡介 | 人工／查證後落檔 | `config/holding_profiles.json` | 靜態，可增修 |
-| 昨夜美股新聞 | Reuters/Bloomberg/WSJ/FT 等公開來源 | LLM 上網查證 → `reports/usnews/{date}_v*.md` | 每日 |
+| 昨夜美股新聞 | Reuters/Bloomberg/WSJ/FT/CNBC/富途牛牛等公開來源 | LLM 上網查證 → `reports/usnews/{date}_v*.md` | 每日 |
 | 台股盤後重點 | 中央社/經濟日報/鉅亨網等公開來源（指數以證交所/櫃買中心為準） | LLM 上網查證 → `reports/twnews/{date}.md` | 每交易日 |
 
 持股為**月度**官方揭露（如 2026/05/31），NAV 為每日；儀表板皆標「持股基準日」與「NAV 日」以免混淆。連接器純標準庫正則解析（`arm/connectors/fhfund.py`），缺任一端點即該欄留空、不整批崩。

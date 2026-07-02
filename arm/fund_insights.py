@@ -151,8 +151,9 @@ def news_fund_links(funds: list[dict], news_md: str) -> list[dict]:
             if not nm:
                 continue
             ent = holders.setdefault(nm, {"name": nm, "ticker": h.get("ticker"),
-                                          "funds": []})
+                                          "country": h.get("country"), "funds": []})
             ent["ticker"] = ent["ticker"] or h.get("ticker")
+            ent["country"] = ent["country"] or h.get("country")
             ent["funds"].append({"fund_id": str(d.get("fund_id")),
                                  "short_name": d.get("short_name") or d.get("name") or "",
                                  "weight": h.get("weight") or 0})
@@ -171,6 +172,7 @@ def news_fund_links(funds: list[dict], news_md: str) -> list[dict]:
         for nm, display, pats, ent in matchers:
             if any(_hit(text, tl, p) for p in pats):
                 matched.append({"name": nm, "display": display, "ticker": ent["ticker"],
+                                "country": ent.get("country"),
                                 "funds": sorted(ent["funds"],
                                                 key=lambda f: f["weight"], reverse=True)})
         matched.sort(key=lambda m: m["funds"][0]["weight"], reverse=True)
@@ -212,6 +214,21 @@ def fund_intro_copy(doc: dict) -> str:
     lines.append("資料來源：復華投信官網。本內容為公開資訊彙編，非投資建議或招攬；"
                  "過去績效不代表未來表現，申購前應詳閱公開說明書／投資人須知。")
     return "\n".join(lines)
+
+
+def futu_url(ticker: str | None, country: str | None) -> str | None:
+    """富途牛牛個股行情頁連結（點擊看即時行情）。
+
+    僅產格式確定的市場：美股（字母代號 → {T}-US）、陸股 A 股（6 碼數字 →
+    6/9 開頭滬市 -SH、其餘深市 -SZ）；日韓台等格式不確定者回 None、不亂連。"""
+    if not ticker:
+        return None
+    t = str(ticker).strip().upper()
+    if country == "美國" and re.fullmatch(r"[A-Z][A-Z.\-]*", t):
+        return f"https://www.futunn.com/stock/{t}-US"
+    if country == "中國" and re.fullmatch(r"\d{6}", t):
+        return f"https://www.futunn.com/stock/{t}-{'SH' if t[0] in '69' else 'SZ'}"
+    return None
 
 
 def upcoming_distributions(funds: list[dict], today: date | None = None,
