@@ -101,6 +101,65 @@ def compliance_scan(text: str) -> list[str]:
     return sorted(hits)
 
 
+# ── 結構化萃取（供儀表板「今日重點」與「新聞×持股連動」使用；萃取失敗回空、不擋版面） ──
+
+_IDX_LABELS = [(("那斯達克", "Nasdaq", "NASDAQ"), "Nasdaq"),
+               (("費城半導體", "費半", "SOX"), "費半 SOX"),
+               (("標普", "S&P"), "S&P 500")]
+
+
+def extract_indices(md: str) -> list[dict]:
+    """從新聞 markdown 的指數速覽／總覽條列萃取三大指數收盤與漲跌幅。
+
+    回 [{label, close, pct, up}]（依 Nasdaq→費半→S&P 排序、去重取首見）；解析不到回 []。"""
+    out: dict[str, dict] = {}
+    for line in (md or "").splitlines():
+        m = re.match(r"^\s*[-*]\s+\*\*(.+?)\*\*[：:](.*)$", line)
+        if not m:
+            continue
+        label_raw, body = m.group(1), m.group(2)
+        label = next((std for keys, std in _IDX_LABELS
+                      if any(k in label_raw for k in keys)), None)
+        if not label or label in out:
+            continue
+        mc = re.search(r"收\s*([0-9][0-9,]*(?:\.\d+)?)", body)
+        mp = re.search(r"(上漲|下跌)約?\s*([0-9]+(?:\.\d+)?)\s*%", body)
+        if not (mc and mp):
+            continue
+        out[label] = {"label": label, "close": mc.group(1),
+                      "pct": float(mp.group(2)), "up": mp.group(1) == "上漲"}
+    order = [std for _, std in _IDX_LABELS]
+    return sorted(out.values(), key=lambda d: order.index(d["label"]))
+
+
+_CARD_HEAD = re.compile(r"^#{2,3}\s+(?:卡\s*\d+｜|[一二三四五六七八九十]+、)(.+)$")
+
+
+def extract_cards(md: str) -> list[dict]:
+    """切出新聞卡（v1『### 卡 N｜…』／v2『## 一、…』）。
+
+    回 [{title, oneline, body}]；title 去掉尾端（來源…）括注，oneline 取
+    『一句話重點／一句話』行，缺則空字串。"""
+    cards: list[dict] = []
+    cur: dict | None = None
+    for line in (md or "").splitlines():
+        m = _CARD_HEAD.match(line.strip())
+        if m:
+            title = re.sub(r"（[^）]*）\s*$", "", m.group(1)).strip()
+            cur = {"title": title, "oneline": "", "body": ""}
+            cards.append(cur)
+            continue
+        if line.strip().startswith(("## ", "---")) and not _CARD_HEAD.match(line.strip()):
+            cur = None                        # 卡片群結束（次級觀察/合規段等）
+            continue
+        if cur is not None:
+            cur["body"] += line + "\n"
+            mo = re.match(r"^\s*\d*\.?\s*\*\*一句話(?:重點)?\*\*[：:]\s*(.+)$", line)
+            if mo and not cur["oneline"]:
+                cur["oneline"] = mo.group(1).strip().rstrip("。")
+    return cards
+
+
 def _latest_pair() -> dict | None:
     """找最新一組 {date}_v1.md / _v2.md。回 {date, v1, v2}（缺的那版為 None）。"""
     if not NEWS_DIR.exists():
