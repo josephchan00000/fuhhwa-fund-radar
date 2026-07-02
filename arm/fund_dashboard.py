@@ -19,7 +19,7 @@ import html
 import re
 from datetime import datetime
 
-from . import fund_insights, fund_intro, usnews
+from . import fund_insights, fund_intro, twnews, usnews
 
 
 def _esc(s) -> str:
@@ -30,7 +30,7 @@ def _short(doc_or_name) -> str:
     """顯示用簡稱：去『復華』『(-)新臺幣』尾綴。"""
     n = doc_or_name if isinstance(doc_or_name, str) else \
         (doc_or_name.get("short_name") or doc_or_name.get("name") or "")
-    n = n.replace("復華", "")
+    n = n.replace("復華", "", 1)             # 只去品牌前綴（「復華復華基金」保留基金名）
     for suf in ("-新臺幣", "新臺幣"):
         if n.endswith(suf):
             n = n[: -len(suf)]
@@ -100,11 +100,11 @@ def _pct_span(v: float | None, digits: int = 2) -> str:
 
 # ── ⓪ Sticky 頂欄 ────────────────────────────────────────────
 
-def _topbar(news: dict | None, as_of: str, now: str) -> str:
+def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str:
     lamp = "⚪ 尚無新聞"
-    if news:
-        lamp = ("🟢 合規掃描通過" if not news["banned_hits"]
-                else f'🔴 禁用詞：{"、".join(news["banned_hits"])}')
+    if has_news:
+        lamp = ("🟢 合規掃描通過" if not banned_hits
+                else f'🔴 禁用詞：{"、".join(sorted(set(banned_hits)))}')
     return f"""
 <div class="topbar">
   <div class="tb-in">
@@ -113,7 +113,8 @@ def _topbar(news: dict | None, as_of: str, now: str) -> str:
     <span class="tb-lamp">{_esc(lamp)}</span>
     <nav class="tb-nav">
       <a href="#brief">今日重點</a><a href="#overview">基金總覽</a>
-      <a href="#newslinks">新聞連動</a><a href="#news">新聞全文</a><a href="#details">基金詳情</a>
+      <a href="#newslinks">新聞連動</a><a href="#twnews">台股新聞</a>
+      <a href="#news">美股新聞</a><a href="#details">基金詳情</a>
     </nav>
     <button class="tb-print" onclick="window.print()">🖨 晨會版</button>
   </div>
@@ -163,16 +164,23 @@ _OV_COLS = [("nav", "NAV", 0), ("chg", "日變動", 1), ("ytd", "YTD", 1),
             ("conc", "前十大", 0), ("links", "連動", 0), ("risk", "RR", 0)]
 
 
-def _overview(rows: list[dict], leaders: set, fund_links: dict[str, int]) -> str:
+def _overview(rows: list[dict], leaders: set, fund_links: dict[str, int],
+              pending: list[dict]) -> str:
     groups: dict[str, list[dict]] = {}
     for r in rows:
         groups.setdefault(r["group_label"], []).append(r)
+    for p in pending:                        # 待抓取的基金也整組列出（值全為 —）
+        groups.setdefault(p["group_label"], []).append(
+            {"fund_id": p["fund_id"], "short_name": p["name"], "pending": True,
+             "group_label": p["group_label"], "risk": "—",
+             **{k: None for k, _, _ in _OV_COLS if k not in ("links", "risk")}})
     blocks = []
     for g, rs in groups.items():
         trs = []
         for r in rs:
             fid = r["fund_id"]
-            tds = [f'<td class="nm"><a href="#fund-{_esc(fid)}">{_esc(_short(r["short_name"]))}</a></td>']
+            pend = ' <span class="pend">⏳ 待抓取</span>' if r.get("pending") else ""
+            tds = [f'<td class="nm"><a href="#fund-{_esc(fid)}">{_esc(_short(r["short_name"]))}</a>{pend}</td>']
             for k, _, is_pct in _OV_COLS:
                 if k == "links":
                     n = fund_links.get(fid, 0)
@@ -201,9 +209,15 @@ def _overview(rows: list[dict], leaders: set, fund_links: dict[str, int]) -> str
     if not blocks:
         blocks.append('<div class="muted">尚無基金資料。請先執行 '
                       '<code>python3 scripts/fetch_holdings.py</code>。</div>')
+    hint = ""
+    if pending:
+        hint = (f'<div class="pendhint">⏳ {len(pending)} 檔基金（台股清單）已列入追蹤、數據待抓取：'
+                f'雲端環境連不到 fhtrust.com.tw，請在本機執行 '
+                f'<code>python3 scripts/fetch_holdings.py</code> 後重產儀表板即會填滿。</div>')
     return f"""
 <div class="section" id="overview">
-  <div class="st">📊 基金總覽 <span class="stsub">點欄位排序｜點基金名跳詳情｜紅漲綠跌</span></div>
+  <div class="st">📊 基金總覽 <span class="stsub">點欄位標題可排序（⇅）｜點基金名稱跳詳情｜紅漲綠跌</span></div>
+  {hint}
   {"".join(blocks)}
 </div>"""
 
@@ -234,16 +248,40 @@ def _newslinks(linked: list[dict], as_of: str) -> str:
             talk = (f'<div class="talk"><span class="tlab">💬 可講素材（中性）</span>'
                     f'{_esc(script)} <button class="copy" data-copy="{_esc(script)}">📋 複製</button></div>')
         one = f'<div class="nlone">{_esc(c["oneline"])}</div>' if c.get("oneline") else ""
-        cards.append(f'<div class="nlcard"><div class="nlt">{_esc(c["title"])}</div>{one}'
+        mkt = f'<span class="mkt">{_esc(c["market"])}</span>' if c.get("market") else ""
+        cards.append(f'<div class="nlcard"><div class="nlt">{mkt}{_esc(c["title"])}</div>{one}'
                      f'{"".join(rows)}{talk}</div>')
     return f"""
 <div class="section" id="newslinks">
-  <div class="st">🔗 新聞 × 持股連動 <span class="stsub">昨夜新聞 ↔ 前十大持股 ↔ 持有基金（權重）</span></div>
+  <div class="st">🔗 新聞 × 持股連動 <span class="stsub">台股＋美股新聞 ↔ 前十大持股 ↔ 持有基金（權重）</span></div>
   {"".join(cards)}
 </div>"""
 
 
-# ── ④ 昨夜美股新聞全文（收合） ────────────────────────────────
+# ── ④a 台股盤後重點（收合） ──────────────────────────────────
+
+def _twnews_full(tw: dict | None) -> str:
+    if not tw:
+        body = ('<div class="muted">尚無台股盤後重點。請執行 '
+                '<code>python scripts/gen_twnews.py</code> 產提示包，再由 Claude 產出內容。</div>')
+        return f'<div class="section" id="twnews"><div class="st">🇹🇼 台股盤後重點</div>{body}</div>'
+    heads = usnews.extract_cards(tw["md"])
+    headlines = "".join(f'<div class="nh">・{_esc(h["title"])}</div>' for h in heads[:3])
+    doc = _md(tw["md"]) or '<div class="muted">（無內容）</div>'
+    return f"""
+<div class="section" id="twnews">
+  <details class="newswrap">
+    <summary>
+      <span class="st" style="margin:0">📈 台股盤後重點 <span class="stsub">📅 {_esc(tw["date"])}</span>
+        <span class="openbtn"></span></span>
+      {headlines}
+    </summary>
+    <div class="ndoc" style="margin-top:14px">{doc}</div>
+  </details>
+</div>"""
+
+
+# ── ④b 昨夜美股新聞全文（收合） ───────────────────────────────
 
 def _news_full(news: dict | None) -> str:
     if not news:
@@ -258,7 +296,8 @@ def _news_full(news: dict | None) -> str:
 <div class="section" id="news">
   <details class="newswrap">
     <summary>
-      <span class="st" style="margin:0">🗞️ 昨夜美股新聞全文 <span class="stsub">📅 {_esc(news["date"])}｜點擊展開</span></span>
+      <span class="st" style="margin:0">🗞️ 昨夜美股新聞 <span class="stsub">📅 {_esc(news["date"])}</span>
+        <span class="openbtn"></span></span>
       {headlines}
     </summary>
     <div class="newsbar">
@@ -360,14 +399,31 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
 </section>"""
 
 
-def _details(funds: list[dict], gavg: dict, linked_by_fund: dict[str, set[str]]) -> str:
+def _pending_card(p: dict) -> str:
+    note = ("本基金為組合型（fund-of-funds），官網「十大持有標的」揭露結構不同；"
+            if p["fund_id"] == "79" else "")
+    return f"""
+<section class="fund pendcard" id="fund-{_esc(p['fund_id'])}">
+  <div class="fhead"><div>
+    <h2>{_esc(p['name'])} <span class="gl">{_esc(p['group_label'])}</span></h2>
+    <div class="sub">⏳ 已列入追蹤，數據待抓取——{note}雲端環境連不到 fhtrust.com.tw，
+      請在本機執行 <code>python3 scripts/fetch_holdings.py {_esc(p['fund_id'])}</code> 後重產儀表板。</div>
+  </div></div>
+</section>"""
+
+
+def _details(funds: list[dict], gavg: dict, linked_by_fund: dict[str, set[str]],
+             pending: list[dict]) -> str:
     jumps = "".join(f'<a class="jmp" href="#fund-{_esc(d.get("fund_id"))}">{_esc(_short(d))}</a>'
                     for d in funds)
+    jumps += "".join(f'<a class="jmp pendjmp" href="#fund-{_esc(p["fund_id"])}">⏳{_esc(_short(p["name"]))}</a>'
+                     for p in pending)
     cards = "".join(_fund_card(d, gavg, linked_by_fund.get(str(d.get("fund_id")), set()))
                     for d in funds)
+    cards += "".join(_pending_card(p) for p in pending)
     return f"""
 <div class="section" id="details">
-  <div class="st">📚 基金詳情 <span class="stsub">共 {len(funds)} 檔</span></div>
+  <div class="st">📚 基金詳情 <span class="stsub">共 {len(funds) + len(pending)} 檔（{len(funds)} 檔有數據、{len(pending)} 檔待抓取）</span></div>
   <div class="jumps">{jumps}</div>
 </div>
 {cards}"""
@@ -394,56 +450,68 @@ a{color:var(--acc)} code{background:#0b0e13;padding:1px 6px;border-radius:5px;co
 .tb-brand{font-weight:800;font-size:15px}
 .tb-meta{color:var(--mut);font-size:11.5px}
 .tb-lamp{font-size:11.5px;color:var(--mut)}
-.tb-nav{margin-left:auto;display:flex;gap:2px;flex-wrap:wrap}
-.tb-nav a{color:var(--mut);text-decoration:none;font-size:12.5px;padding:4px 9px;border-radius:7px}
-.tb-nav a:hover{color:#fff;background:var(--card2)}
-.tb-print{background:var(--card2);color:var(--mut);border:1px solid var(--line);border-radius:7px;padding:4px 10px;cursor:pointer;font-size:12px}
+.tb-nav{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+.tb-nav a{color:#cfe0ff;text-decoration:none;font-size:14px;padding:5px 12px;border-radius:8px;background:var(--card2);border:1px solid var(--line)}
+.tb-nav a:hover{color:#fff;border-color:var(--acc);background:rgba(91,141,239,.18)}
+.tb-print{background:var(--card2);color:#cfe0ff;border:1px solid var(--line);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:13.5px}
+.tb-print:hover{border-color:var(--acc);color:#fff}
 /* ① brief */
 .ixrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 .ixc{flex:1;min-width:150px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:10px 14px}
 .ixl{font-size:12px;color:var(--mut)} .ixv{font-size:21px;font-weight:800;letter-spacing:.01em}
 .ixp{font-size:13px}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
-.chip{display:inline-flex;align-items:center;gap:5px;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:13px;color:var(--ink);text-decoration:none}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:8px 15px;font-size:14px;color:var(--ink);text-decoration:none}
 .chip b{font-weight:700} .chip.hot{border-color:var(--acc);background:rgba(91,141,239,.12)}
 .chip.dim{color:var(--mut)}
+a.chip{border-color:rgba(91,141,239,.55);cursor:pointer}
+a.chip::after{content:"›";color:var(--acc);font-weight:800;font-size:16px}
+a.chip:hover{border-color:var(--acc);background:rgba(91,141,239,.16)}
 /* ② overview */
 .ovg{font-weight:700;font-size:13.5px;color:#cfe0ff;margin:14px 0 6px}
 .ovwrap{overflow-x:auto}
-.ovtbl{width:100%;border-collapse:collapse;font-size:13.5px}
-.ovtbl th{color:var(--mut);font-size:11.5px;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.ovtbl{width:100%;border-collapse:collapse;font-size:14px}
+.ovtbl th{color:#b7c3d0;font-size:12.5px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .ovtbl th.l{text-align:left}
-.ovtbl th.sk{cursor:pointer;user-select:none} .ovtbl th.sk:hover{color:#fff}
-.ovtbl th .arr{display:inline-block;width:10px;color:var(--acc)}
-.ovtbl th.sd .arr::after{content:"▼"} .ovtbl th.sa .arr::after{content:"▲"}
-.ovtbl td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.ovtbl th.sk{cursor:pointer;user-select:none} .ovtbl th.sk:hover{color:var(--acc)}
+.ovtbl th .arr{display:inline-block;width:13px;color:var(--acc)}
+.ovtbl th .arr::after{content:"⇅";opacity:.55}
+.ovtbl th.sd .arr::after{content:"▼";opacity:1} .ovtbl th.sa .arr::after{content:"▲";opacity:1}
+.ovtbl td{padding:8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .ovtbl td.nm{text-align:left;font-weight:600}
-.ovtbl td.nm a{color:var(--ink);text-decoration:none;border-bottom:1px dashed #3d4753}
-.ovtbl td.nm a:hover{color:var(--acc);border-color:var(--acc)}
+.ovtbl td.nm a{color:#9ecbff;font-size:14.5px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(158,203,255,.5)}
+.ovtbl td.nm a:hover{color:#fff;text-decoration-color:var(--acc)}
 .ovtbl td.lead{background:rgba(240,82,79,.13);border-radius:4px}
 .ovtbl tr:hover td{background:rgba(91,141,239,.06)}
 .lk{text-decoration:none;font-size:12.5px}
 /* ③ news links */
 .nlcard{background:var(--card2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:0 11px 11px 0;padding:12px 16px;margin:10px 0}
-.nlt{font-weight:700;font-size:15px;color:#fff}
-.nlone{color:#cfe0ff;font-size:13px;margin:3px 0 8px}
+.nlt{font-weight:700;font-size:15.5px;color:#fff}
+.nlone{display:table;font-size:14px;margin:6px 0 10px;color:#4a2f14;background:#eeddb7;font-weight:700;padding:1px 8px;border-radius:4px}
 .nlrow{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin:6px 0;font-size:13.5px}
 .nlco{font-weight:700;min-width:110px} .nlfs{color:var(--mut)}
-.fw{color:var(--ink);text-decoration:none;border-bottom:1px dashed #3d4753;margin-right:6px;white-space:nowrap}
-.fw b{color:#fff} .fw:hover{color:var(--acc)}
+.fw{color:#9ecbff;font-size:14px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(158,203,255,.5);margin-right:8px;white-space:nowrap}
+.fw b{color:#fff} .fw:hover{color:#fff;text-decoration-color:var(--acc)}
+.mkt{display:inline-block;font-size:12px;font-weight:700;color:#0e1116;background:#f0b350;border-radius:6px;padding:1px 8px;margin-right:8px;vertical-align:2px}
 .talk{margin-top:10px;background:#0b0e13;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13px;color:#dbe4ee;line-height:1.7}
 .talk.bad{color:var(--mut)}
 .tlab{display:block;font-size:11.5px;color:var(--mut);margin-bottom:3px}
-.copy{background:var(--card2);color:#9ecbff;border:1px solid var(--line);border-radius:7px;padding:3px 10px;cursor:pointer;font-size:12px;margin-left:6px}
-.copy.ok{color:#fff;border-color:var(--acc);background:rgba(91,141,239,.25)}
+.copy{background:rgba(91,141,239,.12);color:#9ecbff;border:1px solid rgba(91,141,239,.55);border-radius:8px;padding:5px 13px;cursor:pointer;font-size:13.5px;font-weight:700;margin-left:6px}
+.copy:hover{border-color:var(--acc);color:#fff}
+.copy.ok{color:#fff;border-color:var(--acc);background:rgba(91,141,239,.3)}
 /* ④ news full */
 .newswrap summary{cursor:pointer;list-style:none}
 .newswrap summary::-webkit-details-marker{display:none}
-.nh{color:var(--mut);font-size:13px;margin:3px 0 0 4px}
+.newswrap summary:hover .openbtn{border-color:var(--acc);color:#fff}
+.openbtn{margin-left:auto;background:rgba(91,141,239,.12);color:#9ecbff;border:1px solid rgba(91,141,239,.55);border-radius:8px;padding:5px 13px;font-size:13.5px;font-weight:700;white-space:nowrap}
+.openbtn::after{content:"▼ 點擊展開全文"}
+.newswrap[open] .openbtn::after{content:"▲ 收合"}
+.nh{color:var(--mut);font-size:13.5px;margin:3px 0 0 4px}
 .newswrap[open] .nh{display:none}
 .newsbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0 12px}
 .nswitch{display:flex;gap:6px}
-.nb{background:var(--card2);color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:6px 14px;cursor:pointer;font-size:13px}
+.nb{background:var(--card2);color:#cfe0ff;border:1px solid var(--line);border-radius:20px;padding:7px 16px;cursor:pointer;font-size:14.5px;font-weight:700}
+.nb:hover{border-color:var(--acc)}
 .nb.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 .ndoc{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 30px 24px;line-height:1.85;font-size:15px;color:#dbe4ee}
 .ndoc.hidden{display:none}
@@ -457,14 +525,20 @@ a{color:var(--acc)} code{background:#0b0e13;padding:1px 6px;border-radius:5px;co
 .ndoc ul li:before{content:"";position:absolute;left:4px;top:12px;width:5px;height:5px;border-radius:50%;background:var(--acc)}
 .ndoc ol li{position:relative;margin:11px 0;padding-left:36px;counter-increment:n}
 .ndoc ol li:before{content:counter(n);position:absolute;left:0;top:2px;width:23px;height:23px;border-radius:50%;background:var(--acc);color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:23px}
-.ndoc b{color:#fff} .ndoc a{text-decoration:none;border-bottom:1px dashed var(--acc);word-break:break-all}
+.ndoc b{color:#4a2f14;background:#eeddb7;font-weight:700;padding:0 4px;border-radius:4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.ndoc h2 b,.ndoc h3 b,.ndoc h4 b{color:inherit;background:none;padding:0}
+.ndoc a{text-decoration:none;border-bottom:1px dashed var(--acc);word-break:break-all}
 .ndoc hr{border:0;border-top:1px solid var(--line);margin:22px 0}
 .ndoc small,.ndoc i{color:var(--mut);font-style:normal}
 .tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:20px;background:rgba(91,141,239,.18);color:#9ecbff;border:1px solid rgba(91,141,239,.35);white-space:nowrap}
 /* ⑤ details */
-.jumps{display:flex;flex-wrap:wrap;gap:6px}
-.jmp{background:var(--card2);color:var(--mut);border:1px solid var(--line);border-radius:9px;padding:5px 11px;font-size:12.5px;text-decoration:none}
-.jmp:hover{color:#fff;border-color:var(--acc)}
+.jumps{display:flex;flex-wrap:wrap;gap:7px}
+.jmp{background:var(--card2);color:#cfe0ff;border:1px solid var(--line);border-radius:9px;padding:7px 13px;font-size:14px;text-decoration:none}
+.jmp:hover{color:#fff;border-color:var(--acc);background:rgba(91,141,239,.14)}
+.pendjmp{color:var(--mut)}
+.pend{display:inline-block;font-size:11.5px;color:#f0b350;border:1px solid rgba(240,179,80,.5);border-radius:10px;padding:0 7px;margin-left:6px;vertical-align:1px}
+.pendhint{background:rgba(240,179,80,.09);border:1px solid rgba(240,179,80,.35);border-radius:10px;padding:9px 13px;font-size:13.5px;color:#e8c990;margin-bottom:10px}
+.pendcard .sub{line-height:1.9}
 .fund{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:12px}
 .fund:target{border-color:var(--acc);box-shadow:0 0 0 2px rgba(91,141,239,.35)}
 .fhead{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}
@@ -503,7 +577,8 @@ a{color:var(--acc)} code{background:#0b0e13;padding:1px 6px;border-radius:5px;co
 /* 晨會列印版：只留今日重點＋總覽＋新聞連動，白底黑字一頁 A4 */
 @media print{
   body{background:#fff;color:#111;font-size:12px}
-  .topbar,.backtop,#news,#details,.fund,.tb-print{display:none!important}
+  .topbar,.backtop,#news,#twnews,#details,.fund,.tb-print,.pendhint{display:none!important}
+  .ndoc b,.nlone{color:#4a2f14;background:#f3e8cd}
   .section{background:#fff;border-color:#bbb;break-inside:avoid;margin:8px 0;padding:10px 12px}
   .ixc,.chip,.nlcard,.talk{background:#fff;border-color:#bbb;color:#111}
   .ixv,.nlt,.ovtbl td.nm a,.chip,.fw,.fw b,.talk{color:#111}
@@ -556,10 +631,17 @@ document.querySelectorAll('.strat').forEach(s=>s.onclick=()=>s.classList.toggle(
 
 def render() -> str:
     funds = fund_intro.all_funds()
+    pending = fund_intro.pending_funds()
     news = usnews.load_latest()
+    tw = twnews.load_latest()
     news_md = (news or {}).get("v1") or (news or {}).get("v2") or ""
+    tw_md = (tw or {}).get("md") or ""
 
-    links = fund_insights.news_fund_links(funds, news_md)
+    links = []
+    for c in fund_insights.news_fund_links(funds, tw_md):
+        links.append({**c, "market": "台股"})
+    for c in fund_insights.news_fund_links(funds, news_md):
+        links.append({**c, "market": "美股"})
     linked = [c for c in links if c["matched"]]
     fund_links: dict[str, int] = {}          # fund_id → 連動的新聞卡數（同卡去重）
     linked_by_fund: dict[str, set[str]] = {}  # fund_id → 連動持股名
@@ -576,24 +658,26 @@ def render() -> str:
     leaders = fund_insights.column_leaders(rows)
     gavg = fund_insights.group_averages(funds)
     best, worst = fund_insights.movers(funds)
-    indices = usnews.extract_indices(news_md)
+    indices = twnews.extract_indices(tw_md) + usnews.extract_indices(news_md)
     dists = fund_insights.upcoming_distributions(funds)
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     as_of = (funds[0].get("as_of") if funds else None) or "—"
+    banned = ((news or {}).get("banned_hits") or []) + ((tw or {}).get("banned_hits") or [])
 
     return f"""<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>復華基金雷達 · 今日重點／總覽／新聞連動／持股介紹</title>
 <style>{_CSS}</style></head>
 <body>
-{_topbar(news, as_of, now)}
+{_topbar(banned, bool(news or tw), as_of, now)}
 <div class="wrap">
-{_brief(indices, best, worst, len(linked), len(fund_links), dists, (news or {}).get("date"))}
-{_overview(rows, leaders, fund_links)}
+{_brief(indices, best, worst, len(linked), len(fund_links), dists, (tw or news or {}).get("date"))}
+{_overview(rows, leaders, fund_links, pending)}
 {_newslinks(linked, as_of)}
+{_twnews_full(tw)}
 {_news_full(news)}
-{_details(funds, gavg, linked_by_fund)}
+{_details(funds, gavg, linked_by_fund, pending)}
 <div class="foot">
   資料來源：復華投信官網（fhtrust.com.tw）基金淨值／持股揭露（月度）；重點標的簡介為中性事實敘述、非投資建議。
   昨夜美股新聞為公開來源彙編、教育用途，非投資建議或招攬；過去績效不代表未來表現，淨值可能因市場變動而上下；
