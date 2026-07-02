@@ -84,6 +84,8 @@
       "weight": 3.26
     }
   ],
+  "holdings_kind": "stock",
+  "holdings_heading": "十大持有標的",
   "country_alloc": [
     {
       "name": "臺灣",
@@ -121,5 +123,5 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-07-02 18:24"
+  "fetched_at": "2026-07-02 12:23"
 }

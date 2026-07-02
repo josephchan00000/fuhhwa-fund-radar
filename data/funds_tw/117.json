@@ -1,0 +1,122 @@
+{
+  "fund_id": "117",
+  "name": "復華台灣好收益基金",
+  "short_name": "台灣好收益",
+  "en_name": "Fuh Hwa Taiwan Good Income Fund",
+  "category": "國內股票型",
+  "region": "台灣",
+  "asset_kind": "股票型",
+  "currency": "新臺幣",
+  "inception": "2021/01/11",
+  "risk_level": "RR4",
+  "mgmt_fee": "1.60%",
+  "size_twd": 5602644741.0,
+  "nav": 21.06,
+  "nav_date": "2026/07/02",
+  "nav_change": -0.09,
+  "nav_change_pct": "-0.43%",
+  "returns": {
+    "ytd": "71.01%",
+    "3m": "50.40%",
+    "6m": "71.01%",
+    "1y": "132.21%",
+    "2y": "116.47%",
+    "3y": "173.04%",
+    "since": "191.87%"
+  },
+  "managers": [
+    "顧克勤"
+  ],
+  "strategy": "投資台股，掌握產業脈動、企業競爭優勢及經營模式，尋找到成長性佳的產業及優質公司，參與企業獲利成長及評價提升機會，創造長期超額報酬之收益 本基金具有收益分配機制，每半年有機會將實現之資本利得回饋予投資人，成為值得長期配置之理財工具",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/117.pdf",
+  "dist_date": "2026/06/30",
+  "dist_rate": "—",
+  "as_of": "2026/05/31",
+  "top_holdings": [
+    {
+      "sector": "電子零組件",
+      "name": "台達電",
+      "weight": 9.38
+    },
+    {
+      "sector": "半導體",
+      "name": "台積電",
+      "weight": 8.74
+    },
+    {
+      "sector": "電子零組件",
+      "name": "台光電",
+      "weight": 7.58
+    },
+    {
+      "sector": "通信網路",
+      "name": "智邦",
+      "weight": 7.46
+    },
+    {
+      "sector": "半導體",
+      "name": "旺矽",
+      "weight": 7.13
+    },
+    {
+      "sector": "半導體",
+      "name": "日月光投控",
+      "weight": 6.51
+    },
+    {
+      "sector": "電子零組件",
+      "name": "欣興",
+      "weight": 5.99
+    },
+    {
+      "sector": "其他電子",
+      "name": "致茂",
+      "weight": 5.98
+    },
+    {
+      "sector": "電子零組件",
+      "name": "金像電",
+      "weight": 5.35
+    },
+    {
+      "sector": "電子零組件",
+      "name": "嘉澤",
+      "weight": 3.74
+    }
+  ],
+  "holdings_kind": "stock",
+  "holdings_heading": "十大持有標的",
+  "country_alloc": [],
+  "sector_alloc": [
+    {
+      "name": "電子零組件",
+      "weight": 34.73
+    },
+    {
+      "name": "半導體",
+      "weight": 33.92
+    },
+    {
+      "name": "通信網路",
+      "weight": 10.12
+    },
+    {
+      "name": "其他電子",
+      "weight": 7.95
+    },
+    {
+      "name": "電腦及週邊設備",
+      "weight": 5.99
+    },
+    {
+      "name": "電機機械",
+      "weight": 3.33
+    },
+    {
+      "name": "流動資產",
+      "weight": 3.96
+    }
+  ],
+  "group": "domestic_equity",
+  "fetched_at": "2026-07-02 12:24"
+}
