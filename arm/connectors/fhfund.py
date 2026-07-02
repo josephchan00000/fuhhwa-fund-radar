@@ -110,12 +110,22 @@ def _rows_of_table_after(html: str, heading: str) -> list[list[str]]:
     return rows
 
 
-def _svg_pairs(html: str, start_heading: str, end_heading: str) -> list[dict]:
+def _svg_pairs(html: str, start_heading: str, end_heading: str | list[str]) -> list[dict]:
     """國家/產業配置為 server-rendered SVG：先出現一組數值 <text>，再一組類別標籤 <text>，
-    兩組平行對位。回傳 [{name, weight}]（濾掉數量不對位的情形）。"""
+    兩組平行對位。回傳 [{name, weight}]（濾掉數量不對位的情形）。
+
+    end_heading 可為候選清單（依序取第一個出現者）：組合型（fof）頁無「十大持有標的」
+    標題，改以 fof 標的表標題收尾，配置區塊才不會因端錨點缺失而整段抓空。"""
     i = html.find(start_heading)
-    j = html.find(end_heading, i + 1) if i >= 0 else -1
-    if i < 0 or j < 0:
+    if i < 0:
+        return []
+    ends = [end_heading] if isinstance(end_heading, str) else end_heading
+    j = -1
+    for e in ends:
+        j = html.find(e, i + 1)
+        if j >= 0:
+            break
+    if j < 0:
         return []
     seg = html[i:j]
     texts = [_text(t) for t in re.findall(r"<text[^>]*>(.*?)</text>", seg, re.S)]
@@ -179,7 +189,7 @@ def fetch_holdings(fund_id: str | int) -> dict:
         "holdings_kind": holdings_kind,          # "stock" | "fund"(fof) | None
         "holdings_heading": holdings_heading,
         "country_alloc": _svg_pairs(html, "國家配置", "產業配置"),
-        "sector_alloc": _svg_pairs(html, "產業配置", "十大持有標的"),
+        "sector_alloc": _svg_pairs(html, "產業配置", ["十大持有標的", *_FOF_HEADINGS]),
     }
 
 

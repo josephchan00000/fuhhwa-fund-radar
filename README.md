@@ -94,7 +94,7 @@ bash scripts/daily_fund.sh
 
 ```
 config/funds.json              海外版追蹤清單（id / name / group）— 單一事實來源
-config/funds_tw.json           台股版追蹤清單（14 檔；domestic_equity / domestic_balanced / fof）
+config/funds_tw.json           台股版追蹤清單（12 檔；domestic_equity / domestic_balanced / fof）
 config/holding_profiles.json   重點標的簡介（中性事實敘述、非投資建議；跨市場共用，key 為持股原字串）
 arm/markets.py                 市場註冊表（global / tw：設定來源 / 資料夾 / 輸出檔名 / 標題 / 新聞源 / 切換鈕名）
 arm/connectors/fhfund.py       復華共同基金連接器（meta+NAV+報酬 / 十大持股 / 國家・產業配置；fof 退路解析基金標的）

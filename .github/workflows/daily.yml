@@ -1,6 +1,6 @@
 name: 復華基金追蹤版本 每日 routine
 
-# 每日雲端 routine：抓海外 11 檔 + 台股 14 檔基金持股介紹（NAV 每日更新）→ 產昨夜美股提示包 → 產儀表板（index.html + tw.html）。
+# 每日雲端 routine：抓海外 11 檔 + 台股 12 檔基金持股介紹（NAV 每日更新）→ 產昨夜美股＋台股新聞提示包 → 產儀表板（整合頁 index.html + 台股獨立頁 tw.html）。
 # 註：昨夜美股「新聞內容」需會上網查證的 LLM 產出（見 scripts/daily_fund.sh 檔頭）；
 #     CI 只自動刷新持股快照與提示包＋重建儀表板，新聞內容另由 Claude/人工補 reports/usnews/{date}_v*.md。
 # 排程：台北時間週一~六 08:30（= UTC 前一日 00:30，抓昨夜美股後的當日 NAV/新聞）。可手動 workflow_dispatch。

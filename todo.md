@@ -40,64 +40,62 @@
 
 ## 二、需先拍板的設計決策
 
-- [ ] **D1 · 台股版昨夜新聞要哪一種？**
+- [x] **D1 · 台股版昨夜新聞要哪一種？** → **拍板 (b)**：新版型「台股盤後重點 + 盤前美股影響」（`arm/twnews.py` + `scripts/gen_twnews.py`，沿用 usnews 禁用詞合規掃描）。
   - (a) 沿用「昨夜美股」digest（台股半導體高度連動美股，仍高度相關）＝零額外工。
-  - (b) 改做「台股盤後重點 + 盤前美股影響」新版型（需新 spec + 產生器分支）。
+  - (b) 改做「台股盤後重點 + 盤前美股影響」新版型（需新 spec + 產生器分支）。← 採用
   - (c) 兩者都放（美股 + 台股各一區塊）。
-  - 建議：先 (a) 上線，之後視需求加 (b)。
-- [ ] **D2 · UI 形態？**
-  - (a) 獨立頁 `dashboard/tw.html`（最省、最低風險，海外版完全不動）。← 建議
-  - (b) 同一頁加「台股／海外」上層切換（整合體驗、需較多改動）。
-- [ ] **D3 · 同基金多類別（A/B、A/TISA）是否合併？**
-  - (a) 全列（與海外版一致，用 id 當唯一鍵）。← 建議、最省
-  - (b) 只留主類別，避免重複。
-- [ ] **D4 · 台灣智能(79) 若持股抓不到，如何呈現？** 只顯示 meta/NAV/報酬/月報 + 標「本基金為組合型，持股揭露於月報」；或另解析其 ETF 持股（見風險①）。
+- [x] **D2 · UI 形態？** → **拍板 (b)**：同一頁上層「海外／台股」切換（`fund_dashboard.render_combined` → `dashboard/index.html`；另保留 `--market tw` 產台股獨立頁 `tw.html`）。
+  - (a) 獨立頁 `dashboard/tw.html`（最省、最低風險，海外版完全不動）。
+  - (b) 同一頁加「台股／海外」上層切換（整合體驗、需較多改動）。← 採用
+- [x] **D3 · 同基金多類別（A/B、A/TISA）是否合併？** → **拍板 (b)**：只留主類別（捨 123 高股息B、125 全方位TISA）→ 追蹤 **12 檔**。
+  - (a) 全列（與海外版一致，用 id 當唯一鍵）。
+  - (b) 只留主類別，避免重複。← 採用
+- [x] **D4 · 台灣智能(79) 若持股抓不到，如何呈現？** → **拍板：另解析其 ETF 持股**（`fhfund` 退路嘗試 `_FOF_HEADINGS` 下的基金/ETF 標的表，`holdings_kind="fund"`；仍抓不到則顯示組合型說明＋月報連結）。⚠ 標題候選需以 79 實際頁面驗證（見風險①）。
 
 ---
 
 ## 三、建置步驟（checklist）
 
 ### A. 多市場參數化（核心，低風險）
-- [ ] `config/funds_tw.json`：上表 14 檔，每筆 `{id, name, group}`；group ∈ `domestic_equity | domestic_balanced | fof`。
-- [ ] `arm/markets.py`（新）：市場註冊表，例：
-      `MARKETS = {"global": {...}, "tw": {"funds":"funds_tw.json","data":"funds_tw","out":"tw.html","title":"復華台股基金追蹤版本","news":"us"}}`
-- [ ] `arm/config.py`：`funds()` 加 `market="global"` 參數（讀對應 json）；保持既有無參呼叫相容。
-- [ ] `arm/fund_intro.py`：`load/all_funds` 參數化資料夾與設定來源（依 market）；`FUNDS_DIR` 改由 market 決定。
-- [ ] `arm/fund_dashboard.py`：`render(market="global")`，標題/資料源/新聞區塊依 market；輸出檔名由 market 決定。
+- [x] `config/funds_tw.json`：依 D3(b) 為 12 檔，每筆 `{id, name, group}`；group ∈ `domestic_equity | domestic_balanced | fof`。
+- [x] `arm/markets.py`（新）：市場註冊表（global/tw：funds/data/out/title/subtitle/news/news_label/tab_label）。
+- [x] `arm/config.py`：`funds()` 加 `market="global"` 參數（讀對應 json）；保持既有無參呼叫相容。
+- [x] `arm/fund_intro.py`：`load/all_funds` 參數化資料夾與設定來源（依 market）；新增 `funds_dir(market)`；`GROUP_LABEL` 補台股三組。
+- [x] `arm/fund_dashboard.py`：`render(market="global")` ＋ `render_combined()`（D2b 整合頁），標題/資料源/新聞區塊依 market。
 
 ### B. 抓資料
-- [ ] `scripts/fetch_holdings.py`：加 `--market tw`（或新 `fetch_holdings_tw.py`）→ 寫 `data/funds_tw/{id}.json`。
-- [ ] 跑一次全 14 檔，確認 NAV/十大/國家(台股多為單一)/產業/基準日皆有；記錄 79 的狀況。
-- [ ] `.gitignore`：比照 `data/funds/*.json`，放行 `data/funds_tw/*.json`。
+- [x] `scripts/fetch_holdings.py`：加 `--market tw` → 寫 `data/funds_tw/{id}.json`。
+- [ ] ⚠ 跑一次全 12 檔，確認 NAV/十大/國家/產業/基準日皆有；記錄 79 的狀況。（**本開發環境 egress 封鎖 fhtrust.com.tw，需在可連外環境跑**，如 GitHub Actions daily.yml）
+- [x] `.gitignore`：比照 `data/funds/*.json`，放行 `data/funds_tw/*.json`。
 
 ### C. 重點標的簡介（台股個股）
-- [ ] 收集 14 檔的持股聯集（扣掉已在 `config/holding_profiles.json` 的台達電/欣興/台光電/台積電/旺矽…）。
-- [ ] 補齊台股新標的簡介（中性事實、非投資建議）。可直接擴充 `config/holding_profiles.json`（同一檔跨市場共用，key 為原字串）。
-- [ ] 驗證：所有台股持股經 `fund_intro.load` 合併後皆有 intro（比照海外版的 110/110 全覆蓋檢查）。
+- [ ] ⚠ 收集 12 檔的持股聯集（需先完成 B 的實抓）。
+- [x] 預補台股常見大型持股簡介（中性事實、非投資建議）至 `config/holding_profiles.json`（台積電/台達電/欣興/台光電/旺矽原有；新增鴻海/廣達/聯發科/金控股等 29 檔）。
+- [ ] ⚠ 驗證：所有台股持股經 `fund_intro.load` 合併後皆有 intro（全覆蓋檢查；待 B 實抓後執行）。
 
 ### D. 儀表板 + 產生器
-- [ ] `scripts/gen_fund_dashboard.py`：加 `--market tw` → 產 `dashboard/tw.html`。
-- [ ] 若採 D1(a)：`arm/usnews.load_latest()` 直接沿用（同一份昨夜美股）。
-- [ ] 目視檢查 `dashboard/tw.html`：14 分頁、持股介紹、配置圖、新聞區塊、合規揭露。
+- [x] `scripts/gen_fund_dashboard.py`：預設產整合頁 `index.html`（D2b）；`--market tw` → 台股獨立頁 `dashboard/tw.html`。
+- [x] 採 D1(b)：新增 `arm/twnews.py` ＋ `scripts/gen_twnews.py`（台股盤後重點＋盤前美股影響）。
+- [ ] ⚠ 目視檢查台股面板：12 分頁、持股介紹、配置圖、新聞區塊、合規揭露（待 B 實抓有資料後）。
 
 ### E. Routine / CI / 文件
-- [ ] `scripts/daily_fund.sh`：加跑台股（`fetch_holdings --market tw` + `gen_fund_dashboard --market tw`）。
-- [ ] `.github/workflows/daily.yml`：artifact/commit 納入 `data/funds_tw/*.json`。
-- [ ] `README.md`：加台股版本段落與追蹤清單。
+- [x] `scripts/daily_fund.sh`：加跑台股（`fetch_holdings --market tw` + `gen_twnews` + 整合頁/獨立頁）。
+- [x] `.github/workflows/daily.yml`：artifact/commit 納入 `data/funds_tw/*.json` + `reports/twnews/*_v*.md` + `dashboard/tw.html`。
+- [x] `README.md`：加台股版本段落與追蹤清單（含 D1–D4 決策記錄）。
 
 ### F. 測試
-- [ ] `tests/`：新增台股 config 載入、`funds_tw.json` 完整性、市場參數化 `fund_intro`/`fund_dashboard` 冒煙測試。
-- [ ] `python3 -m pytest -q` 全綠。
+- [x] `tests/test_markets.py`：台股 config 載入、`funds_tw.json` 完整性、市場參數化 `fund_intro`/`fund_dashboard` 冒煙、twnews、整合頁切換、fof 解析。
+- [x] `python3 -m pytest -q` 全綠（151 passed）。
 
 ---
 
 ## 四、驗收（DoD）
 
-- [ ] `dashboard/tw.html` 呈現 14 檔台股基金的完整持股介紹（NAV/報酬/配置/十大＋簡介），資料 100% 來自復華官網、可追溯。
-- [ ] 台股持股簡介全覆蓋（無 `no_intro`）。
-- [ ] 昨夜新聞區塊（依 D1）正常、合規燈 🟢。
-- [ ] 全測綠；`daily_fund.sh` 一鍵可重建海外版 + 台股版。
-- [ ] 合規揭露齊備（受益憑證、過去績效不代表未來、非投資建議、禁用詞掃描）。
+- [ ] ⚠ 整合頁台股面板呈現 12 檔台股基金的完整持股介紹（NAV/報酬/配置/十大＋簡介），資料 100% 來自復華官網、可追溯。（待可連外環境實抓；本開發環境 fhtrust.com.tw 被 egress 封鎖）
+- [ ] ⚠ 台股持股簡介全覆蓋（無 `no_intro`）。（待實抓後跑全覆蓋檢查）
+- [x] 新聞區塊（D1b 台股版型＋海外美股版型）機制正常、合規掃描（禁用詞＋否定詞豁免）可運作。
+- [x] 全測綠（151 passed）；`daily_fund.sh` 一鍵可重建海外版 + 台股版（整合頁＋獨立頁）。
+- [x] 合規揭露齊備（受益憑證、過去績效不代表未來、非投資建議、禁用詞掃描；台股版揭露段不含境外匯率語、補平衡型債券風險）。
 
 ---
 
