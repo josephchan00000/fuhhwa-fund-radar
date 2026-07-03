@@ -18,6 +18,19 @@ from arm import macronews, usnews  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 PROMPT_DIR = ROOT / "reports" / "macronews" / "prompts"
+CAL_PROMPT_DIR = ROOT / "reports" / "macrocal" / "prompts"
+
+
+def build_cal_prompt(today: date) -> str:
+    return f"""你是「台灣投信公司政策面速寫編輯」。請以繁體中文、用 WebSearch/WebFetch 實際查證，
+產出【本週美國重點經濟數據行事曆】，存成：reports/macrocal/{today:%Y-%m-%d}.md
+（台北今日 {today:%Y/%m/%d}；以今日所在整週週一~週五為範圍）。
+
+────────────────────────────────────────
+{macronews.SPEC_CAL}
+
+【必守】數字勿杜撰、查不到填「—」；狀態只填「已公布／未公布／休市」；僅資訊彙編、非投資建議、不含禁用詞。
+"""
 
 
 def build_prompt(today: date) -> str:
@@ -61,11 +74,15 @@ def main() -> None:
         return
     today = date.today()
     PROMPT_DIR.mkdir(parents=True, exist_ok=True)
+    CAL_PROMPT_DIR.mkdir(parents=True, exist_ok=True)
     out = PROMPT_DIR / f"{today:%Y-%m-%d}.md"
     out.write_text(build_prompt(today), encoding="utf-8")
+    cal_out = CAL_PROMPT_DIR / f"{today:%Y-%m-%d}.md"
+    cal_out.write_text(build_cal_prompt(today), encoding="utf-8")
     print(f"[總經政策 提示包] 已寫入 {out}")
+    print(f"[本週行事曆 提示包] 已寫入 {cal_out}")
     print(f"  昨夜美股交易日：{macronews.us_session_date(today):%Y/%m/%d}（美東，以實際交易日為準）")
-    print("  下一步：由會上網查證的 Claude 依提示包產 reports/macronews/{date}.md")
+    print("  下一步：由會上網查證的 Claude 依提示包產 reports/macronews/{date}.md 與 reports/macrocal/{date}.md")
 
 
 if __name__ == "__main__":
