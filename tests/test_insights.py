@@ -209,12 +209,13 @@ def test_render_sections_order_and_taiwan_colors():
     assert html.count("<details") >= 3                 # 每則新聞各一收合塊（預設收合）
     assert 'class="ngpts"' in html                     # 展開內含影響分析條列
     assert 'class="nglink' in html                     # 展開內含原文連結
-    assert "--gain:#f0524f" in html and "--loss:#2ea94f" in html    # 紅漲綠跌
+    assert "--gain:#d33a34" in html and "--loss:#1f9d57" in html    # 紅漲綠跌（米色底調色）
+    assert "--bg:#efe7d3" in html                                   # 米色底主題
     assert 'class="topbar"' in html and "@media print" in html
     assert 'th class="sk"' in html                     # 可排序表頭
     assert "data-copy=" in html                        # 複製鈕
     assert 'class="openbtn2"' in html                  # 逐則展開/收合按鈕（可點性）
-    assert "background:#eeddb7" in html                # 新聞重點深咖啡標注
+    assert "--hl:#4a2f14" in html and "--hlbg:#f0e2bd" in html  # 新聞重點深咖啡標注（米色底調色）
 
 
 def test_render_market_views():
