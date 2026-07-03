@@ -402,13 +402,14 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
     ga = gavg.get(doc.get("group_label") or "", {})
     cells = []
     for k, lab in fund_insights.RET_KEYS + [("since", "成立以來")]:
-        v = fund_insights.parse_pct(ret.get(k))
+        v = fund_insights.parse_period_pct(ret.get(k))
         avg = ga.get(k)
         beat = ' <span class="beat" title="高於同組平均">●</span>' \
             if (v is not None and avg is not None and v > avg) else ""
         sub = f'<div class="ga">同組均 {avg:.1f}%</div>' if avg is not None else ""
+        disp = ret.get(k) if v is not None else "—"
         cells.append(f'<div class="rc"><div class="rk2">{lab}</div>'
-                     f'<div class="rv">{_esc(ret.get(k) or "—")}{beat}</div>{sub}</div>')
+                     f'<div class="rv">{_esc(disp)}{beat}</div>{sub}</div>')
     size = doc.get("size_twd")
     size_s = f"{size / 1e8:.1f} 億元" if size else "—"
     mr = (f'<a class="mrpt" href="{_esc(doc["monthly_report"])}" target="_blank" rel="noopener">📄 基金月報</a>'
