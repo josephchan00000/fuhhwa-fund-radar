@@ -127,8 +127,8 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     <span class="tb-lamp">{_esc(lamp)}</span>
     <nav class="tb-nav">
       <a href="#brief">今日重點</a><a href="#newsdigest">新聞重點</a>
-      <a href="#newslinks">焦點個股</a><a href="#overview">基金總覽</a>
-      <a href="#details">基金詳情</a><a href="#news">新聞全文</a>
+      <a href="#news">新聞全文</a><a href="#newslinks">焦點個股</a>
+      <a href="#overview">基金總覽</a><a href="#details">基金詳情</a>
     </nav>
     <button class="tb-print" onclick="window.print()">🖨 晨會版</button>
   </div>
@@ -399,37 +399,31 @@ def _details_block(funds: list[dict], gavg: dict, linked_by_fund: dict[str, set[
 
 # ── ⑥ 新聞全文（預設收合、最下面） ────────────────────────────
 
-def _newsfull_tw(tw: dict | None) -> str:
-    if not tw:
-        return ('<div class="muted">尚無台股重點。請執行 '
-                '<code>python scripts/gen_twnews.py</code> 產提示包，再由 Claude 產出內容。</div>')
-    label = tw.get("label") or "台股盤後重點"
-    doc = _md(tw["md"]) or '<div class="muted">（無內容）</div>'
-    return f"""
-<details class="newswrap">
-  <summary><span class="st" style="margin:0">📈 {_esc(label)}全文
-    <span class="stsub">📅 {_esc(tw["date"])}</span><span class="openbtn"></span></span></summary>
-  <div class="ndoc" style="margin-top:14px">{doc}</div>
-</details>"""
-
-
-def _newsfull_us(news: dict | None) -> str:
-    if not news:
-        return ('<div class="muted">尚無昨夜美股新聞。請執行 '
-                '<code>python scripts/gen_usnews.py</code> 產提示包，再由 Claude 產出兩版型。</div>')
-    v1 = _md(news.get("v1") or "") or '<div class="muted">（無版型一）</div>'
-    v2 = _md(news.get("v2") or "") or '<div class="muted">（無版型二）</div>'
-    return f"""
-<details class="newswrap">
-  <summary><span class="st" style="margin:0">🗞️ 昨夜美股新聞全文
-    <span class="stsub">📅 {_esc(news["date"])}</span><span class="openbtn"></span></span></summary>
-  <div class="newsbar">
-    <span class="nswitch"><button class="nb on" data-nv="v1">Top 3 速寫包</button>
-      <button class="nb" data-nv="v2">精簡版</button></span>
-  </div>
-  <div class="ndoc" data-nv="v1">{v1}</div>
-  <div class="ndoc hidden" data-nv="v2">{v2}</div>
-</details>"""
+def _newsfull(md: str, empty_hint: str) -> str:
+    """逐則新聞全文：每張新聞卡各自一個 <details>（預設收合），
+    其餘（指數速覽／資料侷限／合規揭露）另置一收合塊。"""
+    head, cards, tail = usnews.split_doc(md or "")
+    if not cards and not (md or "").strip():
+        return f'<div class="muted">{empty_hint}</div>'
+    items = []
+    for c in cards:
+        meta = f'<span class="nim">{_esc(c["meta"])}</span>' if c.get("meta") else ""
+        body = _md(c["body"]) or '<div class="muted">（無內文）</div>'
+        items.append(
+            f'<details class="newsone"><summary>'
+            f'<span class="nit">{_esc(c["title"])}</span>{meta}'
+            f'<span class="openbtn2"></span></summary>'
+            f'<div class="ndoc nibody">{body}</div></details>')
+    extra = "\n\n".join(x for x in (head, tail) if x)
+    if extra:
+        items.append(
+            f'<details class="newsone"><summary>'
+            f'<span class="nit">📄 指數速覽・資料侷限・合規揭露</span>'
+            f'<span class="openbtn2"></span></summary>'
+            f'<div class="ndoc nibody">{_md(extra)}</div></details>')
+    if not items:
+        return f'<div class="muted">{empty_hint}</div>'
+    return "".join(items)
 
 
 # ── 樣式與腳本（非 f-string，避免大括號跳脫） ─────────────────
@@ -537,6 +531,19 @@ a.tk:hover{color:#fff}
 .openbtn{margin-left:auto;background:rgba(91,141,239,.12);color:#9ecbff;border:1px solid rgba(91,141,239,.55);border-radius:8px;padding:5px 13px;font-size:13.5px;font-weight:700;white-space:nowrap}
 .openbtn::after{content:"▼ 點擊展開全文"}
 .newswrap[open] .openbtn::after{content:"▲ 收合"}
+/* 逐則新聞收合塊 */
+.newsone{background:var(--card2);border:1px solid var(--line);border-radius:11px;margin:8px 0;overflow:hidden}
+.newsone>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:12px 16px}
+.newsone>summary::-webkit-details-marker{display:none}
+.newsone>summary:hover{background:rgba(91,141,239,.06)}
+.newsone[open]>summary{border-bottom:1px solid var(--line)}
+.nit{font-weight:700;font-size:14.5px;color:#fff}
+.nim{color:var(--mut);font-size:12px}
+.openbtn2{margin-left:auto;flex:0 0 auto;color:#9ecbff;font-size:12.5px;font-weight:700;white-space:nowrap}
+.openbtn2::after{content:"▼ 展開"}
+.newsone[open] .openbtn2::after{content:"▲ 收合"}
+.nibody{border:0;border-radius:0;margin:0;padding:2px 22px 16px}
+.nibody>*:first-child{margin-top:8px}
 .newsbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0 12px}
 .nswitch{display:flex;gap:6px}
 .nb{background:var(--card2);color:#cfe0ff;border:1px solid var(--line);border-radius:20px;padding:7px 16px;cursor:pointer;font-size:14.5px;font-weight:700}
@@ -731,8 +738,15 @@ def render() -> str:
     d_gl = _digest_view(usnews.extract_cards(us_md),
                         "尚無昨夜美股新聞。請執行 <code>python scripts/gen_usnews.py</code>。")
     sec_digest = (f'<div class="section" id="newsdigest"><div class="st">📰 新聞重點 '
-                  f'<span class="stsub">摘要＋原文連結（↗ 可點開來源）｜全文收合於頁面最下方</span></div>'
+                  f'<span class="stsub">摘要＋原文連結（↗ 可點開來源）</span></div>'
                   f'{_mkt(d_tw, d_gl)}</div>')
+
+    # ②b 新聞全文（緊接新聞重點下方；逐則預設收合）
+    tw_full_hint = "尚無台股新聞。請執行 <code>python scripts/gen_twnews.py</code>。"
+    gl_full_hint = "尚無昨夜美股新聞。請執行 <code>python scripts/gen_usnews.py</code>。"
+    sec_full = (f'<div class="section" id="news"><div class="st">🗞️ 新聞全文 '
+                f'<span class="stsub">點各則標題展開／收合（預設全部收合）</span></div>'
+                f'{_mkt(_newsfull(tw_md, tw_full_hint), _newsfull(us_md, gl_full_hint))}</div>')
 
     # ③ 當日焦點個股（新聞連動）
     l_tw = _newslinks_view(linked_tw, "今日台股新聞與追蹤基金前十大持股無直接連動")
@@ -753,10 +767,6 @@ def render() -> str:
     sec_det = (f'<div class="section" id="details"><div class="st">📚 基金詳情</div></div>'
                f'{_mkt(c_tw, c_gl)}')
 
-    # ⑥ 新聞全文（預設收合、最下面）
-    sec_full = (f'<div class="section" id="news">'
-                f'{_mkt(_newsfull_tw(tw), _newsfull_us(news))}</div>')
-
     return f"""<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>復華基金雷達 · 台股/全球雙視圖</title>
@@ -768,10 +778,10 @@ def render() -> str:
 <div class="wrap">
 {sec_brief}
 {sec_digest}
+{sec_full}
 {sec_links}
 {sec_over}
 {sec_det}
-{sec_full}
 <div class="foot">
   資料來源：復華投信官網（fhtrust.com.tw）基金淨值／持股揭露（月度）；重點標的簡介為中性事實敘述、非投資建議。
   台股盤後重點與昨夜美股新聞為公開來源彙編、教育用途，非投資建議或招攬；過去績效不代表未來表現，淨值可能因市場變動而上下；
