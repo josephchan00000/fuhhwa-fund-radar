@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/03 08:18",
+  "as_of": "2026/07/03 23:46",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -53,6 +53,13 @@
       "datetime": "2026-07-01T09:30:58+00:00"
     },
     {
+      "title": "主動台股ETF上半年績效冠軍00991A首次配息金額公布- 理財",
+      "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTFBsb01ERy1BTGtocWtkTUVBOUlDdWRFSDlXcHNDTGZTdWtvSXRmNEtSSEVUVU0yVERFYW5SY096ZHhkRG02RXQzSnpOVGtjN2dVVGhKdDZ6c0xSN1lIUTlZ?oc=5",
+      "source": "工商時報",
+      "date": "2026-07-01 08:39",
+      "datetime": "2026-07-01T08:39:00+00:00"
+    },
+    {
       "title": "復華全球平衡基金-新臺幣，老牌基金為何還能稱霸？22年百萬變七百萬。",
       "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE93bFJfLWE0RXAtbjVTOGExQWY4d0NUYXZoRXpRZHBvUnBJcWJOX19RSWhmZjZuWWZnZ0FONndPUnBtWFNTSThGRWlEdWw1Mm9VRmJxR0ptYV9YMmhDa1E1cmVKMl9YbFZiQU5YcEhhN3pnQ0VKdnRMcEpDdGNyUQ?oc=5",
       "source": "CMoney投資網誌",
@@ -86,7 +93,15 @@
       "short_names": [
         "全球大趨勢新臺幣"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "最新復華全球大趨勢基金-新臺幣(FHI001)推薦文章、新聞｜投資網誌",
+          "url": "https://news.google.com/rss/articles/CBMiUEFVX3lxTFBodmRMWEk2V0w4VFlDN1EwNTBuM0dTU3c0cUNKYTRBZWxILWc2QUtwSzlHZDVYMVBCNTNUelNra0Zka2pGZHhXd0g5Nk1Vb3hW?oc=5",
+          "source": "CMoney",
+          "date": "2026-07-02 07:22",
+          "datetime": "2026-07-02T07:22:00+00:00"
+        }
+      ]
     },
     {
       "base": "復華全球物聯網科技基金",
@@ -131,15 +146,7 @@
       "short_names": [
         "亞太成長"
       ],
-      "items": [
-        {
-          "title": "基金特蒐／亞太成長基金 分批進場",
-          "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE9jZTlTZ2NxWC03WUFBQ0tLZXhLT000ck9fbjE0VHJId1dudFRvbVdJLWFNRG15M1BndndRN29lR2tUQ0ppa0JxY2ZLdkN4eDdfYkHSAVdBVV95cUxQOEdjdHFHalRxbDJjNzB5cWp4LWZIVGNvOVFiOVhRTDFQZEtBdGZxWVhvZzRrcXZ3TWlWblNkZWZieGN2UzBaTkZPbmtJOU80LTV1Q3FFV1k?oc=5",
-          "source": "UDN",
-          "date": "2026-06-26 17:19",
-          "datetime": "2026-06-26T17:19:47+00:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華亞太神龍科技基金",
@@ -246,10 +253,10 @@
       "items": [
         {
           "title": "百億人氣基金大比拚，「高成長」榮登3月進場抄底王",
-          "url": "https://news.google.com/rss/articles/CBMizAJBVV95cUxPNUhTdEt5QXJJWFFSQjJzQmZnUjM3Z0ltSnJxMDdTMzZZMUhZQ01MRDdyZU5Gb18xd1BXVVpNVWVXN002MXU1QTVvOElUNnBWUlBJNnRUYkFYVXRyTE5fdzZlUG5JMWpnaU41RHJlMVN2d3p3YmdNeHg5bXNuS0lDWlE2UTFqYXNuaVpnS08wOGZDNHVZUDRpOTNXdVhBN2hfdU5hTUlhS2x1OTVyemVnY2c4YWdMb3RxUS1yMUpNcTduQ2tSR3U4Xzh4Q2NBeWltZmJ6c3poaXNqWVdTXzlVT0VWdUcxVHR1Y0plcEZFV19nZzZoSHdGX0k1R0puWWthME81ZzB6X1Z5RkNvVWhfeHRmMDBGOVJPZnNkNG1rZnducmtMMGI0Y0lGTkx6NkdYb3ZQM0R1dFdSTUpEYTRCWUJpTjlQQlVyTHpHMg?oc=5",
-          "source": "yesmedia.com.tw",
-          "date": "2026-06-30 03:41",
-          "datetime": "2026-06-30T03:41:30+00:00"
+          "url": "https://news.google.com/rss/articles/CBMiXkFVX3lxTFBDNHlxbXYwdnVheExQd09ZVnVYZnNVbjlzNDk5SEZ5VUhWMXAtQlNKVERRUEhnWWJsRHY2UDFYcWN1cjM4M3JYcEExem9BWHN0ZzhMRjhPaUpaNkJaN0E?oc=5",
+          "source": "extra.rakuya.com.tw",
+          "date": "2026-06-30 03:05",
+          "datetime": "2026-06-30T03:05:44+00:00"
         }
       ]
     },
@@ -315,7 +322,15 @@
       "short_names": [
         "傳家"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華傳家二號基金",
+          "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxQcVZZbzRGblh4U2NqNXdLOFl0Y3dORHcwNGZmcVJ4WUpBMmdzS0Joa0tiZ0k5YjdNMFZ5b1VUaGE4cXg0MkQ0YmhIY2FTV0poRFdtVFh2MWk5Z2EtNFdxSkNUUHVuVTRfU2JYUGMya1BJODkzbHBwQXBpUG91eHREZXlCQnNVNFRSd0dHMnBFOTNTTVc3QlhvWEoyRnRCWW1PWWZPenNLQUZRMVZJQm56OFFJM01BTlBGektINlJRY0pvdw?oc=5",
+          "source": "鉅亨網",
+          "date": "2026-07-01 07:00",
+          "datetime": "2026-07-01T07:00:00+00:00"
+        }
+      ]
     },
     {
       "base": "復華傳家二號基金",
@@ -325,7 +340,15 @@
       "short_names": [
         "傳家二號"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華傳家二號基金",
+          "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxQcVZZbzRGblh4U2NqNXdLOFl0Y3dORHcwNGZmcVJ4WUpBMmdzS0Joa0tiZ0k5YjdNMFZ5b1VUaGE4cXg0MkQ0YmhIY2FTV0poRFdtVFh2MWk5Z2EtNFdxSkNUUHVuVTRfU2JYUGMya1BJODkzbHBwQXBpUG91eHREZXlCQnNVNFRSd0dHMnBFOTNTTVc3QlhvWEoyRnRCWW1PWWZPenNLQUZRMVZJQm56OFFJM01BTlBGektINlJRY0pvdw?oc=5",
+          "source": "鉅亨網",
+          "date": "2026-07-01 07:00",
+          "datetime": "2026-07-01T07:00:00+00:00"
+        }
+      ]
     },
     {
       "base": "復華人生目標基金",
@@ -360,7 +383,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：華人世紀、亞太成長、亞太神龍科技、全球平衡、亞太平衡、高成長（詳下方各基金新聞）",
+    "近 7 天有專屬報導的基金：全球大趨勢、華人世紀、亞太神龍科技、全球平衡、亞太平衡、高成長 等 8 檔（詳下方各基金新聞）",
     "品牌焦點：老牌基金為何還能稱霸？這檔基金讓百萬變千萬的秘密。（CMoney投資網誌）"
   ]
 }
