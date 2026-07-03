@@ -46,10 +46,31 @@ def run(ids: list[str]) -> list[dict]:
                       "category": doc.get("category"), "region": doc.get("region"),
                       "nav": doc.get("nav"), "nav_date": doc.get("nav_date"),
                       "as_of": doc.get("as_of"), "n_top": n})
-    (OUT / "_index.json").write_text(
-        json.dumps({"as_of": datetime.now().strftime("%Y-%m-%d %H:%M"), "funds": index},
-                   ensure_ascii=False, indent=2), encoding="utf-8")
+    _write_index(index)
     return index
+
+
+def _write_index(fetched: list[dict]) -> None:
+    """把本次抓到的檔目「合併」進 _index.json（依 config 順序重排）。
+
+    部分抓取（指定 fundID）或全數失敗時，不得清掉既有索引——只更新本次成功的檔目。"""
+    old: dict[str, dict] = {}
+    fp = OUT / "_index.json"
+    if not fetched and fp.exists():          # 全數失敗：保留最後一次成功狀態（含 as_of）
+        return
+    if fp.exists():
+        try:
+            old = {str(e.get("id")): e
+                   for e in json.loads(fp.read_text(encoding="utf-8")).get("funds", [])}
+        except Exception:
+            old = {}
+    old.update({str(e["id"]): e for e in fetched})
+    order = [str(f["id"]) for f in config.funds()]
+    merged = [old[i] for i in order if i in old]
+    merged += [e for i, e in old.items() if i not in order]      # 已移出清單者仍保留
+    fp.write_text(json.dumps({"as_of": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                              "funds": merged}, ensure_ascii=False, indent=2),
+                  encoding="utf-8")
 
 
 def main() -> None:

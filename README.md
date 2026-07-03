@@ -9,10 +9,13 @@
 
 ---
 
-## 追蹤清單（11 檔，見 `config/funds.json`）
+## 追蹤清單（25 檔，見 `config/funds.json`）
 
 **全球股票型**：復華美國新星(47)、全球大趨勢(23)、全球物聯網科技(77)、華人世紀(24)、亞太成長(18)、亞太神龍科技(82)、中國新經濟A股(57)、大中華中小策略(29)
 **全球平衡型**：全球平衡(12)、中國新經濟平衡(53)、亞太平衡(16)
+**國內股票型**：復華復華(01)、高成長(03)、數位經濟(06)、中小精選(08)、全方位A(15)、全方位TISA(125)、台灣好收益(117)、台灣科技高股息A(122)、台灣科技高股息B(123)
+**國內平衡型**：傳家(04)、傳家二號(07)、人生目標(11)、神盾(13)
+**台灣智能**：台灣智能(79)（組合型；官網無十大持股表，成分見月報）
 
 （括號內為 `fhtrust.com.tw/funds/funds_detail/{id}` 的 id；要增減基金只需改 `config/funds.json`。）
 
@@ -21,7 +24,7 @@
 ## 快速開始（零安裝，純標準庫 + certifi TLS）
 
 ```bash
-# 1) 抓 11 檔基金的持股介紹 → data/funds/{id}.json
+# 1) 抓 25 檔基金的持股介紹（海外＋台股）→ data/funds/{id}.json
 python3 scripts/fetch_holdings.py
 python3 scripts/fetch_holdings.py 47 12        # 只抓指定 fundID
 
@@ -33,14 +36,19 @@ python3 scripts/gen_usnews.py
 #      B) 貼進聯網的 Claude，回存兩檔
 python3 scripts/gen_usnews.py --check          # 對最新產出跑禁用詞合規掃描
 
-# 3) 產儀表板（持股介紹 + 昨夜美股新聞 + 合規燈）→ dashboard/index.html
+# 3) 產台股盤後重點「提示包」（單版型：指數速覽＋Top 3 盤後卡）
+python3 scripts/gen_twnews.py
+#    → 產 reports/twnews/prompts/{date}.md；同上由 LLM 查證產出 reports/twnews/{date}.md
+python3 scripts/gen_twnews.py --check          # 合規掃描
+
+# 4) 產儀表板（今日重點 + 總覽 + 新聞連動 + 台股/美股新聞 + 持股介紹）→ dashboard/index.html
 python3 scripts/gen_fund_dashboard.py --open
 
 # 或一次跑完（新聞內容步驟仍由 LLM 補）：
 bash scripts/daily_fund.sh
 ```
 
-儀表板為**單一 `dashboard/index.html`**（vanilla JS、零外部請求、雙擊即開，無 npm/node）：頂部昨夜美股新聞（兩版型可切換＋🟢/🔴 合規燈），下方每檔基金分頁的持股介紹。
+儀表板為**單一 `dashboard/index.html`**（vanilla JS、零外部請求、雙擊即開，無 npm/node），業務優先三層架構（見 `docs/REDESIGN_PLAN.md`）：今日重點（加權/櫃買＋美股三大指數、最強最弱基金）→ 基金總覽表（可排序、紅漲綠跌）→ 新聞×持股連動（台股＋美股新聞對回持有基金、附合規話術）→ 兩份新聞全文（收合、🟢/🔴 合規燈）→ 逐檔持股介紹。
 
 ---
 
@@ -51,7 +59,8 @@ bash scripts/daily_fund.sh
 | 基本資料 / NAV / 多期報酬 / 經理人 / 月報 / 投資策略 | 復華投信官網 | `GET /api/fund?fundID={id}`（JSON） | 每日 NAV |
 | 十大持有標的（含產業）/ 國家配置 / 產業配置 / 資料日期 | 復華投信官網 | `/funds/funds_detail/{id}`（SSR HTML／SVG 解析） | 月底 |
 | 重點標的簡介 | 人工／查證後落檔 | `config/holding_profiles.json` | 靜態，可增修 |
-| 昨夜美股新聞 | Reuters/Bloomberg/WSJ/FT 等公開來源 | LLM 上網查證 → `reports/usnews/{date}_v*.md` | 每日 |
+| 昨夜美股新聞 | Reuters/Bloomberg/WSJ/FT/CNBC/富途牛牛等公開來源 | LLM 上網查證 → `reports/usnews/{date}_v*.md` | 每日 |
+| 台股盤後重點 | 中央社/經濟日報/鉅亨網等公開來源（指數以證交所/櫃買中心為準） | LLM 上網查證 → `reports/twnews/{date}.md` | 每交易日 |
 
 持股為**月度**官方揭露（如 2026/05/31），NAV 為每日；儀表板皆標「持股基準日」與「NAV 日」以免混淆。連接器純標準庫正則解析（`arm/connectors/fhfund.py`），缺任一端點即該欄留空、不整批崩。
 
@@ -62,15 +71,20 @@ bash scripts/daily_fund.sh
 ```
 config/funds.json              追蹤清單（id / name / group）— 單一事實來源
 config/holding_profiles.json   重點標的簡介（中性事實敘述、非投資建議）
+config/holding_aliases.json    持股別名表（新聞×持股連動比對用；新增持股時同步維護）
 arm/connectors/fhfund.py       復華共同基金連接器（meta+NAV+報酬 / 十大持股 / 國家・產業配置）
-arm/fund_intro.py              持股介紹組裝（掛簡介、摘要句、集中度）
-arm/usnews.py                  昨夜美股：兩版型規格常數 + 產出讀取 + 禁用詞合規掃描
-arm/fund_dashboard.py          零安裝儀表板（持股介紹 + 昨夜美股新聞，SSR + 極簡 Markdown 渲染）
-scripts/fetch_holdings.py      抓 11 檔持股介紹 → data/funds/{id}.json
+arm/fund_intro.py              持股介紹組裝（掛簡介、摘要句、集中度、待抓取清單）
+arm/fund_insights.py           跨基金洞察層（總覽表 / 最強最弱 / 同組平均 / 新聞連動引擎 / 話術）
+arm/usnews.py                  昨夜美股：兩版型規格常數 + 產出讀取 + 禁用詞合規掃描 + 指數/新聞卡萃取
+arm/twnews.py                  台股盤後重點：版型規格 + 產出讀取 + 加權/櫃買指數萃取
+arm/fund_dashboard.py          零安裝儀表板（業務優先三層架構，SSR + 極簡 Markdown 渲染）
+scripts/fetch_holdings.py      抓 25 檔持股介紹 → data/funds/{id}.json
 scripts/gen_usnews.py          產昨夜美股提示包 / --check 合規掃描
+scripts/gen_twnews.py          產台股盤後提示包 / --check 合規掃描
 scripts/gen_fund_dashboard.py  產 dashboard/index.html
 scripts/daily_fund.sh          每日 routine 單一進入點
 tests/test_fund_tracker.py     新模組單測（fhfund 解析 / usnews / fund_intro）
+tests/test_insights.py         洞察層/台股新聞/儀表板單測
 ```
 
 `arm/http.py`（certifi TLS）、`arm/config.py`（設定載入）沿用。ETF 版遺留的行銷/籌碼/文案模組仍在庫中但非本版本主軸。

@@ -36,8 +36,9 @@ SPEC_V1 = """【版型一：昨夜美股公司與產業面 Top 3 速寫包】
 範圍：只收「公司與產業動因」（AI/晶片/雲端/電動車/通訊/製造鏈；企業合作、併購、
 產品發表、重大投資/資本支出；財報/財測/營收預告、公司聲明；供應鏈調整、人事異動；
 具實質營運影響的監管/法律事件）。排除單純 Fed/利率/大盤漲跌。
-主要訊源 Reuters/Bloomberg/WSJ/FT，可各補 ≤1 段 JPMorgan/Goldman Sachs/Morgan Stanley/
-BlackRock 當日評論（附日期）。每則附來源連結與台北時間戳（例：2026/07/02 05:30 TST）。
+主要訊源 Reuters/Bloomberg/WSJ/FT，可輔以 CNBC 與富途牛牛（news.futunn.com，中文美股快訊）
+等公開彙整；可各補 ≤1 段 JPMorgan/Goldman Sachs/Morgan Stanley/BlackRock 當日評論（附日期）。
+每則附來源連結與台北時間戳（例：2026/07/02 05:30 TST）。
 Top 3 列入須至少符合四項中三項：(1) 同現於 Reuters/Bloomberg/WSJ/FT 首頁或 Most Read/Lead；
 (2) 被 ≥2 家主要外資機構評論引用/延伸；(3) 對 Nasdaq/費半/S&P500 任一成分股造成隔夜 ±2% 以上；
 (4) 具結構性影響（產業鏈或營運前景 >3 個月）。僅符合 1–2 項→次級觀察摘要。
@@ -47,7 +48,9 @@ Top 3 列入須至少符合四項中三項：(1) 同現於 Reuters/Bloomberg/WSJ
   🔹Top 3 新聞卡（每則 120–180 字）：
      標題（來源＋日期＋TST｜消息屬性）
      1. 新聞摘要（2–3 句聚焦事實） 2. 一句話重點 3. 對公司影響
-     4. 對競爭者／合作方影響 5. 對市場情緒與股價影響 6. 參考資料（逐條列來源與機構評論日期）
+     4. 對競爭者／合作方影響 5. 對市場情緒與股價影響
+     6. 參考資料（逐條列來源與機構評論日期；**每卡至少 1 條以 [標題](URL) markdown
+        格式附可點的原文連結**，儀表板「新聞重點」卡會直接取用）
   🔹次級觀察摘要（不足三則時補延伸觀察：法說會效應／分析師報告／行業趨勢）
   I. 合規揭露（附完整揭露段）
 用語合規：僅市場資訊彙編/教育用途、非投資建議；禁用詞見 BANNED；機構觀點以
@@ -65,6 +68,7 @@ SPEC_V2 = """【版型二：昨夜美股重點（精簡版）】
 每則輸出：
   新聞標題（來源 + 日期｜消息屬性）
   1. 新聞摘要 2. 濃縮成一句話（簡短有力） 3. 對公司影響 4. 對競爭者/合作方影響 5. 對市場情緒與股價影響
+  6. 參考連結（每卡至少 1 條 [來源標題](URL) markdown 可點連結）
 末尾附合規短語（非投資建議）。"""
 
 
@@ -99,6 +103,94 @@ def compliance_scan(text: str) -> list[str]:
                 break                      # 出現一次未被否定即算違規
             i = t.find(w, i + 1)           # 此處被否定，繼續找下一個同詞
     return sorted(hits)
+
+
+# ── 結構化萃取（供儀表板「今日重點」「新聞重點」「新聞×持股連動」使用；萃取失敗回空、不擋版面） ──
+
+# 隱形/控制字元（零寬空白、方向控制、BOM、軟連字號）——來源複製貼上常夾帶，
+# 部分字型會顯示為亂碼方框；渲染與萃取前一律刷掉。
+_INVISIBLE = re.compile("[\\u00ad\\u200b-\\u200f\\u2028\\u2029\\u2060\\ufeff]")
+
+
+def scrub(text: str) -> str:
+    """去隱形/控制字元。"""
+    return _INVISIBLE.sub("", text or "")
+
+
+_IDX_LABELS = [(("那斯達克", "Nasdaq", "NASDAQ"), "Nasdaq"),
+               (("費城半導體", "費半", "SOX"), "費半 SOX"),
+               (("標普", "S&P"), "S&P 500")]
+
+
+def extract_indices(md: str, labels: list[tuple[tuple[str, ...], str]] | None = None) -> list[dict]:
+    """從新聞 markdown 的指數速覽／總覽條列萃取指數收盤與漲跌幅。
+
+    labels 預設美股三大指數；twnews 傳台股標籤組。
+    回 [{label, close, pct, up}]（依 labels 順序、去重取首見）；解析不到回 []。"""
+    _IDX = labels if labels is not None else _IDX_LABELS
+    out: dict[str, dict] = {}
+    for line in scrub(md).splitlines():
+        m = re.match(r"^\s*[-*]\s+\*\*(.+?)\*\*[：:](.*)$", line)
+        if not m:
+            continue
+        label_raw, body = m.group(1), m.group(2)
+        label = next((std for keys, std in _IDX
+                      if any(k in label_raw for k in keys)), None)
+        if not label or label in out:
+            continue
+        mc = re.search(r"收\s*([0-9][0-9,]*(?:\.\d+)?)", body)
+        mp = re.search(r"(上漲|下跌)約?\s*([0-9]+(?:\.\d+)?)\s*%", body)
+        if not (mc and mp):
+            continue
+        out[label] = {"label": label, "close": mc.group(1),
+                      "pct": float(mp.group(2)), "up": mp.group(1) == "上漲"}
+    order = [std for _, std in _IDX]
+    return sorted(out.values(), key=lambda d: order.index(d["label"]))
+
+
+_CARD_HEAD = re.compile(r"^#{2,3}\s+(?:卡\s*\d+｜|[一二三四五六七八九十]+、)(.+)$")
+_MD_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\s)]+)\)")
+
+
+def extract_cards(md: str) -> list[dict]:
+    """切出新聞卡（v1『### 卡 N｜…』／v2『## 一、…』）。
+
+    回 [{title, meta, oneline, summary, points, links, body}]：
+      title＝去尾端括注的標題；meta＝尾端（來源：…｜日期｜…）括注內容；
+      oneline＝『一句話重點／一句話』行；summary＝『新聞摘要』行；
+      points＝影響條列 [(標籤, 內文)]（對公司影響／對持股・族群影響／對市場情緒…）；
+      links＝卡內 markdown 連結 [(文字, URL)]（原文出處）。缺者為空。"""
+    cards: list[dict] = []
+    cur: dict | None = None
+    for line in scrub(md).splitlines():
+        m = _CARD_HEAD.match(line.strip())
+        if m:
+            raw = m.group(1).strip()
+            meta = ""
+            mm = re.search(r"（([^（）]*)）\s*$", raw)
+            if mm:
+                meta, raw = mm.group(1).strip(), raw[:mm.start()].strip()
+            cur = {"title": raw, "meta": meta, "oneline": "", "summary": "",
+                   "points": [], "links": [], "body": ""}
+            cards.append(cur)
+            continue
+        if line.strip().startswith(("## ", "---")) and not _CARD_HEAD.match(line.strip()):
+            cur = None                        # 卡片群結束（次級觀察/合規段等）
+            continue
+        if cur is not None:
+            cur["body"] += line + "\n"
+            mo = re.match(r"^\s*\d*\.?\s*\*\*一句話(?:重點)?\*\*[：:]\s*(.+)$", line)
+            if mo and not cur["oneline"]:
+                cur["oneline"] = mo.group(1).strip().rstrip("。")
+            ms = re.match(r"^\s*\d*\.?\s*\*\*新聞摘要\*\*[：:]\s*(.+)$", line)
+            if ms and not cur["summary"]:
+                cur["summary"] = ms.group(1).strip()
+            mp = re.match(r"^\s*\d+\.\s*\*\*((?:對|市場情緒)[^*]{1,20})\*\*[：:]\s*(.+)$", line)
+            if mp:
+                cur["points"].append((mp.group(1).strip(), mp.group(2).strip()))
+    for c in cards:
+        c["links"] = [(t, u) for t, u in _MD_LINK.findall(c["body"])]
+    return cards
 
 
 def _latest_pair() -> dict | None:

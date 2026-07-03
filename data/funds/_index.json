@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-07-02 18:24",
+  "as_of": "2026-07-03 00:10",
   "funds": [
     {
       "id": "47",
@@ -121,6 +121,160 @@
       "nav_date": "2026/07/01",
       "as_of": "2026/05/31",
       "n_top": 10
+    },
+    {
+      "id": "01",
+      "name": "復華復華基金",
+      "group": "tw_equity",
+      "category": "國內股票型",
+      "region": "台灣",
+      "nav": 142.77,
+      "nav_date": "2026/07/02",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "03",
+      "name": "復華高成長基金",
+      "group": "tw_equity",
+      "category": "國內股票型",
+      "region": "台灣",
+      "nav": 514.04,
+      "nav_date": "2026/07/02",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "06",
+      "name": "復華數位經濟基金",
+      "group": "tw_equity",
+      "category": "國內股票型",
+      "region": "台灣",
+      "nav": 190.15,
+      "nav_date": "2026/07/02",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "08",
+      "name": "復華中小精選基金",
+      "group": "tw_equity",
+      "category": "國內股票型",
+      "region": "台灣",
+      "nav": 488.14,
+      "nav_date": "2026/07/02",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "15",
+      "name": "復華全方位基金A類型",
+      "group": "tw_equity",
+      "category": "國內股票型",
+      "region": "台灣",
+      "nav": 213.18,
+      "nav_date": "2026/07/02",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "125",
+      "name": "復華全方位基金TISA類型",
+      "group": "tw_equity",
+      "category": "國內股票型",
+      "region": "台灣",
+      "nav": 25.3,
+      "nav_date": "2026/07/02",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "117",
+      "name": "復華台灣好收益基金",
+      "group": "tw_equity",
+      "category": "國內股票型",
+      "region": "台灣",
+      "nav": 21.06,
+      "nav_date": "2026/07/02",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "122",
+      "name": "復華台灣科技高股息基金A類型",
+      "group": "tw_equity",
+      "category": "國內股票型",
+      "region": "台灣",
+      "nav": 18.66,
+      "nav_date": "2026/07/02",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "123",
+      "name": "復華台灣科技高股息基金B類型",
+      "group": "tw_equity",
+      "category": "國內股票型",
+      "region": "台灣",
+      "nav": 16.56,
+      "nav_date": "2026/07/02",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "04",
+      "name": "復華傳家基金",
+      "group": "tw_balanced",
+      "category": "國內平衡型",
+      "region": "台灣",
+      "nav": 98.5199,
+      "nav_date": "2026/07/02",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "07",
+      "name": "復華傳家二號基金",
+      "group": "tw_balanced",
+      "category": "國內平衡型",
+      "region": "台灣",
+      "nav": 148.2896,
+      "nav_date": "2026/07/02",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "11",
+      "name": "復華人生目標基金",
+      "group": "tw_balanced",
+      "category": "國內平衡型",
+      "region": "台灣",
+      "nav": 164.0688,
+      "nav_date": "2026/07/02",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "13",
+      "name": "復華神盾基金",
+      "group": "tw_balanced",
+      "category": "國內平衡型",
+      "region": "台灣",
+      "nav": 115.5568,
+      "nav_date": "2026/07/02",
+      "as_of": "2026/05/31",
+      "n_top": 10
+    },
+    {
+      "id": "79",
+      "name": "復華台灣智能基金",
+      "group": "tw_fof",
+      "category": "組合型",
+      "region": "台灣",
+      "nav": 47.85,
+      "nav_date": "2026/07/02",
+      "as_of": "2026/05/31",
+      "n_top": 0
     }
   ]
 }

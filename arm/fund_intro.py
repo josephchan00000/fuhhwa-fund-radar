@@ -12,7 +12,9 @@ ROOT = Path(__file__).resolve().parent.parent
 FUNDS_DIR = ROOT / "data" / "funds"
 PROFILES = ROOT / "config" / "holding_profiles.json"
 
-GROUP_LABEL = {"global_equity": "全球股票型", "global_balanced": "全球平衡型"}
+GROUP_LABEL = {"global_equity": "全球股票型", "global_balanced": "全球平衡型",
+               "tw_equity": "國內股票型", "tw_balanced": "國內平衡型",
+               "tw_fof": "台灣智能（組合型）"}
 
 
 def _profiles() -> dict:
@@ -50,6 +52,18 @@ def all_funds() -> list[dict]:
         doc = load(str(f["id"]))
         if doc:
             out.append(doc)
+    return out
+
+
+def pending_funds() -> list[dict]:
+    """已列入 config 追蹤、但 data/funds 尚無（或壞損）快照的基金——例如新加入的
+    台股清單，待本機執行 fetch_holdings 後才有數據。回 [{fund_id, name, group, group_label}]。"""
+    out = []
+    for f in config.funds():
+        if load(str(f["id"])) is None:
+            out.append({"fund_id": str(f["id"]), "name": f.get("name") or "",
+                        "group": f.get("group"),
+                        "group_label": GROUP_LABEL.get(f.get("group"), "")})
     return out
 
 
