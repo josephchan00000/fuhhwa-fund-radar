@@ -5,11 +5,11 @@
 版面邏輯（見 docs/REDESIGN_PLAN.md；左上「台股／全球」切換，各視圖同一順序）：
   ⓪ Sticky 頂欄：市場切換｜日期｜合規燈｜錨點導覽
   ① 今日重點：指數卡（台股＝加權/櫃買、全球＝美股三大）／今日最強最弱／連動計數
-  ② 新聞重點：乾淨摘要卡（標題＋一句話＋摘要＋可點原文連結與來源）
-  ③ 新聞 × 持股連動：受影響持股→持有基金（權重％）→可複製中性話術
+  ② 新聞（重點＋全文合併）：每則一個收合塊、預設收合；標題列即顯示一句話重點，
+     展開看摘要＋影響分析＋可點原文連結（富途優先）；末置指數速覽/資料侷限/合規收合塊
+  ③ 新聞 × 持股連動：受影響持股→持有基金（權重％）
   ④ 基金總覽表：可排序、紅漲綠跌、點列跳詳情
   ⑤ 基金詳情：逐檔卡片（錨點直達、同組平均對照、連動持股高亮、複製介紹）
-  ⑥ 新聞全文：預設收合、放最下面（美股保留 v1/v2 切換）
 
 純 vanilla HTML＋少量 JS（市場切換／排序／複製／版型切換），零外部請求、雙擊即開。
 不做「每天持股變化」（共同基金無逐日持股張數）。
@@ -126,9 +126,9 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     <span class="tb-meta">持股基準 {_esc(as_of)}｜產表 {_esc(now)}</span>
     <span class="tb-lamp">{_esc(lamp)}</span>
     <nav class="tb-nav">
-      <a href="#brief">今日重點</a><a href="#newsdigest">新聞重點</a>
-      <a href="#news">新聞全文</a><a href="#newslinks">焦點個股</a>
-      <a href="#overview">基金總覽</a><a href="#details">基金詳情</a>
+      <a href="#brief">今日重點</a><a href="#news">新聞</a>
+      <a href="#newslinks">焦點個股</a><a href="#overview">基金總覽</a>
+      <a href="#details">基金詳情</a>
     </nav>
     <button class="tb-print" onclick="window.print()">🖨 晨會版</button>
   </div>
@@ -146,7 +146,7 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
         f'<div class="ixp">{_pct_span(ix["pct"] if ix["up"] else -ix["pct"])}</div></div>'
         for ix in indices)
     if not idx_cards:
-        idx_cards = '<div class="muted">（指數收盤點位以官方為準——詳見下方新聞重點）</div>'
+        idx_cards = '<div class="muted">（指數收盤點位以官方為準——詳見下方新聞）</div>'
     chips = []
     if best:
         chips.append(f'<a class="chip" href="#fund-{_esc(best["fund_id"])}">▲ 今日最強：'
@@ -165,30 +165,43 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
     return f'<div class="ixrow">{idx_cards}</div><div class="chips">{"".join(chips)}</div>'
 
 
-# ── ② 新聞重點（乾淨摘要卡＋原文連結） ────────────────────────
+# ── ② 新聞（重點＋全文合併：逐則收合，標題列顯示一句話重點） ──────
 
-def _digest_view(cards: list[dict], empty_hint: str) -> str:
-    if not cards:
+def _news_view(md: str, empty_hint: str) -> str:
+    """單一新聞區：每則新聞一個 <details>（預設收合）。
+    收合時標題列即顯示標題＋一句話重點（深咖啡）；展開顯示摘要＋影響分析＋原文連結。
+    其餘（指數速覽／資料侷限／合規揭露）另置一收合塊。"""
+    head, cards, tail = usnews.split_doc(md or "")
+    if not cards and not (md or "").strip():
         return f'<div class="muted">{empty_hint}</div>'
-    out = []
+    items = []
     for c in cards:
-        meta = f'<div class="ngm">{_esc(c["meta"])}</div>' if c.get("meta") else ""
+        meta = f'<span class="nim">{_esc(c["meta"])}</span>' if c.get("meta") else ""
         one = f'<div class="nlone">{_esc(c["oneline"])}</div>' if c.get("oneline") else ""
         summ = f'<div class="ngs">{_inline(c["summary"])}</div>' if c.get("summary") else ""
         pts = "".join(f'<li><b>{_esc(lab)}</b>　{_inline(txt)}</li>'
-                      for lab, txt in (c.get("points") or [])[:3])
+                      for lab, txt in (c.get("points") or []))
         pts = f'<ul class="ngpts">{pts}</ul>' if pts else ""
-        # 富途優先：futunn.com 連結排最前，其餘依原順序
-        ordered = sorted((c.get("links") or [])[:5],
+        ordered = sorted((c.get("links") or [])[:5],       # 富途優先
                          key=lambda tu: 0 if "futunn.com" in tu[1] else 1)
         links = "".join(f'<a class="nglink{" futu1" if "futunn.com" in u else ""}" '
                         f'href="{_esc(u)}" target="_blank" rel="noopener">↗ {_esc(t)}</a>'
                         for t, u in ordered)
         links = (f'<div class="nglinks">{links}</div>' if links else
-                 '<div class="nglinks muted">（本卡無原文連結）</div>')
-        out.append(f'<div class="ngc"><div class="ngt">{_esc(c["title"])}</div>'
-                   f'{meta}{one}{summ}{pts}{links}</div>')
-    return "".join(out)
+                 '<div class="nglinks muted">（本則無原文連結）</div>')
+        items.append(
+            f'<details class="newsone"><summary>'
+            f'<span class="nhead"><span class="nit">{_esc(c["title"])}</span>{one}{meta}</span>'
+            f'<span class="openbtn2"></span></summary>'
+            f'<div class="ndoc nibody">{summ}{pts}{links}</div></details>')
+    extra = "\n\n".join(x for x in (head, tail) if x)
+    if extra:
+        items.append(
+            f'<details class="newsone"><summary>'
+            f'<span class="nhead"><span class="nit">📄 指數速覽・資料侷限・合規揭露</span></span>'
+            f'<span class="openbtn2"></span></summary>'
+            f'<div class="ndoc nibody">{_md(extra)}</div></details>')
+    return "".join(items) or f'<div class="muted">{empty_hint}</div>'
 
 
 # ── ③ 當日焦點個股（新聞連動） ────────────────────────────────
@@ -397,35 +410,6 @@ def _details_block(funds: list[dict], gavg: dict, linked_by_fund: dict[str, set[
     return cards
 
 
-# ── ⑥ 新聞全文（預設收合、最下面） ────────────────────────────
-
-def _newsfull(md: str, empty_hint: str) -> str:
-    """逐則新聞全文：每張新聞卡各自一個 <details>（預設收合），
-    其餘（指數速覽／資料侷限／合規揭露）另置一收合塊。"""
-    head, cards, tail = usnews.split_doc(md or "")
-    if not cards and not (md or "").strip():
-        return f'<div class="muted">{empty_hint}</div>'
-    items = []
-    for c in cards:
-        meta = f'<span class="nim">{_esc(c["meta"])}</span>' if c.get("meta") else ""
-        body = _md(c["body"]) or '<div class="muted">（無內文）</div>'
-        items.append(
-            f'<details class="newsone"><summary>'
-            f'<span class="nit">{_esc(c["title"])}</span>{meta}'
-            f'<span class="openbtn2"></span></summary>'
-            f'<div class="ndoc nibody">{body}</div></details>')
-    extra = "\n\n".join(x for x in (head, tail) if x)
-    if extra:
-        items.append(
-            f'<details class="newsone"><summary>'
-            f'<span class="nit">📄 指數速覽・資料侷限・合規揭露</span>'
-            f'<span class="openbtn2"></span></summary>'
-            f'<div class="ndoc nibody">{_md(extra)}</div></details>')
-    if not items:
-        return f'<div class="muted">{empty_hint}</div>'
-    return "".join(items)
-
-
 # ── 樣式與腳本（非 f-string，避免大括號跳脫） ─────────────────
 
 _CSS = """
@@ -533,13 +517,15 @@ a.tk:hover{color:#fff}
 .newswrap[open] .openbtn::after{content:"▲ 收合"}
 /* 逐則新聞收合塊 */
 .newsone{background:var(--card2);border:1px solid var(--line);border-radius:11px;margin:8px 0;overflow:hidden}
-.newsone>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:12px 16px}
+.newsone>summary{cursor:pointer;list-style:none;display:flex;align-items:flex-start;gap:12px;padding:12px 16px}
 .newsone>summary::-webkit-details-marker{display:none}
 .newsone>summary:hover{background:rgba(91,141,239,.06)}
 .newsone[open]>summary{border-bottom:1px solid var(--line)}
-.nit{font-weight:700;font-size:14.5px;color:#fff}
+.nhead{display:flex;flex-direction:column;gap:4px;min-width:0}
+.nit{font-weight:700;font-size:15px;color:#fff;line-height:1.5}
 .nim{color:var(--mut);font-size:12px}
-.openbtn2{margin-left:auto;flex:0 0 auto;color:#9ecbff;font-size:12.5px;font-weight:700;white-space:nowrap}
+.nhead .nlone{margin:0}
+.openbtn2{margin-left:auto;flex:0 0 auto;color:#9ecbff;font-size:12.5px;font-weight:700;white-space:nowrap;padding-top:2px}
 .openbtn2::after{content:"▼ 展開"}
 .newsone[open] .openbtn2::after{content:"▲ 收合"}
 .nibody{border:0;border-radius:0;margin:0;padding:2px 22px 16px}
@@ -609,16 +595,17 @@ a.tk:hover{color:#fff}
 /* 晨會列印版：只留今日重點＋新聞重點＋連動＋總覽（當前市場），白底黑字 */
 @media print{
   body{background:#fff;color:#111;font-size:12px}
-  .topbar,.backtop,#news,#details,.fund,.tb-print,.pendhint{display:none!important}
+  .topbar,.backtop,#details,.fund,.tb-print,.pendhint{display:none!important}
   .ndoc b,.nlone{color:#4a2f14;background:#f3e8cd}
   .section{background:#fff;border-color:#bbb;break-inside:avoid;margin:8px 0;padding:10px 12px}
-  .ixc,.chip,.nlcard,.ngc,.talk{background:#fff;border-color:#bbb;color:#111}
-  .ixv,.nlt,.ngt,.ovtbl td.nm a,.chip,.fw,.fw b,.talk{color:#111}
+  .ixc,.chip,.nlcard,.newsone,.talk{background:#fff;border-color:#bbb;color:#111}
+  .ixv,.nlt,.nit,.ovtbl td.nm a,.chip,.fw,.fw b,.talk{color:#111}
   .ovtbl td,.ovtbl th{border-color:#ccc;color:#111}
-  .stsub,.muted,.nlfs,.ngm,.ngs,.tlab{color:#555}
+  .stsub,.muted,.nlfs,.nim,.ngs,.tlab{color:#555}
   .ovg,.st,.nlco{color:#111}
   .gain{color:#c62828}.loss{color:#2e7d32}
-  .copy,.openbtn{display:none}
+  .copy,.openbtn2{display:none}
+  .newsone .nibody{display:block!important}         /* 列印時展開各則新聞 */
   a{text-decoration:none;color:#111}
   .nglink{color:#1a56b0;border-color:#ccc}
 }
@@ -732,21 +719,12 @@ def render() -> str:
                  f'<span class="stsub">（{_esc((tw or news or {}).get("date") or "—")} 更新）</span></div>'
                  f'{_mkt(b_tw, b_gl)}</div>')
 
-    # ② 新聞重點（乾淨摘要卡）
-    d_tw = _digest_view(usnews.extract_cards(tw_md),
-                        "尚無今日台股盤後重點。請執行 <code>python scripts/gen_twnews.py</code>。")
-    d_gl = _digest_view(usnews.extract_cards(us_md),
-                        "尚無昨夜美股新聞。請執行 <code>python scripts/gen_usnews.py</code>。")
-    sec_digest = (f'<div class="section" id="newsdigest"><div class="st">📰 新聞重點 '
-                  f'<span class="stsub">摘要＋原文連結（↗ 可點開來源）</span></div>'
-                  f'{_mkt(d_tw, d_gl)}</div>')
-
-    # ②b 新聞全文（緊接新聞重點下方；逐則預設收合）
-    tw_full_hint = "尚無台股新聞。請執行 <code>python scripts/gen_twnews.py</code>。"
-    gl_full_hint = "尚無昨夜美股新聞。請執行 <code>python scripts/gen_usnews.py</code>。"
-    sec_full = (f'<div class="section" id="news"><div class="st">🗞️ 新聞全文 '
-                f'<span class="stsub">點各則標題展開／收合（預設全部收合）</span></div>'
-                f'{_mkt(_newsfull(tw_md, tw_full_hint), _newsfull(us_md, gl_full_hint))}</div>')
+    # ② 新聞（重點＋全文合併，逐則收合）
+    tw_hint = "尚無台股新聞。請執行 <code>python scripts/gen_twnews.py</code>。"
+    gl_hint = "尚無昨夜美股新聞。請執行 <code>python scripts/gen_usnews.py</code>。"
+    sec_news = (f'<div class="section" id="news"><div class="st">🗞️ 新聞 '
+                f'<span class="stsub">點各則展開看摘要／影響分析／原文連結（預設收合）</span></div>'
+                f'{_mkt(_news_view(tw_md, tw_hint), _news_view(us_md, gl_hint))}</div>')
 
     # ③ 當日焦點個股（新聞連動）
     l_tw = _newslinks_view(linked_tw, "今日台股新聞與追蹤基金前十大持股無直接連動")
@@ -777,8 +755,7 @@ def render() -> str:
 {_topbar(banned, bool(news or tw), as_of, now)}
 <div class="wrap">
 {sec_brief}
-{sec_digest}
-{sec_full}
+{sec_news}
 {sec_links}
 {sec_over}
 {sec_det}
