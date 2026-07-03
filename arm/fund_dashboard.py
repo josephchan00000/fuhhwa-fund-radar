@@ -139,7 +139,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
 
 def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
                 n_cards: int, n_funds: int, dists: list[dict],
-                news_label: str) -> str:
+                news_label: str, sev: tuple[int, int] = (0, 0)) -> str:
     idx_cards = "".join(
         f'<div class="ixc"><div class="ixl">{_esc(ix["label"])}</div>'
         f'<div class="ixv">{_esc(ix["close"])}</div>'
@@ -154,6 +154,10 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
     if worst:
         chips.append(f'<a class="chip" href="#fund-{_esc(worst["fund_id"])}">▼ 今日最弱：'
                      f'<b>{_esc(_short(worst["short_name"]))}</b> {_pct_span(worst["chg"])}</a>')
+    n_news, top_sev = sev
+    if n_news:
+        chips.append(f'<a class="chip hot" href="#news">🔥 今日 <b>{n_news}</b> 則重要新聞'
+                     f'（最高 {top_sev} 分）</a>')
     if n_cards:
         chips.append(f'<a class="chip hot" href="#newslinks">🔗 {n_cards} 則{news_label}連動 '
                      f'<b>{n_funds}</b> 檔基金</a>')
@@ -167,6 +171,18 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
 
 # ── ② 新聞（重點＋全文合併：逐則收合，標題列顯示一句話重點） ──────
 
+def _news_badges(etype: str | None, importance: int | None) -> str:
+    """新聞卡徽章：事件屬性（新事件/延伸）＋重要度（依分數變色）。皆缺回空字串。"""
+    out = ""
+    if etype in ("new", "ext"):
+        out += (f'<span class="netype {etype}">'
+                f'{"🆕 新事件" if etype == "new" else "↪ 延伸"}</span>')
+    if isinstance(importance, int):
+        band = "hi" if importance >= 9 else ("mid" if importance >= 7 else "lo")
+        out += f'<span class="nsev {band}">重要度 {importance}</span>'
+    return f'<span class="nbadges">{out}</span>' if out else ""
+
+
 def _news_view(md: str, empty_hint: str) -> str:
     """單一新聞區：每則新聞一個 <details>（預設收合）。
     收合時標題列即顯示標題＋一句話重點（深咖啡）；展開顯示摘要＋影響分析＋原文連結。
@@ -174,8 +190,13 @@ def _news_view(md: str, empty_hint: str) -> str:
     head, cards, tail = usnews.split_doc(md or "")
     if not cards and not (md or "").strip():
         return f'<div class="muted">{empty_hint}</div>'
+    # 只留重要度 6 分以上（有標分者）；依重要度高→低排序（未標分者維持原序、殿後）
+    cards = [c for c in cards
+             if not (isinstance(c.get("importance"), int) and c["importance"] < 6)]
+    cards = sorted(cards, key=lambda c: c.get("importance") or 0, reverse=True)
     items = []
     for c in cards:
+        badges = _news_badges(c.get("etype"), c.get("importance"))
         meta = f'<span class="nim">{_esc(c["meta"])}</span>' if c.get("meta") else ""
         one = f'<div class="nlone">{_esc(c["oneline"])}</div>' if c.get("oneline") else ""
         summ = f'<div class="ngs">{_inline(c["summary"])}</div>' if c.get("summary") else ""
@@ -191,7 +212,7 @@ def _news_view(md: str, empty_hint: str) -> str:
                  '<div class="nglinks muted">（本則無原文連結）</div>')
         items.append(
             f'<details class="newsone"><summary>'
-            f'<span class="nhead"><span class="nit">{_esc(c["title"])}</span>{one}{meta}</span>'
+            f'<span class="nhead">{badges}<span class="nit">{_esc(c["title"])}</span>{one}{meta}</span>'
             f'<span class="openbtn2"></span></summary>'
             f'<div class="ndoc nibody">{summ}{pts}{links}</div></details>')
     extra = "\n\n".join(x for x in (head, tail) if x)
@@ -531,6 +552,14 @@ a.tk:hover{color:var(--acc)}
 .nit{font-weight:700;font-size:15px;color:var(--ink);line-height:1.5}
 .nim{color:var(--mut);font-size:12px}
 .nhead .nlone{margin:0}
+.nbadges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1px}
+.netype{font-size:11px;font-weight:700;padding:1px 8px;border-radius:6px;white-space:nowrap;border:1px solid}
+.netype.new{color:var(--acc);background:rgba(47,111,208,.12);border-color:rgba(47,111,208,.4)}
+.netype.ext{color:var(--mut);background:rgba(138,127,107,.12);border-color:rgba(138,127,107,.35)}
+.nsev{font-size:11px;font-weight:800;padding:1px 8px;border-radius:6px;white-space:nowrap;border:1px solid}
+.nsev.hi{color:#fff;background:#c8760f;border-color:#c8760f}
+.nsev.mid{color:#8a5410;background:rgba(200,118,15,.16);border-color:rgba(200,118,15,.5)}
+.nsev.lo{color:var(--mut);background:rgba(138,127,107,.1);border-color:rgba(138,127,107,.3)}
 .openbtn2{margin-left:auto;flex:0 0 auto;color:var(--accd);font-size:12.5px;font-weight:700;white-space:nowrap;padding-top:2px}
 .openbtn2::after{content:"▼ 展開"}
 .newsone[open] .openbtn2::after{content:"▲ 收合"}
@@ -680,6 +709,12 @@ def render() -> str:
     us_md = (news or {}).get("v1") or (news or {}).get("v2") or ""
     tw_md = (tw or {}).get("md") or ""
 
+    def _sev(md: str) -> tuple[int, int]:
+        """回 (重要度≥6 的新聞則數, 最高分)——供今日重點 chip。"""
+        ss = [c["importance"] for c in usnews.extract_cards(md or "")
+              if isinstance(c.get("importance"), int) and c["importance"] >= 6]
+        return (len(ss), max(ss) if ss else 0)
+
     tw_links = fund_insights.news_fund_links(funds, tw_md)
     us_links = fund_insights.news_fund_links(funds, us_md)
     linked_tw = [c for c in tw_links if c["matched"]]
@@ -717,10 +752,11 @@ def render() -> str:
     tw_news_label = (tw or {}).get("label") or "台股盤後重點"
     b_tw = _brief_view(twnews.extract_indices(tw_md), *fund_insights.movers(tw_funds),
                        len(linked_tw), _nfunds(linked_tw),
-                       fund_insights.upcoming_distributions(tw_funds), f"今日{tw_news_label[:4]}新聞")
+                       fund_insights.upcoming_distributions(tw_funds),
+                       f"今日{tw_news_label[:4]}新聞", _sev(tw_md))
     b_gl = _brief_view(usnews.extract_indices(us_md), *fund_insights.movers(gl_funds),
                        len(linked_us), _nfunds(linked_us),
-                       fund_insights.upcoming_distributions(gl_funds), "昨夜美股新聞")
+                       fund_insights.upcoming_distributions(gl_funds), "昨夜美股新聞", _sev(us_md))
     sec_brief = (f'<div class="section" id="brief"><div class="st">⚡ 今日重點 '
                  f'<span class="stsub">（{_esc((tw or news or {}).get("date") or "—")} 更新）</span></div>'
                  f'{_mkt(b_tw, b_gl)}</div>')

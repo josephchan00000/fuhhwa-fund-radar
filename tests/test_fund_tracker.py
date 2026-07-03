@@ -57,8 +57,38 @@ def test_us_session_skips_weekend():
 
 
 def test_specs_present():
-    assert "Top 3" in usnews.SPEC_V1 and "精簡版" in usnews.SPEC_V2
+    assert "重要度" in usnews.SPEC_V1 and "精簡版" in usnews.SPEC_V2
+    assert "【新事件】" in usnews.SPEC_V1 and "至少 6 則" in usnews.SPEC_V1   # 多找、標事件屬性
     assert usnews.BANNED and "保證" in usnews.BANNED
+
+
+def test_card_importance_and_etype_parsing():
+    md = (
+        "### 卡 1｜輝達新財測（來源：Reuters｜2026/07/02｜【新事件】｜重要度 9/10）\n"
+        "1. **新聞摘要**：略。\n2. **一句話重點**：AI 需求續強。\n\n"
+        "### 卡 2｜某舊聞續追（來源：CNBC｜2026/07/02｜【延伸】｜重要度 6/10）\n"
+        "1. **新聞摘要**：略。\n"
+    )
+    cards = usnews.extract_cards(md)
+    assert [c["importance"] for c in cards] == [9, 6]
+    assert [c["etype"] for c in cards] == ["new", "ext"]
+    # 無括注者不炸、欄位為 None
+    plain = usnews.extract_cards("### 卡 1｜無標注（來源：X｜2026/07/02）\n1. **新聞摘要**：略。\n")
+    assert plain[0]["importance"] is None and plain[0]["etype"] is None
+
+
+def test_news_view_filters_below_6_and_sorts_by_importance():
+    from arm import fund_dashboard as fd
+    md = (
+        "### 卡 1｜低分事件（來源：X｜2026/07/02｜【延伸】｜重要度 4/10）\n1. **一句話重點**：低。\n\n"
+        "### 卡 2｜中分事件（來源：Y｜2026/07/02｜【新事件】｜重要度 7/10）\n1. **一句話重點**：中。\n\n"
+        "### 卡 3｜高分事件（來源：Z｜2026/07/02｜【新事件】｜重要度 10/10）\n1. **一句話重點**：高。\n"
+    )
+    html = fd._news_view(md, "無")
+    assert "低分事件" not in html                    # <6 被隱藏
+    assert "重要度 10" in html and "重要度 7" in html  # 徽章顯示
+    assert html.index("高分事件") < html.index("中分事件")   # 依重要度高→低排序
+    assert "🆕 新事件" in html and "↪ 延伸" not in html      # 事件屬性徽章（延伸那則<6已濾掉）
 
 
 # ── fund_intro 組裝 ──────────────────────────────────────────
