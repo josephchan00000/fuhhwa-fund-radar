@@ -95,23 +95,40 @@ def test_view_without_doc_shows_hint():
 def test_view_renders_brand_funds_social():
     doc = {
         "as_of": "2026/07/03 08:00", "window_days": 7, "source": "測試來源",
+        "highlights": ["品牌焦點：復華投信宣布配息（測試報）"],
         "brand": [{"title": "復華投信宣布配息", "url": "https://x/1",
                    "source": "測試報", "date": "2026-07-02 10:00"}],
         "funds": [
             {"base": "復華高成長基金", "fund_ids": ["03"],
              "items": [{"title": "高成長基金奪獎", "url": "https://x/2",
-                        "source": "測試報", "date": "2026-07-01 09:00"}]},
+                        "source": "測試報", "date": "2026-07-01 09:00",
+                        "summary": "測試摘要一句話。"}]},
             {"base": "復華神盾基金", "fund_ids": ["13"], "items": []},
         ],
         "social": [{"platform": "ptt", "title": "[心得] 復華基金定期定額",
                     "url": "https://ptt/x", "date": "7/02", "push": 25}],
     }
     html = _fundnews_view(doc)
+    assert "本週看點" in html and "品牌焦點" in html
     assert "復華投信宣布配息" in html and "https://x/1" in html
-    assert "復華高成長基金" in html and "1 則" in html
-    assert "復華神盾基金" in html          # 無新聞者列於「其餘」摘要行
+    assert "復華高成長基金" in html and "1 則" in html and "#fund-03" in html
+    assert "測試摘要一句話。" in html          # 摘要行
+    assert "復華神盾基金" in html              # 無新聞者列於「其餘」摘要行
     assert "25 推" in html and "[心得] 復華基金定期定額" in html
     assert "非投資建議" in html
+
+
+def test_auto_highlights_from_doc():
+    doc = {"window_days": 7,
+           "brand": [{"title": "基金：復華投信旗下各基金7/2淨值漲跌一覽表", "source": "富聯網"},
+                     {"title": "復華兩檔ETF配息出爐", "source": "Newtalk新聞"}],
+           "funds": [{"base": "復華高成長基金", "items": [{"title": "x"}]},
+                     {"base": "復華神盾基金", "items": []}],
+           "social": [{"title": "[心得] 復華", "push": 30}]}
+    hls = fundnews.auto_highlights(doc)
+    assert any("高成長" in h for h in hls)
+    assert any("復華兩檔ETF配息出爐" in h for h in hls)   # 跳過系列文、取第一則焦點
+    assert any("30 推" in h for h in hls)
 
 
 def test_view_social_empty_degrades():

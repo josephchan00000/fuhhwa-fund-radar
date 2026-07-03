@@ -175,6 +175,32 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
     return f'<div class="ixrow">{idx_cards}</div><div class="chips">{"".join(chips)}</div>'
 
 
+_PREMKT_HEAD = re.compile(r"^##\s*🔹?\s*盤前速覽")
+
+
+def _extract_premarket(md: str) -> tuple[str, str]:
+    """抽出台股新聞的「## 🔹盤前速覽」段（改置今日重點），回 (段落內文, 移除後全文)。
+    盤後版無此段 → 回 ("", 原文)，今日重點不多出空卡。"""
+    lines = (md or "").splitlines()
+    s = next((i for i, l in enumerate(lines) if _PREMKT_HEAD.match(l.strip())), None)
+    if s is None:
+        return "", md or ""
+    e = next((j for j in range(s + 1, len(lines))
+              if lines[j].strip().startswith("## ") or lines[j].strip() == "---"), len(lines))
+    body = "\n".join(lines[s + 1:e]).strip()
+    rest = "\n".join(lines[:s] + lines[e:]).strip()
+    return body, rest
+
+
+def _premarket_card(pre_md: str) -> str:
+    """今日重點內的盤前速覽卡：台指期夜盤／台積電 ADR／費半／盤前研判。"""
+    if not pre_md:
+        return ""
+    return (f'<div class="ngc premktc"><div class="ngt">⏱ 盤前速覽 '
+            f'<span class="stsub">昨夜外部訊號・開盤前參考</span></div>'
+            f'<div class="ndoc premkt">{_md(pre_md)}</div></div>')
+
+
 # ── ② 新聞（重點＋全文合併：逐則收合，標題列顯示一句話重點） ──────
 
 def _news_badges(etype: str | None, importance: int | None) -> str:
@@ -481,6 +507,16 @@ def _details_block(funds: list[dict], gavg: dict, linked_by_fund: dict[str, set[
 
 # ── ⑥ 基金相關新聞・社群（讀 data/fund_news.json；無檔顯示提示不壞版） ──
 
+def _fundnews_item(i: dict) -> str:
+    """單則新聞列：標題（可點）＋摘要（有才顯示）＋日期・來源 meta 列。"""
+    summ = f'<div class="fnsum">{_esc(i["summary"])}</div>' if i.get("summary") else ""
+    return (f'<div class="fnit">'
+            f'<a class="fnt" href="{_esc(i.get("url") or "#")}" target="_blank" rel="noopener">'
+            f'{_esc(i.get("title"))}</a>{summ}'
+            f'<div class="fnmeta"><span class="fnd">{_esc((i.get("date") or "")[:10])}</span>'
+            f'<span class="fnsrc">{_esc(i.get("source") or "—")}</span></div></div>')
+
+
 def _fundnews_view(doc: dict | None) -> str:
     if not doc:
         return ('<div class="muted">尚無基金新聞資料。請執行 '
@@ -488,41 +524,48 @@ def _fundnews_view(doc: dict | None) -> str:
     win = doc.get("window_days") or 7
     parts = []
 
-    def _news_rows(items: list[dict]) -> str:
-        return "".join(
-            f'<div class="fnrow"><span class="fnd">{_esc((i.get("date") or "")[:10])}</span>'
-            f'<a class="fnt" href="{_esc(i.get("url") or "#")}" target="_blank" rel="noopener">'
-            f'{_esc(i.get("title"))}</a><span class="fns">{_esc(i.get("source") or "")}</span></div>'
-            for i in items)
+    hls = doc.get("highlights") or []
+    if hls:
+        parts.append('<div class="fnhl"><div class="fnhlt">🔎 本週看點</div><ul class="ngpts">'
+                     + "".join(f'<li>{_esc(h)}</li>' for h in hls) + '</ul></div>')
 
     brand = doc.get("brand") or []
     parts.append('<div class="fng">🏢 復華投信動態</div>')
-    parts.append(_news_rows(brand) if brand else
-                 f'<div class="muted">近 {win} 天無品牌新聞（或來源暫不可達）。</div>')
+    if brand:
+        parts.append(f'<div class="fnlist">{"".join(_fundnews_item(i) for i in brand)}</div>')
+    else:
+        parts.append(f'<div class="muted">近 {win} 天無品牌新聞（或來源暫不可達）。</div>')
 
     groups = doc.get("funds") or []
     hit = [g for g in groups if g.get("items")]
     miss = [g for g in groups if not g.get("items")]
     parts.append(f'<div class="fng">📌 各基金新聞（近 {win} 天）</div>')
-    for g in hit:
-        parts.append(
-            f'<details class="fnfund"><summary>{_esc(g.get("base"))}'
-            f'<span class="fncnt">{len(g["items"])} 則</span></summary>'
-            f'{_news_rows(g["items"])}</details>')
-    if not hit:
+    if hit:
+        cards = []
+        for g in hit:
+            fid = (g.get("fund_ids") or [""])[0]
+            cards.append(
+                f'<div class="fncard"><div class="fnfh">'
+                f'<a href="#fund-{_esc(fid)}">{_esc(g.get("base"))}</a>'
+                f'<span class="fncnt">{len(g["items"])} 則</span></div>'
+                f'{"".join(_fundnews_item(i) for i in g["items"])}</div>')
+        parts.append(f'<div class="fngrid">{"".join(cards)}</div>')
+    else:
         parts.append(f'<div class="muted">近 {win} 天各基金皆無專屬新聞（或來源暫不可達）。</div>')
-    elif miss:
+    if hit and miss:
         parts.append(f'<div class="muted fnmiss">其餘 {len(miss)} 檔近 {win} 天無專屬新聞：'
                      f'{_esc("、".join(g.get("base") or "" for g in miss))}</div>')
 
     soc = doc.get("social") or []
     parts.append('<div class="fng">💬 社群討論（PTT 股票板・依推文數）</div>')
     if soc:
-        parts.append("".join(
-            f'<div class="fnrow"><span class="fnpush">{int(s.get("push") or 0)} 推</span>'
-            f'<a class="fnt" href="{_esc(s.get("url") or "#")}" target="_blank" rel="noopener">'
-            f'{_esc(s.get("title"))}</a><span class="fns">{_esc(s.get("date") or "")}</span></div>'
-            for s in soc))
+        parts.append('<div class="fnlist">' + "".join(
+            f'<div class="fnit fnsoc"><span class="fnpush">{int(s.get("push") or 0)} 推</span>'
+            f'<div class="fnsocb"><a class="fnt" href="{_esc(s.get("url") or "#")}" '
+            f'target="_blank" rel="noopener">{_esc(s.get("title"))}</a>'
+            f'<div class="fnmeta"><span class="fnd">{_esc(s.get("date") or "")}</span>'
+            f'<span class="fnsrc">PTT 股票板</span></div></div></div>'
+            for s in soc) + '</div>')
     else:
         parts.append('<div class="muted">近期無相關討論（或來源暫不可達）。</div>')
     parts.append(f'<div class="fnfoot">來源：{_esc(doc.get("source") or "自動擷取")}・'
@@ -586,6 +629,11 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 a.chip{border-color:rgba(47,111,208,.45);cursor:pointer}
 a.chip::after{content:"›";color:var(--acc);font-weight:800;font-size:16px}
 a.chip:hover{border-color:var(--acc);background:rgba(47,111,208,.14)}
+/* ①b 盤前速覽（今日重點內） */
+.premktc{margin-top:12px}
+.premkt{border:0;background:none;border-radius:0;padding:0;margin-top:6px;
+  font-size:13.5px;line-height:1.75;color:var(--ink2)}
+.premkt ul{margin:4px 0} .premkt ul li{margin:6px 0}
 /* ② news digest */
 .ngc{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin:10px 0}
 .ngt{font-weight:700;font-size:15.5px;color:var(--ink);line-height:1.5}
@@ -752,23 +800,33 @@ a.tk:hover{color:var(--acc)}
   #overview .st::after,#macro-cal .st::after{content:"↔ 表格可左右滑動";font-weight:400;font-size:12px;color:var(--mut)}
   .backtop{right:10px;bottom:10px;padding:7px 12px;font-size:12.5px}}
 /* ⑥ 基金相關新聞・社群 */
-.fng{font-weight:700;font-size:13.5px;color:var(--accd);margin:14px 0 6px}
-.fnrow{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:7px 0;font-size:13.5px}
-.fnd,.fns{color:var(--mut);font-size:12px;white-space:nowrap}
-.fnt{color:var(--ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(43,95,176,.35)}
-.fnt:hover{color:var(--acc)}
-.fnpush{flex:0 0 44px;text-align:right;font-weight:700;font-size:12px;color:var(--gold);white-space:nowrap}
-.fnfund{background:var(--card2);border:1px solid var(--line);border-radius:11px;margin:8px 0}
-.fnfund>summary{cursor:pointer;list-style:none;padding:10px 14px;font-weight:700;font-size:14px}
-.fnfund>summary::-webkit-details-marker{display:none}
-.fnfund>summary::after{content:"▼";float:right;color:var(--accd);font-size:12px}
-.fnfund[open]>summary::after{content:"▲"}
-.fnfund>summary:hover{background:rgba(47,111,208,.06)}
-.fnfund .fnrow{padding:0 14px}
-.fnfund[open]{padding-bottom:8px}
-.fncnt{margin-left:8px;font-weight:400;font-size:12px;color:var(--mut)}
-.fnmiss{font-size:12.5px;margin-top:8px}
-.fnfoot{color:var(--mut);font-size:12px;margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
+.fng{font-weight:700;font-size:14px;color:var(--accd);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.fnhl{background:var(--hlbg);border:1px solid rgba(200,134,15,.35);border-radius:11px;padding:10px 16px 12px;margin-bottom:4px}
+.fnhlt{font-weight:800;font-size:14px;color:var(--hl)}
+.fnhl .ngpts li{color:var(--ink);font-size:13.5px}
+.fnhl .ngpts li:before{background:var(--gold)}
+.fnlist{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:2px 16px}
+.fnit{padding:10px 0;border-bottom:1px dashed var(--line)}
+.fnit:last-child{border-bottom:0}
+.fnt{display:inline-block;color:var(--ink);font-size:14px;font-weight:600;line-height:1.55;text-decoration:none}
+.fnt:hover{color:var(--acc);text-decoration:underline;text-underline-offset:3px}
+.fnsum{color:var(--ink2);font-size:12.5px;line-height:1.7;margin-top:3px}
+.fnmeta{margin-top:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.fnd{color:var(--mut);font-size:11.5px}
+.fnsrc{display:inline-block;white-space:nowrap;font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:5px;padding:0 6px}
+.fngrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fncard{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:4px 16px 8px}
+.fnfh{display:flex;align-items:baseline;gap:8px;padding:10px 0 8px;border-bottom:1px solid var(--line)}
+.fnfh a{font-weight:800;font-size:14.5px;color:var(--accd);text-decoration:none}
+.fnfh a:hover{color:var(--acc);text-decoration:underline;text-underline-offset:3px}
+.fncnt{font-weight:400;font-size:12px;color:var(--mut)}
+.fnsoc{display:flex;gap:12px;align-items:flex-start}
+.fnsocb{min-width:0}
+.fnpush{flex:0 0 48px;text-align:center;font-weight:800;font-size:12.5px;color:var(--gold);
+  background:rgba(200,134,15,.12);border:1px solid rgba(200,134,15,.4);border-radius:8px;padding:3px 0;margin-top:2px;white-space:nowrap}
+.fnmiss{font-size:12.5px;margin-top:10px;line-height:1.8}
+.fnfoot{color:var(--mut);font-size:12px;margin-top:14px;border-top:1px solid var(--line);padding-top:8px}
+@media(max-width:720px){.fngrid{grid-template-columns:1fr}}
 /* 晨會列印版：只留今日重點＋新聞重點＋連動＋總覽（當前市場），白底黑字 */
 @media print{
   body{background:#fff;color:#111;font-size:12px}
@@ -902,12 +960,14 @@ def render() -> str:
     banned = (((news or {}).get("banned_hits") or []) + ((tw or {}).get("banned_hits") or [])
               + ((macro or {}).get("banned_hits") or []))
 
-    # ① 今日重點（雙視圖）
+    # ① 今日重點（雙視圖）；台股盤前速覽自新聞頭段抽出、直接顯示於此（不再埋於收合塊）
+    premkt_md, tw_md_news = _extract_premarket(tw_md)
     tw_news_label = (tw or {}).get("label") or "台股盤後重點"
     b_tw = _brief_view(twnews.extract_indices(tw_md), *fund_insights.movers(tw_funds),
                        len(linked_tw), _nfunds(linked_tw),
                        fund_insights.upcoming_distributions(tw_funds),
                        f"今日{tw_news_label[:4]}新聞", _sev(tw_md))
+    b_tw += _premarket_card(premkt_md)
     # 全球今日重點不列那斯達克指數卡（公開搜尋之收盤點位不可靠；改於下方新聞以官方為準呈現）
     gl_idx = [ix for ix in usnews.extract_indices(us_md) if ix["label"] != "Nasdaq"]
     b_gl = _brief_view(gl_idx, *fund_insights.movers(gl_funds),
@@ -922,7 +982,7 @@ def render() -> str:
     gl_hint = "尚無昨夜美股新聞。請執行 <code>python scripts/gen_usnews.py</code>。"
     sec_news = (f'<div class="section" id="news"><div class="st">🗞️ 新聞 '
                 f'<span class="stsub">點各則展開看摘要／影響分析／原文連結（預設收合）</span></div>'
-                f'{_mkt(_news_view(tw_md, tw_hint), _news_view(us_md, gl_hint))}</div>')
+                f'{_mkt(_news_view(tw_md_news, tw_hint), _news_view(us_md, gl_hint))}</div>')
 
     # 總經・政策分頁（川普政策／Fed／國際政策；左上「總經」分頁專屬視圖）
     mac_n, mac_top = _sev(macro_md)
@@ -938,7 +998,7 @@ def render() -> str:
 
     # ②b 基金相關新聞・社群（品牌動態＋各基金新聞＋PTT 聲量；讀 data/fund_news.json）
     fn_doc = fundnews.load()
-    fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋PTT 自動擷取・更新 '
+    fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋財經RSS＋PTT 自動擷取・更新 '
               f'{fn_doc.get("as_of") or "—"}' if fn_doc else '品牌動態／各基金新聞／PTT 聲量')
     sec_fnews = (f'<div class="section" id="fundnews"><div class="st">📣 基金相關新聞・社群 '
                  f'<span class="stsub">{_esc(fn_sub)}</span></div>'
