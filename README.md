@@ -48,19 +48,15 @@ python3 scripts/gen_fund_dashboard.py --open
 bash scripts/daily_fund.sh
 ```
 
-**新聞內容自動化（走「訂閱制用量」，非計量 API）**：GitHub Actions 用
-`anthropics/claude-code-action` 帶 **OAuth 權杖**在雲端上網查證、直接寫出當日新聞——
-用的是既有 Claude 訂閱額度，不另接計量 API。設定一次即可：
+**新聞內容：半自動・用訂閱額度（非計量 API）**。雲端 GitHub Actions 每日 07:00（台北）自動刷新
+NAV／持股快照／提示包＋重建儀表板並部署；**新聞「內容」由會上網查證的 Claude（你的訂閱額度）** 依當日
+提示包產出——每天早上請 Claude「依 `reports/usnews/prompts/{date}.md`、`reports/twnews/prompts/{date}.md`
+上網查證，回存 `reports/usnews/{date}_v1|_v2.md` 與 `reports/twnews/{date}.md`」即可，補完儀表板會自動帶入
+（未補當日新聞時退回最近一份、標合規燈）。
 
-```bash
-claude setup-token          # 產一年期 OAuth 權杖（訂閱制）
-# → 到 repo Settings → Secrets and variables → Actions 新增 Secret：
-#     CLAUDE_CODE_OAUTH_TOKEN = <上一步輸出的權杖>
-```
-
-設好後，每日 08:30（台北）workflow 會自動：抓持股 → 產新聞提示包 → **Claude Code 上網查證產
-`reports/usnews/{date}_v1|_v2.md` 與 `reports/twnews/{date}.md`** → 重建儀表板 → commit 回 repo
-（Vercel 隨即部署）。未設定該 Secret 時，新聞步驟自動略過、儀表板退回最近一份。
+> 為何不放 CI 全自動？訂閱制 OAuth 權杖（`claude setup-token`）不適合無人值守的排程：官方
+> `claude-code-action` 有已知標頭 bug、且權杖約一天過期。若日後要「新聞也全自動」，需改用**計量 API
+> 金鑰** `ANTHROPIC_API_KEY`（每月約 US$10–30，依模型與查證次數）——這是唯一「設定一次、永遠自動」的路。
 
 儀表板為**單一 `dashboard/index.html`**（vanilla JS、零外部請求、雙擊即開，無 npm/node），業務優先三層架構（見 `docs/REDESIGN_PLAN.md`）：今日重點（加權/櫃買＋美股三大指數、最強最弱基金）→ 基金總覽表（可排序、紅漲綠跌）→ 新聞×持股連動（台股＋美股新聞對回持有基金、附合規話術）→ 兩份新聞全文（收合、🟢/🔴 合規燈）→ 逐檔持股介紹。
 
@@ -73,8 +69,8 @@ claude setup-token          # 產一年期 OAuth 權杖（訂閱制）
 | 基本資料 / NAV / 多期報酬 / 經理人 / 月報 / 投資策略 | 復華投信官網 | `GET /api/fund?fundID={id}`（JSON） | 每日 NAV |
 | 十大持有標的（含產業）/ 國家配置 / 產業配置 / 資料日期 | 復華投信官網 | `/funds/funds_detail/{id}`（SSR HTML／SVG 解析） | 月底 |
 | 重點標的簡介 | 人工／查證後落檔 | `config/holding_profiles.json` | 靜態，可增修 |
-| 昨夜美股新聞 | Reuters/Bloomberg/WSJ/FT/CNBC/富途牛牛等公開來源 | Claude Code（訂閱制 OAuth）上網查證 → `reports/usnews/{date}_v*.md` | 每日 |
-| 台股盤前/盤後重點 | 中央社/經濟日報/鉅亨網等公開來源（指數以證交所/櫃買中心為準） | Claude Code（訂閱制 OAuth）上網查證 → `reports/twnews/{date}.md` | 每交易日 |
+| 昨夜美股新聞 | Reuters/Bloomberg/WSJ/FT/CNBC/富途牛牛等公開來源 | Claude（訂閱額度）依提示包上網查證 → `reports/usnews/{date}_v*.md` | 每日（半自動） |
+| 台股盤前/盤後重點 | 中央社/經濟日報/鉅亨網等公開來源（指數以證交所/櫃買中心為準） | Claude（訂閱額度）依提示包上網查證 → `reports/twnews/{date}.md` | 每交易日（半自動） |
 
 持股為**月度**官方揭露（如 2026/05/31），NAV 為每日；儀表板皆標「持股基準日」與「NAV 日」以免混淆。連接器純標準庫正則解析（`arm/connectors/fhfund.py`），缺任一端點即該欄留空、不整批崩。
 
