@@ -20,7 +20,7 @@ import html
 import re
 from datetime import datetime
 
-from . import fund_insights, fund_intro, twnews, usnews
+from . import fund_insights, fund_intro, macronews, twnews, usnews
 
 
 def _esc(s) -> str:
@@ -127,8 +127,8 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     <span class="tb-lamp">{_esc(lamp)}</span>
     <nav class="tb-nav">
       <a href="#brief">今日重點</a><a href="#news">新聞</a>
-      <a href="#newslinks">焦點個股</a><a href="#overview">基金總覽</a>
-      <a href="#details">基金詳情</a>
+      <a href="#macro">總經</a><a href="#newslinks">焦點個股</a>
+      <a href="#overview">基金總覽</a><a href="#details">基金詳情</a>
     </nav>
     <button class="tb-print" onclick="window.print()">🖨 晨會版</button>
   </div>
@@ -183,10 +183,11 @@ def _news_badges(etype: str | None, importance: int | None) -> str:
     return f'<span class="nbadges">{out}</span>' if out else ""
 
 
-def _news_view(md: str, empty_hint: str) -> str:
+def _news_view(md: str, empty_hint: str,
+               tail_label: str = "📄 指數速覽・資料侷限・合規揭露") -> str:
     """單一新聞區：每則新聞一個 <details>（預設收合）。
     收合時標題列即顯示標題＋一句話重點（深咖啡）；展開顯示摘要＋影響分析＋原文連結。
-    其餘（指數速覽／資料侷限／合規揭露）另置一收合塊。"""
+    其餘（總覽／資料侷限／合規揭露）另置一收合塊，標題以 tail_label 呈現。"""
     head, cards, tail = usnews.split_doc(md or "")
     if not cards and not (md or "").strip():
         return f'<div class="muted">{empty_hint}</div>'
@@ -219,7 +220,7 @@ def _news_view(md: str, empty_hint: str) -> str:
     if extra:
         items.append(
             f'<details class="newsone"><summary>'
-            f'<span class="nhead"><span class="nit">📄 指數速覽・資料侷限・合規揭露</span></span>'
+            f'<span class="nhead"><span class="nit">{_esc(tail_label)}</span></span>'
             f'<span class="openbtn2"></span></summary>'
             f'<div class="ndoc nibody">{_md(extra)}</div></details>')
     return "".join(items) or f'<div class="muted">{empty_hint}</div>'
@@ -706,8 +707,10 @@ def render() -> str:
 
     news = usnews.load_latest()
     tw = twnews.load_latest()
+    macro = macronews.load_latest()
     us_md = (news or {}).get("v1") or (news or {}).get("v2") or ""
     tw_md = (tw or {}).get("md") or ""
+    macro_md = (macro or {}).get("md") or ""
 
     def _sev(md: str) -> tuple[int, int]:
         """回 (重要度≥6 的新聞則數, 最高分)——供今日重點 chip。"""
@@ -746,7 +749,8 @@ def render() -> str:
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     as_of = (funds[0].get("as_of") if funds else None) or "—"
-    banned = ((news or {}).get("banned_hits") or []) + ((tw or {}).get("banned_hits") or [])
+    banned = (((news or {}).get("banned_hits") or []) + ((tw or {}).get("banned_hits") or [])
+              + ((macro or {}).get("banned_hits") or []))
 
     # ① 今日重點（雙視圖）
     tw_news_label = (tw or {}).get("label") or "台股盤後重點"
@@ -767,6 +771,15 @@ def render() -> str:
     sec_news = (f'<div class="section" id="news"><div class="st">🗞️ 新聞 '
                 f'<span class="stsub">點各則展開看摘要／影響分析／原文連結（預設收合）</span></div>'
                 f'{_mkt(_news_view(tw_md, tw_hint), _news_view(us_md, gl_hint))}</div>')
+
+    # ②' 總經・政策（川普政策／Fed／國際政策；全球共用、不隨台股/全球切換）
+    mac_n, mac_top = _sev(macro_md)
+    mac_sub = (f'川普政策／Fed／國際政策・今日 {mac_n} 則政策事件（最高 {mac_top} 分）'
+               if mac_n else '川普政策／Fed／國際政策・點各則展開看影響分析')
+    mac_hint = "尚無總經／政策新聞。請執行 <code>python scripts/gen_macronews.py</code>。"
+    sec_macro = (f'<div class="section" id="macro"><div class="st">🏛️ 總經・政策 '
+                 f'<span class="stsub">{mac_sub}</span></div>'
+                 f'{_news_view(macro_md, mac_hint, "📄 政策總覽・資料侷限・合規揭露")}</div>')
 
     # ③ 當日焦點個股（新聞連動）
     l_tw = _newslinks_view(linked_tw, "今日台股新聞與台股基金前十大持股無直接連動", "tw", mkt_by_id)
@@ -794,10 +807,11 @@ def render() -> str:
 <body>
 <input class="mkradio" type="radio" name="mkt" id="mkt-tw" checked>
 <input class="mkradio" type="radio" name="mkt" id="mkt-gl">
-{_topbar(banned, bool(news or tw), as_of, now)}
+{_topbar(banned, bool(news or tw or macro), as_of, now)}
 <div class="wrap">
 {sec_brief}
 {sec_news}
+{sec_macro}
 {sec_links}
 {sec_over}
 {sec_det}
