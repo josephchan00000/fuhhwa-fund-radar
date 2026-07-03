@@ -63,19 +63,53 @@ def fund_query_groups(funds: list[dict]) -> list[dict]:
     return [acc[b] for b in order]
 
 
+def strip_source_suffix(title: str | None, source: str | None) -> str:
+    """Google News 標題尾常帶「 - 來源名」，與另列的來源欄重複——剝掉。"""
+    t = (title or "").strip()
+    s = (source or "").strip()
+    if s and t.endswith(f" - {s}"):
+        t = t[: -len(s) - 3].rstrip()
+    return t
+
+
+def _clean_items(items: list[dict]) -> list[dict]:
+    return [{**i, "title": strip_source_suffix(i.get("title"), i.get("source"))} for i in items]
+
+
 def fetch_brand(days: int = WINDOW_DAYS, limit: int = 10) -> list[dict]:
     """品牌層新聞：復華投信動態。抓不到回 []。"""
-    return gnews.search_many(BRAND_QUERIES, days=days, limit=limit)
+    return _clean_items(gnews.search_many(BRAND_QUERIES, days=days, limit=limit))
+
+
+def fund_item_relevant(item: dict, base: str) -> bool:
+    """留與該基金明確相關者：標題含「復華」或基金核心名（去「復華」「基金」後的特徵詞）。
+    兩類噪音濾掉：Google 放寬搜尋回的同類他牌基金（如搜「復華美國新星基金」回柏瑞美國
+    研究基金）；「旗下各基金淨值一覽表」這類品牌層系列文（每檔都命中、歸品牌動態就好）。"""
+    t = item.get("title") or ""
+    if "旗下各基金" in t:
+        return False
+    core = (base or "").replace("復華", "").replace("基金", "").strip()
+    return ("復華" in t) or bool(core and core in t)
 
 
 def fetch_funds(funds: list[dict], days: int = WINDOW_DAYS, per_limit: int = 4) -> list[dict]:
-    """基金層新聞：每個基底名一次 Google News 查詢。無新聞的基金 items 為 []。"""
+    """基金層新聞：每個基底名一次 Google News 查詢。不相關標題濾除、同稿多家轉載去重。
+    無新聞的基金 items 為 []。"""
     out = []
     for g in fund_query_groups(funds):
         items = gnews.search(f'"{g["base"]}"', days=days, limit=per_limit)
         if not items:                            # 精確片語沒中 → 放寬一次
             items = gnews.search(g["base"], days=days, limit=per_limit)
-        out.append({**g, "items": items})
+        kept, seen = [], set()
+        for i in items:
+            if not fund_item_relevant(i, g["base"]):
+                continue
+            key = (i.get("title") or "")[:24]    # 同標題（多家轉載）只留最新一則
+            if key in seen:
+                continue
+            seen.add(key)
+            kept.append(i)
+        out.append({**g, "items": _clean_items(kept)})
     return out
 
 
