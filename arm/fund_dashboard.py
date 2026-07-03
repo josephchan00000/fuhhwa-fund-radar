@@ -146,7 +146,7 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
         f'<div class="ixp">{_pct_span(ix["pct"] if ix["up"] else -ix["pct"])}</div></div>'
         for ix in indices)
     if not idx_cards:
-        idx_cards = '<div class="muted">（盤前尚無指數收盤——詳見下方新聞重點）</div>'
+        idx_cards = '<div class="muted">（指數收盤點位以官方為準——詳見下方新聞重點）</div>'
     chips = []
     if best:
         chips.append(f'<a class="chip" href="#fund-{_esc(best["fund_id"])}">▲ 今日最強：'
