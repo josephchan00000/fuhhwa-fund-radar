@@ -20,7 +20,7 @@ import html
 import re
 from datetime import datetime
 
-from . import fund_insights, fund_intro, macronews, twnews, usnews
+from . import fund_insights, fund_intro, fundnews, macronews, twnews, usnews
 
 
 def _esc(s) -> str:
@@ -127,6 +127,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     <span class="tb-lamp">{_esc(lamp)}</span>
     <nav class="tb-nav tb-nav-fund">
       <a href="#brief">今日重點</a><a href="#news">新聞</a>
+      <a href="#fundnews">基金新聞</a>
       <a href="#newslinks">焦點個股</a><a href="#overview">基金總覽</a>
       <a href="#details">基金詳情</a>
     </nav>
@@ -478,6 +479,57 @@ def _details_block(funds: list[dict], gavg: dict, linked_by_fund: dict[str, set[
     return cards
 
 
+# ── ⑥ 基金相關新聞・社群（讀 data/fund_news.json；無檔顯示提示不壞版） ──
+
+def _fundnews_view(doc: dict | None) -> str:
+    if not doc:
+        return ('<div class="muted">尚無基金新聞資料。請執行 '
+                '<code>python3 scripts/fetch_fund_news.py</code> 後重產儀表板。</div>')
+    win = doc.get("window_days") or 7
+    parts = []
+
+    def _news_rows(items: list[dict]) -> str:
+        return "".join(
+            f'<div class="fnrow"><span class="fnd">{_esc((i.get("date") or "")[:10])}</span>'
+            f'<a class="fnt" href="{_esc(i.get("url") or "#")}" target="_blank" rel="noopener">'
+            f'{_esc(i.get("title"))}</a><span class="fns">{_esc(i.get("source") or "")}</span></div>'
+            for i in items)
+
+    brand = doc.get("brand") or []
+    parts.append('<div class="fng">🏢 復華投信動態</div>')
+    parts.append(_news_rows(brand) if brand else
+                 f'<div class="muted">近 {win} 天無品牌新聞（或來源暫不可達）。</div>')
+
+    groups = doc.get("funds") or []
+    hit = [g for g in groups if g.get("items")]
+    miss = [g for g in groups if not g.get("items")]
+    parts.append(f'<div class="fng">📌 各基金新聞（近 {win} 天）</div>')
+    for g in hit:
+        parts.append(
+            f'<details class="fnfund"><summary>{_esc(g.get("base"))}'
+            f'<span class="fncnt">{len(g["items"])} 則</span></summary>'
+            f'{_news_rows(g["items"])}</details>')
+    if not hit:
+        parts.append(f'<div class="muted">近 {win} 天各基金皆無專屬新聞（或來源暫不可達）。</div>')
+    elif miss:
+        parts.append(f'<div class="muted fnmiss">其餘 {len(miss)} 檔近 {win} 天無專屬新聞：'
+                     f'{_esc("、".join(g.get("base") or "" for g in miss))}</div>')
+
+    soc = doc.get("social") or []
+    parts.append('<div class="fng">💬 社群討論（PTT 股票板・依推文數）</div>')
+    if soc:
+        parts.append("".join(
+            f'<div class="fnrow"><span class="fnpush">{int(s.get("push") or 0)} 推</span>'
+            f'<a class="fnt" href="{_esc(s.get("url") or "#")}" target="_blank" rel="noopener">'
+            f'{_esc(s.get("title"))}</a><span class="fns">{_esc(s.get("date") or "")}</span></div>'
+            for s in soc))
+    else:
+        parts.append('<div class="muted">近期無相關討論（或來源暫不可達）。</div>')
+    parts.append(f'<div class="fnfoot">來源：{_esc(doc.get("source") or "自動擷取")}・'
+                 f'更新 {_esc(doc.get("as_of") or "—")}。公開標題彙編、教育用途，非投資建議。</div>')
+    return "".join(parts)
+
+
 # ── 樣式與腳本（非 f-string，避免大括號跳脫） ─────────────────
 
 _CSS = """
@@ -699,6 +751,24 @@ a.tk:hover{color:var(--acc)}
   .tb-meta,.tb-lamp{display:none}.ixc{min-width:110px}
   #overview .st::after,#macro-cal .st::after{content:"↔ 表格可左右滑動";font-weight:400;font-size:12px;color:var(--mut)}
   .backtop{right:10px;bottom:10px;padding:7px 12px;font-size:12.5px}}
+/* ⑥ 基金相關新聞・社群 */
+.fng{font-weight:700;font-size:13.5px;color:var(--accd);margin:14px 0 6px}
+.fnrow{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:7px 0;font-size:13.5px}
+.fnd,.fns{color:var(--mut);font-size:12px;white-space:nowrap}
+.fnt{color:var(--ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(43,95,176,.35)}
+.fnt:hover{color:var(--acc)}
+.fnpush{flex:0 0 44px;text-align:right;font-weight:700;font-size:12px;color:var(--gold);white-space:nowrap}
+.fnfund{background:var(--card2);border:1px solid var(--line);border-radius:11px;margin:8px 0}
+.fnfund>summary{cursor:pointer;list-style:none;padding:10px 14px;font-weight:700;font-size:14px}
+.fnfund>summary::-webkit-details-marker{display:none}
+.fnfund>summary::after{content:"▼";float:right;color:var(--accd);font-size:12px}
+.fnfund[open]>summary::after{content:"▲"}
+.fnfund>summary:hover{background:rgba(47,111,208,.06)}
+.fnfund .fnrow{padding:0 14px}
+.fnfund[open]{padding-bottom:8px}
+.fncnt{margin-left:8px;font-weight:400;font-size:12px;color:var(--mut)}
+.fnmiss{font-size:12.5px;margin-top:8px}
+.fnfoot{color:var(--mut);font-size:12px;margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
 /* 晨會列印版：只留今日重點＋新聞重點＋連動＋總覽（當前市場），白底黑字 */
 @media print{
   body{background:#fff;color:#111;font-size:12px}
@@ -716,6 +786,8 @@ a.tk:hover{color:var(--acc)}
   a{text-decoration:none;color:#111}
   .nglink{color:#1a56b0;border-color:#ccc}
 }
+/* 晨會版不含「基金相關新聞・社群」，維持原列印版面 */
+@media print{#fundnews{display:none!important}}
 """
 
 _JS = """
@@ -864,6 +936,14 @@ def render() -> str:
                  f'<span class="stsub">{mac_sub}</span></div>'
                  f'{_news_view(macro_md, mac_hint, "📄 政策總覽・資料侷限・合規揭露")}</div>')
 
+    # ②b 基金相關新聞・社群（品牌動態＋各基金新聞＋PTT 聲量；讀 data/fund_news.json）
+    fn_doc = fundnews.load()
+    fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋PTT 自動擷取・更新 '
+              f'{fn_doc.get("as_of") or "—"}' if fn_doc else '品牌動態／各基金新聞／PTT 聲量')
+    sec_fnews = (f'<div class="section" id="fundnews"><div class="st">📣 基金相關新聞・社群 '
+                 f'<span class="stsub">{_esc(fn_sub)}</span></div>'
+                 f'{_fundnews_view(fn_doc)}</div>')
+
     # ③ 當日焦點個股（新聞連動）
     l_tw = _newslinks_view(linked_tw, "今日台股新聞與台股基金前十大持股無直接連動", "tw", mkt_by_id)
     l_gl = _newslinks_view(linked_us, "昨夜美股新聞與海外基金前十大持股無直接連動", "gl", mkt_by_id)
@@ -900,6 +980,7 @@ def render() -> str:
 <div class="fundview">
 {sec_brief}
 {sec_news}
+{sec_fnews}
 {sec_links}
 {sec_over}
 {sec_det}
