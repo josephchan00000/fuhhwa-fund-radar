@@ -155,9 +155,10 @@ _MD_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\s)]+)\)")
 def extract_cards(md: str) -> list[dict]:
     """切出新聞卡（v1『### 卡 N｜…』／v2『## 一、…』）。
 
-    回 [{title, meta, oneline, summary, links, body}]：
+    回 [{title, meta, oneline, summary, points, links, body}]：
       title＝去尾端括注的標題；meta＝尾端（來源：…｜日期｜…）括注內容；
       oneline＝『一句話重點／一句話』行；summary＝『新聞摘要』行；
+      points＝影響條列 [(標籤, 內文)]（對公司影響／對持股・族群影響／對市場情緒…）；
       links＝卡內 markdown 連結 [(文字, URL)]（原文出處）。缺者為空。"""
     cards: list[dict] = []
     cur: dict | None = None
@@ -170,7 +171,7 @@ def extract_cards(md: str) -> list[dict]:
             if mm:
                 meta, raw = mm.group(1).strip(), raw[:mm.start()].strip()
             cur = {"title": raw, "meta": meta, "oneline": "", "summary": "",
-                   "links": [], "body": ""}
+                   "points": [], "links": [], "body": ""}
             cards.append(cur)
             continue
         if line.strip().startswith(("## ", "---")) and not _CARD_HEAD.match(line.strip()):
@@ -184,6 +185,9 @@ def extract_cards(md: str) -> list[dict]:
             ms = re.match(r"^\s*\d*\.?\s*\*\*新聞摘要\*\*[：:]\s*(.+)$", line)
             if ms and not cur["summary"]:
                 cur["summary"] = ms.group(1).strip()
+            mp = re.match(r"^\s*\d+\.\s*\*\*((?:對|市場情緒)[^*]{1,20})\*\*[：:]\s*(.+)$", line)
+            if mp:
+                cur["points"].append((mp.group(1).strip(), mp.group(2).strip()))
     for c in cards:
         c["links"] = [(t, u) for t, u in _MD_LINK.findall(c["body"])]
     return cards
