@@ -175,6 +175,32 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
     return f'<div class="ixrow">{idx_cards}</div><div class="chips">{"".join(chips)}</div>'
 
 
+_PREMKT_HEAD = re.compile(r"^##\s*🔹?\s*盤前速覽")
+
+
+def _extract_premarket(md: str) -> tuple[str, str]:
+    """抽出台股新聞的「## 🔹盤前速覽」段（改置今日重點），回 (段落內文, 移除後全文)。
+    盤後版無此段 → 回 ("", 原文)，今日重點不多出空卡。"""
+    lines = (md or "").splitlines()
+    s = next((i for i, l in enumerate(lines) if _PREMKT_HEAD.match(l.strip())), None)
+    if s is None:
+        return "", md or ""
+    e = next((j for j in range(s + 1, len(lines))
+              if lines[j].strip().startswith("## ") or lines[j].strip() == "---"), len(lines))
+    body = "\n".join(lines[s + 1:e]).strip()
+    rest = "\n".join(lines[:s] + lines[e:]).strip()
+    return body, rest
+
+
+def _premarket_card(pre_md: str) -> str:
+    """今日重點內的盤前速覽卡：台指期夜盤／台積電 ADR／費半／盤前研判。"""
+    if not pre_md:
+        return ""
+    return (f'<div class="ngc premktc"><div class="ngt">⏱ 盤前速覽 '
+            f'<span class="stsub">昨夜外部訊號・開盤前參考</span></div>'
+            f'<div class="ndoc premkt">{_md(pre_md)}</div></div>')
+
+
 # ── ② 新聞（重點＋全文合併：逐則收合，標題列顯示一句話重點） ──────
 
 def _news_badges(etype: str | None, importance: int | None) -> str:
@@ -586,6 +612,11 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 a.chip{border-color:rgba(47,111,208,.45);cursor:pointer}
 a.chip::after{content:"›";color:var(--acc);font-weight:800;font-size:16px}
 a.chip:hover{border-color:var(--acc);background:rgba(47,111,208,.14)}
+/* ①b 盤前速覽（今日重點內） */
+.premktc{margin-top:12px}
+.premkt{border:0;background:none;border-radius:0;padding:0;margin-top:6px;
+  font-size:13.5px;line-height:1.75;color:var(--ink2)}
+.premkt ul{margin:4px 0} .premkt ul li{margin:6px 0}
 /* ② news digest */
 .ngc{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin:10px 0}
 .ngt{font-weight:700;font-size:15.5px;color:var(--ink);line-height:1.5}
@@ -902,12 +933,14 @@ def render() -> str:
     banned = (((news or {}).get("banned_hits") or []) + ((tw or {}).get("banned_hits") or [])
               + ((macro or {}).get("banned_hits") or []))
 
-    # ① 今日重點（雙視圖）
+    # ① 今日重點（雙視圖）；台股盤前速覽自新聞頭段抽出、直接顯示於此（不再埋於收合塊）
+    premkt_md, tw_md_news = _extract_premarket(tw_md)
     tw_news_label = (tw or {}).get("label") or "台股盤後重點"
     b_tw = _brief_view(twnews.extract_indices(tw_md), *fund_insights.movers(tw_funds),
                        len(linked_tw), _nfunds(linked_tw),
                        fund_insights.upcoming_distributions(tw_funds),
                        f"今日{tw_news_label[:4]}新聞", _sev(tw_md))
+    b_tw += _premarket_card(premkt_md)
     # 全球今日重點不列那斯達克指數卡（公開搜尋之收盤點位不可靠；改於下方新聞以官方為準呈現）
     gl_idx = [ix for ix in usnews.extract_indices(us_md) if ix["label"] != "Nasdaq"]
     b_gl = _brief_view(gl_idx, *fund_insights.movers(gl_funds),
@@ -922,7 +955,7 @@ def render() -> str:
     gl_hint = "尚無昨夜美股新聞。請執行 <code>python scripts/gen_usnews.py</code>。"
     sec_news = (f'<div class="section" id="news"><div class="st">🗞️ 新聞 '
                 f'<span class="stsub">點各則展開看摘要／影響分析／原文連結（預設收合）</span></div>'
-                f'{_mkt(_news_view(tw_md, tw_hint), _news_view(us_md, gl_hint))}</div>')
+                f'{_mkt(_news_view(tw_md_news, tw_hint), _news_view(us_md, gl_hint))}</div>')
 
     # 總經・政策分頁（川普政策／Fed／國際政策；左上「總經」分頁專屬視圖）
     mac_n, mac_top = _sev(macro_md)
