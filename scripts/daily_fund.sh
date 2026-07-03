@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# 復華基金追蹤版本 · 每日 routine 單一進入點。
-# 流程：抓 25 檔基金持股介紹（海外＋台股）→ 產昨夜美股新聞提示包 → 產台股盤後重點提示包 → 產儀表板。
-# 註：新聞「內容」需會上網查證的 LLM 產出（純 Python 不杜撰新聞）：
-#   · 美股：在 Claude Code 說「依 reports/usnews/prompts/{date}.md 上網查證，產 v1/v2 兩檔」，
-#     或貼進聯網 Claude 回存 reports/usnews/{date}_v1.md 與 _v2.md；
-#   · 台股：說「依 reports/twnews/prompts/{date}.md 上網查證，產台股盤後重點」，
-#     回存 reports/twnews/{date}.md。
+# 復華基金追蹤版本 · 每日 routine 本機單一進入點。
+# 流程：抓 25 檔基金持股介紹（海外＋台股）→ 產新聞提示包 → 產儀表板。
+# 註：新聞「內容」需會上網查證的 LLM 產出（純 Python 不杜撰新聞），用「訂閱制用量」的 Claude、非計量 API：
+#   · 本機：跑完本腳本後，在 Claude Code 直接說
+#       「依 reports/usnews/prompts/{date}.md 上網查證，產 v1/v2 兩檔」→ 回存 reports/usnews/{date}_v1.md、_v2.md；
+#       「依 reports/twnews/prompts/{date}.md 上網查證，產台股重點」→ 回存 reports/twnews/{date}.md；
+#     再重跑一次 gen_fund_dashboard.py 讓新聞入板。
+#   · 雲端（GitHub Actions）：由 anthropics/claude-code-action 帶 CLAUDE_CODE_OAUTH_TOKEN
+#     （訂閱制 OAuth 權杖）在 CI 全自動查證產出，見 .github/workflows/daily.yml。
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
