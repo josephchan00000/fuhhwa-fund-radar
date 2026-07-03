@@ -382,16 +382,12 @@ def _pending_card(p: dict) -> str:
 
 
 def _details_block(funds: list[dict], gavg: dict, linked_by_fund: dict[str, set[str]],
-                   pending: list[dict]) -> tuple[str, str]:
-    """回 (跳檔鏈 html, 卡片群 html)。"""
-    jumps = "".join(f'<a class="jmp" href="#fund-{_esc(d.get("fund_id"))}">{_esc(_short(d))}</a>'
-                    for d in funds)
-    jumps += "".join(f'<a class="jmp pendjmp" href="#fund-{_esc(p["fund_id"])}">⏳{_esc(_short(p["name"]))}</a>'
-                     for p in pending)
+                   pending: list[dict]) -> str:
+    """基金詳情卡片群。"""
     cards = "".join(_fund_card(d, gavg, linked_by_fund.get(str(d.get("fund_id")), set()))
                     for d in funds)
     cards += "".join(_pending_card(p) for p in pending)
-    return jumps, cards
+    return cards
 
 
 # ── ⑥ 新聞全文（預設收合、最下面） ────────────────────────────
@@ -551,10 +547,8 @@ a.tk:hover{color:#fff}
 .ndoc small,.ndoc i{color:var(--mut);font-style:normal}
 .tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:20px;background:rgba(91,141,239,.18);color:#9ecbff;border:1px solid rgba(91,141,239,.35);white-space:nowrap}
 /* ⑤ details */
-.jumps{display:flex;flex-wrap:wrap;gap:7px}
-.jmp{background:var(--card2);color:#cfe0ff;border:1px solid var(--line);border-radius:9px;padding:7px 13px;font-size:14px;text-decoration:none}
-.jmp:hover{color:#fff;border-color:var(--acc);background:rgba(91,141,239,.14)}
-.pendjmp{color:var(--mut)}
+#details{padding:12px 18px}
+#details .st{margin-bottom:0}
 .pendcard .sub{line-height:1.9}
 .fund{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:12px}
 .fund:target{border-color:var(--acc);box-shadow:0 0 0 2px rgba(91,141,239,.35)}
@@ -739,12 +733,9 @@ def render() -> str:
                 f'{_mkt(o_tw, o_gl)}</div>')
 
     # ⑤ 基金詳情
-    j_tw, c_tw = _details_block(tw_funds, gavg, linked_by_fund, tw_pend)
-    j_gl, c_gl = _details_block(gl_funds, gavg, linked_by_fund, gl_pend)
-    jumps_both = _mkt(f'<div class="jumps">{j_tw}</div>', f'<div class="jumps">{j_gl}</div>')
-    sec_det = (f'<div class="section" id="details"><div class="st">📚 基金詳情 '
-               f'<span class="stsub">台股 {len(tw_funds) + len(tw_pend)} 檔｜全球 {len(gl_funds) + len(gl_pend)} 檔</span></div>'
-               f'{jumps_both}</div>'
+    c_tw = _details_block(tw_funds, gavg, linked_by_fund, tw_pend)
+    c_gl = _details_block(gl_funds, gavg, linked_by_fund, gl_pend)
+    sec_det = (f'<div class="section" id="details"><div class="st">📚 基金詳情</div></div>'
                f'{_mkt(c_tw, c_gl)}')
 
     # ⑥ 新聞全文（預設收合、最下面）
