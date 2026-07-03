@@ -72,6 +72,25 @@ def test_macro_spec_and_section():
     assert 'id="mkt-macro"' in html and 'for="mkt-macro">總經' in html   # 三分頁切換鈕
     assert 'class="macroview"' in html and 'class="fundview"' in html    # 分頁視圖容器
     assert 'id="macro"' in html and "🏛️ 總經・政策" in html
+    # 總經頁含「本週行事曆」子區塊與總經專屬導覽（非死按鈕）
+    assert 'id="macro-cal"' in html and 'tb-nav-macro' in html and "本週行事曆" in html
+
+
+def test_macro_calendar_parsing():
+    from arm import macronews
+    md = (
+        "# 本週美國經濟數據行事曆（06/29–07/03）\n"
+        "> 更新：2026/07/03；美股 7/3 因國慶假期休市\n\n"
+        "| 日期 | 項目 | 預期 | 實際 | 前值 | 狀態 |\n"
+        "|---|---|---|---|---|---|\n"
+        "| 07/02 | 6月非農就業 | +11.5萬 | +5.7萬 | +14.4萬 | 已公布 |\n"
+        "| 07/03 | 美股國慶假期休市 | — | — | — | 休市 |\n"
+        "| 07/08 | 5月批發庫存 | +0.2% | — | +0.1% | 未公布 |\n"
+    )
+    rows = macronews._parse_cal_rows(md)
+    assert [r["status"] for r in rows] == ["已公布", "休市", "未公布"]   # 表頭/分隔列不計入
+    assert rows[0]["item"] == "6月非農就業" and rows[0]["actual"] == "+5.7萬"
+    assert "休市" in macronews._cal_note(md)
 
 
 def test_card_importance_and_etype_parsing():
