@@ -58,6 +58,16 @@ def overview_rows(funds: list[dict]) -> list[dict]:
     return rows
 
 
+def full_company_name(name: str | None) -> str:
+    """官網持股名稱以固定字數截斷（如「成都新易盛通信技術股份有限公」），補回缺字避免誤讀。"""
+    n = name or ""
+    if n.endswith("股份有限公"):
+        return n + "司"
+    if n.endswith("股份有"):
+        return n + "限公司"
+    return n
+
+
 def movers(funds: list[dict]) -> tuple[dict | None, dict | None]:
     """(今日最強, 今日最弱)：依 NAV 日變動排序；同日缺數者剔除。至多一檔時最弱回 None。"""
     cands = [{"fund_id": str(d.get("fund_id")),
@@ -198,7 +208,7 @@ def fund_intro_copy(doc: dict) -> str:
     ret = doc.get("returns") or {}
     rets = "／".join(f"{lab} {ret.get(k) or '—'}"
                      for k, lab in RET_KEYS + [("since", "成立以來")])
-    top3 = "、".join(f"{h.get('name')} {h.get('weight') or 0:.2f}%"
+    top3 = "、".join(f"{full_company_name(h.get('name'))} {h.get('weight') or 0:.2f}%"
                      for h in (doc.get("top_holdings") or [])[:3]) or "—"
     size = doc.get("size_twd")
     lines = [

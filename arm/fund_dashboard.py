@@ -357,7 +357,7 @@ def _overview_view(rows: list[dict], leaders: set, fund_links: dict[str, int],
 
 def _bars(items: list[dict], accent: str) -> str:
     if not items:
-        return '<div class="muted">—</div>'
+        return '<div class="muted">—（暫無資料）</div>'
     mx = max((i.get("weight") or 0) for i in items) or 1
     rows = []
     for it in items:
@@ -389,7 +389,7 @@ def _holdings_table(doc: dict, linked_names: set[str]) -> str:
         trcls = ' class="hl"' if hl else ""
         rows.append(
             f'<tr{trcls}><td class="rk">{i}</td>'
-            f'<td class="nm"><b>{_esc(h.get("name"))}</b>{tk}{link} '
+            f'<td class="nm"><b>{_esc(fund_insights.full_company_name(h.get("name")))}</b>{tk}{link} '
             f'<span class="sec">{_esc(h.get("sector"))}</span> {ct}{intro}</td>'
             f'<td class="wt">{(h.get("weight") or 0):.2f}%</td></tr>')
     return (f'<table class="htbl"><thead><tr><th></th>'
@@ -416,6 +416,14 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
     strat = doc.get("strategy") or ""
     chg = fund_insights.parse_pct(doc.get("nav_change_pct"))
     copy_txt = fund_insights.fund_intro_copy(doc)
+    # 國內基金官網不提供國家配置——整段省略，避免留下懸空的「—」空區塊
+    cty = doc.get("country_alloc") or []
+    alloc_html = (
+        f'<div class="ctitle">🌏 國家配置</div>{_bars(cty, "var(--c1)")}'
+        f'<div class="ctitle" style="margin-top:14px">🏭 產業配置</div>'
+        if cty else '<div class="ctitle">🏭 產業配置</div>')
+    conc = fund_intro.top_concentration(doc)
+    conc_s = f"{conc}%" if conc is not None else "—"
     return f"""
 <section class="fund" id="fund-{_esc(doc.get('fund_id'))}">
   <div class="fhead">
@@ -437,11 +445,10 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
   <div class="rets">{"".join(cells)}</div>
   <div class="cols">
     <div class="col">
-      <div class="ctitle">🌏 國家配置</div>{_bars(doc.get('country_alloc') or [], 'var(--c1)')}
-      <div class="ctitle" style="margin-top:14px">🏭 產業配置</div>{_bars(doc.get('sector_alloc') or [], 'var(--c2)')}
+      {alloc_html}{_bars(doc.get('sector_alloc') or [], 'var(--c2)')}
     </div>
     <div class="col">
-      <div class="ctitle">📋 十大持有標的　<span class="asof">持股基準 {_esc(doc.get('as_of') or '—')}｜前十大合計 {_esc(fund_intro.top_concentration(doc) if fund_intro.top_concentration(doc) is not None else '—')}%</span></div>
+      <div class="ctitle">📋 十大持有標的　<span class="asof">持股基準 {_esc(doc.get('as_of') or '—')}｜前十大合計 {_esc(conc_s)}</span></div>
       {_holdings_table(doc, linked_names)}
     </div>
   </div>
@@ -473,7 +480,7 @@ def _details_block(funds: list[dict], gavg: dict, linked_by_fund: dict[str, set[
 # ── 樣式與腳本（非 f-string，避免大括號跳脫） ─────────────────
 
 _CSS = """
-:root{--bg:#efe7d3;--card:#fdfaf2;--card2:#f6efdf;--ink:#3a332a;--mut:#8a7f6b;
+:root{--bg:#efe7d3;--card:#fdfaf2;--card2:#f6efdf;--ink:#3a332a;--mut:#7d7160;
 --line:#e4d9c1;--c1:#3b82f6;--c2:#e08a12;--gain:#d33a34;--loss:#1f9d57;--acc:#2f6fd0;
 --accd:#2b5fb0;--ink2:#5c5343;--inset:#efe6cf;--hl:#4a2f14;--hlbg:#f0e2bd;--gold:#a86f10}
 *{box-sizing:border-box}
@@ -560,7 +567,12 @@ a.tk:hover{color:var(--acc)}
 .copy.ok{color:#fff;border-color:var(--acc);background:var(--acc)}
 /* ④ overview */
 .ovg{font-weight:700;font-size:13.5px;color:var(--accd);margin:14px 0 6px}
-.ovwrap{overflow-x:auto}
+.ovwrap{overflow-x:auto;background:
+  linear-gradient(90deg,var(--card) 33%,rgba(253,250,242,0)) left/36px 100%,
+  linear-gradient(270deg,var(--card) 33%,rgba(253,250,242,0)) right/36px 100%,
+  radial-gradient(farthest-side at 0 50%,rgba(90,70,30,.22),transparent) left/14px 100%,
+  radial-gradient(farthest-side at 100% 50%,rgba(90,70,30,.22),transparent) right/14px 100%;
+  background-repeat:no-repeat;background-attachment:local,local,scroll,scroll}
 .ovtbl{width:100%;border-collapse:collapse;font-size:14px}
 .ovtbl th{color:var(--mut);font-size:12.5px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .ovtbl th.l{text-align:left}
@@ -638,7 +650,7 @@ a.tk:hover{color:var(--acc)}
 .caltbl th.l{text-align:left}
 .caltbl td{padding:8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:top}
 .caltbl td.cd{text-align:left;font-weight:700;white-space:nowrap} .caltbl td.ci{text-align:left;white-space:normal;min-width:150px}
-.caltbl td.cav{font-weight:800} .caltbl td.cpv{color:var(--mut)}
+.caltbl td.cav{font-weight:800;white-space:normal;min-width:120px} .caltbl td.cpv{color:var(--mut)}
 .cr-done td.cav{color:var(--ink)} .cr-wait td{color:var(--ink2)} .cr-halt td{color:var(--mut)}
 .cst{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:6px;white-space:nowrap;border:1px solid}
 .cst.done{color:#1d6b3a;background:rgba(31,157,87,.14);border-color:rgba(31,157,87,.4)}
@@ -652,7 +664,7 @@ a.tk:hover{color:var(--acc)}
 .fund{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:12px;box-shadow:0 1px 3px rgba(90,70,30,.06)}
 .fund:target{border-color:var(--acc);box-shadow:0 0 0 2px rgba(47,111,208,.3)}
 .fhead{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}
-.fhead h2{font-size:19px;margin:0 0 4px} .gl{font-size:12px;color:#fff;background:var(--acc);padding:2px 8px;border-radius:20px;vertical-align:middle}
+.fhead h2{font-size:19px;margin:0 0 4px} .gl{display:inline-block;white-space:nowrap;font-size:12px;color:#fff;background:var(--acc);padding:2px 8px;border-radius:20px;vertical-align:middle}
 .sub{color:var(--mut);font-size:12.5px} .oneline{margin-top:6px;font-size:13.5px;color:var(--accd)}
 .navbox{text-align:right;min-width:190px} .nav{font-size:26px;font-weight:800}
 .navd{font-size:12px;color:var(--mut)} .size{font-size:12px;color:var(--mut);margin-top:4px}
@@ -669,21 +681,23 @@ a.tk:hover{color:var(--acc)}
 .cols{display:grid;grid-template-columns:1fr 1.25fr;gap:18px;margin-top:8px}
 .ctitle{font-weight:700;font-size:14px;margin-bottom:8px} .asof{font-weight:400;font-size:11.5px;color:var(--mut)}
 .barrow{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12.5px}
-.blab{width:78px;flex:0 0 78px;color:var(--mut)} .btrack{flex:1;height:9px;background:var(--inset);border-radius:6px;overflow:hidden}
+.blab{width:92px;flex:0 0 92px;color:var(--mut)} .btrack{flex:1;height:9px;background:var(--inset);border-radius:6px;overflow:hidden}
 .bfill{display:block;height:100%} .bval{width:48px;text-align:right}
-.htbl{width:100%;border-collapse:collapse} .htbl th{text-align:right;color:var(--mut);font-size:11.5px;font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line)}
+.htbl{width:100%;border-collapse:collapse} .htbl th{text-align:right;color:var(--mut);font-size:11.5px;font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
 .htbl th.l{text-align:left} .htbl td{padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}
 .htbl .rk{color:var(--mut);width:22px} .htbl .wt{text-align:right;font-weight:700;white-space:nowrap}
-.htbl .sec{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin-left:4px}
+.htbl .sec{display:inline-block;white-space:nowrap;font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin-left:4px}
 .htbl tr.hl td{background:rgba(224,138,18,.1)}
 .hlk{text-decoration:none}
-.tk{font-size:11px;color:var(--accd)} .pill{font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin-left:4px}
-.hintro{color:var(--mut);font-size:12px;margin-top:3px}
-.foot{color:var(--mut);font-size:11.5px;margin-top:22px;border-top:1px solid var(--line);padding-top:12px}
+.tk{font-size:11px;color:var(--accd)} .pill{display:inline-block;white-space:nowrap;font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin-left:4px}
+.hintro{color:var(--mut);font-size:12.5px;margin-top:3px}
+.foot{color:var(--mut);font-size:12.5px;line-height:1.8;margin-top:22px;border-top:1px solid var(--line);padding-top:12px}
 .backtop{position:fixed;right:18px;bottom:18px;z-index:40;background:var(--card2);color:var(--accd);border:1px solid var(--line);border-radius:22px;padding:9px 15px;font-size:13.5px;text-decoration:none;box-shadow:0 2px 8px rgba(90,70,30,.15)}
 .backtop:hover{color:var(--acc);border-color:var(--acc)}
 @media(max-width:720px){.cols{grid-template-columns:1fr}.rets{grid-template-columns:repeat(3,1fr)}.navbox{text-align:left}
-  .tb-meta,.tb-lamp{display:none}.ixc{min-width:110px}}
+  .tb-meta,.tb-lamp{display:none}.ixc{min-width:110px}
+  #overview .st::after,#macro-cal .st::after{content:"↔ 表格可左右滑動";font-weight:400;font-size:12px;color:var(--mut)}
+  .backtop{right:10px;bottom:10px;padding:7px 12px;font-size:12.5px}}
 /* 晨會列印版：只留今日重點＋新聞重點＋連動＋總覽（當前市場），白底黑字 */
 @media print{
   body{background:#fff;color:#111;font-size:12px}
@@ -810,7 +824,7 @@ def render() -> str:
     rows_gl = [r for r in rows if mkt_by_id.get(r["fund_id"]) == "gl"]
     gavg = fund_insights.group_averages(funds)
 
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    now = datetime.now().strftime("%Y/%m/%d %H:%M")
     as_of = (funds[0].get("as_of") if funds else None) or "—"
     banned = (((news or {}).get("banned_hits") or []) + ((tw or {}).get("banned_hits") or [])
               + ((macro or {}).get("banned_hits") or []))
@@ -859,13 +873,15 @@ def render() -> str:
     # ④ 基金總覽
     o_tw = _overview_view(rows_tw, leaders, fund_links, tw_pend)
     o_gl = _overview_view(rows_gl, leaders, fund_links, gl_pend)
-    sec_over = (f'<div class="section" id="overview"><div class="st">📊 基金總覽</div>'
+    sec_over = (f'<div class="section" id="overview"><div class="st">📊 基金總覽 '
+                f'<span class="stsub">粉紅底＝同組同欄前二名・點欄位標題可排序</span></div>'
                 f'{_mkt(o_tw, o_gl)}</div>')
 
     # ⑤ 基金詳情
     c_tw = _details_block(tw_funds, gavg, linked_by_fund, tw_pend)
     c_gl = _details_block(gl_funds, gavg, linked_by_fund, gl_pend)
-    sec_det = (f'<div class="section" id="details"><div class="st">📚 基金詳情</div></div>'
+    sec_det = (f'<div class="section" id="details"><div class="st">📚 基金詳情 '
+               f'<span class="stsub">績效格「●」＝高於同組平均</span></div></div>'
                f'{_mkt(c_tw, c_gl)}')
 
     return f"""<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
