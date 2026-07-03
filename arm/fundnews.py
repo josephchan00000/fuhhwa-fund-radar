@@ -29,6 +29,7 @@ OUT = ROOT / "data" / "fund_news.json"
 WINDOW_DAYS = 7
 BRAND_QUERIES = ["復華投信", "復華投信 基金"]
 BRAND_LIMIT = 12
+BLOCKED_SOURCES = {"富聯網"}     # 使用者指定排除的新聞來源（品牌與各基金皆不收）
 
 # 財經媒體 RSS 直抓（免金鑰）——與 Google News 互補；站台全站 feed、本層只留「復華」相關
 NEWS_FEEDS = [
@@ -85,8 +86,15 @@ def strip_source_suffix(title: str | None, source: str | None) -> str:
     return t
 
 
+def source_ok(item: dict) -> bool:
+    """來源黑名單：BLOCKED_SOURCES 內的媒體一律不收。"""
+    return (item.get("source") or "").strip() not in BLOCKED_SOURCES
+
+
 def _clean_items(items: list[dict]) -> list[dict]:
-    return [{**i, "title": strip_source_suffix(i.get("title"), i.get("source"))} for i in items]
+    """統一清理：剔除黑名單來源＋剝標題尾的來源名。所有新聞路徑（品牌/各基金/RSS）都經過這裡。"""
+    return [{**i, "title": strip_source_suffix(i.get("title"), i.get("source"))}
+            for i in items if source_ok(i)]
 
 
 def fetch_brand(days: int = WINDOW_DAYS, limit: int = BRAND_LIMIT) -> list[dict]:
