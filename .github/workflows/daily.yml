@@ -7,11 +7,12 @@ name: 復華基金追蹤版本 每日 routine
 #     1. 本機跑 `claude setup-token` 產一年期權杖；
 #     2. 到 repo Settings → Secrets → Actions 新增 CLAUDE_CODE_OAUTH_TOKEN；
 #   未設定該 Secret 時，新聞步驟自動略過，儀表板退回最近一份新聞並標合規燈。
-# 排程：台北時間週一~六 08:30（= UTC 前一日 00:30，抓昨夜美股後的當日 NAV/新聞）。可手動 workflow_dispatch。
+# 排程：台北時間週一~六 07:00（= UTC 前一日 23:00，抓昨夜美股後的當日 NAV/新聞）。可手動 workflow_dispatch。
+# 註：GitHub cron 以 UTC 計；07:00(台北, UTC+8) = 前一日 23:00 UTC，故台北週一~六 → UTC 週日~五（0-5）。
 
 on:
   schedule:
-    - cron: "30 0 * * 1-6"
+    - cron: "0 23 * * 0-5"
   workflow_dispatch: {}
 
 permissions:
