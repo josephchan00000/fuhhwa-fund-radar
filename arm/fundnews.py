@@ -120,9 +120,13 @@ def parse_rss(xml_text: str, source: str, days: int = WINDOW_DAYS) -> list[dict]
             continue
         if dt < cutoff:
             continue
-        out.append({"title": title, "url": _clean(_tag("link", blk)), "source": source,
-                    "date": dt.astimezone().strftime("%Y-%m-%d %H:%M"),
-                    "datetime": dt.astimezone().isoformat()})
+        desc = _clean(_tag("description", blk))
+        it = {"title": title, "url": _clean(_tag("link", blk)), "source": source,
+              "date": dt.astimezone().strftime("%Y-%m-%d %H:%M"),
+              "datetime": dt.astimezone().isoformat()}
+        if desc and desc != title:               # RSS 摘要（鉅亨網等有全文摘要；截 100 字）
+            it["summary"] = desc[:100] + ("…" if len(desc) > 100 else "")
+        out.append(it)
     return out
 
 
@@ -243,12 +247,34 @@ def route_feeds_to_funds(fund_groups: list[dict], feeds: list[dict]) -> list[dic
     return fund_groups
 
 
+def auto_highlights(doc: dict) -> list[str]:
+    """「本週看點」自動摘要（純標題彙整、不外推）：有專屬報導的基金＋最新品牌焦點＋社群聲量。
+    僅為 fallback；晨間 Claude 可用更好的人工摘要覆寫 doc["highlights"]（落檔即生效）。"""
+    hl: list[str] = []
+    win = doc.get("window_days") or WINDOW_DAYS
+    hit = [g for g in doc.get("funds") or [] if g.get("items")]
+    if hit:
+        names = "、".join((g.get("base") or "").replace("復華", "").replace("基金", "")
+                          for g in hit[:6])
+        more = f" 等 {len(hit)} 檔" if len(hit) > 6 else ""
+        hl.append(f"近 {win} 天有專屬報導的基金：{names}{more}（詳下方各基金新聞）")
+    focus = next((i for i in doc.get("brand") or []
+                  if "旗下各基金" not in (i.get("title") or "")), None)
+    if focus:
+        hl.append(f"品牌焦點：{focus['title']}（{focus.get('source') or '—'}）")
+    soc = doc.get("social") or []
+    if soc:
+        top = max(soc, key=lambda s: s.get("push") or 0)
+        hl.append(f"社群聲量最高：{top['title']}（{top.get('push') or 0} 推）")
+    return hl
+
+
 def assemble(funds: list[dict], days: int = WINDOW_DAYS) -> dict:
     """抓齊三類情報 → 可落檔的 doc。任一來源失敗該類為空、不互相牽連。"""
     feeds = _clean_items(fetch_feeds(days=days))
     brand = merge_news(fetch_brand(days=days), feeds)
     fund_groups = route_feeds_to_funds(fetch_funds(funds, days=days), feeds)
-    return {
+    doc = {
         "as_of": datetime.now().strftime("%Y/%m/%d %H:%M"),
         "window_days": days,
         "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
@@ -256,6 +282,8 @@ def assemble(funds: list[dict], days: int = WINDOW_DAYS) -> dict:
         "funds": fund_groups,
         "social": fetch_ptt(),
     }
+    doc["highlights"] = auto_highlights(doc)
+    return doc
 
 
 def save(doc: dict) -> Path:
