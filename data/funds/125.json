@@ -10,11 +10,11 @@
   "inception": "2005/08/01",
   "risk_level": "RR4",
   "mgmt_fee": "0.80%",
-  "size_twd": 14576878.0,
-  "nav": 25.3,
-  "nav_date": "2026/07/02",
-  "nav_change": -0.13,
-  "nav_change_pct": "-0.51%",
+  "size_twd": 29923576.0,
+  "nav": 25.57,
+  "nav_date": "2026/07/03",
+  "nav_change": 0.27,
+  "nav_change_pct": "1.07%",
   "returns": {
     "ytd": "103.47%",
     "3m": "84.68%",
@@ -112,5 +112,5 @@
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-07-03 03:41"
+  "fetched_at": "2026-07-03 07:51"
 }
