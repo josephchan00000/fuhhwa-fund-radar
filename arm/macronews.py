@@ -22,6 +22,7 @@ from . import usnews
 
 ROOT = Path(__file__).resolve().parent.parent
 NEWS_DIR = ROOT / "reports" / "macronews"
+CAL_DIR = ROOT / "reports" / "macrocal"        # 本週經濟數據行事曆
 
 # 政策面版型（多找＋事件屬性＋重要度，與 usnews/twnews 同一套徽章標準）
 SPEC_MACRO = f"""【版型：昨夜美股交易時段・總經／政策面速寫包】
@@ -57,6 +58,71 @@ SPEC_MACRO = f"""【版型：昨夜美股交易時段・總經／政策面速寫
 『該機構表示／認為／估測（日期）』呈現；不預測報酬、不以過去績效推未來。
 查不到或跨來源矛盾者只留方向、標「以官方為準」，切勿杜撰數字。
 （若文中提及基金主題，附揭露：投資人申購本基金係持有基金受益憑證，非本文提及之投資資產或標的。）"""
+
+
+# 本週經濟數據行事曆版型（給提示包用）
+SPEC_CAL = """【版型：本週美國重點經濟數據行事曆】
+用 WebSearch 查證本週（週一~週五，以台北日期所在整週）美國重點經濟數據與事件行事曆，
+涵蓋：非農/失業率/時薪、CPI/PCE/核心通膨、FOMC 與 Fed 官員談話、GDP、零售銷售、
+ISM/PMI、初領失業金、JOLTS、消費者信心、重大財政/關稅時程；並標示美股休市日。
+以「已公布」列出實際值、「未公布」留待公布。
+
+嚴格輸出成一個 markdown 表格（欄位固定、供程式解析）：
+
+# 本週美國經濟數據行事曆（{起}–{迄}）
+> 更新：{今天}；{若有休市：例「美股 7/3 因國慶假期休市」，無則寫「本週美股正常交易」}
+
+| 日期 | 項目 | 預期 | 實際 | 前值 | 狀態 |
+|---|---|---|---|---|---|
+| 07/02 | 6月非農就業 | +11.5萬 | +5.7萬 | +14.4萬 | 已公布 |
+| 07/03 | 美股國慶假期休市 | — | — | — | 休市 |
+| 07/08 | 5月批發庫存 | +0.2% | — | +0.1% | 未公布 |
+
+規則：日期用 MM/DD；狀態只填「已公布／未公布／休市」三者之一；已公布須填實際值，未公布實際值填「—」；
+數字查不到或跨來源矛盾者填「—」並不杜撰。至少涵蓋本週所有交易日的重點項目（無數據日可只標休市或略過）。
+僅為資訊彙編、非投資建議；不預測數值、不含禁用詞。"""
+
+
+def _parse_cal_rows(md: str) -> list[dict]:
+    """把行事曆 markdown 表格解析成 [{date,item,cons,actual,prev,status}]。"""
+    rows: list[dict] = []
+    for line in usnews.scrub(md or "").splitlines():
+        s = line.strip()
+        if not (s.startswith("|") and s.endswith("|")):
+            continue
+        cells = [c.strip() for c in s.strip("|").split("|")]
+        if len(cells) < 6:
+            continue
+        if cells[0] in ("日期", "") or set(cells[0]) <= set("-: "):   # 表頭/分隔列
+            continue
+        rows.append({"date": cells[0], "item": cells[1], "cons": cells[2],
+                     "actual": cells[3], "prev": cells[4], "status": cells[5]})
+    return rows
+
+
+def _cal_note(md: str) -> str:
+    """取行事曆檔內 `>` 引言（通常含休市說明）。"""
+    for line in usnews.scrub(md or "").splitlines():
+        s = line.strip()
+        if s.startswith(">"):
+            return s.lstrip("> ").strip()
+    return ""
+
+
+def load_calendar() -> dict | None:
+    """dashboard 用：最新一份本週行事曆 {date, md, rows, note, title}。"""
+    if not CAL_DIR.exists():
+        return None
+    dates = sorted({m.group(1) for f in CAL_DIR.glob("*.md")
+                    if (m := re.match(r"(\d{4}-\d{2}-\d{2})\.md$", f.name))}, reverse=True)
+    if not dates:
+        return None
+    d = dates[0]
+    md = (CAL_DIR / f"{d}.md").read_text(encoding="utf-8")
+    title = next((ln.lstrip("# ").strip() for ln in md.splitlines()
+                  if ln.startswith("#")), "本週美國經濟數據行事曆")
+    return {"date": d, "md": md, "rows": _parse_cal_rows(md),
+            "note": _cal_note(md), "title": title}
 
 
 def load_latest() -> dict | None:
