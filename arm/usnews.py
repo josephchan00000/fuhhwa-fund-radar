@@ -193,6 +193,26 @@ def extract_cards(md: str) -> list[dict]:
     return cards
 
 
+def split_doc(md: str) -> tuple[str, list[dict], str]:
+    """把新聞全文切成 (頭段, [新聞卡], 尾段)：
+      頭段＝首張卡之前（標題／指數速覽／總覽）；
+      尾段＝末張卡之後（次級觀察／資料侷限／合規揭露）。
+    供儀表板「新聞全文」逐則收合＋其餘另置一收合塊。"""
+    lines = scrub(md).splitlines()
+    idxs = [i for i, l in enumerate(lines) if _CARD_HEAD.match(l.strip())]
+    if not idxs:
+        return md or "", [], ""
+    head = "\n".join(lines[: idxs[0]]).strip()
+    tail_start = len(lines)
+    for j in range(idxs[-1] + 1, len(lines)):
+        s = lines[j].strip()
+        if (s.startswith("## ") or s == "---") and not _CARD_HEAD.match(s):
+            tail_start = j
+            break
+    tail = "\n".join(lines[tail_start:]).strip()
+    return head, extract_cards(md), tail
+
+
 def _latest_pair() -> dict | None:
     """找最新一組 {date}_v1.md / _v2.md。回 {date, v1, v2}（缺的那版為 None）。"""
     if not NEWS_DIR.exists():
