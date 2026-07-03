@@ -206,17 +206,25 @@ def _news_view(md: str, empty_hint: str) -> str:
 
 # ── ③ 當日焦點個股（新聞連動） ────────────────────────────────
 
-def _newslinks_view(linked: list[dict], empty_hint: str) -> str:
-    """新聞連動的個股彙總：每檔焦點個股一列——持有基金＋持有%。跨卡去重、權重高→低。"""
+def _newslinks_view(linked: list[dict], empty_hint: str,
+                    market: str | None = None,
+                    mkt_by_id: dict[str, str] | None = None) -> str:
+    """新聞連動的個股彙總：每檔焦點個股一列——持有基金＋持有%。跨卡去重、權重高→低。
+
+    傳入 market（"tw"/"gl"）＋ mkt_by_id 時，只保留「該市場基金」持有的個股與其持有基金——
+    台股視圖只出台股基金持有的標的（如美光 MU 無台股基金持有，即不列入台股焦點個股）。"""
     stocks: dict[str, dict] = {}
     for c in linked:
         for m in c["matched"]:
+            funds_m = m["funds"]
+            if market and mkt_by_id:
+                funds_m = [f for f in funds_m if mkt_by_id.get(f["fund_id"]) == market]
+                if not funds_m:                     # 此市場無持有基金 → 非本視圖焦點，略過
+                    continue
             ent = stocks.setdefault(m["name"], {"display": m["display"],
-                                                "ticker": m.get("ticker"),
-                                                "country": m.get("country"), "funds": {}})
+                                                "ticker": m.get("ticker"), "funds": {}})
             ent["ticker"] = ent["ticker"] or m.get("ticker")
-            ent["country"] = ent["country"] or m.get("country")
-            for f in m["funds"]:
+            for f in funds_m:
                 ent["funds"][f["fund_id"]] = f
     if not stocks:
         return f'<div class="muted">{empty_hint}。</div>'
@@ -230,10 +238,7 @@ def _newslinks_view(linked: list[dict], empty_hint: str) -> str:
             f'{_esc(_short(f["short_name"]))} <b>{f["weight"]:.2f}%</b></a>'
             for f in funds)
         tk = f' <span class="tk">{_esc(ent["ticker"])}</span>' if ent.get("ticker") else ""
-        fu = fund_insights.futu_url(ent.get("ticker"), ent.get("country"))
-        futu = (f' <a class="futu" href="{_esc(fu)}" target="_blank" rel="noopener" '
-                f'title="富途牛牛即時行情">富途行情 ↗</a>') if fu else ""
-        rows.append(f'<div class="nlrow"><span class="nlco">{_esc(ent["display"])}{tk}{futu}</span>'
+        rows.append(f'<div class="nlrow"><span class="nlco">{_esc(ent["display"])}{tk}</span>'
                     f'<span class="nlfs">{fs}</span></div>')
     return f'<div class="nlcard">{"".join(rows)}</div>'
 
@@ -727,8 +732,8 @@ def render() -> str:
                 f'{_mkt(_news_view(tw_md, tw_hint), _news_view(us_md, gl_hint))}</div>')
 
     # ③ 當日焦點個股（新聞連動）
-    l_tw = _newslinks_view(linked_tw, "今日台股新聞與追蹤基金前十大持股無直接連動")
-    l_gl = _newslinks_view(linked_us, "昨夜美股新聞與追蹤基金前十大持股無直接連動")
+    l_tw = _newslinks_view(linked_tw, "今日台股新聞與台股基金前十大持股無直接連動", "tw", mkt_by_id)
+    l_gl = _newslinks_view(linked_us, "昨夜美股新聞與海外基金前十大持股無直接連動", "gl", mkt_by_id)
     sec_links = (f'<div class="section" id="newslinks"><div class="st">🎯 當日焦點個股 '
                  f'<span class="stsub">持有基金＋持有％</span></div>'
                  f'{_mkt(l_tw, l_gl)}</div>')
