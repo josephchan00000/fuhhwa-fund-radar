@@ -48,6 +48,45 @@ def test_ptt_relevant_requires_brand():
     assert not fundnews.ptt_relevant("")
 
 
+_RSS_FIXTURE = """<rss><channel>
+<item><title><![CDATA[復華高成長基金規模創高]]></title>
+  <link>https://news.cnyes.com/1</link>
+  <pubDate>Thu, 02 Jul 2026 08:00:00 +0800</pubDate></item>
+<item><title><![CDATA[台積電法說會前瞻]]></title>
+  <link>https://news.cnyes.com/2</link>
+  <pubDate>Thu, 02 Jul 2026 09:00:00 +0800</pubDate></item>
+<item><title><![CDATA[復華投信舊聞（超過視窗）]]></title>
+  <link>https://news.cnyes.com/3</link>
+  <pubDate>Mon, 01 Jun 2026 09:00:00 +0800</pubDate></item>
+</channel></rss>"""
+
+
+def test_parse_rss_keeps_recent_fuhhwa_only():
+    items = fundnews.parse_rss(_RSS_FIXTURE, "鉅亨網", days=7000)  # 放大視窗只驗過濾
+    titles = [i["title"] for i in items]
+    assert "復華高成長基金規模創高" in titles and "台積電法說會前瞻" not in titles
+    assert all(i["source"] == "鉅亨網" for i in items)
+    assert fundnews.parse_rss("", "鉅亨網") == []
+
+
+def test_merge_news_dedups_and_sorts():
+    a = [{"title": "復華高成長基金規模創高", "datetime": "2026-07-02T08:00:00+08:00"}]
+    b = [{"title": "復華高成長基金規模創高", "datetime": "2026-07-02T07:00:00+08:00"},
+         {"title": "復華投信配息公告", "datetime": "2026-07-03T09:00:00+08:00"}]
+    out = fundnews.merge_news(a, b)
+    assert [i["title"] for i in out] == ["復華投信配息公告", "復華高成長基金規模創高"]
+
+
+def test_route_feeds_to_funds_matches_core_name():
+    groups = [{"base": "復華高成長基金", "items": []},
+              {"base": "復華神盾基金", "items": []}]
+    feeds = [{"title": "復華高成長基金規模創高", "url": "https://x/1",
+              "source": "鉅亨網", "datetime": "2026-07-02T08:00:00+08:00"}]
+    out = fundnews.route_feeds_to_funds(groups, feeds)
+    assert len(out[0]["items"]) == 1
+    assert out[1]["items"] == []
+
+
 def test_view_without_doc_shows_hint():
     html = _fundnews_view(None)
     assert "fetch_fund_news.py" in html
