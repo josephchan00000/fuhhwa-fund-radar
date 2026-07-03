@@ -199,13 +199,16 @@ def test_pending_funds_have_group_label():
 # ── 儀表板 render（吃 repo 內真實資料，離線） ──────────────────
 def test_render_sections_order_and_taiwan_colors():
     html = fund_dashboard.render()
-    secs = ['id="brief"', 'id="newsdigest"', 'id="news"',
+    secs = ['id="brief"', 'id="news"',
             'id="newslinks"', 'id="overview"', 'id="details"']
     idx = [html.find(s) for s in secs]
     assert all(i >= 0 for i in idx)
-    assert idx == sorted(idx)                          # 順序：今日重點→新聞重點→新聞全文→焦點個股→總覽→詳情
-    assert 'class="newsone"' in html                   # 逐則新聞收合塊
+    assert idx == sorted(idx)                          # 順序：今日重點→新聞→焦點個股→總覽→詳情
+    assert 'id="newsdigest"' not in html               # 新聞重點與全文已合併為單一「新聞」區
+    assert 'class="newsone"' in html                   # 逐則新聞收合塊（合併後）
     assert html.count("<details") >= 3                 # 每則新聞各一收合塊（預設收合）
+    assert 'class="ngpts"' in html                     # 展開內含影響分析條列
+    assert 'class="nglink' in html                     # 展開內含原文連結
     assert "--gain:#f0524f" in html and "--loss:#2ea94f" in html    # 紅漲綠跌
     assert 'class="topbar"' in html and "@media print" in html
     assert 'th class="sk"' in html                     # 可排序表頭
