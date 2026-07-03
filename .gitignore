@@ -26,8 +26,10 @@ reports/copy/*.copy.md
 reports/copy/prompts/
 reports/copy/responses/
 
-# M7 儀表板產物（由 gen_dashboard.py 重建）
-dashboard/index.html
+# 舊 ETF 版儀表板產物（gen_dashboard.py 重建，不入庫）
+dashboard/etf.html
+# 註：基金版 dashboard/index.html 現「入庫」——由已入庫的 data/funds/*.json 零 DB 重建，
+#     供 Vercel 直接靜態部署（連 repo 即自動部署，免 token）；每日 routine 會 commit 更新。
 
 # OS
 .DS_Store
