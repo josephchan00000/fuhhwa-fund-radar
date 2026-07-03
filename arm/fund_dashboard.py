@@ -146,7 +146,7 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
         f'<div class="ixp">{_pct_span(ix["pct"] if ix["up"] else -ix["pct"])}</div></div>'
         for ix in indices)
     if not idx_cards:
-        idx_cards = '<div class="muted">（尚無指數速覽——先產當日新聞）</div>'
+        idx_cards = '<div class="muted">（盤前尚無指數收盤——詳見下方新聞重點）</div>'
     chips = []
     if best:
         chips.append(f'<a class="chip" href="#fund-{_esc(best["fund_id"])}">▲ 今日最強：'
@@ -401,12 +401,13 @@ def _details_block(funds: list[dict], gavg: dict, linked_by_fund: dict[str, set[
 
 def _newsfull_tw(tw: dict | None) -> str:
     if not tw:
-        return ('<div class="muted">尚無台股盤後重點。請執行 '
+        return ('<div class="muted">尚無台股重點。請執行 '
                 '<code>python scripts/gen_twnews.py</code> 產提示包，再由 Claude 產出內容。</div>')
+    label = tw.get("label") or "台股盤後重點"
     doc = _md(tw["md"]) or '<div class="muted">（無內容）</div>'
     return f"""
 <details class="newswrap">
-  <summary><span class="st" style="margin:0">📈 台股盤後重點全文
+  <summary><span class="st" style="margin:0">📈 {_esc(label)}全文
     <span class="stsub">📅 {_esc(tw["date"])}</span><span class="openbtn"></span></span></summary>
   <div class="ndoc" style="margin-top:14px">{doc}</div>
 </details>"""
@@ -713,9 +714,10 @@ def render() -> str:
     banned = ((news or {}).get("banned_hits") or []) + ((tw or {}).get("banned_hits") or [])
 
     # ① 今日重點（雙視圖）
+    tw_news_label = (tw or {}).get("label") or "台股盤後重點"
     b_tw = _brief_view(twnews.extract_indices(tw_md), *fund_insights.movers(tw_funds),
                        len(linked_tw), _nfunds(linked_tw),
-                       fund_insights.upcoming_distributions(tw_funds), "今日台股新聞")
+                       fund_insights.upcoming_distributions(tw_funds), f"今日{tw_news_label[:4]}新聞")
     b_gl = _brief_view(usnews.extract_indices(us_md), *fund_insights.movers(gl_funds),
                        len(linked_us), _nfunds(linked_us),
                        fund_insights.upcoming_distributions(gl_funds), "昨夜美股新聞")

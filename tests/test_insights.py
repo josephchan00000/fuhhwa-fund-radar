@@ -166,7 +166,24 @@ def test_twnews_load_latest_shape():
     tw = twnews.load_latest()
     if tw is not None:                                 # repo 內有產出時驗形狀與合規
         assert tw["date"] and tw["md"]
+        assert tw["mode"] in ("pre", "post") and tw["label"]
         assert isinstance(tw["banned_hits"], list) and not tw["banned_hits"]
+
+
+def test_twnews_session_mode():
+    from datetime import datetime
+    tz = twnews.TW_TZ
+    assert twnews.session_mode(datetime(2026, 7, 3, 8, 30, tzinfo=tz)) == "pre"    # 開盤前
+    assert twnews.session_mode(datetime(2026, 7, 3, 11, 0, tzinfo=tz)) == "pre"    # 盤中
+    assert twnews.session_mode(datetime(2026, 7, 3, 14, 0, tzinfo=tz)) == "post"   # 收盤後
+    assert twnews.session_mode(datetime(2026, 7, 4, 10, 0, tzinfo=tz)) == "post"   # 週六
+    assert twnews.spec_for("pre") == twnews.SPEC_PRE and "盤前" in twnews.SPEC_PRE
+    assert twnews.spec_for("post") == twnews.SPEC_POST
+
+
+def test_twnews_mode_from_title():
+    assert twnews._mode_of("# 〈台股盤前重點〉\n") == "pre"
+    assert twnews._mode_of("# 〈台股盤後重點〉\n") == "post"
 
 
 def test_tw_group_labels_present():
