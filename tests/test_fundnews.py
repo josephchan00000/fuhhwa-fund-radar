@@ -22,6 +22,26 @@ def test_fund_query_groups_merges_share_classes():
     assert groups[0]["fund_ids"] == ["122", "123"]
 
 
+def test_fund_item_relevant_filters_noise():
+    base = "復華美國新星基金"
+    assert fundnews.fund_item_relevant({"title": "復華美國新星基金 6 月績效"}, base)
+    assert fundnews.fund_item_relevant({"title": "基金特蒐／美國新星 分批進場"}, base)
+    # 放寬搜尋回的他牌同類基金
+    assert not fundnews.fund_item_relevant(
+        {"title": "柏瑞環球基金-柏瑞美國研究增值核心股票基金 A 的總覽"}, base)
+    # 品牌層系列文（每檔基金都會命中）歸品牌動態、不進各基金
+    assert not fundnews.fund_item_relevant(
+        {"title": "基金：復華投信旗下各基金7/2淨值漲跌一覽表"}, base)
+    assert not fundnews.fund_item_relevant({"title": ""}, base)
+
+
+def test_strip_source_suffix():
+    assert fundnews.strip_source_suffix("復華高成長基金創高 - 鉅亨網", "鉅亨網") == "復華高成長基金創高"
+    assert fundnews.strip_source_suffix("標題沒有尾綴", "鉅亨網") == "標題沒有尾綴"
+    assert fundnews.strip_source_suffix("標題 - 別家", "鉅亨網") == "標題 - 別家"
+    assert fundnews.strip_source_suffix(None, None) == ""
+
+
 def test_ptt_relevant_requires_brand():
     assert fundnews.ptt_relevant("[標的] 復華高成長基金怎麼看")
     assert not fundnews.ptt_relevant("[請益] 高成長股票推薦")
