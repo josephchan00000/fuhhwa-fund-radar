@@ -175,12 +175,19 @@ def _digest_view(cards: list[dict], empty_hint: str) -> str:
         meta = f'<div class="ngm">{_esc(c["meta"])}</div>' if c.get("meta") else ""
         one = f'<div class="nlone">{_esc(c["oneline"])}</div>' if c.get("oneline") else ""
         summ = f'<div class="ngs">{_inline(c["summary"])}</div>' if c.get("summary") else ""
-        links = "".join(f'<a class="nglink" href="{_esc(u)}" target="_blank" rel="noopener">'
-                        f'↗ {_esc(t)}</a>' for t, u in (c.get("links") or [])[:4])
+        pts = "".join(f'<li><b>{_esc(lab)}</b>　{_inline(txt)}</li>'
+                      for lab, txt in (c.get("points") or [])[:3])
+        pts = f'<ul class="ngpts">{pts}</ul>' if pts else ""
+        # 富途優先：futunn.com 連結排最前，其餘依原順序
+        ordered = sorted((c.get("links") or [])[:5],
+                         key=lambda tu: 0 if "futunn.com" in tu[1] else 1)
+        links = "".join(f'<a class="nglink{" futu1" if "futunn.com" in u else ""}" '
+                        f'href="{_esc(u)}" target="_blank" rel="noopener">↗ {_esc(t)}</a>'
+                        for t, u in ordered)
         links = (f'<div class="nglinks">{links}</div>' if links else
                  '<div class="nglinks muted">（本卡無原文連結）</div>')
         out.append(f'<div class="ngc"><div class="ngt">{_esc(c["title"])}</div>'
-                   f'{meta}{one}{summ}{links}</div>')
+                   f'{meta}{one}{summ}{pts}{links}</div>')
     return "".join(out)
 
 
@@ -476,9 +483,15 @@ a.chip:hover{border-color:var(--acc);background:rgba(91,141,239,.16)}
 .ngt{font-weight:700;font-size:15.5px;color:#fff;line-height:1.5}
 .ngm{color:var(--mut);font-size:12.5px;margin-top:2px}
 .ngs{font-size:14px;color:#dbe4ee;margin-top:8px;line-height:1.75}
+.ngpts{margin:8px 0 0;padding-left:0;list-style:none}
+.ngpts li{position:relative;margin:5px 0;padding-left:16px;font-size:13.5px;color:#c7d2de;line-height:1.7}
+.ngpts li:before{content:"";position:absolute;left:3px;top:11px;width:5px;height:5px;border-radius:50%;background:var(--acc)}
+.ngpts li b{color:#cfe0ff;background:none;padding:0}
 .nglinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .nglink{display:inline-block;background:rgba(91,141,239,.1);border:1px solid rgba(91,141,239,.5);border-radius:8px;padding:4px 12px;font-size:13.5px;color:#9ecbff;text-decoration:none}
 .nglink:hover{border-color:var(--acc);color:#fff}
+.nglink.futu1{background:rgba(255,180,50,.1);border-color:rgba(255,180,50,.55);color:#ffb432}
+.nglink.futu1:hover{color:#0e1116;background:#ffb432}
 /* ③ news links */
 .nlcard{background:var(--card2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:0 11px 11px 0;padding:12px 16px;margin:10px 0}
 .nlt{font-weight:700;font-size:15.5px;color:#fff}
