@@ -4,13 +4,6 @@
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
     {
-      "title": "基金：復華投信旗下各基金7/2淨值漲跌一覽表",
-      "url": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxOTHJpdzQzSGpCaGJKS3lUNUl2LTBSWnNEQmV2eDRBMXZUc29Ga2Z2Y3p0QmZzbkFSOW5zUTRlRUZOUktYdldYaWZaLUdfNnpsc3JYTlFzdVVjd0ItdXMtcVNiWmRmRmN2SGJxdGlnOVFzbk5BcjMyeDJPS09RbmhicGdDcE1VVHFs?oc=5",
-      "source": "富聯網",
-      "date": "2026-07-03 00:09",
-      "datetime": "2026-07-03T00:09:00+00:00"
-    },
-    {
       "title": "老牌基金為何還能稱霸？這檔基金讓百萬變千萬的秘密。",
       "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTFBlaXUtLWlSTG41cTYwaEZKSlJ3bmJNSjJVTGlvcUlqZDZNazM1aDNqaTdISEFKRUs0aTZvcG5MWUc0cmpvODJMbTdfWHBZU0RpeUxPczE0bmNfdG5qWjdaaUJGN2FsNnhNT2RjVUx5RGRZSktKRmduRUEwOFZyZw?oc=5",
       "source": "CMoney投資網誌",
@@ -37,13 +30,6 @@
       "source": "CMoney投資網誌",
       "date": "2026-07-02 08:03",
       "datetime": "2026-07-02T08:03:56+00:00"
-    },
-    {
-      "title": "基金：復華投信旗下各基金7/1淨值漲跌一覽表",
-      "url": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxOTEhfWWZra2luUXQtekhOVUxlSHBVVU5WNDlKNEhiZTN5blc5dm9RY3ZaUk9oVGtTc0RONlg4bFpuZEpjZl9XMWstZGZFbXFfZm4wZUwxNFVWSnFfZU12UU5MclBGNG8xNDZiTExsYzdSdGVBTWtBUTlKdzU2UFFvYWFERFpPMV9Q?oc=5",
-      "source": "富聯網",
-      "date": "2026-07-02 00:10",
-      "datetime": "2026-07-02T00:10:00+00:00"
     },
     {
       "title": "40萬人嗨翻！00929配息0.38元創新高 最晚這天入手",
@@ -79,13 +65,6 @@
       "source": "理財周刊",
       "date": "2026-07-01 08:20",
       "datetime": "2026-07-01T08:20:58+00:00"
-    },
-    {
-      "title": "基金：復華投信旗下各基金6/30淨值漲跌一覽表",
-      "url": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxNeExnRlNZVzRHblVxUHhRUi1JLU1USlFYalBUYUlUeGE4UllwTjNBeWV6ZFFrZzBLNU82UUxKcjlkX3QydnZjSmdPZURadmdDVDJ4Z3ZqejhndjhBX3F1X3V5NEpOMUN2SjB2WnFUZ3U1QW1iQWxxdnJ1NzdJT2VGa2JjOGNNc1FQ?oc=5",
-      "source": "富聯網",
-      "date": "2026-07-01 00:07",
-      "datetime": "2026-07-01T00:07:00+00:00"
     }
   ],
   "funds": [
@@ -188,15 +167,7 @@
       "short_names": [
         "中國新經濟A股新臺幣"
       ],
-      "items": [
-        {
-          "title": "《國內外信託基金最佳前30名5-5》復華新經濟A股人(76.0718)",
-          "url": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxPZ1dVaWRvc0F6Rnp4Qk40d0VXOS05dnpEV0hUVVd0YW9CbGNJYkFORlBwMTZwMEp0RlpFbW1mUHVPamhhclJJREhkV0wyR29NT1lwX3VkaVhxWWJIcnhwd3F3U2tHWkNaaW1pYktGWlZjUm9JYzFBbzZOTFVLYWxyRGNwbXBWTlVW?oc=5",
-          "source": "富聯網",
-          "date": "2026-07-01 23:36",
-          "datetime": "2026-07-01T23:36:00+00:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華大中華中小策略基金",
@@ -389,7 +360,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：華人世紀、亞太成長、亞太神龍科技、中國新經濟A股、全球平衡、亞太平衡 等 7 檔（詳下方各基金新聞）",
+    "近 7 天有專屬報導的基金：華人世紀、亞太成長、亞太神龍科技、全球平衡、亞太平衡、高成長（詳下方各基金新聞）",
     "品牌焦點：老牌基金為何還能稱霸？這檔基金讓百萬變千萬的秘密。（CMoney投資網誌）"
   ]
 }
