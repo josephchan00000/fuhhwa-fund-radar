@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# 復華基金追蹤版本 · 每日 routine 本機單一進入點。
+# 復華基金追蹤版本 · 每日 routine 單一進入點（本機與 GitHub Actions 共用）。
 # 流程：抓 25 檔基金持股介紹（海外＋台股）→ 產新聞提示包 → 產儀表板。
-# 註：新聞「內容」需會上網查證的 LLM 產出（純 Python 不杜撰新聞），用「訂閱制用量」的 Claude、非計量 API：
-#   · 本機：跑完本腳本後，在 Claude Code 直接說
+# 註：新聞「內容」採「半自動・用訂閱額度」（純 Python 不杜撰新聞）——本腳本只產「提示包」，
+#     新聞內容由「會上網查證的 Claude（你的訂閱額度、非計量 API）」依提示包產出：
 #       「依 reports/usnews/prompts/{date}.md 上網查證，產 v1/v2 兩檔」→ 回存 reports/usnews/{date}_v1.md、_v2.md；
 #       「依 reports/twnews/prompts/{date}.md 上網查證，產台股重點」→ 回存 reports/twnews/{date}.md；
-#     再重跑一次 gen_fund_dashboard.py 讓新聞入板。
-#   · 雲端（GitHub Actions）：由 anthropics/claude-code-action 帶 CLAUDE_CODE_OAUTH_TOKEN
-#     （訂閱制 OAuth 權杖）在 CI 全自動查證產出，見 .github/workflows/daily.yml。
+#     補完後重跑一次 gen_fund_dashboard.py 讓新聞入板。
+#   （雲端 CI 只自動刷新 NAV／持股／提示包＋重建儀表板；新聞內容另由 Claude 補，見 .github/workflows/daily.yml。
+#    若日後要「新聞也全自動」，需改用計量 API 金鑰——訂閱制 OAuth 權杖不適合 CI 無人值守。）
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
