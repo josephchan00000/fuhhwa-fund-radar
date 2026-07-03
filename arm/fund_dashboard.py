@@ -768,9 +768,12 @@ def render() -> str:
     us_md = (news or {}).get("v1") or (news or {}).get("v2") or ""
     tw_md = (tw or {}).get("md") or ""
     macro_md = (macro or {}).get("md") or ""
-    # 休市提示（取自行事曆引言，含「休市」才顯示；標於全球今日重點與總經頁）
-    hol = (cal or {}).get("note") or ""
-    hol = hol if "休市" in hol else ""
+    # 休市提示（取自行事曆引言，含「休市」才顯示；全球今日重點用精簡句、總經頁行事曆用完整引言）
+    _hol_note = (cal or {}).get("note") or ""
+    hol = ""
+    if "休市" in _hol_note:
+        _seg = next((p for p in re.split(r"[；;]", _hol_note) if "休市" in p), _hol_note)
+        hol = re.sub(r"（[^）]*）", "", _seg).strip()      # 去括注、取含「休市」的短句
 
     def _sev(md: str) -> tuple[int, int]:
         """回 (重要度≥6 的新聞則數, 最高分)——供今日重點 chip。"""
