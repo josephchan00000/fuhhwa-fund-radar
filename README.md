@@ -58,7 +58,7 @@ NAV／持股快照／提示包＋重建儀表板並部署；**新聞「內容」
 > `claude-code-action` 有已知標頭 bug、且權杖約一天過期。若日後要「新聞也全自動」，需改用**計量 API
 > 金鑰** `ANTHROPIC_API_KEY`（每月約 US$10–30，依模型與查證次數）——這是唯一「設定一次、永遠自動」的路。
 
-儀表板為**單一 `dashboard/index.html`**（vanilla JS、零外部請求、雙擊即開，無 npm/node），業務優先三層架構（見 `docs/REDESIGN_PLAN.md`）：今日重點（加權/櫃買＋美股三大指數、最強最弱基金）→ 基金總覽表（可排序、紅漲綠跌）→ 新聞×持股連動（台股＋美股新聞對回持有基金、附合規話術）→ 兩份新聞全文（收合、🟢/🔴 合規燈）→ 逐檔持股介紹。
+儀表板為**單一 `dashboard/index.html`**（vanilla JS、零外部請求、雙擊即開，無 npm/node），業務優先架構（見 `docs/REDESIGN_PLAN.md`）：今日重點 → 新聞（公司/產業面，逐則收合、事件屬性【新事件/延伸】＋重要度徽章、只留 ≥6 分依重要度排序）→ 🏛️ 總經・政策（川普政策/Fed/國際政策，全球共用不隨台股/全球切換）→ 當日焦點個股（新聞×持股連動）→ 基金總覽表（可排序、紅漲綠跌）→ 逐檔持股介紹。台股/全球以左上角切換；🟢/🔴 合規燈。
 
 ---
 
@@ -71,6 +71,7 @@ NAV／持股快照／提示包＋重建儀表板並部署；**新聞「內容」
 | 重點標的簡介 | 人工／查證後落檔 | `config/holding_profiles.json` | 靜態，可增修 |
 | 昨夜美股新聞 | Reuters/Bloomberg/WSJ/FT/CNBC/富途牛牛等公開來源 | Claude（訂閱額度）依提示包上網查證 → `reports/usnews/{date}_v*.md` | 每日（半自動） |
 | 台股盤前/盤後重點 | 中央社/經濟日報/鉅亨網等公開來源（指數以證交所/櫃買中心為準） | Claude（訂閱額度）依提示包上網查證 → `reports/twnews/{date}.md` | 每交易日（半自動） |
+| 總經／政策面（川普政策/Fed/國際政策） | Reuters/Bloomberg/WSJ/FT＋官方（whitehouse.gov/federalreserve.gov） | Claude（訂閱額度）依提示包上網查證 → `reports/macronews/{date}.md` | 每日（半自動） |
 
 持股為**月度**官方揭露（如 2026/05/31），NAV 為每日；儀表板皆標「持股基準日」與「NAV 日」以免混淆。連接器純標準庫正則解析（`arm/connectors/fhfund.py`），缺任一端點即該欄留空、不整批崩。
 
@@ -85,12 +86,14 @@ config/holding_aliases.json    持股別名表（新聞×持股連動比對用�
 arm/connectors/fhfund.py       復華共同基金連接器（meta+NAV+報酬 / 十大持股 / 國家・產業配置）
 arm/fund_intro.py              持股介紹組裝（掛簡介、摘要句、集中度、待抓取清單）
 arm/fund_insights.py           跨基金洞察層（總覽表 / 最強最弱 / 同組平均 / 新聞連動引擎 / 話術）
-arm/usnews.py                  昨夜美股：兩版型規格常數 + 產出讀取 + 禁用詞合規掃描 + 指數/新聞卡萃取
-arm/twnews.py                  台股盤後重點：版型規格 + 產出讀取 + 加權/櫃買指數萃取
+arm/usnews.py                  昨夜美股：兩版型規格常數 + 產出讀取 + 禁用詞合規掃描 + 指數/新聞卡萃取（含事件屬性/重要度）
+arm/twnews.py                  台股盤前/盤後重點：版型規格 + 產出讀取 + 加權/櫃買指數萃取
+arm/macronews.py               總經／政策面（川普政策/Fed/國際政策）：版型規格 + 產出讀取
 arm/fund_dashboard.py          零安裝儀表板（業務優先三層架構，SSR + 極簡 Markdown 渲染）
 scripts/fetch_holdings.py      抓 25 檔持股介紹 → data/funds/{id}.json
 scripts/gen_usnews.py          產昨夜美股提示包 / --check 合規掃描
-scripts/gen_twnews.py          產台股盤後提示包 / --check 合規掃描
+scripts/gen_twnews.py          產台股盤前/盤後提示包 / --check 合規掃描
+scripts/gen_macronews.py       產總經／政策面提示包 / --check 合規掃描
 scripts/gen_fund_dashboard.py  產 dashboard/index.html
 scripts/daily_fund.sh          每日 routine 單一進入點
 tests/test_fund_tracker.py     新模組單測（fhfund 解析 / usnews / fund_intro）

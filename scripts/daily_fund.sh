@@ -11,18 +11,21 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "[1/4] 抓持股介紹（復華官網：NAV / 十大持有標的 / 國家・產業配置 / 月報）…"
+echo "[1/5] 抓持股介紹（復華官網：NAV / 十大持有標的 / 國家・產業配置 / 月報）…"
 python3 scripts/fetch_holdings.py || echo "  ⚠ 持股抓取失敗，續跑（用既有 data/funds 快照）"
 
-echo "[2/4] 產昨夜美股新聞提示包（兩版型）…（新聞內容由 LLM 上網查證產出，見檔頭說明）"
+echo "[2/5] 產昨夜美股新聞提示包（兩版型）…（新聞內容由 LLM 上網查證產出，見檔頭說明）"
 python3 scripts/gen_usnews.py || echo "  ⚠ 美股提示包產製失敗，續跑"
 
-echo "[3/4] 產台股盤後重點提示包…（內容由 LLM 上網查證產出，見檔頭說明）"
+echo "[3/5] 產台股盤前/盤後重點提示包…（內容由 LLM 上網查證產出，見檔頭說明）"
 python3 scripts/gen_twnews.py || echo "  ⚠ 台股提示包產製失敗，續跑"
 
-echo "[4/4] 產儀表板（今日重點 + 總覽 + 新聞連動 + 台股/美股新聞 + 持股介紹）→ dashboard/index.html …"
+echo "[4/5] 產總經／政策面提示包…（內容由 LLM 上網查證產出，見檔頭說明）"
+python3 scripts/gen_macronews.py || echo "  ⚠ 總經政策提示包產製失敗，續跑"
+
+echo "[5/5] 產儀表板（今日重點 + 新聞 + 總經政策 + 焦點個股 + 總覽 + 持股介紹）→ dashboard/index.html …"
 python3 scripts/gen_fund_dashboard.py || echo "  ⚠ 儀表板產製失敗"
 
 echo "✅ 完成。持股 data/funds/*.json；美股新聞 reports/usnews/{date}_v1|_v2.md；"
-echo "   台股新聞 reports/twnews/{date}.md；儀表板 dashboard/index.html"
-echo "   合規掃描：python3 scripts/gen_usnews.py --check ＆ python3 scripts/gen_twnews.py --check"
+echo "   台股新聞 reports/twnews/{date}.md；總經政策 reports/macronews/{date}.md；儀表板 dashboard/index.html"
+echo "   合規掃描：gen_usnews.py --check ＆ gen_twnews.py --check ＆ gen_macronews.py --check"
