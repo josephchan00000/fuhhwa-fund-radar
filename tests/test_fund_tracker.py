@@ -67,9 +67,11 @@ def test_macro_spec_and_section():
     # 政策面規格：含三大範圍＋新標準（重要度/新事件/多找）
     s = macronews.SPEC_MACRO
     assert "川普" in s and "聯準會" in s and "重要度" in s and "【新事件】" in s and "至少 6 則" in s
-    # 儀表板有「總經・政策」獨立區塊與導覽（不隨台股/全球切換）
+    # 儀表板：總經為左上三分頁之一（總經/台股/全球），內含政策區塊
     html = fd.render()
-    assert 'id="macro"' in html and '<a href="#macro">總經</a>' in html and "🏛️ 總經・政策" in html
+    assert 'id="mkt-macro"' in html and 'for="mkt-macro">總經' in html   # 三分頁切換鈕
+    assert 'class="macroview"' in html and 'class="fundview"' in html    # 分頁視圖容器
+    assert 'id="macro"' in html and "🏛️ 總經・政策" in html
 
 
 def test_card_importance_and_etype_parsing():
