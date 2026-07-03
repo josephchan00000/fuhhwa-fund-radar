@@ -4,6 +4,8 @@
   · 新聞：Google News RSS（免金鑰，直接引用 arm.connectors.gnews）
       - 品牌層：「復華投信」動態（公告／配息／得獎／人事）
       - 基金層：每檔以「基金基底名」搜尋；同基金的 A／B／TISA 類別合併一次查詢
+  · 財經媒體 RSS 直抓（鉅亨網台股／頭條、Yahoo股市）：留標題含「復華」者，
+      補 Google News 漏收或排序沉掉的稿——命中特定基金者同時補進該基金清單
   · 社群：PTT 股票板公開索引頁標題（留含「復華」者；推文數為聲量 proxy；
       禮貌抓取、只存標題＋連結，不落全文）。Dcard／YouTube／FB 涉金鑰或反爬，
       本層不碰（同 arm/connectors/social 的授權註記）。
@@ -26,6 +28,17 @@ OUT = ROOT / "data" / "fund_news.json"
 
 WINDOW_DAYS = 7
 BRAND_QUERIES = ["復華投信", "復華投信 基金"]
+BRAND_LIMIT = 12
+
+# 財經媒體 RSS 直抓（免金鑰）——與 Google News 互補；站台全站 feed、本層只留「復華」相關
+NEWS_FEEDS = [
+    ("鉅亨網", "https://news.cnyes.com/rss/v1/news/category/tw_stock"),
+    ("鉅亨網", "https://news.cnyes.com/rss/v1/news/category/headline"),
+    ("Yahoo股市", "https://tw.stock.yahoo.com/rss"),
+]
+_RSS_ITEM = re.compile(r"<item>(.*?)</item>", re.S | re.I)
+_RSS_CDATA = re.compile(r"<!\[CDATA\[(.*?)\]\]>", re.S)
+_RSS_HTML = re.compile(r"<[^>]+>")
 
 PTT_BASE = "https://www.ptt.cc"
 PTT_INDEX = PTT_BASE + "/bbs/Stock/index{n}.html"
@@ -76,9 +89,68 @@ def _clean_items(items: list[dict]) -> list[dict]:
     return [{**i, "title": strip_source_suffix(i.get("title"), i.get("source"))} for i in items]
 
 
-def fetch_brand(days: int = WINDOW_DAYS, limit: int = 10) -> list[dict]:
-    """品牌層新聞：復華投信動態。抓不到回 []。"""
+def fetch_brand(days: int = WINDOW_DAYS, limit: int = BRAND_LIMIT) -> list[dict]:
+    """品牌層新聞：復華投信動態（Google News）。抓不到回 []。"""
     return _clean_items(gnews.search_many(BRAND_QUERIES, days=days, limit=limit))
+
+
+def parse_rss(xml_text: str, source: str, days: int = WINDOW_DAYS) -> list[dict]:
+    """RSS → 近 days 天、標題含「復華」的 [{title,url,source,date,datetime}]。純函式可單測。"""
+    from datetime import timedelta, timezone
+    from email.utils import parsedate_to_datetime
+
+    def _clean(s: str) -> str:
+        m = _RSS_CDATA.search(s or "")
+        s = m.group(1) if m else (s or "")
+        return _RSS_HTML.sub("", s).strip()
+
+    def _tag(t: str, blk: str) -> str:
+        m = re.search(rf"<{t}[^>]*>(.*?)</{t}>", blk, re.S | re.I)
+        return m.group(1) if m else ""
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    out = []
+    for blk in _RSS_ITEM.findall(xml_text or ""):
+        title = _clean(_tag("title", blk))
+        if "復華" not in title:
+            continue
+        try:
+            dt = parsedate_to_datetime(_clean(_tag("pubDate", blk)))
+        except (TypeError, ValueError):
+            continue
+        if dt < cutoff:
+            continue
+        out.append({"title": title, "url": _clean(_tag("link", blk)), "source": source,
+                    "date": dt.astimezone().strftime("%Y-%m-%d %H:%M"),
+                    "datetime": dt.astimezone().isoformat()})
+    return out
+
+
+def fetch_feeds(days: int = WINDOW_DAYS) -> list[dict]:
+    """財經媒體 RSS 直抓（鉅亨網／Yahoo股市），留「復華」相關。單一 feed 失敗誠實略過。"""
+    out: list[dict] = []
+    for source, url in NEWS_FEEDS:
+        try:
+            xml = get_bytes(url, cache_ttl=1800).decode("utf-8", "ignore")
+        except Exception:
+            continue
+        out.extend(parse_rss(xml, source, days=days))
+    return out
+
+
+def merge_news(*lists: list[dict], limit: int = BRAND_LIMIT) -> list[dict]:
+    """多來源合併：同標題（前 24 字）去重、依時間新→舊、取前 limit。"""
+    seen: set[str] = set()
+    merged: list[dict] = []
+    for items in lists:
+        for i in items or []:
+            k = (i.get("title") or "")[:24]
+            if not k or k in seen:
+                continue
+            seen.add(k)
+            merged.append(i)
+    merged.sort(key=lambda x: x.get("datetime") or x.get("date") or "", reverse=True)
+    return merged[:limit]
 
 
 def fund_item_relevant(item: dict, base: str) -> bool:
@@ -159,14 +231,29 @@ def fetch_ptt(pages: int = 3) -> list[dict]:
     return out
 
 
+def route_feeds_to_funds(fund_groups: list[dict], feeds: list[dict]) -> list[dict]:
+    """RSS 直抓中命中特定基金核心名者，補進該基金清單（同標題去重、時間新→舊）。"""
+    for g in fund_groups:
+        core = (g.get("base") or "").replace("復華", "").replace("基金", "").strip()
+        if not core:
+            continue
+        extra = [i for i in feeds if core in (i.get("title") or "")]
+        if extra:
+            g["items"] = merge_news(g.get("items") or [], extra, limit=6)
+    return fund_groups
+
+
 def assemble(funds: list[dict], days: int = WINDOW_DAYS) -> dict:
     """抓齊三類情報 → 可落檔的 doc。任一來源失敗該類為空、不互相牽連。"""
+    feeds = _clean_items(fetch_feeds(days=days))
+    brand = merge_news(fetch_brand(days=days), feeds)
+    fund_groups = route_feeds_to_funds(fetch_funds(funds, days=days), feeds)
     return {
         "as_of": datetime.now().strftime("%Y/%m/%d %H:%M"),
         "window_days": days,
-        "source": "Google News（台灣繁中）＋ PTT 股票板公開標題・自動擷取",
-        "brand": fetch_brand(days=days),
-        "funds": fetch_funds(funds, days=days),
+        "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
+        "brand": brand,
+        "funds": fund_groups,
         "social": fetch_ptt(),
     }
 
