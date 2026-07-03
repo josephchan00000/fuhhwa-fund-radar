@@ -142,8 +142,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
 # ── ① 今日重點 ───────────────────────────────────────────────
 
 def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
-                n_cards: int, n_funds: int, dists: list[dict],
-                news_label: str, sev: tuple[int, int] = (0, 0), hol: str = "") -> str:
+                dists: list[dict], sev: tuple[int, int] = (0, 0), hol: str = "") -> str:
     idx_cards = "".join(
         f'<div class="ixc"><div class="ixl">{_esc(ix["label"])}</div>'
         f'<div class="ixv">{_esc(ix["close"])}</div>'
@@ -164,11 +163,6 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
     if n_news:
         chips.append(f'<a class="chip hot" href="#news">🔥 今日 <b>{n_news}</b> 則重要新聞'
                      f'（最高 {top_sev} 分）</a>')
-    if n_cards:
-        chips.append(f'<a class="chip hot" href="#newslinks">🔗 {n_cards} 則{news_label}連動 '
-                     f'<b>{n_funds}</b> 檔基金</a>')
-    else:
-        chips.append(f'<span class="chip dim">🔗 {news_label}與前十大持股無直接連動</span>')
     for x in dists:
         chips.append(f'<span class="chip">💰 {_esc(_short(x["short_name"]))} 配息基準日 '
                      f'{_esc(x["dist_date"])}</span>')
@@ -329,11 +323,10 @@ def _newslinks_view(linked: list[dict], empty_hint: str,
 
 _OV_COLS = [("nav", "NAV", 0), ("chg", "日變動", 1), ("ytd", "YTD", 1),
             ("y1", "1年", 1), ("y3", "3年", 1), ("size_e8", "規模(億)", 0),
-            ("conc", "前十大", 0), ("links", "連動", 0), ("risk", "RR", 0)]
+            ("conc", "前十大", 0), ("risk", "RR", 0)]
 
 
-def _overview_view(rows: list[dict], leaders: set, fund_links: dict[str, int],
-                   pending: list[dict]) -> str:
+def _overview_view(rows: list[dict], leaders: set, pending: list[dict]) -> str:
     groups: dict[str, list[dict]] = {}
     for r in rows:
         groups.setdefault(r["group_label"], []).append(r)
@@ -341,7 +334,7 @@ def _overview_view(rows: list[dict], leaders: set, fund_links: dict[str, int],
         groups.setdefault(p["group_label"], []).append(
             {"fund_id": p["fund_id"], "short_name": p["name"], "pending": True,
              "group_label": p["group_label"], "risk": "—",
-             **{k: None for k, _, _ in _OV_COLS if k not in ("links", "risk")}})
+             **{k: None for k, _, _ in _OV_COLS if k != "risk"}})
     blocks = []
     for g, rs in groups.items():
         trs = []
@@ -350,10 +343,7 @@ def _overview_view(rows: list[dict], leaders: set, fund_links: dict[str, int],
             pend = ' <span class="pend">⏳ 待抓取</span>' if r.get("pending") else ""
             tds = [f'<td class="nm"><a href="#fund-{_esc(fid)}">{_esc(_short(r["short_name"]))}</a>{pend}</td>']
             for k, _, is_pct in _OV_COLS:
-                if k == "links":
-                    n = fund_links.get(fid, 0)
-                    v, cell = n, (f'<a class="lk" href="#newslinks">🔗{n}</a>' if n else '<span class="na">—</span>')
-                elif k == "risk":
+                if k == "risk":
                     v, cell = 0, _esc(r["risk"])
                 else:
                     v = r.get(k)
@@ -687,7 +677,6 @@ a.tk:hover{color:var(--acc)}
 .ovtbl td.nm a:hover{color:var(--acc);text-decoration-color:var(--acc)}
 .ovtbl td.lead{background:rgba(211,58,52,.12);border-radius:4px}
 .ovtbl tr:hover td{background:rgba(47,111,208,.06)}
-.lk{text-decoration:none;font-size:12.5px}
 .pend{display:inline-block;font-size:11.5px;color:var(--gold);border:1px solid rgba(200,134,15,.5);border-radius:10px;padding:0 7px;margin-left:6px;vertical-align:1px}
 .pendhint{background:rgba(200,134,15,.1);border:1px solid rgba(200,134,15,.35);border-radius:10px;padding:9px 13px;font-size:13.5px;color:#8a6a2e;margin-bottom:10px}
 /* news full（收合） */
@@ -930,23 +919,11 @@ def render() -> str:
     us_links = fund_insights.news_fund_links(funds, us_md)
     linked_tw = [c for c in tw_links if c["matched"]]
     linked_us = [c for c in us_links if c["matched"]]
-    fund_links: dict[str, int] = {}          # fund_id → 連動的新聞卡數（兩市場合計、同卡去重）
-    linked_by_fund: dict[str, set[str]] = {}  # fund_id → 連動持股名
+    linked_by_fund: dict[str, set[str]] = {}  # fund_id → 連動持股名（詳情卡 🔗 標記用）
     for c in linked_tw + linked_us:
-        fids = set()
         for m in c["matched"]:
             for f in m["funds"]:
-                fids.add(f["fund_id"])
                 linked_by_fund.setdefault(f["fund_id"], set()).add(m["name"])
-        for fid in fids:
-            fund_links[fid] = fund_links.get(fid, 0) + 1
-
-    def _nfunds(linked):
-        s = set()
-        for c in linked:
-            for m in c["matched"]:
-                s.update(f["fund_id"] for f in m["funds"])
-        return len(s)
 
     rows = fund_insights.overview_rows(funds)
     leaders = fund_insights.column_leaders(rows)
@@ -962,17 +939,13 @@ def render() -> str:
 
     # ① 今日重點（雙視圖）；台股盤前速覽自新聞頭段抽出、直接顯示於此（不再埋於收合塊）
     premkt_md, tw_md_news = _extract_premarket(tw_md)
-    tw_news_label = (tw or {}).get("label") or "台股盤後重點"
     b_tw = _brief_view(twnews.extract_indices(tw_md), *fund_insights.movers(tw_funds),
-                       len(linked_tw), _nfunds(linked_tw),
-                       fund_insights.upcoming_distributions(tw_funds),
-                       f"今日{tw_news_label[:4]}新聞", _sev(tw_md))
+                       fund_insights.upcoming_distributions(tw_funds), _sev(tw_md))
     b_tw += _premarket_card(premkt_md)
     # 全球今日重點不列那斯達克指數卡（公開搜尋之收盤點位不可靠；改於下方新聞以官方為準呈現）
     gl_idx = [ix for ix in usnews.extract_indices(us_md) if ix["label"] != "Nasdaq"]
     b_gl = _brief_view(gl_idx, *fund_insights.movers(gl_funds),
-                       len(linked_us), _nfunds(linked_us),
-                       fund_insights.upcoming_distributions(gl_funds), "昨夜美股新聞", _sev(us_md), hol)
+                       fund_insights.upcoming_distributions(gl_funds), _sev(us_md), hol)
     sec_brief = (f'<div class="section" id="brief"><div class="st">⚡ 今日重點 '
                  f'<span class="stsub">（{_esc((tw or news or {}).get("date") or "—")} 更新）</span></div>'
                  f'{_mkt(b_tw, b_gl)}</div>')
@@ -1012,8 +985,8 @@ def render() -> str:
                  f'{_mkt(l_tw, l_gl)}</div>')
 
     # ④ 基金總覽
-    o_tw = _overview_view(rows_tw, leaders, fund_links, tw_pend)
-    o_gl = _overview_view(rows_gl, leaders, fund_links, gl_pend)
+    o_tw = _overview_view(rows_tw, leaders, tw_pend)
+    o_gl = _overview_view(rows_gl, leaders, gl_pend)
     sec_over = (f'<div class="section" id="overview"><div class="st">📊 基金總覽 '
                 f'<span class="stsub">粉紅底＝同組同欄前二名・點欄位標題可排序</span></div>'
                 f'{_mkt(o_tw, o_gl)}</div>')
