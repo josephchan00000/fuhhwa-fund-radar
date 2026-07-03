@@ -1,7 +1,7 @@
 {
-  "as_of": "2026/07/03 07:52",
+  "as_of": "2026/07/03 08:18",
   "window_days": 7,
-  "source": "Google News（台灣繁中）＋ PTT 股票板公開標題・自動擷取",
+  "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
     {
       "title": "基金：復華投信旗下各基金7/2淨值漲跌一覽表",
@@ -72,6 +72,20 @@
       "source": "CMoney投資網誌",
       "date": "2026-07-01 08:26",
       "datetime": "2026-07-01T08:26:36+00:00"
+    },
+    {
+      "title": "主動復華未來50 (00991A)於5月29日到6月30 日持股變化",
+      "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE5kRTFhMGpweWxqeFRwb1JweHppX19hc2l0ekxWdmJIY242RGxGMzBHSVM1S0Y2VFRVSXlNT3c2ZHJpa0EzbkYzQ1BfUjgzOGpUM09FNUsyWVQ0VXFxa3hwbjFzcFdIN09mSGZ4Mmh1MA?oc=5",
+      "source": "理財周刊",
+      "date": "2026-07-01 08:20",
+      "datetime": "2026-07-01T08:20:58+00:00"
+    },
+    {
+      "title": "基金：復華投信旗下各基金6/30淨值漲跌一覽表",
+      "url": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxNeExnRlNZVzRHblVxUHhRUi1JLU1USlFYalBUYUlUeGE4UllwTjNBeWV6ZFFrZzBLNU82UUxKcjlkX3QydnZjSmdPZURadmdDVDJ4Z3ZqejhndjhBX3F1X3V5NEpOMUN2SjB2WnFUZ3U1QW1iQWxxdnJ1NzdJT2VGa2JjOGNNc1FQ?oc=5",
+      "source": "富聯網",
+      "date": "2026-07-01 00:07",
+      "datetime": "2026-07-01T00:07:00+00:00"
     }
   ],
   "funds": [
