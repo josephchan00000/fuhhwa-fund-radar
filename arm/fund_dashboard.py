@@ -125,10 +125,13 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     <span class="mkswitch"><label class="mk" for="mkt-macro">總經</label><label class="mk" for="mkt-tw">台股</label><label class="mk" for="mkt-gl">全球</label></span>
     <span class="tb-meta">持股基準 {_esc(as_of)}｜產表 {_esc(now)}</span>
     <span class="tb-lamp">{_esc(lamp)}</span>
-    <nav class="tb-nav">
+    <nav class="tb-nav tb-nav-fund">
       <a href="#brief">今日重點</a><a href="#news">新聞</a>
       <a href="#newslinks">焦點個股</a><a href="#overview">基金總覽</a>
       <a href="#details">基金詳情</a>
+    </nav>
+    <nav class="tb-nav tb-nav-macro">
+      <a href="#macro-cal">本週行事曆</a><a href="#macro">政策新聞</a>
     </nav>
     <button class="tb-print" onclick="window.print()">🖨 晨會版</button>
   </div>
@@ -139,7 +142,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
 
 def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
                 n_cards: int, n_funds: int, dists: list[dict],
-                news_label: str, sev: tuple[int, int] = (0, 0)) -> str:
+                news_label: str, sev: tuple[int, int] = (0, 0), hol: str = "") -> str:
     idx_cards = "".join(
         f'<div class="ixc"><div class="ixl">{_esc(ix["label"])}</div>'
         f'<div class="ixv">{_esc(ix["close"])}</div>'
@@ -154,6 +157,8 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
     if worst:
         chips.append(f'<a class="chip" href="#fund-{_esc(worst["fund_id"])}">▼ 今日最弱：'
                      f'<b>{_esc(_short(worst["short_name"]))}</b> {_pct_span(worst["chg"])}</a>')
+    if hol:
+        chips.append(f'<span class="chip halt">🔕 {_esc(hol)}</span>')
     n_news, top_sev = sev
     if n_news:
         chips.append(f'<a class="chip hot" href="#news">🔥 今日 <b>{n_news}</b> 則重要新聞'
@@ -224,6 +229,34 @@ def _news_view(md: str, empty_hint: str,
             f'<span class="openbtn2"></span></summary>'
             f'<div class="ndoc nibody">{_md(extra)}</div></details>')
     return "".join(items) or f'<div class="muted">{empty_hint}</div>'
+
+
+# ── 總經：本週經濟數據行事曆 ──────────────────────────────────
+
+def _macro_cal_view(cal: dict | None) -> str:
+    """本週美國重點數據行事曆表：預期／實際／前值／狀態（已公布・未公布・休市）。"""
+    if not cal or not cal.get("rows"):
+        return ('<div class="muted">尚無本週行事曆。請由會上網查證的 Claude 依提示包'
+                '產 <code>reports/macrocal/{date}.md</code>。</div>')
+    note = cal.get("note") or ""
+    note_html = f'<div class="calnote">🔔 {_esc(note)}</div>' if note else ""
+    trs = []
+    for r in cal["rows"]:
+        st = r.get("status") or ""
+        cls = "done" if "已公布" in st else ("halt" if "休市" in st else "wait")
+        badge = {"done": "✔ 已公布", "halt": "🔕 休市", "wait": "◷ 未公布"}[cls]
+        av = r.get("actual") or ""
+        actual = _esc(av) if av and av != "—" else '<span class="na">—</span>'
+        trs.append(
+            f'<tr class="cr-{cls}"><td class="cd">{_esc(r.get("date"))}</td>'
+            f'<td class="ci">{_esc(r.get("item"))}</td>'
+            f'<td>{_esc(r.get("cons"))}</td><td class="cav">{actual}</td>'
+            f'<td class="cpv">{_esc(r.get("prev"))}</td>'
+            f'<td><span class="cst {cls}">{badge}</span></td></tr>')
+    return (f'{note_html}<div class="ovwrap"><table class="caltbl">'
+            f'<thead><tr><th class="l">日期</th><th class="l">項目</th><th>預期</th>'
+            f'<th>實際</th><th>前值</th><th>狀態</th></tr></thead>'
+            f'<tbody>{"".join(trs)}</tbody></table></div>')
 
 
 # ── ③ 當日焦點個股（新聞連動） ────────────────────────────────
@@ -460,6 +493,9 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 /* 三分頁：總經／台股／全球——總經顯示 .macroview、其餘顯示 .fundview */
 #mkt-macro:checked ~ * .fundview{display:none}
 #mkt-tw:checked ~ * .macroview,#mkt-gl:checked ~ * .macroview{display:none}
+/* 導覽子項隨分頁切換：總經頁顯示總經專屬導覽、其餘顯示基金導覽 */
+#mkt-macro:checked ~ .topbar .tb-nav-fund{display:none}
+#mkt-tw:checked ~ .topbar .tb-nav-macro,#mkt-gl:checked ~ .topbar .tb-nav-macro{display:none}
 .mkswitch{display:flex;gap:0;border:1px solid var(--acc);border-radius:10px;overflow:hidden}
 .mk{background:var(--card2);color:var(--accd);border:0;padding:7px 18px;cursor:pointer;font-size:15px;font-weight:800;user-select:none}
 .mk+.mk{border-left:1px solid var(--acc)}
@@ -594,6 +630,21 @@ a.tk:hover{color:var(--acc)}
 .ndoc hr{border:0;border-top:1px solid var(--line);margin:22px 0}
 .ndoc small,.ndoc i{color:var(--mut);font-style:normal}
 .tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:20px;background:rgba(47,111,208,.14);color:var(--accd);border:1px solid rgba(47,111,208,.3);white-space:nowrap}
+/* 總經：本週行事曆 */
+.calnote{background:rgba(200,118,15,.14);border:1px solid rgba(200,118,15,.45);color:#8a5410;
+  border-radius:9px;padding:8px 13px;font-size:13.5px;font-weight:700;margin-bottom:10px}
+.caltbl{width:100%;border-collapse:collapse;font-size:14px}
+.caltbl th{color:var(--mut);font-size:12.5px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.caltbl th.l{text-align:left}
+.caltbl td{padding:8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:top}
+.caltbl td.cd{text-align:left;font-weight:700;white-space:nowrap} .caltbl td.ci{text-align:left;white-space:normal;min-width:150px}
+.caltbl td.cav{font-weight:800} .caltbl td.cpv{color:var(--mut)}
+.cr-done td.cav{color:var(--ink)} .cr-wait td{color:var(--ink2)} .cr-halt td{color:var(--mut)}
+.cst{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:6px;white-space:nowrap;border:1px solid}
+.cst.done{color:#1d6b3a;background:rgba(31,157,87,.14);border-color:rgba(31,157,87,.4)}
+.cst.wait{color:var(--accd);background:rgba(47,111,208,.1);border-color:rgba(47,111,208,.35)}
+.cst.halt{color:#8a5410;background:rgba(200,118,15,.14);border-color:rgba(200,118,15,.45)}
+.chip.halt{color:#8a5410;background:rgba(200,118,15,.12);border-color:rgba(200,118,15,.5);font-weight:700}
 /* ⑤ details */
 #details{padding:12px 18px}
 #details .st{margin-bottom:0}
@@ -713,9 +764,16 @@ def render() -> str:
     news = usnews.load_latest()
     tw = twnews.load_latest()
     macro = macronews.load_latest()
+    cal = macronews.load_calendar()
     us_md = (news or {}).get("v1") or (news or {}).get("v2") or ""
     tw_md = (tw or {}).get("md") or ""
     macro_md = (macro or {}).get("md") or ""
+    # 休市提示（取自行事曆引言，含「休市」才顯示；全球今日重點用精簡句、總經頁行事曆用完整引言）
+    _hol_note = (cal or {}).get("note") or ""
+    hol = ""
+    if "休市" in _hol_note:
+        _seg = next((p for p in re.split(r"[；;]", _hol_note) if "休市" in p), _hol_note)
+        hol = re.sub(r"（[^）]*）", "", _seg).strip()      # 去括注、取含「休市」的短句
 
     def _sev(md: str) -> tuple[int, int]:
         """回 (重要度≥6 的新聞則數, 最高分)——供今日重點 chip。"""
@@ -767,7 +825,7 @@ def render() -> str:
     gl_idx = [ix for ix in usnews.extract_indices(us_md) if ix["label"] != "Nasdaq"]
     b_gl = _brief_view(gl_idx, *fund_insights.movers(gl_funds),
                        len(linked_us), _nfunds(linked_us),
-                       fund_insights.upcoming_distributions(gl_funds), "昨夜美股新聞", _sev(us_md))
+                       fund_insights.upcoming_distributions(gl_funds), "昨夜美股新聞", _sev(us_md), hol)
     sec_brief = (f'<div class="section" id="brief"><div class="st">⚡ 今日重點 '
                  f'<span class="stsub">（{_esc((tw or news or {}).get("date") or "—")} 更新）</span></div>'
                  f'{_mkt(b_tw, b_gl)}</div>')
@@ -784,6 +842,9 @@ def render() -> str:
     mac_sub = (f'川普政策／Fed／國際政策・今日 {mac_n} 則政策事件（最高 {mac_top} 分）'
                if mac_n else '川普政策／Fed／國際政策・點各則展開看影響分析')
     mac_hint = "尚無總經／政策新聞。請執行 <code>python scripts/gen_macronews.py</code>。"
+    sec_macro_cal = (f'<div class="section" id="macro-cal"><div class="st">📅 本週經濟數據行事曆 '
+                     f'<span class="stsub">預期／已公布實際值／未公布・美股休市另標</span></div>'
+                     f'{_macro_cal_view(cal)}</div>')
     sec_macro = (f'<div class="section" id="macro"><div class="st">🏛️ 總經・政策 '
                  f'<span class="stsub">{mac_sub}</span></div>'
                  f'{_news_view(macro_md, mac_hint, "📄 政策總覽・資料侷限・合規揭露")}</div>')
@@ -817,7 +878,8 @@ def render() -> str:
 <input class="mkradio" type="radio" name="mkt" id="mkt-gl">
 {_topbar(banned, bool(news or tw or macro), as_of, now)}
 <div class="wrap">
-<div class="macroview">{sec_macro}</div>
+<div class="macroview">{sec_macro_cal}
+{sec_macro}</div>
 <div class="fundview">
 {sec_brief}
 {sec_news}
