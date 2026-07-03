@@ -142,7 +142,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
 # ── ① 今日重點 ───────────────────────────────────────────────
 
 def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
-                dists: list[dict], sev: tuple[int, int] = (0, 0), hol: str = "") -> str:
+                dists: list[dict], hol: str = "") -> str:
     idx_cards = "".join(
         f'<div class="ixc"><div class="ixl">{_esc(ix["label"])}</div>'
         f'<div class="ixv">{_esc(ix["close"])}</div>'
@@ -159,10 +159,6 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
                      f'<b>{_esc(_short(worst["short_name"]))}</b> {_pct_span(worst["chg"])}</a>')
     if hol:
         chips.append(f'<span class="chip halt">🔕 {_esc(hol)}</span>')
-    n_news, top_sev = sev
-    if n_news:
-        chips.append(f'<a class="chip hot" href="#news">🔥 今日 <b>{n_news}</b> 則重要新聞'
-                     f'（最高 {top_sev} 分）</a>')
     for x in dists:
         chips.append(f'<span class="chip">💰 {_esc(_short(x["short_name"]))} 配息基準日 '
                      f'{_esc(x["dist_date"])}</span>')
@@ -940,12 +936,12 @@ def render() -> str:
     # ① 今日重點（雙視圖）；台股盤前速覽自新聞頭段抽出、直接顯示於此（不再埋於收合塊）
     premkt_md, tw_md_news = _extract_premarket(tw_md)
     b_tw = _brief_view(twnews.extract_indices(tw_md), *fund_insights.movers(tw_funds),
-                       fund_insights.upcoming_distributions(tw_funds), _sev(tw_md))
+                       fund_insights.upcoming_distributions(tw_funds))
     b_tw += _premarket_card(premkt_md)
     # 全球今日重點不列那斯達克指數卡（公開搜尋之收盤點位不可靠；改於下方新聞以官方為準呈現）
     gl_idx = [ix for ix in usnews.extract_indices(us_md) if ix["label"] != "Nasdaq"]
     b_gl = _brief_view(gl_idx, *fund_insights.movers(gl_funds),
-                       fund_insights.upcoming_distributions(gl_funds), _sev(us_md), hol)
+                       fund_insights.upcoming_distributions(gl_funds), hol)
     sec_brief = (f'<div class="section" id="brief"><div class="st">⚡ 今日重點 '
                  f'<span class="stsub">（{_esc((tw or news or {}).get("date") or "—")} 更新）</span></div>'
                  f'{_mkt(b_tw, b_gl)}</div>')
