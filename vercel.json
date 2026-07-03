@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "_comment": "根目錄 Vercel 設定：讓 Vercel『用預設 Root Directory（repo 根）也能部署』——把輸出根指向 dashboard/，直接服務入庫的 dashboard/index.html（零 build、零後端）。若在 Vercel 專案改設 Root Directory=dashboard，則改用 dashboard/vercel.json，兩者設定一致。",
+  "outputDirectory": "dashboard",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+        { "key": "Cache-Control", "value": "no-store, max-age=0" }
+      ]
+    }
+  ]
+}
