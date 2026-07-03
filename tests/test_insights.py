@@ -199,16 +199,18 @@ def test_pending_funds_have_group_label():
 # ── 儀表板 render（吃 repo 內真實資料，離線） ──────────────────
 def test_render_sections_order_and_taiwan_colors():
     html = fund_dashboard.render()
-    secs = ['id="brief"', 'id="newsdigest"', 'id="newslinks"',
-            'id="overview"', 'id="details"', 'id="news"']
+    secs = ['id="brief"', 'id="newsdigest"', 'id="news"',
+            'id="newslinks"', 'id="overview"', 'id="details"']
     idx = [html.find(s) for s in secs]
     assert all(i >= 0 for i in idx)
-    assert idx == sorted(idx)                          # 順序：重點→新聞→連動→總覽→詳情→全文(底)
+    assert idx == sorted(idx)                          # 順序：今日重點→新聞重點→新聞全文→焦點個股→總覽→詳情
+    assert 'class="newsone"' in html                   # 逐則新聞收合塊
+    assert html.count("<details") >= 3                 # 每則新聞各一收合塊（預設收合）
     assert "--gain:#f0524f" in html and "--loss:#2ea94f" in html    # 紅漲綠跌
     assert 'class="topbar"' in html and "@media print" in html
     assert 'th class="sk"' in html                     # 可排序表頭
     assert "data-copy=" in html                        # 複製鈕
-    assert 'class="openbtn"' in html                   # 展開全文按鈕（可點性）
+    assert 'class="openbtn2"' in html                  # 逐則展開/收合按鈕（可點性）
     assert "background:#eeddb7" in html                # 新聞重點深咖啡標注
 
 
