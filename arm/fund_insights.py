@@ -35,6 +35,13 @@ def parse_pct(s) -> float | None:
     return float(m.group(1)) if m else None
 
 
+def parse_period_pct(s) -> float | None:
+    """期間報酬（ytd/3m/…/3y/since）：官網對成立未滿之期間以「0.00%」佔位，
+    一律視為缺值回 None，避免被誤讀成「報酬為零」（真實期間報酬恰為 0.00% 幾無可能）。"""
+    v = parse_pct(s)
+    return None if v == 0 else v
+
+
 def overview_rows(funds: list[dict]) -> list[dict]:
     """總覽表列資料：每檔基金一列，報酬／變動皆為數值（None＝缺）。"""
     rows = []
@@ -48,14 +55,24 @@ def overview_rows(funds: list[dict]) -> list[dict]:
             "nav": d.get("nav"),
             "nav_date": d.get("nav_date"),
             "chg": parse_pct(d.get("nav_change_pct")),
-            "ytd": parse_pct(ret.get("ytd")),
-            "y1": parse_pct(ret.get("1y")),
-            "y3": parse_pct(ret.get("3y")),
+            "ytd": parse_period_pct(ret.get("ytd")),
+            "y1": parse_period_pct(ret.get("1y")),
+            "y3": parse_period_pct(ret.get("3y")),
             "size_e8": round(d["size_twd"] / 1e8, 1) if d.get("size_twd") else None,
             "conc": fund_intro.top_concentration(d),
             "risk": d.get("risk_level") or "—",
         })
     return rows
+
+
+def full_company_name(name: str | None) -> str:
+    """官網持股名稱以固定字數截斷（如「成都新易盛通信技術股份有限公」），補回缺字避免誤讀。"""
+    n = name or ""
+    if n.endswith("股份有限公"):
+        return n + "司"
+    if n.endswith("股份有"):
+        return n + "限公司"
+    return n
 
 
 def movers(funds: list[dict]) -> tuple[dict | None, dict | None]:
@@ -80,7 +97,7 @@ def group_averages(funds: list[dict]) -> dict[str, dict[str, float]]:
         g = d.get("group_label") or ""
         ret = d.get("returns") or {}
         for k, _ in RET_KEYS:
-            v = parse_pct(ret.get(k))
+            v = parse_period_pct(ret.get(k))
             if v is not None:
                 acc.setdefault(g, {}).setdefault(k, []).append(v)
     return {g: {k: round(sum(vs) / len(vs), 2) for k, vs in ks.items()}
@@ -196,9 +213,10 @@ def talk_script(card: dict, as_of: str | None) -> tuple[str, list[str]]:
 def fund_intro_copy(doc: dict) -> str:
     """單檔基金介紹的可複製純文字（貼 LINE／mail 用），文末附免責一行。"""
     ret = doc.get("returns") or {}
-    rets = "／".join(f"{lab} {ret.get(k) or '—'}"
-                     for k, lab in RET_KEYS + [("since", "成立以來")])
-    top3 = "、".join(f"{h.get('name')} {h.get('weight') or 0:.2f}%"
+    rets = "／".join(
+        f"{lab} {ret.get(k) if parse_period_pct(ret.get(k)) is not None else '—'}"
+        for k, lab in RET_KEYS + [("since", "成立以來")])
+    top3 = "、".join(f"{full_company_name(h.get('name'))} {h.get('weight') or 0:.2f}%"
                      for h in (doc.get("top_holdings") or [])[:3]) or "—"
     size = doc.get("size_twd")
     lines = [

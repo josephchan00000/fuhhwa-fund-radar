@@ -11,10 +11,10 @@
   "risk_level": "RR4",
   "mgmt_fee": "2.00%",
   "size_twd": 18874285408.0,
-  "nav": 101.83,
-  "nav_date": "2026/07/01",
-  "nav_change": -1.3,
-  "nav_change_pct": "-1.26%",
+  "nav": 95.0,
+  "nav_date": "2026/07/02",
+  "nav_change": -6.83,
+  "nav_change_pct": "-6.71%",
   "returns": {
     "ytd": "131.54%",
     "3m": "108.51%",
@@ -133,5 +133,5 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-07-03 03:40"
+  "fetched_at": "2026-07-03 08:17"
 }
