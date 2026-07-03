@@ -122,13 +122,13 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
 <div class="topbar">
   <div class="tb-in">
     <span class="tb-brand">復華基金雷達</span>
-    <span class="mkswitch"><label class="mk" for="mkt-tw">台股</label><label class="mk" for="mkt-gl">全球</label></span>
+    <span class="mkswitch"><label class="mk" for="mkt-macro">總經</label><label class="mk" for="mkt-tw">台股</label><label class="mk" for="mkt-gl">全球</label></span>
     <span class="tb-meta">持股基準 {_esc(as_of)}｜產表 {_esc(now)}</span>
     <span class="tb-lamp">{_esc(lamp)}</span>
     <nav class="tb-nav">
       <a href="#brief">今日重點</a><a href="#news">新聞</a>
-      <a href="#macro">總經</a><a href="#newslinks">焦點個股</a>
-      <a href="#overview">基金總覽</a><a href="#details">基金詳情</a>
+      <a href="#newslinks">焦點個股</a><a href="#overview">基金總覽</a>
+      <a href="#details">基金詳情</a>
     </nav>
     <button class="tb-print" onclick="window.print()">🖨 晨會版</button>
   </div>
@@ -457,9 +457,14 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 .mkradio{position:fixed;opacity:0;pointer-events:none}
 #mkt-tw:checked ~ * .mkt[data-mkt="gl"]{display:none}
 #mkt-gl:checked ~ * .mkt[data-mkt="tw"]{display:none}
+/* 三分頁：總經／台股／全球——總經顯示 .macroview、其餘顯示 .fundview */
+#mkt-macro:checked ~ * .fundview{display:none}
+#mkt-tw:checked ~ * .macroview,#mkt-gl:checked ~ * .macroview{display:none}
 .mkswitch{display:flex;gap:0;border:1px solid var(--acc);border-radius:10px;overflow:hidden}
-.mk{background:var(--card2);color:var(--accd);border:0;padding:7px 20px;cursor:pointer;font-size:15px;font-weight:800;user-select:none}
+.mk{background:var(--card2);color:var(--accd);border:0;padding:7px 18px;cursor:pointer;font-size:15px;font-weight:800;user-select:none}
+.mk+.mk{border-left:1px solid var(--acc)}
 .mk:hover{background:rgba(47,111,208,.12)}
+#mkt-macro:checked ~ .topbar .mk[for="mkt-macro"],
 #mkt-tw:checked ~ .topbar .mk[for="mkt-tw"],
 #mkt-gl:checked ~ .topbar .mk[for="mkt-gl"]{background:var(--acc);color:#fff}
 /* ⓪ topbar */
@@ -758,7 +763,9 @@ def render() -> str:
                        len(linked_tw), _nfunds(linked_tw),
                        fund_insights.upcoming_distributions(tw_funds),
                        f"今日{tw_news_label[:4]}新聞", _sev(tw_md))
-    b_gl = _brief_view(usnews.extract_indices(us_md), *fund_insights.movers(gl_funds),
+    # 全球今日重點不列那斯達克指數卡（公開搜尋之收盤點位不可靠；改於下方新聞以官方為準呈現）
+    gl_idx = [ix for ix in usnews.extract_indices(us_md) if ix["label"] != "Nasdaq"]
+    b_gl = _brief_view(gl_idx, *fund_insights.movers(gl_funds),
                        len(linked_us), _nfunds(linked_us),
                        fund_insights.upcoming_distributions(gl_funds), "昨夜美股新聞", _sev(us_md))
     sec_brief = (f'<div class="section" id="brief"><div class="st">⚡ 今日重點 '
@@ -772,7 +779,7 @@ def render() -> str:
                 f'<span class="stsub">點各則展開看摘要／影響分析／原文連結（預設收合）</span></div>'
                 f'{_mkt(_news_view(tw_md, tw_hint), _news_view(us_md, gl_hint))}</div>')
 
-    # ②' 總經・政策（川普政策／Fed／國際政策；全球共用、不隨台股/全球切換）
+    # 總經・政策分頁（川普政策／Fed／國際政策；左上「總經」分頁專屬視圖）
     mac_n, mac_top = _sev(macro_md)
     mac_sub = (f'川普政策／Fed／國際政策・今日 {mac_n} 則政策事件（最高 {mac_top} 分）'
                if mac_n else '川普政策／Fed／國際政策・點各則展開看影響分析')
@@ -805,16 +812,19 @@ def render() -> str:
 <title>復華基金雷達 · 台股/全球雙視圖</title>
 <style>{_CSS}</style></head>
 <body>
+<input class="mkradio" type="radio" name="mkt" id="mkt-macro">
 <input class="mkradio" type="radio" name="mkt" id="mkt-tw" checked>
 <input class="mkradio" type="radio" name="mkt" id="mkt-gl">
 {_topbar(banned, bool(news or tw or macro), as_of, now)}
 <div class="wrap">
+<div class="macroview">{sec_macro}</div>
+<div class="fundview">
 {sec_brief}
 {sec_news}
-{sec_macro}
 {sec_links}
 {sec_over}
 {sec_det}
+</div>
 <div class="foot">
   資料來源：復華投信官網（fhtrust.com.tw）基金淨值／持股揭露（月度）；重點標的簡介為中性事實敘述、非投資建議。
   台股盤後重點與昨夜美股新聞為公開來源彙編、教育用途，非投資建議或招攬；過去績效不代表未來表現，淨值可能因市場變動而上下；
