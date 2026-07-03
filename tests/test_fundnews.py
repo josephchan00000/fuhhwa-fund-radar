@@ -35,6 +35,13 @@ def test_fund_item_relevant_filters_noise():
     assert not fundnews.fund_item_relevant({"title": ""}, base)
 
 
+def test_blocked_sources_filtered():
+    items = [{"title": "基金：復華投信旗下各基金7/2淨值漲跌一覽表", "source": "富聯網"},
+             {"title": "復華高成長基金創高", "source": "鉅亨網"}]
+    out = fundnews._clean_items(items)
+    assert [i["source"] for i in out] == ["鉅亨網"]
+
+
 def test_strip_source_suffix():
     assert fundnews.strip_source_suffix("復華高成長基金創高 - 鉅亨網", "鉅亨網") == "復華高成長基金創高"
     assert fundnews.strip_source_suffix("標題沒有尾綴", "鉅亨網") == "標題沒有尾綴"
