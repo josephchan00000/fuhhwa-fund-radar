@@ -1,13 +1,18 @@
 name: 復華基金追蹤版本 每日 routine
 
 # 每日雲端 routine：抓 25 檔基金持股介紹（海外＋台股，NAV 每日更新）
-# → 產新聞提示包 → 用「訂閱制」Claude Code 上網查證產新聞內容 → 產儀表板 → commit 回 repo。
-# 新聞「內容」自動化走 Claude Code GitHub Action（anthropics/claude-code-action），
-#   以「訂閱制用量」的 OAuth 權杖驗證（非計量 API 計費）：
-#     1. 本機跑 `claude setup-token` 產一年期權杖；
-#     2. 到 repo Settings → Secrets → Actions 新增 CLAUDE_CODE_OAUTH_TOKEN；
-#   未設定該 Secret 時，新聞步驟自動略過，儀表板退回最近一份新聞並標合規燈。
-# 排程：台北時間週一~六 07:00（= UTC 前一日 23:00，抓昨夜美股後的當日 NAV/新聞）。可手動 workflow_dispatch。
+# → 產新聞提示包 → 產儀表板 → 以擁有者身分 commit 回 repo（Vercel 隨即自動部署）。
+#
+# 新聞「內容」採「半自動・用訂閱額度」：CI 只自動刷新 NAV／持股快照／提示包＋重建儀表板；
+# 新聞內容由「會上網查證的 Claude（你的訂閱額度）」產出——每天早上請 Claude 依當日提示包
+# （reports/usnews/prompts/{date}.md、reports/twnews/prompts/{date}.md）上網查證後回存：
+#   · reports/usnews/{date}_v1.md、_v2.md（昨夜美股）
+#   · reports/twnews/{date}.md（台股，盤前/盤後自適應）
+# 未補當日新聞時，儀表板自動退回最近一份並標合規燈，不會壞。
+# （備註：訂閱制 OAuth 權杖不適合放 CI 無人值守自動跑——官方 Action 有已知標頭 bug，
+#  且權杖約一天過期；如日後要「新聞也全自動」，需改用計量 API 金鑰 ANTHROPIC_API_KEY。）
+#
+# 排程：台北時間週一~六 07:00（= UTC 前一日 23:00）。可手動 workflow_dispatch。
 # 註：GitHub cron 以 UTC 計；07:00(台北, UTC+8) = 前一日 23:00 UTC，故台北週一~六 → UTC 週日~五（0-5）。
 
 on:
@@ -17,14 +22,11 @@ on:
 
 permissions:
   contents: write          # 把當日持股快照／新聞／儀表板 commit 回 repo
-  id-token: write          # claude-code-action 取 GitHub token 需要（否則 OIDC 失敗）
 
 jobs:
   routine:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    env:
-      HAS_OAUTH: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}   # 有訂閱制權杖才跑新聞自動化
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,40 +35,8 @@ jobs:
       - name: 安裝相依（純標準庫 + certifi）
         run: pip install certifi
 
-      - name: 抓持股介紹 + 產新聞提示包（美股兩版型 / 台股盤前盤後自適應）
-        run: |
-          python3 scripts/fetch_holdings.py || echo "  ⚠ 持股抓取失敗，續跑（用既有 data/funds 快照）"
-          python3 scripts/gen_usnews.py     || echo "  ⚠ 美股提示包產製失敗，續跑"
-          python3 scripts/gen_twnews.py     || echo "  ⚠ 台股提示包產製失敗，續跑"
-
-      - name: 用訂閱制 Claude Code 上網查證產當日新聞（美股 v1/v2 + 台股）
-        if: env.HAS_OAUTH == 'true'
-        continue-on-error: true            # 新聞失敗不擋儀表板：退回最近一份並標燈
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}   # 直接給預設 token，略過 OIDC/GitHub App 換發
-          prompt: |
-            你是本 repo 的每日新聞自動化助手。請「完全依提示包規格」用 WebSearch 上網查證後寫檔，
-            全程繁體中文，勿杜撰任何數字、報價或引言。
-
-            步驟：
-            1. 讀 reports/usnews/prompts/ 底下「檔名日期最新」的 .md 提示包，依其中版型一／版型二規格與
-               「產出鐵律」，用 WebSearch 查證昨夜美股，分別寫出：
-                 · reports/usnews/<同一日期>_v1.md（版型一：Top 3 速寫包，完整版，末段附完整合規揭露）
-                 · reports/usnews/<同一日期>_v2.md（版型二：精簡版）
-            2. 讀 reports/twnews/prompts/ 底下「檔名日期最新」的 .md 提示包，用 WebSearch 查證，寫出：
-                 · reports/twnews/<同一日期>.md（盤前用「〈台股盤前重點〉」、盤後用「〈台股盤後重點〉」，依提示包模式）
-            3. 資料正確性鐵律：指數收盤點位等若查不到或各來源互相矛盾（搜尋引擎常混用不同日期），
-               「不要杜撰精確數字」，只保留跨來源一致的方向與幅度，並在「資料侷限說明」誠實註記。
-            4. 全球美股的參考連結「富途優先」（futunn.com），輔以 CNBC／Reuters／Yahoo Finance 原始來源；
-               每則新聞卡至少 1 條可點的 [來源標題](URL) markdown 連結。
-            5. 寫完後執行 `python3 scripts/gen_usnews.py --check` 與 `python3 scripts/gen_twnews.py --check`；
-               若出現 🔴 禁用詞，回去修正對應檔案直到兩者皆 🟢。不要 git commit / push（後續步驟處理）。
-          claude_args: "--allowedTools WebSearch,Read,Write,Edit,Bash --max-turns 40"
-
-      - name: 產儀表板（今日重點 + 總覽 + 新聞連動 + 台股/美股新聞 + 持股介紹）
-        run: python3 scripts/gen_fund_dashboard.py || echo "  ⚠ 儀表板產製失敗"
+      - name: 跑每日 routine（抓持股介紹 + 產新聞提示包 + 重建儀表板）
+        run: bash scripts/daily_fund.sh
 
       - name: 上傳儀表板與持股快照為 artifact
         uses: actions/upload-artifact@v4
@@ -81,7 +51,7 @@ jobs:
 
       - name: 把當日持股快照／新聞／儀表板 commit 回 repo
         run: |
-          # 以 repo 擁有者身分 commit，Vercel 才認得是團隊成員、會自動部署（bot 身分會被擋）
+          # 以 repo 擁有者身分 commit，Vercel 才認得是團隊成員、會自動部署（bot 身分會被 Vercel 擋下）
           git config user.name "josephchan00000"
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
           git add -f data/funds/*.json 2>/dev/null || true        # 分開 add：新聞 glob 為空時不會連 NAV 快照一起中止
