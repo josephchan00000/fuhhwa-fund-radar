@@ -12,12 +12,12 @@ name: 復華基金追蹤版本 每日 routine
 # （備註：訂閱制 OAuth 權杖不適合放 CI 無人值守自動跑——官方 Action 有已知標頭 bug，
 #  且權杖約一天過期；如日後要「新聞也全自動」，需改用計量 API 金鑰 ANTHROPIC_API_KEY。）
 #
-# 排程：台北時間週一~六 07:00（= UTC 前一日 23:00）。可手動 workflow_dispatch。
-# 註：GitHub cron 以 UTC 計；07:00(台北, UTC+8) = 前一日 23:00 UTC，故台北週一~六 → UTC 週日~五（0-5）。
+# 排程：台北時間週一~六 06:50（= UTC 前一日 22:50），讓 7:00 前跑完、打開即最新。可手動 workflow_dispatch。
+# 註：GitHub cron 以 UTC 計；06:50(台北, UTC+8) = 前一日 22:50 UTC，故台北週一~六 → UTC 週日~五（0-5）。
 
 on:
   schedule:
-    - cron: "0 23 * * 0-5"
+    - cron: "50 22 * * 0-5"
   workflow_dispatch: {}
 
 permissions:
