@@ -47,6 +47,7 @@ jobs:
             data/funds/*.json
             reports/usnews/*.md
             reports/twnews/*.md
+            reports/macronews/*.md
           if-no-files-found: warn
 
       - name: 把當日持股快照／新聞／儀表板 commit 回 repo
@@ -57,6 +58,7 @@ jobs:
           git add -f data/funds/*.json 2>/dev/null || true        # 分開 add：新聞 glob 為空時不會連 NAV 快照一起中止
           git add -f reports/usnews/*_v*.md 2>/dev/null || true
           git add -f reports/twnews/*.md reports/twnews/prompts/*.md reports/usnews/prompts/*.md 2>/dev/null || true
+          git add -f reports/macronews/*.md reports/macronews/prompts/*.md 2>/dev/null || true
           git add dashboard/index.html 2>/dev/null || true         # 入庫的儀表板產物 → Vercel Git 部署會自動更新
           git commit -m "chore: 每日持股介紹／新聞更新 $(date +%F)" || echo "無變更"
           git push || echo "push 略過（無遠端寫入權或無變更）"
