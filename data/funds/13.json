@@ -1,0 +1,124 @@
+{
+  "fund_id": "13",
+  "name": "復華神盾基金",
+  "short_name": "神盾",
+  "en_name": "FUH-HWA AEGIS FUND",
+  "category": "國內平衡型",
+  "region": "台灣",
+  "asset_kind": "平衡型",
+  "currency": "新臺幣",
+  "inception": "2004/04/20",
+  "risk_level": "RR4",
+  "mgmt_fee": "1.20%",
+  "size_twd": 7425897985.0,
+  "nav": 115.5568,
+  "nav_date": "2026/07/02",
+  "nav_change": -0.7977,
+  "nav_change_pct": "-0.69%",
+  "returns": {
+    "ytd": "73.00%",
+    "3m": "52.41%",
+    "6m": "73.00%",
+    "1y": "149.13%",
+    "2y": "121.10%",
+    "3y": "189.08%",
+    "since": "1,046.58%"
+  },
+  "managers": [
+    "趙建彰"
+  ],
+  "strategy": "國內平衡型基金，依景氣循環等指標分析決定持股比重，亦可適時運用股票指數期貨避險。 尋找獲利成長的股票，以價值成長股和市場主流類股相輔相成，觀察基本面、技術面等資訊進行動態調整。",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/13.pdf",
+  "dist_date": "2026/06/30",
+  "dist_rate": "—",
+  "as_of": "2026/05/31",
+  "top_holdings": [
+    {
+      "sector": "電子零組件",
+      "name": "台光電",
+      "weight": 6.62
+    },
+    {
+      "sector": "電子零組件",
+      "name": "欣興",
+      "weight": 5.9
+    },
+    {
+      "sector": "電子零組件",
+      "name": "台達電",
+      "weight": 5.2
+    },
+    {
+      "sector": "半導體",
+      "name": "台積電",
+      "weight": 5.2
+    },
+    {
+      "sector": "半導體",
+      "name": "群聯",
+      "weight": 4.28
+    },
+    {
+      "sector": "其他電子",
+      "name": "致茂",
+      "weight": 3.9
+    },
+    {
+      "sector": "半導體",
+      "name": "鴻勁",
+      "weight": 3.78
+    },
+    {
+      "sector": "通信網路",
+      "name": "智邦",
+      "weight": 3.67
+    },
+    {
+      "sector": "半導體",
+      "name": "信驊",
+      "weight": 3.57
+    },
+    {
+      "sector": "電腦及週邊設備",
+      "name": "奇鋐",
+      "weight": 3.41
+    }
+  ],
+  "country_alloc": [],
+  "sector_alloc": [
+    {
+      "name": "電子零組件",
+      "weight": 31.18
+    },
+    {
+      "name": "半導體",
+      "weight": 30.83
+    },
+    {
+      "name": "其他電子",
+      "weight": 5.92
+    },
+    {
+      "name": "通信網路",
+      "weight": 5.07
+    },
+    {
+      "name": "債券",
+      "weight": 3.7
+    },
+    {
+      "name": "電腦及週邊設備",
+      "weight": 3.41
+    },
+    {
+      "name": "電機機械",
+      "weight": 2.14
+    },
+    {
+      "name": "流動資產",
+      "weight": 17.74
+    }
+  ],
+  "group": "tw_balanced",
+  "fetched_at": "2026-07-03 00:09"
+}

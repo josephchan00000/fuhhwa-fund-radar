@@ -1,0 +1,111 @@
+"""台股重點（復華基金追蹤版本）—— 盤前／盤後自適應版型規格 ＋ 產出讀取 ＋ 合規掃描。
+
+與 usnews 同一套 prompt-pack 哲學：
+  · scripts/gen_twnews.py 依「現在時間」自動判定盤前/盤後模式，產對應提示包
+    （reports/twnews/prompts/{date}.md）；
+  · 會上網查證的 LLM 產一份 markdown 回存 reports/twnews/{date}.md；
+  · dashboard 讀「最新一份」呈現、跑合規掃描、萃取加權／櫃買指數進今日重點。
+
+盤前（開盤前／盤中）＝聚焦昨夜美股影響、台指期夜盤、盤前焦點個股、法人與題材預期；
+盤後（收盤後）＝聚焦當日收盤數據、三大法人籌碼、族群輪動與重大公司事件。
+讀取器／萃取／禁用詞掃描皆沿用 arm/usnews（純函式、可單測）。
+"""
+from __future__ import annotations
+
+import re
+from datetime import datetime, time, timedelta, timezone
+from pathlib import Path
+
+from . import usnews
+
+ROOT = Path(__file__).resolve().parent.parent
+NEWS_DIR = ROOT / "reports" / "twnews"
+
+TW_TZ = timezone(timedelta(hours=8))          # 台北時間 UTC+8
+MARKET_CLOSE = time(13, 30)                    # 台股集中市場收盤
+
+# 台股指數標籤（給 usnews.extract_indices 用）；brief 取前兩項
+IDX_LABELS = [(("加權指數", "TAIEX", "集中市場"), "加權指數"),
+              (("櫃買", "OTC", "上櫃"), "櫃買指數")]
+
+# 盤後（收盤後）
+SPEC_POST = """【版型：台股盤後重點】
+範圍：當日台股（集中＋櫃買）之「公司與產業動因」＋盤面結構（權值/中小型輪動、
+三大法人動向、除權息與重大公司事件）。聚焦：半導體/AI 供應鏈、電子權值、
+題材族群輪動、法人籌碼；排除純技術線型喊盤與個股目標價。
+版面：
+  🔹指數速覽（加權指數、櫃買指數各 1 句：收盤點位＋漲跌幅；可補電子/金融類股；
+     末加 1 句市場解析：權值 vs 中小型、輪動或避險）
+  🔹Top 3 盤後卡（每則 100–160 字）：
+     標題（來源＋日期｜消息屬性）
+     1. 新聞摘要 2. 一句話重點 3. 對持股／族群影響 4. 對市場情緒影響
+     5. 參考連結（每卡至少 1 條 [來源標題](URL) markdown 可點連結；
+        指數/法人數字以證交所、櫃買中心官方為準）
+  🔹資料侷限說明（指數/法人數字以證交所、櫃買中心官方為準）
+  I. 合規揭露（附完整揭露段）
+用語合規：僅市場資訊彙編/教育用途、非投資建議；禁用詞同 usnews.BANNED；
+不預測報酬、不以過去績效推未來；勿杜撰數字，查不到誠實註明。"""
+
+# 盤前（開盤前／盤中）—— 市場尚未收盤，抓「最新盤前重要新聞」
+SPEC_PRE = """【版型：台股盤前重點】
+情境：台股尚未收盤（開盤前或盤中），請彙整「最新、最重要」的盤前情報。
+範圍：①昨夜美股與費半／台積電 ADR 對台股電子權值的影響；②台指期夜盤走勢與方向；
+③盤前焦點個股與族群（半導體/AI 供應鏈、記憶體、電子權值、題材股）之最新消息、
+法人動向與外資買賣超預期；④當日除權息、法說會、重大公司公告與國際事件。
+排除純技術線型喊盤與個股目標價喊價（機構目標價調整可中性陳述、附日期）。
+版面：
+  🔹盤前速覽（台指期夜盤點位＋漲跌、台積電 ADR、費半昨夜表現各 1 句；
+     末加 1 句盤前研判：預期開盤方向與資金焦點——中性陳述、不作漲跌預測）
+  🔹Top 3 盤前卡（每則 100–160 字）：
+     標題（來源＋日期｜消息屬性）
+     1. 新聞摘要 2. 一句話重點 3. 對持股／族群影響 4. 對盤前市場情緒影響
+     5. 參考連結（每卡至少 1 條 [來源標題](URL) markdown 可點連結）
+  🔹資料侷限說明（盤前資訊變動快，開盤後以實際成交為準）
+  I. 合規揭露（附完整揭露段）
+用語合規：僅市場資訊彙編/教育用途、非投資建議；禁用詞同 usnews.BANNED；
+不預測報酬、不以過去績效推未來、不對開盤漲跌作預測性喊話；勿杜撰數字，查不到誠實註明。"""
+
+# 向後相容：預設別名指向盤後版型
+SPEC = SPEC_POST
+
+
+def session_mode(now: datetime | None = None) -> str:
+    """依台北時間判定台股新聞模式：收盤（13:30）前＝'pre'（盤前/盤中），之後＝'post'（盤後）。
+
+    週末視為 'post'（延用最近一個交易日的盤後視角）。"""
+    n = now or datetime.now(TW_TZ)
+    if n.weekday() >= 5:                       # 週六日
+        return "post"
+    return "pre" if n.time() < MARKET_CLOSE else "post"
+
+
+def spec_for(mode: str) -> str:
+    """回對應模式的版型規格（'pre'→盤前、其餘→盤後）。"""
+    return SPEC_PRE if mode == "pre" else SPEC_POST
+
+
+def _mode_of(md: str) -> str:
+    """由 md 標題判定盤前/盤後（〈台股盤前重點〉→'pre'）；判不出回 'post'。"""
+    head = (md or "")[:60]
+    return "pre" if "盤前" in head else "post"
+
+
+def load_latest() -> dict | None:
+    """dashboard 用：最新一份台股重點 {date, md, mode, label, banned_hits}。"""
+    if not NEWS_DIR.exists():
+        return None
+    dates = sorted({m.group(1) for f in NEWS_DIR.glob("*.md")
+                    if (m := re.match(r"(\d{4}-\d{2}-\d{2})\.md$", f.name))}, reverse=True)
+    if not dates:
+        return None
+    d = dates[0]
+    md = (NEWS_DIR / f"{d}.md").read_text(encoding="utf-8")
+    mode = _mode_of(md)
+    return {"date": d, "md": md, "mode": mode,
+            "label": "台股盤前重點" if mode == "pre" else "台股盤後重點",
+            "banned_hits": usnews.compliance_scan(md)}
+
+
+def extract_indices(md: str) -> list[dict]:
+    """台股加權／櫃買指數速覽（沿用 usnews 萃取器、換台股標籤）。"""
+    return usnews.extract_indices(md, labels=IDX_LABELS)

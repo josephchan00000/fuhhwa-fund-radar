@@ -1,5 +1,5 @@
 {
-  "_note": "復華基金追蹤版本追蹤清單。id＝fhtrust.com.tw/funds/funds_detail/{id}；group∈{global_equity,global_balanced}。name/category 以 /api/fund 回傳為權威，scripts/fetch_holdings.py 會覆寫進 data/funds/{id}.json。",
+  "_note": "復華基金追蹤版本追蹤清單。id＝fhtrust.com.tw/funds/funds_detail/{id}；group∈{global_equity,global_balanced,tw_equity,tw_balanced,tw_fof}。name/category 以 /api/fund 回傳為權威，scripts/fetch_holdings.py 會覆寫進 data/funds/{id}.json。",
   "funds": [
     { "id": "47", "name": "復華美國新星基金-新臺幣",        "group": "global_equity" },
     { "id": "23", "name": "復華全球大趨勢基金-新臺幣",      "group": "global_equity" },
@@ -11,6 +11,20 @@
     { "id": "29", "name": "復華大中華中小策略基金",        "group": "global_equity" },
     { "id": "12", "name": "復華全球平衡基金-新臺幣",        "group": "global_balanced" },
     { "id": "53", "name": "復華中國新經濟平衡基金-新臺幣",  "group": "global_balanced" },
-    { "id": "16", "name": "復華亞太平衡基金",              "group": "global_balanced" }
+    { "id": "16", "name": "復華亞太平衡基金",              "group": "global_balanced" },
+    { "id": "01",  "name": "復華復華基金",                 "group": "tw_equity" },
+    { "id": "03",  "name": "復華高成長基金",               "group": "tw_equity" },
+    { "id": "06",  "name": "復華數位經濟基金",             "group": "tw_equity" },
+    { "id": "08",  "name": "復華中小精選基金",             "group": "tw_equity" },
+    { "id": "15",  "name": "復華全方位基金A類型",          "group": "tw_equity" },
+    { "id": "125", "name": "復華全方位基金TISA類型",       "group": "tw_equity" },
+    { "id": "117", "name": "復華台灣好收益基金",           "group": "tw_equity" },
+    { "id": "122", "name": "復華台灣科技高股息基金A類型",  "group": "tw_equity" },
+    { "id": "123", "name": "復華台灣科技高股息基金B類型",  "group": "tw_equity" },
+    { "id": "04",  "name": "復華傳家基金",                 "group": "tw_balanced" },
+    { "id": "07",  "name": "復華傳家二號基金",             "group": "tw_balanced" },
+    { "id": "11",  "name": "復華人生目標基金",             "group": "tw_balanced" },
+    { "id": "13",  "name": "復華神盾基金",                 "group": "tw_balanced" },
+    { "id": "79",  "name": "復華台灣智能基金",             "group": "tw_fof" }
   ]
 }

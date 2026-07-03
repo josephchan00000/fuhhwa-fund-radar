@@ -1,0 +1,40 @@
+{
+  "fund_id": "79",
+  "name": "復華台灣智能基金",
+  "short_name": "台灣智能",
+  "en_name": "Fuh Hwa Taiwan Intelligence Fund",
+  "category": "組合型",
+  "region": "台灣",
+  "asset_kind": "組合型",
+  "currency": "新臺幣",
+  "inception": "2017/01/16",
+  "risk_level": "RR4",
+  "mgmt_fee": "1.20%",
+  "size_twd": 20072314003.0,
+  "nav": 47.85,
+  "nav_date": "2026/07/02",
+  "nav_change": -0.02,
+  "nav_change_pct": "-0.04%",
+  "returns": {
+    "ytd": "56.45%",
+    "3m": "40.38%",
+    "6m": "56.45%",
+    "1y": "111.73%",
+    "2y": "102.83%",
+    "3y": "162.08%",
+    "since": "372.80%"
+  },
+  "managers": [
+    "劉明滄"
+  ],
+  "strategy": "主要投資國內股票型(含ETF)及平衡型基金來參與台灣股市表現，並經由量化與質化分析，篩選表現相對強勢之子基金，追求較佳之上漲動能 研判市場趨勢與轉折，調整資產配置，以達到較佳的抗跌效果，創造長期相對穩健之績效",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/79.pdf",
+  "dist_date": "2026/06/30",
+  "dist_rate": "—",
+  "as_of": "2026/05/31",
+  "top_holdings": [],
+  "country_alloc": [],
+  "sector_alloc": [],
+  "group": "tw_fof",
+  "fetched_at": "2026-07-03 00:10"
+}
