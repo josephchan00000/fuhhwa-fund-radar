@@ -13,15 +13,14 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, time, timedelta, timezone
+from datetime import datetime, time
 from pathlib import Path
 
 from . import usnews
+from .clock import TW_TZ                       # 台北時間 UTC+8（單一來源）
 
 ROOT = Path(__file__).resolve().parent.parent
 NEWS_DIR = ROOT / "reports" / "twnews"
-
-TW_TZ = timezone(timedelta(hours=8))          # 台北時間 UTC+8
 MARKET_CLOSE = time(13, 30)                    # 台股集中市場收盤
 
 # 台股指數標籤（給 usnews.extract_indices 用）；brief 取前兩項

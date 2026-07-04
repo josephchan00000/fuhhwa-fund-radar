@@ -19,7 +19,12 @@ from arm import fund_intro, fundnews  # noqa: E402
 def main() -> None:
     funds = fund_intro.all_funds()
     doc = fundnews.assemble(funds)
-    path = fundnews.save(doc)
+    path, saved = fundnews.save(doc)
+    if not saved:
+        prev = fundnews.load() or {}
+        print(f"[基金新聞・社群] ⚠ 本次擷取全空（多為網路被擋/來源異常），"
+              f"保留前次落檔不覆寫（更新 {prev.get('as_of') or '—'}）")
+        return
     n_fund = sum(1 for g in doc["funds"] if g["items"])
     print(f"[基金新聞・社群] 已寫入 {path}")
     print(f"  品牌新聞 {len(doc['brand'])} 則｜有專屬新聞的基金 {n_fund}/{len(doc['funds'])} 檔"
