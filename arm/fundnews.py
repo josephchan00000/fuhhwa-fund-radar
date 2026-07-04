@@ -30,7 +30,15 @@ OUT = ROOT / "data" / "fund_news.json"
 WINDOW_DAYS = 7
 BRAND_QUERIES = ["復華投信", "復華投信 基金"]
 BRAND_LIMIT = 12
-BLOCKED_SOURCES = {"富聯網"}     # 使用者指定排除的新聞來源（品牌與各基金皆不收）
+BLOCKED_SOURCES = {"富聯網",          # 使用者指定排除的新聞來源（品牌與各基金皆不收）
+                   "鉅亨買基金",       # 基金銷售平台頁，非新聞媒體
+                   "extra.rakuya.com.tw"}   # 房產站轉貼區，非新聞來源
+
+# 「非新聞頁面」標題特徵——搜尋/RSS 常混入基金介紹頁、文章列表頁、平台頁、討論牆、
+# 淨值表等非新聞連結，佔版面又無資訊量，一律剔除（2026-07-04 使用者回饋：我要新聞）。
+_JUNK_TITLE = re.compile(
+    r"推薦文章|新聞資訊與消息|討論牆|一覽表|淨值表|交易平台|基金介紹|基金檔案|"
+    r"基金專區|歷史淨值|基金列表|條款|開戶")
 
 # 財經媒體 RSS 直抓（免金鑰）——與 Google News 互補；站台全站 feed、本層只留「復華」相關
 NEWS_FEEDS = [
@@ -92,10 +100,31 @@ def source_ok(item: dict) -> bool:
     return (item.get("source") or "").strip() not in BLOCKED_SOURCES
 
 
+def is_news_title(title: str | None) -> bool:
+    """是不是「一篇新聞」的標題：剔除列表頁/介紹頁/平台頁等非新聞連結。
+
+    · 命中 _JUNK_TITLE 特徵 → 非新聞；
+    · 標題就只是基金名本身（如「復華傳家二號基金」，可帶幣別/類別尾綴）＝基金介紹頁。"""
+    t = (title or "").strip()
+    if not t or _JUNK_TITLE.search(t):
+        return False
+    if re.fullmatch(r"復華[\w・]{1,14}基金(?:[-‑–]?(?:新臺幣|美元|人民幣|[AB]|TISA)[^，,。]{0,6})?", t):
+        return False
+    return True
+
+
 def _clean_items(items: list[dict]) -> list[dict]:
-    """統一清理：剔除黑名單來源＋剝標題尾的來源名。所有新聞路徑（品牌/各基金/RSS）都經過這裡。"""
-    return [{**i, "title": strip_source_suffix(i.get("title"), i.get("source"))}
-            for i in items if source_ok(i)]
+    """統一清理：剔除黑名單來源＋非新聞頁面，剝標題尾的來源名。
+    所有新聞路徑（品牌/各基金/RSS）都經過這裡。"""
+    out = []
+    for i in items:
+        if not source_ok(i):
+            continue
+        t = strip_source_suffix(i.get("title"), i.get("source"))
+        if not is_news_title(t):
+            continue
+        out.append({**i, "title": t})
+    return out
 
 
 def fetch_brand(days: int = WINDOW_DAYS, limit: int = BRAND_LIMIT) -> list[dict]:
