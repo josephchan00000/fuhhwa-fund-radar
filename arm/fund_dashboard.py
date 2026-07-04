@@ -1015,9 +1015,9 @@ def render() -> str:
     b_tw = _brief_view(twnews.extract_indices(tw_md), *fund_insights.movers(tw_funds),
                        fund_insights.upcoming_distributions(tw_funds))
     b_tw += _premarket_card(premkt_md)
-    # 全球今日重點不列那斯達克指數卡（公開搜尋之收盤點位不可靠；改於下方新聞以官方為準呈現）
-    gl_idx = [ix for ix in usnews.extract_indices(us_md) if ix["label"] != "Nasdaq"]
-    b_gl = _brief_view(gl_idx, *fund_insights.movers(gl_funds),
+    # 全球今日重點不列任何指數點位/漲跌幅卡（公開搜尋之收盤數據不可靠；
+    # 使用者指示 2026-07-04：全球重點不要出現數據漲跌幅——一律於下方新聞以官方為準呈現）
+    b_gl = _brief_view([], *fund_insights.movers(gl_funds),
                        fund_insights.upcoming_distributions(gl_funds), hol)
     sec_brief = (f'<div class="section" id="brief"><div class="st">⚡ 今日重點 '
                  f'<span class="stsub">（{_esc((tw or news or {}).get("date") or "—")} 更新）</span></div>'
