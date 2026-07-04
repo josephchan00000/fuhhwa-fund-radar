@@ -16,7 +16,7 @@ import re
 from datetime import date, datetime
 from pathlib import Path
 
-from . import fund_intro, usnews
+from . import clock, fund_intro, usnews
 
 ROOT = Path(__file__).resolve().parent.parent
 ALIASES = ROOT / "config" / "holding_aliases.json"
@@ -252,7 +252,7 @@ def futu_url(ticker: str | None, country: str | None) -> str | None:
 def upcoming_distributions(funds: list[dict], today: date | None = None,
                            days: int = 7) -> list[dict]:
     """dist_date 落在今日起 days 天內（含當日）的基金。回 [{short_name, dist_date}]。"""
-    t = today or date.today()
+    t = today or clock.today_tw()
     out = []
     for d in funds:
         ds = d.get("dist_date")
