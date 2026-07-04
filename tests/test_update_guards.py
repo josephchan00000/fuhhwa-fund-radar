@@ -130,3 +130,22 @@ def test_clean_items_drops_junk_and_blocked_sources():
     out = fundnews._clean_items(items)
     assert [i["title"] for i in out] == ["復華00929配息創新高",
                                          "復華全球平衡基金經理人觀點：下半年布局"]
+
+
+# ── 深度報告卡（2026-07-04 使用者需求：更多深度報告、保底 1 篇） ──
+def test_card_etype_recognizes_deep():
+    from arm import usnews
+    assert usnews._card_etype("來源：經濟日報｜2026/07/04｜【深度】｜重要度 7/10") == "deep"
+    assert usnews._card_etype("來源：X｜【新事件】｜重要度 6/10") == "new"
+
+
+def test_news_badges_renders_deep():
+    from arm import fund_dashboard as fd
+    b = fd._news_badges("deep", 7)
+    assert "📚 深度" in b and 'netype deep' in b and "重要度 7" in b
+
+
+def test_specs_require_deep_pick():
+    from arm import twnews, usnews
+    assert "保底 1 篇" in usnews.SPEC_V1 and "【深度】" in usnews.SPEC_V1
+    assert "保底 1 篇" in twnews.SPEC_POST and "保底 1 篇" in twnews.SPEC_PRE
