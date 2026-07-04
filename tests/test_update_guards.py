@@ -122,9 +122,11 @@ def test_is_news_title_keeps_real_news():
 def test_clean_items_drops_junk_and_blocked_sources():
     items = [
         {"title": "復華傳家二號基金", "source": "鉅亨網"},                    # 介紹頁 → 剔除
-        {"title": "全台最大民營線上基金交易平台", "source": "鉅亨買基金"},      # 黑名單來源 → 剔除
+        {"title": "全台最大民營線上基金交易平台", "source": "鉅亨買基金"},      # 平台頁標題 → 剔除
         {"title": "復華00929配息創新高", "source": "富聯網"},                 # 黑名單來源 → 剔除
         {"title": "復華00929配息創新高 - 工商時報", "source": "工商時報"},      # 真新聞 → 保留（剝尾綴）
+        {"title": "復華全球平衡基金經理人觀點：下半年布局", "source": "鉅亨買基金"},  # 鉅亨新聞稿 → 保留
     ]
     out = fundnews._clean_items(items)
-    assert [i["title"] for i in out] == ["復華00929配息創新高"]
+    assert [i["title"] for i in out] == ["復華00929配息創新高",
+                                         "復華全球平衡基金經理人觀點：下半年布局"]
