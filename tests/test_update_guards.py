@@ -57,7 +57,7 @@ def test_fundnews_save_empty_when_no_previous(tmp_path, monkeypatch):
     assert saved and out.exists()
 
 
-# ── fund_dashboard：鮮度徽章（逾期標紅） ─────────────────────
+# ── fund_dashboard：鮮度徽章（逾期標紅；頂欄只標網頁更新時間、其餘分散各區塊） ──
 def test_age_days_parses_both_formats():
     from arm import fund_dashboard as fd
     t = date(2026, 7, 4)
@@ -68,24 +68,32 @@ def test_age_days_parses_both_formats():
     assert fd._age_days("—", t) is None
 
 
-def test_freshness_view_marks_stale():
+def test_fresh_chip_marks_stale_and_gen():
     from arm import fund_dashboard as fd
     t = date(2026, 7, 10)
-    html_out = fd._freshness_view([
-        ("NAV 日", "2026/07/01", 6),        # 9 天前 > 6 → 標紅
-        ("台股新聞", "2026-07-09", 3),       # 1 天前 → 正常
-        ("基金新聞・社群", None, 3),          # 缺值 → 標紅
-        ("儀表板產表", "2026/07/10 06:50", None),  # 不設容忍 → 永不標紅、帶 data-gen
+    assert "⚠ 9 天未更新" in fd._fresh_chip("NAV 日", "2026/07/01", 6, today=t)      # 9 > 6 → 標紅
+    assert "stale" not in fd._fresh_chip("台股新聞", "2026-07-09", 3, today=t)       # 1 天前 → 正常
+    assert "⚠ 缺資料" in fd._fresh_chip("基金新聞", None, 3, today=t)                # 缺值 → 標紅
+    chip = fd._fresh_chip("網頁更新", "2026/07/10 06:50", None, today=t, gen=True)   # 帶 data-gen
+    assert 'data-gen="2026/07/10 06:50"' in chip and "stale" not in chip
+
+
+def test_freshness_view_top_shows_gen_and_aggregates_stale():
+    from arm import fund_dashboard as fd
+    t = date(2026, 7, 10)
+    html_out = fd._freshness_view("2026/07/10 06:50", [
+        ("NAV 日", "2026/07/01", 6),        # 9 天前 > 6 → 逾期
+        ("台股新聞", "2026-07-09", 3),       # 正常
+        ("基金新聞・社群", None, 3),          # 缺值 → 逾期
     ], today=t)
-    assert html_out.count("chip stale") == 2
-    assert "⚠ 9 天未更新" in html_out and "⚠ 缺資料" in html_out
+    assert "網頁更新時間" in html_out and 'data-gen="2026/07/10 06:50"' in html_out
     assert "2 項資料逾期未更新" in html_out
-    assert 'data-gen="2026/07/10 06:50"' in html_out
+    assert "NAV 日、基金新聞・社群" in html_out
 
 
 def test_freshness_view_all_fresh_no_warning():
     from arm import fund_dashboard as fd
     t = date(2026, 7, 4)
-    html_out = fd._freshness_view([("NAV 日", "2026/07/03", 6),
-                                   ("台股新聞", "2026-07-04", 3)], today=t)
+    html_out = fd._freshness_view("2026/07/04 11:12", [("NAV 日", "2026/07/03", 6),
+                                                       ("台股新聞", "2026-07-04", 3)], today=t)
     assert "stale" not in html_out and "逾期" not in html_out

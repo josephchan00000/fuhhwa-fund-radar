@@ -17,6 +17,12 @@
 5. **重建儀表板**：`TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py`，並確認「🕒 資料更新時間」區塊各欄位已更新。
 6. **測試**：`python3 -m pytest -q` 全綠。
 7. **commit＋push** 到本次會話指定分支（訊息用 `chore: 每日持股介紹／新聞更新 {日期}` 或依變更內容）。
+8. **合併上線（使用者已預先授權，不必再問）**：開 PR 後**立即 merge 進 main**——「全部更新」的完成定義是
+   **網頁（Vercel）真的更新**，不是只開 PR。merge 前先把 main 併進分支解衝突（`dashboard/index.html`
+   衝突一律重跑 `gen_fund_dashboard.py` 重產解決）。
+9. **確認部署**：Vercel 跟著 main 自動部署；為保險起見（bot 身分的 merge commit 可能不觸發 Vercel），
+   merge 後手動觸發一次 `daily.yml` 的 `workflow_dispatch`——CI 會以擁有者身分 commit 重產的儀表板，
+   確保 Vercel 一定部署最新版。
 
 ## 已知環境限制與防呆（曾踩過的坑，不要再犯）
 
