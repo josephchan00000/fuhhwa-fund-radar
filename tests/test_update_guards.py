@@ -97,3 +97,34 @@ def test_freshness_view_all_fresh_no_warning():
     html_out = fd._freshness_view("2026/07/04 11:12", [("NAV 日", "2026/07/03", 6),
                                                        ("台股新聞", "2026-07-04", 3)], today=t)
     assert "stale" not in html_out and "逾期" not in html_out
+
+
+# ── fundnews：非新聞頁面過濾（2026-07-04 使用者回饋：我要新聞） ──
+def test_is_news_title_rejects_non_news_pages():
+    # 基金介紹頁（標題就只是基金名，可帶幣別/類別尾綴）
+    assert not fundnews.is_news_title("復華傳家二號基金")
+    assert not fundnews.is_news_title("復華美國新星基金-新臺幣")
+    # 列表頁／平台頁／討論牆／淨值表
+    assert not fundnews.is_news_title("最新復華全球大趨勢基金-新臺幣(FHI001)推薦文章、新聞｜投資網誌")
+    assert not fundnews.is_news_title("復華亞太平衡基金(98636793)-股票最新新聞資訊與消息")
+    assert not fundnews.is_news_title("討論牆 | 復華華人世紀基金，單月規模暴增58億")
+    assert not fundnews.is_news_title("全台最大民營線上基金交易平台")
+    assert not fundnews.is_news_title("復華投信旗下各基金淨值一覽表")
+    assert not fundnews.is_news_title("")
+
+
+def test_is_news_title_keeps_real_news():
+    assert fundnews.is_news_title("復華兩檔ETF配息出爐！00929預估配0.38元創新高")
+    assert fundnews.is_news_title("復華華人世紀基金，單月規模暴增58億的背後秘密是什麼？")
+    assert fundnews.is_news_title("復華亞太神龍科技基金-新臺幣，同樣是買科技股，這檔近 1 年漲 240% 憑什麼？")
+
+
+def test_clean_items_drops_junk_and_blocked_sources():
+    items = [
+        {"title": "復華傳家二號基金", "source": "鉅亨網"},                    # 介紹頁 → 剔除
+        {"title": "全台最大民營線上基金交易平台", "source": "鉅亨買基金"},      # 黑名單來源 → 剔除
+        {"title": "復華00929配息創新高", "source": "富聯網"},                 # 黑名單來源 → 剔除
+        {"title": "復華00929配息創新高 - 工商時報", "source": "工商時報"},      # 真新聞 → 保留（剝尾綴）
+    ]
+    out = fundnews._clean_items(items)
+    assert [i["title"] for i in out] == ["復華00929配息創新高"]
