@@ -153,22 +153,36 @@ def _age_days(value: str | None, today=None) -> int | None:
     return ((today or clock.today_tw()) - d).days
 
 
-def _freshness_view(items: list[tuple[str, str | None, int | None]], today=None) -> str:
-    """items：(標籤, 時戳, 容忍天數)。時戳超過容忍天數（或缺值）→ 標紅 ⚠，漏更新一眼可見。"""
-    chips, n_stale = [], 0
-    for k, v, tol in items:
-        age = _age_days(v, today)
-        stale = tol is not None and (age is None or age > tol)
-        n_stale += stale
-        warn = f"　⚠ {age} 天未更新" if (stale and age is not None) else ("　⚠ 缺資料" if stale else "")
-        gen = f' data-gen="{_esc(v)}"' if k == "儀表板產表" and v else ""   # 供瀏覽器端逾期偵測
-        chips.append(f'<span class="chip{" stale" if stale else ("" if v else " dim")}"{gen}>'
-                     f'<b>{_esc(k)}</b>　{_esc(v or "—")}{_esc(warn)}</span>')
-    sub = (f'<span class="stale-note">⚠ {n_stale} 項資料逾期未更新，請跑「全部更新」或檢查 CI</span>'
-           if n_stale else 'NAV 每日・持股月度揭露・新聞每日（時間皆為台北時間）')
-    return (f'<div class="section" id="freshness"><div class="st">🕒 資料更新時間 '
-            f'<span class="stsub">{sub}</span></div>'
-            f'<div class="chips">{"".join(chips)}</div></div>')
+def _is_stale(value: str | None, tol: int | None, today=None) -> bool:
+    """時戳超過容忍天數（或缺值）視為逾期；tol=None 永不逾期。"""
+    if tol is None:
+        return False
+    age = _age_days(value, today)
+    return age is None or age > tol
+
+
+def _fresh_chip(label: str, value: str | None, tol: int | None = None,
+                today=None, gen: bool = False) -> str:
+    """單一鮮度徽章：逾期標紅 ⚠；gen=True 帶 data-gen 供瀏覽器端逾期偵測。"""
+    stale = _is_stale(value, tol, today)
+    age = _age_days(value, today)
+    warn = f"　⚠ {age} 天未更新" if (stale and age is not None) else ("　⚠ 缺資料" if stale else "")
+    attr = f' data-gen="{_esc(value)}"' if (gen and value) else ""
+    cls = " stale" if stale else ("" if value else " dim")
+    return (f'<span class="chip fresh{cls}"{attr}><b>{_esc(label)}</b>　'
+            f'{_esc(value or "—")}{_esc(warn)}</span>')
+
+
+def _freshness_view(gen_stamp: str, sources: list[tuple[str, str | None, int | None]],
+                    today=None) -> str:
+    """最上方只標「網頁更新時間」；各來源時戳分散標於各自區塊標題列，這裡只彙總逾期警示。"""
+    stale = [k for k, v, tol in sources if _is_stale(v, tol, today)]
+    sub = (f'<span class="stale-note">⚠ {len(stale)} 項資料逾期未更新（{"、".join(stale)}），'
+           f'請跑「全部更新」或檢查 CI</span>' if stale
+           else '各資料來源的更新時間標於各區塊標題列（皆台北時間）')
+    return (f'<div class="section" id="freshness"><div class="st">🕒 網頁更新時間　'
+            f'{_fresh_chip("網頁更新", gen_stamp, None, today, gen=True)} '
+            f'<span class="stsub">{sub}</span></div></div>')
 
 
 # ── ① 今日重點 ───────────────────────────────────────────────
@@ -645,6 +659,8 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 .chip b{font-weight:700} .chip.hot{border-color:var(--acc);background:rgba(47,111,208,.1)}
 .chip.dim{color:var(--mut)}
 .chip.stale{border-color:#c62828;background:rgba(198,40,40,.08);color:#c62828;font-weight:700}
+.st .chip.fresh{font-size:11.5px;padding:2px 10px;margin-left:4px;font-weight:400;vertical-align:middle}
+.st .chip.fresh b{font-weight:600}
 .stale-note{color:#c62828;font-weight:700}
 .stale-banner{background:#c62828;color:#fff;text-align:center;padding:8px 14px;font-size:13.5px;font-weight:700}
 a.chip{border-color:rgba(47,111,208,.45);cursor:pointer}
@@ -982,12 +998,16 @@ def render() -> str:
     fn_doc = fundnews.load()
     # (標籤, 時戳, 容忍天數)：超過容忍天數標紅 ⚠。容忍值放寬到涵蓋週末與 T+1 海外 NAV，
     # 仍能抓到「CI 停擺／來源長期抓不到／新聞多日未補」的漏更新。
-    sec_fresh = _freshness_view([
-        ("NAV 日", nav_date, 6), ("持股基準（月度）", as_of if as_of != "—" else None, 45),
-        ("持股快照抓取", fetched_at, 3),
-        ("美股新聞", (news or {}).get("date"), 3), ("台股新聞", (tw or {}).get("date"), 3),
-        ("總經・政策", (macro or {}).get("date"), 3), ("經濟行事曆", (cal or {}).get("date"), 8),
-        ("基金新聞・社群", (fn_doc or {}).get("as_of"), 3), ("儀表板產表", now, None),
+    # 最上方只標網頁更新時間；各來源時戳以 _fresh_chip 分散標於各自區塊標題列。
+    hold_asof = as_of if as_of != "—" else None
+    us_date, tw_date = (news or {}).get("date"), (tw or {}).get("date")
+    mac_date, cal_date = (macro or {}).get("date"), (cal or {}).get("date")
+    fn_asof = (fn_doc or {}).get("as_of")
+    sec_fresh = _freshness_view(now, [
+        ("NAV 日", nav_date, 6), ("持股基準", hold_asof, 45), ("持股快照抓取", fetched_at, 3),
+        ("美股新聞", us_date, 3), ("台股新聞", tw_date, 3),
+        ("總經・政策", mac_date, 3), ("經濟行事曆", cal_date, 8),
+        ("基金新聞・社群", fn_asof, 3),
     ])
 
     # ① 今日重點（雙視圖）；台股盤前速覽自新聞頭段抽出、直接顯示於此（不再埋於收合塊）
@@ -1007,6 +1027,7 @@ def render() -> str:
     tw_hint = "尚無台股新聞。請執行 <code>python scripts/gen_twnews.py</code>。"
     gl_hint = "尚無昨夜美股新聞。請執行 <code>python scripts/gen_usnews.py</code>。"
     sec_news = (f'<div class="section" id="news"><div class="st">🗞️ 新聞 '
+                f'{_fresh_chip("台股新聞", tw_date, 3)}{_fresh_chip("美股新聞", us_date, 3)} '
                 f'<span class="stsub">點各則展開看摘要／影響分析／原文連結（預設收合）</span></div>'
                 f'{_mkt(_news_view(tw_md_news, tw_hint), _news_view(us_md, gl_hint))}</div>')
 
@@ -1016,16 +1037,19 @@ def render() -> str:
                if mac_n else '川普政策／Fed／國際政策・點各則展開看影響分析')
     mac_hint = "尚無總經／政策新聞。請執行 <code>python scripts/gen_macronews.py</code>。"
     sec_macro_cal = (f'<div class="section" id="macro-cal"><div class="st">📅 本週經濟數據行事曆 '
+                     f'{_fresh_chip("更新", cal_date, 8)} '
                      f'<span class="stsub">預期／已公布實際值／未公布・美股休市另標</span></div>'
                      f'{_macro_cal_view(cal)}</div>')
     sec_macro = (f'<div class="section" id="macro"><div class="st">🏛️ 總經・政策 '
+                 f'{_fresh_chip("更新", mac_date, 3)} '
                  f'<span class="stsub">{mac_sub}</span></div>'
                  f'{_news_view(macro_md, mac_hint, "📄 政策總覽・資料侷限・合規揭露")}</div>')
 
     # ②b 基金相關新聞・社群（品牌動態＋各基金新聞＋PTT 聲量；讀 data/fund_news.json）
-    fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋財經RSS＋PTT 自動擷取・更新 '
-              f'{fn_doc.get("as_of") or "—"}' if fn_doc else '品牌動態／各基金新聞／PTT 聲量')
+    fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋財經RSS＋PTT 自動擷取'
+              if fn_doc else '品牌動態／各基金新聞／PTT 聲量')
     sec_fnews = (f'<div class="section" id="fundnews"><div class="st">📣 基金相關新聞・社群 '
+                 f'{_fresh_chip("更新", fn_asof, 3)} '
                  f'<span class="stsub">{_esc(fn_sub)}</span></div>'
                  f'{_fundnews_view(fn_doc)}</div>')
 
@@ -1040,6 +1064,8 @@ def render() -> str:
     o_tw = _overview_view(rows_tw, leaders, tw_pend)
     o_gl = _overview_view(rows_gl, leaders, gl_pend)
     sec_over = (f'<div class="section" id="overview"><div class="st">📊 基金總覽 '
+                f'{_fresh_chip("NAV 日", nav_date, 6)}{_fresh_chip("持股基準", hold_asof, 45)}'
+                f'{_fresh_chip("快照抓取", fetched_at, 3)} '
                 f'<span class="stsub">粉紅底＝同組同欄前二名・點欄位標題可排序</span></div>'
                 f'{_mkt(o_tw, o_gl)}</div>')
 
@@ -1047,6 +1073,7 @@ def render() -> str:
     c_tw = _details_block(tw_funds, gavg, linked_by_fund, tw_pend)
     c_gl = _details_block(gl_funds, gavg, linked_by_fund, gl_pend)
     sec_det = (f'<div class="section" id="details"><div class="st">📚 基金詳情 '
+               f'{_fresh_chip("NAV 日", nav_date, 6)}{_fresh_chip("持股基準", hold_asof, 45)} '
                f'<span class="stsub">績效格「●」＝高於同組平均</span></div></div>'
                f'{_mkt(c_tw, c_gl)}')
 
