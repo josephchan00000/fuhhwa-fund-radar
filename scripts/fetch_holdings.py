@@ -11,12 +11,12 @@
 """
 import json
 import sys
-from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from arm import config                       # noqa: E402
+from arm.clock import now_tw                 # noqa: E402  台北時間（UTC 容器/CI 防跨日錯置）
 from arm.connectors import fhfund            # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,7 +27,7 @@ def run(ids: list[str]) -> list[dict]:
     OUT.mkdir(parents=True, exist_ok=True)
     by_id = {str(f["id"]): f for f in config.funds()}
     index = []
-    print(f"[持股介紹 ← 復華官網]　{datetime.now():%Y-%m-%d %H:%M}")
+    print(f"[持股介紹 ← 復華官網]　{now_tw():%Y-%m-%d %H:%M}")
     for fid in ids:
         cfg = by_id.get(str(fid), {})
         try:
@@ -36,7 +36,7 @@ def run(ids: list[str]) -> list[dict]:
             print(f"  ✗ {fid}：抓取失敗（{type(e).__name__}：{e}）")
             continue
         doc["group"] = cfg.get("group")
-        doc["fetched_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+        doc["fetched_at"] = now_tw().strftime("%Y-%m-%d %H:%M")
         (OUT / f"{fid}.json").write_text(
             json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
         n = len(doc.get("top_holdings") or [])
@@ -68,7 +68,7 @@ def _write_index(fetched: list[dict]) -> None:
     order = [str(f["id"]) for f in config.funds()]
     merged = [old[i] for i in order if i in old]
     merged += [e for i, e in old.items() if i not in order]      # 已移出清單者仍保留
-    fp.write_text(json.dumps({"as_of": datetime.now().strftime("%Y-%m-%d %H:%M"),
+    fp.write_text(json.dumps({"as_of": now_tw().strftime("%Y-%m-%d %H:%M"),
                               "funds": merged}, ensure_ascii=False, indent=2),
                   encoding="utf-8")
 

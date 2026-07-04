@@ -20,6 +20,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+from .clock import TW_TZ, stamp_tw
 from .connectors import gnews
 from .http import get_bytes
 
@@ -130,8 +131,8 @@ def parse_rss(xml_text: str, source: str, days: int = WINDOW_DAYS) -> list[dict]
             continue
         desc = _clean(_tag("description", blk))
         it = {"title": title, "url": _clean(_tag("link", blk)), "source": source,
-              "date": dt.astimezone().strftime("%Y-%m-%d %H:%M"),
-              "datetime": dt.astimezone().isoformat()}
+              "date": dt.astimezone(TW_TZ).strftime("%Y-%m-%d %H:%M"),
+              "datetime": dt.astimezone(TW_TZ).isoformat()}
         if desc and desc != title:               # RSS 摘要（鉅亨網等有全文摘要；截 100 字）
             it["summary"] = desc[:100] + ("…" if len(desc) > 100 else "")
         out.append(it)
@@ -283,7 +284,7 @@ def assemble(funds: list[dict], days: int = WINDOW_DAYS) -> dict:
     brand = merge_news(fetch_brand(days=days), feeds)
     fund_groups = route_feeds_to_funds(fetch_funds(funds, days=days), feeds)
     doc = {
-        "as_of": datetime.now().strftime("%Y/%m/%d %H:%M"),
+        "as_of": stamp_tw("%Y/%m/%d %H:%M"),
         "window_days": days,
         "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
         "brand": brand,
@@ -294,10 +295,24 @@ def assemble(funds: list[dict], days: int = WINDOW_DAYS) -> dict:
     return doc
 
 
-def save(doc: dict) -> Path:
+def is_empty(doc: dict | None) -> bool:
+    """三類情報（品牌／各基金／PTT）全空 → True。全空多半是網路被擋，不是真的沒新聞。"""
+    if not doc:
+        return True
+    return not (doc.get("brand") or doc.get("social")
+                or any(g.get("items") for g in doc.get("funds") or []))
+
+
+def save(doc: dict) -> tuple[Path, bool]:
+    """落檔。防呆：本次擷取全空且既有落檔非空 → 保留舊檔不覆寫（回 saved=False）。
+
+    2026-07-04 教訓：雲端環境 Google News/PTT 被 proxy 政策擋下時，曾把非空的
+    fund_news.json 覆寫成全空。全空結果一律視為「來源異常」而非「查無新聞」。"""
     OUT.parent.mkdir(parents=True, exist_ok=True)
+    if is_empty(doc) and not is_empty(load()):
+        return OUT, False
     OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
-    return OUT
+    return OUT, True
 
 
 def load() -> dict | None:

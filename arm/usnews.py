@@ -14,6 +14,8 @@ import re
 from datetime import date, timedelta
 from pathlib import Path
 
+from . import clock
+
 ROOT = Path(__file__).resolve().parent.parent
 NEWS_DIR = ROOT / "reports" / "usnews"
 
@@ -115,7 +117,7 @@ def us_session_date(today: date | None = None) -> date:
 
     台北 D 日早上收的美股＝美東 D-1；週一早上對應的最近美股交易日為上週五（略過假日，
     提示包會請 Claude 自行以實際交易日查證）。"""
-    d = (today or date.today()) - timedelta(days=1)
+    d = (today or clock.today_tw()) - timedelta(days=1)
     while d.weekday() >= 5:      # 5=Sat, 6=Sun
         d -= timedelta(days=1)
     return d

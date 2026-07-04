@@ -18,9 +18,8 @@ from __future__ import annotations
 
 import html
 import re
-from datetime import datetime
 
-from . import fund_insights, fund_intro, fundnews, macronews, twnews, usnews
+from . import clock, fund_insights, fund_intro, fundnews, macronews, twnews, usnews
 
 
 def _esc(s) -> str:
@@ -137,6 +136,17 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     <button class="tb-print" onclick="window.print()">🖨 晨會版</button>
   </div>
 </div>"""
+
+
+# ── ⓪b 資料更新時間（各資料來源鮮度一覽；台股/全球/總經三頁共用） ──
+
+def _freshness_view(items: list[tuple[str, str | None]]) -> str:
+    chips = "".join(
+        f'<span class="chip{"" if v else " dim"}"><b>{_esc(k)}</b>　{_esc(v or "—")}</span>'
+        for k, v in items)
+    return (f'<div class="section" id="freshness"><div class="st">🕒 資料更新時間 '
+            f'<span class="stsub">NAV 每日・持股月度揭露・新聞每日（時間皆為台北時間）</span></div>'
+            f'<div class="chips">{chips}</div></div>')
 
 
 # ── ① 今日重點 ───────────────────────────────────────────────
@@ -928,10 +938,22 @@ def render() -> str:
     rows_gl = [r for r in rows if mkt_by_id.get(r["fund_id"]) == "gl"]
     gavg = fund_insights.group_averages(funds)
 
-    now = datetime.now().strftime("%Y/%m/%d %H:%M")
+    now = clock.now_tw().strftime("%Y/%m/%d %H:%M")      # 台北時間（UTC 容器防跨日錯置）
     as_of = (funds[0].get("as_of") if funds else None) or "—"
     banned = (((news or {}).get("banned_hits") or []) + ((tw or {}).get("banned_hits") or [])
               + ((macro or {}).get("banned_hits") or []))
+
+    # ⓪b 資料更新時間（各資料來源鮮度一覽）
+    nav_date = max((str(d.get("nav_date")) for d in funds if d.get("nav_date")), default=None)
+    fetched_at = max((str(d.get("fetched_at")) for d in funds if d.get("fetched_at")), default=None)
+    fn_doc = fundnews.load()
+    sec_fresh = _freshness_view([
+        ("NAV 日", nav_date), ("持股基準（月度）", as_of if as_of != "—" else None),
+        ("持股快照抓取", fetched_at),
+        ("美股新聞", (news or {}).get("date")), ("台股新聞", (tw or {}).get("date")),
+        ("總經・政策", (macro or {}).get("date")), ("經濟行事曆", (cal or {}).get("date")),
+        ("基金新聞・社群", (fn_doc or {}).get("as_of")), ("儀表板產表", now),
+    ])
 
     # ① 今日重點（雙視圖）；台股盤前速覽自新聞頭段抽出、直接顯示於此（不再埋於收合塊）
     premkt_md, tw_md_news = _extract_premarket(tw_md)
@@ -966,7 +988,6 @@ def render() -> str:
                  f'{_news_view(macro_md, mac_hint, "📄 政策總覽・資料侷限・合規揭露")}</div>')
 
     # ②b 基金相關新聞・社群（品牌動態＋各基金新聞＋PTT 聲量；讀 data/fund_news.json）
-    fn_doc = fundnews.load()
     fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋財經RSS＋PTT 自動擷取・更新 '
               f'{fn_doc.get("as_of") or "—"}' if fn_doc else '品牌動態／各基金新聞／PTT 聲量')
     sec_fnews = (f'<div class="section" id="fundnews"><div class="st">📣 基金相關新聞・社群 '
@@ -1004,6 +1025,7 @@ def render() -> str:
 <input class="mkradio" type="radio" name="mkt" id="mkt-gl">
 {_topbar(banned, bool(news or tw or macro), as_of, now)}
 <div class="wrap">
+{sec_fresh}
 <div class="macroview">{sec_macro_cal}
 {sec_macro}</div>
 <div class="fundview">
