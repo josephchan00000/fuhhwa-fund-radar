@@ -13,6 +13,9 @@
    - `reports/twnews/{今日}.md`（台股；週末/休市日改寫最近交易日並註明）
    - `reports/macronews/{今日}.md`、`reports/macrocal/{今日}.md`（總經政策＋本週行事曆）
    - 不重複收錄前一日已報導的舊聞；有新進展標【延伸】。每卡至少 1 條真實可點 [標題](URL)。
+   - **深度報告精選保底 1 篇**（台股與美股報告各自保底；標題括注用【深度】）：台股從經濟日報／
+     工商時報／中央社專題／財訊・今周刊挑；美股從富途牛牛深度文、Reuters Analysis／Bloomberg
+     深度專題挑。只挑真深度（產業鏈拆解/商業模式/政策影響），當日不足放寬到近 3 天並註明刊出日。
 4. **合規掃描**：`gen_usnews.py --check`、`gen_twnews.py --check`、`gen_macronews.py --check` 全須 🟢。
 5. **重建儀表板**：`TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py`，並確認「🕒 資料更新時間」區塊各欄位已更新。
 6. **測試**：`python3 -m pytest -q` 全綠。
