@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/04 13:09",
+  "as_of": "2026/07/04 14:19",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -44,13 +44,6 @@
       "source": "Yahoo新聞",
       "date": "2026-07-01 17:30",
       "datetime": "2026-07-01T17:30:58+08:00"
-    },
-    {
-      "title": "主動台股ETF上半年績效冠軍00991A首次配息金額公布- 理財",
-      "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTFBsb01ERy1BTGtocWtkTUVBOUlDdWRFSDlXcHNDTGZTdWtvSXRmNEtSSEVUVU0yVERFYW5SY096ZHhkRG02RXQzSnpOVGtjN2dVVGhKdDZ6c0xSN1lIUTlZ?oc=5",
-      "source": "工商時報",
-      "date": "2026-07-01 16:39",
-      "datetime": "2026-07-01T16:39:00+08:00"
     },
     {
       "title": "復華全球平衡基金-新臺幣，老牌基金為何還能稱霸？22年百萬變七百萬。",
