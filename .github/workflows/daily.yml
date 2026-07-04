@@ -27,6 +27,8 @@ jobs:
   routine:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      TZ: Asia/Taipei          # commit 訊息 $(date +%F) 與所有腳本時戳一律台北時間（防 UTC 跨日錯置）
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

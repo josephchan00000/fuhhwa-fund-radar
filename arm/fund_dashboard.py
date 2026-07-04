@@ -18,9 +18,9 @@ from __future__ import annotations
 
 import html
 import re
-from datetime import datetime
+from datetime import date
 
-from . import fund_insights, fund_intro, fundnews, macronews, twnews, usnews
+from . import clock, fund_insights, fund_intro, fundnews, macronews, twnews, usnews
 
 
 def _esc(s) -> str:
@@ -137,6 +137,38 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     <button class="tb-print" onclick="window.print()">🖨 晨會版</button>
   </div>
 </div>"""
+
+
+# ── ⓪b 資料更新時間（各資料來源鮮度一覽；台股/全球/總經三頁共用） ──
+
+def _age_days(value: str | None, today=None) -> int | None:
+    """時戳字串（YYYY/MM/DD 或 YYYY-MM-DD，可帶 HH:MM）距今天幾天；解析不到回 None。"""
+    m = re.match(r"(\d{4})[/-](\d{1,2})[/-](\d{1,2})", str(value or ""))
+    if not m:
+        return None
+    try:
+        d = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    except ValueError:
+        return None
+    return ((today or clock.today_tw()) - d).days
+
+
+def _freshness_view(items: list[tuple[str, str | None, int | None]], today=None) -> str:
+    """items：(標籤, 時戳, 容忍天數)。時戳超過容忍天數（或缺值）→ 標紅 ⚠，漏更新一眼可見。"""
+    chips, n_stale = [], 0
+    for k, v, tol in items:
+        age = _age_days(v, today)
+        stale = tol is not None and (age is None or age > tol)
+        n_stale += stale
+        warn = f"　⚠ {age} 天未更新" if (stale and age is not None) else ("　⚠ 缺資料" if stale else "")
+        gen = f' data-gen="{_esc(v)}"' if k == "儀表板產表" and v else ""   # 供瀏覽器端逾期偵測
+        chips.append(f'<span class="chip{" stale" if stale else ("" if v else " dim")}"{gen}>'
+                     f'<b>{_esc(k)}</b>　{_esc(v or "—")}{_esc(warn)}</span>')
+    sub = (f'<span class="stale-note">⚠ {n_stale} 項資料逾期未更新，請跑「全部更新」或檢查 CI</span>'
+           if n_stale else 'NAV 每日・持股月度揭露・新聞每日（時間皆為台北時間）')
+    return (f'<div class="section" id="freshness"><div class="st">🕒 資料更新時間 '
+            f'<span class="stsub">{sub}</span></div>'
+            f'<div class="chips">{"".join(chips)}</div></div>')
 
 
 # ── ① 今日重點 ───────────────────────────────────────────────
@@ -612,6 +644,9 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 .chip{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:8px 15px;font-size:14px;color:var(--ink);text-decoration:none}
 .chip b{font-weight:700} .chip.hot{border-color:var(--acc);background:rgba(47,111,208,.1)}
 .chip.dim{color:var(--mut)}
+.chip.stale{border-color:#c62828;background:rgba(198,40,40,.08);color:#c62828;font-weight:700}
+.stale-note{color:#c62828;font-weight:700}
+.stale-banner{background:#c62828;color:#fff;text-align:center;padding:8px 14px;font-size:13.5px;font-weight:700}
 a.chip{border-color:rgba(47,111,208,.45);cursor:pointer}
 a.chip::after{content:"›";color:var(--acc);font-weight:800;font-size:16px}
 a.chip:hover{border-color:var(--acc);background:rgba(47,111,208,.14)}
@@ -878,6 +913,14 @@ document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{
 });
 // 投資策略兩行截斷 ↔ 展開
 document.querySelectorAll('.strat').forEach(s=>s.onclick=()=>s.classList.toggle('open'));
+// 儀表板逾期未重建警告——CI 全停擺時 HTML 不會再重生、上面的 ⚠ 也不會更新，
+// 由瀏覽器端比對「產表時間 vs 現在」補上最後一道防線。
+(function(){const g=document.querySelector('[data-gen]');if(!g)return;
+  const d=new Date(g.dataset.gen.slice(0,10).replace(/\//g,'-')+'T00:00:00+08:00');
+  const days=Math.floor((Date.now()-d)/864e5);
+  if(days>2){const b=document.createElement('div');b.className='stale-banner';
+    b.textContent='⚠ 本儀表板已 '+days+' 天未重建（每日 CI 可能停擺），以下資料可能過期——請跑「全部更新」或檢查 GitHub Actions';
+    document.body.prepend(b);}})();
 """
 
 
@@ -928,10 +971,24 @@ def render() -> str:
     rows_gl = [r for r in rows if mkt_by_id.get(r["fund_id"]) == "gl"]
     gavg = fund_insights.group_averages(funds)
 
-    now = datetime.now().strftime("%Y/%m/%d %H:%M")
+    now = clock.now_tw().strftime("%Y/%m/%d %H:%M")      # 台北時間（UTC 容器防跨日錯置）
     as_of = (funds[0].get("as_of") if funds else None) or "—"
     banned = (((news or {}).get("banned_hits") or []) + ((tw or {}).get("banned_hits") or [])
               + ((macro or {}).get("banned_hits") or []))
+
+    # ⓪b 資料更新時間（各資料來源鮮度一覽）
+    nav_date = max((str(d.get("nav_date")) for d in funds if d.get("nav_date")), default=None)
+    fetched_at = max((str(d.get("fetched_at")) for d in funds if d.get("fetched_at")), default=None)
+    fn_doc = fundnews.load()
+    # (標籤, 時戳, 容忍天數)：超過容忍天數標紅 ⚠。容忍值放寬到涵蓋週末與 T+1 海外 NAV，
+    # 仍能抓到「CI 停擺／來源長期抓不到／新聞多日未補」的漏更新。
+    sec_fresh = _freshness_view([
+        ("NAV 日", nav_date, 6), ("持股基準（月度）", as_of if as_of != "—" else None, 45),
+        ("持股快照抓取", fetched_at, 3),
+        ("美股新聞", (news or {}).get("date"), 3), ("台股新聞", (tw or {}).get("date"), 3),
+        ("總經・政策", (macro or {}).get("date"), 3), ("經濟行事曆", (cal or {}).get("date"), 8),
+        ("基金新聞・社群", (fn_doc or {}).get("as_of"), 3), ("儀表板產表", now, None),
+    ])
 
     # ① 今日重點（雙視圖）；台股盤前速覽自新聞頭段抽出、直接顯示於此（不再埋於收合塊）
     premkt_md, tw_md_news = _extract_premarket(tw_md)
@@ -966,7 +1023,6 @@ def render() -> str:
                  f'{_news_view(macro_md, mac_hint, "📄 政策總覽・資料侷限・合規揭露")}</div>')
 
     # ②b 基金相關新聞・社群（品牌動態＋各基金新聞＋PTT 聲量；讀 data/fund_news.json）
-    fn_doc = fundnews.load()
     fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋財經RSS＋PTT 自動擷取・更新 '
               f'{fn_doc.get("as_of") or "—"}' if fn_doc else '品牌動態／各基金新聞／PTT 聲量')
     sec_fnews = (f'<div class="section" id="fundnews"><div class="st">📣 基金相關新聞・社群 '
@@ -1004,6 +1060,7 @@ def render() -> str:
 <input class="mkradio" type="radio" name="mkt" id="mkt-gl">
 {_topbar(banned, bool(news or tw or macro), as_of, now)}
 <div class="wrap">
+{sec_fresh}
 <div class="macroview">{sec_macro_cal}
 {sec_macro}</div>
 <div class="fundview">

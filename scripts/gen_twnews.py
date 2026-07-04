@@ -22,7 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from arm import twnews, usnews  # noqa: E402
+from arm import clock, twnews, usnews  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 PROMPT_DIR = ROOT / "reports" / "twnews" / "prompts"
@@ -80,7 +80,7 @@ def main() -> None:
         cmd_check()
         return
     mode = "pre" if "--pre" in args else "post" if "--post" in args else twnews.session_mode()
-    today = date.today()
+    today = clock.today_tw()          # 台北日期（勿用 date.today()：UTC 容器會跨日錯置）
     PROMPT_DIR.mkdir(parents=True, exist_ok=True)
     out = PROMPT_DIR / f"{today:%Y-%m-%d}.md"
     out.write_text(build_prompt(today, mode), encoding="utf-8")
