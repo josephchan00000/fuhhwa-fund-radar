@@ -240,11 +240,11 @@ def _premarket_card(pre_md: str) -> str:
 # ── ② 新聞（重點＋全文合併：逐則收合，標題列顯示一句話重點） ──────
 
 def _news_badges(etype: str | None, importance: int | None) -> str:
-    """新聞卡徽章：事件屬性（新事件/延伸）＋重要度（依分數變色）。皆缺回空字串。"""
+    """新聞卡徽章：事件屬性（新事件/延伸/深度）＋重要度（依分數變色）。皆缺回空字串。"""
     out = ""
-    if etype in ("new", "ext"):
-        out += (f'<span class="netype {etype}">'
-                f'{"🆕 新事件" if etype == "new" else "↪ 延伸"}</span>')
+    if etype in ("new", "ext", "deep"):
+        label = {"new": "🆕 新事件", "ext": "↪ 延伸", "deep": "📚 深度"}[etype]
+        out += f'<span class="netype {etype}">{label}</span>'
     if isinstance(importance, int):
         band = "hi" if importance >= 9 else ("mid" if importance >= 7 else "lo")
         out += f'<span class="nsev {band}">重要度 {importance}</span>'
@@ -747,6 +747,7 @@ a.tk:hover{color:var(--acc)}
 .netype{font-size:11px;font-weight:700;padding:1px 8px;border-radius:6px;white-space:nowrap;border:1px solid}
 .netype.new{color:var(--acc);background:rgba(47,111,208,.12);border-color:rgba(47,111,208,.4)}
 .netype.ext{color:var(--mut);background:rgba(138,127,107,.12);border-color:rgba(138,127,107,.35)}
+.netype.deep{color:#7b4fa0;background:rgba(123,79,160,.10);border-color:rgba(123,79,160,.4)}
 .nsev{font-size:11px;font-weight:800;padding:1px 8px;border-radius:6px;white-space:nowrap;border:1px solid}
 .nsev.hi{color:#fff;background:#c8760f;border-color:#c8760f}
 .nsev.mid{color:#8a5410;background:rgba(200,118,15,.16);border-color:rgba(200,118,15,.5)}
