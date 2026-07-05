@@ -296,30 +296,53 @@ def _news_view(md: str, empty_hint: str,
 
 # ── 總經：本週重點財經行事曆（美歐中日＋重要企業財報） ──────────────────────────────────
 
-def _macro_cal_view(cal: dict | None) -> str:
-    """本週重點財經行事曆表（美歐中日＋財報）：預期／實際／前值／狀態（已公布・未公布・休市）。"""
-    if not cal or not cal.get("rows"):
-        return ('<div class="muted">尚無本週行事曆。請由會上網查證的 Claude 依提示包'
-                '產 <code>reports/macrocal/{date}.md</code>。</div>')
-    note = cal.get("note") or ""
-    note_html = f'<div class="calnote">🔔 {_esc(note)}</div>' if note else ""
+# 地區徽章的 CSS class 對照（美／歐／中／日；財報獨立子表不掛徽章）
+_CAL_REGION_CLS = {"美": "us", "歐": "eu", "中": "cn", "日": "jp"}
+
+
+def _cal_rows_html(rows: list[dict], with_region: bool) -> str:
+    """行事曆列 → <tr>…；with_region＝在項目前掛地區小徽章（財報子表免掛）。"""
     trs = []
-    for r in cal["rows"]:
+    for r in rows:
         st = r.get("status") or ""
         cls = "done" if "已公布" in st else ("halt" if "休市" in st else "wait")
         badge = {"done": "✔ 已公布", "halt": "🔕 休市", "wait": "◷ 未公布"}[cls]
         av = r.get("actual") or ""
         actual = _esc(av) if av and av != "—" else '<span class="na">—</span>'
+        reg = r.get("region") or ""
+        reg_html = (f'<span class="creg {_CAL_REGION_CLS[reg]}">{_esc(reg)}</span>'
+                    if with_region and reg in _CAL_REGION_CLS else "")
         trs.append(
             f'<tr class="cr-{cls}"><td class="cd">{_esc(r.get("date"))}</td>'
-            f'<td class="ci">{_esc(r.get("item"))}</td>'
+            f'<td class="ci">{reg_html}{_esc(r.get("item"))}</td>'
             f'<td>{_esc(r.get("cons"))}</td><td class="cav">{actual}</td>'
             f'<td class="cpv">{_esc(r.get("prev"))}</td>'
             f'<td><span class="cst {cls}">{badge}</span></td></tr>')
-    return (f'{note_html}<div class="ovwrap"><table class="caltbl">'
+    return "".join(trs)
+
+
+def _cal_table_html(rows: list[dict], with_region: bool) -> str:
+    return (f'<div class="ovwrap"><table class="caltbl">'
             f'<thead><tr><th class="l">日期</th><th class="l">項目</th><th>預期</th>'
             f'<th>實際</th><th>前值</th><th>狀態</th></tr></thead>'
-            f'<tbody>{"".join(trs)}</tbody></table></div>')
+            f'<tbody>{_cal_rows_html(rows, with_region)}</tbody></table></div>')
+
+
+def _macro_cal_view(cal: dict | None) -> str:
+    """本週重點財經行事曆（美歐中日＋財報）：
+    經濟數據表（地區以彩色小徽章標示）＋「重要財報／法說」獨立子表。"""
+    if not cal or not cal.get("rows"):
+        return ('<div class="muted">尚無本週行事曆。請由會上網查證的 Claude 依提示包'
+                '產 <code>reports/macrocal/{date}.md</code>。</div>')
+    note = cal.get("note") or ""
+    note_html = f'<div class="calnote">🔔 {_esc(note)}</div>' if note else ""
+    data_rows = [r for r in cal["rows"] if r.get("region") != "財報"]
+    earn_rows = [r for r in cal["rows"] if r.get("region") == "財報"]
+    html = note_html + _cal_table_html(data_rows, with_region=True)
+    if earn_rows:
+        html += ('<div class="calsub">📊 重要財報／法說</div>'
+                 + _cal_table_html(earn_rows, with_region=False))
+    return html
 
 
 # ── ③ 當日焦點個股（新聞連動） ────────────────────────────────
@@ -794,6 +817,12 @@ a.tk:hover{color:var(--acc)}
 .cst.done{color:#1d6b3a;background:rgba(31,157,87,.14);border-color:rgba(31,157,87,.4)}
 .cst.wait{color:var(--accd);background:rgba(47,111,208,.1);border-color:rgba(47,111,208,.35)}
 .cst.halt{color:#8a5410;background:rgba(200,118,15,.14);border-color:rgba(200,118,15,.45)}
+.creg{display:inline-block;font-size:10.5px;font-weight:800;padding:0 6px;margin-right:6px;border-radius:5px;border:1px solid;vertical-align:1px;white-space:nowrap}
+.creg.us{color:#1d4f9c;background:rgba(47,111,208,.13);border-color:rgba(47,111,208,.4)}
+.creg.eu{color:#5b3ea8;background:rgba(122,92,219,.14);border-color:rgba(122,92,219,.42)}
+.creg.cn{color:#a02c2c;background:rgba(206,66,66,.13);border-color:rgba(206,66,66,.4)}
+.creg.jp{color:#0f6f6b;background:rgba(23,146,140,.13);border-color:rgba(23,146,140,.42)}
+.calsub{margin:16px 0 6px;font-size:14px;font-weight:800;color:var(--ink);padding-left:9px;border-left:4px solid #2f9d57}
 .chip.halt{color:#8a5410;background:rgba(200,118,15,.12);border-color:rgba(200,118,15,.5);font-weight:700}
 /* ⑤ details */
 #details{padding:12px 18px}

@@ -94,8 +94,16 @@ SPEC_CAL = """【版型：本週重點財經行事曆（美國＋歐盟＋中國
 僅為資訊彙編、非投資建議；不預測數值、不含禁用詞。"""
 
 
+# 行事曆「項目」欄的地區／類別前綴（美：／歐：／中：／日：／財報：）——
+# md 檔保留前綴供程式解析；儀表板顯示時轉成彩色小徽章、財報獨立子表。
+_REGION_RE = re.compile(r"^(美|歐|中|日|財報)\s*[：:]\s*")
+
+
 def _parse_cal_rows(md: str) -> list[dict]:
-    """把行事曆 markdown 表格解析成 [{date,item,cons,actual,prev,status}]。"""
+    """把行事曆 markdown 表格解析成 [{date,item,region,cons,actual,prev,status}]。
+
+    region＝項目前綴（美／歐／中／日／財報；無前綴如休市列為空字串），
+    item＝去前綴後的項目名。"""
     rows: list[dict] = []
     for line in usnews.scrub(md or "").splitlines():
         s = line.strip()
@@ -106,8 +114,14 @@ def _parse_cal_rows(md: str) -> list[dict]:
             continue
         if cells[0] in ("日期", "") or set(cells[0]) <= set("-: "):   # 表頭/分隔列
             continue
-        rows.append({"date": cells[0], "item": cells[1], "cons": cells[2],
-                     "actual": cells[3], "prev": cells[4], "status": cells[5]})
+        item = cells[1]
+        m = _REGION_RE.match(item)
+        region = m.group(1) if m else ""
+        if m:
+            item = item[m.end():]
+        rows.append({"date": cells[0], "item": item, "region": region,
+                     "cons": cells[2], "actual": cells[3], "prev": cells[4],
+                     "status": cells[5]})
     return rows
 
 
