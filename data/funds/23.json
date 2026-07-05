@@ -31,107 +31,103 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/23.pdf",
   "dist_date": "2026/06/30",
   "dist_rate": "—",
-  "as_of": "2026/05/31",
+  "as_of": "2026/06/30",
   "top_holdings": [
     {
       "sector": "資訊技術",
       "name": "SK HYNIX INC",
-      "weight": 5.92
-    },
-    {
-      "sector": "資訊技術",
-      "name": "SAMSUNG ELECTRO-MECHANICS CO",
-      "weight": 5.57
+      "weight": 6.39
     },
     {
       "sector": "資訊技術",
       "name": "KIOXIA HOLDINGS CORP",
-      "weight": 5.16
+      "weight": 5.83
     },
     {
       "sector": "資訊技術",
-      "name": "聯發科",
-      "weight": 4.36
-    },
-    {
-      "sector": "資訊技術",
-      "name": "MICRON TECHNOLOGY INC",
-      "weight": 3.98
+      "name": "SAMSUNG ELECTRO-MECHANICS CO",
+      "weight": 5.79
     },
     {
       "sector": "資訊技術",
       "name": "SANDISK CORP",
-      "weight": 3.93
+      "weight": 5.66
+    },
+    {
+      "sector": "資訊技術",
+      "name": "國巨*",
+      "weight": 5.6
     },
     {
       "sector": "資訊技術",
       "name": "MURATA MANUFACTURING CO LTD",
-      "weight": 3.75
-    },
-    {
-      "sector": "工業",
-      "name": "BLOOM ENERGY CORP- A",
-      "weight": 3.56
+      "weight": 4.7
     },
     {
       "sector": "資訊技術",
-      "name": "台光電",
-      "weight": 3.35
+      "name": "TAIYO YUDEN CO LTD",
+      "weight": 4.1
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MICRON TECHNOLOGY INC",
+      "weight": 4.01
+    },
+    {
+      "sector": "資訊技術",
+      "name": "ADVANCED MICRO DEVICES",
+      "weight": 3.42
     },
     {
       "sector": "資訊技術",
       "name": "禾伸堂",
-      "weight": 2.89
+      "weight": 3.32
     }
   ],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 33.89
-    },
-    {
-      "name": "臺灣",
-      "weight": 26.94
+      "weight": 30.62
     },
     {
       "name": "日本",
-      "weight": 20.41
+      "weight": 26.37
+    },
+    {
+      "name": "臺灣",
+      "weight": 25.48
     },
     {
       "name": "韓國",
-      "weight": 14.12
+      "weight": 12.96
     },
     {
       "name": "德國",
-      "weight": 2.13
-    },
-    {
-      "name": "芬蘭",
-      "weight": 0.78
+      "weight": 1.78
     },
     {
       "name": "流動資產",
-      "weight": 1.73
+      "weight": 2.79
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 93.03
+      "weight": 93.87
     },
     {
       "name": "工業",
-      "weight": 3.56
+      "weight": 2.43
     },
     {
-      "name": "通訊服務",
-      "weight": 1.68
+      "name": "原材料",
+      "weight": 0.91
     },
     {
       "name": "流動資產",
-      "weight": 1.73
+      "weight": 2.79
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-07-04 14:18"
+  "fetched_at": "2026-07-05 08:07"
 }
