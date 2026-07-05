@@ -76,6 +76,27 @@ def test_macro_spec_and_section():
     assert 'id="macro-cal"' in html and 'tb-nav-macro' in html and "本週行事曆" in html
 
 
+def test_weekend_note_merged_window():
+    # 2026-07-06（一）：須綜合週五晚間＋週六＋週日整個週末
+    n = usnews.weekend_note(date(2026, 7, 6))
+    assert "週一" in n and "週六與週日" in n and "綜合整理" in n
+    # 週日：涵蓋週五晚間＋週六；週六：涵蓋週五晚間起
+    assert "週六全日" in usnews.weekend_note(date(2026, 7, 5))
+    assert usnews.weekend_note(date(2026, 7, 4)).startswith("【週末合併時窗】")
+    # 平日（週二~週五）不加註
+    assert usnews.weekend_note(date(2026, 7, 7)) == ""
+    assert usnews.weekend_note(date(2026, 7, 3)) == ""
+
+
+def test_cal_spec_covers_regions_and_earnings():
+    # 行事曆版型須涵蓋美／歐／中／日與重要企業財報（2026-07-05 使用者需求）
+    from arm import macronews
+    s = macronews.SPEC_CAL
+    assert "歐" in s and "ECB" in s and "中" in s and "日銀" in s and "財報" in s
+    assert "美：／歐：／中：／日：／財報：" in s
+    assert "本週重點財經行事曆" in s
+
+
 def test_macro_calendar_parsing():
     from arm import macronews
     md = (

@@ -27,13 +27,14 @@ PROMPT_DIR = ROOT / "reports" / "usnews" / "prompts"
 
 def build_prompt(today: date) -> str:
     ses = usnews.us_session_date(today)
+    wk = usnews.weekend_note(today)
     return f"""你是「台灣投信公司給內外部溝通使用的公司與產業面速寫編輯」。請以繁體中文，
 針對【昨夜美股交易時段】製作兩份新聞彙編。用 WebSearch/WebFetch 實際查證，勿杜撰標題、
 數字、報價或引言；查不到就誠實加「資料侷限說明」。
 
 台北日期（TST, UTC+8）：{today:%Y/%m/%d}
 昨夜美股對應交易日（美東，請以實際交易日查證）：{ses:%Y/%m/%d}
-建議關鍵字：AI, chip, semiconductor, Nvidia, AMD, TSMC, Intel, Micron, Broadcom,
+{wk + chr(10) if wk else ''}建議關鍵字：AI, chip, semiconductor, Nvidia, AMD, TSMC, Intel, Micron, Broadcom,
 Microsoft, Apple, Tesla, Meta, merger, acquisition, partnership, supply chain,
 earnings, guidance, investment, capex, executive change, SEC, DOJ, lawsuit
 

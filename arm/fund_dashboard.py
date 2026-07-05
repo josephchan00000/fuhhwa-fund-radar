@@ -294,10 +294,10 @@ def _news_view(md: str, empty_hint: str,
     return "".join(items) or f'<div class="muted">{empty_hint}</div>'
 
 
-# ── 總經：本週經濟數據行事曆 ──────────────────────────────────
+# ── 總經：本週重點財經行事曆（美歐中日＋重要企業財報） ──────────────────────────────────
 
 def _macro_cal_view(cal: dict | None) -> str:
-    """本週美國重點數據行事曆表：預期／實際／前值／狀態（已公布・未公布・休市）。"""
+    """本週重點財經行事曆表（美歐中日＋財報）：預期／實際／前值／狀態（已公布・未公布・休市）。"""
     if not cal or not cal.get("rows"):
         return ('<div class="muted">尚無本週行事曆。請由會上網查證的 Claude 依提示包'
                 '產 <code>reports/macrocal/{date}.md</code>。</div>')
@@ -1037,7 +1037,7 @@ def render() -> str:
     mac_sub = (f'川普政策／Fed／國際政策・今日 {mac_n} 則政策事件（最高 {mac_top} 分）'
                if mac_n else '川普政策／Fed／國際政策・點各則展開看影響分析')
     mac_hint = "尚無總經／政策新聞。請執行 <code>python scripts/gen_macronews.py</code>。"
-    sec_macro_cal = (f'<div class="section" id="macro-cal"><div class="st">📅 本週經濟數據行事曆 '
+    sec_macro_cal = (f'<div class="section" id="macro-cal"><div class="st">📅 本週重點財經行事曆 '
                      f'{_fresh_chip("更新", cal_date, 8)} '
                      f'<span class="stsub">預期／已公布實際值／未公布・美股休市另標</span></div>'
                      f'{_macro_cal_view(cal)}</div>')
