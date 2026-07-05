@@ -1,15 +1,8 @@
 {
-  "as_of": "2026/07/04 14:19",
+  "as_of": "2026/07/05 08:08",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
-    {
-      "title": "老牌基金為何還能稱霸？這檔基金讓百萬變千萬的秘密。",
-      "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTFBlaXUtLWlSTG41cTYwaEZKSlJ3bmJNSjJVTGlvcUlqZDZNazM1aDNqaTdISEFKRUs0aTZvcG5MWUc0cmpvODJMbTdfWHBZU0RpeUxPczE0bmNfdG5qWjdaaUJGN2FsNnhNT2RjVUx5RGRZSktKRmduRUEwOFZyZw?oc=5",
-      "source": "CMoney投資網誌",
-      "date": "2026-07-02 16:20",
-      "datetime": "2026-07-02T16:20:55+08:00"
-    },
     {
       "title": "復華亞太神龍科技基金-新臺幣，同樣是買科技股，這檔近 1 年漲 240% 憑什麼？",
       "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE5SbndydHdUS2NzYzRnb0d3alMtYXZfQ2h2TGhNYVdOS3RZOXYxNWFjcE85NW5EbFppRmhZcnp2bUg0dnRRSjJWa2Zvbk43N2xUZkdpSVZQampVVlp6ZjBpUnZPbW5ST1p1bHBiZHlySnRqOVg3Y2tlRmo0VXhmdw?oc=5",
@@ -25,11 +18,11 @@
       "datetime": "2026-07-02T16:03:56+08:00"
     },
     {
-      "title": "40萬人嗨翻！00929配息0.38元創新高 最晚這天入手",
-      "url": "https://news.google.com/rss/articles/CBMiT0FVX3lxTFBhMmk0SEZUVmJGR1JaOWQxb1haWWxQazNOaXlvMmZPMThGQnF0eWYyN256RFlYUXNvWG1CTUxtRUVqd0s2M0oxLURCN3Vqcjg?oc=5",
-      "source": "TVBS新聞網",
-      "date": "2026-07-01 18:23",
-      "datetime": "2026-07-01T18:23:00+08:00"
+      "title": "復華兩檔ETF配息出爐！00929預估配0.38元創新高、00991A擬配0.77元 | Newtalk",
+      "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTFBNUjdRQXA0MHFzSWFrUmg3SmNMR1FqZDdFZUhrbGpVSVo0Wm51dFZuS0xPYWthQmpDMVdvRHVKUUlubWFEMlpXVkd4RVdvRHloT2lEVjRDNjV2a1QwRGlMVEJ2emZrQU1QRkZRU1h2SQ?oc=5",
+      "source": "LINE TODAY",
+      "date": "2026-07-02 00:44",
+      "datetime": "2026-07-02T00:44:39+08:00"
     },
     {
       "title": "00929配息0.38元創新高！上半年含息報酬75％　想領息最晚這天買",
@@ -37,13 +30,6 @@
       "source": "NOWnews今日新聞",
       "date": "2026-07-01 17:56",
       "datetime": "2026-07-01T17:56:06+08:00"
-    },
-    {
-      "title": "復華兩檔ETF配息出爐！00929預估配0.38元創新高、00991A擬配0.77元",
-      "url": "https://news.google.com/rss/articles/CBMiywJBVV95cUxOX2xrYW1PVjZjb2RGN2hXN2dpSUF0OVZYVnhRTVhCNXI2VC1yVUF3TFFPa1IxaG5IaExCNTlab1o4MXI0a09YUC14SDBrVWJMRWwtSjBOaDdJSWJEMXVtRS1HVUFfeUtGNFdjZWNGanJZTFE4V1dtZnk2Q0hyZ3FoaEtWQURhYnJMOGVhSHE4UmVlZ1RiY2JTUktOcUxMLTVEcUNBWU9iSmpaYWtnVndKRnhmSkdhTHpqMG1YaW5oVkExWXVQd2hoU0hWZGtUYmFPaENHZE1XRmU3anc1OTZUa1B4d01XbHFQYmptcW1CczFVcGlaaW00MzJ3RTloTlFhV0MtaFlJZVpvN2VpdHM2bVZnM1o5M0ZBaXVPbmFRa2RsZkhzQ2VOU2R1WDZUNUN0b1VYRUpLWXk2d0dWNUY5MU9RdmxjVnFoajZz?oc=5",
-      "source": "Yahoo新聞",
-      "date": "2026-07-01 17:30",
-      "datetime": "2026-07-01T17:30:58+08:00"
     },
     {
       "title": "復華全球平衡基金-新臺幣，老牌基金為何還能稱霸？22年百萬變七百萬。",
@@ -58,6 +44,20 @@
       "source": "理財周刊",
       "date": "2026-07-01 16:20",
       "datetime": "2026-07-01T16:20:58+08:00"
+    },
+    {
+      "title": "〈稱霸台股人氣ETF！復華投信展現操盤強實力 豪奪「高股息」及「主動式」雙冠王〉彙整頁面",
+      "url": "https://news.google.com/rss/articles/CBMiwAJBVV95cUxQVXdHRjBHNERfem9may03QmVTYWw1TjRCakowR2tnX3FRQTQxVWlmcnplOXBkRWREZ0FxemwwYmozREhtRjB5am1DZklMdkxWSGhRWmgxSVJ1SjlDSmlaSUd3MmpXblBYZzVCMzFocEVnNGhwb0VDSmtZOHB3a1VGUmd6a1dNMzBHb2w4RmJJT0V6VkZjYmdMX3hLbkRMZGZ1dmdLNHdPTDNRWllBZUgzLUY2OHVUa3Boekk4eDE3OFZGeVVHdHNabTdhMlhHODFqbkN6UXFqVmdjWUNPeWVnWmlUaXppNXk1R1BZWFBvMDBpOTVnMDlycnc1dmZmaFNjekdfUG1DY2E0RGpHbXpRS05fVUJCcVZrdkQ2RVZrOFppQjNTM3RLaEN4NlBqYjhRSzRacmFaWThPbWwzS004Tw?oc=5",
+      "source": "墨新聞-MORE News",
+      "date": "2026-06-30 18:59",
+      "datetime": "2026-06-30T18:59:00+08:00"
+    },
+    {
+      "title": "稱霸台股人氣ETF！復華投信展現操盤強實力 豪奪「高股息」及「主動式」雙冠王",
+      "url": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE1kOFlqR2NpYVhxQ1NSblY3WV9rNkRTaFc3UUZKellXcW5RX0x0aldrdmRFTXNZa01fbW5ibGMyYVFUNW92ejUxRGtNOA?oc=5",
+      "source": "樂聯網",
+      "date": "2026-06-30 10:57",
+      "datetime": "2026-06-30T10:57:20+08:00"
     }
   ],
   "funds": [
@@ -155,7 +155,15 @@
       "short_names": [
         "大中華中小策略"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華大中華中小策略基金 的買賣訊號 | 鉅亨網",
+          "url": "https://news.google.com/rss/articles/CBMi5gFBVV95cUxOTjVSYmVWM1lSRnVWLW9rYTZadVBaVzFUajA0RS0tOEIyazl3dDVCa2FnUmhIUDBpS1QxeFVJbTA4QTgzOGdreGY2TDE2QXp0dzBtTlRzbWRmZmdMMUpNYnU4N2xhTmctcmxBMVVYYnJ2TDByYmVwLW9ueHZVWFlETHpuc0FPX3hlZFZFdXNyOXZjbXVXQ1BlazQ1NFBydk96M0N3cy1vbG5PbjdCdjdSdjE1Q0pfQWl2Ym9hVnJPNDdZMmNUTUhEVmlSWUtzeG1nTDQ0WVl2SExBcVA4OVJISW45TXk1UQ?oc=5",
+          "source": "鉅亨網",
+          "date": "2026-07-01 15:00",
+          "datetime": "2026-07-01T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華全球平衡基金",
@@ -213,7 +221,15 @@
       "short_names": [
         "高成長"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "百億人氣基金大比拚，「高成長」榮登3月進場抄底王",
+          "url": "https://news.google.com/rss/articles/CBMiQkFVX3lxTFBRTGpRVzVtRmZ3bGRKMWRWZVVoWm5sS1I0Wl9CWkNRSFFISk45MkduLVNvYVZSbWFMZU9IblJYRWNwUQ?oc=5",
+          "source": "墨新聞-MORE News",
+          "date": "2026-06-30 10:46",
+          "datetime": "2026-06-30T10:46:17+08:00"
+        }
+      ]
     },
     {
       "base": "復華數位經濟基金",
@@ -322,7 +338,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：華人世紀、亞太神龍科技、全球平衡（詳下方各基金新聞）",
-    "品牌焦點：老牌基金為何還能稱霸？這檔基金讓百萬變千萬的秘密。（CMoney投資網誌）"
+    "近 7 天有專屬報導的基金：華人世紀、亞太神龍科技、大中華中小策略、全球平衡、高成長（詳下方各基金新聞）",
+    "品牌焦點：復華亞太神龍科技基金-新臺幣，同樣是買科技股，這檔近 1 年漲 240% 憑什麼？（CMoney投資網誌）"
   ]
 }

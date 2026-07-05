@@ -31,94 +31,98 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/122.pdf",
   "dist_date": "2026/06/30",
   "dist_rate": "—",
-  "as_of": "2026/05/31",
+  "as_of": "2026/06/30",
   "top_holdings": [
     {
       "sector": "半導體",
       "name": "台積電",
-      "weight": 14.76
-    },
-    {
-      "sector": "半導體",
-      "name": "聯發科",
-      "weight": 8.18
+      "weight": 8.66
     },
     {
       "sector": "電子零組件",
-      "name": "台光電",
-      "weight": 8.17
-    },
-    {
-      "sector": "通信網路",
-      "name": "智邦",
-      "weight": 6.92
-    },
-    {
-      "sector": "電子零組件",
-      "name": "台達電",
-      "weight": 6.73
-    },
-    {
-      "sector": "電腦及週邊設備",
-      "name": "廣達",
-      "weight": 6.44
+      "name": "日電貿",
+      "weight": 6.3
     },
     {
       "sector": "金融保險",
       "name": "元大金",
-      "weight": 5.66
+      "weight": 6.11
+    },
+    {
+      "sector": "半導體",
+      "name": "世界",
+      "weight": 5.72
     },
     {
       "sector": "金融保險",
       "name": "中信金",
-      "weight": 4.94
-    },
-    {
-      "sector": "金融保險",
-      "name": "群益證",
-      "weight": 4.83
+      "weight": 5.68
     },
     {
       "sector": "其他電子",
       "name": "漢唐",
-      "weight": 4.58
+      "weight": 5.13
+    },
+    {
+      "sector": "電子零組件",
+      "name": "台光電",
+      "weight": 5.12
+    },
+    {
+      "sector": "半導體",
+      "name": "聯發科",
+      "weight": 4.9
+    },
+    {
+      "sector": "通信網路",
+      "name": "智邦",
+      "weight": 4.88
+    },
+    {
+      "sector": "電腦及週邊設備",
+      "name": "廣達",
+      "weight": 4.84
     }
   ],
   "country_alloc": [],
   "sector_alloc": [
     {
       "name": "半導體",
-      "weight": 31.09
+      "weight": 27.29
     },
     {
       "name": "電子零組件",
-      "weight": 21.17
+      "weight": 21.73
     },
     {
       "name": "金融保險",
-      "weight": 19.0
+      "weight": 17.93
     },
     {
       "name": "電腦及週邊設備",
-      "weight": 11.33
-    },
-    {
-      "name": "通信網路",
-      "weight": 6.92
+      "weight": 13.94
     },
     {
       "name": "其他電子",
-      "weight": 4.58
+      "weight": 5.13
+    },
+    {
+      "name": "通信網路",
+      "weight": 4.88
     },
     {
       "name": "航運業",
-      "weight": 3.24
+      "weight": 4.0
+    },
+    {
+      "name": "光電",
+      "weight": 2.32
     },
     {
       "name": "流動資產",
-      "weight": 2.66
+      "weight": 2.8
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-07-04 14:19"
+  "fetched_at": "2026-07-05 08:08"
 }
