@@ -35,12 +35,13 @@ def build_cal_prompt(today: date) -> str:
 
 def build_prompt(today: date) -> str:
     ses = macronews.us_session_date(today)
+    wk = usnews.weekend_note(today)
     return f"""你是「台灣投信公司給內外部溝通使用的政策面速寫編輯」。請以繁體中文，用 WebSearch/WebFetch
 實際查證，勿杜撰標題、數字或引言；查不到或跨來源矛盾就只留方向並誠實加「資料侷限說明」。
 
 台北日期（TST, UTC+8）：{today:%Y/%m/%d}
 昨夜美股對應交易日（美東，請以實際交易日查證）：{ses:%Y/%m/%d}
-建議關鍵字：White House, executive order, tariff, China, sanction, foreign policy, Trump,
+{wk + chr(10) if wk else ''}建議關鍵字：White House, executive order, tariff, China, sanction, foreign policy, Trump,
 Federal Reserve, Powell, Jefferson, FOMC, statement, minutes, rate, export control,
 Gaza, Ukraine, semiconductor, energy；投行＋(policy/Fed/tariff)。
 
