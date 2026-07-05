@@ -32,119 +32,115 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/47.pdf",
   "dist_date": "2026/06/30",
   "dist_rate": "—",
-  "as_of": "2026/05/31",
+  "as_of": "2026/06/30",
   "top_holdings": [
     {
       "sector": "資訊技術",
       "name": "SANDISK CORP",
-      "weight": 4.58
-    },
-    {
-      "sector": "資訊技術",
-      "name": "SAMSUNG ELECTRO-MECHANICS CO",
-      "weight": 3.97
-    },
-    {
-      "sector": "資訊技術",
-      "name": "IBIDEN CO LTD",
-      "weight": 3.86
-    },
-    {
-      "sector": "資訊技術",
-      "name": "聯發科",
-      "weight": 3.78
+      "weight": 5.8
     },
     {
       "sector": "資訊技術",
       "name": "MICRON TECHNOLOGY INC",
-      "weight": 3.63
+      "weight": 4.41
     },
     {
       "sector": "資訊技術",
       "name": "KIOXIA HOLDINGS CORP",
-      "weight": 3.42
+      "weight": 4.09
     },
     {
       "sector": "資訊技術",
-      "name": "MURATA MANUFACTURING CO LTD",
-      "weight": 3.24
-    },
-    {
-      "sector": "資訊技術",
-      "name": "禾伸堂",
-      "weight": 3.18
+      "name": "SAMSUNG ELECTRO-MECHANICS CO",
+      "weight": 3.94
     },
     {
       "sector": "資訊技術",
       "name": "MARVELL TECHNOLOGY INC",
-      "weight": 3.15
+      "weight": 3.71
+    },
+    {
+      "sector": "資訊技術",
+      "name": "禾伸堂",
+      "weight": 3.7
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MURATA MANUFACTURING CO LTD",
+      "weight": 3.53
     },
     {
       "sector": "資訊技術",
       "name": "SK HYNIX INC",
-      "weight": 2.82
+      "weight": 3.43
+    },
+    {
+      "sector": "工業",
+      "name": "BLOOM ENERGY CORP- A",
+      "weight": 3.25
+    },
+    {
+      "sector": "資訊技術",
+      "name": "VISHAY INTERTECHNOLOGY INC",
+      "weight": 3.12
     }
   ],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 60.76
+      "weight": 64.13
     },
     {
       "name": "臺灣",
-      "weight": 16.71
+      "weight": 15.29
     },
     {
       "name": "日本",
-      "weight": 10.76
+      "weight": 8.95
     },
     {
       "name": "韓國",
-      "weight": 8.04
+      "weight": 7.37
     },
     {
       "name": "德國",
-      "weight": 2.44
-    },
-    {
-      "name": "印度",
-      "weight": 0.43
+      "weight": 2.15
     },
     {
       "name": "流動資產",
-      "weight": 0.85
+      "weight": 2.11
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 85.97
+      "weight": 83.06
     },
     {
       "name": "工業",
-      "weight": 6.71
+      "weight": 5.61
+    },
+    {
+      "name": "金融",
+      "weight": 3.95
     },
     {
       "name": "通訊服務",
-      "weight": 2.91
-    },
-    {
-      "name": "能源",
-      "weight": 1.99
-    },
-    {
-      "name": "非核心消費品",
-      "weight": 0.84
+      "weight": 2.97
     },
     {
       "name": "核心消費品",
-      "weight": 0.72
+      "weight": 1.17
+    },
+    {
+      "name": "醫療保健",
+      "weight": 1.12
     },
     {
       "name": "流動資產",
-      "weight": 0.85
+      "weight": 2.11
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-07-04 14:18"
+  "fetched_at": "2026-07-05 08:07"
 }
