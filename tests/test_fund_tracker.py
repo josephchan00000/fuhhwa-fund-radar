@@ -100,18 +100,42 @@ def test_cal_spec_covers_regions_and_earnings():
 def test_macro_calendar_parsing():
     from arm import macronews
     md = (
-        "# 本週美國經濟數據行事曆（06/29–07/03）\n"
+        "# 本週重點財經行事曆（06/29–07/03）\n"
         "> 更新：2026/07/03；美股 7/3 因國慶假期休市\n\n"
         "| 日期 | 項目 | 預期 | 實際 | 前值 | 狀態 |\n"
         "|---|---|---|---|---|---|\n"
-        "| 07/02 | 6月非農就業 | +11.5萬 | +5.7萬 | +14.4萬 | 已公布 |\n"
+        "| 07/02 | 美：6月非農就業 | +11.5萬 | +5.7萬 | +14.4萬 | 已公布 |\n"
         "| 07/03 | 美股國慶假期休市 | — | — | — | 休市 |\n"
-        "| 07/08 | 5月批發庫存 | +0.2% | — | +0.1% | 未公布 |\n"
+        "| 07/08 | 歐：歐元區5月零售銷售 | +0.2% | — | +0.1% | 未公布 |\n"
+        "| 07/09 | 財報：台積電 Q2 法說 | — | — | — | 未公布 |\n"
     )
     rows = macronews._parse_cal_rows(md)
-    assert [r["status"] for r in rows] == ["已公布", "休市", "未公布"]   # 表頭/分隔列不計入
-    assert rows[0]["item"] == "6月非農就業" and rows[0]["actual"] == "+5.7萬"
+    assert [r["status"] for r in rows] == ["已公布", "休市", "未公布", "未公布"]  # 表頭/分隔列不計入
+    # 地區前綴 → region 欄；item 去前綴（儀表板顯示徽章用）
+    assert rows[0]["item"] == "6月非農就業" and rows[0]["region"] == "美" and rows[0]["actual"] == "+5.7萬"
+    assert rows[1]["region"] == ""                       # 休市列無前綴
+    assert rows[2]["region"] == "歐" and rows[3]["region"] == "財報"
     assert "休市" in macronews._cal_note(md)
+
+
+def test_macro_cal_view_region_badges_and_earnings_split():
+    # 地區以彩色小徽章呈現（非「美：」文字）；財報獨立成子表（2026-07-05 使用者需求）
+    from arm import fund_dashboard as fd
+    cal = {"date": "2026-07-05", "note": "", "title": "本週重點財經行事曆（07/06–07/10）",
+           "rows": [
+               {"date": "07/06", "item": "6月ISM服務業", "region": "美",
+                "cons": "—", "actual": "—", "prev": "—", "status": "未公布"},
+               {"date": "07/09", "item": "6月CPI", "region": "中",
+                "cons": "—", "actual": "—", "prev": "—", "status": "未公布"},
+               {"date": "07/10", "item": "達美航空 Q2 財報", "region": "財報",
+                "cons": "—", "actual": "—", "prev": "—", "status": "未公布"},
+           ]}
+    html = fd._macro_cal_view(cal)
+    assert '<span class="creg us">美</span>' in html and '<span class="creg cn">中</span>' in html
+    assert "美：" not in html and "財報：" not in html          # 前綴文字不得出現
+    assert "重要財報／法說" in html and "達美航空" in html      # 財報獨立子表
+    # 財報列不掛地區徽章、且不在主表（子表位於「重要財報／法說」標題之後）
+    assert html.index("達美航空") > html.index("重要財報／法說")
 
 
 def test_card_importance_and_etype_parsing():
