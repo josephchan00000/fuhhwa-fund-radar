@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/05 08:40",
+  "as_of": "2026/07/05 09:09",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -155,7 +155,15 @@
       "short_names": [
         "大中華中小策略"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華大中華中小策略基金 的買賣訊號 | 鉅亨網",
+          "url": "https://news.google.com/rss/articles/CBMi5gFBVV95cUxOTjVSYmVWM1lSRnVWLW9rYTZadVBaVzFUajA0RS0tOEIyazl3dDVCa2FnUmhIUDBpS1QxeFVJbTA4QTgzOGdreGY2TDE2QXp0dzBtTlRzbWRmZmdMMUpNYnU4N2xhTmctcmxBMVVYYnJ2TDByYmVwLW9ueHZVWFlETHpuc0FPX3hlZFZFdXNyOXZjbXVXQ1BlazQ1NFBydk96M0N3cy1vbG5PbjdCdjdSdjE1Q0pfQWl2Ym9hVnJPNDdZMmNUTUhEVmlSWUtzeG1nTDQ0WVl2SExBcVA4OVJISW45TXk1UQ?oc=5",
+          "source": "鉅亨網",
+          "date": "2026-07-01 15:00",
+          "datetime": "2026-07-01T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華全球平衡基金",
@@ -330,7 +338,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：華人世紀、亞太神龍科技、全球平衡、高成長（詳下方各基金新聞）",
+    "近 7 天有專屬報導的基金：華人世紀、亞太神龍科技、大中華中小策略、全球平衡、高成長（詳下方各基金新聞）",
     "品牌焦點：老牌基金為何還能稱霸？這檔基金讓百萬變千萬的秘密。（CMoney投資網誌）"
   ]
 }
