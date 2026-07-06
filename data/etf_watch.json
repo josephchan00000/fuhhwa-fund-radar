@@ -1,7 +1,7 @@
 {
   "as_of": "2026-07-06",
   "perf_asof": "2026-07-06",
-  "fetched_at": "2026/07/06 16:31",
+  "fetched_at": "2026/07/06 16:54",
   "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算。正式對外前以各投信官網核對",
   "items": [
     {
@@ -22,6 +22,7 @@
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -42,6 +43,7 @@
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -62,6 +64,7 @@
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -82,6 +85,7 @@
       "freq": "月配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -102,6 +106,7 @@
       "freq": "半年配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -122,6 +127,7 @@
       "freq": "半年配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -142,6 +148,7 @@
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -162,6 +169,7 @@
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -182,6 +190,7 @@
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -202,6 +211,7 @@
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -222,6 +232,7 @@
       "freq": "年配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -242,6 +253,7 @@
       "freq": "半年配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -262,6 +274,7 @@
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -282,6 +295,7 @@
       "freq": "年配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -302,6 +316,7 @@
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -322,6 +337,7 @@
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     },
     {
@@ -342,6 +358,7 @@
       "freq": "年配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
+      "ret_src": "yahoo",
       "src": "etfinfo+px"
     }
   ]
