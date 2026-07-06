@@ -19,13 +19,14 @@ from arm import etfwatch  # noqa: E402
 
 
 def main() -> None:
-    print(f"[ETF 數據追蹤] 抓取 {len(etfwatch.WATCHLIST)} 檔（etfinfo.tw，Tier B）…")
+    print(f"[ETF 數據追蹤] 抓取 {len(etfwatch.WATCHLIST)} 檔"
+          "（規模／殖利率←etfinfo.tw；週／月報酬←TWSE 官方收盤）…")
     doc = etfwatch.fetch()
-    fresh = sum(1 for i in doc["items"] if i.get("src") == "etfinfo")
+    fresh = sum(1 for i in doc["items"] if str(i.get("src")).startswith("etfinfo"))
     path, saved = etfwatch.save(doc)
     if saved:
-        print(f"  ✓ 落檔 {path}（{len(doc['items'])} 檔，{fresh} 檔取得新值，"
-              f"資料基準 {doc['as_of']}）")
+        print(f"  ✓ 落檔 {path}（{len(doc['items'])} 檔，{fresh} 檔有新值，"
+              f"規模基準 {doc['as_of']}／報酬基準 {doc.get('perf_asof')}）")
     else:
         print(f"  ⚠ 本次擷取全空、既有落檔非空 → 保留舊檔不覆寫（{path}）")
 
