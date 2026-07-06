@@ -351,9 +351,10 @@ def _macro_cal_view(cal: dict | None) -> str:
 
 # ── ETF 數據追蹤（第四分頁：被動／主動台股 ETF 週績效表） ─────────
 
-_ETF_COLS = [("aum_e8", "規模(億)"), ("inception", "成立日期"),
+_ETF_COLS = [("close_px", "最新收盤價"), ("aum_e8", "規模(億)"), ("inception", "成立日期"),
              ("ret_1w", "過去一週報酬"), ("ret_1m", "過去一月報酬"),
-             ("yield_pct", "配息殖利率"), ("freq", "收益分配頻率")]
+             ("last_div", "最近一次配息"), ("yield_pct", "配息殖利率"),
+             ("freq", "收益分配頻率")]
 
 
 def _etf_sortv(k: str, i: dict):
@@ -364,6 +365,26 @@ def _etf_sortv(k: str, i: dict):
     if k == "freq":
         return {"月配": 1, "季配": 3, "半年配": 6, "年配": 12}.get(i.get("freq") or "")
     return i.get(k)
+
+
+def _fmt_num(v, digits: int = 2) -> str:
+    """去尾零的數字顯示（配息 0.7200→0.72、收盤 24.50→24.5）；None→—。"""
+    if v is None:
+        return '<span class="na">—</span>'
+    s = f"{v:.{digits}f}".rstrip("0").rstrip(".")
+    return _esc(s or "0")
+
+
+def _div_cell(i: dict) -> str:
+    """最近一次配息欄：實際配息金額；若投信已公告當月『預計配息』，加註 X*（非正式）。"""
+    ld = i.get("last_div")
+    main = _fmt_num(ld, 4) if ld is not None else '<span class="na">—</span>'
+    est = i.get("est_div")
+    if est is not None:
+        tip = "投信於配息月公告之預計配息金額，非正式配息金額（實際以除息公告為準）"
+        main += (f'　<span class="estdiv" title="{tip}">預估 {_fmt_num(est, 4)}'
+                 f'<sup>*</sup></span>')
+    return main
 
 
 def _etf_table(items: list[dict]) -> str:
@@ -385,6 +406,10 @@ def _etf_table(items: list[dict]) -> str:
                 cell = _pct_span(v)
             elif k == "aum_e8":
                 cell = f"{v:,.2f}" if v is not None else '<span class="na">—</span>'
+            elif k == "close_px":
+                cell = _fmt_num(v, 2)
+            elif k == "last_div":
+                cell = _div_cell(i)
             elif k == "yield_pct":
                 cell = (f"{v:.2f}%" if v is not None else
                         '<span class="na" title="尚無配息紀錄，無法計算年化配息率">尚無配息</span>')
@@ -415,6 +440,12 @@ def _etfwatch_view(doc: dict | None) -> str:
     if active:
         parts.append(f'<div class="ovg" id="etf-active">🚀 主動式 ETF（{len(active)} 檔）</div>'
                      + _etf_table(active))
+    has_est = any(i.get("est_div") is not None for i in items)
+    est_note = ('　<b>最近一次配息</b>為最近一次「實際」除息之每單位配息金額；標 <b>預估 X*</b> 者為'
+                '投信於配息月公告之<b>預計配息金額（非正式配息金額）</b>，實際以各投信除息公告為準。<br>'
+                if has_est else
+                '　<b>最近一次配息</b>為最近一次「實際」除息之每單位配息金額；當投信於配息月公告該月'
+                '<b>預計配息金額</b>時，會於此欄加註「預估 X*」（非正式配息金額，實際以除息公告為準）。<br>')
     parts.append(
         '<div class="etfnote">'
         '<b>資料來源（可點擊人工驗證）</b>：'
@@ -430,7 +461,8 @@ def _etfwatch_view(doc: dict | None) -> str:
         f'過去一週／一月報酬基準 {_esc(doc.get("perf_asof") or "—")}'
         '（成立日期為固定值；來源當日未更新時沿用最近可得值並標明基準日）・'
         f'抓取時間 {_esc(doc.get("fetched_at") or "—")}。<br>'
-        '　配息殖利率為年化配息率（最新一次配息 ÷ 最新市價 × 年配息次數）；「尚無配息」＝新掛牌尚未除息、'
+        + est_note +
+        '　配息殖利率為年化配息率（最近一次「實際」配息 ÷ 最新市價 × 年配息次數）；「尚無配息」＝新掛牌尚未除息、'
         '無配息紀錄可計算。正式對外請以各投信官網為準；僅為資訊彙編、非投資建議，過去績效不代表未來表現。</div>')
     return "".join(parts)
 
@@ -923,6 +955,8 @@ a.tk:hover{color:var(--acc)}
 .minepill{display:inline-block;font-size:11px;font-weight:700;color:var(--gold);border:1px solid rgba(200,134,15,.5);border-radius:10px;padding:0 7px;margin-left:6px;vertical-align:1px;white-space:nowrap}
 .etcat{display:inline-block;white-space:nowrap;font-size:11px;color:var(--accd);border:1px solid rgba(47,111,208,.35);background:rgba(47,111,208,.08);border-radius:5px;padding:0 6px}
 .etfnote{color:var(--mut);font-size:12.5px;margin-top:12px;line-height:1.8;border-top:1px solid var(--line);padding-top:8px}
+.estdiv{display:inline-block;font-size:11.5px;color:#8a5410;background:rgba(200,118,15,.12);border:1px solid rgba(200,118,15,.4);border-radius:6px;padding:0 6px;white-space:nowrap}
+.estdiv sup{font-weight:800}
 /* ⑤ details */
 #details{padding:12px 18px}
 #details .st{margin-bottom:0}
