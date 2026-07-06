@@ -1,7 +1,7 @@
 {
   "as_of": "2026-07-06",
   "perf_asof": "2026-07-06",
-  "fetched_at": "2026/07/06 16:54",
+  "fetched_at": "2026/07/06 17:10",
   "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算。正式對外前以各投信官網核對",
   "items": [
     {
@@ -23,7 +23,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=51.8",
+      "ret_1m_base": "2026-06-05=51.8"
     },
     {
       "code": "00878",
@@ -44,7 +47,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=32.9",
+      "ret_1m_base": "2026-06-05=32.32"
     },
     {
       "code": "00919",
@@ -55,7 +61,7 @@
       "aum_e8": 5351.76,
       "close_px": 29.76,
       "ret_1w": 1.02,
-      "ret_1m": 0.3,
+      "ret_1m": -2.97,
       "last_div": 1.0,
       "last_div_date": "2026-06-16",
       "est_div": null,
@@ -65,7 +71,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=29.46",
+      "ret_1m_base": "2026-06-05=30.67"
     },
     {
       "code": "00929",
@@ -76,7 +85,7 @@
       "aum_e8": 1422.59,
       "close_px": 31.36,
       "ret_1w": 4.57,
-      "ret_1m": 5.64,
+      "ret_1m": 4.74,
       "last_div": 0.26,
       "last_div_date": "2026-06-17",
       "est_div": null,
@@ -86,7 +95,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=29.99",
+      "ret_1m_base": "2026-06-05=29.94"
     },
     {
       "code": "0050",
@@ -107,7 +119,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=104.45",
+      "ret_1m_base": "2026-06-05=104.15"
     },
     {
       "code": "006208",
@@ -128,7 +143,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=242.75",
+      "ret_1m_base": "2026-06-05=241.05"
     },
     {
       "code": "00980A",
@@ -149,7 +167,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=23.65",
+      "ret_1m_base": "2026-06-05=24.32"
     },
     {
       "code": "00982A",
@@ -170,7 +191,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=23.65",
+      "ret_1m_base": "2026-06-05=23.74"
     },
     {
       "code": "00981A",
@@ -181,7 +205,7 @@
       "aum_e8": 2957.88,
       "close_px": 31.2,
       "ret_1w": 4.21,
-      "ret_1m": 3.33,
+      "ret_1m": 1.27,
       "last_div": 0.63,
       "last_div_date": "2026-06-16",
       "est_div": null,
@@ -191,7 +215,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=29.94",
+      "ret_1m_base": "2026-06-05=30.81"
     },
     {
       "code": "00984A",
@@ -212,7 +239,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=16.1",
+      "ret_1m_base": "2026-06-05=16.33"
     },
     {
       "code": "00985A",
@@ -233,7 +263,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=21.33",
+      "ret_1m_base": "2026-06-05=22"
     },
     {
       "code": "00991A",
@@ -254,7 +287,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=19.65",
+      "ret_1m_base": "2026-06-05=19.22"
     },
     {
       "code": "00992A",
@@ -275,7 +311,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=17.8",
+      "ret_1m_base": "2026-06-05=17.93"
     },
     {
       "code": "00987A",
@@ -296,7 +335,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=16.4",
+      "ret_1m_base": "2026-06-05=17.38"
     },
     {
       "code": "00994A",
@@ -307,7 +349,7 @@
       "aum_e8": 54.43,
       "close_px": 17.68,
       "ret_1w": 2.97,
-      "ret_1m": 1.27,
+      "ret_1m": -1.28,
       "last_div": 0.462,
       "last_div_date": "2026-06-18",
       "est_div": null,
@@ -317,7 +359,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=17.17",
+      "ret_1m_base": "2026-06-05=17.91"
     },
     {
       "code": "00995A",
@@ -338,7 +383,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=17.32",
+      "ret_1m_base": "2026-06-05=17.62"
     },
     {
       "code": "00993A",
@@ -359,7 +407,10 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px"
+      "src": "etfinfo+px",
+      "ret_n": 63,
+      "ret_1w_base": "2026-06-29=13.51",
+      "ret_1m_base": "2026-06-05=13.41"
     }
   ]
 }
