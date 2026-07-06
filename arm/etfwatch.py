@@ -132,14 +132,49 @@ def _freq(info: dict) -> str | None:
     return _FREQ_MAP.get(v.lower(), v if re.search(r"[配息]", v) else None)
 
 
+def _div_rows(divs) -> list[tuple[date, float, bool]]:
+    """配息紀錄 → [(除息日, 每單位金額, 是否為預估)]，依除息日排序。
+
+    預估旗標：etfinfo 常見多種寫法都認（estimated/isEstimate/type=estimate/status 含『預』）。"""
+    out: list[tuple[date, float, bool]] = []
+    for x in (divs or []):
+        amt = _num(x.get("amount"))
+        m = re.match(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})",
+                     str(x.get("exDate") or x.get("ex_date") or ""))
+        if amt is None or not m:
+            continue
+        try:
+            d = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            continue
+        flag = " ".join(str(x.get(k) or "") for k in
+                        ("estimated", "isEstimate", "estimate", "type", "status", "note"))
+        est = bool(x.get("estimated")) or ("estimate" in flag.lower()) or ("預" in flag)
+        out.append((d, amt, est))
+    out.sort(key=lambda r: r[0])
+    return out
+
+
 def _latest_dividend(divs) -> float | None:
-    """配息紀錄中「最新一次」的每單位配息金額（依除息日排序取最近）。"""
-    rows = [x for x in (divs or [])
-            if _num(x.get("amount")) is not None and (x.get("exDate") or x.get("ex_date"))]
-    if not rows:
-        return None
-    rows.sort(key=lambda x: str(x.get("exDate") or x.get("ex_date")), reverse=True)
-    return _num(rows[0].get("amount"))
+    """最近一次「已實際配發」（除息日已到、非預估）的每單位配息金額——年化殖利率用。"""
+    last, _ld, _e, _ed = _dividend_split(divs)
+    return last
+
+
+def _dividend_split(divs, today: date | None = None) -> tuple:
+    """拆成 (最近一次實際配息, 其除息日, 當月預估配息, 其除息日)。
+
+    · 最近一次實際：除息日 ≤ 今天且非預估者中最新一筆。
+    · 當月預估：投信於配息月 1 日公告的「預計配息金額」——取除息日在『本月且尚未除息』
+      或明確標記為預估者中最近一筆。無則 (…, None, None)。"""
+    today = today or clock.today_tw()
+    rows = _div_rows(divs)
+    actual = [r for r in rows if r[0] <= today and not r[2]]
+    last_amt, last_d = (actual[-1][1], actual[-1][0].isoformat()) if actual else (None, None)
+    est_cands = [r for r in rows
+                 if (r[2] or r[0] > today) and r[0].year == today.year and r[0].month == today.month]
+    est_amt, est_d = (est_cands[0][1], est_cands[0][0].isoformat()) if est_cands else (None, None)
+    return last_amt, last_d, est_amt, est_d
 
 
 def _annualized_yield(divs, price, freq: str | None) -> float | None:
@@ -162,8 +197,12 @@ def _fetch_market(code: str) -> dict:
     info = d.get("info") or {}
     lm = d.get("latestMarket") or {}
     freq = _freq(info)
+    last_amt, last_d, est_amt, est_d = _dividend_split(d.get("dividends"))
     return {"aum_raw": lm.get("aum") or info.get("aum"),
+            "close_px": _num(lm.get("price")),
             "yield_pct": _annualized_yield(d.get("dividends"), lm.get("price"), freq),
+            "last_div": last_amt, "last_div_date": last_d,
+            "est_div": est_amt, "est_div_date": est_d,
             "freq": freq, "mkt_date": lm.get("date")}
 
 
@@ -298,22 +337,30 @@ def fetch() -> dict:
         item = {"code": code, "name": name, "kind": kind, "cat": cat,
                 "inception": inception,                       # 靜態、永遠有值
                 "aum_e8": _pick(old, base, "aum_e8"),
+                "close_px": old.get("close_px"),              # 最新收盤價（etfinfo 市價）
                 "ret_1w": _pick(old, base, "ret_1w"),
                 "ret_1m": _pick(old, base, "ret_1m"),
+                "last_div": old.get("last_div"),              # 最近一次「實際」配息金額
+                "last_div_date": old.get("last_div_date"),
+                "est_div": old.get("est_div"),                # 當月「預估」配息金額（投信公告，非正式）
+                "est_div_date": old.get("est_div_date"),
                 "yield_pct": _pick(old, base, "yield_pct"),
                 "freq": _pick(old, base, "freq"),
                 "as_of": old.get("as_of"),
                 "perf_asof": old.get("perf_asof") or SEED_ASOF,  # 報酬數據基準日
                 "src": old.get("src") or "seed"}
-        # ① 規模／殖利率／頻率 ← etfinfo
+        # ① 規模／收盤價／配息（實際＋預估）／殖利率／頻率 ← etfinfo
         try:
             m = _fetch_market(code)
             aum = _norm_aum_e8(m.get("aum_raw"), item["aum_e8"])
-            for k, v in (("aum_e8", aum), ("yield_pct", m.get("yield_pct")),
-                         ("freq", m.get("freq"))):
+            for k, v in (("aum_e8", aum), ("close_px", m.get("close_px")),
+                         ("yield_pct", m.get("yield_pct")), ("freq", m.get("freq")),
+                         ("last_div", m.get("last_div")), ("last_div_date", m.get("last_div_date"))):
                 if v is not None:
                     item[k] = v
-            if any(v is not None for v in (aum, m.get("yield_pct"), m.get("freq"))):
+            item["est_div"] = m.get("est_div")                # 預估配息：無公告即清空（過月即消失）
+            item["est_div_date"] = m.get("est_div_date")
+            if any(v is not None for v in (aum, m.get("close_px"), m.get("yield_pct"), m.get("freq"))):
                 item["src"] = "etfinfo+px"
                 if m.get("mkt_date"):
                     item["as_of"] = str(m["mkt_date"])[:10]
