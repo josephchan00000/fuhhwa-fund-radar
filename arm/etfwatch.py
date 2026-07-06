@@ -206,6 +206,30 @@ def _fetch_market(code: str) -> dict:
             "freq": freq, "mkt_date": lm.get("date")}
 
 
+def _stooq_series(code: str) -> dict[str, float]:
+    """stooq 日線 CSV（乾淨、每交易日一筆原始收盤，專為程式抓取）→ {iso_date: 收盤}。
+
+    Yahoo 圖表 API 曾對個別檔回傳「不同日期同一收盤值」的髒資料（例 0056 6/5 與 6/29 都 51.8），
+    改以 stooq 為第一來源交叉比對。抓不到或代碼不存在回 {}（退下一來源）。"""
+    from .http import get_bytes
+    url = f"https://stooq.com/q/d/l/?s={code.lower()}.tw&i=d"
+    try:
+        txt = get_bytes(url, cache_ttl=3600, retries=2).decode("utf-8", "ignore")
+    except Exception:
+        return {}
+    out: dict[str, float] = {}
+    for line in txt.splitlines()[1:]:                # 跳表頭 Date,Open,High,Low,Close,Volume
+        p = line.split(",")
+        if len(p) >= 5 and re.match(r"\d{4}-\d{2}-\d{2}$", p[0].strip()):
+            c = _num(p[4])
+            if c:
+                out[p[0].strip()] = c
+    if len(out) > 90:                                # 只留近 ~90 個交易日，夠算週/月報酬
+        for k in sorted(out)[:-90]:
+            del out[k]
+    return out
+
+
 def _yahoo_series(code: str) -> dict[str, float]:
     """Yahoo Finance 圖表 API → {iso_date: 收盤}。單一請求、涵蓋近3月逐日。
 
@@ -309,23 +333,31 @@ def _returns_from_series(close: dict[str, float]) -> dict:
 _MIN_SERIES = 25
 
 
-def _fetch_returns(code: str, today: date | None = None) -> dict:
-    """過去一週／一月報酬 —— 多來源、單檔單請求，取第一個「歷史足夠密」的序列。
+def _is_degenerate(series: dict[str, float]) -> bool:
+    """髒序列偵測：相異收盤值太少（<60% 交易日各異）＝疑似來源回傳重複值
+    （曾見 Yahoo 對 0056 多日回同一 51.8）→ 不信任、換下一來源。"""
+    n = len(series)
+    return n >= 10 and len(set(series.values())) < n * 0.6
 
-    來源順序：Yahoo 收盤（與逐檔連結同源）→ FinMind → TWSE 官方。序列須 ≥ _MIN_SERIES 點
-    才採用（避免稀疏序列把 1 個月基準算錯）；回傳 ret_src／ret_n／基準日供追查；全失敗回 None。"""
+
+def _fetch_returns(code: str, today: date | None = None) -> dict:
+    """過去一週／一月報酬 —— 多來源、單檔單請求，取第一個「乾淨且夠密」的序列。
+
+    來源順序：stooq（乾淨日線）→ Yahoo → FinMind → TWSE。序列須 ≥ _MIN_SERIES 點且非「重複值
+    髒序列」才採用；回傳 ret_src／ret_n／基準日供追查；全失敗回 None（上層退回底稿）。"""
     today = today or clock.today_tw()
     best = None
-    for src, series in (("yahoo", _yahoo_series(code)),
+    for src, series in (("stooq", _stooq_series(code)),
+                        ("yahoo", _yahoo_series(code)),
                         ("finmind", _finmind_series(code, today)),
                         ("twse", _twse_series(code, today))):
         n = len(series)
-        if n < 5:
+        if n < 5 or _is_degenerate(series):           # 太短或髒（重複值）→ 換下一來源
             continue
         r = _returns_from_series(series)
         r["ret_src"], r["ret_n"] = src, n
         if n >= _MIN_SERIES and (r["ret_1w"] is not None or r["ret_1m"] is not None):
-            return r                                  # 夠密即採用
+            return r                                  # 乾淨且夠密即採用
         best = best or r                              # 太稀疏：暫存，後續來源皆不足才用
     return best or {"ret_1w": None, "ret_1m": None, "perf_date": None,
                     "ret_src": None, "ret_n": 0}
