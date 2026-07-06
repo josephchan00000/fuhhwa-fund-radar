@@ -146,6 +146,25 @@ def test_fetch_returns_skips_degenerate_series(monkeypatch):
     assert r["ret_src"] == "stooq" and r["ret_1w"] != r["ret_1m"]   # 乾淨源、週≠月
 
 
+def test_fetch_returns_rejects_source_with_identical_bases(monkeypatch):
+    # 某來源對該檔回傳「不同日同價」髒資料（週基準==月基準價，但整體多為相異值、逃過稀疏偵測）
+    dirty = {(date(2026, 7, 6) - timedelta(days=i)).isoformat(): 50.0 + 0.05 * i for i in range(45)}
+    dirty["2026-06-29"] = 51.8                           # 一週基準
+    dirty["2026-06-06"] = 51.8                           # 一月基準（同價 → 判髒）
+    clean = _dense_series(date(2026, 7, 6), 40, 48.0, 0.13)
+    monkeypatch.setattr(etfwatch, "_stooq_series", lambda code: {})
+    monkeypatch.setattr(etfwatch, "_yahoo_series", lambda code: dirty)
+    monkeypatch.setattr(etfwatch, "_finmind_series", lambda code, today: clean)
+    monkeypatch.setattr(etfwatch, "_twse_series", lambda code, today: {})
+    r = etfwatch._fetch_returns("0056", today=date(2026, 7, 6))
+    assert r["ret_src"] == "finmind" and r["ret_1w"] != r["ret_1m"]
+    # 直接驗 helper
+    assert etfwatch._same_base_price({"ret_1w_base": "2026-06-29=51.8",
+                                      "ret_1m_base": "2026-06-05=51.8"}) is True
+    assert etfwatch._same_base_price({"ret_1w_base": "2026-06-29=51.8",
+                                      "ret_1m_base": "2026-06-05=48.6"}) is False
+
+
 def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
     monkeypatch.setattr(etfwatch, "_stooq_series", lambda code: {})
     monkeypatch.setattr(etfwatch, "_yahoo_series", lambda code: {})
