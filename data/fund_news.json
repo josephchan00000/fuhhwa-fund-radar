@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/06 20:11",
+  "as_of": "2026/07/06 20:28",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -51,13 +51,6 @@
       "source": "CMoney投資網誌",
       "date": "2026-07-02 15:00",
       "datetime": "2026-07-02T15:00:00+08:00"
-    },
-    {
-      "title": "復華兩檔ETF配息出爐！00929預估配0.38元創新高、00991A擬配0.77元 | Newtalk",
-      "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTFBNUjdRQXA0MHFzSWFrUmg3SmNMR1FqZDdFZUhrbGpVSVo0Wm51dFZuS0xPYWthQmpDMVdvRHVKUUlubWFEMlpXVkd4RVdvRHloT2lEVjRDNjV2a1QwRGlMVEJ2emZrQU1QRkZRU1h2SQ?oc=5",
-      "source": "LINE TODAY",
-      "date": "2026-07-02 00:44",
-      "datetime": "2026-07-02T00:44:39+08:00"
     }
   ],
   "funds": [
