@@ -265,6 +265,17 @@ def test_dashboard_has_etf_tab_and_tables():
     assert "mops.twse.com.tw" in html                    # 預估配息來源 MOPS 連結
 
 
+def test_ret_cell_shows_base_date_and_price():
+    i = {"ret_1w": 4.35, "ret_1w_base": "2026-06-29=51.8", "perf_asof": "2026-07-06",
+         "close_px": 53.25}
+    cell = fund_dashboard._ret_cell(i, "ret_1w")
+    assert "+4.35%" in cell
+    assert "基準 06/29＠51.8" in cell                    # 可見小字：基準日＠價格
+    assert "近一週：基準 2026-06-29 收 51.8 → 2026-07-06 收 53.25" in cell   # tooltip 完整算式
+    # 無基準資料（seed/舊檔）→ 只顯示 %、不加基準行
+    assert fund_dashboard._ret_cell({"ret_1w": 3.0}, "ret_1w") == fund_dashboard._pct_span(3.0)
+
+
 def test_div_cell_shows_estimate_with_asterisk():
     cell = fund_dashboard._div_cell({"last_div": 0.72, "est_div": 0.80})
     assert "0.72" in cell and "預估" in cell and "*" in cell and "estdiv" in cell

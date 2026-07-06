@@ -392,6 +392,25 @@ def _div_cell(i: dict) -> str:
     return main
 
 
+def _ret_cell(i: dict, k: str) -> str:
+    """報酬格：紅漲綠跌％＋下方小字標「基準日＠收盤價」，滑鼠移上顯示完整算式，方便人工驗證。
+
+    ret_1w_base／ret_1m_base 由 arm/etfwatch 記錄（格式 'YYYY-MM-DD=收盤'）。"""
+    v = i.get(k)
+    span = _pct_span(v)
+    base = i.get(f"{k}_base")
+    if v is None or not base or "=" not in str(base):
+        return span
+    bd, bp = str(base).split("=", 1)
+    last_d = i.get("perf_asof") or "最新"
+    last_px = i.get("close_px")
+    last_px_s = f"{last_px:g}" if isinstance(last_px, (int, float)) else "—"
+    period = "近一週" if k == "ret_1w" else "近一月"
+    tip = f"{period}：基準 {bd} 收 {bp} → {last_d} 收 {last_px_s}"
+    md = bd[5:].replace("-", "/") if len(bd) >= 10 else bd
+    return f'{span}<div class="rbase" title="{_esc(tip)}">基準 {_esc(md)}＠{_esc(bp)}</div>'
+
+
 def _etf_table(items: list[dict]) -> str:
     """單組 ETF 表（沿用 ovtbl 樣式與點欄排序）；復華自家檔整列高亮＋標章。"""
     trs = []
@@ -408,7 +427,7 @@ def _etf_table(items: list[dict]) -> str:
         for k, _ in _ETF_COLS:
             v = _etf_sortv(k, i)
             if k in ("ret_1w", "ret_1m"):
-                cell = _pct_span(v)
+                cell = _ret_cell(i, k)
             elif k == "aum_e8":
                 cell = f"{v:,.2f}" if v is not None else '<span class="na">—</span>'
             elif k == "close_px":
@@ -466,7 +485,9 @@ def _etfwatch_view(doc: dict | None) -> str:
         'rel="noopener">TWSE 官方</a>依序自算（以最新交易日收盤對回推 7／30 日曆日前最後交易日計算）；'
         '每列<b>代碼可點</b>開 <a href="https://tw.stock.yahoo.com/class/etf" target="_blank" '
         'rel="noopener">Yahoo奇摩股市</a>個股頁對照（報酬同源、數字可對得上）；'
-        '<b>報酬來源</b>欄標示每檔報酬實際取自哪個源（Yahoo／FinMind／TWSE／底稿）供追查。'
+        '<b>報酬來源</b>欄標示每檔報酬實際取自哪個源（Yahoo／FinMind／TWSE／底稿）；'
+        '每格報酬下方「<b>基準 MM/DD＠價格</b>」標明該報酬用哪一天的收盤當基準'
+        '（滑鼠移上顯示完整算式：基準日收盤 → 最新日收盤），方便逐檔人工驗證。'
         '當月預估配息 ← <a href="https://mops.twse.com.tw" target="_blank" rel="noopener">'
         'MOPS 公開資訊觀測站</a>。<br>'
         f'　資料時間：規模／配息殖利率抓取基準 {_esc(doc.get("as_of") or "—")}；'
@@ -969,6 +990,7 @@ a.tk:hover{color:var(--acc)}
 .etfnote{color:var(--mut);font-size:12.5px;margin-top:12px;line-height:1.8;border-top:1px solid var(--line);padding-top:8px}
 .estdiv{display:inline-block;font-size:11.5px;color:#8a5410;background:rgba(200,118,15,.12);border:1px solid rgba(200,118,15,.4);border-radius:6px;padding:0 6px;white-space:nowrap}
 .estdiv sup{font-weight:800}
+.rbase{font-size:10.5px;color:var(--mut);font-weight:400;margin-top:2px;white-space:nowrap;cursor:help}
 .rsrc{display:inline-block;font-size:11px;padding:0 6px;border-radius:5px;border:1px solid}
 .rsrc.live{color:var(--accd);background:rgba(47,111,208,.08);border-color:rgba(47,111,208,.35)}
 .rsrc.seed{color:var(--mut);background:rgba(138,127,107,.1);border-color:rgba(138,127,107,.3)}
