@@ -381,7 +381,8 @@ def _etf_table(items: list[dict]) -> str:
             elif k == "aum_e8":
                 cell = f"{v:,.2f}" if v is not None else '<span class="na">—</span>'
             elif k == "yield_pct":
-                cell = f"{v:.2f}%" if v is not None else '<span class="na">—</span>'
+                cell = (f"{v:.2f}%" if v is not None else
+                        '<span class="na" title="尚無配息紀錄，無法計算年化配息率">尚無配息</span>')
             else:
                 cell = _esc(i.get(k)) if i.get(k) else '<span class="na">—</span>'
             tds.append(f'<td data-v="{v if v is not None else ""}">{cell}</td>')
@@ -409,11 +410,15 @@ def _etfwatch_view(doc: dict | None) -> str:
     if active:
         parts.append(f'<div class="ovg" id="etf-active">🚀 主動式 ETF（{len(active)} 檔）</div>'
                      + _etf_table(active))
-    parts.append(f'<div class="etfnote">來源：{_esc(doc.get("source") or "—")}・'
-                 f'資料基準 {_esc(doc.get("as_of") or "—")}・抓取 {_esc(doc.get("fetched_at") or "—")}。'
-                 '報酬為市價週期報酬、配息殖利率為年化配息率（最新一次配息÷最新市價×年配息次數）'
-                 '（Tier B 第三方彙整，正式對外請以各投信官網為準）；'
-                 '僅為資訊彙編、非投資建議，過去績效不代表未來表現。</div>')
+    parts.append(
+        f'<div class="etfnote">來源：{_esc(doc.get("source") or "—")}。'
+        f'規模／配息殖利率抓取基準 {_esc(doc.get("as_of") or "—")}；'
+        f'過去一週／一月報酬基準 {_esc(doc.get("perf_asof") or "—")}'
+        '（來源未即時更新時沿用最近可得值，成立日期為固定值）・'
+        f'抓取時間 {_esc(doc.get("fetched_at") or "—")}。'
+        '配息殖利率為年化配息率（最新一次配息÷最新市價×年配息次數）；「尚無配息」＝新掛牌尚未除息、'
+        '無配息紀錄可計算。Tier B 第三方彙整，正式對外請以各投信官網為準；'
+        '僅為資訊彙編、非投資建議，過去績效不代表未來表現。</div>')
     return "".join(parts)
 
 

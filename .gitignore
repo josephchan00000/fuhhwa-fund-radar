@@ -12,6 +12,9 @@ data/*
 !data/funds/
 data/funds/*
 !data/funds/*.json
+# ETF 數據追蹤落檔／基金新聞落檔：入庫當 fallback（來源被擋時 CI 沿用前次值，避免整片留空）
+!data/etf_watch.json
+!data/fund_news.json
 # GitHub PAT（建 repo 用）絕不入庫
 .gh_tok
 data/.gh_tok
