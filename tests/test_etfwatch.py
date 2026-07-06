@@ -41,6 +41,30 @@ def test_annualized_yield_from_latest_dividend_price_and_freq():
     assert etfwatch._annualized_yield(divs, 20.0, None) is None
 
 
+def test_dividend_split_actual_vs_current_month_estimate():
+    today = date(2026, 7, 6)
+    divs = [{"exDate": "2026-04-15", "amount": 0.70},
+            {"exDate": "2026-07-16", "amount": 0.80},   # 本月、除息日未到 → 預估配息
+            {"exDate": "2026-01-15", "amount": 0.65}]
+    last, ld, est, ed = etfwatch._dividend_split(divs, today=today)
+    assert last == 0.70 and ld == "2026-04-15"          # 最近一次「實際」（除息日 <= 今天）
+    assert est == 0.80 and ed == "2026-07-16"           # 當月未到期 → 預估
+
+
+def test_dividend_split_respects_estimate_flag():
+    today = date(2026, 7, 6)
+    divs = [{"exDate": "2026-07-03", "amount": 0.50, "type": "estimate"}]  # 明確標預估
+    last, ld, est, ed = etfwatch._dividend_split(divs, today=today)
+    assert est == 0.50 and last is None                 # 標預估者不計入「實際」
+
+
+def test_dividend_split_no_estimate_off_month():
+    today = date(2026, 7, 6)
+    divs = [{"exDate": "2026-04-15", "amount": 0.70}, {"exDate": "2026-01-15", "amount": 0.65}]
+    last, ld, est, ed = etfwatch._dividend_split(divs, today=today)
+    assert last == 0.70 and est is None                 # 本月無公告 → 無預估
+
+
 def _dense_series(last: date, n: int, base: float, step: float) -> dict:
     """造 n 個連續日曆日的密收盤序列（測試用；週末也放值，_ret 取 <=target 最後一筆即可）。"""
     return {(last - timedelta(days=i)).isoformat(): base + step * (n - i) for i in range(n)}
@@ -193,3 +217,13 @@ def test_dashboard_has_etf_tab_and_tables():
     assert "tw.stock.yahoo.com/quote/0056" in html      # 每列代碼可點對照
     assert "etfinfo.tw" in html and "twse.com.tw" in html
     assert "stock-day" in html                          # TWSE 官方每日收盤（報酬來源）
+    # 新增欄位：最新收盤價、最近一次配息（含預估*說明）
+    assert "最新收盤價" in html and "最近一次配息" in html
+    assert "預計配息金額" in html                        # 預估配息 * 的註腳說明
+
+
+def test_div_cell_shows_estimate_with_asterisk():
+    cell = fund_dashboard._div_cell({"last_div": 0.72, "est_div": 0.80})
+    assert "0.72" in cell and "預估" in cell and "*" in cell and "estdiv" in cell
+    plain = fund_dashboard._div_cell({"last_div": 0.72, "est_div": None})
+    assert "0.72" in plain and "預估" not in plain
