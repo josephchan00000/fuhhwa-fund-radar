@@ -9,8 +9,10 @@
 
 資料來源（雙源、各自獨立降級）：
   · 規模(AUM)／年化配息率／配息頻率 ← arm/connectors/etfinfo（Tier B 第三方彙整）。
-  · 過去一週／一月報酬 ← arm/connectors/twse 官方每日收盤自算（權威、免金鑰）：
-    以最新交易日收盤對回推 7／30 日曆日之前最後交易日收盤計算，反映真實近週／近月漲跌。
+  · 過去一週／一月報酬 ← 多來源、單檔單請求取密序列（Yahoo 還原收盤＝總報酬口徑，與逐檔可點
+    連結同源 → FinMind → TWSE 官方，依序取第一個歷史足夠密者），以最新交易日收盤對回推
+    7／30 日曆日之前最後交易日收盤計算。序列太稀疏會產生錯值（曾見 ret_1w==ret_1m），故加
+    「基準日須接近目標日」防呆，寧缺勿錯（不足即退回底稿並標基準日）。
 
 防呆（同專案鐵則）：
   · 雲端 Claude 容器的 proxy 會擋 etfinfo.tw 與 TWSE——抓不到就沿用既有落檔，
@@ -165,33 +167,112 @@ def _fetch_market(code: str) -> dict:
             "freq": freq, "mkt_date": lm.get("date")}
 
 
-def _fetch_returns(code: str, today: date | None = None) -> dict:
-    """TWSE 官方每日收盤（權威、免金鑰）→ 過去一週(7 日曆日)／一月(30 日曆日)報酬。
+def _yahoo_series(code: str) -> dict[str, float]:
+    """Yahoo Finance 圖表 API → {iso_date: 還原(adjusted)收盤}。單一請求、涵蓋近3月逐日。
 
-    以「最新交易日收盤」對回推日之前最後一個交易日收盤算報酬，反映真實近週／近月漲跌。
-    抓當月＋前一月兩份逐日收盤即足夠涵蓋 30 日回推。取不到（休市初／上櫃檔／斷網）回 None。"""
+    用 adjClose（已還原配息/分割）＝總報酬口徑，與週報「報酬」一致，且與逐檔可點的
+    Yahoo 個股頁同源（使用者點連結看到的數字就對得上）。取不到回 {}。"""
+    from datetime import datetime
+
+    from .http import get_json
+    url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{code}.TW"
+           "?range=3mo&interval=1d")
+    try:
+        d = get_json(url, cache_ttl=3600)
+    except Exception:
+        return {}
+    res = (((d or {}).get("chart") or {}).get("result") or [None])[0]
+    if not res:
+        return {}
+    ts = res.get("timestamp") or []
+    ind = res.get("indicators") or {}
+    adj = ((ind.get("adjclose") or [{}])[0] or {}).get("adjclose") or []
+    raw = ((ind.get("quote") or [{}])[0] or {}).get("close") or []
+    out: dict[str, float] = {}
+    for i, t in enumerate(ts):
+        c = adj[i] if i < len(adj) and adj[i] is not None else \
+            (raw[i] if i < len(raw) and raw[i] is not None else None)
+        if c:
+            iso = datetime.fromtimestamp(t, clock.TW_TZ).date().isoformat()
+            out[iso] = float(c)
+    return out
+
+
+def _finmind_series(code: str, today: date) -> dict[str, float]:
+    """FinMind TaiwanStockPrice（免金鑰，有 token 更寬鬆）→ {iso_date: 收盤}。單一請求涵蓋近75日。"""
+    import os
+
+    from .http import get_json
+    start = (today - timedelta(days=75)).isoformat()
+    token = os.environ.get("FINMIND_TOKEN", "")
+    url = (f"https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice"
+           f"&data_id={code}&start_date={start}&end_date={today.isoformat()}"
+           + (f"&token={token}" if token else ""))
+    try:
+        d = get_json(url, cache_ttl=3600)
+    except Exception:
+        return {}
+    if not isinstance(d, dict) or d.get("status") != 200:
+        return {}
+    return {r["date"]: float(r["close"]) for r in (d.get("data") or [])
+            if r.get("date") and r.get("close")}
+
+
+def _twse_series(code: str, today: date) -> dict[str, float]:
+    """TWSE 官方每日收盤（權威）→ {iso_date: 收盤}。抓當月＋前兩月，涵蓋 30 日回推。
+    註：TWSE 為價格收盤（未還原息），高股息 ETF 於除息日附近會低估總報酬。"""
     from .connectors import twse
-    today = today or clock.today_tw()
-    prev1 = today.replace(day=1) - timedelta(days=1)          # 前一月任一天
     close: dict[str, float] = {}
-    for y, m in ((prev1.year, prev1.month), (today.year, today.month)):
-        for iso, c, _v in twse.fetch_month(code, y, m):
+    m0 = today.replace(day=1)
+    for back in (0, 1, 2):
+        d0 = m0
+        for _ in range(back):
+            d0 = (d0 - timedelta(days=1)).replace(day=1)
+        for iso, c, _v in twse.fetch_month(code, d0.year, d0.month):
             if c:
                 close[iso] = c
+    return close
+
+
+def _returns_from_series(close: dict[str, float]) -> dict:
+    """由 {iso: close} 日序列算過去一週(7)/一月(30 日曆日)報酬。
+
+    防呆：某週期的基準日必須「真的接近 N 天前」（在 target 前 12 天內）——資料太稀疏時
+    基準會落在很早的孤點、把區間拉長算出錯值（曾見 ret_1w==ret_1m）；此時該週期不報（回 None、
+    交由上層退回底稿），寧缺勿錯。"""
     dates = sorted(close)
     if len(dates) < 2:
         return {"ret_1w": None, "ret_1m": None, "perf_date": None}
     last = dates[-1]
+    last_d = date.fromisoformat(last)
 
     def _ret(days: int) -> float | None:
-        target = date.fromisoformat(last) - timedelta(days=days)
+        target = last_d - timedelta(days=days)
         prior = [d for d in dates if date.fromisoformat(d) <= target]
         if not prior:
+            return None
+        base_d = date.fromisoformat(prior[-1])
+        if (target - base_d).days > 12:              # 基準離目標日太遠＝資料有大缺口 → 不報
             return None
         base = close[prior[-1]]
         return round((close[last] / base - 1) * 100, 2) if base else None
 
     return {"ret_1w": _ret(7), "ret_1m": _ret(30), "perf_date": last}
+
+
+def _fetch_returns(code: str, today: date | None = None) -> dict:
+    """過去一週／一月報酬 —— 多來源、單檔單請求優先，取第一個「歷史足夠密」的序列。
+
+    來源順序（皆可人工核對）：Yahoo 還原收盤（總報酬口徑，與逐檔連結同源）→ FinMind →
+    TWSE 官方。任一給出密序列即用；全失敗回 None（上層退回週報底稿並標基準日）。"""
+    today = today or clock.today_tw()
+    for series in (_yahoo_series(code), _finmind_series(code, today),
+                   _twse_series(code, today)):
+        if len(series) >= 5:                         # 至少 ~1 週交易日才視為可用序列
+            r = _returns_from_series(series)
+            if r["ret_1w"] is not None or r["ret_1m"] is not None:
+                return r
+    return {"ret_1w": None, "ret_1m": None, "perf_date": None}
 
 
 def _pick(old: dict, base: dict, key: str):
@@ -233,14 +314,14 @@ def fetch() -> dict:
                 if v is not None:
                     item[k] = v
             if any(v is not None for v in (aum, m.get("yield_pct"), m.get("freq"))):
-                item["src"] = "etfinfo+twse"
+                item["src"] = "etfinfo+px"
                 if m.get("mkt_date"):
                     item["as_of"] = str(m["mkt_date"])[:10]
                 got_mkt += 1
         except Exception as e:                     # proxy 擋站/斷網 → 沿用 fallback 值
             print(f"  ⚠ {code} 規模／殖利率抓取失敗（沿用既有值／週報底稿）：{e}")
 
-        # ② 過去一週／一月報酬 ← TWSE 官方每日收盤自算（權威）
+        # ② 過去一週／一月報酬 ← Yahoo 還原收盤／FinMind／TWSE（依序取密序列）自算
         try:
             r = _fetch_returns(code)
             if r.get("ret_1w") is not None:
@@ -258,11 +339,11 @@ def fetch() -> dict:
     as_of = max((i.get("as_of") or "" for i in items), default="") or \
         (load() or {}).get("as_of") or clock.today_tw().isoformat()
     if got_ret:
-        src_note = ("規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← TWSE 官方每日收盤自算。"
-                    "正式對外前以各投信官網核對")
+        src_note = ("規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤"
+                    "（總報酬口徑）／FinMind／TWSE 官方自算。正式對外前以各投信官網核對")
     elif got_mkt:
         src_note = ("規模／配息殖利率 ← etfinfo.tw（Tier B）；報酬沿用最近可得週報底稿"
-                    "（TWSE 本次不可達）。正式對外前以各投信官網核對")
+                    "（報酬來源本次不可達）。正式對外前以各投信官網核對")
     else:
         src_note = "沿用既有落檔／週報底稿（本次來源皆不可達）"
     return {

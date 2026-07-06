@@ -1,6 +1,6 @@
 """ETF 數據追蹤（arm/etfwatch＋儀表板第四分頁）測試——離線、吃 repo 內種子落檔。"""
 import json
-from datetime import date
+from datetime import date, timedelta
 
 from arm import etfwatch, fund_dashboard
 
@@ -41,22 +41,48 @@ def test_annualized_yield_from_latest_dividend_price_and_freq():
     assert etfwatch._annualized_yield(divs, 20.0, None) is None
 
 
-def test_returns_computed_from_twse_daily_close(monkeypatch):
-    # 過去一週(7 日曆日)／一月(30 日曆日)報酬＝最新收盤對回推日前最後交易日收盤計算
-    series = [("2026-06-05", 20.0, 0),   # <=06/06（一月前）最後交易日 → 1月基準
-              ("2026-06-29", 23.0, 0),   # <=06/29（一週前）最後交易日 → 1週基準
-              ("2026-07-06", 24.0, 0)]   # 最新交易日
-    import arm.connectors.twse as twse
-    monkeypatch.setattr(twse, "fetch_month", lambda code, y, m: series)
+def _dense_series(last: date, n: int, base: float, step: float) -> dict:
+    """造 n 個連續日曆日的密收盤序列（測試用；週末也放值，_ret 取 <=target 最後一筆即可）。"""
+    return {(last - timedelta(days=i)).isoformat(): base + step * (n - i) for i in range(n)}
+
+
+def test_returns_from_dense_series_computes_week_and_month():
+    # 密序列（每日都有）→ 一週(7)/一月(30 日曆日)基準明確、算得出報酬
+    close = {"2026-06-06": 20.0}
+    close.update({(date(2026, 7, 6) - timedelta(days=i)).isoformat(): 24.0
+                  for i in range(0, 8)})            # 近8日都 24.0
+    close["2026-06-29"] = 23.0                       # 一週前基準
+    r = etfwatch._returns_from_series(close)
+    assert r["perf_date"] == "2026-07-06"
+    assert r["ret_1w"] == round((24.0 / 23.0 - 1) * 100, 2)   # 基準 06/29
+    assert r["ret_1m"] == round((24.0 / 20.0 - 1) * 100, 2)   # 基準 06/06
+
+
+def test_returns_guard_suppresses_sparse_series():
+    # 稀疏序列：只有 06/05 與近幾日 → 一週前(06/29)最近的 <= 點是 06/05，離 target 24 天 > 12 → 不報
+    close = {"2026-06-05": 20.0, "2026-07-01": 23.5, "2026-07-02": 23.8,
+             "2026-07-03": 23.9, "2026-07-06": 24.0}
+    r = etfwatch._returns_from_series(close)
+    assert r["ret_1w"] is None                       # 防呆：基準離目標日 >12 天 → 不報（寧缺勿錯）
+    # 一月前(06/06)最近 <= 點 06/05（差 1 天）→ 可報
+    assert r["ret_1m"] == round((24.0 / 20.0 - 1) * 100, 2)
+
+
+def test_fetch_returns_prefers_first_dense_source(monkeypatch):
+    # 來源順序：Yahoo → FinMind → TWSE，取第一個「夠密」者
+    dense = _dense_series(date(2026, 7, 6), 40, 20.0, 0.1)
+    monkeypatch.setattr(etfwatch, "_yahoo_series", lambda code: {})          # Yahoo 空
+    monkeypatch.setattr(etfwatch, "_finmind_series", lambda code, today: dense)  # FinMind 命中
+    monkeypatch.setattr(etfwatch, "_twse_series", lambda code, today: {})
     r = etfwatch._fetch_returns("0056", today=date(2026, 7, 6))
-    assert r["ret_1w"] == round((24.0 / 23.0 - 1) * 100, 2)   # 4.35%
-    assert r["ret_1m"] == round((24.0 / 20.0 - 1) * 100, 2)   # 20.0%
+    assert r["ret_1w"] is not None and r["ret_1m"] is not None
     assert r["perf_date"] == "2026-07-06"
 
 
-def test_returns_none_when_twse_has_no_history(monkeypatch):
-    import arm.connectors.twse as twse
-    monkeypatch.setattr(twse, "fetch_month", lambda code, y, m: [])   # 上櫃檔／休市初
+def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
+    monkeypatch.setattr(etfwatch, "_yahoo_series", lambda code: {})
+    monkeypatch.setattr(etfwatch, "_finmind_series", lambda code, today: {})
+    monkeypatch.setattr(etfwatch, "_twse_series", lambda code, today: {})
     r = etfwatch._fetch_returns("0056", today=date(2026, 7, 6))
     assert r == {"ret_1w": None, "ret_1m": None, "perf_date": None}
 
@@ -87,12 +113,13 @@ def test_seed_file_loads_and_covers_watchlist():
     assert doc and not etfwatch.is_empty(doc)
     by_code = {i["code"]: i for i in doc["items"]}
     assert set(by_code) == {c for c, *_ in etfwatch.WATCHLIST}
-    # 每檔的成立日期／週報酬／月報酬／規模一律有值（不再整片留空）
+    # 每檔的成立日期／週報酬／月報酬／規模一律有值（不再整片留空）；
+    # 不斷言確切報酬數字——那些會被 CI 以最新市場資料更新，只驗「完整且合理」。
     for i in doc["items"]:
         assert i.get("inception") and i.get("ret_1w") is not None
         assert i.get("ret_1m") is not None and i.get("aum_e8") is not None
-    assert by_code["0056"]["ret_1w"] == 3.32 and by_code["0056"]["freq"] == "季配"
-    assert by_code["00994A"]["ret_1w"] == -0.93        # 唯一週線收黑
+        assert -50 < i["ret_1w"] < 50 and -80 < i["ret_1m"] < 80   # 合理範圍防呆
+    assert by_code["0056"]["freq"] == "季配" and by_code["00929"]["freq"] == "月配"
 
 
 # ── 防呆：全空不覆寫（同 fundnews 教訓） ──────────────────────
