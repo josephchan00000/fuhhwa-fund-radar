@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/06 17:15",
+  "as_of": "2026/07/06 17:24",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -53,11 +53,11 @@
       "datetime": "2026-07-02T15:00:00+08:00"
     },
     {
-      "title": "上半年主動台股ETF冠軍00991A規模衝破700億元 首次半年配0.77元",
-      "url": "https://news.google.com/rss/articles/CBMi7gJBVV95cUxQZ29LNnV3aWdtMDVhZVUyX1Z5aEYyZGRINHF5aUpKVllWYjNIRUFVaklzTWtjRHVkUUtXRFljSFA1V3ZYVFZqWHdiYzV3QS1UVEc4d3lXM3FwZ0k4X3FzSkxaMG5Ed2prdjhWWC1rMmxaRG41SnpKYTA4aEZaSkNJWnNwRnNXdUplOEpjNWZnbl82eEUxdUVnaG80aXFKWXRHRnp2WTlfVGFCeUVJcEZNRW85ZU9Kc3VxZ0VmTlcwanM2eHJob2RlR1hNbS1ZMjJzMkJ4UVhBaVNQcUZVUzh5ZnZvM1c2N3IybVl2MjVMdk9PRUxjVzZSYk1CaG9xczhEbDlJTUJreDdKd0RtREZwNUhtbE9vbGhzV21FdXBUa29mQ0doTHFBZHl3MERfV182Mk56UGZtTnpSSVRmOW12aDF3SVh0RmRjY0huRGRUSFZXQVV3U21yak9YQjlRZlJucG9YWldVRGFtOWJMVGc?oc=5",
-      "source": "Yahoo股市",
-      "date": "2026-07-01 18:09",
-      "datetime": "2026-07-01T18:09:19+08:00"
+      "title": "復華兩檔ETF配息出爐！00929預估配0.38元創新高、00991A擬配0.77元 | Newtalk",
+      "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTFBNUjdRQXA0MHFzSWFrUmg3SmNMR1FqZDdFZUhrbGpVSVo0Wm51dFZuS0xPYWthQmpDMVdvRHVKUUlubWFEMlpXVkd4RVdvRHloT2lEVjRDNjV2a1QwRGlMVEJ2emZrQU1QRkZRU1h2SQ?oc=5",
+      "source": "LINE TODAY",
+      "date": "2026-07-02 00:44",
+      "datetime": "2026-07-02T00:44:39+08:00"
     }
   ],
   "funds": [
@@ -157,6 +157,13 @@
           "source": "CMoney投資網誌",
           "date": "2026-07-06 16:19",
           "datetime": "2026-07-06T16:19:50+08:00"
+        },
+        {
+          "title": "復華亞太神龍科技基金-新臺幣，同樣是買科技股，這檔近 1 年漲 240% 憑什麼？",
+          "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE5SbndydHdUS2NzYzRnb0d3alMtYXZfQ2h2TGhNYVdOS3RZOXYxNWFjcE85NW5EbFppRmhZcnp2bUg0dnRRSjJWa2Zvbk43N2xUZkdpSVZQampVVlp6ZjBpUnZPbW5ST1p1bHBiZHlySnRqOVg3Y2tlRmo0VXhmdw?oc=5",
+          "source": "CMoney投資網誌",
+          "date": "2026-07-02 15:00",
+          "datetime": "2026-07-02T15:00:00+08:00"
         }
       ]
     },
@@ -251,7 +258,15 @@
       "short_names": [
         "高成長"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "百億人氣基金大比拚，「高成長」榮登3月進場抄底王",
+          "url": "https://news.google.com/rss/articles/CBMiQkFVX3lxTFBRTGpRVzVtRmZ3bGRKMWRWZVVoWm5sS1I0Wl9CWkNRSFFISk45MkduLVNvYVZSbWFMZU9IblJYRWNwUQ?oc=5",
+          "source": "墨新聞-MORE News",
+          "date": "2026-06-30 10:46",
+          "datetime": "2026-06-30T10:46:17+08:00"
+        }
+      ]
     },
     {
       "base": "復華數位經濟基金",
@@ -360,7 +375,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太神龍科技、大中華中小策略、全球平衡（詳下方各基金新聞）",
+    "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太神龍科技、大中華中小策略、全球平衡 等 7 檔（詳下方各基金新聞）",
     "品牌焦點：復華全球大趨勢基金-新臺幣，同樣是全球股票型為何近一年漲破 160%？-CMoney官方（CMoney投資網誌）"
   ]
 }
