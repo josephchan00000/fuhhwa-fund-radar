@@ -65,6 +65,34 @@ def test_dividend_split_no_estimate_off_month():
     assert last == 0.70 and est is None                 # 本月無公告 → 無預估
 
 
+def test_mops_parse_handles_4_5_6_digit_codes_and_roc_dates():
+    from arm.connectors import mops
+    codes = {"0056", "006208", "00929", "00980A"}
+    html = ("<table><tr><td>0056</td><td>元大高股息</td><td>2026/07/16</td><td>0.8000</td></tr>"
+            "<tr><td>006208</td><td>富邦</td><td>2026/07/18</td><td>1.2500</td></tr></table>")
+    r = mops._parse_rows(html, codes)
+    assert r["0056"] == {"ex_date": "2026-07-16", "amount": 0.8, "announced": None}
+    assert r["006208"]["amount"] == 1.25                # 代碼數字不會被誤當金額
+    js = '{"data":[["00929","復華","115/07/16","0.0600"]]}'  # 民國年
+    assert mops._parse_rows(js, codes)["00929"] == {"ex_date": "2026-07-16", "amount": 0.06,
+                                                     "announced": None}
+
+
+def test_fetch_fills_estimate_from_mops_for_current_month(monkeypatch):
+    import arm.connectors.mops as mops
+    today = date(2026, 7, 6)
+    monkeypatch.setattr(etfwatch, "load", lambda: None)
+    monkeypatch.setattr(etfwatch, "_fetch_market", lambda code: {})      # etfinfo 無配息/預估
+    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code: {"ret_1w": None, "ret_1m": None,
+                                                                  "perf_date": None, "ret_src": None})
+    monkeypatch.setattr(etfwatch.clock, "today_tw", lambda: today)
+    monkeypatch.setattr(mops, "etf_distributions",
+                        lambda *a, **k: {"0056": {"ex_date": "2026-07-16", "amount": 0.80}})
+    by = {i["code"]: i for i in etfwatch.fetch()["items"]}
+    assert by["0056"]["est_div"] == 0.80 and by["0056"]["est_div_date"] == "2026-07-16"
+    assert by["00929"].get("est_div") is None            # MOPS 無公告者不填
+
+
 def _dense_series(last: date, n: int, base: float, step: float) -> dict:
     """造 n 個連續日曆日的密收盤序列（測試用；週末也放值，_ret 取 <=target 最後一筆即可）。"""
     return {(last - timedelta(days=i)).isoformat(): base + step * (n - i) for i in range(n)}
@@ -108,7 +136,7 @@ def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
     monkeypatch.setattr(etfwatch, "_finmind_series", lambda code, today: {})
     monkeypatch.setattr(etfwatch, "_twse_series", lambda code, today: {})
     r = etfwatch._fetch_returns("0056", today=date(2026, 7, 6))
-    assert r == {"ret_1w": None, "ret_1m": None, "perf_date": None}
+    assert r == {"ret_1w": None, "ret_1m": None, "perf_date": None, "ret_src": None}
 
 
 # ── 追蹤清單與種子落檔（repo 內真實檔） ───────────────────────
@@ -165,9 +193,11 @@ def _boom(*a, **k):
 
 
 def _down_both(monkeypatch):
-    """兩來源皆不可達（etfinfo 規模／殖利率 ＋ TWSE 報酬）。"""
+    """所有外部來源皆不可達（etfinfo 規模／殖利率 ＋ 報酬 ＋ MOPS 預估）。"""
+    import arm.connectors.mops as mops
     monkeypatch.setattr(etfwatch, "_fetch_market", _boom)
     monkeypatch.setattr(etfwatch, "_fetch_returns", _boom)
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
 
 
 def test_fetch_falls_back_to_seed_when_source_down_and_no_file(monkeypatch):
@@ -217,9 +247,11 @@ def test_dashboard_has_etf_tab_and_tables():
     assert "tw.stock.yahoo.com/quote/0056" in html      # 每列代碼可點對照
     assert "etfinfo.tw" in html and "twse.com.tw" in html
     assert "stock-day" in html                          # TWSE 官方每日收盤（報酬來源）
-    # 新增欄位：最新收盤價、最近一次配息（含預估*說明）
+    # 新增欄位：最新收盤價、最近一次配息（含預估*說明）、報酬來源
     assert "最新收盤價" in html and "最近一次配息" in html
     assert "預計配息金額" in html                        # 預估配息 * 的註腳說明
+    assert "報酬來源" in html and "rsrc" in html         # 報酬來源欄（追查每檔用哪個源）
+    assert "mops.twse.com.tw" in html                    # 預估配息來源 MOPS 連結
 
 
 def test_div_cell_shows_estimate_with_asterisk():
