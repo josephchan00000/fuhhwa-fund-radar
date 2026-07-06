@@ -352,9 +352,12 @@ def _macro_cal_view(cal: dict | None) -> str:
 # ── ETF 數據追蹤（第四分頁：被動／主動台股 ETF 週績效表） ─────────
 
 _ETF_COLS = [("close_px", "最新收盤價"), ("aum_e8", "規模(億)"), ("inception", "成立日期"),
-             ("ret_1w", "過去一週報酬"), ("ret_1m", "過去一月報酬"),
+             ("ret_1w", "過去一週報酬"), ("ret_1m", "過去一月報酬"), ("ret_src", "報酬來源"),
              ("last_div", "最近一次配息"), ("yield_pct", "配息殖利率"),
              ("freq", "收益分配頻率")]
+
+# 報酬來源代碼 → 顯示名（供「報酬來源」欄追查每檔用了哪個源）
+_RET_SRC_LABEL = {"yahoo": "Yahoo", "finmind": "FinMind", "twse": "TWSE", "seed": "底稿"}
 
 
 def _etf_sortv(k: str, i: dict):
@@ -364,6 +367,8 @@ def _etf_sortv(k: str, i: dict):
         return int(f"{m.group(1)}{int(m.group(2)):02d}{int(m.group(3)):02d}") if m else None
     if k == "freq":
         return {"月配": 1, "季配": 3, "半年配": 6, "年配": 12}.get(i.get("freq") or "")
+    if k == "ret_src":
+        return {"yahoo": 3, "finmind": 2, "twse": 1, "seed": 0}.get(i.get("ret_src") or "seed")
     return i.get(k)
 
 
@@ -408,6 +413,10 @@ def _etf_table(items: list[dict]) -> str:
                 cell = f"{v:,.2f}" if v is not None else '<span class="na">—</span>'
             elif k == "close_px":
                 cell = _fmt_num(v, 2)
+            elif k == "ret_src":
+                lab = _RET_SRC_LABEL.get(i.get("ret_src") or "seed", "—")
+                sc = "seed" if (i.get("ret_src") or "seed") == "seed" else "live"
+                cell = f'<span class="rsrc {sc}">{_esc(lab)}</span>'
             elif k == "last_div":
                 cell = _div_cell(i)
             elif k == "yield_pct":
@@ -456,7 +465,10 @@ def _etfwatch_view(doc: dict | None) -> str:
         '<a href="https://www.twse.com.tw/zh/trading/historical/stock-day.html" target="_blank" '
         'rel="noopener">TWSE 官方</a>依序自算（以最新交易日收盤對回推 7／30 日曆日前最後交易日計算）；'
         '每列<b>代碼可點</b>開 <a href="https://tw.stock.yahoo.com/class/etf" target="_blank" '
-        'rel="noopener">Yahoo奇摩股市</a>個股頁對照（報酬同源、數字可對得上）。<br>'
+        'rel="noopener">Yahoo奇摩股市</a>個股頁對照（報酬同源、數字可對得上）；'
+        '<b>報酬來源</b>欄標示每檔報酬實際取自哪個源（Yahoo／FinMind／TWSE／底稿）供追查。'
+        '當月預估配息 ← <a href="https://mops.twse.com.tw" target="_blank" rel="noopener">'
+        'MOPS 公開資訊觀測站</a>。<br>'
         f'　資料時間：規模／配息殖利率抓取基準 {_esc(doc.get("as_of") or "—")}；'
         f'過去一週／一月報酬基準 {_esc(doc.get("perf_asof") or "—")}'
         '（成立日期為固定值；來源當日未更新時沿用最近可得值並標明基準日）・'
@@ -957,6 +969,9 @@ a.tk:hover{color:var(--acc)}
 .etfnote{color:var(--mut);font-size:12.5px;margin-top:12px;line-height:1.8;border-top:1px solid var(--line);padding-top:8px}
 .estdiv{display:inline-block;font-size:11.5px;color:#8a5410;background:rgba(200,118,15,.12);border:1px solid rgba(200,118,15,.4);border-radius:6px;padding:0 6px;white-space:nowrap}
 .estdiv sup{font-weight:800}
+.rsrc{display:inline-block;font-size:11px;padding:0 6px;border-radius:5px;border:1px solid}
+.rsrc.live{color:var(--accd);background:rgba(47,111,208,.08);border-color:rgba(47,111,208,.35)}
+.rsrc.seed{color:var(--mut);background:rgba(138,127,107,.1);border-color:rgba(138,127,107,.3)}
 /* ⑤ details */
 #details{padding:12px 18px}
 #details .st{margin-bottom:0}

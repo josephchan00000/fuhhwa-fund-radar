@@ -303,15 +303,17 @@ def _fetch_returns(code: str, today: date | None = None) -> dict:
     """過去一週／一月報酬 —— 多來源、單檔單請求優先，取第一個「歷史足夠密」的序列。
 
     來源順序（皆可人工核對）：Yahoo 還原收盤（總報酬口徑，與逐檔連結同源）→ FinMind →
-    TWSE 官方。任一給出密序列即用；全失敗回 None（上層退回週報底稿並標基準日）。"""
+    TWSE 官方。任一給出密序列即用（回傳 ret_src 供追查）；全失敗回 None（上層退回底稿）。"""
     today = today or clock.today_tw()
-    for series in (_yahoo_series(code), _finmind_series(code, today),
-                   _twse_series(code, today)):
+    for src, series in (("yahoo", _yahoo_series(code)),
+                        ("finmind", _finmind_series(code, today)),
+                        ("twse", _twse_series(code, today))):
         if len(series) >= 5:                         # 至少 ~1 週交易日才視為可用序列
             r = _returns_from_series(series)
             if r["ret_1w"] is not None or r["ret_1m"] is not None:
+                r["ret_src"] = src
                 return r
-    return {"ret_1w": None, "ret_1m": None, "perf_date": None}
+    return {"ret_1w": None, "ret_1m": None, "perf_date": None, "ret_src": None}
 
 
 def _pick(old: dict, base: dict, key: str):
@@ -330,7 +332,14 @@ def fetch() -> dict:
     成立日期一律取 WATCHLIST 靜態值（永不空白）。抓不到的欄位絕不留空／不洗成 null。
     """
     prev = {i.get("code"): i for i in (load() or {}).get("items", [])}
-    items, got_mkt, got_ret = [], 0, 0
+    today = clock.today_tw()
+    try:                                                  # 當月預估配息 ← MOPS（一次抓全 ETF）
+        from .connectors import mops
+        mops_dist = mops.etf_distributions({c for c, *_ in WATCHLIST})
+    except Exception as e:
+        print(f"  ⚠ MOPS 收益分配抓取失敗（預估配息欄留空）：{e}")
+        mops_dist = {}
+    items, got_mkt, got_ret, got_est = [], 0, 0, 0
     for code, name, kind, cat, inception in WATCHLIST:
         old = prev.get(code) or {}
         base = SEED_PERF.get(code, {})
@@ -348,6 +357,7 @@ def fetch() -> dict:
                 "freq": _pick(old, base, "freq"),
                 "as_of": old.get("as_of"),
                 "perf_asof": old.get("perf_asof") or SEED_ASOF,  # 報酬數據基準日
+                "ret_src": old.get("ret_src") or "seed",         # 報酬來源（yahoo/finmind/twse/seed）
                 "src": old.get("src") or "seed"}
         # ① 規模／收盤價／配息（實際＋預估）／殖利率／頻率 ← etfinfo
         try:
@@ -377,20 +387,37 @@ def fetch() -> dict:
                 item["ret_1m"] = r["ret_1m"]
             if (r.get("ret_1w") is not None or r.get("ret_1m") is not None) and r.get("perf_date"):
                 item["perf_asof"] = str(r["perf_date"])[:10]     # 報酬有更新才推進基準日
+                item["ret_src"] = r.get("ret_src")               # 報酬取自哪個來源（追查用）
                 got_ret += 1
         except Exception as e:
-            print(f"  ⚠ {code} 報酬（TWSE）抓取失敗（沿用既有值／週報底稿）：{e}")
+            print(f"  ⚠ {code} 報酬抓取失敗（沿用既有值／週報底稿）：{e}")
+
+        # ③ 當月預估配息 ← MOPS（etfinfo 未揭露預告時補；僅取本月、尚未除息的公告）
+        if item.get("est_div") is None:
+            md = mops_dist.get(code) or {}
+            ex = md.get("ex_date")
+            try:
+                exd = date.fromisoformat(ex) if ex else None
+            except ValueError:
+                exd = None
+            if (exd and exd.year == today.year and exd.month == today.month
+                    and exd >= today and md.get("amount") is not None):
+                item["est_div"] = md["amount"]
+                item["est_div_date"] = ex
+                item["est_src"] = "mops"
+                got_est += 1
 
         items.append(item)
     got = got_mkt + got_ret
     as_of = max((i.get("as_of") or "" for i in items), default="") or \
         (load() or {}).get("as_of") or clock.today_tw().isoformat()
+    est_note = f"；當月預估配息 ← MOPS 公開資訊觀測站（{got_est} 檔）" if got_est else ""
     if got_ret:
         src_note = ("規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤"
-                    "（總報酬口徑）／FinMind／TWSE 官方自算。正式對外前以各投信官網核對")
+                    f"（總報酬口徑）／FinMind／TWSE 官方自算{est_note}。正式對外前以各投信官網核對")
     elif got_mkt:
         src_note = ("規模／配息殖利率 ← etfinfo.tw（Tier B）；報酬沿用最近可得週報底稿"
-                    "（報酬來源本次不可達）。正式對外前以各投信官網核對")
+                    f"（報酬來源本次不可達）{est_note}。正式對外前以各投信官網核對")
     else:
         src_note = "沿用既有落檔／週報底稿（本次來源皆不可達）"
     return {
