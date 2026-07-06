@@ -304,6 +304,19 @@ def _news_view(md: str, empty_hint: str,
 _CAL_REGION_CLS = {"美": "us", "歐": "eu", "中": "cn", "日": "jp"}
 
 
+def _cal_cons_cell(cons) -> str:
+    """預期欄：值尾標『*』者＝市場共識預估（非官方），把 * 轉成橘色上標＋提示，
+    其餘照原樣顯示；空值／— 顯示灰 —。"""
+    s = str(cons or "").strip()
+    if not s or s == "—":
+        return '<span class="na">—</span>'
+    if s.endswith("*"):
+        base = s[:-1].strip()
+        tip = "市場共識預估值（非官方，來源見該列說明），實際以官方公布為準"
+        return f'{_esc(base)}<sup class="estmk" title="{_esc(tip)}">*</sup>'
+    return _esc(s)
+
+
 def _cal_rows_html(rows: list[dict], with_region: bool) -> str:
     """行事曆列 → <tr>…；with_region＝在項目前掛地區小徽章（財報子表免掛）。"""
     trs = []
@@ -319,7 +332,7 @@ def _cal_rows_html(rows: list[dict], with_region: bool) -> str:
         trs.append(
             f'<tr class="cr-{cls}"><td class="cd">{_esc(r.get("date"))}</td>'
             f'<td class="ci">{reg_html}{_esc(r.get("item"))}</td>'
-            f'<td>{_esc(r.get("cons"))}</td><td class="cav">{actual}</td>'
+            f'<td>{_cal_cons_cell(r.get("cons"))}</td><td class="cav">{actual}</td>'
             f'<td class="cpv">{_esc(r.get("prev"))}</td>'
             f'<td><span class="cst {cls}">{badge}</span></td></tr>')
     return "".join(trs)
@@ -346,6 +359,11 @@ def _macro_cal_view(cal: dict | None) -> str:
     if earn_rows:
         html += ('<div class="calsub">📊 重要財報／法說</div>'
                  + _cal_table_html(earn_rows, with_region=False))
+    if any(str(r.get("cons") or "").strip().endswith("*") for r in cal["rows"]):
+        html += ('<div class="calfoot">預期欄標 <sup class="estmk">*</sup> 者為'
+                 '<b>市場共識預估值</b>（取自 Trading Economics／Investing.com 等第三方彙整之'
+                 '經濟學家共識，非官方數據）；未標星者為官方前瞻或已知初值，「—」為查無一致共識'
+                 '或屬會議／談話等無預期值項目。實際數據一律以官方公布為準。</div>')
     return html
 
 
@@ -415,8 +433,6 @@ def _etf_table(items: list[dict]) -> str:
     """單組 ETF 表（沿用 ovtbl 樣式與點欄排序）；復華自家檔整列高亮＋標章。"""
     trs = []
     for i in items:
-        mine = "復華" in (i.get("name") or "")
-        pill = '<span class="minepill">復華</span>' if mine else ""
         code = i.get("code")
         # 代碼可點 → Yahoo奇摩股市個股頁（可對照驗證）。報酬來源＝yahoo 時與此連結同源、不另標；
         # 其餘來源（stooq/FinMind/TWSE）於代碼旁掛小標，讓使用者知道報酬取自別處。
@@ -425,10 +441,12 @@ def _etf_table(items: list[dict]) -> str:
         srctag = (f'<span class="rsrc" title="過去一週／一月報酬取自此來源自算">'
                   f'{_esc(_RET_SRC_LABEL[rsrc])}</span>'
                   if rsrc in _RET_SRC_LABEL else "")
+        # 產品名內「復華」以品牌色標示（不再用整列高亮／徽章）；代碼自成一行，避免名稱首字被擠上代碼列
+        name_html = _esc(i.get("name") or "").replace("復華", '<span class="fh">復華</span>')
         tds = [f'<td class="nm"><span class="etcat">{_esc(i.get("cat") or "—")}</span></td>',
-               f'<td class="nm"><a href="{vurl}" target="_blank" rel="noopener" '
-               f'title="點開 Yahoo奇摩股市對照驗證"><b>{_esc(code)}</b></a>　'
-               f'{_esc(i.get("name"))}{pill}{srctag}</td>']
+               f'<td class="nm"><a class="etcode" href="{vurl}" target="_blank" rel="noopener" '
+               f'title="點開 Yahoo奇摩股市對照驗證"><b>{_esc(code)}</b></a>'
+               f'<span class="etname">{name_html}{srctag}</span></td>']
         for k, _ in _ETF_COLS:
             v = _etf_sortv(k, i)
             if k in ("ret_1w", "ret_1m"):
@@ -451,8 +469,7 @@ def _etf_table(items: list[dict]) -> str:
             else:
                 cell = _esc(i.get(k)) if i.get(k) else '<span class="na">—</span>'
             tds.append(f'<td data-v="{v if v is not None else ""}">{cell}</td>')
-        trcls = ' class="mine"' if mine else ""
-        trs.append(f'<tr{trcls}>{"".join(tds)}</tr>')
+        trs.append(f'<tr>{"".join(tds)}</tr>')
     ths = "".join(f'<th class="sk" data-k="{k}" title="點擊排序">{lab}<span class="arr"></span></th>'
                   for k, lab in _ETF_COLS)
     return (f'<div class="ovwrap"><table class="ovtbl etftbl">'
@@ -915,9 +932,11 @@ a.tk:hover{color:var(--acc)}
 .ovtbl tr:hover td{background:rgba(47,111,208,.06)}
 /* ETF 表：只凍結「代碼／名稱」一欄（識別欄），手機橫向捲動時恆可見；
    性質欄隨捲動移出（分兩張表已按性質分組，捲動時不需重複顯示），省空間好閱讀 */
-.etftbl td:nth-child(2),.etftbl th:nth-child(2){position:sticky;left:0;z-index:2;background:var(--card);max-width:128px;white-space:normal;box-shadow:1px 0 0 var(--line)}
+.etftbl td:nth-child(2),.etftbl th:nth-child(2){position:sticky;left:0;z-index:2;background:var(--card);min-width:92px;max-width:128px;white-space:normal;box-shadow:1px 0 0 var(--line)}
 .etftbl thead th:nth-child(2){z-index:3}
-.etftbl tr.mine td:nth-child(2){background:#faefdc}
+.etftbl .etcode{display:block}                 /* 代碼自成一行，名稱從下一行整段起，避免首字被擠上代碼列 */
+.etftbl .etname{display:block;line-height:1.35} /* 名稱整段換行 */
+.etftbl .fh{color:var(--gold);font-weight:800} /* 產品名內「復華」以品牌色標示 */
 .pend{display:inline-block;font-size:11.5px;color:var(--gold);border:1px solid rgba(200,134,15,.5);border-radius:10px;padding:0 7px;margin-left:6px;vertical-align:1px}
 .pendhint{background:rgba(200,134,15,.1);border:1px solid rgba(200,134,15,.35);border-radius:10px;padding:9px 13px;font-size:13.5px;color:#8a6a2e;margin-bottom:10px}
 /* news full（收合） */
@@ -996,9 +1015,6 @@ a.tk:hover{color:var(--acc)}
 .calsub{margin:16px 0 6px;font-size:14px;font-weight:800;color:var(--ink);padding-left:9px;border-left:4px solid #2f9d57}
 .chip.halt{color:#8a5410;background:rgba(200,118,15,.12);border-color:rgba(200,118,15,.5);font-weight:700}
 /* ETF 數據追蹤 */
-.ovtbl tr.mine td{background:rgba(224,138,18,.1)}
-.ovtbl tr.mine:hover td{background:rgba(224,138,18,.16)}
-.minepill{display:inline-block;font-size:11px;font-weight:700;color:var(--gold);border:1px solid rgba(200,134,15,.5);border-radius:10px;padding:0 7px;margin-left:6px;vertical-align:1px;white-space:nowrap}
 .etcat{display:inline-block;white-space:nowrap;font-size:11px;color:var(--accd);border:1px solid rgba(47,111,208,.35);background:rgba(47,111,208,.08);border-radius:5px;padding:0 6px}
 .etfnote{color:var(--mut);font-size:12.5px;margin-top:12px;line-height:1.8;border-top:1px solid var(--line);padding-top:8px}
 .estdiv{display:inline-block;font-size:11.5px;color:#8a5410;background:rgba(200,118,15,.12);border:1px solid rgba(200,118,15,.4);border-radius:6px;padding:0 6px;white-space:nowrap}

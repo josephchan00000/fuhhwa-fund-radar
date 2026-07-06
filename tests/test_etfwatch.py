@@ -327,8 +327,9 @@ def test_dashboard_has_etf_tab_and_tables():
     assert 'id="etfwatch"' in html and "ETF 數據追蹤" in html
     assert 'id="etf-passive"' in html and 'id="etf-active"' in html
     assert "00919" in html and "主動中信台灣卓越" in html
-    assert html.count('class="mine"') >= 2              # 00929＋00991A 本家高亮
-    assert "minepill" in html
+    # 本家不再整列高亮／掛徽章，改在產品名內把「復華」標品牌色（00929＋00991A 至少 2 處）
+    assert 'class="mine"' not in html and "minepill" not in html
+    assert html.count('<span class="fh">復華</span>') >= 2
     assert "非投資建議" in html
     # 成立日期不空白（靜態值直接進表）＋殖利率缺值顯示「尚無配息」而非 bare「—」
     assert "2007/12/13" in html and "2025/12/09" in html
