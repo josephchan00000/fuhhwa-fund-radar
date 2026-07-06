@@ -224,11 +224,13 @@ def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
 
 def test_watchlist_matches_weekly_report():
     codes = [c for c, *_ in etfwatch.WATCHLIST]
-    assert len(codes) == len(set(codes)) == 17
+    assert len(codes) == len(set(codes)) == 21
     passive = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "passive"]
     active = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "active"]
     assert set(passive) == {"0056", "00878", "00919", "00929", "0050", "006208"}
-    assert "00991A" in active and len(active) == 11    # 含本家主動復華未來50
+    assert "00991A" in active and len(active) == 15    # 含本家主動復華未來50＋2026-07 新增 4 檔
+    # 2026-07-06 新增熱門／新募集主動式 ETF 皆在清單中
+    assert {"00988A", "00990A", "00403A", "00407A"} <= set(active)
     # 成立日期為 WATCHLIST 靜態值（不需抓、永不空白）
     for c, name, kind, cat, inception in etfwatch.WATCHLIST:
         assert inception and inception.count("/") == 2
@@ -238,6 +240,8 @@ def test_seed_perf_covers_every_watchlist_code():
     # 內建週報底稿要涵蓋每一檔（來源全倒時的最後 fallback，避免整片留空）
     assert set(etfwatch.SEED_PERF) == {c for c, *_ in etfwatch.WATCHLIST}
     for code, base in etfwatch.SEED_PERF.items():
+        if code in etfwatch._SEED_PENDING:              # 新增檔待 CI 首抓，報酬暫留空（不杜撰）
+            continue
         assert base.get("ret_1w") is not None and base.get("ret_1m") is not None
 
 
@@ -249,7 +253,10 @@ def test_seed_file_loads_and_covers_watchlist():
     # 每檔的成立日期／週報酬／月報酬／規模一律有值（不再整片留空）；
     # 不斷言確切報酬數字——那些會被 CI 以最新市場資料更新，只驗「完整且合理」。
     for i in doc["items"]:
-        assert i.get("inception") and i.get("ret_1w") is not None
+        assert i.get("inception")                        # 成立日期一律有值
+        if i["code"] in etfwatch._SEED_PENDING:          # 新增檔待 CI 首抓，報酬／規模可暫留空
+            continue
+        assert i.get("ret_1w") is not None
         assert i.get("ret_1m") is not None and i.get("aum_e8") is not None
         assert -50 < i["ret_1w"] < 50 and -80 < i["ret_1m"] < 80   # 合理範圍防呆
     assert by_code["0056"]["freq"] == "季配" and by_code["00929"]["freq"] == "月配"
@@ -291,8 +298,11 @@ def test_fetch_falls_back_to_seed_when_source_down_and_no_file(monkeypatch):
     assert by_code["00929"]["inception"] == "2023/06/01"     # 靜態成立日
     assert doc["perf_asof"] == etfwatch.SEED_ASOF
     assert not etfwatch.is_empty(doc) and "不可達" in doc["source"]
-    for i in doc["items"]:                                    # 無一欄位留空
-        assert i.get("inception") and i.get("ret_1w") is not None and i.get("aum_e8") is not None
+    for i in doc["items"]:                                    # 除新增待抓檔外，無一欄位留空
+        assert i.get("inception")
+        if i["code"] in etfwatch._SEED_PENDING:
+            continue
+        assert i.get("ret_1w") is not None and i.get("aum_e8") is not None
 
 
 def test_fetch_does_not_wipe_existing_values_with_nulls(monkeypatch):
