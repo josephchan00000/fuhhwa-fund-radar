@@ -121,8 +121,9 @@ def test_returns_guard_suppresses_sparse_series():
 
 
 def test_fetch_returns_prefers_first_dense_source(monkeypatch):
-    # 來源順序：Yahoo → FinMind → TWSE，取第一個「夠密」者
+    # 來源順序：stooq → Yahoo → FinMind → TWSE，取第一個「乾淨且夠密」者
     dense = _dense_series(date(2026, 7, 6), 40, 20.0, 0.1)
+    monkeypatch.setattr(etfwatch, "_stooq_series", lambda code: {})          # stooq 空
     monkeypatch.setattr(etfwatch, "_yahoo_series", lambda code: {})          # Yahoo 空
     monkeypatch.setattr(etfwatch, "_finmind_series", lambda code, today: dense)  # FinMind 命中
     monkeypatch.setattr(etfwatch, "_twse_series", lambda code, today: {})
@@ -131,18 +132,22 @@ def test_fetch_returns_prefers_first_dense_source(monkeypatch):
     assert r["perf_date"] == "2026-07-06" and r["ret_src"] == "finmind" and r["ret_n"] == 40
 
 
-def test_fetch_returns_skips_sparse_yahoo_for_dense_finmind(monkeypatch):
-    # 稀疏 Yahoo（會把 1 個月基準算錯）→ 跳過，改用密 FinMind（修 0056 類錯值的核心）
-    sparse = {"2026-06-05": 48.0, "2026-06-30": 50.0, "2026-07-06": 53.0}   # 3 點，<25
-    dense = _dense_series(date(2026, 7, 6), 40, 48.0, 0.13)
-    monkeypatch.setattr(etfwatch, "_yahoo_series", lambda code: sparse)
-    monkeypatch.setattr(etfwatch, "_finmind_series", lambda code, today: dense)
+def test_fetch_returns_skips_degenerate_series(monkeypatch):
+    # 髒序列（多日同一收盤，如 Yahoo 對 0056 回 51.8）→ 跳過，改用乾淨 stooq
+    degen = {(date(2026, 7, 6) - timedelta(days=i)).isoformat(): 51.8 for i in range(40)}
+    degen[date(2026, 7, 6).isoformat()] = 53.25          # 只有最新不同 → 相異值極少
+    clean = _dense_series(date(2026, 7, 6), 40, 48.0, 0.13)
+    monkeypatch.setattr(etfwatch, "_stooq_series", lambda code: clean)   # stooq 乾淨、先採用
+    monkeypatch.setattr(etfwatch, "_yahoo_series", lambda code: degen)
+    monkeypatch.setattr(etfwatch, "_finmind_series", lambda code, today: {})
     monkeypatch.setattr(etfwatch, "_twse_series", lambda code, today: {})
+    assert etfwatch._is_degenerate(degen) is True
     r = etfwatch._fetch_returns("0056", today=date(2026, 7, 6))
-    assert r["ret_src"] == "finmind" and r["ret_n"] == 40      # 稀疏 Yahoo 被略過
+    assert r["ret_src"] == "stooq" and r["ret_1w"] != r["ret_1m"]   # 乾淨源、週≠月
 
 
 def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
+    monkeypatch.setattr(etfwatch, "_stooq_series", lambda code: {})
     monkeypatch.setattr(etfwatch, "_yahoo_series", lambda code: {})
     monkeypatch.setattr(etfwatch, "_finmind_series", lambda code, today: {})
     monkeypatch.setattr(etfwatch, "_twse_series", lambda code, today: {})
