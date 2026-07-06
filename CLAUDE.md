@@ -2,15 +2,19 @@
 
 ## 指令：「全部更新」／「資料更新」
 
-使用者只要打**「全部更新」**（或「資料更新」），第一時間直接執行完整每日更新流程，不要再詢問：
+使用者只要打**「全部更新」**（或「資料更新」），第一時間直接執行，不要再詢問。
 
-1. **抓資料**（失敗照防呆規則降級，勿中斷）：
-   - `TZ=Asia/Taipei python3 scripts/fetch_holdings.py`（NAV／持股快照）
-   - `TZ=Asia/Taipei python3 scripts/fetch_fund_news.py`（基金新聞・社群）
-   - `TZ=Asia/Taipei python3 scripts/fetch_etf_watch.py`（ETF 數據追蹤分頁；etfinfo.tw 被 proxy 擋時
-     自動沿用既有 `data/etf_watch.json`，CI 會補抓）
-2. **產提示包**：`TZ=Asia/Taipei python3 scripts/gen_usnews.py && TZ=Asia/Taipei python3 scripts/gen_twnews.py && TZ=Asia/Taipei python3 scripts/gen_macronews.py`
-3. **上網查證產新聞內容**（純 Python 不杜撰新聞，此步由 Claude 用 WebSearch 補；可派平行子代理，各自嚴守提示包版型）：
+> **效率原則（2026-07 檢討，務必遵守——這是本流程最重要的一條）**：本 Claude 容器 proxy 會擋掉**所有**
+> 資料來源站（`fhtrust.com.tw` 403、`etfinfo.tw` 403、Google News、PTT），所以在這裡跑
+> `fetch_holdings.py`／`fetch_fund_news.py`／`fetch_etf_watch.py` **注定失敗或卡到逾時**
+> （實測 `fetch_etf_watch.py` 在此**空轉逾 20 分鐘**、`fetch_holdings.py` 25 檔全 403）——那不是程式 bug，
+> 是環境限制，正式區完全不會發生。這三支抓取「正式區」（`daily.yml` GitHub Actions，擁有者身分、完整網路）
+> **本來就會自己跑**。**因此在這裡「絕不」跑資料抓取腳本**——只做「只有 Claude 能做」的事（WebSearch 產新聞
+> 內容），把資料抓取＋權威版儀表板整包丟給正式區，最後用**線上頁截圖**驗證。這樣可省下每次約 25 分鐘的空轉。
+
+1. **產提示包**（本地、秒級，是 WebSearch 的輸入，**要跑**）：
+   `TZ=Asia/Taipei python3 scripts/gen_usnews.py && TZ=Asia/Taipei python3 scripts/gen_twnews.py && TZ=Asia/Taipei python3 scripts/gen_macronews.py`
+2. **上網查證產新聞內容**（**Claude 專屬、不可省、~10 分**；純 Python 不杜撰新聞，此步用 WebSearch 補；可派平行子代理，各自嚴守提示包版型）：
    - `reports/usnews/{今日}_v1.md`、`_v2.md`（昨夜美股；先查證美股當日是否休市）
    - `reports/twnews/{今日}.md`（台股；週末/休市日改寫最近交易日並註明）
    - `reports/macronews/{今日}.md`、`reports/macrocal/{今日}.md`（總經政策＋本週行事曆；
@@ -21,16 +25,21 @@
    - **深度報告精選保底 1 篇**（台股與美股報告各自保底；標題括注用【深度】）：台股從經濟日報／
      工商時報／中央社專題／財訊・今周刊挑；美股從富途牛牛深度文、Reuters Analysis／Bloomberg
      深度專題挑。只挑真深度（產業鏈拆解/商業模式/政策影響），當日不足放寬到近 3 天並註明刊出日。
-4. **合規掃描**：`gen_usnews.py --check`、`gen_twnews.py --check`、`gen_macronews.py --check` 全須 🟢。
-5. **重建儀表板**：`TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py`，並確認「🕒 資料更新時間」區塊各欄位已更新。
-6. **測試**：`python3 -m pytest -q` 全綠。
-7. **commit＋push** 到本次會話指定分支（訊息用 `chore: 每日持股介紹／新聞更新 {日期}` 或依變更內容）。
-8. **合併上線（使用者已預先授權，不必再問）**：開 PR 後**立即 merge 進 main**——「全部更新」的完成定義是
-   **網頁（Vercel）真的更新**，不是只開 PR。merge 前先把 main 併進分支解衝突（`dashboard/index.html`
-   衝突一律重跑 `gen_fund_dashboard.py` 重產解決）。
-9. **確認部署**：Vercel 跟著 main 自動部署；為保險起見（bot 身分的 merge commit 可能不觸發 Vercel），
-   merge 後手動觸發一次 `daily.yml` 的 `workflow_dispatch`——CI 會以擁有者身分 commit 重產的儀表板，
-   確保 Vercel 一定部署最新版。
+3. **合規掃描**：`gen_usnews.py --check`、`gen_twnews.py --check`、`gen_macronews.py --check` 全須 🟢。
+4. **重建儀表板**（本地、秒級，只為讓分支自洽＋確認新聞入板；**不需先抓資料**）：
+   `TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py`，確認「🕒 資料更新時間」區塊**新聞欄位**已更新至今日。
+   （NAV／持股／ETF／基金新聞欄位會沿用既有快照顯示舊日期——**正常**，正式區稍後會用新資料重產覆蓋。）
+5. **測試**：`python3 -m pytest -q` 全綠（此容器預設無 pytest，先 `pip install -q pytest`）。
+6. **commit＋push** 到本次會話指定分支：只帶「**新聞報告＋儀表板**」（`data/*` 被擋未更新、不會有 diff，不必也不要硬塞）。訊息用 `chore: 每日新聞更新 {日期}`。
+7. **merge 進 main（使用者已預先授權，不必再問）**：開 PR 後**立即 merge**。merge 前先把 main 併進分支解衝突（`dashboard/index.html` 衝突一律重跑 `gen_fund_dashboard.py` 重產解決）。
+8. **觸發正式區抓真實資料＋部署**：手動觸發 `daily.yml` 的 `workflow_dispatch`（`ref=main`，用 `mcp__github__actions_run_trigger`）。
+   CI 會抓**真實** NAV／持股／ETF／基金新聞＋重建儀表板＋以擁有者身分 commit → Vercel 部署。**這步才會補齊此容器抓不到的資料**（bot 身分的 merge commit 可能不觸發 Vercel，故此步同時保險）。
+9. **截圖驗證線上頁（「全部更新」的完成定義＝網頁真的更新）**：等 CI + Vercel 部署完（約數分鐘），用
+   Playwright/Chromium 開 **Vercel 線上網址**截圖，確認新聞日期、🕒 鮮度區塊、ETF 表都是今日版。
+   - **Vercel 線上網址**：`____待使用者提供一次後填此____`（曾測預設網域 `fuhhwa-fund-radar.vercel.app` 回 403，
+     可能有 Vercel 部署保護或非此網域）。填入後永久沿用。
+   - 若線上網址被 proxy 擋或需登入而無法截圖：退回用 `mcp__github__actions_*` 確認該次 `daily.yml` run
+     成功結束（`success`）＋ 該 run 的 commit 已含今日儀表板，作為完成證明。
 
 ## 已知環境限制與防呆（曾踩過的坑，不要再犯）
 
@@ -43,6 +52,10 @@
     **絕不可把非空的 `data/fund_news.json` 覆寫成全空**；若已誤覆寫，`git checkout -- data/fund_news.json` 還原。
   - NAV／持股快照抓不到就沿用既有快照，GitHub Actions（台北週一~六 06:50）會自動補抓。
   - 新聞查證用 WebSearch（伺服器端、不受 proxy 擋）；WebFetch 個別站點被擋就改用搜尋結果摘要。
+  - **`fetch_etf_watch.py` 在此容器會「空轉逾時」而非快速失敗**（2026-07 踩坑）：etfinfo.tw 403 之外，
+    報酬還逐檔對 stooq／yahoo／finmind／twse 各發請求，每請求 `timeout=25s`×retries、21 檔×4 源被擋時
+    會累積卡 **20+ 分鐘**純空轉。**對策：依上方「效率原則」根本不要在此容器跑這三支抓取腳本**——一律交給
+    正式區 `daily.yml`。若因故非跑不可，務必包 `timeout` 硬性上限（例 `timeout 60 python3 …`）避免空轉。
 - **新聞來源黑名單**：排除「富聯網」（moneylink）。
 - **禁用詞**（正文不得出現，機構觀點也要改寫避開）：保證、穩賺、必賺、包賺、必漲、必跌、一定會、唯一、
   建議買賣、建議買、建議賣、目標價、零風險、無風險、穩賺不賠。
