@@ -913,12 +913,11 @@ a.tk:hover{color:var(--acc)}
 .ovtbl td.nm a:hover{color:var(--acc);text-decoration-color:var(--acc)}
 .ovtbl td.lead{background:rgba(211,58,52,.12);border-radius:4px}
 .ovtbl tr:hover td{background:rgba(47,111,208,.06)}
-/* ETF 表：凍結左側「性質＋代碼／名稱」兩欄，手機橫向捲動時識別欄恆可見 */
-.etftbl td:first-child,.etftbl th:first-child{position:sticky;left:0;z-index:2;background:var(--card);width:56px;min-width:56px}
-.etftbl td:nth-child(2),.etftbl th:nth-child(2){position:sticky;left:56px;z-index:2;background:var(--card);max-width:140px;white-space:normal;box-shadow:1px 0 0 var(--line)}
-.etftbl thead th:first-child,.etftbl thead th:nth-child(2){z-index:3}
-.etftbl tr.mine td:first-child,.etftbl tr.mine td:nth-child(2){background:#faefdc}
-.etftbl .etcat{font-size:10px;padding:0 4px}
+/* ETF 表：只凍結「代碼／名稱」一欄（識別欄），手機橫向捲動時恆可見；
+   性質欄隨捲動移出（分兩張表已按性質分組，捲動時不需重複顯示），省空間好閱讀 */
+.etftbl td:nth-child(2),.etftbl th:nth-child(2){position:sticky;left:0;z-index:2;background:var(--card);max-width:128px;white-space:normal;box-shadow:1px 0 0 var(--line)}
+.etftbl thead th:nth-child(2){z-index:3}
+.etftbl tr.mine td:nth-child(2){background:#faefdc}
 .pend{display:inline-block;font-size:11.5px;color:var(--gold);border:1px solid rgba(200,134,15,.5);border-radius:10px;padding:0 7px;margin-left:6px;vertical-align:1px}
 .pendhint{background:rgba(200,134,15,.1);border:1px solid rgba(200,134,15,.35);border-radius:10px;padding:9px 13px;font-size:13.5px;color:#8a6a2e;margin-bottom:10px}
 /* news full（收合） */
