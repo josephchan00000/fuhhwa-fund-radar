@@ -357,7 +357,8 @@ _ETF_COLS = [("close_px", "最新收盤價"), ("aum_e8", "規模(億)"), ("incep
              ("freq", "收益分配頻率")]
 
 # 報酬來源代碼 → 顯示名（供「報酬來源」欄追查每檔用了哪個源）
-_RET_SRC_LABEL = {"yahoo": "Yahoo", "finmind": "FinMind", "twse": "TWSE", "seed": "底稿"}
+_RET_SRC_LABEL = {"stooq": "stooq", "yahoo": "Yahoo", "finmind": "FinMind",
+                  "twse": "TWSE", "seed": "底稿"}
 
 
 def _etf_sortv(k: str, i: dict):
