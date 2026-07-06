@@ -7,6 +7,8 @@
 1. **抓資料**（失敗照防呆規則降級，勿中斷）：
    - `TZ=Asia/Taipei python3 scripts/fetch_holdings.py`（NAV／持股快照）
    - `TZ=Asia/Taipei python3 scripts/fetch_fund_news.py`（基金新聞・社群）
+   - `TZ=Asia/Taipei python3 scripts/fetch_etf_watch.py`（ETF 數據追蹤分頁；etfinfo.tw 被 proxy 擋時
+     自動沿用既有 `data/etf_watch.json`，CI 會補抓）
 2. **產提示包**：`TZ=Asia/Taipei python3 scripts/gen_usnews.py && TZ=Asia/Taipei python3 scripts/gen_twnews.py && TZ=Asia/Taipei python3 scripts/gen_macronews.py`
 3. **上網查證產新聞內容**（純 Python 不杜撰新聞，此步由 Claude 用 WebSearch 補；可派平行子代理，各自嚴守提示包版型）：
    - `reports/usnews/{今日}_v1.md`、`_v2.md`（昨夜美股；先查證美股當日是否休市）
@@ -48,5 +50,15 @@
 ## 儀表板「🕒 資料更新時間」區塊
 
 `arm/fund_dashboard.py` 的 `_freshness_view()`，顯示各資料來源鮮度（皆台北時間）：
-NAV 日／持股基準（月度）／持股快照抓取／美股新聞／台股新聞／總經・政策／經濟行事曆／基金新聞・社群／儀表板產表。
-新增資料來源時請同步加進此區塊。
+NAV 日／持股基準（月度）／持股快照抓取／美股新聞／台股新聞／總經・政策／經濟行事曆／基金新聞・社群／
+ETF 數據追蹤／儀表板產表。新增資料來源時請同步加進此區塊。
+
+## 「ETF 數據追蹤」分頁（左上第四分頁）
+
+追蹤台股被動 ETF（0056/00878/00919/00929/0050/006208）＋主動式 ETF 11 檔（含本家 00991A；
+00929/00991A 於表中高亮）的規模／成立日期／過去一週・一月報酬／配息殖利率／收益分配頻率；
+**配息殖利率一律用年化配息率**＝最新公布一次的配息金額 ÷ 最新市價 × 配息頻率次數
+（月配×12／季配×4／半年配×2／年配×1），不是 trailingYield 近12月回溯值；
+追蹤清單改 `arm/etfwatch.py` 的 `WATCHLIST` 即可。資料層 `data/etf_watch.json`：
+`scripts/fetch_etf_watch.py` 逐檔「欄位級合併」（本次抓不到的欄位保留既有值、整批全空不覆寫既有非空檔）；
+來源 etfinfo.tw 屬 Tier B，正式對外前以各投信官網核對。

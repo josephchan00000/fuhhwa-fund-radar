@@ -20,7 +20,8 @@ import html
 import re
 from datetime import date
 
-from . import clock, fund_insights, fund_intro, fundnews, macronews, twnews, usnews
+from . import (clock, etfwatch, fund_insights, fund_intro, fundnews, macronews,
+               twnews, usnews)
 
 
 def _esc(s) -> str:
@@ -122,7 +123,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
 <div class="topbar">
   <div class="tb-in">
     <span class="tb-brand">復華基金雷達</span>
-    <span class="mkswitch"><label class="mk" for="mkt-macro">總經</label><label class="mk" for="mkt-tw">台股</label><label class="mk" for="mkt-gl">全球</label></span>
+    <span class="mkswitch"><label class="mk" for="mkt-macro">總經</label><label class="mk" for="mkt-tw">台股</label><label class="mk" for="mkt-gl">全球</label><label class="mk" for="mkt-etf">ETF</label></span>
     <span class="tb-meta">持股基準 {_esc(as_of)}｜產表 {_esc(now)}</span>
     <span class="tb-lamp">{_esc(lamp)}</span>
     <nav class="tb-nav tb-nav-fund">
@@ -133,6 +134,9 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     </nav>
     <nav class="tb-nav tb-nav-macro">
       <a href="#macro-cal">本週行事曆</a><a href="#macro">政策新聞</a>
+    </nav>
+    <nav class="tb-nav tb-nav-etf">
+      <a href="#etf-passive">被動 ETF</a><a href="#etf-active">主動 ETF</a>
     </nav>
     <button class="tb-print" onclick="window.print()">🖨 晨會版</button>
   </div>
@@ -343,6 +347,74 @@ def _macro_cal_view(cal: dict | None) -> str:
         html += ('<div class="calsub">📊 重要財報／法說</div>'
                  + _cal_table_html(earn_rows, with_region=False))
     return html
+
+
+# ── ETF 數據追蹤（第四分頁：被動／主動台股 ETF 週績效表） ─────────
+
+_ETF_COLS = [("aum_e8", "規模(億)"), ("inception", "成立日期"),
+             ("ret_1w", "過去一週報酬"), ("ret_1m", "過去一月報酬"),
+             ("yield_pct", "配息殖利率"), ("freq", "收益分配頻率")]
+
+
+def _etf_sortv(k: str, i: dict):
+    """排序用數值（data-v）：日期轉 YYYYMMDD、頻率轉月數；缺值回 None（沉底）。"""
+    if k == "inception":
+        m = re.match(r"(\d{4})/(\d{1,2})/(\d{1,2})", str(i.get("inception") or ""))
+        return int(f"{m.group(1)}{int(m.group(2)):02d}{int(m.group(3)):02d}") if m else None
+    if k == "freq":
+        return {"月配": 1, "季配": 3, "半年配": 6, "年配": 12}.get(i.get("freq") or "")
+    return i.get(k)
+
+
+def _etf_table(items: list[dict]) -> str:
+    """單組 ETF 表（沿用 ovtbl 樣式與點欄排序）；復華自家檔整列高亮＋標章。"""
+    trs = []
+    for i in items:
+        mine = "復華" in (i.get("name") or "")
+        pill = '<span class="minepill">復華</span>' if mine else ""
+        tds = [f'<td class="nm"><span class="etcat">{_esc(i.get("cat") or "—")}</span></td>',
+               f'<td class="nm"><b>{_esc(i.get("code"))}</b>　{_esc(i.get("name"))}{pill}</td>']
+        for k, _ in _ETF_COLS:
+            v = _etf_sortv(k, i)
+            if k in ("ret_1w", "ret_1m"):
+                cell = _pct_span(v)
+            elif k == "aum_e8":
+                cell = f"{v:,.2f}" if v is not None else '<span class="na">—</span>'
+            elif k == "yield_pct":
+                cell = f"{v:.2f}%" if v is not None else '<span class="na">—</span>'
+            else:
+                cell = _esc(i.get(k)) if i.get(k) else '<span class="na">—</span>'
+            tds.append(f'<td data-v="{v if v is not None else ""}">{cell}</td>')
+        trcls = ' class="mine"' if mine else ""
+        trs.append(f'<tr{trcls}>{"".join(tds)}</tr>')
+    ths = "".join(f'<th class="sk" data-k="{k}" title="點擊排序">{lab}<span class="arr"></span></th>'
+                  for k, lab in _ETF_COLS)
+    return (f'<div class="ovwrap"><table class="ovtbl">'
+            f'<thead><tr><th class="l">性質</th><th class="l">代碼／名稱</th>{ths}</tr></thead>'
+            f'<tbody>{"".join(trs)}</tbody></table></div>')
+
+
+def _etfwatch_view(doc: dict | None) -> str:
+    """ETF 數據追蹤分頁：被動（高股息／市值型）與主動式兩張週績效表。"""
+    if not doc or not doc.get("items"):
+        return ('<div class="muted">尚無 ETF 追蹤資料。請執行 '
+                '<code>python3 scripts/fetch_etf_watch.py</code> 後重產儀表板。</div>')
+    items = doc["items"]
+    passive = [i for i in items if i.get("kind") == "passive"]
+    active = [i for i in items if i.get("kind") == "active"]
+    parts = []
+    if passive:
+        parts.append(f'<div class="ovg" id="etf-passive">🧺 被動 ETF（高股息／市值型・{len(passive)} 檔）</div>'
+                     + _etf_table(passive))
+    if active:
+        parts.append(f'<div class="ovg" id="etf-active">🚀 主動式 ETF（{len(active)} 檔）</div>'
+                     + _etf_table(active))
+    parts.append(f'<div class="etfnote">來源：{_esc(doc.get("source") or "—")}・'
+                 f'資料基準 {_esc(doc.get("as_of") or "—")}・抓取 {_esc(doc.get("fetched_at") or "—")}。'
+                 '報酬為市價週期報酬、配息殖利率為年化配息率（最新一次配息÷最新市價×年配息次數）'
+                 '（Tier B 第三方彙整，正式對外請以各投信官網為準）；'
+                 '僅為資訊彙編、非投資建議，過去績效不代表未來表現。</div>')
+    return "".join(parts)
 
 
 # ── ③ 當日焦點個股（新聞連動） ────────────────────────────────
@@ -648,19 +720,22 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 .mkradio{position:fixed;opacity:0;pointer-events:none}
 #mkt-tw:checked ~ * .mkt[data-mkt="gl"]{display:none}
 #mkt-gl:checked ~ * .mkt[data-mkt="tw"]{display:none}
-/* 三分頁：總經／台股／全球——總經顯示 .macroview、其餘顯示 .fundview */
-#mkt-macro:checked ~ * .fundview{display:none}
-#mkt-tw:checked ~ * .macroview,#mkt-gl:checked ~ * .macroview{display:none}
-/* 導覽子項隨分頁切換：總經頁顯示總經專屬導覽、其餘顯示基金導覽 */
-#mkt-macro:checked ~ .topbar .tb-nav-fund{display:none}
-#mkt-tw:checked ~ .topbar .tb-nav-macro,#mkt-gl:checked ~ .topbar .tb-nav-macro{display:none}
+/* 四分頁：總經／台股／全球／ETF——總經顯示 .macroview、ETF 顯示 .etfview、其餘顯示 .fundview */
+#mkt-macro:checked ~ * .fundview,#mkt-etf:checked ~ * .fundview{display:none}
+#mkt-tw:checked ~ * .macroview,#mkt-gl:checked ~ * .macroview,#mkt-etf:checked ~ * .macroview{display:none}
+#mkt-macro:checked ~ * .etfview,#mkt-tw:checked ~ * .etfview,#mkt-gl:checked ~ * .etfview{display:none}
+/* 導覽子項隨分頁切換：各分頁顯示各自專屬導覽 */
+#mkt-macro:checked ~ .topbar .tb-nav-fund,#mkt-etf:checked ~ .topbar .tb-nav-fund{display:none}
+#mkt-tw:checked ~ .topbar .tb-nav-macro,#mkt-gl:checked ~ .topbar .tb-nav-macro,#mkt-etf:checked ~ .topbar .tb-nav-macro{display:none}
+#mkt-macro:checked ~ .topbar .tb-nav-etf,#mkt-tw:checked ~ .topbar .tb-nav-etf,#mkt-gl:checked ~ .topbar .tb-nav-etf{display:none}
 .mkswitch{display:flex;gap:0;border:1px solid var(--acc);border-radius:10px;overflow:hidden}
 .mk{background:var(--card2);color:var(--accd);border:0;padding:7px 18px;cursor:pointer;font-size:15px;font-weight:800;user-select:none}
 .mk+.mk{border-left:1px solid var(--acc)}
 .mk:hover{background:rgba(47,111,208,.12)}
 #mkt-macro:checked ~ .topbar .mk[for="mkt-macro"],
 #mkt-tw:checked ~ .topbar .mk[for="mkt-tw"],
-#mkt-gl:checked ~ .topbar .mk[for="mkt-gl"]{background:var(--acc);color:#fff}
+#mkt-gl:checked ~ .topbar .mk[for="mkt-gl"],
+#mkt-etf:checked ~ .topbar .mk[for="mkt-etf"]{background:var(--acc);color:#fff}
 /* ⓪ topbar */
 .topbar{position:sticky;top:0;z-index:50;background:rgba(239,231,211,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .tb-in{max-width:1240px;margin:0 auto;padding:9px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -824,6 +899,12 @@ a.tk:hover{color:var(--acc)}
 .creg.jp{color:#0f6f6b;background:rgba(23,146,140,.13);border-color:rgba(23,146,140,.42)}
 .calsub{margin:16px 0 6px;font-size:14px;font-weight:800;color:var(--ink);padding-left:9px;border-left:4px solid #2f9d57}
 .chip.halt{color:#8a5410;background:rgba(200,118,15,.12);border-color:rgba(200,118,15,.5);font-weight:700}
+/* ETF 數據追蹤 */
+.ovtbl tr.mine td{background:rgba(224,138,18,.1)}
+.ovtbl tr.mine:hover td{background:rgba(224,138,18,.16)}
+.minepill{display:inline-block;font-size:11px;font-weight:700;color:var(--gold);border:1px solid rgba(200,134,15,.5);border-radius:10px;padding:0 7px;margin-left:6px;vertical-align:1px;white-space:nowrap}
+.etcat{display:inline-block;white-space:nowrap;font-size:11px;color:var(--accd);border:1px solid rgba(47,111,208,.35);background:rgba(47,111,208,.08);border-radius:5px;padding:0 6px}
+.etfnote{color:var(--mut);font-size:12.5px;margin-top:12px;line-height:1.8;border-top:1px solid var(--line);padding-top:8px}
 /* ⑤ details */
 #details{padding:12px 18px}
 #details .st{margin-bottom:0}
@@ -863,7 +944,7 @@ a.tk:hover{color:var(--acc)}
 .backtop:hover{color:var(--acc);border-color:var(--acc)}
 @media(max-width:720px){.cols{grid-template-columns:1fr}.rets{grid-template-columns:repeat(3,1fr)}.navbox{text-align:left}
   .tb-meta,.tb-lamp{display:none}.ixc{min-width:110px}
-  #overview .st::after,#macro-cal .st::after{content:"↔ 表格可左右滑動";font-weight:400;font-size:12px;color:var(--mut)}
+  #overview .st::after,#macro-cal .st::after,#etfwatch .st::after{content:"↔ 表格可左右滑動";font-weight:400;font-size:12px;color:var(--mut)}
   .backtop{right:10px;bottom:10px;padding:7px 12px;font-size:12.5px}}
 /* ⑥ 基金相關新聞・社群 */
 .fng{font-weight:700;font-size:14px;color:var(--accd);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line)}
@@ -916,7 +997,8 @@ a.tk:hover{color:var(--acc)}
 
 _JS = """
 // 台股/全球切換本體為純 CSS radio（JS 停用也能按）；JS 只負責記住選擇＋錨點自動切換
-function curMkt(){return document.getElementById('mkt-gl').checked?'gl':'tw'}
+function curMkt(){for(const m of['macro','tw','gl','etf']){const r=document.getElementById('mkt-'+m);
+  if(r&&r.checked)return m}return 'tw'}
 function setMkt(m){document.getElementById('mkt-'+m).checked=true;
   try{localStorage.setItem('mkt',m)}catch(e){}}
 document.querySelectorAll('.mkradio').forEach(r=>r.addEventListener('change',()=>{
@@ -1033,11 +1115,13 @@ def render() -> str:
     us_date, tw_date = (news or {}).get("date"), (tw or {}).get("date")
     mac_date, cal_date = (macro or {}).get("date"), (cal or {}).get("date")
     fn_asof = (fn_doc or {}).get("as_of")
+    etf_doc = etfwatch.load()
+    etf_asof = (etf_doc or {}).get("as_of")
     sec_fresh = _freshness_view(now, [
         ("NAV 日", nav_date, 6), ("持股基準", hold_asof, 45), ("持股快照抓取", fetched_at, 3),
         ("美股新聞", us_date, 3), ("台股新聞", tw_date, 3),
         ("總經・政策", mac_date, 3), ("經濟行事曆", cal_date, 8),
-        ("基金新聞・社群", fn_asof, 3),
+        ("基金新聞・社群", fn_asof, 3), ("ETF 數據追蹤", etf_asof, 10),
     ])
 
     # ① 今日重點（雙視圖）；台股盤前速覽自新聞頭段抽出、直接顯示於此（不再埋於收合塊）
@@ -1074,6 +1158,13 @@ def render() -> str:
                  f'{_fresh_chip("更新", mac_date, 3)} '
                  f'<span class="stsub">{mac_sub}</span></div>'
                  f'{_news_view(macro_md, mac_hint, "📄 政策總覽・資料侷限・合規揭露")}</div>')
+
+    # ETF 數據追蹤分頁（被動／主動台股 ETF 週績效表；左上「ETF」分頁專屬視圖）
+    sec_etf = (f'<div class="section" id="etfwatch"><div class="st">📡 ETF 數據追蹤 '
+               f'{_fresh_chip("資料基準", etf_asof, 10)} '
+               f'<span class="stsub">台股被動（高股息／市值型）＋主動式 ETF・規模／成立／週月報酬／'
+               f'配息殖利率／分配頻率・點欄位標題可排序</span></div>'
+               f'{_etfwatch_view(etf_doc)}</div>')
 
     # ②b 基金相關新聞・社群（品牌動態＋各基金新聞＋PTT 聲量；讀 data/fund_news.json）
     fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋財經RSS＋PTT 自動擷取'
@@ -1115,11 +1206,13 @@ def render() -> str:
 <input class="mkradio" type="radio" name="mkt" id="mkt-macro">
 <input class="mkradio" type="radio" name="mkt" id="mkt-tw" checked>
 <input class="mkradio" type="radio" name="mkt" id="mkt-gl">
+<input class="mkradio" type="radio" name="mkt" id="mkt-etf">
 {_topbar(banned, bool(news or tw or macro), as_of, now)}
 <div class="wrap">
 {sec_fresh}
 <div class="macroview">{sec_macro_cal}
 {sec_macro}</div>
+<div class="etfview">{sec_etf}</div>
 <div class="fundview">
 {sec_brief}
 {sec_news}
