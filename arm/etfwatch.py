@@ -60,6 +60,15 @@ WATCHLIST: list[tuple[str, str, str, str, str]] = [
     ("00993A", "主動安聯台灣",     "active", "主動式", "2026/01/20"),
 ]
 
+# 投信已公告之「當月預估配息」人工維護清單——etfinfo 只揭露已實際除息者、MOPS 端點又抓不到，
+# 故投信官方公告（首配或當期預告，除息日未到）於此登錄，作為 est_div 的可靠 fallback。
+# 格式 {code: {"amount": 每單位預估金額, "ex_date": "YYYY-MM-DD"}}；僅在「除息日=本月且未到期」時顯示，
+# 過月自動失效。投信新公告時更新此處（來源：各投信官網／經濟日報等，除息公告後由 etfinfo 接手實際值）。
+ANNOUNCED_EST: dict[str, dict] = {
+    "00991A": {"amount": 0.77, "ex_date": "2026-07-21"},   # 本家首配（經濟日報/復華投信公告）
+    "0056":   {"amount": 1.35, "ex_date": "2026-07-21"},   # 季配 Q3 擬配（聯合新聞網/元大投信公告）
+}
+
 # 內建週報基準底稿（來源全倒／JSON 被清空時的最後 fallback，永不整片留空）。
 # 值取自使用者提供之週報圖表；ret_1w/ret_1m＝該基準日的近1週／近1月報酬（%）。
 SEED_ASOF = "2026-07-03"
@@ -444,26 +453,28 @@ def fetch() -> dict:
         except Exception as e:
             print(f"  ⚠ {code} 報酬抓取失敗（沿用既有值／週報底稿）：{e}")
 
-        # ③ 當月預估配息 ← MOPS（etfinfo 未揭露預告時補；僅取本月、尚未除息的公告）
+        # ③ 當月預估配息（僅取本月、除息日尚未到期者）：etfinfo 未揭露預告時，
+        #    依序補 MOPS 公告 → 投信已公告人工清單 ANNOUNCED_EST（etfinfo/MOPS 皆抓不到時的可靠來源）。
         if item.get("est_div") is None:
-            md = mops_dist.get(code) or {}
-            ex = md.get("ex_date")
-            try:
-                exd = date.fromisoformat(ex) if ex else None
-            except ValueError:
-                exd = None
-            if (exd and exd.year == today.year and exd.month == today.month
-                    and exd >= today and md.get("amount") is not None):
-                item["est_div"] = md["amount"]
-                item["est_div_date"] = ex
-                item["est_src"] = "mops"
-                got_est += 1
+            for src_name, cand in (("mops", mops_dist.get(code)),
+                                   ("announced", ANNOUNCED_EST.get(code))):
+                ex = (cand or {}).get("ex_date")
+                amt = (cand or {}).get("amount")
+                try:
+                    exd = date.fromisoformat(ex) if ex else None
+                except ValueError:
+                    exd = None
+                if (exd and exd.year == today.year and exd.month == today.month
+                        and exd >= today and amt is not None):
+                    item["est_div"], item["est_div_date"], item["est_src"] = amt, ex, src_name
+                    got_est += 1
+                    break
 
         items.append(item)
     got = got_mkt + got_ret
     as_of = max((i.get("as_of") or "" for i in items), default="") or \
         (load() or {}).get("as_of") or clock.today_tw().isoformat()
-    est_note = f"；當月預估配息 ← MOPS 公開資訊觀測站（{got_est} 檔）" if got_est else ""
+    est_note = f"；當月預估配息 ← 投信公告／MOPS（{got_est} 檔）" if got_est else ""
     if got_ret:
         src_note = ("規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤"
                     f"（總報酬口徑）／FinMind／TWSE 官方自算{est_note}。正式對外前以各投信官網核對")
