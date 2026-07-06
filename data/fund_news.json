@@ -1,8 +1,22 @@
 {
-  "as_of": "2026/07/06 15:54",
+  "as_of": "2026/07/06 16:10",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
+    {
+      "title": "復華華人世紀基金，同樣是跨國股票基金，為什麼它近一年的表現能拿下同類第一？",
+      "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE1KY25XSjNFVUR4eWVzWXJlbFN2N1VxMVJQdnRyZERRUWEzWG9JbF9UR1JKOGxtNUl5eDNtall5M0ViWU5mM2p2TG4wSm0yM3pmemc1ck5iTUpCOUZpQnpiTkNDN2puSWVxckxqQWN3bzNFRkFQYkE0MXhkc0QxQQ?oc=5",
+      "source": "CMoney投資網誌",
+      "date": "2026-07-06 16:05",
+      "datetime": "2026-07-06T16:05:08+08:00"
+    },
+    {
+      "title": "復華全球平衡基金-新臺幣，這幾天規模暴增兩成，究竟發生了什麼事？",
+      "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE9CalNrdlNCaGxRaXRZOF9OZHd3OG9jOFY0bGhpMVNKc1hVZFcyb241UVlBQUQxU1ZBSXl0VEFCLVNCTFRhTXRyWWtfeG4yYkpRNVFMaVpnUHFmbnpXbk93VFNvV0VNaVk0aGxHVUJxNjF5UnRZMm5Vb25oOXROdw?oc=5",
+      "source": "CMoney投資網誌",
+      "date": "2026-07-06 16:03",
+      "datetime": "2026-07-06T16:03:24+08:00"
+    },
     {
       "title": "復華全球物聯網科技基金-新臺幣，為什麼單月規模能狂增近三成？",
       "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE15Y1NYQnZVSzlfWlc2S2tSdF93MHRiMDUxNjVrYjgtQTh5VmV5MmdHZjhrQ3dCSlpWaDBiM3VUa203eHVuSEFIOW83QnJPcDFnTTI4ODA2OHhrUEY2MnpmLWRuWGJWQjQ3NWdNT1o3cnhBWmdVRnN2QnZyNTluQQ?oc=5",
@@ -95,6 +109,13 @@
       ],
       "items": [
         {
+          "title": "復華華人世紀基金，同樣是跨國股票基金，為什麼它近一年的表現能拿下同類第一？",
+          "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE1KY25XSjNFVUR4eWVzWXJlbFN2N1VxMVJQdnRyZERRUWEzWG9JbF9UR1JKOGxtNUl5eDNtall5M0ViWU5mM2p2TG4wSm0yM3pmemc1ck5iTUpCOUZpQnpiTkNDN2puSWVxckxqQWN3bzNFRkFQYkE0MXhkc0QxQQ?oc=5",
+          "source": "CMoney投資網誌",
+          "date": "2026-07-06 16:05",
+          "datetime": "2026-07-06T16:05:08+08:00"
+        },
+        {
           "title": "復華華人世紀基金，單月規模暴增58億的背後秘密是什麼？",
           "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTFBsMzhPaU5leFN1dDJsdGlaeW90cmE0NGZqd2k1M2hUT1dCcGtDZFVnWjBQMWY1MmJtR1NORGFpLTY0MFIxR28wdFdqMXB2aklQLVZXcUZUM0JwT3J4YzJvaVlwcDl5RjJZeW91Vm55WG5BMV80TEhPUWRGZ3RwUQ?oc=5",
           "source": "CMoney投資網誌",
@@ -168,6 +189,13 @@
         "全球平衡新臺幣"
       ],
       "items": [
+        {
+          "title": "復華全球平衡基金-新臺幣，這幾天規模暴增兩成，究竟發生了什麼事？",
+          "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE9CalNrdlNCaGxRaXRZOF9OZHd3OG9jOFY0bGhpMVNKc1hVZFcyb241UVlBQUQxU1ZBSXl0VEFCLVNCTFRhTXRyWWtfeG4yYkpRNVFMaVpnUHFmbnpXbk93VFNvV0VNaVk0aGxHVUJxNjF5UnRZMm5Vb25oOXROdw?oc=5",
+          "source": "CMoney投資網誌",
+          "date": "2026-07-06 16:03",
+          "datetime": "2026-07-06T16:03:24+08:00"
+        },
         {
           "title": "復華全球平衡基金-新臺幣，老牌基金為何還能稱霸？22年百萬變七百萬。",
           "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE93bFJfLWE0RXAtbjVTOGExQWY4d0NUYXZoRXpRZHBvUnBJcWJOX19RSWhmZjZuWWZnZ0FONndPUnBtWFNTSThGRWlEdWw1Mm9VRmJxR0ptYV9YMmhDa1E1cmVKMl9YbFZiQU5YcEhhN3pnQ0VKdnRMcEpDdGNyUQ?oc=5",
@@ -333,6 +361,6 @@
   "social": [],
   "highlights": [
     "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技、大中華中小策略、全球平衡、高成長（詳下方各基金新聞）",
-    "品牌焦點：復華全球物聯網科技基金-新臺幣，為什麼單月規模能狂增近三成？（CMoney投資網誌）"
+    "品牌焦點：復華華人世紀基金，同樣是跨國股票基金，為什麼它近一年的表現能拿下同類第一？（CMoney投資網誌）"
   ]
 }
