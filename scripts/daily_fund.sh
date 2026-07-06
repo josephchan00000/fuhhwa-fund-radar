@@ -26,6 +26,9 @@ python3 scripts/gen_macronews.py || echo "  ⚠ 總經政策提示包產製失�
 echo "[4b] 抓基金相關新聞＋社群聲量（Google News＋PTT 公開標題）…"
 python3 scripts/fetch_fund_news.py || echo "  ⚠ 基金新聞擷取失敗，續跑（區塊沿用前次落檔或顯示提示）"
 
+echo "[4c] 抓 ETF 數據追蹤（台股被動／主動 ETF 週績效 ← etfinfo.tw）…"
+python3 scripts/fetch_etf_watch.py || echo "  ⚠ ETF 追蹤擷取失敗，續跑（分頁沿用前次落檔）"
+
 echo "[5/5] 產儀表板（今日重點 + 新聞 + 總經政策 + 焦點個股 + 總覽 + 持股介紹）→ dashboard/index.html …"
 python3 scripts/gen_fund_dashboard.py || echo "  ⚠ 儀表板產製失敗"
 
