@@ -1,7 +1,7 @@
 {
   "as_of": "2026-07-06",
   "perf_asof": "2026-07-06",
-  "fetched_at": "2026/07/06 17:32",
+  "fetched_at": "2026/07/06 17:38",
   "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算。正式對外前以各投信官網核對",
   "items": [
     {
@@ -23,10 +23,7 @@
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
       "ret_src": "yahoo",
-      "src": "etfinfo+px",
-      "ret_n": 63,
-      "ret_1w_base": "2026-06-29=51.8",
-      "ret_1m_base": "2026-06-05=51.8"
+      "src": "etfinfo+px"
     },
     {
       "code": "00878",
