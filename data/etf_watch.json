@@ -1,8 +1,8 @@
 {
   "as_of": "2026-07-06",
   "perf_asof": "2026-07-06",
-  "fetched_at": "2026/07/06 15:58",
-  "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← TWSE 官方每日收盤自算。正式對外前以各投信官網核對",
+  "fetched_at": "2026/07/06 16:11",
+  "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算。正式對外前以各投信官網核對",
   "items": [
     {
       "code": "0056",
@@ -17,7 +17,7 @@
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
-      "src": "etfinfo+twse"
+      "src": "etfinfo+px"
     },
     {
       "code": "00878",
@@ -32,7 +32,7 @@
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
-      "src": "etfinfo+twse"
+      "src": "etfinfo+px"
     },
     {
       "code": "00919",
@@ -41,13 +41,13 @@
       "cat": "高股息",
       "inception": "2022/10/13",
       "aum_e8": 5351.76,
-      "ret_1w": -3.53,
-      "ret_1m": 18.15,
+      "ret_1w": 1.02,
+      "ret_1m": 0.3,
       "yield_pct": 13.44,
       "freq": "季配",
       "as_of": "2026-07-06",
-      "perf_asof": "2026-06-30",
-      "src": "etfinfo+twse"
+      "perf_asof": "2026-07-06",
+      "src": "etfinfo+px"
     },
     {
       "code": "00929",
@@ -57,12 +57,12 @@
       "inception": "2023/06/01",
       "aum_e8": 1422.59,
       "ret_1w": 4.57,
-      "ret_1m": 4.74,
+      "ret_1m": 5.64,
       "yield_pct": 9.95,
       "freq": "月配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
-      "src": "etfinfo+twse"
+      "src": "etfinfo+px"
     },
     {
       "code": "0050",
@@ -77,7 +77,7 @@
       "freq": "半年配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
-      "src": "etfinfo+twse"
+      "src": "etfinfo+px"
     },
     {
       "code": "006208",
@@ -92,7 +92,7 @@
       "freq": "半年配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
-      "src": "etfinfo+twse"
+      "src": "etfinfo+px"
     },
     {
       "code": "00980A",
@@ -101,13 +101,13 @@
       "cat": "主動式",
       "inception": "2025/04/22",
       "aum_e8": 177.6,
-      "ret_1w": 1.62,
-      "ret_1m": 8.18,
+      "ret_1w": 3.81,
+      "ret_1m": 0.95,
       "yield_pct": 7.82,
       "freq": "季配",
       "as_of": "2026-07-06",
-      "perf_asof": "2026-07-03",
-      "src": "etfinfo+twse"
+      "perf_asof": "2026-07-06",
+      "src": "etfinfo+px"
     },
     {
       "code": "00982A",
@@ -116,13 +116,13 @@
       "cat": "主動式",
       "inception": "2025/05/13",
       "aum_e8": 550.3,
-      "ret_1w": 3.03,
-      "ret_1m": 9.06,
+      "ret_1w": 6.89,
+      "ret_1m": 6.49,
       "yield_pct": 10.13,
       "freq": "季配",
       "as_of": "2026-07-06",
-      "perf_asof": "2026-07-03",
-      "src": "etfinfo+twse"
+      "perf_asof": "2026-07-06",
+      "src": "etfinfo+px"
     },
     {
       "code": "00981A",
@@ -131,13 +131,13 @@
       "cat": "主動式",
       "inception": "2025/05/15",
       "aum_e8": 2957.88,
-      "ret_1w": 2.72,
-      "ret_1m": 7.72,
+      "ret_1w": 4.21,
+      "ret_1m": 3.33,
       "yield_pct": 8.08,
       "freq": "季配",
       "as_of": "2026-07-06",
-      "perf_asof": "2026-07-03",
-      "src": "etfinfo+twse"
+      "perf_asof": "2026-07-06",
+      "src": "etfinfo+px"
     },
     {
       "code": "00984A",
@@ -146,13 +146,13 @@
       "cat": "主動式",
       "inception": "2025/07/03",
       "aum_e8": 86.3,
-      "ret_1w": 3.44,
-      "ret_1m": 10.49,
+      "ret_1w": 4.1,
+      "ret_1m": 2.63,
       "yield_pct": 6.4,
       "freq": "季配",
       "as_of": "2026-07-06",
-      "perf_asof": "2026-07-03",
-      "src": "etfinfo+twse"
+      "perf_asof": "2026-07-06",
+      "src": "etfinfo+px"
     },
     {
       "code": "00985A",
@@ -161,13 +161,13 @@
       "cat": "主動式",
       "inception": "2025/07/08",
       "aum_e8": 105.82,
-      "ret_1w": 1.76,
-      "ret_1m": 5.76,
+      "ret_1w": 4.55,
+      "ret_1m": 1.36,
       "yield_pct": null,
       "freq": "年配",
       "as_of": "2026-07-06",
-      "perf_asof": "2026-07-03",
-      "src": "etfinfo+twse"
+      "perf_asof": "2026-07-06",
+      "src": "etfinfo+px"
     },
     {
       "code": "00991A",
@@ -176,13 +176,13 @@
       "cat": "主動式",
       "inception": "2025/12/09",
       "aum_e8": 738.37,
-      "ret_1w": 2.81,
-      "ret_1m": 10.46,
+      "ret_1w": 2.04,
+      "ret_1m": 4.32,
       "yield_pct": null,
       "freq": "半年配",
       "as_of": "2026-07-06",
-      "perf_asof": "2026-07-03",
-      "src": "etfinfo+twse"
+      "perf_asof": "2026-07-06",
+      "src": "etfinfo+px"
     },
     {
       "code": "00992A",
@@ -197,7 +197,7 @@
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
-      "src": "etfinfo+twse"
+      "src": "etfinfo+px"
     },
     {
       "code": "00987A",
@@ -206,13 +206,13 @@
       "cat": "主動式",
       "inception": "2025/12/16",
       "aum_e8": 29.84,
-      "ret_1w": 1.5,
-      "ret_1m": 2.08,
+      "ret_1w": 2.99,
+      "ret_1m": -2.82,
       "yield_pct": null,
       "freq": "年配",
       "as_of": "2026-07-06",
-      "perf_asof": "2026-07-03",
-      "src": "etfinfo+twse"
+      "perf_asof": "2026-07-06",
+      "src": "etfinfo+px"
     },
     {
       "code": "00994A",
@@ -221,13 +221,13 @@
       "cat": "主動式",
       "inception": "2025/12/26",
       "aum_e8": 54.43,
-      "ret_1w": -0.93,
-      "ret_1m": 2.2,
+      "ret_1w": 2.97,
+      "ret_1m": 1.27,
       "yield_pct": 10.45,
       "freq": "季配",
       "as_of": "2026-07-06",
-      "perf_asof": "2026-07-03",
-      "src": "etfinfo+twse"
+      "perf_asof": "2026-07-06",
+      "src": "etfinfo+px"
     },
     {
       "code": "00995A",
@@ -236,13 +236,13 @@
       "cat": "主動式",
       "inception": "2026/01/13",
       "aum_e8": 55.87,
-      "ret_1w": 1.61,
-      "ret_1m": 5.95,
+      "ret_1w": 4.5,
+      "ret_1m": 2.72,
       "yield_pct": null,
       "freq": "季配",
       "as_of": "2026-07-06",
-      "perf_asof": "2026-07-03",
-      "src": "etfinfo+twse"
+      "perf_asof": "2026-07-06",
+      "src": "etfinfo+px"
     },
     {
       "code": "00993A",
@@ -251,13 +251,13 @@
       "cat": "主動式",
       "inception": "2026/01/20",
       "aum_e8": 113.93,
-      "ret_1w": 2.5,
-      "ret_1m": 8.64,
+      "ret_1w": 3.63,
+      "ret_1m": 4.4,
       "yield_pct": null,
       "freq": "年配",
       "as_of": "2026-07-06",
-      "perf_asof": "2026-07-03",
-      "src": "etfinfo+twse"
+      "perf_asof": "2026-07-06",
+      "src": "etfinfo+px"
     }
   ]
 }
