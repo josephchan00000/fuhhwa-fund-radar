@@ -352,13 +352,12 @@ def _macro_cal_view(cal: dict | None) -> str:
 # ── ETF 數據追蹤（第四分頁：被動／主動台股 ETF 週績效表） ─────────
 
 _ETF_COLS = [("close_px", "最新收盤價"), ("aum_e8", "規模(億)"), ("inception", "成立日期"),
-             ("ret_1w", "過去一週報酬"), ("ret_1m", "過去一月報酬"), ("ret_src", "報酬來源"),
-             ("last_div", "最近一次配息"), ("yield_pct", "配息殖利率"),
+             ("ret_1w", "過去一週報酬"), ("ret_1m", "過去一月報酬"),
+             ("last_div", "最近一次配息金額"), ("yield_pct", "換算年化配息率"),
              ("freq", "收益分配頻率")]
 
-# 報酬來源代碼 → 顯示名（供「報酬來源」欄追查每檔用了哪個源）
-_RET_SRC_LABEL = {"stooq": "stooq", "yahoo": "Yahoo", "finmind": "FinMind",
-                  "twse": "TWSE", "seed": "底稿"}
+# 報酬來源代碼 → 顯示名（代碼連結本身即 Yahoo，故 yahoo 併入連結不另標；其餘於代碼旁小標）
+_RET_SRC_LABEL = {"stooq": "stooq", "finmind": "FinMind", "twse": "TWSE", "seed": "底稿"}
 
 
 def _etf_sortv(k: str, i: dict):
@@ -407,9 +406,9 @@ def _ret_cell(i: dict, k: str) -> str:
     last_px = i.get("close_px")
     last_px_s = f"{last_px:g}" if isinstance(last_px, (int, float)) else "—"
     period = "近一週" if k == "ret_1w" else "近一月"
-    tip = f"{period}：基準 {bd} 收 {bp} → {last_d} 收 {last_px_s}"
+    tip = f"{period}＝最新 {last_d} 收 {last_px_s} ÷ 基準 {bd} 收 {bp} − 1"
     md = bd[5:].replace("-", "/") if len(bd) >= 10 else bd
-    return f'{span}<div class="rbase" title="{_esc(tip)}">基準 {_esc(md)}＠{_esc(bp)}</div>'
+    return f'{span}<div class="rbase" title="{_esc(tip)}">起算 {_esc(md)} 收 {_esc(bp)}</div>'
 
 
 def _etf_table(items: list[dict]) -> str:
@@ -419,12 +418,17 @@ def _etf_table(items: list[dict]) -> str:
         mine = "復華" in (i.get("name") or "")
         pill = '<span class="minepill">復華</span>' if mine else ""
         code = i.get("code")
-        # 代碼可點 → Yahoo奇摩股市個股頁（規模／殖利率／週月報酬一頁可對照，供馬上人工驗證）
+        # 代碼可點 → Yahoo奇摩股市個股頁（可對照驗證）。報酬來源＝yahoo 時與此連結同源、不另標；
+        # 其餘來源（stooq/FinMind/TWSE）於代碼旁掛小標，讓使用者知道報酬取自別處。
         vurl = f"https://tw.stock.yahoo.com/quote/{_esc(code)}"
+        rsrc = i.get("ret_src") or "seed"
+        srctag = (f'<span class="rsrc" title="過去一週／一月報酬取自此來源自算">'
+                  f'{_esc(_RET_SRC_LABEL[rsrc])}</span>'
+                  if rsrc in _RET_SRC_LABEL else "")
         tds = [f'<td class="nm"><span class="etcat">{_esc(i.get("cat") or "—")}</span></td>',
                f'<td class="nm"><a href="{vurl}" target="_blank" rel="noopener" '
                f'title="點開 Yahoo奇摩股市對照驗證"><b>{_esc(code)}</b></a>　'
-               f'{_esc(i.get("name"))}{pill}</td>']
+               f'{_esc(i.get("name"))}{pill}{srctag}</td>']
         for k, _ in _ETF_COLS:
             v = _etf_sortv(k, i)
             if k in ("ret_1w", "ret_1m"):
@@ -433,10 +437,6 @@ def _etf_table(items: list[dict]) -> str:
                 cell = f"{v:,.2f}" if v is not None else '<span class="na">—</span>'
             elif k == "close_px":
                 cell = _fmt_num(v, 2)
-            elif k == "ret_src":
-                lab = _RET_SRC_LABEL.get(i.get("ret_src") or "seed", "—")
-                sc = "seed" if (i.get("ret_src") or "seed") == "seed" else "live"
-                cell = f'<span class="rsrc {sc}">{_esc(lab)}</span>'
             elif k == "last_div":
                 cell = _div_cell(i)
             elif k == "yield_pct":
@@ -470,33 +470,32 @@ def _etfwatch_view(doc: dict | None) -> str:
         parts.append(f'<div class="ovg" id="etf-active">🚀 主動式 ETF（{len(active)} 檔）</div>'
                      + _etf_table(active))
     has_est = any(i.get("est_div") is not None for i in items)
-    est_note = ('　<b>最近一次配息</b>為最近一次「實際」除息之每單位配息金額；標 <b>預估 X*</b> 者為'
+    est_note = ('　<b>最近一次配息金額</b>為最近一次「實際」除息之每單位配息金額；標 <b>預估 X*</b> 者為'
                 '投信於配息月公告之<b>預計配息金額（非正式配息金額）</b>，實際以各投信除息公告為準。<br>'
                 if has_est else
-                '　<b>最近一次配息</b>為最近一次「實際」除息之每單位配息金額；當投信於配息月公告該月'
+                '　<b>最近一次配息金額</b>為最近一次「實際」除息之每單位配息金額；當投信於配息月公告該月'
                 '<b>預計配息金額</b>時，會於此欄加註「預估 X*」（非正式配息金額，實際以除息公告為準）。<br>')
     parts.append(
         '<div class="etfnote">'
         '<b>資料來源（可點擊人工驗證）</b>：'
-        '規模／配息殖利率 ← <a href="https://www.etfinfo.tw" target="_blank" rel="noopener">etfinfo.tw</a>'
+        '規模／換算年化配息率 ← <a href="https://www.etfinfo.tw" target="_blank" rel="noopener">etfinfo.tw</a>'
         '（Tier B 第三方彙整）；'
-        '過去一週／一月報酬 ← <a href="https://finance.yahoo.com" target="_blank" rel="noopener">'
-        'Yahoo Finance 還原(adjusted)收盤</a>（總報酬口徑、已還原配息）／FinMind／'
+        '過去一週／一月報酬 ← <a href="https://stooq.com" target="_blank" rel="noopener">stooq</a>／'
+        '<a href="https://finance.yahoo.com" target="_blank" rel="noopener">Yahoo</a>／FinMind／'
         '<a href="https://www.twse.com.tw/zh/trading/historical/stock-day.html" target="_blank" '
-        'rel="noopener">TWSE 官方</a>依序自算（以最新交易日收盤對回推 7／30 日曆日前最後交易日計算）；'
+        'rel="noopener">TWSE 官方</a>依序取乾淨日線自算（以最新交易日收盤對回推 7／30 日曆日前最後交易日計算）；'
         '每列<b>代碼可點</b>開 <a href="https://tw.stock.yahoo.com/class/etf" target="_blank" '
-        'rel="noopener">Yahoo奇摩股市</a>個股頁對照（報酬同源、數字可對得上）；'
-        '<b>報酬來源</b>欄標示每檔報酬實際取自哪個源（Yahoo／FinMind／TWSE／底稿）；'
-        '每格報酬下方「<b>基準 MM/DD＠價格</b>」標明該報酬用哪一天的收盤當基準'
-        '（滑鼠移上顯示完整算式：基準日收盤 → 最新日收盤），方便逐檔人工驗證。'
+        'rel="noopener">Yahoo奇摩股市</a>個股頁對照——報酬取自 Yahoo 即與此連結同源，取自其他源則於代碼旁小標；'
+        '每格報酬下方「<b>起算 MM/DD 收 價格</b>」標明用哪一天的收盤當基準'
+        '（滑鼠移上顯示完整算式），方便逐檔人工驗證。'
         '當月預估配息 ← <a href="https://mops.twse.com.tw" target="_blank" rel="noopener">'
         'MOPS 公開資訊觀測站</a>。<br>'
-        f'　資料時間：規模／配息殖利率抓取基準 {_esc(doc.get("as_of") or "—")}；'
+        f'　資料時間：規模／年化配息率抓取基準 {_esc(doc.get("as_of") or "—")}；'
         f'過去一週／一月報酬基準 {_esc(doc.get("perf_asof") or "—")}'
         '（成立日期為固定值；來源當日未更新時沿用最近可得值並標明基準日）・'
         f'抓取時間 {_esc(doc.get("fetched_at") or "—")}。<br>'
         + est_note +
-        '　配息殖利率為年化配息率（最近一次「實際」配息 ÷ 最新市價 × 年配息次數）；「尚無配息」＝新掛牌尚未除息、'
+        '　換算年化配息率＝最近一次「實際」配息金額 ÷ 最新市價 × 年配息次數；「尚無配息」＝新掛牌尚未除息、'
         '無配息紀錄可計算。正式對外請以各投信官網為準；僅為資訊彙編、非投資建議，過去績效不代表未來表現。</div>')
     return "".join(parts)
 
@@ -992,9 +991,8 @@ a.tk:hover{color:var(--acc)}
 .estdiv{display:inline-block;font-size:11.5px;color:#8a5410;background:rgba(200,118,15,.12);border:1px solid rgba(200,118,15,.4);border-radius:6px;padding:0 6px;white-space:nowrap}
 .estdiv sup{font-weight:800}
 .rbase{font-size:10.5px;color:var(--mut);font-weight:400;margin-top:2px;white-space:nowrap;cursor:help}
-.rsrc{display:inline-block;font-size:11px;padding:0 6px;border-radius:5px;border:1px solid}
-.rsrc.live{color:var(--accd);background:rgba(47,111,208,.08);border-color:rgba(47,111,208,.35)}
-.rsrc.seed{color:var(--mut);background:rgba(138,127,107,.1);border-color:rgba(138,127,107,.3)}
+.rsrc{display:inline-block;font-size:10.5px;padding:0 5px;margin-left:6px;border-radius:5px;border:1px solid;
+  color:var(--mut);background:rgba(138,127,107,.1);border-color:rgba(138,127,107,.3);vertical-align:1px}
 /* ⑤ details */
 #details{padding:12px 18px}
 #details .st{margin-bottom:0}
@@ -1252,8 +1250,8 @@ def render() -> str:
     # ETF 數據追蹤分頁（被動／主動台股 ETF 週績效表；左上「ETF」分頁專屬視圖）
     sec_etf = (f'<div class="section" id="etfwatch"><div class="st">📡 ETF 數據追蹤 '
                f'{_fresh_chip("資料基準", etf_asof, 10)} '
-               f'<span class="stsub">台股被動（高股息／市值型）＋主動式 ETF・規模／成立／週月報酬／'
-               f'配息殖利率／分配頻率・點欄位標題可排序</span></div>'
+               f'<span class="stsub">台股被動（高股息／市值型）＋主動式 ETF・收盤／規模／成立／週月報酬／'
+               f'最近一次配息金額／換算年化配息率／分配頻率・點欄位標題可排序</span></div>'
                f'{_etfwatch_view(etf_doc)}</div>')
 
     # ②b 基金相關新聞・社群（品牌動態＋各基金新聞＋PTT 聲量；讀 data/fund_news.json）
