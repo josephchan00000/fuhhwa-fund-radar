@@ -372,8 +372,13 @@ def _etf_table(items: list[dict]) -> str:
     for i in items:
         mine = "復華" in (i.get("name") or "")
         pill = '<span class="minepill">復華</span>' if mine else ""
+        code = i.get("code")
+        # 代碼可點 → Yahoo奇摩股市個股頁（規模／殖利率／週月報酬一頁可對照，供馬上人工驗證）
+        vurl = f"https://tw.stock.yahoo.com/quote/{_esc(code)}"
         tds = [f'<td class="nm"><span class="etcat">{_esc(i.get("cat") or "—")}</span></td>',
-               f'<td class="nm"><b>{_esc(i.get("code"))}</b>　{_esc(i.get("name"))}{pill}</td>']
+               f'<td class="nm"><a href="{vurl}" target="_blank" rel="noopener" '
+               f'title="點開 Yahoo奇摩股市對照驗證"><b>{_esc(code)}</b></a>　'
+               f'{_esc(i.get("name"))}{pill}</td>']
         for k, _ in _ETF_COLS:
             v = _etf_sortv(k, i)
             if k in ("ret_1w", "ret_1m"):
@@ -411,14 +416,21 @@ def _etfwatch_view(doc: dict | None) -> str:
         parts.append(f'<div class="ovg" id="etf-active">🚀 主動式 ETF（{len(active)} 檔）</div>'
                      + _etf_table(active))
     parts.append(
-        f'<div class="etfnote">來源：{_esc(doc.get("source") or "—")}。'
-        f'規模／配息殖利率抓取基準 {_esc(doc.get("as_of") or "—")}；'
+        '<div class="etfnote">'
+        '<b>資料來源（可點擊人工驗證）</b>：'
+        '規模／配息殖利率 ← <a href="https://www.etfinfo.tw" target="_blank" rel="noopener">etfinfo.tw</a>'
+        '（Tier B 第三方彙整）；'
+        '過去一週／一月報酬 ← <a href="https://www.twse.com.tw/zh/trading/historical/stock-day.html" '
+        'target="_blank" rel="noopener">TWSE 證交所官方每日收盤</a>自算'
+        '（以最新交易日收盤對回推 7／30 日曆日前最後交易日收盤計算）；'
+        '每列<b>代碼可點</b>開 <a href="https://tw.stock.yahoo.com/class/etf" target="_blank" '
+        'rel="noopener">Yahoo奇摩股市</a>個股頁一頁對照。<br>'
+        f'　資料時間：規模／配息殖利率抓取基準 {_esc(doc.get("as_of") or "—")}；'
         f'過去一週／一月報酬基準 {_esc(doc.get("perf_asof") or "—")}'
-        '（來源未即時更新時沿用最近可得值，成立日期為固定值）・'
-        f'抓取時間 {_esc(doc.get("fetched_at") or "—")}。'
-        '配息殖利率為年化配息率（最新一次配息÷最新市價×年配息次數）；「尚無配息」＝新掛牌尚未除息、'
-        '無配息紀錄可計算。Tier B 第三方彙整，正式對外請以各投信官網為準；'
-        '僅為資訊彙編、非投資建議，過去績效不代表未來表現。</div>')
+        '（成立日期為固定值；來源當日未更新時沿用最近可得值並標明基準日）・'
+        f'抓取時間 {_esc(doc.get("fetched_at") or "—")}。<br>'
+        '　配息殖利率為年化配息率（最新一次配息 ÷ 最新市價 × 年配息次數）；「尚無配息」＝新掛牌尚未除息、'
+        '無配息紀錄可計算。正式對外請以各投信官網為準；僅為資訊彙編、非投資建議，過去績效不代表未來表現。</div>')
     return "".join(parts)
 
 

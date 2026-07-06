@@ -7,12 +7,19 @@
 配息殖利率＝年化配息率：最新公布一次的配息金額 ÷ 最新市價 × 配息頻率次數
 （月配×12／季配×4／半年配×2／年配×1），非 trailingYield 近12月回溯值。
 
-資料來源與防呆（同專案鐵則）：
-  · 抓取走 arm/connectors/etfinfo（Tier B 第三方彙整；雲端 Claude 容器的 proxy 會擋
-    etfinfo.tw 與 TWSE——抓不到就沿用既有落檔，GitHub Actions 每日自動補抓）。
-  · 逐檔「欄位級合併」：本次抓不到的欄位保留既有值（種子值來自使用者提供之週報圖表），
-    不會把已有數字洗成空白；整批全空 → 不覆寫既有落檔（同 fundnews 2026-07-04 教訓）。
-  · 數字屬「先給可能值、上線前以投信官網核對」（Tier B），儀表板註記來源與 as-of。
+資料來源（雙源、各自獨立降級）：
+  · 規模(AUM)／年化配息率／配息頻率 ← arm/connectors/etfinfo（Tier B 第三方彙整）。
+  · 過去一週／一月報酬 ← arm/connectors/twse 官方每日收盤自算（權威、免金鑰）：
+    以最新交易日收盤對回推 7／30 日曆日之前最後交易日收盤計算，反映真實近週／近月漲跌。
+
+防呆（同專案鐵則）：
+  · 雲端 Claude 容器的 proxy 會擋 etfinfo.tw 與 TWSE——抓不到就沿用既有落檔，
+    GitHub Actions（不受 proxy 擋）每日自動補抓。
+  · 逐檔「欄位級合併」，fallback 鏈：本次新值 → 既有落檔 → 內建 SEED_PERF 週報底稿；
+    成立日期一律取 WATCHLIST 靜態值。本次抓不到的欄位保留既有值、絕不洗成空白／null；
+    整批全空 → 不覆寫既有落檔（同 fundnews 2026-07-04 教訓）。
+  · 報酬標 perf_asof 基準日、規模／殖利率標 as_of 抓取日，儀表板分別註記。
+  · etfinfo 數字屬「先給可能值、上線前以投信官網核對」（Tier B）。
 
 落檔 data/etf_watch.json；arm/fund_dashboard 以「ETF 數據追蹤」分頁呈現。
 """
@@ -21,6 +28,7 @@ from __future__ import annotations
 import json
 import math
 import re
+from datetime import date, timedelta
 from pathlib import Path
 
 from . import clock
@@ -115,27 +123,6 @@ def _norm_aum_e8(v, prev_e8: float | None) -> float | None:
     return x
 
 
-_WEEK_KEYS = ("week", "1w", "w1", "oneWeek", "weekly", "近1週", "近一週", "一週", "1週")
-_MONTH_KEYS = ("month", "1m", "m1", "oneMonth", "monthly", "近1月", "近一月", "一月", "1月")
-
-
-def _ret_from_stats(stats, keys: tuple[str, ...]) -> float | None:
-    """returnStats 形狀未定（dict 或 [{period,value}]）——兩種都試，取 % 數字。"""
-    if isinstance(stats, dict):
-        for k in keys:
-            if k in stats:
-                return _num(stats[k])
-        return None
-    if isinstance(stats, list):
-        for row in stats:
-            if not isinstance(row, dict):
-                continue
-            label = str(row.get("period") or row.get("label") or row.get("name") or "")
-            if any(k.lower() in label.lower() for k in keys):
-                return _num(row.get("value") if "value" in row else row.get("return"))
-    return None
-
-
 def _freq(info: dict) -> str | None:
     v = str(info.get("dividendFrequency") or info.get("dividend_frequency") or "").strip()
     if not v:
@@ -163,8 +150,8 @@ def _annualized_yield(divs, price, freq: str | None) -> float | None:
     return round(amt / p * n * 100, 2)
 
 
-def _fetch_one(code: str) -> dict:
-    """單檔抓取 → 欄位字典（抓不到的欄位為 None，由 merge 保留既有值）。
+def _fetch_market(code: str) -> dict:
+    """etfinfo（Tier B）：規模(AUM)／年化配息率／配息頻率／市價日。
 
     殖利率一律「年化配息率」：最新公布一次的配息金額 ÷ 最新市價 × 配息頻率次數，
     而非 etfinfo 的 trailingYield（近12月回溯值）——反映當下配息水準。"""
@@ -173,14 +160,38 @@ def _fetch_one(code: str) -> dict:
     info = d.get("info") or {}
     lm = d.get("latestMarket") or {}
     freq = _freq(info)
-    return {
-        "aum_raw": lm.get("aum") or info.get("aum"),
-        "ret_1w": _ret_from_stats(d.get("returnStats"), _WEEK_KEYS),
-        "ret_1m": _ret_from_stats(d.get("returnStats"), _MONTH_KEYS),
-        "yield_pct": _annualized_yield(d.get("dividends"), lm.get("price"), freq),
-        "freq": freq,
-        "mkt_date": lm.get("date"),
-    }
+    return {"aum_raw": lm.get("aum") or info.get("aum"),
+            "yield_pct": _annualized_yield(d.get("dividends"), lm.get("price"), freq),
+            "freq": freq, "mkt_date": lm.get("date")}
+
+
+def _fetch_returns(code: str, today: date | None = None) -> dict:
+    """TWSE 官方每日收盤（權威、免金鑰）→ 過去一週(7 日曆日)／一月(30 日曆日)報酬。
+
+    以「最新交易日收盤」對回推日之前最後一個交易日收盤算報酬，反映真實近週／近月漲跌。
+    抓當月＋前一月兩份逐日收盤即足夠涵蓋 30 日回推。取不到（休市初／上櫃檔／斷網）回 None。"""
+    from .connectors import twse
+    today = today or clock.today_tw()
+    prev1 = today.replace(day=1) - timedelta(days=1)          # 前一月任一天
+    close: dict[str, float] = {}
+    for y, m in ((prev1.year, prev1.month), (today.year, today.month)):
+        for iso, c, _v in twse.fetch_month(code, y, m):
+            if c:
+                close[iso] = c
+    dates = sorted(close)
+    if len(dates) < 2:
+        return {"ret_1w": None, "ret_1m": None, "perf_date": None}
+    last = dates[-1]
+
+    def _ret(days: int) -> float | None:
+        target = date.fromisoformat(last) - timedelta(days=days)
+        prior = [d for d in dates if date.fromisoformat(d) <= target]
+        if not prior:
+            return None
+        base = close[prior[-1]]
+        return round((close[last] / base - 1) * 100, 2) if base else None
+
+    return {"ret_1w": _ret(7), "ret_1m": _ret(30), "perf_date": last}
 
 
 def _pick(old: dict, base: dict, key: str):
@@ -194,11 +205,12 @@ def _pick(old: dict, base: dict, key: str):
 def fetch() -> dict:
     """全清單抓取，與既有落檔／內建週報底稿逐檔「欄位級合併」→ 新 doc（不落檔；落檔用 save）。
 
-    fallback 鏈（每欄位獨立）：本次 etfinfo 新值 → 既有落檔值 → 內建 SEED_PERF 週報底稿。
+    雙來源、各自獨立降級：規模／年化配息率／頻率 ← etfinfo；過去一週／一月報酬 ← TWSE 官方收盤自算。
+    fallback 鏈（每欄位獨立）：本次新值 → 既有落檔值 → 內建 SEED_PERF 週報底稿。
     成立日期一律取 WATCHLIST 靜態值（永不空白）。抓不到的欄位絕不留空／不洗成 null。
     """
     prev = {i.get("code"): i for i in (load() or {}).get("items", [])}
-    items, got = [], 0
+    items, got_mkt, got_ret = [], 0, 0
     for code, name, kind, cat, inception in WATCHLIST:
         old = prev.get(code) or {}
         base = SEED_PERF.get(code, {})
@@ -212,35 +224,52 @@ def fetch() -> dict:
                 "as_of": old.get("as_of"),
                 "perf_asof": old.get("perf_asof") or SEED_ASOF,  # 報酬數據基準日
                 "src": old.get("src") or "seed"}
+        # ① 規模／殖利率／頻率 ← etfinfo
         try:
-            f = _fetch_one(code)
-        except Exception as e:                     # proxy 擋站/斷網 → 整檔沿用 fallback 值
-            print(f"  ⚠ {code} 抓取失敗（沿用既有值／週報底稿）：{e}")
-            items.append(item)
-            continue
-        fresh = {"aum_e8": _norm_aum_e8(f.get("aum_raw"), item["aum_e8"]),
-                 "ret_1w": f.get("ret_1w"), "ret_1m": f.get("ret_1m"),
-                 "yield_pct": f.get("yield_pct"), "freq": f.get("freq")}
-        hit = any(v is not None for v in fresh.values())
-        for k, v in fresh.items():
-            if v is not None:
-                item[k] = v
-        if f.get("ret_1w") is not None and f.get("mkt_date"):   # 報酬有更新才推進基準日
-            item["perf_asof"] = str(f["mkt_date"])[:10]
-        if hit:
-            item["src"] = "etfinfo"
-            if f.get("mkt_date"):
-                item["as_of"] = str(f["mkt_date"])[:10]
-            got += 1
+            m = _fetch_market(code)
+            aum = _norm_aum_e8(m.get("aum_raw"), item["aum_e8"])
+            for k, v in (("aum_e8", aum), ("yield_pct", m.get("yield_pct")),
+                         ("freq", m.get("freq"))):
+                if v is not None:
+                    item[k] = v
+            if any(v is not None for v in (aum, m.get("yield_pct"), m.get("freq"))):
+                item["src"] = "etfinfo+twse"
+                if m.get("mkt_date"):
+                    item["as_of"] = str(m["mkt_date"])[:10]
+                got_mkt += 1
+        except Exception as e:                     # proxy 擋站/斷網 → 沿用 fallback 值
+            print(f"  ⚠ {code} 規模／殖利率抓取失敗（沿用既有值／週報底稿）：{e}")
+
+        # ② 過去一週／一月報酬 ← TWSE 官方每日收盤自算（權威）
+        try:
+            r = _fetch_returns(code)
+            if r.get("ret_1w") is not None:
+                item["ret_1w"] = r["ret_1w"]
+            if r.get("ret_1m") is not None:
+                item["ret_1m"] = r["ret_1m"]
+            if (r.get("ret_1w") is not None or r.get("ret_1m") is not None) and r.get("perf_date"):
+                item["perf_asof"] = str(r["perf_date"])[:10]     # 報酬有更新才推進基準日
+                got_ret += 1
+        except Exception as e:
+            print(f"  ⚠ {code} 報酬（TWSE）抓取失敗（沿用既有值／週報底稿）：{e}")
+
         items.append(item)
+    got = got_mkt + got_ret
     as_of = max((i.get("as_of") or "" for i in items), default="") or \
         (load() or {}).get("as_of") or clock.today_tw().isoformat()
+    if got_ret:
+        src_note = ("規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← TWSE 官方每日收盤自算。"
+                    "正式對外前以各投信官網核對")
+    elif got_mkt:
+        src_note = ("規模／配息殖利率 ← etfinfo.tw（Tier B）；報酬沿用最近可得週報底稿"
+                    "（TWSE 本次不可達）。正式對外前以各投信官網核對")
+    else:
+        src_note = "沿用既有落檔／週報底稿（本次來源皆不可達）"
     return {
         "as_of": str(as_of)[:10],
         "perf_asof": max((i.get("perf_asof") or "" for i in items), default="") or SEED_ASOF,
         "fetched_at": clock.stamp_tw("%Y/%m/%d %H:%M"),
-        "source": ("etfinfo.tw 第三方彙整（Tier B，上線前以各投信官網核對）"
-                   if got else "沿用既有落檔／週報底稿（本次來源不可達）"),
+        "source": src_note,
         "items": items,
     }
 
