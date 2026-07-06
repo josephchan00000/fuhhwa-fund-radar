@@ -207,10 +207,10 @@ def _fetch_market(code: str) -> dict:
 
 
 def _yahoo_series(code: str) -> dict[str, float]:
-    """Yahoo Finance 圖表 API → {iso_date: 還原(adjusted)收盤}。單一請求、涵蓋近3月逐日。
+    """Yahoo Finance 圖表 API → {iso_date: 收盤}。單一請求、涵蓋近3月逐日。
 
-    用 adjClose（已還原配息/分割）＝總報酬口徑，與週報「報酬」一致，且與逐檔可點的
-    Yahoo 個股頁同源（使用者點連結看到的數字就對得上）。取不到回 {}。"""
+    取「原始收盤」(quote.close) 為主、adjClose 為輔——近月視窗內無除息時原始收盤即等於
+    總報酬，且避開 adjClose 偶發的稀疏/還原偏差。取不到回 {}。"""
     from datetime import datetime
 
     from .http import get_json
@@ -225,12 +225,12 @@ def _yahoo_series(code: str) -> dict[str, float]:
         return {}
     ts = res.get("timestamp") or []
     ind = res.get("indicators") or {}
-    adj = ((ind.get("adjclose") or [{}])[0] or {}).get("adjclose") or []
     raw = ((ind.get("quote") or [{}])[0] or {}).get("close") or []
+    adj = ((ind.get("adjclose") or [{}])[0] or {}).get("adjclose") or []
     out: dict[str, float] = {}
     for i, t in enumerate(ts):
-        c = adj[i] if i < len(adj) and adj[i] is not None else \
-            (raw[i] if i < len(raw) and raw[i] is not None else None)
+        c = raw[i] if i < len(raw) and raw[i] is not None else \
+            (adj[i] if i < len(adj) and adj[i] is not None else None)
         if c:
             iso = datetime.fromtimestamp(t, clock.TW_TZ).date().isoformat()
             out[iso] = float(c)
@@ -280,40 +280,55 @@ def _returns_from_series(close: dict[str, float]) -> dict:
     基準會落在很早的孤點、把區間拉長算出錯值（曾見 ret_1w==ret_1m）；此時該週期不報（回 None、
     交由上層退回底稿），寧缺勿錯。"""
     dates = sorted(close)
+    out: dict = {"ret_1w": None, "ret_1m": None, "perf_date": None,
+                 "ret_1w_base": None, "ret_1m_base": None}
     if len(dates) < 2:
-        return {"ret_1w": None, "ret_1m": None, "perf_date": None}
+        return out
     last = dates[-1]
     last_d = date.fromisoformat(last)
+    out["perf_date"] = last
 
-    def _ret(days: int) -> float | None:
+    def _ret(days: int, tag: str):
         target = last_d - timedelta(days=days)
         prior = [d for d in dates if date.fromisoformat(d) <= target]
         if not prior:
             return None
-        base_d = date.fromisoformat(prior[-1])
-        if (target - base_d).days > 12:              # 基準離目標日太遠＝資料有大缺口 → 不報
+        bd = prior[-1]
+        if (target - date.fromisoformat(bd)).days > 12:      # 基準離目標日太遠＝大缺口 → 不報
             return None
-        base = close[prior[-1]]
+        base = close[bd]
+        out[f"{tag}_base"] = f"{bd}={base:g}"                 # 追查用：所用基準日與收盤
         return round((close[last] / base - 1) * 100, 2) if base else None
 
-    return {"ret_1w": _ret(7), "ret_1m": _ret(30), "perf_date": last}
+    out["ret_1w"] = _ret(7, "ret_1w")
+    out["ret_1m"] = _ret(30, "ret_1m")
+    return out
+
+
+# 3 個月日線約 60 個交易日；序列夠密才信任（否則 1 個月基準會落孤點算出錯值）。
+_MIN_SERIES = 25
 
 
 def _fetch_returns(code: str, today: date | None = None) -> dict:
-    """過去一週／一月報酬 —— 多來源、單檔單請求優先，取第一個「歷史足夠密」的序列。
+    """過去一週／一月報酬 —— 多來源、單檔單請求，取第一個「歷史足夠密」的序列。
 
-    來源順序（皆可人工核對）：Yahoo 還原收盤（總報酬口徑，與逐檔連結同源）→ FinMind →
-    TWSE 官方。任一給出密序列即用（回傳 ret_src 供追查）；全失敗回 None（上層退回底稿）。"""
+    來源順序：Yahoo 收盤（與逐檔連結同源）→ FinMind → TWSE 官方。序列須 ≥ _MIN_SERIES 點
+    才採用（避免稀疏序列把 1 個月基準算錯）；回傳 ret_src／ret_n／基準日供追查；全失敗回 None。"""
     today = today or clock.today_tw()
+    best = None
     for src, series in (("yahoo", _yahoo_series(code)),
                         ("finmind", _finmind_series(code, today)),
                         ("twse", _twse_series(code, today))):
-        if len(series) >= 5:                         # 至少 ~1 週交易日才視為可用序列
-            r = _returns_from_series(series)
-            if r["ret_1w"] is not None or r["ret_1m"] is not None:
-                r["ret_src"] = src
-                return r
-    return {"ret_1w": None, "ret_1m": None, "perf_date": None, "ret_src": None}
+        n = len(series)
+        if n < 5:
+            continue
+        r = _returns_from_series(series)
+        r["ret_src"], r["ret_n"] = src, n
+        if n >= _MIN_SERIES and (r["ret_1w"] is not None or r["ret_1m"] is not None):
+            return r                                  # 夠密即採用
+        best = best or r                              # 太稀疏：暫存，後續來源皆不足才用
+    return best or {"ret_1w": None, "ret_1m": None, "perf_date": None,
+                    "ret_src": None, "ret_n": 0}
 
 
 def _pick(old: dict, base: dict, key: str):
@@ -388,6 +403,9 @@ def fetch() -> dict:
             if (r.get("ret_1w") is not None or r.get("ret_1m") is not None) and r.get("perf_date"):
                 item["perf_asof"] = str(r["perf_date"])[:10]     # 報酬有更新才推進基準日
                 item["ret_src"] = r.get("ret_src")               # 報酬取自哪個來源（追查用）
+                item["ret_n"] = r.get("ret_n")                   # 序列點數（診斷稀疏度）
+                item["ret_1w_base"] = r.get("ret_1w_base")       # 一週報酬所用基準日=收盤
+                item["ret_1m_base"] = r.get("ret_1m_base")       # 一月報酬所用基準日=收盤
                 got_ret += 1
         except Exception as e:
             print(f"  ⚠ {code} 報酬抓取失敗（沿用既有值／週報底稿）：{e}")
