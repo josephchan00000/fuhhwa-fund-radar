@@ -28,26 +28,50 @@ from . import clock
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "etf_watch.json"
 
-# (code, name, kind, cat)：kind＝passive/active；cat＝表內「性質」欄（高股息/市值型/主動式）
-WATCHLIST: list[tuple[str, str, str, str]] = [
-    ("0056",   "元大高股息",       "passive", "高股息"),
-    ("00878",  "國泰永續高股息",   "passive", "高股息"),
-    ("00919",  "群益台灣精選高息", "passive", "高股息"),
-    ("00929",  "復華台灣科技優息", "passive", "高股息"),
-    ("0050",   "元大台灣50",       "passive", "市值型"),
-    ("006208", "富邦台灣50",       "passive", "市值型"),
-    ("00980A", "主動野村臺灣優選", "active", "主動式"),
-    ("00982A", "主動群益台灣強棒", "active", "主動式"),
-    ("00981A", "主動統一台股增長", "active", "主動式"),
-    ("00984A", "主動安聯台灣高息", "active", "主動式"),
-    ("00985A", "主動野村台灣50",   "active", "主動式"),
-    ("00991A", "主動復華未來50",   "active", "主動式"),
-    ("00992A", "主動群益科技創新", "active", "主動式"),
-    ("00987A", "主動台新優勢成長", "active", "主動式"),
-    ("00994A", "主動第一金台股優", "active", "主動式"),
-    ("00995A", "主動中信台灣卓越", "active", "主動式"),
-    ("00993A", "主動安聯台灣",     "active", "主動式"),
+# (code, name, kind, cat, inception)：kind＝passive/active；cat＝表內「性質」欄；
+# inception＝成立日期（固定值，不會變、不需抓、永不空白——避免來源缺欄時整片留空）。
+WATCHLIST: list[tuple[str, str, str, str, str]] = [
+    ("0056",   "元大高股息",       "passive", "高股息", "2007/12/13"),
+    ("00878",  "國泰永續高股息",   "passive", "高股息", "2020/07/10"),
+    ("00919",  "群益台灣精選高息", "passive", "高股息", "2022/10/13"),
+    ("00929",  "復華台灣科技優息", "passive", "高股息", "2023/06/01"),
+    ("0050",   "元大台灣50",       "passive", "市值型", "2003/06/30"),
+    ("006208", "富邦台灣50",       "passive", "市值型", "2012/06/22"),
+    ("00980A", "主動野村臺灣優選", "active", "主動式", "2025/04/22"),
+    ("00982A", "主動群益台灣強棒", "active", "主動式", "2025/05/13"),
+    ("00981A", "主動統一台股增長", "active", "主動式", "2025/05/15"),
+    ("00984A", "主動安聯台灣高息", "active", "主動式", "2025/07/03"),
+    ("00985A", "主動野村台灣50",   "active", "主動式", "2025/07/08"),
+    ("00991A", "主動復華未來50",   "active", "主動式", "2025/12/09"),
+    ("00992A", "主動群益科技創新", "active", "主動式", "2025/12/16"),
+    ("00987A", "主動台新優勢成長", "active", "主動式", "2025/12/16"),
+    ("00994A", "主動第一金台股優", "active", "主動式", "2025/12/26"),
+    ("00995A", "主動中信台灣卓越", "active", "主動式", "2026/01/13"),
+    ("00993A", "主動安聯台灣",     "active", "主動式", "2026/01/20"),
 ]
+
+# 內建週報基準底稿（來源全倒／JSON 被清空時的最後 fallback，永不整片留空）。
+# 值取自使用者提供之週報圖表；ret_1w/ret_1m＝該基準日的近1週／近1月報酬（%）。
+SEED_ASOF = "2026-07-03"
+SEED_PERF: dict[str, dict] = {
+    "0056":   {"aum_e8": 7270.42, "ret_1w": 3.32, "ret_1m": 15.17, "yield_pct": 7.5,  "freq": "季配"},
+    "00878":  {"aum_e8": 6257.30, "ret_1w": 2.90, "ret_1m": 19.89, "yield_pct": 7.84, "freq": "季配"},
+    "00919":  {"aum_e8": 5542.20, "ret_1w": 2.23, "ret_1m": 18.15, "yield_pct": 13.2, "freq": "季配"},
+    "00929":  {"aum_e8": 1448.10, "ret_1w": 4.03, "ret_1m": 17.57, "yield_pct": 9.97, "freq": "月配"},
+    "0050":   {"aum_e8": 22413.0, "ret_1w": 3.06, "ret_1m": 12.70, "yield_pct": 1.87, "freq": "半年配"},
+    "006208": {"aum_e8": 4658.56, "ret_1w": 3.07, "ret_1m": 12.71, "yield_pct": 3.59, "freq": "半年配"},
+    "00980A": {"aum_e8": 180.24, "ret_1w": 1.62, "ret_1m": 8.18,  "yield_pct": 7.85,  "freq": "季配"},
+    "00982A": {"aum_e8": 540.03, "ret_1w": 3.03, "ret_1m": 9.06,  "yield_pct": 10.41, "freq": "季配"},
+    "00981A": {"aum_e8": 2948.01, "ret_1w": 2.72, "ret_1m": 7.72, "yield_pct": 8.05,  "freq": "季配"},
+    "00984A": {"aum_e8": 79.19,  "ret_1w": 3.44, "ret_1m": 10.49, "yield_pct": 6.4,   "freq": "季配"},
+    "00985A": {"aum_e8": 109.85, "ret_1w": 1.76, "ret_1m": 5.76,  "yield_pct": None,  "freq": "年配"},
+    "00991A": {"aum_e8": 651.97, "ret_1w": 2.81, "ret_1m": 10.46, "yield_pct": None,  "freq": "半年配"},
+    "00992A": {"aum_e8": 465.97, "ret_1w": 2.26, "ret_1m": 3.71,  "yield_pct": None,  "freq": "季配"},
+    "00987A": {"aum_e8": 31.94,  "ret_1w": 1.50, "ret_1m": 2.08,  "yield_pct": None,  "freq": "年配"},
+    "00994A": {"aum_e8": 56.42,  "ret_1w": -0.93, "ret_1m": 2.20, "yield_pct": None,  "freq": "季配"},
+    "00995A": {"aum_e8": 57.44,  "ret_1w": 1.61, "ret_1m": 5.95,  "yield_pct": None,  "freq": "季配"},
+    "00993A": {"aum_e8": 115.73, "ret_1w": 2.50, "ret_1m": 8.64,  "yield_pct": None,  "freq": "年配"},
+}
 
 # 收益分配頻率的英文 → 表內中文（etfinfo dividendFrequency 兩種寫法都見過，中文直接放行）
 _FREQ_MAP = {"monthly": "月配", "quarterly": "季配", "semiannual": "半年配",
@@ -112,15 +136,6 @@ def _ret_from_stats(stats, keys: tuple[str, ...]) -> float | None:
     return None
 
 
-def _inception(info: dict) -> str | None:
-    for k in ("listedDate", "listingDate", "inceptionDate", "establishDate",
-              "establishedDate", "setupDate", "listed_date", "established"):
-        v = info.get(k)
-        if v and re.search(r"\d{4}", str(v)):
-            return str(v).replace("-", "/")
-    return None
-
-
 def _freq(info: dict) -> str | None:
     v = str(info.get("dividendFrequency") or info.get("dividend_frequency") or "").strip()
     if not v:
@@ -160,7 +175,6 @@ def _fetch_one(code: str) -> dict:
     freq = _freq(info)
     return {
         "aum_raw": lm.get("aum") or info.get("aum"),
-        "inception": _inception(info),
         "ret_1w": _ret_from_stats(d.get("returnStats"), _WEEK_KEYS),
         "ret_1m": _ret_from_stats(d.get("returnStats"), _MONTH_KEYS),
         "yield_pct": _annualized_yield(d.get("dividends"), lm.get("price"), freq),
@@ -169,44 +183,64 @@ def _fetch_one(code: str) -> dict:
     }
 
 
+def _pick(old: dict, base: dict, key: str):
+    """欄位級 fallback：既有落檔值（非 None）優先，否則用內建週報底稿 base。
+    注意用『值是否為 None』判斷，不用 key 是否存在——CI 曾把欄位寫成顯式 null，
+    dict.get(key, default) 會回傳那個 null 而非 default，反而把資料洗空。"""
+    v = old.get(key)
+    return v if v is not None else base.get(key)
+
+
 def fetch() -> dict:
-    """全清單抓取，與既有落檔逐檔「欄位級合併」→ 新 doc（不落檔；落檔用 save）。"""
+    """全清單抓取，與既有落檔／內建週報底稿逐檔「欄位級合併」→ 新 doc（不落檔；落檔用 save）。
+
+    fallback 鏈（每欄位獨立）：本次 etfinfo 新值 → 既有落檔值 → 內建 SEED_PERF 週報底稿。
+    成立日期一律取 WATCHLIST 靜態值（永不空白）。抓不到的欄位絕不留空／不洗成 null。
+    """
     prev = {i.get("code"): i for i in (load() or {}).get("items", [])}
     items, got = [], 0
-    for code, name, kind, cat in WATCHLIST:
+    for code, name, kind, cat, inception in WATCHLIST:
         old = prev.get(code) or {}
+        base = SEED_PERF.get(code, {})
         item = {"code": code, "name": name, "kind": kind, "cat": cat,
-                "aum_e8": old.get("aum_e8"), "inception": old.get("inception"),
-                "ret_1w": old.get("ret_1w"), "ret_1m": old.get("ret_1m"),
-                "yield_pct": old.get("yield_pct"), "freq": old.get("freq"),
+                "inception": inception,                       # 靜態、永遠有值
+                "aum_e8": _pick(old, base, "aum_e8"),
+                "ret_1w": _pick(old, base, "ret_1w"),
+                "ret_1m": _pick(old, base, "ret_1m"),
+                "yield_pct": _pick(old, base, "yield_pct"),
+                "freq": _pick(old, base, "freq"),
+                "as_of": old.get("as_of"),
+                "perf_asof": old.get("perf_asof") or SEED_ASOF,  # 報酬數據基準日
                 "src": old.get("src") or "seed"}
         try:
             f = _fetch_one(code)
-        except Exception as e:                     # proxy 擋站/斷網 → 整檔沿用既有值
-            print(f"  ⚠ {code} 抓取失敗（沿用既有值）：{e}")
+        except Exception as e:                     # proxy 擋站/斷網 → 整檔沿用 fallback 值
+            print(f"  ⚠ {code} 抓取失敗（沿用既有值／週報底稿）：{e}")
             items.append(item)
             continue
-        aum = _norm_aum_e8(f.get("aum_raw"), old.get("aum_e8"))
-        fresh = {"aum_e8": aum, "inception": f.get("inception"),
+        fresh = {"aum_e8": _norm_aum_e8(f.get("aum_raw"), item["aum_e8"]),
                  "ret_1w": f.get("ret_1w"), "ret_1m": f.get("ret_1m"),
                  "yield_pct": f.get("yield_pct"), "freq": f.get("freq")}
         hit = any(v is not None for v in fresh.values())
         for k, v in fresh.items():
             if v is not None:
                 item[k] = v
+        if f.get("ret_1w") is not None and f.get("mkt_date"):   # 報酬有更新才推進基準日
+            item["perf_asof"] = str(f["mkt_date"])[:10]
         if hit:
             item["src"] = "etfinfo"
             if f.get("mkt_date"):
-                item["as_of"] = str(f["mkt_date"])
+                item["as_of"] = str(f["mkt_date"])[:10]
             got += 1
         items.append(item)
     as_of = max((i.get("as_of") or "" for i in items), default="") or \
         (load() or {}).get("as_of") or clock.today_tw().isoformat()
     return {
         "as_of": str(as_of)[:10],
+        "perf_asof": max((i.get("perf_asof") or "" for i in items), default="") or SEED_ASOF,
         "fetched_at": clock.stamp_tw("%Y/%m/%d %H:%M"),
         "source": ("etfinfo.tw 第三方彙整（Tier B，上線前以各投信官網核對）"
-                   if got else "沿用既有落檔（本次來源不可達）"),
+                   if got else "沿用既有落檔／週報底稿（本次來源不可達）"),
         "items": items,
     }
 
