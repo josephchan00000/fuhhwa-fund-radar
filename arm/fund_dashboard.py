@@ -405,8 +405,8 @@ def _div_cell(i: dict) -> str:
     est = i.get("est_div")
     if est is not None:
         tip = "投信於配息月公告之預計配息金額，非正式配息金額（實際以除息公告為準）"
-        main += (f'　<span class="estdiv" title="{tip}">預估 {_fmt_num(est, 4)}'
-                 f'<sup>*</sup></span>')
+        main += (f'<div class="estdivln"><span class="estdiv" title="{tip}">預估 '
+                 f'{_fmt_num(est, 4)}<sup>*</sup></span></div>')
     return main
 
 
@@ -1017,6 +1017,7 @@ a.tk:hover{color:var(--acc)}
 /* ETF 數據追蹤 */
 .etcat{display:inline-block;white-space:nowrap;font-size:11px;color:var(--accd);border:1px solid rgba(47,111,208,.35);background:rgba(47,111,208,.08);border-radius:5px;padding:0 6px}
 .etfnote{color:var(--mut);font-size:12.5px;margin-top:12px;line-height:1.8;border-top:1px solid var(--line);padding-top:8px}
+.estdivln{margin-top:3px}                       /* 「預估 X*」另起一行，與實際配息金額分開更清楚 */
 .estdiv{display:inline-block;font-size:11.5px;color:#8a5410;background:rgba(200,118,15,.12);border:1px solid rgba(200,118,15,.4);border-radius:6px;padding:0 6px;white-space:nowrap}
 .estdiv sup{font-weight:800}
 .estmk{color:#c8760f;font-weight:800;cursor:help}
