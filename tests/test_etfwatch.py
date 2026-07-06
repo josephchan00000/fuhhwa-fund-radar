@@ -128,7 +128,18 @@ def test_fetch_returns_prefers_first_dense_source(monkeypatch):
     monkeypatch.setattr(etfwatch, "_twse_series", lambda code, today: {})
     r = etfwatch._fetch_returns("0056", today=date(2026, 7, 6))
     assert r["ret_1w"] is not None and r["ret_1m"] is not None
-    assert r["perf_date"] == "2026-07-06"
+    assert r["perf_date"] == "2026-07-06" and r["ret_src"] == "finmind" and r["ret_n"] == 40
+
+
+def test_fetch_returns_skips_sparse_yahoo_for_dense_finmind(monkeypatch):
+    # 稀疏 Yahoo（會把 1 個月基準算錯）→ 跳過，改用密 FinMind（修 0056 類錯值的核心）
+    sparse = {"2026-06-05": 48.0, "2026-06-30": 50.0, "2026-07-06": 53.0}   # 3 點，<25
+    dense = _dense_series(date(2026, 7, 6), 40, 48.0, 0.13)
+    monkeypatch.setattr(etfwatch, "_yahoo_series", lambda code: sparse)
+    monkeypatch.setattr(etfwatch, "_finmind_series", lambda code, today: dense)
+    monkeypatch.setattr(etfwatch, "_twse_series", lambda code, today: {})
+    r = etfwatch._fetch_returns("0056", today=date(2026, 7, 6))
+    assert r["ret_src"] == "finmind" and r["ret_n"] == 40      # 稀疏 Yahoo 被略過
 
 
 def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
@@ -136,7 +147,7 @@ def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
     monkeypatch.setattr(etfwatch, "_finmind_series", lambda code, today: {})
     monkeypatch.setattr(etfwatch, "_twse_series", lambda code, today: {})
     r = etfwatch._fetch_returns("0056", today=date(2026, 7, 6))
-    assert r == {"ret_1w": None, "ret_1m": None, "perf_date": None, "ret_src": None}
+    assert r["ret_1w"] is None and r["ret_1m"] is None and r["ret_src"] is None
 
 
 # ── 追蹤清單與種子落檔（repo 內真實檔） ───────────────────────
