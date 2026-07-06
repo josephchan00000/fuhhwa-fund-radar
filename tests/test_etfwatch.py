@@ -1,5 +1,6 @@
 """ETF 數據追蹤（arm/etfwatch＋儀表板第四分頁）測試——離線、吃 repo 內種子落檔。"""
 import json
+from datetime import date
 
 from arm import etfwatch, fund_dashboard
 
@@ -40,12 +41,24 @@ def test_annualized_yield_from_latest_dividend_price_and_freq():
     assert etfwatch._annualized_yield(divs, 20.0, None) is None
 
 
-def test_ret_from_stats_dict_and_list_shapes():
-    assert etfwatch._ret_from_stats({"week": 3.32, "month": 15.17},
-                                    etfwatch._WEEK_KEYS) == 3.32
-    rows = [{"period": "近1週", "value": "+2.9%"}, {"period": "近1月", "value": "+19.89%"}]
-    assert etfwatch._ret_from_stats(rows, etfwatch._MONTH_KEYS) == 19.89
-    assert etfwatch._ret_from_stats(None, etfwatch._WEEK_KEYS) is None
+def test_returns_computed_from_twse_daily_close(monkeypatch):
+    # 過去一週(7 日曆日)／一月(30 日曆日)報酬＝最新收盤對回推日前最後交易日收盤計算
+    series = [("2026-06-05", 20.0, 0),   # <=06/06（一月前）最後交易日 → 1月基準
+              ("2026-06-29", 23.0, 0),   # <=06/29（一週前）最後交易日 → 1週基準
+              ("2026-07-06", 24.0, 0)]   # 最新交易日
+    import arm.connectors.twse as twse
+    monkeypatch.setattr(twse, "fetch_month", lambda code, y, m: series)
+    r = etfwatch._fetch_returns("0056", today=date(2026, 7, 6))
+    assert r["ret_1w"] == round((24.0 / 23.0 - 1) * 100, 2)   # 4.35%
+    assert r["ret_1m"] == round((24.0 / 20.0 - 1) * 100, 2)   # 20.0%
+    assert r["perf_date"] == "2026-07-06"
+
+
+def test_returns_none_when_twse_has_no_history(monkeypatch):
+    import arm.connectors.twse as twse
+    monkeypatch.setattr(twse, "fetch_month", lambda code, y, m: [])   # 上櫃檔／休市初
+    r = etfwatch._fetch_returns("0056", today=date(2026, 7, 6))
+    assert r == {"ret_1w": None, "ret_1m": None, "perf_date": None}
 
 
 # ── 追蹤清單與種子落檔（repo 內真實檔） ───────────────────────
@@ -96,14 +109,20 @@ def test_save_guard_keeps_nonempty_file(tmp_path, monkeypatch):
     assert json.loads(out.read_text())["as_of"] == "2026-07-03"   # 舊檔完好
 
 
-def _boom(code):
+def _boom(*a, **k):
     raise RuntimeError("CONNECT 403")
 
 
+def _down_both(monkeypatch):
+    """兩來源皆不可達（etfinfo 規模／殖利率 ＋ TWSE 報酬）。"""
+    monkeypatch.setattr(etfwatch, "_fetch_market", _boom)
+    monkeypatch.setattr(etfwatch, "_fetch_returns", _boom)
+
+
 def test_fetch_falls_back_to_seed_when_source_down_and_no_file(monkeypatch):
-    # 來源全倒＋既有落檔不存在 → 純靠內建 SEED_PERF 週報底稿，仍每檔有值、不整片留空
+    # 兩來源全倒＋既有落檔不存在 → 純靠內建 SEED_PERF 週報底稿，仍每檔有值、不整片留空
     monkeypatch.setattr(etfwatch, "load", lambda: None)
-    monkeypatch.setattr(etfwatch, "_fetch_one", _boom)
+    _down_both(monkeypatch)
     doc = etfwatch.fetch()
     by_code = {i["code"]: i for i in doc["items"]}
     assert by_code["00929"]["ret_1w"] == 4.03 and by_code["00929"]["src"] == "seed"
@@ -119,7 +138,7 @@ def test_fetch_does_not_wipe_existing_values_with_nulls(monkeypatch):
     prev = {"items": [{"code": "0056", "aum_e8": 7243.74, "ret_1w": None,
                        "ret_1m": None, "yield_pct": 7.51, "freq": "季配", "src": "etfinfo"}]}
     monkeypatch.setattr(etfwatch, "load", lambda: prev)
-    monkeypatch.setattr(etfwatch, "_fetch_one", _boom)
+    _down_both(monkeypatch)
     i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0056"]
     assert i["ret_1w"] == 3.32 and i["ret_1m"] == 15.17       # 由 SEED_PERF 補回，非 null
     assert i["aum_e8"] == 7243.74 and i["inception"] == "2007/12/13"
@@ -143,3 +162,7 @@ def test_dashboard_has_etf_tab_and_tables():
     assert "2007/12/13" in html and "2025/12/09" in html
     assert "尚無配息" in html
     assert "報酬基準" in html                            # 資料時間備注（規模／殖利率 vs 報酬基準日）
+    # 可點擊人工驗證：逐檔代碼連 Yahoo、註腳連 etfinfo.tw 與 TWSE 官方
+    assert "tw.stock.yahoo.com/quote/0056" in html      # 每列代碼可點對照
+    assert "etfinfo.tw" in html and "twse.com.tw" in html
+    assert "stock-day" in html                          # TWSE 官方每日收盤（報酬來源）
