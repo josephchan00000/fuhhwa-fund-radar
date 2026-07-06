@@ -1,8 +1,22 @@
 {
-  "as_of": "2026/07/06 16:10",
+  "as_of": "2026/07/06 16:30",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
+    {
+      "title": "復華全球大趨勢基金-新臺幣，同樣是全球股票型為何近一年漲破 160%？-CMoney官方",
+      "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE9mcGdvRnUtZ25PbUNtcVNNMHRQT0F6azhxelNRVVc0Q3hMaldieDcyYk9nc0pNekQ0emYybW9JR1NfaTBhLVBYVHZwRWpHT3RRODV3bXdFVjE3dGtTZEF4T0Ywc3NBRWw4MDFlZExkLVJuTnp3UFRHbjBjRkdRQQ?oc=5",
+      "source": "CMoney投資網誌",
+      "date": "2026-07-06 16:21",
+      "datetime": "2026-07-06T16:21:35+08:00"
+    },
+    {
+      "title": "復華亞太神龍科技基金-新臺幣，同樣是科技基金，為什麼近一年能漲超過 200%？-CMoney官方",
+      "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE53SUdrSmlQeXhYYUlibDB2NEp2OHR5YUtuVldsc0Z2SGVkVlZUWnkwNEdmYkpnX1F1V09FSmZ4Mjh0M3BHblRqMWExVGRRek5NcXJfYlMybFZCeHJnZV9iQ1VWRVk3MGkySDQzZmVraVZFVzNianBYc1RCd0ROdw?oc=5",
+      "source": "CMoney投資網誌",
+      "date": "2026-07-06 16:19",
+      "datetime": "2026-07-06T16:19:50+08:00"
+    },
     {
       "title": "復華華人世紀基金，同樣是跨國股票基金，為什麼它近一年的表現能拿下同類第一？",
       "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE1KY25XSjNFVUR4eWVzWXJlbFN2N1VxMVJQdnRyZERRUWEzWG9JbF9UR1JKOGxtNUl5eDNtall5M0ViWU5mM2p2TG4wSm0yM3pmemc1ck5iTUpCOUZpQnpiTkNDN2puSWVxckxqQWN3bzNFRkFQYkE0MXhkc0QxQQ?oc=5",
@@ -44,20 +58,6 @@
       "source": "LINE TODAY",
       "date": "2026-07-02 00:44",
       "datetime": "2026-07-02T00:44:39+08:00"
-    },
-    {
-      "title": "復華全球平衡基金-新臺幣，老牌基金為何還能稱霸？22年百萬變七百萬。",
-      "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE93bFJfLWE0RXAtbjVTOGExQWY4d0NUYXZoRXpRZHBvUnBJcWJOX19RSWhmZjZuWWZnZ0FONndPUnBtWFNTSThGRWlEdWw1Mm9VRmJxR0ptYV9YMmhDa1E1cmVKMl9YbFZiQU5YcEhhN3pnQ0VKdnRMcEpDdGNyUQ?oc=5",
-      "source": "CMoney投資網誌",
-      "date": "2026-07-01 16:26",
-      "datetime": "2026-07-01T16:26:36+08:00"
-    },
-    {
-      "title": "主動復華未來50 (00991A)於5月29日到6月30 日持股變化",
-      "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE5kRTFhMGpweWxqeFRwb1JweHppX19hc2l0ekxWdmJIY242RGxGMzBHSVM1S0Y2VFRVSXlNT3c2ZHJpa0EzbkYzQ1BfUjgzOGpUM09FNUsyWVQ0VXFxa3hwbjFzcFdIN09mSGZ4Mmh1MA?oc=5",
-      "source": "理財周刊",
-      "date": "2026-07-01 16:20",
-      "datetime": "2026-07-01T16:20:58+08:00"
     }
   ],
   "funds": [
@@ -79,7 +79,15 @@
       "short_names": [
         "全球大趨勢新臺幣"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華全球大趨勢基金-新臺幣，同樣是全球股票型為何近一年漲破 160%？-CMoney官方",
+          "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE9mcGdvRnUtZ25PbUNtcVNNMHRQT0F6azhxelNRVVc0Q3hMaldieDcyYk9nc0pNekQ0emYybW9JR1NfaTBhLVBYVHZwRWpHT3RRODV3bXdFVjE3dGtTZEF4T0Ywc3NBRWw4MDFlZExkLVJuTnp3UFRHbjBjRkdRQQ?oc=5",
+          "source": "CMoney投資網誌",
+          "date": "2026-07-06 16:21",
+          "datetime": "2026-07-06T16:21:35+08:00"
+        }
+      ]
     },
     {
       "base": "復華全球物聯網科技基金",
@@ -144,11 +152,11 @@
       ],
       "items": [
         {
-          "title": "復華亞太神龍科技基金-新臺幣，同樣是買科技股，這檔近 1 年漲 240% 憑什麼？",
-          "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE5SbndydHdUS2NzYzRnb0d3alMtYXZfQ2h2TGhNYVdOS3RZOXYxNWFjcE85NW5EbFppRmhZcnp2bUg0dnRRSjJWa2Zvbk43N2xUZkdpSVZQampVVlp6ZjBpUnZPbW5ST1p1bHBiZHlySnRqOVg3Y2tlRmo0VXhmdw?oc=5",
+          "title": "復華亞太神龍科技基金-新臺幣，同樣是科技基金，為什麼近一年能漲超過 200%？-CMoney官方",
+          "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE53SUdrSmlQeXhYYUlibDB2NEp2OHR5YUtuVldsc0Z2SGVkVlZUWnkwNEdmYkpnX1F1V09FSmZ4Mjh0M3BHblRqMWExVGRRek5NcXJfYlMybFZCeHJnZV9iQ1VWRVk3MGkySDQzZmVraVZFVzNianBYc1RCd0ROdw?oc=5",
           "source": "CMoney投資網誌",
-          "date": "2026-07-02 15:00",
-          "datetime": "2026-07-02T15:00:00+08:00"
+          "date": "2026-07-06 16:19",
+          "datetime": "2026-07-06T16:19:50+08:00"
         }
       ]
     },
@@ -360,7 +368,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技、大中華中小策略、全球平衡、高成長（詳下方各基金新聞）",
-    "品牌焦點：復華華人世紀基金，同樣是跨國股票基金，為什麼它近一年的表現能拿下同類第一？（CMoney投資網誌）"
+    "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太神龍科技、大中華中小策略、全球平衡 等 7 檔（詳下方各基金新聞）",
+    "品牌焦點：復華全球大趨勢基金-新臺幣，同樣是全球股票型為何近一年漲破 160%？-CMoney官方（CMoney投資網誌）"
   ]
 }
