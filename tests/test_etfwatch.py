@@ -95,6 +95,29 @@ def test_announced_est_fallback_when_etfinfo_and_mops_empty(monkeypatch):
     assert by["00991A"]["est_src"] == "announced"
 
 
+def test_yield_uses_estimate_when_announced(monkeypatch):
+    # 有當月預估配息 → 換算年化配息率改用預估值年化並標 yield_is_est（新聞口徑）
+    import arm.connectors.mops as mops
+    today = date(2026, 7, 6)
+    monkeypatch.setattr(etfwatch, "load", lambda: None)
+    # etfinfo 給收盤價與頻率，但不給預估；預估來自 ANNOUNCED_EST
+    monkeypatch.setattr(etfwatch, "_fetch_market",
+                        lambda code: {"close_px": 30.78, "freq": "月配", "yield_pct": 10.1,
+                                      "last_div": 0.26, "aum_raw": 1e10})
+    monkeypatch.setattr(etfwatch, "_fetch_returns",
+                        lambda code: {"ret_1w": None, "ret_1m": None, "perf_date": None, "ret_src": None})
+    monkeypatch.setattr(etfwatch.clock, "today_tw", lambda: today)
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+    monkeypatch.setattr(etfwatch, "ANNOUNCED_EST",
+                        {"00929": {"amount": 0.38, "ex_date": "2026-07-21"}})
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00929"]
+    assert i["est_div"] == 0.38 and i["yield_is_est"] is True
+    assert i["yield_pct"] == round(0.38 / 30.78 * 12 * 100, 2)   # ≈ 14.81%（新聞報 14.8%）
+    # 無預估的檔維持實際年化、不標估
+    j = {x["code"]: x for x in etfwatch.fetch()["items"]}["00878"]
+    assert j["yield_is_est"] is False
+
+
 def test_announced_est_dict_entries_are_valid():
     # 維護清單格式檢查：金額為正、除息日為 ISO
     for code, e in etfwatch.ANNOUNCED_EST.items():
