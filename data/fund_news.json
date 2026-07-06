@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/06 07:47",
+  "as_of": "2026/07/06 15:14",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -51,13 +51,6 @@
       "source": "理財周刊",
       "date": "2026-07-01 16:20",
       "datetime": "2026-07-01T16:20:58+08:00"
-    },
-    {
-      "title": "稱霸台股人氣ETF！復華投信展現操盤強實力 豪奪「高股息」及「主動式」雙冠王",
-      "url": "https://news.google.com/rss/articles/CBMiRkFVX3lxTE5IeG9iVmtZdmM2bWFnaE1ISzV1TWxRaWtrOVNKcDZ3T3BLdzJ4VGMzWTdTOWh4VFNYZlZsb19KQ3VTbXNQeXc?oc=5",
-      "source": "台灣新聞雲報",
-      "date": "2026-07-01 02:25",
-      "datetime": "2026-07-01T02:25:07+08:00"
     }
   ],
   "funds": [
@@ -165,7 +158,7 @@
       ],
       "items": [
         {
-          "title": "復華大中華中小策略基金 的買賣訊號 | 鉅亨網",
+          "title": "復華大中華中小策略基金 的買賣訊號 | 鉅亨網 - 基金老司機",
           "url": "https://news.google.com/rss/articles/CBMi5gFBVV95cUxOTjVSYmVWM1lSRnVWLW9rYTZadVBaVzFUajA0RS0tOEIyazl3dDVCa2FnUmhIUDBpS1QxeFVJbTA4QTgzOGdreGY2TDE2QXp0dzBtTlRzbWRmZmdMMUpNYnU4N2xhTmctcmxBMVVYYnJ2TDByYmVwLW9ueHZVWFlETHpuc0FPX3hlZFZFdXNyOXZjbXVXQ1BlazQ1NFBydk96M0N3cy1vbG5PbjdCdjdSdjE1Q0pfQWl2Ym9hVnJPNDdZMmNUTUhEVmlSWUtzeG1nTDQ0WVl2SExBcVA4OVJISW45TXk1UQ?oc=5",
           "source": "鉅亨網",
           "date": "2026-07-01 15:00",
@@ -229,7 +222,15 @@
       "short_names": [
         "高成長"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "百億人氣基金大比拚，「高成長」榮登3月進場抄底王",
+          "url": "https://news.google.com/rss/articles/CBMiQkFVX3lxTFBRTGpRVzVtRmZ3bGRKMWRWZVVoWm5sS1I0Wl9CWkNRSFFISk45MkduLVNvYVZSbWFMZU9IblJYRWNwUQ?oc=5",
+          "source": "墨新聞-MORE News",
+          "date": "2026-06-30 10:46",
+          "datetime": "2026-06-30T10:46:17+08:00"
+        }
+      ]
     },
     {
       "base": "復華數位經濟基金",
@@ -338,7 +339,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技、大中華中小策略、全球平衡（詳下方各基金新聞）",
+    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技、大中華中小策略、全球平衡、高成長（詳下方各基金新聞）",
     "品牌焦點：復華全球物聯網科技基金-新臺幣，為什麼單月規模能狂增近三成？（CMoney投資網誌）"
   ]
 }
