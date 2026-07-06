@@ -59,6 +59,14 @@ ETF 數據追蹤／儀表板產表。新增資料來源時請同步加進此區�
 00929/00991A 於表中高亮）的規模／成立日期／過去一週・一月報酬／配息殖利率／收益分配頻率；
 **配息殖利率一律用年化配息率**＝最新公布一次的配息金額 ÷ 最新市價 × 配息頻率次數
 （月配×12／季配×4／半年配×2／年配×1），不是 trailingYield 近12月回溯值；
-追蹤清單改 `arm/etfwatch.py` 的 `WATCHLIST` 即可。資料層 `data/etf_watch.json`：
-`scripts/fetch_etf_watch.py` 逐檔「欄位級合併」（本次抓不到的欄位保留既有值、整批全空不覆寫既有非空檔）；
+追蹤清單改 `arm/etfwatch.py` 的 `WATCHLIST` 即可（含**成立日期靜態值**——不需抓、永不空白）。
+資料層 `data/etf_watch.json`：`scripts/fetch_etf_watch.py` 逐檔「欄位級合併」，fallback 鏈為
+**本次 etfinfo 新值 → 既有落檔值 → 內建 `SEED_PERF` 週報底稿**（成立日一律取 WATCHLIST 靜態值）。
+報酬數據標 `perf_asof` 基準日、規模／殖利率標 `as_of` 抓取日，儀表板分別備註（沿用最近可得值時使用者已同意）。
 來源 etfinfo.tw 屬 Tier B，正式對外前以各投信官網核對。
+
+**踩過的坑（勿再犯）**：
+- `data/etf_watch.json` 曾被 `.gitignore` 的 `data/*` 擋掉沒入庫 → CI 從零抓、etfinfo 缺欄 → 成立日期／
+  週月報酬整片變 null。已在 `.gitignore` 加 `!data/etf_watch.json` 例外，此檔**必須入庫**當 fallback。
+- 欄位級 fallback 用「值是否為 None」判斷，**不可用 `dict.get(key, default)`**——CI 曾把欄位寫成顯式 `null`，
+  `get(key, default)` 會回傳那個 null 而非 default，反而把資料洗空。用 `arm/etfwatch._pick()`。

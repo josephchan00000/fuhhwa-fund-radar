@@ -53,10 +53,20 @@ def test_ret_from_stats_dict_and_list_shapes():
 def test_watchlist_matches_weekly_report():
     codes = [c for c, *_ in etfwatch.WATCHLIST]
     assert len(codes) == len(set(codes)) == 17
-    passive = [c for c, _, k, _ in etfwatch.WATCHLIST if k == "passive"]
-    active = [c for c, _, k, _ in etfwatch.WATCHLIST if k == "active"]
+    passive = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "passive"]
+    active = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "active"]
     assert set(passive) == {"0056", "00878", "00919", "00929", "0050", "006208"}
     assert "00991A" in active and len(active) == 11    # 含本家主動復華未來50
+    # 成立日期為 WATCHLIST 靜態值（不需抓、永不空白）
+    for c, name, kind, cat, inception in etfwatch.WATCHLIST:
+        assert inception and inception.count("/") == 2
+
+
+def test_seed_perf_covers_every_watchlist_code():
+    # 內建週報底稿要涵蓋每一檔（來源全倒時的最後 fallback，避免整片留空）
+    assert set(etfwatch.SEED_PERF) == {c for c, *_ in etfwatch.WATCHLIST}
+    for code, base in etfwatch.SEED_PERF.items():
+        assert base.get("ret_1w") is not None and base.get("ret_1m") is not None
 
 
 def test_seed_file_loads_and_covers_watchlist():
@@ -64,10 +74,12 @@ def test_seed_file_loads_and_covers_watchlist():
     assert doc and not etfwatch.is_empty(doc)
     by_code = {i["code"]: i for i in doc["items"]}
     assert set(by_code) == {c for c, *_ in etfwatch.WATCHLIST}
+    # 每檔的成立日期／週報酬／月報酬／規模一律有值（不再整片留空）
+    for i in doc["items"]:
+        assert i.get("inception") and i.get("ret_1w") is not None
+        assert i.get("ret_1m") is not None and i.get("aum_e8") is not None
     assert by_code["0056"]["ret_1w"] == 3.32 and by_code["0056"]["freq"] == "季配"
-    assert by_code["0050"]["aum_e8"] == 22413.0        # 2兆2413億
     assert by_code["00994A"]["ret_1w"] == -0.93        # 唯一週線收黑
-    assert by_code["00985A"]["yield_pct"] is None      # N/A → null
 
 
 # ── 防呆：全空不覆寫（同 fundnews 教訓） ──────────────────────
@@ -84,15 +96,33 @@ def test_save_guard_keeps_nonempty_file(tmp_path, monkeypatch):
     assert json.loads(out.read_text())["as_of"] == "2026-07-03"   # 舊檔完好
 
 
-def test_fetch_falls_back_to_previous_values_when_source_down(monkeypatch):
-    def boom(code):
-        raise RuntimeError("CONNECT 403")
-    monkeypatch.setattr(etfwatch, "_fetch_one", boom)
-    doc = etfwatch.fetch()                              # 來源全倒 → 逐檔沿用種子值
+def _boom(code):
+    raise RuntimeError("CONNECT 403")
+
+
+def test_fetch_falls_back_to_seed_when_source_down_and_no_file(monkeypatch):
+    # 來源全倒＋既有落檔不存在 → 純靠內建 SEED_PERF 週報底稿，仍每檔有值、不整片留空
+    monkeypatch.setattr(etfwatch, "load", lambda: None)
+    monkeypatch.setattr(etfwatch, "_fetch_one", _boom)
+    doc = etfwatch.fetch()
     by_code = {i["code"]: i for i in doc["items"]}
     assert by_code["00929"]["ret_1w"] == 4.03 and by_code["00929"]["src"] == "seed"
-    assert not etfwatch.is_empty(doc)
-    assert "不可達" in doc["source"]
+    assert by_code["00929"]["inception"] == "2023/06/01"     # 靜態成立日
+    assert doc["perf_asof"] == etfwatch.SEED_ASOF
+    assert not etfwatch.is_empty(doc) and "不可達" in doc["source"]
+    for i in doc["items"]:                                    # 無一欄位留空
+        assert i.get("inception") and i.get("ret_1w") is not None and i.get("aum_e8") is not None
+
+
+def test_fetch_does_not_wipe_existing_values_with_nulls(monkeypatch):
+    # 既有落檔某欄位是顯式 null（CI 曾寫過）→ 不可用 null 覆蓋，要退回週報底稿
+    prev = {"items": [{"code": "0056", "aum_e8": 7243.74, "ret_1w": None,
+                       "ret_1m": None, "yield_pct": 7.51, "freq": "季配", "src": "etfinfo"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_one", _boom)
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0056"]
+    assert i["ret_1w"] == 3.32 and i["ret_1m"] == 15.17       # 由 SEED_PERF 補回，非 null
+    assert i["aum_e8"] == 7243.74 and i["inception"] == "2007/12/13"
 
 
 # ── 儀表板第四分頁（吃 repo 內種子檔，離線） ──────────────────
@@ -109,3 +139,7 @@ def test_dashboard_has_etf_tab_and_tables():
     assert html.count('class="mine"') >= 2              # 00929＋00991A 本家高亮
     assert "minepill" in html
     assert "非投資建議" in html
+    # 成立日期不空白（靜態值直接進表）＋殖利率缺值顯示「尚無配息」而非 bare「—」
+    assert "2007/12/13" in html and "2025/12/09" in html
+    assert "尚無配息" in html
+    assert "報酬基準" in html                            # 資料時間備注（規模／殖利率 vs 報酬基準日）
