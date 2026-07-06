@@ -10,7 +10,8 @@
 > （實測 `fetch_etf_watch.py` 在此**空轉逾 20 分鐘**、`fetch_holdings.py` 25 檔全 403）——那不是程式 bug，
 > 是環境限制，正式區完全不會發生。這三支抓取「正式區」（`daily.yml` GitHub Actions，擁有者身分、完整網路）
 > **本來就會自己跑**。**因此在這裡「絕不」跑資料抓取腳本**——只做「只有 Claude 能做」的事（WebSearch 產新聞
-> 內容），把資料抓取＋權威版儀表板整包丟給正式區，最後用**線上頁截圖**驗證。這樣可省下每次約 25 分鐘的空轉。
+> 內容），把資料抓取＋權威版儀表板整包丟給正式區，最後**讀 CI 入庫的 `dashboard/index.html` 驗證線上內容**
+> （截圖 Vercel 線上頁被同一套 proxy 政策擋、做不到，詳見步驟 9）。這樣可省下每次約 25 分鐘的空轉。
 
 1. **產提示包**（本地、秒級，是 WebSearch 的輸入，**要跑**）：
    `TZ=Asia/Taipei python3 scripts/gen_usnews.py && TZ=Asia/Taipei python3 scripts/gen_twnews.py && TZ=Asia/Taipei python3 scripts/gen_macronews.py`
@@ -34,12 +35,17 @@
 7. **merge 進 main（使用者已預先授權，不必再問）**：開 PR 後**立即 merge**。merge 前先把 main 併進分支解衝突（`dashboard/index.html` 衝突一律重跑 `gen_fund_dashboard.py` 重產解決）。
 8. **觸發正式區抓真實資料＋部署**：手動觸發 `daily.yml` 的 `workflow_dispatch`（`ref=main`，用 `mcp__github__actions_run_trigger`）。
    CI 會抓**真實** NAV／持股／ETF／基金新聞＋重建儀表板＋以擁有者身分 commit → Vercel 部署。**這步才會補齊此容器抓不到的資料**（bot 身分的 merge commit 可能不觸發 Vercel，故此步同時保險）。
-9. **截圖驗證線上頁（「全部更新」的完成定義＝網頁真的更新）**：等 CI + Vercel 部署完（約數分鐘），用
-   Playwright/Chromium 開 **Vercel 線上網址**截圖，確認新聞日期、🕒 鮮度區塊、ETF 表都是今日版。
-   - **Vercel 線上網址**：`____待使用者提供一次後填此____`（曾測預設網域 `fuhhwa-fund-radar.vercel.app` 回 403，
-     可能有 Vercel 部署保護或非此網域）。填入後永久沿用。
-   - 若線上網址被 proxy 擋或需登入而無法截圖：退回用 `mcp__github__actions_*` 確認該次 `daily.yml` run
-     成功結束（`success`）＋ 該 run 的 commit 已含今日儀表板，作為完成證明。
+9. **驗證線上內容（「全部更新」的完成定義＝網頁真的更新）**：等 `daily.yml` 跑完（約數分鐘）後驗證。
+   - **Vercel 線上網址**：`https://fuhhwa-fund-radar.vercel.app/#overview`。
+   - ⚠ **從此容器「截圖」線上頁做不到**（2026-07 實測）：agent proxy 對 `fuhhwa-fund-radar.vercel.app:443`
+     回 **CONNECT 403（政策拒絕）**，與擋 fhtrust／etfinfo 同一套網路政策；Playwright/WebFetch/curl 一律不通。
+     除非使用者改用更寬鬆的環境網路政策，否則別再嘗試截圖、白費算力。
+   - ✅ **可行且等效的驗證法**：Vercel 是**零 build、逐字服務入庫的 `dashboard/index.html`**，所以直接讀
+     **main 上 CI 剛 commit 的那支檔**（GitHub 有放行）即等於看線上內容——
+     `git fetch origin main && git show origin/main:dashboard/index.html` 後檢查：①美股／台股新聞、總經・政策
+     皆今日日期；②「🕒 產表」時戳為 CI 那次（會比本地時戳晚，證明 CI 已重產覆蓋）；③ETF 表有值。
+     並用 `mcp__github__actions_*` 確認該次 `daily.yml` run `success`。三者齊備即完成。
+   - 註：NAV 常見 T+1 遞延（今日只到昨日 NAV 屬正常）；持股基準為月度值——不是資料沒更新。
 
 ## 已知環境限制與防呆（曾踩過的坑，不要再犯）
 
