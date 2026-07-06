@@ -78,6 +78,31 @@ def test_mops_parse_handles_4_5_6_digit_codes_and_roc_dates():
                                                      "announced": None}
 
 
+def test_announced_est_fallback_when_etfinfo_and_mops_empty(monkeypatch):
+    # etfinfo/MOPS 都沒預估 → 用投信已公告人工清單 ANNOUNCED_EST（本月、除息未到）
+    import arm.connectors.mops as mops
+    today = date(2026, 7, 6)
+    monkeypatch.setattr(etfwatch, "load", lambda: None)
+    monkeypatch.setattr(etfwatch, "_fetch_market", lambda code: {})       # etfinfo 無配息/預估
+    monkeypatch.setattr(etfwatch, "_fetch_returns",
+                        lambda code: {"ret_1w": None, "ret_1m": None, "perf_date": None, "ret_src": None})
+    monkeypatch.setattr(etfwatch.clock, "today_tw", lambda: today)
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})    # MOPS 空
+    monkeypatch.setattr(etfwatch, "ANNOUNCED_EST",
+                        {"00991A": {"amount": 0.77, "ex_date": "2026-07-21"}})
+    by = {i["code"]: i for i in etfwatch.fetch()["items"]}
+    assert by["00991A"]["est_div"] == 0.77 and by["00991A"]["est_div_date"] == "2026-07-21"
+    assert by["00991A"]["est_src"] == "announced"
+
+
+def test_announced_est_dict_entries_are_valid():
+    # 維護清單格式檢查：金額為正、除息日為 ISO
+    for code, e in etfwatch.ANNOUNCED_EST.items():
+        assert code in {c for c, *_ in etfwatch.WATCHLIST}
+        assert isinstance(e["amount"], (int, float)) and e["amount"] > 0
+        assert date.fromisoformat(e["ex_date"])
+
+
 def test_fetch_fills_estimate_from_mops_for_current_month(monkeypatch):
     import arm.connectors.mops as mops
     today = date(2026, 7, 6)
