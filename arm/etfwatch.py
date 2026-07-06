@@ -340,6 +340,17 @@ def _is_degenerate(series: dict[str, float]) -> bool:
     return n >= 10 and len(set(series.values())) < n * 0.6
 
 
+def _same_base_price(r: dict) -> bool:
+    """一週與一月基準為【不同日、同收盤價】＝來源對該檔回傳重複值的髒資料
+    （例 Yahoo 對 0056 的 6/5 與 6/29 都 51.8，害週報酬==月報酬）。"""
+    w, m = r.get("ret_1w_base"), r.get("ret_1m_base")
+    if not w or not m or "=" not in w or "=" not in m:
+        return False
+    wd, wp = w.split("=", 1)
+    md, mp = m.split("=", 1)
+    return wd != md and wp == mp
+
+
 def _fetch_returns(code: str, today: date | None = None) -> dict:
     """過去一週／一月報酬 —— 多來源、單檔單請求，取第一個「乾淨且夠密」的序列。
 
@@ -356,6 +367,8 @@ def _fetch_returns(code: str, today: date | None = None) -> dict:
             continue
         r = _returns_from_series(series)
         r["ret_src"], r["ret_n"] = src, n
+        if _same_base_price(r):                        # 一週/一月基準不同日卻同價＝髒資料 → 換下一來源
+            continue
         if n >= _MIN_SERIES and (r["ret_1w"] is not None or r["ret_1m"] is not None):
             return r                                  # 乾淨且夠密即採用
         best = best or r                              # 太稀疏：暫存，後續來源皆不足才用
