@@ -111,11 +111,13 @@ def test_fetch_fills_estimate_from_mops_for_current_month(monkeypatch):
     monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code: {"ret_1w": None, "ret_1m": None,
                                                                   "perf_date": None, "ret_src": None})
     monkeypatch.setattr(etfwatch.clock, "today_tw", lambda: today)
+    monkeypatch.setattr(etfwatch, "ANNOUNCED_EST", {})   # 隔離：本測試只驗 MOPS 來源
     monkeypatch.setattr(mops, "etf_distributions",
                         lambda *a, **k: {"0056": {"ex_date": "2026-07-16", "amount": 0.80}})
     by = {i["code"]: i for i in etfwatch.fetch()["items"]}
     assert by["0056"]["est_div"] == 0.80 and by["0056"]["est_div_date"] == "2026-07-16"
-    assert by["00929"].get("est_div") is None            # MOPS 無公告者不填
+    assert by["0056"]["est_src"] == "mops"               # MOPS 優先於人工清單
+    assert by["00929"].get("est_div") is None            # 該來源無公告者不填
 
 
 def _dense_series(last: date, n: int, base: float, step: float) -> dict:
