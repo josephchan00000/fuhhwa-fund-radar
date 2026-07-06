@@ -1,7 +1,7 @@
 {
   "as_of": "2026-07-06",
   "perf_asof": "2026-07-06",
-  "fetched_at": "2026/07/06 18:26",
+  "fetched_at": "2026/07/06 18:37",
   "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算；當月預估配息 ← 投信公告／MOPS（7 檔）。正式對外前以各投信官網核對",
   "items": [
     {
@@ -18,7 +18,7 @@
       "last_div_date": "2026-04-23",
       "est_div": 1.35,
       "est_div_date": "2026-07-21",
-      "yield_pct": 7.51,
+      "yield_pct": 10.14,
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
@@ -27,7 +27,8 @@
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=51.8",
       "ret_1m_base": "2026-06-05=51.8",
-      "est_src": "announced"
+      "est_src": "announced",
+      "yield_is_est": true
     },
     {
       "code": "00878",
@@ -51,7 +52,8 @@
       "src": "etfinfo+px",
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=32.9",
-      "ret_1m_base": "2026-06-05=32.32"
+      "ret_1m_base": "2026-06-05=32.32",
+      "yield_is_est": false
     },
     {
       "code": "00919",
@@ -75,7 +77,8 @@
       "src": "etfinfo+px",
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=29.46",
-      "ret_1m_base": "2026-06-05=30.67"
+      "ret_1m_base": "2026-06-05=30.67",
+      "yield_is_est": false
     },
     {
       "code": "00929",
@@ -90,8 +93,8 @@
       "last_div": 0.26,
       "last_div_date": "2026-06-17",
       "est_div": 0.38,
-      "est_div_date": "2026-07-16",
-      "yield_pct": 9.95,
+      "est_div_date": "2026-07-21",
+      "yield_pct": 14.54,
       "freq": "月配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
@@ -100,7 +103,8 @@
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=29.99",
       "ret_1m_base": "2026-06-05=29.94",
-      "est_src": "announced"
+      "est_src": "announced",
+      "yield_is_est": true
     },
     {
       "code": "0050",
@@ -116,7 +120,7 @@
       "last_div_date": "2026-01-22",
       "est_div": 0.6,
       "est_div_date": "2026-07-21",
-      "yield_pct": 1.85,
+      "yield_pct": 1.11,
       "freq": "半年配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
@@ -125,7 +129,8 @@
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=104.45",
       "ret_1m_base": "2026-06-05=104.15",
-      "est_src": "announced"
+      "est_src": "announced",
+      "yield_is_est": true
     },
     {
       "code": "006208",
@@ -141,7 +146,7 @@
       "last_div_date": "2025-11-18",
       "est_div": 4.75,
       "est_div_date": "2026-07-16",
-      "yield_pct": 2.74,
+      "yield_pct": 3.78,
       "freq": "半年配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
@@ -150,7 +155,8 @@
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=242.75",
       "ret_1m_base": "2026-06-05=241.05",
-      "est_src": "announced"
+      "est_src": "announced",
+      "yield_is_est": true
     },
     {
       "code": "00980A",
@@ -174,7 +180,8 @@
       "src": "etfinfo+px",
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=23.65",
-      "ret_1m_base": "2026-06-05=24.32"
+      "ret_1m_base": "2026-06-05=24.32",
+      "yield_is_est": false
     },
     {
       "code": "00982A",
@@ -198,7 +205,8 @@
       "src": "etfinfo+px",
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=23.65",
-      "ret_1m_base": "2026-06-05=23.74"
+      "ret_1m_base": "2026-06-05=23.74",
+      "yield_is_est": false
     },
     {
       "code": "00981A",
@@ -222,7 +230,8 @@
       "src": "etfinfo+px",
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=29.94",
-      "ret_1m_base": "2026-06-05=30.81"
+      "ret_1m_base": "2026-06-05=30.81",
+      "yield_is_est": false
     },
     {
       "code": "00984A",
@@ -238,7 +247,7 @@
       "last_div_date": "2026-04-20",
       "est_div": 0.415,
       "est_div_date": "2026-07-16",
-      "yield_pct": 6.4,
+      "yield_pct": 9.9,
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
@@ -247,7 +256,8 @@
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=16.1",
       "ret_1m_base": "2026-06-05=16.33",
-      "est_src": "announced"
+      "est_src": "announced",
+      "yield_is_est": true
     },
     {
       "code": "00985A",
@@ -271,7 +281,8 @@
       "src": "etfinfo+px",
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=21.33",
-      "ret_1m_base": "2026-06-05=22"
+      "ret_1m_base": "2026-06-05=22",
+      "yield_is_est": false
     },
     {
       "code": "00991A",
@@ -287,7 +298,7 @@
       "last_div_date": null,
       "est_div": 0.77,
       "est_div_date": "2026-07-21",
-      "yield_pct": null,
+      "yield_pct": 7.68,
       "freq": "半年配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
@@ -296,7 +307,8 @@
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=19.65",
       "ret_1m_base": "2026-06-05=19.22",
-      "est_src": "announced"
+      "est_src": "announced",
+      "yield_is_est": true
     },
     {
       "code": "00992A",
@@ -312,7 +324,7 @@
       "last_div_date": null,
       "est_div": 0.47,
       "est_div_date": "2026-07-16",
-      "yield_pct": null,
+      "yield_pct": 10.11,
       "freq": "季配",
       "as_of": "2026-07-06",
       "perf_asof": "2026-07-06",
@@ -321,7 +333,8 @@
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=17.8",
       "ret_1m_base": "2026-06-05=17.93",
-      "est_src": "announced"
+      "est_src": "announced",
+      "yield_is_est": true
     },
     {
       "code": "00987A",
@@ -345,7 +358,8 @@
       "src": "etfinfo+px",
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=16.4",
-      "ret_1m_base": "2026-06-05=17.38"
+      "ret_1m_base": "2026-06-05=17.38",
+      "yield_is_est": false
     },
     {
       "code": "00994A",
@@ -369,7 +383,8 @@
       "src": "etfinfo+px",
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=17.17",
-      "ret_1m_base": "2026-06-05=17.91"
+      "ret_1m_base": "2026-06-05=17.91",
+      "yield_is_est": false
     },
     {
       "code": "00995A",
@@ -393,7 +408,8 @@
       "src": "etfinfo+px",
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=17.32",
-      "ret_1m_base": "2026-06-05=17.62"
+      "ret_1m_base": "2026-06-05=17.62",
+      "yield_is_est": false
     },
     {
       "code": "00993A",
@@ -417,7 +433,8 @@
       "src": "etfinfo+px",
       "ret_n": 63,
       "ret_1w_base": "2026-06-29=13.51",
-      "ret_1m_base": "2026-06-05=13.41"
+      "ret_1m_base": "2026-06-05=13.41",
+      "yield_is_est": false
     }
   ]
 }
