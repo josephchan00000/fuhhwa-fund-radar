@@ -440,8 +440,14 @@ def _etf_table(items: list[dict]) -> str:
             elif k == "last_div":
                 cell = _div_cell(i)
             elif k == "yield_pct":
-                cell = (f"{v:.2f}%" if v is not None else
-                        '<span class="na" title="尚無配息紀錄，無法計算年化配息率">尚無配息</span>')
+                if v is None:
+                    cell = '<span class="na" title="尚無配息紀錄，無法計算年化配息率">尚無配息</span>'
+                elif i.get("yield_is_est"):
+                    ed = _fmt_num(i.get("est_div"), 4)
+                    tip = f"以本月預估配息 {ed} × 年配息次數 ÷ 最新收盤價換算（投信公告預估，非正式）"
+                    cell = f'<span title="{_esc(tip)}">{v:.2f}%<sup class="estmk">*</sup></span>'
+                else:
+                    cell = f"{v:.2f}%"
             else:
                 cell = _esc(i.get(k)) if i.get(k) else '<span class="na">—</span>'
             tds.append(f'<td data-v="{v if v is not None else ""}">{cell}</td>')
@@ -495,8 +501,10 @@ def _etfwatch_view(doc: dict | None) -> str:
         '（成立日期為固定值；來源當日未更新時沿用最近可得值並標明基準日）・'
         f'抓取時間 {_esc(doc.get("fetched_at") or "—")}。<br>'
         + est_note +
-        '　換算年化配息率＝最近一次「實際」配息金額 ÷ 最新市價 × 年配息次數；「尚無配息」＝新掛牌尚未除息、'
-        '無配息紀錄可計算。正式對外請以各投信官網為準；僅為資訊彙編、非投資建議，過去績效不代表未來表現。</div>')
+        '　換算年化配息率＝配息金額 ÷ 最新市價 × 年配息次數；<b>標 * 者</b>改用「本月<b>預估</b>配息」換算'
+        '（與投信/新聞公告口徑一致，非正式，實際以除息公告為準），其餘用最近一次「實際」配息換算；'
+        '「尚無配息」＝新掛牌尚未除息、無配息紀錄可計算。'
+        '正式對外請以各投信官網為準；僅為資訊彙編、非投資建議，過去績效不代表未來表現。</div>')
     return "".join(parts)
 
 
@@ -990,6 +998,7 @@ a.tk:hover{color:var(--acc)}
 .etfnote{color:var(--mut);font-size:12.5px;margin-top:12px;line-height:1.8;border-top:1px solid var(--line);padding-top:8px}
 .estdiv{display:inline-block;font-size:11.5px;color:#8a5410;background:rgba(200,118,15,.12);border:1px solid rgba(200,118,15,.4);border-radius:6px;padding:0 6px;white-space:nowrap}
 .estdiv sup{font-weight:800}
+.estmk{color:#c8760f;font-weight:800;cursor:help}
 .rbase{font-size:10.5px;color:var(--mut);font-weight:400;margin-top:2px;white-space:nowrap;cursor:help}
 .rsrc{display:inline-block;font-size:10.5px;padding:0 5px;margin-left:6px;border-radius:5px;border:1px solid;
   color:var(--mut);background:rgba(138,127,107,.1);border-color:rgba(138,127,107,.3);vertical-align:1px}

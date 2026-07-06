@@ -68,13 +68,13 @@ WATCHLIST: list[tuple[str, str, str, str, str]] = [
 # 本月除息者：季配(1/4/7/10) 0056/00984A/00992A、月配 00929、半年配 0050/006208、本家 00991A。
 # 其餘檔本月非除息月（下次落在 8/9/12 月或 2027），故不列。
 ANNOUNCED_EST: dict[str, dict] = {
-    "0056":   {"amount": 1.35,  "ex_date": "2026-07-21"},  # 季配 Q3 擬配，創季配新高（元大投信）
-    "00929":  {"amount": 0.38,  "ex_date": "2026-07-16"},  # 月配 7月，創掛牌新高（復華投信）
+    "0056":   {"amount": 1.35,  "ex_date": "2026-07-21"},  # 季配 Q3 擬配，創季配新高（元大投信/聯合）
+    "00929":  {"amount": 0.38,  "ex_date": "2026-07-21"},  # 月配 7月，創掛牌新高、年化14.8%（復華/ETtoday）
     "0050":   {"amount": 0.6,   "ex_date": "2026-07-21"},  # 半年配 7月第一階段預估（7/17 定案）
-    "006208": {"amount": 4.75,  "ex_date": "2026-07-16"},  # 半年配 7月，史上新高（富邦投信）
-    "00984A": {"amount": 0.415, "ex_date": "2026-07-16"},  # 季配 7月，成立以來最高（安聯投信）
+    "006208": {"amount": 4.75,  "ex_date": "2026-07-16"},  # 半年配 7月，史上新高（富邦/Newtalk）
+    "00984A": {"amount": 0.415, "ex_date": "2026-07-16"},  # 季配 7月，成立以來最高、年化9.9%（安聯/Newtalk）
     "00991A": {"amount": 0.77,  "ex_date": "2026-07-21"},  # 本家首配（復華投信/經濟日報）
-    "00992A": {"amount": 0.47,  "ex_date": "2026-07-16"},  # 首配（群益投信）
+    "00992A": {"amount": 0.47,  "ex_date": "2026-07-16"},  # 首配（群益投信/Newtalk）
 }
 
 # 內建週報基準底稿（來源全倒／JSON 被清空時的最後 fallback，永不整片留空）。
@@ -477,6 +477,15 @@ def fetch() -> dict:
                     item["est_div"], item["est_div_date"], item["est_src"] = amt, ex, src_name
                     got_est += 1
                     break
+
+        # ④ 換算年化配息率：有當月預估配息時，改用「預估配息 × 年配息次數 ÷ 最新收盤價」（新聞口徑）
+        #    並標記 yield_is_est；否則維持最近一次「實際」配息年化。
+        n = _FREQ_PER_YEAR.get(item.get("freq") or "")
+        if item.get("est_div") is not None and item.get("close_px") and n:
+            item["yield_pct"] = round(item["est_div"] / item["close_px"] * n * 100, 2)
+            item["yield_is_est"] = True
+        else:
+            item["yield_is_est"] = False
 
         items.append(item)
     got = got_mkt + got_ret
