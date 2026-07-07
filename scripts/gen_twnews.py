@@ -41,13 +41,16 @@ def build_prompt(today: date, mode: str) -> str:
             "聚焦昨夜美股影響、台指期夜盤、盤前焦點個股與法人／題材預期）"
             if is_pre else
             "針對【今日台股交易日】製作一份盤後重點彙編（聚焦收盤數據與三大法人籌碼）")
+    anchor = usnews.calendar_anchor(today)
+    prior = usnews.prior_block(usnews.prior_titles(twnews.NEWS_DIR, today), "前一日台股報告")
     return f"""你是「台灣投信公司給內外部溝通使用的{role}」。請以繁體中文，
 {when}。用 WebSearch/WebFetch 實際查證，勿杜撰點位、漲跌幅、法人金額或個股報價；
 查不到就誠實加「資料侷限說明」。
 
 台北日期（TST, UTC+8）：{today:%Y/%m/%d}（若今日休市，改寫最近一個台股交易日並註明）
 目前模式：{'盤前（開盤前／盤中）——請抓最新盤前重要新聞' if is_pre else '盤後（收盤後）'}
-{usnews.weekend_note(today) + chr(10) if usnews.weekend_note(today) else ''}建議關鍵字：{kw}
+{anchor}
+{usnews.weekend_note(today) + chr(10) if usnews.weekend_note(today) else ''}{prior + chr(10) * 2 if prior else ''}建議關鍵字：{kw}
 
 請產出一份，存成：reports/twnews/{today:%Y-%m-%d}.md
 （標題請用「〈台股盤前重點〉」）""" + ("" if is_pre else "（標題請用「〈台股盤後重點〉」）") + f"""

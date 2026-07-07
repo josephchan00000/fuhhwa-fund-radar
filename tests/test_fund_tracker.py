@@ -58,7 +58,7 @@ def test_us_session_skips_weekend():
 
 def test_specs_present():
     assert "重要度" in usnews.SPEC_V1 and "精簡版" in usnews.SPEC_V2
-    assert "【新事件】" in usnews.SPEC_V1 and "至少 6 則" in usnews.SPEC_V1   # 多找、標事件屬性
+    assert "【新事件】" in usnews.SPEC_V1 and "至少 4 則" in usnews.SPEC_V1   # 多找、標事件屬性
     assert usnews.BANNED and "保證" in usnews.BANNED
 
 
@@ -66,7 +66,7 @@ def test_macro_spec_and_section():
     from arm import macronews, fund_dashboard as fd
     # 政策面規格：含三大範圍＋新標準（重要度/新事件/多找）
     s = macronews.SPEC_MACRO
-    assert "川普" in s and "聯準會" in s and "重要度" in s and "【新事件】" in s and "至少 6 則" in s
+    assert "川普" in s and "聯準會" in s and "重要度" in s and "【新事件】" in s and "至少 4 則" in s
     # 儀表板：總經為左上三分頁之一（總經/台股/全球），內含政策區塊
     html = fd.render()
     assert 'id="mkt-macro"' in html and 'for="mkt-macro">總經' in html   # 三分頁切換鈕
@@ -85,6 +85,30 @@ def test_weekend_note_merged_window():
     assert usnews.weekend_note(date(2026, 7, 4)).startswith("【週末合併時窗】")
     # 平日（週二~週五）不加註
     assert usnews.weekend_note(date(2026, 7, 7)) == ""
+
+
+def test_calendar_anchor_states_weekday_and_holiday():
+    # 週二 07/07：明確錨定今日星期二、對應昨夜美股為週一 07/06（正常交易日）
+    a = usnews.calendar_anchor(date(2026, 7, 7))
+    assert "2026/07/07（週二）" in a and "2026/07/06（週一）" in a
+    # 週一 07/06：us_session_date 給週五 07/03，但 07/03 為國慶補假休市，
+    # 錨定須往回指到真實交易日 07/02（週四）並註明 07/03 休市
+    b = usnews.calendar_anchor(date(2026, 7, 6))
+    assert "2026/07/02（週四）" in b and "07/03" in b and "休市" in b
+
+
+def test_prior_block_lists_reported_titles(tmp_path):
+    # prior_titles 讀『日期 < today』最新一份、抽卡標題；prior_block 格式化成「勿重收」清單
+    (tmp_path / "2026-07-05.md").write_text(
+        "# 報告\n\n### 卡 1｜台積電營收創高（來源：X｜2026/07/05｜【新事件】｜重要度 8/10）\n"
+        "1. **新聞摘要**：略。\n", encoding="utf-8")
+    titles = usnews.prior_titles(tmp_path, date(2026, 7, 7))
+    assert titles == ["台積電營收創高"]
+    block = usnews.prior_block(titles, "前一日測試")
+    assert "勿原樣重收" in block and "台積電營收創高" in block and "【延伸】" in block
+    # 沒有更早檔案時回空、prior_block 回空字串（提示包會略過）
+    assert usnews.prior_titles(tmp_path, date(2026, 7, 4)) == []
+    assert usnews.prior_block([]) == ""
     assert usnews.weekend_note(date(2026, 7, 3)) == ""
 
 

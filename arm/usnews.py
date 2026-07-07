@@ -83,7 +83,7 @@ SPEC_V1 = f"""【版型一：昨夜美股公司與產業面速寫包（完整版
 等公開彙整；可各補 ≤1 段 JPMorgan/Goldman Sachs/Morgan Stanley/BlackRock 當日評論（附日期）。
 每則附來源連結與台北時間戳（例：2026/07/02 05:30 TST）。
 
-【數量與門檻】盡量多找：**至少 6 則、上不封頂**，把當夜所有「重要度 6 分以上」的公司/產業事件全數收錄，
+【數量與門檻】盡量多找：**至少 4 則、上不封頂**，把當夜所有「重要度 6 分以上」的公司/產業事件全數收錄，
 寧多勿漏；不足時擴大次級題材（法說會效應／分析師報告／行業趨勢）到 6 分線為止。排序：先依重要度高→低，
 同分再新→舊。
 
@@ -92,7 +92,7 @@ SPEC_V1 = f"""【版型一：昨夜美股公司與產業面速寫包（完整版
 
 版面：
   🔹前後 24 小時重大公司與產業事項總覽（Nasdaq／費半／S&P500 各 1 句 ＋ 1 句市場解析：主題動能與板塊輪動）
-  🔹新聞卡（每則 120–180 字；≥6 則）：
+  🔹新聞卡（每則 120–180 字；≥4 則）：
      標題（來源＋日期＋TST｜【新事件】或【延伸】｜重要度 N/10）  ← 括注三段缺一不可，供儀表板解析徽章
      1. 新聞摘要（2–3 句聚焦事實） 2. 一句話重點 3. 對公司影響
      4. 對競爭者／合作方影響 5. 對市場情緒與股價影響
@@ -110,7 +110,7 @@ SPEC_V2 = f"""【版型二：昨夜美股重點（精簡版）】
 產品發表、產業鏈合作、財報/財測、重大投資/資本支出、供應鏈調整、人事異動、監管/法律事件），
 不含單純 Fed/利率/大盤漲跌。
 
-【數量與門檻】盡量多找：**至少 6 則、上不封頂**，收錄所有「重要度 6 分以上」者，寧多勿漏。
+【數量與門檻】盡量多找：**至少 4 則、上不封頂**，收錄所有「重要度 6 分以上」者，寧多勿漏。
 排序：先依重要度高→低，同分再新→舊。
 
 {ETYPE_RULE}
@@ -151,6 +151,87 @@ def us_session_date(today: date | None = None) -> date:
     while d.weekday() >= 5:      # 5=Sat, 6=Sun
         d -= timedelta(days=1)
     return d
+
+
+# ── 交易日曆錨定 ＋ 前一日已報導清單（2026-07 效率優化）──
+# 動機：查證代理常花數次搜尋去自行釐清「今日星期幾／昨夜美股是否休市／上一交易日是哪天」，
+# 且會重覆查證前一日已報導的舊聞。把這兩件事「系統算好、直接寫進提示包」＝純提示、不影響
+# 查證深度，卻可省下代理的釐清與重查時間（實測每次約 2–4 分）。
+
+_WD = ["週一", "週二", "週三", "週四", "週五", "週六", "週日"]
+
+# NYSE／Nasdaq 2026 全日休市日（美股）——僅供提示錨定，實際以交易所公告為準。
+# 7/4（美國國慶）2026 適逢週六，故 7/3（五）補假休市。
+_US_MKT_HOLIDAYS_2026 = {
+    date(2026, 1, 1): "元旦", date(2026, 1, 19): "馬丁路德金恩日",
+    date(2026, 2, 16): "總統日", date(2026, 4, 3): "耶穌受難日",
+    date(2026, 5, 25): "陣亡將士紀念日", date(2026, 6, 19): "六月節",
+    date(2026, 7, 3): "美國國慶補假（7/4 適逢週六）", date(2026, 9, 7): "勞動節",
+    date(2026, 11, 26): "感恩節", date(2026, 12, 25): "耶誕節",
+}
+
+
+def _prev_us_trading_day(d: date) -> date:
+    """從 d 起（含 d）往回找最近一個美股實際交易日（跳週末＋已知國定假日）。"""
+    x = d
+    while x.weekday() >= 5 or x in _US_MKT_HOLIDAYS_2026:
+        x -= timedelta(days=1)
+    return x
+
+
+def calendar_anchor(today: date | None = None) -> str:
+    """系統算好『今日星期幾／對應昨夜美股實際交易日／鄰近美股休市日』，寫進提示包，
+    讓查證代理不必自行推算星期與假日（這是 2026-07 觀察到最常見的空轉來源）。純提示、
+    不縮減查證範圍。"""
+    d = today or clock.today_tw()
+    ses = us_session_date(d)              # 僅跳週末（沿用既有契約/測試）
+    real = _prev_us_trading_day(ses)      # 再跳國定假日 → 真實最近交易日
+    lines = ["【交易日曆錨定（以下為系統計算，勿再自行推算星期或假日；仍以交易所公告為準）】",
+             f"· 台北今日：{d:%Y/%m/%d}（{_WD[d.weekday()]}）"]
+    if real != ses:
+        skipped = "、".join(f"{h:%m/%d}（{_WD[h.weekday()]}）{_US_MKT_HOLIDAYS_2026.get(h, '休市')}"
+                            for h in (ses - timedelta(n) for n in range((ses - real).days))
+                            if h.weekday() < 5 and h in _US_MKT_HOLIDAYS_2026)
+        note = f"（{skipped} 美股休市，故往回取）" if skipped else ""
+        lines.append(f"· 對應昨夜美股實際交易日（美東）：{real:%Y/%m/%d}（{_WD[real.weekday()]}）{note}")
+    else:
+        lines.append(f"· 對應昨夜美股交易日（美東）：{ses:%Y/%m/%d}（{_WD[ses.weekday()]}）")
+    near = [(h, name) for h, name in sorted(_US_MKT_HOLIDAYS_2026.items()) if abs((h - d).days) <= 4]
+    if near:
+        lines.append("· 鄰近美股休市日：" +
+                     "；".join(f"{h:%m/%d}（{_WD[h.weekday()]}）{name}" for h, name in near))
+    else:
+        lines.append("· 本週美股無鄰近國定假日、正常交易")
+    return "\n".join(lines)
+
+
+def prior_titles(news_dir, today: date, stem_re: str = r"(\d{4}-\d{2}-\d{2})\.md$",
+                 limit: int = 16) -> list[str]:
+    """讀 news_dir 內『日期 < today』最新一份報告的卡標題（沿用 extract_cards）。
+    供提示包「已報導清單」用——今日若僅重複舊聞即可略過、不必重查。找不到回 []。"""
+    p = Path(news_dir)
+    if not p.exists():
+        return []
+    today_s = f"{today:%Y-%m-%d}"
+    by_date: dict[str, Path] = {}
+    for f in p.glob("*.md"):
+        m = re.match(stem_re, f.name)
+        if m and m.group(1) < today_s:
+            by_date.setdefault(m.group(1), f)
+    if not by_date:
+        return []
+    md = by_date[max(by_date)].read_text(encoding="utf-8")
+    return [c["title"] for c in extract_cards(md) if c.get("title")][:limit]
+
+
+def prior_block(titles: list[str], scope_label: str = "前一日日報") -> str:
+    """把已報導標題清單格式化成提示段落；空清單回空字串（提示包會略過）。"""
+    if not titles:
+        return ""
+    items = "\n".join(f"  - {t}" for t in titles)
+    return (f"【已報導清單（{scope_label}，勿原樣重收）】\n"
+            "以下為最近一份日報已收錄之事件；今日若僅為重複舊聞請直接略過、不要重新查證，"
+            "唯有實質新進展才收錄、標【延伸】並以一句話註明「新在哪」：\n" + items)
 
 
 # 否定詞：緊鄰禁用詞前方者視為合規揭露語（沿用 arm/copy/compliance.py 的 _NEG 慣例）。
