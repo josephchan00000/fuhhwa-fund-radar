@@ -1,8 +1,15 @@
 {
-  "as_of": "2026/07/09 07:43",
+  "as_of": "2026/07/09 07:50",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
+    {
+      "title": "復華兩檔ETF配息出爐! 00929預估配0.38元創新高、00991A擬配0.77元",
+      "url": "https://news.google.com/rss/articles/CBMi9ANBVV95cUxPVEVZOE9Bb2RrUEFGNEtodVBaY210RVNYc294Z1dGQnhPczRtOUZPU1ZUSzM1UXlxeGtMS1JkVFJ1LVVhLTFweE0xNWMwdEd5OEp1cWxGU2JoRU9KOU1mRlBTVm12cmRvS2oxODJVNVlqUFpPb2NUY2dJZDE5d2hiaW1MTzR6cjBRdHZpTXoyaVU3OVdPUDlrZWtrWkhvVmstSHo1bFJlMDhfaGZoSzZPUmNUTmd4RGJ5dmM4c1RfUnhBLWstVWxEWTFsbjg0MHY0RF9CSm91T0NOaWxGOXhMN0R3TDA2MlNUNE5PRGJfRDgwRkM5VGJteWF2dXNTQnlIRkdKNDJJSHJEeV8xZVdHbk1yMFloMHVsMm1VclZWOXppMlh3TVhPb3JfMUpuUm9ub1pLUXJRa3JlWjhUSndsSEZBUXBKdGdTeW5CQXI1X25jQW1nLUlDQ3NFTURJeDRLMGt2OXNIeFI5TGFraUpyYzViT1FoNExORXVsQkFxREgySjEwSjNaWUZCSDlTa1czUUE2ZWZPWl9YUG5oRzNiV3Q3Zm95TnZsdldHWnd0TDlyVHU4OTVXUWhSQlhIOUFyODVWSXJaN1dxbV9rVVJVQWdkTHRuY0owRHNpaXZFZkJEZDlla1VVWUtwaGFMWTZGTXppRg?oc=5",
+      "source": "MSN",
+      "date": "2026-07-08 18:55",
+      "datetime": "2026-07-08T18:55:54+08:00"
+    },
     {
       "title": "復華金融股債雙收傘型基金相關報導",
       "url": "https://news.google.com/rss/articles/CBMiSEFVX3lxTE0tSHdoeEJnWG9kMmdkUFVVVF9SZ3ExcXFsbERCU3JRSm90SWkxekxvaGpEcHktZmZNYjdsVm1ZbkhJTWtFWXJoZQ?oc=5",
@@ -65,13 +72,6 @@
       "source": "CMoney投資網誌",
       "date": "2026-07-06 16:03",
       "datetime": "2026-07-06T16:03:24+08:00"
-    },
-    {
-      "title": "復華全球物聯網科技基金-新臺幣，為什麼單月規模能狂增近三成？",
-      "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE15Y1NYQnZVSzlfWlc2S2tSdF93MHRiMDUxNjVrYjgtQTh5VmV5MmdHZjhrQ3dCSlpWaDBiM3VUa203eHVuSEFIOW83QnJPcDFnTTI4ODA2OHhrUEY2MnpmLWRuWGJWQjQ3NWdNT1o3cnhBWmdVRnN2QnZyNTluQQ?oc=5",
-      "source": "CMoney投資網誌",
-      "date": "2026-07-05 16:15",
-      "datetime": "2026-07-05T16:15:52+08:00"
     }
   ],
   "funds": [
@@ -143,6 +143,13 @@
           "source": "CMoney投資網誌",
           "date": "2026-07-06 16:05",
           "datetime": "2026-07-06T16:05:08+08:00"
+        },
+        {
+          "title": "復華華人世紀基金，單月規模暴增58億的背後秘密是什麼？",
+          "url": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE5mOXdTSWhBaksxdjhFeHotc2ZmX2pqMjQ2c1gtY1JOdnZ6Y1N2cUQ0UFZnOHlwYWhGOWR3YnpQcjhVU0ZtWHhfQWhMQzNLWlNVTjNTVnYwUjRaRnQtTUVLU0VXWHB2dw?oc=5",
+          "source": "CMoney",
+          "date": "2026-07-02 16:03",
+          "datetime": "2026-07-02T16:03:57+08:00"
         }
       ]
     },
@@ -367,6 +374,6 @@
   "social": [],
   "highlights": [
     "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太神龍科技、全球平衡（詳下方各基金新聞）",
-    "品牌焦點：復華金融股債雙收傘型基金相關報導（三立新聞）"
+    "品牌焦點：復華兩檔ETF配息出爐! 00929預估配0.38元創新高、00991A擬配0.77元（MSN）"
   ]
 }
