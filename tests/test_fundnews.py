@@ -42,6 +42,44 @@ def test_blocked_sources_filtered():
     assert [i["source"] for i in out] == ["鉅亨網"]
 
 
+def test_farm_content_filtered():
+    # SEO 內容農場點閱誘餌（舊文改標題/更新日期重貼）——來源與標題兩層都要擋
+    farm_titles = [
+        "復華亞太神龍科技基金-新臺幣，同樣是科技基金，為什麼近一年能漲超過 200%？",
+        "復華全球平衡基金-新臺幣，這幾天規模暴增兩成，究竟發生了什麼事？",
+        "復華華人世紀基金，單月規模暴增58億的背後秘密是什麼？",
+        "復華全球平衡基金-新臺幣，老牌基金為何還能稱霸？22年百萬變七百萬。",
+    ]
+    for t in farm_titles:
+        assert fundnews.is_farm_title(t), t
+        assert not fundnews.is_news_title(t), t
+    # CMoney投資網誌 整個來源都排除
+    assert not fundnews.source_ok({"source": "CMoney投資網誌"})
+    # 真新聞（陳述句、非誇飾問句）不受影響
+    for t in ["績效翻倍海外基金熱 復華全球物聯網、統一全球新科技等今年表現佳",
+              "投信海外基金規模、績效翻倍"]:
+        assert not fundnews.is_farm_title(t), t
+        assert fundnews.is_news_title(t), t
+
+
+def test_negative_scandal_news_filtered():
+    # 復華自家司法/醜聞報導——內部溝通用途，不上儀表板
+    for t in ["勞動基金炒股案第3波　搜索復華投信！再傳官員",
+              "勞動基金官商炒「遠百」　復華投信投資長移送！經理人喊冤",
+              "復華投信經理人涉內線交易遭起訴"]:
+        assert fundnews.is_negative_title(t), t
+        assert not fundnews.is_news_title(t), t
+        assert not fundnews.ptt_relevant("[新聞] " + t)   # PTT 討論串同樣排除
+    # 正常績效/規模新聞不被誤殺
+    assert not fundnews.is_negative_title("績效翻倍海外基金熱 復華全球物聯網等今年表現佳")
+    # _clean_items 端到端：農場＋負面剔除、真新聞保留
+    items = [{"title": "復華亞太神龍科技基金，為什麼近一年能漲超過 200%？", "source": "CMoney投資網誌"},
+             {"title": "勞動基金炒股案　搜索復華投信", "source": "三立新聞"},
+             {"title": "績效翻倍海外基金熱 復華全球物聯網表現佳", "source": "經濟日報"}]
+    assert [i["title"] for i in fundnews._clean_items(items)] == \
+        ["績效翻倍海外基金熱 復華全球物聯網表現佳"]
+
+
 def test_strip_source_suffix():
     assert fundnews.strip_source_suffix("復華高成長基金創高 - 鉅亨網", "鉅亨網") == "復華高成長基金創高"
     assert fundnews.strip_source_suffix("標題沒有尾綴", "鉅亨網") == "標題沒有尾綴"
