@@ -35,6 +35,23 @@ BLOCKED_SOURCES = {"富聯網",          # 使用者指定排除的新聞來源�
 # 註：「鉅亨買基金」不列黑名單（使用者指示：鉅亨的新聞內容仍要收）；
 #     其平台頁/開戶頁等非新聞連結由 is_news_title() 的標題特徵過濾即可。
 
+# 內容農場來源（2026-07 使用者回饋：這些會把舊文更新日期反覆重貼，冒充新聞佔版面，要排除）：
+# 「CMoney投資網誌」＝部落格農場（非即時新聞）。CMoney 若有真新聞另計，靠 is_farm_title 標題特徵過濾。
+FARM_SOURCES = {"CMoney投資網誌"}
+# SEO 農場點閱誘餌標題特徵：績效／規模「誇飾＋問句／揭密」句式，
+# 例「同樣是科技基金，為什麼近一年能漲超過 200%？」「單月規模暴增58億的背後秘密是什麼？」。
+_FARM_HYPE = re.compile(r"為什麼|為何|憑什麼|究竟|背後|祕密|秘密|狂增|暴增|漲破|漲超過|"
+                        r"稱霸|同類第一|百萬變|發生了什麼")
+
+# 負面／司法／醜聞新聞：本工具為「復華內部溝通」用途，不宜在儀表板呈現自家的司法／弊案／
+# 負面報導（2026-07 使用者要求排除；品牌與各基金、PTT 皆適用）。命中司法/弊案/操縱字眼即剔除。
+# 例「勞動基金炒股案第3波　搜索復華投信」「投資長移送！經理人喊冤」。
+_NEGATIVE = re.compile(
+    r"炒股|炒作|操縱|坑殺|內線|掏空|違約交割|"
+    r"弊案|官商|貪污|貪瀆|收賄|賄賂|圖利|洗錢|不法|違法|犯罪|醜聞|"
+    r"搜索|搜查|約談|傳喚|移送|起訴|偵辦|檢調|地檢|檢方|調查局|廉政|"
+    r"收押|羈押|交保|判刑|求刑|定讞|起底|喊冤|裁罰|開罰|罰鍰|送辦")
+
 # 「非新聞頁面」標題特徵——搜尋/RSS 常混入基金介紹頁、文章列表頁、平台頁、討論牆、
 # 淨值表等非新聞連結，佔版面又無資訊量，一律剔除（2026-07-04 使用者回饋：我要新聞）。
 _JUNK_TITLE = re.compile(
@@ -97,17 +114,39 @@ def strip_source_suffix(title: str | None, source: str | None) -> str:
 
 
 def source_ok(item: dict) -> bool:
-    """來源黑名單：BLOCKED_SOURCES 內的媒體一律不收。"""
-    return (item.get("source") or "").strip() not in BLOCKED_SOURCES
+    """來源黑名單：BLOCKED_SOURCES＋FARM_SOURCES 內的媒體一律不收。"""
+    return (item.get("source") or "").strip() not in (BLOCKED_SOURCES | FARM_SOURCES)
+
+
+def is_farm_title(title: str | None) -> bool:
+    """SEO 內容農場的點閱誘餌標題偵測（舊文常改標題／更新日期反覆重貼）。
+
+    · 以問號收尾且帶績效／規模誇飾字眼（「…為什麼近一年能漲超過 200%？」）；
+    · 或明確的揭密／致富句式（「背後秘密」「22年百萬變七百萬」「還能稱霸」）。"""
+    t = (title or "").strip()
+    if not t:
+        return False
+    if t.endswith("？") and _FARM_HYPE.search(t):
+        return True
+    return bool(re.search(r"背後(?:的)?(?:祕密|秘密)|百萬變[^，。]{0,6}萬|還能稱霸", t))
+
+
+def is_negative_title(title: str | None) -> bool:
+    """負面／司法／醜聞新聞偵測（復華內部溝通用途，自家負面報導不上儀表板）。"""
+    return bool(_NEGATIVE.search(title or ""))
 
 
 def is_news_title(title: str | None) -> bool:
-    """是不是「一篇新聞」的標題：剔除列表頁/介紹頁/平台頁等非新聞連結。
+    """是不是「一篇（正面/中性的）新聞」標題：剔除列表頁/介紹頁/平台頁、
+    SEO 農場點閱誘餌、以及自家司法/負面報導。
 
     · 命中 _JUNK_TITLE 特徵 → 非新聞；
+    · 命中農場（is_farm_title）或負面（is_negative_title）→ 剔除；
     · 標題就只是基金名本身（如「復華傳家二號基金」，可帶幣別/類別尾綴）＝基金介紹頁。"""
     t = (title or "").strip()
     if not t or _JUNK_TITLE.search(t):
+        return False
+    if is_farm_title(t) or is_negative_title(t):
         return False
     if re.fullmatch(r"復華[\w・]{1,14}基金(?:[-‑–]?(?:新臺幣|美元|人民幣|[AB]|TISA)[^，,。]{0,6})?", t):
         return False
@@ -240,8 +279,10 @@ def _ptt_reach(push: str) -> int:
 
 
 def ptt_relevant(title: str) -> bool:
-    """PTT 標題是否與復華基金相關：含品牌名即留（基金討論幾乎都帶「復華」二字）。"""
-    return "復華" in (title or "")
+    """PTT 標題是否與復華基金相關：含品牌名即留（基金討論幾乎都帶「復華」二字）；
+    但司法/醜聞討論串（is_negative_title）一律排除（內部溝通用途）。"""
+    t = title or ""
+    return "復華" in t and not is_negative_title(t)
 
 
 def fetch_ptt(pages: int = 3) -> list[dict]:
@@ -345,9 +386,22 @@ def save(doc: dict) -> tuple[Path, bool]:
     return OUT, True
 
 
+def sanitize(doc: dict | None) -> dict | None:
+    """讀取時再過一次農場／負面過濾：即使既有落檔是舊規則抓的（含 CMoney投資網誌 農場文、
+    復華司法/醜聞報導），儀表板顯示時也一律濾掉——不必等下次重抓。純過濾、不新增內容。"""
+    if not doc:
+        return doc
+    doc["brand"] = _clean_items(doc.get("brand") or [])
+    for g in doc.get("funds") or []:
+        g["items"] = _clean_items(g.get("items") or [])
+    doc["social"] = [s for s in (doc.get("social") or [])
+                     if not is_negative_title(s.get("title") or "")]
+    return doc
+
+
 def load() -> dict | None:
-    """儀表板用：讀最近一次落檔；無檔回 None（區塊顯示提示、不壞版）。"""
+    """儀表板用：讀最近一次落檔並過濾農場／負面新聞；無檔回 None（區塊顯示提示、不壞版）。"""
     try:
-        return json.loads(OUT.read_text(encoding="utf-8"))
+        return sanitize(json.loads(OUT.read_text(encoding="utf-8")))
     except (OSError, json.JSONDecodeError):
         return None

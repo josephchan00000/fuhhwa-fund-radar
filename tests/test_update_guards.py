@@ -115,8 +115,15 @@ def test_is_news_title_rejects_non_news_pages():
 
 def test_is_news_title_keeps_real_news():
     assert fundnews.is_news_title("復華兩檔ETF配息出爐！00929預估配0.38元創新高")
-    assert fundnews.is_news_title("復華華人世紀基金，單月規模暴增58億的背後秘密是什麼？")
-    assert fundnews.is_news_title("復華亞太神龍科技基金-新臺幣，同樣是買科技股，這檔近 1 年漲 240% 憑什麼？")
+    assert fundnews.is_news_title("績效翻倍海外基金熱 復華全球物聯網、統一全球新科技等今年表現佳")
+    assert fundnews.is_news_title("復華投信獲頒金鑽獎 台股基金團隊肯定")
+
+
+def test_is_news_title_drops_content_farm(  ):
+    # 2026-07 使用者要求：CMoney投資網誌式的「誇飾＋問句／揭密」點閱誘餌一律排除
+    # （舊 test 曾把這類當真新聞保留，政策已更新）。
+    assert not fundnews.is_news_title("復華華人世紀基金，單月規模暴增58億的背後秘密是什麼？")
+    assert not fundnews.is_news_title("復華亞太神龍科技基金-新臺幣，同樣是買科技股，這檔近 1 年漲 240% 憑什麼？")
 
 
 def test_clean_items_drops_junk_and_blocked_sources():
