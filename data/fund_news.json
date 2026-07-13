@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/14 06:08",
+  "as_of": "2026/07/14 07:38",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -339,7 +339,15 @@
       "short_names": [
         "神盾"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "【基金醫生觀點】踢出「世界波」，復華全球布局再升級！首創多重經理人機制操盤00409A",
+          "url": "https://news.google.com/rss/articles/CBMihANBVV95cUxPejhWVk1ZQUVnT1poeTdUY2l4RVhicU56azJxdzRhZ1RLNXlwQ2lURERScWppcXJVd1Q4NFR3cEhpekVMOUJfZXpKVmg4WGRod2pUQjR3Qnc2RWI4RkJaQ2hhNDl4U3ZGZ09DeFg0ZFBwQWJtejZBSnhuM3htM2x2NWhjbW52MVJaby0yY2tVM0c1dUJnZmhSR3hrZ25oWFB0TG5ZQml6RV9mYkg5NmNmVGlZTUpCeVF4bmV6RjROWkJoMGU0QzNqMmFyekVGMWl6R0kwSmpmb0hnbFFPZ0lITVVWVVpSUmJyN3c3emJncTE0eEZ1X0hGRUFUb0laX09ibmVzZkM4VWJZQ3dTUzlCRzR4MVBRRlRUb084MVJRdFdOSHZ0bmlyS1k5TjVrQVE1d0xMR2pSeWhMWml3QzBZQl9pcVhWUkJNQk1nMlF0V3BhY3F3UHJrVFRVZlk1alFCYlVRX1NHLTQ5MU9QTVJUbGxIUmhjWDlTTDFZX3hKZTFlOTlI?oc=5",
+          "source": "Life 生活網",
+          "date": "2026-07-13 16:45",
+          "datetime": "2026-07-13T16:45:09+08:00"
+        }
+      ]
     },
     {
       "base": "復華台灣智能基金",
@@ -362,7 +370,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太神龍科技、全球平衡、亞太平衡 等 8 檔（詳下方各基金新聞）",
+    "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太神龍科技、全球平衡、亞太平衡 等 9 檔（詳下方各基金新聞）",
     "品牌焦點：00409A挖掘全球AI產業贏家復華全球未來50主動式ETF 8／12開募- 專題周報- 工商時報（中時新聞網）"
   ]
 }
