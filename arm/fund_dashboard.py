@@ -6,7 +6,8 @@
   ⓪ Sticky 頂欄：市場切換｜日期｜合規燈｜錨點導覽
   ① 今日重點：指數卡（台股＝加權/櫃買、全球＝美股三大）／今日最強最弱／連動計數
   ② 新聞（重點＋全文合併）：每則一個收合塊、預設收合；標題列即顯示一句話重點，
-     展開看摘要＋影響分析＋可點原文連結（富途優先）；末置指數速覽/資料侷限/合規收合塊
+     展開看摘要＋影響分析＋可點原文連結（富途優先）；頭段「總覽」改置頂可見卡，
+     資料侷限／合規揭露不上板（合規統一置頁尾小字——2026-07-15 使用者指示）
   ③ 新聞 × 持股連動：受影響持股→持有基金（權重％）
   ④ 基金總覽表：可排序、紅漲綠跌、點列跳詳情
   ⑤ 基金詳情：逐檔卡片（錨點直達、同組平均對照、連動持股高亮、複製介紹）
@@ -255,12 +256,30 @@ def _news_badges(etype: str | None, importance: int | None) -> str:
     return f'<span class="nbadges">{out}</span>' if out else ""
 
 
+_OVERVIEW_HEAD = re.compile(r"^#{2,3}\s*🔹?\s*.*總覽")
+
+
+def _extract_overview(head_md: str) -> str:
+    """從新聞頭段抽「…總覽」小節內文（供置頂可見卡）；無此節回空字串。"""
+    lines = (head_md or "").splitlines()
+    s = next((i for i, l in enumerate(lines) if _OVERVIEW_HEAD.match(l.strip())), None)
+    if s is None:
+        return ""
+    e = next((j for j in range(s + 1, len(lines))
+              if lines[j].strip().startswith("#") or lines[j].strip() == "---"), len(lines))
+    # _md 不支援 blockquote：拆掉「> 」前綴讓引言（如【交易確認】）以一般段落呈現
+    body = [re.sub(r"^\s*>\s?", "", l) for l in lines[s + 1:e]]
+    return "\n".join(body).strip()
+
+
 def _news_view(md: str, empty_hint: str,
-               tail_label: str = "📄 指數速覽・資料侷限・合規揭露") -> str:
+               overview: tuple[str, str] | None = None) -> str:
     """單一新聞區：每則新聞一個 <details>（預設收合）。
     收合時標題列即顯示標題＋一句話重點（深咖啡）；展開顯示摘要＋影響分析＋原文連結。
-    其餘（總覽／資料侷限／合規揭露）另置一收合塊，標題以 tail_label 呈現。"""
-    head, cards, tail = usnews.split_doc(md or "")
+    overview=(卡標題, 副標)：把頭段「…總覽」小節改為置頂可見卡（同盤前速覽卡版式）。
+    頭尾其餘段（標題行／資料侷限／次級觀察／合規揭露）不上板——報告原檔仍保留全文，
+    合規揭露統一置於頁尾小字（2026-07-15 使用者指示：拆掉混合收合塊）。"""
+    head, cards, _tail = usnews.split_doc(md or "")
     if not cards and not (md or "").strip():
         return f'<div class="muted">{empty_hint}</div>'
     # 只留重要度 6 分以上（有標分者）；依重要度高→低排序（未標分者維持原序、殿後）
@@ -268,6 +287,12 @@ def _news_view(md: str, empty_hint: str,
              if not (isinstance(c.get("importance"), int) and c["importance"] < 6)]
     cards = sorted(cards, key=lambda c: c.get("importance") or 0, reverse=True)
     items = []
+    ov = _extract_overview(head) if overview else ""
+    if ov:
+        label, sub = overview
+        items.append(f'<div class="ngc"><div class="ngt">{label} '
+                     f'<span class="stsub">{sub}</span></div>'
+                     f'<div class="ndoc premkt">{_md(ov)}</div></div>')
     for c in cards:
         badges = _news_badges(c.get("etype"), c.get("importance"))
         meta = f'<span class="nim">{_esc(c["meta"])}</span>' if c.get("meta") else ""
@@ -288,13 +313,8 @@ def _news_view(md: str, empty_hint: str,
             f'<span class="nhead">{badges}<span class="nit">{_esc(c["title"])}</span>{one}{meta}</span>'
             f'<span class="openbtn2"></span></summary>'
             f'<div class="ndoc nibody">{summ}{pts}{links}</div></details>')
-    extra = "\n\n".join(x for x in (head, tail) if x)
-    if extra:
-        items.append(
-            f'<details class="newsone"><summary>'
-            f'<span class="nhead"><span class="nit">{_esc(tail_label)}</span></span>'
-            f'<span class="openbtn2"></span></summary>'
-            f'<div class="ndoc nibody">{_md(extra)}</div></details>')
+    if not cards and (md or "").strip():   # 版型異常（無卡）→ 整篇可見呈現當保底
+        items.append(f'<div class="ndoc">{_md(md)}</div>')
     return "".join(items) or f'<div class="muted">{empty_hint}</div>'
 
 
@@ -1262,7 +1282,7 @@ def render() -> str:
     sec_news = (f'<div class="section" id="news"><div class="st">🗞️ 新聞 '
                 f'{_fresh_chip("台股新聞", tw_date, 3)}{_fresh_chip("美股新聞", us_date, 3)} '
                 f'<span class="stsub">點各則展開看摘要／影響分析／原文連結（預設收合）</span></div>'
-                f'{_mkt(_news_view(tw_md_news, tw_hint), _news_view(us_md, gl_hint))}</div>')
+                f'{_mkt(_news_view(tw_md_news, tw_hint), _news_view(us_md, gl_hint, ("🌙 昨夜美股總覽", "指數概況與市場解析・點位以官方為準")))}</div>')
 
     # 總經・政策分頁（川普政策／Fed／國際政策；左上「總經」分頁專屬視圖）
     mac_n, mac_top = _sev(macro_md)
@@ -1276,7 +1296,7 @@ def render() -> str:
     sec_macro = (f'<div class="section" id="macro"><div class="st">🏛️ 總經・政策 '
                  f'{_fresh_chip("更新", mac_date, 3)} '
                  f'<span class="stsub">{mac_sub}</span></div>'
-                 f'{_news_view(macro_md, mac_hint, "📄 政策總覽・資料侷限・合規揭露")}</div>')
+                 f'{_news_view(macro_md, mac_hint, ("📋 政策總覽", "Fed／美政府／國際政策・前後 24 小時"))}</div>')
 
     # ETF 數據追蹤分頁（被動／主動台股 ETF 週績效表；左上「ETF」分頁專屬視圖）
     sec_etf = (f'<div class="section" id="etfwatch"><div class="st">📡 ETF 數據追蹤 '
@@ -1341,10 +1361,12 @@ def render() -> str:
 {sec_det}
 </div>
 <div class="foot">
-  資料來源：復華投信官網（fhtrust.com.tw）基金淨值／持股揭露（月度）；重點標的簡介為中性事實敘述、非投資建議。
-  台股盤後重點與昨夜美股新聞為公開來源彙編、教育用途，非投資建議或招攬；過去績效不代表未來表現，淨值可能因市場變動而上下；
-  境外基金涉及匯率與國際市場風險。投資人申購本基金係持有基金受益憑證，非本文提及之投資資產或標的。
-  申購前應詳閱公開說明書／投資人須知。本版本不呈現「每天持股變化」（共同基金無逐日持股張數）。
+  資料來源：復華投信官網（fhtrust.com.tw）基金淨值／持股揭露（月度）；新聞／政策／行事曆為公開來源彙編（出處連結見各則新聞卡），僅為市場資訊彙編／教育用途；重點標的簡介為中性事實敘述、非投資建議。<br>
+  本資料僅供參考，非屬投資建議或招攬；本文所載資料多引自公開來源，本公司不保證其完整、即時或正確，亦不負損益責任。
+  基金投資有風險，申購前應詳閱公開說明書／投資人須知；過去績效不代表未來表現，淨值可能因市場變動而上下。
+  境外基金涉及匯率與國際市場風險；使用衍生性商品者另涉及槓桿、流動性與對手風險。
+  投資人申購本基金係持有基金受益憑證，非本文提及之投資資產或標的。
+  本版本不呈現「每天持股變化」（共同基金無逐日持股張數）。
 </div>
 </div>
 <a class="backtop" href="#brief">↑ 回頂端</a>
