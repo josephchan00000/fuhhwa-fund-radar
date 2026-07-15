@@ -128,12 +128,17 @@ _API_RE = re.compile(r"https://[a-z0-9.-]+\.cnyes\.com/[^\"'\\\s<>]*api[^\"'\\\s
                      re.I)
 DETAIL_PAGE = "https://fund.cnyes.com/detail/x/{cid}/"   # name 段不驗證（實測 undefined 也通）
 
-# 報酬鍵別名（lowercase 完整鍵名 → 我方期別；詳情頁實際鍵名由 CI 日誌收斂補充）
+# 報酬鍵別名（lowercase 完整鍵名 → 我方期別；第 5 輪 CI 實測搜尋頁 schema 用
+# 長駝峰式 return1Month → 一併收錄長短兩式）
 _RET_ALIASES = {
-    "return1w": "1w", "returnweek": "1w", "return7d": "1w",
-    "return1m": "1m", "return3m": "3m", "return6m": "6m",
+    "return1w": "1w", "returnweek": "1w", "return7d": "1w", "return1week": "1w",
+    "return1m": "1m", "return1month": "1m",
+    "return3m": "3m", "return3month": "3m",
+    "return6m": "6m", "return6month": "6m",
     "returnytd": "ytd", "returny2d": "ytd", "returnthisyear": "ytd",
-    "return1y": "1y", "return2y": "2y", "return3y": "3y",
+    "return1y": "1y", "return1year": "1y",
+    "return2y": "2y", "return2year": "2y",
+    "return3y": "3y", "return3year": "3y",
 }
 
 
@@ -312,33 +317,43 @@ def apply_overlay(docs: list[dict], out_dir: Path) -> int:
     """
     if not docs:
         return 0
-    items = search_all()
-    if not items:
-        print("  [cnyes] 搜尋無結果，跳過覆蓋（沿用官網值）")
-        return 0
-    by_name = {norm_name(_pick(it, _NAME_KEYS)): it for it in items}
-    by_id = {str(_pick(it, _ID_KEYS)): it for it in items if _pick(it, _ID_KEYS)}
     fmap = _load_map()
+    # 搜尋頁 SSR 不吃 query（第 5 輪 CI 實測：任何 keyword 都回同 20 筆熱門清單），
+    # 主要靠 data/cnyes_fund_map.json 釘選 cnyesId 直取詳情頁；搜尋頁僅供無釘選者碰運氣
+    _search_cache: list[dict] | None = None
+
+    def lazy_items() -> list[dict]:
+        nonlocal _search_cache
+        if _search_cache is None:
+            _search_cache = search_all()
+        return _search_cache
+
     n = 0
+    dbg = True
     for doc in docs:
         fid = str(doc.get("fund_id"))
         pin = (fmap.get(fid) or {}).get("cnyesId")
-        item = by_id.get(str(pin)) if pin else None
+        item = None
+        if pin:                              # 釘選 ID → 直取詳情頁（主要路徑）
+            profile = fetch_detail(pin, debug=dbg)
+            dbg = False
+            if profile:
+                profile.setdefault("cnyesId", pin)
+                item = profile
         if item is None:
-            item = by_name.get(norm_name(doc.get("name"))) \
-                or by_name.get(norm_name(doc.get("short_name")))
-        if item is None:                     # SSR 搜尋頁可能只渲染前 N 筆 → 逐檔補查
+            items = lazy_items()
+            by_name = {norm_name(_pick(it, _NAME_KEYS)): it for it in items}
             wanted = {norm_name(doc.get("name")), norm_name(doc.get("short_name"))}
-            for it in search_all(doc.get("name") or doc.get("short_name") or ""):
-                if norm_name(_pick(it, _NAME_KEYS)) in wanted:
-                    item = it
-                    break
+            item = next((by_name[w] for w in wanted if w in by_name), None)
+            if item is not None:
+                cid = _pick(item, _ID_KEYS)
+                if cid is not None:          # 報酬在詳情頁（搜尋頁只有名稱/NAV/1月）
+                    profile = fetch_detail(cid, debug=dbg)
+                    dbg = False
+                    item = {**item, **{k: v for k, v in profile.items()
+                                       if v is not None}}
         if item is None:
             continue
-        cid = _pick(item, _ID_KEYS)
-        if cid is not None:                  # 報酬在詳情頁（搜尋頁只有名稱/NAV）
-            profile = fetch_detail(cid, debug=(n == 0))
-            item = {**item, **{k: v for k, v in profile.items() if v is not None}}
         ov = overlay_from_item(item)
         if not ov["returns_daily"] and ov["nav"] is None:
             continue
@@ -351,7 +366,9 @@ def apply_overlay(docs: list[dict], out_dir: Path) -> int:
             doc["nav"], doc["nav_date"], doc["nav_src"] = ov["nav"], ov["nav_date"], "cnyes"
             if ov["chg_pct"] is not None:
                 doc["nav_change_pct"] = f"{ov['chg_pct']:+.2f}%"
-        fmap[fid] = {"cnyesId": ov["cnyes_id"], "name": ov["cnyes_name"]}
+        old = fmap.get(fid) or {}
+        fmap[fid] = {"cnyesId": ov["cnyes_id"] or old.get("cnyesId"),
+                     "name": ov["cnyes_name"] or old.get("name")}
         (out_dir / f"{fid}.json").write_text(
             json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
         n += 1
@@ -360,5 +377,5 @@ def apply_overlay(docs: list[dict], out_dir: Path) -> int:
         MAP_PATH.write_text(json.dumps(fmap, ensure_ascii=False, indent=1),
                             encoding="utf-8")
     print(f"  [cnyes] 每日報酬覆蓋 {n}/{len(docs)} 檔"
-          + ("" if n else "（名稱比對零命中——檢查 data/cnyes_fund_map.json 或日誌診斷）"))
+          + ("" if n else "（零命中——請在 data/cnyes_fund_map.json 釘 cnyesId 或看日誌診斷）"))
     return n
