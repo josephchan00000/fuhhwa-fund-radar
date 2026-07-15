@@ -134,7 +134,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
       <a href="#details">基金詳情</a>
     </nav>
     <nav class="tb-nav tb-nav-macro">
-      <a href="#macro-cal">本週行事曆</a><a href="#macro">政策新聞</a>
+      <a href="#macro-cal">本週行事曆</a><a href="#macro-ov">政策總覽</a><a href="#macro">政策新聞</a>
     </nav>
     <nav class="tb-nav tb-nav-etf">
       <a href="#etf-passive">被動 ETF</a><a href="#etf-active">主動 ETF</a>
@@ -1255,10 +1255,19 @@ def render() -> str:
                      f'{_fresh_chip("更新", cal_date, 8)} '
                      f'<span class="stsub">預期／已公布實際值／未公布・美股休市另標</span></div>'
                      f'{_macro_cal_view(cal)}</div>')
-    sec_macro = (f'<div class="section" id="macro"><div class="st">🏛️ 總經・政策 '
+    # 政策總覽與政策新聞拆成兩獨立區塊（2026-07-15 使用者指示：比照台股/全球的
+    # 「今日重點」與「新聞」）；總覽卡自新聞頭段抽出、新聞區只留逐則卡
+    mac_head, _, _ = usnews.split_doc(macro_md or "")
+    mac_ov = _extract_overview(mac_head)
+    sec_macro_ov = (f'<div class="section" id="macro-ov"><div class="st">📋 政策總覽 '
+                    f'{_fresh_chip("更新", mac_date, 3)} '
+                    f'<span class="stsub">Fed／美政府／國際政策・前後 24 小時</span></div>'
+                    f'<div class="ngc"><div class="ndoc premkt">{_md(mac_ov)}</div></div>'
+                    f'</div>') if mac_ov else ""
+    sec_macro = (f'<div class="section" id="macro"><div class="st">🏛️ 政策新聞 '
                  f'{_fresh_chip("更新", mac_date, 3)} '
                  f'<span class="stsub">{mac_sub}</span></div>'
-                 f'{_news_view(macro_md, mac_hint, ("📋 政策總覽", "Fed／美政府／國際政策・前後 24 小時"))}</div>')
+                 f'{_news_view(macro_md, mac_hint)}</div>')
 
     # ETF 數據追蹤分頁（被動／主動台股 ETF 週績效表；左上「ETF」分頁專屬視圖）
     sec_etf = (f'<div class="section" id="etfwatch"><div class="st">📡 ETF 數據追蹤 '
@@ -1310,6 +1319,7 @@ def render() -> str:
 <div class="wrap">
 {sec_fresh}
 <div class="macroview">{sec_macro_cal}
+{sec_macro_ov}
 {sec_macro}</div>
 <div class="etfview">{sec_etf}</div>
 <div class="fundview">
