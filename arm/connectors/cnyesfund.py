@@ -26,8 +26,26 @@ from ..http import get_json
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 MAP_PATH = ROOT / "data" / "cnyes_fund_map.json"
-URL = ("https://fund.api.cnyes.com/fund/api/v2/search/funds"
-       "?keyword={kw}&page={page}")
+
+# 候選端點（2026-07-15 CI 實測 v2/search/funds 404 → 改探測電池：逐一試、
+# 用第一個回傳可解析 items 者；勝出者與各候選狀態都印進 CI 日誌供收斂）
+URL_CANDIDATES = (
+    "https://fund.api.cnyes.com/fund/api/v1/search/funds?keyword={kw}&page={page}",
+    "https://fund.api.cnyes.com/fund/api/v2/funds/search?keyword={kw}&page={page}",
+    "https://fund.api.cnyes.com/fund/api/v1/funds?keyword={kw}&page={page}",
+    "https://fund.api.cnyes.com/fund/api/v2/funds?keyword={kw}&page={page}",
+    "https://gfe-fund.cnyes.com/api/v2/search/funds?keyword={kw}&page={page}",
+    "https://gfe-fund.cnyes.com/fund/api/v2/search/funds?keyword={kw}&page={page}",
+    "https://fund.cnyes.com/api/v2/search/funds?keyword={kw}&page={page}",
+    "https://fund.api.cnyes.com/fund/api/v2/search/funds?keyword={kw}&page={page}",
+)
+# cnyes API 可能擋非瀏覽器 UA／缺 Referer 的請求
+_HEADERS = {
+    "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                   "(KHTML, like Gecko) Chrome/126.0 Safari/537.36"),
+    "Referer": "https://fund.cnyes.com/",
+    "Accept": "application/json, text/plain, */*",
+}
 
 _TW = timezone(timedelta(hours=8))
 
@@ -106,16 +124,39 @@ def norm_name(s: str | None) -> str:
     return s.replace("（", "(").replace("）", ")")
 
 
+def _probe(keyword: str) -> tuple[str, list[dict]] | None:
+    """逐一試候選端點（第 1 頁），回 (勝出模板, items)；全滅回 None。
+    每個候選的失敗原因都印進日誌——CI 一輪即可收斂正確端點。"""
+    for tmpl in URL_CANDIDATES:
+        url = tmpl.format(kw=quote(keyword), page=1)
+        try:
+            payload = get_json(url, retries=1, cache_ttl=3600, headers=_HEADERS)
+        except Exception as e:
+            print(f"  [cnyes 探測] ✗ {url.split('?')[0]}（{e}）")
+            continue
+        items = _items(payload)
+        if items:
+            print(f"  [cnyes 探測] ✓ 勝出端點 {tmpl.split('?')[0]}")
+            return tmpl, items
+        top = sorted(payload.keys()) if isinstance(payload, dict) else type(payload).__name__
+        print(f"  [cnyes 探測] △ {url.split('?')[0]} 回應無 items；頂層＝{top}")
+    return None
+
+
 def search_all(keyword: str = "復華", max_pages: int = 10) -> list[dict]:
-    """搜尋 API 逐頁掃到空頁為止；回原始 item 清單。schema 不符時印診斷。"""
-    out: list[dict] = []
-    for page in range(1, max_pages + 1):
-        payload = get_json(URL.format(kw=quote(keyword), page=page), cache_ttl=3600)
+    """探測可用端點後逐頁掃到空頁為止；回原始 item 清單。schema 不符時印診斷。"""
+    hit = _probe(keyword)
+    if hit is None:
+        return []
+    tmpl, out = hit
+    for page in range(2, max_pages + 1):
+        try:
+            payload = get_json(tmpl.format(kw=quote(keyword), page=page),
+                               retries=1, cache_ttl=3600, headers=_HEADERS)
+        except Exception:
+            break
         items = _items(payload)
         if not items:
-            if page == 1:
-                top = sorted(payload.keys()) if isinstance(payload, dict) else type(payload).__name__
-                print(f"  [cnyes 診斷] 第 1 頁無 items；payload 頂層＝{top}")
             break
         out.extend(items)
         if len(items) < 10:                                 # 末頁（頁大小通常 ≥10）
