@@ -116,15 +116,23 @@ ETF 數據追蹤／儀表板產表。新增資料來源時請同步加進此區�
 
 **官網 `/api/fund` 的多期報酬（roiY2D/roi3m/roi1y…）是「月底基準」**——git 史實測 NAV 天天動、
 YTD/1y 十四天不變（皆上月底值），使用者已明確要求每日基準。解法：`arm/connectors/cnyesfund.py`
-以鉅亨基金搜尋 API（`fund.api.cnyes.com/fund/api/v2/search/funds?keyword=復華`）每日欄位覆蓋：
+（2026-07-15 歷經 6 輪 CI 收斂的**最終架構**，勿走回頭路）：
+- **取數路徑＝「釘選 cnyesId → 直取詳情頁」**：`data/cnyes_fund_map.json`（**入庫**）存全部
+  25 檔的 cnyesId（WebSearch 逐檔查回並核對 share class）；詳情頁 `fund.cnyes.com/detail/x/{cnyesId}/`
+  的 HTML 以 `_objects_from_html()` 平衡物件掃描抽資料（頁面無 __NEXT_DATA__、狀態以他形內嵌）。
+  **新增基金時：WebSearch 查其鉅亨詳情頁 URL、把 cnyesId 補進 map 檔即可。**
+- **死路備忘（CI 實測，勿再試）**：`fund.api.cnyes.com` 全路徑 404；`gfe-fund.cnyes.com` 任何
+  路徑都回同一張 XHTML 舊頁；搜尋頁 `fund.cnyes.com/search/` SSR 不吃 query（任何 keyword 都
+  回同 20 筆熱門清單，名稱比對必零命中）。
+- 詳情頁實際鍵：`return1Month/3Month/6Month/1Year/returnYTD`＋`nav/priceDate/change(Percent)`；
+  **無 1週／2年／3年獨立鍵**（1週回退自建 NAV 序列自算、3年回退官網月底值——混合基準已在
+  總覽副標註明）；複合鍵 `returns` 內部結構每日於 CI 日誌印出（debug 首檔），未來可再收斂。
 - `fetch_holdings.py` 抓完官網後 `cnyesfund.apply_overlay()`：寫 `returns_daily`＋`returns_daily_asof`
-  進 `data/funds/*.json`；鉅亨 NAV 日較新時一併覆蓋 nav（標 `nav_src="cnyes"`）。
+  進 `data/funds/*.json`；鉅亨 NAV 日**較新**時一併覆蓋 nav（標 `nav_src="cnyes"`）。
 - 儀表板 `overview_rows()` 逐欄 fallback：**鉅亨每日值 → 官網月底值**；1週/1月再多一層 → 自建
-  NAV 序列自算。總覽區有「多期報酬」鮮度 chip（未接上時顯示過渡註記）。
-- 名稱對映落 `data/cnyes_fund_map.json`（**入庫**；某 fund_id 填 `cnyesId` 即手動釘選）。
-- **此容器 proxy 擋 cnyes（CONNECT 403）**——連接器為防禦式解析（items 位置／欄位名逐候選），
-  schema 不符時把 keys 印進 stdout；**用 CI 日誌（`mcp__github__get_job_logs`）驗證與迭代**，
-  勿在本容器嘗試打 cnyes。整層失敗只是回退官網值，不會壞版面。
+  NAV 序列自算。總覽區有「多期報酬」鮮度 chip。
+- **此容器 proxy 擋 cnyes（CONNECT 403）**——**用 CI 日誌（`mcp__github__get_job_logs`）驗證與
+  迭代**，勿在本容器嘗試打 cnyes。整層失敗只是回退官網值，不會壞版面。
 
 ## 基金總覽「1週／1月」報酬（2026-07-15 新增）
 
