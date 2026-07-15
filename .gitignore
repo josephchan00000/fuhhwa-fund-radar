@@ -15,6 +15,8 @@ data/funds/*
 # ETF 數據追蹤落檔／基金新聞落檔：入庫當 fallback（來源被擋時 CI 沿用前次值，避免整片留空）
 !data/etf_watch.json
 !data/fund_news.json
+# 基金 NAV 歷史（總覽 1週/1月報酬資料層）：跨日累積的持久層，必須入庫
+!data/fund_nav_history.json
 # GitHub PAT（建 repo 用）絕不入庫
 .gh_tok
 data/.gh_tok
