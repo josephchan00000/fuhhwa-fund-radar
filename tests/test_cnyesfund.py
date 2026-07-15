@@ -58,6 +58,7 @@ def _doc(**kw):
 
 def test_apply_overlay_writes_daily_and_newer_nav(tmp_path, monkeypatch):
     monkeypatch.setattr(cnyesfund, "MAP_PATH", tmp_path / "map.json")
+    monkeypatch.setattr(cnyesfund, "fetch_detail", lambda *a, **kw: {})
     monkeypatch.setattr(cnyesfund, "search_all", lambda *a, **kw: [_item()])
     doc = _doc()
     n = cnyesfund.apply_overlay([doc], tmp_path)
@@ -74,6 +75,7 @@ def test_apply_overlay_writes_daily_and_newer_nav(tmp_path, monkeypatch):
 
 def test_apply_overlay_keeps_official_nav_when_not_newer(tmp_path, monkeypatch):
     monkeypatch.setattr(cnyesfund, "MAP_PATH", tmp_path / "map.json")
+    monkeypatch.setattr(cnyesfund, "fetch_detail", lambda *a, **kw: {})
     monkeypatch.setattr(cnyesfund, "search_all",
                         lambda *a, **kw: [_item(navDate="2026-07-13", nav=999.0)])
     doc = _doc()
@@ -84,6 +86,7 @@ def test_apply_overlay_keeps_official_nav_when_not_newer(tmp_path, monkeypatch):
 
 def test_apply_overlay_no_match_no_write(tmp_path, monkeypatch):
     monkeypatch.setattr(cnyesfund, "MAP_PATH", tmp_path / "map.json")
+    monkeypatch.setattr(cnyesfund, "fetch_detail", lambda *a, **kw: {})
     monkeypatch.setattr(cnyesfund, "search_all",
                         lambda *a, **kw: [_item(displayNameLocal="別家基金")])
     doc = _doc()
@@ -93,6 +96,7 @@ def test_apply_overlay_no_match_no_write(tmp_path, monkeypatch):
 
 def test_apply_overlay_pinned_id_wins(tmp_path, monkeypatch):
     monkeypatch.setattr(cnyesfund, "MAP_PATH", tmp_path / "map.json")
+    monkeypatch.setattr(cnyesfund, "fetch_detail", lambda *a, **kw: {})
     (tmp_path / "map.json").write_text(
         json.dumps({"01": {"cnyesId": "A2C011"}}), encoding="utf-8")
     monkeypatch.setattr(cnyesfund, "search_all",
