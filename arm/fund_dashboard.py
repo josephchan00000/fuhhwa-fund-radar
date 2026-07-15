@@ -372,7 +372,15 @@ def _macro_cal_view(cal: dict | None) -> str:
         return ('<div class="muted">尚無本週行事曆。請由會上網查證的 Claude 依提示包'
                 '產 <code>reports/macrocal/{date}.md</code>。</div>')
     note = cal.get("note") or ""
-    note_html = f'<div class="calnote">🔔 {_esc(note)}</div>' if note else ""
+    note_html = ""
+    if note:
+        # 長句依「。／；」斷句分行成清單（不動文字、只加視覺分行），避免一整片難讀
+        clauses = [c.strip() for c in re.findall(r"[^；。]+[；。]?", note) if c.strip()]
+        if len(clauses) >= 3:
+            lis = "".join(f"<li>{_esc(c)}</li>" for c in clauses)
+            note_html = f'<div class="calnote"><ul class="cnlist">{lis}</ul></div>'
+        else:
+            note_html = f'<div class="calnote">🔔 {_esc(note)}</div>'
     data_rows = [r for r in cal["rows"] if r.get("region") != "財報"]
     earn_rows = [r for r in cal["rows"] if r.get("region") == "財報"]
     html = note_html + _cal_table_html(data_rows, with_region=True)
@@ -984,8 +992,12 @@ a.tk:hover{color:var(--acc)}
 .ndoc small,.ndoc i{color:var(--mut);font-style:normal}
 .tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:20px;background:rgba(47,111,208,.14);color:var(--accd);border:1px solid rgba(47,111,208,.3);white-space:nowrap}
 /* 總經：本週行事曆 */
-.calnote{background:rgba(200,118,15,.14);border:1px solid rgba(200,118,15,.45);color:#8a5410;
-  border-radius:9px;padding:8px 13px;font-size:13.5px;font-weight:700;margin-bottom:10px}
+.calnote{background:rgba(200,118,15,.12);border:1px solid rgba(200,118,15,.4);color:#7a4a0e;
+  border-radius:10px;padding:11px 15px;font-size:14px;line-height:1.8;font-weight:500;margin-bottom:12px}
+.calnote .cnlist{margin:0;padding:0;list-style:none}
+.calnote .cnlist li{position:relative;padding-left:17px;margin:5px 0}
+.calnote .cnlist li:before{content:"›";position:absolute;left:2px;top:-1px;color:#c8760f;font-weight:800}
+.calnote .cnlist li:first-child{font-weight:700}
 .caltbl{width:100%;border-collapse:collapse;font-size:14px}
 .caltbl th{color:var(--mut);font-size:12.5px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .caltbl th.l{text-align:left}
@@ -1351,6 +1363,6 @@ def render() -> str:
   本版本不呈現「每天持股變化」（共同基金無逐日持股張數）。
 </div>
 </div>
-<a class="backtop" href="#brief">↑ 回頂端</a>
+<a class="backtop" href="#" onclick="window.scrollTo({{top:0,behavior:'smooth'}});return false;">↑ 回頂端</a>
 <script>{_JS}</script>
 </body></html>"""
