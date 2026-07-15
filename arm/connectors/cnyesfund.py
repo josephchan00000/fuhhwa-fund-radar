@@ -27,18 +27,16 @@ from ..http import get_bytes
 ROOT = Path(__file__).resolve().parent.parent.parent
 MAP_PATH = ROOT / "data" / "cnyes_fund_map.json"
 
-# 候選端點探測電池（CI 實測收斂中）：
-#   第 1 輪：fund.api.cnyes.com/fund/api/v2/search/funds → 404
-#   第 2 輪：fund.api.cnyes.com 全路徑 404、fund.cnyes.com/api 404；
-#            **gfe-fund.cnyes.com 有回 200＋UTF-8 BOM 內容**（JSON 解碼炸掉）
-#   第 3 輪（本版）：改 utf-8-sig 解碼、gfe-fund 排最前；解析失敗印 body 開頭
-URL_CANDIDATES = (
-    "https://gfe-fund.cnyes.com/api/v2/search/funds?keyword={kw}&page={page}",
-    "https://gfe-fund.cnyes.com/fund/api/v2/search/funds?keyword={kw}&page={page}",
-    "https://gfe-fund.cnyes.com/api/v1/search/funds?keyword={kw}&page={page}",
-    "https://gfe-fund.cnyes.com/api/v2/funds?keyword={kw}&page={page}",
-    "https://fund.api.cnyes.com/fund/api/v1/search/funds?keyword={kw}&page={page}",
-    "https://fund.cnyes.com/api/v2/search/funds?keyword={kw}&page={page}",
+# 取數路線（CI 實測收斂史）：
+#   第 1~2 輪：fund.api.cnyes.com 全路徑 404、fund.cnyes.com/api 404
+#   第 3 輪：gfe-fund.cnyes.com 對任何路徑都回同一張 XHTML 舊頁（catch-all，非 API）
+#   第 4 輪（本版）：**放棄猜 API，改抓搜尋頁 HTML**（fund.cnyes.com/search/ 為真實
+#     存在頁）：解析頁內 __NEXT_DATA__（Next.js SSR JSON）遞迴挖「像基金」的物件；
+#     找不到時把 pageProps keys／頁內 cnyes API URL 線索／App-Router flight 標記
+#     印進日誌，一輪即可決定下一步（schema 微調或寫 flight 解析）
+SEARCH_PAGES = (
+    "https://fund.cnyes.com/search/?keyword={kw}",
+    "https://fund.cnyes.com/search/?q={kw}",
 )
 # cnyes API 可能擋非瀏覽器 UA／缺 Referer 的請求
 _HEADERS = {
@@ -125,57 +123,60 @@ def norm_name(s: str | None) -> str:
     return s.replace("（", "(").replace("）", ")")
 
 
-def _get_json(url: str):
-    """帶瀏覽器標頭抓 JSON；用 utf-8-sig 解碼（gfe-fund 回應帶 UTF-8 BOM，
-    2026-07-15 CI 實測）。解析失敗把 body 開頭丟回例外訊息供日誌診斷。"""
-    raw = get_bytes(url, retries=1, cache_ttl=3600, headers=_HEADERS)
-    text = raw.decode("utf-8-sig", errors="replace")
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError as e:
-        head = re.sub(r"\s+", " ", text[:160])
-        raise ValueError(f"非 JSON（{e.msg}）；body 開頭＝{head!r}") from e
+_NEXT_RE = re.compile(r'<script[^>]*id="__NEXT_DATA__"[^>]*>(.*?)</script>', re.S)
+_API_RE = re.compile(r"https://[a-z0-9.-]+\.cnyes\.com/[^\"'\\\s<>]*api[^\"'\\\s<>]*",
+                     re.I)
 
 
-def _probe(keyword: str) -> tuple[str, list[dict]] | None:
-    """逐一試候選端點（第 1 頁），回 (勝出模板, items)；全滅回 None。
-    每個候選的失敗原因都印進日誌——CI 一輪即可收斂正確端點。"""
-    for tmpl in URL_CANDIDATES:
-        url = tmpl.format(kw=quote(keyword), page=1)
+def _walk_items(node, out: list[dict]) -> None:
+    """遞迴掃 JSON：凡「有名稱鍵、且有 NAV 或任一報酬鍵」的 dict 視為基金物件。
+    泛型走法不綁死 schema——items 藏在哪一層都挖得到；誤抓由名稱比對層過濾。"""
+    if isinstance(node, dict):
+        if (_pick(node, _NAME_KEYS) is not None
+                and (_pick(node, _NAV_KEYS) is not None
+                     or any(_pick(node, c) is not None for c in _RET_KEYS.values()))):
+            out.append(node)
+        for v in node.values():
+            _walk_items(v, out)
+    elif isinstance(node, list):
+        for v in node:
+            _walk_items(v, out)
+
+
+def search_all(keyword: str = "復華", max_pages: int = 0) -> list[dict]:
+    """抓搜尋頁 HTML → __NEXT_DATA__ → 遞迴挖基金物件。失敗時印足夠診斷：
+    pageProps keys／頁內 cnyes API URL 線索／flight（App Router）標記／資料鍵出現次數。"""
+    for tmpl in SEARCH_PAGES:
+        url = tmpl.format(kw=quote(keyword))
         try:
-            payload = _get_json(url)
+            html = get_bytes(url, retries=1, cache_ttl=3600,
+                             headers=_HEADERS).decode("utf-8-sig", errors="replace")
         except Exception as e:
-            print(f"  [cnyes 探測] ✗ {url.split('?')[0]}（{e}）")
+            print(f"  [cnyes 頁面] ✗ {url}（{e}）")
             continue
-        items = _items(payload)
-        if items:
-            print(f"  [cnyes 探測] ✓ 勝出端點 {tmpl.split('?')[0]}")
-            return tmpl, items
-        top = sorted(payload.keys()) if isinstance(payload, dict) else type(payload).__name__
-        print(f"  [cnyes 探測] △ {url.split('?')[0]} 回應無 items；頂層＝{top}")
-    return None
-
-
-def search_all(keyword: str = "復華", max_pages: int = 10) -> list[dict]:
-    """探測可用端點後逐頁掃到空頁為止；回原始 item 清單。schema 不符時印診斷。"""
-    hit = _probe(keyword)
-    if hit is None:
-        return []
-    tmpl, out = hit
-    for page in range(2, max_pages + 1):
+        apis = sorted(set(_API_RE.findall(html)))[:8]
+        m = _NEXT_RE.search(html)
+        if not m:
+            flight = "self.__next_f" in html
+            hits = {k: html.count(k) for k in
+                    ("cnyesId", "displayNameLocal", "returnYTD", "nav")}
+            print(f"  [cnyes 頁面] △ {url} 無 __NEXT_DATA__（App-Router flight={flight}；"
+                  f"資料鍵出現次數={hits}；API 線索={apis}）")
+            continue
         try:
-            payload = _get_json(tmpl.format(kw=quote(keyword), page=page))
-        except Exception:
-            break
-        items = _items(payload)
-        if not items:
-            break
-        out.extend(items)
-        if len(items) < 10:                                 # 末頁（頁大小通常 ≥10）
-            break
-    if out and _pick(out[0], _NAME_KEYS) is None:
-        print(f"  [cnyes 診斷] item keys＝{sorted(out[0].keys())}")
-    return out
+            data = json.loads(m.group(1))
+        except json.JSONDecodeError as e:
+            print(f"  [cnyes 頁面] △ {url} __NEXT_DATA__ 非 JSON（{e.msg}）")
+            continue
+        found: list[dict] = []
+        _walk_items(data, found)
+        if found:
+            print(f"  [cnyes 頁面] ✓ {url} 挖到 {len(found)} 筆基金物件")
+            return found
+        pp = ((data.get("props") or {}).get("pageProps") or {})
+        print(f"  [cnyes 頁面] △ {url} 有 __NEXT_DATA__ 但無基金列；"
+              f"pageProps keys={sorted(pp.keys())[:12]}；API 線索={apis}")
+    return []
 
 
 def overlay_from_item(item: dict) -> dict:
@@ -225,6 +226,12 @@ def apply_overlay(docs: list[dict], out_dir: Path) -> int:
         if item is None:
             item = by_name.get(norm_name(doc.get("name"))) \
                 or by_name.get(norm_name(doc.get("short_name")))
+        if item is None:                     # SSR 搜尋頁可能只渲染前 N 筆 → 逐檔補查
+            wanted = {norm_name(doc.get("name")), norm_name(doc.get("short_name"))}
+            for it in search_all(doc.get("name") or doc.get("short_name") or ""):
+                if norm_name(_pick(it, _NAME_KEYS)) in wanted:
+                    item = it
+                    break
         if item is None:
             continue
         ov = overlay_from_item(item)

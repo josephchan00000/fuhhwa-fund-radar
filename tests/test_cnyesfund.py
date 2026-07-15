@@ -58,7 +58,7 @@ def _doc(**kw):
 
 def test_apply_overlay_writes_daily_and_newer_nav(tmp_path, monkeypatch):
     monkeypatch.setattr(cnyesfund, "MAP_PATH", tmp_path / "map.json")
-    monkeypatch.setattr(cnyesfund, "search_all", lambda **kw: [_item()])
+    monkeypatch.setattr(cnyesfund, "search_all", lambda *a, **kw: [_item()])
     doc = _doc()
     n = cnyesfund.apply_overlay([doc], tmp_path)
     assert n == 1
@@ -75,7 +75,7 @@ def test_apply_overlay_writes_daily_and_newer_nav(tmp_path, monkeypatch):
 def test_apply_overlay_keeps_official_nav_when_not_newer(tmp_path, monkeypatch):
     monkeypatch.setattr(cnyesfund, "MAP_PATH", tmp_path / "map.json")
     monkeypatch.setattr(cnyesfund, "search_all",
-                        lambda **kw: [_item(navDate="2026-07-13", nav=999.0)])
+                        lambda *a, **kw: [_item(navDate="2026-07-13", nav=999.0)])
     doc = _doc()
     cnyesfund.apply_overlay([doc], tmp_path)
     assert doc["nav"] == 131.07 and "nav_src" not in doc        # 同日不覆蓋 NAV
@@ -85,7 +85,7 @@ def test_apply_overlay_keeps_official_nav_when_not_newer(tmp_path, monkeypatch):
 def test_apply_overlay_no_match_no_write(tmp_path, monkeypatch):
     monkeypatch.setattr(cnyesfund, "MAP_PATH", tmp_path / "map.json")
     monkeypatch.setattr(cnyesfund, "search_all",
-                        lambda **kw: [_item(displayNameLocal="別家基金")])
+                        lambda *a, **kw: [_item(displayNameLocal="別家基金")])
     doc = _doc()
     assert cnyesfund.apply_overlay([doc], tmp_path) == 0
     assert "returns_daily" not in doc and not (tmp_path / "01.json").exists()
@@ -96,7 +96,7 @@ def test_apply_overlay_pinned_id_wins(tmp_path, monkeypatch):
     (tmp_path / "map.json").write_text(
         json.dumps({"01": {"cnyesId": "A2C011"}}), encoding="utf-8")
     monkeypatch.setattr(cnyesfund, "search_all",
-                        lambda **kw: [_item(displayNameLocal="名稱對不上但ID釘住")])
+                        lambda *a, **kw: [_item(displayNameLocal="名稱對不上但ID釘住")])
     doc = _doc()
     assert cnyesfund.apply_overlay([doc], tmp_path) == 1
 
