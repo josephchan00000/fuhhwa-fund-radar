@@ -42,14 +42,31 @@ def parse_period_pct(s) -> float | None:
     return None if v == 0 else v
 
 
+def _daily_ret(d: dict, key: str) -> float | None:
+    """returns_daily（鉅亨、每日基準）取值；缺鍵回 None（勿用 get(default)——CLAUDE.md 坑）。"""
+    v = (d.get("returns_daily") or {}).get(key)
+    if v is None:
+        return None
+    return float(v) if isinstance(v, (int, float)) else parse_period_pct(str(v))
+
+
 def overview_rows(funds: list[dict]) -> list[dict]:
     """總覽表列資料：每檔基金一列，報酬／變動皆為數值（None＝缺）。
-    1週/1月為官網 API 沒有的期別，由 arm/fundnav 的 NAV 序列自算（史料不足回 None）。"""
+    多期報酬逐欄 fallback：鉅亨每日基準（returns_daily）→ 官網月底基準（returns）；
+    1週/1月再多一層 → arm/fundnav 的 NAV 序列自算（史料不足回 None）。"""
     hist = fundnav.load()
     rows = []
     for d in funds:
         ret = d.get("returns") or {}
         ser = hist.get(str(d.get("fund_id"))) or {}
+
+        def pick(daily_key: str, official_key: str | None = None,
+                 self_calc: float | None = None) -> float | None:
+            v = _daily_ret(d, daily_key)
+            if v is None and official_key:
+                v = parse_period_pct(ret.get(official_key))
+            return v if v is not None else self_calc
+
         rows.append({
             "fund_id": str(d.get("fund_id")),
             "name": d.get("name") or "",
@@ -58,11 +75,13 @@ def overview_rows(funds: list[dict]) -> list[dict]:
             "nav": d.get("nav"),
             "nav_date": d.get("nav_date"),
             "chg": parse_pct(d.get("nav_change_pct")),
-            "w1": fundnav.ret_pct(ser, d.get("nav_date"), d.get("nav"), 7, tol=5),
-            "m1": fundnav.ret_pct(ser, d.get("nav_date"), d.get("nav"), 30, tol=10),
-            "ytd": parse_period_pct(ret.get("ytd")),
-            "y1": parse_period_pct(ret.get("1y")),
-            "y3": parse_period_pct(ret.get("3y")),
+            "w1": pick("1w", None,
+                       fundnav.ret_pct(ser, d.get("nav_date"), d.get("nav"), 7, tol=5)),
+            "m1": pick("1m", None,
+                       fundnav.ret_pct(ser, d.get("nav_date"), d.get("nav"), 30, tol=10)),
+            "ytd": pick("ytd", "ytd"),
+            "y1": pick("1y", "1y"),
+            "y3": pick("3y", "3y"),
             "size_e8": round(d["size_twd"] / 1e8, 1) if d.get("size_twd") else None,
             "conc": fund_intro.top_concentration(d),
             "risk": d.get("risk_level") or "—",
