@@ -71,7 +71,8 @@ def test_macro_spec_and_section():
     html = fd.render()
     assert 'id="mkt-macro"' in html and 'for="mkt-macro">總經' in html   # 三分頁切換鈕
     assert 'class="macroview"' in html and 'class="fundview"' in html    # 分頁視圖容器
-    assert 'id="macro"' in html and "🏛️ 總經・政策" in html
+    assert 'id="macro"' in html and "🏛️ 政策新聞" in html
+    assert 'id="macro-ov"' in html and "📋 政策總覽" in html   # 總覽/新聞拆兩區塊（2026-07-15）
     # 總經頁含「本週行事曆」子區塊與總經專屬導覽（非死按鈕）
     assert 'id="macro-cal"' in html and 'tb-nav-macro' in html and "本週行事曆" in html
 
