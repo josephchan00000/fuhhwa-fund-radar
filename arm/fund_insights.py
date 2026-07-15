@@ -16,7 +16,7 @@ import re
 from datetime import date, datetime
 from pathlib import Path
 
-from . import clock, fund_intro, usnews
+from . import clock, fund_intro, fundnav, usnews
 
 ROOT = Path(__file__).resolve().parent.parent
 ALIASES = ROOT / "config" / "holding_aliases.json"
@@ -43,10 +43,13 @@ def parse_period_pct(s) -> float | None:
 
 
 def overview_rows(funds: list[dict]) -> list[dict]:
-    """總覽表列資料：每檔基金一列，報酬／變動皆為數值（None＝缺）。"""
+    """總覽表列資料：每檔基金一列，報酬／變動皆為數值（None＝缺）。
+    1週/1月為官網 API 沒有的期別，由 arm/fundnav 的 NAV 序列自算（史料不足回 None）。"""
+    hist = fundnav.load()
     rows = []
     for d in funds:
         ret = d.get("returns") or {}
+        ser = hist.get(str(d.get("fund_id"))) or {}
         rows.append({
             "fund_id": str(d.get("fund_id")),
             "name": d.get("name") or "",
@@ -55,6 +58,8 @@ def overview_rows(funds: list[dict]) -> list[dict]:
             "nav": d.get("nav"),
             "nav_date": d.get("nav_date"),
             "chg": parse_pct(d.get("nav_change_pct")),
+            "w1": fundnav.ret_pct(ser, d.get("nav_date"), d.get("nav"), 7, tol=5),
+            "m1": fundnav.ret_pct(ser, d.get("nav_date"), d.get("nav"), 30, tol=10),
             "ytd": parse_period_pct(ret.get("ytd")),
             "y1": parse_period_pct(ret.get("1y")),
             "y3": parse_period_pct(ret.get("3y")),
@@ -104,7 +109,8 @@ def group_averages(funds: list[dict]) -> dict[str, dict[str, float]]:
             for g, ks in acc.items()}
 
 
-def column_leaders(rows: list[dict], keys: tuple[str, ...] = ("chg", "ytd", "y1", "y3"),
+def column_leaders(rows: list[dict],
+                   keys: tuple[str, ...] = ("chg", "w1", "m1", "ytd", "y1", "y3"),
                    top: int = 2) -> set[tuple[str, str]]:
     """總覽表色階：每組每欄取前 top 名（值須 >0 才算領先）。回 {(fund_id, key)}。"""
     out: set[tuple[str, str]] = set()

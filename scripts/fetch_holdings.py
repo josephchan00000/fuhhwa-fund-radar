@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from arm import config                       # noqa: E402
+from arm import config, fundnav             # noqa: E402
 from arm.clock import now_tw                 # noqa: E402  台北時間（UTC 容器/CI 防跨日錯置）
 from arm.connectors import fhfund            # noqa: E402
 
@@ -27,6 +27,7 @@ def run(ids: list[str]) -> list[dict]:
     OUT.mkdir(parents=True, exist_ok=True)
     by_id = {str(f["id"]): f for f in config.funds()}
     index = []
+    docs = []
     print(f"[持股介紹 ← 復華官網]　{now_tw():%Y-%m-%d %H:%M}")
     for fid in ids:
         cfg = by_id.get(str(fid), {})
@@ -37,6 +38,7 @@ def run(ids: list[str]) -> list[dict]:
             continue
         doc["group"] = cfg.get("group")
         doc["fetched_at"] = now_tw().strftime("%Y-%m-%d %H:%M")
+        docs.append(doc)
         (OUT / f"{fid}.json").write_text(
             json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
         n = len(doc.get("top_holdings") or [])
@@ -47,6 +49,9 @@ def run(ids: list[str]) -> list[dict]:
                       "nav": doc.get("nav"), "nav_date": doc.get("nav_date"),
                       "as_of": doc.get("as_of"), "n_top": n})
     _write_index(index)
+    n_nav = fundnav.record(docs)             # NAV 序列累積（總覽 1週/1月報酬資料層）
+    if n_nav:
+        print(f"  ↳ NAV 歷史追加 {n_nav} 筆 → data/fund_nav_history.json")
     return index
 
 
