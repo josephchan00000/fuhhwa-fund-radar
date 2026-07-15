@@ -8,7 +8,7 @@
   ② 新聞（重點＋全文合併）：每則一個收合塊、預設收合；標題列即顯示一句話重點，
      展開看摘要＋影響分析＋可點原文連結（富途優先）；頭段「總覽」改置頂可見卡，
      資料侷限／合規揭露不上板（合規統一置頁尾小字——2026-07-15 使用者指示）
-  ③ 新聞 × 持股連動：受影響持股→持有基金（權重％）
+  ③ （當日焦點個股區已移除——2026-07-15 使用者指示；新聞×持股連動僅保留詳情卡 🔗 高亮）
   ④ 基金總覽表：可排序、紅漲綠跌、點列跳詳情
   ⑤ 基金詳情：逐檔卡片（錨點直達、同組平均對照、連動持股高亮、複製介紹）
 
@@ -130,7 +130,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     <nav class="tb-nav tb-nav-fund">
       <a href="#brief">今日重點</a><a href="#news">新聞</a>
       <a href="#fundnews">基金新聞</a>
-      <a href="#newslinks">焦點個股</a><a href="#overview">基金總覽</a>
+      <a href="#overview">基金總覽</a>
       <a href="#details">基金詳情</a>
     </nav>
     <nav class="tb-nav tb-nav-macro">
@@ -545,45 +545,6 @@ def _etfwatch_view(doc: dict | None) -> str:
     return "".join(parts)
 
 
-# ── ③ 當日焦點個股（新聞連動） ────────────────────────────────
-
-def _newslinks_view(linked: list[dict], empty_hint: str,
-                    market: str | None = None,
-                    mkt_by_id: dict[str, str] | None = None) -> str:
-    """新聞連動的個股彙總：每檔焦點個股一列——持有基金＋持有%。跨卡去重、權重高→低。
-
-    傳入 market（"tw"/"gl"）＋ mkt_by_id 時，只保留「該市場基金」持有的個股與其持有基金——
-    台股視圖只出台股基金持有的標的（如美光 MU 無台股基金持有，即不列入台股焦點個股）。"""
-    stocks: dict[str, dict] = {}
-    for c in linked:
-        for m in c["matched"]:
-            funds_m = m["funds"]
-            if market and mkt_by_id:
-                funds_m = [f for f in funds_m if mkt_by_id.get(f["fund_id"]) == market]
-                if not funds_m:                     # 此市場無持有基金 → 非本視圖焦點，略過
-                    continue
-            ent = stocks.setdefault(m["name"], {"display": m["display"],
-                                                "ticker": m.get("ticker"), "funds": {}})
-            ent["ticker"] = ent["ticker"] or m.get("ticker")
-            for f in funds_m:
-                ent["funds"][f["fund_id"]] = f
-    if not stocks:
-        return f'<div class="muted">{empty_hint}。</div>'
-    rows = []
-    for ent in sorted(stocks.values(),
-                      key=lambda e: max(f["weight"] for f in e["funds"].values()),
-                      reverse=True):
-        funds = sorted(ent["funds"].values(), key=lambda f: f["weight"], reverse=True)
-        fs = "　".join(
-            f'<a class="fw" href="#fund-{_esc(f["fund_id"])}">'
-            f'{_esc(_short(f["short_name"]))} <b>{f["weight"]:.2f}%</b></a>'
-            for f in funds)
-        tk = f' <span class="tk">{_esc(ent["ticker"])}</span>' if ent.get("ticker") else ""
-        rows.append(f'<div class="nlrow"><span class="nlco">{_esc(ent["display"])}{tk}</span>'
-                    f'<span class="nlfs">{fs}</span></div>')
-    return f'<div class="nlcard">{"".join(rows)}</div>'
-
-
 # ── ④ 基金總覽表 ─────────────────────────────────────────────
 
 _OV_COLS = [("nav", "NAV", 0), ("chg", "日變動", 1), ("ytd", "YTD", 1),
@@ -667,7 +628,7 @@ def _holdings_table(doc: dict, linked_names: set[str]) -> str:
         ct = f'<span class="pill">{_esc(h["country"])}</span>' if h.get("country") else ""
         intro = f'<div class="hintro">{_esc(h["intro"])}</div>' if h.get("intro") else ""
         hl = h.get("name") in linked_names
-        link = ' <a class="hlk" href="#newslinks" title="今日新聞連動">🔗</a>' if hl else ""
+        link = ' <span class="hlk" title="今日新聞連動">🔗</span>' if hl else ""
         trcls = ' class="hl"' if hl else ""
         rows.append(
             f'<tr{trcls}><td class="rk">{i}</td>'
@@ -1313,12 +1274,8 @@ def render() -> str:
                  f'<span class="stsub">{_esc(fn_sub)}</span></div>'
                  f'{_fundnews_view(fn_doc)}</div>')
 
-    # ③ 當日焦點個股（新聞連動）
-    l_tw = _newslinks_view(linked_tw, "今日台股新聞與台股基金前十大持股無直接連動", "tw", mkt_by_id)
-    l_gl = _newslinks_view(linked_us, "昨夜美股新聞與海外基金前十大持股無直接連動", "gl", mkt_by_id)
-    sec_links = (f'<div class="section" id="newslinks"><div class="st">🎯 當日焦點個股 '
-                 f'<span class="stsub">持有基金＋持有％</span></div>'
-                 f'{_mkt(l_tw, l_gl)}</div>')
+    # ③ 當日焦點個股區已移除（2026-07-15 使用者指示）；
+    #    新聞連動資料仍餵基金詳情卡的持股 🔗 高亮（linked_by_fund）
 
     # ④ 基金總覽
     o_tw = _overview_view(rows_tw, leaders, tw_pend)
@@ -1356,7 +1313,6 @@ def render() -> str:
 {sec_brief}
 {sec_news}
 {sec_fnews}
-{sec_links}
 {sec_over}
 {sec_det}
 </div>

@@ -200,10 +200,11 @@ def test_pending_funds_have_group_label():
 def test_render_sections_order_and_taiwan_colors():
     html = fund_dashboard.render()
     secs = ['id="brief"', 'id="news"',
-            'id="newslinks"', 'id="overview"', 'id="details"']
+            'id="overview"', 'id="details"']
     idx = [html.find(s) for s in secs]
     assert all(i >= 0 for i in idx)
-    assert idx == sorted(idx)                          # 順序：今日重點→新聞→焦點個股→總覽→詳情
+    assert idx == sorted(idx)                          # 順序：今日重點→新聞→總覽→詳情
+    assert 'id="newslinks"' not in html                # 當日焦點個股區已移除（2026-07-15）
     assert 'id="newsdigest"' not in html               # 新聞重點與全文已合併為單一「新聞」區
     assert 'class="newsone"' in html                   # 逐則新聞收合塊（合併後）
     assert html.count("<details") >= 3                 # 每則新聞各一收合塊（預設收合）
@@ -221,12 +222,12 @@ def test_render_sections_order_and_taiwan_colors():
 def test_render_market_views():
     html = fund_dashboard.render()
     assert 'class="mkswitch"' in html                  # 左上台股/全球切換
-    assert html.count('data-mkt="tw"') >= 6 and html.count('data-mkt="gl"') >= 6
+    assert html.count('data-mkt="tw"') >= 5 and html.count('data-mkt="gl"') >= 5  # 焦點個股區移除後少一組雙視圖
     assert 'id="mkt-tw" checked' in html and 'id="mkt-gl"' in html   # 純 CSS radio（JS 停用也能切）
     assert '#mkt-gl:checked ~ * .mkt[data-mkt="tw"]{display:none}' in html
     assert 'class="nglink"' in html or "無原文連結" in html   # 新聞重點卡的來源連結
-    assert "可講素材" not in html                       # 話術已移除，焦點個股極簡呈現
-    assert "當日焦點個股" in html
+    assert "可講素材" not in html                       # 話術已移除
+    assert "當日焦點個股" not in html                   # 焦點個股區已移除（2026-07-15）
 
 
 def test_scrub_removes_invisible():
