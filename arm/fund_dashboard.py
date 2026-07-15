@@ -1218,12 +1218,14 @@ def render() -> str:
     fn_asof = (fn_doc or {}).get("as_of")
     etf_doc = etfwatch.load()
     etf_asof = (etf_doc or {}).get("as_of")
+    # 多期報酬（鉅亨每日基準）鮮度：CI 接上前為 None——不列警示、總覽區顯示過渡註記
+    ret_asof = max((d.get("returns_daily_asof") or "" for d in funds), default="") or None
     sec_fresh = _freshness_view(now, [
         ("NAV 日", nav_date, 6), ("持股基準", hold_asof, 45), ("持股快照抓取", fetched_at, 3),
         ("美股新聞", us_date, 3), ("台股新聞", tw_date, 3),
         ("總經・政策", mac_date, 3), ("經濟行事曆", cal_date, 8),
         ("基金新聞・社群", fn_asof, 3), ("ETF 數據追蹤", etf_asof, 10),
-    ])
+    ] + ([("多期報酬(鉅亨)", ret_asof, 4)] if ret_asof else []))
 
     # ① 今日重點（雙視圖）；台股盤前速覽自新聞頭段抽出、直接顯示於此（不再埋於收合塊）
     premkt_md, tw_md_news = _extract_premarket(tw_md)
@@ -1287,15 +1289,18 @@ def render() -> str:
     # ③ 當日焦點個股區已移除（2026-07-15 使用者指示）；
     #    新聞連動資料仍餵基金詳情卡的持股 🔗 高亮（linked_by_fund）
 
-    # ④ 基金總覽
+    # ④ 基金總覽（多期報酬＝鉅亨每日基準優先；未接上前 ret_asof 為 None、不顯示 chip）
+    ret_chip = _fresh_chip("多期報酬", ret_asof, 4) if ret_asof else ""
+    ret_note = ("報酬欄＝鉅亨每日基準（缺值回退官網月底值）" if ret_asof else
+                "多期報酬暫為官網月底基準（鉅亨每日覆蓋待 CI 接上）")
     o_tw = _overview_view(rows_tw, leaders, tw_pend)
     o_gl = _overview_view(rows_gl, leaders, gl_pend)
     sec_over = (f'<div class="section" id="overview"><div class="st">📊 基金總覽 '
                 f'{_fresh_chip("NAV 日", nav_date, 6)}{_fresh_chip("持股基準", hold_asof, 45)}'
-                f'{_fresh_chip("快照抓取", fetched_at, 3)} '
-                f'<span class="stsub">粉紅底＝同組同欄前二名・點欄位標題可排序・'
-                f'1週/1月＝最新NAV日往回滾動7/30日曆日（非月初起算）；'
-                f'1月欄待NAV史料滿30天自動顯示（序列自2026/07/01累積）</span></div>'
+                f'{_fresh_chip("快照抓取", fetched_at, 3)}{ret_chip} '
+                f'<span class="stsub">粉紅底＝同組同欄前二名・點欄位標題可排序・{ret_note}・'
+                f'1週/1月＝往回滾動7/30日曆日（非月初起算，缺值以自建NAV序列自算，'
+                f'1月自算須史料滿30天）</span></div>'
                 f'{_mkt(o_tw, o_gl)}</div>')
 
     # ⑤ 基金詳情

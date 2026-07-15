@@ -48,6 +48,18 @@ def run(ids: list[str]) -> list[dict]:
                       "category": doc.get("category"), "region": doc.get("region"),
                       "nav": doc.get("nav"), "nav_date": doc.get("nav_date"),
                       "as_of": doc.get("as_of"), "n_top": n})
+    # 鉅亨每日多期報酬覆蓋（Tier B）：官網多期報酬為月底基準，鉅亨為每日基準；
+    # 整層失敗只影響「當日基準」欄位（儀表板回退官網值），不影響既有流程
+    try:
+        from arm.connectors import cnyesfund
+        cnyesfund.apply_overlay(docs, OUT)
+    except Exception as e:
+        print(f"  ↳ 鉅亨覆蓋層跳過（{type(e).__name__}：{e}）")
+    by_id_doc = {str(d.get("fund_id")): d for d in docs}   # 覆蓋層可能更新 NAV → 同步索引
+    for e in index:
+        d = by_id_doc.get(str(e["id"]))
+        if d:
+            e["nav"], e["nav_date"] = d.get("nav"), d.get("nav_date")
     _write_index(index)
     n_nav = fundnav.record(docs)             # NAV 序列累積（總覽 1週/1月報酬資料層）
     if n_nav:
