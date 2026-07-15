@@ -299,12 +299,17 @@ def extract_indices(md: str, labels: list[tuple[tuple[str, ...], str]] | None = 
     return sorted(out.values(), key=lambda d: order.index(d["label"]))
 
 
-_CARD_HEAD = re.compile(r"^#{2,3}\s+(?:卡\s*\d+｜|[一二三四五六七八九十]+、)(.+)$")
+# 卡片標頭三型：①「### 卡 N｜…」②「## 一、…」③裸標題但尾端帶（…重要度 N/10）括注
+# （③為容錯：LLM 產卡偶爾漏「卡 N｜」前綴——2026-07-15 總經報實測；總覽/合規等
+#   小節標題不帶重要度括注，不會誤判）
+_CARD_HEAD = re.compile(
+    r"^#{2,3}\s+(?:(?:卡\s*\d+｜|[一二三四五六七八九十]+、)(.+)"
+    r"|(.+（[^（）]*重要度\s*\d+\s*/\s*10[^（）]*）))\s*$")
 _MD_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\s)]+)\)")
 
 
 def extract_cards(md: str) -> list[dict]:
-    """切出新聞卡（v1『### 卡 N｜…』／v2『## 一、…』）。
+    """切出新聞卡（v1『### 卡 N｜…』／v2『## 一、…』／裸標題帶重要度括注）。
 
     回 [{title, meta, oneline, summary, points, links, body}]：
       title＝去尾端括注的標題；meta＝尾端（來源：…｜日期｜…）括注內容；
@@ -316,7 +321,7 @@ def extract_cards(md: str) -> list[dict]:
     for line in scrub(md).splitlines():
         m = _CARD_HEAD.match(line.strip())
         if m:
-            raw = m.group(1).strip()
+            raw = (m.group(1) or m.group(2)).strip()
             meta = ""
             mm = re.search(r"（([^（）]*)）\s*$", raw)
             if mm:
