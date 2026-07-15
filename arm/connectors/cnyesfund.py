@@ -274,8 +274,13 @@ def fetch_detail(cid, debug: bool = False) -> dict:
         navkeys = [k for k in profile if str(k).lower() in
                    ("nav", "navdate", "navprice", "pricedate", "lastupdate", "change",
                     "changepercent")]
+        # 複合鍵 "returns" 內可能藏 2年/3年等期別（第 6 輪 CI 見到但未展開）——
+        # 印出其結構供未來補每日 3 年值（目前 3 年回退官網月底值）
+        comp = profile.get("returns")
+        comp_desc = (sorted(map(str, comp.keys()))[:15] if isinstance(comp, dict)
+                     else str(comp)[:120])
         print(f"  [cnyes 詳情] {url} 物件 {len(objs)} 筆；return 鍵={retkeys[:20]}；"
-              f"nav 鍵={navkeys}")
+              f"nav 鍵={navkeys}；returns 複合鍵={comp_desc}")
     return profile
 
 
