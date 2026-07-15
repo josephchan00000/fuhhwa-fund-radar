@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/15 09:17",
+  "as_of": "2026/07/15 09:23",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -210,13 +210,6 @@
         "全球平衡新臺幣"
       ],
       "items": [
-        {
-          "title": "復華全球平衡基金-新臺幣，22年老字號如何把100萬變成658萬？",
-          "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE5HZ05ZQkw5dFpPRWxzNWFMLVc3SW9nSmZlbVd5QVM0WjZCX3RleG1iSzlzaHpram5EZ1NxWmpkWTZsXzFrVjBNVzd5cm1MTjFZUDh0RmZTVEI?oc=5",
-          "source": "CMoney",
-          "date": "2026-07-14 16:34",
-          "datetime": "2026-07-14T16:34:53+08:00"
-        },
         {
           "title": "98636647 復華全球平衡基金-新臺幣- 規模最大的10 檔共同基金大公開（不含ETF） - 股市爆料同學會",
           "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTFBlaTFNUE5SWF83d3NkOGVaQU9qQ3ZSSHNrWFRhWnpXRnowMHZhUGlwZ0RQQVh4QTRvTGFBUmRiZFJ1ZjdKZVlkdUt1N05qSmNQQjIzMXpHMDM?oc=5",
