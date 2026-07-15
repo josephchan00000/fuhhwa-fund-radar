@@ -1,8 +1,15 @@
 {
-  "as_of": "2026/07/15 09:57",
+  "as_of": "2026/07/16 07:26",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
+    {
+      "title": "復華投信繼00991A 再推出復華全球未來50主動式ETF",
+      "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE5ZX2U2TmlCdXJsaVltWmJjbGQ3RGJIQngtSUhOYVJhcUNXQXdhWG1NRnY5UGFDdHVDNFRVZlozZHZNQktkc3Fyd2diSjhvaGMyRHRpbTJVUHHSAVhBVV95cUxOWV9lNk5pQnVybGlZbVpiY2xkN0RiSEJ4LUlITmFSYXFDV0F3YVhtTUZ2OVBhQ3R1QzRUVWZaM2R2TUJLZHNxcndnYko4b2hjMkR0aW0yVVBx?oc=5",
+      "source": "UDN",
+      "date": "2026-07-15 22:03",
+      "datetime": "2026-07-15T22:03:23+08:00"
+    },
     {
       "title": "〈復華投信00409A 啟動多重經理人機制！引領「世界盃」級投資革命，全面開啟全球無限商機！〉彙整頁面",
       "url": "https://news.google.com/rss/articles/CBMixgJBVV95cUxOOG9VWThPaVluUHlaTGoxQTItZmExM3FUZ2trTFpvcTFpMHhKd0dXenZkRnBqamoySlRQUnAwZFptS2NuRjFxN2dZUEZCekcydmwyY1ZMM2p3aFd4NDQtM3Y0N25YZFBxMWxfbVl4TEV6UnNsYUkxN0MwYXlDRXA4UmFDeVM1NHdpejVOM3d0cTRyZ0s5WkI1c2tGUS1jcFYzckxmZGZqeGNEYWlkbWN4OVJpZEE3SnV6NzA3Vk9VR2RUZFVzc1VYYjRUN2cxcmdld2czUFVJZWh4Q19mNVUwSGU0NmFIZnRIQktRekQtT3ZOWlh4WGluZ1FkZUZoNlh6UThKbkNEcXFieXZwSm1rX2VMelV5TjB5ano5NEZVbmJZS2Y1bzMyMTVFS0FWM2RzdTR2WTV6MHJBc0hXTFpXT0RiTHdTQQ?oc=5",
@@ -11,25 +18,11 @@
       "datetime": "2026-07-14T18:04:25+08:00"
     },
     {
-      "title": "[外稿新聞]-復華投信00409A 啟動多重經理人機制！引領「世界盃」級投資革命，全面開啟全球無限商機！",
-      "url": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE9VZ3pEUExUMUItT0JBQS1wejR3b0FHcFVwSy1NTV9kTWRNUWs3aVVaOHQ5RnVJQlRWWEo5Y1JHT2gxTHJMdjljalc2LTZGMi1ONHU3TUFmZ1RwSk4zWGc?oc=5",
-      "source": "atanews.net",
-      "date": "2026-07-14 17:16",
-      "datetime": "2026-07-14T17:16:52+08:00"
-    },
-    {
       "title": "復華投信 00409A 啟動多重經理人機制！引領「世界盃」級投資革命，全面開啟全球無限商機！",
       "url": "https://news.google.com/rss/articles/CBMiygJBVV95cUxQV0ZmTllFZC1QOGJNTnluQmhoX2hNTnMyZXpWbDA0ckRDOWEwMmJ2QkQxY0VGbjJETFAzMHl0aGpaaEwyN2NoX0VmNEFXbEd4a2pveUxZS2I4OXNtODd3SExFWXh3Rlo3R3hjaEhxc0hXYURadmJTZzllMjhFb2tTZVZXWE1paDd5MmtNNF9kbEtZS0hBaEZHb3hYMUxjU1dpN3BvNTZCa3hKbEtwdHJ0eTc4M3g0NDh4aFE2dDkwaU9QLXlQNWduVUxvbEZiRjdZUVFYTmNnTEtFLUJZWDM1Rm90aTdMeUxIc2poSWY3WGh0cHZmRWFoQmpJemd3el9uOEMwZUYtRVNlYzYyV1BrbmxxMFNWbGFtcTFqRjcxYWlBclByeHdBWTNsMWpKNmFhdkNkRFJDWHQzRy1kV0s2a0x4Y2d3YkcwNnc?oc=5",
       "source": "yesmedia.com.tw",
       "date": "2026-07-14 16:09",
       "datetime": "2026-07-14T16:09:03+08:00"
-    },
-    {
-      "title": "挖掘全球AI產業贏家 復華00409A於 8／12 開募",
-      "url": "https://news.google.com/rss/articles/CBMiowNBVV95cUxPRnpzenlJTUlReWVKTmlYRzRJSGtLdHhzUVp4QTBOQWRNQnk5MUpMUmVKZWFnbEVHWTBGd1N2VzBZYUd1dXdnWldtMHF2SDh1YVEwbEdKTmJzSzRIb2N5NExXeDRDRXNHQnNHMEhXNml3cktKSnlUTUZhSWs1OG1WTGVqQ1E4QzJlQ2VIZWwyazRQUUdvaWpIRzFTWWRheGN1d0lYdi1Ndm1vWnNJSndtcU9YMzN1cmFSeGdETTlRT2ZWcE0zSGs4VFlidVZaMTZrUmV3UTA4ZmttQVhSWXNqc2hNZmFEblJPdVliMk8xZlh5RnByOWJ2MW1SZHg3M1NZWXQtcVZCR2FqQ1JxQlYzUkxHQktyYU8ySkkzSEFqNzRnSWx0b2stdmxTYUFaVXlLTXFkWUVrdUdETEVFQnFhbmUzclZCcVVzaW5HTHFaZmN2LXAyWFNSNnZ2REhNOFh2Y2NOMi1FSEMtVG4zczZlcktDU2gyanN4TXR5d1A2Smh0M0Fjd0tIcWEtLTkwWVJQME1Ub3BUc21wRjZWVDE3S3o4dw?oc=5",
-      "source": "MSN",
-      "date": "2026-07-14 05:36",
-      "datetime": "2026-07-14T05:36:08+08:00"
     },
     {
       "title": "00409A挖掘全球AI產業贏家復華全球未來50主動式ETF 8／12開募- 專題周報- 工商時報",
@@ -46,32 +39,11 @@
       "datetime": "2026-07-13T18:57:00+08:00"
     },
     {
-      "title": "挖掘全球AI產業贏家　復華00409A於 8／12開募",
-      "url": "https://news.google.com/rss/articles/CBMibkFVX3lxTE9CbXlrZ05qODFKZkVNRHIxbm9LMnhOczYwSDFTWGlvMGRvS1BFelJRd3Q4MF9vTWxCcXpzRmoxN3IwclhpNHpVYWNaR3N4Nl96NzdTbi1WYWExNXRlTkFrSDFWSUhlMDc2QlFKTW5B0gFuQVVfeXFMT0JteWtnTmo4MUpmRU1EcjFub0syeE5zNjBIMVNYaW8wZG9LUEV6UlF3dDgwX29NbEJxenNGajE3cjByWGk0elVhY1pHc3g2X3o3N1NuLVZhYTE1dGVOQWtIMVZJSGUwNzZCUUpNbkE?oc=5",
-      "source": "ETtoday財經雲",
-      "date": "2026-07-13 12:29",
-      "datetime": "2026-07-13T12:29:00+08:00"
-    },
-    {
-      "title": "基金：挖掘全球AI產業贏家，主動復華全球未來50(00409A)8/12開募",
-      "url": "https://news.google.com/rss/articles/CBMiVEFVX3lxTFBDd004aDVZUHJNQlJNWmFiVl9VcXFPc2o2ZkluLTBUYVc2WG04MVhfU3BONUZWR3RNcWpqTVlZWWJtT09yWko5WnVFcXg1VTMwaVpabg?oc=5",
-      "source": "東森電視",
-      "date": "2026-07-13 12:06",
-      "datetime": "2026-07-13T12:06:00+08:00"
-    },
-    {
-      "title": "才剛打敗瑤池金母00981A！復華投信再推主動式ETF 8/12開募",
-      "url": "https://news.google.com/rss/articles/CBMi3AJBVV95cUxPeGh6OWs5WTNvX3JscHRIWkRCRVNDWm54SWY4dDZ2LUJCbUNha0s1WmltWEhMNDV6LThna3FIMEtPVDdOLVJuX0RJWnJsRExEeWRWbFdGeW5xdTZpRlRNYUJmTHpXM3dmanNhU1hkWnlvcWNNVUZlNUdJek52UlJySUk1WHRfM1JvLUZlZFZxTkU1dW9pVVZXdmM3NFJtNHltaTZkajFpcE9zVjRrbmpQZFRUbElKOFVCcGVhSjhkR3NFbVNEcERXcHNYbF9mRHZHak9kbXFNWFRxbTJ0N0IzUlBNWnpFQmtiV3NCa1QzdmtWdl9GVk9semJsVU9DVHYyUjRERDZGWFhfOWt0QkE2aXgyVkQwWXB1S3hBc0wzSVNEOVRYbGNsaXRhdzliUzd5UlZaZjEyRl9mdFpzSXlPVlF3bG5QUlN4eHZPWk01QkNCVnZ0MTd5Zlh6LWk?oc=5",
-      "source": "Yahoo股市",
-      "date": "2026-07-13 11:03",
-      "datetime": "2026-07-13T11:03:59+08:00"
-    },
-    {
-      "title": "挖掘全球 AI 產業贏家 主動復華全球50 00409A 8月12日開募",
-      "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE9OT0c3b1JGTXQ1M0J4YzFnRC1xbDdyWU9KWFpGcEk4Y3VmbVQ2UXFuWUtLbUZOTW5ETENocXVHOThXM0FBZnRzZFBoWUFuMkFmeURjUk5HdFTSAVhBVV95cUxPTk9HN29SRk10NTNCeGMxZ0QtcWw3cllPSlhaRnBJOGN1Zm1UNlFxbllLS21GTk1uRExDaHF1Rzk4VzNBQWZ0c2RQaFlBbjJBZnlEY1JOR3RU?oc=5",
-      "source": "UDN",
-      "date": "2026-07-13 10:56",
-      "datetime": "2026-07-13T10:56:43+08:00"
+      "title": "挖掘全球AI產業贏家 主動復華全球50 00409A 8/12開募 | 財富管理 | 商情",
+      "url": "https://news.google.com/rss/articles/CBMieEFVX3lxTE42OEI1d1BFSkdBdXdrZ1BuRWlMS0x1ZlhWb3pTSF9icFRJekk4cXdneTNVbEhJQko2WUw3TjNpOFpLaWQ4OVltY1hQbm1CNW1XMXktNW96NTdJSnFlWWNVMkdON0tudERHV1l6a0pWTmZBdDJhMk93Xw?oc=5",
+      "source": "經濟日報",
+      "date": "2026-07-13 17:00",
+      "datetime": "2026-07-13T17:00:00+08:00"
     }
   ],
   "funds": [
@@ -113,6 +85,13 @@
       ],
       "items": [
         {
+          "title": "規模與績效的對決：安聯台灣科技、復華物聯網與華人世紀該怎麼選？",
+          "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE8wVkpFbkJJRWxGU3JuUk9Kejk0d2JxTllWbFp6ZnZsQTlRZk9MRDZKY3ktTDZjQkdrLWtkYXgwZko0RFd3Q3VJRHRDaXhWbC0wZElHUG9oT3k?oc=5",
+          "source": "CMoney",
+          "date": "2026-07-15 16:32",
+          "datetime": "2026-07-15T16:32:13+08:00"
+        },
+        {
           "title": "復華投信 00409A 啟動多重經理人機制！引領「世界盃」級投資革命，全面開啟全球無限商機！",
           "url": "https://news.google.com/rss/articles/CBMiygJBVV95cUxQV0ZmTllFZC1QOGJNTnluQmhoX2hNTnMyZXpWbDA0ckRDOWEwMmJ2QkQxY0VGbjJETFAzMHl0aGpaaEwyN2NoX0VmNEFXbEd4a2pveUxZS2I4OXNtODd3SExFWXh3Rlo3R3hjaEhxc0hXYURadmJTZzllMjhFb2tTZVZXWE1paDd5MmtNNF9kbEtZS0hBaEZHb3hYMUxjU1dpN3BvNTZCa3hKbEtwdHJ0eTc4M3g0NDh4aFE2dDkwaU9QLXlQNWduVUxvbEZiRjdZUVFYTmNnTEtFLUJZWDM1Rm90aTdMeUxIc2poSWY3WGh0cHZmRWFoQmpJemd3el9uOEMwZUYtRVNlYzYyV1BrbmxxMFNWbGFtcTFqRjcxYWlBclByeHdBWTNsMWpKNmFhdkNkRFJDWHQzRy1kV0s2a0x4Y2d3YkcwNnc?oc=5",
           "source": "yesmedia.com.tw",
@@ -131,18 +110,18 @@
       ],
       "items": [
         {
+          "title": "規模與績效的對決：安聯台灣科技、復華物聯網與華人世紀該怎麼選？",
+          "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE8wVkpFbkJJRWxGU3JuUk9Kejk0d2JxTllWbFp6ZnZsQTlRZk9MRDZKY3ktTDZjQkdrLWtkYXgwZko0RFd3Q3VJRHRDaXhWbC0wZElHUG9oT3k?oc=5",
+          "source": "CMoney",
+          "date": "2026-07-15 16:32",
+          "datetime": "2026-07-15T16:32:13+08:00"
+        },
+        {
           "title": "復華投信 00409A 啟動多重經理人機制！引領「世界盃」級投資革命，全面開啟全球無限商機！",
           "url": "https://news.google.com/rss/articles/CBMiygJBVV95cUxQV0ZmTllFZC1QOGJNTnluQmhoX2hNTnMyZXpWbDA0ckRDOWEwMmJ2QkQxY0VGbjJETFAzMHl0aGpaaEwyN2NoX0VmNEFXbEd4a2pveUxZS2I4OXNtODd3SExFWXh3Rlo3R3hjaEhxc0hXYURadmJTZzllMjhFb2tTZVZXWE1paDd5MmtNNF9kbEtZS0hBaEZHb3hYMUxjU1dpN3BvNTZCa3hKbEtwdHJ0eTc4M3g0NDh4aFE2dDkwaU9QLXlQNWduVUxvbEZiRjdZUVFYTmNnTEtFLUJZWDM1Rm90aTdMeUxIc2poSWY3WGh0cHZmRWFoQmpJemd3el9uOEMwZUYtRVNlYzYyV1BrbmxxMFNWbGFtcTFqRjcxYWlBclByeHdBWTNsMWpKNmFhdkNkRFJDWHQzRy1kV0s2a0x4Y2d3YkcwNnc?oc=5",
           "source": "yesmedia.com.tw",
           "date": "2026-07-14 16:09",
           "datetime": "2026-07-14T16:09:03+08:00"
-        },
-        {
-          "title": "【基金醫生觀點】踢出「世界波」，復華全球布局再升級！首創多重經理人機制操盤00409A",
-          "url": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE1UUHZzckY1aklqZGtFQWJPYjREem9lclMyVDdLMzl1cG9xQmZaM2UtZXNtY2VHajlEc3QyNEdqeE5FRWo0YlZIWGUwRQ?oc=5",
-          "source": "樂聯網",
-          "date": "2026-07-13 09:35",
-          "datetime": "2026-07-13T09:35:31+08:00"
         }
       ]
     },
@@ -171,13 +150,6 @@
           "source": "yesmedia.com.tw",
           "date": "2026-07-14 16:09",
           "datetime": "2026-07-14T16:09:03+08:00"
-        },
-        {
-          "title": "【基金醫生觀點】踢出「世界波」，復華全球布局再升級！首創多重經理人機制操盤00409A",
-          "url": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE1UUHZzckY1aklqZGtFQWJPYjREem9lclMyVDdLMzl1cG9xQmZaM2UtZXNtY2VHajlEc3QyNEdqeE5FRWo0YlZIWGUwRQ?oc=5",
-          "source": "樂聯網",
-          "date": "2026-07-13 09:35",
-          "datetime": "2026-07-13T09:35:31+08:00"
         }
       ]
     },
@@ -244,15 +216,7 @@
       "short_names": [
         "亞太平衡"
       ],
-      "items": [
-        {
-          "title": "復華亞太平衡基金 - 歷史走勢圖與與近 30 日淨值 - 股市爆料同學會",
-          "url": "https://news.google.com/rss/articles/CBMickFVX3lxTE5nekFfZVQ3MTNUNGRBT0JvUFNDZ05WMFIyb3gwUUtOYWxobFJVRzkxWUJGZGxUaGMxaVZ1dlpieUtRWGhaY0lpYVJqaWVUelNBWnRNY2lvaUdYX1AtNGw2VlRGdVFPY1V5ZWZyQUtzdlNPQQ?oc=5",
-          "source": "CMoney",
-          "date": "2026-07-12 14:23",
-          "datetime": "2026-07-12T14:23:01+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華復華基金",
@@ -282,7 +246,15 @@
       "short_names": [
         "數位經濟"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華數位經濟基金 的買賣訊號 | 鉅亨網 - 基金老司機",
+          "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxQbUQ1bUduWXRQSFI2Z0VjeG5zX3ctUmxfN1ZRS2FzNE1fM09nenc4RklzRFZ5WU9Zb0RneEExNDlRNVM1UHdUelNfWW0zSE4zcmF1eGd5XzQ3WFp1S2c0YzVFX09XRjh5X0gyQ19saHpyWVNLeHRfb3B3LTJsZmxPRjJ3Yk9YX0wyREVjay1KRFBVeWR2VkFUTF9XdEJ3NGZ6SjB0UlFKLXVXTkpOWThGSl8xTk9RZWNDaHJnVzdiMDA4Zw?oc=5",
+          "source": "鉅亨網",
+          "date": "2026-07-13 15:00",
+          "datetime": "2026-07-13T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華中小精選基金",
@@ -384,20 +356,12 @@
       "short_names": [
         "台灣智能"
       ],
-      "items": [
-        {
-          "title": "復華台灣科技優息-ETF報酬走勢",
-          "url": "https://news.google.com/rss/articles/CBMifEFVX3lxTFBfY3ltVkJndWVYUm1vZzI3amV5M1Q5dFJZTk9VTFZid3UwWExUdHVTUF9lTE9ERE1FSlVvdHk2Nl8zcTIyNUFmMDktbVExM1N5cnJpZ192ZkwxeFdySzU2THJXSlVzWXBlR3V0MFdRMktocEphcDNxWWE3MWI?oc=5",
-          "source": "MoneyDJ",
-          "date": "2026-07-09 15:00",
-          "datetime": "2026-07-09T15:00:00+08:00"
-        }
-      ]
+      "items": []
     }
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太神龍科技、全球平衡、亞太平衡 等 8 檔（詳下方各基金新聞）",
-    "品牌焦點：〈復華投信00409A 啟動多重經理人機制！引領「世界盃」級投資革命，全面開啟全球無限商機！〉彙整頁面（墨新聞-MORE News）"
+    "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太神龍科技、全球平衡、數位經濟 等 7 檔（詳下方各基金新聞）",
+    "品牌焦點：復華投信繼00991A 再推出復華全球未來50主動式ETF（UDN）"
   ]
 }
