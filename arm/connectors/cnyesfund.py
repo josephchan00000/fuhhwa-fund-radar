@@ -22,22 +22,23 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote
 
-from ..http import get_json
+from ..http import get_bytes
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 MAP_PATH = ROOT / "data" / "cnyes_fund_map.json"
 
-# 候選端點（2026-07-15 CI 實測 v2/search/funds 404 → 改探測電池：逐一試、
-# 用第一個回傳可解析 items 者；勝出者與各候選狀態都印進 CI 日誌供收斂）
+# 候選端點探測電池（CI 實測收斂中）：
+#   第 1 輪：fund.api.cnyes.com/fund/api/v2/search/funds → 404
+#   第 2 輪：fund.api.cnyes.com 全路徑 404、fund.cnyes.com/api 404；
+#            **gfe-fund.cnyes.com 有回 200＋UTF-8 BOM 內容**（JSON 解碼炸掉）
+#   第 3 輪（本版）：改 utf-8-sig 解碼、gfe-fund 排最前；解析失敗印 body 開頭
 URL_CANDIDATES = (
-    "https://fund.api.cnyes.com/fund/api/v1/search/funds?keyword={kw}&page={page}",
-    "https://fund.api.cnyes.com/fund/api/v2/funds/search?keyword={kw}&page={page}",
-    "https://fund.api.cnyes.com/fund/api/v1/funds?keyword={kw}&page={page}",
-    "https://fund.api.cnyes.com/fund/api/v2/funds?keyword={kw}&page={page}",
     "https://gfe-fund.cnyes.com/api/v2/search/funds?keyword={kw}&page={page}",
     "https://gfe-fund.cnyes.com/fund/api/v2/search/funds?keyword={kw}&page={page}",
+    "https://gfe-fund.cnyes.com/api/v1/search/funds?keyword={kw}&page={page}",
+    "https://gfe-fund.cnyes.com/api/v2/funds?keyword={kw}&page={page}",
+    "https://fund.api.cnyes.com/fund/api/v1/search/funds?keyword={kw}&page={page}",
     "https://fund.cnyes.com/api/v2/search/funds?keyword={kw}&page={page}",
-    "https://fund.api.cnyes.com/fund/api/v2/search/funds?keyword={kw}&page={page}",
 )
 # cnyes API 可能擋非瀏覽器 UA／缺 Referer 的請求
 _HEADERS = {
@@ -124,13 +125,25 @@ def norm_name(s: str | None) -> str:
     return s.replace("（", "(").replace("）", ")")
 
 
+def _get_json(url: str):
+    """帶瀏覽器標頭抓 JSON；用 utf-8-sig 解碼（gfe-fund 回應帶 UTF-8 BOM，
+    2026-07-15 CI 實測）。解析失敗把 body 開頭丟回例外訊息供日誌診斷。"""
+    raw = get_bytes(url, retries=1, cache_ttl=3600, headers=_HEADERS)
+    text = raw.decode("utf-8-sig", errors="replace")
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        head = re.sub(r"\s+", " ", text[:160])
+        raise ValueError(f"非 JSON（{e.msg}）；body 開頭＝{head!r}") from e
+
+
 def _probe(keyword: str) -> tuple[str, list[dict]] | None:
     """逐一試候選端點（第 1 頁），回 (勝出模板, items)；全滅回 None。
     每個候選的失敗原因都印進日誌——CI 一輪即可收斂正確端點。"""
     for tmpl in URL_CANDIDATES:
         url = tmpl.format(kw=quote(keyword), page=1)
         try:
-            payload = get_json(url, retries=1, cache_ttl=3600, headers=_HEADERS)
+            payload = _get_json(url)
         except Exception as e:
             print(f"  [cnyes 探測] ✗ {url.split('?')[0]}（{e}）")
             continue
@@ -151,8 +164,7 @@ def search_all(keyword: str = "復華", max_pages: int = 10) -> list[dict]:
     tmpl, out = hit
     for page in range(2, max_pages + 1):
         try:
-            payload = get_json(tmpl.format(kw=quote(keyword), page=page),
-                               retries=1, cache_ttl=3600, headers=_HEADERS)
+            payload = _get_json(tmpl.format(kw=quote(keyword), page=page))
         except Exception:
             break
         items = _items(payload)
