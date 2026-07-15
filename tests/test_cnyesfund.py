@@ -94,15 +94,21 @@ def test_apply_overlay_no_match_no_write(tmp_path, monkeypatch):
     assert "returns_daily" not in doc and not (tmp_path / "01.json").exists()
 
 
-def test_apply_overlay_pinned_id_wins(tmp_path, monkeypatch):
+def test_apply_overlay_pinned_id_fetches_detail_directly(tmp_path, monkeypatch):
+    """釘選 cnyesId → 不經搜尋頁、直取詳情頁（搜尋頁 SSR 不吃 query，比對必零命中）。"""
     monkeypatch.setattr(cnyesfund, "MAP_PATH", tmp_path / "map.json")
-    monkeypatch.setattr(cnyesfund, "fetch_detail", lambda *a, **kw: {})
     (tmp_path / "map.json").write_text(
         json.dumps({"01": {"cnyesId": "A2C011"}}), encoding="utf-8")
+    monkeypatch.setattr(cnyesfund, "fetch_detail",
+                        lambda cid, **kw: {"nav": 126.75, "navDate": "2026-07-14",
+                                           "returnYTD": 95.3, "return1Month": -5.21})
     monkeypatch.setattr(cnyesfund, "search_all",
-                        lambda *a, **kw: [_item(displayNameLocal="名稱對不上但ID釘住")])
+                        lambda *a, **kw: (_ for _ in ()).throw(AssertionError("不應觸發搜尋頁")))
     doc = _doc()
     assert cnyesfund.apply_overlay([doc], tmp_path) == 1
+    assert doc["returns_daily"] == {"1m": -5.21, "ytd": 95.3}
+    fmap = json.loads((tmp_path / "map.json").read_text(encoding="utf-8"))
+    assert fmap["01"]["cnyesId"] == "A2C011"      # 釘選不被覆寫成 None
 
 
 # ── 總覽逐欄回退鏈 ────────────────────────────────────────────
