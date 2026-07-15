@@ -576,7 +576,8 @@ def _overview_view(rows: list[dict], leaders: set, pending: list[dict]) -> str:
                     if v is None:
                         cell = '<span class="na">—</span>'
                     elif is_pct:
-                        cell = _pct_span(v, 2 if k == "chg" else 1)
+                        # 短期欄（日變動/1週/1月）到小數第二位；長期欄（動輒數百%）一位即可
+                        cell = _pct_span(v, 2 if k in ("chg", "w1", "m1") else 1)
                     else:
                         cell = f"{v:,.1f}" if k in ("size_e8", "conc") else _esc(v)
                         if k == "conc":
@@ -1283,7 +1284,9 @@ def render() -> str:
     sec_over = (f'<div class="section" id="overview"><div class="st">📊 基金總覽 '
                 f'{_fresh_chip("NAV 日", nav_date, 6)}{_fresh_chip("持股基準", hold_asof, 45)}'
                 f'{_fresh_chip("快照抓取", fetched_at, 3)} '
-                f'<span class="stsub">粉紅底＝同組同欄前二名・點欄位標題可排序</span></div>'
+                f'<span class="stsub">粉紅底＝同組同欄前二名・點欄位標題可排序・'
+                f'1週/1月＝最新NAV日往回滾動7/30日曆日（非月初起算）；'
+                f'1月欄待NAV史料滿30天自動顯示（序列自2026/07/01累積）</span></div>'
                 f'{_mkt(o_tw, o_gl)}</div>')
 
     # ⑤ 基金詳情
