@@ -126,6 +126,53 @@ def norm_name(s: str | None) -> str:
 _NEXT_RE = re.compile(r'<script[^>]*id="__NEXT_DATA__"[^>]*>(.*?)</script>', re.S)
 _API_RE = re.compile(r"https://[a-z0-9.-]+\.cnyes\.com/[^\"'\\\s<>]*api[^\"'\\\s<>]*",
                      re.I)
+DETAIL_PAGE = "https://fund.cnyes.com/detail/x/{cid}/"   # name 段不驗證（實測 undefined 也通）
+
+# 報酬鍵別名（lowercase 完整鍵名 → 我方期別；詳情頁實際鍵名由 CI 日誌收斂補充）
+_RET_ALIASES = {
+    "return1w": "1w", "returnweek": "1w", "return7d": "1w",
+    "return1m": "1m", "return3m": "3m", "return6m": "6m",
+    "returnytd": "ytd", "returny2d": "ytd", "returnthisyear": "ytd",
+    "return1y": "1y", "return2y": "2y", "return3y": "3y",
+}
+
+
+def _returns_from(item: dict) -> dict:
+    out: dict[str, float] = {}
+    for k, v in item.items():
+        tag = _RET_ALIASES.get(str(k).lower())
+        n = _num(v)
+        if tag and n is not None and tag not in out:
+            out[tag] = n
+    return out
+
+
+def _objects_from_html(html: str) -> list[dict]:
+    """從任意 HTML/JS 內嵌狀態抽出含 "cnyesId" 的平衡 JSON 物件（不猜嵌入格式）。
+    對每個 "cnyesId" 出現點往回逐層試 '{' 起點 raw_decode；原文與反跳脫版各試一次。
+    2026-07-15 第 4 輪 CI：搜尋頁無 __NEXT_DATA__ 但 HTML 含 cnyesId×23 → 走此路。"""
+    dec = json.JSONDecoder()
+    for text in (html, html.replace('\\"', '"')):
+        out, seen = [], set()
+        for m in re.finditer(r'"cnyesId"', text):
+            pos = m.start()
+            for _ in range(6):                       # 由內往外最多試 6 層 '{'
+                pos = text.rfind("{", 0, pos)
+                if pos < 0:
+                    break
+                try:
+                    obj, _end = dec.raw_decode(text[pos:pos + 60000])
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(obj, dict) and "cnyesId" in obj:
+                    key = (str(obj.get("cnyesId")), str(_pick(obj, _NAME_KEYS)))
+                    if key not in seen:
+                        seen.add(key)
+                        out.append(obj)
+                    break
+        if out:
+            return out
+    return []
 
 
 def _walk_items(node, out: list[dict]) -> None:
@@ -157,11 +204,16 @@ def search_all(keyword: str = "復華", max_pages: int = 0) -> list[dict]:
         apis = sorted(set(_API_RE.findall(html)))[:8]
         m = _NEXT_RE.search(html)
         if not m:
+            found = _objects_from_html(html)     # 第 5 輪：不猜嵌入格式、直接掃平衡物件
+            if found:
+                print(f"  [cnyes 頁面] ✓ {url} 平衡物件掃描挖到 {len(found)} 筆；"
+                      f"首筆 keys={sorted(map(str, found[0].keys()))[:24]}")
+                return found
             flight = "self.__next_f" in html
             hits = {k: html.count(k) for k in
                     ("cnyesId", "displayNameLocal", "returnYTD", "nav")}
-            print(f"  [cnyes 頁面] △ {url} 無 __NEXT_DATA__（App-Router flight={flight}；"
-                  f"資料鍵出現次數={hits}；API 線索={apis}）")
+            print(f"  [cnyes 頁面] △ {url} 無 __NEXT_DATA__、物件掃描零筆"
+                  f"（flight={flight}；資料鍵出現次數={hits}；API 線索={apis}）")
             continue
         try:
             data = json.loads(m.group(1))
@@ -179,9 +231,58 @@ def search_all(keyword: str = "復華", max_pages: int = 0) -> list[dict]:
     return []
 
 
+def fetch_detail(cid, debug: bool = False) -> dict:
+    """抓基金詳情頁、抽含 cnyesId／return 鍵的物件合併成 profile（報酬在詳情頁，
+    搜尋頁只有名稱/NAV——第 4 輪 CI 實測 returnYTD 於搜尋頁出現 0 次）。"""
+    url = DETAIL_PAGE.format(cid=quote(str(cid)))
+    try:
+        html = get_bytes(url, retries=1, cache_ttl=3600,
+                         headers=_HEADERS).decode("utf-8-sig", errors="replace")
+    except Exception as e:
+        if debug:
+            print(f"  [cnyes 詳情] ✗ {url}（{e}）")
+        return {}
+    objs = _objects_from_html(html)
+    # 也收「無 cnyesId 但含 return 鍵」的物件（績效表可能獨立存放）
+    dec = json.JSONDecoder()
+    for m in re.finditer(r'"return[0-9A-Za-z]{1,12}"', html):
+        pos = m.start()
+        for _ in range(4):
+            pos = html.rfind("{", 0, pos)
+            if pos < 0:
+                break
+            try:
+                obj, _end = dec.raw_decode(html[pos:pos + 60000])
+            except json.JSONDecodeError:
+                continue
+            if isinstance(obj, dict):
+                objs.append(obj)
+            break
+    profile: dict = {}
+    objs.sort(key=lambda o: -sum(1 for k in o if str(k).lower().startswith("return")))
+    for o in objs:
+        for k, v in o.items():
+            if v is not None:
+                profile.setdefault(k, v)
+    if debug:
+        retkeys = sorted({k for k in profile if str(k).lower().startswith("return")})
+        navkeys = [k for k in profile if str(k).lower() in
+                   ("nav", "navdate", "navprice", "pricedate", "lastupdate", "change",
+                    "changepercent")]
+        print(f"  [cnyes 詳情] {url} 物件 {len(objs)} 筆；return 鍵={retkeys[:20]}；"
+              f"nav 鍵={navkeys}")
+    return profile
+
+
 def overlay_from_item(item: dict) -> dict:
-    """單筆搜尋結果 → 覆蓋層欄位（值可能為 None，呼叫端逐欄判斷）。"""
-    rets = {k: _num(_pick(item, cands)) for k, cands in _RET_KEYS.items()}
+    """單筆基金物件 → 覆蓋層欄位（值可能為 None，呼叫端逐欄判斷）。"""
+    rets = dict(_returns_from(item))
+    for k, cands in _RET_KEYS.items():
+        if k not in rets:
+            v = _num(_pick(item, cands))
+            if v is not None:
+                rets[k] = v
+    rets = {k: v for k, v in rets.items() if v is not None}
     return {
         "cnyes_id": _pick(item, _ID_KEYS),
         "cnyes_name": _pick(item, _NAME_KEYS),
@@ -234,6 +335,10 @@ def apply_overlay(docs: list[dict], out_dir: Path) -> int:
                     break
         if item is None:
             continue
+        cid = _pick(item, _ID_KEYS)
+        if cid is not None:                  # 報酬在詳情頁（搜尋頁只有名稱/NAV）
+            profile = fetch_detail(cid, debug=(n == 0))
+            item = {**item, **{k: v for k, v in profile.items() if v is not None}}
         ov = overlay_from_item(item)
         if not ov["returns_daily"] and ov["nav"] is None:
             continue
