@@ -798,7 +798,7 @@ _CSS = """
 --accd:#2b5fb0;--ink2:#5c5343;--inset:#efe6cf;--hl:#4a2f14;--hlbg:#f0e2bd;--gold:#a86f10}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:64px}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif}
 a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5px;color:var(--accd)}
 .wrap{max-width:1240px;margin:0 auto;padding:14px 18px 60px}
 .section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:16px 0;box-shadow:0 1px 3px rgba(90,70,30,.06)}
@@ -863,11 +863,19 @@ a.chip:hover{border-color:var(--acc);background:rgba(47,111,208,.14)}
 .ngc{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin:10px 0}
 .ngt{font-weight:700;font-size:15.5px;color:var(--ink);line-height:1.5}
 .ngm{color:var(--mut);font-size:12.5px;margin-top:2px}
-.ngs{font-size:14px;color:var(--ink2);margin-top:8px;line-height:1.75}
+.ngs{font-size:15px;color:var(--ink);margin:6px 0 15px;line-height:1.85}
 .ngpts{margin:8px 0 0;padding-left:0;list-style:none}
 .ngpts li{position:relative;margin:5px 0;padding-left:16px;font-size:13.5px;color:var(--ink2);line-height:1.7}
 .ngpts li:before{content:"";position:absolute;left:3px;top:11px;width:5px;height:5px;border-radius:50%;background:var(--acc)}
 .ngpts li b{color:var(--accd);background:none;padding:0}
+/* 新聞卡展開內文：影響分析每維度自成一段、標籤成藍色標記，好一段一段掃讀 */
+.nibody .ngs{padding:2px 0 2px 13px;border-left:3px solid rgba(47,111,208,.4);font-weight:500}
+.nibody .ngpts{margin-top:14px}
+.nibody .ngpts li{margin:12px 0;padding:3px 0 3px 15px;font-size:14.5px;line-height:1.85;
+  color:var(--ink);border-left:2px solid rgba(47,111,208,.22)}
+.nibody .ngpts li:before{display:none}
+.nibody .ngpts li b{display:inline-block;color:var(--accd);font-weight:700;
+  letter-spacing:.02em;margin-right:3px}
 .nglinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .nglink{display:inline-block;background:rgba(47,111,208,.08);border:1px solid rgba(47,111,208,.4);border-radius:8px;padding:4px 12px;font-size:13.5px;color:var(--accd);text-decoration:none}
 .nglink:hover{border-color:var(--acc);color:var(--acc)}
@@ -963,11 +971,11 @@ a.tk:hover{color:var(--acc)}
 .ndoc h2{font-size:14.5px;color:var(--mut);font-weight:600;letter-spacing:.02em;margin:30px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
 .ndoc h3{font-size:16.5px;color:var(--ink);font-weight:700;line-height:1.55;margin:26px 0 10px;padding:12px 16px;background:linear-gradient(90deg,rgba(47,111,208,.12),rgba(47,111,208,.02));border-left:3px solid var(--acc);border-radius:0 10px 10px 0}
 .ndoc h4{font-size:14.5px;color:var(--accd);margin:18px 0 6px}
-.ndoc p{margin:9px 0}
-.ndoc ul,.ndoc ol{margin:10px 0;padding-left:0;list-style:none;counter-reset:n}
-.ndoc ul li{position:relative;margin:8px 0;padding-left:20px}
+.ndoc p{margin:12px 0}
+.ndoc ul,.ndoc ol{margin:12px 0;padding-left:0;list-style:none;counter-reset:n}
+.ndoc ul li{position:relative;margin:10px 0;padding-left:20px}
 .ndoc ul li:before{content:"";position:absolute;left:4px;top:12px;width:5px;height:5px;border-radius:50%;background:var(--acc)}
-.ndoc ol li{position:relative;margin:11px 0;padding-left:36px;counter-increment:n}
+.ndoc ol li{position:relative;margin:14px 0;padding-left:36px;counter-increment:n}
 .ndoc ol li:before{content:counter(n);position:absolute;left:0;top:2px;width:23px;height:23px;border-radius:50%;background:var(--acc);color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:23px}
 .ndoc b{color:var(--hl);background:var(--hlbg);font-weight:700;padding:0 4px;border-radius:4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 .ndoc h2 b,.ndoc h3 b,.ndoc h4 b{color:inherit;background:none;padding:0}
