@@ -67,3 +67,18 @@ jobs:
           git add dashboard/index.html 2>/dev/null || true         # 入庫的儀表板產物 → Vercel Git 部署會自動更新
           git commit -m "chore: 每日持股介紹／新聞更新 $(date +%F)" || echo "無變更"
           git push || echo "push 略過（無遠端寫入權或無變更）"
+
+      - name: 觸發 Vercel 部署（Deploy Hook — 確保線上吃到 CI 這筆真實資料版，不靠 Vercel 自動偵測）
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          # 為什麼要這步：一天有兩筆 commit——①PR 合併版（新聞新、但 NAV/持股/ETF 是舊快照，
+          # 因 Claude 容器被 proxy 擋、抓不到真實資料）②本 CI 版（抓到真實 NAV）。Vercel 自動偵測
+          # 曾發生「卡在 Initializing」或「部到合併版而非 CI 版」→ 線上新聞會動但淨值不動。
+          # 由 CI 在 push 完後主動打 Deploy Hook，強制部署 main 最新（＝本 CI 版），根治此問題。
+          if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
+            echo "（未設 VERCEL_DEPLOY_HOOK secret，跳過主動部署——請到 repo Settings→Secrets and variables→Actions 新增，值為 Vercel 專案 Settings→Git→Deploy Hooks 建立的 main 分支 hook URL）"
+            exit 0
+          fi
+          echo "以 Deploy Hook 觸發 Vercel production 部署（main 最新 commit）…"
+          curl -sS -X POST "$VERCEL_DEPLOY_HOOK" -w "\nHTTP %{http_code}\n" || echo "deploy hook 呼叫失敗（不影響已入庫的 commit）"
