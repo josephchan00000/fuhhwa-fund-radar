@@ -35,10 +35,14 @@
    `TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py`，確認「🕒 資料更新時間」區塊**新聞欄位**已更新至今日。
    （NAV／持股／ETF／基金新聞欄位會沿用既有快照顯示舊日期——**正常**，正式區稍後會用新資料重產覆蓋。）
 5. **測試**：`python3 -m pytest -q` 全綠（此容器預設無 pytest，先 `pip install -q pytest`）。
-6. **commit＋push** 到本次會話指定分支：只帶「**新聞報告＋儀表板**」（`data/*` 被擋未更新、不會有 diff，不必也不要硬塞）。訊息用 `chore: 每日新聞更新 {日期}`。
-7. **merge 進 main（使用者已預先授權，不必再問）**：開 PR 後**立即 merge**。merge 前先把 main 併進分支解衝突（`dashboard/index.html` 衝突一律重跑 `gen_fund_dashboard.py` 重產解決）。
-8. **觸發正式區抓真實資料＋部署**：手動觸發 `daily.yml` 的 `workflow_dispatch`（`ref=main`，用 `mcp__github__actions_run_trigger`）。
-   CI 會抓**真實** NAV／持股／ETF／基金新聞＋重建儀表板＋以擁有者身分 commit → Vercel 部署。**這步才會補齊此容器抓不到的資料**（bot 身分的 merge commit 可能不觸發 Vercel，故此步同時保險）。
+6. **commit＋push** 到本次會話指定分支：只帶「**新聞報告＋儀表板**」（`data/*` 被擋未更新、不會有 diff，不必也不要硬塞）。訊息用 `chore: 每日新聞更新 {日期}`。**不必開 PR、不必 merge 進 main**——見步驟 7，改由 CI 一次 commit。
+7. **觸發正式區「單一 commit」抓真實資料＋建表＋部署（2026-07-17 改為此架構，取代舊的 PR-merge）**：
+   手動觸發 `daily.yml` 的 `workflow_dispatch`（`ref=main`），**務必帶 input `news_ref=<本次分支名>`**——
+   用 `mcp__github__actions_run_trigger` 的 `method=run_workflow, workflow_id=daily.yml, ref=main, inputs={"news_ref":"claude/all-update-xxxx"}`。
+   CI 會：①把該分支今日 `reports/*.md` 併入 → ②抓**真實** NAV／持股／ETF／基金新聞 → ③重建儀表板 →
+   ④以擁有者身分**一次 commit 進 main（新聞＋真實資料＋建表同一筆）** → ⑤打 Deploy Hook 部署。
+   **這根治了舊架構「一天兩筆 commit（合併版舊資料＋CI 版真資料）、Vercel 常部到舊版→新聞會動淨值不動」的坑**：
+   現在 main 每天只有**一筆權威 commit**、不可能部到缺資料的中間版。（留空 `news_ref`＝排程 cron 的行為：只用 main 現有新聞重刷資料。）
 9. **驗證線上內容（「全部更新」的完成定義＝網頁真的更新）**：等 `daily.yml` 跑完（約數分鐘）後驗證。
    - **Vercel 線上網址**：`https://fuhhwa-fund-radar.vercel.app/#overview`。
    - ⚠ **從此容器「截圖」線上頁做不到**（2026-07 實測）：agent proxy 對 `fuhhwa-fund-radar.vercel.app:443`
@@ -50,10 +54,9 @@
      `data/funds/*.json` 的 `nav_date` 已推進（NAV 常見 T+1，今日只到昨日 NAV 屬正常）。並用
      `mcp__github__actions_*` 確認該次 `daily.yml` run `success`。
    - ⚠️ **「內容在 main」≠「線上已部署」——2026-07-17 踩過的大坑，務必分清**：
-     - **一天有兩筆 commit**：①**PR 合併版**（我在容器產的，新聞新、但 **NAV／持股／ETF 是舊快照**，因容器被 proxy 擋、抓不到真實資料）；②**CI 版 `chore: 每日持股介紹…`**（抓到**真實 NAV**才是完整版）。
-       **線上一定要吃 CI 版**；若 Vercel 部到合併版或卡在 Initializing，會出現「**新聞會動、淨值不動**」。
-     - **我（容器內 Claude）看不到 Vercel 線上頁**（proxy CONNECT 403），所以**不可只憑「main 檔已更新」就宣稱「線上已生效」**——那是我 07-17 誤報的錯。我的完成定義只到「**CI 版 commit 在 main＋該 `daily.yml` run success＋CI 版 `nav_date` 已推進**」；「**線上真的更新**」需使用者端或 Deploy Hook 確認。
-     - **根治**：`daily.yml` 末步已加「主動打 **Vercel Deploy Hook**」（`secrets.VERCEL_DEPLOY_HOOK`）——push 完 CI 版後由 CI 直接觸發 production 部署 main 最新，**不靠 Vercel 自動偵測**（自動偵測曾卡 Initializing／部到合併版）。**使用者需先建 hook**：Vercel 專案 Settings→Git→Deploy Hooks 建 `main` 分支 hook → 把 URL 存成 repo secret `VERCEL_DEPLOY_HOOK`。未設時該步自動跳過、不影響 commit。
+     - **單一 commit 架構（步驟 7）已根治「兩筆 commit」問題**：main 每天只有一筆權威 CI commit（新聞＋真實資料＋建表同一筆），不會再有「合併版舊資料」被誤部署。舊坑徵狀是「**新聞會動、淨值不動**」——若再出現，先查 main 最新 commit 的 `data/funds/*.json` `nav_date` 是否真的新（否則是 `news_ref` 沒帶到／CI 沒抓到資料），再查 Vercel 部署對到哪個 commit。
+     - **我（容器內 Claude）看不到 Vercel 線上頁**（proxy CONNECT 403），所以**不可只憑「main 檔已更新」就宣稱「線上已生效」**——那是我 07-17 誤報的錯。我的完成定義只到「**CI commit 在 main＋該 `daily.yml` run success＋該 commit `nav_date` 已推進**」；「**線上真的更新**」需使用者端或 Deploy Hook 確認。
+     - **主動部署**：`daily.yml` 末步已加「打 **Vercel Deploy Hook**」（`secrets.VERCEL_DEPLOY_HOOK`）——CI commit 完直接觸發 production 部署 main 最新，**不靠 Vercel 自動偵測**（自動偵測曾卡 Initializing／部到舊版）。**使用者需先建 hook**：Vercel 專案 Settings→Git→Deploy Hooks 建 `main` 分支 hook → URL 存成 repo secret `VERCEL_DEPLOY_HOOK`。未設時該步自動跳過、不影響 commit。
      - Vercel `vercel.json` 已設 `Cache-Control: no-store`（全站不快取）→ **線上看到舊的一律是「沒部署」而非快取**，別叫使用者清快取白忙。
    - 註：持股基準為月度值（顯示上月底）——不是資料沒更新。
 
