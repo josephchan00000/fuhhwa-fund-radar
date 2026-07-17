@@ -18,7 +18,12 @@ name: 復華基金追蹤版本 每日 routine
 on:
   schedule:
     - cron: "50 22 * * 0-5"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      news_ref:
+        description: '（選用）把此分支的今日新聞報告 reports/*.md 併入後再抓資料建表，一次 commit 進 main；留空＝只用 main 現有新聞重刷資料'
+        required: false
+        default: ''
 
 permissions:
   contents: write          # 把當日持股快照／新聞／儀表板 commit 回 repo
@@ -31,6 +36,15 @@ jobs:
       TZ: Asia/Taipei          # commit 訊息 $(date +%F) 與所有腳本時戳一律台北時間（防 UTC 跨日錯置）
     steps:
       - uses: actions/checkout@v4
+      - name: （選用）併入指定分支的今日新聞報告——讓「新聞＋真實資料」一次 commit
+        if: ${{ github.event.inputs.news_ref != '' }}
+        run: |
+          # Claude 容器只能產新聞（被 proxy 擋、抓不到市場資料）；由此步把該分支今日
+          # reports/*.md 併入，後續再抓真實 NAV／持股／ETF＋重建儀表板，最後一次 commit 進 main。
+          # 根治「一天兩筆 commit（合併版舊資料＋CI 版真資料）、線上部到舊版」的坑。
+          git fetch origin "${{ github.event.inputs.news_ref }}" --depth=1
+          git checkout FETCH_HEAD -- reports/usnews reports/twnews reports/macronews reports/macrocal
+          echo "已併入 ${{ github.event.inputs.news_ref }} 的今日新聞報告（reports/*.md）"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
