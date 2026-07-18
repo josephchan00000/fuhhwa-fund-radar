@@ -17,11 +17,22 @@ GROUP_LABEL = {"global_equity": "全球股票型", "global_balanced": "全球平
                "tw_fof": "台灣智能（組合型）"}
 
 
+_prof_cache: tuple[float, dict] | None = None   # (mtime, profiles)——render 全程重讀 50 次的熱點
+
+
 def _profiles() -> dict:
+    """holding_profiles.json 以 mtime 快取（審查 2026-07-18：每檔基金 load() 都重解析一次，
+    render 一輪約 50 次重複 I/O；檔案變更時 mtime 失效自動重讀，行為不變）。"""
+    global _prof_cache
     if not PROFILES.exists():
         return {}
     try:
-        return json.loads(PROFILES.read_text(encoding="utf-8")).get("profiles", {})
+        mt = PROFILES.stat().st_mtime
+        if _prof_cache is not None and _prof_cache[0] == mt:
+            return _prof_cache[1]
+        d = json.loads(PROFILES.read_text(encoding="utf-8")).get("profiles", {})
+        _prof_cache = (mt, d)
+        return d
     except Exception:
         return {}
 

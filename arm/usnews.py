@@ -196,6 +196,10 @@ def calendar_anchor(today: date | None = None) -> str:
         lines.append(f"· 對應昨夜美股實際交易日（美東）：{real:%Y/%m/%d}（{_WD[real.weekday()]}）{note}")
     else:
         lines.append(f"· 對應昨夜美股交易日（美東）：{ses:%Y/%m/%d}（{_WD[ses.weekday()]}）")
+    covered = {h.year for h in _US_MKT_HOLIDAYS_2026}
+    if d.year not in covered or ses.year not in covered:
+        lines.append("· ⚠ 系統假日表未涵蓋本年份——請自行以 WebSearch 確認美股休市日，勿逕信上列推算")
+        return chr(10).join(lines)
     near = [(h, name) for h, name in sorted(_US_MKT_HOLIDAYS_2026.items()) if abs((h - d).days) <= 4]
     if near:
         lines.append("· 鄰近美股休市日：" +

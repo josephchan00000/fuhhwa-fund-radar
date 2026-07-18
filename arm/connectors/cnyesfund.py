@@ -96,7 +96,9 @@ def _date(v) -> str | None:
 
 
 def _items(payload) -> list[dict]:
-    """在常見包裝（items.data / items / data.data / data）裡找出第一個 dict 清單。"""
+    """在常見包裝（items.data / items / data.data / data）裡找出第一個 dict 清單。
+    ⚠ 死碼備忘（2026-07-18）：此為舊「猜 JSON API」路線的解析器，production 已無呼叫端
+    （API 全 404、正式路線＝詳情頁 HTML 掃描）；僅供測試與未來 API 復活時參考。"""
     def as_list(x):
         if isinstance(x, list) and (not x or isinstance(x[0], dict)):
             return x
@@ -248,6 +250,10 @@ def fetch_detail(cid, debug: bool = False) -> dict:
             print(f"  [cnyes 詳情] ✗ {url}（{e}）")
         return {}
     objs = _objects_from_html(html)
+    # 釘選防毒（審查 2026-07-18）：詳情頁側欄常嵌「同類/熱門基金」物件（也帶績效鍵），
+    # 只保留「無 cnyesId 的績效物件」與「cnyesId==本檔」者，避免他檔數值/ID 混入 profile
+    objs = [o for o in objs
+            if "cnyesId" not in o or str(o.get("cnyesId")) == str(cid)]
     # 也收「無 cnyesId 但含 return 鍵」的物件（績效表可能獨立存放）
     dec = json.JSONDecoder()
     for m in re.finditer(r'"return[0-9A-Za-z]{1,12}"', html):
@@ -372,7 +378,8 @@ def apply_overlay(docs: list[dict], out_dir: Path) -> int:
             if ov["chg_pct"] is not None:
                 doc["nav_change_pct"] = f"{ov['chg_pct']:+.2f}%"
         old = fmap.get(fid) or {}
-        fmap[fid] = {"cnyesId": ov["cnyes_id"] or old.get("cnyesId"),
+        # 釘選值優先（審查 2026-07-18）：頁面刮到的 cnyesId 不得反向覆寫人工核對過的釘選
+        fmap[fid] = {"cnyesId": pin or ov["cnyes_id"] or old.get("cnyesId"),
                      "name": ov["cnyes_name"] or old.get("name")}
         (out_dir / f"{fid}.json").write_text(
             json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
