@@ -79,13 +79,17 @@ _ICON_PATHS = {
     "coin": '<line x1="12" y1="1" x2="12" y2="23"/>'
             '<path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
     "search": '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+    "book": '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>'
+            '<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
 }
 
 
-def _ic(name: str, plain: bool = False) -> str:
-    """區塊標題用「色底圖標章」（預設）；行內/按鈕用 plain（無底、隨文字色）。"""
+def _ic(name: str, plain: bool = False, tone: str = "") -> str:
+    """區塊標題用「色底圖標章」（預設藍；tone=amber/green/purple/teal/navy 換模組色，
+    雲學堂式各分區一色）；行內/按鈕用 plain（無底、隨文字色）。"""
     svg = (f'<svg viewBox="0 0 24 24" aria-hidden="true">{_ICON_PATHS[name]}</svg>')
-    return f'<span class="ic{" plain" if plain else ""}">{svg}</span>'
+    cls = "ic plain" if plain else ("ic" + (f" t-{tone}" if tone else ""))
+    return f'<span class="{cls}">{svg}</span>'
 
 
 def _safe_url(u) -> str:
@@ -561,10 +565,10 @@ def _etfwatch_view(doc: dict | None) -> str:
     active = [i for i in items if i.get("kind") == "active"]
     parts = []
     if passive:
-        parts.append(f'<div class="ovg" id="etf-passive">🧺 被動 ETF（高股息／市值型・{len(passive)} 檔）</div>'
+        parts.append(f'<div class="ovg" id="etf-passive">{_ic("coin", plain=True)} 被動 ETF（高股息／市值型・{len(passive)} 檔）</div>'
                      + _etf_table(passive))
     if active:
-        parts.append(f'<div class="ovg" id="etf-active">🚀 主動式 ETF（{len(active)} 檔）</div>'
+        parts.append(f'<div class="ovg" id="etf-active">{_ic("zap", plain=True)} 主動式 ETF（{len(active)} 檔）</div>'
                      + _etf_table(active))
     has_est = any(i.get("est_div") is not None for i in items)
     est_note = ('　<b>最近一次配息金額</b>為最近一次「實際」除息之每單位配息金額；標 <b>預估 X*</b> 者為'
@@ -855,13 +859,33 @@ html{scroll-behavior:smooth;scroll-padding-top:64px}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif}
 a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5px;color:var(--accd)}
 .wrap{max-width:1240px;margin:0 auto;padding:14px 18px 60px}
-/* SVG 圖標：區塊標題色底章＋行內 plain */
-.ic{display:inline-flex;align-items:center;justify-content:center;width:27px;height:27px;
-  border-radius:8px;background:rgba(37,99,201,.1);color:var(--accd);flex:0 0 auto}
+/* 品牌漸層 Hero（雲學堂式主視覺・復華藍金版） */
+.hero{background:linear-gradient(120deg,#0a3e7d 0%,#1660bd 62%,#2f7fd8 100%);border-radius:18px;
+  padding:22px 26px 20px;margin:14px 0 18px;color:#fff;position:relative;overflow:hidden;
+  box-shadow:0 6px 20px rgba(11,63,125,.25)}
+.hero:before{content:"";position:absolute;right:-60px;top:-70px;width:230px;height:230px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.14),rgba(255,255,255,0) 70%)}
+.hero:after{content:"";position:absolute;right:70px;bottom:-90px;width:180px;height:180px;border-radius:50%;
+  background:radial-gradient(circle,rgba(224,171,66,.25),rgba(224,171,66,0) 72%)}
+.hero-t{font-size:23px;font-weight:800;letter-spacing:.04em}
+.hero-t b{color:#f4c15d;background:none;padding:0}
+.hero-s{font-size:13.5px;color:rgba(255,255,255,.88);margin-top:5px;letter-spacing:.02em}
+.hero-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px;position:relative;z-index:1}
+.hero-chip{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);border-radius:8px;
+  padding:4px 12px;font-size:12.5px;color:#fff;backdrop-filter:blur(2px)}
+@media(max-width:640px){.hero{padding:17px 18px 15px}.hero-t{font-size:19px}}
+/* SVG 圖標：區塊標題彩色圖標磚（雲學堂式模組色）＋行內 plain */
+.ic{display:inline-flex;align-items:center;justify-content:center;width:29px;height:29px;
+  border-radius:9px;background:rgba(37,99,201,.11);color:var(--accd);flex:0 0 auto}
+.ic.t-amber{background:rgba(224,150,25,.15);color:#a16207}
+.ic.t-green{background:rgba(22,163,74,.12);color:#15803d}
+.ic.t-purple{background:rgba(124,58,237,.11);color:#6d28d9}
+.ic.t-teal{background:rgba(13,148,136,.12);color:#0f766e}
+.ic.t-navy{background:rgba(23,52,96,.12);color:#173460}
 .ic svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .ic.plain{background:none;width:16px;height:16px;color:inherit;vertical-align:-2px}
 .ic.plain svg{width:14px;height:14px}
-.section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:16px 0;box-shadow:0 1px 3px rgba(30,50,90,.07)}
+.section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:16px 0;box-shadow:0 3px 14px rgba(20,50,100,.05)}
 .section>.st,.newswrap .st{font-weight:700;font-size:17px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .stsub{font-weight:400;font-size:12px;color:var(--mut)}
 .muted{color:var(--mut)} .na{color:var(--mut)}
@@ -878,8 +902,8 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 #mkt-macro:checked ~ .topbar .tb-nav-fund,#mkt-etf:checked ~ .topbar .tb-nav-fund{display:none}
 #mkt-tw:checked ~ .topbar .tb-nav-macro,#mkt-gl:checked ~ .topbar .tb-nav-macro,#mkt-etf:checked ~ .topbar .tb-nav-macro{display:none}
 #mkt-macro:checked ~ .topbar .tb-nav-etf,#mkt-tw:checked ~ .topbar .tb-nav-etf,#mkt-gl:checked ~ .topbar .tb-nav-etf{display:none}
-.mkswitch{display:flex;gap:0;border:1px solid #35496b;border-radius:9px;overflow:hidden}
-.mk{background:transparent;color:#b9c6da;border:0;padding:7px 18px;cursor:pointer;font-size:14.5px;font-weight:700;user-select:none;transition:background .15s}
+.mkswitch{display:flex;gap:3px;border:1px solid #d3deee;background:#eef3fa;border-radius:11px;padding:3px}
+.mk{background:transparent;color:#33507a;border:0;border-radius:8px;padding:6px 17px;cursor:pointer;font-size:14.5px;font-weight:700;user-select:none;transition:background .15s,color .15s}
 .mk+.mk{border-left:1px solid #35496b}
 .mk:hover{background:rgba(47,111,208,.12)}
 #mkt-macro:checked ~ .topbar .mk[for="mkt-macro"],
@@ -887,18 +911,18 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 #mkt-gl:checked ~ .topbar .mk[for="mkt-gl"],
 #mkt-etf:checked ~ .topbar .mk[for="mkt-etf"]{background:var(--acc);color:#fff}
 /* ⓪ topbar */
-.topbar{position:sticky;top:0;z-index:50;background:#16233a;border-bottom:1px solid #0d1626;box-shadow:0 1px 6px rgba(10,20,40,.25)}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);box-shadow:0 1px 8px rgba(20,50,100,.06)}
 .tb-in{max-width:1240px;margin:0 auto;padding:9px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.tb-brand{font-weight:800;font-size:15.5px;color:#fff;letter-spacing:.03em}
-.tb-meta{color:#8fa1bd;font-size:11.5px}
-.tb-lamp{font-size:11.5px;color:#b9c6da;display:inline-flex;align-items:center;gap:5px}
+.tb-brand{font-weight:800;font-size:16px;color:#0b4f9e;letter-spacing:.02em}
+.tb-meta{color:var(--mut);font-size:11.5px}
+.tb-lamp{font-size:11.5px;color:var(--mut);display:inline-flex;align-items:center;gap:5px}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
 .dot.ok{background:#34c07c;box-shadow:0 0 5px rgba(52,192,124,.7)}
 .dot.err{background:#e5534b}.dot.off{background:#8fa1bd}
 .tb-nav{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
-.tb-nav a{color:#d7e0ee;text-decoration:none;font-size:13.5px;padding:5px 13px;border-radius:7px;background:rgba(255,255,255,.07);border:1px solid #2c3e5c;transition:background .15s,border-color .15s}
+.tb-nav a{color:var(--ink2);text-decoration:none;font-size:13.5px;padding:5px 13px;border-radius:8px;background:#fff;border:1px solid var(--line);transition:all .15s}
 .tb-nav a:hover{background:rgba(47,111,208,.35);border-color:var(--acc);color:var(--acc);border-color:var(--acc);background:rgba(47,111,208,.1)}
-.tb-print{background:rgba(255,255,255,.07);color:#d7e0ee;border:1px solid #2c3e5c;border-radius:7px;padding:5px 13px;cursor:pointer;font-size:13.5px;display:inline-flex;align-items:center;gap:6px}
+.tb-print{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:6px 15px;cursor:pointer;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(37,99,201,.3)}
 .tb-print:hover{border-color:var(--acc);color:var(--acc)}
 /* ① brief */
 .ixrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
@@ -1047,11 +1071,11 @@ a.tk:hover{color:var(--acc)}
 .ndoc small,.ndoc i{color:var(--mut);font-style:normal}
 .tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:20px;background:rgba(47,111,208,.14);color:var(--accd);border:1px solid rgba(47,111,208,.3);white-space:nowrap}
 /* 總經：本週行事曆 */
-.calnote{background:rgba(200,118,15,.12);border:1px solid rgba(200,118,15,.4);color:#7a4a0e;
+.calnote{background:#eef4fc;border:1px solid #c7d8ef;color:#1e3f6e;
   border-radius:10px;padding:11px 15px;font-size:14px;line-height:1.8;font-weight:500;margin-bottom:12px}
 .calnote .cnlist{margin:0;padding:0;list-style:none}
 .calnote .cnlist li{position:relative;padding-left:17px;margin:5px 0}
-.calnote .cnlist li:before{content:"›";position:absolute;left:2px;top:-1px;color:#c8760f;font-weight:800}
+.calnote .cnlist li:before{content:"›";position:absolute;left:2px;top:-1px;color:#2563c9;font-weight:800}
 .calnote .cnlist li:first-child{font-weight:700}
 .caltbl{width:100%;border-collapse:collapse;font-size:14.5px;font-variant-numeric:tabular-nums}
 .caltbl th{color:var(--mut);font-size:12.5px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
@@ -1157,7 +1181,7 @@ a.tk:hover{color:var(--acc)}
   @page{margin:14mm 12mm}
   body{background:#fff;color:#111;font-size:13px;line-height:1.62;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .wrap{max-width:none;padding:0}
-  .topbar,.backtop,#details,.fund,.tb-print,.pendhint,.mkswitch,#freshness,.copy,.openbtn2{display:none!important}
+  .topbar,.backtop,#details,.fund,.tb-print,.pendhint,.mkswitch,#freshness,.copy,.openbtn2,.hero{display:none!important}
   #fundnews{display:none!important}
   /* 晨會抬頭（僅列印顯示） */
   .printhead{display:block!important;border-bottom:2.5px solid #1c2a3a;padding-bottom:7px;margin-bottom:14px}
@@ -1344,7 +1368,7 @@ def render() -> str:
     # 使用者指示 2026-07-04：全球重點不要出現數據漲跌幅——一律於下方新聞以官方為準呈現）
     b_gl = _brief_view([], *fund_insights.movers(gl_funds),
                        fund_insights.upcoming_distributions(gl_funds), hol)
-    sec_brief = (f'<div class="section" id="brief"><div class="st">{_ic("zap")}今日重點 '
+    sec_brief = (f'<div class="section" id="brief"><div class="st">{_ic("zap", tone="amber")}今日重點 '
                  f'<span class="stsub">（{_esc((tw or news or {}).get("date") or "—")} 更新）</span></div>'
                  f'{_mkt(b_tw, b_gl)}</div>')
 
@@ -1369,18 +1393,18 @@ def render() -> str:
     # 「今日重點」與「新聞」）；總覽卡自新聞頭段抽出、新聞區只留逐則卡
     mac_head, _, _ = usnews.split_doc(macro_md or "")
     mac_ov = _extract_overview(mac_head)
-    sec_macro_ov = (f'<div class="section" id="macro-ov"><div class="st">{_ic("clipboard")}政策總覽 '
+    sec_macro_ov = (f'<div class="section" id="macro-ov"><div class="st">{_ic("clipboard", tone="purple")}政策總覽 '
                     f'{_fresh_chip("更新", mac_date, 3)} '
                     f'<span class="stsub">Fed／美政府／國際政策・前後 24 小時</span></div>'
                     f'<div class="ngc"><div class="ndoc premkt">{_md(mac_ov)}</div></div>'
                     f'</div>') if mac_ov else ""
-    sec_macro = (f'<div class="section" id="macro"><div class="st">{_ic("landmark")}政策新聞 '
+    sec_macro = (f'<div class="section" id="macro"><div class="st">{_ic("landmark", tone="navy")}政策新聞 '
                  f'{_fresh_chip("更新", mac_date, 3)} '
                  f'<span class="stsub">{mac_sub}</span></div>'
                  f'{_news_view(macro_md, mac_hint)}</div>')
 
     # ETF 數據追蹤分頁（被動／主動台股 ETF 週績效表；左上「ETF」分頁專屬視圖）
-    sec_etf = (f'<div class="section" id="etfwatch"><div class="st">{_ic("activity")}ETF 數據追蹤 '
+    sec_etf = (f'<div class="section" id="etfwatch"><div class="st">{_ic("activity", tone="teal")}ETF 數據追蹤 '
                f'{_fresh_chip("資料基準", etf_asof, 10)} '
                f'<span class="stsub">台股被動（高股息／市值型）＋主動式 ETF・收盤／規模／成立／週月報酬／'
                f'最近一次配息金額／換算年化配息率／分配頻率・點欄位標題可排序</span></div>'
@@ -1389,7 +1413,7 @@ def render() -> str:
     # ②b 基金相關新聞・社群（品牌動態＋各基金新聞＋PTT 聲量；讀 data/fund_news.json）
     fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋財經RSS＋PTT 自動擷取'
               if fn_doc else '品牌動態／各基金新聞／PTT 聲量')
-    sec_fnews = (f'<div class="section" id="fundnews"><div class="st">{_ic("megaphone")}基金相關新聞・社群 '
+    sec_fnews = (f'<div class="section" id="fundnews"><div class="st">{_ic("megaphone", tone="purple")}基金相關新聞・社群 '
                  f'{_fresh_chip("更新", fn_asof, 3)} '
                  f'<span class="stsub">{_esc(fn_sub)}</span></div>'
                  f'{_fundnews_view(fn_doc)}</div>')
@@ -1403,7 +1427,7 @@ def render() -> str:
                 "多期報酬暫為官網月底基準（鉅亨每日覆蓋待 CI 接上）")
     o_tw = _overview_view(rows_tw, leaders, tw_pend)
     o_gl = _overview_view(rows_gl, leaders, gl_pend)
-    sec_over = (f'<div class="section" id="overview"><div class="st">{_ic("chart")}基金總覽 '
+    sec_over = (f'<div class="section" id="overview"><div class="st">{_ic("chart", tone="green")}基金總覽 '
                 f'{_fresh_chip("NAV 日", nav_date, 6)}{_fresh_chip("持股基準", hold_asof, 45)}'
                 f'{_fresh_chip("快照抓取", fetched_at, 3)}{ret_chip} '
                 f'<span class="stsub">粉紅底＝同組同欄前二名・點欄位標題可排序・{ret_note}・'
@@ -1414,7 +1438,7 @@ def render() -> str:
     # ⑤ 基金詳情
     c_tw = _details_block(tw_funds, gavg, linked_by_fund, tw_pend)
     c_gl = _details_block(gl_funds, gavg, linked_by_fund, gl_pend)
-    sec_det = (f'<div class="section" id="details"><div class="st">📚 基金詳情 '
+    sec_det = (f'<div class="section" id="details"><div class="st">{_ic("book", tone="navy")}基金詳情 '
                f'{_fresh_chip("NAV 日", nav_date, 6)}{_fresh_chip("持股基準", hold_asof, 45)} '
                f'<span class="stsub">績效格「●」＝高於同組平均</span></div></div>'
                f'{_mkt(c_tw, c_gl)}')
@@ -1430,6 +1454,9 @@ def render() -> str:
 <input class="mkradio" type="radio" name="mkt" id="mkt-etf">
 {_topbar(banned, bool(news or tw or macro), as_of, now)}
 <div class="wrap">
+<div class="hero"><div class="hero-t">復華<b>基金雷達</b></div>
+<div class="hero-s">每日晨間更新・基金淨值 × 市場新聞 × 總經政策 × ETF 追蹤</div>
+<div class="hero-meta"><span class="hero-chip">產表 {now}</span><span class="hero-chip">持股基準 {as_of}</span></div></div>
 <div class="printhead"><div class="ph-t">復華基金雷達 · 晨會速報</div><div class="ph-d">彙編時間 {now}（台北時間）· 各資料來源鮮度標於各區塊標題列</div></div>
 {sec_fresh}
 <div class="macroview">{sec_macro_cal}
