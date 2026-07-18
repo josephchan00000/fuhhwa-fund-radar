@@ -51,6 +51,12 @@ def _mkt(tw_html: str, gl_html: str) -> str:
             f'<div class="mkt" data-mkt="gl">{gl_html}</div>')
 
 
+def _safe_url(u) -> str:
+    """外部餵入的連結只放行 http(s)（審查 #6：RSS/PTT 來源可被污染成 javascript: URL）。"""
+    u = str(u or "")
+    return u if u.startswith(("http://", "https://")) else "#"
+
+
 def _md(text: str) -> str:
     """極簡 Markdown → HTML（標題/粗體/連結/有序＋無序清單/水平線/段落）；
     先刷隱形字元、跳脫，再套規則。"""
@@ -301,8 +307,8 @@ def _news_view(md: str, empty_hint: str,
         pts = "".join(f'<li><b>{_esc(lab)}</b>　{_inline(txt)}</li>'
                       for lab, txt in (c.get("points") or []))
         pts = f'<ul class="ngpts">{pts}</ul>' if pts else ""
-        ordered = sorted((c.get("links") or [])[:5],       # 富途優先
-                         key=lambda tu: 0 if "futunn.com" in tu[1] else 1)
+        ordered = sorted(c.get("links") or [],             # 先排序再截 5（富途優先；審查 #7）
+                         key=lambda tu: 0 if "futunn.com" in tu[1] else 1)[:5]
         links = "".join(f'<a class="nglink{" futu1" if "futunn.com" in u else ""}" '
                         f'href="{_esc(u)}" target="_blank" rel="noopener">↗ {_esc(t)}</a>'
                         for t, u in ordered)
@@ -1144,7 +1150,7 @@ a.tk:hover{color:var(--acc)}
 }
 """
 
-_JS = """
+_JS = r"""
 // 台股/全球切換本體為純 CSS radio（JS 停用也能按）；JS 只負責記住選擇＋錨點自動切換
 function curMkt(){for(const m of['macro','tw','gl','etf']){const r=document.getElementById('mkt-'+m);
   if(r&&r.checked)return m}return 'tw'}
