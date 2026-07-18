@@ -30,9 +30,12 @@ on:
         required: false
         default: ''
 
-# 同一時間只跑一份（push＋dispatch 撞在一起時排隊、不互砍）
+# 依事件型態分組：schedule 與 push/dispatch 各自排隊——GitHub concurrency 只保留
+# 1 個 pending 席位，若同組，cron 到點會把「帶今日新聞 NEWS_REF 的 pending push-run」
+# 頂掉取消 → 今日新聞永遠沒併進 main。分組後各自序列化；跨組同時跑 main 的競態
+# 由 push 步驟的 rebase 重試吸收。
 concurrency:
-  group: daily-routine
+  group: daily-${{ github.event_name }}
   cancel-in-progress: false
 
 permissions:
@@ -57,8 +60,16 @@ jobs:
           # reports/*.md 併入，後續再抓真實 NAV／持股／ETF＋重建儀表板，最後一次 commit 進 main。
           # 根治「一天兩筆 commit（合併版舊資料＋CI 版真資料）、線上部到舊版」的坑。
           git fetch origin "$NEWS_REF" --depth=1
-          git checkout FETCH_HEAD -- reports/usnews reports/twnews reports/macronews reports/macrocal
-          echo "已併入 $NEWS_REF 的今日新聞報告（reports/*.md）"
+          # 只取「今日」檔案（TZ=Asia/Taipei）——整目錄 checkout 會把分支上的舊日期檔
+          # 倒灌覆蓋 main 較新版本（審查發現 #4）
+          TODAY=$(date +%F)
+          for f in "reports/usnews/${TODAY}_v1.md" "reports/usnews/${TODAY}_v2.md" \
+                   "reports/twnews/${TODAY}.md" "reports/macronews/${TODAY}.md" \
+                   "reports/macrocal/${TODAY}.md" \
+                   "reports/usnews/prompts/${TODAY}.md" "reports/twnews/prompts/${TODAY}.md" \
+                   "reports/macronews/prompts/${TODAY}.md" "reports/macrocal/prompts/${TODAY}.md"; do
+            git checkout FETCH_HEAD -- "$f" 2>/dev/null && echo "  併入 $f" || true
+          done
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -88,13 +99,23 @@ jobs:
           git add -f data/funds/*.json 2>/dev/null || true        # 分開 add：新聞 glob 為空時不會連 NAV 快照一起中止
           git add -f data/fund_news.json 2>/dev/null || true      # 基金相關新聞＋社群聲量（fetch_fund_news.py 產出）
           git add -f data/etf_watch.json 2>/dev/null || true      # ETF 數據追蹤（fetch_etf_watch.py 產出）
+          git add -f data/fund_nav_history.json 2>/dev/null || true  # NAV 序列持久層——漏 add 會斷史、1週/1月整片變 —（審查 #1）
+          git add -f data/cnyes_fund_map.json 2>/dev/null || true    # 鉅亨 cnyesId 對映
           git add -f reports/usnews/*_v*.md 2>/dev/null || true
           git add -f reports/twnews/*.md reports/twnews/prompts/*.md reports/usnews/prompts/*.md 2>/dev/null || true
           git add -f reports/macronews/*.md reports/macronews/prompts/*.md 2>/dev/null || true
           git add -f reports/macrocal/*.md reports/macrocal/prompts/*.md 2>/dev/null || true
           git add dashboard/index.html 2>/dev/null || true         # 入庫的儀表板產物 → Vercel Git 部署會自動更新
-          git commit -m "chore: 每日持股介紹／新聞更新 $(date +%F)" || echo "無變更"
-          git push || echo "push 略過（無遠端寫入權或無變更）"
+          git commit -m "chore: 每日持股介紹／新聞更新 $(date +%F)" || { echo "無變更，跳過 push"; exit 0; }
+          # push 失敗（main 期間被推進）→ rebase 重試；rebase 衝突以本次新資料為準（-X theirs）。
+          # 最終仍失敗就讓 job 真的 fail（不可吞錯綠燈——審查 #3），後面 deploy hook 自然不跑。
+          for i in 1 2 3; do
+            git push && exit 0
+            echo "push 被拒（第 $i 次），rebase 後重試…"
+            git pull --rebase -X theirs origin main || git rebase --abort || true
+            sleep 5
+          done
+          echo "::error::push 連續失敗——本日資料未入 main"; exit 1
 
       - name: 觸發 Vercel 部署（Deploy Hook — 確保線上吃到 CI 這筆真實資料版，不靠 Vercel 自動偵測）
         env:
