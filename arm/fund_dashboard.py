@@ -81,6 +81,14 @@ _ICON_PATHS = {
     "search": '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
     "book": '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>'
             '<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+    "globe": '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>'
+             '<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10'
+             ' 15.3 15.3 0 0 1 4-10z"/>',
+    "layers": '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/>'
+              '<polyline points="2 12 12 17 22 12"/>',
+    "chat": '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1'
+            '-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0'
+            ' 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
 }
 
 
@@ -436,15 +444,16 @@ def _macro_cal_view(cal: dict | None) -> str:
         clauses = [c.strip() for c in re.findall(r"[^；。]+[；。]?", note) if c.strip()]
         if len(clauses) >= 3:
             def _cl(c: str) -> str:
-                # 前導詞（重點／本週／更新…≤6 字＋「：」）→ 藍色小標，掃讀先看到框架
+                # 前導詞（重點／本週／更新…≤6 字＋「：」）→ 藍色小標，掃讀先看到框架；
+                # 其餘走 _inline：**粗體** 得到與新聞卡一致的關鍵句半透明藍底標記
                 m = re.match(r"^([^：]{1,6})：\s*(.*)$", c)
                 if m:
-                    return f'<span class="klabel">{_esc(m.group(1))}</span>{_esc(m.group(2))}'
-                return _esc(c)
+                    return f'<span class="klabel">{_esc(m.group(1))}</span>{_inline(m.group(2))}'
+                return _inline(c)
             lis = "".join(f"<li>{_cl(c)}</li>" for c in clauses)
             note_html = f'<div class="calnote"><ul class="cnlist">{lis}</ul></div>'
         else:
-            note_html = f'<div class="calnote">🔔 {_esc(note)}</div>'
+            note_html = f'<div class="calnote">{_ic("bell", plain=True)} {_inline(note)}</div>'
     data_rows = [r for r in cal["rows"] if r.get("region") != "財報"]
     earn_rows = [r for r in cal["rows"] if r.get("region") == "財報"]
     html = note_html + _cal_table_html(data_rows, with_region=True)
@@ -736,9 +745,9 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
     # 國內基金官網不提供國家配置——整段省略，避免留下懸空的「—」空區塊
     cty = doc.get("country_alloc") or []
     alloc_html = (
-        f'<div class="ctitle">🌏 國家配置</div>{_bars(cty, "var(--c1)")}'
-        f'<div class="ctitle" style="margin-top:14px">🏭 產業配置</div>'
-        if cty else '<div class="ctitle">🏭 產業配置</div>')
+        f'<div class="ctitle">{_ic("globe", plain=True)} 國家配置</div>{_bars(cty, "var(--c1)")}'
+        f'<div class="ctitle" style="margin-top:14px">{_ic("layers", plain=True)} 產業配置</div>'
+        if cty else f'<div class="ctitle">{_ic("layers", plain=True)} 產業配置</div>')
     conc = fund_intro.top_concentration(doc)
     conc_s = f"{conc}%" if conc is not None else "—"
     return f"""
@@ -755,7 +764,7 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
       <div class="nav">{_esc(doc.get('nav') if doc.get('nav') is not None else '—')}</div>
       <div class="navd">NAV · {_esc(doc.get('nav_date') or '—')} {_pct_span(chg)}</div>
       <div class="size">規模 {size_s}　{mr}</div>
-      <button class="copy cfund" data-copy="{_esc(copy_txt)}">📋 複製基金介紹</button>
+      <button class="copy cfund" data-copy="{_esc(copy_txt)}">{_ic("clipboard", plain=True)} 複製基金介紹</button>
     </div>
   </div>
   {f'<div class="strat" title="點擊展開／收合">{_esc(strat)}</div>' if strat else ''}
@@ -765,7 +774,7 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
       {alloc_html}{_bars(doc.get('sector_alloc') or [], 'var(--c2)')}
     </div>
     <div class="col">
-      <div class="ctitle">📋 十大持有標的　<span class="asof">持股基準 {_esc(doc.get('as_of') or '—')}｜前十大合計 {_esc(conc_s)}</span></div>
+      <div class="ctitle">{_ic("clipboard", plain=True)} 十大持有標的　<span class="asof">持股基準 {_esc(doc.get('as_of') or '—')}｜前十大合計 {_esc(conc_s)}</span></div>
       {_holdings_table(doc, linked_names)}
     </div>
   </div>
@@ -819,7 +828,7 @@ def _fundnews_view(doc: dict | None) -> str:
                      + "".join(f'<li>{_esc(h)}</li>' for h in hls) + '</ul></div>')
 
     brand = doc.get("brand") or []
-    parts.append('<div class="fng">🏢 復華投信動態</div>')
+    parts.append(f'<div class="fng">{_ic("landmark", plain=True)} 復華投信動態</div>')
     if brand:
         parts.append(f'<div class="fnlist">{"".join(_fundnews_item(i) for i in brand)}</div>')
     else:
@@ -828,7 +837,7 @@ def _fundnews_view(doc: dict | None) -> str:
     groups = doc.get("funds") or []
     hit = [g for g in groups if g.get("items")]
     miss = [g for g in groups if not g.get("items")]
-    parts.append(f'<div class="fng">📌 各基金新聞（近 {win} 天）</div>')
+    parts.append(f'<div class="fng">{_ic("news", plain=True)} 各基金新聞（近 {win} 天）</div>')
     if hit:
         cards = []
         for g in hit:
@@ -846,7 +855,7 @@ def _fundnews_view(doc: dict | None) -> str:
                      f'{_esc("、".join(g.get("base") or "" for g in miss))}</div>')
 
     soc = doc.get("social") or []
-    parts.append('<div class="fng">💬 社群討論（PTT 股票板・依推文數）</div>')
+    parts.append(f'<div class="fng">{_ic("chat", plain=True)} 社群討論（PTT 股票板・依推文數）</div>')
     if soc:
         parts.append('<div class="fnlist">' + "".join(
             f'<div class="fnit fnsoc"><span class="fnpush">{int(s.get("push") or 0)} 推</span>'
@@ -970,7 +979,6 @@ a.chip:hover{border-color:var(--acc);background:rgba(47,111,208,.14)}
 .ngpts{margin:8px 0 0;padding-left:0;list-style:none}
 .ngpts li{position:relative;margin:6px 0;padding-left:16px;font-size:15px;color:var(--ink2);line-height:1.75}
 .ngpts li:before{content:"";position:absolute;left:3px;top:12px;width:5px;height:5px;border-radius:50%;background:var(--acc)}
-.ngpts li b{color:var(--accd);background:none;padding:0}
 /* 新聞卡展開內文：影響分析每維度自成一段、標籤走 .klabel，段內粗體＝淺藍底關鍵句 */
 .nibody .ngs{padding:2px 0 2px 13px;border-left:3px solid rgba(47,111,208,.4);font-weight:500}
 .nibody .ngpts{margin-top:14px}
@@ -1078,8 +1086,10 @@ a.tk:hover{color:var(--acc)}
 .ndoc ul li:before{content:"";position:absolute;left:4px;top:12px;width:5px;height:5px;border-radius:50%;background:var(--acc)}
 .ndoc ol li{position:relative;margin:14px 0;padding-left:36px;counter-increment:n}
 .ndoc ol li:before{content:counter(n);position:absolute;left:0;top:2px;width:23px;height:23px;border-radius:50%;background:var(--acc);color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:23px}
-.ndoc b{color:var(--hl);background:var(--hlbg);font-weight:700;padding:0 4px;border-radius:4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+/* 關鍵句標記（粗體＋半透明藍底）——2026-07-18 使用者指示套用到所有內容區的重點 */
+.ndoc b,.ngpts li b,.calnote b,.premkt b{color:var(--hl);background:rgba(37,99,201,.13);font-weight:700;padding:0 4px;border-radius:4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 .ndoc h2 b,.ndoc h3 b,.ndoc h4 b{color:inherit;background:none;padding:0}
+.fnhl .ngpts li b{background:rgba(255,255,255,.8)}   /* 看點框本身是淺藍底——標記改半透明白保持對比 */
 .ndoc a{text-decoration:none;border-bottom:1px dashed var(--acc);word-break:break-all}
 .ndoc hr{border:0;border-top:1px solid var(--line);margin:22px 0}
 .ndoc small,.ndoc i{color:var(--mut);font-style:normal}
@@ -1219,7 +1229,7 @@ a.tk:hover{color:var(--acc)}
   .nglink{color:#1a56b0;border:1px solid #ccc;background:#fff}
   /* 深度/總覽長文 */
   .ndoc{background:#fff;border:1px solid #cfd6de;font-size:12.5px;line-height:1.7;padding:6px 16px 14px}
-  .ndoc b{color:#111;background:#eef2f8}
+  .ndoc b,.ngpts li b,.calnote b,.premkt b{color:#111;background:#eef2f8}
   .ndoc h3{background:#eef2f8;border-left:3px solid #1c4fa8;color:#111}
   .ndoc h2{color:#333}
   /* 指數卡／連動卡／盤前速覽 */
