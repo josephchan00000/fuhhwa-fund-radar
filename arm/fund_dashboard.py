@@ -801,16 +801,16 @@ def _fundnews_view(doc: dict | None) -> str:
 # ── 樣式與腳本（非 f-string，避免大括號跳脫） ─────────────────
 
 _CSS = """
-:root{--bg:#efe7d3;--card:#fdfaf2;--card2:#f6efdf;--ink:#3a332a;--mut:#7d7160;
---line:#e4d9c1;--c1:#3b82f6;--c2:#e08a12;--gain:#d33a34;--loss:#1f9d57;--acc:#2f6fd0;
---accd:#2b5fb0;--ink2:#5c5343;--inset:#efe6cf;--hl:#4a2f14;--hlbg:#f0e2bd;--gold:#a86f10}
+:root{--bg:#eef1f6;--card:#ffffff;--card2:#f4f6fa;--ink:#1f2733;--mut:#727e8c;
+--line:#e2e7ef;--c1:#3b82f6;--c2:#c2740e;--gain:#d33a34;--loss:#1f9d57;--acc:#2563c9;
+--accd:#1c4fa8;--ink2:#44505f;--inset:#eef2f8;--hl:#153a7a;--hlbg:#dce7fa;--gold:#a16207}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:64px}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif}
 a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5px;color:var(--accd)}
 .wrap{max-width:1240px;margin:0 auto;padding:14px 18px 60px}
-.section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:16px 0;box-shadow:0 1px 3px rgba(90,70,30,.06)}
-.section>.st,.newswrap .st{font-weight:700;font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:16px 0;box-shadow:0 1px 3px rgba(30,50,90,.07)}
+.section>.st,.newswrap .st{font-weight:700;font-size:17px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .stsub{font-weight:400;font-size:12px;color:var(--mut)}
 .muted{color:var(--mut)} .na{color:var(--mut)}
 .gain{color:var(--gain);font-weight:700}.loss{color:var(--loss);font-weight:700}.flat{color:var(--mut)}
@@ -835,7 +835,7 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 #mkt-gl:checked ~ .topbar .mk[for="mkt-gl"],
 #mkt-etf:checked ~ .topbar .mk[for="mkt-etf"]{background:var(--acc);color:#fff}
 /* ⓪ topbar */
-.topbar{position:sticky;top:0;z-index:50;background:rgba(239,231,211,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(248,250,253,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .tb-in{max-width:1240px;margin:0 auto;padding:9px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .tb-brand{font-weight:800;font-size:15px}
 .tb-meta{color:var(--mut);font-size:11.5px}
@@ -871,7 +871,7 @@ a.chip:hover{border-color:var(--acc);background:rgba(47,111,208,.14)}
 .ngc{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin:10px 0}
 .ngt{font-weight:700;font-size:15.5px;color:var(--ink);line-height:1.5}
 .ngm{color:var(--mut);font-size:12.5px;margin-top:2px}
-.ngs{font-size:15px;color:var(--ink);margin:6px 0 15px;line-height:1.85}
+.ngs{font-size:15.5px;color:var(--ink);margin:6px 0 16px;line-height:1.9}
 .ngpts{margin:8px 0 0;padding-left:0;list-style:none}
 .ngpts li{position:relative;margin:5px 0;padding-left:16px;font-size:13.5px;color:var(--ink2);line-height:1.7}
 .ngpts li:before{content:"";position:absolute;left:3px;top:11px;width:5px;height:5px;border-radius:50%;background:var(--acc)}
@@ -879,7 +879,7 @@ a.chip:hover{border-color:var(--acc);background:rgba(47,111,208,.14)}
 /* 新聞卡展開內文：影響分析每維度自成一段、標籤成藍色標記，好一段一段掃讀 */
 .nibody .ngs{padding:2px 0 2px 13px;border-left:3px solid rgba(47,111,208,.4);font-weight:500}
 .nibody .ngpts{margin-top:14px}
-.nibody .ngpts li{margin:12px 0;padding:3px 0 3px 15px;font-size:14.5px;line-height:1.85;
+.nibody .ngpts li{margin:13px 0;padding:3px 0 3px 15px;font-size:15px;line-height:1.9;
   color:var(--ink);border-left:2px solid rgba(47,111,208,.22)}
 .nibody .ngpts li:before{display:none}
 .nibody .ngpts li b{display:inline-block;color:var(--accd);font-weight:700;
@@ -892,7 +892,7 @@ a.chip:hover{border-color:var(--acc);background:rgba(47,111,208,.14)}
 /* ③ news links */
 .nlcard{background:var(--card2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:0 11px 11px 0;padding:12px 16px;margin:10px 0}
 .nlt{font-weight:700;font-size:15.5px;color:var(--ink)}
-.nlone{display:table;font-size:14px;margin:6px 0 10px;color:var(--hl);background:var(--hlbg);font-weight:700;padding:1px 8px;border-radius:4px}
+.nlone{display:table;font-size:15px;margin:6px 0 10px;color:var(--hl);background:var(--hlbg);font-weight:700;padding:1px 8px;border-radius:4px}
 .nlrow{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin:6px 0;font-size:13.5px}
 .nlco{font-weight:700;min-width:110px} .nlfs{color:var(--mut)}
 .fw{color:var(--accd);font-size:14px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(43,95,176,.45);margin-right:8px;white-space:nowrap}
@@ -910,12 +910,12 @@ a.tk:hover{color:var(--acc)}
 /* ④ overview */
 .ovg{font-weight:700;font-size:13.5px;color:var(--accd);margin:14px 0 6px}
 .ovwrap{overflow-x:auto;background:
-  linear-gradient(90deg,var(--card) 33%,rgba(253,250,242,0)) left/36px 100%,
-  linear-gradient(270deg,var(--card) 33%,rgba(253,250,242,0)) right/36px 100%,
-  radial-gradient(farthest-side at 0 50%,rgba(90,70,30,.22),transparent) left/14px 100%,
-  radial-gradient(farthest-side at 100% 50%,rgba(90,70,30,.22),transparent) right/14px 100%;
+  linear-gradient(90deg,var(--card) 33%,rgba(255,255,255,0)) left/36px 100%,
+  linear-gradient(270deg,var(--card) 33%,rgba(255,255,255,0)) right/36px 100%,
+  radial-gradient(farthest-side at 0 50%,rgba(40,60,100,.14),transparent) left/14px 100%,
+  radial-gradient(farthest-side at 100% 50%,rgba(40,60,100,.14),transparent) right/14px 100%;
   background-repeat:no-repeat;background-attachment:local,local,scroll,scroll}
-.ovtbl{width:100%;border-collapse:collapse;font-size:14px}
+.ovtbl{width:100%;border-collapse:collapse;font-size:14.5px}
 .ovtbl th{color:var(--mut);font-size:12.5px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .ovtbl th.l{text-align:left}
 .ovtbl th.sk{cursor:pointer;user-select:none} .ovtbl th.sk:hover{color:var(--acc)}
@@ -951,7 +951,7 @@ a.tk:hover{color:var(--acc)}
 .newsone>summary:hover{background:rgba(47,111,208,.06)}
 .newsone[open]>summary{border-bottom:1px solid var(--line)}
 .nhead{display:flex;flex-direction:column;gap:4px;min-width:0}
-.nit{font-weight:700;font-size:15px;color:var(--ink);line-height:1.5}
+.nit{font-weight:700;font-size:16px;color:var(--ink);line-height:1.5}
 .nim{color:var(--mut);font-size:12px}
 .nhead .nlone{margin:0}
 .nbadges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1px}
@@ -973,7 +973,7 @@ a.tk:hover{color:var(--acc)}
 .nb{background:var(--card2);color:var(--accd);border:1px solid var(--line);border-radius:20px;padding:7px 16px;cursor:pointer;font-size:14.5px;font-weight:700}
 .nb:hover{border-color:var(--acc)}
 .nb.on{background:var(--acc);color:#fff;border-color:var(--acc)}
-.ndoc{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 30px 24px;line-height:1.85;font-size:15px;color:var(--ink)}
+.ndoc{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 30px 24px;line-height:1.9;font-size:16px;color:var(--ink)}
 .ndoc.hidden{display:none}
 .ndoc>*:first-child{margin-top:14px}
 .ndoc h2{font-size:14.5px;color:var(--mut);font-weight:600;letter-spacing:.02em;margin:30px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
@@ -998,7 +998,7 @@ a.tk:hover{color:var(--acc)}
 .calnote .cnlist li{position:relative;padding-left:17px;margin:5px 0}
 .calnote .cnlist li:before{content:"›";position:absolute;left:2px;top:-1px;color:#c8760f;font-weight:800}
 .calnote .cnlist li:first-child{font-weight:700}
-.caltbl{width:100%;border-collapse:collapse;font-size:14px}
+.caltbl{width:100%;border-collapse:collapse;font-size:14.5px}
 .caltbl th{color:var(--mut);font-size:12.5px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .caltbl th.l{text-align:left}
 .caltbl td{padding:8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:top}
@@ -1030,7 +1030,7 @@ a.tk:hover{color:var(--acc)}
 #details{padding:12px 18px}
 #details .st{margin-bottom:0}
 .pendcard .sub{line-height:1.9}
-.fund{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:12px;box-shadow:0 1px 3px rgba(90,70,30,.06)}
+.fund{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:12px;box-shadow:0 1px 3px rgba(30,50,90,.07)}
 .fund:target{border-color:var(--acc);box-shadow:0 0 0 2px rgba(47,111,208,.3)}
 .fhead{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}
 .fhead h2{font-size:19px;margin:0 0 4px} .gl{display:inline-block;white-space:nowrap;font-size:12px;color:#fff;background:var(--acc);padding:2px 8px;border-radius:20px;vertical-align:middle}
@@ -1061,7 +1061,7 @@ a.tk:hover{color:var(--acc)}
 .tk{font-size:11px;color:var(--accd)} .pill{display:inline-block;white-space:nowrap;font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin-left:4px}
 .hintro{color:var(--mut);font-size:12.5px;margin-top:3px}
 .foot{color:var(--mut);font-size:12.5px;line-height:1.8;margin-top:22px;border-top:1px solid var(--line);padding-top:12px}
-.backtop{position:fixed;right:18px;bottom:18px;z-index:40;background:var(--card2);color:var(--accd);border:1px solid var(--line);border-radius:22px;padding:9px 15px;font-size:13.5px;text-decoration:none;box-shadow:0 2px 8px rgba(90,70,30,.15)}
+.backtop{position:fixed;right:18px;bottom:18px;z-index:40;background:var(--card2);color:var(--accd);border:1px solid var(--line);border-radius:22px;padding:9px 15px;font-size:13.5px;text-decoration:none;box-shadow:0 2px 8px rgba(30,50,90,.16)}
 .backtop:hover{color:var(--acc);border-color:var(--acc)}
 @media(max-width:720px){.cols{grid-template-columns:1fr}.rets{grid-template-columns:repeat(3,1fr)}.navbox{text-align:left}
   .tb-meta,.tb-lamp{display:none}.ixc{min-width:110px}
@@ -1076,7 +1076,7 @@ a.tk:hover{color:var(--acc)}
 .fnlist{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:2px 16px}
 .fnit{padding:10px 0;border-bottom:1px dashed var(--line)}
 .fnit:last-child{border-bottom:0}
-.fnt{display:inline-block;color:var(--ink);font-size:14px;font-weight:600;line-height:1.55;text-decoration:none}
+.fnt{display:inline-block;color:var(--ink);font-size:15px;font-weight:600;line-height:1.55;text-decoration:none}
 .fnt:hover{color:var(--acc);text-decoration:underline;text-underline-offset:3px}
 .fnsum{color:var(--ink2);font-size:12.5px;line-height:1.7;margin-top:3px}
 .fnmeta{margin-top:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -1096,24 +1096,52 @@ a.tk:hover{color:var(--acc)}
 .fnfoot{color:var(--mut);font-size:12px;margin-top:14px;border-top:1px solid var(--line);padding-top:8px}
 @media(max-width:720px){.fngrid{grid-template-columns:1fr}}
 /* 晨會列印版：只留今日重點＋新聞重點＋連動＋總覽（當前市場），白底黑字 */
+.printhead{display:none}
+/* 晨會列印版：清爽 A4 文件版面——抬頭＋區塊標題底線＋展開新聞＋白底黑字，不浪費墨 */
 @media print{
-  body{background:#fff;color:#111;font-size:12px}
-  .topbar,.backtop,#details,.fund,.tb-print,.pendhint{display:none!important}
-  .ndoc b,.nlone{color:#4a2f14;background:#f3e8cd}
-  .section{background:#fff;border-color:#bbb;break-inside:avoid;margin:8px 0;padding:10px 12px}
-  .ixc,.chip,.nlcard,.newsone,.talk{background:#fff;border-color:#bbb;color:#111}
-  .ixv,.nlt,.nit,.ovtbl td.nm a,.chip,.fw,.fw b,.talk{color:#111}
-  .ovtbl td,.ovtbl th{border-color:#ccc;color:#111}
-  .stsub,.muted,.nlfs,.nim,.ngs,.tlab{color:#555}
-  .ovg,.st,.nlco{color:#111}
-  .gain{color:#c62828}.loss{color:#2e7d32}
-  .copy,.openbtn2{display:none}
-  .newsone .nibody{display:block!important}         /* 列印時展開各則新聞 */
+  @page{margin:14mm 12mm}
+  body{background:#fff;color:#111;font-size:13px;line-height:1.62;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .wrap{max-width:none;padding:0}
+  .topbar,.backtop,#details,.fund,.tb-print,.pendhint,.mkswitch,#freshness,.copy,.openbtn2{display:none!important}
+  #fundnews{display:none!important}
+  /* 晨會抬頭（僅列印顯示） */
+  .printhead{display:block!important;border-bottom:2.5px solid #1c2a3a;padding-bottom:7px;margin-bottom:14px}
+  .printhead .ph-t{font-size:20px;font-weight:800;letter-spacing:.03em;color:#111}
+  .printhead .ph-d{font-size:11.5px;color:#555;margin-top:3px}
+  /* 區塊：去卡片框、標題加底線分隔 */
+  .section{background:#fff;border:0;border-radius:0;box-shadow:none;break-inside:auto;margin:0 0 15px;padding:0}
+  .section>.st{font-size:15.5px;font-weight:800;color:#111;border-bottom:1.5px solid #8a97a6;padding-bottom:4px;margin-bottom:9px}
+  .stsub,.st .chip{display:none!important}
+  /* 新聞卡：展開、細框、避免跨頁 */
+  .newsone{background:#fff;border:1px solid #cfd6de;border-radius:6px;margin:8px 0;break-inside:avoid}
+  .newsone>summary{padding:8px 13px}
+  .newsone .nibody{display:block!important;padding:2px 15px 12px}
+  .nit{color:#111;font-size:14px}
+  .nim,.tlab,.muted,.nlfs{color:#555}
+  .nlone{color:#111;background:#eef2f8;font-weight:700}
+  .nibody .ngs{border-left-color:#8a97a6;color:#111}
+  .nibody .ngpts li{border-left-color:#c4ccd6;font-size:12.5px;line-height:1.62;margin:9px 0;color:#111}
+  .nibody .ngpts li b{color:#1c4fa8}
+  .nglink{color:#1a56b0;border:1px solid #ccc;background:#fff}
+  /* 深度/總覽長文 */
+  .ndoc{background:#fff;border:1px solid #cfd6de;font-size:12.5px;line-height:1.7;padding:6px 16px 14px}
+  .ndoc b{color:#111;background:#eef2f8}
+  .ndoc h3{background:#eef2f8;border-left:3px solid #1c4fa8;color:#111}
+  .ndoc h2{color:#333}
+  /* 指數卡／連動卡／盤前速覽 */
+  .ixc,.chip,.nlcard,.talk,.premktc .ngc{background:#fff;border-color:#c4ccd6;color:#111}
+  .ixv,.nlt,.ovtbl td.nm a,.fw,.fw b,.talk,.nlco,.ovg{color:#111}
+  /* 表格 */
+  .ovtbl,.caltbl{font-size:12px}
+  .ovtbl td,.ovtbl th,.caltbl td,.caltbl th{border-color:#ccc;color:#111}
+  .ovtbl tr.lead td,td.lead{background:#eef2f8!important}
+  .calnote{border:1px solid #ccc;background:#f6f7f9;color:#333}
+  .calnote .cnlist li:before{color:#555}
+  /* 漲跌色（紅漲綠跌，列印可辨） */
+  .gain{color:#c62828!important}.loss{color:#2e7d32!important}
+  .netype,.nsev{border:1px solid #bbb!important;color:#333!important;background:#fff!important}
   a{text-decoration:none;color:#111}
-  .nglink{color:#1a56b0;border-color:#ccc}
 }
-/* 晨會版不含「基金相關新聞・社群」，維持原列印版面 */
-@media print{#fundnews{display:none!important}}
 """
 
 _JS = """
@@ -1162,6 +1190,11 @@ document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{
 });
 // 投資策略兩行截斷 ↔ 展開
 document.querySelectorAll('.strat').forEach(s=>s.onclick=()=>s.classList.toggle('open'));
+// 晨會列印：列印前展開所有新聞卡（<details> 收合時原生隱藏內文，CSS 壓不過），印完還原
+window.addEventListener('beforeprint',()=>document.querySelectorAll('.newsone').forEach(d=>{
+  d.dataset._op=d.open?'1':'0';d.open=true;}));
+window.addEventListener('afterprint',()=>document.querySelectorAll('.newsone').forEach(d=>{
+  d.open=d.dataset._op==='1';}));
 // 儀表板逾期未重建警告——CI 全停擺時 HTML 不會再重生、上面的 ⚠ 也不會更新，
 // 由瀏覽器端比對「產表時間 vs 現在」補上最後一道防線。
 (function(){const g=document.querySelector('[data-gen]');if(!g)return;
@@ -1342,6 +1375,7 @@ def render() -> str:
 <input class="mkradio" type="radio" name="mkt" id="mkt-etf">
 {_topbar(banned, bool(news or tw or macro), as_of, now)}
 <div class="wrap">
+<div class="printhead"><div class="ph-t">復華基金雷達 · 晨會速報</div><div class="ph-d">彙編時間 {now}（台北時間）· 各資料來源鮮度標於各區塊標題列</div></div>
 {sec_fresh}
 <div class="macroview">{sec_macro_cal}
 {sec_macro_ov}
