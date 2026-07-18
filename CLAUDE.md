@@ -30,19 +30,21 @@
    - **深度報告精選保底 1 篇**（台股與美股報告各自保底；標題括注用【深度】）：台股從經濟日報／
      工商時報／中央社專題／財訊・今周刊挑；美股從富途牛牛深度文、Reuters Analysis／Bloomberg
      深度專題挑。只挑真深度（產業鏈拆解/商業模式/政策影響），當日不足放寬到近 3 天並註明刊出日。
-3. **合規掃描**：`gen_usnews.py --check`、`gen_twnews.py --check`、`gen_macronews.py --check` 全須 🟢。
+3. **合規掃描＋內容 QA**：`gen_usnews.py --check`、`gen_twnews.py --check`、`gen_macronews.py --check` 全須 🟢；
+   另跑 `TZ=Asia/Taipei python3 scripts/check_reports.py` 須 🟢（檔案齊全／每報≥4卡／每卡有連結與重要度／行事曆為今日——結構性即時正確把關）。
 4. **重建儀表板**（本地、秒級，只為讓分支自洽＋確認新聞入板；**不需先抓資料**）：
    `TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py`，確認「🕒 資料更新時間」區塊**新聞欄位**已更新至今日。
    （NAV／持股／ETF／基金新聞欄位會沿用既有快照顯示舊日期——**正常**，正式區稍後會用新資料重產覆蓋。）
 5. **測試**：`python3 -m pytest -q` 全綠（此容器預設無 pytest，先 `pip install -q pytest`）。
 6. **commit＋push** 到本次會話指定分支：只帶「**新聞報告＋儀表板**」（`data/*` 被擋未更新、不會有 diff，不必也不要硬塞）。訊息用 `chore: 每日新聞更新 {日期}`。**不必開 PR、不必 merge 進 main**——見步驟 7，改由 CI 一次 commit。
-7. **觸發正式區「單一 commit」抓真實資料＋建表＋部署（2026-07-17 改為此架構，取代舊的 PR-merge）**：
-   手動觸發 `daily.yml` 的 `workflow_dispatch`（`ref=main`），**務必帶 input `news_ref=<本次分支名>`**——
-   用 `mcp__github__actions_run_trigger` 的 `method=run_workflow, workflow_id=daily.yml, ref=main, inputs={"news_ref":"claude/all-update-xxxx"}`。
-   CI 會：①把該分支今日 `reports/*.md` 併入 → ②抓**真實** NAV／持股／ETF／基金新聞 → ③重建儀表板 →
+7. **正式區「單一 commit」抓真實資料＋建表＋部署（2026-07-18 起：push 即自動觸發）**：
+   步驟 6 的 push 動到 `reports/**` 時，`daily.yml` 會**自動觸發**（`on: push branches claude/** paths reports/**`），
+   以被推分支為 `news_ref`——**不需、也不必再手動呼叫 GitHub API/MCP**（排程 Routine 的新會話沒有 MCP 工具，靠這條就夠）。
+   CI 會：①checkout main、把該分支今日 `reports/*.md` 併入 → ②抓**真實** NAV／持股／ETF／基金新聞 → ③重建儀表板 →
    ④以擁有者身分**一次 commit 進 main（新聞＋真實資料＋建表同一筆）** → ⑤打 Deploy Hook 部署。
-   **這根治了舊架構「一天兩筆 commit（合併版舊資料＋CI 版真資料）、Vercel 常部到舊版→新聞會動淨值不動」的坑**：
-   現在 main 每天只有**一筆權威 commit**、不可能部到缺資料的中間版。（留空 `news_ref`＝排程 cron 的行為：只用 main 現有新聞重刷資料。）
+   **這根治了舊架構「一天兩筆 commit、Vercel 常部到舊版→新聞會動淨值不動」的坑**：main 每天只有**一筆權威 commit**。
+   （互動會話若 push 沒觸發（如只改程式碼未動 reports），備援：`mcp__github__actions_run_trigger` 帶 `inputs={"news_ref":"<分支>"}`；
+   留空 `news_ref`＝排程 cron 行為：只用 main 現有新聞重刷資料。）
 9. **驗證線上內容（「全部更新」的完成定義＝網頁真的更新）**：等 `daily.yml` 跑完（約數分鐘）後驗證。
    - **Vercel 線上網址**：`https://fuhhwa-fund-radar.vercel.app/#overview`。
    - ⚠ **從此容器「截圖」線上頁做不到**（2026-07 實測）：agent proxy 對 `fuhhwa-fund-radar.vercel.app:443`
@@ -59,6 +61,17 @@
      - **主動部署**：`daily.yml` 末步已加「打 **Vercel Deploy Hook**」（`secrets.VERCEL_DEPLOY_HOOK`）——CI commit 完直接觸發 production 部署 main 最新，**不靠 Vercel 自動偵測**（自動偵測曾卡 Initializing／部到舊版）。**使用者需先建 hook**：Vercel 專案 Settings→Git→Deploy Hooks 建 `main` 分支 hook → URL 存成 repo secret `VERCEL_DEPLOY_HOOK`。未設時該步自動跳過、不影響 commit。
      - Vercel `vercel.json` 已設 `Cache-Control: no-store`（全站不快取）→ **線上看到舊的一律是「沒部署」而非快取**，別叫使用者清快取白忙。
    - 註：持股基準為月度值（顯示上月底）——不是資料沒更新。
+
+## 每日固定時間自動更新（2026-07-18 建立）
+
+- **排程 Routine**（claude.ai Routines，trigger id `trig_01VQ5DoVGxyZDPJkYSQM1E8h`）：每天 **台北 06:05**（UTC 22:05）
+  自動開新會話跑「全部更新」SOP，完成/失敗會推播＋email 通知使用者。目標：**07:00 前線上可看當日內容**。
+- **排程會話沒有 MCP connector 工具**（GitHub MCP 不可用）——因此 SOP 第 7 步採「push 自動觸發」，
+  排程會話只需 git push；驗證也只用 git（fetch origin main 看是否前進＋檢查檔案內容），無法查 Actions run 狀態屬正常。
+- **備援**：repo 原 cron（台北週一~六 06:50）仍在——Routine 失敗時新聞沿用前日，但 NAV／持股／ETF 照樣更新；
+  頁面瀏覽器端有「逾 2 天未重建」紅色警示橫幅當最後防線。
+- **部署**：CI commit 後打 `secrets.VERCEL_DEPLOY_HOOK` 主動部署；**該 secret 未設前**，部署仍靠 Vercel 自動偵測
+  （曾卡 Initializing）——如使用者回報線上沒更新，先問 Vercel Deployments 對到哪個 commit。
 
 ## 已知環境限制與防呆（曾踩過的坑，不要再犯）
 
