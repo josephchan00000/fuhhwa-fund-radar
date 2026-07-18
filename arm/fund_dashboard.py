@@ -130,13 +130,13 @@ def _md(text: str) -> str:
             out.append(f"<h{lvl}>{_inline(m.group(2))}</h{lvl}>"); continue
         m = re.match(r"^\s*[-*]\s+(.*)$", line)                 # 無序清單
         if m:
-            open_list("ul"); out.append(f"<li>{_inline(m.group(1))}</li>"); continue
+            open_list("ul"); out.append(f"<li>{_klabel(_inline(m.group(1)))}</li>"); continue
         m = re.match(r"^\s*(\d+)\.\s+(.*)$", line)              # 有序清單（新聞卡 1.~6. 條列）
         if m:
-            open_list("ol"); out.append(f"<li>{_inline(m.group(2))}</li>"); continue
+            open_list("ol"); out.append(f"<li>{_klabel(_inline(m.group(2)))}</li>"); continue
         close()
         if line.strip():
-            out.append(f"<p>{_inline(line)}</p>")
+            out.append(f"<p>{_klabel(_inline(line))}</p>")
     close()
     return "\n".join(out)
 
@@ -149,6 +149,14 @@ def _inline(s: str) -> str:
     s = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<i>\1</i>", s)
     s = re.sub(r"【([^】]+)】", r'<span class="tag">【\1】</span>', s)   # 消息屬性徽章
     return s
+
+
+def _klabel(html_line: str) -> str:
+    """抓重點小標：行首「<b>短標籤</b>：」→ 藍色段落小標（.klabel），其後粗體維持
+    淺藍底關鍵句標記——把新聞卡「對持股／族群影響」式的掃讀版型類比到所有 _md 內容
+    （政策總覽／盤前速覽／深度文…，2026-07-18 使用者指示）。標籤上限 14 字防誤傷長句。"""
+    return re.sub(r"^<b>([^<>]{1,14})</b>\s*[：:]\s*",
+                  r'<span class="klabel">\1</span>', html_line)
 
 
 def _pct_span(v: float | None, digits: int = 2) -> str:
@@ -348,7 +356,7 @@ def _news_view(md: str, empty_hint: str,
         meta = f'<span class="nim">{_esc(c["meta"])}</span>' if c.get("meta") else ""
         one = f'<div class="nlone">{_esc(c["oneline"])}</div>' if c.get("oneline") else ""
         summ = f'<div class="ngs">{_inline(c["summary"])}</div>' if c.get("summary") else ""
-        pts = "".join(f'<li><b>{_esc(lab)}</b>　{_inline(txt)}</li>'
+        pts = "".join(f'<li><span class="klabel">{_esc(lab)}</span>{_inline(txt)}</li>'
                       for lab, txt in (c.get("points") or []))
         pts = f'<ul class="ngpts">{pts}</ul>' if pts else ""
         ordered = sorted(c.get("links") or [],             # 先排序再截 5（富途優先；審查 #7）
@@ -427,7 +435,13 @@ def _macro_cal_view(cal: dict | None) -> str:
         # 長句依「。／；」斷句分行成清單（不動文字、只加視覺分行），避免一整片難讀
         clauses = [c.strip() for c in re.findall(r"[^；。]+[；。]?", note) if c.strip()]
         if len(clauses) >= 3:
-            lis = "".join(f"<li>{_esc(c)}</li>" for c in clauses)
+            def _cl(c: str) -> str:
+                # 前導詞（重點／本週／更新…≤6 字＋「：」）→ 藍色小標，掃讀先看到框架
+                m = re.match(r"^([^：]{1,6})：\s*(.*)$", c)
+                if m:
+                    return f'<span class="klabel">{_esc(m.group(1))}</span>{_esc(m.group(2))}'
+                return _esc(c)
+            lis = "".join(f"<li>{_cl(c)}</li>" for c in clauses)
             note_html = f'<div class="calnote"><ul class="cnlist">{lis}</ul></div>'
         else:
             note_html = f'<div class="calnote">🔔 {_esc(note)}</div>'
@@ -856,7 +870,9 @@ _CSS = """
 --accd:#1c4fa8;--ink2:#44505f;--inset:#eef2f8;--hl:#153a7a;--hlbg:#dce7fa;--gold:#a16207}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:64px}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.7 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif}
+/* 抓重點段落小標（新聞卡「對持股／族群影響」式標籤，全站統一） */
+.klabel{display:inline-block;color:var(--accd);font-weight:700;letter-spacing:.02em;margin-right:8px}
 a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5px;color:var(--accd)}
 .wrap{max-width:1240px;margin:0 auto;padding:14px 18px 60px}
 /* 品牌漸層 Hero（雲學堂式主視覺・復華藍金版） */
@@ -886,8 +902,8 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 .ic.plain{background:none;width:16px;height:16px;color:inherit;vertical-align:-2px}
 .ic.plain svg{width:14px;height:14px}
 .section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:16px 0;box-shadow:0 3px 14px rgba(20,50,100,.05)}
-.section>.st,.newswrap .st{font-weight:700;font-size:17px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.stsub{font-weight:400;font-size:12px;color:var(--mut)}
+.section>.st,.newswrap .st{font-weight:700;font-size:18px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stsub{font-weight:400;font-size:13px;color:var(--mut)}
 .muted{color:var(--mut)} .na{color:var(--mut)}
 .gain{color:var(--gain);font-weight:700}.loss{color:var(--loss);font-weight:700}.flat{color:var(--mut)}
 /* 市場雙視圖（純 CSS radio 切換——JS 被停用也能按） */
@@ -944,25 +960,23 @@ a.chip:hover{border-color:var(--acc);background:rgba(47,111,208,.14)}
 /* ①b 盤前速覽（今日重點內） */
 .premktc{margin-top:12px}
 .premkt{border:0;background:none;border-radius:0;padding:0;margin-top:6px;
-  font-size:13.5px;line-height:1.75;color:var(--ink2)}
-.premkt ul{margin:4px 0} .premkt ul li{margin:6px 0}
+  font-size:16px;line-height:1.85;color:var(--ink)}
+.premkt ul{margin:4px 0} .premkt ul li{margin:9px 0}
 /* ② news digest */
 .ngc{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin:10px 0}
-.ngt{font-weight:700;font-size:15.5px;color:var(--ink);line-height:1.5}
-.ngm{color:var(--mut);font-size:12.5px;margin-top:2px}
-.ngs{font-size:15.5px;color:var(--ink);margin:6px 0 16px;line-height:1.9}
+.ngt{font-weight:700;font-size:16.5px;color:var(--ink);line-height:1.5}
+.ngm{color:var(--mut);font-size:13px;margin-top:2px}
+.ngs{font-size:17px;color:var(--ink);margin:6px 0 16px;line-height:1.9}
 .ngpts{margin:8px 0 0;padding-left:0;list-style:none}
-.ngpts li{position:relative;margin:5px 0;padding-left:16px;font-size:13.5px;color:var(--ink2);line-height:1.7}
-.ngpts li:before{content:"";position:absolute;left:3px;top:11px;width:5px;height:5px;border-radius:50%;background:var(--acc)}
+.ngpts li{position:relative;margin:6px 0;padding-left:16px;font-size:15px;color:var(--ink2);line-height:1.75}
+.ngpts li:before{content:"";position:absolute;left:3px;top:12px;width:5px;height:5px;border-radius:50%;background:var(--acc)}
 .ngpts li b{color:var(--accd);background:none;padding:0}
-/* 新聞卡展開內文：影響分析每維度自成一段、標籤成藍色標記，好一段一段掃讀 */
+/* 新聞卡展開內文：影響分析每維度自成一段、標籤走 .klabel，段內粗體＝淺藍底關鍵句 */
 .nibody .ngs{padding:2px 0 2px 13px;border-left:3px solid rgba(47,111,208,.4);font-weight:500}
 .nibody .ngpts{margin-top:14px}
-.nibody .ngpts li{margin:13px 0;padding:3px 0 3px 15px;font-size:15px;line-height:1.9;
+.nibody .ngpts li{margin:14px 0;padding:3px 0 3px 15px;font-size:16.5px;line-height:1.9;
   color:var(--ink);border-left:2px solid rgba(47,111,208,.22)}
 .nibody .ngpts li:before{display:none}
-.nibody .ngpts li b{display:inline-block;color:var(--accd);font-weight:700;
-  letter-spacing:.02em;margin-right:3px}
 .nglinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .nglink{display:inline-block;background:rgba(47,111,208,.08);border:1px solid rgba(47,111,208,.4);border-radius:8px;padding:4px 12px;font-size:13.5px;color:var(--accd);text-decoration:none}
 .nglink:hover{border-color:var(--acc);color:var(--acc)}
@@ -970,8 +984,8 @@ a.chip:hover{border-color:var(--acc);background:rgba(47,111,208,.14)}
 .nglink.futu1:hover{color:#fff;background:var(--gold)}
 /* ③ news links */
 .nlcard{background:var(--card2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:0 11px 11px 0;padding:12px 16px;margin:10px 0}
-.nlt{font-weight:700;font-size:15.5px;color:var(--ink)}
-.nlone{display:table;font-size:15px;margin:6px 0 10px;color:var(--hl);background:var(--hlbg);font-weight:700;padding:1px 8px;border-radius:4px}
+.nlt{font-weight:700;font-size:16.5px;color:var(--ink)}
+.nlone{display:table;font-size:16px;margin:6px 0 10px;color:var(--hl);background:var(--hlbg);font-weight:700;padding:1px 8px;border-radius:4px}
 .nlrow{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin:6px 0;font-size:13.5px}
 .nlco{font-weight:700;min-width:110px} .nlfs{color:var(--mut)}
 .fw{color:var(--accd);font-size:14px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(43,95,176,.45);margin-right:8px;white-space:nowrap}
@@ -980,7 +994,7 @@ a.chip:hover{border-color:var(--acc);background:rgba(47,111,208,.14)}
 .futu:hover{color:#fff;background:var(--gold)}
 a.tk{text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(43,95,176,.45)}
 a.tk:hover{color:var(--acc)}
-.talk{margin-top:10px;background:var(--inset);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13px;color:var(--ink2);line-height:1.7}
+.talk{margin-top:10px;background:var(--inset);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:14px;color:var(--ink2);line-height:1.7}
 .talk.bad{color:var(--mut)}
 .tlab{display:block;font-size:11.5px;color:var(--mut);margin-bottom:3px}
 .copy{background:rgba(47,111,208,.1);color:var(--accd);border:1px solid rgba(47,111,208,.5);border-radius:8px;padding:5px 13px;cursor:pointer;font-size:13.5px;font-weight:700;margin-left:6px}
@@ -994,8 +1008,8 @@ a.tk:hover{color:var(--acc)}
   radial-gradient(farthest-side at 0 50%,rgba(40,60,100,.14),transparent) left/14px 100%,
   radial-gradient(farthest-side at 100% 50%,rgba(40,60,100,.14),transparent) right/14px 100%;
   background-repeat:no-repeat;background-attachment:local,local,scroll,scroll}
-.ovtbl{width:100%;border-collapse:collapse;font-size:14.5px;font-variant-numeric:tabular-nums}
-.ovtbl th{color:var(--mut);font-size:12.5px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.ovtbl{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+.ovtbl th{color:var(--mut);font-size:13px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .ovtbl th.l{text-align:left}
 .ovtbl th.sk{cursor:pointer;user-select:none} .ovtbl th.sk:hover{color:var(--acc)}
 .ovtbl th .arr{display:inline-block;width:16px;color:var(--acc)}
@@ -1030,8 +1044,8 @@ a.tk:hover{color:var(--acc)}
 .newsone>summary:hover{background:rgba(47,111,208,.06)}
 .newsone[open]>summary{border-bottom:1px solid var(--line)}
 .nhead{display:flex;flex-direction:column;gap:4px;min-width:0}
-.nit{font-weight:700;font-size:16px;color:var(--ink);line-height:1.5}
-.nim{color:var(--mut);font-size:12px}
+.nit{font-weight:700;font-size:17px;color:var(--ink);line-height:1.55}
+.nim{color:var(--mut);font-size:13px}
 .nhead .nlone{margin:0}
 .nbadges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1px}
 .netype{font-size:11px;font-weight:700;padding:1.5px 8px;border-radius:5px;white-space:nowrap;border:1px solid;letter-spacing:.03em}
@@ -1052,11 +1066,11 @@ a.tk:hover{color:var(--acc)}
 .nb{background:var(--card2);color:var(--accd);border:1px solid var(--line);border-radius:20px;padding:7px 16px;cursor:pointer;font-size:14.5px;font-weight:700}
 .nb:hover{border-color:var(--acc)}
 .nb.on{background:var(--acc);color:#fff;border-color:var(--acc)}
-.ndoc{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 30px 24px;line-height:1.9;font-size:16px;color:var(--ink)}
+.ndoc{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 30px 24px;line-height:1.9;font-size:17px;color:var(--ink)}
 .ndoc.hidden{display:none}
 .ndoc>*:first-child{margin-top:14px}
 .ndoc h2{font-size:14.5px;color:var(--mut);font-weight:600;letter-spacing:.02em;margin:30px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
-.ndoc h3{font-size:16.5px;color:var(--ink);font-weight:700;line-height:1.55;margin:26px 0 10px;padding:12px 16px;background:linear-gradient(90deg,rgba(47,111,208,.12),rgba(47,111,208,.02));border-left:3px solid var(--acc);border-radius:0 10px 10px 0}
+.ndoc h3{font-size:17.5px;color:var(--ink);font-weight:700;line-height:1.55;margin:26px 0 10px;padding:12px 16px;background:linear-gradient(90deg,rgba(47,111,208,.12),rgba(47,111,208,.02));border-left:3px solid var(--acc);border-radius:0 10px 10px 0}
 .ndoc h4{font-size:14.5px;color:var(--accd);margin:18px 0 6px}
 .ndoc p{margin:12px 0}
 .ndoc ul,.ndoc ol{margin:12px 0;padding-left:0;list-style:none;counter-reset:n}
@@ -1072,13 +1086,13 @@ a.tk:hover{color:var(--acc)}
 .tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:20px;background:rgba(47,111,208,.14);color:var(--accd);border:1px solid rgba(47,111,208,.3);white-space:nowrap}
 /* 總經：本週行事曆 */
 .calnote{background:#eef4fc;border:1px solid #c7d8ef;color:#1e3f6e;
-  border-radius:10px;padding:11px 15px;font-size:14px;line-height:1.8;font-weight:500;margin-bottom:12px}
+  border-radius:10px;padding:12px 16px;font-size:15.5px;line-height:1.85;font-weight:500;margin-bottom:12px}
 .calnote .cnlist{margin:0;padding:0;list-style:none}
-.calnote .cnlist li{position:relative;padding-left:17px;margin:5px 0}
+.calnote .cnlist li{position:relative;padding-left:17px;margin:7px 0}
 .calnote .cnlist li:before{content:"›";position:absolute;left:2px;top:-1px;color:#2563c9;font-weight:800}
 .calnote .cnlist li:first-child{font-weight:700}
-.caltbl{width:100%;border-collapse:collapse;font-size:14.5px;font-variant-numeric:tabular-nums}
-.caltbl th{color:var(--mut);font-size:12.5px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.caltbl{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+.caltbl th{color:var(--mut);font-size:13px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .caltbl th.l{text-align:left}
 .caltbl td{padding:8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:top}
 .caltbl td.cd{text-align:left;font-weight:700;white-space:nowrap} .caltbl td.ci{text-align:left;white-space:normal;min-width:150px}
@@ -1148,9 +1162,9 @@ a.tk:hover{color:var(--acc)}
   .backtop{right:10px;bottom:10px;padding:7px 12px;font-size:12.5px}}
 /* ⑥ 基金相關新聞・社群 */
 .fng{font-weight:700;font-size:14px;color:var(--accd);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line)}
-.fnhl{background:var(--hlbg);border:1px solid rgba(200,134,15,.35);border-radius:11px;padding:10px 16px 12px;margin-bottom:4px}
-.fnhlt{font-weight:800;font-size:14px;color:var(--hl)}
-.fnhl .ngpts li{color:var(--ink);font-size:13.5px}
+.fnhl{background:var(--hlbg);border:1px solid rgba(200,134,15,.35);border-radius:11px;padding:11px 16px 13px;margin-bottom:4px}
+.fnhlt{font-weight:800;font-size:15px;color:var(--hl)}
+.fnhl .ngpts li{color:var(--ink);font-size:15px}
 .fnhl .ngpts li:before{background:var(--gold)}
 .fnlist{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:2px 16px}
 .fnit{padding:10px 0;border-bottom:1px dashed var(--line)}
@@ -1201,6 +1215,7 @@ a.tk:hover{color:var(--acc)}
   .nibody .ngs{border-left-color:#8a97a6;color:#111}
   .nibody .ngpts li{border-left-color:#c4ccd6;font-size:12.5px;line-height:1.62;margin:9px 0;color:#111}
   .nibody .ngpts li b{color:#1c4fa8}
+  .klabel{color:#1c4fa8}
   .nglink{color:#1a56b0;border:1px solid #ccc;background:#fff}
   /* 深度/總覽長文 */
   .ndoc{background:#fff;border:1px solid #cfd6de;font-size:12.5px;line-height:1.7;padding:6px 16px 14px}
