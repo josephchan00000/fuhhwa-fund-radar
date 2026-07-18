@@ -149,7 +149,7 @@ def test_card_etype_recognizes_deep():
 def test_news_badges_renders_deep():
     from arm import fund_dashboard as fd
     b = fd._news_badges("deep", 7)
-    assert "📚 深度" in b and 'netype deep' in b and "重要度 7" in b
+    assert ">深度<" in b and 'netype deep' in b and "重要度 7" in b
 
 
 def test_specs_require_deep_pick():
