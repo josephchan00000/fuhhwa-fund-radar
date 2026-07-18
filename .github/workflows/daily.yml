@@ -55,6 +55,7 @@ jobs:
           ref: main            # push 事件預設會 checkout 被推分支——一律固定 main，新聞另行併入
       - name: 併入今日新聞報告（NEWS_REF 或 cron 兜底自動偵測）——「新聞＋真實資料」一次 commit
         run: |
+<<<<<<< HEAD
           # Claude 容器只能產新聞（被 proxy 擋、抓不到市場資料）；由此步把來源分支的「今日」
           # reports/*.md 併入，後續再抓真實 NAV／持股／ETF＋重建儀表板，一次 commit 進 main。
           TODAY=$(date +%F)
@@ -77,12 +78,25 @@ jobs:
           fi
           if [ -z "$REF" ]; then echo "無今日新聞來源（NEWS_REF 空、無分支含今日報告）——僅重刷資料"; exit 0; fi
           # 只取「今日」檔案——整目錄 checkout 會把分支上的舊日期檔倒灌覆蓋 main（審查 #4）
+=======
+          # Claude 容器只能產新聞（被 proxy 擋、抓不到市場資料）；由此步把該分支今日
+          # reports/*.md 併入，後續再抓真實 NAV／持股／ETF＋重建儀表板，最後一次 commit 進 main。
+          # 根治「一天兩筆 commit（合併版舊資料＋CI 版真資料）、線上部到舊版」的坑。
+          git fetch origin "$NEWS_REF" --depth=1
+          # 只取「今日」檔案（TZ=Asia/Taipei）——整目錄 checkout 會把分支上的舊日期檔
+          # 倒灌覆蓋 main 較新版本（審查發現 #4）
+          TODAY=$(date +%F)
+>>>>>>> origin/main
           for f in "reports/usnews/${TODAY}_v1.md" "reports/usnews/${TODAY}_v2.md" \
                    "reports/twnews/${TODAY}.md" "reports/macronews/${TODAY}.md" \
                    "reports/macrocal/${TODAY}.md" \
                    "reports/usnews/prompts/${TODAY}.md" "reports/twnews/prompts/${TODAY}.md" \
                    "reports/macronews/prompts/${TODAY}.md" "reports/macrocal/prompts/${TODAY}.md"; do
+<<<<<<< HEAD
             git checkout "$REF" -- "$f" 2>/dev/null && echo "  併入 $f" || true
+=======
+            git checkout FETCH_HEAD -- "$f" 2>/dev/null && echo "  併入 $f" || true
+>>>>>>> origin/main
           done
       - uses: actions/setup-python@v5
         with:
