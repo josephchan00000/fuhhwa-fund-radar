@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/18 08:15",
+  "as_of": "2026/07/18 17:39",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -11,11 +11,18 @@
       "datetime": "2026-07-16T17:30:57+08:00"
     },
     {
-      "title": "復華投信繼00991A 再推出復華全球未來50主動式 ETF",
-      "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE5ZWE9hMGFteXdzVVoxV1o4YThpYURsbEJzM3lxZFVobDBQdnY0eFp4bFB5dmtKOFpmWlB0WjJyRmZ2SUYzRkQ2YmdhYWpVbzNuTWZFZDFudjd1Z9IBX0FVX3lxTE9YRnhvWHA5bENHR2kwNGJaaDlNdUp3ZVltUExHVXlVOW5sLUdSWWQwRjgyVXRaaDdNUzFLZU1wWnVkS0x6LVV0SUZyUHhIaXpLekpRQk9BSzNzT3RseEdj?oc=5",
+      "title": "挖掘全球 AI 產業贏家 主動復華全球50 00409A 8月12日開募",
+      "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE1vNzZVckNjc3A1MnhEd1hXbTA3a1hvZEhhVjFLVFBYOVNzanFfWndEcHJxNVpUc0xiOUlhVG1LS1hpaDhyY1ljWUszOGNVLXBFMmhRRUZZdWI3QdIBX0FVX3lxTFBfZS1mdGdsT19lOUlRTzkzVkJBejBNUzNlX2tJOENPTUdPdjdvZ2NQVm5uQzZwTlhUSDZwa29ZT3I3WnJPV0JRWEl4ZkJDT0U0TkdWcWZtLTlCVXVpVXY0?oc=5",
       "source": "經濟日報",
       "date": "2026-07-16 17:00",
       "datetime": "2026-07-16T17:00:00+08:00"
+    },
+    {
+      "title": "復華投信繼00991A 再推出復華全球未來50主動式 ETF",
+      "url": "https://news.google.com/rss/articles/CBMieEFVX3lxTE5nY1FZZHI2TDI1V1A2Vm9uSkNST3JJR29BUFNYT3c4WkhuNFItVGlsV2QzR1hWd0RkVDRyeGNXYWg2c0pNQVV5QUY1YjVTTVNtTWdZUWlUVmVOS3NRSkxHQi1XQjhJNW51bnJXTHlHa2ZCZDZiajEtbdIBX0FVX3lxTE9YRnhvWHA5bENHR2kwNGJaaDlNdUp3ZVltUExHVXlVOW5sLUdSWWQwRjgyVXRaaDdNUzFLZU1wWnVkS0x6LVV0SUZyUHhIaXpLekpRQk9BSzNzT3RseEdj?oc=5",
+      "source": "經濟日報",
+      "date": "2026-07-15 17:00",
+      "datetime": "2026-07-15T17:00:00+08:00"
     }
   ],
   "funds": [
@@ -47,7 +54,15 @@
       "short_names": [
         "全球物聯網科技新臺幣"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "規模最大的共同基金對決：安聯台灣科技、復華全球物聯網、復華華人世紀該怎麼選？",
+          "url": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE5yX05kZnU0MXJUejROcE5tZGF1VWVoU05oaHlhdFFDdUxJTkN1RHh6eDZVaFVRUUN2RmJlZ2J3UDZmWDhmYTN5SmVxMkZwRkV5OF9sV01oaXJSd2g5QW5Wa1JMODJ2R3c?oc=5",
+          "source": "CMoney",
+          "date": "2026-07-18 16:23",
+          "datetime": "2026-07-18T16:23:50+08:00"
+        }
+      ]
     },
     {
       "base": "復華華人世紀基金",
@@ -57,7 +72,15 @@
       "short_names": [
         "華人世紀"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "規模最大的共同基金對決：安聯台灣科技、復華全球物聯網、復華華人世紀該怎麼選？",
+          "url": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE5yX05kZnU0MXJUejROcE5tZGF1VWVoU05oaHlhdFFDdUxJTkN1RHh6eDZVaFVRUUN2RmJlZ2J3UDZmWDhmYTN5SmVxMkZwRkV5OF9sV01oaXJSd2g5QW5Wa1JMODJ2R3c?oc=5",
+          "source": "CMoney",
+          "date": "2026-07-18 16:23",
+          "datetime": "2026-07-18T16:23:50+08:00"
+        }
+      ]
     },
     {
       "base": "復華亞太成長基金",
@@ -249,7 +272,15 @@
       "short_names": [
         "傳家"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華傳家二號基金 的買賣訊號 | 鉅亨網 - 基金老司機",
+          "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxQcVZZbzRGblh4U2NqNXdLOFl0Y3dORHcwNGZmcVJ4WUpBMmdzS0Joa0tiZ0k5YjdNMFZ5b1VUaGE4cXg0MkQ0YmhIY2FTV0poRFdtVFh2MWk5Z2EtNFdxSkNUUHVuVTRfU2JYUGMya1BJODkzbHBwQXBpUG91eHREZXlCQnNVNFRSd0dHMnBFOTNTTVc3QlhvWEoyRnRCWW1PWWZPenNLQUZRMVZJQm56OFFJM01BTlBGektINlJRY0pvdw?oc=5",
+          "source": "鉅亨網",
+          "date": "2026-07-13 15:00",
+          "datetime": "2026-07-13T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華傳家二號基金",
@@ -259,7 +290,15 @@
       "short_names": [
         "傳家二號"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華傳家二號基金 的買賣訊號 | 鉅亨網 - 基金老司機",
+          "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxQcVZZbzRGblh4U2NqNXdLOFl0Y3dORHcwNGZmcVJ4WUpBMmdzS0Joa0tiZ0k5YjdNMFZ5b1VUaGE4cXg0MkQ0YmhIY2FTV0poRFdtVFh2MWk5Z2EtNFdxSkNUUHVuVTRfU2JYUGMya1BJODkzbHBwQXBpUG91eHREZXlCQnNVNFRSd0dHMnBFOTNTTVc3QlhvWEoyRnRCWW1PWWZPenNLQUZRMVZJQm56OFFJM01BTlBGektINlJRY0pvdw?oc=5",
+          "source": "鉅亨網",
+          "date": "2026-07-13 15:00",
+          "datetime": "2026-07-13T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華人生目標基金",
@@ -302,7 +341,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：亞太神龍科技、全球平衡、數位經濟、神盾（詳下方各基金新聞）",
+    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技、全球平衡、數位經濟、傳家 等 8 檔（詳下方各基金新聞）",
     "品牌焦點：00409A 復華全球未來50主動式ETF ｜成分股？配息？優缺點？募集時間？（StockFeel 股感）"
   ]
 }
