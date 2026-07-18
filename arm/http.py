@@ -9,6 +9,7 @@ import hashlib
 import json
 import ssl
 import time
+import http.client
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -64,7 +65,8 @@ def get_bytes(url: str, *, retries: int = 3, timeout: int = 25,
                 CACHE_DIR.mkdir(parents=True, exist_ok=True)
                 cp.write_bytes(data)
             return data
-        except (urllib.error.URLError, TimeoutError) as e:
+        except (urllib.error.URLError, TimeoutError, OSError,
+                http.client.HTTPException) as e:   # 含 ConnectionReset/IncompleteRead（審查 2026-07-18）
             last_err = e
             time.sleep(1.5 * (attempt + 1))
     raise RuntimeError(f"GET 失敗 {url}: {last_err}")

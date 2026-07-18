@@ -379,10 +379,13 @@ def _fetch_returns(code: str, today: date | None = None) -> dict:
     髒序列」才採用；回傳 ret_src／ret_n／基準日供追查；全失敗回 None（上層退回底稿）。"""
     today = today or clock.today_tw()
     best = None
-    for src, series in (("stooq", _stooq_series(code)),
-                        ("yahoo", _yahoo_series(code)),
-                        ("finmind", _finmind_series(code, today)),
-                        ("twse", _twse_series(code, today))):
+    # 惰性呼叫（審查 2026-07-18）：tuple 字面值會在進迴圈前把四個來源全打一遍，
+    # 「依序取第一個」短路失效——每檔多發 ~5 個不必要請求。改存 callable 迴圈內才呼叫。
+    for src, fetch in (("stooq", lambda: _stooq_series(code)),
+                       ("yahoo", lambda: _yahoo_series(code)),
+                       ("finmind", lambda: _finmind_series(code, today)),
+                       ("twse", lambda: _twse_series(code, today))):
+        series = fetch()
         n = len(series)
         if n < 5 or _is_degenerate(series):           # 太短或髒（重複值）→ 換下一來源
             continue
@@ -478,6 +481,17 @@ def fetch() -> dict:
 
         # ③ 當月預估配息（僅取本月、除息日尚未到期者）：etfinfo 未揭露預告時，
         #    依序補 MOPS 公告 → 投信已公告人工清單 ANNOUNCED_EST（etfinfo/MOPS 皆抓不到時的可靠來源）。
+        # 沿用舊檔的預估值也要重新驗期（審查 2026-07-18）：etfinfo 斷源期間跨過除息日/跨月時，
+        # 過期的「預估 X*」不得繼續顯示（docstring 承諾「過月自動失效」）。
+        if item.get("est_div") is not None:
+            try:
+                _exd = (date.fromisoformat(item.get("est_div_date"))
+                        if item.get("est_div_date") else None)
+            except ValueError:
+                _exd = None
+            if not (_exd and _exd.year == today.year and _exd.month == today.month
+                    and _exd >= today):
+                item["est_div"], item["est_div_date"] = None, None
         if item.get("est_div") is None:
             for src_name, cand in (("mops", mops_dist.get(code)),
                                    ("announced", ANNOUNCED_EST.get(code))):
