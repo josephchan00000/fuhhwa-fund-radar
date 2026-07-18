@@ -51,6 +51,43 @@ def _mkt(tw_html: str, gl_html: str) -> str:
             f'<div class="mkt" data-mkt="gl">{gl_html}</div>')
 
 
+
+# ── SVG 線性圖標（取代 emoji：專業資訊站質感、列印/跨平台一致） ──
+_ICON_PATHS = {
+    "zap": '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+    "news": '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>'
+            '<polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>'
+            '<line x1="16" y1="17" x2="8" y2="17"/>',
+    "megaphone": '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+    "chart": '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>'
+             '<line x1="6" y1="20" x2="6" y2="14"/>',
+    "activity": '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+    "landmark": '<line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/>'
+                '<line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/>'
+                '<line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/>',
+    "clipboard": '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>'
+                 '<rect x="8" y="2" width="8" height="4" rx="1"/>'
+                 '<line x1="12" y1="11" x2="16" y2="11"/><line x1="12" y1="16" x2="16" y2="16"/>',
+    "calendar": '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>'
+                '<line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+    "clock": '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    "printer": '<polyline points="6 9 6 2 18 2 18 9"/>'
+               '<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>'
+               '<rect x="6" y="14" width="12" height="8"/>',
+    "moon": '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+    "bell": '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+    "coin": '<line x1="12" y1="1" x2="12" y2="23"/>'
+            '<path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+    "search": '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+}
+
+
+def _ic(name: str, plain: bool = False) -> str:
+    """區塊標題用「色底圖標章」（預設）；行內/按鈕用 plain（無底、隨文字色）。"""
+    svg = (f'<svg viewBox="0 0 24 24" aria-hidden="true">{_ICON_PATHS[name]}</svg>')
+    return f'<span class="ic{" plain" if plain else ""}">{svg}</span>'
+
+
 def _safe_url(u) -> str:
     """外部餵入的連結只放行 http(s)（審查 #6：RSS/PTT 來源可被污染成 javascript: URL）。"""
     u = str(u or "")
@@ -122,17 +159,20 @@ def _pct_span(v: float | None, digits: int = 2) -> str:
 # ── ⓪ Sticky 頂欄（含台股/全球切換） ─────────────────────────
 
 def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str:
-    lamp = "⚪ 尚無新聞"
-    if has_news:
-        lamp = ("🟢 合規掃描通過" if not banned_hits
-                else f'🔴 禁用詞：{"、".join(sorted(set(banned_hits)))}')
+    if not has_news:
+        lamp = '<span class="dot off"></span>尚無新聞'
+    elif not banned_hits:
+        lamp = '<span class="dot ok"></span>合規掃描通過'
+    else:
+        lamp = ('<span class="dot err"></span>禁用詞：'
+                + _esc("、".join(sorted(set(banned_hits)))))
     return f"""
 <div class="topbar">
   <div class="tb-in">
     <span class="tb-brand">復華基金雷達</span>
     <span class="mkswitch"><label class="mk" for="mkt-macro">總經</label><label class="mk" for="mkt-tw">台股</label><label class="mk" for="mkt-gl">全球</label><label class="mk" for="mkt-etf">ETF</label></span>
     <span class="tb-meta">持股基準 {_esc(as_of)}｜產表 {_esc(now)}</span>
-    <span class="tb-lamp">{_esc(lamp)}</span>
+    <span class="tb-lamp">{lamp}</span>
     <nav class="tb-nav tb-nav-fund">
       <a href="#brief">今日重點</a><a href="#news">新聞</a>
       <a href="#fundnews">基金新聞</a>
@@ -145,7 +185,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     <nav class="tb-nav tb-nav-etf">
       <a href="#etf-passive">被動 ETF</a><a href="#etf-active">主動 ETF</a>
     </nav>
-    <button class="tb-print" onclick="window.print()">🖨 晨會版</button>
+    <button class="tb-print" onclick="window.print()">{_ic("printer", plain=True)} 晨會版</button>
   </div>
 </div>"""
 
@@ -191,7 +231,7 @@ def _freshness_view(gen_stamp: str, sources: list[tuple[str, str | None, int | N
     sub = (f'<span class="stale-note">⚠ {len(stale)} 項資料逾期未更新（{"、".join(stale)}），'
            f'請跑「全部更新」或檢查 CI</span>' if stale
            else '各資料來源的更新時間標於各區塊標題列（皆台北時間）')
-    return (f'<div class="section" id="freshness"><div class="st">🕒 網頁更新時間　'
+    return (f'<div class="section" id="freshness"><div class="st">{_ic("clock")}網頁更新時間　'
             f'{_fresh_chip("網頁更新", gen_stamp, None, today, gen=True)} '
             f'<span class="stsub">{sub}</span></div></div>')
 
@@ -215,9 +255,9 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
         chips.append(f'<a class="chip" href="#fund-{_esc(worst["fund_id"])}">▼ 今日最弱：'
                      f'<b>{_esc(_short(worst["short_name"]))}</b> {_pct_span(worst["chg"])}</a>')
     if hol:
-        chips.append(f'<span class="chip halt">🔕 {_esc(hol)}</span>')
+        chips.append(f'<span class="chip halt">{_ic("bell", plain=True)} {_esc(hol)}</span>')
     for x in dists:
-        chips.append(f'<span class="chip">💰 {_esc(_short(x["short_name"]))} 配息基準日 '
+        chips.append(f'<span class="chip">{_ic("coin", plain=True)} {_esc(_short(x["short_name"]))} 配息基準日 '
                      f'{_esc(x["dist_date"])}</span>')
     return f'<div class="ixrow">{idx_cards}</div><div class="chips">{"".join(chips)}</div>'
 
@@ -243,7 +283,7 @@ def _premarket_card(pre_md: str) -> str:
     """今日重點內的盤前速覽卡：台指期夜盤／台積電 ADR／費半／盤前研判。"""
     if not pre_md:
         return ""
-    return (f'<div class="ngc premktc"><div class="ngt">⏱ 盤前速覽 '
+    return (f'<div class="ngc premktc"><div class="ngt">{_ic("clock", plain=True)} 盤前速覽 '
             f'<span class="stsub">昨夜外部訊號・開盤前參考</span></div>'
             f'<div class="ndoc premkt">{_md(pre_md)}</div></div>')
 
@@ -254,7 +294,7 @@ def _news_badges(etype: str | None, importance: int | None) -> str:
     """新聞卡徽章：事件屬性（新事件/延伸/深度）＋重要度（依分數變色）。皆缺回空字串。"""
     out = ""
     if etype in ("new", "ext", "deep"):
-        label = {"new": "🆕 新事件", "ext": "↪ 延伸", "deep": "📚 深度"}[etype]
+        label = {"new": "新事件", "ext": "延伸", "deep": "深度"}[etype]
         out += f'<span class="netype {etype}">{label}</span>'
     if isinstance(importance, int):
         band = "hi" if importance >= 9 else ("mid" if importance >= 7 else "lo")
@@ -391,7 +431,7 @@ def _macro_cal_view(cal: dict | None) -> str:
     earn_rows = [r for r in cal["rows"] if r.get("region") == "財報"]
     html = note_html + _cal_table_html(data_rows, with_region=True)
     if earn_rows:
-        html += ('<div class="calsub">📊 重要財報／法說</div>'
+        html += (f'<div class="calsub">{_ic("chart", plain=True)} 重要財報／法說</div>'
                  + _cal_table_html(earn_rows, with_region=False))
     if any(str(r.get("cons") or "").strip().endswith("*") for r in cal["rows"]):
         html += ('<div class="calfoot">預期欄標 <sup class="estmk">*</sup> 者為'
@@ -757,7 +797,7 @@ def _fundnews_view(doc: dict | None) -> str:
 
     hls = doc.get("highlights") or []
     if hls:
-        parts.append('<div class="fnhl"><div class="fnhlt">🔎 本週看點</div><ul class="ngpts">'
+        parts.append(f'<div class="fnhl"><div class="fnhlt">{_ic("search", plain=True)} 本週看點</div><ul class="ngpts">'
                      + "".join(f'<li>{_esc(h)}</li>' for h in hls) + '</ul></div>')
 
     brand = doc.get("brand") or []
@@ -815,6 +855,12 @@ html{scroll-behavior:smooth;scroll-padding-top:64px}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif}
 a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5px;color:var(--accd)}
 .wrap{max-width:1240px;margin:0 auto;padding:14px 18px 60px}
+/* SVG 圖標：區塊標題色底章＋行內 plain */
+.ic{display:inline-flex;align-items:center;justify-content:center;width:27px;height:27px;
+  border-radius:8px;background:rgba(37,99,201,.1);color:var(--accd);flex:0 0 auto}
+.ic svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ic.plain{background:none;width:16px;height:16px;color:inherit;vertical-align:-2px}
+.ic.plain svg{width:14px;height:14px}
 .section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:16px 0;box-shadow:0 1px 3px rgba(30,50,90,.07)}
 .section>.st,.newswrap .st{font-weight:700;font-size:17px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .stsub{font-weight:400;font-size:12px;color:var(--mut)}
@@ -832,24 +878,27 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 #mkt-macro:checked ~ .topbar .tb-nav-fund,#mkt-etf:checked ~ .topbar .tb-nav-fund{display:none}
 #mkt-tw:checked ~ .topbar .tb-nav-macro,#mkt-gl:checked ~ .topbar .tb-nav-macro,#mkt-etf:checked ~ .topbar .tb-nav-macro{display:none}
 #mkt-macro:checked ~ .topbar .tb-nav-etf,#mkt-tw:checked ~ .topbar .tb-nav-etf,#mkt-gl:checked ~ .topbar .tb-nav-etf{display:none}
-.mkswitch{display:flex;gap:0;border:1px solid var(--acc);border-radius:10px;overflow:hidden}
-.mk{background:var(--card2);color:var(--accd);border:0;padding:7px 18px;cursor:pointer;font-size:15px;font-weight:800;user-select:none}
-.mk+.mk{border-left:1px solid var(--acc)}
+.mkswitch{display:flex;gap:0;border:1px solid #35496b;border-radius:9px;overflow:hidden}
+.mk{background:transparent;color:#b9c6da;border:0;padding:7px 18px;cursor:pointer;font-size:14.5px;font-weight:700;user-select:none;transition:background .15s}
+.mk+.mk{border-left:1px solid #35496b}
 .mk:hover{background:rgba(47,111,208,.12)}
 #mkt-macro:checked ~ .topbar .mk[for="mkt-macro"],
 #mkt-tw:checked ~ .topbar .mk[for="mkt-tw"],
 #mkt-gl:checked ~ .topbar .mk[for="mkt-gl"],
 #mkt-etf:checked ~ .topbar .mk[for="mkt-etf"]{background:var(--acc);color:#fff}
 /* ⓪ topbar */
-.topbar{position:sticky;top:0;z-index:50;background:rgba(248,250,253,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topbar{position:sticky;top:0;z-index:50;background:#16233a;border-bottom:1px solid #0d1626;box-shadow:0 1px 6px rgba(10,20,40,.25)}
 .tb-in{max-width:1240px;margin:0 auto;padding:9px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.tb-brand{font-weight:800;font-size:15px}
-.tb-meta{color:var(--mut);font-size:11.5px}
-.tb-lamp{font-size:11.5px;color:var(--mut)}
+.tb-brand{font-weight:800;font-size:15.5px;color:#fff;letter-spacing:.03em}
+.tb-meta{color:#8fa1bd;font-size:11.5px}
+.tb-lamp{font-size:11.5px;color:#b9c6da;display:inline-flex;align-items:center;gap:5px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot.ok{background:#34c07c;box-shadow:0 0 5px rgba(52,192,124,.7)}
+.dot.err{background:#e5534b}.dot.off{background:#8fa1bd}
 .tb-nav{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
-.tb-nav a{color:var(--accd);text-decoration:none;font-size:14px;padding:5px 12px;border-radius:8px;background:var(--card2);border:1px solid var(--line)}
-.tb-nav a:hover{color:var(--acc);border-color:var(--acc);background:rgba(47,111,208,.1)}
-.tb-print{background:var(--card2);color:var(--accd);border:1px solid var(--line);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:13.5px}
+.tb-nav a{color:#d7e0ee;text-decoration:none;font-size:13.5px;padding:5px 13px;border-radius:7px;background:rgba(255,255,255,.07);border:1px solid #2c3e5c;transition:background .15s,border-color .15s}
+.tb-nav a:hover{background:rgba(47,111,208,.35);border-color:var(--acc);color:var(--acc);border-color:var(--acc);background:rgba(47,111,208,.1)}
+.tb-print{background:rgba(255,255,255,.07);color:#d7e0ee;border:1px solid #2c3e5c;border-radius:7px;padding:5px 13px;cursor:pointer;font-size:13.5px;display:inline-flex;align-items:center;gap:6px}
 .tb-print:hover{border-color:var(--acc);color:var(--acc)}
 /* ① brief */
 .ixrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
@@ -857,7 +906,7 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 .ixl{font-size:12px;color:var(--mut)} .ixv{font-size:21px;font-weight:800;letter-spacing:.01em}
 .ixp{font-size:13px}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
-.chip{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:8px 15px;font-size:14px;color:var(--ink);text-decoration:none}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:7px 13px;font-size:14px;color:var(--ink);text-decoration:none}
 .chip b{font-weight:700} .chip.hot{border-color:var(--acc);background:rgba(47,111,208,.1)}
 .chip.dim{color:var(--mut)}
 .chip.stale{border-color:#c62828;background:rgba(198,40,40,.08);color:#c62828;font-weight:700}
@@ -921,7 +970,7 @@ a.tk:hover{color:var(--acc)}
   radial-gradient(farthest-side at 0 50%,rgba(40,60,100,.14),transparent) left/14px 100%,
   radial-gradient(farthest-side at 100% 50%,rgba(40,60,100,.14),transparent) right/14px 100%;
   background-repeat:no-repeat;background-attachment:local,local,scroll,scroll}
-.ovtbl{width:100%;border-collapse:collapse;font-size:14.5px}
+.ovtbl{width:100%;border-collapse:collapse;font-size:14.5px;font-variant-numeric:tabular-nums}
 .ovtbl th{color:var(--mut);font-size:12.5px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .ovtbl th.l{text-align:left}
 .ovtbl th.sk{cursor:pointer;user-select:none} .ovtbl th.sk:hover{color:var(--acc)}
@@ -961,11 +1010,11 @@ a.tk:hover{color:var(--acc)}
 .nim{color:var(--mut);font-size:12px}
 .nhead .nlone{margin:0}
 .nbadges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1px}
-.netype{font-size:11px;font-weight:700;padding:1px 8px;border-radius:6px;white-space:nowrap;border:1px solid}
+.netype{font-size:11px;font-weight:700;padding:1.5px 8px;border-radius:5px;white-space:nowrap;border:1px solid;letter-spacing:.03em}
 .netype.new{color:var(--acc);background:rgba(47,111,208,.12);border-color:rgba(47,111,208,.4)}
 .netype.ext{color:var(--mut);background:rgba(138,127,107,.12);border-color:rgba(138,127,107,.35)}
 .netype.deep{color:#7b4fa0;background:rgba(123,79,160,.10);border-color:rgba(123,79,160,.4)}
-.nsev{font-size:11px;font-weight:800;padding:1px 8px;border-radius:6px;white-space:nowrap;border:1px solid}
+.nsev{font-size:11px;font-weight:800;padding:1.5px 8px;border-radius:5px;white-space:nowrap;border:1px solid;letter-spacing:.03em}
 .nsev.hi{color:#fff;background:#c8760f;border-color:#c8760f}
 .nsev.mid{color:#8a5410;background:rgba(200,118,15,.16);border-color:rgba(200,118,15,.5)}
 .nsev.lo{color:var(--mut);background:rgba(138,127,107,.1);border-color:rgba(138,127,107,.3)}
@@ -1004,7 +1053,7 @@ a.tk:hover{color:var(--acc)}
 .calnote .cnlist li{position:relative;padding-left:17px;margin:5px 0}
 .calnote .cnlist li:before{content:"›";position:absolute;left:2px;top:-1px;color:#c8760f;font-weight:800}
 .calnote .cnlist li:first-child{font-weight:700}
-.caltbl{width:100%;border-collapse:collapse;font-size:14.5px}
+.caltbl{width:100%;border-collapse:collapse;font-size:14.5px;font-variant-numeric:tabular-nums}
 .caltbl th{color:var(--mut);font-size:12.5px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .caltbl th.l{text-align:left}
 .caltbl td{padding:8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:top}
@@ -1295,24 +1344,24 @@ def render() -> str:
     # 使用者指示 2026-07-04：全球重點不要出現數據漲跌幅——一律於下方新聞以官方為準呈現）
     b_gl = _brief_view([], *fund_insights.movers(gl_funds),
                        fund_insights.upcoming_distributions(gl_funds), hol)
-    sec_brief = (f'<div class="section" id="brief"><div class="st">⚡ 今日重點 '
+    sec_brief = (f'<div class="section" id="brief"><div class="st">{_ic("zap")}今日重點 '
                  f'<span class="stsub">（{_esc((tw or news or {}).get("date") or "—")} 更新）</span></div>'
                  f'{_mkt(b_tw, b_gl)}</div>')
 
     # ② 新聞（重點＋全文合併，逐則收合）
     tw_hint = "尚無台股新聞。請執行 <code>python scripts/gen_twnews.py</code>。"
     gl_hint = "尚無昨夜美股新聞。請執行 <code>python scripts/gen_usnews.py</code>。"
-    sec_news = (f'<div class="section" id="news"><div class="st">🗞️ 新聞 '
+    sec_news = (f'<div class="section" id="news"><div class="st">{_ic("news")}新聞 '
                 f'{_fresh_chip("台股新聞", tw_date, 3)}{_fresh_chip("美股新聞", us_date, 3)} '
                 f'<span class="stsub">點各則展開看摘要／影響分析／原文連結（預設收合）</span></div>'
-                f'{_mkt(_news_view(tw_md_news, tw_hint), _news_view(us_md, gl_hint, ("🌙 昨夜美股總覽", "指數概況與市場解析・點位以官方為準")))}</div>')
+                f'{_mkt(_news_view(tw_md_news, tw_hint), _news_view(us_md, gl_hint, (_ic("moon", plain=True) + " 昨夜美股總覽", "指數概況與市場解析・點位以官方為準")))}</div>')
 
     # 總經・政策分頁（川普政策／Fed／國際政策；左上「總經」分頁專屬視圖）
     mac_n, mac_top = _sev(macro_md)
     mac_sub = (f'川普政策／Fed／國際政策・今日 {mac_n} 則政策事件（最高 {mac_top} 分）'
                if mac_n else '川普政策／Fed／國際政策・點各則展開看影響分析')
     mac_hint = "尚無總經／政策新聞。請執行 <code>python scripts/gen_macronews.py</code>。"
-    sec_macro_cal = (f'<div class="section" id="macro-cal"><div class="st">📅 本週重點財經行事曆 '
+    sec_macro_cal = (f'<div class="section" id="macro-cal"><div class="st">{_ic("calendar")}本週重點財經行事曆 '
                      f'{_fresh_chip("更新", cal_date, 8)} '
                      f'<span class="stsub">預期／已公布實際值／未公布・美股休市另標</span></div>'
                      f'{_macro_cal_view(cal)}</div>')
@@ -1320,18 +1369,18 @@ def render() -> str:
     # 「今日重點」與「新聞」）；總覽卡自新聞頭段抽出、新聞區只留逐則卡
     mac_head, _, _ = usnews.split_doc(macro_md or "")
     mac_ov = _extract_overview(mac_head)
-    sec_macro_ov = (f'<div class="section" id="macro-ov"><div class="st">📋 政策總覽 '
+    sec_macro_ov = (f'<div class="section" id="macro-ov"><div class="st">{_ic("clipboard")}政策總覽 '
                     f'{_fresh_chip("更新", mac_date, 3)} '
                     f'<span class="stsub">Fed／美政府／國際政策・前後 24 小時</span></div>'
                     f'<div class="ngc"><div class="ndoc premkt">{_md(mac_ov)}</div></div>'
                     f'</div>') if mac_ov else ""
-    sec_macro = (f'<div class="section" id="macro"><div class="st">🏛️ 政策新聞 '
+    sec_macro = (f'<div class="section" id="macro"><div class="st">{_ic("landmark")}政策新聞 '
                  f'{_fresh_chip("更新", mac_date, 3)} '
                  f'<span class="stsub">{mac_sub}</span></div>'
                  f'{_news_view(macro_md, mac_hint)}</div>')
 
     # ETF 數據追蹤分頁（被動／主動台股 ETF 週績效表；左上「ETF」分頁專屬視圖）
-    sec_etf = (f'<div class="section" id="etfwatch"><div class="st">📡 ETF 數據追蹤 '
+    sec_etf = (f'<div class="section" id="etfwatch"><div class="st">{_ic("activity")}ETF 數據追蹤 '
                f'{_fresh_chip("資料基準", etf_asof, 10)} '
                f'<span class="stsub">台股被動（高股息／市值型）＋主動式 ETF・收盤／規模／成立／週月報酬／'
                f'最近一次配息金額／換算年化配息率／分配頻率・點欄位標題可排序</span></div>'
@@ -1340,7 +1389,7 @@ def render() -> str:
     # ②b 基金相關新聞・社群（品牌動態＋各基金新聞＋PTT 聲量；讀 data/fund_news.json）
     fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋財經RSS＋PTT 自動擷取'
               if fn_doc else '品牌動態／各基金新聞／PTT 聲量')
-    sec_fnews = (f'<div class="section" id="fundnews"><div class="st">📣 基金相關新聞・社群 '
+    sec_fnews = (f'<div class="section" id="fundnews"><div class="st">{_ic("megaphone")}基金相關新聞・社群 '
                  f'{_fresh_chip("更新", fn_asof, 3)} '
                  f'<span class="stsub">{_esc(fn_sub)}</span></div>'
                  f'{_fundnews_view(fn_doc)}</div>')
@@ -1354,7 +1403,7 @@ def render() -> str:
                 "多期報酬暫為官網月底基準（鉅亨每日覆蓋待 CI 接上）")
     o_tw = _overview_view(rows_tw, leaders, tw_pend)
     o_gl = _overview_view(rows_gl, leaders, gl_pend)
-    sec_over = (f'<div class="section" id="overview"><div class="st">📊 基金總覽 '
+    sec_over = (f'<div class="section" id="overview"><div class="st">{_ic("chart")}基金總覽 '
                 f'{_fresh_chip("NAV 日", nav_date, 6)}{_fresh_chip("持股基準", hold_asof, 45)}'
                 f'{_fresh_chip("快照抓取", fetched_at, 3)}{ret_chip} '
                 f'<span class="stsub">粉紅底＝同組同欄前二名・點欄位標題可排序・{ret_note}・'
