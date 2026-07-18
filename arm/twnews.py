@@ -38,6 +38,7 @@ SPEC_POST = f"""【版型：台股盤後重點】
 
 {usnews.ETYPE_RULE}
 {usnews.SEV_RUBRIC}
+{usnews.HILITE_RULE}
 
 版面：
   🔹指數速覽（加權指數、櫃買指數各 1 句：收盤點位＋漲跌幅；可補電子/金融類股；
@@ -66,6 +67,7 @@ SPEC_PRE = f"""【版型：台股盤前重點】
 
 {usnews.ETYPE_RULE}
 {usnews.SEV_RUBRIC}
+{usnews.HILITE_RULE}
 
 版面：
   🔹盤前速覽（台指期夜盤點位＋漲跌、台積電 ADR、費半昨夜表現各 1 句；
