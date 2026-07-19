@@ -93,6 +93,11 @@ jobs:
       - name: 安裝相依（純標準庫 + certifi）
         run: pip install certifi
 
+      - name: 高風險數字事實核對（對證交所／期交所官方 API；🔴＝擋下不發佈）
+        # 2026-07-20 使用者指示：數字必須正確。抽報告中「句內含日期」的指數／法人金額／
+        # 期貨淨額，與官方比對；官方不可得（⚪）不擋，只有確認不符（🔴）才 fail。
+        run: TZ=Asia/Taipei python3 scripts/check_numbers.py
+
       - name: 跑每日 routine（抓持股介紹 + 產新聞提示包 + 重建儀表板）
         run: bash scripts/daily_fund.sh
 
