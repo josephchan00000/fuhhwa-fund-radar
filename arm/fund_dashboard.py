@@ -776,10 +776,15 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
     conc = fund_intro.top_concentration(doc)
     conc_s = f"{conc}%" if conc is not None else "—"
     return f"""
-<section class="fund" id="fund-{_esc(doc.get('fund_id'))}">
+<details class="fund" id="fund-{_esc(doc.get('fund_id'))}" data-name="{_esc(doc.get('name'))}"
+  data-group="{_esc(doc.get('group_label'))}">
+  <summary class="fsum">
+    <span class="fsum-l"><b>{_esc(doc.get('name'))}</b> <span class="gl">{_esc(doc.get('group_label'))}</span></span>
+    <span class="fsum-r">NAV {_esc(doc.get('nav') if doc.get('nav') is not None else '—')}
+      {_pct_span(chg)}<span class="openbtn2"></span></span>
+  </summary>
   <div class="fhead">
     <div>
-      <h2>{_esc(doc.get('name'))} <span class="gl">{_esc(doc.get('group_label'))}</span></h2>
       <div class="sub">{_esc(doc.get('category'))}｜主要區域 {_esc(doc.get('region') or '—')}｜
         風險 {_esc(doc.get('risk_level') or '—')}｜經理費 {_esc(doc.get('mgmt_fee') or '—')}｜
         經理人 {_esc('、'.join(doc.get('managers') or []) or '—')}</div>
@@ -803,20 +808,24 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
       {_holdings_table(doc, linked_names)}
     </div>
   </div>
-</section>"""
+</details>"""
 
 
 def _pending_card(p: dict) -> str:
     note = ("本基金為組合型（fund-of-funds），官網「十大持有標的」揭露結構不同；"
             if p["fund_id"] == "79" else "")
     return f"""
-<section class="fund pendcard" id="fund-{_esc(p['fund_id'])}">
+<details class="fund pendcard" id="fund-{_esc(p['fund_id'])}" data-name="{_esc(p['name'])}"
+  data-group="{_esc(p['group_label'])}">
+  <summary class="fsum">
+    <span class="fsum-l"><b>{_esc(p['name'])}</b> <span class="gl">{_esc(p['group_label'])}</span></span>
+    <span class="fsum-r">數據待抓取<span class="openbtn2"></span></span>
+  </summary>
   <div class="fhead"><div>
-    <h2>{_esc(p['name'])} <span class="gl">{_esc(p['group_label'])}</span></h2>
     <div class="sub">⏳ 已列入追蹤，數據待抓取——{note}
       請執行 <code>python3 scripts/fetch_holdings.py {_esc(p['fund_id'])}</code> 後重產儀表板。</div>
   </div></div>
-</section>"""
+</details>"""
 
 
 def _details_block(funds: list[dict], gavg: dict, linked_by_fund: dict[str, set[str]],
@@ -903,7 +912,7 @@ _CSS = """
 --line:#e2e7ef;--c1:#3b82f6;--c2:#c2740e;--gain:#d33a34;--loss:#1f9d57;--acc:#2563c9;
 --accd:#1c4fa8;--ink2:#44505f;--inset:#eef2f8;--hl:#153a7a;--hlbg:#dce7fa;--gold:#a16207}
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:64px}
+html{scroll-behavior:smooth;scroll-padding-top:var(--tbh,64px)}
 body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.7 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif}
 /* 抓重點段落小標（新聞卡「對持股／族群影響」式標籤，全站統一） */
 .klabel{display:inline-block;color:var(--accd);font-weight:700;letter-spacing:.02em;margin-right:8px}
@@ -1092,6 +1101,7 @@ a.tk:hover{color:var(--acc)}
 .openbtn2{margin-left:auto;flex:0 0 auto;color:var(--accd);font-size:12.5px;font-weight:700;white-space:nowrap;padding-top:2px}
 .openbtn2::after{content:"▼ 展開"}
 .newsone[open] .openbtn2::after{content:"▲ 收合"}
+.fund[open]>.fsum .openbtn2::after{content:"▲ 收合"}
 .nibody{border:0;border-radius:0;margin:0;padding:2px 22px 16px}
 .nibody>*:first-child{margin-top:8px}
 .newsbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0 12px}
@@ -1158,8 +1168,30 @@ a.tk:hover{color:var(--acc)}
 #details{padding:12px 18px}
 #details .st{margin-bottom:0}
 .pendcard .sub{line-height:1.9}
-.fund{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:12px;box-shadow:0 1px 3px rgba(30,50,90,.07)}
+.fund{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:0;margin-top:12px;box-shadow:0 1px 3px rgba(30,50,90,.07)}
 .fund:target{border-color:var(--acc);box-shadow:0 0 0 2px rgba(47,111,208,.3)}
+.fund>*:not(summary){margin-left:18px;margin-right:18px}
+.fund>*:last-child{padding-bottom:18px}
+/* 詳情卡預設收合（2026-07-20 使用者指示）：summary 一行＝名稱＋NAV＋漲跌 */
+.fsum{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:12px;
+  align-items:center;padding:13px 18px;flex-wrap:wrap}
+.fsum::-webkit-details-marker{display:none}
+.fsum:hover{background:rgba(47,111,208,.05);border-radius:14px}
+.fund[open]>.fsum{border-bottom:1px solid var(--line);margin-bottom:12px}
+.fsum-l b{font-size:17px}
+.fsum-r{display:flex;gap:10px;align-items:center;font-size:14.5px;color:var(--ink2);white-space:nowrap;
+  font-variant-numeric:tabular-nums;margin-left:auto}
+.fund.fhide{display:none}
+/* 詳情篩選列 */
+.fundbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.fundbar #fsearch{flex:1;min-width:170px;max-width:330px;border:1px solid var(--line);border-radius:9px;
+  padding:7px 12px;font-size:14.5px;background:var(--card2);color:var(--ink)}
+.fundbar #fsearch:focus{outline:none;border-color:var(--acc)}
+.fgchips{display:flex;gap:5px}
+.fg,.fexp{background:var(--card2);color:var(--accd);border:1px solid var(--line);border-radius:18px;
+  padding:5px 13px;cursor:pointer;font-size:13.5px;font-weight:700}
+.fg:hover,.fexp:hover{border-color:var(--acc)}
+.fg.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 .fhead{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}
 .fhead h2{font-size:19px;margin:0 0 4px} .gl{display:inline-block;white-space:nowrap;font-size:12px;color:#fff;background:var(--acc);padding:2px 8px;border-radius:20px;vertical-align:middle}
 .sub{color:var(--mut);font-size:12.5px} .oneline{margin-top:6px;font-size:13.5px;color:var(--accd)}
@@ -1282,11 +1314,38 @@ function setMkt(m){document.getElementById('mkt-'+m).checked=true;
 document.querySelectorAll('.mkradio').forEach(r=>r.addEventListener('change',()=>{
   try{localStorage.setItem('mkt',curMkt())}catch(e){}}));
 (function(){try{const m=localStorage.getItem('mkt');if(m)setMkt(m)}catch(e){}})();
+// 錨點捲動精準化：sticky 頂欄在窄幕會折 2~3 行，固定 64px 偏移會蓋住目標——
+// 量實際高度寫入 --tbh（載入/縮放/分頁切換都重算）
+(function(){const tb=document.querySelector('.topbar');
+  const sync=()=>document.documentElement.style.setProperty('--tbh',((tb?tb.offsetHeight:54)+10)+'px');
+  sync();addEventListener('resize',sync);
+  document.querySelectorAll('.mkradio').forEach(r=>r.addEventListener('change',()=>setTimeout(sync,60)));})();
+// 詳情卡預設收合：從總覽/連結點過去（#fund-xx）→ 自動展開該卡（2026-07-20 使用者指示）
+function openFund(id){const el=document.getElementById(id);
+  if(el&&el.tagName==='DETAILS')el.open=true;return el}
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>{
-  const el=document.querySelector(a.getAttribute('href'));
+  const href=a.getAttribute('href');
+  const el=href.startsWith('#fund-')?openFund(href.slice(1)):document.querySelector(href);
   const mv=el&&el.closest('.mkt');
   if(mv&&mv.dataset.mkt!==curMkt())setMkt(mv.dataset.mkt);
 }));
+if(location.hash.startsWith('#fund-'))openFund(location.hash.slice(1));
+addEventListener('hashchange',()=>{if(location.hash.startsWith('#fund-'))openFund(location.hash.slice(1))});
+// 詳情篩選列：名稱關鍵字＋類型 chips＋全部展開/收合
+(function(){const q=document.getElementById('fsearch');if(!q)return;
+  let g='';
+  const apply=()=>{const kw=q.value.trim().toLowerCase();
+    document.querySelectorAll('.fund').forEach(f=>{
+      const okKw=!kw||(f.dataset.name||'').toLowerCase().includes(kw);
+      const okG=!g||(f.dataset.group||'').includes(g);
+      f.classList.toggle('fhide',!(okKw&&okG));});};
+  q.addEventListener('input',apply);
+  document.querySelectorAll('.fg').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('.fg').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');g=b.dataset.g||'';apply();});
+  const exp=document.getElementById('fexp'),col=document.getElementById('fcol');
+  if(exp)exp.onclick=()=>document.querySelectorAll('.fund:not(.fhide)').forEach(f=>f.open=true);
+  if(col)col.onclick=()=>document.querySelectorAll('.fund').forEach(f=>f.open=false);})();
 // 美股 v1/v2 版型切換
 document.querySelectorAll('.nb').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));b.classList.add('on');
@@ -1491,7 +1550,15 @@ def render() -> str:
     c_gl = _details_block(gl_funds, gavg, linked_by_fund, gl_pend)
     sec_det = (f'<div class="section" id="details"><div class="st">{_ic("book", tone="navy")}基金詳情 '
                f'{_fresh_chip("NAV 日", nav_date, 6)}{_fresh_chip("持股基準", hold_asof, 45)} '
-               f'<span class="stsub">績效格「●」＝高於同組平均</span></div></div>'
+               f'<span class="stsub">預設收合・點卡片展開；績效格「●」＝高於同組平均</span></div>'
+               f'<div class="fundbar">{_ic("search", plain=True)}'
+               f'<input id="fsearch" type="search" placeholder="輸入基金名稱關鍵字篩選…">'
+               f'<span class="fgchips"><button class="fg on" data-g="">全部</button>'
+               f'<button class="fg" data-g="股票">股票型</button>'
+               f'<button class="fg" data-g="平衡">平衡型</button>'
+               f'<button class="fg" data-g="組合">組合型</button></span>'
+               f'<button class="fexp" id="fexp">全部展開</button>'
+               f'<button class="fexp" id="fcol">全部收合</button></div></div>'
                f'{_mkt(c_tw, c_gl)}')
 
     return f"""<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
