@@ -13,11 +13,13 @@ name: 復華基金追蹤版本 每日 routine
 #  且權杖約一天過期；如日後要「新聞也全自動」，需改用計量 API 金鑰 ANTHROPIC_API_KEY。）
 #
 # 排程：台北時間週一~六 06:50（= UTC 前一日 22:50），讓 7:00 前跑完、打開即最新。可手動 workflow_dispatch。
-# 註：GitHub cron 以 UTC 計；06:50(台北, UTC+8) = 前一日 22:50 UTC，故台北週一~六 → UTC 週日~五（0-5）。
+# 註：GitHub cron 以 UTC 計；07:15(台北, UTC+8) = 前一日 23:15 UTC，故台北週一~六 → UTC 週日~五（0-5）。
+# 排程 Routine（台北 06:35 火進主會話）為主要更新路徑；此 cron 是「事後兜底」——
+# Routine 失敗時 07:15 仍以 main 現有（或分支已推的）新聞重刷真實資料，頁面不至於整天停擺。
 
 on:
   schedule:
-    - cron: "50 22 * * 0-5"
+    - cron: "15 23 * * 0-5"
   # claude/** 分支 push 且動到 reports/** → 自動以該分支為 news_ref 跑單一 commit 流程。
   # 這讓「排程 Routine 的新會話」只需 git push 即可觸發（該類會話無 GitHub MCP 工具可用）。
   push:
