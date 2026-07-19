@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/20 07:07",
+  "as_of": "2026/07/20 07:44",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -176,7 +176,22 @@
       "short_names": [
         "復華"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "00409A 復華全球未來50主動式ETF ｜成分股？配息？優缺點？募集時間？",
+          "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxPZmFiRVpWdm1rVXN6RHNRSGI4aF9Ga0RScjV0WS1tS3VUU05MMlVkZEh0WkN5ZDBwQ0J2dDdJNnctR0g5TW1mdW5xd291dFVrOGFqcjV2em5TaHg3bjVrYTNQV2NfVUNsVFF0c25pdzYyVW1ydWVzQWhxSFVUMWxXRkQ1d2hpRURQa0s2ZzlFVGlmMElxMWprc3d2YzREdXlaaTV5TGdPZXVXRXBWdzFkSVowMi13X2JDN2NtOEJoRGxvZw?oc=5",
+          "source": "StockFeel 股感",
+          "date": "2026-07-16 17:30",
+          "datetime": "2026-07-16T17:30:57+08:00"
+        },
+        {
+          "title": "00991A 復華台灣未來 50 主動式 ETF｜成分股？配息？優缺點？",
+          "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxOVzM4UlBkcHpPQlBZOU1rRlpMdHJ1MXpsdXAxbDNDams3YUJCSjRsTXdMemtzRjFyWTZ1dFNzZ0IxOFpxVUF3Tm1TZnUyUXh6ampMcEFpY2RvVnQyX1JGYjBWMGdWUWt4MThlTWFiNEQwWEhsRGlvTUN0YTUwRXNicDVoVG9RQUJrUjFfeDJFNUI0bDN1RG9ienRoNzNib1FUYURGN3hRbG1fN1Z6LUY3cTJQLTB0UGs4dzBRUktTc3A3QQ?oc=5",
+          "source": "StockFeel 股感",
+          "date": "2026-07-13 15:00",
+          "datetime": "2026-07-13T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華高成長基金",
@@ -319,7 +334,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技、全球平衡、數位經濟、傳家 等 7 檔（詳下方各基金新聞）",
+    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技、全球平衡、、數位經濟 等 8 檔（詳下方各基金新聞）",
     "品牌焦點：復華投信繼00991A 再推出復華全球未來50主動式 ETF（經濟日報）"
   ]
 }
