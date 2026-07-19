@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/18 20:36",
+  "as_of": "2026/07/19 06:19",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -11,18 +11,11 @@
       "datetime": "2026-07-16T17:30:57+08:00"
     },
     {
-      "title": "挖掘全球 AI 產業贏家 主動復華全球50 00409A 8月12日開募",
-      "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE1vNzZVckNjc3A1MnhEd1hXbTA3a1hvZEhhVjFLVFBYOVNzanFfWndEcHJxNVpUc0xiOUlhVG1LS1hpaDhyY1ljWUszOGNVLXBFMmhRRUZZdWI3QdIBX0FVX3lxTFBfZS1mdGdsT19lOUlRTzkzVkJBejBNUzNlX2tJOENPTUdPdjdvZ2NQVm5uQzZwTlhUSDZwa29ZT3I3WnJPV0JRWEl4ZkJDT0U0TkdWcWZtLTlCVXVpVXY0?oc=5",
-      "source": "經濟日報",
-      "date": "2026-07-16 17:00",
-      "datetime": "2026-07-16T17:00:00+08:00"
-    },
-    {
-      "title": "復華投信繼00991A 再推出復華全球未來50主動式 ETF",
-      "url": "https://news.google.com/rss/articles/CBMieEFVX3lxTE5nY1FZZHI2TDI1V1A2Vm9uSkNST3JJR29BUFNYT3c4WkhuNFItVGlsV2QzR1hWd0RkVDRyeGNXYWg2c0pNQVV5QUY1YjVTTVNtTWdZUWlUVmVOS3NRSkxHQi1XQjhJNW51bnJXTHlHa2ZCZDZiajEtbdIBX0FVX3lxTE9YRnhvWHA5bENHR2kwNGJaaDlNdUp3ZVltUExHVXlVOW5sLUdSWWQwRjgyVXRaaDdNUzFLZU1wWnVkS0x6LVV0SUZyUHhIaXpLekpRQk9BSzNzT3RseEdj?oc=5",
-      "source": "經濟日報",
-      "date": "2026-07-15 17:00",
-      "datetime": "2026-07-15T17:00:00+08:00"
+      "title": "復華投信繼00991A 再推出復華全球未來50主動式ETF",
+      "url": "https://news.google.com/rss/articles/CBMiU0FVX3lxTE1Zai1tMkNlTXprc19hSmJWSHlyS20xZ0k1LWc1U01VUzNZamJFZFRKWTRiaEVtQmdJWnhSRlVENDVJdmE2VUMtQTFuX2V4WEdJLVQ40gFYQVVfeXFMTllfZTZOaUJ1cmxpWW1aYmNsZDdEYkhCeC1JSE5hUmFxQ1dBd2FYbU1GdjlQYUN0dUM0VFVmWjNkdk1CS2RzcXJ3Z2JKOG9oYzJEdGltMlVQcQ?oc=5",
+      "source": "UDN",
+      "date": "2026-07-15 22:03",
+      "datetime": "2026-07-15T22:03:23+08:00"
     }
   ],
   "funds": [
