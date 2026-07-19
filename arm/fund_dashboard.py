@@ -282,12 +282,13 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
     return f'<div class="ixrow">{idx_cards}</div><div class="chips">{"".join(chips)}</div>'
 
 
-_PREMKT_HEAD = re.compile(r"^##\s*🔹?\s*盤前速覽")
+_PREMKT_HEAD = re.compile(r"^##\s*🔹?\s*盤[前後]速覽")
 
 
 def _extract_premarket(md: str) -> tuple[str, str]:
-    """抽出台股新聞的「## 🔹盤前速覽」段（改置今日重點），回 (段落內文, 移除後全文)。
-    盤後版無此段 → 回 ("", 原文)，今日重點不多出空卡。"""
+    """抽出台股新聞的「## 🔹盤前速覽／盤後速覽」段（改置今日重點），回 (段落內文, 移除後全文)。
+    （2026-07-19 踩坑：週末/盤後版標題是「盤後速覽」，只認盤前會讓今日重點整段空白。）
+    無此段 → 回 ("", 原文)，今日重點不多出空卡。"""
     lines = (md or "").splitlines()
     s = next((i for i, l in enumerate(lines) if _PREMKT_HEAD.match(l.strip())), None)
     if s is None:
@@ -299,12 +300,13 @@ def _extract_premarket(md: str) -> tuple[str, str]:
     return body, rest
 
 
-def _premarket_card(pre_md: str) -> str:
-    """今日重點內的盤前速覽卡：台指期夜盤／台積電 ADR／費半／盤前研判。"""
+def _premarket_card(pre_md: str, title: str = "盤前速覽") -> str:
+    """今日重點內的市場速覽卡（盤前／盤後依報告模式）：台指期夜盤／ADR／費半／研判。"""
     if not pre_md:
         return ""
-    return (f'<div class="ngc premktc"><div class="ngt">{_ic("clock", plain=True)} 盤前速覽 '
-            f'<span class="stsub">昨夜外部訊號・開盤前參考</span></div>'
+    sub = "昨夜外部訊號・開盤前參考" if title == "盤前速覽" else "收盤定稿與最新價格訊號"
+    return (f'<div class="ngc premktc"><div class="ngt">{_ic("clock", plain=True)} {title} '
+            f'<span class="stsub">{sub}</span></div>'
             f'<div class="ndoc premkt">{_md(pre_md)}</div></div>')
 
 
@@ -1386,9 +1388,10 @@ def render() -> str:
 
     # ① 今日重點（雙視圖）；台股盤前速覽自新聞頭段抽出、直接顯示於此（不再埋於收合塊）
     premkt_md, tw_md_news = _extract_premarket(tw_md)
+    pm_title = "盤後速覽" if re.search(r"^##\s*🔹?\s*盤後速覽", tw_md or "", re.M) else "盤前速覽"
     b_tw = _brief_view(twnews.extract_indices(tw_md), *fund_insights.movers(tw_funds),
                        fund_insights.upcoming_distributions(tw_funds))
-    b_tw += _premarket_card(premkt_md)
+    b_tw += _premarket_card(premkt_md, pm_title)
     # 全球今日重點不列任何指數點位/漲跌幅卡（公開搜尋之收盤數據不可靠；
     # 使用者指示 2026-07-04：全球重點不要出現數據漲跌幅——一律於下方新聞以官方為準呈現）
     b_gl = _brief_view([], *fund_insights.movers(gl_funds),
