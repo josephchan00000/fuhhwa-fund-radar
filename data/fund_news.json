@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/20 06:07",
+  "as_of": "2026/07/20 06:23",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -54,13 +54,6 @@
           "source": "CMoney",
           "date": "2026-07-19 16:23",
           "datetime": "2026-07-19T16:23:41+08:00"
-        },
-        {
-          "title": "規模最大的共同基金對決：安聯台灣科技、復華全球物聯網、復華華人世紀該怎麼選？",
-          "url": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE5yX05kZnU0MXJUejROcE5tZGF1VWVoU05oaHlhdFFDdUxJTkN1RHh6eDZVaFVRUUN2RmJlZ2J3UDZmWDhmYTN5SmVxMkZwRkV5OF9sV01oaXJSd2g5QW5Wa1JMODJ2R3c?oc=5",
-          "source": "CMoney",
-          "date": "2026-07-18 16:23",
-          "datetime": "2026-07-18T16:23:50+08:00"
         }
       ]
     },
