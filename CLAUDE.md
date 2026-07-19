@@ -33,8 +33,10 @@
 3. **合規掃描＋內容 QA＋數字核對**：`gen_usnews.py --check`、`gen_twnews.py --check`、`gen_macronews.py --check` 全須 🟢；
    另跑 `TZ=Asia/Taipei python3 scripts/check_reports.py` 須 🟢（檔案齊全／每報≥4卡／每卡有連結與重要度／行事曆為今日）；
    再跑 `TZ=Asia/Taipei python3 scripts/check_numbers.py`（高風險數字對官方 API——本容器 proxy 擋 twse/taifex
-   會全 ⚪ 屬正常，**真正把關在 CI**：daily.yml 同名步驟 🔴 會直接擋下不發佈。2026-07-20 使用者指示：數字必須正確；
-   曾踩：外資淨空單誤引彙整站 83,605 口、官方實為 86,189）。
+   會全 ⚪ 屬正常，真正核對在 CI）。**發佈策略（2026-07-20 使用者兩指示並行：數字要對＋防線不可硬到什麼都沒更新）**：
+   CI 端 🔴 **不擋發佈**——結果落 `data/factcheck.json` 隨每日 commit 入板、儀表板「網頁更新時間」區顯示
+   紅色警示章；主會話在步驟 9 驗證時讀該檔，見 🔴 **立即修正該數字並重推**（分鐘級收斂）。
+   曾踩：外資淨空單誤引彙整站 83,605 口、官方實為 86,189。
 4. **重建儀表板**（本地、秒級，只為讓分支自洽＋確認新聞入板；**不需先抓資料**）：
    `TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py`，確認「🕒 資料更新時間」區塊**新聞欄位**已更新至今日。
    （NAV／持股／ETF／基金新聞欄位會沿用既有快照顯示舊日期——**正常**，正式區稍後會用新資料重產覆蓋。）

@@ -19,6 +19,7 @@ data/funds/*
 !data/fund_nav_history.json
 # 鉅亨基金對映表（fund_id → cnyesId；稽核＋手動覆寫用），必須入庫
 !data/cnyes_fund_map.json
+!data/factcheck.json
 # GitHub PAT（建 repo 用）絕不入庫
 .gh_tok
 data/.gh_tok
