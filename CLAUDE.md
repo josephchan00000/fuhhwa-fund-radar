@@ -64,16 +64,18 @@
 
 ## 每日固定時間自動更新（2026-07-18 建立；同日改「火進主會話」模式）
 
-- **排程 Routine**（claude.ai Routines，trigger id `trig_01VBzHiDsox4WxsuSGmqL54x`）：每天 **台北 06:05**（UTC 22:05）
-  **火進主會話**（session_01VJg8m4zbBv4o7V6dLrdk6q）跑「全部更新」SOP。目標：**07:00 前線上可看當日內容**。
+- **排程 Routine**（claude.ai Routines，trigger id `trig_01VBzHiDsox4WxsuSGmqL54x`）：每天 **台北 06:35**（UTC 22:35）
+  **火進主會話**（session_01VJg8m4zbBv4o7V6dLrdk6q）跑「全部更新」SOP。目標：**07:03 前線上可看當日內容**
+  （2026-07-20 使用者指示；實測全程 15–28 分，06:35 起跑最壞壓線、一般 06:55 完成）。
 - **為何不用「開新會話」模式（2026-07-18 實測兩次全滅，勿走回頭路）**：fresh-session 點火綁的環境
   （env_01FK…「化學」）沒掛本 repo source，會話起來連最小 heartbeat push 都做不到（第二次點火帶
   「3 分鐘心跳測試」指令仍 18 分鐘零輸出）。改火進主會話後有 repo、有 GitHub MCP、有完整脈絡；
   「火進既有會話」模式在本帳號有 07-13 send_later 成功先例。完成/失敗以 PushNotification 推播使用者。
 - 排程點火的回合若 MCP 不可用，SOP 第 7 步照樣走「push 自動觸發」；驗證用 git（fetch origin main
   看是否前進＋檢查檔案內容）即可。
-- **備援**：repo 原 cron（台北週一~六 06:50）仍在——Routine 失敗時新聞沿用前日，但 NAV／持股／ETF 照樣更新；
-  頁面瀏覽器端有「逾 2 天未重建」紅色警示橫幅當最後防線。
+- **備援**：repo cron 移至**台北週一~六 07:15**（2026-07-20 起，原 06:50）——改為「事後兜底」：Routine 失敗時
+  新聞沿用前日（或撿分支已推的今日新聞），但 NAV／持股／ETF 照樣更新；頁面瀏覽器端有「逾 2 天未重建」
+  紅色警示橫幅當最後防線。
 - **部署**：CI commit 後打 `secrets.VERCEL_DEPLOY_HOOK` 主動部署；**該 secret 未設前**，部署仍靠 Vercel 自動偵測
   （曾卡 Initializing）——如使用者回報線上沒更新，先問 Vercel Deployments 對到哪個 commit。
 
