@@ -42,6 +42,16 @@ def test_check_red_on_mismatch_and_skip_when_unavailable():
     assert all(r.status == "⚪" for r in res2)
 
 
+def test_multi_number_sentence_not_false_red():
+    """CI 首輪實測誤判案例：同句含增量與水位——任一候選相符即 🟢，不得抓增量誤殺。"""
+    txt = ("期貨端，外資台指期淨空單 7/17 盤後單日再增 1,736 口、**升至 86,189 口**"
+           "（7/16 為 84,453 口）。")
+    claims = factcheck.extract_claims(txt, year=2026)
+    assert len(claims) == 1 and claims[0].alts == [1736.0, 86189.0, 84453.0]
+    res = factcheck.check_claims(claims, fetchers=_OFFICIAL)
+    assert res[0].status == "🟢"
+
+
 def test_tolerance_allows_rounding():
     txt = "台股 7/17 收 42,671.3 點、下跌 2,954 點；7/17 三大法人賣超 2,617 億元。"
     claims = factcheck.extract_claims(txt, year=2026)
