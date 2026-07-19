@@ -109,6 +109,10 @@ class Claim:
     value: float       # 報告聲稱值（正規化：金額→億、口數→口、點位→點）
     day: date
     sentence: str = ""
+    alts: list[float] = field(default_factory=list)   # 同句其他候選值（增量/前日值等）——
+                                                      # 任一與官方相符即 🟢（CI 首輪實測：
+                                                      # 「再增 1,736 口、升至 86,189 口」抓到
+                                                      # 增量誤判 🔴，防同型誤殺）
 
 
 @dataclass
@@ -156,9 +160,10 @@ def extract_claims(text: str, year: int | None = None) -> list[Claim]:
         m = re.search(r"外資[^0-9]{0,20}[買賣]超[^0-9]{0,8}([\d,]+\.?\d*)\s*億", sent)
         if m and "累計" not in sent and "單週" not in sent and "上週" not in sent:
             claims.append(Claim("inst_foreign", _num(m.group(1)), d, sent.strip()))
-        m = re.search(r"淨空單[^口。\n]{0,20}?([\d,]{4,})\s*口", sent)
-        if m:
-            claims.append(Claim("tx_net", _num(m.group(1)), d, sent.strip()))
+        if "淨空單" in sent:
+            vals = [_num(v) for v in re.findall(r"([\d,]{4,})\s*口", sent)]
+            if vals:
+                claims.append(Claim("tx_net", max(vals), d, sent.strip(), alts=vals))
     return claims
 
 
@@ -175,6 +180,12 @@ def _tol_ok(kind: str, claimed: float, official: float) -> bool:
     if kind == "tx_net":
         return abs(a - b) <= max(b * 0.02, 200)
     return True
+
+
+def _best(c: Claim, official: float) -> float:
+    """同句多候選值取「最接近官方」者比對——任一相符即算相符（防增量/前日值誤殺）。"""
+    cands = c.alts or [c.value]
+    return min(cands, key=lambda v: abs(abs(v) - abs(official)))
 
 
 def check_claims(claims: list[Claim], fetchers: dict | None = None) -> list[Finding]:
@@ -194,7 +205,7 @@ def check_claims(claims: list[Claim], fetchers: dict | None = None) -> list[Find
                 out.append(Finding("⚪", c, note="官方指數不可得"))
                 continue
             val = off[0] if c.kind == "index_close" else off[1]
-            out.append(Finding("🟢" if _tol_ok(c.kind, c.value, val) else "🔴", c, val))
+            out.append(Finding("🟢" if _tol_ok(c.kind, _best(c, val), val) else "🔴", c, val))
         elif c.kind in ("inst_total", "inst_foreign"):
             if c.day not in flow_cache:
                 flow_cache[c.day] = f["flows"](c.day)
@@ -203,7 +214,8 @@ def check_claims(claims: list[Claim], fetchers: dict | None = None) -> list[Find
             if not off or key not in off:
                 out.append(Finding("⚪", c, note="官方法人金額不可得"))
                 continue
-            out.append(Finding("🟢" if _tol_ok(c.kind, c.value, off[key]) else "🔴", c, off[key]))
+            out.append(Finding("🟢" if _tol_ok(c.kind, _best(c, off[key]), off[key]) else "🔴",
+                               c, off[key]))
         elif c.kind == "tx_net":
             if c.day not in tx_cache:
                 tx_cache[c.day] = f["tx"](c.day)
@@ -211,5 +223,5 @@ def check_claims(claims: list[Claim], fetchers: dict | None = None) -> list[Find
             if off2 is None:
                 out.append(Finding("⚪", c, note="期交所淨額不可得"))
                 continue
-            out.append(Finding("🟢" if _tol_ok(c.kind, c.value, off2) else "🔴", c, off2))
+            out.append(Finding("🟢" if _tol_ok(c.kind, _best(c, off2), off2) else "🔴", c, off2))
     return out
