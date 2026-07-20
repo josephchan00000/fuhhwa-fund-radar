@@ -227,15 +227,13 @@ def test_watchlist_matches_weekly_report():
     assert len(codes) == len(set(codes)) == 23
     passive = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "passive"]
     active = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "active"]
-    other = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "other"]
     assert set(passive) == {"0056", "00878", "00919", "00929", "0050", "006208"}
-    assert "00991A" in active and len(active) == 15    # 含本家主動復華未來50＋2026-07 新增 4 檔
+    assert "00991A" in active and len(active) == 16    # 含本家主動復華未來50＋00998A（2026-07-21）
     # 2026-07-06 新增熱門／新募集主動式 ETF 皆在清單中
-    assert {"00988A", "00990A", "00403A", "00407A"} <= set(active)
-    # 2026-07-20 新增「其他」組：本家全球金融股債雙收（上櫃）
-    assert set(other) == {"00998A", "00986D"}
-    # 主動式台股檔的性質欄一律「主動式股票」（2026-07-20 由「主動式」改名）
-    assert all(cat == "主動式股票" for _, _, k, cat, _ in etfwatch.WATCHLIST if k == "active")
+    assert {"00988A", "00990A", "00403A", "00407A", "00998A"} <= set(active)
+    # 2026-07-21 新增「其他」分類（債券型主動式）：本家 00986D
+    other = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "other"]
+    assert other == ["00986D"]
     # 成立日期為 WATCHLIST 靜態值（不需抓、永不空白）
     for c, name, kind, cat, inception in etfwatch.WATCHLIST:
         assert inception and inception.count("/") == 2
@@ -331,11 +329,6 @@ def test_dashboard_has_etf_tab_and_tables():
         "#mkt-macro:checked ~ * .fundview,", "")        # 分頁互斥規則存在
     assert 'id="etfwatch"' in html and "ETF 數據追蹤" in html
     assert 'id="etf-passive"' in html and 'id="etf-active"' in html
-    assert 'id="etf-other"' in html                     # 2026-07-20 新增「其他」組（本家全球金融股債）
-    assert "主動式股票 ETF" in html                      # 主動式 → 主動式股票（2026-07-20 改名）
-    # 名稱內「復華」會被包品牌色 span，斷言用代碼＋名稱其餘片段
-    assert "00998A" in html and "金融股息" in html
-    assert "00986D" in html and "金融債息" in html
     assert "00919" in html and "主動中信台灣卓越" in html
     # 本家不再整列高亮／掛徽章，改在產品名內把「復華」標品牌色（00929＋00991A 至少 2 處）
     assert 'class="mine"' not in html and "minepill" not in html

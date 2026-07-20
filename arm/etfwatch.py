@@ -1,9 +1,8 @@
 """ETF 數據追蹤 —— 台股被動／主動 ETF 週績效追蹤（儀表板第四分頁「ETF」的資料層）。
 
-追蹤三組清單（2026-07-06 使用者以週報圖表指定、2026-07-20 加「其他」組；異動只改 WATCHLIST）：
+追蹤兩組清單（2026-07-06 使用者以週報圖表指定；異動只改 WATCHLIST）：
   · 被動 ETF：高股息（0056/00878/00919/00929）＋市值型（0050/006208）
-  · 主動式股票 ETF：00980A 等 15 檔台股主動 ETF（含本家 00991A 主動復華未來50）
-  · 其他：本家上櫃主動式 00998A 全球金融股票入息／00986D 全球金融債券入息（kind="other"）
+  · 主動式 ETF：00980A 等 11 檔台股主動 ETF（含本家 00991A 主動復華未來50）
 欄位對齊週報：規模(億)／成立日期／過去一週報酬／過去一月報酬／配息殖利率／收益分配頻率。
 配息殖利率＝年化配息率：最新公布一次的配息金額 ÷ 最新市價 × 配息頻率次數
 （月配×12／季配×4／半年配×2／年配×1），非 trailingYield 近12月回溯值。
@@ -39,7 +38,8 @@ from . import clock
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "etf_watch.json"
 
-# (code, name, kind, cat, inception)：kind＝passive/active/other；cat＝表內「性質」欄；
+# (code, name, kind, cat, inception)：kind＝passive/active/other（other＝債券型主動式等，
+# 儀表板獨立「其他」表——2026-07-21 使用者指示新增分類）；cat＝表內「性質」欄；
 # inception＝成立日期（固定值，不會變、不需抓、永不空白——避免來源缺欄時整片留空）。
 WATCHLIST: list[tuple[str, str, str, str, str]] = [
     ("0056",   "元大高股息",       "passive", "高股息", "2007/12/13"),
@@ -48,29 +48,26 @@ WATCHLIST: list[tuple[str, str, str, str, str]] = [
     ("00929",  "復華台灣科技優息", "passive", "高股息", "2023/06/01"),
     ("0050",   "元大台灣50",       "passive", "市值型", "2003/06/30"),
     ("006208", "富邦台灣50",       "passive", "市值型", "2012/06/22"),
-    ("00980A", "主動野村臺灣優選", "active", "主動式股票", "2025/04/22"),
-    ("00982A", "主動群益台灣強棒", "active", "主動式股票", "2025/05/13"),
-    ("00981A", "主動統一台股增長", "active", "主動式股票", "2025/05/15"),
-    ("00984A", "主動安聯台灣高息", "active", "主動式股票", "2025/07/03"),
-    ("00985A", "主動野村台灣50",   "active", "主動式股票", "2025/07/08"),
-    ("00991A", "主動復華未來50",   "active", "主動式股票", "2025/12/09"),
-    ("00992A", "主動群益科技創新", "active", "主動式股票", "2025/12/16"),
-    ("00987A", "主動台新優勢成長", "active", "主動式股票", "2025/12/16"),
-    ("00994A", "主動第一金台股優", "active", "主動式股票", "2025/12/26"),
-    ("00995A", "主動中信台灣卓越", "active", "主動式股票", "2026/01/13"),
-    ("00993A", "主動安聯台灣",     "active", "主動式股票", "2026/01/20"),
+    ("00980A", "主動野村臺灣優選", "active", "主動式", "2025/04/22"),
+    ("00982A", "主動群益台灣強棒", "active", "主動式", "2025/05/13"),
+    ("00981A", "主動統一台股增長", "active", "主動式", "2025/05/15"),
+    ("00984A", "主動安聯台灣高息", "active", "主動式", "2025/07/03"),
+    ("00985A", "主動野村台灣50",   "active", "主動式", "2025/07/08"),
+    ("00991A", "主動復華未來50",   "active", "主動式", "2025/12/09"),
+    ("00992A", "主動群益科技創新", "active", "主動式", "2025/12/16"),
+    ("00987A", "主動台新優勢成長", "active", "主動式", "2025/12/16"),
+    ("00994A", "主動第一金台股優", "active", "主動式", "2025/12/26"),
+    ("00995A", "主動中信台灣卓越", "active", "主動式", "2026/01/13"),
+    ("00993A", "主動安聯台灣",     "active", "主動式", "2026/01/20"),
     # 2026-07-06 加入熱門／新募集主動式 ETF（成立日期靜態值，經 WebSearch 逐檔查證投信官網／TWSE）：
-    ("00988A", "主動統一全球創新", "active", "主動式股票", "2025/10/21"),  # 統一投信，年配，2026 規模衝上約 594 億
-    ("00990A", "主動元大AI新經濟", "active", "主動式股票", "2025/12/22"),  # 元大投信，不配息，全球 AI 新經濟主題
-    ("00403A", "主動統一台股升級50", "active", "主動式股票", "2026/04/28"),  # 統一投信，季配，募資破紀錄約 792 億
-    ("00407A", "主動凱基台灣",     "active", "主動式股票", "2026/06/12"),  # 凱基投信，不配息，台灣首檔不配息主動台股 ETF
-    # 2026-07-20 使用者指示新增「其他」組（kind="other"）：本家全球金融股債雙收傘型、上櫃（TPEx）掛牌
-    ("00998A", "主動復華金融股息", "other", "全球金融股", "2026/03/31"),  # 復華全球金融股票入息，季配，2026/04/15 掛牌上櫃
-    ("00986D", "主動復華金融債息", "other", "全球金融債", "2026/03/31"),  # 復華全球金融債券入息，月配，2026/04/15 掛牌上櫃
+    ("00988A", "主動統一全球創新", "active", "主動式", "2025/10/21"),  # 統一投信，年配，2026 規模衝上約 594 億
+    ("00990A", "主動元大AI新經濟", "active", "主動式", "2025/12/22"),  # 元大投信，不配息，全球 AI 新經濟主題
+    ("00403A", "主動統一台股升級50", "active", "主動式", "2026/04/28"),  # 統一投信，季配，募資破紀錄約 792 億
+    ("00407A", "主動凱基台灣",     "active", "主動式", "2026/06/12"),  # 凱基投信，不配息，台灣首檔不配息主動台股 ETF
+    # 2026-07-21 使用者指示加入本家金融股債雙收傘型（WebSearch 查證：工商時報 2026/4/15 掛牌報導＋復華官網 ETF24/25）：
+    ("00998A", "主動復華金融股息", "active", "主動式", "2026/03/31"),  # 全球金融股入息，季配（成立日 3/31、掛牌 4/15）
+    ("00986D", "主動復華金融債息", "other",  "主動式債券", "2026/04/15"),  # 全球金融債入息，月配（成立日查無、暫用掛牌日 4/15）
 ]
-
-# 上櫃（TPEx）掛牌檔——Yahoo 圖表 API 代碼字尾用 .TWO（其餘上市檔 .TW）；TWSE 官方月檔無此類代碼。
-_TPEX: set[str] = {"00998A", "00986D"}
 
 # 投信已公告之「當月預估配息」人工維護清單——etfinfo 只揭露已實際除息者、MOPS 端點又抓不到，
 # 故投信官方公告（首配或當期預告，除息日未到）於此登錄，作為 est_div 的可靠 fallback。
@@ -115,7 +112,7 @@ SEED_PERF: dict[str, dict] = {
     "00990A": {"aum_e8": None,  "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "不配息"},
     "00403A": {"aum_e8": 792.0, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "季配"},
     "00407A": {"aum_e8": 78.7,  "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "不配息"},
-    # 2026-07-20 新增「其他」組（規模／報酬待 CI 首抓；頻率為投信公告靜態值）：
+    # 2026-07-21 新增（本家金融股債；規模待 CI 抓、首配資料見報導）：
     "00998A": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "季配"},
     "00986D": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "月配"},
 }
@@ -280,8 +277,7 @@ def _yahoo_series(code: str) -> dict[str, float]:
     from datetime import datetime
 
     from .http import get_json
-    sfx = "TWO" if code in _TPEX else "TW"     # 上櫃檔 Yahoo 代碼字尾 .TWO
-    url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{code}.{sfx}"
+    url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{code}.TW"
            "?range=3mo&interval=1d")
     try:
         d = get_json(url, cache_ttl=3600)
@@ -328,8 +324,6 @@ def _twse_series(code: str, today: date) -> dict[str, float]:
     """TWSE 官方每日收盤（權威）→ {iso_date: 收盤}。抓當月＋前兩月，涵蓋 30 日回推。
     註：TWSE 為價格收盤（未還原息），高股息 ETF 於除息日附近會低估總報酬。"""
     from .connectors import twse
-    if code in _TPEX:                          # 上櫃檔不在 TWSE 上市月檔，別白打三個月請求
-        return {}
     close: dict[str, float] = {}
     m0 = today.replace(day=1)
     for back in (0, 1, 2):
@@ -569,8 +563,16 @@ def save(doc: dict) -> tuple[Path, bool]:
 
 
 def load() -> dict | None:
-    """儀表板用：讀最近一次落檔；無檔回 None（分頁顯示提示、不壞版）。"""
+    """儀表板用：讀最近一次落檔；無檔回 None（分頁顯示提示、不壞版）。
+    WATCHLIST 新增而落檔尚無的檔（CI 還沒抓）→ 以靜態值補 stub（代碼/名稱/性質/成立日先上、
+    數據欄顯示 —），下輪 CI 抓到即被真值覆蓋——新增追蹤標的不用等隔天才看得到。"""
     try:
-        return json.loads(OUT.read_text(encoding="utf-8"))
+        doc = json.loads(OUT.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
+    have = {i.get("code") for i in doc.get("items") or []}
+    for code, name, kind, cat, inception in WATCHLIST:
+        if code not in have:
+            doc.setdefault("items", []).append(
+                {"code": code, "name": name, "kind": kind, "cat": cat, "inception": inception})
+    return doc
