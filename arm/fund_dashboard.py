@@ -156,7 +156,10 @@ def _inline(s: str) -> str:
                r'<a href="\2" target="_blank" rel="noopener">\1</a>', s)
     s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)          # 非貪婪：允許粗體內含斜體 **a *b* c**
     s = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<i>\1</i>", s)
-    s = re.sub(r"【([^】]+)】", r'<span class="tag">【\1】</span>', s)   # 消息屬性徽章
+    # 消息屬性徽章：只有「短」標注（≤12 字，如【新事件】【延伸】【交易確認】）才升級成
+    # .tag 徽章——徽章 white-space:nowrap，長標注（如【延伸・新在哪：……】整句）包進去
+    # 會在手機寬度撐破卡片（2026-07-20 使用者回報跑版），維持一般文字自然換行。
+    s = re.sub(r"【([^】]{1,12})】", r'<span class="tag">【\1】</span>', s)
     return s
 
 
@@ -1100,7 +1103,7 @@ a.tk:hover{color:var(--acc)}
 .openbtn2::after{content:"▼ 展開"}
 .newsone[open] .openbtn2::after{content:"▲ 收合"}
 .fund[open]>.fsum .openbtn2::after{content:"▲ 收合"}
-.nibody{border:0;border-radius:0;margin:0;padding:2px 22px 16px}
+.nibody{border:0;border-radius:0;margin:0;padding:2px 22px 16px;overflow-wrap:break-word}
 .nibody>*:first-child{margin-top:8px}
 .newsbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0 12px}
 .nswitch{display:flex;gap:6px}

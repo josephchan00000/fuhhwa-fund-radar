@@ -35,6 +35,7 @@ SPEC_POST = f"""【版型：台股盤後重點】
 
 【數量與門檻】盡量多找：**至少 4 則、上不封頂**，收錄所有「重要度 6 分以上」的當日台股公司/族群事件，
 寧多勿漏。排序：先依重要度高→低，同分再新→舊。
+{usnews.SRC_RULE_TW}
 
 {usnews.ETYPE_RULE}
 {usnews.SEV_RUBRIC}
@@ -64,6 +65,7 @@ SPEC_PRE = f"""【版型：台股盤前重點】
 
 【數量與門檻】盡量多找：**至少 4 則、上不封頂**，收錄所有「重要度 6 分以上」的盤前重要情報，寧多勿漏。
 排序：先依重要度高→低，同分再新→舊。
+{usnews.SRC_RULE_TW}
 
 {usnews.ETYPE_RULE}
 {usnews.SEV_RUBRIC}

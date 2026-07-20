@@ -42,6 +42,16 @@ def test_fetch_holdings_name_mismatch_guard():
     assert not ok("復華台灣菁英50指數基金", "復華全方位基金A類型")
 
 
+# ── ②c 【…】徽章長度閘門：長標注不得包進 nowrap 徽章（手機會撐破卡片，2026-07-20） ──
+
+def test_inline_tag_badge_only_for_short_annotations():
+    from arm import fund_dashboard as fd
+    assert '<span class="tag">【延伸】</span>' in fd._inline("【延伸】新進展")
+    assert '<span class="tag">【週末合併時窗說明】</span>' in fd._inline("【週末合併時窗說明】")
+    long = fd._inline("【延伸・新在哪：昨報已列 Alphabet／特斯拉主軸，本卡補週日最新共識】內文")
+    assert 'class="tag"' not in long                     # 長標注維持一般文字、可自然換行
+
+
 # ── ③ 內容 QA 閘門：通過／缺檔／卡數不足三條路徑 ──
 
 def _write_ok_report(p: Path, cards: int = 4):
