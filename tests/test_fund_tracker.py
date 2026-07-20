@@ -254,3 +254,47 @@ def test_compliance_negation_not_flagged():
     # 真正違規（前方無否定詞）仍要抓到
     assert "保證" in usnews.compliance_scan("本檔保證獲利")
     assert "目標價" in usnews.compliance_scan("目標價 100 元")
+
+
+# ── /api/fundNav 髒回應容錯（2026-07-21 CI 實測：Extra data／開頭垃圾） ──
+
+def test_parse_first_json_clean_and_trailing_garbage():
+    assert fhfund._parse_first_json('{"result": [1]}') == {"result": [1]}
+    # 有效 JSON 後黏多餘資料（實際 25/29 檔的失敗型態）
+    assert fhfund._parse_first_json('{"result": [1]}{"x": 2}garbage') == {"result": [1]}
+    # BOM＋前置空白
+    assert fhfund._parse_first_json('﻿  {"a": 1}') == {"a": 1}
+
+
+def test_parse_first_json_leading_garbage():
+    assert fhfund._parse_first_json('oops<html>{"result": []}tail') == {"result": []}
+    try:
+        fhfund._parse_first_json("完全不是 JSON")
+        assert False, "應 raise NoData"
+    except fhfund.NoData:
+        pass
+
+
+def test_fetch_nav_history_dirty_response(monkeypatch):
+    payload = ('{"result": [{"navDate": "2026/07/17", "pnav": "26.19"},'
+               '{"navDate": "2026/07/16", "pnav": "26.45"},'
+               '{"navDate": "2026/01/05", "pnav": "20.00"}]}EXTRA-JUNK')
+    monkeypatch.setattr(fhfund, "get_bytes", lambda url, **kw: payload.encode())
+    out = fhfund.fetch_nav_history("101", days=90)
+    assert out == {"2026/07/17": 26.19, "2026/07/16": 26.45}   # 90 天截斷丟 01/05
+
+
+def test_fetch_nav_history_retry_then_fail(monkeypatch):
+    calls = []
+
+    def bad(url, **kw):
+        calls.append(url)
+        return b"<html>error</html>"
+
+    monkeypatch.setattr(fhfund, "get_bytes", bad)
+    try:
+        fhfund.fetch_nav_history("101")
+        assert False, "應 raise NoData"
+    except fhfund.NoData:
+        pass
+    assert len(calls) == 2                                     # 解析失敗會重抓一次

@@ -12,6 +12,7 @@
 """
 from __future__ import annotations
 
+import json
 import re
 
 from ..http import get_bytes, get_json
@@ -45,15 +46,44 @@ def _pct(s: str | None) -> float | None:
     return float(m.group()) if m else None
 
 
+def _parse_first_json(text: str) -> object:
+    """容錯解析 /api/fundNav 的髒回應：取字串中第一份完整 JSON 文件。
+
+    2026-07-21 CI 實測該端點大多回「有效 JSON＋尾端黏多餘資料」（json.loads 報
+    Extra data），偶爾開頭還有垃圾（報 Expecting value char 0）——去 BOM、必要時
+    從第一個 '{' 起 raw_decode，兩者都救得回來。"""
+    text = text.lstrip("\ufeff \t\r\n")
+    dec = json.JSONDecoder()
+    for start in (0, text.find("{")):
+        if start < 0:
+            continue
+        try:
+            obj, _end = dec.raw_decode(text, start)
+            return obj
+        except json.JSONDecodeError:
+            continue
+    raise NoData("回應非 JSON（開頭與首個 '{' 起都解不出文件）")
+
+
 def fetch_nav_history(fund_id: str | int, days: int = 90) -> dict[str, float]:
     """官方每日淨值史 → {"YYYY/MM/DD": nav}，預設只取最近 days 個日曆日。
 
     /api/fundNav 回自成立日起的完整每日序列（2026-07-20 CI probe 發現；101 全史約
     620KB），供 arm/fundnav 回填「新加入追蹤清單」基金的短史——沒有它，1週/1月
-    報酬要等 CI 日日累積一個月才會出現。"""
+    報酬要等 CI 日日累積一個月才會出現。回應髒（見 _parse_first_json）→ 不快取
+    （避免垃圾回應毒化 TTL）、解析失敗重抓一次。"""
     from datetime import datetime, timedelta
 
-    d = get_json(API_NAV.format(fid=fund_id), cache_ttl=6 * 3600)
+    d = None
+    for _attempt in range(2):
+        raw = get_bytes(API_NAV.format(fid=fund_id), use_cache=False, retries=2)
+        try:
+            d = _parse_first_json(raw.decode("utf-8", "ignore"))
+            break
+        except NoData:
+            continue
+    if d is None:
+        raise NoData(f"fundID={fund_id} /api/fundNav 回應兩次都解析不出 JSON")
     res = (d or {}).get("result") or []
     if not res:
         raise NoData(f"fundID={fund_id} 無 /api/fundNav 資料")
