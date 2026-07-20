@@ -135,6 +135,16 @@
    "id": "131",
    "name": "復華全球創新金融指數基金-新臺幣",
    "group": "global_equity"
+  },
+  {
+   "id": "128",
+   "name": "復華全球AI動力成長指數基金-新臺幣",
+   "group": "global_equity"
+  },
+  {
+   "id": "126",
+   "name": "復華台灣菁英50指數基金",
+   "group": "tw_equity"
   }
  ]
 }
