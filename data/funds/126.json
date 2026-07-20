@@ -1,0 +1,40 @@
+{
+  "fund_id": "126",
+  "name": "復華台灣菁英50指數基金",
+  "short_name": "台灣菁英50指數",
+  "en_name": "Fuh Hwa Taiwan Elite 50 Index Fund",
+  "category": "國內投資指數型",
+  "region": "台灣",
+  "asset_kind": "指數型",
+  "currency": "新臺幣",
+  "inception": "2026/06/30",
+  "risk_level": "RR4",
+  "mgmt_fee": "最高為0.70%",
+  "size_twd": 883240721.0,
+  "nav": 9.04,
+  "nav_date": "2026/07/20",
+  "nav_change": 0.0,
+  "nav_change_pct": "0.00%",
+  "returns": {
+    "ytd": "—",
+    "3m": "—",
+    "6m": "—",
+    "1y": "—",
+    "2y": "—",
+    "3y": "—",
+    "since": "—"
+  },
+  "managers": [
+    "劉昌祚"
+  ],
+  "strategy": "主要投資於市值較大、獲利穩健且財務表現優良的台灣上市股票。 基金追蹤指數操作，投資人較易於根據指數內容評估投資機會與風險。",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/126.pdf",
+  "dist_date": "—",
+  "dist_rate": "—",
+  "as_of": null,
+  "top_holdings": [],
+  "country_alloc": [],
+  "sector_alloc": [],
+  "group": "tw_equity",
+  "fetched_at": "2026-07-21 06:59"
+}

@@ -1,0 +1,165 @@
+{
+  "fund_id": "101",
+  "name": "復華已開發國家300股票指數基金-新臺幣",
+  "short_name": "已開發國家300股票新臺幣",
+  "en_name": "Fuh Hwa Developed Countries 300 Equity Index Fund-TWD",
+  "category": "跨國投資指數型",
+  "region": "全球",
+  "asset_kind": "指數型",
+  "currency": "新臺幣",
+  "inception": "2019/09/04",
+  "risk_level": "RR3",
+  "mgmt_fee": "0.60%",
+  "size_twd": 27011615269.0,
+  "nav": 26.19,
+  "nav_date": "2026/07/17",
+  "nav_change": -0.26,
+  "nav_change_pct": "-0.98%",
+  "returns": {
+    "ytd": "10.61%",
+    "3m": "14.34%",
+    "6m": "10.61%",
+    "1y": "28.23%",
+    "2y": "35.99%",
+    "3y": "74.61%",
+    "since": "160.70%"
+  },
+  "managers": [
+    "吳允翔"
+  ],
+  "strategy": "本基金追蹤彭博已開發國家大型300流動指數，成分證券為美國、英國、德國、法國、日本等主要已開發國家之具代表性的大型股票，提供投資人參與海外股市布局之元件&nbsp; &nbsp; 追蹤指數操作，資訊相對透明",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/101.pdf",
+  "dist_date": "2026/06/30",
+  "dist_rate": "—",
+  "as_of": "2026/06/30",
+  "top_holdings": [
+    {
+      "sector": "資訊技術",
+      "name": "NVIDIA CORP",
+      "weight": 6.86
+    },
+    {
+      "sector": "資訊技術",
+      "name": "APPLE INC",
+      "weight": 6.13
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MICROSOFT CORP",
+      "weight": 4.06
+    },
+    {
+      "sector": "非核心消費品",
+      "name": "AMAZON.COM INC",
+      "weight": 3.4
+    },
+    {
+      "sector": "通訊服務",
+      "name": "ALPHABET INC-CL A",
+      "weight": 3.03
+    },
+    {
+      "sector": "資訊技術",
+      "name": "BROADCOM INC",
+      "weight": 2.58
+    },
+    {
+      "sector": "通訊服務",
+      "name": "ALPHABET INC-CL C",
+      "weight": 2.43
+    },
+    {
+      "sector": "非核心消費品",
+      "name": "TESLA INC",
+      "weight": 2.06
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MICRON TECHNOLOGY INC",
+      "weight": 1.91
+    },
+    {
+      "sector": "通訊服務",
+      "name": "META PLATFORMS INC-CLASS A",
+      "weight": 1.81
+    }
+  ],
+  "country_alloc": [
+    {
+      "name": "美國",
+      "weight": 83.65
+    },
+    {
+      "name": "日本",
+      "weight": 4.06
+    },
+    {
+      "name": "英國",
+      "weight": 3.36
+    },
+    {
+      "name": "法國",
+      "weight": 2.41
+    },
+    {
+      "name": "德國",
+      "weight": 1.97
+    },
+    {
+      "name": "流動資產",
+      "weight": 4.55
+    }
+  ],
+  "sector_alloc": [
+    {
+      "name": "資訊技術",
+      "weight": 35.91
+    },
+    {
+      "name": "金融",
+      "weight": 11.8
+    },
+    {
+      "name": "工業",
+      "weight": 10.22
+    },
+    {
+      "name": "通訊服務",
+      "weight": 9.32
+    },
+    {
+      "name": "非核心消費品",
+      "weight": 9.24
+    },
+    {
+      "name": "醫療保健",
+      "weight": 8.19
+    },
+    {
+      "name": "核心消費品",
+      "weight": 4.13
+    },
+    {
+      "name": "能源",
+      "weight": 3.21
+    },
+    {
+      "name": "其他",
+      "weight": 3.43
+    },
+    {
+      "name": "流動資產",
+      "weight": 4.55
+    }
+  ],
+  "group": "global_equity",
+  "fetched_at": "2026-07-21 06:58",
+  "returns_daily": {
+    "1m": 2.02571,
+    "3m": 6.24746,
+    "6m": 9.21601,
+    "1y": 29.4612,
+    "ytd": 11.11583
+  },
+  "returns_daily_asof": "2026/07/17"
+}
