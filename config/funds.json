@@ -1,6 +1,6 @@
 {
   "_note": "復華基金追蹤版本追蹤清單。id＝fhtrust.com.tw/funds/funds_detail/{id}；group∈{global_equity,global_balanced,tw_equity,tw_balanced,tw_fof}。name/category 以 /api/fund 回傳為權威，scripts/fetch_holdings.py 會覆寫進 data/funds/{id}.json；但抓取端會先比對官網名稱與此處 name（正規化後互為前綴），不符即跳過不落檔——防 fundID 錯置抓成別檔（2026-07-20 起，新基金 id 有時只能由相鄰檔號推定）。",
-  "_note_id_pending": "133/135 為 2026-06-22 開募之創新指數傘型基金新檔，官網頁面尚未被搜尋引擎收錄，id 由同傘型『全球創新金融-新臺幣=131』相鄰檔號推定（幣別新臺幣在前）。若 CI 日誌出現『名稱不符跳過』，以日誌中的實際名稱修正 id。",
+  "_note_id_pending": "（已解決 2026-07-20）創新指數傘型新檔真實 id 由 CI probe 掃描確認：台灣菁英50=126、全球AI動力-新臺幣=128（美元=129、創新金融美元=132；127/130/133–145 為空號）——新檔號不保證比舊檔大，相鄰推定不可靠。之後新增基金若 NoData，跑 scripts/probe_fund_ids.py（借 CI 網路，workflow_dispatch probe_fund_ids.yml）確認。",
   "funds": [
     { "id": "47", "name": "復華美國新星基金-新臺幣",        "group": "global_equity" },
     { "id": "23", "name": "復華全球大趨勢基金-新臺幣",      "group": "global_equity" },
@@ -12,7 +12,7 @@
     { "id": "29", "name": "復華大中華中小策略基金",        "group": "global_equity" },
     { "id": "101", "name": "復華已開發國家300股票指數基金-新臺幣", "group": "global_equity" },
     { "id": "131", "name": "復華全球創新金融指數基金-新臺幣",     "group": "global_equity" },
-    { "id": "133", "name": "復華全球AI動力成長指數基金-新臺幣",   "group": "global_equity" },
+    { "id": "128", "name": "復華全球AI動力成長指數基金-新臺幣",   "group": "global_equity" },
     { "id": "12", "name": "復華全球平衡基金-新臺幣",        "group": "global_balanced" },
     { "id": "53", "name": "復華中國新經濟平衡基金-新臺幣",  "group": "global_balanced" },
     { "id": "16", "name": "復華亞太平衡基金",              "group": "global_balanced" },
@@ -25,7 +25,7 @@
     { "id": "117", "name": "復華台灣好收益基金",           "group": "tw_equity" },
     { "id": "122", "name": "復華台灣科技高股息基金A類型",  "group": "tw_equity" },
     { "id": "123", "name": "復華台灣科技高股息基金B類型",  "group": "tw_equity" },
-    { "id": "135", "name": "復華台灣菁英50指數基金",       "group": "tw_equity" },
+    { "id": "126", "name": "復華台灣菁英50指數基金",       "group": "tw_equity" },
     { "id": "04",  "name": "復華傳家基金",                 "group": "tw_balanced" },
     { "id": "07",  "name": "復華傳家二號基金",             "group": "tw_balanced" },
     { "id": "11",  "name": "復華人生目標基金",             "group": "tw_balanced" },
