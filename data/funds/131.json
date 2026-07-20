@@ -1,0 +1,50 @@
+{
+  "fund_id": "131",
+  "name": "復華全球創新金融指數基金-新臺幣",
+  "short_name": "全球創新金融指數新臺幣",
+  "en_name": "Fuh Hwa Global Innovative Financials Index Fund-TWD",
+  "category": "跨國投資指數型",
+  "region": "全球",
+  "asset_kind": "指數型",
+  "currency": "新臺幣",
+  "inception": "2026/06/30",
+  "risk_level": "RR4",
+  "mgmt_fee": "最高為1.20%",
+  "size_twd": 1114976244.0,
+  "nav": 10.28,
+  "nav_date": "2026/07/17",
+  "nav_change": -0.13,
+  "nav_change_pct": "-1.25%",
+  "returns": {
+    "ytd": "—",
+    "3m": "—",
+    "6m": "—",
+    "1y": "—",
+    "2y": "—",
+    "3y": "—",
+    "since": "—"
+  },
+  "managers": [
+    "廖崇文"
+  ],
+  "strategy": "主要投資於與未來金融及數位支付等主題相關之公司，及其他一般金融機構之股票。 基金追蹤指數操作，投資人較易於根據指數內容評估投資機會與風險。",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/131.pdf",
+  "dist_date": "—",
+  "dist_rate": "—",
+  "as_of": "2026/06/30",
+  "top_holdings": [],
+  "country_alloc": [
+    {
+      "name": "流動資產",
+      "weight": 100.0
+    }
+  ],
+  "sector_alloc": [
+    {
+      "name": "流動資產",
+      "weight": 100.0
+    }
+  ],
+  "group": "global_equity",
+  "fetched_at": "2026-07-21 06:58"
+}

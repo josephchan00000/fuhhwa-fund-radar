@@ -68,6 +68,45 @@ def record(docs: list[dict]) -> int:
     return added
 
 
+def needs_backfill(series: dict[str, float] | None, min_span_days: int = 35) -> bool:
+    """序列跨度不足 min_span_days（新加入追蹤／斷史）→ 需要官方史回填。
+    1月報酬需要 ref−30 天附近的基準點（tol 10 天），跨度 35 天起算才穩定算得出。"""
+    ds = sorted(d for d in (_parse_date(k) for k in (series or {})) if d)
+    return not ds or (ds[-1] - ds[0]).days < min_span_days
+
+
+def backfill_official(docs: list[dict], fetch_history) -> int:
+    """對短史基金以官方 /api/fundNav 史料回填（只補缺日、不覆寫既有值）。
+
+    fetch_history(fund_id) -> {"YYYY/MM/DD": nav}（注入依賴，測試免打網路）。
+    自我修復設計：每日抓取後呼叫，新加入追蹤清單的基金當天即補齊近 90 天史，
+    不必再手動跑回填腳本；單檔失敗只跳過、不影響其他檔。回傳新增筆數。"""
+    added = 0
+    hist = load()
+    for d in docs or []:
+        fid = str(d.get("fund_id") or d.get("id") or "")
+        if not fid or not needs_backfill(hist.get(fid)):
+            continue
+        try:
+            official = fetch_history(fid)
+        except Exception as e:
+            print(f"  ⚠ {fid} 官方淨值史回填失敗（{type(e).__name__}：{e}），"
+                  "沿用既有序列")
+            continue
+        ser = hist.setdefault(fid, {})
+        n = 0
+        for k, v in (official or {}).items():
+            if k not in ser and v:
+                ser[k] = float(v)
+                n += 1
+        if n:
+            print(f"  ↳ {fid} 官方淨值史回填 {n} 筆（{min(ser)}～{max(ser)}）")
+        added += n
+    if added:
+        save(hist)
+    return added
+
+
 def ret_pct(series: dict[str, float] | None, ref_date: str | None,
             ref_nav: float | None, days: int, tol: int) -> float | None:
     """近 N 日報酬%：ref_nav 對「ref_date − days（日曆日）」前最後一筆 NAV。
