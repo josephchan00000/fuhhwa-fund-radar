@@ -112,9 +112,10 @@ SEED_PERF: dict[str, dict] = {
     "00990A": {"aum_e8": None,  "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "不配息"},
     "00403A": {"aum_e8": 792.0, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "季配"},
     "00407A": {"aum_e8": 78.7,  "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "不配息"},
-    # 2026-07-21 新增（本家金融股債；規模待 CI 抓、首配資料見報導）：
-    "00998A": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "季配"},
-    "00986D": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "月配"},
+    # 2026-07-21 新增（本家金融股債、上櫃 .TWO；etfinfo 未收錄 → 規模留空；
+    # 年化配息率暫用媒體報導之首配年化口徑（Tier B），etfinfo/實際除息資料接上後覆蓋）：
+    "00998A": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": 10.0, "freq": "季配"},
+    "00986D": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": 7.3,  "freq": "月配"},
 }
 
 # 「待首次 CI 抓取」的新增檔：本環境（雲端 Claude proxy）抓不到乾淨報酬／規模，且無使用者週報底稿，
@@ -277,12 +278,16 @@ def _yahoo_series(code: str) -> dict[str, float]:
     from datetime import datetime
 
     from .http import get_json
-    url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{code}.TW"
-           "?range=3mo&interval=1d")
-    try:
-        d = get_json(url, cache_ttl=3600)
-    except Exception:
-        return {}
+    d = None
+    for suf in (".TW", ".TWO"):     # 上市 → 上櫃（00998A/00986D 等 TPEX 掛牌檔）依序試
+        url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{code}{suf}"
+               "?range=3mo&interval=1d")
+        try:
+            d = get_json(url, cache_ttl=3600)
+        except Exception:
+            d = None
+        if (((d or {}).get("chart") or {}).get("result") or [None])[0]:
+            break
     res = (((d or {}).get("chart") or {}).get("result") or [None])[0]
     if not res:
         return {}

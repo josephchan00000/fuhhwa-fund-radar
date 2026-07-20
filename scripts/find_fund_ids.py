@@ -15,23 +15,36 @@ UA = {"User-Agent": "Mozilla/5.0 (fund-id-probe)"}
 
 
 def main():
+    # 首輪掃 funds_detail 網頁無命中（頁面 JS 渲染、title 不含基金名）——改掃官網 API
+    # （與 fetch_holdings 同一支 /api/fund，回 JSON 內含基金名）。
     hits = []
     for fid in range(95, 170):
-        url = f"https://www.fhtrust.com.tw/funds/funds_detail/{fid}"
+        url = f"https://www.fhtrust.com.tw/api/fund?fundID={fid}"
         try:
+            import json as _json
             req = urllib.request.Request(url, headers=UA)
             with urllib.request.urlopen(req, timeout=10) as r:
-                head = r.read(20000).decode("utf-8", errors="replace")
-            m = re.search(r"<title>([^<]+)</title>", head)
-            title = (m.group(1).strip() if m else "")[:60]
+                doc = _json.loads(r.read().decode("utf-8", errors="replace"))
+            blob = _json.dumps(doc, ensure_ascii=False)[:3000]
+            m = re.search(r'"fundName"\s*:\s*"([^"]+)"', blob) or \
+                re.search(r'"name"\s*:\s*"([^"]+)"', blob)
+            name = m.group(1) if m else ""
             for t in TARGETS:
-                if t in title:
-                    hits.append((fid, title))
-                    print(f"[find_fund_ids] ✅ id={fid} → {title}")
+                if t in name or t in blob:
+                    hits.append((fid, name or "(名稱鍵未識別，見 blob)"))
+                    print(f"[find_fund_ids] ✅ id={fid} → {name or blob[:120]}")
         except Exception:
             continue
     if not hits:
-        print("[find_fund_ids] 掃描 95–169 無命中（頁面結構或 id 區間可能不同）")
+        print("[find_fund_ids] API 掃描 95–169 無命中——改印 150–169 原始回應頭 300 字供人工判讀：")
+        for fid in range(150, 170):
+            try:
+                req = urllib.request.Request(
+                    f"https://www.fhtrust.com.tw/api/fund?fundID={fid}", headers=UA)
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    print(f"  id={fid}:", r.read(300).decode("utf-8", errors="replace").replace("\n", " "))
+            except Exception as e:
+                print(f"  id={fid}: ({e})")
     return 0
 
 
