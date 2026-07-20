@@ -70,3 +70,47 @@ def test_saved_file_sorted_and_valid_json(tmp_path, monkeypatch):
     d = json.loads((tmp_path / "hist.json").read_text(encoding="utf-8"))
     assert list(d) == ["01", "02"]
     assert list(d["01"]) == ["2026/07/13", "2026/07/14"]
+
+
+# ── backfill_official（短史自動回填） ─────────────────────────
+
+def test_needs_backfill():
+    assert fundnav.needs_backfill(None)
+    assert fundnav.needs_backfill({})
+    assert fundnav.needs_backfill({"2026/07/16": 26.45, "2026/07/17": 26.19})  # 跨度 1 天
+    long = {f"2026/06/{d:02d}": 10.0 for d in range(1, 31)} | {"2026/07/17": 11.0}
+    assert not fundnav.needs_backfill(long)                                    # 跨度 46 天
+
+
+def test_backfill_official_fills_gaps_only(tmp_path, monkeypatch):
+    monkeypatch.setattr(fundnav, "PATH", tmp_path / "hist.json")
+    # 既有：101 只有 2 筆（會觸發回填、且既有值不被覆寫）；01 長史（不觸發）
+    fundnav.record([{"fund_id": "101", "nav": 26.45, "nav_date": "2026/07/16"},
+                    {"fund_id": "101", "nav": 26.19, "nav_date": "2026/07/17"}])
+    long_docs = [{"fund_id": "01", "nav": 100.0 + i, "nav_date": f"2026/06/{i:02d}"}
+                 for i in range(1, 29)] + [{"fund_id": "01", "nav": 130.0, "nav_date": "2026/07/17"}]
+    fundnav.record(long_docs)
+
+    calls = []
+
+    def fake_fetch(fid):
+        calls.append(fid)
+        return {"2026/07/10": 26.00, "2026/07/16": 999.0}   # 07/16 既有、不得覆寫
+
+    docs = [{"fund_id": "101"}, {"fund_id": "01"}]
+    assert fundnav.backfill_official(docs, fake_fetch) == 1  # 只補 07/10 一筆
+    assert calls == ["101"]                                  # 長史檔不打 API
+    hist = fundnav.load()
+    assert hist["101"]["2026/07/10"] == 26.00
+    assert hist["101"]["2026/07/16"] == 26.45                # 既有值保留
+
+
+def test_backfill_official_survives_fetch_error(tmp_path, monkeypatch):
+    monkeypatch.setattr(fundnav, "PATH", tmp_path / "hist.json")
+    fundnav.record([{"fund_id": "101", "nav": 26.19, "nav_date": "2026/07/17"}])
+
+    def boom(fid):
+        raise RuntimeError("網路掛了")
+
+    assert fundnav.backfill_official([{"fund_id": "101"}], boom) == 0
+    assert fundnav.load()["101"] == {"2026/07/17": 26.19}    # 既有史不動

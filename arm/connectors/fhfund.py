@@ -17,6 +17,7 @@ import re
 from ..http import get_bytes, get_json
 
 API = "https://www.fhtrust.com.tw/api/fund?fundID={fid}"
+API_NAV = "https://www.fhtrust.com.tw/api/fundNav?fundID={fid}"
 PAGE = "https://www.fhtrust.com.tw/funds/funds_detail/{fid}"
 
 
@@ -42,6 +43,33 @@ def _pct(s: str | None) -> float | None:
         return None
     m = re.search(r"-?\d+\.?\d*", s)
     return float(m.group()) if m else None
+
+
+def fetch_nav_history(fund_id: str | int, days: int = 90) -> dict[str, float]:
+    """官方每日淨值史 → {"YYYY/MM/DD": nav}，預設只取最近 days 個日曆日。
+
+    /api/fundNav 回自成立日起的完整每日序列（2026-07-20 CI probe 發現；101 全史約
+    620KB），供 arm/fundnav 回填「新加入追蹤清單」基金的短史——沒有它，1週/1月
+    報酬要等 CI 日日累積一個月才會出現。"""
+    from datetime import datetime, timedelta
+
+    d = get_json(API_NAV.format(fid=fund_id), cache_ttl=6 * 3600)
+    res = (d or {}).get("result") or []
+    if not res:
+        raise NoData(f"fundID={fund_id} 無 /api/fundNav 資料")
+    out: dict[str, float] = {}
+    for o in res:
+        dt, nav = (o or {}).get("navDate"), _num((o or {}).get("pnav"))
+        if dt and nav:
+            out[dt] = nav
+    if days and out:
+        try:
+            cutoff = (datetime.strptime(max(out), "%Y/%m/%d")
+                      - timedelta(days=days)).strftime("%Y/%m/%d")
+            out = {k: v for k, v in out.items() if k >= cutoff}
+        except ValueError:
+            pass  # 日期格式異常時不截斷、整段保留
+    return out
 
 
 def fetch_meta(fund_id: str | int) -> dict:
