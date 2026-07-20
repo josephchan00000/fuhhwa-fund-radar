@@ -224,13 +224,16 @@ def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
 
 def test_watchlist_matches_weekly_report():
     codes = [c for c, *_ in etfwatch.WATCHLIST]
-    assert len(codes) == len(set(codes)) == 21
+    assert len(codes) == len(set(codes)) == 23
     passive = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "passive"]
     active = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "active"]
     assert set(passive) == {"0056", "00878", "00919", "00929", "0050", "006208"}
-    assert "00991A" in active and len(active) == 15    # 含本家主動復華未來50＋2026-07 新增 4 檔
+    assert "00991A" in active and len(active) == 16    # 含本家主動復華未來50＋00998A（2026-07-21）
     # 2026-07-06 新增熱門／新募集主動式 ETF 皆在清單中
-    assert {"00988A", "00990A", "00403A", "00407A"} <= set(active)
+    assert {"00988A", "00990A", "00403A", "00407A", "00998A"} <= set(active)
+    # 2026-07-21 新增「其他」分類（債券型主動式）：本家 00986D
+    other = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "other"]
+    assert other == ["00986D"]
     # 成立日期為 WATCHLIST 靜態值（不需抓、永不空白）
     for c, name, kind, cat, inception in etfwatch.WATCHLIST:
         assert inception and inception.count("/") == 2
