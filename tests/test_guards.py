@@ -16,16 +16,13 @@ def test_no_syntax_warnings_in_arm_modules():
     assert r.returncode == 0, r.stderr
 
 
-# ── ② 晨會列印版不變量（列印壞版難以測試截圖，鎖住關鍵 CSS/JS 存在性） ──
+# ── ② 晨會列印版已整組移除（2026-07-20 使用者指示：格式醜、整個功能刪掉）——鎖回歸 ──
 
-def test_print_invariants():
+def test_print_feature_removed():
     from arm import fund_dashboard
     html = fund_dashboard.render()
-    assert "beforeprint" in html and "afterprint" in html   # 列印前展開新聞卡、印後還原
-    assert 'class="printhead"' in html                      # 晨會抬頭（僅列印顯示）
-    assert "@media print" in html
-    prt = html.split("@media print", 1)[1]
-    assert "#details" in prt.split("}", 3)[1] or "#details" in prt[:600]  # 詳情列印隱藏
+    assert "tb-print" not in html and "printhead" not in html
+    assert "beforeprint" not in html and "@media print" not in html
 
 
 # ── ③ 內容 QA 閘門：通過／缺檔／卡數不足三條路徑 ──

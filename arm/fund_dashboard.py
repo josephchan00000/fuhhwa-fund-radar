@@ -209,7 +209,6 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     <nav class="tb-nav tb-nav-etf">
       <a href="#etf-passive">被動 ETF</a><a href="#etf-active">主動 ETF</a>
     </nav>
-    <button class="tb-print" onclick="window.print()">{_ic("printer", plain=True)} 晨會版</button>
   </div>
 </div>"""
 
@@ -981,8 +980,6 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 .tb-nav{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
 .tb-nav a{color:var(--ink2);text-decoration:none;font-size:13.5px;padding:5px 13px;border-radius:8px;background:#fff;border:1px solid var(--line);transition:all .15s}
 .tb-nav a:hover{background:rgba(47,111,208,.35);border-color:var(--acc);color:var(--acc);border-color:var(--acc);background:rgba(47,111,208,.1)}
-.tb-print{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:6px 15px;cursor:pointer;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(37,99,201,.3)}
-.tb-print:hover{border-color:var(--acc);color:var(--acc)}
 /* ① brief */
 .ixrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 .ixc{flex:1;min-width:150px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:10px 14px}
@@ -1255,54 +1252,6 @@ a.tk:hover{color:var(--acc)}
 .fnmiss{font-size:12.5px;margin-top:10px;line-height:1.8}
 .fnfoot{color:var(--mut);font-size:12px;margin-top:14px;border-top:1px solid var(--line);padding-top:8px}
 @media(max-width:720px){.fngrid{grid-template-columns:1fr}}
-/* 晨會列印版：只留今日重點＋新聞重點＋連動＋總覽（當前市場），白底黑字 */
-.printhead{display:none}
-/* 晨會列印版：清爽 A4 文件版面——抬頭＋區塊標題底線＋展開新聞＋白底黑字，不浪費墨 */
-@media print{
-  @page{margin:14mm 12mm}
-  body{background:#fff;color:#111;font-size:13px;line-height:1.62;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .wrap{max-width:none;padding:0}
-  .topbar,.backtop,#details,.fund,.tb-print,.pendhint,.mkswitch,#freshness,.copy,.openbtn2,.hero{display:none!important}
-  #fundnews{display:none!important}
-  /* 晨會抬頭（僅列印顯示） */
-  .printhead{display:block!important;border-bottom:2.5px solid #1c2a3a;padding-bottom:7px;margin-bottom:14px}
-  .printhead .ph-t{font-size:20px;font-weight:800;letter-spacing:.03em;color:#111}
-  .printhead .ph-d{font-size:11.5px;color:#555;margin-top:3px}
-  /* 區塊：去卡片框、標題加底線分隔 */
-  .section{background:#fff;border:0;border-radius:0;box-shadow:none;break-inside:auto;margin:0 0 15px;padding:0}
-  .section>.st{font-size:15.5px;font-weight:800;color:#111;border-bottom:1.5px solid #8a97a6;padding-bottom:4px;margin-bottom:9px}
-  .stsub,.st .chip{display:none!important}
-  /* 新聞卡：展開、細框、避免跨頁 */
-  .newsone{background:#fff;border:1px solid #cfd6de;border-radius:6px;margin:8px 0;break-inside:avoid}
-  .newsone>summary{padding:8px 13px}
-  .newsone .nibody{display:block!important;padding:2px 15px 12px}
-  .nit{color:#111;font-size:14px}
-  .nim,.tlab,.muted,.nlfs{color:#555}
-  .nlone{color:#111;background:#eef2f8;font-weight:700}
-  .nibody .ngs{border-left-color:#8a97a6;color:#111}
-  .nibody .ngpts li{border-left-color:#c4ccd6;font-size:12.5px;line-height:1.62;margin:9px 0;color:#111}
-  .nibody .ngpts li b{color:#1c4fa8}
-  .klabel{color:#1c4fa8}
-  .nglink{color:#1a56b0;border:1px solid #ccc;background:#fff}
-  /* 深度/總覽長文 */
-  .ndoc{background:#fff;border:1px solid #cfd6de;font-size:12.5px;line-height:1.7;padding:6px 16px 14px}
-  .ndoc b,.ngpts li b,.calnote b,.premkt b{color:#111;background:#eef2f8}
-  .ndoc h3{background:#eef2f8;border-left:3px solid #1c4fa8;color:#111}
-  .ndoc h2{color:#333}
-  /* 指數卡／連動卡／盤前速覽 */
-  .ixc,.chip,.nlcard,.talk,.premktc .ngc{background:#fff;border-color:#c4ccd6;color:#111}
-  .ixv,.nlt,.ovtbl td.nm a,.fw,.fw b,.talk,.nlco,.ovg{color:#111}
-  /* 表格 */
-  .ovtbl,.caltbl{font-size:12px}
-  .ovtbl td,.ovtbl th,.caltbl td,.caltbl th{border-color:#ccc;color:#111}
-  .ovtbl tr.lead td,td.lead{background:#eef2f8!important}
-  .calnote{border:1px solid #ccc;background:#f6f7f9;color:#333}
-  .calnote .cnlist li:before{color:#555}
-  /* 漲跌色（紅漲綠跌，列印可辨） */
-  .gain{color:#c62828!important}.loss{color:#2e7d32!important}
-  .netype,.nsev{border:1px solid #bbb!important;color:#333!important;background:#fff!important}
-  a{text-decoration:none;color:#111}
-}
 """
 
 _JS = r"""
@@ -1378,11 +1327,6 @@ document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{
 });
 // 投資策略兩行截斷 ↔ 展開
 document.querySelectorAll('.strat').forEach(s=>s.onclick=()=>s.classList.toggle('open'));
-// 晨會列印：列印前展開所有新聞卡（<details> 收合時原生隱藏內文，CSS 壓不過），印完還原
-window.addEventListener('beforeprint',()=>document.querySelectorAll('.newsone').forEach(d=>{
-  d.dataset._op=d.open?'1':'0';d.open=true;}));
-window.addEventListener('afterprint',()=>document.querySelectorAll('.newsone').forEach(d=>{
-  d.open=d.dataset._op==='1';}));
 // 儀表板逾期未重建警告——CI 全停擺時 HTML 不會再重生、上面的 ⚠ 也不會更新，
 // 由瀏覽器端比對「產表時間 vs 現在」補上最後一道防線。
 (function(){const g=document.querySelector('[data-gen]');if(!g)return;
@@ -1575,7 +1519,6 @@ def render() -> str:
 <div class="hero"><div class="hero-t">復華<b>基金雷達</b></div>
 <div class="hero-s">每日晨間更新・基金淨值 × 市場新聞 × 總經政策 × ETF 追蹤</div>
 <div class="hero-meta"><span class="hero-chip">產表 {now}</span><span class="hero-chip">持股基準 {as_of}</span></div></div>
-<div class="printhead"><div class="ph-t">復華基金雷達 · 晨會速報</div><div class="ph-d">彙編時間 {now}（台北時間）· 各資料來源鮮度標於各區塊標題列</div></div>
 {sec_fresh}
 <div class="macroview">{sec_macro_cal}
 {sec_macro_ov}
