@@ -4,9 +4,6 @@ name: 歷史淨值來源探勘
 
 on:
   workflow_dispatch:
-  push:
-    branches: ["claude/fund-nav-missing-update-7m5kqp"]
-    paths: ["scripts/probe_nav_history.py", ".github/workflows/probe_nav_history.yml"]
 
 jobs:
   probe:

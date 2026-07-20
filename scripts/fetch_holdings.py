@@ -83,6 +83,8 @@ def run(ids: list[str]) -> list[dict]:
     n_nav = fundnav.record(docs)             # NAV 序列累積（總覽 1週/1月報酬資料層）
     if n_nav:
         print(f"  ↳ NAV 歷史追加 {n_nav} 筆 → data/fund_nav_history.json")
+    # 新加入追蹤清單的基金短史自動回填（官方 /api/fundNav 全史，只補缺日）
+    fundnav.backfill_official(docs, fhfund.fetch_nav_history)
     return index
 
 
