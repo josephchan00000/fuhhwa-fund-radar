@@ -1,8 +1,9 @@
-"""一次性診斷：掃 /api/fund 的 fundID 區間，印出各 id 實際對到哪支基金。
+"""診斷工具：掃 /api/fund 的 fundID 區間，印出各 id 實際對到哪支基金。
 
-背景：創新指數傘型三檔新基金（2026-06-22 開募）中，133/135 為相鄰檔號推定
-（假設 AI 動力有美元級別），CI 實跑回 NoData——需用 CI 的完整網路確認真實 id。
-只讀不寫，跑完即可從日誌讀結果。
+新基金檔號不保證比舊檔大（2026-07-20 實例：菁英50=126、AI動力=128，比同梯
+創新金融 131 小），相鄰推定不可靠；新增基金 NoData 時用本掃描確認真實 id。
+容器 proxy 連不上 fhtrust——由 .github/workflows/probe_fund_ids.yml 借 CI 網路跑，
+只讀不寫，結果從 CI 日誌讀。
 """
 from __future__ import annotations
 

@@ -1,12 +1,12 @@
-name: 一次性 fundID 診斷掃描
-# 診斷用：容器 proxy 連不上 fhtrust，借 CI 網路掃 /api/fund 的 id 區間，
-# 從日誌讀出新基金（創新指數傘型 133/135 推定檔號）真實 fundID。確認後可刪本檔。
+name: fundID 診斷掃描
+# 診斷用：容器 proxy 連不上 fhtrust，借 CI 網路掃 /api/fund 的 id 區間，從日誌讀出
+# 新基金真實 fundID（新檔號不保證比舊檔大，相鄰推定不可靠——2026-07-20 實例：
+# 台灣菁英50=126、全球AI動力=128，比同梯的創新金融 131 還小）。
+# 注意：workflow_dispatch 只能對「已存在於 main」的工作流程觸發；
+# 未進 main 前需暫時加 push 觸發（限定本檔路徑）代跑。
 
 on:
   workflow_dispatch:
-  push:
-    branches: ["claude/fund-nav-missing-update-7m5kqp"]
-    paths: ["scripts/probe_fund_ids.py", ".github/workflows/probe_fund_ids.yml"]
 
 jobs:
   probe:
