@@ -212,8 +212,7 @@ def test_render_sections_order_and_taiwan_colors():
     assert 'class="nglink' in html                     # 展開內含原文連結
     assert "--gain:#d33a34" in html and "--loss:#1f9d57" in html    # 紅漲綠跌（保留台灣慣例）
     assert "--bg:#eef1f6" in html                                   # 專業冷色調主題（2026-07-18 去米色）
-    assert 'class="topbar"' in html and "@media print" in html
-    assert 'class="printhead"' in html                 # 晨會列印抬頭（僅列印顯示）
+    assert 'class="topbar"' in html          # 列印功能已整組移除（2026-07-20 使用者指示）
     assert 'th class="sk"' in html                     # 可排序表頭
     assert "data-copy=" in html                        # 複製鈕
     assert 'class="openbtn2"' in html                  # 逐則展開/收合按鈕（可點性）
