@@ -4,6 +4,9 @@ name: 一次性 fundID 診斷掃描
 
 on:
   workflow_dispatch:
+  push:
+    branches: ["claude/fund-nav-missing-update-7m5kqp"]
+    paths: ["scripts/probe_fund_ids.py", ".github/workflows/probe_fund_ids.yml"]
 
 jobs:
   probe:
