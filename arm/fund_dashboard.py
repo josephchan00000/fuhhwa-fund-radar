@@ -207,7 +207,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
       <a href="#macro-cal">本週行事曆</a><a href="#macro-ov">政策總覽</a><a href="#macro">政策新聞</a>
     </nav>
     <nav class="tb-nav tb-nav-etf">
-      <a href="#etf-passive">被動 ETF</a><a href="#etf-active">主動 ETF</a>
+      <a href="#etf-passive">被動 ETF</a><a href="#etf-active">主動股票</a><a href="#etf-other">其他</a>
     </nav>
   </div>
 </div>"""
@@ -610,13 +610,17 @@ def _etfwatch_view(doc: dict | None) -> str:
     items = doc["items"]
     passive = [i for i in items if i.get("kind") == "passive"]
     active = [i for i in items if i.get("kind") == "active"]
+    other = [i for i in items if i.get("kind") == "other"]
     parts = []
     if passive:
         parts.append(f'<div class="ovg" id="etf-passive">{_ic("coin", plain=True)} 被動 ETF（高股息／市值型・{len(passive)} 檔）</div>'
                      + _etf_table(passive))
     if active:
-        parts.append(f'<div class="ovg" id="etf-active">{_ic("zap", plain=True)} 主動式 ETF（{len(active)} 檔）</div>'
+        parts.append(f'<div class="ovg" id="etf-active">{_ic("zap", plain=True)} 主動式股票 ETF（{len(active)} 檔）</div>'
                      + _etf_table(active))
+    if other:
+        parts.append(f'<div class="ovg" id="etf-other">{_ic("coin", plain=True)} 其他（債券型主動式等・{len(other)} 檔）</div>'
+                     + _etf_table(other))
     has_est = any(i.get("est_div") is not None for i in items)
     est_note = ('　<b>最近一次配息金額</b>為最近一次「實際」除息之每單位配息金額；標 <b>預估 X*</b> 者為'
                 '投信於配息月公告之<b>預計配息金額（非正式配息金額）</b>，實際以各投信除息公告為準。<br>'
