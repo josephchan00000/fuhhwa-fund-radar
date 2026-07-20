@@ -10,6 +10,7 @@
   python scripts/fetch_holdings.py 47 12      # 指定 fundID
 """
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -21,6 +22,19 @@ from arm.connectors import fhfund            # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "funds"
+
+
+def _name_matches(cfg_name: str | None, api_name: str | None) -> bool:
+    """config 名稱與官網 /api/fund 名稱是否指同一檔（正規化後互為前綴即可）。
+
+    防呆背景（2026-07-20）：新募集基金的官網頁常未被搜尋引擎收錄，fundID 只能由相鄰
+    檔號推定——推錯會整檔抓成別的基金且名稱被 API 權威值覆寫、儀表板看不出異狀。
+    任一方缺名（舊檔／API 缺欄）放行，維持既有行為。"""
+    if not cfg_name or not api_name:
+        return True
+    a = re.sub(r"[\s​]+", "", cfg_name)
+    b = re.sub(r"[\s​]+", "", api_name)
+    return a.startswith(b) or b.startswith(a)
 
 
 def run(ids: list[str]) -> list[dict]:
@@ -35,6 +49,11 @@ def run(ids: list[str]) -> list[dict]:
             doc = fhfund.fetch_fund(fid)
         except Exception as e:
             print(f"  ✗ {fid}：抓取失敗（{type(e).__name__}：{e}）")
+            continue
+        if not _name_matches(cfg.get("name"), doc.get("name")):
+            print(f"  ✗ {fid}：官網名稱「{doc.get('name')}」與 config 名稱"
+                  f"「{cfg.get('name')}」不符——疑 fundID 錯置，跳過不落檔"
+                  "（請修正 config/funds.json 的 id）")
             continue
         doc["group"] = cfg.get("group")
         doc["fetched_at"] = now_tw().strftime("%Y-%m-%d %H:%M")

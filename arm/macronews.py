@@ -32,7 +32,8 @@ SPEC_MACRO = f"""【版型：昨夜美股交易時段・總經／政策面速寫
   ① 川普主導的美國政府政策（白宮／行政命令／關稅／對中／外交）
   ② 聯準會重大訊息（主席 Powell／副主席／FOMC 會議與聲明／利率路徑）
   ③ 重大國際政策（戰爭、制裁、能源／出口管制／科技封鎖）
-主要訊源：Reuters／Bloomberg／WSJ／FT（以 Top News／Most Read／Market Wrap 為主）；
+{usnews.SRC_RULE_GLOBAL}
+（政策面以 Reuters／Bloomberg／WSJ／FT 的 Top News／Most Read／Market Wrap 為主要掃描面；）
 可各補 ≤1 段 JPMorgan／Goldman Sachs／Morgan Stanley／BlackRock 政策評論（附日期）。
 每則附來源連結與台北時間戳（TST；例：2026/07/02 09:30 TST，並於卡末再標一次）。
 
