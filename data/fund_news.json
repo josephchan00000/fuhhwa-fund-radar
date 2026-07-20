@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/21 07:30",
+  "as_of": "2026/07/21 07:35",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -324,6 +324,26 @@
       ],
       "short_names": [
         "全球創新金融指數新臺幣"
+      ],
+      "items": []
+    },
+    {
+      "base": "復華全球AI動力成長指數基金",
+      "fund_ids": [
+        "128"
+      ],
+      "short_names": [
+        "全球AI動力成長指數新臺幣"
+      ],
+      "items": []
+    },
+    {
+      "base": "復華台灣菁英50指數基金",
+      "fund_ids": [
+        "126"
+      ],
+      "short_names": [
+        "台灣菁英50指數"
       ],
       "items": []
     }
