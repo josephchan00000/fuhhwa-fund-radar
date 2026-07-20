@@ -93,9 +93,6 @@ jobs:
       - name: 安裝相依（純標準庫 + certifi）
         run: pip install certifi
 
-      - name: 【暫時】掃描新基金官網 id（AI動力成長／台灣菁英50——找到後刪本步驟）
-        run: python3 scripts/find_fund_ids.py || true
-
       - name: 高風險數字事實核對（對證交所／期交所官方 API；🔴 不擋發佈、落檔警示）
         # 2026-07-20 使用者兩指示並行：「數字必須正確」＋「防線不可硬到什麼都沒更新」。
         # 策略：永不 fail——結果寫 data/factcheck.json 隨每日 commit 入板，儀表板顯示
