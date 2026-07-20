@@ -25,14 +25,16 @@ def main():
             req = urllib.request.Request(url, headers=UA)
             with urllib.request.urlopen(req, timeout=10) as r:
                 doc = _json.loads(r.read().decode("utf-8", errors="replace"))
-            blob = _json.dumps(doc, ensure_ascii=False)[:3000]
-            m = re.search(r'"fundName"\s*:\s*"([^"]+)"', blob) or \
-                re.search(r'"name"\s*:\s*"([^"]+)"', blob)
+            blob = _json.dumps(doc, ensure_ascii=False)
+            # 正式名稱鍵＝twNameFull（與 arm/connectors/fhfund.py 同源；首輪誤抓經理人 name 鍵）
+            m = re.search(r'"twNameFull"\s*:\s*"([^"]+)"', blob) or \
+                re.search(r'"twName"\s*:\s*"([^"]+)"', blob)
             name = m.group(1) if m else ""
             for t in TARGETS:
-                if t in name or t in blob:
-                    hits.append((fid, name or "(名稱鍵未識別，見 blob)"))
-                    print(f"[find_fund_ids] ✅ id={fid} → {name or blob[:120]}")
+                if t in name or t in blob[:4000]:
+                    hits.append((fid, name))
+                    print(f"[find_fund_ids] ✅ id={fid} → {name or '(twNameFull 未見，前200字：'+blob[:200]+')'}")
+                    break
         except Exception:
             continue
     if not hits:
