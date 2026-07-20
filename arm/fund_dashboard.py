@@ -75,6 +75,9 @@ _ICON_PATHS = {
     "calendar": '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>'
                 '<line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
     "clock": '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    "printer": '<polyline points="6 9 6 2 18 2 18 9"/>'
+               '<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>'
+               '<rect x="6" y="14" width="12" height="8"/>',
     "moon": '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
     "bell": '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
     "coin": '<line x1="12" y1="1" x2="12" y2="23"/>'
@@ -156,10 +159,7 @@ def _inline(s: str) -> str:
                r'<a href="\2" target="_blank" rel="noopener">\1</a>', s)
     s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)          # 非貪婪：允許粗體內含斜體 **a *b* c**
     s = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<i>\1</i>", s)
-    # 消息屬性徽章：只有「短」標注（≤12 字，如【新事件】【延伸】【交易確認】）才升級成
-    # .tag 徽章——徽章 white-space:nowrap，長標注（如【延伸・新在哪：……】整句）包進去
-    # 會在手機寬度撐破卡片（2026-07-20 使用者回報跑版），維持一般文字自然換行。
-    s = re.sub(r"【([^】]{1,12})】", r'<span class="tag">【\1】</span>', s)
+    s = re.sub(r"【([^】]+)】", r'<span class="tag">【\1】</span>', s)   # 消息屬性徽章
     return s
 
 
@@ -207,7 +207,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
       <a href="#macro-cal">本週行事曆</a><a href="#macro-ov">政策總覽</a><a href="#macro">政策新聞</a>
     </nav>
     <nav class="tb-nav tb-nav-etf">
-      <a href="#etf-passive">被動 ETF</a><a href="#etf-active">主動股票 ETF</a><a href="#etf-other">其他</a>
+      <a href="#etf-passive">被動 ETF</a><a href="#etf-active">主動股票</a><a href="#etf-other">其他</a>
     </nav>
   </div>
 </div>"""
@@ -603,14 +603,14 @@ def _etf_table(items: list[dict]) -> str:
 
 
 def _etfwatch_view(doc: dict | None) -> str:
-    """ETF 數據追蹤分頁：被動（高股息／市值型）／主動式股票／其他三張週績效表。"""
+    """ETF 數據追蹤分頁：被動（高股息／市值型）與主動式兩張週績效表。"""
     if not doc or not doc.get("items"):
         return ('<div class="muted">尚無 ETF 追蹤資料。請執行 '
                 '<code>python3 scripts/fetch_etf_watch.py</code> 後重產儀表板。</div>')
     items = doc["items"]
     passive = [i for i in items if i.get("kind") == "passive"]
     active = [i for i in items if i.get("kind") == "active"]
-    other = [i for i in items if i.get("kind") not in ("passive", "active")]
+    other = [i for i in items if i.get("kind") == "other"]
     parts = []
     if passive:
         parts.append(f'<div class="ovg" id="etf-passive">{_ic("coin", plain=True)} 被動 ETF（高股息／市值型・{len(passive)} 檔）</div>'
@@ -619,7 +619,7 @@ def _etfwatch_view(doc: dict | None) -> str:
         parts.append(f'<div class="ovg" id="etf-active">{_ic("zap", plain=True)} 主動式股票 ETF（{len(active)} 檔）</div>'
                      + _etf_table(active))
     if other:
-        parts.append(f'<div class="ovg" id="etf-other">{_ic("globe", plain=True)} 其他（{len(other)} 檔）</div>'
+        parts.append(f'<div class="ovg" id="etf-other">{_ic("coin", plain=True)} 其他（債券型主動式等・{len(other)} 檔）</div>'
                      + _etf_table(other))
     has_est = any(i.get("est_div") is not None for i in items)
     est_note = ('　<b>最近一次配息金額</b>為最近一次「實際」除息之每單位配息金額；標 <b>預估 X*</b> 者為'
@@ -1103,7 +1103,7 @@ a.tk:hover{color:var(--acc)}
 .openbtn2::after{content:"▼ 展開"}
 .newsone[open] .openbtn2::after{content:"▲ 收合"}
 .fund[open]>.fsum .openbtn2::after{content:"▲ 收合"}
-.nibody{border:0;border-radius:0;margin:0;padding:2px 22px 16px;overflow-wrap:break-word}
+.nibody{border:0;border-radius:0;margin:0;padding:2px 22px 16px}
 .nibody>*:first-child{margin-top:8px}
 .newsbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0 12px}
 .nswitch{display:flex;gap:6px}
@@ -1464,7 +1464,7 @@ def render() -> str:
     # ETF 數據追蹤分頁（被動／主動台股 ETF 週績效表；左上「ETF」分頁專屬視圖）
     sec_etf = (f'<div class="section" id="etfwatch"><div class="st">{_ic("activity", tone="teal")}ETF 數據追蹤 '
                f'{_fresh_chip("資料基準", etf_asof, 10)} '
-               f'<span class="stsub">台股被動（高股息／市值型）＋主動式股票 ETF＋其他（本家全球金融股債）・收盤／規模／成立／週月報酬／'
+               f'<span class="stsub">台股被動（高股息／市值型）＋主動式 ETF・收盤／規模／成立／週月報酬／'
                f'最近一次配息金額／換算年化配息率／分配頻率・點欄位標題可排序</span></div>'
                f'{_etfwatch_view(etf_doc)}</div>')
 

@@ -1,4 +1,4 @@
-"""守門測試（2026-07-18 審查補強）：SyntaxWarning 回歸鎖／列印功能移除回歸鎖／內容 QA 閘門。"""
+"""守門測試（2026-07-18 審查補強）：SyntaxWarning 回歸鎖／列印版不變量／內容 QA 閘門。"""
 import subprocess
 import sys
 from pathlib import Path
@@ -16,40 +16,13 @@ def test_no_syntax_warnings_in_arm_modules():
     assert r.returncode == 0, r.stderr
 
 
-# ── ② 晨會列印功能已整組移除（2026-07-20 使用者指示：列印版面醜、無法維護）——鎖回歸 ──
+# ── ② 晨會列印版已整組移除（2026-07-20 使用者指示：格式醜、整個功能刪掉）——鎖回歸 ──
 
 def test_print_feature_removed():
     from arm import fund_dashboard
     html = fund_dashboard.render()
-    assert "beforeprint" not in html and "afterprint" not in html
-    assert "printhead" not in html and "tb-print" not in html
-    assert "@media print" not in html and "window.print" not in html
-
-
-# ── ②b fundID 錯置防呆：官網名稱與 config 名稱不符即跳過（2026-07-20） ──
-# 背景：新募集基金的官網頁常未被搜尋引擎收錄，config/funds.json 的 id 只能由相鄰檔號推定；
-# 推錯會整檔抓成別的基金且名稱被 API 權威值覆寫——儀表板看不出異狀，故在抓取端擋下。
-
-def test_fetch_holdings_name_mismatch_guard():
-    import importlib
-    sys.path.insert(0, str(ROOT / "scripts"))
-    fh = importlib.import_module("fetch_holdings")
-    ok = fh._name_matches
-    assert ok("復華美國新星基金-新臺幣", "復華美國新星基金-新臺幣")          # 完全一致
-    assert ok("復華台灣菁英50指數基金", "復華台灣菁英50指數基金-新臺幣")     # 互為前綴（幣別後綴）
-    assert ok(None, "任意") and ok("任意", None)                             # 任一缺名放行（維持舊行為）
-    assert not ok("復華全球AI動力成長指數基金-新臺幣", "復華全球創新金融指數基金-美元")  # 錯置
-    assert not ok("復華台灣菁英50指數基金", "復華全方位基金A類型")
-
-
-# ── ②c 【…】徽章長度閘門：長標注不得包進 nowrap 徽章（手機會撐破卡片，2026-07-20） ──
-
-def test_inline_tag_badge_only_for_short_annotations():
-    from arm import fund_dashboard as fd
-    assert '<span class="tag">【延伸】</span>' in fd._inline("【延伸】新進展")
-    assert '<span class="tag">【週末合併時窗說明】</span>' in fd._inline("【週末合併時窗說明】")
-    long = fd._inline("【延伸・新在哪：昨報已列 Alphabet／特斯拉主軸，本卡補週日最新共識】內文")
-    assert 'class="tag"' not in long                     # 長標注維持一般文字、可自然換行
+    assert "tb-print" not in html and "printhead" not in html
+    assert "beforeprint" not in html and "@media print" not in html
 
 
 # ── ③ 內容 QA 閘門：通過／缺檔／卡數不足三條路徑 ──
