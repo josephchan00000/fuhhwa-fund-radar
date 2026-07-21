@@ -549,9 +549,13 @@ def _ret_cell(i: dict, k: str) -> str:
     last_px = i.get("close_px")
     last_px_s = f"{last_px:g}" if isinstance(last_px, (int, float)) else "—"
     period = "近一週" if k == "ret_1w" else "近一月"
-    tip = f"{period}＝最新 {last_d} 收 {last_px_s} ÷ 基準 {bd} 收 {bp} − 1"
+    dv = i.get(f"{k}_div")                       # 區間內加回的除息（總報酬口徑，arm/etfwatch 記錄）
+    dv_tip = f"（含區間內除息 {dv:g} 加回）" if isinstance(dv, (int, float)) and dv else ""
+    dv_note = f"＋息{dv:g}" if isinstance(dv, (int, float)) and dv else ""
+    tip = f"{period}＝最新 {last_d} 收 {last_px_s}{dv_note} ÷ 基準 {bd} 收 {bp} − 1{dv_tip}"
     md = bd[5:].replace("-", "/") if len(bd) >= 10 else bd
-    return f'{span}<div class="rbase" title="{_esc(tip)}">起算 {_esc(md)} 收 {_esc(bp)}</div>'
+    return (f'{span}<div class="rbase" title="{_esc(tip)}">起算 {_esc(md)} 收 {_esc(bp)}'
+            f'{_esc(dv_note)}</div>')
 
 
 def _etf_table(items: list[dict]) -> str:
@@ -619,7 +623,7 @@ def _etfwatch_view(doc: dict | None) -> str:
         parts.append(f'<div class="ovg" id="etf-active">{_ic("zap", plain=True)} 主動式股票 ETF（{len(active)} 檔）</div>'
                      + _etf_table(active))
     if other:
-        parts.append(f'<div class="ovg" id="etf-other">{_ic("coin", plain=True)} 其他（債券型主動式等・{len(other)} 檔）</div>'
+        parts.append(f'<div class="ovg" id="etf-other">{_ic("coin", plain=True)} 其他（上櫃主動式股票／債券・{len(other)} 檔）</div>'
                      + _etf_table(other))
     has_est = any(i.get("est_div") is not None for i in items)
     est_note = ('　<b>最近一次配息金額</b>為最近一次「實際」除息之每單位配息金額；標 <b>預估 X*</b> 者為'
@@ -635,7 +639,8 @@ def _etfwatch_view(doc: dict | None) -> str:
         '過去一週／一月報酬 ← <a href="https://stooq.com" target="_blank" rel="noopener">stooq</a>／'
         '<a href="https://finance.yahoo.com" target="_blank" rel="noopener">Yahoo</a>／FinMind／'
         '<a href="https://www.twse.com.tw/zh/trading/historical/stock-day.html" target="_blank" '
-        'rel="noopener">TWSE 官方</a>依序取乾淨日線自算（以最新交易日收盤對回推 7／30 日曆日前最後交易日計算）；'
+        'rel="noopener">TWSE 官方</a>依序取乾淨日線自算（以最新交易日收盤對回推 7／30 日曆日前最後交易日計算；'
+        '區間內有除息時把息加回──總報酬口徑，報酬格下方標「＋息」）；'
         '每列<b>代碼可點</b>開 <a href="https://tw.stock.yahoo.com/class/etf" target="_blank" '
         'rel="noopener">Yahoo奇摩股市</a>個股頁對照——報酬取自 Yahoo 即與此連結同源，取自其他源則於代碼旁小標；'
         '每格報酬下方「<b>起算 MM/DD 收 價格</b>」標明用哪一天的收盤當基準'
