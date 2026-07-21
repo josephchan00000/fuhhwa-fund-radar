@@ -31,10 +31,18 @@ def run(day: str | None = None, strict: bool = False) -> int:
              ROOT / "reports" / "macrocal" / f"{d}.md"]
     year = int(d[:4])
     items = []
+    import re as _re
+    from datetime import date as _date
     for fp in files:
         if not fp.exists():
             continue
-        claims = factcheck.extract_claims(fp.read_text(encoding="utf-8"), year)
+        text = fp.read_text(encoding="utf-8")
+        claims = factcheck.extract_claims(text, year)
+        # 美股指數（費半等）句內常無日期——以報告頭部「對應(昨夜美股)?交易日：YYYY/MM/DD」為錨
+        m = _re.search(r"對應(?:昨夜美股)?交易日：(\d{4})/(\d{2})/(\d{2})", text[:600])
+        if m:
+            anchor = _date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            claims += factcheck.extract_us_index_claims(text, anchor)
         for r in factcheck.check_claims(claims):
             c = r.claim
             items.append({"status": r.status, "file": fp.name, "kind": c.kind,
