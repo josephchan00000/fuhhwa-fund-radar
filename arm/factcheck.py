@@ -141,6 +141,7 @@ class Claim:
     value: float       # 報告聲稱值（正規化：金額→億、口數→口、點位→點）
     day: date
     sentence: str = ""
+    qual: str = ""                                    # 「逾／近／約」限定詞——寬容差比對
     alts: list[float] = field(default_factory=list)   # 同句其他候選值（增量/前日值等）——
                                                       # 任一與官方相符即 🟢（CI 首輪實測：
                                                       # 「再增 1,736 口、升至 86,189 口」抓到
@@ -178,21 +179,34 @@ _US_IDX_PAT = {"sox": r"費半|費城半導體|SOX", "ndq": r"那斯達克|那�
 
 def extract_us_index_claims(text: str, session_day: date) -> list[Claim]:
     """美股指數（費半／那指／標普／道瓊）漲跌%與收盤點位——句內常無日期，
-    以報告「對應交易日」為錨。kind＝us_{key}_chg / us_{key}_close。"""
+    以報告「對應交易日」為錨。kind＝us_{key}_chg / us_{key}_close。
+    CI 首輪誤判硬化（2026-07-22）：①含 markdown 連結的句子整句跳過（URL 數字與
+    連結標題如「Nasdaq 100 Tops 29,000」是最大雜訊源）；②同句多指數各自以
+    「指數名後 60 字視窗、遇下一個指數名截斷」定位，防個股漲幅／他指數錯掛；
+    ③點位限 4,000–99,999 量級；④「逾／近／約」限定詞記入 qual、比對時放寬。"""
     claims: list[Claim] = []
     for sent in re.split(r"[。；\n]", text or ""):
+        if "](" in sent:                               # 參考連結句：URL/標題數字不可當行情
+            continue
+        occs = []
         for key, pat in _US_IDX_PAT.items():
-            if not re.search(pat, sent):
-                continue
-            m = re.search(r"(?:大漲|上漲|收漲|漲|重挫|大跌|下跌|收跌|跌)[^0-9%點]{0,8}"
-                          r"([\d.]+)\s*%", sent)
+            for m in re.finditer(pat, sent):
+                occs.append((m.end(), key))
+        occs.sort()
+        for i, (pos, key) in enumerate(occs):
+            end = occs[i + 1][0] - 8 if i + 1 < len(occs) else pos + 60
+            win = sent[pos:max(pos, end)][:60]
+            m = re.search(r"^[^%]{0,25}?(?:大漲|上漲|收漲|漲|反彈|重挫|大跌|下跌|收跌|跌|挫)"
+                          r"\s*(逾|近|約)?\s*([\d.]+)\s*%", win)
             if m:
-                claims.append(Claim(f"us_{key}_chg", float(m.group(1)), session_day, sent.strip()))
-            pts = [_num(v) for v in re.findall(r"([\d,]{5,}(?:\.\d+)?)", sent)]
-            pts = [p for p in pts if p > 4000]           # 指數量級門檻（排除年份/金額）
-            if pts:
-                claims.append(Claim(f"us_{key}_close", pts[0], session_day, sent.strip(), alts=pts))
-            break                                        # 一句只歸一個指數（首個命中者）
+                claims.append(Claim(f"us_{key}_chg", float(m.group(2)), session_day,
+                                    sent.strip()[:160], qual=m.group(1) or ""))
+            m = re.search(r"收[^0-9%]{0,10}([\d,]{5,}(?:\.\d+)?)", win)
+            if m:
+                v = _num(m.group(1))
+                if v and 4000 <= v <= 99999:
+                    claims.append(Claim(f"us_{key}_close", v, session_day,
+                                        sent.strip()[:160], alts=[v]))
     return claims
 
 
@@ -302,5 +316,12 @@ def check_claims(claims: list[Claim], fetchers: dict | None = None) -> list[Find
                 if chg is None:
                     out.append(Finding("⚪", c, note="無前日收盤可算漲跌%"))
                     continue
-                out.append(Finding("🟢" if _tol_ok(c.kind, c.value, chg) else "🔴", c, chg))
+                a, b = c.value, abs(chg)
+                if c.qual == "逾":                     # 「逾 5%」＝下限語意：官方 ≥ 標稱即合理
+                    ok = (b >= a - 0.05) and (b <= a + 2.0)
+                elif c.qual in ("近", "約"):
+                    ok = abs(a - b) <= 0.6
+                else:
+                    ok = _tol_ok(c.kind, a, b)
+                out.append(Finding("🟢" if ok else "🔴", c, chg))
     return out

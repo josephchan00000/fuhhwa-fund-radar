@@ -77,3 +77,20 @@ def test_us_index_claims_anchor_and_verdicts():
     down = {"us": lambda k: None}
     res2 = factcheck.check_claims(claims, fetchers={**_OFFICIAL, **down})
     assert all(r.status == "⚪" for r in res2)
+
+
+def test_us_index_hardening_no_false_positives():
+    """CI 首輪誤判案例鎖定：連結句跳過／個股漲幅不錯掛／逾字寬容差。"""
+    official = {"us": lambda k: {"sox": {"2026-07-21": (12356.16, 5.21)},
+                                 "dji": {"2026-07-21": (52224.64, 0.74)}}.get(k)}
+    day = date(2026, 7, 21)
+    # 連結句（URL 數字＋Nasdaq 100 標題）→ 不抽
+    assert factcheck.extract_us_index_claims(
+        "6. **參考連結**：[Benzinga: Nasdaq 100 Tops 29,000](https://x.com/a/60589094/b)。", day) == []
+    # 個股漲幅不掛到道瓊（視窗內無漲跌+%緊鄰）
+    c = factcheck.extract_us_index_claims("股價盤中漲 5.24% 至 79.82 美元，助攻道瓊領漲 385 點。", day)
+    assert not [x for x in c if x.kind == "us_dji_chg"]
+    # 「大漲逾 5%」對官方 5.21 → 🟢
+    c2 = factcheck.extract_us_index_claims("費半昨夜大漲逾 5%，記憶體領軍。", day)
+    r = factcheck.check_claims(c2, fetchers={**_OFFICIAL, **official})
+    assert [x.status for x in r] == ["🟢"]
