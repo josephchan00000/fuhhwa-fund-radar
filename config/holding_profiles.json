@@ -1,293 +1,347 @@
 {
-  "_note": "重點標的簡介（持股介紹用）；純事實描述、非投資建議。key＝data/funds/*.json 內的持股 name 原字串。",
-  "profiles": {
-    "KIOXIA HOLDINGS CORP": {
-      "intro": "日本鎧俠（Kioxia），前身為東芝記憶體，全球主要 NAND Flash 快閃記憶體製造商之一；產品用於 SSD 固態硬碟、記憶卡與企業級儲存，與威騰電子（WD／SanDisk）共同經營 NAND 晶圓廠。",
-      "ticker": "285A",
-      "country": "日本",
-      "verified": true
-    },
-    "SANDISK CORP": {
-      "intro": "美國晟碟（SanDisk），2025 年自威騰電子（WD）分拆獨立的快閃記憶體與儲存產品廠；主攻 NAND Flash、SSD、記憶卡與 USB 隨身碟，並與鎧俠合資經營 NAND 晶圓廠。",
-      "ticker": "SNDK",
-      "country": "美國",
-      "verified": true
-    },
-    "SK HYNIX INC": {
-      "intro": "韓國 SK 海力士，全球前二大記憶體廠，生產 DRAM 與 NAND Flash；為輝達 AI 伺服器 HBM 高頻寬記憶體主要供應商之一，營運與 AI 算力及記憶體景氣高度連動。",
-      "ticker": "000660",
-      "country": "韓國",
-      "verified": true
-    },
-    "MICRON TECHNOLOGY INC": {
-      "intro": "美國美光（Micron），全球主要 DRAM 與 NAND Flash 記憶體大廠；產品涵蓋伺服器、PC、手機與車用記憶體，並切入 HBM 高頻寬記憶體，為 AI 算力供應鏈要角。",
-      "ticker": "MU",
-      "country": "美國",
-      "verified": true
-    },
-    "SAMSUNG ELECTRONICS CO LTD": {
-      "intro": "韓國三星電子，全球最大綜合電子與記憶體廠；業務橫跨 DRAM／NAND 記憶體、晶圓代工、智慧手機、面板與家電，其中記憶體與 HBM 為 AI 需求核心產品線。",
-      "ticker": "005930",
-      "country": "韓國",
-      "verified": true
-    },
-    "SAMSUNG ELECTRO-MECHANICS CO": {
-      "intro": "韓國三星電機，三星集團旗下電子零組件廠；主力產品為 MLCC 積層陶瓷電容、相機模組與 IC 封裝載板，供應手機、車用與伺服器等終端。",
-      "ticker": "009150",
-      "country": "韓國",
-      "verified": true
-    },
-    "MURATA MANUFACTURING CO LTD": {
-      "intro": "日本村田製作所（Murata），全球 MLCC 積層陶瓷電容龍頭；並生產電感、通訊濾波器與各類被動元件，廣泛應用於手機、車用電子與通訊設備。",
-      "ticker": "6981",
-      "country": "日本",
-      "verified": true
-    },
-    "TAIYO YUDEN CO LTD": {
-      "intro": "日本太陽誘電（Taiyo Yuden），被動元件製造商；產品含 MLCC 積層陶瓷電容、電感與無線通訊元件，主要供應行動裝置、車用與通訊市場。",
-      "ticker": "6976",
-      "country": "日本",
-      "verified": true
-    },
-    "IBIDEN CO LTD": {
-      "intro": "日本揖斐電（Ibiden），高階 IC 封裝載板廠；主力為 ABF 載板（供 CPU／AI 晶片使用），另有陶瓷與電子零件，為高階運算晶片封裝供應鏈要角。",
-      "ticker": "4062",
-      "country": "日本",
-      "verified": true
-    },
-    "MARVELL TECHNOLOGY INC": {
-      "intro": "美國邁威爾（Marvell），資料中心基礎架構晶片廠；專注客製化 ASIC、光通訊 DSP、乙太網路交換與儲存控制晶片，為 AI 資料中心網路與算力互連要角。",
-      "ticker": "MRVL",
-      "country": "美國",
-      "verified": true
-    },
-    "ADVANCED MICRO DEVICES": {
-      "intro": "美國超微（AMD），CPU、GPU 與資料中心 AI 加速器設計廠；EPYC 伺服器處理器與 Instinct 系列 GPU 為其資料中心與 AI 運算主力，與輝達競爭 AI 晶片市場。",
-      "ticker": "AMD",
-      "country": "美國",
-      "verified": true
-    },
-    "BLOOM ENERGY CORP- A": {
-      "intro": "美國 Bloom Energy，固態氧化物燃料電池（SOFC）廠；提供分散式發電與備援電力系統，近年受惠 AI 資料中心對穩定電力與電網外供電的需求。",
-      "ticker": "BE",
-      "country": "美國",
-      "verified": true
-    },
-    "台積電": {
-      "intro": "台灣台積電（TSMC），全球最大晶圓代工廠；以 5／3／2 奈米先進製程與 CoWoS 先進封裝主導 AI 晶片與高效能運算代工，客戶涵蓋輝達、蘋果、超微等國際大廠。",
-      "ticker": "2330",
-      "country": "臺灣",
-      "verified": true
-    },
-    "聯發科": {
-      "intro": "台灣聯發科（MediaTek），全球主要 IC 設計廠；主力為智慧手機系統單晶片（SoC），並跨足 Wi-Fi、電視晶片、車用與 AI 邊緣運算晶片，並切入 ASIC 資料中心晶片。",
-      "ticker": "2454",
-      "country": "臺灣",
-      "verified": true
-    },
-    "信驊": {
-      "intro": "台灣信驊科技（Aspeed），全球伺服器遠端管理晶片（BMC）主要供應商；BMC 為伺服器主機板標準配置，出貨與資料中心及 AI 伺服器需求連動。",
-      "ticker": "5274",
-      "country": "臺灣",
-      "verified": true
-    },
-    "南亞科": {
-      "intro": "台灣南亞科技（Nanya），台塑集團旗下 DRAM 記憶體廠；主攻標準型與利基型 DRAM，並切入 DDR5 與客製化記憶體，為台廠承接國際大廠退出 DDR4 轉單的主要受惠者之一。",
-      "ticker": "2408",
-      "country": "臺灣",
-      "verified": true
-    },
-    "群聯": {
-      "intro": "台灣群聯電子（Phison），NAND Flash 控制晶片（主控 IC）與儲存模組設計廠；產品用於 SSD、記憶卡與 UFS，與 NAND 原廠合作，為儲存控制 IC 領導廠之一。",
-      "ticker": "8299",
-      "country": "臺灣",
-      "verified": true
-    },
-    "日月光投控": {
-      "intro": "台灣日月光投控（ASE Technology），全球最大半導體封裝測試（OSAT）廠；提供打線、覆晶、系統級封裝（SiP）與先進封裝測試，為 AI 晶片後段封測要角。",
-      "ticker": "3711",
-      "country": "臺灣",
-      "verified": true
-    },
-    "旺矽": {
-      "intro": "台灣旺矽科技（MPI），半導體測試探針卡（Probe Card）與 LED／光電量測設備廠；探針卡為晶圓測試關鍵耗材，受惠先進製程與 HBM 記憶體測試需求。",
-      "ticker": "6223",
-      "country": "臺灣",
-      "verified": true
-    },
-    "鴻勁": {
-      "intro": "台灣鴻勁精密（Hon Precision），半導體測試設備廠；主力為測試分選機（Handler）與主動溫控（ATC）設備，用於 IC 封測段，受惠先進封裝與高效能晶片測試需求。",
-      "ticker": "7769",
-      "country": "臺灣",
-      "verified": true
-    },
-    "致茂": {
-      "intro": "台灣致茂電子（Chroma），量測儀器與自動化測試設備廠；產品涵蓋半導體、電動車電池、電源供應器測試與 AOI 光學檢測，供應電子製造與能源測試市場。",
-      "ticker": "2360",
-      "country": "臺灣",
-      "verified": true
-    },
-    "台達電": {
-      "intro": "台灣台達電（Delta），全球電源管理與散熱解決方案領導廠；產品含伺服器電源、散熱模組、工業自動化與電動車零組件，受惠 AI 伺服器高功率供電與液冷需求。",
-      "ticker": "2308",
-      "country": "臺灣",
-      "verified": true
-    },
-    "奇鋐": {
-      "intro": "台灣奇鋐科技（AVC），散熱解決方案廠；主力為散熱模組、均熱板與液冷散熱，受惠 AI 伺服器與高效能運算對高階散熱的需求。",
-      "ticker": "3017",
-      "country": "臺灣",
-      "verified": true
-    },
-    "廣達": {
-      "intro": "台灣廣達電腦（Quanta），全球最大筆電代工廠之一，並為主要 AI 伺服器代工廠；雲端資料中心伺服器與 AI 機櫃組裝為其成長動能，客戶涵蓋主要雲端業者。",
-      "ticker": "2382",
-      "country": "臺灣",
-      "verified": true
-    },
-    "嘉澤": {
-      "intro": "台灣嘉澤端子（Lotes），連接器廠；主力為 CPU 插槽（socket）與伺服器高速連接器，供應資料中心與 AI 伺服器平台，與英特爾、超微等處理器平台連動。",
-      "ticker": "3533",
-      "country": "臺灣",
-      "verified": true
-    },
-    "智邦": {
-      "intro": "台灣智邦科技（Accton），網通設備代工廠；主力為資料中心乙太網路交換器（Switch），供應雲端與 AI 資料中心高速網路，為白牌交換器主要製造商之一。",
-      "ticker": "2345",
-      "country": "臺灣",
-      "verified": true
-    },
-    "台光電": {
-      "intro": "台灣台光電子（EMC），銅箔基板（CCL）與印刷電路板材料廠；供應高速高頻 PCB 基板，受惠 AI 伺服器、交換器對高速材料的升級需求。",
-      "ticker": "2383",
-      "country": "臺灣",
-      "verified": true
-    },
-    "台燿": {
-      "intro": "台灣台燿科技（TUC），高頻高速銅箔基板（CCL）與印刷電路板材料製造商；產品供應網通、伺服器與 AI 高速傳輸應用，屬 PCB 上游材料環節。",
-      "ticker": "6274",
-      "country": "臺灣",
-      "verified": true
-    },
-    "欣興": {
-      "intro": "台灣欣興電子（Unimicron），全球主要印刷電路板（PCB）與 IC 封裝載板廠；ABF 載板供高階 CPU／AI 晶片使用，為先進封裝載板供應鏈要角。",
-      "ticker": "3037",
-      "country": "臺灣",
-      "verified": true
-    },
-    "景碩": {
-      "intro": "台灣景碩科技（Kinsus），IC 封裝載板與印刷電路板廠；產品含覆晶載板（FC）與 ABF／BT 載板，供應高效能運算與網通晶片封裝。",
-      "ticker": "3189",
-      "country": "臺灣",
-      "verified": true
-    },
-    "金像電": {
-      "intro": "台灣金像電子（GCE），印刷電路板（PCB）製造商；主攻伺服器與資料中心用高多層板，受惠 AI 伺服器主機板與交換器需求。",
-      "ticker": "2368",
-      "country": "臺灣",
-      "verified": true
-    },
-    "臻鼎-KY": {
-      "intro": "台灣臻鼎科技（Zhen Ding），全球最大軟性電路板（FPC）廠之一；產品含 FPC、硬板與 IC 載板，供應手機、AI 伺服器與高速運算應用。",
-      "ticker": "4958",
-      "country": "臺灣",
-      "verified": true
-    },
-    "國巨*": {
-      "intro": "台灣國巨（Yageo），全球主要被動元件廠；生產 MLCC 積層陶瓷電容、晶片電阻與鉭質電容，並透過併購（如 KEMET、普思）擴展車用與工業用高階被動元件。",
-      "ticker": "2327",
-      "country": "臺灣",
-      "verified": true
-    },
-    "禾伸堂": {
-      "intro": "台灣禾伸堂（Holy Stone），被動元件廠與電子零件通路商；生產 MLCC 積層陶瓷電容並經營電子零組件代理通路，供應工業、車用與消費電子。",
-      "ticker": "3026",
-      "country": "臺灣",
-      "verified": true
-    },
-    "大量": {
-      "intro": "台灣大量科技（Dahin），自動化設備與零組件廠；產品涵蓋自動化機構件與精密加工，供應半導體與電子製造設備供應鏈。",
-      "ticker": "3167",
-      "country": "臺灣",
-      "verified": true
-    },
-    "漢唐": {
-      "intro": "台灣漢唐集成（Hantang），無塵室與廠務系統統包工程商；承接半導體與面板廠無塵室、機電與廠務工程，營運與晶圓廠資本支出及擴廠週期連動。",
-      "ticker": "2404",
-      "country": "臺灣",
-      "verified": true
-    },
-    "元大金": {
-      "intro": "台灣元大金融控股，以證券為核心的金融控股公司；旗下含元大證券、元大銀行與元大投信，證券經紀與 ETF 資產管理為主要業務。",
-      "ticker": "2885",
-      "country": "臺灣",
-      "verified": true
-    },
-    "中信金": {
-      "intro": "台灣中信金融控股，大型金融控股公司；旗下中國信託銀行為主體，業務涵蓋銀行、信用卡、壽險與證券，為國內主要民營金控之一。",
-      "ticker": "2891",
-      "country": "臺灣",
-      "verified": true
-    },
-    "群益證": {
-      "intro": "台灣群益金鼎證券，綜合證券商；業務含經紀、自營、承銷與財富管理，營運與台股成交量及市場動能連動。",
-      "ticker": "6005",
-      "country": "臺灣",
-      "verified": true
-    },
-    "中際旭創股份有限公司": {
-      "intro": "中國中際旭創（Innolight），全球高速光模組（光收發器）領導廠；產品供應 400G／800G 資料中心與 AI 叢集互連，為 AI 網路光通訊要角。",
-      "ticker": "300308",
-      "country": "中國",
-      "verified": true
-    },
-    "成都新易盛通信技術股份有限公": {
-      "intro": "中國成都新易盛（Eoptolink），高速光通信模組（光模組）製造商；供應資料中心與電信高速光收發器，受惠 AI 資料中心互連需求成長。",
-      "ticker": "300502",
-      "country": "中國",
-      "verified": true
-    },
-    "陝西源傑半導體科技股份有限公": {
-      "intro": "中國源杰科技（源傑半導體），光芯片廠；主力為 DFB／EML 半導體激光器芯片，供應光模組上游，受惠 AI 資料中心光通訊需求。",
-      "ticker": "688498",
-      "country": "中國",
-      "verified": true
-    },
-    "拓荊科技股份有限公司": {
-      "intro": "中國拓荊科技（Piotech），半導體薄膜沉積設備廠；主力 PECVD、ALD 等薄膜設備，為中國半導體製造設備國產化代表廠之一。",
-      "ticker": "688072",
-      "country": "中國",
-      "verified": true
-    },
-    "中微半導體設備（上海）股份有": {
-      "intro": "中國中微公司（AMEC，上海），半導體刻蝕（etch）與薄膜設備廠；產品用於晶圓製造前段製程，為中國先進半導體設備國產化要角。",
-      "ticker": "688012",
-      "country": "中國",
-      "verified": true
-    },
-    "廣東生益科技股份有限公司": {
-      "intro": "中國廣東生益科技（Shengyi），全球主要覆銅板（CCL）廠；生產覆銅板與黏結片等 PCB 材料，受惠高速伺服器與 AI 網通用高階材料需求。",
-      "ticker": "600183",
-      "country": "中國",
-      "verified": true
-    },
-    "滬士電子股份有限公司": {
-      "intro": "中國滬士電子（WUS），印刷電路板（PCB）製造商；供應伺服器、資料中心與網通用高多層板，受惠 AI 伺服器主機板需求。",
-      "ticker": "002463",
-      "country": "中國",
-      "verified": true
-    },
-    "長飛光纖光纜股份有限公司": {
-      "intro": "中國長飛光纖光纜（YOFC），光纖預製棒、光纖與光纜製造商；產品供應電信網路與資料中心布建，與光通訊基礎建設投資連動。",
-      "ticker": "601869",
-      "country": "中國",
-      "verified": true
-    },
-    "T 4 1/2 07/15/26 美國國庫債券": {
-      "intro": "美國國庫債券（U.S. Treasury，公債），票面利率 4.5%、2026 年 7 月 15 日到期；為基金持有之短期美元固定收益部位，屬現金替代與利率型資產。",
-      "ticker": "",
-      "country": "美國",
-      "verified": true
-    }
+ "_note": "重點標的簡介（持股介紹用）；純事實描述、非投資建議。key＝data/funds/*.json 內的持股 name 原字串。",
+ "profiles": {
+  "KIOXIA HOLDINGS CORP": {
+   "intro": "日本鎧俠（Kioxia），前身為東芝記憶體，全球主要 NAND Flash 快閃記憶體製造商之一；產品用於 SSD 固態硬碟、記憶卡與企業級儲存，與威騰電子（WD／SanDisk）共同經營 NAND 晶圓廠。",
+   "ticker": "285A",
+   "country": "日本",
+   "verified": true
+  },
+  "SANDISK CORP": {
+   "intro": "美國晟碟（SanDisk），2025 年自威騰電子（WD）分拆獨立的快閃記憶體與儲存產品廠；主攻 NAND Flash、SSD、記憶卡與 USB 隨身碟，並與鎧俠合資經營 NAND 晶圓廠。",
+   "ticker": "SNDK",
+   "country": "美國",
+   "verified": true
+  },
+  "SK HYNIX INC": {
+   "intro": "韓國 SK 海力士，全球前二大記憶體廠，生產 DRAM 與 NAND Flash；為輝達 AI 伺服器 HBM 高頻寬記憶體主要供應商之一，營運與 AI 算力及記憶體景氣高度連動。",
+   "ticker": "000660",
+   "country": "韓國",
+   "verified": true
+  },
+  "MICRON TECHNOLOGY INC": {
+   "intro": "美國美光（Micron），全球主要 DRAM 與 NAND Flash 記憶體大廠；產品涵蓋伺服器、PC、手機與車用記憶體，並切入 HBM 高頻寬記憶體，為 AI 算力供應鏈要角。",
+   "ticker": "MU",
+   "country": "美國",
+   "verified": true
+  },
+  "SAMSUNG ELECTRONICS CO LTD": {
+   "intro": "韓國三星電子，全球最大綜合電子與記憶體廠；業務橫跨 DRAM／NAND 記憶體、晶圓代工、智慧手機、面板與家電，其中記憶體與 HBM 為 AI 需求核心產品線。",
+   "ticker": "005930",
+   "country": "韓國",
+   "verified": true
+  },
+  "SAMSUNG ELECTRO-MECHANICS CO": {
+   "intro": "韓國三星電機，三星集團旗下電子零組件廠；主力產品為 MLCC 積層陶瓷電容、相機模組與 IC 封裝載板，供應手機、車用與伺服器等終端。",
+   "ticker": "009150",
+   "country": "韓國",
+   "verified": true
+  },
+  "MURATA MANUFACTURING CO LTD": {
+   "intro": "日本村田製作所（Murata），全球 MLCC 積層陶瓷電容龍頭；並生產電感、通訊濾波器與各類被動元件，廣泛應用於手機、車用電子與通訊設備。",
+   "ticker": "6981",
+   "country": "日本",
+   "verified": true
+  },
+  "TAIYO YUDEN CO LTD": {
+   "intro": "日本太陽誘電（Taiyo Yuden），被動元件製造商；產品含 MLCC 積層陶瓷電容、電感與無線通訊元件，主要供應行動裝置、車用與通訊市場。",
+   "ticker": "6976",
+   "country": "日本",
+   "verified": true
+  },
+  "IBIDEN CO LTD": {
+   "intro": "日本揖斐電（Ibiden），高階 IC 封裝載板廠；主力為 ABF 載板（供 CPU／AI 晶片使用），另有陶瓷與電子零件，為高階運算晶片封裝供應鏈要角。",
+   "ticker": "4062",
+   "country": "日本",
+   "verified": true
+  },
+  "MARVELL TECHNOLOGY INC": {
+   "intro": "美國邁威爾（Marvell），資料中心基礎架構晶片廠；專注客製化 ASIC、光通訊 DSP、乙太網路交換與儲存控制晶片，為 AI 資料中心網路與算力互連要角。",
+   "ticker": "MRVL",
+   "country": "美國",
+   "verified": true
+  },
+  "ADVANCED MICRO DEVICES": {
+   "intro": "美國超微（AMD），CPU、GPU 與資料中心 AI 加速器設計廠；EPYC 伺服器處理器與 Instinct 系列 GPU 為其資料中心與 AI 運算主力，與輝達競爭 AI 晶片市場。",
+   "ticker": "AMD",
+   "country": "美國",
+   "verified": true
+  },
+  "BLOOM ENERGY CORP- A": {
+   "intro": "美國 Bloom Energy，固態氧化物燃料電池（SOFC）廠；提供分散式發電與備援電力系統，近年受惠 AI 資料中心對穩定電力與電網外供電的需求。",
+   "ticker": "BE",
+   "country": "美國",
+   "verified": true
+  },
+  "台積電": {
+   "intro": "台灣台積電（TSMC），全球最大晶圓代工廠；以 5／3／2 奈米先進製程與 CoWoS 先進封裝主導 AI 晶片與高效能運算代工，客戶涵蓋輝達、蘋果、超微等國際大廠。",
+   "ticker": "2330",
+   "country": "臺灣",
+   "verified": true
+  },
+  "聯發科": {
+   "intro": "台灣聯發科（MediaTek），全球主要 IC 設計廠；主力為智慧手機系統單晶片（SoC），並跨足 Wi-Fi、電視晶片、車用與 AI 邊緣運算晶片，並切入 ASIC 資料中心晶片。",
+   "ticker": "2454",
+   "country": "臺灣",
+   "verified": true
+  },
+  "信驊": {
+   "intro": "台灣信驊科技（Aspeed），全球伺服器遠端管理晶片（BMC）主要供應商；BMC 為伺服器主機板標準配置，出貨與資料中心及 AI 伺服器需求連動。",
+   "ticker": "5274",
+   "country": "臺灣",
+   "verified": true
+  },
+  "南亞科": {
+   "intro": "台灣南亞科技（Nanya），台塑集團旗下 DRAM 記憶體廠；主攻標準型與利基型 DRAM，並切入 DDR5 與客製化記憶體，為台廠承接國際大廠退出 DDR4 轉單的主要受惠者之一。",
+   "ticker": "2408",
+   "country": "臺灣",
+   "verified": true
+  },
+  "群聯": {
+   "intro": "台灣群聯電子（Phison），NAND Flash 控制晶片（主控 IC）與儲存模組設計廠；產品用於 SSD、記憶卡與 UFS，與 NAND 原廠合作，為儲存控制 IC 領導廠之一。",
+   "ticker": "8299",
+   "country": "臺灣",
+   "verified": true
+  },
+  "日月光投控": {
+   "intro": "台灣日月光投控（ASE Technology），全球最大半導體封裝測試（OSAT）廠；提供打線、覆晶、系統級封裝（SiP）與先進封裝測試，為 AI 晶片後段封測要角。",
+   "ticker": "3711",
+   "country": "臺灣",
+   "verified": true
+  },
+  "旺矽": {
+   "intro": "台灣旺矽科技（MPI），半導體測試探針卡（Probe Card）與 LED／光電量測設備廠；探針卡為晶圓測試關鍵耗材，受惠先進製程與 HBM 記憶體測試需求。",
+   "ticker": "6223",
+   "country": "臺灣",
+   "verified": true
+  },
+  "鴻勁": {
+   "intro": "台灣鴻勁精密（Hon Precision），半導體測試設備廠；主力為測試分選機（Handler）與主動溫控（ATC）設備，用於 IC 封測段，受惠先進封裝與高效能晶片測試需求。",
+   "ticker": "7769",
+   "country": "臺灣",
+   "verified": true
+  },
+  "致茂": {
+   "intro": "台灣致茂電子（Chroma），量測儀器與自動化測試設備廠；產品涵蓋半導體、電動車電池、電源供應器測試與 AOI 光學檢測，供應電子製造與能源測試市場。",
+   "ticker": "2360",
+   "country": "臺灣",
+   "verified": true
+  },
+  "台達電": {
+   "intro": "台灣台達電（Delta），全球電源管理與散熱解決方案領導廠；產品含伺服器電源、散熱模組、工業自動化與電動車零組件，受惠 AI 伺服器高功率供電與液冷需求。",
+   "ticker": "2308",
+   "country": "臺灣",
+   "verified": true
+  },
+  "奇鋐": {
+   "intro": "台灣奇鋐科技（AVC），散熱解決方案廠；主力為散熱模組、均熱板與液冷散熱，受惠 AI 伺服器與高效能運算對高階散熱的需求。",
+   "ticker": "3017",
+   "country": "臺灣",
+   "verified": true
+  },
+  "廣達": {
+   "intro": "台灣廣達電腦（Quanta），全球最大筆電代工廠之一，並為主要 AI 伺服器代工廠；雲端資料中心伺服器與 AI 機櫃組裝為其成長動能，客戶涵蓋主要雲端業者。",
+   "ticker": "2382",
+   "country": "臺灣",
+   "verified": true
+  },
+  "嘉澤": {
+   "intro": "台灣嘉澤端子（Lotes），連接器廠；主力為 CPU 插槽（socket）與伺服器高速連接器，供應資料中心與 AI 伺服器平台，與英特爾、超微等處理器平台連動。",
+   "ticker": "3533",
+   "country": "臺灣",
+   "verified": true
+  },
+  "智邦": {
+   "intro": "台灣智邦科技（Accton），網通設備代工廠；主力為資料中心乙太網路交換器（Switch），供應雲端與 AI 資料中心高速網路，為白牌交換器主要製造商之一。",
+   "ticker": "2345",
+   "country": "臺灣",
+   "verified": true
+  },
+  "台光電": {
+   "intro": "台灣台光電子（EMC），銅箔基板（CCL）與印刷電路板材料廠；供應高速高頻 PCB 基板，受惠 AI 伺服器、交換器對高速材料的升級需求。",
+   "ticker": "2383",
+   "country": "臺灣",
+   "verified": true
+  },
+  "台燿": {
+   "intro": "台灣台燿科技（TUC），高頻高速銅箔基板（CCL）與印刷電路板材料製造商；產品供應網通、伺服器與 AI 高速傳輸應用，屬 PCB 上游材料環節。",
+   "ticker": "6274",
+   "country": "臺灣",
+   "verified": true
+  },
+  "欣興": {
+   "intro": "台灣欣興電子（Unimicron），全球主要印刷電路板（PCB）與 IC 封裝載板廠；ABF 載板供高階 CPU／AI 晶片使用，為先進封裝載板供應鏈要角。",
+   "ticker": "3037",
+   "country": "臺灣",
+   "verified": true
+  },
+  "景碩": {
+   "intro": "台灣景碩科技（Kinsus），IC 封裝載板與印刷電路板廠；產品含覆晶載板（FC）與 ABF／BT 載板，供應高效能運算與網通晶片封裝。",
+   "ticker": "3189",
+   "country": "臺灣",
+   "verified": true
+  },
+  "金像電": {
+   "intro": "台灣金像電子（GCE），印刷電路板（PCB）製造商；主攻伺服器與資料中心用高多層板，受惠 AI 伺服器主機板與交換器需求。",
+   "ticker": "2368",
+   "country": "臺灣",
+   "verified": true
+  },
+  "臻鼎-KY": {
+   "intro": "台灣臻鼎科技（Zhen Ding），全球最大軟性電路板（FPC）廠之一；產品含 FPC、硬板與 IC 載板，供應手機、AI 伺服器與高速運算應用。",
+   "ticker": "4958",
+   "country": "臺灣",
+   "verified": true
+  },
+  "國巨*": {
+   "intro": "台灣國巨（Yageo），全球主要被動元件廠；生產 MLCC 積層陶瓷電容、晶片電阻與鉭質電容，並透過併購（如 KEMET、普思）擴展車用與工業用高階被動元件。",
+   "ticker": "2327",
+   "country": "臺灣",
+   "verified": true
+  },
+  "禾伸堂": {
+   "intro": "台灣禾伸堂（Holy Stone），被動元件廠與電子零件通路商；生產 MLCC 積層陶瓷電容並經營電子零組件代理通路，供應工業、車用與消費電子。",
+   "ticker": "3026",
+   "country": "臺灣",
+   "verified": true
+  },
+  "大量": {
+   "intro": "台灣大量科技（Dahin），自動化設備與零組件廠；產品涵蓋自動化機構件與精密加工，供應半導體與電子製造設備供應鏈。",
+   "ticker": "3167",
+   "country": "臺灣",
+   "verified": true
+  },
+  "漢唐": {
+   "intro": "台灣漢唐集成（Hantang），無塵室與廠務系統統包工程商；承接半導體與面板廠無塵室、機電與廠務工程，營運與晶圓廠資本支出及擴廠週期連動。",
+   "ticker": "2404",
+   "country": "臺灣",
+   "verified": true
+  },
+  "元大金": {
+   "intro": "台灣元大金融控股，以證券為核心的金融控股公司；旗下含元大證券、元大銀行與元大投信，證券經紀與 ETF 資產管理為主要業務。",
+   "ticker": "2885",
+   "country": "臺灣",
+   "verified": true
+  },
+  "中信金": {
+   "intro": "台灣中信金融控股，大型金融控股公司；旗下中國信託銀行為主體，業務涵蓋銀行、信用卡、壽險與證券，為國內主要民營金控之一。",
+   "ticker": "2891",
+   "country": "臺灣",
+   "verified": true
+  },
+  "群益證": {
+   "intro": "台灣群益金鼎證券，綜合證券商；業務含經紀、自營、承銷與財富管理，營運與台股成交量及市場動能連動。",
+   "ticker": "6005",
+   "country": "臺灣",
+   "verified": true
+  },
+  "中際旭創股份有限公司": {
+   "intro": "中國中際旭創（Innolight），全球高速光模組（光收發器）領導廠；產品供應 400G／800G 資料中心與 AI 叢集互連，為 AI 網路光通訊要角。",
+   "ticker": "300308",
+   "country": "中國",
+   "verified": true
+  },
+  "成都新易盛通信技術股份有限公": {
+   "intro": "中國成都新易盛（Eoptolink），高速光通信模組（光模組）製造商；供應資料中心與電信高速光收發器，受惠 AI 資料中心互連需求成長。",
+   "ticker": "300502",
+   "country": "中國",
+   "verified": true
+  },
+  "陝西源傑半導體科技股份有限公": {
+   "intro": "中國源杰科技（源傑半導體），光芯片廠；主力為 DFB／EML 半導體激光器芯片，供應光模組上游，受惠 AI 資料中心光通訊需求。",
+   "ticker": "688498",
+   "country": "中國",
+   "verified": true
+  },
+  "拓荊科技股份有限公司": {
+   "intro": "中國拓荊科技（Piotech），半導體薄膜沉積設備廠；主力 PECVD、ALD 等薄膜設備，為中國半導體製造設備國產化代表廠之一。",
+   "ticker": "688072",
+   "country": "中國",
+   "verified": true
+  },
+  "中微半導體設備（上海）股份有": {
+   "intro": "中國中微公司（AMEC，上海），半導體刻蝕（etch）與薄膜設備廠；產品用於晶圓製造前段製程，為中國先進半導體設備國產化要角。",
+   "ticker": "688012",
+   "country": "中國",
+   "verified": true
+  },
+  "廣東生益科技股份有限公司": {
+   "intro": "中國廣東生益科技（Shengyi），全球主要覆銅板（CCL）廠；生產覆銅板與黏結片等 PCB 材料，受惠高速伺服器與 AI 網通用高階材料需求。",
+   "ticker": "600183",
+   "country": "中國",
+   "verified": true
+  },
+  "滬士電子股份有限公司": {
+   "intro": "中國滬士電子（WUS），印刷電路板（PCB）製造商；供應伺服器、資料中心與網通用高多層板，受惠 AI 伺服器主機板需求。",
+   "ticker": "002463",
+   "country": "中國",
+   "verified": true
+  },
+  "長飛光纖光纜股份有限公司": {
+   "intro": "中國長飛光纖光纜（YOFC），光纖預製棒、光纖與光纜製造商；產品供應電信網路與資料中心布建，與光通訊基礎建設投資連動。",
+   "ticker": "601869",
+   "country": "中國",
+   "verified": true
+  },
+  "T 4 1/2 07/15/26 美國國庫債券": {
+   "intro": "美國國庫債券（U.S. Treasury，公債），票面利率 4.5%、2026 年 7 月 15 日到期；為基金持有之短期美元固定收益部位，屬現金替代與利率型資產。",
+   "ticker": "",
+   "country": "美國",
+   "verified": true
+  },
+  "NVIDIA CORP": {
+   "intro": "美國輝達（NVIDIA），全球 GPU 與 AI 加速運算晶片龍頭；資料中心 AI 晶片（H 系列／B 系列）市占領先，CUDA 軟體生態構成主要護城河，並延伸至網通（NVLink/InfiniBand）與車用平台。",
+   "ticker": "NVDA",
+   "country": "美國",
+   "verified": true
+  },
+  "APPLE INC": {
+   "intro": "美國蘋果（Apple），全球最大消費電子與服務公司之一；iPhone 為營收主軸，搭配 Mac、iPad、穿戴裝置與 App Store／iCloud 等服務事業，自研晶片（A／M 系列）垂直整合硬軟體。",
+   "ticker": "AAPL",
+   "country": "美國",
+   "verified": true
+  },
+  "MICROSOFT CORP": {
+   "intro": "美國微軟（Microsoft），全球最大軟體公司之一；Azure 雲端與 Microsoft 365 為兩大支柱，並以 Copilot 將生成式 AI 整合進辦公與開發工具，亦持有遊戲（Xbox／動視暴雪）事業。",
+   "ticker": "MSFT",
+   "country": "美國",
+   "verified": true
+  },
+  "AMAZON.COM INC": {
+   "intro": "美國亞馬遜（Amazon），全球最大電商與雲端服務公司；AWS 為雲端基礎設施市占龍頭與主要獲利來源，電商搭配 Prime 會員與廣告事業，並自研 AI 晶片（Trainium／Inferentia）。",
+   "ticker": "AMZN",
+   "country": "美國",
+   "verified": true
+  },
+  "ALPHABET INC-CL A": {
+   "intro": "美國 Alphabet（Google 母公司）A 股；搜尋與 YouTube 廣告為營收主軸，Google Cloud 成長引擎，自研 TPU 晶片與 Gemini 模型佈局 AI，另有 Waymo 自駕等其他事業。",
+   "ticker": "GOOGL",
+   "country": "美國",
+   "verified": true
+  },
+  "ALPHABET INC-CL C": {
+   "intro": "美國 Alphabet（Google 母公司）C 股（無投票權股）；業務同 Alphabet A 股：搜尋／YouTube 廣告、Google Cloud 與 AI（Gemini、TPU），兩類股別反映公司雙重股權結構。",
+   "ticker": "GOOG",
+   "country": "美國",
+   "verified": true
+  },
+  "BROADCOM INC": {
+   "intro": "美國博通（Broadcom），半導體與基礎設施軟體雙引擎；網通晶片與客製化 AI ASIC（XPU）為 AI 資料中心要角，軟體端含 VMware 虛擬化平台，客戶集中大型雲端業者。",
+   "ticker": "AVGO",
+   "country": "美國",
+   "verified": true
+  },
+  "TESLA INC": {
+   "intro": "美國特斯拉（Tesla），全球主要電動車廠；Model 系列量產搭配自建充電網路與儲能事業，發展 FSD 自動駕駛、Robotaxi 與 Optimus 機器人，獲利對車價策略與交付量敏感。",
+   "ticker": "TSLA",
+   "country": "美國",
+   "verified": true
+  },
+  "META PLATFORMS INC-CLASS A": {
+   "intro": "美國 Meta Platforms（Facebook 母公司）A 股；Facebook／Instagram／WhatsApp 廣告為營收主體，重金投資 AI（Llama 模型、自建資料中心）與 Reality Labs 硬體。",
+   "ticker": "META",
+   "country": "美國",
+   "verified": true
   }
+ }
 }
