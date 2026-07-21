@@ -78,6 +78,38 @@ def twse_inst_flows(d: date) -> dict | None:
         return None
 
 
+_US_IDX_SYM = {"sox": "^SOX", "ndq": "^IXIC", "spx": "^GSPC", "dji": "^DJI"}
+
+
+def yahoo_index_series(key: str) -> dict[str, tuple[float, float | None]] | None:
+    """Yahoo 圖表 API（CI 可達）→ {iso日期: (收盤, 當日漲跌%)}。
+    2026-07-22 新增：費半等美股指數收盤點位媒體少登，查證代理連三日出錯
+    （週跌幅誤植／誤引盤中快照／同日兩報 3.7% vs 5.21% 矛盾）——改由官方序列程式化驗證。"""
+    import urllib.parse
+    sym = _US_IDX_SYM.get(key)
+    if not sym:
+        return None
+    doc = _get_json("https://query1.finance.yahoo.com/v8/finance/chart/"
+                    f"{urllib.parse.quote(sym)}?range=1mo&interval=1d")
+    try:
+        res = doc["chart"]["result"][0]
+        ts = res["timestamp"]
+        closes = res["indicators"]["quote"][0]["close"]
+    except Exception:
+        return None
+    from datetime import datetime, timezone
+    out: dict[str, tuple[float, float | None]] = {}
+    prev = None
+    for t, c in zip(ts, closes):
+        if c is None:
+            continue
+        iso = datetime.fromtimestamp(t, timezone.utc).date().isoformat()
+        chg = (c / prev - 1) * 100 if prev else None
+        out[iso] = (float(c), chg)
+        prev = float(c)
+    return out or None
+
+
 def taifex_tx_foreign_net(d: date) -> float | None:
     """期交所「三大法人—區分各期貨契約」臺股期貨(TX) 外資多空淨額口數（空方為負）。
     官方下載端點（CSV，POST）；欄位名歷有變動，以「外資」列＋倒數欄位群組解析。"""
@@ -140,6 +172,30 @@ def _num(s: str) -> float:
     return float(s.replace(",", ""))
 
 
+_US_IDX_PAT = {"sox": r"費半|費城半導體|SOX", "ndq": r"那斯達克|那指|Nasdaq",
+               "spx": r"標普|S&P ?500", "dji": r"道瓊"}
+
+
+def extract_us_index_claims(text: str, session_day: date) -> list[Claim]:
+    """美股指數（費半／那指／標普／道瓊）漲跌%與收盤點位——句內常無日期，
+    以報告「對應交易日」為錨。kind＝us_{key}_chg / us_{key}_close。"""
+    claims: list[Claim] = []
+    for sent in re.split(r"[。；\n]", text or ""):
+        for key, pat in _US_IDX_PAT.items():
+            if not re.search(pat, sent):
+                continue
+            m = re.search(r"(?:大漲|上漲|收漲|漲|重挫|大跌|下跌|收跌|跌)[^0-9%點]{0,8}"
+                          r"([\d.]+)\s*%", sent)
+            if m:
+                claims.append(Claim(f"us_{key}_chg", float(m.group(1)), session_day, sent.strip()))
+            pts = [_num(v) for v in re.findall(r"([\d,]{5,}(?:\.\d+)?)", sent)]
+            pts = [p for p in pts if p > 4000]           # 指數量級門檻（排除年份/金額）
+            if pts:
+                claims.append(Claim(f"us_{key}_close", pts[0], session_day, sent.strip(), alts=pts))
+            break                                        # 一句只歸一個指數（首個命中者）
+    return claims
+
+
 def extract_claims(text: str, year: int | None = None) -> list[Claim]:
     """逐句抽高風險數字；只收「句內有日期」者（跨日引用防誤殺）。"""
     year = year or clock.today_tw().year
@@ -179,6 +235,10 @@ def _tol_ok(kind: str, claimed: float, official: float) -> bool:
         return abs(a - b) <= max(b * 0.02, 3)
     if kind == "tx_net":
         return abs(a - b) <= max(b * 0.02, 200)
+    if kind.startswith("us_") and kind.endswith("_chg"):
+        return abs(a - b) <= 0.15                        # 漲跌% 絕對容差（四捨五入口徑差）
+    if kind.startswith("us_") and kind.endswith("_close"):
+        return abs(a - b) <= b * 0.003
     return True
 
 
@@ -191,10 +251,11 @@ def _best(c: Claim, official: float) -> float:
 def check_claims(claims: list[Claim], fetchers: dict | None = None) -> list[Finding]:
     """逐項與官方值比對。fetchers 可注入（測試用）；官方不可得→⚪。"""
     f = {"index": twse_index_close, "flows": twse_inst_flows, "tx": taifex_tx_foreign_net,
-         **(fetchers or {})}
+         "us": yahoo_index_series, **(fetchers or {})}
     idx_cache: dict[date, tuple | None] = {}
     flow_cache: dict[date, dict | None] = {}
     tx_cache: dict[date, float | None] = {}
+    us_cache: dict[str, dict | None] = {}
     out: list[Finding] = []
     for c in claims:
         if c.kind in ("index_close", "index_chg"):
@@ -224,4 +285,22 @@ def check_claims(claims: list[Claim], fetchers: dict | None = None) -> list[Find
                 out.append(Finding("⚪", c, note="期交所淨額不可得"))
                 continue
             out.append(Finding("🟢" if _tol_ok(c.kind, _best(c, off2), off2) else "🔴", c, off2))
+        elif c.kind.startswith("us_"):
+            key = c.kind.split("_")[1]
+            if key not in us_cache:
+                us_cache[key] = f["us"](key)
+            ser = us_cache[key]
+            row = (ser or {}).get(c.day.isoformat())
+            if not row:
+                out.append(Finding("⚪", c, note=f"官方 {key} 序列不可得或無該日"))
+                continue
+            close, chg = row
+            if c.kind.endswith("_close"):
+                out.append(Finding("🟢" if _tol_ok(c.kind, _best(c, close), close) else "🔴",
+                                   c, close))
+            else:
+                if chg is None:
+                    out.append(Finding("⚪", c, note="無前日收盤可算漲跌%"))
+                    continue
+                out.append(Finding("🟢" if _tol_ok(c.kind, c.value, chg) else "🔴", c, chg))
     return out
