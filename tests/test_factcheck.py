@@ -57,3 +57,23 @@ def test_tolerance_allows_rounding():
     claims = factcheck.extract_claims(txt, year=2026)
     res = factcheck.check_claims(claims, fetchers=_OFFICIAL)
     assert all(r.status == "🟢" for r in res)
+
+
+def test_us_index_claims_anchor_and_verdicts():
+    """美股指數：句內無日期以對應交易日為錨；漲跌%與點位分開驗；矛盾值 🔴。"""
+    txt = ("- **費城半導體指數（SOX）**：**大漲 3.7%**（點位以前收約 11,744 推算約 12,178）。\n"
+           "- **標普 500 指數**：上漲 0.89% 收 7,509.20。\n")
+    day = date(2026, 7, 21)
+    claims = factcheck.extract_us_index_claims(txt, day)
+    kinds = sorted(c.kind for c in claims)
+    assert kinds == ["us_sox_chg", "us_sox_close", "us_spx_chg", "us_spx_close"]
+    official = {"us": lambda k: {"sox": {"2026-07-21": (12356.0, 5.21)},
+                                 "spx": {"2026-07-21": (7509.20, 0.89)}}[k]}
+    res = factcheck.check_claims(claims, fetchers={**_OFFICIAL, **official})
+    by = {r.claim.kind: r.status for r in res}
+    assert by["us_sox_chg"] == "🔴" and by["us_sox_close"] == "🔴"   # 3.7% vs 5.21%、12,178 vs 12,356
+    assert by["us_spx_chg"] == "🟢" and by["us_spx_close"] == "🟢"
+    # 官方序列不可得 → ⚪ 不誤殺
+    down = {"us": lambda k: None}
+    res2 = factcheck.check_claims(claims, fetchers={**_OFFICIAL, **down})
+    assert all(r.status == "⚪" for r in res2)
