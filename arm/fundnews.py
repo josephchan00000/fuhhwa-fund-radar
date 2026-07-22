@@ -337,7 +337,7 @@ def auto_highlights(doc: dict) -> list[str]:
         names = "、".join((g.get("base") or "").replace("復華", "").replace("基金", "")
                           for g in hit[:6])
         more = f" 等 {len(hit)} 檔" if len(hit) > 6 else ""
-        hl.append(f"近 {win} 天有專屬報導的基金：{names}{more}（詳下方各基金新聞）")
+        hl.append(f"近 {win} 天有專屬報導的基金：{names}{more}（詳下方基金新聞標籤）")
     focus = next((i for i in doc.get("brand") or []
                   if "旗下各基金" not in (i.get("title") or "")), None)
     if focus:
@@ -396,6 +396,9 @@ def sanitize(doc: dict | None) -> dict | None:
         g["items"] = _clean_items(g.get("items") or [])
     doc["social"] = [s for s in (doc.get("social") or [])
                      if not is_negative_title(s.get("title") or "")]
+    # 舊落檔的看點措辭指向已移除的「各基金新聞」分卡區 → 讀取時改寫成合併版措辭
+    doc["highlights"] = [h.replace("（詳下方各基金新聞）", "（詳下方基金新聞標籤）")
+                         for h in doc.get("highlights") or []]
     return doc
 
 
