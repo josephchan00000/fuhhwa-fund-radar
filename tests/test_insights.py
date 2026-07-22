@@ -257,7 +257,7 @@ def test_render_sections_order_and_taiwan_colors():
     assert 'th class="sk"' in html                     # 可排序表頭
     assert "data-copy=" not in html                    # 複製基金介紹鈕已移除（2026-07-22 使用者指示）
     assert 'class="openbtn2"' in html                  # 逐則展開/收合按鈕（可點性）
-    assert "--hl:#153a7a" in html and "--hlbg:#dce7fa" in html  # 新聞重點藍色標注（專業配色）
+    assert "--hl:#5c1229" in html and "--hlbg:#f7e3ea" in html  # 新聞重點酒紅標注（2026-07-22 使用者指示全站藍改酒紅）
 
 
 def test_render_market_views():
