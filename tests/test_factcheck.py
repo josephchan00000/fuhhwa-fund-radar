@@ -66,12 +66,13 @@ def test_us_index_claims_anchor_and_verdicts():
     day = date(2026, 7, 21)
     claims = factcheck.extract_us_index_claims(txt, day)
     kinds = sorted(c.kind for c in claims)
-    assert kinds == ["us_sox_chg", "us_sox_close", "us_spx_chg", "us_spx_close"]
+    # 「前收約 11,744 推算」句：07-23 起前收防呆刻意不抽 close，只驗漲跌%
+    assert kinds == ["us_sox_chg", "us_spx_chg", "us_spx_close"]
     official = {"us": lambda k: {"sox": {"2026-07-21": (12356.0, 5.21)},
                                  "spx": {"2026-07-21": (7509.20, 0.89)}}[k]}
     res = factcheck.check_claims(claims, fetchers={**_OFFICIAL, **official})
     by = {r.claim.kind: r.status for r in res}
-    assert by["us_sox_chg"] == "🔴" and by["us_sox_close"] == "🔴"   # 3.7% vs 5.21%、12,178 vs 12,356
+    assert by["us_sox_chg"] == "🔴"                                  # 3.7% vs 官方 5.21%
     assert by["us_spx_chg"] == "🟢" and by["us_spx_close"] == "🟢"
     # 官方序列不可得 → ⚪ 不誤殺
     down = {"us": lambda k: None}
@@ -94,3 +95,14 @@ def test_us_index_hardening_no_false_positives():
     c2 = factcheck.extract_us_index_claims("費半昨夜大漲逾 5%，記憶體領軍。", day)
     r = factcheck.check_claims(c2, fetchers={**_OFFICIAL, **official})
     assert [x.status for x in r] == ["🟢"]
+
+
+def test_intraday_and_prevclose_not_extracted():
+    """07-23 誤殺案例：盤中口徑（盤初/一度）與「前收」不可當收盤驗。"""
+    day = date(2026, 7, 22)
+    c = factcheck.extract_us_index_claims("費半盤初一度跌近 2%、盤中偏弱。", day)
+    assert not [x for x in c if x.kind == "us_sox_chg"]
+    c2 = factcheck.extract_us_index_claims("費半僅知盤中區間 12,086–12,404（前收 12,356.16）。", day)
+    assert not [x for x in c2 if x.kind == "us_sox_close"]
+    c3 = factcheck.extract_us_index_claims("費半終場收漲 0.44% 收 12,410.67。", day)
+    assert sorted(x.kind for x in c3) == ["us_sox_chg", "us_sox_close"]
