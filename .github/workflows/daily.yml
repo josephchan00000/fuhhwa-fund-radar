@@ -133,10 +133,16 @@ jobs:
           git commit -m "chore: 每日持股介紹／新聞更新 $(date +%F)" || { echo "無變更，跳過 push"; exit 0; }
           # push 失敗（main 期間被推進）→ rebase 重試；rebase 衝突以本次新資料為準（-X theirs）。
           # 最終仍失敗就讓 job 真的 fail（不可吞錯綠燈——審查 #3），後面 deploy hook 自然不跑。
+          # ⚠ rebase 後必須「用合併後的程式重建儀表板」再推（2026-07-22 踩坑）：-X theirs 只在
+          #   衝突塊取本 run 的舊建置 HTML、非衝突塊留 main 新版 → 兩版模板改動重疊時會拼出
+          #   「新舊混雜」的 index.html（實例：酒紅主題在、副標卻是改版前文案）。
           for i in 1 2 3; do
             git push && exit 0
-            echo "push 被拒（第 $i 次），rebase 後重試…"
+            echo "push 被拒（第 $i 次），rebase 後重建儀表板再重試…"
             git pull --rebase -X theirs origin main || git rebase --abort || true
+            TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py || true
+            git add dashboard/index.html 2>/dev/null || true
+            git commit --amend --no-edit || true
             sleep 5
           done
           echo "::error::push 連續失敗——本日資料未入 main"; exit 1

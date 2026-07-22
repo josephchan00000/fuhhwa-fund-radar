@@ -11,10 +11,10 @@
   "risk_level": "RR5",
   "mgmt_fee": "2.00%",
   "size_twd": 1399017056.0,
-  "nav": 17.66,
-  "nav_date": "2026/07/20",
-  "nav_change": -0.44,
-  "nav_change_pct": "-2.43%",
+  "nav": 19.01,
+  "nav_date": "2026/07/21",
+  "nav_change": 1.35,
+  "nav_change_pct": "7.64%",
   "returns": {
     "ytd": "106.31%",
     "3m": "70.73%",
@@ -27,6 +27,7 @@
   "managers": [
     "楊書婷"
   ],
+  "co_managers": [],
   "strategy": "主要投資於大中華地區之中小型企業股票，追求受惠該地區經濟成長、龐大內需、產業競爭優勢及中小型企業獲利成長潛力等。 研究團隊深入研究中小型公司， 尋找具成長潛力之個股，並根據多重面向判斷大中華區股市多空，靈活決定出較適投資策略。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/29.pdf",
   "dist_date": "2026/06/30",
@@ -121,13 +122,13 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-07-22 07:12",
+  "fetched_at": "2026-07-23 07:01",
   "returns_daily": {
-    "1m": -24.97876,
-    "3m": -1.00897,
-    "6m": 54.50569,
-    "1y": 119.1067,
-    "ytd": 61.42596
+    "1m": -19.24384,
+    "3m": 5.37694,
+    "6m": 67.93286,
+    "1y": 135.85608,
+    "ytd": 73.766
   },
-  "returns_daily_asof": "2026/07/20"
+  "returns_daily_asof": "2026/07/21"
 }

@@ -11,10 +11,10 @@
   "risk_level": "RR4",
   "mgmt_fee": "最高為1.20%",
   "size_twd": 2123518692.0,
-  "nav": 9.91,
-  "nav_date": "2026/07/20",
-  "nav_change": 0.03,
-  "nav_change_pct": "0.30%",
+  "nav": 10.11,
+  "nav_date": "2026/07/21",
+  "nav_change": 0.2,
+  "nav_change_pct": "2.02%",
   "returns": {
     "ytd": "—",
     "3m": "—",
@@ -27,6 +27,7 @@
   "managers": [
     "吳允翔"
   ],
+  "co_managers": [],
   "strategy": "主要投資於與人工智慧（Artificial Intelligence，簡稱AI）加速發展（如人工智慧、機器人、雲端服務、元宇宙等主題）相關之股票。 基金追蹤指數操作，投資人較易於根據指數內容評估投資機會與風險。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/128.pdf",
   "dist_date": "—",
@@ -46,5 +47,5 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-07-22 07:13"
+  "fetched_at": "2026-07-23 07:01"
 }

@@ -11,10 +11,10 @@
   "risk_level": "RR4",
   "mgmt_fee": "1.20%",
   "size_twd": 17752165783.0,
-  "nav": 141.6128,
-  "nav_date": "2026/07/21",
-  "nav_change": 7.1002,
-  "nav_change_pct": "5.28%",
+  "nav": 146.511,
+  "nav_date": "2026/07/22",
+  "nav_change": 4.8982,
+  "nav_change_pct": "3.46%",
   "returns": {
     "ytd": "74.55%",
     "3m": "52.23%",
@@ -27,6 +27,7 @@
   "managers": [
     "郭家宏"
   ],
+  "co_managers": [],
   "strategy": "國內平衡型基金，依總體經濟、資金動能、價值評估及技術指標等，調整資產配置。 於股市高檔時降低持股或以期貨避險來降低風險，於股市低檔時搭配高速成長股與景氣循環股的操作來增進收益。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/11.pdf",
   "dist_date": "2026/06/30",
@@ -128,13 +129,13 @@
     }
   ],
   "group": "tw_balanced",
-  "fetched_at": "2026-07-22 07:12",
+  "fetched_at": "2026-07-23 07:01",
   "returns_daily": {
-    "1m": -14.12696,
-    "3m": 2.38804,
-    "6m": 49.51307,
-    "1y": 105.03507,
-    "ytd": 50.94369
+    "1m": -12.70544,
+    "3m": 3.98536,
+    "6m": 50.20638,
+    "1y": 116.15668,
+    "ytd": 56.16463
   },
-  "returns_daily_asof": "2026/07/21"
+  "returns_daily_asof": "2026/07/22"
 }

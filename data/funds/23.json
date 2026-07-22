@@ -11,10 +11,10 @@
   "risk_level": "RR4",
   "mgmt_fee": "2.00%",
   "size_twd": 18874285408.0,
-  "nav": 75.51,
-  "nav_date": "2026/07/20",
-  "nav_change": -0.59,
-  "nav_change_pct": "-0.78%",
+  "nav": 80.59,
+  "nav_date": "2026/07/21",
+  "nav_change": 5.08,
+  "nav_change_pct": "6.73%",
   "returns": {
     "ytd": "131.54%",
     "3m": "108.51%",
@@ -27,6 +27,7 @@
   "managers": [
     "王萬里"
   ],
+  "co_managers": [],
   "strategy": "投資全球市場主流及具高度成長潛力的新趨勢，尋找前瞻性產業，讓投資組合價值與大趨勢一起成長。 挖掘營運模式具競爭力的優質標的，參與企業營運成果。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/23.pdf",
   "dist_date": "2026/06/30",
@@ -129,13 +130,13 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-07-22 07:12",
+  "fetched_at": "2026-07-23 07:01",
   "returns_daily": {
-    "1m": -27.92096,
-    "3m": 17.83708,
-    "6m": 54.60688,
-    "1y": 100.50451,
-    "ytd": 69.533
+    "1m": -23.07178,
+    "3m": 24.1374,
+    "6m": 62.61098,
+    "1y": 113.99363,
+    "ytd": 80.93848
   },
-  "returns_daily_asof": "2026/07/20"
+  "returns_daily_asof": "2026/07/21"
 }

@@ -11,10 +11,10 @@
   "risk_level": "RR5",
   "mgmt_fee": "1.60%",
   "size_twd": 3645544279.0,
-  "nav": 16.63,
-  "nav_date": "2026/07/21",
-  "nav_change": 0.62,
-  "nav_change_pct": "3.87%",
+  "nav": 17.2,
+  "nav_date": "2026/07/22",
+  "nav_change": 0.57,
+  "nav_change_pct": "3.43%",
   "returns": {
     "ytd": "56.42%",
     "3m": "51.93%",
@@ -27,6 +27,7 @@
   "managers": [
     "戎宜蘋"
   ],
+  "co_managers": [],
   "strategy": "投資於國內上市上櫃公司中，科技相關產業及具有高股息特性之股票，參與長期較佳之企業獲利成長性與股息收益機會。 本基金A類型受益權單位為不配息之類型，各項收益累積在基金淨值中。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/122.pdf",
   "dist_date": "2026/06/30",
@@ -124,13 +125,13 @@
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-07-22 07:12",
+  "fetched_at": "2026-07-23 07:01",
   "returns_daily": {
-    "1m": -12.05711,
-    "3m": 13.67054,
-    "6m": 42.50214,
-    "1y": 67.81029,
-    "ytd": 40.45608
+    "1m": -10.36998,
+    "3m": 15.74697,
+    "6m": 43.21399,
+    "1y": 76.04913,
+    "ytd": 45.27027
   },
-  "returns_daily_asof": "2026/07/21"
+  "returns_daily_asof": "2026/07/22"
 }

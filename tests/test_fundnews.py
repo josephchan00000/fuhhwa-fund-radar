@@ -156,11 +156,27 @@ def test_view_renders_brand_funds_social():
     html = _fundnews_view(doc)
     assert "本週看點" in html and "品牌焦點" in html
     assert "復華投信宣布配息" in html and "https://x/1" in html
-    assert "復華高成長基金" in html and "1 則" in html and "#fund-03" in html
+    assert "投信動態" in html                  # 品牌新聞併入單一清單、以標籤註記
+    assert "#fund-03" in html and ">高成長</a>" in html   # 基金標籤可點跳詳情卡
     assert "測試摘要一句話。" in html          # 摘要行
-    assert "復華神盾基金" in html              # 無新聞者列於「其餘」摘要行
+    assert "復華神盾基金" not in html          # 已合併：無專屬新聞的基金不再整串列名
     assert "25 推" in html and "[心得] 復華基金定期定額" in html
     assert "非投資建議" in html
+
+
+def test_view_merges_and_dedups_across_groups():
+    """同一篇報導同時命中品牌與多檔基金 → 合併清單只列一次、標籤齊備。"""
+    it = {"title": "規模百億基金比一比：復華物聯網、華人世紀怎麼選", "url": "https://x/9",
+          "source": "測試報", "date": "2026-07-20 10:00"}
+    doc = {"as_of": "2026/07/22", "window_days": 7,
+           "brand": [dict(it)],
+           "funds": [{"base": "復華全球物聯網科技基金", "fund_ids": ["08"], "items": [dict(it)]},
+                     {"base": "復華華人世紀基金", "fund_ids": ["02"], "items": [dict(it)]}],
+           "social": []}
+    html = _fundnews_view(doc)
+    assert html.count("規模百億基金比一比") == 1
+    assert "投信動態" in html and "#fund-08" in html and "#fund-02" in html
+    assert ">全球物聯網科技</a>" in html and ">華人世紀</a>" in html
 
 
 def test_auto_highlights_from_doc():
@@ -179,4 +195,4 @@ def test_auto_highlights_from_doc():
 def test_view_social_empty_degrades():
     doc = {"as_of": "2026/07/03", "window_days": 7, "brand": [], "funds": [], "social": []}
     html = _fundnews_view(doc)
-    assert "無品牌新聞" in html and "無相關討論" in html
+    assert "無相關新聞" in html and "無相關討論" in html

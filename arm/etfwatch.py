@@ -64,10 +64,16 @@ WATCHLIST: list[tuple[str, str, str, str, str]] = [
     ("00990A", "主動元大AI新經濟", "active", "主動式", "2025/12/22"),  # 元大投信，不配息，全球 AI 新經濟主題
     ("00403A", "主動統一台股升級50", "active", "主動式", "2026/04/28"),  # 統一投信，季配，募資破紀錄約 792 億
     ("00407A", "主動凱基台灣",     "active", "主動式", "2026/06/12"),  # 凱基投信，不配息，台灣首檔不配息主動台股 ETF
-    # 2026-07-21 使用者指示加入本家金融股債雙收傘型（WebSearch 查證：工商時報 2026/4/15 掛牌報導＋復華官網 ETF24/25）：
-    ("00998A", "主動復華金融股息", "active", "主動式", "2026/03/31"),  # 全球金融股入息，季配（成立日 3/31、掛牌 4/15）
-    ("00986D", "主動復華金融債息", "other",  "主動式債券", "2026/04/15"),  # 全球金融債入息，月配（成立日查無、暫用掛牌日 4/15）
+    # 2026-07-21 使用者指示加入本家金融股債雙收傘型（WebSearch 查證：工商時報 2026/4/15 掛牌報導＋復華官網 ETF24/25）。
+    # 兩檔皆上櫃（Yahoo 代碼 .TWO）、etfinfo 未收錄 → 併入「其他」組同列（規模等欄靠種子＋序列回填）：
+    ("00998A", "主動復華金融股息", "other", "主動式股票", "2026/03/31"),  # 全球金融股入息，季配（成立日 3/31、掛牌 4/15）
+    ("00986D", "主動復華金融債息", "other", "主動式債券", "2026/04/15"),  # 全球金融債入息，月配（成立日查無、暫用掛牌日 4/15）
 ]
+
+# 債券型追蹤檔（cat 含「債」）：收盤價 tick 小、日波動低，收盤值天然高度重複，
+# 「髒序列」防呆（_is_degenerate 相異值 <60%）會誤殺合法序列（2026-07-22 踩坑：00986D
+# 各源全被判髒 → 報酬整片空）→ 對這些檔放寬相異值門檻。
+_BOND_CODES: set[str] = {c for c, _n, _k, cat, _i in WATCHLIST if "債" in cat}
 
 # 投信已公告之「當月預估配息」人工維護清單——etfinfo 只揭露已實際除息者、MOPS 端點又抓不到，
 # 故投信官方公告（首配或當期預告，除息日未到）於此登錄，作為 est_div 的可靠 fallback。
@@ -112,10 +118,14 @@ SEED_PERF: dict[str, dict] = {
     "00990A": {"aum_e8": None,  "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "不配息"},
     "00403A": {"aum_e8": 792.0, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "季配"},
     "00407A": {"aum_e8": 78.7,  "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "不配息"},
-    # 2026-07-21 新增（本家金融股債、上櫃 .TWO；etfinfo 未收錄 → 規模留空；
-    # 年化配息率暫用媒體報導之首配年化口徑（Tier B），etfinfo/實際除息資料接上後覆蓋）：
-    "00998A": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": 10.0, "freq": "季配"},
-    "00986D": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": 7.3,  "freq": "月配"},
+    # 2026-07-21 新增（本家金融股債、上櫃 .TWO；etfinfo 未收錄 → 規模／首配用 WebSearch 查證值
+    # 當種子（Tier B：規模 00998A≈35.21 億（7/8）、00986D≈28.40 億（MoneyDJ）；兩檔首配皆 2026/6/17
+    # 除息：00998A 0.404 元/季、00986D 0.09 元/月——Yahoo股市/MoneyDJ/復華官網報導），
+    # 年化配息率暫用媒體報導之首配年化口徑，etfinfo/實際除息資料接上後覆蓋）：
+    "00998A": {"aum_e8": 35.21, "ret_1w": None, "ret_1m": None, "yield_pct": 10.0, "freq": "季配",
+               "last_div": 0.404, "last_div_date": "2026-06-17"},
+    "00986D": {"aum_e8": 28.40, "ret_1w": None, "ret_1m": None, "yield_pct": 7.3,  "freq": "月配",
+               "last_div": 0.09,  "last_div_date": "2026-06-17"},
 }
 
 # 「待首次 CI 抓取」的新增檔：本環境（雲端 Claude proxy）抓不到乾淨報酬／規模，且無使用者週報底稿，
@@ -270,18 +280,23 @@ def _stooq_series(code: str) -> dict[str, float]:
     return out
 
 
+_DIV_EVENTS: dict[str, dict[str, float]] = {}   # {code: {除息日iso: 每單位金額}}——_yahoo_series 抓到即存
+
+
 def _yahoo_series(code: str) -> dict[str, float]:
     """Yahoo Finance 圖表 API → {iso_date: 收盤}。單一請求、涵蓋近3月逐日。
 
-    取「原始收盤」(quote.close) 為主、adjClose 為輔——近月視窗內無除息時原始收盤即等於
-    總報酬，且避開 adjClose 偶發的稀疏/還原偏差。取不到回 {}。"""
+    取「原始收盤」(quote.close) 為主、adjClose 為輔——避開 adjClose 偶發的稀疏/還原偏差；
+    同請求帶 events=div 把視窗內除息事件存進 _DIV_EVENTS，報酬計算時把息加回
+    （原始收盤跨除息日會低估總報酬——2026-07-22 踩坑：006208 於 7/16 除息 4.75，
+    一週報酬 -8.41% 比同指數 0050 的 -6.42% 多跌整整一個股息）。取不到回 {}。"""
     from datetime import datetime
 
     from .http import get_json
     d = None
     for suf in (".TW", ".TWO"):     # 上市 → 上櫃（00998A/00986D 等 TPEX 掛牌檔）依序試
         url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{code}{suf}"
-               "?range=3mo&interval=1d")
+               "?range=3mo&interval=1d&events=div")
         try:
             d = get_json(url, cache_ttl=3600)
         except Exception:
@@ -291,6 +306,14 @@ def _yahoo_series(code: str) -> dict[str, float]:
     res = (((d or {}).get("chart") or {}).get("result") or [None])[0]
     if not res:
         return {}
+    divs: dict[str, float] = {}
+    for ev in (((res.get("events") or {}).get("dividends") or {})).values():
+        a = _num((ev or {}).get("amount"))
+        t = (ev or {}).get("date")
+        if a and t:
+            divs[datetime.fromtimestamp(int(t), clock.TW_TZ).date().isoformat()] = a
+    if divs:
+        _DIV_EVENTS[code] = divs
     ts = res.get("timestamp") or []
     ind = res.get("indicators") or {}
     raw = ((ind.get("quote") or [{}])[0] or {}).get("close") or []
@@ -341,20 +364,25 @@ def _twse_series(code: str, today: date) -> dict[str, float]:
     return close
 
 
-def _returns_from_series(close: dict[str, float]) -> dict:
-    """由 {iso: close} 日序列算過去一週(7)/一月(30 日曆日)報酬。
+def _returns_from_series(close: dict[str, float], divs: dict[str, float] | None = None) -> dict:
+    """由 {iso: close} 日序列算過去一週(7)/一月(30 日曆日)報酬（總報酬口徑）。
+
+    divs＝{除息日iso: 每單位金額}（Yahoo events=div）：區間內（基準日之後、含最新日）的除息
+    加回最新收盤再算——原始收盤跨除息日會把配息當跌幅、低估報酬（2026-07-22 教訓）。
+    另回 last_close（序列最新收盤）供上層當收盤價 fallback（etfinfo 未收錄的上櫃檔）。
 
     防呆：某週期的基準日必須「真的接近 N 天前」（在 target 前 12 天內）——資料太稀疏時
     基準會落在很早的孤點、把區間拉長算出錯值（曾見 ret_1w==ret_1m）；此時該週期不報（回 None、
     交由上層退回底稿），寧缺勿錯。"""
     dates = sorted(close)
-    out: dict = {"ret_1w": None, "ret_1m": None, "perf_date": None,
+    out: dict = {"ret_1w": None, "ret_1m": None, "perf_date": None, "last_close": None,
                  "ret_1w_base": None, "ret_1m_base": None}
     if len(dates) < 2:
         return out
     last = dates[-1]
     last_d = date.fromisoformat(last)
     out["perf_date"] = last
+    out["last_close"] = close[last]
 
     def _ret(days: int, tag: str):
         target = last_d - timedelta(days=days)
@@ -366,7 +394,11 @@ def _returns_from_series(close: dict[str, float]) -> dict:
             return None
         base = close[bd]
         out[f"{tag}_base"] = f"{bd}={base:g}"                 # 追查用：所用基準日與收盤
-        return round((close[last] / base - 1) * 100, 2) if base else None
+        # 區間內除息加回（bd 當日除息不算——基準收盤已是除息後價）
+        d_add = round(sum(a for d, a in (divs or {}).items() if bd < d <= last), 4)
+        if d_add:
+            out[f"{tag}_div"] = d_add                         # 追查用：加回的每單位息
+        return round(((close[last] + d_add) / base - 1) * 100, 2) if base else None
 
     out["ret_1w"] = _ret(7, "ret_1w")
     out["ret_1m"] = _ret(30, "ret_1m")
@@ -377,11 +409,15 @@ def _returns_from_series(close: dict[str, float]) -> dict:
 _MIN_SERIES = 25
 
 
-def _is_degenerate(series: dict[str, float]) -> bool:
+def _is_degenerate(series: dict[str, float], relax: bool = False) -> bool:
     """髒序列偵測：相異收盤值太少（<60% 交易日各異）＝疑似來源回傳重複值
-    （曾見 Yahoo 對 0056 多日回同一 51.8）→ 不信任、換下一來源。"""
+    （曾見 Yahoo 對 0056 多日回同一 51.8）→ 不信任、換下一來源。
+
+    relax＝債券型（_BOND_CODES）：tick 小、日波動低，收盤值天然重複，60% 門檻會誤殺
+    合法序列（2026-07-22 教訓：00986D 全源被判髒 → 報酬整片空）→ 放寬到 15%。"""
     n = len(series)
-    return n >= 10 and len(set(series.values())) < n * 0.6
+    thr = 0.15 if relax else 0.6
+    return n >= 10 and len(set(series.values())) < n * thr
 
 
 def _fetch_returns(code: str, today: date | None = None) -> dict:
@@ -391,6 +427,7 @@ def _fetch_returns(code: str, today: date | None = None) -> dict:
     髒序列」才採用；回傳 ret_src／ret_n／基準日供追查；全失敗回 None（上層退回底稿）。"""
     today = today or clock.today_tw()
     best = None
+    relax = code in _BOND_CODES                       # 債券型：放寬「髒序列」門檻（收盤天然重複）
     # 惰性呼叫（審查 2026-07-18）：tuple 字面值會在進迴圈前把四個來源全打一遍，
     # 「依序取第一個」短路失效——每檔多發 ~5 個不必要請求。改存 callable 迴圈內才呼叫。
     for src, fetch in (("stooq", lambda: _stooq_series(code)),
@@ -399,9 +436,11 @@ def _fetch_returns(code: str, today: date | None = None) -> dict:
                        ("twse", lambda: _twse_series(code, today))):
         series = fetch()
         n = len(series)
-        if n < 5 or _is_degenerate(series):           # 太短或髒（重複值）→ 換下一來源
+        if n < 5 or _is_degenerate(series, relax=relax):  # 太短或髒（重複值）→ 換下一來源
             continue
-        r = _returns_from_series(series)
+        # 除息事件取自 Yahoo（_yahoo_series 順帶存 _DIV_EVENTS）；stooq 先中選時視窗除息
+        # 資訊未載入（維持價格口徑）——CI 實務上 stooq 對台股 ETF 多半抓不到、以 Yahoo 為主。
+        r = _returns_from_series(series, _DIV_EVENTS.get(code))
         r["ret_src"], r["ret_n"] = src, n
         # 註：一週==一月報酬是「該檔近月盤整（兩基準日同價）」的合理結果，非錯值——不再據此判髒
         # （2026-07-06 教訓：0056 6月盤整於 51.8，週≈月≈2.8% 是對的；曾誤攔正確資料）。
@@ -445,8 +484,8 @@ def fetch() -> dict:
                 "close_px": old.get("close_px"),              # 最新收盤價（etfinfo 市價）
                 "ret_1w": _pick(old, base, "ret_1w"),
                 "ret_1m": _pick(old, base, "ret_1m"),
-                "last_div": old.get("last_div"),              # 最近一次「實際」配息金額
-                "last_div_date": old.get("last_div_date"),
+                "last_div": _pick(old, base, "last_div"),     # 最近一次「實際」配息金額
+                "last_div_date": _pick(old, base, "last_div_date"),  # （上櫃檔 etfinfo 缺 → 用種子）
                 "est_div": old.get("est_div"),                # 當月「預估」配息金額（投信公告，非正式）
                 "est_div_date": old.get("est_div_date"),
                 "yield_pct": _pick(old, base, "yield_pct"),
@@ -456,6 +495,7 @@ def fetch() -> dict:
                 "ret_src": old.get("ret_src") or "seed",         # 報酬來源（yahoo/finmind/twse/seed）
                 "src": old.get("src") or "seed"}
         # ① 規模／收盤價／配息（實際＋預估）／殖利率／頻率 ← etfinfo
+        yield_from_src = False        # etfinfo 本輪是否給了殖利率（否→步驟④可用配息+收盤自算）
         try:
             m = _fetch_market(code)
             aum = _norm_aum_e8(m.get("aum_raw"), item["aum_e8"])
@@ -464,6 +504,7 @@ def fetch() -> dict:
                          ("last_div", m.get("last_div")), ("last_div_date", m.get("last_div_date"))):
                 if v is not None:
                     item[k] = v
+            yield_from_src = m.get("yield_pct") is not None
             item["est_div"] = m.get("est_div")                # 預估配息：無公告即清空（過月即消失）
             item["est_div_date"] = m.get("est_div_date")
             if any(v is not None for v in (aum, m.get("close_px"), m.get("yield_pct"), m.get("freq"))):
@@ -487,7 +528,14 @@ def fetch() -> dict:
                 item["ret_n"] = r.get("ret_n")                   # 序列點數（診斷稀疏度）
                 item["ret_1w_base"] = r.get("ret_1w_base")       # 一週報酬所用基準日=收盤
                 item["ret_1m_base"] = r.get("ret_1m_base")       # 一月報酬所用基準日=收盤
+                item["ret_1w_div"] = r.get("ret_1w_div")         # 區間內加回的除息（總報酬口徑）
+                item["ret_1m_div"] = r.get("ret_1m_div")
                 got_ret += 1
+            # etfinfo 未收錄（上櫃 00998A/00986D）→ 收盤價用報酬序列最新收盤回填
+            if item.get("close_px") is None and r.get("last_close") is not None:
+                item["close_px"] = round(float(r["last_close"]), 2)
+                if item.get("as_of") is None and r.get("perf_date"):
+                    item["as_of"] = str(r["perf_date"])[:10]
         except Exception as e:
             print(f"  ⚠ {code} 報酬抓取失敗（沿用既有值／週報底稿）：{e}")
 
@@ -527,6 +575,11 @@ def fetch() -> dict:
             item["yield_is_est"] = True
         else:
             item["yield_is_est"] = False
+            # etfinfo 沒給殖利率（如上櫃檔）但有配息＋收盤＋頻率 → 以同公式自算，
+            # 取代種子的靜態口徑值（配息實際值接上後隨市價浮動）。
+            if (not yield_from_src and item.get("last_div") is not None
+                    and item.get("close_px") and n):
+                item["yield_pct"] = round(item["last_div"] / item["close_px"] * n * 100, 2)
 
         items.append(item)
     got = got_mkt + got_ret

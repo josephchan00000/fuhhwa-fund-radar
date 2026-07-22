@@ -11,10 +11,10 @@
   "risk_level": "RR4",
   "mgmt_fee": "最高為0.70%",
   "size_twd": 883240721.0,
-  "nav": 9.47,
-  "nav_date": "2026/07/21",
-  "nav_change": 0.43,
-  "nav_change_pct": "4.76%",
+  "nav": 9.6,
+  "nav_date": "2026/07/22",
+  "nav_change": 0.13,
+  "nav_change_pct": "1.37%",
   "returns": {
     "ytd": "—",
     "3m": "—",
@@ -27,6 +27,7 @@
   "managers": [
     "劉昌祚"
   ],
+  "co_managers": [],
   "strategy": "主要投資於市值較大、獲利穩健且財務表現優良的台灣上市股票。 基金追蹤指數操作，投資人較易於根據指數內容評估投資機會與風險。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/126.pdf",
   "dist_date": "—",
@@ -36,5 +37,5 @@
   "country_alloc": [],
   "sector_alloc": [],
   "group": "tw_equity",
-  "fetched_at": "2026-07-22 07:13"
+  "fetched_at": "2026-07-23 07:01"
 }

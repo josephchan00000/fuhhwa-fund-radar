@@ -171,11 +171,14 @@ def _klabel(html_line: str) -> str:
                   r'<span class="klabel">\1</span>', html_line)
 
 
-def _pct_span(v: float | None, digits: int = 2) -> str:
-    """紅漲綠跌的漲跌幅（台灣慣例）。None → 灰 —。"""
+def _pct_span(v: float | None, digits: int = 2, chip: bool = False) -> str:
+    """紅漲綠跌的漲跌幅（台灣慣例）。None → 灰 —。
+    chip=True 時漲跌加淡底色塊（詳情卡摘要列用，掃讀落點）；持平／缺值維持純文字。"""
     if v is None:
         return '<span class="na">—</span>'
     cls = "gain" if v > 0 else ("loss" if v < 0 else "flat")
+    if chip and cls != "flat":
+        cls += " pchip"
     sign = "+" if v > 0 else ""
     return f'<span class="{cls}">{sign}{v:.{digits}f}%</span>'
 
@@ -306,6 +309,37 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
         chips.append(f'<span class="chip">{_ic("coin", plain=True)} {_esc(_short(x["short_name"]))} 配息基準日 '
                      f'{_esc(x["dist_date"])}</span>')
     return f'<div class="ixrow">{idx_cards}</div><div class="chips">{"".join(chips)}</div>'
+
+
+# 市況（休市）chips：行事曆引言「市況：台股 …｜美股 …｜日股 …」段（arm/macronews.SPEC_CAL 固定格式）
+_MKT_STAT_RE = re.compile(r"(台股|美股|日股|韓股|陸股|港股)\s*[：:]?\s*([^｜|；;。]+)")
+
+
+def _market_status(note: str) -> tuple[str, str]:
+    """行事曆引言 → (台股視圖休市句, 全球視圖休市句)。
+
+    新格式（2026-07-22）：解析「市況」段——台股視圖列台股＋美股、
+    全球視圖列美股＋日韓陸港（使用者指示：台股頁也要有美股交易狀態、
+    全球頁不能只有美股）。舊格式（無市況段）→ 沿用舊行為：取含「休市」
+    短句（去括注），兩視圖同句。無休市資訊回 ("", "")、不出空 chip。"""
+    seg = next((p for p in re.split(r"[；;]", note or "") if p.strip().startswith("市況")), "")
+    if seg:
+        pairs = {m: d.strip("，、 ") for m, d in _MKT_STAT_RE.findall(seg)}
+
+        def _line(markets: tuple[str, ...]) -> str:
+            got = [(m, pairs[m]) for m in markets if pairs.get(m)]
+            closed = [f"{m} {d}" for m, d in got if "休市" in d]
+            normal = [m for m, d in got if "休市" not in d]
+            parts = ([ "、".join(closed)] if closed else []) + \
+                    (["、".join(normal) + "正常交易"] if normal else [])
+            return "本週" + "；".join(parts) if parts else ""
+
+        return _line(("台股", "美股")), _line(("美股", "日股", "韓股", "陸股", "港股"))
+    if "休市" in (note or ""):
+        _seg = next((p for p in re.split(r"[；;]", note) if "休市" in p), note)
+        hol = re.sub(r"（[^）]*）", "", _seg).strip()
+        return hol, hol
+    return "", ""
 
 
 _PREMKT_HEAD = re.compile(r"^##\s*🔹?\s*盤[前後]速覽")
@@ -553,9 +587,13 @@ def _ret_cell(i: dict, k: str) -> str:
     last_px = i.get("close_px")
     last_px_s = f"{last_px:g}" if isinstance(last_px, (int, float)) else "—"
     period = "近一週" if k == "ret_1w" else "近一月"
-    tip = f"{period}＝最新 {last_d} 收 {last_px_s} ÷ 基準 {bd} 收 {bp} − 1"
+    dv = i.get(f"{k}_div")                       # 區間內加回的除息（總報酬口徑，arm/etfwatch 記錄）
+    dv_tip = f"（含區間內除息 {dv:g} 加回）" if isinstance(dv, (int, float)) and dv else ""
+    dv_note = f"＋息{dv:g}" if isinstance(dv, (int, float)) and dv else ""
+    tip = f"{period}＝最新 {last_d} 收 {last_px_s}{dv_note} ÷ 基準 {bd} 收 {bp} − 1{dv_tip}"
     md = bd[5:].replace("-", "/") if len(bd) >= 10 else bd
-    return f'{span}<div class="rbase" title="{_esc(tip)}">起算 {_esc(md)} 收 {_esc(bp)}</div>'
+    return (f'{span}<div class="rbase" title="{_esc(tip)}">起算 {_esc(md)} 收 {_esc(bp)}'
+            f'{_esc(dv_note)}</div>')
 
 
 def _etf_table(items: list[dict]) -> str:
@@ -623,7 +661,7 @@ def _etfwatch_view(doc: dict | None) -> str:
         parts.append(f'<div class="ovg" id="etf-active">{_ic("zap", plain=True)} 主動式股票 ETF（{len(active)} 檔）</div>'
                      + _etf_table(active))
     if other:
-        parts.append(f'<div class="ovg" id="etf-other">{_ic("coin", plain=True)} 其他（債券型主動式等・{len(other)} 檔）</div>'
+        parts.append(f'<div class="ovg" id="etf-other">{_ic("coin", plain=True)} 其他（上櫃主動式股票／債券・{len(other)} 檔）</div>'
                      + _etf_table(other))
     has_est = any(i.get("est_div") is not None for i in items)
     est_note = ('　<b>最近一次配息金額</b>為最近一次「實際」除息之每單位配息金額；標 <b>預估 X*</b> 者為'
@@ -639,7 +677,8 @@ def _etfwatch_view(doc: dict | None) -> str:
         '過去一週／一月報酬 ← <a href="https://stooq.com" target="_blank" rel="noopener">stooq</a>／'
         '<a href="https://finance.yahoo.com" target="_blank" rel="noopener">Yahoo</a>／FinMind／'
         '<a href="https://www.twse.com.tw/zh/trading/historical/stock-day.html" target="_blank" '
-        'rel="noopener">TWSE 官方</a>依序取乾淨日線自算（以最新交易日收盤對回推 7／30 日曆日前最後交易日計算）；'
+        'rel="noopener">TWSE 官方</a>依序取乾淨日線自算（以最新交易日收盤對回推 7／30 日曆日前最後交易日計算；'
+        '區間內有除息時把息加回──總報酬口徑，報酬格下方標「＋息」）；'
         '每列<b>代碼可點</b>開 <a href="https://tw.stock.yahoo.com/class/etf" target="_blank" '
         'rel="noopener">Yahoo奇摩股市</a>個股頁對照——報酬取自 Yahoo 即與此連結同源，取自其他源則於代碼旁小標；'
         '每格報酬下方「<b>起算 MM/DD 收 價格</b>」標明用哪一天的收盤當基準'
@@ -665,7 +704,7 @@ _OV_COLS = [("nav", "NAV", 0), ("chg", "日變動", 1), ("w1", "1週", 1), ("m1"
             ("conc", "前十大", 0), ("risk", "RR", 0)]
 
 
-def _overview_view(rows: list[dict], leaders: set, pending: list[dict]) -> str:
+def _overview_view(rows: list[dict], marks: dict, pending: list[dict]) -> str:
     groups: dict[str, list[dict]] = {}
     for r in rows:
         groups.setdefault(r["group_label"], []).append(r)
@@ -674,7 +713,11 @@ def _overview_view(rows: list[dict], leaders: set, pending: list[dict]) -> str:
             {"fund_id": p["fund_id"], "short_name": p["name"], "pending": True,
              "group_label": p["group_label"], "risk": "—",
              **{k: None for k, _, _ in _OV_COLS if k != "risk"}})
-    blocks = []
+    ytd_note = ('<span class="lgnote">＊＝新成立基金，YTD 以發行價 10 元起算（＝成立以來報酬）</span>'
+                if any(r.get("ytd_est") for r in rows) else "")
+    blocks = [('<div class="ovleg">各組各欄標示：<span class="lgsw ld-up1">漲最多</span>'
+               '<span class="lgsw ld-up0">漲最少</span><span class="lgsw ld-dn1">跌最多</span>'
+               f'<span class="lgsw ld-dn0">跌最少</span>{ytd_note}</div>')]
     for g, rs in groups.items():
         trs = []
         for r in rs:
@@ -695,7 +738,11 @@ def _overview_view(rows: list[dict], leaders: set, pending: list[dict]) -> str:
                         cell = f"{v:,.1f}" if k in ("size_e8", "conc") else _esc(v)
                         if k == "conc":
                             cell += "%"
-                lead = ' class="lead"' if (fid, k) in leaders else ""
+                if k == "ytd" and r.get("ytd_est") and v is not None:
+                    cell += ('<sup class="estmk" title="成立未滿一年：以發行價 10 元起算'
+                             '之成立以來報酬率（＝當年度 YTD）">*</sup>')
+                mk = marks.get((fid, k))
+                lead = f' class="{mk}"' if mk else ""
                 tds.append(f'<td data-v="{v if v is not None else ""}"{lead}>{cell}</td>')
             trs.append(f'<tr data-fund="{_esc(fid)}">{"".join(tds)}</tr>')
         ths = "".join(f'<th class="sk" data-k="{k}" title="點擊排序">{lab}<span class="arr"></span></th>'
@@ -757,23 +804,31 @@ def _holdings_table(doc: dict, linked_names: set[str]) -> str:
 def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
     ret = doc.get("returns") or {}
     ga = gavg.get(doc.get("group_label") or "", {})
+    inc_ret = fund_insights.inception_ret_pct(doc)   # 今年新成立且官網未揭露 → 發行價 10 元起算
     cells = []
     for k, lab in fund_insights.RET_KEYS + [("since", "成立以來")]:
         v = fund_insights.parse_period_pct(ret.get(k))
+        est = ""
+        if v is not None:
+            disp = ret.get(k)
+        elif inc_ret is not None and k in ("ytd", "since"):
+            v, disp = inc_ret, f"{inc_ret:+.2f}%"
+            est = ('<sup class="estmk" title="成立未滿一年：以發行價 10 元起算'
+                   '之成立以來報酬率（＝當年度 YTD）">*</sup>')
+        else:
+            disp = "—"
         avg = ga.get(k)
         beat = ' <span class="beat" title="高於同組平均">●</span>' \
             if (v is not None and avg is not None and v > avg) else ""
         sub = f'<div class="ga">同組均 {avg:.1f}%</div>' if avg is not None else ""
-        disp = ret.get(k) if v is not None else "—"
         cells.append(f'<div class="rc"><div class="rk2">{lab}</div>'
-                     f'<div class="rv">{_esc(disp)}{beat}</div>{sub}</div>')
+                     f'<div class="rv">{_esc(disp)}{est}{beat}</div>{sub}</div>')
     size = doc.get("size_twd")
     size_s = f"{size / 1e8:.1f} 億元" if size else "—"
     mr = (f'<a class="mrpt" href="{_esc(doc["monthly_report"])}" target="_blank" rel="noopener">📄 基金月報</a>'
           if doc.get("monthly_report") else "")
     strat = doc.get("strategy") or ""
     chg = fund_insights.parse_pct(doc.get("nav_change_pct"))
-    copy_txt = fund_insights.fund_intro_copy(doc)
     # 國內基金官網不提供國家配置——整段省略，避免留下懸空的「—」空區塊
     cty = doc.get("country_alloc") or []
     alloc_html = (
@@ -782,26 +837,29 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
         if cty else f'<div class="ctitle">{_ic("layers", plain=True)} 產業配置</div>')
     conc = fund_intro.top_concentration(doc)
     conc_s = f"{conc}%" if conc is not None else "—"
+    # 經理人：官網 API manager＝經理人、manager01＝協管經理人（2026-07-22 經 MoneyDJ 經理人
+    # 資料交叉驗證：美國新星 manager01 郭俊宏＝協管）。舊快照無 co_managers 鍵時照舊全列不標。
+    man_s = "、".join((doc.get("managers") or [])
+                     + [f"{c}（協管）" for c in (doc.get("co_managers") or [])]) or "—"
     return f"""
 <details class="fund" id="fund-{_esc(doc.get('fund_id'))}" data-name="{_esc(doc.get('name'))}"
   data-group="{_esc(doc.get('group_label'))}">
   <summary class="fsum">
-    <span class="fsum-l"><b>{_esc(doc.get('name'))}</b> <span class="gl">{_esc(doc.get('group_label'))}</span></span>
+    <span class="fsum-l"><b>{_esc(doc.get('name'))}</b></span>
+    <span class="gl">{_esc(doc.get('group_label'))}</span>
     <span class="fsum-r">NAV {_esc(doc.get('nav') if doc.get('nav') is not None else '—')}
-      {_pct_span(chg)}<span class="openbtn2"></span></span>
+      {_pct_span(chg, chip=True)}<span class="openbtn2"></span></span>
   </summary>
   <div class="fhead">
     <div>
       <div class="sub">{_esc(doc.get('category'))}｜主要區域 {_esc(doc.get('region') or '—')}｜
         風險 {_esc(doc.get('risk_level') or '—')}｜經理費 {_esc(doc.get('mgmt_fee') or '—')}｜
-        經理人 {_esc('、'.join(doc.get('managers') or []) or '—')}</div>
-      <div class="oneline">{_esc(fund_intro.summary_line(doc))}</div>
+        經理人 {_esc(man_s)}</div>
     </div>
     <div class="navbox">
       <div class="nav">{_esc(doc.get('nav') if doc.get('nav') is not None else '—')}</div>
       <div class="navd">NAV · {_esc(doc.get('nav_date') or '—')} {_pct_span(chg)}</div>
       <div class="size">規模 {size_s}　{mr}</div>
-      <button class="copy cfund" data-copy="{_esc(copy_txt)}">{_ic("clipboard", plain=True)} 複製基金介紹</button>
     </div>
   </div>
   {f'<div class="strat" title="點擊展開／收合">{_esc(strat)}</div>' if strat else ''}
@@ -825,8 +883,9 @@ def _pending_card(p: dict) -> str:
 <details class="fund pendcard" id="fund-{_esc(p['fund_id'])}" data-name="{_esc(p['name'])}"
   data-group="{_esc(p['group_label'])}">
   <summary class="fsum">
-    <span class="fsum-l"><b>{_esc(p['name'])}</b> <span class="gl">{_esc(p['group_label'])}</span></span>
-    <span class="fsum-r">數據待抓取<span class="openbtn2"></span></span>
+    <span class="fsum-l"><b>{_esc(p['name'])}</b></span>
+    <span class="gl">{_esc(p['group_label'])}</span>
+    <span class="fsum-r"><span class="pend">數據待抓取</span><span class="openbtn2"></span></span>
   </summary>
   <div class="fhead"><div>
     <div class="sub">⏳ 已列入追蹤，數據待抓取——{note}
@@ -846,14 +905,20 @@ def _details_block(funds: list[dict], gavg: dict, linked_by_fund: dict[str, set[
 
 # ── ⑥ 基金相關新聞・社群（讀 data/fund_news.json；無檔顯示提示不壞版） ──
 
-def _fundnews_item(i: dict) -> str:
-    """單則新聞列：標題（可點）＋摘要（有才顯示）＋日期・來源 meta 列。"""
+def _fundnews_item(i: dict, tags: str = "") -> str:
+    """單則新聞列：標題（可點）＋摘要（有才顯示）＋日期・來源・關聯基金標籤 meta 列。"""
     summ = f'<div class="fnsum">{_esc(i["summary"])}</div>' if i.get("summary") else ""
     return (f'<div class="fnit">'
             f'<a class="fnt" href="{_esc(i.get("url") or "#")}" target="_blank" rel="noopener">'
             f'{_esc(i.get("title"))}</a>{summ}'
             f'<div class="fnmeta"><span class="fnd">{_esc((i.get("date") or "")[:10])}</span>'
-            f'<span class="fnsrc">{_esc(i.get("source") or "—")}</span></div></div>')
+            f'<span class="fnsrc">{_esc(i.get("source") or "—")}</span>{tags}</div></div>')
+
+
+def _fund_tag_label(base: str | None) -> str:
+    """關聯基金標籤短名：去「復華」前綴與「基金」尾綴（標籤空間小、品牌名不必重複）。"""
+    s = re.sub(r"^復華", "", (base or "").strip())
+    return re.sub(r"基金$", "", s) or (base or "")
 
 
 def _fundnews_view(doc: dict | None) -> str:
@@ -868,32 +933,41 @@ def _fundnews_view(doc: dict | None) -> str:
         parts.append(f'<div class="fnhl"><div class="fnhlt">{_ic("search", plain=True)} 本週看點</div><ul class="ngpts">'
                      + "".join(f'<li>{_esc(h)}</li>' for h in hls) + '</ul></div>')
 
-    brand = doc.get("brand") or []
-    parts.append(f'<div class="fng">{_ic("landmark", plain=True)} 復華投信動態</div>')
-    if brand:
-        parts.append(f'<div class="fnlist">{"".join(_fundnews_item(i) for i in brand)}</div>')
-    else:
-        parts.append(f'<div class="muted">近 {win} 天無品牌新聞（或來源暫不可達）。</div>')
+    # 品牌動態＋各基金新聞合併為單一去重清單（2026-07-22 使用者指示：逐檔分卡太冗長——
+    # 同稿在多檔基金卡重複出現、無新聞基金整串列名佔版面）。每則以標籤註記關聯：
+    # 「投信動態」＝品牌層；基金短名標籤可點、跳該檔詳情卡。無專屬新聞的基金不再列出。
+    entries: list[dict] = []
+    index: dict[str, dict] = {}
 
-    groups = doc.get("funds") or []
-    hit = [g for g in groups if g.get("items")]
-    miss = [g for g in groups if not g.get("items")]
-    parts.append(f'<div class="fng">{_ic("news", plain=True)} 各基金新聞（近 {win} 天）</div>')
-    if hit:
-        cards = []
-        for g in hit:
-            fid = (g.get("fund_ids") or [""])[0]
-            cards.append(
-                f'<div class="fncard"><div class="fnfh">'
-                f'<a href="#fund-{_esc(fid)}">{_esc(g.get("base"))}</a>'
-                f'<span class="fncnt">{len(g["items"])} 則</span></div>'
-                f'{"".join(_fundnews_item(i) for i in g["items"])}</div>')
-        parts.append(f'<div class="fngrid">{"".join(cards)}</div>')
+    def _add(item: dict, tag: str) -> None:
+        key = (item.get("title") or "")[:24]     # 同 fundnews.merge_news 的去重鍵
+        if not key:
+            return
+        e = index.get(key)
+        if e is None:
+            e = {"item": item, "tags": []}
+            index[key] = e
+            entries.append(e)
+        if tag and tag not in e["tags"]:
+            e["tags"].append(tag)
+
+    for i in doc.get("brand") or []:
+        _add(i, '<span class="fntag fnbrand">投信動態</span>')
+    for g in doc.get("funds") or []:
+        fid = (g.get("fund_ids") or [""])[0]
+        tag = (f'<a class="fntag" href="#fund-{_esc(fid)}" title="{_esc(g.get("base"))}">'
+               f'{_esc(_fund_tag_label(g.get("base")))}</a>')
+        for i in g.get("items") or []:
+            _add(i, tag)
+    entries.sort(key=lambda e: e["item"].get("datetime") or e["item"].get("date") or "",
+                 reverse=True)
+
+    parts.append(f'<div class="fng">{_ic("news", plain=True)} 基金新聞（近 {win} 天）</div>')
+    if entries:
+        parts.append('<div class="fnlist">' + "".join(
+            _fundnews_item(e["item"], "".join(e["tags"])) for e in entries) + '</div>')
     else:
-        parts.append(f'<div class="muted">近 {win} 天各基金皆無專屬新聞（或來源暫不可達）。</div>')
-    if hit and miss:
-        parts.append(f'<div class="muted fnmiss">其餘 {len(miss)} 檔近 {win} 天無專屬新聞：'
-                     f'{_esc("、".join(g.get("base") or "" for g in miss))}</div>')
+        parts.append(f'<div class="muted">近 {win} 天無相關新聞（或來源暫不可達）。</div>')
 
     soc = doc.get("social") or []
     parts.append(f'<div class="fng">{_ic("chat", plain=True)} 社群討論（PTT 股票板・依推文數）</div>')
@@ -915,34 +989,35 @@ def _fundnews_view(doc: dict | None) -> str:
 # ── 樣式與腳本（非 f-string，避免大括號跳脫） ─────────────────
 
 _CSS = """
-:root{--bg:#eef1f6;--card:#ffffff;--card2:#f4f6fa;--ink:#1f2733;--mut:#727e8c;
---line:#e2e7ef;--c1:#3b82f6;--c2:#c2740e;--gain:#d33a34;--loss:#1f9d57;--acc:#2563c9;
---accd:#1c4fa8;--ink2:#44505f;--inset:#eef2f8;--hl:#153a7a;--hlbg:#dce7fa;--gold:#a16207}
+/* 2026-07-22 富途式扁平版：整站單一白色平面、無卡片框，區塊靠細分隔線＋留白分層 */
+:root{--bg:#ffffff;--card:#ffffff;--card2:#f4f6fa;--ink:#1f2733;--mut:#727e8c;
+--line:#e8ebf1;--c1:#3b82f6;--c2:#c2740e;--gain:#d33a34;--loss:#1f9d57;--acc:#2563c9;
+--accd:#1c4fa8;--ink2:#44505f;--inset:#eef2f8;--hl:#153a7a;--hlbg:#dce7fa;--gold:#a16207;
+--pad:#f7f9fc}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:var(--tbh,64px)}
 body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.7 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif}
 /* 抓重點段落小標（新聞卡「對持股／族群影響」式標籤，全站統一） */
 .klabel{display:inline-block;color:var(--accd);font-weight:700;letter-spacing:.02em;margin-right:8px}
 a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5px;color:var(--accd)}
-.wrap{max-width:1240px;margin:0 auto;padding:14px 18px 60px}
-/* 品牌漸層 Hero（雲學堂式主視覺・復華藍金版） */
-.hero{background:linear-gradient(120deg,#0a3e7d 0%,#1660bd 62%,#2f7fd8 100%);border-radius:18px;
-  padding:22px 26px 20px;margin:14px 0 18px;color:#fff;position:relative;overflow:hidden;
-  box-shadow:0 6px 20px rgba(11,63,125,.25)}
+.wrap{max-width:1240px;margin:0 auto;padding:10px 18px 60px}
+/* 品牌漸層 Hero（瘦身版：識別保留、高度收斂，把空間留給內容） */
+.hero{background:linear-gradient(120deg,#0a3e7d 0%,#1660bd 62%,#2f7fd8 100%);border-radius:14px;
+  padding:15px 20px 13px;margin:8px 0 4px;color:#fff;position:relative;overflow:hidden}
 .hero:before{content:"";position:absolute;right:-60px;top:-70px;width:230px;height:230px;border-radius:50%;
   background:radial-gradient(circle,rgba(255,255,255,.14),rgba(255,255,255,0) 70%)}
 .hero:after{content:"";position:absolute;right:70px;bottom:-90px;width:180px;height:180px;border-radius:50%;
   background:radial-gradient(circle,rgba(224,171,66,.25),rgba(224,171,66,0) 72%)}
-.hero-t{font-size:23px;font-weight:800;letter-spacing:.04em}
+.hero-t{font-size:20px;font-weight:800;letter-spacing:.04em}
 .hero-t b{color:#f4c15d;background:none;padding:0}
-.hero-s{font-size:13.5px;color:rgba(255,255,255,.88);margin-top:5px;letter-spacing:.02em}
-.hero-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px;position:relative;z-index:1}
-.hero-chip{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);border-radius:8px;
-  padding:4px 12px;font-size:12.5px;color:#fff;backdrop-filter:blur(2px)}
-@media(max-width:640px){.hero{padding:17px 18px 15px}.hero-t{font-size:19px}}
+.hero-s{font-size:13px;color:rgba(255,255,255,.85);margin-top:3px;letter-spacing:.02em}
+.hero-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;position:relative;z-index:1}
+.hero-chip{background:rgba(255,255,255,.14);border:0;border-radius:7px;
+  padding:3px 10px;font-size:12px;color:#fff}
+@media(max-width:640px){.hero{padding:12px 14px 11px}.hero-t{font-size:17.5px}.hero-s{display:none}}
 /* SVG 圖標：區塊標題彩色圖標磚（雲學堂式模組色）＋行內 plain */
 .ic{display:inline-flex;align-items:center;justify-content:center;width:29px;height:29px;
-  border-radius:9px;background:rgba(37,99,201,.11);color:var(--accd);flex:0 0 auto}
+  border-radius:9px;background:rgba(47,111,208,.11);color:var(--accd);flex:0 0 auto}
 .ic.t-amber{background:rgba(224,150,25,.15);color:#a16207}
 .ic.t-green{background:rgba(22,163,74,.12);color:#15803d}
 .ic.t-purple{background:rgba(124,58,237,.11);color:#6d28d9}
@@ -951,8 +1026,9 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 .ic svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .ic.plain{background:none;width:16px;height:16px;color:inherit;vertical-align:-2px}
 .ic.plain svg{width:14px;height:14px}
-.section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:16px 0;box-shadow:0 3px 14px rgba(20,50,100,.05)}
-.section>.st,.newswrap .st{font-weight:700;font-size:18px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* 區塊不再是卡片：無框無陰影、全寬平鋪，區塊間以細分隔線＋留白分層（富途式） */
+.section{background:none;border:0;border-radius:0;padding:24px 0 14px;margin:0;box-shadow:none;border-bottom:1px solid var(--line)}
+.section>.st,.newswrap .st{font-weight:800;font-size:19px;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .stsub{font-weight:400;font-size:13px;color:var(--mut)}
 .muted{color:var(--mut)} .na{color:var(--mut)}
 .gain{color:var(--gain);font-weight:700}.loss{color:var(--loss);font-weight:700}.flat{color:var(--mut)}
@@ -968,14 +1044,14 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 #mkt-macro:checked ~ .topbar .tb-nav-fund,#mkt-etf:checked ~ .topbar .tb-nav-fund{display:none}
 #mkt-tw:checked ~ .topbar .tb-nav-macro,#mkt-gl:checked ~ .topbar .tb-nav-macro,#mkt-etf:checked ~ .topbar .tb-nav-macro{display:none}
 #mkt-macro:checked ~ .topbar .tb-nav-etf,#mkt-tw:checked ~ .topbar .tb-nav-etf,#mkt-gl:checked ~ .topbar .tb-nav-etf{display:none}
-.mkswitch{display:flex;gap:3px;border:1px solid #d3deee;background:#eef3fa;border-radius:11px;padding:3px}
-.mk{background:transparent;color:#33507a;border:0;border-radius:8px;padding:6px 17px;cursor:pointer;font-size:14.5px;font-weight:700;user-select:none;transition:background .15s,color .15s}
-.mk+.mk{border-left:1px solid #35496b}
-.mk:hover{background:rgba(47,111,208,.12)}
+/* 主分頁＝文字頁籤＋底線（富途式），去掉框與填色 */
+.mkswitch{display:flex;gap:4px;border:0;background:none;border-radius:0;padding:0}
+.mk{background:transparent;color:var(--mut);border:0;border-radius:0;padding:7px 10px 9px;cursor:pointer;font-size:16px;font-weight:800;user-select:none;transition:color .15s,box-shadow .15s}
+.mk:hover{color:var(--accd)}
 #mkt-macro:checked ~ .topbar .mk[for="mkt-macro"],
 #mkt-tw:checked ~ .topbar .mk[for="mkt-tw"],
 #mkt-gl:checked ~ .topbar .mk[for="mkt-gl"],
-#mkt-etf:checked ~ .topbar .mk[for="mkt-etf"]{background:var(--acc);color:#fff}
+#mkt-etf:checked ~ .topbar .mk[for="mkt-etf"]{background:none;color:var(--ink);box-shadow:inset 0 -3px 0 var(--acc)}
 /* ⓪ topbar */
 .topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);box-shadow:0 1px 8px rgba(20,50,100,.06)}
 .tb-in{max-width:1240px;margin:0 auto;padding:9px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -985,35 +1061,36 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
 .dot.ok{background:#34c07c;box-shadow:0 0 5px rgba(52,192,124,.7)}
 .dot.err{background:#e5534b}.dot.off{background:#8fa1bd}
-.tb-nav{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
-.tb-nav a{color:var(--ink2);text-decoration:none;font-size:13.5px;padding:5px 13px;border-radius:8px;background:#fff;border:1px solid var(--line);transition:all .15s}
-.tb-nav a:hover{background:rgba(47,111,208,.35);border-color:var(--acc);color:var(--acc);border-color:var(--acc);background:rgba(47,111,208,.1)}
+.tb-nav{margin-left:auto;display:flex;gap:2px;flex-wrap:wrap}
+.tb-nav a{color:var(--ink2);text-decoration:none;font-size:13.5px;padding:5px 9px;border-radius:0;background:none;border:0;transition:color .15s}
+.tb-nav a:hover{color:var(--acc)}
 /* ① brief */
 .ixrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-.ixc{flex:1;min-width:150px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:10px 14px}
+.ixc{flex:1;min-width:150px;background:var(--card2);border:0;border-radius:10px;padding:10px 14px}
 .ixl{font-size:12px;color:var(--mut)} .ixv{font-size:21px;font-weight:800;letter-spacing:.01em}
 .ixp{font-size:13px}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
-.chip{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:7px 13px;font-size:14px;color:var(--ink);text-decoration:none}
-.chip b{font-weight:700} .chip.hot{border-color:var(--acc);background:rgba(47,111,208,.1)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:0;border-radius:8px;padding:6px 12px;font-size:14px;color:var(--ink);text-decoration:none}
+.chip b{font-weight:700} .chip.hot{background:rgba(47,111,208,.12);color:var(--accd)}
 .chip.dim{color:var(--mut)}
 .chip.stale{border-color:#c62828;background:rgba(198,40,40,.08);color:#c62828;font-weight:700}
 .st .chip.fresh{font-size:11.5px;padding:2px 10px;margin-left:4px;font-weight:400;vertical-align:middle}
 .st .chip.fresh b{font-weight:600}
 .stale-note{color:#c62828;font-weight:700}
 .stale-banner{background:#c62828;color:#fff;text-align:center;padding:8px 14px;font-size:13.5px;font-weight:700}
-a.chip{border-color:rgba(47,111,208,.45);cursor:pointer}
+a.chip{background:rgba(47,111,208,.08);color:var(--accd);cursor:pointer}
 a.chip::after{content:"›";color:var(--acc);font-weight:800;font-size:16px}
-a.chip:hover{border-color:var(--acc);background:rgba(47,111,208,.14)}
+a.chip:hover{background:rgba(47,111,208,.16)}
 /* ①b 盤前速覽（今日重點內） */
 .premktc{margin-top:12px}
 .premkt{border:0;background:none;border-radius:0;padding:0;margin-top:6px;
   font-size:16px;line-height:1.85;color:var(--ink)}
 .premkt ul{margin:4px 0} .premkt ul li{margin:9px 0}
-/* ② news digest */
-.ngc{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin:10px 0}
-.ngt{font-weight:700;font-size:16.5px;color:var(--ink);line-height:1.5}
-.ngm{color:var(--mut);font-size:13px;margin-top:2px}
+/* ② news digest：輕色塊卡墊（2026-07-22 全站套用：取代細分隔線，好掃讀） */
+.ngc{background:var(--pad);border:0;border-radius:12px;padding:13px 14px;margin:0 0 8px;border-bottom:0}
+.ngc:last-child{margin-bottom:0}
+.ngt{font-weight:700;font-size:17px;color:var(--ink);line-height:1.55}
+.ngm{color:var(--mut);font-size:13px;margin-top:3px}
 .ngs{font-size:17px;color:var(--ink);margin:6px 0 16px;line-height:1.9}
 .ngpts{margin:8px 0 0;padding-left:0;list-style:none}
 .ngpts li{position:relative;margin:6px 0;padding-left:16px;font-size:15px;color:var(--ink2);line-height:1.75}
@@ -1025,28 +1102,26 @@ a.chip:hover{border-color:var(--acc);background:rgba(47,111,208,.14)}
   color:var(--ink);border-left:2px solid rgba(47,111,208,.22)}
 .nibody .ngpts li:before{display:none}
 .nglinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.nglink{display:inline-block;background:rgba(47,111,208,.08);border:1px solid rgba(47,111,208,.4);border-radius:8px;padding:4px 12px;font-size:13.5px;color:var(--accd);text-decoration:none}
-.nglink:hover{border-color:var(--acc);color:var(--acc)}
-.nglink.futu1{background:rgba(200,134,15,.1);border-color:rgba(200,134,15,.5);color:var(--gold)}
+.nglink{display:inline-block;background:rgba(47,111,208,.08);border:0;border-radius:8px;padding:4px 12px;font-size:13.5px;color:var(--accd);text-decoration:none}
+.nglink:hover{background:rgba(47,111,208,.16);color:var(--acc)}
+.nglink.futu1{background:rgba(200,134,15,.1);color:var(--gold)}
 .nglink.futu1:hover{color:#fff;background:var(--gold)}
-/* ③ news links */
-.nlcard{background:var(--card2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:0 11px 11px 0;padding:12px 16px;margin:10px 0}
+/* ③ news links：同樣扁平化為清單項 */
+.nlcard{background:none;border:0;border-radius:0;padding:12px 0;margin:0;border-bottom:1px solid var(--line)}
+.nlcard:last-child{border-bottom:0}
 .nlt{font-weight:700;font-size:16.5px;color:var(--ink)}
 .nlone{display:table;font-size:16px;margin:6px 0 10px;color:var(--hl);background:var(--hlbg);font-weight:700;padding:1px 8px;border-radius:4px}
 .nlrow{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin:6px 0;font-size:13.5px}
 .nlco{font-weight:700;min-width:110px} .nlfs{color:var(--mut)}
 .fw{color:var(--accd);font-size:14px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(43,95,176,.45);margin-right:8px;white-space:nowrap}
 .fw b{color:var(--ink)} .fw:hover{color:var(--acc);text-decoration-color:var(--acc)}
-.futu{display:inline-block;font-size:12px;font-weight:700;color:var(--gold);border:1px solid rgba(200,134,15,.5);border-radius:8px;padding:1px 9px;margin-left:6px;text-decoration:none;vertical-align:1px}
+.futu{display:inline-block;font-size:12px;font-weight:700;color:var(--gold);background:rgba(200,134,15,.12);border:0;border-radius:8px;padding:2px 9px;margin-left:6px;text-decoration:none;vertical-align:1px}
 .futu:hover{color:#fff;background:var(--gold)}
 a.tk{text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(43,95,176,.45)}
 a.tk:hover{color:var(--acc)}
-.talk{margin-top:10px;background:var(--inset);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:14px;color:var(--ink2);line-height:1.7}
+.talk{margin-top:10px;background:var(--inset);border:0;border-radius:9px;padding:9px 12px;font-size:14px;color:var(--ink2);line-height:1.7}
 .talk.bad{color:var(--mut)}
 .tlab{display:block;font-size:11.5px;color:var(--mut);margin-bottom:3px}
-.copy{background:rgba(47,111,208,.1);color:var(--accd);border:1px solid rgba(47,111,208,.5);border-radius:8px;padding:5px 13px;cursor:pointer;font-size:13.5px;font-weight:700;margin-left:6px}
-.copy:hover{border-color:var(--acc);color:var(--acc)}
-.copy.ok{color:#fff;border-color:var(--acc);background:var(--acc)}
 /* ④ overview */
 .ovg{font-weight:700;font-size:13.5px;color:var(--accd);margin:14px 0 6px}
 .ovwrap{overflow-x:auto;background:
@@ -1066,7 +1141,15 @@ a.tk:hover{color:var(--acc)}
 .ovtbl td.nm{text-align:left;font-weight:600}
 .ovtbl td.nm a{color:var(--accd);font-size:14.5px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(43,95,176,.45)}
 .ovtbl td.nm a:hover{color:var(--acc);text-decoration-color:var(--acc)}
-.ovtbl td.lead{background:rgba(211,58,52,.12);border-radius:4px}
+/* 總覽表極值標示（2026-07-22）：深紅=漲最多、淡紅=漲最少、深綠=跌最多、淡綠=跌最少
+   （不綁 td——圖例 .lgsw 色塊共用同色票） */
+.ld-up1{background:rgba(211,58,52,.22);border-radius:4px}
+.ld-up0{background:rgba(211,58,52,.08);border-radius:4px}
+.ld-dn1{background:rgba(31,157,87,.22);border-radius:4px}
+.ld-dn0{background:rgba(31,157,87,.08);border-radius:4px}
+.ovleg{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--mut);margin:0 0 8px}
+.lgsw{padding:1px 8px;border-radius:5px;color:var(--ink2);white-space:nowrap}
+.lgnote{margin-left:4px}
 .ovtbl tr:hover td{background:rgba(47,111,208,.06)}
 /* ETF 表：只凍結「代碼／名稱」一欄（識別欄），手機橫向捲動時恆可見；
    性質欄隨捲動移出（分兩張表已按性質分組，捲動時不需重複顯示），省空間好閱讀 */
@@ -1075,31 +1158,32 @@ a.tk:hover{color:var(--acc)}
 .etftbl .etcode{display:block}                 /* 代碼自成一行，名稱從下一行整段起，避免首字被擠上代碼列 */
 .etftbl .etname{display:block;line-height:1.35} /* 名稱整段換行 */
 .etftbl .fh{color:var(--gold);font-weight:800} /* 產品名內「復華」以品牌色標示 */
-.pend{display:inline-block;font-size:11.5px;color:var(--gold);border:1px solid rgba(200,134,15,.5);border-radius:10px;padding:0 7px;margin-left:6px;vertical-align:1px}
-.pendhint{background:rgba(200,134,15,.1);border:1px solid rgba(200,134,15,.35);border-radius:10px;padding:9px 13px;font-size:13.5px;color:#8a6a2e;margin-bottom:10px}
+.pend{display:inline-block;font-size:11.5px;color:var(--gold);background:rgba(200,134,15,.12);border:0;border-radius:10px;padding:1px 7px;margin-left:6px;vertical-align:1px}
+.pendhint{background:rgba(200,134,15,.1);border:0;border-radius:10px;padding:9px 13px;font-size:13.5px;color:#8a6a2e;margin-bottom:10px}
 /* news full（收合） */
 .newswrap summary{cursor:pointer;list-style:none}
 .newswrap summary::-webkit-details-marker{display:none}
 .newswrap summary:hover .openbtn{border-color:var(--acc);color:var(--acc)}
-.openbtn{margin-left:auto;background:rgba(47,111,208,.1);color:var(--accd);border:1px solid rgba(47,111,208,.5);border-radius:8px;padding:5px 13px;font-size:13.5px;font-weight:700;white-space:nowrap}
+.openbtn{margin-left:auto;background:none;color:var(--accd);border:0;border-radius:0;padding:5px 0;font-size:13.5px;font-weight:700;white-space:nowrap}
 .openbtn::after{content:"▼ 點擊展開全文"}
 .newswrap[open] .openbtn::after{content:"▲ 收合"}
-/* 逐則新聞收合塊 */
-.newsone{background:var(--card2);border:1px solid var(--line);border-radius:11px;margin:8px 0;overflow:hidden}
-.newsone>summary{cursor:pointer;list-style:none;display:flex;align-items:flex-start;gap:12px;padding:12px 16px}
+/* 逐則新聞收合塊：輕色塊卡墊（2026-07-22 全站套用：每則一個極淺灰圓角色塊） */
+.newsone{background:var(--pad);border:0;border-radius:12px;margin:0 0 8px;overflow:visible;padding:0 14px}
+.newsone:last-of-type{margin-bottom:0}
+.newsone>summary{cursor:pointer;list-style:none;display:flex;align-items:flex-start;gap:12px;padding:14px 0}
 .newsone>summary::-webkit-details-marker{display:none}
-.newsone>summary:hover{background:rgba(47,111,208,.06)}
-.newsone[open]>summary{border-bottom:1px solid var(--line)}
+.newsone>summary:hover .nit{color:var(--accd)}
+.newsone[open]>summary{padding-bottom:8px}
 .nhead{display:flex;flex-direction:column;gap:4px;min-width:0}
-.nit{font-weight:700;font-size:17px;color:var(--ink);line-height:1.55}
+.nit{font-weight:700;font-size:17.5px;color:var(--ink);line-height:1.55}
 .nim{color:var(--mut);font-size:13px}
 .nhead .nlone{margin:0}
 .nbadges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1px}
-.netype{font-size:11px;font-weight:700;padding:1.5px 8px;border-radius:5px;white-space:nowrap;border:1px solid;letter-spacing:.03em}
+.netype{font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap;border:0;letter-spacing:.03em}
 .netype.new{color:var(--acc);background:rgba(47,111,208,.12);border-color:rgba(47,111,208,.4)}
 .netype.ext{color:var(--mut);background:rgba(138,127,107,.12);border-color:rgba(138,127,107,.35)}
 .netype.deep{color:#7b4fa0;background:rgba(123,79,160,.10);border-color:rgba(123,79,160,.4)}
-.nsev{font-size:11px;font-weight:800;padding:1.5px 8px;border-radius:5px;white-space:nowrap;border:1px solid;letter-spacing:.03em}
+.nsev{font-size:11px;font-weight:800;padding:2px 8px;border-radius:5px;white-space:nowrap;border:0;letter-spacing:.03em}
 .nsev.hi{color:#fff;background:#c8760f;border-color:#c8760f}
 .nsev.mid{color:#8a5410;background:rgba(200,118,15,.16);border-color:rgba(200,118,15,.5)}
 .nsev.lo{color:var(--mut);background:rgba(138,127,107,.1);border-color:rgba(138,127,107,.3)}
@@ -1107,14 +1191,15 @@ a.tk:hover{color:var(--acc)}
 .openbtn2::after{content:"▼ 展開"}
 .newsone[open] .openbtn2::after{content:"▲ 收合"}
 .fund[open]>.fsum .openbtn2::after{content:"▲ 收合"}
-.nibody{border:0;border-radius:0;margin:0;padding:2px 22px 16px}
+.nibody{border:0;border-radius:0;margin:0;padding:0 0 18px}
 .nibody>*:first-child{margin-top:8px}
-.newsbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0 12px}
-.nswitch{display:flex;gap:6px}
-.nb{background:var(--card2);color:var(--accd);border:1px solid var(--line);border-radius:20px;padding:7px 16px;cursor:pointer;font-size:14.5px;font-weight:700}
-.nb:hover{border-color:var(--acc)}
-.nb.on{background:var(--acc);color:#fff;border-color:var(--acc)}
-.ndoc{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 30px 24px;line-height:1.9;font-size:17px;color:var(--ink)}
+.newsbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:6px 0 2px}
+.nswitch{display:flex;gap:2px}
+/* 報別切換＝文字頁籤＋底線（同主分頁） */
+.nb{background:none;color:var(--mut);border:0;border-radius:0;padding:7px 10px 9px;cursor:pointer;font-size:15px;font-weight:700}
+.nb:hover{color:var(--accd)}
+.nb.on{background:none;color:var(--ink);box-shadow:inset 0 -3px 0 var(--acc)}
+.ndoc{background:none;border:0;border-radius:0;padding:0 0 16px;line-height:1.9;font-size:17px;color:var(--ink)}
 .ndoc.hidden{display:none}
 .ndoc>*:first-child{margin-top:14px}
 .ndoc h2{font-size:14.5px;color:var(--mut);font-weight:600;letter-spacing:.02em;margin:30px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
@@ -1127,19 +1212,19 @@ a.tk:hover{color:var(--acc)}
 .ndoc ol li{position:relative;margin:14px 0;padding-left:36px;counter-increment:n}
 .ndoc ol li:before{content:counter(n);position:absolute;left:0;top:2px;width:23px;height:23px;border-radius:50%;background:var(--acc);color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:23px}
 /* 關鍵句標記（粗體＋半透明藍底）——2026-07-18 使用者指示套用到所有內容區的重點 */
-.ndoc b,.ngpts li b,.calnote b,.premkt b{color:var(--hl);background:rgba(37,99,201,.13);font-weight:700;padding:0 4px;border-radius:4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.ndoc b,.ngpts li b,.calnote b,.premkt b{color:var(--hl);background:rgba(47,111,208,.13);font-weight:700;padding:0 4px;border-radius:4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 .ndoc h2 b,.ndoc h3 b,.ndoc h4 b{color:inherit;background:none;padding:0}
 .fnhl .ngpts li b{background:rgba(255,255,255,.8)}   /* 看點框本身是淺藍底——標記改半透明白保持對比 */
 .ndoc a{text-decoration:none;border-bottom:1px dashed var(--acc);word-break:break-all}
 .ndoc hr{border:0;border-top:1px solid var(--line);margin:22px 0}
 .ndoc small,.ndoc i{color:var(--mut);font-style:normal}
-.tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:20px;background:rgba(47,111,208,.14);color:var(--accd);border:1px solid rgba(47,111,208,.3);white-space:nowrap}
-/* 總經：本週行事曆 */
-.calnote{background:#eef4fc;border:1px solid #c7d8ef;color:#1e3f6e;
-  border-radius:10px;padding:12px 16px;font-size:15.5px;line-height:1.85;font-weight:500;margin-bottom:12px}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:20px;background:rgba(47,111,208,.12);color:var(--accd);border:0;white-space:nowrap}
+/* 總經：本週行事曆（去框 → 左側細條引導） */
+.calnote{background:none;border:0;border-left:3px solid var(--acc);color:#1e3f6e;
+  border-radius:0;padding:2px 0 2px 14px;font-size:15.5px;line-height:1.85;font-weight:500;margin-bottom:12px}
 .calnote .cnlist{margin:0;padding:0;list-style:none}
 .calnote .cnlist li{position:relative;padding-left:17px;margin:7px 0}
-.calnote .cnlist li:before{content:"›";position:absolute;left:2px;top:-1px;color:#2563c9;font-weight:800}
+.calnote .cnlist li:before{content:"›";position:absolute;left:2px;top:-1px;color:var(--acc);font-weight:800}
 .calnote .cnlist li:first-child{font-weight:700}
 .caltbl{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
 .caltbl th{color:var(--mut);font-size:13px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
@@ -1148,11 +1233,11 @@ a.tk:hover{color:var(--acc)}
 .caltbl td.cd{text-align:left;font-weight:700;white-space:nowrap} .caltbl td.ci{text-align:left;white-space:normal;min-width:150px}
 .caltbl td.cav{font-weight:800;white-space:normal;min-width:120px} .caltbl td.cpv{color:var(--mut)}
 .cr-done td.cav{color:var(--ink)} .cr-wait td{color:var(--ink2)} .cr-halt td{color:var(--mut)}
-.cst{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:6px;white-space:nowrap;border:1px solid}
+.cst{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap;border:0}
 .cst.done{color:#1d6b3a;background:rgba(31,157,87,.14);border-color:rgba(31,157,87,.4)}
 .cst.wait{color:var(--accd);background:rgba(47,111,208,.1);border-color:rgba(47,111,208,.35)}
 .cst.halt{color:#8a5410;background:rgba(200,118,15,.14);border-color:rgba(200,118,15,.45)}
-.creg{display:inline-block;font-size:10.5px;font-weight:800;padding:0 6px;margin-right:6px;border-radius:5px;border:1px solid;vertical-align:1px;white-space:nowrap}
+.creg{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 6px;margin-right:6px;border-radius:5px;border:0;vertical-align:1px;white-space:nowrap}
 .creg.us{color:#1d4f9c;background:rgba(47,111,208,.13);border-color:rgba(47,111,208,.4)}
 .creg.eu{color:#5b3ea8;background:rgba(122,92,219,.14);border-color:rgba(122,92,219,.42)}
 .creg.cn{color:#a02c2c;background:rgba(206,66,66,.13);border-color:rgba(206,66,66,.4)}
@@ -1160,32 +1245,46 @@ a.tk:hover{color:var(--acc)}
 .calsub{margin:16px 0 6px;font-size:14px;font-weight:800;color:var(--ink);padding-left:9px;border-left:4px solid #2f9d57}
 .chip.halt{color:#8a5410;background:rgba(200,118,15,.12);border-color:rgba(200,118,15,.5);font-weight:700}
 /* ETF 數據追蹤 */
-.etcat{display:inline-block;white-space:nowrap;font-size:11px;color:var(--accd);border:1px solid rgba(47,111,208,.35);background:rgba(47,111,208,.08);border-radius:5px;padding:0 6px}
+.etcat{display:inline-block;white-space:nowrap;font-size:11px;color:var(--accd);border:0;background:rgba(47,111,208,.1);border-radius:5px;padding:1px 6px}
 .etfnote{color:var(--mut);font-size:12.5px;margin-top:12px;line-height:1.8;border-top:1px solid var(--line);padding-top:8px}
 .estdivln{margin-top:3px}                       /* 「預估 X*」另起一行，與實際配息金額分開更清楚 */
-.estdiv{display:inline-block;font-size:11.5px;color:#8a5410;background:rgba(200,118,15,.12);border:1px solid rgba(200,118,15,.4);border-radius:6px;padding:0 6px;white-space:nowrap}
+.estdiv{display:inline-block;font-size:11.5px;color:#8a5410;background:rgba(200,118,15,.14);border:0;border-radius:6px;padding:1px 6px;white-space:nowrap}
 .estdiv sup{font-weight:800}
 .estmk{color:#c8760f;font-weight:800;cursor:help}
 .rbase{font-size:10.5px;color:var(--mut);font-weight:400;margin-top:2px;white-space:nowrap;cursor:help}
-.rsrc{display:inline-block;font-size:10.5px;padding:0 5px;margin-left:6px;border-radius:5px;border:1px solid;
-  color:var(--mut);background:rgba(138,127,107,.1);border-color:rgba(138,127,107,.3);vertical-align:1px}
-/* ⑤ details */
-#details{padding:12px 18px}
+.rsrc{display:inline-block;font-size:10.5px;padding:1px 5px;margin-left:6px;border-radius:5px;border:0;
+  color:var(--mut);background:rgba(138,127,107,.12);vertical-align:1px}
+/* ⑤ details：基金卡去框 → 全寬清單項＋細分隔線 */
 #details .st{margin-bottom:0}
 .pendcard .sub{line-height:1.9}
-.fund{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:0;margin-top:12px;box-shadow:0 1px 3px rgba(30,50,90,.07)}
-.fund:target{border-color:var(--acc);box-shadow:0 0 0 2px rgba(47,111,208,.3)}
-.fund>*:not(summary){margin-left:18px;margin-right:18px}
+/* 詳情卡輕色塊卡墊（2026-07-22 使用者指示：全平面細線列直式難掃讀 → 每檔一個極淺灰圓角色塊） */
+.fund{background:var(--pad);border:0;border-radius:12px;padding:0 14px;margin:0 0 8px;box-shadow:none}
+.fund:last-of-type{margin-bottom:0}
+.fund:target{background:#e9f1fc}
+.fund>*:not(summary){margin-left:0;margin-right:0}
 .fund>*:last-child{padding-bottom:18px}
 /* 詳情卡預設收合（2026-07-20 使用者指示）：summary 一行＝名稱＋NAV＋漲跌 */
 .fsum{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:12px;
-  align-items:center;padding:13px 18px;flex-wrap:wrap}
+  align-items:center;padding:14px 0;flex-wrap:wrap}
 .fsum::-webkit-details-marker{display:none}
-.fsum:hover{background:rgba(47,111,208,.05);border-radius:14px}
-.fund[open]>.fsum{border-bottom:1px solid var(--line);margin-bottom:12px}
+.fsum:hover .fsum-l b{color:var(--accd)}
+.fund[open]>.fsum{border-bottom:1px dashed var(--line);margin-bottom:12px}
+.fsum-l{flex:1 1 auto;min-width:0}
 .fsum-l b{font-size:17px}
-.fsum-r{display:flex;gap:10px;align-items:center;font-size:14.5px;color:var(--ink2);white-space:nowrap;
-  font-variant-numeric:tabular-nums;margin-left:auto}
+/* 排版邏輯：寬幕＝名稱佔左成長填滿、藍標＋NAV＋漲跌＋展開靠右一行；
+   窄幕（手機直式）＝名稱獨佔首行，次行藍標靠左、NAV 組靠右（藍標不再懸在行中） */
+.fsum>.gl{flex:0 0 auto}
+.fsum-r{display:flex;gap:10px;align-items:center;font-size:14.5px;color:var(--ink2);
+  white-space:nowrap;font-variant-numeric:tabular-nums;margin-left:auto}
+.fsum-r .pend{color:var(--mut)}
+.pchip{padding:2px 8px;border-radius:7px;font-size:13.5px}
+.pchip.gain{background:rgba(211,58,52,.12)}
+.pchip.loss{background:rgba(31,157,87,.12)}
+@media(max-width:520px){
+  .fsum{row-gap:6px}
+  .fsum-l{flex:1 1 100%}
+  .fsum>.gl{margin-right:auto}
+}
 .fund.fhide{display:none}
 /* 詳情篩選列 */
 .fundbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:12px}
@@ -1193,22 +1292,21 @@ a.tk:hover{color:var(--acc)}
   padding:7px 12px;font-size:14.5px;background:var(--card2);color:var(--ink)}
 .fundbar #fsearch:focus{outline:none;border-color:var(--acc)}
 .fgchips{display:flex;gap:5px}
-.fg,.fexp{background:var(--card2);color:var(--accd);border:1px solid var(--line);border-radius:18px;
-  padding:5px 13px;cursor:pointer;font-size:13.5px;font-weight:700}
-.fg:hover,.fexp:hover{border-color:var(--acc)}
-.fg.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.fg,.fexp{background:var(--card2);color:var(--accd);border:0;border-radius:18px;
+  padding:6px 13px;cursor:pointer;font-size:13.5px;font-weight:700}
+.fg:hover,.fexp:hover{background:rgba(47,111,208,.12)}
+.fg.on{background:var(--acc);color:#fff}
 .fhead{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}
 .fhead h2{font-size:19px;margin:0 0 4px} .gl{display:inline-block;white-space:nowrap;font-size:12px;color:#fff;background:var(--acc);padding:2px 8px;border-radius:20px;vertical-align:middle}
-.sub{color:var(--mut);font-size:12.5px} .oneline{margin-top:6px;font-size:13.5px;color:var(--accd)}
+.sub{color:var(--mut);font-size:12.5px}
 .navbox{text-align:right;min-width:190px} .nav{font-size:26px;font-weight:800}
 .navd{font-size:12px;color:var(--mut)} .size{font-size:12px;color:var(--mut);margin-top:4px}
-.cfund{margin:8px 0 0;display:inline-block}
 .mrpt{display:inline-block;margin-left:6px}
 .strat{margin:12px 0 4px;color:var(--mut);font-size:13px;border-left:3px solid var(--line);padding-left:10px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
 .strat.open{display:block;-webkit-line-clamp:unset}
 .rets{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:14px 0}
-.rc{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:8px;text-align:center}
+.rc{background:var(--card2);border:0;border-radius:9px;padding:8px;text-align:center}
 .rk2{font-size:11px;color:var(--mut)} .rv{font-weight:700;font-size:14px}
 .beat{color:var(--gain);font-size:9px;vertical-align:2px}
 .ga{font-size:10.5px;color:var(--mut);margin-top:2px}
@@ -1220,46 +1318,42 @@ a.tk:hover{color:var(--acc)}
 .htbl{width:100%;border-collapse:collapse} .htbl th{text-align:right;color:var(--mut);font-size:11.5px;font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
 .htbl th.l{text-align:left} .htbl td{padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}
 .htbl .rk{color:var(--mut);width:22px} .htbl .wt{text-align:right;font-weight:700;white-space:nowrap}
-.htbl .sec{display:inline-block;white-space:nowrap;font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin-left:4px}
+.htbl .sec{display:inline-block;white-space:nowrap;font-size:11px;color:var(--mut);background:var(--card2);border:0;border-radius:5px;padding:1px 5px;margin-left:4px}
 .htbl tr.hl td{background:rgba(224,138,18,.1)}
 .hlk{text-decoration:none}
-.tk{font-size:11px;color:var(--accd)} .pill{display:inline-block;white-space:nowrap;font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin-left:4px}
+.tk{font-size:11px;color:var(--accd)} .pill{display:inline-block;white-space:nowrap;font-size:11px;color:var(--mut);background:var(--card2);border:0;border-radius:5px;padding:1px 5px;margin-left:4px}
 .hintro{color:var(--mut);font-size:12.5px;margin-top:3px}
 .foot{color:var(--mut);font-size:12.5px;line-height:1.8;margin-top:22px;border-top:1px solid var(--line);padding-top:12px}
-.backtop{position:fixed;right:18px;bottom:18px;z-index:40;background:var(--card2);color:var(--accd);border:1px solid var(--line);border-radius:22px;padding:9px 15px;font-size:13.5px;text-decoration:none;box-shadow:0 2px 8px rgba(30,50,90,.16)}
-.backtop:hover{color:var(--acc);border-color:var(--acc)}
-@media(max-width:720px){.cols{grid-template-columns:1fr}.rets{grid-template-columns:repeat(3,1fr)}.navbox{text-align:left}
-  .tb-meta,.tb-lamp{display:none}.ixc{min-width:110px}
+.backtop{position:fixed;right:18px;bottom:18px;z-index:40;background:#fff;color:var(--accd);border:0;border-radius:22px;padding:9px 15px;font-size:13.5px;text-decoration:none;box-shadow:0 2px 10px rgba(30,50,90,.22)}
+.backtop:hover{color:var(--acc)}
+@media(max-width:720px){.wrap{padding:6px 14px 46px}.cols{grid-template-columns:1fr}.rets{grid-template-columns:repeat(3,1fr)}.navbox{text-align:left}
+  .tb-meta,.tb-lamp{display:none}.ixc{min-width:110px}.section{padding:20px 0 12px}
+  .tb-in{padding:7px 14px}.mk{padding:6px 8px 8px;font-size:15.5px}body{font-size:16.5px}
   #overview .st::after,#macro-cal .st::after,#etfwatch .st::after{content:"↔ 表格可左右滑動";font-weight:400;font-size:12px;color:var(--mut)}
   .backtop{right:10px;bottom:10px;padding:7px 12px;font-size:12.5px}}
 /* ⑥ 基金相關新聞・社群 */
 .fng{font-weight:700;font-size:14px;color:var(--accd);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line)}
-.fnhl{background:var(--hlbg);border:1px solid rgba(200,134,15,.35);border-radius:11px;padding:11px 16px 13px;margin-bottom:4px}
+.fnhl{background:var(--hlbg);border:0;border-radius:10px;padding:11px 16px 13px;margin-bottom:4px}
 .fnhlt{font-weight:800;font-size:15px;color:var(--hl)}
 .fnhl .ngpts li{color:var(--ink);font-size:15px}
 .fnhl .ngpts li:before{background:var(--gold)}
-.fnlist{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:2px 16px}
-.fnit{padding:10px 0;border-bottom:1px dashed var(--line)}
-.fnit:last-child{border-bottom:0}
+.fnlist{background:none;border:0;border-radius:0;padding:0}
+.fnit{padding:10px 14px;background:var(--pad);border-radius:12px;margin-bottom:8px}
+.fnit:last-child{margin-bottom:0}
 .fnt{display:inline-block;color:var(--ink);font-size:15px;font-weight:600;line-height:1.55;text-decoration:none}
 .fnt:hover{color:var(--acc);text-decoration:underline;text-underline-offset:3px}
 .fnsum{color:var(--ink2);font-size:12.5px;line-height:1.7;margin-top:3px}
 .fnmeta{margin-top:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .fnd{color:var(--mut);font-size:11.5px}
-.fnsrc{display:inline-block;white-space:nowrap;font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:5px;padding:0 6px}
-.fngrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.fncard{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:4px 16px 8px}
-.fnfh{display:flex;align-items:baseline;gap:8px;padding:10px 0 8px;border-bottom:1px solid var(--line)}
-.fnfh a{font-weight:800;font-size:14.5px;color:var(--accd);text-decoration:none}
-.fnfh a:hover{color:var(--acc);text-decoration:underline;text-underline-offset:3px}
-.fncnt{font-weight:400;font-size:12px;color:var(--mut)}
+.fnsrc{display:inline-block;white-space:nowrap;font-size:11px;color:var(--mut);background:var(--card2);border:0;border-radius:5px;padding:1px 6px}
+.fntag{display:inline-block;white-space:nowrap;font-size:11px;color:var(--accd);background:var(--hlbg);border:0;border-radius:5px;padding:1px 6px;text-decoration:none}
+a.fntag:hover{color:var(--acc);text-decoration:underline;text-underline-offset:2px}
+.fnbrand{color:var(--gold);background:rgba(200,134,15,.12)}
 .fnsoc{display:flex;gap:12px;align-items:flex-start}
 .fnsocb{min-width:0}
 .fnpush{flex:0 0 48px;text-align:center;font-weight:800;font-size:12.5px;color:var(--gold);
   background:rgba(200,134,15,.12);border:1px solid rgba(200,134,15,.4);border-radius:8px;padding:3px 0;margin-top:2px;white-space:nowrap}
-.fnmiss{font-size:12.5px;margin-top:10px;line-height:1.8}
 .fnfoot{color:var(--mut);font-size:12px;margin-top:14px;border-top:1px solid var(--line);padding-top:8px}
-@media(max-width:720px){.fngrid{grid-template-columns:1fr}}
 """
 
 _JS = r"""
@@ -1322,17 +1416,6 @@ document.querySelectorAll('.ovtbl th.sk').forEach(th=>th.onclick=()=>{
     return desc?bv-av:av-bv;
   }).forEach(r=>tb.appendChild(r));
 });
-// 複製（clipboard API＋textarea 後備，file:// 也可用）
-function _fb(t,done){const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';
-  document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(e){}ta.remove()}
-document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{
-  const t=b.getAttribute('data-copy');
-  const done=()=>{const o=b.textContent;b.classList.add('ok');b.textContent='已複製 ✓';
-    setTimeout(()=>{b.textContent=o;b.classList.remove('ok')},1400)};
-  if(navigator.clipboard&&navigator.clipboard.writeText)
-    navigator.clipboard.writeText(t).then(done,()=>_fb(t,done));
-  else _fb(t,done);
-});
 // 投資策略兩行截斷 ↔ 展開
 document.querySelectorAll('.strat').forEach(s=>s.onclick=()=>s.classList.toggle('open'));
 // 儀表板逾期未重建警告——CI 全停擺時 HTML 不會再重生、上面的 ⚠ 也不會更新，
@@ -1363,12 +1446,9 @@ def render() -> str:
     us_md = (news or {}).get("v1") or (news or {}).get("v2") or ""
     tw_md = (tw or {}).get("md") or ""
     macro_md = (macro or {}).get("md") or ""
-    # 休市提示（取自行事曆引言，含「休市」才顯示；全球今日重點用精簡句、總經頁行事曆用完整引言）
-    _hol_note = (cal or {}).get("note") or ""
-    hol = ""
-    if "休市" in _hol_note:
-        _seg = next((p for p in re.split(r"[；;]", _hol_note) if "休市" in p), _hol_note)
-        hol = re.sub(r"（[^）]*）", "", _seg).strip()      # 去括注、取含「休市」的短句
+    # 市況提示（取自行事曆引言「市況」段；台股視圖列台美、全球視圖列美＋日韓陸港；
+    # 總經頁行事曆用完整引言）
+    hol_tw, hol_gl = _market_status((cal or {}).get("note") or "")
 
     def _sev(md: str) -> tuple[int, int]:
         """回 (重要度≥6 的新聞則數, 最高分)——供今日重點 chip。"""
@@ -1387,7 +1467,7 @@ def render() -> str:
                 linked_by_fund.setdefault(f["fund_id"], set()).add(m["name"])
 
     rows = fund_insights.overview_rows(funds)
-    leaders = fund_insights.column_leaders(rows)
+    leaders = fund_insights.column_extremes(rows)
     mkt_by_id = {str(d.get("fund_id")): _mof(d) for d in funds}
     rows_tw = [r for r in rows if mkt_by_id.get(r["fund_id"]) == "tw"]
     rows_gl = [r for r in rows if mkt_by_id.get(r["fund_id"]) == "gl"]
@@ -1424,12 +1504,12 @@ def render() -> str:
     premkt_md, tw_md_news = _extract_premarket(tw_md)
     pm_title = "盤後速覽" if re.search(r"^##\s*🔹?\s*盤後速覽", tw_md or "", re.M) else "盤前速覽"
     b_tw = _brief_view(twnews.extract_indices(tw_md), *fund_insights.movers(tw_funds),
-                       fund_insights.upcoming_distributions(tw_funds))
+                       fund_insights.upcoming_distributions(tw_funds), hol_tw)
     b_tw += _premarket_card(premkt_md, pm_title)
     # 全球今日重點不列任何指數點位/漲跌幅卡（公開搜尋之收盤數據不可靠；
     # 使用者指示 2026-07-04：全球重點不要出現數據漲跌幅——一律於下方新聞以官方為準呈現）
     b_gl = _brief_view([], *fund_insights.movers(gl_funds),
-                       fund_insights.upcoming_distributions(gl_funds), hol)
+                       fund_insights.upcoming_distributions(gl_funds), hol_gl)
     sec_brief = (f'<div class="section" id="brief"><div class="st">{_ic("zap", tone="amber")}今日重點 '
                  f'<span class="stsub">（{_esc((tw or news or {}).get("date") or "—")} 更新）</span></div>'
                  f'{_mkt(b_tw, b_gl)}</div>')
@@ -1472,9 +1552,9 @@ def render() -> str:
                f'最近一次配息金額／換算年化配息率／分配頻率・點欄位標題可排序</span></div>'
                f'{_etfwatch_view(etf_doc)}</div>')
 
-    # ②b 基金相關新聞・社群（品牌動態＋各基金新聞＋PTT 聲量；讀 data/fund_news.json）
+    # ②b 基金相關新聞・社群（品牌＋各基金合併單一清單＋PTT 聲量；讀 data/fund_news.json）
     fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋財經RSS＋PTT 自動擷取'
-              if fn_doc else '品牌動態／各基金新聞／PTT 聲量')
+              if fn_doc else '基金新聞／PTT 聲量')
     sec_fnews = (f'<div class="section" id="fundnews"><div class="st">{_ic("megaphone", tone="purple")}基金相關新聞・社群 '
                  f'{_fresh_chip("更新", fn_asof, 3)} '
                  f'<span class="stsub">{_esc(fn_sub)}</span></div>'
@@ -1492,7 +1572,7 @@ def render() -> str:
     sec_over = (f'<div class="section" id="overview"><div class="st">{_ic("chart", tone="green")}基金總覽 '
                 f'{_fresh_chip("NAV 日", nav_date, 6)}{_fresh_chip("持股基準", hold_asof, 45)}'
                 f'{_fresh_chip("快照抓取", fetched_at, 3)}{ret_chip} '
-                f'<span class="stsub">粉紅底＝同組同欄前二名・點欄位標題可排序・{ret_note}・'
+                f'<span class="stsub">色塊＝各組各欄漲跌極值（見下方圖例）・點欄位標題可排序・{ret_note}・'
                 f'1週/1月＝往回滾動7/30日曆日（非月初起算，缺值以自建NAV序列自算，'
                 f'1月自算須史料滿30天）</span></div>'
                 f'{_mkt(o_tw, o_gl)}</div>')

@@ -78,20 +78,6 @@ def pending_funds() -> list[dict]:
     return out
 
 
-def summary_line(doc: dict) -> str:
-    """一句話摘要：主要區域／首要產業／NAV。"""
-    parts = []
-    ca = doc.get("country_alloc") or []
-    if ca:
-        parts.append(f"{ca[0]['name']} {ca[0]['weight']:.1f}%")
-    sa = doc.get("sector_alloc") or []
-    if sa:
-        parts.append(f"{sa[0]['name']} {sa[0]['weight']:.1f}%")
-    if doc.get("nav") is not None:
-        parts.append(f"NAV {doc['nav']}（{doc.get('nav_date') or '—'}）")
-    return "｜".join(parts)
-
-
 def top_concentration(doc: dict, n: int = 10) -> float | None:
     """前 n 大持股權重合計（%）。"""
     hs = doc.get("top_holdings") or []
