@@ -72,10 +72,50 @@ def test_group_averages_skips_missing():
     assert g["3y"] == 154.28                          # 乙的 3y 為 '—'，只平均現有值
 
 
-def test_column_leaders_positive_only():
-    rows = fund_insights.overview_rows(_funds())
-    leads = fund_insights.column_leaders(rows, keys=("chg",), top=1)
-    assert ("2", "chg") in leads and ("1", "chg") not in leads   # 負值不算領先
+def test_column_extremes_marks_four_kinds():
+    rows = [
+        {"fund_id": "a", "group_label": "G", "chg": 5.0},
+        {"fund_id": "b", "group_label": "G", "chg": 1.2},
+        {"fund_id": "c", "group_label": "G", "chg": 3.0},
+        {"fund_id": "d", "group_label": "G", "chg": -4.0},
+        {"fund_id": "e", "group_label": "G", "chg": -0.5},
+        {"fund_id": "f", "group_label": "G", "chg": None},
+    ]
+    m = fund_insights.column_extremes(rows, keys=("chg",))
+    assert m[("a", "chg")] == "ld-up1"        # 漲最多
+    assert m[("b", "chg")] == "ld-up0"        # 漲最少
+    assert m[("d", "chg")] == "ld-dn1"        # 跌最多
+    assert m[("e", "chg")] == "ld-dn0"        # 跌最少
+    assert ("c", "chg") not in m and ("f", "chg") not in m
+
+
+def test_column_extremes_single_value_no_double_mark():
+    rows = [{"fund_id": "a", "group_label": "G", "chg": 5.0},
+            {"fund_id": "b", "group_label": "G", "chg": -1.0}]
+    m = fund_insights.column_extremes(rows, keys=("chg",))
+    assert m == {("a", "chg"): "ld-up1", ("b", "chg"): "ld-dn1"}   # 各僅一檔→不再標「最少」
+
+
+def test_inception_ret_pct_new_fund_from_issue_price():
+    from arm import clock
+    y = clock.today_tw().year
+    d = {"nav": 9.47, "inception": f"{y}/06/30", "returns": {"ytd": "—"}}
+    assert fund_insights.inception_ret_pct(d) == -5.3              # (9.47/10−1)×100
+    # 官網已揭露 ytd → 不啟用；非今年成立 → 不啟用；缺 NAV → 不啟用
+    assert fund_insights.inception_ret_pct({**d, "returns": {"ytd": "3.1%"}}) is None
+    assert fund_insights.inception_ret_pct({**d, "inception": f"{y-1}/06/30"}) is None
+    assert fund_insights.inception_ret_pct({**d, "nav": None}) is None
+
+
+def test_overview_rows_ytd_falls_back_to_inception():
+    from arm import clock
+    y = clock.today_tw().year
+    funds = [{"fund_id": "9", "name": "復華丙指數基金", "short_name": "丙",
+              "group_label": "國內股票型", "nav": 9.47, "nav_date": f"{y}/07/21",
+              "nav_change_pct": "+1.00%", "inception": f"{y}/06/30",
+              "returns": {"ytd": "—", "since": "—"}, "risk_level": "RR4"}]
+    r = fund_insights.overview_rows(funds)[0]
+    assert r["ytd"] == -5.3 and r["ytd_est"] is True
 
 
 # ── usnews 結構化萃取 ────────────────────────────────────────

@@ -50,10 +50,28 @@ def _daily_ret(d: dict, key: str) -> float | None:
     return float(v) if isinstance(v, (int, float)) else parse_period_pct(str(v))
 
 
+def inception_ret_pct(d: dict) -> float | None:
+    """成立於今年、官網多期報酬尚未揭露的新基金：以發行價起算的成立以來報酬率
+    （國內開放式基金每受益權單位發行面額一律 10 元）。當年度成立 → 此值語意上同時就是 YTD。
+    官網已揭露 ytd 就不啟用（2026-07-22 使用者指示，首例：台灣菁英50指數基金）。"""
+    nav, inc = d.get("nav"), str(d.get("inception") or "")
+    if nav is None or len(inc) < 4:
+        return None
+    try:
+        if int(inc[:4]) != clock.today_tw().year:
+            return None
+    except ValueError:
+        return None
+    if parse_period_pct((d.get("returns") or {}).get("ytd")) is not None:
+        return None
+    return round((nav / 10.0 - 1) * 100, 2)
+
+
 def overview_rows(funds: list[dict]) -> list[dict]:
     """總覽表列資料：每檔基金一列，報酬／變動皆為數值（None＝缺）。
     多期報酬逐欄 fallback：鉅亨每日基準（returns_daily）→ 官網月底基準（returns）；
-    1週/1月再多一層 → arm/fundnav 的 NAV 序列自算（史料不足回 None）。"""
+    1週/1月再多一層 → arm/fundnav 的 NAV 序列自算（史料不足回 None）；
+    YTD 再多一層 → 今年新成立基金以發行價 10 元起算（inception_ret_pct，列標 ytd_est）。"""
     hist = fundnav.load()
     rows = []
     for d in funds:
@@ -79,7 +97,9 @@ def overview_rows(funds: list[dict]) -> list[dict]:
                        fundnav.ret_pct(ser, d.get("nav_date"), d.get("nav"), 7, tol=5)),
             "m1": pick("1m", None,
                        fundnav.ret_pct(ser, d.get("nav_date"), d.get("nav"), 30, tol=10)),
-            "ytd": pick("ytd", "ytd"),
+            "ytd": pick("ytd", "ytd", inception_ret_pct(d)),
+            "ytd_est": (pick("ytd", "ytd") is None
+                        and inception_ret_pct(d) is not None),
             "y1": pick("1y", "1y"),
             "y3": pick("3y", "3y"),
             "size_e8": round(d["size_twd"] / 1e8, 1) if d.get("size_twd") else None,
@@ -128,19 +148,30 @@ def group_averages(funds: list[dict]) -> dict[str, dict[str, float]]:
             for g, ks in acc.items()}
 
 
-def column_leaders(rows: list[dict],
-                   keys: tuple[str, ...] = ("chg", "w1", "m1", "ytd", "y1", "y3"),
-                   top: int = 2) -> set[tuple[str, str]]:
-    """總覽表色階：每組每欄取前 top 名（值須 >0 才算領先）。回 {(fund_id, key)}。"""
-    out: set[tuple[str, str]] = set()
+def column_extremes(rows: list[dict],
+                    keys: tuple[str, ...] = ("chg", "w1", "m1", "ytd", "y1", "y3"),
+                    ) -> dict[tuple[str, str], str]:
+    """總覽表極值標示（2026-07-22 使用者指示，取代舊「前兩名紅底」）：每組每欄標
+    漲最多（ld-up1 深紅）／漲最少（ld-up0 淡紅）／跌最多（ld-dn1 深綠）／跌最少（ld-dn0 淡綠）。
+    正值僅一檔時只標「漲最多」（不重複標同一檔）；負值同理。回 {(fund_id, key): css class}。"""
+    out: dict[tuple[str, str], str] = {}
     groups: dict[str, list[dict]] = {}
     for r in rows:
         groups.setdefault(r["group_label"], []).append(r)
     for rs in groups.values():
         for k in keys:
-            ranked = sorted((r for r in rs if r.get(k) is not None and r[k] > 0),
-                            key=lambda r: r[k], reverse=True)[:top]
-            out.update((r["fund_id"], k) for r in ranked)
+            pos = sorted((r for r in rs if r.get(k) is not None and r[k] > 0),
+                         key=lambda r: r[k], reverse=True)
+            neg = sorted((r for r in rs if r.get(k) is not None and r[k] < 0),
+                         key=lambda r: r[k])          # 最負在前
+            if pos:
+                out[(pos[0]["fund_id"], k)] = "ld-up1"
+            if len(pos) > 1:
+                out[(pos[-1]["fund_id"], k)] = "ld-up0"
+            if neg:
+                out[(neg[0]["fund_id"], k)] = "ld-dn1"
+            if len(neg) > 1:
+                out[(neg[-1]["fund_id"], k)] = "ld-dn0"
     return out
 
 
