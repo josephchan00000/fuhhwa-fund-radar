@@ -171,11 +171,14 @@ def _klabel(html_line: str) -> str:
                   r'<span class="klabel">\1</span>', html_line)
 
 
-def _pct_span(v: float | None, digits: int = 2) -> str:
-    """紅漲綠跌的漲跌幅（台灣慣例）。None → 灰 —。"""
+def _pct_span(v: float | None, digits: int = 2, chip: bool = False) -> str:
+    """紅漲綠跌的漲跌幅（台灣慣例）。None → 灰 —。
+    chip=True 時漲跌加淡底色塊（詳情卡摘要列用，掃讀落點）；持平／缺值維持純文字。"""
     if v is None:
         return '<span class="na">—</span>'
     cls = "gain" if v > 0 else ("loss" if v < 0 else "flat")
+    if chip and cls != "flat":
+        cls += " pchip"
     sign = "+" if v > 0 else ""
     return f'<span class="{cls}">{sign}{v:.{digits}f}%</span>'
 
@@ -788,9 +791,9 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
   data-group="{_esc(doc.get('group_label'))}">
   <summary class="fsum">
     <span class="fsum-l"><b>{_esc(doc.get('name'))}</b></span>
-    <span class="fsum-r"><span class="gl">{_esc(doc.get('group_label'))}</span>
-      NAV {_esc(doc.get('nav') if doc.get('nav') is not None else '—')}
-      {_pct_span(chg)}<span class="openbtn2"></span></span>
+    <span class="gl">{_esc(doc.get('group_label'))}</span>
+    <span class="fsum-r">NAV {_esc(doc.get('nav') if doc.get('nav') is not None else '—')}
+      {_pct_span(chg, chip=True)}<span class="openbtn2"></span></span>
   </summary>
   <div class="fhead">
     <div>
@@ -828,8 +831,8 @@ def _pending_card(p: dict) -> str:
   data-group="{_esc(p['group_label'])}">
   <summary class="fsum">
     <span class="fsum-l"><b>{_esc(p['name'])}</b></span>
-    <span class="fsum-r"><span class="gl">{_esc(p['group_label'])}</span>
-      <span class="pend">數據待抓取</span><span class="openbtn2"></span></span>
+    <span class="gl">{_esc(p['group_label'])}</span>
+    <span class="fsum-r"><span class="pend">數據待抓取</span><span class="openbtn2"></span></span>
   </summary>
   <div class="fhead"><div>
     <div class="sub">⏳ 已列入追蹤，數據待抓取——{note}
@@ -1195,9 +1198,10 @@ a.tk:hover{color:var(--acc)}
 /* ⑤ details：基金卡去框 → 全寬清單項＋細分隔線 */
 #details .st{margin-bottom:0}
 .pendcard .sub{line-height:1.9}
-.fund{background:none;border:0;border-radius:0;padding:0;margin-top:0;box-shadow:none;border-bottom:1px solid var(--line)}
-.fund:last-of-type{border-bottom:0}
-.fund:target{background:rgba(47,111,208,.05)}
+/* 詳情卡輕色塊卡墊（2026-07-22 使用者指示：全平面細線列直式難掃讀 → 每檔一個極淺灰圓角色塊） */
+.fund{background:#f7f9fc;border:0;border-radius:12px;padding:0 14px;margin:0 0 8px;box-shadow:none}
+.fund:last-of-type{margin-bottom:0}
+.fund:target{background:#e9f1fc}
 .fund>*:not(summary){margin-left:0;margin-right:0}
 .fund>*:last-child{padding-bottom:18px}
 /* 詳情卡預設收合（2026-07-20 使用者指示）：summary 一行＝名稱＋NAV＋漲跌 */
@@ -1208,11 +1212,20 @@ a.tk:hover{color:var(--acc)}
 .fund[open]>.fsum{border-bottom:1px dashed var(--line);margin-bottom:12px}
 .fsum-l{flex:1 1 auto;min-width:0}
 .fsum-l b{font-size:17px}
-/* 排版邏輯：名稱佔左、成長填滿；分類藍標＋NAV＋漲跌＋展開整組靠右對齊（窄幕整組換到次行仍靠右） */
-.fsum-r{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;
-  font-size:14.5px;color:var(--ink2);white-space:nowrap;font-variant-numeric:tabular-nums;margin-left:auto}
-.fsum-r .gl{flex:0 0 auto}
+/* 排版邏輯：寬幕＝名稱佔左成長填滿、藍標＋NAV＋漲跌＋展開靠右一行；
+   窄幕（手機直式）＝名稱獨佔首行，次行藍標靠左、NAV 組靠右（藍標不再懸在行中） */
+.fsum>.gl{flex:0 0 auto}
+.fsum-r{display:flex;gap:10px;align-items:center;font-size:14.5px;color:var(--ink2);
+  white-space:nowrap;font-variant-numeric:tabular-nums;margin-left:auto}
 .fsum-r .pend{color:var(--mut)}
+.pchip{padding:2px 8px;border-radius:7px;font-size:13.5px}
+.pchip.gain{background:rgba(211,58,52,.12)}
+.pchip.loss{background:rgba(31,157,87,.12)}
+@media(max-width:520px){
+  .fsum{row-gap:6px}
+  .fsum-l{flex:1 1 100%}
+  .fsum>.gl{margin-right:auto}
+}
 .fund.fhide{display:none}
 /* 詳情篩選列 */
 .fundbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:12px}
