@@ -27,6 +27,7 @@
   "managers": [
     "劉明滄"
   ],
+  "co_managers": [],
   "strategy": "主要投資國內股票型(含ETF)及平衡型基金來參與台灣股市表現，並經由量化與質化分析，篩選表現相對強勢之子基金，追求較佳之上漲動能 研判市場趨勢與轉折，調整資產配置，以達到較佳的抗跌效果，創造長期相對穩健之績效",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/79.pdf",
   "dist_date": "2026/06/30",
@@ -36,7 +37,7 @@
   "country_alloc": [],
   "sector_alloc": [],
   "group": "tw_fof",
-  "fetched_at": "2026-07-22 13:50",
+  "fetched_at": "2026-07-22 14:44",
   "returns_daily": {
     "1m": -9.28094,
     "3m": 5.77626,

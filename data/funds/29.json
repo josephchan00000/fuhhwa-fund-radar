@@ -27,6 +27,7 @@
   "managers": [
     "楊書婷"
   ],
+  "co_managers": [],
   "strategy": "主要投資於大中華地區之中小型企業股票，追求受惠該地區經濟成長、龐大內需、產業競爭優勢及中小型企業獲利成長潛力等。 研究團隊深入研究中小型公司， 尋找具成長潛力之個股，並根據多重面向判斷大中華區股市多空，靈活決定出較適投資策略。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/29.pdf",
   "dist_date": "2026/06/30",
@@ -121,7 +122,7 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-07-22 13:49",
+  "fetched_at": "2026-07-22 14:43",
   "returns_daily": {
     "1m": -24.97876,
     "3m": -1.00897,

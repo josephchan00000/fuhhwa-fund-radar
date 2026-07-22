@@ -27,6 +27,7 @@
   "managers": [
     "王萬里"
   ],
+  "co_managers": [],
   "strategy": "聚焦於新科技趨勢蓬勃崛起之亞太地區，發掘創新能力佳、能引領科技趨勢的巨擘。 首重科技產業趨勢分析，投資於主要趨勢下受惠且獲利能力優良的次產業，篩選股價評價及企業基本面均具成長性之潛力個股。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/82.pdf",
   "dist_date": "2026/06/30",
@@ -129,7 +130,7 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-07-22 13:49",
+  "fetched_at": "2026-07-22 14:43",
   "returns_daily": {
     "1m": -24.51176,
     "3m": 16.54796,

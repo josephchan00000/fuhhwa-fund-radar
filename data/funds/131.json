@@ -11,10 +11,10 @@
   "risk_level": "RR4",
   "mgmt_fee": "最高為1.20%",
   "size_twd": 1114976244.0,
-  "nav": 10.23,
-  "nav_date": "2026/07/20",
-  "nav_change": -0.05,
-  "nav_change_pct": "-0.49%",
+  "nav": 10.3,
+  "nav_date": "2026/07/21",
+  "nav_change": 0.07,
+  "nav_change_pct": "0.68%",
   "returns": {
     "ytd": "—",
     "3m": "—",
@@ -27,6 +27,7 @@
   "managers": [
     "廖崇文"
   ],
+  "co_managers": [],
   "strategy": "主要投資於與未來金融及數位支付等主題相關之公司，及其他一般金融機構之股票。 基金追蹤指數操作，投資人較易於根據指數內容評估投資機會與風險。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/131.pdf",
   "dist_date": "—",
@@ -46,5 +47,5 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-07-22 13:50"
+  "fetched_at": "2026-07-22 14:44"
 }

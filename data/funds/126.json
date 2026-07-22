@@ -27,6 +27,7 @@
   "managers": [
     "劉昌祚"
   ],
+  "co_managers": [],
   "strategy": "主要投資於市值較大、獲利穩健且財務表現優良的台灣上市股票。 基金追蹤指數操作，投資人較易於根據指數內容評估投資機會與風險。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/126.pdf",
   "dist_date": "—",
@@ -36,5 +37,5 @@
   "country_alloc": [],
   "sector_alloc": [],
   "group": "tw_equity",
-  "fetched_at": "2026-07-22 13:50"
+  "fetched_at": "2026-07-22 14:44"
 }

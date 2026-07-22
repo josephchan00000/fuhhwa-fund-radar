@@ -27,6 +27,7 @@
   "managers": [
     "王萬里"
   ],
+  "co_managers": [],
   "strategy": "投資全球市場主流及具高度成長潛力的新趨勢，尋找前瞻性產業，讓投資組合價值與大趨勢一起成長。 挖掘營運模式具競爭力的優質標的，參與企業營運成果。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/23.pdf",
   "dist_date": "2026/06/30",
@@ -129,7 +130,7 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-07-22 13:49",
+  "fetched_at": "2026-07-22 14:43",
   "returns_daily": {
     "1m": -27.92096,
     "3m": 17.83708,

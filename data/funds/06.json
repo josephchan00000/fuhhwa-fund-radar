@@ -27,6 +27,7 @@
   "managers": [
     "顧克勤"
   ],
+  "co_managers": [],
   "strategy": "主要投資於網路通訊等數位相關產業，由上而下挑選經營模式及團隊有機會成功或已成功之產業，再從中挑選具高度競爭力和成長性之國內上市櫃公司。 核心持股基本面紮實，可望兼具股價成長力以及回檔支撐較強之特性，並將觀察市場結構、循環性與波動度變化，加強風險控管。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/06.pdf",
   "dist_date": "2026/06/30",
@@ -116,7 +117,7 @@
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-07-22 13:49",
+  "fetched_at": "2026-07-22 14:44",
   "returns_daily": {
     "1m": -15.56678,
     "3m": -4.08895,
