@@ -847,14 +847,20 @@ def _details_block(funds: list[dict], gavg: dict, linked_by_fund: dict[str, set[
 
 # ── ⑥ 基金相關新聞・社群（讀 data/fund_news.json；無檔顯示提示不壞版） ──
 
-def _fundnews_item(i: dict) -> str:
-    """單則新聞列：標題（可點）＋摘要（有才顯示）＋日期・來源 meta 列。"""
+def _fundnews_item(i: dict, tags: str = "") -> str:
+    """單則新聞列：標題（可點）＋摘要（有才顯示）＋日期・來源・關聯基金標籤 meta 列。"""
     summ = f'<div class="fnsum">{_esc(i["summary"])}</div>' if i.get("summary") else ""
     return (f'<div class="fnit">'
             f'<a class="fnt" href="{_esc(i.get("url") or "#")}" target="_blank" rel="noopener">'
             f'{_esc(i.get("title"))}</a>{summ}'
             f'<div class="fnmeta"><span class="fnd">{_esc((i.get("date") or "")[:10])}</span>'
-            f'<span class="fnsrc">{_esc(i.get("source") or "—")}</span></div></div>')
+            f'<span class="fnsrc">{_esc(i.get("source") or "—")}</span>{tags}</div></div>')
+
+
+def _fund_tag_label(base: str | None) -> str:
+    """關聯基金標籤短名：去「復華」前綴與「基金」尾綴（標籤空間小、品牌名不必重複）。"""
+    s = re.sub(r"^復華", "", (base or "").strip())
+    return re.sub(r"基金$", "", s) or (base or "")
 
 
 def _fundnews_view(doc: dict | None) -> str:
@@ -869,32 +875,41 @@ def _fundnews_view(doc: dict | None) -> str:
         parts.append(f'<div class="fnhl"><div class="fnhlt">{_ic("search", plain=True)} 本週看點</div><ul class="ngpts">'
                      + "".join(f'<li>{_esc(h)}</li>' for h in hls) + '</ul></div>')
 
-    brand = doc.get("brand") or []
-    parts.append(f'<div class="fng">{_ic("landmark", plain=True)} 復華投信動態</div>')
-    if brand:
-        parts.append(f'<div class="fnlist">{"".join(_fundnews_item(i) for i in brand)}</div>')
-    else:
-        parts.append(f'<div class="muted">近 {win} 天無品牌新聞（或來源暫不可達）。</div>')
+    # 品牌動態＋各基金新聞合併為單一去重清單（2026-07-22 使用者指示：逐檔分卡太冗長——
+    # 同稿在多檔基金卡重複出現、無新聞基金整串列名佔版面）。每則以標籤註記關聯：
+    # 「投信動態」＝品牌層；基金短名標籤可點、跳該檔詳情卡。無專屬新聞的基金不再列出。
+    entries: list[dict] = []
+    index: dict[str, dict] = {}
 
-    groups = doc.get("funds") or []
-    hit = [g for g in groups if g.get("items")]
-    miss = [g for g in groups if not g.get("items")]
-    parts.append(f'<div class="fng">{_ic("news", plain=True)} 各基金新聞（近 {win} 天）</div>')
-    if hit:
-        cards = []
-        for g in hit:
-            fid = (g.get("fund_ids") or [""])[0]
-            cards.append(
-                f'<div class="fncard"><div class="fnfh">'
-                f'<a href="#fund-{_esc(fid)}">{_esc(g.get("base"))}</a>'
-                f'<span class="fncnt">{len(g["items"])} 則</span></div>'
-                f'{"".join(_fundnews_item(i) for i in g["items"])}</div>')
-        parts.append(f'<div class="fngrid">{"".join(cards)}</div>')
+    def _add(item: dict, tag: str) -> None:
+        key = (item.get("title") or "")[:24]     # 同 fundnews.merge_news 的去重鍵
+        if not key:
+            return
+        e = index.get(key)
+        if e is None:
+            e = {"item": item, "tags": []}
+            index[key] = e
+            entries.append(e)
+        if tag and tag not in e["tags"]:
+            e["tags"].append(tag)
+
+    for i in doc.get("brand") or []:
+        _add(i, '<span class="fntag fnbrand">投信動態</span>')
+    for g in doc.get("funds") or []:
+        fid = (g.get("fund_ids") or [""])[0]
+        tag = (f'<a class="fntag" href="#fund-{_esc(fid)}" title="{_esc(g.get("base"))}">'
+               f'{_esc(_fund_tag_label(g.get("base")))}</a>')
+        for i in g.get("items") or []:
+            _add(i, tag)
+    entries.sort(key=lambda e: e["item"].get("datetime") or e["item"].get("date") or "",
+                 reverse=True)
+
+    parts.append(f'<div class="fng">{_ic("news", plain=True)} 基金新聞（近 {win} 天）</div>')
+    if entries:
+        parts.append('<div class="fnlist">' + "".join(
+            _fundnews_item(e["item"], "".join(e["tags"])) for e in entries) + '</div>')
     else:
-        parts.append(f'<div class="muted">近 {win} 天各基金皆無專屬新聞（或來源暫不可達）。</div>')
-    if hit and miss:
-        parts.append(f'<div class="muted fnmiss">其餘 {len(miss)} 檔近 {win} 天無專屬新聞：'
-                     f'{_esc("、".join(g.get("base") or "" for g in miss))}</div>')
+        parts.append(f'<div class="muted">近 {win} 天無相關新聞（或來源暫不可達）。</div>')
 
     soc = doc.get("social") or []
     parts.append(f'<div class="fng">{_ic("chat", plain=True)} 社群討論（PTT 股票板・依推文數）</div>')
@@ -1254,19 +1269,14 @@ a.tk:hover{color:var(--acc)}
 .fnmeta{margin-top:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .fnd{color:var(--mut);font-size:11.5px}
 .fnsrc{display:inline-block;white-space:nowrap;font-size:11px;color:var(--mut);background:var(--card2);border:0;border-radius:5px;padding:1px 6px}
-.fngrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.fncard{background:none;border:0;border-radius:0;padding:0 0 4px}
-.fnfh{display:flex;align-items:baseline;gap:8px;padding:10px 0 8px;border-bottom:1px solid var(--line)}
-.fnfh a{font-weight:800;font-size:14.5px;color:var(--accd);text-decoration:none}
-.fnfh a:hover{color:var(--acc);text-decoration:underline;text-underline-offset:3px}
-.fncnt{font-weight:400;font-size:12px;color:var(--mut)}
+.fntag{display:inline-block;white-space:nowrap;font-size:11px;color:var(--accd);background:var(--hlbg);border:0;border-radius:5px;padding:1px 6px;text-decoration:none}
+a.fntag:hover{color:var(--acc);text-decoration:underline;text-underline-offset:2px}
+.fnbrand{color:var(--gold);background:rgba(200,134,15,.12)}
 .fnsoc{display:flex;gap:12px;align-items:flex-start}
 .fnsocb{min-width:0}
 .fnpush{flex:0 0 48px;text-align:center;font-weight:800;font-size:12.5px;color:var(--gold);
   background:rgba(200,134,15,.12);border:1px solid rgba(200,134,15,.4);border-radius:8px;padding:3px 0;margin-top:2px;white-space:nowrap}
-.fnmiss{font-size:12.5px;margin-top:10px;line-height:1.8}
 .fnfoot{color:var(--mut);font-size:12px;margin-top:14px;border-top:1px solid var(--line);padding-top:8px}
-@media(max-width:720px){.fngrid{grid-template-columns:1fr}}
 """
 
 _JS = r"""
@@ -1479,9 +1489,9 @@ def render() -> str:
                f'最近一次配息金額／換算年化配息率／分配頻率・點欄位標題可排序</span></div>'
                f'{_etfwatch_view(etf_doc)}</div>')
 
-    # ②b 基金相關新聞・社群（品牌動態＋各基金新聞＋PTT 聲量；讀 data/fund_news.json）
+    # ②b 基金相關新聞・社群（品牌＋各基金合併單一清單＋PTT 聲量；讀 data/fund_news.json）
     fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋財經RSS＋PTT 自動擷取'
-              if fn_doc else '品牌動態／各基金新聞／PTT 聲量')
+              if fn_doc else '基金新聞／PTT 聲量')
     sec_fnews = (f'<div class="section" id="fundnews"><div class="st">{_ic("megaphone", tone="purple")}基金相關新聞・社群 '
                  f'{_fresh_chip("更新", fn_asof, 3)} '
                  f'<span class="stsub">{_esc(fn_sub)}</span></div>'
