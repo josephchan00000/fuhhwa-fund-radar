@@ -794,7 +794,6 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
           if doc.get("monthly_report") else "")
     strat = doc.get("strategy") or ""
     chg = fund_insights.parse_pct(doc.get("nav_change_pct"))
-    copy_txt = fund_insights.fund_intro_copy(doc)
     # 國內基金官網不提供國家配置——整段省略，避免留下懸空的「—」空區塊
     cty = doc.get("country_alloc") or []
     alloc_html = (
@@ -827,7 +826,6 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
       <div class="nav">{_esc(doc.get('nav') if doc.get('nav') is not None else '—')}</div>
       <div class="navd">NAV · {_esc(doc.get('nav_date') or '—')} {_pct_span(chg)}</div>
       <div class="size">規模 {size_s}　{mr}</div>
-      <button class="copy cfund" data-copy="{_esc(copy_txt)}">{_ic("clipboard", plain=True)} 複製基金介紹</button>
     </div>
   </div>
   {f'<div class="strat" title="點擊展開／收合">{_esc(strat)}</div>' if strat else ''}
@@ -1090,9 +1088,6 @@ a.tk:hover{color:var(--acc)}
 .talk{margin-top:10px;background:var(--inset);border:0;border-radius:9px;padding:9px 12px;font-size:14px;color:var(--ink2);line-height:1.7}
 .talk.bad{color:var(--mut)}
 .tlab{display:block;font-size:11.5px;color:var(--mut);margin-bottom:3px}
-.copy{background:rgba(47,111,208,.08);color:var(--accd);border:0;border-radius:8px;padding:5px 13px;cursor:pointer;font-size:13.5px;font-weight:700;margin-left:6px}
-.copy:hover{background:rgba(47,111,208,.16);color:var(--acc)}
-.copy.ok{color:#fff;background:var(--acc)}
 /* ④ overview */
 .ovg{font-weight:700;font-size:13.5px;color:var(--accd);margin:14px 0 6px}
 .ovwrap{overflow-x:auto;background:
@@ -1272,7 +1267,6 @@ a.tk:hover{color:var(--acc)}
 .sub{color:var(--mut);font-size:12.5px} .oneline{margin-top:6px;font-size:13.5px;color:var(--accd)}
 .navbox{text-align:right;min-width:190px} .nav{font-size:26px;font-weight:800}
 .navd{font-size:12px;color:var(--mut)} .size{font-size:12px;color:var(--mut);margin-top:4px}
-.cfund{margin:8px 0 0;display:inline-block}
 .mrpt{display:inline-block;margin-left:6px}
 .strat{margin:12px 0 4px;color:var(--mut);font-size:13px;border-left:3px solid var(--line);padding-left:10px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
@@ -1387,17 +1381,6 @@ document.querySelectorAll('.ovtbl th.sk').forEach(th=>th.onclick=()=>{
     if(an&&bn)return 0; if(an)return 1; if(bn)return -1;
     return desc?bv-av:av-bv;
   }).forEach(r=>tb.appendChild(r));
-});
-// 複製（clipboard API＋textarea 後備，file:// 也可用）
-function _fb(t,done){const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';
-  document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(e){}ta.remove()}
-document.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{
-  const t=b.getAttribute('data-copy');
-  const done=()=>{const o=b.textContent;b.classList.add('ok');b.textContent='已複製 ✓';
-    setTimeout(()=>{b.textContent=o;b.classList.remove('ok')},1400)};
-  if(navigator.clipboard&&navigator.clipboard.writeText)
-    navigator.clipboard.writeText(t).then(done,()=>_fb(t,done));
-  else _fb(t,done);
 });
 // 投資策略兩行截斷 ↔ 展開
 document.querySelectorAll('.strat').forEach(s=>s.onclick=()=>s.classList.toggle('open'));
