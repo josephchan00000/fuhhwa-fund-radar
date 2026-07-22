@@ -787,8 +787,9 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
 <details class="fund" id="fund-{_esc(doc.get('fund_id'))}" data-name="{_esc(doc.get('name'))}"
   data-group="{_esc(doc.get('group_label'))}">
   <summary class="fsum">
-    <span class="fsum-l"><b>{_esc(doc.get('name'))}</b> <span class="gl">{_esc(doc.get('group_label'))}</span></span>
-    <span class="fsum-r">NAV {_esc(doc.get('nav') if doc.get('nav') is not None else '—')}
+    <span class="fsum-l"><b>{_esc(doc.get('name'))}</b></span>
+    <span class="fsum-r"><span class="gl">{_esc(doc.get('group_label'))}</span>
+      NAV {_esc(doc.get('nav') if doc.get('nav') is not None else '—')}
       {_pct_span(chg)}<span class="openbtn2"></span></span>
   </summary>
   <div class="fhead">
@@ -826,8 +827,9 @@ def _pending_card(p: dict) -> str:
 <details class="fund pendcard" id="fund-{_esc(p['fund_id'])}" data-name="{_esc(p['name'])}"
   data-group="{_esc(p['group_label'])}">
   <summary class="fsum">
-    <span class="fsum-l"><b>{_esc(p['name'])}</b> <span class="gl">{_esc(p['group_label'])}</span></span>
-    <span class="fsum-r">數據待抓取<span class="openbtn2"></span></span>
+    <span class="fsum-l"><b>{_esc(p['name'])}</b></span>
+    <span class="fsum-r"><span class="gl">{_esc(p['group_label'])}</span>
+      <span class="pend">數據待抓取</span><span class="openbtn2"></span></span>
   </summary>
   <div class="fhead"><div>
     <div class="sub">⏳ 已列入追蹤，數據待抓取——{note}
@@ -1204,9 +1206,13 @@ a.tk:hover{color:var(--acc)}
 .fsum::-webkit-details-marker{display:none}
 .fsum:hover .fsum-l b{color:var(--accd)}
 .fund[open]>.fsum{border-bottom:1px dashed var(--line);margin-bottom:12px}
+.fsum-l{flex:1 1 auto;min-width:0}
 .fsum-l b{font-size:17px}
-.fsum-r{display:flex;gap:10px;align-items:center;font-size:14.5px;color:var(--ink2);white-space:nowrap;
-  font-variant-numeric:tabular-nums;margin-left:auto}
+/* 排版邏輯：名稱佔左、成長填滿；分類藍標＋NAV＋漲跌＋展開整組靠右對齊（窄幕整組換到次行仍靠右） */
+.fsum-r{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;
+  font-size:14.5px;color:var(--ink2);white-space:nowrap;font-variant-numeric:tabular-nums;margin-left:auto}
+.fsum-r .gl{flex:0 0 auto}
+.fsum-r .pend{color:var(--mut)}
 .fund.fhide{display:none}
 /* 詳情篩選列 */
 .fundbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:12px}
