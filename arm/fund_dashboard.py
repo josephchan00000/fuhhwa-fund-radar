@@ -307,6 +307,37 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
     return f'<div class="ixrow">{idx_cards}</div><div class="chips">{"".join(chips)}</div>'
 
 
+# 市況（休市）chips：行事曆引言「市況：台股 …｜美股 …｜日股 …」段（arm/macronews.SPEC_CAL 固定格式）
+_MKT_STAT_RE = re.compile(r"(台股|美股|日股|韓股|陸股|港股)\s*[：:]?\s*([^｜|；;。]+)")
+
+
+def _market_status(note: str) -> tuple[str, str]:
+    """行事曆引言 → (台股視圖休市句, 全球視圖休市句)。
+
+    新格式（2026-07-22）：解析「市況」段——台股視圖列台股＋美股、
+    全球視圖列美股＋日韓陸港（使用者指示：台股頁也要有美股交易狀態、
+    全球頁不能只有美股）。舊格式（無市況段）→ 沿用舊行為：取含「休市」
+    短句（去括注），兩視圖同句。無休市資訊回 ("", "")、不出空 chip。"""
+    seg = next((p for p in re.split(r"[；;]", note or "") if p.strip().startswith("市況")), "")
+    if seg:
+        pairs = {m: d.strip("，、 ") for m, d in _MKT_STAT_RE.findall(seg)}
+
+        def _line(markets: tuple[str, ...]) -> str:
+            got = [(m, pairs[m]) for m in markets if pairs.get(m)]
+            closed = [f"{m} {d}" for m, d in got if "休市" in d]
+            normal = [m for m, d in got if "休市" not in d]
+            parts = ([ "、".join(closed)] if closed else []) + \
+                    (["、".join(normal) + "正常交易"] if normal else [])
+            return "本週" + "；".join(parts) if parts else ""
+
+        return _line(("台股", "美股")), _line(("美股", "日股", "韓股", "陸股", "港股"))
+    if "休市" in (note or ""):
+        _seg = next((p for p in re.split(r"[；;]", note) if "休市" in p), note)
+        hol = re.sub(r"（[^）]*）", "", _seg).strip()
+        return hol, hol
+    return "", ""
+
+
 _PREMKT_HEAD = re.compile(r"^##\s*🔹?\s*盤[前後]速覽")
 
 
@@ -1411,12 +1442,9 @@ def render() -> str:
     us_md = (news or {}).get("v1") or (news or {}).get("v2") or ""
     tw_md = (tw or {}).get("md") or ""
     macro_md = (macro or {}).get("md") or ""
-    # 休市提示（取自行事曆引言，含「休市」才顯示；全球今日重點用精簡句、總經頁行事曆用完整引言）
-    _hol_note = (cal or {}).get("note") or ""
-    hol = ""
-    if "休市" in _hol_note:
-        _seg = next((p for p in re.split(r"[；;]", _hol_note) if "休市" in p), _hol_note)
-        hol = re.sub(r"（[^）]*）", "", _seg).strip()      # 去括注、取含「休市」的短句
+    # 市況提示（取自行事曆引言「市況」段；台股視圖列台美、全球視圖列美＋日韓陸港；
+    # 總經頁行事曆用完整引言）
+    hol_tw, hol_gl = _market_status((cal or {}).get("note") or "")
 
     def _sev(md: str) -> tuple[int, int]:
         """回 (重要度≥6 的新聞則數, 最高分)——供今日重點 chip。"""
@@ -1472,12 +1500,12 @@ def render() -> str:
     premkt_md, tw_md_news = _extract_premarket(tw_md)
     pm_title = "盤後速覽" if re.search(r"^##\s*🔹?\s*盤後速覽", tw_md or "", re.M) else "盤前速覽"
     b_tw = _brief_view(twnews.extract_indices(tw_md), *fund_insights.movers(tw_funds),
-                       fund_insights.upcoming_distributions(tw_funds))
+                       fund_insights.upcoming_distributions(tw_funds), hol_tw)
     b_tw += _premarket_card(premkt_md, pm_title)
     # 全球今日重點不列任何指數點位/漲跌幅卡（公開搜尋之收盤數據不可靠；
     # 使用者指示 2026-07-04：全球重點不要出現數據漲跌幅——一律於下方新聞以官方為準呈現）
     b_gl = _brief_view([], *fund_insights.movers(gl_funds),
-                       fund_insights.upcoming_distributions(gl_funds), hol)
+                       fund_insights.upcoming_distributions(gl_funds), hol_gl)
     sec_brief = (f'<div class="section" id="brief"><div class="st">{_ic("zap", tone="amber")}今日重點 '
                  f'<span class="stsub">（{_esc((tw or news or {}).get("date") or "—")} 更新）</span></div>'
                  f'{_mkt(b_tw, b_gl)}</div>')
