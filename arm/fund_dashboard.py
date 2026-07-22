@@ -669,7 +669,7 @@ _OV_COLS = [("nav", "NAV", 0), ("chg", "日變動", 1), ("w1", "1週", 1), ("m1"
             ("conc", "前十大", 0), ("risk", "RR", 0)]
 
 
-def _overview_view(rows: list[dict], leaders: set, pending: list[dict]) -> str:
+def _overview_view(rows: list[dict], marks: dict, pending: list[dict]) -> str:
     groups: dict[str, list[dict]] = {}
     for r in rows:
         groups.setdefault(r["group_label"], []).append(r)
@@ -678,7 +678,11 @@ def _overview_view(rows: list[dict], leaders: set, pending: list[dict]) -> str:
             {"fund_id": p["fund_id"], "short_name": p["name"], "pending": True,
              "group_label": p["group_label"], "risk": "—",
              **{k: None for k, _, _ in _OV_COLS if k != "risk"}})
-    blocks = []
+    ytd_note = ('<span class="lgnote">＊＝新成立基金，YTD 以發行價 10 元起算（＝成立以來報酬）</span>'
+                if any(r.get("ytd_est") for r in rows) else "")
+    blocks = [('<div class="ovleg">各組各欄標示：<span class="lgsw ld-up1">漲最多</span>'
+               '<span class="lgsw ld-up0">漲最少</span><span class="lgsw ld-dn1">跌最多</span>'
+               f'<span class="lgsw ld-dn0">跌最少</span>{ytd_note}</div>')]
     for g, rs in groups.items():
         trs = []
         for r in rs:
@@ -699,7 +703,11 @@ def _overview_view(rows: list[dict], leaders: set, pending: list[dict]) -> str:
                         cell = f"{v:,.1f}" if k in ("size_e8", "conc") else _esc(v)
                         if k == "conc":
                             cell += "%"
-                lead = ' class="lead"' if (fid, k) in leaders else ""
+                if k == "ytd" and r.get("ytd_est") and v is not None:
+                    cell += ('<sup class="estmk" title="成立未滿一年：以發行價 10 元起算'
+                             '之成立以來報酬率（＝當年度 YTD）">*</sup>')
+                mk = marks.get((fid, k))
+                lead = f' class="{mk}"' if mk else ""
                 tds.append(f'<td data-v="{v if v is not None else ""}"{lead}>{cell}</td>')
             trs.append(f'<tr data-fund="{_esc(fid)}">{"".join(tds)}</tr>')
         ths = "".join(f'<th class="sk" data-k="{k}" title="點擊排序">{lab}<span class="arr"></span></th>'
@@ -761,16 +769,25 @@ def _holdings_table(doc: dict, linked_names: set[str]) -> str:
 def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
     ret = doc.get("returns") or {}
     ga = gavg.get(doc.get("group_label") or "", {})
+    inc_ret = fund_insights.inception_ret_pct(doc)   # 今年新成立且官網未揭露 → 發行價 10 元起算
     cells = []
     for k, lab in fund_insights.RET_KEYS + [("since", "成立以來")]:
         v = fund_insights.parse_period_pct(ret.get(k))
+        est = ""
+        if v is not None:
+            disp = ret.get(k)
+        elif inc_ret is not None and k in ("ytd", "since"):
+            v, disp = inc_ret, f"{inc_ret:+.2f}%"
+            est = ('<sup class="estmk" title="成立未滿一年：以發行價 10 元起算'
+                   '之成立以來報酬率（＝當年度 YTD）">*</sup>')
+        else:
+            disp = "—"
         avg = ga.get(k)
         beat = ' <span class="beat" title="高於同組平均">●</span>' \
             if (v is not None and avg is not None and v > avg) else ""
         sub = f'<div class="ga">同組均 {avg:.1f}%</div>' if avg is not None else ""
-        disp = ret.get(k) if v is not None else "—"
         cells.append(f'<div class="rc"><div class="rk2">{lab}</div>'
-                     f'<div class="rv">{_esc(disp)}{beat}</div>{sub}</div>')
+                     f'<div class="rv">{_esc(disp)}{est}{beat}</div>{sub}</div>')
     size = doc.get("size_twd")
     size_s = f"{size / 1e8:.1f} 億元" if size else "—"
     mr = (f'<a class="mrpt" href="{_esc(doc["monthly_report"])}" target="_blank" rel="noopener">📄 基金月報</a>'
@@ -786,6 +803,10 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
         if cty else f'<div class="ctitle">{_ic("layers", plain=True)} 產業配置</div>')
     conc = fund_intro.top_concentration(doc)
     conc_s = f"{conc}%" if conc is not None else "—"
+    # 經理人：官網 API manager＝經理人、manager01＝協管經理人（2026-07-22 經 MoneyDJ 經理人
+    # 資料交叉驗證：美國新星 manager01 郭俊宏＝協管）。舊快照無 co_managers 鍵時照舊全列不標。
+    man_s = "、".join((doc.get("managers") or [])
+                     + [f"{c}（協管）" for c in (doc.get("co_managers") or [])]) or "—"
     return f"""
 <details class="fund" id="fund-{_esc(doc.get('fund_id'))}" data-name="{_esc(doc.get('name'))}"
   data-group="{_esc(doc.get('group_label'))}">
@@ -799,7 +820,7 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
     <div>
       <div class="sub">{_esc(doc.get('category'))}｜主要區域 {_esc(doc.get('region') or '—')}｜
         風險 {_esc(doc.get('risk_level') or '—')}｜經理費 {_esc(doc.get('mgmt_fee') or '—')}｜
-        經理人 {_esc('、'.join(doc.get('managers') or []) or '—')}</div>
+        經理人 {_esc(man_s)}</div>
       <div class="oneline">{_esc(fund_intro.summary_line(doc))}</div>
     </div>
     <div class="navbox">
@@ -1091,7 +1112,15 @@ a.tk:hover{color:var(--acc)}
 .ovtbl td.nm{text-align:left;font-weight:600}
 .ovtbl td.nm a{color:var(--accd);font-size:14.5px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(43,95,176,.45)}
 .ovtbl td.nm a:hover{color:var(--acc);text-decoration-color:var(--acc)}
-.ovtbl td.lead{background:rgba(211,58,52,.12);border-radius:4px}
+/* 總覽表極值標示（2026-07-22）：深紅=漲最多、淡紅=漲最少、深綠=跌最多、淡綠=跌最少
+   （不綁 td——圖例 .lgsw 色塊共用同色票） */
+.ld-up1{background:rgba(211,58,52,.22);border-radius:4px}
+.ld-up0{background:rgba(211,58,52,.08);border-radius:4px}
+.ld-dn1{background:rgba(31,157,87,.22);border-radius:4px}
+.ld-dn0{background:rgba(31,157,87,.08);border-radius:4px}
+.ovleg{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--mut);margin:0 0 8px}
+.lgsw{padding:1px 8px;border-radius:5px;color:var(--ink2);white-space:nowrap}
+.lgnote{margin-left:4px}
 .ovtbl tr:hover td{background:rgba(47,111,208,.06)}
 /* ETF 表：只凍結「代碼／名稱」一欄（識別欄），手機橫向捲動時恆可見；
    性質欄隨捲動移出（分兩張表已按性質分組，捲動時不需重複顯示），省空間好閱讀 */
@@ -1424,7 +1453,7 @@ def render() -> str:
                 linked_by_fund.setdefault(f["fund_id"], set()).add(m["name"])
 
     rows = fund_insights.overview_rows(funds)
-    leaders = fund_insights.column_leaders(rows)
+    leaders = fund_insights.column_extremes(rows)
     mkt_by_id = {str(d.get("fund_id")): _mof(d) for d in funds}
     rows_tw = [r for r in rows if mkt_by_id.get(r["fund_id"]) == "tw"]
     rows_gl = [r for r in rows if mkt_by_id.get(r["fund_id"]) == "gl"]
