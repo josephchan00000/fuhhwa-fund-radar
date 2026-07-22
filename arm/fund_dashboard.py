@@ -250,14 +250,18 @@ def _fresh_chip(label: str, value: str | None, tol: int | None = None,
             f'{_esc(value or "—")}{_esc(warn)}</span>')
 
 
-def _factcheck_chip() -> str:
+def _factcheck_chip(today=None) -> str:
     """數字核對狀態章（讀 data/factcheck.json；CI 端與官方 API 比對的結果）。
     🔴＝報告數字與官方不符（照常發佈但標紅警示、主會話會立即修正重推——
-    2026-07-20 使用者指示：防線不可硬到什麼都沒更新）。無檔／非今日＝不顯示。"""
+    2026-07-20 使用者指示：防線不可硬到什麼都沒更新）。無檔／**非今日**＝不顯示
+    （2026-07-23 修：昨日殘留檔曾把過期 25 🔴 顯示在今日板上）。"""
     fp = ROOT_DIR / "data" / "factcheck.json"
     try:
         doc = json.loads(fp.read_text(encoding="utf-8"))
     except Exception:
+        return ""
+    d = today or clock.today_tw()
+    if doc.get("date") != f"{d:%Y-%m-%d}":
         return ""
     if doc.get("red"):
         return (f'<span class="chip fresh stale"><b>數字核對</b>　🔴 {doc["red"]} 項與官方不符'
@@ -277,7 +281,7 @@ def _freshness_view(gen_stamp: str, sources: list[tuple[str, str | None, int | N
            else '各資料來源的更新時間標於各區塊標題列（皆台北時間）')
     return (f'<div class="section" id="freshness"><div class="st">{_ic("clock")}網頁更新時間　'
             f'{_fresh_chip("網頁更新", gen_stamp, None, today, gen=True)} '
-            f'{_factcheck_chip()} '
+            f'{_factcheck_chip(today)} '
             f'<span class="stsub">{sub}</span></div></div>')
 
 
