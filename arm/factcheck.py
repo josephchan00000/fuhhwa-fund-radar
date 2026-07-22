@@ -198,10 +198,11 @@ def extract_us_index_claims(text: str, session_day: date) -> list[Claim]:
             win = sent[pos:max(pos, end)][:60]
             m = re.search(r"^[^%]{0,25}?(?:大漲|上漲|收漲|漲|反彈|重挫|大跌|下跌|收跌|跌|挫)"
                           r"\s*(逾|近|約)?\s*([\d.]+)\s*%", win)
-            if m:
+            # 盤中口徑（盤初/盤中/早盤/一度/最高/最低）非收盤漲跌，不可拿日線驗（07-23 誤殺修正）
+            if m and not re.search(r"盤初|盤中|早盤|一度|最[高低]", win[:m.end(2)]):
                 claims.append(Claim(f"us_{key}_chg", float(m.group(2)), session_day,
                                     sent.strip()[:160], qual=m.group(1) or ""))
-            m = re.search(r"收[^0-9%]{0,10}([\d,]{5,}(?:\.\d+)?)", win)
+            m = re.search(r"(?<!前)收[^0-9%]{0,10}([\d,]{5,}(?:\.\d+)?)", win)
             if m:
                 v = _num(m.group(1))
                 if v and 4000 <= v <= 99999:
