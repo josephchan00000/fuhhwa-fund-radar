@@ -939,7 +939,8 @@ _CSS = """
 /* 2026-07-22 富途式扁平版：整站單一白色平面、無卡片框，區塊靠細分隔線＋留白分層 */
 :root{--bg:#ffffff;--card:#ffffff;--card2:#f4f6fa;--ink:#1f2733;--mut:#727e8c;
 --line:#e8ebf1;--c1:#3b82f6;--c2:#c2740e;--gain:#d33a34;--loss:#1f9d57;--acc:#2563c9;
---accd:#1c4fa8;--ink2:#44505f;--inset:#eef2f8;--hl:#153a7a;--hlbg:#dce7fa;--gold:#a16207}
+--accd:#1c4fa8;--ink2:#44505f;--inset:#eef2f8;--hl:#153a7a;--hlbg:#dce7fa;--gold:#a16207;
+--pad:#f7f9fc}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:var(--tbh,64px)}
 body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.7 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif}
@@ -1032,9 +1033,9 @@ a.chip:hover{background:rgba(47,111,208,.16)}
 .premkt{border:0;background:none;border-radius:0;padding:0;margin-top:6px;
   font-size:16px;line-height:1.85;color:var(--ink)}
 .premkt ul{margin:4px 0} .premkt ul li{margin:9px 0}
-/* ② news digest：去卡片框 → 全寬清單項＋細分隔線（富途式） */
-.ngc{background:none;border:0;border-radius:0;padding:13px 0;margin:0;border-bottom:1px solid var(--line)}
-.ngc:last-child{border-bottom:0}
+/* ② news digest：輕色塊卡墊（2026-07-22 全站套用：取代細分隔線，好掃讀） */
+.ngc{background:var(--pad);border:0;border-radius:12px;padding:13px 14px;margin:0 0 8px;border-bottom:0}
+.ngc:last-child{margin-bottom:0}
 .ngt{font-weight:700;font-size:17px;color:var(--ink);line-height:1.55}
 .ngm{color:var(--mut);font-size:13px;margin-top:3px}
 .ngs{font-size:17px;color:var(--ink);margin:6px 0 16px;line-height:1.9}
@@ -1108,9 +1109,9 @@ a.tk:hover{color:var(--acc)}
 .openbtn{margin-left:auto;background:none;color:var(--accd);border:0;border-radius:0;padding:5px 0;font-size:13.5px;font-weight:700;white-space:nowrap}
 .openbtn::after{content:"▼ 點擊展開全文"}
 .newswrap[open] .openbtn::after{content:"▲ 收合"}
-/* 逐則新聞收合塊：去卡片 → 全寬清單項＋細分隔線，字的空間放到最大（富途式） */
-.newsone{background:none;border:0;border-radius:0;margin:0;overflow:visible;border-bottom:1px solid var(--line)}
-.newsone:last-of-type{border-bottom:0}
+/* 逐則新聞收合塊：輕色塊卡墊（2026-07-22 全站套用：每則一個極淺灰圓角色塊） */
+.newsone{background:var(--pad);border:0;border-radius:12px;margin:0 0 8px;overflow:visible;padding:0 14px}
+.newsone:last-of-type{margin-bottom:0}
 .newsone>summary{cursor:pointer;list-style:none;display:flex;align-items:flex-start;gap:12px;padding:14px 0}
 .newsone>summary::-webkit-details-marker{display:none}
 .newsone>summary:hover .nit{color:var(--accd)}
@@ -1199,7 +1200,7 @@ a.tk:hover{color:var(--acc)}
 #details .st{margin-bottom:0}
 .pendcard .sub{line-height:1.9}
 /* 詳情卡輕色塊卡墊（2026-07-22 使用者指示：全平面細線列直式難掃讀 → 每檔一個極淺灰圓角色塊） */
-.fund{background:#f7f9fc;border:0;border-radius:12px;padding:0 14px;margin:0 0 8px;box-shadow:none}
+.fund{background:var(--pad);border:0;border-radius:12px;padding:0 14px;margin:0 0 8px;box-shadow:none}
 .fund:last-of-type{margin-bottom:0}
 .fund:target{background:#e9f1fc}
 .fund>*:not(summary){margin-left:0;margin-right:0}
@@ -1280,8 +1281,8 @@ a.tk:hover{color:var(--acc)}
 .fnhl .ngpts li{color:var(--ink);font-size:15px}
 .fnhl .ngpts li:before{background:var(--gold)}
 .fnlist{background:none;border:0;border-radius:0;padding:0}
-.fnit{padding:10px 0;border-bottom:1px dashed var(--line)}
-.fnit:last-child{border-bottom:0}
+.fnit{padding:10px 14px;background:var(--pad);border-radius:12px;margin-bottom:8px}
+.fnit:last-child{margin-bottom:0}
 .fnt{display:inline-block;color:var(--ink);font-size:15px;font-weight:600;line-height:1.55;text-decoration:none}
 .fnt:hover{color:var(--acc);text-decoration:underline;text-underline-offset:3px}
 .fnsum{color:var(--ink2);font-size:12.5px;line-height:1.7;margin-top:3px}
