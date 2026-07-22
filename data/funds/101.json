@@ -11,10 +11,10 @@
   "risk_level": "RR3",
   "mgmt_fee": "0.60%",
   "size_twd": 27011615269.0,
-  "nav": 26.11,
-  "nav_date": "2026/07/20",
-  "nav_change": -0.08,
-  "nav_change_pct": "-0.31%",
+  "nav": 26.46,
+  "nav_date": "2026/07/21",
+  "nav_change": 0.35,
+  "nav_change_pct": "1.34%",
   "returns": {
     "ytd": "10.61%",
     "3m": "14.34%",
@@ -27,6 +27,7 @@
   "managers": [
     "吳允翔"
   ],
+  "co_managers": [],
   "strategy": "本基金追蹤彭博已開發國家大型300流動指數，成分證券為美國、英國、德國、法國、日本等主要已開發國家之具代表性的大型股票，提供投資人參與海外股市布局之元件&nbsp; &nbsp; 追蹤指數操作，資訊相對透明",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/101.pdf",
   "dist_date": "2026/06/30",
@@ -153,13 +154,13 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-07-22 07:13",
+  "fetched_at": "2026-07-23 07:01",
   "returns_daily": {
-    "1m": 0.57781,
-    "3m": 6.4845,
-    "6m": 11.0119,
-    "1y": 29.12957,
-    "ytd": 10.77641
+    "1m": 1.92604,
+    "3m": 8.79934,
+    "6m": 11.45746,
+    "1y": 30.47337,
+    "ytd": 12.26135
   },
-  "returns_daily_asof": "2026/07/20"
+  "returns_daily_asof": "2026/07/21"
 }

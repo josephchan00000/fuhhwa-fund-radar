@@ -110,12 +110,13 @@ def fetch_meta(fund_id: str | int) -> dict:
         raise NoData(f"fundID={fund_id} 無 /api/fund 資料")
     o = res[0]
 
-    managers = []
-    for key in ("manager", "manager01"):
+    # manager＝基金經理人、manager01＝協管經理人（2026-07-22 經 MoneyDJ 經理人資料交叉驗證）
+    managers, co_managers = [], []
+    for key, acc in (("manager", managers), ("manager01", co_managers)):
         for m in (o.get(key) or []):
             nm = (m or {}).get("name")
-            if nm and nm not in managers:
-                managers.append(nm)
+            if nm and nm not in managers and nm not in co_managers:
+                acc.append(nm)
 
     monthly_report = None
     for p in (o.get("pdf") or []):
@@ -144,6 +145,7 @@ def fetch_meta(fund_id: str | int) -> dict:
             "ytd": "roiY2D", "3m": "roi3m", "6m": "roi6m", "1y": "roi1y",
             "2y": "roi2y", "3y": "roi3y", "since": "roiLaunch"}.items() if o.get(v)},
         "managers": managers,
+        "co_managers": co_managers,
         "strategy": _text(o.get("contents") or "") or None,
         "monthly_report": monthly_report,
         "dist_date": o.get("ddate"),

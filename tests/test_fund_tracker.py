@@ -143,6 +143,21 @@ def test_macro_calendar_parsing():
     assert "休市" in macronews._cal_note(md)
 
 
+def test_market_status_chips_two_views():
+    # 「市況」段 → 台股視圖列台股＋美股、全球視圖列美股＋日韓陸港（2026-07-22 使用者需求）
+    from arm import fund_dashboard as fd
+    note = ("更新：2026/07/22；市況：台股 正常交易｜美股 正常交易｜日股 7/20 海之日休市｜"
+            "韓股 正常交易｜陸股 正常交易｜港股 正常交易；已公布：中國 7 月 LPR 續持")
+    tw, gl = fd._market_status(note)
+    assert tw == "本週台股、美股正常交易"
+    assert gl == "本週日股 7/20 海之日休市；美股、韓股、陸股、港股正常交易"
+    assert "已公布" not in gl                       # 市況 chip 不夾帶其餘引言
+    # 舊格式（無市況段）回退：取含「休市」短句（去括注），兩視圖同句
+    tw2, gl2 = fd._market_status("更新：2026/07/03；美股 7/3 因國慶假期休市（提前收盤另計）")
+    assert tw2 == gl2 == "美股 7/3 因國慶假期休市"
+    assert fd._market_status("更新：2026/07/03") == ("", "")
+
+
 def test_macro_cal_view_region_badges_and_earnings_split():
     # 地區以彩色小徽章呈現（非「美：」文字）；財報獨立成子表（2026-07-05 使用者需求）
     from arm import fund_dashboard as fd
@@ -203,11 +218,9 @@ def _fake_doc():
     }
 
 
-def test_summary_line_and_concentration():
-    d = _fake_doc()
-    s = fund_intro.summary_line(d)
-    assert "美國 60.8%" in s and "資訊技術 86.0%" in s and "47.58" in s
-    assert fund_intro.top_concentration(d) == 8.4
+def test_top_concentration():
+    # summary_line 一句話摘要已整行移除（2026-07-22 使用者指示：區域/產業/NAV 皆與卡內既有資訊重複）
+    assert fund_intro.top_concentration(_fake_doc()) == 8.4
 
 
 def test_group_label_mapping():

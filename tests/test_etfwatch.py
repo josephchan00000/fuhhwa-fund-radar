@@ -211,6 +211,59 @@ def test_fetch_returns_accepts_equal_bases_when_series_varied(monkeypatch):
     assert not hasattr(etfwatch, "_same_base_price")             # 舊守衛確已移除
 
 
+def test_returns_add_back_dividend_in_window():
+    # 2026-07-22 教訓：原始收盤跨除息日會把配息當跌幅（006208 7/16 除息 4.75，一週報酬比
+    # 同指數 0050 多跌整整一個股息）→ 區間內除息須加回（總報酬口徑）。
+    close = {"2026-07-13": 246.75}
+    close.update({(date(2026, 7, 20) - timedelta(days=i)).isoformat(): 226.0 for i in range(5)})
+    divs = {"2026-07-16": 4.75}
+    r = etfwatch._returns_from_series(close, divs)
+    assert r["ret_1w"] == round((226.0 + 4.75) / 246.75 * 100 - 100, 2)   # 息加回
+    assert r["ret_1w_div"] == 4.75 and r["last_close"] == 226.0
+    # 除息日=基準日當天 → 基準收盤已是除息後價，不加回
+    r2 = etfwatch._returns_from_series(close, {"2026-07-13": 4.75})
+    assert r2["ret_1w"] == round(226.0 / 246.75 * 100 - 100, 2)
+    assert "ret_1w_div" not in r2
+
+
+def test_degenerate_relaxed_for_bond_codes(monkeypatch):
+    # 債券型（00986D）收盤 tick 小、天然重複 → 60% 相異值門檻誤殺；放寬後仍可算報酬
+    last = date(2026, 7, 21)
+    bond = {(last - timedelta(days=i)).isoformat(): 14.70 + 0.01 * ((i * 7) % 12)
+            for i in range(40)}                              # 40 點僅 ~12 個相異值（30%）
+    assert etfwatch._is_degenerate(bond) is True             # 一般門檻：判髒（維持舊行為）
+    assert etfwatch._is_degenerate(bond, relax=True) is False
+    monkeypatch.setattr(etfwatch, "_stooq_series", lambda code: {})
+    monkeypatch.setattr(etfwatch, "_yahoo_series", lambda code: bond)
+    monkeypatch.setattr(etfwatch, "_finmind_series", lambda code, today: {})
+    monkeypatch.setattr(etfwatch, "_twse_series", lambda code, today: {})
+    r = etfwatch._fetch_returns("00986D", today=last)
+    assert r["ret_src"] == "yahoo" and r["ret_1w"] is not None
+    r0 = etfwatch._fetch_returns("0056", today=last)         # 股票型不放寬 → 仍判髒、退底稿
+    assert r0["ret_1w"] is None
+
+
+def test_fetch_fills_close_px_and_last_div_for_tpex_codes(monkeypatch):
+    # 上櫃 00998A/00986D：etfinfo 未收錄 → 收盤價用報酬序列末值回填、
+    # 配息用種子（首配 6/17），年化配息率以「配息 × 次數 ÷ 序列收盤」自算。
+    import arm.connectors.mops as mops
+    today = date(2026, 7, 22)
+    monkeypatch.setattr(etfwatch, "load", lambda: None)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _boom)     # etfinfo 全倒（上櫃檔常態）
+    monkeypatch.setattr(etfwatch, "_fetch_returns",
+                        lambda code: {"ret_1w": -0.29, "ret_1m": 1.48, "perf_date": "2026-07-21",
+                                      "ret_src": "yahoo", "ret_n": 64, "last_close": 17.13,
+                                      "ret_1w_base": "2026-07-14=17.18",
+                                      "ret_1m_base": "2026-06-18=16.88"})
+    monkeypatch.setattr(etfwatch.clock, "today_tw", lambda: today)
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00998A"]
+    assert i["kind"] == "other" and i["close_px"] == 17.13    # 序列末值回填
+    assert i["last_div"] == 0.404 and i["last_div_date"] == "2026-06-17"   # 種子首配
+    assert i["yield_pct"] == round(0.404 / 17.13 * 4 * 100, 2)             # 自算年化 ≈9.43%
+    assert i["aum_e8"] == 35.21                               # 種子規模（Tier B）
+
+
 def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
     monkeypatch.setattr(etfwatch, "_stooq_series", lambda code: {})
     monkeypatch.setattr(etfwatch, "_yahoo_series", lambda code: {})
@@ -228,12 +281,13 @@ def test_watchlist_matches_weekly_report():
     passive = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "passive"]
     active = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "active"]
     assert set(passive) == {"0056", "00878", "00919", "00929", "0050", "006208"}
-    assert "00991A" in active and len(active) == 16    # 含本家主動復華未來50＋00998A（2026-07-21）
+    assert "00991A" in active and len(active) == 15    # 含本家主動復華未來50
     # 2026-07-06 新增熱門／新募集主動式 ETF 皆在清單中
-    assert {"00988A", "00990A", "00403A", "00407A", "00998A"} <= set(active)
-    # 2026-07-21 新增「其他」分類（債券型主動式）：本家 00986D
+    assert {"00988A", "00990A", "00403A", "00407A"} <= set(active)
+    # 「其他」分類＝本家上櫃兩檔（00998A 股票＋00986D 債券，Yahoo 代碼 .TWO）
     other = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "other"]
-    assert other == ["00986D"]
+    assert other == ["00998A", "00986D"]
+    assert etfwatch._BOND_CODES == {"00986D"}          # 債券型放寬髒序列門檻的名單
     # 成立日期為 WATCHLIST 靜態值（不需抓、永不空白）
     for c, name, kind, cat, inception in etfwatch.WATCHLIST:
         assert inception and inception.count("/") == 2
