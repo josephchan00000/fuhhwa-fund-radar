@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/22 17:53",
+  "as_of": "2026/07/22 22:46",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -72,13 +72,6 @@
           "source": "CMoney",
           "date": "2026-07-21 17:52",
           "datetime": "2026-07-21T17:52:46+08:00"
-        },
-        {
-          "title": "規模破百億的科技巨頭基金比一比：安聯台灣科技、復華全球物聯網、復華華人世紀怎麼選？",
-          "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE9wWHlJZDFSOFNuRklRdTRYREdZNC1uTjN6VzZTYktRVms4aWIxeUtjWWdNclJvaWRZdXBVejJISXRPNTJ5ZlpReFNSQlJ0ZWVnZHhLXzZ4NF8?oc=5",
-          "source": "CMoney",
-          "date": "2026-07-20 16:49",
-          "datetime": "2026-07-20T16:49:45+08:00"
         }
       ]
     },
