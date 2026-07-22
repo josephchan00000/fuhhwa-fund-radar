@@ -820,7 +820,6 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
       <div class="sub">{_esc(doc.get('category'))}｜主要區域 {_esc(doc.get('region') or '—')}｜
         風險 {_esc(doc.get('risk_level') or '—')}｜經理費 {_esc(doc.get('mgmt_fee') or '—')}｜
         經理人 {_esc(man_s)}</div>
-      <div class="oneline">{_esc(fund_intro.summary_line(doc))}</div>
     </div>
     <div class="navbox">
       <div class="nav">{_esc(doc.get('nav') if doc.get('nav') is not None else '—')}</div>
@@ -1264,7 +1263,7 @@ a.tk:hover{color:var(--acc)}
 .fg.on{background:var(--acc);color:#fff}
 .fhead{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}
 .fhead h2{font-size:19px;margin:0 0 4px} .gl{display:inline-block;white-space:nowrap;font-size:12px;color:#fff;background:var(--acc);padding:2px 8px;border-radius:20px;vertical-align:middle}
-.sub{color:var(--mut);font-size:12.5px} .oneline{margin-top:6px;font-size:13.5px;color:var(--accd)}
+.sub{color:var(--mut);font-size:12.5px}
 .navbox{text-align:right;min-width:190px} .nav{font-size:26px;font-weight:800}
 .navd{font-size:12px;color:var(--mut)} .size{font-size:12px;color:var(--mut);margin-top:4px}
 .mrpt{display:inline-block;margin-left:6px}

@@ -203,12 +203,9 @@ def _fake_doc():
     }
 
 
-def test_summary_line_and_concentration():
-    d = _fake_doc()
-    s = fund_intro.summary_line(d)
-    assert "美國 60.8%" in s and "47.58" in s
-    assert "資訊技術" not in s          # 首要產業標註已移除（2026-07-22 使用者指示）
-    assert fund_intro.top_concentration(d) == 8.4
+def test_top_concentration():
+    # summary_line 一句話摘要已整行移除（2026-07-22 使用者指示：區域/產業/NAV 皆與卡內既有資訊重複）
+    assert fund_intro.top_concentration(_fake_doc()) == 8.4
 
 
 def test_group_label_mapping():
