@@ -206,7 +206,8 @@ def _fake_doc():
 def test_summary_line_and_concentration():
     d = _fake_doc()
     s = fund_intro.summary_line(d)
-    assert "美國 60.8%" in s and "資訊技術 86.0%" in s and "47.58" in s
+    assert "美國 60.8%" in s and "47.58" in s
+    assert "資訊技術" not in s          # 首要產業標註已移除（2026-07-22 使用者指示）
     assert fund_intro.top_concentration(d) == 8.4
 
 
