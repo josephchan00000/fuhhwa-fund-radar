@@ -27,6 +27,7 @@
   "managers": [
     "胡家菱"
   ],
+  "co_managers": [],
   "strategy": "主要投資於因中國代工產業發展及龐大內需市場興起，造就長期經貿優勢而受惠之相關國家及產業；基金可投資之區域及產業廣泛多元，參與多種投資商機。 從產業研究及由下而上的選股策略，追求在多頭時期掌握股價上漲動能較佳的潛力股，創造投資報酬。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/24.pdf",
   "dist_date": "2026/06/30",
@@ -121,7 +122,7 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-07-22 13:49",
+  "fetched_at": "2026-07-22 14:43",
   "returns_daily": {
     "1m": -27.32085,
     "3m": 8.75752,

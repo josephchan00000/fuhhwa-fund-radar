@@ -27,6 +27,7 @@
   "managers": [
     "郭家宏"
   ],
+  "co_managers": [],
   "strategy": "國內平衡型基金，依總體經濟、資金動能、價值評估及技術指標等，調整資產配置。 於股市高檔時降低持股或以期貨避險來降低風險，於股市低檔時搭配高速成長股與景氣循環股的操作來增進收益。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/11.pdf",
   "dist_date": "2026/06/30",
@@ -128,7 +129,7 @@
     }
   ],
   "group": "tw_balanced",
-  "fetched_at": "2026-07-22 13:50",
+  "fetched_at": "2026-07-22 14:44",
   "returns_daily": {
     "1m": -14.12696,
     "3m": 2.38804,

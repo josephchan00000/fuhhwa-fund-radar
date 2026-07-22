@@ -27,6 +27,7 @@
   "managers": [
     "趙建彰"
   ],
+  "co_managers": [],
   "strategy": "以國內上櫃股票、及資本額80億以下或市值450億以下之上市股票為主，輔以大型權值股配置，瞄準台灣中小型股的爆發力 掌握產業發展及企業脈動，選擇產業趨勢向上或競爭力強的中小型股為核心持股，並隨時檢視、汰弱留強",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/08.pdf",
   "dist_date": "2026/06/30",
@@ -124,7 +125,7 @@
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-07-22 13:49",
+  "fetched_at": "2026-07-22 14:44",
   "returns_daily": {
     "1m": -15.02632,
     "3m": 4.91196,

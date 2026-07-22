@@ -27,6 +27,7 @@
   "managers": [
     "戎宜蘋"
   ],
+  "co_managers": [],
   "strategy": "投資於國內上市上櫃公司中，科技相關產業及具有高股息特性之股票，參與長期較佳之企業獲利成長性與股息收益機會。 本基金B類型受益權單位每月評估收益分配，為投資人提供現金流之機會。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/123.pdf",
   "dist_date": "2026/06/30",
@@ -124,7 +125,7 @@
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-07-22 13:50",
+  "fetched_at": "2026-07-22 14:44",
   "returns_daily": {
     "1m": -12.06497,
     "3m": 13.63412,
