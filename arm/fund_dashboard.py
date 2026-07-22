@@ -318,10 +318,11 @@ _MKT_STAT_RE = re.compile(r"(台股|美股|日股|韓股|陸股|港股)\s*[：:]
 def _market_status(note: str) -> tuple[str, str]:
     """行事曆引言 → (台股視圖休市句, 全球視圖休市句)。
 
-    新格式（2026-07-22）：解析「市況」段——台股視圖列台股＋美股、
-    全球視圖列美股＋日韓陸港（使用者指示：台股頁也要有美股交易狀態、
-    全球頁不能只有美股）。舊格式（無市況段）→ 沿用舊行為：取含「休市」
-    短句（去括注），兩視圖同句。無休市資訊回 ("", "")、不出空 chip。"""
+    新格式（2026-07-22）：解析「市況」段——台股視圖只列「台股」本身
+    （使用者指示：一樣的區塊、說這週台股有沒有休市）、全球視圖列
+    美股＋日韓陸港（不能只有美股）。舊格式（無市況段）→ 沿用舊行為：
+    取含「休市」短句（去括注），兩視圖同句。無休市資訊回 ("", "")、
+    不出空 chip。"""
     seg = next((p for p in re.split(r"[；;]", note or "") if p.strip().startswith("市況")), "")
     if seg:
         pairs = {m: d.strip("，、 ") for m, d in _MKT_STAT_RE.findall(seg)}
@@ -332,9 +333,12 @@ def _market_status(note: str) -> tuple[str, str]:
             normal = [m for m, d in got if "休市" not in d]
             parts = ([ "、".join(closed)] if closed else []) + \
                     (["、".join(normal) + "正常交易"] if normal else [])
-            return "本週" + "；".join(parts) if parts else ""
+            if not parts:
+                return ""
+            txt = "本週" + "；".join(parts)
+            return txt if closed else txt + "、無國定假日休市"   # 全正常時比照原美股句式
 
-        return _line(("台股", "美股")), _line(("美股", "日股", "韓股", "陸股", "港股"))
+        return _line(("台股",)), _line(("美股", "日股", "韓股", "陸股", "港股"))
     if "休市" in (note or ""):
         _seg = next((p for p in re.split(r"[；;]", note) if "休市" in p), note)
         hol = re.sub(r"（[^）]*）", "", _seg).strip()
@@ -1446,7 +1450,7 @@ def render() -> str:
     us_md = (news or {}).get("v1") or (news or {}).get("v2") or ""
     tw_md = (tw or {}).get("md") or ""
     macro_md = (macro or {}).get("md") or ""
-    # 市況提示（取自行事曆引言「市況」段；台股視圖列台美、全球視圖列美＋日韓陸港；
+    # 市況提示（取自行事曆引言「市況」段；台股視圖只列台股、全球視圖列美＋日韓陸港；
     # 總經頁行事曆用完整引言）
     hol_tw, hol_gl = _market_status((cal or {}).get("note") or "")
 
