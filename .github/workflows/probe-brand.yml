@@ -1,0 +1,27 @@
+name: probe-brand-colors
+# 一次性探測（2026-07-22）：本容器 proxy 擋 fhtrust.com.tw，改由 CI 抓官網 CSS
+# 色票供「以復華官網為設計概念」的儀表板改版定錨。用完即刪。
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 抓官網 HTML＋CSS、統計色碼
+        run: |
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+          curl -sS -m 30 -A "$UA" https://www.fhtrust.com.tw/ -o home.html || true
+          echo "== home.html bytes: $(wc -c < home.html)"
+          echo "== inline hex counts (top 40) =="
+          grep -oiE '#[0-9a-f]{6}|#[0-9a-f]{3}\b' home.html | tr 'A-F' 'a-f' | sort | uniq -c | sort -rn | head -40 || true
+          echo "== css links =="
+          grep -oE 'href="[^"]*\.css[^"]*"' home.html | head -10 || true
+          i=0
+          for u in $(grep -oE 'href="[^"]*\.css[^"]*"' home.html | sed 's/href="//;s/"//' | head -5); do
+            case "$u" in http*) full="$u";; /*) full="https://www.fhtrust.com.tw$u";; *) full="https://www.fhtrust.com.tw/$u";; esac
+            i=$((i+1)); echo "== css[$i]: $full =="
+            curl -sS -m 30 -A "$UA" "$full" -o css$i.css || continue
+            grep -oiE '#[0-9a-f]{6}|#[0-9a-f]{3}\b' css$i.css | tr 'A-F' 'a-f' | sort | uniq -c | sort -rn | head -25 || true
+          done
+          echo "== header/nav/button context colors =="
+          grep -oiE '(header|nav|btn|primary|main)[^}]{0,160}#[0-9a-f]{3,6}' css*.css 2>/dev/null | head -30 || true
