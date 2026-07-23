@@ -21,6 +21,9 @@ P_NEWS=$!
 ( python3 scripts/fetch_etf_watch.py \
     || echo "  ⚠ ETF 追蹤擷取失敗，續跑（分頁沿用前次落檔）" ) >"$LOGD/etf.log" 2>&1 &
 P_ETF=$!
+( python3 scripts/fetch_macro_chips.py \
+    || echo "  ⚠ 總經・籌碼數據擷取失敗，續跑（市場溫度計沿用前次落檔）" ) >"$LOGD/macro.log" 2>&1 &
+P_MACRO=$!
 
 echo "[2/4] 產新聞提示包（昨夜美股／台股／總經政策＋行事曆）…（新聞內容由 LLM 上網查證產出）"
 python3 scripts/gen_usnews.py    || echo "  ⚠ 美股提示包產製失敗，續跑"
@@ -31,9 +34,11 @@ echo "[3/4] 等三路抓取完成…"
 wait "$P_HOLD" || true
 wait "$P_NEWS" || true
 wait "$P_ETF"  || true
+wait "$P_MACRO" || true
 echo "── 持股介紹＋NAV ──";      cat "$LOGD/holdings.log"
 echo "── 基金新聞・社群 ──";     cat "$LOGD/fundnews.log"
 echo "── ETF 數據追蹤 ──";       cat "$LOGD/etf.log"
+echo "── 總經・籌碼數據 ──";     cat "$LOGD/macro.log"
 
 echo "[4/4] 產儀表板（今日重點 + 新聞 + 總經政策 + 總覽 + 持股介紹）→ dashboard/index.html …"
 python3 scripts/gen_fund_dashboard.py || echo "  ⚠ 儀表板產製失敗"

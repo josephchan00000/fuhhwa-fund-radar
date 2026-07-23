@@ -25,7 +25,7 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
-from . import (clock, etfwatch, fund_insights, fund_intro, fundnews, macronews,
+from . import (clock, etfwatch, fund_insights, fund_intro, fundnews, macrochips, macronews,
                twnews, usnews)
 
 
@@ -207,7 +207,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
       <a href="#details">基金詳情</a>
     </nav>
     <nav class="tb-nav tb-nav-macro">
-      <a href="#macro-cal">本週行事曆</a><a href="#macro-ov">政策總覽</a><a href="#macro">政策新聞</a>
+      <a href="#macro-cal">本週行事曆</a><a href="#macro-ov">政策總覽</a><a href="#macro">政策新聞</a><a href="#macro-data">市場數據</a>
     </nav>
     <nav class="tb-nav tb-nav-etf">
       <a href="#etf-passive">被動 ETF</a><a href="#etf-active">主動股票</a><a href="#etf-other">其他</a>
@@ -531,6 +531,126 @@ def _macro_cal_view(cal: dict | None) -> str:
                  '<b>市場共識預估值</b>（取自 Trading Economics／Investing.com 等第三方彙整之'
                  '經濟學家共識，非官方數據）；未標星者為官方前瞻或已知初值，「—」為查無一致共識'
                  '或屬會議／談話等無預期值項目。實際數據一律以官方公布為準。</div>')
+    return html
+
+
+# ── 總經：市場溫度計（全球指標＋台股籌碼；讀 data/macro_chips.json） ──────────
+
+# 列規格：(key, 顯示名, kind, 小數位, 單位)
+#   kind：lvl＝水準值（日變化/近5日＝差值）；yield＝殖利率（日變化以 bp 顯示）；
+#         flow＝當日流量（買賣超——「日變化」欄改列前一日值、「近5日」＝累計）；
+#         lots＝口數水準值（負＝淨空單，另以「淨空/淨多」呈現）
+_MD_GLOBAL_ROWS = [
+    ("vix",    "VIX 恐慌指數",            "lvl",   2, ""),
+    ("us10y",  "美國 10 年期公債殖利率",  "yield", 2, "%"),
+    ("dxy",    "美元指數 DXY",            "lvl",   2, ""),
+    ("usdtwd", "美元兌新台幣",            "lvl",   3, ""),
+    ("brent",  "布蘭特原油",              "lvl",   2, " 美元/桶"),
+    ("gold",   "黃金期貨",                "lvl",   0, " 美元/盎司"),
+]
+_MD_TW_ROWS = [
+    ("inst_total",     "三大法人買賣超（上市）",   "flow", 1, " 億"),
+    ("inst_foreign",   "外資買賣超（上市）",       "flow", 1, " 億"),
+    ("tx_foreign_net", "外資台指期淨部位（未平倉）", "lots", 0, " 口"),
+    ("margin_bal",     "融資餘額（上市）",         "lvl",  1, " 億"),
+    ("short_bal",      "融券餘額（上市）",         "lvl",  0, " 張"),
+    ("pc_ratio",       "台指選擇權 P/C 比（未平倉）", "lvl", 2, "%"),
+]
+
+
+def _spark(vals: list[float], w: int = 110, h: int = 26) -> str:
+    """近 30 日走勢 sparkline（inline SVG、無外部依賴）；紅漲綠跌以期末對期初。
+    點數 <2 不畫（回灰 —）；min==max（純平）畫中線。"""
+    if len(vals) < 2:
+        return '<span class="na">—</span>'
+    lo, hi = min(vals), max(vals)
+    rng = (hi - lo) or 1.0
+    n = len(vals)
+    pts = " ".join(f"{2 + i * (w - 4) / (n - 1):.1f},{h - 3 - (v - lo) * (h - 6) / rng:.1f}"
+                   for i, v in enumerate(vals))
+    cls = "gain" if vals[-1] >= vals[0] else "loss"
+    return (f'<span class="spark {cls}" title="近 {n} 筆走勢：{vals[0]:g} → {vals[-1]:g}">'
+            f'<svg viewBox="0 0 {w} {h}" aria-hidden="true">'
+            f'<polyline points="{pts}" fill="none" stroke="currentColor" '
+            f'stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg></span>')
+
+
+def _md_num(v: float, digits: int) -> str:
+    return f"{v:,.{digits}f}"
+
+
+def _md_delta(v: float | None, digits: int, unit: str = "", bp: bool = False) -> str:
+    """差值欄：紅正綠負（台灣慣例）；yield 以 bp 呈現。None → 灰 —。"""
+    if v is None:
+        return '<span class="na">—</span>'
+    if bp:
+        v, digits, unit = v * 100, 1, " bp"
+    cls = "gain" if v > 0 else ("loss" if v < 0 else "flat")
+    sign = "+" if v > 0 else ""
+    return f'<span class="{cls}">{sign}{_md_num(v, digits)}{_esc(unit)}</span>'
+
+
+def _md_row_html(mc: dict, key: str, label: str, kind: str, digits: int, unit: str) -> str:
+    last = macrochips.latest(mc, key)
+    if not last:
+        return ""                                   # 無資料的指標整列不列（不留空格）
+    d, v = last
+    items = macrochips._sorted_items(mc, key)
+    # 最新值
+    if kind == "lots":
+        side = "淨空" if v < 0 else "淨多"
+        val_html = f'<b>{side} {_md_num(abs(v), digits)}{_esc(unit)}</b>'
+    else:
+        val_html = f"<b>{_md_num(v, digits)}{_esc(unit)}</b>"
+    if key == "vix":
+        lv = macrochips.vix_level(v)
+        if lv:
+            val_html += f' <span class="mdlv {lv[1]}">{lv[0]}</span>'
+    # 日變化／前日、近5日／累計
+    bp = kind == "yield"
+    if kind == "flow":
+        prev_v = items[-2][1] if len(items) >= 2 else None
+        chg_html = (_md_delta(prev_v, digits, unit) if prev_v is not None
+                    else '<span class="na">—</span>')
+        s5 = macrochips.sum_n(mc, key, 5)
+        n5_html = _md_delta(s5, digits, unit) if s5 is not None else '<span class="na">—</span>'
+        val_html = f"<b>{_md_delta(v, digits, unit)}</b>"    # 流量：當日買賣超本身紅買綠賣
+    else:
+        chg_unit = unit if (unit in ("%", " 億", " 張", " 口") and not bp) else ""
+        chg_html = _md_delta(macrochips.day_change(mc, key), digits, chg_unit, bp=bp)
+        n5_html = _md_delta(macrochips.change_n(mc, key, 5), digits, chg_unit, bp=bp)
+    date_html = _esc(f"{int(d[5:7])}/{int(d[8:10])}") if len(d) == 10 else _esc(d)
+    return (f'<tr><td class="l mdlab">{_esc(label)}</td><td class="mdval">{val_html}</td>'
+            f'<td>{chg_html}</td><td>{n5_html}</td>'
+            f'<td class="mdspark">{_spark(macrochips.points(mc, key, 30))}</td>'
+            f'<td class="mdd">{date_html}</td></tr>')
+
+
+def _md_table(mc: dict, rows: list[tuple], col5: str = "近5日") -> str:
+    trs = "".join(_md_row_html(mc, *r) for r in rows)
+    if not trs:
+        return '<div class="muted">（本組指標暫無資料——CI 接上官方來源後自動補齊）</div>'
+    return (f'<div class="ovwrap"><table class="ovtbl mdtbl">'
+            f'<thead><tr><th class="l">指標</th><th>最新值</th><th>日變化</th>'
+            f'<th>{_esc(col5)}</th><th>近30日走勢</th><th>資料日</th></tr></thead>'
+            f'<tbody>{trs}</tbody></table></div>')
+
+
+def _macro_data_view(mc: dict | None) -> str:
+    """市場溫度計：全球指標（Yahoo 官方序列）＋台股籌碼（TWSE／期交所官方）。"""
+    if not mc or not any((mc.get("series") or {}).values()):
+        return ('<div class="muted">尚無市場數據。正式區 CI 會執行 '
+                '<code>scripts/fetch_macro_chips.py</code> 抓官方來源自動補齊。</div>')
+    html = (f'<div class="calsub">{_ic("globe", plain=True)} 全球市場溫度計</div>'
+            + _md_table(mc, _MD_GLOBAL_ROWS)
+            + f'<div class="calsub">{_ic("layers", plain=True)} 台股籌碼</div>'
+            + _md_table(mc, _MD_TW_ROWS, col5="近5日／累計"))
+    html += ('<div class="etfnote">口徑：全球指標＝最近收盤（Yahoo Finance 官方序列；殖利率日變化以 bp 計）。'
+             '台股籌碼＝證交所／期交所前一交易日盤後官方數據：買賣超為當日金額（「日變化」欄列前一日值、'
+             '「近5日」為累計）；外資台指期淨部位為臺股期貨(TX)未平倉多空淨額口數（淨空＝空單較多）；'
+             '融資融券為上市信用交易餘額；P/C 比＝台指選擇權買賣權未平倉量比率。'
+             '紅＝上升／買超、綠＝下降／賣超（台灣慣例，僅標方向非多空判斷）。'
+             '資料日為各指標官方數據所屬交易日；週末與休市日沿用最近交易日。</div>')
     return html
 
 
@@ -1248,6 +1368,19 @@ a.tk:hover{color:var(--acc)}
 .creg.jp{color:#0f6f6b;background:rgba(23,146,140,.13);border-color:rgba(23,146,140,.42)}
 .calsub{margin:16px 0 6px;font-size:14px;font-weight:800;color:var(--ink);padding-left:9px;border-left:4px solid #2f9d57}
 .chip.halt{color:#8a5410;background:rgba(200,118,15,.12);border-color:rgba(200,118,15,.5);font-weight:700}
+/* 總經：市場溫度計（全球指標＋台股籌碼） */
+.mdtbl td.mdlab{white-space:normal;min-width:130px}
+.mdtbl td.mdval{white-space:nowrap}
+.mdtbl td.mdd{color:var(--mut);font-size:13px}
+.mdtbl td.mdspark{padding-top:4px;padding-bottom:4px}
+.spark{display:inline-block;vertical-align:middle}
+.spark svg{width:110px;height:26px;display:block}
+.mdlv{display:inline-block;font-size:11px;font-weight:800;padding:1px 7px;border-radius:6px;
+  margin-left:5px;vertical-align:1px;white-space:nowrap}
+.mdlv.calm{color:#1d4f9c;background:rgba(47,111,208,.12)}
+.mdlv.norm{color:#1d6b3a;background:rgba(31,157,87,.13)}
+.mdlv.elev{color:#8a5410;background:rgba(200,118,15,.15)}
+.mdlv.panic{color:#a02c2c;background:rgba(206,66,66,.15)}
 /* ETF 數據追蹤 */
 .etcat{display:inline-block;white-space:nowrap;font-size:11px;color:var(--accd);border:0;background:rgba(47,111,208,.1);border-radius:5px;padding:1px 6px}
 .etfnote{color:var(--mut);font-size:12.5px;margin-top:12px;line-height:1.8;border-top:1px solid var(--line);padding-top:8px}
@@ -1495,6 +1628,8 @@ def render() -> str:
     fn_asof = (fn_doc or {}).get("as_of")
     etf_doc = etfwatch.load()
     etf_asof = (etf_doc or {}).get("as_of")
+    mc_doc = macrochips.load()
+    mc_asof = (mc_doc or {}).get("as_of")
     # 多期報酬（鉅亨每日基準）鮮度：CI 接上前為 None——不列警示、總覽區顯示過渡註記
     ret_asof = max((d.get("returns_daily_asof") or "" for d in funds), default="") or None
     sec_fresh = _freshness_view(now, [
@@ -1502,6 +1637,7 @@ def render() -> str:
         ("美股新聞", us_date, 3), ("台股新聞", tw_date, 3),
         ("總經・政策", mac_date, 3), ("經濟行事曆", cal_date, 8),
         ("基金新聞・社群", fn_asof, 3), ("ETF 數據追蹤", etf_asof, 10),
+        ("總經・籌碼數據", mc_asof, 4),
     ] + ([("多期報酬(鉅亨)", ret_asof, 4)] if ret_asof else []))
 
     # ① 今日重點（雙視圖）；台股盤前速覽自新聞頭段抽出、直接顯示於此（不再埋於收合塊）
@@ -1548,6 +1684,12 @@ def render() -> str:
                  f'{_fresh_chip("更新", mac_date, 3)} '
                  f'<span class="stsub">{mac_sub}</span></div>'
                  f'{_news_view(macro_md, mac_hint)}</div>')
+    # 市場溫度計（全球指標＋台股籌碼；官方數據序列，2026-07-23 使用者需求：置於行事曆與新聞之後）
+    sec_macro_data = (f'<div class="section" id="macro-data"><div class="st">{_ic("activity", tone="amber")}市場溫度計 '
+                      f'{_fresh_chip("抓取", mc_asof, 4)} '
+                      f'<span class="stsub">VIX／美債／美元／油金＋台股法人・期權籌碼・融資融券・'
+                      f'官方數據（TWSE／期交所／Yahoo Finance）每日更新</span></div>'
+                      f'{_macro_data_view(mc_doc)}</div>')
 
     # ETF 數據追蹤分頁（被動／主動台股 ETF 週績效表；左上「ETF」分頁專屬視圖）
     sec_etf = (f'<div class="section" id="etfwatch"><div class="st">{_ic("activity", tone="teal")}ETF 數據追蹤 '
@@ -1614,7 +1756,8 @@ def render() -> str:
 {sec_fresh}
 <div class="macroview">{sec_macro_cal}
 {sec_macro_ov}
-{sec_macro}</div>
+{sec_macro}
+{sec_macro_data}</div>
 <div class="etfview">{sec_etf}</div>
 <div class="fundview">
 {sec_brief}

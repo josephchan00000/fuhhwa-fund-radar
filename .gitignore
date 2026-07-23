@@ -15,6 +15,8 @@ data/funds/*
 # ETF 數據追蹤落檔／基金新聞落檔：入庫當 fallback（來源被擋時 CI 沿用前次值，避免整片留空）
 !data/etf_watch.json
 !data/fund_news.json
+# 總經・籌碼數據（市場溫度計）落檔：跨日累積序列＋來源被擋時的 fallback，必須入庫
+!data/macro_chips.json
 # 基金 NAV 歷史（總覽 1週/1月報酬資料層）：跨日累積的持久層，必須入庫
 !data/fund_nav_history.json
 # 鉅亨基金對映表（fund_id → cnyesId；稽核＋手動覆寫用），必須入庫

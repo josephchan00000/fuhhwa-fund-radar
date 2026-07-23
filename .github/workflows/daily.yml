@@ -122,6 +122,7 @@ jobs:
           git add -f data/funds/*.json 2>/dev/null || true        # 分開 add：新聞 glob 為空時不會連 NAV 快照一起中止
           git add -f data/fund_news.json 2>/dev/null || true      # 基金相關新聞＋社群聲量（fetch_fund_news.py 產出）
           git add -f data/etf_watch.json 2>/dev/null || true      # ETF 數據追蹤（fetch_etf_watch.py 產出）
+          git add -f data/macro_chips.json 2>/dev/null || true    # 總經・籌碼數據（fetch_macro_chips.py 產出）
           git add -f data/fund_nav_history.json 2>/dev/null || true  # NAV 序列持久層——漏 add 會斷史、1週/1月整片變 —（審查 #1）
           git add -f data/cnyes_fund_map.json 2>/dev/null || true    # 鉅亨 cnyesId 對映
           git add -f data/factcheck.json 2>/dev/null || true         # 數字核對結果（儀表板警示用）
