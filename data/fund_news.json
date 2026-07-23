@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/24 06:57",
+  "as_of": "2026/07/24 06:59",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -41,13 +41,6 @@
         "全球物聯網科技新臺幣"
       ],
       "items": [
-        {
-          "title": "主動復華全球50-ETF報酬走勢",
-          "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE1XVUVscmpGRVRhVUhZVXUteFVWQUhhcmdmY1VhLTIzY3A2TklwZDVMWVduakJDTUdTTk9UTndnaVYzZ1FzLVRTMmdFQVhES1lUUUIxYlh2MlNxU3UxejZtSGZDcVdhX1hSZHRWOEx0UEtORXhUTFJuSl9GNmdwdw?oc=5",
-          "source": "MoneyDJ",
-          "date": "2026-07-23 13:56",
-          "datetime": "2026-07-23T13:56:08+08:00"
-        },
         {
           "title": "規模最大的科技巨頭對決：安聯台灣科技、復華全球物聯網科技、復華華人世紀基金怎麼選？",
           "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE0zNk9FcHl5Y3ZzOGV4R0p0TWZxdHJqSTFMX2gwQ2tnbERWeXVkMFkyaXJoLVhpZTltUkF0S0tBQWo0WFQ4Rllya2VuVjNrdnkySkp4alZMaXc?oc=5",
@@ -213,7 +206,15 @@
       "short_names": [
         "台灣好收益"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華台灣好收益基金 的買賣訊號 | 鉅亨網 - 基金老司機",
+          "url": "https://news.google.com/rss/articles/CBMizwFBVV95cUxPLXduM1k2VkFoU09LY1hGSlBSRGhjQW1OWC1oWXZwV202eUJLVkZJZ1Vrdms4ZVctLXJvbklBOXp2aUhMVEJYLWx2ZF9HQmdNSGhXTUpYaHRlamtJQ2pYeV9zbnRscGZoeTlmUUVMcWlXZkxKR0NjcTh4STd0UVdmSkJOVjRORWVHVnRVUlBBcGExTU5PdEJrblVLbE1RbWtoRlJqOE5oTzZhdzZJZTctdHJ6OWRFOG9TSURaLU9VMUlnNWhxMDUxN0M4eXlNamc?oc=5",
+          "source": "鉅亨網",
+          "date": "2026-07-21 15:00",
+          "datetime": "2026-07-21T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華台灣科技高股息基金",
@@ -336,7 +337,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、中小精選、傳家、台灣智能（詳下方基金新聞標籤）",
+    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、中小精選、台灣好收益、傳家、台灣智能（詳下方基金新聞標籤）",
     "品牌焦點：復華投信繼00991A 再推出復華全球未來50主動式 ETF（經濟日報）"
   ]
 }
