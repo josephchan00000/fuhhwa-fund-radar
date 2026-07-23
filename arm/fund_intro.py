@@ -78,6 +78,37 @@ def pending_funds() -> list[dict]:
     return out
 
 
+def uncovered_top_holdings(n: int = 10) -> list[dict]:
+    """掃所有已抓到的基金快照，回傳「前 n 大持股缺重點標的簡介」的清單
+    （2026-07-23 使用者需求：前十大簡介一再漏掉，做成每次可查的防呆）。
+
+    根因：持股在正式區 CI 抓（容器 proxy 擋），每月換持股時新標的名只會出現在
+    CI 產出，容器端看不到 → 本地檢查抓不到、漏的簡介直接上線。故此函式供 CI 端
+    （daily.yml 建表後）與每日 SOP 兩邊呼叫，任何新標的缺 intro 立刻現形。
+
+    回 [{fund_id, short_name, name, weight, sector}, …]，依「跨幾檔基金出現」排序。
+    """
+    profs = _profiles()
+    have = {k for k, v in profs.items() if (v or {}).get("intro")}
+    seen: dict[str, dict] = {}
+    for f in config.funds():
+        doc = load(str(f["id"]))
+        if not doc:
+            continue
+        short = doc.get("short_name") or doc.get("name") or str(f["id"])
+        for h in (doc.get("top_holdings") or [])[:n]:
+            name = h.get("name")
+            if not name or name in have:
+                continue
+            slot = seen.setdefault(name, {"name": name, "sector": h.get("sector"),
+                                          "funds": [], "count": 0})
+            slot["count"] += 1
+            if len(slot["funds"]) < 6:
+                slot["funds"].append({"fund_id": str(doc.get("fund_id")),
+                                      "short_name": short, "weight": h.get("weight")})
+    return sorted(seen.values(), key=lambda s: -s["count"])
+
+
 def top_concentration(doc: dict, n: int = 10) -> float | None:
     """前 n 大持股權重合計（%）。"""
     hs = doc.get("top_holdings") or []
