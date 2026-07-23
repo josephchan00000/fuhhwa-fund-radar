@@ -38,7 +38,8 @@ _BACKFILL_DAYS = 14   # TWSE 逐日端點往回補抓的日曆日窗
 #   group: gl=全球溫度計 / tw=台股籌碼
 GLOBAL_SPECS: list[tuple[str, str, str]] = [
     ("vix",    "VIX 恐慌指數",          "^VIX"),
-    ("us10y",  "美國 10 年期公債殖利率", "^TNX"),      # ^TNX 為殖利率×10 → 抓回後 ÷10
+    ("us10y",  "美國 10 年期公債殖利率", "^TNX"),      # ^TNX：Yahoo chart 有時回百分比本身(4.66)、
+                                                      # 有時×10(46.6)——_norm_yield 依量級自動正規化
     ("dxy",    "美元指數 DXY",          "DX-Y.NYB"),
     ("usdtwd", "美元兌新台幣",          "TWD=X"),
     ("brent",  "布蘭特原油",            "BZ=F"),
@@ -51,8 +52,15 @@ ALL_KEYS = tuple(k for k, *_ in GLOBAL_SPECS) + TW_KEYS
 
 # ── 來源層（每源獨立；回 {} ＝不可得，上層沿用既有序列） ────────────────
 
-def _yahoo_series(sym: str, divide: float = 1.0) -> dict[str, float]:
-    """Yahoo 圖表 API 近 1 個月日線 → {ISO日期: 收盤}。失敗回 {}。"""
+def _norm_yield(v: float) -> float:
+    """^TNX 殖利率正規化：Yahoo chart 端點有時回百分比本身（如 4.66），有時回 ×10（46.6）。
+    10 年期殖利率合理量級 0–20%，>20 一律視為 ×10 → ÷10。防 2026-07-23 踩的坑：
+    寫死 ÷10 讓 4.657 變 0.4657（線上顯示 0.47%）。"""
+    return round(v / 10.0, 4) if v > 20 else round(v, 4)
+
+
+def _yahoo_series(sym: str, norm=None) -> dict[str, float]:
+    """Yahoo 圖表 API 近 1 個月日線 → {ISO日期: 收盤}。norm＝逐值正規化函式（如殖利率）。失敗回 {}。"""
     try:
         url = ("https://query1.finance.yahoo.com/v8/finance/chart/"
                f"{urllib.parse.quote(sym)}?range=1mo&interval=1d")
@@ -70,7 +78,8 @@ def _yahoo_series(sym: str, divide: float = 1.0) -> dict[str, float]:
         if c is None:
             continue
         iso = datetime.fromtimestamp(t, timezone.utc).date().isoformat()
-        out[iso] = round(float(c) / divide, 4)
+        val = float(c)
+        out[iso] = norm(val) if norm else round(val, 4)
     return out
 
 
@@ -209,7 +218,7 @@ def fetch() -> dict:
 
     # ① 全球溫度計 ← Yahoo（^TNX 為殖利率×10）
     for key, _label, sym in GLOBAL_SPECS:
-        new = _yahoo_series(sym, divide=10.0 if key == "us10y" else 1.0)
+        new = _yahoo_series(sym, norm=_norm_yield if key == "us10y" else None)
         series[key] = _merge(series[key], new)
         _note(key, len(new), f"yahoo:{sym}")
 

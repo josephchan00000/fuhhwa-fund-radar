@@ -62,6 +62,13 @@ def test_points_ordered():
     assert mc.points(_S, "inst_total", 3) == [5.0, 164.1, 319.4]
 
 
+def test_norm_yield_handles_both_conventions():
+    # ^TNX 回百分比本身（4.657）→ 原樣；回 ×10（46.57）→ ÷10。防 07-23 的 0.4657 坑。
+    assert mc._norm_yield(4.657) == 4.657
+    assert mc._norm_yield(46.57) == 4.657
+    assert mc._norm_yield(0.46) == 0.46      # 極低但仍 <20 → 不動（不會誤除）
+
+
 def test_vix_level_thresholds():
     assert mc.vix_level(12.0)[0] == "平靜"
     assert mc.vix_level(16.6)[0] == "正常"
