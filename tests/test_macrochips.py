@@ -125,10 +125,44 @@ def test_macro_data_view_renders_values_and_spark():
     assert "正常" in html                                  # VIX 狀態標籤
     # 無資料指標整列不列、不留空格
     assert "布蘭特原油" not in html
-    # 資料來源可點連結（每組表底）
-    assert 'class="mdsrc"' in html and "資料來源" in html
+    # 資料來源＝指標名稱本身的可點連結（按鈕放在名字）
+    assert 'class="mdsl"' in html
     assert "finance.yahoo.com/quote/%5EVIX" in html        # 全球指標連 Yahoo
     assert "twse.com.tw/zh/trading/foreign/bfi82u.html" in html   # 台股籌碼連證交所
+
+
+def test_inst_group_expandable_with_breakdown():
+    doc = _doc({"inst_total": {"2026-07-21": 164.1, "2026-07-22": 319.4},
+                "inst_foreign": {"2026-07-22": 173.4},
+                "inst_trust": {"2026-07-22": 169.9},
+                "inst_dealer": {"2026-07-22": -24.0}})
+    html = fd._md_inst_group_html(doc)
+    assert 'class="mdcaret"' in html and 'data-grp="inst"' in html   # 主列可展開
+    for name in ("外資及陸資", "投信", "自營商"):                      # 三分項子列
+        assert name in html
+    assert 'class="mdsub"' in html
+    assert "+173.4 億" in html and "+169.9 億" in html and "-24.0 億" in html
+
+
+def test_global_rows_have_units():
+    html = fd._macro_data_view(_doc({"vix": {"2026-07-22": 16.64},
+                                     "usdtwd": {"2026-07-21": 32.3, "2026-07-22": 32.4},
+                                     "dxy": {"2026-07-22": 101.1}}))
+    assert "32.400 元" in html and "101.10 點" in html    # 美元/台幣＝元、DXY＝點
+
+
+def test_twse_inst_all_parse(monkeypatch):
+    doc = {"stat": "OK", "data": [
+        ["自營商(自行買賣)", "1", "2", "-3455000000"],
+        ["自營商(避險)", "1", "2", "1057000000"],
+        ["投信", "1", "2", "16992000000"],
+        ["外資及陸資(不含外資自營商)", "1", "2", "17343000000"],
+        ["合計", "1", "2", "31938000000"]]}
+    monkeypatch.setattr(mc.factcheck, "_get_json", lambda url: doc)
+    from datetime import date
+    out = mc._twse_inst_all(date(2026, 7, 22))
+    assert out["foreign"] == 173.43 and out["trust"] == 169.92
+    assert out["dealer"] == -23.98 and out["total"] == 319.38
 
 
 def test_macro_data_view_empty_hint():
