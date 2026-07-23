@@ -134,8 +134,9 @@ def test_macro_data_view_renders_values_and_spark():
     assert "正常" in html                                  # VIX 狀態標籤
     # 無資料指標整列不列、不留空格
     assert "布蘭特原油" not in html
-    # 資料來源＝指標名稱本身的可點連結（按鈕放在名字）
-    assert 'class="mdsl"' in html
+    # 每列統一：來源連結為下方小「官方↗」；名稱非粗體純文字
+    assert "官方↗" in html and 'class="mdslsm"' in html
+    assert 'class="mdgname"' in html
     assert "finance.yahoo.com/quote/%5EVIX" in html        # 全球指標連 Yahoo
     assert "twse.com.tw/zh/trading/foreign/bfi82u.html" in html   # 台股籌碼連證交所
 
