@@ -645,6 +645,50 @@ def _md_row_html(mc: dict, key: str, label: str, kind: str, digits: int, unit: s
             f'<td class="mdd">{date_html}</td></tr>')
 
 
+# 各指標官方來源可點連結（機構, 連結文字, 官方揭露頁 URL）；同機構同頁的指標共用一條連結（去重）
+_MD_SRC = {
+    "vix":            ("Yahoo Finance", "VIX",              "https://finance.yahoo.com/quote/%5EVIX"),
+    "us10y":          ("Yahoo Finance", "美國 10 年期公債", "https://finance.yahoo.com/quote/%5ETNX"),
+    "dxy":            ("Yahoo Finance", "美元指數 DXY",     "https://finance.yahoo.com/quote/DX-Y.NYB"),
+    "usdtwd":         ("Yahoo Finance", "美元兌新台幣",     "https://finance.yahoo.com/quote/TWD=X"),
+    "brent":          ("Yahoo Finance", "布蘭特原油",       "https://finance.yahoo.com/quote/BZ%3DF"),
+    "gold":           ("Yahoo Finance", "黃金",             "https://finance.yahoo.com/quote/GC%3DF"),
+    "inst_total":     ("證交所", "三大法人買賣金額(BFI82U)", "https://www.twse.com.tw/zh/trading/foreign/bfi82u.html"),
+    "inst_foreign":   ("證交所", "三大法人買賣金額(BFI82U)", "https://www.twse.com.tw/zh/trading/foreign/bfi82u.html"),
+    "margin_bal":     ("證交所", "融資融券餘額(MI_MARGN)",   "https://www.twse.com.tw/zh/trading/margin/mi-margn.html"),
+    "short_bal":      ("證交所", "融資融券餘額(MI_MARGN)",   "https://www.twse.com.tw/zh/trading/margin/mi-margn.html"),
+    "tx_foreign_net": ("期交所", "三大法人-區分各契約",       "https://www.taifex.com.tw/cht/3/futContractsDate"),
+    "pc_ratio":       ("期交所", "選擇權買賣權未平倉比",       "https://www.taifex.com.tw/cht/3/pcRatio"),
+}
+
+
+def _md_src_footer(mc: dict, rows: list[tuple]) -> str:
+    """資料來源（可點）：依表中「有資料」的指標，按機構分組列官方揭露頁連結（同頁去重）。"""
+    order: list[str] = []
+    groups: dict[str, list[tuple[str, str]]] = {}
+    seen: set[str] = set()
+    for r in rows:
+        key = r[0]
+        if not macrochips.latest(mc, key):
+            continue                                   # 無資料的指標不列來源
+        inst, label, url = _MD_SRC.get(key, (None, None, None))
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        if inst not in groups:
+            groups[inst] = []
+            order.append(inst)
+        groups[inst].append((label, url))
+    if not order:
+        return ""
+    parts = []
+    for inst in order:
+        links = "、".join(f'<a href="{_safe_url(url)}" target="_blank" rel="noopener">{_esc(label)}</a>'
+                          for label, url in groups[inst])
+        parts.append(f'<b>{_esc(inst)}</b>　{links}')
+    return f'<div class="mdsrc">{_ic("globe", plain=True)} 資料來源（可點進官方頁對照）：{"；".join(parts)}</div>'
+
+
 def _md_table(mc: dict, rows: list[tuple], col5: str = "近5日") -> str:
     trs = "".join(_md_row_html(mc, *r) for r in rows)
     if not trs:
@@ -652,7 +696,7 @@ def _md_table(mc: dict, rows: list[tuple], col5: str = "近5日") -> str:
     return (f'<div class="ovwrap"><table class="ovtbl mdtbl">'
             f'<thead><tr><th class="l">指標</th><th>最新值</th><th>日變化</th>'
             f'<th>{_esc(col5)}</th><th>近30日走勢</th><th>資料日</th></tr></thead>'
-            f'<tbody>{trs}</tbody></table></div>')
+            f'<tbody>{trs}</tbody></table></div>' + _md_src_footer(mc, rows))
 
 
 def _macro_data_view(mc: dict | None) -> str:
@@ -1400,6 +1444,11 @@ a.tk:hover{color:var(--acc)}
 .mdlv.norm{color:#1d6b3a;background:rgba(31,157,87,.13)}
 .mdlv.elev{color:#8a5410;background:rgba(200,118,15,.15)}
 .mdlv.panic{color:#a02c2c;background:rgba(206,66,66,.15)}
+.mdsrc{color:var(--mut);font-size:12.5px;margin:8px 0 4px;line-height:1.9}
+.mdsrc b{color:var(--ink2);font-weight:700;margin-right:2px}
+.mdsrc a{color:var(--accd);text-decoration:none;border-bottom:1px dotted var(--accd);padding-bottom:1px}
+.mdsrc a:hover{color:var(--acc);border-bottom-style:solid}
+.mdsrc .ic.plain{margin-right:3px}
 /* ETF 數據追蹤 */
 .etcat{display:inline-block;white-space:nowrap;font-size:11px;color:var(--accd);border:0;background:rgba(47,111,208,.1);border-radius:5px;padding:1px 6px}
 .etfnote{color:var(--mut);font-size:12.5px;margin-top:12px;line-height:1.8;border-top:1px solid var(--line);padding-top:8px}
