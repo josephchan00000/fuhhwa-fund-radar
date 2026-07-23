@@ -272,6 +272,25 @@ def _factcheck_chip(today=None) -> str:
     return ""
 
 
+def _intro_gap_chip() -> str:
+    """前十大簡介缺口警示章（讀 data/holdings_intro_gap.json；scripts/check_holdings_intro.py 產）。
+    2026-07-23 使用者需求：前十大簡介一再漏掉——缺口>0 時在網頁更新時間列顯示紅色 ⚠，
+    列出缺簡介的持股名，主會話／每日 SOP 見到即 WebSearch 補進 holding_profiles.json。
+    全覆蓋（count=0）或無檔＝不顯示。"""
+    fp = ROOT_DIR / "data" / "holdings_intro_gap.json"
+    try:
+        doc = json.loads(fp.read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+    items = doc.get("items") or []
+    if not items:
+        return ""
+    names = "、".join(_esc(i.get("name") or "") for i in items[:8])
+    more = f" 等 {len(items)} 檔" if len(items) > 8 else ""
+    return (f'<span class="chip fresh stale"><b>前十大簡介</b>　🔴 {doc.get("count")} 檔缺簡介'
+            f'（{names}{more}）</span>')
+
+
 def _freshness_view(gen_stamp: str, sources: list[tuple[str, str | None, int | None]],
                     today=None) -> str:
     """最上方只標「網頁更新時間」；各來源時戳分散標於各自區塊標題列，這裡只彙總逾期警示。"""
@@ -281,7 +300,7 @@ def _freshness_view(gen_stamp: str, sources: list[tuple[str, str | None, int | N
            else '各資料來源的更新時間標於各區塊標題列（皆台北時間）')
     return (f'<div class="section" id="freshness"><div class="st">{_ic("clock")}網頁更新時間　'
             f'{_fresh_chip("網頁更新", gen_stamp, None, today, gen=True)} '
-            f'{_factcheck_chip(today)} '
+            f'{_factcheck_chip(today)} {_intro_gap_chip()} '
             f'<span class="stsub">{sub}</span></div></div>')
 
 
