@@ -106,3 +106,20 @@ def test_intraday_and_prevclose_not_extracted():
     assert not [x for x in c2 if x.kind == "us_sox_close"]
     c3 = factcheck.extract_us_index_claims("費半終場收漲 0.44% 收 12,410.67。", day)
     assert sorted(x.kind for x in c3) == ["us_sox_chg", "us_sox_close"]
+
+
+def test_drawdown_and_stock_and_us_context_not_false_red():
+    """07-24 誤殺三型：累計跌幅/個股盤中/美股句被台股撈——全不抽。"""
+    day = date(2026, 7, 23)
+    # 自 6/22 高點跌逾 20%（累計回落）→ 不抽 SOX chg
+    assert not [c for c in factcheck.extract_us_index_claims(
+        "費城半導體指數自 6/22 高點跌逾 20% 進入技術性熊市。", day) if c.kind == "us_sox_chg"]
+    # 英特爾日盤跌約 6%（個股＋盤中）→ 不抽
+    assert not [c for c in factcheck.extract_us_index_claims(
+        "英特爾日盤先隨費半殺盤跌約 6%、盤後大漲。", day) if c.kind == "us_sox_chg"]
+    # 台股報告句「道瓊下跌 506.93 點」→ 台股 index_chg 不抽（美股句）
+    tw = "1. 昨夜 7/23 美股：道瓊下跌 506.93 點、那指 −2.15%。"
+    assert not [c for c in factcheck.extract_claims(tw, year=2026) if c.kind == "index_chg"]
+    # 真台股句仍抽
+    tw2 = "加權指數 7/23 下跌 221.57 點收 42,449。"
+    assert [c for c in factcheck.extract_claims(tw2, year=2026) if c.kind == "index_chg"]
