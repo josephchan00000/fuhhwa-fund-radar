@@ -185,7 +185,9 @@ def _taifex_tx_foreign(start: date, end: date) -> dict[str, float]:
         nums = [c.replace(",", "") for c in cells
                 if re.fullmatch(r"-?\d+", c.replace(",", ""))]
         if len(nums) >= 2:
-            out[iso] = float(nums[-2])
+            val = float(nums[-2])
+            if val != 0:                                  # 0＝今日盤中未結算／無資料的哨兵，跳過
+                out[iso] = val                            # （踩過：CI 於 7/23 盤中把外資淨部位讀成 0）
     return out
 
 
@@ -201,9 +203,11 @@ def _taifex_pc_ratio(start: date, end: date) -> dict[str, float]:
         if not iso or len(cells) < 7:
             continue
         try:
-            out[iso] = float(cells[6].replace(",", ""))
+            val = float(cells[6].replace(",", ""))
         except ValueError:
             continue
+        if val != 0:                                      # 0＝未結算，跳過（P/C 比不會為 0）
+            out[iso] = val
     return out
 
 

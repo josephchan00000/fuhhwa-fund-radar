@@ -560,25 +560,25 @@ def _macro_cal_view(cal: dict | None) -> str:
 #         flow＝當日流量（買賣超——「日變化」欄改列前一日值、「近5日」＝累計）；
 #         lots＝口數水準值（負＝淨空單，另以「淨空/淨多」呈現）
 _MD_GLOBAL_ROWS = [
-    ("vix",    "VIX 恐慌指數",            "lvl",   2, " 點"),
-    ("us10y",  "美國 10 年期公債殖利率",  "yield", 2, "%"),
-    ("dxy",    "美元指數 DXY",            "lvl",   2, " 點"),
-    ("usdtwd", "美元兌新台幣",            "lvl",   3, " 元"),
-    ("brent",  "布蘭特原油",              "lvl",   2, " 美元/桶"),
-    ("gold",   "黃金期貨",                "lvl",   0, " 美元/盎司"),
+    ("vix",    "VIX 恐慌指數",        "lvl",   2, " 點"),
+    ("us10y",  "10年期美債殖利率",     "yield", 2, "%"),
+    ("dxy",    "美元指數 DXY",        "lvl",   2, " 點"),
+    ("usdtwd", "美元兌新台幣",        "lvl",   3, " 元"),
+    ("brent",  "布蘭特原油",          "lvl",   2, " 美元/桶"),
+    ("gold",   "黃金期貨",            "lvl",   0, " 美元/盎司"),
 ]
 # 三大法人＝可展開群組：合計主列＋外資／投信／自營商分項子列（點名稱旁的 ▸ 展開）
-_MD_INST_MAIN = ("inst_total", "三大法人買賣超（上市）", "flow", 1, " 億")
+_MD_INST_MAIN = ("inst_total", "三大法人買賣超", "flow", 1, " 億")
 _MD_INST_SUBS = [
     ("inst_foreign", "外資及陸資", "flow", 1, " 億"),
     ("inst_trust",   "投信",       "flow", 1, " 億"),
     ("inst_dealer",  "自營商",     "flow", 1, " 億"),
 ]
 _MD_TW_ROWS = [
-    ("tx_foreign_net", "外資台指期淨部位（未平倉）", "lots", 0, " 口"),
-    ("margin_bal",     "融資餘額（上市）",         "lvl",  1, " 億"),
-    ("short_bal",      "融券餘額（上市）",         "lvl",  0, " 張"),
-    ("pc_ratio",       "台指選擇權 P/C 比（未平倉）", "lvl", 2, "%"),
+    ("tx_foreign_net", "外資台指期淨部位", "lots", 0, " 口"),
+    ("margin_bal",     "融資餘額",       "lvl",  1, " 億"),
+    ("short_bal",      "融券餘額",       "lvl",  0, " 張"),
+    ("pc_ratio",       "選擇權 P/C 比",   "lvl",  2, "%"),
 ]
 
 
@@ -635,9 +635,10 @@ def _md_delta(v: float | None, digits: int, unit: str = "", bp: bool = False) ->
     return f'<span class="{cls}">{sign}{_md_num(v, digits)}{_esc(unit)}</span>'
 
 
-def _md_name_cell(key: str, label: str, *, caret: str | None = None, sub: bool = False) -> str:
-    """指標名稱欄：名稱本身＝可點的官方來源連結（2026-07-23 使用者：按鈕放在名字）。
-    caret＝可展開群組 id（三大法人）→ 名稱旁加 ▸ 切換鈕；sub＝分項子列（縮排）。"""
+def _md_name_cell(key: str, label: str, *, caret: str | None = None, sub: bool = False,
+                  datestr: str = "") -> str:
+    """指標名稱欄：名稱本身＝可點的官方來源連結（2026-07-23 使用者：按鈕放在名字）；
+    名稱下方小字＝資料日（省一整欄、手機恆可見）。caret＝可展開群組 ▸；sub＝分項子列（縮排）。"""
     src = _MD_SRC.get(key)
     inner = _esc(label)
     if src:
@@ -646,8 +647,9 @@ def _md_name_cell(key: str, label: str, *, caret: str | None = None, sub: bool =
                  f'title="點開官方揭露頁：{_esc(_inst)}">{_esc(label)}</a>')
     car = (f'<button type="button" class="mdcaret" data-grp="{_esc(caret)}" '
            f'aria-label="展開分項">▸</button>' if caret else "")
+    dt = f'<span class="mddt">{_esc(datestr)}</span>' if datestr else ""
     cls = "l mdlab" + (" mdsublab" if sub else "")
-    return f'<td class="{cls}">{car}{inner}</td>'
+    return f'<td class="{cls}">{car}{inner}{dt}</td>'
 
 
 def _md_row_html(mc: dict, key: str, label: str, kind: str, digits: int, unit: str,
@@ -658,8 +660,8 @@ def _md_row_html(mc: dict, key: str, label: str, kind: str, digits: int, unit: s
             return (f'<tr class="mdsub" data-grp="{_esc(caret or "")}">'
                     f'{_md_name_cell(key, label, sub=True)}'
                     f'<td class="mdval"><span class="na">—</span></td>'
-                    f'<td><span class="na">—</span></td><td><span class="na">—</span></td>'
-                    f'<td class="mdspark"><span class="na">—</span></td><td class="mdd">—</td></tr>')
+                    f'<td class="mdchg"><span class="na">—</span></td>'
+                    f'<td class="mdspark"><span class="na">—</span></td></tr>')
         return ""                                   # 主列無資料整列不列（不留空格）
     d, v = last
     # 最新值
@@ -676,25 +678,26 @@ def _md_row_html(mc: dict, key: str, label: str, kind: str, digits: int, unit: s
             val_html += f' <span class="mdlv {lv[1]}">{lv[0]}</span>'
     # 日變化／前日、近5日／累計、走勢
     bp = kind == "yield"
+    # 日變化／近5日欄不再重複帶單位（單位在「最新值」與表註；殖利率保留 bp）
     if kind == "flow":
         prev_v = macrochips._sorted_items(mc, key)[-2][1] if len(macrochips._sorted_items(mc, key)) >= 2 else None
-        chg_html = (_md_delta(prev_v, digits, unit) if prev_v is not None
+        chg_html = (_md_delta(prev_v, digits, "") if prev_v is not None
                     else '<span class="na">—</span>')
         s5 = macrochips.sum_n(mc, key, 5)
-        n5_html = _md_delta(s5, digits, unit) if s5 is not None else '<span class="na">—</span>'
+        n5_html = _md_delta(s5, digits, "") if s5 is not None else '<span class="na">—</span>'
         spark = _spark_bars(macrochips.points(mc, key, 20))
     else:
-        chg_unit = unit if (unit in ("%", " 億", " 張", " 口", " 元", " 點") and not bp) else ""
-        chg_html = _md_delta(macrochips.day_change(mc, key), digits, chg_unit, bp=bp)
-        n5_html = _md_delta(macrochips.change_n(mc, key, 5), digits, chg_unit, bp=bp)
+        chg_html = _md_delta(macrochips.day_change(mc, key), digits, "", bp=bp)
+        n5_html = _md_delta(macrochips.change_n(mc, key, 5), digits, "", bp=bp)
         spark = _spark(macrochips.points(mc, key, 30))
-    date_html = _esc(f"{int(d[5:7])}/{int(d[8:10])}") if len(d) == 10 else _esc(d)
+    date_html = f"{int(d[5:7])}/{int(d[8:10])}" if len(d) == 10 else d
     tr_cls = ' class="mdsub" data-grp="' + _esc(caret) + '"' if sub else ""
-    return (f'<tr{tr_cls}>{_md_name_cell(key, label, caret=(caret if not sub else None), sub=sub)}'
-            f'<td class="mdval">{val_html}</td>'
-            f'<td>{chg_html}</td><td>{n5_html}</td>'
-            f'<td class="mdspark">{spark}</td>'
-            f'<td class="mdd">{date_html}</td></tr>')
+    # 日變化與近5日併一欄（上下疊）以省寬、讓走勢圖在手機也進得了畫面
+    chg_cell = f'<td class="mdchg">{chg_html}<span class="mdn5">{n5_html}</span></td>'
+    return (f'<tr{tr_cls}>'
+            f'{_md_name_cell(key, label, caret=(caret if not sub else None), sub=sub, datestr=date_html)}'
+            f'<td class="mdval">{val_html}</td>{chg_cell}'
+            f'<td class="mdspark">{spark}</td></tr>')
 
 
 # 各指標官方來源可點連結（機構, 連結文字, 官方揭露頁 URL）；同機構同頁的指標共用一條連結（去重）
@@ -720,8 +723,9 @@ def _md_table(mc: dict, body_rows: str, col5: str = "近5日") -> str:
     if not body_rows:
         return '<div class="muted">（本組指標暫無資料——CI 接上官方來源後自動補齊）</div>'
     return (f'<div class="ovwrap"><table class="ovtbl mdtbl">'
-            f'<thead><tr><th class="l">指標</th><th>最新值</th><th>日變化</th>'
-            f'<th>{_esc(col5)}</th><th>近30日走勢</th><th>資料日</th></tr></thead>'
+            f'<thead><tr><th class="l">指標</th><th>最新值</th>'
+            f'<th class="mdchg">日變化<span class="mdn5">{_esc(col5)}</span></th>'
+            f'<th>近30日走勢</th></tr></thead>'
             f'<tbody>{body_rows}</tbody></table></div>')
 
 
@@ -1472,13 +1476,20 @@ a.tk:hover{color:var(--acc)}
 .creg.jp{color:#0f6f6b;background:rgba(23,146,140,.13);border-color:rgba(23,146,140,.42)}
 .calsub{margin:16px 0 6px;font-size:14px;font-weight:800;color:var(--ink);padding-left:9px;border-left:4px solid #2f9d57}
 .chip.halt{color:#8a5410;background:rgba(200,118,15,.12);border-color:rgba(200,118,15,.5);font-weight:700}
-/* 總經：市場溫度計（全球指標＋台股籌碼） */
-.mdtbl td.mdlab{white-space:normal;min-width:130px}
-.mdtbl td.mdval{white-space:nowrap}
-.mdtbl td.mdd{color:var(--mut);font-size:13px}
+/* 總經：市場溫度計（全球指標＋台股籌碼）——第一欄（指標）凍結，數值欄手機可左右捲 */
+.mdtbl{font-size:14px}
+.mdtbl th,.mdtbl td{padding:9px 9px;white-space:nowrap}
+.mdtbl td.mdlab,.mdtbl th:first-child{position:sticky;left:0;z-index:2;background:var(--card);
+  min-width:92px;max-width:150px;white-space:normal;line-height:1.3;box-shadow:1px 0 0 var(--line)}
+.mdtbl thead th:first-child{z-index:3}
+.mdtbl td.mdval{font-weight:700}
+.mddt{display:block;font-size:11px;color:var(--mut);font-weight:400;margin-top:1px}  /* 名稱下方資料日 */
+.mdtbl td.mdchg,.mdtbl th.mdchg{text-align:right}
+.mdn5{display:block;font-size:11.5px;font-weight:400;opacity:.85;margin-top:1px}  /* 近5日疊在日變化下 */
+.mdtbl th.mdchg .mdn5{color:var(--mut);opacity:1}
 .mdtbl td.mdspark{padding-top:4px;padding-bottom:4px}
 .spark{display:inline-block;vertical-align:middle}
-.spark svg{width:110px;height:26px;display:block}
+.spark svg{width:96px;height:24px;display:block}
 .spark.bars rect.up{fill:var(--gain)} .spark.bars rect.dn{fill:var(--loss)}
 .spark.bars line.base{stroke:var(--line);stroke-width:1}
 /* 指標名稱＝可點官方來源連結 */
@@ -1489,8 +1500,9 @@ a.tk:hover{color:var(--acc)}
   padding:0 6px 0 0;margin:0;line-height:1;transition:transform .15s}
 .mdcaret.open{transform:rotate(90deg);display:inline-block}
 tr.mdsub{display:none} tr.mdsub.show{display:table-row}
-tr.mdsub td{background:rgba(47,111,208,.035);border-bottom:1px solid var(--line)}
-td.mdsublab{padding-left:26px;color:var(--ink2);font-size:14px}
+tr.mdsub td{background:#f6f9fe;border-bottom:1px solid var(--line)}
+.mdtbl tr.mdsub td.mdlab{background:#f6f9fe}          /* 凍結首格用不透明底、蓋住捲動內容 */
+td.mdsublab{padding-left:24px;color:var(--ink2);font-size:13px}
 td.mdsublab a.mdsl{color:var(--ink2)}
 .mdlv{display:inline-block;font-size:11px;font-weight:800;padding:1px 7px;border-radius:6px;
   margin-left:5px;vertical-align:1px;white-space:nowrap}
@@ -1588,7 +1600,7 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 @media(max-width:720px){.wrap{padding:6px 14px 46px}.cols{grid-template-columns:1fr}.rets{grid-template-columns:repeat(3,1fr)}.navbox{text-align:left}
   .tb-meta,.tb-lamp{display:none}.ixc{min-width:110px}.section{padding:20px 0 12px}
   .tb-in{padding:7px 14px}.mk{padding:6px 8px 8px;font-size:15.5px}body{font-size:16.5px}
-  #overview .st::after,#macro-cal .st::after,#etfwatch .st::after{content:"↔ 表格可左右滑動";font-weight:400;font-size:12px;color:var(--mut)}
+  #overview .st::after,#macro-cal .st::after,#etfwatch .st::after,#macro-data .st::after{content:"↔ 表格可左右滑動";font-weight:400;font-size:12px;color:var(--mut)}
   .backtop{right:10px;bottom:10px;padding:7px 12px;font-size:12.5px}}
 /* ⑥ 基金相關新聞・社群 */
 .fng{font-weight:700;font-size:14px;color:var(--accd);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line)}
