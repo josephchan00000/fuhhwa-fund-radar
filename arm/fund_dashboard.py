@@ -560,16 +560,21 @@ def _macro_cal_view(cal: dict | None) -> str:
 #         flow＝當日流量（買賣超——「日變化」欄改列前一日值、「近5日」＝累計）；
 #         lots＝口數水準值（負＝淨空單，另以「淨空/淨多」呈現）
 _MD_GLOBAL_ROWS = [
-    ("vix",    "VIX 恐慌指數",            "lvl",   2, ""),
+    ("vix",    "VIX 恐慌指數",            "lvl",   2, " 點"),
     ("us10y",  "美國 10 年期公債殖利率",  "yield", 2, "%"),
-    ("dxy",    "美元指數 DXY",            "lvl",   2, ""),
-    ("usdtwd", "美元兌新台幣",            "lvl",   3, ""),
+    ("dxy",    "美元指數 DXY",            "lvl",   2, " 點"),
+    ("usdtwd", "美元兌新台幣",            "lvl",   3, " 元"),
     ("brent",  "布蘭特原油",              "lvl",   2, " 美元/桶"),
     ("gold",   "黃金期貨",                "lvl",   0, " 美元/盎司"),
 ]
+# 三大法人＝可展開群組：合計主列＋外資／投信／自營商分項子列（點名稱旁的 ▸ 展開）
+_MD_INST_MAIN = ("inst_total", "三大法人買賣超（上市）", "flow", 1, " 億")
+_MD_INST_SUBS = [
+    ("inst_foreign", "外資及陸資", "flow", 1, " 億"),
+    ("inst_trust",   "投信",       "flow", 1, " 億"),
+    ("inst_dealer",  "自營商",     "flow", 1, " 億"),
+]
 _MD_TW_ROWS = [
-    ("inst_total",     "三大法人買賣超（上市）",   "flow", 1, " 億"),
-    ("inst_foreign",   "外資買賣超（上市）",       "flow", 1, " 億"),
     ("tx_foreign_net", "外資台指期淨部位（未平倉）", "lots", 0, " 口"),
     ("margin_bal",     "融資餘額（上市）",         "lvl",  1, " 億"),
     ("short_bal",      "融券餘額（上市）",         "lvl",  0, " 張"),
@@ -588,10 +593,31 @@ def _spark(vals: list[float], w: int = 110, h: int = 26) -> str:
     pts = " ".join(f"{2 + i * (w - 4) / (n - 1):.1f},{h - 3 - (v - lo) * (h - 6) / rng:.1f}"
                    for i, v in enumerate(vals))
     cls = "gain" if vals[-1] >= vals[0] else "loss"
-    return (f'<span class="spark {cls}" title="近 {n} 筆走勢：{vals[0]:g} → {vals[-1]:g}">'
+    return (f'<span class="spark {cls}" title="近 {n} 筆走勢（縮放至區間高低）：{vals[0]:g} → {vals[-1]:g}">'
             f'<svg viewBox="0 0 {w} {h}" aria-hidden="true">'
             f'<polyline points="{pts}" fill="none" stroke="currentColor" '
             f'stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg></span>')
+
+
+def _spark_bars(vals: list[float], w: int = 110, h: int = 26) -> str:
+    """流量（買賣超）用長條迷你圖：以 0 為基準線，正值向上綠、負值向下紅——比折線更能
+    如實呈現「哪天買超哪天賣超」，且單日爆量不會把整條線拉歪（2026-07-23 使用者反映折線怪）。"""
+    if not vals:
+        return '<span class="na">—</span>'
+    mag = max((abs(v) for v in vals), default=0) or 1.0
+    n = len(vals)
+    bw = (w - 4) / n
+    mid = h / 2
+    bars = []
+    for i, v in enumerate(vals):
+        x = 2 + i * bw
+        bh = abs(v) / mag * (h / 2 - 2)
+        y = mid - bh if v >= 0 else mid
+        cls = "up" if v >= 0 else "dn"
+        bars.append(f'<rect class="{cls}" x="{x:.1f}" y="{y:.1f}" width="{max(bw - 1, 1):.1f}" height="{bh:.1f}"/>')
+    return (f'<span class="spark bars" title="近 {n} 日買賣超（綠買超／紅賣超，0 為基準）">'
+            f'<svg viewBox="0 0 {w} {h}" aria-hidden="true">'
+            f'<line x1="2" y1="{mid}" x2="{w - 2}" y2="{mid}" class="base"/>{"".join(bars)}</svg></span>')
 
 
 def _md_num(v: float, digits: int) -> str:
@@ -609,39 +635,65 @@ def _md_delta(v: float | None, digits: int, unit: str = "", bp: bool = False) ->
     return f'<span class="{cls}">{sign}{_md_num(v, digits)}{_esc(unit)}</span>'
 
 
-def _md_row_html(mc: dict, key: str, label: str, kind: str, digits: int, unit: str) -> str:
+def _md_name_cell(key: str, label: str, *, caret: str | None = None, sub: bool = False) -> str:
+    """指標名稱欄：名稱本身＝可點的官方來源連結（2026-07-23 使用者：按鈕放在名字）。
+    caret＝可展開群組 id（三大法人）→ 名稱旁加 ▸ 切換鈕；sub＝分項子列（縮排）。"""
+    src = _MD_SRC.get(key)
+    inner = _esc(label)
+    if src:
+        _inst, _lbl, url = src
+        inner = (f'<a class="mdsl" href="{_safe_url(url)}" target="_blank" rel="noopener" '
+                 f'title="點開官方揭露頁：{_esc(_inst)}">{_esc(label)}</a>')
+    car = (f'<button type="button" class="mdcaret" data-grp="{_esc(caret)}" '
+           f'aria-label="展開分項">▸</button>' if caret else "")
+    cls = "l mdlab" + (" mdsublab" if sub else "")
+    return f'<td class="{cls}">{car}{inner}</td>'
+
+
+def _md_row_html(mc: dict, key: str, label: str, kind: str, digits: int, unit: str,
+                 *, caret: str | None = None, sub: bool = False) -> str:
     last = macrochips.latest(mc, key)
     if not last:
-        return ""                                   # 無資料的指標整列不列（不留空格）
+        if sub:                                     # 分項無資料：仍列出、值顯示 —（維持群組完整）
+            return (f'<tr class="mdsub" data-grp="{_esc(caret or "")}">'
+                    f'{_md_name_cell(key, label, sub=True)}'
+                    f'<td class="mdval"><span class="na">—</span></td>'
+                    f'<td><span class="na">—</span></td><td><span class="na">—</span></td>'
+                    f'<td class="mdspark"><span class="na">—</span></td><td class="mdd">—</td></tr>')
+        return ""                                   # 主列無資料整列不列（不留空格）
     d, v = last
-    items = macrochips._sorted_items(mc, key)
     # 最新值
     if kind == "lots":
         side = "淨空" if v < 0 else "淨多"
         val_html = f'<b>{side} {_md_num(abs(v), digits)}{_esc(unit)}</b>'
+    elif kind == "flow":
+        val_html = f"<b>{_md_delta(v, digits, unit)}</b>"    # 流量：當日買賣超本身紅買綠賣
     else:
         val_html = f"<b>{_md_num(v, digits)}{_esc(unit)}</b>"
     if key == "vix":
         lv = macrochips.vix_level(v)
         if lv:
             val_html += f' <span class="mdlv {lv[1]}">{lv[0]}</span>'
-    # 日變化／前日、近5日／累計
+    # 日變化／前日、近5日／累計、走勢
     bp = kind == "yield"
     if kind == "flow":
-        prev_v = items[-2][1] if len(items) >= 2 else None
+        prev_v = macrochips._sorted_items(mc, key)[-2][1] if len(macrochips._sorted_items(mc, key)) >= 2 else None
         chg_html = (_md_delta(prev_v, digits, unit) if prev_v is not None
                     else '<span class="na">—</span>')
         s5 = macrochips.sum_n(mc, key, 5)
         n5_html = _md_delta(s5, digits, unit) if s5 is not None else '<span class="na">—</span>'
-        val_html = f"<b>{_md_delta(v, digits, unit)}</b>"    # 流量：當日買賣超本身紅買綠賣
+        spark = _spark_bars(macrochips.points(mc, key, 20))
     else:
-        chg_unit = unit if (unit in ("%", " 億", " 張", " 口") and not bp) else ""
+        chg_unit = unit if (unit in ("%", " 億", " 張", " 口", " 元", " 點") and not bp) else ""
         chg_html = _md_delta(macrochips.day_change(mc, key), digits, chg_unit, bp=bp)
         n5_html = _md_delta(macrochips.change_n(mc, key, 5), digits, chg_unit, bp=bp)
+        spark = _spark(macrochips.points(mc, key, 30))
     date_html = _esc(f"{int(d[5:7])}/{int(d[8:10])}") if len(d) == 10 else _esc(d)
-    return (f'<tr><td class="l mdlab">{_esc(label)}</td><td class="mdval">{val_html}</td>'
+    tr_cls = ' class="mdsub" data-grp="' + _esc(caret) + '"' if sub else ""
+    return (f'<tr{tr_cls}>{_md_name_cell(key, label, caret=(caret if not sub else None), sub=sub)}'
+            f'<td class="mdval">{val_html}</td>'
             f'<td>{chg_html}</td><td>{n5_html}</td>'
-            f'<td class="mdspark">{_spark(macrochips.points(mc, key, 30))}</td>'
+            f'<td class="mdspark">{spark}</td>'
             f'<td class="mdd">{date_html}</td></tr>')
 
 
@@ -655,6 +707,8 @@ _MD_SRC = {
     "gold":           ("Yahoo Finance", "黃金",             "https://finance.yahoo.com/quote/GC%3DF"),
     "inst_total":     ("證交所", "三大法人買賣金額(BFI82U)", "https://www.twse.com.tw/zh/trading/foreign/bfi82u.html"),
     "inst_foreign":   ("證交所", "三大法人買賣金額(BFI82U)", "https://www.twse.com.tw/zh/trading/foreign/bfi82u.html"),
+    "inst_trust":     ("證交所", "三大法人買賣金額(BFI82U)", "https://www.twse.com.tw/zh/trading/foreign/bfi82u.html"),
+    "inst_dealer":    ("證交所", "三大法人買賣金額(BFI82U)", "https://www.twse.com.tw/zh/trading/foreign/bfi82u.html"),
     "margin_bal":     ("證交所", "融資融券餘額(MI_MARGN)",   "https://www.twse.com.tw/zh/trading/margin/mi-margn.html"),
     "short_bal":      ("證交所", "融資融券餘額(MI_MARGN)",   "https://www.twse.com.tw/zh/trading/margin/mi-margn.html"),
     "tx_foreign_net": ("期交所", "三大法人-區分各契約",       "https://www.taifex.com.tw/cht/3/futContractsDate"),
@@ -662,58 +716,45 @@ _MD_SRC = {
 }
 
 
-def _md_src_footer(mc: dict, rows: list[tuple]) -> str:
-    """資料來源（可點）：依表中「有資料」的指標，按機構分組列官方揭露頁連結（同頁去重）。"""
-    order: list[str] = []
-    groups: dict[str, list[tuple[str, str]]] = {}
-    seen: set[str] = set()
-    for r in rows:
-        key = r[0]
-        if not macrochips.latest(mc, key):
-            continue                                   # 無資料的指標不列來源
-        inst, label, url = _MD_SRC.get(key, (None, None, None))
-        if not url or url in seen:
-            continue
-        seen.add(url)
-        if inst not in groups:
-            groups[inst] = []
-            order.append(inst)
-        groups[inst].append((label, url))
-    if not order:
-        return ""
-    parts = []
-    for inst in order:
-        links = "、".join(f'<a href="{_safe_url(url)}" target="_blank" rel="noopener">{_esc(label)}</a>'
-                          for label, url in groups[inst])
-        parts.append(f'<b>{_esc(inst)}</b>　{links}')
-    return f'<div class="mdsrc">{_ic("globe", plain=True)} 資料來源（可點進官方頁對照）：{"；".join(parts)}</div>'
-
-
-def _md_table(mc: dict, rows: list[tuple], col5: str = "近5日") -> str:
-    trs = "".join(_md_row_html(mc, *r) for r in rows)
-    if not trs:
+def _md_table(mc: dict, body_rows: str, col5: str = "近5日") -> str:
+    if not body_rows:
         return '<div class="muted">（本組指標暫無資料——CI 接上官方來源後自動補齊）</div>'
     return (f'<div class="ovwrap"><table class="ovtbl mdtbl">'
             f'<thead><tr><th class="l">指標</th><th>最新值</th><th>日變化</th>'
             f'<th>{_esc(col5)}</th><th>近30日走勢</th><th>資料日</th></tr></thead>'
-            f'<tbody>{trs}</tbody></table></div>' + _md_src_footer(mc, rows))
+            f'<tbody>{body_rows}</tbody></table></div>')
+
+
+def _md_inst_group_html(mc: dict) -> str:
+    """三大法人＝合計主列（可點 ▸ 展開）＋外資／投信／自營商分項子列（預設收合）。"""
+    main = _md_row_html(mc, *_MD_INST_MAIN, caret="inst")
+    if not main:
+        return ""                                    # 合計無資料 → 整組不列
+    subs = "".join(_md_row_html(mc, *s, caret="inst", sub=True) for s in _MD_INST_SUBS)
+    return main + subs
 
 
 def _macro_data_view(mc: dict | None) -> str:
-    """市場溫度計：全球指標（Yahoo 官方序列）＋台股籌碼（TWSE／期交所官方）。"""
+    """市場溫度計：全球指標（Yahoo 官方序列）＋台股籌碼（TWSE／期交所官方）。
+    指標名稱本身＝可點的官方揭露頁連結；三大法人可展開外資／投信／自營商分項。"""
     if not mc or not any((mc.get("series") or {}).values()):
         return ('<div class="muted">尚無市場數據。正式區 CI 會執行 '
                 '<code>scripts/fetch_macro_chips.py</code> 抓官方來源自動補齊。</div>')
+    gl_body = "".join(_md_row_html(mc, *r) for r in _MD_GLOBAL_ROWS)
+    tw_body = _md_inst_group_html(mc) + "".join(_md_row_html(mc, *r) for r in _MD_TW_ROWS)
     html = (f'<div class="calsub">{_ic("globe", plain=True)} 全球市場溫度計</div>'
-            + _md_table(mc, _MD_GLOBAL_ROWS)
+            + _md_table(mc, gl_body)
             + f'<div class="calsub">{_ic("layers", plain=True)} 台股籌碼</div>'
-            + _md_table(mc, _MD_TW_ROWS, col5="近5日／累計"))
-    html += ('<div class="etfnote">口徑：全球指標＝最近收盤（Yahoo Finance 官方序列；殖利率日變化以 bp 計）。'
-             '台股籌碼＝證交所／期交所前一交易日盤後官方數據：買賣超為當日金額（「日變化」欄列前一日值、'
-             '「近5日」為累計）；外資台指期淨部位為臺股期貨(TX)未平倉多空淨額口數（淨空＝空單較多）；'
-             '融資融券為上市信用交易餘額；P/C 比＝台指選擇權買賣權未平倉量比率。'
-             '紅＝上升／買超、綠＝下降／賣超（台灣慣例，僅標方向非多空判斷）。'
-             '資料日為各指標官方數據所屬交易日；週末與休市日沿用最近交易日。</div>')
+            + _md_table(mc, tw_body, col5="近5日／累計"))
+    html += ('<div class="etfnote">'
+             '<b>點指標名稱</b>可開官方揭露頁對照；<b>三大法人買賣超</b>列點名稱旁 ▸ 可展開外資／投信／自營商分項。'
+             '<br>單位：VIX／美元指數 DXY＝指數點；殖利率＝%（日變化以 bp 計）；美元兌新台幣＝新台幣元；'
+             '原油＝美元/桶；黃金＝美元/盎司；法人買賣超／融資餘額＝億元；融券＝張；台指期＝口。'
+             '<br>口徑：全球指標＝最近收盤（Yahoo Finance 官方序列）。台股籌碼＝證交所／期交所前一交易日盤後官方數據：'
+             '買賣超為當日金額（「日變化」欄列前一日值、「近5日」為累計；走勢為近 20 日買賣超長條，綠買超／紅賣超、0 為基準）；'
+             '外資台指期淨部位為臺股期貨(TX)未平倉多空淨額口數（淨空＝空單較多）；P/C 比＝台指選擇權買賣權未平倉量比率。'
+             '走勢折線縮放至各指標自身高低區間（看相對形狀、非絕對幅度）。紅＝上升／買超、綠＝下降／賣超（僅標方向非多空判斷）。'
+             '資料日為官方數據所屬交易日；週末與休市日沿用最近交易日。</div>')
     return html
 
 
@@ -1438,6 +1479,19 @@ a.tk:hover{color:var(--acc)}
 .mdtbl td.mdspark{padding-top:4px;padding-bottom:4px}
 .spark{display:inline-block;vertical-align:middle}
 .spark svg{width:110px;height:26px;display:block}
+.spark.bars rect.up{fill:var(--gain)} .spark.bars rect.dn{fill:var(--loss)}
+.spark.bars line.base{stroke:var(--line);stroke-width:1}
+/* 指標名稱＝可點官方來源連結 */
+.mdlab a.mdsl{color:var(--ink);text-decoration:none;border-bottom:1px dotted var(--accd)}
+.mdlab a.mdsl:hover{color:var(--accd);border-bottom-style:solid}
+/* 三大法人展開 ▸／分項子列 */
+.mdcaret{border:0;background:none;cursor:pointer;color:var(--accd);font-size:12px;font-weight:800;
+  padding:0 6px 0 0;margin:0;line-height:1;transition:transform .15s}
+.mdcaret.open{transform:rotate(90deg);display:inline-block}
+tr.mdsub{display:none} tr.mdsub.show{display:table-row}
+tr.mdsub td{background:rgba(47,111,208,.035);border-bottom:1px solid var(--line)}
+td.mdsublab{padding-left:26px;color:var(--ink2);font-size:14px}
+td.mdsublab a.mdsl{color:var(--ink2)}
 .mdlv{display:inline-block;font-size:11px;font-weight:800;padding:1px 7px;border-radius:6px;
   margin-left:5px;vertical-align:1px;white-space:nowrap}
 .mdlv.calm{color:#1d4f9c;background:rgba(47,111,208,.12)}
@@ -1623,6 +1677,11 @@ document.querySelectorAll('.ovtbl th.sk').forEach(th=>th.onclick=()=>{
 });
 // 投資策略兩行截斷 ↔ 展開
 document.querySelectorAll('.strat').forEach(s=>s.onclick=()=>s.classList.toggle('open'));
+// 市場溫度計「三大法人」▸ 展開／收合外資／投信／自營商分項
+document.querySelectorAll('.mdcaret').forEach(c=>c.addEventListener('click',e=>{
+  e.stopPropagation();const g=c.dataset.grp;c.classList.toggle('open');
+  document.querySelectorAll('tr.mdsub[data-grp="'+g+'"]').forEach(r=>r.classList.toggle('show'));
+}));
 // 儀表板逾期未重建警告——CI 全停擺時 HTML 不會再重生、上面的 ⚠ 也不會更新，
 // 由瀏覽器端比對「產表時間 vs 現在」補上最後一道防線。
 (function(){const g=document.querySelector('[data-gen]');if(!g)return;

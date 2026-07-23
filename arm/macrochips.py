@@ -45,7 +45,7 @@ GLOBAL_SPECS: list[tuple[str, str, str]] = [
     ("brent",  "布蘭特原油",            "BZ=F"),
     ("gold",   "黃金期貨",              "GC=F"),
 ]
-TW_KEYS = ("inst_total", "inst_foreign", "tx_foreign_net",
+TW_KEYS = ("inst_total", "inst_foreign", "inst_trust", "inst_dealer", "tx_foreign_net",
            "margin_bal", "short_bal", "pc_ratio")
 ALL_KEYS = tuple(k for k, *_ in GLOBAL_SPECS) + TW_KEYS
 
@@ -81,6 +81,38 @@ def _yahoo_series(sym: str, norm=None) -> dict[str, float]:
         val = float(c)
         out[iso] = norm(val) if norm else round(val, 4)
     return out
+
+
+def _twse_inst_all(d: date) -> dict | None:
+    """TWSE BFI82U（三大法人買賣金額）→ {'foreign','trust','dealer','total'}（億元，買超為正）。
+    自營商＝自行買賣＋避險合計；外資＝外資及陸資（不含外資自營商）。整段抓不到回 None。"""
+    doc = factcheck._get_json(f"https://www.twse.com.tw/rwd/zh/fund/BFI82U"
+                              f"?type=day&dayDate={d:%Y%m%d}&response=json")
+    if not isinstance(doc, dict) or doc.get("stat") != "OK":
+        return None
+    out = {"foreign": None, "trust": 0.0, "dealer": 0.0, "total": None}
+    got_dealer = got_trust = False
+    try:
+        for row in doc.get("data") or []:
+            name = str(row[0])
+            diff = float(str(row[3]).replace(",", "")) / 1e8      # 官方單位元 → 億
+            # 外資列名為「外資及陸資(不含外資自營商)」——含「自營」字樣，故以獨有的「陸資」二字辨識，
+            # 不可用「自營 not in name」（會誤殺，factcheck 舊版同坑）。「外資自營商」不含「陸資」→ 不誤收。
+            if "陸資" in name:
+                out["foreign"] = round((out["foreign"] or 0.0) + diff, 2)
+            elif "投信" in name:
+                out["trust"] = round(out["trust"] + diff, 2); got_trust = True
+            elif "自營商" in name and "外資" not in name:          # 自行買賣＋避險兩列（不含外資自營商）
+                out["dealer"] = round(out["dealer"] + diff, 2); got_dealer = True
+            elif name.strip() == "合計":
+                out["total"] = round(diff, 2)
+    except Exception:
+        return None
+    if not got_trust:
+        out["trust"] = None
+    if not got_dealer:
+        out["dealer"] = None
+    return out if any(v is not None for v in out.values()) else None
 
 
 def _twse_margin(d: date) -> tuple[float, float] | None:
@@ -222,20 +254,21 @@ def fetch() -> dict:
         series[key] = _merge(series[key], new)
         _note(key, len(new), f"yahoo:{sym}")
 
-    # ② 三大法人買賣超（TWSE BFI82U，逐日補缺；重用 factcheck 抓取）
+    # ② 三大法人買賣超（TWSE BFI82U，逐日補缺）：合計＋外資／投信／自營商分項
     n_flow = 0
     for d in _missing_weekdays(series["inst_total"], today):
-        flows = factcheck.twse_inst_flows(d)
+        flows = _twse_inst_all(d)
         if flows:
             iso = d.isoformat()
-            if flows.get("total") is not None:
-                series["inst_total"] = _merge(series["inst_total"], {iso: round(flows["total"], 1)})
-            if flows.get("foreign") is not None:
-                series["inst_foreign"] = _merge(series["inst_foreign"], {iso: round(flows["foreign"], 1)})
+            for key, fk in (("inst_total", "total"), ("inst_foreign", "foreign"),
+                            ("inst_trust", "trust"), ("inst_dealer", "dealer")):
+                if flows.get(fk) is not None:
+                    series[key] = _merge(series[key], {iso: round(flows[fk], 1)})
             n_flow += 1
     _note("inst_total", n_flow, "twse:BFI82U")
-    if n_flow:
-        src["inst_foreign"] = src["inst_total"]
+    if n_flow:                                            # 分項與合計同源
+        for k in ("inst_foreign", "inst_trust", "inst_dealer"):
+            src[k] = src["inst_total"]
 
     # ③ 融資融券餘額（TWSE MI_MARGN，逐日補缺）
     n_mar = 0
