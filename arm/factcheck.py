@@ -192,14 +192,21 @@ def extract_us_index_claims(text: str, session_day: date) -> list[Claim]:
         for key, pat in _US_IDX_PAT.items():
             for m in re.finditer(pat, sent):
                 occs.append((m.end(), key))
+        # 累計／區間跌幅句（自 X 高點跌逾 N%、進技術性熊市、自波段高點回落）≠ 單日漲跌，
+        # 整句不抽 chg（07-24 誤殺：SOX「自 6/22 高點跌逾 20%」被當日變動）
+        drawdown = bool(re.search(r"高點|波段|技術性熊市|熊市|自 ?\d{1,2}[/月]", sent))
         occs.sort()
         for i, (pos, key) in enumerate(occs):
             end = occs[i + 1][0] - 8 if i + 1 < len(occs) else pos + 60
             win = sent[pos:max(pos, end)][:60]
             m = re.search(r"^[^%]{0,25}?(?:大漲|上漲|收漲|漲|反彈|重挫|大跌|下跌|收跌|跌|挫)"
                           r"\s*(逾|近|約)?\s*([\d.]+)\s*%", win)
-            # 盤中口徑（盤初/盤中/早盤/一度/最高/最低）非收盤漲跌，不可拿日線驗（07-23 誤殺修正）
-            if m and not re.search(r"盤初|盤中|早盤|一度|最[高低]", win[:m.end(2)]):
+            # 盤中/個股口徑非收盤指數漲跌，不可拿日線驗（07-23/24 誤殺修正）：
+            # ①盤中詞（盤初/盤中/早盤/日盤/殺盤/一度/最高低）②視窗內先出現個股名（英特爾/AMD…）
+            intraday = re.search(r"盤初|盤中|早盤|日盤|殺盤|一度|最[高低]", win[:m.end(2)]) if m else None
+            stock = re.search(r"英特爾|Intel|AMD|超微|輝達|NVIDIA|美光|Micron|台積|蘋果|Apple|"
+                              r"特斯拉|Tesla|Alphabet|Meta|微軟", win[:m.end(2)]) if m else None
+            if m and not drawdown and not intraday and not stock:
                 claims.append(Claim(f"us_{key}_chg", float(m.group(2)), session_day,
                                     sent.strip()[:160], qual=m.group(1) or ""))
             m = re.search(r"(?<!前)收[^0-9%]{0,10}([\d,]{5,}(?:\.\d+)?)", win)
@@ -222,8 +229,11 @@ def extract_claims(text: str, year: int | None = None) -> list[Claim]:
         m = re.search(r"(?:加權(?:指數)?|台股)[^收。\n]{0,14}收(?:盤|約)?[^0-9%]{0,8}([\d,]+\.\d+)", sent)
         if m and _num(m.group(1)) > 5000:
             claims.append(Claim("index_close", _num(m.group(1)), d, sent.strip()))
-        m = re.search(r"(?:下跌|大跌|跌|漲|上漲)\s*([\d,]+\.?\d*)\s*點", sent)
-        if m and _num(m.group(1)) >= 100:      # 小波動不核對（口語四捨五入多）
+        # 美股句（含道瓊/那指/標普/費半）不可被台股加權 index_chg 撈走
+        # （07-24 誤殺：「道瓊下跌 506.93 點」被當加權漲跌點）
+        us_ctx = re.search(r"道瓊|那斯達克|那指|標普|費半|S&P|Nasdaq|Dow", sent)
+        m = re.search(r"(?:加權|台股|大盤)?[^0-9%]{0,6}(?:下跌|大跌|漲|上漲)\s*([\d,]+\.?\d*)\s*點", sent)
+        if m and _num(m.group(1)) >= 100 and not us_ctx:   # 小波動不核對（口語四捨五入多）
             claims.append(Claim("index_chg", _num(m.group(1)), d, sent.strip()))
         m = re.search(r"三大法人[^0-9]{0,15}[買賣]超[^0-9]{0,8}([\d,]+\.?\d*)\s*億", sent)
         if m:
