@@ -637,30 +637,24 @@ def _md_delta(v: float | None, digits: int, unit: str = "", bp: bool = False) ->
 
 def _md_name_cell(key: str, label: str, *, caret: str | None = None, sub: bool = False,
                   datestr: str = "") -> str:
-    """指標名稱欄。三種型態：
-    · 可展開主列（caret 且非 sub）：整個名稱＝大範圍展開鈕（好按、不會誤觸連結），
-      官方來源改為下方獨立小連結「官方↗」（2026-07-23 使用者：▸ 太小易誤按到網址）。
-    · 一般列／分項子列：名稱本身＝可點官方來源連結；下方小字＝資料日。"""
+    """指標名稱欄（2026-07-23 使用者：全部統一——名稱不粗體、每列都標「官方↗」來源連結）。
+    每列＝純文字名稱（非粗體、非連結）＋下方小字「資料日 · 官方↗」；官方↗ 才是可點的來源連結。
+    可展開主列（caret 且非 sub）：名稱包在大範圍展開鈕內（點名稱展開分項），仍非粗體。"""
     src = _MD_SRC.get(key)
     url = src[2] if src else None
-    if caret and not sub:                             # ── 可展開主列：名稱＝展開鈕 ──
-        srclink = (f'<a class="mdslsm" href="{_safe_url(url)}" target="_blank" rel="noopener" '
-                   f'title="開官方揭露頁">官方↗</a>' if url else "")
-        sep = " · " if (srclink and datestr) else ""
-        meta = (f'<span class="mddt">{_esc(datestr)}{sep}{srclink}</span>'
-                if (datestr or srclink) else "")
+    srclink = (f'<a class="mdslsm" href="{_safe_url(url)}" target="_blank" rel="noopener" '
+               f'title="開官方揭露頁">官方↗</a>' if url else "")
+    sep = "　" if (srclink and datestr) else ""
+    meta = (f'<span class="mddt">{_esc(datestr)}{sep}{srclink}</span>'
+            if (datestr or srclink) else "")
+    if caret and not sub:                             # ── 可展開主列：名稱＝展開鈕（非粗體）──
         btn = (f'<button type="button" class="mdtogbtn" data-grp="{_esc(caret)}" '
                f'aria-label="展開／收合外資投信自營商分項">'
                f'<span class="mdcaret" data-grp="{_esc(caret)}">▸</span>'
                f'<span class="mdgname">{_esc(label)}</span></button>')
         return f'<td class="l mdlab mdgrouplab">{btn}{meta}</td>'
-    inner = _esc(label)                               # ── 一般列／子列：名稱＝來源連結 ──
-    if url:
-        inner = (f'<a class="mdsl" href="{_safe_url(url)}" target="_blank" rel="noopener" '
-                 f'title="點開官方揭露頁：{_esc(src[0])}">{_esc(label)}</a>')
-    dt = f'<span class="mddt">{_esc(datestr)}</span>' if datestr else ""
-    cls = "l mdlab" + (" mdsublab" if sub else "")
-    return f'<td class="{cls}">{inner}{dt}</td>'
+    cls = "l mdlab" + (" mdsublab" if sub else "")    # ── 一般列／子列：純文字名稱 ──
+    return f'<td class="{cls}"><span class="mdgname">{_esc(label)}</span>{meta}</td>'
 
 
 def _md_row_html(mc: dict, key: str, label: str, kind: str, digits: int, unit: str,
@@ -762,7 +756,7 @@ def _macro_data_view(mc: dict | None) -> str:
             + f'<div class="calsub">{_ic("layers", plain=True)} 台股籌碼</div>'
             + _md_table(mc, tw_body, col5="近5日／累計"))
     html += ('<div class="etfnote">'
-             '<b>點指標名稱</b>可開官方揭露頁對照；<b>三大法人買賣超</b>列點整個名稱即可展開外資／投信／自營商分項（來源連結為該列的「官方↗」）。'
+             '各列點下方<b>「官方↗」</b>可開該指標官方揭露頁對照；<b>三大法人買賣超</b>列點整個名稱可展開外資／投信／自營商分項。'
              '<br>單位：VIX／美元指數 DXY＝指數點；殖利率＝%（日變化以 bp 計）；美元兌新台幣＝新台幣元；'
              '原油＝美元/桶；黃金＝美元/盎司；法人買賣超／融資餘額＝億元；融券＝張；台指期＝口。'
              '<br>口徑：全球指標＝最近收盤（Yahoo Finance 官方序列）。台股籌碼＝證交所／期交所前一交易日盤後官方數據：'
@@ -1503,20 +1497,19 @@ a.tk:hover{color:var(--acc)}
 .spark svg{width:86px;height:24px;display:block}
 .spark.bars rect.up{fill:var(--gain)} .spark.bars rect.dn{fill:var(--loss)}
 .spark.bars line.base{stroke:var(--line);stroke-width:1}
-/* 指標名稱＝可點官方來源連結 */
-.mdlab a.mdsl{color:var(--ink);text-decoration:none;border-bottom:1px dotted var(--accd)}
-.mdlab a.mdsl:hover{color:var(--accd);border-bottom-style:solid}
-/* 三大法人：名稱＝大範圍展開鈕（好按、不誤觸連結）；官方連結另做小 ↗ */
+/* 指標名稱：統一純文字、非粗體（2026-07-23 使用者）；來源連結一律為下方小「官方↗」 */
+.mdgname{font-weight:400;color:var(--ink)}
+/* 三大法人：名稱包在大範圍展開鈕內（好按），仍非粗體 */
 .mdtogbtn{display:flex;align-items:flex-start;gap:4px;width:100%;background:none;border:0;margin:0;
-  padding:9px 4px 9px 0;cursor:pointer;font:inherit;font-weight:700;color:var(--ink);text-align:left;
+  padding:9px 4px 9px 0;cursor:pointer;font:inherit;font-weight:400;color:var(--ink);text-align:left;
   line-height:1.3;border-radius:7px;min-height:40px;-webkit-tap-highlight-color:rgba(47,111,208,.18)}
 .mdtogbtn:hover,.mdtogbtn:active{background:rgba(47,111,208,.08)}
 .mdtogbtn .mdcaret{flex:0 0 auto;color:var(--accd);font-size:14px;font-weight:800;line-height:1;
   margin-top:2px;transition:transform .15s}
 .mdcaret.open{transform:rotate(90deg)}
-.mdgname{flex:1 1 auto}
+.mdtogbtn .mdgname{flex:1 1 auto}
 .mdslsm{display:inline-block;font-size:11.5px;color:var(--accd);text-decoration:none;
-  border-bottom:1px dotted var(--accd);padding:2px 0}
+  border-bottom:1px dotted var(--accd);padding:1px 0}
 .mdslsm:hover{color:var(--acc);border-bottom-style:solid}
 tr.mdsub{display:none} tr.mdsub.show{display:table-row}
 tr.mdsub td{background:#f6f9fe;border-bottom:1px solid var(--line)}
