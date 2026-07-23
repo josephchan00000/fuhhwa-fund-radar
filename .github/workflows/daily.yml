@@ -99,7 +99,7 @@ jobs:
         # 核對狀態（🔴 紅色警示），主會話驗證步驟看到 🔴 立即修正該數字重推。
         run: TZ=Asia/Taipei python3 scripts/check_numbers.py || true
 
-      - name: 跑每日 routine（抓持股介紹 + 產新聞提示包 + 重建儀表板）
+      - name: 跑每日 routine（抓持股介紹 + 產新聞提示包 + 檢查簡介覆蓋 + 重建儀表板）
         run: bash scripts/daily_fund.sh
 
       - name: 上傳儀表板與持股快照為 artifact
@@ -122,6 +122,8 @@ jobs:
           git add -f data/funds/*.json 2>/dev/null || true        # 分開 add：新聞 glob 為空時不會連 NAV 快照一起中止
           git add -f data/fund_news.json 2>/dev/null || true      # 基金相關新聞＋社群聲量（fetch_fund_news.py 產出）
           git add -f data/etf_watch.json 2>/dev/null || true      # ETF 數據追蹤（fetch_etf_watch.py 產出）
+          git add -f data/macro_chips.json 2>/dev/null || true    # 總經・籌碼數據（fetch_macro_chips.py 產出）
+          git add -f data/holdings_intro_gap.json 2>/dev/null || true  # 前十大簡介缺口警示（check_holdings_intro.py 產）
           git add -f data/fund_nav_history.json 2>/dev/null || true  # NAV 序列持久層——漏 add 會斷史、1週/1月整片變 —（審查 #1）
           git add -f data/cnyes_fund_map.json 2>/dev/null || true    # 鉅亨 cnyesId 對映
           git add -f data/factcheck.json 2>/dev/null || true         # 數字核對結果（儀表板警示用）

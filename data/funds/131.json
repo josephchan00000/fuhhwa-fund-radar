@@ -12,9 +12,9 @@
   "mgmt_fee": "最高為1.20%",
   "size_twd": 1114976244.0,
   "nav": 10.3,
-  "nav_date": "2026/07/21",
-  "nav_change": 0.07,
-  "nav_change_pct": "0.68%",
+  "nav_date": "2026/07/22",
+  "nav_change": 0.0,
+  "nav_change_pct": "0.00%",
   "returns": {
     "ytd": "—",
     "3m": "—",
@@ -47,5 +47,5 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-07-23 07:04"
+  "fetched_at": "2026-07-24 06:52"
 }

@@ -342,6 +342,78 @@
    "ticker": "META",
    "country": "美國",
    "verified": true
+  },
+  "南電": {
+   "intro": "台灣南亞電路板（Nan Ya PCB），南亞塑膠集團旗下印刷電路板與 IC 封裝載板廠；主力 ABF／BT 載板供高階 CPU、GPU 與 AI 晶片封裝使用，為先進封裝載板供應鏈之一。",
+   "ticker": "8046",
+   "country": "臺灣",
+   "verified": true
+  },
+  "世界": {
+   "intro": "台灣世界先進（VIS），晶圓代工廠，專注成熟製程；生產電源管理、面板驅動、類比與微控制器等晶片，並跨入 12 吋成熟製程擴產。",
+   "ticker": "5347",
+   "country": "臺灣",
+   "verified": true
+  },
+  "日電貿": {
+   "intro": "台灣日電貿（NDB），台灣規模最大的專業被動元件代理商；代理三星電機、Panasonic、KEMET 等大廠 MLCC 與高分子電容，服務通訊、電源與車用客戶。",
+   "ticker": "3090",
+   "country": "臺灣",
+   "verified": true
+  },
+  "華邦電": {
+   "intro": "台灣華邦電子（Winbond），記憶體整合元件廠；生產利基型 DRAM、NOR Flash 與快閃記憶體，應用於消費性電子、網通與車用市場。",
+   "ticker": "2344",
+   "country": "臺灣",
+   "verified": true
+  },
+  "聯電": {
+   "intro": "台灣聯華電子（UMC），全球主要晶圓代工廠之一；聚焦成熟與特殊製程（射頻、電源、面板驅動等），為 28 奈米以上成熟製程重要供應者。",
+   "ticker": "2303",
+   "country": "臺灣",
+   "verified": true
+  },
+  "華新科": {
+   "intro": "台灣華新科技（Walsin Technology），華新麗華集團旗下被動元件廠；生產 MLCC 積層陶瓷電容與晶片電阻，為國內主要被動元件供應者之一。",
+   "ticker": "2492",
+   "country": "臺灣",
+   "verified": true
+  },
+  "T 1 3/8 08/31/26 美國國庫債券": {
+   "intro": "美國國庫債券（US Treasury Note），美國財政部發行、票面利率 1.375%、2026 年 8 月 31 日到期的中期公債；以美國政府信用為擔保，常作為投資組合的低波動與流動性配置部位。",
+   "ticker": "UST 1⅜ 08/26",
+   "country": "美國",
+   "verified": true
+  },
+  "VISHAY INTERTECHNOLOGY INC": {
+   "intro": "美國威世（Vishay），全球主要被動元件與分離式半導體廠；產品涵蓋電阻、電容、電感與二極體、MOSFET，廣泛用於工業、車用與消費性電子。",
+   "ticker": "VSH",
+   "country": "美國",
+   "verified": true
+  },
+  "ASTERA LABS INC": {
+   "intro": "美國 Astera Labs，AI 資料中心連結晶片廠；主力 Aries PCIe／CXL retimer 與智慧纜線模組，用於 GPU、加速器之間高速互連，與 AI 伺服器機櫃連結需求連動。",
+   "ticker": "ALAB",
+   "country": "美國",
+   "verified": true
+  },
+  "LASERTEC CORP": {
+   "intro": "日本 Lasertec，半導體檢測設備廠；為 EUV 極紫外光罩與光罩基板檢測設備的主要供應商，營運與先進製程 EUV 微影投資高度連動。",
+   "ticker": "6920",
+   "country": "日本",
+   "verified": true
+  },
+  "中鎢高新材料股份有限公司": {
+   "intro": "中國中鎢高新材料，中國五礦集團旗下鎢業與硬質合金企業；業務涵蓋鎢礦冶煉、切削刀具與硬質合金深加工，產品外銷逾 70 國。",
+   "ticker": "000657",
+   "country": "中國",
+   "verified": true
+  },
+  "北京華峰測控技術股份有限公司": {
+   "intro": "中國華峰測控，半導體自動化測試設備廠；為國產類比與數模混合訊號測試機主要供應商，產品用於類比、SoC、功率與分離式元件測試。",
+   "ticker": "688200",
+   "country": "中國",
+   "verified": true
   }
  }
 }
