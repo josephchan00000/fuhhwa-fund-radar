@@ -637,19 +637,30 @@ def _md_delta(v: float | None, digits: int, unit: str = "", bp: bool = False) ->
 
 def _md_name_cell(key: str, label: str, *, caret: str | None = None, sub: bool = False,
                   datestr: str = "") -> str:
-    """指標名稱欄：名稱本身＝可點的官方來源連結（2026-07-23 使用者：按鈕放在名字）；
-    名稱下方小字＝資料日（省一整欄、手機恆可見）。caret＝可展開群組 ▸；sub＝分項子列（縮排）。"""
+    """指標名稱欄。三種型態：
+    · 可展開主列（caret 且非 sub）：整個名稱＝大範圍展開鈕（好按、不會誤觸連結），
+      官方來源改為下方獨立小連結「官方↗」（2026-07-23 使用者：▸ 太小易誤按到網址）。
+    · 一般列／分項子列：名稱本身＝可點官方來源連結；下方小字＝資料日。"""
     src = _MD_SRC.get(key)
-    inner = _esc(label)
-    if src:
-        _inst, _lbl, url = src
+    url = src[2] if src else None
+    if caret and not sub:                             # ── 可展開主列：名稱＝展開鈕 ──
+        srclink = (f'<a class="mdslsm" href="{_safe_url(url)}" target="_blank" rel="noopener" '
+                   f'title="開官方揭露頁">官方↗</a>' if url else "")
+        sep = " · " if (srclink and datestr) else ""
+        meta = (f'<span class="mddt">{_esc(datestr)}{sep}{srclink}</span>'
+                if (datestr or srclink) else "")
+        btn = (f'<button type="button" class="mdtogbtn" data-grp="{_esc(caret)}" '
+               f'aria-label="展開／收合外資投信自營商分項">'
+               f'<span class="mdcaret" data-grp="{_esc(caret)}">▸</span>'
+               f'<span class="mdgname">{_esc(label)}</span></button>')
+        return f'<td class="l mdlab mdgrouplab">{btn}{meta}</td>'
+    inner = _esc(label)                               # ── 一般列／子列：名稱＝來源連結 ──
+    if url:
         inner = (f'<a class="mdsl" href="{_safe_url(url)}" target="_blank" rel="noopener" '
-                 f'title="點開官方揭露頁：{_esc(_inst)}">{_esc(label)}</a>')
-    car = (f'<button type="button" class="mdcaret" data-grp="{_esc(caret)}" '
-           f'aria-label="展開分項">▸</button>' if caret else "")
+                 f'title="點開官方揭露頁：{_esc(src[0])}">{_esc(label)}</a>')
     dt = f'<span class="mddt">{_esc(datestr)}</span>' if datestr else ""
     cls = "l mdlab" + (" mdsublab" if sub else "")
-    return f'<td class="{cls}">{car}{inner}{dt}</td>'
+    return f'<td class="{cls}">{inner}{dt}</td>'
 
 
 def _md_row_html(mc: dict, key: str, label: str, kind: str, digits: int, unit: str,
@@ -751,7 +762,7 @@ def _macro_data_view(mc: dict | None) -> str:
             + f'<div class="calsub">{_ic("layers", plain=True)} 台股籌碼</div>'
             + _md_table(mc, tw_body, col5="近5日／累計"))
     html += ('<div class="etfnote">'
-             '<b>點指標名稱</b>可開官方揭露頁對照；<b>三大法人買賣超</b>列點名稱旁 ▸ 可展開外資／投信／自營商分項。'
+             '<b>點指標名稱</b>可開官方揭露頁對照；<b>三大法人買賣超</b>列點整個名稱即可展開外資／投信／自營商分項（來源連結為該列的「官方↗」）。'
              '<br>單位：VIX／美元指數 DXY＝指數點；殖利率＝%（日變化以 bp 計）；美元兌新台幣＝新台幣元；'
              '原油＝美元/桶；黃金＝美元/盎司；法人買賣超／融資餘額＝億元；融券＝張；台指期＝口。'
              '<br>口徑：全球指標＝最近收盤（Yahoo Finance 官方序列）。台股籌碼＝證交所／期交所前一交易日盤後官方數據：'
@@ -1480,7 +1491,7 @@ a.tk:hover{color:var(--acc)}
 .mdtbl{font-size:14px}
 .mdtbl th,.mdtbl td{padding:9px 9px;white-space:nowrap}
 .mdtbl td.mdlab,.mdtbl th:first-child{position:sticky;left:0;z-index:2;background:var(--card);
-  min-width:92px;max-width:150px;white-space:normal;line-height:1.3;box-shadow:1px 0 0 var(--line)}
+  min-width:104px;max-width:150px;white-space:normal;line-height:1.3;box-shadow:1px 0 0 var(--line)}
 .mdtbl thead th:first-child{z-index:3}
 .mdtbl td.mdval{font-weight:700}
 .mddt{display:block;font-size:11px;color:var(--mut);font-weight:400;margin-top:1px}  /* 名稱下方資料日 */
@@ -1489,16 +1500,24 @@ a.tk:hover{color:var(--acc)}
 .mdtbl th.mdchg .mdn5{color:var(--mut);opacity:1}
 .mdtbl td.mdspark{padding-top:4px;padding-bottom:4px}
 .spark{display:inline-block;vertical-align:middle}
-.spark svg{width:96px;height:24px;display:block}
+.spark svg{width:86px;height:24px;display:block}
 .spark.bars rect.up{fill:var(--gain)} .spark.bars rect.dn{fill:var(--loss)}
 .spark.bars line.base{stroke:var(--line);stroke-width:1}
 /* 指標名稱＝可點官方來源連結 */
 .mdlab a.mdsl{color:var(--ink);text-decoration:none;border-bottom:1px dotted var(--accd)}
 .mdlab a.mdsl:hover{color:var(--accd);border-bottom-style:solid}
-/* 三大法人展開 ▸／分項子列 */
-.mdcaret{border:0;background:none;cursor:pointer;color:var(--accd);font-size:12px;font-weight:800;
-  padding:0 6px 0 0;margin:0;line-height:1;transition:transform .15s}
-.mdcaret.open{transform:rotate(90deg);display:inline-block}
+/* 三大法人：名稱＝大範圍展開鈕（好按、不誤觸連結）；官方連結另做小 ↗ */
+.mdtogbtn{display:flex;align-items:flex-start;gap:4px;width:100%;background:none;border:0;margin:0;
+  padding:9px 4px 9px 0;cursor:pointer;font:inherit;font-weight:700;color:var(--ink);text-align:left;
+  line-height:1.3;border-radius:7px;min-height:40px;-webkit-tap-highlight-color:rgba(47,111,208,.18)}
+.mdtogbtn:hover,.mdtogbtn:active{background:rgba(47,111,208,.08)}
+.mdtogbtn .mdcaret{flex:0 0 auto;color:var(--accd);font-size:14px;font-weight:800;line-height:1;
+  margin-top:2px;transition:transform .15s}
+.mdcaret.open{transform:rotate(90deg)}
+.mdgname{flex:1 1 auto}
+.mdslsm{display:inline-block;font-size:11.5px;color:var(--accd);text-decoration:none;
+  border-bottom:1px dotted var(--accd);padding:2px 0}
+.mdslsm:hover{color:var(--acc);border-bottom-style:solid}
 tr.mdsub{display:none} tr.mdsub.show{display:table-row}
 tr.mdsub td{background:#f6f9fe;border-bottom:1px solid var(--line)}
 .mdtbl tr.mdsub td.mdlab{background:#f6f9fe}          /* 凍結首格用不透明底、蓋住捲動內容 */
@@ -1689,9 +1708,11 @@ document.querySelectorAll('.ovtbl th.sk').forEach(th=>th.onclick=()=>{
 });
 // 投資策略兩行截斷 ↔ 展開
 document.querySelectorAll('.strat').forEach(s=>s.onclick=()=>s.classList.toggle('open'));
-// 市場溫度計「三大法人」▸ 展開／收合外資／投信／自營商分項
-document.querySelectorAll('.mdcaret').forEach(c=>c.addEventListener('click',e=>{
-  e.stopPropagation();const g=c.dataset.grp;c.classList.toggle('open');
+// 市場溫度計「三大法人」名稱＝大範圍展開鈕，展開/收合外資／投信／自營商分項
+document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>{
+  e.stopPropagation();const g=b.dataset.grp;
+  const open=b.querySelector('.mdcaret').classList.toggle('open');
+  b.setAttribute('aria-expanded',open?'true':'false');
   document.querySelectorAll('tr.mdsub[data-grp="'+g+'"]').forEach(r=>r.classList.toggle('show'));
 }));
 // 儀表板逾期未重建警告——CI 全停擺時 HTML 不會再重生、上面的 ⚠ 也不會更新，
