@@ -146,7 +146,9 @@ def test_inst_group_expandable_with_breakdown():
                 "inst_trust": {"2026-07-22": 169.9},
                 "inst_dealer": {"2026-07-22": -24.0}})
     html = fd._md_inst_group_html(doc)
-    assert 'class="mdcaret"' in html and 'data-grp="inst"' in html   # 主列可展開
+    # 主列名稱＝大範圍展開鈕（好按、不誤觸連結），來源另做小「官方↗」
+    assert 'class="mdtogbtn"' in html and 'data-grp="inst"' in html
+    assert "官方↗" in html
     for name in ("外資及陸資", "投信", "自營商"):                      # 三分項子列
         assert name in html
     assert 'class="mdsub"' in html
