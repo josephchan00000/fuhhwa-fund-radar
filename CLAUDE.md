@@ -87,14 +87,32 @@
      `config/holding_profiles.json` 並重推**（同數字核對 🔴 的分鐘級收斂）；儀表板「網頁更新時間」列也會顯示 🔴 警示章。
    - 註：持股基準為月度值（顯示上月底）——不是資料沒更新。
 
+## 指令：「排程搬家」（2026-07-24 建立；使用者約 3–5 天執行一次）
+
+使用者在**任何**對話窗打**「排程搬家」**（或「搬排程」）＝把每日 06:35 自動更新 Routine 改綁到**當前**
+對話窗。**不要詢問、不要查證其他東西、不改任何檔案、不 commit**——固定三個 MCP 呼叫收工（最省 token）：
+
+1. `list_triggers`（先用預設 limit；找不到再用 cursor 翻頁）→ 找**名稱以「復華基金雷達 每日全部更新」
+   開頭且 `enabled:true`** 的 Routine。若它的 `persistent_session_id` 已是本會話 → 回一句「排程已綁本視窗」結束。
+2. `create_trigger`（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`）：
+   - name：`復華基金雷達 每日全部更新(台北 06:35・07:03 前完成)`
+   - cron_expression：`35 22 * * *`（＝台北 06:35）
+   - prompt：**下方原文照抄、一字不改**。
+3. `delete_trigger` 刪掉步驟 1 找到的舊 Routine（機制備忘：`update_trigger` 改不了綁定會話、跨會話
+   update 也被組織政策擋，但**跨會話 delete 可行**——2026-07-24 實證；所以搬家＝建新＋刪舊，不是改舊）。
+4. 一句話回報：新 trigger id＋下次觸發時間。create_trigger 若警告「no MCP connectors」**可忽略**
+   （SOP 第 7 步走 push 自動觸發、驗證用 git，不依賴 MCP）。
+
+Routine prompt 原文（步驟 2 照抄用）：
+
+> （排程自動觸發）全部更新。依 repo CLAUDE.md「指令：全部更新」SOP 完整執行：產提示包 → 平行子代理 WebSearch 產當日新聞（美股 v1/v2、台股、總經、行事曆；嚴守版型／禁用詞／每卡連結）→ gen_*.py --check 與 check_reports.py 全 🟢 → 重建儀表板 → pytest 全綠 → commit+push 到本會話指定分支（push 動到 reports/** 會自動觸發 daily.yml）→ 等 main 前進後驗證（新聞今日、產表時戳為 CI、nav_date 推進）。完成或失敗都用 PushNotification 推播一句話結果給使用者（成功：當日 3 條市場重點摘要；失敗：卡在哪一步＋影響）。不可宣稱「線上已生效」（本環境看不到 Vercel）。若工作樹有未完成的其他工作，先 stash 或用獨立分支，勿混入每日更新 commit。
+
 ## 每日固定時間自動更新（2026-07-18 建立；同日改「火進主會話」模式）
 
-- **排程 Routine**（claude.ai Routines，trigger id `trig_015mYGdnjokf8BVg36ZpmJdZ`；2026-07-24 依使用者指示
-  由舊主會話搬到新主會話，舊 trigger `trig_01VBzHiDsox4WxsuSGmqL54x` 已刪除）：每天 **台北 06:35**（UTC 22:35）
-  **火進主會話**（session_01AGs6XgJPkNpmL2EGCdCSJV）跑「全部更新」SOP。目標：**07:03 前線上可看當日內容**
-  （2026-07-20 使用者指示；實測全程 15–28 分，06:35 起跑最壞壓線、一般 06:55 完成）。
-  **搬會話 SOP（工具限制）**：`update_trigger` 不能改綁定會話（跨會話更新也被組織政策擋）——搬家＝
-  在目標會話 `create_trigger`（預設自綁）建同 cron 同 prompt 的新 Routine，再 `delete_trigger` 刪舊的。
+- **排程 Routine**（claude.ai Routines）：每天 **台北 06:35**（UTC 22:35）**火進主會話**跑「全部更新」SOP。
+  目標：**07:03 前線上可看當日內容**（2026-07-20 使用者指示；實測全程 15–28 分，06:35 起跑最壞壓線、
+  一般 06:55 完成）。**trigger id 與綁定會話會隨「排程搬家」（見下方專節）改變**——一律以
+  `list_triggers` 實查為準，本檔不再記死 id（2026-07-24 起；使用者約每 3–5 天在新視窗搬一次）。
 - **為何不用「開新會話」模式（2026-07-18 實測兩次全滅，勿走回頭路）**：fresh-session 點火綁的環境
   （env_01FK…「化學」）沒掛本 repo source，會話起來連最小 heartbeat push 都做不到（第二次點火帶
   「3 分鐘心跳測試」指令仍 18 分鐘零輸出）。改火進主會話後有 repo、有 GitHub MCP、有完整脈絡；
@@ -103,7 +121,7 @@
   ① 本排程 Routine 綁在**持久主會話**，其模型「跟著該會話走」——不是跟著 trigger；
   ② `update_trigger` 改模型全組織停用（回 `model_update_disabled`）；改綁在其他會話的 trigger 也被擋；
   ③ 新開會話仍預設落在無 repo 的「化學」env（同上兩次全滅主因）。
-  **唯一可行槓桿＝在主會話 `session_01AGs6XgJPkNpmL2EGCdCSJV` 內執行 `/model sonnet`**（會固定生效、
+  **唯一可行槓桿＝在「排程當前綁定的主會話」內執行 `/model sonnet`**（會固定生效、
   之後每日火進該會話即用 sonnet）；此動作只能由使用者在該會話操作，容器內 Claude 無法代勞。
   若日後組織開放 routine 模型設定、或把本 repo 掛上某個可排程 env，才談得上「fresh sonnet 會話」路徑。
 - 排程點火的回合若 MCP 不可用，SOP 第 7 步照樣走「push 自動觸發」；驗證用 git（fetch origin main
