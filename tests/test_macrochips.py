@@ -1,0 +1,130 @@
+"""macrochips（總經・籌碼數據「市場溫度計」）：合併鐵則／取數／解析／儀表板渲染。"""
+import json
+
+from arm import macrochips as mc
+from arm import fund_dashboard as fd
+
+
+def _doc(series):
+    return {"as_of": "2026-07-23 06:50", "series": series, "src": {}}
+
+
+# ── 合併鐵則 ─────────────────────────────────────────────────────
+
+def test_merge_keeps_old_when_new_empty():
+    old = {"2026-07-21": 17.05, "2026-07-22": 16.64}
+    assert mc._merge(old, {}) == old
+
+
+def test_merge_new_overwrites_same_date_and_none_never_written():
+    old = {"2026-07-22": 16.0}
+    out = mc._merge(old, {"2026-07-22": 16.64, "2026-07-23": None})
+    assert out == {"2026-07-22": 16.64}
+
+
+def test_merge_trims_to_keep():
+    old = {f"2026-01-{i:02d}": float(i) for i in range(1, 29)}
+    new = {f"2026-02-{i:02d}": float(i) for i in range(1, 29)}
+    out = mc._merge(old, new)
+    assert len(out) == mc._KEEP
+    assert max(out) == "2026-02-28"          # 留最近、汰最舊
+
+
+def test_save_never_wipes_nonempty_file(tmp_path, monkeypatch):
+    fp = tmp_path / "macro_chips.json"
+    monkeypatch.setattr(mc, "DATA_FP", fp)
+    mc.save(_doc({"vix": {"2026-07-22": 16.64}}))
+    mc.save(_doc({k: {} for k in mc.ALL_KEYS}))          # 全空 doc → 不覆寫
+    kept = json.loads(fp.read_text(encoding="utf-8"))
+    assert kept["series"]["vix"] == {"2026-07-22": 16.64}
+
+
+# ── 儀表板取數 ────────────────────────────────────────────────────
+
+_S = _doc({"inst_total": {"2026-07-16": -431.4, "2026-07-17": -2617.2, "2026-07-20": 5.0,
+                          "2026-07-21": 164.1, "2026-07-22": 319.4},
+           "vix": {"2026-07-21": 17.05, "2026-07-22": 16.64}})
+
+
+def test_latest_and_day_change():
+    assert mc.latest(_S, "vix") == ("2026-07-22", 16.64)
+    assert mc.day_change(_S, "vix") == -0.41
+    assert mc.day_change(_S, "brent") is None            # 無序列 → None
+
+
+def test_sum_and_change_n():
+    assert mc.sum_n(_S, "inst_total", 5) == -2560.1      # 近5日累計
+    assert mc.sum_n(_S, "inst_total", 6) is None         # 不足 n 筆不以偏概全
+    assert mc.change_n(_S, "vix", 5) is None
+
+
+def test_points_ordered():
+    assert mc.points(_S, "inst_total", 3) == [5.0, 164.1, 319.4]
+
+
+def test_vix_level_thresholds():
+    assert mc.vix_level(12.0)[0] == "平靜"
+    assert mc.vix_level(16.6)[0] == "正常"
+    assert mc.vix_level(25.0)[0] == "偏高"
+    assert mc.vix_level(35.0)[0] == "恐慌"
+    assert mc.vix_level(None) is None
+
+
+# ── 官方端點解析（離線 fixture） ──────────────────────────────────
+
+def test_twse_margin_parse(monkeypatch):
+    doc = {"stat": "OK", "tables": [
+        {"data": [["融資(交易單位)", "1,000", "2,000", "10", "500,000", "480,000"],
+                  ["融券(交易單位)", "3,000", "1,000", "20", "236,300", "210,900"],
+                  ["融資金額(仟元)", "9,000,000", "27,900,000", "100", "587,962,000", "569,036,000"]]}]}
+    monkeypatch.setattr(mc.factcheck, "_get_json", lambda url: doc)
+    from datetime import date
+    fin, short = mc._twse_margin(date(2026, 7, 20))
+    assert fin == 5690.4            # 仟元 → 億
+    assert short == 210900          # 融券餘額（張）
+
+
+def test_taifex_tx_foreign_parse(monkeypatch):
+    rows = [["日期", "契約", "身份別", "多方口數", "多方金額", "空方口數", "空方金額",
+             "多空淨額口數", "多空淨額金額", "多方未平倉", "多方未平倉金額",
+             "空方未平倉", "空方未平倉金額", "未平倉淨額口數", "未平倉淨額金額"],
+            ["2026/07/21", "臺股期貨", "外資", "60000", "100", "70000", "120",
+             "-10000", "-20", "90000", "500", "176189", "900", "-86189", "-400"],
+            ["2026/07/21", "臺股期貨", "自營商", "1", "1", "1", "1",
+             "0", "0", "1", "1", "1", "1", "0", "0"]]
+    monkeypatch.setattr(mc, "_taifex_csv", lambda url, body: rows)
+    from datetime import date
+    out = mc._taifex_tx_foreign(date(2026, 7, 14), date(2026, 7, 22))
+    assert out == {"2026-07-21": -86189.0}     # 外資列、倒數第2個整數欄＝未平倉淨額
+
+
+def test_taifex_pc_ratio_parse(monkeypatch):
+    rows = [["日期", "賣權成交量", "買權成交量", "買賣權成交量比率%",
+             "賣權未平倉量", "買權未平倉量", "買賣權未平倉量比率%"],
+            ["2026/07/22", "500000", "600000", "83.33", "300000", "280000", "107.14"]]
+    monkeypatch.setattr(mc, "_taifex_csv", lambda url, body: rows)
+    from datetime import date
+    out = mc._taifex_pc_ratio(date(2026, 7, 14), date(2026, 7, 22))
+    assert out == {"2026-07-22": 107.14}
+
+
+# ── 儀表板渲染 ────────────────────────────────────────────────────
+
+def test_macro_data_view_renders_values_and_spark():
+    html = fd._macro_data_view(_S)
+    assert "VIX 恐慌指數" in html and "16.64" in html
+    assert "三大法人買賣超" in html and "+319.4 億" in html
+    assert "<svg" in html                                  # sparkline
+    assert "正常" in html                                  # VIX 狀態標籤
+    # 無資料指標整列不列、不留空格
+    assert "布蘭特原油" not in html
+
+
+def test_macro_data_view_empty_hint():
+    assert "尚無市場數據" in fd._macro_data_view(None)
+    assert "尚無市場數據" in fd._macro_data_view(_doc({k: {} for k in mc.ALL_KEYS}))
+
+
+def test_spark_degenerate():
+    assert fd._spark([1.0]) == '<span class="na">—</span>'
+    assert "<svg" in fd._spark([1.0, 1.0])                # 純平序列不當機（rng=0 防呆）
