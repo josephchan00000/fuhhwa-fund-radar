@@ -105,6 +105,15 @@ def test_taifex_tx_foreign_parse(monkeypatch):
     assert out == {"2026-07-21": -86189.0}     # 外資列、倒數第2個整數欄＝未平倉淨額
 
 
+def test_taifex_tx_foreign_skips_zero(monkeypatch):
+    # 今日盤中未結算 → 外資列全 0；不可寫入（踩過：CI 於 7/23 把外資淨部位讀成 0）
+    rows = [["2026/07/23", "臺股期貨", "外資", "0", "0", "0", "0",
+             "0", "0", "0", "0", "0", "0", "0", "0"]]
+    monkeypatch.setattr(mc, "_taifex_csv", lambda url, body: rows)
+    from datetime import date
+    assert mc._taifex_tx_foreign(date(2026, 7, 23), date(2026, 7, 23)) == {}
+
+
 def test_taifex_pc_ratio_parse(monkeypatch):
     rows = [["日期", "賣權成交量", "買權成交量", "買賣權成交量比率%",
              "賣權未平倉量", "買權未平倉量", "買賣權未平倉量比率%"],
