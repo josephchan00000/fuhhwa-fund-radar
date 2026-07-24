@@ -210,7 +210,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
       <a href="#macro-cal">本週行事曆</a><a href="#macro-ov">政策總覽</a><a href="#macro">政策新聞</a><a href="#macro-data">市場數據</a>
     </nav>
     <nav class="tb-nav tb-nav-etf">
-      <a href="#etf-passive">被動 ETF</a><a href="#etf-active">主動股票</a><a href="#etf-other">其他</a>
+      <a href="#etf-upcoming">即將登場</a><a href="#etf-passive">被動 ETF</a><a href="#etf-active">主動股票</a><a href="#etf-other">其他</a>
     </nav>
   </div>
 </div>"""
@@ -881,6 +881,66 @@ def _etf_table(items: list[dict]) -> str:
             f'<tbody>{"".join(trs)}</tbody></table></div>')
 
 
+def _upcoming_etf_card(it: dict, kind: str) -> str:
+    """單張「即將登場」ETF 卡片：代碼／名稱／投信＋狀態日期＋主題＋活動介紹連結。"""
+    code = _esc(it.get("code") or "")
+    name = _esc(it.get("name") or "").replace("復華", '<span class="fh">復華</span>')
+    issuer = _esc(it.get("issuer") or "")
+    theme = _esc(it.get("theme") or "")
+    freq = it.get("freq")
+    freq_tag = (f'<span class="uptag">{_esc(freq)}</span>'
+                if freq and freq != "—" else "")
+    if kind == "listing":
+        ld = str(it.get("list_date") or "")
+        md = ld[5:].replace("-", "/") if len(ld) >= 10 else ld
+        status = f'<span class="upstat list">掛牌 {_esc(md)}</span>'
+    else:
+        rs, re_ = str(it.get("raise_start") or ""), str(it.get("raise_end") or "")
+        rs_md = rs[5:].replace("-", "/") if len(rs) >= 10 else rs
+        re_md = re_[5:].replace("-", "/") if len(re_) >= 10 else ""
+        span = f'{rs_md}–{re_md}' if re_md else f'{rs_md} 起'
+        status = f'<span class="upstat raise">募集 {_esc(span)}</span>'
+    url = it.get("url")
+    link = (f'<a class="uplink" href="{_esc(url)}" target="_blank" rel="noopener">'
+            f'活動介紹 ↗</a>' if url else "")
+    return (f'<div class="upcard">'
+            f'<div class="uptop"><span class="upcode">{code}</span>'
+            f'<span class="upname">{name}</span>'
+            f'<span class="upissuer">{issuer}</span></div>'
+            f'<div class="upmeta">{status}{freq_tag}</div>'
+            f'<div class="uptheme">{theme}</div>{link}</div>')
+
+
+def _upcoming_etf_view(up: dict | None) -> str:
+    """「即將登場的新 ETF」——未來一週預計掛牌＋未來一個月預計募集，各附活動介紹連結。
+
+    置於「ETF 數據追蹤」表格上方；無任何在窗項目時顯示精簡提示、不佔版面。"""
+    up = up or {}
+    listing = up.get("listing") or []
+    raising = up.get("raising") or []
+    if not listing and not raising:
+        return ('<div class="upnone">近期無「即將掛牌／即將募集」的新 ETF 待登場'
+                '（本區僅列掛牌日在未來約兩週內、或募集開始在未來約一個月內者，過期自動移除）。</div>')
+    parts = ['<div class="upwrap">']
+    if listing:
+        parts.append(f'<div class="upgrp">{_ic("zap", plain=True)} 即將掛牌 '
+                     f'<span class="upwin">（掛牌日在未來約兩週內・{len(listing)} 檔）</span></div>'
+                     f'<div class="upgrid">'
+                     + "".join(_upcoming_etf_card(it, "listing") for it in listing)
+                     + '</div>')
+    if raising:
+        parts.append(f'<div class="upgrp">{_ic("coin", plain=True)} 即將募集・募集中 '
+                     f'<span class="upwin">（募集開始在未來約一個月內・{len(raising)} 檔）</span></div>'
+                     f'<div class="upgrid">'
+                     + "".join(_upcoming_etf_card(it, "raise") for it in raising)
+                     + '</div>')
+    parts.append(
+        '<div class="upfoot">新 ETF 前瞻資訊為人工彙整（來源：各投信官方募集頁／公開資訊觀測站／'
+        '經濟日報・工商時報等，點「活動介紹」看原始說明）；日期以各投信公告為準，僅供參考、非投資'
+        '建議或招攬。募集期間、掛牌日期可能因主管機關核准進度調整。</div></div>')
+    return "".join(parts)
+
+
 def _etfwatch_view(doc: dict | None) -> str:
     """ETF 數據追蹤分頁：被動（高股息／市值型）與主動式兩張週績效表。"""
     if not doc or not doc.get("items"):
@@ -1019,10 +1079,18 @@ def _holdings_table(doc: dict, linked_names: set[str]) -> str:
         return '<div class="muted">十大持有標的暫無資料。</div>'
     rows = []
     for i, h in enumerate(hs, 1):
-        fu = fund_insights.futu_url(h.get("ticker"), h.get("country"))
-        tk = (f' <a class="tk" href="{_esc(fu)}" target="_blank" rel="noopener" '
-              f'title="富途牛牛即時行情">{_esc(h["ticker"])} ↗</a>' if fu else
-              (f' <span class="tk">{_esc(h["ticker"])}</span>' if h.get("ticker") else ""))
+        # 每檔持股都可點進外部行情頁（Yahoo Finance，涵蓋台／美／日／韓／中 A 股）——
+        # 標的名即連結，代碼旁再掛統一「↗」外部連結標；不再「有些有圖標、有些沒有」。
+        su = fund_insights.stock_url(h.get("ticker"), h.get("country"), h.get("name"))
+        cname = _esc(fund_insights.full_company_name(h.get("name")))
+        name_html = (f'<a class="hnm" href="{_esc(su)}" target="_blank" rel="noopener" '
+                     f'title="查看 {cname} 外部行情（Yahoo Finance）">{cname}</a>'
+                     if su else f'<b>{cname}</b>')
+        tk = ""
+        if h.get("ticker"):
+            tk = (f' <a class="tk" href="{_esc(su)}" target="_blank" rel="noopener" '
+                  f'title="查看外部行情（Yahoo Finance）">{_esc(h["ticker"])} ↗</a>' if su else
+                  f' <span class="tk">{_esc(h["ticker"])}</span>')
         ct = f'<span class="pill">{_esc(h["country"])}</span>' if h.get("country") else ""
         intro = f'<div class="hintro">{_esc(h["intro"])}</div>' if h.get("intro") else ""
         hl = h.get("name") in linked_names
@@ -1030,7 +1098,7 @@ def _holdings_table(doc: dict, linked_names: set[str]) -> str:
         trcls = ' class="hl"' if hl else ""
         rows.append(
             f'<tr{trcls}><td class="rk">{i}</td>'
-            f'<td class="nm"><b>{_esc(fund_insights.full_company_name(h.get("name")))}</b>{tk}{link} '
+            f'<td class="nm">{name_html}{tk}{link} '
             f'<span class="sec">{_esc(h.get("sector"))}</span> {ct}{intro}</td>'
             f'<td class="wt">{(h.get("weight") or 0):.2f}%</td></tr>')
     return (f'<table class="htbl"><thead><tr><th></th>'
@@ -1527,6 +1595,27 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 .mdsrc a{color:var(--accd);text-decoration:none;border-bottom:1px dotted var(--accd);padding-bottom:1px}
 .mdsrc a:hover{color:var(--acc);border-bottom-style:solid}
 .mdsrc .ic.plain{margin-right:3px}
+/* 即將登場的新 ETF（募集／掛牌） */
+.upwrap{margin-bottom:6px}
+.upgrp{font-weight:700;font-size:13.5px;color:var(--accd);margin:12px 0 8px;display:flex;align-items:center;gap:5px}
+.upwin{font-weight:400;font-size:12px;color:var(--mut)}
+.upgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.upcard{background:var(--pad);border:1px solid var(--line);border-radius:11px;padding:11px 13px}
+.uptop{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px}
+.upcode{font-weight:800;font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+.upname{font-weight:700;font-size:14.5px;color:var(--ink)}
+.upname .fh{color:var(--gold);font-weight:800}
+.upissuer{font-size:11.5px;color:var(--mut);background:var(--card2);border-radius:5px;padding:1px 6px}
+.upmeta{margin:7px 0 5px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.upstat{display:inline-block;font-size:12px;font-weight:700;border-radius:7px;padding:2px 9px;white-space:nowrap}
+.upstat.list{color:#1d6b3a;background:rgba(31,157,87,.14)}
+.upstat.raise{color:#1d4f9c;background:rgba(47,111,208,.13)}
+.uptag{display:inline-block;font-size:11px;color:var(--mut);background:var(--card2);border-radius:5px;padding:1px 7px}
+.uptheme{font-size:12.5px;color:var(--ink2);line-height:1.65;margin-bottom:8px}
+.uplink{display:inline-block;font-size:12.5px;font-weight:700;color:var(--accd);background:rgba(47,111,208,.09);border-radius:8px;padding:4px 12px;text-decoration:none}
+.uplink:hover{color:#fff;background:var(--acc)}
+.upfoot{color:var(--mut);font-size:12px;line-height:1.75;margin:12px 0 4px}
+.upnone{color:var(--mut);font-size:13px;background:var(--pad);border-radius:10px;padding:11px 14px;margin-bottom:6px}
 /* ETF 數據追蹤 */
 .etcat{display:inline-block;white-space:nowrap;font-size:11px;color:var(--accd);border:0;background:rgba(47,111,208,.1);border-radius:5px;padding:1px 6px}
 .etfnote{color:var(--mut);font-size:12.5px;margin-top:12px;line-height:1.8;border-top:1px solid var(--line);padding-top:8px}
@@ -1604,6 +1693,9 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 .htbl .sec{display:inline-block;white-space:nowrap;font-size:11px;color:var(--mut);background:var(--card2);border:0;border-radius:5px;padding:1px 5px;margin-left:4px}
 .htbl tr.hl td{background:rgba(224,138,18,.1)}
 .hlk{text-decoration:none}
+a.hnm{font-weight:700;color:var(--accd);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(43,95,176,.4)}
+a.hnm:hover{color:var(--acc);text-decoration-color:var(--acc)}
+a.tk{text-decoration:none} a.tk:hover{color:var(--acc)}
 .tk{font-size:11px;color:var(--accd)} .pill{display:inline-block;white-space:nowrap;font-size:11px;color:var(--mut);background:var(--card2);border:0;border-radius:5px;padding:1px 5px;margin-left:4px}
 .hintro{color:var(--mut);font-size:12.5px;margin-top:3px}
 .foot{color:var(--mut);font-size:12.5px;line-height:1.8;margin-top:22px;border-top:1px solid var(--line);padding-top:12px}
@@ -1844,7 +1936,12 @@ def render() -> str:
                       f'官方數據（TWSE／期交所／Yahoo Finance）每日更新</span></div>'
                       f'{_macro_data_view(mc_doc)}</div>')
 
-    # ETF 數據追蹤分頁（被動／主動台股 ETF 週績效表；左上「ETF」分頁專屬視圖）
+    # ETF 分頁：先「即將登場的新 ETF」（未來一週掛牌＋未來一個月募集，附活動介紹連結），
+    # 再「ETF 數據追蹤」週績效表（左上「ETF」分頁專屬視圖）
+    etf_up = etfwatch.upcoming()
+    sec_etf_up = (f'<div class="section" id="etf-upcoming"><div class="st">{_ic("zap", tone="amber")}即將登場的新 ETF '
+                  f'<span class="stsub">未來一週預計掛牌＋未來一個月預計募集・點「活動介紹」看投信說明</span></div>'
+                  f'{_upcoming_etf_view(etf_up)}</div>')
     sec_etf = (f'<div class="section" id="etfwatch"><div class="st">{_ic("activity", tone="teal")}ETF 數據追蹤 '
                f'{_fresh_chip("資料基準", etf_asof, 10)} '
                f'<span class="stsub">台股被動（高股息／市值型）＋主動式 ETF・收盤／規模／成立／週月報酬／'
@@ -1911,7 +2008,8 @@ def render() -> str:
 {sec_macro_ov}
 {sec_macro}
 {sec_macro_data}</div>
-<div class="etfview">{sec_etf}</div>
+<div class="etfview">{sec_etf_up}
+{sec_etf}</div>
 <div class="fundview">
 {sec_brief}
 {sec_news}
