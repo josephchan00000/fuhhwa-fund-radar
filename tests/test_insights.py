@@ -185,6 +185,25 @@ def test_futu_url_markets():
     assert fund_insights.futu_url(None, "美國") is None
 
 
+def test_stock_url_all_markets_clickable():
+    # 每個市場都要能產出可點的外部行情頁（Yahoo Finance）——不再「有些有連結、有些沒有」
+    assert fund_insights.stock_url("AAPL", "美國") == "https://finance.yahoo.com/quote/AAPL"
+    assert fund_insights.stock_url("2891", "臺灣") == "https://tw.stock.yahoo.com/quote/2891"
+    assert fund_insights.stock_url("5347", "台灣") == "https://tw.stock.yahoo.com/quote/5347"
+    assert fund_insights.stock_url("6981", "日本") == "https://finance.yahoo.com/quote/6981.T"
+    assert fund_insights.stock_url("285A", "日本") == "https://finance.yahoo.com/quote/285A.T"  # 新制英數碼
+    assert fund_insights.stock_url("005930", "韓國") == "https://finance.yahoo.com/quote/005930.KS"
+    assert fund_insights.stock_url("600183", "中國") == "https://finance.yahoo.com/quote/600183.SS"
+    assert fund_insights.stock_url("300308", "中國") == "https://finance.yahoo.com/quote/300308.SZ"
+    assert fund_insights.stock_url("688012", "中國") == "https://finance.yahoo.com/quote/688012.SS"
+    # 有代號但市場格式不確定 → 退回搜尋頁（仍可點）
+    assert "lookup" in fund_insights.stock_url("XYZ", "泰國")
+    # 缺代號但有名稱 → 以名稱搜尋（保證可點）
+    assert "lookup" in fund_insights.stock_url(None, "美國", "SOME CORP")
+    # 全缺才回 None
+    assert fund_insights.stock_url(None, None) is None
+
+
 def test_upcoming_distributions_window():
     fs = _funds()
     assert fund_insights.upcoming_distributions(fs, today=date(2026, 7, 2)) == \

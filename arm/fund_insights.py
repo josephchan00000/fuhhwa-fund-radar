@@ -15,6 +15,7 @@ import json
 import re
 from datetime import date, datetime
 from pathlib import Path
+from urllib.parse import quote
 
 from . import clock, fund_intro, fundnav, usnews
 
@@ -302,6 +303,39 @@ def futu_url(ticker: str | None, country: str | None) -> str | None:
         return f"https://www.futunn.com/stock/{t}-US"
     if country == "中國" and re.fullmatch(r"\d{6}", t):
         return f"https://www.futunn.com/stock/{t}-{'SH' if t[0] in '69' else 'SZ'}"
+    return None
+
+
+def stock_url(ticker: str | None, country: str | None,
+              name: str | None = None) -> str | None:
+    """前十大持股的外部行情頁連結（Yahoo Finance），涵蓋各市場——確保「每一檔都可點」。
+
+    以 Yahoo Finance 為統一入口，逐市場產出正確代碼格式：
+      · 台灣（上市／上櫃皆可，僅憑代碼即可查）→ Yahoo奇摩股市 tw.stock.yahoo.com/quote/{代碼}
+      · 美國（字母代號，含 . − 者）→ finance.yahoo.com/quote/{T}
+      · 日本（3–4 碼數字，或末碼英字的新制代號如 285A，TSE）→ …/quote/{代碼}.T
+      · 韓國（6 碼數字，KOSPI 大型股）→ …/quote/{代碼}.KS
+      · 中國 A 股（6 碼數字，6／9 開頭滬市 .SS，其餘深市 .SZ）→ …/quote/{代碼}.SS/.SZ
+    代號格式與市場不確定、或缺代號時，退回 Yahoo Finance「依名稱／代號搜尋」頁，
+    仍保證持股可點（不再出現「有些有連結、有些沒有」）。缺代號又缺名稱才回 None。
+    """
+    t = str(ticker).strip() if ticker else ""
+    c = country or ""
+    if t:
+        tu = t.upper()
+        if c == "美國" and re.fullmatch(r"[A-Z][A-Z.\-]*", tu):
+            return f"https://finance.yahoo.com/quote/{tu}"
+        if c in ("臺灣", "台灣") and re.fullmatch(r"\d{4,6}[A-Z]?", tu):
+            return f"https://tw.stock.yahoo.com/quote/{tu}"
+        if c == "日本" and re.fullmatch(r"\d{3,4}[A-Z]?", tu):
+            return f"https://finance.yahoo.com/quote/{tu}.T"
+        if c == "韓國" and re.fullmatch(r"\d{6}", tu):
+            return f"https://finance.yahoo.com/quote/{tu}.KS"
+        if c == "中國" and re.fullmatch(r"\d{6}", tu):
+            return f"https://finance.yahoo.com/quote/{tu}.{'SS' if tu[0] in '69' else 'SZ'}"
+        return f"https://finance.yahoo.com/lookup/?s={quote(t)}"    # 有代號、格式不明 → 搜尋
+    if name:
+        return f"https://finance.yahoo.com/lookup/?s={quote(str(name))}"
     return None
 
 
