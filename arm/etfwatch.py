@@ -92,6 +92,71 @@ ANNOUNCED_EST: dict[str, dict] = {
     "00992A": {"amount": 0.47,  "ex_date": "2026-07-16"},  # 首配（群益投信/Newtalk）
 }
 
+# 「即將掛牌／即將募集」的新 ETF（前瞻資訊，手動維護——同 ANNOUNCED_EST 慣例）。
+# 來源：各投信官方募集頁／公開資訊觀測站／經濟日報・工商時報・Newtalk 等，經 WebSearch 逐檔查證。
+# 兩種呈現、依日期自動歸類與過期：
+#   · 「即將掛牌」＝已募集完、即將上市：填 list_date（掛牌日）；掛牌日在今日起 UPCOMING_LIST_DAYS 內顯示。
+#   · 「即將募集／募集中」＝募集期即將開始或進行中：填 raise_start／raise_end；
+#     募集期與「今日 ~ 今日+UPCOMING_RAISE_DAYS」重疊者顯示（raise_end≥今日 且 raise_start≤窗末；
+#     raise_end 為 None＝募集尚未定截止／仍進行中）。同時符合兩者時，優先歸「即將掛牌」。
+# url＝該檔「活動介紹／募集公告」頁（投信官方活動頁優先，其次主流媒體介紹）——供使用者點開了解。
+# 過期自動消失（掛牌日已過、或募集已結束且無掛牌日在窗內）。投信新公告時於此清單增修一筆即可。
+UPCOMING_LIST_DAYS = 14      # 「即將掛牌」視窗：掛牌日在今日起 14 天內
+UPCOMING_RAISE_DAYS = 35     # 「即將募集」視窗：募集開始在今日起 35 天內（約一個月＋緩衝）
+UPCOMING_RAISE_FALLBACK = 14  # raise_end 未填時，以「募集起日＋此天數」估算截止，讓未定截止者仍自動過期
+UPCOMING: list[dict] = [
+    # 即將掛牌（募集已於 7/13–7/17 完成，8/3 上市）——工商時報 2026/07/09 報導。
+    {"code": "00410A", "name": "主動永豐科技趨勢", "issuer": "永豐投信",
+     "list_date": "2026-08-03", "raise_start": "2026-07-13", "raise_end": "2026-07-17",
+     "freq": "半年配", "theme": "台股 AI 供應鏈主動選股（W.I.N 策略）",
+     "url": "https://www.ctee.com.tw/news/20260709701460-430403"},
+    # 即將募集——統一投信股債雙主動式 ETF，8/5–8/7 同步開募（Newtalk 2026/07/17）。
+    {"code": "00411A", "name": "主動統一前沿科技", "issuer": "統一投信",
+     "raise_start": "2026-08-05", "raise_end": "2026-08-07",
+     "freq": "—", "theme": "全球前沿科技：AI 基建／人形機器人／自駕／太空／量子運算",
+     "url": "https://www.ezmoney.com.tw/events/2026GFTA/index.html"},
+    {"code": "00987D", "name": "主動統一美國公債量化增益", "issuer": "統一投信",
+     "raise_start": "2026-08-05", "raise_end": "2026-08-07",
+     "freq": "月配", "theme": "美國公債量化增益（與 00411A 股債雙主動搭配）",
+     "url": "https://newtalk.tw/news/view/2026-07-17/1047704"},
+    # 即將募集——本家復華全球未來50主動式ETF，8/12 起開募（知新聞／復華官方募集公告）。
+    {"code": "00409A", "name": "主動復華全球未來50", "issuer": "復華投信",
+     "raise_start": "2026-08-12", "raise_end": None,
+     "freq": "—", "theme": "全球 AI 浪潮下具競爭優勢的產業龍頭與長線成長股",
+     "url": "https://www.fhtrust.com.tw/services/news_list/content/news/b999d359-05a2-4e3d-9a0a-d35341e4ec3b"},
+]
+
+
+def upcoming(today: date | None = None) -> dict:
+    """即將掛牌／即將募集的新 ETF（前瞻，手動維護 UPCOMING）。
+
+    回 {"listing": [...], "raising": [...]}：各依日期排序、過期自動濾除，
+    每筆附 when（掛牌日或募集起日，供顯示）。無資料回兩個空清單（儀表板顯示「暫無」、不壞版）。"""
+    t = today or clock.today_tw()
+
+    def _d(s):
+        try:
+            return date.fromisoformat(s) if s else None
+        except (TypeError, ValueError):
+            return None
+
+    listing, raising = [], []
+    for it in UPCOMING:
+        ld = _d(it.get("list_date"))
+        rs, re_ = _d(it.get("raise_start")), _d(it.get("raise_end"))
+        if ld and t <= ld <= t + timedelta(days=UPCOMING_LIST_DAYS):
+            listing.append({**it, "when": ld.isoformat()})
+            continue
+        # 未填 raise_end 者以「起日＋fallback」估截止，避免未定截止的募集永不過期
+        eff_end = re_ if re_ is not None else (
+            rs + timedelta(days=UPCOMING_RAISE_FALLBACK) if rs else None)
+        if rs and rs <= t + timedelta(days=UPCOMING_RAISE_DAYS) and (eff_end is None or eff_end >= t):
+            raising.append({**it, "when": rs.isoformat()})
+    listing.sort(key=lambda x: x["when"])
+    raising.sort(key=lambda x: x["when"])
+    return {"listing": listing, "raising": raising}
+
+
 # 內建週報基準底稿（來源全倒／JSON 被清空時的最後 fallback，永不整片留空）。
 # 值取自使用者提供之週報圖表；ret_1w/ret_1m＝該基準日的近1週／近1月報酬（%）。
 SEED_ASOF = "2026-07-03"

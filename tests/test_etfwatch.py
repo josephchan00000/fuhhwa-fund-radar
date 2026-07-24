@@ -419,3 +419,51 @@ def test_div_cell_shows_estimate_with_asterisk():
     assert "0.72" in cell and "預估" in cell and "*" in cell and "estdiv" in cell
     plain = fund_dashboard._div_cell({"last_div": 0.72, "est_div": None})
     assert "0.72" in plain and "預估" not in plain
+
+
+# ── 即將登場的新 ETF（募集／掛牌前瞻）─────────────────────────
+
+def test_upcoming_buckets_and_self_expiry():
+    # 2026-07-24：00410A 8/3 掛牌在窗、統一雙檔＋復華 00409A 募集在窗
+    up = etfwatch.upcoming(date(2026, 7, 24))
+    assert [x["code"] for x in up["listing"]] == ["00410A"]
+    assert set(x["code"] for x in up["raising"]) == {"00411A", "00987D", "00409A"}
+    # 掛牌後不再出現在「即將掛牌」；募集截止後（含未定截止以起日+fallback 估算）自動移除
+    up2 = etfwatch.upcoming(date(2026, 8, 20))
+    assert up2["listing"] == []
+    assert [x["code"] for x in up2["raising"]] == ["00409A"]
+    up3 = etfwatch.upcoming(date(2026, 10, 1))
+    assert up3["listing"] == [] and up3["raising"] == []
+
+
+def test_upcoming_entries_have_required_fields():
+    for it in etfwatch.UPCOMING:
+        assert it.get("code") and it.get("name") and it.get("issuer")
+        assert it.get("url", "").startswith("http")          # 活動介紹連結必備
+        assert it.get("list_date") or it.get("raise_start")  # 至少一種日期
+
+
+def test_dashboard_shows_upcoming_etf_section():
+    # 分頁骨架與日期無關（前瞻項目會隨時間過期，故 render 測試只驗恆存的結構）
+    html = fund_dashboard.render()
+    assert 'id="etf-upcoming"' in html and "即將登場的新 ETF" in html
+    assert 'href="#etf-upcoming"' in html                 # 分頁導覽新增「即將登場」錨點
+    assert "即將登場的新 ETF" in html                       # 區塊標題
+    # 有前瞻資料時列卡片、無則顯示「近期無」提示——兩者其一必在
+    assert "活動介紹" in html or "近期無" in html
+
+
+def test_upcoming_view_renders_cards_with_links():
+    # 固定日期（與 render 的 today 解耦，避免種子過期後測試失敗）
+    up = etfwatch.upcoming(date(2026, 7, 24))
+    out = fund_dashboard._upcoming_etf_view(up)
+    assert "即將掛牌" in out and "即將募集" in out
+    assert "00410A" in out and "00411A" in out and "00409A" in out
+    assert "活動介紹" in out and "ezmoney.com.tw/events/2026GFTA" in out
+    assert '<span class="fh">復華</span>' in out            # 本家以品牌色標示
+    assert "掛牌 08/03" in out and "募集 08/05–08/07" in out  # 狀態日期呈現
+
+
+def test_upcoming_view_empty_shows_hint():
+    out = fund_dashboard._upcoming_etf_view({"listing": [], "raising": []})
+    assert "近期無" in out and "upnone" in out
