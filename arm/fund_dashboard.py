@@ -770,7 +770,8 @@ def _macro_data_view(mc: dict | None) -> str:
 # ── ETF 數據追蹤（第四分頁：被動／主動台股 ETF 週績效表） ─────────
 
 _ETF_COLS = [("close_px", "最新收盤價"), ("aum_e8", "規模(億)"), ("inception", "成立日期"),
-             ("ret_1w", "過去一週報酬"), ("ret_1m", "過去一月報酬"),
+             ("ret_1w", "過去一週報酬<span class=\"colq\">市價</span>"),
+             ("ret_1m", "過去一月報酬<span class=\"colq\">市價</span>"),
              ("last_div", "最近一次配息金額"), ("yield_pct", "換算年化配息率"),
              ("freq", "收益分配頻率")]
 
@@ -970,12 +971,16 @@ def _etfwatch_view(doc: dict | None) -> str:
         '<div class="etfnote">'
         '<b>資料來源（可點擊人工驗證）</b>：'
         '規模／換算年化配息率 ← <a href="https://www.etfinfo.tw" target="_blank" rel="noopener">etfinfo.tw</a>'
-        '（Tier B 第三方彙整）；'
+        '（Tier B 第三方彙整；規模為該站揭露之基金淨資產，各站因揭露時點可能差一個交易日，'
+        '與投信官網／其他行情站同日數字容有 1～3% 落差）；'
         '過去一週／一月報酬 ← <a href="https://stooq.com" target="_blank" rel="noopener">stooq</a>／'
         '<a href="https://finance.yahoo.com" target="_blank" rel="noopener">Yahoo</a>／FinMind／'
         '<a href="https://www.twse.com.tw/zh/trading/historical/stock-day.html" target="_blank" '
         'rel="noopener">TWSE 官方</a>依序取乾淨日線自算（以最新交易日收盤對回推 7／30 日曆日前最後交易日計算；'
         '區間內有除息時把息加回──總報酬口徑，報酬格下方標「＋息」）；'
+        '<b>此二欄為「市價（收盤價）」口徑</b>——投信官網與 Yahoo奇摩股市 ETF 頁揭露的績效多為'
+        '<b>「淨值（NAV）」口徑</b>，兩者因折溢價每日變動，同一檔同一期間通常會差 0.1～0.8 個百分點，'
+        '屬正常口徑差異而非數據有誤；欲與投信文宣逐欄對齊請以各投信官網淨值報酬為準。'
         '每列<b>代碼可點</b>開 <a href="https://tw.stock.yahoo.com/class/etf" target="_blank" '
         'rel="noopener">Yahoo奇摩股市</a>個股頁對照——報酬取自 Yahoo 即與此連結同源，取自其他源則於代碼旁小標；'
         '每格報酬下方「<b>起算 MM/DD 收 價格</b>」標明用哪一天的收盤當基準'
@@ -1619,6 +1624,8 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 /* ETF 數據追蹤 */
 .etcat{display:inline-block;white-space:nowrap;font-size:11px;color:var(--accd);border:0;background:rgba(47,111,208,.1);border-radius:5px;padding:1px 6px}
 .etfnote{color:var(--mut);font-size:12.5px;margin-top:12px;line-height:1.8;border-top:1px solid var(--line);padding-top:8px}
+/* 欄位口徑小標（市價 vs 淨值）——2026-07-27 使用者對 Yahoo 淨值報酬時發現差異，於欄名直接標明 */
+.colq{display:block;font-size:9.5px;font-weight:400;opacity:.72;letter-spacing:.02em;margin-top:1px}
 .estdivln{margin-top:3px}                       /* 「預估 X*」另起一行，與實際配息金額分開更清楚 */
 .estdiv{display:inline-block;font-size:11.5px;color:#8a5410;background:rgba(200,118,15,.14);border:0;border-radius:6px;padding:1px 6px;white-space:nowrap}
 .estdiv sup{font-weight:800}
