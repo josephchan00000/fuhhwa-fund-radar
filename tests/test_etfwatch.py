@@ -118,6 +118,43 @@ def test_yield_uses_estimate_when_announced(monkeypatch):
     assert j["yield_is_est"] is False
 
 
+def test_aum_cross_check_flags_large_discrepancy(monkeypatch, capsys):
+    # 規模第二來源交叉驗證（2026-07-27 新增）：TWSE 已發行單位數 × etfinfo NAV 自算，
+    # 與 etfinfo 主值落差 >5% 時記警示，但不覆蓋主值（僅供比對，TWSE 表未經正式核對）。
+    import arm.connectors.twse_fund as twse_fund
+    today = date(2026, 7, 27)
+    monkeypatch.setattr(etfwatch, "load", lambda: None)
+    monkeypatch.setattr(etfwatch, "_fetch_market",
+                        lambda code: {"aum_raw": 7223.77, "close_px": 50.2, "nav": 50.3,
+                                      "freq": "季配", "mkt_date": "2026-07-24"})
+    monkeypatch.setattr(etfwatch, "_fetch_returns",
+                        lambda code: {"ret_1w": None, "ret_1m": None, "perf_date": None, "ret_src": None})
+    monkeypatch.setattr(etfwatch.clock, "today_tw", lambda: today)
+    # 0056 已發行單位數若對應到遠高於 etfinfo 規模的數字（>5% 落差）應觸發警示
+    monkeypatch.setattr(twse_fund, "fetch_units", lambda: {"0056": 1_600_000_000.0})
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0056"]
+    calc = round(1_600_000_000.0 * 50.3 / 1e8, 2)
+    assert i["aum_e8_calc"] == calc
+    assert i["aum_e8_calc_diff_pct"] > 5
+    assert "規模交叉驗證落差" in capsys.readouterr().out
+
+
+def test_aum_cross_check_skipped_when_units_unavailable(monkeypatch):
+    # TWSE 抓不到（空字典）→ 不應產生 aum_e8_calc 欄位、不應報錯
+    import arm.connectors.twse_fund as twse_fund
+    today = date(2026, 7, 27)
+    monkeypatch.setattr(etfwatch, "load", lambda: None)
+    monkeypatch.setattr(etfwatch, "_fetch_market",
+                        lambda code: {"aum_raw": 7223.77, "close_px": 50.2, "nav": 50.3,
+                                      "freq": "季配", "mkt_date": "2026-07-24"})
+    monkeypatch.setattr(etfwatch, "_fetch_returns",
+                        lambda code: {"ret_1w": None, "ret_1m": None, "perf_date": None, "ret_src": None})
+    monkeypatch.setattr(etfwatch.clock, "today_tw", lambda: today)
+    monkeypatch.setattr(twse_fund, "fetch_units", lambda: {})
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0056"]
+    assert "aum_e8_calc" not in i
+
+
 def test_announced_est_dict_entries_are_valid():
     # 維護清單格式檢查：金額為正、除息日為 ISO
     for code, e in etfwatch.ANNOUNCED_EST.items():
@@ -419,3 +456,22 @@ def test_div_cell_shows_estimate_with_asterisk():
     assert "0.72" in cell and "預估" in cell and "*" in cell and "estdiv" in cell
     plain = fund_dashboard._div_cell({"last_div": 0.72, "est_div": None})
     assert "0.72" in plain and "預估" not in plain
+
+
+def test_aum_check_chip_shows_when_diff_exceeds_5pct(monkeypatch):
+    monkeypatch.setattr(etfwatch, "load", lambda: {"items": [
+        {"code": "0056", "aum_e8": 7223.77, "aum_e8_calc": 8050.0, "aum_e8_calc_diff_pct": 11.4},
+        {"code": "0050", "aum_e8": 22525.4, "aum_e8_calc": 22600.0, "aum_e8_calc_diff_pct": 0.3},
+    ]})
+    chip = fund_dashboard._aum_check_chip()
+    assert "0056" in chip and "11.4%" in chip
+    assert "0050" not in chip                     # 落差 <5% 不列入
+
+
+def test_aum_check_chip_empty_when_no_discrepancy(monkeypatch):
+    monkeypatch.setattr(etfwatch, "load", lambda: {"items": [
+        {"code": "0056", "aum_e8": 7223.77, "aum_e8_calc": 7230.0, "aum_e8_calc_diff_pct": 0.1},
+    ]})
+    assert fund_dashboard._aum_check_chip() == ""
+    monkeypatch.setattr(etfwatch, "load", lambda: None)
+    assert fund_dashboard._aum_check_chip() == ""
