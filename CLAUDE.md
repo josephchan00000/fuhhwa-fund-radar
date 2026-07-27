@@ -247,6 +247,17 @@ ETF 數據追蹤／總經・籌碼數據／儀表板產表。新增資料來源�
 報酬數據標 `perf_asof` 基準日、規模／殖利率標 `as_of` 抓取日，儀表板分別備註（沿用最近可得值時使用者已同意）。
 來源 etfinfo.tw 屬 Tier B，正式對外前以各投信官網核對。
 
+**規模第二來源交叉驗證（2026-07-27 使用者發現 etfinfo 規模連續 3 天含交易日未更新後新增）**：
+`arm/connectors/twse_fund.py` 抓 TWSE OpenAPI 官方「基金基本資料彙總表」
+（`https://openapi.twse.com.tw/v1/opendata/t187ap47_L`）的**已發行單位數**（申贖時才變動、
+非逐日變化）；`arm/etfwatch.fetch()` 逐檔以「已發行單位數 × etfinfo 當次 NAV」自算另一版規模
+`aum_e8_calc`，與 etfinfo 主值 `aum_e8` 落差 >5% 時記 `aum_e8_calc_diff_pct` 並印 CI 警示、
+儀表板「網頁更新時間」列顯示 ⚠ 章（`fund_dashboard._aum_check_chip()`）。**僅供比對、不覆蓋主值**
+——TWSE 該表欄位以「關鍵字」比對（`arm/connectors/twse_fund._UNIT_KEY_HINTS`，表頭常見括號/
+直線混排寫法）且尚未經正式核對，此容器 proxy 擋 twse，此連接器只能在正式區 CI 驗證真實回應
+（同 macrochips／cnyesfund 慣例：先上線、CI 日誌驗證與迭代）。落差項目見到後先查證是 etfinfo
+真的停滯還是 TWSE 單位數表本身有誤，勿不加查證就手動覆蓋 `aum_e8`。
+
 **踩過的坑（勿再犯）**：
 - `data/etf_watch.json` 曾被 `.gitignore` 的 `data/*` 擋掉沒入庫 → CI 從零抓、etfinfo 缺欄 → 成立日期／
   週月報酬整片變 null。已在 `.gitignore` 加 `!data/etf_watch.json` 例外，此檔**必須入庫**當 fallback。

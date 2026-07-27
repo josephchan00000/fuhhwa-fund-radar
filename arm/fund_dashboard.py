@@ -291,6 +291,22 @@ def _intro_gap_chip() -> str:
             f'（{names}{more}）</span>')
 
 
+def _aum_check_chip() -> str:
+    """ETF 規模交叉驗證警示章（讀 data/etf_watch.json 的 aum_e8_calc_diff_pct；
+    2026-07-27 使用者反映 etfinfo 規模連續數日未更新後新增——TWSE 官方已發行單位數 ×
+    etfinfo 當次 NAV 自算另一版規模，與 etfinfo 主值落差 >5% 時列出檔名供人工核對；
+    TWSE 表未經正式核對，此章僅供「留意」、不代表 etfinfo 主值有誤，亦不自動覆蓋。
+    無落差或無資料＝不顯示。"""
+    doc = etfwatch.load() or {}
+    flagged = [i for i in (doc.get("items") or []) if (i.get("aum_e8_calc_diff_pct") or 0) > 5]
+    if not flagged:
+        return ""
+    names = "、".join(f"{_esc(i['code'])}({i['aum_e8_calc_diff_pct']}%)" for i in flagged[:6])
+    more = f" 等 {len(flagged)} 檔" if len(flagged) > 6 else ""
+    return (f'<span class="chip fresh stale"><b>ETF 規模交叉驗證</b>　⚠ {names}{more} '
+            f'與 TWSE 單位數自算落差 &gt;5%（etfinfo 可能停滯，供人工核對）</span>')
+
+
 def _freshness_view(gen_stamp: str, sources: list[tuple[str, str | None, int | None]],
                     today=None) -> str:
     """最上方只標「網頁更新時間」；各來源時戳分散標於各自區塊標題列，這裡只彙總逾期警示。"""
@@ -300,7 +316,7 @@ def _freshness_view(gen_stamp: str, sources: list[tuple[str, str | None, int | N
            else '各資料來源的更新時間標於各區塊標題列（皆台北時間）')
     return (f'<div class="section" id="freshness"><div class="st">{_ic("clock")}網頁更新時間　'
             f'{_fresh_chip("網頁更新", gen_stamp, None, today, gen=True)} '
-            f'{_factcheck_chip(today)} {_intro_gap_chip()} '
+            f'{_factcheck_chip(today)} {_intro_gap_chip()} {_aum_check_chip()} '
             f'<span class="stsub">{sub}</span></div></div>')
 
 

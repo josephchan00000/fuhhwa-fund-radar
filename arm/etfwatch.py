@@ -250,6 +250,7 @@ def _fetch_market(code: str) -> dict:
     last_amt, last_d, est_amt, est_d = _dividend_split(d.get("dividends"))
     return {"aum_raw": lm.get("aum") or info.get("aum"),
             "close_px": _num(lm.get("price")),
+            "nav": _num(lm.get("nav")),           # 淨值（別於市價 close_px）——規模第二源交叉驗證用
             "yield_pct": _annualized_yield(d.get("dividends"), lm.get("price"), freq),
             "last_div": last_amt, "last_div_date": last_d,
             "est_div": est_amt, "est_div_date": est_d,
@@ -474,6 +475,12 @@ def fetch() -> dict:
     except Exception as e:
         print(f"  ⚠ MOPS 收益分配抓取失敗（預估配息欄留空）：{e}")
         mops_dist = {}
+    try:            # 規模第二來源：TWSE 官方已發行單位數（一次抓全表，2026-07-27 新增）
+        from .connectors import twse_fund
+        twse_units = twse_fund.fetch_units()
+    except Exception as e:
+        print(f"  ⚠ TWSE 已發行單位數抓取失敗（規模交叉驗證欄留空）：{e}")
+        twse_units = {}
     items, got_mkt, got_ret, got_est = [], 0, 0, 0
     for code, name, kind, cat, inception in WATCHLIST:
         old = prev.get(code) or {}
@@ -512,6 +519,21 @@ def fetch() -> dict:
                 if m.get("mkt_date"):
                     item["as_of"] = str(m["mkt_date"])[:10]
                 got_mkt += 1
+            # 規模交叉驗證（2026-07-27 新增）：etfinfo 曾連續多日回傳同一舊值（etfinfo 本身停滯，
+            # 非我方抓取失敗，故 try 不會拋例外）——用 TWSE 官方已發行單位數 × etfinfo 當次 NAV
+            # 自算另一版規模，兩者落差 >5% 時記警示，供步驟 9／CI 日誌追查；不直接覆蓋主值
+            # （TWSE 單位數表更新頻率、NAV 精度皆未經正式核對，暫僅供比對不取代 Tier B 主源）。
+            units = twse_units.get(code)
+            nav = m.get("nav")
+            if units and nav:
+                calc = round(units * nav / 1e8, 2)
+                item["aum_e8_calc"] = calc
+                if item.get("aum_e8"):
+                    diff_pct = round(abs(calc - item["aum_e8"]) / item["aum_e8"] * 100, 1)
+                    item["aum_e8_calc_diff_pct"] = diff_pct
+                    if diff_pct > 5:
+                        print(f"  ⚠ {code} 規模交叉驗證落差 {diff_pct}%："
+                              f"etfinfo={item['aum_e8']} 億／TWSE單位數×NAV 自算={calc} 億")
         except Exception as e:                     # proxy 擋站/斷網 → 沿用 fallback 值
             print(f"  ⚠ {code} 規模／殖利率抓取失敗（沿用既有值／週報底稿）：{e}")
 
