@@ -241,7 +241,10 @@ def extract_claims(text: str, year: int | None = None) -> list[Claim]:
         # （07-24 誤殺：「道瓊下跌 506.93 點」被當加權漲跌點）
         us_ctx = re.search(r"道瓊|那斯達克|那指|標普|費半|S&P|Nasdaq|Dow", sent)
         m = re.search(r"(?:加權|台股|大盤)?[^0-9%]{0,6}(?:下跌|大跌|漲|上漲)\s*([\d,]+\.?\d*)\s*點", sent)
-        if m and _num(m.group(1)) >= 100 and not us_ctx and not non_spot:  # 小波動不核對（口語四捨五入多）
+        # 週線／區間累計非單日漲跌（07-27 誤殺：「加權指數上週雖上漲 983 點」被當 7/24 當日漲跌點——
+        # 句內另段提及 7/24 致 _sent_date 誤配；比照 inst_foreign 的「上週/單週/累計」防呆）
+        weekly = m and re.search(r"上週|單週|全週|週線|週漲|週跌|累計", m.group(0))
+        if m and _num(m.group(1)) >= 100 and not us_ctx and not non_spot and not weekly:
             claims.append(Claim("index_chg", _num(m.group(1)), d, sent.strip()))
         m = re.search(r"三大法人[^0-9]{0,15}[買賣]超[^0-9]{0,8}([\d,]+\.?\d*)\s*億", sent)
         if m:

@@ -145,3 +145,13 @@ def test_futures_and_night_session_not_extracted():
         if c.kind == "index_chg"]
     assert [c for c in factcheck.extract_us_index_claims(
         "那斯達克終場收跌 0.64% 收 24,975.82。", day) if c.kind == "us_ndq_chg"]
+
+
+def test_weekly_index_change_not_extracted():
+    """07-27 誤殺：句內「上週上漲 983 點」被句尾另段的 7/24 誤配當日漲跌點——整句不抽 index_chg。"""
+    sent = ("工商時報引永豐投顧看法，指加權指數上週雖上漲 983 點、一度收復季線，"
+            "但 7/24 回檔後再度跌破支撐，成交量維持低迷代表反彈動能不足")
+    assert not [c for c in factcheck.extract_claims(sent, year=2026) if c.kind == "index_chg"]
+    # 現貨單日句仍正常抽取（回歸保護）
+    assert [c for c in factcheck.extract_claims(
+        "加權指數 7/24 下跌 1195.97 點收 43,654.84。", year=2026) if c.kind == "index_chg"]
