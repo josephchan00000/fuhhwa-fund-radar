@@ -1,135 +1,126 @@
 {
  "date": "2026-07-27",
- "as_of": "2026-07-27 13:11",
- "green": 0,
- "red": 1,
- "skipped": 13,
+ "as_of": "2026-07-27 13:24",
+ "green": 11,
+ "red": 2,
+ "skipped": 0,
  "items": [
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-27_v1.md",
    "kind": "us_ndq_chg",
    "claimed": 0.64,
-   "official": null,
+   "official": -0.6439300673470538,
    "day": "07/24",
    "sentence": "- **那斯達克綜合指數（Nasdaq）**：週五收 **24,975.82、下跌 0.64%**（−161.87 點，AP／Yahoo Finance 兩來源一致）"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-27_v1.md",
    "kind": "us_ndq_close",
    "claimed": 24975.82,
-   "official": null,
+   "official": 24975.8203125,
    "day": "07/24",
    "sentence": "- **那斯達克綜合指數（Nasdaq）**：週五收 **24,975.82、下跌 0.64%**（−161.87 點，AP／Yahoo Finance 兩來源一致）"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-27_v1.md",
    "kind": "us_spx_chg",
    "claimed": 0.05,
-   "official": null,
+   "official": 0.04967638835191579,
    "day": "07/24",
    "sentence": "- **標普 500 指數（S&P 500）**：收 **7,411.98、上漲 0.05%**（+3.68 點）"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-27_v1.md",
    "kind": "us_spx_close",
    "claimed": 7411.98,
-   "official": null,
+   "official": 7411.97998046875,
    "day": "07/24",
    "sentence": "- **標普 500 指數（S&P 500）**：收 **7,411.98、上漲 0.05%**（+3.68 點）"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-27_v1.md",
    "kind": "us_dji_close",
    "claimed": 51947.25,
-   "official": null,
+   "official": 51947.25,
    "day": "07/24",
    "sentence": "道瓊 +235.60 點（+0.46%）收 51,947.25"
   },
   {
-   "status": "⚪",
+   "status": "🔴",
    "file": "2026-07-27_v1.md",
    "kind": "us_spx_chg",
    "claimed": 0.6,
-   "official": null,
+   "official": 0.04967638835191579,
    "day": "07/24",
    "sentence": "另據彭博統計，上週標普 500 全週下跌 0.6%、七大科技股（Magnificent 7）全週下跌 5.7%——此為全週累計值，與上述單日數字口徑不同"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-27_v2.md",
    "kind": "us_ndq_chg",
    "claimed": 0.64,
-   "official": null,
+   "official": -0.6439300673470538,
    "day": "07/24",
    "sentence": "**指數速覽**：那斯達克綜合指數 7/24 收 **24,975.82、下跌 0.64%**"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-27_v2.md",
    "kind": "us_ndq_close",
    "claimed": 24975.82,
-   "official": null,
+   "official": 24975.8203125,
    "day": "07/24",
    "sentence": "**指數速覽**：那斯達克綜合指數 7/24 收 **24,975.82、下跌 0.64%**"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-27_v2.md",
    "kind": "us_spx_chg",
    "claimed": 0.05,
-   "official": null,
+   "official": 0.04967638835191579,
    "day": "07/24",
    "sentence": "標普 500 收 **7,411.98、上漲 0.05%**"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-27_v2.md",
    "kind": "us_spx_close",
    "claimed": 7411.98,
-   "official": null,
+   "official": 7411.97998046875,
    "day": "07/24",
    "sentence": "標普 500 收 **7,411.98、上漲 0.05%**"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-27_v2.md",
    "kind": "us_dji_chg",
    "claimed": 0.46,
-   "official": null,
+   "official": 0.4556063664935328,
    "day": "07/24",
    "sentence": "道瓊收 51,947.25、上漲 0.46%"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-27_v2.md",
    "kind": "us_dji_close",
    "claimed": 51947.25,
-   "official": null,
+   "official": 51947.25,
    "day": "07/24",
    "sentence": "道瓊收 51,947.25、上漲 0.46%"
   },
   {
-   "status": "⚪",
+   "status": "🔴",
    "file": "2026-07-27_v2.md",
    "kind": "us_spx_chg",
    "claimed": 0.6,
-   "official": null,
+   "official": 0.04967638835191579,
    "day": "07/24",
    "sentence": "另據彭博統計，上週標普 500 全週下跌 0.6%、七大科技股全週下跌 5.7%，此為全週累計、與單日數字口徑不同"
-  },
-  {
-   "status": "🔴",
-   "file": "2026-07-27.md",
-   "kind": "index_chg",
-   "claimed": 983.0,
-   "official": -1195.97,
-   "day": "07/24",
-   "sentence": "工商時報引永豐投顧看法，指加權指數上週雖上漲 983 點、一度收復季線，但 7/24 回檔後再度跌破支撐，**成交量維持低迷代表反彈動能不足**，該投顧估本週區間 42,500 至 45,000 點"
   }
  ]
 }
