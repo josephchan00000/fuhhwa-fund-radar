@@ -176,6 +176,10 @@ def _num(s: str) -> float:
 _US_IDX_PAT = {"sox": r"費半|費城半導體|SOX", "ndq": r"那斯達克|那指|Nasdaq",
                "spx": r"標普|S&P ?500", "dji": r"道瓊"}
 
+# 非現貨口徑（期貨／夜盤／盤前後）——數字對的是期貨或延長時段，拿日線現貨驗必誤判。
+# 2026-07-27 起硬化：兩天內兩度誤殺（費半週跌幅、那指 100 期貨 +1.2%）。
+_NON_SPOT = r"期貨|期指|夜盤|盤前|盤後"
+
 
 def extract_us_index_claims(text: str, session_day: date) -> list[Claim]:
     """美股指數（費半／那指／標普／道瓊）漲跌%與收盤點位——句內常無日期，
@@ -203,14 +207,16 @@ def extract_us_index_claims(text: str, session_day: date) -> list[Claim]:
                           r"\s*(逾|近|約)?\s*([\d.]+)\s*%", win)
             # 盤中/個股口徑非收盤指數漲跌，不可拿日線驗（07-23/24 誤殺修正）：
             # ①盤中詞（盤初/盤中/早盤/日盤/殺盤/一度/最高低）②視窗內先出現個股名（英特爾/AMD…）
-            intraday = re.search(r"盤初|盤中|早盤|日盤|殺盤|一度|最[高低]", win[:m.end(2)]) if m else None
+            # ③期貨／夜盤等非現貨口徑（07-27 誤殺：「那指 100 期貨漲 1.2%」被當那指現貨日變動）
+            intraday = re.search(rf"盤初|盤中|早盤|日盤|殺盤|一度|最[高低]|{_NON_SPOT}",
+                                 win[:m.end(2)]) if m else None
             stock = re.search(r"英特爾|Intel|AMD|超微|輝達|NVIDIA|美光|Micron|台積|蘋果|Apple|"
                               r"特斯拉|Tesla|Alphabet|Meta|微軟", win[:m.end(2)]) if m else None
             if m and not drawdown and not intraday and not stock:
                 claims.append(Claim(f"us_{key}_chg", float(m.group(2)), session_day,
                                     sent.strip()[:160], qual=m.group(1) or ""))
             m = re.search(r"(?<!前)收[^0-9%]{0,10}([\d,]{5,}(?:\.\d+)?)", win)
-            if m:
+            if m and not re.search(_NON_SPOT, win[:m.start()]):   # 期貨/夜盤收盤價非現貨收盤
                 v = _num(m.group(1))
                 if v and 4000 <= v <= 99999:
                     claims.append(Claim(f"us_{key}_close", v, session_day,
@@ -226,14 +232,16 @@ def extract_claims(text: str, year: int | None = None) -> list[Claim]:
         d = _sent_date(sent, year)
         if not d:
             continue
+        # 期貨／夜盤句（台指期夜盤收 X、期指盤前）非加權現貨收盤，整句不抽點位與漲跌點
+        non_spot = bool(re.search(_NON_SPOT, sent))
         m = re.search(r"(?:加權(?:指數)?|台股)[^收。\n]{0,14}收(?:盤|約)?[^0-9%]{0,8}([\d,]+\.\d+)", sent)
-        if m and _num(m.group(1)) > 5000:
+        if m and _num(m.group(1)) > 5000 and not non_spot:
             claims.append(Claim("index_close", _num(m.group(1)), d, sent.strip()))
         # 美股句（含道瓊/那指/標普/費半）不可被台股加權 index_chg 撈走
         # （07-24 誤殺：「道瓊下跌 506.93 點」被當加權漲跌點）
         us_ctx = re.search(r"道瓊|那斯達克|那指|標普|費半|S&P|Nasdaq|Dow", sent)
         m = re.search(r"(?:加權|台股|大盤)?[^0-9%]{0,6}(?:下跌|大跌|漲|上漲)\s*([\d,]+\.?\d*)\s*點", sent)
-        if m and _num(m.group(1)) >= 100 and not us_ctx:   # 小波動不核對（口語四捨五入多）
+        if m and _num(m.group(1)) >= 100 and not us_ctx and not non_spot:  # 小波動不核對（口語四捨五入多）
             claims.append(Claim("index_chg", _num(m.group(1)), d, sent.strip()))
         m = re.search(r"三大法人[^0-9]{0,15}[買賣]超[^0-9]{0,8}([\d,]+\.?\d*)\s*億", sent)
         if m:

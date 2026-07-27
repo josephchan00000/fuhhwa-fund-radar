@@ -123,3 +123,25 @@ def test_drawdown_and_stock_and_us_context_not_false_red():
     # 真台股句仍抽
     tw2 = "加權指數 7/23 下跌 221.57 點收 42,449。"
     assert [c for c in factcheck.extract_claims(tw2, year=2026) if c.kind == "index_chg"]
+
+
+def test_futures_and_night_session_not_extracted():
+    """07-27 誤殺：期貨／夜盤非現貨口徑，拿日線驗必紅——整段不抽。"""
+    day = date(2026, 7, 24)
+    # 那指 100 期貨 +1.2%（夜盤期貨）→ 不抽那指現貨 chg
+    sent = "週日夜盤美股期貨反彈：道瓊期貨漲 294 點、那指 100 期貨漲 1.2%。"
+    assert not [c for c in factcheck.extract_us_index_claims(sent, day)
+                if c.kind == "us_ndq_chg"]
+    # 期貨收盤點位亦不抽
+    assert not [c for c in factcheck.extract_us_index_claims(
+        "那指 100 期貨收 25,180。", day) if c.kind == "us_ndq_close"]
+    # 台指期夜盤收 X、跌 X 點 → 台股現貨 index_close/index_chg 皆不抽
+    tw = "台股期指夜盤 7/24 再跌 445 點收 43,369.00。"
+    assert not [c for c in factcheck.extract_claims(tw, year=2026)
+                if c.kind in ("index_close", "index_chg")]
+    # 現貨句不受影響（回歸保護）
+    assert [c for c in factcheck.extract_claims(
+        "加權指數 7/24 下跌 1195.97 點收 43,654.84。", year=2026)
+        if c.kind == "index_chg"]
+    assert [c for c in factcheck.extract_us_index_claims(
+        "那斯達克終場收跌 0.64% 收 24,975.82。", day) if c.kind == "us_ndq_chg"]

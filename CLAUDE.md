@@ -102,6 +102,11 @@
    update 也被組織政策擋，但**跨會話 delete 可行**——2026-07-24 實證；所以搬家＝建新＋刪舊，不是改舊）。
 4. 一句話回報：新 trigger id＋下次觸發時間。create_trigger 若警告「no MCP connectors」**可忽略**
    （SOP 第 7 步走 push 自動觸發、驗證用 git，不依賴 MCP）。
+5. **回報時務必提醒使用者「模型要重設」**（2026-07-27 使用者踩到：以為設過 sonnet，實際每日跑都是
+   新視窗的預設模型）。機制：trigger 的 `job_config` **沒有 model 欄位**，只有 `persistent_session_id`
+   ——每日火進哪個視窗，就用**那個視窗當下的模型**。舊視窗設過的 `/model` **不會**跟著搬家過來，
+   新視窗一律回到預設。所以每次搬家後，使用者要在**新視窗**自己打一次 `/model sonnet`
+   （容器內 Claude 無法代勞，`update_trigger` 的 model 參數對綁定會話的 routine 也無效）。
 
 Routine prompt 原文（步驟 2 照抄用）：
 
