@@ -196,9 +196,10 @@ def extract_us_index_claims(text: str, session_day: date) -> list[Claim]:
         for key, pat in _US_IDX_PAT.items():
             for m in re.finditer(pat, sent):
                 occs.append((m.end(), key))
-        # 累計／區間跌幅句（自 X 高點跌逾 N%、進技術性熊市、自波段高點回落）≠ 單日漲跌，
-        # 整句不抽 chg（07-24 誤殺：SOX「自 6/22 高點跌逾 20%」被當日變動）
-        drawdown = bool(re.search(r"高點|波段|技術性熊市|熊市|自 ?\d{1,2}[/月]", sent))
+        # 累計／區間跌幅句（自 X 高點跌逾 N%、進技術性熊市、上週/全週累計）≠ 單日漲跌，
+        # 整句不抽 chg（07-24 誤殺：SOX「自 6/22 高點跌逾 20%」；07-27 誤殺：「上週標普全週下跌 0.6%」）
+        drawdown = bool(re.search(r"高點|波段|技術性熊市|熊市|自 ?\d{1,2}[/月]|上週|全週|單週|週線|週漲|週跌",
+                                   sent))
         occs.sort()
         for i, (pos, key) in enumerate(occs):
             end = occs[i + 1][0] - 8 if i + 1 < len(occs) else pos + 60

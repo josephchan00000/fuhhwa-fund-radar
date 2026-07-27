@@ -155,3 +155,13 @@ def test_weekly_index_change_not_extracted():
     # 現貨單日句仍正常抽取（回歸保護）
     assert [c for c in factcheck.extract_claims(
         "加權指數 7/24 下跌 1195.97 點收 43,654.84。", year=2026) if c.kind == "index_chg"]
+
+
+def test_weekly_us_index_change_not_extracted():
+    """07-27 誤殺：「上週標普 500 全週下跌 0.6%」無高點/波段字樣但仍為週線累計——不可拿日線驗。"""
+    day = date(2026, 7, 24)
+    sent = "另據彭博統計，上週標普 500 全週下跌 0.6%、七大科技股全週下跌 5.7%。"
+    assert not [c for c in factcheck.extract_us_index_claims(sent, day) if c.kind == "us_spx_chg"]
+    # 現貨單日句仍正常抽取（回歸保護）
+    assert [c for c in factcheck.extract_us_index_claims(
+        "標普 500 收 7,411.98、上漲 0.05%。", day) if c.kind == "us_spx_chg"]
