@@ -1,4 +1,5 @@
 """高風險數字事實核對：抽取／比對／降級三路徑離線測試（不打網路）。"""
+import pytest
 from datetime import date
 
 from arm import factcheck
@@ -145,3 +146,54 @@ def test_futures_and_night_session_not_extracted():
         if c.kind == "index_chg"]
     assert [c for c in factcheck.extract_us_index_claims(
         "那斯達克終場收跌 0.64% 收 24,975.82。", day) if c.kind == "us_ndq_chg"]
+
+
+def test_index_series_skips_chg_when_a_session_bar_is_missing(monkeypatch):
+    """Yahoo 日線漏棒時，日變動% 不可拿非相鄰前一筆硬算成「多日累計」。
+
+    2026-07-28 實際誤判：^IXIC／^SOX 序列都缺 07/24 那根，07/27 被拿去跟 07/23 比，
+    正確的單日 −2.23%（費半）與 −0.18%（那指）被判成 🔴，官方值實為兩日累計。
+    漏棒時應回 None → 上層以 ⚪「無前日收盤可算漲跌%」誠實跳過（設計原則 1 絕不誤殺）。
+    """
+    from datetime import datetime, timezone
+
+    def _ts(y, m, d):                       # Yahoo 日線時戳＝美東開盤 13:30 UTC
+        return int(datetime(y, m, d, 13, 30, tzinfo=timezone.utc).timestamp())
+
+    def _series(stamps, closes):
+        monkeypatch.setattr(factcheck, "_get_json", lambda url: {
+            "chart": {"result": [{"timestamp": stamps,
+                                  "indicators": {"quote": [{"close": closes}]}}]}})
+        return factcheck.yahoo_index_series("sox")
+
+    day = date(2026, 7, 27)
+    txt = "- **費城半導體指數（SOX）**：收盤 **下跌 2.23%**。"
+    claims = factcheck.extract_us_index_claims(txt, day)
+
+    # 缺 07/24（週五）→ 07/27 無相鄰前一交易日，chg 為 None、判定 ⚪
+    gapped = _series([_ts(2026, 7, 23), _ts(2026, 7, 27)], [12631.0, 11824.5])
+    assert gapped["2026-07-27"][1] is None
+    res = factcheck.check_claims(claims, fetchers={**_OFFICIAL, "us": lambda k: gapped})
+    assert [r.status for r in res] == ["⚪"]
+
+    # 序列完整 → 仍照常算單日變動，正確值 🟢、錯誤值 🔴（防呆不得關掉偵測能力）
+    full = _series([_ts(2026, 7, 23), _ts(2026, 7, 24), _ts(2026, 7, 27)],
+                   [12631.0, 12094.2, 11824.5])
+    assert full["2026-07-24"][1] == pytest.approx(-4.25, abs=0.01)
+    assert full["2026-07-27"][1] == pytest.approx(-2.23, abs=0.01)
+    ok = factcheck.check_claims(claims, fetchers={**_OFFICIAL, "us": lambda k: full})
+    assert [r.status for r in ok] == ["🟢"]
+    wrong = factcheck.extract_us_index_claims(
+        "- **費城半導體指數（SOX）**：收盤 **下跌 6.39%**。", day)
+    bad = factcheck.check_claims(wrong, fetchers={**_OFFICIAL, "us": lambda k: full})
+    assert [r.status for r in bad] == ["🔴"]
+
+
+def test_adjacent_session_rules():
+    """相鄰交易日判定：連續平日與週五→週一為真；漏棒／跨假日一律為假（寧缺勿錯）。"""
+    adj = factcheck._adjacent_session
+    assert adj(date(2026, 7, 23), date(2026, 7, 24))        # 週四 → 週五
+    assert adj(date(2026, 7, 24), date(2026, 7, 27))        # 週五 → 週一
+    assert not adj(date(2026, 7, 23), date(2026, 7, 27))    # 漏了週五
+    assert not adj(date(2026, 7, 24), date(2026, 7, 28))    # 跨假日，與漏棒不可區分
+    assert not adj(date(2026, 7, 20), date(2026, 7, 27))    # 相隔一週
