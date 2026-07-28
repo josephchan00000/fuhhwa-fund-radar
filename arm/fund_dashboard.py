@@ -263,11 +263,21 @@ def _factcheck_chip(today=None) -> str:
     d = today or clock.today_tw()
     if doc.get("date") != f"{d:%Y-%m-%d}":
         return ""
-    if doc.get("red"):
-        return (f'<span class="chip fresh stale"><b>數字核對</b>　🔴 {doc["red"]} 項與官方不符'
+    # 計數以 items 為準、表頭 green/red 只當沒有 items 時的後備：表頭是去正規化的
+    # 冗餘欄位，跨 run 競態下曾與明細不一致（2026-07-28：兩個 daily.yml run 因
+    # concurrency 依 event_name 分組而同時 commit，rebase 的三方文字合併把「表頭」
+    # 與「items」湊成不同 run 的版本 → 明細 0 紅、表頭卻寫 red 2，儀表板掛出假警示章）。
+    items = doc.get("items")
+    if isinstance(items, list) and items:
+        red = sum(1 for i in items if i.get("status") == "🔴")
+        green = sum(1 for i in items if i.get("status") == "🟢")
+    else:
+        red, green = doc.get("red") or 0, doc.get("green") or 0
+    if red:
+        return (f'<span class="chip fresh stale"><b>數字核對</b>　🔴 {red} 項與官方不符'
                 f'（{_esc(doc.get("as_of") or "")}核對，修正中）</span>')
-    if doc.get("green"):
-        return (f'<span class="chip fresh"><b>數字核對</b>　🟢 {doc["green"]} 項與官方相符'
+    if green:
+        return (f'<span class="chip fresh"><b>數字核對</b>　🟢 {green} 項與官方相符'
                 f'（{_esc(doc.get("as_of") or "")}）</span>')
     return ""
 
