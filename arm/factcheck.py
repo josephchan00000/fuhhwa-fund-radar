@@ -81,6 +81,24 @@ def twse_inst_flows(d: date) -> dict | None:
 _US_IDX_SYM = {"sox": "^SOX", "ndq": "^IXIC", "spx": "^GSPC", "dji": "^DJI"}
 
 
+def _adjacent_session(prev: date, cur: date) -> bool:
+    """prev 是否確為 cur 的「前一個交易日」——日變動% 只在相鄰時才算。
+
+    2026-07-28 踩坑：Yahoo 日線偶爾漏棒（當日 ^IXIC/^SOX 都缺 07/24 那根），
+    原本無條件拿「序列前一筆」硬算，日變動就靜默變成**多日累計**，把正確的單日
+    漲跌誤判成 🔴——實例：費半單日 −2.23% 被判成官方 −6.39%（實為 07/24 −4.25%
+    與 07/27 −2.23% 的兩日累計）、那指單日 −0.18% 被判成 −0.82%。
+
+    只承認「連續平日」與「週五→週一」。跨假日（如週五→週二）與漏棒在日期上
+    無法區分，一律回 False，讓上層走既有的 ⚪「無前日收盤可算漲跌%」誠實跳過
+    ——寧可少驗幾天，也不可對正確數字發假警報（設計原則 1「絕不誤殺」）。
+    """
+    gap = (cur - prev).days
+    if gap == 1:                                          # 一般平日相鄰
+        return True
+    return gap == 3 and prev.weekday() == 4 and cur.weekday() == 0   # 週五 → 週一
+
+
 def yahoo_index_series(key: str) -> dict[str, tuple[float, float | None]] | None:
     """Yahoo 圖表 API（CI 可達）→ {iso日期: (收盤, 當日漲跌%)}。
     2026-07-22 新增：費半等美股指數收盤點位媒體少登，查證代理連三日出錯
@@ -99,14 +117,14 @@ def yahoo_index_series(key: str) -> dict[str, tuple[float, float | None]] | None
         return None
     from datetime import datetime, timezone
     out: dict[str, tuple[float, float | None]] = {}
-    prev = None
+    prev: tuple[date, float] | None = None
     for t, c in zip(ts, closes):
         if c is None:
             continue
-        iso = datetime.fromtimestamp(t, timezone.utc).date().isoformat()
-        chg = (c / prev - 1) * 100 if prev else None
-        out[iso] = (float(c), chg)
-        prev = float(c)
+        d = datetime.fromtimestamp(t, timezone.utc).date()
+        chg = (c / prev[1] - 1) * 100 if prev and _adjacent_session(prev[0], d) else None
+        out[d.isoformat()] = (float(c), chg)
+        prev = (d, float(c))
     return out or None
 
 
