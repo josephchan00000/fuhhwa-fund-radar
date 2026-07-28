@@ -398,7 +398,11 @@ def test_dashboard_has_etf_tab_and_tables():
     assert "stock-day" in html                          # TWSE 官方每日收盤（報酬來源）
     # 欄位改名：最近一次配息金額、換算年化配息率
     assert "最新收盤價" in html and "最近一次配息金額" in html and "換算年化配息率" in html
-    assert "配息殖利率" not in html and "報酬來源" not in html   # 舊欄名／獨立來源欄已移除
+    # 舊欄名／獨立來源欄已移除——只掃 ETF 區塊，不可對整份 HTML 做子字串比對：
+    # 2026-07-28 誤爆實例，新聞卡寫「少數的正報酬來源」即讓本斷言失敗。
+    etf_sec = html.split('id="etfwatch"', 1)[1].split('id="brief"', 1)[0]
+    assert "換算年化配息率" in etf_sec                    # 切片確實含 ETF 表（防邊界寫錯而假通過）
+    assert "配息殖利率" not in etf_sec and "報酬來源" not in etf_sec
     assert "預計配息金額" in html                        # 預估配息 * 的註腳說明
     assert "mops.twse.com.tw" in html                    # 預估配息來源 MOPS 連結
 
