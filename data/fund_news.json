@@ -1,15 +1,77 @@
 {
-  "as_of": "2026/07/28 07:02",
+  "as_of": "2026/07/28 08:08",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
     {
+      "title": "00409A下月開募 盯權值股",
+      "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE45ZGRSeG9ST1pvVURYaDF4Y09YbXh5MTN6d2lTanVvVHV0Q3htQ1pjSGtuZHQtM3QxY1B4VXZ3XzE2dVZZaHRudi1PY2oxUUNVcjV3QjJzdk9IQdIBX0FVX3lxTE55dWJ0SlRYWVYwcFJIT0dvbm1tYUhNaG5ZdUJwd2xnUE05MUV6VG9HX05DZWJaNW9SRFE3UXZFOXd0bjJJaEdiUkJIMWhUamVYR2hGMTVxdDFlcU9ZOThB?oc=5",
+      "source": "經濟日報",
+      "date": "2026-07-27 23:58",
+      "datetime": "2026-07-27T23:58:13+08:00"
+    },
+    {
+      "title": "復華全球未來50 ETF於8／12開募　挖掘AI產業50強",
+      "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE42U1loc1VROGRHOTZ3ZVExb3IxX1VlREV6U0gyVHR3MmJZTXFHT1VrUml5Q3FoTktLMzVnQXh1NjNQWkVRTVVIOTE2ZU4yWlZFbHfSAVBBVV95cUxOLWtEeWFIM05CbzdRM3FiUFY0bFZzQ3RBak8tME5lSGMxbVFjVFdpOWt6SS1NRi1FeVFWajhyQktLY2JaS0ZzdUVCd21BZGJORw?oc=5",
+      "source": "ETtoday財經雲",
+      "date": "2026-07-27 19:06",
+      "datetime": "2026-07-27T19:06:00+08:00"
+    },
+    {
+      "title": "復華未來50 ETF推全球版！3位績優操盤人共掌00409A 延續00991A戰力",
+      "url": "https://news.google.com/rss/articles/CBMibkFVX3lxTFA1Qi1KYzZKamtsc2trWjYtVXpZTmF6dnFHUVhtNmhxSVp5aEFfaXpiazZwcWloZ1JGbDZQMHNKRTRINWZJNHhFT1V6TjZWMmpMT05BczNXNEhjQmxNTTFvZEZ1aUNORmF0YlkyT29R?oc=5",
+      "source": "四季線上4gTV",
+      "date": "2026-07-27 18:56",
+      "datetime": "2026-07-27T18:56:35+08:00"
+    },
+    {
+      "title": "《基金》復華00409A開募布局全球50強產業贏家- 基金",
+      "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE5vaE9aZ250UlhnTnZEYkVNaFJrdmRMX3RtMnhiNzM3dlFicnV2alVxVDBkSE1UMS1jY1RkczJXWERkMHJuSUVlaDNnSFhtRngyeW9KU3dGekQySVRkNlYzbWNRTE9sdHhPUXc?oc=5",
+      "source": "旺得富理財網",
+      "date": "2026-07-27 17:24",
+      "datetime": "2026-07-27T17:24:21+08:00"
+    },
+    {
+      "title": "00409A 首創多重經理人！復華全球未來 50 主動式 ETF 自 8/12 開募",
+      "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE9zcFJ3LWdsSXFfZUx6M3l2bkt3YkYyWmZFZ0paMXdPNVBiLW01NlpjZkVpUG9tNVFHT21XcUNISU13Y3k1YnMxcmhTcVZyeUlmdk1TaVBXTFl2UQ?oc=5",
+      "source": "TechNews 科技新報",
+      "date": "2026-07-27 17:09",
+      "datetime": "2026-07-27T17:09:09+08:00"
+    },
+    {
       "title": "接棒H1績效王00991A！復華推「未來50」全球版00409A 三大王牌經理人操盤",
-      "url": "https://news.cnyes.com/news/id/6546782",
-      "source": "鉅亨網",
+      "url": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE1Ya29nSjctQVg4Q1NUS1BKQzY2MnJPLUlDaXQxdHVDanNtYzFDel9FdW0xejJ1SnFUZWtPWC1ZVDBiNjVIRGxCRElEUmVjdVk?oc=5",
+      "source": "news.cnyes.com",
       "date": "2026-07-27 17:07",
-      "datetime": "2026-07-27T17:07:45+08:00",
-      "summary": "今年主動式 ETF 市場百花齊放，繼上半年績效王「復華台灣未來 50(00991A-TW)」掀起熱潮後，復華投信再推出第二檔「未來 50」系列力作——「復華全球未來 50 主動式 ETF(00409A…"
+      "datetime": "2026-07-27T17:07:45+08:00"
+    },
+    {
+      "title": "AI紅利擴散、非AI龍頭接棒！復華00409A聚焦全球50強 8/12開募",
+      "url": "https://news.google.com/rss/articles/CBMiggFBVV95cUxOenFUSEMtb2dVaVBpTXpLT1RZdEctUzlPTTNNSkFUMXNXUmpmbVE4SElNWS1VR1ZTSE12dV94Q25yVDNkZFYycXVwenJDenJ4bFNMYnBob0ZWZmVndDFpRGFDS1NFc1V6OGh2M21oNEFac2RlZzBwR3VNZzVOckpHY1dn?oc=5",
+      "source": "壹蘋新聞網",
+      "date": "2026-07-27 16:25",
+      "datetime": "2026-07-27T16:25:00+08:00"
+    },
+    {
+      "title": "台灣復華投信：AI科技龍頭股長線仍看好，旗下新基金至少半數配置美股",
+      "url": "https://news.google.com/rss/articles/CBMid0FVX3lxTE13TlBocDNXZlF5SWpnR3JSaFhjdjVsUzVRbGF0LUNtRVZLOGhyMjFCSUZyOS1rQ2ZMTkdjQXU2bjhYS0tPVkJkbU12UnRNWVFYZUM3NXgxdnpWM0ktYklaSFFHSy15b3JhTHRWZjBCNkpNNzNjbHpR?oc=5",
+      "source": "TradingView",
+      "date": "2026-07-27 16:03",
+      "datetime": "2026-07-27T16:03:50+08:00"
+    },
+    {
+      "title": "主動掌握全球50檔產業贏家股票 復華主動式ETF 00409A 8月12日開募",
+      "url": "https://news.google.com/rss/articles/CBMiU0FVX3lxTE9xOXhaUmM4QnpGclh6SjM5UUEtdmFLUnNTTjNxN0dIUS1IM1p2eko4N1NmLVJOcjFPWW5HQnNTbVVlMUlkZnVwZ1gwODF4RnZvRzlZ0gFYQVVfeXFMTk52NDVKMGFUak9rMlJNRnkzU2hETi1JWW92bGNhZzV1azQyWjJfOURtaENPSE11azR3WXlxWERQQ281ZDA4OXNSV1NnY1ZBbkxla3JXNWdYWA?oc=5",
+      "source": "UDN",
+      "date": "2026-07-27 15:25",
+      "datetime": "2026-07-27T15:25:51+08:00"
+    },
+    {
+      "title": "00409A首創三王牌經理人制！ 復華投信：7~8月拉回布局時機到",
+      "url": "https://news.google.com/rss/articles/CBMi3gJBVV95cUxOQ1dTQlliWlEwMTNhUnlkLXhscWpYNDlVRkhRNGdNTFNUN2lCQmwyR2dCMFJ3UnVSclJjazdHSWJrWTVneDZOSHd5bHpHRWVGNEtMdW5uenVXRjlxRVhRcXJ0V2FONFV4SFVMSlN4M1liVWUzVFFqa2hzOVpFTnZheFg3M05kNkxvb0hvS2FqZGNFMV9jaEpUZEhfXy13VlhYSXNRMTJYWV9NQTJGRVZOeTVuUTFmcUFmdE1HSHUyal9QS21RUnp3S0JvRkY0SGVtcXg1ZUNGMWl6Q2pEaUI1enVJRXJlLVFLVWwycGdic21VbmE1N2dHOHRzSmg5NDdZdGxWd2ppVUlSNGhGS3FGU19OSFRreGZLbmtWcnloRlZUMFEtN2cwVnozckJQTnBielU3dWkxY21IcWFlb01la0JrdXRaM3ZueVp3RmtBbTZKTEtMVVV5emNUdmV3QQ?oc=5",
+      "source": "Yahoo新聞",
+      "date": "2026-07-27 15:10",
+      "datetime": "2026-07-27T15:10:38+08:00"
     }
   ],
   "funds": [
@@ -41,7 +103,29 @@
       "short_names": [
         "全球物聯網科技新臺幣"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華未來50 ETF推全球版！3位績優操盤人共掌00409A 延續00991A戰力",
+          "url": "https://news.google.com/rss/articles/CBMibkFVX3lxTFA1Qi1KYzZKamtsc2trWjYtVXpZTmF6dnFHUVhtNmhxSVp5aEFfaXpiazZwcWloZ1JGbDZQMHNKRTRINWZJNHhFT1V6TjZWMmpMT05BczNXNEhjQmxNTTFvZEZ1aUNORmF0YlkyT29R?oc=5",
+          "source": "四季線上4gTV",
+          "date": "2026-07-27 18:56",
+          "datetime": "2026-07-27T18:56:35+08:00"
+        },
+        {
+          "title": "00409A 首創多重經理人！復華全球未來 50 主動式 ETF 自 8/12 開募",
+          "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE9zcFJ3LWdsSXFfZUx6M3l2bkt3YkYyWmZFZ0paMXdPNVBiLW01NlpjZkVpUG9tNVFHT21XcUNISU13Y3k1YnMxcmhTcVZyeUlmdk1TaVBXTFl2UQ?oc=5",
+          "source": "TechNews 科技新報",
+          "date": "2026-07-27 17:09",
+          "datetime": "2026-07-27T17:09:09+08:00"
+        },
+        {
+          "title": "00409A首創三王牌經理人制！ 復華投信：7~8月拉回布局時機到 | 太報",
+          "url": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE9EMk1PdE5vNnk5eTB1SXRWOE9aUG1jOFJfajFTQkJSelZfY1ZXc04tbU91dDZscFVPdFpVNG1jWFNXNExzWWFadHJuaElEVWlOMGpoSUV3?oc=5",
+          "source": "LINE TODAY",
+          "date": "2026-07-27 15:38",
+          "datetime": "2026-07-27T15:38:50+08:00"
+        }
+      ]
     },
     {
       "base": "復華華人世紀基金",
@@ -51,7 +135,36 @@
       "short_names": [
         "華人世紀"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華未來50 ETF推全球版！3位績優操盤人共掌00409A 延續00991A戰力",
+          "url": "https://news.google.com/rss/articles/CBMibkFVX3lxTFA1Qi1KYzZKamtsc2trWjYtVXpZTmF6dnFHUVhtNmhxSVp5aEFfaXpiazZwcWloZ1JGbDZQMHNKRTRINWZJNHhFT1V6TjZWMmpMT05BczNXNEhjQmxNTTFvZEZ1aUNORmF0YlkyT29R?oc=5",
+          "source": "四季線上4gTV",
+          "date": "2026-07-27 18:56",
+          "datetime": "2026-07-27T18:56:35+08:00"
+        },
+        {
+          "title": "00409A 首創多重經理人！復華全球未來 50 主動式 ETF 自 8/12 開募",
+          "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE9zcFJ3LWdsSXFfZUx6M3l2bkt3YkYyWmZFZ0paMXdPNVBiLW01NlpjZkVpUG9tNVFHT21XcUNISU13Y3k1YnMxcmhTcVZyeUlmdk1TaVBXTFl2UQ?oc=5",
+          "source": "TechNews 科技新報",
+          "date": "2026-07-27 17:09",
+          "datetime": "2026-07-27T17:09:09+08:00"
+        },
+        {
+          "title": "接棒H1績效王00991A！復華推「未來50」全球版00409A 三大王牌經理人操盤",
+          "url": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE1Ya29nSjctQVg4Q1NUS1BKQzY2MnJPLUlDaXQxdHVDanNtYzFDel9FdW0xejJ1SnFUZWtPWC1ZVDBiNjVIRGxCRElEUmVjdVk?oc=5",
+          "source": "news.cnyes.com",
+          "date": "2026-07-27 17:07",
+          "datetime": "2026-07-27T17:07:45+08:00"
+        },
+        {
+          "title": "00409A首創三王牌經理人制！ 復華投信：7~8月拉回布局時機到 | 太報",
+          "url": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE9EMk1PdE5vNnk5eTB1SXRWOE9aUG1jOFJfajFTQkJSelZfY1ZXc04tbU91dDZscFVPdFpVNG1jWFNXNExzWWFadHJuaElEVWlOMGpoSUV3?oc=5",
+          "source": "LINE TODAY",
+          "date": "2026-07-27 15:38",
+          "datetime": "2026-07-27T15:38:50+08:00"
+        }
+      ]
     },
     {
       "base": "復華亞太成長基金",
@@ -71,7 +184,29 @@
       "short_names": [
         "亞太神龍科技新臺幣"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "00409A 首創多重經理人！復華全球未來 50 主動式 ETF 自 8/12 開募",
+          "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE9zcFJ3LWdsSXFfZUx6M3l2bkt3YkYyWmZFZ0paMXdPNVBiLW01NlpjZkVpUG9tNVFHT21XcUNISU13Y3k1YnMxcmhTcVZyeUlmdk1TaVBXTFl2UQ?oc=5",
+          "source": "TechNews 科技新報",
+          "date": "2026-07-27 17:09",
+          "datetime": "2026-07-27T17:09:09+08:00"
+        },
+        {
+          "title": "復華未來50 ETF推全球版！3位績優操盤人共掌00409A 延續00991A戰力",
+          "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE9hb1BFUDNUUEEzbEQ2NHZrNk9LQWpKODlEcnJmbTBpd3l1OXdDMmMxNm9oUGRETWpBbGdYaDZsWHJzT3pEbzVzc2JTWGl6ekx4LVE?oc=5",
+          "source": "蕃新聞",
+          "date": "2026-07-27 16:14",
+          "datetime": "2026-07-27T16:14:00+08:00"
+        },
+        {
+          "title": "00409A首創三王牌經理人制！ 復華投信：7~8月拉回布局時機到 | 太報",
+          "url": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE9EMk1PdE5vNnk5eTB1SXRWOE9aUG1jOFJfajFTQkJSelZfY1ZXc04tbU91dDZscFVPdFpVNG1jWFNXNExzWWFadHJuaElEVWlOMGpoSUV3?oc=5",
+          "source": "LINE TODAY",
+          "date": "2026-07-27 15:38",
+          "datetime": "2026-07-27T15:38:50+08:00"
+        }
+      ]
     },
     {
       "base": "復華中國新經濟A股基金",
@@ -183,7 +318,15 @@
       "short_names": [
         "台灣好收益"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華台灣好收益基金 的買賣訊號 | 鉅亨網 - 基金老司機",
+          "url": "https://news.google.com/rss/articles/CBMizwFBVV95cUxPLXduM1k2VkFoU09LY1hGSlBSRGhjQW1OWC1oWXZwV202eUJLVkZJZ1Vrdms4ZVctLXJvbklBOXp2aUhMVEJYLWx2ZF9HQmdNSGhXTUpYaHRlamtJQ2pYeV9zbnRscGZoeTlmUUVMcWlXZkxKR0NjcTh4STd0UVdmSkJOVjRORWVHVnRVUlBBcGExTU5PdEJrblVLbE1RbWtoRlJqOE5oTzZhdzZJZTctdHJ6OWRFOG9TSURaLU9VMUlnNWhxMDUxN0M4eXlNamc?oc=5",
+          "source": "鉅亨網",
+          "date": "2026-07-21 15:00",
+          "datetime": "2026-07-21T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華台灣科技高股息基金",
@@ -290,6 +433,7 @@
   ],
   "social": [],
   "highlights": [
-    "品牌焦點：接棒H1績效王00991A！復華推「未來50」全球版00409A 三大王牌經理人操盤（鉅亨網）"
+    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技、台灣好收益（詳下方基金新聞標籤）",
+    "品牌焦點：00409A下月開募 盯權值股（經濟日報）"
   ]
 }
