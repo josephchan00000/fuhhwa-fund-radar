@@ -156,3 +156,41 @@ def test_specs_require_deep_pick():
     from arm import twnews, usnews
     assert "保底 1 篇" in usnews.SPEC_V1 and "【深度】" in usnews.SPEC_V1
     assert "保底 1 篇" in twnews.SPEC_POST and "保底 1 篇" in twnews.SPEC_PRE
+
+
+def test_factcheck_chip_counts_from_items_not_header(tmp_path, monkeypatch):
+    """數字核對章以 items 為準，表頭去正規化計數只當後備。
+
+    2026-07-28 實例：兩個 daily.yml run 因 concurrency 依 event_name 分組而同時
+    commit，rebase 的三方文字合併把「表頭」與「items」湊成不同 run 的版本——明細
+    0 紅、表頭卻寫 red 2，儀表板因而掛出假的 🔴 警示章。表頭與明細衝突時，
+    明細才是事實來源。
+    """
+    from arm import fund_dashboard as fd
+    t = date(2026, 7, 28)
+    monkeypatch.setattr(fd, "ROOT_DIR", tmp_path)
+    (tmp_path / "data").mkdir()
+    fp = tmp_path / "data" / "factcheck.json"
+
+    def _write(doc):
+        fp.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+
+    base = {"date": "2026-07-28", "as_of": "2026-07-28 10:17"}
+    green_items = [{"status": "🟢"}, {"status": "🟢"}, {"status": "⚪"}]
+
+    # 表頭謊稱 red 2、明細實為 0 紅 → 不得掛紅章，且綠數以明細為準（2 而非表頭 11）
+    _write({**base, "green": 11, "red": 2, "skipped": 0, "items": green_items})
+    chip = fd._factcheck_chip(today=t)
+    assert "🔴" not in chip and "🟢 2 項與官方相符" in chip
+
+    # 真的有紅 → 照常掛紅章，計數同樣取自明細
+    _write({**base, "green": 11, "red": 0, "items": green_items + [{"status": "🔴"}]})
+    assert "🔴 1 項與官方不符" in fd._factcheck_chip(today=t)
+
+    # 無 items（舊格式）→ 後備讀表頭，維持相容
+    _write({**base, "green": 5, "red": 3})
+    assert "🔴 3 項與官方不符" in fd._factcheck_chip(today=t)
+
+    # 非今日檔一律不顯示（沿用既有規則）
+    _write({"date": "2026-07-27", "as_of": "x", "items": [{"status": "🔴"}]})
+    assert fd._factcheck_chip(today=t) == ""
