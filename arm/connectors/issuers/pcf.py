@@ -455,12 +455,31 @@ def is_plausible(rows: list[dict]) -> bool:
          這正是推薦連結清單的長相。只排除「全部」而非「任一」，才不會誤殺
          真的持有其他 ETF 的組合型基金。
     """
-    if len(rows) < _MIN_HOLDINGS:
-        return False
+    return not implausible_reason(rows)
+
+
+def implausible_reason(rows: list[dict]) -> str:
+    """回「不像持股清單」的具體理由；通過則回 ""。
+
+    2026-07-29 瀏覽器首跑：復華攔到 **30 檔**的 XHR、元大 6 檔，卻只看得到「未通過持股驗證」
+    —— 不知道是被哪一條擋、那些列長什麼樣，就沒辦法判斷「該放寬規則」還是「該換來源」。
+    把理由與樣本列進日誌，一輪就能決斷。"""
+    n = len(rows)
+    if n < _MIN_HOLDINGS:
+        return f"僅 {n} 檔（門檻 {_MIN_HOLDINGS}）"
     with_qty = sum(1 for r in rows if r.get("weight") is not None or r.get("shares") is not None)
-    if with_qty * 2 < len(rows):
-        return False
-    return not all(str(r.get("stock_id", "")).startswith("0") for r in rows)
+    if with_qty * 2 < n:
+        return f"{n} 檔中僅 {with_qty} 檔帶權重／股數（過半才算持股清單）"
+    if all(str(r.get("stock_id", "")).startswith("0") for r in rows):
+        return f"{n} 檔全為 0 開頭的 ETF 代碼（導覽／推薦清單的長相）"
+    return ""
+
+
+def sample_rows(rows: list[dict], k: int = 4) -> str:
+    """列出前 k 筆的代號/名稱/權重/股數，供 CI 日誌判讀來源對不對。"""
+    return " ; ".join(
+        f"{r.get('stock_id')}{r.get('name') or ''}"
+        f"(w={r.get('weight')},s={r.get('shares')})" for r in rows[:k])
 
 
 def fetch_one(code: str, issuer: str) -> tuple[list[dict], str, list[Probe]]:
