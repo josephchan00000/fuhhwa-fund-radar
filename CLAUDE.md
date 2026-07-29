@@ -289,8 +289,21 @@ ETF 表每列下方一個原生 `<details>` 展開鈕，內含：持股／權重
   （否則 Δ 全變 0、看起來像「都沒異動」）；揭露日推進時才把舊 holdings 降級為 prev。
 - **貢獻在 CI 端算好存進落檔的 `detail`**（`etfholdings.annotate`，個股報價 ← `twse/tpex.fetch_today_all`）——
   容器內 proxy 擋 twse/tpex，建表時取不到報價；儀表板端 `etfholdings.view()` 只讀 `detail` 純渲染。
-- **抓取：沒有跨投信統一官方端點**（2026-07-29 查證：證交所／櫃買／政府開放平台皆無彙總 API，
-  各投信自行在官網揭露）→ `arm/connectors/issuers/pcf.py` 做成「**候選 URL＋通用解析＋探針**」：
+- **抓取＝無頭瀏覽器（2026-07-29 定案，逐家逆向 7 輪後的結論）**：`scripts/fetch_etf_holdings_browser.py`
+  ＋獨立 workflow `.github/workflows/etf_holdings.yml`（台北週一~五 17:40，台股收盤後投信 PCF 已更新）。
+  - **為何用瀏覽器**：投信官網幾乎都是 SPA、持股由 XHR 動態載入，靜態 HTTP 只拿得到文案與公告內文；
+    **群益更在 Incapsula 機器人防護後面**（第 7 輪日誌現出 `_Incapsula_Resource`，這正是每次靜態抓取
+    都回同一份外殼的原因）。逐家逆向 API 是長尾（10 家各自是謎題、改版就再壞），渲染一次全解。
+  - **為何獨立 workflow**：瀏覽器安裝＋渲染要 1–3 分鐘，放進 `daily.yml` 會壓縮「07:03 前線上可看」
+    的目標。本 job 只更新 `data/etf_holdings.json` 並 commit，儀表板下一次建表自然吃到
+    （資料層本就是「抓取在 CI、建表只讀落檔」）。失敗不影響任何現有功能。
+    **`daily_fund.sh` 已移除純 HTTP 版抓取**——每輪對投信站發出上百個註定失敗的請求。
+  - **兩路取數、取先通過 `is_plausible` 者**：①**攔截 XHR 回應**餵 `pcf.parse_json`——
+    這一路會把**真正的 API URL 記進日誌**，日後若要退回純 HTTP（更省資源）直接補進 `pcf._cands()`；
+    ②解析渲染後的 DOM 餵 `pcf.parse_html`。解析／驗證／合併／歸因全部重用既有模組，不另立一套。
+- **純 HTTP 路線（`arm/connectors/issuers/pcf.py`）保留為解析層與備援**——沒有跨投信統一官方端點
+  （2026-07-29 查證：證交所／櫃買／政府開放平台皆無彙總 API，各投信自行在官網揭露）→
+  做成「**候選 URL＋通用解析＋探針**」：
   每檔依序試候選來源，通用解析吃 JSON／HTML 表格／xlsx（重用 `fhtrust._parse_xlsx`），
   抓不到就印 HTTP 狀態／content-type／內容前段。**收斂方式：跑 `scripts/fetch_etf_holdings.py --probe`
   於 CI，讀日誌逐家證實後改 `_cands()`**（同 cnyesfund.py 當初 6 輪 CI 收斂的做法）。

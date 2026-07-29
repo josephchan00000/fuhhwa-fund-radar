@@ -2,6 +2,10 @@
 
 （2026-07-29 使用者需求：ETF 尤其是主動式 ETF 可以拉開，看持股加減碼與當天影響漲跌的比例。）
 """
+import importlib.util
+import json
+from pathlib import Path
+
 from arm import etfholdings as eh
 from arm import fund_dashboard as fd
 from arm.connectors.issuers import pcf
@@ -286,3 +290,94 @@ def test_bundle_scan_rejects_catch_all_html_shell(monkeypatch):
     assert "catch-all" in log                                # 假 bundle 有講明
     assert "頁面 script 共 2 支" in log                       # 可用 script 清單有列出
     assert 'svc:"pcf"' in log                                # 呼叫脈絡（body 參數）有撈到
+
+
+# ── 無頭瀏覽器抓取（2026-07-29：逐家逆向 6 輪後改走渲染路線） ──────────
+
+def _browser_mod():
+    """以檔案路徑載入抓取腳本——不在 scripts/ 放 __init__.py，
+    以免把 scripts 變成套件、改動整個 repo 的 import 語意。"""
+    fp = Path(__file__).resolve().parent.parent / "scripts" / "fetch_etf_holdings_browser.py"
+    spec = importlib.util.spec_from_file_location("_etf_browser", fp)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _fake_page(responses, dom=b"<html></html>", fail=None):
+    """最小 Playwright page 替身：goto/wait/content/on('response') 四件事。"""
+    class Resp:
+        def __init__(self, url, body):
+            self.url, self._b = url, body
+            self.headers = {"content-type": "application/json"}
+            self.request = type("R", (), {"resource_type": "xhr"})()
+
+        def body(self):
+            return self._b
+
+    class Page:
+        def __init__(self):
+            self._cb = None
+
+        def on(self, _evt, cb):
+            self._cb = cb
+
+        def goto(self, _url, **_kw):
+            if fail:
+                raise RuntimeError(fail)
+            for u, b in responses:
+                self._cb(Resp(u, b))
+
+        def wait_for_timeout(self, _ms):
+            pass
+
+        def content(self):
+            return dom.decode()
+
+    return Page()
+
+
+def _holdings_json(n=15):
+    rows = [{"stockNo": f"23{i:02d}", "stockName": f"股{i}",
+             "shares": 1000 + i, "weight": round(1.0 + i / 10, 2)} for i in range(n)]
+    return json.dumps({"data": {"pcf": rows}}).encode()
+
+
+def test_browser_prefers_intercepted_xhr_and_reports_api_url():
+    """攔到的 XHR 回應就是持股 API——順便把真正的 API URL 記進日誌，
+    日後要退回純 HTTP（更省資源）直接照著補 pcf._cands() 即可。"""
+    b = _browser_mod()
+    page = _fake_page([("https://x.tw/js/nav.json", b'{"menu":[]}'),
+                       ("https://x.tw/api/pcf?code=0050", _holdings_json())])
+    rows, how, log = b._from_page(page, "https://x.tw/pcf/0050")
+    assert len(rows) == 15 and how.startswith("xhr:")
+    assert "/api/pcf?code=0050" in how
+    assert any("可補進 pcf._cands()" in x for x in log)
+
+
+def test_browser_falls_back_to_rendered_dom():
+    """沒攔到可用 XHR 時，改解析渲染後的 DOM（SPA 渲染完就是普通表格）。"""
+    b = _browser_mod()
+    trs = "".join(f"<tr><td>23{i:02d}</td><td>股{i}</td><td>1000</td><td>1.5</td></tr>"
+                  for i in range(15))
+    dom = f"<table><tr><th>代號</th><th>名稱</th><th>股數</th><th>比重</th></tr>{trs}</table>"
+    page = _fake_page([], dom=dom.encode())
+    rows, how, _log = b._from_page(page, "https://x.tw/pcf/0050")
+    assert len(rows) == 15 and how == "dom"
+
+
+def test_browser_rejects_junk_via_is_plausible():
+    """渲染後仍是導覽／推薦連結 → 同一道 is_plausible 擋下，不會上線錯誤明細。"""
+    b = _browser_mod()
+    junk = b'{"list":[{"stockNo":"0050"},{"stockNo":"0056"},{"stockNo":"0052"}]}'
+    page = _fake_page([("https://x.tw/api/menu", junk)])
+    rows, how, log = b._from_page(page, "https://x.tw/pcf/0050")
+    assert rows == [] and how == ""
+    assert any("未通過持股驗證" in x for x in log)
+
+
+def test_browser_navigation_failure_degrades_quietly():
+    b = _browser_mod()
+    page = _fake_page([], fail="Timeout 45000ms exceeded")
+    rows, how, log = b._from_page(page, "https://x.tw/pcf/0050")
+    assert rows == [] and how == "" and any("導頁失敗" in x for x in log)
