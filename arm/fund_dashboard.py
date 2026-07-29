@@ -961,6 +961,21 @@ def _holdings_detail(code: str, detail: dict | None) -> str:
                    f'<td>{_delta_shares(r.get("d_shares"))}</td>'
                    f'<td>{_pct_span(r.get("d_weight"))}</td><td>—</td><td>—</td></tr>')
     total = _pct_span(detail.get("total_contrib"), unit="pp")
+    # 跨源驗證章（2026-07-29 使用者指示改彙整站＋雙重驗證）：match=🟢、single=標明未驗證、
+    # mismatch=紅 ⚠（照用主來源、差異細節在章 tooltip——誠實揭露，不假裝一致）
+    vf = detail.get("verify") or {}
+    if vf.get("status") == "match":
+        vf_html = (f'<span class="hvok" title="與 {_esc(str(vf.get("other") or "第二來源"))} 交叉驗證：'
+                   f'前十大重合 {vf.get("top_hit")}/{vf.get("top_n")}、共同持股權重差 ≤'
+                   f'{vf.get("max_dw") if vf.get("max_dw") is not None else "—"}pp">🟢 雙源相符</span>')
+    elif vf.get("status") == "mismatch":
+        vf_html = (f'<span class="hvbad" title="與 {_esc(str(vf.get("other") or "第二來源"))} 不符：'
+                   f'前十大僅重合 {vf.get("top_hit")}/{vf.get("top_n")}、權重差最大 '
+                   f'{vf.get("max_dw")}pp——本表照用主來源，數字請以官方揭露為準">⚠ 兩源不符</span>')
+    elif vf.get("status") == "single":
+        vf_html = '<span class="hvone" title="僅單一來源可得，本次未經第二站交叉驗證">單源未驗證</span>'
+    else:
+        vf_html = ""
     return (f'<tr class="hdrow"><td colspan="{len(_ETF_COLS) + 2}" class="hdcell">'
             f'<details class="hdet"><summary>持股變化與當日貢獻'
             f'{partial}<span class="hsum">{detail.get("n_holdings") or 0} 檔持股｜揭露日 {_esc(d)}'
@@ -973,7 +988,8 @@ def _holdings_detail(code: str, detail: dict | None) -> str:
             f'列出貢獻絕對值最大者，已涵蓋權重 {_hold_num(detail.get("covered_weight"), 1)}%，'
             f'合計貢獻 {total}。<b>合計與 ETF 市價漲跌不會完全相等</b>——現金／期貨部位、'
             f'費用、以及持股揭露時點與收盤的時間差都落在差額裡，此處不作湊平調整。'
-            f'資料來源：{_esc(detail.get("src") or "投信每日揭露")}（申購買回清單／持股明細）。'
+            f'資料來源：{_esc(detail.get("src") or "投信每日揭露")}'
+            f'（Tier B 彙整站，取自投信每日揭露；正式對外前以各投信官網核對）{vf_html}。'
             f'</div></details></td></tr>')
 
 
@@ -1785,6 +1801,10 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 .hnew{color:#8a5410;background:rgba(200,118,15,.14)}
 /* 全球型 ETF：本表僅台股部位（權重合計遠低於 100%）——橘標誠實揭露，避免被讀成完整清單 */
 .hpartial{margin-left:6px;font-size:10.5px;color:#8a5410;background:rgba(200,118,15,.14);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help}
+/* 跨源驗證章：🟢 雙源相符／單源未驗證／⚠ 兩源不符（詳情在 tooltip） */
+.hvok{margin-left:5px;font-size:10.5px;color:#1f7a43;background:rgba(31,157,87,.12);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help}
+.hvone{margin-left:5px;font-size:10.5px;color:var(--mut);background:rgba(120,120,120,.12);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help}
+.hvbad{margin-left:5px;font-size:10.5px;color:#c62828;background:rgba(198,40,40,.1);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help;font-weight:700}
 .hgone{color:var(--mut);background:rgba(120,120,120,.12)}
 .hdfoot{color:var(--mut);font-size:11.5px;line-height:1.75;margin-top:6px}
 
