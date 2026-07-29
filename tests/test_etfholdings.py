@@ -235,7 +235,7 @@ def test_key_hits_dumps_context_around_data_anchor():
 
 def test_bundle_api_hints_fetches_bundles_and_extracts_paths(monkeypatch):
     """SPA 的 API 路徑一定寫在 JS bundle 裡（HTML 裡只有文案）。"""
-    pcf._bundle_cache.clear()
+    pcf._bundle_cache.clear(); pcf._bundle_log.clear()
     html = (b'<html><script src="/rsrc/runtime.abc.js"></script>'
             b'<script src="/rsrc/main.def.js"></script></html>')
     js = {"https://x.tw/rsrc/runtime.abc.js": b'var a=1;',
@@ -248,12 +248,15 @@ def test_bundle_api_hints_fetches_bundles_and_extracts_paths(monkeypatch):
     monkeypatch.setattr(pcf, "_get", fake_get)
     hints = pcf._bundle_api_hints(html, "https://x.tw/tradeInfo/pcf/0050")
     assert "/api/etf/pcf/" in hints and "/api/fund/holding" in hints
-    assert not any(".png" in h for h in hints)
+    # 回傳的必須是「乾淨的路徑清單」——診斷片段另存 _bundle_log，不可混進來
+    # （否則日後把路徑餵進 _cands() 會炸，且片段裡本就含 .png 之類無關字串）
+    assert not any(".png" in h or "診斷" in h for h in hints)
+    assert any("呼叫脈絡" in x for x in pcf._bundle_log["x.tw"])
 
 
 def test_bundle_api_hints_caches_per_host(monkeypatch):
     """23 檔 ETF 逐檔重掃會對投信站發出上百個不必要請求 → 每 host 每次執行只掃一次。"""
-    pcf._bundle_cache.clear()
+    pcf._bundle_cache.clear(); pcf._bundle_log.clear()
     calls = []
 
     def fake_get(url, probe):

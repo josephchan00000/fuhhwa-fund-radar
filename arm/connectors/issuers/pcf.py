@@ -304,7 +304,8 @@ _BUNDLE_HINT = re.compile(r"(main|app|runtime|vendor|chunk|index)[.\-][\w.\-]*\.
 _BUNDLE_API = re.compile(
     r"""["'`](/(?:[\w.\-]+/)*(?:api|pcf|holding|constituent|component|portfolio)"""
     r"""[\w./\-{}$]*)["'`]""", re.I)
-_bundle_cache: dict[str, list[str]] = {}     # host → 已掃出的 API 路徑（每 run 每站只掃一次）
+_bundle_cache: dict[str, list[str]] = {}   # host → 掃出的 API 路徑（每 run 每站只掃一次）
+_bundle_log: dict[str, list[str]] = {}     # host → bundle 抓取診斷（與路徑分開存，見下）
 
 
 def _bundle_api_hints(raw: bytes, page_url: str, max_bundles: int = 3) -> list[str]:
@@ -320,27 +321,45 @@ def _bundle_api_hints(raw: bytes, page_url: str, max_bundles: int = 3) -> list[s
     host = urlparse(page_url).netloc
     if host in _bundle_cache:
         return _bundle_cache[host]
+    _bundle_log[host] = []
     try:
         html = raw.decode("utf-8", "replace")
     except Exception:
         return []
-    srcs = [urljoin(page_url, s) for s in _SCRIPT_SRC.findall(html)]
-    srcs = [s for s in srcs if _BUNDLE_HINT.search(s)] or [s for s in srcs if s.endswith(".js")]
+    all_srcs = [urljoin(page_url, s) for s in _SCRIPT_SRC.findall(html)]
+    srcs = [s for s in all_srcs if _BUNDLE_HINT.search(s)] or \
+           [s for s in all_srcs if ".js" in s]                # 命名不合慣例時退回全部 .js
     found: list[str] = []
+    log: list[str] = []
+    if not all_srcs:
+        log.append("頁面無 <script src>（bundle 內聯或由 loader 動態插入）")
     for src in srcs[:max_bundles]:
         p = Probe("bundle", src)
         js = _get(src, p)
         if not js:
+            log.append(f"{src.rsplit('/', 1)[-1]}✗{p.error[:40]}")
             continue
-        for m in _BUNDLE_API.finditer(js.decode("utf-8", "replace")):
+        text = js.decode("utf-8", "replace")
+        n0 = len(found)
+        for m in _BUNDLE_API.finditer(text):
             u = m.group(1)
             if u not in found and len(u) <= 120:
                 found.append(u)
+                # 呼叫脈絡：端點字面值前後的程式碼，看得出 method 與 body 參數名
+                # （元大掃到 /api/bridge 這種通用閘道時，光有路徑還打不出正確請求）
+                if len(found) <= 3:
+                    i = m.start()
+                    frag = re.sub(r"\s+", " ", text[max(0, i - 160): i + 200])
+                    log.append(f"呼叫脈絡[{u}]：{frag}")
             if len(found) >= 8:
                 break
+        log.append(f"{src.rsplit('/', 1)[-1]} {len(js)}B → +{len(found) - n0} 路徑")
         if len(found) >= 8:
             break
+    # 路徑與診斷**分開存**：診斷字串若混進路徑清單，日後把路徑餵進 _cands() 就會炸
+    #（且診斷片段裡本來就可能含 .png 之類的無關字串，混在一起連測試都難寫）
     _bundle_cache[host] = found
+    _bundle_log[host] = [f"〔bundle 診斷〕{' ｜ '.join(log)}"] if log else []
     return found
 
 
@@ -460,8 +479,10 @@ def fetch_one(code: str, issuer: str) -> tuple[list[dict], str, list[Probe]]:
             #   ②資料其實內嵌在頁面裡、只是鍵名和我猜的不同 → 列出鍵名命中次數
             # 第 4 輪定案：HTML 裡的「成分股／證券代號」都是文案與公告內文，資料全靠 XHR
             # → 主力改成掃 JS bundle 找真正的 API 路徑；鍵名／上下文診斷退為輔助。
+            from urllib.parse import urlparse
             bundle = _bundle_api_hints(raw, url)
             p.hints = ([f"bundle API：{' , '.join(bundle)}"] if bundle else []) \
+                + _bundle_log.get(urlparse(url).netloc, []) \
                 + _api_hints(raw) + _key_hits(raw)
     return [], "", probes
 
