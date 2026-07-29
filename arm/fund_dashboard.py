@@ -988,10 +988,14 @@ def _holdings_detail(code: str, detail: dict | None) -> str:
         vf_html = '<span class="hvone" title="僅單一來源可得，本次未經第二站交叉驗證">單源未驗證</span>'
     else:
         vf_html = ""
-    return (f'<tr class="hdrow"><td colspan="{len(_ETF_COLS) + 2}" class="hdcell">'
-            f'<details class="hdet"><summary>持股變化與當日貢獻'
-            f'{partial}<span class="hsum">{detail.get("n_holdings") or 0} 檔持股｜揭露日 {_esc(d)}'
-            f'{_esc(cmp_note)}</span></summary>'
+    # 版型比照總經「三大法人」子列（2026-07-30 使用者：原 <details> 橫幅排版太醜）：
+    # 明細藏在同表的隱藏列（tr.hdrow，預設不顯示），由代碼／名稱欄的 ▸ 鈕切換——
+    # 收合時表格零額外佔位，不再有 23 條重複橫幅。
+    return (f'<tr class="hdrow" data-grp="eh-{_esc(code)}">'
+            f'<td colspan="{len(_ETF_COLS) + 2}" class="hdcell">'
+            f'<div class="hdhead"><b>持股變化與當日貢獻</b>　'
+            f'{detail.get("n_holdings") or 0} 檔持股｜揭露日 {_esc(d)}{_esc(cmp_note)}'
+            f'{partial}{vf_html}</div>'
             f'<div class="ovwrap"><table class="ovtbl hdtbl"><thead><tr>'
             f'<th class="l">持股</th><th>權重</th><th>加減碼(股)</th><th>Δ權重</th>'
             f'<th>個股當日漲跌</th><th>貢獻</th></tr></thead>'
@@ -1000,9 +1004,11 @@ def _holdings_detail(code: str, detail: dict | None) -> str:
             f'列出貢獻絕對值最大者，已涵蓋權重 {_hold_num(detail.get("covered_weight"), 1)}%，'
             f'合計貢獻 {total}。<b>合計與 ETF 市價漲跌不會完全相等</b>——現金／期貨部位、'
             f'費用、以及持股揭露時點與收盤的時間差都落在差額裡，此處不作湊平調整。'
-            f'資料來源：{_esc(detail.get("src") or "投信每日揭露")}'
-            f'（Tier B 彙整站，取自投信每日揭露；正式對外前以各投信官網核對）{vf_html}。'
-            f'</div></details></td></tr>')
+            + ("資料來源：復華官網 assetsExcel（發行投信第一手揭露）。"
+               if detail.get("src") == "fhtrust" else
+               f"資料來源：{_esc(detail.get('src') or '投信每日揭露')}"
+               "（Tier B 彙整站，取自投信每日揭露；正式對外前以各投信官網核對）。")
+            + '</div></td></tr>')
 
 
 def _etf_table(items: list[dict], holdings_doc: dict | None = None) -> str:
@@ -1010,19 +1016,31 @@ def _etf_table(items: list[dict], holdings_doc: dict | None = None) -> str:
     trs = []
     for i in items:
         code = i.get("code")
-        # 代碼可點 → Yahoo奇摩股市個股頁（可對照驗證）。報酬來源＝yahoo 時與此連結同源、不另標；
-        # 其餘來源（stooq/FinMind/TWSE）於代碼旁掛小標，讓使用者知道報酬取自別處。
         vurl = f"https://tw.stock.yahoo.com/quote/{_esc(code)}"
         rsrc = i.get("ret_src") or "seed"
         srctag = (f'<span class="rsrc" title="過去一週／一月報酬取自此來源自算">'
                   f'{_esc(_RET_SRC_LABEL[rsrc])}</span>'
                   if rsrc in _RET_SRC_LABEL else "")
-        # 產品名內「復華」以品牌色標示（不再用整列高亮／徽章）；代碼自成一行，避免名稱首字被擠上代碼列
+        # 產品名內「復華」以品牌色標示；代碼自成一行，避免名稱首字被擠上代碼列
         name_html = _esc(i.get("name") or "").replace("復華", '<span class="fh">復華</span>')
-        tds = [f'<td class="nm"><span class="etcat">{_esc(i.get("cat") or "—")}</span></td>',
-               f'<td class="nm"><a class="etcode" href="{vurl}" target="_blank" rel="noopener" '
-               f'title="點開 Yahoo奇摩股市對照驗證"><b>{_esc(code)}</b></a>'
-               f'<span class="etname">{name_html}{srctag}</span></td>']
+        det_html = _holdings_detail(code, etfholdings.view(holdings_doc, code))
+        if det_html:
+            # 有持股明細 → 名稱欄＝展開鈕（比照三大法人：▸＋整塊名稱可點、好按），
+            # Yahoo 連結降為下方小字（同三大法人「官方↗」的位置邏輯）
+            id_cell = (f'<td class="nm"><button type="button" class="mdtogbtn ehtog" '
+                       f'data-grp="eh-{_esc(code)}" aria-expanded="false" '
+                       f'aria-label="展開／收合持股變化與當日貢獻">'
+                       f'<span class="mdcaret" data-grp="eh-{_esc(code)}">▸</span>'
+                       f'<span class="mdgname"><b class="etcode">{_esc(code)}</b>'
+                       f'<span class="etname">{name_html}{srctag}</span></span></button>'
+                       f'<span class="mddt ehyh"><a class="mdslsm" href="{vurl}" target="_blank" '
+                       f'rel="noopener" title="開 Yahoo奇摩股市對照驗證">Yahoo↗</a></span></td>')
+        else:
+            # 無明細（無 caret）→ 維持代碼直連 Yahoo 的原樣
+            id_cell = (f'<td class="nm"><a class="etcode" href="{vurl}" target="_blank" rel="noopener" '
+                       f'title="點開 Yahoo奇摩股市對照驗證"><b>{_esc(code)}</b></a>'
+                       f'<span class="etname">{name_html}{srctag}</span></td>')
+        tds = [f'<td class="nm"><span class="etcat">{_esc(i.get("cat") or "—")}</span></td>', id_cell]
         for k, _ in _ETF_COLS:
             v = _etf_sortv(k, i)
             if k in ("ret_1w", "ret_1m"):
@@ -1048,7 +1066,7 @@ def _etf_table(items: list[dict], holdings_doc: dict | None = None) -> str:
                 cell = _esc(i.get(k)) if i.get(k) else '<span class="na">—</span>'
             tds.append(f'<td data-v="{v if v is not None else ""}">{cell}</td>')
         trs.append(f'<tr>{"".join(tds)}</tr>')
-        trs.append(_holdings_detail(code, etfholdings.view(holdings_doc, code)))
+        trs.append(det_html)
     ths = "".join(f'<th class="sk" data-k="{k}" title="點擊排序">{lab}<span class="arr"></span></th>'
                   for k, lab in _ETF_COLS)
     return (f'<div class="ovwrap"><table class="ovtbl etftbl">'
@@ -1800,15 +1818,17 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 .uplink:hover{color:#fff;background:var(--acc)}
 .upfoot{color:var(--mut);font-size:12px;line-height:1.75;margin:12px 0 4px}
 .upnone{color:var(--mut);font-size:13px;background:var(--pad);border-radius:10px;padding:11px 14px;margin-bottom:6px}
-/* ETF 每日持股展開明細（持股變化＋當日貢獻）——原生 <details>，不依賴 JS */
-.hdrow>.hdcell{padding:0 0 10px 0;border-top:0}
-.hdet>summary{cursor:pointer;list-style:none;font-size:12.5px;font-weight:700;color:var(--acc);
-  padding:5px 10px;border:1px solid var(--line);border-radius:8px;display:inline-block}
-.hdet>summary::-webkit-details-marker{display:none}
-.hdet>summary::before{content:"▸ ";font-weight:700}
-.hdet[open]>summary::before{content:"▾ "}
-.hdet>summary .hsum{margin-left:8px;font-weight:400;color:var(--mut);font-size:11.5px}
-.hdtbl{margin-top:8px;font-size:12.5px}
+/* ETF 每日持股展開明細（持股變化＋當日貢獻）——比照三大法人：名稱欄 ▸ 鈕切換隱藏列，
+   收合時零佔位（2026-07-30 使用者：原 <details> 橫幅 23 條重複、排版太醜） */
+tr.hdrow{display:none} tr.hdrow.show{display:table-row}
+.hdrow>.hdcell{background:#f6f9fe;border-bottom:1px solid var(--line);padding:9px 12px 11px 22px}
+.hdhead{font-size:12px;color:var(--mut);margin-bottom:7px;line-height:1.7}
+.hdhead b{color:var(--ink2);font-size:12.5px}
+/* 展開鈕沿用 .mdtogbtn；ETF 凍結欄較窄 → 內距收斂、代碼粗體維持識別 */
+.etftbl .mdtogbtn{padding:6px 2px 6px 0;min-height:34px}
+.etftbl .mdtogbtn .etcode{display:block;font-weight:800;color:var(--accd)}
+.ehyh{display:block;margin-left:18px;margin-top:1px}
+.hdtbl{font-size:12.5px}
 .hdtbl td,.hdtbl th{padding:4px 8px}
 .hdtbl tr.hrest td,.hdtbl tr.hout td{color:var(--mut)}
 .hnew,.hgone{margin-left:5px;font-size:10px;border-radius:5px;padding:0 4px}
@@ -2014,7 +2034,7 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
   e.stopPropagation();const g=b.dataset.grp;
   const open=b.querySelector('.mdcaret').classList.toggle('open');
   b.setAttribute('aria-expanded',open?'true':'false');
-  document.querySelectorAll('tr.mdsub[data-grp="'+g+'"]').forEach(r=>r.classList.toggle('show'));
+  document.querySelectorAll('tr.mdsub[data-grp="'+g+'"], tr.hdrow[data-grp="'+g+'"]').forEach(r=>r.classList.toggle('show'));
 }));
 // 儀表板逾期未重建警告——CI 全停擺時 HTML 不會再重生、上面的 ⚠ 也不會更新，
 // 由瀏覽器端比對「產表時間 vs 現在」補上最後一道防線。
