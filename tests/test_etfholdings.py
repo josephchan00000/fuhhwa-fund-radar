@@ -200,3 +200,32 @@ def test_key_hits_distinguishes_spa_shell_from_unknown_keys():
     big_data = b'<html>{"stockNo":"2330","weight":1}' + b"y" * 200_000 + b"</html>"
     assert "stockNo" in pcf._key_hits(big_data)[0]
     assert pcf._key_hits(b"<html>small</html>") == []      # 小頁面不列（純噪音）
+
+
+# ── 第 3 輪 CI 收斂：錨點鍵名放寬 ＋ 上下文片段診斷 ──────────────────
+
+def test_embedded_json_anchor_covers_unknown_id_key_names():
+    """元大頁面 stockNo/stockId/stockCode 命中皆 0 → 代號欄叫別的名字。
+    錨點須涵蓋 code/symbol/ticker/secId 等常見命名，否則平衡掃描一次都不觸發。"""
+    for key in ("code", "symbol", "ticker", "secId"):
+        html = (f'<html><script>var d=[{{"{key}":"2330","name":"台積電",'
+                f'"shares":123000,"weight":22.5}}];</script></html>').encode()
+        assert pcf.parse_embedded_json(html)[0]["stock_id"] == "2330", key
+
+
+def test_key_hits_discounts_css_font_weight():
+    """weight 的命中次數要扣掉 CSS 的 font-weight，否則是假訊號
+    （元大實測 weight=191，其中絕大多數是樣式）。"""
+    raw = (b"<style>" + b"font-weight:700;" * 50 + b"</style>" + b"z" * 150_000
+           + b'<script>{"weight":1.5}</script>')
+    line = pcf._key_hits(raw)[0]
+    assert "'weight': 1" in line and "191" not in line
+
+
+def test_key_hits_dumps_context_around_data_anchor():
+    """只印次數不夠決斷——要直接看到資料附近的原始片段，才知道是表格、內嵌 JSON 還是樣板。"""
+    raw = (b"<html>" + b"x" * 150_000
+           + '<div class="row"><span>成分股</span><td>2330</td><td>22.5</td></div>'.encode()
+           + b"</html>")
+    hints = pcf._key_hits(raw)
+    assert any("末次上下文" in h and "2330" in h for h in hints)
