@@ -935,6 +935,12 @@ def _holdings_detail(code: str, detail: dict | None) -> str:
         return ""
     d, pd_ = detail.get("date") or "—", detail.get("prev_date")
     cmp_note = f"（對比 {pd_}）" if pd_ else "（首次揭露，尚無可對比的前一日）"
+    # 全球型主動 ETF（如 00988A）：海外持股代號不符台股格式、進不了本表 → 權重合計遠低於
+    # 100%。不標明的話「23% 的持股」看起來像完整清單，偏向誤導——加橘標誠實揭露（2026-07-29）。
+    sw = detail.get("sum_weight")
+    partial = (f'<span class="hpartial" title="本表僅列臺股掛牌部位（權重合計 {sw:g}%）；'
+               f'海外持股與現金部位不在本表，貢獻合計亦僅反映臺股部位">僅台股部位 {sw:g}%</span>'
+               if isinstance(sw, (int, float)) and 0 < sw < 60 else "")
     trs = []
     for r in detail["rows"]:
         flag = ('<span class="hnew">新進</span>' if r.get("is_new") else "")
@@ -957,7 +963,7 @@ def _holdings_detail(code: str, detail: dict | None) -> str:
     total = _pct_span(detail.get("total_contrib"), unit="pp")
     return (f'<tr class="hdrow"><td colspan="{len(_ETF_COLS) + 2}" class="hdcell">'
             f'<details class="hdet"><summary>持股變化與當日貢獻'
-            f'<span class="hsum">{detail.get("n_holdings") or 0} 檔持股｜揭露日 {_esc(d)}'
+            f'{partial}<span class="hsum">{detail.get("n_holdings") or 0} 檔持股｜揭露日 {_esc(d)}'
             f'{_esc(cmp_note)}</span></summary>'
             f'<div class="ovwrap"><table class="ovtbl hdtbl"><thead><tr>'
             f'<th class="l">持股</th><th>權重</th><th>加減碼(股)</th><th>Δ權重</th>'
@@ -1777,6 +1783,8 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 .hdtbl tr.hrest td,.hdtbl tr.hout td{color:var(--mut)}
 .hnew,.hgone{margin-left:5px;font-size:10px;border-radius:5px;padding:0 4px}
 .hnew{color:#8a5410;background:rgba(200,118,15,.14)}
+/* 全球型 ETF：本表僅台股部位（權重合計遠低於 100%）——橘標誠實揭露，避免被讀成完整清單 */
+.hpartial{margin-left:6px;font-size:10.5px;color:#8a5410;background:rgba(200,118,15,.14);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help}
 .hgone{color:var(--mut);background:rgba(120,120,120,.12)}
 .hdfoot{color:var(--mut);font-size:11.5px;line-height:1.75;margin-top:6px}
 
