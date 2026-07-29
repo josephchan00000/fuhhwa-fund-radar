@@ -161,3 +161,42 @@ def test_api_hints_extracts_xhr_endpoints_from_spa_shell():
     assert "/api/etf/pcf/00991A.json" in hints
     assert "/rwd/zh/ETFortune/holdings" in hints
     assert not any(h.endswith((".js", ".png")) for h in hints)
+
+
+# ── 內嵌 JSON 解析（第 2 輪 CI：元大回 1MB HTML，資料在 script 裡不是 <table>） ──
+
+def test_parse_embedded_json_from_script_state():
+    html = ('<html><script>window.__S={"pcf":{"list":['
+            '{"stockNo":"2330","stockName":"台積電","shares":123000,"weight":22.5},'
+            '{"stockNo":"2317","stockName":"鴻海","shares":5000,"weight":5.1}]}}</script></html>').encode()
+    rows = pcf.parse_embedded_json(html)
+    assert [r["stock_id"] for r in rows] == ["2330", "2317"]
+    assert rows[0]["shares"] == 123000 and rows[0]["weight"] == 22.5
+
+
+def test_parse_embedded_json_handles_json_in_json():
+    """狀態常以字串內嵌（JSON-in-JSON）→ 反跳脫版也要試一次（同 cnyesfund 的做法）。"""
+    esc = (r'<html><script>var s="{\"stockNo\":\"2454\",\"weight\":8.0,\"shares\":300}";'
+           r'</script></html>').encode()
+    assert pcf.parse_embedded_json(esc)[0]["stock_id"] == "2454"
+
+
+def test_parse_embedded_json_skips_quantityless_objects():
+    """導覽／推薦連結物件沒有股數權重 → 不可當持股（同 is_plausible 的第②道）。"""
+    junk = '<html><script>{"stockNo":"0050","stockName":"元大台灣50"}</script></html>'.encode()
+    assert pcf.parse_embedded_json(junk) == []
+
+
+def test_api_hints_word_boundary_on_api():
+    """無詞界的 'api' 會匹配 c-api-tal（群益 capitalfund），讓 hint 全是導覽連結。"""
+    raw = (b'<a href="https://www.capitalfund.com.tw/capital/about"></a>'
+           b'<script>fetch("/api/pcf/0050")</script>')
+    assert pcf._api_hints(raw) == ["/api/pcf/0050"]
+
+
+def test_key_hits_distinguishes_spa_shell_from_unknown_keys():
+    big_shell = b"<html>" + b"x" * 200_000 + b"</html>"
+    assert "全無" in pcf._key_hits(big_shell)[0]
+    big_data = b'<html>{"stockNo":"2330","weight":1}' + b"y" * 200_000 + b"</html>"
+    assert "stockNo" in pcf._key_hits(big_data)[0]
+    assert pcf._key_hits(b"<html>small</html>") == []      # 小頁面不列（純噪音）
