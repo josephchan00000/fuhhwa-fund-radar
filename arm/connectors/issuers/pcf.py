@@ -75,7 +75,7 @@ def _get(url: str, probe: Probe) -> bytes | None:
 
 # 欄名關鍵字：比對方式為「候選字串是否為正規化欄名的子字串」，故短字串（代號／名稱）
 # 必須列進來——各家 PCF 表頭常只寫「代號／名稱／股數／比重」（2026-07-29 測試補強）。
-_KEY_ID = ("stockid", "stockno", "stockcode", "code", "id",
+_KEY_ID = ("stockid", "stockno", "stockcode", "code", "id", "symbol", "ticker",
            "代號", "代碼", "商品代號", "股票代號", "證券代號")
 _KEY_NM = ("stockname", "name", "名稱", "商品名稱", "股票名稱", "證券名稱")
 _KEY_SH = ("shares", "share", "qty", "quantity", "amount", "股數", "數量", "庫存股數")
@@ -215,7 +215,11 @@ def parse_embedded_json(raw: bytes) -> list[dict]:
         return []
     dec = json.JSONDecoder()
     # 鍵名先粗篩：頁面必須真的出現「像持股欄」的鍵，否則整份掃描純浪費
-    anchor = re.compile(r'"(?:[Ss]tock(?:No|Id|Code)|stockCode|商品代號|股票代號|證券代號)"')
+    # 錨點鍵名放寬（2026-07-29 第 3 輪：元大頁面 stockNo/stockId/stockCode 全 0 次，
+    # 代號欄顯然叫別的名字）。寧可多掃幾個起點——_row_from_mapping 與 is_plausible 會過濾誤抓。
+    anchor = re.compile(
+        r'"(?:[Ss]tock(?:No|Id|Code|Symbol)|secId|secNo|symbol|ticker|code|id)"\s*:'
+        r'|"(?:商品代號|股票代號|證券代號|代號)"')
     for text in (html, html.replace('\\"', '"')):
         out, seen = [], set()
         for m in anchor.finditer(text):
@@ -287,23 +291,39 @@ def _api_hints(raw: bytes, limit: int = 6) -> list[str]:
     return out
 
 
-_PROBE_KEYS = ("stockNo", "stockId", "stockCode", "stockName", "shares", "weight",
+_PROBE_KEYS = ("stockNo", "stockId", "stockCode", "stockName", "shares",
                "商品代號", "股票代號", "證券代號", "股數", "權重", "比重", "成分股", "持股")
+# 資料錨字：出現在「真的有持股資料」附近的中文詞。用來抓上下文片段（見 _key_hits）。
+_ANCHOR_WORDS = ("成分股", "權重", "股數", "證券代號", "股票代號", "比重")
+_FONT_WEIGHT = re.compile(r"font-weight", re.I)
 
 
-def _key_hits(raw: bytes, min_bytes: int = 100_000) -> list[str]:
-    """大頁面卻一列都沒解析出來時，列出「疑似持股鍵名」的出現次數。
+def _key_hits(raw: bytes, min_bytes: int = 100_000, ctx: int = 260) -> list[str]:
+    """大頁面卻一列都沒解析出來時的定位診斷。
 
-    區分兩種零結果（否則日誌看不出下一步該往哪走）：
-      ·「全部 0 次」＝ 真的是 SPA 外殼，資料在 XHR 後面 → 該找 API。
-      ·「某些鍵有次數」＝ 資料就內嵌在頁面裡，只是鍵名與 _KEY_* 猜的不同 → 該補鍵名。
-    小頁面不做（純導覽頁列這個只是噪音）。同 cnyesfund 當初印 `hits` 的做法。"""
+    第 3 輪 CI 的教訓：只印「鍵名命中次數」還不夠決斷 —— 元大回
+    `{'weight': 191, '成分股': 63, '權重': 59, ...}` 但 stockNo/stockId/stockCode **全 0**，
+    只知道「代號欄叫別的名字」，再猜一輪還是猜。而且 `weight` 那 191 次多半是 CSS 的
+    `font-weight`（假訊號，已扣除）。
+
+    因此除了次數，**直接印出資料錨字附近的原始片段** —— 一輪就能看出到底是
+    HTML 表格、內嵌 JSON、還是只有樣板文字（資料在 XHR）。小頁面不做（純噪音）。
+    """
     if len(raw) < min_bytes:
         return []
     text = raw.decode("utf-8", "replace")
     hits = {k: text.count(k) for k in _PROBE_KEYS}
-    hits = {k: v for k, v in hits.items() if v}
-    return [f"鍵名命中={hits or '全無（判為 SPA 外殼、資料在 XHR）'}"]
+    hits["weight"] = text.count("weight") - len(_FONT_WEIGHT.findall(text))   # 扣掉 CSS 假訊號
+    hits = {k: v for k, v in hits.items() if v > 0}
+    out = [f"鍵名命中={hits or '全無（判為 SPA 外殼、資料在 XHR）'}"]
+    # 命中最多的錨字取其最後一次出現（樣板通常在前段、資料在後段）的上下文
+    best = max((w for w in _ANCHOR_WORDS if w in text),
+               key=lambda w: text.count(w), default=None)
+    if best:
+        i = text.rfind(best)
+        frag = re.sub(r"\s+", " ", text[max(0, i - ctx // 2): i + ctx // 2])
+        out.append(f"「{best}」末次上下文：{frag}")
+    return out
 
 
 # ── 候選來源清單（依投信官網型態推導；由 CI 探針逐檔證實後收斂） ─────────
