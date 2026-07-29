@@ -1,70 +1,70 @@
 {
  "date": "2026-07-29",
- "as_of": "2026-07-29 12:36",
- "green": 3,
+ "as_of": "2026-07-29 12:41",
+ "green": 10,
  "red": 0,
- "skipped": 8,
+ "skipped": 1,
  "items": [
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-29_v1.md",
    "kind": "us_ndq_close",
    "claimed": 24876.91,
-   "official": null,
+   "official": 24876.91015625,
    "day": "07/28",
    "sentence": "**對應交易日：2026/07/28（週二，美東）｜Nasdaq −0.22% 收 24,876.91、S&P 500 +0.21% 收 7,428.78、道瓊 +1.03% 收 52,747.32、費半 SOX 重挫約 4.5%（那斯達克 100 −1.8%、正式跌入回檔區）｜三條主軸：亞股晶片崩跌外溢美股（南韓觸發"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-29_v1.md",
    "kind": "us_ndq_chg",
    "claimed": 0.22,
-   "official": null,
+   "official": -0.2212808626561591,
    "day": "07/28",
    "sentence": "- **那斯達克綜合指數（Nasdaq）**：收 **24,876.91、下跌 0.22%**"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-29_v1.md",
    "kind": "us_ndq_close",
    "claimed": 24876.91,
-   "official": null,
+   "official": 24876.91015625,
    "day": "07/28",
    "sentence": "- **那斯達克綜合指數（Nasdaq）**：收 **24,876.91、下跌 0.22%**"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-29_v1.md",
    "kind": "us_spx_chg",
    "claimed": 0.21,
-   "official": null,
+   "official": 0.21043073289872538,
    "day": "07/28",
    "sentence": "- **標普 500（S&P 500）**：收 **7,428.78、上漲 0.21%**"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-29_v1.md",
    "kind": "us_spx_close",
    "claimed": 7428.78,
-   "official": null,
+   "official": 7428.77978515625,
    "day": "07/28",
    "sentence": "- **標普 500（S&P 500）**：收 **7,428.78、上漲 0.21%**"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-29_v1.md",
    "kind": "us_dji_close",
    "claimed": 52747.32,
-   "official": null,
+   "official": 52747.3203125,
    "day": "07/28",
    "sentence": "道瓊受惠油價回落與非科技類股領漲，**+1.03%、537.24 點**收 **52,747.32**，Sherwin-Williams 上漲約 8%、可口可樂與波音同日走高"
   },
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-07-29_v2.md",
    "kind": "us_ndq_close",
    "claimed": 24876.91,
-   "official": null,
+   "official": 24876.91015625,
    "day": "07/28",
    "sentence": "**對應交易日：2026/07/28（週二，美東）｜Nasdaq −0.22% 收 24,876.91、S&P 500 +0.21% 收 7,428.78、道瓊 +1.03% 收 52,747.32、費半 SOX 重挫約 4.5%（那斯達克 100 −1.8%、正式跌入回檔區）｜彙編時間：2026/07/29 約 06"
   },
