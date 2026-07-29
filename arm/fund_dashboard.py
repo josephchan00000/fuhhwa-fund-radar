@@ -964,12 +964,23 @@ def _holdings_detail(code: str, detail: dict | None) -> str:
     # 跨源驗證章（2026-07-29 使用者指示改彙整站＋雙重驗證）：match=🟢、single=標明未驗證、
     # mismatch=紅 ⚠（照用主來源、差異細節在章 tooltip——誠實揭露，不假裝一致）
     vf = detail.get("verify") or {}
-    if vf.get("status") == "match":
-        vf_html = (f'<span class="hvok" title="與 {_esc(str(vf.get("other") or "第二來源"))} 交叉驗證：'
+    other = _esc(str(vf.get("other") or "第二來源"))
+    if vf.get("status") == "match" and vf.get("weights_compared"):
+        vf_html = (f'<span class="hvok" title="與 {other} 交叉驗證：'
                    f'前十大重合 {vf.get("top_hit")}/{vf.get("top_n")}、共同持股權重差 ≤'
                    f'{vf.get("max_dw") if vf.get("max_dw") is not None else "—"}pp">🟢 雙源相符</span>')
+    elif vf.get("status") == "match":
+        # 構成驗證（weights=False）：副源（Yahoo）持股為月度基準、與每日快照時點不同，
+        # 只驗前十大構成重合、權重不予比對——章面明講「構成」，不冒稱權重也相符
+        vf_html = (f'<span class="hvok" title="與 {other} 構成交叉驗證：前十大重合 '
+                   f'{vf.get("top_hit")}/{vf.get("top_n")}（副源為月度基準，權重時點不同不予比對）'
+                   f'">🟢 構成相符</span>')
+    elif vf.get("status") == "weak":
+        vf_html = (f'<span class="hvone" title="副源（{other}）持股為月度基準、與每日快照構成重合僅 '
+                   f'{vf.get("top_hit")}/{vf.get("top_n")}——多為月內調倉所致，非主來源錯誤的證據；'
+                   f'本次未能有效交叉驗證">副源過舊・未能驗證</span>')
     elif vf.get("status") == "mismatch":
-        vf_html = (f'<span class="hvbad" title="與 {_esc(str(vf.get("other") or "第二來源"))} 不符：'
+        vf_html = (f'<span class="hvbad" title="與 {other} 不符：'
                    f'前十大僅重合 {vf.get("top_hit")}/{vf.get("top_n")}、權重差最大 '
                    f'{vf.get("max_dw")}pp——本表照用主來源，數字請以官方揭露為準">⚠ 兩源不符</span>')
     elif vf.get("status") == "single":
