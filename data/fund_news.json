@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/29 23:11",
+  "as_of": "2026/07/30 06:14",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -20,7 +20,7 @@
     {
       "title": "復華全球未來50 ETF於8／12開募　挖掘AI產業50強",
       "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE42U1loc1VROGRHOTZ3ZVExb3IxX1VlREV6U0gyVHR3MmJZTXFHT1VrUml5Q3FoTktLMzVnQXh1NjNQWkVRTVVIOTE2ZU4yWlZFbHfSAVBBVV95cUxOLWtEeWFIM05CbzdRM3FiUFY0bFZzQ3RBak8tME5lSGMxbVFjVFdpOWt6SS1NRi1FeVFWajhyQktLY2JaS0ZzdUVCd21BZGJORw?oc=5",
-      "source": "finance.ettoday.net",
+      "source": "ETtoday財經雲",
       "date": "2026-07-27 19:06",
       "datetime": "2026-07-27T19:06:00+08:00"
     },
@@ -34,7 +34,7 @@
     {
       "title": "《基金》復華00409A開募布局全球50強產業贏家- 基金",
       "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE5vaE9aZ250UlhnTnZEYkVNaFJrdmRMX3RtMnhiNzM3dlFicnV2alVxVDBkSE1UMS1jY1RkczJXWERkMHJuSUVlaDNnSFhtRngyeW9KU3dGekQySVRkNlYzbWNRTE9sdHhPUXc?oc=5",
-      "source": "旺得富理財網",
+      "source": "wantrich.chinatimes.com",
       "date": "2026-07-27 17:24",
       "datetime": "2026-07-27T17:24:21+08:00"
     },
@@ -83,6 +83,13 @@
         "全球物聯網科技新臺幣"
       ],
       "items": [
+        {
+          "title": "主動復華全球50-ETF配息狀況",
+          "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE00UGtHTnBBTWoxQl9FXzJtR29nZEY0WjllbE5fMldqMUNtbk4zTGt2MEhnMkhJQ0RnZ0ZWMDZuQkUtbU4zZk42VndBYU13TllHVzRBUXhhdGc3NHZaMklxVnhZOF9WVmNIR2ZZUDNURmlkYW1LUTRJQWVaaWk4QQ?oc=5",
+          "source": "moneydj.com",
+          "date": "2026-07-29 18:10",
+          "datetime": "2026-07-29T18:10:08+08:00"
+        },
         {
           "title": "規模千億級別的巨無霸對決：安聯台灣科技、復華全球物聯網、復華華人世紀該怎麼選？",
           "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE9WTHJRbHVnSTdtUUZzNU5WRXlPVUo4dEdET1kyU1R3NGQ5RmhyajBCNXgzaHRzLUxCRUlWRk5XMTRNUk9oQUJUcjdGQ2tZVlZQeVVKUzFmWmc?oc=5",
@@ -223,7 +230,15 @@
       "short_names": [
         "數位經濟"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華數位經濟基金 的買賣訊號 | 鉅亨網 - 基金老司機",
+          "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxQbUQ1bUduWXRQSFI2Z0VjeG5zX3ctUmxfN1ZRS2FzNE1fM09nenc4RklzRFZ5WU9Zb0RneEExNDlRNVM1UHdUelNfWW0zSE4zcmF1eGd5XzQ3WFp1S2c0YzVFX09XRjh5X0gyQ19saHpyWVNLeHRfb3B3LTJsZmxPRjJ3Yk9YX0wyREVjay1KRFBVeWR2VkFUTF9XdEJ3NGZ6SjB0UlFKLXVXTkpOWThGSl8xTk9RZWNDaHJnVzdiMDA4Zw?oc=5",
+          "source": "鉅亨網",
+          "date": "2026-07-28 15:00",
+          "datetime": "2026-07-28T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華中小精選基金",
@@ -362,7 +377,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技（詳下方基金新聞標籤）",
+    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技、數位經濟（詳下方基金新聞標籤）",
     "品牌焦點：復華00409A 8/12開募：00991A成功後，全球版值不值得跟？（Business Insider Taiwan）"
   ]
 }
