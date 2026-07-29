@@ -532,3 +532,60 @@ def test_discover_matches_official_long_name_via_widest_key():
     found = b._discover(Page(), "https://f.tw/ETF/index", "00991A",
                         "主動復華未來50", "復華")
     assert found == ["https://f.tw/ETF/etf_detail/ETF26"]
+
+
+# ── 彙整站雙源交叉驗證（2026-07-29 使用者指示：不抓官網第一手、雙重驗證） ──
+
+def _src_rows(n=12, w0=5.0, prefix="23"):
+    return [{"stock_id": f"{prefix}{i:02d}", "name": f"股{i}", "shares": 1000 + i,
+             "weight": round(w0 - i * 0.3, 2)} for i in range(n)]
+
+
+def test_cross_check_match_within_tolerance():
+    """兩站快照時點差一天內的權重小幅差異（≤0.75pp）不應誤判為不符。"""
+    pri = _src_rows()
+    sec = [dict(r, weight=round((r["weight"] or 0) + 0.3, 2), shares=None) for r in pri]
+    v = eh.cross_check(pri, sec)
+    assert v["status"] == "match" and v["top_hit"] == 10 and v["max_dw"] <= 0.75
+
+
+def test_cross_check_mismatch_on_disjoint_holdings():
+    """前十大重合度太低＝兩站根本在講不同的組合 → mismatch。"""
+    v = eh.cross_check(_src_rows(prefix="23"), _src_rows(prefix="45"))
+    assert v["status"] == "mismatch" and v["top_hit"] == 0
+
+
+def test_cross_check_mismatch_on_large_weight_gap():
+    pri = _src_rows()
+    sec = [dict(r, weight=round((r["weight"] or 0) + 2.0, 2)) for r in pri]   # 差 2pp
+    v = eh.cross_check(pri, sec)
+    assert v["status"] == "mismatch" and v["max_dw"] == 2.0
+
+
+def test_cross_check_does_not_compare_shares():
+    """股數口徑兩站常不同（張/股、時點）——股數天差地遠也不影響驗證結果。"""
+    pri = _src_rows()
+    sec = [dict(r, shares=(r["shares"] or 0) * 1000) for r in pri]
+    assert eh.cross_check(pri, sec)["status"] == "match"
+
+
+def test_dashboard_renders_verify_badges():
+    d = eh.contributions(eh.merge_one(DAY1, DAY2), QUOTES)
+    ok = dict(d, verify={"status": "match", "other": "moneydj", "top_hit": 9,
+                         "top_n": 10, "max_dw": 0.3})
+    assert "🟢 雙源相符" in fd._holdings_detail("X", ok)
+    bad = dict(d, verify={"status": "mismatch", "other": "moneydj", "top_hit": 3,
+                          "top_n": 10, "max_dw": 4.2})
+    html = fd._holdings_detail("X", bad)
+    assert "⚠ 兩源不符" in html and "4.2pp" in html
+    one = dict(d, verify={"status": "single", "other": None})
+    assert "單源未驗證" in fd._holdings_detail("X", one)
+    assert "Tier B" in fd._holdings_detail("X", d)        # 來源誠實標示
+
+
+def test_verify_flows_from_entry_to_detail():
+    """verify 記在 entry、detail 由 contributions 帶出——儀表板端純渲染不重算。"""
+    entry = {**eh.merge_one(DAY1, DAY2), "verify": {"status": "match", "other": "moneydj",
+                                                    "top_hit": 10, "top_n": 10, "max_dw": 0.1}}
+    d = eh.contributions(entry, QUOTES)
+    assert d["verify"]["status"] == "match"
