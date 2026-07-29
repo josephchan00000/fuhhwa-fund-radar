@@ -37,6 +37,27 @@ ROOT = Path(__file__).resolve().parent.parent
 _ISSUER_FP = ROOT / "config" / "peer_groups.json"
 
 _KINDS = ("active", "other", "passive")     # 主動式優先（使用者需求的重點）
+
+# 各投信「ETF 列表／首頁」——用來**讓瀏覽器自己找出該檔的頁面網址**，不再由我猜。
+# 2026-07-29 教訓：猜了 10 家的 /ETF/PCF/{code}，幾乎全錯（復華實際是 /ETF/etf_detail/ETF23
+# 這種內部流水號）；猜錯就導到 404／首頁，攔到的 XHR 自然只有公告之類的通用回應
+#（復華 /api/warning 回 30 筆「1002,1003…」公告編號，還差點被當成持股）。
+# 列表頁上一定有指向各檔 ETF 的連結，交給瀏覽器抓連結比人腦猜網址可靠得多。
+ISSUER_HOME: dict[str, str] = {
+    "元大":   "https://www.yuantaetfs.com/product/domestic",
+    "復華":   "https://www.fhtrust.com.tw/ETF/index",
+    "國泰":   "https://www.cathaysite.com.tw/ETF",
+    "富邦":   "https://websys.fsit.com.tw/FubonETF/",
+    "群益":   "https://www.capitalfund.com.tw/ETF",
+    "統一":   "https://www.ezmoney.com.tw/ETF",
+    "野村":   "https://www.nomurafunds.com.tw/ETF",
+    "安聯":   "https://etf.allianzgi.com.tw/",
+    "中信":   "https://www.ctbcinvestments.com.tw/ETF",
+    "台新":   "https://www.tsit.com.tw/ETF",
+    "第一金": "https://www.fsitc.com.tw/ETF",
+    "凱基":   "https://www.kgifsitc.com.tw/ETF",
+}
+_MAX_DISCOVERED = 3        # 每檔最多再試幾個「自己找到」的連結
 _NAV_TIMEOUT = 45_000                       # ms：SPA 首次載入偏慢
 _SETTLE_MS = 3_500                          # 渲染後再等一下，讓 XHR 回來
 
@@ -106,7 +127,33 @@ def _from_page(page, url: str) -> tuple[list[dict], str, list[str]]:
                    f"｜樣本：{pcf.sample_rows(rows)}")
     if not best and not rows:
         log.append(f"XHR {len(bag)} 筆回應、DOM 皆無可解析的持股列")
+    seen: list[str] = []
+    for u, _b in bag:                                     # 全部攔截網址（去重、去靜態資源）
+        u2 = u.split("?")[0]
+        if u2 not in seen and not u2.endswith((".js", ".css", ".png", ".svg", ".woff2")):
+            seen.append(u2)
+    if seen:
+        log.append(f"攔截網址({len(seen)})：" + " , ".join(u[:100] for u in seen[:10]))
     return [], "", log
+
+
+def _discover(page, home: str, code: str) -> list[str]:
+    """到投信的 ETF 列表頁，抓出**連結文字或網址含此 ETF 代碼**的連結。
+
+    比人腦猜網址可靠：列表頁一定有指向各檔的連結，且投信改版時連結也會跟著更新。"""
+    try:
+        page.goto(home, timeout=_NAV_TIMEOUT, wait_until="domcontentloaded")
+        page.wait_for_timeout(_SETTLE_MS)
+        hrefs = page.eval_on_selector_all(
+            "a[href]", "els => els.map(e => [e.href, (e.textContent||'').trim()])")
+    except Exception:                                     # noqa: BLE001
+        return []
+    out: list[str] = []
+    for href, text in hrefs or []:
+        if code in (href or "") or code in (text or ""):
+            if href and href.startswith("http") and href not in out:
+                out.append(href)
+    return out[:_MAX_DISCOVERED]
 
 
 def main() -> int:
@@ -133,7 +180,10 @@ def main() -> int:
             logs: list[str] = []
             got: list[dict] = []
             src = ""
-            for name, url in pcf._cands(code, issuer):
+            cands = list(pcf._cands(code, issuer))
+            # 候選網址全數落空 → 到該投信的 ETF 列表頁「自己找」該檔的連結
+            home = ISSUER_HOME.get(issuer)
+            for name, url in cands:
                 ctx = browser.new_context(user_agent=pcf._UA["User-Agent"],
                                           viewport={"width": 1280, "height": 900})
                 page = ctx.new_page()
@@ -143,6 +193,24 @@ def main() -> int:
                 if rows:
                     got, src = rows, f"{name}/{how}"
                     break
+            if not got and home:
+                ctx = browser.new_context(user_agent=pcf._UA["User-Agent"],
+                                          viewport={"width": 1280, "height": 900})
+                page = ctx.new_page()
+                found = _discover(page, home, code)
+                ctx.close()
+                logs.append(f"[自尋] {home} → 找到 {len(found)} 個含 {code} 的連結："
+                            + ", ".join(u[:110] for u in found))
+                for url in found:
+                    ctx = browser.new_context(user_agent=pcf._UA["User-Agent"],
+                                              viewport={"width": 1280, "height": 900})
+                    page = ctx.new_page()
+                    rows, how, log = _from_page(page, url)
+                    ctx.close()
+                    logs += [f"[自尋 {url[:70]}] {x}" for x in log]
+                    if rows:
+                        got, src = rows, f"discovered/{how}"
+                        break
             if got:
                 fresh[code] = {"date": None, "src": src, "holdings": got}
                 print(f"  ✓ {code}（{issuer or '?'}）{src}：{len(got)} 檔持股")
