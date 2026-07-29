@@ -428,6 +428,9 @@ def test_discover_finds_links_containing_the_etf_code():
         def goto(self, *_a, **_k):
             pass
 
+        def wait_for_load_state(self, *_a, **_k):
+            pass
+
         def wait_for_timeout(self, _ms):
             pass
 
@@ -437,4 +440,47 @@ def test_discover_finds_links_containing_the_etf_code():
                     ["https://f.tw/ETF/00991A/pcf", "申購買回清單"]]
 
     found = b._discover(Page(), "https://f.tw/ETF/index", "00991A")
-    assert found == ["https://f.tw/ETF/etf_detail/ETF23", "https://f.tw/ETF/00991A/pcf"]
+    # 排序：href 含代碼者優先（2026-07-29 起），文字含代碼者次之
+    assert found == ["https://f.tw/ETF/00991A/pcf", "https://f.tw/ETF/etf_detail/ETF23"]
+
+
+# ── 全球型 ETF「僅台股部位」誠實標示（00988A 首抓僅涵蓋 23.1% 權重） ────
+
+def test_contributions_reports_sum_weight():
+    d = eh.contributions(eh.merge_one(DAY1, DAY2), QUOTES)
+    assert d["sum_weight"] == 30.0            # 22 + 8
+
+
+def test_dashboard_flags_partial_tw_only_coverage():
+    """全球型主動 ETF 的海外持股進不了本表（代號非台股 4 碼）——權重合計遠低於 100%
+    時必須標「僅台股部位」，否則 23% 的清單看起來像完整持股（誤導）。"""
+    d = eh.contributions(eh.merge_one(DAY1, DAY2), QUOTES)
+    html = fd._holdings_detail("00988A", d)
+    assert "僅台股部位" in html and "30%" in html
+    # 權重合計正常（≥60%）的檔不標
+    d2 = dict(d, sum_weight=90.5)
+    assert "僅台股部位" not in fd._holdings_detail("00981A", d2)
+
+
+def test_discover_ranks_code_href_over_name_match():
+    """命中排序：href 含代碼 > 文字含代碼 > 名稱比對；復華列表連結文字不含代碼、
+    只有基金名（首輪自尋實測）——名稱比對是撿回復華的關鍵。"""
+    b = _browser_mod()
+
+    class Page:
+        def goto(self, *_a, **_k):
+            pass
+
+        def wait_for_load_state(self, *_a, **_k):
+            pass
+
+        def wait_for_timeout(self, _ms):
+            pass
+
+        def eval_on_selector_all(self, *_a):
+            return [["https://f.tw/ETF/etf_detail/ETF23", "主動復華未來50"],   # 名稱比對
+                    ["https://f.tw/news/1", "公告"],
+                    ["https://f.tw/etf/00991A", "申購買回清單 00991A"]]        # href 含代碼
+    found = b._discover(Page(), "https://f.tw/ETF/index", "00991A", "主動復華未來50")
+    assert found[0] == "https://f.tw/etf/00991A"
+    assert "https://f.tw/ETF/etf_detail/ETF23" in found

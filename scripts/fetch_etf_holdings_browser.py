@@ -57,7 +57,7 @@ ISSUER_HOME: dict[str, str] = {
     "第一金": "https://www.fsitc.com.tw/ETF",
     "凱基":   "https://www.kgifsitc.com.tw/ETF",
 }
-_MAX_DISCOVERED = 3        # 每檔最多再試幾個「自己找到」的連結
+_MAX_DISCOVERED = 6        # 每檔最多再試幾個「自己找到」的連結（3→6：首輪統一 3 檔全靠自尋命中）
 _NAV_TIMEOUT = 45_000                       # ms：SPA 首次載入偏慢
 _SETTLE_MS = 3_500                          # 渲染後再等一下，讓 XHR 回來
 
@@ -92,6 +92,10 @@ def _from_page(page, url: str) -> tuple[list[dict], str, list[str]]:
     _capture(page, bag)
     try:
         page.goto(url, timeout=_NAV_TIMEOUT, wait_until="domcontentloaded")
+        try:                                              # SPA 的 XHR 常在 DCL 後才發——等網路靜下來
+            page.wait_for_load_state("networkidle", timeout=10_000)
+        except Exception:                                 # noqa: BLE001 —— 廣告長輪詢等永不 idle：退回固定等待
+            pass
         page.wait_for_timeout(_SETTLE_MS)
     except Exception as e:                                # noqa: BLE001
         log.append(f"導頁失敗 {type(e).__name__}: {str(e)[:90]}")
@@ -137,22 +141,40 @@ def _from_page(page, url: str) -> tuple[list[dict], str, list[str]]:
     return [], "", log
 
 
-def _discover(page, home: str, code: str) -> list[str]:
-    """到投信的 ETF 列表頁，抓出**連結文字或網址含此 ETF 代碼**的連結。
+def _discover(page, home: str, code: str, name: str = "") -> list[str]:
+    """到投信的 ETF 列表頁，抓出指向此檔 ETF 的連結（代碼或基金名稱比對）。
 
-    比人腦猜網址可靠：列表頁一定有指向各檔的連結，且投信改版時連結也會跟著更新。"""
+    比人腦猜網址可靠：列表頁一定有指向各檔的連結，且投信改版時連結也會跟著更新。
+    名稱比對是必要的（2026-07-29 首輪自尋）：復華等站列表連結文字是「主動復華未來50」
+    **不含代碼**，只比對代碼會漏掉。命中排序：href 含代碼 > 文字含代碼 > 名稱比對。"""
     try:
         page.goto(home, timeout=_NAV_TIMEOUT, wait_until="domcontentloaded")
+        try:
+            page.wait_for_load_state("networkidle", timeout=10_000)
+        except Exception:                                 # noqa: BLE001
+            pass
         page.wait_for_timeout(_SETTLE_MS)
         hrefs = page.eval_on_selector_all(
             "a[href]", "els => els.map(e => [e.href, (e.textContent||'').trim()])")
     except Exception:                                     # noqa: BLE001
         return []
-    out: list[str] = []
+    # 名稱鍵：全名＋去掉「主動」前綴版（各站對主動式 ETF 的稱法不一）
+    names = [n for n in (name, name.replace("主動", "", 1) if name else "") if n]
+    tiers: tuple[list[str], list[str], list[str]] = ([], [], [])
     for href, text in hrefs or []:
-        if code in (href or "") or code in (text or ""):
-            if href and href.startswith("http") and href not in out:
-                out.append(href)
+        if not href or not href.startswith("http"):
+            continue
+        if code in href:
+            tiers[0].append(href)
+        elif code in (text or ""):
+            tiers[1].append(href)
+        elif any(n in (text or "") for n in names):
+            tiers[2].append(href)
+    out: list[str] = []
+    for tier in tiers:
+        for u in tier:
+            if u not in out:
+                out.append(u)
     return out[:_MAX_DISCOVERED]
 
 
@@ -166,8 +188,8 @@ def main() -> int:
         return 0
 
     issuers = _issuer_map()
-    targets = [(c, k) for c, _n, k, _cat, _i in etfwatch.WATCHLIST if k in _KINDS]
-    targets.sort(key=lambda t: _KINDS.index(t[1]))
+    targets = [(c, n, k) for c, n, k, _cat, _i in etfwatch.WATCHLIST if k in _KINDS]
+    targets.sort(key=lambda t: _KINDS.index(t[2]))
     print(f"[ETF 每日持股・瀏覽器] 渲染 {len(targets)} 檔"
           f"{'（--probe 不落檔）' if probe_only else ''}…")
 
@@ -175,7 +197,7 @@ def main() -> int:
     diag: dict[str, str] = {}
     with sync_playwright() as pw:
         browser = pw.chromium.launch(args=["--disable-dev-shm-usage"])
-        for code, _kind in targets:
+        for code, etf_name, _kind in targets:
             issuer = issuers.get(code, "")
             logs: list[str] = []
             got: list[dict] = []
@@ -197,7 +219,7 @@ def main() -> int:
                 ctx = browser.new_context(user_agent=pcf._UA["User-Agent"],
                                           viewport={"width": 1280, "height": 900})
                 page = ctx.new_page()
-                found = _discover(page, home, code)
+                found = _discover(page, home, code, etf_name)
                 ctx.close()
                 logs.append(f"[自尋] {home} → 找到 {len(found)} 個含 {code} 的連結："
                             + ", ".join(u[:110] for u in found))
