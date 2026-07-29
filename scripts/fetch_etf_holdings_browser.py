@@ -96,8 +96,16 @@ def _from_page(page, url: str) -> tuple[list[dict], str, list[str]]:
     if pcf.is_plausible(rows):
         return rows, "dom", log
 
-    log.append(f"XHR {len(bag)} 筆回應（最佳 {len(best)} 檔）、DOM {len(rows)} 檔，"
-               f"皆未通過持股驗證")
+    # 為何沒過：把「被哪一條規則擋」與樣本列一併寫進日誌——只寫「未通過驗證」的話，
+    # 無法判斷該放寬規則還是該換來源（2026-07-29 瀏覽器首跑就卡在這個資訊缺口）。
+    if best:
+        log.append(f"XHR 最佳 {len(best)} 檔 ← {best_url[:150]}｜未過：{pcf.implausible_reason(best)}"
+                   f"｜樣本：{pcf.sample_rows(best)}")
+    if rows:
+        log.append(f"DOM {len(rows)} 檔｜未過：{pcf.implausible_reason(rows)}"
+                   f"｜樣本：{pcf.sample_rows(rows)}")
+    if not best and not rows:
+        log.append(f"XHR {len(bag)} 筆回應、DOM 皆無可解析的持股列")
     return [], "", log
 
 

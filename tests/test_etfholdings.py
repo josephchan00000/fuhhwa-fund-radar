@@ -373,7 +373,7 @@ def test_browser_rejects_junk_via_is_plausible():
     page = _fake_page([("https://x.tw/api/menu", junk)])
     rows, how, log = b._from_page(page, "https://x.tw/pcf/0050")
     assert rows == [] and how == ""
-    assert any("未通過持股驗證" in x for x in log)
+    assert any("未過：" in x for x in log)          # 並指名被哪一條規則擋
 
 
 def test_browser_navigation_failure_degrades_quietly():
@@ -381,3 +381,25 @@ def test_browser_navigation_failure_degrades_quietly():
     page = _fake_page([], fail="Timeout 45000ms exceeded")
     rows, how, log = b._from_page(page, "https://x.tw/pcf/0050")
     assert rows == [] and how == "" and any("導頁失敗" in x for x in log)
+
+
+def test_implausible_reason_names_the_failing_rule():
+    """只說「未通過驗證」無法決斷該放寬規則還是換來源——要指名是哪一條。"""
+    assert "僅 3 檔" in pcf.implausible_reason(_rows(3))
+    noqty = [{"stock_id": f"23{i:02d}", "shares": None, "weight": None} for i in range(20)]
+    assert "帶權重／股數" in pcf.implausible_reason(noqty)
+    assert "0 開頭" in pcf.implausible_reason(_rows(20, prefix="00"))
+    assert pcf.implausible_reason(_rows(20)) == ""
+
+
+def test_browser_logs_reason_and_sample_when_rejected():
+    b = _browser_mod()
+    junk = json.dumps({"list": [{"stockNo": f"00{i:02d}A", "name": f"基金{i}"}
+                                for i in range(30)]}).encode()
+    page = _fake_page([("https://x.tw/api/fundlist", junk)])
+    rows, how, log = b._from_page(page, "https://x.tw/pcf/00998A")
+    assert rows == [] and how == ""
+    joined = " ".join(log)
+    assert "/api/fundlist" in joined          # 是哪個回應
+    assert "未過：" in joined                  # 被哪一條規則擋
+    assert "樣本：" in joined                  # 那些列長什麼樣
