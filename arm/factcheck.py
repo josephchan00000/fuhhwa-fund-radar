@@ -130,25 +130,13 @@ def yahoo_index_series(key: str) -> dict[str, tuple[float, float | None]] | None
 
 def taifex_tx_foreign_net(d: date) -> float | None:
     """期交所「三大法人—區分各期貨契約」臺股期貨(TX) 外資多空淨額口數（空方為負）。
-    官方下載端點（CSV，POST）；欄位名歷有變動，以「外資」列＋倒數欄位群組解析。"""
-    try:
-        body = (f"queryStartDate={d:%Y/%m/%d}&queryEndDate={d:%Y/%m/%d}"
-                "&commodityId=TXF").encode()
-        req = urllib.request.Request(
-            "https://www.taifex.com.tw/cht/3/futContractsDateDown",
-            data=body, headers={**_UA, "Content-Type": "application/x-www-form-urlencoded"})
-        with urllib.request.urlopen(req, timeout=_TIMEOUT) as r:
-            text = r.read().decode("big5", errors="replace")
-        for line in text.splitlines():
-            cells = [c.strip().strip('"') for c in line.split(",")]
-            if len(cells) > 12 and any("外資" in c and "自營" not in c for c in cells[:4]):
-                # 版式：…多方口數,多方金額,空方口數,空方金額,多空淨額口數,多空淨額金額,…（未平倉組在後半）
-                nums = [c.replace(",", "") for c in cells if re.fullmatch(r"-?\d+", c.replace(",", ""))]
-                if len(nums) >= 2:
-                    return float(nums[-2])   # 未平倉多空淨額口數（倒數第 2 個整數欄）
-    except Exception:
-        return None
-    return None
+
+    共用 arm.macrochips 的韌性抓取＋口徑鎖定（多參數變體、逐日兜底、只認臺股期貨大台列）——
+    2026-07-29 檢討：此處與 macrochips 曾各留一份解析，單一參數組合失效時兩邊同時靜默回 None，
+    數字核對只顯示 ⚪「官方不可得」而看不出原因。單一實作＝一次修好、兩邊同時受惠。"""
+    from . import macrochips                                # 延遲載入：避免模組互相 import
+    got = macrochips._taifex_tx_foreign(d, d, now_hour=23)
+    return got.get(d.isoformat())
 
 
 # ── 報告端抽取（句內日期錨定；抽不到日期＝不檢查） ────────────────────────
