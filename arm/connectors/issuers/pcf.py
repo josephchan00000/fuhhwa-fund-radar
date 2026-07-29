@@ -198,15 +198,57 @@ def parse_xlsx(raw: bytes) -> list[dict]:
         return []
 
 
+def parse_embedded_json(raw: bytes) -> list[dict]:
+    """從 HTML／內嵌 JS 的狀態物件抽持股（**不猜嵌入格式**，平衡物件掃描）。
+
+    2026-07-29 第 2 輪 CI 的關鍵發現：元大 `tradeInfo/pcf/{code}` 回的是 **1.07 MB HTML**
+    （不是空殼），但表格解析 0 檔 —— 資料是內嵌在 script 裡的 JSON，不是 `<table>`。
+    這與 cnyesfund 當初「頁面無 __NEXT_DATA__、狀態以他形內嵌」完全同型，故沿用同一招：
+    對每個「看起來像持股代號欄」的鍵出現點，往回逐層試 `{` 起點 raw_decode，
+    原文與反跳脫版（JSON-in-JSON）各試一次。
+
+    只認**帶權重或股數**的物件（沒有數量資訊算不出貢獻，且正是導覽連結的長相）。
+    """
+    try:
+        html = raw.decode("utf-8", "replace")
+    except Exception:
+        return []
+    dec = json.JSONDecoder()
+    # 鍵名先粗篩：頁面必須真的出現「像持股欄」的鍵，否則整份掃描純浪費
+    anchor = re.compile(r'"(?:[Ss]tock(?:No|Id|Code)|stockCode|商品代號|股票代號|證券代號)"')
+    for text in (html, html.replace('\\"', '"')):
+        out, seen = [], set()
+        for m in anchor.finditer(text):
+            pos = m.start()
+            for _ in range(6):                        # 由內往外最多試 6 層 '{'
+                pos = text.rfind("{", 0, pos)
+                if pos < 0:
+                    break
+                try:
+                    obj, _end = dec.raw_decode(text[pos:pos + 60000])
+                except json.JSONDecodeError:
+                    continue
+                row = _row_from_mapping(obj) if isinstance(obj, dict) else None
+                if row and (row["weight"] is not None or row["shares"] is not None):
+                    if row["stock_id"] not in seen:
+                        seen.add(row["stock_id"])
+                        out.append(row)
+                break
+        if out:
+            return out
+    return []
+
+
 def parse_auto(raw: bytes, probe: Probe) -> list[dict]:
     """依 content-type／位元組特徵選解析器（各家常改格式 → 全部試一遍取最長）。"""
     cands: list[Callable[[bytes], list[dict]]] = []
     if raw[:2] == b"PK":                                  # xlsx/zip 魔數
         cands = [parse_xlsx]
     elif "json" in probe.ctype or raw.lstrip()[:1] in (b"{", b"["):
-        cands = [parse_json, parse_html]
+        cands = [parse_json, parse_html, parse_embedded_json]
     else:
-        cands = [parse_html, parse_json]
+        # HTML：先試表格，再試「內嵌 JSON 狀態」——元大等站是後者（1MB HTML、資料在 script 裡）
+        cands = [parse_html, parse_embedded_json, parse_json]
     best: list[dict] = []
     for fn in cands:
         got = fn(raw)
@@ -215,9 +257,11 @@ def parse_auto(raw: bytes, probe: Probe) -> list[dict]:
     return best
 
 
+# 詞界很重要：舊版無界的 "api" 會匹配到 c-api-tal（群益 capitalfund），
+# 讓整排 hint 都是無用的導覽連結（2026-07-29 第 2 輪 CI 實測）。
 _API_HINT = re.compile(
-    r"""["'(]((?:https?://[\w.\-]+)?/[\w./\-]*(?:api|pcf|holding|constituent|component|"""
-    r"""portfolio|fundData|etfData)[\w./\-]*(?:\.json|\.ashx|\.aspx)?)["')]""", re.I)
+    r"""["'(]((?:https?://[\w.\-]+)?/[\w./\-]*(?:\bapi\b|/api/|pcf|holding|constituent|"""
+    r"""component|portfolio|fundData|etfData)[\w./\-]*(?:\.json|\.ashx|\.aspx)?)["')]""", re.I)
 _HINT_SKIP = re.compile(r"\.(js|css|png|jpg|svg|woff2?|ico)$", re.I)
 
 
@@ -241,6 +285,25 @@ def _api_hints(raw: bytes, limit: int = 6) -> list[str]:
         if len(out) >= limit:
             break
     return out
+
+
+_PROBE_KEYS = ("stockNo", "stockId", "stockCode", "stockName", "shares", "weight",
+               "商品代號", "股票代號", "證券代號", "股數", "權重", "比重", "成分股", "持股")
+
+
+def _key_hits(raw: bytes, min_bytes: int = 100_000) -> list[str]:
+    """大頁面卻一列都沒解析出來時，列出「疑似持股鍵名」的出現次數。
+
+    區分兩種零結果（否則日誌看不出下一步該往哪走）：
+      ·「全部 0 次」＝ 真的是 SPA 外殼，資料在 XHR 後面 → 該找 API。
+      ·「某些鍵有次數」＝ 資料就內嵌在頁面裡，只是鍵名與 _KEY_* 猜的不同 → 該補鍵名。
+    小頁面不做（純導覽頁列這個只是噪音）。同 cnyesfund 當初印 `hits` 的做法。"""
+    if len(raw) < min_bytes:
+        return []
+    text = raw.decode("utf-8", "replace")
+    hits = {k: text.count(k) for k in _PROBE_KEYS}
+    hits = {k: v for k, v in hits.items() if v}
+    return [f"鍵名命中={hits or '全無（判為 SPA 外殼、資料在 XHR）'}"]
 
 
 # ── 候選來源清單（依投信官網型態推導；由 CI 探針逐檔證實後收斂） ─────────
@@ -326,7 +389,10 @@ def fetch_one(code: str, issuer: str) -> tuple[list[dict], str, list[Probe]]:
                       + ", ".join(f"{r['stock_id']}{r.get('name') or ''}" for r in rows[:6]))
             p.n_holdings = 0                      # 不算命中，讓 line() 印出上面的判定說明
         else:
-            p.hints = _api_hints(raw)             # SPA 外殼 → 撈出可能的 XHR 端點供下一輪收斂
+            # 一列都沒解析出來 → 兩種可能，日誌要分得出來：
+            #   ①真的是 SPA 外殼（資料在 XHR）→ 列出疑似端點
+            #   ②資料其實內嵌在頁面裡、只是鍵名和我猜的不同 → 列出鍵名命中次數
+            p.hints = _api_hints(raw) + _key_hits(raw)
     return [], "", probes
 
 
