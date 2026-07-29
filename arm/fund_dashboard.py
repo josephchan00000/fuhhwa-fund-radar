@@ -942,25 +942,49 @@ def _holdings_detail(code: str, detail: dict | None) -> str:
     partial = (f'<span class="hpartial" title="本表僅列臺股掛牌部位（權重合計 {sw:g}%）；'
                f'海外持股與現金部位不在本表，貢獻合計亦僅反映臺股部位">僅台股部位 {sw:g}%</span>'
                if isinstance(sw, (int, float)) and 0 < sw < 60 else "")
-    trs = []
-    for r in detail["rows"]:
-        flag = ('<span class="hnew">新進</span>' if r.get("is_new") else "")
-        trs.append(
-            f'<tr><td class="l"><b>{_esc(r["stock_id"])}</b> {_esc(r.get("name") or "")}{flag}</td>'
-            f'<td>{_hold_num(r.get("weight"), 2)}%</td>'
-            f'<td>{_delta_shares(r.get("d_shares"))}</td>'
-            f'<td>{_pct_span(r.get("d_weight"))}</td>'
-            f'<td>{_pct_span(r.get("chg_pct"))}</td>'
-            f'<td><b>{_pct_span(r.get("contrib"), unit="pp")}</b></td></tr>')
+    # 泡泡卡（2026-07-30 使用者：小表格在整寬 colspan 列裡「超空」——colspan 列寬＝
+    # 整張橫捲表寬，表格只佔左上角。改卡片網格：auto-fill 填滿容器、手機 2 欄桌機多欄，
+    # 外層 .hdwrap 以 sticky 定寬貼住視窗，表格再怎麼橫捲卡片區都在眼前）
+    wmax = max((r.get("weight") or 0 for r in detail["rows"]), default=0) or 1.0
+
+    def _card(r: dict) -> str:
+        c = r.get("contrib")
+        cls = "up" if (c or 0) > 0 else ("dn" if (c or 0) < 0 else "na")
+        flag = '<span class="hnew">新進</span>' if r.get("is_new") else ""
+        chg = r.get("chg_pct")
+        if chg is not None:
+            arrow = "▲" if chg > 0 else ("▼" if chg < 0 else "")
+            chg_html = f'<span class="hc-chg">{arrow}{abs(chg):.2f}%</span>'
+        else:
+            chg_html = '<span class="hc-chg na" title="無台股日內報價（海外持股／債券）">—</span>'
+        w = r.get("weight")
+        wbar = (f'<div class="hc-w">權重 {_hold_num(w, 2)}%'
+                f'<span class="wbar"><i style="width:{min(100, (w or 0) / wmax * 100):.0f}%"></i></span></div>'
+                if w is not None else "")
+        deltas = []                                   # Δ 行：有異動才顯示，卡片保持輕
+        if r.get("d_shares"):
+            deltas.append(_delta_shares(r.get("d_shares")) + " 股")
+        if r.get("d_weight"):
+            deltas.append(f'Δ權重 {_pct_span(r.get("d_weight"))}')
+        dline = f'<div class="hc-d">{"　".join(deltas)}</div>' if deltas else ""
+        return (f'<div class="hcard {cls}">'
+                f'<div class="hc-id"><b>{_esc(r["stock_id"])}</b> {_esc(r.get("name") or "")}{flag}</div>'
+                f'<div class="hc-main">{_pct_span(c, unit="pp")}{chg_html}</div>'
+                f'{wbar}{dline}</div>')
+
+    cards = [_card(r) for r in detail["rows"]]
     if detail.get("rest_n"):
-        trs.append(f'<tr class="hrest"><td class="l">其餘 {detail["rest_n"]} 檔合計</td>'
-                   f'<td>{_hold_num(detail.get("rest_weight"), 2)}%</td><td>—</td><td>—</td>'
-                   f'<td>—</td><td><b>{_pct_span(detail.get("rest_contrib"), unit="pp")}</b></td></tr>')
+        cards.append(
+            f'<div class="hcard rest"><div class="hc-id">其餘 {detail["rest_n"]} 檔合計</div>'
+            f'<div class="hc-main">{_pct_span(detail.get("rest_contrib"), unit="pp")}</div>'
+            f'<div class="hc-w">權重 {_hold_num(detail.get("rest_weight"), 2)}%</div></div>')
     for r in detail.get("dropped") or []:
-        trs.append(f'<tr class="hout"><td class="l"><b>{_esc(r["stock_id"])}</b>'
-                   f'<span class="hgone">已出清</span></td><td>—</td>'
-                   f'<td>{_delta_shares(r.get("d_shares"))}</td>'
-                   f'<td>{_pct_span(r.get("d_weight"))}</td><td>—</td><td>—</td></tr>')
+        cards.append(
+            f'<div class="hcard out"><div class="hc-id"><b>{_esc(r["stock_id"])}</b>'
+            f'<span class="hgone">已出清</span></div>'
+            f'<div class="hc-d">{_delta_shares(r.get("d_shares"))} 股'
+            + (f'　Δ權重 {_pct_span(r.get("d_weight"))}' if r.get("d_weight") else "")
+            + '</div></div>')
     total = _pct_span(detail.get("total_contrib"), unit="pp")
     # 跨源驗證章（2026-07-29 使用者指示改彙整站＋雙重驗證）：match=🟢、single=標明未驗證、
     # mismatch=紅 ⚠（照用主來源、差異細節在章 tooltip——誠實揭露，不假裝一致）
@@ -993,14 +1017,13 @@ def _holdings_detail(code: str, detail: dict | None) -> str:
     # 收合時表格零額外佔位，不再有 23 條重複橫幅。
     return (f'<tr class="hdrow" data-grp="eh-{_esc(code)}">'
             f'<td colspan="{len(_ETF_COLS) + 2}" class="hdcell">'
+            f'<div class="hdwrap">'
             f'<div class="hdhead"><b>持股變化與當日貢獻</b>　'
             f'{detail.get("n_holdings") or 0} 檔持股｜揭露日 {_esc(d)}{_esc(cmp_note)}'
             f'{partial}{vf_html}</div>'
-            f'<div class="ovwrap"><table class="ovtbl hdtbl"><thead><tr>'
-            f'<th class="l">持股</th><th>權重</th><th>加減碼(股)</th><th>Δ權重</th>'
-            f'<th>個股當日漲跌</th><th>貢獻</th></tr></thead>'
-            f'<tbody>{"".join(trs)}</tbody></table></div>'
-            f'<div class="hdfoot">貢獻＝權重 × 個股當日漲跌 ÷ 100（單位：百分點 pp）。'
+            f'<div class="hgrid">{"".join(cards)}</div>'
+            f'<div class="hdfoot">卡片依貢獻絕對值排序。'
+            f'貢獻＝權重 × 個股當日漲跌 ÷ 100（單位：百分點 pp）。'
             f'列出貢獻絕對值最大者，已涵蓋權重 {_hold_num(detail.get("covered_weight"), 1)}%，'
             f'合計貢獻 {total}。<b>合計與 ETF 市價漲跌不會完全相等</b>——現金／期貨部位、'
             f'費用、以及持股揭露時點與收盤的時間差都落在差額裡，此處不作湊平調整。'
@@ -1008,7 +1031,7 @@ def _holdings_detail(code: str, detail: dict | None) -> str:
                if detail.get("src") == "fhtrust" else
                f"資料來源：{_esc(detail.get('src') or '投信每日揭露')}"
                "（Tier B 彙整站，取自投信每日揭露；正式對外前以各投信官網核對）。")
-            + '</div></td></tr>')
+            + '</div></div></td></tr>')
 
 
 def _etf_table(items: list[dict], holdings_doc: dict | None = None) -> str:
@@ -1828,9 +1851,27 @@ tr.hdrow{display:none} tr.hdrow.show{display:table-row}
 .etftbl .mdtogbtn{padding:6px 2px 6px 0;min-height:34px}
 .etftbl .mdtogbtn .etcode{display:block;font-weight:800;color:var(--accd)}
 .ehyh{display:block;margin-left:18px;margin-top:1px}
-.hdtbl{font-size:12.5px}
-.hdtbl td,.hdtbl th{padding:4px 8px}
-.hdtbl tr.hrest td,.hdtbl tr.hout td{color:var(--mut)}
+/* 明細內容定寬＋sticky 貼視窗（2026-07-30 使用者：展開後超空）——colspan 列寬＝整張
+   橫捲表寬，內容若自然排版只佔左上角、往右捲全是空白。sticky left 讓卡片區跟著視窗走。 */
+.hdwrap{position:sticky;left:8px;max-width:min(94vw,760px)}
+/* 持股泡泡卡：auto-fill 填滿容器（手機 2 欄、桌機 4-5 欄），依貢獻排序、左緣色條標方向 */
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:2px 0 8px}
+.hcard{background:var(--card);border:1px solid var(--line);border-left-width:3px;border-radius:11px;
+  padding:7px 10px 8px;min-width:0}
+.hcard.up{border-left-color:var(--gain)} .hcard.dn{border-left-color:var(--loss)}
+.hcard.na,.hcard.rest,.hcard.out{border-left-color:var(--line)}
+.hcard.rest,.hcard.out{background:var(--pad);color:var(--mut)}
+.hc-id{font-size:11.5px;color:var(--ink2);line-height:1.35;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.hc-id b{color:var(--accd);margin-right:3px}
+.hc-main{display:flex;align-items:baseline;justify-content:space-between;gap:6px;margin-top:2px}
+.hc-main .gain,.hc-main .loss,.hc-main .flat,.hc-main .na{font-size:16.5px;font-weight:800}
+.hc-chg{font-size:11.5px;color:var(--mut);font-weight:600;white-space:nowrap}
+.hc-chg.na{font-weight:400}
+.hc-w{font-size:10.5px;color:var(--mut);margin-top:4px}
+.wbar{display:block;height:4px;border-radius:3px;background:rgba(120,140,170,.16);margin-top:3px;overflow:hidden}
+.wbar>i{display:block;height:100%;border-radius:3px;background:var(--acc);opacity:.75}
+.hc-d{font-size:11px;color:var(--ink2);margin-top:4px;line-height:1.5}
 .hnew,.hgone{margin-left:5px;font-size:10px;border-radius:5px;padding:0 4px}
 .hnew{color:#8a5410;background:rgba(200,118,15,.14)}
 /* 全球型 ETF：本表僅台股部位（權重合計遠低於 100%）——橘標誠實揭露，避免被讀成完整清單 */
