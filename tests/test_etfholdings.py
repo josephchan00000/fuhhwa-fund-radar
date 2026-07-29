@@ -403,3 +403,38 @@ def test_browser_logs_reason_and_sample_when_rejected():
     assert "/api/fundlist" in joined          # 是哪個回應
     assert "未過：" in joined                  # 被哪一條規則擋
     assert "樣本：" in joined                  # 那些列長什麼樣
+
+
+def test_browser_logs_all_intercepted_urls_for_diagnosis():
+    """只印「最佳那筆」時，看不到真正的持股端點就在旁邊——全部攔截網址都要列出來。
+    （2026-07-29：復華只顯示 /api/warning，掩蓋了其他 8 筆回應。）"""
+    b = _browser_mod()
+    page = _fake_page([("https://x.tw/api/warning", b'[]'),
+                       ("https://x.tw/api/etf/constituent?code=00991A", b'[]'),
+                       ("https://x.tw/static/app.js", b'[]')])
+    _rows_, _how, log = b._from_page(page, "https://x.tw/pcf/00991A")
+    joined = " ".join(log)
+    assert "攔截網址" in joined
+    assert "/api/etf/constituent" in joined          # 旁邊那筆才是要找的
+    assert "app.js" not in joined                    # 靜態資源不佔版面
+
+
+def test_discover_finds_links_containing_the_etf_code():
+    """猜 10 家的網址幾乎全錯（復華實際是 /ETF/etf_detail/ETF23 內部流水號）→
+    改由列表頁自尋含該代碼的連結，投信改版也跟得上。"""
+    b = _browser_mod()
+
+    class Page:
+        def goto(self, *_a, **_k):
+            pass
+
+        def wait_for_timeout(self, _ms):
+            pass
+
+        def eval_on_selector_all(self, *_a):
+            return [["https://f.tw/ETF/etf_detail/ETF23", "主動復華未來50 00991A"],
+                    ["https://f.tw/news/1", "公告"],
+                    ["https://f.tw/ETF/00991A/pcf", "申購買回清單"]]
+
+    found = b._discover(Page(), "https://f.tw/ETF/index", "00991A")
+    assert found == ["https://f.tw/ETF/etf_detail/ETF23", "https://f.tw/ETF/00991A/pcf"]
