@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/30 06:26",
+  "as_of": "2026/07/30 06:37",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -34,7 +34,7 @@
     {
       "title": "《基金》復華00409A開募布局全球50強產業贏家- 基金",
       "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE5vaE9aZ250UlhnTnZEYkVNaFJrdmRMX3RtMnhiNzM3dlFicnV2alVxVDBkSE1UMS1jY1RkczJXWERkMHJuSUVlaDNnSFhtRngyeW9KU3dGekQySVRkNlYzbWNRTE9sdHhPUXc?oc=5",
-      "source": "旺得富理財網",
+      "source": "wantrich.chinatimes.com",
       "date": "2026-07-27 17:24",
       "datetime": "2026-07-27T17:24:21+08:00"
     },
@@ -83,13 +83,6 @@
         "全球物聯網科技新臺幣"
       ],
       "items": [
-        {
-          "title": "主動復華全球50-ETF配息狀況",
-          "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE00UGtHTnBBTWoxQl9FXzJtR29nZEY0WjllbE5fMldqMUNtbk4zTGt2MEhnMkhJQ0RnZ0ZWMDZuQkUtbU4zZk42VndBYU13TllHVzRBUXhhdGc3NHZaMklxVnhZOF9WVmNIR2ZZUDNURmlkYW1LUTRJQWVaaWk4QQ?oc=5",
-          "source": "MoneyDJ",
-          "date": "2026-07-29 18:10",
-          "datetime": "2026-07-29T18:10:08+08:00"
-        },
         {
           "title": "規模千億級別的巨無霸對決：安聯台灣科技、復華全球物聯網、復華華人世紀該怎麼選？",
           "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE9WTHJRbHVnSTdtUUZzNU5WRXlPVUo4dEdET1kyU1R3NGQ5RmhyajBCNXgzaHRzLUxCRUlWRk5XMTRNUk9oQUJUcjdGQ2tZVlZQeVVKUzFmWmc?oc=5",
