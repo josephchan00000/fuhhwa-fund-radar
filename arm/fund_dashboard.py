@@ -2224,8 +2224,13 @@ def render() -> str:
     sec_etf_up = (f'<div class="section" id="etf-upcoming"><div class="st">{_ic("zap", tone="amber")}即將登場的新 ETF '
                   f'<span class="stsub">未來一週預計掛牌＋未來一個月預計募集・點「活動介紹」看投信說明</span></div>'
                   f'{_upcoming_etf_view(etf_up)}</div>')
+    # 持股揭露鮮度另立 chip（2026-07-30）：`_freshness_view()` 只彙總「逾期」項目，
+    # 資料正常時整個字串不會出現在頁面上——各來源的正常時戳一律標在自己區塊標題列。
+    eh_date = max(((v.get("date") or "") for v in ((eh_doc or {}).get("etfs") or {}).values()),
+                  default="") or None
     sec_etf = (f'<div class="section" id="etfwatch"><div class="st">{_ic("activity", tone="teal")}ETF 數據追蹤 '
                f'{_fresh_chip("資料基準", etf_asof, 10)} '
+               f'{_fresh_chip("持股揭露", eh_date, 3) if eh_date else ""} '
                f'<span class="stsub">台股被動（高股息／市值型）＋主動式 ETF・收盤／規模／成立／週月報酬／'
                f'最近一次配息金額／換算年化配息率／分配頻率・點欄位標題可排序</span></div>'
                f'{_etfwatch_view(etf_doc, eh_doc)}</div>')
