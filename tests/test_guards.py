@@ -32,7 +32,22 @@ def _write_ok_report(p: Path, cards: int = 4):
     for i in range(1, cards + 1):
         body += [f"### 卡 {i}｜標題{i}（來源：X｜2026/07/01｜【新事件】｜重要度 7/10）",
                  "1. **新聞摘要**：略。",
+                 "2. **一句話重點**：略。",
+                 "3. **對公司影響**：略。",
                  "6. **參考資料**：[來源](https://example.com/a)。", ""]
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("\n".join(body), encoding="utf-8")
+
+
+def _write_bare_numbered_report(p: Path, cards: int = 4):
+    """裸編號卡（缺 **新聞摘要**：／**對…影響**： 粗體標籤）——2026-07-30 實際踩到的壞格式：
+    卡數／連結／重要度全過，但儀表板解析不到內容、展開後只剩連結。"""
+    body = ["# 報告"]
+    for i in range(1, cards + 1):
+        body += [f"### {i}. 標題{i}（來源：X，2026/07/01｜【新事件】｜重要度 7/10）",
+                 f"1. 某項事實敘述{i}；[來源](https://example.com/a)。",
+                 "2. 對公司影響：略。",          # 無粗體標籤 → 解析不到
+                 ""]
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text("\n".join(body), encoding="utf-8")
 
@@ -61,3 +76,7 @@ def test_check_reports_pass_and_failures(tmp_path, monkeypatch):
     assert check.run(d) == 1                                  # 缺檔 → 擋下
     _write_ok_report(tmp_path / f"reports/twnews/{d}.md", cards=2)
     assert check.run(d) == 1                                  # 卡數不足 → 擋下
+    # 卡數／連結／重要度全合格，但內文寫成裸編號（缺粗體欄位標籤）→ 仍須擋下
+    # （2026-07-30 回歸鎖：此格式曾誤報 🟢 上線，儀表板該報整片無摘要與影響分析）
+    _write_bare_numbered_report(tmp_path / f"reports/twnews/{d}.md", cards=6)
+    assert check.run(d) == 1

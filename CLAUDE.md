@@ -42,7 +42,14 @@
      排除的假線索、資料侷限全文——那些寫進報告檔即可，主會話需要時直接 grep 該檔。整段回傳控制在
      ~15 行內。（真實內容都在 `reports/*.md`；主會話只需知道「幾卡、標題、有沒有過 check」就能收尾。）
 3. **合規掃描＋內容 QA＋數字核對**：`gen_usnews.py --check`、`gen_twnews.py --check`、`gen_macronews.py --check` 全須 🟢；
-   另跑 `TZ=Asia/Taipei python3 scripts/check_reports.py` 須 🟢（檔案齊全／每報≥4卡／每卡有連結與重要度／行事曆為今日）；
+   另跑 `TZ=Asia/Taipei python3 scripts/check_reports.py` 須 🟢（檔案齊全／每報≥4卡／每卡有連結與重要度／
+   **每卡有 `**新聞摘要**：` 與 ≥1 條 `**對…影響**：` 欄位標籤**／行事曆為今日）。
+   ⚠ **「卡片內文欄位標籤」是 2026-07-30 踩過的坑（使用者回報「沒有新聞分析」）**：版型寫「1. 新聞摘要
+   2. 一句話重點 3. 對持股／族群影響」是要**逐項加粗體標籤**（`1. **新聞摘要**：…`），子代理易誤讀成
+   純編號提示、寫成裸編號 `1. 某項事實…`——此時卡數／連結／重要度全過、合規掃描也 🟢，但
+   `arm/usnews.extract_cards()` 解析不到 summary／oneline／points，**儀表板該報所有卡片展開後只剩連結、
+   完全沒有摘要與影響分析**。派工子代理時務必明確要求粗體標籤；`check_reports.py` 已加此檢查當守門
+   （`tests/test_guards.py` 有回歸鎖）。
    **再跑 `TZ=Asia/Taipei python3 scripts/check_holdings_intro.py`（前十大簡介覆蓋率，🔴＝有持股缺簡介）——
    見 🔴 立即 WebSearch 查證後把缺的標的補進 `config/holding_profiles.json`（格式 `{name: {intro, ticker, country, verified}}`、
    純事實非投資建議、避開禁用詞），補到 🟢 為止**（2026-07-23 使用者：前十大簡介一再漏掉，此為固定防呆步驟，不可略）；

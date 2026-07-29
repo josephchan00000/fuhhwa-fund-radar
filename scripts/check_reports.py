@@ -6,6 +6,10 @@
   · 卡數下限：每報新聞卡 ≥4（macrocal 改查表格資料列 ≥10）
   · 連結：每張卡至少 1 條 markdown 可點連結 [標題](http…)
   · 徽章：每張卡標題括注可解析出重要度（≥6）與屬性（新事件/延伸/深度）
+  · 內文欄位：每張卡須解析得出「新聞摘要」與 ≥1 條「對…影響」條列
+    （2026-07-30 踩坑：子代理把版型的「1. 新聞摘要」當編號提示、寫成裸編號而非
+     `1. **新聞摘要**：`，卡數／連結／重要度全過 → 誤報 🟢，儀表板該報整片只剩連結、
+     展開後無摘要與影響分析。此檢查即為該坑的守門。）
   · 行事曆：表頭「更新：」需為今日
 
 用法：TZ=Asia/Taipei python3 scripts/check_reports.py [YYYY-MM-DD]（預設今日台北）
@@ -40,6 +44,12 @@ def _check_cards(path: Path, date: str) -> list[str]:
             errs.append(f"{rel}：卡{i} 重要度標注缺失或 <6（{imp}）")
         if et not in ("new", "ext", "deep"):
             errs.append(f"{rel}：卡{i} 屬性標注缺失（新事件/延伸/深度）")
+        # 內文欄位：報告若寫成裸編號（缺 **新聞摘要**：／**對…影響**：粗體標籤），
+        # 儀表板解析不到內容 → 卡片展開後只剩連結。標籤缺失須在發佈前擋下。
+        if not c.get("summary"):
+            errs.append(f"{rel}：卡{i}「{c['title'][:18]}…」缺「**新聞摘要**：」欄位標籤")
+        if not c.get("points"):
+            errs.append(f"{rel}：卡{i}「{c['title'][:18]}…」缺「**對…影響**：」條列標籤")
     return errs
 
 
@@ -72,7 +82,7 @@ def run(date: str) -> int:
         for e in errs:
             print(f"  ✗ {e}")
         return 1
-    print(f"[內容 QA] 🟢 {date} 通過：五檔齊全、卡數/連結/重要度/行事曆結構皆合格")
+    print(f"[內容 QA] 🟢 {date} 通過：五檔齊全、卡數/連結/重要度/內文欄位/行事曆結構皆合格")
     return 0
 
 
