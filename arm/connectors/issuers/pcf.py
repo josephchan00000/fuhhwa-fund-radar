@@ -105,6 +105,8 @@ def _row_from_mapping(d: dict) -> dict | None:
         return None
 
     sid = str(pick(_KEY_ID) or "").strip().upper()
+    # Yahoo 等站代號帶市場字尾（2330.TW／00986D.TWO）→ 去尾後再驗台股 4 碼格式
+    sid = re.sub(r"\.(TW|TWO)$", "", sid)
     if not _SID.match(sid):
         return None
     return {"stock_id": sid, "name": str(pick(_KEY_NM) or "").strip(),
