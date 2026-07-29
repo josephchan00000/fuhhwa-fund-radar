@@ -96,13 +96,17 @@ _XCHK_TOP_N = 10          # 以主來源前 N 大做重合度比對
 _XCHK_OVERLAP = 0.6       # 前 N 大至少 60% 也出現在副來源
 _XCHK_DW_PP = 0.75        # 共同持股權重差容忍（百分點）——兩站快照時點差一天內的正常波動
 
-def cross_check(primary: list[dict], secondary: list[dict]) -> dict:
+def cross_check(primary: list[dict], secondary: list[dict],
+                weights: bool = True) -> dict:
     """兩個來源的持股清單交叉驗證 → {"status": "match"/"mismatch", ...細節}。
 
-    比對兩件事（皆為「快照時點差一天內仍應大致成立」的穩健指標）：
-      ① 主來源前 10 大有多少也出現在副來源（重合度 ≥60%）；
-      ② 共同持股的權重差最大值（≤0.75pp）。
-    不比股數——兩站的股數口徑（張/股、揭露時點）常不同，比了只會誤殺。
+    比對（依 weights 分兩級）：
+      ① 主來源前 10 大有多少也出現在副來源（重合度 ≥60%）——構成比對，永遠做；
+      ② weights=True 時再比共同持股權重差最大值（≤0.75pp）。
+    **weights=False＝「構成驗證」**（2026-07-29 教訓）：Yahoo 的 ETF 持股是**月度基準**、
+    etfinfo 是每日 PCF 快照——跨基準日比權重是方法錯誤（實測 19/21 檔被誤判 mismatch，
+    權重差 1.2–4.2pp 全是時點差）。此時只驗構成、max_dw 僅供參考記錄。
+    不比股數——兩站股數口徑（張/股、揭露時點）常不同，比了只會誤殺。
     副來源為空不會呼叫本函式（那是「單源」，由上層標記）。"""
     sec_ids = {str(r.get("stock_id")) for r in secondary}
     top = [str(r.get("stock_id")) for r in
@@ -114,9 +118,10 @@ def cross_check(primary: list[dict], secondary: list[dict]) -> dict:
            if str(r.get("stock_id")) in sec_w
            and r.get("weight") is not None and sec_w.get(str(r.get("stock_id"))) is not None]
     max_dw = round(max(dws), 2) if dws else None
-    ok = (hit >= max(1, int(len(top) * _XCHK_OVERLAP))
-          and (max_dw is None or max_dw <= _XCHK_DW_PP))
-    return {"status": "match" if ok else "mismatch",
+    ok = hit >= max(1, int(len(top) * _XCHK_OVERLAP))
+    if weights:
+        ok = ok and (max_dw is None or max_dw <= _XCHK_DW_PP)
+    return {"status": "match" if ok else "mismatch", "weights_compared": weights,
             "top_hit": hit, "top_n": len(top), "n_common": len(dws), "max_dw": max_dw}
 
 

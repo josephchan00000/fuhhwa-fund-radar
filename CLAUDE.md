@@ -295,13 +295,18 @@ ETF 表每列下方一個原生 `<details>` 展開鈕，內含：持股／權重
   - **主來源 etfinfo.tw**（Tier B）：`GET /api/etf/{code}` 的 holdings 欄位＝**完整每日快照**
     （stock_id/weight/shares＋snapshotDate），既有連接器 `arm/connectors/etfinfo.py` 的
     `holdings_fresh()` 早已封裝；CI 每天抓規模／殖利率就在打同一 API，可達性已被證實數週。
-  - **副來源 MoneyDJ**（Tier B）：持股頁為老式 SSR HTML 表格
-    `moneydj.com/etf/x/basic/basic0007.xdjhtm?etfid={code}.tw`（上櫃檔試 `.two`），
-    以 `pcf.parse_html` 解析；並補 etfinfo 未收錄的上櫃檔（00998A/00986D 在 etfinfo 404）。
-  - **雙重驗證 `etfholdings.cross_check()`**：主來源前十大重合度 ≥60% ＋ 共同持股權重差 ≤0.75pp
-    → 🟢 match；僅一源 → single；不符 → mismatch（照用主來源、儀表板掛紅 ⚠ 章、細節入日誌）。
-    **不比股數**——兩站股數口徑（張/股、揭露時點）常不同，比了誤殺。驗證結果存 entry `verify`、
-    隨 detail 入板（🟢 雙源相符／單源未驗證／⚠ 兩源不符 三種章）。
+  - **副來源 Yahoo 股市持股頁**（Tier B）：`tw.stock.yahoo.com/quote/{code}.TW/holding`
+    SSR 內嵌 JSON（`parse_embedded_json`；代號帶 .TW/.TWO 字尾已在 `_row_from_mapping` 去尾）。
+    **MoneyDJ 已試過並移除**（2026-07-29 實測：basic0007 頁 table×0、SSR 表格已不存在）。
+  - **雙重驗證 `etfholdings.cross_check(weights=False)` ＝「構成驗證」**：Yahoo 持股是**月度基準
+    前十大**、etfinfo 是每日 PCF 快照——**跨基準日比權重是方法錯誤**（實測 19/21 檔被誤判
+    mismatch，權重差 1.2–4.2pp 全是時點差）。只驗前十大構成重合 ≥60% → 🟢「構成相符」；
+    重合過低 → **weak「副源過舊・未能驗證」灰章**（多為月內調倉，**不是**主來源錯誤的證據，
+    如 00929 月內大調倉重合僅 3/10）；僅一源 → single。紅 ⚠ mismatch 保留給未來同基準日源的
+    真衝突。**不比股數**——兩站口徑常不同，比了誤殺。驗證結果存 entry `verify` 隨 detail 入板。
+  - **結構性不支援（`UNSUPPORTED`，勿再試）**：00998A（持海外金融股）、00986D（持海外金融債）
+    ——本功能資料模型以「台股個股 4 碼代號」為鍵（Δ 股數、當日貢獻都靠它對報價），
+    任何來源都裝不進來；此二檔無展開明細屬設計內降級。
   - **為何獨立 workflow**：不佔 `daily.yml`「07:03 前線上可看」的關鍵路徑；本 job 只更新
     `data/etf_holdings.json` 並 commit，失敗不影響任何現有功能。
   - **投信官網第一手＝已放棄的路線（逐家逆向 7 輪＋無頭瀏覽器 3 輪的結論，勿走回頭路）**：
