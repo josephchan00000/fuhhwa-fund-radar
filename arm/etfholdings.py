@@ -61,6 +61,11 @@ def merge_one(old: dict | None, new: dict | None) -> dict | None:
     if not new or not new.get("holdings"):
         return old
     old = old or {}
+    # 日期倒退防呆（2026-07-30 實踩）：換來源時新來源可能給**較舊**的快照
+    # （fhtrust T-1 vs 稍早 etfinfo 的當日快照）——若照常合併，較新的快照會被降級成
+    # prev，儀表板出現「揭露日 07-28（對比 07-29）」的倒轉比較。舊的進不來，保留較新者。
+    if old.get("date") and new.get("date") and str(new["date"]) < str(old["date"]):
+        return old
     if old.get("date") and old["date"] == new.get("date"):
         return {**new, "prev": old.get("prev") or {}, "prev_date": old.get("prev_date")}
     prev = {sid: {"shares": h.get("shares"), "weight": h.get("weight")}

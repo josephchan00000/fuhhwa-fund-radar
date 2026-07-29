@@ -686,3 +686,12 @@ def test_fhtrust_source_excludes_hedge_futures(monkeypatch):
             "shares": -20, "weight": None}])})
     rows, _asof, _log = m._from_fhtrust("00991A")
     assert len(rows) == 6 and all(r["stock_id"] != "TXF" for r in rows)
+
+
+def test_merge_rejects_date_regression():
+    """換來源時新來源可能給較舊的快照（fhtrust T-1 vs 稍早 etfinfo 當日）——
+    不可把較新的快照降級成 prev，否則出現「揭露日 07-28（對比 07-29）」倒轉比較
+    （2026-07-30 實踩：本家三檔上線後 prev_date > date）。舊快照直接丟棄、保留較新者。"""
+    newer = {"date": "2026-07-29", "src": "etfinfo", "holdings": DAY2["holdings"]}
+    older = {"date": "2026-07-28", "src": "fhtrust", "holdings": DAY1["holdings"]}
+    assert eh.merge_one(newer, older) == newer

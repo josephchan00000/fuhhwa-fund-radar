@@ -9475,208 +9475,11 @@
      "weight": 0.0
     }
    ],
-   "prev": {
-    "2330": {
-     "shares": 4000000,
-     "weight": 13.468
-    },
-    "2383": {
-     "shares": 1300000,
-     "weight": 8.157
-    },
-    "2408": {
-     "shares": 12400000,
-     "weight": 6.709
-    },
-    "2327": {
-     "shares": 7500000,
-     "weight": 5.82
-    },
-    "2454": {
-     "shares": 1080000,
-     "weight": 5.207
-    },
-    "2059": {
-     "shares": 420000,
-     "weight": 4.593
-    },
-    "3037": {
-     "shares": 4250000,
-     "weight": 4.475
-    },
-    "6223": {
-     "shares": 600000,
-     "weight": 4.399
-    },
-    "2345": {
-     "shares": 1500000,
-     "weight": 4.385
-    },
-    "8046": {
-     "shares": 3000000,
-     "weight": 4.036
-    },
-    "6669": {
-     "shares": 450000,
-     "weight": 3.537
-    },
-    "6274": {
-     "shares": 2150000,
-     "weight": 3.356
-    },
-    "3711": {
-     "shares": 4200000,
-     "weight": 3.208
-    },
-    "7769": {
-     "shares": 360000,
-     "weight": 2.851
-    },
-    "3017": {
-     "shares": 860000,
-     "weight": 2.757
-    },
-    "3189": {
-     "shares": 3000000,
-     "weight": 2.645
-    },
-    "8299": {
-     "shares": 1100000,
-     "weight": 2.551
-    },
-    "3026": {
-     "shares": 2700000,
-     "weight": 1.961
-    },
-    "3665": {
-     "shares": 590000,
-     "weight": 1.887
-    },
-    "5274": {
-     "shares": 80500,
-     "weight": 1.591
-    },
-    "2308": {
-     "shares": 660000,
-     "weight": 1.51
-    },
-    "2404": {
-     "shares": 799000,
-     "weight": 1.241
-    },
-    "6515": {
-     "shares": 140000,
-     "weight": 1.16
-    },
-    "3653": {
-     "shares": 1000,
-     "weight": 0.005
-    },
-    "2382": {
-     "shares": 9000,
-     "weight": 0.004
-    },
-    "2317": {
-     "shares": 9000,
-     "weight": 0.003
-    },
-    "2449": {
-     "shares": 9450,
-     "weight": 0.003
-    },
-    "2360": {
-     "shares": 1000,
-     "weight": 0.003
-    },
-    "2603": {
-     "shares": 9000,
-     "weight": 0.003
-    },
-    "2313": {
-     "shares": 9253,
-     "weight": 0.002
-    },
-    "3231": {
-     "shares": 9000,
-     "weight": 0.002
-    },
-    "5347": {
-     "shares": 9000,
-     "weight": 0.002
-    },
-    "2881": {
-     "shares": 9000,
-     "weight": 0.002
-    },
-    "2882": {
-     "shares": 9000,
-     "weight": 0.001
-    },
-    "2357": {
-     "shares": 1000,
-     "weight": 0.001
-    },
-    "2379": {
-     "shares": 1000,
-     "weight": 0.001
-    },
-    "2885": {
-     "shares": 9000,
-     "weight": 0.001
-    },
-    "2891": {
-     "shares": 9000,
-     "weight": 0.001
-    },
-    "2886": {
-     "shares": 9000,
-     "weight": 0.001
-    },
-    "2890": {
-     "shares": 9000,
-     "weight": 0.001
-    },
-    "2884": {
-     "shares": 9000,
-     "weight": 0.001
-    },
-    "2880": {
-     "shares": 9000,
-     "weight": 0.001
-    },
-    "3044": {
-     "shares": 1000,
-     "weight": 0.001
-    },
-    "2883": {
-     "shares": 9000,
-     "weight": null
-    },
-    "2912": {
-     "shares": 1000,
-     "weight": null
-    },
-    "3036": {
-     "shares": 1000,
-     "weight": null
-    },
-    "2412": {
-     "shares": 1000,
-     "weight": null
-    },
-    "1216": {
-     "shares": 1000,
-     "weight": null
-    },
-    "3045": {
-     "shares": 1000,
-     "weight": null
-    }
-   },
-   "prev_date": "2026-07-29",
+   "prev": {},
+   "prev_date": null,
    "detail": {
     "date": "2026-07-28",
-    "prev_date": "2026-07-29",
+    "prev_date": null,
     "src": "fhtrust",
     "verify": {
      "status": "match",
@@ -9693,8 +9496,8 @@
       "name": "台光電子",
       "weight": 8.157,
       "shares": 1300000,
-      "d_shares": 0,
-      "d_weight": 0.0,
+      "d_shares": null,
+      "d_weight": null,
       "chg_pct": -8.41,
       "contrib": -0.686,
       "is_new": false
@@ -9704,8 +9507,8 @@
       "name": "南亞科技",
       "weight": 6.709,
       "shares": 12400000,
-      "d_shares": 0,
-      "d_weight": 0.0,
+      "d_shares": null,
+      "d_weight": null,
       "chg_pct": -9.98,
       "contrib": -0.67,
       "is_new": false
@@ -9715,8 +9518,8 @@
       "name": "國巨股份",
       "weight": 5.82,
       "shares": 7500000,
-      "d_shares": 0,
-      "d_weight": 0.0,
+      "d_shares": null,
+      "d_weight": null,
       "chg_pct": -9.92,
       "contrib": -0.577,
       "is_new": false
@@ -9726,8 +9529,8 @@
       "name": "聯發科技",
       "weight": 5.207,
       "shares": 1080000,
-      "d_shares": 0,
-      "d_weight": 0.0,
+      "d_shares": null,
+      "d_weight": null,
       "chg_pct": -9.92,
       "contrib": -0.517,
       "is_new": false
@@ -9737,8 +9540,8 @@
       "name": "川湖科技",
       "weight": 4.593,
       "shares": 420000,
-      "d_shares": 0,
-      "d_weight": 0.0,
+      "d_shares": null,
+      "d_weight": null,
       "chg_pct": -9.97,
       "contrib": -0.458,
       "is_new": false
@@ -9748,8 +9551,8 @@
       "name": "欣興電子",
       "weight": 4.475,
       "shares": 4250000,
-      "d_shares": 0,
-      "d_weight": 0.0,
+      "d_shares": null,
+      "d_weight": null,
       "chg_pct": -9.91,
       "contrib": -0.443,
       "is_new": false
@@ -9759,8 +9562,8 @@
       "name": "台灣積體",
       "weight": 13.468,
       "shares": 4000000,
-      "d_shares": 0,
-      "d_weight": 0.0,
+      "d_shares": null,
+      "d_weight": null,
       "chg_pct": -2.98,
       "contrib": -0.401,
       "is_new": false
@@ -9770,8 +9573,8 @@
       "name": "智邦科技",
       "weight": 4.385,
       "shares": 1500000,
-      "d_shares": 0,
-      "d_weight": 0.0,
+      "d_shares": null,
+      "d_weight": null,
       "chg_pct": -8.93,
       "contrib": -0.392,
       "is_new": false
@@ -9781,8 +9584,8 @@
       "name": "南亞電路",
       "weight": 4.036,
       "shares": 3000000,
-      "d_shares": 0,
-      "d_weight": 0.0,
+      "d_shares": null,
+      "d_weight": null,
       "chg_pct": -9.21,
       "contrib": -0.372,
       "is_new": false
@@ -9792,8 +9595,8 @@
       "name": "台燿科技",
       "weight": 3.356,
       "shares": 2150000,
-      "d_shares": 0,
-      "d_weight": 0.0,
+      "d_shares": null,
+      "d_weight": null,
       "chg_pct": -9.73,
       "contrib": -0.327,
       "is_new": false
@@ -9803,8 +9606,8 @@
       "name": "旺矽科技",
       "weight": 4.399,
       "shares": 600000,
-      "d_shares": 0,
-      "d_weight": 0.0,
+      "d_shares": null,
+      "d_weight": null,
       "chg_pct": -7.26,
       "contrib": -0.319,
       "is_new": false
@@ -9814,8 +9617,8 @@
       "name": "日月光投",
       "weight": 3.208,
       "shares": 4200000,
-      "d_shares": 0,
-      "d_weight": 0.0,
+      "d_shares": null,
+      "d_weight": null,
       "chg_pct": -8.88,
       "contrib": -0.285,
       "is_new": false
