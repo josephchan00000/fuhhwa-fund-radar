@@ -147,10 +147,14 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
     shown, rest = rows[:top_n], rows[top_n:]
     rest_contrib = round(sum(r["contrib"] for r in rest if r["contrib"] is not None), 3) if rest else None
     rest_weight = round(sum(r["weight"] or 0 for r in rest), 2) if rest else None
+    # sum_weight＝揭露清單全體權重合計（≠covered_weight：後者只算「有報價」者）。
+    # 全球型主動 ETF（如 00988A）的海外持股代號不符台股 4 碼格式、進不了本表——
+    # sum_weight 遠低於 100 就是這種檔，儀表板據此標「僅台股部位」誠實揭露（2026-07-29）。
     return {"date": (entry or {}).get("date"), "prev_date": (entry or {}).get("prev_date"),
             "src": (entry or {}).get("src"), "rows": shown, "dropped": dropped,
             "rest_n": len(rest), "rest_contrib": rest_contrib, "rest_weight": rest_weight,
             "total_contrib": round(total, 2), "covered_weight": round(covered_w, 1),
+            "sum_weight": round(sum(h.get("weight") or 0 for h in holdings), 1),
             "n_holdings": len(holdings)}
 
 
