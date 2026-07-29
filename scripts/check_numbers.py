@@ -22,6 +22,15 @@ from arm import clock, factcheck  # noqa: E402
 OUT = ROOT / "data" / "factcheck.json"
 
 
+def _prev_verified() -> bool:
+    """既有落檔是否曾真的核對到官方值（🟢 或 🔴）——是則不可被「全 ⚪」結果覆寫。"""
+    try:
+        prev = json.loads(OUT.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    return bool(prev.get("green") or prev.get("red"))
+
+
 def run(day: str | None = None, strict: bool = False) -> int:
     d = day or f"{clock.today_tw():%Y-%m-%d}"
     files = [ROOT / "reports" / "usnews" / f"{d}_v1.md",
@@ -51,6 +60,13 @@ def run(day: str | None = None, strict: bool = False) -> int:
     green = sum(1 for i in items if i["status"] == "🟢")
     red = sum(1 for i in items if i["status"] == "🔴")
     skipped = sum(1 for i in items if i["status"] == "⚪")
+    # 落檔防呆（2026-07-29 踩坑）：本 Claude 容器 proxy 擋 twse/taifex，在此跑會**全數 ⚪**；
+    # 若照樣覆寫，就會把 CI 的權威結果（10 🟢）洗成「什麼都沒核對到」並隨 commit 上板。
+    # 規則同專案慣例「絕不把有內容的落檔洗成空」：本次一項都沒核到、而既有落檔核到過 → 不覆寫。
+    if green == 0 and red == 0 and items and _prev_verified():
+        print(f"[數字核對] ⚪ {skipped} 項官方全數不可得（本機 proxy 擋 twse/taifex 屬正常）"
+              "——保留既有落檔不覆寫（真正的核對在 CI）")
+        return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({"date": d, "as_of": clock.stamp_tw(), "green": green,
                                "red": red, "skipped": skipped, "items": items},
