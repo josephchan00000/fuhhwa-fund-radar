@@ -589,3 +589,14 @@ def test_verify_flows_from_entry_to_detail():
                                                     "top_hit": 10, "top_n": 10, "max_dw": 0.1}}
     d = eh.contributions(entry, QUOTES)
     assert d["verify"]["status"] == "match"
+
+
+def test_row_from_mapping_strips_market_suffix():
+    """Yahoo 等站代號帶 .TW／.TWO 市場字尾——去尾後才過台股 4 碼格式驗證。"""
+    r = pcf._row_from_mapping({"symbol": "2330.TW", "name": "台積電",
+                               "shares": 100, "weight": 9.9})
+    assert r and r["stock_id"] == "2330"
+    # 上櫃「個股」帶 .TWO（如環球晶）；5 碼 ETF 代碼（00986D 等）本就不在個股收錄範圍
+    r2 = pcf._row_from_mapping({"symbol": "6488.TWO", "name": "環球晶",
+                                "shares": 100, "weight": 1.0})
+    assert r2 and r2["stock_id"] == "6488"
