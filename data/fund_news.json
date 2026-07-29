@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/30 06:54",
+  "as_of": "2026/07/30 07:19",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -34,7 +34,7 @@
     {
       "title": "《基金》復華00409A開募布局全球50強產業贏家- 基金",
       "url": "https://news.google.com/rss/articles/CBMiakFVX3lxTE5vaE9aZ250UlhnTnZEYkVNaFJrdmRMX3RtMnhiNzM3dlFicnV2alVxVDBkSE1UMS1jY1RkczJXWERkMHJuSUVlaDNnSFhtRngyeW9KU3dGekQySVRkNlYzbWNRTE9sdHhPUXc?oc=5",
-      "source": "wantrich.chinatimes.com",
+      "source": "旺得富理財網",
       "date": "2026-07-27 17:24",
       "datetime": "2026-07-27T17:24:21+08:00"
     },
@@ -146,7 +146,7 @@
         {
           "title": "復華未來50 ETF推全球版！3位績優操盤人共掌00409A 延續00991A戰力",
           "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE9hb1BFUDNUUEEzbEQ2NHZrNk9LQWpKODlEcnJmbTBpd3l1OXdDMmMxNm9oUGRETWpBbGdYaDZsWHJzT3pEbzVzc2JTWGl6ekx4LVE?oc=5",
-          "source": "蕃新聞",
+          "source": "n.yam.com",
           "date": "2026-07-27 16:14",
           "datetime": "2026-07-27T16:14:00+08:00"
         }
