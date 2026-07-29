@@ -141,7 +141,7 @@ def _from_page(page, url: str) -> tuple[list[dict], str, list[str]]:
     return [], "", log
 
 
-def _discover(page, home: str, code: str, name: str = "") -> list[str]:
+def _discover(page, home: str, code: str, name: str = "", issuer: str = "") -> list[str]:
     """到投信的 ETF 列表頁，抓出指向此檔 ETF 的連結（代碼或基金名稱比對）。
 
     比人腦猜網址可靠：列表頁一定有指向各檔的連結，且投信改版時連結也會跟著更新。
@@ -158,8 +158,15 @@ def _discover(page, home: str, code: str, name: str = "") -> list[str]:
             "a[href]", "els => els.map(e => [e.href, (e.textContent||'').trim()])")
     except Exception:                                     # noqa: BLE001
         return []
-    # 名稱鍵：全名＋去掉「主動」前綴版（各站對主動式 ETF 的稱法不一）
-    names = [n for n in (name, name.replace("主動", "", 1) if name else "") if n]
+    # 名稱鍵（由嚴到寬）：全名 → 去「主動」前綴 → 再去投信品牌名。
+    # 2026-07-29 實測：WATCHLIST 簡稱「主動復華未來50」，復華官網叫「復華台灣未來50主動式ETF」
+    # ——只有最寬鍵「未來50」才配得到；品牌名去掉後 <3 字（過於泛用）者不採。
+    names: list[str] = []
+    if name:
+        base = name.replace("主動", "", 1)
+        for n in (name, base, base.replace(issuer, "", 1) if issuer else ""):
+            if n and len(n) >= 3 and n not in names:
+                names.append(n)
     tiers: tuple[list[str], list[str], list[str]] = ([], [], [])
     for href, text in hrefs or []:
         if not href or not href.startswith("http"):
@@ -219,7 +226,7 @@ def main() -> int:
                 ctx = browser.new_context(user_agent=pcf._UA["User-Agent"],
                                           viewport={"width": 1280, "height": 900})
                 page = ctx.new_page()
-                found = _discover(page, home, code, etf_name)
+                found = _discover(page, home, code, etf_name, issuer)
                 ctx.close()
                 logs.append(f"[自尋] {home} → 找到 {len(found)} 個含 {code} 的連結："
                             + ", ".join(u[:110] for u in found))

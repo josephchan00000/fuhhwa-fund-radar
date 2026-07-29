@@ -484,3 +484,51 @@ def test_discover_ranks_code_href_over_name_match():
     found = b._discover(Page(), "https://f.tw/ETF/index", "00991A", "主動復華未來50")
     assert found[0] == "https://f.tw/etf/00991A"
     assert "https://f.tw/ETF/etf_detail/ETF23" in found
+
+
+# ── 「股數」其實是市值的誤收防呆（00929 實例）＋名稱鍵放寬 ─────────────
+
+def test_normalize_drops_shares_proportional_to_weight():
+    """shares÷weight 每列等比＝那欄是持股市值（權重×規模），不是股數
+    （00929 實抓：聯詠 s=4,852,110,000，但其流通在外僅 6 億股；比值恆 1.292e9）。
+    誤留會讓「加減碼(股)」顯示天文數字——判中就清 shares、保留權重。"""
+    aum = 1.292e9
+    rows = [{"stockId": f"23{i:02d}", "name": f"股{i}",
+             "shares": int((1.0 + i / 10) * aum), "weight": round(1.0 + i / 10, 3)}
+            for i in range(12)]
+    import json as _j
+    out = pcf.parse_json(_j.dumps({"list": rows}).encode())
+    out = pcf._normalize(out)
+    assert all(r["shares"] is None for r in out)          # 市值欄被清掉
+    assert all(r["weight"] is not None for r in out)      # 權重保留
+
+
+def test_normalize_keeps_genuine_shares():
+    """真實股數與權重不等比（股價各檔不同）——不可誤殺。"""
+    rows = [{"stock_id": f"23{i:02d}", "name": "x", "shares": 1000 + i * 977,
+             "weight": round(1.0 + i / 7, 3)} for i in range(12)]
+    out = pcf._normalize(list(rows))
+    assert all(r["shares"] is not None for r in out)
+
+
+def test_discover_matches_official_long_name_via_widest_key():
+    """WATCHLIST 簡稱「主動復華未來50」vs 復華官網「復華台灣未來50主動式ETF」——
+    只有去掉「主動」與品牌名後的最寬鍵「未來50」才配得到。"""
+    b = _browser_mod()
+
+    class Page:
+        def goto(self, *_a, **_k):
+            pass
+
+        def wait_for_load_state(self, *_a, **_k):
+            pass
+
+        def wait_for_timeout(self, _ms):
+            pass
+
+        def eval_on_selector_all(self, *_a):
+            return [["https://f.tw/ETF/etf_detail/ETF26", "復華台灣未來50主動式ETF基金"],
+                    ["https://f.tw/news/1", "公告"]]
+    found = b._discover(Page(), "https://f.tw/ETF/index", "00991A",
+                        "主動復華未來50", "復華")
+    assert found == ["https://f.tw/ETF/etf_detail/ETF26"]
