@@ -514,6 +514,25 @@ def fetch_one(code: str, issuer: str) -> tuple[list[dict], str, list[Probe]]:
     return [], "", probes
 
 
+def _drop_value_like_shares(rows: list[dict]) -> list[dict]:
+    """「股數」欄若與權重**完全等比** → 那其實是持股市值（＝權重×基金規模），不是股數。
+
+    2026-07-29 實例：00929 抓到 s=4,852,110,000（聯詠流通在外才 6 億股），
+    shares÷weight 每列恆為 1.292e9（＝規模 1292 億）——真股數與權重不會等比
+    （權重＝股數×股價÷規模，股價各檔不同）。誤留會讓「加減碼(股)」顯示天文數字。
+    n≥8 且帶雙欄的列夠多才判（小樣本等比可能是巧合）；判中就把 shares 清掉、保留權重。"""
+    pairs = [(r["shares"], r["weight"]) for r in rows
+             if r.get("shares") and r.get("weight")]
+    if len(pairs) < 8:
+        return rows
+    ratios = [s / w for s, w in pairs]
+    mean = sum(ratios) / len(ratios)
+    if mean and max(abs(r - mean) for r in ratios) / mean < 0.01:   # 等比（誤差 <1%）
+        for r in rows:
+            r["shares"] = None
+    return rows
+
+
 def _normalize(rows: list[dict]) -> list[dict]:
     """同代號合併、權重補算（僅有股數時不硬算價值權重——缺價格資料，寧缺勿錯）。"""
     merged: dict[str, dict] = {}
@@ -526,4 +545,5 @@ def _normalize(rows: list[dict]) -> list[dict]:
                 cur[k] = (cur[k] or 0) + r[k] if cur[k] is not None else r[k]
         if r.get("name") and not cur["name"]:
             cur["name"] = r["name"]
-    return sorted(merged.values(), key=lambda h: -(h.get("weight") or 0))
+    return _drop_value_like_shares(
+        sorted(merged.values(), key=lambda h: -(h.get("weight") or 0)))
