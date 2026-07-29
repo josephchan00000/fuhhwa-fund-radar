@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/29 11:55",
+  "as_of": "2026/07/29 12:12",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -76,7 +76,15 @@
       "short_names": [
         "美國新星新臺幣"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華美國新星基金-新臺幣 的買賣訊號 | 鉅亨網 - 基金老司機",
+          "url": "https://news.google.com/rss/articles/CBMi5wFBVV95cUxNQUY0OWtpUDBVVGJWZnpRTTdPaWJKeE80cW0xNHFDekc4eGhVdFhKRHBERzVfTzJqRWxfVnRPdjc2cndKY09RaURzbTl5XzYyZEhGX182XzVSMHNuSVYxOVBTbGQwN0h1THBxYXk5WWtBTms1Ti1kMmQ1ekRrS3VNbG5DU3VsMkgzb01oQjl2Vmd6MkxqRnRMOVRRT01DMlF6WTNWNmEzSDRUZ0xwMnd5T2VKSGpQUmpVMUp0RFRoMncxREFTaDQ4SEZZQko2TkYtNk9jdnZTMktCR2lUWW81RUNqOEZBQjA?oc=5",
+          "source": "鉅亨網",
+          "date": "2026-07-22 15:00",
+          "datetime": "2026-07-22T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華全球大趨勢基金",
@@ -383,7 +391,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技（詳下方基金新聞標籤）",
+    "近 7 天有專屬報導的基金：美國新星、全球物聯網科技、華人世紀、亞太神龍科技（詳下方基金新聞標籤）",
     "品牌焦點：00409A下月開募 盯權值股（經濟日報）"
   ]
 }
