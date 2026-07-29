@@ -269,3 +269,20 @@ def test_bundle_api_hints_caches_per_host(monkeypatch):
     n = len(calls)
     pcf._bundle_api_hints(html, "https://y.tw/tradeInfo/pcf/0056")
     assert len(calls) == n                       # 第二檔不再重抓 bundle
+
+
+def test_bundle_scan_rejects_catch_all_html_shell(monkeypatch):
+    """SPA 的 catch-all 路由會把 index.html 原封回給任何 .js 路徑——位元組數與頁面相同。
+    當成 JS 掃只會得到 +0 且看不出原因（2026-07-29 第 6 輪：群益 424450B、安聯 9437B
+    的「bundle」都與頁面同大小，白掃三輪）。必須辨識並在日誌講明。"""
+    pcf._bundle_cache.clear(); pcf._bundle_log.clear()
+    page = (b'<html><script src="/main.a.js"></script>'
+            b'<script src="/main.b.js"></script></html>')
+    resp = {"https://z.tw/main.a.js": page,                   # catch-all 回同一份 HTML
+            "https://z.tw/main.b.js": b'x.post("/api/bridge",{svc:"pcf"});'}
+    monkeypatch.setattr(pcf, "_get", lambda url, probe: resp.get(url))
+    assert pcf._bundle_api_hints(page, "https://z.tw/p/0050") == ["/api/bridge"]
+    log = " ".join(pcf._bundle_log["z.tw"])
+    assert "catch-all" in log                                # 假 bundle 有講明
+    assert "頁面 script 共 2 支" in log                       # 可用 script 清單有列出
+    assert 'svc:"pcf"' in log                                # 呼叫脈絡（body 參數）有撈到

@@ -308,7 +308,7 @@ _bundle_cache: dict[str, list[str]] = {}   # host → 掃出的 API 路徑（每
 _bundle_log: dict[str, list[str]] = {}     # host → bundle 抓取診斷（與路徑分開存，見下）
 
 
-def _bundle_api_hints(raw: bytes, page_url: str, max_bundles: int = 3) -> list[str]:
+def _bundle_api_hints(raw: bytes, page_url: str, max_bundles: int = 6) -> list[str]:
     """從 SPA 的 **JS bundle** 撈真正的資料端點。
 
     2026-07-29 第 4 輪 CI 定案：元大／群益的 HTML 裡「成分股」「證券代號」全是文案與公告內文，
@@ -333,11 +333,19 @@ def _bundle_api_hints(raw: bytes, page_url: str, max_bundles: int = 3) -> list[s
     log: list[str] = []
     if not all_srcs:
         log.append("頁面無 <script src>（bundle 內聯或由 loader 動態插入）")
+    log.append(f"頁面 script 共 {len(all_srcs)} 支："
+               + ", ".join(s.rsplit("/", 1)[-1] for s in all_srcs[:12]))
     for src in srcs[:max_bundles]:
         p = Probe("bundle", src)
         js = _get(src, p)
         if not js:
             log.append(f"{src.rsplit('/', 1)[-1]}✗{p.error[:40]}")
+            continue
+        # SPA 的 catch-all 路由會把 index.html 原封回給任何路徑——位元組數與頁面相同、
+        # 內容是 <!doctype html>。當成 JS 掃只會得到 +0，而且看不出原因
+        #（2026-07-29 第 6 輪：群益 424450B、安聯 9437B 的「bundle」都與頁面同大小）。
+        if js[:200].lstrip()[:1] == b"<" or len(js) == len(raw):
+            log.append(f"{src.rsplit('/', 1)[-1]} 回 HTML 外殼（catch-all 路由，非真 bundle）")
             continue
         text = js.decode("utf-8", "replace")
         n0 = len(found)
