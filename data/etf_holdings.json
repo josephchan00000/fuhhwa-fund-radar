@@ -1,6 +1,443 @@
 {
- "as_of": "2026-07-29 13:34",
+ "as_of": "2026-07-29 14:01",
  "etfs": {
+  "00988A": {
+   "date": "2026-07-28",
+   "src": "discovered/dom",
+   "holdings": [
+    {
+     "stock_id": "3037",
+     "name": "欣興",
+     "shares": 2400000,
+     "weight": 3.67
+    },
+    {
+     "stock_id": "2383",
+     "name": "台光電",
+     "shares": 410000,
+     "weight": 3.56
+    },
+    {
+     "stock_id": "2330",
+     "name": "台積電",
+     "shares": 750000,
+     "weight": 3.18
+    },
+    {
+     "stock_id": "2454",
+     "name": "聯發科",
+     "shares": 445000,
+     "weight": 2.96
+    },
+    {
+     "stock_id": "2327",
+     "name": "國巨*",
+     "shares": 1800000,
+     "weight": 2.03
+    },
+    {
+     "stock_id": "3711",
+     "name": "日月光投控",
+     "shares": 1800000,
+     "weight": 1.98
+    },
+    {
+     "stock_id": "6223",
+     "name": "旺矽",
+     "shares": 190000,
+     "weight": 1.96
+    },
+    {
+     "stock_id": "3665",
+     "name": "貿聯-KY",
+     "shares": 440000,
+     "weight": 1.71
+    },
+    {
+     "stock_id": "2308",
+     "name": "台達電",
+     "shares": 320000,
+     "weight": 1.01
+    },
+    {
+     "stock_id": "2303",
+     "name": "聯電",
+     "shares": 2500000,
+     "weight": 0.57
+    },
+    {
+     "stock_id": "3017",
+     "name": "奇鋐",
+     "shares": 115000,
+     "weight": 0.5
+    }
+   ],
+   "prev": {},
+   "prev_date": null,
+   "detail": {
+    "date": "2026-07-28",
+    "prev_date": null,
+    "src": "discovered/dom",
+    "rows": [
+     {
+      "stock_id": "3037",
+      "name": "欣興",
+      "weight": 3.67,
+      "shares": 2400000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -9.91,
+      "contrib": -0.364,
+      "is_new": false
+     },
+     {
+      "stock_id": "2383",
+      "name": "台光電",
+      "weight": 3.56,
+      "shares": 410000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -8.41,
+      "contrib": -0.299,
+      "is_new": false
+     },
+     {
+      "stock_id": "2454",
+      "name": "聯發科",
+      "weight": 2.96,
+      "shares": 445000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -9.92,
+      "contrib": -0.294,
+      "is_new": false
+     },
+     {
+      "stock_id": "2327",
+      "name": "國巨*",
+      "weight": 2.03,
+      "shares": 1800000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -9.92,
+      "contrib": -0.201,
+      "is_new": false
+     },
+     {
+      "stock_id": "6223",
+      "name": "旺矽",
+      "weight": 1.96,
+      "shares": 190000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -9.7,
+      "contrib": -0.19,
+      "is_new": false
+     },
+     {
+      "stock_id": "3711",
+      "name": "日月光投控",
+      "weight": 1.98,
+      "shares": 1800000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -8.88,
+      "contrib": -0.176,
+      "is_new": false
+     },
+     {
+      "stock_id": "2308",
+      "name": "台達電",
+      "weight": 1.01,
+      "shares": 320000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -9.97,
+      "contrib": -0.101,
+      "is_new": false
+     },
+     {
+      "stock_id": "2330",
+      "name": "台積電",
+      "weight": 3.18,
+      "shares": 750000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -2.98,
+      "contrib": -0.095,
+      "is_new": false
+     },
+     {
+      "stock_id": "2303",
+      "name": "聯電",
+      "weight": 0.57,
+      "shares": 2500000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -9.92,
+      "contrib": -0.057,
+      "is_new": false
+     },
+     {
+      "stock_id": "3665",
+      "name": "貿聯-KY",
+      "weight": 1.71,
+      "shares": 440000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": 3.02,
+      "contrib": 0.052,
+      "is_new": false
+     },
+     {
+      "stock_id": "3017",
+      "name": "奇鋐",
+      "weight": 0.5,
+      "shares": 115000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -6.67,
+      "contrib": -0.033,
+      "is_new": false
+     }
+    ],
+    "dropped": [],
+    "rest_n": 0,
+    "rest_contrib": null,
+    "rest_weight": null,
+    "total_contrib": -1.76,
+    "covered_weight": 23.1,
+    "sum_weight": 23.1,
+    "n_holdings": 11
+   }
+  },
+  "00929": {
+   "date": "2026-07-28",
+   "src": "discovered/dom",
+   "holdings": [
+    {
+     "stock_id": "3034",
+     "name": "聯詠科技",
+     "shares": 4852110000,
+     "weight": 3.755
+    },
+    {
+     "stock_id": "2379",
+     "name": "瑞昱半導",
+     "shares": 4254420000,
+     "weight": 3.293
+    },
+    {
+     "stock_id": "2357",
+     "name": "華碩電腦",
+     "shares": 4232865000,
+     "weight": 3.276
+    },
+    {
+     "stock_id": "2347",
+     "name": "聯強國際",
+     "shares": 3966406000,
+     "weight": 3.07
+    },
+    {
+     "stock_id": "3045",
+     "name": "台灣大哥",
+     "shares": 3910542000,
+     "weight": 3.026
+    },
+    {
+     "stock_id": "2474",
+     "name": "可成科技",
+     "shares": 3785386500,
+     "weight": 2.93
+    },
+    {
+     "stock_id": "6409",
+     "name": "旭隼科技",
+     "shares": 3534930000,
+     "weight": 2.736
+    },
+    {
+     "stock_id": "3260",
+     "name": "威剛科技",
+     "shares": 3521736000,
+     "weight": 2.725
+    },
+    {
+     "stock_id": "2412",
+     "name": "中華電信",
+     "shares": 3508221000,
+     "weight": 2.715
+    },
+    {
+     "stock_id": "4904",
+     "name": "遠傳電信",
+     "shares": 3489308000,
+     "weight": 2.7
+    },
+    {
+     "stock_id": "2026",
+     "name": "",
+     "shares": null,
+     "weight": null
+    },
+    {
+     "stock_id": "2025",
+     "name": "",
+     "shares": null,
+     "weight": null
+    }
+   ],
+   "prev": {},
+   "prev_date": null,
+   "detail": {
+    "date": "2026-07-28",
+    "prev_date": null,
+    "src": "discovered/dom",
+    "rows": [
+     {
+      "stock_id": "3260",
+      "name": "威剛科技",
+      "weight": 2.725,
+      "shares": 3521736000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -8.21,
+      "contrib": -0.224,
+      "is_new": false
+     },
+     {
+      "stock_id": "6409",
+      "name": "旭隼科技",
+      "weight": 2.736,
+      "shares": 3534930000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -7.0,
+      "contrib": -0.192,
+      "is_new": false
+     },
+     {
+      "stock_id": "3034",
+      "name": "聯詠科技",
+      "weight": 3.755,
+      "shares": 4852110000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -4.92,
+      "contrib": -0.185,
+      "is_new": false
+     },
+     {
+      "stock_id": "2379",
+      "name": "瑞昱半導",
+      "weight": 3.293,
+      "shares": 4254420000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -4.07,
+      "contrib": -0.134,
+      "is_new": false
+     },
+     {
+      "stock_id": "2357",
+      "name": "華碩電腦",
+      "weight": 3.276,
+      "shares": 4232865000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -3.29,
+      "contrib": -0.108,
+      "is_new": false
+     },
+     {
+      "stock_id": "2347",
+      "name": "聯強國際",
+      "weight": 3.07,
+      "shares": 3966406000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -2.93,
+      "contrib": -0.09,
+      "is_new": false
+     },
+     {
+      "stock_id": "2474",
+      "name": "可成科技",
+      "weight": 2.93,
+      "shares": 3785386500,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -2.12,
+      "contrib": -0.062,
+      "is_new": false
+     },
+     {
+      "stock_id": "4904",
+      "name": "遠傳電信",
+      "weight": 2.7,
+      "shares": 3489308000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": -1.4,
+      "contrib": -0.038,
+      "is_new": false
+     },
+     {
+      "stock_id": "3045",
+      "name": "台灣大哥",
+      "weight": 3.026,
+      "shares": 3910542000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": 0.44,
+      "contrib": 0.013,
+      "is_new": false
+     },
+     {
+      "stock_id": "2412",
+      "name": "中華電信",
+      "weight": 2.715,
+      "shares": 3508221000,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": 0.36,
+      "contrib": 0.01,
+      "is_new": false
+     },
+     {
+      "stock_id": "2026",
+      "name": "2026",
+      "weight": null,
+      "shares": null,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": null,
+      "contrib": null,
+      "is_new": false
+     },
+     {
+      "stock_id": "2025",
+      "name": "千興",
+      "weight": null,
+      "shares": null,
+      "d_shares": null,
+      "d_weight": null,
+      "chg_pct": 0.0,
+      "contrib": null,
+      "is_new": false
+     }
+    ],
+    "dropped": [],
+    "rest_n": 0,
+    "rest_contrib": null,
+    "rest_weight": null,
+    "total_contrib": -1.01,
+    "covered_weight": 30.2,
+    "sum_weight": 30.2,
+    "n_holdings": 12
+   }
+  },
   "00981A": {
    "date": "2026-07-28",
    "src": "discovered/dom",
@@ -458,216 +895,8 @@
     "rest_weight": 30.09,
     "total_contrib": -6.86,
     "covered_weight": 90.5,
+    "sum_weight": 90.5,
     "n_holdings": 51
-   }
-  },
-  "00988A": {
-   "date": "2026-07-28",
-   "src": "discovered/dom",
-   "holdings": [
-    {
-     "stock_id": "3037",
-     "name": "欣興",
-     "shares": 2400000,
-     "weight": 3.67
-    },
-    {
-     "stock_id": "2383",
-     "name": "台光電",
-     "shares": 410000,
-     "weight": 3.56
-    },
-    {
-     "stock_id": "2330",
-     "name": "台積電",
-     "shares": 750000,
-     "weight": 3.18
-    },
-    {
-     "stock_id": "2454",
-     "name": "聯發科",
-     "shares": 445000,
-     "weight": 2.96
-    },
-    {
-     "stock_id": "2327",
-     "name": "國巨*",
-     "shares": 1800000,
-     "weight": 2.03
-    },
-    {
-     "stock_id": "3711",
-     "name": "日月光投控",
-     "shares": 1800000,
-     "weight": 1.98
-    },
-    {
-     "stock_id": "6223",
-     "name": "旺矽",
-     "shares": 190000,
-     "weight": 1.96
-    },
-    {
-     "stock_id": "3665",
-     "name": "貿聯-KY",
-     "shares": 440000,
-     "weight": 1.71
-    },
-    {
-     "stock_id": "2308",
-     "name": "台達電",
-     "shares": 320000,
-     "weight": 1.01
-    },
-    {
-     "stock_id": "2303",
-     "name": "聯電",
-     "shares": 2500000,
-     "weight": 0.57
-    },
-    {
-     "stock_id": "3017",
-     "name": "奇鋐",
-     "shares": 115000,
-     "weight": 0.5
-    }
-   ],
-   "prev": {},
-   "prev_date": null,
-   "detail": {
-    "date": "2026-07-28",
-    "prev_date": null,
-    "src": "discovered/dom",
-    "rows": [
-     {
-      "stock_id": "3037",
-      "name": "欣興",
-      "weight": 3.67,
-      "shares": 2400000,
-      "d_shares": null,
-      "d_weight": null,
-      "chg_pct": -9.91,
-      "contrib": -0.364,
-      "is_new": false
-     },
-     {
-      "stock_id": "2383",
-      "name": "台光電",
-      "weight": 3.56,
-      "shares": 410000,
-      "d_shares": null,
-      "d_weight": null,
-      "chg_pct": -8.41,
-      "contrib": -0.299,
-      "is_new": false
-     },
-     {
-      "stock_id": "2454",
-      "name": "聯發科",
-      "weight": 2.96,
-      "shares": 445000,
-      "d_shares": null,
-      "d_weight": null,
-      "chg_pct": -9.92,
-      "contrib": -0.294,
-      "is_new": false
-     },
-     {
-      "stock_id": "2327",
-      "name": "國巨*",
-      "weight": 2.03,
-      "shares": 1800000,
-      "d_shares": null,
-      "d_weight": null,
-      "chg_pct": -9.92,
-      "contrib": -0.201,
-      "is_new": false
-     },
-     {
-      "stock_id": "6223",
-      "name": "旺矽",
-      "weight": 1.96,
-      "shares": 190000,
-      "d_shares": null,
-      "d_weight": null,
-      "chg_pct": -9.7,
-      "contrib": -0.19,
-      "is_new": false
-     },
-     {
-      "stock_id": "3711",
-      "name": "日月光投控",
-      "weight": 1.98,
-      "shares": 1800000,
-      "d_shares": null,
-      "d_weight": null,
-      "chg_pct": -8.88,
-      "contrib": -0.176,
-      "is_new": false
-     },
-     {
-      "stock_id": "2308",
-      "name": "台達電",
-      "weight": 1.01,
-      "shares": 320000,
-      "d_shares": null,
-      "d_weight": null,
-      "chg_pct": -9.97,
-      "contrib": -0.101,
-      "is_new": false
-     },
-     {
-      "stock_id": "2330",
-      "name": "台積電",
-      "weight": 3.18,
-      "shares": 750000,
-      "d_shares": null,
-      "d_weight": null,
-      "chg_pct": -2.98,
-      "contrib": -0.095,
-      "is_new": false
-     },
-     {
-      "stock_id": "2303",
-      "name": "聯電",
-      "weight": 0.57,
-      "shares": 2500000,
-      "d_shares": null,
-      "d_weight": null,
-      "chg_pct": -9.92,
-      "contrib": -0.057,
-      "is_new": false
-     },
-     {
-      "stock_id": "3665",
-      "name": "貿聯-KY",
-      "weight": 1.71,
-      "shares": 440000,
-      "d_shares": null,
-      "d_weight": null,
-      "chg_pct": 3.02,
-      "contrib": 0.052,
-      "is_new": false
-     },
-     {
-      "stock_id": "3017",
-      "name": "奇鋐",
-      "weight": 0.5,
-      "shares": 115000,
-      "d_shares": null,
-      "d_weight": null,
-      "chg_pct": -6.67,
-      "contrib": -0.033,
-      "is_new": false
-     }
-    ],
-    "dropped": [],
-    "rest_n": 0,
-    "rest_contrib": null,
-    "rest_weight": null,
-    "total_contrib": -1.76,
-    "covered_weight": 23.1,
-    "n_holdings": 11
    }
   },
   "00403A": {
@@ -1121,30 +1350,30 @@
     "rest_weight": 26.5,
     "total_contrib": -6.17,
     "covered_weight": 82.5,
+    "sum_weight": 82.5,
     "n_holdings": 50
    }
   }
  },
  "diag": {
-  "00980A": "[野村PCF] XHR 1 筆回應、DOM 皆無可解析的持股列；[野村PCF] 攔截網址(1)：https://www.nomurafunds.com.tw/ETF/PCF/00980A；[證交所ETFortune] XHR 5 筆回應、DOM 皆無可解析的持股列；[證交所ETFortune] 攔截網址(4)：https://www.twse.com.tw/zh/ETFortune/etfInfo/00980A , https://stats.g.doubleclick.net/g/collect , https://www.twse.com.tw/zh/ETFortune/ajaxPerformance , https://www.twse.com.tw/zh/ETFortune/ajaxEtfInfoChart；[自尋] https://www.nomurafunds.com.tw/ETF → 找到 0 個含 00980A 的連結：",
-  "00982A": "[群益PCF] XHR 最佳 5 檔 ← https://www.capitalfund.com.tw/CFWeb/api/home/detail｜未過：僅 5 檔（門檻 10）｜樣本：1138(w=None,s=None) ; 1137(w=None,s=None) ; 1136(w=None,s=None) ; 1135(w=None,s=None)；[群益PCF] 攔截網址(16)：https://stats.g.doubleclick.net/g/collect , https://www.google-analytics.com/j/collect , https://www.capitalfund.com.tw/ETF/PCF/00982A , https://googleads.g.doubleclick.net/pagead/viewthroughconversion/10977460156/ , https://googleads.g.doubleclick.net/pagead/viewthroughconversion/11318067184/ , https://s.yimg.com/wi/config/10157278.json , https://googleads.g.doubleclick.net/pagead/viewthroughconversi",
-  "00984A": "[安聯PCF] XHR 最佳 2 檔 ← https://etf.allianzgi.com.tw/webapi/api/Home/GetUnit｜未過：僅 2 檔（門檻 10）｜樣本：1010變更ETF配息帳號(w=None,s=None) ; 1011申請ETF電子帳單(w=None,s=None)；[安聯PCF] 攔截網址(15)：https://etf.allianzgi.com.tw/api/pcf/00984A , https://etf.allianzgi.com.tw/webapi/api/homee/FrontendPublic , https://etf.allianzgi.com.tw/webapi/api/AntiForgery/GetAntiForgeryToken , https://ipapi.co/json/ , https://etf.allianzgi.com.tw/webapi/api/Home/GetUnit , https://etf.allianzgi.com.tw/webapi/api/Home/GetFooterContent , https://etf.allianzgi.com.tw/webapi/api/Article/GetArticleByUnit , https://etf.allianzgi.com.tw/webapi/",
+  "00980A": "[野村PCF] 導頁失敗 Error: Page.goto: net::ERR_SSL_PROTOCOL_ERROR at https://www.nomurafunds.com.tw/ETF/PCF/00980A\nCa；[證交所ETFortune] XHR 5 筆回應、DOM 皆無可解析的持股列；[證交所ETFortune] 攔截網址(4)：https://www.twse.com.tw/zh/ETFortune/etfInfo/00980A , https://stats.g.doubleclick.net/g/collect , https://www.twse.com.tw/zh/ETFortune/ajaxPerformance , https://www.twse.com.tw/zh/ETFortune/ajaxEtfInfoChart；[自尋] https://www.nomurafunds.com.tw/ETF → 找到 0 個含 00980A 的連結：",
+  "00982A": "[群益PCF] XHR 最佳 5 檔 ← https://www.capitalfund.com.tw/CFWeb/api/home/detail｜未過：僅 5 檔（門檻 10）｜樣本：1138(w=None,s=None) ; 1137(w=None,s=None) ; 1136(w=None,s=None) ; 1135(w=None,s=None)；[群益PCF] 攔截網址(16)：https://www.capitalfund.com.tw/ETF/PCF/00982A , https://www.google-analytics.com/j/collect , https://stats.g.doubleclick.net/g/collect , https://googleads.g.doubleclick.net/pagead/viewthroughconversion/10977460156/ , https://googleads.g.doubleclick.net/pagead/viewthroughconversion/11318067184/ , https://s.yimg.com/wi/config/10157278.json , https://googleads.g.doubleclick.net/pagead/viewthroughconversi",
+  "00984A": "[安聯PCF] XHR 最佳 2 檔 ← https://etf.allianzgi.com.tw/webapi/api/Home/GetUnit｜未過：僅 2 檔（門檻 10）｜樣本：1010變更ETF配息帳號(w=None,s=None) ; 1011申請ETF電子帳單(w=None,s=None)；[安聯PCF] 攔截網址(15)：https://etf.allianzgi.com.tw/api/pcf/00984A , https://etf.allianzgi.com.tw/webapi/api/homee/FrontendPublic , https://etf.allianzgi.com.tw/webapi/api/AntiForgery/GetAntiForgeryToken , https://ipapi.co/json/ , https://etf.allianzgi.com.tw/webapi/api/Home/GetFooterContent , https://etf.allianzgi.com.tw/webapi/api/Home/GetUnit , https://etf.allianzgi.com.tw/webapi/api/Home/GetHeaderCommunity , https://etf.allianzgi.com.tw/webapi/a",
   "00985A": "[野村PCF] 導頁失敗 Error: Page.goto: net::ERR_SSL_PROTOCOL_ERROR at https://www.nomurafunds.com.tw/ETF/PCF/00985A\nCa；[證交所ETFortune] XHR 5 筆回應、DOM 皆無可解析的持股列；[證交所ETFortune] 攔截網址(4)：https://www.twse.com.tw/zh/ETFortune/etfInfo/00985A , https://stats.g.doubleclick.net/g/collect , https://www.twse.com.tw/zh/ETFortune/ajaxPerformance , https://www.twse.com.tw/zh/ETFortune/ajaxEtfInfoChart；[自尋] https://www.nomurafunds.com.tw/ETF → 找到 0 個含 00985A 的連結：",
-  "00991A": "[復華PCF] XHR 最佳 30 檔 ← https://www.fhtrust.com.tw/api/warning｜未過：30 檔中僅 0 檔帶權重／股數（過半才算持股清單）｜樣本：1002(w=None,s=None) ; 1003(w=None,s=None) ; 1004(w=None,s=None) ; 1005(w=None,s=None)；[復華PCF] 攔截網址(4)：https://www.fhtrust.com.tw/ETF/PCF/00991A , https://www.fhtrust.com.tw/_template/404.html , https://www.fhtrust.com.tw/api/RouteMap , https://www.fhtrust.com.tw/api/warning；[復華ETF頁] XHR 最佳 30 檔 ← https://www.fhtrust.com.tw/api/warning｜未過：30 檔中僅 0 檔帶權重／股數（過半才算持股清單）｜樣本：1002(w=None,s=None) ; 1003(w=None,s=None) ; 1004(w=None,s=None) ; 1005(w=None,s=None)；[復華ETF頁] 攔截網址(4)：https://www.fhtrust.com.tw/etf/00",
-  "00992A": "[群益PCF] XHR 最佳 5 檔 ← https://www.capitalfund.com.tw/CFWeb/api/home/detail｜未過：僅 5 檔（門檻 10）｜樣本：1138(w=None,s=None) ; 1137(w=None,s=None) ; 1136(w=None,s=None) ; 1135(w=None,s=None)；[群益PCF] 攔截網址(16)：https://www.capitalfund.com.tw/ETF/PCF/00992A , https://www.google-analytics.com/j/collect , https://stats.g.doubleclick.net/g/collect , https://s.yimg.com/wi/config/10157278.json , https://googleads.g.doubleclick.net/pagead/viewthroughconversion/324987920/ , https://googleads.g.doubleclick.net/pagead/viewthroughconversion/10977460156/ , https://googleads.g.doubleclick.net/pagead/viewthroughconversion",
+  "00991A": "[復華PCF] XHR 最佳 95 檔 ← https://www.fhtrust.com.tw/api/fundList｜未過：95 檔中僅 0 檔帶權重／股數（過半才算持股清單）｜樣本：1005復華恒生單日正向二倍基金(w=None,s=None) ; 1040復華恒生單日反向一倍基金(w=None,s=None) ; 1009復華富時不動產證券化基金(w=None,s=None) ; 1013復華富時台灣高股息低波動基金(w=None,s=None)；[復華PCF] 攔截網址(5)：https://www.fhtrust.com.tw/ETF/PCF/00991A , https://www.fhtrust.com.tw/_template/404.html , https://www.fhtrust.com.tw/api/RouteMap , https://www.fhtrust.com.tw/api/warning , https://www.fhtrust.com.tw/api/fundList；[復華ETF頁] XHR 最佳 95 檔 ← https://www.fhtrust.com.tw/api/fundList｜未過：95 檔中僅 0 檔帶權重／股數（過半才算持股清單）｜樣本：1005復華恒生單日正向二倍基金(w=None,s=None) ; 1040復華恒生",
+  "00992A": "[群益PCF] XHR 最佳 5 檔 ← https://www.capitalfund.com.tw/CFWeb/api/home/detail｜未過：僅 5 檔（門檻 10）｜樣本：1138(w=None,s=None) ; 1137(w=None,s=None) ; 1136(w=None,s=None) ; 1135(w=None,s=None)；[群益PCF] 攔截網址(16)：https://www.google-analytics.com/j/collect , https://stats.g.doubleclick.net/g/collect , https://googleads.g.doubleclick.net/pagead/viewthroughconversion/10977460156/ , https://www.capitalfund.com.tw/ETF/PCF/00992A , https://googleads.g.doubleclick.net/pagead/viewthroughconversion/11318067184/ , https://s.yimg.com/wi/config/10157278.json , https://googleads.g.doubleclick.net/pagead/viewthroughconversi",
   "00987A": "[台新PCF] XHR 1 筆回應、DOM 皆無可解析的持股列；[台新PCF] 攔截網址(1)：https://www.tsit.com.tw/ETF/PCF/00987A；[證交所ETFortune] XHR 5 筆回應、DOM 皆無可解析的持股列；[證交所ETFortune] 攔截網址(4)：https://www.twse.com.tw/zh/ETFortune/etfInfo/00987A , https://stats.g.doubleclick.net/g/collect , https://www.twse.com.tw/zh/ETFortune/ajaxPerformance , https://www.twse.com.tw/zh/ETFortune/ajaxEtfInfoChart；[自尋] https://www.tsit.com.tw/ETF → 找到 0 個含 00987A 的連結：",
   "00994A": "[第一金PCF] XHR 1 筆回應、DOM 皆無可解析的持股列；[第一金PCF] 攔截網址(1)：https://www.fsitc.com.tw/ETF/PCF/00994A；[證交所ETFortune] XHR 5 筆回應、DOM 皆無可解析的持股列；[證交所ETFortune] 攔截網址(4)：https://www.twse.com.tw/zh/ETFortune/etfInfo/00994A , https://stats.g.doubleclick.net/g/collect , https://www.twse.com.tw/zh/ETFortune/ajaxPerformance , https://www.twse.com.tw/zh/ETFortune/ajaxEtfInfoChart；[自尋] https://www.fsitc.com.tw/ETF → 找到 0 個含 00994A 的連結：",
-  "00995A": "[中信PCF] XHR 6 筆回應、DOM 皆無可解析的持股列；[中信PCF] 攔截網址(6)：https://www.ctbcinvestments.com.tw/ETF/PCF/00995A , https://www.ctbcinvestments.com.tw/API/home/AuthToken , https://www.ctbcinvestments.com.tw/API/home/SEOSetting , https://www.ctbcinvestments.com.tw/API/home/OptionList , https://www.ctbcinvestments.com.tw/API/home/Announce , https://www.ctbcinvestments.com.tw/API/home/DefineValue；[證交所ETFortune] XHR 5 筆回應、DOM 皆無可解析的持股列；[證交所ETFortune] 攔截網址(4)：https://www.twse.com.tw/zh/ETFortune/etfInfo/00995A , https://stats.g.doubleclick.net/g/collect , https://www.twse.com.tw/zh/ETFortune/ajaxPerformance , http",
-  "00993A": "[安聯PCF] XHR 最佳 2 檔 ← https://etf.allianzgi.com.tw/webapi/api/Home/GetUnit｜未過：僅 2 檔（門檻 10）｜樣本：1010變更ETF配息帳號(w=None,s=None) ; 1011申請ETF電子帳單(w=None,s=None)；[安聯PCF] 攔截網址(15)：https://etf.allianzgi.com.tw/api/pcf/00993A , https://etf.allianzgi.com.tw/webapi/api/homee/FrontendPublic , https://etf.allianzgi.com.tw/webapi/api/AntiForgery/GetAntiForgeryToken , https://ipapi.co/json/ , https://etf.allianzgi.com.tw/webapi/api/Home/GetUnit , https://etf.allianzgi.com.tw/webapi/api/Home/GetFooterContent , https://etf.allianzgi.com.tw/webapi/api/Home/GetHeaderCommunity , https://etf.allianzgi.com.tw/webapi/a",
-  "00990A": "[元大PCF] XHR 13 筆回應、DOM 皆無可解析的持股列；[元大PCF] 攔截網址(6)：https://stats.g.doubleclick.net/g/collect , https://www.yuantaetfs.com/tradeInfo/pcf/00990A , https://www.yuantaetfs.com/locales/zh-tw.json5 , https://www.google-analytics.com/j/collect , https://etfapi.yuantaetfs.com/ectranslation/api/trans , https://etfapi.yuantaetfs.com/ectranslation/api/bridge；[元大PCF-api] XHR 最佳 6 檔 ← https://etfapi.yuantaetfs.com/ectranslation/api/trans?APIType=ETFBackstage&CompanyName=YUANTAFUNDS&PageName=%2F&DeviceId=11c14fba-e81d-48f5-b835-6199b｜未過：僅 6 檔（門檻 10）｜樣本：0061(w=0.04,s=None) ; 0055(w=-1.27,s=None) ; 0056(w=-2.7,",
+  "00995A": "[中信PCF] XHR 6 筆回應、DOM 皆無可解析的持股列；[中信PCF] 攔截網址(6)：https://www.ctbcinvestments.com.tw/ETF/PCF/00995A , https://www.ctbcinvestments.com.tw/API/home/AuthToken , https://www.ctbcinvestments.com.tw/API/home/Announce , https://www.ctbcinvestments.com.tw/API/home/OptionList , https://www.ctbcinvestments.com.tw/API/home/SEOSetting , https://www.ctbcinvestments.com.tw/API/home/DefineValue；[證交所ETFortune] XHR 5 筆回應、DOM 皆無可解析的持股列；[證交所ETFortune] 攔截網址(4)：https://www.twse.com.tw/zh/ETFortune/etfInfo/00995A , https://stats.g.doubleclick.net/g/collect , https://www.twse.com.tw/zh/ETFortune/ajaxPerformance , http",
+  "00993A": "[安聯PCF] XHR 最佳 2 檔 ← https://etf.allianzgi.com.tw/webapi/api/Home/GetUnit｜未過：僅 2 檔（門檻 10）｜樣本：1010變更ETF配息帳號(w=None,s=None) ; 1011申請ETF電子帳單(w=None,s=None)；[安聯PCF] 攔截網址(15)：https://etf.allianzgi.com.tw/api/pcf/00993A , https://etf.allianzgi.com.tw/webapi/api/homee/FrontendPublic , https://etf.allianzgi.com.tw/webapi/api/AntiForgery/GetAntiForgeryToken , https://ipapi.co/json/ , https://etf.allianzgi.com.tw/webapi/api/Home/GetUnit , https://etf.allianzgi.com.tw/webapi/api/Article/GetArticleByUnit , https://etf.allianzgi.com.tw/webapi/api/Home/GetFooterContent , https://etf.allianzgi.com.tw/webapi/",
+  "00990A": "[元大PCF] XHR 13 筆回應、DOM 皆無可解析的持股列；[元大PCF] 攔截網址(6)：https://www.yuantaetfs.com/tradeInfo/pcf/00990A , https://stats.g.doubleclick.net/g/collect , https://www.yuantaetfs.com/locales/zh-tw.json5 , https://www.google-analytics.com/j/collect , https://etfapi.yuantaetfs.com/ectranslation/api/trans , https://etfapi.yuantaetfs.com/ectranslation/api/bridge；[元大PCF-api] XHR 最佳 6 檔 ← https://etfapi.yuantaetfs.com/ectranslation/api/trans?APIType=ETFBackstage&CompanyName=YUANTAFUNDS&PageName=%2F&DeviceId=1712e958-650f-449b-a314-b2929｜未過：僅 6 檔（門檻 10）｜樣本：0061(w=0.85,s=None) ; 0055(w=-0.92,s=None) ; 0056(w=-2.37",
   "00407A": "[凱基PCF] 導頁失敗 Error: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://www.kgifsitc.com.tw/ETF/PCF/00407A\nCall l；[證交所ETFortune] XHR 5 筆回應、DOM 皆無可解析的持股列；[證交所ETFortune] 攔截網址(4)：https://www.twse.com.tw/zh/ETFortune/etfInfo/00407A , https://stats.g.doubleclick.net/g/collect , https://www.twse.com.tw/zh/ETFortune/ajaxPerformance , https://www.twse.com.tw/zh/ETFortune/ajaxEtfInfoChart；[自尋] https://www.kgifsitc.com.tw/ETF → 找到 0 個含 00407A 的連結：",
-  "00998A": "[復華PCF] XHR 最佳 30 檔 ← https://www.fhtrust.com.tw/api/warning｜未過：30 檔中僅 0 檔帶權重／股數（過半才算持股清單）｜樣本：1002(w=None,s=None) ; 1003(w=None,s=None) ; 1004(w=None,s=None) ; 1005(w=None,s=None)；[復華PCF] 攔截網址(4)：https://www.fhtrust.com.tw/ETF/PCF/00998A , https://www.fhtrust.com.tw/_template/404.html , https://www.fhtrust.com.tw/api/RouteMap , https://www.fhtrust.com.tw/api/warning；[復華ETF頁] XHR 最佳 30 檔 ← https://www.fhtrust.com.tw/api/warning｜未過：30 檔中僅 0 檔帶權重／股數（過半才算持股清單）｜樣本：1002(w=None,s=None) ; 1003(w=None,s=None) ; 1004(w=None,s=None) ; 1005(w=None,s=None)；[復華ETF頁] 攔截網址(4)：https://www.fhtrust.com.tw/etf/00",
-  "00986D": "[復華PCF] XHR 最佳 30 檔 ← https://www.fhtrust.com.tw/api/warning｜未過：30 檔中僅 0 檔帶權重／股數（過半才算持股清單）｜樣本：1002(w=None,s=None) ; 1003(w=None,s=None) ; 1004(w=None,s=None) ; 1005(w=None,s=None)；[復華PCF] 攔截網址(4)：https://www.fhtrust.com.tw/ETF/PCF/00986D , https://www.fhtrust.com.tw/_template/404.html , https://www.fhtrust.com.tw/api/RouteMap , https://www.fhtrust.com.tw/api/warning；[復華ETF頁] XHR 最佳 30 檔 ← https://www.fhtrust.com.tw/api/warning｜未過：30 檔中僅 0 檔帶權重／股數（過半才算持股清單）｜樣本：1002(w=None,s=None) ; 1003(w=None,s=None) ; 1004(w=None,s=None) ; 1005(w=None,s=None)；[復華ETF頁] 攔截網址(4)：https://www.fhtrust.com.tw/etf/00",
-  "0056": "[元大PCF] XHR 13 筆回應、DOM 皆無可解析的持股列；[元大PCF] 攔截網址(6)：https://www.yuantaetfs.com/tradeInfo/pcf/0056 , https://stats.g.doubleclick.net/g/collect , https://www.yuantaetfs.com/locales/zh-tw.json5 , https://www.google-analytics.com/j/collect , https://etfapi.yuantaetfs.com/ectranslation/api/trans , https://etfapi.yuantaetfs.com/ectranslation/api/bridge；[元大PCF-api] XHR 最佳 6 檔 ← https://etfapi.yuantaetfs.com/ectranslation/api/trans?APIType=ETFBackstage&CompanyName=YUANTAFUNDS&PageName=%2F&DeviceId=28e96b75-ec57-433d-a95d-444be｜未過：僅 6 檔（門檻 10）｜樣本：0061(w=0.04,s=None) ; 0055(w=-0.92,s=None) ; 0056(w=-2.37,s",
+  "00998A": "[復華PCF] XHR 最佳 95 檔 ← https://www.fhtrust.com.tw/api/fundList｜未過：95 檔中僅 0 檔帶權重／股數（過半才算持股清單）｜樣本：1005復華恒生單日正向二倍基金(w=None,s=None) ; 1040復華恒生單日反向一倍基金(w=None,s=None) ; 1009復華富時不動產證券化基金(w=None,s=None) ; 1013復華富時台灣高股息低波動基金(w=None,s=None)；[復華PCF] 攔截網址(5)：https://www.fhtrust.com.tw/ETF/PCF/00998A , https://www.fhtrust.com.tw/_template/404.html , https://www.fhtrust.com.tw/api/RouteMap , https://www.fhtrust.com.tw/api/warning , https://www.fhtrust.com.tw/api/fundList；[復華ETF頁] XHR 最佳 95 檔 ← https://www.fhtrust.com.tw/api/fundList｜未過：95 檔中僅 0 檔帶權重／股數（過半才算持股清單）｜樣本：1005復華恒生單日正向二倍基金(w=None,s=None) ; 1040復華恒生",
+  "00986D": "[復華PCF] XHR 最佳 95 檔 ← https://www.fhtrust.com.tw/api/fundList｜未過：95 檔中僅 0 檔帶權重／股數（過半才算持股清單）｜樣本：1005復華恒生單日正向二倍基金(w=None,s=None) ; 1040復華恒生單日反向一倍基金(w=None,s=None) ; 1009復華富時不動產證券化基金(w=None,s=None) ; 1013復華富時台灣高股息低波動基金(w=None,s=None)；[復華PCF] 攔截網址(5)：https://www.fhtrust.com.tw/ETF/PCF/00986D , https://www.fhtrust.com.tw/_template/404.html , https://www.fhtrust.com.tw/api/RouteMap , https://www.fhtrust.com.tw/api/warning , https://www.fhtrust.com.tw/api/fundList；[復華ETF頁] XHR 最佳 95 檔 ← https://www.fhtrust.com.tw/api/fundList｜未過：95 檔中僅 0 檔帶權重／股數（過半才算持股清單）｜樣本：1005復華恒生單日正向二倍基金(w=None,s=None) ; 1040復華恒生",
+  "0056": "[元大PCF] XHR 13 筆回應、DOM 皆無可解析的持股列；[元大PCF] 攔截網址(6)：https://www.yuantaetfs.com/tradeInfo/pcf/0056 , https://stats.g.doubleclick.net/g/collect , https://www.yuantaetfs.com/locales/zh-tw.json5 , https://www.google-analytics.com/j/collect , https://etfapi.yuantaetfs.com/ectranslation/api/trans , https://etfapi.yuantaetfs.com/ectranslation/api/bridge；[元大PCF-api] XHR 最佳 6 檔 ← https://etfapi.yuantaetfs.com/ectranslation/api/trans?APIType=ETFBackstage&CompanyName=YUANTAFUNDS&PageName=%2F&DeviceId=9e27854d-fb68-44b0-a073-87b49｜未過：僅 6 檔（門檻 10）｜樣本：0061(w=0.85,s=None) ; 0055(w=-0.92,s=None) ; 0056(w=-2.37,s",
   "00878": "[國泰PCF] XHR 1 筆回應、DOM 皆無可解析的持股列；[國泰PCF] 攔截網址(1)：https://www.cathaysite.com.tw/ETF/purchase；[證交所ETFortune] XHR 5 筆回應、DOM 皆無可解析的持股列；[證交所ETFortune] 攔截網址(4)：https://www.twse.com.tw/zh/ETFortune/etfInfo/00878 , https://stats.g.doubleclick.net/g/collect , https://www.twse.com.tw/zh/ETFortune/ajaxPerformance , https://www.twse.com.tw/zh/ETFortune/ajaxEtfInfoChart；[自尋] https://www.cathaysite.com.tw/ETF → 找到 0 個含 00878 的連結：",
-  "00919": "[群益PCF] XHR 最佳 5 檔 ← https://www.capitalfund.com.tw/CFWeb/api/home/detail｜未過：僅 5 檔（門檻 10）｜樣本：1138(w=None,s=None) ; 1137(w=None,s=None) ; 1136(w=None,s=None) ; 1135(w=None,s=None)；[群益PCF] 攔截網址(16)：https://stats.g.doubleclick.net/g/collect , https://www.google-analytics.com/j/collect , https://www.capitalfund.com.tw/ETF/PCF/00919 , https://googleads.g.doubleclick.net/pagead/viewthroughconversion/10977460156/ , https://googleads.g.doubleclick.net/pagead/viewthroughconversion/11318067184/ , https://googleads.g.doubleclick.net/pagead/viewthroughconversion/324987920/ , https://s.yimg.com/wi/config/1",
-  "00929": "[復華PCF] XHR 最佳 30 檔 ← https://www.fhtrust.com.tw/api/warning｜未過：30 檔中僅 0 檔帶權重／股數（過半才算持股清單）｜樣本：1002(w=None,s=None) ; 1003(w=None,s=None) ; 1004(w=None,s=None) ; 1005(w=None,s=None)；[復華PCF] 攔截網址(4)：https://www.fhtrust.com.tw/ETF/PCF/00929 , https://www.fhtrust.com.tw/_template/404.html , https://www.fhtrust.com.tw/api/RouteMap , https://www.fhtrust.com.tw/api/warning；[復華ETF頁] XHR 最佳 30 檔 ← https://www.fhtrust.com.tw/api/warning｜未過：30 檔中僅 0 檔帶權重／股數（過半才算持股清單）｜樣本：1002(w=None,s=None) ; 1003(w=None,s=None) ; 1004(w=None,s=None) ; 1005(w=None,s=None)；[復華ETF頁] 攔截網址(4)：https://www.fhtrust.com.tw/etf/009",
-  "0050": "[元大PCF] XHR 13 筆回應、DOM 皆無可解析的持股列；[元大PCF] 攔截網址(6)：https://www.yuantaetfs.com/tradeInfo/pcf/0050 , https://stats.g.doubleclick.net/g/collect , https://www.yuantaetfs.com/locales/zh-tw.json5 , https://www.google-analytics.com/j/collect , https://etfapi.yuantaetfs.com/ectranslation/api/trans , https://etfapi.yuantaetfs.com/ectranslation/api/bridge；[元大PCF-api] XHR 最佳 6 檔 ← https://etfapi.yuantaetfs.com/ectranslation/api/trans?APIType=ETFBackstage&CompanyName=YUANTAFUNDS&PageName=%2F&DeviceId=aee8ed4e-a83b-42be-8cd6-9d50e｜未過：僅 6 檔（門檻 10）｜樣本：0061(w=0.04,s=None) ; 0055(w=-0.92,s=None) ; 0056(w=-2.37,s",
-  "006208": "[富邦PCF] XHR 3 筆回應、DOM 皆無可解析的持股列；[富邦PCF] 攔截網址(3)：https://stats.g.doubleclick.net/g/collect , https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx , https://etrade.fsit.com.tw/asset-management/Json/GetComMadiaData；[證交所ETFortune] XHR 5 筆回應、DOM 皆無可解析的持股列；[證交所ETFortune] 攔截網址(4)：https://www.twse.com.tw/zh/ETFortune/etfInfo/006208 , https://stats.g.doubleclick.net/g/collect , https://www.twse.com.tw/zh/ETFortune/ajaxPerformance , https://www.twse.com.tw/zh/ETFortune/ajaxEtfInfoChart；[自尋] https://websys.fsit.com.tw/FubonETF/ → 找到 2 個含 006208 的連結：https://www.fubon.com/asset-management/ph/Taiwan50_006208/"
+  "00919": "[群益PCF] XHR 最佳 5 檔 ← https://www.capitalfund.com.tw/CFWeb/api/home/detail｜未過：僅 5 檔（門檻 10）｜樣本：1138(w=None,s=None) ; 1137(w=None,s=None) ; 1136(w=None,s=None) ; 1135(w=None,s=None)；[群益PCF] 攔截網址(16)：https://www.capitalfund.com.tw/ETF/PCF/00919 , https://www.google-analytics.com/j/collect , https://stats.g.doubleclick.net/g/collect , https://s.yimg.com/wi/config/10157278.json , https://googleads.g.doubleclick.net/pagead/viewthroughconversion/10977460156/ , https://googleads.g.doubleclick.net/pagead/viewthroughconversion/324987920/ , https://googleads.g.doubleclick.net/pagead/viewthroughconversion/",
+  "0050": "[元大PCF] XHR 13 筆回應、DOM 皆無可解析的持股列；[元大PCF] 攔截網址(6)：https://www.yuantaetfs.com/tradeInfo/pcf/0050 , https://stats.g.doubleclick.net/g/collect , https://www.yuantaetfs.com/locales/zh-tw.json5 , https://www.google-analytics.com/j/collect , https://etfapi.yuantaetfs.com/ectranslation/api/trans , https://etfapi.yuantaetfs.com/ectranslation/api/bridge；[元大PCF-api] XHR 最佳 6 檔 ← https://etfapi.yuantaetfs.com/ectranslation/api/trans?APIType=ETFBackstage&CompanyName=YUANTAFUNDS&PageName=%2F&DeviceId=c08a0643-96ca-4f05-b8c8-793f8｜未過：僅 6 檔（門檻 10）｜樣本：0061(w=0.85,s=None) ; 0055(w=-0.92,s=None) ; 0056(w=-2.37,s",
+  "006208": "[富邦PCF] XHR 3 筆回應、DOM 皆無可解析的持股列；[富邦PCF] 攔截網址(3)：https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx , https://stats.g.doubleclick.net/g/collect , https://etrade.fsit.com.tw/asset-management/Json/GetComMadiaData；[證交所ETFortune] XHR 5 筆回應、DOM 皆無可解析的持股列；[證交所ETFortune] 攔截網址(4)：https://www.twse.com.tw/zh/ETFortune/etfInfo/006208 , https://stats.g.doubleclick.net/g/collect , https://www.twse.com.tw/zh/ETFortune/ajaxPerformance , https://www.twse.com.tw/zh/ETFortune/ajaxEtfInfoChart；[自尋] https://websys.fsit.com.tw/FubonETF/ → 找到 2 個含 006208 的連結：https://www.fubon.com/asset-management/ph/Taiwan50_006208/"
  }
 }
