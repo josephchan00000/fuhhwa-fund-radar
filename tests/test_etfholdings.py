@@ -571,8 +571,8 @@ def test_cross_check_does_not_compare_shares():
 
 def test_dashboard_renders_verify_badges():
     d = eh.contributions(eh.merge_one(DAY1, DAY2), QUOTES)
-    ok = dict(d, verify={"status": "match", "other": "moneydj", "top_hit": 9,
-                         "top_n": 10, "max_dw": 0.3})
+    ok = dict(d, verify={"status": "match", "weights_compared": True, "other": "moneydj",
+                         "top_hit": 9, "top_n": 10, "max_dw": 0.3})
     assert "🟢 雙源相符" in fd._holdings_detail("X", ok)
     bad = dict(d, verify={"status": "mismatch", "other": "moneydj", "top_hit": 3,
                           "top_n": 10, "max_dw": 4.2})
@@ -600,3 +600,33 @@ def test_row_from_mapping_strips_market_suffix():
     r2 = pcf._row_from_mapping({"symbol": "6488.TWO", "name": "環球晶",
                                 "shares": 100, "weight": 1.0})
     assert r2 and r2["stock_id"] == "6488"
+
+
+# ── 構成驗證模式（Yahoo 月度基準 vs etfinfo 每日快照——跨基準日不比權重） ──
+
+def test_cross_check_composition_only_ignores_weight_gap():
+    """weights=False：權重差再大（月度 vs 每日的時點差）只記錄不判失敗，構成重合即 match。
+    首輪實測 19/21 檔因 1.2–4.2pp 權重差被誤判 mismatch——那全是基準日不同，非資料錯誤。"""
+    pri = _src_rows()
+    sec = [dict(r, weight=round((r["weight"] or 0) + 4.0, 2)) for r in pri]   # 差 4pp
+    v = eh.cross_check(pri, sec, weights=False)
+    assert v["status"] == "match" and v["weights_compared"] is False
+    assert v["max_dw"] == 4.0                              # 仍記錄供 tooltip 參考
+
+
+def test_cross_check_composition_still_fails_on_low_overlap():
+    """構成重合過低仍不算 match（上層轉 weak——副源過舊、未能驗證，非紅色警報）。"""
+    v = eh.cross_check(_src_rows(prefix="23"), _src_rows(prefix="45"), weights=False)
+    assert v["status"] == "mismatch"
+
+
+def test_dashboard_composition_and_weak_badges():
+    d = eh.contributions(eh.merge_one(DAY1, DAY2), QUOTES)
+    comp = dict(d, verify={"status": "match", "weights_compared": False, "other": "yahoo",
+                           "top_hit": 9, "top_n": 10, "max_dw": 3.8})
+    html = fd._holdings_detail("X", comp)
+    assert "🟢 構成相符" in html and "月度基準" in html      # 不冒稱權重也相符
+    assert "雙源相符" not in html
+    weak = dict(d, verify={"status": "weak", "other": "yahoo", "top_hit": 3, "top_n": 10})
+    html2 = fd._holdings_detail("X", weak)
+    assert "副源過舊・未能驗證" in html2 and "非主來源錯誤" in html2
