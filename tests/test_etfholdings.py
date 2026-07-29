@@ -673,3 +673,16 @@ def test_foreign_delta_and_render_without_tw_quotes():
     assert by["JPM US"]["d_shares"] == 2000 and by["JPM US"]["contrib"] is None
     html = fd._holdings_detail("00998A", d)
     assert "JPM US" in html and "加碼 +2,000" in html
+
+
+def test_fhtrust_source_excludes_hedge_futures(monkeypatch):
+    """期貨避險/轉倉列不算持股變化（舊管線 arm/pipeline.py 同一慣例：diff 前先剔除）。"""
+    m = _fh_mod()
+    from arm.connectors import fhtrust as fh
+    monkeypatch.setattr(fh, "fetch_holdings", lambda fid, iso: {"holdings": (
+        [{"stock_id": f"23{i:02d}", "stock_name": f"股{i}", "kind": "equity",
+          "shares": 1000, "weight": 5.0} for i in range(6)]
+        + [{"stock_id": "TXF", "stock_name": "臺股期貨避險", "kind": "future",
+            "shares": -20, "weight": None}])})
+    rows, _asof, _log = m._from_fhtrust("00991A")
+    assert len(rows) == 6 and all(r["stock_id"] != "TXF" for r in rows)

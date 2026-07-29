@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""ETF 每日持股 —— 彙整站多源抓取（etfinfo 主；MoneyDJ／Yahoo 交叉驗證與補位）。
+"""ETF 每日持股 —— 多源抓取（本家＝復華官網第一手優先；其餘 etfinfo 主＋Yahoo 構成驗證）。
 
 **路線沿革（2026-07-29 定案）**：投信官網逐家逆向 7 輪＋無頭瀏覽器 3 輪後，
-使用者指示「不必抓官網第一手，彙整站即可、找第二站雙重驗證」：
+使用者指示「不必抓官網第一手，彙整站即可、找第二站雙重驗證」；本家三檔例外——
+舊管線（arm/pipeline.py）本就以 assetsExcel 第一手抓 00991A/00998A/00986D，沿用：
   · **主來源 etfinfo.tw**（Tier B）：`GET /api/etf/{code}` 的 holdings 欄位＝完整每日快照
     （stock_id／weight／shares＋snapshotDate）。既有連接器 `arm/connectors/etfinfo.py`
     早已封裝（`holdings_fresh`），且 CI 每天抓規模／殖利率就在打同一 API——可達性已被證實數週。
@@ -35,11 +36,13 @@ from arm.connectors.issuers import pcf                   # noqa: E402
 
 _KINDS = ("active", "other", "passive")
 
-# 本家兩檔（持海外股/債）：etfinfo 404、Yahoo 無資料，但**復華官網 assetsExcel 有完整持股**
-# ——config/products.json 早已對映 fund_id（ETF24/25），arm/pipeline.py 的 M2 管線先前就在用。
-# fhtrust.fetch_holdings 原生支援外股 ticker（'C US'）與債券（面額/幣別），持股變化（Δ）
-# 完整可比；「個股當日漲跌/貢獻」因無台股報價顯示 —（誠實降級）。
-# 2026-07-29 教訓：曾誤標「結構性不支援」——限制在我的 schema，不在資料。
+# 本家 ETF（products.json 有 fund_id 對映者：00991A/00998A/00986D）＝**復華官網第一手優先**
+# ——舊管線 arm/pipeline.py 三檔全走 assetsExcel（含前後快照 diff、排除期貨避險），能力本就存在。
+# 順序：fhtrust（Tier A 第一手）→ etfinfo（Tier B，同為每日 PCF 基準 → 可做**同基準日權重驗證**，
+# 這是唯一能亮真正「🟢 雙源相符」的組合）→ Yahoo（月度基準，只驗構成）。
+# fhtrust.fetch_holdings 原生支援外股 ticker（'C US'）與債券（面額/幣別）；期貨避險列排除
+#（同舊管線慣例：轉倉/避險不是持股變化）。
+# 2026-07-29 教訓：曾誤標 00998A/00986D「結構性不支援」——限制在我的 schema，不在資料。
 _TIMEOUT = 20
 _UA = {"User-Agent": "Mozilla/5.0 (fuhhwa-fund-radar; etf-holdings)"}
 
@@ -96,6 +99,8 @@ def _from_fhtrust(code: str) -> tuple[list[dict], str | None, str]:
                 snap = fhtrust.fetch_holdings(fid, iso)
                 rows = []
                 for h in snap.get("holdings") or []:
+                    if h.get("kind") == "future":         # 期貨避險/轉倉不算持股變化（舊管線慣例）
+                        continue
                     sid = str(h.get("stock_id") or "").strip() or str(h.get("stock_name") or "").strip()
                     if not sid:
                         continue
@@ -141,7 +146,7 @@ def main() -> int:
     probe_only = "--probe" in sys.argv
     targets = [(c, k) for c, _n, k, _cat, _i in etfwatch.WATCHLIST if k in _KINDS]
     targets.sort(key=lambda t: _KINDS.index(t[1]))
-    print(f"[ETF 每日持股・多源] etfinfo 主＋fhtrust 本家第一手＋Yahoo 構成驗證"
+    print(f"[ETF 每日持股・多源] 本家＝fhtrust 第一手優先；其餘 etfinfo 主＋Yahoo 構成驗證"
           f"（{len(targets)} 檔{'；--probe 不落檔' if probe_only else ''}）…")
 
     fresh: dict[str, dict] = {}
@@ -149,17 +154,15 @@ def main() -> int:
     n_match = n_single = n_mismatch = n_weak = 0
     fallback_date = _latest_trade_date()
     for code, _kind in targets:
-        e_rows, asof, log1 = _from_etfinfo(code)
-        f_rows, f_asof, log0 = ([], None, "")
-        if not e_rows:                                    # etfinfo 沒有（本家上櫃兩檔）→ 官網第一手
-            f_rows, f_asof, log0 = _from_fhtrust(code)
-            if f_rows:
-                asof = f_asof
+        # 本家檔（products.json 有對映）＝第一手優先；其餘 etfinfo 主
+        f_rows, f_asof, log0 = _from_fhtrust(code)
+        e_rows, e_asof, log1 = _from_etfinfo(code)
         y_rows, log3 = ([], "")
-        if not f_rows:                                    # fhtrust 命中＝Tier A 第一手，不需 Yahoo
+        if not (f_rows and e_rows):                       # 已有兩源就不必再打 Yahoo（節流）
             y_rows, log3 = _from_yahoo(code)
-        got = [(s, r) for s, r in (("etfinfo", e_rows), ("fhtrust", f_rows),
+        got = [(s, r) for s, r in (("fhtrust", f_rows), ("etfinfo", e_rows),
                                    ("yahoo", y_rows)) if r]
+        asof = f_asof if f_rows else e_asof
         if not got:
             diag[code] = "；".join(x for x in (log1, log0, log3) if x)
             print(f"  ⚠ {code} 全部來源皆不可得")
@@ -169,12 +172,14 @@ def main() -> int:
             continue
         src, rows = got[0]
         pri, sec = rows, (got[1][1] if len(got) > 1 else [])
-        if src == "fhtrust":
-            asof = f_asof or asof
         if pri and sec:
-            # Yahoo 為月度基準 → 只驗構成（weights=False），權重差僅記錄不判失敗
-            verify = etfholdings.cross_check(pri, sec, weights=False)
-            verify["other"] = got[1][0]
+            sec_src = got[1][0]
+            # 權重只在「同基準日的每日 PCF 對每日 PCF」時比（fhtrust vs etfinfo 且日期相同）；
+            # Yahoo 是月度基準、或兩源快照日不同 → 只驗構成（跨時點比權重是方法錯誤）
+            same_day = (src == "fhtrust" and sec_src == "etfinfo"
+                        and f_asof and e_asof and f_asof == e_asof)
+            verify = etfholdings.cross_check(pri, sec, weights=bool(same_day))
+            verify["other"] = sec_src
             if verify["status"] == "match":
                 n_match += 1
             else:
@@ -190,7 +195,7 @@ def main() -> int:
         fresh[code] = {"date": (asof if src == "etfinfo" and asof else fallback_date),
                        "src": src, "verify": verify, "holdings": rows}
         mark = {"match": "🟢", "single": "◯", "mismatch": "⚠", "weak": "◐"}[verify["status"]]
-        logs = "｜".join(x for x in (log1, log0, log3) if x)
+        logs = "｜".join(x for x in (log0, log1, log3) if x)
         print(f"  {mark} {code}：{len(rows)} 檔（{src}）｜{logs}")
 
     if probe_only:
