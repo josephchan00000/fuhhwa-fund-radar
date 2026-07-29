@@ -630,3 +630,59 @@ def test_dashboard_composition_and_weak_badges():
     weak = dict(d, verify={"status": "weak", "other": "yahoo", "top_hit": 3, "top_n": 10})
     html2 = fd._holdings_detail("X", weak)
     assert "副源過舊・未能驗證" in html2 and "非主來源錯誤" in html2
+
+
+# ── 本家兩檔走復華官網 assetsExcel（曾誤標「不支援」——限制在 schema，不在資料） ──
+
+def _fh_mod():
+    fp = Path(__file__).resolve().parent.parent / "scripts" / "fetch_etf_holdings.py"
+    spec = importlib.util.spec_from_file_location("_etf_fetch", fp)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_fhtrust_source_maps_foreign_tickers(monkeypatch):
+    """00998A/00986D 由 products.json fund_id（ETF24/25）走 fhtrust assetsExcel——
+    外股 ticker（'JPM US'）直接當鍵，不套台股 4 碼驗證（改驗 ≥5 檔且過半帶權重）。"""
+    m = _fh_mod()
+    from arm.connectors import fhtrust as fh
+    monkeypatch.setattr(fh, "fetch_holdings", lambda fid, iso: {"holdings": [
+        {"stock_id": f"T{i} US", "stock_name": f"Bank{i}", "kind": "equity",
+         "shares": 1000 + i, "weight": 5.0 - i * 0.2} for i in range(8)]})
+    rows, asof, log = m._from_fhtrust("00998A")
+    assert len(rows) == 8 and rows[0]["stock_id"] == "T0 US"
+    assert "fhtrust ✓" in log
+
+
+def test_fhtrust_source_skips_unmapped_codes():
+    """products.json 沒對映的檔（一般上市 ETF）回空——不會誤打復華官網。"""
+    m = _fh_mod()
+    assert m._from_fhtrust("0050") == ([], None, "")
+
+
+def test_foreign_delta_and_render_without_tw_quotes():
+    """外股鍵的 Δ 加減碼照常成立；無台股報價 → 貢獻誠實顯示 —（不憑空補值）。"""
+    r1 = [{"stock_id": "JPM US", "name": "JPMorgan", "shares": 12000, "weight": 8.5},
+          {"stock_id": "C US", "name": "Citi", "shares": 15000, "weight": 6.2}]
+    r2 = [dict(r1[0], shares=14000, weight=9.0), dict(r1[1])]
+    merged = eh.merge_one({"date": "d1", "src": "fhtrust", "holdings": r1},
+                          {"date": "d2", "src": "fhtrust", "holdings": r2})
+    d = eh.contributions(merged, {})
+    by = {r["stock_id"]: r for r in d["rows"]}
+    assert by["JPM US"]["d_shares"] == 2000 and by["JPM US"]["contrib"] is None
+    html = fd._holdings_detail("00998A", d)
+    assert "JPM US" in html and "加碼 +2,000" in html
+
+
+def test_fhtrust_source_excludes_hedge_futures(monkeypatch):
+    """期貨避險/轉倉列不算持股變化（舊管線 arm/pipeline.py 同一慣例：diff 前先剔除）。"""
+    m = _fh_mod()
+    from arm.connectors import fhtrust as fh
+    monkeypatch.setattr(fh, "fetch_holdings", lambda fid, iso: {"holdings": (
+        [{"stock_id": f"23{i:02d}", "stock_name": f"股{i}", "kind": "equity",
+          "shares": 1000, "weight": 5.0} for i in range(6)]
+        + [{"stock_id": "TXF", "stock_name": "臺股期貨避險", "kind": "future",
+            "shares": -20, "weight": None}])})
+    rows, _asof, _log = m._from_fhtrust("00991A")
+    assert len(rows) == 6 and all(r["stock_id"] != "TXF" for r in rows)
