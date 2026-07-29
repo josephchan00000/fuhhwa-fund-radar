@@ -39,20 +39,39 @@ jobs:
       - name: 安裝相依（純標準庫 + certifi）
         run: pip install --quiet certifi
 
-      - name: 抓每日持股（etfinfo 主＋MoneyDJ 交叉驗證）
+      - name: 抓每日持股（本家 fhtrust 第一手＋etfinfo 主＋Yahoo 構成驗證）
         run: TZ=Asia/Taipei python3 scripts/fetch_etf_holdings.py
 
-      - name: commit 持股落檔
+      - name: 重建儀表板（2026-07-30 使用者：持股更新排進每日循環——傍晚抓完直接上線，
+              當日貢獻當晚可見，不等隔日早上 daily.yml）
+        run: TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py
+
+      - name: commit 持股落檔＋儀表板
         run: |
           git config user.name "josephchan00000"
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
           git add -f data/etf_holdings.json 2>/dev/null || true
+          git add dashboard/index.html 2>/dev/null || true
           git commit -m "chore: ETF 每日持股更新 $(date +%F)" || { echo "無變更，跳過 push"; exit 0; }
-          # main 可能被 daily.yml 推進 → rebase 重試；本檔只有本 job 會寫，衝突機率低
+          # main 可能被其他 workflow 推進 → rebase 重試；rebase 後用合併結果重建再推
+          #（同 daily.yml 慣例：-X theirs 會拼出新舊混雜的 index.html，必須重建）
           for i in 1 2 3; do
             git push && exit 0
-            echo "push 被拒（第 $i 次），rebase 後重試…"
-            git pull --rebase origin main || git rebase --abort || true
+            echo "push 被拒（第 $i 次），rebase 後重建儀表板再重試…"
+            git pull --rebase -X theirs origin main || git rebase --abort || true
+            TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py || true
+            git add dashboard/index.html 2>/dev/null || true
+            git commit --amend --no-edit || true
             sleep 5
           done
           echo "::error::push 連續失敗——本次持股未入 main"; exit 1
+
+      - name: 觸發 Vercel 部署（Deploy Hook；未設 secret 則跳過、靠自動偵測）
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
+            echo "（未設 VERCEL_DEPLOY_HOOK secret，跳過主動部署）"; exit 0
+          fi
+          curl -sS -X POST "$VERCEL_DEPLOY_HOOK" -w "\nHTTP %{http_code}\n" \
+            || echo "deploy hook 呼叫失敗（不影響已入庫的 commit）"

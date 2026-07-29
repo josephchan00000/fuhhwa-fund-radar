@@ -2160,6 +2160,10 @@ def render() -> str:
         ("美股新聞", us_date, 3), ("台股新聞", tw_date, 3),
         ("總經・政策", mac_date, 3), ("經濟行事曆", cal_date, 8),
         ("基金新聞・社群", fn_asof, 3), ("ETF 數據追蹤", etf_asof, 10),
+        # ETF 持股揭露＝展開明細資料層（etf_holdings.yml 台北週一~五 17:40 抓）——
+        # 停更超過 3 天代表該 workflow 掛了，要列進逾期警示（同其他來源慣例）
+        ("ETF 持股揭露", max(((v.get("date") or "") for v in ((eh_doc or {}).get("etfs") or {}).values()),
+                             default="") or None, 3),
         ("總經・籌碼數據", mc_asof, 4),
     ] + ([("多期報酬(鉅亨)", ret_asof, 4)] if ret_asof else []))
 
