@@ -1,8 +1,15 @@
 {
-  "as_of": "2026/07/29 12:56",
+  "as_of": "2026/07/29 22:03",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
+    {
+      "title": "復華00409A 8/12開募：00991A成功後，全球版值不值得跟？",
+      "url": "https://news.google.com/rss/articles/CBMiVkFVX3lxTFBFMThaamRSNUhwbkJJZU1aSTRva0lKVXlJQks1ZUN0YVNlbnpGZTBnUGFkMHZXTHFPNmtJSi1EalhyNDdTNFQyZEh0eGpBUW1yVjhHU2Zn?oc=5",
+      "source": "Business Insider Taiwan",
+      "date": "2026-07-29 14:06",
+      "datetime": "2026-07-29T14:06:00+08:00"
+    },
     {
       "title": "00409A下月開募 盯權值股",
       "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE45ZGRSeG9ST1pvVURYaDF4Y09YbXh5MTN6d2lTanVvVHV0Q3htQ1pjSGtuZHQtM3QxY1B4VXZ3XzE2dVZZaHRudi1PY2oxUUNVcjV3QjJzdk9IQdIBX0FVX3lxTE55dWJ0SlRYWVYwcFJIT0dvbm1tYUhNaG5ZdUJwd2xnUE05MUV6VG9HX05DZWJaNW9SRFE3UXZFOXd0bjJJaEdiUkJIMWhUamVYR2hGMTVxdDFlcU9ZOThB?oc=5",
@@ -44,27 +51,6 @@
       "source": "news.cnyes.com",
       "date": "2026-07-27 17:07",
       "datetime": "2026-07-27T17:07:45+08:00"
-    },
-    {
-      "title": "AI紅利擴散、非AI龍頭接棒！復華00409A聚焦全球50強 8/12開募",
-      "url": "https://news.google.com/rss/articles/CBMiggFBVV95cUxOenFUSEMtb2dVaVBpTXpLT1RZdEctUzlPTTNNSkFUMXNXUmpmbVE4SElNWS1VR1ZTSE12dV94Q25yVDNkZFYycXVwenJDenJ4bFNMYnBob0ZWZmVndDFpRGFDS1NFc1V6OGh2M21oNEFac2RlZzBwR3VNZzVOckpHY1dn?oc=5",
-      "source": "壹蘋新聞網",
-      "date": "2026-07-27 16:25",
-      "datetime": "2026-07-27T16:25:00+08:00"
-    },
-    {
-      "title": "台灣復華投信：AI科技龍頭股長線仍看好，旗下新基金至少半數配置美股",
-      "url": "https://news.google.com/rss/articles/CBMid0FVX3lxTE1oUW1mYnk1X243d01vYjlkbWNNWmcxenh4YmZoUGJHTTdVSjRrNzZTVEFrMUVpeExVeExkSVFfTkwyOW5QSkZiMDBwTmZvUS1WRHdFM3ZnNFBfQzZiTUF1Y0oyNFBRSElFNHNUcVFUQlVfN0JiS3Vz?oc=5",
-      "source": "TradingView",
-      "date": "2026-07-27 16:03",
-      "datetime": "2026-07-27T16:03:50+08:00"
-    },
-    {
-      "title": "00409A首創三王牌經理人制！ 復華投信：7~8月拉回布局時機到 | 太報",
-      "url": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE9EMk1PdE5vNnk5eTB1SXRWOE9aUG1jOFJfajFTQkJSelZfY1ZXc04tbU91dDZscFVPdFpVNG1jWFNXNExzWWFadHJuaElEVWlOMGpoSUV3?oc=5",
-      "source": "LINE TODAY",
-      "date": "2026-07-27 15:38",
-      "datetime": "2026-07-27T15:38:50+08:00"
     }
   ],
   "funds": [
@@ -156,13 +142,6 @@
           "source": "蕃新聞",
           "date": "2026-07-27 16:14",
           "datetime": "2026-07-27T16:14:00+08:00"
-        },
-        {
-          "title": "00409A首創三王牌經理人制！ 復華投信：7~8月拉回布局時機到 | 太報",
-          "url": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE9EMk1PdE5vNnk5eTB1SXRWOE9aUG1jOFJfajFTQkJSelZfY1ZXc04tbU91dDZscFVPdFpVNG1jWFNXNExzWWFadHJuaElEVWlOMGpoSUV3?oc=5",
-          "source": "LINE TODAY",
-          "date": "2026-07-27 15:38",
-          "datetime": "2026-07-27T15:38:50+08:00"
         }
       ]
     },
@@ -384,6 +363,6 @@
   "social": [],
   "highlights": [
     "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技（詳下方基金新聞標籤）",
-    "品牌焦點：00409A下月開募 盯權值股（經濟日報）"
+    "品牌焦點：復華00409A 8/12開募：00991A成功後，全球版值不值得跟？（Business Insider Taiwan）"
   ]
 }
