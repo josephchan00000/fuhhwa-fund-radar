@@ -99,9 +99,9 @@ def test_taifex_tx_foreign_parse(monkeypatch):
              "-10000", "-20", "90000", "500", "176189", "900", "-86189", "-400"],
             ["2026/07/21", "臺股期貨", "自營商", "1", "1", "1", "1",
              "0", "0", "1", "1", "1", "1", "0", "0"]]
-    monkeypatch.setattr(mc, "_taifex_csv", lambda url, body: rows)
+    monkeypatch.setattr(mc, "_taifex_csv", lambda url, body, diag=None: rows)
     from datetime import date
-    out = mc._taifex_tx_foreign(date(2026, 7, 14), date(2026, 7, 22))
+    out = mc._taifex_tx_foreign(date(2026, 7, 14), date(2026, 7, 22), now_hour=23)
     assert out == {"2026-07-21": -86189.0}     # 外資列、倒數第2個整數欄＝未平倉淨額
 
 
@@ -109,16 +109,16 @@ def test_taifex_tx_foreign_skips_zero(monkeypatch):
     # 今日盤中未結算 → 外資列全 0；不可寫入（踩過：CI 於 7/23 把外資淨部位讀成 0）
     rows = [["2026/07/23", "臺股期貨", "外資", "0", "0", "0", "0",
              "0", "0", "0", "0", "0", "0", "0", "0"]]
-    monkeypatch.setattr(mc, "_taifex_csv", lambda url, body: rows)
+    monkeypatch.setattr(mc, "_taifex_csv", lambda url, body, diag=None: rows)
     from datetime import date
-    assert mc._taifex_tx_foreign(date(2026, 7, 23), date(2026, 7, 23)) == {}
+    assert mc._taifex_tx_foreign(date(2026, 7, 23), date(2026, 7, 23), now_hour=23) == {}
 
 
 def test_taifex_pc_ratio_parse(monkeypatch):
     rows = [["日期", "賣權成交量", "買權成交量", "買賣權成交量比率%",
              "賣權未平倉量", "買權未平倉量", "買賣權未平倉量比率%"],
             ["2026/07/22", "500000", "600000", "83.33", "300000", "280000", "107.14"]]
-    monkeypatch.setattr(mc, "_taifex_csv", lambda url, body: rows)
+    monkeypatch.setattr(mc, "_taifex_csv", lambda url, body, diag=None: rows)
     from datetime import date
     out = mc._taifex_pc_ratio(date(2026, 7, 14), date(2026, 7, 22))
     assert out == {"2026-07-22": 107.14}
@@ -185,3 +185,52 @@ def test_macro_data_view_empty_hint():
 def test_spark_degenerate():
     assert fd._spark([1.0]) == '<span class="na">—</span>'
     assert "<svg" in fd._spark([1.0, 1.0])                # 純平序列不當機（rng=0 防呆）
+
+
+# ── 外資臺股期貨(TX)淨部位：口徑鎖定與版式容錯（2026-07-29 序列靜默凍結 6 天的回歸測試） ──
+
+_TX_HEADER = ["日期", "商品名稱", "身份別", "多方交易口數", "多方契約金額", "空方交易口數",
+              "空方契約金額", "多空淨額交易口數", "多空淨額契約金額", "多方未平倉口數",
+              "多方未平倉契約金額", "空方未平倉口數", "空方未平倉契約金額",
+              "多空淨額未平倉口數", "多空淨額未平倉契約金額"]
+
+
+def _tx_row(d, prod, ident, net):
+    return [d, prod, ident, "1", "2", "3", "4", "-2", "-2", "10", "20", "30", "40", net, "-5"]
+
+
+def test_tx_rows_locks_to_taiex_futures_and_foreign():
+    """只認「臺股期貨（大台）＋外資」：小台列、外資自營商列都不可混入。
+
+    使用者 2026-07-29 回報數字對不上——彙整站常以「大台＋小台＋微台合計」揭露，
+    舊解析只看「列中有外資」，期交所若忽略 commodityId 就會安靜讀到別的契約。"""
+    rows = [_TX_HEADER,
+            _tx_row("2026/07/28", "臺股期貨", "外資", "-82255"),
+            _tx_row("2026/07/28", "小型臺指期貨", "外資", "9999"),
+            _tx_row("2026/07/28", "電子期貨", "外資", "-279"),
+            _tx_row("2026/07/27", "臺股期貨", "外資自營商", "-111")]
+    assert mc._tx_rows_to_series(rows) == {"2026-07-28": -82255.0}
+
+
+def test_tx_rows_carry_commodity_across_rowspan_blank():
+    """商品名在官方版式是 rowspan——CSV 常只出現在該商品首列（自營商），
+    其餘身份別留空。若不延續「最後見到的商品名」，外資列會被整批丟棄（回空序列）。"""
+    rows = [_TX_HEADER,
+            _tx_row("2026/07/28", "臺股期貨", "自營商", "-20"),
+            _tx_row("2026/07/28", "", "投信", "5"),
+            _tx_row("2026/07/28", "", "外資", "-82255")]
+    assert mc._tx_rows_to_series(rows) == {"2026-07-28": -82255.0}
+
+
+def test_tx_rows_skip_zero_sentinel():
+    """0＝盤中未結算的哨兵（2026-07-23 踩過：最新值變「淨多 0 口」、走勢尾端插歸零）。"""
+    rows = [_TX_HEADER, _tx_row("2026/07/29", "臺股期貨", "外資", "0")]
+    assert mc._tx_rows_to_series(rows) == {}
+
+
+def test_last_settled_clamps_to_settled_session():
+    """期交所盤後 15:00 才有當日資料；查詢結束日帶到未結算當日是序列停更的最可疑主因。"""
+    from datetime import date
+    assert mc._last_settled(date(2026, 7, 29), 9) == date(2026, 7, 28)   # 盤中 → 前一日
+    assert mc._last_settled(date(2026, 7, 29), 16) == date(2026, 7, 29)  # 盤後 → 當日
+    assert mc._last_settled(date(2026, 7, 27), 9) == date(2026, 7, 24)   # 週一盤中 → 上週五
