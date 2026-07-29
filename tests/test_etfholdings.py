@@ -229,3 +229,40 @@ def test_key_hits_dumps_context_around_data_anchor():
            + b"</html>")
     hints = pcf._key_hits(raw)
     assert any("末次上下文" in h and "2330" in h for h in hints)
+
+
+# ── 第 4 輪定案：資料全靠 XHR → 改掃 JS bundle 找 API 路徑 ─────────────
+
+def test_bundle_api_hints_fetches_bundles_and_extracts_paths(monkeypatch):
+    """SPA 的 API 路徑一定寫在 JS bundle 裡（HTML 裡只有文案）。"""
+    pcf._bundle_cache.clear()
+    html = (b'<html><script src="/rsrc/runtime.abc.js"></script>'
+            b'<script src="/rsrc/main.def.js"></script></html>')
+    js = {"https://x.tw/rsrc/runtime.abc.js": b'var a=1;',
+          "https://x.tw/rsrc/main.def.js":
+              b'fetch("/api/etf/pcf/"+code);var u="/api/fund/holding";var s="/img/a.png";'}
+
+    def fake_get(url, probe):
+        return js.get(url)
+
+    monkeypatch.setattr(pcf, "_get", fake_get)
+    hints = pcf._bundle_api_hints(html, "https://x.tw/tradeInfo/pcf/0050")
+    assert "/api/etf/pcf/" in hints and "/api/fund/holding" in hints
+    assert not any(".png" in h for h in hints)
+
+
+def test_bundle_api_hints_caches_per_host(monkeypatch):
+    """23 檔 ETF 逐檔重掃會對投信站發出上百個不必要請求 → 每 host 每次執行只掃一次。"""
+    pcf._bundle_cache.clear()
+    calls = []
+
+    def fake_get(url, probe):
+        calls.append(url)
+        return b'var u="/api/pcf/x";'
+
+    monkeypatch.setattr(pcf, "_get", fake_get)
+    html = b'<html><script src="/main.a.js"></script></html>'
+    pcf._bundle_api_hints(html, "https://y.tw/tradeInfo/pcf/0050")
+    n = len(calls)
+    pcf._bundle_api_hints(html, "https://y.tw/tradeInfo/pcf/0056")
+    assert len(calls) == n                       # 第二檔不再重抓 bundle

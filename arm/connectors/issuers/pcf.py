@@ -298,6 +298,52 @@ _ANCHOR_WORDS = ("成分股", "權重", "股數", "證券代號", "股票代號"
 _FONT_WEIGHT = re.compile(r"font-weight", re.I)
 
 
+_SCRIPT_SRC = re.compile(r"""<script[^>]+src=["']([^"']+)["']""", re.I)
+_BUNDLE_HINT = re.compile(r"(main|app|runtime|vendor|chunk|index)[.\-][\w.\-]*\.js$", re.I)
+# bundle 內的 API 路徑字面值：以引號包住、含 /api/ 或持股相關字樣的路徑
+_BUNDLE_API = re.compile(
+    r"""["'`](/(?:[\w.\-]+/)*(?:api|pcf|holding|constituent|component|portfolio)"""
+    r"""[\w./\-{}$]*)["'`]""", re.I)
+_bundle_cache: dict[str, list[str]] = {}     # host → 已掃出的 API 路徑（每 run 每站只掃一次）
+
+
+def _bundle_api_hints(raw: bytes, page_url: str, max_bundles: int = 3) -> list[str]:
+    """從 SPA 的 **JS bundle** 撈真正的資料端點。
+
+    2026-07-29 第 4 輪 CI 定案：元大／群益的 HTML 裡「成分股」「證券代號」全是文案與公告內文，
+    **持股資料不在頁面裡、全靠 XHR** —— 掃 HTML 這條路是死路。但 SPA 呼叫的 API 路徑
+    一定寫在它的 JS bundle 裡，所以改抓 bundle 再找路徑字面值。
+
+    節流：每個站台（host）每次執行只掃一次、最多 3 支 bundle —— 23 檔 ETF 若逐檔重掃，
+    會對投信站發出上百個不必要的請求。"""
+    from urllib.parse import urljoin, urlparse
+    host = urlparse(page_url).netloc
+    if host in _bundle_cache:
+        return _bundle_cache[host]
+    try:
+        html = raw.decode("utf-8", "replace")
+    except Exception:
+        return []
+    srcs = [urljoin(page_url, s) for s in _SCRIPT_SRC.findall(html)]
+    srcs = [s for s in srcs if _BUNDLE_HINT.search(s)] or [s for s in srcs if s.endswith(".js")]
+    found: list[str] = []
+    for src in srcs[:max_bundles]:
+        p = Probe("bundle", src)
+        js = _get(src, p)
+        if not js:
+            continue
+        for m in _BUNDLE_API.finditer(js.decode("utf-8", "replace")):
+            u = m.group(1)
+            if u not in found and len(u) <= 120:
+                found.append(u)
+            if len(found) >= 8:
+                break
+        if len(found) >= 8:
+            break
+    _bundle_cache[host] = found
+    return found
+
+
 def _key_hits(raw: bytes, min_bytes: int = 100_000, ctx: int = 260) -> list[str]:
     """大頁面卻一列都沒解析出來時的定位診斷。
 
@@ -412,7 +458,11 @@ def fetch_one(code: str, issuer: str) -> tuple[list[dict], str, list[Probe]]:
             # 一列都沒解析出來 → 兩種可能，日誌要分得出來：
             #   ①真的是 SPA 外殼（資料在 XHR）→ 列出疑似端點
             #   ②資料其實內嵌在頁面裡、只是鍵名和我猜的不同 → 列出鍵名命中次數
-            p.hints = _api_hints(raw) + _key_hits(raw)
+            # 第 4 輪定案：HTML 裡的「成分股／證券代號」都是文案與公告內文，資料全靠 XHR
+            # → 主力改成掃 JS bundle 找真正的 API 路徑；鍵名／上下文診斷退為輔助。
+            bundle = _bundle_api_hints(raw, url)
+            p.hints = ([f"bundle API：{' , '.join(bundle)}"] if bundle else []) \
+                + _api_hints(raw) + _key_hits(raw)
     return [], "", probes
 
 
