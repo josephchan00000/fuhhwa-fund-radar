@@ -115,3 +115,49 @@ def test_pcf_ignores_non_stock_rows():
     """現金／期貨等非個股列不可被當成持股（代號需為台股 4 碼格式）。"""
     raw = b'[{"code":"CASH","weight":"3.2"},{"code":"2330","weight":"20"}]'
     assert [r["stock_id"] for r in pcf.parse_json(raw)] == ["2330"]
+
+
+# ── 假陽性防呆（2026-07-29 首輪 CI 實際踩到） ──────────────────────
+
+def _rows(n, weight=1.0, prefix="23"):
+    return [{"stock_id": f"{prefix}{i:02d}", "name": f"股{i}", "shares": 1000,
+             "weight": weight} for i in range(n)]
+
+
+def test_plausible_rejects_etf_link_list():
+    """證交所 ETFortune SPA 外殼的「其他 ETF 推薦連結」被刮成假持股：
+    3 檔、權重股數全 None、且全部是 0 開頭的 ETF 代碼 —— 三道驗證都該擋下。"""
+    junk = [{"stock_id": "0050", "name": "元大台灣50", "shares": None, "weight": None},
+            {"stock_id": "0056", "name": "元大高股息", "shares": None, "weight": None},
+            {"stock_id": "0052", "name": "富邦科技", "shares": None, "weight": None}]
+    assert pcf.is_plausible(junk) is False
+
+
+def test_plausible_rejects_quantityless_list():
+    """檔數夠但整份沒有權重／股數 → 算不出貢獻，本來就不能用。"""
+    rows = [{"stock_id": f"23{i:02d}", "name": "x", "shares": None, "weight": None}
+            for i in range(20)]
+    assert pcf.is_plausible(rows) is False
+
+
+def test_plausible_rejects_all_etf_codes():
+    """整份都是 0 開頭（ETF 代碼）＝導覽／推薦清單的長相。"""
+    assert pcf.is_plausible(_rows(20, prefix="00")) is False
+
+
+def test_plausible_accepts_real_holdings():
+    assert pcf.is_plausible(_rows(20)) is True
+    # 組合型：多數為個股、少數持有其他 ETF → 不可誤殺
+    mixed = _rows(18) + [{"stock_id": "0050", "name": "元大台灣50", "shares": 1, "weight": 1.0}]
+    assert pcf.is_plausible(mixed) is True
+
+
+def test_api_hints_extracts_xhr_endpoints_from_spa_shell():
+    """SPA 外殼時，探針要把疑似資料端點撈進 CI 日誌，一輪就能收斂（不是一輪換一個猜測）。"""
+    html = (b'<html><script src="/rsrc/main.js"></script>'
+            b'<script>var u="/api/etf/pcf/00991A.json";fetch("/rwd/zh/ETFortune/holdings")'
+            b';var img="/img/logo.png";</script></html>')
+    hints = pcf._api_hints(html)
+    assert "/api/etf/pcf/00991A.json" in hints
+    assert "/rwd/zh/ETFortune/holdings" in hints
+    assert not any(h.endswith((".js", ".png")) for h in hints)
