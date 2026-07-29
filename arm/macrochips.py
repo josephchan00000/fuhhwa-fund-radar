@@ -145,17 +145,27 @@ def _twse_margin(d: date) -> tuple[float, float] | None:
     return fin, short
 
 
-def _taifex_csv(url: str, body: str) -> list[list[str]]:
-    """期交所下載端點（POST → CSV，big5）→ 逐列 cells。失敗回 []。"""
+def _taifex_csv(url: str, body: str, diag: list[str] | None = None) -> list[list[str]]:
+    """期交所下載端點（POST → CSV，big5）→ 逐列 cells。失敗回 []。
+
+    diag＝診斷收集器（非 None 時把 HTTP 狀態／例外／回應首段記進去）——本容器 proxy 擋期交所、
+    只能靠 CI 日誌除錯，沉默失敗會讓「序列凍結」查不出原因（2026-07-29 踩坑：tx_foreign_net
+    自 7/23 起靜默停更 6 天，日誌只有一行「不可得」）。"""
     try:
         req = urllib.request.Request(
             url, data=body.encode(),
             headers={**_UA, "Content-Type": "application/x-www-form-urlencoded"})
         with urllib.request.urlopen(req, timeout=_TIMEOUT) as r:
+            status = getattr(r, "status", None)
             text = r.read().decode("big5", errors="replace")
-        return [[c.strip().strip('"') for c in line.split(",")]
+        rows = [[c.strip().strip('"') for c in line.split(",")]
                 for line in text.splitlines() if line.strip()]
-    except Exception:
+        if diag is not None and not rows:
+            diag.append(f"HTTP {status} 但 0 列（body={body[:80]}）")
+        return rows
+    except Exception as e:                                    # noqa: BLE001 —— 每源獨立降級
+        if diag is not None:
+            diag.append(f"{type(e).__name__}: {str(e)[:120]}（body={body[:80]}）")
         return []
 
 
@@ -169,25 +179,109 @@ def _cell_date(cell: str) -> str | None:
     return f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
 
 
-def _taifex_tx_foreign(start: date, end: date) -> dict[str, float]:
-    """外資台指期(TX)未平倉多空淨額口數（區間一次抓）→ {ISO日期: 口數（淨空為負）}。
-    解析同 factcheck.taifex_tx_foreign_net：外資列取倒數第 2 個整數欄＝未平倉淨額口數。"""
-    rows = _taifex_csv(
-        "https://www.taifex.com.tw/cht/3/futContractsDateDown",
-        f"queryStartDate={start:%Y/%m/%d}&queryEndDate={end:%Y/%m/%d}&commodityId=TXF")
+_TX_URL = "https://www.taifex.com.tw/cht/3/futContractsDateDown"
+
+# 「臺股期貨（大台 TX）」商品名比對——**口徑鎖定用，不可放寬**。
+# 使用者回報的數字落差（彙整站常見的『大台＋小台＋微台合計』）就出在這裡：若期交所忽略
+# commodityId、整批回全商品，舊版只認「列中有外資」會安靜讀到小台／電子期的數字（2026-07-29 檢討）。
+_TX_PROD = re.compile(r"^(臺|台)股期貨$|^TX$")
+_MTX_HINT = re.compile(r"小型|微型|電子|金融|半導體")
+
+
+def _tx_rows_to_series(rows: list[list[str]]) -> dict[str, float]:
+    """期交所「三大法人—區分各期貨契約」CSV 列 → {ISO日期: 外資臺股期貨未平倉多空淨額口數}。
+
+    欄序（官方）：日期,商品名稱,身份別,…多方/空方/淨額「交易」組…,…多方/空方/淨額「未平倉」組…
+    → 倒數第 2 個整數欄＝多空淨額未平倉口數（最後一欄是契約金額）。
+
+    兩道防呆：
+      ① **商品鎖定**：只取臺股期貨(TX) 列。商品名在 HTML 表是 rowspan、CSV 有時只出現在該商品
+         第一列（自營商），其餘列留空 → 以「最後見到的非空商品名」延續（cur_prod），否則
+         外資列會因商品名空白被全數丟棄。
+      ② **身份別鎖定**：外資／外資及陸資，但排除「外資自營商」。
+    值為 0 一律跳過（0＝盤中未結算的哨兵，2026-07-23 踩過）。"""
     out: dict[str, float] = {}
+    cur_prod = ""
     for cells in rows:
-        if len(cells) <= 12 or not any("外資" in c and "自營" not in c for c in cells[:4]):
+        if len(cells) <= 12:
             continue
-        iso = next((d for d in (_cell_date(c) for c in cells[:2]) if d), None)
-        if not iso:
+        di = next((i for i, c in enumerate(cells[:3]) if _cell_date(c)), None)
+        if di is None:
+            continue
+        iso = _cell_date(cells[di])
+        # 商品名在日期後一欄；空白＝沿用上一列（rowspan 展平）
+        prod = cells[di + 1].strip() if len(cells) > di + 1 else ""
+        if prod:
+            cur_prod = prod
+        if not _TX_PROD.match(cur_prod or "") or _MTX_HINT.search(cur_prod or ""):
+            continue
+        ident = next((c for c in cells[di + 1:di + 4] if "外資" in c or "投信" in c
+                      or "自營商" in c), "")
+        if "外資" not in ident or "外資自營商" in ident:
             continue
         nums = [c.replace(",", "") for c in cells
                 if re.fullmatch(r"-?\d+", c.replace(",", ""))]
         if len(nums) >= 2:
             val = float(nums[-2])
-            if val != 0:                                  # 0＝今日盤中未結算／無資料的哨兵，跳過
-                out[iso] = val                            # （踩過：CI 於 7/23 盤中把外資淨部位讀成 0）
+            if val != 0:
+                out[iso] = val
+    return out
+
+
+def _last_settled(today: date, now_hour: int) -> date:
+    """期交所盤後結算日：平日 15:00 後才有當日資料；否則往前找最近平日。
+    2026-07-29 檢討：futContractsDateDown 的 queryEndDate 帶到「尚未結算的當日」時整批回空
+    （同時段 pcRatioDown 仍正常），是序列自 7/24 起停更的最可疑主因——夾到已結算日再查。"""
+    d = today if now_hour >= 15 else today - timedelta(days=1)
+    while d.weekday() >= 5:
+        d -= timedelta(days=1)
+    return d
+
+
+def _taifex_tx_foreign(start: date, end: date, now_hour: int = 23,
+                       diag: list[str] | None = None) -> dict[str, float]:
+    """外資臺股期貨(TX)未平倉多空淨額口數 → {ISO日期: 口數（淨空為負）}。
+
+    韌性策略（2026-07-29 重寫，因舊版單一參數組合失效後靜默回空、序列凍結 6 天）：
+      ① queryEndDate 夾到「最近已結算交易日」（見 _last_settled）。
+      ② 依序試多組 POST 參數變體（期交所表單欄位歷有增修），第一組解析出資料就用。
+      ③ 全部落空 → 逐日單日查詢兜底（單日端點與區間端點驗證邏輯不同，曾各自可用）。
+      ④ 每一步的 HTTP 狀態／例外寫進 diag，由 CI 日誌印出——本容器 proxy 擋期交所，
+         這是唯一能定位下次失效原因的管道。
+    """
+    end = min(end, _last_settled(end, now_hour))
+    if start > end:
+        start = end
+    sd, ed = f"{start:%Y/%m/%d}", f"{end:%Y/%m/%d}"
+    variants = [
+        f"queryStartDate={sd}&queryEndDate={ed}&commodityId=TXF",
+        f"firstDate=&lastDate=&queryStartDate={sd}&queryEndDate={ed}&commodityId=TXF",
+        f"queryType=2&goDay=&doQuery=1&dateaddcnt=&queryStartDate={sd}"
+        f"&queryEndDate={ed}&commodityId=TXF",
+        f"queryStartDate={sd}&queryEndDate={ed}&commodityId=TX",
+        f"queryStartDate={sd}&queryEndDate={ed}",          # 不帶商品：靠 _tx_rows_to_series 鎖 TX
+    ]
+    for i, body in enumerate(variants, 1):
+        rows = _taifex_csv(_TX_URL, body, diag)
+        got = _tx_rows_to_series(rows)
+        if got:
+            if diag is not None and i > 1:
+                diag.append(f"變體 #{i} 成功（{len(got)} 筆）")
+            return got
+        if diag is not None and rows:
+            diag.append(f"變體 #{i}：{len(rows)} 列但無 TX 外資列"
+                        f"（首列={','.join(rows[0][:4])[:60]}）")
+    # 逐日兜底（區間查詢整組失效時仍可能可用）
+    out: dict[str, float] = {}
+    d = end
+    while d >= start:
+        if d.weekday() < 5:
+            got = _tx_rows_to_series(_taifex_csv(
+                _TX_URL, f"queryDate={d:%Y/%m/%d}&commodityId=TXF", diag))
+            out.update(got)
+        d -= timedelta(days=1)
+    if out and diag is not None:
+        diag.append(f"逐日兜底成功（{len(out)} 筆）")
     return out
 
 
@@ -292,9 +386,12 @@ def fetch() -> dict:
 
     # ④ 外資台指期淨部位＋選擇權 P/C 比（期交所，區間一次抓）
     start = today - timedelta(days=_BACKFILL_DAYS)
-    new = _taifex_tx_foreign(start, today)
+    diag: list[str] = []
+    new = _taifex_tx_foreign(start, today, now_hour=clock.now_tw().hour, diag=diag)
     series["tx_foreign_net"] = _merge(series["tx_foreign_net"], new)
     _note("tx_foreign_net", len(new), "taifex:futContractsDate")
+    for line in diag[:6]:                                 # 抓不到時把實際原因印進 CI 日誌
+        print(f"      · {line}")
     new = _taifex_pc_ratio(start, today)
     series["pc_ratio"] = _merge(series["pc_ratio"], new)
     _note("pc_ratio", len(new), "taifex:pcRatio")

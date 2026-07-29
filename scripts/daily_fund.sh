@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.."
 
 LOGD="$(mktemp -d)"
 
-echo "[1/4] 平行抓取三路資料（持股介紹＋NAV／基金新聞・社群／ETF 數據追蹤）…"
+echo "[1/4] 平行抓取五路資料（持股介紹＋NAV／基金新聞・社群／ETF 數據追蹤／ETF 每日持股／總經・籌碼）…"
 ( python3 scripts/fetch_holdings.py \
     || echo "  ⚠ 持股抓取失敗，續跑（用既有 data/funds 快照）" ) >"$LOGD/holdings.log" 2>&1 &
 P_HOLD=$!
@@ -24,20 +24,27 @@ P_ETF=$!
 ( python3 scripts/fetch_macro_chips.py \
     || echo "  ⚠ 總經・籌碼數據擷取失敗，續跑（市場溫度計沿用前次落檔）" ) >"$LOGD/macro.log" 2>&1 &
 P_MACRO=$!
+# ETF 每日持股（展開明細「加減碼／當日貢獻」資料層）——無跨投信統一端點，逐檔試候選來源；
+# 抓不到的檔安靜降級（該 ETF 沒有展開明細），不影響其餘欄位。探針診斷一併印進 CI 日誌。
+( python3 scripts/fetch_etf_holdings.py \
+    || echo "  ⚠ ETF 每日持股擷取失敗，續跑（展開明細沿用前次落檔）" ) >"$LOGD/etfhold.log" 2>&1 &
+P_EHOLD=$!
 
 echo "[2/4] 產新聞提示包（昨夜美股／台股／總經政策＋行事曆）…（新聞內容由 LLM 上網查證產出）"
 python3 scripts/gen_usnews.py    || echo "  ⚠ 美股提示包產製失敗，續跑"
 python3 scripts/gen_twnews.py    || echo "  ⚠ 台股提示包產製失敗，續跑"
 python3 scripts/gen_macronews.py || echo "  ⚠ 總經政策提示包產製失敗，續跑"
 
-echo "[3/4] 等三路抓取完成…"
+echo "[3/4] 等五路抓取完成…"
 wait "$P_HOLD" || true
 wait "$P_NEWS" || true
 wait "$P_ETF"  || true
 wait "$P_MACRO" || true
+wait "$P_EHOLD" || true
 echo "── 持股介紹＋NAV ──";      cat "$LOGD/holdings.log"
 echo "── 基金新聞・社群 ──";     cat "$LOGD/fundnews.log"
 echo "── ETF 數據追蹤 ──";       cat "$LOGD/etf.log"
+echo "── ETF 每日持股 ──";       cat "$LOGD/etfhold.log"
 echo "── 總經・籌碼數據 ──";     cat "$LOGD/macro.log"
 
 echo "[3.5/4] 前十大持股簡介覆蓋率檢查（新持股缺簡介只在 CI 端現形——寫 gap 檔供儀表板 ⚠）…"

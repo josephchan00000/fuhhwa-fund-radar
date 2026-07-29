@@ -20,12 +20,12 @@ from __future__ import annotations
 import html
 import json
 import re
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
-from . import (clock, etfwatch, fund_insights, fund_intro, fundnews, macrochips, macronews,
+from . import (clock, etfholdings, etfwatch, fund_insights, fund_intro, fundnews, macrochips, macronews,
                twnews, usnews)
 
 
@@ -171,16 +171,17 @@ def _klabel(html_line: str) -> str:
                   r'<span class="klabel">\1</span>', html_line)
 
 
-def _pct_span(v: float | None, digits: int = 2, chip: bool = False) -> str:
+def _pct_span(v: float | None, digits: int = 2, chip: bool = False, unit: str = "%") -> str:
     """紅漲綠跌的漲跌幅（台灣慣例）。None → 灰 —。
-    chip=True 時漲跌加淡底色塊（詳情卡摘要列用，掃讀落點）；持平／缺值維持純文字。"""
+    chip=True 時漲跌加淡底色塊（詳情卡摘要列用，掃讀落點）；持平／缺值維持純文字。
+    unit＝顯示單位（ETF 持股貢獻用 'pp' 百分點，避免與 % 漲跌混淆）。"""
     if v is None:
         return '<span class="na">—</span>'
     cls = "gain" if v > 0 else ("loss" if v < 0 else "flat")
     if chip and cls != "flat":
         cls += " pchip"
     sign = "+" if v > 0 else ""
-    return f'<span class="{cls}">{sign}{v:.{digits}f}%</span>'
+    return f'<span class="{cls}">{sign}{v:.{digits}f}{_esc(unit)}</span>'
 
 
 # ── ⓪ Sticky 頂欄（含台股/全球切換） ─────────────────────────
@@ -585,7 +586,9 @@ _MD_INST_SUBS = [
     ("inst_dealer",  "自營商",     "flow", 1, " 億"),
 ]
 _MD_TW_ROWS = [
-    ("tx_foreign_net", "外資台指期淨部位", "lots", 0, " 口"),
+    # 名稱標明「大台」＝口徑防混淆（2026-07-29 使用者回報數字對不上）：本列為臺股期貨 TX 單一契約，
+    # 彙整站常見的「大台＋小台＋微台合計」會得出明顯較大的口數，兩者不可互相驗證。
+    ("tx_foreign_net", "外資台指期淨部位（大台）", "lots", 0, " 口"),
     ("margin_bal",     "融資餘額",       "lvl",  1, " 億"),
     ("short_bal",      "融券餘額",       "lvl",  0, " 張"),
     ("pc_ratio",       "選擇權 P/C 比",   "lvl",  2, "%"),
@@ -645,17 +648,49 @@ def _md_delta(v: float | None, digits: int, unit: str = "", bp: bool = False) ->
     return f'<span class="{cls}">{sign}{_md_num(v, digits)}{_esc(unit)}</span>'
 
 
+_MD_STALE_SESSIONS = 2      # 資料日落後超過 N 個交易日 → 視為過期、掛 ⚠ 章
+
+
+def _trading_days_between(d_iso: str, today: date) -> int | None:
+    """兩個日期間的平日數（粗略交易日，不扣國定假日——寧可少報過期，不誤掛警示）。"""
+    try:
+        d = date.fromisoformat(d_iso)
+    except (ValueError, TypeError):
+        return None
+    n, cur = 0, d
+    while cur < today:
+        cur += timedelta(days=1)
+        if cur.weekday() < 5:
+            n += 1
+    return n
+
+
+def _md_stale_badge(d_iso: str, today: date | None = None) -> str:
+    """資料日過期警示章。
+
+    為什麼需要（2026-07-29 使用者回報「外資淨空單數字是錯的」的真正教訓）：
+    合併鐵則「抓不到就保留舊序列」保護了資料不被洗空，但儀表板把最後一點當最新值渲染、
+    沒有任何過期提示 —— 外資台指期淨部位自 7/23 起停更，卻連續 6 天以現值姿態上線，
+    只有 CI 日誌一行「不可得」。這一章把靜默凍結變成看得見的紅字。"""
+    n = _trading_days_between(d_iso, today or clock.today_tw())
+    if n is None or n <= _MD_STALE_SESSIONS:
+        return ""
+    tip = (f"此指標官方資料日為 {d_iso}，已落後約 {n} 個交易日未更新"
+           "（來源暫時抓不到時沿用最近可得值，不會以舊值假裝新值）")
+    return f'<span class="mdstale" title="{_esc(tip)}">⚠ 過期</span>'
+
+
 def _md_name_cell(key: str, label: str, *, caret: str | None = None, sub: bool = False,
-                  datestr: str = "") -> str:
+                  datestr: str = "", stale: str = "") -> str:
     """指標名稱欄（2026-07-23 使用者：全部統一——名稱不粗體、每列都標「官方↗」來源連結）。
-    每列＝純文字名稱（非粗體、非連結）＋下方小字「資料日 · 官方↗」；官方↗ 才是可點的來源連結。
+    每列＝純文字名稱（非粗體、非連結）＋下方小字「資料日 · ⚠過期 · 官方↗」；官方↗ 才是可點的來源連結。
     可展開主列（caret 且非 sub）：名稱包在大範圍展開鈕內（點名稱展開分項），仍非粗體。"""
     src = _MD_SRC.get(key)
     url = src[2] if src else None
     srclink = (f'<a class="mdslsm" href="{_safe_url(url)}" target="_blank" rel="noopener" '
                f'title="開官方揭露頁">官方↗</a>' if url else "")
     sep = "　" if (srclink and datestr) else ""
-    meta = (f'<span class="mddt">{_esc(datestr)}{sep}{srclink}</span>'
+    meta = (f'<span class="mddt">{_esc(datestr)}{stale}{sep}{srclink}</span>'
             if (datestr or srclink) else "")
     if caret and not sub:                             # ── 可展開主列：名稱＝展開鈕（非粗體）──
         btn = (f'<button type="button" class="mdtogbtn" data-grp="{_esc(caret)}" '
@@ -706,11 +741,12 @@ def _md_row_html(mc: dict, key: str, label: str, kind: str, digits: int, unit: s
         n5_html = _md_delta(macrochips.change_n(mc, key, 5), digits, "", bp=bp)
         spark = _spark(macrochips.points(mc, key, 30))
     date_html = f"{int(d[5:7])}/{int(d[8:10])}" if len(d) == 10 else d
+    stale = _md_stale_badge(d)
     tr_cls = ' class="mdsub" data-grp="' + _esc(caret) + '"' if sub else ""
     # 日變化與近5日併一欄（上下疊）以省寬、讓走勢圖在手機也進得了畫面
     chg_cell = f'<td class="mdchg">{chg_html}<span class="mdn5">{n5_html}</span></td>'
     return (f'<tr{tr_cls}>'
-            f'{_md_name_cell(key, label, caret=(caret if not sub else None), sub=sub, datestr=date_html)}'
+            f'{_md_name_cell(key, label, caret=(caret if not sub else None), sub=sub, datestr=date_html, stale=stale)}'
             f'<td class="mdval">{val_html}</td>{chg_cell}'
             f'<td class="mdspark">{spark}</td></tr>')
 
@@ -771,7 +807,9 @@ def _macro_data_view(mc: dict | None) -> str:
              '原油＝美元/桶；黃金＝美元/盎司；法人買賣超／融資餘額＝億元；融券＝張；台指期＝口。'
              '<br>口徑：全球指標＝最近收盤（Yahoo Finance 官方序列）。台股籌碼＝證交所／期交所前一交易日盤後官方數據：'
              '買賣超為當日金額（「日變化」欄列前一日值、「近5日」為累計；走勢為近 20 日買賣超長條，綠買超／紅賣超、0 為基準）；'
-             '外資台指期淨部位為臺股期貨(TX)未平倉多空淨額口數（淨空＝空單較多）；P/C 比＝台指選擇權買賣權未平倉量比率。'
+             '外資台指期淨部位為<b>臺股期貨(TX，大台) 單一契約</b>的未平倉多空淨額口數（淨空＝空單較多）——'
+             '<b>不含小型／微型台指</b>，與部分彙整站的「大台＋小台＋微台合計」口徑不同、數字本就不會一致，'
+             '請以本列標示的期交所官方揭露頁對照；P/C 比＝台指選擇權買賣權未平倉量比率。'
              '走勢折線縮放至各指標自身高低區間（看相對形狀、非絕對幅度）。紅＝上升／買超、綠＝下降／賣超（僅標方向非多空判斷）。'
              '資料日為官方數據所屬交易日；週末與休市日沿用最近交易日。</div>')
     return html
@@ -779,11 +817,15 @@ def _macro_data_view(mc: dict | None) -> str:
 
 # ── ETF 數據追蹤（第四分頁：被動／主動台股 ETF 週績效表） ─────────
 
-_ETF_COLS = [("close_px", "最新收盤價"), ("aum_e8", "規模(億)"), ("inception", "成立日期"),
+# 欄序（2026-07-29 使用者需求）：價格與績效欄靠左（每天在看的），
+# 規模／成立日期屬「不常變的靜態資料」→ 移到最右。
+_ETF_COLS = [("close_px", "最新收盤價"),
+             ("chg_pct", "當日漲跌<span class=\"colq\">市價</span>"),
              ("ret_1w", "過去一週報酬<span class=\"colq\">市價</span>"),
              ("ret_1m", "過去一月報酬<span class=\"colq\">市價</span>"),
              ("last_div", "最近一次配息金額"), ("yield_pct", "換算年化配息率"),
-             ("freq", "收益分配頻率")]
+             ("freq", "收益分配頻率"),
+             ("aum_e8", "規模(億)"), ("inception", "成立日期")]
 
 # 報酬來源代碼 → 顯示名（代碼連結本身即 Yahoo，故 yahoo 併入連結不另標；其餘於代碼旁小標）
 _RET_SRC_LABEL = {"stooq": "stooq", "finmind": "FinMind", "twse": "TWSE", "seed": "底稿"}
@@ -821,6 +863,30 @@ def _div_cell(i: dict) -> str:
     return main
 
 
+def _chg_cell(i: dict) -> str:
+    """當日漲跌格（2026-07-29 使用者需求）：紅漲綠跌 ±%，下方小字標漲跌額與前一交易日收盤。
+
+    除息日以「除息參考價＝前收 − 每單位配息」為基準（台股慣例），並標【除息】，
+    否則整段配息會被算成跌幅（同 ret_1w/1m 2026-07-22 修過的總報酬坑）。"""
+    v = i.get("chg_pct")
+    span = _pct_span(v)
+    if v is None:
+        return span
+    amt, pc, pd_ = i.get("chg_amt"), i.get("prev_close"), i.get("prev_date")
+    if amt is None or pc is None:
+        return span
+    exd = i.get("chg_ex_div")
+    ref = round(pc - exd, 4) if exd else pc
+    ex_note = f"（除息 {exd:g}，基準為除息參考價 {ref:g}）" if exd else ""
+    tip = (f"當日漲跌＝{i.get('perf_asof') or '最新'} 收 "
+           f"{i.get('close_px') if i.get('close_px') is not None else '—'} − "
+           f"{pd_ or '前一交易日'} 收 {pc:g}{ex_note}")
+    sign = "+" if amt > 0 else ""
+    tag = '<span class="exdiv">除息</span>' if exd else ""
+    return (f'{span}<div class="rbase" title="{_esc(tip)}">{sign}{amt:g} 元'
+            f'　前收 {pc:g}{tag}</div>')
+
+
 def _ret_cell(i: dict, k: str) -> str:
     """報酬格：紅漲綠跌％＋下方小字標「基準日＠收盤價」，滑鼠移上顯示完整算式，方便人工驗證。
 
@@ -844,8 +910,69 @@ def _ret_cell(i: dict, k: str) -> str:
             f'{_esc(dv_note)}</div>')
 
 
-def _etf_table(items: list[dict]) -> str:
-    """單組 ETF 表（沿用 ovtbl 樣式與點欄排序）；復華自家檔整列高亮＋標章。"""
+def _hold_num(v, digits: int = 0) -> str:
+    return f"{v:,.{digits}f}" if isinstance(v, (int, float)) else '<span class="na">—</span>'
+
+
+def _delta_shares(v) -> str:
+    """加減碼股數：正＝加碼（紅）、負＝減碼（綠）、0＝持平；None＝前一揭露日無此檔可比。"""
+    if v is None:
+        return '<span class="na">—</span>'
+    if v == 0:
+        return '<span class="flat">持平</span>'
+    cls, sign, word = ("gain", "+", "加碼") if v > 0 else ("loss", "", "減碼")
+    return f'<span class="{cls}">{word} {sign}{v:,.0f}</span>'
+
+
+def _holdings_detail(code: str, detail: dict | None) -> str:
+    """ETF 列下方可展開的「持股變化＋當日貢獻」明細（2026-07-29 使用者需求）。
+
+    貢獻(pp)＝該持股權重% × 該股當日漲跌% ÷ 100，即「這檔股票替 ETF 當日漲跌貢獻了幾個
+    百分點」。合計不會剛好等於 ETF 淨值漲跌——現金／期貨部位、費用、揭露時點差都在殘差裡，
+    故只誠實標「已涵蓋權重」與合計，不硬湊到相等。
+    """
+    if not detail or not detail.get("rows"):
+        return ""
+    d, pd_ = detail.get("date") or "—", detail.get("prev_date")
+    cmp_note = f"（對比 {pd_}）" if pd_ else "（首次揭露，尚無可對比的前一日）"
+    trs = []
+    for r in detail["rows"]:
+        flag = ('<span class="hnew">新進</span>' if r.get("is_new") else "")
+        trs.append(
+            f'<tr><td class="l"><b>{_esc(r["stock_id"])}</b> {_esc(r.get("name") or "")}{flag}</td>'
+            f'<td>{_hold_num(r.get("weight"), 2)}%</td>'
+            f'<td>{_delta_shares(r.get("d_shares"))}</td>'
+            f'<td>{_pct_span(r.get("d_weight"))}</td>'
+            f'<td>{_pct_span(r.get("chg_pct"))}</td>'
+            f'<td><b>{_pct_span(r.get("contrib"), unit="pp")}</b></td></tr>')
+    if detail.get("rest_n"):
+        trs.append(f'<tr class="hrest"><td class="l">其餘 {detail["rest_n"]} 檔合計</td>'
+                   f'<td>{_hold_num(detail.get("rest_weight"), 2)}%</td><td>—</td><td>—</td>'
+                   f'<td>—</td><td><b>{_pct_span(detail.get("rest_contrib"), unit="pp")}</b></td></tr>')
+    for r in detail.get("dropped") or []:
+        trs.append(f'<tr class="hout"><td class="l"><b>{_esc(r["stock_id"])}</b>'
+                   f'<span class="hgone">已出清</span></td><td>—</td>'
+                   f'<td>{_delta_shares(r.get("d_shares"))}</td>'
+                   f'<td>{_pct_span(r.get("d_weight"))}</td><td>—</td><td>—</td></tr>')
+    total = _pct_span(detail.get("total_contrib"), unit="pp")
+    return (f'<tr class="hdrow"><td colspan="{len(_ETF_COLS) + 2}" class="hdcell">'
+            f'<details class="hdet"><summary>持股變化與當日貢獻'
+            f'<span class="hsum">{detail.get("n_holdings") or 0} 檔持股｜揭露日 {_esc(d)}'
+            f'{_esc(cmp_note)}</span></summary>'
+            f'<div class="ovwrap"><table class="ovtbl hdtbl"><thead><tr>'
+            f'<th class="l">持股</th><th>權重</th><th>加減碼(股)</th><th>Δ權重</th>'
+            f'<th>個股當日漲跌</th><th>貢獻</th></tr></thead>'
+            f'<tbody>{"".join(trs)}</tbody></table></div>'
+            f'<div class="hdfoot">貢獻＝權重 × 個股當日漲跌 ÷ 100（單位：百分點 pp）。'
+            f'列出貢獻絕對值最大者，已涵蓋權重 {_hold_num(detail.get("covered_weight"), 1)}%，'
+            f'合計貢獻 {total}。<b>合計與 ETF 市價漲跌不會完全相等</b>——現金／期貨部位、'
+            f'費用、以及持股揭露時點與收盤的時間差都落在差額裡，此處不作湊平調整。'
+            f'資料來源：{_esc(detail.get("src") or "投信每日揭露")}（申購買回清單／持股明細）。'
+            f'</div></details></td></tr>')
+
+
+def _etf_table(items: list[dict], holdings_doc: dict | None = None) -> str:
+    """單組 ETF 表（沿用 ovtbl 樣式與點欄排序）；有每日持股揭露者，列下方可展開明細。"""
     trs = []
     for i in items:
         code = i.get("code")
@@ -866,6 +993,8 @@ def _etf_table(items: list[dict]) -> str:
             v = _etf_sortv(k, i)
             if k in ("ret_1w", "ret_1m"):
                 cell = _ret_cell(i, k)
+            elif k == "chg_pct":
+                cell = _chg_cell(i)
             elif k == "aum_e8":
                 cell = f"{v:,.2f}" if v is not None else '<span class="na">—</span>'
             elif k == "close_px":
@@ -885,6 +1014,7 @@ def _etf_table(items: list[dict]) -> str:
                 cell = _esc(i.get(k)) if i.get(k) else '<span class="na">—</span>'
             tds.append(f'<td data-v="{v if v is not None else ""}">{cell}</td>')
         trs.append(f'<tr>{"".join(tds)}</tr>')
+        trs.append(_holdings_detail(code, etfholdings.view(holdings_doc, code)))
     ths = "".join(f'<th class="sk" data-k="{k}" title="點擊排序">{lab}<span class="arr"></span></th>'
                   for k, lab in _ETF_COLS)
     return (f'<div class="ovwrap"><table class="ovtbl etftbl">'
@@ -952,8 +1082,9 @@ def _upcoming_etf_view(up: dict | None) -> str:
     return "".join(parts)
 
 
-def _etfwatch_view(doc: dict | None) -> str:
-    """ETF 數據追蹤分頁：被動（高股息／市值型）與主動式兩張週績效表。"""
+def _etfwatch_view(doc: dict | None, holdings_doc: dict | None = None) -> str:
+    """ETF 數據追蹤分頁：被動（高股息／市值型）與主動式兩張週績效表。
+    有每日持股揭露（data/etf_holdings.json）者，列下方多一條可展開的持股變化／當日貢獻明細。"""
     if not doc or not doc.get("items"):
         return ('<div class="muted">尚無 ETF 追蹤資料。請執行 '
                 '<code>python3 scripts/fetch_etf_watch.py</code> 後重產儀表板。</div>')
@@ -964,13 +1095,13 @@ def _etfwatch_view(doc: dict | None) -> str:
     parts = []
     if passive:
         parts.append(f'<div class="ovg" id="etf-passive">{_ic("coin", plain=True)} 被動 ETF（高股息／市值型・{len(passive)} 檔）</div>'
-                     + _etf_table(passive))
+                     + _etf_table(passive, holdings_doc))
     if active:
         parts.append(f'<div class="ovg" id="etf-active">{_ic("zap", plain=True)} 主動式股票 ETF（{len(active)} 檔）</div>'
-                     + _etf_table(active))
+                     + _etf_table(active, holdings_doc))
     if other:
         parts.append(f'<div class="ovg" id="etf-other">{_ic("coin", plain=True)} 其他（上櫃主動式股票／債券・{len(other)} 檔）</div>'
-                     + _etf_table(other))
+                     + _etf_table(other, holdings_doc))
     has_est = any(i.get("est_div") is not None for i in items)
     est_note = ('　<b>最近一次配息金額</b>為最近一次「實際」除息之每單位配息金額；標 <b>預估 X*</b> 者為'
                 '投信於配息月公告之<b>預計配息金額（非正式配息金額）</b>，實際以各投信除息公告為準。<br>'
@@ -1572,6 +1703,8 @@ a.tk:hover{color:var(--acc)}
 .mdtbl thead th:first-child{z-index:3}
 .mdtbl td.mdval{font-weight:700}
 .mddt{display:block;font-size:11px;color:var(--mut);font-weight:400;margin-top:1px}  /* 名稱下方資料日 */
+/* 資料日過期章：來源暫時抓不到、序列停在舊日期時現形（不再以舊值假裝新值） */
+.mdstale{margin-left:4px;color:#c62828;font-weight:700;white-space:nowrap}  /* 同警示章紅（非漲跌色） */
 .mdtbl td.mdchg,.mdtbl th.mdchg{text-align:right}
 .mdn5{display:block;font-size:11.5px;font-weight:400;opacity:.85;margin-top:1px}  /* 近5日疊在日變化下 */
 .mdtbl th.mdchg .mdn5{color:var(--mut);opacity:1}
@@ -1631,6 +1764,22 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 .uplink:hover{color:#fff;background:var(--acc)}
 .upfoot{color:var(--mut);font-size:12px;line-height:1.75;margin:12px 0 4px}
 .upnone{color:var(--mut);font-size:13px;background:var(--pad);border-radius:10px;padding:11px 14px;margin-bottom:6px}
+/* ETF 每日持股展開明細（持股變化＋當日貢獻）——原生 <details>，不依賴 JS */
+.hdrow>.hdcell{padding:0 0 10px 0;border-top:0}
+.hdet>summary{cursor:pointer;list-style:none;font-size:12.5px;font-weight:700;color:var(--acc);
+  padding:5px 10px;border:1px solid var(--line);border-radius:8px;display:inline-block}
+.hdet>summary::-webkit-details-marker{display:none}
+.hdet>summary::before{content:"▸ ";font-weight:700}
+.hdet[open]>summary::before{content:"▾ "}
+.hdet>summary .hsum{margin-left:8px;font-weight:400;color:var(--mut);font-size:11.5px}
+.hdtbl{margin-top:8px;font-size:12.5px}
+.hdtbl td,.hdtbl th{padding:4px 8px}
+.hdtbl tr.hrest td,.hdtbl tr.hout td{color:var(--mut)}
+.hnew,.hgone{margin-left:5px;font-size:10px;border-radius:5px;padding:0 4px}
+.hnew{color:#8a5410;background:rgba(200,118,15,.14)}
+.hgone{color:var(--mut);background:rgba(120,120,120,.12)}
+.hdfoot{color:var(--mut);font-size:11.5px;line-height:1.75;margin-top:6px}
+
 /* ETF 數據追蹤 */
 .etcat{display:inline-block;white-space:nowrap;font-size:11px;color:var(--accd);border:0;background:rgba(47,111,208,.1);border-radius:5px;padding:1px 6px}
 .etfnote{color:var(--mut);font-size:12.5px;margin-top:12px;line-height:1.8;border-top:1px solid var(--line);padding-top:8px}
@@ -1641,6 +1790,8 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 .estdiv sup{font-weight:800}
 .estmk{color:#c8760f;font-weight:800;cursor:help}
 .rbase{font-size:10.5px;color:var(--mut);font-weight:400;margin-top:2px;white-space:nowrap;cursor:help}
+/* 當日漲跌格的「除息」標記：該日基準為除息參考價（非前收），避免配息被讀成跌幅 */
+.exdiv{margin-left:4px;font-size:10px;color:#8a5410;background:rgba(200,118,15,.14);border-radius:5px;padding:0 4px}
 .rsrc{display:inline-block;font-size:10.5px;padding:1px 5px;margin-left:6px;border-radius:5px;border:0;
   color:var(--mut);background:rgba(138,127,107,.12);vertical-align:1px}
 /* ⑤ details：基金卡去框 → 全寬清單項＋細分隔線 */
@@ -1801,12 +1952,18 @@ document.querySelectorAll('.ovtbl th.sk').forEach(th=>th.onclick=()=>{
   const desc=th.dataset.d!=='desc';
   th.closest('tr').querySelectorAll('th').forEach(x=>{delete x.dataset.d;x.classList.remove('sa','sd')});
   th.dataset.d=desc?'desc':'asc';th.classList.add(desc?'sd':'sa');
-  Array.from(tb.rows).sort((a,b)=>{
-    const av=parseFloat(a.cells[i].dataset.v),bv=parseFloat(b.cells[i].dataset.v);
+  // ETF 表的持股展開列（.hdrow）是「附屬於前一列」的整寬列：不可獨立參與排序
+  //（否則會與所屬 ETF 脫鉤；且 .hdrow 只有一個 colspan 欄，cells[i] 為 undefined 會整個排序爆掉）
+  const main=Array.from(tb.rows).filter(r=>!r.classList.contains('hdrow'));
+  const det=new Map(); main.forEach(r=>{const n=r.nextElementSibling;
+    if(n&&n.classList.contains('hdrow'))det.set(r,n);});
+  main.sort((a,b)=>{
+    const ac=a.cells[i],bc=b.cells[i];
+    const av=parseFloat(ac&&ac.dataset.v),bv=parseFloat(bc&&bc.dataset.v);
     const an=isNaN(av),bn=isNaN(bv);
     if(an&&bn)return 0; if(an)return 1; if(bn)return -1;
     return desc?bv-av:av-bv;
-  }).forEach(r=>tb.appendChild(r));
+  }).forEach(r=>{tb.appendChild(r);const d=det.get(r);if(d)tb.appendChild(d);});
 });
 // 投資策略兩行截斷 ↔ 展開
 document.querySelectorAll('.strat').forEach(s=>s.onclick=()=>s.classList.toggle('open'));
@@ -1890,6 +2047,7 @@ def render() -> str:
     fn_asof = (fn_doc or {}).get("as_of")
     etf_doc = etfwatch.load()
     etf_asof = (etf_doc or {}).get("as_of")
+    eh_doc = etfholdings.load()          # ETF 每日持股揭露（展開明細用；無檔＝不展開）
     mc_doc = macrochips.load()
     mc_asof = (mc_doc or {}).get("as_of")
     # 多期報酬（鉅亨每日基準）鮮度：CI 接上前為 None——不列警示、總覽區顯示過渡註記
@@ -1963,7 +2121,7 @@ def render() -> str:
                f'{_fresh_chip("資料基準", etf_asof, 10)} '
                f'<span class="stsub">台股被動（高股息／市值型）＋主動式 ETF・收盤／規模／成立／週月報酬／'
                f'最近一次配息金額／換算年化配息率／分配頻率・點欄位標題可排序</span></div>'
-               f'{_etfwatch_view(etf_doc)}</div>')
+               f'{_etfwatch_view(etf_doc, eh_doc)}</div>')
 
     # ②b 基金相關新聞・社群（品牌＋各基金合併單一清單＋PTT 聲量；讀 data/fund_news.json）
     fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋財經RSS＋PTT 自動擷取'

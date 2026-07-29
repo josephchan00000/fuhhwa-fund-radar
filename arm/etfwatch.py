@@ -441,13 +441,29 @@ def _returns_from_series(close: dict[str, float], divs: dict[str, float] | None 
     交由上層退回底稿），寧缺勿錯。"""
     dates = sorted(close)
     out: dict = {"ret_1w": None, "ret_1m": None, "perf_date": None, "last_close": None,
-                 "ret_1w_base": None, "ret_1m_base": None}
+                 "ret_1w_base": None, "ret_1m_base": None,
+                 "chg_pct": None, "chg_amt": None, "prev_close": None, "prev_date": None,
+                 "chg_ex_div": None}
     if len(dates) < 2:
         return out
     last = dates[-1]
     last_d = date.fromisoformat(last)
     out["perf_date"] = last
     out["last_close"] = close[last]
+
+    # ── 當日漲跌（2026-07-29 使用者需求）：最新交易日 vs 前一交易日收盤 ──
+    # 除息日特例：台股慣例當日漲跌是對「除息參考價」＝前收 − 每單位配息，否則整段配息會被
+    # 當成跌幅（與 ret_1w/1m 加回配息的總報酬口徑同一個坑，2026-07-22 已在區間報酬修過）。
+    prev = dates[-2]
+    ref = close[prev]
+    ex_div = round((divs or {}).get(last) or 0, 4)
+    if ex_div:
+        ref = round(ref - ex_div, 4)
+        out["chg_ex_div"] = ex_div
+    out["prev_close"], out["prev_date"] = close[prev], prev
+    if ref:
+        out["chg_amt"] = round(close[last] - ref, 4)
+        out["chg_pct"] = round((close[last] / ref - 1) * 100, 2)
 
     def _ret(days: int, tag: str):
         target = last_d - timedelta(days=days)
@@ -555,6 +571,11 @@ def fetch() -> dict:
                 "est_div_date": old.get("est_div_date"),
                 "yield_pct": _pick(old, base, "yield_pct"),
                 "freq": _pick(old, base, "freq"),
+                # 當日漲跌（2026-07-29 使用者需求）：與報酬同源、由收盤序列末兩點自算。
+                # 沿用既有落檔值當 fallback（本次序列抓不到就別讓整欄變空白）。
+                "chg_pct": old.get("chg_pct"), "chg_amt": old.get("chg_amt"),
+                "prev_close": old.get("prev_close"), "prev_date": old.get("prev_date"),
+                "chg_ex_div": old.get("chg_ex_div"),
                 "as_of": old.get("as_of"),
                 "perf_asof": old.get("perf_asof") or SEED_ASOF,  # 報酬數據基準日
                 "ret_src": old.get("ret_src") or "seed",         # 報酬來源（yahoo/finmind/twse/seed）
@@ -596,6 +617,10 @@ def fetch() -> dict:
                 item["ret_1w_div"] = r.get("ret_1w_div")         # 區間內加回的除息（總報酬口徑）
                 item["ret_1m_div"] = r.get("ret_1m_div")
                 got_ret += 1
+            # 當日漲跌：序列末兩點；本次算不出就保留既有值（絕不洗成空白）
+            if r.get("chg_pct") is not None:
+                for k in ("chg_pct", "chg_amt", "prev_close", "prev_date", "chg_ex_div"):
+                    item[k] = r.get(k)
             # etfinfo 未收錄（上櫃 00998A/00986D）→ 收盤價用報酬序列最新收盤回填
             if item.get("close_px") is None and r.get("last_close") is not None:
                 item["close_px"] = round(float(r["last_close"]), 2)
