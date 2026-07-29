@@ -820,9 +820,9 @@ def _macro_data_view(mc: dict | None) -> str:
 # 欄序（2026-07-29 使用者需求）：價格與績效欄靠左（每天在看的），
 # 規模／成立日期屬「不常變的靜態資料」→ 移到最右。
 _ETF_COLS = [("close_px", "最新收盤價"),
-             ("chg_pct", "當日漲跌<span class=\"colq\">市價</span>"),
-             ("ret_1w", "過去一週報酬<span class=\"colq\">市價</span>"),
-             ("ret_1m", "過去一月報酬<span class=\"colq\">市價</span>"),
+             ("chg_pct", "當日漲跌"),
+             ("ret_1w", "過去一週報酬"),
+             ("ret_1m", "過去一月報酬"),
              ("last_div", "最近一次配息金額"), ("yield_pct", "換算年化配息率"),
              ("freq", "收益分配頻率"),
              ("aum_e8", "規模(億)"), ("inception", "成立日期")]
@@ -864,27 +864,28 @@ def _div_cell(i: dict) -> str:
 
 
 def _chg_cell(i: dict) -> str:
-    """當日漲跌格（2026-07-29 使用者需求）：紅漲綠跌 ±%，下方小字標漲跌額與前一交易日收盤。
+    """當日漲跌格：只顯示紅漲綠跌 ±%（2026-07-30 使用者：底下灰字看不懂，都刪掉）。
 
-    除息日以「除息參考價＝前收 − 每單位配息」為基準（台股慣例），並標【除息】，
-    否則整段配息會被算成跌幅（同 ret_1w/1m 2026-07-22 修過的總報酬坑）。"""
+    漲跌額／前收／除息細節全部收進 tooltip 供查證——不再另起一行：
+    ①灰字行與「最新收盤價」欄並排時，close_px（etfinfo 時點）與序列前收可能對不上
+    （實例：0056 顯示收 48.19、前收 48.19 卻 -4.11%），視覺上必然矛盾；
+    ②除息日仍以「除息參考價＝前收 − 每單位配息」為基準（2026-07-22 總報酬坑），
+    只是說明改進 tooltip。"""
     v = i.get("chg_pct")
-    span = _pct_span(v)
     if v is None:
-        return span
+        return _pct_span(v)
     amt, pc, pd_ = i.get("chg_amt"), i.get("prev_close"), i.get("prev_date")
-    if amt is None or pc is None:
-        return span
     exd = i.get("chg_ex_div")
-    ref = round(pc - exd, 4) if exd else pc
-    ex_note = f"（除息 {exd:g}，基準為除息參考價 {ref:g}）" if exd else ""
-    tip = (f"當日漲跌＝{i.get('perf_asof') or '最新'} 收 "
-           f"{i.get('close_px') if i.get('close_px') is not None else '—'} − "
-           f"{pd_ or '前一交易日'} 收 {pc:g}{ex_note}")
-    sign = "+" if amt > 0 else ""
-    tag = '<span class="exdiv">除息</span>' if exd else ""
-    return (f'{span}<div class="rbase" title="{_esc(tip)}">{sign}{amt:g} 元'
-            f'　前收 {pc:g}{tag}</div>')
+    parts = [f"{'+' if (amt or 0) > 0 else ''}{amt:g} 元" if amt is not None else "",
+             f"前收（{pd_ or '前一交易日'}）{pc:g}" if pc is not None else ""]
+    if exd:
+        ref = round((pc or 0) - exd, 4)
+        parts.append(f"除息 {exd:g}／基準為除息參考價 {ref:g}")
+    tip = "當日漲跌：" + "，".join(x for x in parts if x) if any(parts) else ""
+    cls = "gain" if v > 0 else ("loss" if v < 0 else "flat")
+    sign = "+" if v > 0 else ""
+    return (f'<span class="{cls}"' + (f' title="{_esc(tip)}"' if tip else "")
+            + f'>{sign}{v:.2f}%</span>')
 
 
 def _ret_cell(i: dict, k: str) -> str:
@@ -1152,7 +1153,9 @@ def _etfwatch_view(doc: dict | None, holdings_doc: dict | None = None) -> str:
         '<a href="https://www.twse.com.tw/zh/trading/historical/stock-day.html" target="_blank" '
         'rel="noopener">TWSE 官方</a>依序取乾淨日線自算（以最新交易日收盤對回推 7／30 日曆日前最後交易日計算；'
         '區間內有除息時把息加回──總報酬口徑，報酬格下方標「＋息」）；'
-        '<b>此二欄為「市價（收盤價）」口徑</b>——投信官網與 Yahoo奇摩股市 ETF 頁揭露的績效多為'
+        '<b>「當日漲跌」與「過去一週／一月報酬」皆為市價（收盤價）口徑</b>；當日漲跌若逢除息日，'
+        '以「除息參考價＝前收 − 配息」為基準（滑鼠移到數字上可見前收與漲跌額）。'
+        '投信官網與 Yahoo奇摩股市 ETF 頁揭露的績效多為'
         '<b>「淨值（NAV）」口徑</b>，兩者因折溢價每日變動，同一檔同一期間通常會差 0.1～0.8 個百分點，'
         '屬正常口徑差異而非數據有誤；欲與投信文宣逐欄對齊請以各投信官網淨值報酬為準。'
         '每列<b>代碼可點</b>開 <a href="https://tw.stock.yahoo.com/class/etf" target="_blank" '
