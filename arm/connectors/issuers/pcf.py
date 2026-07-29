@@ -45,13 +45,15 @@ class Probe:
         self.head: str = ""
         self.error: str = ""
         self.n_holdings: int = 0
+        self.hints: list[str] = []          # SPA 外殼時，從 HTML／JS 撈出的疑似 API 端點
 
     def line(self) -> str:
         if self.error:
             return f"{self.name} ✗ {self.error}｜{self.url}"
         return (f"{self.name} HTTP {self.status} {self.ctype} {self.nbytes}B "
                 f"→ 持股 {self.n_holdings} 檔｜{self.url}"
-                + (f"｜首段：{self.head}" if not self.n_holdings else ""))
+                + (f"｜首段：{self.head}" if not self.n_holdings else "")
+                + (f"｜疑似 API：{' , '.join(self.hints)}" if self.hints else ""))
 
 
 def _get(url: str, probe: Probe) -> bytes | None:
@@ -213,6 +215,34 @@ def parse_auto(raw: bytes, probe: Probe) -> list[dict]:
     return best
 
 
+_API_HINT = re.compile(
+    r"""["'(]((?:https?://[\w.\-]+)?/[\w./\-]*(?:api|pcf|holding|constituent|component|"""
+    r"""portfolio|fundData|etfData)[\w./\-]*(?:\.json|\.ashx|\.aspx)?)["')]""", re.I)
+_HINT_SKIP = re.compile(r"\.(js|css|png|jpg|svg|woff2?|ico)$", re.I)
+
+
+def _api_hints(raw: bytes, limit: int = 6) -> list[str]:
+    """SPA 外殼（持股由 JS 動態載入）時，從 HTML／內嵌 JS 撈出疑似資料端點。
+
+    2026-07-29 首輪 CI：野村 500、統一 302 迴圈，群益／安聯／證交所 ETFortune 全回
+    Angular 類 SPA 外殼 —— 靜態 HTML 裡沒有持股，真正的清單在 XHR 後面。與其一輪只換
+    一個猜測網址，不如讓探針把頁面裡的候選端點直接列進 CI 日誌，一輪就能收斂。"""
+    try:
+        text = raw.decode("utf-8", "replace")
+    except Exception:
+        return []
+    seen, out = set(), []
+    for m in _API_HINT.finditer(text):
+        u = m.group(1)
+        if u in seen or _HINT_SKIP.search(u) or len(u) > 120:
+            continue
+        seen.add(u)
+        out.append(u)
+        if len(out) >= limit:
+            break
+    return out
+
+
 # ── 候選來源清單（依投信官網型態推導；由 CI 探針逐檔證實後收斂） ─────────
 #
 # 已證實可用的網址型態：
@@ -253,6 +283,30 @@ def _cands(code: str, issuer: str) -> list[tuple[str, str]]:
     return out
 
 
+_MIN_HOLDINGS = 10        # 有效持股清單的最少檔數（主動股票 ETF 動輒 30–50 檔）
+
+
+def is_plausible(rows: list[dict]) -> bool:
+    """這份清單真的是「持股」嗎？—— 2026-07-29 首輪 CI 踩到的假陽性防呆。
+
+    當時證交所 ETFortune 是 SPA 外殼，通用解析從頁面上的**其他 ETF 推薦連結**
+    刮到 `0050 元大台灣50／0056 元大高股息／0052 富邦科技`，權重與股數全 None，
+    卻仍通過舊的「≥5 列」門檻，讓兩檔 ETF 上線了完全錯誤的展開明細。三道驗證：
+
+      ① 檔數 ≥ _MIN_HOLDINGS（推薦連結、導覽列這類雜訊通常只有個位數）。
+      ② **過半列必須帶權重或股數** —— 沒有數量資訊就算不出貢獻，本來就不能用。
+      ③ 不可「整份都是 ETF 代碼」（台股 ETF 代碼以 0 開頭、個股不會）——
+         這正是推薦連結清單的長相。只排除「全部」而非「任一」，才不會誤殺
+         真的持有其他 ETF 的組合型基金。
+    """
+    if len(rows) < _MIN_HOLDINGS:
+        return False
+    with_qty = sum(1 for r in rows if r.get("weight") is not None or r.get("shares") is not None)
+    if with_qty * 2 < len(rows):
+        return False
+    return not all(str(r.get("stock_id", "")).startswith("0") for r in rows)
+
+
 def fetch_one(code: str, issuer: str) -> tuple[list[dict], str, list[Probe]]:
     """單檔 ETF：依序試候選來源，回 (持股列, 來源名, 全部探針)。"""
     probes: list[Probe] = []
@@ -262,10 +316,17 @@ def fetch_one(code: str, issuer: str) -> tuple[list[dict], str, list[Probe]]:
         raw = _get(url, p)
         if not raw:
             continue
-        rows = parse_auto(raw, p)
+        rows = _normalize(parse_auto(raw, p))
         p.n_holdings = len(rows)
-        if len(rows) >= 5:                        # ≥5 檔才算有效持股清單（濾掉零星誤判）
-            return _normalize(rows), name, probes
+        if is_plausible(rows):
+            return rows, name, probes
+        if rows:
+            p.head = (f"[判為非持股清單：{len(rows)} 檔、"
+                      f"帶量 {sum(1 for r in rows if r.get('weight') is not None or r.get('shares') is not None)} 檔] "
+                      + ", ".join(f"{r['stock_id']}{r.get('name') or ''}" for r in rows[:6]))
+            p.n_holdings = 0                      # 不算命中，讓 line() 印出上面的判定說明
+        else:
+            p.hints = _api_hints(raw)             # SPA 外殼 → 撈出可能的 XHR 端點供下一輪收斂
     return [], "", probes
 
 
