@@ -143,7 +143,54 @@ def _chg_pct(px: dict | None) -> float | None:
     return round(chg / prev * 100, 2) if prev else None
 
 
+_MOVE_N = 40         # 異動清單上限（方塊圖＋異動表用；其餘併「其餘 N 檔」）
+
+
+def _kind(d_shares, is_new: bool, is_out: bool) -> str | None:
+    """異動類型：新增／加碼／減碼／出清；None＝本次無異動或無可比基準。"""
+    if is_out:
+        return "out"
+    if is_new:
+        return "new"
+    if d_shares is None or d_shares == 0:
+        return None
+    return "add" if d_shares > 0 else "cut"
+
+
+def _moves(rows: list[dict], dropped: list[dict], move_n: int = _MOVE_N) -> dict:
+    """異動清單（產業方塊圖／異動表用）。
+
+    · 新增檔的「異動量」＝整個部位（prev 沒有它，Δ股數為 None 但實際是全額買進）；
+      出清檔＝前一揭露日的全部股數（負值）。其餘為 Δ股數。
+    · 排序依 |金額| 由大到小；無報價（海外／債券）時退回 |股數|——面積依據由
+      `amount_basis` 誠實標明，不憑空補價。
+    """
+    out = []
+    for r in rows + dropped:
+        kind = _kind(r.get("d_shares"), bool(r.get("is_new")), bool(r.get("is_out")))
+        if not kind:
+            continue
+        m_sh = r.get("shares") if kind == "new" else r.get("d_shares")
+        if m_sh in (None, 0):
+            continue
+        close = r.get("close")
+        amt = round(m_sh * close) if (close is not None) else None
+        out.append({"stock_id": r["stock_id"], "name": r.get("name") or r["stock_id"],
+                    "industry": r.get("industry"), "kind": kind,
+                    "m_shares": m_sh, "lots": round(m_sh / 1000, 1),
+                    "amount": amt, "weight": r.get("weight"),
+                    "d_weight": r.get("d_weight")})
+    priced = sum(1 for m in out if m["amount"] is not None)
+    key = (lambda m: -abs(m["amount"] or 0)) if priced else (lambda m: -abs(m["m_shares"]))
+    out.sort(key=key)
+    shown, rest = out[:move_n], out[move_n:]
+    return {"moves": shown, "moves_n": len(out), "moves_rest_n": len(rest),
+            "moves_rest_amount": (round(sum(m["amount"] or 0 for m in rest)) if rest else None),
+            "amount_basis": "amount" if priced else "shares"}
+
+
 def contributions(entry: dict | None, quotes: dict[str, dict] | None,
+                  ind: dict[str, str] | None = None,
                   top_n: int = _TOP_N) -> dict | None:
     """單檔 ETF 的展開明細資料。
 
@@ -167,22 +214,34 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
         d_sh = (sh - p["shares"]) if (sh is not None and p.get("shares") is not None) else None
         d_w = (round(w - p["weight"], 2)
                if (w is not None and p.get("weight") is not None) else None)
-        chg = _chg_pct((quotes or {}).get(sid))
+        q = (quotes or {}).get(sid) or {}
+        chg = _chg_pct(q)
         contrib = round(w * chg / 100, 3) if (w is not None and chg is not None) else None
         if contrib is not None:
             total += contrib
             covered_w += w or 0.0
-        rows.append({"stock_id": sid, "name": h.get("name") or (quotes or {}).get(sid, {}).get("name") or sid,
+        rows.append({"stock_id": sid, "name": h.get("name") or q.get("name") or sid,
                      "weight": w, "shares": sh, "d_shares": d_sh, "d_weight": d_w,
                      "chg_pct": chg, "contrib": contrib,
+                     # 收盤價（金額 ＝ Δ股數 × 收盤）與產業別（方塊圖外層分組）——
+                     # 兩者只有 CI 端取得到（容器 proxy 擋 twse/tpex），存進落檔供渲染
+                     "close": q.get("close"), "industry": (ind or {}).get(sid),
                      # 新進／剔除標記：prev 有整份揭露時才判定（prev 空＝首日，不亂標「新增」）
                      "is_new": bool(prev) and sid not in prev})
     # 前一揭露日有、今日沒有的 → 已出清
     dropped = [{"stock_id": sid, "name": sid, "weight": None, "shares": 0,
                 "d_shares": -(v.get("shares") or 0) if v.get("shares") else None,
                 "d_weight": (round(-v["weight"], 2) if v.get("weight") is not None else None),
-                "chg_pct": None, "contrib": None, "is_new": False, "is_out": True}
+                "chg_pct": None, "contrib": None,
+                "close": ((quotes or {}).get(sid) or {}).get("close"),
+                "industry": (ind or {}).get(sid),
+                "is_new": False, "is_out": True}
                for sid, v in prev.items() if sid not in _index(holdings)]
+    # 「完整持股明細」（ETF 詳情第三段：搜尋＋排序＋分頁）需要**全部**持股列，
+    # 不能只留貢獻前 12——依權重由大到小，與截圖預設排序一致（2026-07-30 使用者需求）
+    full = sorted(rows, key=lambda r: (r.get("weight") is None, -(r.get("weight") or 0)))
+    mv = _moves(rows, dropped)
+    rows = list(rows)
     rows.sort(key=lambda r: (r["contrib"] is None, -abs(r["contrib"] or 0)))
     shown, rest = rows[:top_n], rows[top_n:]
     rest_contrib = round(sum(r["contrib"] for r in rest if r["contrib"] is not None), 3) if rest else None
@@ -192,26 +251,49 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
     # sum_weight 遠低於 100 就是這種檔，儀表板據此標「僅台股部位」誠實揭露（2026-07-29）。
     return {"date": (entry or {}).get("date"), "prev_date": (entry or {}).get("prev_date"),
             "src": (entry or {}).get("src"), "verify": (entry or {}).get("verify"),
-            "rows": shown, "dropped": dropped,
+            "rows": shown, "dropped": dropped, "all": full, **mv,
             "rest_n": len(rest), "rest_contrib": rest_contrib, "rest_weight": rest_weight,
             "total_contrib": round(total, 2), "covered_weight": round(covered_w, 1),
             "sum_weight": round(sum(h.get("weight") or 0 for h in holdings), 1),
             "n_holdings": len(holdings)}
 
 
-def annotate(doc: dict, quotes: dict[str, dict] | None, top_n: int = _TOP_N) -> dict:
+def annotate(doc: dict, quotes: dict[str, dict] | None,
+             ind: dict[str, str] | None = None, top_n: int = _TOP_N) -> dict:
     """在**抓取端**（CI，連得到報價）把展開明細算好存進落檔的 `detail`。
 
     為什麼不在儀表板端算：容器內 proxy 擋 twse/tpex，建表時取不到個股報價；
     專案慣例本就是「抓取在 CI、容器內只讀落檔建表」（同 macro_chips／etf_watch）。
     報價抓不到時保留既有 detail，不覆寫成空。"""
     for entry in (doc.get("etfs") or {}).values():
-        got = contributions(entry, quotes, top_n)
+        got = contributions(entry, quotes, ind, top_n)
         if got and (quotes or entry.get("detail") is None):
             entry["detail"] = got
     return doc
 
 
 def view(doc: dict | None, code: str) -> dict | None:
-    """儀表板端取數：只讀落檔已算好的 detail（純渲染、不連網）。"""
-    return (((doc or {}).get("etfs") or {}).get(code) or {}).get("detail")
+    """儀表板端取數：以落檔已算好的 detail 為主（純渲染、不連網）。
+
+    落檔 detail 缺 `all`（舊 schema，或 CI 當次取不到報價而沿用舊值）時，就地以
+    `holdings`／`prev` 補算「完整持股 + 異動」——這兩者是**純比較、不需要網路**，
+    只有收盤價與當日漲跌非連網不可。補算後把舊 detail 已有的個股報價／貢獻依代號嫁接
+    回來，既不憑空補價、也不會讓整個詳情區空著（同專案「降級但誠實」慣例）。
+    """
+    entry = ((doc or {}).get("etfs") or {}).get(code) or {}
+    det = entry.get("detail")
+    if (det or {}).get("all") or not entry.get("holdings"):
+        return det
+    from . import stockmeta                     # 延遲載入：避免資料層互相 import
+    fresh = contributions(entry, None, stockmeta.industry_map())
+    if not fresh:
+        return det
+    priced = {r["stock_id"]: r for r in ((det or {}).get("rows") or [])}
+    for r in fresh["all"]:
+        o = priced.get(r["stock_id"])
+        if o:
+            r["close"], r["chg_pct"], r["contrib"] = o.get("close"), o.get("chg_pct"), o.get("contrib")
+    for k in ("total_contrib", "covered_weight", "verify", "src"):
+        if (det or {}).get(k) is not None:
+            fresh[k] = det[k]
+    return fresh

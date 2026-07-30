@@ -26,7 +26,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 from . import (clock, etfholdings, etfwatch, fund_insights, fund_intro, fundnews, macrochips, macronews,
-               twnews, usnews)
+               stockmeta, treemap, twnews, usnews)
 
 
 def _esc(s) -> str:
@@ -925,113 +925,168 @@ def _delta_shares(v) -> str:
     return f'<span class="{cls}">{word} {sign}{v:,.0f}</span>'
 
 
-def _holdings_detail(code: str, detail: dict | None) -> str:
-    """ETF 列下方可展開的「持股變化＋當日貢獻」明細（2026-07-29 使用者需求）。
+# ── ETF 詳情（底部專屬區塊；2026-07-30 使用者需求，比照使用者提供的版面架構） ──
+#
+# 舊版把明細塞在 ETF 表的隱藏列（tr.hdrow）裡，先後被使用者指出兩個問題：整寬 colspan
+# 列「展開後超空」、泡泡卡也仍嫌零碎。改為「上表 → 底部詳情」兩層：ETF 表點代碼＝
+# 選定該檔並跳到底部 #etf-detail，詳情區三段——
+#   ① 持股異動方塊圖（squarify treemap：外層產業／內層個股，面積 ∝ |金額|，
+#      加碼·新增紅系、減碼·出清綠系）
+#   ② 異動明細表（股票｜張數＋金額｜類型 pill，張數／金額可點排序）
+#   ③ 完整持股明細（搜尋代號或名稱、代號/名稱｜漲跌幅/收盤價｜權重/股數｜貢獻度，
+#      可排序、每頁 15 筆分頁）
+#
+# 版面由前端以內嵌資料渲染（切換 ETF 不重載頁面）；**treemap 座標仍在 Python 算好**
+# （arm/treemap.py，輸出百分比座標）——同專案「算在產表端、前端純渲染」慣例，
+# 前端不必再實作一次 squarify。
 
-    貢獻(pp)＝該持股權重% × 該股當日漲跌% ÷ 100，即「這檔股票替 ETF 當日漲跌貢獻了幾個
-    百分點」。合計不會剛好等於 ETF 淨值漲跌——現金／期貨部位、費用、揭露時點差都在殘差裡，
-    故只誠實標「已涵蓋權重」與合計，不硬湊到相等。
+_ED_TM_ITEMS = 24        # 方塊圖最多畫幾檔（過小的方塊放不進標籤，其餘留在異動表）
+
+
+def _eh_verify_chip(vf: dict) -> list:
+    """跨源驗證章 → [樣式類別, 章面文字, tooltip]（供前端渲染；文案沿用舊版）。"""
+    other = str((vf or {}).get("other") or "第二來源")
+    st = (vf or {}).get("status")
+    hit, n = (vf or {}).get("top_hit"), (vf or {}).get("top_n")
+    dw = (vf or {}).get("max_dw")
+    if st == "match" and vf.get("weights_compared"):
+        return ["hvok", "🟢 雙源相符",
+                f"與 {other} 交叉驗證：前十大重合 {hit}/{n}、共同持股權重差 ≤"
+                f"{dw if dw is not None else '—'}pp"]
+    if st == "match":
+        return ["hvok", "🟢 構成相符",
+                f"與 {other} 構成交叉驗證：前十大重合 {hit}/{n}"
+                "（副源為月度基準，權重時點不同不予比對）"]
+    if st == "weak":
+        return ["hvone", "副源過舊・未能驗證",
+                f"副源（{other}）持股為月度基準、與每日快照構成重合僅 {hit}/{n}"
+                "——多為月內調倉所致，非主來源錯誤的證據；本次未能有效交叉驗證"]
+    if st == "mismatch":
+        return ["hvbad", "⚠ 兩源不符",
+                f"與 {other} 不符：前十大僅重合 {hit}/{n}、權重差最大 {dw}pp"
+                "——本表照用主來源，數字請以官方揭露為準"]
+    if st == "single":
+        return ["hvone", "單源未驗證", "僅單一來源可得，本次未經第二站交叉驗證"]
+    return ["", "", ""]
+
+
+def _eh_treemap(moves: list[dict], basis: str) -> list[dict]:
+    """異動清單 → 產業分層 treemap（百分比座標，前端直接當 % 用）。
+
+    面積依據：有報價時用 |金額|，否則退回 |股數|（`basis`，說明文會標明）。
+    產業別缺對照者歸「未分類」——不丟掉，否則方塊圖與異動表檔數不一致、看起來像漏資料。
     """
-    if not detail or not detail.get("rows"):
+    top = moves[:_ED_TM_ITEMS]
+    if not top:
+        return []
+    groups: dict[str, list] = {}
+    meta: dict[str, dict] = {}
+    for m in top:
+        v = abs(m.get("amount") or 0) if basis == "amount" else abs(m.get("m_shares") or 0)
+        if v <= 0:
+            continue
+        groups.setdefault(m.get("industry") or stockmeta.UNCLASSIFIED, []).append((m["stock_id"], v))
+        meta[m["stock_id"]] = m
+    # 產業別對照尚未入庫（CI 抓 openapi 後補）時只有一個「未分類」群組——
+    # 那層標題不帶資訊，改成單層方塊圖（head=0、群名留空），別讓版面被雜訊佔一行
+    flat = len(groups) == 1 and stockmeta.UNCLASSIFIED in groups
+    out = []
+    for g in treemap.grouped([(k, v) for k, v in groups.items()], w=100.0, h=100.0,
+                             gap=0.0 if flat else 1.1, head=0.0 if flat else 7.0,
+                             head_min_h=17.0):
+        out.append({
+            "g": "" if flat else g["key"], "x": round(g["x"], 2), "y": round(g["y"], 2),
+            "w": round(g["w"], 2), "h": round(g["h"], 2), "hd": round(g["head"], 2),
+            "it": [{"s": it["key"], "n": meta[it["key"]].get("name") or it["key"],
+                    "a": meta[it["key"]].get("amount"),
+                    "sh": meta[it["key"]].get("m_shares"),
+                    "k": meta[it["key"]].get("kind"),
+                    "x": round(it["x"], 2), "y": round(it["y"], 2),
+                    "w": round(it["w"], 2), "h": round(it["h"], 2)}
+                   for it in g["items"]],
+        })
+    return out
+
+
+def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
+    """單檔 ETF 的詳情資料（內嵌 JSON 用）。
+
+    列一律用**緊湊陣列**而非物件：完整持股明細全 23 檔合計逾千列，物件鍵名會讓
+    內嵌 JSON 膨脹一倍以上（欄序定義見前端 `AL`／`MV` 註解）。
+    """
+    if not detail:
+        return None
+    basis = detail.get("amount_basis") or "shares"
+    return {
+        "nm": name, "d": detail.get("date"), "p": detail.get("prev_date"),
+        "n": detail.get("n_holdings"), "sw": detail.get("sum_weight"),
+        "src": detail.get("src"), "basis": basis,
+        "tc": detail.get("total_contrib"), "cw": detail.get("covered_weight"),
+        "vf": _eh_verify_chip(detail.get("verify") or {}),
+        "mn": detail.get("moves_n"), "mr": detail.get("moves_rest_n"),
+        "tm": _eh_treemap(detail.get("moves") or [], basis),
+        # MV：[代號, 名稱, 異動股數, 金額, 類型]
+        "mv": [[m["stock_id"], m.get("name") or m["stock_id"], m.get("m_shares"),
+                m.get("amount"), m.get("kind")] for m in (detail.get("moves") or [])],
+        # AL：[代號, 名稱, 權重, 股數, 收盤價, 當日漲跌%, 貢獻pp]
+        "al": [[r["stock_id"], r.get("name") or r["stock_id"], r.get("weight"),
+                r.get("shares"), r.get("close"), r.get("chg_pct"), r.get("contrib")]
+               for r in (detail.get("all") or [])],
+    }
+
+
+def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
+    """底部「ETF 詳情」區塊：選擇器＋三段明細（內容由前端依內嵌資料渲染）。"""
+    items = (doc or {}).get("items") or []
+    payload, chips = {}, []
+    order = [i for i in items if etfholdings.view(holdings_doc, i.get("code"))]
+    for i in order:
+        code = i.get("code")
+        p = _eh_payload(etfholdings.view(holdings_doc, code), i.get("name") or "")
+        if not p:
+            continue
+        payload[code] = p
+        chips.append(f'<button type="button" class="edchip" data-c="{_esc(code)}" '
+                     f'title="{_esc(i.get("name") or "")}"><b>{_esc(code)}</b></button>')
+    if not payload:
         return ""
-    d, pd_ = detail.get("date") or "—", detail.get("prev_date")
-    cmp_note = f"（對比 {pd_}）" if pd_ else "（首次揭露，尚無可對比的前一日）"
-    # 全球型主動 ETF（如 00988A）：海外持股代號不符台股格式、進不了本表 → 權重合計遠低於
-    # 100%。不標明的話「23% 的持股」看起來像完整清單，偏向誤導——加橘標誠實揭露（2026-07-29）。
-    sw = detail.get("sum_weight")
-    partial = (f'<span class="hpartial" title="本表僅列臺股掛牌部位（權重合計 {sw:g}%）；'
-               f'海外持股與現金部位不在本表，貢獻合計亦僅反映臺股部位">僅台股部位 {sw:g}%</span>'
-               if isinstance(sw, (int, float)) and 0 < sw < 60 else "")
-    # 泡泡卡（2026-07-30 使用者：小表格在整寬 colspan 列裡「超空」——colspan 列寬＝
-    # 整張橫捲表寬，表格只佔左上角。改卡片網格：auto-fill 填滿容器、手機 2 欄桌機多欄，
-    # 外層 .hdwrap 以 sticky 定寬貼住視窗，表格再怎麼橫捲卡片區都在眼前）
-    wmax = max((r.get("weight") or 0 for r in detail["rows"]), default=0) or 1.0
-
-    def _card(r: dict) -> str:
-        c = r.get("contrib")
-        cls = "up" if (c or 0) > 0 else ("dn" if (c or 0) < 0 else "na")
-        flag = '<span class="hnew">新進</span>' if r.get("is_new") else ""
-        chg = r.get("chg_pct")
-        if chg is not None:
-            arrow = "▲" if chg > 0 else ("▼" if chg < 0 else "")
-            chg_html = f'<span class="hc-chg">{arrow}{abs(chg):.2f}%</span>'
-        else:
-            chg_html = '<span class="hc-chg na" title="無台股日內報價（海外持股／債券）">—</span>'
-        w = r.get("weight")
-        wbar = (f'<div class="hc-w">權重 {_hold_num(w, 2)}%'
-                f'<span class="wbar"><i style="width:{min(100, (w or 0) / wmax * 100):.0f}%"></i></span></div>'
-                if w is not None else "")
-        deltas = []                                   # Δ 行：有異動才顯示，卡片保持輕
-        if r.get("d_shares"):
-            deltas.append(_delta_shares(r.get("d_shares")) + " 股")
-        if r.get("d_weight"):
-            deltas.append(f'Δ權重 {_pct_span(r.get("d_weight"))}')
-        dline = f'<div class="hc-d">{"　".join(deltas)}</div>' if deltas else ""
-        return (f'<div class="hcard {cls}">'
-                f'<div class="hc-id"><b>{_esc(r["stock_id"])}</b> {_esc(r.get("name") or "")}{flag}</div>'
-                f'<div class="hc-main">{_pct_span(c, unit="pp")}{chg_html}</div>'
-                f'{wbar}{dline}</div>')
-
-    cards = [_card(r) for r in detail["rows"]]
-    if detail.get("rest_n"):
-        cards.append(
-            f'<div class="hcard rest"><div class="hc-id">其餘 {detail["rest_n"]} 檔合計</div>'
-            f'<div class="hc-main">{_pct_span(detail.get("rest_contrib"), unit="pp")}</div>'
-            f'<div class="hc-w">權重 {_hold_num(detail.get("rest_weight"), 2)}%</div></div>')
-    for r in detail.get("dropped") or []:
-        cards.append(
-            f'<div class="hcard out"><div class="hc-id"><b>{_esc(r["stock_id"])}</b>'
-            f'<span class="hgone">已出清</span></div>'
-            f'<div class="hc-d">{_delta_shares(r.get("d_shares"))} 股'
-            + (f'　Δ權重 {_pct_span(r.get("d_weight"))}' if r.get("d_weight") else "")
-            + '</div></div>')
-    total = _pct_span(detail.get("total_contrib"), unit="pp")
-    # 跨源驗證章（2026-07-29 使用者指示改彙整站＋雙重驗證）：match=🟢、single=標明未驗證、
-    # mismatch=紅 ⚠（照用主來源、差異細節在章 tooltip——誠實揭露，不假裝一致）
-    vf = detail.get("verify") or {}
-    other = _esc(str(vf.get("other") or "第二來源"))
-    if vf.get("status") == "match" and vf.get("weights_compared"):
-        vf_html = (f'<span class="hvok" title="與 {other} 交叉驗證：'
-                   f'前十大重合 {vf.get("top_hit")}/{vf.get("top_n")}、共同持股權重差 ≤'
-                   f'{vf.get("max_dw") if vf.get("max_dw") is not None else "—"}pp">🟢 雙源相符</span>')
-    elif vf.get("status") == "match":
-        # 構成驗證（weights=False）：副源（Yahoo）持股為月度基準、與每日快照時點不同，
-        # 只驗前十大構成重合、權重不予比對——章面明講「構成」，不冒稱權重也相符
-        vf_html = (f'<span class="hvok" title="與 {other} 構成交叉驗證：前十大重合 '
-                   f'{vf.get("top_hit")}/{vf.get("top_n")}（副源為月度基準，權重時點不同不予比對）'
-                   f'">🟢 構成相符</span>')
-    elif vf.get("status") == "weak":
-        vf_html = (f'<span class="hvone" title="副源（{other}）持股為月度基準、與每日快照構成重合僅 '
-                   f'{vf.get("top_hit")}/{vf.get("top_n")}——多為月內調倉所致，非主來源錯誤的證據；'
-                   f'本次未能有效交叉驗證">副源過舊・未能驗證</span>')
-    elif vf.get("status") == "mismatch":
-        vf_html = (f'<span class="hvbad" title="與 {other} 不符：'
-                   f'前十大僅重合 {vf.get("top_hit")}/{vf.get("top_n")}、權重差最大 '
-                   f'{vf.get("max_dw")}pp——本表照用主來源，數字請以官方揭露為準">⚠ 兩源不符</span>')
-    elif vf.get("status") == "single":
-        vf_html = '<span class="hvone" title="僅單一來源可得，本次未經第二站交叉驗證">單源未驗證</span>'
-    else:
-        vf_html = ""
-    # 版型比照總經「三大法人」子列（2026-07-30 使用者：原 <details> 橫幅排版太醜）：
-    # 明細藏在同表的隱藏列（tr.hdrow，預設不顯示），由代碼／名稱欄的 ▸ 鈕切換——
-    # 收合時表格零額外佔位，不再有 23 條重複橫幅。
-    return (f'<tr class="hdrow" data-grp="eh-{_esc(code)}">'
-            f'<td colspan="{len(_ETF_COLS) + 2}" class="hdcell">'
-            f'<div class="hdwrap">'
-            f'<div class="hdhead"><b>持股變化與當日貢獻</b>　'
-            f'{detail.get("n_holdings") or 0} 檔持股｜揭露日 {_esc(d)}{_esc(cmp_note)}'
-            f'{partial}{vf_html}</div>'
-            f'<div class="hgrid">{"".join(cards)}</div>'
-            f'<div class="hdfoot">卡片依貢獻絕對值排序。'
-            f'貢獻＝權重 × 個股當日漲跌 ÷ 100（單位：百分點 pp）。'
-            f'列出貢獻絕對值最大者，已涵蓋權重 {_hold_num(detail.get("covered_weight"), 1)}%，'
-            f'合計貢獻 {total}。<b>合計與 ETF 市價漲跌不會完全相等</b>——現金／期貨部位、'
-            f'費用、以及持股揭露時點與收盤的時間差都落在差額裡，此處不作湊平調整。'
-            + ("資料來源：復華官網 assetsExcel（發行投信第一手揭露）。"
-               if detail.get("src") == "fhtrust" else
-               f"資料來源：{_esc(detail.get('src') or '投信每日揭露')}"
-               "（Tier B 彙整站，取自投信每日揭露；正式對外前以各投信官網核對）。")
-            + '</div></div></td></tr>')
+    js = json.dumps({"etfs": payload}, ensure_ascii=False, separators=(",", ":"))
+    # </script> 不可原樣出現在 inline script 內（HTML 解析器會提前結束腳本）
+    js = js.replace("</", "<\\/")
+    return (
+        f'<div class="section" id="etf-detail"><div class="st">{_ic("layers", tone="teal")}ETF 詳情 '
+        f'<span class="stsub">選一檔 ETF：看它的持股異動（產業分層方塊圖）、異動明細與'
+        f'完整持股（含當日漲跌貢獻）</span></div>'
+        f'<div class="edpick" id="ed-pick">{"".join(chips)}</div>'
+        f'<div class="edhead" id="ed-head"></div>'
+        f'<div class="edblk"><div class="edt">持股異動 <span class="edtsub" id="ed-mvsub"></span></div>'
+        f'<div class="tmap" id="ed-tmap"></div>'
+        f'<div class="edfoot">外層是產業，內層是異動股票；新增／加碼同紅系，減碼／刪除同綠系，'
+        f'<b>顏色越深＝加減碼幅度越大</b>（虛線框＝新增或出清）。'
+        f'<span id="ed-basis"></span></div>'
+        f'<div class="edscroll tbl"><table class="chgtbl"><thead><tr>'
+        f'<th>股票</th>'
+        f'<th class="num csk" data-k="lots">張數 <span class="ski">⇅</span></th>'
+        f'<th class="num csk" data-k="amt">金額 <span class="ski">⇅</span></th>'
+        f'<th class="num">類型</th></tr></thead><tbody id="ed-mv"></tbody></table></div>'
+        f'<div class="edpg"><button type="button" id="ed-mvmore" hidden></button></div>'
+        f'<div class="edfoot" id="ed-mvfoot"></div></div>'
+        f'<div class="edblk tbl"><div class="edt">完整持股明細</div>'
+        f'<div class="edtsub" id="ed-hsub"></div>'
+        f'<input class="edsearch" id="ed-q" type="search" placeholder="搜尋代號或名稱" '
+        f'aria-label="搜尋代號或名稱">'
+        f'<div class="edscroll"><table class="hldtbl"><thead><tr>'
+        f'<th>代號<span class="sub">名稱</span></th>'
+        f'<th class="num hsk" data-k="chg">漲跌幅<span class="sub">收盤價</span> <span class="ski">⇅</span></th>'
+        f'<th class="num hsk" data-k="w">權重<span class="sub">股數</span> <span class="ski">⇅</span></th>'
+        f'<th class="num hsk" data-k="c">貢獻度<span class="sub" title="貢獻度＝權重 × 個股當日漲跌 ÷ 100，'
+        f'單位為百分點；合計不會剛好等於 ETF 市價漲跌（現金／期貨部位、費用、揭露時點差在殘差）">ⓘ pp</span>'
+        f' <span class="ski">⇅</span></th></tr></thead><tbody id="ed-hb"></tbody></table></div>'
+        f'<div class="edpg"><button type="button" id="ed-prev">« 上一頁</button>'
+        f'<span id="ed-pgn">1 / 1</span>'
+        f'<button type="button" id="ed-next">下一頁 »</button></div>'
+        f'<div class="edfoot" id="ed-hfoot"></div></div>'
+        f'<script>window.__EH={js};</script></div>')
 
 
 def _etf_table(items: list[dict], holdings_doc: dict | None = None) -> str:
@@ -1046,16 +1101,16 @@ def _etf_table(items: list[dict], holdings_doc: dict | None = None) -> str:
                   if rsrc in _RET_SRC_LABEL else "")
         # 產品名內「復華」以品牌色標示；代碼自成一行，避免名稱首字被擠上代碼列
         name_html = _esc(i.get("name") or "").replace("復華", '<span class="fh">復華</span>')
-        det_html = _holdings_detail(code, etfholdings.view(holdings_doc, code))
-        if det_html:
-            # 有持股明細 → 名稱欄＝展開鈕（比照三大法人：▸＋整塊名稱可點、好按），
-            # Yahoo 連結降為下方小字（同三大法人「官方↗」的位置邏輯）
-            id_cell = (f'<td class="nm"><button type="button" class="mdtogbtn ehtog" '
-                       f'data-grp="eh-{_esc(code)}" aria-expanded="false" '
-                       f'aria-label="展開／收合持股變化與當日貢獻">'
-                       f'<span class="mdcaret" data-grp="eh-{_esc(code)}">▸</span>'
+        has_det = bool(etfholdings.view(holdings_doc, code))
+        if has_det:
+            # 有每日持股揭露 → 名稱欄＝跳詳情鈕（2026-07-30 改版：明細移到底部
+            # #etf-detail 專屬區塊，表內不再展開整寬列——那是「展開後超空」的根因）
+            id_cell = (f'<td class="nm"><button type="button" class="edjump" '
+                       f'data-c="{_esc(code)}" '
+                       f'aria-label="看 {_esc(code)} 的持股異動與完整持股明細">'
                        f'<span class="mdgname"><b class="etcode">{_esc(code)}</b>'
-                       f'<span class="etname">{name_html}{srctag}</span></span></button>'
+                       f'<span class="etname">{name_html}{srctag}</span></span>'
+                       f'<span class="edjt">詳情 ↓</span></button>'
                        f'<span class="mddt ehyh"><a class="mdslsm" href="{vurl}" target="_blank" '
                        f'rel="noopener" title="開 Yahoo奇摩股市對照驗證">Yahoo↗</a></span></td>')
         else:
@@ -1089,7 +1144,6 @@ def _etf_table(items: list[dict], holdings_doc: dict | None = None) -> str:
                 cell = _esc(i.get(k)) if i.get(k) else '<span class="na">—</span>'
             tds.append(f'<td data-v="{v if v is not None else ""}">{cell}</td>')
         trs.append(f'<tr>{"".join(tds)}</tr>')
-        trs.append(det_html)
     ths = "".join(f'<th class="sk" data-k="{k}" title="點擊排序">{lab}<span class="arr"></span></th>'
                   for k, lab in _ETF_COLS)
     return (f'<div class="ovwrap"><table class="ovtbl etftbl">'
@@ -1841,39 +1895,86 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 .uplink:hover{color:#fff;background:var(--acc)}
 .upfoot{color:var(--mut);font-size:12px;line-height:1.75;margin:12px 0 4px}
 .upnone{color:var(--mut);font-size:13px;background:var(--pad);border-radius:10px;padding:11px 14px;margin-bottom:6px}
-/* ETF 每日持股展開明細（持股變化＋當日貢獻）——比照三大法人：名稱欄 ▸ 鈕切換隱藏列，
-   收合時零佔位（2026-07-30 使用者：原 <details> 橫幅 23 條重複、排版太醜） */
-tr.hdrow{display:none} tr.hdrow.show{display:table-row}
-.hdrow>.hdcell{background:#f6f9fe;border-bottom:1px solid var(--line);padding:9px 12px 11px 22px}
-.hdhead{font-size:12px;color:var(--mut);margin-bottom:7px;line-height:1.7}
-.hdhead b{color:var(--ink2);font-size:12.5px}
-/* 展開鈕沿用 .mdtogbtn；ETF 凍結欄較窄 → 內距收斂、代碼粗體維持識別 */
-.etftbl .mdtogbtn{padding:6px 2px 6px 0;min-height:34px}
-.etftbl .mdtogbtn .etcode{display:block;font-weight:800;color:var(--accd)}
-.ehyh{display:block;margin-left:18px;margin-top:1px}
-/* 明細內容定寬＋sticky 貼視窗（2026-07-30 使用者：展開後超空）——colspan 列寬＝整張
-   橫捲表寬，內容若自然排版只佔左上角、往右捲全是空白。sticky left 讓卡片區跟著視窗走。 */
-.hdwrap{position:sticky;left:8px;max-width:min(94vw,760px)}
-/* 持股泡泡卡：auto-fill 填滿容器（手機 2 欄、桌機 4-5 欄），依貢獻排序、左緣色條標方向 */
-.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:2px 0 8px}
-.hcard{background:var(--card);border:1px solid var(--line);border-left-width:3px;border-radius:11px;
-  padding:7px 10px 8px;min-width:0}
-.hcard.up{border-left-color:var(--gain)} .hcard.dn{border-left-color:var(--loss)}
-.hcard.na,.hcard.rest,.hcard.out{border-left-color:var(--line)}
-.hcard.rest,.hcard.out{background:var(--pad);color:var(--mut)}
-.hc-id{font-size:11.5px;color:var(--ink2);line-height:1.35;overflow:hidden;text-overflow:ellipsis;
+/* ETF 詳情（底部區塊：產業分層方塊圖＋異動明細＋完整持股明細）——2026-07-30 使用者
+   提供的版面架構。取代舊的「表內隱藏列展開」：整寬 colspan 列本質上就會「展開後超空」，
+   且 23 檔各一份明細會把表格拉長；改成底部單一詳情區、由上表點「詳情」選定該檔。 */
+.edjump{display:block;width:100%;text-align:left;background:none;border:0;padding:6px 2px 6px 0;
+  cursor:pointer;font:inherit;color:inherit}
+.edjump .etcode{display:block;font-weight:800;color:var(--accd)}
+.edjt{display:inline-block;margin-top:2px;font-size:10.5px;color:var(--acc);
+  background:rgba(47,111,208,.1);border-radius:5px;padding:1px 5px;white-space:nowrap}
+.edjump:hover .edjt{color:#fff;background:var(--acc)}
+.edpick{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px}
+.edchip{display:flex;align-items:baseline;gap:5px;background:var(--card);border:1px solid var(--line);
+  border-radius:9px;padding:5px 9px;font:inherit;font-size:12px;color:var(--ink2);cursor:pointer}
+.edchip b{color:var(--accd);font-size:12.5px}
+.edchip>span{color:var(--mut);font-size:11px;max-width:10em;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap}
-.hc-id b{color:var(--accd);margin-right:3px}
-.hc-main{display:flex;align-items:baseline;justify-content:space-between;gap:6px;margin-top:2px}
-.hc-main .gain,.hc-main .loss,.hc-main .flat,.hc-main .na{font-size:16.5px;font-weight:800}
-.hc-chg{font-size:11.5px;color:var(--mut);font-weight:600;white-space:nowrap}
-.hc-chg.na{font-weight:400}
-.hc-w{font-size:10.5px;color:var(--mut);margin-top:4px}
-.wbar{display:block;height:4px;border-radius:3px;background:rgba(120,140,170,.16);margin-top:3px;overflow:hidden}
-.wbar>i{display:block;height:100%;border-radius:3px;background:var(--acc);opacity:.75}
-.hc-d{font-size:11px;color:var(--ink2);margin-top:4px;line-height:1.5}
-.hnew,.hgone{margin-left:5px;font-size:10px;border-radius:5px;padding:0 4px}
-.hnew{color:#8a5410;background:rgba(200,118,15,.14)}
+.edchip.on{border-color:var(--acc);background:rgba(47,111,208,.08);box-shadow:inset 0 0 0 1px var(--acc)}
+.edhead{font-size:12px;color:var(--mut);line-height:1.85;margin-bottom:9px}
+.edhead b{color:var(--accd);font-size:13.5px}
+.edblk{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:11px 12px 12px;
+  margin-bottom:10px}
+.edblk.tbl{max-width:820px}
+.edt{font-size:13.5px;font-weight:800;color:var(--ink);margin-bottom:2px}
+.edtsub{font-size:11.5px;font-weight:400;color:var(--mut);margin-left:2px}
+.edfoot{font-size:11.5px;color:var(--mut);line-height:1.75;margin-top:8px}
+/* 方塊圖：容器固定高度，方塊以百分比絕對定位（座標由 Python squarify 算好） */
+.tmap{position:relative;width:100%;height:clamp(270px,62vw,380px);background:var(--pad);
+  border-radius:10px;overflow:hidden;margin-top:8px}
+.tmg{position:absolute;border-radius:7px;background:rgba(120,140,170,.12)}
+.tmgl{position:absolute;left:6px;top:2px;font-size:11px;font-weight:700;color:var(--ink2);
+  white-space:nowrap;overflow:hidden;max-width:calc(100% - 10px)}
+.tmi{position:absolute;border-radius:6px;overflow:hidden;padding:1px;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;text-align:center;line-height:1.3}
+/* 底色深淺 ∝ 加減碼幅度（2026-07-30 使用者：同色系一片看起來平板不舒服）——
+   色相仍只代表方向（加碼·新增紅／減碼·出清綠），深淺與面積講的是同一件事（幅度），
+   不會產生「深紅是大買還是大跌」的語意衝突。實際 rgba 由前端逐格算、寫成 inline style。
+   新增／出清另以虛線外框區分（幅度已佔用深淺，不能再拿它表示進出）。 */
+.tmi{border:1px solid transparent}
+.tmi.new,.tmi.out{border-style:dashed}
+.tmi i{font-style:normal;font-size:11px;font-weight:700;color:#16263a;max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tmi u{text-decoration:none;font-size:10.5px;font-weight:700;color:#1e2f42;white-space:nowrap}
+.tmi s{text-decoration:none;font-size:9.5px;color:#33455a;white-space:nowrap}
+.tmi.deep i{color:#fff} .tmi.deep u{color:rgba(255,255,255,.96)}
+.tmi.deep s{color:rgba(255,255,255,.88)}
+.tmnone{display:flex;align-items:center;justify-content:center;height:100%;padding:0 18px;
+  color:var(--mut);font-size:12.5px;text-align:center}
+/* 異動表／完整持股表：兩行式儲存格（主值在上、副值灰字在下），手機也塞得下四欄 */
+.edscroll{overflow-x:auto;margin-top:9px}
+.edscroll.tbl{max-width:820px}
+.chgtbl,.hldtbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.chgtbl th,.hldtbl th{font-size:11.5px;color:var(--mut);font-weight:700;text-align:left;
+  padding:5px 6px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:top}
+.chgtbl th.num,.hldtbl th.num{text-align:right}
+.chgtbl td,.hldtbl td{padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.chgtbl td.num,.hldtbl td.num{text-align:right;white-space:nowrap}
+.chgtbl tbody tr:hover,.hldtbl tbody tr:hover{background:var(--pad)}
+th.csk,th.hsk{cursor:pointer}
+th.csk:hover,th.hsk:hover,th.csk.on,th.hsk.on{color:var(--acc)}
+.ski{font-size:9.5px;color:var(--mut);font-weight:400}
+th .sub{display:block;font-weight:400;color:var(--mut);font-size:10.5px}
+.edcode{font-weight:800;color:var(--accd);font-size:13px}
+.edname{display:block;font-size:11px;color:var(--mut);max-width:8.5em;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.edmain{font-weight:800;font-size:13.5px}
+.edsub2{display:block;font-size:11px;color:var(--mut);font-weight:400}
+.kpill{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px;
+  white-space:nowrap}
+.kpill.add,.kpill.new{color:#b3312c;background:rgba(211,58,52,.12)}
+.kpill.cut,.kpill.out{color:#1f7a43;background:rgba(31,157,87,.12)}
+.edsearch{width:min(100%,290px);margin-top:6px;padding:7px 11px;font:inherit;font-size:12.5px;
+  border:1px solid var(--line);border-radius:9px;background:var(--pad);color:var(--ink)}
+.edpg{display:flex;align-items:center;gap:12px;justify-content:center;margin-top:10px;
+  font-size:12px;color:var(--mut)}
+.edpg button{font:inherit;font-size:12px;color:var(--accd);background:var(--pad);
+  border:1px solid var(--line);border-radius:8px;padding:5px 12px;cursor:pointer}
+.edpg button:disabled{color:var(--mut);opacity:.5;cursor:default}
+.etftbl .edjump{padding:6px 2px 6px 0;min-height:34px}
+.etftbl .edjump .etcode{display:block}
+.ehyh{display:block;margin-left:0;margin-top:1px}
+.hnew{color:#8a5410;background:rgba(200,118,15,.14);margin-left:5px;font-size:10px;border-radius:5px;padding:0 4px}
 /* 全球型 ETF：本表僅台股部位（權重合計遠低於 100%）——橘標誠實揭露，避免被讀成完整清單 */
 .hpartial{margin-left:6px;font-size:10.5px;color:#8a5410;background:rgba(200,118,15,.14);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help}
 /* 跨源驗證章：🟢 雙源相符／單源未驗證／⚠ 兩源不符（詳情在 tooltip） */
@@ -1881,7 +1982,6 @@ tr.hdrow{display:none} tr.hdrow.show{display:table-row}
 .hvone{margin-left:5px;font-size:10.5px;color:var(--mut);background:rgba(120,120,120,.12);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help}
 .hvbad{margin-left:5px;font-size:10.5px;color:#c62828;background:rgba(198,40,40,.1);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help;font-weight:700}
 .hgone{color:var(--mut);background:rgba(120,120,120,.12)}
-.hdfoot{color:var(--mut);font-size:11.5px;line-height:1.75;margin-top:6px}
 
 /* ETF 數據追蹤 */
 .etcat{display:inline-block;white-space:nowrap;font-size:11px;color:var(--accd);border:0;background:rgba(47,111,208,.1);border-radius:5px;padding:1px 6px}
@@ -2055,11 +2155,11 @@ document.querySelectorAll('.ovtbl th.sk').forEach(th=>th.onclick=()=>{
   const desc=th.dataset.d!=='desc';
   th.closest('tr').querySelectorAll('th').forEach(x=>{delete x.dataset.d;x.classList.remove('sa','sd')});
   th.dataset.d=desc?'desc':'asc';th.classList.add(desc?'sd':'sa');
-  // ETF 表的持股展開列（.hdrow）是「附屬於前一列」的整寬列：不可獨立參與排序
-  //（否則會與所屬 ETF 脫鉤；且 .hdrow 只有一個 colspan 欄，cells[i] 為 undefined 會整個排序爆掉）
-  const main=Array.from(tb.rows).filter(r=>!r.classList.contains('hdrow'));
+  // 附屬展開列（總經三大法人的 .mdsub）是「跟著前一列走」的整寬列：不可獨立參與排序
+  //（否則會與母列脫鉤；且它只有一個 colspan 欄，cells[i] 為 undefined 會讓整個排序爆掉）
+  const main=Array.from(tb.rows).filter(r=>!r.classList.contains('mdsub'));
   const det=new Map(); main.forEach(r=>{const n=r.nextElementSibling;
-    if(n&&n.classList.contains('hdrow'))det.set(r,n);});
+    if(n&&n.classList.contains('mdsub'))det.set(r,n);});
   main.sort((a,b)=>{
     const ac=a.cells[i],bc=b.cells[i];
     const av=parseFloat(ac&&ac.dataset.v),bv=parseFloat(bc&&bc.dataset.v);
@@ -2075,7 +2175,7 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
   e.stopPropagation();const g=b.dataset.grp;
   const open=b.querySelector('.mdcaret').classList.toggle('open');
   b.setAttribute('aria-expanded',open?'true':'false');
-  document.querySelectorAll('tr.mdsub[data-grp="'+g+'"], tr.hdrow[data-grp="'+g+'"]').forEach(r=>r.classList.toggle('show'));
+  document.querySelectorAll('tr.mdsub[data-grp="'+g+'"]').forEach(r=>r.classList.toggle('show'));
 }));
 // 儀表板逾期未重建警告——CI 全停擺時 HTML 不會再重生、上面的 ⚠ 也不會更新，
 // 由瀏覽器端比對「產表時間 vs 現在」補上最後一道防線。
@@ -2085,6 +2185,177 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
   if(days>2){const b=document.createElement('div');b.className='stale-banner';
     b.textContent='⚠ 本儀表板已 '+days+' 天未重建（每日 CI 可能停擺），以下資料可能過期——請跑「全部更新」或檢查 GitHub Actions';
     document.body.prepend(b);}})();
+// ── ETF 詳情（底部區塊）：持股異動方塊圖＋異動明細＋完整持股明細 ──────────
+// 資料由產表端內嵌 window.__EH（treemap 座標已在 Python 用 squarify 算好，此處只畫 div）；
+// 切換 ETF／搜尋／排序／分頁全在前端，不重載頁面。
+(function(){
+  var EH=((window.__EH||{}).etfs)||{}, codes=Object.keys(EH);
+  var pick=document.getElementById('ed-pick'); if(!codes.length||!pick)return;
+  var KIND={add:'加碼',cut:'減碼',new:'新增',out:'出清'};
+  var cur=codes[0], msk='lots', msd=-1, hsk='w', hsd=-1, pg=1, PER=15, q='';
+  var MVN=15, mvall=false;      // 異動表預設 15 檔（等比調整日會有 50 檔），可展開全部
+  var $=function(id){return document.getElementById(id)};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function grp(x){return String(x).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+  function amt(v){if(v==null)return '—';
+    var a=Math.abs(v), s=v>0?'+':'-';
+    if(a>=1e8)return s+(a/1e8).toFixed(1)+' 億';
+    if(a>=1e4)return s+grp(Math.round(a/1e4))+' 萬';
+    return s+grp(Math.round(a))+' 元'}
+  function lots(v){if(v==null)return '—';
+    var a=Math.abs(v), s=v>0?'+':'-';
+    if(a>=1000)return s+grp(Math.round(a/1000))+' 張';
+    return s+grp(Math.round(a))+' 股'}
+  function pct(v,d,u){if(v==null)return '<span class="na">—</span>';
+    var c=v>0?'gain':(v<0?'loss':'flat');
+    return '<span class="'+c+'">'+(v>0?'+':(v<0?'-':''))+Math.abs(v).toFixed(d)+(u||'')+'</span>'}
+  function num(v,d){return v==null?'—':grp(v.toFixed(d==null?2:d))}
+
+  // ① 產業分層方塊圖：標籤依方塊實際像素大小分三級，太小的只留 title（硬塞會糊成一片）
+  function paintTmap(e){
+    var box=$('ed-tmap'); if(!box)return;
+    if(!e.tm||!e.tm.length){
+      box.innerHTML='<div class="tmnone">'+(e.p
+        ?'本次揭露與前一揭露日相比，持股股數沒有變化。'
+        :'首次揭露，尚無可對比的前一揭露日——明日起可看加減碼。')+'</div>';return}
+    var W=box.clientWidth||320, H=box.clientHeight||300, h='';
+    // 深淺基準＝本檔最大異動幅度；開 0.55 次方是為了讓小額異動仍看得見（純線性會全糊成白）
+    var maxv=0;
+    e.tm.forEach(function(g){g.it.forEach(function(it){
+      var v=Math.abs((e.basis==='amount'?it.a:it.sh)||0); if(v>maxv)maxv=v})});
+    e.tm.forEach(function(g){
+      h+='<div class="tmg" style="left:'+g.x+'%;top:'+g.y+'%;width:'+g.w+'%;height:'+g.h+'%">'
+        +(g.hd>0?'<div class="tmgl">'+esc(g.g)+'</div>':'')+'</div>'});
+    e.tm.forEach(function(g){g.it.forEach(function(it){
+      var pw=it.w/100*W, ph=it.h/100*H, lab='';
+      var val=e.basis==='amount'?amt(it.a):lots(it.sh);
+      var mag=Math.abs((e.basis==='amount'?it.a:it.sh)||0);
+      var al=0.13+0.51*(maxv?Math.pow(mag/maxv,0.55):0);
+      var rgb=(it.k==='add'||it.k==='new')?'211,58,52':'31,157,87';
+      var tint='background:rgba('+rgb+','+al.toFixed(3)+');'
+        +'border-color:rgba('+rgb+','+Math.min(1,al+0.17).toFixed(3)+');';
+      if(pw>=74&&ph>=48)lab='<i>'+esc(it.s)+' '+esc(it.n)+'</i><u>'+val+'</u><s>'+KIND[it.k]+'</s>';
+      else if(pw>=54&&ph>=30)lab='<i>'+esc(it.s)+'</i><u>'+val+'</u>';
+      else if(pw>=34&&ph>=16)lab='<i>'+esc(it.s)+'</i>';
+      h+='<div class="tmi '+it.k+(al>=0.45?' deep':'')+'" style="'+tint
+        +'left:'+it.x+'%;top:'+it.y+'%;width:'+it.w+'%;height:'+it.h+'%"'
+        +' title="'+esc(it.s+' '+it.n+'　'+KIND[it.k]+' '+val+(g.g?'（'+g.g+'）':''))+'">'+lab+'</div>'})});
+    box.innerHTML=h}
+
+  // ② 異動明細表（張數／金額可點排序；正負同號排序，加碼在上、減碼在下——同截圖）
+  function paintMoves(e){
+    var tb=$('ed-mv'); if(!tb)return;
+    var rows=(e.mv||[]).slice();
+    rows.sort(function(a,b){
+      var i=msk==='amt'?3:2, av=a[i], bv=b[i];
+      if(av==null&&bv==null)return 0; if(av==null)return 1; if(bv==null)return -1;
+      return msd*(av-bv)});
+    var shown=mvall?rows:rows.slice(0,MVN);
+    var more=$('ed-mvmore');
+    if(more){
+      if(rows.length>MVN){more.hidden=false;
+        more.textContent=mvall?('收合，只看前 '+MVN+' 檔 ▴'):('展開全部 '+rows.length+' 檔異動 ▾')}
+      else more.hidden=true}
+    tb.innerHTML=shown.map(function(r){
+      return '<tr><td><span class="edcode">'+esc(r[0])+'</span>'
+        +'<span class="edname">'+esc(r[1])+'</span></td>'
+        +'<td class="num"><span class="edmain '+(r[2]>0?'gain':'loss')+'">'+lots(r[2])+'</span></td>'
+        +'<td class="num"><span class="edsub2">'+amt(r[3])+'</span></td>'
+        +'<td class="num"><span class="kpill '+r[4]+'">'+KIND[r[4]]+'</span></td></tr>'}).join('')
+      ||'<tr><td colspan="4" class="na">本次無持股異動。</td></tr>';
+    var kc={add:0,cut:0,new:0,out:0};
+    (e.mv||[]).forEach(function(r){kc[r[4]]=(kc[r[4]]||0)+1});
+    var bits=[]; ['add','cut','new','out'].forEach(function(k){if(kc[k])bits.push(KIND[k]+' '+kc[k])});
+    $('ed-mvsub').textContent=e.mn?('共 '+e.mn+' 檔異動'+(bits.length?'（'+bits.join('／')+'）':'')):'本次無異動';
+    var flat=(e.tm||[]).length===1&&!e.tm[0].g;
+    $('ed-basis').textContent=(e.basis==='amount'
+      ?'　方塊面積 ∝ 異動金額（＝Δ股數 × 當日收盤）。'
+      :'　尚無個股當日報價，方塊面積暫以 Δ股數計、金額欄為 —。')
+      +(flat?'產業別對照尚未入庫，暫以單層顯示。':'');
+    $('ed-mvfoot').textContent=e.mr?('異動檔數超過清單上限，另有 '+e.mr+' 檔小額異動未列。'):''}
+
+  // ③ 完整持股明細（搜尋＋排序＋分頁；預設權重由大到小，同截圖）
+  function paintHold(e){
+    var tb=$('ed-hb'); if(!tb)return;
+    var KI={w:2,chg:5,c:6};
+    var rows=(e.al||[]).filter(function(r){
+      return !q||(String(r[0])+' '+String(r[1])).toLowerCase().indexOf(q)>=0});
+    var i=KI[hsk];
+    rows.sort(function(a,b){
+      var av=a[i], bv=b[i];
+      if(av==null&&bv==null)return 0; if(av==null)return 1; if(bv==null)return -1;
+      return hsd*(av-bv)});
+    var tot=Math.max(1,Math.ceil(rows.length/PER)); if(pg>tot)pg=tot; if(pg<1)pg=1;
+    tb.innerHTML=rows.slice((pg-1)*PER,pg*PER).map(function(r){
+      return '<tr><td><span class="edcode">'+esc(r[0])+'</span>'
+        +'<span class="edname">'+esc(r[1])+'</span></td>'
+        +'<td class="num"><span class="edmain">'+pct(r[5],2,'%')+'</span>'
+        +'<span class="edsub2">'+num(r[4],2)+'</span></td>'
+        +'<td class="num"><span class="edmain">'+num(r[2],2)+'%</span>'
+        +'<span class="edsub2">'+(r[3]==null?'—':grp(r[3]))+'</span></td>'
+        +'<td class="num"><span class="edmain">'+pct(r[6],2)+'</span></td></tr>'}).join('')
+      ||'<tr><td colspan="4" class="na">找不到符合的持股。</td></tr>';
+    $('ed-pgn').textContent=pg+' / '+tot;
+    $('ed-prev').disabled=pg<=1; $('ed-next').disabled=pg>=tot;
+    $('ed-hsub').innerHTML='共 '+(e.n||rows.length)+' 檔持股・快照 '+esc(e.d||'—')
+      +(q?('・符合搜尋 '+rows.length+' 檔'):'')
+      +(e.sw!=null&&e.sw>0&&e.sw<60
+        ?' <span class="hpartial" title="本表僅列臺股掛牌部位（權重合計 '+e.sw
+          +'%）；海外持股與現金部位不在本表，貢獻合計亦僅反映臺股部位">僅台股部位 '+e.sw+'%</span>':'');
+    $('ed-hfoot').innerHTML='貢獻度＝權重 × 個股當日漲跌 ÷ 100（單位：百分點 pp）。'
+      +'已涵蓋權重 '+num(e.cw,1)+'%，合計貢獻 '+(e.tc==null?'—':pct(e.tc,2,'pp'))+'。'
+      +'<b>合計與 ETF 市價漲跌不會完全相等</b>——現金／期貨部位、費用、以及持股揭露時點與'
+      +'收盤的時間差都落在差額裡，此處不作湊平調整。'
+      +(e.src==='fhtrust'?'資料來源：復華官網 assetsExcel（發行投信第一手揭露）。'
+        :'資料來源：'+esc(e.src||'投信每日揭露')+'（Tier B 彙整站，取自投信每日揭露；'
+         +'正式對外前以各投信官網核對）。')}
+
+  function paintHead(e){
+    var v=e.vf||['','',''];
+    $('ed-head').innerHTML='<b>'+esc(cur)+'</b> '+esc(e.nm||'')+'　揭露日 '+esc(e.d||'—')
+      +(e.p?'（對比 '+esc(e.p)+'）':'（首次揭露，尚無可對比的前一揭露日）')
+      +'　'+(e.n||0)+' 檔持股'
+      +(v[1]?' <span class="'+v[0]+'" title="'+esc(v[2])+'">'+esc(v[1])+'</span>':'')}
+
+  // 排序狀態：作用中的欄位標 ↓／↑（同截圖「權重 ↓」），其餘保持 ⇅
+  function markSort(sel,k,d){
+    document.querySelectorAll(sel).forEach(function(th){
+      var on=th.dataset.k===k; th.classList.toggle('on',on);
+      var i=th.querySelector('.ski'); if(i)i.textContent=on?(d<0?'↓':'↑'):'⇅'})}
+
+  function paint(){
+    var e=EH[cur]; if(!e)return;
+    Array.prototype.forEach.call(pick.querySelectorAll('.edchip'),function(b){
+      b.classList.toggle('on',b.dataset.c===cur)});
+    markSort('.chgtbl th.csk',msk,msd);markSort('.hldtbl th.hsk',hsk,hsd);
+    paintHead(e);paintTmap(e);paintMoves(e);paintHold(e)}
+
+  Array.prototype.forEach.call(pick.querySelectorAll('.edchip'),function(b){
+    b.onclick=function(){cur=b.dataset.c;pg=1;mvall=false;paint()}});
+  document.querySelectorAll('.edjump').forEach(function(b){b.onclick=function(){
+    if(!EH[b.dataset.c])return;
+    cur=b.dataset.c;pg=1;mvall=false;paint();
+    var s=document.getElementById('etf-detail');
+    if(s)s.scrollIntoView({behavior:'smooth',block:'start'})}});
+  document.querySelectorAll('.chgtbl th.csk').forEach(function(th){th.onclick=function(){
+    var k=th.dataset.k; msd=(k===msk)?-msd:-1; msk=k;
+    markSort('.chgtbl th.csk',msk,msd); paintMoves(EH[cur])}});
+  document.querySelectorAll('.hldtbl th.hsk').forEach(function(th){th.onclick=function(){
+    var k=th.dataset.k; hsd=(k===hsk)?-hsd:-1; hsk=k; pg=1;
+    markSort('.hldtbl th.hsk',hsk,hsd); paintHold(EH[cur])}});
+  var qi=$('ed-q');
+  if(qi)qi.addEventListener('input',function(){q=qi.value.trim().toLowerCase();pg=1;paintHold(EH[cur])});
+  var mm=$('ed-mvmore');
+  if(mm)mm.onclick=function(){mvall=!mvall;paintMoves(EH[cur])};
+  $('ed-prev').onclick=function(){pg--;paintHold(EH[cur])};
+  $('ed-next').onclick=function(){pg++;paintHold(EH[cur])};
+  // 方塊圖標籤依像素大小決定顯示層級 → 視窗尺寸變了要重畫（節流）
+  var t=null;
+  window.addEventListener('resize',function(){clearTimeout(t);
+    t=setTimeout(function(){paintTmap(EH[cur])},160)});
+  paint();
+})();
 """
 
 
@@ -2224,11 +2495,18 @@ def render() -> str:
     sec_etf_up = (f'<div class="section" id="etf-upcoming"><div class="st">{_ic("zap", tone="amber")}即將登場的新 ETF '
                   f'<span class="stsub">未來一週預計掛牌＋未來一個月預計募集・點「活動介紹」看投信說明</span></div>'
                   f'{_upcoming_etf_view(etf_up)}</div>')
+    # 持股揭露鮮度另立 chip（2026-07-30）：`_freshness_view()` 只彙總「逾期」項目，
+    # 資料正常時整個字串不會出現在頁面上——各來源的正常時戳一律標在自己區塊標題列。
+    eh_date = max(((v.get("date") or "") for v in ((eh_doc or {}).get("etfs") or {}).values()),
+                  default="") or None
     sec_etf = (f'<div class="section" id="etfwatch"><div class="st">{_ic("activity", tone="teal")}ETF 數據追蹤 '
                f'{_fresh_chip("資料基準", etf_asof, 10)} '
+               f'{_fresh_chip("持股揭露", eh_date, 3) if eh_date else ""} '
                f'<span class="stsub">台股被動（高股息／市值型）＋主動式 ETF・收盤／規模／成立／週月報酬／'
                f'最近一次配息金額／換算年化配息率／分配頻率・點欄位標題可排序</span></div>'
                f'{_etfwatch_view(etf_doc, eh_doc)}</div>')
+    # ETF 詳情（底部）：持股異動方塊圖＋異動明細＋完整持股明細（2026-07-30 使用者需求）
+    sec_etf_det = _etf_detail_view(etf_doc, eh_doc)
 
     # ②b 基金相關新聞・社群（品牌＋各基金合併單一清單＋PTT 聲量；讀 data/fund_news.json）
     fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋財經RSS＋PTT 自動擷取'
@@ -2291,7 +2569,8 @@ def render() -> str:
 {sec_macro}
 {sec_macro_data}</div>
 <div class="etfview">{sec_etf_up}
-{sec_etf}</div>
+{sec_etf}
+{sec_etf_det}</div>
 <div class="fundview">
 {sec_brief}
 {sec_news}

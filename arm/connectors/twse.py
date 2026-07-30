@@ -101,3 +101,15 @@ def fetch_history(code: str, start_iso: str, end_iso: str) -> list[tuple[str, fl
             y, m = y + 1, 1
     series = [s for s in series if start_iso <= s[0] <= end_iso]
     return sorted(set(series))
+
+
+BASIC_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap03_L"
+
+
+def fetch_basic_rows() -> list[dict]:
+    """上市公司基本資料（含產業別）原始列——解析交給 arm.stockmeta.rows_to_map。
+
+    產業別半年才動一次 → 快取 24 小時即可（同一日 CI 多次執行不重打官方）。
+    """
+    rows = get_json(BASIC_URL, cache_ttl=86400)
+    return rows if isinstance(rows, list) else []

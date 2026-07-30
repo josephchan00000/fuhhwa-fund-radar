@@ -30,7 +30,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from arm import clock, config as prodcfg, etfholdings, etfwatch   # noqa: E402
+from arm import clock, config as prodcfg, etfholdings, etfwatch, stockmeta   # noqa: E402
 from arm.connectors import etfinfo, fhtrust              # noqa: E402
 from arm.connectors.issuers import pcf                   # noqa: E402
 
@@ -205,9 +205,10 @@ def main() -> int:
 
     doc = etfholdings.merge(etfholdings.load(), fresh, diag)
     quotes = _quotes()
+    ind = _industry()
     if quotes:
-        etfholdings.annotate(doc, quotes)
-        print(f"  ✓ 當日貢獻歸因：個股報價 {len(quotes)} 檔")
+        etfholdings.annotate(doc, quotes, ind)
+        print(f"  ✓ 當日貢獻歸因：個股報價 {len(quotes)} 檔｜產業別 {len(ind)} 檔")
     else:
         print("  ⚠ 個股報價不可得 → 沿用既有貢獻明細（不覆寫成空）")
     ok = etfholdings.save(doc)
@@ -215,6 +216,31 @@ def main() -> int:
           f"（{len(doc.get('etfs') or {})} 檔有揭露；本次 {len(fresh)} 檔：🟢 {n_match}"
           f"／◯ {n_single}／◐ {n_weak}／⚠ {n_mismatch}）")
     return 0
+
+
+def _industry() -> dict[str, str]:
+    """個股產業別（持股異動方塊圖的外層分組）：上市＋上櫃 openapi → 落檔累積。
+
+    產業別半年才動一次，落檔入庫後容器端建表也有分組可用（proxy 擋 twse/tpex）；
+    抓不到就沿用既有落檔（`stockmeta.merge` 保證不洗成空）。
+    """
+    rows: list[dict] = []
+    for mod in ("twse", "tpex"):
+        try:
+            from importlib import import_module
+            got = import_module(f"arm.connectors.{mod}").fetch_basic_rows()
+            rows += got
+            print(f"  · {mod} 基本資料 {len(got)} 列")
+        except Exception as e:                            # noqa: BLE001
+            print(f"  ⚠ {mod} 基本資料不可得：{type(e).__name__}: {str(e)[:80]}")
+    fresh = stockmeta.rows_to_map(rows)
+    if rows and not fresh:                                # 鍵名改過 → 印出實際鍵名，一輪收斂
+        print(f"  ⚠ 基本資料解析 0 筆：{stockmeta.sample_keys(rows)}")
+    doc = stockmeta.merge(fresh)
+    if stockmeta.save(doc):
+        print(f"  ✓ 產業別落檔 {stockmeta.DATA_FP}（本次 {len(fresh)}／累計 "
+              f"{len(doc.get('industry') or {})} 檔）")
+    return doc.get("industry") or {}
 
 
 def _quotes() -> dict[str, dict]:
