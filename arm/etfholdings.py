@@ -212,13 +212,19 @@ def _moves(rows: list[dict], dropped: list[dict], move_n: int = _MOVE_N) -> dict
                     "m_shares": m_sh, "lots": round(m_sh / 1000, 1),
                     "amount": amt, "weight": r.get("weight"),
                     "d_weight": r.get("d_weight")})
+    # 面積依據：**全部異動都算得出金額**時才用金額；只要有一筆沒有（全球型 ETF 的海外
+    # 持股沒有台股報價），整張圖改用股數——否則那些沒金額的會被靜靜濾掉，00988A 的 6 筆
+    # 異動只畫得出 1 格（2026-07-30 使用者：「海外的明明有變動但沒有顯示出來」）。
+    # 跨市場的股數不宜直接比大小，但「全部看得到」遠比「只看得到一格」重要，圖註會標明口徑。
     priced = sum(1 for m in out if m["amount"] is not None)
-    key = (lambda m: -abs(m["amount"] or 0)) if priced else (lambda m: -abs(m["m_shares"]))
+    all_priced = bool(out) and priced == len(out)
+    key = (lambda m: -abs(m["amount"] or 0)) if all_priced else (lambda m: -abs(m["m_shares"]))
     out.sort(key=key)
     shown, rest = out[:move_n], out[move_n:]
     return {"moves": shown, "moves_n": len(out), "moves_rest_n": len(rest),
             "moves_rest_amount": (round(sum(m["amount"] or 0 for m in rest)) if rest else None),
-            "amount_basis": "amount" if priced else "shares"}
+            "amount_basis": "amount" if all_priced else "shares",
+            "unpriced_n": len(out) - priced}
 
 
 def contributions(entry: dict | None, quotes: dict[str, dict] | None,
