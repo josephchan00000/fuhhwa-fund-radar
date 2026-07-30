@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/30 07:19",
+  "as_of": "2026/07/30 08:10",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -84,13 +84,6 @@
       ],
       "items": [
         {
-          "title": "主動復華全球50-ETF配息狀況",
-          "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE00UGtHTnBBTWoxQl9FXzJtR29nZEY0WjllbE5fMldqMUNtbk4zTGt2MEhnMkhJQ0RnZ0ZWMDZuQkUtbU4zZk42VndBYU13TllHVzRBUXhhdGc3NHZaMklxVnhZOF9WVmNIR2ZZUDNURmlkYW1LUTRJQWVaaWk4QQ?oc=5",
-          "source": "MoneyDJ",
-          "date": "2026-07-29 18:10",
-          "datetime": "2026-07-29T18:10:08+08:00"
-        },
-        {
           "title": "規模千億級別的巨無霸對決：安聯台灣科技、復華全球物聯網、復華華人世紀該怎麼選？",
           "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE9WTHJRbHVnSTdtUUZzNU5WRXlPVUo4dEdET1kyU1R3NGQ5RmhyajBCNXgzaHRzLUxCRUlWRk5XMTRNUk9oQUJUcjdGQ2tZVlZQeVVKUzFmWmc?oc=5",
           "source": "CMoney",
@@ -146,7 +139,7 @@
         {
           "title": "復華未來50 ETF推全球版！3位績優操盤人共掌00409A 延續00991A戰力",
           "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE9hb1BFUDNUUEEzbEQ2NHZrNk9LQWpKODlEcnJmbTBpd3l1OXdDMmMxNm9oUGRETWpBbGdYaDZsWHJzT3pEbzVzc2JTWGl6ekx4LVE?oc=5",
-          "source": "n.yam.com",
+          "source": "蕃新聞",
           "date": "2026-07-27 16:14",
           "datetime": "2026-07-27T16:14:00+08:00"
         }
@@ -230,15 +223,7 @@
       "short_names": [
         "數位經濟"
       ],
-      "items": [
-        {
-          "title": "復華數位經濟基金 的買賣訊號 | 鉅亨網 - 基金老司機",
-          "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxQbUQ1bUduWXRQSFI2Z0VjeG5zX3ctUmxfN1ZRS2FzNE1fM09nenc4RklzRFZ5WU9Zb0RneEExNDlRNVM1UHdUelNfWW0zSE4zcmF1eGd5XzQ3WFp1S2c0YzVFX09XRjh5X0gyQ19saHpyWVNLeHRfb3B3LTJsZmxPRjJ3Yk9YX0wyREVjay1KRFBVeWR2VkFUTF9XdEJ3NGZ6SjB0UlFKLXVXTkpOWThGSl8xTk9RZWNDaHJnVzdiMDA4Zw?oc=5",
-          "source": "鉅亨網",
-          "date": "2026-07-28 15:00",
-          "datetime": "2026-07-28T15:00:00+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華中小精選基金",
@@ -377,7 +362,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技、數位經濟（詳下方基金新聞標籤）",
+    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技（詳下方基金新聞標籤）",
     "品牌焦點：復華00409A 8/12開募：00991A成功後，全球版值不值得跟？（Business Insider Taiwan）"
   ]
 }
