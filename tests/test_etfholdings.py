@@ -108,7 +108,7 @@ def test_dashboard_detail_view_skeleton():
     for anchor in ('id="etf-detail"', 'id="ed-tmap"', 'id="ed-mv"', 'id="ed-hb"',
                    'id="ed-q"', 'id="ed-pgn"', 'class="edchip"'):
         assert anchor in html, anchor
-    assert "外層是產業，內層是異動股票" in html
+    assert "每格＝一檔異動股票" in html
     assert "</script>" not in html.split("window.__EH=")[1].split(";</script>")[0]
 
 
@@ -830,46 +830,69 @@ def _mv(sid, ind, amt, sh=None, kind="add"):
             "amount": amt, "m_shares": sh if sh is not None else (amt or 0) // 100}
 
 
-def test_treemap_groups_by_industry():
+def test_treemap_is_flat_no_industry_grouping():
+    """2026-07-30 使用者定案：不分產業（對照抓不齊，分層的資訊價值輸給版面代價）。
+    產業名仍留在每格資料裡供 tooltip 用。"""
     tm = fd._eh_treemap([_mv("2330", "半導體業", 350_000_000),
-                         _mv("2337", "半導體業", -260_000_000, kind="cut"),
-                         _mv("1303", "塑膠工業", -860_000_000, kind="cut")], "amount")
-    names = [g["g"] for g in tm]
-    assert set(names) == {"半導體業", "塑膠工業"}
-    assert all(0 <= g["x"] <= 100 and 0 <= g["y"] <= 100 for g in tm)
-    assert sum(len(g["it"]) for g in tm) == 3
-    it = {i["s"]: i for g in tm for i in g["it"]}
-    assert it["1303"]["k"] == "cut" and it["2330"]["k"] == "add"
+                         _mv("1303", "塑膠工業", -860_000_000, kind="cut"),
+                         _mv("2368", None, -520_000_000, kind="cut")], "amount")
+    assert len(tm) == 3
+    assert all("it" not in t and "g" not in t for t in tm)      # 不再有群組層
+    by = {t["s"]: t for t in tm}
+    assert by["2330"]["ind"] == "半導體業" and by["2368"]["ind"] is None
+    assert by["1303"]["k"] == "cut" and by["2330"]["k"] == "add"
+    for t in tm:                                                # 座標仍在畫布內
+        assert 0 <= t["x"] and 0 <= t["y"] and t["x"] + t["w"] <= 100.01 and t["y"] + t["h"] <= 100.01
 
 
 def test_treemap_area_follows_amount_not_shares():
     tm = fd._eh_treemap([_mv("A", "甲", 900_000_000, sh=1),
-                         _mv("B", "乙", 100_000_000, sh=999)], "amount")
-    area = {g["g"]: g["w"] * g["h"] for g in tm}
-    assert area["甲"] > area["乙"] * 5          # 面積依金額，不被股數帶偏
+                         _mv("B", "乙", 100_000_000, sh=999),
+                         _mv("C", "丙", 60_000_000, sh=5)], "amount")
+    area = {t["s"]: t["w"] * t["h"] for t in tm}
+    assert area["A"] > area["B"] * 5                            # 面積依金額，不被股數帶偏
 
 
 def test_treemap_falls_back_to_shares_without_quotes():
-    tm = fd._eh_treemap([_mv("A", "甲", None, sh=100), _mv("B", "乙", None, sh=900)], "shares")
-    area = {g["g"]: g["w"] * g["h"] for g in tm}
-    assert area["乙"] > area["甲"] * 5
+    tm = fd._eh_treemap([_mv("A", "甲", None, sh=100), _mv("B", "乙", None, sh=900),
+                         _mv("C", "丙", None, sh=60)], "shares")
+    area = {t["s"]: t["w"] * t["h"] for t in tm}
+    assert area["B"] > area["A"] * 5
 
 
-def test_treemap_unclassified_only_renders_flat():
-    """產業別對照尚未入庫時只有一個「未分類」群組——那層標題不帶資訊，改單層顯示。"""
-    tm = fd._eh_treemap([_mv("A", None, 100), _mv("B", None, 50)], "amount")
-    assert len(tm) == 1 and tm[0]["g"] == "" and tm[0]["hd"] == 0.0
+def test_treemap_folds_small_shares_into_other():
+    """佔比過小者併「其他 N 檔」——一排讀不出比例的細條沒有價值，明細表照樣逐檔列
+    （2026-07-30 使用者：「有些比較小佔比的股票就用其他項就好了」）。"""
+    moves = ([_mv("2330", "半導體業", 900_000_000)]
+             + [_mv(f"{3000 + i}", "電子", 2_000_000) for i in range(9)]
+             + [_mv(f"{4000 + i}", "電子", 1_500_000, kind="cut") for i in range(6)])
+    tm = fd._eh_treemap(moves, "amount")
+    agg = [t for t in tm if t.get("agg")]
+    assert len(agg) == 2                                        # 加碼側／減碼側各一格
+    assert {t["k"] for t in agg} == {"add", "cut"}
+    assert [t["n"] for t in agg if t["k"] == "cut"] == ["其他 6 檔"]
+    # 加碼側：2330 與「至少保 3 格」帶進來的兩檔留在圖上 → 其餘 7 檔併格
+    add_agg = [t for t in agg if t["k"] == "add"][0]
+    assert add_agg["n"] == "其他 7 檔" and add_agg["a"] == 7 * 2_000_000
+    assert len(tm) <= fd._ED_TM_ITEMS + 2
+
+
+def test_treemap_keeps_minimum_blocks_even_if_tiny():
+    """單一大單佔 99% 時，若只留「夠大」的格子整張圖會只剩一塊——至少保 3 格。"""
+    moves = [_mv("A", "甲", 1_000_000_000)] + [_mv(f"B{i}", "乙", 1_000_000) for i in range(5)]
+    tm = fd._eh_treemap(moves, "amount")
+    assert len([t for t in tm if not t.get("agg")]) >= fd._ED_TM_KEEP_MIN
+
+
+def test_treemap_caps_block_count():
+    moves = [_mv(f"{2000 + i}", "甲", (60 - i) * 1_000_000) for i in range(40)]
+    tm = fd._eh_treemap(moves, "amount")
+    assert len([t for t in tm if not t.get("agg")]) <= fd._ED_TM_ITEMS
 
 
 def test_treemap_empty_when_no_moves():
     assert fd._eh_treemap([], "amount") == []
     assert fd._eh_treemap([_mv("A", "甲", 0, sh=0)], "amount") == []
-
-
-def test_treemap_caps_item_count():
-    moves = [_mv(f"{2000 + i}", "甲", (100 - i) * 1_000_000) for i in range(40)]
-    tm = fd._eh_treemap(moves, "amount")
-    assert sum(len(g["it"]) for g in tm) == fd._ED_TM_ITEMS
 
 
 def test_view_backfills_legacy_detail_without_all():
@@ -912,16 +935,9 @@ def test_treemap_tint_scales_with_magnitude():
     assert ".tmi.new,.tmi.out{outline:1px dashed" in css
     assert ".tmi.add{background" not in css                # 不可再寫死每類一種底色
     assert "deep" not in js.split("paintTmap")[1][:1200]   # 深色畫布上文字一律白，不需切換
-
-
-def test_treemap_caps_group_count():
-    """群組上限：小群組高度不足拿不到標籤，緊貼隔壁產業會被誤讀成同一群
-    （0050 實測：只有一檔的塑膠工業被擠在「電腦及週邊設備業」標籤下）。"""
-    moves = [_mv(f"{2000 + i}", f"產業{i}", (30 - i) * 1_000_000) for i in range(12)]
-    tm = fd._eh_treemap(moves, "amount")
-    assert len(tm) == fd._ED_TM_GROUPS
-    assert tm[-1]["g"] == "其他產業" or "其他產業" in {g["g"] for g in tm}
-    assert sum(len(g["it"]) for g in tm) == 12          # 併群不掉資料
+    assert ".tmg{" not in css                              # 產業群組層已移除（單層方塊圖）
+    assert "tm.length>0&&tm.length<3" in js                # 少於 3 格不畫圖（看表更快）
+    assert "fig.hidden=!tm.length||few" in js              # 無異動／太少時整張圖收掉
 
 
 def test_treemap_legend_names_both_directions():

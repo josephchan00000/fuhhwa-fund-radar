@@ -948,8 +948,9 @@ _TM_SURFACE = "#14171b"
 _TM_UP = "#e6504c"
 _TM_DN = "#159c94"
 
-_ED_TM_GROUPS = 6        # 方塊圖產業群組上限（其餘併「其他產業」——見 _eh_treemap 註解）
-_ED_TM_ITEMS = 24        # 方塊圖最多畫幾檔（過小的方塊放不進標籤，其餘留在異動表）
+_ED_TM_ITEMS = 14         # 方塊圖最多幾格（超過就併「其他」——太小的格放不進標籤也讀不出比例）
+_ED_TM_MIN_SHARE = 0.025  # 佔全體異動金額不到 2.5% 者併「其他」（明細表照樣逐檔列出）
+_ED_TM_KEEP_MIN = 3       # 但至少保留 3 格，否則單一大單會讓整張圖只剩一塊
 
 
 def _eh_verify_chip(vf: dict) -> list:
@@ -979,49 +980,58 @@ def _eh_verify_chip(vf: dict) -> list:
     return ["", "", ""]
 
 
+def _tm_dir(kind: str) -> str:
+    """方向（顏色）只有兩個：加碼側（含新增）與減碼側（含出清）。"""
+    return "add" if kind in ("add", "new") else "cut"
+
+
 def _eh_treemap(moves: list[dict], basis: str) -> list[dict]:
-    """異動清單 → 產業分層 treemap（百分比座標，前端直接當 % 用）。
+    """異動清單 → **單層** treemap（百分比座標，前端直接當 % 用）。
+
+    2026-07-30 使用者定案：
+      · **不分產業**——產業別對照抓不齊（海外持股、部分上櫃檔沒有），分層後常出現
+        「未分類」群組或小群組拿不到標籤被誤讀成隔壁產業，資訊價值輸給版面代價。
+        產業名仍留在每格的 tooltip（`ind`），資料層也照樣入庫，日後覆蓋率夠了可再分層
+        （`arm/treemap.grouped()` 保留）。
+      · **小佔比併「其他」**——佔全體不到 2.5%（或超出格數上限）者，依方向併成
+        「其他 N 檔」兩格；反正下方異動明細表逐檔都列。這樣每格都放得下標籤、
+        比例也讀得出來，不會是一排讀不出來的細條。
 
     面積依據：有報價時用 |金額|，否則退回 |股數|（`basis`，說明文會標明）。
-    產業別缺對照者歸「未分類」——不丟掉，否則方塊圖與異動表檔數不一致、看起來像漏資料。
     """
-    top = moves[:_ED_TM_ITEMS]
-    if not top:
+    def val(m):
+        return abs((m.get("amount") if basis == "amount" else m.get("m_shares")) or 0)
+
+    rows = sorted((m for m in moves if val(m) > 0), key=val, reverse=True)
+    if not rows:
         return []
-    groups: dict[str, list] = {}
-    meta: dict[str, dict] = {}
-    for m in top:
-        v = abs(m.get("amount") or 0) if basis == "amount" else abs(m.get("m_shares") or 0)
-        if v <= 0:
+    total = sum(val(m) for m in rows)
+    keep, rest = [], []
+    for i, m in enumerate(rows):
+        big = val(m) / total >= _ED_TM_MIN_SHARE
+        if (big or i < _ED_TM_KEEP_MIN) and len(keep) < _ED_TM_ITEMS:
+            keep.append(m)
+        else:
+            rest.append(m)
+    items = [{"s": m["stock_id"], "n": m.get("name") or m["stock_id"],
+              "a": m.get("amount"), "sh": m.get("m_shares"),
+              "k": m.get("kind"), "ind": m.get("industry"), "v": val(m)}
+             for m in keep]
+    for d in ("add", "cut"):                        # 併格仍分方向，顏色語意不混
+        grp = [m for m in rest if _tm_dir(m.get("kind") or "") == d]
+        if not grp:
             continue
-        groups.setdefault(m.get("industry") or stockmeta.UNCLASSIFIED, []).append((m["stock_id"], v))
-        meta[m["stock_id"]] = m
-    # 產業別對照尚未入庫（CI 抓 openapi 後補）時只有一個「未分類」群組——
-    # 那層標題不帶資訊，改成單層方塊圖（head=0、群名留空），別讓版面被雜訊佔一行
-    flat = len(groups) == 1 and stockmeta.UNCLASSIFIED in groups
-    # 群組數上限：小群組高度不足時拿不到標籤，緊貼隔壁產業會被誤讀成同一群
-    #（0050 實測：只有一檔的塑膠工業被擠在「電腦及週邊設備業」標籤下方）。
-    # 超過上限者合併為「其他產業」——寧可少幾個產業名，不要錯的產業歸屬。
-    if len(groups) > _ED_TM_GROUPS:
-        ranked = sorted(groups.items(), key=lambda kv: -sum(v for _, v in kv[1]))
-        keep = dict(ranked[:_ED_TM_GROUPS - 1])
-        rest = [it for _, its in ranked[_ED_TM_GROUPS - 1:] for it in its]
-        groups = {**keep, "其他產業": rest}
+        items.append({"s": "", "n": f"其他 {len(grp)} 檔", "k": d, "agg": True,
+                      "a": (sum(m["amount"] for m in grp)
+                            if all(m.get("amount") is not None for m in grp) else None),
+                      "sh": sum(m.get("m_shares") or 0 for m in grp),
+                      "v": sum(val(m) for m in grp)})
     out = []
-    for g in treemap.grouped([(k, v) for k, v in groups.items()], w=100.0, h=100.0,
-                             gap=0.0 if flat else 1.4, head=0.0 if flat else 8.0,
-                             head_min_h=15.0):
-        out.append({
-            "g": "" if flat else g["key"], "x": round(g["x"], 2), "y": round(g["y"], 2),
-            "w": round(g["w"], 2), "h": round(g["h"], 2), "hd": round(g["head"], 2),
-            "it": [{"s": it["key"], "n": meta[it["key"]].get("name") or it["key"],
-                    "a": meta[it["key"]].get("amount"),
-                    "sh": meta[it["key"]].get("m_shares"),
-                    "k": meta[it["key"]].get("kind"),
-                    "x": round(it["x"], 2), "y": round(it["y"], 2),
-                    "w": round(it["w"], 2), "h": round(it["h"], 2)}
-                   for it in g["items"]],
-        })
+    for r in treemap.layout([(i, it["v"]) for i, it in enumerate(items)], w=100.0, h=100.0):
+        it = items[r["key"]]
+        out.append({**{k: v for k, v in it.items() if k != "v"},
+                    "x": round(r["x"], 2), "y": round(r["y"], 2),
+                    "w": round(r["w"], 2), "h": round(r["h"], 2)})
     return out
 
 
@@ -1055,16 +1065,22 @@ def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
 def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
     """底部「ETF 詳情」區塊：選擇器＋三段明細（內容由前端依內嵌資料渲染）。"""
     items = (doc or {}).get("items") or []
-    payload, chips = {}, []
-    order = [i for i in items if etfholdings.view(holdings_doc, i.get("code"))]
-    for i in order:
-        code = i.get("code")
-        p = _eh_payload(etfholdings.view(holdings_doc, code), i.get("name") or "")
-        if not p:
-            continue
-        payload[code] = p
-        chips.append(f'<button type="button" class="edchip" data-c="{_esc(code)}" '
-                     f'title="{_esc(i.get("name") or "")}"><b>{_esc(code)}</b></button>')
+    payload, rows = {}, []
+    # 選擇器照上方績效表的分類分排（2026-07-30 使用者：23 顆 chip 混在一起不好找）
+    groups = [("passive", "被動"), ("active", "主動式"), ("other", "其他")]
+    for kind, label in groups:
+        chips = []
+        for i in [x for x in items if (x.get("kind") or "passive") == kind]:
+            code = i.get("code")
+            p = _eh_payload(etfholdings.view(holdings_doc, code), i.get("name") or "")
+            if not p:
+                continue
+            payload[code] = p
+            chips.append(f'<button type="button" class="edchip" data-c="{_esc(code)}" '
+                         f'title="{_esc(i.get("name") or "")}"><b>{_esc(code)}</b></button>')
+        if chips:
+            rows.append(f'<div class="edprow"><span class="edplab">{label}</span>'
+                        f'<span class="edpset">{"".join(chips)}</span></div>')
     if not payload:
         return ""
     js = json.dumps({"etfs": payload}, ensure_ascii=False, separators=(",", ":"))
@@ -1072,19 +1088,21 @@ def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
     js = js.replace("</", "<\\/")
     return (
         f'<div class="section" id="etf-detail"><div class="st">{_ic("layers", tone="teal")}ETF 詳情 '
-        f'<span class="stsub">選一檔 ETF：看它的持股異動（產業分層方塊圖）、異動明細與'
+        f'<span class="stsub">選一檔 ETF：看它的持股異動（方塊圖）、異動明細與'
         f'完整持股（含當日漲跌貢獻）</span></div>'
-        f'<div class="edpick" id="ed-pick">{"".join(chips)}</div>'
+        f'<div class="edpick" id="ed-pick">{"".join(rows)}</div>'
         f'<div class="edhead" id="ed-head"></div>'
         f'<div class="edblk"><div class="edt">持股異動 <span class="edtsub" id="ed-mvsub"></span></div>'
-        f'<div class="tmfig"><div class="tmleg">'
+        f'<div class="tmfig" id="ed-tmfig"><div class="tmleg">'
         f'<span class="tmlg"><i style="background:{_TM_UP}"></i>加碼／新增</span>'
         f'<span class="tmlg"><i style="background:{_TM_DN}"></i>減碼／出清</span>'
         f'<span class="tmlgn">色塊越亮＝幅度越大・虛線框＝新增或出清</span>'
         f'</div><div class="tmap" id="ed-tmap"></div></div>'
-        f'<div class="edfoot">外層是產業，內層是異動股票。'
+        f'<div class="edfoot">每格＝一檔異動股票；佔比過小者併為「其他 N 檔」'
+        f'（逐檔數字見下方明細表）。'
         f'<span id="ed-basis"></span></div>'
-        f'<div class="edscroll tbl"><table class="chgtbl"><thead><tr>'
+        f'<div class="edempty" id="ed-mvnone" hidden></div>'
+        f'<div class="edscroll tbl" id="ed-mvtbl"><table class="chgtbl"><thead><tr>'
         f'<th>股票</th>'
         f'<th class="num csk" data-k="lots">張數 <span class="ski">⇅</span></th>'
         f'<th class="num csk" data-k="amt">金額 <span class="ski">⇅</span></th>'
@@ -1924,7 +1942,11 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 .edjt{display:inline-block;margin-top:2px;font-size:10.5px;color:var(--acc);
   background:rgba(47,111,208,.1);border-radius:5px;padding:1px 5px;white-space:nowrap}
 .edjump:hover .edjt{color:#fff;background:var(--acc)}
-.edpick{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px}
+.edpick{margin:2px 0 10px}
+.edprow{display:flex;align-items:flex-start;gap:8px;margin-bottom:5px}
+.edplab{flex:0 0 auto;min-width:3.6em;font-size:11px;color:var(--mut);padding-top:7px;
+  text-align:right}
+.edpset{display:flex;flex-wrap:wrap;gap:5px}
 .edchip{display:flex;align-items:baseline;gap:5px;background:var(--card);border:1px solid var(--line);
   border-radius:9px;padding:5px 9px;font:inherit;font-size:12px;color:var(--ink2);cursor:pointer}
 .edchip b{color:var(--accd);font-size:12.5px}
@@ -1939,6 +1961,10 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 .edt{font-size:13.5px;font-weight:800;color:var(--ink);margin-bottom:2px}
 .edtsub{font-size:11.5px;font-weight:400;color:var(--mut);margin-left:2px}
 .edfoot{font-size:11.5px;color:var(--mut);line-height:1.75;margin-top:8px}
+/* 無異動：整張深色圖與明細表都收掉，只留一句話——3 格撐 370px 或空圖佔一大塊都很醜
+   （2026-07-30 使用者：「沒有變動就要讓比例感覺收斂一些」） */
+.edempty{font-size:12.5px;color:var(--mut);background:var(--pad);border-radius:9px;
+  padding:10px 12px;margin-top:8px}
 /* 方塊圖：容器固定高度，方塊以百分比絕對定位（座標由 Python squarify 算好） */
 /* 方塊圖＝深色「圖表卡」（2026-07-30 使用者：淺底粉紅粉綠一片好醜）。
    深底的好處是同一組色階不必靠高飽和也能拉出層次、文字一律白色即可讀，
@@ -1949,10 +1975,9 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 .tmlg{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.78)}
 .tmlg>i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .tmlgn{font-size:10.5px;color:rgba(255,255,255,.42)}
-.tmap{position:relative;width:100%;height:clamp(260px,60vw,370px);overflow:hidden}
-.tmg{position:absolute;border-radius:8px;background:rgba(255,255,255,.045)}
-.tmgl{position:absolute;left:7px;top:2px;font-size:10.5px;font-weight:600;letter-spacing:.02em;
-  color:rgba(255,255,255,.62);white-space:nowrap;overflow:hidden;max-width:calc(100% - 4px)}
+.tmap{position:relative;width:100%;height:240px;overflow:hidden}  /* 實際高度由 JS 依格數收斂 */
+.tmi.agg{opacity:.9}
+.tmi.agg i{font-weight:600;color:rgba(255,255,255,.9)}
 /* 亮度 ∝ 加減碼幅度：色相只表方向、亮度只表幅度，兩者不會互相冒充
    （若把亮度挪去表示個股當日漲跌就會衝突，別改）。rgba 由前端逐格算成 inline style。 */
 .tmi{position:absolute;border-radius:5px;overflow:hidden;padding:2px;display:flex;
@@ -2238,36 +2263,47 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
     return '<span class="'+c+'">'+(v>0?'+':(v<0?'-':''))+Math.abs(v).toFixed(d)+(u||'')+'</span>'}
   function num(v,d){return v==null?'—':grp(v.toFixed(d==null?2:d))}
 
-  // ① 產業分層方塊圖：標籤依方塊實際像素大小分三級，太小的只留 title（硬塞會糊成一片）
+  // ① 異動方塊圖（單層、不分產業）：面積 ∝ 幅度、亮度 ∝ 幅度、色相只表方向。
+  //    高度隨格數收斂——3 格卻撐一張 370px 的圖會出現一大塊空白（使用者 2026-07-30）。
   function paintTmap(e){
-    var box=$('ed-tmap'); if(!box)return;
-    if(!e.tm||!e.tm.length){
-      box.innerHTML='<div class="tmnone">'+(e.p
-        ?'本次揭露與前一揭露日相比，持股股數沒有變化。'
-        :'首次揭露，尚無可對比的前一揭露日——明日起可看加減碼。')+'</div>';return}
-    var W=box.clientWidth||320, H=box.clientHeight||300, h='';
-    // 深淺基準＝本檔最大異動幅度；開 0.55 次方是為了讓小額異動仍看得見（純線性會全糊成白）
+    var box=$('ed-tmap'), fig=$('ed-tmfig'); if(!box)return;
+    var tm=e.tm||[];
+    var H=tm.length?Math.min(360,Math.max(132,96+tm.length*19)):64;
+    box.style.height=H+'px';
+    var msg=e.p?'本次揭露與前一揭露日相比，持股股數沒有變化。'
+               :'首次揭露，尚無可對比的前一揭露日——明日起可看加減碼。';
+    var none=$('ed-mvnone'), tbl=$('ed-mvtbl'), fo=document.querySelector('#ed-tmfig ~ .edfoot');
+    // 少於 3 格的「方塊圖」只是一兩個矩形，比例資訊為零、還佔一大塊——直接不畫，看表更快
+    var few=tm.length>0&&tm.length<3;
+    if(fig)fig.hidden=!tm.length||few;
+    if(tbl)tbl.hidden=!tm.length;
+    if(fo)fo.style.display=(tm.length&&!few)?'':'none';
+    if(none){none.hidden=!!tm.length; none.textContent=msg}
+    if(!tm.length||few){box.innerHTML='';return}
+    var W=box.clientWidth||320, h='';
+    // 亮度基準＝本檔最大幅度；開 0.55 次方讓小額異動仍看得見（純線性會全糊成一片）
     var maxv=0;
-    e.tm.forEach(function(g){g.it.forEach(function(it){
-      var v=Math.abs((e.basis==='amount'?it.a:it.sh)||0); if(v>maxv)maxv=v})});
-    e.tm.forEach(function(g){
-      h+='<div class="tmg" style="left:'+g.x+'%;top:'+g.y+'%;width:'+g.w+'%;height:'+g.h+'%">'
-        +(g.hd>0?'<div class="tmgl">'+esc(g.g)+'</div>':'')+'</div>'});
-    e.tm.forEach(function(g){g.it.forEach(function(it){
+    tm.forEach(function(it){
+      var v=Math.abs((e.basis==='amount'?it.a:it.sh)||0); if(v>maxv)maxv=v});
+    tm.forEach(function(it){
       var pw=it.w/100*W, ph=it.h/100*H, lab='';
       var val=e.basis==='amount'?amt(it.a):lots(it.sh);
       var mag=Math.abs((e.basis==='amount'?it.a:it.sh)||0);
+      // 亮度上限 0.80：白字對比紅 5.2:1／綠松 4.7:1（AA 正文 4.5:1）；拉到 1.0 只有 3.4:1
       var al=0.28+0.52*(maxv?Math.pow(mag/maxv,0.55):0);
-      var rgb=(it.k==='add'||it.k==='new')?'230,80,76':'21,156,148';
+      var dir=(it.k==='add'||it.k==='new')?'add':'cut';
+      var rgb=dir==='add'?'230,80,76':'21,156,148';
       var tint='background:rgba('+rgb+','+al.toFixed(3)+');'
         +'border-color:rgba('+rgb+','+Math.min(1,al+0.17).toFixed(3)+');';
+      var head=it.agg?esc(it.n):(esc(it.s)+' '+esc(it.n));
       var tag=(it.k==='new'||it.k==='out')?'<s>'+KIND[it.k]+'</s>':'';
-      if(pw>=74&&ph>=44)lab='<i>'+esc(it.s)+' '+esc(it.n)+'</i><u>'+val+'</u>'+tag;
-      else if(pw>=52&&ph>=26)lab='<i>'+esc(it.s)+'</i><u>'+val+'</u>';
-      else if(pw>=32&&ph>=15)lab='<i>'+esc(it.s)+'</i>';
-      h+='<div class="tmi '+it.k+'" style="'+tint
+      if(pw>=74&&ph>=44)lab='<i>'+head+'</i><u>'+val+'</u>'+tag;
+      else if(pw>=52&&ph>=26)lab='<i>'+esc(it.agg?it.n:it.s)+'</i><u>'+val+'</u>';
+      else if(pw>=32&&ph>=15)lab='<i>'+esc(it.agg?'其他':it.s)+'</i>';
+      h+='<div class="tmi '+(it.agg?'agg ':'')+it.k+'" style="'+tint
         +'left:'+it.x+'%;top:'+it.y+'%;width:'+it.w+'%;height:'+it.h+'%"'
-        +' title="'+esc(it.s+' '+it.n+'　'+KIND[it.k]+' '+val+(g.g?'（'+g.g+'）':''))+'">'+lab+'</div>'})});
+        +' title="'+esc((it.agg?it.n:it.s+' '+it.n)+'　'+KIND[it.k]+' '+val
+          +(it.ind?'（'+it.ind+'）':''))+'">'+lab+'</div>'});
     box.innerHTML=h}
 
   // ② 異動明細表（張數／金額可點排序；正負同號排序，加碼在上、減碼在下——同截圖）
@@ -2295,11 +2331,9 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
     (e.mv||[]).forEach(function(r){kc[r[4]]=(kc[r[4]]||0)+1});
     var bits=[]; ['add','cut','new','out'].forEach(function(k){if(kc[k])bits.push(KIND[k]+' '+kc[k])});
     $('ed-mvsub').textContent=e.mn?('共 '+e.mn+' 檔異動'+(bits.length?'（'+bits.join('／')+'）':'')):'本次無異動';
-    var flat=(e.tm||[]).length===1&&!e.tm[0].g;
     $('ed-basis').textContent=(e.basis==='amount'
-      ?'　方塊面積 ∝ 異動金額（＝Δ股數 × 當日收盤）。'
-      :'　尚無個股當日報價，方塊面積暫以 Δ股數計、金額欄為 —。')
-      +(flat?'產業別對照尚未入庫，暫以單層顯示。':'');
+      ?'面積與亮度＝異動金額（Δ股數 × 當日收盤）。'
+      :'尚無個股當日報價，面積與亮度暫以 Δ股數計、金額欄為 —。');
     $('ed-mvfoot').textContent=e.mr?('異動檔數超過清單上限，另有 '+e.mr+' 檔小額異動未列。'):''}
 
   // ③ 完整持股明細（搜尋＋排序＋分頁；預設權重由大到小，同截圖）
