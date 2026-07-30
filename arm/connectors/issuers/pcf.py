@@ -486,8 +486,13 @@ def sample_rows(rows: list[dict], k: int = 4) -> str:
 
 def fetch_one(code: str, issuer: str) -> tuple[list[dict], str, list[Probe]]:
     """單檔 ETF：依序試候選來源，回 (持股列, 來源名, 全部探針)。"""
+    return _fetch_cands(code, _cands(code, issuer))
+
+
+def _fetch_cands(code: str, cands: list[tuple[str, str]]) -> tuple[list[dict], str, list[Probe]]:
+    """依序試給定候選：取得 → 通用解析 → 假陽性驗證；失敗時把診斷寫進 Probe。"""
     probes: list[Probe] = []
-    for name, url in _cands(code, issuer):
+    for name, url in cands:
         p = Probe(name, url)
         probes.append(p)
         raw = _get(url, p)
@@ -549,3 +554,31 @@ def _normalize(rows: list[dict]) -> list[dict]:
             cur["name"] = r["name"]
     return _drop_value_like_shares(
         sorted(merged.values(), key=lambda h: -(h.get("weight") or 0)))
+
+# ── 第三方驗證來源（2026-07-30 使用者核可的三站；用來交叉驗證主來源，不當主來源） ──
+#
+# 選這三站的理由（使用者已看過網址並同意）：
+#   · 玩股網：官方說明寫「資料來源＝各投信官網＋證交所＋**櫃買中心公開揭露之申購買回清單**，
+#     每交易日收盤後彙整更新」——與 etfinfo 同一個每日 PCF 基準，可做「同基準日比權重」的
+#     真驗證（Yahoo 是月度基準，只能驗構成）；也是目前唯一明確涵蓋**上櫃**的候選
+#     （00998A／00986D 有頁面），而 etfinfo 對這兩檔是 404。
+#   · CMoney：主動式 ETF 有專屬持股明細頁。
+#   · ETF觀測站（集保結算所 TDCC）：半官方，若有持股明細則可信度高於任何彙整站。
+# 三站在本容器全部連不到（proxy CONNECT 403 / HTTP 000）→ 只能在 CI 跑
+# `fetch_etf_holdings.py --probe` 讀日誌收斂（同 2026-07-29 逐家投信探針的做法）。
+
+def third_party_cands(code: str) -> list[tuple[str, str]]:
+    """回 [(來源名, URL)]：第三方驗證候選。頁面若是 SPA，探針會從 JS bundle 撈 API 路徑。"""
+    lc = code.lower()
+    return [
+        ("玩股網", f"https://www.wantgoo.com/stock/etf/{lc}/constituent"),
+        ("玩股網-api", f"https://www.wantgoo.com/stock/etf/{lc}/constituent-data"),
+        ("CMoney", f"https://www.cmoney.tw/etf/tw/{code}/fundholding"),
+        ("ETF觀測站", f"https://www.fundclear.com.tw/etf/{code}"),
+        ("ETF觀測站-首頁", "https://www.fundclear.com.tw/etf"),
+    ]
+
+
+def probe_third_party(code: str) -> tuple[list[dict], str, list[Probe]]:
+    """對第三方候選跑同一套「取得＋通用解析＋假陽性驗證＋診斷」流程。"""
+    return _fetch_cands(code, third_party_cands(code))

@@ -367,6 +367,18 @@ ETF 分頁改成**上表 → 底部詳情**兩層：ETF 數據追蹤表的代碼
   （否則 Δ 全變 0、看起來像「都沒異動」）；揭露日推進時才把舊 holdings 降級為 prev。
 - **貢獻在 CI 端算好存進落檔的 `detail`**（`etfholdings.annotate`，個股報價 ← `twse/tpex.fetch_today_all`）——
   容器內 proxy 擋 twse/tpex，建表時取不到報價；儀表板端 `etfholdings.view()` 只讀 `detail` 純渲染。
+- **踩過的坑：假的「本次無異動」（2026-07-30 使用者發現 00991A）**——`fhtrust.fetch_holdings`
+  原本把**我們請求的日期**當資料日回傳（`"date": iso_date`），但 assetsExcel 端點對不同 ymd
+  可能回同一份檔案 → 揭露日往前跳、內容一模一樣，`merge_one` 把舊快照降級成 prev，Δ 全變 0，
+  看板顯示「持股股數沒有變化」。**識別法：權重也全等**（權重是市值比重，兩個不同交易日
+  不可能 49 檔全部到小數第三位都相同）。三道修法：
+  ① `fhtrust._meta_date()` 從 xlsx 單格 meta 掃**檔案自報的資料日**（西元／民國都收），
+     以它為 `date`；掃不到才回退請求日，並在 CI 日誌標「⚠ 檔案未見日期、沿用請求日」。
+  ② `merge_one` 加「同一份快照」防呆：新舊 holdings 的**股數＋權重全等** → 當同一次揭露
+     重抓，**不推進日期、不動 prev**（寧可少報一天鮮度，也不假造零異動日）。
+  ③ `_drop_fake_prev()`：既有落檔的 prev 與今日 holdings 全等 → 就地清掉，誠實顯示
+     「尚無可對比的前一揭露日」。**etfinfo 來源不受影響**（snapshotDate 是官方欄位，
+     實測 21 檔權重都有變動）。
 - **抓取＝彙整站雙源（2026-07-30 最終定案，使用者指示「不必抓官網第一手，彙整站＋雙重驗證」）**：
   `scripts/fetch_etf_holdings.py`＋獨立 workflow `.github/workflows/etf_holdings.yml`
   （台北週一~五 17:40；純 HTTP、每輪數十秒）。
@@ -382,7 +394,14 @@ ETF 分頁改成**上表 → 底部詳情**兩層：ETF 數據追蹤表的代碼
     重合過低 → **weak「副源過舊・未能驗證」灰章**（多為月內調倉，**不是**主來源錯誤的證據，
     如 00929 月內大調倉重合僅 3/10）；僅一源 → single。紅 ⚠ mismatch 保留給未來同基準日源的
     真衝突。**不比股數**——兩站口徑常不同，比了誤殺。驗證結果存 entry `verify` 隨 detail 入板。
-  - **本家三檔（00991A/00998A/00986D）走復華官網 assetsExcel（Tier A 第一手）優先**：
+  - **主來源＝快照日最新者，不再硬性「第一手優先」（2026-07-30 使用者：「不能用 etfinfo 頂著嗎」）**：
+  復華 assetsExcel 可能連日回同一份舊檔，硬性優先會讓 00991A 天天顯示假的「無異動」。現行規則：
+  ①各來源用**自己的快照日**（etfinfo＝官方 `snapshotDate`；fhtrust＝檔案自報日，見下方坑）；
+  ②**fhtrust 的日期只有「檔案自報」時才拿來比大小**，沿用請求日的視為未知、排在 etfinfo 之後；
+  ③同一天時仍讓第一手 fhtrust 勝（可與 etfinfo 做真正的權重驗證）；④Yahoo 無快照日、永遠墊底。
+  曾踩：`fresh[code]["date"]` 對 fhtrust 來源直接寫 `fallback_date`（最近交易日），
+  完全沒用到檔案日期——這是 00991A 被標成當日的直接原因。
+- **本家三檔（00991A/00998A/00986D）走復華官網 assetsExcel（Tier A 第一手）**：
     `config/products.json` 對映 `fund_id`（ETF23/24/25），舊管線 `arm/pipeline.py` 本就
     以此抓三檔（含前後快照 diff、**排除期貨避險列**——沿用此慣例）。順序＝fhtrust →
     etfinfo（同為每日 PCF 基準，**且兩源快照日相同時**做真正的權重驗證「🟢 雙源相符」，

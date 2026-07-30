@@ -669,7 +669,7 @@ def test_fhtrust_source_maps_foreign_tickers(monkeypatch):
     monkeypatch.setattr(fh, "fetch_holdings", lambda fid, iso: {"holdings": [
         {"stock_id": f"T{i} US", "stock_name": f"Bank{i}", "kind": "equity",
          "shares": 1000 + i, "weight": 5.0 - i * 0.2} for i in range(8)]})
-    rows, asof, log = m._from_fhtrust("00998A")
+    rows, asof, _self, log = m._from_fhtrust("00998A")
     assert len(rows) == 8 and rows[0]["stock_id"] == "T0 US"
     assert "fhtrust ✓" in log
 
@@ -677,7 +677,7 @@ def test_fhtrust_source_maps_foreign_tickers(monkeypatch):
 def test_fhtrust_source_skips_unmapped_codes():
     """products.json 沒對映的檔（一般上市 ETF）回空——不會誤打復華官網。"""
     m = _fh_mod()
-    assert m._from_fhtrust("0050") == ([], None, "")
+    assert m._from_fhtrust("0050") == ([], None, False, "")
 
 
 def test_foreign_delta_and_render_without_tw_quotes():
@@ -703,7 +703,7 @@ def test_fhtrust_source_excludes_hedge_futures(monkeypatch):
           "shares": 1000, "weight": 5.0} for i in range(6)]
         + [{"stock_id": "TXF", "stock_name": "臺股期貨避險", "kind": "future",
             "shares": -20, "weight": None}])})
-    rows, _asof, _log = m._from_fhtrust("00991A")
+    rows, _asof, _self, _log = m._from_fhtrust("00991A")
     assert len(rows) == 6 and all(r["stock_id"] != "TXF" for r in rows)
 
 
@@ -1059,3 +1059,86 @@ def test_treemap_other_blocks_sit_bottom_right_and_recede():
     # 亮度固定壓低（不隨幅度變亮）＋標籤改灰
     assert "it.agg?0.20:" in fd._JS
     assert ".tmi.agg i,.tmi.agg u{font-weight:600;color:rgba(255,255,255,.62)}" in fd._CSS
+
+
+# ── 「同一份快照被標成兩天」防呆（2026-07-30 使用者抓到 00991A 假的「本次無異動」） ──
+
+def _snap(date, shares, weights=None):
+    ws = weights or [round(10 - i * 0.1, 3) for i in range(len(shares))]
+    return {"date": date, "src": "fhtrust",
+            "holdings": [{"stock_id": f"{2330 + i}", "name": f"s{i}",
+                          "shares": sh, "weight": w}
+                         for i, (sh, w) in enumerate(zip(shares, ws))]}
+
+
+def test_merge_同內容不同日期視為同一次揭露():
+    """復華 assetsExcel 的資料日原本取「我們請求的日期」，同一份檔案會被標成新的一天 →
+    舊快照被降級成 prev、Δ 全變 0，看板出現假的「本次無異動」。內容全等就不推進日期。"""
+    d1 = _snap("2026-07-28", [1000, 2000, 3000])
+    m = eh.merge_one(d1, _snap("2026-07-29", [1000, 2000, 3000]))
+    assert m["date"] == "2026-07-28"          # 日期不前進
+    assert not m["prev"] and m["prev_date"] is None
+    assert eh.contributions(m, None)["moves_n"] == 0
+
+
+def test_merge_股數相同但權重不同視為新的一天():
+    """權重是市值比重——不同交易日必然有變動；只有股數沒動才是真的『沒有加減碼』。"""
+    d1 = _snap("2026-07-28", [1000, 2000], [10.0, 9.9])
+    m = eh.merge_one(d1, _snap("2026-07-29", [1000, 2000], [10.4, 9.5]))
+    assert m["date"] == "2026-07-29" and m["prev_date"] == "2026-07-28"
+    assert len(m["prev"]) == 2
+    det = eh.contributions(m, None)
+    assert det["moves_n"] == 0                # 真的沒有加減碼
+    assert all(r["d_shares"] == 0 for r in det["all"])   # 但有可比基準（不是 None）
+
+
+def test_merge_清掉與今日全等的假prev():
+    """既有落檔已被前述 bug 汙染（prev 是今天自己的複本）→ 合併時就地清掉，
+    誠實顯示「尚無可對比的前一揭露日」，而不是假的「本次無異動」。"""
+    bad = {"date": "2026-07-29", "src": "fhtrust",
+           "holdings": _snap("x", [1000, 2000])["holdings"],
+           "prev": {"2330": {"shares": 1000, "weight": 10.0},
+                    "2331": {"shares": 2000, "weight": 9.9}},
+           "prev_date": "2026-07-28"}
+    m = eh.merge_one(bad, _snap("2026-07-29", [1000, 2000]))
+    assert m["prev"] == {} and m["prev_date"] is None
+
+
+def test_merge_真的加減碼照常推進():
+    d1 = _snap("2026-07-28", [1000, 2000])
+    m = eh.merge_one(d1, _snap("2026-07-29", [1200, 2000]))
+    assert m["date"] == "2026-07-29" and m["prev_date"] == "2026-07-28"
+    det = eh.contributions(m, None)
+    assert det["moves_n"] == 1 and det["moves"][0]["m_shares"] == 200
+
+
+def test_fhtrust_以檔案自報日期為資料日():
+    """`fetch_holdings` 原本回傳「請求的日期」當資料日——同一份檔案換個 ymd 請求就變成
+    「新的一天」。改以檔案內自報的日期為準（掃不到才回退請求日，並在 CI 日誌標明）。"""
+    from arm.connectors import fhtrust
+    assert fhtrust._meta_date(["資料日期", "2026/07/28"]) == "2026-07-28"
+    assert fhtrust._meta_date(["資料日期：115/07/28"]) == "2026-07-28"      # 民國年
+    assert fhtrust._meta_date(["本基金資產明細表 2026年7月28日"]) == "2026-07-28"
+    assert fhtrust._meta_date(["基金資產淨值", "1,234,567,890"]) is None    # 金額不是日期
+    assert fhtrust._meta_date([]) is None
+
+
+def test_source_pick_prefers_newest_snapshot(monkeypatch):
+    """主來源＝快照日最新者（2026-07-30 使用者：「不能用 etfinfo 頂著嗎」）。
+    fhtrust 的日期只有「檔案自報」時才拿來比大小——沿用請求日的不可信，視為未知。
+    同一天時仍讓第一手 fhtrust 勝（可與 etfinfo 做真正的權重驗證）。"""
+    def pick(f_asof, f_self, e_asof):
+        cands = []
+        if True:
+            cands.append(("fhtrust", f_asof, f_asof if f_self else "", 1))
+            cands.append(("etfinfo", e_asof, e_asof or "", 0))
+        cands.sort(key=lambda c: (c[2], c[3]), reverse=True)
+        return cands[0][0]
+    # etfinfo 較新 → etfinfo 頂著（00991A 的實況：fhtrust 回同一份舊檔）
+    assert pick("2026-07-25", True, "2026-07-29") == "etfinfo"
+    # fhtrust 日期不可信（沿用請求日）→ 一律讓 etfinfo 先
+    assert pick("2026-07-30", False, "2026-07-29") == "etfinfo"
+    # 同一天且 fhtrust 自報 → 第一手優先
+    assert pick("2026-07-29", True, "2026-07-29") == "fhtrust"
+    # fhtrust 較新且自報 → 第一手勝
+    assert pick("2026-07-30", True, "2026-07-29") == "fhtrust"
