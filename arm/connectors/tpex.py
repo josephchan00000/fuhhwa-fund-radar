@@ -56,3 +56,12 @@ def fetch_today_all() -> dict[str, dict]:
 def latest_trade_date(all_today: dict[str, dict] | None = None) -> str:
     all_today = all_today or fetch_today_all()
     return max(v["date"] for v in all_today.values())
+
+
+BASIC_URL = "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O"
+
+
+def fetch_basic_rows() -> list[dict]:
+    """上櫃公司基本資料（含產業別）原始列；介面對齊 twse.fetch_basic_rows。"""
+    rows = get_json(BASIC_URL, cache_ttl=86400)
+    return rows if isinstance(rows, list) else []
