@@ -110,7 +110,12 @@ def _from_fhtrust(code: str) -> tuple[list[dict], str | None, str]:
                 # 外股/債券不套 pcf 的台股 4 碼驗證：改驗「≥5 檔且過半帶權重」
                 with_w = sum(1 for r in rows if r.get("weight") is not None)
                 if len(rows) >= 5 and with_w * 2 >= len(rows):
-                    return rows, iso, f"fhtrust ✓ {len(rows)} 檔（{fid}，{iso}）"
+                    # 資料日以**檔案自報**為準；掃不到才回退請求日期（並在日誌標明，
+                    # 供一輪 CI 收斂——2026-07-30 的假「無異動」就是誤用請求日期造成）
+                    asof = snap.get("date") or iso
+                    src_note = ("檔案自報" if snap.get("date_src")
+                                else f"⚠ 檔案未見日期、沿用請求日 {iso}")
+                    return rows, asof, f"fhtrust ✓ {len(rows)} 檔（{fid}，{asof}・{src_note}）"
                 last = f"fhtrust {iso} 解析 {len(rows)} 檔/帶權重 {with_w}（未過驗證）"
             except Exception as e:                        # noqa: BLE001 —— 換前一平日再試
                 last = f"fhtrust ✗ {type(e).__name__}: {str(e)[:80]}"

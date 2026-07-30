@@ -50,6 +50,17 @@ def _index(holdings: list[dict]) -> dict[str, dict]:
     return {str(h.get("stock_id")): h for h in (holdings or []) if h.get("stock_id")}
 
 
+def _snap_key(holdings: list[dict] | None) -> tuple:
+    """快照指紋（代號＋股數＋權重）——用來認出「同一份檔案被標成不同揭露日」。"""
+    return tuple(sorted((str(h.get("stock_id")), h.get("shares"), h.get("weight"))
+                        for h in (holdings or []) if h.get("stock_id")))
+
+
+def _prev_key(prev: dict | None) -> tuple:
+    return tuple(sorted((str(k), v.get("shares"), v.get("weight"))
+                        for k, v in (prev or {}).items()))
+
+
 def merge_one(old: dict | None, new: dict | None) -> dict | None:
     """單檔 ETF 的揭露合併。
 
@@ -67,11 +78,32 @@ def merge_one(old: dict | None, new: dict | None) -> dict | None:
     if old.get("date") and new.get("date") and str(new["date"]) < str(old["date"]):
         return old
     if old.get("date") and old["date"] == new.get("date"):
-        return {**new, "prev": old.get("prev") or {}, "prev_date": old.get("prev_date")}
+        return _drop_fake_prev({**new, "prev": old.get("prev") or {},
+                                "prev_date": old.get("prev_date")})
+    # 「同一份檔案被標成新的揭露日」防呆（2026-07-30 使用者抓到 00991A 假的「沒有變化」）：
+    # 復華 assetsExcel 的資料日是**我們請求的日期**（`fhtrust.fetch_holdings` 回 iso_date），
+    # 檔案本身可能還是舊的一份 → 揭露日往前跳、內容卻一模一樣，於是舊快照被降級成 prev、
+    # Δ 全變 0，看板上就出現假的「本次無異動」。判準用**股數＋權重全等**：
+    # 權重是市值比重，兩個不同交易日不可能 49 檔全部到小數第三位都相同（實測 00991A 就是）。
+    # 遇到這種情形一律當「同一次揭露重抓」——不推進日期、不動 prev，寧可少報一天鮮度，
+    # 也不假造一個「零異動日」。
+    if old.get("holdings") and _snap_key(old["holdings"]) == _snap_key(new["holdings"]):
+        return _drop_fake_prev({**new, "date": old["date"],
+                                "prev": old.get("prev") or {},
+                                "prev_date": old.get("prev_date")})
     prev = {sid: {"shares": h.get("shares"), "weight": h.get("weight")}
             for sid, h in _index(old.get("holdings") or []).items()}
-    return {**new, "prev": prev or (old.get("prev") or {}),
-            "prev_date": old.get("date") or old.get("prev_date")}
+    return _drop_fake_prev({**new, "prev": prev or (old.get("prev") or {}),
+                            "prev_date": old.get("date") or old.get("prev_date")})
+
+
+def _drop_fake_prev(entry: dict) -> dict:
+    """prev 與今日 holdings 全等 → 那不是「昨天」，是同一份快照被誤標成兩天（見上方防呆）。
+    留著它會讓儀表板顯示假的「本次無異動」；清掉後誠實顯示「尚無可對比的前一揭露日」。
+    """
+    if entry.get("prev") and _prev_key(entry["prev"]) == _snap_key(entry.get("holdings")):
+        return {**entry, "prev": {}, "prev_date": None}
+    return entry
 
 
 def merge(prev_doc: dict | None, fresh: dict[str, dict], diag: dict[str, str] | None = None) -> dict:
