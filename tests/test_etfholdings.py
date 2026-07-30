@@ -1142,3 +1142,18 @@ def test_source_pick_prefers_newest_snapshot(monkeypatch):
     assert pick("2026-07-29", True, "2026-07-29") == "fhtrust"
     # fhtrust 較新且自報 → 第一手勝
     assert pick("2026-07-30", True, "2026-07-29") == "fhtrust"
+
+
+def test_etf_table_row_is_compact_and_link_in_category_column():
+    """2026-07-30 使用者：每一檔都好長 → Yahoo 連結移到「性質」欄、代碼與「詳情」同一行。
+    識別欄原本堆四行（代碼／名稱／詳情鈕／Yahoo），列高近 180px，現為 71px。"""
+    items = [{"code": "0056", "name": "元大高股息", "cat": "高股息", "kind": "passive"}]
+    entry = eh.merge_one(DAY1, DAY2)
+    entry["detail"] = eh.contributions(entry, QUOTES)
+    html = fd._etf_table(items, {"etfs": {"0056": entry}})
+    cat_cell = html.split("<tbody>")[1].split("</td>")[0]
+    assert 'class="etcat"' in cat_cell and 'class="etyh"' in cat_cell   # 連結在性質欄
+    id_cell = html.split("<tbody>")[1].split("</td>")[1]
+    assert 'class="etline"' in id_cell and "詳情 ↓" in id_cell          # 代碼與詳情同一行
+    assert "ehyh" not in html                                          # 舊的第四行連結已移除
+    assert ".etline{display:flex" in fd._CSS
