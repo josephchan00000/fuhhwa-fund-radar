@@ -91,6 +91,33 @@ def _parse_face(s: str) -> tuple[float | None, str | None]:
     return _num(s), None
 
 
+_DATE_TOKENS = (
+    re.compile(r"(?<!\d)(20\d{2})[/\-.年](\d{1,2})[/\-.月](\d{1,2})(?!\d)"),   # 2026/07/29
+    re.compile(r"(?<!\d)(1\d{2})[/\-.年](\d{1,2})[/\-.月](\d{1,2})(?!\d)"),     # 民國 115/07/29
+)
+
+
+def _meta_date(tokens: list[str]) -> str | None:
+    """從 xlsx 單格 meta 掃出「檔案自己的資料日」→ ISO；找不到回 None。
+
+    為什麼需要它（2026-07-30 使用者抓到 00991A 假的「本次無異動」）：本函式原本把
+    **請求的日期**當成資料日回傳（`"date": iso_date`），但 assetsExcel 端點對不同 ymd
+    可能回同一份檔案 → 揭露日往前跳、內容一模一樣，Δ 就全變 0。改以檔案自報的日期為準；
+    掃不到時仍回退請求日期（`etfholdings.merge_one` 另有「同一份快照」防呆兜底）。
+    """
+    for tok in tokens:
+        t = str(tok or "").strip()
+        for i, rx in enumerate(_DATE_TOKENS):
+            m = rx.search(t)
+            if m:
+                y, mo, d = (int(x) for x in m.groups())
+                if i:                                   # 民國年
+                    y += 1911
+                if 2000 <= y <= 2100 and 1 <= mo <= 12 and 1 <= d <= 31:
+                    return f"{y:04d}-{mo:02d}-{d:02d}"
+    return None
+
+
 def fetch_holdings(fund_id: str, iso_date: str) -> dict:
     """回傳 {date, nav, aum, units, holdings:[...]}。
 
@@ -112,6 +139,7 @@ def fetch_holdings(fund_id: str, iso_date: str) -> dict:
         if tok in ("基金資產淨值", "基金在外流通單位數", "基金每單位淨值") and i + 1 < len(flat):
             meta[tok] = flat[i + 1]
 
+    date_src = _meta_date(flat)          # 檔案自報的資料日（優先於請求日期）
     nav = _num(meta.get("基金每單位淨值"))
     if nav is None:
         raise NoData(f"{fund_id} {iso_date} 無 NAV")
@@ -147,7 +175,9 @@ def fetch_holdings(fund_id: str, iso_date: str) -> dict:
         raise NoData(f"{fund_id} {iso_date} 無持股明細")
 
     return {
-        "date": iso_date,
+        "date": date_src or iso_date,
+        "date_src": date_src,            # None＝檔案裡掃不到日期（CI 日誌會記，供一輪收斂）
+        "date_req": iso_date,
         "nav": nav,
         "aum": _num(meta.get("基金資產淨值")),
         "units": _num(meta.get("基金在外流通單位數")),
