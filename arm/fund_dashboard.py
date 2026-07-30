@@ -948,26 +948,53 @@ _TM_SURFACE = "#14171b"
 _TM_UP = "#e6504c"
 _TM_DN = "#159c94"
 
-_ED_TM_ITEMS = 14         # 方塊圖格數上限（再多也讀不出比例）
+_ED_TM_ITEMS = 7          # 方塊圖個股格數上限＝**7 格＋其他**（2026-07-30 使用者指定的基本
+                          # 格式）。格數少 → 每格夠大 → 放得下完整資料（代碼＋簡稱＋金額）。
 # 註：曾有「至少保留 3 格」的規則，2026-07-30 移除——它與「畫得出標籤才單獨一格」相牴觸：
 # 異動極度集中時（單檔佔 95%），硬留的那 3 格必然是讀不出來的細條。退化情形交給前端
 # 「少於 3 格就不畫圖」處理，看明細表更快。
 # 「畫得出標籤才值得單獨一格」的量尺（2026-07-30 使用者定案：顯示不出來＝沒那麼重要
 # ＝歸到其他；反過來說，佔比還行的變動不可以因為排版被擠成細條而顯示不完整）。
 # 參考寬取**手機內容寬**：在最窄的版面放得下，寬螢幕只會更大——單一判準、不必兩處各算一次。
-_TM_W_REF = 300.0         # 參考版面寬（px）
-_TM_MIN_W, _TM_MIN_H = 52.0, 26.0   # 兩行標籤（代碼＋金額）需要的最小格寬／格高
-_TM_H_BLOCKS = (5, 14)    # 高度公式的格數下／上限（高度隨格數收斂，但不縮到放不下標籤）
+_TM_W_REF = 280.0         # 參考版面寬（px，取手機內容寬並留餘裕）
+# 每格都必須放得下**完整資料：代碼＋公司簡稱＋金額**（2026-07-30 使用者明確要求）。
+# 允許兩種標籤幾何，通過任一種即可——squarify 產生的格子有方有扁，只認一種會白白折疊掉
+# 放得下的格（實測只認寬版時 0050 從 7 格掉到 4 格）：
+#   · 堆疊版（窄而高）：代碼／簡稱／金額各一行
+#   · 寬版（寬而矮）：代碼＋簡稱同一行，金額第二行
+_TM_MIN_W, _TM_MIN_H = 54.0, 58.0      # 堆疊版最小格寬／格高
+_TM_WIDE_W, _TM_WIDE_H = 76.0, 40.0    # 寬版最小格寬／格高
 
 
-def _tm_height(n: int) -> int:
-    """方塊圖高度（px）：隨格數收斂，但夾在 5～14 格對應的高度之間。
+def _tm_fits(w_px: float, h_px: float) -> bool:
+    """這個格子放得下完整三項資料嗎（堆疊版或寬版任一）。"""
+    return ((w_px >= _TM_MIN_W and h_px >= _TM_MIN_H)
+            or (w_px >= _TM_WIDE_W and h_px >= _TM_WIDE_H))
+# 圖高：**在「每格都放得下完整資料」的前提下，能多矮就多矮**——兼顧使用者兩個要求
+# （「沒有變動／格數少就要收斂，不然好大一塊空的」＋「圖還是要畫」）。
+# 折疊判定一律用最大高度 `_TM_H_MAX`（先盡量留格），確定格數後再往下找最矮可行高度。
+_TM_H_MIN, _TM_H_MAX, _TM_H_STEP = 132, 300, 18
+# 面積壓縮指數（2026-07-30 使用者要「畫的時候平均一點」＋「7 格＋其他、每格都要有完整
+# 數據」）：面積嚴格 ∝ 金額時，單檔佔 61% 的日子（0050 的台積電）就注定把其餘擠成細條，
+# 7 格根本放不下三行標籤。改 **面積 ∝ |金額|^0.5**：排序與相對大小保留，極端值被壓平。
+# 精確數字沒有損失——每格都印著金額、下方明細表逐檔列出——但面積不再是等比，
+# 圖註必須寫明（`_TM_AREA_NOTE`）。要改回等比就得放棄「7 格都完整」，兩者不可兼得。
+_TM_AREA_GAMMA = 0.5
+_TM_AREA_NOTE = "格子大小為相對比較（面積依金額平方根壓縮，避免單一大單把其餘擠成細條）"
 
-    下限保 5 格的高度——折疊到只剩 3 格時若跟著縮到 153px，每格又會變扁、
-    反而再次觸發折疊（自己咬自己的尾巴）。上限 14 格避免長到要捲動。
+
+def _tm_fit_height(rects: list[dict]) -> int:
+    """能讓**每一格**都放得下完整資料的最矮圖高（px）。
+
+    版面座標是百分比，改高度只縮放各格的實際像素高——所以由矮往高試、第一個全數通過的
+    就是答案。全部試完都不行時回最大高度（此時折疊迴圈已經把放不下的格降級掉了）。
     """
-    lo, hi = _TM_H_BLOCKS
-    return 96 + 19 * max(lo, min(n, hi))
+    if not rects:
+        return 0
+    for h in range(_TM_H_MIN, _TM_H_MAX + 1, _TM_H_STEP):
+        if all(_tm_fits(r["w"] / 100 * _TM_W_REF, r["h"] / 100 * h) for r in rects):
+            return h
+    return _TM_H_MAX
 
 
 def _eh_verify_chip(vf: dict) -> list:
@@ -1026,7 +1053,7 @@ def _eh_treemap(moves: list[dict], basis: str) -> dict:
     rows = sorted((m for m in moves if val(m) > 0), key=val, reverse=True)
     unpriced = len(moves) - len(rows)
     if not rows:
-        return {"blocks": [], "hidden": 0, "unpriced": unpriced}
+        return {"blocks": [], "hidden": 0, "unpriced": unpriced, "height": 0}
     keep, rest = rows[:_ED_TM_ITEMS], rows[_ED_TM_ITEMS:]
     off: set = set()          # 連「其他 N 檔」併格自己都畫不出標籤的方向 → 整格不入圖
 
@@ -1048,13 +1075,14 @@ def _eh_treemap(moves: list[dict], basis: str) -> dict:
 
     for _ in range(len(rows) + 4):
         items = build(keep, rest)
-        rects = treemap.layout([(i, it["v"]) for i, it in enumerate(items)], w=100.0, h=100.0)
-        h_px = _tm_height(len(items))
+        rects = treemap.layout([(i, it["v"] ** _TM_AREA_GAMMA) for i, it in enumerate(items)],
+                               w=100.0, h=100.0)
+        h_px = _TM_H_MAX          # 折疊判定用最大高度：先盡量留格，之後再收斂圖高
         bad = [r for r in rects
-               if r["w"] / 100 * _TM_W_REF < _TM_MIN_W or r["h"] / 100 * h_px < _TM_MIN_H]
+               if not _tm_fits(r["w"] / 100 * _TM_W_REF, r["h"] / 100 * h_px)]
         if not bad:
             break
-        drop = min(bad, key=lambda r: r["value"])
+        drop = min(bad, key=lambda r: items[r["key"]]["v"])
         it = items[drop["key"]]
         if it.get("agg"):
             off.add(it["k"])                              # 併格畫不出來 → 不入圖（明細表照樣列）
@@ -1070,7 +1098,7 @@ def _eh_treemap(moves: list[dict], basis: str) -> dict:
                     "x": round(r["x"], 2), "y": round(r["y"], 2),
                     "w": round(r["w"], 2), "h": round(r["h"], 2)})
     # 未入圖的檔數（併格被剔除的方向）——說明文要誠實交代，不能悄悄消失
-    return {"blocks": out, "unpriced": unpriced,
+    return {"blocks": out, "unpriced": unpriced, "height": _tm_fit_height(out),
             "hidden": sum(1 for m in rest if _tm_dir(m.get("kind") or "") in off)}
 
 
@@ -1092,7 +1120,8 @@ def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
         "tc": detail.get("total_contrib"), "cw": detail.get("covered_weight"),
         "vf": _eh_verify_chip(detail.get("verify") or {}),
         "mn": detail.get("moves_n"), "mr": detail.get("moves_rest_n"),
-        "tm": tm, "th": _tm_height(len(tm)) if tm else 0, "hid": hidden, "nq": unpriced,
+        "tm": tm, "th": fig["height"], "hid": hidden, "nq": unpriced,
+        "an": _TM_AREA_NOTE,
         # MV：[代號, 名稱, 異動股數, 金額, 類型]
         "mv": [[m["stock_id"], m.get("name") or m["stock_id"], m.get("m_shares"),
                 m.get("amount"), m.get("kind")] for m in (detail.get("moves") or [])],
@@ -2025,8 +2054,10 @@ td.mdsublab a.mdsl{color:var(--ink2)}
   flex-direction:column;align-items:center;justify-content:center;text-align:center;
   line-height:1.32;border:1.5px solid #14171b;box-sizing:border-box}
 .tmi.new,.tmi.out{outline:1px dashed rgba(255,255,255,.5);outline-offset:-4px}
-.tmi i,.tmi u,.tmi s{text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.tmi i,.tmi em,.tmi u,.tmi s{text-shadow:0 1px 2px rgba(0,0,0,.35)}
 .tmi i{font-style:normal;font-size:11px;font-weight:700;color:#fff;max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tmi em{font-style:normal;font-size:10.5px;color:rgba(255,255,255,.84);max-width:100%;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tmi u{text-decoration:none;font-size:11px;font-weight:600;color:rgba(255,255,255,.92);
   white-space:nowrap}
@@ -2317,13 +2348,13 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
             :(e.p?'本次揭露與前一揭露日相比，持股股數沒有變化。'
                  :'首次揭露，尚無可對比的前一揭露日——明日起可看加減碼。');
     var none=$('ed-mvnone'), tbl=$('ed-mvtbl'), fo=document.querySelector('#ed-tmfig ~ .edfoot');
-    // 少於 3 格的「方塊圖」只是一兩個矩形，比例資訊為零、還佔一大塊——直接不畫，看表更快
-    var few=tm.length>0&&tm.length<3;
-    if(fig)fig.hidden=!tm.length||few;
+    // 有東西可畫就一定畫（2026-07-30 使用者：「圖還是要畫啦，不然不一致看起來很怪」）；
+    // 只有「完全無異動」才把整張卡收起來換成一行提示。
+    if(fig)fig.hidden=!tm.length;
     if(tbl)tbl.hidden=!tm.length;
-    if(fo)fo.style.display=(tm.length&&!few)?'':'none';
+    if(fo)fo.style.display=tm.length?'':'none';
     if(none){none.hidden=!!tm.length; none.textContent=msg}
-    if(!tm.length||few){box.innerHTML='';return}
+    if(!tm.length){box.innerHTML='';return}
     var W=box.clientWidth||320, h='';
     // 亮度基準＝本檔最大幅度；開 0.55 次方讓小額異動仍看得見（純線性會全糊成一片）
     var maxv=0;
@@ -2339,11 +2370,14 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
       var rgb=dir==='add'?'230,80,76':'21,156,148';
       var tint='background:rgba('+rgb+','+al.toFixed(3)+');'
         +'border-color:rgba('+rgb+','+Math.min(1,al+0.17).toFixed(3)+');';
-      var head=it.agg?esc(it.n):(esc(it.s)+' '+esc(it.n));
+      // 每格都要有完整資料（代碼＋簡稱＋金額）；格子偏窄用堆疊版、偏扁用寬版
       var tag=(it.k==='new'||it.k==='out')?'<s>'+KIND[it.k]+'</s>':'';
-      if(pw>=74&&ph>=44)lab='<i>'+head+'</i><u>'+val+'</u>'+tag;
-      else if(pw>=52&&ph>=26)lab='<i>'+esc(it.agg?it.n:it.s)+'</i><u>'+val+'</u>';
-      else if(pw>=32&&ph>=15)lab='<i>'+esc(it.agg?'其他':it.s)+'</i>';
+      var nm=esc(it.n||''), cd=esc(it.s||'');
+      if(it.agg)lab='<i>'+nm+'</i><u>'+val+'</u>';
+      else if(pw>=54&&ph>=58)lab='<i>'+cd+'</i><em>'+nm+'</em><u>'+val+'</u>'+tag;
+      else if(pw>=76&&ph>=40)lab='<i>'+cd+' '+nm+'</i><u>'+val+'</u>';
+      else if(pw>=48&&ph>=26)lab='<i>'+cd+'</i><u>'+val+'</u>';   // 極窄螢幕的保險
+      else lab='<i>'+cd+'</i>';
       h+='<div class="tmi '+(it.agg?'agg ':'')+it.k+'" style="'+tint
         +'left:'+it.x+'%;top:'+it.y+'%;width:'+it.w+'%;height:'+it.h+'%"'
         +' title="'+esc((it.agg?it.n:it.s+' '+it.n)+'　'+KIND[it.k]+' '+val
@@ -2375,9 +2409,9 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
     (e.mv||[]).forEach(function(r){kc[r[4]]=(kc[r[4]]||0)+1});
     var bits=[]; ['add','cut','new','out'].forEach(function(k){if(kc[k])bits.push(KIND[k]+' '+kc[k])});
     $('ed-mvsub').textContent=e.mn?('共 '+e.mn+' 檔異動'+(bits.length?'（'+bits.join('／')+'）':'')):'本次無異動';
-    $('ed-basis').textContent=e.basis==='amount'
-      ?'面積與亮度＝異動金額（Δ股數 × 當日收盤）。'
-      :'尚無個股當日報價，面積與亮度暫以 Δ股數計、金額欄為 —。';
+    $('ed-basis').textContent=(e.basis==='amount'
+      ?'面積與亮度依異動金額（Δ股數 × 當日收盤）。'
+      :'尚無個股當日報價，面積與亮度暫以 Δ股數計、金額欄為 —。')+'　'+(e.an||'');
     // 方塊圖省略了什麼，寫在**表**底下：圖被收掉時這行仍看得到（誠實揭露不能跟著圖消失）
     var notes=[];
     if(e.hid)notes.push('另有 '+e.hid+' 檔幅度過小、方塊圖畫不出標籤，未入圖');

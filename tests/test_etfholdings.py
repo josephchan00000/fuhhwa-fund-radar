@@ -836,9 +836,8 @@ def _tm(moves, basis="amount"):
 
 
 def _readable(t, th):
-    """該格在參考版面寬下放得下兩行標籤嗎（代碼＋金額）。"""
-    return (t["w"] / 100 * fd._TM_W_REF >= fd._TM_MIN_W
-            and t["h"] / 100 * th >= fd._TM_MIN_H)
+    """該格放得下完整資料嗎（代碼＋簡稱＋金額；堆疊版或寬版任一）。"""
+    return fd._tm_fits(t["w"] / 100 * fd._TM_W_REF, t["h"] / 100 * th)
 
 
 def test_treemap_is_flat_no_industry_grouping():
@@ -857,17 +856,31 @@ def test_treemap_is_flat_no_industry_grouping():
 
 
 def test_treemap_area_follows_amount_not_shares():
-    tm = _tm([_mv("A", "甲", 900_000_000, sh=1), _mv("B", "乙", 300_000_000, sh=999),
-              _mv("C", "丙", 200_000_000, sh=5)])
+    """面積依金額（不被股數帶偏），但**壓縮過**：面積 ∝ |金額|^0.5——排序與相對大小保留，
+    極端值被壓平，否則單檔佔六成的日子（0050 的台積電）會把其餘擠成放不下標籤的細條。
+    精確數字沒有損失（每格都印金額），圖註寫明口徑（`_TM_AREA_NOTE`）。"""
+    tm = _tm([_mv("A", "甲", 900_000_000, sh=1), _mv("B", "乙", 100_000_000, sh=999),
+              _mv("C", "丙", 100_000_000, sh=5)])
     area = {t["s"]: t["w"] * t["h"] for t in tm}
-    assert area["A"] > area["B"] * 2                            # 面積依金額，不被股數帶偏
+    assert area["A"] > area["B"]                                # 排序保留
+    assert area["A"] < area["B"] * 9                            # 但不是 9 倍（已壓縮）
+    assert fd._TM_AREA_GAMMA == 0.5 and "平方根壓縮" in fd._TM_AREA_NOTE
 
 
 def test_treemap_falls_back_to_shares_without_quotes():
-    tm = _tm([_mv("A", "甲", None, sh=900), _mv("B", "乙", None, sh=300),
-              _mv("C", "丙", None, sh=200)], basis="shares")
+    tm = _tm([_mv("A", "甲", None, sh=900), _mv("B", "乙", None, sh=100),
+              _mv("C", "丙", None, sh=100)], basis="shares")
     area = {t["s"]: t["w"] * t["h"] for t in tm}
-    assert area["A"] > area["B"] * 2
+    assert area["A"] > area["B"]
+
+
+def test_treemap_targets_seven_blocks_plus_other():
+    """基本格式＝**7 格＋其他**（2026-07-30 使用者指定）。"""
+    moves = [_mv(f"{2000 + i}", "電子", (40 - i * 3) * 10_000_000) for i in range(12)]
+    fig = fd._eh_treemap(moves, "amount")
+    singles = [t for t in fig["blocks"] if not t.get("agg")]
+    assert len(singles) == fd._ED_TM_ITEMS == 7
+    assert [t for t in fig["blocks"] if t.get("agg")], "其餘要有『其他』格"
 
 
 def test_treemap_every_block_can_show_its_label():
@@ -878,7 +891,7 @@ def test_treemap_every_block_can_show_its_label():
              + [_mv(f"{3000 + i}", "電子", 3_000_000) for i in range(12)]
              + [_mv(f"{4000 + i}", "電子", 1_500_000, kind="cut") for i in range(8)])
     fig = fd._eh_treemap(moves, "amount")
-    th = fd._tm_height(len(fig["blocks"]))
+    th = fig["height"]
     assert fig["blocks"]
     for t in fig["blocks"]:
         assert _readable(t, th), f"{t.get('s') or t['n']} 放不下標籤：{t['w']}%×{t['h']}%"
@@ -917,7 +930,7 @@ def test_treemap_degenerate_skew_yields_no_chart():
     moves = [_mv("A", "甲", 1_000_000_000)] + [_mv(f"B{i}", "乙", 1_000_000) for i in range(5)]
     fig = fd._eh_treemap(moves, "amount")
     assert len(fig["blocks"]) < 3 and fig["hidden"] == 5
-    assert "呈現不出比例" in fd._JS and "e.mn?" in fd._JS
+    assert all(_readable(t, fig["height"]) for t in fig["blocks"])   # 留下的仍完整
 
 
 def test_treemap_caps_block_count():
@@ -926,12 +939,18 @@ def test_treemap_caps_block_count():
     assert len([t for t in tm if not t.get("agg")]) <= fd._ED_TM_ITEMS
 
 
-def test_treemap_height_converges_but_not_below_label_size():
-    """高度隨格數收斂，但不可縮到讓格子放不下標籤（否則折疊會自己咬自己的尾巴）。"""
-    lo, hi = fd._TM_H_BLOCKS
-    assert fd._tm_height(1) == fd._tm_height(lo) == 96 + 19 * lo
-    assert fd._tm_height(99) == fd._tm_height(hi)
-    assert fd._tm_height(8) == 96 + 19 * 8
+def test_treemap_height_is_shortest_that_keeps_labels():
+    """圖高＝「每格都放得下完整資料」前提下**最矮**的高度：格數少就矮（不留大片空白），
+    格數多才長高；折疊判定另用最大高度（先盡量留格）。"""
+    one = fd._eh_treemap([_mv("A", "甲", 100_000_000)], "amount")
+    many = fd._eh_treemap([_mv(f"{2000 + i}", "電子", (40 - i * 3) * 10_000_000)
+                           for i in range(12)], "amount")
+    assert one["height"] == fd._TM_H_MIN                      # 一格 → 最矮
+    assert many["height"] > one["height"]                     # 格數多 → 才長高
+    assert many["height"] <= fd._TM_H_MAX
+    for fig in (one, many):
+        assert all(_readable(t, fig["height"]) for t in fig["blocks"])
+    assert fd._eh_treemap([], "amount")["height"] == 0
 
 
 def test_treemap_empty_when_no_moves():
@@ -971,7 +990,7 @@ def test_treemap_tint_scales_with_magnitude():
     assert fd._TM_UP == "#e6504c" and fd._TM_DN == "#159c94"
     # 亮度上限＝0.28+0.52＝0.80，是白字對比算出來的（紅 5.2:1／綠松 4.7:1，過 AA 正文
     # 4.5:1）——上限拉到 1.0 會掉到 3.4:1，別調。文字另加陰影再保一層。
-    assert ".tmi i,.tmi u,.tmi s{text-shadow" in css
+    assert ".tmi i,.tmi em,.tmi u,.tmi s{text-shadow" in css
     # 深色畫布與圖例
     assert ".tmfig{background:#14171b" in css and fd._TM_SURFACE == "#14171b"
     # 格與格之間留「畫布色」縫，不畫線；新增／出清用內縮虛線環（亮度已被幅度佔用）
@@ -980,8 +999,8 @@ def test_treemap_tint_scales_with_magnitude():
     assert ".tmi.add{background" not in css                # 不可再寫死每類一種底色
     assert "deep" not in js.split("paintTmap")[1][:1200]   # 深色畫布上文字一律白，不需切換
     assert ".tmg{" not in css                              # 產業群組層已移除（單層方塊圖）
-    assert "tm.length>0&&tm.length<3" in js                # 少於 3 格不畫圖（看表更快）
-    assert "fig.hidden=!tm.length||few" in js              # 無異動／太少時整張圖收掉
+    assert "fig.hidden=!tm.length" in js                   # 有東西可畫就畫；只有全無異動才收掉
+    assert "tm.length<3" not in js                         # 「少於 3 格不畫」規則已移除
 
 
 def test_treemap_legend_names_both_directions():
