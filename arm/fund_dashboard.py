@@ -940,6 +940,15 @@ def _delta_shares(v) -> str:
 # （arm/treemap.py，輸出百分比座標）——同專案「算在產表端、前端純渲染」慣例，
 # 前端不必再實作一次 squarify。
 
+# 方塊圖色票（2026-07-30 重新設計）：深色畫布上的雙向色階。
+# 紅＝加碼／新增、綠松＝減碼／出清——**綠色刻意偏青**：純紅×純綠在色盲模擬下
+# 分離度只有 ΔE 5.9（不及格），紅 #e6504c × 綠松 #159c94 為 12.1（通過），
+# 且台股慣例的「紅漲綠跌」語意完全不受影響。兩色在 #14171b 畫布上皆 ≥3:1 對比。
+_TM_SURFACE = "#14171b"
+_TM_UP = "#e6504c"
+_TM_DN = "#159c94"
+
+_ED_TM_GROUPS = 6        # 方塊圖產業群組上限（其餘併「其他產業」——見 _eh_treemap 註解）
 _ED_TM_ITEMS = 24        # 方塊圖最多畫幾檔（過小的方塊放不進標籤，其餘留在異動表）
 
 
@@ -990,10 +999,18 @@ def _eh_treemap(moves: list[dict], basis: str) -> list[dict]:
     # 產業別對照尚未入庫（CI 抓 openapi 後補）時只有一個「未分類」群組——
     # 那層標題不帶資訊，改成單層方塊圖（head=0、群名留空），別讓版面被雜訊佔一行
     flat = len(groups) == 1 and stockmeta.UNCLASSIFIED in groups
+    # 群組數上限：小群組高度不足時拿不到標籤，緊貼隔壁產業會被誤讀成同一群
+    #（0050 實測：只有一檔的塑膠工業被擠在「電腦及週邊設備業」標籤下方）。
+    # 超過上限者合併為「其他產業」——寧可少幾個產業名，不要錯的產業歸屬。
+    if len(groups) > _ED_TM_GROUPS:
+        ranked = sorted(groups.items(), key=lambda kv: -sum(v for _, v in kv[1]))
+        keep = dict(ranked[:_ED_TM_GROUPS - 1])
+        rest = [it for _, its in ranked[_ED_TM_GROUPS - 1:] for it in its]
+        groups = {**keep, "其他產業": rest}
     out = []
     for g in treemap.grouped([(k, v) for k, v in groups.items()], w=100.0, h=100.0,
-                             gap=0.0 if flat else 1.1, head=0.0 if flat else 7.0,
-                             head_min_h=17.0):
+                             gap=0.0 if flat else 1.4, head=0.0 if flat else 8.0,
+                             head_min_h=15.0):
         out.append({
             "g": "" if flat else g["key"], "x": round(g["x"], 2), "y": round(g["y"], 2),
             "w": round(g["w"], 2), "h": round(g["h"], 2), "hd": round(g["head"], 2),
@@ -1060,9 +1077,12 @@ def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
         f'<div class="edpick" id="ed-pick">{"".join(chips)}</div>'
         f'<div class="edhead" id="ed-head"></div>'
         f'<div class="edblk"><div class="edt">持股異動 <span class="edtsub" id="ed-mvsub"></span></div>'
-        f'<div class="tmap" id="ed-tmap"></div>'
-        f'<div class="edfoot">外層是產業，內層是異動股票；新增／加碼同紅系，減碼／刪除同綠系，'
-        f'<b>顏色越深＝加減碼幅度越大</b>（虛線框＝新增或出清）。'
+        f'<div class="tmfig"><div class="tmleg">'
+        f'<span class="tmlg"><i style="background:{_TM_UP}"></i>加碼／新增</span>'
+        f'<span class="tmlg"><i style="background:{_TM_DN}"></i>減碼／出清</span>'
+        f'<span class="tmlgn">色塊越亮＝幅度越大・虛線框＝新增或出清</span>'
+        f'</div><div class="tmap" id="ed-tmap"></div></div>'
+        f'<div class="edfoot">外層是產業，內層是異動股票。'
         f'<span id="ed-basis"></span></div>'
         f'<div class="edscroll tbl"><table class="chgtbl"><thead><tr>'
         f'<th>股票</th>'
@@ -1920,27 +1940,33 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 .edtsub{font-size:11.5px;font-weight:400;color:var(--mut);margin-left:2px}
 .edfoot{font-size:11.5px;color:var(--mut);line-height:1.75;margin-top:8px}
 /* 方塊圖：容器固定高度，方塊以百分比絕對定位（座標由 Python squarify 算好） */
-.tmap{position:relative;width:100%;height:clamp(270px,62vw,380px);background:var(--pad);
-  border-radius:10px;overflow:hidden;margin-top:8px}
-.tmg{position:absolute;border-radius:7px;background:rgba(120,140,170,.12)}
-.tmgl{position:absolute;left:6px;top:2px;font-size:11px;font-weight:700;color:var(--ink2);
-  white-space:nowrap;overflow:hidden;max-width:calc(100% - 10px)}
-.tmi{position:absolute;border-radius:6px;overflow:hidden;padding:1px;display:flex;
-  flex-direction:column;align-items:center;justify-content:center;text-align:center;line-height:1.3}
-/* 底色深淺 ∝ 加減碼幅度（2026-07-30 使用者：同色系一片看起來平板不舒服）——
-   色相仍只代表方向（加碼·新增紅／減碼·出清綠），深淺與面積講的是同一件事（幅度），
-   不會產生「深紅是大買還是大跌」的語意衝突。實際 rgba 由前端逐格算、寫成 inline style。
-   新增／出清另以虛線外框區分（幅度已佔用深淺，不能再拿它表示進出）。 */
-.tmi{border:1px solid transparent}
-.tmi.new,.tmi.out{border-style:dashed}
-.tmi i{font-style:normal;font-size:11px;font-weight:700;color:#16263a;max-width:100%;
+/* 方塊圖＝深色「圖表卡」（2026-07-30 使用者：淺底粉紅粉綠一片好醜）。
+   深底的好處是同一組色階不必靠高飽和也能拉出層次、文字一律白色即可讀，
+   雜訊（灰色產業底板、每格外框線）全部拿掉：產業以間距＋一行小標區隔，
+   格與格之間留「畫布色」縫（同色 border 吃進格內），不畫任何線。 */
+.tmfig{background:#14171b;border-radius:12px;padding:11px 11px 12px;margin-top:9px}
+.tmleg{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin-bottom:9px}
+.tmlg{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.78)}
+.tmlg>i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.tmlgn{font-size:10.5px;color:rgba(255,255,255,.42)}
+.tmap{position:relative;width:100%;height:clamp(260px,60vw,370px);overflow:hidden}
+.tmg{position:absolute;border-radius:8px;background:rgba(255,255,255,.045)}
+.tmgl{position:absolute;left:7px;top:2px;font-size:10.5px;font-weight:600;letter-spacing:.02em;
+  color:rgba(255,255,255,.62);white-space:nowrap;overflow:hidden;max-width:calc(100% - 4px)}
+/* 亮度 ∝ 加減碼幅度：色相只表方向、亮度只表幅度，兩者不會互相冒充
+   （若把亮度挪去表示個股當日漲跌就會衝突，別改）。rgba 由前端逐格算成 inline style。 */
+.tmi{position:absolute;border-radius:5px;overflow:hidden;padding:2px;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  line-height:1.32;border:1.5px solid #14171b;box-sizing:border-box}
+.tmi.new,.tmi.out{outline:1px dashed rgba(255,255,255,.5);outline-offset:-4px}
+.tmi i,.tmi u,.tmi s{text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.tmi i{font-style:normal;font-size:11px;font-weight:700;color:#fff;max-width:100%;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tmi u{text-decoration:none;font-size:10.5px;font-weight:700;color:#1e2f42;white-space:nowrap}
-.tmi s{text-decoration:none;font-size:9.5px;color:#33455a;white-space:nowrap}
-.tmi.deep i{color:#fff} .tmi.deep u{color:rgba(255,255,255,.96)}
-.tmi.deep s{color:rgba(255,255,255,.88)}
+.tmi u{text-decoration:none;font-size:11px;font-weight:600;color:rgba(255,255,255,.92);
+  white-space:nowrap}
+.tmi s{text-decoration:none;font-size:9.5px;color:rgba(255,255,255,.62);white-space:nowrap}
 .tmnone{display:flex;align-items:center;justify-content:center;height:100%;padding:0 18px;
-  color:var(--mut);font-size:12.5px;text-align:center}
+  color:rgba(255,255,255,.55);font-size:12.5px;text-align:center}
 /* 異動表／完整持股表：兩行式儲存格（主值在上、副值灰字在下），手機也塞得下四欄 */
 .edscroll{overflow-x:auto;margin-top:9px}
 .edscroll.tbl{max-width:820px}
@@ -2231,14 +2257,15 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
       var pw=it.w/100*W, ph=it.h/100*H, lab='';
       var val=e.basis==='amount'?amt(it.a):lots(it.sh);
       var mag=Math.abs((e.basis==='amount'?it.a:it.sh)||0);
-      var al=0.13+0.51*(maxv?Math.pow(mag/maxv,0.55):0);
-      var rgb=(it.k==='add'||it.k==='new')?'211,58,52':'31,157,87';
+      var al=0.28+0.52*(maxv?Math.pow(mag/maxv,0.55):0);
+      var rgb=(it.k==='add'||it.k==='new')?'230,80,76':'21,156,148';
       var tint='background:rgba('+rgb+','+al.toFixed(3)+');'
         +'border-color:rgba('+rgb+','+Math.min(1,al+0.17).toFixed(3)+');';
-      if(pw>=74&&ph>=48)lab='<i>'+esc(it.s)+' '+esc(it.n)+'</i><u>'+val+'</u><s>'+KIND[it.k]+'</s>';
-      else if(pw>=54&&ph>=30)lab='<i>'+esc(it.s)+'</i><u>'+val+'</u>';
-      else if(pw>=34&&ph>=16)lab='<i>'+esc(it.s)+'</i>';
-      h+='<div class="tmi '+it.k+(al>=0.45?' deep':'')+'" style="'+tint
+      var tag=(it.k==='new'||it.k==='out')?'<s>'+KIND[it.k]+'</s>':'';
+      if(pw>=74&&ph>=44)lab='<i>'+esc(it.s)+' '+esc(it.n)+'</i><u>'+val+'</u>'+tag;
+      else if(pw>=52&&ph>=26)lab='<i>'+esc(it.s)+'</i><u>'+val+'</u>';
+      else if(pw>=32&&ph>=15)lab='<i>'+esc(it.s)+'</i>';
+      h+='<div class="tmi '+it.k+'" style="'+tint
         +'left:'+it.x+'%;top:'+it.y+'%;width:'+it.w+'%;height:'+it.h+'%"'
         +' title="'+esc(it.s+' '+it.n+'　'+KIND[it.k]+' '+val+(g.g?'（'+g.g+'）':''))+'">'+lab+'</div>'})});
     box.innerHTML=h}

@@ -894,12 +894,42 @@ def test_view_returns_stored_detail_when_complete():
 
 
 def test_treemap_tint_scales_with_magnitude():
-    """色塊深淺 ∝ 加減碼幅度（2026-07-30 使用者：同色系一片看起來平板）——
-    深淺由前端逐格算 rgba，故此處守「規則還在、且沒退回寫死的單一底色」。"""
-    js = fd._JS
-    assert "0.13+0.51*" in js and "Math.pow(mag/maxv,0.55)" in js   # 幅度 → alpha（含 gamma）
-    assert "'211,58,52'" in js and "'31,157,87'" in js              # 色相仍只表方向
-    assert "al>=0.45?' deep':''" in js                              # 深色塊改白字
-    css = fd._CSS
-    assert ".tmi.add{background" not in css                         # 不可再寫死每類一種底色
-    assert ".tmi.new,.tmi.out{border-style:dashed}" in css          # 新增／出清改以虛線框區分
+    """深色畫布上的雙向色階（2026-07-30 重新設計）：色相只表方向、亮度只表幅度。
+    數值都是「算出來的」而非拍腦袋，所以測試守住那些算式與上限。"""
+    js, css = fd._JS, fd._CSS
+    # 亮度 ∝ 幅度；開 0.55 次方讓小額異動仍看得見
+    assert "0.28+0.52*" in js and "Math.pow(mag/maxv,0.55)" in js
+    # 色票：紅 #e6504c／綠松 #159c94（rgb 形式寫進 inline style）
+    assert "'230,80,76'" in js and "'21,156,148'" in js
+    assert fd._TM_UP == "#e6504c" and fd._TM_DN == "#159c94"
+    # 亮度上限＝0.28+0.52＝0.80，是白字對比算出來的（紅 5.2:1／綠松 4.7:1，過 AA 正文
+    # 4.5:1）——上限拉到 1.0 會掉到 3.4:1，別調。文字另加陰影再保一層。
+    assert ".tmi i,.tmi u,.tmi s{text-shadow" in css
+    # 深色畫布與圖例
+    assert ".tmfig{background:#14171b" in css and fd._TM_SURFACE == "#14171b"
+    # 格與格之間留「畫布色」縫，不畫線；新增／出清用內縮虛線環（亮度已被幅度佔用）
+    assert "border:1.5px solid #14171b" in css
+    assert ".tmi.new,.tmi.out{outline:1px dashed" in css
+    assert ".tmi.add{background" not in css                # 不可再寫死每類一種底色
+    assert "deep" not in js.split("paintTmap")[1][:1200]   # 深色畫布上文字一律白，不需切換
+
+
+def test_treemap_caps_group_count():
+    """群組上限：小群組高度不足拿不到標籤，緊貼隔壁產業會被誤讀成同一群
+    （0050 實測：只有一檔的塑膠工業被擠在「電腦及週邊設備業」標籤下）。"""
+    moves = [_mv(f"{2000 + i}", f"產業{i}", (30 - i) * 1_000_000) for i in range(12)]
+    tm = fd._eh_treemap(moves, "amount")
+    assert len(tm) == fd._ED_TM_GROUPS
+    assert tm[-1]["g"] == "其他產業" or "其他產業" in {g["g"] for g in tm}
+    assert sum(len(g["it"]) for g in tm) == 12          # 併群不掉資料
+
+
+def test_treemap_legend_names_both_directions():
+    """圖例必須同時標出兩個方向與亮度的意義——顏色不可是唯一線索。"""
+    entry = eh.merge_one(DAY1, DAY2)
+    entry["detail"] = eh.contributions(entry, QUOTES)
+    html = fd._etf_detail_view({"items": [{"code": "0050", "name": "元大台灣50"}]},
+                               {"etfs": {"0050": entry}})
+    assert "加碼／新增" in html and "減碼／出清" in html
+    assert "色塊越亮＝幅度越大" in html and "虛線框＝新增或出清" in html
+    assert fd._TM_UP in html and fd._TM_DN in html
