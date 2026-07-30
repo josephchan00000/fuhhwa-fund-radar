@@ -1,12 +1,12 @@
 {
-  "as_of": "2026/07/31 06:49",
+  "as_of": "2026/07/31 07:43",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
     {
       "title": "復華華人世紀基金，名字傳統卻藏著科技魂？",
       "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE4xd0txVFFBa3ZIUTkxdlU5cEZmOU9vZ2JIMkI5UEhMT0YxeHVBcGxwZllJcklLc2JjeGV0LVpRRHRkb0tRMXBBWkZLa3dYWnBTRWNFMUp5S0Q?oc=5",
-      "source": "CMoney",
+      "source": "cmoney.tw",
       "date": "2026-07-30 16:35",
       "datetime": "2026-07-30T16:35:33+08:00"
     },
@@ -20,14 +20,14 @@
     {
       "title": "00409A下月開募 盯權值股",
       "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE45ZGRSeG9ST1pvVURYaDF4Y09YbXh5MTN6d2lTanVvVHV0Q3htQ1pjSGtuZHQtM3QxY1B4VXZ3XzE2dVZZaHRudi1PY2oxUUNVcjV3QjJzdk9IQdIBX0FVX3lxTE55dWJ0SlRYWVYwcFJIT0dvbm1tYUhNaG5ZdUJwd2xnUE05MUV6VG9HX05DZWJaNW9SRFE3UXZFOXd0bjJJaEdiUkJIMWhUamVYR2hGMTVxdDFlcU9ZOThB?oc=5",
-      "source": "經濟日報",
+      "source": "money.udn.com",
       "date": "2026-07-27 23:58",
       "datetime": "2026-07-27T23:58:13+08:00"
     },
     {
       "title": "復華全球未來50 ETF於8／12開募　挖掘AI產業50強",
       "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE42U1loc1VROGRHOTZ3ZVExb3IxX1VlREV6U0gyVHR3MmJZTXFHT1VrUml5Q3FoTktLMzVnQXh1NjNQWkVRTVVIOTE2ZU4yWlZFbHfSAVBBVV95cUxOLWtEeWFIM05CbzdRM3FiUFY0bFZzQ3RBak8tME5lSGMxbVFjVFdpOWt6SS1NRi1FeVFWajhyQktLY2JaS0ZzdUVCd21BZGJORw?oc=5",
-      "source": "ETtoday財經雲",
+      "source": "finance.ettoday.net",
       "date": "2026-07-27 19:06",
       "datetime": "2026-07-27T19:06:00+08:00"
     },
@@ -86,7 +86,7 @@
         {
           "title": "規模最大的科技巨獸：安聯台灣科技、復華全球物聯網、復華華人世紀該怎麼選？",
           "url": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE1CeFlPMlg5dG1hcFp2UUhxTkZLX1J0XzhXTEw0cEpmXzdjUUJtN1BQVUIta2tQNjVmZVR0WEZmcUZqa0JBOVNZUkdwT0ZLdmNGbDlvRm9YbGRSQktTN1ZSa3BhUDJxWlk?oc=5",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-07-30 16:53",
           "datetime": "2026-07-30T16:53:47+08:00"
         }
@@ -104,14 +104,14 @@
         {
           "title": "規模最大的科技巨獸：安聯台灣科技、復華全球物聯網、復華華人世紀該怎麼選？",
           "url": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE1CeFlPMlg5dG1hcFp2UUhxTkZLX1J0XzhXTEw0cEpmXzdjUUJtN1BQVUIta2tQNjVmZVR0WEZmcUZqa0JBOVNZUkdwT0ZLdmNGbDlvRm9YbGRSQktTN1ZSa3BhUDJxWlk?oc=5",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-07-30 16:53",
           "datetime": "2026-07-30T16:53:47+08:00"
         },
         {
           "title": "復華華人世紀基金，名字傳統卻藏著科技魂？",
           "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE4xd0txVFFBa3ZIUTkxdlU5cEZmOU9vZ2JIMkI5UEhMT0YxeHVBcGxwZllJcklLc2JjeGV0LVpRRHRkb0tRMXBBWkZLa3dYWnBTRWNFMUp5S0Q?oc=5",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-07-30 16:35",
           "datetime": "2026-07-30T16:35:33+08:00"
         }
@@ -371,6 +371,6 @@
   "social": [],
   "highlights": [
     "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、亞太神龍科技、數位經濟（詳下方基金新聞標籤）",
-    "品牌焦點：復華華人世紀基金，名字傳統卻藏著科技魂？（CMoney）"
+    "品牌焦點：復華華人世紀基金，名字傳統卻藏著科技魂？（cmoney.tw）"
   ]
 }
