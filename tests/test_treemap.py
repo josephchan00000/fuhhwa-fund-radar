@@ -77,3 +77,25 @@ def test_grouped_群組間不重疊():
     for i, a in enumerate(gs):
         for b in gs[i + 1:]:
             assert not _overlap(a, b)
+
+
+def test_keep_order_保留呼叫端順序():
+    items = [("小", 1), ("大", 100), ("中", 10)]
+    assert [r["key"] for r in treemap.layout(items, keep_order=True)] == ["小", "大", "中"]
+    assert [r["key"] for r in treemap.layout(items)] == ["大", "中", "小"]
+
+
+def test_keep_order_最後一項落在右下角():
+    """squarify 由左上往右下逐段填滿 → 最後排入者的矩形一定含右下角 (100,100)。
+    「想把某幾格塞到右下角」就靠這個性質（ETF 異動圖的『其他 N 檔』）。"""
+    items = [("a", 40), ("b", 25), ("c", 15), ("d", 12), ("其他", 8)]
+    rects = treemap.layout(items, keep_order=True)
+    last = rects[-1]
+    assert last["key"] == "其他"
+    assert last["x"] + last["w"] > 99.9 and last["y"] + last["h"] > 99.9
+
+
+def test_keep_order_面積仍與值成比例():
+    rects = treemap.layout([("a", 50), ("b", 30), ("其他", 20)], keep_order=True)
+    area = {r["key"]: r["w"] * r["h"] for r in rects}
+    assert abs(area["a"] - 5000) < 1 and abs(area["其他"] - 2000) < 1
