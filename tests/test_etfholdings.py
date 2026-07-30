@@ -669,7 +669,7 @@ def test_fhtrust_source_maps_foreign_tickers(monkeypatch):
     monkeypatch.setattr(fh, "fetch_holdings", lambda fid, iso: {"holdings": [
         {"stock_id": f"T{i} US", "stock_name": f"Bank{i}", "kind": "equity",
          "shares": 1000 + i, "weight": 5.0 - i * 0.2} for i in range(8)]})
-    rows, asof, log = m._from_fhtrust("00998A")
+    rows, asof, _self, log = m._from_fhtrust("00998A")
     assert len(rows) == 8 and rows[0]["stock_id"] == "T0 US"
     assert "fhtrust ✓" in log
 
@@ -677,7 +677,7 @@ def test_fhtrust_source_maps_foreign_tickers(monkeypatch):
 def test_fhtrust_source_skips_unmapped_codes():
     """products.json 沒對映的檔（一般上市 ETF）回空——不會誤打復華官網。"""
     m = _fh_mod()
-    assert m._from_fhtrust("0050") == ([], None, "")
+    assert m._from_fhtrust("0050") == ([], None, False, "")
 
 
 def test_foreign_delta_and_render_without_tw_quotes():
@@ -703,7 +703,7 @@ def test_fhtrust_source_excludes_hedge_futures(monkeypatch):
           "shares": 1000, "weight": 5.0} for i in range(6)]
         + [{"stock_id": "TXF", "stock_name": "臺股期貨避險", "kind": "future",
             "shares": -20, "weight": None}])})
-    rows, _asof, _log = m._from_fhtrust("00991A")
+    rows, _asof, _self, _log = m._from_fhtrust("00991A")
     assert len(rows) == 6 and all(r["stock_id"] != "TXF" for r in rows)
 
 
@@ -1121,3 +1121,24 @@ def test_fhtrust_以檔案自報日期為資料日():
     assert fhtrust._meta_date(["本基金資產明細表 2026年7月28日"]) == "2026-07-28"
     assert fhtrust._meta_date(["基金資產淨值", "1,234,567,890"]) is None    # 金額不是日期
     assert fhtrust._meta_date([]) is None
+
+
+def test_source_pick_prefers_newest_snapshot(monkeypatch):
+    """主來源＝快照日最新者（2026-07-30 使用者：「不能用 etfinfo 頂著嗎」）。
+    fhtrust 的日期只有「檔案自報」時才拿來比大小——沿用請求日的不可信，視為未知。
+    同一天時仍讓第一手 fhtrust 勝（可與 etfinfo 做真正的權重驗證）。"""
+    def pick(f_asof, f_self, e_asof):
+        cands = []
+        if True:
+            cands.append(("fhtrust", f_asof, f_asof if f_self else "", 1))
+            cands.append(("etfinfo", e_asof, e_asof or "", 0))
+        cands.sort(key=lambda c: (c[2], c[3]), reverse=True)
+        return cands[0][0]
+    # etfinfo 較新 → etfinfo 頂著（00991A 的實況：fhtrust 回同一份舊檔）
+    assert pick("2026-07-25", True, "2026-07-29") == "etfinfo"
+    # fhtrust 日期不可信（沿用請求日）→ 一律讓 etfinfo 先
+    assert pick("2026-07-30", False, "2026-07-29") == "etfinfo"
+    # 同一天且 fhtrust 自報 → 第一手優先
+    assert pick("2026-07-29", True, "2026-07-29") == "fhtrust"
+    # fhtrust 較新且自報 → 第一手勝
+    assert pick("2026-07-30", True, "2026-07-29") == "fhtrust"

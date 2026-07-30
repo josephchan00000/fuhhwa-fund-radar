@@ -79,8 +79,8 @@ def _get_raw(url: str) -> bytes:
 
 # ── 本家來源：復華官網 assetsExcel（Tier A 第一手；外股/債券原生支援） ──
 
-def _from_fhtrust(code: str) -> tuple[list[dict], str | None, str]:
-    """→ (持股列, 資料日, 診斷)。products.json 無對映的檔回 ([], None, "")。
+def _from_fhtrust(code: str) -> tuple[list[dict], str | None, bool, str]:
+    """→ (持股列, 資料日, 日期是否為檔案自報, 診斷)。無對映的檔回 ([], None, False, "")。
 
     與基金管線同一支 API（fhtrust.fetch_holdings）：外股列 stock_id 是 ticker
     （'C US'/'7167 JP'）、債券列 shares＝面額——Δ 比較照樣成立；台股報價對不到
@@ -88,7 +88,7 @@ def _from_fhtrust(code: str) -> tuple[list[dict], str | None, str]:
     try:
         fid = prodcfg.product(code)["fund_id"]
     except Exception:
-        return [], None, ""
+        return [], None, False, ""
     from datetime import timedelta
     d, tried, last = clock.today_tw(), 0, ""
     while tried < 5:
@@ -113,14 +113,16 @@ def _from_fhtrust(code: str) -> tuple[list[dict], str | None, str]:
                     # 資料日以**檔案自報**為準；掃不到才回退請求日期（並在日誌標明，
                     # 供一輪 CI 收斂——2026-07-30 的假「無異動」就是誤用請求日期造成）
                     asof = snap.get("date") or iso
-                    src_note = ("檔案自報" if snap.get("date_src")
+                    self_dated = bool(snap.get("date_src"))
+                    src_note = ("檔案自報" if self_dated
                                 else f"⚠ 檔案未見日期、沿用請求日 {iso}")
-                    return rows, asof, f"fhtrust ✓ {len(rows)} 檔（{fid}，{asof}・{src_note}）"
+                    return (rows, asof, self_dated,
+                            f"fhtrust ✓ {len(rows)} 檔（{fid}，{asof}・{src_note}）")
                 last = f"fhtrust {iso} 解析 {len(rows)} 檔/帶權重 {with_w}（未過驗證）"
             except Exception as e:                        # noqa: BLE001 —— 換前一平日再試
                 last = f"fhtrust ✗ {type(e).__name__}: {str(e)[:80]}"
         d -= timedelta(days=1)
-    return [], None, last
+    return [], None, False, last
 
 
 # ── 副來源：Yahoo 股市持股頁（SSR 內嵌 JSON、月度基準 → 只做構成驗證） ──
@@ -151,7 +153,7 @@ def main() -> int:
     probe_only = "--probe" in sys.argv
     targets = [(c, k) for c, _n, k, _cat, _i in etfwatch.WATCHLIST if k in _KINDS]
     targets.sort(key=lambda t: _KINDS.index(t[1]))
-    print(f"[ETF 每日持股・多源] 本家＝fhtrust 第一手優先；其餘 etfinfo 主＋Yahoo 構成驗證"
+    print(f"[ETF 每日持股・多源] 主來源＝快照日最新者（同日時本家 fhtrust 第一手優先）＋Yahoo 構成驗證"
           f"（{len(targets)} 檔{'；--probe 不落檔' if probe_only else ''}）…")
 
     fresh: dict[str, dict] = {}
@@ -160,14 +162,27 @@ def main() -> int:
     fallback_date = _latest_trade_date()
     for code, _kind in targets:
         # 本家檔（products.json 有對映）＝第一手優先；其餘 etfinfo 主
-        f_rows, f_asof, log0 = _from_fhtrust(code)
+        f_rows, f_asof, f_self, log0 = _from_fhtrust(code)
         e_rows, e_asof, log1 = _from_etfinfo(code)
         y_rows, log3 = ([], "")
         if not (f_rows and e_rows):                       # 已有兩源就不必再打 Yahoo（節流）
             y_rows, log3 = _from_yahoo(code)
-        got = [(s, r) for s, r in (("fhtrust", f_rows), ("etfinfo", e_rows),
-                                   ("yahoo", y_rows)) if r]
-        asof = f_asof if f_rows else e_asof
+        # **主來源＝快照日最新者**（2026-07-30 使用者：「不能用 etfinfo 頂著嗎」）。
+        # 原本硬性「本家 fhtrust 第一手優先」，但 assetsExcel 可能回同一份舊檔、
+        # 而且日期還被寫成最近交易日 → 00991A 連日顯示假的「無異動」。現在：
+        #   · fhtrust 的日期只有「檔案自報」時才拿來比大小（沿用請求日的不可信 → 視為未知）
+        #   · 同一天時仍讓第一手 fhtrust 勝（可信度高、且可與 etfinfo 做真正的權重驗證）
+        #   · Yahoo 無快照日（月度基準）→ 永遠墊底、只當最後手段
+        cands = []
+        if f_rows:
+            cands.append(("fhtrust", f_rows, f_asof, f_asof if f_self else "", 1))
+        if e_rows:
+            cands.append(("etfinfo", e_rows, e_asof, e_asof or "", 0))
+        if y_rows:
+            cands.append(("yahoo", y_rows, None, "", -1))
+        cands.sort(key=lambda c: (c[3], c[4]), reverse=True)
+        got = [(c[0], c[1]) for c in cands]
+        asof = cands[0][2] if cands else None
         if not got:
             diag[code] = "；".join(x for x in (log1, log0, log3) if x)
             print(f"  ⚠ {code} 全部來源皆不可得")
@@ -181,7 +196,8 @@ def main() -> int:
             sec_src = got[1][0]
             # 權重只在「同基準日的每日 PCF 對每日 PCF」時比（fhtrust vs etfinfo 且日期相同）；
             # Yahoo 是月度基準、或兩源快照日不同 → 只驗構成（跨時點比權重是方法錯誤）
-            same_day = (src == "fhtrust" and sec_src == "etfinfo"
+            # 權重驗證只在「兩份都是每日 PCF 且快照日相同」時才有意義
+            same_day = ({src, sec_src} == {"fhtrust", "etfinfo"}
                         and f_asof and e_asof and f_asof == e_asof)
             verify = etfholdings.cross_check(pri, sec, weights=bool(same_day))
             verify["other"] = sec_src
@@ -197,7 +213,8 @@ def main() -> int:
         else:
             verify = {"status": "single", "other": None}
             n_single += 1
-        fresh[code] = {"date": (asof if src == "etfinfo" and asof else fallback_date),
+        # 資料日一律用**該來源自己的快照日**；沒有的（Yahoo／fhtrust 掃不到日期）才回退
+        fresh[code] = {"date": asof or fallback_date,
                        "src": src, "verify": verify, "holdings": rows}
         mark = {"match": "🟢", "single": "◯", "mismatch": "⚠", "weak": "◐"}[verify["status"]]
         logs = "｜".join(x for x in (log0, log1, log3) if x)
