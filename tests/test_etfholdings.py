@@ -83,17 +83,45 @@ def test_annotate_never_wipes_detail_without_quotes():
 
 # ── 渲染 ─────────────────────────────────────────────────────────
 
-def test_dashboard_detail_renders_delta_and_contribution():
+def test_dashboard_payload_carries_moves_and_holdings():
+    """ETF 詳情（2026-07-30 改版）：內容由前端依內嵌資料渲染，故渲染測試改測 payload。"""
     d = eh.contributions(eh.merge_one(DAY1, DAY2), QUOTES)
-    html = fd._holdings_detail("00991A", d)
-    assert "持股變化與當日貢獻" in html
-    assert "加碼 +200" in html and "新進" in html and "已出清" in html
-    assert "+2.20pp" in html                              # 貢獻以百分點標示，不與 % 漲跌混淆
-    assert "不會完全相等" in html                          # 殘差誠實揭露、不硬湊
+    pl = fd._eh_payload(d, "測試 ETF")
+    kinds = {m[4] for m in pl["mv"]}
+    assert {"add", "new", "out"} <= kinds                 # 加碼／新增／出清都在異動清單
+    assert pl["tc"] == d["total_contrib"] and pl["nm"] == "測試 ETF"
+    assert len(pl["al"]) == len(d["all"])                 # 完整持股（分頁明細）全帶出
+    assert "不會完全相等" in fd._JS                        # 殘差誠實揭露、不硬湊
 
 
 def test_dashboard_detail_absent_when_no_data():
-    assert fd._holdings_detail("00991A", None) == ""
+    assert fd._eh_payload(None) is None
+    assert fd._etf_detail_view(None, None) == ""
+    assert fd._etf_detail_view({"items": [{"code": "0050"}]}, None) == ""
+
+
+def test_dashboard_detail_view_skeleton():
+    """三段版面骨架（比照使用者提供的架構）：方塊圖／異動表／完整持股＋搜尋＋分頁。"""
+    doc = {"etfs": {"0050": {**eh.merge_one(DAY1, DAY2), "detail": None}}}
+    doc["etfs"]["0050"]["detail"] = eh.contributions(doc["etfs"]["0050"], QUOTES)
+    html = fd._etf_detail_view({"items": [{"code": "0050", "name": "元大台灣50"}]}, doc)
+    for anchor in ('id="etf-detail"', 'id="ed-tmap"', 'id="ed-mv"', 'id="ed-hb"',
+                   'id="ed-q"', 'id="ed-pgn"', 'class="edchip"'):
+        assert anchor in html, anchor
+    assert "外層是產業，內層是異動股票" in html
+    assert "</script>" not in html.split("window.__EH=")[1].split(";</script>")[0]
+
+
+def test_dashboard_embedded_json_is_parseable():
+    """內嵌 JSON 內的 `</` 必須轉義（否則 HTML 解析器會提前結束 script）。"""
+    entry = {**eh.merge_one(DAY1, DAY2)}
+    entry["detail"] = eh.contributions(entry, QUOTES)
+    html = fd._etf_detail_view({"items": [{"code": "0050", "name": "x</script>y"}]},
+                               {"etfs": {"0050": entry}})
+    raw = html.split("window.__EH=")[1].rsplit(";</script>", 1)[0]
+    assert "<\\/" in raw
+    parsed = json.loads(raw.replace("<\\/", "</"))
+    assert "0050" in parsed["etfs"]
 
 
 # ── PCF 通用解析 ─────────────────────────────────────────────────
@@ -452,14 +480,11 @@ def test_contributions_reports_sum_weight():
 
 
 def test_dashboard_flags_partial_tw_only_coverage():
-    """全球型主動 ETF 的海外持股進不了本表（代號非台股 4 碼）——權重合計遠低於 100%
-    時必須標「僅台股部位」，否則 23% 的清單看起來像完整持股（誤導）。"""
+    """權重合計遠低於 100% 時必須標「僅台股部位」，否則 30% 的清單看起來像完整持股。
+    門檻判定在前端（e.sw<60），payload 只負責把權重合計帶過去。"""
     d = eh.contributions(eh.merge_one(DAY1, DAY2), QUOTES)
-    html = fd._holdings_detail("00988A", d)
-    assert "僅台股部位" in html and "30%" in html
-    # 權重合計正常（≥60%）的檔不標
-    d2 = dict(d, sum_weight=90.5)
-    assert "僅台股部位" not in fd._holdings_detail("00981A", d2)
+    assert fd._eh_payload(d)["sw"] == 30.0
+    assert "僅台股部位" in fd._JS and "e.sw<60" in fd._JS
 
 
 def test_discover_ranks_code_href_over_name_match():
@@ -570,17 +595,15 @@ def test_cross_check_does_not_compare_shares():
 
 
 def test_dashboard_renders_verify_badges():
-    d = eh.contributions(eh.merge_one(DAY1, DAY2), QUOTES)
-    ok = dict(d, verify={"status": "match", "weights_compared": True, "other": "moneydj",
-                         "top_hit": 9, "top_n": 10, "max_dw": 0.3})
-    assert "🟢 雙源相符" in fd._holdings_detail("X", ok)
-    bad = dict(d, verify={"status": "mismatch", "other": "moneydj", "top_hit": 3,
-                          "top_n": 10, "max_dw": 4.2})
-    html = fd._holdings_detail("X", bad)
-    assert "⚠ 兩源不符" in html and "4.2pp" in html
-    one = dict(d, verify={"status": "single", "other": None})
-    assert "單源未驗證" in fd._holdings_detail("X", one)
-    assert "Tier B" in fd._holdings_detail("X", d)        # 來源誠實標示
+    chip = fd._eh_verify_chip({"status": "match", "weights_compared": True, "other": "moneydj",
+                               "top_hit": 9, "top_n": 10, "max_dw": 0.3})
+    assert chip[1] == "🟢 雙源相符"
+    bad = fd._eh_verify_chip({"status": "mismatch", "other": "moneydj", "top_hit": 3,
+                              "top_n": 10, "max_dw": 4.2})
+    assert bad[0] == "hvbad" and bad[1] == "⚠ 兩源不符" and "4.2pp" in bad[2]
+    assert fd._eh_verify_chip({"status": "single", "other": None})[1] == "單源未驗證"
+    assert fd._eh_verify_chip({}) == ["", "", ""]
+    assert "Tier B" in fd._JS                             # 來源誠實標示
 
 
 def test_verify_flows_from_entry_to_detail():
@@ -621,15 +644,11 @@ def test_cross_check_composition_still_fails_on_low_overlap():
 
 
 def test_dashboard_composition_and_weak_badges():
-    d = eh.contributions(eh.merge_one(DAY1, DAY2), QUOTES)
-    comp = dict(d, verify={"status": "match", "weights_compared": False, "other": "yahoo",
-                           "top_hit": 9, "top_n": 10, "max_dw": 3.8})
-    html = fd._holdings_detail("X", comp)
-    assert "🟢 構成相符" in html and "月度基準" in html      # 不冒稱權重也相符
-    assert "雙源相符" not in html
-    weak = dict(d, verify={"status": "weak", "other": "yahoo", "top_hit": 3, "top_n": 10})
-    html2 = fd._holdings_detail("X", weak)
-    assert "副源過舊・未能驗證" in html2 and "非主來源錯誤" in html2
+    comp = fd._eh_verify_chip({"status": "match", "weights_compared": False, "other": "yahoo",
+                               "top_hit": 9, "top_n": 10, "max_dw": 3.8})
+    assert comp[1] == "🟢 構成相符" and "月度基準" in comp[2]   # 不冒稱權重也相符
+    weak = fd._eh_verify_chip({"status": "weak", "other": "yahoo", "top_hit": 3, "top_n": 10})
+    assert weak[1] == "副源過舊・未能驗證" and "非主來源錯誤" in weak[2]
 
 
 # ── 本家兩檔走復華官網 assetsExcel（曾誤標「不支援」——限制在 schema，不在資料） ──
@@ -671,8 +690,8 @@ def test_foreign_delta_and_render_without_tw_quotes():
     d = eh.contributions(merged, {})
     by = {r["stock_id"]: r for r in d["rows"]}
     assert by["JPM US"]["d_shares"] == 2000 and by["JPM US"]["contrib"] is None
-    html = fd._holdings_detail("00998A", d)
-    assert "JPM US" in html and "加碼 +2,000" in html
+    mv = {m[0]: m for m in fd._eh_payload(d)["mv"]}
+    assert mv["JPM US"][2] == 2000 and mv["JPM US"][4] == "add" and mv["JPM US"][3] is None
 
 
 def test_fhtrust_source_excludes_hedge_futures(monkeypatch):
@@ -695,3 +714,192 @@ def test_merge_rejects_date_regression():
     newer = {"date": "2026-07-29", "src": "etfinfo", "holdings": DAY2["holdings"]}
     older = {"date": "2026-07-28", "src": "fhtrust", "holdings": DAY1["holdings"]}
     assert eh.merge_one(newer, older) == newer
+
+
+# ── 異動清單／完整持股（ETF 詳情三段版面；2026-07-30 使用者需求） ──────────
+
+def _entry_moves():
+    return {"date": "2026-07-30", "prev_date": "2026-07-29",
+            "holdings": [{"stock_id": "2330", "name": "台積電", "shares": 1200, "weight": 30.0},
+                         {"stock_id": "1303", "name": "南亞", "shares": 500, "weight": 10.0},
+                         {"stock_id": "3653", "name": "健策", "shares": 800, "weight": 8.0},
+                         {"stock_id": "2454", "name": "聯發科", "shares": 100, "weight": 5.0}],
+            "prev": {"2330": {"shares": 1000, "weight": 28.0},
+                     "1303": {"shares": 900, "weight": 14.0},
+                     "2454": {"shares": 100, "weight": 5.0},
+                     "6415": {"shares": 300, "weight": 3.0}}}
+
+
+_Q = {"2330": {"close": 1000.0, "change": 10.0},
+      "1303": {"close": 50.0, "change": -1.0},
+      "3653": {"close": 200.0, "change": 2.0},
+      "2454": {"close": 1500.0, "change": 0.0},
+      "6415": {"close": 400.0, "change": -4.0}}
+_IND = {"2330": "半導體業", "1303": "塑膠工業", "3653": "電子零組件業", "2454": "半導體業"}
+
+
+def test_moves_分類加碼減碼新增出清():
+    d = eh.contributions(_entry_moves(), _Q, _IND)
+    kinds = {m["stock_id"]: m["kind"] for m in d["moves"]}
+    assert kinds["2330"] == "add"      # 1000 → 1200
+    assert kinds["1303"] == "cut"      # 900 → 500
+    assert kinds["3653"] == "new"      # prev 沒有
+    assert kinds["6415"] == "out"      # 今日沒有
+    assert "2454" not in kinds         # 股數沒動 → 不算異動
+
+
+def test_moves_新增檔異動量為整個部位():
+    d = eh.contributions(_entry_moves(), _Q, _IND)
+    m = [x for x in d["moves"] if x["stock_id"] == "3653"][0]
+    assert m["m_shares"] == 800                    # 不是 None，是全額買進
+    assert m["amount"] == 800 * 200
+
+
+def test_moves_出清檔為負值():
+    d = eh.contributions(_entry_moves(), _Q, _IND)
+    m = [x for x in d["moves"] if x["stock_id"] == "6415"][0]
+    assert m["m_shares"] == -300
+    assert m["amount"] == -300 * 400
+
+
+def test_moves_金額與張數():
+    d = eh.contributions(_entry_moves(), _Q, _IND)
+    m = [x for x in d["moves"] if x["stock_id"] == "2330"][0]
+    assert m["amount"] == 200 * 1000               # Δ股數 × 收盤
+    assert m["lots"] == 0.2                        # 200 股 ＝ 0.2 張
+
+
+def test_moves_依金額絕對值排序():
+    d = eh.contributions(_entry_moves(), _Q, _IND)
+    amts = [abs(m["amount"]) for m in d["moves"]]
+    assert amts == sorted(amts, reverse=True)
+    assert d["amount_basis"] == "amount"
+
+
+def test_moves_無報價時面積依據退回股數():
+    d = eh.contributions(_entry_moves(), None, _IND)
+    assert d["amount_basis"] == "shares"
+    assert all(m["amount"] is None for m in d["moves"])
+    shs = [abs(m["m_shares"]) for m in d["moves"]]
+    assert shs == sorted(shs, reverse=True)
+
+
+def test_moves_帶產業別供方塊圖分組():
+    d = eh.contributions(_entry_moves(), _Q, _IND)
+    assert {m["stock_id"]: m["industry"] for m in d["moves"]}["2330"] == "半導體業"
+    # 沒有產業對照時為 None（渲染端歸「未分類」，不當成錯誤）
+    d2 = eh.contributions(_entry_moves(), _Q, None)
+    assert all(m["industry"] is None for m in d2["moves"])
+
+
+def test_moves_上限與其餘合計():
+    hold = [{"stock_id": f"{1000 + i}", "name": f"s{i}", "shares": 100 + i, "weight": 1.0}
+            for i in range(50)]
+    prev = {f"{1000 + i}": {"shares": 100, "weight": 1.0} for i in range(50)}
+    d = eh.contributions({"date": "d", "holdings": hold, "prev": prev}, None)
+    assert d["moves_n"] == 49                      # i=0 股數沒動
+    assert len(d["moves"]) == 40                   # 清單上限
+    assert d["moves_rest_n"] == 9
+
+
+def test_all_為全部持股且依權重排序():
+    d = eh.contributions(_entry_moves(), _Q, _IND)
+    assert len(d["all"]) == 4                      # rows 只留貢獻前 N，all 要全部
+    ws = [r["weight"] for r in d["all"]]
+    assert ws == sorted(ws, reverse=True)
+    r = d["all"][0]
+    assert r["stock_id"] == "2330" and r["close"] == 1000.0 and r["industry"] == "半導體業"
+
+
+def test_all_收盤價缺報價時為None不憑空補():
+    d = eh.contributions(_entry_moves(), {}, _IND)
+    assert all(r["close"] is None for r in d["all"])
+    assert all(r["contrib"] is None for r in d["all"])
+
+
+def test_首次揭露無prev時沒有異動():
+    e = {"date": "2026-07-30", "holdings": _entry_moves()["holdings"], "prev": {}}
+    d = eh.contributions(e, _Q, _IND)
+    assert d["moves"] == [] and d["moves_n"] == 0
+
+
+# ── 產業分層方塊圖（_eh_treemap；座標由 arm/treemap 算好、前端純渲染） ─────────
+
+def _mv(sid, ind, amt, sh=None, kind="add"):
+    return {"stock_id": sid, "name": sid, "industry": ind, "kind": kind,
+            "amount": amt, "m_shares": sh if sh is not None else (amt or 0) // 100}
+
+
+def test_treemap_groups_by_industry():
+    tm = fd._eh_treemap([_mv("2330", "半導體業", 350_000_000),
+                         _mv("2337", "半導體業", -260_000_000, kind="cut"),
+                         _mv("1303", "塑膠工業", -860_000_000, kind="cut")], "amount")
+    names = [g["g"] for g in tm]
+    assert set(names) == {"半導體業", "塑膠工業"}
+    assert all(0 <= g["x"] <= 100 and 0 <= g["y"] <= 100 for g in tm)
+    assert sum(len(g["it"]) for g in tm) == 3
+    it = {i["s"]: i for g in tm for i in g["it"]}
+    assert it["1303"]["k"] == "cut" and it["2330"]["k"] == "add"
+
+
+def test_treemap_area_follows_amount_not_shares():
+    tm = fd._eh_treemap([_mv("A", "甲", 900_000_000, sh=1),
+                         _mv("B", "乙", 100_000_000, sh=999)], "amount")
+    area = {g["g"]: g["w"] * g["h"] for g in tm}
+    assert area["甲"] > area["乙"] * 5          # 面積依金額，不被股數帶偏
+
+
+def test_treemap_falls_back_to_shares_without_quotes():
+    tm = fd._eh_treemap([_mv("A", "甲", None, sh=100), _mv("B", "乙", None, sh=900)], "shares")
+    area = {g["g"]: g["w"] * g["h"] for g in tm}
+    assert area["乙"] > area["甲"] * 5
+
+
+def test_treemap_unclassified_only_renders_flat():
+    """產業別對照尚未入庫時只有一個「未分類」群組——那層標題不帶資訊，改單層顯示。"""
+    tm = fd._eh_treemap([_mv("A", None, 100), _mv("B", None, 50)], "amount")
+    assert len(tm) == 1 and tm[0]["g"] == "" and tm[0]["hd"] == 0.0
+
+
+def test_treemap_empty_when_no_moves():
+    assert fd._eh_treemap([], "amount") == []
+    assert fd._eh_treemap([_mv("A", "甲", 0, sh=0)], "amount") == []
+
+
+def test_treemap_caps_item_count():
+    moves = [_mv(f"{2000 + i}", "甲", (100 - i) * 1_000_000) for i in range(40)]
+    tm = fd._eh_treemap(moves, "amount")
+    assert sum(len(g["it"]) for g in tm) == fd._ED_TM_ITEMS
+
+
+def test_view_backfills_legacy_detail_without_all():
+    """落檔 detail 為舊 schema（無 all／moves）時就地補算，並嫁接既有報價／貢獻。"""
+    entry = eh.merge_one(DAY1, DAY2)
+    legacy = eh.contributions(entry, QUOTES)
+    priced = {r["stock_id"]: (r["chg_pct"], r["contrib"]) for r in legacy["rows"]}
+    legacy.pop("all"); legacy.pop("moves")
+    doc = {"etfs": {"X": {**entry, "detail": legacy}}}
+    got = eh.view(doc, "X")
+    assert got["all"] and got["moves"]                      # 補算出來
+    for r in got["all"]:
+        if r["stock_id"] in priced:
+            assert (r["chg_pct"], r["contrib"]) == priced[r["stock_id"]]
+    assert got["total_contrib"] == legacy["total_contrib"]   # 合計沿用既有值
+
+
+def test_view_returns_stored_detail_when_complete():
+    entry = eh.merge_one(DAY1, DAY2)
+    entry["detail"] = eh.contributions(entry, QUOTES)
+    assert eh.view({"etfs": {"X": entry}}, "X") is entry["detail"]
+
+
+def test_treemap_tint_scales_with_magnitude():
+    """色塊深淺 ∝ 加減碼幅度（2026-07-30 使用者：同色系一片看起來平板）——
+    深淺由前端逐格算 rgba，故此處守「規則還在、且沒退回寫死的單一底色」。"""
+    js = fd._JS
+    assert "0.13+0.51*" in js and "Math.pow(mag/maxv,0.55)" in js   # 幅度 → alpha（含 gamma）
+    assert "'211,58,52'" in js and "'31,157,87'" in js              # 色相仍只表方向
+    assert "al>=0.45?' deep':''" in js                              # 深色塊改白字
+    css = fd._CSS
+    assert ".tmi.add{background" not in css                         # 不可再寫死每類一種底色
+    assert ".tmi.new,.tmi.out{border-style:dashed}" in css          # 新增／出清改以虛線框區分
