@@ -948,9 +948,26 @@ _TM_SURFACE = "#14171b"
 _TM_UP = "#e6504c"
 _TM_DN = "#159c94"
 
-_ED_TM_ITEMS = 14         # 方塊圖最多幾格（超過就併「其他」——太小的格放不進標籤也讀不出比例）
-_ED_TM_MIN_SHARE = 0.025  # 佔全體異動金額不到 2.5% 者併「其他」（明細表照樣逐檔列出）
-_ED_TM_KEEP_MIN = 3       # 但至少保留 3 格，否則單一大單會讓整張圖只剩一塊
+_ED_TM_ITEMS = 14         # 方塊圖格數上限（再多也讀不出比例）
+# 註：曾有「至少保留 3 格」的規則，2026-07-30 移除——它與「畫得出標籤才單獨一格」相牴觸：
+# 異動極度集中時（單檔佔 95%），硬留的那 3 格必然是讀不出來的細條。退化情形交給前端
+# 「少於 3 格就不畫圖」處理，看明細表更快。
+# 「畫得出標籤才值得單獨一格」的量尺（2026-07-30 使用者定案：顯示不出來＝沒那麼重要
+# ＝歸到其他；反過來說，佔比還行的變動不可以因為排版被擠成細條而顯示不完整）。
+# 參考寬取**手機內容寬**：在最窄的版面放得下，寬螢幕只會更大——單一判準、不必兩處各算一次。
+_TM_W_REF = 300.0         # 參考版面寬（px）
+_TM_MIN_W, _TM_MIN_H = 52.0, 26.0   # 兩行標籤（代碼＋金額）需要的最小格寬／格高
+_TM_H_BLOCKS = (5, 14)    # 高度公式的格數下／上限（高度隨格數收斂，但不縮到放不下標籤）
+
+
+def _tm_height(n: int) -> int:
+    """方塊圖高度（px）：隨格數收斂，但夾在 5～14 格對應的高度之間。
+
+    下限保 5 格的高度——折疊到只剩 3 格時若跟著縮到 153px，每格又會變扁、
+    反而再次觸發折疊（自己咬自己的尾巴）。上限 14 格避免長到要捲動。
+    """
+    lo, hi = _TM_H_BLOCKS
+    return 96 + 19 * max(lo, min(n, hi))
 
 
 def _eh_verify_chip(vf: dict) -> list:
@@ -985,54 +1002,76 @@ def _tm_dir(kind: str) -> str:
     return "add" if kind in ("add", "new") else "cut"
 
 
-def _eh_treemap(moves: list[dict], basis: str) -> list[dict]:
+def _eh_treemap(moves: list[dict], basis: str) -> dict:
     """異動清單 → **單層** treemap（百分比座標，前端直接當 % 用）。
 
-    2026-07-30 使用者定案：
+    2026-07-30 使用者定案的兩條規則：
       · **不分產業**——產業別對照抓不齊（海外持股、部分上櫃檔沒有），分層後常出現
         「未分類」群組或小群組拿不到標籤被誤讀成隔壁產業，資訊價值輸給版面代價。
-        產業名仍留在每格的 tooltip（`ind`），資料層也照樣入庫，日後覆蓋率夠了可再分層
+        產業名仍留在每格 tooltip（`ind`），資料層照樣入庫，日後覆蓋率夠了可再分層
         （`arm/treemap.grouped()` 保留）。
-      · **小佔比併「其他」**——佔全體不到 2.5%（或超出格數上限）者，依方向併成
-        「其他 N 檔」兩格；反正下方異動明細表逐檔都列。這樣每格都放得下標籤、
-        比例也讀得出來，不會是一排讀不出來的細條。
+      · **「畫得出標籤才值得單獨一格」**——排完版後逐格檢查在參考寬（手機內容寬）下
+        放不放得下兩行標籤（代碼＋金額）；放不下的**一次降級一格**再重排，直到每格都讀得完整。
+        降級者依方向併成「其他 N 檔」（顏色語意不混），逐檔數字在下方明細表照樣列。
+        這比「固定佔比門檻」正確：門檻是猜的，能不能顯示才是使用者真正在意的事。
 
     面積依據：有報價時用 |金額|，否則退回 |股數|（`basis`，說明文會標明）。
+    回傳 {"blocks": [每格], "hidden": 未入圖檔數}。
     """
     def val(m):
         return abs((m.get("amount") if basis == "amount" else m.get("m_shares")) or 0)
 
+    # 面積算不出來者（全球型 ETF 的海外持股沒有台股報價 → amount 為 None）不能靜靜消失，
+    # 必須回報檔數：否則 00990A 的 18 檔異動只畫 1 格、看板上卻沒交代其餘 17 檔去哪了。
     rows = sorted((m for m in moves if val(m) > 0), key=val, reverse=True)
+    unpriced = len(moves) - len(rows)
     if not rows:
-        return []
-    total = sum(val(m) for m in rows)
-    keep, rest = [], []
-    for i, m in enumerate(rows):
-        big = val(m) / total >= _ED_TM_MIN_SHARE
-        if (big or i < _ED_TM_KEEP_MIN) and len(keep) < _ED_TM_ITEMS:
-            keep.append(m)
-        else:
-            rest.append(m)
-    items = [{"s": m["stock_id"], "n": m.get("name") or m["stock_id"],
-              "a": m.get("amount"), "sh": m.get("m_shares"),
-              "k": m.get("kind"), "ind": m.get("industry"), "v": val(m)}
-             for m in keep]
-    for d in ("add", "cut"):                        # 併格仍分方向，顏色語意不混
-        grp = [m for m in rest if _tm_dir(m.get("kind") or "") == d]
-        if not grp:
+        return {"blocks": [], "hidden": 0, "unpriced": unpriced}
+    keep, rest = rows[:_ED_TM_ITEMS], rows[_ED_TM_ITEMS:]
+    off: set = set()          # 連「其他 N 檔」併格自己都畫不出標籤的方向 → 整格不入圖
+
+    def build(keep_, rest_):
+        items = [{"s": m["stock_id"], "n": m.get("name") or m["stock_id"],
+                  "a": m.get("amount"), "sh": m.get("m_shares"),
+                  "k": m.get("kind"), "ind": m.get("industry"), "v": val(m)}
+                 for m in keep_]
+        for d in ("add", "cut"):
+            grp = [m for m in rest_ if _tm_dir(m.get("kind") or "") == d]
+            if not grp or d in off:
+                continue
+            items.append({"s": "", "n": f"其他 {len(grp)} 檔", "k": d, "agg": True,
+                          "a": (sum(m["amount"] for m in grp)
+                                if all(m.get("amount") is not None for m in grp) else None),
+                          "sh": sum(m.get("m_shares") or 0 for m in grp),
+                          "v": sum(val(m) for m in grp)})
+        return items
+
+    for _ in range(len(rows) + 4):
+        items = build(keep, rest)
+        rects = treemap.layout([(i, it["v"]) for i, it in enumerate(items)], w=100.0, h=100.0)
+        h_px = _tm_height(len(items))
+        bad = [r for r in rects
+               if r["w"] / 100 * _TM_W_REF < _TM_MIN_W or r["h"] / 100 * h_px < _TM_MIN_H]
+        if not bad:
+            break
+        drop = min(bad, key=lambda r: r["value"])
+        it = items[drop["key"]]
+        if it.get("agg"):
+            off.add(it["k"])                              # 併格畫不出來 → 不入圖（明細表照樣列）
             continue
-        items.append({"s": "", "n": f"其他 {len(grp)} 檔", "k": d, "agg": True,
-                      "a": (sum(m["amount"] for m in grp)
-                            if all(m.get("amount") is not None for m in grp) else None),
-                      "sh": sum(m.get("m_shares") or 0 for m in grp),
-                      "v": sum(val(m) for m in grp)})
+        if len(keep) <= 1:
+            break
+        rest.append(keep.pop(next(i for i, m in enumerate(keep)
+                                  if m["stock_id"] == it["s"])))
     out = []
-    for r in treemap.layout([(i, it["v"]) for i, it in enumerate(items)], w=100.0, h=100.0):
+    for r in rects:
         it = items[r["key"]]
         out.append({**{k: v for k, v in it.items() if k != "v"},
                     "x": round(r["x"], 2), "y": round(r["y"], 2),
                     "w": round(r["w"], 2), "h": round(r["h"], 2)})
-    return out
+    # 未入圖的檔數（併格被剔除的方向）——說明文要誠實交代，不能悄悄消失
+    return {"blocks": out, "unpriced": unpriced,
+            "hidden": sum(1 for m in rest if _tm_dir(m.get("kind") or "") in off)}
 
 
 def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
@@ -1044,6 +1083,8 @@ def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
     if not detail:
         return None
     basis = detail.get("amount_basis") or "shares"
+    fig = _eh_treemap(detail.get("moves") or [], basis)
+    tm, hidden, unpriced = fig["blocks"], fig["hidden"], fig["unpriced"]
     return {
         "nm": name, "d": detail.get("date"), "p": detail.get("prev_date"),
         "n": detail.get("n_holdings"), "sw": detail.get("sum_weight"),
@@ -1051,7 +1092,7 @@ def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
         "tc": detail.get("total_contrib"), "cw": detail.get("covered_weight"),
         "vf": _eh_verify_chip(detail.get("verify") or {}),
         "mn": detail.get("moves_n"), "mr": detail.get("moves_rest_n"),
-        "tm": _eh_treemap(detail.get("moves") or [], basis),
+        "tm": tm, "th": _tm_height(len(tm)) if tm else 0, "hid": hidden, "nq": unpriced,
         # MV：[代號, 名稱, 異動股數, 金額, 類型]
         "mv": [[m["stock_id"], m.get("name") or m["stock_id"], m.get("m_shares"),
                 m.get("amount"), m.get("kind")] for m in (detail.get("moves") or [])],
@@ -2268,10 +2309,13 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
   function paintTmap(e){
     var box=$('ed-tmap'), fig=$('ed-tmfig'); if(!box)return;
     var tm=e.tm||[];
-    var H=tm.length?Math.min(360,Math.max(132,96+tm.length*19)):64;
-    box.style.height=H+'px';
-    var msg=e.p?'本次揭露與前一揭露日相比，持股股數沒有變化。'
-               :'首次揭露，尚無可對比的前一揭露日——明日起可看加減碼。';
+    var H=e.th||0;                      // 高度由產表端算（折疊判準用的是同一個值）
+    if(H)box.style.height=H+'px';
+    var msg=e.mn?(e.nq>=(e.mn/2)
+        ?'本次異動多為海外持股（無台股報價），方塊圖無法計算面積——請看下方明細表。'
+        :'本次異動集中在少數標的，其餘幅度過小、方塊圖呈現不出比例——請看下方明細表。')
+            :(e.p?'本次揭露與前一揭露日相比，持股股數沒有變化。'
+                 :'首次揭露，尚無可對比的前一揭露日——明日起可看加減碼。');
     var none=$('ed-mvnone'), tbl=$('ed-mvtbl'), fo=document.querySelector('#ed-tmfig ~ .edfoot');
     // 少於 3 格的「方塊圖」只是一兩個矩形，比例資訊為零、還佔一大塊——直接不畫，看表更快
     var few=tm.length>0&&tm.length<3;
@@ -2331,10 +2375,15 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
     (e.mv||[]).forEach(function(r){kc[r[4]]=(kc[r[4]]||0)+1});
     var bits=[]; ['add','cut','new','out'].forEach(function(k){if(kc[k])bits.push(KIND[k]+' '+kc[k])});
     $('ed-mvsub').textContent=e.mn?('共 '+e.mn+' 檔異動'+(bits.length?'（'+bits.join('／')+'）':'')):'本次無異動';
-    $('ed-basis').textContent=(e.basis==='amount'
+    $('ed-basis').textContent=e.basis==='amount'
       ?'面積與亮度＝異動金額（Δ股數 × 當日收盤）。'
-      :'尚無個股當日報價，面積與亮度暫以 Δ股數計、金額欄為 —。');
-    $('ed-mvfoot').textContent=e.mr?('異動檔數超過清單上限，另有 '+e.mr+' 檔小額異動未列。'):''}
+      :'尚無個股當日報價，面積與亮度暫以 Δ股數計、金額欄為 —。';
+    // 方塊圖省略了什麼，寫在**表**底下：圖被收掉時這行仍看得到（誠實揭露不能跟著圖消失）
+    var notes=[];
+    if(e.hid)notes.push('另有 '+e.hid+' 檔幅度過小、方塊圖畫不出標籤，未入圖');
+    if(e.nq)notes.push('另有 '+e.nq+' 檔海外持股無台股報價，無法計入方塊圖');
+    if(e.mr)notes.push('異動檔數超過清單上限，另有 '+e.mr+' 檔小額異動未列於本表');
+    $('ed-mvfoot').textContent=notes.length?(notes.join('；')+'。'):''}
 
   // ③ 完整持股明細（搜尋＋排序＋分頁；預設權重由大到小，同截圖）
   function paintHold(e){
