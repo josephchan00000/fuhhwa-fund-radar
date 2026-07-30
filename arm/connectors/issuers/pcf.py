@@ -310,6 +310,17 @@ _bundle_cache: dict[str, list[str]] = {}   # host → 掃出的 API 路徑（每
 _bundle_log: dict[str, list[str]] = {}     # host → bundle 抓取診斷（與路徑分開存，見下）
 
 
+def _content_length(url: str) -> int:
+    """HEAD 問內容長度（用來挑主 bundle）；問不到回 0（排最後）。"""
+    import urllib.request
+    try:
+        req = urllib.request.Request(url, method="HEAD", headers=_UA)
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return int(r.headers.get("Content-Length") or 0)
+    except Exception:                                   # noqa: BLE001
+        return 0
+
+
 def _bundle_api_hints(raw: bytes, page_url: str, max_bundles: int = 6) -> list[str]:
     """從 SPA 的 **JS bundle** 撈真正的資料端點。
 
@@ -331,6 +342,11 @@ def _bundle_api_hints(raw: bytes, page_url: str, max_bundles: int = 6) -> list[s
     all_srcs = [urljoin(page_url, s) for s in _SCRIPT_SRC.findall(html)]
     srcs = [s for s in all_srcs if _BUNDLE_HINT.search(s)] or \
            [s for s in all_srcs if ".js" in s]                # 命名不合慣例時退回全部 .js
+    # 主 bundle 通常是最大的那支，而 API 路徑幾乎都寫在它裡面（2026-07-30 第 1 輪：
+    # CMoney 掃到的 index.umd.js 200KB 回 +0，真正的端點在 8 支雜湊 chunk 之一）。
+    # 先用 HEAD 問大小、由大到小排 —— HEAD 很便宜，比多抓幾支 MB 級檔案划算得多。
+    if len(srcs) > max_bundles:
+        srcs = sorted(srcs, key=lambda u: -_content_length(u))
     found: list[str] = []
     log: list[str] = []
     if not all_srcs:
@@ -366,6 +382,12 @@ def _bundle_api_hints(raw: bytes, page_url: str, max_bundles: int = 6) -> list[s
         log.append(f"{src.rsplit('/', 1)[-1]} {len(js)}B → +{len(found) - n0} 路徑")
         if len(found) >= 8:
             break
+    # 疑似持股端點單獨標出來（路徑一多就淹沒重點）：含 holding／constituent／pcf／
+    # component／fund 等字樣者最可能是我們要的那支
+    hot = [u for u in found
+           if re.search(r"hold|constitu|pcf|component|composit|成分", u, re.I)]
+    if hot:
+        log.insert(0, "★ 疑似持股端點：" + " , ".join(hot[:5]))
     # 路徑與診斷**分開存**：診斷字串若混進路徑清單，日後把路徑餵進 _cands() 就會炸
     #（且診斷片段裡本來就可能含 .png 之類的無關字串，混在一起連測試都難寫）
     _bundle_cache[host] = found

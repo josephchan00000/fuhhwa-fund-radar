@@ -1213,22 +1213,23 @@ def _etf_table(items: list[dict], holdings_doc: dict | None = None) -> str:
         name_html = _esc(i.get("name") or "").replace("復華", '<span class="fh">復華</span>')
         has_det = bool(etfholdings.view(holdings_doc, code))
         if has_det:
-            # 有每日持股揭露 → 名稱欄＝跳詳情鈕（2026-07-30 改版：明細移到底部
-            # #etf-detail 專屬區塊，表內不再展開整寬列——那是「展開後超空」的根因）
+            # 代碼與「詳情」同一行、名稱緊接下一行（2026-07-30 使用者：每一檔都好長）——
+            # 原本是代碼／名稱／詳情鈕／Yahoo 連結四行堆疊，列高近 180px
             id_cell = (f'<td class="nm"><button type="button" class="edjump" '
                        f'data-c="{_esc(code)}" '
                        f'aria-label="看 {_esc(code)} 的持股異動與完整持股明細">'
-                       f'<span class="mdgname"><b class="etcode">{_esc(code)}</b>'
-                       f'<span class="etname">{name_html}{srctag}</span></span>'
-                       f'<span class="edjt">詳情 ↓</span></button>'
-                       f'<span class="mddt ehyh"><a class="mdslsm" href="{vurl}" target="_blank" '
-                       f'rel="noopener" title="開 Yahoo奇摩股市對照驗證">Yahoo↗</a></span></td>')
+                       f'<span class="etline"><b class="etcode">{_esc(code)}</b>'
+                       f'<span class="edjt">詳情 ↓</span></span>'
+                       f'<span class="etname">{name_html}{srctag}</span></button></td>')
         else:
-            # 無明細（無 caret）→ 維持代碼直連 Yahoo 的原樣
-            id_cell = (f'<td class="nm"><a class="etcode" href="{vurl}" target="_blank" rel="noopener" '
-                       f'title="點開 Yahoo奇摩股市對照驗證"><b>{_esc(code)}</b></a>'
+            id_cell = (f'<td class="nm"><span class="etline">'
+                       f'<b class="etcode">{_esc(code)}</b></span>'
                        f'<span class="etname">{name_html}{srctag}</span></td>')
-        tds = [f'<td class="nm"><span class="etcat">{_esc(i.get("cat") or "—")}</span></td>', id_cell]
+        # Yahoo 對照連結移到「性質」欄（2026-07-30 使用者指示）——該欄原本只有一顆分類 chip、
+        # 大片空白，識別欄則被四行內容撐長；連結放這裡剛好把兩邊的空間都用對
+        tds = [f'<td class="nm"><span class="etcat">{_esc(i.get("cat") or "—")}</span>'
+               f'<a class="etyh" href="{vurl}" target="_blank" rel="noopener" '
+               f'title="開 Yahoo奇摩股市對照驗證">Yahoo↗</a></td>', id_cell]
         for k, _ in _ETF_COLS:
             v = _etf_sortv(k, i)
             if k in ("ret_1w", "ret_1m"):
@@ -1845,10 +1846,9 @@ a.tk:hover{color:var(--acc)}
 .ovtbl tr:hover td{background:rgba(47,111,208,.06)}
 /* ETF 表：只凍結「代碼／名稱」一欄（識別欄），手機橫向捲動時恆可見；
    性質欄隨捲動移出（分兩張表已按性質分組，捲動時不需重複顯示），省空間好閱讀 */
-.etftbl td:nth-child(2),.etftbl th:nth-child(2){position:sticky;left:0;z-index:2;background:var(--card);min-width:92px;max-width:128px;white-space:normal;box-shadow:1px 0 0 var(--line)}
+.etftbl td:nth-child(2),.etftbl th:nth-child(2){position:sticky;left:0;z-index:2;background:var(--card);min-width:112px;max-width:150px;white-space:normal;box-shadow:1px 0 0 var(--line)}
 .etftbl thead th:nth-child(2){z-index:3}
-.etftbl .etcode{display:block}                 /* 代碼自成一行，名稱從下一行整段起，避免首字被擠上代碼列 */
-.etftbl .etname{display:block;line-height:1.35} /* 名稱整段換行 */
+/* 代碼與「詳情」同一行由 .etline 排（2026-07-30 縮列高）；名稱在第二行整段換行 */
 .etftbl .fh{color:var(--gold);font-weight:800} /* 產品名內「復華」以品牌色標示 */
 .pend{display:inline-block;font-size:11.5px;color:var(--gold);background:rgba(200,134,15,.12);border:0;border-radius:10px;padding:1px 7px;margin-left:6px;vertical-align:1px}
 .pendhint{background:rgba(200,134,15,.1);border:0;border-radius:10px;padding:9px 13px;font-size:13.5px;color:#8a6a2e;margin-bottom:10px}
@@ -2095,9 +2095,16 @@ th .sub{display:block;font-weight:400;color:var(--mut);font-size:10.5px}
 .edpg button{font:inherit;font-size:12px;color:var(--accd);background:var(--pad);
   border:1px solid var(--line);border-radius:8px;padding:5px 12px;cursor:pointer}
 .edpg button:disabled{color:var(--mut);opacity:.5;cursor:default}
-.etftbl .edjump{padding:6px 2px 6px 0;min-height:34px}
-.etftbl .edjump .etcode{display:block}
-.ehyh{display:block;margin-left:0;margin-top:1px}
+.etftbl .edjump{padding:4px 2px;min-height:0;line-height:1.3}
+.etline{display:flex;align-items:baseline;gap:5px;white-space:nowrap}
+.etline .etcode{font-weight:800;color:var(--accd);font-size:13.5px}
+.etftbl .etname{display:block;font-size:11.5px;color:var(--ink2);line-height:1.35;
+  margin-top:1px;white-space:normal;min-width:104px}
+.etftbl .edjt{margin-top:0}
+/* Yahoo 連結移到「性質」欄（原本疊在識別欄第四行，把每一列撐到近 180px 高） */
+.etyh{display:block;margin-top:4px;font-size:10.5px;color:var(--acc);text-decoration:none;
+  white-space:nowrap}
+.etyh:hover{text-decoration:underline}
 .hnew{color:#8a5410;background:rgba(200,118,15,.14);margin-left:5px;font-size:10px;border-radius:5px;padding:0 4px}
 /* 全球型 ETF：本表僅台股部位（權重合計遠低於 100%）——橘標誠實揭露，避免被讀成完整清單 */
 .hpartial{margin-left:6px;font-size:10.5px;color:#8a5410;background:rgba(200,118,15,.14);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help}
