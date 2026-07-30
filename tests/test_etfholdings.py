@@ -108,7 +108,7 @@ def test_dashboard_detail_view_skeleton():
     for anchor in ('id="etf-detail"', 'id="ed-tmap"', 'id="ed-mv"', 'id="ed-hb"',
                    'id="ed-q"', 'id="ed-pgn"', 'class="edchip"'):
         assert anchor in html, anchor
-    assert "外層是產業，內層是異動股票" in html
+    assert "每格＝一檔異動股票" in html
     assert "</script>" not in html.split("window.__EH=")[1].split(";</script>")[0]
 
 
@@ -830,46 +830,132 @@ def _mv(sid, ind, amt, sh=None, kind="add"):
             "amount": amt, "m_shares": sh if sh is not None else (amt or 0) // 100}
 
 
-def test_treemap_groups_by_industry():
-    tm = fd._eh_treemap([_mv("2330", "半導體業", 350_000_000),
-                         _mv("2337", "半導體業", -260_000_000, kind="cut"),
-                         _mv("1303", "塑膠工業", -860_000_000, kind="cut")], "amount")
-    names = [g["g"] for g in tm]
-    assert set(names) == {"半導體業", "塑膠工業"}
-    assert all(0 <= g["x"] <= 100 and 0 <= g["y"] <= 100 for g in tm)
-    assert sum(len(g["it"]) for g in tm) == 3
-    it = {i["s"]: i for g in tm for i in g["it"]}
-    assert it["1303"]["k"] == "cut" and it["2330"]["k"] == "add"
+def _tm(moves, basis="amount"):
+    """取方塊清單（_eh_treemap 回傳 {"blocks","hidden"}）。"""
+    return fd._eh_treemap(moves, basis)["blocks"]
+
+
+def _readable(t, th):
+    """該格放得下完整資料嗎（代碼＋簡稱＋金額；堆疊版或寬版任一）。"""
+    return fd._tm_fits(t["w"] / 100 * fd._TM_W_REF, t["h"] / 100 * th)
+
+
+def test_treemap_is_flat_no_industry_grouping():
+    """2026-07-30 使用者定案：不分產業（對照抓不齊，分層的資訊價值輸給版面代價）。
+    產業名仍留在每格資料裡供 tooltip 用。"""
+    tm = _tm([_mv("2330", "半導體業", 350_000_000),
+              _mv("1303", "塑膠工業", -860_000_000, kind="cut"),
+              _mv("2368", None, -520_000_000, kind="cut")])
+    assert len(tm) == 3
+    assert all("it" not in t and "g" not in t for t in tm)      # 不再有群組層
+    by = {t["s"]: t for t in tm}
+    assert by["2330"]["ind"] == "半導體業" and by["2368"]["ind"] is None
+    assert by["1303"]["k"] == "cut" and by["2330"]["k"] == "add"
+    for t in tm:                                                # 座標仍在畫布內
+        assert 0 <= t["x"] and 0 <= t["y"] and t["x"] + t["w"] <= 100.01 and t["y"] + t["h"] <= 100.01
 
 
 def test_treemap_area_follows_amount_not_shares():
-    tm = fd._eh_treemap([_mv("A", "甲", 900_000_000, sh=1),
-                         _mv("B", "乙", 100_000_000, sh=999)], "amount")
-    area = {g["g"]: g["w"] * g["h"] for g in tm}
-    assert area["甲"] > area["乙"] * 5          # 面積依金額，不被股數帶偏
+    """面積依金額（不被股數帶偏），但**壓縮過**：面積 ∝ |金額|^0.5——排序與相對大小保留，
+    極端值被壓平，否則單檔佔六成的日子（0050 的台積電）會把其餘擠成放不下標籤的細條。
+    精確數字沒有損失（每格都印金額），圖註寫明口徑（`_TM_AREA_NOTE`）。"""
+    tm = _tm([_mv("A", "甲", 900_000_000, sh=1), _mv("B", "乙", 100_000_000, sh=999),
+              _mv("C", "丙", 100_000_000, sh=5)])
+    area = {t["s"]: t["w"] * t["h"] for t in tm}
+    assert area["A"] > area["B"]                                # 排序保留
+    assert area["A"] < area["B"] * 9                            # 但不是 9 倍（已壓縮）
+    assert fd._TM_AREA_GAMMA == 0.5 and "平方根壓縮" in fd._TM_AREA_NOTE
 
 
 def test_treemap_falls_back_to_shares_without_quotes():
-    tm = fd._eh_treemap([_mv("A", "甲", None, sh=100), _mv("B", "乙", None, sh=900)], "shares")
-    area = {g["g"]: g["w"] * g["h"] for g in tm}
-    assert area["乙"] > area["甲"] * 5
+    tm = _tm([_mv("A", "甲", None, sh=900), _mv("B", "乙", None, sh=100),
+              _mv("C", "丙", None, sh=100)], basis="shares")
+    area = {t["s"]: t["w"] * t["h"] for t in tm}
+    assert area["A"] > area["B"]
 
 
-def test_treemap_unclassified_only_renders_flat():
-    """產業別對照尚未入庫時只有一個「未分類」群組——那層標題不帶資訊，改單層顯示。"""
-    tm = fd._eh_treemap([_mv("A", None, 100), _mv("B", None, 50)], "amount")
-    assert len(tm) == 1 and tm[0]["g"] == "" and tm[0]["hd"] == 0.0
+def test_treemap_targets_seven_blocks_plus_other():
+    """基本格式＝**7 格＋其他**（2026-07-30 使用者指定）。"""
+    moves = [_mv(f"{2000 + i}", "電子", (40 - i * 3) * 10_000_000) for i in range(12)]
+    fig = fd._eh_treemap(moves, "amount")
+    singles = [t for t in fig["blocks"] if not t.get("agg")]
+    assert len(singles) == fd._ED_TM_ITEMS == 7
+    assert [t for t in fig["blocks"] if t.get("agg")], "其餘要有『其他』格"
+
+
+def test_treemap_every_block_can_show_its_label():
+    """2026-07-30 使用者定案的判準：**畫得出標籤才值得單獨一格**——
+    「如果會在網頁上圖示顯示不出來，表示沒那麼重要，那就歸類到其他」。
+    反過來也要成立：佔比還行的變動不可以被排版擠成細條而顯示不完整。"""
+    moves = ([_mv("2330", "半導體業", 900_000_000)]
+             + [_mv(f"{3000 + i}", "電子", 3_000_000) for i in range(12)]
+             + [_mv(f"{4000 + i}", "電子", 1_500_000, kind="cut") for i in range(8)])
+    fig = fd._eh_treemap(moves, "amount")
+    th = fig["height"]
+    assert fig["blocks"]
+    for t in fig["blocks"]:
+        assert _readable(t, th), f"{t.get('s') or t['n']} 放不下標籤：{t['w']}%×{t['h']}%"
+
+
+def test_treemap_folds_leftovers_into_other_by_direction():
+    """降級者依方向併成「其他 N 檔」——顏色語意不可混（紅綠各自一格）。"""
+    # 小額們「合計起來夠大」才會以併格入圖（各自太小、合計也小的話連併格都畫不出來，
+    # 那就是下一個測試的情形）
+    moves = ([_mv("2330", "半導體業", 900_000_000), _mv("1303", "塑膠", -800_000_000, kind="cut")]
+             + [_mv(f"{3000 + i}", "電子", 30_000_000) for i in range(10)]
+             + [_mv(f"{4000 + i}", "電子", 30_000_000, kind="cut") for i in range(10)])
+    fig = fd._eh_treemap(moves, "amount")
+    agg = [t for t in fig["blocks"] if t.get("agg")]
+    assert agg, "應該要有併格"
+    assert all(t["k"] in ("add", "cut") for t in agg)
+    for t in agg:
+        n = int(t["n"].replace("其他 ", "").replace(" 檔", ""))
+        assert abs(t["a"]) == n * 30_000_000                     # 併格金額＝成員合計
+
+
+def test_treemap_hidden_count_reported_when_other_block_too_small():
+    """連「其他」併格自己都畫不出標籤時整格不入圖——但檔數要回報，不能悄悄消失。"""
+    moves = [_mv("2330", "半導體業", 900_000_000), _mv("2317", "電子", 300_000_000),
+             _mv("2454", "半導體業", 200_000_000)] + \
+            [_mv(f"{5000 + i}", "電子", 300, kind="cut") for i in range(4)]
+    fig = fd._eh_treemap(moves, "amount")
+    assert not [t for t in fig["blocks"] if t.get("agg")]       # 併格太小 → 不入圖
+    assert fig["hidden"] == 4                                   # 但誠實回報
+    assert "未入圖" in fd._JS
+
+
+def test_treemap_degenerate_skew_yields_no_chart():
+    """異動極度集中（單檔佔 95%）時，其餘一律畫不出標籤 → 折到剩一格，
+    前端「少於 3 格不畫圖」接手；檔數仍誠實回報，訊息也不能說成「沒有變化」。"""
+    moves = [_mv("A", "甲", 1_000_000_000)] + [_mv(f"B{i}", "乙", 1_000_000) for i in range(5)]
+    fig = fd._eh_treemap(moves, "amount")
+    assert len(fig["blocks"]) < 3 and fig["hidden"] == 5
+    assert all(_readable(t, fig["height"]) for t in fig["blocks"])   # 留下的仍完整
+
+
+def test_treemap_caps_block_count():
+    moves = [_mv(f"{2000 + i}", "甲", (60 - i) * 1_000_000) for i in range(40)]
+    tm = _tm(moves)
+    assert len([t for t in tm if not t.get("agg")]) <= fd._ED_TM_ITEMS
+
+
+def test_treemap_height_is_shortest_that_keeps_labels():
+    """圖高＝「每格都放得下完整資料」前提下**最矮**的高度：格數少就矮（不留大片空白），
+    格數多才長高；折疊判定另用最大高度（先盡量留格）。"""
+    one = fd._eh_treemap([_mv("A", "甲", 100_000_000)], "amount")
+    many = fd._eh_treemap([_mv(f"{2000 + i}", "電子", (40 - i * 3) * 10_000_000)
+                           for i in range(12)], "amount")
+    assert one["height"] == fd._TM_H_MIN                      # 一格 → 最矮
+    assert many["height"] > one["height"]                     # 格數多 → 才長高
+    assert many["height"] <= fd._TM_H_MAX
+    for fig in (one, many):
+        assert all(_readable(t, fig["height"]) for t in fig["blocks"])
+    assert fd._eh_treemap([], "amount")["height"] == 0
 
 
 def test_treemap_empty_when_no_moves():
-    assert fd._eh_treemap([], "amount") == []
-    assert fd._eh_treemap([_mv("A", "甲", 0, sh=0)], "amount") == []
-
-
-def test_treemap_caps_item_count():
-    moves = [_mv(f"{2000 + i}", "甲", (100 - i) * 1_000_000) for i in range(40)]
-    tm = fd._eh_treemap(moves, "amount")
-    assert sum(len(g["it"]) for g in tm) == fd._ED_TM_ITEMS
+    assert _tm([]) == [] and fd._eh_treemap([], "amount")["hidden"] == 0
+    assert _tm([_mv("A", "甲", 0, sh=0)]) == []
 
 
 def test_view_backfills_legacy_detail_without_all():
@@ -894,12 +980,63 @@ def test_view_returns_stored_detail_when_complete():
 
 
 def test_treemap_tint_scales_with_magnitude():
-    """色塊深淺 ∝ 加減碼幅度（2026-07-30 使用者：同色系一片看起來平板）——
-    深淺由前端逐格算 rgba，故此處守「規則還在、且沒退回寫死的單一底色」。"""
-    js = fd._JS
-    assert "0.13+0.51*" in js and "Math.pow(mag/maxv,0.55)" in js   # 幅度 → alpha（含 gamma）
-    assert "'211,58,52'" in js and "'31,157,87'" in js              # 色相仍只表方向
-    assert "al>=0.45?' deep':''" in js                              # 深色塊改白字
-    css = fd._CSS
-    assert ".tmi.add{background" not in css                         # 不可再寫死每類一種底色
-    assert ".tmi.new,.tmi.out{border-style:dashed}" in css          # 新增／出清改以虛線框區分
+    """深色畫布上的雙向色階（2026-07-30 重新設計）：色相只表方向、亮度只表幅度。
+    數值都是「算出來的」而非拍腦袋，所以測試守住那些算式與上限。"""
+    js, css = fd._JS, fd._CSS
+    # 亮度 ∝ 幅度；開 0.55 次方讓小額異動仍看得見
+    assert "0.28+0.52*" in js and "Math.pow(mag/maxv,0.55)" in js
+    # 色票：紅 #e6504c／綠松 #159c94（rgb 形式寫進 inline style）
+    assert "'230,80,76'" in js and "'21,156,148'" in js
+    assert fd._TM_UP == "#e6504c" and fd._TM_DN == "#159c94"
+    # 亮度上限＝0.28+0.52＝0.80，是白字對比算出來的（紅 5.2:1／綠松 4.7:1，過 AA 正文
+    # 4.5:1）——上限拉到 1.0 會掉到 3.4:1，別調。文字另加陰影再保一層。
+    assert ".tmi i,.tmi em,.tmi u,.tmi s{text-shadow" in css
+    # 深色畫布與圖例
+    assert ".tmfig{background:#14171b" in css and fd._TM_SURFACE == "#14171b"
+    # 格與格之間留「畫布色」縫，不畫線；新增／出清用內縮虛線環（亮度已被幅度佔用）
+    assert "border:1.5px solid #14171b" in css
+    assert ".tmi.new,.tmi.out{outline:1px dashed" in css
+    assert ".tmi.add{background" not in css                # 不可再寫死每類一種底色
+    assert "deep" not in js.split("paintTmap")[1][:1200]   # 深色畫布上文字一律白，不需切換
+    assert ".tmg{" not in css                              # 產業群組層已移除（單層方塊圖）
+    assert "fig.hidden=!tm.length" in js                   # 有東西可畫就畫；只有全無異動才收掉
+    assert "tm.length<3" not in js                         # 「少於 3 格不畫」規則已移除
+
+
+def test_treemap_legend_names_both_directions():
+    """圖例必須同時標出兩個方向與亮度的意義——顏色不可是唯一線索。"""
+    entry = eh.merge_one(DAY1, DAY2)
+    entry["detail"] = eh.contributions(entry, QUOTES)
+    html = fd._etf_detail_view({"items": [{"code": "0050", "name": "元大台灣50"}]},
+                               {"etfs": {"0050": entry}})
+    assert "加碼／新增" in html and "減碼／出清" in html
+    assert "色塊越亮＝幅度越大" in html and "虛線框＝新增或出清" in html
+    assert fd._TM_UP in html and fd._TM_DN in html
+
+
+def test_treemap_reports_unpriced_moves():
+    """全球型 ETF 的海外持股沒有台股報價（amount 為 None）→ 算不出面積，
+    不可靜靜濾掉：00990A 實測 18 檔異動只畫得出 1 格，其餘 17 檔必須在註解交代。"""
+    moves = [_mv("2454", "半導體業", -182_700_000, kind="cut"),
+             {"stock_id": "AMD US", "name": "AMD", "kind": "cut", "amount": None,
+              "m_shares": -36000, "industry": None},
+             {"stock_id": "NOW US", "name": "ServiceNow", "kind": "new", "amount": None,
+              "m_shares": 258800, "industry": None}]
+    fig = fd._eh_treemap(moves, "amount")
+    assert [t["s"] for t in fig["blocks"]] == ["2454"]
+    assert fig["unpriced"] == 2
+    # 揭露文案寫在**異動表**底下，圖被收掉時仍看得到
+    assert "無台股報價，無法計入方塊圖" in fd._JS
+    assert "ed-mvfoot" in fd._JS
+
+
+def test_treemap_omissions_are_all_accounted():
+    """入圖格數＋併格成員＋未入圖＋無報價＝異動總數（帳要平，不能有檔數蒸發）。"""
+    moves = ([_mv("2330", "半導體業", 900_000_000)]
+             + [_mv(f"{3000 + i}", "電子", 20_000_000) for i in range(8)]
+             + [_mv(f"{4000 + i}", "電子", 900_000, kind="cut") for i in range(7)])
+    fig = fd._eh_treemap(moves, "amount")
+    singles = [t for t in fig["blocks"] if not t.get("agg")]
+    agg_n = sum(int(t["n"].replace("其他 ", "").replace(" 檔", ""))
+                for t in fig["blocks"] if t.get("agg"))
+    assert len(singles) + agg_n + fig["hidden"] + fig["unpriced"] == len(moves)
