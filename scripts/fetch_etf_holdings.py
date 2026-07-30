@@ -227,6 +227,21 @@ def main() -> int:
         return 0
 
 
+    doc = etfholdings.merge(etfholdings.load(), fresh, diag)
+    quotes = _quotes()
+    ind = _industry()
+    if quotes:
+        etfholdings.annotate(doc, quotes, ind)
+        print(f"  ✓ 當日貢獻歸因：個股報價 {len(quotes)} 檔｜產業別 {len(ind)} 檔")
+    else:
+        print("  ⚠ 個股報價不可得 → 沿用既有貢獻明細（不覆寫成空）")
+    ok = etfholdings.save(doc)
+    print(f"{'✓ 落檔' if ok else '⚠ 本次全空、保留既有落檔'} {etfholdings.DATA_FP}"
+          f"（{len(doc.get('etfs') or {})} 檔有揭露；本次 {len(fresh)} 檔：🟢 {n_match}"
+          f"／◯ {n_single}／◐ {n_weak}／⚠ {n_mismatch}）")
+    return 0
+
+
 # 第三方驗證來源探針的代表樣本（2026-07-30）：只打 3 檔就能回答涵蓋範圍問題，
 # 不必 23 檔全掃——對別人的站發上百個請求既不必要也不禮貌。
 _TP_SAMPLE = (
@@ -247,25 +262,13 @@ def _probe_third_party() -> None:
         print(f"  ── {code}（{why}）")
         rows, src, probes = pcf.probe_third_party(code)
         for pr in probes:
-            print(f"      · {pr.line()}")
+            # bundle 診斷單行可達數千字（Angular main.js 1.4MB）——第三方探針只要「能不能拿到
+            # 持股」的判斷，細節截斷到 400 字，日誌才讀得動
+            print(f"      · {pr.line()[:400]}")
         if rows:
             print(f"      ✅ {src} 解析成功 {len(rows)} 檔：{pcf.sample_rows(rows)}")
         else:
             print("      ✗ 三站皆未解析出可用持股清單（詳見上方各候選診斷）")
-
-    doc = etfholdings.merge(etfholdings.load(), fresh, diag)
-    quotes = _quotes()
-    ind = _industry()
-    if quotes:
-        etfholdings.annotate(doc, quotes, ind)
-        print(f"  ✓ 當日貢獻歸因：個股報價 {len(quotes)} 檔｜產業別 {len(ind)} 檔")
-    else:
-        print("  ⚠ 個股報價不可得 → 沿用既有貢獻明細（不覆寫成空）")
-    ok = etfholdings.save(doc)
-    print(f"{'✓ 落檔' if ok else '⚠ 本次全空、保留既有落檔'} {etfholdings.DATA_FP}"
-          f"（{len(doc.get('etfs') or {})} 檔有揭露；本次 {len(fresh)} 檔：🟢 {n_match}"
-          f"／◯ {n_single}／◐ {n_weak}／⚠ {n_mismatch}）")
-    return 0
 
 
 def _industry() -> dict[str, str]:
