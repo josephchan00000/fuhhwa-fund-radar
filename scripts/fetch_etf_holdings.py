@@ -223,7 +223,35 @@ def main() -> int:
     if probe_only:
         print(f"[探針] 成功 {len(fresh)}/{len(targets)}（🟢 構成相符 {n_match}、"
               f"◯ 單源 {n_single}、◐ 副源過舊 {n_weak}、⚠ 不符 {n_mismatch}）；未落檔。")
+        _probe_third_party()
         return 0
+
+
+# 第三方驗證來源探針的代表樣本（2026-07-30）：只打 3 檔就能回答涵蓋範圍問題，
+# 不必 23 檔全掃——對別人的站發上百個請求既不必要也不禮貌。
+_TP_SAMPLE = (
+    ("0050", "被動大檔"),
+    ("00981A", "主動式"),
+    ("00998A", "上櫃本家（etfinfo 為 404，最需要第三方）"),
+)
+
+
+def _probe_third_party() -> None:
+    """探第三方驗證來源（玩股網／CMoney／ETF觀測站）——只在 --probe 模式跑、不落檔。
+
+    本容器連不到這三站（proxy CONNECT 403），CI 日誌是唯一的除錯管道；
+    每個候選都會印 HTTP 狀態／content-type／位元數／解析結果，SPA 則印疑似 API 端點。
+    """
+    print("\n[第三方驗證來源探針] 候選：玩股網／CMoney／ETF觀測站（使用者 2026-07-30 核可）")
+    for code, why in _TP_SAMPLE:
+        print(f"  ── {code}（{why}）")
+        rows, src, probes = pcf.probe_third_party(code)
+        for pr in probes:
+            print(f"      · {pr.line()}")
+        if rows:
+            print(f"      ✅ {src} 解析成功 {len(rows)} 檔：{pcf.sample_rows(rows)}")
+        else:
+            print("      ✗ 三站皆未解析出可用持股清單（詳見上方各候選診斷）")
 
     doc = etfholdings.merge(etfholdings.load(), fresh, diag)
     quotes = _quotes()

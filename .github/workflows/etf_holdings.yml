@@ -13,6 +13,11 @@ on:
     # 與隔日清晨的 daily.yml 完全錯開，不佔早上的關鍵路徑。
     - cron: "40 9 * * 1-5"
   workflow_dispatch:
+    inputs:
+      probe:
+        description: "只跑探針（第三方驗證來源可達性／解析診斷），不落檔、不部署"
+        type: boolean
+        default: false
 
 concurrency:
   group: etf-holdings
@@ -39,14 +44,21 @@ jobs:
       - name: 安裝相依（純標準庫 + certifi）
         run: pip install --quiet certifi
 
-      - name: 抓每日持股（本家 fhtrust 第一手＋etfinfo 主＋Yahoo 構成驗證）
-        run: TZ=Asia/Taipei python3 scripts/fetch_etf_holdings.py
+      - name: 抓每日持股（第一手優先；停更或抓不到則 etfinfo 頂替＋第三方構成驗證）
+        run: |
+          if [ "${{ inputs.probe }}" = "true" ]; then
+            TZ=Asia/Taipei python3 scripts/fetch_etf_holdings.py --probe
+          else
+            TZ=Asia/Taipei python3 scripts/fetch_etf_holdings.py
+          fi
 
       - name: 重建儀表板（2026-07-30 使用者：持股更新排進每日循環——傍晚抓完直接上線，
               當日貢獻當晚可見，不等隔日早上 daily.yml）
+        if: inputs.probe != true
         run: TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py
 
       - name: commit 持股落檔＋儀表板
+        if: inputs.probe != true
         run: |
           git config user.name "josephchan00000"
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
@@ -68,6 +80,7 @@ jobs:
           echo "::error::push 連續失敗——本次持股未入 main"; exit 1
 
       - name: 觸發 Vercel 部署（Deploy Hook；未設 secret 則跳過、靠自動偵測）
+        if: inputs.probe != true
         env:
           VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
         run: |
