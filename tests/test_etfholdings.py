@@ -1040,3 +1040,22 @@ def test_treemap_omissions_are_all_accounted():
     agg_n = sum(int(t["n"].replace("其他 ", "").replace(" 檔", ""))
                 for t in fig["blocks"] if t.get("agg"))
     assert len(singles) + agg_n + fig["hidden"] + fig["unpriced"] == len(moves)
+
+
+def test_treemap_other_blocks_sit_bottom_right_and_recede():
+    """「其他」併格固定排最後 → 落在右下角，且顏色壓低不搶眼
+    （2026-07-30 使用者：「既然都叫其他了就不要太明顯」）。"""
+    moves = ([_mv(f"{2000 + i}", "電子", (40 - i * 3) * 10_000_000) for i in range(9)]
+             + [_mv(f"{4000 + i}", "電子", 30_000_000, kind="cut") for i in range(4)])
+    fig = fd._eh_treemap(moves, "amount")
+    aggs = [t for t in fig["blocks"] if t.get("agg")]
+    assert aggs, "應該要有『其他』格"
+    # 併格一律排在清單末端（＝squarify 最後填的位置）
+    assert all(t.get("agg") for t in fig["blocks"][-len(aggs):])
+    last = fig["blocks"][-1]
+    assert last["x"] + last["w"] > 99.9 and last["y"] + last["h"] > 99.9   # 含右下角
+    for t in aggs:                                                        # 都在下半、右半
+        assert t["x"] + t["w"] > 50 and t["y"] + t["h"] > 50
+    # 亮度固定壓低（不隨幅度變亮）＋標籤改灰
+    assert "it.agg?0.20:" in fd._JS
+    assert ".tmi.agg i,.tmi.agg u{font-weight:600;color:rgba(255,255,255,.62)}" in fd._CSS

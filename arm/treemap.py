@@ -80,13 +80,19 @@ def _squarify(sizes: list[float], x: float, y: float, dx: float, dy: float) -> l
 
 
 def layout(items: list[tuple], x: float = 0.0, y: float = 0.0,
-           w: float = 100.0, h: float = 100.0) -> list[dict]:
+           w: float = 100.0, h: float = 100.0, keep_order: bool = False) -> list[dict]:
     """items = [(key, value), …] → [{key, value, x, y, w, h}]（座標與傳入單位相同）。
 
-    value ≤ 0 或 None 者剔除（面積無意義）；依 value 由大到小排。
+    value ≤ 0 或 None 者剔除（面積無意義）。預設依 value 由大到小排。
+
+    `keep_order=True` 保留呼叫端給的順序。squarify 是**由左上往右下逐段填滿**，
+    最後排入者落在右下角的剩餘矩形——所以「想把某幾格塞到右下角」只要把它們放在
+    序列末端即可（ETF 異動圖的「其他 N 檔」就是這樣處理：既然叫其他就別搶版面）。
+    注意：亂序會讓長寬比最佳化變差，只在「順序本身有意義」時才用。
     """
     vals = [(k, float(v)) for k, v in items if v is not None and float(v) > 0]
-    vals.sort(key=lambda kv: -kv[1])
+    if not keep_order:
+        vals.sort(key=lambda kv: -kv[1])
     if not vals or w <= _EPS or h <= _EPS:
         return []
     total = sum(v for _, v in vals)
