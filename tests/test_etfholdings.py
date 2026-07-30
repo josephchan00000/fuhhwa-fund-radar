@@ -891,3 +891,15 @@ def test_view_returns_stored_detail_when_complete():
     entry = eh.merge_one(DAY1, DAY2)
     entry["detail"] = eh.contributions(entry, QUOTES)
     assert eh.view({"etfs": {"X": entry}}, "X") is entry["detail"]
+
+
+def test_treemap_tint_scales_with_magnitude():
+    """色塊深淺 ∝ 加減碼幅度（2026-07-30 使用者：同色系一片看起來平板）——
+    深淺由前端逐格算 rgba，故此處守「規則還在、且沒退回寫死的單一底色」。"""
+    js = fd._JS
+    assert "0.13+0.51*" in js and "Math.pow(mag/maxv,0.55)" in js   # 幅度 → alpha（含 gamma）
+    assert "'211,58,52'" in js and "'31,157,87'" in js              # 色相仍只表方向
+    assert "al>=0.45?' deep':''" in js                              # 深色塊改白字
+    css = fd._CSS
+    assert ".tmi.add{background" not in css                         # 不可再寫死每類一種底色
+    assert ".tmi.new,.tmi.out{border-style:dashed}" in css          # 新增／出清改以虛線框區分

@@ -1061,7 +1061,8 @@ def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
         f'<div class="edhead" id="ed-head"></div>'
         f'<div class="edblk"><div class="edt">持股異動 <span class="edtsub" id="ed-mvsub"></span></div>'
         f'<div class="tmap" id="ed-tmap"></div>'
-        f'<div class="edfoot">外層是產業，內層是異動股票；新增／加碼同紅系，減碼／刪除同綠系。'
+        f'<div class="edfoot">外層是產業，內層是異動股票；新增／加碼同紅系，減碼／刪除同綠系，'
+        f'<b>顏色越深＝加減碼幅度越大</b>（虛線框＝新增或出清）。'
         f'<span id="ed-basis"></span></div>'
         f'<div class="edscroll tbl"><table class="chgtbl"><thead><tr>'
         f'<th>股票</th>'
@@ -1926,14 +1927,18 @@ td.mdsublab a.mdsl{color:var(--ink2)}
   white-space:nowrap;overflow:hidden;max-width:calc(100% - 10px)}
 .tmi{position:absolute;border-radius:6px;overflow:hidden;padding:1px;display:flex;
   flex-direction:column;align-items:center;justify-content:center;text-align:center;line-height:1.3}
-.tmi.add{background:rgba(211,58,52,.40);border:1px solid rgba(211,58,52,.52)}
-.tmi.new{background:rgba(211,58,52,.60);border:1px solid rgba(211,58,52,.72)}
-.tmi.cut{background:rgba(31,157,87,.36);border:1px solid rgba(31,157,87,.5)}
-.tmi.out{background:rgba(31,157,87,.56);border:1px solid rgba(31,157,87,.7)}
+/* 底色深淺 ∝ 加減碼幅度（2026-07-30 使用者：同色系一片看起來平板不舒服）——
+   色相仍只代表方向（加碼·新增紅／減碼·出清綠），深淺與面積講的是同一件事（幅度），
+   不會產生「深紅是大買還是大跌」的語意衝突。實際 rgba 由前端逐格算、寫成 inline style。
+   新增／出清另以虛線外框區分（幅度已佔用深淺，不能再拿它表示進出）。 */
+.tmi{border:1px solid transparent}
+.tmi.new,.tmi.out{border-style:dashed}
 .tmi i{font-style:normal;font-size:11px;font-weight:700;color:#16263a;max-width:100%;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tmi u{text-decoration:none;font-size:10.5px;font-weight:700;color:#1e2f42;white-space:nowrap}
 .tmi s{text-decoration:none;font-size:9.5px;color:#33455a;white-space:nowrap}
+.tmi.deep i{color:#fff} .tmi.deep u{color:rgba(255,255,255,.96)}
+.tmi.deep s{color:rgba(255,255,255,.88)}
 .tmnone{display:flex;align-items:center;justify-content:center;height:100%;padding:0 18px;
   color:var(--mut);font-size:12.5px;text-align:center}
 /* 異動表／完整持股表：兩行式儲存格（主值在上、副值灰字在下），手機也塞得下四欄 */
@@ -2215,16 +2220,26 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
         ?'本次揭露與前一揭露日相比，持股股數沒有變化。'
         :'首次揭露，尚無可對比的前一揭露日——明日起可看加減碼。')+'</div>';return}
     var W=box.clientWidth||320, H=box.clientHeight||300, h='';
+    // 深淺基準＝本檔最大異動幅度；開 0.55 次方是為了讓小額異動仍看得見（純線性會全糊成白）
+    var maxv=0;
+    e.tm.forEach(function(g){g.it.forEach(function(it){
+      var v=Math.abs((e.basis==='amount'?it.a:it.sh)||0); if(v>maxv)maxv=v})});
     e.tm.forEach(function(g){
       h+='<div class="tmg" style="left:'+g.x+'%;top:'+g.y+'%;width:'+g.w+'%;height:'+g.h+'%">'
         +(g.hd>0?'<div class="tmgl">'+esc(g.g)+'</div>':'')+'</div>'});
     e.tm.forEach(function(g){g.it.forEach(function(it){
       var pw=it.w/100*W, ph=it.h/100*H, lab='';
       var val=e.basis==='amount'?amt(it.a):lots(it.sh);
+      var mag=Math.abs((e.basis==='amount'?it.a:it.sh)||0);
+      var al=0.13+0.51*(maxv?Math.pow(mag/maxv,0.55):0);
+      var rgb=(it.k==='add'||it.k==='new')?'211,58,52':'31,157,87';
+      var tint='background:rgba('+rgb+','+al.toFixed(3)+');'
+        +'border-color:rgba('+rgb+','+Math.min(1,al+0.17).toFixed(3)+');';
       if(pw>=74&&ph>=48)lab='<i>'+esc(it.s)+' '+esc(it.n)+'</i><u>'+val+'</u><s>'+KIND[it.k]+'</s>';
       else if(pw>=54&&ph>=30)lab='<i>'+esc(it.s)+'</i><u>'+val+'</u>';
       else if(pw>=34&&ph>=16)lab='<i>'+esc(it.s)+'</i>';
-      h+='<div class="tmi '+it.k+'" style="left:'+it.x+'%;top:'+it.y+'%;width:'+it.w+'%;height:'+it.h+'%"'
+      h+='<div class="tmi '+it.k+(al>=0.45?' deep':'')+'" style="'+tint
+        +'left:'+it.x+'%;top:'+it.y+'%;width:'+it.w+'%;height:'+it.h+'%"'
         +' title="'+esc(it.s+' '+it.n+'　'+KIND[it.k]+' '+val+(g.g?'（'+g.g+'）':''))+'">'+lab+'</div>'})});
     box.innerHTML=h}
 
