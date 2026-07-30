@@ -35,7 +35,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          # 正式抓取一律以 main 為準（排程／自動觸發）；**探針模式用被 dispatch 的分支**——
+          # 否則探針跑的是 main 上的舊腳本，新加的候選來源根本不會被打到
+          #（2026-07-30 踩到：workflow 檔取自分支、程式碼卻取自 main，日誌完全沒有探針輸出）
+          ref: ${{ inputs.probe && github.ref_name || 'main' }}
 
       - uses: actions/setup-python@v5
         with:
