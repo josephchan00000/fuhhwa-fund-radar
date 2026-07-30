@@ -1075,8 +1075,10 @@ def _eh_treemap(moves: list[dict], basis: str) -> dict:
 
     for _ in range(len(rows) + 4):
         items = build(keep, rest)
+        # keep_order：個股依金額遞減、**併格固定排最後** → squarify 由左上往右下填，
+        # 「其他」自然落在右下角（2026-07-30 使用者：既然都叫其他就不要太明顯）
         rects = treemap.layout([(i, it["v"] ** _TM_AREA_GAMMA) for i, it in enumerate(items)],
-                               w=100.0, h=100.0)
+                               w=100.0, h=100.0, keep_order=True)
         h_px = _TM_H_MAX          # 折疊判定用最大高度：先盡量留格，之後再收斂圖高
         bad = [r for r in rects
                if not _tm_fits(r["w"] / 100 * _TM_W_REF, r["h"] / 100 * h_px)]
@@ -2046,8 +2048,7 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 .tmlg>i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .tmlgn{font-size:10.5px;color:rgba(255,255,255,.42)}
 .tmap{position:relative;width:100%;height:240px;overflow:hidden}  /* 實際高度由 JS 依格數收斂 */
-.tmi.agg{opacity:.9}
-.tmi.agg i{font-weight:600;color:rgba(255,255,255,.9)}
+.tmi.agg i,.tmi.agg u{font-weight:600;color:rgba(255,255,255,.62)}
 /* 亮度 ∝ 加減碼幅度：色相只表方向、亮度只表幅度，兩者不會互相冒充
    （若把亮度挪去表示個股當日漲跌就會衝突，別改）。rgba 由前端逐格算成 inline style。 */
 .tmi{position:absolute;border-radius:5px;overflow:hidden;padding:2px;display:flex;
@@ -2365,7 +2366,8 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
       var val=e.basis==='amount'?amt(it.a):lots(it.sh);
       var mag=Math.abs((e.basis==='amount'?it.a:it.sh)||0);
       // 亮度上限 0.80：白字對比紅 5.2:1／綠松 4.7:1（AA 正文 4.5:1）；拉到 1.0 只有 3.4:1
-      var al=0.28+0.52*(maxv?Math.pow(mag/maxv,0.55):0);
+      // 併格（其他 N 檔）固定壓在低亮度、不隨幅度變亮——它是殘差，不該比個股搶眼
+      var al=it.agg?0.20:(0.28+0.52*(maxv?Math.pow(mag/maxv,0.55):0));
       var dir=(it.k==='add'||it.k==='new')?'add':'cut';
       var rgb=dir==='add'?'230,80,76':'21,156,148';
       var tint='background:rgba('+rgb+','+al.toFixed(3)+');'
