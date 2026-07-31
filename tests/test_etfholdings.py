@@ -101,15 +101,23 @@ def test_dashboard_detail_absent_when_no_data():
 
 
 def test_dashboard_detail_view_skeleton():
-    """三段版面骨架（比照使用者提供的架構）：方塊圖／異動表／完整持股＋搜尋＋分頁。"""
+    """2026-07-31 改版：比照基金詳情——工具列（搜尋＋分類 chips＋全部展開／收合）＋
+    每檔一張可收合 `<details class="etfd">` 卡；卡片內容延遲渲染（初始為空）。"""
     doc = {"etfs": {"0050": {**eh.merge_one(DAY1, DAY2), "detail": None}}}
     doc["etfs"]["0050"]["detail"] = eh.contributions(doc["etfs"]["0050"], QUOTES)
-    html = fd._etf_detail_view({"items": [{"code": "0050", "name": "元大台灣50"}]}, doc)
-    for anchor in ('id="etf-detail"', 'id="ed-tmap"', 'id="ed-mv"', 'id="ed-hb"',
-                   'id="ed-q"', 'id="ed-pgn"', 'class="edchip"'):
+    html = fd._etf_detail_view(
+        {"items": [{"code": "0050", "name": "元大台灣50", "kind": "passive"}]}, doc)
+    for anchor in ('id="etf-detail"', 'id="esearch"', 'id="eexp"', 'id="ecol"',
+                   'class="eg on"', 'details class="etfd"', 'data-group="passive"',
+                   'class="etfd-body"'):
         assert anchor in html, anchor
-    assert "每格＝一檔異動股票" in html
+    assert 'data-name="0050 元大台灣50"' in html          # 搜尋比對代碼或名稱
+    assert "揭露" in html and "異動" in html               # summary 帶揭露日與異動筆數
+    assert '<div class="etfd-body"></div>' in html        # 內容延遲渲染
     assert "</script>" not in html.split("window.__EH=")[1].split(";</script>")[0]
+    # 三段內容在前端建出來（骨架在 JS 的 shell()）
+    for k in ("持股異動", "完整持股明細", "搜尋代號或名稱", "上一頁"):
+        assert k in fd._JS, k
 
 
 def test_dashboard_embedded_json_is_parseable():
@@ -1007,11 +1015,13 @@ def test_treemap_legend_names_both_directions():
     """圖例必須同時標出兩個方向與亮度的意義——顏色不可是唯一線索。"""
     entry = eh.merge_one(DAY1, DAY2)
     entry["detail"] = eh.contributions(entry, QUOTES)
-    html = fd._etf_detail_view({"items": [{"code": "0050", "name": "元大台灣50"}]},
-                               {"etfs": {"0050": entry}})
-    assert "加碼／新增" in html and "減碼／出清" in html
-    assert "色塊越亮＝幅度越大" in html and "虛線框＝新增或出清" in html
-    assert fd._TM_UP in html and fd._TM_DN in html
+    fd._etf_detail_view({"items": [{"code": "0050", "name": "元大台灣50"}]},
+                        {"etfs": {"0050": entry}})
+    # 圖例改由前端 shell() 建（卡片內容延遲渲染），色票與常數同值
+    js = fd._JS
+    assert "加碼／新增" in js and "減碼／出清" in js
+    assert "色塊越亮＝幅度越大" in js and "虛線框＝新增或出清" in js
+    assert fd._TM_UP in js and fd._TM_DN in js
 
 
 def test_treemap_reports_unpriced_moves():
@@ -1229,3 +1239,54 @@ def test_treemap_label_never_prints_code_twice():
     js = fd._JS
     assert "it.n && it.n!==it.s" in js
     assert "r[1]===r[0]?'':r[1]" in js       # 異動表同理
+
+
+def test_etf_detail_cards_are_lazy_and_filterable():
+    """比照基金詳情：每檔一張可收合卡、工具列可搜尋與依性質篩選、可全部展開／收合。
+    內容延遲渲染——23 檔各含方塊圖＋兩張表，一次全建進 DOM 會讓頁面又大又慢。"""
+    items = [{"code": "0050", "name": "元大台灣50", "kind": "passive"},
+             {"code": "00991A", "name": "主動復華未來 50", "kind": "active"},
+             {"code": "00986D", "name": "主動復華金融債息", "kind": "other"}]
+    doc = {"etfs": {}}
+    for i in items:
+        e = eh.merge_one(DAY1, DAY2)
+        e["detail"] = eh.contributions(e, QUOTES)
+        doc["etfs"][i["code"]] = e
+    html = fd._etf_detail_view({"items": items}, doc)
+    assert html.count('<details class="etfd"') == 3
+    for kind in ("passive", "active", "other"):
+        assert f'data-group="{kind}"' in html
+    assert html.count('<div class="etfd-body"></div>') == 3      # 初始都是空的
+    js = fd._JS
+    assert "card.open)render(card)" in js.replace(" ", "")       # 展開才渲染
+    assert "box.dataset.done" in js                              # 渲染一次就不重建
+    assert "classList.toggle('fhide'" in js                      # 搜尋／分類用同一套隱藏機制
+
+
+def test_etf_detail_holding_intro_is_shared_not_per_etf():
+    """標的簡介共用 {代號: 簡介} 一份——同一檔股票出現在多檔 ETF，逐檔各存一份會讓
+    內嵌 JSON 多出約 200KB。"""
+    items = [{"code": "0050", "name": "元大台灣50", "kind": "passive"},
+             {"code": "00991A", "name": "主動復華未來 50", "kind": "active"}]
+    doc = {"etfs": {}}
+    for i in items:
+        e = eh.merge_one(DAY1, DAY2)
+        e["detail"] = eh.contributions(e, QUOTES)
+        doc["etfs"][i["code"]] = e
+    html = fd._etf_detail_view({"items": items}, doc)
+    raw = html.split("window.__EH=")[1].rsplit(";</script>", 1)[0].replace("<\\/", "</")
+    data = json.loads(raw)
+    assert "intro" in data and isinstance(data["intro"], dict)
+    for p in data["etfs"].values():                              # 列裡不再帶簡介
+        assert all(len(r) == 7 for r in p["al"])
+    assert "INTRO[r[0]]" in fd._JS                               # 前端依代號查
+    assert 'class="introw"' in fd._JS                            # 簡介獨立整寬一列
+
+
+def test_etf_subnav_matches_sections():
+    """ETF 分頁二級選單＝即將登場／ETF 數據追蹤／ETF 持股詳情＆異動（2026-07-31 使用者）。"""
+    import re
+    html = fd._topbar([], True, "2026-07-31", "2026-07-31 08:00")
+    nav = re.search(r'<nav class="tb-nav tb-nav-etf">(.*?)</nav>', html, re.S).group(1)
+    assert re.findall(r'href="(#[\w-]+)"', nav) == ["#etf-upcoming", "#etfwatch", "#etf-detail"]
+    assert "ETF 數據追蹤" in nav and "ETF 持股詳情" in nav
