@@ -115,3 +115,23 @@ def top_concentration(doc: dict, n: int = 10) -> float | None:
     if not hs:
         return None
     return round(sum(h.get("weight") or 0 for h in hs[:n]), 1)
+
+def intro_lookup() -> tuple[dict, dict]:
+    """→ ({ticker: intro}, {name: intro})：供 ETF 持股明細掛標的簡介用。
+
+    簡介庫（`config/holding_profiles.json`）原本是為「基金前十大」而建，鍵是持股原字串；
+    ETF 持股用的是股票代號，所以另外以 profile 裡的 `ticker` 建一份索引，兩邊都查。
+    覆蓋率有限（庫 69 筆 vs ETF 持股 351 個代號）——有就顯示、沒有就不留空位，
+    儀表板另標「N 檔附標的簡介」誠實揭露。
+    """
+    profs = _profiles()
+    by_tk, by_nm = {}, {}
+    for name, v in profs.items():
+        intro = (v or {}).get("intro")
+        if not intro:
+            continue
+        by_nm[name.strip()] = intro
+        tk = str((v or {}).get("ticker") or "").strip()
+        if tk:
+            by_tk[tk] = intro
+    return by_tk, by_nm

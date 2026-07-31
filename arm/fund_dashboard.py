@@ -211,7 +211,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
       <a href="#macro-cal">本週行事曆</a><a href="#macro-ov">政策總覽</a><a href="#macro">政策新聞</a><a href="#macro-data">市場數據</a>
     </nav>
     <nav class="tb-nav tb-nav-etf">
-      <a href="#etf-upcoming">即將登場</a><a href="#etf-passive">被動 ETF</a><a href="#etf-active">主動股票</a><a href="#etf-other">其他</a>
+      <a href="#etf-upcoming">即將登場</a><a href="#etfwatch">ETF 數據追蹤</a><a href="#etf-detail">ETF 持股詳情&amp;異動</a>
     </nav>
   </div>
 </div>"""
@@ -1104,6 +1104,25 @@ def _eh_treemap(moves: list[dict], basis: str) -> dict:
             "hidden": sum(1 for m in rest if _tm_dir(m.get("kind") or "") in off)}
 
 
+def _eh_intros(payload: dict) -> dict:
+    """全體 ETF 持股的「標的簡介」對照表 {代號: 簡介}——共用一份，避免逐檔重複。
+
+    先用代號查（profile 的 `ticker`），再用名稱查（profile 的鍵）。庫是為基金前十大而建，
+    ETF 持股覆蓋率有限——有就顯示、沒有就不留空位，卡片標題另標「N 檔附標的簡介」。
+    """
+    by_tk, by_nm = fund_intro.intro_lookup()
+    out = {}
+    for p in payload.values():
+        for r in p.get("al") or []:
+            sid = str(r[0] or "").strip()
+            if sid in out:
+                continue
+            got = by_tk.get(sid) or by_nm.get(str(r[1] or "").strip())
+            if got:
+                out[sid] = got
+    return out
+
+
 def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
     """單檔 ETF 的詳情資料（內嵌 JSON 用）。
 
@@ -1128,6 +1147,8 @@ def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
         "mv": [[m["stock_id"], m.get("name") or m["stock_id"], m.get("m_shares"),
                 m.get("amount"), m.get("kind")] for m in (detail.get("moves") or [])],
         # AL：[代號, 名稱, 權重, 股數, 收盤價, 當日漲跌%, 貢獻pp]
+        # 標的簡介**不放在列裡**：同一檔股票會出現在多檔 ETF，逐檔各存一份會讓內嵌 JSON
+        # 多出約 200KB（實測 494→695KB）。改成全體共用 {代號: 簡介} 一份，前端依代號查。
         "al": [[r["stock_id"], r.get("name") or r["stock_id"], r.get("weight"),
                 r.get("shares"), r.get("close"), r.get("chg_pct"), r.get("contrib")]
                for r in (detail.get("all") or [])],
@@ -1135,67 +1156,53 @@ def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
 
 
 def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
-    """底部「ETF 詳情」區塊：選擇器＋三段明細（內容由前端依內嵌資料渲染）。"""
+    """ETF 持股詳情＆異動——**比照基金詳情**的版面（2026-07-31 使用者指示）：
+    工具列（搜尋＋分類 chips＋全部展開／收合）＋ 每檔一張可收合 `<details>` 卡。
+
+    卡片內容**延遲渲染**：23 檔各含方塊圖＋兩張表，一次全塞進 DOM 會讓頁面又大又慢；
+    改成第一次展開時才由前端依內嵌資料建出來（同 `.fund` 卡的收合體驗，但更省）。
+    """
     items = (doc or {}).get("items") or []
-    payload, rows = {}, []
-    # 選擇器照上方績效表的分類分排（2026-07-30 使用者：23 顆 chip 混在一起不好找）
-    groups = [("passive", "被動"), ("active", "主動式"), ("other", "其他")]
-    for kind, label in groups:
-        chips = []
-        for i in [x for x in items if (x.get("kind") or "passive") == kind]:
-            code = i.get("code")
-            p = _eh_payload(etfholdings.view(holdings_doc, code), i.get("name") or "")
-            if not p:
-                continue
-            payload[code] = p
-            chips.append(f'<button type="button" class="edchip" data-c="{_esc(code)}" '
-                         f'title="{_esc(i.get("name") or "")}"><b>{_esc(code)}</b></button>')
-        if chips:
-            rows.append(f'<div class="edprow"><span class="edplab">{label}</span>'
-                        f'<span class="edpset">{"".join(chips)}</span></div>')
+    labels = {"passive": "被動", "active": "主動式", "other": "其他"}
+    payload, cards = {}, []
+    for i in items:
+        code = i.get("code")
+        det = etfholdings.view(holdings_doc, code)
+        p = _eh_payload(det, i.get("name") or "")
+        if not p:
+            continue
+        payload[code] = p
+        kind = i.get("kind") or "passive"
+        nm = _short(i.get("name") or "")
+        mv = p.get("mn") or 0
+        sub = (f'異動 {mv} 檔' if mv else
+               ('無異動' if p.get("p") else '首次揭露'))
+        cards.append(
+            f'<details class="etfd" id="etfd-{_esc(code)}" '
+            f'data-c="{_esc(code)}" data-name="{_esc(code)} {_esc(nm)}" data-group="{kind}">'
+            f'<summary class="fsum"><span class="fsum-l"><b>{_esc(code)}</b> {_esc(nm)}</span>'
+            f'<span class="gl">{labels.get(kind, kind)}</span>'
+            f'<span class="fsum-r"><span class="edmeta">揭露 {_esc(p.get("d") or "—")}｜{sub}</span>'
+            f'<span class="openbtn2"></span></span></summary>'
+            f'<div class="etfd-body"></div></details>')
     if not payload:
         return ""
-    js = json.dumps({"etfs": payload}, ensure_ascii=False, separators=(",", ":"))
+    js = json.dumps({"etfs": payload, "intro": _eh_intros(payload)},
+                    ensure_ascii=False, separators=(",", ":"))
     # </script> 不可原樣出現在 inline script 內（HTML 解析器會提前結束腳本）
     js = js.replace("</", "<\\/")
+    chips = "".join(f'<button class="eg" data-g="{k}">{v}</button>' for k, v in labels.items())
     return (
-        f'<div class="section" id="etf-detail"><div class="st">{_ic("layers", tone="teal")}ETF 詳情 '
-        f'<span class="stsub">選一檔 ETF：看它的持股異動（方塊圖）、異動明細與'
-        f'完整持股（含當日漲跌貢獻）</span></div>'
-        f'<div class="edpick" id="ed-pick">{"".join(rows)}</div>'
-        f'<div class="edhead" id="ed-head"></div>'
-        f'<div class="edblk"><div class="edt">持股異動 <span class="edtsub" id="ed-mvsub"></span></div>'
-        f'<div class="tmfig" id="ed-tmfig"><div class="tmleg">'
-        f'<span class="tmlg"><i style="background:{_TM_UP}"></i>加碼／新增</span>'
-        f'<span class="tmlg"><i style="background:{_TM_DN}"></i>減碼／出清</span>'
-        f'<span class="tmlgn">色塊越亮＝幅度越大・虛線框＝新增或出清</span>'
-        f'</div><div class="tmap" id="ed-tmap"></div></div>'
-        f'<div class="edfoot">每格＝一檔異動股票；佔比過小者併為「其他 N 檔」'
-        f'（逐檔數字見下方明細表）。'
-        f'<span id="ed-basis"></span></div>'
-        f'<div class="edempty" id="ed-mvnone" hidden></div>'
-        f'<div class="edscroll tbl" id="ed-mvtbl"><table class="chgtbl"><thead><tr>'
-        f'<th>股票</th>'
-        f'<th class="num csk" data-k="lots">張數 <span class="ski">⇅</span></th>'
-        f'<th class="num csk" data-k="amt">金額 <span class="ski">⇅</span></th>'
-        f'<th class="num">類型</th></tr></thead><tbody id="ed-mv"></tbody></table></div>'
-        f'<div class="edpg"><button type="button" id="ed-mvmore" hidden></button></div>'
-        f'<div class="edfoot" id="ed-mvfoot"></div></div>'
-        f'<div class="edblk tbl"><div class="edt">完整持股明細</div>'
-        f'<div class="edtsub" id="ed-hsub"></div>'
-        f'<input class="edsearch" id="ed-q" type="search" placeholder="搜尋代號或名稱" '
-        f'aria-label="搜尋代號或名稱">'
-        f'<div class="edscroll"><table class="hldtbl"><thead><tr>'
-        f'<th>代號<span class="sub">名稱</span></th>'
-        f'<th class="num hsk" data-k="chg">漲跌幅<span class="sub">收盤價</span> <span class="ski">⇅</span></th>'
-        f'<th class="num hsk" data-k="w">權重<span class="sub">股數</span> <span class="ski">⇅</span></th>'
-        f'<th class="num hsk" data-k="c">貢獻度<span class="sub" title="貢獻度＝權重 × 個股當日漲跌 ÷ 100，'
-        f'單位為百分點；合計不會剛好等於 ETF 市價漲跌（現金／期貨部位、費用、揭露時點差在殘差）">ⓘ pp</span>'
-        f' <span class="ski">⇅</span></th></tr></thead><tbody id="ed-hb"></tbody></table></div>'
-        f'<div class="edpg"><button type="button" id="ed-prev">« 上一頁</button>'
-        f'<span id="ed-pgn">1 / 1</span>'
-        f'<button type="button" id="ed-next">下一頁 »</button></div>'
-        f'<div class="edfoot" id="ed-hfoot"></div></div>'
+        f'<div class="section" id="etf-detail"><div class="st">{_ic("layers", tone="teal")}'
+        f'ETF 持股詳情＆異動 '
+        f'<span class="stsub">預設收合・點卡片展開；每檔含持股異動方塊圖、異動明細與'
+        f'完整持股（含當日漲跌貢獻與標的簡介）</span></div>'
+        f'<div class="fundbar">{_ic("search", plain=True)}'
+        f'<input id="esearch" type="search" placeholder="輸入 ETF 代碼或名稱篩選…">'
+        f'<span class="fgchips"><button class="eg on" data-g="">全部</button>{chips}</span>'
+        f'<button class="fexp" id="eexp">全部展開</button>'
+        f'<button class="fexp" id="ecol">全部收合</button></div>'
+        f'{"".join(cards)}'
         f'<script>window.__EH={js};</script></div>')
 
 
@@ -2084,6 +2091,10 @@ th .sub{display:block;font-weight:400;color:var(--mut);font-size:10.5px}
   text-overflow:ellipsis;white-space:nowrap}
 .edmain{font-weight:800;font-size:13.5px}
 .edsub2{display:block;font-size:11px;color:var(--mut);font-weight:400}
+/* 標的簡介：獨立整寬一列（塞在識別欄裡會把列高撐爆），與其上的資料列視為同一列 */
+.hldtbl tr.hasintro>td{border-bottom:0;padding-bottom:2px}
+.hldtbl tr.introw>td{padding:0 6px 8px}
+.hldtbl tr.introw .hintro{margin:0}
 .kpill{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px;
   white-space:nowrap}
 .kpill.add,.kpill.new{color:#b3312c;background:rgba(211,58,52,.12)}
@@ -2308,6 +2319,240 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
   b.setAttribute('aria-expanded',open?'true':'false');
   document.querySelectorAll('tr.mdsub[data-grp="'+g+'"]').forEach(r=>r.classList.toggle('show'));
 }));
+// 儀表板逾期未重建警告——CI 全停擺時 HTML 不會再重生、上面的 ⚠ 也不會更新，
+// 由瀏覽器端比對「產表時間 vs 現在」補上最後一道防線。
+(function(){const g=document.querySelector('[data-gen]');if(!g)return;
+  const d=new Date(g.dataset.gen.slice(0,10).replace(/\//g,'-')+'T00:00:00+08:00');
+  const days=Math.floor((Date.now()-d)/864e5);
+  if(days>2){const b=document.createElement('div');b.className='stale-banner';
+    b.textContent='⚠ 本儀表板已 '+days+' 天未重建（每日 CI 可能停擺），以下資料可能過期——請跑「全部更新」或檢查 GitHub Actions';
+    document.body.prepend(b);}})();
+// ── ETF 持股詳情＆異動：每檔一張可收合卡片（比照基金詳情；2026-07-31 使用者指示） ──
+// 內容延遲渲染——23 檔各含方塊圖＋兩張表，一次全建進 DOM 會讓頁面又大又慢；
+// 第一次展開才建，之後保留。每張卡各自保有搜尋／排序／分頁狀態（存在 ST[code]）。
+(function(){
+  var EH=((window.__EH||{}).etfs)||{}, INTRO=((window.__EH||{}).intro)||{};
+  var root=document.getElementById('etf-detail');
+  if(!root||!Object.keys(EH).length)return;
+  var KIND={add:'加碼',cut:'減碼',new:'新增',out:'出清'}, PER=15, MVN=15, ST={};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function grp(x){return String(x).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+  function amt(v){if(v==null)return '—';var a=Math.abs(v),s=v>0?'+':'-';
+    if(a>=1e8)return s+(a/1e8).toFixed(1)+' 億';
+    if(a>=1e4)return s+grp(Math.round(a/1e4))+' 萬';
+    return s+grp(Math.round(a))+' 元'}
+  function lots(v){if(v==null)return '—';var a=Math.abs(v),s=v>0?'+':'-';
+    if(a>=1000)return s+grp(Math.round(a/1000))+' 張';
+    return s+grp(Math.round(a))+' 股'}
+  function pct(v,d,u){if(v==null)return '<span class="na">—</span>';
+    var c=v>0?'gain':(v<0?'loss':'flat');
+    return '<span class="'+c+'">'+(v>0?'+':(v<0?'-':''))+Math.abs(v).toFixed(d)+(u||'')+'</span>'}
+  function num(v,d){return v==null?'—':grp(v.toFixed(d==null?2:d))}
+  function st(c){return ST[c]||(ST[c]={msk:'lots',msd:-1,hsk:'w',hsd:-1,pg:1,q:'',mvall:false})}
+
+  function shell(){return ''
+    +'<div class="edblk"><div class="edt">持股異動 <span class="edtsub mvsub"></span></div>'
+    +'<div class="tmfig"><div class="tmleg">'
+    +'<span class="tmlg"><i style="background:#e6504c"></i>加碼／新增</span>'
+    +'<span class="tmlg"><i style="background:#159c94"></i>減碼／出清</span>'
+    +'<span class="tmlgn">色塊越亮＝幅度越大・虛線框＝新增或出清</span></div>'
+    +'<div class="tmap"></div></div>'
+    +'<div class="edfoot basis"></div>'
+    +'<div class="edempty" hidden></div>'
+    +'<div class="edscroll tbl mvtbl"><table class="chgtbl"><thead><tr><th>股票</th>'
+    +'<th class="num csk" data-k="lots">張數 <span class="ski">⇅</span></th>'
+    +'<th class="num csk" data-k="amt">金額 <span class="ski">⇅</span></th>'
+    +'<th class="num">類型</th></tr></thead><tbody class="mvb"></tbody></table></div>'
+    +'<div class="edpg"><button type="button" class="mvmore" hidden></button></div>'
+    +'<div class="edfoot mvfoot"></div></div>'
+    +'<div class="edblk tbl"><div class="edt">完整持股明細</div>'
+    +'<div class="edtsub hsub"></div>'
+    +'<input class="edsearch hq" type="search" placeholder="搜尋代號或名稱" aria-label="搜尋代號或名稱">'
+    +'<div class="edscroll tbl"><table class="hldtbl"><thead><tr>'
+    +'<th>代號<span class="sub">名稱</span></th>'
+    +'<th class="num hsk" data-k="chg">漲跌幅<span class="sub">收盤價</span> <span class="ski">⇅</span></th>'
+    +'<th class="num hsk" data-k="w">權重<span class="sub">股數</span> <span class="ski">⇅</span></th>'
+    +'<th class="num hsk" data-k="c">貢獻度<span class="sub" title="貢獻度＝權重 × 個股當日漲跌 ÷ 100，'
+    +'單位為百分點；合計不會剛好等於 ETF 市價漲跌（現金／期貨部位、費用、揭露時點差在殘差）">ⓘ pp</span>'
+    +' <span class="ski">⇅</span></th></tr></thead><tbody class="hb"></tbody></table></div>'
+    +'<div class="edpg"><button type="button" class="hprev">« 上一頁</button>'
+    +'<span class="hpgn">1 / 1</span><button type="button" class="hnext">下一頁 »</button></div>'
+    +'<div class="edfoot hfoot"></div></div>'}
+
+  function markSort(box,sel,k,d){
+    box.querySelectorAll(sel).forEach(function(th){
+      var on=th.dataset.k===k; th.classList.toggle('on',on);
+      var i=th.querySelector('.ski'); if(i)i.textContent=on?(d<0?'↓':'↑'):'⇅'})}
+
+  function paintTmap(box,e){
+    var wrap=box.querySelector('.tmfig'), map=box.querySelector('.tmap'),
+        none=box.querySelector('.edempty'), tbl=box.querySelector('.mvtbl'),
+        fo=box.querySelector('.basis'), tm=e.tm||[];
+    var msg=e.mn?(e.nq>=(e.mn/2)
+        ?'本次異動多為海外持股（無台股報價），方塊圖無法計算面積——請看下方明細表。'
+        :'本次異動集中在少數標的，其餘幅度過小、方塊圖呈現不出比例——請看下方明細表。')
+      :(e.p?'本次揭露與前一揭露日相比，持股股數沒有變化。'
+           :'首次揭露，尚無可對比的前一揭露日——明日起可看加減碼。');
+    wrap.hidden=!tm.length; tbl.hidden=!tm.length;
+    fo.style.display=tm.length?'':'none';
+    none.hidden=!!tm.length; none.textContent=msg;
+    if(!tm.length){map.innerHTML='';return}
+    var H=e.th||240; map.style.height=H+'px';
+    var W=map.clientWidth||300, h='', maxv=0;
+    tm.forEach(function(it){var v=Math.abs((e.basis==='amount'?it.a:it.sh)||0);if(v>maxv)maxv=v});
+    tm.forEach(function(it){
+      var pw=it.w/100*W, ph=it.h/100*H, lab='';
+      var val=e.basis==='amount'?amt(it.a):lots(it.sh);
+      var mag=Math.abs((e.basis==='amount'?it.a:it.sh)||0);
+      // 亮度上限 0.80：白字對比紅 5.2:1／綠松 4.7:1（AA 正文 4.5:1）；併格固定壓低不搶眼
+      var al=it.agg?0.20:(0.28+0.52*(maxv?Math.pow(mag/maxv,0.55):0));
+      var dir=(it.k==='add'||it.k==='new')?'add':'cut';
+      var rgb=dir==='add'?'230,80,76':'21,156,148';
+      var tint='background:rgba('+rgb+','+al.toFixed(3)+');'
+        +'border-color:rgba('+rgb+','+Math.min(1,al+0.17).toFixed(3)+');';
+      var nm=esc((it.n&&it.n!==it.s)?it.n:''), cd=esc(it.s||'');
+      var tag=(it.k==='new'||it.k==='out')?'<s>'+KIND[it.k]+'</s>':'';
+      if(it.agg)lab='<i>'+esc(it.n||'')+'</i><u>'+val+'</u>';
+      else if(pw>=54&&ph>=58)lab='<i>'+cd+'</i>'+(nm?'<em>'+nm+'</em>':'')+'<u>'+val+'</u>'+tag;
+      else if(pw>=76&&ph>=40)lab='<i>'+cd+(nm?' '+nm:'')+'</i><u>'+val+'</u>';
+      else if(pw>=48&&ph>=26)lab='<i>'+cd+'</i>'+(nm?'<em>'+nm+'</em>':'');
+      else lab='<i>'+cd+'</i>';
+      h+='<div class="tmi '+(it.agg?'agg ':'')+it.k+'" style="'+tint
+        +'left:'+it.x+'%;top:'+it.y+'%;width:'+it.w+'%;height:'+it.h+'%"'
+        +' title="'+esc((it.agg?it.n:it.s+' '+it.n)+'　'+KIND[it.k]+' '+val
+          +(it.ind?'（'+it.ind+'）':''))+'">'+lab+'</div>'});
+    map.innerHTML=h;
+    fo.textContent=(e.basis==='amount'
+      ?'面積與亮度依異動金額（Δ股數 × 當日收盤）。'
+      :'本檔含無台股報價的持股（海外／債券），面積與亮度改以 Δ股數計，跨市場不宜直接比大小；'
+       +'金額欄僅台股部位有值。')+'　'+(e.an||'')}
+
+  function paintMoves(box,e){
+    var s=st(box.dataset.c), tb=box.querySelector('.mvb'), rows=(e.mv||[]).slice();
+    rows.sort(function(a,b){var i=s.msk==='amt'?3:2,av=a[i],bv=b[i];
+      if(av==null&&bv==null)return 0; if(av==null)return 1; if(bv==null)return -1;
+      return s.msd*(av-bv)});
+    var shown=s.mvall?rows:rows.slice(0,MVN), more=box.querySelector('.mvmore');
+    if(rows.length>MVN){more.hidden=false;
+      more.textContent=s.mvall?('收合，只看前 '+MVN+' 檔 ▴'):('展開全部 '+rows.length+' 檔異動 ▾')}
+    else more.hidden=true;
+    tb.innerHTML=shown.map(function(r){
+      return '<tr><td><span class="edcode">'+esc(r[0])+'</span>'
+        +'<span class="edname">'+esc(r[1]===r[0]?'':r[1])+'</span></td>'
+        +'<td class="num"><span class="edmain '+(r[2]>0?'gain':'loss')+'">'+lots(r[2])+'</span></td>'
+        +'<td class="num"><span class="edsub2">'+amt(r[3])+'</span></td>'
+        +'<td class="num"><span class="kpill '+r[4]+'">'+KIND[r[4]]+'</span></td></tr>'}).join('')
+      ||'<tr><td colspan="4" class="na">本次無持股異動。</td></tr>';
+    var kc={}; (e.mv||[]).forEach(function(r){kc[r[4]]=(kc[r[4]]||0)+1});
+    var bits=[]; ['add','cut','new','out'].forEach(function(k){if(kc[k])bits.push(KIND[k]+' '+kc[k])});
+    box.querySelector('.mvsub').textContent=e.mn
+      ?('共 '+e.mn+' 檔異動'+(bits.length?'（'+bits.join('／')+'）':'')):'本次無異動';
+    var notes=[];
+    if(e.hid)notes.push('另有 '+e.hid+' 檔幅度過小、方塊圖畫不出標籤，未入圖');
+    if(e.nq)notes.push('另有 '+e.nq+' 檔海外持股無台股報價，無法計入方塊圖');
+    if(e.mr)notes.push('異動檔數超過清單上限，另有 '+e.mr+' 檔小額異動未列於本表');
+    box.querySelector('.mvfoot').textContent=notes.length?(notes.join('；')+'。'):'';
+    markSort(box,'.chgtbl th.csk',s.msk,s.msd)}
+
+  function paintHold(box,e){
+    var s=st(box.dataset.c), tb=box.querySelector('.hb'), KI={w:2,chg:5,c:6};
+    var rows=(e.al||[]).filter(function(r){
+      return !s.q||(String(r[0])+' '+String(r[1])).toLowerCase().indexOf(s.q)>=0});
+    var i=KI[s.hsk];
+    rows.sort(function(a,b){var av=a[i],bv=b[i];
+      if(av==null&&bv==null)return 0; if(av==null)return 1; if(bv==null)return -1;
+      return s.hsd*(av-bv)});
+    var tot=Math.max(1,Math.ceil(rows.length/PER));
+    if(s.pg>tot)s.pg=tot; if(s.pg<1)s.pg=1;
+    tb.innerHTML=rows.slice((s.pg-1)*PER,s.pg*PER).map(function(r){
+      // 簡介獨立成整寬一列——塞在窄窄的識別欄裡會把列高撐成五、六行
+      var tx=INTRO[r[0]];
+      return '<tr'+(tx?' class="hasintro"':'')+'><td><span class="edcode">'+esc(r[0])+'</span>'
+        +'<span class="edname">'+esc(r[1]===r[0]?'':r[1])+'</span></td>'
+        +'<td class="num"><span class="edmain">'+pct(r[5],2,'%')+'</span>'
+        +'<span class="edsub2">'+num(r[4],2)+'</span></td>'
+        +'<td class="num"><span class="edmain">'+num(r[2],2)+'%</span>'
+        +'<span class="edsub2">'+(r[3]==null?'—':grp(r[3]))+'</span></td>'
+        +'<td class="num"><span class="edmain">'+pct(r[6],2)+'</span></td></tr>'
+        +(tx?'<tr class="introw"><td colspan="4"><div class="hintro">'+esc(tx)+'</div></td></tr>':'')
+      }).join('')
+      ||'<tr><td colspan="4" class="na">找不到符合的持股。</td></tr>';
+    box.querySelector('.hpgn').textContent=s.pg+' / '+tot;
+    box.querySelector('.hprev').disabled=s.pg<=1;
+    box.querySelector('.hnext').disabled=s.pg>=tot;
+    var ni=(e.al||[]).filter(function(r){return INTRO[r[0]]}).length;
+    box.querySelector('.hsub').innerHTML='共 '+(e.n||rows.length)+' 檔持股・快照 '+esc(e.d||'—')
+      +(s.q?('・符合搜尋 '+rows.length+' 檔'):'')
+      +(ni?('・'+ni+' 檔附標的簡介'):'')
+      +(e.sw!=null&&e.sw>0&&e.sw<60
+        ?' <span class="hpartial" title="本表僅列臺股掛牌部位（權重合計 '+e.sw
+          +'%）；海外持股與現金部位不在本表，貢獻合計亦僅反映臺股部位">僅台股部位 '+e.sw+'%</span>':'');
+    box.querySelector('.hfoot').innerHTML='貢獻度＝權重 × 個股當日漲跌 ÷ 100（單位：百分點 pp）。'
+      +'已涵蓋權重 '+num(e.cw,1)+'%，合計貢獻 '+(e.tc==null?'—':pct(e.tc,2,'pp'))+'。'
+      +'<b>合計與 ETF 市價漲跌不會完全相等</b>——現金／期貨部位、費用、以及持股揭露時點與'
+      +'收盤的時間差都落在差額裡，此處不作湊平調整。'
+      +(e.src==='fhtrust'?'資料來源：復華官網 assetsExcel（發行投信第一手揭露）。'
+        :'資料來源：'+esc(e.src||'投信每日揭露')+'（Tier B 彙整站，取自投信每日揭露；'
+         +'正式對外前以各投信官網核對）。');
+    markSort(box,'.hldtbl th.hsk',s.hsk,s.hsd)}
+
+  function render(card){
+    var code=card.dataset.c, e=EH[code], box=card.querySelector('.etfd-body');
+    if(!e||!box||box.dataset.done)return;
+    box.dataset.c=code;
+    box.innerHTML=shell();
+    box.dataset.done='1';
+    paintTmap(box,e);paintMoves(box,e);paintHold(box,e)}
+
+  root.querySelectorAll('details.etfd').forEach(function(card){
+    card.addEventListener('toggle',function(){if(card.open)render(card)})});
+
+  // 事件委派：卡片內容是延遲建出來的，不能在初始化時逐一綁事件
+  root.addEventListener('click',function(ev){
+    var card=ev.target.closest('details.etfd'); if(!card)return;
+    var box=card.querySelector('.etfd-body'), e=EH[card.dataset.c], s=st(card.dataset.c);
+    var th=ev.target.closest('.chgtbl th.csk');
+    if(th){s.msd=(th.dataset.k===s.msk)?-s.msd:-1;s.msk=th.dataset.k;paintMoves(box,e);return}
+    var th2=ev.target.closest('.hldtbl th.hsk');
+    if(th2){s.hsd=(th2.dataset.k===s.hsk)?-s.hsd:-1;s.hsk=th2.dataset.k;s.pg=1;paintHold(box,e);return}
+    if(ev.target.closest('.mvmore')){s.mvall=!s.mvall;paintMoves(box,e);return}
+    if(ev.target.closest('.hprev')){s.pg--;paintHold(box,e);return}
+    if(ev.target.closest('.hnext')){s.pg++;paintHold(box,e);return}
+  });
+  root.addEventListener('input',function(ev){
+    if(!ev.target.classList.contains('hq'))return;
+    var card=ev.target.closest('details.etfd'), s=st(card.dataset.c);
+    s.q=ev.target.value.trim().toLowerCase(); s.pg=1;
+    paintHold(card.querySelector('.etfd-body'),EH[card.dataset.c])});
+
+  // 工具列：搜尋（代碼或名稱）／分類 chips／全部展開・收合——比照基金詳情
+  var q=document.getElementById('esearch'), g='';
+  function apply(){var kw=(q&&q.value||'').trim().toLowerCase();
+    root.querySelectorAll('details.etfd').forEach(function(c){
+      var okKw=!kw||(c.dataset.name||'').toLowerCase().indexOf(kw)>=0;
+      var okG=!g||c.dataset.group===g;
+      c.classList.toggle('fhide',!(okKw&&okG))})}
+  if(q)q.addEventListener('input',apply);
+  root.querySelectorAll('.eg').forEach(function(b){b.onclick=function(){
+    root.querySelectorAll('.eg').forEach(function(x){x.classList.remove('on')});
+    b.classList.add('on');g=b.dataset.g||'';apply()}});
+  var ex=document.getElementById('eexp'), co=document.getElementById('ecol');
+  if(ex)ex.onclick=function(){root.querySelectorAll('details.etfd:not(.fhide)').forEach(function(c){
+    c.open=true;render(c)})};
+  if(co)co.onclick=function(){root.querySelectorAll('details.etfd').forEach(function(c){c.open=false})};
+  // 方塊圖標籤依像素大小決定層級 → 視窗尺寸變了要重畫（只重畫已展開的卡）
+  var t=null;
+  window.addEventListener('resize',function(){clearTimeout(t);t=setTimeout(function(){
+    root.querySelectorAll('details.etfd[open] .etfd-body[data-done]').forEach(function(b){
+      paintTmap(b,EH[b.dataset.c])})},160)});
+  // 上方 ETF 表「詳情 ↓」：展開該檔並捲過來
+  document.querySelectorAll('.edjump').forEach(function(b){b.onclick=function(){
+    var card=document.getElementById('etfd-'+b.dataset.c); if(!card)return;
+    card.classList.remove('fhide'); card.open=true; render(card);
+    card.scrollIntoView({behavior:'smooth',block:'start'})}});
+})();
+
 // 儀表板逾期未重建警告——CI 全停擺時 HTML 不會再重生、上面的 ⚠ 也不會更新，
 // 由瀏覽器端比對「產表時間 vs 現在」補上最後一道防線。
 (function(){const g=document.querySelector('[data-gen]');if(!g)return;
