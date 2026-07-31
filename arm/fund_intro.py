@@ -116,13 +116,30 @@ def top_concentration(doc: dict, n: int = 10) -> float | None:
         return None
     return round(sum(h.get("weight") or 0 for h in hs[:n]), 1)
 
+def norm_ticker(s) -> str:
+    """代號正規化：大寫、去空白，並剝掉彭博式交易所字尾（`AMD US`→`AMD`、`8035 JP`→`8035`）。
+
+    ETF 持股快照的海外代號帶交易所碼（US／LN／JP／FP／GR／IM／NA／KS…），
+    簡介庫存的是純代號——不正規化的話 `AMD US` 永遠對不到已建好的 `AMD`
+    （2026-07-31 實測：光這一條就讓數十檔海外持股的簡介白白落空）。
+    """
+    t = str(s or "").strip().upper()
+    if " " in t:
+        head, _, tail = t.rpartition(" ")
+        if head and tail.isalpha() and len(tail) <= 3:
+            return head.strip()
+    return t
+
+
 def intro_lookup() -> tuple[dict, dict]:
     """→ ({ticker: intro}, {name: intro})：供 ETF 持股明細掛標的簡介用。
 
     簡介庫（`config/holding_profiles.json`）原本是為「基金前十大」而建，鍵是持股原字串；
     ETF 持股用的是股票代號，所以另外以 profile 裡的 `ticker` 建一份索引，兩邊都查。
-    覆蓋率有限（庫 69 筆 vs ETF 持股 351 個代號）——有就顯示、沒有就不留空位，
-    儀表板另標「N 檔附標的簡介」誠實揭露。
+    代號索引同時收「原樣大寫」與「剝掉交易所字尾」兩種鍵（見 `norm_ticker`），
+    查詢端兩種都試一次即可。名稱索引另收一份大寫鍵（同名不同大小寫也對得上）。
+
+    覆蓋率有限——有就顯示、沒有就不留空位，儀表板另標「N 檔附標的簡介」誠實揭露。
     """
     profs = _profiles()
     by_tk, by_nm = {}, {}
@@ -130,8 +147,11 @@ def intro_lookup() -> tuple[dict, dict]:
         intro = (v or {}).get("intro")
         if not intro:
             continue
-        by_nm[name.strip()] = intro
+        by_nm.setdefault(name.strip(), intro)
+        by_nm.setdefault(name.strip().upper(), intro)
         tk = str((v or {}).get("ticker") or "").strip()
         if tk:
-            by_tk[tk] = intro
+            by_tk.setdefault(tk, intro)
+            by_tk.setdefault(tk.upper(), intro)
+            by_tk.setdefault(norm_ticker(tk), intro)
     return by_tk, by_nm

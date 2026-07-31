@@ -1107,7 +1107,8 @@ def _eh_treemap(moves: list[dict], basis: str) -> dict:
 def _eh_intros(payload: dict) -> dict:
     """全體 ETF 持股的「標的簡介」對照表 {代號: 簡介}——共用一份，避免逐檔重複。
 
-    先用代號查（profile 的 `ticker`），再用名稱查（profile 的鍵）。庫是為基金前十大而建，
+    先用代號查（profile 的 `ticker`；原樣與「剝掉交易所字尾」各試一次，見
+    `fund_intro.norm_ticker`），再用名稱查（profile 的鍵）。庫是為基金前十大而建，
     ETF 持股覆蓋率有限——有就顯示、沒有就不留空位，卡片標題另標「N 檔附標的簡介」。
     """
     by_tk, by_nm = fund_intro.intro_lookup()
@@ -1117,7 +1118,9 @@ def _eh_intros(payload: dict) -> dict:
             sid = str(r[0] or "").strip()
             if sid in out:
                 continue
-            got = by_tk.get(sid) or by_nm.get(str(r[1] or "").strip())
+            nm = str(r[1] or "").strip()
+            got = (by_tk.get(sid) or by_tk.get(fund_intro.norm_ticker(sid))
+                   or by_nm.get(nm) or by_nm.get(nm.upper()))
             if got:
                 out[sid] = got
     return out
