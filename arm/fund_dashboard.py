@@ -2381,12 +2381,13 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
         +'border-color:rgba('+rgb+','+Math.min(1,al+0.17).toFixed(3)+');';
       // 每格都要有完整資料（代碼＋簡稱＋金額）；格子偏窄用堆疊版、偏扁用寬版
       var tag=(it.k==='new'||it.k==='out')?'<s>'+KIND[it.k]+'</s>':'';
-      var nm=esc(it.n||''), cd=esc(it.s||'');
-      if(it.agg)lab='<i>'+nm+'</i><u>'+val+'</u>';
-      else if(pw>=54&&ph>=58)lab='<i>'+cd+'</i><em>'+nm+'</em><u>'+val+'</u>'+tag;
-      else if(pw>=76&&ph>=40)lab='<i>'+cd+' '+nm+'</i><u>'+val+'</u>';
+      // 名稱與代號相同＝資料端沒補到名字（出清標的常見）→ 不要把代號印兩次
+      var nm=esc((it.n && it.n!==it.s) ? it.n : ''), cd=esc(it.s||'');
+      if(it.agg)lab='<i>'+esc(it.n||'')+'</i><u>'+val+'</u>';
+      else if(pw>=54&&ph>=58)lab='<i>'+cd+'</i>'+(nm?'<em>'+nm+'</em>':'')+'<u>'+val+'</u>'+tag;
+      else if(pw>=76&&ph>=40)lab='<i>'+cd+(nm?' '+nm:'')+'</i><u>'+val+'</u>';
       // 極窄螢幕的保險：寧可省掉金額也要留公司名（2026-07-30 使用者：有些只有代號沒有公司名）
-      else if(pw>=48&&ph>=26)lab='<i>'+cd+'</i><em>'+nm+'</em>';
+      else if(pw>=48&&ph>=26)lab='<i>'+cd+'</i>'+(nm?'<em>'+nm+'</em>':'');
       else lab='<i>'+cd+'</i>';
       h+='<div class="tmi '+(it.agg?'agg ':'')+it.k+'" style="'+tint
         +'left:'+it.x+'%;top:'+it.y+'%;width:'+it.w+'%;height:'+it.h+'%"'
@@ -2410,7 +2411,7 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
       else more.hidden=true}
     tb.innerHTML=shown.map(function(r){
       return '<tr><td><span class="edcode">'+esc(r[0])+'</span>'
-        +'<span class="edname">'+esc(r[1])+'</span></td>'
+        +'<span class="edname">'+esc(r[1]===r[0]?'':r[1])+'</span></td>'
         +'<td class="num"><span class="edmain '+(r[2]>0?'gain':'loss')+'">'+lots(r[2])+'</span></td>'
         +'<td class="num"><span class="edsub2">'+amt(r[3])+'</span></td>'
         +'<td class="num"><span class="kpill '+r[4]+'">'+KIND[r[4]]+'</span></td></tr>'}).join('')
