@@ -1007,7 +1007,7 @@ def test_treemap_tint_scales_with_magnitude():
     assert ".tmi.add{background" not in css                # 不可再寫死每類一種底色
     assert "deep" not in js.split("paintTmap")[1][:1200]   # 深色畫布上文字一律白，不需切換
     assert ".tmg{" not in css                              # 產業群組層已移除（單層方塊圖）
-    assert "fig.hidden=!tm.length" in js                   # 有東西可畫就畫；只有全無異動才收掉
+    assert "wrap.hidden=!tm.length" in js                  # 有東西可畫就畫；只有全無異動才收掉
     assert "tm.length<3" not in js                         # 「少於 3 格不畫」規則已移除
 
 
@@ -1037,7 +1037,7 @@ def test_treemap_reports_unpriced_moves():
     assert fig["unpriced"] == 2
     # 揭露文案寫在**異動表**底下，圖被收掉時仍看得到
     assert "無台股報價，無法計入方塊圖" in fd._JS
-    assert "ed-mvfoot" in fd._JS
+    assert "'.mvfoot'" in fd._JS
 
 
 def test_treemap_omissions_are_all_accounted():
@@ -1237,7 +1237,7 @@ def test_annotate_builds_cross_etf_name_registry():
 def test_treemap_label_never_prints_code_twice():
     """名稱與代號相同＝資料端沒補到名字 → 前端不要把代號印兩次。"""
     js = fd._JS
-    assert "it.n && it.n!==it.s" in js
+    assert "it.n&&it.n!==it.s" in js.replace(" ", "")
     assert "r[1]===r[0]?'':r[1]" in js       # 異動表同理
 
 
@@ -1261,6 +1261,42 @@ def test_etf_detail_cards_are_lazy_and_filterable():
     assert "card.open)render(card)" in js.replace(" ", "")       # 展開才渲染
     assert "box.dataset.done" in js                              # 渲染一次就不重建
     assert "classList.toggle('fhide'" in js                      # 搜尋／分類用同一套隱藏機制
+
+
+def test_etf_detail_fhide_css_covers_etf_cards():
+    """2026-07-31 使用者回報「這邊的按鈕都不能按」的真因：隱藏規則原本只寫 `.fund.fhide`，
+    ETF 卡是 `.etfd`——分類 chips 與搜尋照樣加了 class，畫面卻毫無反應。
+    另 `.eg`（ETF 分類 chip）沒併進 `.fg` 樣式，連選中狀態都看不出來；
+    `#esearch` 沒併進 `#fsearch` 樣式，行動版會退回原生搜尋框（多一個放大鏡）。"""
+    css = fd._CSS
+    assert ".etfd.fhide" in css and ".edchip.fhide" in css
+    assert ".fg,.eg,.fexp{" in css                      # chip 樣式
+    assert ".fg.on,.eg.on{" in css                      # 選中狀態
+    assert "#fsearch,.fundbar #esearch{" in css         # 搜尋框樣式
+
+
+def test_etf_detail_code_chips():
+    """2026-07-31 使用者：搜尋的地方也要有可直接點的代碼「泡泡」。
+    照上方績效表分被動／主動式／其他三排；點一顆＝展開該檔並捲過去。"""
+    items = [{"code": "0050", "name": "元大台灣50", "kind": "passive"},
+             {"code": "00991A", "name": "主動復華未來 50", "kind": "active"},
+             {"code": "00986D", "name": "主動復華金融債息", "kind": "other"}]
+    doc = {"etfs": {}}
+    for i in items:
+        e = eh.merge_one(DAY1, DAY2)
+        e["detail"] = eh.contributions(e, QUOTES)
+        doc["etfs"][i["code"]] = e
+    html = fd._etf_detail_view({"items": items}, doc)
+    assert 'id="edpick"' in html
+    assert html.count('class="edchip"') == 3
+    for kind, label in (("passive", "被動"), ("active", "主動式"), ("other", "其他")):
+        assert f'<div class="edprow" data-group="{kind}"><span class="edplab">{label}</span>' in html
+    # 泡泡標籤去掉「主動」前綴（那排標籤已寫著主動式），但搜尋比對仍用完整名稱
+    assert "<span>未來 50</span>" in html
+    assert 'data-name="00991A 主動未來 50"' in html    # 搜尋比對用完整（_short 後）名稱
+    js = fd._JS
+    assert "#edpick .edchip" in js
+    assert "syncPick" in js                              # 選中狀態＝該檔卡片是否展開
 
 
 def test_etf_detail_holding_intro_is_shared_not_per_etf():
