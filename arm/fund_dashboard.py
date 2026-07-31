@@ -1167,7 +1167,7 @@ def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
     """
     items = (doc or {}).get("items") or []
     labels = {"passive": "被動", "active": "主動式", "other": "其他"}
-    payload, cards = {}, []
+    payload, cards, picks = {}, [], {}
     for i in items:
         code = i.get("code")
         det = etfholdings.view(holdings_doc, code)
@@ -1177,6 +1177,12 @@ def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
         payload[code] = p
         kind = i.get("kind") or "passive"
         nm = _short(i.get("name") or "")
+        # 泡泡標籤去掉「主動」前綴——那排的標籤已經寫著「主動式」，重複只是把泡泡撐寬，
+        # 15 顆主動式擠成十幾行；搜尋比對仍用完整名稱（data-name）。
+        picks.setdefault(kind, []).append(
+            f'<button class="edchip" data-c="{_esc(code)}" '
+            f'data-name="{_esc(code)} {_esc(nm)}" data-group="{kind}">'
+            f'<b>{_esc(code)}</b><span>{_esc(nm.removeprefix("主動"))}</span></button>')
         mv = p.get("mn") or 0
         sub = (f'異動 {mv} 檔' if mv else
                ('無異動' if p.get("p") else '首次揭露'))
@@ -1195,6 +1201,12 @@ def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
     # </script> 不可原樣出現在 inline script 內（HTML 解析器會提前結束腳本）
     js = js.replace("</", "<\\/")
     chips = "".join(f'<button class="eg" data-g="{k}">{v}</button>' for k, v in labels.items())
+    # ETF 代碼「泡泡」（2026-07-31 使用者：搜尋的地方也要有泡泡可以直接點，比打字方便）。
+    # 照上方績效表分被動／主動式／其他三排；點一顆＝展開該檔並捲過去。
+    pick = "".join(
+        f'<div class="edprow" data-group="{k}"><span class="edplab">{v}</span>'
+        f'<span class="edpset">{"".join(picks[k])}</span></div>'
+        for k, v in labels.items() if picks.get(k))
     return (
         f'<div class="section" id="etf-detail"><div class="st">{_ic("layers", tone="teal")}'
         f'ETF 持股詳情＆異動 '
@@ -1205,6 +1217,7 @@ def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
         f'<span class="fgchips"><button class="eg on" data-g="">全部</button>{chips}</span>'
         f'<button class="fexp" id="eexp">全部展開</button>'
         f'<button class="fexp" id="ecol">全部收合</button></div>'
+        f'<div class="edpick" id="edpick">{pick}</div>'
         f'{"".join(cards)}'
         f'<script>window.__EH={js};</script></div>')
 
@@ -2173,17 +2186,22 @@ th .sub{display:block;font-weight:400;color:var(--mut);font-size:10.5px}
   .fsum-l{flex:1 1 100%}
   .fsum>.gl{margin-right:auto}
 }
-.fund.fhide{display:none}
+/* 2026-07-31 踩坑：隱藏規則原本只寫 `.fund.fhide`，ETF 卡是 `.etfd`——分類 chips
+   與搜尋照樣加了 fhide class，畫面卻毫無反應，使用者回報「按鈕都不能按」。
+   同理 `.eg`（ETF 分類 chip）當初沒併進 `.fg` 的樣式，連選中狀態都看不出來。
+   新增這類工具列時，**三處都要一起加**：隱藏規則、chip 樣式、搜尋框樣式。 */
+.fund.fhide,.etfd.fhide,.edchip.fhide{display:none}
 /* 詳情篩選列 */
 .fundbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:12px}
-.fundbar #fsearch{flex:1;min-width:170px;max-width:330px;border:1px solid var(--line);border-radius:9px;
+.fundbar #fsearch,.fundbar #esearch{flex:1;min-width:170px;max-width:330px;
+  border:1px solid var(--line);border-radius:9px;-webkit-appearance:none;appearance:none;
   padding:7px 12px;font-size:14.5px;background:var(--card2);color:var(--ink)}
-.fundbar #fsearch:focus{outline:none;border-color:var(--acc)}
+.fundbar #fsearch:focus,.fundbar #esearch:focus{outline:none;border-color:var(--acc)}
 .fgchips{display:flex;gap:5px}
-.fg,.fexp{background:var(--card2);color:var(--accd);border:0;border-radius:18px;
+.fg,.eg,.fexp{background:var(--card2);color:var(--accd);border:0;border-radius:18px;
   padding:6px 13px;cursor:pointer;font-size:13.5px;font-weight:700}
-.fg:hover,.fexp:hover{background:rgba(47,111,208,.12)}
-.fg.on{background:var(--acc);color:#fff}
+.fg:hover,.eg:hover,.fexp:hover{background:rgba(47,111,208,.12)}
+.fg.on,.eg.on{background:var(--acc);color:#fff}
 .fhead{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}
 .fhead h2{font-size:19px;margin:0 0 4px} .gl{display:inline-block;white-space:nowrap;font-size:12px;color:#fff;background:var(--acc);padding:2px 8px;border-radius:20px;vertical-align:middle}
 .sub{color:var(--mut);font-size:12.5px}
@@ -2531,15 +2549,31 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
 
   // 工具列：搜尋（代碼或名稱）／分類 chips／全部展開・收合——比照基金詳情
   var q=document.getElementById('esearch'), g='';
+  function hit(el,kw){return (!kw||(el.dataset.name||'').toLowerCase().indexOf(kw)>=0)
+    &&(!g||el.dataset.group===g)}
   function apply(){var kw=(q&&q.value||'').trim().toLowerCase();
     root.querySelectorAll('details.etfd').forEach(function(c){
-      var okKw=!kw||(c.dataset.name||'').toLowerCase().indexOf(kw)>=0;
-      var okG=!g||c.dataset.group===g;
-      c.classList.toggle('fhide',!(okKw&&okG))})}
+      c.classList.toggle('fhide',!hit(c,kw))});
+    // 代碼泡泡跟著篩；整排都被篩掉時連標籤一起收（否則只剩「被動」兩個字孤零零）
+    root.querySelectorAll('#edpick .edchip').forEach(function(b){
+      b.classList.toggle('fhide',!hit(b,kw))});
+    root.querySelectorAll('#edpick .edprow').forEach(function(r){
+      r.style.display=r.querySelector('.edchip:not(.fhide)')?'':'none'})}
   if(q)q.addEventListener('input',apply);
   root.querySelectorAll('.eg').forEach(function(b){b.onclick=function(){
     root.querySelectorAll('.eg').forEach(function(x){x.classList.remove('on')});
     b.classList.add('on');g=b.dataset.g||'';apply()}});
+  // 代碼泡泡：點一顆＝展開該檔並捲過去（比打搜尋快；使用者 2026-07-31 指定）
+  root.querySelectorAll('#edpick .edchip').forEach(function(b){b.onclick=function(){
+    var card=document.getElementById('etfd-'+b.dataset.c); if(!card)return;
+    card.classList.remove('fhide'); card.open=true; render(card); syncPick();
+    card.scrollIntoView({behavior:'smooth',block:'start'})}});
+  // 泡泡的選中狀態＝該檔卡片是否展開（開合來源不只泡泡，故集中同步一次）
+  function syncPick(){root.querySelectorAll('#edpick .edchip').forEach(function(b){
+    var c=document.getElementById('etfd-'+b.dataset.c);
+    b.classList.toggle('on',!!(c&&c.open))})}
+  root.querySelectorAll('details.etfd').forEach(function(c){
+    c.addEventListener('toggle',syncPick)});
   var ex=document.getElementById('eexp'), co=document.getElementById('ecol');
   if(ex)ex.onclick=function(){root.querySelectorAll('details.etfd:not(.fhide)').forEach(function(c){
     c.open=true;render(c)})};
@@ -2564,201 +2598,6 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
   if(days>2){const b=document.createElement('div');b.className='stale-banner';
     b.textContent='⚠ 本儀表板已 '+days+' 天未重建（每日 CI 可能停擺），以下資料可能過期——請跑「全部更新」或檢查 GitHub Actions';
     document.body.prepend(b);}})();
-// ── ETF 詳情（底部區塊）：持股異動方塊圖＋異動明細＋完整持股明細 ──────────
-// 資料由產表端內嵌 window.__EH（treemap 座標已在 Python 用 squarify 算好，此處只畫 div）；
-// 切換 ETF／搜尋／排序／分頁全在前端，不重載頁面。
-(function(){
-  var EH=((window.__EH||{}).etfs)||{}, codes=Object.keys(EH);
-  var pick=document.getElementById('ed-pick'); if(!codes.length||!pick)return;
-  var KIND={add:'加碼',cut:'減碼',new:'新增',out:'出清'};
-  var cur=codes[0], msk='lots', msd=-1, hsk='w', hsd=-1, pg=1, PER=15, q='';
-  var MVN=15, mvall=false;      // 異動表預設 15 檔（等比調整日會有 50 檔），可展開全部
-  var $=function(id){return document.getElementById(id)};
-  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){
-    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
-  function grp(x){return String(x).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
-  function amt(v){if(v==null)return '—';
-    var a=Math.abs(v), s=v>0?'+':'-';
-    if(a>=1e8)return s+(a/1e8).toFixed(1)+' 億';
-    if(a>=1e4)return s+grp(Math.round(a/1e4))+' 萬';
-    return s+grp(Math.round(a))+' 元'}
-  function lots(v){if(v==null)return '—';
-    var a=Math.abs(v), s=v>0?'+':'-';
-    if(a>=1000)return s+grp(Math.round(a/1000))+' 張';
-    return s+grp(Math.round(a))+' 股'}
-  function pct(v,d,u){if(v==null)return '<span class="na">—</span>';
-    var c=v>0?'gain':(v<0?'loss':'flat');
-    return '<span class="'+c+'">'+(v>0?'+':(v<0?'-':''))+Math.abs(v).toFixed(d)+(u||'')+'</span>'}
-  function num(v,d){return v==null?'—':grp(v.toFixed(d==null?2:d))}
-
-  // ① 異動方塊圖（單層、不分產業）：面積 ∝ 幅度、亮度 ∝ 幅度、色相只表方向。
-  //    高度隨格數收斂——3 格卻撐一張 370px 的圖會出現一大塊空白（使用者 2026-07-30）。
-  function paintTmap(e){
-    var box=$('ed-tmap'), fig=$('ed-tmfig'); if(!box)return;
-    var tm=e.tm||[];
-    var H=e.th||0;                      // 高度由產表端算（折疊判準用的是同一個值）
-    if(H)box.style.height=H+'px';
-    var msg=e.mn?(e.nq>=(e.mn/2)
-        ?'本次異動多為海外持股（無台股報價），方塊圖無法計算面積——請看下方明細表。'
-        :'本次異動集中在少數標的，其餘幅度過小、方塊圖呈現不出比例——請看下方明細表。')
-            :(e.p?'本次揭露與前一揭露日相比，持股股數沒有變化。'
-                 :'首次揭露，尚無可對比的前一揭露日——明日起可看加減碼。');
-    var none=$('ed-mvnone'), tbl=$('ed-mvtbl'), fo=document.querySelector('#ed-tmfig ~ .edfoot');
-    // 有東西可畫就一定畫（2026-07-30 使用者：「圖還是要畫啦，不然不一致看起來很怪」）；
-    // 只有「完全無異動」才把整張卡收起來換成一行提示。
-    if(fig)fig.hidden=!tm.length;
-    if(tbl)tbl.hidden=!tm.length;
-    if(fo)fo.style.display=tm.length?'':'none';
-    if(none){none.hidden=!!tm.length; none.textContent=msg}
-    if(!tm.length){box.innerHTML='';return}
-    var W=box.clientWidth||320, h='';
-    // 亮度基準＝本檔最大幅度；開 0.55 次方讓小額異動仍看得見（純線性會全糊成一片）
-    var maxv=0;
-    tm.forEach(function(it){
-      var v=Math.abs((e.basis==='amount'?it.a:it.sh)||0); if(v>maxv)maxv=v});
-    tm.forEach(function(it){
-      var pw=it.w/100*W, ph=it.h/100*H, lab='';
-      var val=e.basis==='amount'?amt(it.a):lots(it.sh);
-      var mag=Math.abs((e.basis==='amount'?it.a:it.sh)||0);
-      // 亮度上限 0.80：白字對比紅 5.2:1／綠松 4.7:1（AA 正文 4.5:1）；拉到 1.0 只有 3.4:1
-      // 併格（其他 N 檔）固定壓在低亮度、不隨幅度變亮——它是殘差，不該比個股搶眼
-      var al=it.agg?0.20:(0.28+0.52*(maxv?Math.pow(mag/maxv,0.55):0));
-      var dir=(it.k==='add'||it.k==='new')?'add':'cut';
-      var rgb=dir==='add'?'230,80,76':'21,156,148';
-      var tint='background:rgba('+rgb+','+al.toFixed(3)+');'
-        +'border-color:rgba('+rgb+','+Math.min(1,al+0.17).toFixed(3)+');';
-      // 每格都要有完整資料（代碼＋簡稱＋金額）；格子偏窄用堆疊版、偏扁用寬版
-      var tag=(it.k==='new'||it.k==='out')?'<s>'+KIND[it.k]+'</s>':'';
-      // 名稱與代號相同＝資料端沒補到名字（出清標的常見）→ 不要把代號印兩次
-      var nm=esc((it.n && it.n!==it.s) ? it.n : ''), cd=esc(it.s||'');
-      if(it.agg)lab='<i>'+esc(it.n||'')+'</i><u>'+val+'</u>';
-      else if(pw>=54&&ph>=58)lab='<i>'+cd+'</i>'+(nm?'<em>'+nm+'</em>':'')+'<u>'+val+'</u>'+tag;
-      else if(pw>=76&&ph>=40)lab='<i>'+cd+(nm?' '+nm:'')+'</i><u>'+val+'</u>';
-      // 極窄螢幕的保險：寧可省掉金額也要留公司名（2026-07-30 使用者：有些只有代號沒有公司名）
-      else if(pw>=48&&ph>=26)lab='<i>'+cd+'</i>'+(nm?'<em>'+nm+'</em>':'');
-      else lab='<i>'+cd+'</i>';
-      h+='<div class="tmi '+(it.agg?'agg ':'')+it.k+'" style="'+tint
-        +'left:'+it.x+'%;top:'+it.y+'%;width:'+it.w+'%;height:'+it.h+'%"'
-        +' title="'+esc((it.agg?it.n:it.s+' '+it.n)+'　'+KIND[it.k]+' '+val
-          +(it.ind?'（'+it.ind+'）':''))+'">'+lab+'</div>'});
-    box.innerHTML=h}
-
-  // ② 異動明細表（張數／金額可點排序；正負同號排序，加碼在上、減碼在下——同截圖）
-  function paintMoves(e){
-    var tb=$('ed-mv'); if(!tb)return;
-    var rows=(e.mv||[]).slice();
-    rows.sort(function(a,b){
-      var i=msk==='amt'?3:2, av=a[i], bv=b[i];
-      if(av==null&&bv==null)return 0; if(av==null)return 1; if(bv==null)return -1;
-      return msd*(av-bv)});
-    var shown=mvall?rows:rows.slice(0,MVN);
-    var more=$('ed-mvmore');
-    if(more){
-      if(rows.length>MVN){more.hidden=false;
-        more.textContent=mvall?('收合，只看前 '+MVN+' 檔 ▴'):('展開全部 '+rows.length+' 檔異動 ▾')}
-      else more.hidden=true}
-    tb.innerHTML=shown.map(function(r){
-      return '<tr><td><span class="edcode">'+esc(r[0])+'</span>'
-        +'<span class="edname">'+esc(r[1]===r[0]?'':r[1])+'</span></td>'
-        +'<td class="num"><span class="edmain '+(r[2]>0?'gain':'loss')+'">'+lots(r[2])+'</span></td>'
-        +'<td class="num"><span class="edsub2">'+amt(r[3])+'</span></td>'
-        +'<td class="num"><span class="kpill '+r[4]+'">'+KIND[r[4]]+'</span></td></tr>'}).join('')
-      ||'<tr><td colspan="4" class="na">本次無持股異動。</td></tr>';
-    var kc={add:0,cut:0,new:0,out:0};
-    (e.mv||[]).forEach(function(r){kc[r[4]]=(kc[r[4]]||0)+1});
-    var bits=[]; ['add','cut','new','out'].forEach(function(k){if(kc[k])bits.push(KIND[k]+' '+kc[k])});
-    $('ed-mvsub').textContent=e.mn?('共 '+e.mn+' 檔異動'+(bits.length?'（'+bits.join('／')+'）':'')):'本次無異動';
-    $('ed-basis').textContent=(e.basis==='amount'
-      ?'面積與亮度依異動金額（Δ股數 × 當日收盤）。'
-      :'尚無個股當日報價，面積與亮度暫以 Δ股數計、金額欄為 —。')+'　'+(e.an||'');
-    // 方塊圖省略了什麼，寫在**表**底下：圖被收掉時這行仍看得到（誠實揭露不能跟著圖消失）
-    var notes=[];
-    if(e.hid)notes.push('另有 '+e.hid+' 檔幅度過小、方塊圖畫不出標籤，未入圖');
-    if(e.nq)notes.push('另有 '+e.nq+' 檔海外持股無台股報價，無法計入方塊圖');
-    if(e.mr)notes.push('異動檔數超過清單上限，另有 '+e.mr+' 檔小額異動未列於本表');
-    $('ed-mvfoot').textContent=notes.length?(notes.join('；')+'。'):''}
-
-  // ③ 完整持股明細（搜尋＋排序＋分頁；預設權重由大到小，同截圖）
-  function paintHold(e){
-    var tb=$('ed-hb'); if(!tb)return;
-    var KI={w:2,chg:5,c:6};
-    var rows=(e.al||[]).filter(function(r){
-      return !q||(String(r[0])+' '+String(r[1])).toLowerCase().indexOf(q)>=0});
-    var i=KI[hsk];
-    rows.sort(function(a,b){
-      var av=a[i], bv=b[i];
-      if(av==null&&bv==null)return 0; if(av==null)return 1; if(bv==null)return -1;
-      return hsd*(av-bv)});
-    var tot=Math.max(1,Math.ceil(rows.length/PER)); if(pg>tot)pg=tot; if(pg<1)pg=1;
-    tb.innerHTML=rows.slice((pg-1)*PER,pg*PER).map(function(r){
-      return '<tr><td><span class="edcode">'+esc(r[0])+'</span>'
-        +'<span class="edname">'+esc(r[1])+'</span></td>'
-        +'<td class="num"><span class="edmain">'+pct(r[5],2,'%')+'</span>'
-        +'<span class="edsub2">'+num(r[4],2)+'</span></td>'
-        +'<td class="num"><span class="edmain">'+num(r[2],2)+'%</span>'
-        +'<span class="edsub2">'+(r[3]==null?'—':grp(r[3]))+'</span></td>'
-        +'<td class="num"><span class="edmain">'+pct(r[6],2)+'</span></td></tr>'}).join('')
-      ||'<tr><td colspan="4" class="na">找不到符合的持股。</td></tr>';
-    $('ed-pgn').textContent=pg+' / '+tot;
-    $('ed-prev').disabled=pg<=1; $('ed-next').disabled=pg>=tot;
-    $('ed-hsub').innerHTML='共 '+(e.n||rows.length)+' 檔持股・快照 '+esc(e.d||'—')
-      +(q?('・符合搜尋 '+rows.length+' 檔'):'')
-      +(e.sw!=null&&e.sw>0&&e.sw<60
-        ?' <span class="hpartial" title="本表僅列臺股掛牌部位（權重合計 '+e.sw
-          +'%）；海外持股與現金部位不在本表，貢獻合計亦僅反映臺股部位">僅台股部位 '+e.sw+'%</span>':'');
-    $('ed-hfoot').innerHTML='貢獻度＝權重 × 個股當日漲跌 ÷ 100（單位：百分點 pp）。'
-      +'已涵蓋權重 '+num(e.cw,1)+'%，合計貢獻 '+(e.tc==null?'—':pct(e.tc,2,'pp'))+'。'
-      +'<b>合計與 ETF 市價漲跌不會完全相等</b>——現金／期貨部位、費用、以及持股揭露時點與'
-      +'收盤的時間差都落在差額裡，此處不作湊平調整。'
-      +(e.src==='fhtrust'?'資料來源：復華官網 assetsExcel（發行投信第一手揭露）。'
-        :'資料來源：'+esc(e.src||'投信每日揭露')+'（Tier B 彙整站，取自投信每日揭露；'
-         +'正式對外前以各投信官網核對）。')}
-
-  function paintHead(e){
-    var v=e.vf||['','',''];
-    $('ed-head').innerHTML='<b>'+esc(cur)+'</b> '+esc(e.nm||'')+'　揭露日 '+esc(e.d||'—')
-      +(e.p?'（對比 '+esc(e.p)+'）':'（首次揭露，尚無可對比的前一揭露日）')
-      +'　'+(e.n||0)+' 檔持股'
-      +(v[1]?' <span class="'+v[0]+'" title="'+esc(v[2])+'">'+esc(v[1])+'</span>':'')}
-
-  // 排序狀態：作用中的欄位標 ↓／↑（同截圖「權重 ↓」），其餘保持 ⇅
-  function markSort(sel,k,d){
-    document.querySelectorAll(sel).forEach(function(th){
-      var on=th.dataset.k===k; th.classList.toggle('on',on);
-      var i=th.querySelector('.ski'); if(i)i.textContent=on?(d<0?'↓':'↑'):'⇅'})}
-
-  function paint(){
-    var e=EH[cur]; if(!e)return;
-    Array.prototype.forEach.call(pick.querySelectorAll('.edchip'),function(b){
-      b.classList.toggle('on',b.dataset.c===cur)});
-    markSort('.chgtbl th.csk',msk,msd);markSort('.hldtbl th.hsk',hsk,hsd);
-    paintHead(e);paintTmap(e);paintMoves(e);paintHold(e)}
-
-  Array.prototype.forEach.call(pick.querySelectorAll('.edchip'),function(b){
-    b.onclick=function(){cur=b.dataset.c;pg=1;mvall=false;paint()}});
-  document.querySelectorAll('.edjump').forEach(function(b){b.onclick=function(){
-    if(!EH[b.dataset.c])return;
-    cur=b.dataset.c;pg=1;mvall=false;paint();
-    var s=document.getElementById('etf-detail');
-    if(s)s.scrollIntoView({behavior:'smooth',block:'start'})}});
-  document.querySelectorAll('.chgtbl th.csk').forEach(function(th){th.onclick=function(){
-    var k=th.dataset.k; msd=(k===msk)?-msd:-1; msk=k;
-    markSort('.chgtbl th.csk',msk,msd); paintMoves(EH[cur])}});
-  document.querySelectorAll('.hldtbl th.hsk').forEach(function(th){th.onclick=function(){
-    var k=th.dataset.k; hsd=(k===hsk)?-hsd:-1; hsk=k; pg=1;
-    markSort('.hldtbl th.hsk',hsk,hsd); paintHold(EH[cur])}});
-  var qi=$('ed-q');
-  if(qi)qi.addEventListener('input',function(){q=qi.value.trim().toLowerCase();pg=1;paintHold(EH[cur])});
-  var mm=$('ed-mvmore');
-  if(mm)mm.onclick=function(){mvall=!mvall;paintMoves(EH[cur])};
-  $('ed-prev').onclick=function(){pg--;paintHold(EH[cur])};
-  $('ed-next').onclick=function(){pg++;paintHold(EH[cur])};
-  // 方塊圖標籤依像素大小決定顯示層級 → 視窗尺寸變了要重畫（節流）
-  var t=null;
-  window.addEventListener('resize',function(){clearTimeout(t);
-    t=setTimeout(function(){paintTmap(EH[cur])},160)});
-  paint();
-})();
 """
 
 
