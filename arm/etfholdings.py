@@ -91,7 +91,10 @@ def merge_one(old: dict | None, new: dict | None) -> dict | None:
         return _drop_fake_prev({**new, "date": old["date"],
                                 "prev": old.get("prev") or {},
                                 "prev_date": old.get("prev_date")})
-    prev = {sid: {"shares": h.get("shares"), "weight": h.get("weight")}
+    # prev 一併存**名稱**（2026-07-30 使用者：有兩個股票代碼但沒有公司名）——
+    # 出清標的今天已不在 holdings 裡，名稱只剩 prev 留得住；沒有它就只能顯示代號。
+    prev = {sid: {"shares": h.get("shares"), "weight": h.get("weight"),
+                  "name": h.get("name") or None}
             for sid, h in _index(old.get("holdings") or []).items()}
     return _drop_fake_prev({**new, "prev": prev or (old.get("prev") or {}),
                             "prev_date": old.get("date") or old.get("prev_date")})
@@ -229,7 +232,8 @@ def _moves(rows: list[dict], dropped: list[dict], move_n: int = _MOVE_N) -> dict
 
 def contributions(entry: dict | None, quotes: dict[str, dict] | None,
                   ind: dict[str, str] | None = None,
-                  top_n: int = _TOP_N) -> dict | None:
+                  top_n: int = _TOP_N,
+                  names: dict[str, str] | None = None) -> dict | None:
     """單檔 ETF 的展開明細資料。
 
     entry  ＝ data/etf_holdings.json 的 etfs[code]
@@ -267,7 +271,11 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
                      # 新進／剔除標記：prev 有整份揭露時才判定（prev 空＝首日，不亂標「新增」）
                      "is_new": bool(prev) and sid not in prev})
     # 前一揭露日有、今日沒有的 → 已出清
-    dropped = [{"stock_id": sid, "name": sid, "weight": None, "shares": 0,
+    # 出清標的的公司名：prev 存的 → 當日報價 → 其他 ETF 的持股名冊 → 最後才退回代號
+    def _dropped_name(sid, v):
+        return (v.get("name") or ((quotes or {}).get(sid) or {}).get("name")
+                or (names or {}).get(sid) or sid)
+    dropped = [{"stock_id": sid, "name": _dropped_name(sid, v), "weight": None, "shares": 0,
                 "d_shares": -(v.get("shares") or 0) if v.get("shares") else None,
                 "d_weight": (round(-v["weight"], 2) if v.get("weight") is not None else None),
                 "chg_pct": None, "contrib": None,
@@ -303,8 +311,13 @@ def annotate(doc: dict, quotes: dict[str, dict] | None,
     為什麼不在儀表板端算：容器內 proxy 擋 twse/tpex，建表時取不到個股報價；
     專案慣例本就是「抓取在 CI、容器內只讀落檔建表」（同 macro_chips／etf_watch）。
     報價抓不到時保留既有 detail，不覆寫成空。"""
+    # 全體持股名冊：某檔 ETF 出清的股票，往往還在別檔 ETF 的持股裡——拿來補名字最直接
+    names = {str(h.get("stock_id")): h.get("name")
+             for e in (doc.get("etfs") or {}).values()
+             for h in (e.get("holdings") or [])
+             if h.get("stock_id") and (h.get("name") or "").strip()}
     for entry in (doc.get("etfs") or {}).values():
-        got = contributions(entry, quotes, ind, top_n)
+        got = contributions(entry, quotes, ind, top_n, names)
         if got and (quotes or entry.get("detail") is None):
             entry["detail"] = got
     return doc
