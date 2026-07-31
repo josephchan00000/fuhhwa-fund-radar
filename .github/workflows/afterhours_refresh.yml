@@ -1,0 +1,124 @@
+name: 盤後數據刷新（籌碼／ETF 績效／NAV 當晚更新）
+
+# 2026-07-31 使用者需求：「數據的部分不要都等到隔天早上才更新」。
+# 台股收盤後官方數據是「分批公布」的，本 workflow 在兩個時點把「當天就拿得到」的數據刷上線：
+#   · 台北 15:40（UTC 07:40）——三大法人買賣超（TWSE ~15:00 公布）、外資台指期未平倉
+#     （期交所 15:00 後才有已結算資料）、ETF 當日漲跌／收盤價／週月報酬（收盤價已出）、
+#     全球市場溫度計（Yahoo 序列取到台股收盤後的最新值）。
+#   · 台北 22:05（UTC 14:05）——融資融券（TWSE 晚間公布）、P/C 比補刷，外加基金 NAV
+#     （境內基金淨值多在晚間公布——抓得到就當晚上線；抓不到沿用既有快照，隔日清晨
+#     daily.yml 照常兜底，行為與現有防呆一致）。
+# 不碰新聞（reports/**）——AI 產的新聞維持每日早上 Routine＋daily.yml 的路徑。
+# 為何不做 30 分鐘輪詢（2026-07-31 與使用者確認過）：這些來源一天只更新一次，
+# 高頻輪詢 95% 是空轉，還放大對 etfinfo／TWSE／期交所的請求量與被封鎖風險。
+# 慣例照 etf_holdings.yml：獨立 workflow、不佔 daily.yml 早上的關鍵路徑；
+# 無 diff 就不 commit、失敗不影響任何現有功能。
+
+on:
+  schedule:
+    - cron: "40 7 * * 1-5"   # 台北 15:40 收盤場次
+    - cron: "5 14 * * 1-5"   # 台北 22:05 晚間場次
+  workflow_dispatch:
+
+concurrency:
+  group: afterhours-refresh
+  cancel-in-progress: false   # 與 daily.yml／etf_holdings.yml 的競態由 push 步驟 rebase 重試吸收
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main            # 正式抓取一律以 main 為準（同 etf_holdings.yml 慣例）
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安裝相依（純標準庫 + certifi）
+        run: pip install --quiet certifi
+
+      - name: 抓盤後數據（籌碼＋ETF 追蹤；台北 18:00 後的場次加抓基金 NAV）
+        run: |
+          # 兩支互不相依，比照 daily_fund.sh 平行跑；各自失敗只沿用既有落檔、不擋另一支
+          ( python3 scripts/fetch_macro_chips.py \
+              || echo "  ⚠ 總經・籌碼抓取失敗，沿用既有落檔" ) &
+          P_MACRO=$!
+          ( python3 scripts/fetch_etf_watch.py \
+              || echo "  ⚠ ETF 追蹤抓取失敗，沿用既有落檔" ) &
+          P_ETF=$!
+          wait "$P_MACRO" || true
+          wait "$P_ETF" || true
+          # 晚間場次（22:05；手動 dispatch 依當下時間同規則）：境內基金淨值多在晚間公布
+          if [ "$(date +%H)" -ge 18 ]; then
+            echo "晚間場次：加抓基金 NAV／持股（抓不到沿用既有快照）…"
+            python3 scripts/fetch_holdings.py || echo "  ⚠ NAV 抓取失敗，沿用既有快照"
+            # NAV 抓取可能帶回新持股 → 照三道防呆慣例更新簡介缺口檔（不擋發佈）
+            python3 scripts/check_holdings_intro.py || true
+          fi
+
+      - name: 休市日早退（來源無任何新數據＝不重建、不 commit、不部署）
+        id: guard
+        run: |
+          # 抓取腳本的鐵則是「抓不到就沿用既有落檔」——休市日跑完 data/ 會一個位元組都沒動。
+          # 此時早退，避免只因產表時戳變動就多一筆空 commit＋一次空部署。
+          if [ -z "$(git status --porcelain data/)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "data/ 無任何變更（休市日或來源尚未更新）——本場次早退"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git status --porcelain data/
+          fi
+
+      - name: 高風險數字事實核對（在籌碼刷新「之後」跑，factcheck 才對得上新值；🔴 不擋發佈）
+        if: steps.guard.outputs.changed == 'true'
+        run: TZ=Asia/Taipei python3 scripts/check_numbers.py || true
+
+      - name: 重建儀表板
+        if: steps.guard.outputs.changed == 'true'
+        run: TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py
+
+      - name: commit 盤後數據＋儀表板（無變更則跳過）
+        if: steps.guard.outputs.changed == 'true'
+        run: |
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          git add -f data/macro_chips.json 2>/dev/null || true      # 總經・籌碼（fetch_macro_chips.py 產出）
+          git add -f data/etf_watch.json 2>/dev/null || true        # ETF 數據追蹤（fetch_etf_watch.py 產出）
+          git add -f data/factcheck.json 2>/dev/null || true        # 數字核對結果（儀表板警示用）
+          git add -f data/funds/*.json 2>/dev/null || true          # 晚間場次的 NAV 快照（未跑則無 diff）
+          git add -f data/fund_nav_history.json 2>/dev/null || true # NAV 序列持久層——漏 add 會斷史（同 daily.yml）
+          git add -f data/cnyes_fund_map.json 2>/dev/null || true   # 鉅亨 cnyesId 對映
+          git add -f data/holdings_intro_gap.json 2>/dev/null || true  # 前十大簡介缺口警示
+          git add dashboard/index.html 2>/dev/null || true
+          git commit -m "chore: 盤後數據刷新 $(date '+%F %H:%M')" || { echo "無變更，跳過 push"; exit 0; }
+          # main 可能被其他 workflow 推進 → rebase 重試；rebase 後必須用合併結果重建再推
+          #（同 daily.yml 慣例：-X theirs 會拼出新舊混雜的 index.html，必須重建）
+          for i in 1 2 3; do
+            git push && exit 0
+            echo "push 被拒（第 $i 次），rebase 後重建儀表板再重試…"
+            git pull --rebase -X theirs origin main || git rebase --abort || true
+            TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py || true
+            git add dashboard/index.html 2>/dev/null || true
+            git commit --amend --no-edit || true
+            sleep 5
+          done
+          echo "::error::push 連續失敗——本次盤後數據未入 main"; exit 1
+
+      - name: 觸發 Vercel 部署（Deploy Hook；未設 secret 則跳過、靠自動偵測）
+        if: steps.guard.outputs.changed == 'true'
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
+            echo "（未設 VERCEL_DEPLOY_HOOK secret，跳過主動部署）"; exit 0
+          fi
+          curl -sS -X POST "$VERCEL_DEPLOY_HOOK" -w "\nHTTP %{http_code}\n" \
+            || echo "deploy hook 呼叫失敗（不影響已入庫的 commit）"
