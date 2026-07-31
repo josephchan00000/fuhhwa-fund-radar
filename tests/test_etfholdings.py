@@ -1157,3 +1157,29 @@ def test_etf_table_row_is_compact_and_link_in_category_column():
     assert 'class="etline"' in id_cell and "詳情 ↓" in id_cell          # 代碼與詳情同一行
     assert "ehyh" not in html                                          # 舊的第四行連結已移除
     assert ".etline{display:flex" in fd._CSS
+
+
+def test_moves_basis_falls_back_to_shares_when_any_unpriced():
+    """全球型 ETF 的海外持股沒有台股報價 → 若仍用「金額」當面積依據，那些沒金額的會被
+    靜靜濾掉（00988A 的 6 筆異動只畫得出 1 格）。**只要有一筆沒金額，整張圖改用股數**，
+    保證每一筆異動都看得到（2026-07-30 使用者：海外的明明有變動但沒有顯示出來）。"""
+    hold = [{"stock_id": "3665", "name": "貿聯-KY", "shares": 1200, "weight": 5.0},
+            {"stock_id": "VECO US", "name": "VEECO", "shares": 800, "weight": 4.0}]
+    prev = {"3665": {"shares": 1000, "weight": 4.8},
+            "VECO US": {"shares": 990, "weight": 4.9}}
+    q = {"3665": {"close": 200.0, "change": 2.0}}          # 只有台股有報價
+    d = eh.contributions({"date": "d", "holdings": hold, "prev": prev}, q)
+    assert d["amount_basis"] == "shares" and d["unpriced_n"] == 1
+    assert {m["stock_id"] for m in d["moves"]} == {"3665", "VECO US"}   # 兩筆都在
+    tm = fd._eh_treemap(d["moves"], d["amount_basis"])["blocks"]
+    assert {t["s"] for t in tm} == {"3665", "VECO US"}                  # 圖上也都在
+    # 全部有報價時才用金額
+    d2 = eh.contributions({"date": "d", "holdings": hold, "prev": prev},
+                          {**q, "VECO US": {"close": 50.0, "change": 1.0}})
+    assert d2["amount_basis"] == "amount" and d2["unpriced_n"] == 0
+
+
+def test_treemap_small_block_keeps_company_name():
+    """小格寧可省金額也要留公司名（2026-07-30 使用者：有些只有代號沒有公司名）。"""
+    js = fd._JS
+    assert "pw>=48&&ph>=26)lab='<i>'+cd+'</i><em>'+nm+'</em>'" in js

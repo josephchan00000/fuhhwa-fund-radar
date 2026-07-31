@@ -2385,7 +2385,8 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
       if(it.agg)lab='<i>'+nm+'</i><u>'+val+'</u>';
       else if(pw>=54&&ph>=58)lab='<i>'+cd+'</i><em>'+nm+'</em><u>'+val+'</u>'+tag;
       else if(pw>=76&&ph>=40)lab='<i>'+cd+' '+nm+'</i><u>'+val+'</u>';
-      else if(pw>=48&&ph>=26)lab='<i>'+cd+'</i><u>'+val+'</u>';   // 極窄螢幕的保險
+      // 極窄螢幕的保險：寧可省掉金額也要留公司名（2026-07-30 使用者：有些只有代號沒有公司名）
+      else if(pw>=48&&ph>=26)lab='<i>'+cd+'</i><em>'+nm+'</em>';
       else lab='<i>'+cd+'</i>';
       h+='<div class="tmi '+(it.agg?'agg ':'')+it.k+'" style="'+tint
         +'left:'+it.x+'%;top:'+it.y+'%;width:'+it.w+'%;height:'+it.h+'%"'
