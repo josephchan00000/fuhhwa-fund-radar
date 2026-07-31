@@ -271,9 +271,17 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
                      # 新進／剔除標記：prev 有整份揭露時才判定（prev 空＝首日，不亂標「新增」）
                      "is_new": bool(prev) and sid not in prev})
     # 前一揭露日有、今日沒有的 → 已出清
-    # 出清標的的公司名：prev 存的 → 當日報價 → 其他 ETF 的持股名冊 → 最後才退回代號
+    # 出清標的的公司名：prev 存的 → **上一次的 detail.all**（那時它還在持股中、名字就在裡面，
+    # 對「海外出清」特別關鍵——沒有台股報價、也不在別檔持股裡）→ 當日報價 → 其他 ETF 的
+    # 持股名冊 → 最後才退回代號
+    prev_named = {str(r.get("stock_id")): r.get("name")
+                  for r in ((entry or {}).get("detail") or {}).get("all") or []
+                  if r.get("stock_id") and (r.get("name") or "").strip()
+                  and r.get("name") != r.get("stock_id")}
+
     def _dropped_name(sid, v):
-        return (v.get("name") or ((quotes or {}).get(sid) or {}).get("name")
+        return (v.get("name") or prev_named.get(sid)
+                or ((quotes or {}).get(sid) or {}).get("name")
                 or (names or {}).get(sid) or sid)
     dropped = [{"stock_id": sid, "name": _dropped_name(sid, v), "weight": None, "shares": 0,
                 "d_shares": -(v.get("shares") or 0) if v.get("shares") else None,

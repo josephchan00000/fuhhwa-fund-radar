@@ -7971,7 +7971,8 @@
     },
     "MFG US": {
      "shares": 100000,
-     "weight": 0.894
+     "weight": 0.894,
+     "name": "瑞穗金融集團"
     },
     "7180 JP": {
      "shares": 100000,
@@ -24028,7 +24029,8 @@
     },
     "KLAC US": {
      "shares": 80000,
-     "weight": 0.97
+     "weight": 0.97,
+     "name": "KLA CORP"
     },
     "LMT US": {
      "shares": 25000,
