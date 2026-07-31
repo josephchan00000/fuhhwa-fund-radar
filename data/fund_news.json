@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/07/31 08:00",
+  "as_of": "2026/07/31 08:15",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -20,23 +20,16 @@
     {
       "title": "00409A下月開募 盯權值股",
       "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE45ZGRSeG9ST1pvVURYaDF4Y09YbXh5MTN6d2lTanVvVHV0Q3htQ1pjSGtuZHQtM3QxY1B4VXZ3XzE2dVZZaHRudi1PY2oxUUNVcjV3QjJzdk9IQdIBX0FVX3lxTE55dWJ0SlRYWVYwcFJIT0dvbm1tYUhNaG5ZdUJwd2xnUE05MUV6VG9HX05DZWJaNW9SRFE3UXZFOXd0bjJJaEdiUkJIMWhUamVYR2hGMTVxdDFlcU9ZOThB?oc=5",
-      "source": "經濟日報",
+      "source": "money.udn.com",
       "date": "2026-07-27 23:58",
       "datetime": "2026-07-27T23:58:13+08:00"
     },
     {
       "title": "復華全球未來50 ETF於8／12開募　挖掘AI產業50強",
       "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE42U1loc1VROGRHOTZ3ZVExb3IxX1VlREV6U0gyVHR3MmJZTXFHT1VrUml5Q3FoTktLMzVnQXh1NjNQWkVRTVVIOTE2ZU4yWlZFbHfSAVBBVV95cUxOLWtEeWFIM05CbzdRM3FiUFY0bFZzQ3RBak8tME5lSGMxbVFjVFdpOWt6SS1NRi1FeVFWajhyQktLY2JaS0ZzdUVCd21BZGJORw?oc=5",
-      "source": "ETtoday財經雲",
+      "source": "finance.ettoday.net",
       "date": "2026-07-27 19:06",
       "datetime": "2026-07-27T19:06:00+08:00"
-    },
-    {
-      "title": "復華未來50 ETF推全球版！3位績優操盤人共掌00409A 延續00991A戰力",
-      "url": "https://news.google.com/rss/articles/CBMibkFVX3lxTFA1Qi1KYzZKamtsc2trWjYtVXpZTmF6dnFHUVhtNmhxSVp5aEFfaXpiazZwcWloZ1JGbDZQMHNKRTRINWZJNHhFT1V6TjZWMmpMT05BczNXNEhjQmxNTTFvZEZ1aUNORmF0YlkyT29R?oc=5",
-      "source": "四季線上4gTV",
-      "date": "2026-07-27 18:56",
-      "datetime": "2026-07-27T18:56:35+08:00"
     },
     {
       "title": "《基金》復華00409A開募布局全球50強產業贏家- 基金",
@@ -51,6 +44,13 @@
       "source": "TechNews 科技新報",
       "date": "2026-07-27 17:09",
       "datetime": "2026-07-27T17:09:09+08:00"
+    },
+    {
+      "title": "接棒H1績效王00991A！復華推「未來50」全球版00409A 三大王牌經理人操盤",
+      "url": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE5lRkN6bUxpUldIMFhvOWFaY29jODhJVmsxTGNoSFdoaHNYajZRYThVVWQ1dUZFNEtEdFVJM2YybjVFbmFTU0lPcDhFM1E4Yl9wcGNTV293?oc=5",
+      "source": "優分析UAnalyze",
+      "date": "2026-07-27 17:06",
+      "datetime": "2026-07-27T17:06:27+08:00"
     }
   ],
   "funds": [
