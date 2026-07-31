@@ -126,6 +126,26 @@ def test_drawdown_and_stock_and_us_context_not_false_red():
     assert [c for c in factcheck.extract_claims(tw2, year=2026) if c.kind == "index_chg"]
 
 
+def test_historical_high_close_not_taken_as_session_close():
+    """07-31 誤殺：「歷史收盤高點 14,634.72」是他日高點、非本日收盤。
+
+    同型於 07-24 的 drawdown 防呆（那次只修了 chg，close 漏掉）——但這裡刻意
+    不用整句判定：「自高點回落…，收 X」的真收盤仍必須驗得到。
+    """
+    day = date(2026, 7, 31)
+    sent = ("此波修正起於中國業者傳出量產 DUV 微影設備的報導，費半指數曾於 7 月 29 日"
+            "自 6 月 22 日歷史收盤高點 14,634.72 回落逾 20%、正式落入熊市。")
+    assert not [c for c in factcheck.extract_us_index_claims(sent, day)
+                if c.kind == "us_sox_close"]
+    # 同句同時有「自高點回落」與真收盤時，真收盤仍要抽得到（不可整句封殺）
+    both = factcheck.extract_us_index_claims(
+        "費半自 6 月 22 日高點回落逾 20%，7/31 收 11,311.08。", day)
+    assert [c.value for c in both if c.kind == "us_sox_close"] == [11311.08]
+    # 「創歷史新高」句的真收盤照樣抽
+    hi = factcheck.extract_us_index_claims("道瓊工業指數收 52,485.03，改寫歷史新高。", day)
+    assert [c.value for c in hi if c.kind == "us_dji_close"] == [52485.03]
+
+
 def test_futures_and_night_session_not_extracted():
     """07-27 誤殺：期貨／夜盤非現貨口徑，拿日線驗必紅——整段不抽。"""
     day = date(2026, 7, 24)
