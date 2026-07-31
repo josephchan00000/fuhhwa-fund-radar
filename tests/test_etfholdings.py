@@ -1182,4 +1182,50 @@ def test_moves_basis_falls_back_to_shares_when_any_unpriced():
 def test_treemap_small_block_keeps_company_name():
     """小格寧可省金額也要留公司名（2026-07-30 使用者：有些只有代號沒有公司名）。"""
     js = fd._JS
-    assert "pw>=48&&ph>=26)lab='<i>'+cd+'</i><em>'+nm+'</em>'" in js
+    assert "pw>=48&&ph>=26)lab='<i>'+cd+'</i>'+(nm?'<em>'+nm+'</em>':'')" in js
+
+
+def test_dropped_holding_keeps_company_name():
+    """出清標的今天已不在 holdings，名稱只剩 prev 留得住——否則圖上／表上只有代號沒有
+    公司名（2026-07-30 使用者回報）。補名順序：prev 存的 → 當日報價 → 其他 ETF 的持股
+    名冊 → 最後才退回代號。"""
+    d1 = {"date": "d1", "holdings": [
+        {"stock_id": "2303", "name": "聯電", "shares": 1000, "weight": 5.0},
+        {"stock_id": "3357", "name": "台星科", "shares": 500, "weight": 3.0}]}
+    d2 = {"date": "d2", "holdings": [
+        {"stock_id": "2303", "name": "聯電", "shares": 1000, "weight": 5.0}]}
+    m = eh.merge_one(d1, d2)
+    assert m["prev"]["3357"]["name"] == "台星科"          # prev 有存名稱
+    det = eh.contributions(m, None)
+    out = [x for x in det["moves"] if x["kind"] == "out"][0]
+    assert out["stock_id"] == "3357" and out["name"] == "台星科"
+
+    # prev 沒名稱（舊落檔）→ 依序用報價、別檔 ETF 的名冊
+    m2 = {**m, "prev": {"3357": {"shares": 500, "weight": 3.0}}}   # 舊落檔的 prev 沒名稱
+    def out_name(det):
+        return [x for x in det["moves"] if x["kind"] == "out"][0]["name"]
+    assert out_name(eh.contributions(
+        m2, {"3357": {"close": 1.0, "change": 0.0, "name": "台星科"}})) == "台星科"   # 靠報價
+    assert out_name(eh.contributions(m2, None, None, 12, {"3357": "台星科"})) == "台星科"  # 靠名冊
+    assert out_name(eh.contributions(m2, None)) == "3357"           # 都沒有才退回代號
+
+
+def test_annotate_builds_cross_etf_name_registry():
+    """某檔 ETF 出清的股票往往還在別檔 ETF 的持股裡——拿來補名字最直接。"""
+    doc = {"etfs": {
+        "A": {"date": "d2", "holdings": [{"stock_id": "2330", "name": "台積電",
+                                          "shares": 10, "weight": 9.0}],
+              "prev": {"3357": {"shares": 500, "weight": 3.0}}},
+        "B": {"date": "d2", "holdings": [{"stock_id": "3357", "name": "台星科",
+                                          "shares": 20, "weight": 2.0}]},
+    }}
+    eh.annotate(doc, {})
+    out = [m for m in doc["etfs"]["A"]["detail"]["moves"] if m["kind"] == "out"]
+    assert out and out[0]["name"] == "台星科"
+
+
+def test_treemap_label_never_prints_code_twice():
+    """名稱與代號相同＝資料端沒補到名字 → 前端不要把代號印兩次。"""
+    js = fd._JS
+    assert "it.n && it.n!==it.s" in js
+    assert "r[1]===r[0]?'':r[1]" in js       # 異動表同理
