@@ -1,5 +1,5 @@
 {
- "as_of": "2026-08-02 00:27",
+ "as_of": "2026-08-02 06:53",
  "series": {
   "vix": {
    "2026-06-22": 17.28,
@@ -324,32 +324,32 @@
  "src": {
   "vix": {
    "src": "yahoo:^VIX",
-   "fetched": "2026-08-02 00:27",
+   "fetched": "2026-08-02 06:53",
    "n": 23
   },
   "us10y": {
    "src": "yahoo:^TNX",
-   "fetched": "2026-08-02 00:27",
+   "fetched": "2026-08-02 06:53",
    "n": 23
   },
   "dxy": {
    "src": "yahoo:DX-Y.NYB",
-   "fetched": "2026-08-02 00:27",
+   "fetched": "2026-08-02 06:53",
    "n": 22
   },
   "usdtwd": {
    "src": "yahoo:TWD=X",
-   "fetched": "2026-08-02 00:27",
+   "fetched": "2026-08-02 06:53",
    "n": 25
   },
   "brent": {
    "src": "yahoo:BZ=F",
-   "fetched": "2026-08-02 00:27",
+   "fetched": "2026-08-02 06:53",
    "n": 22
   },
   "gold": {
    "src": "yahoo:GC=F",
-   "fetched": "2026-08-02 00:27",
+   "fetched": "2026-08-02 06:53",
    "n": 22
   },
   "inst_total": {
@@ -364,7 +364,7 @@
   },
   "tx_foreign_net": {
    "src": "taifex:futContractsDate",
-   "fetched": "2026-08-02 00:27",
+   "fetched": "2026-08-02 06:53",
    "n": 10
   },
   "margin_bal": {
@@ -379,7 +379,7 @@
   },
   "pc_ratio": {
    "src": "taifex:pcRatio",
-   "fetched": "2026-08-02 00:27",
+   "fetched": "2026-08-02 06:53",
    "n": 10
   },
   "inst_trust": {
