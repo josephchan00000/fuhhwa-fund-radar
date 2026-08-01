@@ -5,6 +5,8 @@
   · 檔案齊全：usnews v1/v2、twnews、macronews、macrocal 皆有「今日」檔
   · 卡數下限：每報新聞卡 ≥4（macrocal 改查表格資料列 ≥10）
   · 連結：每張卡至少 1 條 markdown 可點連結 [標題](http…)
+  · 詳細分析：每張卡摘要／影響分析欄位須至少一項非空（2026-07-31 踩坑：twnews 子代理
+    漏加 **粗體** 標籤，extract_cards() 解析不到摘要/影響，儀表板只剩連結、詳細分析消失）
   · 徽章：每張卡標題括注可解析出重要度（≥6）與屬性（新事件/延伸/深度）
   · 行事曆：表頭「更新：」需為今日
 
@@ -35,6 +37,9 @@ def _check_cards(path: Path, date: str) -> list[str]:
     for i, c in enumerate(cards, 1):
         if not c.get("links"):
             errs.append(f"{rel}：卡{i}「{c['title'][:18]}…」無可點連結")
+        if not c.get("summary") and not c.get("points"):
+            errs.append(f"{rel}：卡{i}「{c['title'][:18]}…」摘要／影響分析皆空"
+                        "（標籤未加 **粗體**，儀表板只會顯示連結、看不到詳細分析）")
         imp, et = c.get("importance"), c.get("etype")
         if not isinstance(imp, int) or imp < 6:
             errs.append(f"{rel}：卡{i} 重要度標注缺失或 <6（{imp}）")

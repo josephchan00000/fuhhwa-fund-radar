@@ -222,6 +222,14 @@ def extract_us_index_claims(text: str, session_day: date) -> list[Claim]:
                 claims.append(Claim(f"us_{key}_chg", float(m.group(2)), session_day,
                                     sent.strip()[:160], qual=m.group(1) or ""))
             m = re.search(r"(?<!前)收[^0-9%]{0,10}([\d,]{5,}(?:\.\d+)?)", win)
+            # 「收盤高點／低點」是歷史高低點、不是本日收盤（2026-07-31 誤殺：SOX
+            # 「自 6 月 22 日歷史收盤高點 14,634.72 回落逾 20%」被當成 07/31 收盤，
+            # 官方 11,311.08 → 假 🔴）。同型於上方 drawdown 對 chg 的防呆，但這裡不用
+            # 整句 drawdown 判定——「自高點回落…，收 11,311.08」的真收盤仍要驗得到，
+            # 故只看「收」與數字之間是否夾著高低點字樣。
+            if m and re.search(r"高點|低點|新高|新低",
+                               m.group(0)[:m.start(1) - m.start()]):
+                m = None
             if m and not re.search(_NON_SPOT, win[:m.start()]):   # 期貨/夜盤收盤價非現貨收盤
                 v = _num(m.group(1))
                 if v and 4000 <= v <= 99999:
