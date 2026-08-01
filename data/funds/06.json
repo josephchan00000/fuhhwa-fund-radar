@@ -16,13 +16,13 @@
   "nav_change": 11.04,
   "nav_change_pct": "8.20%",
   "returns": {
-    "ytd": "67.92%",
-    "3m": "51.27%",
-    "6m": "67.92%",
-    "1y": "119.94%",
-    "2y": "99.46%",
-    "3y": "163.05%",
-    "since": "1,787.10%"
+    "ytd": "29.68%",
+    "3m": "-18.26%",
+    "6m": "21.28%",
+    "1y": "56.04%",
+    "2y": "65.76%",
+    "3y": "90.71%",
+    "since": "1,357.40%"
   },
   "managers": [
     "顧克勤"
@@ -30,94 +30,15 @@
   "co_managers": [],
   "strategy": "主要投資於網路通訊等數位相關產業，由上而下挑選經營模式及團隊有機會成功或已成功之產業，再從中挑選具高度競爭力和成長性之國內上市櫃公司。 核心持股基本面紮實，可望兼具股價成長力以及回檔支撐較強之特性，並將觀察市場結構、循環性與波動度變化，加強風險控管。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/06.pdf",
-  "dist_date": "2026/06/30",
+  "dist_date": "2026/07/31",
   "dist_rate": "—",
-  "as_of": "2026/06/30",
-  "top_holdings": [
-    {
-      "sector": "半導體",
-      "name": "台積電",
-      "weight": 8.93
-    },
-    {
-      "sector": "半導體",
-      "name": "旺矽",
-      "weight": 7.69
-    },
-    {
-      "sector": "電子零組件",
-      "name": "國巨*",
-      "weight": 7.57
-    },
-    {
-      "sector": "電子零組件",
-      "name": "欣興",
-      "weight": 7.33
-    },
-    {
-      "sector": "電子零組件",
-      "name": "台光電",
-      "weight": 6.81
-    },
-    {
-      "sector": "半導體",
-      "name": "日月光投控",
-      "weight": 6.79
-    },
-    {
-      "sector": "通信網路",
-      "name": "智邦",
-      "weight": 5.96
-    },
-    {
-      "sector": "電子零組件",
-      "name": "臻鼎-KY",
-      "weight": 5.07
-    },
-    {
-      "sector": "半導體",
-      "name": "聯發科",
-      "weight": 4.66
-    },
-    {
-      "sector": "其他電子",
-      "name": "致茂",
-      "weight": 4.3
-    }
-  ],
+  "as_of": null,
+  "top_holdings": [],
   "country_alloc": [],
-  "sector_alloc": [
-    {
-      "name": "半導體",
-      "weight": 46.67
-    },
-    {
-      "name": "電子零組件",
-      "weight": 33.71
-    },
-    {
-      "name": "電機機械",
-      "weight": 6.97
-    },
-    {
-      "name": "通信網路",
-      "weight": 5.96
-    },
-    {
-      "name": "其他電子",
-      "weight": 4.3
-    },
-    {
-      "name": "光電",
-      "weight": 0.41
-    },
-    {
-      "name": "流動資產",
-      "weight": 1.97
-    }
-  ],
+  "sector_alloc": [],
+  "holdings_error": "RuntimeError: GET 失敗 https://www.fhtrust.com.tw/funds/funds_detail/06: <urlopen error [Errno -5] No address associated with hostname>",
   "group": "tw_equity",
-  "fetched_at": "2026-08-01 17:34",
+  "fetched_at": "2026-08-02 00:28",
   "returns_daily": {
     "1m": -22.77039,
     "3m": -18.26136,

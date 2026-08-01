@@ -16,13 +16,13 @@
   "nav_change": 1.63,
   "nav_change_pct": "9.16%",
   "returns": {
-    "ytd": "103.47%",
-    "3m": "84.68%",
-    "6m": "103.47%",
+    "ytd": "56.95%",
+    "3m": "-3.95%",
+    "6m": "43.29%",
     "1y": "0.00%",
     "2y": "0.00%",
     "3y": "0.00%",
-    "since": "143.85%"
+    "since": "88.09%"
   },
   "managers": [
     "戎宜蘋"
@@ -30,7 +30,7 @@
   "co_managers": [],
   "strategy": "對於各產業精選之國內上市櫃公司股票進行價值、成長動能、及獲利評估，選出具競爭優勢及成長潛力之個股 在精選個股及透過經理人加值研判的同時，審慎因應市場風險，兼顧收益性與風險控管",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/125.pdf",
-  "dist_date": "2026/06/30",
+  "dist_date": "2026/07/31",
   "dist_rate": "—",
   "as_of": "2026/06/30",
   "top_holdings": [
@@ -117,7 +117,7 @@
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-08-01 17:34",
+  "fetched_at": "2026-08-02 00:28",
   "returns_daily": {
     "1m": -22.86622,
     "3m": -3.95452,

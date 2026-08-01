@@ -1,8 +1,15 @@
 {
-  "as_of": "2026/08/01 17:34",
+  "as_of": "2026/08/02 00:27",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
+    {
+      "title": "主動掌握全球50檔產業贏家股票 復華主動式 ETF 00409A 8月12日開募",
+      "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE9XNXZyZnhNdDh4NVI5UlpTelN2bkQ3Q1lvMzJUMWVBU0czWWdWMHJ5ZXpmVDhiOTFnLUppaXMtNVd2SlFzcVk2YUMwbUd0bHgtNDRYM0k2Mnk5UdIBX0FVX3lxTE1oUGYyMUdfWF9ZZlY4Z1JoWm9lMTJCbWUyNFp5a0ZjaGN4WjJ6eVpEM0JkWU9uSUhleUZFYUlfaVI1b2swckNseGRFdG1ndXFDQXozY3JRMTRsSHFMTm5z?oc=5",
+      "source": "經濟日報",
+      "date": "2026-07-31 17:00",
+      "datetime": "2026-07-31T17:00:00+08:00"
+    },
     {
       "title": "復華華人世紀基金，名字傳統卻藏著科技魂？",
       "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE4xd0txVFFBa3ZIUTkxdlU5cEZmOU9vZ2JIMkI5UEhMT0YxeHVBcGxwZllJcklLc2JjeGV0LVpRRHRkb0tRMXBBWkZLa3dYWnBTRWNFMUp5S0Q?oc=5",
@@ -16,13 +23,6 @@
       "source": "Business Insider Taiwan",
       "date": "2026-07-29 14:06",
       "datetime": "2026-07-29T14:06:00+08:00"
-    },
-    {
-      "title": "復華全球未來50 ETF於8／12開募　挖掘AI產業50強",
-      "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE42U1loc1VROGRHOTZ3ZVExb3IxX1VlREV6U0gyVHR3MmJZTXFHT1VrUml5Q3FoTktLMzVnQXh1NjNQWkVRTVVIOTE2ZU4yWlZFbHfSAVBBVV95cUxOLWtEeWFIM05CbzdRM3FiUFY0bFZzQ3RBak8tME5lSGMxbVFjVFdpOWt6SS1NRi1FeVFWajhyQktLY2JaS0ZzdUVCd21BZGJORw?oc=5",
-      "source": "ETtoday財經雲",
-      "date": "2026-07-27 19:06",
-      "datetime": "2026-07-27T19:06:00+08:00"
     }
   ],
   "funds": [
@@ -381,6 +381,6 @@
   "social": [],
   "highlights": [
     "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太成長、亞太神龍科技、全球平衡 等 7 檔（詳下方基金新聞標籤）",
-    "品牌焦點：復華華人世紀基金，名字傳統卻藏著科技魂？（CMoney）"
+    "品牌焦點：主動掌握全球50檔產業贏家股票 復華主動式 ETF 00409A 8月12日開募（經濟日報）"
   ]
 }
