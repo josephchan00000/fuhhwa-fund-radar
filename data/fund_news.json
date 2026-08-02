@@ -1,28 +1,14 @@
 {
-  "as_of": "2026/08/03 07:09",
+  "as_of": "2026/08/03 07:42",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
-    {
-      "title": "復華中小精選基金，不配息也能把資產滾大，關鍵其實不在現金流-黃詠晴",
-      "url": "https://news.google.com/rss/articles/CBMihwFBVV95cUxNNENzU0R1ZF9LR0g4bEhhVl9vZWIwTWVHVHY0aFBWOFFlS2hNdVcweTczNmJ5Wm01elhtNlliTzZDeE16VGFxTjVJY1p1c2NIYnBwTmhfZ25XVlFPS3ExV2Nyb2xPcndvU3pPZ0JiNE1Kbl9oVmRaODJSQ3NFcThqc1pWb0JuQVE?oc=5",
-      "source": "cmnews.com.tw",
-      "date": "2026-08-01 21:56",
-      "datetime": "2026-08-01T21:56:14+08:00"
-    },
     {
       "title": "主動掌握全球50檔產業贏家股票 復華主動式 ETF 00409A 8月12日開募",
       "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE9XNXZyZnhNdDh4NVI5UlpTelN2bkQ3Q1lvMzJUMWVBU0czWWdWMHJ5ZXpmVDhiOTFnLUppaXMtNVd2SlFzcVk2YUMwbUd0bHgtNDRYM0k2Mnk5UdIBX0FVX3lxTE1oUGYyMUdfWF9ZZlY4Z1JoWm9lMTJCbWUyNFp5a0ZjaGN4WjJ6eVpEM0JkWU9uSUhleUZFYUlfaVI1b2swckNseGRFdG1ndXFDQXozY3JRMTRsSHFMTm5z?oc=5",
       "source": "經濟日報",
       "date": "2026-08-01 17:00",
       "datetime": "2026-08-01T17:00:00+08:00"
-    },
-    {
-      "title": "規模破百億的基金巨獸：安聯台灣科技、復華全球物聯網、復華華人世紀該怎麼挑？",
-      "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTFBXRVhySVVUZHJRMUMzTkQ4elNsZU5ubzhjVExkeHZJZ1FQcXdUMktJNVc1S1RrejM1MXhZQ00zWFNQTGpRbUZPQ2hQVEpUVkdLeGFxMU1RVlhDQXo5ajl4NG8tLWNKUzVFQW1USklPUlpnYzBUaWlNUV96bEtTZw?oc=5",
-      "source": "cmnews.com.tw",
-      "date": "2026-07-31 16:50",
-      "datetime": "2026-07-31T16:50:55+08:00"
     },
     {
       "title": "復華華人世紀基金，名字傳統卻藏著科技魂？",
@@ -258,15 +244,7 @@
       "short_names": [
         "中小精選"
       ],
-      "items": [
-        {
-          "title": "復華中小精選基金，不配息也能把資產滾大，關鍵其實不在現金流-黃詠晴",
-          "url": "https://news.google.com/rss/articles/CBMihwFBVV95cUxNNENzU0R1ZF9LR0g4bEhhVl9vZWIwTWVHVHY0aFBWOFFlS2hNdVcweTczNmJ5Wm01elhtNlliTzZDeE16VGFxTjVJY1p1c2NIYnBwTmhfZ25XVlFPS3ExV2Nyb2xPcndvU3pPZ0JiNE1Kbl9oVmRaODJSQ3NFcThqc1pWb0JuQVE?oc=5",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-01 21:56",
-          "datetime": "2026-08-01T21:56:14+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華全方位基金",
@@ -395,7 +373,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太成長、亞太神龍科技、全球平衡 等 8 檔（詳下方基金新聞標籤）",
-    "品牌焦點：復華中小精選基金，不配息也能把資產滾大，關鍵其實不在現金流-黃詠晴（cmnews.com.tw）"
+    "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太成長、亞太神龍科技、全球平衡 等 7 檔（詳下方基金新聞標籤）",
+    "品牌焦點：主動掌握全球50檔產業贏家股票 復華主動式 ETF 00409A 8月12日開募（經濟日報）"
   ]
 }
