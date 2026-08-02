@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/02 07:07",
+  "as_of": "2026/08/03 06:52",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
@@ -7,8 +7,8 @@
       "title": "主動掌握全球50檔產業贏家股票 復華主動式 ETF 00409A 8月12日開募",
       "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE9XNXZyZnhNdDh4NVI5UlpTelN2bkQ3Q1lvMzJUMWVBU0czWWdWMHJ5ZXpmVDhiOTFnLUppaXMtNVd2SlFzcVk2YUMwbUd0bHgtNDRYM0k2Mnk5UdIBX0FVX3lxTE1oUGYyMUdfWF9ZZlY4Z1JoWm9lMTJCbWUyNFp5a0ZjaGN4WjJ6eVpEM0JkWU9uSUhleUZFYUlfaVI1b2swckNseGRFdG1ndXFDQXozY3JRMTRsSHFMTm5z?oc=5",
       "source": "經濟日報",
-      "date": "2026-07-31 17:00",
-      "datetime": "2026-07-31T17:00:00+08:00"
+      "date": "2026-08-01 17:00",
+      "datetime": "2026-08-01T17:00:00+08:00"
     },
     {
       "title": "復華華人世紀基金，名字傳統卻藏著科技魂？",
@@ -16,13 +16,6 @@
       "source": "CMoney",
       "date": "2026-07-30 16:35",
       "datetime": "2026-07-30T16:35:33+08:00"
-    },
-    {
-      "title": "復華00409A 8/12開募：00991A成功後，全球版值不值得跟？",
-      "url": "https://news.google.com/rss/articles/CBMiVkFVX3lxTFBFMThaamRSNUhwbkJJZU1aSTRva0lKVXlJQks1ZUN0YVNlbnpGZTBnUGFkMHZXTHFPNmtJSi1EalhyNDdTNFQyZEh0eGpBUW1yVjhHU2Zn?oc=5",
-      "source": "Business Insider Taiwan",
-      "date": "2026-07-29 14:06",
-      "datetime": "2026-07-29T14:06:00+08:00"
     }
   ],
   "funds": [
@@ -48,7 +41,7 @@
         {
           "title": "復華00409A 8/12開募：00991A成功後，全球版值不值得跟？",
           "url": "https://news.google.com/rss/articles/CBMiVkFVX3lxTFBFMThaamRSNUhwbkJJZU1aSTRva0lKVXlJQks1ZUN0YVNlbnpGZTBnUGFkMHZXTHFPNmtJSi1EalhyNDdTNFQyZEh0eGpBUW1yVjhHU2Zn?oc=5",
-          "source": "Business Insider Taiwan",
+          "source": "businessinsider.tw",
           "date": "2026-07-29 14:06",
           "datetime": "2026-07-29T14:06:00+08:00"
         }
@@ -63,6 +56,13 @@
         "全球物聯網科技新臺幣"
       ],
       "items": [
+        {
+          "title": "規模破百億的科技巨頭對決：安聯台灣科技、復華全球物聯網、復華華人世紀怎麼選？",
+          "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE5VbHhCNGxZTW5KeXBxUmhqZkN0blZrTHIyUU5oY0NBQ0xnNllGYlFzNFBDdWR2alctYzVRbWxzVFQ4WG5fdmcxSjFsT2tQQ1ozTVR0NWRfWEQ?oc=5",
+          "source": "CMoney",
+          "date": "2026-08-02 16:40",
+          "datetime": "2026-08-02T16:40:57+08:00"
+        },
         {
           "title": "主動復華全球50-技術分析與K線圖",
           "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTFB2dFFjakIwYU8yUHFld3d4MTVqTnRvbUhHYjB0cEpQYW5MN3UtdTVZRjJnMnJBenBoYm5JSEc1RkxFYjVtOTlvNy1BdmhSY2xUU3llTlEyaE9xVUFKUzhEWllNTHlyVW9PLWNNN0NWZEVWX20wX1F3TTJfX2NIUQ?oc=5",
@@ -89,25 +89,18 @@
       ],
       "items": [
         {
+          "title": "規模破百億的科技巨頭對決：安聯台灣科技、復華全球物聯網、復華華人世紀怎麼選？",
+          "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE5VbHhCNGxZTW5KeXBxUmhqZkN0blZrTHIyUU5oY0NBQ0xnNllGYlFzNFBDdWR2alctYzVRbWxzVFQ4WG5fdmcxSjFsT2tQQ1ozTVR0NWRfWEQ?oc=5",
+          "source": "CMoney",
+          "date": "2026-08-02 16:40",
+          "datetime": "2026-08-02T16:40:57+08:00"
+        },
+        {
           "title": "規模破百億的基金巨獸：安聯台灣科技、復華全球物聯網、復華華人世紀該怎麼挑？",
           "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTFBTU2dnZ21lWElDYm93RERyQVZmVVB5NHFlcFJDNnIyem04NmVNNDR4dU5oVmNVUXlHSXVEZnBXZzlpa3ZNQk1oa0pyaHlmQi1BV1pfRlRodVU?oc=5",
           "source": "CMoney",
           "date": "2026-07-31 16:50",
           "datetime": "2026-07-31T16:50:57+08:00"
-        },
-        {
-          "title": "規模最大的科技巨獸：安聯台灣科技、復華全球物聯網、復華華人世紀該怎麼選？",
-          "url": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE1CeFlPMlg5dG1hcFp2UUhxTkZLX1J0XzhXTEw0cEpmXzdjUUJtN1BQVUIta2tQNjVmZVR0WEZmcUZqa0JBOVNZUkdwT0ZLdmNGbDlvRm9YbGRSQktTN1ZSa3BhUDJxWlk?oc=5",
-          "source": "CMoney",
-          "date": "2026-07-30 16:53",
-          "datetime": "2026-07-30T16:53:47+08:00"
-        },
-        {
-          "title": "復華華人世紀基金，名字傳統卻藏著科技魂？",
-          "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE4xd0txVFFBa3ZIUTkxdlU5cEZmOU9vZ2JIMkI5UEhMT0YxeHVBcGxwZllJcklLc2JjeGV0LVpRRHRkb0tRMXBBWkZLa3dYWnBTRWNFMUp5S0Q?oc=5",
-          "source": "CMoney",
-          "date": "2026-07-30 16:35",
-          "datetime": "2026-07-30T16:35:33+08:00"
         }
       ]
     },
@@ -179,7 +172,7 @@
         {
           "title": "復華00409A 8/12開募：00991A成功後，全球版值不值得跟？",
           "url": "https://news.google.com/rss/articles/CBMiVkFVX3lxTFBFMThaamRSNUhwbkJJZU1aSTRva0lKVXlJQks1ZUN0YVNlbnpGZTBnUGFkMHZXTHFPNmtJSi1EalhyNDdTNFQyZEh0eGpBUW1yVjhHU2Zn?oc=5",
-          "source": "Business Insider Taiwan",
+          "source": "businessinsider.tw",
           "date": "2026-07-29 14:06",
           "datetime": "2026-07-29T14:06:00+08:00"
         }
@@ -237,7 +230,7 @@
         {
           "title": "復華數位經濟基金 的買賣訊號 | 鉅亨網 - 基金老司機",
           "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxQbUQ1bUduWXRQSFI2Z0VjeG5zX3ctUmxfN1ZRS2FzNE1fM09nenc4RklzRFZ5WU9Zb0RneEExNDlRNVM1UHdUelNfWW0zSE4zcmF1eGd5XzQ3WFp1S2c0YzVFX09XRjh5X0gyQ19saHpyWVNLeHRfb3B3LTJsZmxPRjJ3Yk9YX0wyREVjay1KRFBVeWR2VkFUTF9XdEJ3NGZ6SjB0UlFKLXVXTkpOWThGSl8xTk9RZWNDaHJnVzdiMDA4Zw?oc=5",
-          "source": "鉅亨網",
+          "source": "invest.cnyes.com",
           "date": "2026-07-28 15:00",
           "datetime": "2026-07-28T15:00:00+08:00"
         }
