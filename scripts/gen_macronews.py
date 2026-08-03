@@ -36,6 +36,7 @@ def build_cal_prompt(today: date) -> str:
 def build_prompt(today: date) -> str:
     ses = macronews.us_session_date(today)
     wk = usnews.weekend_note(today)
+    xr = usnews.lane_note('macro')
     anchor = usnews.calendar_anchor(today)
     prior = usnews.prior_block(usnews.prior_titles(macronews.NEWS_DIR, today), "前一日總經・政策報告")
     return f"""你是「台灣投信公司給內外部溝通使用的政策面速寫編輯」。請以繁體中文，用 WebSearch/WebFetch
@@ -44,7 +45,7 @@ def build_prompt(today: date) -> str:
 台北日期（TST, UTC+8）：{today:%Y/%m/%d}
 昨夜美股對應交易日（美東，請以實際交易日查證）：{ses:%Y/%m/%d}
 {anchor}
-{wk + chr(10) if wk else ''}{prior + chr(10) * 2 if prior else ''}建議關鍵字：White House, executive order, tariff, China, sanction, foreign policy, Trump,
+{wk + chr(10) if wk else ''}{xr + chr(10) if xr else ''}{prior + chr(10) * 2 if prior else ''}建議關鍵字：White House, executive order, tariff, China, sanction, foreign policy, Trump,
 Federal Reserve, Powell, Jefferson, FOMC, statement, minutes, rate, export control,
 Gaza, Ukraine, semiconductor, energy；投行＋(policy/Fed/tariff)。
 
