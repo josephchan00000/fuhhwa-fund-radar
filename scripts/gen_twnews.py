@@ -50,7 +50,7 @@ def build_prompt(today: date, mode: str) -> str:
 台北日期（TST, UTC+8）：{today:%Y/%m/%d}（若今日休市，改寫最近一個台股交易日並註明）
 目前模式：{'盤前（開盤前／盤中）——請抓最新盤前重要新聞' if is_pre else '盤後（收盤後）'}
 {anchor}
-{usnews.weekend_note(today) + chr(10) if usnews.weekend_note(today) else ''}{prior + chr(10) * 2 if prior else ''}建議關鍵字：{kw}
+{usnews.weekend_note(today) + chr(10) if usnews.weekend_note(today) else ''}{usnews.cross_report_note('tw') + chr(10)}{prior + chr(10) * 2 if prior else ''}建議關鍵字：{kw}
 
 請產出一份，存成：reports/twnews/{today:%Y-%m-%d}.md
 （標題請用「〈台股盤前重點〉」）""" + ("" if is_pre else "（標題請用「〈台股盤後重點〉」）") + f"""
