@@ -751,26 +751,25 @@ def _md_row_html(mc: dict, key: str, label: str, kind: str, digits: int, unit: s
     bp = kind == "yield"
     # 日變化／近5日欄不再重複帶單位（單位在「最新值」與表註；殖利率保留 bp）
     if kind == "flow":
-        # 買賣超是「當日流量」，談日變化沒有意義 → 這欄改列「前一日的買賣超」與「近5日累計」。
-        # 2026-08-03 使用者「看不懂：日變化／近5日／累計」的根因就在這：欄位標題寫「日變化」，
-        # 實際顯示的卻是前一日金額。改成在儲存格內自帶標籤，讓每列自己說清楚是什麼數。
-        prev_v = macrochips._sorted_items(mc, key)[-2][1] if len(macrochips._sorted_items(mc, key)) >= 2 else None
-        chg_html = ('<span class="mdcl">前日</span>' +
-                    (_md_delta(prev_v, digits, "") if prev_v is not None
-                     else '<span class="na">—</span>'))
+        # 買賣超＝當日流量，與水準值語意不同 → 2026-08-03 使用者定案：**拆成獨立表**。
+        # 流量表欄位＝「當日買賣超｜近5日累計｜走勢」——欄頭直接說清楚，儲存格不再堆標籤；
+        # 「前日」值整個拿掉（走勢長條圖本來就看得到前幾天，並排只會跟當日值搶焦點——
+        # 08/03 實例：當日 −165.2 旁邊擺著紅色的「前日 +873.1」，第一眼會誤讀成今天買超）。
         s5 = macrochips.sum_n(mc, key, 5)
-        n5_html = ('<span class="mdcl">近5日累計</span>' +
-                   (_md_delta(s5, digits, "") if s5 is not None else '<span class="na">—</span>'))
+        chg_html = _md_delta(s5, digits, "") if s5 is not None else '<span class="na">—</span>'
         spark = _spark_bars(macrochips.points(mc, key, 20))
     else:
         chg_html = _md_delta(macrochips.day_change(mc, key), digits, "", bp=bp)
-        n5_html = _md_delta(macrochips.change_n(mc, key, 5), digits, "", bp=bp)
         spark = _spark(macrochips.points(mc, key, 30))
     date_html = f"{int(d[5:7])}/{int(d[8:10])}" if len(d) == 10 else d
     stale = _md_stale_badge(d)
     tr_cls = ' class="mdsub" data-grp="' + _esc(caret) + '"' if sub else ""
-    # 日變化與近5日併一欄（上下疊）以省寬、讓走勢圖在手機也進得了畫面
-    chg_cell = f'<td class="mdchg">{chg_html}<span class="mdn5">{n5_html}</span></td>'
+    if kind == "flow":
+        chg_cell = f'<td class="mdchg">{chg_html}</td>'          # 單值：近5日累計（欄頭已標明）
+    else:
+        n5_html = _md_delta(macrochips.change_n(mc, key, 5), digits, "", bp=bp)
+        # 日變化與近5日併一欄（上下疊）以省寬、讓走勢圖在手機也進得了畫面
+        chg_cell = f'<td class="mdchg">{chg_html}<span class="mdn5">{n5_html}</span></td>'
     return (f'<tr{tr_cls}>'
             f'{_md_name_cell(key, label, caret=(caret if not sub else None), sub=sub, datestr=date_html, stale=stale)}'
             f'<td class="mdval">{val_html}</td>{chg_cell}'
@@ -796,13 +795,21 @@ _MD_SRC = {
 }
 
 
-def _md_table(mc: dict, body_rows: str, col5: str = "近5日") -> str:
+def _md_table(mc: dict, body_rows: str, flow: bool = False) -> str:
+    """flow=True＝流量表（法人買賣超）：欄頭「當日買賣超｜近5日累計｜近20日走勢」；
+    否則水準值表：「最新值｜日變化／近5日｜近30日走勢」。2026-08-03 使用者定案拆表，
+    讓「近5日」在每張表內只有一種意思（流量＝累計、水準＝變化），欄頭即說明。"""
     if not body_rows:
         return '<div class="muted">（本組指標暫無資料——CI 接上官方來源後自動補齊）</div>'
+    if flow:
+        head = ('<th class="l">指標</th><th>當日買賣超</th>'
+                '<th class="mdchg">近5日累計</th><th>近20日走勢</th>')
+    else:
+        head = ('<th class="l">指標</th><th>最新值</th>'
+                '<th class="mdchg">日變化<span class="mdn5">／近5日</span></th>'
+                '<th>近30日走勢</th>')
     return (f'<div class="ovwrap"><table class="ovtbl mdtbl">'
-            f'<thead><tr><th class="l">指標</th><th>最新值</th>'
-            f'<th class="mdchg">日變化<span class="mdn5">／{_esc(col5)}</span></th>'
-            f'<th>近30日走勢</th></tr></thead>'
+            f'<thead><tr>{head}</tr></thead>'
             f'<tbody>{body_rows}</tbody></table></div>')
 
 
@@ -822,19 +829,22 @@ def _macro_data_view(mc: dict | None) -> str:
         return ('<div class="muted">尚無市場數據。正式區 CI 會執行 '
                 '<code>scripts/fetch_macro_chips.py</code> 抓官方來源自動補齊。</div>')
     gl_body = "".join(_md_row_html(mc, *r) for r in _MD_GLOBAL_ROWS)
-    tw_body = _md_inst_group_html(mc) + "".join(_md_row_html(mc, *r) for r in _MD_TW_ROWS)
+    flow_body = _md_inst_group_html(mc)
+    lvl_body = "".join(_md_row_html(mc, *r) for r in _MD_TW_ROWS)
     html = (f'<div class="calsub">{_ic("globe", plain=True)} 全球市場溫度計</div>'
             + _md_table(mc, gl_body)
-            + f'<div class="calsub">{_ic("layers", plain=True)} 台股籌碼</div>'
-            + _md_table(mc, tw_body))
+            + f'<div class="calsub">{_ic("layers", plain=True)} 台股籌碼——法人買賣超（當日流量）</div>'
+            + _md_table(mc, flow_body, flow=True)
+            + f'<div class="calsub">{_ic("layers", plain=True)} 台股籌碼——期貨・融資券・選擇權（水準值）</div>'
+            + _md_table(mc, lvl_body))
     html += ('<div class="etfnote">'
              '各列點下方<b>「官方↗」</b>可開該指標官方揭露頁對照；<b>三大法人買賣超</b>列點整個名稱可展開外資／投信／自營商分項。'
              '<br>單位：VIX／美元指數 DXY＝指數點；殖利率＝%（日變化以 bp 計）；美元兌新台幣＝新台幣元；'
              '原油＝美元/桶；黃金＝美元/盎司；法人買賣超／融資餘額＝億元；融券＝張；台指期＝口。'
-             '<br>欄位讀法：<b>最新值</b>下方小字為<b>資料日</b>（各指標公布時點不同，日期可能不一樣）；'
-             '第三欄上排＝<b>日變化</b>（與前一資料日的差）、下排＝<b>近5日變化</b>。'
-             '<b>買賣超列例外</b>：流量談日變化沒有意義，故該列改列<b>前日</b>買賣超與<b>近5日累計</b>，'
-             '兩個數字在儲存格內都自帶標籤。'
+             '<br>欄位讀法：各列名稱下方小字為<b>資料日</b>（各指標公布時點不同，日期可能不一樣）。'
+             '<b>法人買賣超表</b>＝當日流量：欄位為當日買賣超｜近5日累計（正＝買超、負＝賣超）。'
+             '<b>水準值表</b>（期貨／融資券／選擇權與全球指標）：欄位為最新值｜日變化（與前一資料日的差）'
+             '／近5日變化。'
              '<br>口徑：全球指標＝最近收盤（Yahoo Finance 官方序列）。台股籌碼＝證交所／期交所盤後官方數據；'
              '買賣超走勢為近 20 日長條（綠買超／紅賣超、0 為基準）；'
              '外資台指期淨部位為<b>臺股期貨(TX，大台) 單一契約</b>的未平倉多空淨額口數（淨空＝空單較多）——'

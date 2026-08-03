@@ -271,22 +271,29 @@ def test_missing_weekdays_includes_today_after_publish_hour():
     assert date(2026, 7, 31) not in got
 
 
-def test_flow_row_labels_prev_and_cum_not_daychange():
-    """2026-08-03 使用者「看不懂：日變化／近5日／累計」的根因：買賣超列的第一個值其實是
-    **前一日金額**、不是日變化，欄頭卻寫「日變化」。故該列改在儲存格內自帶標籤。"""
-    doc = _doc({"inst_total": {"2026-07-29": -351.4, "2026-07-30": -495.4,
-                               "2026-07-31": 873.1, "2026-08-03": -165.2}})
+def test_flow_split_into_own_table_with_explicit_headers():
+    """2026-08-03 使用者定案：買賣超（流量）與水準值**拆成兩張表**，「近5日」在每張表內
+    只有一種意思。流量表欄頭＝當日買賣超｜近5日累計；且不再顯示「前日」值（會與當日值
+    搶焦點——08/03 實例：當日 −165.2 旁的紅色「前日 +873.1」被誤讀成今天買超）。"""
+    import re
+    doc = _doc({"inst_total": {"2026-07-28": -1176.0, "2026-07-29": -351.4,
+                               "2026-07-30": -495.4, "2026-07-31": 873.1,
+                               "2026-08-03": -165.2}})
     html = fd._macro_data_view(doc)
-    assert "前日" in html and "近5日累計" in html      # 買賣超列自帶標籤
-    assert "資料日" in html                           # 每列名稱下方標資料日
+    assert "當日買賣超" in html and "近5日累計" in html   # 流量表欄頭
+    assert "法人買賣超" in html and "水準值" in html      # 兩張表的小標
+    assert "資料日" in html
+    row = re.search(r"三大法人買賣超.*?</tr>", html, re.S).group(0)
+    assert "前日" not in row                              # 前日值已移除
+    cell = re.search(r'<td class="mdchg">(.*?)</td>', row, re.S).group(1)
+    assert "-1,314" in cell or "-1314" in cell            # 近5日累計＝五日相加
 
 
 def test_level_row_keeps_daychange_semantics():
-    """水準值列（VIX 等）維持「日變化／近5日變化」語意，不應被加上流量列的標籤。
-    註：說明文字本身會提到「近5日累計」，故只檢查該列的儲存格、不檢查整份 HTML。"""
+    """水準值列（VIX 等）維持「日變化／近5日變化」語意，不得混入流量表的欄位。"""
     import re
     html = fd._macro_data_view(_doc({"vix": {"2026-07-21": 17.05, "2026-07-22": 16.64}}))
     assert "VIX" in html and "資料日" in html
     row = re.search(r"VIX 恐慌指數.*?</tr>", html, re.S).group(0)
-    assert "近5日累計" not in row and "前日" not in row      # 水準值列不掛流量標籤
-    assert 'class="mdcl"' not in row
+    assert "近5日累計" not in row and "前日" not in row      # 水準值列不掛流量欄位
+    assert "-0.41" in row                                    # 真的日變化（17.05→16.64）
