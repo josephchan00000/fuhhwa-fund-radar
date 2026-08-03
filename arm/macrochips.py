@@ -485,10 +485,20 @@ def _merge(old: dict[str, float], new: dict[str, float]) -> dict[str, float]:
     return dict(sorted(s.items())[-_KEEP:])
 
 
-def _missing_weekdays(series: dict[str, float], today: date) -> list[date]:
-    """近 _BACKFILL_DAYS 內、序列缺的平日（TWSE 逐日端點補抓用；假日端點會快速回非 OK）。"""
+def _missing_weekdays(series: dict[str, float], today: date,
+                      now_hour: int | None = None,
+                      today_after: int | None = None) -> list[date]:
+    """近 _BACKFILL_DAYS 內、序列缺的平日（TWSE 逐日端點補抓用；假日端點會快速回非 OK）。
+
+    today_after＝「今日資料的公布時點（台北整點）」：now_hour 已過該時點才把**今天**納入。
+    2026-08-03 踩坑：舊版從 i=1 起算，**今天永遠被排除**——盤後場次（15:40／22:05）
+    因此從不抓當日三大法人與融資融券，當日值要等隔天早上那班才補上，看起來就像
+    「證交所抓不到」。實際上我們根本沒對今天發過請求。None＝維持只補歷史日。"""
     out = []
-    for i in range(1, _BACKFILL_DAYS + 1):
+    start = 1
+    if today_after is not None and now_hour is not None and now_hour >= today_after:
+        start = 0                      # 已過公布時點 → 今天也納入
+    for i in range(start, _BACKFILL_DAYS + 1):
         d = today - timedelta(days=i)
         if d.weekday() < 5 and d.isoformat() not in (series or {}):
             out.append(d)
@@ -518,7 +528,9 @@ def fetch() -> dict:
     # ② 三大法人買賣超（TWSE BFI82U，逐日補缺）：合計＋外資／投信／自營商分項
     n_flow = 0
     inst_src, inst_diag = "twse:BFI82U", []
-    for d in _missing_weekdays(series["inst_total"], today):
+    # 三大法人：證交所約 15:00 後公布 → 15 點後才把今天納入（盤後 15:40 場次即可抓到當日）
+    for d in _missing_weekdays(series["inst_total"], today,
+                               now_hour=clock.now_tw().hour, today_after=15):
         flows, used = _twse_inst_all(d, inst_diag)
         if flows:
             iso = d.isoformat()
@@ -537,7 +549,9 @@ def fetch() -> dict:
 
     # ③ 融資融券餘額（TWSE MI_MARGN，逐日補缺）
     n_mar = 0
-    for d in _missing_weekdays(series["margin_bal"], today):
+    # 融資融券：證交所晚間公布 → 21 點後才把今天納入（盤後 22:05 場次即可抓到當日）
+    for d in _missing_weekdays(series["margin_bal"], today,
+                               now_hour=clock.now_tw().hour, today_after=21):
         m = _twse_margin(d)
         if m:
             iso = d.isoformat()
