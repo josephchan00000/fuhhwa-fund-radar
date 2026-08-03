@@ -252,3 +252,20 @@ def test_last_settled_clamps_to_settled_session():
     assert mc._last_settled(date(2026, 7, 29), 9) == date(2026, 7, 28)   # 盤中 → 前一日
     assert mc._last_settled(date(2026, 7, 29), 16) == date(2026, 7, 29)  # 盤後 → 當日
     assert mc._last_settled(date(2026, 7, 27), 9) == date(2026, 7, 24)   # 週一盤中 → 上週五
+
+
+def test_missing_weekdays_includes_today_after_publish_hour():
+    """2026-08-03 根因：舊版從 i=1 起算 → **今天永遠被排除**，盤後場次（15:40／22:05）
+    從不抓當日三大法人與融資融券，當日值要等隔天早上才補，看起來像「證交所抓不到」。"""
+    from datetime import date
+    series = {"2026-07-31": 873.1, "2026-07-30": -495.4}
+    today = date(2026, 8, 3)                      # 週一
+    # 未過公布時點 → 不含今天（不對尚未公布的資料發請求，也避免誤觸第三方備援）
+    assert today not in mc._missing_weekdays(series, today, now_hour=9, today_after=15)
+    # 已過公布時點 → 含今天，且排在最前面（優先補當日）
+    got = mc._missing_weekdays(series, today, now_hour=15, today_after=15)
+    assert got[0] == today
+    # 不給門檻時維持舊行為（只補歷史日），確保其他呼叫端不受影響
+    assert today not in mc._missing_weekdays(series, today)
+    # 已在序列中的日期不重抓
+    assert date(2026, 7, 31) not in got
