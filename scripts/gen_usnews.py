@@ -28,7 +28,7 @@ PROMPT_DIR = ROOT / "reports" / "usnews" / "prompts"
 def build_prompt(today: date) -> str:
     ses = usnews.us_session_date(today)
     wk = usnews.weekend_note(today)
-    xr = usnews.cross_report_note('us')
+    xr = usnews.lane_note('us')
     anchor = usnews.calendar_anchor(today)
     prior = usnews.prior_block(
         usnews.prior_titles(usnews.NEWS_DIR, today, r"(\d{4}-\d{2}-\d{2})_v1\.md$"),
