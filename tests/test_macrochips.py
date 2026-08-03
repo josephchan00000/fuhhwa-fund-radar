@@ -269,3 +269,24 @@ def test_missing_weekdays_includes_today_after_publish_hour():
     assert today not in mc._missing_weekdays(series, today)
     # 已在序列中的日期不重抓
     assert date(2026, 7, 31) not in got
+
+
+def test_flow_row_labels_prev_and_cum_not_daychange():
+    """2026-08-03 使用者「看不懂：日變化／近5日／累計」的根因：買賣超列的第一個值其實是
+    **前一日金額**、不是日變化，欄頭卻寫「日變化」。故該列改在儲存格內自帶標籤。"""
+    doc = _doc({"inst_total": {"2026-07-29": -351.4, "2026-07-30": -495.4,
+                               "2026-07-31": 873.1, "2026-08-03": -165.2}})
+    html = fd._macro_data_view(doc)
+    assert "前日" in html and "近5日累計" in html      # 買賣超列自帶標籤
+    assert "資料日" in html                           # 每列名稱下方標資料日
+
+
+def test_level_row_keeps_daychange_semantics():
+    """水準值列（VIX 等）維持「日變化／近5日變化」語意，不應被加上流量列的標籤。
+    註：說明文字本身會提到「近5日累計」，故只檢查該列的儲存格、不檢查整份 HTML。"""
+    import re
+    html = fd._macro_data_view(_doc({"vix": {"2026-07-21": 17.05, "2026-07-22": 16.64}}))
+    assert "VIX" in html and "資料日" in html
+    row = re.search(r"VIX 恐慌指數.*?</tr>", html, re.S).group(0)
+    assert "近5日累計" not in row and "前日" not in row      # 水準值列不掛流量標籤
+    assert 'class="mdcl"' not in row
