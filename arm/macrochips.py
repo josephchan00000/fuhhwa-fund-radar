@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import re
 import urllib.parse
+import urllib.error
 import urllib.request
 from datetime import date, timedelta
 from pathlib import Path
@@ -33,6 +34,13 @@ _TIMEOUT = 12
 _UA = {"User-Agent": "Mozilla/5.0 (macrochips; fuhhwa-fund-radar)"}
 _KEEP = 45            # 每指標保留筆數（30 日走勢圖＋緩衝）
 _BACKFILL_DAYS = 14   # TWSE 逐日端點往回補抓的日曆日窗
+# 第三方頁面會擋非瀏覽器 UA → 備援抓取用近似瀏覽器的標頭（官方端點仍用 _UA）
+_BROWSER_UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                             "(KHTML, like Gecko) Chrome/128.0 Safari/537.36",
+               "Accept-Language": "zh-TW,zh;q=0.9"}
+# 三大法人身份別名稱（官方與第三方頁面共用的辨識詞）
+_INST_NAME_RE = re.compile(r"外資及陸資\(不含外資自營商\)|外資及陸資|外資自營商|投信|"
+                           r"自營商\(自行買賣\)|自營商\(避險\)|自營商|合計")
 
 # ── 指標規格（key, 中文名, 來源, Yahoo 代碼或 None） ─────────────────────
 #   group: gl=全球溫度計 / tw=台股籌碼
@@ -83,9 +91,164 @@ def _yahoo_series(sym: str, norm=None) -> dict[str, float]:
     return out
 
 
-def _twse_inst_all(d: date) -> dict | None:
-    """TWSE BFI82U（三大法人買賣金額）→ {'foreign','trust','dealer','total'}（億元，買超為正）。
-    自營商＝自行買賣＋避險合計；外資＝外資及陸資（不含外資自營商）。整段抓不到回 None。"""
+def _http(url: str, timeout: int = 20) -> tuple[str, str]:
+    """回 (內文, 狀態描述)。狀態描述供 CI 日誌判讀「被擋 vs 回空 vs 解析失敗」，
+    這是 2026-08-03 的教訓：官方抓不到時舊碼只沉默回 None，無從得知是哪一種。"""
+    try:
+        req = urllib.request.Request(url, headers=_BROWSER_UA)
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            body = r.read().decode("utf-8", "replace")
+            return body, f"HTTP {r.status}／{len(body)}B"
+    except urllib.error.HTTPError as e:
+        return "", f"HTTPError {e.code}"
+    except Exception as e:
+        return "", f"{type(e).__name__}: {str(e)[:60]}"
+
+
+def _inst_rows_to_flows(rows) -> dict | None:
+    """把 [(名稱, 買賣差額元)] 轉成 {'foreign','trust','dealer','total'}（億元）。
+    officially／第三方來源共用同一套歸戶邏輯，避免各寫一份而口徑分歧。"""
+    out = {"foreign": None, "trust": 0.0, "dealer": 0.0, "total": None}
+    got_dealer = got_trust = False
+    for name, diff_yuan in rows:
+        name = str(name)
+        diff = float(diff_yuan) / 1e8                         # 元 → 億
+        # 外資列名為「外資及陸資(不含外資自營商)」——含「自營」字樣，故以獨有的「陸資」二字辨識，
+        # 不可用「自營 not in name」（會誤殺，factcheck 舊版同坑）。「外資自營商」不含「陸資」→ 不誤收。
+        if "陸資" in name:
+            out["foreign"] = round((out["foreign"] or 0.0) + diff, 2)
+        elif "投信" in name:
+            out["trust"] = round(out["trust"] + diff, 2); got_trust = True
+        elif "自營商" in name and "外資" not in name:          # 自行買賣＋避險兩列（不含外資自營商）
+            out["dealer"] = round(out["dealer"] + diff, 2); got_dealer = True
+        elif name.strip() == "合計":
+            out["total"] = round(diff, 2)
+    if not got_trust:
+        out["trust"] = None
+    if not got_dealer:
+        out["dealer"] = None
+    return out if any(v is not None for v in out.values()) else None
+
+
+def _inst_from_openapi(d: date, diag: list) -> dict | None:
+    """官方備援：TWSE OpenAPI（openapi.twse.com.tw）——與 rwd 不同主機，
+    專案既有連接器（stockmeta／connectors.twse）已證實 CI 可達。只提供「最新一日」，
+    故僅在 d 為最近交易日時可用；日期不符即放棄（不可把別日的值寫成 d 的值）。"""
+    body, st = _http("https://openapi.twse.com.tw/v1/exchangeReport/BFI82U")
+    diag.append(f"openapi BFI82U → {st}")
+    if not body:
+        return None
+    try:
+        arr = json.loads(body)
+    except Exception:
+        diag.append(f"  openapi 非 JSON、開頭 {body[:60]!r}")
+        return None
+    if not isinstance(arr, list) or not arr:
+        return None
+    keys = list(arr[0].keys())
+    diag.append(f"  openapi 欄位={keys}")
+    # 日期欄位名歷有變動 → 以「值長得像日期」找，不寫死鍵名（同 stockmeta 慣例）
+    dstr = f"{d:%Y%m%d}"
+    roc = f"{d.year - 1911}/{d.month:02d}/{d.day:02d}"
+    hit_date = any(dstr in str(v) or roc in str(v) for v in arr[0].values())
+    if not hit_date:
+        sample = {k: arr[0][k] for k in keys[:3]}
+        diag.append(f"  openapi 日期不符（要 {dstr}／{roc}），首列 {sample} → 放棄")
+        return None
+    rows = []
+    for it in arr:
+        name = next((str(v) for k, v in it.items() if _INST_NAME_RE.search(str(v))), "")
+        num = next((str(v) for k, v in it.items()
+                    if "差額" in k or "買賣差" in k), "")
+        if name and num:
+            try:
+                rows.append((name, float(num.replace(",", ""))))
+            except ValueError:
+                pass
+    return _inst_rows_to_flows(rows) if rows else None
+
+
+def _inst_from_thirdparty(d: date, diag: list) -> dict | None:
+    """第三方備援（2026-08-03 使用者指示「官方抓不到就抓其他來源」）：
+    Yahoo 股市法人買賣超頁 → 玩股網。**僅在官方兩個端點都失敗時才用**，
+    且來源會標成非官方（見 fetch() 的 src 標記），因為專案鐵則是官方優先。
+
+    註：玩股網 2026-07-30 為 ETF 成分股探針時回 403（WAF 擋機房 IP），
+    此處仍列為候選是因為不同路徑不一定同策略；真正可用與否以 CI 日誌為準。"""
+    # 這兩頁只揭露「最新一日」，補抓歷史日時不可用（否則會把今日值寫成別日的值）
+    today = clock.today_tw()
+    latest = today
+    while latest.weekday() >= 5:
+        latest -= timedelta(days=1)
+    if d != latest:
+        return None
+    for label, url in (("yahoo", "https://tw.stock.yahoo.com/institutional-trading"),
+                       ("wantgoo", "https://www.wantgoo.com/stock/institutional-investors"
+                                   "/three-trade-for-trading-amount")):
+        body, st = _http(url)
+        diag.append(f"{label} → {st}")
+        if not body:
+            continue
+        hits = {k: body.count(k) for k in ("外資", "投信", "自營商", "買賣超", "陸資")}
+        diag.append(f"  {label} 關鍵字命中={hits}")
+        rows = _scrape_inst_rows(body)
+        if rows:
+            flows = _inst_rows_to_flows(rows)
+            if flows:
+                diag.append(f"  {label} 解析成功：{flows}")
+                return flows
+        diag.append(f"  {label} 解析 0 列——需依上方命中數調整解析（片段 {body[:120]!r}）")
+    return None
+
+
+def _scrape_inst_rows(html: str) -> list:
+    """從法人買賣超頁面刮出 [(身份別, 買賣差額元)]。頁面結構未知且會改版 →
+    以「身份別關鍵字 + 其後最近的帶符號金額」配對，並同時支援『億元』與純數字（元）。"""
+    rows = []
+    for m in _INST_NAME_RE.finditer(html):
+        name = m.group(0)
+        tail = re.sub(r"<[^>]+>", " ", html[m.end():m.end() + 400])
+        num = re.search(r"(-?[\d,]+(?:\.\d+)?)\s*(億)?", tail)
+        if not num:
+            continue
+        try:
+            v = float(num.group(1).replace(",", ""))
+        except ValueError:
+            continue
+        rows.append((name, v * 1e8 if num.group(2) else v))
+    return rows
+
+
+def _twse_inst_all(d: date, diag: list | None = None) -> tuple[dict | None, str]:
+    """三大法人買賣金額 → ({'foreign','trust','dealer','total'}（億元，買超為正）, 來源標籤)。
+
+    來源順序（2026-08-03 起）：官方 rwd → 官方 OpenAPI → 第三方（Yahoo／玩股網）。
+    **官方永遠優先**；第三方值會被標成非官方，供儀表板與事實核對辨識。"""
+    diag = diag if diag is not None else []
+    doc = factcheck._get_json(f"https://www.twse.com.tw/rwd/zh/fund/BFI82U"
+                              f"?type=day&dayDate={d:%Y%m%d}&response=json")
+    if isinstance(doc, dict) and doc.get("stat") == "OK":
+        rows = []
+        for row in doc.get("data") or []:
+            try:
+                rows.append((str(row[0]), float(str(row[3]).replace(",", ""))))
+            except (IndexError, ValueError):
+                continue
+        flows = _inst_rows_to_flows(rows)
+        if flows:
+            return flows, "twse:BFI82U"
+    diag.append(f"{d} rwd BFI82U 不可得（stat={doc.get('stat') if isinstance(doc, dict) else 'n/a'}）")
+    flows = _inst_from_openapi(d, diag)
+    if flows:
+        return flows, "twse:OpenAPI(BFI82U)"
+    flows = _inst_from_thirdparty(d, diag)
+    if flows:
+        return flows, "第三方(非官方)"
+    return None, ""
+
+
+def _twse_inst_all_legacy(d: date) -> dict | None:
+    """（保留舊簽名供既有測試／呼叫端使用）"""
     doc = factcheck._get_json(f"https://www.twse.com.tw/rwd/zh/fund/BFI82U"
                               f"?type=day&dayDate={d:%Y%m%d}&response=json")
     if not isinstance(doc, dict) or doc.get("stat") != "OK":
@@ -354,8 +517,9 @@ def fetch() -> dict:
 
     # ② 三大法人買賣超（TWSE BFI82U，逐日補缺）：合計＋外資／投信／自營商分項
     n_flow = 0
+    inst_src, inst_diag = "twse:BFI82U", []
     for d in _missing_weekdays(series["inst_total"], today):
-        flows = _twse_inst_all(d)
+        flows, used = _twse_inst_all(d, inst_diag)
         if flows:
             iso = d.isoformat()
             for key, fk in (("inst_total", "total"), ("inst_foreign", "foreign"),
@@ -363,7 +527,10 @@ def fetch() -> dict:
                 if flows.get(fk) is not None:
                     series[key] = _merge(series[key], {iso: round(flows[fk], 1)})
             n_flow += 1
-    _note("inst_total", n_flow, "twse:BFI82U")
+            inst_src = used          # 記實際生效的來源（官方／第三方）供 src 標記
+    _note("inst_total", n_flow, inst_src)
+    for line in inst_diag[:10]:      # 官方不可得時把各候選的 HTTP 狀態印進 CI 日誌
+        print(f"      · {line}")
     if n_flow:                                            # 分項與合計同源
         for k in ("inst_foreign", "inst_trust", "inst_dealer"):
             src[k] = src["inst_total"]
