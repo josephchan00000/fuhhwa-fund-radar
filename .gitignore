@@ -25,6 +25,10 @@ data/funds/*
 !data/stock_industry.json
 # 前十大簡介缺口警示（check_holdings_intro.py 產）：儀表板讀它顯示 ⚠、供每日 SOP 補簡介
 !data/holdings_intro_gap.json
+# 盤後當日完整性警示（check_afterhours_fresh.py 產）：儀表板紅章資料源，隨盤後 commit 入板
+!data/afterhours_alert.json
+# 盤後觸發哨兵（Routine 無 MCP 時 push 此檔觸發 afterhours_refresh.yml）——只該存在於 claude/** 分支
+.ping/
 # 基金 NAV 歷史（總覽 1週/1月報酬資料層）：跨日累積的持久層，必須入庫
 !data/fund_nav_history.json
 # 鉅亨基金對映表（fund_id → cnyesId；稽核＋手動覆寫用），必須入庫

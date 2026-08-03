@@ -133,22 +133,28 @@
    - **⑤ 前十大簡介缺口（2026-07-23 使用者：一再漏掉，務必查）**：讀 `git show origin/main:data/holdings_intro_gap.json`，
      `count` 須為 0。若 >0＝CI 端抓到新持股缺簡介（見下方專節根因）——**立即 WebSearch 補進
      `config/holding_profiles.json` 並重推**（同數字核對 🔴 的分鐘級收斂）；儀表板「網頁更新時間」列也會顯示 🔴 警示章。
+   - **⑥ 盤後完整性警示（2026-08-03 新增）**：讀 `git show origin/main:data/afterhours_alert.json`——
+     `date`＝昨日且 `missing` 非空＝昨天盤後有缺口且到深夜都沒自癒（夜檢 Routine 應已推播過）；
+     早上這班會把缺口補齊，但請在推播裡帶一句、並查 afterhours run 日誌找根因。
    - 註：持股基準為月度值（顯示上月底）——不是資料沒更新。
 
-## 指令：「排程搬家」（2026-07-24 建立；使用者約 3–5 天執行一次）
+## 指令：「排程搬家」（2026-07-24 建立；2026-08-03 起擴為**三個 Routine 一起搬**）
 
-使用者在**任何**對話窗打**「排程搬家」**（或「搬排程」）＝把每日 06:35 自動更新 Routine 改綁到**當前**
-對話窗。**不要詢問、不要查證其他東西、不改任何檔案、不 commit**——固定三個 MCP 呼叫收工（最省 token）：
+使用者在**任何**對話窗打**「排程搬家」**（或「搬排程」）＝把**全部三個**每日 Routine（06:35 全部更新、
+15:33 盤後籌碼、18:58 晚間 NAV·PCF）改綁到**當前**對話窗。**不要詢問、不要查證其他東西、不改任何檔案、
+不 commit**——固定「list → 建三個 → 刪舊的」收工（最省 token）：
 
-1. `list_triggers`（先用預設 limit；找不到再用 cursor 翻頁）→ 找**名稱以「復華基金雷達 每日全部更新」
-   開頭且 `enabled:true`** 的 Routine。若它的 `persistent_session_id` 已是本會話 → 回一句「排程已綁本視窗」結束。
-2. `create_trigger`（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`）：
-   - name：`復華基金雷達 每日全部更新(台北 06:35・07:03 前完成)`
-   - cron_expression：`35 22 * * *`（＝台北 06:35）
-   - prompt：**下方原文照抄、一字不改**。
-3. `delete_trigger` 刪掉步驟 1 找到的舊 Routine（機制備忘：`update_trigger` 改不了綁定會話、跨會話
+1. `list_triggers`（先用預設 limit；找不到再用 cursor 翻頁）→ 找**名稱以「復華基金雷達」開頭且
+   `enabled:true`** 的 Routine（正常應有 3 個；歷史上只有 1 個＝尚未擴編，照樣往下走）。
+   全部的 `persistent_session_id` 都已是本會話 → 回一句「排程已綁本視窗」結束。
+2. `create_trigger` ×3（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`；
+   prompt 用下方各自的原文照抄、一字不改）：
+   - `復華基金雷達 每日全部更新(台北 06:35・07:03 前完成)`｜cron `35 22 * * *`
+   - `復華基金雷達 盤後籌碼即時更新(台北 15:33)`｜cron `33 7 * * 1-5`
+   - `復華基金雷達 晚間NAV·PCF即時更新(台北 18:58)`｜cron `58 10 * * 1-5`
+3. `delete_trigger` 逐一刪掉步驟 1 找到的舊 Routine（機制備忘：`update_trigger` 改不了綁定會話、跨會話
    update 也被組織政策擋，但**跨會話 delete 可行**——2026-07-24 實證；所以搬家＝建新＋刪舊，不是改舊）。
-4. 一句話回報：新 trigger id＋下次觸發時間。create_trigger 若警告「no MCP connectors」**可忽略**
+4. 一句話回報：三個新 trigger id＋各自下次觸發時間。create_trigger 若警告「no MCP connectors」**可忽略**
    （SOP 第 7 步走 push 自動觸發、驗證用 git，不依賴 MCP）。
 5. **回報時務必提醒使用者「模型要重設」**（2026-07-27 使用者踩到：以為設過 sonnet，實際每日跑都是
    新視窗的預設模型）。機制：trigger 的 `job_config` **沒有 model 欄位**，只有 `persistent_session_id`
@@ -156,9 +162,17 @@
    新視窗一律回到預設。所以每次搬家後，使用者要在**新視窗**自己打一次 `/model sonnet`
    （容器內 Claude 無法代勞，`update_trigger` 的 model 參數對綁定會話的 routine 也無效）。
 
-Routine prompt 原文（步驟 2 照抄用）：
+Routine prompt 原文①——每日全部更新（06:35）：
 
 > （排程自動觸發）全部更新。依 repo CLAUDE.md「指令：全部更新」SOP 完整執行：產提示包 → 平行子代理 WebSearch 產當日新聞（美股 v1/v2、台股、總經、行事曆；嚴守版型／禁用詞／每卡連結）→ gen_*.py --check 與 check_reports.py 全 🟢 → 重建儀表板 → pytest 全綠 → commit+push 到本會話指定分支（push 動到 reports/** 會自動觸發 daily.yml）→ 等 main 前進後驗證（新聞今日、產表時戳為 CI、nav_date 推進）。完成或失敗都用 PushNotification 推播一句話結果給使用者（成功：當日 3 條市場重點摘要；失敗：卡在哪一步＋影響）。不可宣稱「線上已生效」（本環境看不到 Vercel）。若工作樹有未完成的其他工作，先 stash 或用獨立分支，勿混入每日更新 commit。
+
+Routine prompt 原文②——盤後籌碼即時更新（15:33）：
+
+> （排程自動觸發）盤後籌碼即時更新——GitHub cron 實測遲 1~3 小時，本 Routine 負責準時；全程只做兩件事、不跑任何資料抓取腳本、不動 reports/**：① 用 mcp__github__actions_run_trigger（method=run_workflow、workflow_id=afterhours_refresh.yml、ref=main）觸發盤後刷新，成功觸發即收工、不等它跑完；MCP 不可用時備援＝在本會話指定分支寫 .ping/afterhours（內容任意）後 git add -f、commit、push——該路徑 push 會自動觸發同一 workflow。② send_later 排 60 分鐘後自驗：git fetch origin main 讀 data/macro_chips.json，若為交易日（當日 reports/macrocal 市況段「台股」不含休市）而 inst_total 仍缺今日 → 補 dispatch 一次、再 send_later 25 分鐘後檢查，仍缺才 PushNotification 一句話（缺什麼＋afterhours run 日誌看到的原因）；資料已到或休市 → 安靜結束、不推播、不留言（使用者 2026-08-03 指定「失敗才推播」）。
+
+Routine prompt 原文③——晚間 NAV·PCF 即時更新（18:58）：
+
+> （排程自動觸發）晚間數據即時更新（基金 NAV＋主動式 ETF 當日 PCF）——不跑任何資料抓取腳本、不動 reports/**：① mcp__github__actions_run_trigger 連發兩個 dispatch（皆 ref=main）：afterhours_refresh.yml（18 時後場次會加抓基金 NAV）與 etf_holdings.yml；MCP 不可用時備援＝push .ping/afterhours 哨兵（只能觸發前者，後者靠其 17:40 cron 遲到自癒即可）。② send_later 排 45 分鐘後自驗：git fetch origin main，a) data/funds/_index.json 最新 nav_date ≥ 上一交易日、b) data/etf_holdings.json 本家主動式（00991A）揭露日已推進（休市日無新 PCF 屬正常、勿誤報）；異常 → 補 dispatch 一次、25 分鐘後仍異常才 PushNotification 一句話。③ 自驗回合結束前再 send_later 一個台北 23:20 的夜檢：讀 origin/main 的 data/macro_chips.json 與 data/afterhours_alert.json，交易日而 margin_bal 缺今日或 alert missing 非空 → PushNotification 一句話（22:05 cron 整班消失時這是唯一的主動警報）；正常 → 安靜結束。皆「失敗才推播、成功安靜」。
 
 ## 每日固定時間自動更新（2026-07-18 建立；同日改「火進主會話」模式）
 
@@ -179,15 +193,29 @@ Routine prompt 原文（步驟 2 照抄用）：
   若日後組織開放 routine 模型設定、或把本 repo 掛上某個可排程 env，才談得上「fresh sonnet 會話」路徑。
 - 排程點火的回合若 MCP 不可用，SOP 第 7 步照樣走「push 自動觸發」；驗證用 git（fetch origin main
   看是否前進＋檢查檔案內容）即可。
-- **盤後數據刷新 `afterhours_refresh.yml`（2026-07-31 使用者需求「數據不要都等隔天早上」）**：
-  台北週一~五 **15:40**（三大法人／外資期貨未平倉／ETF 當日漲跌與週月報酬／全球溫度計）與
-  **22:05**（融資融券／P/C 比＋**基金 NAV**——境內淨值多在晚間公布，抓得到當晚上線）各刷一次：
-  抓取（失敗沿用既有落檔）→ check_numbers → 重建 → commit → Deploy Hook；**data/ 無任何變更
-  （休市日）就早退**、不空 commit。不碰 `reports/**`——新聞仍走早上 Routine。至此每日更新時點地圖＝
-  06:35 Routine 新聞（push 觸發 daily.yml 全量；07:15 cron 兜底）／15:40 盤後籌碼績效／
-  17:40 etf_holdings.yml 持股／22:05 晚間 NAV。
-  **已與使用者確認「不做 30 分鐘輪詢」（2026-07-31）**：這些來源一天只更新一次，高頻輪詢 95% 空轉，
-  還放大對 etfinfo／TWSE／期交所的請求量與被封鎖風險——別再提案改回高頻。
+- **盤後數據刷新 `afterhours_refresh.yml`（2026-07-31 建；2026-08-03 大改——見下）**：
+  抓取（失敗沿用既有落檔）→ 看門狗寫警示 → check_numbers → 重建 → commit → Deploy Hook →
+  完整性斷言；**data/ 無任何變更（休市日）就早退**、不空 commit。不碰 `reports/**`。
+- **⚠ GitHub cron 是 best-effort、本 repo 實測「系統性遲到 1~3 小時、偶爾整班消失」（2026-08-03 定調，
+  勿再把準時性寄託在 cron 上）**：etf_holdings 17:40 班連五個交易日遲 1.5~3 小時；afterhours 兩班
+  自 07-31 建立以來**從沒準時開過工**（史上首次 schedule 觸發＝08-03 18:56，當晚 22:05 班整班消失）。
+  這與「三大法人從不抓當日」的程式 bug 疊加成 08-03 的靜默失敗——修法＝三層：
+  ① **準時觸發主路徑＝Routine**（15:33 盤後籌碼、18:58 晚間 NAV·PCF，火進主會話打 workflow_dispatch，
+    秒級開跑；prompt 原文見「排程搬家」節）；
+  ② **cron 三班只當自癒兜底**（15:40／19:10／22:05，遲到也會到）；重複場次由
+    `check_afterhours_fresh.py --guard` 守門**零請求早退**——多班次不放大對 TWSE/etfinfo 的請求，
+    仍是對齊公布時點的事件驅動、**不是高頻輪詢**（07-31 與使用者確認過不做 30 分鐘輪詢，此原則不變）；
+  ③ **當日完整性看門狗**（同腳本 `--write`/`--assert`；根治「run 全綠、無 commit、沒人知道」）：
+    交易日（讀當日 macrocal 市況段判休市）16:30 後三大法人須含今日、22:45 後融資融券須含今日且
+    NAV 不斷更，缺 → `data/afterhours_alert.json` 入板（儀表板「網頁更新時間」列紅章＋瀏覽器端
+    16:40／22:50 兩個時窗的延遲橫幅）＋ workflow 最後一步 exit 1（run ❌ → GitHub 寄 failure 信）
+    ＋ Routine 自驗 25~60 分後失敗才 PushNotification（使用者 2026-08-03 選「失敗才推播」）。
+- **每日更新時點地圖（2026-08-03 起，台北時間）**：06:15 etf_holdings cron（被動式隔夜 PCF）／
+  **06:35 Routine 新聞**（push 觸發 daily.yml 全量；07:15 cron 兜底）／**15:33 Routine → 15:40·當日
+  三大法人、外資期貨、ETF 當日漲跌、全球溫度計上線**（15:40 cron 兜底）／**18:58 Routine → ~19:10·
+  基金 NAV＋主動式 ETF 當日 PCF 上線**（19:10 cron 兜底；etf_holdings 17:40 cron 遲到自癒）／
+  22:05 cron·融資融券（~21:30 公布）、P/C 比、NAV 掃尾／23:20 夜檢（Routine 鏈的 send_later，
+  只驗不抓）。
 - **備援**：repo cron 移至**台北週一~六 07:15**（2026-07-20 起，原 06:50）——改為「事後兜底」：Routine 失敗時
   新聞沿用前日（或撿分支已推的今日新聞），但 NAV／持股／ETF 照樣更新；頁面瀏覽器端有「逾 2 天未重建」
   紅色警示橫幅當最後防線。
