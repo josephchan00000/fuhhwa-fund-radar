@@ -13,12 +13,29 @@ name: 盤後數據刷新（籌碼／ETF 績效／NAV 當晚更新）
 # 高頻輪詢 95% 是空轉，還放大對 etfinfo／TWSE／期交所的請求量與被封鎖風險。
 # 慣例照 etf_holdings.yml：獨立 workflow、不佔 daily.yml 早上的關鍵路徑；
 # 無 diff 就不 commit、失敗不影響任何現有功能。
+#
+# 2026-08-03 改版（使用者需求：一早／收盤後 2 小時／18~19 點三個時窗都要即時）：
+# GitHub cron 是 best-effort——本 repo 實測**系統性遲到 1~3 小時、偶爾整班消失**
+# （15:40 班史上首次 schedule 觸發是 08-03 18:56、當晚 22:05 班根本沒來；
+#  etf_holdings 17:40 班連續五個交易日遲 1.5~3 小時）。因此準時性不靠 cron：
+#   · 主路徑＝claude.ai Routine（台北 15:33／18:58，準時到分）火進主會話打 workflow_dispatch；
+#   · cron 三班（15:40／19:10／22:05）只當「遲到也會到」的自癒兜底；
+#   · 重複場次由「抓取守門」零請求早退（check_afterhours_fresh.py --guard），
+#     對 TWSE/etfinfo 的請求量不因多班而放大——這不是高頻輪詢，仍是對齊公布時點的事件驅動。
+#   · 「當日完整性看門狗」（同腳本 --write/--assert）：時間到了當日數據還沒上 →
+#     警示檔入板（儀表板紅章）＋最後一步讓 run 標 ❌（GitHub 寄 failure 信）。
+#     根治 08-03 型的靜默失敗：當天 run 全綠、無 commit、沒人知道。
 
 on:
   schedule:
-    - cron: "40 7 * * 1-5"   # 台北 15:40 收盤場次
-    - cron: "5 14 * * 1-5"   # 台北 22:05 晚間場次
+    - cron: "40 7 * * 1-5"   # 台北 15:40 收盤場次（Routine 15:33 的 cron 兜底）
+    - cron: "10 11 * * 1-5"  # 台北 19:10 晚間場次（Routine 18:58 的 cron 兜底；≥18 時會加抓 NAV）
+    - cron: "5 14 * * 1-5"   # 台北 22:05 夜間場次（融資融券 ~21:30 公布後的掃尾）
   workflow_dispatch:
+  push:
+    branches: ['claude/**']
+    paths: ['.ping/afterhours']   # MCP-less 備援：Routine 會話沒有 GitHub MCP 時，
+                                  # push 一筆只動此哨兵檔的 commit 即可觸發（正式抓取仍 checkout main）
 
 concurrency:
   group: afterhours-refresh
@@ -45,7 +62,15 @@ jobs:
       - name: 安裝相依（純標準庫 + certifi）
         run: pip install --quiet certifi
 
+      - name: 抓取守門（目標數據已到位／30 分內剛抓過 → 零請求早退，多班次不放大來源站請求）
+        id: pre
+        run: |
+          DECISION=$(python3 scripts/check_afterhours_fresh.py --guard)
+          echo "decision=$DECISION" >> "$GITHUB_OUTPUT"
+          echo "守門判定：$DECISION"
+
       - name: 抓盤後數據（籌碼＋ETF 追蹤；台北 18:00 後的場次加抓基金 NAV）
+        if: steps.pre.outputs.decision == 'RUN'
         run: |
           # 兩支互不相依，比照 daily_fund.sh 平行跑；各自失敗只沿用既有落檔、不擋另一支
           ( python3 scripts/fetch_macro_chips.py \
@@ -63,6 +88,9 @@ jobs:
             # NAV 抓取可能帶回新持股 → 照三道防呆慣例更新簡介缺口檔（不擋發佈）
             python3 scripts/check_holdings_intro.py || true
           fi
+
+      - name: 當日完整性看門狗（寫/清 data/afterhours_alert.json——儀表板紅章資料源）
+        run: python3 scripts/check_afterhours_fresh.py --write
 
       - name: 休市日早退（來源無任何新數據＝不重建、不 commit、不部署）
         id: guard
@@ -97,6 +125,7 @@ jobs:
           git add -f data/fund_nav_history.json 2>/dev/null || true # NAV 序列持久層——漏 add 會斷史（同 daily.yml）
           git add -f data/cnyes_fund_map.json 2>/dev/null || true   # 鉅亨 cnyesId 對映
           git add -f data/holdings_intro_gap.json 2>/dev/null || true  # 前十大簡介缺口警示
+          git add -f data/afterhours_alert.json 2>/dev/null || true    # 盤後完整性警示（看門狗產）
           git add dashboard/index.html 2>/dev/null || true
           git commit -m "chore: 盤後數據刷新 $(date '+%F %H:%M')" || { echo "無變更，跳過 push"; exit 0; }
           # main 可能被其他 workflow 推進 → rebase 重試；rebase 後必須用合併結果重建再推
@@ -122,3 +151,7 @@ jobs:
           fi
           curl -sS -X POST "$VERCEL_DEPLOY_HOOK" -w "\nHTTP %{http_code}\n" \
             || echo "deploy hook 呼叫失敗（不影響已入庫的 commit）"
+
+      - name: 當日完整性斷言（缺數據 → 本 run 標 ❌、GitHub 寄 failure 信；放最後不擋前面發佈）
+        if: always()
+        run: python3 scripts/check_afterhours_fresh.py --assert

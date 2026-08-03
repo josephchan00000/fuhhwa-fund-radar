@@ -302,6 +302,24 @@ def _intro_gap_chip() -> str:
             f'（{names}{more}）</span>')
 
 
+def _afterhours_chip(today=None) -> str:
+    """盤後當日完整性警示章（讀 data/afterhours_alert.json；check_afterhours_fresh.py 產）。
+    2026-08-03 使用者踩坑：當日三大法人沒上線、無任何警示，自己打開網頁才發現——
+    盤後看門狗把「時間到了該在而不在」的數據寫進警示檔，這裡標紅。
+    非今日（昨日殘留檔，隔日早上 daily 會補齊資料）不顯示，同 factcheck 章的教訓。"""
+    fp = ROOT_DIR / "data" / "afterhours_alert.json"
+    try:
+        doc = json.loads(fp.read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+    d = today or clock.today_tw()
+    if doc.get("date") != f"{d:%Y-%m-%d}" or not doc.get("missing"):
+        return ""
+    items = "、".join(_esc(x) for x in doc["missing"])
+    return (f'<span class="chip fresh stale"><b>盤後更新</b>　🔴 未到：{items}'
+            f'（CI 補抓中；遲逾 1 小時請查 GitHub Actions）</span>')
+
+
 def _freshness_view(gen_stamp: str, sources: list[tuple[str, str | None, int | None]],
                     today=None) -> str:
     """最上方只標「網頁更新時間」；各來源時戳分散標於各自區塊標題列，這裡只彙總逾期警示。"""
@@ -311,7 +329,7 @@ def _freshness_view(gen_stamp: str, sources: list[tuple[str, str | None, int | N
            else '各資料來源的更新時間標於各區塊標題列（皆台北時間）')
     return (f'<div class="section" id="freshness"><div class="st">{_ic("clock")}網頁更新時間　'
             f'{_fresh_chip("網頁更新", gen_stamp, None, today, gen=True)} '
-            f'{_factcheck_chip(today)} {_intro_gap_chip()} '
+            f'{_factcheck_chip(today)} {_intro_gap_chip()} {_afterhours_chip(today)} '
             f'<span class="stsub">{sub}</span></div></div>')
 
 
@@ -2355,12 +2373,28 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
 }));
 // 儀表板逾期未重建警告——CI 全停擺時 HTML 不會再重生、上面的 ⚠ 也不會更新，
 // 由瀏覽器端比對「產表時間 vs 現在」補上最後一道防線。
+// 2026-08-03 加「盤後時窗」細分：GitHub cron 實測遲 1~3 小時、偶爾整班消失——
+// 平日 16:40 後頁面仍是 15:40 前產的（或 22:50 後仍是 22:00 前產的）就直說
+// 「盤後更新未生效」。伺服器端紅章要有新建表才進得了頁面，CI 整晚沒跑時只有這裡看得到。
 (function(){const g=document.querySelector('[data-gen]');if(!g)return;
+  const warn=function(t){const b=document.createElement('div');b.className='stale-banner';
+    b.textContent=t;document.body.prepend(b)};
   const d=new Date(g.dataset.gen.slice(0,10).replace(/\//g,'-')+'T00:00:00+08:00');
   const days=Math.floor((Date.now()-d)/864e5);
-  if(days>2){const b=document.createElement('div');b.className='stale-banner';
-    b.textContent='⚠ 本儀表板已 '+days+' 天未重建（每日 CI 可能停擺），以下資料可能過期——請跑「全部更新」或檢查 GitHub Actions';
-    document.body.prepend(b);}})();
+  if(days>2){warn('⚠ 本儀表板已 '+days+' 天未重建（每日 CI 可能停擺），以下資料可能過期——請跑「全部更新」或檢查 GitHub Actions');return}
+  // 盤後時窗（台北牆鐘＝UTC+8 固定，台灣無日光節約：+8h 後取 getUTC* 欄位）
+  const gen=new Date(g.dataset.gen.replace(/\//g,'-').replace(' ','T')+':00+08:00');
+  if(isNaN(gen))return;
+  const tw=new Date(Date.now()+288e5), gtw=new Date(gen.getTime()+288e5);
+  if(tw.getUTCDay()===0||tw.getUTCDay()===6)return;               // 週末不警示
+  const hm=tw.getUTCHours()*60+tw.getUTCMinutes();
+  const sameDay=tw.getUTCFullYear()===gtw.getUTCFullYear()&&tw.getUTCMonth()===gtw.getUTCMonth()&&tw.getUTCDate()===gtw.getUTCDate();
+  const ghm=sameDay?gtw.getUTCHours()*60+gtw.getUTCMinutes():-1;  // 非今日產表＝早於任何時窗
+  if(hm>=1000&&ghm<940)                                           // 16:40 後 vs 產表早於 15:40
+    warn('⚠ 今日 15:40 盤後數據（三大法人・ETF 當日漲跌）尚未上線——本頁產表於 '+g.dataset.gen+'，GitHub CI 可能延遲，稍後重新整理；若今日台股休市請忽略');
+  else if(hm>=1370&&ghm<1320)                                     // 22:50 後 vs 產表早於 22:00
+    warn('⚠ 今晚夜間數據（融資融券・基金NAV）尚未上線——本頁產表於 '+g.dataset.gen+'，GitHub CI 可能延遲；若今日台股休市請忽略');
+})();
 // ── ETF 持股詳情＆異動：每檔一張可收合卡片（比照基金詳情；2026-07-31 使用者指示） ──
 // 內容延遲渲染——23 檔各含方塊圖＋兩張表，一次全建進 DOM 會讓頁面又大又慢；
 // 第一次展開才建，之後保留。每張卡各自保有搜尋／排序／分頁狀態（存在 ST[code]）。
@@ -2602,15 +2636,7 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
     card.classList.remove('fhide'); card.open=true; render(card);
     card.scrollIntoView({behavior:'smooth',block:'start'})}});
 })();
-
-// 儀表板逾期未重建警告——CI 全停擺時 HTML 不會再重生、上面的 ⚠ 也不會更新，
-// 由瀏覽器端比對「產表時間 vs 現在」補上最後一道防線。
-(function(){const g=document.querySelector('[data-gen]');if(!g)return;
-  const d=new Date(g.dataset.gen.slice(0,10).replace(/\//g,'-')+'T00:00:00+08:00');
-  const days=Math.floor((Date.now()-d)/864e5);
-  if(days>2){const b=document.createElement('div');b.className='stale-banner';
-    b.textContent='⚠ 本儀表板已 '+days+' 天未重建（每日 CI 可能停擺），以下資料可能過期——請跑「全部更新」或檢查 GitHub Actions';
-    document.body.prepend(b);}})();
+// （逾期未重建警告只保留上方那一份——此處原有一份重複的同樣 IIFE，逾期時會 prepend 兩條橫幅，2026-08-03 去重）
 """
 
 
