@@ -130,7 +130,7 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-08-03 23:42",
+  "fetched_at": "2026-08-04 06:49",
   "returns_daily": {
     "1m": -34.55832,
     "3m": -5.39669,
@@ -138,5 +138,5 @@
     "1y": 76.03026,
     "ytd": 51.52672
   },
-  "returns_daily_asof": "2026/07/30"
+  "returns_daily_asof": "2026/07/31"
 }
