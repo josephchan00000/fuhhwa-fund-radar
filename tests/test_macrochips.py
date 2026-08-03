@@ -172,9 +172,27 @@ def test_twse_inst_all_parse(monkeypatch):
         ["合計", "1", "2", "31938000000"]]}
     monkeypatch.setattr(mc.factcheck, "_get_json", lambda url: doc)
     from datetime import date
-    out = mc._twse_inst_all(date(2026, 7, 22))
+    out, src = mc._twse_inst_all(date(2026, 7, 22))
     assert out["foreign"] == 173.43 and out["trust"] == 169.92
     assert out["dealer"] == -23.98 and out["total"] == 319.38
+    assert src == "twse:BFI82U"          # 官方可得時不得改用備援
+
+
+def test_twse_inst_all_falls_back_when_official_down(monkeypatch):
+    """官方 rwd 掛掉時：走備援鏈，且來源標籤要能區分官方／非官方
+    （2026-08-03 使用者：「官方抓不到就抓其他來源」，但官方永遠優先）。"""
+    from datetime import date
+    monkeypatch.setattr(mc.factcheck, "_get_json", lambda url: None)      # rwd 不可得
+    monkeypatch.setattr(mc, "_inst_from_openapi", lambda d, diag: None)   # 官方備援也不可得
+    monkeypatch.setattr(mc, "_inst_from_thirdparty",
+                        lambda d, diag: {"foreign": 1.0, "trust": 2.0,
+                                         "dealer": 3.0, "total": 6.0})
+    out, src = mc._twse_inst_all(date(2026, 7, 22))
+    assert out["total"] == 6.0
+    assert "非官方" in src               # 第三方值必須標示，不可冒充官方
+    # 三源皆不可得 → 回 None（沿用既有序列，絕不寫入猜測值）
+    monkeypatch.setattr(mc, "_inst_from_thirdparty", lambda d, diag: None)
+    assert mc._twse_inst_all(date(2026, 7, 22)) == (None, "")
 
 
 def test_macro_data_view_empty_hint():
