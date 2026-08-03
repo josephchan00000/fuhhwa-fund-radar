@@ -36,7 +36,7 @@ def build_cal_prompt(today: date) -> str:
 def build_prompt(today: date) -> str:
     ses = macronews.us_session_date(today)
     wk = usnews.weekend_note(today)
-    xr = usnews.cross_report_note('macro')
+    xr = usnews.lane_note('macro')
     anchor = usnews.calendar_anchor(today)
     prior = usnews.prior_block(usnews.prior_titles(macronews.NEWS_DIR, today), "前一日總經・政策報告")
     return f"""你是「台灣投信公司給內外部溝通使用的政策面速寫編輯」。請以繁體中文，用 WebSearch/WebFetch
