@@ -690,7 +690,10 @@ def _md_name_cell(key: str, label: str, *, caret: str | None = None, sub: bool =
     srclink = (f'<a class="mdslsm" href="{_safe_url(url)}" target="_blank" rel="noopener" '
                f'title="開官方揭露頁">官方↗</a>' if url else "")
     sep = "　" if (srclink and datestr) else ""
-    meta = (f'<span class="mddt">{_esc(datestr)}{stale}{sep}{srclink}</span>'
+    # 2026-08-03 使用者：「也沒有數值日期」——日期其實一直都在，但只印「8/3」、
+    # 又緊貼「官方↗」，看起來像連結的一部分。加「資料日」前綴讓它自我說明。
+    dt_html = f'資料日 {_esc(datestr)}' if datestr else ""
+    meta = (f'<span class="mddt">{dt_html}{stale}{sep}{srclink}</span>'
             if (datestr or srclink) else "")
     if caret and not sub:                             # ── 可展開主列：名稱＝展開鈕（非粗體）──
         btn = (f'<button type="button" class="mdtogbtn" data-grp="{_esc(caret)}" '
@@ -730,11 +733,16 @@ def _md_row_html(mc: dict, key: str, label: str, kind: str, digits: int, unit: s
     bp = kind == "yield"
     # 日變化／近5日欄不再重複帶單位（單位在「最新值」與表註；殖利率保留 bp）
     if kind == "flow":
+        # 買賣超是「當日流量」，談日變化沒有意義 → 這欄改列「前一日的買賣超」與「近5日累計」。
+        # 2026-08-03 使用者「看不懂：日變化／近5日／累計」的根因就在這：欄位標題寫「日變化」，
+        # 實際顯示的卻是前一日金額。改成在儲存格內自帶標籤，讓每列自己說清楚是什麼數。
         prev_v = macrochips._sorted_items(mc, key)[-2][1] if len(macrochips._sorted_items(mc, key)) >= 2 else None
-        chg_html = (_md_delta(prev_v, digits, "") if prev_v is not None
-                    else '<span class="na">—</span>')
+        chg_html = ('<span class="mdcl">前日</span>' +
+                    (_md_delta(prev_v, digits, "") if prev_v is not None
+                     else '<span class="na">—</span>'))
         s5 = macrochips.sum_n(mc, key, 5)
-        n5_html = _md_delta(s5, digits, "") if s5 is not None else '<span class="na">—</span>'
+        n5_html = ('<span class="mdcl">近5日累計</span>' +
+                   (_md_delta(s5, digits, "") if s5 is not None else '<span class="na">—</span>'))
         spark = _spark_bars(macrochips.points(mc, key, 20))
     else:
         chg_html = _md_delta(macrochips.day_change(mc, key), digits, "", bp=bp)
@@ -775,7 +783,7 @@ def _md_table(mc: dict, body_rows: str, col5: str = "近5日") -> str:
         return '<div class="muted">（本組指標暫無資料——CI 接上官方來源後自動補齊）</div>'
     return (f'<div class="ovwrap"><table class="ovtbl mdtbl">'
             f'<thead><tr><th class="l">指標</th><th>最新值</th>'
-            f'<th class="mdchg">日變化<span class="mdn5">{_esc(col5)}</span></th>'
+            f'<th class="mdchg">日變化<span class="mdn5">／{_esc(col5)}</span></th>'
             f'<th>近30日走勢</th></tr></thead>'
             f'<tbody>{body_rows}</tbody></table></div>')
 
@@ -800,13 +808,17 @@ def _macro_data_view(mc: dict | None) -> str:
     html = (f'<div class="calsub">{_ic("globe", plain=True)} 全球市場溫度計</div>'
             + _md_table(mc, gl_body)
             + f'<div class="calsub">{_ic("layers", plain=True)} 台股籌碼</div>'
-            + _md_table(mc, tw_body, col5="近5日／累計"))
+            + _md_table(mc, tw_body))
     html += ('<div class="etfnote">'
              '各列點下方<b>「官方↗」</b>可開該指標官方揭露頁對照；<b>三大法人買賣超</b>列點整個名稱可展開外資／投信／自營商分項。'
              '<br>單位：VIX／美元指數 DXY＝指數點；殖利率＝%（日變化以 bp 計）；美元兌新台幣＝新台幣元；'
              '原油＝美元/桶；黃金＝美元/盎司；法人買賣超／融資餘額＝億元；融券＝張；台指期＝口。'
-             '<br>口徑：全球指標＝最近收盤（Yahoo Finance 官方序列）。台股籌碼＝證交所／期交所前一交易日盤後官方數據：'
-             '買賣超為當日金額（「日變化」欄列前一日值、「近5日」為累計；走勢為近 20 日買賣超長條，綠買超／紅賣超、0 為基準）；'
+             '<br>欄位讀法：<b>最新值</b>下方小字為<b>資料日</b>（各指標公布時點不同，日期可能不一樣）；'
+             '第三欄上排＝<b>日變化</b>（與前一資料日的差）、下排＝<b>近5日變化</b>。'
+             '<b>買賣超列例外</b>：流量談日變化沒有意義，故該列改列<b>前日</b>買賣超與<b>近5日累計</b>，'
+             '兩個數字在儲存格內都自帶標籤。'
+             '<br>口徑：全球指標＝最近收盤（Yahoo Finance 官方序列）。台股籌碼＝證交所／期交所盤後官方數據；'
+             '買賣超走勢為近 20 日長條（綠買超／紅賣超、0 為基準）；'
              '外資台指期淨部位為<b>臺股期貨(TX，大台) 單一契約</b>的未平倉多空淨額口數（淨空＝空單較多）——'
              '<b>不含小型／微型台指</b>，與部分彙整站的「大台＋小台＋微台合計」口徑不同、數字本就不會一致，'
              '請以本列標示的期交所官方揭露頁對照；P/C 比＝台指選擇權買賣權未平倉量比率。'
@@ -1970,7 +1982,8 @@ a.tk:hover{color:var(--acc)}
 /* 資料日過期章：來源暫時抓不到、序列停在舊日期時現形（不再以舊值假裝新值） */
 .mdstale{margin-left:4px;color:#c62828;font-weight:700;white-space:nowrap}  /* 同警示章紅（非漲跌色） */
 .mdtbl td.mdchg,.mdtbl th.mdchg{text-align:right}
-.mdn5{display:block;font-size:11.5px;font-weight:400;opacity:.85;margin-top:1px}  /* 近5日疊在日變化下 */
+.mdn5{display:block;font-size:11.5px;font-weight:400;opacity:.85;margin-top:1px}
+.mdcl{color:var(--mut);font-size:10.5px;font-weight:400;margin-right:3px}  /* 買賣超列：儲存格內自帶「前日／近5日累計」標籤（欄頭的日變化對它不適用）*/  /* 近5日疊在日變化下 */
 .mdtbl th.mdchg .mdn5{color:var(--mut);opacity:1}
 .mdtbl td.mdspark{padding-top:4px;padding-bottom:4px}
 .spark{display:inline-block;vertical-align:middle}
