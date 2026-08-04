@@ -52,6 +52,11 @@ GLOBAL_SPECS: list[tuple[str, str, str]] = [
     ("usdtwd", "美元兌新台幣",          "TWD=X"),
     ("brent",  "布蘭特原油",            "BZ=F"),
     ("gold",   "黃金期貨",              "GC=F"),
+    # 2026-08-04 使用者需求（「費半／台積電 ADR 收盤數字查不到兩來源一致」的根治）：
+    # 收盤值改由官方序列入庫，新聞報告直接讀落檔、不再依賴媒體收盤稿互相印證。
+    # 僅入資料層供報告引用；儀表板「全球市場溫度計」未加列（_MD_GLOBAL_ROWS 未同步，如需展示再加）。
+    ("sox",     "費城半導體指數",        "^SOX"),
+    ("tsm_adr", "台積電 ADR",           "TSM"),
 ]
 TW_KEYS = ("inst_total", "inst_foreign", "inst_trust", "inst_dealer", "tx_foreign_net",
            "margin_bal", "short_bal", "pc_ratio")
