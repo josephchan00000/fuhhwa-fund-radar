@@ -1,19 +1,19 @@
 {
-  "as_of": "2026/08/04 08:32",
+  "as_of": "2026/08/05 06:55",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
     {
       "title": "不靠傳統廣告！復華投信攜手北港武德宮打造捷運「招財錢母車廂」　實體互動引爆社群狂潮",
       "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTFAtdmpCN3M1MmpWSDI0bTU0eFNBdEQ1cXp4Qml6d0YyZUFob0xtOUszblVVOGZwQ0x1OUNNcHpVQzJGZTU4STItbmJUOEZsRVZ4Y2fSAVBBVV95cUxQY1M3NjdMZDZIVGkxMFhVRGtkY0wzb2h3dXZobXpuNmJtbFc2RUY2cTg3ck5nQ2pUMkRGU01zanczLXRYbTUtNWNGblVBTExidg?oc=5",
-      "source": "ETtoday財經雲",
+      "source": "finance.ettoday.net",
       "date": "2026-08-03 16:35",
       "datetime": "2026-08-03T16:35:00+08:00"
     },
     {
       "title": "板南線驚喜送財氣！復華投信聯名北港武德宮 網讚太有誠意",
       "url": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE44c00zOWFZOExrN0J6cFFxemRqWXU2TnJCbnpNQkFOYkdMQ1AzdW94WGxSYUhjYURoUnhpUExhSy1Jd3RacmdyaGdnTjJDanB6UDRfTA?oc=5",
-      "source": "pinview.com.tw",
+      "source": "品觀點",
       "date": "2026-08-03 16:15",
       "datetime": "2026-08-03T16:15:53+08:00"
     },
@@ -30,13 +30,6 @@
       "source": "華視新聞網",
       "date": "2026-08-03 14:44",
       "datetime": "2026-08-03T14:44:00+08:00"
-    },
-    {
-      "title": "主動掌握全球50檔產業贏家股票 復華主動式 ETF 00409A 8月12日開募",
-      "url": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE9XNXZyZnhNdDh4NVI5UlpTelN2bkQ3Q1lvMzJUMWVBU0czWWdWMHJ5ZXpmVDhiOTFnLUppaXMtNVd2SlFzcVk2YUMwbUd0bHgtNDRYM0k2Mnk5UdIBX0FVX3lxTE1oUGYyMUdfWF9ZZlY4Z1JoWm9lMTJCbWUyNFp5a0ZjaGN4WjJ6eVpEM0JkWU9uSUhleUZFYUlfaVI1b2swckNseGRFdG1ndXFDQXozY3JRMTRsSHFMTm5z?oc=5",
-      "source": "經濟日報",
-      "date": "2026-08-02 17:00",
-      "datetime": "2026-08-02T17:00:00+08:00"
     },
     {
       "title": "復華金融股債雙收傘型 ETF 上櫃掛牌 櫃買債券 ETF 突破百檔",
@@ -86,10 +79,10 @@
       "items": [
         {
           "title": "規模破百億的科技巨頭對決：安聯台灣科技、復華全球物聯網、復華華人世紀怎麼選？",
-          "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE5VbHhCNGxZTW5KeXBxUmhqZkN0blZrTHIyUU5oY0NBQ0xnNllGYlFzNFBDdWR2alctYzVRbWxzVFQ4WG5fdmcxSjFsT2tQQ1ozTVR0NWRfWEQ?oc=5",
+          "url": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE8zUGtwUEtZQU56T3ZsS0NOWnN5Wk94Zzl4NWtrUmliUld2SFpKdDNnX0lpeTd3azB3RHZQdUhUN3dob2Vuc2p1cmVqT3ZqdHgtTDFkckFGdFpfNUVac0RGVDAtWE1TOWM?oc=5",
           "source": "CMoney",
-          "date": "2026-08-02 16:40",
-          "datetime": "2026-08-02T16:40:57+08:00"
+          "date": "2026-08-04 16:55",
+          "datetime": "2026-08-04T16:55:48+08:00"
         }
       ]
     },
@@ -104,10 +97,10 @@
       "items": [
         {
           "title": "規模破百億的科技巨頭對決：安聯台灣科技、復華全球物聯網、復華華人世紀怎麼選？",
-          "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE5VbHhCNGxZTW5KeXBxUmhqZkN0blZrTHIyUU5oY0NBQ0xnNllGYlFzNFBDdWR2alctYzVRbWxzVFQ4WG5fdmcxSjFsT2tQQ1ozTVR0NWRfWEQ?oc=5",
+          "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE1ja3ozV3l3dWc5YkxpUWtPcUkyYUZWdnpteFlBWkRhcC1UUkNzbnBIaGIycEs1NmlfNk1CR3diNnhETDZUcTcwTkxnVDdoVEM5YTNyS0NKTWU?oc=5",
           "source": "CMoney",
-          "date": "2026-08-02 16:40",
-          "datetime": "2026-08-02T16:40:57+08:00"
+          "date": "2026-08-04 16:55",
+          "datetime": "2026-08-04T16:55:51+08:00"
         }
       ]
     },
@@ -205,7 +198,15 @@
       "short_names": [
         "復華"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華投信數檔基金公開說明書修訂",
+          "url": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxQdU9BSHlGU0xUQzdtQlc5ckhuOHJrM3RvSjZzMUs2Y2gzbExyQzAteVg0S2toak0yRC1CbTRwR3czYzhSQ011X29QRmpPTlZlSW1qWm9McndGazFWcFRIaGtHWHRIemg0b1pwcnExN2NyZUNhQmpNazlvYWdYLWR0QlctdzZWXy1jYVJwUkJCM011U2U4ZkgyTEhua2xFTHpGY2llVHdZUFRLUQ?oc=5",
+          "source": "ezfunds.com.tw",
+          "date": "2026-08-04 06:34",
+          "datetime": "2026-08-04T06:34:37+08:00"
+        }
+      ]
     },
     {
       "base": "復華高成長基金",
@@ -227,11 +228,11 @@
       ],
       "items": [
         {
-          "title": "復華數位經濟基金 的買賣訊號 | 鉅亨網 - 基金老司機",
-          "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxQbUQ1bUduWXRQSFI2Z0VjeG5zX3ctUmxfN1ZRS2FzNE1fM09nenc4RklzRFZ5WU9Zb0RneEExNDlRNVM1UHdUelNfWW0zSE4zcmF1eGd5XzQ3WFp1S2c0YzVFX09XRjh5X0gyQ19saHpyWVNLeHRfb3B3LTJsZmxPRjJ3Yk9YX0wyREVjay1KRFBVeWR2VkFUTF9XdEJ3NGZ6SjB0UlFKLXVXTkpOWThGSl8xTk9RZWNDaHJnVzdiMDA4Zw?oc=5",
-          "source": "鉅亨網",
-          "date": "2026-07-28 15:00",
-          "datetime": "2026-07-28T15:00:00+08:00"
+          "title": "復華投信數檔基金公開說明書修訂",
+          "url": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxQdU9BSHlGU0xUQzdtQlc5ckhuOHJrM3RvSjZzMUs2Y2gzbExyQzAteVg0S2toak0yRC1CbTRwR3czYzhSQ011X29QRmpPTlZlSW1qWm9McndGazFWcFRIaGtHWHRIemg0b1pwcnExN2NyZUNhQmpNazlvYWdYLWR0QlctdzZWXy1jYVJwUkJCM011U2U4ZkgyTEhua2xFTHpGY2llVHdZUFRLUQ?oc=5",
+          "source": "ezfunds.com.tw",
+          "date": "2026-08-04 06:34",
+          "datetime": "2026-08-04T06:34:37+08:00"
         }
       ]
     },
@@ -287,7 +288,15 @@
       "short_names": [
         "傳家"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華投信數檔基金公開說明書修訂",
+          "url": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxQdU9BSHlGU0xUQzdtQlc5ckhuOHJrM3RvSjZzMUs2Y2gzbExyQzAteVg0S2toak0yRC1CbTRwR3czYzhSQ011X29QRmpPTlZlSW1qWm9McndGazFWcFRIaGtHWHRIemg0b1pwcnExN2NyZUNhQmpNazlvYWdYLWR0QlctdzZWXy1jYVJwUkJCM011U2U4ZkgyTEhua2xFTHpGY2llVHdZUFRLUQ?oc=5",
+          "source": "ezfunds.com.tw",
+          "date": "2026-08-04 06:34",
+          "datetime": "2026-08-04T06:34:37+08:00"
+        }
+      ]
     },
     {
       "base": "復華傳家二號基金",
@@ -307,7 +316,15 @@
       "short_names": [
         "人生目標"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華投信數檔基金公開說明書修訂",
+          "url": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxQdU9BSHlGU0xUQzdtQlc5ckhuOHJrM3RvSjZzMUs2Y2gzbExyQzAteVg0S2toak0yRC1CbTRwR3czYzhSQ011X29QRmpPTlZlSW1qWm9McndGazFWcFRIaGtHWHRIemg0b1pwcnExN2NyZUNhQmpNazlvYWdYLWR0QlctdzZWXy1jYVJwUkJCM011U2U4ZkgyTEhua2xFTHpGY2llVHdZUFRLUQ?oc=5",
+          "source": "ezfunds.com.tw",
+          "date": "2026-08-04 06:34",
+          "datetime": "2026-08-04T06:34:37+08:00"
+        }
+      ]
     },
     {
       "base": "復華神盾基金",
@@ -317,7 +334,15 @@
       "short_names": [
         "神盾"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華投信數檔基金公開說明書修訂",
+          "url": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxQdU9BSHlGU0xUQzdtQlc5ckhuOHJrM3RvSjZzMUs2Y2gzbExyQzAteVg0S2toak0yRC1CbTRwR3czYzhSQ011X29QRmpPTlZlSW1qWm9McndGazFWcFRIaGtHWHRIemg0b1pwcnExN2NyZUNhQmpNazlvYWdYLWR0QlctdzZWXy1jYVJwUkJCM011U2U4ZkgyTEhua2xFTHpGY2llVHdZUFRLUQ?oc=5",
+          "source": "ezfunds.com.tw",
+          "date": "2026-08-04 06:34",
+          "datetime": "2026-08-04T06:34:37+08:00"
+        }
+      ]
     },
     {
       "base": "復華台灣智能基金",
@@ -327,7 +352,15 @@
       "short_names": [
         "台灣智能"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華投信數檔基金公開說明書修訂",
+          "url": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxQdU9BSHlGU0xUQzdtQlc5ckhuOHJrM3RvSjZzMUs2Y2gzbExyQzAteVg0S2toak0yRC1CbTRwR3czYzhSQ011X29QRmpPTlZlSW1qWm9McndGazFWcFRIaGtHWHRIemg0b1pwcnExN2NyZUNhQmpNazlvYWdYLWR0QlctdzZWXy1jYVJwUkJCM011U2U4ZkgyTEhua2xFTHpGY2llVHdZUFRLUQ?oc=5",
+          "source": "ezfunds.com.tw",
+          "date": "2026-08-04 06:34",
+          "datetime": "2026-08-04T06:34:37+08:00"
+        }
+      ]
     },
     {
       "base": "復華已開發國家300股票指數基金",
@@ -372,7 +405,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太成長、全球平衡、數位經濟（詳下方基金新聞標籤）",
-    "品牌焦點：不靠傳統廣告！復華投信攜手北港武德宮打造捷運「招財錢母車廂」　實體互動引爆社群狂潮（ETtoday財經雲）"
+    "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太成長、全球平衡、 等 11 檔（詳下方基金新聞標籤）",
+    "品牌焦點：不靠傳統廣告！復華投信攜手北港武德宮打造捷運「招財錢母車廂」　實體互動引爆社群狂潮（finance.ettoday.net）"
   ]
 }
