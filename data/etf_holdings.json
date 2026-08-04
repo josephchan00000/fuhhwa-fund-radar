@@ -980,7 +980,10 @@
     "total_contrib": 0.81,
     "covered_weight": 96.9,
     "sum_weight": 96.9,
-    "n_holdings": 30
+    "n_holdings": 30,
+    "kind_counts": {
+     "add": 5
+    }
    }
   },
   "00986D": {
@@ -1130,84 +1133,69 @@
     }
    ],
    "prev": {
-    "202609US": {
-     "shares": 85,
-     "weight": 13.31,
-     "name": "美國三十年期政府公債"
-    },
-    "202609TY": {
-     "shares": 55,
-     "weight": 8.54,
-     "name": "美國十年期公債"
-    },
     "US83368TBT43": {
      "shares": 5000000,
-     "weight": 7.37,
+     "weight": 7.374,
      "name": "SOCGEN 7.367 01/10/53"
     },
     "US59023VAA89": {
      "shares": 4300000,
-     "weight": 7.26,
+     "weight": 7.258,
      "name": "BAC 7 3/4 05/14/38"
     },
     "US06423AAJ25": {
      "shares": 3900000,
-     "weight": 6.55,
+     "weight": 6.546,
      "name": "JPM 8 3/4 09/01/30"
     },
     "US172967EW71": {
      "shares": 3700000,
-     "weight": 6.5,
+     "weight": 6.501,
      "name": "C 8 1/8 07/15/39"
     },
     "US89117F8Z56": {
      "shares": 4200000,
-     "weight": 6.31,
+     "weight": 6.311,
      "name": "TD 8 1/8 10/31/2082"
     },
     "US06738ECD58": {
      "shares": 4000000,
-     "weight": 6.01,
+     "weight": 6.008,
      "name": "BACR 7.385 11/02/28"
     },
     "US0641598S88": {
      "shares": 3300000,
-     "weight": 4.9,
+     "weight": 4.899,
      "name": "BNS 8 5/8 10/27/2082"
     },
     "US404280DT33": {
      "shares": 3000000,
-     "weight": 4.56,
+     "weight": 4.561,
      "name": "HSBC 8 PERP"
     },
     "USF11494CK99": {
      "shares": 3000000,
-     "weight": 4.32,
+     "weight": 4.317,
      "name": "BPCEGP 6.915 01/14/46"
     },
     "USU8035UAD47": {
      "shares": 2600000,
-     "weight": 3.97,
+     "weight": 3.972,
      "name": "SASOL 8 3/4 04/10/33"
     },
     "US404280DS59": {
      "shares": 2400000,
-     "weight": 3.95,
+     "weight": 3.952,
      "name": "HSBC 8.113 11/03/33"
-    },
-    "TLTW US": {
-     "shares": 114464,
-     "weight": 3.51,
-     "name": "iShares 20+ Year Treasury Bo"
     },
     "USY0606WBQ25": {
      "shares": 2146000,
-     "weight": 3.45,
+     "weight": 3.452,
      "name": "BBLTB 9.025 03/15/29"
     },
     "USJ54675BE26": {
      "shares": 2050000,
-     "weight": 3.07,
+     "weight": 3.068,
      "name": "NIPLIF 6 1/2 04/30/55"
     },
     "US53944YAV56": {
@@ -1217,83 +1205,43 @@
     },
     "USJ64264AK09": {
      "shares": 1800000,
-     "weight": 2.86,
+     "weight": 2.858,
      "name": "RAKUTN 9 3/4 04/15/29"
     },
     "US279158AS81": {
      "shares": 1600000,
-     "weight": 2.49,
+     "weight": 2.485,
      "name": "ECOPET 8 7/8 01/13/33"
     },
     "US345370CX67": {
      "shares": 1500000,
-     "weight": 2.47,
+     "weight": 2.474,
      "name": "F 9 5/8 04/22/30"
     },
     "US80282KBH86": {
      "shares": 1500000,
-     "weight": 2.37,
+     "weight": 2.369,
      "name": "SANUSA 7.66 11/09/31"
     },
     "US29250NBT19": {
      "shares": 1000000,
-     "weight": 1.62,
+     "weight": 1.622,
      "name": "ENBCN 8 1/2 01/15/2084"
     },
     "US105756BB58": {
      "shares": 900000,
-     "weight": 1.44,
+     "weight": 1.441,
      "name": "BRAZIL 8 1/4 01/20/34"
-    },
-    "M_NTD": {
-     "shares": 17015722,
-     "weight": 0.75,
-     "name": "MARGIN"
     },
     "US71654QDP46": {
      "shares": 200000,
-     "weight": 0.35,
+     "weight": 0.345,
      "name": "PEMEX 10 02/07/33"
     },
     "XS3298830863": {
      "shares": 250000,
-     "weight": 0.26,
+     "weight": 0.258,
      "name": "BACR 8 PERP"
-    },
-    "DA_NTD": {
-     "shares": 4666576,
-     "weight": 0.21,
-     "name": "AFTER DEDUCTING SECURITIES PURCHASES AMOUNT"
-    },
-    "M_USD": {
-     "shares": 118488,
-     "weight": 0.17,
-     "name": "MARGIN"
-    },
-    "DA_AUD": {
-     "shares": 47454,
-     "weight": 0.05,
-     "name": "AFTER DEDUCTING SECURITIES PURCHASES AMOUNT"
-    },
-    "DA_EUR": {
-     "shares": 960,
-     "weight": null,
-     "name": "AFTER DEDUCTING SECURITIES PURCHASES AMOUNT"
-    },
-    "M_AUD": {
-     "shares": -16250,
-     "weight": -0.02,
-     "name": "MARGIN"
-    },
-    "PFUR_NTD": {
-     "shares": -14749392,
-     "weight": -0.65,
-     "name": "PAYABLES FOR UNITS REDEEMED"
-    },
-    "DA_USD": {
-     "shares": -3209119,
-     "weight": -4.59,
-     "name": "AFTER DEDUCTING SECURITIES PURCHASES AMOUNT"
     }
    },
    "prev_date": "2026-07-30",
@@ -1317,7 +1265,7 @@
       "weight": 7.428,
       "shares": 5000000,
       "d_shares": 0,
-      "d_weight": 0.06,
+      "d_weight": 0.05,
       "chg_pct": null,
       "contrib": null,
       "close": null,
@@ -1408,7 +1356,7 @@
       "weight": 4.605,
       "shares": 3000000,
       "d_shares": 0,
-      "d_weight": 0.05,
+      "d_weight": 0.04,
       "chg_pct": null,
       "contrib": null,
       "close": null,
@@ -1468,162 +1416,7 @@
       "is_new": false
      }
     ],
-    "dropped": [
-     {
-      "stock_id": "202609US",
-      "name": "美國三十年期政府公債",
-      "weight": null,
-      "shares": 0,
-      "d_shares": -85,
-      "d_weight": -13.31,
-      "chg_pct": null,
-      "contrib": null,
-      "close": null,
-      "industry": null,
-      "is_new": false,
-      "is_out": true
-     },
-     {
-      "stock_id": "202609TY",
-      "name": "美國十年期公債",
-      "weight": null,
-      "shares": 0,
-      "d_shares": -55,
-      "d_weight": -8.54,
-      "chg_pct": null,
-      "contrib": null,
-      "close": null,
-      "industry": null,
-      "is_new": false,
-      "is_out": true
-     },
-     {
-      "stock_id": "TLTW US",
-      "name": "iShares 20+ Year Treasury Bo",
-      "weight": null,
-      "shares": 0,
-      "d_shares": -114464,
-      "d_weight": -3.51,
-      "chg_pct": null,
-      "contrib": null,
-      "close": null,
-      "industry": null,
-      "is_new": false,
-      "is_out": true
-     },
-     {
-      "stock_id": "M_NTD",
-      "name": "MARGIN",
-      "weight": null,
-      "shares": 0,
-      "d_shares": -17015722,
-      "d_weight": -0.75,
-      "chg_pct": null,
-      "contrib": null,
-      "close": null,
-      "industry": null,
-      "is_new": false,
-      "is_out": true
-     },
-     {
-      "stock_id": "DA_NTD",
-      "name": "AFTER DEDUCTING SECURITIES PURCHASES AMOUNT",
-      "weight": null,
-      "shares": 0,
-      "d_shares": -4666576,
-      "d_weight": -0.21,
-      "chg_pct": null,
-      "contrib": null,
-      "close": null,
-      "industry": null,
-      "is_new": false,
-      "is_out": true
-     },
-     {
-      "stock_id": "M_USD",
-      "name": "MARGIN",
-      "weight": null,
-      "shares": 0,
-      "d_shares": -118488,
-      "d_weight": -0.17,
-      "chg_pct": null,
-      "contrib": null,
-      "close": null,
-      "industry": null,
-      "is_new": false,
-      "is_out": true
-     },
-     {
-      "stock_id": "DA_AUD",
-      "name": "AFTER DEDUCTING SECURITIES PURCHASES AMOUNT",
-      "weight": null,
-      "shares": 0,
-      "d_shares": -47454,
-      "d_weight": -0.05,
-      "chg_pct": null,
-      "contrib": null,
-      "close": null,
-      "industry": null,
-      "is_new": false,
-      "is_out": true
-     },
-     {
-      "stock_id": "DA_EUR",
-      "name": "AFTER DEDUCTING SECURITIES PURCHASES AMOUNT",
-      "weight": null,
-      "shares": 0,
-      "d_shares": -960,
-      "d_weight": null,
-      "chg_pct": null,
-      "contrib": null,
-      "close": null,
-      "industry": null,
-      "is_new": false,
-      "is_out": true
-     },
-     {
-      "stock_id": "M_AUD",
-      "name": "MARGIN",
-      "weight": null,
-      "shares": 0,
-      "d_shares": 16250,
-      "d_weight": 0.02,
-      "chg_pct": null,
-      "contrib": null,
-      "close": null,
-      "industry": null,
-      "is_new": false,
-      "is_out": true
-     },
-     {
-      "stock_id": "PFUR_NTD",
-      "name": "PAYABLES FOR UNITS REDEEMED",
-      "weight": null,
-      "shares": 0,
-      "d_shares": 14749392,
-      "d_weight": 0.65,
-      "chg_pct": null,
-      "contrib": null,
-      "close": null,
-      "industry": null,
-      "is_new": false,
-      "is_out": true
-     },
-     {
-      "stock_id": "DA_USD",
-      "name": "AFTER DEDUCTING SECURITIES PURCHASES AMOUNT",
-      "weight": null,
-      "shares": 0,
-      "d_shares": 3209119,
-      "d_weight": 4.59,
-      "chg_pct": null,
-      "contrib": null,
-      "close": null,
-      "industry": null,
-      "is_new": false,
-      "is_out": true
-     }
-    ],
+    "dropped": [],
     "all": [
      {
       "stock_id": "US83368TBT43",
@@ -1631,7 +1424,7 @@
       "weight": 7.428,
       "shares": 5000000,
       "d_shares": 0,
-      "d_weight": 0.06,
+      "d_weight": 0.05,
       "chg_pct": null,
       "contrib": null,
       "close": null,
@@ -1722,7 +1515,7 @@
       "weight": 4.605,
       "shares": 3000000,
       "d_shares": 0,
-      "d_weight": 0.05,
+      "d_weight": 0.04,
       "chg_pct": null,
       "contrib": null,
       "close": null,
@@ -1826,7 +1619,7 @@
       "weight": 2.504,
       "shares": 1600000,
       "d_shares": 0,
-      "d_weight": 0.01,
+      "d_weight": 0.02,
       "chg_pct": null,
       "contrib": null,
       "close": null,
@@ -1839,7 +1632,7 @@
       "weight": 2.496,
       "shares": 1500000,
       "d_shares": 0,
-      "d_weight": 0.03,
+      "d_weight": 0.02,
       "chg_pct": null,
       "contrib": null,
       "close": null,
@@ -1878,7 +1671,7 @@
       "weight": 1.456,
       "shares": 900000,
       "d_shares": 0,
-      "d_weight": 0.02,
+      "d_weight": 0.01,
       "chg_pct": null,
       "contrib": null,
       "close": null,
@@ -1891,7 +1684,7 @@
       "weight": 0.349,
       "shares": 200000,
       "d_shares": 0,
-      "d_weight": -0.0,
+      "d_weight": 0.0,
       "chg_pct": null,
       "contrib": null,
       "close": null,
@@ -1904,7 +1697,7 @@
       "weight": 0.264,
       "shares": 250000,
       "d_shares": 0,
-      "d_weight": 0.0,
+      "d_weight": 0.01,
       "chg_pct": null,
       "contrib": null,
       "close": null,
@@ -1912,134 +1705,13 @@
       "is_new": false
      }
     ],
-    "moves": [
-     {
-      "stock_id": "M_NTD",
-      "name": "MARGIN",
-      "industry": null,
-      "kind": "out",
-      "m_shares": -17015722,
-      "lots": -17015.7,
-      "amount": null,
-      "weight": null,
-      "d_weight": -0.75
-     },
-     {
-      "stock_id": "PFUR_NTD",
-      "name": "PAYABLES FOR UNITS REDEEMED",
-      "industry": null,
-      "kind": "out",
-      "m_shares": 14749392,
-      "lots": 14749.4,
-      "amount": null,
-      "weight": null,
-      "d_weight": 0.65
-     },
-     {
-      "stock_id": "DA_NTD",
-      "name": "AFTER DEDUCTING SECURITIES PURCHASES AMOUNT",
-      "industry": null,
-      "kind": "out",
-      "m_shares": -4666576,
-      "lots": -4666.6,
-      "amount": null,
-      "weight": null,
-      "d_weight": -0.21
-     },
-     {
-      "stock_id": "DA_USD",
-      "name": "AFTER DEDUCTING SECURITIES PURCHASES AMOUNT",
-      "industry": null,
-      "kind": "out",
-      "m_shares": 3209119,
-      "lots": 3209.1,
-      "amount": null,
-      "weight": null,
-      "d_weight": 4.59
-     },
-     {
-      "stock_id": "M_USD",
-      "name": "MARGIN",
-      "industry": null,
-      "kind": "out",
-      "m_shares": -118488,
-      "lots": -118.5,
-      "amount": null,
-      "weight": null,
-      "d_weight": -0.17
-     },
-     {
-      "stock_id": "TLTW US",
-      "name": "iShares 20+ Year Treasury Bo",
-      "industry": null,
-      "kind": "out",
-      "m_shares": -114464,
-      "lots": -114.5,
-      "amount": null,
-      "weight": null,
-      "d_weight": -3.51
-     },
-     {
-      "stock_id": "DA_AUD",
-      "name": "AFTER DEDUCTING SECURITIES PURCHASES AMOUNT",
-      "industry": null,
-      "kind": "out",
-      "m_shares": -47454,
-      "lots": -47.5,
-      "amount": null,
-      "weight": null,
-      "d_weight": -0.05
-     },
-     {
-      "stock_id": "M_AUD",
-      "name": "MARGIN",
-      "industry": null,
-      "kind": "out",
-      "m_shares": 16250,
-      "lots": 16.2,
-      "amount": null,
-      "weight": null,
-      "d_weight": 0.02
-     },
-     {
-      "stock_id": "DA_EUR",
-      "name": "AFTER DEDUCTING SECURITIES PURCHASES AMOUNT",
-      "industry": null,
-      "kind": "out",
-      "m_shares": -960,
-      "lots": -1.0,
-      "amount": null,
-      "weight": null,
-      "d_weight": null
-     },
-     {
-      "stock_id": "202609US",
-      "name": "美國三十年期政府公債",
-      "industry": null,
-      "kind": "out",
-      "m_shares": -85,
-      "lots": -0.1,
-      "amount": null,
-      "weight": null,
-      "d_weight": -13.31
-     },
-     {
-      "stock_id": "202609TY",
-      "name": "美國十年期公債",
-      "industry": null,
-      "kind": "out",
-      "m_shares": -55,
-      "lots": -0.1,
-      "amount": null,
-      "weight": null,
-      "d_weight": -8.54
-     }
-    ],
-    "moves_n": 11,
+    "moves": [],
+    "moves_n": 0,
     "moves_rest_n": 0,
     "moves_rest_amount": null,
     "amount_basis": "shares",
-    "unpriced_n": 11,
+    "kind_counts": {},
+    "unpriced_n": 0,
     "rest_n": 10,
     "rest_contrib": 0,
     "rest_weight": 20.16,
@@ -3249,7 +2921,12 @@
     "total_contrib": 5.65,
     "covered_weight": 92.5,
     "sum_weight": 95.6,
-    "n_holdings": 39
+    "n_holdings": 39,
+    "kind_counts": {
+     "new": 3,
+     "cut": 1,
+     "out": 1
+    }
    }
   },
   "00993A": {
@@ -4655,7 +4332,8 @@
     "total_contrib": 4.82,
     "covered_weight": 96.1,
     "sum_weight": 96.2,
-    "n_holdings": 50
+    "n_holdings": 50,
+    "kind_counts": {}
    }
   },
   "00987A": {
@@ -5437,7 +5115,8 @@
     "total_contrib": 5.87,
     "covered_weight": 85.2,
     "sum_weight": 85.2,
-    "n_holdings": 24
+    "n_holdings": 24,
+    "kind_counts": {}
    }
   },
   "00403A": {
@@ -7022,7 +6701,11 @@
     "total_contrib": 3.75,
     "covered_weight": 81.7,
     "sum_weight": 81.7,
-    "n_holdings": 51
+    "n_holdings": 51,
+    "kind_counts": {
+     "add": 13,
+     "cut": 1
+    }
    }
   },
   "00995A": {
@@ -8665,7 +8348,12 @@
     "total_contrib": 5.18,
     "covered_weight": 88.8,
     "sum_weight": 89.3,
-    "n_holdings": 55
+    "n_holdings": 55,
+    "kind_counts": {
+     "add": 7,
+     "cut": 3,
+     "new": 1
+    }
    }
   },
   "0050": {
@@ -10512,7 +10200,10 @@
     "total_contrib": 0.13,
     "covered_weight": 99.7,
     "sum_weight": 99.7,
-    "n_holdings": 50
+    "n_holdings": 50,
+    "kind_counts": {
+     "add": 50
+    }
    }
   },
   "00988A": {
@@ -11848,7 +11539,12 @@
     "total_contrib": 1.3,
     "covered_weight": 23.3,
     "sum_weight": 91.1,
-    "n_holdings": 42
+    "n_holdings": 42,
+    "kind_counts": {
+     "add": 8,
+     "new": 2,
+     "out": 1
+    }
    }
   },
   "006208": {
@@ -13254,7 +12950,8 @@
     "total_contrib": 0.12,
     "covered_weight": 99.6,
     "sum_weight": 99.6,
-    "n_holdings": 50
+    "n_holdings": 50,
+    "kind_counts": {}
    }
   },
   "00984A": {
@@ -17613,7 +17310,13 @@
     "total_contrib": 2.27,
     "covered_weight": 92.6,
     "sum_weight": 92.9,
-    "n_holdings": 163
+    "n_holdings": 163,
+    "kind_counts": {
+     "add": 19,
+     "cut": 80,
+     "new": 44,
+     "out": 1
+    }
    }
   },
   "00407A": {
@@ -19031,7 +18734,10 @@
     "total_contrib": 5.17,
     "covered_weight": 94.2,
     "sum_weight": 94.2,
-    "n_holdings": 50
+    "n_holdings": 50,
+    "kind_counts": {
+     "add": 1
+    }
    }
   },
   "00980A": {
@@ -20570,7 +20276,10 @@
     "total_contrib": 4.22,
     "covered_weight": 83.4,
     "sum_weight": 84.8,
-    "n_holdings": 50
+    "n_holdings": 50,
+    "kind_counts": {
+     "add": 12
+    }
    }
   },
   "00982A": {
@@ -22152,7 +21861,10 @@
     "total_contrib": 4.84,
     "covered_weight": 97.4,
     "sum_weight": 97.6,
-    "n_holdings": 55
+    "n_holdings": 55,
+    "kind_counts": {
+     "add": 5
+    }
    }
   },
   "00990A": {
@@ -23661,7 +23373,12 @@
     "total_contrib": 0.5,
     "covered_weight": 16.5,
     "sum_weight": 95.1,
-    "n_holdings": 48
+    "n_holdings": 48,
+    "kind_counts": {
+     "add": 3,
+     "new": 6,
+     "out": 3
+    }
    }
   },
   "00929": {
@@ -25067,7 +24784,8 @@
     "total_contrib": 1.65,
     "covered_weight": 96.1,
     "sum_weight": 96.1,
-    "n_holdings": 50
+    "n_holdings": 50,
+    "kind_counts": {}
    }
   },
   "00991A": {
@@ -26661,7 +26379,11 @@
     "total_contrib": 5.35,
     "covered_weight": 88.2,
     "sum_weight": 88.2,
-    "n_holdings": 50
+    "n_holdings": 50,
+    "kind_counts": {
+     "add": 16,
+     "cut": 1
+    }
    }
   },
   "0056": {
@@ -28508,7 +28230,10 @@
     "total_contrib": 1.73,
     "covered_weight": 98.7,
     "sum_weight": 98.7,
-    "n_holdings": 50
+    "n_holdings": 50,
+    "kind_counts": {
+     "add": 49
+    }
    }
   },
   "00985A": {
@@ -29914,7 +29639,8 @@
     "total_contrib": 2.97,
     "covered_weight": 84.9,
     "sum_weight": 88.1,
-    "n_holdings": 50
+    "n_holdings": 50,
+    "kind_counts": {}
    }
   },
   "00981A": {
@@ -31463,7 +31189,12 @@
     "total_contrib": 5.27,
     "covered_weight": 84.0,
     "sum_weight": 84.4,
-    "n_holdings": 52
+    "n_holdings": 52,
+    "kind_counts": {
+     "add": 7,
+     "new": 1,
+     "cut": 1
+    }
    }
   },
   "00994A": {
@@ -32598,7 +32329,11 @@
     "total_contrib": 5.43,
     "covered_weight": 93.2,
     "sum_weight": 93.2,
-    "n_holdings": 36
+    "n_holdings": 36,
+    "kind_counts": {
+     "add": 3,
+     "out": 1
+    }
    }
   },
   "00919": {
@@ -33831,7 +33566,10 @@
     "total_contrib": -0.01,
     "covered_weight": 97.6,
     "sum_weight": 97.6,
-    "n_holdings": 40
+    "n_holdings": 40,
+    "kind_counts": {
+     "add": 6
+    }
    }
   },
   "00998A": {
@@ -35031,7 +34769,13 @@
     "total_contrib": 0.0,
     "covered_weight": 0.0,
     "sum_weight": 98.7,
-    "n_holdings": 38
+    "n_holdings": 38,
+    "kind_counts": {
+     "add": 2,
+     "cut": 2,
+     "new": 1,
+     "out": 1
+    }
    }
   }
  },

@@ -1184,6 +1184,10 @@ def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
         "tc": detail.get("total_contrib"), "cw": detail.get("covered_weight"),
         "vf": _eh_verify_chip(detail.get("verify") or {}),
         "mn": detail.get("moves_n"), "mr": detail.get("moves_rest_n"),
+        # 全量類型統計（加碼/減碼/新增/出清各幾檔）——異動超過清單上限（40）時，
+        # 只數 mv 會讓「共 144 檔異動（…）」的括號合計對不上 144（00984A 2026-08-03
+        # 月初大改組實踩）；缺此鍵（舊落檔）時前端退回數 mv
+        "kc": detail.get("kind_counts"),
         "tm": tm, "th": fig["height"], "hid": hidden, "nq": unpriced,
         "an": _TM_AREA_NOTE,
         # MV：[代號, 名稱, 異動股數, 金額, 類型]
@@ -2522,7 +2526,7 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
         +'<td class="num"><span class="edsub2">'+amt(r[3])+'</span></td>'
         +'<td class="num"><span class="kpill '+r[4]+'">'+KIND[r[4]]+'</span></td></tr>'}).join('')
       ||'<tr><td colspan="4" class="na">本次無持股異動。</td></tr>';
-    var kc={}; (e.mv||[]).forEach(function(r){kc[r[4]]=(kc[r[4]]||0)+1});
+    var kc=e.kc||{}; if(!e.kc){(e.mv||[]).forEach(function(r){kc[r[4]]=(kc[r[4]]||0)+1})}
     var bits=[]; ['add','cut','new','out'].forEach(function(k){if(kc[k])bits.push(KIND[k]+' '+kc[k])});
     box.querySelector('.mvsub').textContent=e.mn
       ?('共 '+e.mn+' 檔異動'+(bits.length?'（'+bits.join('／')+'）':'')):'本次無異動';

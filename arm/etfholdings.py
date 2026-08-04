@@ -50,6 +50,48 @@ def _index(holdings: list[dict]) -> dict[str, dict]:
     return {str(h.get("stock_id")): h for h in (holdings or []) if h.get("stock_id")}
 
 
+# ── 非證券列清洗（2026-08-04 實踩：00986D 的 11 筆假「出清」） ──────────
+#
+# 彙整站（etfinfo 等）對債券／主動 ETF 常直接轉發**發行人 PCF 原始檔全資產列**：
+# 各幣別現金（DA_NTD）、保證金（M_USD）、申購買回應付款（PFUR_NTD、股數為負）、
+# 期貨避險合約（202609US 美國三十年期公債期貨）——這些不是持股。08-03 該髒快照
+# 一度成為 00986D 的現況、一小時後被 fhtrust 新日期快照降級成 prev，diff 就把
+# 11 筆會計列全標成「出清」上板。清洗規則走**結構特徵**、不靠站別黑名單：
+#   ① 股數或權重為負＝負債／應付款列（真持股不可能負；期貨空單本就依慣例排除）
+#   ② 代號含底線＝PCF 會計科目代碼（M_NTD／DA_USD／PFUR_NTD；真證券代號無底線）
+#   ③ 代號呈期貨合約形（YYYYMM＋商品碼、無空格，如 202609US）＝期貨避險列
+#      （同 fhtrust 管線「排除期貨避險列」慣例；ISIN 以字母開頭、韓股「005930 KP」
+#       帶空格，皆不受影響）
+#   ④ 名稱含 PCF 會計字彙（MARGIN／PAYABLES／AFTER DEDUCTING…，全大寫詞界）
+import re as _re
+
+_FUT_CODE = _re.compile(r"^20\d{2}(0[1-9]|1[0-2])[A-Z]{1,3}$")
+_ACCT_NAME = _re.compile(r"\b(MARGIN|PAYABLES?|RECEIVABLES?|AFTER DEDUCT\w*)\b")
+
+
+def _sec_ok(sid: str, shares, weight, name: str) -> bool:
+    """True＝像真證券持股列；False＝PCF 現金／保證金／應付款／期貨等會計列。"""
+    sid = str(sid or "").strip()
+    if not sid or "_" in sid or _FUT_CODE.match(sid):
+        return False
+    if (shares is not None and shares < 0) or (weight is not None and weight < 0):
+        return False
+    return not _ACCT_NAME.search(str(name or ""))
+
+
+def sanitize_rows(holdings: list[dict] | None) -> list[dict]:
+    """持股清單去掉非證券列（來源不拘——merge 入口統一過這關）。"""
+    return [h for h in (holdings or [])
+            if _sec_ok(h.get("stock_id"), h.get("shares"), h.get("weight"),
+                       h.get("name") or h.get("stock_name"))]
+
+
+def _sanitize_prev(prev: dict | None) -> dict:
+    """prev 同樣清洗——既有落檔若已被污染，重算 detail 時就地自癒，不再產假出清。"""
+    return {sid: v for sid, v in (prev or {}).items()
+            if _sec_ok(sid, v.get("shares"), v.get("weight"), v.get("name"))}
+
+
 def _snap_key(holdings: list[dict] | None) -> tuple:
     """快照指紋（代號＋股數＋權重）——用來認出「同一份檔案被標成不同揭露日」。"""
     return tuple(sorted((str(h.get("stock_id")), h.get("shares"), h.get("weight"))
@@ -71,11 +113,22 @@ def merge_one(old: dict | None, new: dict | None) -> dict | None:
     """
     if not new or not new.get("holdings"):
         return old
+    new = {**new, "holdings": sanitize_rows(new.get("holdings"))}
+    if not new["holdings"]:                               # 清洗後全滅＝整份都是會計列，視同抓不到
+        return old
     old = old or {}
     # 日期倒退防呆（2026-07-30 實踩）：換來源時新來源可能給**較舊**的快照
     # （fhtrust T-1 vs 稍早 etfinfo 的當日快照）——若照常合併，較新的快照會被降級成
     # prev，儀表板出現「揭露日 07-28（對比 07-29）」的倒轉比較。舊的進不來，保留較新者。
     if old.get("date") and new.get("date") and str(new["date"]) < str(old["date"]):
+        return old
+    # 同日不同源防呆（2026-08-04 實踩 00986D）：既有快照是本家第一手（fhtrust）時，
+    # 彙整站的**同日**快照不得覆蓋——08-03 那晚 fhtrust 單輪抓失敗、etfinfo 以同日
+    # PCF 原始列（含現金/期貨/應付款）頂替，一小時後 fhtrust 新日期快照進來，髒快照
+    # 被降級成 prev → 11 筆假「出清」。抓取端本就規定「同日第一手優先」，合併端補上
+    # 同一條防線（新**日期較新**時不在此限——「主來源＝快照日最新者」規則不變）。
+    if (old.get("date") and old["date"] == new.get("date")
+            and old.get("src") == "fhtrust" and new.get("src") != "fhtrust"):
         return old
     if old.get("date") and old["date"] == new.get("date"):
         return _drop_fake_prev({**new, "prev": old.get("prev") or {},
@@ -224,9 +277,15 @@ def _moves(rows: list[dict], dropped: list[dict], move_n: int = _MOVE_N) -> dict
     key = (lambda m: -abs(m["amount"] or 0)) if all_priced else (lambda m: -abs(m["m_shares"]))
     out.sort(key=key)
     shown, rest = out[:move_n], out[move_n:]
+    # 類型統計走**全量**（2026-08-04）：小結列「共 N 檔異動（加碼×…）」若只數存檔的
+    # 前 40 筆，144 檔異動日括號合計只有 40、與 N 對不上——大改組日一眼就穿幫。
+    kc: dict[str, int] = {}
+    for m in out:
+        kc[m["kind"]] = kc.get(m["kind"], 0) + 1
     return {"moves": shown, "moves_n": len(out), "moves_rest_n": len(rest),
             "moves_rest_amount": (round(sum(m["amount"] or 0 for m in rest)) if rest else None),
             "amount_basis": "amount" if all_priced else "shares",
+            "kind_counts": kc,
             "unpriced_n": len(out) - priced}
 
 
@@ -243,10 +302,10 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
     依 |貢獻| 由大到小排；超過 top_n 者併成一列合計，避免展開後灌爆版面。
     無報價的持股仍列出（貢獻顯示 —），但不計入合計——寧可少算，不憑空補值。
     """
-    holdings = (entry or {}).get("holdings") or []
+    holdings = sanitize_rows((entry or {}).get("holdings"))
     if not holdings:
         return None
-    prev = (entry or {}).get("prev") or {}
+    prev = _sanitize_prev((entry or {}).get("prev"))
     rows, total, covered_w = [], 0.0, 0.0
     for h in holdings:
         sid = str(h.get("stock_id") or "")

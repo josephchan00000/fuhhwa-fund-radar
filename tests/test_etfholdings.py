@@ -48,6 +48,95 @@ def test_merge_empty_never_wipes():
     assert doc["etfs"]["00991A"] == DAY1
 
 
+# ── 非證券列清洗（2026-08-04 實踩：00986D 的 11 筆假「出清」） ──────────
+
+# etfinfo 對 00986D 轉發的 PCF 原始檔全資產列（實際事故資料的縮影）
+_JUNK = [_h("M_NTD", "MARGIN", 17015722, 0.75),           # 保證金（代號含底線）
+         _h("PFUR_NTD", "PAYABLES FOR UNITS RED", -14749392, -0.65),   # 應付款（負股數）
+         _h("DA_USD", "AFTER DEDUCTING SECURITIES", -3209119, None),   # 現金（負股數）
+         _h("202609US", "美國三十年期政府公債", 85, 13.31),             # 期貨合約（YYYYMM＋商品碼）
+         _h("202609TY", "美國十年期公債", 55, 8.54)]
+_LEGIT = [_h("2330", "台積電", 1000, 20.0),
+          _h("TLTW US", "iShares 20+ Year Treasury BuyWrite", 114464, 3.51),
+          _h("005930 KP", "SAMSUNG ELECTRONICS", 71925, 1.15),          # 韓股（帶空格）不可誤殺
+          _h("US0641598S88", "BK OF NY 債", 5000000, 7.37),             # ISIN 債券
+          _h("0050", "元大台灣50", 100, 0.5)]
+
+
+def test_sanitize_drops_pcf_accounting_rows():
+    """現金／保證金／應付款／期貨列不是持股——留著會在來源切換時變成假「出清」。"""
+    out = eh.sanitize_rows(_JUNK + _LEGIT)
+    assert [r["stock_id"] for r in out] == [r["stock_id"] for r in _LEGIT]
+
+
+def test_merge_sanitizes_new_snapshot():
+    """髒快照經 merge 入口即清洗；整份都是會計列＝視同抓不到、不得覆蓋既有揭露。"""
+    m = eh.merge_one(DAY1, {"date": "2026-07-28", "src": "etfinfo",
+                            "holdings": _JUNK + [_h("2330", "台積電", 1200, 22.0)]})
+    assert [h["stock_id"] for h in m["holdings"]] == ["2330"]
+    assert eh.merge_one(DAY1, {"date": "2026-07-28", "src": "etfinfo",
+                               "holdings": list(_JUNK)}) == DAY1
+
+
+def test_merge_same_day_aggregator_never_overwrites_firsthand():
+    """同日不同源：本家第一手（fhtrust）不被彙整站蓋掉——00986D 事故的直接成因；
+    彙整站快照**日期較新**時照樣推進（「主來源＝快照日最新者」規則不變）。"""
+    fh = {"date": "2026-07-30", "src": "fhtrust",
+          "holdings": [_h("US0641598S88", "BK OF NY 債", 5000000, 7.37)]}
+    ei_same = {"date": "2026-07-30", "src": "etfinfo",
+               "holdings": [_h("US0641598S88", "BK OF NY 債", 5000000, 7.37),
+                            _h("TLTW US", "iShares 20+ Year Treasury BuyWrite", 114464, 3.51)]}
+    assert eh.merge_one(fh, ei_same) == fh                # 同日：第一手原封不動
+    ei_newer = {**ei_same, "date": "2026-07-31"}
+    m = eh.merge_one(fh, ei_newer)
+    assert m["date"] == "2026-07-31" and m["src"] == "etfinfo"
+
+
+def test_contributions_heals_polluted_prev():
+    """既有落檔的 prev 已被污染（升級前入庫）→ 重算 detail 就地自癒，
+    會計列不得再以「出清」姿態上板。"""
+    entry = {"date": "2026-07-31", "prev_date": "2026-07-30", "src": "fhtrust",
+             "holdings": [_h("US0641598S88", "BK OF NY 債", 5000000, 7.43)],
+             "prev": {"US0641598S88": {"shares": 5000000, "weight": 7.37, "name": "BK OF NY 債"},
+                      "M_NTD": {"shares": 17015722, "weight": 0.75, "name": "MARGIN"},
+                      "PFUR_NTD": {"shares": -14749392, "weight": -0.65,
+                                   "name": "PAYABLES FOR UNITS RED"},
+                      "202609US": {"shares": 85, "weight": 13.31, "name": "美國三十年期政府公債"}}}
+    d = eh.contributions(entry, None)
+    assert d["dropped"] == [] and d["moves_n"] == 0
+    assert d["kind_counts"] == {}
+
+
+def test_moves_kind_counts_cover_all_moves():
+    """類型統計走全量：異動超過清單上限（40）時，「共 N 檔異動（加碼×…）」的括號
+    合計必須仍等於 N（00984A 2026-08-03 月初大改組 144 筆實踩）。"""
+    old = {"date": "2026-07-27", "src": "test",
+           "holdings": [_h(str(6000 + i), f"股{i}", 1000, 1.0) for i in range(60)]}
+    new = {"date": "2026-07-28", "src": "test",
+           "holdings": ([_h(str(6000 + i), f"股{i}", 1500, 1.0) for i in range(50)]      # 50 加碼
+                        + [_h(str(6000 + i), f"股{i}", 1000, 1.0) for i in range(50, 60)]
+                        + [_h(str(7000 + i), f"新{i}", 800, 0.5) for i in range(5)])}    # 5 新增
+    d = eh.contributions(eh.merge_one(old, new), None)
+    assert d["moves_n"] == 55 and len(d["moves"]) == eh._MOVE_N
+    assert d["kind_counts"] == {"add": 50, "new": 5}
+    assert sum(d["kind_counts"].values()) == d["moves_n"]
+    assert fd._eh_payload(d, "x")["kc"] == d["kind_counts"]
+
+
+def test_committed_data_has_no_pcf_junk_rows():
+    """落檔迴歸：入庫的 holdings／prev 不得殘留任何 PCF 會計列（清洗層失守時此測先紅）。"""
+    fp = Path(eh.DATA_FP)
+    if not fp.exists():
+        return
+    doc = json.loads(fp.read_text(encoding="utf-8"))
+    for code, e in (doc.get("etfs") or {}).items():
+        hs = e.get("holdings") or []
+        assert len(eh.sanitize_rows(hs)) == len(hs), f"{code} holdings 含非證券列"
+        for sid, v in (e.get("prev") or {}).items():
+            assert eh._sec_ok(sid, v.get("shares"), v.get("weight"), v.get("name")), \
+                f"{code} prev 含非證券列 {sid}"
+
+
 # ── 加減碼與當日貢獻 ─────────────────────────────────────────────
 
 def test_contributions_delta_and_attribution():

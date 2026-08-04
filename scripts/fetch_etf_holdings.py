@@ -59,13 +59,19 @@ def _from_etfinfo(code: str) -> tuple[list[dict], str | None, str]:
              "shares": (int(r["shares"]) if r.get("shares") else None),
              "weight": (float(r["weight"]) if r.get("weight") else None)}
             for r in raw]
+    # etfinfo 對債券／主動 ETF 會轉發 PCF 原始檔**全資產列**（現金/保證金/應付款/期貨，
+    # 2026-08-04 實踩 00986D 33 列有 11 列是會計列）——先清洗再驗證，否則期貨名目
+    # 權重（一筆 13.31%）會混進前十大、污染交叉驗證與主來源挑選。
+    n_raw = len(rows)
+    rows = etfholdings.sanitize_rows(rows)
+    junk_note = f"、清洗掉 {n_raw - len(rows)} 筆非證券列" if len(rows) != n_raw else ""
     rows = pcf._drop_value_like_shares(
         sorted(rows, key=lambda h: -(h.get("weight") or 0)))
     why = pcf.implausible_reason(rows)
     if why:
-        return [], None, f"etfinfo {len(rows)} 檔未過驗證（{why}）"
+        return [], None, f"etfinfo {len(rows)} 檔未過驗證（{why}{junk_note}）"
     asof = (str(meta.get("as_of"))[:10] or None) if meta.get("as_of") else None
-    return rows, asof, f"etfinfo ✓ {len(rows)} 檔（快照日 {asof or '未標'}）"
+    return rows, asof, f"etfinfo ✓ {len(rows)} 檔（快照日 {asof or '未標'}{junk_note}）"
 
 
 
