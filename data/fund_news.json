@@ -1,12 +1,12 @@
 {
-  "as_of": "2026/08/04 08:15",
+  "as_of": "2026/08/04 08:21",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
   "brand": [
     {
       "title": "不靠傳統廣告！復華投信攜手北港武德宮打造捷運「招財錢母車廂」　實體互動引爆社群狂潮",
       "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTFAtdmpCN3M1MmpWSDI0bTU0eFNBdEQ1cXp4Qml6d0YyZUFob0xtOUszblVVOGZwQ0x1OUNNcHpVQzJGZTU4STItbmJUOEZsRVZ4Y2fSAVBBVV95cUxQY1M3NjdMZDZIVGkxMFhVRGtkY0wzb2h3dXZobXpuNmJtbFc2RUY2cTg3ck5nQ2pUMkRGU01zanczLXRYbTUtNWNGblVBTExidg?oc=5",
-      "source": "finance.ettoday.net",
+      "source": "ETtoday財經雲",
       "date": "2026-08-03 16:35",
       "datetime": "2026-08-03T16:35:00+08:00"
     },
@@ -37,13 +37,6 @@
       "source": "經濟日報",
       "date": "2026-08-02 17:00",
       "datetime": "2026-08-02T17:00:00+08:00"
-    },
-    {
-      "title": "復華中小精選基金，不配息也能把資產滾大，關鍵其實不在現金流-黃詠晴",
-      "url": "https://news.google.com/rss/articles/CBMihwFBVV95cUxNNENzU0R1ZF9LR0g4bEhhVl9vZWIwTWVHVHY0aFBWOFFlS2hNdVcweTczNmJ5Wm01elhtNlliTzZDeE16VGFxTjVJY1p1c2NIYnBwTmhfZ25XVlFPS3ExV2Nyb2xPcndvU3pPZ0JiNE1Kbl9oVmRaODJSQ3NFcThqc1pWb0JuQVE?oc=5",
-      "source": "cmnews.com.tw",
-      "date": "2026-08-01 21:56",
-      "datetime": "2026-08-01T21:56:14+08:00"
     },
     {
       "title": "復華金融股債雙收傘型 ETF 上櫃掛牌 櫃買債券 ETF 突破百檔",
@@ -250,15 +243,7 @@
       "short_names": [
         "中小精選"
       ],
-      "items": [
-        {
-          "title": "復華中小精選基金，不配息也能把資產滾大，關鍵其實不在現金流-黃詠晴",
-          "url": "https://news.google.com/rss/articles/CBMihwFBVV95cUxNNENzU0R1ZF9LR0g4bEhhVl9vZWIwTWVHVHY0aFBWOFFlS2hNdVcweTczNmJ5Wm01elhtNlliTzZDeE16VGFxTjVJY1p1c2NIYnBwTmhfZ25XVlFPS3ExV2Nyb2xPcndvU3pPZ0JiNE1Kbl9oVmRaODJSQ3NFcThqc1pWb0JuQVE?oc=5",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-01 21:56",
-          "datetime": "2026-08-01T21:56:14+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華全方位基金",
@@ -387,7 +372,7 @@
   ],
   "social": [],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太成長、全球平衡、數位經濟 等 7 檔（詳下方基金新聞標籤）",
-    "品牌焦點：不靠傳統廣告！復華投信攜手北港武德宮打造捷運「招財錢母車廂」　實體互動引爆社群狂潮（finance.ettoday.net）"
+    "近 7 天有專屬報導的基金：全球大趨勢、全球物聯網科技、華人世紀、亞太成長、全球平衡、數位經濟（詳下方基金新聞標籤）",
+    "品牌焦點：不靠傳統廣告！復華投信攜手北港武德宮打造捷運「招財錢母車廂」　實體互動引爆社群狂潮（ETtoday財經雲）"
   ]
 }
