@@ -132,8 +132,13 @@ def guard_decision(now: datetime, chips: dict | None, trading: bool) -> str:
             and now.date().isoformat() in (series.get("inst_total") or {}):
         return "SKIP"                      # 午後窗：當日籌碼已在（15:33 場次已成功）
     asof = _parse_asof(chips)
-    if hm >= _HHMM(18, 0) and asof and (now - asof) <= timedelta(minutes=_GUARD_FRESH_MIN):
+    fresh = bool(asof and (now - asof) <= timedelta(minutes=_GUARD_FRESH_MIN))
+    if hm >= _HHMM(18, 0) and fresh:
         return "SKIP"                      # 晚間窗：30 分鐘內剛有場次跑完（如 18:58 dispatch）
+    if hm < _HHMM(15, 5) and fresh:
+        return "SKIP"                      # 清晨窗（美股收盤場次，2026-08-05 新增）：
+                                           # 05:08 Routine dispatch 剛跑完 → 05:20 cron 零請求早退。
+                                           # 不看台股 trading——美股交易日與台股休市互相獨立。
     return "RUN"
 
 

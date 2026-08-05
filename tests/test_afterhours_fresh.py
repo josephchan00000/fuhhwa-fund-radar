@@ -172,3 +172,15 @@ def test_瀏覽器端盤後時窗橫幅存在_且逾期橫幅只剩一份():
     assert fd._JS.count("盤後數據（三大法人・ETF 當日漲跌）尚未上線") == 1
     assert fd._JS.count("夜間數據（融資融券・基金NAV）尚未上線") == 1
     assert fd._JS.count("天未重建（每日 CI 可能停擺）") == 1
+
+
+def test_guard_清晨窗美股收盤場次_30分內剛跑過SKIP_否則RUN():
+    """2026-08-05 新增台北 05:20 cron（美股收盤兜底）：05:08 Routine dispatch 剛成功
+    → 零請求早退；沒跑過（Routine 失敗）→ RUN。台股 trading 與否不影響——
+    美股交易日與台股休市互相獨立（台北週六清晨也要抓週五美股收盤）。"""
+    c = _chips(as_of="2026-08-05 05:10")
+    assert af.guard_decision(_tw(2026, 8, 5, 5, 20), c, trading=True) == "SKIP"
+    assert af.guard_decision(_tw(2026, 8, 5, 6, 40), c, trading=True) == "RUN"    # 遲到逾 30 分
+    assert af.guard_decision(_tw(2026, 8, 5, 5, 20), _chips(), trading=True) == "RUN"
+    sat = _chips(as_of="2026-08-08 05:09")                                        # 週六清晨
+    assert af.guard_decision(_tw(2026, 8, 8, 5, 20), sat, trading=False) == "SKIP"
