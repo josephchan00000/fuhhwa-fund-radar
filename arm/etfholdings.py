@@ -248,7 +248,9 @@ def _moves(rows: list[dict], dropped: list[dict], move_n: int = _MOVE_N) -> dict
         m_sh = r.get("shares") if kind == "new" else r.get("d_shares")
         if m_sh in (None, 0):
             continue
-        close = r.get("close")
+        # 海外報價（帶 ccy＝外幣）**不算金額**：USD/JPY/KRW 收盤 × 股數不可與台幣金額
+        # 混入同一張方塊圖比面積——面積照舊退回股數口徑（漲跌％／貢獻不受影響）。
+        close = r.get("close") if not r.get("ccy") else None
         amt = round(m_sh * close) if (close is not None) else None
         out.append({"stock_id": r["stock_id"], "name": r.get("name") or r["stock_id"],
                     "industry": r.get("industry"), "kind": kind,
@@ -313,8 +315,10 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
                      "weight": w, "shares": sh, "d_shares": d_sh, "d_weight": d_w,
                      "chg_pct": chg, "contrib": contrib,
                      # 收盤價（金額 ＝ Δ股數 × 收盤）與產業別（方塊圖外層分組）——
-                     # 兩者只有 CI 端取得到（容器 proxy 擋 twse/tpex），存進落檔供渲染
-                     "close": q.get("close"), "industry": (ind or {}).get(sid),
+                     # 兩者只有 CI 端取得到（容器 proxy 擋 twse/tpex），存進落檔供渲染。
+                     # ccy＝海外報價幣別（Yahoo 補源）——_moves 據此不把外幣收盤算成金額
+                     "close": q.get("close"), "ccy": q.get("ccy"),
+                     "industry": (ind or {}).get(sid),
                      # 新進／剔除標記：prev 有整份揭露時才判定（prev 空＝首日，不亂標「新增」；
                      # 跨來源＝揭露範圍本就不同，也不判定）
                      "is_new": bool(prev) and not xsrc and sid not in prev})
@@ -336,6 +340,7 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
                 "d_weight": (round(-v["weight"], 2) if v.get("weight") is not None else None),
                 "chg_pct": None, "contrib": None,
                 "close": ((quotes or {}).get(sid) or {}).get("close"),
+                "ccy": ((quotes or {}).get(sid) or {}).get("ccy"),
                 "industry": (ind or {}).get(sid),
                 "is_new": False, "is_out": True}
                for sid, v in prev.items()
