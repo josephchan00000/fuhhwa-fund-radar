@@ -69,7 +69,10 @@ def twse_inst_flows(d: date) -> dict | None:
         for row in doc.get("data") or []:
             name = str(row[0])
             diff_e8 = float(str(row[3]).replace(",", "")) / 1e8
-            if "外資及陸資" in name and "自營" not in name:
+            # 外資列名為「外資及陸資(不含外資自營商)」——本身含「自營」字樣，用「自營 not in」
+            # 會誤殺整列（macrochips 同坑已修，這裡一直漏著 → inst_foreign 永遠 ⚪ 沒在核）。
+            # 以獨有的「陸資」二字辨識；「外資自營商」列不含「陸資」→ 不誤收。
+            if "陸資" in name:
                 out["foreign"] = out.get("foreign", 0.0) + diff_e8
             if name.strip() == "合計":
                 out["total"] = diff_e8
@@ -243,6 +246,11 @@ def extract_claims(text: str, year: int | None = None) -> list[Claim]:
     year = year or clock.today_tw().year
     claims: list[Claim] = []
     for sent in re.split(r"[。；\n]", text or ""):
+        # 先剝掉 markdown 連結（2026-08-05 踩坑）：「參考連結」列的**媒體標題**會被當成
+        # 本報告的聲明抽出（鉅亨標題「三大法人買超1.09億元」被抽成 claim），日期還從
+        # URL 片段誤配（newtalk.tw/…/2026-08-04/1051304 被 _sent_date 撈成「04/10」），
+        # 拿 4/10 的官方值對 8/4 的媒體標題 → 假 🔴。連結標題是引用、URL 是雜訊，都不是聲明。
+        sent = re.sub(r"\[[^\]]*\]\([^)]*\)", " ", sent)
         d = _sent_date(sent, year)
         if not d:
             continue
@@ -260,7 +268,9 @@ def extract_claims(text: str, year: int | None = None) -> list[Claim]:
         m = re.search(r"三大法人[^0-9]{0,15}[買賣]超[^0-9]{0,8}([\d,]+\.?\d*)\s*億", sent)
         if m:
             claims.append(Claim("inst_total", _num(m.group(1)), d, sent.strip()))
-        m = re.search(r"外資[^0-9]{0,20}[買賣]超[^0-9]{0,8}([\d,]+\.?\d*)\s*億", sent)
+        # 「外資自營商」是 BFI82U 另一個獨立列——比對基準是「外資及陸資(不含外資自營商)」，
+        # 把「外資自營商買超 X 億」抽成 inst_foreign 必然對不上（2026-08-05 差點踩到）
+        m = re.search(r"外資(?!自營商)[^0-9]{0,20}[買賣]超[^0-9]{0,8}([\d,]+\.?\d*)\s*億", sent)
         if m and "累計" not in sent and "單週" not in sent and "上週" not in sent:
             claims.append(Claim("inst_foreign", _num(m.group(1)), d, sent.strip()))
         if "淨空單" in sent:
