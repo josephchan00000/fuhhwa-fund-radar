@@ -110,8 +110,10 @@
    **再跑 `TZ=Asia/Taipei python3 scripts/check_holdings_intro.py`（前十大簡介覆蓋率，🔴＝有持股缺簡介）——
    見 🔴 立即 WebSearch 查證後把缺的標的補進 `config/holding_profiles.json`（格式 `{name: {intro, ticker, country, verified}}`、
    純事實非投資建議、避開禁用詞），補到 🟢 為止**（2026-07-23 使用者：前十大簡介一再漏掉，此為固定防呆步驟，不可略）；
-   再跑 `TZ=Asia/Taipei python3 scripts/check_numbers.py`（高風險數字對官方 API——本容器 proxy 擋 twse/taifex
-   會全 ⚪ 屬正常，真正核對在 CI）。**發佈策略（2026-07-20 使用者兩指示並行：數字要對＋防線不可硬到什麼都沒更新）**：
+   再跑 `TZ=Asia/Taipei python3 scripts/check_numbers.py`（高風險數字核對——**籌碼類（三大法人合計／外資／
+   投信／自營商）自 2026-08-05 起對 `data/macro_chips.json` 官方落檔核對，容器內也核得到 🟢/🔴**；
+   指數類仍連官方 API、被本容器 proxy 擋會 ⚪ 屬正常，完整核對在 CI。容器內跑完 `data/factcheck.json`
+   會被改寫，**驗完 `git checkout -- data/factcheck.json` 丟棄、勿 commit**——該檔由 CI 每日權威覆寫）。**發佈策略（2026-07-20 使用者兩指示並行：數字要對＋防線不可硬到什麼都沒更新）**：
    CI 端 🔴 **不擋發佈**——結果落 `data/factcheck.json` 隨每日 commit 入板、儀表板「網頁更新時間」區顯示
    紅色警示章；主會話在步驟 9 驗證時讀該檔，見 🔴 **立即修正該數字並重推**（分鐘級收斂）。
    曾踩：外資淨空單誤引彙整站 83,605 口、官方實為 86,189。
@@ -285,11 +287,24 @@ Routine prompt 原文③——晚間 NAV·PCF 即時更新（18:58）：
   - **補簡介格式**：`config/holding_profiles.json` 的 `profiles` 下 `{持股原字串: {intro, ticker, country, verified}}`；
     key 必須是 `data/funds/*.json` 內 `top_holdings[].name` 的**原字串**（含 `*` 等後綴，精確對應）；
     intro 純事實描述、非投資建議、避開禁用詞。冷門標的先 WebSearch 查證再寫。
-- **`check_numbers.py` 在容器內跑會把 `data/factcheck.json` 洗成「全 ⚪」**（2026-07-29 踩坑：
-  容器 proxy 擋 twse/taifex → 一項都核不到，CI 的 10 🟢 被覆寫成 0 🟢/11 ⚪ 並隨 commit 上板）。
-  已加落檔防呆：**本次 0 🟢 0 🔴、而既有落檔曾核到過 → 不覆寫**。跑完仍請 `git status data/` 確認。
+- **`check_numbers.py` 在容器內跑會改寫 `data/factcheck.json`，一律驗完丟棄、勿 commit**
+  （2026-07-29 踩坑：當時容器全 ⚪，CI 的 10 🟢 被覆寫成 0 🟢/11 ⚪ 並隨 commit 上板；已加落檔防呆
+  **本次 0 🟢 0 🔴、而既有落檔曾核到過 → 不覆寫**。2026-08-05 起籌碼類改核官方落檔、容器內會核出
+  🟢/🔴——這是刻意的，push 前就能攔住錯數字，但寫出的檔缺 CI 才核得到的指數類項目，照樣不 commit，
+  `git checkout -- data/factcheck.json` 還原）。跑完仍請 `git status data/` 確認。
   同型提醒：commit 前用 `git add <明確路徑>`，少用 `git add -A`——本次就是 `-A` 把 smoke-run 的
   degraded 檔一起帶進 commit。
+- **數字核對「假 🔴」的根因與修法（2026-08-05 使用者回報 4 紅全誤判，勿再犯）**：報告依 SOP 引
+  官方落檔「三大法人合計買超 1.1 億」（鉅亨 1.09／聯合 1.1 皆同），核對器隔日 06:55 重打 BFI82U
+  卻得 20.05 億 → 把正確引用判 🔴×3；第 4 紅更是從「參考連結」行抽數字——鉅亨連結**標題**的
+  「買超1.09億元」成了聲稱值、日期從 Newtalk 網址 `/2026-08-04/1051304` 刮出「04/10」。三道修法
+  （全在 `arm/factcheck.py`，有測試守）：①`twse_inst_flows` 改**官方落檔（macro_chips.json）優先**
+  ——核對基準必須是報告被要求引用的同一層，落檔無該日才走 `macrochips._twse_inst_all` 連線鏈
+  （單一實作；舊版自帶解析用「自營 not in name」誤殺外資列 → 外資項永遠 ⚪，同修），
+  「第三方(非官方)」不得當 🔴 基準；②`extract_claims` 連結句（含 `](`）整句跳過（同美股抽取
+  07-22 既有防呆；落檔史掃描證實零誤殺成本）；③順勢納檢投信／自營商（inst_trust/inst_dealer，
+  2026-08-02 的真錯值正出在投信）。**正確處置＝修核對器，不是改報告數字去配合壞掉的檢查**；
+  發現疑似誤判先比對落檔＋兩家媒體，三方一致而核對器獨異 → 修核對器。
 - **新聞來源黑名單**：排除「富聯網」（moneylink）。
 - **禁用詞**（正文不得出現，機構觀點也要改寫避開）：保證、穩賺、必賺、包賺、必漲、必跌、一定會、唯一、
   建議買賣、建議買、建議賣、目標價、零風險、無風險、穩賺不賠。
