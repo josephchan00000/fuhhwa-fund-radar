@@ -27,7 +27,7 @@ from ..http import get_json
 _BBG2Y = {
     "US": "", "UN": "", "UW": "", "UQ": "", "UA": "",     # 美國（NYSE/Nasdaq 等合併碼）
     "JP": ".T", "JT": ".T",                                # 東京
-    "KS": ".KS",                                           # 韓國 KOSPI（KOSDAQ 為 .KQ，見 _fallback）
+    "KS": ".KS", "KP": ".KS",                              # 韓國（彭博 KP＝KOSPI；KOSDAQ 為 .KQ，見補試）
     "GY": ".DE", "GR": ".DE",                              # 德國（Xetra）
     "LN": ".L",                                            # 倫敦
     "FP": ".PA",                                           # 巴黎
@@ -54,15 +54,25 @@ _FOREIGN_RE = re.compile(r"^([A-Z0-9/.\-]+)\s+([A-Z]{2})$")
 
 
 def to_yahoo(sid: str) -> str | None:
-    """'NVDA US'→'NVDA'、'6981 JP'→'6981.T'、'BRK/B US'→'BRK-B'；不符樣式／未知交易所回 None。"""
+    """'NVDA US'→'NVDA'、'6981 JP'→'6981.T'、'BRK/B US'→'BRK-B'、'AV/ LN'→'AV.L'、
+    '300408 CH'→'300408.SZ'；不符樣式／未知交易所回 None。"""
     m = _FOREIGN_RE.match(str(sid or "").strip())
     if not m:
         return None
     tick, exch = m.groups()
+    # 尾斜線＝彭博的普通股類別記號（Aviva 'AV/'）——Yahoo 不帶，直接剝掉；
+    # 中段斜線＝股份類別（'BRK/B'）——Yahoo 用 '-'
+    tick = tick.rstrip("/").replace("/", "-").replace(".", "-")
+    if not tick:
+        return None
+    # 中國 A 股（彭博 CH 綜合／CG 深圳／CS 上海）：Yahoo 依市場分 .SS／.SZ——
+    # 6/9 開頭＝上海、其餘（0/3 開頭）＝深圳
+    if exch in ("CH", "CG", "CS"):
+        return tick + (".SS" if tick[:1] in "69" else ".SZ")
     suf = _BBG2Y.get(exch)
     if suf is None:
         return None
-    return tick.replace("/", "-").replace(".", "-") + suf
+    return tick + suf
 
 
 def _last_two_closes(sym: str) -> tuple[float, float, str | None] | None:
