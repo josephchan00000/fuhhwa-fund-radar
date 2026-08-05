@@ -64,6 +64,11 @@ WATCHLIST: list[tuple[str, str, str, str, str]] = [
     ("00990A", "主動元大AI新經濟", "active", "主動式", "2025/12/22"),  # 元大投信，不配息，全球 AI 新經濟主題
     ("00403A", "主動統一台股升級50", "active", "主動式", "2026/04/28"),  # 統一投信，季配，募資破紀錄約 792 億
     ("00407A", "主動凱基台灣",     "active", "主動式", "2026/06/12"),  # 凱基投信，不配息，台灣首檔不配息主動台股 ETF
+    # 2026-08-05 使用者指示補齊缺檔（WebSearch 逐檔查證工商時報／經濟日報／投信官網）：
+    ("00404A", "主動聯博動能50",   "active", "主動式", "2026/05/28"),  # 聯博投信首檔台股主動，6/9 掛牌，季配（首配預計 9 月中）
+    ("00405A", "主動富邦台灣龍耀", "active", "主動式", "2026/05/25"),  # 富邦投信首檔，6/9 掛牌，季配，募集 129.28 億
+    ("00996A", "主動兆豐台灣豐收", "active", "主動式", "2026/03/16"),  # 兆豐投信，3/25 掛牌，季配（成立滿 180 日後首配）
+    ("00410A", "主動永豐科技趨勢", "active", "主動式", "2026/08/03"),  # 永豐投信首檔，8/3 掛牌（成立日查無、暫用掛牌日——同 00986D 前例），半年配（首配 2027/3）
     # 2026-07-21 使用者指示加入本家金融股債雙收傘型（WebSearch 查證：工商時報 2026/4/15 掛牌報導＋復華官網 ETF24/25）。
     # 兩檔皆上櫃（Yahoo 代碼 .TWO）、etfinfo 未收錄 → 併入「其他」組同列（規模等欄靠種子＋序列回填）：
     ("00998A", "主動復華金融股息", "other", "主動式股票", "2026/03/31"),  # 全球金融股入息，季配（成立日 3/31、掛牌 4/15）
@@ -73,7 +78,9 @@ WATCHLIST: list[tuple[str, str, str, str, str]] = [
 # 債券型追蹤檔（cat 含「債」）：收盤價 tick 小、日波動低，收盤值天然高度重複，
 # 「髒序列」防呆（_is_degenerate 相異值 <60%）會誤殺合法序列（2026-07-22 踩坑：00986D
 # 各源全被判髒 → 報酬整片空）→ 對這些檔放寬相異值門檻。
-_BOND_CODES: set[str] = {c for c, _n, _k, cat, _i in WATCHLIST if "債" in cat}
+# 2026-08-05 改為函式：UPCOMING 自動升級的債券檔（cat 含「債」）也要吃得到放寬門檻。
+def bond_codes() -> set[str]:
+    return {c for c, _n, _k, cat, _i in watch_tuples() if "債" in cat}
 
 # 投信已公告之「當月預估配息」人工維護清單——etfinfo 只揭露已實際除息者、MOPS 端點又抓不到，
 # 故投信官方公告（首配或當期預告，除息日未到）於此登錄，作為 est_div 的可靠 fallback。
@@ -101,6 +108,9 @@ ANNOUNCED_EST: dict[str, dict] = {
 #     raise_end 為 None＝募集尚未定截止／仍進行中）。同時符合兩者時，優先歸「即將掛牌」。
 # url＝該檔「活動介紹／募集公告」頁（投信官方活動頁優先，其次主流媒體介紹）——供使用者點開了解。
 # 過期自動消失（掛牌日已過、或募集已結束且無掛牌日在窗內）。投信新公告時於此清單增修一筆即可。
+# **掛牌日一到自動升級進追蹤**（2026-08-05 使用者需求，機制見 watch_tuples()）：list_date ≤ 今日且
+# 尚未列入 WATCHLIST 者，自動以 stub 進「績效表＋持股詳情＆異動」（成立日暫用掛牌日、數據待 CI 抓）。
+# 選填欄 kind／cat 供升級用（不填＝active／主動式；債券型務必填 cat 含「債」——髒序列門檻靠它放寬）。
 UPCOMING_LIST_DAYS = 14      # 「即將掛牌」視窗：掛牌日在今日起 14 天內
 UPCOMING_RAISE_DAYS = 35     # 「即將募集」視窗：募集開始在今日起 35 天內（約一個月＋緩衝）
 UPCOMING_RAISE_FALLBACK = 14  # raise_end 未填時，以「募集起日＋此天數」估算截止，讓未定截止者仍自動過期
@@ -118,6 +128,7 @@ UPCOMING: list[dict] = [
     {"code": "00987D", "name": "主動統一美國公債量化增益", "issuer": "統一投信",
      "raise_start": "2026-08-05", "raise_end": "2026-08-07",
      "freq": "月配", "theme": "美國公債量化增益（與 00411A 股債雙主動搭配）",
+     "cat": "主動式債券",         # 債券型：升級時髒序列門檻須放寬（bond_codes 依 cat 含「債」判定）
      "url": "https://newtalk.tw/news/view/2026-07-17/1047704"},
     # 即將募集——本家復華全球未來50主動式ETF，8/12 起開募（知新聞／復華官方募集公告）。
     {"code": "00409A", "name": "主動復華全球未來50", "issuer": "復華投信",
@@ -157,6 +168,34 @@ def upcoming(today: date | None = None) -> dict:
     return {"listing": listing, "raising": raising}
 
 
+def watch_tuples(today: date | None = None) -> list[tuple[str, str, str, str, str]]:
+    """有效追蹤清單＝靜態 WATCHLIST ＋「掛牌日已到」的 UPCOMING 自動升級檔。
+
+    2026-08-05 使用者需求：「即將登場」列過的新 ETF，到掛牌那天要**自動**加入下方的
+    績效表／持股詳情＆異動，不必等人工。機制：UPCOMING 有 list_date 且 ≤ 今日、
+    又還沒列入 WATCHLIST 者，以 (code, name, kind, cat, 掛牌日) 升級——當天 CI 就會
+    抓它的規模／報酬／持股（抓不到前由 stub 先上代碼與名稱，數據欄顯示 —）。
+
+    仍需人工的兩件事（結構性做不掉，勿誤以為全自動）：
+    ① UPCOMING 本身要人工登錄（募集／掛牌公告散在各投信官網，無統一 API）；
+    ② 掛牌後要「轉正」進 WATCHLIST（補查證確切成立日／頻率）——否則清理 UPCOMING
+      舊條目時該檔會掉出追蹤。tests/test_etfwatch.py 有守：掛牌逾 14 天未轉正 → 紅。
+    """
+    t = today or clock.today_tw()
+    have = {c for c, *_ in WATCHLIST}
+    out = list(WATCHLIST)
+    for it in UPCOMING:
+        try:
+            ld = date.fromisoformat(it.get("list_date") or "")
+        except (TypeError, ValueError):
+            continue
+        if ld > t or it["code"] in have:
+            continue
+        out.append((it["code"], it["name"], it.get("kind") or "active",
+                    it.get("cat") or "主動式", ld.strftime("%Y/%m/%d")))
+    return out
+
+
 # 內建週報基準底稿（來源全倒／JSON 被清空時的最後 fallback，永不整片留空）。
 # 值取自使用者提供之週報圖表；ret_1w/ret_1m＝該基準日的近1週／近1月報酬（%）。
 SEED_ASOF = "2026-07-03"
@@ -191,12 +230,19 @@ SEED_PERF: dict[str, dict] = {
                "last_div": 0.404, "last_div_date": "2026-06-17"},
     "00986D": {"aum_e8": 28.40, "ret_1w": None, "ret_1m": None, "yield_pct": 7.3,  "freq": "月配",
                "last_div": 0.09,  "last_div_date": "2026-06-17"},
+    # 2026-08-05 新增（上市檔、etfinfo 有收錄 → 規模／報酬待 CI 首抓，不杜撰；freq 為查證值。
+    # 四檔首次除息皆未到（00404A 預計 9 月中、00996A 滿180日後、00410A 2027/3）→ last_div 留空）：
+    "00404A": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "季配"},
+    "00405A": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "季配"},
+    "00996A": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "季配"},
+    "00410A": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "半年配"},
 }
 
 # 「待首次 CI 抓取」的新增檔：本環境（雲端 Claude proxy）抓不到乾淨報酬／規模，且無使用者週報底稿，
 # 故報酬暫留空（儀表板標「—」），不杜撰數字；待 daily.yml（CI，不受 proxy 擋）首次抓取後由實際值補上。
 # 這些檔暫不受「SEED 報酬一律非空」不變式約束（成立日期／頻率等靜態欄位仍必備）。
-_SEED_PENDING: set[str] = {"00988A", "00990A", "00403A", "00407A", "00998A", "00986D"}
+_SEED_PENDING: set[str] = {"00988A", "00990A", "00403A", "00407A", "00998A", "00986D",
+                           "00404A", "00405A", "00996A", "00410A"}
 
 # 收益分配頻率的英文 → 表內中文（etfinfo dividendFrequency 兩種寫法都見過，中文直接放行）
 _FREQ_MAP = {"monthly": "月配", "quarterly": "季配", "semiannual": "半年配",
@@ -494,7 +540,7 @@ def _is_degenerate(series: dict[str, float], relax: bool = False) -> bool:
     """髒序列偵測：相異收盤值太少（<60% 交易日各異）＝疑似來源回傳重複值
     （曾見 Yahoo 對 0056 多日回同一 51.8）→ 不信任、換下一來源。
 
-    relax＝債券型（_BOND_CODES）：tick 小、日波動低，收盤值天然重複，60% 門檻會誤殺
+    relax＝債券型（bond_codes()）：tick 小、日波動低，收盤值天然重複，60% 門檻會誤殺
     合法序列（2026-07-22 教訓：00986D 全源被判髒 → 報酬整片空）→ 放寬到 15%。"""
     n = len(series)
     thr = 0.15 if relax else 0.6
@@ -508,7 +554,7 @@ def _fetch_returns(code: str, today: date | None = None) -> dict:
     髒序列」才採用；回傳 ret_src／ret_n／基準日供追查；全失敗回 None（上層退回底稿）。"""
     today = today or clock.today_tw()
     best = None
-    relax = code in _BOND_CODES                       # 債券型：放寬「髒序列」門檻（收盤天然重複）
+    relax = code in bond_codes()                       # 債券型：放寬「髒序列」門檻（收盤天然重複）
     # 惰性呼叫（審查 2026-07-18）：tuple 字面值會在進迴圈前把四個來源全打一遍，
     # 「依序取第一個」短路失效——每檔多發 ~5 個不必要請求。改存 callable 迴圈內才呼叫。
     for src, fetch in (("stooq", lambda: _stooq_series(code)),
@@ -551,14 +597,19 @@ def fetch() -> dict:
     today = clock.today_tw()
     try:                                                  # 當月預估配息 ← MOPS（一次抓全 ETF）
         from .connectors import mops
-        mops_dist = mops.etf_distributions({c for c, *_ in WATCHLIST})
+        mops_dist = mops.etf_distributions({c for c, *_ in watch_tuples()})
     except Exception as e:
         print(f"  ⚠ MOPS 收益分配抓取失敗（預估配息欄留空）：{e}")
         mops_dist = {}
+    # 配息頻率的升級 fallback：UPCOMING 自動升級檔沒有 SEED_PERF 底稿，
+    # 但募集公告的頻率是已知的——別讓它顯示 —（etfinfo 抓到後照樣覆蓋）。
+    up_freq = {it["code"]: it.get("freq") for it in UPCOMING
+               if it.get("freq") and it["freq"] != "—"}
     items, got_mkt, got_ret, got_est = [], 0, 0, 0
-    for code, name, kind, cat, inception in WATCHLIST:
+    for code, name, kind, cat, inception in watch_tuples():
         old = prev.get(code) or {}
-        base = SEED_PERF.get(code, {})
+        base = SEED_PERF.get(code, {}) or (
+            {"freq": up_freq[code]} if code in up_freq else {})
         item = {"code": code, "name": name, "kind": kind, "cat": cat,
                 "inception": inception,                       # 靜態、永遠有值
                 "aum_e8": _pick(old, base, "aum_e8"),
@@ -719,8 +770,16 @@ def load() -> dict | None:
     except (OSError, json.JSONDecodeError):
         return None
     have = {i.get("code") for i in doc.get("items") or []}
-    for code, name, kind, cat, inception in WATCHLIST:
+    for code, name, kind, cat, inception in watch_tuples():
         if code not in have:
             doc.setdefault("items", []).append(
-                {"code": code, "name": name, "kind": kind, "cat": cat, "inception": inception})
+                {"code": code, "name": name, "kind": kind, "cat": cat, "inception": inception,
+                 # 配息頻率是查證靜態值（SEED 或募集公告）——stub 期也照實顯示，別留 —
+                 "freq": (SEED_PERF.get(code) or {}).get("freq")
+                         or next((it.get("freq") for it in UPCOMING
+                                  if it["code"] == code and it.get("freq") != "—"), None)})
+    # 顯示順序照代碼字典序（2026-08-05 使用者：「績效那邊照代碼編號排序，不然有點亂」）。
+    # 在 load() 這個單一入口排——績效表、詳情卡、代碼泡泡三處順序自動一致；
+    # 落檔本身仍保持抓取順序（rows() 有自己的 WATCHLIST 序，資料層不受影響）。
+    (doc.get("items") or []).sort(key=lambda i: str(i.get("code") or ""))
     return doc

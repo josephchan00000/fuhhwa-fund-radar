@@ -390,6 +390,16 @@ ETF 數據追蹤／ETF 持股揭露／總經・籌碼數據／儀表板產表。
 **配息殖利率一律用年化配息率**＝最近一次「實際」配息金額 ÷ 最新市價 × 配息頻率次數
 （月配×12／季配×4／半年配×2／年配×1），不是 trailingYield 近12月回溯值；
 追蹤清單改 `arm/etfwatch.py` 的 `WATCHLIST` 即可（含**成立日期靜態值**——不需抓、永不空白）。
+**表列順序照代碼字典序（2026-08-05 使用者：「不然有點亂」）**：排序在 `etfwatch.load()` 單一入口
+（績效表／詳情卡／代碼泡泡三處自動一致），落檔本身仍是抓取順序、資料層不受影響。
+**「即將登場」→ 掛牌日自動加入追蹤（2026-08-05 使用者需求，半自動）**：`etfwatch.watch_tuples()`
+＝WATCHLIST＋「`UPCOMING` 有 `list_date` 且已到、尚未轉正」的檔自動升級（kind/cat 用條目選填欄，
+不填＝active／主動式；債券檔**務必**填 cat 含「債」——`bond_codes()` 靠它放寬髒序列門檻）。
+消費端（rows／load stub／fetch_etf_holdings targets）都吃 `watch_tuples()`，掛牌當天 CI 就抓
+績效＋持股，stub 先上代碼／名稱／頻率。**仍需人工的兩件事**：①UPCOMING 登錄本身（募集／掛牌
+公告無統一 API）；②掛牌後要「轉正」進 WATCHLIST（查證成立日／頻率、補 SEED_PERF）——
+`tests/test_etfwatch.py::test_upcoming_graduation_guard` 守著：**掛牌逾 14 天未轉正 → 紅**，
+逼下一輪收斂時處理（同持股簡介覆蓋率的逼補模式）。首例＝00410A（8/3 掛牌、8/5 轉正）。
 資料層 `data/etf_watch.json`：`scripts/fetch_etf_watch.py` 逐檔「欄位級合併」，fallback 鏈為
 **本次 etfinfo 新值 → 既有落檔值 → 內建 `SEED_PERF` 週報底稿**（成立日一律取 WATCHLIST 靜態值）。
 報酬數據標 `perf_asof` 基準日、規模／殖利率標 `as_of` 抓取日，儀表板分別備註（沿用最近可得值時使用者已同意）。
@@ -559,6 +569,30 @@ ETF 分頁改成**上表 → 底部詳情**兩層：ETF 數據追蹤表的代碼
   ③ `_drop_fake_prev()`：既有落檔的 prev 與今日 holdings 全等 → 就地清掉，誠實顯示
      「尚無可對比的前一揭露日」。**etfinfo 來源不受影響**（snapshotDate 是官方欄位，
      實測 21 檔權重都有變動）。
+- **踩過的坑：跨來源 diff 的假「全部出清」（2026-08-05 使用者發現 00986D：「全部出清？
+  加碼的也出清？」）**——`prev` 存的是前一揭露日的清單、`holdings` 是今天的，**兩者出自
+  不同來源時「揭露範圍的差異」會被整批算成新增／出清**。實況：00986D 07-30 fhtrust 的
+  xlsx 掃不到檔案自報日期（排序鍵退成空字串）→ **同一個揭露日被 etfinfo 頂掉**，etfinfo
+  多給的 11 列（`202609US`／`202609TY` 公債期貨、`M_*` MARGIN、`DA_*` 扣除應付證券款、
+  `PFUR_*` 應付買回款、`TLTW US`）全被判「新增」；隔天 fhtrust 回來、揭露日推進 →
+  同樣 11 列又全被判「出清」。其中 `PFUR_NTD`／`DA_USD`／`M_AUD` 的前日股數是**負數**
+  （應付款），出清 Δ ＝ 0 −(負) ＝ **正值**，於是表上出現「+14,749 張」卻標出清——
+  就是使用者說的「加碼的也出清」。**三道修法（缺一不可）**：
+  ① **列宇宙對齊 `etfholdings.drop_non_holdings()`**：現金／保證金／應付款／期貨等
+     非持股列一律不進 diff（fhtrust 本來就不給、etfinfo 的 PCF 快照會給）。判準＝
+     代號 `^(M|DA|PFUR|…)_[A-Z]{3}$`／期貨合約 `^20\d{4}[A-Z]{2,3}$`（年月＋商品碼）／
+     名稱含 MARGIN·PAYABLE·AFTER DEDUCTING·現金·應付…。**別誤殺帶交易所碼的外股**
+     （`TLTW US` 有空格、不符期貨式樣）。抓取端三個來源共用。
+  ② **來源切換時不判定新增／出清**（`contributions` 的 `xsrc`）：`merge_one` 現在記
+     `prev_src`；`prev_src != src` 時只比共同持股的加減碼，detail 標 `xsrc=[舊源, 新源]`，
+     儀表板異動表底下（`mvfoot`）寫明「僅比對共同持股」。**這是最後一道防線**——
+     真出清與「對方沒揭露」本來就分不出來，寧可少報也不假造。
+  ③ **換源必須換到更新的快照**（`fetch_etf_holdings._prefer_incumbent`）：贏家不是既有
+     來源、既有來源這次也抓得到、且**快照日沒有比既有揭露日更新** → 維持既有來源。
+     真有更新的快照時照換（00991A 靠 etfinfo 頂著的情境不受影響）。
+  · **待查**：`TLTW US`（權重 3.5% 的 ETF 部位）只出現在 etfinfo，復華 xlsx 沒有——
+    若它本該在，就是 `fhtrust._parse_xlsx` 漏了某個區段。抓取端已加「列宇宙差異」
+    CI 日誌（僅 fhtrust／僅 etfinfo 各列前 6 個代號），下一輪 run 讀日誌即可判讀。
 - **抓取＝彙整站雙源（2026-07-30 最終定案，使用者指示「不必抓官網第一手，彙整站＋雙重驗證」）**：
   `scripts/fetch_etf_holdings.py`＋獨立 workflow `.github/workflows/etf_holdings.yml`
   （台北週一~五 17:40；純 HTTP、每輪數十秒）。

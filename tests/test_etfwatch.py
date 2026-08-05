@@ -277,17 +277,19 @@ def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
 
 def test_watchlist_matches_weekly_report():
     codes = [c for c, *_ in etfwatch.WATCHLIST]
-    assert len(codes) == len(set(codes)) == 23
+    assert len(codes) == len(set(codes)) == 27
     passive = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "passive"]
     active = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "active"]
     assert set(passive) == {"0056", "00878", "00919", "00929", "0050", "006208"}
-    assert "00991A" in active and len(active) == 15    # 含本家主動復華未來50
+    assert "00991A" in active and len(active) == 19    # 含本家主動復華未來50
     # 2026-07-06 新增熱門／新募集主動式 ETF 皆在清單中
     assert {"00988A", "00990A", "00403A", "00407A"} <= set(active)
+    # 2026-08-05 使用者指示補齊缺檔（00410A 為「即將登場」畢業轉正的第一例）
+    assert {"00404A", "00405A", "00996A", "00410A"} <= set(active)
     # 「其他」分類＝本家上櫃兩檔（00998A 股票＋00986D 債券，Yahoo 代碼 .TWO）
     other = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "other"]
     assert other == ["00998A", "00986D"]
-    assert etfwatch._BOND_CODES == {"00986D"}          # 債券型放寬髒序列門檻的名單
+    assert etfwatch.bond_codes() >= {"00986D"}         # 債券型放寬髒序列門檻的名單
     # 成立日期為 WATCHLIST 靜態值（不需抓、永不空白）
     for c, name, kind, cat, inception in etfwatch.WATCHLIST:
         assert inception and inception.count("/") == 2
@@ -471,3 +473,80 @@ def test_upcoming_view_renders_cards_with_links():
 def test_upcoming_view_empty_shows_hint():
     out = fund_dashboard._upcoming_etf_view({"listing": [], "raising": []})
     assert "近期無" in out and "upnone" in out
+
+
+# ── 掛牌日自動升級（2026-08-05 使用者：即將登場列過的檔，掛牌那天要自動加入追蹤） ─────
+
+def test_watch_tuples_promotes_on_list_date(monkeypatch):
+    """UPCOMING 有 list_date 且已到、又不在 WATCHLIST → 自動升級進有效追蹤清單；
+    掛牌日前一天則不升級。"""
+    monkeypatch.setattr(etfwatch, "UPCOMING", [
+        {"code": "00999X", "name": "主動測試新兵", "issuer": "測試投信",
+         "list_date": "2026-08-10", "freq": "季配", "theme": "t", "url": "u"},
+    ])
+    before = etfwatch.watch_tuples(date(2026, 8, 9))
+    assert all(c != "00999X" for c, *_ in before)
+    after = etfwatch.watch_tuples(date(2026, 8, 10))
+    got = {c: (n, k, cat, inc) for c, n, k, cat, inc in after}
+    assert got["00999X"] == ("主動測試新兵", "active", "主動式", "2026/08/10")
+    # 靜態 WATCHLIST 原封在前，升級檔只增不改
+    assert after[:len(etfwatch.WATCHLIST)] == list(etfwatch.WATCHLIST)
+
+
+def test_watch_tuples_respects_kind_cat_and_dedupes(monkeypatch):
+    """選填 kind/cat 供債券型／上櫃檔升級用；已轉正 WATCHLIST 者不重複出現。"""
+    monkeypatch.setattr(etfwatch, "UPCOMING", [
+        {"code": "00999D", "name": "主動測試美債", "issuer": "測試投信",
+         "list_date": "2026-08-01", "freq": "月配", "cat": "主動式債券", "theme": "t", "url": "u"},
+        {"code": "00410A", "name": "主動永豐科技趨勢", "issuer": "永豐投信",
+         "list_date": "2026-08-03", "freq": "半年配", "theme": "t", "url": "u"},  # 已轉正
+        {"code": "00408X", "name": "主動測試募集中", "issuer": "測試投信",
+         "raise_start": "2026-08-05", "raise_end": "2026-08-07", "theme": "t", "url": "u"},  # 無掛牌日
+    ])
+    lst = etfwatch.watch_tuples(date(2026, 8, 10))
+    codes = [c for c, *_ in lst]
+    assert codes.count("00410A") == 1                  # 不因 UPCOMING 還留著就重複
+    assert "00408X" not in codes                       # 沒有掛牌日＝不升級
+    got = {c: (k, cat) for c, _n, k, cat, _i in lst}
+    assert got["00999D"] == ("active", "主動式債券")
+    assert "00999D" in etfwatch.bond_codes()           # 債券檔吃得到髒序列放寬門檻
+
+
+def test_upcoming_graduation_guard():
+    """掛牌逾 14 天仍未轉正 WATCHLIST → 紅。升級只是 stub 兜底（成立日暫用掛牌日、
+    無 SEED 底稿）；清理 UPCOMING 舊條目時未轉正的檔會掉出追蹤——這條測試逼在
+    下一輪收斂時把它正式移入 WATCHLIST（查證成立日／頻率後補 SEED_PERF）。"""
+    from datetime import timedelta
+    from arm import clock
+    have = {c for c, *_ in etfwatch.WATCHLIST}
+    overdue = [it["code"] for it in etfwatch.UPCOMING
+               if it.get("list_date") and it["code"] not in have
+               and date.fromisoformat(it["list_date"])
+               <= clock.today_tw() - timedelta(days=14)]
+    assert not overdue, (
+        f"{overdue} 掛牌已逾 14 天仍未轉正 WATCHLIST——請 WebSearch 查證成立日／配息頻率後"
+        f"移入 WATCHLIST 並補 SEED_PERF（參考 2026-08-05 00410A 轉正做法）")
+
+
+def test_load_sorts_items_by_code(tmp_path, monkeypatch):
+    """績效表照代碼字典序（2026-08-05 使用者：「不然有點亂」）——load() 單一入口排序，
+    績效表／詳情卡／代碼泡泡三處順序自動一致。"""
+    fp = tmp_path / "etf_watch.json"
+    fp.write_text(json.dumps({"as_of": "x", "items": [
+        {"code": "00996A", "name": "c", "kind": "active", "cat": "主動式", "inception": "2026/03/16"},
+        {"code": "00404A", "name": "a", "kind": "active", "cat": "主動式", "inception": "2026/05/28"},
+        {"code": "0050", "name": "p", "kind": "passive", "cat": "市值型", "inception": "2003/06/30"},
+    ]}), encoding="utf-8")
+    monkeypatch.setattr(etfwatch, "OUT", fp)
+    codes = [i["code"] for i in etfwatch.load()["items"]]
+    assert codes == sorted(codes)                      # 全體字典序
+    assert codes.index("00404A") < codes.index("00405A") < codes.index("00996A")
+
+
+def test_new_codes_have_seed_freq_and_pending():
+    """新增四檔：freq 為查證值、規模／報酬留空不杜撰（列 _SEED_PENDING 待 CI 首抓）。"""
+    assert etfwatch.SEED_PERF["00404A"]["freq"] == "季配"
+    assert etfwatch.SEED_PERF["00405A"]["freq"] == "季配"
+    assert etfwatch.SEED_PERF["00996A"]["freq"] == "季配"
+    assert etfwatch.SEED_PERF["00410A"]["freq"] == "半年配"
+    assert {"00404A", "00405A", "00996A", "00410A"} <= etfwatch._SEED_PENDING

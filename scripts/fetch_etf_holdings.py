@@ -59,6 +59,10 @@ def _from_etfinfo(code: str) -> tuple[list[dict], str | None, str]:
              "shares": (int(r["shares"]) if r.get("shares") else None),
              "weight": (float(r["weight"]) if r.get("weight") else None)}
             for r in raw]
+    # 非持股列（MARGIN／應付買回款／扣除應付證券款／公債期貨）：etfinfo 的 PCF 快照會給、
+    # 復華 assetsExcel 不給——不濾掉的話，主來源一切換就整批假「新增」、隔天整批假「出清」
+    # （2026-08-05 使用者抓到 00986D 11 檔全標出清、其中 3 檔異動量還是正的）。
+    rows = etfholdings.drop_non_holdings(rows)
     rows = pcf._drop_value_like_shares(
         sorted(rows, key=lambda h: -(h.get("weight") or 0)))
     why = pcf.implausible_reason(rows)
@@ -138,7 +142,8 @@ def _from_yahoo(code: str) -> tuple[list[dict], str]:
         except Exception as e:                            # noqa: BLE001
             last = f"yahoo ✗ {type(e).__name__}: {str(e)[:80]}"
             continue
-        rows = pcf._normalize(pcf.parse_embedded_json(raw) or pcf.parse_html(raw))
+        rows = etfholdings.drop_non_holdings(
+            pcf._normalize(pcf.parse_embedded_json(raw) or pcf.parse_html(raw)))
         why = pcf.implausible_reason(rows)
         if not why:
             return rows, f"yahoo ✓ {len(rows)} 檔（{suffix}）"
@@ -147,11 +152,37 @@ def _from_yahoo(code: str) -> tuple[list[dict], str]:
     return [], last
 
 
+def _prefer_incumbent(cands: list[tuple], held_src: str | None,
+                      held_date: str | None) -> list[tuple]:
+    """換源必須換到**更新的快照**，否則維持既有來源（2026-08-05 使用者抓到 00986D）。
+
+    為什麼：`prev` 存的是前一揭露日的清單、`holdings` 是今天的，兩者出自不同來源時
+    「揭露範圍的差異」會被整批算成新增／出清。00986D 就是這樣壞掉的——07-30 fhtrust
+    的 xlsx 掃不到檔案自報日期（排序鍵退成空字串）→ 同一個揭露日被 etfinfo 頂掉，
+    etfinfo 多出來的 11 列全被判「新增」；隔天 fhtrust 回來，那 11 列又全被判「出清」，
+    其中應付款列的股數是負的，於是出現「+14,749 張」卻標出清的自相矛盾。
+
+    規則：贏家不是既有來源、而既有來源這次也抓得到、且贏家的快照日**沒有比既有揭露日更新**
+    → 把既有來源提回第一順位。真的有更新的快照時照換不誤（00991A 靠 etfinfo 頂著的情境
+    不受影響）。剩餘的跨源差異由 `etfholdings.drop_non_holdings`（列宇宙對齊）與
+    `contributions` 的 `xsrc` 防呆（不判定新增／出清）兜底。
+    """
+    if not cands or not held_src or cands[0][0] == held_src:
+        return cands
+    inc = next((c for c in cands if c[0] == held_src), None)
+    if inc is None:
+        return cands
+    newer = bool(cands[0][2]) and bool(held_date) and str(cands[0][2]) > str(held_date)
+    return cands if newer else [inc] + [c for c in cands if c is not inc]
+
+
 # ── 主流程 ───────────────────────────────────────────────────────────
 
 def main() -> int:
     probe_only = "--probe" in sys.argv
-    targets = [(c, k) for c, _n, k, _cat, _i in etfwatch.WATCHLIST if k in _KINDS]
+    # watch_tuples()＝WATCHLIST＋「掛牌日已到」的 UPCOMING 自動升級檔（2026-08-05）——
+    # 新 ETF 掛牌當天這裡就會開始抓它的持股，不必等人工轉正
+    targets = [(c, k) for c, _n, k, _cat, _i in etfwatch.watch_tuples() if k in _KINDS]
     targets.sort(key=lambda t: _KINDS.index(t[1]))
     print(f"[ETF 每日持股・多源] 主來源＝快照日最新者（同日時本家 fhtrust 第一手優先）＋Yahoo 構成驗證"
           f"（{len(targets)} 檔{'；--probe 不落檔' if probe_only else ''}）…")
@@ -160,6 +191,9 @@ def main() -> int:
     diag: dict[str, str] = {}
     n_match = n_single = n_mismatch = n_weak = 0
     fallback_date = _latest_trade_date()
+    # 既有落檔的 (來源, 揭露日)：換源判準，見 _prefer_incumbent
+    held = {c: ((e or {}).get("src"), (e or {}).get("date"))
+            for c, e in ((etfholdings.load() or {}).get("etfs") or {}).items()}
     for code, _kind in targets:
         # 本家檔（products.json 有對映）＝第一手優先；其餘 etfinfo 主
         f_rows, f_asof, f_self, log0 = _from_fhtrust(code)
@@ -181,6 +215,8 @@ def main() -> int:
         if y_rows:
             cands.append(("yahoo", y_rows, None, "", -1))
         cands.sort(key=lambda c: (c[3], c[4]), reverse=True)
+        #   · **換源必須換到更新的快照**（2026-08-05 新增，見下方 _prefer_incumbent）
+        cands = _prefer_incumbent(cands, *held.get(code, (None, None)))
         got = [(c[0], c[1]) for c in cands]
         asof = cands[0][2] if cands else None
         if not got:
@@ -219,6 +255,16 @@ def main() -> int:
         mark = {"match": "🟢", "single": "◯", "mismatch": "⚠", "weak": "◐"}[verify["status"]]
         logs = "｜".join(x for x in (log0, log1, log3) if x)
         print(f"  {mark} {code}：{len(rows)} 檔（{src}）｜{logs}")
+        # 列宇宙差異診斷（2026-08-05）：非持股列已過濾，剩下的「只有一源有」就是**真的**
+        # 涵蓋差異——例如 00986D 的 TLTW US（權重 3.5% 的 ETF 部位）只出現在 etfinfo，
+        # 若復華 xlsx 也該有它，那就是 fhtrust 解析漏了某個區段。容器 proxy 擋兩站，
+        # CI 日誌是唯一的觀察窗；印出來供下一輪判讀，不影響落檔。
+        if f_rows and e_rows:
+            f_ids = {str(r["stock_id"]) for r in f_rows}
+            e_ids = {str(r["stock_id"]) for r in e_rows}
+            if f_ids ^ e_ids:
+                print(f"      · 列宇宙差異：僅 fhtrust {sorted(f_ids - e_ids)[:6]}"
+                      f"／僅 etfinfo {sorted(e_ids - f_ids)[:6]}")
 
     if probe_only:
         print(f"[探針] 成功 {len(fresh)}/{len(targets)}（🟢 構成相符 {n_match}、"
