@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-08-05 16:22",
+  "as_of": "2026-08-05 18:15",
   "funds": [
     {
       "id": "47",
@@ -7,8 +7,8 @@
       "group": "global_equity",
       "category": "跨國投資股票型",
       "region": "美國",
-      "nav": 36.88,
-      "nav_date": "2026/08/03",
+      "nav": 38.65,
+      "nav_date": "2026/08/04",
       "as_of": "2026/06/30",
       "n_top": 10
     },
@@ -18,8 +18,8 @@
       "group": "global_equity",
       "category": "跨國投資股票型",
       "region": "全球",
-      "nav": 73.35,
-      "nav_date": "2026/08/03",
+      "nav": 76.09,
+      "nav_date": "2026/08/04",
       "as_of": "2026/06/30",
       "n_top": 10
     },
@@ -106,8 +106,8 @@
       "group": "global_balanced",
       "category": "跨國投資平衡型",
       "region": "大中華地區",
-      "nav": 17.19,
-      "nav_date": "2026/08/03",
+      "nav": 17.95,
+      "nav_date": "2026/08/04",
       "as_of": "2026/06/30",
       "n_top": 10
     },
@@ -150,8 +150,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 155.67,
-      "nav_date": "2026/08/04",
+      "nav": 160.42,
+      "nav_date": "2026/08/05",
       "as_of": "2026/06/30",
       "n_top": 10
     },
@@ -227,8 +227,8 @@
       "group": "tw_balanced",
       "category": "國內平衡型",
       "region": "台灣",
-      "nav": 85.6288,
-      "nav_date": "2026/08/04",
+      "nav": 88.2453,
+      "nav_date": "2026/08/05",
       "as_of": "2026/06/30",
       "n_top": 10
     },
@@ -238,8 +238,8 @@
       "group": "tw_balanced",
       "category": "國內平衡型",
       "region": "台灣",
-      "nav": 125.7805,
-      "nav_date": "2026/08/04",
+      "nav": 129.6386,
+      "nav_date": "2026/08/05",
       "as_of": "2026/06/30",
       "n_top": 10
     },
@@ -249,8 +249,8 @@
       "group": "tw_balanced",
       "category": "國內平衡型",
       "region": "台灣",
-      "nav": 139.0714,
-      "nav_date": "2026/08/04",
+      "nav": 143.3708,
+      "nav_date": "2026/08/05",
       "as_of": "2026/06/30",
       "n_top": 10
     },
@@ -260,8 +260,8 @@
       "group": "tw_balanced",
       "category": "國內平衡型",
       "region": "台灣",
-      "nav": 99.7058,
-      "nav_date": "2026/08/04",
+      "nav": 102.801,
+      "nav_date": "2026/08/05",
       "as_of": "2026/06/30",
       "n_top": 10
     },
@@ -271,8 +271,8 @@
       "group": "tw_fof",
       "category": "組合型",
       "region": "台灣",
-      "nav": 43.54,
-      "nav_date": "2026/08/04",
+      "nav": 44.68,
+      "nav_date": "2026/08/05",
       "as_of": "2026/06/30",
       "n_top": 0
     },
