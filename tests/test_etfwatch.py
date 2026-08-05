@@ -277,15 +277,16 @@ def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
 
 def test_watchlist_matches_weekly_report():
     codes = [c for c, *_ in etfwatch.WATCHLIST]
-    assert len(codes) == len(set(codes)) == 27
+    assert len(codes) == len(set(codes)) == 33
     passive = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "passive"]
     active = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "active"]
     assert set(passive) == {"0056", "00878", "00919", "00929", "0050", "006208"}
-    assert "00991A" in active and len(active) == 19    # 含本家主動復華未來50
+    assert "00991A" in active and len(active) == 25    # 含本家主動復華未來50
     # 2026-07-06 新增熱門／新募集主動式 ETF 皆在清單中
     assert {"00988A", "00990A", "00403A", "00407A"} <= set(active)
-    # 2026-08-05 使用者指示補齊缺檔（00410A 為「即將登場」畢業轉正的第一例）
+    # 2026-08-05 使用者指示補齊缺檔（兩批；00410A 為「即將登場」畢業轉正的第一例）
     assert {"00404A", "00405A", "00996A", "00410A"} <= set(active)
+    assert {"00400A", "00401A", "00402A", "00406A", "00408A", "00999A"} <= set(active)
     # 「其他」分類＝本家上櫃兩檔（00998A 股票＋00986D 債券，Yahoo 代碼 .TWO）
     other = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "other"]
     assert other == ["00998A", "00986D"]
