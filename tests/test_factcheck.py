@@ -1,4 +1,6 @@
 """高風險數字事實核對：抽取／比對／降級三路徑離線測試（不打網路）。"""
+import json
+
 import pytest
 from datetime import date
 
@@ -217,3 +219,103 @@ def test_adjacent_session_rules():
     assert not adj(date(2026, 7, 23), date(2026, 7, 27))    # 漏了週五
     assert not adj(date(2026, 7, 24), date(2026, 7, 28))    # 跨假日，與漏棒不可區分
     assert not adj(date(2026, 7, 20), date(2026, 7, 27))    # 相隔一週
+
+
+# ── 2026-08-05 假 🔴 ×4 檢討：三大法人核對基準＝官方落檔、連結句不抽 ──────────
+
+_ARCHIVE_0804 = {
+    "as_of": "2026-08-05 06:55",
+    "series": {"inst_total": {"2026-08-04": 1.1}, "inst_foreign": {"2026-08-04": -57.3},
+               "inst_trust": {"2026-08-04": 252.7}, "inst_dealer": {"2026-08-04": -194.3}},
+    "src": {"inst_total": {"src": "twse:BFI82U", "fetched": "2026-08-04 15:33", "n": 1}},
+}
+
+
+def _with_archive(monkeypatch, tmp_path, doc):
+    from arm import macrochips
+    fp = tmp_path / "macro_chips.json"
+    fp.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(macrochips, "DATA_FP", fp)
+    return macrochips
+
+
+def test_inst_flows_archive_first_no_refetch(monkeypatch, tmp_path):
+    """2026-08-05 誤判 ×3：報告依 SOP 引官方落檔 1.1 億（鉅亨 1.09／聯合 1.1 皆同），
+    核對器隔日 06:55 重打 BFI82U 得 20.05 億、反把正確引用判 🔴——基準必須是報告被
+    要求引用的**同一層落檔**；落檔有該日就不重抓（隔日重抓值可能是 outlier）。"""
+    mc = _with_archive(monkeypatch, tmp_path, _ARCHIVE_0804)
+    monkeypatch.setattr(mc, "_twse_inst_all",
+                        lambda d, diag=None: pytest.fail("落檔已有該日，不應重抓官方端點"))
+    assert factcheck.twse_inst_flows(date(2026, 8, 4)) == {
+        "total": 1.1, "foreign": -57.3, "trust": 252.7, "dealer": -194.3}
+
+
+def test_reference_link_line_never_extracted():
+    """2026-08-05 誤判第 4 紅的根因隔離：參考連結行的「1.09」來自鉅亨連結**標題**、
+    「04/10」來自 Newtalk URL 的 `/2026-08-04/1051304`（M/D regex 刮到「04/10」）→
+    拿 4/10 官方值 367.65 億來比 → 假 🔴。連結句（含 "]("）整句不抽——
+    extract_us_index_claims 自 07-22 起同款防呆；落檔史掃描證實此防呆零誤殺成本。"""
+    line = ("5. **參考連結**：[三大法人買賣金額統計表（BFI82U）｜臺灣證券交易所]"
+            "(https://www.twse.com.tw/zh/trading/foreign/bfi82u.html)、"
+            "[三大法人－區分各期貨契約｜臺灣期貨交易所]"
+            "(https://www.taifex.com.tw/cht/3/futContractsDate)、"
+            "[外資續砍57億、投信狂掃252億 三大法人買超1.09億元｜鉅亨網]"
+            "(https://news.cnyes.com/news/id/6558608)、"
+            "[台股震盪千點終場小跌25點 外資賣超縮手、回補期貨空單2,180口｜Newtalk新聞]"
+            "(https://newtalk.tw/news/view/2026-08-04/1051304)")
+    assert factcheck.extract_claims(line, year=2026) == []
+
+
+def test_20260805_false_reds_regression(monkeypatch, tmp_path):
+    """當日 4 🔴 全景重演（報告原句）：修後連結行零抽取、其餘全 🟢
+    （含新納檢的投信／自營商），全程不連網。"""
+    _with_archive(monkeypatch, tmp_path, _ARCHIVE_0804)
+    text = (
+        "- **官方現貨籌碼（證交所官方，基準日 8/4）**：**三大法人合計買超 1.1 億元**，"
+        "其中外資及陸資（不含外資自營商）賣超 57.3 億元、**投信買超 252.7 億元**、"
+        "自營商賣超 194.3 億元；**投信已連續 30 個交易日站在買方**。\n"
+        "### 3. 官方籌碼：8/4 三大法人合計買超 1.1 億元，投信買超 252.7 億元連 30 買，"
+        "外資回補台指期空單 2,180 口至淨空 87,858 口（證交所／期交所官方資料・2026/08/04）\n"
+        "5. **參考連結**：[外資續砍57億、投信狂掃252億 三大法人買超1.09億元｜鉅亨網]"
+        "(https://news.cnyes.com/news/id/6558608)、[台股震盪千點終場小跌25點 外資賣超縮手、"
+        "回補期貨空單2,180口｜Newtalk新聞](https://newtalk.tw/news/view/2026-08-04/1051304)\n")
+    claims = factcheck.extract_claims(text, year=2026)
+    assert all(c.day == date(2026, 8, 4) for c in claims)      # 04/10 幽靈日期不再出現
+    assert not [c for c in claims if c.value == 1.09]          # 連結標題數字不成聲稱
+    assert sorted(c.kind for c in claims) == [
+        "inst_dealer", "inst_foreign", "inst_total", "inst_total",
+        "inst_trust", "inst_trust"]
+    res = factcheck.check_claims(claims)      # 不注入 fetchers：flows 走真實落檔路徑
+    assert res and [r.status for r in res] == ["🟢"] * len(res)
+
+
+def test_inst_flows_fallback_and_nonofficial_rejected(monkeypatch, tmp_path):
+    """落檔無該日 → 走 macrochips._twse_inst_all 單一實作（外資列以「陸資」辨識——舊版
+    factcheck 自帶解析用「自營 not in name」，外資項永遠 ⚪）；「第三方(非官方)」無論
+    出現在連線鏈或落檔 src，一律不得當 🔴 判定基準（設計原則 1 絕不誤殺）。"""
+    mc = _with_archive(monkeypatch, tmp_path, _ARCHIVE_0804)
+    monkeypatch.setattr(mc, "_twse_inst_all", lambda d, diag=None: (
+        {"total": -165.2, "foreign": -191.9, "trust": 233.2, "dealer": -206.5}, "twse:BFI82U"))
+    got = factcheck.twse_inst_flows(date(2026, 8, 3))      # 落檔只有 08-04 → 連線鏈
+    assert got and got["foreign"] == -191.9                # 外資項不再因解析誤殺而缺席
+    monkeypatch.setattr(mc, "_twse_inst_all",
+                        lambda d, diag=None: ({"total": 1.0}, "第三方(非官方)"))
+    assert factcheck.twse_inst_flows(date(2026, 8, 3)) is None
+    # 落檔 src 標非官方 → 落檔值也不當基準（改走連線鏈；此處連線亦非官方 → None）
+    _with_archive(monkeypatch, tmp_path,
+                  {**_ARCHIVE_0804, "src": {"inst_total": {"src": "第三方(非官方)"}}})
+    assert factcheck.twse_inst_flows(date(2026, 8, 4)) is None
+
+
+def test_trust_dealer_extraction_guards():
+    """新 kind 不誤抽邊界：「外資及陸資(不含外資自營商)」的「自營商」不錯掛、
+    自營商「自行買賣／避險」分項口徑不抽（落檔存兩列合計）、週加總不抽。"""
+    s = ("8/4 外資及陸資（不含外資自營商）賣超 57.3 億元、投信買超 252.7 億元、"
+         "自營商賣超 194.3 億元。")
+    got = {(c.kind, c.value) for c in factcheck.extract_claims(s, year=2026)}
+    assert ("inst_foreign", 57.3) in got and ("inst_trust", 252.7) in got
+    assert ("inst_dealer", 194.3) in got and ("inst_dealer", 57.3) not in got
+    assert not [c for c in factcheck.extract_claims(
+        "8/4 自營商（自行買賣）買超 12.5 億元。", year=2026) if c.kind == "inst_dealer"]
+    assert not [c for c in factcheck.extract_claims(
+        "上週投信買超 616 億元（8/1 當週統計）。", year=2026) if c.kind == "inst_trust"]

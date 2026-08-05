@@ -3,7 +3,8 @@
 兩組指標、各自獨立降級：
   · 全球市場溫度計 ← Yahoo 圖表 API（^VIX／^TNX／DXY／TWD=X／BZ=F／GC=F；CI 可達，
     factcheck.yahoo_index_series 同一端點）——每次抓近 1 個月日線整段合併。
-  · 台股籌碼 ← TWSE／TAIFEX 官方 API（三大法人買賣超＝factcheck.twse_inst_flows 重用；
+  · 台股籌碼 ← TWSE／TAIFEX 官方 API（三大法人買賣超＝本層 _twse_inst_all 單一實作，
+    factcheck.twse_inst_flows 反向重用它＋落檔（2026-08-05 起，核對基準＝落檔優先）；
     融資融券餘額＝MI_MARGN；外資台指期淨部位／選擇權 P/C 比＝期交所下載端點，
     支援日期區間、一次補齊近兩週史料）。
 

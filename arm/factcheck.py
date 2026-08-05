@@ -3,7 +3,9 @@
 從新聞報告抽出「可被官方資料驗證」的高風險數字，與證交所（TWSE）／期交所（TAIFEX）
 官方 API 比對：
   · 加權指數收盤價／漲跌點數（TWSE FMTQIK）
-  · 三大法人合計買賣超金額、外資（及陸資）買賣超金額（TWSE BFI82U）
+  · 三大法人合計／外資（及陸資）／投信／自營商買賣超金額——基準＝data/macro_chips.json
+    官方落檔（報告被 SOP 要求引用的同一層）優先，落檔無該日才連 TWSE BFI82U
+    （共用 arm.macrochips 單一實作；2026-08-05 誤判檢討，詳 twse_inst_flows docstring）
   · 外資臺股期貨(TX)多空淨額口數（TAIFEX 官方下載端點）
 
 設計原則（務必維持）：
@@ -58,24 +60,34 @@ def twse_index_close(d: date) -> tuple[float, float] | None:
 
 
 def twse_inst_flows(d: date) -> dict | None:
-    """TWSE BFI82U（三大法人買賣金額統計）→ {'total': 合計買賣差(億), 'foreign': 外資及陸資(億)}。
-    官方單位為元；轉億元。"""
-    doc = _get_json(f"https://www.twse.com.tw/rwd/zh/fund/BFI82U"
-                    f"?type=day&dayDate={d:%Y%m%d}&response=json")
-    if not isinstance(doc, dict) or doc.get("stat") != "OK":
-        return None
+    """三大法人買賣金額（億元，買超為正）→ {'total','foreign','trust','dealer'} 之可得子集。
+
+    **基準＝data/macro_chips.json 官方落檔優先（2026-08-05 修）**：報告的籌碼數字被 SOP
+    要求「一律讀本機官方落檔」，核對就必須拿**同一層**當基準。當日誤判實錄：落檔
+    （src twse:BFI82U、08-04 15:33 抓）＝合計買超 1.1 億，鉅亨（1.09）／聯合（1.1）皆同；
+    隔日 06:55 重打同一端點卻得 20.05 億——重抓值才是 outlier，正確引用落檔的報告反被
+    判 🔴×3。落檔無該日才連線，且共用 arm.macrochips._twse_inst_all 單一實作（舊版自帶
+    一份解析，外資列用「自營 not in name」誤殺「外資及陸資(不含外資自營商)」→ 外資項
+    永遠 ⚪，macrochips 註解早記過此坑）；第三方（非官方）來源不得當 🔴 判定基準
+    （設計原則 1「絕不誤殺」），落檔 src 標非官方時同樣跳過落檔改走連線鏈。"""
+    from . import macrochips                          # 延遲載入：避免模組互相 import
+    iso = d.isoformat()
+    doc = macrochips.load() or {}
+    series = doc.get("series") or {}
+    src = str(((doc.get("src") or {}).get("inst_total") or {}).get("src", ""))
     out: dict[str, float] = {}
-    try:
-        for row in doc.get("data") or []:
-            name = str(row[0])
-            diff_e8 = float(str(row[3]).replace(",", "")) / 1e8
-            if "外資及陸資" in name and "自營" not in name:
-                out["foreign"] = out.get("foreign", 0.0) + diff_e8
-            if name.strip() == "合計":
-                out["total"] = diff_e8
-        return out or None
-    except Exception:
+    if "非官方" not in src:
+        for key, sk in (("total", "inst_total"), ("foreign", "inst_foreign"),
+                        ("trust", "inst_trust"), ("dealer", "inst_dealer")):
+            v = (series.get(sk) or {}).get(iso)
+            if v is not None:
+                out[key] = float(v)
+    if out:
+        return out
+    flows, used = macrochips._twse_inst_all(d)
+    if not flows or "非官方" in used:
         return None
+    return {k: v for k, v in flows.items() if v is not None} or None
 
 
 _US_IDX_SYM = {"sox": "^SOX", "ndq": "^IXIC", "spx": "^GSPC", "dji": "^DJI"}
@@ -143,7 +155,7 @@ def taifex_tx_foreign_net(d: date) -> float | None:
 
 @dataclass
 class Claim:
-    kind: str          # index_close / index_chg / inst_total / inst_foreign / tx_net
+    kind: str          # index_close / index_chg / inst_{total,foreign,trust,dealer} / tx_net
     value: float       # 報告聲稱值（正規化：金額→億、口數→口、點位→點）
     day: date
     sentence: str = ""
@@ -243,6 +255,12 @@ def extract_claims(text: str, year: int | None = None) -> list[Claim]:
     year = year or clock.today_tw().year
     claims: list[Claim] = []
     for sent in re.split(r"[。；\n]", text or ""):
+        # 參考連結句整句跳過（同 extract_us_index_claims 自 07-22 的防呆；本函式 2026-08-05
+        # 才踩到）：連結**標題**數字非本文聲稱（鉅亨標題「三大法人買超1.09億元」被抽成
+        # claim），URL 路徑更會被誤認 M/D 日期（newtalk.tw/news/view/2026-08-04/1051304
+        # 的「04/1051304」被錨成 4/10，拿他日官方值 367.65 億來比 → 假 🔴）。
+        if "](" in sent:
+            continue
         d = _sent_date(sent, year)
         if not d:
             continue
@@ -260,9 +278,20 @@ def extract_claims(text: str, year: int | None = None) -> list[Claim]:
         m = re.search(r"三大法人[^0-9]{0,15}[買賣]超[^0-9]{0,8}([\d,]+\.?\d*)\s*億", sent)
         if m:
             claims.append(Claim("inst_total", _num(m.group(1)), d, sent.strip()))
+        cum = bool(re.search(r"累計|單週|上週", sent))       # 週/多日加總非單日值，不核對
         m = re.search(r"外資[^0-9]{0,20}[買賣]超[^0-9]{0,8}([\d,]+\.?\d*)\s*億", sent)
-        if m and "累計" not in sent and "單週" not in sent and "上週" not in sent:
+        if m and not cum:
             claims.append(Claim("inst_foreign", _num(m.group(1)), d, sent.strip()))
+        # 投信／自營商買賣超（2026-08-05 新增）：官方落檔本就同批入庫 inst_trust/inst_dealer，
+        # 而 2026-08-02 的真錯值正出在投信（媒體一致的 333.82 vs 官方 360.2）——納檢補偵測面。
+        m = re.search(r"投信[^0-9]{0,8}[買賣]超[^0-9]{0,8}([\d,]+\.?\d*)\s*億", sent)
+        if m and not cum:
+            claims.append(Claim("inst_trust", _num(m.group(1)), d, sent.strip()))
+        # (?<!外資)：「外資及陸資(不含外資自營商)賣超 57.3 億」的「自營商」不可錯掛成自營商聲稱；
+        # 「自行買賣／避險」是自營商分項口徑、落檔存的是兩列合計，整句不抽（寧可少驗）。
+        m = re.search(r"(?<!外資)自營商[^0-9]{0,8}[買賣]超[^0-9]{0,8}([\d,]+\.?\d*)\s*億", sent)
+        if m and not cum and not re.search(r"自行買賣|避險", sent):
+            claims.append(Claim("inst_dealer", _num(m.group(1)), d, sent.strip()))
         if "淨空單" in sent:
             vals = [_num(v) for v in re.findall(r"([\d,]{4,})\s*口", sent)]
             if vals:
@@ -278,7 +307,7 @@ def _tol_ok(kind: str, claimed: float, official: float) -> bool:
         return abs(a - b) <= b * 0.0015
     if kind == "index_chg":
         return abs(a - b) <= b * 0.005 + 2
-    if kind in ("inst_total", "inst_foreign"):
+    if kind in ("inst_total", "inst_foreign", "inst_trust", "inst_dealer"):
         return abs(a - b) <= max(b * 0.02, 3)
     if kind == "tx_net":
         return abs(a - b) <= max(b * 0.02, 200)
@@ -314,11 +343,11 @@ def check_claims(claims: list[Claim], fetchers: dict | None = None) -> list[Find
                 continue
             val = off[0] if c.kind == "index_close" else off[1]
             out.append(Finding("🟢" if _tol_ok(c.kind, _best(c, val), val) else "🔴", c, val))
-        elif c.kind in ("inst_total", "inst_foreign"):
+        elif c.kind in ("inst_total", "inst_foreign", "inst_trust", "inst_dealer"):
             if c.day not in flow_cache:
                 flow_cache[c.day] = f["flows"](c.day)
             off = flow_cache[c.day]
-            key = "total" if c.kind == "inst_total" else "foreign"
+            key = c.kind[len("inst_"):]          # → total / foreign / trust / dealer
             if not off or key not in off:
                 out.append(Finding("⚪", c, note="官方法人金額不可得"))
                 continue
