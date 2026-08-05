@@ -36,10 +36,26 @@ def fetch_today_all() -> dict[str, dict]:
     """回傳 {code: {date,name,close,change,volume}}，與 twse.fetch_today_all 同格式。
 
     上櫃每日收盤含 Close/Change/TradingShares；date 為 ISO。取不到單欄即 None。
+
+    **雙端點（2026-08-05 踩坑）**：openapi `tpex_mainboard_daily_close_quotes` 當日整輪
+    GET 失敗（同站 basic 端點正常），全部上櫃持股的當日漲跌／貢獻整片變 —。
+    openapi 掛掉時自動改走官方 rwd `dailyQuotes`（同資料、不同管線），並把診斷印進
+    CI 日誌（本容器 proxy 擋 tpex，日誌是唯一除錯管道）。
     """
-    rows = get_json(ALL_URL, cache_ttl=1800)
+    try:
+        rows = get_json(ALL_URL, cache_ttl=1800)
+        out = _from_openapi(rows)
+        if out:
+            return out
+        print(f"  · tpex openapi 每日收盤 0 列（型別 {type(rows).__name__}）→ 改試 rwd dailyQuotes")
+    except Exception as e:                                # noqa: BLE001 —— 換備援端點
+        print(f"  · tpex openapi 每日收盤失敗（{type(e).__name__}: {str(e)[:90]}）→ 改試 rwd dailyQuotes")
+    return _from_rwd()
+
+
+def _from_openapi(rows) -> dict[str, dict]:
     out: dict[str, dict] = {}
-    for r in rows:  # type: ignore[union-attr]
+    for r in rows or []:
         code = (r.get("SecuritiesCompanyCode") or "").strip()
         if not code:
             continue
@@ -51,6 +67,62 @@ def fetch_today_all() -> dict[str, dict]:
             "volume": int(_num(r.get("TradingShares")) or 0),
         }
     return out
+
+
+# 官方 rwd 上櫃日收盤行情（與 openapi 同資料、不同管線；type=EW＝不含權證等）。
+# 列格式＝[代號, 名稱, 收盤, 漲跌, 開盤, 最高, 最低, 均價, 成交股數, …]。
+RWD_URL = ("https://www.tpex.org.tw/www/zh-tw/afterTrading/dailyQuotes"
+           "?date={d}&type=EW&response=json")
+
+
+def _from_rwd() -> dict[str, dict]:
+    """rwd dailyQuotes 備援：日期參數民國／西元都試；盤後才有當日 → 回退最多 4 個平日。
+    解析 0 列時把回應鍵名與首列印進日誌（同 stockmeta 慣例，一輪收斂）。"""
+    from datetime import timedelta
+    from .. import clock
+    d = clock.today_tw()                                  # 容器/CI 多為 UTC，台北清晨會差一天
+    tried = 0
+    while tried < 5:
+        if d.weekday() < 5:
+            tried += 1
+            for ds in (f"{d.year - 1911}/{d.month:02d}/{d.day:02d}",
+                       f"{d.year}/{d.month:02d}/{d.day:02d}"):
+                try:
+                    doc = get_json(RWD_URL.format(d=ds), cache_ttl=1800)
+                except Exception as e:                    # noqa: BLE001
+                    print(f"  · tpex rwd {ds} ✗ {type(e).__name__}: {str(e)[:70]}")
+                    continue
+                rows = _rwd_rows(doc)
+                if rows:
+                    iso = d.isoformat()
+                    out = {}
+                    for row in rows:
+                        code = str(row[0]).strip()
+                        # 排除權證/牛熊證（6 碼純數字）；保留 4 碼個股與帶字尾的 ETF/債（00998A/00679B）
+                        if not code[:1].isdigit() or (len(code) >= 6 and code.isdigit()):
+                            continue
+                        out[code] = {"date": iso, "name": str(row[1]).strip(),
+                                     "close": _num(row[2]), "change": _num(row[3]),
+                                     "volume": int((_num(row[8]) or 0) if len(row) > 8 else 0)}
+                    if out:
+                        print(f"  · tpex rwd dailyQuotes ✓ {len(out)} 檔（{ds}）")
+                        return out
+                if isinstance(doc, dict):                 # 有回應但解析 0 列 → 印結構供收斂
+                    print(f"  · tpex rwd {ds} 解析 0 列：keys={list(doc)[:8]}")
+        d -= timedelta(days=1)
+    print("  · tpex rwd dailyQuotes 亦不可得（回退 4 平日皆空）")
+    return {}
+
+
+def _rwd_rows(doc) -> list:
+    """rwd 回應歷有 tables 包裝與否兩版（同 TWSE MI_MARGN 慣例）——都收。"""
+    if not isinstance(doc, dict):
+        return []
+    for t in (doc.get("tables") or [doc]):
+        rows = (t or {}).get("data") or (t or {}).get("aaData") or []
+        if rows:
+            return rows
+    return []
 
 
 def latest_trade_date(all_today: dict[str, dict] | None = None) -> str:
