@@ -275,6 +275,21 @@ def main() -> int:
 
     doc = etfholdings.merge(etfholdings.load(), fresh, diag)
     quotes = _quotes()
+    # 海外持股報價 ← Yahoo（2026-08-05 使用者：「海外的也幫我補」）：補當日漲跌／貢獻；
+    # 帶 ccy 幣別、_moves 不把外幣算成金額（跨幣別面積不可比）。抓不到照舊顯示 —。
+    try:
+        from arm.connectors import yahooq
+        f_sids = {str(h.get("stock_id")) for e in (doc.get("etfs") or {}).values()
+                  for h in (e.get("holdings") or [])} | \
+                 {sid for e in (doc.get("etfs") or {}).values()
+                  for sid in (e.get("prev") or {})}
+        fq = yahooq.fetch_foreign_quotes(f_sids)
+        for k, v in fq.items():
+            quotes.setdefault(k, v)                       # 不覆蓋台股官方報價
+        print(f"  · 海外報價（Yahoo）✓ {len(fq)} 檔"
+              f"（候選 {sum(1 for s in f_sids if yahooq.to_yahoo(s))} 檔）")
+    except Exception as e:                                # noqa: BLE001 —— 海外補源失敗不影響台股
+        print(f"  ⚠ 海外報價（Yahoo）不可得：{type(e).__name__}: {str(e)[:80]}")
     ind = _industry()
     if quotes:
         etfholdings.annotate(doc, quotes, ind)

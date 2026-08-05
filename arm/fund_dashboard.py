@@ -2574,6 +2574,8 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
       +'已涵蓋權重 '+num(e.cw,1)+'%，合計貢獻 '+(e.tc==null?'—':pct(e.tc,2,'pp'))+'。'
       +'<b>合計與 ETF 市價漲跌不會完全相等</b>——現金／期貨部位、費用、以及持股揭露時點與'
       +'收盤的時間差都落在差額裡，此處不作湊平調整。'
+      +'海外持股的收盤價與漲跌取自 Yahoo Finance <b>當地市場最近收盤</b>（原幣別，'
+      +'如美股為台北時間清晨收盤），與台股同日對照時有時差屬正常。'
       +(e.src==='fhtrust'?'資料來源：復華官網 assetsExcel（發行投信第一手揭露）。'
         :'資料來源：'+esc(e.src||'投信每日揭露')+'（Tier B 彙整站，取自投信每日揭露；'
          +'正式對外前以各投信官網核對）。');
