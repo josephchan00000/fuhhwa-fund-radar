@@ -66,3 +66,14 @@ def test_domestic_amount_math_unchanged():
     det = eh.contributions(merged, {"2330": {"close": 1100.0, "change": 10.0}})
     mv = {m["stock_id"]: m for m in det["moves"]}
     assert mv["2330"]["amount"] == 220000 and det["amount_basis"] == "amount"
+
+
+def test_second_round_exchange_codes():
+    """第一輪 CI 實測漏掉的 5 檔（2026-08-05）：中國 A 股 CH、韓股 KP、Aviva 尾斜線。"""
+    assert yahooq.to_yahoo("300408 CH") == "300408.SZ"    # 深圳創業板
+    assert yahooq.to_yahoo("301377 CH") == "301377.SZ"
+    assert yahooq.to_yahoo("600519 CH") == "600519.SS"    # 6 開頭＝上海
+    assert yahooq.to_yahoo("005930 KP") == "005930.KS"    # 彭博 KP＝KOSPI
+    assert yahooq.to_yahoo("AV/ LN") == "AV.L"            # 尾斜線剝掉，非 'AV-.L'
+    assert yahooq.to_yahoo("BRK/B US") == "BRK-B"         # 中段斜線仍轉 '-'
+    assert yahooq.to_yahoo("/ LN") is None                # 剝完空字串不出手
