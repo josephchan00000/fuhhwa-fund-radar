@@ -195,7 +195,7 @@ def main() -> int:
         return 0
 
     issuers = _issuer_map()
-    targets = [(c, n, k) for c, n, k, _cat, _i in etfwatch.WATCHLIST if k in _KINDS]
+    targets = [(c, n, k) for c, n, k, _cat, _i in etfwatch.watch_tuples() if k in _KINDS]
     targets.sort(key=lambda t: _KINDS.index(t[2]))
     print(f"[ETF 每日持股・瀏覽器] 渲染 {len(targets)} 檔"
           f"{'（--probe 不落檔）' if probe_only else ''}…")

@@ -1326,3 +1326,114 @@ def test_etf_subnav_matches_sections():
     nav = re.search(r'<nav class="tb-nav tb-nav-etf">(.*?)</nav>', html, re.S).group(1)
     assert re.findall(r'href="(#[\w-]+)"', nav) == ["#etf-upcoming", "#etfwatch", "#etf-detail"]
     assert "ETF 數據追蹤" in nav and "ETF 持股詳情" in nav
+
+
+# ── 跨來源比較的假異動（2026-08-05 使用者：00986D「全部出清？加碼的也出清？」） ─────
+#
+# 實況重建：00986D 的主來源在 fhtrust（復華 assetsExcel）與 etfinfo（PCF 彙整）之間跳。
+# 兩源的「列宇宙」不同——etfinfo 多給期貨（202609US／202609TY）、保證金（M_*）、
+# 應付買回款（PFUR_*）、扣除應付證券款（DA_*）；fhtrust 只給證券／債券。
+# 07-30 etfinfo 同日頂掉 fhtrust → 那 11 列被判「新增」；07-31 fhtrust 回來 →
+# 同樣 11 列全被判「出清」，其中 PFUR_NTD 的前日股數是 **-14,749,392**（應付款），
+# 出清 Δ ＝ 0 −(負) ＝ **正 14,749 張**，於是表上出現「加碼數字卻標出清」。
+
+_ETFINFO_EXTRA = [                                        # etfinfo 給、fhtrust 不給的列
+    {"stock_id": "202609US", "name": "美國三十年期政府公債", "shares": 85, "weight": 13.31},
+    {"stock_id": "202609TY", "name": "美國十年期公債", "shares": 55, "weight": 8.54},
+    {"stock_id": "M_NTD", "name": "MARGIN", "shares": 17015722, "weight": 0.75},
+    {"stock_id": "DA_USD", "name": "AFTER DEDUCTING SECURITIES PURCHASES AMOUNT",
+     "shares": -3209119, "weight": -4.59},
+    {"stock_id": "PFUR_NTD", "name": "PAYABLES FOR UNITS REDEEMED",
+     "shares": -14749392, "weight": -0.65},
+]
+_BONDS = [{"stock_id": f"US{i:08d}AA{i}", "name": f"BANK {i} 7 3/4 05/14/38",
+           "shares": 1000000 + i, "weight": 7.0 - i * 0.1} for i in range(6)]
+
+
+def test_非持股列被濾掉_現金保證金應付款期貨():
+    """現金／保證金／應付款／公債期貨不是持股——任何來源都不該進 diff。"""
+    kept = eh.drop_non_holdings(_BONDS + _ETFINFO_EXTRA)
+    assert [r["stock_id"] for r in kept] == [b["stock_id"] for b in _BONDS]
+    # 真持股不可誤殺：台股 4 碼、etfinfo 的外股（帶交易所碼、有空格）、ISIN
+    for sid, nm in (("2330", "台積電"), ("TLTW US", "iShares 20+ Year Treasury Bo"),
+                    ("US83368TBT43", "SOCGEN 7.367 01/10/53"), ("00878", "國泰永續高股息")):
+        assert not eh.is_non_holding(sid, nm), sid
+
+
+def test_跨來源時不判定新增出清_只比共同持股():
+    """來源不同＝揭露範圍未必一致，「今天不在清單裡」分不出是真出清還是對方沒揭露。
+    只比共同持股的加減碼，並在 detail 標 xsrc 誠實揭露。"""
+    day1 = {"date": "2026-07-30", "src": "etfinfo",
+            "holdings": _BONDS + _ETFINFO_EXTRA}
+    day2 = {"date": "2026-07-31", "src": "fhtrust",
+            "holdings": [dict(_BONDS[0], shares=_BONDS[0]["shares"] + 500_000)] + _BONDS[1:]}
+    det = eh.contributions(eh.merge_one(day1, day2), None)
+    kinds = {m["kind"] for m in det["moves"]}
+    assert kinds == {"add"}                               # 沒有任何假的 new／out
+    assert det["moves_n"] == 1 and det["moves"][0]["m_shares"] == 500_000
+    assert det["xsrc"] == ["etfinfo", "fhtrust"]
+    assert not det["dropped"]
+
+
+def test_出清數字不可為正_應付款列不得被當成持股():
+    """使用者原話「加碼的也出清？」——負股數的應付款列被判出清後 Δ 會變成正的。
+    這種列一律不進 diff（既有落檔的 prev 也擋，見 contributions 的過濾）。"""
+    entry = {"date": "2026-07-31", "prev_date": "2026-07-30",
+             "src": "fhtrust", "prev_src": "fhtrust",     # 同源：xsrc 防呆不會生效
+             "holdings": _BONDS,
+             "prev": {r["stock_id"]: {"shares": r["shares"], "weight": r["weight"],
+                                      "name": r["name"]}
+                      for r in _BONDS + _ETFINFO_EXTRA}}
+    det = eh.contributions(entry, None)
+    assert det["moves_n"] == 0                            # 修好前：5 檔假出清
+    assert [r["stock_id"] for r in det["dropped"]] == []
+    # 鐵則：真出清的異動量一定是負的（前一日股數的相反數）
+    assert all((m["m_shares"] or 0) < 0 for m in det["moves"] if m["kind"] == "out")
+
+
+def test_同源時新增出清照常判定():
+    """防呆不可矯枉過正：同一來源的真出清／真新增仍要報出來。"""
+    day1 = {"date": "2026-07-30", "src": "fhtrust", "holdings": _BONDS}
+    day2 = {"date": "2026-07-31", "src": "fhtrust",
+            "holdings": _BONDS[1:] + [{"stock_id": "US99999999ZZ9", "name": "NEW 5 1/2 01/01/31",
+                                       "shares": 700000, "weight": 2.0}]}
+    det = eh.contributions(eh.merge_one(day1, day2), None)
+    kinds = sorted(m["kind"] for m in det["moves"])
+    assert kinds == ["new", "out"] and det["xsrc"] is None
+    out = next(m for m in det["moves"] if m["kind"] == "out")
+    assert out["stock_id"] == _BONDS[0]["stock_id"] and out["m_shares"] < 0
+
+
+def test_merge_記錄prev來源():
+    day1 = {"date": "2026-07-30", "src": "etfinfo", "holdings": _BONDS}
+    day2 = {"date": "2026-07-31", "src": "fhtrust", "holdings": _BONDS}
+    m = eh.merge_one(day1, dict(day2, holdings=[dict(b, weight=b["weight"] + 0.1)
+                                                for b in _BONDS]))
+    assert m["prev_src"] == "etfinfo" and m["src"] == "fhtrust"
+    # 同日重抓不覆寫 prev_src
+    assert eh.merge_one(m, dict(m))["prev_src"] == "etfinfo"
+
+
+def test_換源必須換到更新的快照(monkeypatch):
+    """同一揭露日內在兩源之間跳＝製造跨源 diff。贏家沒帶來更新的快照就維持既有來源。"""
+    m = _fh_mod()
+    fh = ("fhtrust", _BONDS, "2026-07-30", "", 1)         # 日期不可信（未自報）→ 排序鍵 ""
+    ei = ("etfinfo", _BONDS, "2026-07-30", "2026-07-30", 0)
+    cands = sorted([fh, ei], key=lambda c: (c[3], c[4]), reverse=True)
+    assert cands[0][0] == "etfinfo"                       # 舊行為：etfinfo 頂掉 fhtrust
+    # 既有落檔已是 fhtrust／同一揭露日 → 不換
+    assert m._prefer_incumbent(cands, "fhtrust", "2026-07-30")[0][0] == "fhtrust"
+    # etfinfo 真的更新 → 照換不誤（00991A 靠 etfinfo 頂著的情境）
+    ei_new = ("etfinfo", _BONDS, "2026-07-31", "2026-07-31", 0)
+    cands2 = sorted([fh, ei_new], key=lambda c: (c[3], c[4]), reverse=True)
+    assert m._prefer_incumbent(cands2, "fhtrust", "2026-07-30")[0][0] == "etfinfo"
+    # 既有來源這次抓不到 → 只能換
+    assert m._prefer_incumbent([ei], "fhtrust", "2026-07-30")[0][0] == "etfinfo"
+
+
+def test_dashboard_揭露跨來源時說明清楚():
+    day1 = {"date": "2026-07-30", "src": "etfinfo", "holdings": _BONDS + _ETFINFO_EXTRA}
+    day2 = {"date": "2026-07-31", "src": "fhtrust", "holdings": _BONDS}
+    det = eh.contributions(eh.merge_one(day1, day2), None)
+    assert fd._eh_payload(det, "主動復華金融債息")["xs"] == ["etfinfo", "fhtrust"]
+    assert "新增／出清不予判定" in fd._JS

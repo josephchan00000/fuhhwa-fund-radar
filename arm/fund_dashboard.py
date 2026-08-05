@@ -1184,6 +1184,8 @@ def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
         "tc": detail.get("total_contrib"), "cw": detail.get("covered_weight"),
         "vf": _eh_verify_chip(detail.get("verify") or {}),
         "mn": detail.get("moves_n"), "mr": detail.get("moves_rest_n"),
+        # xsrc＝本次與前一揭露日的來源不同 → 只比共同持股，新增／出清不予判定
+        "xs": detail.get("xsrc"),
         "tm": tm, "th": fig["height"], "hid": hidden, "nq": unpriced,
         "an": _TM_AREA_NOTE,
         # MV：[代號, 名稱, 異動股數, 金額, 類型]
@@ -2530,6 +2532,8 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
     if(e.hid)notes.push('另有 '+e.hid+' 檔幅度過小、方塊圖畫不出標籤，未入圖');
     if(e.nq)notes.push('另有 '+e.nq+' 檔海外持股無台股報價，無法計入方塊圖');
     if(e.mr)notes.push('異動檔數超過清單上限，另有 '+e.mr+' 檔小額異動未列於本表');
+    if(e.xs)notes.push('本次揭露來源（'+e.xs[1]+'）與前一揭露日（'+e.xs[0]
+      +'）不同，兩者揭露範圍未必一致 → 僅比對共同持股的加減碼，新增／出清不予判定');
     box.querySelector('.mvfoot').textContent=notes.length?(notes.join('；')+'。'):'';
     markSort(box,'.chgtbl th.csk',s.msk,s.msd)}
 

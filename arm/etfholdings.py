@@ -27,6 +27,7 @@ prev 洗成今天自己、讓 Δ 全變 0）。
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from . import clock
@@ -48,6 +49,39 @@ def load() -> dict | None:
 
 def _index(holdings: list[dict]) -> dict[str, dict]:
     return {str(h.get("stock_id")): h for h in (holdings or []) if h.get("stock_id")}
+
+
+# ── 非持股列過濾（來源口徑對齊；2026-08-05 使用者抓到 00986D「全部出清」） ──────
+#
+# 各來源的「列宇宙」不一樣：復華 assetsExcel（fhtrust）依舊管線慣例只給證券／債券區段、
+# 期貨避險列在 `_from_fhtrust` 就被剔除，也不列現金部位；etfinfo 的 PCF 快照卻把
+# **期貨、保證金(MARGIN)、應付買回款(PAYABLES FOR UNITS REDEEMED)、扣除應付證券款
+# (AFTER DEDUCTING SECURITIES PURCHASES AMOUNT)** 一併給出來。
+# 主來源在兩者之間切換時，這批列就會整批冒出「新增」、隔天整批「出清」——00986D
+# 2026-07-30（etfinfo 頂上來）11 檔假新增 → 07-31（fhtrust 回來）11 檔假出清，
+# 其中 PFUR_NTD／DA_USD／M_AUD 的前一日股數是**負數**（應付款），出清 Δ＝0−(負)＝正，
+# 於是表上出現「+14,749 張」卻標「出清」的自相矛盾（使用者原話：「加碼的也出清？」）。
+#
+# 它們本來就不是持股，任何來源都不該進 diff。名稱與代號兩路認：
+_NH_ID = re.compile(r"^(?:M|DA|PFUR|PFSP|RFSS|CASH|FX)_[A-Z]{3}$", re.I)
+_NH_NAME = re.compile(
+    r"MARGIN|PAYABLE|RECEIVABLE|AFTER\s+DEDUCTING|CASH|DEPOSIT|ACCRUED"
+    r"|現金|存款|保證金|應付|應收|預付|其他資產|淨值|合計|期貨", re.I)
+# 期貨合約代號＝年月＋商品碼（`202609US`＝2026 年 9 月美國長債期貨、`202609TY`＝10 年期）。
+# 台股代號純數字、外股 etfinfo 給的是帶空格的 `TLTW US` → 不會誤殺。
+_NH_FUT = re.compile(r"^(20\d{2})(0[1-9]|1[0-2])[A-Z]{2,3}$")
+
+
+def is_non_holding(sid: str, name: str = "") -> bool:
+    """現金／保證金／應付款／期貨等「非持股列」→ True（不進 diff、不算加減碼）。"""
+    sid = str(sid or "").strip()
+    return bool(_NH_ID.match(sid) or _NH_FUT.match(sid) or _NH_NAME.search(str(name or "")))
+
+
+def drop_non_holdings(rows: list[dict]) -> list[dict]:
+    """濾掉非持股列，讓各來源的列宇宙對齊（抓取端各來源共用）。"""
+    return [r for r in (rows or [])
+            if not is_non_holding(r.get("stock_id"), r.get("name") or r.get("stock_name"))]
 
 
 def _snap_key(holdings: list[dict] | None) -> tuple:
@@ -79,7 +113,8 @@ def merge_one(old: dict | None, new: dict | None) -> dict | None:
         return old
     if old.get("date") and old["date"] == new.get("date"):
         return _drop_fake_prev({**new, "prev": old.get("prev") or {},
-                                "prev_date": old.get("prev_date")})
+                                "prev_date": old.get("prev_date"),
+                                "prev_src": old.get("prev_src")})
     # 「同一份檔案被標成新的揭露日」防呆（2026-07-30 使用者抓到 00991A 假的「沒有變化」）：
     # 復華 assetsExcel 的資料日是**我們請求的日期**（`fhtrust.fetch_holdings` 回 iso_date），
     # 檔案本身可能還是舊的一份 → 揭露日往前跳、內容卻一模一樣，於是舊快照被降級成 prev、
@@ -90,14 +125,19 @@ def merge_one(old: dict | None, new: dict | None) -> dict | None:
     if old.get("holdings") and _snap_key(old["holdings"]) == _snap_key(new["holdings"]):
         return _drop_fake_prev({**new, "date": old["date"],
                                 "prev": old.get("prev") or {},
-                                "prev_date": old.get("prev_date")})
+                                "prev_date": old.get("prev_date"),
+                                "prev_src": old.get("prev_src")})
     # prev 一併存**名稱**（2026-07-30 使用者：有兩個股票代碼但沒有公司名）——
     # 出清標的今天已不在 holdings 裡，名稱只剩 prev 留得住；沒有它就只能顯示代號。
     prev = {sid: {"shares": h.get("shares"), "weight": h.get("weight"),
                   "name": h.get("name") or None}
             for sid, h in _index(old.get("holdings") or []).items()}
+    # prev_src＝那份 prev 是**哪個來源**抓的。沒有它就無從得知這次的 Δ 是跨源比較
+    # （見 contributions 的來源切換防呆）。prev 沿用舊 prev 時 prev_src 也一併沿用。
     return _drop_fake_prev({**new, "prev": prev or (old.get("prev") or {}),
-                            "prev_date": old.get("date") or old.get("prev_date")})
+                            "prev_date": old.get("date") or old.get("prev_date"),
+                            "prev_src": (old.get("src") if prev
+                                         else old.get("prev_src"))})
 
 
 def _drop_fake_prev(entry: dict) -> dict:
@@ -105,7 +145,7 @@ def _drop_fake_prev(entry: dict) -> dict:
     留著它會讓儀表板顯示假的「本次無異動」；清掉後誠實顯示「尚無可對比的前一揭露日」。
     """
     if entry.get("prev") and _prev_key(entry["prev"]) == _snap_key(entry.get("holdings")):
-        return {**entry, "prev": {}, "prev_date": None}
+        return {**entry, "prev": {}, "prev_date": None, "prev_src": None}
     return entry
 
 
@@ -247,6 +287,13 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
     if not holdings:
         return None
     prev = (entry or {}).get("prev") or {}
+    # 跨來源比較防呆（2026-08-05 使用者：00986D「全部出清？加碼的也出清？」）：
+    # prev 與今日 holdings 出自**不同來源**時，「某代號今天不在清單裡」既可能是真的出清，
+    # 也可能只是兩站揭露範圍不同（fhtrust 的 xlsx vs etfinfo 的 PCF）——無從分辨。
+    # 此時只比共同持股的加減碼，**不判定新增／出清**，並在 detail 標 `xsrc` 誠實揭露。
+    # （非持股列已在抓取端由 drop_non_holdings 濾除；這是剩餘差異的最後一道防線。）
+    src, prev_src = (entry or {}).get("src"), (entry or {}).get("prev_src")
+    xsrc = bool(prev and src and prev_src and src != prev_src)
     rows, total, covered_w = [], 0.0, 0.0
     for h in holdings:
         sid = str(h.get("stock_id") or "")
@@ -268,8 +315,9 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
                      # 收盤價（金額 ＝ Δ股數 × 收盤）與產業別（方塊圖外層分組）——
                      # 兩者只有 CI 端取得到（容器 proxy 擋 twse/tpex），存進落檔供渲染
                      "close": q.get("close"), "industry": (ind or {}).get(sid),
-                     # 新進／剔除標記：prev 有整份揭露時才判定（prev 空＝首日，不亂標「新增」）
-                     "is_new": bool(prev) and sid not in prev})
+                     # 新進／剔除標記：prev 有整份揭露時才判定（prev 空＝首日，不亂標「新增」；
+                     # 跨來源＝揭露範圍本就不同，也不判定）
+                     "is_new": bool(prev) and not xsrc and sid not in prev})
     # 前一揭露日有、今日沒有的 → 已出清
     # 出清標的的公司名：prev 存的 → **上一次的 detail.all**（那時它還在持股中、名字就在裡面，
     # 對「海外出清」特別關鍵——沒有台股報價、也不在別檔持股裡）→ 當日報價 → 其他 ETF 的
@@ -290,7 +338,11 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
                 "close": ((quotes or {}).get(sid) or {}).get("close"),
                 "industry": (ind or {}).get(sid),
                 "is_new": False, "is_out": True}
-               for sid, v in prev.items() if sid not in _index(holdings)]
+               for sid, v in prev.items()
+               # 既有落檔的 prev 可能還留著換源前抓進來的非持股列（現金／應付款／期貨）——
+               # 那些不是「出清」，是本來就不該進 diff 的列
+               if not xsrc and sid not in _index(holdings)
+               and not is_non_holding(sid, v.get("name"))]
     # 「完整持股明細」（ETF 詳情第三段：搜尋＋排序＋分頁）需要**全部**持股列，
     # 不能只留貢獻前 12——依權重由大到小，與截圖預設排序一致（2026-07-30 使用者需求）
     full = sorted(rows, key=lambda r: (r.get("weight") is None, -(r.get("weight") or 0)))
@@ -304,7 +356,9 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
     # 全球型主動 ETF（如 00988A）的海外持股代號不符台股 4 碼格式、進不了本表——
     # sum_weight 遠低於 100 就是這種檔，儀表板據此標「僅台股部位」誠實揭露（2026-07-29）。
     return {"date": (entry or {}).get("date"), "prev_date": (entry or {}).get("prev_date"),
-            "src": (entry or {}).get("src"), "verify": (entry or {}).get("verify"),
+            "src": (entry or {}).get("src"), "prev_src": prev_src,
+            "xsrc": ([prev_src, src] if xsrc else None),
+            "verify": (entry or {}).get("verify"),
             "rows": shown, "dropped": dropped, "all": full, **mv,
             "rest_n": len(rest), "rest_contrib": rest_contrib, "rest_weight": rest_weight,
             "total_contrib": round(total, 2), "covered_weight": round(covered_w, 1),
