@@ -217,3 +217,53 @@ def test_adjacent_session_rules():
     assert not adj(date(2026, 7, 23), date(2026, 7, 27))    # 漏了週五
     assert not adj(date(2026, 7, 24), date(2026, 7, 28))    # 跨假日，與漏棒不可區分
     assert not adj(date(2026, 7, 20), date(2026, 7, 27))    # 相隔一週
+
+
+def test_markdown_links_do_not_produce_claims():
+    """2026-08-05 踩坑：「參考連結」列的媒體標題（「三大法人買超1.09億元」）被抽成本報告
+    的聲明，日期還從 URL 片段（…/2026-08-04/1051304 → 「04/10」）誤配——拿 4/10 官方值
+    對媒體標題 → 假 🔴。連結（標題＋URL）一律先剝掉再抽。"""
+    text = ("5. **參考連結**：[外資續砍57億、投信狂掃252億 三大法人買超1.09億元｜鉅亨網]"
+            "(https://news.cnyes.com/news/id/6558608)、[台股震盪千點終場小跌25點｜Newtalk新聞]"
+            "(https://newtalk.tw/news/view/2026-08-04/1051304)")
+    assert factcheck.extract_claims(text, year=2026) == []
+    # 正文聲明不受影響
+    real = "8/4 三大法人合計買超 20.0 億元"
+    got = factcheck.extract_claims(real, year=2026)
+    assert len(got) == 1 and got[0].kind == "inst_total" and got[0].value == 20.0
+
+
+def test_inst_flows_foreign_row_identified_by_luzi():
+    """「外資及陸資(不含外資自營商)」列名本身含「自營」——舊判斷 `自營 not in name` 把整列
+    誤殺，inst_foreign 永遠 ⚪ 沒在核。改以獨有「陸資」辨識（同 macrochips 修法）；
+    「外資自營商」列不含「陸資」→ 不誤收進 foreign。"""
+    doc = {"stat": "OK", "data": [
+        ["自營商(自行買賣)", "1", "2", "-5000000000"],
+        ["自營商(避險)", "1", "2", "-14430000000"],
+        ["投信", "1", "2", "25270000000"],
+        ["外資及陸資(不含外資自營商)", "1", "2", "-5730000000"],
+        ["外資自營商", "1", "2", "1894900000"],
+        ["合計", "1", "2", "2004890525"],
+    ]}
+    import unittest.mock as mock
+    with mock.patch.object(factcheck, "_get_json", return_value=doc):
+        from datetime import date as _date
+        out = factcheck.twse_inst_flows(_date(2026, 8, 4))
+    assert round(out["foreign"], 1) == -57.3               # 不含外資自營商（官方列原值）
+    assert round(out["total"], 2) == 20.05                 # 合計列直取（含外資自營商）
+
+
+def test_inst_total_tolerance_accepts_rounded_claim():
+    """報告寫 20.0（落檔 round 1 位）對官方 20.0489 → 容忍帶過（abs ≤ max(2%, 3億)）。"""
+    assert factcheck._tol_ok("inst_total", 20.0, 20.0489)
+    assert not factcheck._tol_ok("inst_total", 1.1, 20.0489)   # 早期快照值就該紅
+
+
+def test_foreign_dealer_row_not_extracted_as_inst_foreign():
+    """「外資自營商買超 X 億」是 BFI82U 另一列——不得抽成 inst_foreign（比對基準是
+    「外資及陸資(不含外資自營商)」，抽了必然假 🔴）。一般外資句照常抽。"""
+    t1 = "8/4 證交所後補外資自營商分項（買超 18.9 億元）"
+    assert not [c for c in factcheck.extract_claims(t1, year=2026) if c.kind == "inst_foreign"]
+    t2 = "8/4 外資及陸資（不含外資自營商）賣超 57.3 億元"
+    got = [c for c in factcheck.extract_claims(t2, year=2026) if c.kind == "inst_foreign"]
+    assert len(got) == 1 and got[0].value == 57.3

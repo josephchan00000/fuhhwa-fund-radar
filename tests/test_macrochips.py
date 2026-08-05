@@ -297,3 +297,31 @@ def test_level_row_keeps_daychange_semantics():
     row = re.search(r"VIX 恐慌指數.*?</tr>", html, re.S).group(0)
     assert "近5日累計" not in row and "前日" not in row      # 水準值列不掛流量欄位
     assert "-0.41" in row                                    # 真的日變化（17.05→16.64）
+
+
+def test_inst_refetches_latest_present_day_for_revision(monkeypatch):
+    """盤後修正回補（2026-08-05 踩坑）：08-04 盤後 15:33 抓到早期快照合計 1.1 億、
+    證交所後補外資自營商後修正為 20.0 億——序列最新一天每輪重抓一次，讓修正值覆蓋。"""
+    from datetime import date
+    from arm import macrochips as mc
+    asked = []
+
+    def fake_inst(d, diag=None):
+        asked.append(d.isoformat())
+        return ({"foreign": -57.3, "trust": 252.7, "dealer": -194.3, "total": 20.0489},
+                "twse:BFI82U")
+
+    monkeypatch.setattr(mc, "_twse_inst_all", fake_inst)
+    monkeypatch.setattr(mc, "_yahoo_series", lambda *a, **k: {})
+    monkeypatch.setattr(mc, "_twse_margin", lambda d: None)
+    monkeypatch.setattr(mc, "_taifex_tx_foreign", lambda *a, **k: {})
+    monkeypatch.setattr(mc, "_taifex_pc_ratio", lambda *a, **k: {})
+    monkeypatch.setattr(mc.clock, "today_tw", lambda: date(2026, 8, 5))
+    monkeypatch.setattr(mc.clock, "now_tw", lambda: __import__("datetime").datetime(2026, 8, 5, 11, 0))
+    monkeypatch.setattr(mc, "load", lambda: {"series": {
+        "inst_total": {"2026-08-01": 873.1, "2026-08-04": 1.1},
+        "inst_foreign": {"2026-08-04": -57.3}, "inst_trust": {"2026-08-04": 252.7},
+        "inst_dealer": {"2026-08-04": -194.3}}})
+    doc = mc.fetch()
+    assert "2026-08-04" in asked                         # 已在序列裡的最新一天仍被重抓
+    assert doc["series"]["inst_total"]["2026-08-04"] == 20.0   # 官方修正值覆蓋（round 1 位）
