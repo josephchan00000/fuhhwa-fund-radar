@@ -297,3 +297,76 @@ def test_level_row_keeps_daychange_semantics():
     row = re.search(r"VIX 恐慌指數.*?</tr>", html, re.S).group(0)
     assert "近5日累計" not in row and "前日" not in row      # 水準值列不掛流量欄位
     assert "-0.41" in row                                    # 真的日變化（17.05→16.64）
+
+
+# ── 收盤口徑序列（sox/tsm_adr）：盤中 bar 不入檔（2026-08-05 踩坑） ──────────
+
+def _chart_doc(ts_closes, mkt=None, end=None):
+    meta = {}
+    if end is not None:
+        meta = {"regularMarketTime": mkt,
+                "currentTradingPeriod": {"regular": {"start": end - 23400, "end": end}}}
+    return {"chart": {"result": [{
+        "meta": meta,
+        "timestamp": [t for t, _ in ts_closes],
+        "indicators": {"quote": [{"close": [c for _, c in ts_closes]}]}}]}}
+
+
+class _Resp:
+    def __init__(self, doc):
+        self._b = json.dumps(doc).encode()
+
+    def read(self):
+        return self._b
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+def _utc(*a):
+    from datetime import datetime, timezone
+    return int(datetime(*a, tzinfo=timezone.utc).timestamp())
+
+
+def test_yahoo_series_close_only_drops_inprogress_bar(monkeypatch):
+    """2026-08-05 實際踩坑重演：22:05 班遲到 ~2h、台北 00:14（美東 12:13 盤中）跑，
+    把 8/4 盤中值以當日 bar 寫進落檔 → 晨報依「收盤優先讀落檔」整批引成收盤。
+    close_only（sox/tsm_adr）：session 未收盤（regularMarketTime < regular.end）
+    → 當日 bar 不入檔；一般溫度計序列（close_only=False）行為不變。"""
+    doc = _chart_doc([(_utc(2026, 8, 3, 13, 30), 11000.0), (_utc(2026, 8, 4, 13, 30), 11200.0)],
+                     mkt=_utc(2026, 8, 4, 16, 13), end=_utc(2026, 8, 4, 20, 0))
+    monkeypatch.setattr(mc.urllib.request, "urlopen",
+                        lambda req, timeout=0: _Resp(doc))
+    assert mc._yahoo_series("^SOX", close_only=True) == {"2026-08-03": 11000.0}
+    assert mc._yahoo_series("^SOX") == {"2026-08-03": 11000.0, "2026-08-04": 11200.0}
+
+
+def test_yahoo_series_close_only_keeps_final_bar_after_close(monkeypatch):
+    """已收盤（regularMarketTime ≥ regular.end）→ 當日 bar 是最終收盤，照常入檔
+    ——05:08 美股收盤場次與翌晨 daily 走這條路，防呆不得關掉正常入檔能力。"""
+    doc = _chart_doc([(_utc(2026, 8, 3, 13, 30), 11000.0), (_utc(2026, 8, 4, 13, 30), 11311.1)],
+                     mkt=_utc(2026, 8, 4, 20, 0, 2), end=_utc(2026, 8, 4, 20, 0))
+    monkeypatch.setattr(mc.urllib.request, "urlopen",
+                        lambda req, timeout=0: _Resp(doc))
+    assert mc._yahoo_series("^SOX", close_only=True) == {
+        "2026-08-03": 11000.0, "2026-08-04": 11311.1}
+
+
+def test_yahoo_series_close_only_conservative_when_meta_missing(monkeypatch):
+    """meta 缺漏／格式不明 → 保守維持既有行為（保留全部 bar），不因判定不了而丟資料。"""
+    doc = _chart_doc([(_utc(2026, 8, 4, 13, 30), 11200.0)])          # 無 meta
+    monkeypatch.setattr(mc.urllib.request, "urlopen",
+                        lambda req, timeout=0: _Resp(doc))
+    assert mc._yahoo_series("^SOX", close_only=True) == {"2026-08-04": 11200.0}
+
+
+def test_drop_open_bar_noop_before_open():
+    """盤前時段：regular.end 指向尚未開盤的 session，序列裡沒有那天的 bar → 無作用。
+    （15:40 台北班＝美東 03:40 盤前走到這條——既有三班的行為不因 close_only 而變。）"""
+    out = {"2026-08-03": 11000.0}
+    res = {"meta": {"regularMarketTime": _utc(2026, 8, 3, 20, 0, 2),
+                    "currentTradingPeriod": {"regular": {"end": _utc(2026, 8, 4, 20, 0)}}}}
+    assert mc._drop_open_bar(res, dict(out)) == out

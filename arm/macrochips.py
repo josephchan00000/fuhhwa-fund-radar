@@ -59,6 +59,10 @@ GLOBAL_SPECS: list[tuple[str, str, str]] = [
     ("sox",     "費城半導體指數",        "^SOX"),
     ("tsm_adr", "台積電 ADR",           "TSM"),
 ]
+# 「收盤口徑」序列：報告引用時視為收盤值 → 交易中的當日盤中 bar 一律不入檔
+# （2026-08-05 踩坑，機制見 _yahoo_series close_only）。溫度計類（VIX／匯率／油金）
+# 顯示「最新值」本就要盤中快照，不在此列。
+_CLOSE_ONLY = {"sox", "tsm_adr"}
 TW_KEYS = ("inst_total", "inst_foreign", "inst_trust", "inst_dealer", "tx_foreign_net",
            "margin_bal", "short_bal", "pc_ratio")
 ALL_KEYS = tuple(k for k, *_ in GLOBAL_SPECS) + TW_KEYS
@@ -73,8 +77,16 @@ def _norm_yield(v: float) -> float:
     return round(v / 10.0, 4) if v > 20 else round(v, 4)
 
 
-def _yahoo_series(sym: str, norm=None) -> dict[str, float]:
-    """Yahoo 圖表 API 近 1 個月日線 → {ISO日期: 收盤}。norm＝逐值正規化函式（如殖利率）。失敗回 {}。"""
+def _yahoo_series(sym: str, norm=None, close_only: bool = False) -> dict[str, float]:
+    """Yahoo 圖表 API 近 1 個月日線 → {ISO日期: 收盤}。norm＝逐值正規化函式（如殖利率）。失敗回 {}。
+
+    close_only（_CLOSE_ONLY 的 sox／tsm_adr 用）：**正在交易中的當日 bar 是盤中快照，
+    不入檔**。2026-08-05 踩坑：22:05 班 cron 遲到 ~2h、台北 00:14（美東 12:13 盤中）才跑，
+    把費半／ADR 的盤中值以當日 bar 之姿寫進落檔；晨報依「收盤優先讀落檔」規則整批引成
+    收盤，三份報告事後只能改標盤中口徑。判定用 Yahoo 回應自帶的 meta
+    （regularMarketTime < currentTradingPeriod.regular.end ＝該 session 尚未收盤），
+    不看本機時鐘——免推美東 DST 與感恩節等提早收盤日。丟棄只是晚一班入檔
+    （美股收盤後場次／翌晨 daily 會補上最終收盤），寧缺勿錯。"""
     try:
         url = ("https://query1.finance.yahoo.com/v8/finance/chart/"
                f"{urllib.parse.quote(sym)}?range=1mo&interval=1d")
@@ -94,6 +106,25 @@ def _yahoo_series(sym: str, norm=None) -> dict[str, float]:
         iso = datetime.fromtimestamp(t, timezone.utc).date().isoformat()
         val = float(c)
         out[iso] = norm(val) if norm else round(val, 4)
+    return _drop_open_bar(res, out) if close_only else out
+
+
+def _drop_open_bar(res: dict, out: dict[str, float]) -> dict[str, float]:
+    """去掉「進行中 session」的當日 bar。meta 缺漏／格式不明時保守保留（維持既有行為）；
+    已收盤（regularMarketTime ≥ regular.end，收盤價印出後必然成立）全部保留；
+    盤前時段 regular.end 指向尚未開盤的 session、序列裡沒有那天的 bar → pop 無作用，安全。"""
+    try:
+        meta = res.get("meta") or {}
+        end = int(meta["currentTradingPeriod"]["regular"]["end"])
+        mkt = int(meta["regularMarketTime"])
+    except Exception:
+        return out
+    if mkt >= end:
+        return out
+    from datetime import datetime, timezone
+    cur = datetime.fromtimestamp(end, timezone.utc).date().isoformat()
+    if out.pop(cur, None) is not None:
+        print(f"      · {cur} bar 為盤中快照（session 未收盤）——不入檔，待收盤後場次補上")
     return out
 
 
@@ -525,9 +556,10 @@ def fetch() -> dict:
             src[key] = {"src": name, "fetched": stamp, "n": n}
         print(f"  {'✓' if n else '⚠'} {key}: {name} {'+' + str(n) + ' 筆' if n else '不可得（沿用既有序列）'}")
 
-    # ① 全球溫度計 ← Yahoo（^TNX 為殖利率×10）
+    # ① 全球溫度計 ← Yahoo（^TNX 為殖利率×10；sox/tsm_adr 收盤口徑、盤中 bar 不入檔）
     for key, _label, sym in GLOBAL_SPECS:
-        new = _yahoo_series(sym, norm=_norm_yield if key == "us10y" else None)
+        new = _yahoo_series(sym, norm=_norm_yield if key == "us10y" else None,
+                            close_only=key in _CLOSE_ONLY)
         series[key] = _merge(series[key], new)
         _note(key, len(new), f"yahoo:{sym}")
 
