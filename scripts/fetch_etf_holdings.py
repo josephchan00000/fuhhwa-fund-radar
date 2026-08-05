@@ -180,7 +180,9 @@ def _prefer_incumbent(cands: list[tuple], held_src: str | None,
 
 def main() -> int:
     probe_only = "--probe" in sys.argv
-    targets = [(c, k) for c, _n, k, _cat, _i in etfwatch.WATCHLIST if k in _KINDS]
+    # watch_tuples()＝WATCHLIST＋「掛牌日已到」的 UPCOMING 自動升級檔（2026-08-05）——
+    # 新 ETF 掛牌當天這裡就會開始抓它的持股，不必等人工轉正
+    targets = [(c, k) for c, _n, k, _cat, _i in etfwatch.watch_tuples() if k in _KINDS]
     targets.sort(key=lambda t: _KINDS.index(t[1]))
     print(f"[ETF 每日持股・多源] 主來源＝快照日最新者（同日時本家 fhtrust 第一手優先）＋Yahoo 構成驗證"
           f"（{len(targets)} 檔{'；--probe 不落檔' if probe_only else ''}）…")

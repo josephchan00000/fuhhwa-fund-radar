@@ -19,7 +19,7 @@ from arm import etfwatch  # noqa: E402
 
 
 def main() -> None:
-    print(f"[ETF 數據追蹤] 抓取 {len(etfwatch.WATCHLIST)} 檔"
+    print(f"[ETF 數據追蹤] 抓取 {len(etfwatch.watch_tuples())} 檔"
           "（規模／殖利率←etfinfo.tw；週／月報酬←TWSE 官方收盤）…")
     doc = etfwatch.fetch()
     fresh = sum(1 for i in doc["items"] if str(i.get("src")).startswith("etfinfo"))
