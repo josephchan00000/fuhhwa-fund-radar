@@ -534,8 +534,18 @@ def fetch() -> dict:
     n_flow = 0
     inst_src, inst_diag = "twse:BFI82U", []
     # 三大法人：證交所約 15:00 後公布 → 15 點後才把今天納入（盤後 15:40 場次即可抓到當日）
-    for d in _missing_weekdays(series["inst_total"], today,
-                               now_hour=clock.now_tw().hour, today_after=15):
+    inst_days = _missing_weekdays(series["inst_total"], today,
+                                  now_hour=clock.now_tw().hour, today_after=15)
+    # 盤後修正回補（2026-08-05 踩坑）：15:33 盤後抓到的合計可能是**早期快照**——
+    # 08-04 當晚官方合計與各媒體皆報 1.1 億，證交所後補外資自營商分項後修正為 20.0 億；
+    # 落檔凍住舊值 → 隔日報告照抄落檔被 factcheck 用「修正後官方值」判 🔴。
+    # 修法：序列裡「最新的一天」每輪一律重抓一次，讓官方修正值覆蓋同日舊值
+    # （_merge 鐵則本就如此；每輪只多 1 個官方請求，不是輪詢）。
+    if series["inst_total"]:
+        _last = date.fromisoformat(sorted(series["inst_total"])[-1])
+        if _last not in inst_days and (today - _last).days <= _BACKFILL_DAYS:
+            inst_days.append(_last)
+    for d in inst_days:
         flows, used = _twse_inst_all(d, inst_diag)
         if flows:
             iso = d.isoformat()
