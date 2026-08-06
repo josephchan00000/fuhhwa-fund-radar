@@ -307,7 +307,12 @@ def test_yt_secs_and_code_relevance():
     assert fundnews._yt_secs("PT45S") == 45
     assert fundnews._yt_secs("") == 0 and fundnews._yt_secs("垃圾") == 0
     assert fundnews.yt_relevant("00929 8月配息出爐！")            # 自家 ETF 代碼即相關
+    assert fundnews.yt_relevant("高股息00929 vs 006208 比較")     # 前貼中文字照樣命中
+    assert fundnews.yt_relevant("存股心得 #00929 配息")           # 獨立 hashtag 也算
     assert not fundnews.yt_relevant("0050 定期定額心得")          # 他家標的不收
+    # 2026-08-06 實戰誤收：日文單字卡影片課號「L#00929」——編號式前綴不得命中
+    assert not fundnews.yt_relevant("シン・フラッシュ英単語/高校1年/50問L#00929")
+    assert not fundnews.yt_relevant("題庫100929號解析")           # 長數字內嵌不得命中
 
 
 def test_view_renders_youtube_social_alongside_ptt():
