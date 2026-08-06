@@ -275,6 +275,58 @@ def test_date_verify_keeps_fresh_and_rewrites_date_url():
     assert len(out) == 1 and state["budget"] == b
 
 
+# ── YouTube 社群（2026-08-06 使用者需求）───────────────────────────────────────
+def _yt_doc(vid, title, desc="", channel="測試頻道", pub="2026-08-05T10:00:00Z"):
+    return {"id": {"videoId": vid},
+            "snippet": {"title": title, "description": desc,
+                        "channelTitle": channel, "publishedAt": pub}}
+
+
+def test_parse_youtube_filters_dedupes_sorts():
+    docs = [{"items": [
+                _yt_doc("v1", "復華基金月配息實測", pub="2026-08-04T10:00:00Z"),
+                _yt_doc("v2", "存股心得分享"),                    # 無「復華」→ 濾除
+                _yt_doc("v3", "台股ETF怎麼買", desc="含復華00991A比較"),  # 說明命中也算相關
+                _yt_doc("v4", "勞動基金炒股案 搜索復華投信"),      # 負面司法 → 濾除
+            ]},
+            {"items": [_yt_doc("v1", "復華基金月配息實測")]}]      # 跨查詢重複 → 去重
+    out = fundnews.parse_youtube(docs, {"v1": 120, "v3": 45678})
+    assert [i["url"][-2:] for i in out] == ["v3", "v1"]           # 依觀看數新→舊
+    assert out[0]["views"] == 45678 and out[0]["platform"] == "youtube"
+    assert out[1]["date"] == "2026-08-04" and out[1]["channel"] == "測試頻道"
+    assert fundnews.parse_youtube([], {}) == []
+
+
+def test_view_renders_youtube_social_alongside_ptt():
+    doc = {"as_of": "2026/08/06", "window_days": 7, "brand": [], "funds": [],
+           "social": [{"platform": "ptt", "title": "[心得] 復華基金定期定額",
+                       "url": "https://ptt/x", "date": "8/05", "push": 25},
+                      {"platform": "youtube", "title": "復華基金月配息實測",
+                       "channel": "理財頻道", "url": "https://www.youtube.com/watch?v=v1",
+                       "date": "2026-08-04", "views": 45678}]}
+    html = _fundnews_view(doc)
+    assert "25 推" in html and "PTT 股票板" in html               # PTT 原樣
+    assert "4.6萬" in html and "理財頻道・YouTube" in html        # YouTube 觀看數＋頻道
+    assert "youtube.com/watch?v=v1" in html and "fnyt" in html
+
+
+def test_fmt_views():
+    from arm.fund_dashboard import _fmt_views
+    assert _fmt_views(0) == "—" and _fmt_views(None) == "—"
+    assert _fmt_views(999) == "999" and _fmt_views(4567) == "4,567"
+    assert _fmt_views(45678) == "4.6萬" and _fmt_views(120000) == "12萬"
+
+
+def test_auto_highlights_includes_youtube():
+    doc = {"window_days": 7, "brand": [], "funds": [],
+           "social": [{"platform": "ptt", "title": "[心得] 復華", "push": 30},
+                      {"platform": "youtube", "title": "復華月配息實測",
+                       "channel": "理財頻道", "views": 45678}]}
+    hls = fundnews.auto_highlights(doc)
+    assert any("30 推" in h for h in hls)                         # PTT 聲量線不變
+    assert any("YouTube 熱片" in h and "45,678 次觀看" in h for h in hls)
+
+
 def test_seen_prune_keeps_recent_only():
     seen = {"舊": {"pub": "2026-05-01T00:00:00+08:00", "seen": "2026-05-01T00:00:00+08:00"},
             "新": {"pub": "2026-08-01T00:00:00+08:00", "seen": "2026-08-05T00:00:00+08:00"},

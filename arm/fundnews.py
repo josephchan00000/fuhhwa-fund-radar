@@ -7,8 +7,10 @@
   · 財經媒體 RSS 直抓（鉅亨網台股／頭條、Yahoo股市）：留標題含「復華」者，
       補 Google News 漏收或排序沉掉的稿——命中特定基金者同時補進該基金清單
   · 社群：PTT 股票板公開索引頁標題（留含「復華」者；推文數為聲量 proxy；
-      禮貌抓取、只存標題＋連結，不落全文）。Dcard／YouTube／FB 涉金鑰或反爬，
-      本層不碰（同 arm/connectors/social 的授權註記）。
+      禮貌抓取、只存標題＋連結，不落全文）＋ YouTube 相關影片（2026-08-06 使用者需求；
+      Data API v3、金鑰走 Actions secret `YOUTUBE_API_KEY`——v0.12 ETF 產品線時代使用者
+      已設過的同一把，daily.yml 重新帶入；無金鑰誠實降級回 []）。
+      Dcard／FB 涉反爬或授權，本層仍不碰（同 arm/connectors/social 的授權註記）。
 
 落檔 data/fund_news.json；儀表板以「基金相關新聞・社群」區塊呈現。
 任一來源抓不到一律誠實降級（空清單照落檔、標 as-of），不影響其他區塊。
@@ -16,7 +18,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import urllib.parse
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -404,6 +408,89 @@ def fetch_ptt(pages: int = 3) -> list[dict]:
     return out
 
 
+# ── YouTube 相關影片（2026-08-06 使用者需求：社群討論加入 YouTube）──────────────
+# 與 ETF 產品線的 arm/connectors/social/youtube.py 分離（該層查主動式ETF、回 SocialMention）；
+# 本層查品牌／基金、回社群項目 dict。金鑰同一把：env YOUTUBE_API_KEY（Actions secret）
+# 或 ~/.fh_youtube_key（本機慣例，同 arm/dashboard._youtube_voice）。
+
+YT_SEARCH = "https://www.googleapis.com/youtube/v3/search"
+YT_VIDEOS = "https://www.googleapis.com/youtube/v3/videos"
+YT_QUERIES = ["復華投信", "復華 基金"]   # search.list 每次 100 單位（日限 10000），兩組即可
+YT_LIMIT = 6
+
+
+def _yt_key() -> str:
+    key = (os.environ.get("YOUTUBE_API_KEY") or "").strip()
+    if key:
+        return key
+    kp = Path.home() / ".fh_youtube_key"
+    try:
+        return kp.read_text(encoding="utf-8").strip() if kp.exists() else ""
+    except OSError:
+        return ""
+
+
+def yt_relevant(title: str, desc: str = "") -> bool:
+    """標題或說明含「復華」才算相關（查詢會回同名他牌/無關影片）；負面司法題材同 PTT 排除。"""
+    return "復華" in f"{title} {desc}" and not is_negative_title(title)
+
+
+def parse_youtube(search_docs: list[dict], stats: dict[str, int] | None = None) -> list[dict]:
+    """search.list 回應（多組查詢）＋{videoId: 觀看數} → 社群項目。純函式可單測。
+    相關性過濾、videoId 去重，依觀看數→日期新→舊排序、取前 YT_LIMIT。"""
+    stats = stats or {}
+    out, seen = [], set()
+    for doc in search_docs or []:
+        for it in (doc or {}).get("items") or []:
+            vid = (it.get("id") or {}).get("videoId")
+            sn = it.get("snippet") or {}
+            title = (sn.get("title") or "").strip()
+            if not vid or vid in seen or not yt_relevant(title, sn.get("description") or ""):
+                continue
+            seen.add(vid)
+            out.append({"platform": "youtube", "title": title,
+                        "channel": (sn.get("channelTitle") or "").strip(),
+                        "url": f"https://www.youtube.com/watch?v={vid}",
+                        "date": (sn.get("publishedAt") or "")[:10],
+                        "views": int(stats.get(vid) or 0)})
+    out.sort(key=lambda x: (x.get("views") or 0, x.get("date") or ""), reverse=True)
+    return out[:YT_LIMIT]
+
+
+def fetch_youtube(days: int = WINDOW_DAYS) -> list[dict]:
+    """近 days 天的復華相關 YouTube 影片。無金鑰／被擋回 []（誠實降級，不影響 PTT）。
+    search.list 抓片單（order=date 配 publishedAfter）→ videos.list 一次補觀看數（1 單位）。"""
+    from datetime import timezone
+
+    key = _yt_key()
+    if not key:
+        return []
+    after = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    docs: list[dict] = []
+    for q in YT_QUERIES:
+        url = (f"{YT_SEARCH}?part=snippet&type=video&order=date&maxResults=10"
+               f"&regionCode=TW&relevanceLanguage=zh-Hant&publishedAfter={after}"
+               f"&q={urllib.parse.quote(q)}&key={key}")
+        try:
+            docs.append(json.loads(get_bytes(url, cache_ttl=1800).decode("utf-8", "ignore")))
+        except Exception:
+            continue
+    vids = [v for d in docs for it in d.get("items") or []
+            if (v := (it.get("id") or {}).get("videoId"))]
+    stats: dict[str, int] = {}
+    if vids:
+        try:
+            ids = list(dict.fromkeys(vids))[:50]     # videos.list 單次上限 50 支
+            data = json.loads(get_bytes(
+                f"{YT_VIDEOS}?part=statistics&id={','.join(ids)}&key={key}",
+                cache_ttl=1800).decode("utf-8", "ignore"))
+            for it in data.get("items") or []:
+                stats[it.get("id") or ""] = int((it.get("statistics") or {}).get("viewCount") or 0)
+        except Exception:
+            pass
+    return parse_youtube(docs, stats)
+
+
 def route_feeds_to_funds(fund_groups: list[dict], feeds: list[dict]) -> list[dict]:
     """RSS 直抓中命中特定基金核心名者，補進該基金清單（同標題去重、時間新→舊）。"""
     for g in fund_groups:
@@ -432,9 +519,15 @@ def auto_highlights(doc: dict) -> list[str]:
     if focus:
         hl.append(f"品牌焦點：{focus['title']}（{focus.get('source') or '—'}）")
     soc = doc.get("social") or []
-    if soc:
-        top = max(soc, key=lambda s: s.get("push") or 0)
+    ptts = [s for s in soc if (s.get("platform") or "ptt") != "youtube"]
+    if ptts:
+        top = max(ptts, key=lambda s: s.get("push") or 0)
         hl.append(f"社群聲量最高：{top['title']}（{top.get('push') or 0} 推）")
+    yts = [s for s in soc if (s.get("platform") or "") == "youtube"]
+    if yts:
+        top = max(yts, key=lambda s: s.get("views") or 0)
+        who = f"{top.get('channel')}・" if top.get("channel") else ""
+        hl.append(f"YouTube 熱片：{top['title']}（{who}{top.get('views') or 0:,} 次觀看）")
     return hl
 
 
@@ -452,10 +545,11 @@ def assemble(funds: list[dict], days: int = WINDOW_DAYS) -> dict:
     doc = {
         "as_of": stamp_tw("%Y/%m/%d %H:%M"),
         "window_days": days,
-        "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題・自動擷取",
+        "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題"
+                  "＋YouTube 影片・自動擷取",
         "brand": brand,
         "funds": fund_groups,
-        "social": fetch_ptt(),
+        "social": fetch_ptt() + fetch_youtube(days),
     }
     doc["highlights"] = auto_highlights(doc)
     return doc
