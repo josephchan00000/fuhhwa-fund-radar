@@ -196,3 +196,140 @@ def test_view_social_empty_degrades():
     doc = {"as_of": "2026/07/03", "window_days": 7, "brand": [], "funds": [], "social": []}
     html = _fundnews_view(doc)
     assert "無相關新聞" in html and "無相關討論" in html
+
+
+# ── Google News「有效日期」防線（2026-08-06 使用者抓包「很多都是舊的」）────────
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+_TW = timezone(timedelta(hours=8))
+_NOW = datetime(2026, 8, 6, 8, 0, tzinfo=_TW)
+
+
+def _gitem(title, iso, url="https://news.google.com/rss/articles/xyz?oc=5"):
+    dt = datetime.fromisoformat(iso)
+    return {"title": title, "url": url, "source": "測試報",
+            "date": dt.strftime("%Y-%m-%d %H:%M"), "datetime": dt.isoformat()}
+
+
+def test_prospectus_announcements_are_junk():
+    # 中租基智網等平台的例行修訂公告轉貼（實際踩坑：一年前公告被標成近期、掛滿 6 檔基金卡）
+    for t in ["復華投信數檔基金公開說明書修訂",
+              "「復華亞太成長基金」等三檔基金修訂公開說明書",
+              "復華投信3檔基金修訂信託契約及公開說明書"]:
+        assert not fundnews.is_news_title(t), t
+    # 真新聞不受影響
+    assert fundnews.is_news_title("復華金融股債雙收傘型ETF上櫃掛牌 櫃買債券ETF突破百檔")
+
+
+def test_date_verify_drops_redated_old_article():
+    """實際案例：4/14 掛牌稿被 Google 標 08-01 → 原文驗出真實刊出日 → 剔除＋台帳記錄。"""
+    seen, state, called = {}, {"budget": 5}, []
+
+    def fake_verify(url):
+        called.append(url)
+        return ("https://www.ctee.com.tw/news/20260414700256-439901",
+                datetime(2026, 4, 14, tzinfo=_TW))
+
+    items = [_gitem("復華金融股債雙收傘型 ETF 上櫃掛牌 櫃買債券 ETF 突破百檔",
+                    "2026-08-01T17:00:00+08:00")]
+    out = fundnews.date_verify(items, seen, state, now=_NOW, verifier=fake_verify)
+    assert out == [] and len(called) == 1 and state["budget"] == 4
+    ent = seen[items[0]["title"][:24]]
+    assert ent["v"].startswith("2026-04-14") and ent["u"].startswith("https://www.ctee")
+    # 台帳已有驗證結果 → 第二輪不再耗預算、照樣剔除（verifier 不得被呼叫）
+    out2 = fundnews.date_verify(items, seen, {"budget": 5}, now=_NOW,
+                                verifier=lambda u: (_ for _ in ()).throw(AssertionError))
+    assert out2 == [] and len(called) == 1
+
+
+def test_date_verify_ledger_blocks_resurrection_without_network():
+    """台帳記過的最早日期擋復活：Google 把同標題重標新日期、驗證又失效時，仍以最早值計。"""
+    t = "復華投信獲頒基金金鑽獎肯定"
+    seen = {t[:24]: {"pub": "2026-07-20T10:00:00+08:00", "seen": "2026-07-20T10:00:00+08:00"}}
+    items = [_gitem(t, "2026-08-05T09:00:00+08:00")]     # Google 重標成新日期
+    out = fundnews.date_verify(items, seen, {"budget": 0}, now=_NOW,
+                               verifier=lambda u: (None, None))
+    assert out == []                                      # 07-20 已出 7 天窗 → 剔除
+    assert seen[t[:24]]["pub"].startswith("2026-07-20")   # 最早值不被新日期洗掉
+
+
+def test_date_verify_keeps_fresh_and_rewrites_date_url():
+    seen, state = {}, {"budget": 5}
+    # 查無日期 → fail-open 沿用 pubDate、項目保留
+    fresh = _gitem("復華投信配息公告出爐", "2026-08-05T09:00:00+08:00")
+    out = fundnews.date_verify([fresh], seen, state, now=_NOW, verifier=lambda u: (None, None))
+    assert len(out) == 1 and out[0]["datetime"] == fresh["datetime"]
+    assert seen[fresh["title"][:24]]["v"] == ""
+    # 驗到窗內較早日期 → 改標有效日期＋連結換原文（不繞 Google 轉址）
+    it = _gitem("復華發行新基金開募", "2026-08-05T09:00:00+08:00")
+    out = fundnews.date_verify([it], seen, state, now=_NOW,
+                               verifier=lambda u: ("https://money.udn.com/x",
+                                                   datetime(2026, 8, 2, 10, 0, tzinfo=_TW)))
+    assert out[0]["date"].startswith("2026-08-02") and out[0]["url"] == "https://money.udn.com/x"
+    # 非 Google 連結不驗、不耗預算（RSS 直抓的 pubDate 出自發布者、可信）
+    b = state["budget"]
+    direct = _gitem("復華高成長基金規模創高", "2026-08-05T12:00:00+08:00",
+                    url="https://news.cnyes.com/news/id/1")
+    out = fundnews.date_verify([direct], seen, state, now=_NOW,
+                               verifier=lambda u: (_ for _ in ()).throw(AssertionError))
+    assert len(out) == 1 and state["budget"] == b
+
+
+# ── YouTube 社群（2026-08-06 使用者需求）───────────────────────────────────────
+def _yt_doc(vid, title, desc="", channel="測試頻道", pub="2026-08-05T10:00:00Z"):
+    return {"id": {"videoId": vid},
+            "snippet": {"title": title, "description": desc,
+                        "channelTitle": channel, "publishedAt": pub}}
+
+
+def test_parse_youtube_filters_dedupes_sorts():
+    docs = [{"items": [
+                _yt_doc("v1", "復華基金月配息實測", pub="2026-08-04T10:00:00Z"),
+                _yt_doc("v2", "存股心得分享"),                    # 無「復華」→ 濾除
+                _yt_doc("v3", "台股ETF怎麼買", desc="含復華00991A比較"),  # 說明命中也算相關
+                _yt_doc("v4", "勞動基金炒股案 搜索復華投信"),      # 負面司法 → 濾除
+            ]},
+            {"items": [_yt_doc("v1", "復華基金月配息實測")]}]      # 跨查詢重複 → 去重
+    out = fundnews.parse_youtube(docs, {"v1": 120, "v3": 45678})
+    assert [i["url"][-2:] for i in out] == ["v3", "v1"]           # 依觀看數新→舊
+    assert out[0]["views"] == 45678 and out[0]["platform"] == "youtube"
+    assert out[1]["date"] == "2026-08-04" and out[1]["channel"] == "測試頻道"
+    assert fundnews.parse_youtube([], {}) == []
+
+
+def test_view_renders_youtube_social_alongside_ptt():
+    doc = {"as_of": "2026/08/06", "window_days": 7, "brand": [], "funds": [],
+           "social": [{"platform": "ptt", "title": "[心得] 復華基金定期定額",
+                       "url": "https://ptt/x", "date": "8/05", "push": 25},
+                      {"platform": "youtube", "title": "復華基金月配息實測",
+                       "channel": "理財頻道", "url": "https://www.youtube.com/watch?v=v1",
+                       "date": "2026-08-04", "views": 45678}]}
+    html = _fundnews_view(doc)
+    assert "25 推" in html and "PTT 股票板" in html               # PTT 原樣
+    assert "4.6萬" in html and "理財頻道・YouTube" in html        # YouTube 觀看數＋頻道
+    assert "youtube.com/watch?v=v1" in html and "fnyt" in html
+
+
+def test_fmt_views():
+    from arm.fund_dashboard import _fmt_views
+    assert _fmt_views(0) == "—" and _fmt_views(None) == "—"
+    assert _fmt_views(999) == "999" and _fmt_views(4567) == "4,567"
+    assert _fmt_views(45678) == "4.6萬" and _fmt_views(120000) == "12萬"
+
+
+def test_auto_highlights_includes_youtube():
+    doc = {"window_days": 7, "brand": [], "funds": [],
+           "social": [{"platform": "ptt", "title": "[心得] 復華", "push": 30},
+                      {"platform": "youtube", "title": "復華月配息實測",
+                       "channel": "理財頻道", "views": 45678}]}
+    hls = fundnews.auto_highlights(doc)
+    assert any("30 推" in h for h in hls)                         # PTT 聲量線不變
+    assert any("YouTube 熱片" in h and "45,678 次觀看" in h for h in hls)
+
+
+def test_seen_prune_keeps_recent_only():
+    seen = {"舊": {"pub": "2026-05-01T00:00:00+08:00", "seen": "2026-05-01T00:00:00+08:00"},
+            "新": {"pub": "2026-08-01T00:00:00+08:00", "seen": "2026-08-05T00:00:00+08:00"},
+            "壞": {}}
+    out = fundnews._seen_prune(seen, _NOW)
+    assert "新" in out and "舊" not in out and "壞" in out   # 無日期條目以 now 計、先留著
