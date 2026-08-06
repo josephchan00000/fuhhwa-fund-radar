@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/06 11:37",
+  "as_of": "2026/08/06 12:28",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題＋YouTube 影片・自動擷取",
   "brand": [
@@ -27,7 +27,7 @@
     {
       "title": "捷運驚見錢母車廂復華投信與北港武德宮合作穩股民信心網讚心情大好- 財經",
       "url": "https://news.cts.com.tw/cts/money/202608/202608033062944.html",
-      "source": "news.cts.com.tw",
+      "source": "華視新聞網",
       "date": "2026-08-03 14:44",
       "datetime": "2026-08-03T14:44:00+08:00"
     }
@@ -327,6 +327,25 @@
   "social": [
     {
       "platform": "youtube",
+      "title": "各產業迎來AI創新革命，你還沒上車嗎？",
+      "channel": "復華投信",
+      "url": "https://www.youtube.com/shorts/Zv_kAmeQ1Qg",
+      "date": "2026-08-05",
+      "views": 349,
+      "official": true,
+      "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "主動ETF新兵開箱：各產業AI創新革命  00409A如何主動掌握未來無限商機？",
+      "channel": "復華投信",
+      "url": "https://www.youtube.com/watch?v=2KMSjw-cwH8",
+      "date": "2026-07-30",
+      "views": 430665,
+      "official": true
+    },
+    {
+      "platform": "youtube",
       "title": "復華投信跨界行銷 板南線放888顆招財錢母 通勤結合祈福體驗 金融業創意行銷掀打卡熱｜非凡財經新聞｜20260803",
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/PwFMAv8cEwE",
@@ -340,7 +359,7 @@
       "channel": "投資趣",
       "url": "https://www.youtube.com/shorts/eGFMD9ZMHzY",
       "date": "2026-08-03",
-      "views": 995,
+      "views": 997,
       "short": true
     },
     {
@@ -354,41 +373,26 @@
     },
     {
       "platform": "youtube",
-      "title": "AI新變局，你的ETF跟得上嗎？00409A「1＋2多重經理人」完整解析",
-      "channel": "阿愷的Ai自修室",
-      "url": "https://www.youtube.com/watch?v=CkSuREbQ4Ic",
-      "date": "2026-08-02",
-      "views": 107
+      "title": "手上ETF落底了沒?  四檔台股ETF配息創高...00891季配率4.59%居冠   誰更有漲相? 該棄0050轉向?│陳斐娟 主持 │20260804│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=zfCsPMHAoOw",
+      "date": "2026-08-05",
+      "views": 27514,
+      "peer": true
     },
     {
       "platform": "youtube",
-      "title": "00929 的引擎：揭開台灣科技股息巨獸的面紗",
-      "channel": "滑行者 (The Coaster)",
-      "url": "https://www.youtube.com/watch?v=EC8nROnQBcw",
-      "date": "2026-07-31",
-      "views": 37
-    },
-    {
-      "platform": "youtube",
-      "title": "EP9｜高股息00929 vs 006208，3年報酬差121.7%？臺股真相實驗室 | 00929 vs 006208 三年回測 #Shorts",
-      "channel": "Carson Quant",
-      "url": "https://www.youtube.com/shorts/sG0FxUTmEWs",
-      "date": "2026-08-02",
-      "views": 12,
-      "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "00651R 復華香港反1 投資區域:香港 反向/槓桿型 2016/01/27上市",
-      "channel": "理財數據實驗室",
-      "url": "https://www.youtube.com/watch?v=8km5gT9gr34",
-      "date": "2026-08-03",
-      "views": 0
+      "title": "00403A、00405A破發該撿嗎？3止跌訊號抓進場點，拉回優先加碼2個股+2檔ETF｜ft.股海老牛、葉芷娟【ETF錢滾錢】EP83",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/watch?v=jIiKWpC7obc",
+      "date": "2026-08-05",
+      "views": 24928,
+      "peer": true
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀（詳下方基金新聞標籤）",
     "品牌焦點：不靠傳統廣告！復華投信攜手北港武德宮打造捷運「招財錢母車廂」　實體互動引爆社群狂潮（ETtoday財經雲）",
-    "YouTube 熱片：復華投信跨界行銷 板南線放888顆招財錢母 通勤結合祈福體驗 金融業創意行銷掀打卡熱｜非凡財經新聞｜20260803（USTV 非凡電視・1,000 次觀看）"
+    "YouTube 熱片：主動ETF新兵開箱：各產業AI創新革命  00409A如何主動掌握未來無限商機？（復華投信・430,665 次觀看）"
   ]
 }
