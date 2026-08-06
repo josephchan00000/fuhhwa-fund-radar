@@ -447,13 +447,24 @@ def _fh_codes() -> tuple[str, ...]:
     return ("00929", "00991A", "00998A", "00986D")
 
 
+def _code_hit(text: str) -> bool:
+    """自家 ETF 代碼是否以「獨立詞」出現。防呆（2026-08-06 實戰誤收）：日文單字卡影片
+    標題帶課號「L#00929」被純子字串比對誤判——代碼前後不得緊貼英數，也不得是
+    「英數+#」的編號式前綴；獨立 hashtag（空格後的 #00929）仍算相關。"""
+    for c in _fh_codes():
+        if re.search(rf"(?<![0-9A-Za-z])(?<![0-9A-Za-z][#＃]){re.escape(c)}(?![0-9A-Za-z])",
+                     text):
+            return True
+    return False
+
+
 def yt_relevant(title: str, desc: str = "") -> bool:
-    """標題或說明含「復華」或自家 ETF 代碼才算相關（查詢會回同名他牌/無關影片）；
-    負面司法題材同 PTT 排除。"""
+    """標題或說明含「復華」或自家 ETF 代碼（獨立詞）才算相關（查詢會回同名他牌/
+    無關影片）；負面司法題材同 PTT 排除。"""
     text = f"{title} {desc}"
     if is_negative_title(title):
         return False
-    return "復華" in text or any(c in text for c in _fh_codes())
+    return "復華" in text or _code_hit(text)
 
 
 def _yt_secs(iso: str) -> int:
