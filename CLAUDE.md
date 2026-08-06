@@ -301,6 +301,12 @@ Routine prompt 原文③——晚間 NAV·PCF 即時更新（18:58）：
   結果入台帳不重驗），驗出窗外→剔除、窗內較早→改標並把連結換成原文 URL。注意：`gnews.resolve()`
   走 Google 內部 batchexecute 端點（版式會漂移）——失效時 fail-open 沿用 pubDate、CI 日誌印原因
   （grep `[gnews]`／`[fundnews]`），屆時只修 gnews 解析層、策略層（date_verify）不動。
+- **社群討論＝PTT＋YouTube（2026-08-06 使用者需求加入 YouTube）**：`fundnews.fetch_youtube()`
+  走 YouTube Data API v3，金鑰＝Actions secret `YOUTUBE_API_KEY`——**v0.12 舊 ETF 產品線時代
+  使用者就設過的同一把**（f5488a6「改建為基金雷達」時 workflow 沒再帶、secret 本身仍在，
+  daily.yml 已重新帶入；本機備援 `~/.fh_youtube_key`）。無金鑰／被擋回 []、只剩 PTT，
+  fetch_fund_news.py 會印「未設 YOUTUBE_API_KEY」提示。額度：search.list 每輪 2 查詢
+  ×100 單位＋videos.list 1 單位（日限 10,000）——**勿隨意加查詢組**。
 - **新聞來源黑名單**：排除「富聯網」（moneylink）。
 - **禁用詞**（正文不得出現，機構觀點也要改寫避開）：保證、穩賺、必賺、包賺、必漲、必跌、一定會、唯一、
   建議買賣、建議買、建議賣、目標價、零風險、無風險、穩賺不賠。

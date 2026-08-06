@@ -26,9 +26,11 @@ def main() -> None:
               f"保留前次落檔不覆寫（更新 {prev.get('as_of') or '—'}）")
         return
     n_fund = sum(1 for g in doc["funds"] if g["items"])
+    n_yt = sum(1 for s in doc["social"] if (s.get("platform") or "") == "youtube")
     print(f"[基金新聞・社群] 已寫入 {path}")
     print(f"  品牌新聞 {len(doc['brand'])} 則｜有專屬新聞的基金 {n_fund}/{len(doc['funds'])} 檔"
-          f"｜PTT 相關討論 {len(doc['social'])} 則")
+          f"｜PTT 討論 {len(doc['social']) - n_yt} 則｜YouTube 影片 {n_yt} 支"
+          + ("" if n_yt or fundnews._yt_key() else "（未設 YOUTUBE_API_KEY）"))
 
 
 if __name__ == "__main__":
