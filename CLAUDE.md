@@ -304,11 +304,18 @@ Routine prompt 原文③——晚間 NAV·PCF 即時更新（18:58）：
 - **社群討論＝PTT＋YouTube（2026-08-06 使用者需求）**：`fundnews.fetch_youtube()` 走 YouTube
   Data API v3，金鑰＝Actions secret `YOUTUBE_API_KEY`（v0.12 舊金鑰未曾建成 repo secret、
   已隨舊容器佚失，2026-08-06 使用者重設一把；本機備援 `~/.fh_youtube_key`）。無金鑰／被擋
-  回 []、只剩 PTT，fetch_fund_news.py 會印「未設 YOUTUBE_API_KEY」提示。查詢組＝
-  「復華投信／復華 基金／復華 ETF／00929」；**標題只寫自家 ETF 代碼、沒寫「復華」的影片
-  也算相關**（`_fh_codes()` 動態取 etfwatch 清單中名稱含復華者）；**時長 ≤3 分標 Shorts**
-  （連結走 /shorts/、儀表板來源標「YouTube Shorts」）。額度：search.list 每輪 4 查詢
-  ×100 單位＋videos.list 1 單位（日限 10,000）——**勿再隨意加查詢組**。
+  回 []、只剩 PTT，fetch_fund_news.py 會印「未設 YOUTUBE_API_KEY」提示。
+  **三層清單（2026-08-06 使用者規劃）**：①**官方**＝`YT_OFFICIAL_CHANNELS`——**兩個頻道**
+  （使用者提供）：@fhifund 主頻道（UCD3J90bNoHykt6Eru8YxUmQ，金管家系列在此）＋@fhetf
+  ETF 專屬頻道（handle 執行期以 channels.list forHandle 解析；config 鍵吃 UC id 或 @handle
+  皆可）——近窗**全部上傳**（uploads 播放清單 UC→UU、每頻道 1 單位，依日期序、掛「官方」章）；②**相關**＝search 4 組（復華投信／
+  復華 基金／復華 ETF／00929）依觀看數**取前 3**——標題只寫自家 ETF 代碼、沒寫「復華」的
+  影片也算相關（`_fh_codes()` 動態取 etfwatch 清單中名稱含復華者；代碼須為**獨立詞**——
+  曾誤收日文單字卡課號「L#00929」）；③**同業熱門**＝近 2 天依觀看數排序的「台股 ETF」
+  搜尋中含**同業代碼**（`_peer_codes()`）者**取前 2**（掛「同業熱門」章；自家內容歸②
+  不重複）。三層共用 seen 去重、官方優先。**時長 ≤3 分標 Shorts**（連結走 /shorts/、
+  來源標「YouTube Shorts」）。額度：search 5 組×100＋playlistItems 1＋videos.list 1
+  ≈每輪 502 單位（日限 10,000）——**勿再隨意加查詢組**。
   **FB／IG／Threads 擴充規劃見 `docs/social_api_plan.md`**（2026-08-06 查證：Threads 公開
   關鍵字搜尋為第一優先、需使用者建 Meta App＋過審 `threads_keyword_search`；FB 只做自家
   粉專、IG hashtag 額度緊排最後）。
