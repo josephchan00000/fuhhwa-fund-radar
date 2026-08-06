@@ -1745,10 +1745,15 @@ def _fundnews_view(doc: dict | None) -> str:
     if soc:
         rows = []
         for s in soc:
+            pill = ""
             if (s.get("platform") or "ptt") == "youtube":   # 2026-08-06 使用者需求：社群加 YouTube
                 badge = f'<span class="fnpush fnyt">▶ {_fmt_views(s.get("views"))}</span>'
                 plat = "YouTube Shorts" if s.get("short") else "YouTube"
                 src = (f'{_esc(s.get("channel"))}・{plat}' if s.get("channel") else plat)
+                if s.get("official"):            # 三層標籤：官方／同業熱門（相關層不掛章）
+                    pill = '<span class="fntag fnbrand">官方</span>'
+                elif s.get("peer"):
+                    pill = '<span class="fntag">同業熱門</span>'
             else:
                 badge = f'<span class="fnpush">{int(s.get("push") or 0)} 推</span>'
                 src = "PTT 股票板"
@@ -1757,7 +1762,7 @@ def _fundnews_view(doc: dict | None) -> str:
                 f'<div class="fnsocb"><a class="fnt" href="{_esc(s.get("url") or "#")}" '
                 f'target="_blank" rel="noopener">{_esc(s.get("title"))}</a>'
                 f'<div class="fnmeta"><span class="fnd">{_esc(s.get("date") or "")}</span>'
-                f'<span class="fnsrc">{src}</span></div></div></div>')
+                f'<span class="fnsrc">{src}</span>{pill}</div></div></div>')
         parts.append('<div class="fnlist">' + "".join(rows) + '</div>')
     else:
         parts.append('<div class="muted">近期無相關討論（或來源暫不可達）。</div>')
