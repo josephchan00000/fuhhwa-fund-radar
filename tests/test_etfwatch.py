@@ -435,10 +435,11 @@ def test_upcoming_buckets_and_self_expiry():
     up = etfwatch.upcoming(date(2026, 7, 24))
     assert [x["code"] for x in up["listing"]] == ["00410A"]
     assert set(x["code"] for x in up["raising"]) == {"00411A", "00987D", "00409A"}
-    # 掛牌後不再出現在「即將掛牌」；募集截止後（含未定截止以起日+fallback 估算）自動移除
+    # 掛牌後不再出現在「即將掛牌」；募集截止後（含未定截止以起日+fallback 估算）自動移除。
+    # 2026-08-06 補上 00409A 掛牌日（9/2）後：8/20 募集已截止（8/14）→ 移到「即將掛牌」。
     up2 = etfwatch.upcoming(date(2026, 8, 20))
-    assert up2["listing"] == []
-    assert [x["code"] for x in up2["raising"]] == ["00409A"]
+    assert [x["code"] for x in up2["listing"]] == ["00409A"]
+    assert up2["raising"] == []
     up3 = etfwatch.upcoming(date(2026, 10, 1))
     assert up3["listing"] == [] and up3["raising"] == []
 
