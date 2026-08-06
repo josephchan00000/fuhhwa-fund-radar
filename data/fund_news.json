@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/06 10:57",
+  "as_of": "2026/08/06 11:31",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題＋YouTube 影片・自動擷取",
   "brand": [
@@ -329,9 +329,69 @@
       "platform": "youtube",
       "title": "復華投信跨界行銷 板南線放888顆招財錢母 通勤結合祈福體驗 金融業創意行銷掀打卡熱｜非凡財經新聞｜20260803",
       "channel": "USTV 非凡電視",
-      "url": "https://www.youtube.com/watch?v=PwFMAv8cEwE",
+      "url": "https://www.youtube.com/shorts/PwFMAv8cEwE",
       "date": "2026-08-03",
-      "views": 1000
+      "views": 1000,
+      "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "00929配息曝光！年化16.54%",
+      "channel": "投資趣",
+      "url": "https://www.youtube.com/shorts/eGFMD9ZMHzY",
+      "date": "2026-08-03",
+      "views": 995,
+      "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "主動式ETF復盤｜00991A 操作 華邦電 2344｜2026/02/25～2026/07/21 #shorts #主動式ETF #華邦電 #2344 #00991A #台股 #復盤",
+      "channel": "Steven Lin",
+      "url": "https://www.youtube.com/shorts/Srmd2s8WGVg",
+      "date": "2026-07-31",
+      "views": 139,
+      "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "AI新變局，你的ETF跟得上嗎？00409A「1＋2多重經理人」完整解析",
+      "channel": "阿愷的Ai自修室",
+      "url": "https://www.youtube.com/watch?v=CkSuREbQ4Ic",
+      "date": "2026-08-02",
+      "views": 107
+    },
+    {
+      "platform": "youtube",
+      "title": "00929 的引擎：揭開台灣科技股息巨獸的面紗",
+      "channel": "滑行者 (The Coaster)",
+      "url": "https://www.youtube.com/watch?v=EC8nROnQBcw",
+      "date": "2026-07-31",
+      "views": 37
+    },
+    {
+      "platform": "youtube",
+      "title": "EP9｜高股息00929 vs 006208，3年報酬差121.7%？臺股真相實驗室 | 00929 vs 006208 三年回測 #Shorts",
+      "channel": "Carson Quant",
+      "url": "https://www.youtube.com/shorts/sG0FxUTmEWs",
+      "date": "2026-08-02",
+      "views": 12,
+      "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "シン・フラッシュ英単語/高校1年/50問L#00929",
+      "channel": "脳トレ",
+      "url": "https://www.youtube.com/watch?v=gfDwAj7QmKw",
+      "date": "2026-08-04",
+      "views": 6
+    },
+    {
+      "platform": "youtube",
+      "title": "シン・フラッシュ英単語/中学3年/50問L#00929",
+      "channel": "脳トレ",
+      "url": "https://www.youtube.com/watch?v=-StXQKbvjbE",
+      "date": "2026-08-04",
+      "views": 1
     }
   ],
   "highlights": [
