@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from .clock import TW_TZ, stamp_tw
@@ -54,9 +54,11 @@ _NEGATIVE = re.compile(
 
 # 「非新聞頁面」標題特徵——搜尋/RSS 常混入基金介紹頁、文章列表頁、平台頁、討論牆、
 # 淨值表等非新聞連結，佔版面又無資訊量，一律剔除（2026-07-04 使用者回饋：我要新聞）。
+# 「公開說明書／信託契約」＝基金平台的例行修訂公告轉貼（2026-08-06 使用者抓包：中租基智網
+# 一年前的公告被 Google 標成近期日期、同一則掛滿 6 檔基金卡）——公告類非新聞，一律剔除。
 _JUNK_TITLE = re.compile(
     r"推薦文章|新聞資訊與消息|討論牆|一覽表|淨值表|交易平台|基金介紹|基金檔案|"
-    r"基金專區|歷史淨值|基金列表|條款|開戶")
+    r"基金專區|歷史淨值|基金列表|條款|開戶|公開說明書|信託契約")
 
 # 財經媒體 RSS 直抓（免金鑰）——與 Google News 互補；站台全站 feed、本層只留「復華」相關
 NEWS_FEEDS = [
@@ -235,6 +237,93 @@ def merge_news(*lists: list[dict], limit: int = BRAND_LIMIT) -> list[dict]:
     return merged[:limit]
 
 
+# ── Google News「有效日期」防線（2026-08-06 使用者抓包「很多都是舊的」）────────
+# pubDate 會把舊文標成近期（Google re-crawl 時間）：傘型ETF 4/15 掛牌稿標 08-01、
+# 基智網去年公告標 08-04，各掛版整週。台帳 data/fund_news_seen.json（必須入庫）記
+# 每標題「最早見過的日期」＋CI 解原文頁驗得的真實刊出日，兩者都拉不進視窗就剔除。
+
+SEEN_OUT = ROOT / "data" / "fund_news_seen.json"
+VERIFY_BUDGET = 16       # 每輪最多解幾篇原文（台帳沒驗過的新項目才消耗；容器端網路被擋＝0 成本）
+SEEN_KEEP_DAYS = 60      # 台帳條目最後一次見到後保留天數（涵蓋反覆重貼週期，防無限膨脹）
+
+
+def _seen_load() -> dict:
+    try:
+        return json.loads(SEEN_OUT.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _seen_save(seen: dict) -> None:
+    SEEN_OUT.parent.mkdir(parents=True, exist_ok=True)
+    SEEN_OUT.write_text(json.dumps(seen, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def _from_iso(s: str) -> datetime | None:
+    try:
+        dt = datetime.fromisoformat(s)
+    except (TypeError, ValueError):
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=TW_TZ)
+
+
+def _seen_prune(seen: dict, now: datetime) -> dict:
+    def last(e: dict) -> datetime:
+        return _from_iso(e.get("seen") or "") or _from_iso(e.get("pub") or "") or now
+    return {k: e for k, e in seen.items() if (now - last(e)).days <= SEEN_KEEP_DAYS}
+
+
+def date_verify(items: list[dict], seen: dict, state: dict, *,
+                days: int = WINDOW_DAYS, now: datetime | None = None,
+                verifier=None) -> list[dict]:
+    """Google News 項目逐則算「有效日期」＝min(本次 pubDate, 台帳最早見過值, 原文頁刊出日)。
+
+    · 台帳鍵＝標題前 24 字（與去重鍵一致）；每則更新 pub（最早 pubDate）與 seen（最後見到）。
+    · 原文驗證（gnews.verify_published）每輪至多 state["budget"] 篇、結果入台帳 v 不重驗
+      （v=""＝驗過但查無日期，沿用 pubDate）；解到原文 URL 一併存 u。
+    · 有效日期落出視窗 → 剔除（CI 日誌印明）；在窗內但早於 pubDate → 改標有效日期，
+      有原文 URL 就換上（連結直達媒體、不繞 Google 轉址）。
+    · 鉅亨/Yahoo RSS 直抓不經此路——pubDate 出自發布者、可信。"""
+    now = now or datetime.now(TW_TZ)
+    if verifier is None:
+        verifier = lambda u: gnews.verify_published(u)  # noqa: E731
+    cutoff = now - timedelta(days=days)
+    out: list[dict] = []
+    for i in items or []:
+        title = i.get("title") or ""
+        k = title[:24]
+        claimed = _from_iso(i.get("datetime") or "")
+        if not k or claimed is None:
+            out.append(i)
+            continue
+        ent = seen.get(k) or {}
+        earliest = min([claimed] + [d for d in [_from_iso(ent.get("pub") or "")] if d])
+        if "v" not in ent and state.get("budget", 0) > 0 \
+                and "news.google.com" in (i.get("url") or ""):
+            state["budget"] = state["budget"] - 1
+            real, pub = verifier(i.get("url") or "")
+            ent["v"] = pub.isoformat() if pub else ""
+            if real:
+                ent["u"] = real
+            print(f"[fundnews] 驗刊出日:「{k}」pubDate={claimed:%m-%d} → "
+                  + (f"實際 {pub:%Y-%m-%d}" if pub else "查無日期（沿用 pubDate）"))
+        vd = _from_iso(ent.get("v") or "")
+        eff = min([earliest] + [d for d in [vd] if d])
+        ent["pub"], ent["seen"] = earliest.isoformat(), now.isoformat()
+        seen[k] = ent
+        if eff < cutoff:
+            print(f"[fundnews] 舊聞剔除:「{title[:36]}」Google 標 {claimed:%m-%d}、"
+                  f"實為 {eff:%Y-%m-%d}")
+            continue
+        if eff < claimed:
+            i = {**i, "date": eff.astimezone(TW_TZ).strftime("%Y-%m-%d %H:%M"),
+                 "datetime": eff.astimezone(TW_TZ).isoformat()}
+        if ent.get("u"):
+            i = {**i, "url": ent["u"]}
+        out.append(i)
+    return out
+
+
 def fund_item_relevant(item: dict, base: str) -> bool:
     """留與該基金明確相關者：標題含「復華」或基金核心名（去「復華」「基金」後的特徵詞）。
     兩類噪音濾掉：Google 放寬搜尋回的同類他牌基金（如搜「復華美國新星基金」回柏瑞美國
@@ -350,10 +439,16 @@ def auto_highlights(doc: dict) -> list[str]:
 
 
 def assemble(funds: list[dict], days: int = WINDOW_DAYS) -> dict:
-    """抓齊三類情報 → 可落檔的 doc。任一來源失敗該類為空、不互相牽連。"""
+    """抓齊三類情報 → 可落檔的 doc。任一來源失敗該類為空、不互相牽連。
+    Google News 項目先過 date_verify（pubDate 會把舊文標成近期，見該函式 docstring）。"""
+    seen, state = _seen_load(), {"budget": VERIFY_BUDGET}
     feeds = _clean_items(fetch_feeds(days=days))
-    brand = merge_news(fetch_brand(days=days), feeds)
-    fund_groups = route_feeds_to_funds(fetch_funds(funds, days=days), feeds)
+    brand = merge_news(date_verify(fetch_brand(days=days), seen, state, days=days), feeds)
+    fund_groups = fetch_funds(funds, days=days)
+    for g in fund_groups:
+        g["items"] = date_verify(g["items"], seen, state, days=days)
+    fund_groups = route_feeds_to_funds(fund_groups, feeds)
+    _seen_save(_seen_prune(seen, datetime.now(TW_TZ)))
     doc = {
         "as_of": stamp_tw("%Y/%m/%d %H:%M"),
         "window_days": days,
