@@ -285,16 +285,29 @@ def _yt_doc(vid, title, desc="", channel="測試頻道", pub="2026-08-05T10:00:0
 def test_parse_youtube_filters_dedupes_sorts():
     docs = [{"items": [
                 _yt_doc("v1", "復華基金月配息實測", pub="2026-08-04T10:00:00Z"),
-                _yt_doc("v2", "存股心得分享"),                    # 無「復華」→ 濾除
+                _yt_doc("v2", "存股心得分享"),                    # 無「復華」也無自家代碼 → 濾除
                 _yt_doc("v3", "台股ETF怎麼買", desc="含復華00991A比較"),  # 說明命中也算相關
                 _yt_doc("v4", "勞動基金炒股案 搜索復華投信"),      # 負面司法 → 濾除
+                _yt_doc("v5", "00929 8月配息出爐！"),              # 只寫自家 ETF 代碼 → 相關
             ]},
             {"items": [_yt_doc("v1", "復華基金月配息實測")]}]      # 跨查詢重複 → 去重
-    out = fundnews.parse_youtube(docs, {"v1": 120, "v3": 45678})
-    assert [i["url"][-2:] for i in out] == ["v3", "v1"]           # 依觀看數新→舊
+    out = fundnews.parse_youtube(docs, {"v1": {"views": 120, "sec": 45},
+                                        "v3": {"views": 45678, "sec": 600}})
+    assert [i["url"][-2:] for i in out] == ["v3", "v1", "v5"]     # 依觀看數新→舊
     assert out[0]["views"] == 45678 and out[0]["platform"] == "youtube"
+    assert "short" not in out[0] and "/watch?v=v3" in out[0]["url"]
+    assert out[1].get("short") is True and "/shorts/v1" in out[1]["url"]   # ≤3 分＝Shorts
     assert out[1]["date"] == "2026-08-04" and out[1]["channel"] == "測試頻道"
     assert fundnews.parse_youtube([], {}) == []
+
+
+def test_yt_secs_and_code_relevance():
+    assert fundnews._yt_secs("PT2M59S") == 179
+    assert fundnews._yt_secs("PT1H2M3S") == 3723
+    assert fundnews._yt_secs("PT45S") == 45
+    assert fundnews._yt_secs("") == 0 and fundnews._yt_secs("垃圾") == 0
+    assert fundnews.yt_relevant("00929 8月配息出爐！")            # 自家 ETF 代碼即相關
+    assert not fundnews.yt_relevant("0050 定期定額心得")          # 他家標的不收
 
 
 def test_view_renders_youtube_social_alongside_ptt():
@@ -303,11 +316,15 @@ def test_view_renders_youtube_social_alongside_ptt():
                        "url": "https://ptt/x", "date": "8/05", "push": 25},
                       {"platform": "youtube", "title": "復華基金月配息實測",
                        "channel": "理財頻道", "url": "https://www.youtube.com/watch?v=v1",
-                       "date": "2026-08-04", "views": 45678}]}
+                       "date": "2026-08-04", "views": 45678},
+                      {"platform": "youtube", "title": "00929 配息 60 秒看懂", "short": True,
+                       "channel": "短片頻道", "url": "https://www.youtube.com/shorts/v9",
+                       "date": "2026-08-05", "views": 300}]}
     html = _fundnews_view(doc)
     assert "25 推" in html and "PTT 股票板" in html               # PTT 原樣
-    assert "4.6萬" in html and "理財頻道・YouTube" in html        # YouTube 觀看數＋頻道
+    assert "4.6萬" in html and "理財頻道・YouTube<" in html       # 一般影片不帶 Shorts 字樣
     assert "youtube.com/watch?v=v1" in html and "fnyt" in html
+    assert "短片頻道・YouTube Shorts" in html and "youtube.com/shorts/v9" in html
 
 
 def test_fmt_views():
