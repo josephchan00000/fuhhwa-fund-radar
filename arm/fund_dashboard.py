@@ -1679,6 +1679,19 @@ def _fund_tag_label(base: str | None) -> str:
     return re.sub(r"基金$", "", s) or (base or "")
 
 
+def _fmt_views(n) -> str:
+    """觀看數：1 萬以上以「萬」計（1.2萬）、以下千分位；0／缺值誠實顯示 —。"""
+    try:
+        n = int(n or 0)
+    except (TypeError, ValueError):
+        n = 0
+    if n <= 0:
+        return "—"
+    if n >= 10000:
+        return f"{n / 10000:.1f}".rstrip("0").rstrip(".") + "萬"
+    return f"{n:,}"
+
+
 def _fundnews_view(doc: dict | None) -> str:
     if not doc:
         return ('<div class="muted">尚無基金新聞資料。請執行 '
@@ -1728,15 +1741,23 @@ def _fundnews_view(doc: dict | None) -> str:
         parts.append(f'<div class="muted">近 {win} 天無相關新聞（或來源暫不可達）。</div>')
 
     soc = doc.get("social") or []
-    parts.append(f'<div class="fng">{_ic("chat", plain=True)} 社群討論（PTT 股票板・依推文數）</div>')
+    parts.append(f'<div class="fng">{_ic("chat", plain=True)} 社群討論（PTT 股票板・YouTube）</div>')
     if soc:
-        parts.append('<div class="fnlist">' + "".join(
-            f'<div class="fnit fnsoc"><span class="fnpush">{int(s.get("push") or 0)} 推</span>'
-            f'<div class="fnsocb"><a class="fnt" href="{_esc(s.get("url") or "#")}" '
-            f'target="_blank" rel="noopener">{_esc(s.get("title"))}</a>'
-            f'<div class="fnmeta"><span class="fnd">{_esc(s.get("date") or "")}</span>'
-            f'<span class="fnsrc">PTT 股票板</span></div></div></div>'
-            for s in soc) + '</div>')
+        rows = []
+        for s in soc:
+            if (s.get("platform") or "ptt") == "youtube":   # 2026-08-06 使用者需求：社群加 YouTube
+                badge = f'<span class="fnpush fnyt">▶ {_fmt_views(s.get("views"))}</span>'
+                src = (f'{_esc(s.get("channel"))}・YouTube' if s.get("channel") else "YouTube")
+            else:
+                badge = f'<span class="fnpush">{int(s.get("push") or 0)} 推</span>'
+                src = "PTT 股票板"
+            rows.append(
+                f'<div class="fnit fnsoc">{badge}'
+                f'<div class="fnsocb"><a class="fnt" href="{_esc(s.get("url") or "#")}" '
+                f'target="_blank" rel="noopener">{_esc(s.get("title"))}</a>'
+                f'<div class="fnmeta"><span class="fnd">{_esc(s.get("date") or "")}</span>'
+                f'<span class="fnsrc">{src}</span></div></div></div>')
+        parts.append('<div class="fnlist">' + "".join(rows) + '</div>')
     else:
         parts.append('<div class="muted">近期無相關討論（或來源暫不可達）。</div>')
     parts.append(f'<div class="fnfoot">來源：{_esc(doc.get("source") or "自動擷取")}・'
@@ -2305,6 +2326,8 @@ a.fntag:hover{color:var(--acc);text-decoration:underline;text-underline-offset:2
 .fnsocb{min-width:0}
 .fnpush{flex:0 0 48px;text-align:center;font-weight:800;font-size:12.5px;color:var(--gold);
   background:rgba(200,134,15,.12);border:1px solid rgba(200,134,15,.4);border-radius:8px;padding:3px 0;margin-top:2px;white-space:nowrap}
+.fnpush.fnyt{flex-basis:auto;min-width:48px;padding:3px 7px;color:#e6504c;
+  background:rgba(230,80,76,.10);border-color:rgba(230,80,76,.35)}
 .fnfoot{color:var(--mut);font-size:12px;margin-top:14px;border-top:1px solid var(--line);padding-top:8px}
 """
 

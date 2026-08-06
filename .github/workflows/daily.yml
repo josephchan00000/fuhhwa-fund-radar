@@ -100,6 +100,10 @@ jobs:
         run: TZ=Asia/Taipei python3 scripts/check_numbers.py || true
 
       - name: 跑每日 routine（抓持股介紹 + 產新聞提示包 + 檢查簡介覆蓋 + 重建儀表板）
+        env:
+          # 社群段 YouTube 影片（fundnews.fetch_youtube）。此 secret 是 v0.12 ETF 產品線
+          # 時代使用者已設過的同一把（f5488a6 改建時 workflow 沒再帶、金鑰仍在）；未設則誠實降級只剩 PTT。
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: bash scripts/daily_fund.sh
 
       - name: 上傳儀表板與持股快照為 artifact
@@ -121,6 +125,7 @@ jobs:
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
           git add -f data/funds/*.json 2>/dev/null || true        # 分開 add：新聞 glob 為空時不會連 NAV 快照一起中止
           git add -f data/fund_news.json 2>/dev/null || true      # 基金相關新聞＋社群聲量（fetch_fund_news.py 產出）
+          git add -f data/fund_news_seen.json 2>/dev/null || true # 新聞日期台帳（date_verify 防 Google 舊文重標日期；漏 add 會每輪重驗）
           git add -f data/etf_watch.json 2>/dev/null || true      # ETF 數據追蹤（fetch_etf_watch.py 產出）
           git add -f data/macro_chips.json 2>/dev/null || true    # 總經・籌碼數據（fetch_macro_chips.py 產出）
           git add -f data/etf_holdings.json 2>/dev/null || true   # ETF 每日持股（展開明細；漏 add 會斷「前一揭露日」、Δ 整片變 —）
