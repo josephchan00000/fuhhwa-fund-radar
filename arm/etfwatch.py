@@ -138,9 +138,11 @@ UPCOMING: list[dict] = [
      "freq": "月配", "theme": "美國公債量化增益（與 00411A 股債雙主動搭配）",
      "cat": "主動式債券",         # 債券型：升級時髒序列門檻須放寬（bond_codes 依 cat 含「債」判定）
      "url": "https://newtalk.tw/news/view/2026-07-17/1047704"},
-    # 即將募集——本家復華全球未來50主動式ETF，8/12 起開募（知新聞／復華官方募集公告）。
+    # 本家復華全球未來50主動式ETF——8/12~8/14 募集、預計 9/2 掛牌（2026-08-06 查證：
+    # 經濟日報／TechNews 兩來源一致；官方 YouTube 已上宣傳片）。list_date 到日自動升級追蹤；
+    # 若掛牌日異動，改此欄即可（graduation guard 會逼 14 天內轉正）。
     {"code": "00409A", "name": "主動復華全球未來50", "issuer": "復華投信",
-     "raise_start": "2026-08-12", "raise_end": None,
+     "raise_start": "2026-08-12", "raise_end": "2026-08-14", "list_date": "2026-09-02",
      "freq": "—", "theme": "全球 AI 浪潮下具競爭優勢的產業龍頭與長線成長股",
      "url": "https://www.fhtrust.com.tw/services/news_list/content/news/b999d359-05a2-4e3d-9a0a-d35341e4ec3b"},
 ]
