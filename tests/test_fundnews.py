@@ -301,6 +301,49 @@ def test_parse_youtube_filters_dedupes_sorts():
     assert fundnews.parse_youtube([], {}) == []
 
 
+def test_youtube_three_tiers():
+    """三層清單（2026-08-06 使用者規劃）：官方全收＋跨層去重＋同業熱門判準＋播放清單轉形。"""
+    # _pl_docs：playlistItems → search 形狀、視窗外舊上傳剔除
+    pl = {"items": [
+        {"snippet": {"title": "復華金管家：經理人報告 EP12", "channelTitle": "復華投信",
+                     "resourceId": {"videoId": "of1"}},
+         "contentDetails": {"videoId": "of1", "videoPublishedAt": "2026-08-05T03:00:00Z"}},
+        {"snippet": {"title": "半年前的舊片", "channelTitle": "復華投信",
+                     "resourceId": {"videoId": "of2"}},
+         "contentDetails": {"videoId": "of2", "videoPublishedAt": "2026-02-01T03:00:00Z"}},
+    ]}
+    docs = fundnews._pl_docs(pl, "2026-07-30T00:00:00Z")
+    assert [i["id"]["videoId"] for i in docs["items"]] == ["of1"]
+    # 官方層：不看「復華」相關性照收（標題可以只是「金管家教學」）、掛 official 章
+    seen = set()
+    official = fundnews.parse_youtube([docs], {"of1": {"views": 50, "sec": 400}},
+                                      relevant=lambda t, d="": True,
+                                      mark={"official": True}, seen=seen)
+    assert official[0]["official"] is True and official[0]["channel"] == "復華投信"
+    # 跨層去重：同支影片再出現在搜尋結果 → 不重複佔相關層名額
+    dup = {"items": [_yt_doc("of1", "復華金管家：經理人報告 EP12")]}
+    assert fundnews.parse_youtube([dup], {}, seen=seen) == []
+    # 同業熱門判準：含同業代碼收、自家（復華/00929）不收、負面不收
+    assert fundnews.yt_peer_relevant("0056 高股息還能買嗎？")
+    assert not fundnews.yt_peer_relevant("00929 復華配息")          # 自家歸相關層
+    assert not fundnews.yt_peer_relevant("0056 遭搜索調查")         # 負面照擋
+    assert not fundnews.yt_peer_relevant("美股大盤 QQQ 分析")       # 無同業代碼
+
+
+def test_view_renders_official_and_peer_pills():
+    doc = {"as_of": "2026/08/06", "window_days": 7, "brand": [], "funds": [],
+           "social": [{"platform": "youtube", "title": "復華金管家：台灣智能基金開箱",
+                       "channel": "復華投信", "official": True,
+                       "url": "https://www.youtube.com/watch?v=of1",
+                       "date": "2026-08-05", "views": 50},
+                      {"platform": "youtube", "title": "0056 vs 00878 怎麼選", "peer": True,
+                       "channel": "同業頻道", "url": "https://www.youtube.com/watch?v=p1",
+                       "date": "2026-08-05", "views": 9000}]}
+    html = _fundnews_view(doc)
+    assert ">官方</span>" in html and ">同業熱門</span>" in html
+    assert "復華投信・YouTube" in html
+
+
 def test_yt_secs_and_code_relevance():
     assert fundnews._yt_secs("PT2M59S") == 179
     assert fundnews._yt_secs("PT1H2M3S") == 3723
