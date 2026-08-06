@@ -15,6 +15,7 @@ data/funds/*
 # ETF 數據追蹤落檔／基金新聞落檔：入庫當 fallback（來源被擋時 CI 沿用前次值，避免整片留空）
 !data/etf_watch.json
 !data/fund_news.json
+!data/fund_news_seen.json
 # 總經・籌碼數據（市場溫度計）落檔：跨日累積序列＋來源被擋時的 fallback，必須入庫
 !data/macro_chips.json
 # ETF 每日持股揭露（展開明細「加減碼／當日貢獻」資料層）：**必須入庫**——

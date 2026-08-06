@@ -121,6 +121,7 @@ jobs:
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
           git add -f data/funds/*.json 2>/dev/null || true        # 分開 add：新聞 glob 為空時不會連 NAV 快照一起中止
           git add -f data/fund_news.json 2>/dev/null || true      # 基金相關新聞＋社群聲量（fetch_fund_news.py 產出）
+          git add -f data/fund_news_seen.json 2>/dev/null || true # 新聞日期台帳（date_verify 防 Google 舊文重標日期；漏 add 會每輪重驗）
           git add -f data/etf_watch.json 2>/dev/null || true      # ETF 數據追蹤（fetch_etf_watch.py 產出）
           git add -f data/macro_chips.json 2>/dev/null || true    # 總經・籌碼數據（fetch_macro_chips.py 產出）
           git add -f data/etf_holdings.json 2>/dev/null || true   # ETF 每日持股（展開明細；漏 add 會斷「前一揭露日」、Δ 整片變 —）
