@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/06 11:31",
+  "as_of": "2026/08/06 11:37",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題＋YouTube 影片・自動擷取",
   "brand": [
@@ -27,7 +27,7 @@
     {
       "title": "捷運驚見錢母車廂復華投信與北港武德宮合作穩股民信心網讚心情大好- 財經",
       "url": "https://news.cts.com.tw/cts/money/202608/202608033062944.html",
-      "source": "華視新聞網",
+      "source": "news.cts.com.tw",
       "date": "2026-08-03 14:44",
       "datetime": "2026-08-03T14:44:00+08:00"
     }
@@ -379,19 +379,11 @@
     },
     {
       "platform": "youtube",
-      "title": "シン・フラッシュ英単語/高校1年/50問L#00929",
-      "channel": "脳トレ",
-      "url": "https://www.youtube.com/watch?v=gfDwAj7QmKw",
-      "date": "2026-08-04",
-      "views": 6
-    },
-    {
-      "platform": "youtube",
-      "title": "シン・フラッシュ英単語/中学3年/50問L#00929",
-      "channel": "脳トレ",
-      "url": "https://www.youtube.com/watch?v=-StXQKbvjbE",
-      "date": "2026-08-04",
-      "views": 1
+      "title": "00651R 復華香港反1 投資區域:香港 反向/槓桿型 2016/01/27上市",
+      "channel": "理財數據實驗室",
+      "url": "https://www.youtube.com/watch?v=8km5gT9gr34",
+      "date": "2026-08-03",
+      "views": 0
     }
   ],
   "highlights": [
