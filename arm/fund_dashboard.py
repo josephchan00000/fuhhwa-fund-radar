@@ -1747,7 +1747,8 @@ def _fundnews_view(doc: dict | None) -> str:
         for s in soc:
             if (s.get("platform") or "ptt") == "youtube":   # 2026-08-06 使用者需求：社群加 YouTube
                 badge = f'<span class="fnpush fnyt">▶ {_fmt_views(s.get("views"))}</span>'
-                src = (f'{_esc(s.get("channel"))}・YouTube' if s.get("channel") else "YouTube")
+                plat = "YouTube Shorts" if s.get("short") else "YouTube"
+                src = (f'{_esc(s.get("channel"))}・{plat}' if s.get("channel") else plat)
             else:
                 badge = f'<span class="fnpush">{int(s.get("push") or 0)} 推</span>'
                 src = "PTT 股票板"

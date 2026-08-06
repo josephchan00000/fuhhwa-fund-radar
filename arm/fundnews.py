@@ -415,8 +415,12 @@ def fetch_ptt(pages: int = 3) -> list[dict]:
 
 YT_SEARCH = "https://www.googleapis.com/youtube/v3/search"
 YT_VIDEOS = "https://www.googleapis.com/youtube/v3/videos"
-YT_QUERIES = ["復華投信", "復華 基金"]   # search.list 每次 100 單位（日限 10000），兩組即可
-YT_LIMIT = 6
+# search.list 每次 100 單位（日限 10000）；四組≈每輪 400、日多輪仍 <3000（2026-08-06 使用者
+# 要求擴大「復華投信相關」涵蓋——含自家 ETF 討論度最高的 00929；勿再隨意加組）。
+YT_QUERIES = ["復華投信", "復華 基金", "復華 ETF", "00929"]
+YT_LIMIT = 8
+_YT_SHORT_SEC = 180          # YouTube Shorts 上限 3 分鐘（2024-10 起）；≤此秒數標為短片
+_YT_DUR = re.compile(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?")
 
 
 def _yt_key() -> str:
@@ -430,14 +434,41 @@ def _yt_key() -> str:
         return ""
 
 
+def _fh_codes() -> tuple[str, ...]:
+    """復華自家 ETF 代碼（名稱含「復華」者，動態取自 etfwatch 追蹤清單）——標題只寫代碼
+    不寫「復華」的影片（00929 常見）也算相關。取不到時退回已知靜態清單。"""
+    try:
+        from . import etfwatch
+        codes = tuple(t[0] for t in etfwatch.watch_tuples() if "復華" in (t[1] or ""))
+        if codes:
+            return codes
+    except Exception:
+        pass
+    return ("00929", "00991A", "00998A", "00986D")
+
+
 def yt_relevant(title: str, desc: str = "") -> bool:
-    """標題或說明含「復華」才算相關（查詢會回同名他牌/無關影片）；負面司法題材同 PTT 排除。"""
-    return "復華" in f"{title} {desc}" and not is_negative_title(title)
+    """標題或說明含「復華」或自家 ETF 代碼才算相關（查詢會回同名他牌/無關影片）；
+    負面司法題材同 PTT 排除。"""
+    text = f"{title} {desc}"
+    if is_negative_title(title):
+        return False
+    return "復華" in text or any(c in text for c in _fh_codes())
 
 
-def parse_youtube(search_docs: list[dict], stats: dict[str, int] | None = None) -> list[dict]:
-    """search.list 回應（多組查詢）＋{videoId: 觀看數} → 社群項目。純函式可單測。
-    相關性過濾、videoId 去重，依觀看數→日期新→舊排序、取前 YT_LIMIT。"""
+def _yt_secs(iso: str) -> int:
+    """ISO8601 時長（PT1H2M3S）→ 秒；解析不出回 0。"""
+    m = _YT_DUR.fullmatch((iso or "").strip())
+    if not m:
+        return 0
+    h, mi, s = (int(x or 0) for x in m.groups())
+    return h * 3600 + mi * 60 + s
+
+
+def parse_youtube(search_docs: list[dict], stats: dict | None = None) -> list[dict]:
+    """search.list 回應（多組查詢）＋{videoId: {views, sec}} → 社群項目。純函式可單測。
+    相關性過濾、videoId 去重；時長 ≤3 分標 Shorts（連結走 /shorts/、儀表板另標）；
+    依觀看數→日期新→舊排序、取前 YT_LIMIT。"""
     stats = stats or {}
     out, seen = [], set()
     for doc in search_docs or []:
@@ -448,11 +479,20 @@ def parse_youtube(search_docs: list[dict], stats: dict[str, int] | None = None) 
             if not vid or vid in seen or not yt_relevant(title, sn.get("description") or ""):
                 continue
             seen.add(vid)
-            out.append({"platform": "youtube", "title": title,
-                        "channel": (sn.get("channelTitle") or "").strip(),
-                        "url": f"https://www.youtube.com/watch?v={vid}",
-                        "date": (sn.get("publishedAt") or "")[:10],
-                        "views": int(stats.get(vid) or 0)})
+            st = stats.get(vid) or {}
+            if isinstance(st, int):              # 舊呼叫形（純觀看數）相容
+                st = {"views": st}
+            sec = int(st.get("sec") or 0)
+            short = 0 < sec <= _YT_SHORT_SEC
+            item = {"platform": "youtube", "title": title,
+                    "channel": (sn.get("channelTitle") or "").strip(),
+                    "url": (f"https://www.youtube.com/shorts/{vid}" if short
+                            else f"https://www.youtube.com/watch?v={vid}"),
+                    "date": (sn.get("publishedAt") or "")[:10],
+                    "views": int(st.get("views") or 0)}
+            if short:
+                item["short"] = True
+            out.append(item)
     out.sort(key=lambda x: (x.get("views") or 0, x.get("date") or ""), reverse=True)
     return out[:YT_LIMIT]
 
@@ -477,15 +517,18 @@ def fetch_youtube(days: int = WINDOW_DAYS) -> list[dict]:
             continue
     vids = [v for d in docs for it in d.get("items") or []
             if (v := (it.get("id") or {}).get("videoId"))]
-    stats: dict[str, int] = {}
+    stats: dict[str, dict] = {}
     if vids:
         try:
             ids = list(dict.fromkeys(vids))[:50]     # videos.list 單次上限 50 支
             data = json.loads(get_bytes(
-                f"{YT_VIDEOS}?part=statistics&id={','.join(ids)}&key={key}",
+                f"{YT_VIDEOS}?part=statistics,contentDetails&id={','.join(ids)}&key={key}",
                 cache_ttl=1800).decode("utf-8", "ignore"))
             for it in data.get("items") or []:
-                stats[it.get("id") or ""] = int((it.get("statistics") or {}).get("viewCount") or 0)
+                stats[it.get("id") or ""] = {
+                    "views": int((it.get("statistics") or {}).get("viewCount") or 0),
+                    "sec": _yt_secs((it.get("contentDetails") or {}).get("duration") or ""),
+                }
         except Exception:
             pass
     return parse_youtube(docs, stats)
