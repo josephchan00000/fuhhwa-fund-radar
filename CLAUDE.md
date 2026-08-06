@@ -305,9 +305,10 @@ Routine prompt 原文③——晚間 NAV·PCF 即時更新（18:58）：
   Data API v3，金鑰＝Actions secret `YOUTUBE_API_KEY`（v0.12 舊金鑰未曾建成 repo secret、
   已隨舊容器佚失，2026-08-06 使用者重設一把；本機備援 `~/.fh_youtube_key`）。無金鑰／被擋
   回 []、只剩 PTT，fetch_fund_news.py 會印「未設 YOUTUBE_API_KEY」提示。
-  **三層清單（2026-08-06 使用者規劃）**：①**官方**＝`YT_OFFICIAL_CHANNELS`（復華投信
-  UCD3J90bNoHykt6Eru8YxUmQ——金管家/ETF/發佈同一頻道）近窗**全部上傳**（uploads 播放清單
-  UC→UU、每頻道 1 單位，依日期序、掛「官方」章）；②**相關**＝search 4 組（復華投信／
+  **三層清單（2026-08-06 使用者規劃）**：①**官方**＝`YT_OFFICIAL_CHANNELS`——**兩個頻道**
+  （使用者提供）：@fhifund 主頻道（UCD3J90bNoHykt6Eru8YxUmQ，金管家系列在此）＋@fhetf
+  ETF 專屬頻道（handle 執行期以 channels.list forHandle 解析；config 鍵吃 UC id 或 @handle
+  皆可）——近窗**全部上傳**（uploads 播放清單 UC→UU、每頻道 1 單位，依日期序、掛「官方」章）；②**相關**＝search 4 組（復華投信／
   復華 基金／復華 ETF／00929）依觀看數**取前 3**——標題只寫自家 ETF 代碼、沒寫「復華」的
   影片也算相關（`_fh_codes()` 動態取 etfwatch 清單中名稱含復華者；代碼須為**獨立詞**——
   曾誤收日文單字卡課號「L#00929」）；③**同業熱門**＝近 2 天依觀看數排序的「台股 ETF」

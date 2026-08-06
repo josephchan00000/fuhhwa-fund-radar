@@ -416,13 +416,18 @@ def fetch_ptt(pages: int = 3) -> list[dict]:
 YT_SEARCH = "https://www.googleapis.com/youtube/v3/search"
 YT_VIDEOS = "https://www.googleapis.com/youtube/v3/videos"
 YT_PLAYLIST = "https://www.googleapis.com/youtube/v3/playlistItems"
+YT_CHANNELS = "https://www.googleapis.com/youtube/v3/channels"
 # search.list 每次 100 單位（日限 10000）；四組＋同業 1 組≈每輪 501、日多輪仍 <3000
 #（2026-08-06 使用者要求擴大涵蓋；勿再隨意加組）。
 YT_QUERIES = ["復華投信", "復華 基金", "復華 ETF", "00929"]
 # 三層清單（2026-08-06 使用者規劃）：官方全收／相關（非官方）取 3／同業熱門取 2。
-# 官方頻道：金管家、ETF、各類發佈都在同一頻道（查證 2026-08-06，無獨立 ETF 頻道）；
-# 未來有新官方頻道在此加一行即可（uploads 播放清單=UC→UU，1 單位/輪、免 channels.list）。
-YT_OFFICIAL_CHANNELS = {"UCD3J90bNoHykt6Eru8YxUmQ": "復華投信"}
+# 官方頻道是「兩個」（使用者提供 2026-08-06）：@fhifund 主頻道（金管家系列在此）＋
+# @fhetf ETF 專屬頻道。鍵可填 UC 頻道 id（直接用）或 @handle（執行期 channels.list
+# forHandle 解析、1 單位）；未來新官方頻道在此加一行即可。
+YT_OFFICIAL_CHANNELS = {
+    "UCD3J90bNoHykt6Eru8YxUmQ": "復華投信",   # @fhifund 主頻道
+    "@fhetf": "復華ETF",                      # ETF 專屬頻道
+}
 YT_UNOFFICIAL_LIMIT = 3
 YT_PEER_LIMIT = 2
 YT_PEER_QUERY = "台股 ETF"     # 同業熱門層：近 2 天依觀看數排序，再以同業代碼過濾
@@ -578,13 +583,22 @@ def fetch_youtube(days: int = WINDOW_DAYS) -> list[dict]:
     after = (now - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     official_docs: list[dict] = []
-    for cid in YT_OFFICIAL_CHANNELS:
-        try:                                   # uploads 播放清單 id＝UC→UU（官方慣例）
-            official_docs.append(_pl_docs(_get_json(
+    for ckey in YT_OFFICIAL_CHANNELS:
+        try:
+            cid = ckey
+            if ckey.startswith("@"):           # @handle → 頻道 id（channels.list、1 單位）
+                items = _get_json(f"{YT_CHANNELS}?part=id"
+                                  f"&forHandle={urllib.parse.quote(ckey)}"
+                                  f"&key={key}").get("items") or []
+                cid = (items[0] or {}).get("id") or ""
+            if not cid.startswith("UC"):
+                print(f"[fundnews] YouTube 官方頻道 handle 解析失敗 {ckey}")
+                continue
+            official_docs.append(_pl_docs(_get_json(   # uploads 播放清單 id＝UC→UU（官方慣例）
                 f"{YT_PLAYLIST}?part=snippet,contentDetails&maxResults=10"
                 f"&playlistId=UU{cid[2:]}&key={key}"), after))
         except Exception as e:
-            print(f"[fundnews] YouTube 官方頻道抓取失敗 {cid}: {type(e).__name__}")
+            print(f"[fundnews] YouTube 官方頻道抓取失敗 {ckey}: {type(e).__name__}")
 
     docs: list[dict] = []
     for q in YT_QUERIES:
