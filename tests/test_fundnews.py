@@ -438,3 +438,50 @@ def test_save_carries_stale_social_platform(tmp_path, monkeypatch):
     got2 = json.loads(fundnews.OUT.read_text(encoding="utf-8"))
     yt2 = [s["title"] for s in got2["social"] if s.get("platform") == "youtube"]
     assert yt2 == ["今日新片"]                          # 該平台有新值＝整批汰換、不混舊
+
+
+def test_ptt_relevant_accepts_own_etf_code():
+    """2026-08-07：比照 YouTube 層——自家 ETF 代碼獨立詞也算相關（00929 討論串
+    常不寫「復華」）；編號式前綴（L#00929）與非自家代碼照樣排除。"""
+    assert fundnews.ptt_relevant("[請益] 00929 抱緊處理還是出場？")
+    assert not fundnews.ptt_relevant("日文單字卡 L#00929 課程筆記")
+    assert not fundnews.ptt_relevant("[標的] 0050 定期定額請益")   # 非自家代碼
+
+
+def test_fetch_ptt_dual_board(monkeypatch):
+    """雙板抓取（2026-08-07 使用者需求）：Stock＋Fund 都抓、跨板同網址去重、
+    項目帶 board；單板失敗不牽連另一板。"""
+    def _ent(href, title, push, date=" 8/07"):
+        # 尾端 mark div 仿真實 PTT 結構——date 的 </div> 才不會被 _PTT_ENT 的
+        # 「</div></div>」終止樣式吃掉（真實頁 meta 內 date 後還有 mark 等 div）
+        return (f'<div class="r-ent"><div class="nrec"><span class="hl">{push}</span></div>'
+                f'<div class="title"><a href="{href}">{title}</a></div>'
+                f'<div class="meta"><div class="date">{date}</div>'
+                f'<div class="mark"></div></div></div>')
+
+    stock = _ent("/bbs/Stock/M.1.A.html", "[標的] 00929 存股心得", "12")
+    fund = (_ent("/bbs/Fund/M.2.A.html", "[請益] 復華全方位基金", "3")
+            + _ent("/bbs/Stock/M.1.A.html", "[標的] 00929 存股心得", "12"))  # 跨板轉錄同文
+
+    def fake_get_bytes(url, **kw):
+        if "/bbs/Stock/" in url:
+            return stock.encode("utf-8")
+        if "/bbs/Fund/" in url:
+            return fund.encode("utf-8")
+        raise AssertionError(url)
+
+    monkeypatch.setattr(fundnews, "get_bytes", fake_get_bytes)
+    out = fundnews.fetch_ptt(pages=1)
+    assert len(out) == 2                                   # 同網址去重
+    assert {(i["board"], i["title"][:4]) for i in out} == {("Stock", "[標的]"), ("Fund", "[請益]")}
+    assert out[0]["push"] >= out[1]["push"]                # 推文數排序
+
+    def broken_stock(url, **kw):
+        if "/bbs/Stock/" in url:
+            raise OSError("blocked")
+        return fund.encode("utf-8")
+
+    monkeypatch.setattr(fundnews, "get_bytes", broken_stock)
+    out2 = fundnews.fetch_ptt(pages=1)
+    assert [i["board"] for i in out2] == ["Fund", "Stock"] or len(out2) == 2  # Fund 板照常
+    assert any(i["board"] == "Fund" for i in out2)
