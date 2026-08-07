@@ -398,3 +398,90 @@ def test_seen_prune_keeps_recent_only():
             "壞": {}}
     out = fundnews._seen_prune(seen, _NOW)
     assert "新" in out and "舊" not in out and "壞" in out   # 無日期條目以 now 計、先留著
+
+
+def test_save_carries_stale_social_platform(tmp_path, monkeypatch):
+    """單一平台本次全空 → 沿用既有落檔項目、看點跟著補；ISO 日期出窗者不沿用。
+    2026-08-07 踩坑：CI 少帶 YOUTUBE_API_KEY 的一輪把前日 7 則社群洗成 0——
+    整份「全空不覆寫」防呆擋不住「品牌有抓到、單一平台全空」。"""
+    import json
+    from datetime import datetime, timedelta
+
+    monkeypatch.setattr(fundnews, "OUT", tmp_path / "fund_news.json")
+    fresh = (datetime.now(fundnews.TW_TZ) - timedelta(days=1)).strftime("%Y-%m-%d")
+    stale = (datetime.now(fundnews.TW_TZ) - timedelta(days=30)).strftime("%Y-%m-%d")
+    old = {"window_days": 7, "brand": [{"title": "舊品牌稿", "source": "經濟日報"}],
+           "funds": [],
+           "social": [{"platform": "youtube", "title": "昨日影片", "date": fresh,
+                       "views": 999},
+                      {"platform": "youtube", "title": "出窗影片", "date": stale,
+                       "views": 5},
+                      {"platform": "ptt", "title": "[心得] 復華討論", "date": "8/06",
+                       "push": 12}]}
+    fundnews.OUT.write_text(json.dumps(old, ensure_ascii=False), encoding="utf-8")
+
+    doc = {"window_days": 7, "brand": [{"title": "新品牌稿", "source": "經濟日報"}],
+           "funds": [], "social": [], "highlights": []}
+    _, saved = fundnews.save(doc)
+    assert saved                                       # 整份非空，照常落檔
+    got = json.loads(fundnews.OUT.read_text(encoding="utf-8"))
+    titles = [s["title"] for s in got["social"]]
+    assert "昨日影片" in titles and "[心得] 復華討論" in titles   # 兩平台都沿用
+    assert "出窗影片" not in titles                              # 出窗即剔除
+    assert any("YouTube 熱片" in h for h in got["highlights"])   # 看點重算補回
+
+    doc2 = {"window_days": 7, "brand": [{"title": "新品牌稿", "source": "經濟日報"}],
+            "funds": [],
+            "social": [{"platform": "youtube", "title": "今日新片",
+                        "date": fresh, "views": 1}], "highlights": []}
+    fundnews.save(doc2)
+    got2 = json.loads(fundnews.OUT.read_text(encoding="utf-8"))
+    yt2 = [s["title"] for s in got2["social"] if s.get("platform") == "youtube"]
+    assert yt2 == ["今日新片"]                          # 該平台有新值＝整批汰換、不混舊
+
+
+def test_ptt_relevant_accepts_own_etf_code():
+    """2026-08-07：比照 YouTube 層——自家 ETF 代碼獨立詞也算相關（00929 討論串
+    常不寫「復華」）；編號式前綴（L#00929）與非自家代碼照樣排除。"""
+    assert fundnews.ptt_relevant("[請益] 00929 抱緊處理還是出場？")
+    assert not fundnews.ptt_relevant("日文單字卡 L#00929 課程筆記")
+    assert not fundnews.ptt_relevant("[標的] 0050 定期定額請益")   # 非自家代碼
+
+
+def test_fetch_ptt_dual_board(monkeypatch):
+    """雙板抓取（2026-08-07 使用者需求）：Stock＋Fund 都抓、跨板同網址去重、
+    項目帶 board；單板失敗不牽連另一板。"""
+    def _ent(href, title, push, date=" 8/07"):
+        # 尾端 mark div 仿真實 PTT 結構——date 的 </div> 才不會被 _PTT_ENT 的
+        # 「</div></div>」終止樣式吃掉（真實頁 meta 內 date 後還有 mark 等 div）
+        return (f'<div class="r-ent"><div class="nrec"><span class="hl">{push}</span></div>'
+                f'<div class="title"><a href="{href}">{title}</a></div>'
+                f'<div class="meta"><div class="date">{date}</div>'
+                f'<div class="mark"></div></div></div>')
+
+    stock = _ent("/bbs/Stock/M.1.A.html", "[標的] 00929 存股心得", "12")
+    fund = (_ent("/bbs/Fund/M.2.A.html", "[請益] 復華全方位基金", "3")
+            + _ent("/bbs/Stock/M.1.A.html", "[標的] 00929 存股心得", "12"))  # 跨板轉錄同文
+
+    def fake_get_bytes(url, **kw):
+        if "/bbs/Stock/" in url:
+            return stock.encode("utf-8")
+        if "/bbs/Fund/" in url:
+            return fund.encode("utf-8")
+        raise AssertionError(url)
+
+    monkeypatch.setattr(fundnews, "get_bytes", fake_get_bytes)
+    out = fundnews.fetch_ptt(pages=1)
+    assert len(out) == 2                                   # 同網址去重
+    assert {(i["board"], i["title"][:4]) for i in out} == {("Stock", "[標的]"), ("Fund", "[請益]")}
+    assert out[0]["push"] >= out[1]["push"]                # 推文數排序
+
+    def broken_stock(url, **kw):
+        if "/bbs/Stock/" in url:
+            raise OSError("blocked")
+        return fund.encode("utf-8")
+
+    monkeypatch.setattr(fundnews, "get_bytes", broken_stock)
+    out2 = fundnews.fetch_ptt(pages=1)
+    assert [i["board"] for i in out2] == ["Fund", "Stock"] or len(out2) == 2  # Fund 板照常
+    assert any(i["board"] == "Fund" for i in out2)

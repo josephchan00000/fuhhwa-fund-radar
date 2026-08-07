@@ -194,3 +194,65 @@ def test_factcheck_chip_counts_from_items_not_header(tmp_path, monkeypatch):
     # 非今日檔一律不顯示（沿用既有規則）
     _write({"date": "2026-07-27", "as_of": "x", "items": [{"status": "🔴"}]})
     assert fd._factcheck_chip(today=t) == ""
+
+
+def test_factcheck_chip_red_expands_detail(tmp_path, monkeypatch):
+    """🔴 章可點展開「哪一項不符」明細（2026-08-07 使用者需求：讀的時候可排除、
+    不佔版面）：收合 summary 文字不變（既有斷言相容），展開列出
+    指標中文名（日期）：報告值 → 官方值；缺明細欄位的舊格式退回純 chip。"""
+    from arm import fund_dashboard as fd
+    t = date(2026, 8, 7)
+    monkeypatch.setattr(fd, "ROOT_DIR", tmp_path)
+    (tmp_path / "data").mkdir()
+    fp = tmp_path / "data" / "factcheck.json"
+    fp.write_text(json.dumps({
+        "date": "2026-08-07", "as_of": "2026-08-07 07:10",
+        "items": [{"status": "🟢", "kind": "index_chg"},
+                  {"status": "🔴", "kind": "inst_total", "claimed": 45.6,
+                   "official": 51.15386177, "day": "08/06"}]},
+        ensure_ascii=False), encoding="utf-8")
+    chip = fd._factcheck_chip(today=t)
+    assert "🔴 1 項與官方不符" in chip            # 收合字樣不變
+    assert "<details" in chip and "fcd" in chip   # 可展開
+    assert "三大法人合計買賣超" in chip and "（08/06）" in chip
+    assert "報告 45.6" in chip and "官方 <b>51.15</b> 億" in chip
+
+    # 舊格式（紅項無 claimed/official）→ 沒有明細可列，退回純 chip 不出 <details>
+    fp.write_text(json.dumps({"date": "2026-08-07", "as_of": "x",
+                              "items": [{"status": "🔴"}]}, ensure_ascii=False),
+                  encoding="utf-8")
+    chip2 = fd._factcheck_chip(today=t)
+    assert "🔴 1 項與官方不符" in chip2 and "<details" not in chip2
+
+
+def test_yt_watch_chip_flags_zero_youtube(tmp_path, monkeypatch):
+    """社群 YouTube 0 支警示章（2026-08-07 使用者：每次更新順帶查 YouTube）：
+    「今日」檔、social 段存在而無 youtube 項才警；有影片／舊 schema 無 social 鍵／
+    無檔／非今日檔（鮮度問題歸逾期清單）皆不警。"""
+    from arm import fund_dashboard as fd
+    t = date(2026, 8, 7)
+    monkeypatch.setattr(fd, "ROOT_DIR", tmp_path)
+    (tmp_path / "data").mkdir()
+    fp = tmp_path / "data" / "fund_news.json"
+    asof = {"as_of": "2026/08/07 08:07"}
+
+    assert fd._yt_watch_chip(today=t) == ""                # 無檔不警
+
+    fp.write_text(json.dumps({**asof, "brand": []}), encoding="utf-8")
+    assert fd._yt_watch_chip(today=t) == ""                # 舊 schema 無 social 鍵不警
+
+    fp.write_text(json.dumps({**asof, "social": [{"platform": "ptt", "title": "x"}]}),
+                  encoding="utf-8")
+    chip = fd._yt_watch_chip(today=t)
+    assert "社群 YouTube" in chip and "🔴 0 支" in chip     # 只剩 PTT＝YouTube 異常
+
+    fp.write_text(json.dumps({**asof, "social": []}), encoding="utf-8")
+    assert "🔴 0 支" in fd._yt_watch_chip(today=t)         # 整段空同樣要警
+
+    fp.write_text(json.dumps({"as_of": "2026/08/06 12:28", "social": []}),
+                  encoding="utf-8")
+    assert fd._yt_watch_chip(today=t) == ""                # 非今日檔＝鮮度問題、不重複警
+
+    fp.write_text(json.dumps({**asof, "social": [{"platform": "youtube", "title": "y"}]}),
+                  encoding="utf-8")
+    assert fd._yt_watch_chip(today=t) == ""                # 有影片＝正常
