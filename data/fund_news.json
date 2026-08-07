@@ -1,7 +1,7 @@
 {
-  "as_of": "2026/08/07 09:44",
+  "as_of": "2026/08/07 13:54",
   "window_days": 7,
-  "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題＋YouTube 影片・自動擷取",
+  "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板/基金板公開標題＋YouTube 影片・自動擷取",
   "brand": [
     {
       "title": "復華全方位基金A類型，這幾天話題滿滿的投信，旗下21年老牌基金表現如何？",
@@ -27,7 +27,7 @@
     {
       "title": "捷運驚見錢母車廂復華投信與北港武德宮合作穩股民信心網讚心情大好- 財經",
       "url": "https://news.cts.com.tw/cts/money/202608/202608033062944.html",
-      "source": "華視新聞網",
+      "source": "news.cts.com.tw",
       "date": "2026-08-03 14:44",
       "datetime": "2026-08-03T14:44:00+08:00"
     }
@@ -339,7 +339,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/TzjzKX31lPU",
       "date": "2026-08-06",
-      "views": 140976,
+      "views": 149809,
       "official": true,
       "short": true
     },
@@ -349,7 +349,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/Zv_kAmeQ1Qg",
       "date": "2026-08-05",
-      "views": 405,
+      "views": 415,
       "official": true,
       "short": true
     },
@@ -359,7 +359,7 @@
       "channel": "九八新聞台",
       "url": "https://www.youtube.com/watch?v=o22Sy3RbQzw",
       "date": "2026-08-06",
-      "views": 6352
+      "views": 6444
     },
     {
       "platform": "youtube",
@@ -385,7 +385,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=jIiKWpC7obc",
       "date": "2026-08-05",
-      "views": 32367,
+      "views": 33366,
       "peer": true
     },
     {
@@ -394,13 +394,13 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=zfCsPMHAoOw",
       "date": "2026-08-05",
-      "views": 30867,
+      "views": 31234,
       "peer": true
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、全方位（詳下方基金新聞標籤）",
     "品牌焦點：復華全方位基金A類型，這幾天話題滿滿的投信，旗下21年老牌基金表現如何？（CMoney）",
-    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・140,976 次觀看）"
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・149,809 次觀看）"
   ]
 }
