@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/07 07:10",
+  "as_of": "2026/08/07 08:07",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題＋YouTube 影片・自動擷取",
   "brand": [
@@ -20,7 +20,7 @@
     {
       "title": "板南線驚喜送財氣！復華投信聯名北港武德宮 網讚太有誠意",
       "url": "https://www.pinview.com.tw/News/61308.html",
-      "source": "pinview.com.tw",
+      "source": "品觀點",
       "date": "2026-08-03 16:15",
       "datetime": "2026-08-03T16:15:53+08:00"
     },
@@ -332,9 +332,75 @@
       "items": []
     }
   ],
-  "social": [],
+  "social": [
+    {
+      "platform": "youtube",
+      "title": "00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？",
+      "channel": "復華投信",
+      "url": "https://www.youtube.com/shorts/TzjzKX31lPU",
+      "date": "2026-08-06",
+      "views": 140195,
+      "official": true,
+      "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "各產業迎來AI創新革命，你還沒上車嗎？",
+      "channel": "復華投信",
+      "url": "https://www.youtube.com/shorts/Zv_kAmeQ1Qg",
+      "date": "2026-08-05",
+      "views": 404,
+      "official": true,
+      "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "&#39;26.08.06【財經一路發】復華投信劉昌祚談「BOJ動向、日圓轉折！日本市場布局策略」",
+      "channel": "九八新聞台",
+      "url": "https://www.youtube.com/watch?v=o22Sy3RbQzw",
+      "date": "2026-08-06",
+      "views": 6276
+    },
+    {
+      "platform": "youtube",
+      "title": "00929配息曝光！年化16.54%",
+      "channel": "投資趣",
+      "url": "https://www.youtube.com/shorts/eGFMD9ZMHzY",
+      "date": "2026-08-03",
+      "views": 1023,
+      "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "復華投信跨界行銷 板南線放888顆招財錢母 通勤結合祈福體驗 金融業創意行銷掀打卡熱｜非凡財經新聞｜20260803",
+      "channel": "USTV 非凡電視",
+      "url": "https://www.youtube.com/shorts/PwFMAv8cEwE",
+      "date": "2026-08-03",
+      "views": 1007,
+      "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "00403A、00405A破發該撿嗎？3止跌訊號抓進場點，拉回優先加碼2個股+2檔ETF｜ft.股海老牛、葉芷娟【ETF錢滾錢】EP83",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/watch?v=jIiKWpC7obc",
+      "date": "2026-08-05",
+      "views": 31900,
+      "peer": true
+    },
+    {
+      "platform": "youtube",
+      "title": "手上ETF落底了沒?  四檔台股ETF配息創高...00891季配率4.59%居冠   誰更有漲相? 該棄0050轉向?│陳斐娟 主持 │20260804│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=zfCsPMHAoOw",
+      "date": "2026-08-05",
+      "views": 30867,
+      "peer": true
+    }
+  ],
   "highlights": [
     "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、全方位（詳下方基金新聞標籤）",
-    "品牌焦點：復華全方位基金A類型，這幾天話題滿滿的投信，旗下21年老牌基金表現如何？（CMoney）"
+    "品牌焦點：復華全方位基金A類型，這幾天話題滿滿的投信，旗下21年老牌基金表現如何？（CMoney）",
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・140,195 次觀看）"
   ]
 }
