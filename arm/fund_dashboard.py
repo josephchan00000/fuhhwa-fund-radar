@@ -251,11 +251,31 @@ def _fresh_chip(label: str, value: str | None, tol: int | None = None,
             f'{_esc(value or "—")}{_esc(warn)}</span>')
 
 
+_FC_KIND = {"index_close": "加權指數收盤", "index_chg": "大盤漲跌點數",
+            "inst_total": "三大法人合計買賣超", "inst_foreign": "外資及陸資買賣超",
+            "tx_net": "外資台指期淨部位"}
+_FC_UNIT = {"index_close": "點", "index_chg": "點", "inst_total": "億",
+            "inst_foreign": "億", "tx_net": "口"}
+
+
+def _fc_num(v) -> str:
+    """核對值顯示：千分位、至多兩位小數並去尾零；非數值原樣輸出。"""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return _esc(str(v))
+    s = f"{f:,.2f}"
+    return s.rstrip("0").rstrip(".") if "." in s else s
+
+
 def _factcheck_chip(today=None) -> str:
     """數字核對狀態章（讀 data/factcheck.json；CI 端與官方 API 比對的結果）。
     🔴＝報告數字與官方不符（照常發佈但標紅警示、主會話會立即修正重推——
     2026-07-20 使用者指示：防線不可硬到什麼都沒更新）。無檔／**非今日**＝不顯示
-    （2026-07-23 修：昨日殘留檔曾把過期 25 🔴 顯示在今日板上）。"""
+    （2026-07-23 修：昨日殘留檔曾把過期 25 🔴 顯示在今日板上）。
+    🔴 章可點展開明細（2026-08-07 使用者需求：「我要知道是哪個東西不符，讀的時候
+    可以排除，但不要佔版面」）——收合時同一顆 chip 大小，點開列每筆
+    「指標（日期）：報告值 → 官方值」，閱讀時以官方值為準。"""
     fp = ROOT_DIR / "data" / "factcheck.json"
     try:
         doc = json.loads(fp.read_text(encoding="utf-8"))
@@ -275,8 +295,21 @@ def _factcheck_chip(today=None) -> str:
     else:
         red, green = doc.get("red") or 0, doc.get("green") or 0
     if red:
-        return (f'<span class="chip fresh stale"><b>數字核對</b>　🔴 {red} 項與官方不符'
-                f'（{_esc(doc.get("as_of") or "")}核對，修正中）</span>')
+        reds = [i for i in items if i.get("status") == "🔴"] if isinstance(items, list) else []
+        rows = "".join(
+            f'<div class="fcrow">{_esc(_FC_KIND.get(i.get("kind"), i.get("kind") or "—"))}'
+            f'（{_esc(i.get("day") or "")}）：報告 {_fc_num(i.get("claimed"))} → '
+            f'官方 <b>{_fc_num(i.get("official"))}</b> {_FC_UNIT.get(i.get("kind"), "")}</div>'
+            for i in reds[:8] if i.get("claimed") is not None or i.get("official") is not None)
+        more = (f'<div class="fcrow">…等共 {len(reds)} 項</div>' if len(reds) > 8 else "")
+        head = (f'<b>數字核對</b>　🔴 {red} 項與官方不符'
+                f'（{_esc(doc.get("as_of") or "")}核對，修正中）')
+        if not rows:
+            return f'<span class="chip fresh stale">{head}</span>'
+        return (f'<details class="fcd"><summary>{head}</summary>'
+                f'<div class="fcdl">{rows}{more}'
+                f'<div class="fcnote">閱讀時請以官方值為準；報告端多為媒體初報值，'
+                f'主會話核對後會自動修正重推。</div></div></details>')
     if green:
         return (f'<span class="chip fresh"><b>數字核對</b>　🟢 {green} 項與官方相符'
                 f'（{_esc(doc.get("as_of") or "")}）</span>')
@@ -300,6 +333,27 @@ def _intro_gap_chip() -> str:
     more = f" 等 {len(items)} 檔" if len(items) > 8 else ""
     return (f'<span class="chip fresh stale"><b>前十大簡介</b>　🔴 {doc.get("count")} 檔缺簡介'
             f'（{names}{more}）</span>')
+
+
+def _yt_watch_chip(today=None) -> str:
+    """社群 YouTube 全空警示章（2026-08-07 使用者需求：「每次更新都順便查一下 YouTube」）。
+    讀 data/fund_news.json：**今日的**檔、social 段存在、卻無任何 youtube 項＝抓取異常
+    （金鑰沒帶到 CI env／API 失敗且 _carry_social 沿用款也耗盡）——三層清單
+    （官方頻道＋相關搜尋＋同業熱門）正常日不會是 0。無檔／舊 schema 無 social 鍵／
+    非今日檔皆不警（昨日檔＝鮮度問題，「逾期清單」自己會標，同 factcheck 章
+    2026-07-23「非今日不顯示」教訓）。"""
+    fp = ROOT_DIR / "data" / "fund_news.json"
+    try:
+        doc = json.loads(fp.read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+    d = today or clock.today_tw()
+    if "social" not in doc or not str(doc.get("as_of") or "").startswith(f"{d:%Y/%m/%d}"):
+        return ""
+    if any((s.get("platform") or "") == "youtube" for s in doc.get("social") or []):
+        return ""
+    return ('<span class="chip fresh stale"><b>社群 YouTube</b>　🔴 0 支'
+            '（金鑰未帶到或抓取失敗——查 CI 日誌 [fundnews]）</span>')
 
 
 def _afterhours_chip(today=None) -> str:
@@ -330,6 +384,7 @@ def _freshness_view(gen_stamp: str, sources: list[tuple[str, str | None, int | N
     return (f'<div class="section" id="freshness"><div class="st">{_ic("clock")}網頁更新時間　'
             f'{_fresh_chip("網頁更新", gen_stamp, None, today, gen=True)} '
             f'{_factcheck_chip(today)} {_intro_gap_chip()} {_afterhours_chip(today)} '
+            f'{_yt_watch_chip(today)} '
             f'<span class="stsub">{sub}</span></div></div>')
 
 
@@ -1741,7 +1796,7 @@ def _fundnews_view(doc: dict | None) -> str:
         parts.append(f'<div class="muted">近 {win} 天無相關新聞（或來源暫不可達）。</div>')
 
     soc = doc.get("social") or []
-    parts.append(f'<div class="fng">{_ic("chat", plain=True)} 社群討論（PTT 股票板・YouTube）</div>')
+    parts.append(f'<div class="fng">{_ic("chat", plain=True)} 社群討論（PTT 股票板・基金板・YouTube）</div>')
     if soc:
         rows = []
         for s in soc:
@@ -1756,7 +1811,9 @@ def _fundnews_view(doc: dict | None) -> str:
                     pill = '<span class="fntag">同業熱門</span>'
             else:
                 badge = f'<span class="fnpush">{int(s.get("push") or 0)} 推</span>'
-                src = "PTT 股票板"
+                # 舊落檔項目無 board 欄＝雙板改版前抓的股票板（2026-08-07 起帶 board）
+                bname = {"Stock": "股票板", "Fund": "基金板"}.get(s.get("board") or "Stock")
+                src = f"PTT {bname}" if bname else "PTT"
             rows.append(
                 f'<div class="fnit fnsoc">{badge}'
                 f'<div class="fnsocb"><a class="fnt" href="{_esc(s.get("url") or "#")}" '
@@ -1862,6 +1919,17 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 .st .chip.fresh{font-size:11.5px;padding:2px 10px;margin-left:4px;font-weight:400;vertical-align:middle}
 .st .chip.fresh b{font-weight:600}
 .stale-note{color:#c62828;font-weight:700}
+/* 數字核對 🔴 可展開明細（2026-08-07）：收合＝一顆 chip 大小，點開才佔版面 */
+.st details.fcd{display:inline-block;vertical-align:middle;margin-left:4px;background:rgba(198,40,40,.08);border-radius:8px;padding:2px 10px;font-size:11.5px;color:#c62828;font-weight:700}
+.st details.fcd summary{list-style:none;cursor:pointer;display:inline}
+.st details.fcd summary::-webkit-details-marker{display:none}
+.st details.fcd summary b{font-weight:600}
+.st details.fcd summary::after{content:" ▾";font-weight:400;opacity:.8}
+.st details.fcd[open] summary::after{content:" ▴";font-weight:400;opacity:.8}
+.fcdl{margin:4px 0 2px;font-weight:400;color:var(--ink);text-align:left}
+.fcrow{padding:1px 0}
+.fcrow b{color:#c62828;font-weight:700}
+.fcnote{color:var(--mut);margin-top:3px;white-space:normal}
 .stale-banner{background:#c62828;color:#fff;text-align:center;padding:8px 14px;font-size:13.5px;font-weight:700}
 a.chip{background:rgba(47,111,208,.08);color:var(--accd);cursor:pointer}
 a.chip::after{content:"›";color:var(--acc);font-weight:800;font-size:16px}
