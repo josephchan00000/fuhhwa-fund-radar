@@ -47,7 +47,12 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 2026-08-07 教訓：timeout 連「排隊等 runner」的時間一起算——08-06 深夜 22:05 班
+    # 遲到 2 小時又重複觸發，撞上 GitHub runner 容量低谷，兩班都排隊滿 15 分鐘拿不到
+    # 機器就被此 timeout 砍掉 → run ❌ 寄了兩封 failure 信（資料其實早在 21:05 班全數
+    # 入庫、零影響）。工作本體僅 1~2 分鐘，30 分鐘全是給排隊的容忍度；真正的資料缺口
+    # 警報仍由「完整性斷言」負責，與此無關。
+    timeout-minutes: 30
     env:
       TZ: Asia/Taipei
     steps:

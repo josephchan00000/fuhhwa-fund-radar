@@ -75,12 +75,14 @@ _RSS_CDATA = re.compile(r"<!\[CDATA\[(.*?)\]\]>", re.S)
 _RSS_HTML = re.compile(r"<[^>]+>")
 
 PTT_BASE = "https://www.ptt.cc"
-PTT_INDEX = PTT_BASE + "/bbs/Stock/index{n}.html"
+# 2026-08-07 使用者需求：股票板之外也要找基金板（Fund 板基金討論密度高）
+PTT_BOARDS = ("Stock", "Fund")
+PTT_INDEX = PTT_BASE + "/bbs/{board}/index{n}.html"
 _PTT_ENT = re.compile(r'<div class="r-ent">(.*?)</div>\s*</div>', re.S)
 _PTT_TITLE = re.compile(r'<div class="title">\s*(?:<a href="([^"]+)">(.*?)</a>)?', re.S)
 _PTT_PUSH = re.compile(r'<div class="nrec">(?:<span[^>]*>(.*?)</span>)?', re.S)
 _PTT_DATE = re.compile(r'<div class="date">\s*(.*?)\s*</div>', re.S)
-_PTT_PREV = re.compile(r'href="/bbs/Stock/index(\d+)\.html"[^>]*>.*?上頁', re.S)
+_PTT_PREV = re.compile(r'href="/bbs/\w+/index(\d+)\.html"[^>]*>.*?上頁', re.S)
 
 
 def base_name(name: str | None) -> str:
@@ -372,38 +374,45 @@ def _ptt_reach(push: str) -> int:
 
 
 def ptt_relevant(title: str) -> bool:
-    """PTT 標題是否與復華基金相關：含品牌名即留（基金討論幾乎都帶「復華」二字）；
-    但司法/醜聞討論串（is_negative_title）一律排除（內部溝通用途）。"""
+    """PTT 標題是否與復華基金相關：含品牌名，或自家 ETF 代碼以獨立詞出現
+    （2026-08-07 比照 YouTube 層——00929 這類討論串常只寫代碼不寫「復華」；
+    獨立詞判定同 _code_hit，避免「L#00929」式編號誤收）；
+    司法/醜聞討論串（is_negative_title）一律排除（內部溝通用途）。"""
     t = title or ""
-    return "復華" in t and not is_negative_title(t)
+    return ("復華" in t or _code_hit(t)) and not is_negative_title(t)
 
 
-def fetch_ptt(pages: int = 3) -> list[dict]:
-    """PTT 股票板近幾頁標題，留與復華相關者。板擋／網路失敗回 []（誠實降級）。"""
+def fetch_ptt(pages: int = 3, boards: tuple[str, ...] = PTT_BOARDS) -> list[dict]:
+    """PTT 股票板＋基金板近幾頁標題，留與復華相關者（2026-08-07 使用者需求：
+    「也找股票版不要只找基金版」→ 兩板都抓）。單板被擋／網路失敗該板回空、
+    不互相牽連（誠實降級）；跨板轉錄同文以網址去重；項目帶 board 供渲染標板名。"""
     out: list[dict] = []
-    url = PTT_BASE + "/bbs/Stock/index.html"
-    for _ in range(max(1, pages)):
-        try:
-            html = get_bytes(url, cache_ttl=1800,
-                             headers={"Cookie": "over18=1"}).decode("utf-8", "ignore")
-        except Exception:
-            break
-        for blk in _PTT_ENT.findall(html):
-            mt = _PTT_TITLE.search(blk)
-            if not mt or not mt.group(2):
-                continue
-            title = re.sub(r"<[^>]+>", "", mt.group(2)).strip()
-            if not ptt_relevant(title):
-                continue
-            push = (_PTT_PUSH.search(blk) or [None, ""]).group(1) or ""
-            date = (_PTT_DATE.search(blk) or [None, ""]).group(1) or ""
-            out.append({"platform": "ptt", "title": title,
-                        "url": PTT_BASE + mt.group(1), "date": date.strip(),
-                        "push": _ptt_reach(push)})
-        mp = _PTT_PREV.search(html)
-        if not mp:
-            break
-        url = PTT_INDEX.format(n=mp.group(1))
+    seen: set[str] = set()
+    for board in boards:
+        url = f"{PTT_BASE}/bbs/{board}/index.html"
+        for _ in range(max(1, pages)):
+            try:
+                html = get_bytes(url, cache_ttl=1800,
+                                 headers={"Cookie": "over18=1"}).decode("utf-8", "ignore")
+            except Exception:
+                break
+            for blk in _PTT_ENT.findall(html):
+                mt = _PTT_TITLE.search(blk)
+                if not mt or not mt.group(2):
+                    continue
+                title = re.sub(r"<[^>]+>", "", mt.group(2)).strip()
+                if not ptt_relevant(title) or mt.group(1) in seen:
+                    continue
+                seen.add(mt.group(1))
+                push = (_PTT_PUSH.search(blk) or [None, ""]).group(1) or ""
+                date = (_PTT_DATE.search(blk) or [None, ""]).group(1) or ""
+                out.append({"platform": "ptt", "board": board, "title": title,
+                            "url": PTT_BASE + mt.group(1), "date": date.strip(),
+                            "push": _ptt_reach(push)})
+            mp = _PTT_PREV.search(html)
+            if not mp:
+                break
+            url = PTT_INDEX.format(board=board, n=mp.group(1))
     out.sort(key=lambda x: x["push"], reverse=True)
     return out
 
@@ -701,7 +710,7 @@ def assemble(funds: list[dict], days: int = WINDOW_DAYS) -> dict:
     doc = {
         "as_of": stamp_tw("%Y/%m/%d %H:%M"),
         "window_days": days,
-        "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題"
+        "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板/基金板公開標題"
                   "＋YouTube 影片・自動擷取",
         "brand": brand,
         "funds": fund_groups,
@@ -719,14 +728,52 @@ def is_empty(doc: dict | None) -> bool:
                 or any(g.get("items") for g in doc.get("funds") or []))
 
 
+def _carry_social(doc: dict, prev: dict | None) -> None:
+    """社群「來源級」防呆：本次某平台（ptt／youtube）全空而既有落檔該平台非空 →
+    沿用既有項目（來源異常≠查無討論），並印 CI 日誌讓異常可見。
+
+    2026-08-07 踩坑：push 觸發的 CI 用了舊分支的 daily.yml（無 YOUTUBE_API_KEY env），
+    fetch_youtube 回 []，整份防呆只看 brand/funds/social「全空」——品牌新聞有抓到就照樣
+    落檔，把前日 7 則社群洗成 0。平台判定同 auto_highlights（platform 缺值視為 ptt）；
+    ISO 日期項目出 window_days 窗即不再沿用（PTT 短日期格式無年份、不做窗檢，
+    其項目本就隨下次成功抓取整批汰換）。"""
+    old = (prev or {}).get("social") or []
+    if not old:
+        return
+    cur = doc.get("social") or []
+    win = doc.get("window_days") or WINDOW_DAYS
+    cutoff = (datetime.now(TW_TZ) - timedelta(days=win)).strftime("%Y-%m-%d")
+
+    def plat(s: dict) -> str:
+        return "youtube" if (s.get("platform") or "") == "youtube" else "ptt"
+
+    carried: list[dict] = []
+    for p in ("ptt", "youtube"):
+        if any(plat(s) == p for s in cur):
+            continue
+        keep = [s for s in old if plat(s) == p
+                and (not re.fullmatch(r"\d{4}-\d{2}-\d{2}", s.get("date") or "")
+                     or (s.get("date") or "") >= cutoff)]
+        if keep:
+            print(f"[fundnews] 社群 {p} 本次全空、沿用既有 {len(keep)} 則"
+                  f"（來源異常≠查無討論）")
+            carried += keep
+    if carried:
+        doc["social"] = cur + carried
+        doc["highlights"] = auto_highlights(doc)
+
+
 def save(doc: dict) -> tuple[Path, bool]:
-    """落檔。防呆：本次擷取全空且既有落檔非空 → 保留舊檔不覆寫（回 saved=False）。
+    """落檔。防呆：本次擷取全空且既有落檔非空 → 保留舊檔不覆寫（回 saved=False）；
+    單一社群平台全空而既有非空 → 該平台沿用既有項目（_carry_social）。
 
     2026-07-04 教訓：雲端環境 Google News/PTT 被 proxy 政策擋下時，曾把非空的
     fund_news.json 覆寫成全空。全空結果一律視為「來源異常」而非「查無新聞」。"""
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    if is_empty(doc) and not is_empty(load()):
+    prev = load()
+    if is_empty(doc) and not is_empty(prev):
         return OUT, False
+    _carry_social(doc, prev)
     OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
     return OUT, True
 

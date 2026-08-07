@@ -42,7 +42,9 @@ permissions:
 jobs:
   holdings:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 同 afterhours_refresh 2026-08-07 教訓：timeout 含排隊時間，本班 17:40 cron 實測
+    # 常遲 1.5~3 小時、落在容量低谷，10 分鐘排隊上限太緊會平白吃 failure 信。
+    timeout-minutes: 30
     env:
       TZ: Asia/Taipei
     steps:
