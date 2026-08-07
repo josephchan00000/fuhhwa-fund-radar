@@ -33,7 +33,7 @@ def main() -> None:
     print(f"  品牌新聞 {len(doc['brand'])} 則｜有專屬新聞的基金 {n_fund}/{len(doc['funds'])} 檔"
           f"｜PTT 討論 {len(doc['social']) - len(yts)} 則"
           f"｜YouTube {len(yts)} 支（官方 {n_of}・相關 {len(yts) - n_of - n_peer}・同業 {n_peer}）"
-          + ("" if yts or fundnews._yt_key() else "（未設 YOUTUBE_API_KEY）"))
+          + ("" if fundnews._yt_key() else "（未設 YOUTUBE_API_KEY）"))
 
 
 if __name__ == "__main__":
