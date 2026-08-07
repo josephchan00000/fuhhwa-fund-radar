@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/07 08:07",
+  "as_of": "2026/08/07 09:44",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板公開標題＋YouTube 影片・自動擷取",
   "brand": [
@@ -20,7 +20,7 @@
     {
       "title": "板南線驚喜送財氣！復華投信聯名北港武德宮 網讚太有誠意",
       "url": "https://www.pinview.com.tw/News/61308.html",
-      "source": "品觀點",
+      "source": "pinview.com.tw",
       "date": "2026-08-03 16:15",
       "datetime": "2026-08-03T16:15:53+08:00"
     },
@@ -339,7 +339,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/TzjzKX31lPU",
       "date": "2026-08-06",
-      "views": 140195,
+      "views": 140976,
       "official": true,
       "short": true
     },
@@ -349,7 +349,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/Zv_kAmeQ1Qg",
       "date": "2026-08-05",
-      "views": 404,
+      "views": 405,
       "official": true,
       "short": true
     },
@@ -359,7 +359,7 @@
       "channel": "九八新聞台",
       "url": "https://www.youtube.com/watch?v=o22Sy3RbQzw",
       "date": "2026-08-06",
-      "views": 6276
+      "views": 6352
     },
     {
       "platform": "youtube",
@@ -376,7 +376,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/PwFMAv8cEwE",
       "date": "2026-08-03",
-      "views": 1007,
+      "views": 1008,
       "short": true
     },
     {
@@ -385,7 +385,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=jIiKWpC7obc",
       "date": "2026-08-05",
-      "views": 31900,
+      "views": 32367,
       "peer": true
     },
     {
@@ -401,6 +401,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、全方位（詳下方基金新聞標籤）",
     "品牌焦點：復華全方位基金A類型，這幾天話題滿滿的投信，旗下21年老牌基金表現如何？（CMoney）",
-    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・140,195 次觀看）"
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・140,976 次觀看）"
   ]
 }
