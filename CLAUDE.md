@@ -164,24 +164,32 @@
      dispatch 用 main 的 workflow 檔、金鑰必在；根治＝排程搬家到新視窗（新分支自最新 main 分岔）。
    - 註：持股基準為月度值（顯示上月底）——不是資料沒更新。
 
-## 指令：「排程搬家」（2026-07-24 建立；2026-08-03 起擴為**三個 Routine 一起搬**）
+## 指令：「排程搬家」（2026-07-24 建立；2026-08-03 擴為三個；2026-08-07 起**四個 Routine 一起搬**）
 
-使用者在**任何**對話窗打**「排程搬家」**（或「搬排程」）＝把**全部三個**每日 Routine（06:35 全部更新、
-15:33 盤後籌碼、18:58 晚間 NAV·PCF）改綁到**當前**對話窗。**不要詢問、不要查證其他東西、不改任何檔案、
-不 commit**——固定「list → 建三個 → 刪舊的」收工（最省 token）：
+使用者在**任何**對話窗打**「排程搬家」**（或「搬排程」）＝把**全部四個**每日 Routine（06:35 全部更新、
+15:33 盤後籌碼、18:58 晚間 NAV·PCF、05:08 美股收盤序列）改綁到**當前**對話窗。**不要詢問、不要查證其他
+東西、不改任何檔案、不 commit**——固定「list → 建四個 → 刪舊的」收工（最省 token）：
 
 1. `list_triggers`（先用預設 limit；找不到再用 cursor 翻頁）→ 找**名稱以「復華基金雷達」開頭且
-   `enabled:true`** 的 Routine（正常應有 3 個；歷史上只有 1 個＝尚未擴編，照樣往下走）。
+   `enabled:true`** 的 Routine（正常應有 4 個；歷史上只有 1／3 個＝尚未擴編，照樣往下走）。
    全部的 `persistent_session_id` 都已是本會話 → 回一句「排程已綁本視窗」結束。
-2. `create_trigger` ×3（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`；
+   · **⚠ 輸出會超過工具上限**（2026-08-07 實測 70KB／一行）：帳號裡累積數十個 `send_later` 一次性
+     trigger，`list_triggers` 回應會被截斷並存成檔案。**別開子代理讀全文**——直接
+     `python3 -c` 讀那支檔 `json.loads` 後只印 `id｜name｜cron_expression｜enabled｜persistent_session_id`
+     一行一個，秒級收斂。要看某支的 prompt 原文則印
+     `job_config.ccr.events[*].data.message.content`（**頂層沒有 `prompt` 欄位**，只有這裡有）。
+2. `create_trigger` ×4（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`；
    prompt 用下方各自的原文照抄、一字不改）：
    - `復華基金雷達 每日全部更新(台北 06:35・07:03 前完成)`｜cron `35 22 * * *`
    - `復華基金雷達 盤後籌碼即時更新(台北 15:33)`｜cron `33 7 * * 1-5`
    - `復華基金雷達 晚間NAV·PCF即時更新(台北 18:58)`｜cron `58 10 * * 1-5`
+   - `復華基金雷達 美股收盤序列更新(台北 05:08)`｜cron `8 21 * * 1-5`
 3. `delete_trigger` 逐一刪掉步驟 1 找到的舊 Routine（機制備忘：`update_trigger` 改不了綁定會話、跨會話
    update 也被組織政策擋，但**跨會話 delete 可行**——2026-07-24 實證；所以搬家＝建新＋刪舊，不是改舊）。
-4. 一句話回報：三個新 trigger id＋各自下次觸發時間。create_trigger 若警告「no MCP connectors」**可忽略**
+4. 一句話回報：四個新 trigger id＋各自下次觸發時間。create_trigger 若警告「no MCP connectors」**可忽略**
    （SOP 第 7 步走 push 自動觸發、驗證用 git，不依賴 MCP）。
+   · **步驟 1 若查到「本檔沒記載」的復華 Routine**（2026-08-07 就是這樣發現 05:08 那支）：照樣搬，
+     prompt 從舊 trigger 的 `job_config` 原文照抄，並在回報時提一句「本檔要補記」。
 5. **回報時務必提醒使用者「模型要重設」**（2026-07-27 使用者踩到：以為設過 sonnet，實際每日跑都是
    新視窗的預設模型）。機制：trigger 的 `job_config` **沒有 model 欄位**，只有 `persistent_session_id`
    ——每日火進哪個視窗，就用**那個視窗當下的模型**。舊視窗設過的 `/model` **不會**跟著搬家過來，
@@ -199,6 +207,10 @@ Routine prompt 原文②——盤後籌碼即時更新（15:33）：
 Routine prompt 原文③——晚間 NAV·PCF 即時更新（18:58）：
 
 > （排程自動觸發）晚間數據即時更新（基金 NAV＋主動式 ETF 當日 PCF）——不跑任何資料抓取腳本、不動 reports/**：① mcp__github__actions_run_trigger 連發兩個 dispatch（皆 ref=main）：afterhours_refresh.yml（18 時後場次會加抓基金 NAV）與 etf_holdings.yml；MCP 不可用時備援＝push .ping/afterhours 哨兵（只能觸發前者，後者靠其 17:40 cron 遲到自癒即可）。② send_later 排 45 分鐘後自驗：git fetch origin main，a) data/funds/_index.json 最新 nav_date ≥ 上一交易日、b) data/etf_holdings.json 本家主動式（00991A）揭露日已推進（休市日無新 PCF 屬正常、勿誤報）；異常 → 補 dispatch 一次、25 分鐘後仍異常才 PushNotification 一句話。③ 自驗回合結束前再 send_later 一個台北 23:20 的夜檢：讀 origin/main 的 data/macro_chips.json 與 data/afterhours_alert.json，交易日而 margin_bal 缺今日或 alert missing 非空 → PushNotification 一句話（22:05 cron 整班消失時這是唯一的主動警報）；正常 → 安靜結束。皆「失敗才推播、成功安靜」。
+
+Routine prompt 原文④——美股收盤序列更新（05:08，2026-08-05 建立、2026-08-07 補記本檔）：
+
+> （排程自動觸發）美股收盤序列更新（費半 ^SOX／台積電 ADR 昨夜收盤入檔，供 06:35 晨報引用；台北 05:08＝美東收盤後，夏令 17:08／冬令 16:08）——全程不跑任何資料抓取腳本、不動 reports/**：① 用 mcp__github__actions_run_trigger（method=run_workflow、workflow_id=afterhours_refresh.yml、ref=main）觸發刷新，成功觸發即收工、不等它跑完；MCP 不可用時備援＝在本會話指定分支寫 .ping/afterhours（內容任意）後 git add -f、commit、push——該路徑 push 會自動觸發同一 workflow。② send_later 排 35 分鐘後自驗：git fetch origin main 讀 data/macro_chips.json，series.sox 與 series.tsm_adr 須含最近一個美股交易日（以前一美東平日為準；美股休市日無新 bar 屬正常、勿誤報——拿不準就查前一日 reports/macrocal 市況段「美股」欄）；缺 → 補 dispatch 一次、再 send_later 20 分鐘後檢查，仍缺才 PushNotification 一句話（缺什麼＋afterhours run 日誌看到的原因）；已到或休市 → 安靜結束、不推播（失敗才推播）。
 
 ## 每日固定時間自動更新（2026-07-18 建立；同日改「火進主會話」模式）
 
@@ -236,7 +248,8 @@ Routine prompt 原文③——晚間 NAV·PCF 即時更新（18:58）：
     NAV 不斷更，缺 → `data/afterhours_alert.json` 入板（儀表板「網頁更新時間」列紅章＋瀏覽器端
     16:40／22:50 兩個時窗的延遲橫幅）＋ workflow 最後一步 exit 1（run ❌ → GitHub 寄 failure 信）
     ＋ Routine 自驗 25~60 分後失敗才 PushNotification（使用者 2026-08-03 選「失敗才推播」）。
-- **每日更新時點地圖（2026-08-03 起，台北時間）**：06:15 etf_holdings cron（被動式隔夜 PCF）／
+- **每日更新時點地圖（2026-08-03 起，台北時間；2026-08-07 補入 05:08）**：**05:08 Routine → 費半 ^SOX／
+  台積電 ADR 昨夜收盤入檔**（美東收盤後，供 06:35 晨報引用）／06:15 etf_holdings cron（被動式隔夜 PCF）／
   **06:35 Routine 新聞**（push 觸發 daily.yml 全量；07:15 cron 兜底）／**15:33 Routine → 15:40·當日
   三大法人、外資期貨、ETF 當日漲跌、全球溫度計上線**（15:40 cron 兜底）／**18:58 Routine → ~19:10·
   基金 NAV＋主動式 ETF 當日 PCF 上線**（19:10 cron 兜底；etf_holdings 17:40 cron 遲到自癒）／
