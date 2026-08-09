@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/10 06:55",
+  "as_of": "2026/08/10 07:46",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板/基金板公開標題＋YouTube 影片・自動擷取",
   "brand": [
@@ -13,7 +13,7 @@
     {
       "title": "不靠傳統廣告！復華投信攜手北港武德宮打造捷運「招財錢母車廂」　實體互動引爆社群狂潮",
       "url": "https://finance.ettoday.net/news/3212517",
-      "source": "finance.ettoday.net",
+      "source": "ETtoday財經雲",
       "date": "2026-08-03 16:35",
       "datetime": "2026-08-03T16:35:00+08:00"
     }
@@ -47,22 +47,7 @@
       "short_names": [
         "全球物聯網科技新臺幣"
       ],
-      "items": [
-        {
-          "title": "安聯台灣科技、復華全球物聯網、復華華人世紀該選哪一檔？答案在這 3 個維度",
-          "url": "https://www.cmoney.tw/forum/article/181609350",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-08 16:51",
-          "datetime": "2026-08-08T16:51:17+08:00"
-        },
-        {
-          "title": "科技與成長基金三巨頭比一比：安聯與復華的旗艦基金該怎麼選？",
-          "url": "https://cmnews.com.tw/article/cmoney-4c0c6310-9173-11f1-b548-c37ad2fcb413",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-06 16:46",
-          "datetime": "2026-08-06T16:46:20+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華華人世紀基金",
@@ -170,15 +155,7 @@
       "short_names": [
         "高成長"
       ],
-      "items": [
-        {
-          "title": "復華高成長基金近一年報酬衝上170%，淨值還能續創高嗎？-何宇睿",
-          "url": "https://cmnews.com.tw/article/heyurui-b2a73bdd-921c-11f1-9830-f4283b1a8e26",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-07 12:58",
-          "datetime": "2026-08-07T12:58:57+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華數位經濟基金",
@@ -198,15 +175,7 @@
       "short_names": [
         "中小精選"
       ],
-      "items": [
-        {
-          "title": "復華中小精選223億元規模在手，單日跌逾2%撐得住長期投資嗎？-陳柏宇",
-          "url": "https://cmnews.com.tw/article/chenboyu-33dfa6f2-9300-11f1-a25c-0450db72808c",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-08 16:07",
-          "datetime": "2026-08-08T16:07:30+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華全方位基金",
@@ -355,7 +324,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/TzjzKX31lPU",
       "date": "2026-08-06",
-      "views": 606597,
+      "views": 611226,
       "official": true,
       "short": true
     },
@@ -392,7 +361,7 @@
       "channel": "喬丹哥",
       "url": "https://www.youtube.com/watch?v=Fxu9U5RLprw",
       "date": "2026-08-06",
-      "views": 2004
+      "views": 2006
     },
     {
       "platform": "youtube",
@@ -400,7 +369,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=xYNiN7dQp8g",
       "date": "2026-08-08",
-      "views": 15029,
+      "views": 15046,
       "peer": true
     },
     {
@@ -409,13 +378,13 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=bAYvwiHvRkY",
       "date": "2026-08-08",
-      "views": 8651,
+      "views": 8678,
       "peer": true
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、高成長、中小精選、全方位（詳下方基金新聞標籤）",
+    "近 7 天有專屬報導的基金：華人世紀、全方位（詳下方基金新聞標籤）",
     "品牌焦點：復華全方位基金A類型，這幾天話題滿滿的投信，旗下21年老牌基金表現如何？（CMoney）",
-    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・606,597 次觀看）"
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・611,226 次觀看）"
   ]
 }
