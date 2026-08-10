@@ -218,14 +218,35 @@ def test_stage_distinguishes_applied_from_approved():
 def test_stage_rejects_status_text_in_date_column():
     """核淮日期欄會填狀態字而非日期（2026-08-10 CI 第二輪實測值）——只看非空會把
     「審查中」的檔（含本家復華台美策略、聯博兩檔）全標成已核准。"""
-    assert etfdiscover.stage_of({"approve": "115.9.14申報生效"}) == "approved"
-    assert etfdiscover.stage_of({"approve": "2026-09-14"}) == "approved"
-    assert etfdiscover.stage_of({"approve": "審查中"}) == "applied"
-    assert etfdiscover.stage_of({"approve": "審核中", "period": ""}) == "applied"
-    assert etfdiscover.stage_of({"approve": "-"}) == "applied"
+    t = date(2026, 8, 10)
+    assert etfdiscover.stage_of({"approve": "115.7.30申報生效"}, t) == "approved"
+    assert etfdiscover.stage_of({"approve": "2026-07-30"}, t) == "approved"
+    assert etfdiscover.stage_of({"approve": "審查中"}, t) == "applied"
+    assert etfdiscover.stage_of({"approve": "審核中", "period": ""}, t) == "applied"
+    assert etfdiscover.stage_of({"approve": "-"}, t) == "applied"
     # 募集期間欄同樣要求日期樣式
-    assert etfdiscover.stage_of({"period": "2026-08-10~2026-08-14"}) == "raising"
-    assert etfdiscover.stage_of({"period": "尚未確定", "approve": "115.8.7申報生效"}) == "approved"
+    assert etfdiscover.stage_of({"period": "2026-08-10~2026-08-14"}, t) == "raising"
+    assert etfdiscover.stage_of({"period": "尚未確定", "approve": "115.8.7申報生效"}, t) == "approved"
+
+
+def test_stage_future_effective_date_is_not_yet_approved():
+    """**「有日期」也 ≠ 已核准**（2026-08-10 CI 第三輪）：申報生效走「屆滿 N 營業日
+    自動生效」制，核淮日期欄常填**未來的預計生效日**——日期未到就還沒生效。
+    實例：東方匯理 115.9.14、兆豐 115.9.8，當日（8/10）都還在一個月後。"""
+    t = date(2026, 8, 10)
+    assert etfdiscover.stage_of({"approve": "115.9.14申報生效"}, t) == "applied"
+    assert etfdiscover.stage_of({"approve": "115.9.8申報生效"}, t) == "applied"
+    assert etfdiscover.stage_of({"approve": "115.8.7申報生效"}, t) == "approved"   # 3 天前，已生效
+    # 到期後自動翻成已核准，不必人工改資料
+    assert etfdiscover.stage_of({"approve": "115.9.14申報生效"}, date(2026, 9, 14)) == "approved"
+
+
+def test_parse_tw_date_handles_roc_and_iso():
+    assert etfdiscover.parse_tw_date("115.9.14申報生效") == date(2026, 9, 14)
+    assert etfdiscover.parse_tw_date("115年7月30日") == date(2026, 7, 30)
+    assert etfdiscover.parse_tw_date("2026-09-14") == date(2026, 9, 14)
+    assert etfdiscover.parse_tw_date("審查中") is None
+    assert etfdiscover.parse_tw_date("115.13.99") is None            # 非法日期不拋例外
 
 
 def test_attach_offering_meta_enriches_gaps_and_is_optional():
