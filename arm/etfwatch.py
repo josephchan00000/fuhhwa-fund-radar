@@ -107,7 +107,10 @@ ANNOUNCED_EST: dict[str, dict] = {
     "00992A": {"amount": 0.47,  "ex_date": "2026-07-16"},  # 首配（群益投信/Newtalk）
 }
 
-# 「即將登場」的新 ETF（前瞻資訊，手動維護——同 ANNOUNCED_EST 慣例）。
+# 「即將登場」的新 ETF（前瞻資訊）。**條目自 2026-08-10 起存 `data/etf_upcoming.json`**（本檔只留
+# 載入器與機制）：使用者要求「找到募集資訊主動更新、一週一次」——每週「ETF 募集週掃」Routine
+# 只改資料檔＋push，daily.yml 併檔段（驗證＋as_of 比新舊）就會自動帶進 main 重建上線，
+# **不需人工 merge 程式碼分支**。改狀態機制／視窗常數才動本檔。
 # 來源：各投信官方募集頁／公開資訊觀測站／經濟日報・工商時報・Newtalk 等，經 WebSearch 逐檔查證。
 # 五種狀態、依日期自動歸類與過期（2026-08-10 大改版：使用者以研討會「即將上市ETF」投影片抓包
 # 「資料不齊全」——舊版募集結束沒掛牌日的檔會直接消失、已公告掛牌日超過 14 天也不顯示）：
@@ -136,64 +139,26 @@ UPCOMING_RAISE_DAYS = 45     # 「即將募集」視窗：募集開始在今日�
 UPCOMING_RAISE_FALLBACK = 14  # raise_end 未填時，以「募集起日＋此天數」估算截止，讓未定截止者仍自動過期
 UPCOMING_PEND_DAYS = 45      # 「募集結束・待掛牌」視窗：募集截止後最長顯示 45 天（守門測試 30 天就先紅）
 UPCOMING_HINT_DAYS = 45      # 「已核准・時程未定」視窗：asof 查證日後最長顯示 45 天
-UPCOMING: list[dict] = [
-    # ── 2026-08-10 全面補齊：使用者以研討會「即將上市ETF」投影片抓包缺 009829／009827／009828／
-    #    00412A 四檔（皆 WebSearch 兩來源以上查證）；統一雙檔補掛牌日、00987D 配息頻率修正。
-    #    已轉正的 00410A 條目同輪清理移除。──
-    # 募集完（8/3–8/7）・8/21 掛牌——韓股被動指數檔，僅前瞻展示（track False）。
-    {"code": "009829", "name": "大華銀韓國KOSPI50", "issuer": "大華銀投信", "track": False,
-     "raise_start": "2026-08-03", "raise_end": "2026-08-07", "list_date": "2026-08-21",
-     "freq": "半年配", "theme": "韓版0050：KOSPI 50 指數 50 大旗艦企業（三星、SK 海力士…），每年 1/7 月除息",
-     "url": "https://money.udn.com/money/story/5636/9632808"},
-    # 募集完（8/5–8/7）・8/26 櫃買掛牌——統一股債雙主動傘型（Business Insider／工商時報）。
-    # 上櫃 → 掛牌自動升級進「其他」組（kind=other，同 00998A/00986D 慣例）。
-    {"code": "00411A", "name": "主動統一前沿科技", "issuer": "統一投信",
-     "kind": "other", "cat": "主動式股票",
-     "raise_start": "2026-08-05", "raise_end": "2026-08-07", "list_date": "2026-08-26",
-     "freq": "年配", "theme": "全球前沿科技：AI 基建／人形機器人／自駕／太空／量子運算",
-     "url": "https://www.ezmoney.com.tw/events/2026GFTA/index.html"},
-    {"code": "00987D", "name": "主動統一美國公債量化增益", "issuer": "統一投信",
-     "kind": "other", "cat": "主動式債券",  # 債券型：升級時髒序列門檻須放寬（bond_codes 依 cat 含「債」判定）
-     "raise_start": "2026-08-05", "raise_end": "2026-08-07", "list_date": "2026-08-26",
-     "freq": "季配",   # 2026-08-10 修正：原誤植「月配」；統一官方＝季配、保管第一銀行（多來源一致）
-     "theme": "美國公債量化增益（與 00411A 股債雙主動搭配），量化多空策略＋三段式停損",
-     "url": "https://newtalk.tw/news/view/2026-07-17/1047704"},
-    # 募集中（8/10–8/14）・9/2 掛牌——全台首檔算力被動指數檔，僅前瞻展示（track False）。
-    {"code": "009827", "name": "玉山未來全球算力", "issuer": "玉山投信", "track": False,
-     "raise_start": "2026-08-10", "raise_end": "2026-08-14", "list_date": "2026-09-02",
-     "freq": "季配", "theme": "NYSE TIP 未來全球算力及太空基建指數 50 強：AI 晶片／雲端／電力基建／太空衛星",
-     "url": "https://www.esunam.com/act/etf_009827/"},
-    # 本家復華全球未來50主動式ETF——8/12~8/14 募集、9/2 掛牌（2026-08-10 複核：經濟日報／Yahoo
-    # 兩來源一致、無異動）。list_date 到日自動升級追蹤；若掛牌日異動，改此欄即可。
-    {"code": "00409A", "name": "主動復華全球未來50", "issuer": "復華投信",
-     "raise_start": "2026-08-12", "raise_end": "2026-08-14", "list_date": "2026-09-02",
-     "freq": "—", "theme": "全球 AI 浪潮下具競爭優勢的產業龍頭與長線成長股",
-     "url": "https://www.fhtrust.com.tw/services/news_list/content/news/b999d359-05a2-4e3d-9a0a-d35341e4ec3b"},
-    # 即將募集（8/17–8/20）——國內首檔 PCB 供應鏈被動指數檔（台56%/日35%/韓9%），僅前瞻展示
-    # （track False）。掛牌日與配息頻率尚未公告（守門測試會在募集結束 30 天內逼補掛牌日）。
-    {"code": "009828", "name": "中信台日韓PCB", "issuer": "中國信託投信", "track": False,
-     "raise_start": "2026-08-17", "raise_end": "2026-08-20",
-     "freq": "—", "theme": "NYSE TIP 台日韓 PCB 指數 30 檔：核心 PCB 製造／上中游材料（台光電、欣興、揖斐電…）",
-     "url": "https://www.ctee.com.tw/news/20260805701073-430403"},
-    # ── 已核准・募集時程未定（hint 形態；2026-08-10 使用者指示「只有核准還沒確定募集時間的」
-    #    要獨立分類——儀表板第三組精簡列。日期公告後改填 raise_start／list_date 即轉正常狀態；
-    #    代號未派者 code 填 None（顯示「代號未定」），公告後補上）──
-    # 安聯第 4 檔主動式（8/3 獲准，預計 Q3 底推出；研討會投影片標 9 月）。
-    {"code": "00412A", "name": "主動安聯亞洲半導體", "issuer": "安聯投信",
-     "raise_hint": "已核准，預計第3季底（約9月）募集", "asof": "2026-08-10",
-     "freq": "—", "theme": "亞洲半導體供應鏈：晶圓代工／IC 設計／先進封裝／設備材料",
-     "url": "https://money.udn.com/money/story/5618/9672299"},
-    # 以下兩檔＝工商時報 2026/07/22「8月投信新基金」點名之「已核准待募」（代號、時程皆未公告；
-    # MoneyDJ 新基金頁同列。2026-08-10 依使用者提供來源補登）：
-    {"code": None, "name": "大華銀優利美國非投資等級債券ETF", "issuer": "大華銀投信", "track": False,
-     "raise_hint": "已核准待募，時程未公告", "asof": "2026-08-10",
-     "freq": "—", "theme": "美國非投資等級公司債（被動指數；大華銀首檔非投等債 ETF）",
-     "url": "https://www.chinatimes.com/newspapers/20260722000437-260208"},
-    {"code": None, "name": "安聯加密科技與金融創新主動式ETF", "issuer": "安聯投信",
-     "raise_hint": "已核准待募，時程未公告", "asof": "2026-08-10",
-     "freq": "—", "theme": "加密科技與金融創新主題主動選股",
-     "url": "https://www.chinatimes.com/newspapers/20260722000437-260208"},
-]
+UPCOMING_FP = ROOT / "data" / "etf_upcoming.json"
+
+
+def _load_upcoming() -> list[dict]:
+    """讀 data/etf_upcoming.json 的 items（「即將登場」條目的唯一真實來源）。
+
+    搬出程式碼的原因（2026-08-10）：每週「ETF 募集週掃」Routine 要能只推「資料檔」就讓
+    更新自動入 main（daily.yml 併檔通道只收資料、不自動併程式碼——那是不可開的注入面）。
+    壞檔／缺檔 fail-open 回 []（「即將登場」顯示暫無、不壞版）——但不會靜默太久：
+    tests 的 required-fields／seminar 守門會紅，CI 併檔前也有 JSON 驗證擋壞檔。"""
+    try:
+        d = json.loads(UPCOMING_FP.read_text(encoding="utf-8"))
+        items = d.get("items") if isinstance(d, dict) else d
+        return items if isinstance(items, list) else []
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"  ⚠ etf_upcoming.json 讀取失敗（{e}）——「即將登場」以空清單顯示")
+        return []
+
+
+UPCOMING: list[dict] = _load_upcoming()
 
 
 def upcoming(today: date | None = None) -> dict:
