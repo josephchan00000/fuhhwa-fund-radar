@@ -1385,9 +1385,9 @@ def _etf_table(items: list[dict], holdings_doc: dict | None = None) -> str:
 def _upcoming_etf_card(it: dict) -> str:
     """單張「即將登場」ETF 卡片：代碼／名稱／投信＋狀態章＋主題＋活動介紹連結。
 
-    狀態章依 etfwatch.upcoming() 的 stat 五態：募集中(now)／即將募集(soon)／
-    已核准・時程未定(hint)／掛牌 MM/DD(list)／募集結束・待掛牌(pend)。
-    募集組若已公告掛牌日，加「預定掛牌 MM/DD」副標（2026-08-10 改版）。"""
+    狀態章依 etfwatch.upcoming() 的 stat：募集中(now)／即將募集(soon)／掛牌 MM/DD(list)／
+    募集結束・待掛牌(pend)；募集組若已公告掛牌日，加「預定掛牌 MM/DD」副標（2026-08-10 改版）。
+    「已核准・時程未定」不走卡片——用 _upcoming_hint_row() 精簡列（同日使用者指示分類）。"""
     code = _esc(it.get("code") or "")
     name = _esc(it.get("name") or "").replace("復華", '<span class="fh">復華</span>')
     issuer = _esc(it.get("issuer") or "")
@@ -1404,10 +1404,6 @@ def _upcoming_etf_card(it: dict) -> str:
     elif stat == "pend":
         status = '<span class="upstat pend">募集結束・待掛牌</span>'
         tags.append('<span class="uptag">掛牌日待公告</span>')
-    elif stat == "hint":
-        status = '<span class="upstat hint">已核准募集</span>'
-        if it.get("raise_hint"):
-            tags.append(f'<span class="uptag">{_esc(it["raise_hint"])}</span>')
     else:                                   # now／soon：募集期間為主，掛牌日當副標
         rs_md, re_md = _md(it.get("raise_start")), _md(it.get("raise_end"))
         span = f'{rs_md}–{re_md}' if re_md else f'{rs_md} 起'
@@ -1429,23 +1425,44 @@ def _upcoming_etf_card(it: dict) -> str:
             f'<div class="uptheme">{theme}</div>{link}</div>')
 
 
-def _upcoming_etf_view(up: dict | None) -> str:
-    """「即將登場的新 ETF」——募集中・即將募集＋即將掛牌・待掛牌，各附活動介紹連結。
+def _upcoming_hint_row(it: dict) -> str:
+    """「已核准・募集時程未定」精簡列（2026-08-10 使用者：「太長記得分類一下」）。
 
-    置於「ETF 數據追蹤」表格上方；無任何在窗項目時顯示精簡提示、不佔版面。
-    2026-08-10 改版：募集組在前（可申購、時效最高）；募集結束的檔以「待掛牌」續留
-    （舊版會直接消失，使用者以研討會名單抓包資料不齊全）。"""
+    這類條目常一掛一個多月、又只有『核准了』一個資訊點——整張卡太佔版面，
+    一列帶完：代號（未派碼顯示「代號未定」）＋名稱＋投信＋時程 hint＋介紹連結。"""
+    code = it.get("code")
+    code_html = (f'<span class="upcode">{_esc(code)}</span>' if code
+                 else '<span class="upnc">代號未定</span>')
+    name = _esc(it.get("name") or "").replace("復華", '<span class="fh">復華</span>')
+    issuer = _esc(it.get("issuer") or "")
+    hint = _esc(it.get("raise_hint") or "時程未公告")
+    url = it.get("url")
+    link = (f'<a class="uprlink" href="{_esc(url)}" target="_blank" rel="noopener">介紹 ↗</a>'
+            if url else "")
+    return (f'<div class="uprow">{code_html}<span class="upname">{name}</span>'
+            f'<span class="upissuer">{issuer}</span>'
+            f'<span class="uphintt">{hint}</span>{link}</div>')
+
+
+def _upcoming_etf_view(up: dict | None) -> str:
+    """「即將登場的新 ETF」——三組分類（2026-08-10 使用者：「太長記得分類一下，尤其是
+    只有核准還沒確定募集時間的」）：
+      ① 募集中・即將募集（卡片；可申購、時效最高，在前）
+      ② 即將掛牌・待掛牌（卡片；募集結束的檔以「待掛牌」續留，舊版會直接消失）
+      ③ 已核准・募集時程未定（精簡列；資訊量只有「核准了」，不佔卡片版面）
+    置於「ETF 數據追蹤」表格上方；無任何在窗項目時顯示精簡提示、不佔版面。"""
     up = up or {}
-    listing = up.get("listing") or []
     raising = up.get("raising") or []
-    if not listing and not raising:
-        return ('<div class="upnone">近期無「募集中／即將掛牌」的新 ETF 待登場'
-                '（本區列：募集開始或已公告掛牌日在未來約一個半月內、或募集剛結束待掛牌者，'
-                '過期自動移除）。</div>')
+    listing = up.get("listing") or []
+    approved = up.get("approved") or []
+    if not listing and not raising and not approved:
+        return ('<div class="upnone">近期無「募集中／即將掛牌／已核准」的新 ETF 待登場'
+                '（本區列：募集開始或已公告掛牌日在未來約一個半月內、募集剛結束待掛牌、'
+                '或已核准待定時程者，過期自動移除）。</div>')
     parts = ['<div class="upwrap">']
     if raising:
         parts.append(f'<div class="upgrp">{_ic("coin", plain=True)} 募集中・即將募集 '
-                     f'<span class="upwin">（含已核准待定時程檔・{len(raising)} 檔）</span></div>'
+                     f'<span class="upwin">（{len(raising)} 檔）</span></div>'
                      f'<div class="upgrid">'
                      + "".join(_upcoming_etf_card(it) for it in raising)
                      + '</div>')
@@ -1455,11 +1472,17 @@ def _upcoming_etf_view(up: dict | None) -> str:
                      f'<div class="upgrid">'
                      + "".join(_upcoming_etf_card(it) for it in listing)
                      + '</div>')
+    if approved:
+        parts.append(f'<div class="upgrp">{_ic("clipboard", plain=True)} 已核准・募集時程未定 '
+                     f'<span class="upwin">（{len(approved)} 檔・時程公告後自動移入上方分組）</span></div>'
+                     f'<div class="uplist">'
+                     + "".join(_upcoming_hint_row(it) for it in approved)
+                     + '</div>')
     parts.append(
         '<div class="upfoot">新 ETF 前瞻資訊為人工彙整（來源：各投信官方募集頁／公開資訊觀測站／'
-        '經濟日報・工商時報等，點「活動介紹」看原始說明）；日期以各投信公告為準，僅供參考、非投資'
-        '建議或招攬。募集期間、掛牌日期可能因主管機關核准進度調整。海外被動指數新檔僅在本區前瞻'
-        '展示，掛牌後不列入下方追蹤表。</div></div>')
+        '經濟日報・工商時報・MoneyDJ 新基金頁等，點「活動介紹」看原始說明）；日期以各投信公告為準，'
+        '僅供參考、非投資建議或招攬。募集期間、掛牌日期可能因主管機關核准進度調整。海外被動指數'
+        '新檔僅在本區前瞻展示，掛牌後不列入下方追蹤表。</div></div>')
     return "".join(parts)
 
 
@@ -2183,9 +2206,17 @@ td.mdsublab a.mdsl{color:var(--ink2)}
 .upstat.raise{color:#1d4f9c;background:rgba(47,111,208,.13)}
 .upstat.now{color:#a35b00;background:rgba(224,146,0,.16)}
 .upstat.pend{color:#5b6672;background:rgba(120,132,148,.14)}
-.upstat.hint{color:#6d28a8;background:rgba(139,84,208,.12)}
 .uptag{display:inline-block;font-size:11px;color:var(--mut);background:var(--card2);border-radius:5px;padding:1px 7px}
 .uptag.ld{color:#1d6b3a;background:rgba(31,157,87,.09)}
+/* 已核准・募集時程未定＝精簡列（2026-08-10 使用者：太長要分類；只有核准訊息不佔卡片） */
+.uplist{background:var(--pad);border:1px solid var(--line);border-radius:11px;padding:3px 13px}
+.uprow{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 8px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.uprow:last-child{border-bottom:0}
+.uprow .upname{font-size:13.5px}
+.upnc{font-size:11px;font-weight:700;color:#6d28a8;background:rgba(139,84,208,.12);border-radius:5px;padding:1px 7px;white-space:nowrap}
+.uphintt{font-size:12px;color:var(--mut)}
+.uprlink{font-size:12px;font-weight:700;color:var(--accd);text-decoration:none;white-space:nowrap;margin-left:auto}
+.uprlink:hover{color:var(--acc)}
 .uptheme{font-size:12.5px;color:var(--ink2);line-height:1.65;margin-bottom:8px}
 .uplink{display:inline-block;font-size:12.5px;font-weight:700;color:var(--accd);background:rgba(47,111,208,.09);border-radius:8px;padding:4px 12px;text-decoration:none}
 .uplink:hover{color:#fff;background:var(--acc)}
@@ -2912,7 +2943,7 @@ def render() -> str:
     # 再「ETF 數據追蹤」週績效表（左上「ETF」分頁專屬視圖）
     etf_up = etfwatch.upcoming()
     sec_etf_up = (f'<div class="section" id="etf-upcoming"><div class="st">{_ic("zap", tone="amber")}即將登場的新 ETF '
-                  f'<span class="stsub">募集中・即將募集・待掛牌一次看・點「活動介紹」看投信說明</span></div>'
+                  f'<span class="stsub">募集中・待掛牌・已核准待定 分組一次看・點「活動介紹」看投信說明</span></div>'
                   f'{_upcoming_etf_view(etf_up)}</div>')
     # 持股揭露鮮度另立 chip（2026-07-30）：`_freshness_view()` 只彙總「逾期」項目，
     # 資料正常時整個字串不會出現在頁面上——各來源的正常時戳一律標在自己區塊標題列。

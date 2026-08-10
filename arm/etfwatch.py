@@ -116,6 +116,8 @@ ANNOUNCED_EST: dict[str, dict] = {
 #     募集期間優先於掛牌呈現——已知掛牌日以「預定掛牌」副標帶出，不重複佔兩張卡。
 #   · 「已核准・時程未定」(hint)＝僅獲准募集、日期未公告：填 raise_hint（顯示文字）＋asof（查證日）；
 #     asof 後 UPCOMING_HINT_DAYS 內顯示（日期公告後改填 raise_start/list_date 即轉正常狀態）。
+#     **獨立第三組、儀表板精簡列呈現**（2026-08-10 使用者：「太長記得分類一下，尤其是只有核准
+#     還沒確定募集時間的」）；代號未派者 code 填 None（顯示「代號未定」）——只有 hint 形態允許無代號。
 #   · 「即將掛牌」(list)＝已公告掛牌日：掛牌日在今日起 UPCOMING_LIST_DAYS 內顯示。
 #   · 「募集結束・待掛牌」(pend)＝募集截止、掛牌日未公告：截止後 UPCOMING_PEND_DAYS 內顯示
 #     ——這是舊版的結構洞（檔案直接消失），現在誠實顯示待掛牌狀態。
@@ -173,26 +175,40 @@ UPCOMING: list[dict] = [
      "raise_start": "2026-08-17", "raise_end": "2026-08-20",
      "freq": "—", "theme": "NYSE TIP 台日韓 PCB 指數 30 檔：核心 PCB 製造／上中游材料（台光電、欣興、揖斐電…）",
      "url": "https://www.ctee.com.tw/news/20260805701073-430403"},
-    # 已核准・募集時程未定——安聯第 4 檔主動式（8/3 獲准，預計 Q3 底推出；日期公告後改填
-    # raise_start／list_date 即轉正常狀態）。
+    # ── 已核准・募集時程未定（hint 形態；2026-08-10 使用者指示「只有核准還沒確定募集時間的」
+    #    要獨立分類——儀表板第三組精簡列。日期公告後改填 raise_start／list_date 即轉正常狀態；
+    #    代號未派者 code 填 None（顯示「代號未定」），公告後補上）──
+    # 安聯第 4 檔主動式（8/3 獲准，預計 Q3 底推出；研討會投影片標 9 月）。
     {"code": "00412A", "name": "主動安聯亞洲半導體", "issuer": "安聯投信",
      "raise_hint": "已核准，預計第3季底（約9月）募集", "asof": "2026-08-10",
      "freq": "—", "theme": "亞洲半導體供應鏈：晶圓代工／IC 設計／先進封裝／設備材料",
      "url": "https://money.udn.com/money/story/5618/9672299"},
+    # 以下兩檔＝工商時報 2026/07/22「8月投信新基金」點名之「已核准待募」（代號、時程皆未公告；
+    # MoneyDJ 新基金頁同列。2026-08-10 依使用者提供來源補登）：
+    {"code": None, "name": "大華銀優利美國非投資等級債券ETF", "issuer": "大華銀投信", "track": False,
+     "raise_hint": "已核准待募，時程未公告", "asof": "2026-08-10",
+     "freq": "—", "theme": "美國非投資等級公司債（被動指數；大華銀首檔非投等債 ETF）",
+     "url": "https://www.chinatimes.com/newspapers/20260722000437-260208"},
+    {"code": None, "name": "安聯加密科技與金融創新主動式ETF", "issuer": "安聯投信",
+     "raise_hint": "已核准待募，時程未公告", "asof": "2026-08-10",
+     "freq": "—", "theme": "加密科技與金融創新主題主動選股",
+     "url": "https://www.chinatimes.com/newspapers/20260722000437-260208"},
 ]
 
 
 def upcoming(today: date | None = None) -> dict:
-    """即將登場的新 ETF（前瞻，手動維護 UPCOMING）——五狀態自動歸類與過期。
+    """即將登場的新 ETF（前瞻，手動維護 UPCOMING）——五狀態、三分組自動歸類與過期。
 
-    回 {"listing": [...], "raising": [...]}，每筆附 stat（狀態）＋when（排序鍵）：
+    回 {"raising": [...], "listing": [...], "approved": [...]}，每筆附 stat＋when（排序鍵）：
       · raising＝「募集中・即將募集」：stat=now（募集期進行中）／soon（起日在未來
-        UPCOMING_RAISE_DAYS 內）／hint（已核准、時程未定：raise_hint＋asof，登錄後
-        UPCOMING_HINT_DAYS 內顯示）。募集期間優先於掛牌呈現（掛牌日以副標帶出）。
+        UPCOMING_RAISE_DAYS 內）。募集期間優先於掛牌呈現（掛牌日以副標帶出）。
       · listing＝「即將掛牌・待掛牌」：stat=list（掛牌日在未來 UPCOMING_LIST_DAYS 內）／
         pend（募集截止、掛牌日未公告——截止後 UPCOMING_PEND_DAYS 內顯示。2026-08-10 前
         這種檔會直接消失，使用者以研討會名單抓包「資料不齊全」，勿再改回）。
-    掛牌日已過＝退場（升級機制 watch_tuples 接手）。無資料回兩個空清單（儀表板顯示
+      · approved＝「已核准・募集時程未定」（stat=hint）：獨立第三組（2026-08-10 使用者
+        指示分類，儀表板以精簡列呈現、不佔卡片版面）；raise_hint＋asof，登錄後
+        UPCOMING_HINT_DAYS 內顯示，日期公告後改填正式欄位即自動移入前兩組。
+    掛牌日已過＝退場（升級機制 watch_tuples 接手）。無資料回三個空清單（儀表板顯示
     「暫無」、不壞版）。"""
     t = today or clock.today_tw()
 
@@ -202,7 +218,7 @@ def upcoming(today: date | None = None) -> dict:
         except (TypeError, ValueError):
             return None
 
-    listing, raising = [], []
+    listing, raising, approved = [], [], []
     for it in UPCOMING:
         ld = _d(it.get("list_date"))
         rs, re_ = _d(it.get("raise_start")), _d(it.get("raise_end"))
@@ -220,17 +236,17 @@ def upcoming(today: date | None = None) -> dict:
         if rs is None and it.get("raise_hint"):        # 已核准、募集時程未定（asof 後 45 天內顯示）
             a = _d(it.get("asof"))
             if a and t <= a + timedelta(days=UPCOMING_HINT_DAYS):
-                raising.append({**it, "stat": "hint", "when": a.isoformat()})
+                approved.append({**it, "stat": "hint", "when": a.isoformat()})
             continue
         if ld:                                          # 募集已截止（或純掛牌條目）、已知掛牌日
             if ld <= t + timedelta(days=UPCOMING_LIST_DAYS):
                 listing.append({**it, "stat": "list", "when": ld.isoformat()})
         elif eff_end and eff_end >= t - timedelta(days=UPCOMING_PEND_DAYS):
             listing.append({**it, "stat": "pend", "when": eff_end.isoformat()})
-    _rank = {"now": 0, "soon": 1, "hint": 2}
-    raising.sort(key=lambda x: (_rank.get(x["stat"], 9), x["when"]))
+    raising.sort(key=lambda x: ({"now": 0}.get(x["stat"], 1), x["when"]))
     listing.sort(key=lambda x: x["when"])
-    return {"listing": listing, "raising": raising}
+    approved.sort(key=lambda x: (x["when"], x["name"]))
+    return {"raising": raising, "listing": listing, "approved": approved}
 
 
 def watch_tuples(today: date | None = None) -> list[tuple[str, str, str, str, str]]:
