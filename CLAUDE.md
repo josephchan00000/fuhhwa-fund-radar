@@ -171,29 +171,50 @@
      機制與三個坑見下方「新 ETF『自動發現』層」專節。
    - 註：持股基準為月度值（顯示上月底）——不是資料沒更新。
 
-## 指令：「排程搬家」（2026-07-24 建立；2026-08-03 擴為三個；2026-08-07 起**四個 Routine 一起搬**）
+## 指令：「ETF 募集週掃」（2026-08-10 建立——使用者：「找到募集的資訊然後主動更新，一週一次」）
 
-使用者在**任何**對話窗打**「排程搬家」**（或「搬排程」）＝把**全部四個**每日 Routine（06:35 全部更新、
-15:33 盤後籌碼、18:58 晚間 NAV·PCF、05:08 美股收盤序列）改綁到**當前**對話窗。**不要詢問、不要查證其他
-東西、不改任何檔案、不 commit**——固定「list → 建四個 → 刪舊的」收工（最省 token）：
+每週 Routine（台北週一 08:05）火進綁定會話執行；使用者手動打「ETF 募集週掃」也照跑。
+**全程不跑資料抓取腳本、不動 reports/**、只改 `data/etf_upcoming.json`**：
+
+1. `git fetch origin main` 後讀 **origin/main** 的 `data/etf_upcoming_gap.json`（CI 自動發現的
+   漏網檔，見「新 ETF 自動發現層」專節）與 `data/etf_upcoming.json` 現況；跑
+   `python3 -m pytest tests/test_etfwatch.py -q` 看 stale guard 有無紅（過期條目）。
+2. **WebSearch 盤點**（容器擋 moneydj/chinatimes 原頁，用搜尋摘要即可）：MoneyDJ 新基金頁
+   ＋工商時報／經濟日報「投信新基金」稿＋逐檔精查。**每筆資料兩來源一致才寫**：
+   - gap 檔缺口與新核准檔 → 補登（時程未定用 `raise_hint`＋`asof`；未派碼 `code: null`）；
+   - hint 檔等到日期公告 → 改填 `raise_start`/`raise_end`/`list_date` 正式欄位；
+   - 已登錄檔核對募集期間／掛牌日／配息頻率有無異動；掛牌逾期條目清理；
+   - 海外被動指數檔 `track: false`；**本家復華新檔最優先、絕不可漏**。
+3. 更新頂層 `as_of`＝今日 → pytest 全綠 → commit `chore: ETF 募集週掃 {日期}` push 本會話
+   指定分支——**push 動到該檔會自動觸發 daily.yml**（on.push.paths 含它），併檔段驗證後
+   帶進 main 重建上線，**不需人工 merge**。
+4. 結果：**有異動 → PushNotification 一句話**（改了哪幾檔）；無異動 → 安靜結束不推播；
+   失敗 → 推播卡在哪一步。
+
+## 指令：「排程搬家」（2026-07-24 建立；2026-08-03 擴為三個；2026-08-07 四個；2026-08-10 起**五個 Routine 一起搬**）
+
+使用者在**任何**對話窗打**「排程搬家」**（或「搬排程」）＝把**全部五個** Routine（每日：06:35 全部更新、
+15:33 盤後籌碼、18:58 晚間 NAV·PCF、05:08 美股收盤序列；每週：週一 08:05 ETF 募集週掃）改綁到**當前**
+對話窗。**不要詢問、不要查證其他東西、不改任何檔案、不 commit**——固定「list → 建五個 → 刪舊的」收工（最省 token）：
 
 1. `list_triggers`（先用預設 limit；找不到再用 cursor 翻頁）→ 找**名稱以「復華基金雷達」開頭且
-   `enabled:true`** 的 Routine（正常應有 4 個；歷史上只有 1／3 個＝尚未擴編，照樣往下走）。
+   `enabled:true`** 的 Routine（正常應有 5 個；歷史上只有 1／3／4 個＝尚未擴編，照樣往下走）。
    全部的 `persistent_session_id` 都已是本會話 → 回一句「排程已綁本視窗」結束。
    · **⚠ 輸出會超過工具上限**（2026-08-07 實測 70KB／一行）：帳號裡累積數十個 `send_later` 一次性
      trigger，`list_triggers` 回應會被截斷並存成檔案。**別開子代理讀全文**——直接
      `python3 -c` 讀那支檔 `json.loads` 後只印 `id｜name｜cron_expression｜enabled｜persistent_session_id`
      一行一個，秒級收斂。要看某支的 prompt 原文則印
      `job_config.ccr.events[*].data.message.content`（**頂層沒有 `prompt` 欄位**，只有這裡有）。
-2. `create_trigger` ×4（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`；
+2. `create_trigger` ×5（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`；
    prompt 用下方各自的原文照抄、一字不改）：
    - `復華基金雷達 每日全部更新(台北 06:35・07:03 前完成)`｜cron `35 22 * * *`
    - `復華基金雷達 盤後籌碼即時更新(台北 15:33)`｜cron `33 7 * * 1-5`
    - `復華基金雷達 晚間NAV·PCF即時更新(台北 18:58)`｜cron `58 10 * * 1-5`
    - `復華基金雷達 美股收盤序列更新(台北 05:08)`｜cron `8 21 * * 1-5`
+   - `復華基金雷達 ETF募集週掃(台北週一 08:05)`｜cron `5 0 * * 1`
 3. `delete_trigger` 逐一刪掉步驟 1 找到的舊 Routine（機制備忘：`update_trigger` 改不了綁定會話、跨會話
    update 也被組織政策擋，但**跨會話 delete 可行**——2026-07-24 實證；所以搬家＝建新＋刪舊，不是改舊）。
-4. 一句話回報：四個新 trigger id＋各自下次觸發時間。create_trigger 若警告「no MCP connectors」**可忽略**
+4. 一句話回報：五個新 trigger id＋各自下次觸發時間。create_trigger 若警告「no MCP connectors」**可忽略**
    （SOP 第 7 步走 push 自動觸發、驗證用 git，不依賴 MCP）。
    · **步驟 1 若查到「本檔沒記載」的復華 Routine**（2026-08-07 就是這樣發現 05:08 那支）：照樣搬，
      prompt 從舊 trigger 的 `job_config` 原文照抄，並在回報時提一句「本檔要補記」。
@@ -218,6 +239,10 @@ Routine prompt 原文③——晚間 NAV·PCF 即時更新（18:58）：
 Routine prompt 原文④——美股收盤序列更新（05:08，2026-08-05 建立、2026-08-07 補記本檔）：
 
 > （排程自動觸發）美股收盤序列更新（費半 ^SOX／台積電 ADR 昨夜收盤入檔，供 06:35 晨報引用；台北 05:08＝美東收盤後，夏令 17:08／冬令 16:08）——全程不跑任何資料抓取腳本、不動 reports/**：① 用 mcp__github__actions_run_trigger（method=run_workflow、workflow_id=afterhours_refresh.yml、ref=main）觸發刷新，成功觸發即收工、不等它跑完；MCP 不可用時備援＝在本會話指定分支寫 .ping/afterhours（內容任意）後 git add -f、commit、push——該路徑 push 會自動觸發同一 workflow。② send_later 排 35 分鐘後自驗：git fetch origin main 讀 data/macro_chips.json，series.sox 與 series.tsm_adr 須含最近一個美股交易日（以前一美東平日為準；美股休市日無新 bar 屬正常、勿誤報——拿不準就查前一日 reports/macrocal 市況段「美股」欄）；缺 → 補 dispatch 一次、再 send_later 20 分鐘後檢查，仍缺才 PushNotification 一句話（缺什麼＋afterhours run 日誌看到的原因）；已到或休市 → 安靜結束、不推播（失敗才推播）。
+
+Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建立）：
+
+> （排程自動觸發）ETF 募集週掃——找到新 ETF 募集資訊、主動更新「即將登場」（使用者 2026-08-10 指示：主動更新、一週一次）。依 repo CLAUDE.md「指令：ETF 募集週掃」SOP 執行：全程不跑資料抓取腳本、不動 reports/**、只改 data/etf_upcoming.json。① git fetch origin main 讀 origin/main 的 data/etf_upcoming_gap.json（CI 自動發現的漏網檔）與 data/etf_upcoming.json 現況，pytest tests/test_etfwatch.py 看 stale guard 有無紅；② WebSearch 盤點（MoneyDJ 新基金頁＋工商時報／經濟日報「投信新基金」稿，容器擋原頁就用搜尋摘要），逐檔兩來源核對：新核准檔補登（時程未定 raise_hint＋asof、未派碼 code:null）、hint 檔補正式日期、募集期間／掛牌日／配息頻率異動修正、掛牌逾期條目清理；海外被動指數檔 track:false；本家復華新檔最優先、絕不可漏；③ 更新頂層 as_of＝今日 → pytest 全綠 → commit「chore: ETF 募集週掃 {日期}」push 本會話指定分支（push 動到該檔自動觸發 daily.yml 併入 main 重建上線，不需人工 merge）；④ 有異動 → PushNotification 一句話列出異動檔；無異動 → 安靜結束不推播；失敗 → 推播卡在哪一步。
 
 ## 每日固定時間自動更新（2026-07-18 建立；同日改「火進主會話」模式）
 
@@ -261,7 +286,8 @@ Routine prompt 原文④——美股收盤序列更新（05:08，2026-08-05 建�
   三大法人、外資期貨、ETF 當日漲跌、全球溫度計上線**（15:40 cron 兜底）／**18:58 Routine → ~19:10·
   基金 NAV＋主動式 ETF 當日 PCF 上線**（19:10 cron 兜底；etf_holdings 17:40 cron 遲到自癒）／
   22:05 cron·融資融券（~21:30 公布）、P/C 比、NAV 掃尾／23:20 夜檢（Routine 鏈的 send_later，
-  只驗不抓）。
+  只驗不抓）。**週頻**：週一 08:05 Routine → ETF 募集週掃（WebSearch 查證後更新
+  `data/etf_upcoming.json`，push 經 daily.yml 併檔自動上線）。
 - **備援**：repo cron 移至**台北週一~六 07:15**（2026-07-20 起，原 06:50）——改為「事後兜底」：Routine 失敗時
   新聞沿用前日（或撿分支已推的今日新聞），但 NAV／持股／ETF 照樣更新；頁面瀏覽器端有「逾 2 天未重建」
   紅色警示橫幅當最後防線。
@@ -500,6 +526,12 @@ ETF 數據追蹤／ETF 持股揭露／總經・籌碼數據／儀表板產表。
   **MoneyDJ 新基金頁 `moneydj.com/funddj/fundmarket.djhtm?a=broncho-1`**（2026-08-10 使用者
   提供之權威彙整；本容器 proxy 擋 moneydj，用 WebSearch 摘要或交給正式區）＋工商時報月度
   「投信新基金」盤點稿；只有核准沒時程（如安聯加密科技、大華銀非投等債）→ hint 形態登錄。
+⑦ **條目儲存位置＝`data/etf_upcoming.json`（2026-08-10 起，勿再寫回程式碼）**：
+  `etfwatch.UPCOMING` 由 `_load_upcoming()` 讀該檔 items（載入器 fail-open 回空、tests 會紅）。
+  搬出程式碼的原因＝每週「ETF 募集週掃」Routine（見下方專節）只推**資料檔**就能經 daily.yml
+  併檔段自動入 main 上線，**不需人工 merge 程式碼分支**；daily.yml 併檔段有雙防呆：
+  JSON 驗證失敗（壞檔）→ 保留 main 現有版；分支 `as_of` 舊於 main → 不倒灌。
+  **改條目＝改 JSON（記得更新頂層 `as_of`＝今日）；改狀態機制／視窗常數才動 etfwatch.py。**
 
 **新 ETF「自動發現」層 `arm/etfdiscover.py`＋`scripts/check_new_etfs.py`（2026-08-10 使用者：
 「你是怎麼確保之後都抓得到的呢？」）**——**這條是上面所有守門都補不到的洞**：graduation／
