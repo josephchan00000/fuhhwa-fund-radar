@@ -340,18 +340,36 @@ def _new_etf_chip() -> str:
 
     2026-08-10 使用者：「你是怎麼確保之後都抓得到的呢？」——既有守門只認得「已登錄」
     的條目，從沒登錄過的檔不會讓任何測試變紅。此章由 CI 端的市場首見台帳／募集頁
-    掃描產出：市場上有、清單裡沒有 → 🔴，每日 SOP 見到就 WebSearch 補進 UPCOMING
-    （策展上刻意不追蹤者填 track: False 即從缺口消失）。無缺口／無檔＝不顯示。"""
+    掃描產出。**警示分級（同日使用者：紅章 13 檔長名稱「很躁」）**：
+      · 🔴 紅＝**已掛牌**卻沒登錄——真漏網，每日 SOP 立即補（附代碼，可直接查）；
+      · ⚠ 琥珀＝募集頁上已核准／募集中、待登錄——**週一募集週掃自動查證補登**，
+        只給檔數不列名稱清單（清單在 gap 檔，週掃讀得到；長名稱堆在版頭只是噪音）；
+      · 申請中（審查未過）在資料層就進 pipeline 欄、不在 items——完全不上版。
+    無缺口／無檔＝不顯示。"""
     doc = etfdiscover.load_gap()
     items = doc.get("items") or []
     if not items:
         return ""
-    names = "、".join(
-        _esc(" ".join(x for x in (i.get("code"), i.get("name")) if x)) or "？"
-        for i in items[:6])
-    more = f" 等 {len(items)} 檔" if len(items) > 6 else ""
-    return (f'<span class="chip fresh stale"><b>新 ETF 未登錄</b>　🔴 {len(items)} 檔'
-            f'（{names}{more}）</span>')
+    listed = [i for i in items if i.get("kind") == "listed"]
+    offering = [i for i in items if i.get("kind") != "listed"]
+    parts = []
+    if listed:
+        names = "、".join(
+            _esc(" ".join(x for x in (i.get("code"), i.get("name")) if x)) or "？"
+            for i in listed[:6])
+        more = f" 等 {len(listed)} 檔" if len(listed) > 6 else ""
+        parts.append(f'<span class="chip fresh stale"><b>新 ETF 未登錄</b>　🔴 已掛牌 '
+                     f'{len(listed)} 檔（{names}{more}）</span>')
+    if offering:
+        n_r = sum(1 for i in offering if i.get("stage") == "raising")
+        n_a = sum(1 for i in offering if i.get("stage") == "approved")
+        n_u = len(offering) - n_r - n_a
+        bits = "・".join(b for b in (f"募集中 {n_r}" if n_r else "",
+                                     f"已核准 {n_a}" if n_a else "",
+                                     f"待查 {n_u}" if n_u else "") if b)
+        parts.append(f'<span class="chip fresh warn"><b>新 ETF 待登錄</b>　⚠ {len(offering)} 檔'
+                     f'（{bits}・週一募集週掃自動補）</span>')
+    return " ".join(parts)
 
 
 def _yt_watch_chip(today=None) -> str:
@@ -1979,6 +1997,7 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 .chip b{font-weight:700} .chip.hot{background:rgba(47,111,208,.12);color:var(--accd)}
 .chip.dim{color:var(--mut)}
 .chip.stale{border-color:#c62828;background:rgba(198,40,40,.08);color:#c62828;font-weight:700}
+.chip.warn{border-color:#b26a00;background:rgba(224,146,0,.10);color:#a35b00;font-weight:700}
 .st .chip.fresh{font-size:11.5px;padding:2px 10px;margin-left:4px;font-weight:400;vertical-align:middle}
 .st .chip.fresh b{font-weight:600}
 .stale-note{color:#c62828;font-weight:700}
