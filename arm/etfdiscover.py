@@ -263,19 +263,46 @@ _STATE_TEXT = re.compile(r"審查|審核|申請中|處理中|補件|退件")
 _HAS_DATE = re.compile(r"\d{2,4}\s*[./年-]\s*\d{1,2}")     # 115.9.14／2026-09-14／115年9月
 
 
-def stage_of(rec: dict) -> str:
-    """募集階段：raising（募集期間已定）／approved（核淮日期已下）／applied（申請中）。
+_ROC = re.compile(r"(\d{2,3})\s*[.年/-]\s*(\d{1,2})\s*[.月/-]\s*(\d{1,2})")
+_ISO = re.compile(r"(20\d{2})\s*[.年/-]\s*(\d{1,2})\s*[.月/-]\s*(\d{1,2})")
 
-    **申請中 ≠ 已核准**——沒有這層分辨，會把還在送件的檔當成「已核准待募」登錄上板。
-    **且「核淮日期欄非空」≠ 已核准**（2026-08-10 CI 第二輪實測）：該欄會填狀態字，
-    `115.9.14申報生效` 才是真核准，`審查中` 是還沒過——只看非空會把聯博兩檔與**本家
-    復華台美策略**全標成已核准。故一律要求「欄位含日期樣式、且不含審查/申請中等狀態字」。"""
+
+def parse_tw_date(s: str) -> date | None:
+    """民國（115.9.14）／西元（2026-09-14）皆可；解析不出回 None。"""
+    m = _ISO.search(s or "")
+    if m:
+        y, mo, d = (int(x) for x in m.groups())
+    else:
+        m = _ROC.search(s or "")
+        if not m:
+            return None
+        y, mo, d = (int(x) for x in m.groups())
+        y += 1911
+    try:
+        return date(y, mo, d)
+    except ValueError:
+        return None
+
+
+def stage_of(rec: dict, today: date | None = None) -> str:
+    """募集階段：raising（募集期間已定）／approved（已申報生效）／applied（尚未生效）。
+
+    三層判讀，每一層都是實測踩出來的：
+    ① **申請中 ≠ 已核准**——只有申請日、沒有核淮日期＝還在送件（08-10 實例：中信台灣聚焦成長）；
+    ② **「核淮日期欄非空」≠ 已核准**（CI 第二輪）：該欄會填**狀態字**，`審查中` 是還沒過——
+       只看非空會把聯博兩檔與本家復華台美策略全標成已核准；
+    ③ **「有日期」也 ≠ 已核准**（CI 第三輪）：`申報生效` 走的是「屆滿 N 營業日自動生效」制，
+       **該欄常填未來日期＝預計生效日**（08-10 實例：東方匯理 115.9.14、兆豐 115.9.8 都在
+       一個月後）。日期未到就還沒生效，寫「已核准」是假的——故未到期一律歸 applied。"""
+    t = today or clock.today_tw()
     period = (rec.get("period") or "").strip()
     approve = (rec.get("approve") or "").strip()
     if period and _HAS_DATE.search(period) and not _STATE_TEXT.search(period):
         return "raising"
-    if approve and _HAS_DATE.search(approve) and not _STATE_TEXT.search(approve):
-        return "approved"
+    if approve and not _STATE_TEXT.search(approve):
+        d = parse_tw_date(approve)
+        if d and d <= t:
+            return "approved"
     return "applied"
 
 
