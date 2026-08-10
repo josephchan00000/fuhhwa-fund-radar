@@ -186,7 +186,11 @@ def known_names() -> set[str]:
 # JSON 字串都吃得到，**不解析表格結構**（djhtm/react 版式都會漂，只認名稱字樣不會）。
 # 允許數字／英文起頭（2026-08-10 CI 首輪修正）：原本限定 CJK 起頭，
 # 「10年期AAA至A級美元公司債券ETF」的「10」被切掉、名稱殘缺成「年期AAA至…」而對不上任何清單。
-_ETF_NAME = re.compile(r"[一-鿿0-9A-Za-z]{2,45}ETF(?:基金)?")
+# 年期區間的連字號／波浪號也要收（同輪第二次修：「10-35年期…」仍被切成「35年期…」）——
+# 債券 ETF 名稱常見 `10-35年期`／`1～3年`，切一半就查不出是哪一檔。
+# **但只在「數字之間」放行**：無條件收連字號會把前面無關的文字一起吞進來
+# （實測「前後無關文字-中信10-35年期…」整串被當成名稱），那比切斷更糟。
+_ETF_NAME = re.compile(r"(?:[一-鿿0-9A-Za-z]|(?<=\d)[-～~](?=\d)){2,46}ETF(?:基金)?")
 _CJK = re.compile(r"[一-鿿]")
 
 
@@ -206,6 +210,65 @@ def extract_etf_names(html: str) -> list[str]:
     return out
 
 
+# ── 募集表格解析（鉅亨 IPO 頁，2026-08-10 CI 探針一輪收斂）───────────────
+# 探針印出的頁面結構＝純 HTML 表格：
+#   基金名稱｜基金類別｜經理人｜申請日｜核淮日期｜募集期間｜申請額度
+# （「核淮」是頁面本身的錯字，比對時兩種寫法都收）。拿到這些欄位的好處：
+#   ① **階段分得出來**——只有申請日、沒有核淮日期＝還在申請中，不能當「已核准」登錄；
+#   ② 募集期間直接就是我們要的資料，週掃只需再找第二來源核對，不必從零查；
+#   ③ 基金類別是權威的 ETF 判準（名稱字樣只是啟發式）。
+# 解析不到表頭→回 []，呼叫端退回純名稱層（fail-open，不因版式改動而全盤失效）。
+_TR = re.compile(r"<tr[^>]*>(.*?)</tr>", re.S | re.I)
+_TD = re.compile(r"<t[dh][^>]*>(.*?)</t[dh]>", re.S | re.I)
+_TAG = re.compile(r"<[^>]+>")
+_COLS = (("name", ("基金名稱",)), ("cat", ("基金類別", "類別")),
+         ("apply", ("申請日",)), ("approve", ("核淮日期", "核准日期", "核淮日", "核准日")),
+         ("period", ("募集期間",)), ("quota", ("申請額度",)))
+
+
+def _cell(fragment: str) -> str:
+    return re.sub(r"\s+", " ", _TAG.sub("", fragment)).strip()
+
+
+def parse_offering_table(html: str) -> list[dict]:
+    """鉅亨 IPO 頁表格 → [{name, cat, apply, approve, period, quota}]（空欄為 ""）。
+
+    欄位以**表頭文字定位**、不寫死欄序（同 stockmeta 對付兩家交易所鍵名的作法）。"""
+    rows = _TR.findall(html or "")
+    idx: dict[str, int] = {}
+    out: list[dict] = []
+    for row in rows:
+        cells = [_cell(c) for c in _TD.findall(row)]
+        if not cells:
+            continue
+        if not idx:                                     # 還沒定位表頭 → 試這一列
+            for key, words in _COLS:
+                for i, c in enumerate(cells):
+                    if any(w in c for w in words):
+                        idx[key] = i
+                        break
+            if "name" not in idx:
+                idx = {}                                # 不是表頭列，繼續找
+            continue
+        if len(cells) <= idx["name"]:
+            continue
+        rec = {k: (cells[i] if i < len(cells) else "") for k, i in idx.items()}
+        if rec.get("name"):
+            out.append(rec)
+    return out
+
+
+def stage_of(rec: dict) -> str:
+    """募集階段：raising（有募集期間）／approved（有核淮日期）／applied（僅申請中）。
+
+    **申請中 ≠ 已核准**——沒有這層分辨，會把還在送件的檔當成「已核准待募」登錄上板。"""
+    if (rec.get("period") or "").strip():
+        return "raising"
+    if (rec.get("approve") or "").strip():
+        return "approved"
+    return "applied"
+
+
 def offering_name_gaps(raw_names: list[str], seen: dict, knowns: set[str]) -> list[dict]:
     """名稱層缺口：既不匹配已登錄名、也不匹配市場台帳名（已掛牌）者。
     註：同一檔新基金可能同時被代碼層（MoneyDJ）與名稱層（cnyes）各報一筆——
@@ -223,6 +286,24 @@ def offering_name_gaps(raw_names: list[str], seen: dict, knowns: set[str]) -> li
         out.append({"code": None, "name": raw, "first_seen": None,
                     "kind": "offering", "src": "cnyes"})
     return out
+
+
+def attach_offering_meta(gaps: list[dict], table: list[dict]) -> list[dict]:
+    """把募集表格的階段／類別／募集期間掛到對應缺口上（依名稱正規化比對）。
+
+    無表格（版式改了／MoneyDJ 來源）時原樣返回——缺口照報，只是少了輔助欄位。"""
+    if not table:
+        return gaps
+    by_name = {_norm_name(r.get("name") or ""): r for r in table}
+    for g in gaps:
+        rec = by_name.get(_norm_name(g.get("name") or ""))
+        if not rec:
+            continue
+        g["stage"] = stage_of(rec)
+        for k in ("cat", "approve", "period"):
+            if (rec.get(k) or "").strip():
+                g[k] = rec[k].strip()
+    return gaps
 
 
 def known_codes() -> set[str]:

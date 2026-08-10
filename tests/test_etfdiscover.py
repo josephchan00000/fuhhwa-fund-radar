@@ -134,6 +134,11 @@ def test_extract_keeps_leading_digits_and_drops_english_fragments():
     html = '<td>國泰10年期以上AAA至A級美元公司債券ETF基金</td><span>iShares ETF</span><b>AI ETF</b>'
     names = etfdiscover.extract_etf_names(html)
     assert names == ["國泰10年期以上AAA至A級美元公司債券ETF基金"]   # 純英文/泛稱片段不收
+    # 年期區間的連字號／波浪號不可斷（同輪第二次修：曾被切成「35年期…」查不出是哪一檔）
+    assert etfdiscover.extract_etf_names('<td>中信10-35年期AAA至A級美元公司債券ETF基金</td>') \
+        == ["中信10-35年期AAA至A級美元公司債券ETF基金"]
+    assert etfdiscover.extract_etf_names('<td>元大1～3年期美國公債ETF基金</td>') \
+        == ["元大1～3年期美國公債ETF基金"]
 
 
 def test_name_match_handles_exchange_abbreviations():
@@ -167,6 +172,63 @@ def test_known_names_covers_watchlist_and_codeless_upcoming():
     kn = etfdiscover.known_names()
     assert etfdiscover._norm_name("復華台灣科技優息") in kn           # WATCHLIST
     assert etfdiscover._norm_name("大華銀優利美國非投資等級債券ETF") in kn  # 未派碼 hint 條目
+
+
+# ── 募集表格解析（鉅亨 IPO 頁；2026-08-10 CI 探針一輪收斂）──────
+
+# 表頭與前兩列＝CI 探針印回的**真實頁面片段**（含頁面自己的錯字「核淮日期」、空 <time>）；
+# 後兩列為同結構延伸，補齊三種階段的覆蓋。
+_IPO_HTML = (
+    '<thead><tr><th width="28%">基金名稱</th><th width="14%">基金類別</th>'
+    '<th width="10%">經理人</th><th width="12%">申請日</th><th width="12%">核淮日期</th>'
+    '<th width="12%">募集期間</th><th width="12%">申請額度</th></tr></thead>'
+    '<tr><td align="left">中國信託台灣聚焦成長主動式ETF基金</td><td>主動式ETF</td><td></td>'
+    '<td class=""><time></time></td><td class=""><time></time></td>'
+    '<td class=""><time></time></td><td class=""></td></tr>'
+    '<tr><td align="left">摩根收益傘型證券投資信託基金(2檔子基金)</td><td></td><td></td>'
+    '<td></td><td></td><td></td><td></td></tr>'
+    '<tr><td align="left">復華台美策略精準高息股債平衡ETF基金</td><td>ETF</td><td></td>'
+    '<td><time>2026-07-15</time></td><td><time>2026-08-05</time></td>'
+    '<td><time></time></td><td>200億</td></tr>'
+    '<tr><td align="left">玉山未來全球算力ETF基金</td><td>ETF</td><td></td>'
+    '<td><time>2026-05-02</time></td><td><time>2026-06-20</time></td>'
+    '<td><time>2026-08-10~2026-08-14</time></td><td>200億</td></tr>')
+
+
+def test_parse_offering_table_locates_columns_by_header():
+    """欄位以表頭文字定位、不寫死欄序；頁面錯字「核淮日期」也要認得。"""
+    rows = etfdiscover.parse_offering_table(_IPO_HTML)
+    assert len(rows) == 4
+    fh = next(r for r in rows if r["name"].startswith("復華"))
+    assert fh["cat"] == "ETF" and fh["apply"] == "2026-07-15" and fh["approve"] == "2026-08-05"
+    assert fh["period"] == "" and fh["quota"] == "200億"
+    ys = next(r for r in rows if r["name"].startswith("玉山"))
+    assert ys["period"] == "2026-08-10~2026-08-14"
+
+
+def test_stage_distinguishes_applied_from_approved():
+    """**申請中 ≠ 已核准**——沒有這層分辨會把還在送件的檔當成「已核准待募」登錄上板
+    （2026-08-10 實例：中信台灣聚焦成長只有申請、無核淮日期）。"""
+    rows = {r["name"][:2]: r for r in etfdiscover.parse_offering_table(_IPO_HTML)}
+    assert etfdiscover.stage_of(rows["中國"]) == "applied"
+    assert etfdiscover.stage_of(rows["復華"]) == "approved"
+    assert etfdiscover.stage_of(rows["玉山"]) == "raising"
+
+
+def test_attach_offering_meta_enriches_gaps_and_is_optional():
+    gaps = [{"code": None, "name": "復華台美策略精準高息股債平衡ETF基金", "kind": "offering"},
+            {"code": None, "name": "查無此檔ETF基金", "kind": "offering"}]
+    out = etfdiscover.attach_offering_meta(list(gaps),
+                                           etfdiscover.parse_offering_table(_IPO_HTML))
+    assert out[0]["stage"] == "approved" and out[0]["approve"] == "2026-08-05"
+    assert "stage" not in out[1]                      # 表格對不到就不硬掛
+    # 無表格（版式改了／MoneyDJ 來源）→ 原樣返回，缺口照報
+    assert etfdiscover.attach_offering_meta(list(gaps), []) == gaps
+
+
+def test_parse_offering_table_failopen_on_unknown_layout():
+    assert etfdiscover.parse_offering_table("<div>版式全改了</div>") == []
+    assert etfdiscover.parse_offering_table("") == []
 
 
 # ── 落檔防呆與儀表板紅章 ─────────────────────────────────────
