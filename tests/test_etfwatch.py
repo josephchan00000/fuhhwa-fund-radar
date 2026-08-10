@@ -547,9 +547,12 @@ def test_upcoming_view_renders_cards_with_links():
     assert "募集中 08/10–08/14" in out                       # 玉山 8/10 起正在募集
     assert "掛牌 08/21" in out and "掛牌 08/26" in out        # 大華銀 KOSPI50／統一雙檔
     assert "預定掛牌 09/02" in out                            # 募集卡帶掛牌日副標
-    # 核准組＝精簡列：未派碼檔顯示「代號未定」、不佔卡片（uprow 非 upcard）
-    assert out.count('class="uprow"') == 3
-    assert out.count("代號未定") == 2                         # 大華銀非投等債／安聯加密科技
+    # 核准組＝精簡列：未派碼檔顯示「代號未定」、不佔卡片（uprow 非 upcard）。
+    # 列數／未派碼數由資料推導——條目會隨每輪發現增補，釘死數字只會每次都紅。
+    approved = up["approved"]
+    assert len(approved) >= 3
+    assert out.count('class="uprow"') == len(approved)
+    assert out.count("代號未定") == sum(1 for x in approved if not x.get("code"))
     assert "大華銀優利美國非投資等級債券ETF" in out
     assert "加密科技與金融創新" in out
     assert "活動介紹" in out and "ezmoney.com.tw/events/2026GFTA" in out
