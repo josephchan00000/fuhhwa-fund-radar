@@ -1,5 +1,6 @@
 """ETF 數據追蹤（arm/etfwatch＋儀表板第四分頁）測試——離線、吃 repo 內種子落檔。"""
 import json
+import re
 from datetime import date, timedelta
 
 from arm import etfwatch, fund_dashboard
@@ -429,26 +430,83 @@ def test_div_cell_shows_estimate_with_asterisk():
 
 
 # ── 即將登場的新 ETF（募集／掛牌前瞻）─────────────────────────
+# bucket 邏輯測試一律用合成 fixture、不釘真實條目——正式資料會隨掛牌／清理 churn，
+# 釘真實條目的舊測試每次資料更新都要跟著改（2026-08-10 改版時的教訓）。
 
-def test_upcoming_buckets_and_self_expiry():
-    # 2026-07-24：00410A 8/3 掛牌在窗、統一雙檔＋復華 00409A 募集在窗
-    up = etfwatch.upcoming(date(2026, 7, 24))
-    assert [x["code"] for x in up["listing"]] == ["00410A"]
-    assert set(x["code"] for x in up["raising"]) == {"00411A", "00987D", "00409A"}
-    # 掛牌後不再出現在「即將掛牌」；募集截止後（含未定截止以起日+fallback 估算）自動移除。
-    # 2026-08-06 補上 00409A 掛牌日（9/2）後：8/20 募集已截止（8/14）→ 移到「即將掛牌」。
-    up2 = etfwatch.upcoming(date(2026, 8, 20))
-    assert [x["code"] for x in up2["listing"]] == ["00409A"]
-    assert up2["raising"] == []
-    up3 = etfwatch.upcoming(date(2026, 10, 1))
-    assert up3["listing"] == [] and up3["raising"] == []
+_UP_FIX = [
+    {"code": "00901X", "name": "測試募集中", "issuer": "測A", "raise_start": "2026-08-10",
+     "raise_end": "2026-08-14", "list_date": "2026-09-02", "freq": "季配", "theme": "t",
+     "url": "http://u"},
+    {"code": "00902X", "name": "測試即將募集", "issuer": "測B", "raise_start": "2026-08-17",
+     "raise_end": "2026-08-20", "freq": "—", "theme": "t", "url": "http://u"},
+    {"code": "00903X", "name": "測試待掛牌", "issuer": "測C", "raise_start": "2026-08-03",
+     "raise_end": "2026-08-07", "freq": "—", "theme": "t", "url": "http://u"},  # 無掛牌日
+    {"code": "00904X", "name": "測試已公告掛牌", "issuer": "測D", "raise_start": "2026-08-03",
+     "raise_end": "2026-08-07", "list_date": "2026-08-26", "freq": "年配", "theme": "t",
+     "url": "http://u"},
+    {"code": "00905X", "name": "測試核准待定", "issuer": "測E", "raise_hint": "預計 9 月推出",
+     "asof": "2026-08-10", "freq": "—", "theme": "t", "url": "http://u"},
+]
+
+
+def test_upcoming_five_states_and_raise_priority(monkeypatch):
+    """五狀態歸類：now／soon／hint 進募集組、list／pend 進掛牌組；
+    募集進行中的檔即使已知掛牌日也歸募集組（掛牌日當副標），不重複佔兩卡。"""
+    monkeypatch.setattr(etfwatch, "UPCOMING", _UP_FIX)
+    up = etfwatch.upcoming(date(2026, 8, 10))
+    assert {x["code"]: x["stat"] for x in up["raising"]} == \
+        {"00901X": "now", "00902X": "soon", "00905X": "hint"}
+    assert {x["code"]: x["stat"] for x in up["listing"]} == \
+        {"00903X": "pend", "00904X": "list"}
+    # 募集組排序：募集中 → 即將募集 → 核准待定；掛牌組依日期
+    assert [x["code"] for x in up["raising"]] == ["00901X", "00902X", "00905X"]
+
+
+def test_upcoming_pending_no_longer_vanishes(monkeypatch):
+    """2026-08-10 使用者抓包的主因：募集結束、掛牌日未公告的檔以前會直接消失。
+    現在以「募集結束・待掛牌」續留（最長 45 天；守門測試 30 天就先紅逼補掛牌日）。"""
+    monkeypatch.setattr(etfwatch, "UPCOMING", _UP_FIX)
+    up = etfwatch.upcoming(date(2026, 8, 10))
+    assert any(x["code"] == "00903X" and x["stat"] == "pend" for x in up["listing"])
+    up2 = etfwatch.upcoming(date(2026, 9, 25))          # 截止 45 天後自動下架
+    assert all(x["code"] != "00903X" for x in up2["listing"])
+
+
+def test_upcoming_expiry_and_windows(monkeypatch):
+    monkeypatch.setattr(etfwatch, "UPCOMING", _UP_FIX)
+    # 掛牌日已過 → 前瞻卡退場（升級機制接手）
+    up = etfwatch.upcoming(date(2026, 9, 3))
+    codes = {x["code"] for x in up["listing"]} | {x["code"] for x in up["raising"]}
+    assert "00901X" not in codes
+    # 「已核准・時程未定」登錄（asof）逾 45 天沒補日期 → 自動下架
+    up2 = etfwatch.upcoming(date(2026, 9, 26))
+    assert all(x["code"] != "00905X"
+               for x in (up2["raising"] + up2["listing"]))
+    # 已公告掛牌日視窗放寬到 45 天（舊版 14 天：00409A 的 9/2 要等到 8/19 才看得到）
+    monkeypatch.setattr(etfwatch, "UPCOMING", [
+        {"code": "00906X", "name": "n", "issuer": "i", "raise_start": "2026-08-03",
+         "raise_end": "2026-08-07", "list_date": "2026-09-20", "theme": "t", "url": "http://u"}])
+    assert [x["stat"] for x in etfwatch.upcoming(date(2026, 8, 10))["listing"]] == ["list"]
 
 
 def test_upcoming_entries_have_required_fields():
     for it in etfwatch.UPCOMING:
         assert it.get("code") and it.get("name") and it.get("issuer")
+        assert re.match(r"^\d{5,6}[A-Z]?$", it["code"])      # 00411A／009827 兩型都收
         assert it.get("url", "").startswith("http")          # 活動介紹連結必備
-        assert it.get("list_date") or it.get("raise_start")  # 至少一種日期
+        # 三種登錄形態擇一：已知掛牌日／已知募集期／已核准待定（hint＋查證日）
+        assert it.get("list_date") or it.get("raise_start") or \
+            (it.get("raise_hint") and it.get("asof"))
+        for k in ("list_date", "raise_start", "raise_end", "asof"):
+            if it.get(k):
+                date.fromisoformat(it[k])                    # 日期一律 ISO、可解析
+
+
+def test_upcoming_seminar_slide_completeness():
+    """2026-08-10 使用者研討會「即將上市ETF」投影片名單須全數在列——資料補齊的直接驗證。
+    （條目掛牌後可清理，屆時把已下市場的代碼從此清單移除即可。）"""
+    codes = {it["code"] for it in etfwatch.UPCOMING}
+    assert {"009829", "00411A", "00987D", "009827", "00409A", "009828", "00412A"} <= codes
 
 
 def test_dashboard_shows_upcoming_etf_section():
@@ -462,14 +520,19 @@ def test_dashboard_shows_upcoming_etf_section():
 
 
 def test_upcoming_view_renders_cards_with_links():
-    # 固定日期（與 render 的 today 解耦，避免種子過期後測試失敗）
-    up = etfwatch.upcoming(date(2026, 7, 24))
+    # 釘在 2026-08-10（研討會名單日；真實條目為既成事實、日期固定即恆定）：
+    # 七檔全上版——募集中玉山、本家 00409A、待掛牌統一雙檔、KOSPI50、PCB、安聯核准待定。
+    # 若日後清理 UPCOMING 舊條目，同步更新此測試的斷言即可。
+    up = etfwatch.upcoming(date(2026, 8, 10))
     out = fund_dashboard._upcoming_etf_view(up)
-    assert "即將掛牌" in out and "即將募集" in out
-    assert "00410A" in out and "00411A" in out and "00409A" in out
+    assert "募集中・即將募集" in out and "即將掛牌・待掛牌" in out
+    assert "009827" in out and "00409A" in out and "00412A" in out
+    assert "募集中 08/10–08/14" in out                       # 玉山 8/10 起正在募集
+    assert "掛牌 08/21" in out and "掛牌 08/26" in out        # 大華銀 KOSPI50／統一雙檔
+    assert "預定掛牌 09/02" in out                            # 募集卡帶掛牌日副標
+    assert "已核准募集" in out                                # 安聯 00412A 時程未定章
     assert "活動介紹" in out and "ezmoney.com.tw/events/2026GFTA" in out
-    assert '<span class="fh">復華</span>' in out            # 本家以品牌色標示
-    assert "掛牌 08/03" in out and "募集 08/05–08/07" in out  # 狀態日期呈現
+    assert '<span class="fh">復華</span>' in out             # 本家以品牌色標示
 
 
 def test_upcoming_view_empty_shows_hint():
@@ -514,20 +577,53 @@ def test_watch_tuples_respects_kind_cat_and_dedupes(monkeypatch):
     assert "00999D" in etfwatch.bond_codes()           # 債券檔吃得到髒序列放寬門檻
 
 
+def test_watch_tuples_skips_track_false(monkeypatch):
+    """track: False（海外被動指數展示檔）掛牌後不自動進追蹤表——被動組是策展的
+    6 檔台股大表，自動塞韓股／跨國主題檔會污染它（2026-08-10 設計決定）。"""
+    monkeypatch.setattr(etfwatch, "UPCOMING", [
+        {"code": "00907X", "name": "測試海外指數", "issuer": "測", "track": False,
+         "raise_start": "2026-08-03", "raise_end": "2026-08-07",
+         "list_date": "2026-08-08", "theme": "t", "url": "http://u"}])
+    assert all(c != "00907X" for c, *_ in etfwatch.watch_tuples(date(2026, 8, 10)))
+
+
 def test_upcoming_graduation_guard():
     """掛牌逾 14 天仍未轉正 WATCHLIST → 紅。升級只是 stub 兜底（成立日暫用掛牌日、
     無 SEED 底稿）；清理 UPCOMING 舊條目時未轉正的檔會掉出追蹤——這條測試逼在
-    下一輪收斂時把它正式移入 WATCHLIST（查證成立日／頻率後補 SEED_PERF）。"""
+    下一輪收斂時把它正式移入 WATCHLIST（查證成立日／頻率後補 SEED_PERF）。
+    track: False 的展示檔不升級、不適用本守門。"""
     from datetime import timedelta
     from arm import clock
     have = {c for c, *_ in etfwatch.WATCHLIST}
     overdue = [it["code"] for it in etfwatch.UPCOMING
-               if it.get("list_date") and it["code"] not in have
+               if it.get("track") is not False
+               and it.get("list_date") and it["code"] not in have
                and date.fromisoformat(it["list_date"])
                <= clock.today_tw() - timedelta(days=14)]
     assert not overdue, (
         f"{overdue} 掛牌已逾 14 天仍未轉正 WATCHLIST——請 WebSearch 查證成立日／配息頻率後"
         f"移入 WATCHLIST 並補 SEED_PERF（參考 2026-08-05 00410A 轉正做法）")
+
+
+def test_upcoming_stale_entries_guard():
+    """資料鮮度守門（2026-08-10 建，逼補模式同持股簡介）：
+    ① 募集結束逾 30 天仍無掛牌日 → 紅（WebSearch 查掛牌日補上，或確認取消後除名）；
+    ② 「已核准・時程未定」登錄逾 45 天沒補日期 → 紅（重查募集時程、更新 asof 或補日期）；
+    ③ 掛牌已逾 30 天的條目 → 紅（清理：追蹤檔應已轉正、展示檔直接除名）。
+    目的：讓「即將登場」不再靜默過時——過期條目自動下架只是遮住問題，守門測試才逼收斂。"""
+    from arm import clock
+    t = clock.today_tw()
+    stale = []
+    for it in etfwatch.UPCOMING:
+        ld, re_ = it.get("list_date"), it.get("raise_end") or it.get("raise_start")
+        if ld and date.fromisoformat(ld) <= t - timedelta(days=30):
+            stale.append((it["code"], "掛牌已逾 30 天，請清理條目"))
+        elif not ld and re_ and date.fromisoformat(re_) <= t - timedelta(days=30):
+            stale.append((it["code"], "募集結束逾 30 天仍無掛牌日——WebSearch 查掛牌日或除名"))
+        elif not ld and not re_ and it.get("asof") and \
+                date.fromisoformat(it["asof"]) <= t - timedelta(days=45):
+            stale.append((it["code"], "核准待定逾 45 天——重查募集時程"))
+    assert not stale, f"UPCOMING 條目過期未維護：{stale}"
 
 
 def test_load_sorts_items_by_code(tmp_path, monkeypatch):
