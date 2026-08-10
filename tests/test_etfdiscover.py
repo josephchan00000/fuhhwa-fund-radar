@@ -215,6 +215,19 @@ def test_stage_distinguishes_applied_from_approved():
     assert etfdiscover.stage_of(rows["玉山"]) == "raising"
 
 
+def test_stage_rejects_status_text_in_date_column():
+    """核淮日期欄會填狀態字而非日期（2026-08-10 CI 第二輪實測值）——只看非空會把
+    「審查中」的檔（含本家復華台美策略、聯博兩檔）全標成已核准。"""
+    assert etfdiscover.stage_of({"approve": "115.9.14申報生效"}) == "approved"
+    assert etfdiscover.stage_of({"approve": "2026-09-14"}) == "approved"
+    assert etfdiscover.stage_of({"approve": "審查中"}) == "applied"
+    assert etfdiscover.stage_of({"approve": "審核中", "period": ""}) == "applied"
+    assert etfdiscover.stage_of({"approve": "-"}) == "applied"
+    # 募集期間欄同樣要求日期樣式
+    assert etfdiscover.stage_of({"period": "2026-08-10~2026-08-14"}) == "raising"
+    assert etfdiscover.stage_of({"period": "尚未確定", "approve": "115.8.7申報生效"}) == "approved"
+
+
 def test_attach_offering_meta_enriches_gaps_and_is_optional():
     gaps = [{"code": None, "name": "復華台美策略精準高息股債平衡ETF基金", "kind": "offering"},
             {"code": None, "name": "查無此檔ETF基金", "kind": "offering"}]
