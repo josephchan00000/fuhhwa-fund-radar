@@ -107,52 +107,93 @@ ANNOUNCED_EST: dict[str, dict] = {
     "00992A": {"amount": 0.47,  "ex_date": "2026-07-16"},  # 首配（群益投信/Newtalk）
 }
 
-# 「即將掛牌／即將募集」的新 ETF（前瞻資訊，手動維護——同 ANNOUNCED_EST 慣例）。
+# 「即將登場」的新 ETF（前瞻資訊，手動維護——同 ANNOUNCED_EST 慣例）。
 # 來源：各投信官方募集頁／公開資訊觀測站／經濟日報・工商時報・Newtalk 等，經 WebSearch 逐檔查證。
-# 兩種呈現、依日期自動歸類與過期：
-#   · 「即將掛牌」＝已募集完、即將上市：填 list_date（掛牌日）；掛牌日在今日起 UPCOMING_LIST_DAYS 內顯示。
-#   · 「即將募集／募集中」＝募集期即將開始或進行中：填 raise_start／raise_end；
-#     募集期與「今日 ~ 今日+UPCOMING_RAISE_DAYS」重疊者顯示（raise_end≥今日 且 raise_start≤窗末；
-#     raise_end 為 None＝募集尚未定截止／仍進行中）。同時符合兩者時，優先歸「即將掛牌」。
+# 五種狀態、依日期自動歸類與過期（2026-08-10 大改版：使用者以研討會「即將上市ETF」投影片抓包
+# 「資料不齊全」——舊版募集結束沒掛牌日的檔會直接消失、已公告掛牌日超過 14 天也不顯示）：
+#   · 「募集中」(now)／「即將募集」(soon)＝填 raise_start／raise_end；截止前都顯示，
+#     起日在今日起 UPCOMING_RAISE_DAYS 內即入窗（raise_end 未填以起日＋FALLBACK 估算）。
+#     募集期間優先於掛牌呈現——已知掛牌日以「預定掛牌」副標帶出，不重複佔兩張卡。
+#   · 「已核准・時程未定」(hint)＝僅獲准募集、日期未公告：填 raise_hint（顯示文字）＋asof（查證日）；
+#     asof 後 UPCOMING_HINT_DAYS 內顯示（日期公告後改填 raise_start/list_date 即轉正常狀態）。
+#   · 「即將掛牌」(list)＝已公告掛牌日：掛牌日在今日起 UPCOMING_LIST_DAYS 內顯示。
+#   · 「募集結束・待掛牌」(pend)＝募集截止、掛牌日未公告：截止後 UPCOMING_PEND_DAYS 內顯示
+#     ——這是舊版的結構洞（檔案直接消失），現在誠實顯示待掛牌狀態。
 # url＝該檔「活動介紹／募集公告」頁（投信官方活動頁優先，其次主流媒體介紹）——供使用者點開了解。
-# 過期自動消失（掛牌日已過、或募集已結束且無掛牌日在窗內）。投信新公告時於此清單增修一筆即可。
+# 過期自動消失；掛牌日一過由升級機制接手（見下）。投信新公告時於此清單增修一筆即可；
+# 守門測試 test_upcoming_stale_entries_guard 會逼補（募集結束逾30天無掛牌日／核准待定逾45天／
+# 掛牌逾30天未清理 → 紅）。
 # **掛牌日一到自動升級進追蹤**（2026-08-05 使用者需求，機制見 watch_tuples()）：list_date ≤ 今日且
 # 尚未列入 WATCHLIST 者，自動以 stub 進「績效表＋持股詳情＆異動」（成立日暫用掛牌日、數據待 CI 抓）。
-# 選填欄 kind／cat 供升級用（不填＝active／主動式；債券型務必填 cat 含「債」——髒序列門檻靠它放寬）。
-UPCOMING_LIST_DAYS = 14      # 「即將掛牌」視窗：掛牌日在今日起 14 天內
-UPCOMING_RAISE_DAYS = 35     # 「即將募集」視窗：募集開始在今日起 35 天內（約一個月＋緩衝）
+# 選填欄 kind／cat 供升級用（不填＝active／主動式；債券型務必填 cat 含「債」——髒序列門檻靠它放寬；
+# 上櫃檔（櫃買掛牌）kind 填 other——同 00998A/00986D 慣例，etfinfo 未收錄、報酬走 Yahoo .TWO）。
+# **track: False＝僅前瞻展示、掛牌後不自動進追蹤表**（2026-08-10 新增）：海外被動指數新檔
+# （韓股／跨國主題）掛牌後自動塞進「被動」組會污染策展的 6 檔台股大表——只在本區亮相、到期退場。
+UPCOMING_LIST_DAYS = 45      # 「即將掛牌」視窗：掛牌日在今日起 45 天內（14→45，掛牌日一公告就該看得到）
+UPCOMING_RAISE_DAYS = 45     # 「即將募集」視窗：募集開始在今日起 45 天內
 UPCOMING_RAISE_FALLBACK = 14  # raise_end 未填時，以「募集起日＋此天數」估算截止，讓未定截止者仍自動過期
+UPCOMING_PEND_DAYS = 45      # 「募集結束・待掛牌」視窗：募集截止後最長顯示 45 天（守門測試 30 天就先紅）
+UPCOMING_HINT_DAYS = 45      # 「已核准・時程未定」視窗：asof 查證日後最長顯示 45 天
 UPCOMING: list[dict] = [
-    # 即將掛牌（募集已於 7/13–7/17 完成，8/3 上市）——工商時報 2026/07/09 報導。
-    {"code": "00410A", "name": "主動永豐科技趨勢", "issuer": "永豐投信",
-     "list_date": "2026-08-03", "raise_start": "2026-07-13", "raise_end": "2026-07-17",
-     "freq": "半年配", "theme": "台股 AI 供應鏈主動選股（W.I.N 策略）",
-     "url": "https://www.ctee.com.tw/news/20260709701460-430403"},
-    # 即將募集——統一投信股債雙主動式 ETF，8/5–8/7 同步開募（Newtalk 2026/07/17）。
+    # ── 2026-08-10 全面補齊：使用者以研討會「即將上市ETF」投影片抓包缺 009829／009827／009828／
+    #    00412A 四檔（皆 WebSearch 兩來源以上查證）；統一雙檔補掛牌日、00987D 配息頻率修正。
+    #    已轉正的 00410A 條目同輪清理移除。──
+    # 募集完（8/3–8/7）・8/21 掛牌——韓股被動指數檔，僅前瞻展示（track False）。
+    {"code": "009829", "name": "大華銀韓國KOSPI50", "issuer": "大華銀投信", "track": False,
+     "raise_start": "2026-08-03", "raise_end": "2026-08-07", "list_date": "2026-08-21",
+     "freq": "半年配", "theme": "韓版0050：KOSPI 50 指數 50 大旗艦企業（三星、SK 海力士…），每年 1/7 月除息",
+     "url": "https://money.udn.com/money/story/5636/9632808"},
+    # 募集完（8/5–8/7）・8/26 櫃買掛牌——統一股債雙主動傘型（Business Insider／工商時報）。
+    # 上櫃 → 掛牌自動升級進「其他」組（kind=other，同 00998A/00986D 慣例）。
     {"code": "00411A", "name": "主動統一前沿科技", "issuer": "統一投信",
-     "raise_start": "2026-08-05", "raise_end": "2026-08-07",
-     "freq": "—", "theme": "全球前沿科技：AI 基建／人形機器人／自駕／太空／量子運算",
+     "kind": "other", "cat": "主動式股票",
+     "raise_start": "2026-08-05", "raise_end": "2026-08-07", "list_date": "2026-08-26",
+     "freq": "年配", "theme": "全球前沿科技：AI 基建／人形機器人／自駕／太空／量子運算",
      "url": "https://www.ezmoney.com.tw/events/2026GFTA/index.html"},
     {"code": "00987D", "name": "主動統一美國公債量化增益", "issuer": "統一投信",
-     "raise_start": "2026-08-05", "raise_end": "2026-08-07",
-     "freq": "月配", "theme": "美國公債量化增益（與 00411A 股債雙主動搭配）",
-     "cat": "主動式債券",         # 債券型：升級時髒序列門檻須放寬（bond_codes 依 cat 含「債」判定）
+     "kind": "other", "cat": "主動式債券",  # 債券型：升級時髒序列門檻須放寬（bond_codes 依 cat 含「債」判定）
+     "raise_start": "2026-08-05", "raise_end": "2026-08-07", "list_date": "2026-08-26",
+     "freq": "季配",   # 2026-08-10 修正：原誤植「月配」；統一官方＝季配、保管第一銀行（多來源一致）
+     "theme": "美國公債量化增益（與 00411A 股債雙主動搭配），量化多空策略＋三段式停損",
      "url": "https://newtalk.tw/news/view/2026-07-17/1047704"},
-    # 本家復華全球未來50主動式ETF——8/12~8/14 募集、預計 9/2 掛牌（2026-08-06 查證：
-    # 經濟日報／TechNews 兩來源一致；官方 YouTube 已上宣傳片）。list_date 到日自動升級追蹤；
-    # 若掛牌日異動，改此欄即可（graduation guard 會逼 14 天內轉正）。
+    # 募集中（8/10–8/14）・9/2 掛牌——全台首檔算力被動指數檔，僅前瞻展示（track False）。
+    {"code": "009827", "name": "玉山未來全球算力", "issuer": "玉山投信", "track": False,
+     "raise_start": "2026-08-10", "raise_end": "2026-08-14", "list_date": "2026-09-02",
+     "freq": "季配", "theme": "NYSE TIP 未來全球算力及太空基建指數 50 強：AI 晶片／雲端／電力基建／太空衛星",
+     "url": "https://www.esunam.com/act/etf_009827/"},
+    # 本家復華全球未來50主動式ETF——8/12~8/14 募集、9/2 掛牌（2026-08-10 複核：經濟日報／Yahoo
+    # 兩來源一致、無異動）。list_date 到日自動升級追蹤；若掛牌日異動，改此欄即可。
     {"code": "00409A", "name": "主動復華全球未來50", "issuer": "復華投信",
      "raise_start": "2026-08-12", "raise_end": "2026-08-14", "list_date": "2026-09-02",
      "freq": "—", "theme": "全球 AI 浪潮下具競爭優勢的產業龍頭與長線成長股",
      "url": "https://www.fhtrust.com.tw/services/news_list/content/news/b999d359-05a2-4e3d-9a0a-d35341e4ec3b"},
+    # 即將募集（8/17–8/20）——國內首檔 PCB 供應鏈被動指數檔（台56%/日35%/韓9%），僅前瞻展示
+    # （track False）。掛牌日與配息頻率尚未公告（守門測試會在募集結束 30 天內逼補掛牌日）。
+    {"code": "009828", "name": "中信台日韓PCB", "issuer": "中國信託投信", "track": False,
+     "raise_start": "2026-08-17", "raise_end": "2026-08-20",
+     "freq": "—", "theme": "NYSE TIP 台日韓 PCB 指數 30 檔：核心 PCB 製造／上中游材料（台光電、欣興、揖斐電…）",
+     "url": "https://www.ctee.com.tw/news/20260805701073-430403"},
+    # 已核准・募集時程未定——安聯第 4 檔主動式（8/3 獲准，預計 Q3 底推出；日期公告後改填
+    # raise_start／list_date 即轉正常狀態）。
+    {"code": "00412A", "name": "主動安聯亞洲半導體", "issuer": "安聯投信",
+     "raise_hint": "已核准，預計第3季底（約9月）募集", "asof": "2026-08-10",
+     "freq": "—", "theme": "亞洲半導體供應鏈：晶圓代工／IC 設計／先進封裝／設備材料",
+     "url": "https://money.udn.com/money/story/5618/9672299"},
 ]
 
 
 def upcoming(today: date | None = None) -> dict:
-    """即將掛牌／即將募集的新 ETF（前瞻，手動維護 UPCOMING）。
+    """即將登場的新 ETF（前瞻，手動維護 UPCOMING）——五狀態自動歸類與過期。
 
-    回 {"listing": [...], "raising": [...]}：各依日期排序、過期自動濾除，
-    每筆附 when（掛牌日或募集起日，供顯示）。無資料回兩個空清單（儀表板顯示「暫無」、不壞版）。"""
+    回 {"listing": [...], "raising": [...]}，每筆附 stat（狀態）＋when（排序鍵）：
+      · raising＝「募集中・即將募集」：stat=now（募集期進行中）／soon（起日在未來
+        UPCOMING_RAISE_DAYS 內）／hint（已核准、時程未定：raise_hint＋asof，登錄後
+        UPCOMING_HINT_DAYS 內顯示）。募集期間優先於掛牌呈現（掛牌日以副標帶出）。
+      · listing＝「即將掛牌・待掛牌」：stat=list（掛牌日在未來 UPCOMING_LIST_DAYS 內）／
+        pend（募集截止、掛牌日未公告——截止後 UPCOMING_PEND_DAYS 內顯示。2026-08-10 前
+        這種檔會直接消失，使用者以研討會名單抓包「資料不齊全」，勿再改回）。
+    掛牌日已過＝退場（升級機制 watch_tuples 接手）。無資料回兩個空清單（儀表板顯示
+    「暫無」、不壞版）。"""
     t = today or clock.today_tw()
 
     def _d(s):
@@ -165,16 +206,30 @@ def upcoming(today: date | None = None) -> dict:
     for it in UPCOMING:
         ld = _d(it.get("list_date"))
         rs, re_ = _d(it.get("raise_start")), _d(it.get("raise_end"))
-        if ld and t <= ld <= t + timedelta(days=UPCOMING_LIST_DAYS):
-            listing.append({**it, "when": ld.isoformat()})
-            continue
+        if ld and ld <= t:
+            continue                                   # 已掛牌：前瞻卡退場，升級機制接手
         # 未填 raise_end 者以「起日＋fallback」估截止，避免未定截止的募集永不過期
         eff_end = re_ if re_ is not None else (
             rs + timedelta(days=UPCOMING_RAISE_FALLBACK) if rs else None)
-        if rs and rs <= t + timedelta(days=UPCOMING_RAISE_DAYS) and (eff_end is None or eff_end >= t):
-            raising.append({**it, "when": rs.isoformat()})
+        if rs and eff_end and eff_end >= t:            # 募集尚未截止 → 募集組（優先於掛牌組）
+            if rs <= t:
+                raising.append({**it, "stat": "now", "when": rs.isoformat()})
+            elif rs <= t + timedelta(days=UPCOMING_RAISE_DAYS):
+                raising.append({**it, "stat": "soon", "when": rs.isoformat()})
+            continue
+        if rs is None and it.get("raise_hint"):        # 已核准、募集時程未定（asof 後 45 天內顯示）
+            a = _d(it.get("asof"))
+            if a and t <= a + timedelta(days=UPCOMING_HINT_DAYS):
+                raising.append({**it, "stat": "hint", "when": a.isoformat()})
+            continue
+        if ld:                                          # 募集已截止（或純掛牌條目）、已知掛牌日
+            if ld <= t + timedelta(days=UPCOMING_LIST_DAYS):
+                listing.append({**it, "stat": "list", "when": ld.isoformat()})
+        elif eff_end and eff_end >= t - timedelta(days=UPCOMING_PEND_DAYS):
+            listing.append({**it, "stat": "pend", "when": eff_end.isoformat()})
+    _rank = {"now": 0, "soon": 1, "hint": 2}
+    raising.sort(key=lambda x: (_rank.get(x["stat"], 9), x["when"]))
     listing.sort(key=lambda x: x["when"])
-    raising.sort(key=lambda x: x["when"])
     return {"listing": listing, "raising": raising}
 
 
@@ -186,6 +241,8 @@ def watch_tuples(today: date | None = None) -> list[tuple[str, str, str, str, st
     又還沒列入 WATCHLIST 者，以 (code, name, kind, cat, 掛牌日) 升級——當天 CI 就會
     抓它的規模／報酬／持股（抓不到前由 stub 先上代碼與名稱，數據欄顯示 —）。
 
+    track: False 的條目（海外被動指數檔）不升級——僅「即將登場」前瞻展示（2026-08-10 新增）。
+
     仍需人工的兩件事（結構性做不掉，勿誤以為全自動）：
     ① UPCOMING 本身要人工登錄（募集／掛牌公告散在各投信官網，無統一 API）；
     ② 掛牌後要「轉正」進 WATCHLIST（補查證確切成立日／頻率）——否則清理 UPCOMING
@@ -195,6 +252,8 @@ def watch_tuples(today: date | None = None) -> list[tuple[str, str, str, str, st
     have = {c for c, *_ in WATCHLIST}
     out = list(WATCHLIST)
     for it in UPCOMING:
+        if it.get("track") is False:      # 僅前瞻展示的檔（海外被動指數）：掛牌後不進追蹤表
+            continue
         try:
             ld = date.fromisoformat(it.get("list_date") or "")
         except (TypeError, ValueError):
