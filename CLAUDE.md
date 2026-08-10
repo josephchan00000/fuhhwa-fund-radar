@@ -162,13 +162,15 @@
      來源級防呆擋住：單平台全空沿用既有項目、CI 日誌會印「社群 youtube 本次全空、沿用既有 N 則」）。
      補救＝`mcp__github__actions_run_trigger` dispatch daily.yml（ref=main、news_ref 留空）——
      dispatch 用 main 的 workflow 檔、金鑰必在；根治＝排程搬家到新視窗（新分支自最新 main 分岔）。
-   - **⑧ 漏網新 ETF（2026-08-10 新增，「即將登場」資料齊全度的自動防線）**：讀
-     `git show origin/main:data/etf_upcoming_gap.json`，`count` 須為 0。>0 ＝ CI 端發現
-     **市場上已掛牌／募集頁上有、但 `etfwatch` 完全沒登錄**的 ETF（儀表板「網頁更新時間」
-     列同步顯示 🔴「新 ETF 未登錄 N 檔」）——**立即 WebSearch 查證（代號／募集期間／掛牌日／
-     配息頻率，兩來源一致）補進 `arm/etfwatch.UPCOMING` 並重推**（同數字核對 🔴 的分鐘級收斂）；
-     策展上刻意不追蹤者（海外被動指數檔）補條目時填 `track: False`，缺口即消失。
-     機制與三個坑見下方「新 ETF『自動發現』層」專節。
+   - **⑧ 漏網新 ETF（2026-08-10 新增；同日改分級警示——使用者：紅章 13 檔「很躁」）**：讀
+     `git show origin/main:data/etf_upcoming_gap.json`。**分級處置、勿一律當急件**：
+     · `items` 內 `kind=listed`（已掛牌卻沒登錄）＝真漏網，儀表板 🔴 紅章——**每日 SOP
+       立即 WebSearch 查證補進 `data/etf_upcoming.json` 並重推**（分鐘級收斂）；
+     · `items` 內 offering（已核准／募集中待登錄）＝儀表板 ⚠ 琥珀章（只給檔數不列名稱）
+       ——**留給週一「ETF 募集週掃」處理，每日流程不動它**（使用者指定週頻，勿每天燒）；
+     · `pipeline` 欄（申請中、審查未過）＝不警示不上版，僅供週掃盤點——連登錄規則都不收
+       （hint 須已核准），掛警示只會永遠紅。
+     機制與坑見下方「新 ETF『自動發現』層」專節。
    - 註：持股基準為月度值（顯示上月底）——不是資料沒更新。
 
 ## 指令：「ETF 募集週掃」（2026-08-10 建立——使用者：「找到募集的資訊然後主動更新，一週一次」）
@@ -177,7 +179,9 @@
 **全程不跑資料抓取腳本、不動 reports/**、只改 `data/etf_upcoming.json`**：
 
 1. `git fetch origin main` 後讀 **origin/main** 的 `data/etf_upcoming_gap.json`（CI 自動發現的
-   漏網檔，見「新 ETF 自動發現層」專節）與 `data/etf_upcoming.json` 現況；跑
+   漏網檔，見「新 ETF 自動發現層」專節；`items`＝待登錄的已核准／募集中／已掛牌檔＋
+   **`pipeline`＝申請中檔（不警示、僅盤點，本週掃順手看有無新核准）**）與
+   `data/etf_upcoming.json` 現況；跑
    `python3 -m pytest tests/test_etfwatch.py -q` 看 stale guard 有無紅（過期條目）。
 2. **WebSearch 盤點**（容器擋 moneydj/cnyes/chinatimes 原頁，用搜尋摘要即可）：鉅亨 IPO 頁
    （`fund.cnyes.com/IPO/index.htm`，2026-08-10 使用者提供）＋MoneyDJ 新基金頁
@@ -555,9 +559,13 @@ stale guard 都只認得「已登錄」條目，**一檔從沒登錄過的 ETF �
     不比），**未派碼的新檔（代碼層天生抓不到）也逮得住**；已掛牌的既有 ETF 廣告連結由
     「台帳名稱」比對濾掉。同一檔可能被兩層各報一筆（無代碼對不上名稱）——週掃補登後一起
     消失，可接受。附結構探針：CI 日誌印內嵌物件鍵名，日後要補「募集期間」欄位一輪收斂。
-- 缺口寫 **`data/etf_upcoming_gap.json`（入庫）** → 儀表板「網頁更新時間」列 🔴「新 ETF 未登錄
-  N 檔」（`_new_etf_chip()`）→ 每日 SOP 步驟 9⑧ 讀它去補 `UPCOMING`（策展上刻意不追蹤者
-  填 `track: False` 即從缺口消失）。與「前十大持股簡介」完全同型的逼補迴路。
+- 缺口寫 **`data/etf_upcoming_gap.json`（入庫）** → 儀表板「網頁更新時間」列警示章
+  （`_new_etf_chip()`）→ SOP 步驟 9⑧ 分級處置（同「前十大持股簡介」的逼補迴路）。
+  **警示三級（2026-08-10 使用者：紅章 13 檔長名稱「很躁」，勿走回頭路）**：
+  🔴 紅＝`kind=listed` 已掛牌真漏網（附代碼，每日立即補）；⚠ 琥珀＝已核准／募集中待登錄
+  （只給檔數不列名稱清單——長名稱堆版頭只是噪音，清單在 gap 檔週掃讀得到）；
+  申請中（stage=applied）在 `save_gap()` 資料層就分流進 **`pipeline` 欄**——不進 count、
+  不上版，核准後下輪自動升入 items 才計數。
 - **三個踩過／預防的坑**：①**baseline**——台帳空時把當下全市場一次認列既有（`first: None`）、
   不報警，否則第一輪噴出市場 200+ 檔；②**baseline 只在市場檔數 ≥`MIN_MARKET_FOR_BASELINE`=100
   時才建**——首建那輪若剛好單邊交易所掛掉（2026-08-05 tpex openapi 曾整輪失敗），

@@ -275,6 +275,46 @@ def test_new_etf_chip_shows_only_when_gap(tmp_path, monkeypatch):
     assert "🔴" in chip and "00413A" in chip and "新 ETF 未登錄" in chip and "stale" in chip
 
 
+def test_new_etf_chip_graded_severity(tmp_path, monkeypatch):
+    """警示分級（2026-08-10 使用者：紅章 13 檔長名稱「很躁」）：
+    已核准／募集中＝⚠ 琥珀、只給檔數不列名稱；🔴 紅只留給已掛牌真漏網。"""
+    fp = tmp_path / "gap.json"
+    monkeypatch.setattr(etfdiscover, "GAP_FP", fp)
+    fp.write_text(json.dumps({"count": 3, "items": [
+        {"code": None, "name": "玉山臺灣關鍵科技主動式ETF基金", "kind": "offering",
+         "stage": "approved"},
+        {"code": None, "name": "兆豐美國黃金礦業ETF基金", "kind": "offering", "stage": "approved"},
+        {"code": None, "name": "某某募集中ETF基金", "kind": "offering", "stage": "raising"},
+    ]}, ensure_ascii=False), encoding="utf-8")
+    chip = fund_dashboard._new_etf_chip()
+    assert "warn" in chip and "⚠" in chip and "待登錄" in chip
+    assert "已核准 2" in chip and "募集中 1" in chip and "週一募集週掃" in chip
+    assert "stale" not in chip and "🔴" not in chip            # 沒有已掛牌缺口就不見紅
+    assert "玉山臺灣關鍵科技" not in chip                       # 名稱清單不再堆上版頭
+    # 混合時兩章並列：紅章只列已掛牌那檔
+    fp.write_text(json.dumps({"count": 2, "items": [
+        {"code": "00414X", "name": "測試已掛牌", "kind": "listed"},
+        {"code": None, "name": "測試核准", "kind": "offering", "stage": "approved"},
+    ]}, ensure_ascii=False), encoding="utf-8")
+    chip = fund_dashboard._new_etf_chip()
+    assert "🔴" in chip and "00414X" in chip and "⚠" in chip and "已核准 1" in chip
+
+
+def test_save_gap_routes_applied_to_pipeline(tmp_path, monkeypatch):
+    """申請中（審查未過）不算警示缺口——連登錄規則都不收（hint 須已核准），掛紅章
+    只會永遠紅。入 pipeline 欄供週掃盤點；核准後（stage 變 approved）才升入 items。"""
+    fp = tmp_path / "gap.json"
+    monkeypatch.setattr(etfdiscover, "GAP_FP", fp)
+    etfdiscover.save_gap([
+        {"code": None, "name": "審查中檔", "kind": "offering", "stage": "applied"},
+        {"code": None, "name": "已核准檔", "kind": "offering", "stage": "approved"},
+    ], sources_ok=True)
+    doc = etfdiscover.load_gap()
+    assert doc["count"] == 1 and [g["name"] for g in doc["items"]] == ["已核准檔"]
+    assert doc["pipeline_n"] == 1 and doc["pipeline"][0]["name"] == "審查中檔"
+    assert fund_dashboard._new_etf_chip().count("chip") == 1   # 只有 ⚠ 章、無紅章
+
+
 def test_known_codes_includes_watchlist_and_upcoming():
     """已登錄＝追蹤清單＋UPCOMING（含 track:False 展示檔與已升級檔），未派碼條目跳過。"""
     known = etfdiscover.known_codes()

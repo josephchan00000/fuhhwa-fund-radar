@@ -157,11 +157,17 @@ def main() -> int:
         print("[新 ETF 發現] ⚪ 市場來源不可達，本輪未檢查（本容器 proxy 擋 twse/tpex 屬正常；"
               "真正的檢查在正式區 CI）→ 既有 gap 檔保持原樣")
         return 0
-    if not gaps:
-        print(f"[新 ETF 發現] 🟢 無漏網新 ETF（已追蹤／已登錄 {len(known)} 檔）")
+    act = [g for g in gaps if g.get("stage") != "applied"]      # 與 save_gap 的分流一致
+    pipe = [g for g in gaps if g.get("stage") == "applied"]
+    if pipe:
+        print(f"  · 另 {len(pipe)} 檔申請中（審查未過）——僅盤點入 pipeline、"
+              f"不上版警示：{'、'.join(g['name'] for g in pipe[:6])}")
+    if not act:
+        print(f"[新 ETF 發現] 🟢 無待登錄新 ETF（已追蹤／已登錄 {len(known)} 檔"
+              + (f"；pipeline {len(pipe)} 檔" if pipe else "") + "）")
         return 0
-    print(f"[新 ETF 發現] 🔴 {len(gaps)} 檔新 ETF 不在 etfwatch 清單裡：")
-    for g in gaps:
+    print(f"[新 ETF 發現] 🔴 {len(act)} 檔新 ETF 不在 etfwatch 清單裡：")
+    for g in act:
         if g["kind"] == "listed":
             where = f"已掛牌・首見 {g['first_seen']}"
         else:
@@ -172,8 +178,8 @@ def main() -> int:
             bits.append(g.get("src") or "moneydj")
             where = "・".join(bits)
         print(f"  ✗ {g.get('code') or '（代號未定）'} {g['name']}（{where}）")
-    print("  補法：WebSearch 查證（募集期間／掛牌日／頻率，兩來源一致）後補進 "
-          "arm/etfwatch.UPCOMING；策展上刻意不追蹤者填 track: False。")
+    print("  補法：已掛牌（🔴）→ 每日 SOP 立即補；已核准／募集中（⚠）→ 週一募集週掃"
+          "查證後補進 data/etf_upcoming.json；策展上刻意不追蹤者填 track: false。")
     return 1
 
 
