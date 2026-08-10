@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/10 07:46",
+  "as_of": "2026/08/10 10:15",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板/基金板公開標題＋YouTube 影片・自動擷取",
   "brand": [
@@ -324,7 +324,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/TzjzKX31lPU",
       "date": "2026-08-06",
-      "views": 611226,
+      "views": 631725,
       "official": true,
       "short": true
     },
@@ -344,7 +344,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/zt89CwgFOCg",
       "date": "2026-08-05",
-      "views": 12982,
+      "views": 13009,
       "short": true
     },
     {
@@ -361,16 +361,7 @@
       "channel": "喬丹哥",
       "url": "https://www.youtube.com/watch?v=Fxu9U5RLprw",
       "date": "2026-08-06",
-      "views": 2006
-    },
-    {
-      "platform": "youtube",
-      "title": "【精華】00981A、00988A買在山頂，套牢怎解？股海老牛分析3大檢驗關鍵，股市築底大膽加碼半導體ETF！｜股海老牛、葉芷娟｜ETF錢滾錢",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/watch?v=xYNiN7dQp8g",
-      "date": "2026-08-08",
-      "views": 15046,
-      "peer": true
+      "views": 2010
     },
     {
       "platform": "youtube",
@@ -378,13 +369,22 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=bAYvwiHvRkY",
       "date": "2026-08-08",
-      "views": 8678,
+      "views": 8773,
+      "peer": true
+    },
+    {
+      "platform": "youtube",
+      "title": "00981A崩跌別急砍？主動式ETF&quot;掩護性&quot;耐震？高股息ETF竟最抗跌？0050正2抄底時機？台股大洗牌！【解鎖財經大小事】feat.股市妙芳 陳秀芳 精華版",
+      "channel": "理周FUN財經",
+      "url": "https://www.youtube.com/watch?v=q-wrW2FQBik",
+      "date": "2026-08-09",
+      "views": 3773,
       "peer": true
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金：華人世紀、全方位（詳下方基金新聞標籤）",
     "品牌焦點：復華全方位基金A類型，這幾天話題滿滿的投信，旗下21年老牌基金表現如何？（CMoney）",
-    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・611,226 次觀看）"
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・631,725 次觀看）"
   ]
 }
