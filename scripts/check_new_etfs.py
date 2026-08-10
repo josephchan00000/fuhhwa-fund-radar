@@ -17,6 +17,7 @@ exit code：有缺口 → 1（供想當硬閘門處使用）；無缺口／來�
 CI 端以 `|| true` 收警示、不擋發佈（同 check_holdings_intro.py）。
 用法：TZ=Asia/Taipei python3 scripts/check_new_etfs.py
 """
+import re
 import sys
 from pathlib import Path
 
@@ -49,33 +50,32 @@ def _market_etf_codes() -> dict[str, str]:
     return out
 
 
-def _offering_codes() -> set[str]:
-    """MoneyDJ 新基金募集頁的 ETF 代碼（fail-open：抓不到／解析 0 筆 → 回空集）。"""
-    try:
-        from arm.http import get_bytes
-        html = get_bytes(MONEYDJ_URL, cache_ttl=3600, retries=2).decode("utf-8", "ignore")
-    except Exception as e:                                         # noqa: BLE001
-        print(f"  ⚠ MoneyDJ 新基金頁抓取失敗（{type(e).__name__}: {str(e)[:90]}）"
-              f"——僅損失募集前瞻層，掛牌層不受影響")
-        return set()
-    codes = etfdiscover.parse_offering_codes(html)
-    print(f"  · MoneyDJ 新基金頁 {len(html)} bytes，掃出 ETF 型代碼 {len(codes)} 個")
-    if not codes and len(html) > 5000:      # 頁面拿到了卻掃不到＝版式可能改了，留線索供收斂
-        print("    ⚠ 頁面非空但 0 代碼——版式可能已變，請檢查 parse_offering_codes 的樣式")
-    return codes
-
-
-def _offering_names_cnyes() -> list[str]:
-    """鉅亨 IPO 頁的 ETF 名稱（fail-open：抓不到／0 筆 → 回空，僅損失名稱前瞻層）。"""
+def _fetch(url: str, label: str) -> str:
     from arm.http import get_bytes
-    html = ""
-    for url in CNYES_IPO_URLS:
-        try:
-            html = get_bytes(url, cache_ttl=3600, retries=2).decode("utf-8", "ignore")
-            if html:
-                break
-        except Exception as e:                                     # noqa: BLE001
-            print(f"  ⚠ 鉅亨 IPO 頁抓取失敗（{url} → {type(e).__name__}: {str(e)[:80]}）")
+    try:
+        return get_bytes(url, cache_ttl=3600, retries=2).decode("utf-8", "ignore")
+    except Exception as e:                                         # noqa: BLE001
+        print(f"  ⚠ {label} 抓取失敗（{url} → {type(e).__name__}: {str(e)[:80]}）")
+        return ""
+
+
+def _offering_moneydj(html: str) -> tuple[set[str], list[str]]:
+    """MoneyDJ 新基金頁 → (ETF 代碼, ETF 名稱)。
+
+    2026-08-10 CI 首輪定案：**MoneyDJ 對 CI 可達**（54,564 bytes、非 WAF 空殼），但
+    **掃出 0 個代碼——因為新基金募集頁本來就只列基金名稱與募集期間、還沒有代碼**
+    （新檔募集期間多半尚未派碼）。所以代碼層對這一頁天生無效，改與 cnyes 同走名稱層；
+    代碼掃描保留為「日後頁面若補上代碼」的免費加分項，抓 0 個不再視為版式異常。"""
+    if not html:
+        return set(), []
+    codes = etfdiscover.parse_offering_codes(html)
+    names = etfdiscover.extract_etf_names(html)
+    print(f"  · MoneyDJ 新基金頁 {len(html)} bytes，代碼 {len(codes)} 個、名稱 {len(names)} 筆")
+    return codes, names
+
+
+def _offering_names_cnyes(html: str) -> list[str]:
+    """鉅亨 IPO 頁的 ETF 名稱（fail-open：抓不到／0 筆 → 回空，僅損失名稱前瞻層）。"""
     if not html:
         return []
     names = etfdiscover.extract_etf_names(html)
@@ -83,16 +83,23 @@ def _offering_names_cnyes() -> list[str]:
           + (f"：{'、'.join(names[:5])}{'…' if len(names) > 5 else ''}" if names else ""))
     if not names and len(html) > 5000:
         print("    ⚠ 頁面非空但 0 名稱——版式可能已變，檢查 etfdiscover._ETF_NAME 樣式")
-    # 結構探針（僅日誌、不進資料）：印內嵌物件鍵名，供日後補「募集期間」欄位一輪收斂
-    try:
-        from arm.connectors import cnyesfund
-        hit = next((o for o in cnyesfund._objects_from_html(html)
-                    if any("ETF" in str(v) for v in o.values())), None)
-        if hit:
-            print(f"    · 內嵌物件鍵名（首筆含 ETF 者）：{sorted(hit.keys())[:20]}")
-    except Exception:                                              # noqa: BLE001 —— 探針絕不影響主流程
-        pass
     return names
+
+
+def _probe_context(html: str, names: list[str], label: str) -> None:
+    """結構探針（僅日誌、不進資料）：印首筆名稱周邊原文片段，供日後補「募集期間」欄位。
+
+    2026-08-10 CI 首輪修正：原本借用 `cnyesfund._objects_from_html()`，但**那支錨定
+    "cnyesId" 字串**——IPO 頁沒有該鍵 → 回空 → 整輪一行探針都沒印。改印「名稱周邊
+    原文」：這正是 2026-07-29 元大那輪學到的——**印次數／鍵名無法決斷結構，印上下文
+    片段才能一輪定位**（看得出是 HTML 表格還是內嵌 JSON、募集期間欄長什麼樣）。"""
+    if not (html and names):
+        return
+    i = html.find(names[0])
+    if i < 0:
+        return
+    frag = re.sub(r"\s+", " ", html[max(0, i - 220): i + 220])
+    print(f"    · [{label} 結構探針] 首筆名稱周邊原文：{frag}")
 
 
 def main() -> int:
@@ -111,12 +118,19 @@ def main() -> int:
 
     known = etfdiscover.known_codes()
     gaps = etfdiscover.listed_gaps(seen, known, today)
-    offering = _offering_codes()
-    if offering:
-        gaps += etfdiscover.offering_gaps(offering, seen, known)
-    names = _offering_names_cnyes()                       # 名稱層（cnyes；未派碼新檔也逮得住）
-    if names:
-        gaps += etfdiscover.offering_name_gaps(names, seen, etfdiscover.known_names())
+
+    # 前瞻雙源：兩頁都走名稱層（新檔募集期間多半尚未派碼），MoneyDJ 另撿代碼當加分
+    dj_html = _fetch(MONEYDJ_URL, "MoneyDJ 新基金頁")
+    cn_html = next((h for h in (_fetch(u, "鉅亨 IPO 頁") for u in CNYES_IPO_URLS) if h), "")
+    dj_codes, dj_names = _offering_moneydj(dj_html)
+    cn_names = _offering_names_cnyes(cn_html)
+    _probe_context(cn_html, cn_names, "cnyes")
+    _probe_context(dj_html, dj_names, "moneydj")
+    if dj_codes:
+        gaps += etfdiscover.offering_gaps(dj_codes, seen, known)
+    if dj_names or cn_names:
+        gaps += etfdiscover.offering_name_gaps(cn_names + dj_names, seen,
+                                               etfdiscover.known_names())
     _fp, saved = etfdiscover.save_gap(gaps, sources_ok=bool(market))
     if not saved:
         # 誠實回報「沒檢查」而不是「沒問題」——把未檢查寫成 🟢 0 缺口正是靜默失敗那一型

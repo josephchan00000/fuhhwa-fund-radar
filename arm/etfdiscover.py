@@ -154,11 +154,24 @@ def _norm_name(s: str) -> str:
     return _PUNCT.sub("", s)
 
 
+def _is_subseq(short: str, long: str) -> bool:
+    it = iter(long)
+    return all(ch in it for ch in short)
+
+
 def name_match(a_norm: str, b_norm: str) -> bool:
-    """正規化名互相包含即視為同檔；<4 字不比（防「台股」「高股息」泛稱誤配）。"""
+    """同檔判定：短名是長名的**子序列**（不必連續）；<4 字不比（防泛稱誤配）。
+
+    2026-08-10 CI 首輪修正——原本用「互相包含」（子字串），但**交易所短名是全名的
+    縮寫、中間會跳字**，於是同一檔被判成兩檔：
+      · 台帳 `富邦科技`(0052) vs 鉅亨 `富邦台灣科技指數` → 跳掉「台灣」就對不上 → 誤報
+      · 已追蹤 `永豐科技趨勢`(00410A) vs 鉅亨 `永豐台灣科技趨勢` → 同上
+    中文基金縮寫**保留字序**，所以子序列才是正確的模型（`富邦科技` ⊂ `富邦台灣科技指數` ✓；
+    而 `群益台灣精選高息` 對 `群益台灣核心50` 仍不匹配 ✓ 不會過度合併）。"""
     if len(a_norm) < 4 or len(b_norm) < 4:
         return False
-    return a_norm in b_norm or b_norm in a_norm
+    short, long = sorted((a_norm, b_norm), key=len)
+    return _is_subseq(short, long)
 
 
 def known_names() -> set[str]:
@@ -169,16 +182,23 @@ def known_names() -> set[str]:
     return {n for n in out if n}
 
 
-# 名稱樣式：CJK 起頭、至「ETF(基金)」結尾的連續名稱串——HTML 文字節點與內嵌 JSON
-# 字串都吃得到，**不解析表格結構**（djhtm/react 版式都會漂，只認名稱字樣不會）。
-_ETF_NAME = re.compile(r"[一-鿿][一-鿿0-9A-Za-z]{1,40}ETF(?:基金)?")
+# 名稱樣式：連續的「中文／數字／英文」串，至「ETF(基金)」結尾——HTML 文字節點與內嵌
+# JSON 字串都吃得到，**不解析表格結構**（djhtm/react 版式都會漂，只認名稱字樣不會）。
+# 允許數字／英文起頭（2026-08-10 CI 首輪修正）：原本限定 CJK 起頭，
+# 「10年期AAA至A級美元公司債券ETF」的「10」被切掉、名稱殘缺成「年期AAA至…」而對不上任何清單。
+_ETF_NAME = re.compile(r"[一-鿿0-9A-Za-z]{2,45}ETF(?:基金)?")
+_CJK = re.compile(r"[一-鿿]")
 
 
 def extract_etf_names(html: str) -> list[str]:
-    """從 IPO 頁抽 ETF 名稱（去括注、正規化去重；核心 <4 字的泛稱標籤直接丟）。"""
+    """從募集頁抽 ETF 名稱（去括注、正規化去重；核心 <4 字的泛稱標籤直接丟）。
+
+    須含 ≥3 個中文字——擋掉「iShares ETF」「AI ETF」這類純英文/泛稱片段。"""
     out, seen = [], set()
     for m in _ETF_NAME.finditer(html or ""):
         raw = _PAREN.sub("", m.group(0))
+        if len(_CJK.findall(raw)) < 3:
+            continue
         n = _norm_name(raw)
         if len(n) >= 4 and n not in seen:
             seen.add(n)
