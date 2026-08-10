@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/11 06:52",
+  "as_of": "2026/08/11 07:50",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板/基金板公開標題＋YouTube 影片・自動擷取",
   "brand": [
@@ -349,7 +349,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/TzjzKX31lPU",
       "date": "2026-08-06",
-      "views": 734917,
+      "views": 736326,
       "official": true,
       "short": true
     },
@@ -369,7 +369,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/zt89CwgFOCg",
       "date": "2026-08-05",
-      "views": 13290,
+      "views": 13291,
       "short": true
     },
     {
@@ -394,7 +394,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/watch?v=MvPYQuXf1sQ",
       "date": "2026-08-10",
-      "views": 7480,
+      "views": 7676,
       "peer": true
     },
     {
@@ -403,13 +403,13 @@
       "channel": "理周FUN財經",
       "url": "https://www.youtube.com/watch?v=q-wrW2FQBik",
       "date": "2026-08-09",
-      "views": 5178,
+      "views": 5193,
       "peer": true
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、全方位（詳下方基金新聞標籤）",
     "品牌焦點：聚焦全球50檔產業贏家股票00409A 8/12開募- 日報（ctee.com.tw）",
-    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・734,917 次觀看）"
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・736,326 次觀看）"
   ]
 }
