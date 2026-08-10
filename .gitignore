@@ -26,6 +26,11 @@ data/funds/*
 !data/stock_industry.json
 # 前十大簡介缺口警示（check_holdings_intro.py 產）：儀表板讀它顯示 ⚠、供每日 SOP 補簡介
 !data/holdings_intro_gap.json
+# ETF 首見台帳（check_new_etfs.py 產）：**必須入庫**——記每個 ETF 代碼首次出現在市場的日期，
+# 「新掛牌卻沒登錄」全靠它比對；CI 從零開始會每輪重建 baseline，新檔就永遠發現不了（同 fund_news_seen 的坑）
+!data/etf_seen.json
+# 漏網新 ETF 警示（同上腳本產）：儀表板紅章資料源，供每日 SOP 補進 etfwatch.UPCOMING
+!data/etf_upcoming_gap.json
 # 盤後當日完整性警示（check_afterhours_fresh.py 產）：儀表板紅章資料源，隨盤後 commit 入板
 !data/afterhours_alert.json
 # 盤後觸發哨兵（Routine 無 MCP 時 push 此檔觸發 afterhours_refresh.yml）——只該存在於 claude/** 分支

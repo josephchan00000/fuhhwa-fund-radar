@@ -130,6 +130,8 @@ jobs:
           git add -f data/macro_chips.json 2>/dev/null || true    # 總經・籌碼數據（fetch_macro_chips.py 產出）
           git add -f data/etf_holdings.json 2>/dev/null || true   # ETF 每日持股（展開明細；漏 add 會斷「前一揭露日」、Δ 整片變 —）
           git add -f data/holdings_intro_gap.json 2>/dev/null || true  # 前十大簡介缺口警示（check_holdings_intro.py 產）
+          git add -f data/etf_seen.json 2>/dev/null || true        # ETF 首見台帳——漏 add 會每輪重建 baseline、新檔永遠發現不了
+          git add -f data/etf_upcoming_gap.json 2>/dev/null || true  # 漏網新 ETF 警示（check_new_etfs.py 產）
           git add -f data/fund_nav_history.json 2>/dev/null || true  # NAV 序列持久層——漏 add 會斷史、1週/1月整片變 —（審查 #1）
           git add -f data/cnyes_fund_map.json 2>/dev/null || true    # 鉅亨 cnyesId 對映
           git add -f data/factcheck.json 2>/dev/null || true         # 數字核對結果（儀表板警示用）

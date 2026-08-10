@@ -162,6 +162,13 @@
      來源級防呆擋住：單平台全空沿用既有項目、CI 日誌會印「社群 youtube 本次全空、沿用既有 N 則」）。
      補救＝`mcp__github__actions_run_trigger` dispatch daily.yml（ref=main、news_ref 留空）——
      dispatch 用 main 的 workflow 檔、金鑰必在；根治＝排程搬家到新視窗（新分支自最新 main 分岔）。
+   - **⑧ 漏網新 ETF（2026-08-10 新增，「即將登場」資料齊全度的自動防線）**：讀
+     `git show origin/main:data/etf_upcoming_gap.json`，`count` 須為 0。>0 ＝ CI 端發現
+     **市場上已掛牌／募集頁上有、但 `etfwatch` 完全沒登錄**的 ETF（儀表板「網頁更新時間」
+     列同步顯示 🔴「新 ETF 未登錄 N 檔」）——**立即 WebSearch 查證（代號／募集期間／掛牌日／
+     配息頻率，兩來源一致）補進 `arm/etfwatch.UPCOMING` 並重推**（同數字核對 🔴 的分鐘級收斂）；
+     策展上刻意不追蹤者（海外被動指數檔）補條目時填 `track: False`，缺口即消失。
+     機制與三個坑見下方「新 ETF『自動發現』層」專節。
    - 註：持股基準為月度值（顯示上月底）——不是資料沒更新。
 
 ## 指令：「排程搬家」（2026-07-24 建立；2026-08-03 擴為三個；2026-08-07 起**四個 Routine 一起搬**）
@@ -493,6 +500,31 @@ ETF 數據追蹤／ETF 持股揭露／總經・籌碼數據／儀表板產表。
   **MoneyDJ 新基金頁 `moneydj.com/funddj/fundmarket.djhtm?a=broncho-1`**（2026-08-10 使用者
   提供之權威彙整；本容器 proxy 擋 moneydj，用 WebSearch 摘要或交給正式區）＋工商時報月度
   「投信新基金」盤點稿；只有核准沒時程（如安聯加密科技、大華銀非投等債）→ hint 形態登錄。
+
+**新 ETF「自動發現」層 `arm/etfdiscover.py`＋`scripts/check_new_etfs.py`（2026-08-10 使用者：
+「你是怎麼確保之後都抓得到的呢？」）**——**這條是上面所有守門都補不到的洞**：graduation／
+stale guard 都只認得「已登錄」條目，**一檔從沒登錄過的 ETF 對所有測試而言不存在、不會有
+任何東西變紅**（08-10 那 4 檔就是靠使用者的研討會投影片才發現）。兩層互補、CI 端每日跑
+（`daily_fund.sh` 步驟 3.6，`|| true` 不擋發佈）：
+- **① 市場首見台帳（掛牌層，零版式風險）**：TWSE＋TPEx 官方每日收盤取全市場代碼，篩 ETF 型
+  （`^00\d{2,4}[A-Z]?$`，個股／ETN 02／權證 03-08 開頭都不會誤入）記入 **`data/etf_seen.json`
+  （必須入庫，`.gitignore` 已加例外）** 的「首見日」。首見日在近 `DISCOVER_DAYS`=60 天內、
+  又不在 WATCHLIST+UPCOMING → 缺口。走 CI 已用數週的官方端點，抓到時已掛牌（**下限保證：
+  沒有任何一檔新 ETF 會完全從雷達上消失**）。
+- **② 募集頁前瞻層（fail-open）**：MoneyDJ 新基金頁掃 ETF 代碼；**交叉條件是關鍵**——募集中
+  的新檔還沒掛牌、不在①的台帳裡，所以 `頁面代碼 − 已掛牌 − 已登錄 = 真正的新募集候選`，
+  既有 ETF 的參照連結自動被濾掉，**版式漂移也不會誤報一堆**。解析失敗＝回空＋印 CI 日誌
+  （grep `[新 ETF 發現]`），只損失前瞻性、不影響①。
+- 缺口寫 **`data/etf_upcoming_gap.json`（入庫）** → 儀表板「網頁更新時間」列 🔴「新 ETF 未登錄
+  N 檔」（`_new_etf_chip()`）→ 每日 SOP 步驟 9⑧ 讀它去補 `UPCOMING`（策展上刻意不追蹤者
+  填 `track: False` 即從缺口消失）。與「前十大持股簡介」完全同型的逼補迴路。
+- **三個踩過／預防的坑**：①**baseline**——台帳空時把當下全市場一次認列既有（`first: None`）、
+  不報警，否則第一輪噴出市場 200+ 檔；②**baseline 只在市場檔數 ≥`MIN_MARKET_FOR_BASELINE`=100
+  時才建**——首建那輪若剛好單邊交易所掛掉（2026-08-05 tpex openapi 曾整輪失敗），
+  baseline 只含半個市場，隔天另一半全被誤判成新掛牌；③**來源不可達時「不覆寫」也「不新建」
+  gap 檔**（08-10 實跑抓到）——覆寫會把 CI 的真缺口洗成 0、新建則把「沒檢查」寫成「0 缺口 🟢」
+  跟著 commit 進去，就是本專案反覆踩的靜默失敗。本容器 proxy 擋 twse/tpex/moneydj → 本地跑
+  一律 ⚪「未檢查」屬正常，真正的檢查在 CI。
 資料層 `data/etf_watch.json`：`scripts/fetch_etf_watch.py` 逐檔「欄位級合併」，fallback 鏈為
 **本次 etfinfo 新值 → 既有落檔值 → 內建 `SEED_PERF` 週報底稿**（成立日一律取 WATCHLIST 靜態值）。
 報酬數據標 `perf_asof` 基準日、規模／殖利率標 `as_of` 抓取日，儀表板分別備註（沿用最近可得值時使用者已同意）。
