@@ -128,6 +128,26 @@ def test_extract_etf_names_is_layout_agnostic():
     assert names == ["安聯加密科技與金融創新主動式ETF基金", "統一前沿科技主動式ETF基金"]
 
 
+def test_extract_keeps_leading_digits_and_drops_english_fragments():
+    """2026-08-10 CI 首輪修正：原本限定 CJK 起頭 →「10年期AAA…」的 10 被切掉、
+    名稱殘缺成「年期AAA至A級美元公司債券ETF基金」對不上任何清單而誤報。"""
+    html = '<td>國泰10年期以上AAA至A級美元公司債券ETF基金</td><span>iShares ETF</span><b>AI ETF</b>'
+    names = etfdiscover.extract_etf_names(html)
+    assert names == ["國泰10年期以上AAA至A級美元公司債券ETF基金"]   # 純英文/泛稱片段不收
+
+
+def test_name_match_handles_exchange_abbreviations():
+    """交易所短名是全名的縮寫、中間跳字 → 必須用子序列比對，否則同一檔被判成兩檔
+    （2026-08-10 CI 首輪實例：0052 富邦科技、00410A 永豐科技趨勢 雙雙誤報）。"""
+    nm = etfdiscover._norm_name
+    assert etfdiscover.name_match(nm("富邦科技"), nm("富邦台灣科技指數ETF"))
+    assert etfdiscover.name_match(nm("主動永豐科技趨勢"), nm("永豐台灣科技趨勢主動式ETF基金"))
+    # 但不可過度合併：同投信的不同檔仍須判為相異
+    assert not etfdiscover.name_match(nm("群益台灣精選高息"), nm("群益台灣核心50主動式ETF基金"))
+    assert not etfdiscover.name_match(nm("主動復華未來50"), nm("復華台美策略精準高息股債平衡ETF基金"))
+    assert not etfdiscover.name_match(nm("復華台灣科技優息"), nm("復華台美策略精準高息股債平衡ETF基金"))
+
+
 def test_offering_name_gaps_filters_known_and_listed():
     """交叉條件（名稱空間版）：已登錄（含 hint 條目）與已掛牌（台帳名，擋既有 ETF
     廣告連結）都濾掉，只留真正沒人知道的新募集檔。"""
