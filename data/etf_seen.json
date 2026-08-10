@@ -1,0 +1,1419 @@
+{
+ "codes": {
+  "00400A": {
+   "first": null,
+   "name": "主動國泰動能高息"
+  },
+  "00401A": {
+   "first": null,
+   "name": "主動摩根台灣鑫收"
+  },
+  "00402A": {
+   "first": null,
+   "name": "主動安聯美國科技"
+  },
+  "00403A": {
+   "first": null,
+   "name": "主動統一升級50"
+  },
+  "00404A": {
+   "first": null,
+   "name": "主動聯博動能50"
+  },
+  "00405A": {
+   "first": null,
+   "name": "主動富邦台灣龍耀"
+  },
+  "00406A": {
+   "first": null,
+   "name": "主動中信台灣收益"
+  },
+  "00407A": {
+   "first": null,
+   "name": "主動凱基台灣"
+  },
+  "00408A": {
+   "first": null,
+   "name": "主動第一金優股息"
+  },
+  "00410A": {
+   "first": null,
+   "name": "主動永豐科技趨勢"
+  },
+  "0050": {
+   "first": null,
+   "name": "元大台灣50"
+  },
+  "0051": {
+   "first": null,
+   "name": "元大中型100"
+  },
+  "0052": {
+   "first": null,
+   "name": "富邦科技"
+  },
+  "0053": {
+   "first": null,
+   "name": "元大電子"
+  },
+  "0055": {
+   "first": null,
+   "name": "元大MSCI金融"
+  },
+  "0056": {
+   "first": null,
+   "name": "元大高股息"
+  },
+  "0057": {
+   "first": null,
+   "name": "富邦摩台"
+  },
+  "0061": {
+   "first": null,
+   "name": "元大寶滬深"
+  },
+  "006201": {
+   "first": null,
+   "name": "元大富櫃50"
+  },
+  "006203": {
+   "first": null,
+   "name": "元大MSCI台灣"
+  },
+  "006204": {
+   "first": null,
+   "name": "永豐臺灣加權"
+  },
+  "006205": {
+   "first": null,
+   "name": "富邦上証"
+  },
+  "006206": {
+   "first": null,
+   "name": "元大上證50"
+  },
+  "006207": {
+   "first": null,
+   "name": "復華滬深"
+  },
+  "006208": {
+   "first": null,
+   "name": "富邦台50"
+  },
+  "00625K": {
+   "first": null,
+   "name": "富邦上証+R"
+  },
+  "00631L": {
+   "first": null,
+   "name": "元大台灣50正2"
+  },
+  "00632R": {
+   "first": null,
+   "name": "元大台灣50反1"
+  },
+  "00633L": {
+   "first": null,
+   "name": "富邦上証正2"
+  },
+  "00634R": {
+   "first": null,
+   "name": "富邦上証反1"
+  },
+  "00635U": {
+   "first": null,
+   "name": "期元大S&P黃金"
+  },
+  "00636": {
+   "first": null,
+   "name": "國泰中國A50"
+  },
+  "00636K": {
+   "first": null,
+   "name": "國泰中國A50+U"
+  },
+  "00637L": {
+   "first": null,
+   "name": "元大滬深300正2"
+  },
+  "00638R": {
+   "first": null,
+   "name": "元大滬深300反1"
+  },
+  "00639": {
+   "first": null,
+   "name": "富邦深100"
+  },
+  "00640L": {
+   "first": null,
+   "name": "富邦日本正2"
+  },
+  "00641R": {
+   "first": null,
+   "name": "富邦日本反1"
+  },
+  "00642U": {
+   "first": null,
+   "name": "期元大S&P石油"
+  },
+  "00643": {
+   "first": null,
+   "name": "群益深証中小"
+  },
+  "00643K": {
+   "first": null,
+   "name": "群益深証中小+R"
+  },
+  "00645": {
+   "first": null,
+   "name": "富邦日本"
+  },
+  "00646": {
+   "first": null,
+   "name": "元大S&P500"
+  },
+  "00647L": {
+   "first": null,
+   "name": "元大S&P500正2"
+  },
+  "00648R": {
+   "first": null,
+   "name": "元大S&P500反1"
+  },
+  "00650L": {
+   "first": null,
+   "name": "復華香港正2"
+  },
+  "00651R": {
+   "first": null,
+   "name": "復華香港反1"
+  },
+  "00652": {
+   "first": null,
+   "name": "富邦印度"
+  },
+  "00653L": {
+   "first": null,
+   "name": "富邦印度正2"
+  },
+  "00654R": {
+   "first": null,
+   "name": "富邦印度反1"
+  },
+  "00655L": {
+   "first": null,
+   "name": "國泰中國A50正2"
+  },
+  "00656R": {
+   "first": null,
+   "name": "國泰中國A50反1"
+  },
+  "00657": {
+   "first": null,
+   "name": "國泰日經225"
+  },
+  "00657K": {
+   "first": null,
+   "name": "國泰日經225+U"
+  },
+  "00660": {
+   "first": null,
+   "name": "元大歐洲50"
+  },
+  "00661": {
+   "first": null,
+   "name": "元大日經225"
+  },
+  "00662": {
+   "first": null,
+   "name": "富邦NASDAQ"
+  },
+  "00663L": {
+   "first": null,
+   "name": "國泰臺灣加權正2"
+  },
+  "00664R": {
+   "first": null,
+   "name": "國泰臺灣加權反1"
+  },
+  "00665L": {
+   "first": null,
+   "name": "富邦恒生國企正2"
+  },
+  "00666R": {
+   "first": null,
+   "name": "富邦恒生國企反1"
+  },
+  "00668": {
+   "first": null,
+   "name": "國泰美國道瓊"
+  },
+  "00668K": {
+   "first": null,
+   "name": "國泰美國道瓊+U"
+  },
+  "00669R": {
+   "first": null,
+   "name": "國泰美國道瓊反1"
+  },
+  "00670L": {
+   "first": null,
+   "name": "富邦NASDAQ正2"
+  },
+  "00671R": {
+   "first": null,
+   "name": "富邦NASDAQ反1"
+  },
+  "00673R": {
+   "first": null,
+   "name": "期元大S&P原油反1"
+  },
+  "00674R": {
+   "first": null,
+   "name": "期元大S&P黃金反1"
+  },
+  "00675L": {
+   "first": null,
+   "name": "富邦臺灣加權正2"
+  },
+  "00676R": {
+   "first": null,
+   "name": "富邦臺灣加權反1"
+  },
+  "00678": {
+   "first": null,
+   "name": "群益那斯達克生技"
+  },
+  "00679B": {
+   "first": null,
+   "name": "元大美債20年"
+  },
+  "00680L": {
+   "first": null,
+   "name": "元大美債20正2"
+  },
+  "00681R": {
+   "first": null,
+   "name": "元大美債20反1"
+  },
+  "00682U": {
+   "first": null,
+   "name": "期元大美元指數"
+  },
+  "00683L": {
+   "first": null,
+   "name": "期元大美元指正2"
+  },
+  "00684R": {
+   "first": null,
+   "name": "期元大美元指反1"
+  },
+  "00685L": {
+   "first": null,
+   "name": "群益臺灣加權正2"
+  },
+  "00686R": {
+   "first": null,
+   "name": "群益臺灣加權反1"
+  },
+  "00687B": {
+   "first": null,
+   "name": "國泰20年美債"
+  },
+  "00687C": {
+   "first": null,
+   "name": "國泰20年美債+櫃U"
+  },
+  "00688L": {
+   "first": null,
+   "name": "國泰20年美債正2"
+  },
+  "00689R": {
+   "first": null,
+   "name": "國泰20年美債反1"
+  },
+  "00690": {
+   "first": null,
+   "name": "兆豐藍籌30"
+  },
+  "00692": {
+   "first": null,
+   "name": "富邦公司治理"
+  },
+  "00693U": {
+   "first": null,
+   "name": "期街口S&P黃豆"
+  },
+  "00694B": {
+   "first": null,
+   "name": "富邦美債1-3"
+  },
+  "00695B": {
+   "first": null,
+   "name": "富邦美債7-10"
+  },
+  "00696B": {
+   "first": null,
+   "name": "富邦美債20年"
+  },
+  "00697B": {
+   "first": null,
+   "name": "元大美債7-10"
+  },
+  "00700": {
+   "first": null,
+   "name": "富邦恒生國企"
+  },
+  "00701": {
+   "first": null,
+   "name": "國泰股利精選30"
+  },
+  "00702": {
+   "first": null,
+   "name": "國泰標普低波高息"
+  },
+  "00703": {
+   "first": null,
+   "name": "台新MSCI中國"
+  },
+  "00706L": {
+   "first": null,
+   "name": "期元大S&P日圓正2"
+  },
+  "00707R": {
+   "first": null,
+   "name": "期元大S&P日圓反1"
+  },
+  "00708L": {
+   "first": null,
+   "name": "期元大S&P黃金正2"
+  },
+  "00709": {
+   "first": null,
+   "name": "富邦歐洲"
+  },
+  "00710B": {
+   "first": null,
+   "name": "復華彭博非投等債"
+  },
+  "00711B": {
+   "first": null,
+   "name": "復華彭博新興債"
+  },
+  "00712": {
+   "first": null,
+   "name": "復華富時不動產"
+  },
+  "00713": {
+   "first": null,
+   "name": "元大台灣高息低波"
+  },
+  "00714": {
+   "first": null,
+   "name": "群益道瓊美國地產"
+  },
+  "00715L": {
+   "first": null,
+   "name": "期街口布蘭特正2"
+  },
+  "00717": {
+   "first": null,
+   "name": "富邦美國特別股"
+  },
+  "00719B": {
+   "first": null,
+   "name": "元大美債1-3"
+  },
+  "00720B": {
+   "first": null,
+   "name": "元大投資級公司債"
+  },
+  "00722B": {
+   "first": null,
+   "name": "群益投資級電信債"
+  },
+  "00723B": {
+   "first": null,
+   "name": "群益投資級科技債"
+  },
+  "00724B": {
+   "first": null,
+   "name": "群益投資級金融債"
+  },
+  "00725B": {
+   "first": null,
+   "name": "國泰投資級公司債"
+  },
+  "00726B": {
+   "first": null,
+   "name": "國泰新興投等債"
+  },
+  "00727B": {
+   "first": null,
+   "name": "國泰優選非投等債"
+  },
+  "00728": {
+   "first": null,
+   "name": "第一金工業30"
+  },
+  "00730": {
+   "first": null,
+   "name": "富邦臺灣優質高息"
+  },
+  "00731": {
+   "first": null,
+   "name": "復華富時高息低波"
+  },
+  "00733": {
+   "first": null,
+   "name": "富邦臺灣中小"
+  },
+  "00734B": {
+   "first": null,
+   "name": "台新JPM新興債"
+  },
+  "00735": {
+   "first": null,
+   "name": "國泰臺韓科技"
+  },
+  "00736": {
+   "first": null,
+   "name": "國泰新興市場"
+  },
+  "00737": {
+   "first": null,
+   "name": "國泰AI機器人"
+  },
+  "00738U": {
+   "first": null,
+   "name": "期元大道瓊白銀"
+  },
+  "00739": {
+   "first": null,
+   "name": "元大MSCI A股"
+  },
+  "00740B": {
+   "first": null,
+   "name": "富邦全球投等債"
+  },
+  "00741B": {
+   "first": null,
+   "name": "富邦全球非投等債"
+  },
+  "00746B": {
+   "first": null,
+   "name": "富邦A級公司債"
+  },
+  "00749B": {
+   "first": null,
+   "name": "凱基新興債10+"
+  },
+  "00750B": {
+   "first": null,
+   "name": "凱基科技債10+"
+  },
+  "00751B": {
+   "first": null,
+   "name": "元大AAA至A公司債"
+  },
+  "00752": {
+   "first": null,
+   "name": "中信中國50"
+  },
+  "00753L": {
+   "first": null,
+   "name": "中信中國50正2"
+  },
+  "00754B": {
+   "first": null,
+   "name": "群益AAA-AA公司債"
+  },
+  "00755B": {
+   "first": null,
+   "name": "群益投資級公用債"
+  },
+  "00756B": {
+   "first": null,
+   "name": "群益投等新興公債"
+  },
+  "00757": {
+   "first": null,
+   "name": "統一FANG+"
+  },
+  "00758B": {
+   "first": null,
+   "name": "復華能源債"
+  },
+  "00759B": {
+   "first": null,
+   "name": "復華製藥債"
+  },
+  "00760B": {
+   "first": null,
+   "name": "復華新興企業債"
+  },
+  "00761B": {
+   "first": null,
+   "name": "國泰A級公司債"
+  },
+  "00762": {
+   "first": null,
+   "name": "元大全球AI"
+  },
+  "00763U": {
+   "first": null,
+   "name": "期街口道瓊銅"
+  },
+  "00764B": {
+   "first": null,
+   "name": "群益25年美債"
+  },
+  "00768B": {
+   "first": null,
+   "name": "復華20年美債"
+  },
+  "00770": {
+   "first": null,
+   "name": "國泰北美科技"
+  },
+  "00771": {
+   "first": null,
+   "name": "元大US高息特別股"
+  },
+  "00772B": {
+   "first": null,
+   "name": "中信高評級公司債"
+  },
+  "00773B": {
+   "first": null,
+   "name": "中信優先金融債"
+  },
+  "00775B": {
+   "first": null,
+   "name": "台新投等債15+"
+  },
+  "00777B": {
+   "first": null,
+   "name": "凱基AAA至A公司債"
+  },
+  "00778B": {
+   "first": null,
+   "name": "凱基金融債20+"
+  },
+  "00779B": {
+   "first": null,
+   "name": "凱基美債25+"
+  },
+  "00780B": {
+   "first": null,
+   "name": "國泰A級金融債"
+  },
+  "00781B": {
+   "first": null,
+   "name": "國泰A級科技債"
+  },
+  "00782B": {
+   "first": null,
+   "name": "國泰A級公用債"
+  },
+  "00783": {
+   "first": null,
+   "name": "富邦中証500"
+  },
+  "00785B": {
+   "first": null,
+   "name": "富邦金融投等債"
+  },
+  "00786B": {
+   "first": null,
+   "name": "元大10年IG銀行債"
+  },
+  "00787B": {
+   "first": null,
+   "name": "元大10年IG醫療債"
+  },
+  "00788B": {
+   "first": null,
+   "name": "元大10年IG電能債"
+  },
+  "00789B": {
+   "first": null,
+   "name": "復華公司債A3"
+  },
+  "00791B": {
+   "first": null,
+   "name": "復華信用債1-5"
+  },
+  "00792B": {
+   "first": null,
+   "name": "群益A級公司債"
+  },
+  "00793B": {
+   "first": null,
+   "name": "群益AAA-A醫療債"
+  },
+  "00795B": {
+   "first": null,
+   "name": "中信美國公債20年"
+  },
+  "00799B": {
+   "first": null,
+   "name": "國泰A級醫療債"
+  },
+  "00830": {
+   "first": null,
+   "name": "國泰費城半導體"
+  },
+  "00834B": {
+   "first": null,
+   "name": "第一金金融債10+"
+  },
+  "00836B": {
+   "first": null,
+   "name": "永豐10年A公司債"
+  },
+  "00840B": {
+   "first": null,
+   "name": "凱基IG精選15+"
+  },
+  "00841B": {
+   "first": null,
+   "name": "凱基AAA-AA公司債"
+  },
+  "00842B": {
+   "first": null,
+   "name": "台新美元銀行債"
+  },
+  "00844B": {
+   "first": null,
+   "name": "台新15年IG金融債"
+  },
+  "00845B": {
+   "first": null,
+   "name": "富邦新興投等債"
+  },
+  "00846B": {
+   "first": null,
+   "name": "富邦歐洲銀行債"
+  },
+  "00847B": {
+   "first": null,
+   "name": "中信美國市政債"
+  },
+  "00848B": {
+   "first": null,
+   "name": "中信新興亞洲債"
+  },
+  "00849B": {
+   "first": null,
+   "name": "中信EM主權債0-5"
+  },
+  "00850": {
+   "first": null,
+   "name": "元大臺灣ESG永續"
+  },
+  "00851": {
+   "first": null,
+   "name": "台新全球AI"
+  },
+  "00852L": {
+   "first": null,
+   "name": "國泰美國道瓊正2"
+  },
+  "00853B": {
+   "first": null,
+   "name": "統一美債10年Aa-A"
+  },
+  "00856B": {
+   "first": null,
+   "name": "永豐1-3年美公債"
+  },
+  "00857B": {
+   "first": null,
+   "name": "永豐20年美公債"
+  },
+  "00858": {
+   "first": null,
+   "name": "永豐美國500大"
+  },
+  "00859B": {
+   "first": null,
+   "name": "群益0-1年美債"
+  },
+  "00860B": {
+   "first": null,
+   "name": "群益1-5Y投資級債"
+  },
+  "00861": {
+   "first": null,
+   "name": "元大全球未來通訊"
+  },
+  "00862B": {
+   "first": null,
+   "name": "中信投資級公司債"
+  },
+  "00863B": {
+   "first": null,
+   "name": "中信全球電信債"
+  },
+  "00864B": {
+   "first": null,
+   "name": "中信美國公債0-1"
+  },
+  "00865B": {
+   "first": null,
+   "name": "國泰US短期公債"
+  },
+  "00867B": {
+   "first": null,
+   "name": "台新A-BBB電信債"
+  },
+  "00870B": {
+   "first": null,
+   "name": "元大15年EM主權債"
+  },
+  "00875": {
+   "first": null,
+   "name": "國泰網路資安"
+  },
+  "00876": {
+   "first": null,
+   "name": "元大全球5G"
+  },
+  "00877": {
+   "first": null,
+   "name": "復華中國5G"
+  },
+  "00878": {
+   "first": null,
+   "name": "國泰永續高股息"
+  },
+  "00881": {
+   "first": null,
+   "name": "國泰台灣科技龍頭"
+  },
+  "00882": {
+   "first": null,
+   "name": "中信中國高股息"
+  },
+  "00884B": {
+   "first": null,
+   "name": "中信低碳新興債"
+  },
+  "00885": {
+   "first": null,
+   "name": "富邦越南"
+  },
+  "00886": {
+   "first": null,
+   "name": "永豐美國科技"
+  },
+  "00887": {
+   "first": null,
+   "name": "永豐中國科技50大"
+  },
+  "00888": {
+   "first": null,
+   "name": "永豐台灣ESG"
+  },
+  "00890B": {
+   "first": null,
+   "name": "凱基ESG BBB債15+"
+  },
+  "00891": {
+   "first": null,
+   "name": "中信關鍵半導體"
+  },
+  "00892": {
+   "first": null,
+   "name": "富邦台灣半導體"
+  },
+  "00893": {
+   "first": null,
+   "name": "國泰智能電動車"
+  },
+  "00894": {
+   "first": null,
+   "name": "中信小資高價30"
+  },
+  "00895": {
+   "first": null,
+   "name": "富邦未來車"
+  },
+  "00896": {
+   "first": null,
+   "name": "中信綠能及電動車"
+  },
+  "00897": {
+   "first": null,
+   "name": "富邦基因免疫生技"
+  },
+  "00898": {
+   "first": null,
+   "name": "國泰基因免疫革命"
+  },
+  "00899": {
+   "first": null,
+   "name": "FT潔淨能源"
+  },
+  "00900": {
+   "first": null,
+   "name": "富邦特選高股息30"
+  },
+  "00901": {
+   "first": null,
+   "name": "永豐智能車供應鏈"
+  },
+  "00902": {
+   "first": null,
+   "name": "中信電池及儲能"
+  },
+  "00903": {
+   "first": null,
+   "name": "富邦元宇宙"
+  },
+  "00904": {
+   "first": null,
+   "name": "台新臺灣半導體30"
+  },
+  "00905": {
+   "first": null,
+   "name": "FT臺灣Smart"
+  },
+  "00907": {
+   "first": null,
+   "name": "永豐優息存股"
+  },
+  "00908": {
+   "first": null,
+   "name": "富邦入息REITs+"
+  },
+  "00909": {
+   "first": null,
+   "name": "國泰數位支付服務"
+  },
+  "00910": {
+   "first": null,
+   "name": "第一金太空衛星"
+  },
+  "00911": {
+   "first": null,
+   "name": "兆豐洲際半導體"
+  },
+  "00912": {
+   "first": null,
+   "name": "中信臺灣智慧50"
+  },
+  "00913": {
+   "first": null,
+   "name": "兆豐台灣晶圓製造"
+  },
+  "00915": {
+   "first": null,
+   "name": "凱基優選高股息30"
+  },
+  "00916": {
+   "first": null,
+   "name": "國泰全球品牌50"
+  },
+  "00917": {
+   "first": null,
+   "name": "中信特選金融"
+  },
+  "00918": {
+   "first": null,
+   "name": "大華優利高填息30"
+  },
+  "00919": {
+   "first": null,
+   "name": "群益台灣精選高息"
+  },
+  "00920": {
+   "first": null,
+   "name": "富邦ESG綠色電力"
+  },
+  "00921": {
+   "first": null,
+   "name": "兆豐龍頭等權重"
+  },
+  "00922": {
+   "first": null,
+   "name": "國泰台灣領袖50"
+  },
+  "00923": {
+   "first": null,
+   "name": "群益台ESG低碳50"
+  },
+  "00924": {
+   "first": null,
+   "name": "復華S&P500成長"
+  },
+  "00926": {
+   "first": null,
+   "name": "凱基全球菁英55"
+  },
+  "00927": {
+   "first": null,
+   "name": "群益半導體收益"
+  },
+  "00928": {
+   "first": null,
+   "name": "中信上櫃ESG 30"
+  },
+  "00929": {
+   "first": null,
+   "name": "復華台灣科技優息"
+  },
+  "00930": {
+   "first": null,
+   "name": "永豐ESG低碳高息"
+  },
+  "00931B": {
+   "first": null,
+   "name": "統一美債20年"
+  },
+  "00932": {
+   "first": null,
+   "name": "兆豐永續高息等權"
+  },
+  "00933B": {
+   "first": null,
+   "name": "國泰10Y+金融債"
+  },
+  "00934": {
+   "first": null,
+   "name": "中信成長高股息"
+  },
+  "00935": {
+   "first": null,
+   "name": "野村臺灣新科技50"
+  },
+  "00936": {
+   "first": null,
+   "name": "台新永續高息中小"
+  },
+  "00937B": {
+   "first": null,
+   "name": "群益ESG投等債20+"
+  },
+  "00938": {
+   "first": null,
+   "name": "凱基優選30"
+  },
+  "00939": {
+   "first": null,
+   "name": "統一台灣高息動能"
+  },
+  "00940": {
+   "first": null,
+   "name": "元大台灣價值高息"
+  },
+  "00941": {
+   "first": null,
+   "name": "中信上游半導體"
+  },
+  "00942B": {
+   "first": null,
+   "name": "台新美A公司債20+"
+  },
+  "00943": {
+   "first": null,
+   "name": "兆豐電子高息等權"
+  },
+  "00944": {
+   "first": null,
+   "name": "野村趨勢動能高息"
+  },
+  "00945B": {
+   "first": null,
+   "name": "凱基美國非投等債"
+  },
+  "00946": {
+   "first": null,
+   "name": "群益科技高息成長"
+  },
+  "00947": {
+   "first": null,
+   "name": "台新臺灣IC設計"
+  },
+  "00948B": {
+   "first": null,
+   "name": "中信優息投資級債"
+  },
+  "00949": {
+   "first": null,
+   "name": "復華日本龍頭"
+  },
+  "00950B": {
+   "first": null,
+   "name": "凱基A級公司債"
+  },
+  "00951": {
+   "first": null,
+   "name": "台新日本半導體"
+  },
+  "00952": {
+   "first": null,
+   "name": "凱基台灣AI50"
+  },
+  "00953B": {
+   "first": null,
+   "name": "群益優選非投等債"
+  },
+  "00954": {
+   "first": null,
+   "name": "中信日本半導體"
+  },
+  "00955": {
+   "first": null,
+   "name": "中信日本商社"
+  },
+  "00956": {
+   "first": null,
+   "name": "中信日經高股息"
+  },
+  "00957B": {
+   "first": null,
+   "name": "兆豐US優選投等債"
+  },
+  "00958B": {
+   "first": null,
+   "name": "永豐ESG銀行債15+"
+  },
+  "00959B": {
+   "first": null,
+   "name": "大華投等美債15Y+"
+  },
+  "00960": {
+   "first": null,
+   "name": "野村全球航運龍頭"
+  },
+  "00961": {
+   "first": null,
+   "name": "FT臺灣永續高息"
+  },
+  "00962": {
+   "first": null,
+   "name": "台新AI優息動能"
+  },
+  "00963": {
+   "first": null,
+   "name": "中信全球高股息"
+  },
+  "00964": {
+   "first": null,
+   "name": "中信亞太高股息"
+  },
+  "00965": {
+   "first": null,
+   "name": "元大航太防衛科技"
+  },
+  "00966B": {
+   "first": null,
+   "name": "統一ESG投等債15+"
+  },
+  "00967B": {
+   "first": null,
+   "name": "元大優息美債"
+  },
+  "00968B": {
+   "first": null,
+   "name": "元大優息投等債"
+  },
+  "00969B": {
+   "first": null,
+   "name": "元大零息超長美債"
+  },
+  "00970B": {
+   "first": null,
+   "name": "台新BBB投等債20+"
+  },
+  "00971": {
+   "first": null,
+   "name": "野村美國研發龍頭"
+  },
+  "00972": {
+   "first": null,
+   "name": "野村日本動能高息"
+  },
+  "009800": {
+   "first": null,
+   "name": "中信NASDAQ"
+  },
+  "009801": {
+   "first": null,
+   "name": "中信美國創新科技"
+  },
+  "009802": {
+   "first": null,
+   "name": "富邦旗艦50"
+  },
+  "009803": {
+   "first": null,
+   "name": "玉山市值動能50"
+  },
+  "009804": {
+   "first": null,
+   "name": "聯邦台精彩50"
+  },
+  "009805": {
+   "first": null,
+   "name": "台新美國電力基建"
+  },
+  "009806": {
+   "first": null,
+   "name": "台新標普500"
+  },
+  "009807": {
+   "first": null,
+   "name": "台新標普科技精選"
+  },
+  "009808": {
+   "first": null,
+   "name": "華南永昌優選50"
+  },
+  "009809": {
+   "first": null,
+   "name": "富邦淨零ESG50"
+  },
+  "00980A": {
+   "first": null,
+   "name": "主動野村臺灣優選"
+  },
+  "00980B": {
+   "first": null,
+   "name": "台新特選IG債10+"
+  },
+  "00980D": {
+   "first": null,
+   "name": "主動聯博投等入息"
+  },
+  "00980T": {
+   "first": null,
+   "name": "平衡凱基美國TOP"
+  },
+  "009810": {
+   "first": null,
+   "name": "玉山全球藍籌100"
+  },
+  "009811": {
+   "first": null,
+   "name": "統一美國50"
+  },
+  "009812": {
+   "first": null,
+   "name": "野村日本東證"
+  },
+  "009813": {
+   "first": null,
+   "name": "貝萊德標普卓越50"
+  },
+  "009814": {
+   "first": null,
+   "name": "富邦標普500"
+  },
+  "009815": {
+   "first": null,
+   "name": "大華美國MAG7+"
+  },
+  "009816": {
+   "first": null,
+   "name": "凱基台灣TOP50"
+  },
+  "009817": {
+   "first": null,
+   "name": "國泰日本不動產"
+  },
+  "009818": {
+   "first": null,
+   "name": "華南永昌NASDAQxT"
+  },
+  "009819": {
+   "first": null,
+   "name": "中信數據及電力"
+  },
+  "00981A": {
+   "first": null,
+   "name": "主動統一台股增長"
+  },
+  "00981B": {
+   "first": null,
+   "name": "第一金優選非投債"
+  },
+  "00981D": {
+   "first": null,
+   "name": "主動中信非投等債"
+  },
+  "00981T": {
+   "first": null,
+   "name": "平衡凱基雙核收息"
+  },
+  "009820": {
+   "first": null,
+   "name": "元大納斯達克精選"
+  },
+  "009821": {
+   "first": null,
+   "name": "野村稀土關鍵資源"
+  },
+  "009822": {
+   "first": null,
+   "name": "華南永昌未來金融"
+  },
+  "009823": {
+   "first": null,
+   "name": "群益S&P500"
+  },
+  "009824": {
+   "first": null,
+   "name": "群益美國科技巨頭"
+  },
+  "009825": {
+   "first": null,
+   "name": "聯邦美國金融創新"
+  },
+  "009826": {
+   "first": null,
+   "name": "貝萊德世界股票"
+  },
+  "00982A": {
+   "first": null,
+   "name": "主動群益台灣強棒"
+  },
+  "00982B": {
+   "first": null,
+   "name": "FT投資級債20+"
+  },
+  "00982D": {
+   "first": null,
+   "name": "主動富邦動態入息"
+  },
+  "00982T": {
+   "first": null,
+   "name": "平衡兆豐台美動能"
+  },
+  "00983A": {
+   "first": null,
+   "name": "主動中信ARK創新"
+  },
+  "00983B": {
+   "first": null,
+   "name": "大華優利美公債20"
+  },
+  "00983D": {
+   "first": null,
+   "name": "主動富邦複合收益"
+  },
+  "00984A": {
+   "first": null,
+   "name": "主動安聯台灣高息"
+  },
+  "00984B": {
+   "first": null,
+   "name": "大華優利美A債15"
+  },
+  "00984D": {
+   "first": null,
+   "name": "主動聯博全球非投"
+  },
+  "00985A": {
+   "first": null,
+   "name": "主動野村台灣50"
+  },
+  "00985B": {
+   "first": null,
+   "name": "群益ESG投等債0-5"
+  },
+  "00985D": {
+   "first": null,
+   "name": "主動貝萊德優投等"
+  },
+  "00986A": {
+   "first": null,
+   "name": "主動台新龍頭成長"
+  },
+  "00986B": {
+   "first": null,
+   "name": "FT金融債10+"
+  },
+  "00986D": {
+   "first": null,
+   "name": "主動復華金融債息"
+  },
+  "00987A": {
+   "first": null,
+   "name": "主動台新優勢成長"
+  },
+  "00987B": {
+   "first": null,
+   "name": "野村10+澳洲公債"
+  },
+  "00988A": {
+   "first": null,
+   "name": "主動統一全球創新"
+  },
+  "00988B": {
+   "first": null,
+   "name": "玉山嚴選非投債"
+  },
+  "00989A": {
+   "first": null,
+   "name": "主動摩根美國科技"
+  },
+  "00989B": {
+   "first": null,
+   "name": "台新美國非投等債"
+  },
+  "00990A": {
+   "first": null,
+   "name": "主動元大AI新經濟"
+  },
+  "00990B": {
+   "first": null,
+   "name": "國泰收益非投等債"
+  },
+  "00991A": {
+   "first": null,
+   "name": "主動復華未來50"
+  },
+  "00991B": {
+   "first": null,
+   "name": "貝萊德A級公司債"
+  },
+  "00992A": {
+   "first": null,
+   "name": "主動群益科技創新"
+  },
+  "00993A": {
+   "first": null,
+   "name": "主動安聯台灣"
+  },
+  "00994A": {
+   "first": null,
+   "name": "主動第一金台股優"
+  },
+  "00995A": {
+   "first": null,
+   "name": "主動中信台灣卓越"
+  },
+  "00996A": {
+   "first": null,
+   "name": "主動兆豐台灣豐收"
+  },
+  "00997A": {
+   "first": null,
+   "name": "主動群益美國增長"
+  },
+  "00998A": {
+   "first": null,
+   "name": "主動復華金融股息"
+  },
+  "00999A": {
+   "first": null,
+   "name": "主動野村臺灣高息"
+  }
+ },
+ "as_of": "2026-08-10",
+ "seeded": "2026-08-10",
+ "n": 353
+}
