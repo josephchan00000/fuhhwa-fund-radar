@@ -48,6 +48,9 @@ echo "── 總經・籌碼數據 ──";     cat "$LOGD/macro.log"
 echo "[3.5/4] 前十大持股簡介覆蓋率檢查（新持股缺簡介只在 CI 端現形——寫 gap 檔供儀表板 ⚠）…"
 TZ=Asia/Taipei python3 scripts/check_holdings_intro.py || true   # 不擋發佈：缺口寫檔、儀表板顯示、下一輪 SOP 補
 
+echo "[3.6/4] 新 ETF 自動發現（市場首見台帳＋募集頁；沒被登錄過的檔只有這裡會現形）…"
+TZ=Asia/Taipei python3 scripts/check_new_etfs.py || true         # 同上：缺口寫檔、儀表板 🔴、下一輪 SOP 補 UPCOMING
+
 echo "[4/4] 產儀表板（今日重點 + 新聞 + 總經政策 + 總覽 + 持股介紹）→ dashboard/index.html …"
 python3 scripts/gen_fund_dashboard.py || echo "  ⚠ 儀表板產製失敗"
 
