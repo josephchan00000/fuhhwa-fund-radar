@@ -515,6 +515,15 @@ def test_upcoming_seminar_slide_completeness():
     assert {"009829", "00411A", "00987D", "009827", "00409A", "009828", "00412A"} <= codes
 
 
+def test_upcoming_single_source_is_data_file():
+    """UPCOMING 唯一真實來源＝data/etf_upcoming.json（2026-08-10 搬出程式碼）——每週
+    「ETF 募集週掃」Routine 只推資料檔即可經 daily.yml 併檔段自動入 main，不需人工
+    merge 程式碼分支。壞檔會讓 UPCOMING 變空 → 本測試與 seminar/required-fields 一起紅。"""
+    doc = json.loads(etfwatch.UPCOMING_FP.read_text(encoding="utf-8"))
+    assert doc["items"] == etfwatch.UPCOMING and len(doc["items"]) >= 1
+    assert doc.get("as_of")                    # daily.yml 併檔段以 as_of 比新舊，必填
+
+
 def test_dashboard_shows_upcoming_etf_section():
     # 分頁骨架與日期無關（前瞻項目會隨時間過期，故 render 測試只驗恆存的結構）
     html = fund_dashboard.render()

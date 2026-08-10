@@ -24,7 +24,9 @@ on:
   # 這讓「排程 Routine 的新會話」只需 git push 即可觸發（該類會話無 GitHub MCP 工具可用）。
   push:
     branches: ['claude/**']
-    paths: ['reports/**']
+    # data/etf_upcoming.json＝每週「ETF 募集週掃」Routine 的更新通道（2026-08-10）：
+    # 只推該檔也要能觸發併入 main 重建，週掃更新才不用等人工 merge
+    paths: ['reports/**', 'data/etf_upcoming.json']
   workflow_dispatch:
     inputs:
       news_ref:
@@ -87,6 +89,22 @@ jobs:
                    "reports/macronews/prompts/${TODAY}.md" "reports/macrocal/prompts/${TODAY}.md"; do
             git checkout "$REF" -- "$f" 2>/dev/null && echo "  併入 $f" || true
           done
+          # 「即將登場」條目檔（2026-08-10 起由每週「ETF 募集週掃」Routine 維護）：
+          # 驗證通過且 as_of 不舊於 main 現有版才併入——壞 JSON、舊分支倒灌都擋下（fail-open 保 main 版）。
+          # 這是唯一的「分支資料檔 → main」自動通道；程式碼一律不自動併（注入面，人工 merge）。
+          UPF=data/etf_upcoming.json
+          if git cat-file -e "$REF:$UPF" 2>/dev/null; then
+            git show "$REF:$UPF" > /tmp/etf_up_new.json
+            NEW_AS=$(python3 -c "import json; d=json.load(open('/tmp/etf_up_new.json')); items=d.get('items'); assert isinstance(items,list) and items; assert all(i.get('name') and i.get('issuer') and (i.get('list_date') or i.get('raise_start') or i.get('raise_hint')) for i in items); print(d.get('as_of') or '')" 2>/dev/null) || NEW_AS=""
+            CUR_AS=$(python3 -c "import json; print(json.load(open('$UPF')).get('as_of') or '')" 2>/dev/null || echo "")
+            if [ -z "$NEW_AS" ]; then
+              echo "  ⚠ $UPF 於來源分支驗證失敗——保留 main 現有版（週掃下輪自癒）"
+            elif [ "$NEW_AS" \< "$CUR_AS" ]; then
+              echo "  · $UPF 分支版 as_of=$NEW_AS 舊於 main=$CUR_AS——不倒灌"
+            else
+              cp /tmp/etf_up_new.json "$UPF"; echo "  併入 $UPF（as_of=$NEW_AS）"
+            fi
+          fi
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -130,6 +148,9 @@ jobs:
           git add -f data/macro_chips.json 2>/dev/null || true    # 總經・籌碼數據（fetch_macro_chips.py 產出）
           git add -f data/etf_holdings.json 2>/dev/null || true   # ETF 每日持股（展開明細；漏 add 會斷「前一揭露日」、Δ 整片變 —）
           git add -f data/holdings_intro_gap.json 2>/dev/null || true  # 前十大簡介缺口警示（check_holdings_intro.py 產）
+          git add -f data/etf_seen.json 2>/dev/null || true        # ETF 首見台帳——漏 add 會每輪重建 baseline、新檔永遠發現不了
+          git add -f data/etf_upcoming_gap.json 2>/dev/null || true  # 漏網新 ETF 警示（check_new_etfs.py 產）
+          git add -f data/etf_upcoming.json 2>/dev/null || true    # 「即將登場」條目檔（週掃 Routine 經併檔段帶進 main）
           git add -f data/fund_nav_history.json 2>/dev/null || true  # NAV 序列持久層——漏 add 會斷史、1週/1月整片變 —（審查 #1）
           git add -f data/cnyes_fund_map.json 2>/dev/null || true    # 鉅亨 cnyesId 對映
           git add -f data/factcheck.json 2>/dev/null || true         # 數字核對結果（儀表板警示用）
