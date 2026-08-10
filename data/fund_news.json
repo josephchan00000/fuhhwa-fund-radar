@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/10 11:22",
+  "as_of": "2026/08/10 12:10",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板/基金板公開標題＋YouTube 影片・自動擷取",
   "brand": [
@@ -324,7 +324,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/TzjzKX31lPU",
       "date": "2026-08-06",
-      "views": 642684,
+      "views": 647236,
       "official": true,
       "short": true
     },
@@ -344,7 +344,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/zt89CwgFOCg",
       "date": "2026-08-05",
-      "views": 13009,
+      "views": 13058,
       "short": true
     },
     {
@@ -353,7 +353,7 @@
       "channel": "九八新聞台",
       "url": "https://www.youtube.com/watch?v=o22Sy3RbQzw",
       "date": "2026-08-06",
-      "views": 6649
+      "views": 6653
     },
     {
       "platform": "youtube",
@@ -361,16 +361,7 @@
       "channel": "喬丹哥",
       "url": "https://www.youtube.com/watch?v=Fxu9U5RLprw",
       "date": "2026-08-06",
-      "views": 2010
-    },
-    {
-      "platform": "youtube",
-      "title": "台股壓力測試 剛好上車看大作小股 拉回就買？ft.#劉佩真 #周佳和 #王兆立 #超馬芭樂｜#金臨天下 20260807 完整版 @TVBSFinanceLive #台股 #ETF #AI #英飛凌",
-      "channel": "TVBS財經",
-      "url": "https://www.youtube.com/watch?v=bAYvwiHvRkY",
-      "date": "2026-08-08",
-      "views": 8800,
-      "peer": true
+      "views": 2034
     },
     {
       "platform": "youtube",
@@ -378,13 +369,22 @@
       "channel": "理周FUN財經",
       "url": "https://www.youtube.com/watch?v=q-wrW2FQBik",
       "date": "2026-08-09",
-      "views": 3842,
+      "views": 3887,
+      "peer": true
+    },
+    {
+      "platform": "youtube",
+      "title": "0050正2大勝0050？瑤姐00981A股災大跌？高股息最抗跌？主動式&quot;掩護性&quot;更強？8月台股V轉還是逃命？&quot;深蹲股&quot;布局哪檔？【解鎖財經大小事】feat.股市妙芳 陳秀芳 EP82",
+      "channel": "理周FUN財經",
+      "url": "https://www.youtube.com/watch?v=e9mZLET2N7k",
+      "date": "2026-08-08",
+      "views": 2163,
       "peer": true
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金：華人世紀、全方位（詳下方基金新聞標籤）",
     "品牌焦點：復華全方位基金A類型，這幾天話題滿滿的投信，旗下21年老牌基金表現如何？（CMoney）",
-    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・642,684 次觀看）"
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・647,236 次觀看）"
   ]
 }

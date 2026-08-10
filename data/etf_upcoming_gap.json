@@ -1,16 +1,7 @@
 {
- "as_of": "2026-08-10 11:33",
- "count": 13,
+ "as_of": "2026-08-10 12:22",
+ "count": 7,
  "items": [
-  {
-   "code": null,
-   "name": "中國信託台灣聚焦成長主動式ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "主動式ETF"
-  },
   {
    "code": null,
    "name": "東方匯理20-35年期AAA至A級美元公司債券ETF基金",
@@ -53,15 +44,6 @@
   },
   {
    "code": null,
-   "name": "台新臺灣中小主動式ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "主動式ETF"
-  },
-  {
-   "code": null,
    "name": "中國信託標普金屬及礦業ETF基金",
    "first_seen": null,
    "kind": "offering",
@@ -82,11 +64,42 @@
   },
   {
    "code": null,
-   "name": "聯博未來趨勢創新龍頭主動式ETF基金",
+   "name": "富蘭克林華美核心AI電力算力ETF基金",
    "first_seen": null,
    "kind": "offering",
    "src": "cnyes",
    "stage": "approved",
+   "cat": "ETF",
+   "approve": "115.8.7申報生效"
+  }
+ ],
+ "pipeline_n": 6,
+ "pipeline": [
+  {
+   "code": null,
+   "name": "中國信託台灣聚焦成長主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
+   "cat": "主動式ETF"
+  },
+  {
+   "code": null,
+   "name": "台新臺灣中小主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
+   "cat": "主動式ETF"
+  },
+  {
+   "code": null,
+   "name": "聯博未來趨勢創新龍頭主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
    "cat": "主動式ETF",
    "approve": "審查中"
   },
@@ -96,19 +109,9 @@
    "first_seen": null,
    "kind": "offering",
    "src": "cnyes",
-   "stage": "approved",
+   "stage": "applied",
    "cat": "主動式ETF",
    "approve": "審查中"
-  },
-  {
-   "code": null,
-   "name": "富蘭克林華美核心AI電力算力ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "approved",
-   "cat": "ETF",
-   "approve": "115.8.7申報生效"
   },
   {
    "code": null,
@@ -116,7 +119,7 @@
    "first_seen": null,
    "kind": "offering",
    "src": "cnyes",
-   "stage": "approved",
+   "stage": "applied",
    "cat": "ETF",
    "approve": "審查中"
   },
