@@ -1,29 +1,8 @@
 {
- "as_of": "2026-08-10 12:53",
- "count": 2,
- "items": [
-  {
-   "code": null,
-   "name": "東方匯理20-35年期AAA至A級美元公司債券ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "approved",
-   "cat": "ETF",
-   "approve": "115.9.14申報生效"
-  },
-  {
-   "code": null,
-   "name": "兆豐美國黃金礦業ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "approved",
-   "cat": "ETF",
-   "approve": "115.9.8申報生效"
-  }
- ],
- "pipeline_n": 6,
+ "as_of": "2026-08-10 12:57",
+ "count": 0,
+ "items": [],
+ "pipeline_n": 8,
  "pipeline": [
   {
    "code": null,
@@ -33,6 +12,26 @@
    "src": "cnyes",
    "stage": "applied",
    "cat": "主動式ETF"
+  },
+  {
+   "code": null,
+   "name": "東方匯理20-35年期AAA至A級美元公司債券ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
+   "cat": "ETF",
+   "approve": "115.9.14申報生效"
+  },
+  {
+   "code": null,
+   "name": "兆豐美國黃金礦業ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
+   "cat": "ETF",
+   "approve": "115.9.8申報生效"
   },
   {
    "code": null,
