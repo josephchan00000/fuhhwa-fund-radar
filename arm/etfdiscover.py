@@ -331,12 +331,20 @@ def save_gap(gaps: list[dict], sources_ok: bool) -> tuple[Path, bool]:
       · 有既有檔 → 不覆寫，否則本容器 proxy 擋站時會把 CI 抓到的真缺口洗成 0
         （同 factcheck.json 2026-07-29 的坑）；
       · **沒有既有檔也不新建**——「沒檢查」被寫成「0 缺口 🟢」是假訊號，
-        跟著 commit 進去就成了靜默失敗（本專案反覆踩過的那一型）。"""
+        跟著 commit 進去就成了靜默失敗（本專案反覆踩過的那一型）。
+
+    **申請中（stage=applied）不算警示缺口**（2026-08-10 使用者：紅章 13 檔「很躁」）：
+    還在送件審查的檔連我們自己的登錄規則都不收（hint 形態要求**已核准**），掛著警示
+    只會永遠紅、把真警訊淹掉。它們改入 `pipeline` 欄——僅供週掃盤點、不進 count、
+    不上儀表板；核准通過後（下輪 stage 變 approved）自動升入 items 才開始計數。"""
     GAP_FP.parent.mkdir(parents=True, exist_ok=True)
     if not sources_ok:
         return GAP_FP, False
+    items = [g for g in gaps if g.get("stage") != "applied"]
+    pipeline = [g for g in gaps if g.get("stage") == "applied"]
     GAP_FP.write_text(json.dumps(
-        {"as_of": clock.stamp_tw(), "count": len(gaps), "items": gaps},
+        {"as_of": clock.stamp_tw(), "count": len(items), "items": items,
+         "pipeline_n": len(pipeline), "pipeline": pipeline},
         ensure_ascii=False, indent=1), encoding="utf-8")
     return GAP_FP, True
 
