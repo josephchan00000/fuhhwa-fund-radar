@@ -258,13 +258,23 @@ def parse_offering_table(html: str) -> list[dict]:
     return out
 
 
-def stage_of(rec: dict) -> str:
-    """募集階段：raising（有募集期間）／approved（有核淮日期）／applied（僅申請中）。
+# 核淮日期欄不一定是日期——實測也會填「審查中」這類狀態字（2026-08-10 CI 第二輪抓到）。
+_STATE_TEXT = re.compile(r"審查|審核|申請中|處理中|補件|退件")
+_HAS_DATE = re.compile(r"\d{2,4}\s*[./年-]\s*\d{1,2}")     # 115.9.14／2026-09-14／115年9月
 
-    **申請中 ≠ 已核准**——沒有這層分辨，會把還在送件的檔當成「已核准待募」登錄上板。"""
-    if (rec.get("period") or "").strip():
+
+def stage_of(rec: dict) -> str:
+    """募集階段：raising（募集期間已定）／approved（核淮日期已下）／applied（申請中）。
+
+    **申請中 ≠ 已核准**——沒有這層分辨，會把還在送件的檔當成「已核准待募」登錄上板。
+    **且「核淮日期欄非空」≠ 已核准**（2026-08-10 CI 第二輪實測）：該欄會填狀態字，
+    `115.9.14申報生效` 才是真核准，`審查中` 是還沒過——只看非空會把聯博兩檔與**本家
+    復華台美策略**全標成已核准。故一律要求「欄位含日期樣式、且不含審查/申請中等狀態字」。"""
+    period = (rec.get("period") or "").strip()
+    approve = (rec.get("approve") or "").strip()
+    if period and _HAS_DATE.search(period) and not _STATE_TEXT.search(period):
         return "raising"
-    if (rec.get("approve") or "").strip():
+    if approve and _HAS_DATE.search(approve) and not _STATE_TEXT.search(approve):
         return "approved"
     return "applied"
 
