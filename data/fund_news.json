@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/10 12:51",
+  "as_of": "2026/08/10 12:52",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板/基金板公開標題＋YouTube 影片・自動擷取",
   "brand": [
@@ -334,7 +334,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/Zv_kAmeQ1Qg",
       "date": "2026-08-05",
-      "views": 510,
+      "views": 512,
       "official": true,
       "short": true
     },
