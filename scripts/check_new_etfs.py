@@ -86,6 +86,9 @@ def _offering_names_cnyes(html: str) -> list[str]:
     return names
 
 
+_STAGE_TXT = {"raising": "募集中／已定期間", "approved": "已核准・待定時程", "applied": "申請中"}
+
+
 def _probe_context(html: str, names: list[str], label: str) -> None:
     """結構探針（僅日誌、不進資料）：印首筆名稱周邊原文片段，供日後補「募集期間」欄位。
 
@@ -93,10 +96,15 @@ def _probe_context(html: str, names: list[str], label: str) -> None:
     "cnyesId" 字串**——IPO 頁沒有該鍵 → 回空 → 整輪一行探針都沒印。改印「名稱周邊
     原文」：這正是 2026-07-29 元大那輪學到的——**印次數／鍵名無法決斷結構，印上下文
     片段才能一輪定位**（看得出是 HTML 表格還是內嵌 JSON、募集期間欄長什麼樣）。"""
-    if not (html and names):
+    if not html:
         return
-    i = html.find(names[0])
+    # 沒抽到名稱時改錨在「基金／募集」字樣上——0 筆的來源更需要線索，不能因此不印
+    anchor = names[0] if names else next(
+        (w for w in ("基金名稱", "募集期間", "基金") if w in html), "")
+    i = html.find(anchor) if anchor else -1
     if i < 0:
+        print(f"    · [{label} 結構探針] 頁面無「基金／募集」字樣（{len(html)} bytes）"
+              f"——可能是框架頁或需子頁 URL")
         return
     frag = re.sub(r"\s+", " ", html[max(0, i - 220): i + 220])
     print(f"    · [{label} 結構探針] 首筆名稱周邊原文：{frag}")
@@ -129,8 +137,20 @@ def main() -> int:
     if dj_codes:
         gaps += etfdiscover.offering_gaps(dj_codes, seen, known)
     if dj_names or cn_names:
-        gaps += etfdiscover.offering_name_gaps(cn_names + dj_names, seen,
-                                               etfdiscover.known_names())
+        name_gaps = etfdiscover.offering_name_gaps(cn_names + dj_names, seen,
+                                                   etfdiscover.known_names())
+        # 募集表格（鉅亨；2026-08-10 探針一輪收斂）→ 掛上階段／類別／募集期間，
+        # 讓週掃不必從零查，也讓「申請中」不會被誤當「已核准」登錄
+        table = etfdiscover.parse_offering_table(cn_html)
+        if table:
+            n_stage = {}
+            for r in table:
+                n_stage[etfdiscover.stage_of(r)] = n_stage.get(etfdiscover.stage_of(r), 0) + 1
+            print(f"  · 鉅亨募集表格解析 {len(table)} 列："
+                  + "、".join(f"{_STAGE_TXT.get(k, k)} {v}" for k, v in sorted(n_stage.items())))
+        else:
+            print("    ⚠ 鉅亨募集表格解析 0 列——版式可能已變，缺口仍以名稱層報（見結構探針）")
+        gaps += etfdiscover.attach_offering_meta(name_gaps, table)
     _fp, saved = etfdiscover.save_gap(gaps, sources_ok=bool(market))
     if not saved:
         # 誠實回報「沒檢查」而不是「沒問題」——把未檢查寫成 🟢 0 缺口正是靜默失敗那一型
@@ -142,8 +162,15 @@ def main() -> int:
         return 0
     print(f"[新 ETF 發現] 🔴 {len(gaps)} 檔新 ETF 不在 etfwatch 清單裡：")
     for g in gaps:
-        where = (f"已掛牌・首見 {g['first_seen']}" if g["kind"] == "listed"
-                 else f"募集頁候選・尚未掛牌（{g.get('src') or 'moneydj'}）")
+        if g["kind"] == "listed":
+            where = f"已掛牌・首見 {g['first_seen']}"
+        else:
+            bits = [_STAGE_TXT.get(g.get("stage"), "募集頁候選")]
+            for k, label in (("period", "募集期間"), ("approve", "核准"), ("cat", "類別")):
+                if g.get(k):
+                    bits.append(f"{label} {g[k]}")
+            bits.append(g.get("src") or "moneydj")
+            where = "・".join(bits)
         print(f"  ✗ {g.get('code') or '（代號未定）'} {g['name']}（{where}）")
     print("  補法：WebSearch 查證（募集期間／掛牌日／頻率，兩來源一致）後補進 "
           "arm/etfwatch.UPCOMING；策展上刻意不追蹤者填 track: False。")
