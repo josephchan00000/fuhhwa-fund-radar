@@ -129,8 +129,80 @@ def parse_offering_codes(html: str) -> set[str]:
 def offering_gaps(offering: set[str], seen: dict, known: set[str]) -> list[dict]:
     """募集頁上、既未掛牌（不在市場台帳）也未登錄的代碼＝真正的新募集候選。"""
     listed = set((seen.get("codes") or {}).keys())
-    return [{"code": c, "name": "", "first_seen": None, "kind": "offering"}
+    return [{"code": c, "name": "", "first_seen": None, "kind": "offering", "src": "moneydj"}
             for c in sorted(offering - listed - known)]
+
+
+# ── 名稱型前瞻（鉅亨 IPO 頁 fund.cnyes.com/IPO/，2026-08-10 使用者提供）────────
+# 與 MoneyDJ 代碼層互補的第二前瞻源，且 **cnyes 對 CI 的可達性由 cnyesfund 連接器
+# 天天證實**（本容器 proxy 擋、正式區不擋）——MoneyDJ 從沒在 CI 上驗證過、可能 WAF。
+# 頁面列的是「基金名稱＋募集期間」而非代碼 → 以**名稱正規化比對**：未派碼的新檔
+# （代碼層天生抓不到）也逮得住。誤報防線同代碼層的交叉條件，只是換到名稱空間：
+# 頁上名稱 − 已登錄名（watch＋UPCOMING）− 市場台帳名（已掛牌，擋既有 ETF 廣告連結）。
+
+_PAREN = re.compile(r"[（(][^（）()]*[）)]")
+_NAME_TOKENS = re.compile(r"主動式|主動|證券投資信託|傘型|連結|ETF|基金")
+_PUNCT = re.compile(r"[\s　·・．.，,、;；:：!！?？\-—–_/｜|]")
+
+
+def _norm_name(s: str) -> str:
+    """基金名稱 → 比對核心：去括注（收益平準金等）、去 主動(式)/ETF/基金/傘型 等詞、去標點。
+    「統一前沿科技主動式ETF基金(本基金之配息來源…)」與登錄名「主動統一前沿科技」
+    都正規化成「統一前沿科技」——兩邊寫法不同、核心一致才比得起來。"""
+    s = _PAREN.sub("", str(s or ""))
+    s = _NAME_TOKENS.sub("", s)
+    return _PUNCT.sub("", s)
+
+
+def name_match(a_norm: str, b_norm: str) -> bool:
+    """正規化名互相包含即視為同檔；<4 字不比（防「台股」「高股息」泛稱誤配）。"""
+    if len(a_norm) < 4 or len(b_norm) < 4:
+        return False
+    return a_norm in b_norm or b_norm in a_norm
+
+
+def known_names() -> set[str]:
+    """已登錄名稱（正規化）＝追蹤清單＋UPCOMING 全部條目——known_codes() 的名稱層版。"""
+    from . import etfwatch
+    out = {_norm_name(n) for _c, n, *_ in etfwatch.watch_tuples()}
+    out |= {_norm_name(it.get("name") or "") for it in etfwatch.UPCOMING}
+    return {n for n in out if n}
+
+
+# 名稱樣式：CJK 起頭、至「ETF(基金)」結尾的連續名稱串——HTML 文字節點與內嵌 JSON
+# 字串都吃得到，**不解析表格結構**（djhtm/react 版式都會漂，只認名稱字樣不會）。
+_ETF_NAME = re.compile(r"[一-鿿][一-鿿0-9A-Za-z]{1,40}ETF(?:基金)?")
+
+
+def extract_etf_names(html: str) -> list[str]:
+    """從 IPO 頁抽 ETF 名稱（去括注、正規化去重；核心 <4 字的泛稱標籤直接丟）。"""
+    out, seen = [], set()
+    for m in _ETF_NAME.finditer(html or ""):
+        raw = _PAREN.sub("", m.group(0))
+        n = _norm_name(raw)
+        if len(n) >= 4 and n not in seen:
+            seen.add(n)
+            out.append(raw)
+    return out
+
+
+def offering_name_gaps(raw_names: list[str], seen: dict, knowns: set[str]) -> list[dict]:
+    """名稱層缺口：既不匹配已登錄名、也不匹配市場台帳名（已掛牌）者。
+    註：同一檔新基金可能同時被代碼層（MoneyDJ）與名稱層（cnyes）各報一筆——
+    無代碼可對不上名稱、無從自動去重；週掃補登後兩筆一起消失，可接受。"""
+    ledger = [_norm_name((v or {}).get("name") or "")
+              for v in (seen.get("codes") or {}).values()]
+    ledger = [n for n in ledger if n]
+    out = []
+    for raw in raw_names:
+        n = _norm_name(raw)
+        if any(name_match(n, k) for k in knowns):
+            continue
+        if any(name_match(n, l) for l in ledger):
+            continue
+        out.append({"code": None, "name": raw, "first_seen": None,
+                    "kind": "offering", "src": "cnyes"})
+    return out
 
 
 def known_codes() -> set[str]:

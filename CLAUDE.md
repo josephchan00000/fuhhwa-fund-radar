@@ -179,7 +179,8 @@
 1. `git fetch origin main` 後讀 **origin/main** 的 `data/etf_upcoming_gap.json`（CI 自動發現的
    漏網檔，見「新 ETF 自動發現層」專節）與 `data/etf_upcoming.json` 現況；跑
    `python3 -m pytest tests/test_etfwatch.py -q` 看 stale guard 有無紅（過期條目）。
-2. **WebSearch 盤點**（容器擋 moneydj/chinatimes 原頁，用搜尋摘要即可）：MoneyDJ 新基金頁
+2. **WebSearch 盤點**（容器擋 moneydj/cnyes/chinatimes 原頁，用搜尋摘要即可）：鉅亨 IPO 頁
+   （`fund.cnyes.com/IPO/index.htm`，2026-08-10 使用者提供）＋MoneyDJ 新基金頁
    ＋工商時報／經濟日報「投信新基金」稿＋逐檔精查。**每筆資料兩來源一致才寫**：
    - gap 檔缺口與新核准檔 → 補登（時程未定用 `raise_hint`＋`asof`；未派碼 `code: null`）；
    - hint 檔等到日期公告 → 改填 `raise_start`/`raise_end`/`list_date` 正式欄位；
@@ -242,7 +243,7 @@ Routine prompt 原文④——美股收盤序列更新（05:08，2026-08-05 建�
 
 Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建立）：
 
-> （排程自動觸發）ETF 募集週掃——找到新 ETF 募集資訊、主動更新「即將登場」（使用者 2026-08-10 指示：主動更新、一週一次）。依 repo CLAUDE.md「指令：ETF 募集週掃」SOP 執行：全程不跑資料抓取腳本、不動 reports/**、只改 data/etf_upcoming.json。① git fetch origin main 讀 origin/main 的 data/etf_upcoming_gap.json（CI 自動發現的漏網檔）與 data/etf_upcoming.json 現況，pytest tests/test_etfwatch.py 看 stale guard 有無紅；② WebSearch 盤點（MoneyDJ 新基金頁＋工商時報／經濟日報「投信新基金」稿，容器擋原頁就用搜尋摘要），逐檔兩來源核對：新核准檔補登（時程未定 raise_hint＋asof、未派碼 code:null）、hint 檔補正式日期、募集期間／掛牌日／配息頻率異動修正、掛牌逾期條目清理；海外被動指數檔 track:false；本家復華新檔最優先、絕不可漏；③ 更新頂層 as_of＝今日 → pytest 全綠 → commit「chore: ETF 募集週掃 {日期}」push 本會話指定分支（push 動到該檔自動觸發 daily.yml 併入 main 重建上線，不需人工 merge）；④ 有異動 → PushNotification 一句話列出異動檔；無異動 → 安靜結束不推播；失敗 → 推播卡在哪一步。
+> （排程自動觸發）ETF 募集週掃——找到新 ETF 募集資訊、主動更新「即將登場」（使用者 2026-08-10 指示：主動更新、一週一次）。依 repo CLAUDE.md「指令：ETF 募集週掃」SOP 執行：全程不跑資料抓取腳本、不動 reports/**、只改 data/etf_upcoming.json。① git fetch origin main 讀 origin/main 的 data/etf_upcoming_gap.json（CI 自動發現的漏網檔）與 data/etf_upcoming.json 現況，pytest tests/test_etfwatch.py 看 stale guard 有無紅；② WebSearch 盤點（鉅亨 IPO 頁 fund.cnyes.com/IPO/index.htm＋MoneyDJ 新基金頁＋工商時報／經濟日報「投信新基金」稿，容器擋原頁就用搜尋摘要），逐檔兩來源核對：新核准檔補登（時程未定 raise_hint＋asof、未派碼 code:null）、hint 檔補正式日期、募集期間／掛牌日／配息頻率異動修正、掛牌逾期條目清理；海外被動指數檔 track:false；本家復華新檔最優先、絕不可漏；③ 更新頂層 as_of＝今日 → pytest 全綠 → commit「chore: ETF 募集週掃 {日期}」push 本會話指定分支（push 動到該檔自動觸發 daily.yml 併入 main 重建上線，不需人工 merge）；④ 有異動 → PushNotification 一句話列出異動檔；無異動 → 安靜結束不推播；失敗 → 推播卡在哪一步。
 
 ## 每日固定時間自動更新（2026-07-18 建立；同日改「火進主會話」模式）
 
@@ -543,10 +544,17 @@ stale guard 都只認得「已登錄」條目，**一檔從沒登錄過的 ETF �
   （必須入庫，`.gitignore` 已加例外）** 的「首見日」。首見日在近 `DISCOVER_DAYS`=60 天內、
   又不在 WATCHLIST+UPCOMING → 缺口。走 CI 已用數週的官方端點，抓到時已掛牌（**下限保證：
   沒有任何一檔新 ETF 會完全從雷達上消失**）。
-- **② 募集頁前瞻層（fail-open）**：MoneyDJ 新基金頁掃 ETF 代碼；**交叉條件是關鍵**——募集中
-  的新檔還沒掛牌、不在①的台帳裡，所以 `頁面代碼 − 已掛牌 − 已登錄 = 真正的新募集候選`，
-  既有 ETF 的參照連結自動被濾掉，**版式漂移也不會誤報一堆**。解析失敗＝回空＋印 CI 日誌
-  （grep `[新 ETF 發現]`），只損失前瞻性、不影響①。
+- **② 募集頁前瞻層（雙源、皆 fail-open）**：**交叉條件是關鍵**——募集中的新檔還沒掛牌、
+  不在①的台帳裡，所以 `頁面內容 − 已掛牌 − 已登錄 = 真正的新募集候選`，既有 ETF 的參照
+  連結自動被濾掉，**版式漂移也不會誤報一堆**。解析失敗＝回空＋印 CI 日誌（grep
+  `[新 ETF 發現]`），只損失前瞻性、不影響①。兩源互補：
+  · **MoneyDJ 新基金頁＝代碼層**（掃 `00\d{2,4}[A-Z]?` token；CI 可達性未驗證過、可能 WAF）；
+  · **鉅亨 IPO 頁 `fund.cnyes.com/IPO/index.htm`＝名稱層**（2026-08-10 使用者提供；cnyes 對
+    CI 可達已由 cnyesfund 連接器天天證實，是前瞻層最可靠的一支）——頁面列「基金名稱＋募集
+    期間」無代碼，走 `_norm_name()` 正規化比對（去括注／主動式／ETF／基金等詞；<4 字泛稱
+    不比），**未派碼的新檔（代碼層天生抓不到）也逮得住**；已掛牌的既有 ETF 廣告連結由
+    「台帳名稱」比對濾掉。同一檔可能被兩層各報一筆（無代碼對不上名稱）——週掃補登後一起
+    消失，可接受。附結構探針：CI 日誌印內嵌物件鍵名，日後要補「募集期間」欄位一輪收斂。
 - 缺口寫 **`data/etf_upcoming_gap.json`（入庫）** → 儀表板「網頁更新時間」列 🔴「新 ETF 未登錄
   N 檔」（`_new_etf_chip()`）→ 每日 SOP 步驟 9⑧ 讀它去補 `UPCOMING`（策展上刻意不追蹤者
   填 `track: False` 即從缺口消失）。與「前十大持股簡介」完全同型的逼補迴路。

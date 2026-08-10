@@ -105,6 +105,50 @@ def test_offering_gaps_filters_already_listed_and_known():
     assert gaps[0]["kind"] == "offering"
 
 
+# ── 名稱型前瞻（鉅亨 IPO 頁，2026-08-10 使用者提供）──────────
+
+def test_norm_name_aligns_cnyes_and_registry_styles():
+    """兩邊寫法不同、核心一致：cnyes 全名 vs 登錄短名要正規化到同一字串。"""
+    assert etfdiscover._norm_name("統一前沿科技主動式ETF基金") == "統一前沿科技"
+    assert etfdiscover._norm_name("主動統一前沿科技") == "統一前沿科技"
+    assert etfdiscover._norm_name(
+        "玉山未來全球算力ETF基金(本基金之配息來源可能為收益平準金)") == "玉山未來全球算力"
+    assert etfdiscover._norm_name("大華銀優利美國非投資等級債券ETF") == "大華銀優利美國非投資等級債券"
+    # 泛稱標籤核心 <4 字：extract 端會丟掉、name_match 也不比
+    assert not etfdiscover.name_match(etfdiscover._norm_name("台股ETF"), "台股什麼都好")
+
+
+def test_extract_etf_names_is_layout_agnostic():
+    """HTML 表格與內嵌 JSON 都吃得到；泛稱標籤（核心 <4 字）不收；括注剝除；去重。"""
+    html = ('<td>安聯加密科技與金融創新主動式ETF基金</td>'
+            '"displayNameLocal":"統一前沿科技主動式ETF基金(本基金之配息來源可能為收益平準金)"'
+            '<a>台股ETF</a><a>高股息ETF</a>'
+            '<span>統一前沿科技主動式ETF基金</span>')          # 重複 → 去重
+    names = etfdiscover.extract_etf_names(html)
+    assert names == ["安聯加密科技與金融創新主動式ETF基金", "統一前沿科技主動式ETF基金"]
+
+
+def test_offering_name_gaps_filters_known_and_listed():
+    """交叉條件（名稱空間版）：已登錄（含 hint 條目）與已掛牌（台帳名，擋既有 ETF
+    廣告連結）都濾掉，只留真正沒人知道的新募集檔。"""
+    seen = {"codes": {"00929": {"first": None, "name": "復華台灣科技優息"}}}
+    knowns = {etfdiscover._norm_name("主動統一前沿科技"),
+              etfdiscover._norm_name("安聯加密科技與金融創新主動式ETF")}
+    raw = ["統一前沿科技主動式ETF基金",            # 已登錄 → 濾
+           "安聯加密科技與金融創新主動式ETF基金",  # 已登錄（hint、未派碼）→ 濾
+           "復華台灣科技優息ETF基金",              # 已掛牌（台帳名）→ 濾
+           "野村神祕新兵主動式ETF基金"]            # 真缺口
+    gaps = etfdiscover.offering_name_gaps(raw, seen, knowns)
+    assert [g["name"] for g in gaps] == ["野村神祕新兵主動式ETF基金"]
+    assert gaps[0]["code"] is None and gaps[0]["src"] == "cnyes"
+
+
+def test_known_names_covers_watchlist_and_codeless_upcoming():
+    kn = etfdiscover.known_names()
+    assert etfdiscover._norm_name("復華台灣科技優息") in kn           # WATCHLIST
+    assert etfdiscover._norm_name("大華銀優利美國非投資等級債券ETF") in kn  # 未派碼 hint 條目
+
+
 # ── 落檔防呆與儀表板紅章 ─────────────────────────────────────
 
 def test_save_gap_never_writes_when_sources_down(tmp_path, monkeypatch):

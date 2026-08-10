@@ -347,7 +347,7 @@ def _new_etf_chip() -> str:
     if not items:
         return ""
     names = "、".join(
-        _esc(f'{i.get("code") or ""}{(" " + i["name"]) if i.get("name") else ""}')
+        _esc(" ".join(x for x in (i.get("code"), i.get("name")) if x)) or "？"
         for i in items[:6])
     more = f" 等 {len(items)} 檔" if len(items) > 6 else ""
     return (f'<span class="chip fresh stale"><b>新 ETF 未登錄</b>　🔴 {len(items)} 檔'

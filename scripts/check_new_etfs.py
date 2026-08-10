@@ -4,7 +4,8 @@
 抓兩層來源 → 更新首見台帳 `data/etf_seen.json` → 把「市場上有／募集頁有，但
 `etfwatch` 完全沒登錄」的檔寫進 `data/etf_upcoming_gap.json`（入庫、儀表板顯示 🔴）：
   ① TWSE＋TPEx 官方每日收盤（全市場代碼，零版式風險）→ 已掛牌卻沒登錄的新檔
-  ② MoneyDJ 新基金募集頁（前瞻）→ 未掛牌又沒登錄的募集候選（fail-open）
+  ② 募集前瞻雙源（皆 fail-open）：MoneyDJ 新基金頁（代碼層）＋鉅亨 IPO 頁（名稱層，
+     2026-08-10 使用者提供；cnyes 對 CI 可達已由 cnyesfund 天天證實、未派碼新檔也逮得住）
 
 設計理由與防呆鐵則見 `arm/etfdiscover.py` docstring（baseline 首建不報警、
 來源不可達不覆寫、台帳只增不減）。
@@ -24,6 +25,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from arm import clock, etfdiscover  # noqa: E402
 
 MONEYDJ_URL = "https://www.moneydj.com/funddj/fundmarket.djhtm?a=broncho-1"
+# 鉅亨 IPO 新基金頁（2026-08-10 使用者提供）：cnyes 對 CI 可達性由 cnyesfund 天天證實，
+# 是前瞻層裡最可靠的一支；名稱層比對（未派碼新檔也逮得住），與 MoneyDJ 代碼層互補。
+CNYES_IPO_URLS = ("https://fund.cnyes.com/IPO/index.htm", "https://fund.cnyes.com/IPO/")
 
 
 def _market_etf_codes() -> dict[str, str]:
@@ -61,6 +65,36 @@ def _offering_codes() -> set[str]:
     return codes
 
 
+def _offering_names_cnyes() -> list[str]:
+    """鉅亨 IPO 頁的 ETF 名稱（fail-open：抓不到／0 筆 → 回空，僅損失名稱前瞻層）。"""
+    from arm.http import get_bytes
+    html = ""
+    for url in CNYES_IPO_URLS:
+        try:
+            html = get_bytes(url, cache_ttl=3600, retries=2).decode("utf-8", "ignore")
+            if html:
+                break
+        except Exception as e:                                     # noqa: BLE001
+            print(f"  ⚠ 鉅亨 IPO 頁抓取失敗（{url} → {type(e).__name__}: {str(e)[:80]}）")
+    if not html:
+        return []
+    names = etfdiscover.extract_etf_names(html)
+    print(f"  · 鉅亨 IPO 頁 {len(html)} bytes，抽出 ETF 名稱 {len(names)} 筆"
+          + (f"：{'、'.join(names[:5])}{'…' if len(names) > 5 else ''}" if names else ""))
+    if not names and len(html) > 5000:
+        print("    ⚠ 頁面非空但 0 名稱——版式可能已變，檢查 etfdiscover._ETF_NAME 樣式")
+    # 結構探針（僅日誌、不進資料）：印內嵌物件鍵名，供日後補「募集期間」欄位一輪收斂
+    try:
+        from arm.connectors import cnyesfund
+        hit = next((o for o in cnyesfund._objects_from_html(html)
+                    if any("ETF" in str(v) for v in o.values())), None)
+        if hit:
+            print(f"    · 內嵌物件鍵名（首筆含 ETF 者）：{sorted(hit.keys())[:20]}")
+    except Exception:                                              # noqa: BLE001 —— 探針絕不影響主流程
+        pass
+    return names
+
+
 def main() -> int:
     today = clock.today_tw()
     print("[新 ETF 發現] 掃市場首見台帳＋募集頁…")
@@ -80,6 +114,9 @@ def main() -> int:
     offering = _offering_codes()
     if offering:
         gaps += etfdiscover.offering_gaps(offering, seen, known)
+    names = _offering_names_cnyes()                       # 名稱層（cnyes；未派碼新檔也逮得住）
+    if names:
+        gaps += etfdiscover.offering_name_gaps(names, seen, etfdiscover.known_names())
     _fp, saved = etfdiscover.save_gap(gaps, sources_ok=bool(market))
     if not saved:
         # 誠實回報「沒檢查」而不是「沒問題」——把未檢查寫成 🟢 0 缺口正是靜默失敗那一型
@@ -91,8 +128,9 @@ def main() -> int:
         return 0
     print(f"[新 ETF 發現] 🔴 {len(gaps)} 檔新 ETF 不在 etfwatch 清單裡：")
     for g in gaps:
-        where = f"已掛牌・首見 {g['first_seen']}" if g["kind"] == "listed" else "募集頁候選・尚未掛牌"
-        print(f"  ✗ {g['code']} {g['name']}（{where}）")
+        where = (f"已掛牌・首見 {g['first_seen']}" if g["kind"] == "listed"
+                 else f"募集頁候選・尚未掛牌（{g.get('src') or 'moneydj'}）")
+        print(f"  ✗ {g.get('code') or '（代號未定）'} {g['name']}（{where}）")
     print("  補法：WebSearch 查證（募集期間／掛牌日／頻率，兩來源一致）後補進 "
           "arm/etfwatch.UPCOMING；策展上刻意不追蹤者填 track: False。")
     return 1
