@@ -25,8 +25,8 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
-from . import (clock, etfholdings, etfwatch, fund_insights, fund_intro, fundnews, macrochips, macronews,
-               stockmeta, treemap, twnews, usnews)
+from . import (clock, etfdiscover, etfholdings, etfwatch, fund_insights, fund_intro, fundnews,
+               macrochips, macronews, stockmeta, treemap, twnews, usnews)
 
 
 def _esc(s) -> str:
@@ -335,6 +335,25 @@ def _intro_gap_chip() -> str:
             f'（{names}{more}）</span>')
 
 
+def _new_etf_chip() -> str:
+    """漏網新 ETF 警示章（讀 data/etf_upcoming_gap.json；scripts/check_new_etfs.py 產）。
+
+    2026-08-10 使用者：「你是怎麼確保之後都抓得到的呢？」——既有守門只認得「已登錄」
+    的條目，從沒登錄過的檔不會讓任何測試變紅。此章由 CI 端的市場首見台帳／募集頁
+    掃描產出：市場上有、清單裡沒有 → 🔴，每日 SOP 見到就 WebSearch 補進 UPCOMING
+    （策展上刻意不追蹤者填 track: False 即從缺口消失）。無缺口／無檔＝不顯示。"""
+    doc = etfdiscover.load_gap()
+    items = doc.get("items") or []
+    if not items:
+        return ""
+    names = "、".join(
+        _esc(" ".join(x for x in (i.get("code"), i.get("name")) if x)) or "？"
+        for i in items[:6])
+    more = f" 等 {len(items)} 檔" if len(items) > 6 else ""
+    return (f'<span class="chip fresh stale"><b>新 ETF 未登錄</b>　🔴 {len(items)} 檔'
+            f'（{names}{more}）</span>')
+
+
 def _yt_watch_chip(today=None) -> str:
     """社群 YouTube 全空警示章（2026-08-07 使用者需求：「每次更新都順便查一下 YouTube」）。
     讀 data/fund_news.json：**今日的**檔、social 段存在、卻無任何 youtube 項＝抓取異常
@@ -384,7 +403,7 @@ def _freshness_view(gen_stamp: str, sources: list[tuple[str, str | None, int | N
     return (f'<div class="section" id="freshness"><div class="st">{_ic("clock")}網頁更新時間　'
             f'{_fresh_chip("網頁更新", gen_stamp, None, today, gen=True)} '
             f'{_factcheck_chip(today)} {_intro_gap_chip()} {_afterhours_chip(today)} '
-            f'{_yt_watch_chip(today)} '
+            f'{_yt_watch_chip(today)} {_new_etf_chip()} '
             f'<span class="stsub">{sub}</span></div></div>')
 
 
