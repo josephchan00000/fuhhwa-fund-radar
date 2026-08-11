@@ -1,18 +1,7 @@
 {
- "as_of": "2026-08-12 06:50",
- "count": 1,
- "items": [
-  {
-   "code": null,
-   "name": "復華台美策略精準高息股債平衡ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "approved",
-   "cat": "ETF",
-   "approve": "115.8.11申報生效"
-  }
- ],
+ "as_of": "2026-08-12 07:01",
+ "count": 0,
+ "items": [],
  "pipeline_n": 7,
  "pipeline": [
   {
