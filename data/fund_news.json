@@ -1,21 +1,14 @@
 {
-  "as_of": "2026/08/11 07:50",
+  "as_of": "2026/08/12 06:48",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板/基金板公開標題＋YouTube 影片・自動擷取",
   "brand": [
     {
-      "title": "聚焦全球50檔產業贏家股票00409A 8/12開募- 日報",
-      "url": "https://www.ctee.com.tw/news/20260805700220-439901",
-      "source": "ctee.com.tw",
-      "date": "2026-08-05 03:00",
-      "datetime": "2026-08-05T03:00:00+08:00"
-    },
-    {
-      "title": "復華全方位基金A類型，這幾天話題滿滿的投信，旗下21年老牌基金表現如何？",
-      "url": "https://www.cmoney.tw/forum/article/181326984",
-      "source": "CMoney",
-      "date": "2026-08-04 16:39",
-      "datetime": "2026-08-04T16:39:55+08:00"
+      "title": "00409A 復華全球未來50主動式ETF ｜成分股？配息？優缺點？募集時間？",
+      "url": "https://www.stockfeel.com.tw/00409a-%E5%BE%A9%E8%8F%AF%E5%85%A8%E7%90%83%E6%9C%AA%E4%BE%8650%E4%B8%BB%E5%8B%95%E5%BC%8F-etf/",
+      "source": "StockFeel 股感",
+      "date": "2026-08-11 17:10",
+      "datetime": "2026-08-11T17:10:32+08:00"
     }
   ],
   "funds": [
@@ -49,9 +42,16 @@
       ],
       "items": [
         {
+          "title": "主動復華全球50-ETF報酬走勢",
+          "url": "https://www.moneydj.com/etf/ea/et012001.djhtm?etfid=00409A.TW",
+          "source": "MoneyDJ",
+          "date": "2026-08-11 07:34",
+          "datetime": "2026-08-11T07:34:01+08:00"
+        },
+        {
           "title": "規模破百億的科技巨獸：安聯台灣科技、復華全球物聯網與華人世紀該怎麼選？",
           "url": "https://www.cmoney.tw/forum/article/181668024",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-08-10 16:42",
           "datetime": "2026-08-10T16:42:49+08:00"
         }
@@ -69,14 +69,14 @@
         {
           "title": "規模破百億的科技巨獸：安聯台灣科技、復華全球物聯網與華人世紀該怎麼選？",
           "url": "https://www.cmoney.tw/forum/article/181668024",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-08-10 16:42",
           "datetime": "2026-08-10T16:42:49+08:00"
         },
         {
           "title": "安聯台灣科技、復華全球物聯網、復華華人世紀該選哪一檔？答案在這 3 個維度",
           "url": "https://www.cmoney.tw/forum/article/181609350",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-08-08 16:51",
           "datetime": "2026-08-08T16:51:17+08:00"
         }
@@ -209,13 +209,6 @@
           "source": "鉅亨網",
           "date": "2026-08-08 11:13",
           "datetime": "2026-08-08T11:13:01+08:00"
-        },
-        {
-          "title": "復華全方位基金A類型，這幾天話題滿滿的投信，旗下21年老牌基金表現如何？",
-          "url": "https://www.cmoney.tw/forum/article/181326984",
-          "source": "CMoney",
-          "date": "2026-08-04 16:39",
-          "datetime": "2026-08-04T16:39:55+08:00"
         }
       ]
     },
@@ -249,7 +242,15 @@
       "short_names": [
         "傳家"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華傳家二號基金 的買賣訊號 | 鉅亨網 - 基金老司機",
+          "url": "https://invest.cnyes.com/funds/detail/%E5%BE%A9%E8%8F%AF%E5%82%B3%E5%AE%B6%E4%BA%8C%E8%99%9F%E5%9F%BA%E9%87%91/A23007/signal",
+          "source": "鉅亨網",
+          "date": "2026-08-06 15:00",
+          "datetime": "2026-08-06T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華傳家二號基金",
@@ -259,7 +260,15 @@
       "short_names": [
         "傳家二號"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華傳家二號基金 的買賣訊號 | 鉅亨網 - 基金老司機",
+          "url": "https://invest.cnyes.com/funds/detail/%E5%BE%A9%E8%8F%AF%E5%82%B3%E5%AE%B6%E4%BA%8C%E8%99%9F%E5%9F%BA%E9%87%91/A23007/signal",
+          "source": "鉅亨網",
+          "date": "2026-08-06 15:00",
+          "datetime": "2026-08-06T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華人生目標基金",
@@ -339,7 +348,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/tM9IfotrDWI",
       "date": "2026-08-10",
-      "views": 332,
+      "views": 439,
       "official": true,
       "short": true
     },
@@ -349,7 +358,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/TzjzKX31lPU",
       "date": "2026-08-06",
-      "views": 736326,
+      "views": 844395,
       "official": true,
       "short": true
     },
@@ -359,7 +368,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/Zv_kAmeQ1Qg",
       "date": "2026-08-05",
-      "views": 541,
+      "views": 579,
       "official": true,
       "short": true
     },
@@ -369,7 +378,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/zt89CwgFOCg",
       "date": "2026-08-05",
-      "views": 13291,
+      "views": 13499,
       "short": true
     },
     {
@@ -378,7 +387,7 @@
       "channel": "九八新聞台",
       "url": "https://www.youtube.com/watch?v=o22Sy3RbQzw",
       "date": "2026-08-06",
-      "views": 6604
+      "views": 6607
     },
     {
       "platform": "youtube",
@@ -386,7 +395,7 @@
       "channel": "喬丹哥",
       "url": "https://www.youtube.com/watch?v=Fxu9U5RLprw",
       "date": "2026-08-06",
-      "views": 2160
+      "views": 2372
     },
     {
       "platform": "youtube",
@@ -394,22 +403,22 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/watch?v=MvPYQuXf1sQ",
       "date": "2026-08-10",
-      "views": 7676,
+      "views": 13626,
       "peer": true
     },
     {
       "platform": "youtube",
-      "title": "00981A崩跌別急砍？主動式ETF&quot;掩護性&quot;耐震？高股息ETF竟最抗跌？0050正2抄底時機？台股大洗牌！【解鎖財經大小事】feat.股市妙芳 陳秀芳 精華版",
-      "channel": "理周FUN財經",
-      "url": "https://www.youtube.com/watch?v=q-wrW2FQBik",
-      "date": "2026-08-09",
-      "views": 5193,
+      "title": "他不買0050，靠這5檔冷門ETF過去3年賺更大？",
+      "channel": "睡後收入",
+      "url": "https://www.youtube.com/watch?v=wD8pTYC0PAc",
+      "date": "2026-08-11",
+      "views": 12081,
       "peer": true
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、全方位（詳下方基金新聞標籤）",
-    "品牌焦點：聚焦全球50檔產業贏家股票00409A 8/12開募- 日報（ctee.com.tw）",
-    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・736,326 次觀看）"
+    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、全方位、傳家、傳家二號（詳下方基金新聞標籤）",
+    "品牌焦點：00409A 復華全球未來50主動式ETF ｜成分股？配息？優缺點？募集時間？（StockFeel 股感）",
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・844,395 次觀看）"
   ]
 }
