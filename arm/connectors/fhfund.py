@@ -186,19 +186,43 @@ def _svg_pairs(html: str, start_heading: str, end_heading: str) -> list[dict]:
     return [{"name": labels[k], "weight": vals[k]} for k in range(n) if vals[k] is not None]
 
 
+# 持有標的段落的候選標題，依序試、first-match 勝。一般基金＝「十大持有標的」；
+# 組合型（fund-of-funds）頁面同表改列持有基金，標題措辭不同（2026-08-12 使用者
+# 反映「官網明明就有」——舊版只認第一種，組合型整段落空還被誤標成官網不揭露）。
+_HOLDING_HEADINGS = ("十大持有標的", "十大持有基金", "主要持有基金", "十大持有")
+
+
 def fetch_holdings(fund_id: str | int) -> dict:
-    """月底十大持有標的（含每檔所屬產業）＋ 國家配置 ＋ 產業配置 ＋ 資料日期。"""
+    """月底十大持有標的（含每檔所屬產業）＋ 國家配置 ＋ 產業配置 ＋ 資料日期。
+
+    列形兩種都收：3 欄以上＝[產業, 名稱, …, 比例]（一般基金）；2 欄＝[名稱, 比例]
+    （組合型持有基金表常無產業欄，sector 記 None）。候選標題全落空時把頁面上
+    含「持有」的片段印進 CI 日誌——proxy 擋本容器、日誌是唯一除錯管道，一輪收斂。"""
     html = get_bytes(PAGE.format(fid=fund_id), cache_ttl=6 * 3600).decode("utf-8", "replace")
 
-    holdings = []
-    for r in _rows_of_table_after(html, "十大持有標的"):
-        if len(r) >= 3 and _pct(r[-1]) is not None:
-            holdings.append({"sector": r[0], "name": r[1], "weight": _pct(r[-1])})
+    holdings, matched = [], None
+    for heading in _HOLDING_HEADINGS:
+        rows = []
+        for r in _rows_of_table_after(html, heading):
+            if _pct(r[-1]) is None:
+                continue
+            if len(r) >= 3:
+                rows.append({"sector": r[0], "name": r[1], "weight": _pct(r[-1])})
+            elif len(r) == 2 and r[0]:
+                rows.append({"sector": None, "name": r[0], "weight": _pct(r[-1])})
+        if rows:
+            holdings, matched = rows, heading
+            break
+    if not holdings:
+        hints = [_text(seg) for seg in re.findall(r".{0,40}持有.{0,40}", html)][:6]
+        if hints:
+            print(f"[fhfund] {fund_id} 持有標的段落未匹配任何候選標題；"
+                  f"頁面含「持有」片段：{' ｜ '.join(hints)}")
 
-    # 資料日期與日期之間夾了 <span>，且全頁多處出現 → 取「十大持有標的之前最近一個」當持股基準日
+    # 資料日期與日期之間夾了 <span>，且全頁多處出現 → 取「持有標的段落之前最近一個」當持股基準日
     dates = [(mm.start(), mm.group(1)) for mm in
              re.finditer(r"資料日期：(?:\s|<[^>]+>)*(\d{4}/\d{2}/\d{2})", html)]
-    hpos = html.find("十大持有標的")
+    hpos = html.find(matched or "十大持有標的")
     before = [d for p, d in dates if hpos < 0 or p < hpos]
     as_of = (before[-1] if before else (dates[0][1] if dates else None))
 
@@ -206,7 +230,7 @@ def fetch_holdings(fund_id: str | int) -> dict:
         "as_of": as_of,
         "top_holdings": holdings,
         "country_alloc": _svg_pairs(html, "國家配置", "產業配置"),
-        "sector_alloc": _svg_pairs(html, "產業配置", "十大持有標的"),
+        "sector_alloc": _svg_pairs(html, "產業配置", matched or "十大持有標的"),
     }
 
 

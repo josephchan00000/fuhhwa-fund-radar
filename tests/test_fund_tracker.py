@@ -28,6 +28,34 @@ def test_holdings_table_parse():
     assert rows[1][2].startswith("3.78")
 
 
+def test_fof_holdings_table_parse(monkeypatch):
+    # 組合型頁面：標題措辭不同（十大持有基金）且無產業欄（2 欄：名稱｜比例）
+    # ——2026-08-12 使用者反映組合型抓不到，舊版只認「十大持有標的」＋3 欄
+    html = """
+    <h3>十大持有基金</h3>
+    <table class="fundTable"><thead><tr><th>基金名稱</th><th>投資比例</th></tr></thead>
+    <tbody>
+      <tr><td>復華全球大趨勢基金</td><td><span>18.50%</span></td></tr>
+      <tr><td>iShares 安碩核心標普500 ETF</td><td><span>12.30%</span></td></tr>
+    </tbody></table>
+    <div>資料日期：<span>2026/06/30</span></div>"""
+    monkeypatch.setattr(fhfund, "get_bytes", lambda *a, **k: html.encode("utf-8"))
+    out = fhfund.fetch_holdings("22")
+    assert [h["name"] for h in out["top_holdings"]] == \
+        ["復華全球大趨勢基金", "iShares 安碩核心標普500 ETF"]
+    assert out["top_holdings"][0]["weight"] == 18.5
+    assert out["top_holdings"][0]["sector"] is None      # 組合型無產業欄
+    # 一般基金的 3 欄表仍走原路（標題優先序在前，不互相干擾）
+    html2 = """
+    <h3>十大持有標的</h3>
+    <table class="fundTable"><tbody>
+      <tr><td>資訊技術</td><td>聯發科</td><td>3.78%</td></tr>
+    </tbody></table>"""
+    monkeypatch.setattr(fhfund, "get_bytes", lambda *a, **k: html2.encode("utf-8"))
+    out2 = fhfund.fetch_holdings("06")
+    assert out2["top_holdings"] == [{"sector": "資訊技術", "name": "聯發科", "weight": 3.78}]
+
+
 def test_svg_alloc_pairs():
     # 值先、標籤後（平行對位），比照官網 server-rendered SVG
     html = ('國家配置'
