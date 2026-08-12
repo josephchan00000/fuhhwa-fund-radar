@@ -1,0 +1,154 @@
+{
+  "fund_id": "27",
+  "name": "復華全球原物料基金",
+  "short_name": "全球原物料",
+  "en_name": "Fuh Hwa Global Commodity Fund",
+  "category": "跨國投資股票型",
+  "region": "全球",
+  "asset_kind": "股票型",
+  "currency": "新臺幣",
+  "inception": "2010/03/30",
+  "risk_level": "RR4",
+  "mgmt_fee": "2.00%",
+  "size_twd": 1614582862.0,
+  "nav": 14.56,
+  "nav_date": "2026/08/10",
+  "nav_change": -0.01,
+  "nav_change_pct": "-0.07%",
+  "returns": {
+    "ytd": "6.49%",
+    "3m": "-17.48%",
+    "6m": "-8.63%",
+    "1y": "30.08%",
+    "2y": "14.76%",
+    "3y": "11.16%",
+    "since": "34.50%"
+  },
+  "managers": [
+    "蔡盛宇"
+  ],
+  "co_managers": [],
+  "strategy": "隨地球資源稀缺、原物料越用越少，搭配能源轉型趨勢，布局多元題材之傳統能源/新能源、金屬礦物、農業等相關產業。 依景氣動能、各類原物料供需、未來技術發展趨勢等，決定配置內容；追求參與上升波段行情，於市場反轉時控制風險。",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/27.pdf",
+  "dist_date": "2026/07/31",
+  "dist_rate": "—",
+  "as_of": "2026/06/30",
+  "top_holdings": [
+    {
+      "sector": "資訊技術",
+      "name": "SK HYNIX INC",
+      "weight": 9.43
+    },
+    {
+      "sector": "資訊技術",
+      "name": "KIOXIA HOLDINGS CORP",
+      "weight": 8.7
+    },
+    {
+      "sector": "原材料",
+      "name": "LUNDIN MINING CORP",
+      "weight": 6.15
+    },
+    {
+      "sector": "資訊技術",
+      "name": "INFINEON TECHNOLOGIES AG",
+      "weight": 5.72
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MURATA MANUFACTURING CO LTD",
+      "weight": 5.39
+    },
+    {
+      "sector": "資訊技術",
+      "name": "CORNING INC",
+      "weight": 5.34
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SAMSUNG ELECTRO-MECHANICS CO",
+      "weight": 4.99
+    },
+    {
+      "sector": "工業",
+      "name": "FURUKAWA ELECTRIC CO LTD",
+      "weight": 4.42
+    },
+    {
+      "sector": "資訊技術",
+      "name": "TAIYO YUDEN CO LTD",
+      "weight": 4.3
+    },
+    {
+      "sector": "資訊技術",
+      "name": "STMICROELECTRONICS NV-NY SHS",
+      "weight": 3.68
+    }
+  ],
+  "country_alloc": [
+    {
+      "name": "日本",
+      "weight": 35.7
+    },
+    {
+      "name": "美國",
+      "weight": 25.0
+    },
+    {
+      "name": "韓國",
+      "weight": 14.41
+    },
+    {
+      "name": "加拿大",
+      "weight": 10.31
+    },
+    {
+      "name": "臺灣",
+      "weight": 6.3
+    },
+    {
+      "name": "德國",
+      "weight": 5.72
+    },
+    {
+      "name": "英國",
+      "weight": 1.19
+    },
+    {
+      "name": "流動資產",
+      "weight": 1.37
+    }
+  ],
+  "sector_alloc": [
+    {
+      "name": "資訊技術",
+      "weight": 72.7
+    },
+    {
+      "name": "原材料",
+      "weight": 18.96
+    },
+    {
+      "name": "工業",
+      "weight": 4.42
+    },
+    {
+      "name": "非核心消費品",
+      "weight": 2.56
+    },
+    {
+      "name": "流動資產",
+      "weight": 1.37
+    }
+  ],
+  "group": "global_equity",
+  "fetched_at": "2026-08-12 12:53",
+  "returns_daily": {
+    "1m": -12.5,
+    "3m": -17.92559,
+    "6m": -3.76735,
+    "1y": 39.06399,
+    "ytd": 15.28108
+  },
+  "returns_daily_asof": "2026/08/10"
+}
