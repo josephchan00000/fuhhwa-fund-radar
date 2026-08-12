@@ -1,5 +1,5 @@
 {
- "_note": "復華基金追蹤版本追蹤清單。id＝fhtrust.com.tw/funds/funds_detail/{id}；group∈{global_equity,global_balanced,tw_equity,tw_balanced,tw_fof}。name/category 以 /api/fund 回傳為權威，scripts/fetch_holdings.py 會覆寫進 data/funds/{id}.json。",
+ "_note": "復華基金追蹤版本追蹤清單。id＝fhtrust.com.tw/funds/funds_detail/{id}；group∈{global_equity,global_balanced,global_fof,tw_equity,tw_balanced,tw_fof}。name/category 以 /api/fund 回傳為權威，scripts/fetch_holdings.py 會覆寫進 data/funds/{id}.json。新增基金 SOP 見 docs/add_fund_guide.md。",
  "funds": [
   {
    "id": "47",
@@ -42,6 +42,11 @@
    "group": "global_equity"
   },
   {
+   "id": "27",
+   "name": "復華全球原物料基金",
+   "group": "global_equity"
+  },
+  {
    "id": "12",
    "name": "復華全球平衡基金-新臺幣",
    "group": "global_balanced"
@@ -55,6 +60,11 @@
    "id": "16",
    "name": "復華亞太平衡基金",
    "group": "global_balanced"
+  },
+  {
+   "id": "22",
+   "name": "復華奧林匹克全球優勢組合基金-新臺幣A",
+   "group": "global_fof"
   },
   {
    "id": "01",

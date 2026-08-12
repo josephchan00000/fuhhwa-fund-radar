@@ -1662,7 +1662,8 @@ def _bars(items: list[dict], accent: str) -> str:
 def _holdings_table(doc: dict, linked_names: set[str]) -> str:
     hs = doc.get("top_holdings") or []
     if not hs:
-        if doc.get("group") == "tw_fof":
+        # 組合型（*_fof：tw_fof／global_fof）官網一律不揭露「十大持有標的」表——非資料缺漏
+        if str(doc.get("group") or "").endswith("_fof"):
             return ('<div class="muted">本基金為組合型（fund-of-funds），主要持有基金／ETF，'
                     '官網不揭露「十大持有標的」表；成分揭露請見基金月報。</div>')
         return '<div class="muted">十大持有標的暫無資料。</div>'
@@ -1772,7 +1773,7 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
 
 def _pending_card(p: dict) -> str:
     note = ("本基金為組合型（fund-of-funds），官網「十大持有標的」揭露結構不同；"
-            if p["fund_id"] == "79" else "")
+            if str(p.get("group") or "").endswith("_fof") else "")
     return f"""
 <details class="fund pendcard" id="fund-{_esc(p['fund_id'])}" data-name="{_esc(p['name'])}"
   data-group="{_esc(p['group_label'])}">
