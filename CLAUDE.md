@@ -109,7 +109,8 @@
    `N. **標籤**：` 即可，勿改渲染端；
    **再跑 `TZ=Asia/Taipei python3 scripts/check_holdings_intro.py`（前十大簡介覆蓋率，🔴＝有持股缺簡介）——
    見 🔴 立即 WebSearch 查證後把缺的標的補進 `config/holding_profiles.json`（格式 `{name: {intro, ticker, country, verified}}`、
-   純事實非投資建議、避開禁用詞），補到 🟢 為止**（2026-07-23 使用者：前十大簡介一再漏掉，此為固定防呆步驟，不可略）；
+   純事實非投資建議、避開禁用詞），補到 🟢 為止**（2026-07-23 使用者：前十大簡介一再漏掉，此為固定防呆步驟，不可略；
+   補完隨步驟 6 push 即自動落地——該檔走 daily.yml 併檔自動通道，不需 PR，見步驟 9⑤）；
    再跑 `TZ=Asia/Taipei python3 scripts/check_numbers.py`（高風險數字對官方 API——本容器 proxy 擋 twse/taifex
    會全 ⚪ 屬正常，真正核對在 CI）。**發佈策略（2026-07-20 使用者兩指示並行：數字要對＋防線不可硬到什麼都沒更新）**：
    CI 端 🔴 **不擋發佈**——結果落 `data/factcheck.json` 隨每日 commit 入板、儀表板「網頁更新時間」區顯示
@@ -146,9 +147,19 @@
      - **我（容器內 Claude）看不到 Vercel 線上頁**（proxy CONNECT 403），所以**不可只憑「main 檔已更新」就宣稱「線上已生效」**——那是我 07-17 誤報的錯。我的完成定義只到「**CI commit 在 main＋該 `daily.yml` run success＋該 commit `nav_date` 已推進**」；「**線上真的更新**」需使用者端或 Deploy Hook 確認。
      - **主動部署**：`daily.yml` 末步已加「打 **Vercel Deploy Hook**」（`secrets.VERCEL_DEPLOY_HOOK`）——CI commit 完直接觸發 production 部署 main 最新，**不靠 Vercel 自動偵測**（自動偵測曾卡 Initializing／部到舊版）。**使用者需先建 hook**：Vercel 專案 Settings→Git→Deploy Hooks 建 `main` 分支 hook → URL 存成 repo secret `VERCEL_DEPLOY_HOOK`。未設時該步自動跳過、不影響 commit。
      - Vercel `vercel.json` 已設 `Cache-Control: no-store`（全站不快取）→ **線上看到舊的一律是「沒部署」而非快取**，別叫使用者清快取白忙。
-   - **⑤ 前十大簡介缺口（2026-07-23 使用者：一再漏掉，務必查）**：讀 `git show origin/main:data/holdings_intro_gap.json`，
-     `count` 須為 0。若 >0＝CI 端抓到新持股缺簡介（見下方專節根因）——**立即 WebSearch 補進
-     `config/holding_profiles.json` 並重推**（同數字核對 🔴 的分鐘級收斂）；儀表板「網頁更新時間」列也會顯示 🔴 警示章。
+   - **⑤ 前十大簡介缺口（2026-07-23 使用者：一再漏掉，務必查；2026-08-12 起補齊「全自動落地」）**：讀
+     `git show origin/main:data/holdings_intro_gap.json`，`count` 須為 0。若 >0（常見於官網換月、
+     新標的進前十大）照下列**極簡迴路**收斂（今天的紅章今天滅，全程 ~5 分鐘、不跑任何抓取腳本）：
+     ① gap 檔 `items[].name` 就是快照原字串——**每檔 1 次 WebSearch** 查證（公司本業／代號／國別）；
+     ② 補進 `config/holding_profiles.json`（`{原字串: {intro, ticker, country, verified}}`，
+        intro 純事實、避開禁用詞；country＝公司母國，如英飛凌→德國）；
+     ③ `TZ=Asia/Taipei python3 scripts/check_holdings_intro.py` 須 🟢——它同時把本地 gap 檔歸零，
+        **一起 commit**（下一輪重建紅章即滅，不等 CI 自查）；
+     ④ `python3 -m pytest -q tests/test_holdings_intro.py` 秒級確認 → commit＋push 本會話分支。
+     **push 即收工**：`config/holding_profiles.json` 已入 daily.yml 自動併檔通道（同
+     `data/etf_upcoming.json` 模式，防呆＝JSON 驗證＋有簡介筆數不得減少）——**不需開 PR、
+     不需 merge、不需 dispatch、不需監看**，push 觸發的那輪 CI 自動併入 main＋重建＋部署。
+     （2026-08-12 前的舊流程要開 PR 人工 merge——首例 PR #200；通道上線後勿再走。）
    - **⑥ 盤後完整性警示（2026-08-03 新增）**：讀 `git show origin/main:data/afterhours_alert.json`——
      `date`＝昨日且 `missing` 非空＝昨天盤後有缺口且到深夜都沒自癒（夜檢 Routine 應已推播過）；
      早上這班會把缺口補齊，但請在推播裡帶一句、並查 afterhours run 日誌找根因。
@@ -365,13 +376,19 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
     **只會出現在 CI 產出的 `data/funds/*.json`**，容器端（主會話）看到的是舊快照，本地檢查／pytest
     自然抓不到新標的缺簡介 → 漏的簡介直接隨 CI commit 上線。這不是誰忘了，是「抓取在 CI、補簡介在容器」
     的時間差結構性造成。
-  - **防呆（三道，缺一不可）**：
+  - **防呆（三道，缺一不可）＋自動落地（2026-08-12 補上最後一哩）**：
     ① **CI 端即時偵測**：`daily_fund.sh` 在建表前跑 `scripts/check_holdings_intro.py`，把缺口寫
        `data/holdings_intro_gap.json`（入庫），儀表板「網頁更新時間」列顯示 🔴「N 檔缺簡介」警示章。
-    ② **每日 SOP 固定步驟**（步驟 3 與步驟 9⑤）：主會話每輪讀該 gap 檔，見 🔴 立即 WebSearch 補
-       `config/holding_profiles.json` 並重推——分鐘級收斂，比照數字核對 🔴。
+    ② **每日 SOP 固定步驟**（步驟 3 與步驟 9⑤，極簡迴路見 9⑤）：主會話每輪讀該 gap 檔，見 🔴
+       立即 WebSearch 補 `config/holding_profiles.json` 並 push——**push 就落地**：該檔已入
+       daily.yml 自動併檔通道（防呆＝JSON 驗證＋有簡介筆數不得減少、壞檔/倒灌保 main 版），
+       不需 PR/merge/dispatch/監看。舊流程（開 PR 人工 merge，首例 #200）已淘汰。
     ③ **pytest 守覆蓋**：`tests/test_holdings_intro.py` 斷言「已入庫的基金快照前十大 100% 有簡介」，
        容器端一旦看到含新標的的快照就會紅、逼在發佈前補齊。
+  - **「每月固定更新時間」的正解＝不需要另設**：前十大是官網**月度**揭露（`as_of` 顯示上月底，
+    換月時點由投信定、實務約次月上旬～中旬），而 CI **每天**都抓（06:35 Routine＋07:15 cron 兜底）
+    ——官網哪天換月，當天早上就自動帶入、`as_of` 自動推進；日頻管線天然涵蓋月頻資料源，
+    另設月更排程只是多一個要維護的東西。換月常伴新標的缺簡介 → 由上面三道防呆＋9⑤ 迴路吃掉。
   - **補簡介格式**：`config/holding_profiles.json` 的 `profiles` 下 `{持股原字串: {intro, ticker, country, verified}}`；
     key 必須是 `data/funds/*.json` 內 `top_holdings[].name` 的**原字串**（含 `*` 等後綴，精確對應）；
     intro 純事實描述、非投資建議、避開禁用詞。冷門標的先 WebSearch 查證再寫。
