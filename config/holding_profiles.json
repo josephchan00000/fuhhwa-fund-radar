@@ -2250,6 +2250,120 @@
    "intro": "意法半導體，歐洲最大半導體廠之一（法義合資、總部瑞士日內瓦；此為紐約掛牌股份），主力微控制器（MCU）、功率半導體與感測器，車用與工業應用為兩大支柱，並為碳化矽（SiC）功率元件主要供應商之一。",
    "ticker": "STM",
    "verified": true
+  },
+  "元大台灣50": {
+   "country": "臺灣",
+   "ticker": "0050",
+   "intro": "台灣首檔 ETF（0050），追蹤臺灣50指數，成分為台股市值前 50 大上市公司，台積電權重最高；為台股大盤的代表性指數化工具。",
+   "verified": true
+  },
+  "iShares ESG Aware U.S. Aggre": {
+   "country": "美國",
+   "ticker": "EAGG",
+   "intro": "iShares ESG 美國綜合債券 ETF（EAGG），追蹤納入 ESG 篩選的美國投資等級綜合債券指數，涵蓋公債、公司債與 MBS。",
+   "verified": true
+  },
+  "iShares ESG Aware MSCI USA E": {
+   "country": "美國",
+   "ticker": "ESGU",
+   "intro": "iShares ESG Aware MSCI USA ETF（ESGU），追蹤納入 ESG 條件的 MSCI USA 指數，涵蓋美國大型與中型股。",
+   "verified": true
+  },
+  "Vanguard ESG International S": {
+   "country": "美國",
+   "ticker": "VSGX",
+   "intro": "Vanguard ESG 國際股票 ETF（VSGX），投資美國以外已開發與新興市場大中小型股，並依 ESG 條件排除特定產業。",
+   "verified": true
+  },
+  "群益台ESG低碳50": {
+   "country": "臺灣",
+   "ticker": "00923",
+   "intro": "群益台灣ESG低碳50 ETF（00923），追蹤特選臺灣ESG低碳50指數——於 ESG 表現較佳的大型權值股中排除高碳排企業，半年配息。",
+   "verified": true
+  },
+  "iShares ESG Aware USD Corpor": {
+   "country": "美國",
+   "ticker": "SUSC",
+   "intro": "iShares ESG 美元投資等級公司債 ETF（SUSC），追蹤納入 ESG 篩選的美元計價投資等級公司債指數。",
+   "verified": true
+  },
+  "先鋒全世界股票ETF": {
+   "country": "美國",
+   "ticker": "VT",
+   "intro": "Vanguard Total World Stock ETF（VT），單檔涵蓋全球已開發與新興市場數千檔股票的全市場指數 ETF。",
+   "verified": true
+  },
+  "Vanguard ESG US Stock ETF": {
+   "country": "美國",
+   "ticker": "ESGV",
+   "intro": "Vanguard ESG 美國股票 ETF（ESGV），涵蓋美國全市場大中小型股並依 ESG 條件篩選排除特定產業。",
+   "verified": true
+  },
+  "復華全球物聯網科技證券投資信託基金 (美元)": {
+   "country": "臺灣",
+   "ticker": null,
+   "intro": "復華投信自家「全球物聯網科技基金」之美元級別，投資全球物聯網與科技供應鏈相關個股；其新臺幣級別即本雷達追蹤清單內的同名基金。",
+   "verified": true
+  },
+  "iShares MSCI ACWI ETF": {
+   "country": "美國",
+   "ticker": "ACWI",
+   "intro": "iShares MSCI ACWI ETF（ACWI），追蹤 MSCI 全世界指數，涵蓋全球已開發與新興市場大中型股。",
+   "verified": true
+  },
+  "元大台灣加權股價指數證券投資信託基金 A 類型 (新台幣)": {
+   "country": "臺灣",
+   "ticker": null,
+   "intro": "元大投信發行的指數型基金，以指數化策略追蹤台灣加權股價指數（台股大盤）表現。",
+   "verified": true
+  },
+  "復華股債指數傘型證券投資信託基金之復華5至10年期投資等級債券指數證券投資信託基金 (新臺幣)": {
+   "country": "臺灣",
+   "ticker": null,
+   "intro": "復華投信自家股債指數傘型基金旗下子基金，追蹤 5 至 10 年期投資等級公司債指數的債券指數型基金。",
+   "verified": true
+  },
+  "安聯台灣科技證券投資信託基金": {
+   "country": "臺灣",
+   "ticker": null,
+   "intro": "安聯投信的主動式台股基金，聚焦台灣科技與電子產業龍頭及供應鏈個股，為台股科技型基金代表之一。",
+   "verified": true
+  },
+  "國泰台灣高股息傘型證券投資信託基金之台灣高股息證券投資信託基金 A類型 (新臺幣)": {
+   "country": "臺灣",
+   "ticker": null,
+   "intro": "國泰投信台灣高股息傘型基金旗下子基金，主動式台股基金，以殖利率與配息能力為主要選股依據。",
+   "verified": true
+  },
+  "統一黑馬證券投資信託基金": {
+   "country": "臺灣",
+   "ticker": null,
+   "intro": "統一投信的主動式台股基金，以挖掘具成長潛力的個股為選股主軸，屬台股成長型基金。",
+   "verified": true
+  },
+  "野村優質證券投資信託基金 S (新臺幣)": {
+   "country": "臺灣",
+   "ticker": null,
+   "intro": "野村投信的主動式台股基金，長期以電子科技股為主要配置，S 為其級別代號。",
+   "verified": true
+  },
+  "野村高科技證券投資信託基金 累積 (新臺幣)": {
+   "country": "臺灣",
+   "ticker": null,
+   "intro": "野村投信的主動式台股基金，聚焦台灣高科技產業個股，此為累積（不配息）級別。",
+   "verified": true
+  },
+  "富邦科技": {
+   "country": "臺灣",
+   "ticker": "0052",
+   "intro": "富邦科技 ETF（0052），追蹤臺灣資訊科技指數，成分集中台股科技權值股，台積電權重居首。",
+   "verified": true
+  },
+  "復華復華證券投資信託基金": {
+   "country": "臺灣",
+   "ticker": null,
+   "intro": "復華投信自家的旗艦主動式台股基金，即本雷達追蹤清單內的「復華復華基金」。",
+   "verified": true
   }
  }
 }
