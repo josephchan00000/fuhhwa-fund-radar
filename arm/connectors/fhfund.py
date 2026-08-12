@@ -170,11 +170,22 @@ def _rows_of_table_after(html: str, heading: str) -> list[list[str]]:
     return rows
 
 
-def _svg_pairs(html: str, start_heading: str, end_heading: str) -> list[dict]:
-    """國家/產業配置為 server-rendered SVG：先出現一組數值 <text>，再一組類別標籤 <text>，
-    兩組平行對位。回傳 [{name, weight}]（濾掉數量不對位的情形）。"""
-    i = html.find(start_heading)
-    j = html.find(end_heading, i + 1) if i >= 0 else -1
+def _svg_pairs(html: str, start_heading, end_heading) -> list[dict]:
+    """國家/產業/資產配置為 server-rendered SVG：先出現一組數值 <text>，再一組類別標籤
+    <text>，兩組平行對位。回傳 [{name, weight}]（濾掉數量不對位的情形）。
+
+    start/end 皆可給 str 或 tuple 候選：start 取第一個找得到的；end 取 start 之後
+    **最近**出現的候選（組合型頁面段落順序與一般基金不同，2026-08-12）。"""
+    starts = (start_heading,) if isinstance(start_heading, str) else tuple(start_heading)
+    ends = (end_heading,) if isinstance(end_heading, str) else tuple(end_heading)
+    i = -1
+    for s in starts:
+        i = html.find(s)
+        if i >= 0:
+            start_heading = s
+            break
+    j = min((p for p in (html.find(e, i + 1) for e in ends) if p >= 0), default=-1) \
+        if i >= 0 else -1
     if i < 0 or j < 0:
         return []
     seg = html[i:j]
@@ -226,10 +237,20 @@ def fetch_holdings(fund_id: str | int) -> dict:
     before = [d for p, d in dates if hpos < 0 or p < hpos]
     as_of = (before[-1] if before else (dates[0][1] if dates else None))
 
+    # 資產配置＝組合型頁面取代「國家/產業配置」的段落（2026-08-12 使用者指出）；
+    # 一般基金頁無此段回空即可。段落順序未知 → 終點取「之後最近的已知段落」。
+    _alloc_ends = ("國家配置", "產業配置") + _HOLDING_HEADINGS
+    asset = _svg_pairs(html, ("資產配置", "資產類別配置"), _alloc_ends)
+    if not asset and "資產配置" in html:
+        k = html.find("資產配置")
+        print(f"[fhfund] {fund_id} 頁面有「資產配置」但解析 0 筆——上下文片段："
+              f"{_text(html[max(0, k - 80):k + 300])[:220]}")
+
     return {
         "as_of": as_of,
         "top_holdings": holdings,
-        "country_alloc": _svg_pairs(html, "國家配置", "產業配置"),
+        "asset_alloc": asset,
+        "country_alloc": _svg_pairs(html, "國家配置", ("產業配置",) + _HOLDING_HEADINGS),
         "sector_alloc": _svg_pairs(html, "產業配置", matched or "十大持有標的"),
     }
 
@@ -240,6 +261,7 @@ def fetch_fund(fund_id: str | int) -> dict:
     try:
         out.update(fetch_holdings(fund_id))
     except Exception as e:  # 持股頁暫時抓不到 → 保留 meta，持股留空、不崩
-        out.update({"as_of": None, "top_holdings": [], "country_alloc": [],
-                    "sector_alloc": [], "holdings_error": f"{type(e).__name__}: {e}"})
+        out.update({"as_of": None, "top_holdings": [], "asset_alloc": [],
+                    "country_alloc": [], "sector_alloc": [],
+                    "holdings_error": f"{type(e).__name__}: {e}"})
     return out
