@@ -2232,6 +2232,24 @@
    "intro": "台灣鴻海精密（Foxconn），全球最大電子專業製造服務（EMS）廠；業務涵蓋消費電子組裝、伺服器與網通設備，並發展電動車與半導體布局。",
    "ticker": "2317",
    "verified": true
+  },
+  "LUNDIN MINING CORP": {
+   "country": "加拿大",
+   "intro": "加拿大基本金屬礦業公司（多倫多上市，代號 LUN），以銅礦為主力：營運智利 Candelaria 與 Caserones 兩大銅礦（兼產鉬、金）及巴西 Chapada 礦區，營運表現與國際銅價高度連動。",
+   "ticker": "LUN",
+   "verified": true
+  },
+  "FURUKAWA ELECTRIC CO LTD": {
+   "country": "日本",
+   "intro": "日本古河電工（1884 年創立），電線電纜與光纖大廠——光纖市佔全球前二、電線全球前五；產品涵蓋光纖光纜、電力電纜、汽車線束與銅箔等金屬材料，營運與資料中心光通訊、電網投資及汽車產業需求連動。",
+   "ticker": "5801",
+   "verified": true
+  },
+  "STMICROELECTRONICS NV-NY SHS": {
+   "country": "瑞士",
+   "intro": "意法半導體，歐洲最大半導體廠之一（法義合資、總部瑞士日內瓦；此為紐約掛牌股份），主力微控制器（MCU）、功率半導體與感測器，車用與工業應用為兩大支柱，並為碳化矽（SiC）功率元件主要供應商之一。",
+   "ticker": "STM",
+   "verified": true
   }
  }
 }
