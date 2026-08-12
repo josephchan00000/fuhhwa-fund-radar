@@ -203,7 +203,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     <span class="tb-lamp">{lamp}</span>
     <nav class="tb-nav tb-nav-fund">
       <a href="#brief">今日重點</a><a href="#news">新聞</a>
-      <a href="#fundnews">基金新聞</a>
+      <a href="#fundnews">復華新聞</a>
       <a href="#overview">基金總覽</a>
       <a href="#details">基金詳情</a>
     </nav>
@@ -1815,7 +1815,7 @@ def _details_block(funds: list[dict], gavg: dict, linked_by_fund: dict[str, set[
     return cards
 
 
-# ── ⑥ 基金相關新聞・社群（讀 data/fund_news.json；無檔顯示提示不壞版） ──
+# ── ⑥ 復華新聞・社群（2026-08-12 使用者指示改名；讀 data/fund_news.json；無檔顯示提示不壞版） ──
 
 def _fundnews_item(i: dict, tags: str = "") -> str:
     """單則新聞列：標題（可點）＋摘要（有才顯示）＋日期・來源・關聯基金標籤 meta 列。"""
@@ -1848,7 +1848,7 @@ def _fmt_views(n) -> str:
 
 def _fundnews_view(doc: dict | None) -> str:
     if not doc:
-        return ('<div class="muted">尚無基金新聞資料。請執行 '
+        return ('<div class="muted">尚無復華新聞資料。請執行 '
                 '<code>python3 scripts/fetch_fund_news.py</code> 後重產儀表板。</div>')
     win = doc.get("window_days") or 7
     parts = []
@@ -1891,7 +1891,7 @@ def _fundnews_view(doc: dict | None) -> str:
     entries.sort(key=lambda e: e["item"].get("datetime") or e["item"].get("date") or "",
                  reverse=True)
 
-    parts.append(f'<div class="fng">{_ic("news", plain=True)} 復華相關新聞（近 {win} 天）</div>')
+    parts.append(f'<div class="fng">{_ic("news", plain=True)} 復華新聞（近 {win} 天）</div>')
     if entries:
         parts.append('<div class="fnlist">' + "".join(
             _fundnews_item(e["item"], "".join(e["tags"])) for e in entries) + '</div>')
@@ -1899,7 +1899,7 @@ def _fundnews_view(doc: dict | None) -> str:
         parts.append(f'<div class="muted">近 {win} 天無相關新聞（或來源暫不可達）。</div>')
 
     soc = doc.get("social") or []
-    parts.append(f'<div class="fng">{_ic("chat", plain=True)} 社群討論（PTT 股票板・基金板・YouTube）</div>')
+    parts.append(f'<div class="fng">{_ic("chat", plain=True)} 社群討論（PTT・強基金・YouTube）</div>')
     if soc:
         rows = []
         for s in soc:
@@ -1912,6 +1912,11 @@ def _fundnews_view(doc: dict | None) -> str:
                     pill = '<span class="fntag fnbrand">官方</span>'
                 elif s.get("peer"):
                     pill = '<span class="fntag">同業熱門</span>'
+            elif (s.get("platform") or "") == "fundhot":    # 2026-08-12 使用者需求：加強基金
+                n = s.get("replies")
+                badge = (f'<span class="fnpush">💬 {int(n)}</span>' if n
+                         else '<span class="fnpush">💬</span>')
+                src = "強基金" + (f"・{_esc(s.get('board'))}" if s.get("board") else "")
             else:
                 badge = f'<span class="fnpush">{int(s.get("push") or 0)} 推</span>'
                 # 舊落檔項目無 board 欄＝雙板改版前抓的股票板（2026-08-07 起帶 board）
@@ -2494,7 +2499,7 @@ a.tk{text-decoration:none} a.tk:hover{color:var(--acc)}
   .tb-in{padding:7px 14px}.mk{padding:6px 8px 8px;font-size:15.5px}body{font-size:16.5px}
   #overview .st::after,#macro-cal .st::after,#etfwatch .st::after,#macro-data .st::after{content:"↔ 表格可左右滑動";font-weight:400;font-size:12px;color:var(--mut)}
   .backtop{right:10px;bottom:10px;padding:7px 12px;font-size:12.5px}}
-/* ⑥ 基金相關新聞・社群 */
+/* ⑥ 復華新聞・社群 */
 .fng{font-weight:700;font-size:14px;color:var(--accd);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line)}
 .fnhl{background:var(--hlbg);border:0;border-radius:10px;padding:11px 16px 13px;margin-bottom:4px}
 .fnhlt{font-weight:800;font-size:15px;color:var(--hl)}
@@ -2940,7 +2945,7 @@ def render() -> str:
         ("NAV 日", nav_date, 6), ("持股基準", hold_asof, 45), ("持股快照抓取", fetched_at, 3),
         ("美股新聞", us_date, 3), ("台股新聞", tw_date, 3),
         ("總經・政策", mac_date, 3), ("經濟行事曆", cal_date, 8),
-        ("基金新聞・社群", fn_asof, 3), ("ETF 數據追蹤", etf_asof, 10),
+        ("復華新聞・社群", fn_asof, 3), ("ETF 數據追蹤", etf_asof, 10),
         # ETF 持股揭露＝展開明細資料層（etf_holdings.yml 台北週一~五 17:40 抓）——
         # 停更超過 3 天代表該 workflow 掛了，要列進逾期警示（同其他來源慣例）
         ("ETF 持股揭露", max(((v.get("date") or "") for v in ((eh_doc or {}).get("etfs") or {}).values()),
@@ -3018,10 +3023,10 @@ def render() -> str:
     # ETF 詳情（底部）：持股異動方塊圖＋異動明細＋完整持股明細（2026-07-30 使用者需求）
     sec_etf_det = _etf_detail_view(etf_doc, eh_doc)
 
-    # ②b 基金相關新聞・社群（品牌＋各基金合併單一清單＋PTT 聲量；讀 data/fund_news.json）
+    # ②b 復華新聞・社群（品牌＋產品＋各基金合併單一清單＋社群聲量；讀 data/fund_news.json）
     fn_sub = (f'近 {fn_doc.get("window_days") or 7} 天・Google News＋財經RSS＋PTT 自動擷取'
-              if fn_doc else '基金新聞／PTT 聲量')
-    sec_fnews = (f'<div class="section" id="fundnews"><div class="st">{_ic("megaphone", tone="purple")}基金相關新聞・社群 '
+              if fn_doc else '復華新聞／社群聲量')
+    sec_fnews = (f'<div class="section" id="fundnews"><div class="st">{_ic("megaphone", tone="purple")}復華新聞・社群 '
                  f'{_fresh_chip("更新", fn_asof, 3)} '
                  f'<span class="stsub">{_esc(fn_sub)}</span></div>'
                  f'{_fundnews_view(fn_doc)}</div>')

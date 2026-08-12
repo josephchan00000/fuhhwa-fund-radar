@@ -614,6 +614,114 @@ def test_view_renders_etf_product_tag_without_fund_link():
     assert "主動復華全球50 00409A 8月12日開募" in html
 
 
+# ── 強基金 fundhot（2026-08-12 使用者需求：加入強基金論壇、含金複合等投資方法討論）──
+
+_FUNDHOT_PAGE = """
+<nav><a href="/forum/%E8%82%A1%E7%A5%A8%E5%9F%BA%E9%87%91">股票基金討論區</a></nav>
+<a href="/forum/%E8%82%A1%E7%A5%A8%E5%9F%BA%E9%87%91/%E9%87%91%E8%A4%87%E5%90%88/7603">
+  <span>復華傳家二號、中國新經濟A股、中小精選基金，該併成金複合？還是分開扣？</span></a>
+<a href="https://fundhot.com/forum/%E5%85%B6%E4%BB%96/site-news/10688">✍️為何強基金要冒風險花大錢作新網站？</a>
+<a href="/forum/%E8%82%A1%E7%A5%A8/00929-talk/9001">00929 配息討論串</a>
+<a href="/forum/%E8%82%A1%E7%A5%A8/etf-0050/9002">0050 長期持有心得</a>
+<a href="/forum/%E8%82%A1%E7%A5%A8%E5%9F%BA%E9%87%91/%E9%87%91%E8%A4%87%E5%90%88/7603">重複同話題</a>
+"""
+
+_FUNDHOT_ATOM = """<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">
+<entry><title type="html"><![CDATA[金複合理財機器人進場訊號回測]]></title>
+  <link href="https://forum.fundhot.com/viewtopic.php?t=7777"/>
+  <category term="股票基金"/><updated>2026-08-11T02:00:00+00:00</updated></entry>
+<entry><title>復華傳家二號、中國新經濟A股、中小精選基金，該併成金複合？還是分開扣？</title>
+  <link href="https://forum.fundhot.com/viewtopic.php?t=7603"/>
+  <updated>2026-08-10T05:00:00+00:00</updated></entry>
+<entry><title>半年前的舊討論</title>
+  <link href="https://forum.fundhot.com/viewtopic.php?t=100"/>
+  <updated>2026-02-01T05:00:00+00:00</updated></entry>
+</feed>"""
+
+
+def test_parse_fundhot_page_extracts_topics():
+    out = fundnews.parse_fundhot_page(_FUNDHOT_PAGE)
+    # 分類頁連結（兩段、無數字 id）不誤入；同話題去重；board＝分類段解碼
+    assert [i["url"][-4:] for i in out] == ["7603", "0688", "9001", "9002"]
+    assert out[0]["board"] == "股票基金" and out[0]["platform"] == "fundhot"
+    assert out[0]["title"].startswith("復華傳家二號")
+    assert fundnews.parse_fundhot_page("") == []
+
+
+def test_parse_fundhot_feed_window_and_cdata():
+    items = fundnews.parse_fundhot_feed(_FUNDHOT_ATOM, days=7000)
+    assert [i["url"][-4:] for i in items] == ["7777", "7603", "=100"]
+    # 視窗剔除（cutoff 動態算到 2026-05-01，測試不隨執行日漂移）：8 月兩篇留、2 月舊文剔
+    days = (datetime.now(timezone.utc) - datetime(2026, 5, 1, tzinfo=timezone.utc)).days
+    items_w = fundnews.parse_fundhot_feed(_FUNDHOT_ATOM, days=days)
+    assert [i["title"][:3] for i in items_w] == ["金複合", "復華傳"]
+    assert items_w[0]["board"] == "股票基金" and items_w[0]["date"] == "2026-08-11"
+
+
+def test_kinfuhe_brand_term_relevant():
+    """金複合（復華投資法/理財機器人）討論常不寫「復華」——品牌詞層要收；
+    PTT/YouTube/RSS 同判準。"""
+    assert fundnews.ptt_relevant("金複合理財機器人進場訊號回測")
+    assert fundnews.yt_relevant("金複合機器人設定教學")
+    assert fundnews.feed_relevant("金複合投資法上手心得")
+    assert not fundnews.yt_peer_relevant("金複合 vs 0056 比較")   # 自家內容不佔同業層
+    assert not fundnews.ptt_relevant("複合材料產業展望")           # 無品牌詞/代碼不收
+
+
+def test_fetch_fundhot_merges_sources(monkeypatch):
+    def fake_get_bytes(url, **kw):
+        if "feed.php" in url:
+            return _FUNDHOT_ATOM.encode("utf-8")
+        if "fundhot.com/forum" in url:
+            return _FUNDHOT_PAGE.encode("utf-8")
+        raise AssertionError(url)
+
+    monkeypatch.setattr(fundnews, "get_bytes", fake_get_bytes)
+    out = fundnews.fetch_fundhot(days=3650)
+    titles = [i["title"] for i in out]
+    # 新站：金複合話題＋00929 相關收、站務文/0050 不相關剔；feed：同標題跨源去重、新話題補進
+    assert any(t.startswith("復華傳家二號") for t in titles)
+    assert "00929 配息討論串" in titles
+    assert "金複合理財機器人進場訊號回測" in titles
+    assert all("新網站" not in t and "0050" not in t for t in titles)
+    assert sum(1 for t in titles if t.startswith("復華傳家二號")) == 1
+
+    def broken_page(url, **kw):                  # 新站被擋 → feed 照常（單源失敗不牽連）
+        if "feed.php" in url:
+            return _FUNDHOT_ATOM.encode("utf-8")
+        raise OSError("blocked")
+
+    monkeypatch.setattr(fundnews, "get_bytes", broken_page)
+    out2 = fundnews.fetch_fundhot(days=3650)
+    assert any(i["title"].startswith("金複合理財機器人") for i in out2)
+
+
+def test_view_renders_fundhot_row():
+    doc = {"as_of": "2026/08/12", "window_days": 7, "brand": [], "funds": [],
+           "social": [{"platform": "fundhot", "board": "股票基金",
+                       "title": "金複合理財機器人進場訊號回測",
+                       "url": "https://fundhot.com/forum/x/y/7777", "date": "2026-08-11"}]}
+    html = _fundnews_view(doc)
+    assert "強基金・股票基金" in html and "金複合理財機器人進場訊號回測" in html
+    assert "PTT・強基金・YouTube" in html          # 社群段標題含新平台
+    assert "fundhot.com/forum/x/y/7777" in html
+
+
+def test_carry_social_covers_fundhot(tmp_path, monkeypatch):
+    """強基金來源異常（本次全空）→ 沿用既有項目，同 PTT/YouTube 防呆。"""
+    import json
+    monkeypatch.setattr(fundnews, "OUT", tmp_path / "fund_news.json")
+    old = {"window_days": 7, "brand": [{"title": "舊稿", "source": "經濟日報"}], "funds": [],
+           "social": [{"platform": "fundhot", "title": "金複合機器人討論", "board": "股票基金",
+                       "url": "https://fundhot.com/forum/a/b/1"}]}
+    fundnews.OUT.write_text(json.dumps(old, ensure_ascii=False), encoding="utf-8")
+    doc = {"window_days": 7, "brand": [{"title": "新稿", "source": "經濟日報"}],
+           "funds": [], "social": [], "highlights": []}
+    fundnews.save(doc)
+    got = json.loads(fundnews.OUT.read_text(encoding="utf-8"))
+    assert [s["title"] for s in got["social"]] == ["金複合機器人討論"]
+
+
 def test_sanitize_scrubs_existing_junk_from_disk_doc():
     """讀取端同一套過濾：既有落檔裡的報價頁/論壇文（舊規則抓的）重建儀表板即消失。"""
     doc = {"window_days": 7,
