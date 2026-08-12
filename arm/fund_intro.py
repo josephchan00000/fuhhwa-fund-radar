@@ -53,6 +53,8 @@ def load(fund_id: str) -> dict | None:
         h["intro"] = p.get("intro")
         h["ticker"] = p.get("ticker")
         h["country"] = p.get("country")
+        h["url"] = p.get("url")     # 選填：基金型持有的外部資訊頁（鉅亨/MoneyDJ）——
+        # 無掛牌代號的共同基金靠名稱搜 Yahoo 必落空（2026-08-12 使用者回報「點進去沒東西」）
     doc["group_label"] = GROUP_LABEL.get(doc.get("group"), doc.get("category") or "")
     return doc
 

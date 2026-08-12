@@ -154,8 +154,12 @@
      **連兩天 count>0**（昨天下午沒清＝排程搬家前過渡期或該班失效）才在晨間親自跑下列迴路並查原因。
      **極簡迴路**（15:33 班與晨間 backstop 共用；全程 ~5 分鐘、不跑任何抓取腳本）：
      ① gap 檔 `items[].name` 就是快照原字串——**每檔 1 次 WebSearch** 查證（公司本業／代號／國別）；
-     ② 補進 `config/holding_profiles.json`（`{原字串: {intro, ticker, country, verified}}`，
-        intro 純事實、避開禁用詞；country＝公司母國，如英飛凌→德國）；
+     ② 補進 `config/holding_profiles.json`（`{原字串: {intro, ticker, country, verified, url?}}`，
+        intro 純事實、避開禁用詞；country＝公司母國，如英飛凌→德國；**`url` 選填＝
+        基金型持有（組合型的子基金，無掛牌代號）的鉅亨基金頁**
+        `https://fund.cnyes.com/detail/{名稱}/{cnyesId}`——渲染端優先用它，沒 url 又沒
+        ticker 的基金名去搜 Yahoo 必落空（2026-08-12 使用者：「點進去沒東西」）；
+        股票/ETF 不用填，ticker＋country 會自動產 Yahoo 行情連結）；
      ③ `TZ=Asia/Taipei python3 scripts/check_holdings_intro.py` 須 🟢——它同時把本地 gap 檔歸零，
         **一起 commit**（下一輪重建紅章即滅，不等 CI 自查）；
      ④ `python3 -m pytest -q tests/test_holdings_intro.py` 秒級確認 → commit＋push 本會話分支。
