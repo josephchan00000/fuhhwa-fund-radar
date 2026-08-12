@@ -84,11 +84,11 @@ def test_freshness_view_top_shows_gen_and_aggregates_stale():
     html_out = fd._freshness_view("2026/07/10 06:50", [
         ("NAV 日", "2026/07/01", 6),        # 9 天前 > 6 → 逾期
         ("台股新聞", "2026-07-09", 3),       # 正常
-        ("基金新聞・社群", None, 3),          # 缺值 → 逾期
+        ("復華新聞・社群", None, 3),          # 缺值 → 逾期
     ], today=t)
     assert "網頁更新時間" in html_out and 'data-gen="2026/07/10 06:50"' in html_out
     assert "2 項資料逾期未更新" in html_out
-    assert "NAV 日、基金新聞・社群" in html_out
+    assert "NAV 日、復華新聞・社群" in html_out
 
 
 def test_freshness_view_all_fresh_no_warning():

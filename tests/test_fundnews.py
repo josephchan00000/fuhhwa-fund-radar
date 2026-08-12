@@ -485,3 +485,254 @@ def test_fetch_ptt_dual_board(monkeypatch):
     out2 = fundnews.fetch_ptt(pages=1)
     assert [i["board"] for i in out2] == ["Fund", "Stock"] or len(out2) == 2  # Fund 板照常
     assert any(i["board"] == "Fund" for i in out2)
+
+
+# ── 2026-08-12 品質重規劃（使用者：股感 00409A 漏掉、清單全是基金平台頁／重複比較文）──
+
+_STOCKFEEL_TITLE = "00409A 復華全球未來50主動式ETF｜成分股？配息？優缺點？募集時間？"
+
+
+def test_platform_quote_pages_filtered_by_url():
+    """實際踩坑樣本（2026-08-12 落檔實查）：鉅亨基金總覽/買賣訊號頁、MoneyDJ ETF 報酬
+    走勢頁、CMoney 論壇比較文——URL 層一律剔除；股感專文與主流媒體真新聞保留。"""
+    items = [
+        {"title": "主動復華全球50-ETF報酬走勢", "source": "MoneyDJ",
+         "url": "https://www.moneydj.com/etf/ea/et012001.djhtm?etfid=00409A.TW"},
+        {"title": "復華全方位基金A類型 的總覽 | 鉅亨網", "source": "鉅亨網",
+         "url": "https://invest.cnyes.com/funds/detail/x/A23015/r"},
+        {"title": "復華傳家二號基金 的買賣訊號 | 鉅亨網 - 基金老司機", "source": "鉅亨網",
+         "url": "https://invest.cnyes.com/funds/detail/x"},
+        {"title": "規模破百億的科技巨獸：安聯台灣科技、復華全球物聯網與華人世紀該怎麼選？",
+         "source": "CMoney", "url": "https://www.cmoney.tw/forum/article/181668024"},
+        {"title": _STOCKFEEL_TITLE, "source": "股感 StockFeel",
+         "url": "https://www.stockfeel.com.tw/00409a-etf/"},
+        {"title": "挖掘全球AI產業贏家 主動復華全球50 00409A 8月12日開募", "source": "經濟日報",
+         "url": "https://money.udn.com/money/story/5607/9624031"},
+    ]
+    out = fundnews._clean_items(items)
+    assert [i["source"] for i in out] == ["股感 StockFeel", "經濟日報"]
+
+
+def test_comparison_bait_is_farm_but_product_explainer_is_not():
+    # CMoney 式比較誘餌（同稿掛多檔、無聊重複）——問句版與「答案在這」賣關子版都擋
+    for t in ["規模破百億的科技巨獸：安聯台灣科技、復華全球物聯網與華人世紀該怎麼選？",
+              "安聯台灣科技、復華全球物聯網、復華華人世紀該選哪一檔？答案在這 3 個維度"]:
+        assert fundnews.is_farm_title(t), t
+        assert not fundnews.is_news_title(t), t
+    # 股感式產品解析文＝多段「主題？」羅列、不含誘餌詞——正是使用者要的內容，勿誤殺
+    assert not fundnews.is_farm_title(_STOCKFEEL_TITLE)
+    assert fundnews.is_news_title(_STOCKFEEL_TITLE)
+
+
+def test_negative_market_titles_filtered():
+    """2026-08-12 使用者重申「不要抓負面的文章」：司法之外補市況/績效負面詞。"""
+    for t in ["00929 跌破發行價 投資人套牢慘賠", "某基金驚傳清算下市",
+              "淨值重挫 基金規模縮水", "高股息ETF淨值腰斬 存股族大虧"]:
+        assert fundnews.is_negative_title(t), t
+        assert not fundnews.is_news_title(t), t
+    assert not fundnews.ptt_relevant("[請益] 00929 套牢該加碼嗎")     # 社群同樣排除
+    # 正面/中性報導不受影響
+    for t in ["挖掘全球AI產業贏家 主動復華全球50 00409A 8月12日開募",
+              "復華兩檔ETF配息出爐", "00929 8月配息維持0.11元"]:
+        assert not fundnews.is_negative_title(t), t
+
+
+def test_fh_products_covers_watchlist_and_upcoming(monkeypatch):
+    """產品清單＝追蹤中＋即將登場（募集期的 00409A 型）；他牌不收、未派碼收名稱。"""
+    from arm import etfwatch
+    monkeypatch.setattr(etfwatch, "watch_tuples", lambda today=None: [
+        ("00929", "復華台灣科技優息", "passive", "高股息", "2023/06/01"),
+        ("0050", "元大台灣50", "passive", "市值型", "2003/06/25")])
+    monkeypatch.setattr(etfwatch, "UPCOMING", [
+        {"code": "00409A", "name": "主動復華全球未來50"},
+        {"code": None, "name": "復華台美策略精準高息股債平衡ETF基金"},
+        {"code": "009999", "name": "他牌新ETF"}])
+    prods = fundnews.fh_products()
+    assert [p["code"] for p in prods] == ["00929", "00409A", None]
+    assert fundnews._fh_codes() == ("00929", "00409A")
+    # 代碼同步進 PTT／YouTube 相關性（募集期討論串常只寫代碼）
+    assert fundnews.ptt_relevant("[標的] 00409A 主動式ETF 開募討論")
+    assert fundnews.yt_relevant("00409A 值得申購嗎？三分鐘看懂")
+
+
+def test_code_mention_looser_than_code_hit():
+    # 媒體標題常把代碼緊貼「ETF」（Yahoo 實例）——產品層要收，社群層嚴格版照舊擋
+    t = "瑤池金母又有勁敵！主動式ETF00409A來了 1萬元買到全球前50強"
+    assert fundnews._code_mention(t, "00409A")
+    assert fundnews.product_item_relevant({"title": t}, "00409A")
+    # 編號式前綴與長數字內嵌照樣擋
+    assert not fundnews._code_mention("日文單字卡 L#00409A 課程筆記", "00409A")
+    assert not fundnews._code_mention("題庫100409A1號解析", "00409A")
+
+
+def test_fetch_etf_products_groups(monkeypatch):
+    """每檔一次查詢（代碼 OR 產品名）；不相關結果濾除；群組帶 code、fund_ids 恆空。"""
+    monkeypatch.setattr(fundnews, "fh_products",
+                        lambda: [{"code": "00409A", "name": "主動復華全球未來50"}])
+
+    def fake_search(q, days=7, limit=4):
+        assert '"00409A" OR "主動復華全球未來50"' == q
+        return [{"title": "挖掘全球AI產業贏家 主動復華全球50 00409A 8月12日開募",
+                 "url": "https://money.udn.com/money/story/5607/9624031", "source": "經濟日報",
+                 "date": "2026-08-11 10:00", "datetime": "2026-08-11T10:00:00+08:00"},
+                {"title": "他牌基金廣告文", "url": "https://x/2", "source": "某站",
+                 "date": "2026-08-11 09:00", "datetime": "2026-08-11T09:00:00+08:00"}]
+
+    monkeypatch.setattr(fundnews.gnews, "search", fake_search)
+    groups = fundnews.fetch_etf_products()
+    assert len(groups) == 1
+    g = groups[0]
+    assert g["code"] == "00409A" and g["fund_ids"] == [] and g["base"] == "主動復華全球未來50"
+    assert [i["title"] for i in g["items"]] == ["挖掘全球AI產業贏家 主動復華全球50 00409A 8月12日開募"]
+
+
+def test_feed_relevant_and_routing_by_code(monkeypatch):
+    """股感等全站 feed：代碼命中（不含「復華」字樣）也算相關，並分流進產品群組。"""
+    monkeypatch.setattr(fundnews, "fh_products",
+                        lambda: [{"code": "00929", "name": "復華台灣科技優息"}])
+    assert fundnews.feed_relevant("00929 8月配息出爐")
+    assert fundnews.feed_relevant(_STOCKFEEL_TITLE)          # 含「復華」
+    assert not fundnews.feed_relevant("台積電法說會前瞻")
+    groups = [{"base": "復華台灣科技優息", "code": "00929", "fund_ids": [], "items": []}]
+    feeds = [{"title": "00929 8月配息出爐", "url": "https://www.stockfeel.com.tw/x",
+              "source": "股感 StockFeel", "datetime": "2026-08-11T08:00:00+08:00"}]
+    out = fundnews.route_feeds_to_funds(groups, feeds)
+    assert [i["title"] for i in out[0]["items"]] == ["00929 8月配息出爐"]
+
+
+def test_view_renders_etf_product_tag_without_fund_link():
+    """產品群組（fund_ids 空）掛代碼章、不產生壞掉的 #fund- 連結。"""
+    doc = {"as_of": "2026/08/12", "window_days": 7, "brand": [],
+           "funds": [{"base": "主動復華全球未來50", "code": "00409A", "fund_ids": [],
+                      "items": [{"title": "主動復華全球50 00409A 8月12日開募",
+                                 "url": "https://money.udn.com/x", "source": "經濟日報",
+                                 "date": "2026-08-11 10:00",
+                                 "datetime": "2026-08-11T10:00:00+08:00"}]}],
+           "social": []}
+    html = _fundnews_view(doc)
+    assert ">00409A</span>" in html and 'href="#fund-"' not in html
+    assert "主動復華全球50 00409A 8月12日開募" in html
+
+
+# ── 強基金 fundhot（2026-08-12 使用者需求：加入強基金論壇、含金複合等投資方法討論）──
+
+_FUNDHOT_PAGE = """
+<nav><a href="/forum/%E8%82%A1%E7%A5%A8%E5%9F%BA%E9%87%91">股票基金討論區</a></nav>
+<a href="/forum/%E8%82%A1%E7%A5%A8%E5%9F%BA%E9%87%91/%E9%87%91%E8%A4%87%E5%90%88/7603">
+  <span>復華傳家二號、中國新經濟A股、中小精選基金，該併成金複合？還是分開扣？</span></a>
+<a href="https://fundhot.com/forum/%E5%85%B6%E4%BB%96/site-news/10688">✍️為何強基金要冒風險花大錢作新網站？</a>
+<a href="/forum/%E8%82%A1%E7%A5%A8/00929-talk/9001">00929 配息討論串</a>
+<a href="/forum/%E8%82%A1%E7%A5%A8/etf-0050/9002">0050 長期持有心得</a>
+<a href="/forum/%E8%82%A1%E7%A5%A8%E5%9F%BA%E9%87%91/%E9%87%91%E8%A4%87%E5%90%88/7603">重複同話題</a>
+"""
+
+_FUNDHOT_ATOM = """<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">
+<entry><title type="html"><![CDATA[金複合理財機器人進場訊號回測]]></title>
+  <link href="https://forum.fundhot.com/viewtopic.php?t=7777"/>
+  <category term="股票基金"/><updated>2026-08-11T02:00:00+00:00</updated></entry>
+<entry><title>復華傳家二號、中國新經濟A股、中小精選基金，該併成金複合？還是分開扣？</title>
+  <link href="https://forum.fundhot.com/viewtopic.php?t=7603"/>
+  <updated>2026-08-10T05:00:00+00:00</updated></entry>
+<entry><title>半年前的舊討論</title>
+  <link href="https://forum.fundhot.com/viewtopic.php?t=100"/>
+  <updated>2026-02-01T05:00:00+00:00</updated></entry>
+</feed>"""
+
+
+def test_parse_fundhot_page_extracts_topics():
+    out = fundnews.parse_fundhot_page(_FUNDHOT_PAGE)
+    # 分類頁連結（兩段、無數字 id）不誤入；同話題去重；board＝分類段解碼
+    assert [i["url"][-4:] for i in out] == ["7603", "0688", "9001", "9002"]
+    assert out[0]["board"] == "股票基金" and out[0]["platform"] == "fundhot"
+    assert out[0]["title"].startswith("復華傳家二號")
+    assert fundnews.parse_fundhot_page("") == []
+
+
+def test_parse_fundhot_feed_window_and_cdata():
+    items = fundnews.parse_fundhot_feed(_FUNDHOT_ATOM, days=7000)
+    assert [i["url"][-4:] for i in items] == ["7777", "7603", "=100"]
+    # 視窗剔除（cutoff 動態算到 2026-05-01，測試不隨執行日漂移）：8 月兩篇留、2 月舊文剔
+    days = (datetime.now(timezone.utc) - datetime(2026, 5, 1, tzinfo=timezone.utc)).days
+    items_w = fundnews.parse_fundhot_feed(_FUNDHOT_ATOM, days=days)
+    assert [i["title"][:3] for i in items_w] == ["金複合", "復華傳"]
+    assert items_w[0]["board"] == "股票基金" and items_w[0]["date"] == "2026-08-11"
+
+
+def test_kinfuhe_brand_term_relevant():
+    """金複合（復華投資法/理財機器人）討論常不寫「復華」——品牌詞層要收；
+    PTT/YouTube/RSS 同判準。"""
+    assert fundnews.ptt_relevant("金複合理財機器人進場訊號回測")
+    assert fundnews.yt_relevant("金複合機器人設定教學")
+    assert fundnews.feed_relevant("金複合投資法上手心得")
+    assert not fundnews.yt_peer_relevant("金複合 vs 0056 比較")   # 自家內容不佔同業層
+    assert not fundnews.ptt_relevant("複合材料產業展望")           # 無品牌詞/代碼不收
+
+
+def test_fetch_fundhot_merges_sources(monkeypatch):
+    def fake_get_bytes(url, **kw):
+        if "feed.php" in url:
+            return _FUNDHOT_ATOM.encode("utf-8")
+        if "fundhot.com/forum" in url:
+            return _FUNDHOT_PAGE.encode("utf-8")
+        raise AssertionError(url)
+
+    monkeypatch.setattr(fundnews, "get_bytes", fake_get_bytes)
+    out = fundnews.fetch_fundhot(days=3650)
+    titles = [i["title"] for i in out]
+    # 新站：金複合話題＋00929 相關收、站務文/0050 不相關剔；feed：同標題跨源去重、新話題補進
+    assert any(t.startswith("復華傳家二號") for t in titles)
+    assert "00929 配息討論串" in titles
+    assert "金複合理財機器人進場訊號回測" in titles
+    assert all("新網站" not in t and "0050" not in t for t in titles)
+    assert sum(1 for t in titles if t.startswith("復華傳家二號")) == 1
+
+    def broken_page(url, **kw):                  # 新站被擋 → feed 照常（單源失敗不牽連）
+        if "feed.php" in url:
+            return _FUNDHOT_ATOM.encode("utf-8")
+        raise OSError("blocked")
+
+    monkeypatch.setattr(fundnews, "get_bytes", broken_page)
+    out2 = fundnews.fetch_fundhot(days=3650)
+    assert any(i["title"].startswith("金複合理財機器人") for i in out2)
+
+
+def test_view_renders_fundhot_row():
+    doc = {"as_of": "2026/08/12", "window_days": 7, "brand": [], "funds": [],
+           "social": [{"platform": "fundhot", "board": "股票基金",
+                       "title": "金複合理財機器人進場訊號回測",
+                       "url": "https://fundhot.com/forum/x/y/7777", "date": "2026-08-11"}]}
+    html = _fundnews_view(doc)
+    assert "強基金・股票基金" in html and "金複合理財機器人進場訊號回測" in html
+    assert "PTT・強基金・YouTube" in html          # 社群段標題含新平台
+    assert "fundhot.com/forum/x/y/7777" in html
+
+
+def test_carry_social_covers_fundhot(tmp_path, monkeypatch):
+    """強基金來源異常（本次全空）→ 沿用既有項目，同 PTT/YouTube 防呆。"""
+    import json
+    monkeypatch.setattr(fundnews, "OUT", tmp_path / "fund_news.json")
+    old = {"window_days": 7, "brand": [{"title": "舊稿", "source": "經濟日報"}], "funds": [],
+           "social": [{"platform": "fundhot", "title": "金複合機器人討論", "board": "股票基金",
+                       "url": "https://fundhot.com/forum/a/b/1"}]}
+    fundnews.OUT.write_text(json.dumps(old, ensure_ascii=False), encoding="utf-8")
+    doc = {"window_days": 7, "brand": [{"title": "新稿", "source": "經濟日報"}],
+           "funds": [], "social": [], "highlights": []}
+    fundnews.save(doc)
+    got = json.loads(fundnews.OUT.read_text(encoding="utf-8"))
+    assert [s["title"] for s in got["social"]] == ["金複合機器人討論"]
+
+
+def test_sanitize_scrubs_existing_junk_from_disk_doc():
+    """讀取端同一套過濾：既有落檔裡的報價頁/論壇文（舊規則抓的）重建儀表板即消失。"""
+    doc = {"window_days": 7,
+           "brand": [{"title": "復華投信獲獎", "url": "https://money.udn.com/y",
+                      "source": "經濟日報"}],
+           "funds": [{"base": "復華全方位基金", "fund_ids": ["15"], "items": [
+               {"title": "復華全方位基金A類型 的總覽 | 鉅亨網",
+                "url": "https://invest.cnyes.com/funds/detail/x", "source": "鉅亨網"},
+               {"title": "規模破百億的科技巨獸：復華全球物聯網與華人世紀該怎麼選？",
+                "url": "https://www.cmoney.tw/forum/article/1", "source": "CMoney"}]}],
+           "social": [{"platform": "ptt", "title": "[心得] 00929 套牢慘賠中", "push": 5}]}
+    out = fundnews.sanitize(doc)
+    assert out["brand"] and not out["funds"][0]["items"]
+    assert out["social"] == []                               # 負面社群討論同步濾除
