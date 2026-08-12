@@ -10,13 +10,16 @@
   · 財經媒體 RSS 直抓（鉅亨網台股／頭條、Yahoo股市、股感 StockFeel）：留標題含
       「復華」或自家 ETF 代碼者，補 Google News 漏收或排序沉掉的稿——命中特定
       基金／產品者同時補進該清單
-  · 社群：PTT 股票板公開索引頁標題（留含「復華」者；推文數為聲量 proxy；
-      禮貌抓取、只存標題＋連結，不落全文）＋ YouTube 相關影片（2026-08-06 使用者需求；
-      Data API v3、金鑰走 Actions secret `YOUTUBE_API_KEY`——v0.12 ETF 產品線時代使用者
-      已設過的同一把，daily.yml 重新帶入；無金鑰誠實降級回 []）。
+  · 社群：PTT 股票板公開索引頁標題（留自家相關者；推文數為聲量 proxy；
+      禮貌抓取、只存標題＋連結，不落全文）＋ 強基金 fundhot 討論區（2026-08-12 使用者
+      需求；台灣最大共同基金討論社群，金複合等復華投資方法討論的主場）＋ YouTube
+      相關影片（2026-08-06 使用者需求；Data API v3、金鑰走 Actions secret
+      `YOUTUBE_API_KEY`——v0.12 ETF 產品線時代使用者已設過的同一把，daily.yml 重新帶入；
+      無金鑰誠實降級回 []）。
       Dcard／FB 涉反爬或授權，本層仍不碰（同 arm/connectors/social 的授權註記）。
 
-落檔 data/fund_news.json；儀表板以「基金相關新聞・社群」區塊呈現。
+落檔 data/fund_news.json；儀表板以「復華新聞・社群」區塊呈現（2026-08-12 使用者指示
+改名，原「基金相關新聞・社群」）。
 任一來源抓不到一律誠實降級（空清單照落檔、標 as-of），不影響其他區塊。
 """
 from __future__ import annotations
@@ -38,6 +41,11 @@ OUT = ROOT / "data" / "fund_news.json"
 WINDOW_DAYS = 7
 BRAND_QUERIES = ["復華投信", "復華投信 基金"]
 BRAND_LIMIT = 12
+# 品牌詞（社群/RSS 相關性判準共用）：公司名之外，自家投資方法／服務的討論常不寫「復華」
+# ——「金複合」＝復華金複合投資法/金複合理財機器人（2026-08-12 使用者點名強基金上這類
+# 討論也要收）。詞要夠獨特才進清單（「金管家」他行也在用、易誤收，靠「復華金管家」寫法
+# 自然命中「復華」即可）。
+BRAND_TERMS = ("復華", "金複合")
 BLOCKED_SOURCES = {"富聯網",          # 使用者指定排除的新聞來源（品牌與各基金皆不收）
                    "extra.rakuya.com.tw"}   # 房產站轉貼區，非新聞來源
 # 註：「鉅亨買基金」不列黑名單（使用者指示：鉅亨的新聞內容仍要收）；
@@ -247,11 +255,17 @@ def parse_rss(xml_text: str, source: str, days: int = WINDOW_DAYS) -> list[dict]
     return out
 
 
+def _brand_hit(text: str | None) -> bool:
+    """品牌詞命中：「復華」或自家投資方法詞（金複合……見 BRAND_TERMS）。"""
+    t = text or ""
+    return any(b in t for b in BRAND_TERMS)
+
+
 def feed_relevant(title: str | None) -> bool:
-    """全站 feed／RSS 只留自家相關：標題含「復華」或自家 ETF 代碼（獨立詞，含即將
+    """全站 feed／RSS 只留自家相關：標題含品牌詞或自家 ETF 代碼（獨立詞，含即將
     掛牌檔——00409A 開募文常只寫代碼不寫全名）。"""
     t = title or ""
-    return "復華" in t or _code_hit(t)
+    return _brand_hit(t) or _code_hit(t)
 
 
 def fetch_feeds(days: int = WINDOW_DAYS) -> list[dict]:
@@ -486,12 +500,12 @@ def _ptt_reach(push: str) -> int:
 
 
 def ptt_relevant(title: str) -> bool:
-    """PTT 標題是否與復華基金相關：含品牌名，或自家 ETF 代碼以獨立詞出現
-    （2026-08-07 比照 YouTube 層——00929 這類討論串常只寫代碼不寫「復華」；
-    獨立詞判定同 _code_hit，避免「L#00929」式編號誤收）；
-    司法/醜聞討論串（is_negative_title）一律排除（內部溝通用途）。"""
+    """社群標題（PTT／強基金共用判準）是否與復華相關：含品牌詞（復華/金複合），
+    或自家 ETF 代碼以獨立詞出現（2026-08-07 比照 YouTube 層——00929 這類討論串常只寫
+    代碼不寫「復華」；獨立詞判定同 _code_hit，避免「L#00929」式編號誤收）；
+    負面/司法討論串（is_negative_title）一律排除（內部溝通用途）。"""
     t = title or ""
-    return ("復華" in t or _code_hit(t)) and not is_negative_title(t)
+    return (_brand_hit(t) or _code_hit(t)) and not is_negative_title(t)
 
 
 def fetch_ptt(pages: int = 3, boards: tuple[str, ...] = PTT_BOARDS) -> list[dict]:
@@ -527,6 +541,119 @@ def fetch_ptt(pages: int = 3, boards: tuple[str, ...] = PTT_BOARDS) -> list[dict
             url = PTT_INDEX.format(board=board, n=mp.group(1))
     out.sort(key=lambda x: x["push"], reverse=True)
     return out
+
+
+# ── 強基金 fundhot 討論（2026-08-12 使用者需求：加入強基金論壇——台灣最大共同基金
+#    討論社群，金複合理財機器人等復華投資方法討論的主場）─────────────────────────
+# 兩套站並存：新站 fundhot.com/forum/{分類}/{slug}/{話題id}（現行主站）＋舊 phpBB
+# forum.fundhot.com（viewtopic.php；有標準 feed.php 端點、mode=topics 給主題流）。
+# 容器 proxy 擋 fundhot（WebFetch 實測 EGRESS_BLOCKED，同 PTT 型）——真正抓取在 CI；
+# 兩源皆 fail-open、單源失敗不牽連，新站解析 0 筆時印「結構探針」原文片段
+# （repo 慣例：印上下文片段才能一輪定位，別只印次數）。
+
+FUNDHOT_BASE = "https://fundhot.com"
+FUNDHOT_PAGES = [                       # 新站討論區列表頁（總覽＋復華討論密度高的分類）
+    FUNDHOT_BASE + "/forum",
+    FUNDHOT_BASE + "/forum/" + urllib.parse.quote("股票基金"),
+    FUNDHOT_BASE + "/forum/" + urllib.parse.quote("股票"),
+]
+FUNDHOT_FEED = "https://forum.fundhot.com/feed.php?mode=topics"   # phpBB 標準 Atom
+# 話題連結＝ /forum/{分類}/{slug}/{數字id}（分類/slug 常為 URL 編碼中文）；
+# 分類頁連結只有兩段、不帶數字尾＝不會誤入。
+_FUNDHOT_LINK = re.compile(
+    r'<a[^>]+href="(?:https?://(?:www\.)?fundhot\.com)?(/forum/([^"/]+)/[^"/]+/(\d+))[^"]*"'
+    r'[^>]*>(.*?)</a>', re.S | re.I)
+_ATOM_ENTRY = re.compile(r"<entry>(.*?)</entry>", re.S | re.I)
+_ATOM_LINK = re.compile(r'<link[^>]+href="([^"]+)"', re.I)
+
+
+def parse_fundhot_page(html: str) -> list[dict]:
+    """新站列表頁 → [{platform, board, title, url}]。純函式可單測；不做相關性過濾
+    （fetch_fundhot 統一過）。board＝URL 分類段解碼（股票基金／其他…）。"""
+    from html import unescape
+
+    out, seen = [], set()
+    for m in _FUNDHOT_LINK.finditer(html or ""):
+        path, cat, _tid, raw = m.groups()
+        title = unescape(_RSS_HTML.sub("", raw)).strip()
+        if len(title) < 4:                       # 導覽箭頭/「繼續閱讀」式短字連結
+            continue
+        url = FUNDHOT_BASE + path
+        if url in seen:
+            continue
+        seen.add(url)
+        out.append({"platform": "fundhot", "board": urllib.parse.unquote(cat),
+                    "title": title, "url": url})
+    return out
+
+
+def parse_fundhot_feed(xml_text: str, days: int = WINDOW_DAYS) -> list[dict]:
+    """phpBB Atom（mode=topics）→ 近 days 天 [{platform, board, title, url, date, datetime}]。
+    純函式可單測。<updated> 出窗即略過；title 可能是 CDATA 或實體轉義，兩種都清。"""
+    from datetime import timezone
+    from html import unescape
+
+    def _tag(t: str, blk: str) -> str:
+        m = re.search(rf"<{t}[^>]*>(.*?)</{t}>", blk, re.S | re.I)
+        return m.group(1) if m else ""
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    out = []
+    for blk in _ATOM_ENTRY.findall(xml_text or ""):
+        raw_t = _tag("title", blk)
+        mcd = _RSS_CDATA.search(raw_t)
+        title = unescape(_RSS_HTML.sub("", mcd.group(1) if mcd else raw_t)).strip()
+        try:
+            dt = datetime.fromisoformat(_tag("updated", blk).strip().replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            continue
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        if dt < cutoff or not title:
+            continue
+        ml = _ATOM_LINK.search(blk)
+        mc = re.search(r'<category[^>]+term="([^"]*)"', blk)
+        out.append({"platform": "fundhot", "board": unescape(mc.group(1)) if mc else "",
+                    "title": title, "url": unescape(ml.group(1)) if ml else "",
+                    "date": dt.astimezone(TW_TZ).strftime("%Y-%m-%d"),
+                    "datetime": dt.astimezone(TW_TZ).isoformat()})
+    return out
+
+
+def fetch_fundhot(days: int = WINDOW_DAYS, limit: int = 8) -> list[dict]:
+    """強基金討論：新站列表頁＋舊 phpBB feed 並抓，同標題（前 24 字）跨源去重，
+    留自家相關者（ptt_relevant 同判準：品牌詞/金複合/自家代碼、負面排除）。
+    新站在前（現行主站）、feed 補歷史並存期的漏；單源失敗不牽連。"""
+    out: list[dict] = []
+    seen: set[str] = set()
+
+    def _add(items: list[dict]) -> None:
+        for it in items:
+            k = (it.get("title") or "")[:24]
+            if not k or k in seen or not ptt_relevant(it["title"]):
+                continue
+            seen.add(k)
+            out.append(it)
+
+    for url in FUNDHOT_PAGES:
+        try:
+            page = get_bytes(url, cache_ttl=1800).decode("utf-8", "ignore")
+        except Exception as e:
+            print(f"[fundhot] 列表頁抓取失敗 {url}: {type(e).__name__}")
+            continue
+        topics = parse_fundhot_page(page)
+        if not topics:                           # 結構探針：一輪定位版式（repo 慣例）
+            i = page.find("/forum/")
+            print(f"[fundhot] {url} 解析 0 筆話題——探針："
+                  + (repr(page[max(0, i - 80):i + 240]) if i >= 0
+                     else f"頁面無 /forum/ 連結（{len(page)} bytes）"))
+        _add(topics)
+    try:
+        xml = get_bytes(FUNDHOT_FEED, cache_ttl=1800).decode("utf-8", "ignore")
+        _add(parse_fundhot_feed(xml, days=days))
+    except Exception as e:
+        print(f"[fundhot] phpBB feed 抓取失敗: {type(e).__name__}")
+    return out[:limit]
 
 
 # ── YouTube 相關影片（2026-08-06 使用者需求：社群討論加入 YouTube）──────────────
@@ -598,19 +725,19 @@ def _code_hit(text: str, codes: tuple[str, ...] | None = None) -> bool:
 
 
 def yt_relevant(title: str, desc: str = "") -> bool:
-    """相關層：標題或說明含「復華」或自家 ETF 代碼（獨立詞）才算相關（查詢會回
-    同名他牌/無關影片）；負面司法題材同 PTT 排除。"""
+    """相關層：標題或說明含品牌詞（復華/金複合）或自家 ETF 代碼（獨立詞）才算相關
+    （查詢會回同名他牌/無關影片）；負面司法題材同 PTT 排除。"""
     text = f"{title} {desc}"
     if is_negative_title(title):
         return False
-    return "復華" in text or _code_hit(text)
+    return _brand_hit(text) or _code_hit(text)
 
 
 def yt_peer_relevant(title: str, desc: str = "") -> bool:
-    """同業熱門層：含同業 ETF 代碼（獨立詞）才收；自家內容歸相關層（不重複）、
-    負面司法題材照樣排除。"""
+    """同業熱門層：含同業 ETF 代碼（獨立詞）才收；自家內容（品牌詞/自家代碼）歸相關層
+    （不重複）、負面司法題材照樣排除。"""
     text = f"{title} {desc}"
-    if is_negative_title(title) or "復華" in text or _code_hit(text):
+    if is_negative_title(title) or _brand_hit(text) or _code_hit(text):
         return False
     return _code_hit(text, _peer_codes())
 
@@ -824,10 +951,10 @@ def assemble(funds: list[dict], days: int = WINDOW_DAYS) -> dict:
         "as_of": stamp_tw("%Y/%m/%d %H:%M"),
         "window_days": days,
         "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS"
-                  "＋PTT 股票板/基金板公開標題＋YouTube 影片・自動擷取",
+                  "＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
         "brand": brand,
         "funds": groups,
-        "social": fetch_ptt() + fetch_youtube(days),
+        "social": fetch_ptt() + fetch_fundhot(days) + fetch_youtube(days),
     }
     doc["highlights"] = auto_highlights(doc)
     return doc
@@ -842,7 +969,7 @@ def is_empty(doc: dict | None) -> bool:
 
 
 def _carry_social(doc: dict, prev: dict | None) -> None:
-    """社群「來源級」防呆：本次某平台（ptt／youtube）全空而既有落檔該平台非空 →
+    """社群「來源級」防呆：本次某平台（ptt／fundhot／youtube）全空而既有落檔該平台非空 →
     沿用既有項目（來源異常≠查無討論），並印 CI 日誌讓異常可見。
 
     2026-08-07 踩坑：push 觸發的 CI 用了舊分支的 daily.yml（無 YOUTUBE_API_KEY env），
@@ -858,10 +985,11 @@ def _carry_social(doc: dict, prev: dict | None) -> None:
     cutoff = (datetime.now(TW_TZ) - timedelta(days=win)).strftime("%Y-%m-%d")
 
     def plat(s: dict) -> str:
-        return "youtube" if (s.get("platform") or "") == "youtube" else "ptt"
+        p = s.get("platform") or "ptt"
+        return p if p in ("youtube", "fundhot") else "ptt"
 
     carried: list[dict] = []
-    for p in ("ptt", "youtube"):
+    for p in ("ptt", "fundhot", "youtube"):
         if any(plat(s) == p for s in cur):
             continue
         keep = [s for s in old if plat(s) == p

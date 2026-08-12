@@ -437,9 +437,19 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
     ——那正是使用者要的內容。
   ④ **負面詞擴充**：司法弊案之外補市況/績效負面（慘賠/套牢/跌破/重挫/暴跌/腰斬/清算/下市/
     贖回潮/規模縮水…），品牌/產品/基金/社群全適用。
-  另：RSS 直抓加入**股感 StockFeel `/feed/`**（WordPress 全站 feed，`feed_relevant`＝含「復華」
+  另：RSS 直抓加入**股感 StockFeel `/feed/`**（WordPress 全站 feed，`feed_relevant`＝含品牌詞
   或自家代碼才留；容器 proxy 擋 stockfeel、CI 可達性看首輪日誌 grep `[fundnews]`，失敗 fail-open
   只損失此源）；feed 分流 `route_feeds_to_funds` 認得產品代碼；`VERIFY_BUDGET` 16→24。
+  **同日第二輪（使用者追加）**：⑤**區塊改名「復華新聞・社群」**（原「基金相關新聞・社群」；
+  nav、區塊標題、內層標題、鮮度列標籤同步改，section id `#fundnews` 不動）；⑥**品牌詞層
+  `BRAND_TERMS=("復華","金複合")`**——金複合投資法/理財機器人的討論常不寫「復華」，PTT／
+  YouTube／RSS／強基金相關性判準（`_brand_hit`）都認（「金管家」他行也在用、不進清單，
+  靠「復華金管家」寫法自然命中）；⑦**社群加「強基金 fundhot」**（`fetch_fundhot`）：
+  台灣最大共同基金討論社群、金複合討論主場。兩套站並抓（新站 `fundhot.com/forum/{分類}/
+  {slug}/{id}` 列表頁 regex＋舊 phpBB `forum.fundhot.com/feed.php?mode=topics` Atom），
+  同標題跨源去重、單源失敗不牽連；容器 proxy 擋 fundhot（同 PTT 型）、真正抓取在 CI，
+  新站解析 0 筆會印**結構探針**片段（grep `[fundhot]`）供一輪收斂；`_carry_social` 平台
+  清單已含 fundhot（來源異常沿用既有項目）。渲染＝💬 章＋「強基金・板名」來源標。
 - **社群討論＝PTT＋YouTube（2026-08-06 使用者需求）**：`fundnews.fetch_youtube()` 走 YouTube
   Data API v3，金鑰＝Actions secret `YOUTUBE_API_KEY`（v0.12 舊金鑰未曾建成 repo secret、
   已隨舊容器佚失，2026-08-06 使用者重設一把；本機備援 `~/.fh_youtube_key`）。無金鑰／被擋
@@ -473,7 +483,7 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
 ## 儀表板「🕒 資料更新時間」區塊
 
 `arm/fund_dashboard.py` 的 `_freshness_view()`，顯示各資料來源鮮度（皆台北時間）：
-NAV 日／持股基準（月度）／持股快照抓取／美股新聞／台股新聞／總經・政策／經濟行事曆／基金新聞・社群／
+NAV 日／持股基準（月度）／持股快照抓取／美股新聞／台股新聞／總經・政策／經濟行事曆／復華新聞・社群（2026-08-12 前叫「基金新聞・社群」）／
 ETF 數據追蹤／ETF 持股揭露／總經・籌碼數據／儀表板產表。新增資料來源時請同步加進此區塊。
 
 **注意 `_freshness_view()` 只輸出「逾期」項目**（2026-07-30 踩坑）：資料正常時來源名稱

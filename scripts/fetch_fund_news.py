@@ -24,20 +24,22 @@ def main() -> None:
     path, saved = fundnews.save(doc)
     if not saved:
         prev = fundnews.load() or {}
-        print(f"[基金新聞・社群] ⚠ 本次擷取全空（多為網路被擋/來源異常），"
+        print(f"[復華新聞・社群] ⚠ 本次擷取全空（多為網路被擋/來源異常），"
               f"保留前次落檔不覆寫（更新 {prev.get('as_of') or '—'}）")
         return
     prods = [g for g in doc["funds"] if not g.get("fund_ids")]      # 產品層（自家 ETF）群組
     n_prod = sum(1 for g in prods if g["items"])
     n_fund = sum(1 for g in doc["funds"] if g.get("fund_ids") and g["items"])
     yts = [s for s in doc["social"] if (s.get("platform") or "") == "youtube"]
+    fhs = [s for s in doc["social"] if (s.get("platform") or "") == "fundhot"]
     n_of = sum(1 for s in yts if s.get("official"))
     n_peer = sum(1 for s in yts if s.get("peer"))
-    print(f"[基金新聞・社群] 已寫入 {path}")
+    print(f"[復華新聞・社群] 已寫入 {path}")
     print(f"  品牌新聞 {len(doc['brand'])} 則"
           f"｜有專屬新聞的 ETF {n_prod}/{len(prods)} 檔"
           f"・基金 {n_fund}/{len(doc['funds']) - len(prods)} 檔"
-          f"｜PTT 討論 {len(doc['social']) - len(yts)} 則"
+          f"｜PTT {len(doc['social']) - len(yts) - len(fhs)} 則"
+          f"｜強基金 {len(fhs)} 則"
           f"｜YouTube {len(yts)} 支（官方 {n_of}・相關 {len(yts) - n_of - n_peer}・同業 {n_peer}）"
           + ("" if fundnews._yt_key() else "（未設 YOUTUBE_API_KEY）"))
 
