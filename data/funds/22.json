@@ -1,0 +1,49 @@
+{
+  "fund_id": "22",
+  "name": "復華奧林匹克全球優勢組合基金-新臺幣A",
+  "short_name": "奧林匹克優勢組合新臺幣A",
+  "en_name": "Fuh Hwa Olympic II Fund of Funds-TWD A ",
+  "category": "組合型",
+  "region": "全球",
+  "asset_kind": "組合型",
+  "currency": "新臺幣",
+  "inception": "2007/11/26",
+  "risk_level": "RR3",
+  "mgmt_fee": "1.00%",
+  "size_twd": 7659064037.0,
+  "nav": 27.07,
+  "nav_date": "2026/08/10",
+  "nav_change": 0.01,
+  "nav_change_pct": "0.04%",
+  "returns": {
+    "ytd": "21.45%",
+    "3m": "4.10%",
+    "6m": "16.62%",
+    "1y": "37.59%",
+    "2y": "33.89%",
+    "3y": "54.33%",
+    "since": "163.90%"
+  },
+  "managers": [
+    "朱展志"
+  ],
+  "co_managers": [],
+  "strategy": "分散投資於多元的全球各大類市場，兼顧資本利得和股息債息收益，提供多元獲利來源 充分分析並掌握各市場的中長期趨勢及風險變化，以利動態調整配置、汰弱換強，提升投資效率",
+  "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/22.pdf",
+  "dist_date": "2026/07/31",
+  "dist_rate": "—",
+  "as_of": "2026/06/30",
+  "top_holdings": [],
+  "country_alloc": [],
+  "sector_alloc": [],
+  "group": "global_fof",
+  "fetched_at": "2026-08-12 12:53",
+  "returns_daily": {
+    "1m": -2.20376,
+    "3m": 3.12381,
+    "6m": 17.9007,
+    "1y": 39.60805,
+    "ytd": 24.57432
+  },
+  "returns_daily_asof": "2026/08/10"
+}

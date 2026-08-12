@@ -1,5 +1,30 @@
 {
- "as_of": "2026-08-12 08:00",
- "count": 0,
- "items": []
+ "as_of": "2026-08-12 12:54",
+ "count": 3,
+ "items": [
+  {
+   "name": "LUNDIN MINING CORP",
+   "sector": "原材料",
+   "count": 1,
+   "funds": [
+    "全球原物料"
+   ]
+  },
+  {
+   "name": "FURUKAWA ELECTRIC CO LTD",
+   "sector": "工業",
+   "count": 1,
+   "funds": [
+    "全球原物料"
+   ]
+  },
+  {
+   "name": "STMICROELECTRONICS NV-NY SHS",
+   "sector": "資訊技術",
+   "count": 1,
+   "funds": [
+    "全球原物料"
+   ]
+  }
+ ]
 }
