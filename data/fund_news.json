@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/12 06:59",
+  "as_of": "2026/08/12 07:59",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板/基金板公開標題＋YouTube 影片・自動擷取",
   "brand": [
@@ -9,6 +9,13 @@
       "source": "StockFeel 股感",
       "date": "2026-08-11 17:10",
       "datetime": "2026-08-11T17:10:32+08:00"
+    },
+    {
+      "title": "復華華人世紀基金，這幾天規模剛破 300 億，意味著什麼？",
+      "url": "https://cmnews.com.tw/article/cmoney-98fade04-955e-11f1-aab8-874ddb2fbda3",
+      "source": "cmnews.com.tw",
+      "date": "2026-08-11 16:28",
+      "datetime": "2026-08-11T16:28:15+08:00"
     }
   ],
   "funds": [
@@ -42,18 +49,18 @@
       ],
       "items": [
         {
-          "title": "主動復華全球50-ETF報酬走勢",
-          "url": "https://www.moneydj.com/etf/ea/et012001.djhtm?etfid=00409A.TW",
-          "source": "MoneyDJ",
-          "date": "2026-08-11 07:34",
-          "datetime": "2026-08-11T07:34:01+08:00"
-        },
-        {
           "title": "規模破百億的科技巨獸：安聯台灣科技、復華全球物聯網與華人世紀該怎麼選？",
           "url": "https://www.cmoney.tw/forum/article/181668024",
           "source": "cmoney.tw",
           "date": "2026-08-10 16:42",
           "datetime": "2026-08-10T16:42:49+08:00"
+        },
+        {
+          "title": "安聯台灣科技、復華全球物聯網、復華華人世紀該選哪一檔？答案在這 3 個維度",
+          "url": "https://www.cmoney.tw/forum/article/181609350",
+          "source": "cmnews.com.tw",
+          "date": "2026-08-08 16:51",
+          "datetime": "2026-08-08T16:51:17+08:00"
         }
       ]
     },
@@ -66,6 +73,13 @@
         "華人世紀"
       ],
       "items": [
+        {
+          "title": "復華華人世紀基金，這幾天規模剛破 300 億，意味著什麼？",
+          "url": "https://cmnews.com.tw/article/cmoney-98fade04-955e-11f1-aab8-874ddb2fbda3",
+          "source": "cmnews.com.tw",
+          "date": "2026-08-11 16:28",
+          "datetime": "2026-08-11T16:28:15+08:00"
+        },
         {
           "title": "規模破百億的科技巨獸：安聯台灣科技、復華全球物聯網與華人世紀該怎麼選？",
           "url": "https://www.cmoney.tw/forum/article/181668024",
@@ -170,7 +184,15 @@
       "short_names": [
         "高成長"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華高成長基金近一年報酬衝上170%，淨值還能續創高嗎？-何宇睿",
+          "url": "https://cmnews.com.tw/article/heyurui-b2a73bdd-921c-11f1-9830-f4283b1a8e26",
+          "source": "cmnews.com.tw",
+          "date": "2026-08-07 12:58",
+          "datetime": "2026-08-07T12:58:57+08:00"
+        }
+      ]
     },
     {
       "base": "復華數位經濟基金",
@@ -190,7 +212,15 @@
       "short_names": [
         "中小精選"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華中小精選223億元規模在手，單日跌逾2%撐得住長期投資嗎？-陳柏宇",
+          "url": "https://cmnews.com.tw/article/chenboyu-33dfa6f2-9300-11f1-a25c-0450db72808c",
+          "source": "cmnews.com.tw",
+          "date": "2026-08-08 16:07",
+          "datetime": "2026-08-08T16:07:30+08:00"
+        }
+      ]
     },
     {
       "base": "復華全方位基金",
@@ -348,7 +378,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/tM9IfotrDWI",
       "date": "2026-08-10",
-      "views": 453,
+      "views": 456,
       "official": true,
       "short": true
     },
@@ -358,7 +388,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/TzjzKX31lPU",
       "date": "2026-08-06",
-      "views": 844770,
+      "views": 846338,
       "official": true,
       "short": true
     },
@@ -368,7 +398,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/Zv_kAmeQ1Qg",
       "date": "2026-08-05",
-      "views": 580,
+      "views": 581,
       "official": true,
       "short": true
     },
@@ -378,7 +408,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/zt89CwgFOCg",
       "date": "2026-08-05",
-      "views": 13496,
+      "views": 13516,
       "short": true
     },
     {
@@ -403,7 +433,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/watch?v=MvPYQuXf1sQ",
       "date": "2026-08-10",
-      "views": 13636,
+      "views": 13707,
       "peer": true
     },
     {
@@ -412,13 +442,13 @@
       "channel": "睡後收入",
       "url": "https://www.youtube.com/watch?v=wD8pTYC0PAc",
       "date": "2026-08-11",
-      "views": 12095,
+      "views": 12151,
       "peer": true
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、全方位、傳家、傳家二號（詳下方基金新聞標籤）",
+    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、高成長、中小精選、全方位、傳家 等 7 檔（詳下方基金新聞標籤）",
     "品牌焦點：00409A 復華全球未來50主動式ETF ｜成分股？配息？優缺點？募集時間？（StockFeel 股感）",
-    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・844,770 次觀看）"
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・846,338 次觀看）"
   ]
 }
