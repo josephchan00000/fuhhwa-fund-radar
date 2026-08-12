@@ -1,9 +1,142 @@
 {
-  "as_of": "2026/08/12 14:09",
+  "as_of": "2026/08/12 17:02",
   "window_days": 7,
-  "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板/基金板公開標題＋YouTube 影片・自動擷取",
-  "brand": [],
+  "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
+  "brand": [
+    {
+      "title": "復華00409A布局全球50強 今開募 | 財富管理 | 商情",
+      "url": "https://money.udn.com/money/story/5636/9686166",
+      "source": "經濟日報",
+      "date": "2026-08-12 16:03",
+      "datetime": "2026-08-12T16:03:04+08:00"
+    },
+    {
+      "title": "00409A 復華全球未來50主動式ETF ｜成分股？配息？優缺點？募集時間？",
+      "url": "https://www.stockfeel.com.tw/00409a-%E5%BE%A9%E8%8F%AF%E5%85%A8%E7%90%83%E6%9C%AA%E4%BE%8650%E4%B8%BB%E5%8B%95%E5%BC%8F-etf/",
+      "source": "StockFeel 股感",
+      "date": "2026-08-11 17:10",
+      "datetime": "2026-08-11T17:10:32+08:00"
+    }
+  ],
   "funds": [
+    {
+      "base": "復華台灣科技優息",
+      "code": "00929",
+      "fund_ids": [],
+      "short_names": [
+        "00929"
+      ],
+      "items": [
+        {
+          "title": "股市大跌也不怕？阿格力解析00929投資優勢 績效勝大盤、年化配息率逾10％",
+          "url": "https://www.yesmedia.com.tw/%E8%82%A1%E5%B8%82%E5%A4%A7%E8%B7%8C%E4%B9%9F%E4%B8%8D%E6%80%95%EF%BC%9F%E9%98%BF%E6%A0%BC%E5%8A%9B%E8%A7%A3%E6%9E%9000929%E6%8A%95%E8%B3%87%E5%84%AA%E5%8B%A2%E3%80%80%E7%B8%BE%E6%95%88%E5%8B%9D/",
+          "source": "yesmedia.com.tw",
+          "date": "2026-08-12 08:10",
+          "datetime": "2026-08-12T08:10:24+08:00"
+        },
+        {
+          "title": "年化配息率衝近17%！00929上周獲逾8萬張淨申購 登高股息買氣亞軍 | 保險信望愛獎 | 商情",
+          "url": "https://money.udn.com/money/story/5636/9676129",
+          "source": "經濟日報",
+          "date": "2026-08-07 10:01",
+          "datetime": "2026-08-07T10:01:50+08:00"
+        },
+        {
+          "title": "7月急殺後仍有25檔台股ETF今年報酬破6成！00913、00892領軍 高股息僅00929上榜",
+          "url": "https://www.yesmedia.com.tw/7%E6%9C%88%E6%80%A5%E6%AE%BA%E5%BE%8C%E4%BB%8D%E6%9C%8925%E6%AA%94%E5%8F%B0%E8%82%A1etf%E4%BB%8A%E5%B9%B4%E5%A0%B1%E9%85%AC%E7%A0%B46%E6%88%90%EF%BC%8100913%E3%80%8100892%E9%A0%98%E8%BB%8D%E3%80%80/",
+          "source": "yesmedia.com.tw",
+          "date": "2026-08-11 08:00",
+          "datetime": "2026-08-11T08:00:50+08:00"
+        }
+      ]
+    },
+    {
+      "base": "主動復華未來50",
+      "code": "00991A",
+      "fund_ids": [],
+      "short_names": [
+        "00991A"
+      ],
+      "items": [
+        {
+          "title": "00403A回彈0.4%逼近發行價！外資豪撒5976萬搶進、「國家隊」反抱回7130萬元00991A也被狠棄4千張",
+          "url": "https://tw.stock.yahoo.com/news/00403a%E5%9B%9E%E5%BD%880-4-%E9%80%BC%E8%BF%91%E7%99%BC%E8%A1%8C%E5%83%B9-%E5%A4%96%E8%B3%87%E8%B1%AA%E6%92%925976%E8%90%AC%E6%90%B6%E9%80%B2-%E5%9C%8B%E5%AE%B6%E9%9A%8A-230000024.html",
+          "source": "Yahoo股市",
+          "date": "2026-08-12 07:00",
+          "datetime": "2026-08-12T07:00:00+08:00"
+        },
+        {
+          "title": "00991A 主動復華未來50 - 14檔主動式漲贏大盤7月底反彈以來股價漲幅多數超過二成- 股市爆料同學會",
+          "url": "https://www.cmoney.tw/forum/article/181830143",
+          "source": "CMoney",
+          "date": "2026-08-11 08:38",
+          "datetime": "2026-08-11T08:38:13+08:00"
+        },
+        {
+          "title": "2026/08/10 00991A今日操作明細",
+          "url": "https://www.cmoney.tw/forum/article/181678933",
+          "source": "CMoney",
+          "date": "2026-08-10 18:12",
+          "datetime": "2026-08-10T18:12:14+08:00"
+        }
+      ]
+    },
+    {
+      "base": "主動復華金融股息",
+      "code": "00998A",
+      "fund_ids": [],
+      "short_names": [
+        "00998A"
+      ],
+      "items": []
+    },
+    {
+      "base": "主動復華金融債息",
+      "code": "00986D",
+      "fund_ids": [],
+      "short_names": [
+        "00986D"
+      ],
+      "items": []
+    },
+    {
+      "base": "主動復華全球未來50",
+      "code": "00409A",
+      "fund_ids": [],
+      "short_names": [
+        "00409A"
+      ],
+      "items": [
+        {
+          "title": "復華00409A布局全球50強 今開募 | 財富管理 | 商情",
+          "url": "https://money.udn.com/money/story/5636/9686166",
+          "source": "經濟日報",
+          "date": "2026-08-12 16:03",
+          "datetime": "2026-08-12T16:03:04+08:00"
+        },
+        {
+          "title": "00409A 復華全球未來50主動式ETF ｜成分股？配息？優缺點？募集時間？",
+          "url": "https://www.stockfeel.com.tw/00409a-%E5%BE%A9%E8%8F%AF%E5%85%A8%E7%90%83%E6%9C%AA%E4%BE%8650%E4%B8%BB%E5%8B%95%E5%BC%8F-etf/",
+          "source": "StockFeel 股感",
+          "date": "2026-08-11 17:10",
+          "datetime": "2026-08-11T17:10:32+08:00"
+        },
+        {
+          "title": "算力ETF搶先布局！009827＋00409A同周開募台灣AI雙雄同周法說！通膨超級周！7月美國數據連發台灣中油油價再凍漲｜投資早知道",
+          "url": "https://tw.stock.yahoo.com/news/%E7%AE%97%E5%8A%9Betf%E6%90%B6%E5%85%88%E5%B8%83%E5%B1%80%EF%BC%81009827%EF%BC%8B00409a%E5%90%8C%E5%91%A8%E9%96%8B%E5%8B%9F-%E5%8F%B0%E7%81%A3ai%E9%9B%99%E9%9B%84%E5%90%8C%E5%91%A8%E6%B3%95%E8%AA%AA%EF%BC%81%E9%80%9A%E8%86%A8%E8%B6%85%E7%B4%9A%E5%91%A8%EF%BC%817%E6%9C%88%E7%BE%8E%E5%9C%8B%E6%95%B8%E6%93%9A%E9%80%A3%E7%99%BC-%E5%8F%B0%E7%81%A3%E4%B8%AD%E6%B2%B9%E6%B2%B9%E5%83%B9%E5%86%8D%E5%87%8D%E6%BC%B2-%EF%BD%9C%E6%8A%95%E8%B3%87%E6%97%A9%E7%9F%A5%E9%81%93-005252552.html",
+          "source": "Yahoo股市",
+          "date": "2026-08-09 08:54",
+          "datetime": "2026-08-09T08:54:49+08:00"
+        }
+      ]
+    },
+    {
+      "base": "復華台美策略精準高息股債平衡ETF基金",
+      "code": null,
+      "fund_ids": [],
+      "short_names": [],
+      "items": []
+    },
     {
       "base": "復華美國新星基金",
       "fund_ids": [
@@ -32,22 +165,7 @@
       "short_names": [
         "全球物聯網科技新臺幣"
       ],
-      "items": [
-        {
-          "title": "主動復華全球50-ETF報酬走勢",
-          "url": "https://www.moneydj.com/etf/ea/et012001.djhtm?etfid=00409A.TW",
-          "source": "MoneyDJ",
-          "date": "2026-08-11 07:34",
-          "datetime": "2026-08-11T07:34:01+08:00"
-        },
-        {
-          "title": "規模破百億的科技巨獸：安聯台灣科技、復華全球物聯網與華人世紀該怎麼選？",
-          "url": "https://www.cmoney.tw/forum/article/181668024",
-          "source": "CMoney",
-          "date": "2026-08-10 16:42",
-          "datetime": "2026-08-10T16:42:49+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華華人世紀基金",
@@ -57,22 +175,7 @@
       "short_names": [
         "華人世紀"
       ],
-      "items": [
-        {
-          "title": "規模破百億的科技巨獸：安聯台灣科技、復華全球物聯網與華人世紀該怎麼選？",
-          "url": "https://www.cmoney.tw/forum/article/181668024",
-          "source": "CMoney",
-          "date": "2026-08-10 16:42",
-          "datetime": "2026-08-10T16:42:49+08:00"
-        },
-        {
-          "title": "安聯台灣科技、復華全球物聯網、復華華人世紀該選哪一檔？答案在這 3 個維度",
-          "url": "https://www.cmoney.tw/forum/article/181609350",
-          "source": "CMoney",
-          "date": "2026-08-08 16:51",
-          "datetime": "2026-08-08T16:51:17+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華亞太成長基金",
@@ -214,15 +317,7 @@
         "全方位A",
         "全方位TISA"
       ],
-      "items": [
-        {
-          "title": "復華全方位基金A類型 的總覽 | 鉅亨網",
-          "url": "https://invest.cnyes.com/funds/detail/%E5%BE%A9%E8%8F%AF%E5%85%A8%E6%96%B9%E4%BD%8D%E5%9F%BA%E9%87%91/A23015/risk",
-          "source": "鉅亨網",
-          "date": "2026-08-08 11:13",
-          "datetime": "2026-08-08T11:13:01+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華台灣好收益基金",
@@ -254,15 +349,7 @@
       "short_names": [
         "傳家"
       ],
-      "items": [
-        {
-          "title": "復華傳家二號基金 的買賣訊號 | 鉅亨網 - 基金老司機",
-          "url": "https://invest.cnyes.com/funds/detail/%E5%BE%A9%E8%8F%AF%E5%82%B3%E5%AE%B6%E4%BA%8C%E8%99%9F%E5%9F%BA%E9%87%91/A23007/signal",
-          "source": "鉅亨網",
-          "date": "2026-08-06 15:00",
-          "datetime": "2026-08-06T15:00:00+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華傳家二號基金",
@@ -272,15 +359,7 @@
       "short_names": [
         "傳家二號"
       ],
-      "items": [
-        {
-          "title": "復華傳家二號基金 的買賣訊號 | 鉅亨網 - 基金老司機",
-          "url": "https://invest.cnyes.com/funds/detail/%E5%BE%A9%E8%8F%AF%E5%82%B3%E5%AE%B6%E4%BA%8C%E8%99%9F%E5%9F%BA%E9%87%91/A23007/signal",
-          "source": "鉅亨網",
-          "date": "2026-08-06 15:00",
-          "datetime": "2026-08-06T15:00:00+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華人生目標基金",
@@ -355,12 +434,36 @@
   ],
   "social": [
     {
+      "platform": "fundhot",
+      "board": "天使",
+      "title": "復華強勢通理財機器人再度大幅調升現金比重",
+      "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/%E5%BE%A9%E8%8F%AF%E5%BC%B7%E5%8B%A2%E9%80%9A%E7%90%86%E8%B2%A1%E6%A9%9F%E5%99%A8%E4%BA%BA%E5%86%8D%E5%BA%A6%E5%A4%A7%E5%B9%85%E8%AA%BF%E5%8D%87%E7%8F%BE%E9%87%91%E6%AF%94%E9%87%8D/13897"
+    },
+    {
+      "platform": "fundhot",
+      "board": "ETF",
+      "title": "00929持有半年，每月領息又賺43％，對帳單揭開真相",
+      "url": "https://fundhot.com/forum/ETF/00929%E6%8C%81%E6%9C%89%E5%8D%8A%E5%B9%B4%EF%BC%8C%E6%AF%8F%E6%9C%88%E9%A0%98%E6%81%AF%E5%8F%88%E8%B3%BA43%EF%BC%85%EF%BC%8C%E5%B0%8D%E5%B8%B3%E5%96%AE%E6%8F%AD%E9%96%8B%E7%9C%9F%E7%9B%B8/13889"
+    },
+    {
+      "platform": "fundhot",
+      "board": "ETF",
+      "title": "00929今年漲75％又配10％，高股息ETF黃金年代來了",
+      "url": "https://fundhot.com/forum/ETF/00929%E4%BB%8A%E5%B9%B4%E6%BC%B275%EF%BC%85%E5%8F%88%E9%85%8D10%EF%BC%85%EF%BC%8C%E9%AB%98%E8%82%A1%E6%81%AFETF%E9%BB%83%E9%87%91%E5%B9%B4%E4%BB%A3%E4%BE%86%E4%BA%86/13796"
+    },
+    {
+      "platform": "fundhot",
+      "board": "ETF",
+      "title": "00929漲46％轉型「成長型高股息ETF」，領息也能賺行情",
+      "url": "https://fundhot.com/forum/ETF/00929%E6%BC%B246%EF%BC%85%E8%BD%89%E5%9E%8B%E3%80%8C%E6%88%90%E9%95%B7%E5%9E%8B%E9%AB%98%E8%82%A1%E6%81%AFETF%E3%80%8D%EF%BC%8C%E9%A0%98%E6%81%AF%E4%B9%9F%E8%83%BD%E8%B3%BA%E8%A1%8C%E6%83%85/13740"
+    },
+    {
       "platform": "youtube",
       "title": "00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？",
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/tM9IfotrDWI",
       "date": "2026-08-10",
-      "views": 493,
+      "views": 501,
       "official": true,
       "short": true
     },
@@ -370,7 +473,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/TzjzKX31lPU",
       "date": "2026-08-06",
-      "views": 871750,
+      "views": 888013,
       "official": true,
       "short": true
     },
@@ -380,7 +483,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/tnoVmQ5MVgg",
       "date": "2026-08-08",
-      "views": 31207,
+      "views": 31883,
       "short": true
     },
     {
@@ -397,7 +500,7 @@
       "channel": "喬丹哥",
       "url": "https://www.youtube.com/watch?v=Fxu9U5RLprw",
       "date": "2026-08-06",
-      "views": 2399
+      "views": 2412
     },
     {
       "platform": "youtube",
@@ -405,7 +508,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/watch?v=MvPYQuXf1sQ",
       "date": "2026-08-10",
-      "views": 14433,
+      "views": 16006,
       "peer": true
     },
     {
@@ -414,12 +517,14 @@
       "channel": "睡後收入",
       "url": "https://www.youtube.com/watch?v=wD8pTYC0PAc",
       "date": "2026-08-11",
-      "views": 12612,
+      "views": 12983,
       "peer": true
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、全方位、傳家、傳家二號（詳下方基金新聞標籤）",
-    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・871,750 次觀看）"
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00409A（詳下方新聞標籤）",
+    "品牌焦點：復華00409A布局全球50強 今開募 | 財富管理 | 商情（經濟日報）",
+    "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・888,013 次觀看）"
   ]
 }
