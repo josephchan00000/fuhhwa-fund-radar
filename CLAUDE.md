@@ -420,6 +420,26 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
   結果入台帳不重驗），驗出窗外→剔除、窗內較早→改標並把連結換成原文 URL。注意：`gnews.resolve()`
   走 Google 內部 batchexecute 端點（版式會漂移）——失效時 fail-open 沿用 pubDate、CI 日誌印原因
   （grep `[gnews]`／`[fundnews]`），屆時只修 gnews 解析層、策略層（date_verify）不動。
+- **基金新聞品質重規劃（2026-08-12 使用者抓包：股感 00409A 開募文全漏、清單全是「跳到
+  基金網頁」的報價頁與 CMoney 重複比較文；並重申「不要抓負面的文章」）**——四層修法全在
+  `arm/fundnews.py`，`sanitize()` 讀取端同一套（既有落檔的垃圾連結下輪重建即消失，不必等重抓）：
+  ① **產品層**：新聞查詢過去只有「品牌＋基金基底名」，自家 ETF 完全不在清單——現
+    `fetch_etf_products()` 逐檔查（`"代碼" OR "產品名"`），清單 `fh_products()`＝etfwatch
+    watch_tuples（名稱含復華）＋ UPCOMING（含未派碼檔）——**募集中新檔（00409A 型）自動
+    涵蓋、掛牌轉正零維護**；`_fh_codes()` 同步吃到 → PTT／YouTube 相關性也認得募集期代碼。
+    群組 `fund_ids` 恆空＋帶 `code` 欄，渲染端據此掛代碼章（無基金詳情卡可跳）。
+  ② **URL 級垃圾過濾 `_JUNK_URL`**：invest.cnyes 基金總覽/買賣訊號頁、fund.cnyes 詳情頁、
+    MoneyDJ ETF 報價頁（`/etf/`、`/funddj/yb`）、**CMoney 論壇文（cmoney.tw/forum/）**、
+    Yahoo quote 頁——標題不一定帶 junk 詞、URL 才是決定性特徵（標題層 `_JUNK_TITLE` 同輪
+    補了「的總覽/的買賣訊號/報酬走勢/淨值及折溢價」當第二道）。
+  ③ **比較誘餌＝農場**：「該怎麼選/該選哪一檔/怎麼挑」問句與「答案在這」賣關子式一律農場；
+    **股感式產品解析文（「00409A…｜成分股？配息？優缺點？」多段主題羅列）不是農場、勿誤殺**
+    ——那正是使用者要的內容。
+  ④ **負面詞擴充**：司法弊案之外補市況/績效負面（慘賠/套牢/跌破/重挫/暴跌/腰斬/清算/下市/
+    贖回潮/規模縮水…），品牌/產品/基金/社群全適用。
+  另：RSS 直抓加入**股感 StockFeel `/feed/`**（WordPress 全站 feed，`feed_relevant`＝含「復華」
+  或自家代碼才留；容器 proxy 擋 stockfeel、CI 可達性看首輪日誌 grep `[fundnews]`，失敗 fail-open
+  只損失此源）；feed 分流 `route_feeds_to_funds` 認得產品代碼；`VERIFY_BUDGET` 16→24。
 - **社群討論＝PTT＋YouTube（2026-08-06 使用者需求）**：`fundnews.fetch_youtube()` 走 YouTube
   Data API v3，金鑰＝Actions secret `YOUTUBE_API_KEY`（v0.12 舊金鑰未曾建成 repo secret、
   已隨舊容器佚失，2026-08-06 使用者重設一把；本機備援 `~/.fh_youtube_key`）。無金鑰／被擋

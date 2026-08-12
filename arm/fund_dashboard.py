@@ -1880,14 +1880,18 @@ def _fundnews_view(doc: dict | None) -> str:
         _add(i, '<span class="fntag fnbrand">投信動態</span>')
     for g in doc.get("funds") or []:
         fid = (g.get("fund_ids") or [""])[0]
-        tag = (f'<a class="fntag" href="#fund-{_esc(fid)}" title="{_esc(g.get("base"))}">'
-               f'{_esc(_fund_tag_label(g.get("base")))}</a>')
+        if fid:
+            tag = (f'<a class="fntag" href="#fund-{_esc(fid)}" title="{_esc(g.get("base"))}">'
+                   f'{_esc(_fund_tag_label(g.get("base")))}</a>')
+        else:   # 自家 ETF 產品群組（2026-08-12 新增；無基金詳情卡可跳）：代碼章
+            lab = g.get("code") or _fund_tag_label(g.get("base"))
+            tag = f'<span class="fntag" title="{_esc(g.get("base"))}">{_esc(lab)}</span>'
         for i in g.get("items") or []:
             _add(i, tag)
     entries.sort(key=lambda e: e["item"].get("datetime") or e["item"].get("date") or "",
                  reverse=True)
 
-    parts.append(f'<div class="fng">{_ic("news", plain=True)} 基金新聞（近 {win} 天）</div>')
+    parts.append(f'<div class="fng">{_ic("news", plain=True)} 復華相關新聞（近 {win} 天）</div>')
     if entries:
         parts.append('<div class="fnlist">' + "".join(
             _fundnews_item(e["item"], "".join(e["tags"])) for e in entries) + '</div>')
