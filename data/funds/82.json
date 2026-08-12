@@ -85,6 +85,7 @@
       "weight": 3.45
     }
   ],
+  "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
@@ -130,7 +131,7 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-08-12 13:54",
+  "fetched_at": "2026-08-12 14:09",
   "returns_daily": {
     "1m": -16.82692,
     "3m": -7.20307,

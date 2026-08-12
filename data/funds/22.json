@@ -85,10 +85,48 @@
       "weight": 3.38
     }
   ],
+  "asset_alloc": [
+    {
+      "name": "已開發國家股票",
+      "weight": 31.66
+    },
+    {
+      "name": "新興市場股票",
+      "weight": 20.47
+    },
+    {
+      "name": "環球債券",
+      "weight": 15.37
+    },
+    {
+      "name": "新興市場債券",
+      "weight": 12.02
+    },
+    {
+      "name": "產業股票",
+      "weight": 7.52
+    },
+    {
+      "name": "平衡型",
+      "weight": 5.9
+    },
+    {
+      "name": "非投資等級債券",
+      "weight": 1.48
+    },
+    {
+      "name": "貨幣市場",
+      "weight": 1.14
+    },
+    {
+      "name": "流動資產",
+      "weight": 4.45
+    }
+  ],
   "country_alloc": [],
   "sector_alloc": [],
   "group": "global_fof",
-  "fetched_at": "2026-08-12 13:55",
+  "fetched_at": "2026-08-12 14:09",
   "returns_daily": {
     "1m": -2.20376,
     "3m": 3.12381,

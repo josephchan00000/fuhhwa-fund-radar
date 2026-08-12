@@ -34,6 +34,7 @@
   "dist_rate": "—",
   "as_of": "2026/06/30",
   "top_holdings": [],
+  "asset_alloc": [],
   "country_alloc": [
     {
       "name": "流動資產",
@@ -47,5 +48,5 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-08-12 13:55"
+  "fetched_at": "2026-08-12 14:10"
 }

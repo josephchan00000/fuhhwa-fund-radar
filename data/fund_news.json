@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/12 13:55",
+  "as_of": "2026/08/12 14:09",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板/基金板公開標題＋YouTube 影片・自動擷取",
   "brand": [],
@@ -216,7 +216,7 @@
       ],
       "items": [
         {
-          "title": "復華全方位基金A類型 的總覽 | 鉅亨網 - 基金老司機",
+          "title": "復華全方位基金A類型 的總覽 | 鉅亨網",
           "url": "https://invest.cnyes.com/funds/detail/%E5%BE%A9%E8%8F%AF%E5%85%A8%E6%96%B9%E4%BD%8D%E5%9F%BA%E9%87%91/A23015/risk",
           "source": "鉅亨網",
           "date": "2026-08-08 11:13",
@@ -360,7 +360,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/tM9IfotrDWI",
       "date": "2026-08-10",
-      "views": 492,
+      "views": 493,
       "official": true,
       "short": true
     },
@@ -370,7 +370,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/TzjzKX31lPU",
       "date": "2026-08-06",
-      "views": 870231,
+      "views": 871750,
       "official": true,
       "short": true
     },
@@ -380,7 +380,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/tnoVmQ5MVgg",
       "date": "2026-08-08",
-      "views": 31172,
+      "views": 31207,
       "short": true
     },
     {
@@ -397,7 +397,7 @@
       "channel": "喬丹哥",
       "url": "https://www.youtube.com/watch?v=Fxu9U5RLprw",
       "date": "2026-08-06",
-      "views": 2406
+      "views": 2399
     },
     {
       "platform": "youtube",
@@ -405,7 +405,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/watch?v=MvPYQuXf1sQ",
       "date": "2026-08-10",
-      "views": 14397,
+      "views": 14433,
       "peer": true
     },
     {
@@ -414,12 +414,12 @@
       "channel": "睡後收入",
       "url": "https://www.youtube.com/watch?v=wD8pTYC0PAc",
       "date": "2026-08-11",
-      "views": 12591,
+      "views": 12612,
       "peer": true
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、全方位、傳家、傳家二號（詳下方基金新聞標籤）",
-    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・870,231 次觀看）"
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・871,750 次觀看）"
   ]
 }
