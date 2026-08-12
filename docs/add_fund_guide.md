@@ -180,8 +180,9 @@ git show origin/main:data/holdings_intro_gap.json
 驗收清單：
 
 1. `_index.json` 有新檔且 `nav`／`nav_date` 非空（NAV 常見 T+1，日期到昨日屬正常）。
-2. `data/funds/{id}.json` 存在；股票／平衡型應有 `top_holdings`（月度基準，顯示上月底）；
-   **組合型 `top_holdings=[]` 是正常**，不是抓失敗。
+2. `data/funds/{id}.json` 存在；各型都應有 `top_holdings`（月度基準，顯示上月底）——
+   **組合型的十大持有是基金／ETF**（2026-08-12 起 `fhfund` 解析支援：候選標題＋2 欄表；
+   組合型整段空＝抓取暫時失敗，查 CI 日誌 `grep "\[fhfund\]"` 看探針片段）。
 3. `data/fund_nav_history.json` 有該 id 序列（跨度 ≥35 天，1月報酬才算得出；
    回填首日就該滿足）。
 4. **`holdings_intro_gap.json` 的 `count` 必須歸 0**：新檔前十大帶進新標的時，
