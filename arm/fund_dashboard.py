@@ -1672,15 +1672,20 @@ def _holdings_table(doc: dict, linked_names: set[str]) -> str:
     for i, h in enumerate(hs, 1):
         # 每檔持股都可點進外部行情頁（Yahoo Finance，涵蓋台／美／日／韓／中 A 股）——
         # 標的名即連結，代碼旁再掛統一「↗」外部連結標；不再「有些有圖標、有些沒有」。
-        su = fund_insights.stock_url(h.get("ticker"), h.get("country"), h.get("name"))
+        # 連結優先序：profile 指定的資訊頁（基金型持有 → 鉅亨/MoneyDJ）→ 依代號/國別產 Yahoo 行情頁。
+        # _safe_url 對空值回 "#"（truthy）——先確認欄位有值再過安全檢查，否則會蓋掉 Yahoo 連結
+        purl = _safe_url(h["url"]) if h.get("url") else ""
+        purl = "" if purl == "#" else purl
+        su = purl or fund_insights.stock_url(h.get("ticker"), h.get("country"), h.get("name"))
+        site = "基金資訊頁（Anue鉅亨）" if purl else "外部行情（Yahoo Finance）"
         cname = _esc(fund_insights.full_company_name(h.get("name")))
         name_html = (f'<a class="hnm" href="{_esc(su)}" target="_blank" rel="noopener" '
-                     f'title="查看 {cname} 外部行情（Yahoo Finance）">{cname}</a>'
+                     f'title="查看 {cname} {site}">{cname}</a>'
                      if su else f'<b>{cname}</b>')
         tk = ""
         if h.get("ticker"):
             tk = (f' <a class="tk" href="{_esc(su)}" target="_blank" rel="noopener" '
-                  f'title="查看外部行情（Yahoo Finance）">{_esc(h["ticker"])} ↗</a>' if su else
+                  f'title="查看{site}">{_esc(h["ticker"])} ↗</a>' if su else
                   f' <span class="tk">{_esc(h["ticker"])}</span>')
         ct = f'<span class="pill">{_esc(h["country"])}</span>' if h.get("country") else ""
         intro = f'<div class="hintro">{_esc(h["intro"])}</div>' if h.get("intro") else ""

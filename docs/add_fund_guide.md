@@ -188,8 +188,11 @@ git show origin/main:data/holdings_intro_gap.json
 4. **`holdings_intro_gap.json` 的 `count` 必須歸 0**：新檔前十大帶進新標的時，
    count>0＋儀表板紅章＋`tests/test_holdings_intro.py` 紅。處置（極簡迴路，全程 ~5 分）＝
    每檔 1 次 WebSearch 查證 → 補進 `config/holding_profiles.json`（`profiles` 下
-   `{持股原字串: {intro, ticker, country, verified}}`；**key＝快照內 `top_holdings[].name`
-   原字串**（含 `*` 等後綴）；intro 純事實、非投資建議、避開禁用詞；country＝公司母國）→
+   `{持股原字串: {intro, ticker, country, verified, url?}}`；**key＝快照內 `top_holdings[].name`
+   原字串**（含 `*` 等後綴、含官網表格截斷的英文名）；intro 純事實、非投資建議、避開禁用詞；
+   country＝公司母國；**組合型的基金型持有（無掛牌代號）要多填 `url`**＝鉅亨基金頁
+   `https://fund.cnyes.com/detail/{名稱}/{cnyesId}`，渲染端優先採用——只靠名稱搜 Yahoo
+   會是空結果；股票/ETF 免填，ticker＋country 自動產 Yahoo 連結）→
    跑 `check_holdings_intro.py` 🟢（同時把本地 gap 檔歸零，一起 commit）→ **push 即收工**：
    該檔走 daily.yml 自動併檔通道（2026-08-12 起，防呆＝JSON 驗證＋有簡介筆數不減），
    自動併入 main＋重建＋部署，**不需 PR、不需監看**。

@@ -2303,7 +2303,8 @@
    "country": "臺灣",
    "ticker": null,
    "intro": "復華投信自家「全球物聯網科技基金」之美元級別，投資全球物聯網與科技供應鏈相關個股；其新臺幣級別即本雷達追蹤清單內的同名基金。",
-   "verified": true
+   "verified": true,
+   "url": "https://fund.cnyes.com/detail/%E5%BE%A9%E8%8F%AF%E5%85%A8%E7%90%83%E7%89%A9%E8%81%AF%E7%B6%B2%E7%A7%91%E6%8A%80%E5%9F%BA%E9%87%91-%E7%BE%8E%E5%85%83/A23066"
   },
   "iShares MSCI ACWI ETF": {
    "country": "美國",
@@ -2315,43 +2316,50 @@
    "country": "臺灣",
    "ticker": null,
    "intro": "元大投信發行的指數型基金，以指數化策略追蹤台灣加權股價指數（台股大盤）表現。",
-   "verified": true
+   "verified": true,
+   "url": "https://fund.cnyes.com/detail/%E5%85%83%E5%A4%A7%E5%8F%B0%E7%81%A3%E5%8A%A0%E6%AC%8A%E8%82%A1%E5%83%B9%E6%8C%87%E6%95%B8%E5%9F%BA%E9%87%91-%E6%96%B0%E5%8F%B0%E5%B9%A3A%E9%A1%9E%E5%9E%8B/A13017"
   },
   "復華股債指數傘型證券投資信託基金之復華5至10年期投資等級債券指數證券投資信託基金 (新臺幣)": {
    "country": "臺灣",
    "ticker": null,
    "intro": "復華投信自家股債指數傘型基金旗下子基金，追蹤 5 至 10 年期投資等級公司債指數的債券指數型基金。",
-   "verified": true
+   "verified": true,
+   "url": "https://fund.cnyes.com/detail/%E5%BE%A9%E8%8F%AF5%E8%87%B310%E5%B9%B4%E6%9C%9F%E6%8A%95%E8%B3%87%E7%AD%89%E7%B4%9A%E5%82%B5%E5%88%B8%E6%8C%87%E6%95%B8%E5%9F%BA%E9%87%91-%E6%96%B0%E8%87%BA%E5%B9%A3/A2CIiIP"
   },
   "安聯台灣科技證券投資信託基金": {
    "country": "臺灣",
    "ticker": null,
    "intro": "安聯投信的主動式台股基金，聚焦台灣科技與電子產業龍頭及供應鏈個股，為台股科技型基金代表之一。",
-   "verified": true
+   "verified": true,
+   "url": "https://fund.cnyes.com/detail/%E5%AE%89%E8%81%AF%E5%8F%B0%E7%81%A3%E7%A7%91%E6%8A%80%E5%9F%BA%E9%87%91/A36004"
   },
   "國泰台灣高股息傘型證券投資信託基金之台灣高股息證券投資信託基金 A類型 (新臺幣)": {
    "country": "臺灣",
    "ticker": null,
    "intro": "國泰投信台灣高股息傘型基金旗下子基金，主動式台股基金，以殖利率與配息能力為主要選股依據。",
-   "verified": true
+   "verified": true,
+   "url": "https://fund.cnyes.com/detail/%E5%9C%8B%E6%B3%B0%E5%8F%B0%E7%81%A3%E9%AB%98%E8%82%A1%E6%81%AF%E5%82%98%E5%9E%8B%E5%9F%BA%E9%87%91%E4%B9%8B%E5%8F%B0%E7%81%A3%E9%AB%98%E8%82%A1%E6%81%AF%E5%9F%BA%E9%87%91-%E6%96%B0%E5%8F%B0%E5%B9%A3A%28%E4%B8%8D%E9%85%8D%E6%81%AF%29/A1QQ7OT"
   },
   "統一黑馬證券投資信託基金": {
    "country": "臺灣",
    "ticker": null,
    "intro": "統一投信的主動式台股基金，以挖掘具成長潛力的個股為選股主軸，屬台股成長型基金。",
-   "verified": true
+   "verified": true,
+   "url": "https://fund.cnyes.com/detail/%E7%B5%B1%E4%B8%80%E9%BB%91%E9%A6%AC%E5%9F%BA%E9%87%91/A09003"
   },
   "野村優質證券投資信託基金 S (新臺幣)": {
    "country": "臺灣",
    "ticker": null,
    "intro": "野村投信的主動式台股基金，長期以電子科技股為主要配置，S 為其級別代號。",
-   "verified": true
+   "verified": true,
+   "url": "https://fund.cnyes.com/detail/%E9%87%8E%E6%9D%91%E5%84%AA%E8%B3%AA%E5%9F%BA%E9%87%91-S%E9%A1%9E%E5%9E%8B%E6%96%B0%E8%87%BA%E5%B9%A3%E8%A8%88%E5%83%B9/A3TABQU"
   },
   "野村高科技證券投資信託基金 累積 (新臺幣)": {
    "country": "臺灣",
    "ticker": null,
    "intro": "野村投信的主動式台股基金，聚焦台灣高科技產業個股，此為累積（不配息）級別。",
-   "verified": true
+   "verified": true,
+   "url": "https://fund.cnyes.com/detail/%E9%87%8E%E6%9D%91%E9%AB%98%E7%A7%91%E6%8A%80%E5%9F%BA%E9%87%91/A32026"
   },
   "富邦科技": {
    "country": "臺灣",
@@ -2363,7 +2371,8 @@
    "country": "臺灣",
    "ticker": null,
    "intro": "復華投信自家的旗艦主動式台股基金，即本雷達追蹤清單內的「復華復華基金」。",
-   "verified": true
+   "verified": true,
+   "url": "https://fund.cnyes.com/detail/%E5%BE%A9%E8%8F%AF%E5%BE%A9%E8%8F%AF%E5%9F%BA%E9%87%91/A23001"
   }
  }
 }
