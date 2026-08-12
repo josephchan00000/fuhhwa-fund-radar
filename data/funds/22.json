@@ -33,11 +33,62 @@
   "dist_date": "2026/07/31",
   "dist_rate": "—",
   "as_of": "2026/06/30",
-  "top_holdings": [],
+  "top_holdings": [
+    {
+      "sector": null,
+      "name": "元大台灣50",
+      "weight": 6.39
+    },
+    {
+      "sector": null,
+      "name": "iShares ESG Aware U.S. Aggre",
+      "weight": 6.26
+    },
+    {
+      "sector": null,
+      "name": "iShares ESG Aware MSCI USA E",
+      "weight": 6.18
+    },
+    {
+      "sector": null,
+      "name": "Vanguard ESG International S",
+      "weight": 5.13
+    },
+    {
+      "sector": null,
+      "name": "群益台ESG低碳50",
+      "weight": 5.11
+    },
+    {
+      "sector": null,
+      "name": "iShares ESG Aware USD Corpor",
+      "weight": 3.76
+    },
+    {
+      "sector": null,
+      "name": "先鋒全世界股票ETF",
+      "weight": 3.55
+    },
+    {
+      "sector": null,
+      "name": "Vanguard ESG US Stock ETF",
+      "weight": 3.49
+    },
+    {
+      "sector": null,
+      "name": "復華全球物聯網科技證券投資信託基金 (美元)",
+      "weight": 3.46
+    },
+    {
+      "sector": null,
+      "name": "iShares MSCI ACWI ETF",
+      "weight": 3.38
+    }
+  ],
   "country_alloc": [],
   "sector_alloc": [],
   "group": "global_fof",
-  "fetched_at": "2026-08-12 13:03",
+  "fetched_at": "2026-08-12 13:39",
   "returns_daily": {
     "1m": -2.20376,
     "3m": 3.12381,

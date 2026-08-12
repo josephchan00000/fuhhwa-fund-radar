@@ -1,5 +1,159 @@
 {
- "as_of": "2026-08-12 13:04",
- "count": 0,
- "items": []
+ "as_of": "2026-08-12 13:40",
+ "count": 19,
+ "items": [
+  {
+   "name": "元大台灣50",
+   "sector": null,
+   "count": 2,
+   "funds": [
+    "奧林匹克優勢組合新臺幣A",
+    "台灣智能"
+   ]
+  },
+  {
+   "name": "iShares ESG Aware U.S. Aggre",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "奧林匹克優勢組合新臺幣A"
+   ]
+  },
+  {
+   "name": "iShares ESG Aware MSCI USA E",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "奧林匹克優勢組合新臺幣A"
+   ]
+  },
+  {
+   "name": "Vanguard ESG International S",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "奧林匹克優勢組合新臺幣A"
+   ]
+  },
+  {
+   "name": "群益台ESG低碳50",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "奧林匹克優勢組合新臺幣A"
+   ]
+  },
+  {
+   "name": "iShares ESG Aware USD Corpor",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "奧林匹克優勢組合新臺幣A"
+   ]
+  },
+  {
+   "name": "先鋒全世界股票ETF",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "奧林匹克優勢組合新臺幣A"
+   ]
+  },
+  {
+   "name": "Vanguard ESG US Stock ETF",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "奧林匹克優勢組合新臺幣A"
+   ]
+  },
+  {
+   "name": "復華全球物聯網科技證券投資信託基金 (美元)",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "奧林匹克優勢組合新臺幣A"
+   ]
+  },
+  {
+   "name": "iShares MSCI ACWI ETF",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "奧林匹克優勢組合新臺幣A"
+   ]
+  },
+  {
+   "name": "元大台灣加權股價指數證券投資信託基金 A 類型 (新台幣)",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "台灣智能"
+   ]
+  },
+  {
+   "name": "復華股債指數傘型證券投資信託基金之復華5至10年期投資等級債券指數證券投資信託基金 (新臺幣)",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "台灣智能"
+   ]
+  },
+  {
+   "name": "安聯台灣科技證券投資信託基金",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "台灣智能"
+   ]
+  },
+  {
+   "name": "國泰台灣高股息傘型證券投資信託基金之台灣高股息證券投資信託基金 A類型 (新臺幣)",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "台灣智能"
+   ]
+  },
+  {
+   "name": "統一黑馬證券投資信託基金",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "台灣智能"
+   ]
+  },
+  {
+   "name": "野村優質證券投資信託基金 S (新臺幣)",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "台灣智能"
+   ]
+  },
+  {
+   "name": "野村高科技證券投資信託基金 累積 (新臺幣)",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "台灣智能"
+   ]
+  },
+  {
+   "name": "富邦科技",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "台灣智能"
+   ]
+  },
+  {
+   "name": "復華復華證券投資信託基金",
+   "sector": null,
+   "count": 1,
+   "funds": [
+    "台灣智能"
+   ]
+  }
+ ]
 }
