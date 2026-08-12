@@ -323,3 +323,20 @@ def test_holdings_table_prefers_profile_url_for_funds():
     assert 'href="https://fund.cnyes.com/detail/x/A09003"' in out    # 基金 → 鉅亨頁
     assert "Anue鉅亨" in out
     assert 'href="https://tw.stock.yahoo.com/quote/0050"' in out     # ETF → 照舊 Yahoo 直連
+
+
+def test_fund_card_alloc_blocks_fof_vs_regular():
+    # 組合型：只有資產配置 → 渲染「資產配置」且不留懸空的空產業配置
+    doc_fof = {"fund_id": "22", "group": "global_fof", "group_label": "全球組合型",
+               "asset_alloc": [{"name": "股票型基金", "weight": 62.4}],
+               "country_alloc": [], "sector_alloc": [], "top_holdings": [], "returns": {}}
+    out = fund_dashboard._fund_card(doc_fof, {}, set())
+    assert "資產配置" in out and "股票型基金" in out
+    assert "產業配置" not in out
+    # 一般海外基金：國家＋產業照舊、無資產配置標題
+    doc_reg = {"fund_id": "47", "group": "global_equity", "group_label": "全球股票型",
+               "country_alloc": [{"name": "美國", "weight": 60.8}],
+               "sector_alloc": [{"name": "資訊技術", "weight": 50.0}],
+               "top_holdings": [], "returns": {}}
+    out2 = fund_dashboard._fund_card(doc_reg, {}, set())
+    assert "國家配置" in out2 and "產業配置" in out2 and "資產配置" not in out2
