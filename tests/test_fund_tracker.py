@@ -343,3 +343,27 @@ def test_fetch_nav_history_retry_then_fail(monkeypatch):
     except fhfund.NoData:
         pass
     assert len(calls) == 2                                     # 解析失敗會重抓一次
+
+
+def test_fof_asset_alloc_parse(monkeypatch):
+    # 組合型頁面：資產配置（無國家/產業配置）＋十大持有基金——2026-08-12 使用者指出
+    html = """
+    <h3>資產配置</h3>
+    <svg><text>62.4 %</text><text>31.2 %</text>
+    <text>股票型基金</text><text>債券型基金</text></svg>
+    <h3>十大持有基金</h3>
+    <table class="fundTable"><tbody>
+      <tr><td>復華全球大趨勢基金</td><td>18.50%</td></tr>
+    </tbody></table>"""
+    monkeypatch.setattr(fhfund, "get_bytes", lambda *a, **k: html.encode("utf-8"))
+    out = fhfund.fetch_holdings("22")
+    assert out["asset_alloc"] == [{"name": "股票型基金", "weight": 62.4},
+                                  {"name": "債券型基金", "weight": 31.2}]
+    assert out["top_holdings"][0]["name"] == "復華全球大趨勢基金"
+    # 一般基金頁（無資產配置段）→ asset_alloc 空、國家/產業照舊
+    html2 = ('國家配置<text>60.76 %</text><text>美國</text>'
+             '產業配置<text>50.0 %</text><text>資訊技術</text>十大持有標的')
+    monkeypatch.setattr(fhfund, "get_bytes", lambda *a, **k: html2.encode("utf-8"))
+    out2 = fhfund.fetch_holdings("47")
+    assert out2["asset_alloc"] == []
+    assert out2["country_alloc"] == [{"name": "美國", "weight": 60.76}]

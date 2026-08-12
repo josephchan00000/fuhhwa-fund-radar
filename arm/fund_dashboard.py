@@ -1730,12 +1730,23 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
           if doc.get("monthly_report") else "")
     strat = doc.get("strategy") or ""
     chg = fund_insights.parse_pct(doc.get("nav_change_pct"))
-    # 國內基金官網不提供國家配置——整段省略，避免留下懸空的「—」空區塊
+    # 配置欄三段依序：資產配置（組合型）→ 國家配置（海外）→ 產業配置；
+    # 有資料的段才渲染標題，避免懸空「—」（國內基金無國家配置、組合型只有資產配置）。
+    ast = doc.get("asset_alloc") or []
     cty = doc.get("country_alloc") or []
-    alloc_html = (
-        f'<div class="ctitle">{_ic("globe", plain=True)} 國家配置</div>{_bars(cty, "var(--c1)")}'
-        f'<div class="ctitle" style="margin-top:14px">{_ic("layers", plain=True)} 產業配置</div>'
-        if cty else f'<div class="ctitle">{_ic("layers", plain=True)} 產業配置</div>')
+    sec = doc.get("sector_alloc") or []
+    _blocks: list[tuple[str, str, list, str]] = []
+    if ast:
+        _blocks.append(("chart", "資產配置", ast, "var(--c1)"))
+    if cty:
+        _blocks.append(("globe", "國家配置", cty, "var(--c1)"))
+    if sec or not _blocks:     # 全空時仍留產業配置示「—」，維持既有版面
+        _blocks.append(("layers", "產業配置", sec, "var(--c2)"))
+    _mt = ' style="margin-top:14px"'
+    alloc_html = "".join(
+        f'<div class="ctitle"{_mt if k else ""}>'
+        f'{_ic(icon, plain=True)} {title}</div>{_bars(items, color)}'
+        for k, (icon, title, items, color) in enumerate(_blocks))
     conc = fund_intro.top_concentration(doc)
     conc_s = f"{conc}%" if conc is not None else "—"
     # 經理人：官網 API manager＝經理人、manager01＝協管經理人（2026-07-22 經 MoneyDJ 經理人
@@ -1767,7 +1778,7 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
   <div class="rets">{"".join(cells)}</div>
   <div class="cols">
     <div class="col">
-      {alloc_html}{_bars(doc.get('sector_alloc') or [], 'var(--c2)')}
+      {alloc_html}
     </div>
     <div class="col">
       <div class="ctitle">{_ic("clipboard", plain=True)} 十大持有標的　<span class="asof">持股基準 {_esc(doc.get('as_of') or '—')}｜前十大合計 {_esc(conc_s)}</span></div>
