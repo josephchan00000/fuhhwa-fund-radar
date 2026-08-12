@@ -3,9 +3,13 @@
 與 ETF 產品線的 arm/connectors/social 完全分離（不共用過濾詞彙、不改其程式）：
   · 新聞：Google News RSS（免金鑰，直接引用 arm.connectors.gnews）
       - 品牌層：「復華投信」動態（公告／配息／得獎／人事）
+      - 產品層（2026-08-12 使用者抓包「股感 00409A 開募文全漏」後新增）：自家 ETF
+        逐檔以「代碼＋產品名」搜尋——追蹤中＋「即將登場」募集中檔（fh_products()，
+        清單動態取自 etfwatch，掛牌/募集狀態變化零維護跟上）
       - 基金層：每檔以「基金基底名」搜尋；同基金的 A／B／TISA 類別合併一次查詢
-  · 財經媒體 RSS 直抓（鉅亨網台股／頭條、Yahoo股市）：留標題含「復華」者，
-      補 Google News 漏收或排序沉掉的稿——命中特定基金者同時補進該基金清單
+  · 財經媒體 RSS 直抓（鉅亨網台股／頭條、Yahoo股市、股感 StockFeel）：留標題含
+      「復華」或自家 ETF 代碼者，補 Google News 漏收或排序沉掉的稿——命中特定
+      基金／產品者同時補進該清單
   · 社群：PTT 股票板公開索引頁標題（留含「復華」者；推文數為聲量 proxy；
       禮貌抓取、只存標題＋連結，不落全文）＋ YouTube 相關影片（2026-08-06 使用者需求；
       Data API v3、金鑰走 Actions secret `YOUTUBE_API_KEY`——v0.12 ETF 產品線時代使用者
@@ -44,31 +48,54 @@ BLOCKED_SOURCES = {"富聯網",          # 使用者指定排除的新聞來源�
 FARM_SOURCES = {"CMoney投資網誌"}
 # SEO 農場點閱誘餌標題特徵：績效／規模「誇飾＋問句／揭密」句式，
 # 例「同樣是科技基金，為什麼近一年能漲超過 200%？」「單月規模暴增58億的背後秘密是什麼？」。
+# 「該怎麼選／該選哪一檔」比較誘餌（2026-08-12 使用者：CMoney 論壇同稿掛多檔基金、無聊重複）
+# 也算——注意股感式產品解析文「00409A…｜成分股？配息？優缺點？」是多段「主題？」羅列、
+# 不含這些誘餌詞，不受影響（那正是使用者要的內容，勿誤殺）。
 _FARM_HYPE = re.compile(r"為什麼|為何|憑什麼|究竟|背後|祕密|秘密|狂增|暴增|漲破|漲超過|"
-                        r"稱霸|同類第一|百萬變|發生了什麼")
+                        r"稱霸|同類第一|百萬變|發生了什麼|該怎麼選|該選哪|選哪一檔|怎麼挑")
 
 # 負面／司法／醜聞新聞：本工具為「復華內部溝通」用途，不宜在儀表板呈現自家的司法／弊案／
 # 負面報導（2026-07 使用者要求排除；品牌與各基金、PTT 皆適用）。命中司法/弊案/操縱字眼即剔除。
 # 例「勞動基金炒股案第3波　搜索復華投信」「投資長移送！經理人喊冤」。
+# 2026-08-12 使用者重申「不要抓負面的文章」→ 補市況/績效負面詞（慘賠/套牢/跌破/清算…）：
+# 標題級過濾、品牌與各基金/產品/社群全適用。
 _NEGATIVE = re.compile(
     r"炒股|炒作|操縱|坑殺|內線|掏空|違約交割|"
     r"弊案|官商|貪污|貪瀆|收賄|賄賂|圖利|洗錢|不法|違法|犯罪|醜聞|"
     r"搜索|搜查|約談|傳喚|移送|起訴|偵辦|檢調|地檢|檢方|調查局|廉政|"
-    r"收押|羈押|交保|判刑|求刑|定讞|起底|喊冤|裁罰|開罰|罰鍰|送辦")
+    r"收押|羈押|交保|判刑|求刑|定讞|起底|喊冤|裁罰|開罰|罰鍰|送辦|"
+    r"慘賠|慘虧|大虧|虧損|套牢|重挫|暴跌|崩盤|腰斬|跌破|墊底|吊車尾|"
+    r"贖回潮|規模縮水|下市|清算|申誡|糾正|內控缺失")
 
 # 「非新聞頁面」標題特徵——搜尋/RSS 常混入基金介紹頁、文章列表頁、平台頁、討論牆、
 # 淨值表等非新聞連結，佔版面又無資訊量，一律剔除（2026-07-04 使用者回饋：我要新聞）。
 # 「公開說明書／信託契約」＝基金平台的例行修訂公告轉貼（2026-08-06 使用者抓包：中租基智網
 # 一年前的公告被 Google 標成近期日期、同一則掛滿 6 檔基金卡）——公告類非新聞，一律剔除。
+# 「的總覽／的買賣訊號／報酬走勢」＝鉅亨・MoneyDJ 的基金報價頁標題式樣（2026-08-12
+# 使用者：「跳到基金網頁沒有實質幫助」）。
 _JUNK_TITLE = re.compile(
     r"推薦文章|新聞資訊與消息|討論牆|一覽表|淨值表|交易平台|基金介紹|基金檔案|"
-    r"基金專區|歷史淨值|基金列表|條款|開戶|公開說明書|信託契約")
+    r"基金專區|歷史淨值|基金列表|條款|開戶|公開說明書|信託契約|"
+    r"的總覽|的買賣訊號|的基本資料|的配息紀錄|的持股狀況|報酬走勢|淨值及折溢價")
+
+# 「基金報價／平台頁」URL 特徵（2026-08-12 使用者抓包主力）：Google News 會收錄鉅亨
+# invest.cnyes 基金總覽・買賣訊號頁、MoneyDJ ETF 報價頁、鉅亨基金詳情頁——標題不一定
+# 帶上面的 junk 詞，URL 才是決定性特徵。CMoney 論壇文（cmoney.tw/forum/）＝部落格比較文
+# 農場（「該怎麼選？」同稿掛多檔），整個路徑不收；cmoney.tw/notes 等真新聞路徑不受影響。
+_JUNK_URL = re.compile(
+    r"invest\.cnyes\.com/funds|fund\.cnyes\.com/detail|"
+    r"moneydj\.com/etf/|moneydj\.com/funddj/yb|"
+    r"cmoney\.tw/forum/|tw\.stock\.yahoo\.com/quote/", re.I)
 
 # 財經媒體 RSS 直抓（免金鑰）——與 Google News 互補；站台全站 feed、本層只留「復華」相關
 NEWS_FEEDS = [
     ("鉅亨網", "https://news.cnyes.com/rss/v1/news/category/tw_stock"),
     ("鉅亨網", "https://news.cnyes.com/rss/v1/news/category/headline"),
     ("Yahoo股市", "https://tw.stock.yahoo.com/rss"),
+    # 股感 StockFeel（2026-08-12 使用者點名：00409A 專文出處）——WordPress 全站 /feed/，
+    # 本層只留「復華／自家代碼」相關（feed_relevant）。容器 proxy 擋 stockfeel（實測
+    # EGRESS_BLOCKED）＝本地跑必空；CI 可達性以首輪日誌驗證，失敗 fail-open 只損失此源。
+    ("股感 StockFeel", "https://www.stockfeel.com.tw/feed/"),
 ]
 _RSS_ITEM = re.compile(r"<item>(.*?)</item>", re.S | re.I)
 _RSS_CDATA = re.compile(r"<!\[CDATA\[(.*?)\]\]>", re.S)
@@ -129,14 +156,15 @@ def source_ok(item: dict) -> bool:
 def is_farm_title(title: str | None) -> bool:
     """SEO 內容農場的點閱誘餌標題偵測（舊文常改標題／更新日期反覆重貼）。
 
-    · 以問號收尾且帶績效／規模誇飾字眼（「…為什麼近一年能漲超過 200%？」）；
-    · 或明確的揭密／致富句式（「背後秘密」「22年百萬變七百萬」「還能稱霸」）。"""
+    · 以問號收尾且帶績效／規模誇飾或比較誘餌字眼（「…為什麼近一年能漲超過 200%？」
+      「…該怎麼選？」）；
+    · 或明確的揭密／致富／賣關子句式（「背後秘密」「22年百萬變七百萬」「答案在這」）。"""
     t = (title or "").strip()
     if not t:
         return False
     if t.endswith("？") and _FARM_HYPE.search(t):
         return True
-    return bool(re.search(r"背後(?:的)?(?:祕密|秘密)|百萬變[^，。]{0,6}萬|還能稱霸", t))
+    return bool(re.search(r"背後(?:的)?(?:祕密|秘密)|百萬變[^，。]{0,6}萬|還能稱霸|答案在這", t))
 
 
 def is_negative_title(title: str | None) -> bool:
@@ -162,11 +190,14 @@ def is_news_title(title: str | None) -> bool:
 
 
 def _clean_items(items: list[dict]) -> list[dict]:
-    """統一清理：剔除黑名單來源＋非新聞頁面，剝標題尾的來源名。
-    所有新聞路徑（品牌/各基金/RSS）都經過這裡。"""
+    """統一清理：剔除黑名單來源＋非新聞頁面（標題與 URL 兩層），剝標題尾的來源名。
+    所有新聞路徑（品牌/產品/各基金/RSS）都經過這裡；sanitize() 讀取端同一套——
+    既有落檔裡的報價頁連結下輪重建即消失，不必等重抓。"""
     out = []
     for i in items:
         if not source_ok(i):
+            continue
+        if _JUNK_URL.search(i.get("url") or ""):
             continue
         t = strip_source_suffix(i.get("title"), i.get("source"))
         if not is_news_title(t):
@@ -198,7 +229,7 @@ def parse_rss(xml_text: str, source: str, days: int = WINDOW_DAYS) -> list[dict]
     out = []
     for blk in _RSS_ITEM.findall(xml_text or ""):
         title = _clean(_tag("title", blk))
-        if "復華" not in title:
+        if not feed_relevant(title):
             continue
         try:
             dt = parsedate_to_datetime(_clean(_tag("pubDate", blk)))
@@ -216,13 +247,22 @@ def parse_rss(xml_text: str, source: str, days: int = WINDOW_DAYS) -> list[dict]
     return out
 
 
+def feed_relevant(title: str | None) -> bool:
+    """全站 feed／RSS 只留自家相關：標題含「復華」或自家 ETF 代碼（獨立詞，含即將
+    掛牌檔——00409A 開募文常只寫代碼不寫全名）。"""
+    t = title or ""
+    return "復華" in t or _code_hit(t)
+
+
 def fetch_feeds(days: int = WINDOW_DAYS) -> list[dict]:
-    """財經媒體 RSS 直抓（鉅亨網／Yahoo股市），留「復華」相關。單一 feed 失敗誠實略過。"""
+    """財經媒體 RSS 直抓（鉅亨網／Yahoo股市／股感），留自家相關。單一 feed 失敗誠實
+    略過並印 CI 日誌（來源被擋時日誌是唯一除錯管道）。"""
     out: list[dict] = []
     for source, url in NEWS_FEEDS:
         try:
             xml = get_bytes(url, cache_ttl=1800).decode("utf-8", "ignore")
-        except Exception:
+        except Exception as e:
+            print(f"[fundnews] RSS 直抓失敗 {source}: {type(e).__name__}")
             continue
         out.extend(parse_rss(xml, source, days=days))
     return out
@@ -249,7 +289,8 @@ def merge_news(*lists: list[dict], limit: int = BRAND_LIMIT) -> list[dict]:
 # 每標題「最早見過的日期」＋CI 解原文頁驗得的真實刊出日，兩者都拉不進視窗就剔除。
 
 SEEN_OUT = ROOT / "data" / "fund_news_seen.json"
-VERIFY_BUDGET = 16       # 每輪最多解幾篇原文（台帳沒驗過的新項目才消耗；容器端網路被擋＝0 成本）
+VERIFY_BUDGET = 24       # 每輪最多解幾篇原文（台帳沒驗過的新項目才消耗；容器端網路被擋＝0 成本；
+                         # 2026-08-12 產品層加入後項目變多，16→24）
 SEEN_KEEP_DAYS = 60      # 台帳條目最後一次見到後保留天數（涵蓋反覆重貼週期，防無限膨脹）
 
 
@@ -362,6 +403,77 @@ def fetch_funds(funds: list[dict], days: int = WINDOW_DAYS, per_limit: int = 4) 
     return out
 
 
+# ── 自家 ETF 產品層（2026-08-12 使用者抓包：股感 00409A 開募文全漏）──────────────
+# 新聞查詢過去只有「品牌＋基金基底名」——自家 ETF（00929/00991A/…）與募集中新檔
+# （00409A）完全不在查詢清單，經濟日報／聯合／股感的開募報導一則都收不到。
+# 產品清單動態取自 etfwatch：追蹤中（watch_tuples 名稱含「復華」）＋「即將登場」
+# （UPCOMING 名稱含「復華」，含未派碼檔）——募集→掛牌→轉正全程零維護跟上。
+
+
+def fh_products() -> list[dict]:
+    """自家 ETF 產品清單 [{code, name}]（新聞層查詢＋社群相關性共用）。
+    未派碼者 code=None（僅名稱查詢）；etfwatch 取不到時退回靜態清單。"""
+    try:
+        from . import etfwatch
+        out: list[dict] = []
+        seen: set[str] = set()
+        for t in etfwatch.watch_tuples():
+            if "復華" in (t[1] or ""):
+                out.append({"code": t[0], "name": t[1]})
+                seen.add(t[0])
+        for u in etfwatch.UPCOMING:
+            if "復華" in (u.get("name") or "") and (u.get("code") or "") not in seen:
+                out.append({"code": u.get("code"), "name": u["name"]})
+        if out:
+            return out
+    except Exception:
+        pass
+    return [{"code": c, "name": n} for c, n in
+            (("00929", "復華台灣科技優息"), ("00991A", "主動復華未來50"),
+             ("00998A", "主動復華金融股息"), ("00986D", "主動復華金融債息"))]
+
+
+def _code_mention(text: str, code: str) -> bool:
+    """產品層的代碼比對：比 _code_hit 寬——允許「主動式ETF00409A來了」這種代碼緊貼
+    英文字的媒體標題（Yahoo 實例），仍擋數字緊貼（題庫100929）與編號式前綴（L#00929）。"""
+    return bool(re.search(rf"(?<![0-9])(?<![0-9A-Za-z][#＃]){re.escape(code)}(?![0-9A-Za-z])",
+                          text or ""))
+
+
+def product_item_relevant(item: dict, code: str | None) -> bool:
+    """產品層留哪些：標題含「復華」或該檔代碼（_code_mention 寬鬆版）。查詢已用引號
+    片語縮小範圍，這裡只擋放寬搜尋帶回的無關結果。"""
+    t = item.get("title") or ""
+    return "復華" in t or bool(code and _code_mention(t, code))
+
+
+def fetch_etf_products(days: int = WINDOW_DAYS, per_limit: int = 4) -> list[dict]:
+    """產品層新聞：每檔自家 ETF 一次 Google News 查詢（「代碼」OR「產品名」）。
+    群組形狀同 fetch_funds（base/fund_ids/short_names/items）＋ code 欄；fund_ids 恆空
+    ——渲染端據此改掛代碼章（無基金詳情卡可跳）。無新聞的檔 items 為 []。"""
+    out = []
+    for p in fh_products():
+        code, name = p.get("code"), p.get("name") or ""
+        if not name:
+            continue
+        q = f'"{code}" OR "{name}"' if code else f'"{name}"'
+        items = gnews.search(q, days=days, limit=per_limit)
+        if not items and code:                   # 引號片語沒中 → 放寬用純代碼再試一次
+            items = gnews.search(code, days=days, limit=per_limit)
+        kept, seen = [], set()
+        for i in items:
+            if not product_item_relevant(i, code):
+                continue
+            key = (i.get("title") or "")[:24]    # 同標題（多家轉載）只留最新一則
+            if key in seen:
+                continue
+            seen.add(key)
+            kept.append(i)
+        out.append({"base": name, "code": code, "fund_ids": [],
+                    "short_names": [code] if code else [], "items": _clean_items(kept)})
+    return out
+
+
 def _ptt_reach(push: str) -> int:
     if not push:
         return 0
@@ -457,16 +569,9 @@ def _yt_key() -> str:
 
 
 def _fh_codes() -> tuple[str, ...]:
-    """復華自家 ETF 代碼（名稱含「復華」者，動態取自 etfwatch 追蹤清單）——標題只寫代碼
-    不寫「復華」的影片（00929 常見）也算相關。取不到時退回已知靜態清單。"""
-    try:
-        from . import etfwatch
-        codes = tuple(t[0] for t in etfwatch.watch_tuples() if "復華" in (t[1] or ""))
-        if codes:
-            return codes
-    except Exception:
-        pass
-    return ("00929", "00991A", "00998A", "00986D")
+    """復華自家 ETF 代碼（fh_products：追蹤中＋即將登場，動態取自 etfwatch）——標題只寫
+    代碼不寫「復華」的影片／討論串（00929 常見；募集期的 00409A 同型）也算相關。"""
+    return tuple(p["code"] for p in fh_products() if p.get("code"))
 
 
 def _peer_codes() -> tuple[str, ...]:
@@ -657,12 +762,16 @@ def fetch_youtube(days: int = WINDOW_DAYS) -> list[dict]:
 
 
 def route_feeds_to_funds(fund_groups: list[dict], feeds: list[dict]) -> list[dict]:
-    """RSS 直抓中命中特定基金核心名者，補進該基金清單（同標題去重、時間新→舊）。"""
+    """RSS 直抓中命中特定基金核心名（或產品代碼——股感 00409A 專文只寫代碼）者，
+    補進該群組清單（同標題去重、時間新→舊）。"""
     for g in fund_groups:
+        code = g.get("code")
         core = (g.get("base") or "").replace("復華", "").replace("基金", "").strip()
-        if not core:
+        if not (core or code):
             continue
-        extra = [i for i in feeds if core in (i.get("title") or "")]
+        extra = [i for i in feeds
+                 if (core and core in (i.get("title") or ""))
+                 or (code and _code_mention(i.get("title") or "", code))]
         if extra:
             g["items"] = merge_news(g.get("items") or [], extra, limit=6)
     return fund_groups
@@ -675,10 +784,11 @@ def auto_highlights(doc: dict) -> list[str]:
     win = doc.get("window_days") or WINDOW_DAYS
     hit = [g for g in doc.get("funds") or [] if g.get("items")]
     if hit:
-        names = "、".join((g.get("base") or "").replace("復華", "").replace("基金", "")
+        names = "、".join(g.get("code")                       # 產品群組以代碼呈現（較短）
+                          or (g.get("base") or "").replace("復華", "").replace("基金", "")
                           for g in hit[:6])
         more = f" 等 {len(hit)} 檔" if len(hit) > 6 else ""
-        hl.append(f"近 {win} 天有專屬報導的基金：{names}{more}（詳下方基金新聞標籤）")
+        hl.append(f"近 {win} 天有專屬報導的基金／ETF：{names}{more}（詳下方新聞標籤）")
     focus = next((i for i in doc.get("brand") or []
                   if "旗下各基金" not in (i.get("title") or "")), None)
     if focus:
@@ -698,22 +808,25 @@ def auto_highlights(doc: dict) -> list[str]:
 
 def assemble(funds: list[dict], days: int = WINDOW_DAYS) -> dict:
     """抓齊三類情報 → 可落檔的 doc。任一來源失敗該類為空、不互相牽連。
-    Google News 項目先過 date_verify（pubDate 會把舊文標成近期，見該函式 docstring）。"""
+    Google News 項目先過 date_verify（pubDate 會把舊文標成近期，見該函式 docstring）。
+    群組順序＝產品（自家 ETF）在前、基金在後——募集/掛牌動態是當前讀者重點。"""
     seen, state = _seen_load(), {"budget": VERIFY_BUDGET}
     feeds = _clean_items(fetch_feeds(days=days))
-    brand = merge_news(date_verify(fetch_brand(days=days), seen, state, days=days), feeds)
-    fund_groups = fetch_funds(funds, days=days)
-    for g in fund_groups:
+    brand_feeds = [f for f in feeds if "復華" in (f.get("title") or "")]  # 代碼命中者歸產品層
+    brand = merge_news(date_verify(fetch_brand(days=days), seen, state, days=days),
+                       brand_feeds)
+    groups = fetch_etf_products(days=days) + fetch_funds(funds, days=days)
+    for g in groups:
         g["items"] = date_verify(g["items"], seen, state, days=days)
-    fund_groups = route_feeds_to_funds(fund_groups, feeds)
+    groups = route_feeds_to_funds(groups, feeds)
     _seen_save(_seen_prune(seen, datetime.now(TW_TZ)))
     doc = {
         "as_of": stamp_tw("%Y/%m/%d %H:%M"),
         "window_days": days,
-        "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板/基金板公開標題"
-                  "＋YouTube 影片・自動擷取",
+        "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS"
+                  "＋PTT 股票板/基金板公開標題＋YouTube 影片・自動擷取",
         "brand": brand,
-        "funds": fund_groups,
+        "funds": groups,
         "social": fetch_ptt() + fetch_youtube(days),
     }
     doc["highlights"] = auto_highlights(doc)
