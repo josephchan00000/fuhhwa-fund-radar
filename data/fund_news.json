@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/12 13:48",
+  "as_of": "2026/08/12 13:54",
   "window_days": 7,
   "source": "Google News（台灣繁中）＋鉅亨網/Yahoo股市 RSS＋PTT 股票板/基金板公開標題＋YouTube 影片・自動擷取",
   "brand": [],
@@ -370,7 +370,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/TzjzKX31lPU",
       "date": "2026-08-06",
-      "views": 869866,
+      "views": 870231,
       "official": true,
       "short": true
     },
@@ -380,7 +380,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/tnoVmQ5MVgg",
       "date": "2026-08-08",
-      "views": 31153,
+      "views": 31172,
       "short": true
     },
     {
@@ -405,7 +405,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/watch?v=MvPYQuXf1sQ",
       "date": "2026-08-10",
-      "views": 14385,
+      "views": 14397,
       "peer": true
     },
     {
@@ -414,12 +414,12 @@
       "channel": "睡後收入",
       "url": "https://www.youtube.com/watch?v=wD8pTYC0PAc",
       "date": "2026-08-11",
-      "views": 12577,
+      "views": 12581,
       "peer": true
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金：全球物聯網科技、華人世紀、全方位、傳家、傳家二號（詳下方基金新聞標籤）",
-    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・869,866 次觀看）"
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・870,231 次觀看）"
   ]
 }
