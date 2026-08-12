@@ -192,6 +192,8 @@ git show origin/main:data/holdings_intro_gap.json
    跑 `check_holdings_intro.py` 🟢（同時把本地 gap 檔歸零，一起 commit）→ **push 即收工**：
    該檔走 daily.yml 自動併檔通道（2026-08-12 起，防呆＝JSON 驗證＋有簡介筆數不減），
    自動併入 main＋重建＋部署，**不需 PR、不需監看**。
+   （本節是「新增基金當下」互動會話的流程；**日常換月**產生的缺口不用等人——由每日
+   **15:33 盤後籌碼 Routine 步驟②**自動補，見 CLAUDE.md 步驟 9⑤。）
 5. 總覽表出現實際數字（不再 ⏳）；「1月」欄若顯示 — 且序列跨度不足，等史料自然補齊，
    不是壞掉。
 
