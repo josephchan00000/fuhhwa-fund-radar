@@ -148,9 +148,10 @@ git push -u origin <本次會話分支>
 ```
 
 - ⚠ **與每日新聞流程的關鍵差異**：`daily.yml` 只自動併入分支上的
-  `reports/*.md` 與 `data/etf_upcoming.json`；**config／程式碼一律不自動併**
-  （防注入設計）。所以新增基金**必須把分支 merge 進 main** 才會生效——
-  開 PR 合併（repo 慣例）或請使用者按下 merge。
+  `reports/*.md`、`data/etf_upcoming.json` 與 `config/holding_profiles.json`
+  （後者 2026-08-12 起，補簡介不需 PR）；**其餘 config／程式碼一律不自動併**
+  （防注入設計）。所以新增基金（動到 `funds.json`／`GROUP_LABEL` 等）
+  **必須把分支 merge 進 main** 才會生效——開 PR 合併（repo 慣例）或請使用者按下 merge。
 - merge 前 push 分支雖會觸發 daily.yml（若同分支動過 reports/**），但那輪 CI
   checkout 的是 **main**，讀不到新 config——**不要以為 push 完就會開始抓新基金**。
 
@@ -184,10 +185,13 @@ git show origin/main:data/holdings_intro_gap.json
 3. `data/fund_nav_history.json` 有該 id 序列（跨度 ≥35 天，1月報酬才算得出；
    回填首日就該滿足）。
 4. **`holdings_intro_gap.json` 的 `count` 必須歸 0**：新檔前十大帶進新標的時，
-   count>0＋儀表板紅章＋`tests/test_holdings_intro.py` 紅。處置＝WebSearch 查證後把
-   缺的標的補進 `config/holding_profiles.json`（`profiles` 下
+   count>0＋儀表板紅章＋`tests/test_holdings_intro.py` 紅。處置（極簡迴路，全程 ~5 分）＝
+   每檔 1 次 WebSearch 查證 → 補進 `config/holding_profiles.json`（`profiles` 下
    `{持股原字串: {intro, ticker, country, verified}}`；**key＝快照內 `top_holdings[].name`
-   原字串**（含 `*` 等後綴）；intro 純事實、非投資建議、避開禁用詞）→ 重推 → merge。
+   原字串**（含 `*` 等後綴）；intro 純事實、非投資建議、避開禁用詞；country＝公司母國）→
+   跑 `check_holdings_intro.py` 🟢（同時把本地 gap 檔歸零，一起 commit）→ **push 即收工**：
+   該檔走 daily.yml 自動併檔通道（2026-08-12 起，防呆＝JSON 驗證＋有簡介筆數不減），
+   自動併入 main＋重建＋部署，**不需 PR、不需監看**。
 5. 總覽表出現實際數字（不再 ⏳）；「1月」欄若顯示 — 且序列跨度不足，等史料自然補齊，
    不是壞掉。
 
