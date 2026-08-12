@@ -1662,10 +1662,11 @@ def _bars(items: list[dict], accent: str) -> str:
 def _holdings_table(doc: dict, linked_names: set[str]) -> str:
     hs = doc.get("top_holdings") or []
     if not hs:
-        # 組合型（*_fof：tw_fof／global_fof）官網一律不揭露「十大持有標的」表——非資料缺漏
+        # 組合型（*_fof）十大持有為基金／ETF；官網有揭露（2026-08-12 起解析支援），
+        # 空值＝本次抓取暫時失敗，非「官網不揭露」（舊訊息曾如此誤標）
         if str(doc.get("group") or "").endswith("_fof"):
-            return ('<div class="muted">本基金為組合型（fund-of-funds），主要持有基金／ETF，'
-                    '官網不揭露「十大持有標的」表；成分揭露請見基金月報。</div>')
+            return ('<div class="muted">本基金為組合型（fund-of-funds），持有標的為基金／ETF；'
+                    '本次暫未取得十大持有明細，成分亦可見基金月報。</div>')
         return '<div class="muted">十大持有標的暫無資料。</div>'
     rows = []
     for i, h in enumerate(hs, 1):
@@ -1772,7 +1773,7 @@ def _fund_card(doc: dict, gavg: dict, linked_names: set[str]) -> str:
 
 
 def _pending_card(p: dict) -> str:
-    note = ("本基金為組合型（fund-of-funds），官網「十大持有標的」揭露結構不同；"
+    note = ("本基金為組合型（fund-of-funds），十大持有標的為基金／ETF；"
             if str(p.get("group") or "").endswith("_fof") else "")
     return f"""
 <details class="fund pendcard" id="fund-{_esc(p['fund_id'])}" data-name="{_esc(p['name'])}"
