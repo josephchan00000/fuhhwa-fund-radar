@@ -25,8 +25,10 @@ on:
   push:
     branches: ['claude/**']
     # data/etf_upcoming.json＝每週「ETF 募集週掃」Routine 的更新通道（2026-08-10）：
-    # 只推該檔也要能觸發併入 main 重建，週掃更新才不用等人工 merge
-    paths: ['reports/**', 'data/etf_upcoming.json']
+    # 只推該檔也要能觸發併入 main 重建，週掃更新才不用等人工 merge。
+    # config/holding_profiles.json＝持股簡介庫自動通道（2026-08-12）：換月缺簡介時
+    # 每日會話補完只需 push，即自動併入 main 重建上線——不需開 PR、不需監看。
+    paths: ['reports/**', 'data/etf_upcoming.json', 'config/holding_profiles.json']
   workflow_dispatch:
     inputs:
       news_ref:
@@ -91,7 +93,8 @@ jobs:
           done
           # 「即將登場」條目檔（2026-08-10 起由每週「ETF 募集週掃」Routine 維護）：
           # 驗證通過且 as_of 不舊於 main 現有版才併入——壞 JSON、舊分支倒灌都擋下（fail-open 保 main 版）。
-          # 這是唯一的「分支資料檔 → main」自動通道；程式碼一律不自動併（注入面，人工 merge）。
+          # 「分支資料檔 → main」自動通道僅限：本檔＋下方持股簡介庫（各有防呆）；
+          # 程式碼一律不自動併（注入面，人工 merge）。
           UPF=data/etf_upcoming.json
           if git cat-file -e "$REF:$UPF" 2>/dev/null; then
             git show "$REF:$UPF" > /tmp/etf_up_new.json
@@ -103,6 +106,22 @@ jobs:
               echo "  · $UPF 分支版 as_of=$NEW_AS 舊於 main=$CUR_AS——不倒灌"
             else
               cp /tmp/etf_up_new.json "$UPF"; echo "  併入 $UPF（as_of=$NEW_AS）"
+            fi
+          fi
+          # 持股簡介庫（2026-08-12 起）：換月缺簡介的補齊走此自動通道（不需開 PR）。
+          # 防呆＝JSON 驗證＋「有簡介的條目數」不得少於 main 現有版——壞檔、舊分支倒灌、
+          # 誤刪整批都擋下（fail-open 保 main 版）；純刪除性清理走人工 PR。
+          HPF=config/holding_profiles.json
+          if git cat-file -e "$REF:$HPF" 2>/dev/null; then
+            git show "$REF:$HPF" > /tmp/hp_new.json
+            NEW_N=$(python3 -c "import json; p=json.load(open('/tmp/hp_new.json'))['profiles']; assert isinstance(p,dict) and p; print(sum(1 for v in p.values() if isinstance(v,dict) and v.get('intro')))" 2>/dev/null) || NEW_N=""
+            CUR_N=$(python3 -c "import json; p=json.load(open('$HPF'))['profiles']; print(sum(1 for v in p.values() if isinstance(v,dict) and v.get('intro')))" 2>/dev/null || echo 0)
+            if [ -z "$NEW_N" ]; then
+              echo "  ⚠ $HPF 於來源分支驗證失敗——保留 main 現有版"
+            elif [ "$NEW_N" -lt "$CUR_N" ]; then
+              echo "  · $HPF 分支版有簡介 $NEW_N 筆 < main $CUR_N 筆——不倒灌"
+            else
+              cp /tmp/hp_new.json "$HPF"; echo "  併入 $HPF（$NEW_N 筆簡介）"
             fi
           fi
       - uses: actions/setup-python@v5
@@ -153,6 +172,7 @@ jobs:
           git add -f data/etf_upcoming.json 2>/dev/null || true    # 「即將登場」條目檔（週掃 Routine 經併檔段帶進 main）
           git add -f data/fund_nav_history.json 2>/dev/null || true  # NAV 序列持久層——漏 add 會斷史、1週/1月整片變 —（審查 #1）
           git add -f data/cnyes_fund_map.json 2>/dev/null || true    # 鉅亨 cnyesId 對映
+          git add -f config/holding_profiles.json 2>/dev/null || true # 持股簡介庫（併檔段自動通道帶入）
           git add -f data/factcheck.json 2>/dev/null || true         # 數字核對結果（儀表板警示用）
           git add -f reports/usnews/*_v*.md 2>/dev/null || true
           git add -f reports/twnews/*.md reports/twnews/prompts/*.md reports/usnews/prompts/*.md 2>/dev/null || true
