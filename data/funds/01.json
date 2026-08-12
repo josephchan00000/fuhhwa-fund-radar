@@ -88,6 +88,7 @@
       "weight": 4.55
     }
   ],
+  "asset_alloc": [],
   "country_alloc": [],
   "sector_alloc": [
     {
@@ -108,7 +109,7 @@
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-08-12 13:55",
+  "fetched_at": "2026-08-12 14:09",
   "returns_daily": {
     "1m": -4.55253,
     "3m": 4.5056,

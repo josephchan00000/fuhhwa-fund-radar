@@ -85,10 +85,28 @@
       "weight": 4.97
     }
   ],
+  "asset_alloc": [
+    {
+      "name": "台灣股票",
+      "weight": 77.52
+    },
+    {
+      "name": "環球債券",
+      "weight": 14.18
+    },
+    {
+      "name": "貨幣市場",
+      "weight": 3.89
+    },
+    {
+      "name": "流動資產",
+      "weight": 4.4
+    }
+  ],
   "country_alloc": [],
   "sector_alloc": [],
   "group": "tw_fof",
-  "fetched_at": "2026-08-12 13:55",
+  "fetched_at": "2026-08-12 14:10",
   "returns_daily": {
     "1m": -0.61042,
     "3m": 1.96824,

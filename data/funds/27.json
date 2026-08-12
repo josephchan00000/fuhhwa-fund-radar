@@ -85,6 +85,7 @@
       "weight": 3.68
     }
   ],
+  "asset_alloc": [],
   "country_alloc": [
     {
       "name": "日本",
@@ -142,7 +143,7 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-08-12 13:55",
+  "fetched_at": "2026-08-12 14:09",
   "returns_daily": {
     "1m": -12.5,
     "3m": -17.92559,

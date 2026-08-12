@@ -11,10 +11,10 @@
   "risk_level": "RR5",
   "mgmt_fee": "1.80%",
   "size_twd": 30521070107.0,
-  "nav": 74.85,
-  "nav_date": "2026/08/10",
-  "nav_change": -0.29,
-  "nav_change_pct": "-0.39%",
+  "nav": 75.56,
+  "nav_date": "2026/08/11",
+  "nav_change": 0.71,
+  "nav_change_pct": "0.95%",
   "returns": {
     "ytd": "49.89%",
     "3m": "-5.23%",
@@ -85,6 +85,7 @@
       "weight": 3.48
     }
   ],
+  "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
@@ -122,7 +123,7 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-08-12 13:54",
+  "fetched_at": "2026-08-12 14:09",
   "returns_daily": {
     "1m": -16.4807,
     "3m": -5.00063,
