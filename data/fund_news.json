@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/12 17:02",
+  "as_of": "2026/08/13 06:52",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -14,8 +14,8 @@
       "title": "00409A 復華全球未來50主動式ETF ｜成分股？配息？優缺點？募集時間？",
       "url": "https://www.stockfeel.com.tw/00409a-%E5%BE%A9%E8%8F%AF%E5%85%A8%E7%90%83%E6%9C%AA%E4%BE%8650%E4%B8%BB%E5%8B%95%E5%BC%8F-etf/",
       "source": "StockFeel 股感",
-      "date": "2026-08-11 17:10",
-      "datetime": "2026-08-11T17:10:32+08:00"
+      "date": "2026-08-11 15:00",
+      "datetime": "2026-08-11T15:00:00+08:00"
     }
   ],
   "funds": [
@@ -33,20 +33,6 @@
           "source": "yesmedia.com.tw",
           "date": "2026-08-12 08:10",
           "datetime": "2026-08-12T08:10:24+08:00"
-        },
-        {
-          "title": "年化配息率衝近17%！00929上周獲逾8萬張淨申購 登高股息買氣亞軍 | 保險信望愛獎 | 商情",
-          "url": "https://money.udn.com/money/story/5636/9676129",
-          "source": "經濟日報",
-          "date": "2026-08-07 10:01",
-          "datetime": "2026-08-07T10:01:50+08:00"
-        },
-        {
-          "title": "7月急殺後仍有25檔台股ETF今年報酬破6成！00913、00892領軍 高股息僅00929上榜",
-          "url": "https://www.yesmedia.com.tw/7%E6%9C%88%E6%80%A5%E6%AE%BA%E5%BE%8C%E4%BB%8D%E6%9C%8925%E6%AA%94%E5%8F%B0%E8%82%A1etf%E4%BB%8A%E5%B9%B4%E5%A0%B1%E9%85%AC%E7%A0%B46%E6%88%90%EF%BC%8100913%E3%80%8100892%E9%A0%98%E8%BB%8D%E3%80%80/",
-          "source": "yesmedia.com.tw",
-          "date": "2026-08-11 08:00",
-          "datetime": "2026-08-11T08:00:50+08:00"
         }
       ]
     },
@@ -71,13 +57,6 @@
           "source": "CMoney",
           "date": "2026-08-11 08:38",
           "datetime": "2026-08-11T08:38:13+08:00"
-        },
-        {
-          "title": "2026/08/10 00991A今日操作明細",
-          "url": "https://www.cmoney.tw/forum/article/181678933",
-          "source": "CMoney",
-          "date": "2026-08-10 18:12",
-          "datetime": "2026-08-10T18:12:14+08:00"
         }
       ]
     },
@@ -118,8 +97,8 @@
           "title": "00409A 復華全球未來50主動式ETF ｜成分股？配息？優缺點？募集時間？",
           "url": "https://www.stockfeel.com.tw/00409a-%E5%BE%A9%E8%8F%AF%E5%85%A8%E7%90%83%E6%9C%AA%E4%BE%8650%E4%B8%BB%E5%8B%95%E5%BC%8F-etf/",
           "source": "StockFeel 股感",
-          "date": "2026-08-11 17:10",
-          "datetime": "2026-08-11T17:10:32+08:00"
+          "date": "2026-08-11 15:00",
+          "datetime": "2026-08-11T15:00:00+08:00"
         },
         {
           "title": "算力ETF搶先布局！009827＋00409A同周開募台灣AI雙雄同周法說！通膨超級周！7月美國數據連發台灣中油油價再凍漲｜投資早知道",
@@ -463,7 +442,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/tM9IfotrDWI",
       "date": "2026-08-10",
-      "views": 501,
+      "views": 638,
       "official": true,
       "short": true
     },
@@ -473,7 +452,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/TzjzKX31lPU",
       "date": "2026-08-06",
-      "views": 888013,
+      "views": 950605,
       "official": true,
       "short": true
     },
@@ -483,7 +462,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/tnoVmQ5MVgg",
       "date": "2026-08-08",
-      "views": 31883,
+      "views": 35940,
       "short": true
     },
     {
@@ -492,7 +471,7 @@
       "channel": "九八新聞台",
       "url": "https://www.youtube.com/watch?v=o22Sy3RbQzw",
       "date": "2026-08-06",
-      "views": 6607
+      "views": 6610
     },
     {
       "platform": "youtube",
@@ -500,15 +479,15 @@
       "channel": "喬丹哥",
       "url": "https://www.youtube.com/watch?v=Fxu9U5RLprw",
       "date": "2026-08-06",
-      "views": 2412
+      "views": 2531
     },
     {
       "platform": "youtube",
-      "title": "好比華爾街收租的黑科技，台股終於有了：開箱00401A",
-      "channel": "葉芷娟",
-      "url": "https://www.youtube.com/watch?v=MvPYQuXf1sQ",
-      "date": "2026-08-10",
-      "views": 16006,
+      "title": "越南版台灣50！00885 ETF引領越股熱潮，掌握下一個亞洲之虎！｜【台股萬人謎】EP113｜富邦投信 陳仲愷",
+      "channel": "永豐金證券",
+      "url": "https://www.youtube.com/watch?v=Kf-cNqA8J20",
+      "date": "2026-08-11",
+      "views": 35205,
       "peer": true
     },
     {
@@ -517,7 +496,7 @@
       "channel": "睡後收入",
       "url": "https://www.youtube.com/watch?v=wD8pTYC0PAc",
       "date": "2026-08-11",
-      "views": 12983,
+      "views": 14973,
       "peer": true
     }
   ],
@@ -525,6 +504,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00409A（詳下方新聞標籤）",
     "品牌焦點：復華00409A布局全球50強 今開募 | 財富管理 | 商情（經濟日報）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・888,013 次觀看）"
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・950,605 次觀看）"
   ]
 }
