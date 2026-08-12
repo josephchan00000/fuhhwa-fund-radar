@@ -309,3 +309,17 @@ def test_pct_span_taiwan_convention():
     assert 'class="gain"' in fund_dashboard._pct_span(1.5)          # 漲＝gain（紅）
     assert 'class="loss"' in fund_dashboard._pct_span(-1.5)         # 跌＝loss（綠）
     assert "—" in fund_dashboard._pct_span(None)
+
+
+def test_holdings_table_prefers_profile_url_for_funds():
+    # 基金型持有無掛牌代號，Yahoo 名稱搜尋必落空（2026-08-12 使用者：「點進去沒東西」）
+    # → profile 的 url（鉅亨基金資訊頁）優先於 ticker/country 產的 Yahoo 連結
+    doc = {"group": "tw_fof", "top_holdings": [
+        {"name": "統一黑馬證券投資信託基金", "weight": 6.08, "sector": None,
+         "url": "https://fund.cnyes.com/detail/x/A09003", "ticker": None, "country": "臺灣"},
+        {"name": "元大台灣50", "weight": 8.75, "sector": None,
+         "url": None, "ticker": "0050", "country": "臺灣"}]}
+    out = fund_dashboard._holdings_table(doc, set())
+    assert 'href="https://fund.cnyes.com/detail/x/A09003"' in out    # 基金 → 鉅亨頁
+    assert "Anue鉅亨" in out
+    assert 'href="https://tw.stock.yahoo.com/quote/0050"' in out     # ETF → 照舊 Yahoo 直連
