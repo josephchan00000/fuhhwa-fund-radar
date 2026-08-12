@@ -9,22 +9,24 @@
 
 ---
 
-## 追蹤清單（25 檔，見 `config/funds.json`）
+## 追蹤清單（31 檔，見 `config/funds.json`）
 
-**全球股票型**：復華美國新星(47)、全球大趨勢(23)、全球物聯網科技(77)、華人世紀(24)、亞太成長(18)、亞太神龍科技(82)、中國新經濟A股(57)、大中華中小策略(29)
+**全球股票型**：復華美國新星(47)、全球大趨勢(23)、全球物聯網科技(77)、華人世紀(24)、亞太成長(18)、亞太神龍科技(82)、中國新經濟A股(57)、大中華中小策略(29)、全球原物料(27)、已開發國家300股票指數(101)、全球創新金融指數(131)、全球AI動力成長指數(128)
 **全球平衡型**：全球平衡(12)、中國新經濟平衡(53)、亞太平衡(16)
-**國內股票型**：復華復華(01)、高成長(03)、數位經濟(06)、中小精選(08)、全方位A(15)、全方位TISA(125)、台灣好收益(117)、台灣科技高股息A(122)、台灣科技高股息B(123)
+**全球組合型**：奧林匹克全球優勢組合-新臺幣A(22)（組合型；官網無十大持股表，成分見月報）
+**國內股票型**：復華復華(01)、高成長(03)、數位經濟(06)、中小精選(08)、全方位A(15)、全方位TISA(125)、台灣好收益(117)、台灣科技高股息A(122)、台灣科技高股息B(123)、台灣菁英50指數(126)
 **國內平衡型**：傳家(04)、傳家二號(07)、人生目標(11)、神盾(13)
 **台灣智能**：台灣智能(79)（組合型；官網無十大持股表，成分見月報）
 
-（括號內為 `fhtrust.com.tw/funds/funds_detail/{id}` 的 id；要增減基金只需改 `config/funds.json`。）
+（括號內為 `fhtrust.com.tw/funds/funds_detail/{id}` 的 id；要增減基金只需改 `config/funds.json`
+——完整步驟與查證規範見 **`docs/add_fund_guide.md`**。）
 
 ---
 
 ## 快速開始（零安裝，純標準庫 + certifi TLS）
 
 ```bash
-# 1) 抓 25 檔基金的持股介紹（海外＋台股）→ data/funds/{id}.json
+# 1) 抓 31 檔基金的持股介紹（海外＋台股）→ data/funds/{id}.json
 python3 scripts/fetch_holdings.py
 python3 scripts/fetch_holdings.py 47 12        # 只抓指定 fundID
 
@@ -90,7 +92,7 @@ arm/usnews.py                  昨夜美股：兩版型規格常數 + 產出讀�
 arm/twnews.py                  台股盤前/盤後重點：版型規格 + 產出讀取 + 加權/櫃買指數萃取
 arm/macronews.py               總經／政策面（川普政策/Fed/國際政策）：版型規格 + 產出讀取
 arm/fund_dashboard.py          零安裝儀表板（業務優先三層架構，SSR + 極簡 Markdown 渲染）
-scripts/fetch_holdings.py      抓 25 檔持股介紹 → data/funds/{id}.json
+scripts/fetch_holdings.py      抓 31 檔持股介紹 → data/funds/{id}.json
 scripts/gen_usnews.py          產昨夜美股提示包 / --check 合規掃描
 scripts/gen_twnews.py          產台股盤前/盤後提示包 / --check 合規掃描
 scripts/gen_macronews.py       產總經／政策面提示包 / --check 合規掃描

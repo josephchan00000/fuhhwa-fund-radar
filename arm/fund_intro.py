@@ -13,6 +13,7 @@ FUNDS_DIR = ROOT / "data" / "funds"
 PROFILES = ROOT / "config" / "holding_profiles.json"
 
 GROUP_LABEL = {"global_equity": "全球股票型", "global_balanced": "全球平衡型",
+               "global_fof": "全球組合型",
                "tw_equity": "國內股票型", "tw_balanced": "國內平衡型",
                "tw_fof": "台灣智能（組合型）"}
 
