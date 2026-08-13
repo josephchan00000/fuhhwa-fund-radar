@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/14 06:54",
+  "as_of": "2026/08/14 06:56",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -453,7 +453,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/tnoVmQ5MVgg",
       "date": "2026-08-08",
-      "views": 39609,
+      "views": 39615,
       "short": true
     },
     {
@@ -462,7 +462,7 @@
       "channel": "Quran's Recitaition",
       "url": "https://www.youtube.com/watch?v=D_pC9_q5spQ",
       "date": "2026-08-09",
-      "views": 1672
+      "views": 1670
     },
     {
       "platform": "youtube",
@@ -480,12 +480,22 @@
       "date": "2026-08-12",
       "views": 3696,
       "peer": true
+    },
+    {
+      "platform": "youtube",
+      "title": "小台積 0052 一張抱好台灣護國神山群",
+      "channel": "Business Insider Taiwan",
+      "url": "https://www.youtube.com/shorts/YOpaGgbCY1Y",
+      "date": "2026-08-12",
+      "views": 1332,
+      "peer": true,
+      "short": true
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00409A（詳下方新聞標籤）",
     "品牌焦點：復華00409A布局全球50強 今開募 | 財富管理 | 商情（經濟日報）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：高股息ETF獲利百萬，該將獲利「入袋為安」嗎？！#財經雪倫（投資嗨什麼・39,609 次觀看）"
+    "YouTube 熱片：高股息ETF獲利百萬，該將獲利「入袋為安」嗎？！#財經雪倫（投資嗨什麼・39,615 次觀看）"
   ]
 }
