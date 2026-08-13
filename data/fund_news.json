@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/14 06:56",
+  "as_of": "2026/08/14 06:58",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -68,7 +68,7 @@
         {
           "title": "就買它！7月震盪甩出「主動式黑馬」　00991A定期定額月增18.8%強勢霸榜",
           "url": "https://finance.ettoday.net/news/3218696",
-          "source": "ETtoday財經雲",
+          "source": "finance.ettoday.net",
           "date": "2026-08-13 15:31",
           "datetime": "2026-08-13T15:31:00+08:00"
         }
