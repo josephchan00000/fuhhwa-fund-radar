@@ -160,8 +160,14 @@
        · **當下緩解**＝dispatch 一輪 `daily.yml`（ref=main、`news_ref` 留空＝只用 main 現有新聞重刷資料）
          產生新的 commit＋push 事件，給自動偵測第二次機會（2026-08-13 實測有效，17:24 那筆上線）；
          **根治只有把 secret 建起來**。
-       · **驗證 secret 是否真的生效**：挑一輪**確實有 commit** 的 run 讀部署步驟日誌（該步有
-         `if: changed == 'true'` 守門，資料沒變動的空轉輪會整步跳過，驗不到東西）。
+       · **✅ 已解決（2026-08-13 當晚使用者建立 secret，dispatch `daily.yml` run 31690853627 驗證通過）**：
+         該輪部署步驟日誌印 `VERCEL_DEPLOY_HOOK: ***`（讀到了、遮罩顯示）＋
+         `{"job":{"id":"…","state":"PENDING"…}}` ＋ **`HTTP 201`**——hook 真的打出去、Vercel 已排程部署。
+         **步驟耗時也是判準**：未設時瞬間 echo 完就 exit（0 秒），真打出去約 3~4 秒。
+       · **驗證要挑對 workflow（實測差異）**：**`daily.yml` 的部署步驟沒有任何 `if:` 守門、無條件執行**
+         ——要驗 secret 就 dispatch 它（`news_ref` 留空），必定跑到那步、必定有日誌可讀；
+         `afterhours_refresh.yml`／`etf_holdings.yml` 的同一步有 `if: steps.guard.outputs.changed == 'true'`，
+         資料沒變動的空轉輪會**整步跳過**，拿那種 run 驗會什麼都看不到、誤以為沒生效。
      - Vercel `vercel.json` 已設 `Cache-Control: no-store`（全站不快取）→ **線上看到舊的一律是「沒部署」而非快取**，別叫使用者清快取白忙。
    - **⑤ 前十大簡介缺口（2026-07-23 使用者：一再漏掉；2026-08-12 全自動落地；同日改「主責＝15:33 盤後班」）**：讀
      `git show origin/main:data/holdings_intro_gap.json`。**晨間本步驟只讀不補**（使用者 2026-08-12：
@@ -346,10 +352,11 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
   新聞沿用前日（或撿分支已推的今日新聞），但 NAV／持股／ETF 照樣更新；頁面瀏覽器端有「逾 2 天未重建」
   紅色警示橫幅當最後防線。
 - **部署**：CI commit 後打 `secrets.VERCEL_DEPLOY_HOOK` 主動部署（`daily.yml`／`afterhours_refresh.yml`／
-  `etf_holdings.yml` 三支皆已接好）；**該 secret 未設前**，部署仍只靠 Vercel 自動偵測 git push（曾卡
-  Initializing／漏接）——**2026-08-13 查證：這把 secret 當時從沒建過**，徵狀＝「資料準時進 main、CI 全 success、
-  線上停在舊版」，詳見步驟 9 的「主動部署」與其下踩坑條。**如使用者回報線上沒更新，先讀該班 run 部署步驟的
-  日誌**（印 `HTTP 2xx`＝真的打出去了；印「未設…跳過」＝secret 仍未生效），再問 Vercel Deployments 對到哪個 commit。
+  `etf_holdings.yml` 三支皆已接好）。**2026-08-13 起 secret 已建立並驗證通過**（run 31690853627 部署步驟印
+  `HTTP 201`＋Vercel 回 `PENDING` job）。**在此之前這把 secret 從沒建過**，部署一直只靠 Vercel 自動偵測
+  git push（曾卡 Initializing／漏接），偵測漏接就會出現「資料準時進 main、CI 全 success、線上卻停在舊版」
+  ——原委與診斷順序見步驟 9 的「主動部署」與其下踩坑條。**如使用者回報線上沒更新，先讀該班 run 部署步驟的
+  日誌**（印 `HTTP 2xx`＝真的打出去了；印「未設…跳過」＝secret 被刪或失效），再問 Vercel Deployments 對到哪個 commit。
 
 ## 已知環境限制與防呆（曾踩過的坑，不要再犯）
 
