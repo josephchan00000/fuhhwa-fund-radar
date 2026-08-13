@@ -11,10 +11,10 @@
   "risk_level": "RR5",
   "mgmt_fee": "1.60%",
   "size_twd": 7284202404.0,
-  "nav": 166.32,
-  "nav_date": "2026/08/12",
-  "nav_change": 3.13,
-  "nav_change_pct": "1.92%",
+  "nav": 169.27,
+  "nav_date": "2026/08/13",
+  "nav_change": 2.95,
+  "nav_change_pct": "1.77%",
   "returns": {
     "ytd": "29.68%",
     "3m": "-18.26%",
@@ -118,7 +118,7 @@
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-08-13 07:58",
+  "fetched_at": "2026-08-13 17:23",
   "returns_daily": {
     "1m": -6.77653,
     "3m": -9.58904,
