@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/13 18:23",
+  "as_of": "2026/08/14 06:46",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -28,18 +28,18 @@
       ],
       "items": [
         {
+          "title": "00929 復華台灣科技優息- 紅色乖乖加持- 股市爆料同學會",
+          "url": "https://www.cmoney.tw/forum/article/182065202",
+          "source": "CMoney",
+          "date": "2026-08-13 20:16",
+          "datetime": "2026-08-13T20:16:10+08:00"
+        },
+        {
           "title": "領息又賺價差！00929今年績效勝過大盤、台積電 詹璇依封「科技黑馬」",
           "url": "https://www.yesmedia.com.tw/%E9%A0%98%E6%81%AF%E5%8F%88%E8%B3%BA%E5%83%B9%E5%B7%AE%EF%BC%8100929%E4%BB%8A%E5%B9%B4%E7%B8%BE%E6%95%88%E5%8B%9D%E9%81%8E%E5%A4%A7%E7%9B%A4%E3%80%81%E5%8F%B0%E7%A9%8D%E9%9B%BB%E3%80%80%E8%A9%B9/",
           "source": "yesmedia.com.tw",
           "date": "2026-08-13 09:48",
           "datetime": "2026-08-13T09:48:05+08:00"
-        },
-        {
-          "title": "股市大跌也不怕？阿格力解析00929投資優勢 績效勝大盤、年化配息率逾10％",
-          "url": "https://www.yesmedia.com.tw/%E8%82%A1%E5%B8%82%E5%A4%A7%E8%B7%8C%E4%B9%9F%E4%B8%8D%E6%80%95%EF%BC%9F%E9%98%BF%E6%A0%BC%E5%8A%9B%E8%A7%A3%E6%9E%9000929%E6%8A%95%E8%B3%87%E5%84%AA%E5%8B%A2%E3%80%80%E7%B8%BE%E6%95%88%E5%8B%9D/",
-          "source": "yesmedia.com.tw",
-          "date": "2026-08-12 08:10",
-          "datetime": "2026-08-12T08:10:24+08:00"
         }
       ]
     },
@@ -52,16 +52,23 @@
       ],
       "items": [
         {
+          "title": "00991A連兩天加碼聯亞！光通訊態度越來越明確",
+          "url": "https://www.cmoney.tw/forum/article/182048838",
+          "source": "CMoney",
+          "date": "2026-08-13 20:55",
+          "datetime": "2026-08-13T20:55:00+08:00"
+        },
+        {
           "title": "台股震盪嚇不跑存股族！ETF定期定額戶數破300萬 00991A暴增18.8%成",
           "url": "https://today.line.me/tw/v3/article/YaRenLa",
-          "source": "LINE TODAY",
+          "source": "民視新聞網",
           "date": "2026-08-13 16:42",
           "datetime": "2026-08-13T16:42:28+08:00"
         },
         {
           "title": "就買它！7月震盪甩出「主動式黑馬」　00991A定期定額月增18.8%強勢霸榜",
           "url": "https://finance.ettoday.net/news/3218696",
-          "source": "ETtoday財經雲",
+          "source": "finance.ettoday.net",
           "date": "2026-08-13 15:31",
           "datetime": "2026-08-13T15:31:00+08:00"
         }
@@ -106,13 +113,6 @@
           "source": "StockFeel 股感",
           "date": "2026-08-11 15:00",
           "datetime": "2026-08-11T15:00:00+08:00"
-        },
-        {
-          "title": "算力ETF搶先布局！009827＋00409A同周開募台灣AI雙雄同周法說！通膨超級周！7月美國數據連發台灣中油油價再凍漲｜投資早知道",
-          "url": "https://tw.stock.yahoo.com/news/%E7%AE%97%E5%8A%9Betf%E6%90%B6%E5%85%88%E5%B8%83%E5%B1%80%EF%BC%81009827%EF%BC%8B00409a%E5%90%8C%E5%91%A8%E9%96%8B%E5%8B%9F-%E5%8F%B0%E7%81%A3ai%E9%9B%99%E9%9B%84%E5%90%8C%E5%91%A8%E6%B3%95%E8%AA%AA%EF%BC%81%E9%80%9A%E8%86%A8%E8%B6%85%E7%B4%9A%E5%91%A8%EF%BC%817%E6%9C%88%E7%BE%8E%E5%9C%8B%E6%95%B8%E6%93%9A%E9%80%A3%E7%99%BC-%E5%8F%B0%E7%81%A3%E4%B8%AD%E6%B2%B9%E6%B2%B9%E5%83%B9%E5%86%8D%E5%87%8D%E6%BC%B2-%EF%BD%9C%E6%8A%95%E8%B3%87%E6%97%A9%E7%9F%A5%E9%81%93-005252552.html",
-          "source": "Yahoo股市",
-          "date": "2026-08-09 08:54",
-          "datetime": "2026-08-09T08:54:49+08:00"
         }
       ]
     },
@@ -438,18 +438,12 @@
       "url": "https://fundhot.com/forum/ETF/00929%E4%BB%8A%E5%B9%B4%E6%BC%B275%EF%BC%85%E5%8F%88%E9%85%8D10%EF%BC%85%EF%BC%8C%E9%AB%98%E8%82%A1%E6%81%AFETF%E9%BB%83%E9%87%91%E5%B9%B4%E4%BB%A3%E4%BE%86%E4%BA%86/13796"
     },
     {
-      "platform": "fundhot",
-      "board": "ETF",
-      "title": "00929漲46％轉型「成長型高股息ETF」，領息也能賺行情",
-      "url": "https://fundhot.com/forum/ETF/00929%E6%BC%B246%EF%BC%85%E8%BD%89%E5%9E%8B%E3%80%8C%E6%88%90%E9%95%B7%E5%9E%8B%E9%AB%98%E8%82%A1%E6%81%AFETF%E3%80%8D%EF%BC%8C%E9%A0%98%E6%81%AF%E4%B9%9F%E8%83%BD%E8%B3%BA%E8%A1%8C%E6%83%85/13740"
-    },
-    {
       "platform": "youtube",
       "title": "00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？",
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/tM9IfotrDWI",
       "date": "2026-08-10",
-      "views": 690,
+      "views": 926,
       "official": true,
       "short": true
     },
@@ -459,7 +453,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/tnoVmQ5MVgg",
       "date": "2026-08-08",
-      "views": 37167,
+      "views": 39595,
       "short": true
     },
     {
@@ -468,7 +462,7 @@
       "channel": "Quran's Recitaition",
       "url": "https://www.youtube.com/watch?v=D_pC9_q5spQ",
       "date": "2026-08-09",
-      "views": 1613
+      "views": 1670
     },
     {
       "platform": "youtube",
@@ -476,16 +470,7 @@
       "channel": "一個工程師的財務自白",
       "url": "https://www.youtube.com/watch?v=SLRRX9CRE10",
       "date": "2026-08-07",
-      "views": 1480
-    },
-    {
-      "platform": "youtube",
-      "title": "0050已經不是最強？盤點績效超越台股大盤的海外ETF.這幾檔你一定要知道║江國中、陳昆仁、鐘崑禎║2026.08.11",
-      "channel": "瘋狂股市福利社Free Free Free!",
-      "url": "https://www.youtube.com/watch?v=Hs6eepV03cA",
-      "date": "2026-08-11",
-      "views": 11776,
-      "peer": true
+      "views": 1519
     },
     {
       "platform": "youtube",
@@ -493,14 +478,24 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=ExSi67PMxXI",
       "date": "2026-08-12",
-      "views": 2776,
+      "views": 3696,
       "peer": true
+    },
+    {
+      "platform": "youtube",
+      "title": "小台積 0052 一張抱好台灣護國神山群",
+      "channel": "Business Insider Taiwan",
+      "url": "https://www.youtube.com/shorts/YOpaGgbCY1Y",
+      "date": "2026-08-12",
+      "views": 1332,
+      "peer": true,
+      "short": true
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00409A（詳下方新聞標籤）",
     "品牌焦點：復華00409A布局全球50強 今開募 | 財富管理 | 商情（經濟日報）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：高股息ETF獲利百萬，該將獲利「入袋為安」嗎？！#財經雪倫（投資嗨什麼・37,167 次觀看）"
+    "YouTube 熱片：高股息ETF獲利百萬，該將獲利「入袋為安」嗎？！#財經雪倫（投資嗨什麼・39,595 次觀看）"
   ]
 }
