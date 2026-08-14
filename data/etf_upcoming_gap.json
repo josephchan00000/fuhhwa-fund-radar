@@ -1,9 +1,27 @@
 {
- "as_of": "2026-08-14 08:01",
+ "as_of": "2026-08-14 11:41",
  "count": 0,
  "items": [],
- "pipeline_n": 7,
+ "pipeline_n": 9,
  "pipeline": [
+  {
+   "code": null,
+   "name": "復華台灣新星主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
+   "cat": "主動式ETF"
+  },
+  {
+   "code": null,
+   "name": "貝萊德iShares安碩世界黃金礦業ETF",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
+   "cat": "ETF"
+  },
   {
    "code": null,
    "name": "中國信託台灣聚焦成長主動式ETF基金",
