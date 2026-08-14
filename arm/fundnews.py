@@ -665,10 +665,12 @@ YT_SEARCH = "https://www.googleapis.com/youtube/v3/search"
 YT_VIDEOS = "https://www.googleapis.com/youtube/v3/videos"
 YT_PLAYLIST = "https://www.googleapis.com/youtube/v3/playlistItems"
 YT_CHANNELS = "https://www.googleapis.com/youtube/v3/channels"
-# search.list 每次 100 單位（日限 10000）；四組＋同業 1 組≈每輪 501、日多輪仍 <3000
-#（2026-08-06 使用者要求擴大涵蓋；勿再隨意加組）。
+# search.list 每次 100 單位（日限 10000）：相關 4 組＋市場熱門 5 組＝9 組×100
+# ＋playlistItems 2＋channels 1＋videos.list 分批數單位 ≈ 每輪 907、日多輪仍 <3000
+#（2026-08-14 使用者要求擴編市場熱門；勿再隨意加組——加組前先算這筆帳）。
 YT_QUERIES = ["復華投信", "復華 基金", "復華 ETF", "00929"]
-# 三層清單（2026-08-06 使用者規劃）：官方全收／相關（非官方）取 3／同業熱門取 2。
+# 三層清單（2026-08-06 使用者規劃；2026-08-14 第三層擴編）：官方全收／相關（非官方）
+# 取 3／市場熱門依分類配額取至多 6。
 # 官方頻道是「兩個」（使用者提供 2026-08-06）：@fhifund 主頻道（金管家系列在此）＋
 # @fhetf ETF 專屬頻道。鍵可填 UC 頻道 id（直接用）或 @handle（執行期 channels.list
 # forHandle 解析、1 單位）；未來新官方頻道在此加一行即可。
@@ -677,9 +679,18 @@ YT_OFFICIAL_CHANNELS = {
     "@fhetf": "復華ETF",                      # ETF 專屬頻道
 }
 YT_UNOFFICIAL_LIMIT = 3
-YT_PEER_LIMIT = 2
-YT_PEER_QUERY = "台股 ETF"     # 同業熱門層：近 2 天依觀看數排序，再以同業代碼過濾
-YT_PEER_FRESH_DAYS = 2
+# 市場熱門層（2026-08-14 使用者：「同業熱門的觀看數超級少……應該會有超級多討論 ETF
+# 等等基金類的影片」）——由「單一查詢＋硬性同業代碼」擴編為主題桶多查詢＋分類配額：
+YT_PEER_QUERIES = ["台股 ETF", "高股息 ETF", "ETF 投資", "債券 ETF", "基金 投資"]
+YT_PEER_LIMIT = 6            # 總上限（原 2）——版面每支一行，6 支仍好讀
+YT_PEER_CAT_LIMIT = 2        # 每類配額——viewCount 排序易被單一題材（高股息）洗版
+YT_PEER_MIN_VIEWS = 5000     # 熱門門檻（使用者抱怨兩三千觀看）；全數未達才 fallback 取 2
+YT_PEER_FRESH_DAYS = 3       # 2→3 天：讓觀看數有時間累積，仍夠新鮮
+YT_SEARCH_MAX = 25           # search.list 成本與 10 筆同為 100 單位——放大 pool 零額度成本
+# 指名剔除的影片 id（sanitize 讀取端過濾，舊落檔／_carry_social 沿用款立即生效）：
+YT_BLOCK_IDS = {
+    "D_pC9_q5spQ",   # 可蘭經朗誦《Surah Rahman | Ep - 00929》（2026-08-14 使用者回報誤收）
+}
 _YT_SHORT_SEC = 180          # YouTube Shorts 上限 3 分鐘（2024-10 起）；≤此秒數標為短片
 _YT_DUR = re.compile(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?")
 
@@ -713,33 +724,133 @@ def _peer_codes() -> tuple[str, ...]:
     return ("0050", "0056", "00878", "00919", "006208")
 
 
+# 集數式編號前綴（Ep - 00929／EP.00929／第00929集／No.00929）：可蘭經朗誦影片
+# 《Surah Rahman | Ep - 00929》曾以獨立詞命中 00929 誤收（2026-08-14 使用者回報），
+# 「L#00929」型防呆擋不住空白隔開的集數寫法。
+_EP_PREFIX = r"(?i)(?:\bep(?:isode)?|\bno|第)\s*[.\-–—:：#＃]*\s*"
+_CJK_RE = re.compile(r"[一-鿿]")
+
+
+def _has_cjk(text: str) -> bool:
+    """含漢字才可能是台股受眾內容——relevanceLanguage=zh-Hant 只是「偏好」非過濾，
+    純外語標題（可蘭經朗誦《Ep - 00929》型）要靠這層擋。"""
+    return bool(_CJK_RE.search(text or ""))
+
+
 def _code_hit(text: str, codes: tuple[str, ...] | None = None) -> bool:
     """ETF 代碼是否以「獨立詞」出現（預設查自家代碼）。防呆（2026-08-06 實戰誤收）：
     日文單字卡影片標題帶課號「L#00929」被純子字串比對誤判——代碼前後不得緊貼英數，
-    也不得是「英數+#」的編號式前綴；獨立 hashtag（空格後的 #00929）仍算相關。"""
+    也不得是「英數+#」的編號式前綴；獨立 hashtag（空格後的 #00929）仍算相關。
+    2026-08-14 再補：集數式前綴（Ep -／第…）的代碼＝影片編號、不算命中。"""
     for c in codes if codes is not None else _fh_codes():
-        if re.search(rf"(?<![0-9A-Za-z])(?<![0-9A-Za-z][#＃]){re.escape(c)}(?![0-9A-Za-z])",
-                     text):
-            return True
+        if not re.search(rf"(?<![0-9A-Za-z])(?<![0-9A-Za-z][#＃]){re.escape(c)}(?![0-9A-Za-z])",
+                         text):
+            continue
+        if re.search(_EP_PREFIX + re.escape(c), text):
+            continue
+        return True
     return False
 
 
 def yt_relevant(title: str, desc: str = "") -> bool:
     """相關層：標題或說明含品牌詞（復華/金複合）或自家 ETF 代碼（獨立詞）才算相關
-    （查詢會回同名他牌/無關影片）；負面司法題材同 PTT 排除。"""
+    （查詢會回同名他牌/無關影片）；負面司法題材同 PTT 排除。
+    純代碼命中（無品牌詞）另須含漢字——00929 這種五碼數字在全外語影片裡多半是編號。"""
     text = f"{title} {desc}"
     if is_negative_title(title):
         return False
-    return _brand_hit(text) or _code_hit(text)
+    if _brand_hit(text):
+        return True
+    return _code_hit(text) and _has_cjk(text)
+
+
+# 市場熱門層主題詞與海外排除（2026-08-14 擴編）：本區是台股同業／市場動態，
+# 純美股 ETF 內容（無任何台股代碼）不收；單獨「美國／美股」字樣不排除——
+# 「美國降息 台股ETF受惠」式新聞標題是常態。
+_YT_TOPIC = re.compile(r"ETF|高股息|市值型|存股|定期定額|債券|配息|基金", re.I)
+_YT_OFFSHORE = re.compile(
+    r"(?<![0-9A-Za-z])(?:VOO|QQQ|SPY|VTI|VT|IVV|SCHD|JEPI|JEPQ|TLT|VYM|BND|SGOV)"
+    r"(?![0-9A-Za-z])|美股\s*ETF|美國\s*ETF", re.I)
+_TW_ETF_CODE = re.compile(r"(?<![0-9A-Za-z])00\d{2,4}[A-Z]?(?![0-9A-Za-z])")
 
 
 def yt_peer_relevant(title: str, desc: str = "") -> bool:
-    """同業熱門層：含同業 ETF 代碼（獨立詞）才收；自家內容（品牌詞/自家代碼）歸相關層
-    （不重複）、負面司法題材照樣排除。"""
+    """市場熱門層（2026-08-14 由「同業熱門」擴編）：自家內容（品牌詞/自家代碼）歸相關層
+    （不重複）、負面司法題材照樣排除、標題須含漢字；其餘兩條路徑任一即收——
+    ①含同業 ETF 代碼（獨立詞，原判準）；②標題/說明含 ETF・基金主題詞（高觀看的泛
+    ETF 討論多半不寫代碼，舊判準把它們全殺了），但純海外內容（美股代碼/美股ETF 連語
+    且無台股代碼）不收。"""
     text = f"{title} {desc}"
     if is_negative_title(title) or _brand_hit(text) or _code_hit(text):
         return False
-    return _code_hit(text, _peer_codes())
+    if not _has_cjk(title):
+        return False
+    if _code_hit(text, _peer_codes()):
+        return True
+    if not _YT_TOPIC.search(text):
+        return False
+    return not (_YT_OFFSHORE.search(text) and not _TW_ETF_CODE.search(text))
+
+
+def yt_topic(title: str) -> str:
+    """市場熱門影片主題分類（儀表板章「熱門・{類別}」；配額避免單一題材洗版）。
+    優先序：債券 > 高股息 > 主動式 > 市值型 > 基金 > 綜合。"""
+    t = title or ""
+    if "債" in t:
+        return "債券"
+    if re.search(r"高股息|配息|息收|月配|季配|殖利率", t):
+        return "高股息"
+    if re.search(r"主動式|主動型|主動\s*ETF", t) or re.search(
+            r"(?<![0-9A-Za-z])00\d{2,4}A(?![0-9A-Za-z])", t):
+        return "主動式"
+    if re.search(r"市值型|大盤|指數化|指數型", t) or re.search(
+            r"(?<![0-9A-Za-z])(?:0050|006208|00922|00923)(?![0-9A-Za-z])", t):
+        return "市值型"
+    if "基金" in t and not re.search(r"ETF", t, re.I):
+        return "基金"
+    return "綜合"
+
+
+def _norm_yt_title(t: str) -> str:
+    """正規化標題供跨頻道同片去重：聯播節目（三立財經iNEWS／94要賺錢曾同片異 id
+    各佔一格）標題只差尾端「｜頻道名」段——去尾段＋去空白後相同即視為同一支內容。"""
+    t = re.sub(r"[｜|][^｜|]{1,20}$", "", t or "")
+    return re.sub(r"\s+", "", t)
+
+
+def _select_peers(items: list[dict]) -> list[dict]:
+    """市場熱門選片（2026-08-14 擴編）：同片去重 → 觀看門檻 YT_PEER_MIN_VIEWS →
+    分類配額（每類 YT_PEER_CAT_LIMIT、總 YT_PEER_LIMIT）。輸入已依觀看數排序
+    （parse_youtube）。全數未達門檻（安靜週末）→ 退而取前 2、不留白。
+    類別寫進 item["cat"]（「綜合」不寫，渲染端沿用素「同業熱門」章語意改「熱門」）。"""
+    pool: list[dict] = []
+    seen_t: set[str] = set()
+    for it in items:
+        k = _norm_yt_title(it.get("title") or "")
+        if k and k in seen_t:
+            continue
+        seen_t.add(k)
+        pool.append(it)
+
+    def _tag(it: dict) -> dict:
+        cat = yt_topic(it.get("title") or "")
+        if cat != "綜合":
+            it["cat"] = cat
+        return it
+
+    picked: list[dict] = []
+    cat_n: dict[str, int] = {}
+    for it in pool:
+        if len(picked) >= YT_PEER_LIMIT:
+            break
+        if (it.get("views") or 0) < YT_PEER_MIN_VIEWS:
+            continue
+        cat = yt_topic(it.get("title") or "")
+        if cat_n.get(cat, 0) >= YT_PEER_CAT_LIMIT:
+            continue
+        cat_n[cat] = cat_n.get(cat, 0) + 1
+        picked.append(_tag(it))
+    return picked if picked else [_tag(it) for it in pool[:2]]
 
 
 def _yt_secs(iso: str) -> int:
@@ -805,12 +916,14 @@ def _pl_docs(data: dict, after_iso: str) -> dict:
 
 
 def fetch_youtube(days: int = WINDOW_DAYS) -> list[dict]:
-    """三層 YouTube 清單（2026-08-06 使用者規劃）。無金鑰／被擋回 []（誠實降級，不影響 PTT）：
+    """三層 YouTube 清單（2026-08-06 使用者規劃；2026-08-14 第三層擴編）。
+    無金鑰／被擋回 []（誠實降級，不影響 PTT）：
     ①官方＝YT_OFFICIAL_CHANNELS 各頻道近窗全部上傳（uploads 播放清單、每頻道 1 單位），
       依日期新→舊、不限支數（「有發都納進去」）；
     ②相關＝關鍵字搜尋＋yt_relevant，依觀看數取前 YT_UNOFFICIAL_LIMIT；
-    ③同業熱門＝近 YT_PEER_FRESH_DAYS 天依觀看數排序的台股 ETF 影片，含同業代碼者取前
-      YT_PEER_LIMIT。三層共用 seen 去重（官方優先），各層失敗不互相牽連。"""
+    ③市場熱門＝YT_PEER_QUERIES 主題桶各近 YT_PEER_FRESH_DAYS 天依觀看數搜尋，
+      yt_peer_relevant 過濾後交 _select_peers（門檻／同片去重／分類配額）。
+    三層共用 seen 去重（官方優先），各層失敗不互相牽連。"""
     from datetime import timezone
 
     key = _yt_key()
@@ -845,46 +958,47 @@ def fetch_youtube(days: int = WINDOW_DAYS) -> list[dict]:
     for q in YT_QUERIES:
         try:
             docs.append(_get_json(
-                f"{YT_SEARCH}?part=snippet&type=video&order=date&maxResults=10"
+                f"{YT_SEARCH}?part=snippet&type=video&order=date&maxResults={YT_SEARCH_MAX}"
                 f"&regionCode=TW&relevanceLanguage=zh-Hant&publishedAfter={after}"
                 f"&q={urllib.parse.quote(q)}&key={key}"))
         except Exception:
             continue
 
     peer_docs: list[dict] = []
-    try:
-        p_after = (now - timedelta(days=YT_PEER_FRESH_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
-        peer_docs.append(_get_json(
-            f"{YT_SEARCH}?part=snippet&type=video&order=viewCount&maxResults=10"
-            f"&regionCode=TW&relevanceLanguage=zh-Hant&publishedAfter={p_after}"
-            f"&q={urllib.parse.quote(YT_PEER_QUERY)}&key={key}"))
-    except Exception:
-        pass
+    p_after = (now - timedelta(days=YT_PEER_FRESH_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    for q in YT_PEER_QUERIES:
+        try:
+            peer_docs.append(_get_json(
+                f"{YT_SEARCH}?part=snippet&type=video&order=viewCount&maxResults={YT_SEARCH_MAX}"
+                f"&regionCode=TW&relevanceLanguage=zh-Hant&publishedAfter={p_after}"
+                f"&q={urllib.parse.quote(q)}&key={key}"))
+        except Exception:
+            continue
 
     vids = [v for grp in (official_docs, docs, peer_docs) for d in grp
             for it in d.get("items") or []
             if (v := (it.get("id") or {}).get("videoId"))]
     stats: dict[str, dict] = {}
-    if vids:
-        try:
-            ids = list(dict.fromkeys(vids))[:50]     # videos.list 單次上限 50 支
-            data = _get_json(
-                f"{YT_VIDEOS}?part=statistics,contentDetails&id={','.join(ids)}&key={key}")
+    ids = list(dict.fromkeys(vids))
+    for i in range(0, len(ids), 50):    # videos.list 單次上限 50 支 → 分批（每批 1 單位）。
+        try:                            # 舊版只取前 50、其餘靜默 0 觀看沉底＝永遠選不進。
+            data = _get_json(f"{YT_VIDEOS}?part=statistics,contentDetails"
+                             f"&id={','.join(ids[i:i + 50])}&key={key}")
             for it in data.get("items") or []:
                 stats[it.get("id") or ""] = {
                     "views": int((it.get("statistics") or {}).get("viewCount") or 0),
                     "sec": _yt_secs((it.get("contentDetails") or {}).get("duration") or ""),
                 }
         except Exception:
-            pass
+            continue
 
     seen: set = set()
     official = parse_youtube(official_docs, stats, relevant=lambda t, d="": True,
                              mark={"official": True}, seen=seen)
     official.sort(key=lambda x: x.get("date") or "", reverse=True)   # 官方＝公告流、日期序
     related = parse_youtube(docs, stats, seen=seen)[:YT_UNOFFICIAL_LIMIT]
-    peer = parse_youtube(peer_docs, stats, relevant=yt_peer_relevant,
-                         mark={"peer": True}, seen=seen)[:YT_PEER_LIMIT]
+    peer = _select_peers(parse_youtube(peer_docs, stats, relevant=yt_peer_relevant,
+                                       mark={"peer": True}, seen=seen))
     return official + related + peer
 
 
@@ -1019,16 +1133,46 @@ def save(doc: dict) -> tuple[Path, bool]:
     return OUT, True
 
 
+def _yt_vid(url: str) -> str:
+    """YouTube 連結 → 影片 id（watch?v=／shorts/ 兩形；解析不出回空字串）。"""
+    m = re.search(r"(?:[?&]v=|/shorts/)([\w-]{6,})", url or "")
+    return m.group(1) if m else ""
+
+
+def _social_ok(s: dict) -> bool:
+    """社群項目讀取端防呆（sanitize 用）：負面題材全平台濾；YouTube 另擋
+    ①指名黑名單 YT_BLOCK_IDS、②非官方且標題無漢字（可蘭經朗誦《Ep - 00929》型
+    誤收——舊落檔與 _carry_social 沿用款不必等重抓即消失）。"""
+    if is_negative_title(s.get("title") or ""):
+        return False
+    if (s.get("platform") or "") != "youtube":
+        return True
+    if _yt_vid(s.get("url") or "") in YT_BLOCK_IDS:
+        return False
+    return bool(s.get("official")) or _has_cjk(s.get("title") or "")
+
+
 def sanitize(doc: dict | None) -> dict | None:
     """讀取時再過一次農場／負面過濾：即使既有落檔是舊規則抓的（含 CMoney投資網誌 農場文、
-    復華司法/醜聞報導），儀表板顯示時也一律濾掉——不必等下次重抓。純過濾、不新增內容。"""
+    復華司法/醜聞報導），儀表板顯示時也一律濾掉——不必等下次重抓。純過濾、不新增內容。
+    YouTube 項另做同片去重（聯播節目同片異 id；落檔順序官方在前、同層依觀看序，
+    先到者即該留者）。"""
     if not doc:
         return doc
     doc["brand"] = _clean_items(doc.get("brand") or [])
     for g in doc.get("funds") or []:
         g["items"] = _clean_items(g.get("items") or [])
-    doc["social"] = [s for s in (doc.get("social") or [])
-                     if not is_negative_title(s.get("title") or "")]
+    soc, seen_yt = [], set()
+    for s in doc.get("social") or []:
+        if not _social_ok(s):
+            continue
+        if (s.get("platform") or "") == "youtube":
+            k = _norm_yt_title(s.get("title") or "")
+            if k and k in seen_yt:
+                continue
+            seen_yt.add(k)
+        soc.append(s)
+    doc["social"] = soc
     # 舊落檔的看點措辭指向已移除的「各基金新聞」分卡區 → 讀取時改寫成合併版措辭
     doc["highlights"] = [h.replace("（詳下方各基金新聞）", "（詳下方基金新聞標籤）")
                          for h in doc.get("highlights") or []]
