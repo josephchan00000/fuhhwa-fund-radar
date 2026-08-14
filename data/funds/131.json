@@ -32,21 +32,120 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/131.pdf",
   "dist_date": "—",
   "dist_rate": "—",
-  "as_of": "2026/06/30",
-  "top_holdings": [],
+  "as_of": "2026/07/31",
+  "top_holdings": [
+    {
+      "sector": "金融",
+      "name": "BANK OF AMERICA CORP",
+      "weight": 5.59
+    },
+    {
+      "sector": "金融",
+      "name": "JPMORGAN CHASE &amp; CO",
+      "weight": 5.38
+    },
+    {
+      "sector": "金融",
+      "name": "HSBC HOLDINGS PLC",
+      "weight": 5.37
+    },
+    {
+      "sector": "金融",
+      "name": "MASTERCARD INC - A",
+      "weight": 5.32
+    },
+    {
+      "sector": "金融",
+      "name": "VISA INC-CLASS A SHARES",
+      "weight": 5.12
+    },
+    {
+      "sector": "非核心消費品",
+      "name": "AMAZON.COM INC",
+      "weight": 4.74
+    },
+    {
+      "sector": "資訊技術",
+      "name": "APPLE INC",
+      "weight": 4.72
+    },
+    {
+      "sector": "金融",
+      "name": "GOLDMAN SACHS GROUP INC",
+      "weight": 4.53
+    },
+    {
+      "sector": "通訊服務",
+      "name": "META PLATFORMS INC-CLASS A",
+      "weight": 4.25
+    },
+    {
+      "sector": "金融",
+      "name": "WELLS FARGO &amp; CO",
+      "weight": 3.99
+    }
+  ],
   "asset_alloc": [],
   "country_alloc": [
     {
+      "name": "美國",
+      "weight": 81.92
+    },
+    {
+      "name": "英國",
+      "weight": 5.37
+    },
+    {
+      "name": "日本",
+      "weight": 4.15
+    },
+    {
+      "name": "德國",
+      "weight": 2.87
+    },
+    {
+      "name": "荷蘭",
+      "weight": 2.83
+    },
+    {
+      "name": "法國",
+      "weight": 1.96
+    },
+    {
       "name": "流動資產",
-      "weight": 100.0
+      "weight": 0.9
     }
   ],
   "sector_alloc": [
     {
+      "name": "金融",
+      "weight": 77.6
+    },
+    {
+      "name": "非核心消費品",
+      "weight": 7.01
+    },
+    {
+      "name": "資訊技術",
+      "weight": 6.22
+    },
+    {
+      "name": "通訊服務",
+      "weight": 4.25
+    },
+    {
+      "name": "核心消費品",
+      "weight": 3.93
+    },
+    {
+      "name": "工業",
+      "weight": 0.09
+    },
+    {
       "name": "流動資產",
-      "weight": 100.0
+      "weight": 0.9
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-08-14 22:55"
+  "fetched_at": "2026-08-15 06:38"
 }

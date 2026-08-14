@@ -32,21 +32,116 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/128.pdf",
   "dist_date": "—",
   "dist_rate": "—",
-  "as_of": "2026/06/30",
-  "top_holdings": [],
+  "as_of": "2026/07/31",
+  "top_holdings": [
+    {
+      "sector": "資訊技術",
+      "name": "MICROSOFT CORP",
+      "weight": 10.92
+    },
+    {
+      "sector": "非核心消費品",
+      "name": "AMAZON.COM INC",
+      "weight": 10.14
+    },
+    {
+      "sector": "資訊技術",
+      "name": "APPLE INC",
+      "weight": 10.12
+    },
+    {
+      "sector": "通訊服務",
+      "name": "ALPHABET INC-CL A",
+      "weight": 9.06
+    },
+    {
+      "sector": "資訊技術",
+      "name": "NVIDIA CORP",
+      "weight": 8.89
+    },
+    {
+      "sector": "資訊技術",
+      "name": "BROADCOM INC",
+      "weight": 6.98
+    },
+    {
+      "sector": "資訊技術",
+      "name": "台積電",
+      "weight": 6.88
+    },
+    {
+      "sector": "通訊服務",
+      "name": "META PLATFORMS INC-CLASS A",
+      "weight": 4.7
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SAMSUNG ELECTRONICS CO LTD",
+      "weight": 3.67
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MICRON TECHNOLOGY INC",
+      "weight": 3.58
+    }
+  ],
   "asset_alloc": [],
   "country_alloc": [
     {
+      "name": "美國",
+      "weight": 80.24
+    },
+    {
+      "name": "臺灣",
+      "weight": 7.76
+    },
+    {
+      "name": "韓國",
+      "weight": 5.9
+    },
+    {
+      "name": "荷蘭",
+      "weight": 2.42
+    },
+    {
+      "name": "日本",
+      "weight": 1.31
+    },
+    {
+      "name": "德國",
+      "weight": 0.77
+    },
+    {
+      "name": "加拿大",
+      "weight": 0.55
+    },
+    {
       "name": "流動資產",
-      "weight": 100.0
+      "weight": 1.04
     }
   ],
   "sector_alloc": [
     {
+      "name": "資訊技術",
+      "weight": 72.42
+    },
+    {
+      "name": "通訊服務",
+      "weight": 15.6
+    },
+    {
+      "name": "非核心消費品",
+      "weight": 10.9
+    },
+    {
+      "name": "工業",
+      "weight": 0.05
+    },
+    {
       "name": "流動資產",
-      "weight": 100.0
+      "weight": 1.04
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-08-14 22:55"
+  "fetched_at": "2026-08-15 06:38"
 }
