@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/15 06:53",
+  "as_of": "2026/08/15 07:03",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -473,7 +473,66 @@
       "channel": "理周FUN財經",
       "url": "https://www.youtube.com/watch?v=R2SJsNfLpNA",
       "date": "2026-08-14",
-      "views": 1743
+      "views": 1749
+    },
+    {
+      "platform": "youtube",
+      "title": "《8月高息ETF除息大盤點! 公股為何狂買它?》【錢線百分百】20260812-8│非凡財經新聞│",
+      "channel": "USTV 非凡電視",
+      "url": "https://www.youtube.com/watch?v=xI5ly1Z3dLA",
+      "date": "2026-08-12",
+      "views": 24251,
+      "peer": true,
+      "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "MSCI全面調升台股三權重 記憶體入摩押大注!化被動為主動?台股V轉 主動ETF最新排位賽,誰稱冠?｜20260813(第1/8段)股市現場*鄭明娟(黃靖哲×李冠嶔×謝晨彥)",
+      "channel": "非凡 股市現場",
+      "url": "https://www.youtube.com/watch?v=4Va5xgChKlU",
+      "date": "2026-08-13",
+      "views": 24173,
+      "peer": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "買ETF以那些隱藏成本?什麼是總內扣費用?",
+      "channel": "葉子暘。轉折先知道",
+      "url": "https://www.youtube.com/shorts/RpElMBlM0qg",
+      "date": "2026-08-12",
+      "views": 10367,
+      "peer": true,
+      "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "阮慕驊：台股5萬點年底機率高！主動式ETF嗅到多頭訊號？高息變黑馬、半導體落後等補漲！也可以做幾個變化：｜關我什麼事｜三立財經iNEWS",
+      "channel": "三立財經iNEWS",
+      "url": "https://www.youtube.com/watch?v=B2pRc7FRzRg",
+      "date": "2026-08-14",
+      "views": 9937,
+      "peer": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "《科技ETF配息驚艷 高成長vs.高配息 怎挑?》【錢線百分百】20260813-7│非凡財經新聞│",
+      "channel": "錢線百分百",
+      "url": "https://www.youtube.com/watch?v=3syYKG2kPXA",
+      "date": "2026-08-13",
+      "views": 7992,
+      "peer": true,
+      "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股陷盤整..主被動ETF誰強?!短線.波段績效一次看00947&quot;爆冷&quot;登近一年ETF績效王 關鍵選股邏輯在哪?│陳斐娟 主持 │20260811│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=aLzOsXdaSKQ",
+      "date": "2026-08-12",
+      "views": 6701,
+      "peer": true
     }
   ],
   "highlights": [
