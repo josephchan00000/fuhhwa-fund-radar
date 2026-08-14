@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/15 07:18",
+  "as_of": "2026/08/15 07:36",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -464,7 +464,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/pUw_ODgbCcs",
       "date": "2026-08-13",
-      "views": 3153,
+      "views": 3151,
       "short": true
     },
     {
@@ -473,7 +473,7 @@
       "channel": "理周FUN財經",
       "url": "https://www.youtube.com/watch?v=R2SJsNfLpNA",
       "date": "2026-08-14",
-      "views": 1772
+      "views": 1795
     },
     {
       "platform": "youtube",
@@ -481,7 +481,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=xI5ly1Z3dLA",
       "date": "2026-08-12",
-      "views": 24257,
+      "views": 24262,
       "peer": true,
       "cat": "市值型"
     },
@@ -491,7 +491,7 @@
       "channel": "非凡 股市現場",
       "url": "https://www.youtube.com/watch?v=4Va5xgChKlU",
       "date": "2026-08-13",
-      "views": 24173,
+      "views": 24172,
       "peer": true,
       "cat": "主動式"
     },
@@ -511,7 +511,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=B2pRc7FRzRg",
       "date": "2026-08-14",
-      "views": 9937,
+      "views": 9989,
       "peer": true,
       "cat": "主動式"
     },
@@ -521,7 +521,7 @@
       "channel": "錢線百分百",
       "url": "https://www.youtube.com/watch?v=3syYKG2kPXA",
       "date": "2026-08-13",
-      "views": 7994,
+      "views": 7997,
       "peer": true,
       "cat": "高股息"
     },
@@ -531,7 +531,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=aLzOsXdaSKQ",
       "date": "2026-08-12",
-      "views": 6701,
+      "views": 6703,
       "peer": true
     }
   ],
