@@ -338,9 +338,14 @@ def test_view_renders_official_and_peer_pills():
                        "date": "2026-08-05", "views": 50},
                       {"platform": "youtube", "title": "0056 vs 00878 怎麼選", "peer": True,
                        "channel": "同業頻道", "url": "https://www.youtube.com/watch?v=p1",
-                       "date": "2026-08-05", "views": 9000}]}
+                       "date": "2026-08-05", "views": 9000},
+                      {"platform": "youtube", "title": "月配息ETF總整理", "peer": True,
+                       "cat": "高股息", "channel": "配息頻道",
+                       "url": "https://www.youtube.com/watch?v=p2",
+                       "date": "2026-08-05", "views": 88000}]}
     html = _fundnews_view(doc)
-    assert ">官方</span>" in html and ">同業熱門</span>" in html
+    assert ">官方</span>" in html and ">同業熱門</span>" in html   # 舊落檔無 cat＝原章
+    assert ">熱門・高股息</span>" in html                          # 2026-08-14 擴編：分類章
     assert "復華投信・YouTube" in html
 
 
@@ -356,6 +361,74 @@ def test_yt_secs_and_code_relevance():
     # 2026-08-06 實戰誤收：日文單字卡影片課號「L#00929」——編號式前綴不得命中
     assert not fundnews.yt_relevant("シン・フラッシュ英単語/高校1年/50問L#00929")
     assert not fundnews.yt_relevant("題庫100929號解析")           # 長數字內嵌不得命中
+
+
+def test_yt_episode_number_and_no_cjk_guards():
+    """2026-08-14 使用者回報誤收：可蘭經朗誦《Surah Rahman | Ep - 00929》——
+    空白隔開的集數編號通過了獨立詞判準。兩道新防呆：①集數式前綴（Ep -／第…／No.）
+    不算代碼命中；②純代碼命中（無品牌詞）另須含漢字。讀取端 sanitize 同步濾。"""
+    bad = "Surah Rahman | Ep - 00929 By Qari Nadeem Yousuf | سورہ رحمٰن55 |Beautiful Recitation"
+    assert not fundnews._code_hit(bad)                        # Ep - ＝集數編號
+    assert not fundnews._code_hit("第00929集 完整版")
+    assert not fundnews._code_hit("EP.00929 特輯")
+    assert not fundnews.yt_relevant(bad)
+    assert not fundnews.yt_relevant("00929 monthly dividend explained")   # 無漢字不收
+    assert fundnews.yt_relevant("00929 8月配息出爐！")                     # 正常寫法不受影響
+    assert fundnews.yt_relevant("存股心得 #00929 配息")                    # 獨立 hashtag 照收
+    # 讀取端：黑名單 id＋非官方且無漢字標題 → sanitize 即滅（舊落檔不必等重抓）
+    doc = {"brand": [], "funds": [], "highlights": [],
+           "social": [{"platform": "youtube", "title": bad,
+                       "url": "https://www.youtube.com/watch?v=D_pC9_q5spQ", "views": 1673},
+                      {"platform": "youtube", "title": "高股息ETF入袋為安？",
+                       "url": "https://www.youtube.com/shorts/okvid01", "views": 39915},
+                      {"platform": "ptt", "title": "[心得] 存股", "url": "https://ptt/x"}]}
+    out = fundnews.sanitize(doc)
+    assert all("D_pC9_q5spQ" not in (s.get("url") or "") for s in out["social"])
+    assert len(out["social"]) == 2                            # 中文影片與 PTT 保留
+
+
+def test_yt_peer_expansion_topic_and_selection():
+    """市場熱門擴編（2026-08-14 使用者：觀看數超級少、應有超多 ETF／基金影片）：
+    主題詞路徑（無代碼）也收、純海外不收；yt_topic 分類；_select_peers＝
+    同片去重＋觀看門檻＋分類配額。"""
+    assert fundnews.yt_peer_relevant("高股息ETF獲利百萬，該入袋為安嗎？")   # 無代碼、主題詞收
+    assert fundnews.yt_peer_relevant("債券ETF現在能買嗎")
+    assert not fundnews.yt_peer_relevant("美股 ETF VOO 定期定額全攻略")     # 純海外不收
+    assert not fundnews.yt_peer_relevant("Top 10 ETF to Buy Now")           # 無漢字不收
+    assert not fundnews.yt_peer_relevant("台積電法說會重點")                # 無主題詞不收
+    # 分類（優先序：債券＞高股息＞主動式＞市值型＞基金＞綜合）
+    assert fundnews.yt_topic("00679B 美債ETF解析") == "債券"
+    assert fundnews.yt_topic("高股息ETF月配息實測") == "高股息"
+    assert fundnews.yt_topic("00981A 主動式ETF經理人操盤") == "主動式"
+    assert fundnews.yt_topic("0050 市值型長期持有") == "市值型"
+    assert fundnews.yt_topic("台股基金定期定額心得") == "基金"
+    assert fundnews.yt_topic("台股ETF榜單曝光") == "綜合"
+
+    def it(vid, title, views):
+        return {"platform": "youtube", "title": title, "views": views, "peer": True,
+                "url": f"https://www.youtube.com/watch?v={vid}"}
+    items = [
+        it("a1", "高股息ETF大解析", 90000),
+        it("a2", "月配息ETF怎麼挑", 80000),
+        it("a3", "高股息ETF退休實測", 70000),          # 高股息第 3 支 → 每類配額 2 擋下
+        it("b1", "台股ETF榜單曝光｜三立財經iNEWS", 60000),
+        it("b2", "台股ETF榜單曝光｜94要賺錢", 50000),   # 聯播同片異 id → 去重留觀看高者
+        it("c1", "債券ETF進場時機", 40000),
+        it("d1", "0050 市值型比較", 30000),
+        it("e1", "ETF冷門小片", 800),                   # 未達 YT_PEER_MIN_VIEWS
+    ]
+    picked = fundnews._select_peers(items)
+    titles = [p["title"] for p in picked]
+    assert "高股息ETF退休實測" not in titles
+    assert sum("台股ETF榜單曝光" in t for t in titles) == 1
+    assert all("94要賺錢" not in t for t in titles)
+    assert "ETF冷門小片" not in titles
+    assert 0 < len(picked) <= fundnews.YT_PEER_LIMIT
+    assert picked[0]["cat"] == "高股息" and "cat" not in [p for p in picked
+                                                          if "榜單" in p["title"]][0]
+    # 全數未達門檻（安靜週末）→ fallback 取前 2、不留白
+    low = [it("z1", "ETF小眾討論", 900), it("z2", "基金週報", 500), it("z3", "存股日記", 400)]
+    assert len(fundnews._select_peers(low)) == 2
 
 
 def test_view_renders_youtube_social_alongside_ptt():
