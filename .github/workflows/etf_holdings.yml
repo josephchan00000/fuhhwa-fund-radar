@@ -75,6 +75,10 @@ jobs:
         if: inputs.probe != true
         run: TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py
 
+      - name: 儀表板輕量結構檢查（截斷／關鍵區塊消失→紅、壞頁不出門；多人化 Phase 1-②）
+        if: inputs.probe != true
+        run: TZ=Asia/Taipei python3 scripts/smoke_dashboard.py --lite dashboard/index.html
+
       - name: commit 持股落檔＋儀表板
         if: inputs.probe != true
         run: |
@@ -107,3 +111,12 @@ jobs:
           fi
           curl -sS -X POST "$VERCEL_DEPLOY_HOOK" -w "\nHTTP %{http_code}\n" \
             || echo "deploy hook 呼叫失敗（不影響已入庫的 commit）"
+
+      - name: 對時哨兵（驗線上頁已吃到 main 最新建表；多人化 Phase 1-①，2026-08-14）
+        # 本場次無 commit 時線上「本來就該」等於 main，一樣驗＝免費的漂移偵測；
+        # 哨兵紅≠資料有問題（資料已入 main），診斷見 CLAUDE.md 步驟 9 部署踩坑條。
+        if: inputs.probe != true
+        run: |
+          git fetch origin main --depth=1
+          git show FETCH_HEAD:dashboard/index.html > /tmp/main_dashboard.html
+          python3 scripts/check_live_deploy.py --expected-file /tmp/main_dashboard.html
