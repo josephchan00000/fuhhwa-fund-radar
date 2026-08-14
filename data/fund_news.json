@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/14 07:25",
+  "as_of": "2026/08/14 07:59",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -52,13 +52,6 @@
       ],
       "items": [
         {
-          "title": "主動復華未來50(00991A)-同學風向與貼文摘要 - 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/stock/00991A?tab=AISummary",
-          "source": "CMoney",
-          "date": "2026-08-13 22:19",
-          "datetime": "2026-08-13T22:19:25+08:00"
-        },
-        {
           "title": "00991A連兩天加碼聯亞！光通訊態度越來越明確",
           "url": "https://www.cmoney.tw/forum/article/182048838",
           "source": "CMoney",
@@ -71,6 +64,13 @@
           "source": "民視新聞網",
           "date": "2026-08-13 16:42",
           "datetime": "2026-08-13T16:42:28+08:00"
+        },
+        {
+          "title": "就買它！7月震盪甩出「主動式黑馬」　00991A定期定額月增18.8%強勢霸榜",
+          "url": "https://finance.ettoday.net/news/3218696",
+          "source": "ETtoday財經雲",
+          "date": "2026-08-13 15:31",
+          "datetime": "2026-08-13T15:31:00+08:00"
         }
       ]
     },
@@ -113,13 +113,6 @@
           "source": "StockFeel 股感",
           "date": "2026-08-11 15:00",
           "datetime": "2026-08-11T15:00:00+08:00"
-        },
-        {
-          "title": "算力ETF搶先布局！009827＋00409A同周開募台灣AI雙雄同周法說！通膨超級周！7月美國數據連發台灣中油油價再凍漲｜投資早知道",
-          "url": "https://tw.stock.yahoo.com/news/%E7%AE%97%E5%8A%9Betf%E6%90%B6%E5%85%88%E5%B8%83%E5%B1%80%EF%BC%81009827%EF%BC%8B00409a%E5%90%8C%E5%91%A8%E9%96%8B%E5%8B%9F-%E5%8F%B0%E7%81%A3ai%E9%9B%99%E9%9B%84%E5%90%8C%E5%91%A8%E6%B3%95%E8%AA%AA%EF%BC%81%E9%80%9A%E8%86%A8%E8%B6%85%E7%B4%9A%E5%91%A8%EF%BC%817%E6%9C%88%E7%BE%8E%E5%9C%8B%E6%95%B8%E6%93%9A%E9%80%A3%E7%99%BC-%E5%8F%B0%E7%81%A3%E4%B8%AD%E6%B2%B9%E6%B2%B9%E5%83%B9%E5%86%8D%E5%87%8D%E6%BC%B2-%EF%BD%9C%E6%8A%95%E8%B3%87%E6%97%A9%E7%9F%A5%E9%81%93-005252552.html",
-          "source": "Yahoo股市",
-          "date": "2026-08-09 08:54",
-          "datetime": "2026-08-09T08:54:49+08:00"
         }
       ]
     },
@@ -485,7 +478,16 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=ExSi67PMxXI",
       "date": "2026-08-12",
-      "views": 3696,
+      "views": 3720,
+      "peer": true
+    },
+    {
+      "platform": "youtube",
+      "title": "買0050不是唯一解答？台股反彈已過半山腰！股民瘋狂撿主被動ETF？定期定額破124萬戶 ETF績效榜單曝光！IC設計.記憶體族群成關鍵｜94要賺錢",
+      "channel": "94要賺錢",
+      "url": "https://www.youtube.com/watch?v=hDm2SHIF8mk",
+      "date": "2026-08-12",
+      "views": 2477,
       "peer": true
     }
   ],
