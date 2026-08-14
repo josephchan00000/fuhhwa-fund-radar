@@ -399,6 +399,8 @@ def test_yt_peer_expansion_topic_and_selection():
     # 分類（優先序：債券＞高股息＞主動式＞市值型＞基金＞綜合）
     assert fundnews.yt_topic("00679B 美債ETF解析") == "債券"
     assert fundnews.yt_topic("高股息ETF月配息實測") == "高股息"
+    # 2026-08-15 首輪實戰誤分：「除息大盤點」的「大盤」誤中市值型、高息/除息不在詞表
+    assert fundnews.yt_topic("《8月高息ETF除息大盤點! 公股為何狂買它?》") == "高股息"
     assert fundnews.yt_topic("00981A 主動式ETF經理人操盤") == "主動式"
     assert fundnews.yt_topic("0050 市值型長期持有") == "市值型"
     assert fundnews.yt_topic("台股基金定期定額心得") == "基金"

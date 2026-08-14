@@ -798,12 +798,13 @@ def yt_topic(title: str) -> str:
     t = title or ""
     if "債" in t:
         return "債券"
-    if re.search(r"高股息|配息|息收|月配|季配|殖利率", t):
+    if re.search(r"高股息|高息|配息|除息|息收|月配|季配|殖利率", t):
         return "高股息"
     if re.search(r"主動式|主動型|主動\s*ETF", t) or re.search(
             r"(?<![0-9A-Za-z])00\d{2,4}A(?![0-9A-Za-z])", t):
         return "主動式"
-    if re.search(r"市值型|大盤|指數化|指數型", t) or re.search(
+    # 「大盤」不得吃掉「大盤點」（2026-08-15 實戰誤分：《高息ETF除息大盤點》被標市值型）
+    if re.search(r"市值型|大盤(?!點)|指數化|指數型", t) or re.search(
             r"(?<![0-9A-Za-z])(?:0050|006208|00922|00923)(?![0-9A-Za-z])", t):
         return "市值型"
     if "基金" in t and not re.search(r"ETF", t, re.I):
