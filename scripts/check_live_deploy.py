@@ -48,15 +48,47 @@ def _ctx() -> ssl.SSLContext:
         return ssl.create_default_context()
 
 
-def fetch(url: str, etag: str | None = None) -> tuple[int, dict, str]:
+def fetch(url: str, cond: dict | None = None) -> tuple[int, dict, str]:
+    """回傳（狀態碼, 標頭 dict【鍵一律小寫】, 內文）。
+
+    ⚠ 標頭鍵一律轉小寫再回傳：HTTP 標頭名不分大小寫、各家 CDN 寫法不一
+    （HTTP/2 更是一律小寫），用 `dict(resp.headers)` 後以 "ETag" 查表會漏讀。
+    cond＝條件式請求標頭（If-None-Match／If-Modified-Since）。
+    """
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "text/html"})
-    if etag:
-        req.add_header("If-None-Match", etag)
+    for k, v in (cond or {}).items():
+        req.add_header(k, v)
     try:
         with urllib.request.urlopen(req, timeout=30, context=_ctx()) as resp:
-            return resp.status, dict(resp.headers), resp.read().decode("utf-8", "replace")
+            return (resp.status, {k.lower(): v for k, v in resp.headers.items()},
+                    resp.read().decode("utf-8", "replace"))
     except urllib.error.HTTPError as e:  # 304 走 HTTPError 路徑
-        return e.code, dict(e.headers or {}), ""
+        return e.code, {k.lower(): v for k, v in (e.headers or {}).items()}, ""
+
+
+def _report_cache(url: str, headers: dict) -> None:
+    """記錄快取協商能力（僅記錄、不影響哨兵結果）。
+
+    no-cache 要能省流，前提是伺服器給得出驗證器（ETag 或 Last-Modified）——
+    給不出就等於每次全量下載（＝與舊的 no-store 相同，不會更差）。
+    此段的輸出就是「快取改版到底有沒有換到 304」的唯一證據來源。
+    """
+    cc = headers.get("cache-control", "（無）")
+    etag, lastmod = headers.get("etag"), headers.get("last-modified")
+    print(f"[對時哨兵] （記錄）Cache-Control: {cc}｜ETag: {etag or '（無）'}｜Last-Modified: {lastmod or '（無）'}")
+    cond = {}
+    if etag:
+        cond["If-None-Match"] = etag
+    elif lastmod:
+        cond["If-Modified-Since"] = lastmod
+    if not cond:
+        print("[對時哨兵] （記錄）伺服器未給驗證器（無 ETag／Last-Modified）→ 瀏覽器無法條件式請求、"
+              "每次全量下載；與改版前的 no-store 相同，非退步。要省流需另尋 Vercel 端設定。")
+        return
+    which = "If-None-Match" if "If-None-Match" in cond else "If-Modified-Since"
+    st, _h, _b = fetch(url, cond=cond)
+    print(f"[對時哨兵] （記錄）帶 {which} 重打 → HTTP {st}"
+          f"{'＝304 條件式快取生效、重複造訪只傳標頭' if st == 304 else '（非 304——省流未生效）'}")
 
 
 def main() -> int:
@@ -93,13 +125,7 @@ def main() -> int:
                 last_seen = live
                 if live and live >= expected:
                     print(f"[對時哨兵] ✅ 第 {attempt} 次檢查：線上 {live} >= 期望 {expected}——部署已生效")
-                    cc = headers.get("Cache-Control", "?")
-                    etag = headers.get("ETag")
-                    print(f"[對時哨兵] （記錄）Cache-Control: {cc}｜ETag: {etag or '（無）'}")
-                    if etag:  # 順帶驗 304（no-cache 快取的線上驗證；僅記錄）
-                        st2, _h2, _b2 = fetch(a.url, etag=etag)
-                        print(f"[對時哨兵] （記錄）帶 If-None-Match 重打 → HTTP {st2}"
-                              f"{'＝304 條件式快取生效' if st2 == 304 else '（非 304——瀏覽器端將每次全量下載）'}")
+                    _report_cache(a.url, headers)
                     return 0
                 print(f"[對時哨兵] 第 {attempt} 次：線上 {live or '無標記'} < 期望 {expected}，等部署傳播…")
             else:
