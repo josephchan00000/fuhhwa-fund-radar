@@ -168,7 +168,7 @@
          ——要驗 secret 就 dispatch 它（`news_ref` 留空），必定跑到那步、必定有日誌可讀；
          `afterhours_refresh.yml`／`etf_holdings.yml` 的同一步有 `if: steps.guard.outputs.changed == 'true'`，
          資料沒變動的空轉輪會**整步跳過**，拿那種 run 驗會什麼都看不到、誤以為沒生效。
-     - Vercel `vercel.json` 已設 `Cache-Control: no-store`（全站不快取）→ **線上看到舊的一律是「沒部署」而非快取**，別叫使用者清快取白忙。
+     - Vercel `vercel.json` 已設 `Cache-Control: no-cache`（2026-08-14 多人化 Phase 1 由 no-store 改，**兩支 vercel.json 根目錄與 dashboard/ 都要一致**）：瀏覽器可存但**每次都必須向伺服器 revalidate**——內容沒變回 304（~1KB）、變了才全量下載，300 人重複造訪省流；**「線上看到舊的一律是「沒部署」而非快取」的診斷鐵則不變**（每次都 revalidate，瀏覽器快取不可能是原因），別叫使用者清快取白忙。304 是否生效看對時哨兵日誌的「（記錄）帶 If-None-Match 重打」行。
    - **⑤ 前十大簡介缺口（2026-07-23 使用者：一再漏掉；2026-08-12 全自動落地；同日改「主責＝15:33 盤後班」）**：讀
      `git show origin/main:data/holdings_intro_gap.json`。**晨間本步驟只讀不補**（使用者 2026-08-12：
      不佔早上、跟最簡單的那班）——count>0 → 成功推播裡帶一句「缺 N 檔簡介，15:33 班會補」即可；
@@ -357,6 +357,18 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
   git push（曾卡 Initializing／漏接），偵測漏接就會出現「資料準時進 main、CI 全 success、線上卻停在舊版」
   ——原委與診斷順序見步驟 9 的「主動部署」與其下踩坑條。**如使用者回報線上沒更新，先讀該班 run 部署步驟的
   日誌**（印 `HTTP 2xx`＝真的打出去了；印「未設…跳過」＝secret 被刪或失效），再問 Vercel Deployments 對到哪個 commit。
+- **多人化硬化（2026-08-14，使用者確認 100–300 人內部使用後加入；規劃全文 `docs/multi_user_plan.md`）**：
+  ① **對時哨兵 `scripts/check_live_deploy.py`**——三支 workflow 部署步驟後輪詢**線上頁**（Actions 網路
+    可達 vercel.app，容器不行），比對 `data-gen` 產表時戳已追上 main（4 分鐘內），沒追上→run ❌ 寄信。
+    根治 08-13 型「資料進 main、線上停舊版」的發現延遲；**哨兵紅≠資料有問題**（資料多半已入 main），
+    診斷照上一條的順序走。② **煙霧測試 `scripts/smoke_dashboard.py`**——daily.yml 建表後 headless Chromium
+    驗 console 零錯誤／關鍵區塊／`__EH`／時戳（**兩段式：env `SMOKE_ENFORCE=0` 觀察期只告警，誤報率
+    歸零後改 `'1'` 攔截**——攔截＝該輪不 commit 不部署、線上維持前一版）；afterhours／etf_holdings 走
+    `--lite` 零依賴結構檢查（截斷/區塊消失才紅，直接攔截）。**煙測只擋結構壞頁；數字對錯仍走 factcheck
+    不擋發佈**，「防線不可硬到什麼都沒更新」原則不變。③ 長開分頁逾 6 小時提示重新整理（`fund_dashboard.py`
+    頁齡 IIFE）。④ 快取 no-store→no-cache 見上方步驟 9 該條。CI 分鐘帳：repo 私有、免費額 2,000 分/月，
+    此前用量 ~1,000，哨兵＋煙測估 +200~300——**新增排程/步驟前先想分鐘帳**（獨立 30 分 cron 哨兵就是
+    因 +1,440 分/月被否決改 piggyback 的）。
 
 ## 已知環境限制與防呆（曾踩過的坑，不要再犯）
 

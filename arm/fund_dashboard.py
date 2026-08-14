@@ -2625,6 +2625,17 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
   else if(hm>=1370&&ghm<1320)                                     // 22:50 後 vs 產表早於 22:00
     warn('⚠ 今晚夜間數據（融資融券・基金NAV）尚未上線——本頁產表於 '+g.dataset.gen+'，GitHub CI 可能延遲；若今日台股休市請忽略');
 })();
+// 長開分頁提示（2026-08-14 多人化 Phase 1-⑤）：上面各種逾期橫幅只在「載入當下」算一次，
+// 分頁開著不關的人（多人使用必有）永遠看不到後續警示——每 30 分自查「載入至今」時長，
+// 逾 6 小時提示重新整理。用 Date.now() 差值（裝置睡醒後下一輪 tick 即補判）；只提示一次、
+// 不自動 reload（避免打斷閱讀），樣式沿用 .stale-banner。
+(function(){const t0=Date.now();let shown=false;
+  setInterval(function(){if(shown)return;
+    const h=(Date.now()-t0)/36e5;
+    if(h>=6){shown=true;const b=document.createElement('div');b.className='stale-banner';
+      b.textContent='ℹ️ 本頁已開啟超過 '+Math.floor(h)+' 小時，資料可能已更新——請重新整理取得最新內容';
+      document.body.prepend(b)}},18e5);
+})();
 // ── ETF 持股詳情＆異動：每檔一張可收合卡片（比照基金詳情；2026-07-31 使用者指示） ──
 // 內容延遲渲染——23 檔各含方塊圖＋兩張表，一次全建進 DOM 會讓頁面又大又慢；
 // 第一次展開才建，之後保留。每張卡各自保有搜尋／排序／分頁狀態（存在 ST[code]）。

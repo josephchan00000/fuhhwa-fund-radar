@@ -143,6 +143,17 @@ jobs:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: bash scripts/daily_fund.sh
 
+      - name: 儀表板煙霧測試（headless Chromium 真開頁面；多人化 Phase 1-②，2026-08-14）
+        # 兩段式上線：SMOKE_ENFORCE=0 觀察期只告警不攔截，誤報率歸零（1~2 週）後改 '1'
+        # ——屆時紅＝不 commit 不部署、線上維持前一版（靜態頁天然 last-known-good）。
+        # 瀏覽器用 runner 內建 Chrome（channel=chrome，零下載）；pip/瀏覽器層 infra 故障
+        # 一律軟跳過不擋（腳本內建），只有確定的斷言失敗才算紅。lite 結構層（截斷）永遠攔截。
+        env:
+          SMOKE_ENFORCE: '0'
+        run: |
+          pip install --quiet playwright || echo "::warning::playwright 安裝失敗——瀏覽器煙測跳過（infra）"
+          TZ=Asia/Taipei python3 scripts/smoke_dashboard.py dashboard/index.html
+
       - name: 上傳儀表板與持股快照為 artifact
         uses: actions/upload-artifact@v4
         with:
@@ -210,3 +221,13 @@ jobs:
           fi
           echo "以 Deploy Hook 觸發 Vercel production 部署（main 最新 commit）…"
           curl -sS -X POST "$VERCEL_DEPLOY_HOOK" -w "\nHTTP %{http_code}\n" || echo "deploy hook 呼叫失敗（不影響已入庫的 commit）"
+
+      - name: 對時哨兵（驗線上頁已吃到 main 最新建表；多人化 Phase 1-①，2026-08-14）
+        # Actions 的網路可達 vercel.app（被 proxy 擋的是 Claude 容器）。輪詢至多 4 分鐘等
+        # 線上 data-gen 追上 main；沒追上→run ❌ 寄 failure 信＝「部署漏接」警報（08-13 型
+        # 事故從隔天人工發現變分鐘級自動警報）。哨兵紅≠資料有問題（資料已入 main），
+        # 診斷順序見 CLAUDE.md 步驟 9「主動部署」踩坑條。
+        run: |
+          git fetch origin main --depth=1
+          git show FETCH_HEAD:dashboard/index.html > /tmp/main_dashboard.html
+          python3 scripts/check_live_deploy.py --expected-file /tmp/main_dashboard.html
