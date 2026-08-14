@@ -503,17 +503,32 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
   沒金鑰就把 7 則社群洗成 0」（整份「全空不覆寫」防呆只看 brand/funds/social 全空、擋不住
   單段全空）；②儀表板 `_yt_watch_chip`：social 段存在而 youtube 0 支 → 「網頁更新時間」列
   紅章，配 SOP 步驟 9⑦ 的每日驗證。根因與補救見步驟 9⑦（push 觸發用舊分支 workflow 檔）。
-  **三層清單（2026-08-06 使用者規劃）**：①**官方**＝`YT_OFFICIAL_CHANNELS`——**兩個頻道**
+  **三層清單（2026-08-06 使用者規劃；2026-08-14 第三層擴編）**：①**官方**＝`YT_OFFICIAL_CHANNELS`——**兩個頻道**
   （使用者提供）：@fhifund 主頻道（UCD3J90bNoHykt6Eru8YxUmQ，金管家系列在此）＋@fhetf
   ETF 專屬頻道（handle 執行期以 channels.list forHandle 解析；config 鍵吃 UC id 或 @handle
   皆可）——近窗**全部上傳**（uploads 播放清單 UC→UU、每頻道 1 單位，依日期序、掛「官方」章）；②**相關**＝search 4 組（復華投信／
   復華 基金／復華 ETF／00929）依觀看數**取前 3**——標題只寫自家 ETF 代碼、沒寫「復華」的
   影片也算相關（`_fh_codes()` 動態取 etfwatch 清單中名稱含復華者；代碼須為**獨立詞**——
-  曾誤收日文單字卡課號「L#00929」）；③**同業熱門**＝近 2 天依觀看數排序的「台股 ETF」
-  搜尋中含**同業代碼**（`_peer_codes()`）者**取前 2**（掛「同業熱門」章；自家內容歸②
-  不重複）。三層共用 seen 去重、官方優先。**時長 ≤3 分標 Shorts**（連結走 /shorts/、
-  來源標「YouTube Shorts」）。額度：search 5 組×100＋playlistItems 1＋videos.list 1
-  ≈每輪 502 單位（日限 10,000）——**勿再隨意加查詢組**。
+  曾誤收日文單字卡課號「L#00929」；**獨立詞仍不夠**：2026-08-14 使用者抓包可蘭經朗誦
+  《Surah Rahman | Ep - 00929》以集數編號誤入——再補兩道：**集數式前綴**（Ep -／第…／No.
+  接代碼）不算命中、**純代碼命中須含漢字**（relevanceLanguage 只是偏好非過濾），並設
+  `YT_BLOCK_IDS` 指名黑名單＋`sanitize()` 讀取端同濾——非官方且標題無漢字／黑名單 id
+  一律剔除，舊落檔與 `_carry_social` 沿用款不必等重抓即消失）；③**市場熱門**（原「同業熱門」，
+  2026-08-14 使用者：「觀看數超級少……應該會有超級多討論 ETF 等等基金類的影片」後擴編）＝
+  `YT_PEER_QUERIES` **5 組主題桶**（台股 ETF／高股息 ETF／ETF 投資／債券 ETF／基金 投資）
+  各近 `YT_PEER_FRESH_DAYS`=3 天依觀看數搜尋（maxResults=25——**search 成本與 10 筆同為
+  100 單位**，放大 pool 零額度成本），`yt_peer_relevant` 收「含**同業代碼**（`_peer_codes()`）
+  **或** ETF・基金**主題詞**」（高觀看的泛 ETF 討論多不寫代碼，舊判準全殺；純海外內容＝
+  美股代碼/「美股ETF」連語且無台股代碼不收；須含漢字），再經 `_select_peers`：**同片跨頻道
+  去重**（聯播節目三立/94要賺錢同片異 id，正規化＝去尾端「｜頻道名」段）→ **觀看門檻**
+  `YT_PEER_MIN_VIEWS`=5000（全數未達才 fallback 取前 2、不留白）→ **分類配額**（`yt_topic`
+  六類：債券／高股息／主動式／市值型／基金／綜合，**每類 2、總上限 6**——viewCount 排序易被
+  單一題材洗版，配額保多樣性也控版面）；類別入 `cat` 欄、儀表板章「熱門・{類別}」（綜合不帶
+  尾綴、舊落檔無 cat 顯示原「同業熱門」）。自家內容歸②不重複。三層共用 seen 去重、官方優先。
+  **時長 ≤3 分標 Shorts**（連結走 /shorts/、來源標「YouTube Shorts」）。額度：search 9 組
+  ×100（相關 4＋熱門 5）＋playlistItems 2＋channels 1＋videos.list **分批**（單次上限 50 支
+  ——舊版 `ids[:50]` 靜默截斷、其餘 0 觀看沉底，2026-08-14 修）數單位 ≈每輪 907 單位
+  （日限 10,000）——**勿再隨意加查詢組，加組前先算這筆帳**。
   **FB／IG／Threads 擴充規劃見 `docs/social_api_plan.md`**（2026-08-06 查證：Threads 公開
   關鍵字搜尋為第一優先、需使用者建 Meta App＋過審 `threads_keyword_search`；FB 只做自家
   粉專、IG hashtag 額度緊排最後）。

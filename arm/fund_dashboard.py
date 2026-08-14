@@ -1908,10 +1908,12 @@ def _fundnews_view(doc: dict | None) -> str:
                 badge = f'<span class="fnpush fnyt">▶ {_fmt_views(s.get("views"))}</span>'
                 plat = "YouTube Shorts" if s.get("short") else "YouTube"
                 src = (f'{_esc(s.get("channel"))}・{plat}' if s.get("channel") else plat)
-                if s.get("official"):            # 三層標籤：官方／同業熱門（相關層不掛章）
+                if s.get("official"):            # 三層標籤：官方／市場熱門（相關層不掛章）
                     pill = '<span class="fntag fnbrand">官方</span>'
-                elif s.get("peer"):
-                    pill = '<span class="fntag">同業熱門</span>'
+                elif s.get("peer"):              # 2026-08-14 擴編：章帶主題分類（熱門・高股息）
+                    cat = (s.get("cat") or "").strip()
+                    lab = f"熱門・{cat}" if cat else "同業熱門"
+                    pill = f'<span class="fntag">{_esc(lab)}</span>'
             elif (s.get("platform") or "") == "fundhot":    # 2026-08-12 使用者需求：加強基金
                 n = s.get("replies")
                 badge = (f'<span class="fnpush">💬 {int(n)}</span>' if n
