@@ -32,57 +32,57 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/03.pdf",
   "dist_date": "2026/07/31",
   "dist_rate": "—",
-  "as_of": "2026/06/30",
+  "as_of": "2026/07/31",
   "top_holdings": [
     {
       "sector": "電子零組件",
-      "name": "國巨*",
-      "weight": 11.86
-    },
-    {
-      "sector": "電子零組件",
       "name": "台光電",
-      "weight": 10.83
+      "weight": 13.09
     },
     {
       "sector": "電子零組件",
       "name": "欣興",
-      "weight": 9.61
+      "weight": 9.7
     },
     {
       "sector": "半導體",
       "name": "南亞科",
-      "weight": 7.49
-    },
-    {
-      "sector": "半導體",
-      "name": "聯發科",
-      "weight": 6.62
+      "weight": 8.42
     },
     {
       "sector": "半導體",
       "name": "旺矽",
-      "weight": 6.48
+      "weight": 7.71
+    },
+    {
+      "sector": "半導體",
+      "name": "聯發科",
+      "weight": 7.61
+    },
+    {
+      "sector": "電子零組件",
+      "name": "國巨*",
+      "weight": 7.17
     },
     {
       "sector": "電子零組件",
       "name": "南電",
-      "weight": 5.88
-    },
-    {
-      "sector": "半導體",
-      "name": "群聯",
-      "weight": 5.75
-    },
-    {
-      "sector": "通信網路",
-      "name": "智邦",
-      "weight": 4.72
+      "weight": 6.87
     },
     {
       "sector": "半導體",
       "name": "台積電",
-      "weight": 4.67
+      "weight": 6.61
+    },
+    {
+      "sector": "通信網路",
+      "name": "智邦",
+      "weight": 6.07
+    },
+    {
+      "sector": "半導體",
+      "name": "鴻勁",
+      "weight": 5.21
     }
   ],
   "asset_alloc": [],
@@ -90,23 +90,23 @@
   "sector_alloc": [
     {
       "name": "電子零組件",
-      "weight": 47.18
+      "weight": 49.08
     },
     {
       "name": "半導體",
-      "weight": 46.56
+      "weight": 43.78
     },
     {
       "name": "通信網路",
-      "weight": 4.72
+      "weight": 6.07
     },
     {
       "name": "流動資產",
-      "weight": 1.55
+      "weight": 1.07
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-08-15 15:03",
+  "fetched_at": "2026-08-16 06:36",
   "returns_daily": {
     "1m": 6.16491,
     "3m": 4.61794,

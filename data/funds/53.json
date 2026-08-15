@@ -34,118 +34,126 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/53.pdf",
   "dist_date": "2026/07/31",
   "dist_rate": "—",
-  "as_of": "2026/06/30",
+  "as_of": "2026/07/31",
   "top_holdings": [
     {
       "sector": "資訊技術",
-      "name": "SANDISK CORP",
-      "weight": 9.48
+      "name": "台光電",
+      "weight": 7.54
+    },
+    {
+      "sector": "債券",
+      "name": "T 1 5/8 10/31/26 美國國庫債券",
+      "weight": 4.35
+    },
+    {
+      "sector": "債券",
+      "name": "T 1 3/8 08/31/26 美國國庫債券",
+      "weight": 3.77
     },
     {
       "sector": "資訊技術",
-      "name": "KIOXIA HOLDINGS CORP",
-      "weight": 7.16
-    },
-    {
-      "sector": "資訊技術",
-      "name": "國巨*",
-      "weight": 6.97
+      "name": "ADVANCED MICRO DEVICES",
+      "weight": 3.52
     },
     {
       "sector": "資訊技術",
       "name": "MICRON TECHNOLOGY INC",
-      "weight": 6.13
+      "weight": 3.43
+    },
+    {
+      "sector": "ETF",
+      "name": "iShares安碩半導體交易所交易",
+      "weight": 3.17
     },
     {
       "sector": "資訊技術",
-      "name": "台光電",
-      "weight": 4.92
+      "name": "ADVANTEST CORP",
+      "weight": 2.96
     },
     {
       "sector": "資訊技術",
-      "name": "MURATA MANUFACTURING CO LTD",
-      "weight": 4.21
+      "name": "NVIDIA CORP",
+      "weight": 2.94
     },
     {
       "sector": "資訊技術",
-      "name": "ASTERA LABS INC",
-      "weight": 3.55
+      "name": "SANDISK CORP",
+      "weight": 2.84
     },
     {
-      "sector": "資訊技術",
-      "name": "聯發科",
-      "weight": 3.1
-    },
-    {
-      "sector": "資訊技術",
-      "name": "MARVELL TECHNOLOGY INC",
-      "weight": 3.04
-    },
-    {
-      "sector": "資訊技術",
-      "name": "LASERTEC CORP",
-      "weight": 2.93
+      "sector": "金融",
+      "name": "ROBINHOOD MARKETS INC - A",
+      "weight": 2.8
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 44.73
-    },
-    {
-      "name": "日本",
-      "weight": 24.77
+      "weight": 58.07
     },
     {
       "name": "臺灣",
-      "weight": 23.16
+      "weight": 22.25
+    },
+    {
+      "name": "日本",
+      "weight": 10.0
     },
     {
       "name": "澳大利亞",
-      "weight": 3.52
-    },
-    {
-      "name": "香港",
-      "weight": 1.26
+      "weight": 3.5
     },
     {
       "name": "中國",
-      "weight": 0.52
+      "weight": 1.07
     },
     {
       "name": "流動資產",
-      "weight": 2.04
+      "weight": 5.1
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 82.9
+      "weight": 59.42
     },
     {
       "name": "債券",
-      "weight": 12.96
+      "weight": 12.4
     },
     {
       "name": "金融",
-      "weight": 0.81
+      "weight": 9.06
     },
     {
       "name": "工業",
-      "weight": 0.76
+      "weight": 6.41
+    },
+    {
+      "name": "非核心消費品",
+      "weight": 2.08
+    },
+    {
+      "name": "通訊服務",
+      "weight": 1.34
     },
     {
       "name": "原材料",
-      "weight": 0.52
+      "weight": 1.01
+    },
+    {
+      "name": "其他",
+      "weight": 3.17
     },
     {
       "name": "流動資產",
-      "weight": 2.04
+      "weight": 5.1
     }
   ],
   "group": "global_balanced",
-  "fetched_at": "2026-08-15 15:03",
+  "fetched_at": "2026-08-16 06:36",
   "returns_daily": {
     "1m": -6.33623,
     "3m": -8.62413,

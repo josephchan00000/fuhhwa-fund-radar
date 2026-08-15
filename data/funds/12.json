@@ -34,134 +34,146 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/12.pdf",
   "dist_date": "2026/07/31",
   "dist_rate": "—",
-  "as_of": "2026/06/30",
+  "as_of": "2026/07/31",
   "top_holdings": [
     {
       "sector": "資訊技術",
-      "name": "SANDISK CORP",
-      "weight": 7.96
-    },
-    {
-      "sector": "資訊技術",
-      "name": "KIOXIA HOLDINGS CORP",
-      "weight": 6.84
-    },
-    {
-      "sector": "資訊技術",
-      "name": "國巨*",
-      "weight": 6.38
-    },
-    {
-      "sector": "資訊技術",
-      "name": "SK HYNIX INC",
-      "weight": 5.07
-    },
-    {
-      "sector": "資訊技術",
-      "name": "MURATA MANUFACTURING CO LTD",
-      "weight": 4.41
-    },
-    {
-      "sector": "資訊技術",
       "name": "台光電",
-      "weight": 4.06
+      "weight": 4.5
     },
     {
       "sector": "資訊技術",
-      "name": "MICRON TECHNOLOGY INC",
-      "weight": 3.86
+      "name": "旺矽",
+      "weight": 3.55
     },
     {
       "sector": "資訊技術",
-      "name": "IBIDEN CO LTD",
-      "weight": 2.65
+      "name": "NVIDIA CORP",
+      "weight": 2.95
     },
     {
       "sector": "資訊技術",
-      "name": "MARVELL TECHNOLOGY INC",
-      "weight": 2.63
+      "name": "南電",
+      "weight": 2.86
+    },
+    {
+      "sector": "資訊技術",
+      "name": "ADVANTEST CORP",
+      "weight": 2.81
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SANDISK CORP",
+      "weight": 2.7
+    },
+    {
+      "sector": "金融",
+      "name": "JPMORGAN CHASE &amp; CO",
+      "weight": 2.69
+    },
+    {
+      "sector": "金融",
+      "name": "ROBINHOOD MARKETS INC - A",
+      "weight": 2.6
+    },
+    {
+      "sector": "資訊技術",
+      "name": "景碩",
+      "weight": 2.51
     },
     {
       "sector": "資訊技術",
       "name": "聯發科",
-      "weight": 2.56
+      "weight": 2.44
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 39.45
-    },
-    {
-      "name": "日本",
-      "weight": 20.97
+      "weight": 58.77
     },
     {
       "name": "臺灣",
-      "weight": 18.56
+      "weight": 19.89
     },
     {
-      "name": "韓國",
-      "weight": 7.74
+      "name": "日本",
+      "weight": 10.5
     },
     {
       "name": "澳大利亞",
-      "weight": 2.47
-    },
-    {
-      "name": "德國",
-      "weight": 1.3
+      "weight": 2.77
     },
     {
       "name": "義大利",
-      "weight": 1.2
+      "weight": 1.75
     },
     {
-      "name": "荷蘭",
-      "weight": 1.02
+      "name": "瑞士",
+      "weight": 1.12
+    },
+    {
+      "name": "德國",
+      "weight": 0.8
+    },
+    {
+      "name": "英國",
+      "weight": 0.68
     },
     {
       "name": "其他",
-      "weight": 2.85
+      "weight": 1.32
     },
     {
       "name": "流動資產",
-      "weight": 4.42
+      "weight": 2.39
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 80.07
-    },
-    {
-      "name": "債券",
-      "weight": 11.66
+      "weight": 55.55
     },
     {
       "name": "金融",
-      "weight": 2.08
+      "weight": 15.23
+    },
+    {
+      "name": "債券",
+      "weight": 10.42
+    },
+    {
+      "name": "工業",
+      "weight": 5.95
+    },
+    {
+      "name": "非核心消費品",
+      "weight": 3.1
     },
     {
       "name": "醫療保健",
-      "weight": 1.25
+      "weight": 2.16
+    },
+    {
+      "name": "通訊服務",
+      "weight": 1.36
     },
     {
       "name": "原材料",
-      "weight": 0.14
+      "weight": 0.99
     },
     {
       "name": "其他",
-      "weight": 0.39
+      "weight": 2.84
     },
     {
       "name": "流動資產",
-      "weight": 4.42
+      "weight": 2.39
     }
   ],
   "group": "global_balanced",
-  "fetched_at": "2026-08-15 15:03",
+  "fetched_at": "2026-08-16 06:36",
   "returns_daily": {
     "1m": -5.40541,
     "3m": -5.8991,

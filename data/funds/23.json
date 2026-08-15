@@ -32,106 +32,122 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/23.pdf",
   "dist_date": "2026/07/31",
   "dist_rate": "—",
-  "as_of": "2026/06/30",
+  "as_of": "2026/07/31",
   "top_holdings": [
     {
       "sector": "資訊技術",
-      "name": "SK HYNIX INC",
-      "weight": 6.39
-    },
-    {
-      "sector": "資訊技術",
-      "name": "KIOXIA HOLDINGS CORP",
-      "weight": 5.83
-    },
-    {
-      "sector": "資訊技術",
-      "name": "SAMSUNG ELECTRO-MECHANICS CO",
-      "weight": 5.79
-    },
-    {
-      "sector": "資訊技術",
-      "name": "SANDISK CORP",
-      "weight": 5.66
-    },
-    {
-      "sector": "資訊技術",
-      "name": "國巨*",
-      "weight": 5.6
+      "name": "ADVANCED MICRO DEVICES",
+      "weight": 4.62
     },
     {
       "sector": "資訊技術",
       "name": "MURATA MANUFACTURING CO LTD",
-      "weight": 4.7
+      "weight": 4.57
     },
     {
       "sector": "資訊技術",
-      "name": "TAIYO YUDEN CO LTD",
-      "weight": 4.1
+      "name": "WESTERN DIGITAL CORP",
+      "weight": 3.66
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SANDISK CORP",
+      "weight": 3.63
+    },
+    {
+      "sector": "資訊技術",
+      "name": "RENESAS ELECTRONICS CORP",
+      "weight": 3.56
     },
     {
       "sector": "資訊技術",
       "name": "MICRON TECHNOLOGY INC",
-      "weight": 4.01
+      "weight": 3.48
     },
     {
       "sector": "資訊技術",
-      "name": "ADVANCED MICRO DEVICES",
-      "weight": 3.42
+      "name": "欣興",
+      "weight": 3.14
     },
     {
       "sector": "資訊技術",
-      "name": "禾伸堂",
-      "weight": 3.32
+      "name": "APPLIED MATERIALS INC",
+      "weight": 2.98
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SK HYNIX INC",
+      "weight": 2.97
+    },
+    {
+      "sector": "資訊技術",
+      "name": "TAIWAN SEMICONDUCTOR-SP ADR",
+      "weight": 2.93
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 30.62
+      "weight": 40.26
     },
     {
       "name": "日本",
-      "weight": 26.37
+      "weight": 24.34
     },
     {
       "name": "臺灣",
-      "weight": 25.48
-    },
-    {
-      "name": "韓國",
-      "weight": 12.96
+      "weight": 21.55
     },
     {
       "name": "德國",
-      "weight": 1.78
+      "weight": 3.25
+    },
+    {
+      "name": "韓國",
+      "weight": 2.97
+    },
+    {
+      "name": "香港",
+      "weight": 0.96
     },
     {
       "name": "流動資產",
-      "weight": 2.79
+      "weight": 6.67
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 93.87
+      "weight": 82.38
+    },
+    {
+      "name": "非核心消費品",
+      "weight": 3.85
+    },
+    {
+      "name": "金融",
+      "weight": 2.09
     },
     {
       "name": "工業",
-      "weight": 2.43
+      "weight": 1.98
     },
     {
-      "name": "原材料",
-      "weight": 0.91
+      "name": "醫療保健",
+      "weight": 1.77
+    },
+    {
+      "name": "通訊服務",
+      "weight": 1.25
     },
     {
       "name": "流動資產",
-      "weight": 2.79
+      "weight": 6.67
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-08-15 15:02",
+  "fetched_at": "2026-08-16 06:36",
   "returns_daily": {
     "1m": -7.96748,
     "3m": -5.15859,

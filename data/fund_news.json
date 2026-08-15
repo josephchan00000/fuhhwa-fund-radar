@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/15 15:03",
+  "as_of": "2026/08/16 06:36",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -26,7 +26,15 @@
       "short_names": [
         "00929"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "領息又賺價差！00929今年績效勝過大盤、台積電 詹璇依封「科技黑馬」",
+          "url": "https://www.yesmedia.com.tw/%E9%A0%98%E6%81%AF%E5%8F%88%E8%B3%BA%E5%83%B9%E5%B7%AE%EF%BC%8100929%E4%BB%8A%E5%B9%B4%E7%B8%BE%E6%95%88%E5%8B%9D%E9%81%8E%E5%A4%A7%E7%9B%A4%E3%80%81%E5%8F%B0%E7%A9%8D%E9%9B%BB%E3%80%80%E8%A9%B9/",
+          "source": "蕃新聞",
+          "date": "2026-08-13 09:48",
+          "datetime": "2026-08-13T09:48:05+08:00"
+        }
+      ]
     },
     {
       "base": "主動復華未來50",
@@ -37,18 +45,18 @@
       ],
       "items": [
         {
+          "title": "別只看主動式ETF！00981A、00991A前7月賺5~6成很厲害？00988A、00830…海外型前5大輕鬆躺贏 第1名暴賺93％",
+          "url": "https://wantrich.chinatimes.com/news/20260816900002-420401",
+          "source": "旺得富理財網",
+          "date": "2026-08-16 06:03",
+          "datetime": "2026-08-16T06:03:43+08:00"
+        },
+        {
           "title": "00981A、00991A、00403A、00992A...這2檔主動式ETF反彈逾3成，達人不藏私挑選術：不只看排行還要看它",
           "url": "https://www.businesstoday.com.tw/article/category/183013/post/202608140024/",
           "source": "今周刊",
           "date": "2026-08-14 17:51",
           "datetime": "2026-08-14T17:51:00+08:00"
-        },
-        {
-          "title": "2026/08/14 00991A今日操作明細",
-          "url": "https://www.cmoney.tw/forum/article/182178108",
-          "source": "CMoney",
-          "date": "2026-08-14 18:35",
-          "datetime": "2026-08-14T18:35:36+08:00"
         }
       ]
     },
@@ -438,17 +446,8 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/tM9IfotrDWI",
       "date": "2026-08-10",
-      "views": 1067,
+      "views": 1082,
       "official": true,
-      "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "高股息ETF獲利百萬，該將獲利「入袋為安」嗎？！#財經雪倫",
-      "channel": "投資嗨什麼",
-      "url": "https://www.youtube.com/shorts/tnoVmQ5MVgg",
-      "date": "2026-08-08",
-      "views": 41686,
       "short": true
     },
     {
@@ -457,7 +456,7 @@
       "channel": "理周FUN財經",
       "url": "https://www.youtube.com/watch?v=R2SJsNfLpNA",
       "date": "2026-08-14",
-      "views": 3496
+      "views": 5473
     },
     {
       "platform": "youtube",
@@ -465,8 +464,37 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/pUw_ODgbCcs",
       "date": "2026-08-13",
-      "views": 3367,
+      "views": 3826,
       "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "00409A全球型的主動式ETF在紅什麼？？ #姐說了算 EP.40",
+      "channel": "姐說了算",
+      "url": "https://www.youtube.com/shorts/MQL6sTbzK90",
+      "date": "2026-08-14",
+      "views": 1177,
+      "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "25歲少年6日摧毀450億基金！特朗普金主精準狙殺，華爾街大鱷設局收割過程揭秘｜Mila Yuen 投資日常",
+      "channel": "Mila Yuen 投資日常",
+      "url": "https://www.youtube.com/watch?v=wQNKnOzx_ME",
+      "date": "2026-08-12",
+      "views": 310072,
+      "peer": true,
+      "cat": "基金"
+    },
+    {
+      "platform": "youtube",
+      "title": "越南版台灣50！00885 ETF引領越股熱潮，掌握下一個亞洲之虎！｜【台股萬人謎】EP113｜富邦投信 陳仲愷",
+      "channel": "永豐金證券",
+      "url": "https://www.youtube.com/watch?v=Kf-cNqA8J20",
+      "date": "2026-08-11",
+      "views": 118144,
+      "peer": true,
+      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -474,7 +502,7 @@
       "channel": "G MONEY",
       "url": "https://www.youtube.com/watch?v=1K0Km_a1JKw",
       "date": "2026-08-11",
-      "views": 106137,
+      "views": 112789,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -484,70 +512,50 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=rNk6qgrvcAA",
       "date": "2026-08-13",
-      "views": 94173,
+      "views": 94934,
       "peer": true,
       "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
-      "title": "科技股崩跌還沒完? 這檔主動式ETF別再碰!! ft. 股魚【 小宇宙大爆發 】",
-      "channel": "小宇宙大爆發",
-      "url": "https://www.youtube.com/watch?v=MeCw6_dg-FM",
-      "date": "2026-08-10",
-      "views": 91653,
-      "peer": true,
-      "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "越南版台灣50！00885 ETF引領越股熱潮，掌握下一個亞洲之虎！｜【台股萬人謎】EP113｜富邦投信 陳仲愷",
-      "channel": "永豐金證券",
-      "url": "https://www.youtube.com/watch?v=Kf-cNqA8J20",
-      "date": "2026-08-11",
-      "views": 82595,
-      "peer": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "有房、有ETF、有勞退，為何不敢退休？退休真正該算的，不只是你有多少錢｜ft.嫺人【理財資優生】EP87",
+      "title": "賣0056買主動式ETF，能賺更多嗎？｜ft.超馬芭樂、葉芷娟 #ETF錢滾錢 #etf",
       "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/watch?v=mI4nGpBnhqE",
-      "date": "2026-08-10",
-      "views": 56904,
-      "peer": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "主動式ETF白忙一場! 科技股反彈無力?【小宇宙大爆發 】#shorts #理財",
-      "channel": "小宇宙大爆發",
-      "url": "https://www.youtube.com/shorts/slTkhUwZCW0",
-      "date": "2026-08-10",
-      "views": 52777,
+      "url": "https://www.youtube.com/shorts/cnEGhgc4DDk",
+      "date": "2026-08-11",
+      "views": 36525,
       "peer": true,
       "short": true,
       "cat": "主動式"
     },
     {
       "platform": "youtube",
-      "title": "挪威主權基金台股買什麼?  一檔台積電吃下逾半資金!台股還漲?位階相對其他算貴?台.韓蹺蹺板效應?│【關我什麼事PART1】陳斐娟 主持│20260813│關我什麼事",
-      "channel": "關我什麼事",
-      "url": "https://www.youtube.com/watch?v=DkH5I1TYmK8",
-      "date": "2026-08-13",
-      "views": 30596,
+      "title": "主動式ETF大考驗！7月股災誰最抗跌？經理人都買哪些股票？8月最大V轉竟是它？ #主動式ETF #ETF #00985A #00980A #00981A #00407A #00403A #00404A",
+      "channel": "一綺聊股",
+      "url": "https://www.youtube.com/watch?v=5l62gBVCrsY",
+      "date": "2026-08-14",
+      "views": 33835,
       "peer": true,
-      "cat": "基金"
+      "cat": "主動式"
     },
     {
       "platform": "youtube",
-      "title": "【精華】高股息獲利要跑嗎？00406A月月配好多！！勞工專屬收益率破28%？長期投資還是選0050？ #超馬芭樂 #金臨天 @TVBSFinanceLive  20260807",
-      "channel": "TVBS財經",
-      "url": "https://www.youtube.com/watch?v=-co62ltRMDg",
-      "date": "2026-08-10",
-      "views": 26203,
+      "title": "人氣與實力兼具的台股ETF是誰？ ETF存到房子頭期款後不想賣？竹北出現【3%定簽+結構工程0付款】卡位術｜柴鼠兄弟 X 昌益御邸-光明之心",
+      "channel": "柴鼠兄弟 ZRBros",
+      "url": "https://www.youtube.com/watch?v=dAKAGJRLUYg",
+      "date": "2026-08-11",
+      "views": 32855,
       "peer": true,
-      "cat": "高股息"
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股收復季線能站穩？震盪盤先別慌！教主加碼百張買這檔ETF+這檔「金融股」700張！【#財經鈔能力】｜20260812 趙慶翔 ft.陳重銘 #指數化投資 #中年理財 #股債比",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=3T0_-3knAbg",
+      "date": "2026-08-12",
+      "views": 29286,
+      "peer": true,
+      "cat": "債券"
     },
     {
       "platform": "youtube",
@@ -555,25 +563,26 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=xI5ly1Z3dLA",
       "date": "2026-08-12",
-      "views": 24746,
+      "views": 25508,
       "peer": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "他不買0050，靠這5檔冷門ETF過去3年賺更大？",
-      "channel": "睡後收入",
-      "url": "https://www.youtube.com/watch?v=wD8pTYC0PAc",
+      "title": "00919、0056、00878，真正買的是現金流 #高股息ETF",
+      "channel": "杉本來了",
+      "url": "https://www.youtube.com/shorts/CeszHXYl-gk",
       "date": "2026-08-11",
-      "views": 18899,
+      "views": 22863,
       "peer": true,
-      "cat": "市值型"
+      "short": true,
+      "cat": "高股息"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00991A、00986D、00409A、台灣菁英50指數（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00986D、00409A、台灣菁英50指數（詳下方新聞標籤）",
     "品牌焦點：復華00409A布局全球50強 今開募 | 財富管理 | 商情（經濟日報）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：【台股達人秀】ep341 修正結束了？台股何時上五萬？｜游庭皓｜王兆立｜GMoney (CC字幕) @gmoneytv（G MONEY・106,137 次觀看）"
+    "YouTube 熱片：25歲少年6日摧毀450億基金！特朗普金主精準狙殺，華爾街大鱷設局收割過程揭秘｜Mila Yuen 投資日常（Mila Yuen 投資日常・310,072 次觀看）"
   ]
 }

@@ -34,106 +34,106 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/77.pdf",
   "dist_date": "2026/07/31",
   "dist_rate": "—",
-  "as_of": "2026/06/30",
+  "as_of": "2026/07/31",
   "top_holdings": [
     {
       "sector": "資訊技術",
-      "name": "SANDISK CORP",
-      "weight": 5.89
-    },
-    {
-      "sector": "資訊技術",
-      "name": "國巨*",
-      "weight": 5.19
-    },
-    {
-      "sector": "資訊技術",
-      "name": "SAMSUNG ELECTRO-MECHANICS CO",
-      "weight": 5.14
-    },
-    {
-      "sector": "資訊技術",
-      "name": "SK HYNIX INC",
-      "weight": 4.85
-    },
-    {
-      "sector": "資訊技術",
-      "name": "KIOXIA HOLDINGS CORP",
-      "weight": 4.7
-    },
-    {
-      "sector": "資訊技術",
       "name": "MURATA MANUFACTURING CO LTD",
-      "weight": 4.1
-    },
-    {
-      "sector": "資訊技術",
-      "name": "MARVELL TECHNOLOGY INC",
-      "weight": 4.07
-    },
-    {
-      "sector": "資訊技術",
-      "name": "禾伸堂",
-      "weight": 3.79
-    },
-    {
-      "sector": "資訊技術",
-      "name": "TAIYO YUDEN CO LTD",
-      "weight": 3.78
+      "weight": 4.31
     },
     {
       "sector": "資訊技術",
       "name": "台光電",
-      "weight": 2.92
+      "weight": 3.99
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MICRON TECHNOLOGY INC",
+      "weight": 3.83
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MARVELL TECHNOLOGY INC",
+      "weight": 3.75
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SK HYNIX INC",
+      "weight": 3.6
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SANDISK CORP",
+      "weight": 3.44
+    },
+    {
+      "sector": "資訊技術",
+      "name": "ADVANTEST CORP",
+      "weight": 3.33
+    },
+    {
+      "sector": "資訊技術",
+      "name": "欣興",
+      "weight": 3.3
+    },
+    {
+      "sector": "資訊技術",
+      "name": "旺矽",
+      "weight": 3.24
+    },
+    {
+      "sector": "資訊技術",
+      "name": "NVIDIA CORP",
+      "weight": 3.08
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 36.95
+      "weight": 48.56
     },
     {
       "name": "臺灣",
-      "weight": 28.5
+      "weight": 22.26
     },
     {
       "name": "日本",
-      "weight": 20.83
+      "weight": 18.99
     },
     {
       "name": "韓國",
-      "weight": 10.0
+      "weight": 6.22
     },
     {
       "name": "德國",
-      "weight": 2.22
+      "weight": 2.48
     },
     {
       "name": "流動資產",
-      "weight": 1.49
+      "weight": 1.48
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 94.96
+      "weight": 94.54
     },
     {
       "name": "工業",
-      "weight": 3.21
+      "weight": 2.45
     },
     {
-      "name": "非核心消費品",
-      "weight": 0.33
+      "name": "原材料",
+      "weight": 1.53
     },
     {
       "name": "流動資產",
-      "weight": 1.49
+      "weight": 1.48
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-08-15 15:03",
+  "fetched_at": "2026-08-16 06:36",
   "returns_daily": {
     "1m": -7.53277,
     "3m": -3.36889,
