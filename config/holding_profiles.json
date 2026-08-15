@@ -2421,6 +2421,72 @@
    "intro": "富邦金控（2881），台灣大型金融控股公司；旗下含富邦人壽、台北富邦銀行、富邦產險與富邦證券，獲利以壽險與銀行為主。",
    "ticker": "2881",
    "verified": true
+  },
+  "ADVANTEST CORP": {
+   "country": "日本",
+   "intro": "日本愛德萬測試（Advantest），全球半導體測試設備龍頭；自動測試設備（ATE）市占逾六成，產品用於邏輯與記憶體晶片測試，受惠 AI 晶片測試需求成長。",
+   "ticker": "6857.T",
+   "verified": true
+  },
+  "TAIWAN SEMICONDUCTOR-SP ADR": {
+   "country": "台灣",
+   "intro": "台灣台積電（TSMC）美國存託憑證（ADR），全球最大專業晶圓代工廠；為輝達、蘋果、超微等 AI 與消費性電子大廠先進製程晶片主要供應商。",
+   "ticker": "TSM",
+   "verified": true
+  },
+  "ROBINHOOD MARKETS INC - A": {
+   "country": "美國",
+   "intro": "美國羅賓漢市場（Robinhood），提供免佣金股票、選擇權與加密貨幣交易之金融科技平台；主打行動應用程式介面，客群以年輕世代投資人為主。",
+   "ticker": "HOOD",
+   "verified": true
+  },
+  "iShares安碩半導體交易所交易": {
+   "country": "美國",
+   "intro": "美國 iShares 安碩半導體 ETF（iShares Semiconductor ETF），追蹤美國上市半導體產業指數，涵蓋晶片設計、設備與製造相關企業，為半導體產業主題型被動投資工具。",
+   "ticker": "SOXX",
+   "verified": true
+  },
+  "LAM RESEARCH CORP": {
+   "country": "美國",
+   "intro": "美國科林研發（Lam Research），半導體晶圓製程設備供應商；產品涵蓋沉積、蝕刻、清洗等關鍵製程設備，為先進製程晶片生產不可或缺的設備商之一。",
+   "ticker": "LRCX",
+   "verified": true
+  },
+  "SEAGATE TECHNOLOGY HOLDINGS": {
+   "country": "愛爾蘭",
+   "intro": "美系希捷科技（Seagate Technology），全球資料儲存解決方案領導廠商；產品涵蓋企業級與消費級硬碟（HDD）與固態硬碟（SSD），受惠 AI 資料中心高容量儲存需求成長。",
+   "ticker": "STX",
+   "verified": true
+  },
+  "T 1 5/8 10/31/26 美國國庫債券": {
+   "country": "美國",
+   "intro": "美國國庫債券（US Treasury Note），美國財政部發行、票面利率 1.625%、2026 年 10 月 31 日到期的中期公債；以美國政府信用為擔保，常作為投資組合的低波動與流動性配置部位。",
+   "ticker": "",
+   "verified": true
+  },
+  "T 4 5/8 10/15/26 美國國庫債券": {
+   "country": "美國",
+   "intro": "美國國庫債券（US Treasury Note），美國財政部發行、票面利率 4.625%、2026 年 10 月 15 日到期的中期公債；以美國政府信用為擔保，常作為投資組合的低波動與流動性配置部位。",
+   "ticker": "",
+   "verified": true
+  },
+  "貿聯-KY": {
+   "country": "台灣",
+   "intro": "台灣貿聯控股（BizLink），連接線束應用解決方案廠商；產品涵蓋資料中心線材與連接器、電動車線束與充電方案，受惠 AI 資料中心與電動車兩大成長趨勢。",
+   "ticker": "3665",
+   "verified": true
+  },
+  "安本基金 - 前緣市場債券基金 I 累積 美元": {
+   "country": "盧森堡",
+   "intro": "安本前緣市場債券基金（abrdn Frontier Markets Bond Fund），投資於前緣市場（新興市場之前哨）政府與企業所發行債券之固定收益基金，追求收益與資本增值。",
+   "ticker": "",
+   "verified": true
+  },
+  "ELI LILLY &amp; CO": {
+   "country": "美國",
+   "intro": "美國禮來（Eli Lilly），全球大型製藥公司；主力產品涵蓋糖尿病與減重藥物（Mounjaro／Zepbound）、腫瘤、神經科學與免疫學等治療領域。",
+   "ticker": "LLY",
+   "verified": true
   }
  }
 }

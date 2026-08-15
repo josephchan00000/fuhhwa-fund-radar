@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/16 06:52",
+  "as_of": "2026/08/16 07:10",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -30,7 +30,7 @@
         {
           "title": "領息又賺價差！00929今年績效勝過大盤、台積電 詹璇依封「科技黑馬」",
           "url": "https://www.yesmedia.com.tw/%E9%A0%98%E6%81%AF%E5%8F%88%E8%B3%BA%E5%83%B9%E5%B7%AE%EF%BC%8100929%E4%BB%8A%E5%B9%B4%E7%B8%BE%E6%95%88%E5%8B%9D%E9%81%8E%E5%A4%A7%E7%9B%A4%E3%80%81%E5%8F%B0%E7%A9%8D%E9%9B%BB%E3%80%80%E8%A9%B9/",
-          "source": "蕃新聞",
+          "source": "n.yam.com",
           "date": "2026-08-13 09:48",
           "datetime": "2026-08-13T09:48:05+08:00"
         }
@@ -482,7 +482,7 @@
       "channel": "Mila Yuen 投資日常",
       "url": "https://www.youtube.com/watch?v=wQNKnOzx_ME",
       "date": "2026-08-12",
-      "views": 310215,
+      "views": 310398,
       "peer": true,
       "cat": "基金"
     },
@@ -492,7 +492,7 @@
       "channel": "永豐金證券",
       "url": "https://www.youtube.com/watch?v=Kf-cNqA8J20",
       "date": "2026-08-11",
-      "views": 118180,
+      "views": 118235,
       "peer": true,
       "cat": "綜合"
     },
@@ -502,7 +502,7 @@
       "channel": "G MONEY",
       "url": "https://www.youtube.com/watch?v=1K0Km_a1JKw",
       "date": "2026-08-11",
-      "views": 112789,
+      "views": 112801,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -512,7 +512,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=rNk6qgrvcAA",
       "date": "2026-08-13",
-      "views": 94934,
+      "views": 94752,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -522,7 +522,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/cnEGhgc4DDk",
       "date": "2026-08-11",
-      "views": 36525,
+      "views": 36593,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -533,7 +533,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=5l62gBVCrsY",
       "date": "2026-08-14",
-      "views": 33851,
+      "views": 33860,
       "peer": true,
       "cat": "主動式"
     },
@@ -543,7 +543,7 @@
       "channel": "柴鼠兄弟 ZRBros",
       "url": "https://www.youtube.com/watch?v=dAKAGJRLUYg",
       "date": "2026-08-11",
-      "views": 32855,
+      "views": 32895,
       "peer": true,
       "cat": "綜合"
     },
@@ -553,7 +553,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=3T0_-3knAbg",
       "date": "2026-08-12",
-      "views": 29297,
+      "views": 29306,
       "peer": true,
       "cat": "債券"
     },
@@ -573,7 +573,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/shorts/CeszHXYl-gk",
       "date": "2026-08-11",
-      "views": 22868,
+      "views": 22875,
       "peer": true,
       "short": true,
       "cat": "高股息"
@@ -583,6 +583,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00986D、00409A、台灣菁英50指數（詳下方新聞標籤）",
     "品牌焦點：復華00409A布局全球50強 今開募 | 財富管理 | 商情（經濟日報）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：25歲少年6日摧毀450億基金！特朗普金主精準狙殺，華爾街大鱷設局收割過程揭秘｜Mila Yuen 投資日常（Mila Yuen 投資日常・310,215 次觀看）"
+    "YouTube 熱片：25歲少年6日摧毀450億基金！特朗普金主精準狙殺，華爾街大鱷設局收割過程揭秘｜Mila Yuen 投資日常（Mila Yuen 投資日常・310,398 次觀看）"
   ]
 }
