@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/16 06:36",
+  "as_of": "2026/08/16 06:38",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -414,7 +414,7 @@
         {
           "title": "復華台灣菁英50指數基金 的持股明細 | 鉅亨網",
           "url": "https://invest.cnyes.com/funds/detail/%E5%BE%A9%E8%8F%AF%E5%8F%B0%E7%81%A3%E8%8F%81%E8%8B%B150%E6%8C%87%E6%95%B8%E5%9F%BA%E9%87%91/A23123/portfolio",
-          "source": "鉅亨網",
+          "source": "invest.cnyes.com",
           "date": "2026-08-14 00:21",
           "datetime": "2026-08-14T00:21:13+08:00"
         }
@@ -473,7 +473,7 @@
       "channel": "姐說了算",
       "url": "https://www.youtube.com/shorts/MQL6sTbzK90",
       "date": "2026-08-14",
-      "views": 1177,
+      "views": 1174,
       "short": true
     },
     {
@@ -492,7 +492,7 @@
       "channel": "永豐金證券",
       "url": "https://www.youtube.com/watch?v=Kf-cNqA8J20",
       "date": "2026-08-11",
-      "views": 118144,
+      "views": 118157,
       "peer": true,
       "cat": "綜合"
     },
@@ -512,7 +512,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=rNk6qgrvcAA",
       "date": "2026-08-13",
-      "views": 94934,
+      "views": 94742,
       "peer": true,
       "cat": "市場趨勢"
     },
