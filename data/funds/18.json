@@ -34,98 +34,98 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/18.pdf",
   "dist_date": "2026/07/31",
   "dist_rate": "—",
-  "as_of": "2026/06/30",
+  "as_of": "2026/07/31",
   "top_holdings": [
     {
       "sector": "資訊技術",
-      "name": "SK HYNIX INC",
-      "weight": 6.9
+      "name": "SEAGATE TECHNOLOGY HOLDINGS",
+      "weight": 7.07
     },
     {
       "sector": "資訊技術",
-      "name": "SAMSUNG ELECTRO-MECHANICS CO",
-      "weight": 6.33
+      "name": "ADVANCED MICRO DEVICES",
+      "weight": 6.98
     },
     {
       "sector": "資訊技術",
       "name": "MICRON TECHNOLOGY INC",
-      "weight": 6.05
+      "weight": 6.23
     },
     {
       "sector": "資訊技術",
-      "name": "SANDISK CORP",
-      "weight": 5.82
+      "name": "旺矽",
+      "weight": 5.96
     },
     {
       "sector": "資訊技術",
-      "name": "KIOXIA HOLDINGS CORP",
-      "weight": 5.79
+      "name": "IBIDEN CO LTD",
+      "weight": 5.71
     },
     {
       "sector": "資訊技術",
-      "name": "SAMSUNG ELECTRONICS CO LTD",
-      "weight": 5.56
+      "name": "景碩",
+      "weight": 5.41
     },
     {
       "sector": "資訊技術",
-      "name": "TAIYO YUDEN CO LTD",
-      "weight": 4.8
+      "name": "台光電",
+      "weight": 5.26
     },
     {
       "sector": "資訊技術",
-      "name": "國巨*",
-      "weight": 4.33
+      "name": "聯發科",
+      "weight": 4.85
     },
     {
       "sector": "資訊技術",
-      "name": "台燿",
-      "weight": 4.2
+      "name": "SK HYNIX INC",
+      "weight": 4.31
     },
     {
       "sector": "資訊技術",
-      "name": "MURATA MANUFACTURING CO LTD",
-      "weight": 4.14
+      "name": "臻鼎-KY",
+      "weight": 4.27
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 31.0
+      "weight": 38.53
     },
     {
       "name": "臺灣",
-      "weight": 24.98
+      "weight": 36.19
     },
     {
       "name": "日本",
-      "weight": 21.73
+      "weight": 16.04
     },
     {
       "name": "韓國",
-      "weight": 21.44
+      "weight": 6.52
     },
     {
       "name": "流動資產",
-      "weight": 0.85
+      "weight": 2.72
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 94.06
+      "weight": 95.29
     },
     {
       "name": "工業",
-      "weight": 5.09
+      "weight": 1.99
     },
     {
       "name": "流動資產",
-      "weight": 0.85
+      "weight": 2.72
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-08-15 15:03",
+  "fetched_at": "2026-08-16 06:36",
   "returns_daily": {
     "1m": -9.91617,
     "3m": -9.87932,
