@@ -1902,7 +1902,10 @@ def _fundnews_view(doc: dict | None) -> str:
     parts.append(f'<div class="fng">{_ic("chat", plain=True)} 社群討論（PTT・強基金・YouTube）</div>')
     if soc:
         rows = []
+        gcnt: dict[str, int] = {}
         for s in soc:
+            grp = fundnews.social_group(s)   # 2026-08-15 分類篩選：每列掛 data-fcat
+            gcnt[grp] = gcnt.get(grp, 0) + 1
             pill = ""
             if (s.get("platform") or "ptt") == "youtube":   # 2026-08-06 使用者需求：社群加 YouTube
                 badge = f'<span class="fnpush fnyt">▶ {_fmt_views(s.get("views"))}</span>'
@@ -1912,7 +1915,8 @@ def _fundnews_view(doc: dict | None) -> str:
                     pill = '<span class="fntag fnbrand">官方</span>'
                 elif s.get("peer"):              # 2026-08-14 擴編：章帶主題分類（熱門・高股息）
                     cat = (s.get("cat") or "").strip()
-                    lab = f"熱門・{cat}" if cat else "同業熱門"
+                    lab = ("同業熱門" if not cat else
+                           "熱門" if cat == "綜合" else f"熱門・{cat}")
                     pill = f'<span class="fntag">{_esc(lab)}</span>'
             elif (s.get("platform") or "") == "fundhot":    # 2026-08-12 使用者需求：加強基金
                 n = s.get("replies")
@@ -1925,12 +1929,21 @@ def _fundnews_view(doc: dict | None) -> str:
                 bname = {"Stock": "股票板", "Fund": "基金板"}.get(s.get("board") or "Stock")
                 src = f"PTT {bname}" if bname else "PTT"
             rows.append(
-                f'<div class="fnit fnsoc">{badge}'
+                f'<div class="fnit fnsoc" data-fcat="{grp}">{badge}'
                 f'<div class="fnsocb"><a class="fnt" href="{_esc(s.get("url") or "#")}" '
                 f'target="_blank" rel="noopener">{_esc(s.get("title"))}</a>'
                 f'<div class="fnmeta"><span class="fnd">{_esc(s.get("date") or "")}</span>'
                 f'<span class="fnsrc">{src}</span>{pill}</div></div></div>')
-        parts.append('<div class="fnlist">' + "".join(rows) + '</div>')
+        # 分類篩選 chips（2026-08-15 使用者：「太長了…有分類可以點然後就可以篩選」）：
+        # 只渲染有項目的分組（帶數量）；other 組不設 chip、僅「全部」可見。
+        chips = ['<button class="sg on" data-f="all">全部</button>']
+        for key, lab in (("etf", "ETF"), ("active", "主動ETF"),
+                         ("fund", "基金"), ("trend", "市場趨勢")):
+            if gcnt.get(key):
+                chips.append(f'<button class="sg" data-f="{key}">{lab} {gcnt[key]}</button>')
+        bar = (f'<div class="socbar" id="socbar">{"".join(chips)}</div>'
+               if len(chips) > 1 else "")
+        parts.append(bar + '<div class="fnlist">' + "".join(rows) + '</div>')
     else:
         parts.append('<div class="muted">近期無相關討論（或來源暫不可達）。</div>')
     parts.append(f'<div class="fnfoot">來源：{_esc(doc.get("source") or "自動擷取")}・'
@@ -2451,7 +2464,7 @@ th .sub{display:block;font-weight:400;color:var(--mut);font-size:10.5px}
    與搜尋照樣加了 fhide class，畫面卻毫無反應，使用者回報「按鈕都不能按」。
    同理 `.eg`（ETF 分類 chip）當初沒併進 `.fg` 的樣式，連選中狀態都看不出來。
    新增這類工具列時，**三處都要一起加**：隱藏規則、chip 樣式、搜尋框樣式。 */
-.fund.fhide,.etfd.fhide,.edchip.fhide{display:none}
+.fund.fhide,.etfd.fhide,.edchip.fhide,.fnit.fhide{display:none}
 /* 詳情篩選列 */
 .fundbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:12px}
 .fundbar #fsearch,.fundbar #esearch{flex:1;min-width:170px;max-width:330px;
@@ -2459,10 +2472,13 @@ th .sub{display:block;font-weight:400;color:var(--mut);font-size:10.5px}
   padding:7px 12px;font-size:14.5px;background:var(--card2);color:var(--ink)}
 .fundbar #fsearch:focus,.fundbar #esearch:focus{outline:none;border-color:var(--acc)}
 .fgchips{display:flex;gap:5px}
-.fg,.eg,.fexp{background:var(--card2);color:var(--accd);border:0;border-radius:18px;
+.fg,.eg,.sg,.fexp{background:var(--card2);color:var(--accd);border:0;border-radius:18px;
   padding:6px 13px;cursor:pointer;font-size:13.5px;font-weight:700}
-.fg:hover,.eg:hover,.fexp:hover{background:rgba(47,111,208,.12)}
-.fg.on,.eg.on{background:var(--acc);color:#fff}
+.fg:hover,.eg:hover,.sg:hover,.fexp:hover{background:rgba(47,111,208,.12)}
+.fg.on,.eg.on,.sg.on{background:var(--acc);color:#fff}
+/* 社群討論分類篩選列（2026-08-15）：chips 較小、貼在清單上方 */
+.socbar{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px}
+.socbar .sg{padding:4px 11px;font-size:12.5px}
 .fhead{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}
 .fhead h2{font-size:19px;margin:0 0 4px} .gl{display:inline-block;white-space:nowrap;font-size:12px;color:#fff;background:var(--acc);padding:2px 8px;border-radius:20px;vertical-align:middle}
 .sub{color:var(--mut);font-size:12.5px}
@@ -2569,6 +2585,13 @@ addEventListener('hashchange',()=>{if(location.hash.startsWith('#fund-'))openFun
   const exp=document.getElementById('fexp'),col=document.getElementById('fcol');
   if(exp)exp.onclick=()=>document.querySelectorAll('.fund:not(.fhide)').forEach(f=>f.open=true);
   if(col)col.onclick=()=>document.querySelectorAll('.fund').forEach(f=>f.open=false);})();
+// 社群討論分類篩選（2026-08-15）：chips 篩 .fnsoc 列（data-fcat）
+(function(){const bar=document.getElementById('socbar');if(!bar)return;
+  bar.querySelectorAll('.sg').forEach(b=>b.onclick=()=>{
+    bar.querySelectorAll('.sg').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+    const f=b.dataset.f;
+    document.querySelectorAll('.fnsoc').forEach(r=>
+      r.classList.toggle('fhide',f!=='all'&&r.dataset.fcat!==f));});})();
 // 美股 v1/v2 版型切換
 document.querySelectorAll('.nb').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));b.classList.add('on');

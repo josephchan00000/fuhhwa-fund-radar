@@ -426,11 +426,76 @@ def test_yt_peer_expansion_topic_and_selection():
     assert all("94要賺錢" not in t for t in titles)
     assert "ETF冷門小片" not in titles
     assert 0 < len(picked) <= fundnews.YT_PEER_LIMIT
-    assert picked[0]["cat"] == "高股息" and "cat" not in [p for p in picked
-                                                          if "榜單" in p["title"]][0]
+    # cat 一律寫入（2026-08-15 起前端 data-fcat 也吃它）；綜合章由渲染端顯示素「熱門」
+    assert picked[0]["cat"] == "高股息"
+    assert [p for p in picked if "榜單" in p["title"]][0]["cat"] == "綜合"
     # 全數未達門檻（安靜週末）→ fallback 取前 2、不留白
     low = [it("z1", "ETF小眾討論", 900), it("z2", "基金週報", 500), it("z3", "存股日記", 400)]
     assert len(fundnews._select_peers(low)) == 2
+
+
+def test_yt_trend_path_excludes_single_stock():
+    """2026-08-15 使用者：「投資相關的（不要個股）」——市場趨勢路徑收大盤行情／總經／
+    資產配置，個股本位（知名個股、個股操作詞、4 碼代號）在無產品面時不收。"""
+    assert fundnews.yt_peer_relevant("阮慕驊：台股5萬點年底機率高！")        # 趨勢詞收
+    assert fundnews.yt_peer_relevant("聯準會降息在即，資產配置怎麼調整？")
+    assert fundnews.yt_peer_relevant("通膨降溫 股市多頭還能走多久")
+    assert not fundnews.yt_peer_relevant("台積電還能買嗎？三大關鍵解析")      # 個股本位不收
+    assert not fundnews.yt_peer_relevant("台股創新高！台積電領軍衝關")        # 趨勢＋個股仍不收
+    assert not fundnews.yt_peer_relevant("當沖實戰教學：台股提款密技")        # 個股操作詞
+    assert not fundnews.yt_peer_relevant("2330分析：目標價上看新高")          # 4 碼個股代號
+    assert fundnews.yt_peer_relevant("台股大漲800點 站上24000點")             # 點數非代號
+    assert fundnews.yt_peer_relevant("台股ETF買氣旺！台積電權重過半怎麼辦")   # 有產品面＝豁免
+    # yt_topic：趨勢類（有產品字樣歸產品類，不搶）
+    assert fundnews.yt_topic("聯準會降息 台股怎麼走") == "市場趨勢"
+    assert fundnews.yt_topic("台股ETF榜單曝光") == "綜合"                     # 有 ETF 字樣
+    assert fundnews.yt_topic("00929持有半年，每月領息又賺43％") == "高股息"   # 領息入詞表
+
+
+def test_social_group_mapping():
+    """social_group：五分組（etf/active/fund/trend/other）——熱門層用 cat、
+    其他平台（官方/相關/PTT/強基金）用標題；渲染端每列掛 data-fcat 供 chips 篩選。"""
+    g = fundnews.social_group
+    assert g({"cat": "高股息", "title": "x"}) == "etf"
+    assert g({"cat": "債券", "title": "x"}) == "etf"
+    assert g({"cat": "主動式", "title": "x"}) == "active"
+    assert g({"cat": "市場趨勢", "title": "x"}) == "trend"
+    assert g({"title": "00409A主動復華全球50：未來投資搶答賽"}) == "active"   # 官方影片標題判
+    assert g({"title": "[心得] 復華基金定期定額"}) == "fund"                  # PTT
+    assert g({"title": "復華強勢通理財機器人再度調升現金比重"}) == "fund"     # 強基金
+    assert g({"title": "00929持有半年，每月領息又賺43％"}) == "etf"
+    assert g({"cat": "綜合", "title": "買ETF有哪些隱藏成本?"}) == "etf"       # 綜合→標題再判
+    assert g({"cat": "綜合", "title": "台股陷盤整 多空怎麼看"}) == "trend"
+    assert g({"title": "隨便聊聊"}) == "other"
+
+
+def test_view_renders_social_filter_chips():
+    """儀表板社群清單：篩選 chips（僅有項目的分組才渲染、帶數量）＋每列 data-fcat＋
+    隱藏規則含 .fnit.fhide（2026-07-31 教訓：新工具列的 CSS 三處要一起加）。"""
+    from arm.fund_dashboard import _CSS, _JS
+    doc = {"as_of": "2026/08/15", "window_days": 7, "brand": [], "funds": [],
+           "social": [{"platform": "youtube", "title": "月配息ETF總整理", "peer": True,
+                       "cat": "高股息", "url": "https://www.youtube.com/watch?v=p1",
+                       "date": "2026-08-14", "views": 88000},
+                      {"platform": "youtube", "title": "台股5萬點機率高", "peer": True,
+                       "cat": "市場趨勢", "url": "https://www.youtube.com/watch?v=p2",
+                       "date": "2026-08-14", "views": 30000},
+                      {"platform": "ptt", "title": "[心得] 復華基金定期定額",
+                       "url": "https://ptt/x", "date": "8/14", "push": 10}]}
+    html = _fundnews_view(doc)
+    assert 'id="socbar"' in html and 'data-f="all"' in html
+    assert 'data-f="etf"' in html and ">ETF 1<" in html            # 分組數量
+    assert 'data-f="trend"' in html and ">市場趨勢 1<" in html
+    assert 'data-f="fund"' in html and ">基金 1<" in html
+    assert 'data-f="active"' not in html                           # 空分組不渲染 chip
+    assert 'data-fcat="etf"' in html and 'data-fcat="trend"' in html
+    assert 'data-fcat="fund"' in html
+    assert ".fnit.fhide" in _CSS and "socbar" in _JS               # 隱藏規則＋JS 掛鉤
+    # 綜合 cat → 素「熱門」章
+    doc["social"] = [{"platform": "youtube", "title": "買ETF隱藏成本", "peer": True,
+                      "cat": "綜合", "url": "https://www.youtube.com/watch?v=p3",
+                      "date": "2026-08-14", "views": 10000}]
+    assert ">熱門</span>" in _fundnews_view(doc)
 
 
 def test_view_renders_youtube_social_alongside_ptt():

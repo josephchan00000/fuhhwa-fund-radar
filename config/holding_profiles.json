@@ -2373,6 +2373,54 @@
    "intro": "復華投信自家的旗艦主動式台股基金，即本雷達追蹤清單內的「復華復華基金」。",
    "verified": true,
    "url": "https://fund.cnyes.com/detail/%E5%BE%A9%E8%8F%AF%E5%BE%A9%E8%8F%AF%E5%9F%BA%E9%87%91/A23001"
+  },
+  "BANK OF AMERICA CORP": {
+   "country": "美國",
+   "intro": "美國銀行（Bank of America），美國四大商業銀行之一；業務涵蓋消費金融、信用卡、財富管理（Merrill）與企業投資銀行。",
+   "ticker": "BAC",
+   "verified": true
+  },
+  "JPMORGAN CHASE &amp; CO": {
+   "country": "美國",
+   "intro": "摩根大通（JPMorgan Chase），以資產規模計美國最大銀行；業務涵蓋消費與社區銀行、企業與投資銀行、資產與財富管理。",
+   "ticker": "JPM",
+   "verified": true
+  },
+  "HSBC HOLDINGS PLC": {
+   "country": "英國",
+   "intro": "滙豐控股（HSBC），總部倫敦的跨國銀行集團，以亞洲市場為獲利重心；業務涵蓋零售與企業金融、環球銀行及市場業務。",
+   "ticker": "HSBC",
+   "verified": true
+  },
+  "MASTERCARD INC - A": {
+   "country": "美國",
+   "intro": "萬事達卡（Mastercard），全球第二大支付網路公司；經營跨行清算網路，向發卡與收單機構收取交易處理與服務費用。",
+   "ticker": "MA",
+   "verified": true
+  },
+  "VISA INC-CLASS A SHARES": {
+   "country": "美國",
+   "intro": "Visa，全球最大支付網路公司；經營 VisaNet 清算網路，營收來自支付處理、跨境交易與加值服務費用。",
+   "ticker": "V",
+   "verified": true
+  },
+  "GOLDMAN SACHS GROUP INC": {
+   "country": "美國",
+   "intro": "高盛（Goldman Sachs），美國大型投資銀行；主營證券承銷與顧問、固定收益與股票交易、資產與財富管理。",
+   "ticker": "GS",
+   "verified": true
+  },
+  "WELLS FARGO &amp; CO": {
+   "country": "美國",
+   "intro": "富國銀行（Wells Fargo），美國四大商業銀行之一，以零售與商業銀行業務為主，分行網絡遍布全美。",
+   "ticker": "WFC",
+   "verified": true
+  },
+  "富邦金": {
+   "country": "台灣",
+   "intro": "富邦金控（2881），台灣大型金融控股公司；旗下含富邦人壽、台北富邦銀行、富邦產險與富邦證券，獲利以壽險與銀行為主。",
+   "ticker": "2881",
+   "verified": true
   }
  }
 }
