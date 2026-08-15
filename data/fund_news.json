@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/16 06:49",
+  "as_of": "2026/08/16 06:52",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -414,7 +414,7 @@
         {
           "title": "復華台灣菁英50指數基金 的持股明細 | 鉅亨網",
           "url": "https://invest.cnyes.com/funds/detail/%E5%BE%A9%E8%8F%AF%E5%8F%B0%E7%81%A3%E8%8F%81%E8%8B%B150%E6%8C%87%E6%95%B8%E5%9F%BA%E9%87%91/A23123/portfolio",
-          "source": "invest.cnyes.com",
+          "source": "鉅亨網",
           "date": "2026-08-14 00:21",
           "datetime": "2026-08-14T00:21:13+08:00"
         }
@@ -473,7 +473,7 @@
       "channel": "姐說了算",
       "url": "https://www.youtube.com/shorts/MQL6sTbzK90",
       "date": "2026-08-14",
-      "views": 1186,
+      "views": 1192,
       "short": true
     },
     {
@@ -482,7 +482,7 @@
       "channel": "Mila Yuen 投資日常",
       "url": "https://www.youtube.com/watch?v=wQNKnOzx_ME",
       "date": "2026-08-12",
-      "views": 310175,
+      "views": 310215,
       "peer": true,
       "cat": "基金"
     },
@@ -512,7 +512,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=rNk6qgrvcAA",
       "date": "2026-08-13",
-      "views": 94742,
+      "views": 94934,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -533,7 +533,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=5l62gBVCrsY",
       "date": "2026-08-14",
-      "views": 33844,
+      "views": 33851,
       "peer": true,
       "cat": "主動式"
     },
@@ -553,7 +553,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=3T0_-3knAbg",
       "date": "2026-08-12",
-      "views": 29293,
+      "views": 29297,
       "peer": true,
       "cat": "債券"
     },
@@ -573,7 +573,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/shorts/CeszHXYl-gk",
       "date": "2026-08-11",
-      "views": 22867,
+      "views": 22868,
       "peer": true,
       "short": true,
       "cat": "高股息"
@@ -583,6 +583,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00986D、00409A、台灣菁英50指數（詳下方新聞標籤）",
     "品牌焦點：復華00409A布局全球50強 今開募 | 財富管理 | 商情（經濟日報）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：25歲少年6日摧毀450億基金！特朗普金主精準狙殺，華爾街大鱷設局收割過程揭秘｜Mila Yuen 投資日常（Mila Yuen 投資日常・310,175 次觀看）"
+    "YouTube 熱片：25歲少年6日摧毀450億基金！特朗普金主精準狙殺，華爾街大鱷設局收割過程揭秘｜Mila Yuen 投資日常（Mila Yuen 投資日常・310,215 次觀看）"
   ]
 }
