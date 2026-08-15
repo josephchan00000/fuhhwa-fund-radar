@@ -1270,9 +1270,11 @@ def test_etf_detail_fhide_css_covers_etf_cards():
     `#esearch` 沒併進 `#fsearch` 樣式，行動版會退回原生搜尋框（多一個放大鏡）。"""
     css = fd._CSS
     assert ".etfd.fhide" in css and ".edchip.fhide" in css
-    assert ".fg,.eg,.fexp{" in css                      # chip 樣式
-    assert ".fg.on,.eg.on{" in css                      # 選中狀態
-    assert "#fsearch,.fundbar #esearch{" in css         # 搜尋框樣式
+    assert ".fnit.fhide" in css                         # 2026-08-15 社群分類篩選同一套隱藏
+    assert ".fg,.eg,.sg,.fexp{" in css                  # chip 樣式（.sg＝社群篩選 chips）
+    assert ".fg.on,.eg.on,.sg.on{" in css               # 選中狀態
+    assert ("#fsearch,.fundbar #esearch,.fundbar #ssearch,.fundbar #nsearch{"
+            in css)                                     # 搜尋框樣式（含新聞列/社群列）
 
 
 def test_etf_detail_code_chips():
