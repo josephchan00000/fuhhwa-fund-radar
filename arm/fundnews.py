@@ -680,12 +680,14 @@ YT_OFFICIAL_CHANNELS = {
 }
 YT_UNOFFICIAL_LIMIT = 3
 # 市場熱門層（2026-08-14 使用者：「同業熱門的觀看數超級少……應該會有超級多討論 ETF
-# 等等基金類的影片」）——由「單一查詢＋硬性同業代碼」擴編為主題桶多查詢＋分類配額：
-YT_PEER_QUERIES = ["台股 ETF", "高股息 ETF", "ETF 投資", "債券 ETF", "基金 投資"]
-YT_PEER_LIMIT = 6            # 總上限（原 2）——版面每支一行，6 支仍好讀
+# 等等基金類的影片」；2026-08-15 再擴「投資相關（不要個股）」＋前端分類篩選）
+# ——由「單一查詢＋硬性同業代碼」擴編為主題桶多查詢＋分類配額：
+YT_PEER_QUERIES = ["台股 ETF", "高股息 ETF", "ETF 投資", "債券 ETF", "基金 投資",
+                   "主動式 ETF", "台股"]   # 後兩組 2026-08-15 加：主動桶＋市場趨勢桶
+YT_PEER_LIMIT = 10           # 總上限（2→6→10）——版面有分類篩選 chips 後允許長一點
 YT_PEER_CAT_LIMIT = 2        # 每類配額——viewCount 排序易被單一題材（高股息）洗版
 YT_PEER_MIN_VIEWS = 5000     # 熱門門檻（使用者抱怨兩三千觀看）；全數未達才 fallback 取 2
-YT_PEER_FRESH_DAYS = 3       # 2→3 天：讓觀看數有時間累積，仍夠新鮮
+YT_PEER_FRESH_DAYS = 5       # 2→3→5 天：使用者要求略微擴大時間軸，讓觀看數有時間累積
 YT_SEARCH_MAX = 25           # search.list 成本與 10 筆同為 100 單位——放大 pool 零額度成本
 # 指名剔除的影片 id（sanitize 讀取端過濾，舊落檔／_carry_social 沿用款立即生效）：
 YT_BLOCK_IDS = {
@@ -772,14 +774,27 @@ _YT_OFFSHORE = re.compile(
     r"(?<![0-9A-Za-z])(?:VOO|QQQ|SPY|VTI|VT|IVV|SCHD|JEPI|JEPQ|TLT|VYM|BND|SGOV)"
     r"(?![0-9A-Za-z])|美股\s*ETF|美國\s*ETF", re.I)
 _TW_ETF_CODE = re.compile(r"(?<![0-9A-Za-z])00\d{2,4}[A-Z]?(?![0-9A-Za-z])")
+# 市場趨勢詞（2026-08-15 使用者：「投資相關的（不要個股）」——大盤行情／總經政策／
+# 資產配置層級的投資內容也收進熱門層，個股本位的不要）：
+_YT_TREND = re.compile(
+    r"台股|大盤|加權指數|行情|盤勢|走勢|多頭|空頭|牛市|熊市|崩盤|回檔|反彈|萬點|"
+    r"創新高|總經|景氣|通膨|降息|升息|聯準會|央行|資產配置|投資組合|股市|理財")
+# 個股本位訊號（只驗標題）：知名個股名／個股操作詞／非 00 開頭的 4 碼代號
+#（年份「2026年」與點數「4000點」以尾綴排除；00 開頭是 ETF、不在此列）。
+_STOCK_FOCUS = re.compile(
+    r"台積電|鴻海|聯發科|廣達|緯創|緯穎|大立光|聯電|日月光|長榮|陽明|萬海|中鋼|台塑|"
+    r"國泰金|富邦金|中信金|開發金|玉山金|台達電|個股|飆股|選股|當沖|漲停|"
+    r"(?<![0-9])[1-9]\d{3}(?![0-9年點])")
 
 
 def yt_peer_relevant(title: str, desc: str = "") -> bool:
-    """市場熱門層（2026-08-14 由「同業熱門」擴編）：自家內容（品牌詞/自家代碼）歸相關層
-    （不重複）、負面司法題材照樣排除、標題須含漢字；其餘兩條路徑任一即收——
-    ①含同業 ETF 代碼（獨立詞，原判準）；②標題/說明含 ETF・基金主題詞（高觀看的泛
-    ETF 討論多半不寫代碼，舊判準把它們全殺了），但純海外內容（美股代碼/美股ETF 連語
-    且無台股代碼）不收。"""
+    """市場熱門層（2026-08-14 由「同業熱門」擴編；2026-08-15 再擴市場趨勢）：
+    自家內容（品牌詞/自家代碼）歸相關層（不重複）、負面司法題材照樣排除、標題須含漢字；
+    三條路徑任一即收——①含同業 ETF 代碼（獨立詞，原判準）；②ETF・基金主題詞或台股
+    ETF 代碼（高觀看的泛 ETF 討論多不寫代碼）；③市場趨勢詞（大盤行情/總經/資產配置）。
+    個股本位防呆（使用者：不要個股）：**無任何產品面（主題詞/台股 ETF 代碼）**時，
+    標題命中知名個股/個股操作詞/4 碼個股代號 → 不收（「台積電還能買嗎」型）；
+    有產品面則不受影響（ETF 成分股討論常點名個股）。純海外照舊不收。"""
     text = f"{title} {desc}"
     if is_negative_title(title) or _brand_hit(text) or _code_hit(text):
         return False
@@ -787,18 +802,24 @@ def yt_peer_relevant(title: str, desc: str = "") -> bool:
         return False
     if _code_hit(text, _peer_codes()):
         return True
-    if not _YT_TOPIC.search(text):
+    etfish = bool(_YT_TOPIC.search(text) or _TW_ETF_CODE.search(text))
+    if not etfish and not _YT_TREND.search(text):
         return False
-    return not (_YT_OFFSHORE.search(text) and not _TW_ETF_CODE.search(text))
+    if _YT_OFFSHORE.search(text) and not _TW_ETF_CODE.search(text):
+        return False
+    return etfish or not _STOCK_FOCUS.search(title)
+
+
+_FUND_WORDS = re.compile(r"基金|金複合|理財機器人|投資法")
 
 
 def yt_topic(title: str) -> str:
     """市場熱門影片主題分類（儀表板章「熱門・{類別}」；配額避免單一題材洗版）。
-    優先序：債券 > 高股息 > 主動式 > 市值型 > 基金 > 綜合。"""
+    優先序：債券 > 高股息 > 主動式 > 市值型 > 基金 > 市場趨勢 > 綜合。"""
     t = title or ""
     if "債" in t:
         return "債券"
-    if re.search(r"高股息|高息|配息|除息|息收|月配|季配|殖利率", t):
+    if re.search(r"高股息|高息|配息|除息|息收|領息|月配|季配|殖利率", t):
         return "高股息"
     if re.search(r"主動式|主動型|主動\s*ETF", t) or re.search(
             r"(?<![0-9A-Za-z])00\d{2,4}A(?![0-9A-Za-z])", t):
@@ -807,9 +828,38 @@ def yt_topic(title: str) -> str:
     if re.search(r"市值型|大盤(?!點)|指數化|指數型", t) or re.search(
             r"(?<![0-9A-Za-z])(?:0050|006208|00922|00923)(?![0-9A-Za-z])", t):
         return "市值型"
-    if "基金" in t and not re.search(r"ETF", t, re.I):
+    # 基金詞含理財機器人/金複合（「理財」單獨是趨勢詞，機器人組合是基金產品）
+    if _FUND_WORDS.search(t) and not re.search(r"ETF", t, re.I):
         return "基金"
+    # 市場趨勢（2026-08-15）＝有趨勢詞、又沒有任何產品字樣（有 ETF/基金/代碼的歸上面各類）
+    if _YT_TREND.search(t) and not re.search(r"ETF|基金", t, re.I) \
+            and not _TW_ETF_CODE.search(t):
+        return "市場趨勢"
     return "綜合"
+
+
+def social_group(item: dict) -> str:
+    """社群項目 → 前端「分類篩選」分組鍵（2026-08-15 使用者：太長了要可點分類篩選）。
+    回 etf／active／fund／trend／other；儀表板每列掛 data-fcat、chips 依此篩
+    （other 只在「全部」顯示）。熱門層優先用選片時算好的 cat；官方／相關／PTT／
+    強基金項目就標題分類（同一套 yt_topic＋關鍵詞）。"""
+    t = item.get("title") or ""
+    cat = item.get("cat") or yt_topic(t)
+    if cat == "主動式":
+        return "active"
+    if cat == "基金":
+        return "fund"
+    if cat == "市場趨勢":
+        return "trend"
+    if cat in ("債券", "高股息", "市值型"):
+        return "etf"
+    if re.search(r"ETF", t, re.I) or _TW_ETF_CODE.search(t):
+        return "etf"
+    if _FUND_WORDS.search(t):
+        return "fund"
+    if _YT_TREND.search(t):
+        return "trend"
+    return "other"
 
 
 def _norm_yt_title(t: str) -> str:
@@ -823,7 +873,8 @@ def _select_peers(items: list[dict]) -> list[dict]:
     """市場熱門選片（2026-08-14 擴編）：同片去重 → 觀看門檻 YT_PEER_MIN_VIEWS →
     分類配額（每類 YT_PEER_CAT_LIMIT、總 YT_PEER_LIMIT）。輸入已依觀看數排序
     （parse_youtube）。全數未達門檻（安靜週末）→ 退而取前 2、不留白。
-    類別寫進 item["cat"]（「綜合」不寫，渲染端沿用素「同業熱門」章語意改「熱門」）。"""
+    類別一律寫進 item["cat"]（含「綜合」——渲染端綜合章顯示素「熱門」，
+    2026-08-15 起前端分類篩選 data-fcat 也吃這個欄位）。"""
     pool: list[dict] = []
     seen_t: set[str] = set()
     for it in items:
@@ -834,9 +885,7 @@ def _select_peers(items: list[dict]) -> list[dict]:
         pool.append(it)
 
     def _tag(it: dict) -> dict:
-        cat = yt_topic(it.get("title") or "")
-        if cat != "綜合":
-            it["cat"] = cat
+        it["cat"] = yt_topic(it.get("title") or "")
         return it
 
     picked: list[dict] = []
