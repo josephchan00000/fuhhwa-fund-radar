@@ -1,28 +1,14 @@
 {
-  "as_of": "2026/08/15 14:43",
+  "as_of": "2026/08/15 15:03",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
-    {
-      "title": "復華全球物聯網科技基金-新臺幣，這幾天突然大漲 14.1% 意味著什麼？",
-      "url": "https://cmnews.com.tw/article/cmoney-a465a270-9628-11f1-9b3f-4a03b8d2d16d",
-      "source": "cmnews.com.tw",
-      "date": "2026-08-12 16:34",
-      "datetime": "2026-08-12T16:34:32+08:00"
-    },
     {
       "title": "復華00409A布局全球50強 今開募 | 財富管理 | 商情",
       "url": "https://money.udn.com/money/story/5636/9686166",
       "source": "經濟日報",
       "date": "2026-08-12 16:03",
       "datetime": "2026-08-12T16:03:04+08:00"
-    },
-    {
-      "title": "復華華人世紀基金，這幾天規模剛破 300 億，意味著什麼？",
-      "url": "https://cmnews.com.tw/article/cmoney-98fade04-955e-11f1-aab8-874ddb2fbda3",
-      "source": "cmnews.com.tw",
-      "date": "2026-08-11 16:28",
-      "datetime": "2026-08-11T16:28:15+08:00"
     },
     {
       "title": "00409A 復華全球未來50主動式ETF ｜成分股？配息？優缺點？募集時間？",
@@ -56,13 +42,6 @@
           "source": "今周刊",
           "date": "2026-08-14 17:51",
           "datetime": "2026-08-14T17:51:00+08:00"
-        },
-        {
-          "title": "【00991A】08/14 操作日報｜唯一加碼緯穎，資金換手集中AI主線",
-          "url": "https://cmnews.com.tw/article/cmoney-578e2b6d-97ce-11f1-a77e-1eaada40ad40",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-14 18:53",
-          "datetime": "2026-08-14T18:53:11+08:00"
         },
         {
           "title": "2026/08/14 00991A今日操作明細",
@@ -107,20 +86,6 @@
         "00409A"
       ],
       "items": [
-        {
-          "title": "00409A三人共管上路，每年1.54%費用撐得起報酬嗎？-詠晴K線解密",
-          "url": "https://cmnews.com.tw/article/huangyongqing-255d6b21-97a4-11f1-9ec2-cb6b60123aa1",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-14 13:51",
-          "datetime": "2026-08-14T13:51:08+08:00"
-        },
-        {
-          "title": "00409A 最後募集日——首檔三人共管主動式ETF-CMoney官方",
-          "url": "https://cmnews.com.tw/article/cmoney-2dbcf387-9799-11f1-985c-7b568f6defb3",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-14 12:32",
-          "datetime": "2026-08-14T12:32:37+08:00"
-        },
         {
           "title": "復華00409A布局全球50強 今開募 | 財富管理 | 商情",
           "url": "https://money.udn.com/money/story/5636/9686166",
@@ -173,15 +138,7 @@
       "short_names": [
         "全球物聯網科技新臺幣"
       ],
-      "items": [
-        {
-          "title": "規模破百億的科技巨獸怎麼挑？安聯台灣科技、復華全球物聯網、復華華人世紀大解碼",
-          "url": "https://cmnews.com.tw/article/cmoney-e7d0e0aa-962a-11f1-9c0f-77059956afc4",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-12 16:50",
-          "datetime": "2026-08-12T16:50:44+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華華人世紀基金",
@@ -191,15 +148,7 @@
       "short_names": [
         "華人世紀"
       ],
-      "items": [
-        {
-          "title": "規模破百億的科技巨獸怎麼挑？安聯台灣科技、復華全球物聯網、復華華人世紀大解碼",
-          "url": "https://cmnews.com.tw/article/cmoney-e7d0e0aa-962a-11f1-9c0f-77059956afc4",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-12 16:50",
-          "datetime": "2026-08-12T16:50:44+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華亞太成長基金",
@@ -329,15 +278,7 @@
       "short_names": [
         "中小精選"
       ],
-      "items": [
-        {
-          "title": "復華中小精選223億元規模在手，單日跌逾2%撐得住長期投資嗎？-陳柏宇",
-          "url": "https://cmnews.com.tw/article/chenboyu-33dfa6f2-9300-11f1-a25c-0450db72808c",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-08 16:07",
-          "datetime": "2026-08-08T16:07:30+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華全方位基金",
@@ -516,7 +457,7 @@
       "channel": "理周FUN財經",
       "url": "https://www.youtube.com/watch?v=R2SJsNfLpNA",
       "date": "2026-08-14",
-      "views": 3445
+      "views": 3496
     },
     {
       "platform": "youtube",
@@ -524,8 +465,89 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/pUw_ODgbCcs",
       "date": "2026-08-13",
-      "views": 3358,
+      "views": 3367,
       "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "【台股達人秀】ep341 修正結束了？台股何時上五萬？｜游庭皓｜王兆立｜GMoney (CC字幕) @gmoneytv",
+      "channel": "G MONEY",
+      "url": "https://www.youtube.com/watch?v=1K0Km_a1JKw",
+      "date": "2026-08-11",
+      "views": 106137,
+      "peer": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "【理財達人秀】三大法人齊買超 台股攻5萬穩了？MSCI給力 南亞科刷新高？被動直接買 CPO拉回搶？財報神救援老AI.PCB？｜李兆華、容逸燊、陳唯泰、股魚2026.08.13【電視完整版】",
+      "channel": "理財達人秀 EBCmoneyshow",
+      "url": "https://www.youtube.com/watch?v=rNk6qgrvcAA",
+      "date": "2026-08-13",
+      "views": 94173,
+      "peer": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "科技股崩跌還沒完? 這檔主動式ETF別再碰!! ft. 股魚【 小宇宙大爆發 】",
+      "channel": "小宇宙大爆發",
+      "url": "https://www.youtube.com/watch?v=MeCw6_dg-FM",
+      "date": "2026-08-10",
+      "views": 91653,
+      "peer": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "越南版台灣50！00885 ETF引領越股熱潮，掌握下一個亞洲之虎！｜【台股萬人謎】EP113｜富邦投信 陳仲愷",
+      "channel": "永豐金證券",
+      "url": "https://www.youtube.com/watch?v=Kf-cNqA8J20",
+      "date": "2026-08-11",
+      "views": 82595,
+      "peer": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "有房、有ETF、有勞退，為何不敢退休？退休真正該算的，不只是你有多少錢｜ft.嫺人【理財資優生】EP87",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/watch?v=mI4nGpBnhqE",
+      "date": "2026-08-10",
+      "views": 56904,
+      "peer": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "主動式ETF白忙一場! 科技股反彈無力?【小宇宙大爆發 】#shorts #理財",
+      "channel": "小宇宙大爆發",
+      "url": "https://www.youtube.com/shorts/slTkhUwZCW0",
+      "date": "2026-08-10",
+      "views": 52777,
+      "peer": true,
+      "short": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "挪威主權基金台股買什麼?  一檔台積電吃下逾半資金!台股還漲?位階相對其他算貴?台.韓蹺蹺板效應?│【關我什麼事PART1】陳斐娟 主持│20260813│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=DkH5I1TYmK8",
+      "date": "2026-08-13",
+      "views": 30596,
+      "peer": true,
+      "cat": "基金"
+    },
+    {
+      "platform": "youtube",
+      "title": "【精華】高股息獲利要跑嗎？00406A月月配好多！！勞工專屬收益率破28%？長期投資還是選0050？ #超馬芭樂 #金臨天 @TVBSFinanceLive  20260807",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=-co62ltRMDg",
+      "date": "2026-08-10",
+      "views": 26203,
+      "peer": true,
+      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -533,63 +555,25 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=xI5ly1Z3dLA",
       "date": "2026-08-12",
-      "views": 24732,
+      "views": 24746,
       "peer": true,
-      "cat": "市值型"
+      "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "MSCI全面調升台股三權重 記憶體入摩押大注!化被動為主動?台股V轉 主動ETF最新排位賽,誰稱冠?｜20260813(第1/8段)股市現場*鄭明娟(黃靖哲×李冠嶔×謝晨彥)",
-      "channel": "非凡 股市現場",
-      "url": "https://www.youtube.com/watch?v=4Va5xgChKlU",
-      "date": "2026-08-13",
-      "views": 24215,
-      "peer": true,
-      "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "《台股多頭怎麼跟? 揭!ETF要這樣選!》【錢線百分百】20260814-9│非凡財經新聞│",
-      "channel": "USTV 非凡電視",
-      "url": "https://www.youtube.com/watch?v=aMD6YFxjCvY",
-      "date": "2026-08-14",
-      "views": 18306,
-      "peer": true
-    },
-    {
-      "platform": "youtube",
-      "title": "【錢線百分百】20260814完整版(下集)《台股多頭怎麼跟? 揭!ETF要這樣選! CPO&quot;非用不可&quot;時刻到? 受惠族群搶先買?》│非凡財經新聞│",
-      "channel": "USTV 非凡電視",
-      "url": "https://www.youtube.com/watch?v=ZuPRLtviHks",
-      "date": "2026-08-14",
-      "views": 11460,
-      "peer": true
-    },
-    {
-      "platform": "youtube",
-      "title": "阮慕驊：台股5萬點年底機率高！主動式ETF嗅到多頭訊號？高息變黑馬、半導體落後等補漲！也可以做幾個變化：｜關我什麼事｜三立財經iNEWS",
-      "channel": "三立財經iNEWS",
-      "url": "https://www.youtube.com/watch?v=B2pRc7FRzRg",
-      "date": "2026-08-14",
-      "views": 10691,
-      "peer": true,
-      "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "外資連3買 台股多頭確立? 台積電發放美元股利 吸引外資!科技ETF不輸市值型 該如何被配置? 美CPI今晚見真章!雙重通膨壓得下?《20260812元大看盤室》【記得開啟CC字幕】",
-      "channel": "元大投顧財金頻道-理財最錢線",
-      "url": "https://www.youtube.com/watch?v=1KjtFnLnNck",
-      "date": "2026-08-12",
-      "views": 6674,
+      "title": "他不買0050，靠這5檔冷門ETF過去3年賺更大？",
+      "channel": "睡後收入",
+      "url": "https://www.youtube.com/watch?v=wD8pTYC0PAc",
+      "date": "2026-08-11",
+      "views": 18899,
       "peer": true,
       "cat": "市值型"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00991A、00986D、00409A、全球物聯網科技、華人世紀、中小精選 等 7 檔（詳下方新聞標籤）",
-    "品牌焦點：復華全球物聯網科技基金-新臺幣，這幾天突然大漲 14.1% 意味著什麼？（cmnews.com.tw）",
+    "近 7 天有專屬報導的基金／ETF：00991A、00986D、00409A、台灣菁英50指數（詳下方新聞標籤）",
+    "品牌焦點：復華00409A布局全球50強 今開募 | 財富管理 | 商情（經濟日報）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：高股息ETF獲利百萬，該將獲利「入袋為安」嗎？！#財經雪倫（投資嗨什麼・41,686 次觀看）"
+    "YouTube 熱片：【台股達人秀】ep341 修正結束了？台股何時上五萬？｜游庭皓｜王兆立｜GMoney (CC字幕) @gmoneytv（G MONEY・106,137 次觀看）"
   ]
 }
