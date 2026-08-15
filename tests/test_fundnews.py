@@ -483,14 +483,35 @@ def test_view_renders_social_filter_chips():
                       {"platform": "ptt", "title": "[心得] 復華基金定期定額",
                        "url": "https://ptt/x", "date": "8/14", "push": 10}]}
     html = _fundnews_view(doc)
-    assert 'id="socbar"' in html and 'data-f="all"' in html
-    assert 'data-f="etf"' in html and ">ETF 1<" in html            # 分組數量
-    assert 'data-f="trend"' in html and ">市場趨勢 1<" in html
-    assert 'data-f="fund"' in html and ">基金 1<" in html
+    # 2026-08-15 使用者：「比照其他地方」——.fundbar 版式（🔍 搜尋框＋標準 chips、不帶數量）
+    assert 'class="fundbar" id="socbar"' in html and 'id="ssearch"' in html
+    assert 'data-f="all"' in html
+    assert 'data-f="etf">ETF<' in html
+    assert 'data-f="trend">市場趨勢<' in html
+    assert 'data-f="fund">基金<' in html
     assert 'data-f="active"' not in html                           # 空分組不渲染 chip
     assert 'data-fcat="etf"' in html and 'data-fcat="trend"' in html
     assert 'data-fcat="fund"' in html
-    assert ".fnit.fhide" in _CSS and "socbar" in _JS               # 隱藏規則＋JS 掛鉤
+    assert ".fnit.fhide" in _CSS and "#ssearch" in _CSS            # 隱藏規則＋搜尋框樣式
+    assert "socbar" in _JS and "ssearch" in _JS                    # JS 掛鉤（chips＋搜尋）
+    # 新聞列同款工具列（2026-08-15 使用者核可「社群列＋新聞列都做」）：
+    # data-ncat 可多組（同稿投信動態＋基金）、僅非空分組渲染 chip
+    doc2 = {"as_of": "2026/08/15", "window_days": 7, "highlights": [],
+            "brand": [{"title": "復華投信獲獎", "url": "https://n/1", "date": "2026-08-14",
+                       "source": "工商時報"}],
+            "funds": [{"base": "復華全球債券基金", "fund_ids": ["11"],
+                       "items": [{"title": "復華投信獲獎", "url": "https://n/1",
+                                  "date": "2026-08-14", "source": "工商時報"},
+                                 {"title": "債券基金買氣升溫", "url": "https://n/2",
+                                  "date": "2026-08-13", "source": "經濟日報"}]}],
+            "social": []}
+    h2 = _fundnews_view(doc2)
+    assert 'class="fundbar" id="newsbar"' in h2 and 'id="nsearch"' in h2
+    assert 'data-f="brand">投信動態<' in h2 and 'data-f="fund">基金<' in h2
+    assert 'data-f="etf"' not in h2                                # 無 ETF 產品稿不渲染
+    assert 'data-ncat="brand fund"' in h2                          # 同稿多組
+    assert 'data-ncat="fund"' in h2
+    assert "newsbar" in _JS and "nsearch" in _JS and "fnnews" in _JS
     # 綜合 cat → 素「熱門」章
     doc["social"] = [{"platform": "youtube", "title": "買ETF隱藏成本", "peer": True,
                       "cat": "綜合", "url": "https://www.youtube.com/watch?v=p3",

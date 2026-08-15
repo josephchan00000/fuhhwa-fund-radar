@@ -1273,7 +1273,8 @@ def test_etf_detail_fhide_css_covers_etf_cards():
     assert ".fnit.fhide" in css                         # 2026-08-15 社群分類篩選同一套隱藏
     assert ".fg,.eg,.sg,.fexp{" in css                  # chip 樣式（.sg＝社群篩選 chips）
     assert ".fg.on,.eg.on,.sg.on{" in css               # 選中狀態
-    assert "#fsearch,.fundbar #esearch{" in css         # 搜尋框樣式
+    assert ("#fsearch,.fundbar #esearch,.fundbar #ssearch,.fundbar #nsearch{"
+            in css)                                     # 搜尋框樣式（含新聞列/社群列）
 
 
 def test_etf_detail_code_chips():
