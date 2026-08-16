@@ -413,6 +413,10 @@ _CARD_HEAD = re.compile(
     r"^#{2,3}\s+(?:(?:卡\s*\d+｜|[一二三四五六七八九十]+、)(.+)"
     r"|(.+（[^（）]*重要度\s*\d+\s*/\s*10[^（）]*）))\s*$")
 _MD_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\s)]+)\)")
+# 裸標題型（③）常帶「1. 」「2、」流水號——那是報告檔內的撰寫序號，儀表板依重要度重排後
+# 會變成「2.／1.／3.」的錯亂編號（2026-08-16 使用者回報「全球的新聞順序很奇怪」）。
+# 一律在解析階段剝掉；要求數字後接標點，「10年期公債…」這類數字開頭的真標題不受影響。
+_CARD_SEQ = re.compile(r"^\d{1,2}\s*[.、)）]\s*")
 
 
 def extract_cards(md: str) -> list[dict]:
@@ -433,6 +437,7 @@ def extract_cards(md: str) -> list[dict]:
             mm = re.search(r"（([^（）]*)）\s*$", raw)
             if mm:
                 meta, raw = mm.group(1).strip(), raw[:mm.start()].strip()
+            raw = _CARD_SEQ.sub("", raw).strip()          # 剝掉撰寫流水號（見 _CARD_SEQ）
             cur = {"title": raw, "meta": meta, "oneline": "", "summary": "",
                    "importance": _card_importance(meta), "etype": _card_etype(meta),
                    "points": [], "links": [], "body": ""}
