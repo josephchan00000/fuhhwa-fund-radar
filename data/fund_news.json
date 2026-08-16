@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/17 07:25",
+  "as_of": "2026/08/17 07:34",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -317,11 +317,11 @@
       ],
       "items": [
         {
-          "title": "「復華台灣好收益基金」自111年1月3日起至111年2月9日暫停銷售",
-          "url": "https://www.ezfunds.com.tw/Article/AnnouncementDetail?RootId=7347&NewGuid=383ce8d9084748a6bb4972c7819efab3",
+          "title": "「復華台灣好收益基金」自110年7月1日起至110年8月4日暫停銷售",
+          "url": "https://www.ezfunds.com.tw/Article/AnnouncementDetail?RootId=6806&NewGuid=fc31ef87220a4c00a074544eba99937b",
           "source": "ezfunds.com.tw",
-          "date": "2026-08-16 10:25",
-          "datetime": "2026-08-16T10:25:22+08:00"
+          "date": "2026-08-16 18:22",
+          "datetime": "2026-08-16T18:22:21+08:00"
         }
       ]
     },
@@ -469,7 +469,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/tM9IfotrDWI",
       "date": "2026-08-10",
-      "views": 1105,
+      "views": 1107,
       "official": true,
       "short": true
     },
@@ -479,7 +479,7 @@
       "channel": "理周FUN財經",
       "url": "https://www.youtube.com/watch?v=R2SJsNfLpNA",
       "date": "2026-08-14",
-      "views": 6396
+      "views": 6374
     },
     {
       "platform": "youtube",
@@ -496,7 +496,7 @@
       "channel": "姐說了算",
       "url": "https://www.youtube.com/shorts/MQL6sTbzK90",
       "date": "2026-08-14",
-      "views": 1399,
+      "views": 1397,
       "short": true
     },
     {
@@ -505,7 +505,7 @@
       "channel": "Mila Yuen 投資日常",
       "url": "https://www.youtube.com/watch?v=wQNKnOzx_ME",
       "date": "2026-08-12",
-      "views": 329754,
+      "views": 329774,
       "peer": true,
       "cat": "基金"
     },
@@ -515,7 +515,7 @@
       "channel": "両学長 リベラルアーツ大学",
       "url": "https://www.youtube.com/watch?v=FAkMraqLuko",
       "date": "2026-08-12",
-      "views": 99023,
+      "views": 99073,
       "peer": true,
       "cat": "綜合"
     },
@@ -535,7 +535,7 @@
       "channel": "謝晨彥分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/watch?v=dLpWOJ5EcSo",
       "date": "2026-08-14",
-      "views": 83919,
+      "views": 83921,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -545,7 +545,7 @@
       "channel": "清流君",
       "url": "https://www.youtube.com/watch?v=9JNg6S3xELk",
       "date": "2026-08-16",
-      "views": 68635,
+      "views": 68683,
       "peer": true,
       "cat": "市值型"
     },
@@ -555,7 +555,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=5l62gBVCrsY",
       "date": "2026-08-14",
-      "views": 39274,
+      "views": 39277,
       "peer": true,
       "cat": "主動式"
     },
@@ -565,9 +565,19 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=aMD6YFxjCvY",
       "date": "2026-08-14",
-      "views": 38198,
+      "views": 38213,
       "peer": true,
       "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "看好0050長期會漲，就是看好正2？投資0050還是631L好？聊聊正2  ft. 李柏鋒｜EP35 #00631L #00685L #ETF",
+      "channel": "美好證券 Good Finance",
+      "url": "https://www.youtube.com/watch?v=bM2-fps3yXM",
+      "date": "2026-08-13",
+      "views": 32633,
+      "peer": true,
+      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -575,7 +585,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=3T0_-3knAbg",
       "date": "2026-08-12",
-      "views": 32098,
+      "views": 32108,
       "peer": true,
       "cat": "債券"
     },
@@ -585,17 +595,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=5MS1rzHRJW8",
       "date": "2026-08-15",
-      "views": 31869,
-      "peer": true,
-      "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "《8月高息ETF除息大盤點! 公股為何狂買它?》【錢線百分百】20260812-8│非凡財經新聞│",
-      "channel": "USTV 非凡電視",
-      "url": "https://www.youtube.com/watch?v=xI5ly1Z3dLA",
-      "date": "2026-08-12",
-      "views": 26996,
+      "views": 31881,
       "peer": true,
       "cat": "高股息"
     }
@@ -604,6 +604,6 @@
     "近 7 天有專屬報導的基金／ETF：00991A、00986D、00409A、亞太神龍科技、台灣好收益、已開發國家300股票指數 等 7 檔（詳下方新聞標籤）",
     "品牌焦點：復華新興企業債 擁利多（經濟日報）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：25歲少年6日摧毀450億基金！特朗普金主精準狙殺，華爾街大鱷設局收割過程揭秘｜Mila Yuen 投資日常（Mila Yuen 投資日常・329,754 次觀看）"
+    "YouTube 熱片：25歲少年6日摧毀450億基金！特朗普金主精準狙殺，華爾街大鱷設局收割過程揭秘｜Mila Yuen 投資日常（Mila Yuen 投資日常・329,774 次觀看）"
   ]
 }
