@@ -1,5 +1,30 @@
 {
- "as_of": "2026-08-16 07:11",
- "count": 0,
- "items": []
+ "as_of": "2026-08-17 06:40",
+ "count": 3,
+ "items": [
+  {
+   "name": "FREEPORT-MCMORAN INC",
+   "sector": "原材料",
+   "count": 1,
+   "funds": [
+    "全球原物料"
+   ]
+  },
+  {
+   "name": "FARADAY COPPER CORP",
+   "sector": "原材料",
+   "count": 1,
+   "funds": [
+    "全球原物料"
+   ]
+  },
+  {
+   "name": "ANTOFAGASTA PLC",
+   "sector": "原材料",
+   "count": 1,
+   "funds": [
+    "全球原物料"
+   ]
+  }
+ ]
 }
