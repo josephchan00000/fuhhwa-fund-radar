@@ -897,3 +897,27 @@ def test_sanitize_scrubs_existing_junk_from_disk_doc():
     out = fundnews.sanitize(doc)
     assert out["brand"] and not out["funds"][0]["items"]
     assert out["social"] == []                               # 負面社群討論同步濾除
+
+
+def test_stale_announcement_recrawl_filtered():
+    """2026-08-17 使用者抓包：中租基智網民國111年「台灣好收益暫停銷售」公告被 Google
+    重標成 08-16 上版。三層都要擋：ezfunds URL 整站、暫停銷售公告詞、標題自帶舊年代。"""
+    from datetime import datetime
+    from arm.clock import TW_TZ
+    t = "「復華台灣好收益基金」自111年1月3日起至111年2月9日暫停銷售"
+    assert not fundnews.is_news_title(t)                      # 公告詞＋舊年代雙殺
+    assert fundnews._title_stale_year(t, datetime(2026, 8, 17, tzinfo=TW_TZ))
+    assert fundnews._JUNK_URL.search(
+        "https://www.ezfunds.com.tw/Article/AnnouncementDetail?RootId=7347")
+    # 讀取端同一套：既有落檔的這則重建即消失
+    doc = {"funds": [{"base": "復華台灣好收益", "items": [
+        {"title": t, "url": "https://www.ezfunds.com.tw/Article/x", "source": "ezfunds.com.tw"}]}]}
+    assert fundnews.sanitize(doc)["funds"][0]["items"] == []
+    # 不誤殺：引述舊年份的當期新聞（年後非月份/年度）、正常帶今年月份的新聞
+    now = datetime(2026, 8, 17, tzinfo=TW_TZ)
+    for ok in ["台股創2020年以來最大單週漲幅 復華ETF受惠",
+               "復華發達基金2026年7月報酬亮眼",
+               "復華中小精選115年度配息出爐"]:
+        assert not fundnews._title_stale_year(ok, now), ok
+    # 民國/西元舊日期式樣都要認
+    assert fundnews._title_stale_year("復華某基金2022年3月合併說明會", now)
