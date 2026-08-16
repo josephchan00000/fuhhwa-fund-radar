@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/17 07:14",
+  "as_of": "2026/08/17 07:25",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -11,25 +11,11 @@
       "datetime": "2026-08-16T00:13:02+08:00"
     },
     {
-      "title": "復華全球物聯網科技基金-新臺幣，這幾天突然大漲 14.1% 意味著什麼？",
-      "url": "https://cmnews.com.tw/article/cmoney-a465a270-9628-11f1-9b3f-4a03b8d2d16d",
-      "source": "cmnews.com.tw",
-      "date": "2026-08-12 16:34",
-      "datetime": "2026-08-12T16:34:32+08:00"
-    },
-    {
       "title": "復華00409A布局全球50強 今開募 | 財富管理 | 商情",
       "url": "https://money.udn.com/money/story/5636/9686166",
       "source": "經濟日報",
       "date": "2026-08-12 16:03",
       "datetime": "2026-08-12T16:03:04+08:00"
-    },
-    {
-      "title": "復華華人世紀基金，這幾天規模剛破 300 億，意味著什麼？",
-      "url": "https://cmnews.com.tw/article/cmoney-98fade04-955e-11f1-aab8-874ddb2fbda3",
-      "source": "cmnews.com.tw",
-      "date": "2026-08-11 16:28",
-      "datetime": "2026-08-11T16:28:15+08:00"
     },
     {
       "title": "00409A 復華全球未來50主動式ETF ｜成分股？配息？優缺點？募集時間？",
@@ -63,13 +49,6 @@
           "source": "旺得富理財網",
           "date": "2026-08-16 06:03",
           "datetime": "2026-08-16T06:03:43+08:00"
-        },
-        {
-          "title": "00991A單日只加碼緯穎，AI伺服器買盤會連續擴大嗎？-CY Research",
-          "url": "https://cmnews.com.tw/article/chenyixuan-5b12a18d-988f-11f1-80d0-0306634a025e",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-15 17:54",
-          "datetime": "2026-08-15T17:54:50+08:00"
         },
         {
           "title": "00981A、00991A、00403A、00992A...這2檔主動式ETF反彈逾3成，達人不藏私挑選術：不只看排行還要看它",
@@ -114,20 +93,6 @@
         "00409A"
       ],
       "items": [
-        {
-          "title": "00409A三人共管上路，每年1.54%費用撐得起報酬嗎？-詠晴K線解密",
-          "url": "https://cmnews.com.tw/article/huangyongqing-255d6b21-97a4-11f1-9ec2-cb6b60123aa1",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-14 13:51",
-          "datetime": "2026-08-14T13:51:08+08:00"
-        },
-        {
-          "title": "00409A 最後募集日——首檔三人共管主動式ETF-CMoney官方",
-          "url": "https://cmnews.com.tw/article/cmoney-2dbcf387-9799-11f1-985c-7b568f6defb3",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-14 12:32",
-          "datetime": "2026-08-14T12:32:37+08:00"
-        },
         {
           "title": "復華00409A布局全球50強 今開募 | 財富管理 | 商情",
           "url": "https://money.udn.com/money/story/5636/9686166",
@@ -180,15 +145,7 @@
       "short_names": [
         "全球物聯網科技新臺幣"
       ],
-      "items": [
-        {
-          "title": "規模破百億的科技巨獸怎麼挑？安聯台灣科技、復華全球物聯網、復華華人世紀大解碼",
-          "url": "https://cmnews.com.tw/article/cmoney-e7d0e0aa-962a-11f1-9c0f-77059956afc4",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-12 16:50",
-          "datetime": "2026-08-12T16:50:44+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華華人世紀基金",
@@ -198,15 +155,7 @@
       "short_names": [
         "華人世紀"
       ],
-      "items": [
-        {
-          "title": "規模破百億的科技巨獸怎麼挑？安聯台灣科技、復華全球物聯網、復華華人世紀大解碼",
-          "url": "https://cmnews.com.tw/article/cmoney-e7d0e0aa-962a-11f1-9c0f-77059956afc4",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-12 16:50",
-          "datetime": "2026-08-12T16:50:44+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華亞太成長基金",
@@ -324,15 +273,7 @@
       "short_names": [
         "高成長"
       ],
-      "items": [
-        {
-          "title": "成立快 28 年還能一直漲？拆解「復華高成長基金」背後的賺錢邏輯",
-          "url": "https://cmnews.com.tw/article/cmoney-4021f09c-9947-11f1-8668-a80eead4c08d",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-16 15:51",
-          "datetime": "2026-08-16T15:51:12+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華數位經濟基金",
@@ -538,7 +479,7 @@
       "channel": "理周FUN財經",
       "url": "https://www.youtube.com/watch?v=R2SJsNfLpNA",
       "date": "2026-08-14",
-      "views": 6374
+      "views": 6396
     },
     {
       "platform": "youtube",
@@ -546,7 +487,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/pUw_ODgbCcs",
       "date": "2026-08-13",
-      "views": 4153,
+      "views": 4154,
       "short": true
     },
     {
@@ -555,7 +496,7 @@
       "channel": "姐說了算",
       "url": "https://www.youtube.com/shorts/MQL6sTbzK90",
       "date": "2026-08-14",
-      "views": 1397,
+      "views": 1399,
       "short": true
     },
     {
@@ -564,7 +505,7 @@
       "channel": "Mila Yuen 投資日常",
       "url": "https://www.youtube.com/watch?v=wQNKnOzx_ME",
       "date": "2026-08-12",
-      "views": 329677,
+      "views": 329754,
       "peer": true,
       "cat": "基金"
     },
@@ -574,7 +515,7 @@
       "channel": "両学長 リベラルアーツ大学",
       "url": "https://www.youtube.com/watch?v=FAkMraqLuko",
       "date": "2026-08-12",
-      "views": 98959,
+      "views": 99023,
       "peer": true,
       "cat": "綜合"
     },
@@ -584,7 +525,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=rNk6qgrvcAA",
       "date": "2026-08-13",
-      "views": 95740,
+      "views": 95742,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -594,7 +535,7 @@
       "channel": "謝晨彥分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/watch?v=dLpWOJ5EcSo",
       "date": "2026-08-14",
-      "views": 83918,
+      "views": 83919,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -604,7 +545,7 @@
       "channel": "清流君",
       "url": "https://www.youtube.com/watch?v=9JNg6S3xELk",
       "date": "2026-08-16",
-      "views": 68582,
+      "views": 68635,
       "peer": true,
       "cat": "市值型"
     },
@@ -614,7 +555,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=5l62gBVCrsY",
       "date": "2026-08-14",
-      "views": 39269,
+      "views": 39274,
       "peer": true,
       "cat": "主動式"
     },
@@ -624,19 +565,9 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=aMD6YFxjCvY",
       "date": "2026-08-14",
-      "views": 38181,
+      "views": 38198,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "看好0050長期會漲，就是看好正2？投資0050還是631L好？聊聊正2  ft. 李柏鋒｜EP35 #00631L #00685L #ETF",
-      "channel": "美好證券 Good Finance",
-      "url": "https://www.youtube.com/watch?v=bM2-fps3yXM",
-      "date": "2026-08-13",
-      "views": 32611,
-      "peer": true,
-      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -644,7 +575,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=3T0_-3knAbg",
       "date": "2026-08-12",
-      "views": 32089,
+      "views": 32098,
       "peer": true,
       "cat": "債券"
     },
@@ -654,15 +585,25 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=5MS1rzHRJW8",
       "date": "2026-08-15",
-      "views": 31861,
+      "views": 31869,
+      "peer": true,
+      "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "《8月高息ETF除息大盤點! 公股為何狂買它?》【錢線百分百】20260812-8│非凡財經新聞│",
+      "channel": "USTV 非凡電視",
+      "url": "https://www.youtube.com/watch?v=xI5ly1Z3dLA",
+      "date": "2026-08-12",
+      "views": 26996,
       "peer": true,
       "cat": "高股息"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00991A、00986D、00409A、全球物聯網科技、華人世紀、亞太神龍科技 等 10 檔（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00991A、00986D、00409A、亞太神龍科技、台灣好收益、已開發國家300股票指數 等 7 檔（詳下方新聞標籤）",
     "品牌焦點：復華新興企業債 擁利多（經濟日報）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：25歲少年6日摧毀450億基金！特朗普金主精準狙殺，華爾街大鱷設局收割過程揭秘｜Mila Yuen 投資日常（Mila Yuen 投資日常・329,677 次觀看）"
+    "YouTube 熱片：25歲少年6日摧毀450億基金！特朗普金主精準狙殺，華爾街大鱷設局收割過程揭秘｜Mila Yuen 投資日常（Mila Yuen 投資日常・329,754 次觀看）"
   ]
 }
