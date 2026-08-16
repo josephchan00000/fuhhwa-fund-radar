@@ -921,3 +921,25 @@ def test_stale_announcement_recrawl_filtered():
         assert not fundnews._title_stale_year(ok, now), ok
     # 民國/西元舊日期式樣都要認
     assert fundnews._title_stale_year("復華某基金2022年3月合併說明會", now)
+
+
+def test_japanese_youtube_filtered():
+    """2026-08-17 使用者回報：日文頻道「両学長」米国高配当株ETF 解說誤入市場熱門層——
+    日文標題含漢字（_has_cjk 擋不住）又滿是主題詞。假名（「の」除外）＝日文、剔除；
+    抓取端（yt_peer_relevant/yt_relevant）與讀取端（sanitize）都要擋。"""
+    jp = "【保存版】学長が解説！米国高配当株ETFの基礎【お金の勉強 株式投資編】：（アニメ動画）第526回"
+    assert fundnews._is_japanese(jp)
+    assert not fundnews.yt_peer_relevant(jp)
+    assert not fundnews.yt_relevant(jp + " 00929")            # 帶自家代碼的日文影片同樣不收
+    # 指名黑名單＋讀取端：既有落檔沿用款重建即消失
+    doc = {"social": [
+        {"platform": "youtube", "title": jp, "channel": "両学長 リベラルアーツ大学",
+         "url": "https://www.youtube.com/watch?v=FAkMraqLuko", "views": 99073, "peer": True},
+        {"platform": "youtube", "title": "00929 高股息ETF 8月配息解析",
+         "url": "https://www.youtube.com/watch?v=zzzzzzzzzzz", "views": 8000, "peer": True}]}
+    out = fundnews.sanitize(doc)
+    assert [s["title"] for s in out["social"]] == ["00929 高股息ETF 8月配息解析"]
+    # 不誤殺：台灣標題（含商品名風格用字「の」）
+    for ok in ["00929 高股息ETF 8月配息公告", "植物の優 代言人談定期定額",
+               "台股ETF 台積電權重過半怎麼辦"]:
+        assert not fundnews._is_japanese(ok), ok

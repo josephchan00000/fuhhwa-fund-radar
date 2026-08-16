@@ -713,6 +713,7 @@ YT_SEARCH_MAX = 25           # search.list 成本與 10 筆同為 100 單位—�
 # 指名剔除的影片 id（sanitize 讀取端過濾，舊落檔／_carry_social 沿用款立即生效）：
 YT_BLOCK_IDS = {
     "D_pC9_q5spQ",   # 可蘭經朗誦《Surah Rahman | Ep - 00929》（2026-08-14 使用者回報誤收）
+    "FAkMraqLuko",   # 日文頻道「両学長」米国高配当株ETF 解說（2026-08-17 使用者回報誤收）
 }
 _YT_SHORT_SEC = 180          # YouTube Shorts 上限 3 分鐘（2024-10 起）；≤此秒數標為短片
 _YT_DUR = re.compile(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?")
@@ -760,6 +761,18 @@ def _has_cjk(text: str) -> bool:
     return bool(_CJK_RE.search(text or ""))
 
 
+# 日文假名（平假名＋片假名，含長音「ー」）——「含漢字」擋不住日文（日文本來就用漢字：
+# 2026-08-17 使用者回報両学長「米国高配当株ETFの基礎」誤入市場熱門層，標題滿是主題詞
+# ETF／高配当，海外排除又只認「美股/美國 ETF」不認「米国」）。台股受眾標題不會有假名；
+# 排除「の」（台灣商品名偶見的風格用字，單獨出現不足以判日文）。
+_KANA_RE = re.compile(r"[ぁ-ゟ゠-ヿ](?<!の)")
+
+
+def _is_japanese(text: str) -> bool:
+    """帶假名（「の」除外）＝日文內容、非台股受眾。"""
+    return bool(_KANA_RE.search(text or ""))
+
+
 def _code_hit(text: str, codes: tuple[str, ...] | None = None) -> bool:
     """ETF 代碼是否以「獨立詞」出現（預設查自家代碼）。防呆（2026-08-06 實戰誤收）：
     日文單字卡影片標題帶課號「L#00929」被純子字串比對誤判——代碼前後不得緊貼英數，
@@ -780,7 +793,7 @@ def yt_relevant(title: str, desc: str = "") -> bool:
     （查詢會回同名他牌/無關影片）；負面司法題材同 PTT 排除。
     純代碼命中（無品牌詞）另須含漢字——00929 這種五碼數字在全外語影片裡多半是編號。"""
     text = f"{title} {desc}"
-    if is_negative_title(title):
+    if is_negative_title(title) or _is_japanese(title):
         return False
     if _brand_hit(text):
         return True
@@ -819,7 +832,7 @@ def yt_peer_relevant(title: str, desc: str = "") -> bool:
     text = f"{title} {desc}"
     if is_negative_title(title) or _brand_hit(text) or _code_hit(text):
         return False
-    if not _has_cjk(title):
+    if not _has_cjk(title) or _is_japanese(title):
         return False
     if _code_hit(text, _peer_codes()):
         return True
@@ -1213,14 +1226,16 @@ def _yt_vid(url: str) -> str:
 def _social_ok(s: dict) -> bool:
     """社群項目讀取端防呆（sanitize 用）：負面題材全平台濾；YouTube 另擋
     ①指名黑名單 YT_BLOCK_IDS、②非官方且標題無漢字（可蘭經朗誦《Ep - 00929》型
-    誤收——舊落檔與 _carry_social 沿用款不必等重抓即消失）。"""
+    誤收）、③非官方且標題帶假名（日文財經影片「米国高配当株ETF」型誤收，2026-08-17）
+    ——舊落檔與 _carry_social 沿用款不必等重抓即消失。"""
     if is_negative_title(s.get("title") or ""):
         return False
     if (s.get("platform") or "") != "youtube":
         return True
     if _yt_vid(s.get("url") or "") in YT_BLOCK_IDS:
         return False
-    return bool(s.get("official")) or _has_cjk(s.get("title") or "")
+    t = s.get("title") or ""
+    return bool(s.get("official")) or (_has_cjk(t) and not _is_japanese(t))
 
 
 def sanitize(doc: dict | None) -> dict | None:
