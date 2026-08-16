@@ -239,6 +239,30 @@ def test_news_view_filters_below_6_and_sorts_by_importance():
     assert 'netype new">新事件' in html and 'netype ext' not in html      # 事件屬性徽章（延伸那則<6已濾掉）
 
 
+def test_news_view_deep_card_goes_last_and_no_serial_numbers():
+    # 2026-08-16 使用者：「全球的新聞順序很奇怪」——①依重要度重排後，報告檔的撰寫流水號
+    # （1./2./3.）留在標題上會變成錯亂編號；②【深度】精選依分數混排會插在事件卡中間。
+    from arm import fund_dashboard as fd
+    md = (
+        "### 1. 甲事件（來源：X・2026/08/15｜【新事件】｜重要度 7/10）\n1. **一句話重點**：甲。\n\n"
+        "### 2. 乙事件（來源：Y・2026/08/15｜【新事件】｜重要度 8/10）\n1. **一句話重點**：乙。\n\n"
+        "### 3. 丙事件（來源：Z・2026/08/15｜【新事件】｜重要度 6/10）\n1. **一句話重點**：丙。\n\n"
+        "### 【深度】丁專題（來源：W・2026/08/15｜【深度】｜重要度 7/10）\n1. **一句話重點**：丁。\n"
+    )
+    html = fd._news_view(md, "無")
+    assert ">1. 甲事件" not in html and ">2. 乙事件" not in html      # 流水號已剝除
+    assert html.index("乙事件") < html.index("甲事件") < html.index("丙事件")   # 重要度高→低
+    assert html.index("丙事件") < html.index("丁專題")               # 深度排在事件卡之後
+
+
+def test_extract_cards_keeps_numeric_leading_title():
+    # 剝流水號不可誤傷數字開頭的真標題（數字後須接標點才算序號）
+    cards = usnews.extract_cards(
+        "### 10年期公債殖利率飆升（來源：X・2026/08/15｜【新事件】｜重要度 7/10）\n"
+        "1. **新聞摘要**：略。\n")
+    assert cards[0]["title"] == "10年期公債殖利率飆升"
+
+
 # ── fund_intro 組裝 ──────────────────────────────────────────
 def _fake_doc():
     return {

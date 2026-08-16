@@ -2487,6 +2487,24 @@
    "intro": "美國禮來（Eli Lilly），全球大型製藥公司；主力產品涵蓋糖尿病與減重藥物（Mounjaro／Zepbound）、腫瘤、神經科學與免疫學等治療領域。",
    "ticker": "LLY",
    "verified": true
+  },
+  "FREEPORT-MCMORAN INC": {
+   "country": "美國",
+   "intro": "美國自由港麥克莫蘭（Freeport-McMoRan），總部位於亞利桑那州鳳凰城的國際銅業公司；在北美、南美與印尼經營銅、金、鉬礦，旗下印尼子公司 PT-FI 營運 Grasberg 礦區，為全球最大上市銅生產商之一。",
+   "ticker": "FCX",
+   "verified": true
+  },
+  "FARADAY COPPER CORP": {
+   "country": "加拿大",
+   "intro": "加拿大 Faraday Copper，總部設於溫哥華、於多倫多證交所掛牌的銅礦探勘開發公司；核心資產為美國亞利桑那州 Pinal 郡的 Copper Creek 斑岩銅礦專案（持股 100%），目前仍處探勘與開發階段。",
+   "ticker": "FDY",
+   "verified": true
+  },
+  "ANTOFAGASTA PLC": {
+   "country": "英國",
+   "intro": "英國安托法加斯塔（Antofagasta），倫敦證交所掛牌的智利銅礦集團；營運 Los Pelambres、Centinela、Antucoya、Zaldívar 四座礦場，產出銅精礦與電解銅，並副產金、銀、鉬。",
+   "ticker": "ANTO",
+   "verified": true
   }
  }
 }
