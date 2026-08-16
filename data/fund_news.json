@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/17 07:34",
+  "as_of": "2026/08/17 07:31",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -515,7 +515,7 @@
       "channel": "両学長 リベラルアーツ大学",
       "url": "https://www.youtube.com/watch?v=FAkMraqLuko",
       "date": "2026-08-12",
-      "views": 99073,
+      "views": 99059,
       "peer": true,
       "cat": "綜合"
     },
@@ -545,7 +545,7 @@
       "channel": "清流君",
       "url": "https://www.youtube.com/watch?v=9JNg6S3xELk",
       "date": "2026-08-16",
-      "views": 68683,
+      "views": 68658,
       "peer": true,
       "cat": "市值型"
     },
@@ -565,7 +565,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=aMD6YFxjCvY",
       "date": "2026-08-14",
-      "views": 38213,
+      "views": 38206,
       "peer": true,
       "cat": "綜合"
     },
@@ -575,7 +575,7 @@
       "channel": "美好證券 Good Finance",
       "url": "https://www.youtube.com/watch?v=bM2-fps3yXM",
       "date": "2026-08-13",
-      "views": 32633,
+      "views": 32627,
       "peer": true,
       "cat": "市值型"
     },
@@ -595,7 +595,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=5MS1rzHRJW8",
       "date": "2026-08-15",
-      "views": 31881,
+      "views": 31875,
       "peer": true,
       "cat": "高股息"
     }
