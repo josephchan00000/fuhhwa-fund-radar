@@ -84,7 +84,22 @@ _NEGATIVE = re.compile(
 _JUNK_TITLE = re.compile(
     r"推薦文章|新聞資訊與消息|討論牆|一覽表|淨值表|交易平台|基金介紹|基金檔案|"
     r"基金專區|歷史淨值|基金列表|條款|開戶|公開說明書|信託契約|"
+    r"暫停(?:銷售|申購|受理)|恢復(?:銷售|申購|受理)|停止受理|"
     r"的總覽|的買賣訊號|的基本資料|的配息紀錄|的持股狀況|報酬走勢|淨值及折溢價")
+
+# 舊公告被 Google 重標日期的「標題自帶年代」防呆（2026-08-17 使用者抓包：中租基智網
+# 民國111年「台灣好收益暫停銷售」公告以 08-16 姿態上版——與 2026-08-06 ezfunds 同型，
+# 但這次標題是「暫停銷售」公告、junk 詞舊清單沒涵蓋，且台帳首見日就是重收日、驗證預算
+# 也擋不到）。通用規則：標題內出現「年＋月／年度」日期式樣（民國 1xx年 → +1911；西元
+# 20xx年），取最大年份，早於「前年」＝內容講的就是那個年代的事 → 舊文重收、剔除。
+# 只認日期式樣，「創2020年以來新高」這類引述舊年份的當期新聞不受影響（年後接「以來」非月份）。
+_TITLE_YEAR = re.compile(r"(?<!\d)(1[0-4]\d|20[0-4]\d)年(?=\d{1,2}月|度)")
+
+
+def _title_stale_year(title: str, now: datetime | None = None) -> bool:
+    """標題自帶的最近年份早於前年 → 舊公告重收。無日期式樣回 False。"""
+    ys = [int(y) + (1911 if int(y) < 1000 else 0) for y in _TITLE_YEAR.findall(title or "")]
+    return bool(ys) and max(ys) < (now or datetime.now(TW_TZ)).year - 1
 
 # 「基金報價／平台頁」URL 特徵（2026-08-12 使用者抓包主力）：Google News 會收錄鉅亨
 # invest.cnyes 基金總覽・買賣訊號頁、MoneyDJ ETF 報價頁、鉅亨基金詳情頁——標題不一定
@@ -93,6 +108,10 @@ _JUNK_TITLE = re.compile(
 _JUNK_URL = re.compile(
     r"invest\.cnyes\.com/funds|fund\.cnyes\.com/detail|"
     r"moneydj\.com/etf/|moneydj\.com/funddj/yb|"
+    # 中租基智網（ezfunds）＝基金銷售平台，其被 Google 收錄的內容全是例行公告轉貼，
+    # 且屢次被重標成近期日期（2026-08-06 公開說明書公告、2026-08-17 民國111年暫停銷售
+    # 公告皆此站）——整站剔除；真新聞本來就會在正規媒體出現，損失為零。
+    r"ezfunds\.com\.tw|"
     r"cmoney\.tw/forum/|tw\.stock\.yahoo\.com/quote/", re.I)
 
 # 財經媒體 RSS 直抓（免金鑰）——與 Google News 互補；站台全站 feed、本層只留「復華」相關
@@ -189,6 +208,8 @@ def is_news_title(title: str | None) -> bool:
     · 標題就只是基金名本身（如「復華傳家二號基金」，可帶幣別/類別尾綴）＝基金介紹頁。"""
     t = (title or "").strip()
     if not t or _JUNK_TITLE.search(t):
+        return False
+    if _title_stale_year(t):
         return False
     if is_farm_title(t) or is_negative_title(t):
         return False
