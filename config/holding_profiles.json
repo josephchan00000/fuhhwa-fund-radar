@@ -2487,6 +2487,24 @@
    "intro": "美國禮來（Eli Lilly），全球大型製藥公司；主力產品涵蓋糖尿病與減重藥物（Mounjaro／Zepbound）、腫瘤、神經科學與免疫學等治療領域。",
    "ticker": "LLY",
    "verified": true
+  },
+  "FREEPORT-MCMORAN INC": {
+   "country": "美國",
+   "intro": "美國自由港麥克莫蘭（Freeport-McMoRan），全球最大上市銅生產商；主力礦區涵蓋印尼 Grasberg 礦區、美國亞利桑那與新墨西哥州及秘魯 Cerro Verde，並產出金與鉬等副產品，直接受惠 AI 資料中心與電網建設帶動之銅需求成長。",
+   "ticker": "FCX",
+   "verified": true
+  },
+  "FARADAY COPPER CORP": {
+   "country": "加拿大",
+   "intro": "加拿大法拉第銅業（Faraday Copper），銅礦探勘與開發公司；旗艦專案為美國亞利桑那州 Copper Creek 銅礦計畫，為北美最大未開發銅礦專案之一，尚處探勘開發階段、未進入商業生產。",
+   "ticker": "FDY.TO",
+   "verified": true
+  },
+  "ANTOFAGASTA PLC": {
+   "country": "英國",
+   "intro": "英國安托法加斯塔（Antofagasta），總部倫敦、礦場全數位於智利之銅生產商；旗下 Los Pelambres、Centinela、Antucoya、Zaldívar 四座礦場，為全球主要銅生產商之一，屬英國富時100指數成分股。",
+   "ticker": "ANTO.L",
+   "verified": true
   }
  }
 }
