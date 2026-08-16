@@ -554,10 +554,13 @@ def _news_view(md: str, empty_hint: str,
     head, cards, _tail = usnews.split_doc(md or "")
     if not cards and not (md or "").strip():
         return f'<div class="muted">{empty_hint}</div>'
-    # 只留重要度 6 分以上（有標分者）；依重要度高→低排序（未標分者維持原序、殿後）
+    # 只留重要度 6 分以上（有標分者）；依重要度高→低排序（未標分者維持原序、殿後）。
+    # 【深度】精選一律排在當日事件卡之後（同報告原檔的「深度報告精選」置於卡片群之後）——
+    # 依分數混排會把深度文插在事件卡中間，讀起來像插隊（2026-08-16 使用者：順序很奇怪）。
     cards = [c for c in cards
              if not (isinstance(c.get("importance"), int) and c["importance"] < 6)]
-    cards = sorted(cards, key=lambda c: c.get("importance") or 0, reverse=True)
+    cards = sorted(cards, key=lambda c: (c.get("etype") == "deep",
+                                         -(c.get("importance") or 0)))
     items = []
     ov = _extract_overview(head) if overview else ""
     if ov:
