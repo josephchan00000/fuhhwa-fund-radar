@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/18 06:53",
+  "as_of": "2026/08/18 07:36",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -37,7 +37,7 @@
         {
           "title": "00929搶進前五！8月台股ETF配息戰開打 12檔年化配息率衝破10%",
           "url": "https://www.marketersgo.com/media-collaboration/202608/00929%E6%90%B6%E9%80%B2%E5%89%8D%E4%BA%94%EF%BC%818%E6%9C%88%E5%8F%B0%E8%82%A1etf%E9%85%8D%E6%81%AF%E6%88%B0%E9%96%8B%E6%89%93-12%E6%AA%94%E5%B9%B4%E5%8C%96%E9%85%8D%E6%81%AF%E7%8E%87%E8%A1%9D/",
-          "source": "yesmedia.com.tw",
+          "source": "理財周刊",
           "date": "2026-08-17 08:00",
           "datetime": "2026-08-17T08:00:15+08:00"
         }
@@ -68,7 +68,7 @@
         {
           "title": "怕自己摸底摸到大白鯊！20萬人次改把錢交給經理人 00991A成這波主動式ETF人氣王",
           "url": "https://www.mirrordaily.news/story/80024",
-          "source": "鏡報",
+          "source": "mirrordaily.news",
           "date": "2026-08-17 13:55",
           "datetime": "2026-08-17T13:55:00+08:00"
         }
@@ -476,7 +476,7 @@
       "channel": "從科技產業 看透 ETF",
       "url": "https://www.youtube.com/watch?v=04jBenYT_QA",
       "date": "2026-08-16",
-      "views": 23991
+      "views": 24073
     },
     {
       "platform": "youtube",
@@ -484,7 +484,7 @@
       "channel": "理周FUN財經",
       "url": "https://www.youtube.com/watch?v=R2SJsNfLpNA",
       "date": "2026-08-14",
-      "views": 6915
+      "views": 6928
     },
     {
       "platform": "youtube",
@@ -511,7 +511,7 @@
       "channel": "清流君",
       "url": "https://www.youtube.com/watch?v=9JNg6S3xELk",
       "date": "2026-08-16",
-      "views": 87719,
+      "views": 87853,
       "peer": true,
       "cat": "市值型"
     },
@@ -531,7 +531,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=5l62gBVCrsY",
       "date": "2026-08-14",
-      "views": 40823,
+      "views": 40828,
       "peer": true,
       "cat": "主動式"
     },
@@ -541,7 +541,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=aMD6YFxjCvY",
       "date": "2026-08-14",
-      "views": 40332,
+      "views": 40338,
       "peer": true,
       "cat": "綜合"
     },
@@ -551,7 +551,7 @@
       "channel": "美好證券 Good Finance",
       "url": "https://www.youtube.com/watch?v=bM2-fps3yXM",
       "date": "2026-08-13",
-      "views": 36288,
+      "views": 36324,
       "peer": true,
       "cat": "市值型"
     },
@@ -561,7 +561,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=5MS1rzHRJW8",
       "date": "2026-08-15",
-      "views": 34413,
+      "views": 34423,
       "peer": true,
       "cat": "高股息"
     },
@@ -571,7 +571,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=3602UJTNQ0Q",
       "date": "2026-08-13",
-      "views": 26701,
+      "views": 26720,
       "peer": true,
       "cat": "綜合"
     },
