@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/18 06:51",
+  "as_of": "2026/08/18 06:53",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -476,7 +476,7 @@
       "channel": "從科技產業 看透 ETF",
       "url": "https://www.youtube.com/watch?v=04jBenYT_QA",
       "date": "2026-08-16",
-      "views": 23985
+      "views": 23991
     },
     {
       "platform": "youtube",
@@ -492,7 +492,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/pUw_ODgbCcs",
       "date": "2026-08-13",
-      "views": 4322,
+      "views": 4323,
       "short": true
     },
     {
@@ -551,7 +551,7 @@
       "channel": "美好證券 Good Finance",
       "url": "https://www.youtube.com/watch?v=bM2-fps3yXM",
       "date": "2026-08-13",
-      "views": 36282,
+      "views": 36288,
       "peer": true,
       "cat": "市值型"
     },
@@ -581,7 +581,7 @@
       "channel": "94要賺錢",
       "url": "https://www.youtube.com/watch?v=hlOF72OZMqo",
       "date": "2026-08-14",
-      "views": 18435,
+      "views": 18438,
       "peer": true,
       "cat": "高股息"
     },
