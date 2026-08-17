@@ -519,8 +519,8 @@ def _premarket_card(pre_md: str, title: str = "盤前速覽") -> str:
 def _news_badges(etype: str | None, importance: int | None) -> str:
     """新聞卡徽章：事件屬性（新事件/延伸/深度）＋重要度（依分數變色）。皆缺回空字串。"""
     out = ""
-    if etype in ("brief", "new", "ext", "deep"):
-        label = {"brief": "要點", "new": "新事件", "ext": "延伸", "deep": "深度"}[etype]
+    if etype in ("new", "ext", "deep"):
+        label = {"new": "新事件", "ext": "延伸", "deep": "深度"}[etype]
         out += f'<span class="netype {etype}">{label}</span>'
     if isinstance(importance, int):
         band = "hi" if importance >= 9 else ("mid" if importance >= 7 else "lo")
@@ -555,13 +555,11 @@ def _news_view(md: str, empty_hint: str,
     if not cards and not (md or "").strip():
         return f'<div class="muted">{empty_hint}</div>'
     # 只留重要度 6 分以上（有標分者）；依重要度高→低排序（未標分者維持原序、殿後）。
-    # 【要點】保底卡恆置頂（2026-08-17 使用者需求：台股盤前要點／美股盤後要點每天保底一張）；
     # 【深度】精選一律排在當日事件卡之後（同報告原檔的「深度報告精選」置於卡片群之後）——
     # 依分數混排會把深度文插在事件卡中間，讀起來像插隊（2026-08-16 使用者：順序很奇怪）。
     cards = [c for c in cards
              if not (isinstance(c.get("importance"), int) and c["importance"] < 6)]
-    cards = sorted(cards, key=lambda c: (c.get("etype") != "brief",
-                                         c.get("etype") == "deep",
+    cards = sorted(cards, key=lambda c: (c.get("etype") == "deep",
                                          -(c.get("importance") or 0)))
     items = []
     ov = _extract_overview(head) if overview else ""
@@ -2179,7 +2177,6 @@ a.tk:hover{color:var(--acc)}
 .nhead .nlone{margin:0}
 .nbadges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1px}
 .netype{font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap;border:0;letter-spacing:.03em}
-.netype.brief{color:#a8730a;background:rgba(212,148,30,.14);border-color:rgba(212,148,30,.45)}
 .netype.new{color:var(--acc);background:rgba(47,111,208,.12);border-color:rgba(47,111,208,.4)}
 .netype.ext{color:var(--mut);background:rgba(138,127,107,.12);border-color:rgba(138,127,107,.35)}
 .netype.deep{color:#7b4fa0;background:rgba(123,79,160,.10);border-color:rgba(123,79,160,.4)}
