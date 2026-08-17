@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/17 08:08",
+  "as_of": "2026/08/17 08:13",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -33,7 +33,15 @@
       "short_names": [
         "00929"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "00929搶進前五！8月台股ETF配息戰開打 12檔年化配息率衝破10%",
+          "url": "https://www.marketersgo.com/media-collaboration/202608/00929%E6%90%B6%E9%80%B2%E5%89%8D%E4%BA%94%EF%BC%818%E6%9C%88%E5%8F%B0%E8%82%A1etf%E9%85%8D%E6%81%AF%E6%88%B0%E9%96%8B%E6%89%93-12%E6%AA%94%E5%B9%B4%E5%8C%96%E9%85%8D%E6%81%AF%E7%8E%87%E8%A1%9D/",
+          "source": "行銷人",
+          "date": "2026-08-17 08:05",
+          "datetime": "2026-08-17T08:05:04+08:00"
+        }
+      ]
     },
     {
       "base": "主動復華未來50",
@@ -46,7 +54,7 @@
         {
           "title": "別只看主動式ETF！00981A、00991A前7月賺5~6成很厲害？00988A、00830…海外型前5大輕鬆躺贏 第1名暴賺93％",
           "url": "https://wantrich.chinatimes.com/news/20260816900002-420401",
-          "source": "旺得富理財網",
+          "source": "wantrich.chinatimes.com",
           "date": "2026-08-16 06:03",
           "datetime": "2026-08-16T06:03:43+08:00"
         },
@@ -456,112 +464,12 @@
       "views": 1107,
       "official": true,
       "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "賣0050改買正二？台股正二未來10萬路徑分析",
-      "channel": "清流君",
-      "url": "https://www.youtube.com/watch?v=9JNg6S3xELk",
-      "date": "2026-08-16",
-      "views": 68927,
-      "peer": true,
-      "cat": "市值型"
-    },
-    {
-      "platform": "youtube",
-      "title": "主動式ETF大考驗！7月股災誰最抗跌？經理人都買哪些股票？8月最大V轉竟是它？ #主動式ETF #ETF #00985A #00980A #00981A #00407A #00403A #00404A",
-      "channel": "一綺聊股",
-      "url": "https://www.youtube.com/watch?v=5l62gBVCrsY",
-      "date": "2026-08-14",
-      "views": 39300,
-      "peer": true,
-      "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "《台股多頭怎麼跟? 揭!ETF要這樣選!》【錢線百分百】20260814-9│非凡財經新聞│",
-      "channel": "USTV 非凡電視",
-      "url": "https://www.youtube.com/watch?v=aMD6YFxjCvY",
-      "date": "2026-08-14",
-      "views": 38274,
-      "peer": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股收復季線能站穩？震盪盤先別慌！教主加碼百張買這檔ETF+這檔「金融股」700張！【#財經鈔能力】｜20260812 趙慶翔 ft.陳重銘 #指數化投資 #中年理財 #股債比",
-      "channel": "TVBS財經",
-      "url": "https://www.youtube.com/watch?v=3T0_-3knAbg",
-      "date": "2026-08-12",
-      "views": 32129,
-      "peer": true,
-      "cat": "債券"
-    },
-    {
-      "platform": "youtube",
-      "title": "【#本週精選】揭密買房2千萬真能靠ETF賺？網路熱議三年資金買誰可翻倍？主動ETF竟漲輸高股息？00947爆冷登績效王 揭密台股多頭續航關鍵！│陳斐娟 主持 │20260815│關我什麼事",
-      "channel": "關我什麼事",
-      "url": "https://www.youtube.com/watch?v=5MS1rzHRJW8",
-      "date": "2026-08-15",
-      "views": 31925,
-      "peer": true,
-      "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "【股票】台股根本雲霄飛車？散戶該逃還是快進場？首席經濟學家曝3大關鍵指標！ft. 陳奕光、羅瑋｜下班經濟學764｜謝哲青、蔡尚樺",
-      "channel": "風傳媒 The Storm Media",
-      "url": "https://www.youtube.com/watch?v=zZy5Xf5YFYw",
-      "date": "2026-08-13",
-      "views": 29490,
-      "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "ETF可以三年資金翻倍?網路熱議買誰可以?真相? 揭密房價2千萬真的能靠ETF?一張圖挖出兩種真相│陳斐娟 主持 │20260813│關我什麼事",
-      "channel": "關我什麼事",
-      "url": "https://www.youtube.com/watch?v=3602UJTNQ0Q",
-      "date": "2026-08-13",
-      "views": 26357,
-      "peer": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "MSCI全面調升台股三權重 記憶體入摩押大注!化被動為主動?台股V轉 主動ETF最新排位賽,誰稱冠?｜20260813(第1/8段)股市現場*鄭明娟(黃靖哲×李冠嶔×謝晨彥)",
-      "channel": "非凡 股市現場",
-      "url": "https://www.youtube.com/watch?v=4Va5xgChKlU",
-      "date": "2026-08-13",
-      "views": 24255,
-      "peer": true,
-      "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "【#台股達人秀】ep341 修正結束了？台股何時上五萬？ ｜#游庭皓｜#王兆立【#GMoney X #金臨天下】20260814",
-      "channel": "TVBS財經",
-      "url": "https://www.youtube.com/watch?v=8ehIHQg3P2A",
-      "date": "2026-08-14",
-      "views": 22546,
-      "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股5萬點年底有戲！阮慕驊：多頭還沒完？主動ETF搶先卡位　高息變黑馬、半導體等補漲！｜關我什麼事｜94要賺錢",
-      "channel": "94要賺錢",
-      "url": "https://www.youtube.com/watch?v=hlOF72OZMqo",
-      "date": "2026-08-14",
-      "views": 16515,
-      "peer": true,
-      "cat": "高股息"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00991A、00986D、00409A、亞太神龍科技、台灣菁英50指數（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00986D、00409A、亞太神龍科技、台灣菁英50指數（詳下方新聞標籤）",
     "品牌焦點：復華新興企業債 擁利多（經濟日報）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：賣0050改買正二？台股正二未來10萬路徑分析（清流君・68,927 次觀看）"
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・1,107 次觀看）"
   ]
 }
