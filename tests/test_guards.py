@@ -61,3 +61,20 @@ def test_check_reports_pass_and_failures(tmp_path, monkeypatch):
     assert check.run(d) == 1                                  # 缺檔 → 擋下
     _write_ok_report(tmp_path / f"reports/twnews/{d}.md", cards=2)
     assert check.run(d) == 1                                  # 卡數不足 → 擋下
+
+
+def test_check_reports_blocks_process_language_in_body():
+    # 正文禁流程性字句（2026-08-17 踩坑：總覽出現「數字取自本機官方落檔 `series.sox`」；
+    # 同 08-04「未取得兩來源／見資料侷限」句式）——資料侷限/合規段內豁免
+    import importlib, sys as _s
+    _s.path.insert(0, str(ROOT / "scripts"))
+    check = importlib.import_module("check_reports")
+    body_bad = ("## 🔹總覽\n費半收 12,417.05 點（取自本機官方落檔 `series.sox`）。\n"
+                "## 🔹速覽\n櫃買方向詳見資料侷限說明。\n"
+                "## 資料侷限說明\n費半採 `data/macro_chips.json` 之 `series.sox`。\n"
+                "## I. 合規揭露\n本文引自官方落檔。\n")
+    errs = check._check_process_language(body_bad, "x.md")
+    assert len(errs) == 2                                     # 總覽+速覽各一；侷限/合規段不報
+    assert "官方落檔" in errs[0] and "見資料侷限" in errs[1]
+    clean = "## 🔹總覽\n費半收 12,417.05 點（−0.31%）。\n## 資料侷限說明\n採官方落檔。\n"
+    assert check._check_process_language(clean, "x.md") == []
