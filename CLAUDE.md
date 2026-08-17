@@ -577,6 +577,11 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
   ×100（相關 4＋熱門 7）＋playlistItems 2＋channels 1＋videos.list **分批**（單次上限 50 支
   ——舊版 `ids[:50]` 靜默截斷、其餘 0 觀看沉底，2026-08-14 修）數單位 ≈每輪 1,110 單位
   （日限 10,000）——**勿再隨意加查詢組，加組前先算這筆帳**。
+  **⚠ 單日多輪 CI 重跑會把配額燒完（2026-08-17 實戰：連環修正日 dispatch 約 10 輪 → search 全
+  403 quotaExceeded，日誌型態＝「官方 1・相關 0・同業 0」——殘額 <100 單位時 search 被拒、
+  1 單位的 playlist 仍過）**：配額於太平洋時間午夜（台北 15~16 時）重置、隔輪自癒，落檔靠
+  `_carry_social` 不會全滅但會縮水。搜尋層錯誤已改為印進 CI 日誌（`_search_all`，不再靜默
+  `except: continue`）；密集除錯日請把「YouTube 縮水」當預期現象，等重置後一輪補回，勿當新 bug 追。
   **FB／IG／Threads 擴充規劃見 `docs/social_api_plan.md`**（2026-08-06 查證：Threads 公開
   關鍵字搜尋為第一優先、需使用者建 Meta App＋過審 `threads_keyword_search`；FB 只做自家
   粉專、IG hashtag 額度緊排最後）。
