@@ -1,19 +1,12 @@
 {
-  "as_of": "2026/08/17 09:17",
+  "as_of": "2026/08/17 14:20",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
     {
-      "title": "復華新興企業債 擁利多",
-      "url": "https://money.udn.com/money/story/5618/9693709",
-      "source": "經濟日報",
-      "date": "2026-08-16 00:13",
-      "datetime": "2026-08-16T00:13:02+08:00"
-    },
-    {
       "title": "復華00409A布局全球50強 今開募 | 財富管理 | 商情",
       "url": "https://money.udn.com/money/story/5636/9686166",
-      "source": "經濟日報",
+      "source": "money.udn.com",
       "date": "2026-08-12 16:03",
       "datetime": "2026-08-12T16:03:04+08:00"
     },
@@ -52,18 +45,25 @@
       ],
       "items": [
         {
-          "title": "別只看主動式ETF！00981A、00991A前7月賺5~6成很厲害？00988A、00830…海外型前5大輕鬆躺贏 第1名暴賺93％",
-          "url": "https://wantrich.chinatimes.com/news/20260816900002-420401",
-          "source": "旺得富理財網",
-          "date": "2026-08-16 06:03",
-          "datetime": "2026-08-16T06:03:43+08:00"
+          "title": "怕自己摸底摸到大白鯊！20萬人次改把錢交給經理人 00991A成這波主動式ETF人氣王",
+          "url": "https://www.mirrordaily.news/story/80024",
+          "source": "鏡報",
+          "date": "2026-08-17 13:55",
+          "datetime": "2026-08-17T13:55:00+08:00"
         },
         {
-          "title": "00981A、00991A、00403A、00992A...這2檔主動式ETF反彈逾3成，達人不藏私挑選術：不只看排行還要看它",
-          "url": "https://www.businesstoday.com.tw/article/category/183013/post/202608140024/",
-          "source": "今周刊",
-          "date": "2026-08-14 17:51",
-          "datetime": "2026-08-14T17:51:00+08:00"
+          "title": "投資人抓住台股ETF打折機會 20萬人次湧入主動式ETF 00991A月增7萬受益人數居冠",
+          "url": "https://tw.news.yahoo.com/%E6%8A%95%E8%B3%87%E4%BA%BA%E6%8A%93%E4%BD%8F%E5%8F%B0%E8%82%A1etf%E6%89%93%E6%8A%98%E6%A9%9F%E6%9C%83-20%E8%90%AC%E4%BA%BA%E6%AC%A1%E6%B9%A7%E5%85%A5%E4%B8%BB%E5%8B%95%E5%BC%8Fetf-00991a%E6%9C%88%E5%A2%9E7%E8%90%AC%E5%8F%97%E7%9B%8A%E4%BA%BA%E6%95%B8%E5%B1%85%E5%86%A0-044500420.html",
+          "source": "Yahoo新聞",
+          "date": "2026-08-17 12:45",
+          "datetime": "2026-08-17T12:45:00+08:00"
+        },
+        {
+          "title": "00991A人氣霸榜月增7萬受益人數 20萬人抓住台股主動式ETF打折機會",
+          "url": "https://tw.news.yahoo.com/00991a%E4%BA%BA%E6%B0%A3%E9%9C%B8%E6%A6%9C%E6%9C%88%E5%A2%9E7%E8%90%AC%E5%8F%97%E7%9B%8A%E4%BA%BA%E6%95%B8-20%E8%90%AC%E4%BA%BA%E6%8A%93%E4%BD%8F%E5%8F%B0%E8%82%A1%E4%B8%BB%E5%8B%95%E5%BC%8Fetf%E6%89%93%E6%8A%98%E6%A9%9F%E6%9C%83-030339478.html",
+          "source": "Yahoo新聞",
+          "date": "2026-08-17 11:03",
+          "datetime": "2026-08-17T11:03:39+08:00"
         }
       ]
     },
@@ -104,7 +104,7 @@
         {
           "title": "復華00409A布局全球50強 今開募 | 財富管理 | 商情",
           "url": "https://money.udn.com/money/story/5636/9686166",
-          "source": "經濟日報",
+          "source": "money.udn.com",
           "date": "2026-08-12 16:03",
           "datetime": "2026-08-12T16:03:04+08:00"
         },
@@ -469,15 +469,15 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/tM9IfotrDWI",
       "date": "2026-08-10",
-      "views": 1107,
+      "views": 1109,
       "official": true,
       "short": true
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00986D、00409A、亞太神龍科技、已開發國家300股票指數 等 7 檔（詳下方新聞標籤）",
-    "品牌焦點：復華新興企業債 擁利多（經濟日報）",
+    "品牌焦點：復華00409A布局全球50強 今開募 | 財富管理 | 商情（money.udn.com）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・1,107 次觀看）"
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・1,109 次觀看）"
   ]
 }
