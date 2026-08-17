@@ -939,7 +939,14 @@ def test_japanese_youtube_filtered():
          "url": "https://www.youtube.com/watch?v=zzzzzzzzzzz", "views": 8000, "peer": True}]}
     out = fundnews.sanitize(doc)
     assert [s["title"] for s in out["social"]] == ["00929 高股息ETF 8月配息解析"]
-    # 不誤殺：台灣標題（含商品名風格用字「の」）
+    # 不誤殺：台灣標題（含商品名風格用字「の」；「・」「ー」是片假名區段的記號、
+    # 台灣標題極常用——首版整段範圍誤殺、YouTube 從 14 支砍剩 1 支，此處鎖回歸）
     for ok in ["00929 高股息ETF 8月配息公告", "植物の優 代言人談定期定額",
-               "台股ETF 台積電權重過半怎麼辦"]:
+               "台股ETF 台積電權重過半怎麼辦", "高股息ETF大解密・00919 vs 00929",
+               "台股大盤解析ー AI供應鏈續強？", "存股族必看｜ETF月月配"]:
         assert not fundnews._is_japanese(ok), ok
+    # 帶「・」「ー」的台灣影片要通過各層判準（誤殺回歸的實際受害路徑；
+    # 00929 屬自家代碼歸相關層、0056/00878 同業歸熱門層）
+    assert fundnews.yt_peer_relevant("高股息ETF大解密・0056 vs 00878")
+    assert fundnews.yt_peer_relevant("台股大盤解析ー AI供應鏈續強？")
+    assert fundnews.yt_relevant("復華00929解析・8月配息出爐")
