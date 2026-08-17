@@ -1,12 +1,12 @@
 {
-  "as_of": "2026/08/17 14:20",
+  "as_of": "2026/08/17 15:12",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
     {
       "title": "復華00409A布局全球50強 今開募 | 財富管理 | 商情",
       "url": "https://money.udn.com/money/story/5636/9686166",
-      "source": "money.udn.com",
+      "source": "經濟日報",
       "date": "2026-08-12 16:03",
       "datetime": "2026-08-12T16:03:04+08:00"
     },
@@ -87,7 +87,7 @@
         {
           "title": "主動復華金融債息(00986D)-同學風向與貼文摘要 - 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/stock/00986D?tab=AISummary",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-08-14 11:47",
           "datetime": "2026-08-14T11:47:57+08:00"
         }
@@ -104,7 +104,7 @@
         {
           "title": "復華00409A布局全球50強 今開募 | 財富管理 | 商情",
           "url": "https://money.udn.com/money/story/5636/9686166",
-          "source": "money.udn.com",
+          "source": "經濟日報",
           "date": "2026-08-12 16:03",
           "datetime": "2026-08-12T16:03:04+08:00"
         },
@@ -399,7 +399,7 @@
         {
           "title": "復華已開發國家300股票指數基金-新臺幣 - 配息率與配息紀錄 - 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/fund/98639549?s=dividend",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-08-16 14:35",
           "datetime": "2026-08-16T14:35:53+08:00"
         }
@@ -465,19 +465,134 @@
     },
     {
       "platform": "youtube",
-      "title": "00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？",
-      "channel": "復華投信",
-      "url": "https://www.youtube.com/shorts/tM9IfotrDWI",
-      "date": "2026-08-10",
-      "views": 1109,
-      "official": true,
+      "title": "EP20 揭密！熱門 主動式ETF 買賣出現分歧了？為什麼？ #烏凌翔 ft.藍鈞達",
+      "channel": "從科技產業 看透 ETF",
+      "url": "https://www.youtube.com/watch?v=04jBenYT_QA",
+      "date": "2026-08-16",
+      "views": 20552
+    },
+    {
+      "platform": "youtube",
+      "title": "ETF上半年冠軍！00981A屈居第二？市值型最強不是0050？00929擊敗0056、00878、00919？【解鎖財經大小事】feat.資深分析師 陳唯泰 EP83",
+      "channel": "理周FUN財經",
+      "url": "https://www.youtube.com/watch?v=R2SJsNfLpNA",
+      "date": "2026-08-14",
+      "views": 6551
+    },
+    {
+      "platform": "youtube",
+      "title": "00878、00881配息飆新高，7檔熱門ETF除息資訊一次看！#口袋證券 #etf #shorts",
+      "channel": "口袋證券",
+      "url": "https://www.youtube.com/shorts/pUw_ODgbCcs",
+      "date": "2026-08-13",
+      "views": 4176,
       "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "【理財達人秀】三大法人齊買超 台股攻5萬穩了？MSCI給力 南亞科刷新高？被動直接買 CPO拉回搶？財報神救援老AI.PCB？｜李兆華、容逸燊、陳唯泰、股魚2026.08.13【電視完整版】",
+      "channel": "理財達人秀 EBCmoneyshow",
+      "url": "https://www.youtube.com/watch?v=rNk6qgrvcAA",
+      "date": "2026-08-13",
+      "views": 95473,
+      "peer": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "【多頭失速】台股漲不動了?現在最怕這個訊號 #鐵板神授 謝晨彥分析師",
+      "channel": "謝晨彥分析師-摩爾證券投顧",
+      "url": "https://www.youtube.com/watch?v=dLpWOJ5EcSo",
+      "date": "2026-08-14",
+      "views": 84240,
+      "peer": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "賣0050改買正二？台股正二未來10萬路徑分析",
+      "channel": "清流君",
+      "url": "https://www.youtube.com/watch?v=9JNg6S3xELk",
+      "date": "2026-08-16",
+      "views": 76717,
+      "peer": true,
+      "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "主動式ETF大考驗！7月股災誰最抗跌？經理人都買哪些股票？8月最大V轉竟是它？ #主動式ETF #ETF #00985A #00980A #00981A #00407A #00403A #00404A",
+      "channel": "一綺聊股",
+      "url": "https://www.youtube.com/watch?v=5l62gBVCrsY",
+      "date": "2026-08-14",
+      "views": 40032,
+      "peer": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "《台股多頭怎麼跟? 揭!ETF要這樣選!》【錢線百分百】20260814-9│非凡財經新聞│",
+      "channel": "USTV 非凡電視",
+      "url": "https://www.youtube.com/watch?v=aMD6YFxjCvY",
+      "date": "2026-08-14",
+      "views": 39306,
+      "peer": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "看好0050長期會漲，就是看好正2？投資0050還是631L好？聊聊正2  ft. 李柏鋒｜EP35 #00631L #00685L #ETF",
+      "channel": "美好證券 Good Finance",
+      "url": "https://www.youtube.com/watch?v=bM2-fps3yXM",
+      "date": "2026-08-13",
+      "views": 33491,
+      "peer": true,
+      "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "【#本週精選】揭密買房2千萬真能靠ETF賺？網路熱議三年資金買誰可翻倍？主動ETF竟漲輸高股息？00947爆冷登績效王 揭密台股多頭續航關鍵！│陳斐娟 主持 │20260815│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=5MS1rzHRJW8",
+      "date": "2026-08-15",
+      "views": 32865,
+      "peer": true,
+      "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股收復季線能站穩？震盪盤先別慌！教主加碼百張買這檔ETF+這檔「金融股」700張！【#財經鈔能力】｜20260812 趙慶翔 ft.陳重銘 #指數化投資 #中年理財 #股債比",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=3T0_-3knAbg",
+      "date": "2026-08-12",
+      "views": 32435,
+      "peer": true,
+      "cat": "債券"
+    },
+    {
+      "platform": "youtube",
+      "title": "《8月高息ETF除息大盤點! 公股為何狂買它?》【錢線百分百】20260812-8│非凡財經新聞│",
+      "channel": "USTV 非凡電視",
+      "url": "https://www.youtube.com/watch?v=xI5ly1Z3dLA",
+      "date": "2026-08-12",
+      "views": 27314,
+      "peer": true,
+      "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "ETF可以三年資金翻倍?網路熱議買誰可以?真相? 揭密房價2千萬真的能靠ETF?一張圖挖出兩種真相│陳斐娟 主持 │20260813│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=3602UJTNQ0Q",
+      "date": "2026-08-13",
+      "views": 26274,
+      "peer": true,
+      "cat": "綜合"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00986D、00409A、亞太神龍科技、已開發國家300股票指數 等 7 檔（詳下方新聞標籤）",
-    "品牌焦點：復華00409A布局全球50強 今開募 | 財富管理 | 商情（money.udn.com）",
+    "品牌焦點：復華00409A布局全球50強 今開募 | 財富管理 | 商情（經濟日報）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・1,109 次觀看）"
+    "YouTube 熱片：【理財達人秀】三大法人齊買超 台股攻5萬穩了？MSCI給力 南亞科刷新高？被動直接買 CPO拉回搶？財報神救援老AI.PCB？｜李兆華、容逸燊、陳唯泰、股魚2026.08.13【電視完整版】（理財達人秀 EBCmoneyshow・95,473 次觀看）"
   ]
 }
