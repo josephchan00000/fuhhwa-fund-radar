@@ -8,6 +8,9 @@
   · 詳細分析：每張卡摘要／影響分析欄位須至少一項非空（2026-07-31 踩坑：twnews 子代理
     漏加 **粗體** 標籤，extract_cards() 解析不到摘要/影響，儀表板只剩連結、詳細分析消失）
   · 徽章：每張卡標題括注可解析出重要度（≥6）與屬性（新事件/延伸/深度）
+  · 正文禁流程性字句：檔名/欄位名/落檔字樣（「取自官方落檔」「series.sox」「macro_chips.json」）
+    只能出現在「資料侷限說明」「合規揭露」段（2026-08-17 踩坑：總覽正文出現
+    「數字取自本機官方落檔 `series.sox`」，讀者不需要知道數字從哪支檔讀）
   · 行事曆：表頭「更新：」需為今日
 
 用法：TZ=Asia/Taipei python3 scripts/check_reports.py [YYYY-MM-DD]（預設今日台北）
@@ -34,6 +37,7 @@ def _check_cards(path: Path, date: str) -> list[str]:
     rel = str(path.relative_to(ROOT))
     if len(cards) < MIN_CARDS:
         errs.append(f"{rel}：卡數 {len(cards)} < {MIN_CARDS}")
+    errs += _check_process_language(md, rel)
     for i, c in enumerate(cards, 1):
         if not c.get("links"):
             errs.append(f"{rel}：卡{i}「{c['title'][:18]}…」無可點連結")
@@ -45,6 +49,28 @@ def _check_cards(path: Path, date: str) -> list[str]:
             errs.append(f"{rel}：卡{i} 重要度標注缺失或 <6（{imp}）")
         if et not in ("new", "ext", "deep"):
             errs.append(f"{rel}：卡{i} 屬性標注缺失（新事件/延伸/深度）")
+    return errs
+
+
+# 流程性字句（正文不得出現；「資料侷限」「合規」段豁免）——檔名/欄位名/落檔字樣＋
+# 08-04 那批查證過程句式。加項時保持「決定性字樣」原則，勿加會誤傷一般新聞用語的詞。
+_PROCESS_RE = re.compile(
+    r"官方落檔|本機落檔|series\.[a-z_]+|macro_chips|[a-z_]+\.json|"
+    r"未取得兩[個項]?獨立來源|一律不列數字|依內規|見資料侷限")
+
+
+def _check_process_language(md: str, rel: str) -> list[str]:
+    errs, sec = [], ""
+    for n, line in enumerate(md.splitlines(), 1):
+        s = line.strip()
+        if re.match(r"^#{1,3}\s", s):
+            sec = s
+        if "資料侷限" in sec or "合規" in sec:
+            continue
+        m = _PROCESS_RE.search(line)
+        if m:
+            errs.append(f"{rel}：第{n}行正文出現流程性字句「{m.group(0)}」"
+                        "——檔名/欄位名/查證過程只能寫在「資料侷限說明」段")
     return errs
 
 
