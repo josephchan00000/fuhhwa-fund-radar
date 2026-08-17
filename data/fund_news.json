@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/17 07:34",
+  "as_of": "2026/08/17 08:35",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -315,15 +315,7 @@
       "short_names": [
         "台灣好收益"
       ],
-      "items": [
-        {
-          "title": "「復華台灣好收益基金」自110年7月1日起至110年8月4日暫停銷售",
-          "url": "https://www.ezfunds.com.tw/Article/AnnouncementDetail?RootId=6806&NewGuid=fc31ef87220a4c00a074544eba99937b",
-          "source": "ezfunds.com.tw",
-          "date": "2026-08-16 18:22",
-          "datetime": "2026-08-16T18:22:21+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華台灣科技高股息基金",
@@ -472,138 +464,12 @@
       "views": 1107,
       "official": true,
       "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "ETF上半年冠軍！00981A屈居第二？市值型最強不是0050？00929擊敗0056、00878、00919？【解鎖財經大小事】feat.資深分析師 陳唯泰 EP83",
-      "channel": "理周FUN財經",
-      "url": "https://www.youtube.com/watch?v=R2SJsNfLpNA",
-      "date": "2026-08-14",
-      "views": 6374
-    },
-    {
-      "platform": "youtube",
-      "title": "00878、00881配息飆新高，7檔熱門ETF除息資訊一次看！#口袋證券 #etf #shorts",
-      "channel": "口袋證券",
-      "url": "https://www.youtube.com/shorts/pUw_ODgbCcs",
-      "date": "2026-08-13",
-      "views": 4154,
-      "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "00409A全球型的主動式ETF在紅什麼？？ #姐說了算 EP.40",
-      "channel": "姐說了算",
-      "url": "https://www.youtube.com/shorts/MQL6sTbzK90",
-      "date": "2026-08-14",
-      "views": 1397,
-      "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "25歲少年6日摧毀450億基金！特朗普金主精準狙殺，華爾街大鱷設局收割過程揭秘｜Mila Yuen 投資日常",
-      "channel": "Mila Yuen 投資日常",
-      "url": "https://www.youtube.com/watch?v=wQNKnOzx_ME",
-      "date": "2026-08-12",
-      "views": 329774,
-      "peer": true,
-      "cat": "基金"
-    },
-    {
-      "platform": "youtube",
-      "title": "【保存版】学長が解説！米国高配当株ETFの基礎【お金の勉強 株式投資編】：（アニメ動画）第526回",
-      "channel": "両学長 リベラルアーツ大学",
-      "url": "https://www.youtube.com/watch?v=FAkMraqLuko",
-      "date": "2026-08-12",
-      "views": 99073,
-      "peer": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "【理財達人秀】三大法人齊買超 台股攻5萬穩了？MSCI給力 南亞科刷新高？被動直接買 CPO拉回搶？財報神救援老AI.PCB？｜李兆華、容逸燊、陳唯泰、股魚2026.08.13【電視完整版】",
-      "channel": "理財達人秀 EBCmoneyshow",
-      "url": "https://www.youtube.com/watch?v=rNk6qgrvcAA",
-      "date": "2026-08-13",
-      "views": 95742,
-      "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "【多頭失速】台股漲不動了?現在最怕這個訊號 #鐵板神授 謝晨彥分析師",
-      "channel": "謝晨彥分析師-摩爾證券投顧",
-      "url": "https://www.youtube.com/watch?v=dLpWOJ5EcSo",
-      "date": "2026-08-14",
-      "views": 83921,
-      "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "賣0050改買正二？台股正二未來10萬路徑分析",
-      "channel": "清流君",
-      "url": "https://www.youtube.com/watch?v=9JNg6S3xELk",
-      "date": "2026-08-16",
-      "views": 68683,
-      "peer": true,
-      "cat": "市值型"
-    },
-    {
-      "platform": "youtube",
-      "title": "主動式ETF大考驗！7月股災誰最抗跌？經理人都買哪些股票？8月最大V轉竟是它？ #主動式ETF #ETF #00985A #00980A #00981A #00407A #00403A #00404A",
-      "channel": "一綺聊股",
-      "url": "https://www.youtube.com/watch?v=5l62gBVCrsY",
-      "date": "2026-08-14",
-      "views": 39277,
-      "peer": true,
-      "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "《台股多頭怎麼跟? 揭!ETF要這樣選!》【錢線百分百】20260814-9│非凡財經新聞│",
-      "channel": "USTV 非凡電視",
-      "url": "https://www.youtube.com/watch?v=aMD6YFxjCvY",
-      "date": "2026-08-14",
-      "views": 38213,
-      "peer": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "看好0050長期會漲，就是看好正2？投資0050還是631L好？聊聊正2  ft. 李柏鋒｜EP35 #00631L #00685L #ETF",
-      "channel": "美好證券 Good Finance",
-      "url": "https://www.youtube.com/watch?v=bM2-fps3yXM",
-      "date": "2026-08-13",
-      "views": 32633,
-      "peer": true,
-      "cat": "市值型"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股收復季線能站穩？震盪盤先別慌！教主加碼百張買這檔ETF+這檔「金融股」700張！【#財經鈔能力】｜20260812 趙慶翔 ft.陳重銘 #指數化投資 #中年理財 #股債比",
-      "channel": "TVBS財經",
-      "url": "https://www.youtube.com/watch?v=3T0_-3knAbg",
-      "date": "2026-08-12",
-      "views": 32108,
-      "peer": true,
-      "cat": "債券"
-    },
-    {
-      "platform": "youtube",
-      "title": "【#本週精選】揭密買房2千萬真能靠ETF賺？網路熱議三年資金買誰可翻倍？主動ETF竟漲輸高股息？00947爆冷登績效王 揭密台股多頭續航關鍵！│陳斐娟 主持 │20260815│關我什麼事",
-      "channel": "關我什麼事",
-      "url": "https://www.youtube.com/watch?v=5MS1rzHRJW8",
-      "date": "2026-08-15",
-      "views": 31881,
-      "peer": true,
-      "cat": "高股息"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00991A、00986D、00409A、亞太神龍科技、台灣好收益、已開發國家300股票指數 等 7 檔（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00991A、00986D、00409A、亞太神龍科技、已開發國家300股票指數、台灣菁英50指數（詳下方新聞標籤）",
     "品牌焦點：復華新興企業債 擁利多（經濟日報）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：25歲少年6日摧毀450億基金！特朗普金主精準狙殺，華爾街大鱷設局收割過程揭秘｜Mila Yuen 投資日常（Mila Yuen 投資日常・329,774 次觀看）"
+    "YouTube 熱片：00409A主動復華全球50：未來投資搶答賽，誰能帶你領先布局？（復華投信・1,107 次觀看）"
   ]
 }
