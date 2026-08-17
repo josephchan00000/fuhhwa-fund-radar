@@ -255,6 +255,40 @@ def test_news_view_deep_card_goes_last_and_no_serial_numbers():
     assert html.index("丙事件") < html.index("丁專題")               # 深度排在事件卡之後
 
 
+def test_news_view_brief_card_pinned_first():
+    # 保底要點卡（2026-08-17 使用者需求：台股盤前要點／美股盤後要點）——【要點】屬性
+    # 解析為 'brief'、儀表板恆置頂（不與事件卡依分數混排）、徽章顯示「要點」
+    from arm import fund_dashboard as fd
+    md = (
+        "### 高分事件（來源：X・2026/08/17｜【新事件】｜重要度 9/10）\n1. **一句話重點**：高。\n\n"
+        "### 台股盤前要點（綜整・2026/08/17｜【要點】｜重要度 7/10）\n"
+        "1. **新聞摘要**：大盤層級整理。\n5. **參考連結**：[來源](https://x.tw/a)\n\n"
+        "### 【深度】專題（來源：Z・2026/08/17｜【深度】｜重要度 8/10）\n1. **一句話重點**：深。\n"
+    )
+    cards = usnews.extract_cards(md)
+    assert [c["etype"] for c in cards] == ["new", "brief", "deep"]
+    html = fd._news_view(md, "無")
+    assert html.index("台股盤前要點") < html.index("高分事件") < html.index("專題")
+    assert 'netype brief">要點' in html
+
+
+def test_brief_card_detection_for_check_reports():
+    # check_reports 的「缺保底要點卡」判準（標題含盤前/盤後要點＋屬性 brief）——
+    # 「保底」的保證在 QA 閘門，不在子代理自覺
+    import re as _re
+    ok_card = ("### 事件（來源：X・2026/08/17｜【新事件】｜重要度 7/10）\n"
+               "1. **新聞摘要**：略。\n[a](https://x.tw/a)\n\n") * 4
+    brief = ("### 美股盤後要點（綜整・2026/08/17｜【要點】｜重要度 7/10）\n"
+             "1. **新聞摘要**：略。\n[a](https://x.tw/a)\n\n")
+    has = lambda md: any(_re.search(r"盤後要點", c["title"]) and c.get("etype") == "brief"
+                         for c in usnews.extract_cards(md))
+    assert not has(ok_card) and has(ok_card + brief)
+    # 標題撞「要點」字樣但無【要點】屬性者不算保底卡（避免事件卡誤過）
+    fake = ("### 法說會盤後要點整理（來源：X・2026/08/17｜【新事件】｜重要度 7/10）\n"
+            "1. **新聞摘要**：略。\n[a](https://x.tw/a)\n\n")
+    assert not has(fake)
+
+
 def test_extract_cards_keeps_numeric_leading_title():
     # 剝流水號不可誤傷數字開頭的真標題（數字後須接標點才算序號）
     cards = usnews.extract_cards(
