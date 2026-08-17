@@ -1041,26 +1041,29 @@ def fetch_youtube(days: int = WINDOW_DAYS) -> list[dict]:
         except Exception as e:
             print(f"[fundnews] YouTube 官方頻道抓取失敗 {ckey}: {type(e).__name__}")
 
-    docs: list[dict] = []
-    for q in YT_QUERIES:
-        try:
-            docs.append(_get_json(
-                f"{YT_SEARCH}?part=snippet&type=video&order=date&maxResults={YT_SEARCH_MAX}"
-                f"&regionCode=TW&relevanceLanguage=zh-Hant&publishedAfter={after}"
-                f"&q={urllib.parse.quote(q)}&key={key}"))
-        except Exception:
-            continue
+    # 搜尋層錯誤不可靜默吞（2026-08-17 踩坑：日限 10,000 單位被單日 ~10 輪 CI 重跑燒完，
+    # search 全 403 quotaExceeded 卻只見「相關 0・同業 0」，diagnosis 得逆推——每層印一次原因；
+    # 配額於太平洋時間午夜（台北 15:00/16:00）重置，隔輪自癒）。
+    def _search_all(queries, order, published_after, label):
+        out, err = [], None
+        for q in queries:
+            try:
+                out.append(_get_json(
+                    f"{YT_SEARCH}?part=snippet&type=video&order={order}"
+                    f"&maxResults={YT_SEARCH_MAX}&regionCode=TW&relevanceLanguage=zh-Hant"
+                    f"&publishedAfter={published_after}&q={urllib.parse.quote(q)}&key={key}"))
+            except Exception as e:
+                err = f"{type(e).__name__}: {str(e)[:120]}"
+        if err and not out:
+            print(f"[fundnews] YouTube {label}層搜尋全數失敗（{err}）"
+                  "——常見原因＝日配額耗盡（403 quotaExceeded，台北 15~16 時重置）")
+        elif err:
+            print(f"[fundnews] YouTube {label}層部分搜尋失敗（{err}）")
+        return out
 
-    peer_docs: list[dict] = []
+    docs = _search_all(YT_QUERIES, "date", after, "相關")
     p_after = (now - timedelta(days=YT_PEER_FRESH_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    for q in YT_PEER_QUERIES:
-        try:
-            peer_docs.append(_get_json(
-                f"{YT_SEARCH}?part=snippet&type=video&order=viewCount&maxResults={YT_SEARCH_MAX}"
-                f"&regionCode=TW&relevanceLanguage=zh-Hant&publishedAfter={p_after}"
-                f"&q={urllib.parse.quote(q)}&key={key}"))
-        except Exception:
-            continue
+    peer_docs = _search_all(YT_PEER_QUERIES, "viewCount", p_after, "熱門")
 
     vids = [v for grp in (official_docs, docs, peer_docs) for d in grp
             for it in d.get("items") or []
