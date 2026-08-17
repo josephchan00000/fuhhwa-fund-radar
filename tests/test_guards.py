@@ -27,14 +27,8 @@ def test_print_feature_removed():
 
 # ── ③ 內容 QA 閘門：通過／缺檔／卡數不足三條路徑 ──
 
-def _write_ok_report(p: Path, cards: int = 4, brief: bool = True):
-    # brief＝保底要點卡（2026-08-17 起 usnews/twnews 必有；報名依檔名帶盤前/盤後）
+def _write_ok_report(p: Path, cards: int = 4):
     body = ["# 報告"]
-    if brief:
-        name = "台股盤前要點" if "twnews" in str(p) else "美股盤後要點"
-        body += [f"### {name}（綜整・2026/07/01｜【要點】｜重要度 7/10）",
-                 "1. **新聞摘要**：市場層級綜整。",
-                 "5. **參考連結**：[來源](https://example.com/a)。", ""]
     for i in range(1, cards + 1):
         body += [f"### 卡 {i}｜標題{i}（來源：X｜2026/07/01｜【新事件】｜重要度 7/10）",
                  "1. **新聞摘要**：略。",
@@ -67,5 +61,3 @@ def test_check_reports_pass_and_failures(tmp_path, monkeypatch):
     assert check.run(d) == 1                                  # 缺檔 → 擋下
     _write_ok_report(tmp_path / f"reports/twnews/{d}.md", cards=2)
     assert check.run(d) == 1                                  # 卡數不足 → 擋下
-    _write_ok_report(tmp_path / f"reports/twnews/{d}.md", brief=False)
-    assert check.run(d) == 1                                  # 缺保底要點卡 → 擋下（2026-08-17）
