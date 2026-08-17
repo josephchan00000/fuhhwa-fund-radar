@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parent.parent
 MIN_CARDS = 4
 
 
-def _check_cards(path: Path, date: str, brief_re: str | None = None) -> list[str]:
+def _check_cards(path: Path, date: str) -> list[str]:
     errs: list[str] = []
     if not path.exists():
         return [f"缺檔：{path.relative_to(ROOT)}"]
@@ -34,12 +34,6 @@ def _check_cards(path: Path, date: str, brief_re: str | None = None) -> list[str
     rel = str(path.relative_to(ROOT))
     if len(cards) < MIN_CARDS:
         errs.append(f"{rel}：卡數 {len(cards)} < {MIN_CARDS}")
-    # 保底要點卡（2026-08-17 使用者需求）：台股報須有「盤前/盤後要點」卡、美股報須有
-    # 「盤後要點」卡——這張是每天的下限保證，缺了就是版型沒照 BRIEF_RULE 走
-    if brief_re and not any(re.search(brief_re, c["title"]) and c.get("etype") == "brief"
-                            for c in cards):
-        errs.append(f"{rel}：缺保底要點卡（標題含「{brief_re}」且屬性標【要點】，"
-                    "見 usnews.BRIEF_RULE）")
     for i, c in enumerate(cards, 1):
         if not c.get("links"):
             errs.append(f"{rel}：卡{i}「{c['title'][:18]}…」無可點連結")
@@ -49,8 +43,8 @@ def _check_cards(path: Path, date: str, brief_re: str | None = None) -> list[str
         imp, et = c.get("importance"), c.get("etype")
         if not isinstance(imp, int) or imp < 6:
             errs.append(f"{rel}：卡{i} 重要度標注缺失或 <6（{imp}）")
-        if et not in ("brief", "new", "ext", "deep"):
-            errs.append(f"{rel}：卡{i} 屬性標注缺失（要點/新事件/延伸/深度）")
+        if et not in ("new", "ext", "deep"):
+            errs.append(f"{rel}：卡{i} 屬性標注缺失（新事件/延伸/深度）")
     return errs
 
 
@@ -73,9 +67,9 @@ def _check_calendar(path: Path, date: str) -> list[str]:
 
 def run(date: str) -> int:
     errs: list[str] = []
-    errs += _check_cards(ROOT / f"reports/usnews/{date}_v1.md", date, brief_re=r"盤後要點")
-    errs += _check_cards(ROOT / f"reports/usnews/{date}_v2.md", date, brief_re=r"盤後要點")
-    errs += _check_cards(ROOT / f"reports/twnews/{date}.md", date, brief_re=r"盤[前後]要點")
+    errs += _check_cards(ROOT / f"reports/usnews/{date}_v1.md", date)
+    errs += _check_cards(ROOT / f"reports/usnews/{date}_v2.md", date)
+    errs += _check_cards(ROOT / f"reports/twnews/{date}.md", date)
     errs += _check_cards(ROOT / f"reports/macronews/{date}.md", date)
     errs += _check_calendar(ROOT / f"reports/macrocal/{date}.md", date)
     if errs:
@@ -83,7 +77,7 @@ def run(date: str) -> int:
         for e in errs:
             print(f"  ✗ {e}")
         return 1
-    print(f"[內容 QA] 🟢 {date} 通過：五檔齊全、卡數/保底要點卡/連結/重要度/行事曆結構皆合格")
+    print(f"[內容 QA] 🟢 {date} 通過：五檔齊全、卡數/連結/重要度/行事曆結構皆合格")
     return 0
 
 
