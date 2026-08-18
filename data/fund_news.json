@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/19 06:39",
+  "as_of": "2026/08/19 06:53",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -460,7 +460,7 @@
       "channel": "從科技產業 看透 ETF",
       "url": "https://www.youtube.com/watch?v=04jBenYT_QA",
       "date": "2026-08-16",
-      "views": 26160
+      "views": 26169
     },
     {
       "platform": "youtube",
@@ -495,7 +495,7 @@
       "channel": "清流君",
       "url": "https://www.youtube.com/watch?v=9JNg6S3xELk",
       "date": "2026-08-16",
-      "views": 95970,
+      "views": 95982,
       "peer": true,
       "cat": "市值型"
     },
@@ -525,7 +525,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=aMD6YFxjCvY",
       "date": "2026-08-14",
-      "views": 40671,
+      "views": 40693,
       "peer": true,
       "cat": "綜合"
     },
@@ -535,7 +535,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=zrKp6RZy91Y",
       "date": "2026-08-17",
-      "views": 36742,
+      "views": 36754,
       "peer": true,
       "cat": "市值型"
     },
@@ -545,7 +545,17 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=5MS1rzHRJW8",
       "date": "2026-08-15",
-      "views": 35765,
+      "views": 35759,
+      "peer": true,
+      "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "ETF除息周25檔接力 近半年化配息率超過一成 觀望零售財報與油價漲 美股三大指數收黑｜主播貝庭｜【非凡Morning Call】20260818｜非凡財經新聞",
+      "channel": "USTV 非凡電視",
+      "url": "https://www.youtube.com/watch?v=S7DPFT84t2Q",
+      "date": "2026-08-17",
+      "views": 33748,
       "peer": true,
       "cat": "高股息"
     },
@@ -555,19 +565,9 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=ZuPRLtviHks",
       "date": "2026-08-14",
-      "views": 22415,
+      "views": 22413,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股5萬點年底有戲！阮慕驊：多頭還沒完？主動ETF搶先卡位　高息變黑馬、半導體等補漲！｜關我什麼事｜94要賺錢",
-      "channel": "94要賺錢",
-      "url": "https://www.youtube.com/watch?v=hlOF72OZMqo",
-      "date": "2026-08-14",
-      "views": 19272,
-      "peer": true,
-      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -575,7 +575,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=LHr8cV14or8",
       "date": "2026-08-18",
-      "views": 14488,
+      "views": 14543,
       "peer": true,
       "cat": "主動式"
     }
