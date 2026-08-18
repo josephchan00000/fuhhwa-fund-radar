@@ -11,6 +11,9 @@
   · 正文禁流程性字句：檔名/欄位名/落檔字樣（「取自官方落檔」「series.sox」「macro_chips.json」）
     只能出現在「資料侷限說明」「合規揭露」段（2026-08-17 踩坑：總覽正文出現
     「數字取自本機官方落檔 `series.sox`」，讀者不需要知道數字從哪支檔讀）
+  · 收盤值日期用詞（2026-08-18 使用者：「收在 430.97 美元，較上一個交易日（8/14）上漲逾 1%」
+    讀起來像只抓到 8/14 的價格）：①比較基準用詞全站統一「前一交易日」；②句中若標了比較
+    基準日（較…（M/D）），收盤值自身的日期必須先出現在收盤動詞之前
   · 行事曆：表頭「更新：」需為今日
 
 用法：TZ=Asia/Taipei python3 scripts/check_reports.py [YYYY-MM-DD]（預設今日台北）
@@ -38,6 +41,7 @@ def _check_cards(path: Path, date: str) -> list[str]:
     if len(cards) < MIN_CARDS:
         errs.append(f"{rel}：卡數 {len(cards)} < {MIN_CARDS}")
     errs += _check_process_language(md, rel)
+    errs += _check_date_wording(md, rel)
     for i, c in enumerate(cards, 1):
         if not c.get("links"):
             errs.append(f"{rel}：卡{i}「{c['title'][:18]}…」無可點連結")
@@ -71,6 +75,40 @@ def _check_process_language(md: str, rel: str) -> list[str]:
         if m:
             errs.append(f"{rel}：第{n}行正文出現流程性字句「{m.group(0)}」"
                         "——檔名/欄位名/查證過程只能寫在「資料侷限說明」段")
+    return errs
+
+
+# 收盤值日期用詞（2026-08-18 使用者：「較上一個交易日（8/14）上漲逾 1%」讀起來像
+# 只抓到 8/14 的價格）——兩道：①基準用詞全站統一「前一交易日」，變體一律擋；
+# ②句中標了比較基準日（較…（M/D））時，收盤值自身的日期（M/D／N日／週X）必須先出現在
+# 「收盤動詞」與「較」兩者之前，嚴禁整句只有基準日。掃描前先剝 markdown 連結
+# （連結標題是來源原題、不受本站用詞規範）；②於「資料侷限」「合規」段豁免。
+_TERM_RE = re.compile(r"上一個交易日|上個交易日|上一交易日|前個交易日")
+_LINK_RE = re.compile(r"\[[^\]]*\]\([^)]*\)")
+_BASE_DATE_RE = re.compile(r"較[^，。；]{0,12}?[（(]?\d{1,2}\s*/\s*\d{1,2}")
+_CLOSE_RE = re.compile(r"(?<![營回])收(?:[在於報]|盤價?)?\s*\*{0,2}\s*約?\s*[0-9]")
+_OWN_DATE_RE = re.compile(r"\d{1,2}\s*/\s*\d{1,2}|\d{1,2}\s*日|週[一二三四五六日]")
+
+
+def _check_date_wording(md: str, rel: str) -> list[str]:
+    errs, sec = [], ""
+    for n, line in enumerate(md.splitlines(), 1):
+        s = line.strip()
+        if re.match(r"^#{1,3}\s", s):
+            sec = s
+        text = _LINK_RE.sub("", line)
+        m = _TERM_RE.search(text)
+        if m:
+            errs.append(f"{rel}：第{n}行「{m.group(0)}」——比較基準用詞全站統一為「前一交易日」")
+        if "資料侷限" in sec or "合規" in sec:
+            continue
+        for sent in text.split("。"):
+            mb, mc = _BASE_DATE_RE.search(sent), _CLOSE_RE.search(sent)
+            if not (mb and mc):
+                continue
+            if not _OWN_DATE_RE.search(sent[: min(mb.start(), mc.start())]):
+                errs.append(f"{rel}：第{n}行收盤值只標了比較基準日——收盤值自身的日期須先寫在"
+                            "收盤動詞前（例「8/17 收在 430.97 美元，較前一交易日（8/14）…」）")
     return errs
 
 

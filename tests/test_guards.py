@@ -78,3 +78,24 @@ def test_check_reports_blocks_process_language_in_body():
     assert "官方落檔" in errs[0] and "見資料侷限" in errs[1]
     clean = "## 🔹總覽\n費半收 12,417.05 點（−0.31%）。\n## 資料侷限說明\n採官方落檔。\n"
     assert check._check_process_language(clean, "x.md") == []
+
+
+def test_check_reports_date_wording():
+    # 收盤值日期用詞（2026-08-18 使用者：「收在 430.97 美元，較上一個交易日（8/14）上漲逾 1%」
+    # 讀起來像只抓到 8/14 的價格）：①基準用詞統一「前一交易日」；②收盤值自身日期須先於基準日
+    import importlib, sys as _s
+    _s.path.insert(0, str(ROOT / "scripts"))
+    check = importlib.import_module("check_reports")
+    bad = ("## 🔹盤前速覽\n"
+           "- **台積電ADR**：收在 **430.97 美元**，較上一個交易日（8/14）上漲逾 1%。\n")
+    errs = check._check_date_wording(bad, "x.md")
+    assert len(errs) == 2                                     # 用詞變體＋只標基準日各一
+    assert "前一交易日" in errs[0] and "只標了比較基準日" in errs[1]
+    good = ("## 🔹盤前速覽\n"
+            "- **台積電ADR**：8/17（美東週一）收在 **430.97 美元**，較前一交易日（8/14）上漲逾 1%。\n"
+            "- **費城半導體指數（SOX）**：8/17 收在 **12,621 點附近**，上漲逾 1.6%。\n"
+            "- **加權指數**：前一交易日（8/14，週五）收在 45,811.01 點、下跌 0.46%。\n"
+            "- 公司 7 月營收 120 億元，較 7/15 法說預估上修。\n"       # 營收非收盤、不觸發
+            "## 🔹資料侷限說明\n收在 430 美元係較（8/14）之估算。\n"      # 侷限段豁免句型檢查
+            "- [台股收在45,811 較上一交易日跌0.46%](https://example.com/x)\n")  # 連結原題不受規範
+    assert check._check_date_wording(good, "x.md") == []
