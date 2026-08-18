@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/19 06:53",
+  "as_of": "2026/08/19 07:35",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -460,7 +460,7 @@
       "channel": "從科技產業 看透 ETF",
       "url": "https://www.youtube.com/watch?v=04jBenYT_QA",
       "date": "2026-08-16",
-      "views": 26169
+      "views": 26195
     },
     {
       "platform": "youtube",
@@ -476,7 +476,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/pUw_ODgbCcs",
       "date": "2026-08-13",
-      "views": 4393,
+      "views": 4401,
       "short": true
     },
     {
@@ -495,17 +495,17 @@
       "channel": "清流君",
       "url": "https://www.youtube.com/watch?v=9JNg6S3xELk",
       "date": "2026-08-16",
-      "views": 95982,
+      "views": 96026,
       "peer": true,
       "cat": "市值型"
     },
     {
       "platform": "youtube",
-      "title": "【多頭失速】台股漲不動了?現在最怕這個訊號 #鐵板神授 謝晨彥分析師",
-      "channel": "謝晨彥分析師-摩爾證券投顧",
-      "url": "https://www.youtube.com/watch?v=dLpWOJ5EcSo",
-      "date": "2026-08-14",
-      "views": 84247,
+      "title": "美股重新上槓桿　一路看漲到年底？｜#黃斐瑜｜#游庭皓｜#金臨天下 20260815 美股金週報 @TVBSFinanceLive #美股 #台股 #房地產",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=0LjLwldQoGk",
+      "date": "2026-08-15",
+      "views": 86404,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -515,7 +515,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=5l62gBVCrsY",
       "date": "2026-08-14",
-      "views": 41080,
+      "views": 41093,
       "peer": true,
       "cat": "主動式"
     },
@@ -525,7 +525,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=aMD6YFxjCvY",
       "date": "2026-08-14",
-      "views": 40693,
+      "views": 40697,
       "peer": true,
       "cat": "綜合"
     },
@@ -535,7 +535,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=zrKp6RZy91Y",
       "date": "2026-08-17",
-      "views": 36754,
+      "views": 36796,
       "peer": true,
       "cat": "市值型"
     },
@@ -545,7 +545,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=5MS1rzHRJW8",
       "date": "2026-08-15",
-      "views": 35759,
+      "views": 35785,
       "peer": true,
       "cat": "高股息"
     },
@@ -555,7 +555,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=S7DPFT84t2Q",
       "date": "2026-08-17",
-      "views": 33748,
+      "views": 33813,
       "peer": true,
       "cat": "高股息"
     },
@@ -565,7 +565,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=ZuPRLtviHks",
       "date": "2026-08-14",
-      "views": 22413,
+      "views": 22415,
       "peer": true,
       "cat": "綜合"
     },
@@ -575,7 +575,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=LHr8cV14or8",
       "date": "2026-08-18",
-      "views": 14543,
+      "views": 14676,
       "peer": true,
       "cat": "主動式"
     }
