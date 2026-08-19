@@ -11,10 +11,10 @@
   "risk_level": "RR4",
   "mgmt_fee": "1.50%",
   "size_twd": 1907541653.0,
-  "nav": 37.19,
-  "nav_date": "2026/08/17",
-  "nav_change": 0.44,
-  "nav_change_pct": "1.20%",
+  "nav": 36.05,
+  "nav_date": "2026/08/18",
+  "nav_change": -1.14,
+  "nav_change_pct": "-3.07%",
   "returns": {
     "ytd": "57.48%",
     "3m": "2.16%",
@@ -27,9 +27,7 @@
   "managers": [
     "吳承恩"
   ],
-  "co_managers": [
-    "黃俊瑞"
-  ],
+  "co_managers": [],
   "strategy": "投資觸角延伸至成長性高的亞太地區，選擇投資趨勢正向的產業，並從中精選最具競爭力、成長機會大的投資標的。 依景氣循環位階調整資產配置組合，運用平衡型基金股債靈活配置特性，在追逐報酬的同時控制下檔風險。",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/16.pdf",
   "dist_date": "2026/07/31",
@@ -153,7 +151,7 @@
     }
   ],
   "group": "global_balanced",
-  "fetched_at": "2026-08-19 07:35",
+  "fetched_at": "2026-08-19 19:02",
   "returns_daily": {
     "1m": 4.79008,
     "3m": 7.17579,
