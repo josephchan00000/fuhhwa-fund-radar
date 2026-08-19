@@ -10,6 +10,7 @@
 """
 from __future__ import annotations
 
+import json
 import re
 from datetime import date, timedelta
 from pathlib import Path
@@ -34,7 +35,13 @@ SEV_RUBRIC = ("重要度（1–10 分，放標題括注『重要度 N/10』；**
               "  9–10＝結構性衝擊（衝擊大盤或整條產業鏈：龍頭財報暴雷／重大併購／政策級監管／權值股隔夜 ±5% 以上）；\n"
               "  7–8＝重要個股或次產業明顯影響（單一標的隔夜 ±2–5%、關鍵財測／大訂單／法說指引／重大人事）；\n"
               "  6＝值得追蹤但影響侷限（次級題材、分析師評價調整、單一中型股事件）；\n"
-              "  ≤5＝不列入（雜訊／純 Fed 利率大盤／重複舊聞）。")
+              "  ≤5＝不列入（雜訊／純 Fed 利率大盤／重複舊聞）。\n"
+              "  評分校準（證據錨定，2026-08-19 起）：分數須綁「可觀察證據」——9–10 須有"
+              "「多家主流媒體同日頭條＋大盤或整條產業鏈實際波動」等級的證據；7–8 須有"
+              "「單一權值股／板塊明顯波動」**或**「多家主流媒體同日獨立報導」；6 至少 2 家主流媒體"
+              "獨立報導。覆蓋廣度＝熱門度的代理指標，評分時要說得出「哪幾家在報」。\n"
+              "  分數不是湊卡工具：當日真只有 3 條 ≥6 分，寧可少一卡並把時窗往前補真事件，"
+              "不得把 5 分事件抬成 6 分；反之真有 7 條 ≥6 分就全收，不得因卡數已夠而壓分。")
 
 # 重點標記＋內容主軸——儀表板把 **粗體** 渲染成「半透明藍底關鍵句」
 # （2026-07-18 使用者指示全站抓重點；07-19 檢討：標「事實」不標「情緒」、禁投顧風主軸）。
@@ -104,6 +111,223 @@ DEEP_RULE = ("🔹深度報告精選（**保底 1 篇、上不封頂**）：從 
              "（來源＋日期＋TST｜【深度】｜重要度 N/10），並在摘要後多加一行「**為什麼值得讀**」。"
              "只挑真正有深度者（拒絕即時快訊充數）；查證原文可點連結必附。")
 
+# ── 深度要求＋漲跌分析欄（2026-08-19 使用者：「每日排程模型跑出的內容不夠深入」＋
+#     「新聞分析加一欄漲跌分析、大跌/大漲的理由為何」）──
+# 深度不倚賴模型自覺，寫成可逐條對照的結構要求；三份報告（usnews/twnews/macronews）
+# 提示包共同注入，改規則改這裡即可。check_reports.py 自 2026-08-20 起做結構性把關。
+
+
+def depth_note(min_chars: int = 200) -> str:
+    """分析深度硬性要求。min_chars＝每卡正文（摘要＋漲跌分析＋各影響欄合計）字數下限
+    （完整版 200／台股 180／精簡版 150；check_reports 以更寬鬆的 120 字擋真正過薄者）。"""
+    return (
+        "分析深度（硬性要求、非建議；每卡寫完逐條自我對照）：\n"
+        "  ① 因果鏈寫滿三層：影響分析須從「事件本身 → 傳導機制（誰的訂單／成本／供給／"
+        "資金流因此改變）→ 具體受影響標的（點名公司或族群、附可查證數字）」寫完整，"
+        "禁止只寫第一層結論就收尾；\n"
+        "  ② 量化錨點：每卡影響分析至少 1 個查證得到的具體數字（漲跌幅、金額、產能、市占、"
+        "營收占比等），不可整卡只有方向形容詞；\n"
+        "  ③ 空泛句不得單獨成欄：「市場情緒轉趨保守」「值得留意後續」這類結論句，"
+        "後面必須接「為什麼／透過什麼機制」的說明才算完成該欄；\n"
+        "  ④ 補原文沒明說的背景（深度的主要來源）：影響分析不可只改寫新聞原文——每卡至少補 "
+        "1 項原文之外、查證過的脈絡（該公司在供應鏈的位置與客戶結構、與前次同類事件的對照、"
+        "相關數據的歷史水準），查不到的背景寧缺勿杜撰；\n"
+        "  ⑤ 後續觀察點：每卡最後一個影響欄末尾以「後續觀察：…」收——寫具體可驗證的檢核"
+        "事件與時點（下次法說／數據公布日／政策生效日／官方統計發布），"
+        "不寫「持續觀察發展」這種空話；\n"
+        f"  ⑥ 篇幅下限：每卡正文（摘要＋漲跌分析＋各影響欄合計）不得少於 {min_chars} 字；"
+        "寧可卡少而深（下限仍為 4 卡），不可卡多而淺。")
+
+
+_MOVE_SCOPE = {
+    "us": "該事件牽動的個股與相關指數（昨夜實際收盤）",
+    "tw_pre": "該事件牽動的台股個股／族群（前一交易日收盤），及昨夜對應之 ADR／費半／台指期夜盤",
+    "tw_post": "該事件牽動的台股個股／族群與大盤（當日收盤）",
+    "macro": "該政策牽動的主要資產——美債殖利率／美元／油金／主要股指（最近交易時段）",
+}
+
+
+def move_note(kind: str) -> str:
+    """「漲跌分析」欄規格（每卡必填；kind＝us／tw_pre／tw_post／macro）。
+    欄位由 extract_cards 解析（move）上儀表板；check_reports 自 2026-08-20 起擋缺欄。"""
+    scope = _MOVE_SCOPE.get(kind, _MOVE_SCOPE["us"])
+    extra = ("；與「對資產影響」欄分工——本欄寫「已發生」的價格反應與歸因，"
+             "「對資產影響」欄寫後續影響機制" if kind == "macro" else "")
+    return (f"「漲跌分析」欄（每卡必填、標籤加粗；【深度】精選卡免）：寫{scope}"
+            "的**實際漲跌幅**與**大漲大跌的理由**——\n"
+            "  · 漲跌數字須可查證（同數據口徑規則）；大漲／大跌（個股約 ±3%、指數約 ±1% 以上）"
+            "**必須交代主因與次因**（財報／訂單／評等調整／法人籌碼／政策／獲利了結／估值修正…），"
+            "歸因以來源佐證、用「市場解讀為／主因指向」等中性表述，勿自創因果；\n"
+            "  · 事件若無明顯價格反應，也要一句交代「反應有限＋為什麼」（市場已提前反應／"
+            "尚未開盤交易／事件量級不足），不可留白；\n"
+            f"  · 寫成單行『N. **漲跌分析**：…』（內文可用粗體標關鍵數字）{extra}。")
+
+
+# 卡內欄位標籤必須加粗（2026-07-31 連三次踩坑：無粗體→extract_cards 解析落空、儀表板只剩
+# 連結；過去只靠派工 prompt 點名，現直接寫進提示包當源頭防呆；check_reports 仍為最後閘門）。
+LABEL_RULE = ("卡內欄位標籤一律寫成『N. **標籤**：內文』——標籤必須加 **粗體**"
+              "（例：1. **新聞摘要**：…／3. **漲跌分析**：…／4. **對公司影響**：…）；"
+              "儀表板解析依賴粗體標籤，漏加粗體＝該欄在儀表板上整段消失。")
+
+
+# ── 選題流程＋市場變動錨定（2026-08-19 使用者：「要真的篩到熱門、市場真正重要的新聞」）──
+# 舊選題是「關鍵字→搜到什麼收什麼」的由下而上，容易漏掉關鍵字外的當日頭條。改為由上而下：
+# 先掃「媒體 Top／頭版＋市場實際變動＋行事曆已公布項」建候選，再過濾評分。
+# ⚠ 設計原則（使用者 2026-08-19 特別要求，勿走回頭路）：錨定清單與提及閘門只是「下限保證」、
+# 絕不是選題範圍——匯率／原物料／加密資產／他國股市／突發事件等「清單外」的市場主角，
+# 由掃描層的開放式判準（「波動異常」或「多家媒體領銜」）負責抓；閘門只會多一道檢查、
+# 永遠不會排除任何新聞。
+
+_SCAN = {
+    "us": ("①主流媒體當日 Top／最熱：Reuters・Bloomberg・CNBC・WSJ 的 Top News／Most Read／"
+           "盤後 wrap 與富途美股異動（用 WebSearch 摘要即可，原頁被擋不硬抓）；"
+           "②市場實際變動：昨夜漲跌幅與成交異常的指數／板塊／個股（含盤後財報 movers）；"
+           "③昨夜排定且已公布的重大企業財報結果"),
+    "tw_pre": ("①主流媒體頭版：經濟日報頭版頭條（必收規則不變）＋工商時報頭版要聞＋中央社台股稿；"
+               "②市場實際變動：前一交易日大盤與類股漲跌、成交量、漲跌幅排行、法人買賣超集中"
+               "標的、爆量個股；③昨夜美股／台積電 ADR／台指期夜盤異常；④交易所與主管機關公告"),
+    "tw_post": ("①主流媒體頭版與盤後稿：經濟日報（必收規則不變）＋工商時報＋中央社；"
+                "②當日盤面：大盤與類股漲跌、成交量、漲跌幅排行、法人買賣超集中標的、爆量個股；"
+                "③交易所與主管機關公告"),
+    "macro": ("①Reuters・Bloomberg・WSJ・FT 的 Top News／Most Read；②白宮／財政部／聯準會與"
+              "各國央行「當日實際發布」的聲明與行動；③行事曆昨日排定且已公布的重大數據——"
+              "其結果與市場反應必須被涵蓋；④資產面異常：清單外資產（他國匯率、原物料、"
+              "加密資產、他國股市、信用市場）的異常波動一樣要查"),
+}
+
+
+def pick_note(kind: str) -> str:
+    """選題流程五步（由上而下）；kind＝us／tw_pre／tw_post／macro。
+    關鍵字清單只是搜尋起點，選到「當日真正熱門重要的新聞」靠本流程。"""
+    scan = _SCAN.get(kind, _SCAN["us"])
+    return (
+        "選題流程（由上而下五步；建議關鍵字只是搜尋起點，選題以本流程為準）：\n"
+        f"  ① 掃描建候選（10–15 條）：{scan}。掃描判準＝「當日波動異常」或「多家主流媒體"
+        "同日領銜」，與題材是否在關鍵字／錨定清單內**無關**——匯率、原物料、加密資產、"
+        "他國股市、突發地緣／天災／供應鏈事件等「清單外」的市場主角一樣要抓進候選；\n"
+        "  ② 過濾：守備範圍外→交對應報（速覽可帶一句）；已報導清單內且無新進展→略過；"
+        "非事件（法說／數據「預告」、投顧觀點、盤勢展望）→不入卡——平日與週末同一標準；\n"
+        "  ③ 評分：依重要度評分校準逐條給分，分數要有可觀察證據；\n"
+        "  ④ 選取：≥6 分全收；**「當日市場最大的一件事」必須有著落**——屬本報＝必成卡，"
+        "不屬本報＝速覽帶一句＋細節明確留給對應報；\n"
+        "  ⑤ 補漏自查（收尾必做）：自問「今天市場最熱的三件事，各自是否已成卡／已在總覽"
+        "歸因／已明確交他報？」任一沒著落，回頭補齊再交稿。")
+
+
+# 錨定指標：key →（顯示名, 單位, 旗標門檻, 型態）。型態 pct＝價格%變動、bp＝殖利率基點、
+# flow＝當日流量（億元，取絕對值比門檻）。門檻偏高：錨定是「保底必答題」，不是灵敏警報。
+_ANCHOR = {
+    "sox":        ("費半 ^SOX", "點", 2.0, "pct"),
+    "tsm_adr":    ("台積電 ADR", "美元", 2.0, "pct"),
+    "vix":        ("VIX 恐慌指數", "", 15.0, "pct"),
+    "us10y":      ("美國 10 年期公債殖利率", "%", 10.0, "bp"),
+    "dxy":        ("美元指數 DXY", "", 1.0, "pct"),
+    "usdtwd":     ("美元兌新台幣", "元", 1.0, "pct"),
+    "brent":      ("布蘭特原油", "美元/桶", 2.0, "pct"),
+    "gold":       ("黃金", "美元/盎司", 2.0, "pct"),
+    "inst_total": ("三大法人合計買賣超", "億元", 300.0, "flow"),
+}
+
+# 各報提示包印哪些錨定列（僅決定「印什麼」；check_reports 的提及閘門另有自己的子集）
+_ANCHOR_KEYS = {
+    "us": ("sox", "tsm_adr"),
+    "tw_pre": ("sox", "tsm_adr", "inst_total"),
+    "tw_post": ("inst_total",),
+    "macro": ("us10y", "dxy", "usdtwd", "brent", "gold", "vix"),
+}
+
+
+def _load_chips() -> dict:
+    """讀官方落檔 data/macro_chips.json：先 fetch 後讀 origin/main 版（排程會話的工作樹
+    可能停在分岔時點、資料是舊的），失敗退回工作區檔；全失敗回 {}（fail-open——
+    錨定整段消失只是少一段提示，不影響產包與其他規則）。"""
+    import subprocess
+    try:
+        subprocess.run(["git", "fetch", "origin", "main"], cwd=ROOT,
+                       capture_output=True, timeout=20)
+    except Exception:
+        pass
+    try:
+        out = subprocess.run(["git", "show", "origin/main:data/macro_chips.json"],
+                             cwd=ROOT, capture_output=True, timeout=15)
+        if out.returncode == 0 and out.stdout.strip():
+            return json.loads(out.stdout.decode("utf-8"))
+    except Exception:
+        pass
+    try:
+        return json.loads((ROOT / "data" / "macro_chips.json").read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _prev_weekday(d: date) -> date:
+    x = d - timedelta(days=1)
+    while x.weekday() >= 5:
+        x -= timedelta(days=1)
+    return x
+
+
+def market_flags(today: date | None = None, chips: dict | None = None) -> dict:
+    """官方落檔 → {key: {label, unit, date, last, disp, flag, fresh}}。
+
+    flag＝大變動旗標（達 _ANCHOR 門檻**且**序列新鮮）；fresh＝序列最新日期已到
+    「預期最近交易日」（美股系列跳週末＋已知假日；台股 flow 取上一平日——台股國定假日
+    會誤判成未更新，但後果只是錨定降級為「自行查證」提示、且閘門不旗標，無害方向）。
+    chips 供單測注入；讀不到落檔回 {}。"""
+    d = today or clock.today_tw()
+    ch = chips if chips is not None else _load_chips()
+    series = (ch or {}).get("series") or {}
+    exp_us = f"{_prev_us_trading_day(us_session_date(d)):%Y-%m-%d}"
+    exp_tw = f"{_prev_weekday(d):%Y-%m-%d}"
+    out: dict[str, dict] = {}
+    for key, (label, unit, th, typ) in _ANCHOR.items():
+        pts = sorted((k, v) for k, v in (series.get(key) or {}).items()
+                     if isinstance(v, (int, float)))
+        if not pts:
+            continue
+        last_d, last_v = pts[-1]
+        prev_v = pts[-2][1] if len(pts) > 1 else None
+        fresh = last_d >= (exp_tw if typ == "flow" else exp_us)
+        row = {"label": label, "unit": unit, "date": last_d, "last": last_v, "fresh": fresh}
+        if typ == "flow":
+            row["disp"] = f"{'買超' if last_v >= 0 else '賣超'} {abs(last_v):,.1f} 億元"
+            row["flag"] = fresh and abs(last_v) >= th
+        elif prev_v in (None, 0):
+            row["disp"] = f"{last_v:,.2f}"
+            row["flag"] = False
+        elif typ == "bp":
+            bp = (last_v - prev_v) * 100
+            row["disp"] = f"{last_v:.2f}%（{bp:+.0f}bp）"
+            row["flag"] = fresh and abs(bp) >= th
+        else:
+            pct = (last_v - prev_v) / abs(prev_v) * 100
+            row["disp"] = f"{last_v:,.2f}（{pct:+.2f}%）"
+            row["flag"] = fresh and abs(pct) >= th
+        out[key] = row
+    return out
+
+
+def market_anchor(kind: str, today: date | None = None) -> str:
+    """把官方序列的最新變動與大變動旗標寫進提示包（保底必答題）。
+    讀不到落檔／該報無對應指標時回空字串（提示包自動略過）。"""
+    keys = _ANCHOR_KEYS.get(kind) or ()
+    flags = market_flags(today) if keys else {}
+    rows = [(k, flags[k]) for k in keys if k in flags]
+    if not rows:
+        return ""
+    lines = ["【市場變動錨定（系統自官方序列算好，數字可直接引用；⚠ 這只是「保底必答題」、"
+             "不是選題範圍——市場當日的主角可能完全不在此清單，匯率／原物料／加密資產／"
+             "他國股市／突發事件照樣由選題流程掃描層負責抓）】"]
+    for _k, r in rows:
+        mark = ("  ⚑ 大變動——其歸因必須出現在本報（成卡或總覽歸因擇一，不必硬湊卡）"
+                if r["flag"] else "")
+        stale = "" if r["fresh"] else "（⚠ 未更新至最近交易日，僅供參考、數字請自行查證）"
+        lines.append(f"· {r['label']}：{r['disp']}（資料日 {r['date']}）{stale}{mark}")
+    lines.append("錨定數字即官方口徑、可直接寫進正文；但正文不得出現「落檔／序列／檔名」等"
+                 "機制字樣（同查證過程不入正文規則）。")
+    return "\n".join(lines)
+
+
 _SEV_RE = re.compile(r"重要度\s*(\d{1,2})")
 
 
@@ -150,14 +374,19 @@ SPEC_V1 = f"""【版型一：昨夜美股公司與產業面速寫包（完整版
 {ETYPE_RULE}
 {SEV_RUBRIC}
 {HILITE_RULE}
+{LABEL_RULE}
+{depth_note(200)}
+{move_note('us')}
+{pick_note('us')}
 
 版面：
-  🔹前後 24 小時重大公司與產業事項總覽（Nasdaq／費半／S&P500 各 1 句 ＋ 1 句市場解析：主題動能與板塊輪動）
-  🔹新聞卡（每則 120–180 字；≥4 則）：
+  🔹前後 24 小時重大公司與產業事項總覽（Nasdaq／費半／S&P500 各 1 句：收盤與漲跌幅、
+     大漲大跌時加一句主因 ＋ 1 句市場解析：主題動能與板塊輪動）
+  🔹新聞卡（每則 200–320 字，依「分析深度」要求寫滿因果鏈；≥4 則）：
      標題（來源＋日期＋TST｜【新事件】或【延伸】｜重要度 N/10）  ← 括注三段缺一不可，供儀表板解析徽章
-     1. 新聞摘要（2–3 句聚焦事實） 2. 一句話重點 3. 對公司影響
-     4. 對競爭者／合作方影響 5. 對市場情緒與股價影響
-     6. 參考資料（逐條列來源與機構評論日期；**每卡至少 1 條以 [標題](URL) markdown
+     1. 新聞摘要（2–3 句聚焦事實） 2. 一句話重點 3. 漲跌分析 4. 對公司影響
+     5. 對競爭者／合作方影響 6. 對市場情緒與股價影響
+     7. 參考資料（逐條列來源與機構評論日期；**每卡至少 1 條以 [標題](URL) markdown
         格式附可點的原文連結**，儀表板「新聞重點」卡會直接取用）
   {DEEP_RULE.format(src="富途牛牛深度文章（news.futunn.com）、Reuters Analysis／Bloomberg 深度專題、WSJ／FT 專欄")}
   I. 合規揭露（附完整揭露段）
@@ -178,11 +407,15 @@ SPEC_V2 = f"""【版型二：昨夜美股重點（精簡版）】
 {ETYPE_RULE}
 {SEV_RUBRIC}
 {HILITE_RULE}
+{LABEL_RULE}
+{depth_note(150)}
+{move_note('us')}
+{pick_note('us')}
 
 每則輸出：
   新聞標題（來源 + 日期｜【新事件】或【延伸】｜重要度 N/10）  ← 括注三段缺一不可
-  1. 新聞摘要 2. 濃縮成一句話（簡短有力） 3. 對公司影響 4. 對競爭者/合作方影響 5. 對市場情緒與股價影響
-  6. 參考連結（每卡至少 1 條 [來源標題](URL) markdown 可點連結）
+  1. 新聞摘要 2. 濃縮成一句話（簡短有力） 3. 漲跌分析 4. 對公司影響 5. 對競爭者/合作方影響
+  6. 對市場情緒與股價影響 7. 參考連結（每卡至少 1 條 [來源標題](URL) markdown 可點連結）
 末尾附合規短語（非投資建議）。"""
 
 
@@ -429,6 +662,7 @@ def extract_cards(md: str) -> list[dict]:
     回 [{title, meta, oneline, summary, points, links, body}]：
       title＝去尾端括注的標題；meta＝尾端（來源：…｜日期｜…）括注內容；
       oneline＝『一句話重點／一句話』行；summary＝『新聞摘要』行；
+      move＝『漲跌分析』行（2026-08-19 起：實際漲跌幅＋大漲大跌歸因；舊報告無此欄＝空字串）；
       points＝影響條列 [(標籤, 內文)]（對公司影響／對持股・族群影響／對市場情緒…）；
       links＝卡內 markdown 連結 [(文字, URL)]（原文出處）。缺者為空。"""
     cards: list[dict] = []
@@ -442,7 +676,7 @@ def extract_cards(md: str) -> list[dict]:
             if mm:
                 meta, raw = mm.group(1).strip(), raw[:mm.start()].strip()
             raw = _CARD_SEQ.sub("", raw).strip()          # 剝掉撰寫流水號（見 _CARD_SEQ）
-            cur = {"title": raw, "meta": meta, "oneline": "", "summary": "",
+            cur = {"title": raw, "meta": meta, "oneline": "", "summary": "", "move": "",
                    "importance": _card_importance(meta), "etype": _card_etype(meta),
                    "points": [], "links": [], "body": ""}
             cards.append(cur)
@@ -458,6 +692,9 @@ def extract_cards(md: str) -> list[dict]:
             ms = re.match(r"^\s*\d*\.?\s*\*\*新聞摘要\*\*[：:]\s*(.+)$", line)
             if ms and not cur["summary"]:
                 cur["summary"] = ms.group(1).strip()
+            mv = re.match(r"^\s*\d*\.?\s*\*\*漲跌分析\*\*[：:]\s*(.+)$", line)
+            if mv and not cur["move"]:
+                cur["move"] = mv.group(1).strip()
             mp = re.match(r"^\s*\d+\.\s*\*\*((?:對|市場情緒)[^*]{1,20})\*\*[：:]\s*(.+)$", line)
             if mp:
                 cur["points"].append((mp.group(1).strip(), mp.group(2).strip()))

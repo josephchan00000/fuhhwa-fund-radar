@@ -30,6 +30,7 @@ def build_prompt(today: date) -> str:
     wk = usnews.weekend_note(today)
     xr = usnews.lane_note('us')
     anchor = usnews.calendar_anchor(today)
+    manchor = usnews.market_anchor('us', today)     # 官方序列變動錨定（讀不到落檔＝空、自動略過）
     prior = usnews.prior_block(
         usnews.prior_titles(usnews.NEWS_DIR, today, r"(\d{4}-\d{2}-\d{2})_v1\.md$"),
         "前一日昨夜美股 v1")
@@ -40,7 +41,7 @@ def build_prompt(today: date) -> str:
 台北日期（TST, UTC+8）：{today:%Y/%m/%d}
 昨夜美股對應交易日（美東，請以實際交易日查證）：{ses:%Y/%m/%d}
 {anchor}
-{wk + chr(10) if wk else ''}{xr + chr(10) if xr else ''}{prior + chr(10) * 2 if prior else ''}建議關鍵字：AI, chip, semiconductor, Nvidia, AMD, TSMC, Intel, Micron, Broadcom,
+{manchor + chr(10) if manchor else ''}{wk + chr(10) if wk else ''}{xr + chr(10) if xr else ''}{prior + chr(10) * 2 if prior else ''}建議關鍵字（僅為搜尋起點，選題以版型內「選題流程」為準）：AI, chip, semiconductor, Nvidia, AMD, TSMC, Intel, Micron, Broadcom,
 Microsoft, Apple, Tesla, Meta, merger, acquisition, partnership, supply chain,
 earnings, guidance, investment, capex, executive change, SEC, DOJ, lawsuit
 

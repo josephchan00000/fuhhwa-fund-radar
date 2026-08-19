@@ -7,6 +7,13 @@
   · 連結：每張卡至少 1 條 markdown 可點連結 [標題](http…)
   · 詳細分析：每張卡摘要／影響分析欄位須至少一項非空（2026-07-31 踩坑：twnews 子代理
     漏加 **粗體** 標籤，extract_cards() 解析不到摘要/影響，儀表板只剩連結、詳細分析消失）
+  · 漲跌分析＋深度下限（2026-08-20 起、【深度】卡豁免；2026-08-19 使用者需求）：
+    每卡須有「N. **漲跌分析**：」欄（實際漲跌幅＋大漲大跌歸因）、影響分析 ≥2 條、
+    摘要＋漲跌分析＋影響分析合計 ≥120 字（擋「卡多而淺」的過薄產出）
+  · 大變動提及（2026-08-20 起）：官方序列（usnews.market_flags）旗標的大變動，對應報告
+    全文須至少提及該資產（美股報＝費半/ADR；總經報＝美債/美元/台幣/油/金/VIX）——
+    「下限保證」設計：只擋「大變動卻隻字未提」，提及即過、不要求成卡、序列過期跳過、
+    清單外資產不設閘門（選題廣度由提示包選題流程負責，閘門永不排除任何新聞）
   · 徽章：每張卡標題括注可解析出重要度（≥6）與屬性（新事件/延伸/深度）
   · 正文禁流程性字句：檔名/欄位名/落檔字樣（「取自官方落檔」「series.sox」「macro_chips.json」）
     只能出現在「資料侷限說明」「合規揭露」段（2026-08-17 踩坑：總覽正文出現
@@ -26,6 +33,9 @@ from arm.clock import today_tw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 MIN_CARDS = 4
+# 「漲跌分析」欄＋深度下限自此日起強制（此前的舊報告不回溯——新提示包自 08-20 首輪起才會產此欄）
+MOVE_SINCE = "2026-08-20"
+MIN_ANALYSIS = 120        # 每卡摘要＋漲跌分析＋影響分析合計字數下限（提示包要求 150–200，此為寬鬆底線）
 
 
 def _check_cards(path: Path, date: str) -> list[str]:
@@ -49,6 +59,22 @@ def _check_cards(path: Path, date: str) -> list[str]:
             errs.append(f"{rel}：卡{i} 重要度標注缺失或 <6（{imp}）")
         if et not in ("new", "ext", "deep"):
             errs.append(f"{rel}：卡{i} 屬性標注缺失（新事件/延伸/深度）")
+        # 漲跌分析＋深度下限（2026-08-20 起；【深度】精選卡豁免——它有「為什麼值得讀」自成一格）
+        if date >= MOVE_SINCE and et != "deep":
+            pts = c.get("points") or []
+            if not c.get("move"):
+                errs.append(f"{rel}：卡{i}「{c['title'][:18]}…」缺「漲跌分析」欄"
+                            "（需『N. **漲跌分析**：』標籤加粗體；寫實際漲跌幅＋大漲大跌歸因，"
+                            "無明顯反應也要一句交代原因）")
+            if len(pts) < 2:
+                errs.append(f"{rel}：卡{i}「{c['title'][:18]}…」影響分析僅 {len(pts)} 條（<2）"
+                            "——需多視角影響欄（『N. **對…影響**：』標籤加粗體）")
+            depth = (len(c.get("summary") or "") + len(c.get("move") or "")
+                     + sum(len(t) for _, t in pts))
+            if depth < MIN_ANALYSIS:
+                errs.append(f"{rel}：卡{i}「{c['title'][:18]}…」分析內容過薄"
+                            f"（{depth} 字 < {MIN_ANALYSIS}）——影響分析須寫滿"
+                            "「事件→傳導機制→具體標的」因果鏈並含量化數字（深度要求見提示包）")
     return errs
 
 
@@ -71,6 +97,32 @@ def _check_process_language(md: str, rel: str) -> list[str]:
         if m:
             errs.append(f"{rel}：第{n}行正文出現流程性字句「{m.group(0)}」"
                         "——檔名/欄位名/查證過程只能寫在「資料侷限說明」段")
+    return errs
+
+
+# ── 大變動提及閘門（2026-08-20 起）──
+# ⚠ 設計原則（使用者 2026-08-19：「閘門不能反過來限縮新聞範圍」）：本閘門只會因
+# 「官方序列顯示大變動、報告全文卻隻字未提」多報一條錯——提及即過（不要求成卡）、
+# 序列未更新到最近交易日不旗標、清單外資產（其他匯率/原物料/加密/他國股市…）根本不進
+# 閘門，其選題由提示包 pick_note 掃描層開放式負責。它永遠不可能「排除」任何一則新聞。
+_MENTION = {"sox": ("費半", "費城半導體", "SOX"), "tsm_adr": ("ADR",),
+            "us10y": ("殖利率", "美債"), "dxy": ("美元指數", "DXY"),
+            "usdtwd": ("新台幣", "台幣"), "brent": ("油",), "gold": ("黃金", "金價"),
+            "vix": ("VIX", "恐慌指數")}
+
+
+def _check_big_moves(targets: list[tuple[str, str, tuple[str, ...]]], flags: dict) -> list[str]:
+    """targets＝[(rel, 全文, 該報閘門指標)]；flags＝usnews.market_flags() 結果。
+    純函式供單測；flags 空（落檔讀不到）＝整段跳過（fail-open、不擋發佈）。"""
+    errs: list[str] = []
+    for rel, md, keys in targets:
+        for k in keys:
+            r = flags.get(k)
+            if not r or not r.get("flag"):
+                continue
+            if not any(w in md for w in _MENTION.get(k, ())):
+                errs.append(f"{rel}：官方序列顯示「{r['label']}」大變動（{r['disp']}）而全文"
+                            "隻字未提——當日大變動的歸因必須被涵蓋（成卡或總覽歸因皆可）")
     return errs
 
 
@@ -98,6 +150,20 @@ def run(date: str) -> int:
     errs += _check_cards(ROOT / f"reports/twnews/{date}.md", date)
     errs += _check_cards(ROOT / f"reports/macronews/{date}.md", date)
     errs += _check_calendar(ROOT / f"reports/macrocal/{date}.md", date)
+    if date >= MOVE_SINCE:                     # 大變動提及閘門（fail-open：落檔讀不到＝跳過）
+        try:
+            import datetime as _dt
+            flags = usnews.market_flags(_dt.date.fromisoformat(date))
+        except Exception:
+            flags = {}
+        targets = []
+        for rel, keys in ((f"reports/usnews/{date}_v1.md", ("sox", "tsm_adr")),
+                          (f"reports/macronews/{date}.md",
+                           ("us10y", "dxy", "usdtwd", "brent", "gold", "vix"))):
+            p = ROOT / rel
+            if p.exists():
+                targets.append((rel, p.read_text(encoding="utf-8"), keys))
+        errs += _check_big_moves(targets, flags)
     if errs:
         print(f"[內容 QA] 🔴 {date} 未通過（{len(errs)} 項）：")
         for e in errs:

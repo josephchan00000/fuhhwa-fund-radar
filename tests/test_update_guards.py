@@ -158,6 +158,61 @@ def test_specs_require_deep_pick():
     assert "保底 1 篇" in twnews.SPEC_POST and "保底 1 篇" in twnews.SPEC_PRE
 
 
+def test_specs_carry_depth_and_move_rules():
+    # 2026-08-19 使用者：排程模型內容不夠深入＋每卡加「漲跌分析」欄——
+    # 深度與漲跌分析規則須注入五份版型（提示包是子代理唯一輸入，掉了規則＝白改）
+    from arm import macronews, twnews, usnews
+    for spec in (usnews.SPEC_V1, usnews.SPEC_V2, twnews.SPEC_PRE, twnews.SPEC_POST,
+                 macronews.SPEC_MACRO):
+        assert "漲跌分析" in spec                      # 欄位＋move_note 規格
+        assert "後續觀察" in spec and "因果鏈" in spec   # depth_note 硬性深度要求
+        assert "粗體" in spec                          # LABEL_RULE 源頭防呆
+    # 版型字數上限已放寬（120–180 是舊的淺層上限，勿改回去）
+    assert "200–320 字" in usnews.SPEC_V1 and "180–300 字" in twnews.SPEC_POST
+
+
+def test_specs_carry_selection_rules():
+    # 選題邏輯由上而下（2026-08-19 使用者：「要真的篩到熱門、市場真正重要的新聞」）：
+    # 選題五步＋評分校準注入五份版型；「清單外異常照抓」的開放式判準必須在（防閘門限縮選題範圍）
+    from arm import macronews, twnews, usnews
+    for spec in (usnews.SPEC_V1, usnews.SPEC_V2, twnews.SPEC_PRE, twnews.SPEC_POST,
+                 macronews.SPEC_MACRO):
+        assert "選題流程" in spec and "補漏自查" in spec       # pick_note 五步
+        assert "評分校準" in spec and "湊卡工具" in spec       # SEV_RUBRIC 證據錨定
+        assert "清單外" in spec                               # 開放式掃描判準（勿刪）
+    assert "經濟日報頭版頭條" in twnews.SPEC_PRE               # 台股掃描清單保留頭條必收
+    assert "已公布的重大數據" in macronews.SPEC_MACRO          # 總經掃描含行事曆已公布項
+
+
+def test_market_flags_and_anchor():
+    # 市場變動錨定：官方落檔 → 最新一日變動＋大變動旗標；過期序列不旗標；讀不到＝空字串
+    from datetime import date
+    from arm import usnews
+    chips = {"series": {
+        "sox": {"2026-08-17": 12621.0, "2026-08-18": 11992.46},      # -4.98% → 旗標
+        "gold": {"2026-08-17": 4400.0, "2026-08-18": 4410.0},        # +0.23% → 不旗標
+        "us10y": {"2026-08-17": 4.60, "2026-08-18": 4.72},           # +12bp → 旗標
+        "inst_total": {"2026-08-18": -420.5},                        # 流量 420.5 億 → 旗標
+        "dxy": {"2026-08-01": 99.0, "2026-08-02": 100.5},            # 過期 → 不旗標
+    }}
+    f = usnews.market_flags(date(2026, 8, 19), chips=chips)
+    assert f["sox"]["flag"] and f["sox"]["fresh"] and "-4.98%" in f["sox"]["disp"]
+    assert not f["gold"]["flag"]
+    assert f["us10y"]["flag"] and "+12bp" in f["us10y"]["disp"]
+    assert f["inst_total"]["flag"] and "賣超" in f["inst_total"]["disp"]
+    assert not f["dxy"]["fresh"] and not f["dxy"]["flag"]            # 過期＝不旗標（閘門不誤傷）
+    # anchor 文案：保底必答題＋「不是選題範圍」原則必須明寫（2026-08-19 使用者要求）
+    import unittest.mock as _m
+    with _m.patch.object(usnews, "_load_chips", lambda: chips):
+        txt = usnews.market_anchor("us", date(2026, 8, 19))
+        assert "⚑" in txt and "不是選題範圍" in txt and "費半" in txt
+        assert "三大法人" not in txt                                 # us 版不含台股籌碼列
+        tw = usnews.market_anchor("tw_pre", date(2026, 8, 19))
+        assert "三大法人" in tw and "賣超 420.5 億" in tw
+    with _m.patch.object(usnews, "_load_chips", lambda: {}):
+        assert usnews.market_anchor("us", date(2026, 8, 19)) == ""   # fail-open
+
+
 def test_factcheck_chip_counts_from_items_not_header(tmp_path, monkeypatch):
     """數字核對章以 items 為準，表頭去正規化計數只當後備。
 
