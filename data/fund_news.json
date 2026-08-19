@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/20 06:59",
+  "as_of": "2026/08/20 07:36",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -44,25 +44,11 @@
       ],
       "items": [
         {
-          "title": "【00991A】08/19 操作日報｜資金大換手，重壓散熱與光通訊",
-          "url": "https://cmnews.com.tw/article/cmoney-65202901-9bb2-11f1-bb04-085452efa9f2",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-19 17:43",
-          "datetime": "2026-08-19T17:43:12+08:00"
-        },
-        {
           "title": "台股反彈波怎麼買？專家：自帶槓桿的「00991A」奪台股主動式ETF績效王",
           "url": "https://inews.setn.com/news/1891431",
           "source": "三立新聞",
           "date": "2026-08-19 12:05",
           "datetime": "2026-08-19T12:05:39+08:00"
-        },
-        {
-          "title": "00991A回檔整理，資金先轉進聯亞與光通訊-子敏左側交易",
-          "url": "https://cmnews.com.tw/article/zhengzimin-12f7bdbb-9b0e-11f1-88d6-8a62642a3332",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-18 22:06",
-          "datetime": "2026-08-18T22:06:57+08:00"
         }
       ]
     },
@@ -99,22 +85,7 @@
       "short_names": [
         "00409A"
       ],
-      "items": [
-        {
-          "title": "00409A三人共管上路，每年1.54%費用撐得起報酬嗎？-詠晴K線解密",
-          "url": "https://cmnews.com.tw/article/huangyongqing-255d6b21-97a4-11f1-9ec2-cb6b60123aa1",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-14 13:51",
-          "datetime": "2026-08-14T13:51:08+08:00"
-        },
-        {
-          "title": "00409A 最後募集日——首檔三人共管主動式ETF-CMoney官方",
-          "url": "https://cmnews.com.tw/article/cmoney-2dbcf387-9799-11f1-985c-7b568f6defb3",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-14 12:32",
-          "datetime": "2026-08-14T12:32:37+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華台美策略精準高息股債平衡ETF基金",
@@ -271,15 +242,7 @@
       "short_names": [
         "高成長"
       ],
-      "items": [
-        {
-          "title": "成立快 28 年還能一直漲？拆解「復華高成長基金」背後的賺錢邏輯",
-          "url": "https://cmnews.com.tw/article/cmoney-4021f09c-9947-11f1-8668-a80eead4c08d",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-16 15:51",
-          "datetime": "2026-08-16T15:51:12+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華數位經濟基金",
@@ -393,15 +356,7 @@
       "short_names": [
         "已開發國家300股票新臺幣"
       ],
-      "items": [
-        {
-          "title": "規模破兩百億的大型共同基金怎麼挑？復華、瀚亞、元大三強對決",
-          "url": "https://www.cmoney.tw/notes/note-detail.aspx?nid=1253167",
-          "source": "cmnews.com.tw",
-          "date": "2026-08-18 16:45",
-          "datetime": "2026-08-18T16:45:17+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華全球創新金融指數基金",
@@ -475,7 +430,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/pUw_ODgbCcs",
       "date": "2026-08-13",
-      "views": 4552,
+      "views": 4557,
       "short": true
     },
     {
@@ -486,17 +441,6 @@
       "date": "2026-08-17",
       "views": 3046,
       "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "0817 短 輝達800V啟動！台股3族群爆發",
-      "channel": "阮蕙慈分析師-大華國際投顧-金融阮實力",
-      "url": "https://www.youtube.com/shorts/HZhr_XodK8c",
-      "date": "2026-08-17",
-      "views": 146327,
-      "peer": true,
-      "short": true,
-      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -514,7 +458,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/wI5WucAYB9c",
       "date": "2026-08-17",
-      "views": 95554,
+      "views": 95664,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -525,7 +469,7 @@
       "channel": "Sun Channel",
       "url": "https://www.youtube.com/watch?v=APKcdfwEVlE",
       "date": "2026-08-16",
-      "views": 92323,
+      "views": 92360,
       "peer": true,
       "cat": "綜合"
     },
@@ -535,9 +479,19 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=zrKp6RZy91Y",
       "date": "2026-08-17",
-      "views": 42557,
+      "views": 42603,
       "peer": true,
       "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股最佳買點還沒出現？11月前還會大修正？　抄底沒膽、重倉不敢、停損又不甘心？　如何判斷手中持股該砍該留？｜財富新鏡界｜#鏡新聞",
+      "channel": "鏡新聞",
+      "url": "https://www.youtube.com/watch?v=S1W0Lj946yM",
+      "date": "2026-08-16",
+      "views": 41737,
+      "peer": true,
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -545,7 +499,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=kNGQ4_qgZ6s",
       "date": "2026-08-19",
-      "views": 36207,
+      "views": 36373,
       "peer": true,
       "cat": "主動式"
     },
@@ -555,7 +509,17 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=S7DPFT84t2Q",
       "date": "2026-08-17",
-      "views": 34707,
+      "views": 34768,
+      "peer": true,
+      "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股V轉後再震盪！高股息ETF誰抗跌、00981A為何加碼國巨？完整解析ETF分批加碼法｜ft.超馬芭樂、葉芷娟【ETF錢滾錢】EP84",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/watch?v=_-DkXv3sfGk",
+      "date": "2026-08-19",
+      "views": 23075,
       "peer": true,
       "cat": "高股息"
     },
@@ -571,29 +535,19 @@
     },
     {
       "platform": "youtube",
-      "title": "台股V轉後再震盪！高股息ETF誰抗跌、00981A為何加碼國巨？完整解析ETF分批加碼法｜ft.超馬芭樂、葉芷娟【ETF錢滾錢】EP84",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/watch?v=_-DkXv3sfGk",
-      "date": "2026-08-19",
-      "views": 22687,
-      "peer": true,
-      "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
       "title": "總想等最低點再買？V大抄底的真實心理戰！ft V大",
       "channel": "理財小時候",
       "url": "https://www.youtube.com/shorts/fg4mYHAVJaU",
       "date": "2026-08-15",
-      "views": 19743,
+      "views": 19746,
       "peer": true,
       "short": true,
       "cat": "綜合"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00991A、00986D、00409A、高成長、已開發國家300股票指數 等 7 檔（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00986D、台灣菁英50指數（詳下方新聞標籤）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：0817 短 輝達800V啟動！台股3族群爆發（阮蕙慈分析師-大華國際投顧-金融阮實力・146,327 次觀看）"
+    "YouTube 熱片：賣0050改買正二？台股正二未來10萬路徑分析（清流君・99,683 次觀看）"
   ]
 }
