@@ -576,6 +576,9 @@ def _news_view(md: str, empty_hint: str,
         # 漲跌分析（2026-08-19 起每卡必填：實際漲跌幅＋大漲大跌歸因）；舊報告無此欄不顯示
         mv = (f'<div class="ngmv"><span class="mvtag">漲跌分析</span>{_inline(c["move"])}</div>'
               if c.get("move") else "")
+        # 【深度】精選的「為什麼值得讀」：2026-08-19 前寫在報告裡卻沒被解析、整行消失
+        why = (f'<div class="ngwhy"><span class="whytag">為什麼值得讀</span>{_inline(c["why"])}</div>'
+               if c.get("why") else "")
         pts = "".join(f'<li><span class="klabel">{_esc(lab)}</span>{_inline(txt)}</li>'
                       for lab, txt in (c.get("points") or []))
         pts = f'<ul class="ngpts">{pts}</ul>' if pts else ""
@@ -590,7 +593,7 @@ def _news_view(md: str, empty_hint: str,
             f'<details class="newsone"><summary>'
             f'<span class="nhead">{badges}<span class="nit">{_esc(c["title"])}</span>{one}{meta}</span>'
             f'<span class="openbtn2"></span></summary>'
-            f'<div class="ndoc nibody">{summ}{mv}{pts}{links}</div></details>')
+            f'<div class="ndoc nibody">{summ}{why}{mv}{pts}{links}</div></details>')
     if not cards and (md or "").strip():   # 版型異常（無卡）→ 整篇可見呈現當保底
         items.append(f'<div class="ndoc">{_md(md)}</div>')
     return "".join(items) or f'<div class="muted">{empty_hint}</div>'
@@ -2106,6 +2109,11 @@ a.chip:hover{background:rgba(47,111,208,.16)}
 .ngmv{margin:2px 0 6px;padding:8px 12px;border-left:3px solid var(--gold);border-radius:0 10px 10px 0;
   background:rgba(200,134,15,.07);font-size:15.5px;line-height:1.85;color:var(--ink)}
 .ngmv .mvtag{display:inline-block;font-weight:700;font-size:12.5px;color:var(--gold);
+  margin-right:8px;letter-spacing:.5px}
+/* 【深度】精選的「為什麼值得讀」：紫色系（同深度徽章），置於摘要之後、漲跌分析之前 */
+.ngwhy{margin:2px 0 6px;padding:8px 12px;border-left:3px solid #7b4fa0;border-radius:0 10px 10px 0;
+  background:rgba(123,79,160,.07);font-size:15.5px;line-height:1.85;color:var(--ink)}
+.ngwhy .whytag{display:inline-block;font-weight:700;font-size:12.5px;color:#7b4fa0;
   margin-right:8px;letter-spacing:.5px}
 .nglinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .nglink{display:inline-block;background:rgba(47,111,208,.08);border:0;border-radius:8px;padding:4px 12px;font-size:13.5px;color:var(--accd);text-decoration:none}
