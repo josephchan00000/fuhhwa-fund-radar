@@ -7,6 +7,9 @@
   · 連結：每張卡至少 1 條 markdown 可點連結 [標題](http…)
   · 詳細分析：每張卡摘要／影響分析欄位須至少一項非空（2026-07-31 踩坑：twnews 子代理
     漏加 **粗體** 標籤，extract_cards() 解析不到摘要/影響，儀表板只剩連結、詳細分析消失）
+  · 漲跌分析＋深度下限（2026-08-20 起、【深度】卡豁免；2026-08-19 使用者需求）：
+    每卡須有「N. **漲跌分析**：」欄（實際漲跌幅＋大漲大跌歸因）、影響分析 ≥2 條、
+    摘要＋漲跌分析＋影響分析合計 ≥120 字（擋「卡多而淺」的過薄產出）
   · 徽章：每張卡標題括注可解析出重要度（≥6）與屬性（新事件/延伸/深度）
   · 正文禁流程性字句：檔名/欄位名/落檔字樣（「取自官方落檔」「series.sox」「macro_chips.json」）
     只能出現在「資料侷限說明」「合規揭露」段（2026-08-17 踩坑：總覽正文出現
@@ -26,6 +29,9 @@ from arm.clock import today_tw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 MIN_CARDS = 4
+# 「漲跌分析」欄＋深度下限自此日起強制（此前的舊報告不回溯——新提示包自 08-20 首輪起才會產此欄）
+MOVE_SINCE = "2026-08-20"
+MIN_ANALYSIS = 120        # 每卡摘要＋漲跌分析＋影響分析合計字數下限（提示包要求 150–200，此為寬鬆底線）
 
 
 def _check_cards(path: Path, date: str) -> list[str]:
@@ -49,6 +55,22 @@ def _check_cards(path: Path, date: str) -> list[str]:
             errs.append(f"{rel}：卡{i} 重要度標注缺失或 <6（{imp}）")
         if et not in ("new", "ext", "deep"):
             errs.append(f"{rel}：卡{i} 屬性標注缺失（新事件/延伸/深度）")
+        # 漲跌分析＋深度下限（2026-08-20 起；【深度】精選卡豁免——它有「為什麼值得讀」自成一格）
+        if date >= MOVE_SINCE and et != "deep":
+            pts = c.get("points") or []
+            if not c.get("move"):
+                errs.append(f"{rel}：卡{i}「{c['title'][:18]}…」缺「漲跌分析」欄"
+                            "（需『N. **漲跌分析**：』標籤加粗體；寫實際漲跌幅＋大漲大跌歸因，"
+                            "無明顯反應也要一句交代原因）")
+            if len(pts) < 2:
+                errs.append(f"{rel}：卡{i}「{c['title'][:18]}…」影響分析僅 {len(pts)} 條（<2）"
+                            "——需多視角影響欄（『N. **對…影響**：』標籤加粗體）")
+            depth = (len(c.get("summary") or "") + len(c.get("move") or "")
+                     + sum(len(t) for _, t in pts))
+            if depth < MIN_ANALYSIS:
+                errs.append(f"{rel}：卡{i}「{c['title'][:18]}…」分析內容過薄"
+                            f"（{depth} 字 < {MIN_ANALYSIS}）——影響分析須寫滿"
+                            "「事件→傳導機制→具體標的」因果鏈並含量化數字（深度要求見提示包）")
     return errs
 
 

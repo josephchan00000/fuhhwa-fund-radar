@@ -158,6 +158,19 @@ def test_specs_require_deep_pick():
     assert "保底 1 篇" in twnews.SPEC_POST and "保底 1 篇" in twnews.SPEC_PRE
 
 
+def test_specs_carry_depth_and_move_rules():
+    # 2026-08-19 使用者：排程模型內容不夠深入＋每卡加「漲跌分析」欄——
+    # 深度與漲跌分析規則須注入五份版型（提示包是子代理唯一輸入，掉了規則＝白改）
+    from arm import macronews, twnews, usnews
+    for spec in (usnews.SPEC_V1, usnews.SPEC_V2, twnews.SPEC_PRE, twnews.SPEC_POST,
+                 macronews.SPEC_MACRO):
+        assert "漲跌分析" in spec                      # 欄位＋move_note 規格
+        assert "後續觀察" in spec and "因果鏈" in spec   # depth_note 硬性深度要求
+        assert "粗體" in spec                          # LABEL_RULE 源頭防呆
+    # 版型字數上限已放寬（120–180 是舊的淺層上限，勿改回去）
+    assert "200–320 字" in usnews.SPEC_V1 and "180–300 字" in twnews.SPEC_POST
+
+
 def test_factcheck_chip_counts_from_items_not_header(tmp_path, monkeypatch):
     """數字核對章以 items 為準，表頭去正規化計數只當後備。
 

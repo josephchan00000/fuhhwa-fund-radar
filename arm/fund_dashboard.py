@@ -573,6 +573,9 @@ def _news_view(md: str, empty_hint: str,
         meta = f'<span class="nim">{_esc(c["meta"])}</span>' if c.get("meta") else ""
         one = f'<div class="nlone">{_esc(c["oneline"])}</div>' if c.get("oneline") else ""
         summ = f'<div class="ngs">{_inline(c["summary"])}</div>' if c.get("summary") else ""
+        # 漲跌分析（2026-08-19 起每卡必填：實際漲跌幅＋大漲大跌歸因）；舊報告無此欄不顯示
+        mv = (f'<div class="ngmv"><span class="mvtag">漲跌分析</span>{_inline(c["move"])}</div>'
+              if c.get("move") else "")
         pts = "".join(f'<li><span class="klabel">{_esc(lab)}</span>{_inline(txt)}</li>'
                       for lab, txt in (c.get("points") or []))
         pts = f'<ul class="ngpts">{pts}</ul>' if pts else ""
@@ -587,7 +590,7 @@ def _news_view(md: str, empty_hint: str,
             f'<details class="newsone"><summary>'
             f'<span class="nhead">{badges}<span class="nit">{_esc(c["title"])}</span>{one}{meta}</span>'
             f'<span class="openbtn2"></span></summary>'
-            f'<div class="ndoc nibody">{summ}{pts}{links}</div></details>')
+            f'<div class="ndoc nibody">{summ}{mv}{pts}{links}</div></details>')
     if not cards and (md or "").strip():   # 版型異常（無卡）→ 整篇可見呈現當保底
         items.append(f'<div class="ndoc">{_md(md)}</div>')
     return "".join(items) or f'<div class="muted">{empty_hint}</div>'
@@ -2099,6 +2102,11 @@ a.chip:hover{background:rgba(47,111,208,.16)}
 .nibody .ngpts li{margin:14px 0;padding:3px 0 3px 15px;font-size:16.5px;line-height:1.9;
   color:var(--ink);border-left:2px solid rgba(47,111,208,.22)}
 .nibody .ngpts li:before{display:none}
+/* 漲跌分析塊（2026-08-19 每卡新增欄）：金色左框＋淡金底，與影響分析（藍系）視覺區隔 */
+.ngmv{margin:2px 0 6px;padding:8px 12px;border-left:3px solid var(--gold);border-radius:0 10px 10px 0;
+  background:rgba(200,134,15,.07);font-size:15.5px;line-height:1.85;color:var(--ink)}
+.ngmv .mvtag{display:inline-block;font-weight:700;font-size:12.5px;color:var(--gold);
+  margin-right:8px;letter-spacing:.5px}
 .nglinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .nglink{display:inline-block;background:rgba(47,111,208,.08);border:0;border-radius:8px;padding:4px 12px;font-size:13.5px;color:var(--accd);text-decoration:none}
 .nglink:hover{background:rgba(47,111,208,.16);color:var(--acc)}
