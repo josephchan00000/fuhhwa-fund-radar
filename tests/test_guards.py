@@ -81,6 +81,8 @@ def test_check_reports_move_and_depth_gate(tmp_path, monkeypatch):
     sys.path.insert(0, str(ROOT / "scripts"))
     check = importlib.import_module("check_reports")
     monkeypatch.setattr(check, "ROOT", tmp_path)
+    from arm import usnews
+    monkeypatch.setattr(usnews, "_load_chips", lambda: {})   # 隔離真實落檔（大變動閘門另測）
     d = "2026-08-20"                                   # ≥ MOVE_SINCE
 
     def write_all(card_lines: list[str]) -> None:
@@ -106,6 +108,23 @@ def test_check_reports_move_and_depth_gate(tmp_path, monkeypatch):
             "3. **參考資料**：[來源](https://example.com/a)。", ""]
     write_all(ok + deep)
     assert check.run(d) == 0                           # 【深度】精選卡免漲跌分析／深度下限
+
+
+def test_check_big_moves_gate():
+    # 大變動提及閘門（2026-08-19 使用者要求「不可限縮新聞範圍」的下限保證設計）：
+    # 只擋「官方序列旗標大變動、全文隻字未提」；提及即過、flags 空＝跳過、未旗標不查。
+    import importlib
+    sys.path.insert(0, str(ROOT / "scripts"))
+    check = importlib.import_module("check_reports")
+    flags = {"sox": {"label": "費半 ^SOX", "disp": "11,992.46（-4.98%）", "flag": True},
+             "tsm_adr": {"label": "台積電 ADR", "disp": "413.41（-4.06%）", "flag": False}}
+    keys = ("sox", "tsm_adr")
+    miss = [("reports/usnews/x_v1.md", "🔹總覽：昨夜科技股大跌。", keys)]
+    errs = check._check_big_moves(miss, flags)
+    assert len(errs) == 1 and "費半" in errs[0]         # 旗標未提及 → 1 錯；未旗標的 ADR 不查
+    hit = [("reports/usnews/x_v1.md", "🔹總覽：費半重挫近 5%，主因記憶體股獲利了結。", keys)]
+    assert check._check_big_moves(hit, flags) == []     # 提及（任何段落）即過
+    assert check._check_big_moves(miss, {}) == []       # 落檔讀不到 → fail-open 不擋發佈
 
 
 def test_check_reports_blocks_process_language_in_body():
