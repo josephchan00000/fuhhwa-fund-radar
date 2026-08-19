@@ -63,6 +63,51 @@ def test_check_reports_pass_and_failures(tmp_path, monkeypatch):
     assert check.run(d) == 1                                  # 卡數不足 → 擋下
 
 
+def _deep_card(i: int, move: bool = True, pts: int = 2, pad: int = 40) -> list[str]:
+    """新版深度格式卡（2026-08-20 起）：粗體標籤＋漲跌分析＋≥2 條影響欄。"""
+    lines = [f"### 卡 {i}｜標題{i}（來源：X｜2026/08/20｜【新事件】｜重要度 7/10）",
+             "1. **新聞摘要**：" + "事" * pad + "。"]
+    if move:
+        lines.append("3. **漲跌分析**：個股大漲 4.2%，主因財報優於預期，次因外資回補。")
+    for j, lab in enumerate(["對持股／族群影響", "對市場情緒影響"][:pts], 4):
+        lines.append(f"{j}. **{lab}**：" + "析" * pad + "。後續觀察：下次法說。")
+    lines += ["6. **參考資料**：[來源](https://example.com/a)。", ""]
+    return lines
+
+
+def test_check_reports_move_and_depth_gate(tmp_path, monkeypatch):
+    # 2026-08-19 使用者需求：每卡「漲跌分析」欄＋深度下限——2026-08-20 起強制、【深度】卡豁免
+    import importlib
+    sys.path.insert(0, str(ROOT / "scripts"))
+    check = importlib.import_module("check_reports")
+    monkeypatch.setattr(check, "ROOT", tmp_path)
+    d = "2026-08-20"                                   # ≥ MOVE_SINCE
+
+    def write_all(card_lines: list[str]) -> None:
+        body = "\n".join(["# 報告"] + card_lines)
+        for rel in (f"reports/usnews/{d}_v1.md", f"reports/usnews/{d}_v2.md",
+                    f"reports/twnews/{d}.md", f"reports/macronews/{d}.md"):
+            p = tmp_path / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(body, encoding="utf-8")
+        _write_cal(tmp_path / f"reports/macrocal/{d}.md", "2026/08/20")
+
+    ok = [l for i in range(1, 5) for l in _deep_card(i)]
+    write_all(ok)
+    assert check.run(d) == 0                           # 新版格式 → 通過
+    write_all([l for i in range(1, 5) for l in _deep_card(i, move=False)])
+    assert check.run(d) == 1                           # 缺漲跌分析 → 擋下
+    write_all([l for i in range(1, 5) for l in _deep_card(i, pts=1)])
+    assert check.run(d) == 1                           # 影響分析僅 1 條 → 擋下
+    write_all([l for i in range(1, 5) for l in _deep_card(i, pad=5)])
+    assert check.run(d) == 1                           # 分析過薄（<120 字）→ 擋下
+    deep = ["### 【深度】產業鏈專題（來源：工商時報｜2026/08/20｜【深度】｜重要度 6/10）",
+            "1. **新聞摘要**：略。", "2. **為什麼值得讀**：略。",
+            "3. **參考資料**：[來源](https://example.com/a)。", ""]
+    write_all(ok + deep)
+    assert check.run(d) == 0                           # 【深度】精選卡免漲跌分析／深度下限
+
+
 def test_check_reports_blocks_process_language_in_body():
     # 正文禁流程性字句（2026-08-17 踩坑：總覽出現「數字取自本機官方落檔 `series.sox`」；
     # 同 08-04「未取得兩來源／見資料侷限」句式）——資料侷限/合規段內豁免

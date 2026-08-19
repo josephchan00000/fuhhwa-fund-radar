@@ -140,6 +140,19 @@ def test_extract_cards_v1_and_v2():
     assert c2[0]["title"] == "Meta 建雲端業務" and c2[0]["oneline"] == "算力變現"
 
 
+def test_extract_cards_move_field():
+    # 「漲跌分析」欄（2026-08-19 使用者需求：每卡加一欄大漲/大跌歸因）→ move
+    md = ("### 卡 1｜台積電法說（來源：經濟日報｜2026/08/20｜【新事件】｜重要度 8/10）\n"
+          "1. **新聞摘要**：略。\n"
+          "3. **漲跌分析**：台積電大漲 **4.2%**，主因法說上修財測；次因外資回補。\n"
+          "4. **對持股／族群影響**：略。\n")
+    c = usnews.extract_cards(md)[0]
+    assert c["move"].startswith("台積電大漲") and "主因" in c["move"]
+    # 舊報告無此欄 → 空字串、其餘欄位不受影響（向後相容）
+    old = usnews.extract_cards("### 卡 1｜舊卡（來源：X｜2026/07/02）\n1. **新聞摘要**：略。\n")[0]
+    assert old["move"] == "" and old["summary"] == "略。"
+
+
 # ── 新聞 × 持股連動 ──────────────────────────────────────────
 def test_news_fund_links_alias_and_bare_false():
     links = fund_insights.news_fund_links(_funds(), _NEWS)

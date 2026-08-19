@@ -255,6 +255,22 @@ def test_news_view_deep_card_goes_last_and_no_serial_numbers():
     assert html.index("丙事件") < html.index("丁專題")               # 深度排在事件卡之後
 
 
+def test_news_view_renders_move_block():
+    # 「漲跌分析」欄（2026-08-19）：金色 .ngmv 塊、置於摘要與影響分析之間；無此欄的舊卡不渲染
+    from arm import fund_dashboard as fd
+    md = ("### 卡 1｜甲事件（來源：X｜2026/08/20｜【新事件】｜重要度 7/10）\n"
+          "1. **新聞摘要**：摘要文。\n"
+          "3. **漲跌分析**：台積電大漲 **4.2%**，主因外資回補。\n"
+          "4. **對持股／族群影響**：影響文。\n"
+          "6. **參考資料**：[a](https://example.com/a)\n")
+    html = fd._news_view(md, "無")
+    assert 'class="ngmv"' in html and "主因外資回補" in html
+    assert html.index("摘要文") < html.index("主因外資回補") < html.index("影響文")
+    old = fd._news_view("### 卡 1｜舊卡（來源：X｜2026/07/02｜【新事件】｜重要度 7/10）\n"
+                        "1. **新聞摘要**：略。\n", "無")
+    assert "ngmv" not in old
+
+
 def test_extract_cards_keeps_numeric_leading_title():
     # 剝流水號不可誤傷數字開頭的真標題（數字後須接標點才算序號）
     cards = usnews.extract_cards(
