@@ -663,6 +663,8 @@ def extract_cards(md: str) -> list[dict]:
       title＝去尾端括注的標題；meta＝尾端（來源：…｜日期｜…）括注內容；
       oneline＝『一句話重點／一句話』行；summary＝『新聞摘要』行；
       move＝『漲跌分析』行（2026-08-19 起：實際漲跌幅＋大漲大跌歸因；舊報告無此欄＝空字串）；
+      why＝『為什麼值得讀』行（【深度】精選卡專屬；2026-08-19 前雖有寫進報告卻沒被解析、
+        整行在儀表板上消失——深度精選最有價值的一句，勿再讓它掉）；
       points＝影響條列 [(標籤, 內文)]（對公司影響／對持股・族群影響／對市場情緒…）；
       links＝卡內 markdown 連結 [(文字, URL)]（原文出處）。缺者為空。"""
     cards: list[dict] = []
@@ -677,7 +679,7 @@ def extract_cards(md: str) -> list[dict]:
                 meta, raw = mm.group(1).strip(), raw[:mm.start()].strip()
             raw = _CARD_SEQ.sub("", raw).strip()          # 剝掉撰寫流水號（見 _CARD_SEQ）
             cur = {"title": raw, "meta": meta, "oneline": "", "summary": "", "move": "",
-                   "importance": _card_importance(meta), "etype": _card_etype(meta),
+                   "why": "", "importance": _card_importance(meta), "etype": _card_etype(meta),
                    "points": [], "links": [], "body": ""}
             cards.append(cur)
             continue
@@ -695,6 +697,9 @@ def extract_cards(md: str) -> list[dict]:
             mv = re.match(r"^\s*\d*\.?\s*\*\*漲跌分析\*\*[：:]\s*(.+)$", line)
             if mv and not cur["move"]:
                 cur["move"] = mv.group(1).strip()
+            mw = re.match(r"^\s*\d*\.?\s*\*\*為什麼值得讀\*\*[：:]\s*(.+)$", line)
+            if mw and not cur["why"]:
+                cur["why"] = mw.group(1).strip()
             mp = re.match(r"^\s*\d+\.\s*\*\*((?:對|市場情緒)[^*]{1,20})\*\*[：:]\s*(.+)$", line)
             if mp:
                 cur["points"].append((mp.group(1).strip(), mp.group(2).strip()))
