@@ -271,6 +271,29 @@ def test_news_view_renders_move_block():
     assert "ngmv" not in old
 
 
+def test_deep_card_why_field_renders():
+    # 2026-08-19 試跑發現：【深度】精選的「為什麼值得讀」寫在報告裡卻沒被解析、
+    # 整行在儀表板消失（深度精選最有價值的一句）——解析成 why 並渲染成紫色塊
+    from arm import fund_dashboard as fd, usnews
+    md = ("### 【深度】產業鏈專題（來源：工商時報｜2026/08/20｜【深度】｜重要度 7/10）\n"
+          "1. **新聞摘要**：摘要文。\n"
+          "2. **為什麼值得讀**：把漲價潮的擴散路徑拆到材料端。\n"
+          "3. **對持股／族群影響**：影響文。\n"
+          "4. **參考連結**：[a](https://example.com/a)\n")
+    c = usnews.extract_cards(md)[0]
+    assert c["why"] == "把漲價潮的擴散路徑拆到材料端。"
+    html = fd._news_view(md, "無")
+    assert 'class="ngwhy"' in html and "擴散路徑拆到材料端" in html
+    assert html.index("摘要文") < html.index("擴散路徑") < html.index("影響文")
+    # 無編號前綴的寫法（子代理常見）也要收；一般事件卡無此欄＝不渲染
+    bare = usnews.extract_cards("### 【深度】X（來源：Y｜2026/08/20｜【深度】｜重要度 7/10）\n"
+                                "**為什麼值得讀**：無編號也要收。\n")[0]
+    assert bare["why"] == "無編號也要收。"
+    assert "ngwhy" not in fd._news_view(
+        "### 卡 1｜甲（來源：X｜2026/08/20｜【新事件】｜重要度 7/10）\n"
+        "1. **新聞摘要**：略。\n", "無")
+
+
 def test_extract_cards_keeps_numeric_leading_title():
     # 剝流水號不可誤傷數字開頭的真標題（數字後須接標點才算序號）
     cards = usnews.extract_cards(
