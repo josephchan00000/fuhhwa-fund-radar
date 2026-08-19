@@ -46,6 +46,7 @@ SPEC_MACRO = f"""【版型：昨夜美股交易時段・總經／政策面速寫
 {usnews.LABEL_RULE}
 {usnews.depth_note(200)}
 {usnews.move_note('macro')}
+{usnews.pick_note('macro')}
 （政策面重要度參考：9–10＝牽動美債殖利率／美元指數／油金／S&P500·Nasdaq 隔夜且具結構性（影響 >3 個月或跨產業）；
  7–8＝使單一主要資產或產業明顯波動（隔夜 ±1% 上下）；6＝方向性政策訊號、值得追蹤但影響侷限。）
 
