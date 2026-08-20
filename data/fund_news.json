@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/21 06:58",
+  "as_of": "2026/08/21 07:40",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -43,7 +43,15 @@
       "short_names": [
         "00991A"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "8/20 00991A 日月光投砍到剩 9 張",
+          "url": "https://www.cmoney.tw/forum/article/182698280",
+          "source": "CMoney",
+          "date": "2026-08-20 17:42",
+          "datetime": "2026-08-20T17:42:41+08:00"
+        }
+      ]
     },
     {
       "base": "主動復華金融股息",
@@ -415,7 +423,7 @@
       "channel": "理周FUN財經",
       "url": "https://www.youtube.com/shorts/qUfBYUMlwWE",
       "date": "2026-08-17",
-      "views": 3291,
+      "views": 3296,
       "short": true
     },
     {
@@ -433,7 +441,7 @@
       "channel": "阮蕙慈分析師-大華國際投顧-金融阮實力",
       "url": "https://www.youtube.com/shorts/HZhr_XodK8c",
       "date": "2026-08-17",
-      "views": 162935,
+      "views": 162946,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -444,7 +452,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/wI5WucAYB9c",
       "date": "2026-08-17",
-      "views": 102749,
+      "views": 102809,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -455,7 +463,7 @@
       "channel": "清流君",
       "url": "https://www.youtube.com/watch?v=9JNg6S3xELk",
       "date": "2026-08-16",
-      "views": 101807,
+      "views": 101821,
       "peer": true,
       "cat": "市值型"
     },
@@ -465,7 +473,7 @@
       "channel": "Sun Channel",
       "url": "https://www.youtube.com/watch?v=APKcdfwEVlE",
       "date": "2026-08-16",
-      "views": 94665,
+      "views": 94705,
       "peer": true,
       "cat": "綜合"
     },
@@ -475,7 +483,7 @@
       "channel": "股市最錢線",
       "url": "https://www.youtube.com/shorts/ytJQAgaNYDI",
       "date": "2026-08-19",
-      "views": 72978,
+      "views": 89079,
       "peer": true,
       "short": true,
       "cat": "債券"
@@ -486,7 +494,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=cdSemDbIFS0",
       "date": "2026-08-18",
-      "views": 63997,
+      "views": 64064,
       "peer": true,
       "cat": "綜合"
     },
@@ -496,7 +504,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=zrKp6RZy91Y",
       "date": "2026-08-17",
-      "views": 46154,
+      "views": 46197,
       "peer": true,
       "cat": "市值型"
     },
@@ -506,7 +514,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=kNGQ4_qgZ6s",
       "date": "2026-08-19",
-      "views": 42880,
+      "views": 42890,
       "peer": true,
       "cat": "主動式"
     },
@@ -516,7 +524,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=_-DkXv3sfGk",
       "date": "2026-08-19",
-      "views": 41793,
+      "views": 41923,
       "peer": true,
       "cat": "高股息"
     },
@@ -532,9 +540,9 @@
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00986D（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00986D（詳下方新聞標籤）",
     "品牌焦點：復華新興企業債 擁利多（經濟日報）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：0817 短 輝達800V啟動！台股3族群爆發（阮蕙慈分析師-大華國際投顧-金融阮實力・162,935 次觀看）"
+    "YouTube 熱片：0817 短 輝達800V啟動！台股3族群爆發（阮蕙慈分析師-大華國際投顧-金融阮實力・162,946 次觀看）"
   ]
 }
