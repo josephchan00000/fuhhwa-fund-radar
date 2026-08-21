@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/22 06:51",
+  "as_of": "2026/08/22 07:38",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -413,7 +413,7 @@
       "channel": "理周FUN財經",
       "url": "https://www.youtube.com/shorts/qUfBYUMlwWE",
       "date": "2026-08-17",
-      "views": 3566,
+      "views": 3562,
       "short": true
     },
     {
@@ -430,7 +430,7 @@
       "channel": "JJ的理財智慧星",
       "url": "https://www.youtube.com/watch?v=aIY03KCv7zM",
       "date": "2026-08-17",
-      "views": 438
+      "views": 439
     },
     {
       "platform": "youtube",
@@ -438,7 +438,7 @@
       "channel": "股市最錢線",
       "url": "https://www.youtube.com/shorts/ytJQAgaNYDI",
       "date": "2026-08-19",
-      "views": 320082,
+      "views": 334844,
       "peer": true,
       "short": true,
       "cat": "債券"
@@ -460,7 +460,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/wI5WucAYB9c",
       "date": "2026-08-17",
-      "views": 106999,
+      "views": 107009,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -471,7 +471,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=cdSemDbIFS0",
       "date": "2026-08-18",
-      "views": 68861,
+      "views": 68941,
       "peer": true,
       "cat": "綜合"
     },
@@ -481,7 +481,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=_-DkXv3sfGk",
       "date": "2026-08-19",
-      "views": 51776,
+      "views": 51926,
       "peer": true,
       "cat": "高股息"
     },
@@ -491,19 +491,9 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=zrKp6RZy91Y",
       "date": "2026-08-17",
-      "views": 49270,
+      "views": 49336,
       "peer": true,
       "cat": "市值型"
-    },
-    {
-      "platform": "youtube",
-      "title": "情人節直播！台股又跌千點！買了主動式ETF？拉回我會買哪些股票？ #台股 #台積電 #記憶體",
-      "channel": "一綺聊股",
-      "url": "https://www.youtube.com/watch?v=kNGQ4_qgZ6s",
-      "date": "2026-08-19",
-      "views": 43655,
-      "peer": true,
-      "cat": "主動式"
     },
     {
       "platform": "youtube",
@@ -511,10 +501,20 @@
       "channel": "民視新聞網 Formosa TV News network",
       "url": "https://www.youtube.com/shorts/Iw-t1uZmrlc",
       "date": "2026-08-21",
-      "views": 43618,
+      "views": 43824,
       "peer": true,
       "short": true,
       "cat": "基金"
+    },
+    {
+      "platform": "youtube",
+      "title": "情人節直播！台股又跌千點！買了主動式ETF？拉回我會買哪些股票？ #台股 #台積電 #記憶體",
+      "channel": "一綺聊股",
+      "url": "https://www.youtube.com/watch?v=kNGQ4_qgZ6s",
+      "date": "2026-08-19",
+      "views": 43662,
+      "peer": true,
+      "cat": "主動式"
     },
     {
       "platform": "youtube",
@@ -532,7 +532,7 @@
       "channel": "東風衛視",
       "url": "https://www.youtube.com/watch?v=FWe64TfoRh8",
       "date": "2026-08-18",
-      "views": 24510,
+      "views": 24568,
       "peer": true,
       "cat": "綜合"
     }
@@ -540,6 +540,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A（詳下方新聞標籤）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：牛市回來，更不能亂買ETF！盧燕俐公開「正2＋短債」配置法、主動式ETF加碼策略！《高手請上座》EP1 Ft.理財專家 盧燕俐（股市最錢線・320,082 次觀看）"
+    "YouTube 熱片：牛市回來，更不能亂買ETF！盧燕俐公開「正2＋短債」配置法、主動式ETF加碼策略！《高手請上座》EP1 Ft.理財專家 盧燕俐（股市最錢線・334,844 次觀看）"
   ]
 }
