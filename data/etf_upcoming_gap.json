@@ -1,12 +1,32 @@
 {
- "as_of": "2026-08-21 07:42",
- "count": 0,
- "items": [],
- "pipeline_n": 9,
+ "as_of": "2026-08-22 06:53",
+ "count": 1,
+ "items": [
+  {
+   "code": null,
+   "name": "街口特選優息非投資等級債券ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "被動式ETF",
+   "approve": "115.8.17申報生效"
+  }
+ ],
+ "pipeline_n": 8,
  "pipeline": [
   {
    "code": null,
    "name": "復華台灣新星主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
+   "cat": "主動式ETF"
+  },
+  {
+   "code": null,
+   "name": "台新臺灣中小主動式ETF基金",
    "first_seen": null,
    "kind": "offering",
    "src": "cnyes",
@@ -53,15 +73,6 @@
   },
   {
    "code": null,
-   "name": "台新臺灣中小主動式ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "主動式ETF"
-  },
-  {
-   "code": null,
    "name": "聯博未來趨勢創新龍頭主動式ETF基金",
    "first_seen": null,
    "kind": "offering",
@@ -79,15 +90,6 @@
    "stage": "applied",
    "cat": "主動式ETF",
    "approve": "審查中"
-  },
-  {
-   "code": null,
-   "name": "施羅德AI科技台股主動式ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "主動式ETF"
   }
  ]
 }
