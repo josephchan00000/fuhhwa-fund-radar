@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/22 07:38",
+  "as_of": "2026/08/23 06:56",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -12,13 +12,6 @@
         "00929"
       ],
       "items": [
-        {
-          "title": "00929 復華台灣科技優息 - 再來回測一次，阿朗兄就靠你了😂，真是萬眾矚目 - 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/article/182850112",
-          "source": "CMoney",
-          "date": "2026-08-21 21:43",
-          "datetime": "2026-08-21T21:43:13+08:00"
-        },
         {
           "title": "熱門股／除息表現亮眼！光寶科、奇鋐、蜜望實急拉翻紅填息00929卻陷貼息| 產經",
           "url": "https://news.ustv.com.tw/newsdetail/20260819A001006",
@@ -51,11 +44,11 @@
           "datetime": "2026-08-21T18:01:00+08:00"
         },
         {
-          "title": "8/20 00991A 日月光投砍到剩 9 張",
-          "url": "https://www.cmoney.tw/forum/article/182698280",
+          "title": "8/21 00991A 三筆賣單都是沉睡股",
+          "url": "https://www.cmoney.tw/forum/article/182811936",
           "source": "CMoney",
-          "date": "2026-08-20 17:42",
-          "datetime": "2026-08-20T17:42:41+08:00"
+          "date": "2026-08-21 17:00",
+          "datetime": "2026-08-21T17:00:33+08:00"
         }
       ]
     },
@@ -66,7 +59,15 @@
       "short_names": [
         "00998A"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "00998A 主動復華金融股息 - 難得回檔，小額買進 - 股市爆料同學會",
+          "url": "https://www.cmoney.tw/forum/article/182769678",
+          "source": "CMoney",
+          "date": "2026-08-21 11:33",
+          "datetime": "2026-08-21T11:33:38+08:00"
+        }
+      ]
     },
     {
       "base": "主動復華金融債息",
@@ -75,7 +76,15 @@
       "short_names": [
         "00986D"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "00986DETF數據：股利、報酬率(TPEX:00986D)",
+          "url": "https://tw.tradingview.com/symbols/TPEX-00986D/profile/",
+          "source": "TradingView",
+          "date": "2026-08-22 00:24",
+          "datetime": "2026-08-22T00:24:38+08:00"
+        }
+      ]
     },
     {
       "base": "主動復華全球未來50",
@@ -413,7 +422,7 @@
       "channel": "理周FUN財經",
       "url": "https://www.youtube.com/shorts/qUfBYUMlwWE",
       "date": "2026-08-17",
-      "views": 3562,
+      "views": 3638,
       "short": true
     },
     {
@@ -422,15 +431,16 @@
       "channel": "John的投資思考",
       "url": "https://www.youtube.com/watch?v=2nKiMK_1iiA",
       "date": "2026-08-18",
-      "views": 808
+      "views": 864
     },
     {
       "platform": "youtube",
-      "title": "高股息ETF陷阱拆解！00929/00878/00713配息續航力大公開｜打造7%穩健退休現金流 #高股息ETF #00713 #0056 #00878 #00919 #00929 # 00961",
-      "channel": "JJ的理財智慧星",
-      "url": "https://www.youtube.com/watch?v=aIY03KCv7zM",
-      "date": "2026-08-17",
-      "views": 439
+      "title": "00929 就算買在最差的那一天，也賺了 61％ #00929 #高股息 #月月配 #台股",
+      "channel": "彥呈",
+      "url": "https://www.youtube.com/shorts/MiekBlKhVMc",
+      "date": "2026-08-22",
+      "views": 558,
+      "short": true
     },
     {
       "platform": "youtube",
@@ -438,29 +448,28 @@
       "channel": "股市最錢線",
       "url": "https://www.youtube.com/shorts/ytJQAgaNYDI",
       "date": "2026-08-19",
-      "views": 334844,
+      "views": 581242,
       "peer": true,
       "short": true,
       "cat": "債券"
     },
     {
       "platform": "youtube",
-      "title": "0817 短 輝達800V啟動！台股3族群爆發",
-      "channel": "阮蕙慈分析師-大華國際投顧-金融阮實力",
-      "url": "https://www.youtube.com/shorts/HZhr_XodK8c",
+      "title": "5支ETF！买入布局，长期稳定盈利",
+      "channel": "老李玩钱",
+      "url": "https://www.youtube.com/watch?v=5k5rE4y2ySQ",
       "date": "2026-08-17",
-      "views": 163317,
+      "views": 99725,
       "peer": true,
-      "short": true,
-      "cat": "市場趨勢"
+      "cat": "綜合"
     },
     {
       "platform": "youtube",
-      "title": "台股再震兩個月??「這時間」9成資金加碼!!【小宇宙大爆發 】#shorts #理財",
-      "channel": "小宇宙大爆發",
-      "url": "https://www.youtube.com/shorts/wI5WucAYB9c",
-      "date": "2026-08-17",
-      "views": 107009,
+      "title": "台股最危險時刻還會來？杜金龍曝股票買滿時機！【富足今周起】#shorts #杜金龍 #王志郁",
+      "channel": "今周刊",
+      "url": "https://www.youtube.com/shorts/lWhOwBwA2Lw",
+      "date": "2026-08-19",
+      "views": 86121,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -471,29 +480,9 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=cdSemDbIFS0",
       "date": "2026-08-18",
-      "views": 68941,
+      "views": 77733,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股V轉後再震盪！高股息ETF誰抗跌、00981A為何加碼國巨？完整解析ETF分批加碼法｜ft.超馬芭樂、葉芷娟【ETF錢滾錢】EP84",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/watch?v=_-DkXv3sfGk",
-      "date": "2026-08-19",
-      "views": 51926,
-      "peer": true,
-      "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "她花一年出清所有個股！從選股到改抱0050、006208，為何投資反而更輕鬆？｜ft.聰明主婦【理財資優生】EP88",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/watch?v=zrKp6RZy91Y",
-      "date": "2026-08-17",
-      "views": 49336,
-      "peer": true,
-      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -501,10 +490,31 @@
       "channel": "民視新聞網 Formosa TV News network",
       "url": "https://www.youtube.com/shorts/Iw-t1uZmrlc",
       "date": "2026-08-21",
-      "views": 43824,
+      "views": 66209,
       "peer": true,
       "short": true,
       "cat": "基金"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股「9月魔咒」還沒來，你就先賣了？最後可能買得更貴｜投資研究 #29",
+      "channel": "Mr.m財富研究室",
+      "url": "https://www.youtube.com/shorts/QiWWNrp7lZg",
+      "date": "2026-08-18",
+      "views": 65339,
+      "peer": true,
+      "short": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股V轉後再震盪！高股息ETF誰抗跌、00981A為何加碼國巨？完整解析ETF分批加碼法｜ft.超馬芭樂、葉芷娟【ETF錢滾錢】EP84",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/watch?v=_-DkXv3sfGk",
+      "date": "2026-08-19",
+      "views": 59487,
+      "peer": true,
+      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -512,34 +522,35 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=kNGQ4_qgZ6s",
       "date": "2026-08-19",
-      "views": 43662,
+      "views": 43970,
       "peer": true,
       "cat": "主動式"
     },
     {
       "platform": "youtube",
-      "title": "ETF除息周25檔接力 近半年化配息率超過一成 觀望零售財報與油價漲 美股三大指數收黑｜主播貝庭｜【非凡Morning Call】20260818｜非凡財經新聞",
-      "channel": "USTV 非凡電視",
-      "url": "https://www.youtube.com/watch?v=S7DPFT84t2Q",
-      "date": "2026-08-17",
-      "views": 34914,
+      "title": "高股息、市值型、主動式ETF怎麼買？3檔就夠！ft.超馬芭樂 #陳明君 @vlmoney",
+      "channel": "緯來財經",
+      "url": "https://www.youtube.com/shorts/sKyBhnPmjZ0",
+      "date": "2026-08-18",
+      "views": 36992,
       "peer": true,
+      "short": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "亂買ETF小心破產？財經作家游庭皓公開00878慘案【單身行不行精選回顧】",
-      "channel": "東風衛視",
-      "url": "https://www.youtube.com/watch?v=FWe64TfoRh8",
+      "title": "【美債ETF又破底! 台股結算見轉折? 多空對決? 最後的買股機會還是逃命點?】張貽程分析師 主持人Kelly 有字幕 2026.08.18",
+      "channel": "張貽程分析師-摩爾證券投顧-外資超錢線",
+      "url": "https://www.youtube.com/watch?v=MeNUIWNd97M",
       "date": "2026-08-18",
-      "views": 24568,
+      "views": 23059,
       "peer": true,
-      "cat": "綜合"
+      "cat": "債券"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00991A（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00986D（詳下方新聞標籤）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：牛市回來，更不能亂買ETF！盧燕俐公開「正2＋短債」配置法、主動式ETF加碼策略！《高手請上座》EP1 Ft.理財專家 盧燕俐（股市最錢線・334,844 次觀看）"
+    "YouTube 熱片：牛市回來，更不能亂買ETF！盧燕俐公開「正2＋短債」配置法、主動式ETF加碼策略！《高手請上座》EP1 Ft.理財專家 盧燕俐（股市最錢線・581,242 次觀看）"
   ]
 }
