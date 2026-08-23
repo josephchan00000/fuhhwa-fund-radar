@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/24 06:55",
+  "as_of": "2026/08/24 07:35",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -416,7 +416,7 @@
       "channel": "John的投資思考",
       "url": "https://www.youtube.com/watch?v=2nKiMK_1iiA",
       "date": "2026-08-18",
-      "views": 911
+      "views": 910
     },
     {
       "platform": "youtube",
@@ -424,7 +424,7 @@
       "channel": "彥呈",
       "url": "https://www.youtube.com/shorts/MiekBlKhVMc",
       "date": "2026-08-22",
-      "views": 676,
+      "views": 677,
       "short": true
     },
     {
@@ -433,7 +433,7 @@
       "channel": "股市最錢線",
       "url": "https://www.youtube.com/shorts/ytJQAgaNYDI",
       "date": "2026-08-19",
-      "views": 854889,
+      "views": 858922,
       "peer": true,
       "short": true,
       "cat": "債券"
@@ -444,7 +444,7 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/shorts/lWhOwBwA2Lw",
       "date": "2026-08-19",
-      "views": 95106,
+      "views": 95156,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -465,7 +465,7 @@
       "channel": "民視新聞網 Formosa TV News network",
       "url": "https://www.youtube.com/shorts/Iw-t1uZmrlc",
       "date": "2026-08-21",
-      "views": 83417,
+      "views": 83568,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -476,7 +476,7 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/shorts/Nj30JIrpgD0",
       "date": "2026-08-20",
-      "views": 74251,
+      "views": 74263,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -487,7 +487,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=_-DkXv3sfGk",
       "date": "2026-08-19",
-      "views": 64789,
+      "views": 64830,
       "peer": true,
       "cat": "高股息"
     },
@@ -497,7 +497,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=eIR3rx8efik",
       "date": "2026-08-19",
-      "views": 57743,
+      "views": 57772,
       "peer": true,
       "cat": "高股息"
     },
@@ -517,7 +517,7 @@
       "channel": "笑譚美股",
       "url": "https://www.youtube.com/watch?v=GyBoRP5Ro1E",
       "date": "2026-08-21",
-      "views": 39153,
+      "views": 39257,
       "peer": true,
       "cat": "基金"
     },
@@ -527,7 +527,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=PeaZ-6_Nk2E",
       "date": "2026-08-22",
-      "views": 37615,
+      "views": 37692,
       "peer": true,
       "cat": "主動式"
     }
@@ -535,6 +535,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00986D（詳下方新聞標籤）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：牛市回來，更不能亂買ETF！盧燕俐公開「正2＋短債」配置法、主動式ETF加碼策略！《高手請上座》EP1 Ft.理財專家 盧燕俐（股市最錢線・854,889 次觀看）"
+    "YouTube 熱片：牛市回來，更不能亂買ETF！盧燕俐公開「正2＋短債」配置法、主動式ETF加碼策略！《高手請上座》EP1 Ft.理財專家 盧燕俐（股市最錢線・858,922 次觀看）"
   ]
 }
