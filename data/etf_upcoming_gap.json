@@ -1,18 +1,7 @@
 {
- "as_of": "2026-08-24 07:37",
- "count": 1,
- "items": [
-  {
-   "code": null,
-   "name": "街口特選優息非投資等級債券ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "approved",
-   "cat": "被動式ETF",
-   "approve": "115.8.17申報生效"
-  }
- ],
+ "as_of": "2026-08-24 08:13",
+ "count": 0,
+ "items": [],
  "pipeline_n": 8,
  "pipeline": [
   {
