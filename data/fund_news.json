@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/26 06:56",
+  "as_of": "2026/08/26 07:38",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -87,7 +87,15 @@
       "short_names": [
         "美國新星新臺幣"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華美國標普500成長ETF",
+          "url": "https://invest.cnyes.com/funds/detail/%E5%BE%A9%E8%8F%AF%E7%BE%8E%E5%9C%8B%E6%A8%99%E6%99%AE500%E6%88%90%E9%95%B7ETF/A23111/overview",
+          "source": "鉅亨網",
+          "date": "2026-08-20 10:09",
+          "datetime": "2026-08-20T10:09:12+08:00"
+        }
+      ]
     },
     {
       "base": "復華全球大趨勢基金",
@@ -399,7 +407,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/T3JaT2z58y8",
       "date": "2026-08-24",
-      "views": 628,
+      "views": 632,
       "official": true,
       "short": true
     },
@@ -424,19 +432,19 @@
     },
     {
       "platform": "youtube",
-      "title": "00929 配息暴增 46% 創新高!#富人思維 #財富自由 #被動收入",
-      "channel": "財富閒叔跡",
-      "url": "https://www.youtube.com/watch?v=jQO_njBJ2I0",
-      "date": "2026-08-23",
-      "views": 121
-    },
-    {
-      "platform": "youtube",
       "title": "00929連台積電都踢！主題式配息ETF換股邏輯",
       "channel": "MK郭俊宏 — 配息現金流陪跑",
       "url": "https://www.youtube.com/watch?v=4LXQkPynIXE",
       "date": "2026-08-20",
-      "views": 121
+      "views": 122
+    },
+    {
+      "platform": "youtube",
+      "title": "00929 配息暴增 46% 創新高!#富人思維 #財富自由 #被動收入",
+      "channel": "財富閒叔跡",
+      "url": "https://www.youtube.com/watch?v=jQO_njBJ2I0",
+      "date": "2026-08-23",
+      "views": 120
     },
     {
       "platform": "youtube",
@@ -444,7 +452,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/shorts/Xkf-8oR6uFQ",
       "date": "2026-08-22",
-      "views": 153393,
+      "views": 153611,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -455,7 +463,7 @@
       "channel": "民視新聞網 Formosa TV News network",
       "url": "https://www.youtube.com/shorts/Iw-t1uZmrlc",
       "date": "2026-08-21",
-      "views": 107429,
+      "views": 107488,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -466,7 +474,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/watch?v=TCqg3UQ3AjI",
       "date": "2026-08-24",
-      "views": 84048,
+      "views": 84140,
       "peer": true,
       "cat": "綜合"
     },
@@ -486,7 +494,7 @@
       "channel": "笑譚美股",
       "url": "https://www.youtube.com/watch?v=GyBoRP5Ro1E",
       "date": "2026-08-21",
-      "views": 50656,
+      "views": 50777,
       "peer": true,
       "cat": "基金"
     },
@@ -496,7 +504,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=PeaZ-6_Nk2E",
       "date": "2026-08-22",
-      "views": 43603,
+      "views": 43626,
       "peer": true,
       "cat": "主動式"
     },
@@ -506,7 +514,7 @@
       "channel": "股添樂 股市新觀點",
       "url": "https://www.youtube.com/watch?v=HxSV0f8o-Z8",
       "date": "2026-08-23",
-      "views": 43298,
+      "views": 43321,
       "peer": true,
       "cat": "債券"
     },
@@ -516,7 +524,7 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/shorts/P1rGPfbE8ko",
       "date": "2026-08-21",
-      "views": 32143,
+      "views": 32148,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -527,7 +535,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=Z3J8DcvfB8M",
       "date": "2026-08-23",
-      "views": 20976,
+      "views": 21003,
       "peer": true,
       "cat": "主動式"
     },
@@ -537,14 +545,14 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=dJuMbjVr3Nw",
       "date": "2026-08-21",
-      "views": 20160,
+      "views": 20163,
       "peer": true,
       "cat": "市值型"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00991A、00986D（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00991A、00986D、美國新星（詳下方新聞標籤）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：多檔迎新高 但這情形恐中秋變盤 #台股 #杜金龍  #盧燕俐 #shorts 20260822（鈔錢部署–華視優選・153,393 次觀看）"
+    "YouTube 熱片：多檔迎新高 但這情形恐中秋變盤 #台股 #杜金龍  #盧燕俐 #shorts 20260822（鈔錢部署–華視優選・153,611 次觀看）"
   ]
 }
