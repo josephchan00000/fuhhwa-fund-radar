@@ -714,6 +714,8 @@ YT_SEARCH_MAX = 25           # search.list 成本與 10 筆同為 100 單位—�
 YT_BLOCK_IDS = {
     "D_pC9_q5spQ",   # 可蘭經朗誦《Surah Rahman | Ep - 00929》（2026-08-14 使用者回報誤收）
     "FAkMraqLuko",   # 日文頻道「両学長」米国高配当株ETF 解說（2026-08-17 使用者回報誤收）
+    "Iw-t1uZmrlc",   # 民視社會新聞「趙建銘稱曾拿教育基金去投資」（2026-08-25 使用者回報誤收；
+                     # 根因「教育基金」複合詞命中主題詞，結構性防呆見 _YT_NONMKT_FUND）
 }
 _YT_SHORT_SEC = 180          # YouTube Shorts 上限 3 分鐘（2024-10 起）；≤此秒數標為短片
 _YT_DUR = re.compile(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?")
@@ -776,6 +778,22 @@ def _is_japanese(text: str) -> bool:
     return bool(_KANA_RE.search(text or ""))
 
 
+# 簡體獨有字（2026-08-26 盤點抓到簡體頻道「笑譚美股」談美股量化基金誤入市場熱門層）——
+# 判準思路同假名判日文：找該文字系統的「獨有字符」，不逐詞窮舉。字集逐字挑
+# 「簡／日／台三方字形皆不同」者，刻意避開日文共用的簡化字（万・点・内・体・与 等）
+# 與台灣可能出現的字，只留台灣正體標題絕不會用的簡體字形（贝纟钅讠门辶各部首系＋常用單字）。
+_SC_RE = re.compile(
+    r"[财资贵购贷货账赚赢赔贴费贸员经级红纪结给统继绩缩线组织约纯绝维绿"
+    r"钱银错锁钢铁说话语谈请读调谁证评记议论访识让试门问间闻还这进远运连边过"
+    r"汇净涨势亏亿众优从为义应头实现观视觉览长风飞马车东乐业产严变战户储陆韩"
+    r"币团圆买卖个么书两显处发简汉]")
+
+
+def _is_simplified(text: str) -> bool:
+    """帶簡體獨有字＝簡體內容（多為中國美股／陸股頻道）、非台灣受眾。"""
+    return bool(_SC_RE.search(text or ""))
+
+
 def _code_hit(text: str, codes: tuple[str, ...] | None = None) -> bool:
     """ETF 代碼是否以「獨立詞」出現（預設查自家代碼）。防呆（2026-08-06 實戰誤收）：
     日文單字卡影片標題帶課號「L#00929」被純子字串比對誤判——代碼前後不得緊貼英數，
@@ -794,9 +812,10 @@ def _code_hit(text: str, codes: tuple[str, ...] | None = None) -> bool:
 def yt_relevant(title: str, desc: str = "") -> bool:
     """相關層：標題或說明含品牌詞（復華/金複合）或自家 ETF 代碼（獨立詞）才算相關
     （查詢會回同名他牌/無關影片）；負面司法題材同 PTT 排除。
-    純代碼命中（無品牌詞）另須含漢字——00929 這種五碼數字在全外語影片裡多半是編號。"""
+    純代碼命中（無品牌詞）另須含漢字——00929 這種五碼數字在全外語影片裡多半是編號；
+    日文（假名）與簡體（獨有字）內容皆非台灣受眾、不收。"""
     text = f"{title} {desc}"
-    if is_negative_title(title) or _is_japanese(title):
+    if is_negative_title(title) or _is_japanese(title) or _is_simplified(title):
         return False
     if _brand_hit(text):
         return True
@@ -807,6 +826,19 @@ def yt_relevant(title: str, desc: str = "") -> bool:
 # 純美股 ETF 內容（無任何台股代碼）不收；單獨「美國／美股」字樣不排除——
 # 「美國降息 台股ETF受惠」式新聞標題是常態。
 _YT_TOPIC = re.compile(r"ETF|高股息|市值型|存股|定期定額|債券|配息|基金", re.I)
+# 非市場語境的「基金」複合詞（2026-08-25 使用者回報：民視社會新聞 Short「趙建銘稱曾拿
+# 教育基金去投資」以 107K 觀看誤入市場熱門層——「教育基金」＝家庭儲蓄、「基金會」＝
+# 機構名，「基金」只是複合詞成分、非投資產品題材，卻被主題詞 regex 子字串命中；
+# 社會新聞觀看數天然巨大，viewCount 排序下任何詞縫都會被鑽）。主題詞比對前先剝掉。
+# 清單刻意保守：勞退／國安／主權基金是市場題材、不剝；理財向的「教育基金怎麼存」
+# 必帶 ETF／存股／定期定額等其他產品詞，剝掉不誤殺。同 yt_topic「大盤(?!點)」的
+# 複合詞語境防呆先例。
+_YT_NONMKT_FUND = re.compile(r"(?:教育|慈善|公益|獎學|急難|紓困|退撫)基金會?|基金會")
+
+
+def _mkt_text(text: str) -> str:
+    """主題詞比對用文本：剝掉非市場語境的「基金」複合詞。"""
+    return _YT_NONMKT_FUND.sub("", text or "")
 _YT_OFFSHORE = re.compile(
     r"(?<![0-9A-Za-z])(?:VOO|QQQ|SPY|VTI|VT|IVV|SCHD|JEPI|JEPQ|TLT|VYM|BND|SGOV)"
     r"(?![0-9A-Za-z])|美股\s*ETF|美國\s*ETF", re.I)
@@ -831,15 +863,16 @@ def yt_peer_relevant(title: str, desc: str = "") -> bool:
     ETF 代碼（高觀看的泛 ETF 討論多不寫代碼）；③市場趨勢詞（大盤行情/總經/資產配置）。
     個股本位防呆（使用者：不要個股）：**無任何產品面（主題詞/台股 ETF 代碼）**時，
     標題命中知名個股/個股操作詞/4 碼個股代號 → 不收（「台積電還能買嗎」型）；
-    有產品面則不受影響（ETF 成分股討論常點名個股）。純海外照舊不收。"""
+    有產品面則不受影響（ETF 成分股討論常點名個股）。純海外照舊不收；
+    簡體內容（獨有字）同日文不收；主題詞比對剝非市場「基金」複合詞（教育基金型）。"""
     text = f"{title} {desc}"
     if is_negative_title(title) or _brand_hit(text) or _code_hit(text):
         return False
-    if not _has_cjk(title) or _is_japanese(title):
+    if not _has_cjk(title) or _is_japanese(title) or _is_simplified(title):
         return False
     if _code_hit(text, _peer_codes()):
         return True
-    etfish = bool(_YT_TOPIC.search(text) or _TW_ETF_CODE.search(text))
+    etfish = bool(_YT_TOPIC.search(_mkt_text(text)) or _TW_ETF_CODE.search(text))
     if not etfish and not _YT_TREND.search(text):
         return False
     if _YT_OFFSHORE.search(text) and not _TW_ETF_CODE.search(text):
@@ -852,8 +885,9 @@ _FUND_WORDS = re.compile(r"基金|金複合|理財機器人|投資法")
 
 def yt_topic(title: str) -> str:
     """市場熱門影片主題分類（儀表板章「熱門・{類別}」；配額避免單一題材洗版）。
-    優先序：債券 > 高股息 > 主動式 > 市值型 > 基金 > 市場趨勢 > 綜合。"""
-    t = title or ""
+    優先序：債券 > 高股息 > 主動式 > 市值型 > 基金 > 市場趨勢 > 綜合。
+    先剝非市場「基金」複合詞——「教育基金」社會新聞不得標成「基金」類。"""
+    t = _mkt_text(title)
     if "債" in t:
         return "債券"
     if re.search(r"高股息|高息|配息|除息|息收|領息|月配|季配|殖利率", t):
@@ -892,7 +926,7 @@ def social_group(item: dict) -> str:
         return "etf"
     if re.search(r"ETF", t, re.I) or _TW_ETF_CODE.search(t):
         return "etf"
-    if _FUND_WORDS.search(t):
+    if _FUND_WORDS.search(_mkt_text(t)):
         return "fund"
     if _YT_TREND.search(t):
         return "trend"
@@ -1232,7 +1266,8 @@ def _yt_vid(url: str) -> str:
 def _social_ok(s: dict) -> bool:
     """社群項目讀取端防呆（sanitize 用）：負面題材全平台濾；YouTube 另擋
     ①指名黑名單 YT_BLOCK_IDS、②非官方且標題無漢字（可蘭經朗誦《Ep - 00929》型
-    誤收）、③非官方且標題帶假名（日文財經影片「米国高配当株ETF」型誤收，2026-08-17）
+    誤收）、③非官方且標題帶假名（日文財經影片「米国高配当株ETF」型誤收，2026-08-17）、
+    ④非官方且標題帶簡體獨有字（簡體美股頻道「量化基金」型誤收，2026-08-26）
     ——舊落檔與 _carry_social 沿用款不必等重抓即消失。"""
     if is_negative_title(s.get("title") or ""):
         return False
@@ -1241,7 +1276,8 @@ def _social_ok(s: dict) -> bool:
     if _yt_vid(s.get("url") or "") in YT_BLOCK_IDS:
         return False
     t = s.get("title") or ""
-    return bool(s.get("official")) or (_has_cjk(t) and not _is_japanese(t))
+    return bool(s.get("official")) or (
+        _has_cjk(t) and not _is_japanese(t) and not _is_simplified(t))
 
 
 def sanitize(doc: dict | None) -> dict | None:
