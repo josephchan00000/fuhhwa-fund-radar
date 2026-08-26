@@ -950,3 +950,54 @@ def test_japanese_youtube_filtered():
     assert fundnews.yt_peer_relevant("高股息ETF大解密・0056 vs 00878")
     assert fundnews.yt_peer_relevant("台股大盤解析ー AI供應鏈續強？")
     assert fundnews.yt_relevant("復華00929解析・8月配息出爐")
+
+
+def test_society_news_fund_compound_filtered():
+    """2026-08-25 使用者回報：民視社會新聞 Short「趙建銘稱曾拿教育基金去投資」以 107K
+    觀看誤入市場熱門層——「教育基金」＝家庭儲蓄、「基金」只是複合詞成分，卻被主題詞
+    regex 子字串命中，社會新聞的巨大觀看數再輾壓 viewCount 排序。主題詞比對前剝
+    非市場複合詞（_YT_NONMKT_FUND，基金會同型）；指名黑名單＋讀取端 sanitize
+    讓既有落檔重建即消失。"""
+    t = "快新聞／趙建銘稱曾拿教育基金去「投資」　陳幸妤：趕快處理就好了"
+    assert not fundnews.yt_peer_relevant(t)
+    assert not fundnews.yt_peer_relevant("慈濟基金會愛心捐款 助弱勢家庭")
+    assert fundnews.yt_topic(t) != "基金"          # 就算經他路入選也不得標「基金」類
+    # 指名黑名單（shorts 網址形）＋讀取端
+    doc = {"social": [
+        {"platform": "youtube", "title": t, "channel": "民視新聞網", "cat": "基金",
+         "url": "https://www.youtube.com/shorts/Iw-t1uZmrlc", "views": 107488, "peer": True},
+        {"platform": "youtube", "title": "債券基金入門：定期定額這樣設",
+         "url": "https://www.youtube.com/watch?v=okA1234567z", "views": 9000, "peer": True}]}
+    out = fundnews.sanitize(doc)
+    assert [s["title"] for s in out["social"]] == ["債券基金入門：定期定額這樣設"]
+    # 不誤殺：投資語境的「基金」照收；理財向教育基金文必帶其他產品詞；
+    # 勞退／國安基金是市場題材、刻意不剝
+    for ok in ["基金投資入門：定期定額該怎麼開始", "債券基金 vs 債券ETF 差在哪",
+               "幫小孩存教育基金 該選ETF還是定期定額", "勞退基金大買台股 釋出什麼訊號",
+               "國安基金退場了嗎？大盤怎麼看"]:
+        assert fundnews.yt_peer_relevant(ok), ok
+
+
+def test_simplified_chinese_youtube_filtered():
+    """簡體頻道誤入市場熱門層（2026-08-26 修民視誤收時全量盤點抓到：「笑譚美股」談
+    量化基金 50K 觀看在板上；git 史另見「5支ETF！买入布局」——重複發生型）。
+    判準＝簡體獨有字（同假名判日文的「獨有字符」思路；字集逐字挑簡／日／台三方
+    字形皆不同者），抓取端與讀取端都擋；上線前已拿 7 月以來落檔全量掃誤殺（71 個
+    正體標題 0 誤殺——假名「・ー」教訓）。"""
+    sc = "AI把存储变成战略资产，却也把量化基金逼入绝境，散户投资者究竟何去何从"
+    assert fundnews._is_simplified(sc)
+    assert fundnews._is_simplified("5支ETF！买入布局，长期稳定盈利")
+    assert not fundnews.yt_peer_relevant(sc)
+    assert not fundnews.yt_relevant(sc + " 00929")   # 帶自家代碼的簡體影片同樣不收
+    doc = {"social": [
+        {"platform": "youtube", "title": sc, "channel": "笑譚美股",
+         "url": "https://www.youtube.com/watch?v=scAAAAAAAAA", "views": 50777, "peer": True},
+        {"platform": "youtube", "title": "台股ETF新手入門全攻略",
+         "url": "https://www.youtube.com/watch?v=okB1234567z", "views": 8000, "peer": True}]}
+    out = fundnews.sanitize(doc)
+    assert [s["title"] for s in out["social"]] == ["台股ETF新手入門全攻略"]
+    # 不誤殺：台灣正體標題（含「・ー」記號與常見財經措辭）一律不得判簡體
+    for ok in ["00929 高股息ETF 8月配息解析", "台股大盤創新高！投資組合怎麼調整",
+               "高股息ETF大解密・0056 vs 00878", "台股大盤解析ー AI供應鏈續強？",
+               "復華金管家教學：定期定額設定", "美債又出事了！股市會不會被拖累？"]:
+        assert not fundnews._is_simplified(ok), ok
