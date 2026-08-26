@@ -153,7 +153,7 @@
     }
   ],
   "group": "global_balanced",
-  "fetched_at": "2026-08-26 19:44",
+  "fetched_at": "2026-08-26 22:48",
   "returns_daily": {
     "1m": -4.78873,
     "3m": -15.75274,
@@ -161,5 +161,5 @@
     "1y": 63.75969,
     "ytd": 32.54902
   },
-  "returns_daily_asof": "2026/08/24"
+  "returns_daily_asof": "2026/08/25"
 }
