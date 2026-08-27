@@ -1,17 +1,28 @@
 {
- "as_of": "2026-08-27 12:33",
+ "as_of": "2026-08-28 06:56",
  "count": 0,
  "items": [],
- "pipeline_n": 8,
+ "pipeline_n": 9,
  "pipeline": [
   {
    "code": null,
-   "name": "貝萊德iShares安碩世界黃金礦業ETF",
+   "name": "貝萊德iShares安碩世界礦業ETF基金",
    "first_seen": null,
    "kind": "offering",
    "src": "cnyes",
    "stage": "applied",
-   "cat": "ETF"
+   "cat": "ETF",
+   "approve": "審查中"
+  },
+  {
+   "code": null,
+   "name": "貝萊德iShares安碩世界黃金ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
+   "cat": "ETF",
+   "approve": "審查中"
   },
   {
    "code": null,
