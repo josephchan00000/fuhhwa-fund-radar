@@ -259,7 +259,8 @@ def test_fetch_fills_close_px_and_last_div_for_tpex_codes(monkeypatch):
     monkeypatch.setattr(etfwatch.clock, "today_tw", lambda: today)
     monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
     i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00998A"]
-    assert i["kind"] == "other" and i["close_px"] == 17.13    # 序列末值回填
+    # 2026-08-28 起上櫃檔分組照型態（kind=active、cat 帶「・上櫃」註記），不再另立 other
+    assert i["kind"] == "active" and "上櫃" in i["cat"] and i["close_px"] == 17.13  # 序列末值回填
     assert i["last_div"] == 0.404 and i["last_div_date"] == "2026-06-17"   # 種子首配
     assert i["yield_pct"] == round(0.404 / 17.13 * 4 * 100, 2)             # 自算年化 ≈9.43%
     assert i["aum_e8"] == 35.21                               # 種子規模（Tier B）
@@ -282,15 +283,19 @@ def test_watchlist_matches_weekly_report():
     passive = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "passive"]
     active = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "active"]
     assert set(passive) == {"0056", "00878", "00919", "00929", "0050", "006208"}
-    assert "00991A" in active and len(active) == 25    # 含本家主動復華未來50
+    assert "00991A" in active and len(active) == 29    # 含本家主動復華未來50＋上櫃 4 檔
     # 2026-07-06 新增熱門／新募集主動式 ETF 皆在清單中
     assert {"00988A", "00990A", "00403A", "00407A"} <= set(active)
     # 2026-08-05 使用者指示補齊缺檔（兩批；00410A 為「即將登場」畢業轉正的第一例）
     assert {"00404A", "00405A", "00996A", "00410A"} <= set(active)
     assert {"00400A", "00401A", "00402A", "00406A", "00408A", "00999A"} <= set(active)
-    # 「其他」分類＝上櫃檔（本家 00998A/00986D＋統一 00411A/00987D，Yahoo 代碼 .TWO）
-    other = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "other"]
-    assert other == ["00998A", "00986D", "00411A", "00987D"]
+    # 上櫃檔＝主動式組成員、cat 帶「・上櫃」註記（2026-08-28 使用者指示：分組照投資型態，
+    # 不再另立「其他」組——kind=other 機制保留但常態無成員）
+    assert {"00998A", "00986D", "00411A", "00987D"} <= set(active)
+    for c, _n, _k, cat, _i in etfwatch.WATCHLIST:
+        if c in {"00998A", "00986D", "00411A", "00987D"}:
+            assert "上櫃" in cat
+    assert [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "other"] == []
     assert etfwatch.bond_codes() >= {"00986D"}         # 債券型放寬髒序列門檻的名單
     # 成立日期為 WATCHLIST 靜態值（不需抓、永不空白）
     for c, name, kind, cat, inception in etfwatch.WATCHLIST:
@@ -573,6 +578,46 @@ def test_upcoming_hint_row_compact():
 def test_upcoming_view_empty_shows_hint():
     out = fund_dashboard._upcoming_etf_view({"listing": [], "raising": [], "approved": []})
     assert "近期無" in out and "upnone" in out
+    # 明確傳空 applied 也一樣（申請中無檔不該撐開版面）
+    out2 = fund_dashboard._upcoming_etf_view(
+        {"listing": [], "raising": [], "approved": []}, applied=[])
+    assert "upnone" in out2
+
+
+def test_upcoming_view_applied_section():
+    """「已送件・審查中」第四組（2026-08-28 使用者：「有送件的ETF就可以更新上去即將登場了」）：
+    發現層 gap 檔 pipeline 欄自動展示——精簡列、同名去重、本家復華排最前、
+    無 approve 文字預設「審查中」；純展示不登錄不警示。"""
+    applied = [
+        {"name": "台新臺灣中小主動式ETF基金", "cat": "主動式ETF", "stage": "applied"},
+        {"name": "復華台灣新星主動式ETF基金", "cat": "主動式ETF", "stage": "applied"},
+        {"name": "兆豐美國黃金礦業ETF基金", "cat": "ETF", "stage": "applied",
+         "approve": "115.9.8申報生效"},
+        {"name": "台新臺灣中小主動式ETF基金", "cat": "主動式ETF", "stage": "applied"},  # 重複
+    ]
+    out = fund_dashboard._upcoming_etf_view(
+        {"listing": [], "raising": [], "approved": []}, applied=applied)
+    assert "已送件・審查中" in out and "upnone" not in out
+    assert out.count('class="uprow"') == 3                    # 同名去重後 3 列
+    assert out.count("申請中") >= 3                            # 每列帶「申請中」章
+    assert "審查中" in out and "115.9.8申報生效" in out         # 預設與原文審核狀態
+    assert '<span class="fh">復華</span>' in out               # 本家品牌色
+    # 本家排最前（sort key：復華 0、其他 1；其餘依名稱碼位序）
+    assert out.find("復華台灣新星") < out.find("台新臺灣中小")
+    assert out.find("復華台灣新星") < out.find("兆豐美國黃金礦業")
+
+
+def test_load_overrides_kind_cat_from_watchlist(tmp_path, monkeypatch):
+    """kind／cat 是顯示分組的靜態值，load() 以當前 WATCHLIST 覆蓋落檔舊值——
+    2026-08-28 上櫃檔 other→active 改分組時，不必等 CI 重抓當天就生效（同成立日慣例）。"""
+    fp = tmp_path / "etf_watch.json"
+    fp.write_text(json.dumps({"items": [
+        {"code": "00998A", "name": "主動復華金融股息", "kind": "other", "cat": "主動式股票"},
+    ]}), encoding="utf-8")
+    monkeypatch.setattr(etfwatch, "OUT", fp)
+    doc = etfwatch.load()
+    i = {x["code"]: x for x in doc["items"]}["00998A"]
+    assert i["kind"] == "active" and i["cat"] == "主動式股票・上櫃"
 
 
 # ── 掛牌日自動升級（2026-08-05 使用者：即將登場列過的檔，掛牌那天要自動加入追蹤） ─────

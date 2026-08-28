@@ -344,7 +344,9 @@ def _new_etf_chip() -> str:
       · 🔴 紅＝**已掛牌**卻沒登錄——真漏網，每日 SOP 立即補（附代碼，可直接查）；
       · ⚠ 琥珀＝募集頁上已核准／募集中、待登錄——**週一募集週掃自動查證補登**，
         只給檔數不列名稱清單（清單在 gap 檔，週掃讀得到；長名稱堆在版頭只是噪音）；
-      · 申請中（審查未過）在資料層就進 pipeline 欄、不在 items——完全不上版。
+      · 申請中（審查未過）在資料層就進 pipeline 欄、不在 items——**不進本警示章**，
+        但自 2026-08-28 起於「即將登場」區以「已送件・審查中」精簡列展示（純展示、
+        不登錄不逼補，見 _applied_row）。
     無缺口／無檔＝不顯示。"""
     doc = etfdiscover.load_gap()
     items = doc.get("items") or []
@@ -1343,7 +1345,10 @@ def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
                     ensure_ascii=False, separators=(",", ":"))
     # </script> 不可原樣出現在 inline script 內（HTML 解析器會提前結束腳本）
     js = js.replace("</", "<\\/")
-    chips = "".join(f'<button class="eg" data-g="{k}">{v}</button>' for k, v in labels.items())
+    # 分類 chips 只列「有成員」的分組（2026-08-28 上櫃檔併入主動式後「其他」常態為空，
+    # 空分組的 chip 點了毫無反應、看起來像壞掉）
+    chips = "".join(f'<button class="eg" data-g="{k}">{v}</button>'
+                    for k, v in labels.items() if picks.get(k))
     # ETF 代碼「泡泡」（2026-07-31 使用者：搜尋的地方也要有泡泡可以直接點，比打字方便）。
     # 照上方績效表分被動／主動式／其他三排；點一顆＝展開該檔並捲過去。
     pick = "".join(
@@ -1490,18 +1495,42 @@ def _upcoming_hint_row(it: dict) -> str:
             f'<span class="uphintt">{hint}</span>{link}</div>')
 
 
-def _upcoming_etf_view(up: dict | None) -> str:
-    """「即將登場的新 ETF」——三組分類（2026-08-10 使用者：「太長記得分類一下，尤其是
-    只有核准還沒確定募集時間的」）：
+def _applied_row(it: dict) -> str:
+    """「已送件・審查中」精簡列（2026-08-28 使用者：「有送件的 ETF 就可以更新上去即將登場了」）。
+
+    資料源＝CI 發現層 gap 檔的 pipeline 欄（鉅亨 IPO 頁申請列自動彙整，非人工登錄）——
+    只有基金名稱／類別／審核狀態三個資訊點，走 uprow 精簡列；核准（申報生效）後
+    發現層自動升進 items、週掃／每日 SOP 查證登錄，即移入上方正式分組。"""
+    name = _esc(it.get("name") or "").replace("復華", '<span class="fh">復華</span>')
+    cat = _esc(it.get("cat") or "")
+    approve = _esc(it.get("approve") or "審查中")
+    return (f'<div class="uprow"><span class="upnc">申請中</span>'
+            f'<span class="upname">{name}</span>'
+            f'<span class="upissuer">{cat}</span>'
+            f'<span class="uphintt">{approve}</span></div>')
+
+
+def _upcoming_etf_view(up: dict | None, applied: list | None = None) -> str:
+    """「即將登場的新 ETF」——四組分類（2026-08-10 使用者：「太長記得分類一下，尤其是
+    只有核准還沒確定募集時間的」；2026-08-28 補第四組「已送件・審查中」）：
       ① 募集中・即將募集（卡片；可申購、時效最高，在前）
       ② 即將掛牌・待掛牌（卡片；募集結束的檔以「待掛牌」續留，舊版會直接消失）
       ③ 已核准・募集時程未定（精簡列；資訊量只有「核准了」，不佔卡片版面）
+      ④ 已送件・審查中（精簡列；發現層 pipeline 自動彙整，未生效前不登錄不警示，僅展示）
     置於「ETF 數據追蹤」表格上方；無任何在窗項目時顯示精簡提示、不佔版面。"""
     up = up or {}
     raising = up.get("raising") or []
     listing = up.get("listing") or []
     approved = up.get("approved") or []
-    if not listing and not raising and not approved:
+    seen, applied_rows = set(), []
+    for it in applied or []:                    # 同名去重＋本家優先排序（復華在前）
+        nm = str((it or {}).get("name") or "").strip()
+        if nm and nm not in seen:
+            seen.add(nm)
+            applied_rows.append(it)
+    applied_rows.sort(key=lambda x: (0 if "復華" in (x.get("name") or "") else 1,
+                                     str(x.get("name") or "")))
+    if not listing and not raising and not approved and not applied_rows:
         return ('<div class="upnone">近期無「募集中／即將掛牌／已核准」的新 ETF 待登場'
                 '（本區列：募集開始或已公告掛牌日在未來約一個半月內、募集剛結束待掛牌、'
                 '或已核准待定時程者，過期自動移除）。</div>')
@@ -1524,11 +1553,19 @@ def _upcoming_etf_view(up: dict | None) -> str:
                      f'<div class="uplist">'
                      + "".join(_upcoming_hint_row(it) for it in approved)
                      + '</div>')
+    if applied_rows:
+        parts.append(f'<div class="upgrp">{_ic("clipboard", plain=True)} 已送件・審查中 '
+                     f'<span class="upwin">（{len(applied_rows)} 檔・鉅亨 IPO 頁申請列自動彙整，'
+                     f'核准後自動移入上方分組）</span></div>'
+                     f'<div class="uplist">'
+                     + "".join(_applied_row(it) for it in applied_rows)
+                     + '</div>')
     parts.append(
         '<div class="upfoot">新 ETF 前瞻資訊為人工彙整（來源：各投信官方募集頁／公開資訊觀測站／'
         '經濟日報・工商時報・MoneyDJ 新基金頁等，點「活動介紹」看原始說明）；日期以各投信公告為準，'
         '僅供參考、非投資建議或招攬。募集期間、掛牌日期可能因主管機關核准進度調整。海外被動指數'
-        '新檔僅在本區前瞻展示，掛牌後不列入下方追蹤表。</div></div>')
+        '新檔僅在本區前瞻展示，掛牌後不列入下方追蹤表。「已送件・審查中」為主管機關申請資訊之'
+        '自動彙整，送件內容可能修改或撤件，核准前僅供前瞻參考。</div></div>')
     return "".join(parts)
 
 
@@ -1547,10 +1584,12 @@ def _etfwatch_view(doc: dict | None, holdings_doc: dict | None = None) -> str:
         parts.append(f'<div class="ovg" id="etf-passive">{_ic("coin", plain=True)} 被動 ETF（高股息／市值型・{len(passive)} 檔）</div>'
                      + _etf_table(passive, holdings_doc))
     if active:
-        parts.append(f'<div class="ovg" id="etf-active">{_ic("zap", plain=True)} 主動式股票 ETF（{len(active)} 檔）</div>'
+        # 2026-08-28 使用者指示：分組照投資型態走——上櫃主動檔（原「其他」組）併入主動式表，
+        # 掛牌地改在性質欄以「・上櫃」註記；債券型主動檔同表、性質欄標「主動式債券」。
+        parts.append(f'<div class="ovg" id="etf-active">{_ic("zap", plain=True)} 主動式 ETF（股票／債券・{len(active)} 檔）</div>'
                      + _etf_table(active, holdings_doc))
-    if other:
-        parts.append(f'<div class="ovg" id="etf-other">{_ic("coin", plain=True)} 其他（上櫃主動式股票／債券・{len(other)} 檔）</div>'
+    if other:                                   # 目前無成員（機制保留：未來真無法歸類的檔）
+        parts.append(f'<div class="ovg" id="etf-other">{_ic("coin", plain=True)} 其他（{len(other)} 檔）</div>'
                      + _etf_table(other, holdings_doc))
     has_est = any(i.get("est_div") is not None for i in items)
     est_note = ('　<b>最近一次配息金額</b>為最近一次「實際」除息之每單位配息金額；標 <b>預估 X*</b> 者為'
@@ -3087,9 +3126,12 @@ def render() -> str:
     # ETF 分頁：先「即將登場的新 ETF」（募集中・即將募集＋即將掛牌・待掛牌，附活動介紹連結），
     # 再「ETF 數據追蹤」週績效表（左上「ETF」分頁專屬視圖）
     etf_up = etfwatch.upcoming()
+    # 申請中（已送件）檔＝發現層 gap 檔 pipeline 欄（2026-08-28 使用者：送件的也要上「即將登場」；
+    # 仍不登錄不警示，純展示——load_gap 無檔 fail-open 回空、區塊自動不渲染）
+    etf_applied = etfdiscover.load_gap().get("pipeline") or []
     sec_etf_up = (f'<div class="section" id="etf-upcoming"><div class="st">{_ic("zap", tone="amber")}即將登場的新 ETF '
-                  f'<span class="stsub">募集中・待掛牌・已核准待定 分組一次看・點「活動介紹」看投信說明</span></div>'
-                  f'{_upcoming_etf_view(etf_up)}</div>')
+                  f'<span class="stsub">募集中・待掛牌・已核准待定・已送件審查中 分組一次看・點「活動介紹」看投信說明</span></div>'
+                  f'{_upcoming_etf_view(etf_up, applied=etf_applied)}</div>')
     # 持股揭露鮮度另立 chip（2026-07-30）：`_freshness_view()` 只彙總「逾期」項目，
     # 資料正常時整個字串不會出現在頁面上——各來源的正常時戳一律標在自己區塊標題列。
     eh_date = max(((v.get("date") or "") for v in ((eh_doc or {}).get("etfs") or {}).values()),
