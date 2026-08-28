@@ -2505,6 +2505,774 @@
    "intro": "英國安托法加斯塔（Antofagasta），倫敦證交所掛牌的智利銅礦集團；營運 Los Pelambres、Centinela、Antucoya、Zaldívar 四座礦場，產出銅精礦與電解銅，並副產金、銀、鉬。",
    "ticker": "ANTO",
    "verified": true
+  },
+  "荷蘭保險公司": {
+   "country": "荷蘭",
+   "intro": "荷蘭 Aegon（AGN），全球性人壽保險與退休金集團；總部位於海牙，業務涵蓋美國、英國、荷蘭等市場的保險、年金與資產管理。",
+   "ticker": "AGN",
+   "verified": true
+  },
+  "Admiral集團公開有限公司": {
+   "country": "英國",
+   "intro": "英國 Admiral Group（ADM），以車險為主的保險集團；1993 年成立於卡地夫，亦提供住宅險與旅遊險，為富時 100 指數成分股。",
+   "ticker": "ADM",
+   "verified": true
+  },
+  "ASR荷蘭公眾有限公司": {
+   "country": "荷蘭",
+   "intro": "荷蘭 ASR Nederland（ASRNL），該國第二大保險集團；總部位於烏特勒支，業務涵蓋產險、壽險、資產管理與通路服務。",
+   "ticker": "ASRNL",
+   "verified": true
+  },
+  "德意志銀行": {
+   "country": "德國",
+   "intro": "德國 Deutsche Bank（DBK），該國最大銀行之一；總部位於法蘭克福，1870 年創立，業務涵蓋投資銀行、企業金融與資產管理。",
+   "ticker": "DBK",
+   "verified": true
+  },
+  "GO INC": {
+   "country": "日本",
+   "intro": "日本 GO Inc（581A），日本使用人數最多的叫車平台營運商；提供計程車叫車 App 服務，2026 年於東京證券交易所掛牌上市。",
+   "ticker": "581A",
+   "verified": true
+  },
+  "MEIDENSHA CORP": {
+   "country": "日本",
+   "intro": "日本明電舍（6508），電機設備製造商；1897 年創立，主要生產電力基礎設施、社會系統與工業用電動化相關設備，為日經 225 成分股。",
+   "ticker": "6508",
+   "verified": true
+  },
+  "ZHONGJI INNOLIGHT CO LTD-H": {
+   "country": "中國",
+   "intro": "中國中際旭創（3308），全球主要光通訊模組供應商之一；主要生產應用於 AI 資料中心的高速光收發模組，2026 年於香港交易所掛牌 H 股。",
+   "ticker": "3308",
+   "verified": true
+  },
+  "APPIER GROUP INC": {
+   "country": "日本",
+   "intro": "日本 Appier Group（4180），AI 行銷科技公司；2012 年由台灣團隊創立於台北，母公司登記於開曼群島，2021 年於東京證券交易所掛牌上市。",
+   "ticker": "4180",
+   "verified": true
+  },
+  "ISC CO LTD": {
+   "country": "韓國",
+   "intro": "韓國 ISC（095340），半導體測試插座製造商；總部位於城南市，2001 年成立，產品涵蓋記憶體測試、邏輯測試及老化測試插座等。",
+   "ticker": "095340",
+   "verified": true
+  },
+  "WFC 6.6 01/15/38": {
+   "country": "美國",
+   "intro": "美國富國銀行（Wells Fargo Bank, N.A.）發行之美元計價次順位債券，票面利率 6.6%、2038 年 1 月到期。",
+   "ticker": "US92976GAJ04",
+   "verified": true
+  },
+  "MS 6 3/8 07/24/42": {
+   "country": "美國",
+   "intro": "美國摩根士丹利（Morgan Stanley）2012 年發行之美元計價公司債，票面利率 6.375%、2042 年 7 月到期。",
+   "ticker": "US617482V925",
+   "verified": true
+  },
+  "GS 6 3/4 10/01/37": {
+   "country": "美國",
+   "intro": "美國高盛集團（Goldman Sachs Group）2007 年發行之美元計價公司債，票面利率 6.75%、2037 年 10 月到期。",
+   "ticker": "US38141GFD16",
+   "verified": true
+  },
+  "超豐電子股份有限公司": {
+   "country": "台灣",
+   "intro": "台灣超豐電子，半導體封裝測試廠；專注導線架封裝技術，服務邏輯IC、記憶體與類比IC客戶，為力成集團子公司。",
+   "ticker": "2441",
+   "verified": true
+  },
+  "環宇通訊半導體控股": {
+   "country": "台灣",
+   "intro": "台灣環宇通訊半導體控股（環宇-KY），砷化鎵等化合物半導體晶圓代工廠；並研發光通訊自有品牌產品，近年轉型矽光子光通訊IDM廠。",
+   "ticker": "4991",
+   "verified": true
+  },
+  "富喬": {
+   "country": "台灣",
+   "intro": "台灣富喬工業，電子級玻璃纖維紗與玻纖布製造廠；產品用於印刷電路板基材，近年供應AI伺服器用高階玻纖布，總部位於雲林。",
+   "ticker": "1815",
+   "verified": true
+  },
+  "彰銀": {
+   "country": "台灣",
+   "intro": "台灣彰化銀行，老牌公股色彩商業銀行；1950年成立，總行位於台中，主要經營存款、放款、外匯及信託等銀行業務。",
+   "ticker": "2801",
+   "verified": true
+  },
+  "東元電機": {
+   "country": "台灣",
+   "intro": "台灣東元電機，馬達與重電設備大廠；產品涵蓋工業馬達、發電輸配電機械、空調設備及工業自動化系統，並跨足綠能領域。",
+   "ticker": "1504",
+   "verified": true
+  },
+  "興勤電子工業": {
+   "country": "台灣",
+   "intro": "台灣興勤電子工業，電路保護元件製造商；主力產品為熱敏電阻器、壓敏電阻器及靜電放電抑制器，應用於3C、汽車與太陽能領域。",
+   "ticker": "2428",
+   "verified": true
+  },
+  "大江生醫": {
+   "country": "台灣",
+   "intro": "台灣大江生醫，保健食品與美容保養品代工廠；主要生產機能性飲品、食品及保養品，產品外銷全球近40國，外銷比重逾八成。",
+   "ticker": "8436",
+   "verified": true
+  },
+  "新應材": {
+   "country": "台灣",
+   "intro": "台灣新應材，半導體與面板用特化材料廠；主力產品為先進製程用表面改質劑、洗邊劑等微影特化材料，半導體營收占比近八成。",
+   "ticker": "4749",
+   "verified": true
+  },
+  "台耀化學": {
+   "country": "台灣",
+   "intro": "台灣台耀化學，原料藥製造廠；產品含抗癌活性成分、免疫調節劑、維他命D衍生物及紫外線吸收劑等醫療用原料藥。",
+   "ticker": "4746",
+   "verified": true
+  },
+  "長虹建設": {
+   "country": "台灣",
+   "intro": "台灣長虹建設，中大型建商；推案集中台北市與新北市精華地區，主要興建住宅及商辦大樓，多委託子公司宏林營造施工。",
+   "ticker": "5534",
+   "verified": true
+  },
+  "中華航空": {
+   "country": "台灣",
+   "intro": "台灣中華航空（華航），國內最大民用航空業者；經營客運、貨運及航空相關業務，貨運市占率居國內第一、客運居第二。",
+   "ticker": "2610",
+   "verified": true
+  },
+  "遠東國際商業銀行股份有限公司": {
+   "country": "台灣",
+   "intro": "台灣遠東國際商業銀行（遠銀），遠東集團旗下商業銀行；1992年開業，業務含存放款、外匯、信託及投資銀行業務。",
+   "ticker": "2845",
+   "verified": true
+  },
+  "創新服務": {
+   "country": "台灣",
+   "intro": "台灣創新服務，半導體探針卡設備廠；主要設計製造探針卡相關機器設備及光電自動化設備，並提供產業代工服務，2026年掛牌上櫃。",
+   "ticker": "7828",
+   "verified": true
+  },
+  "晶技": {
+   "country": "台灣",
+   "intro": "台灣晶技，全球最大石英頻率元件廠；產品含石英晶體、石英振盪器及石英濾波器，應用於行動通訊、車用電子及物聯網領域。",
+   "ticker": "3042",
+   "verified": true
+  },
+  "凌航科技股份有限公司": {
+   "country": "台灣",
+   "intro": "台灣凌航科技，記憶體模組廠；經營自有品牌Neo Forza及ODM代工，產品含DRAM、Flash模組及SSD，應用涵蓋工控與AI PC領域。",
+   "ticker": "3135",
+   "verified": true
+  },
+  "兆聯實業": {
+   "country": "台灣",
+   "intro": "台灣兆聯實業，高科技廠務用水系統整合廠；專營超純水及廢水回收系統規劃設計與安裝，主要客戶為半導體、光電及封測產業。",
+   "ticker": "6944",
+   "verified": true
+  },
+  "億光電子工業": {
+   "country": "台灣",
+   "intro": "台灣億光電子工業，LED光電半導體大廠；1983年成立，產品涵蓋可見光LED、紅外線元件、感測器及功率半導體，應用於照明與車用。",
+   "ticker": "2393",
+   "verified": true
+  },
+  "台企": {
+   "country": "台灣",
+   "intro": "台灣中小企業銀行（台企銀），中小企業專責公股銀行；業務以中小企業放款融資為主，八成放款戶資本額不及千萬元，1998年上市。",
+   "ticker": "2834",
+   "verified": true
+  },
+  "精誠": {
+   "country": "台灣",
+   "intro": "台灣精誠資訊，資訊服務業龍頭；集團旗下逾30家子公司，聚焦雲服務、數位資安、大數據分析等領域，深耕政府、金融與製造業客戶。",
+   "ticker": "6214",
+   "verified": true
+  },
+  "台中銀": {
+   "country": "台灣",
+   "intro": "台灣台中商業銀行，總行不在台北的市值最大銀行；前身為台中區合會儲蓄公司，1984年上市，經營商業銀行及信託業務。",
+   "ticker": "2812",
+   "verified": true
+  },
+  "營邦": {
+   "country": "台灣",
+   "intro": "台灣營邦企業，伺服器機箱與系統平台廠；主要生產產業用電腦及伺服器機箱、存儲平台與系統平台，客戶多為國際伺服器品牌廠。",
+   "ticker": "3693",
+   "verified": true
+  },
+  "台星科": {
+   "country": "台灣",
+   "intro": "台灣台星科，專業IC封測廠；主力為晶圓凸塊封裝及CP測試，為矽格集團子公司，客戶含聯發科、AMD等半導體大廠。",
+   "ticker": "3265",
+   "verified": true
+  },
+  "億豐綜合工業": {
+   "country": "台灣",
+   "intro": "台灣億豐綜合工業，全球客製化窗簾領導廠；主要生產百葉窗、百葉簾及軟質窗簾等，生產基地遍及台灣、中國、東南亞及美國。",
+   "ticker": "8464",
+   "verified": true
+  },
+  "台半": {
+   "country": "台灣",
+   "intro": "台灣半導體（台半），功率半導體與電子元件廠；1979年成立，產品含整流二極體、電源管理IC及MOSFET，應用於車用與消費性電子。",
+   "ticker": "5425",
+   "verified": true
+  },
+  "王品餐飲": {
+   "country": "台灣",
+   "intro": "台灣王品餐飲（王品集團），連鎖餐飲集團；1993年成立，旗下涵蓋中西餐、鐵板燒、火鍋、燒肉等逾20個品牌、400餘家門店。",
+   "ticker": "2727",
+   "verified": true
+  },
+  "台虹科技": {
+   "country": "台灣",
+   "intro": "台灣台虹科技，軟性銅箔積層板（FCCL）大廠；產品含FCCL、保護膠片及太陽能模組背板，FCCL銷量居全球前三大。",
+   "ticker": "8039",
+   "verified": true
+  },
+  "保瑞": {
+   "country": "台灣",
+   "intro": "台灣保瑞藥業，國內最大製藥集團之一；提供CDMO受託開發製造服務及新藥開發，並經銷西藥產品，外銷市場逾百國。",
+   "ticker": "6472",
+   "verified": true
+  },
+  "鈺創": {
+   "country": "台灣",
+   "intro": "台灣鈺創科技，記憶體IC無晶圓設計公司（Fabless）；核心技術為記憶體與邏輯晶片設計，聚焦消費性電子及系統晶片產品開發。",
+   "ticker": "5351",
+   "verified": true
+  },
+  "汎銓": {
+   "country": "台灣",
+   "intro": "台灣汎銓科技，半導體材料分析檢測廠；專精先進製程材料失效分析、矽光子檢測及自研檢測設備，客戶含台積電先進製程供應鏈。",
+   "ticker": "6830",
+   "verified": true
+  },
+  "宇瞻科技股份有限公司": {
+   "country": "台灣",
+   "intro": "台灣宇瞻科技（Apacer），記憶體模組與儲存裝置廠；設計製造DRAM模組、快閃記憶體儲存裝置及消費性電子產品，1997年成立。",
+   "ticker": "8271",
+   "verified": true
+  },
+  "茂達電子": {
+   "country": "台灣",
+   "intro": "台灣茂達電子，功率類比IC設計廠；主力產品為風扇馬達驅動IC與電源管理IC，2025年底由國巨集團完成公開收購入主。",
+   "ticker": "6138",
+   "verified": true
+  },
+  "晶碩光學": {
+   "country": "台灣",
+   "intro": "台灣晶碩光學（PEGAVISION），隱形眼鏡製造商；由和碩、景碩轉投資成立，以自有品牌與代工並重，主力產品為拋棄式軟性隱形眼鏡。",
+   "ticker": "6491",
+   "verified": true
+  },
+  "盟立": {
+   "country": "台灣",
+   "intro": "台灣盟立自動化，自動化設備系統廠；產品含自動化設備系統、電腦控制設備、機器人相關產品、醫療器材自動化生產設備及立體停車設備。",
+   "ticker": "2464",
+   "verified": true
+  },
+  "萬海航運": {
+   "country": "台灣",
+   "intro": "台灣萬海航運，國際貨櫃航運公司；經營國際航運、船務代理、港口貨櫃集散站及船舶貨櫃買賣出租，為台灣「貨櫃三雄」之一。",
+   "ticker": "2615",
+   "verified": true
+  },
+  "喬山健康": {
+   "country": "台灣",
+   "intro": "台灣喬山健康科技，全球健身器材大廠；以Matrix、Vision、Horizon等品牌行銷全球，產品涵蓋有氧運動及重量訓練器材，為Planet Fitness等健身房主要供應商。",
+   "ticker": "1736",
+   "verified": true
+  },
+  "大中積體電路": {
+   "country": "台灣",
+   "intro": "台灣大中積體電路（Sinopower），功率半導體IC設計公司；產品聚焦MOSFET、IGBT及高壓積體電路，應用含伺服器散熱風扇、儲能備援系統等。",
+   "ticker": "6435",
+   "verified": true
+  },
+  "鉅祥": {
+   "country": "台灣",
+   "intro": "台灣鉅祥企業，精密金屬零組件廠；主要生產連續沖壓精密金屬件、沖壓模具、機構零組件及通訊設備機殼等產品。",
+   "ticker": "2476",
+   "verified": true
+  },
+  "友達": {
+   "country": "台灣",
+   "intro": "台灣友達光電（AUO），面板製造大廠；生產TFT-LCD顯示器及相關光電產品，近年並跨足Mini/MicroLED、車用顯示及低軌衛星等新事業。",
+   "ticker": "2409",
+   "verified": true
+  },
+  "智伸科技": {
+   "country": "台灣",
+   "intro": "台灣智伸科技，精密機械加工廠；產品涵蓋汽車零組件（含電動車空氣懸吊）、醫療器材、AI伺服器液冷散熱零件及機器人關節元件。",
+   "ticker": "4551",
+   "verified": true
+  },
+  "潤泰創新國際": {
+   "country": "台灣",
+   "intro": "台灣潤泰創新國際（原潤泰建設），潤泰集團旗下建設公司；主要從事住商大樓投資興建、都市更新等中長期土地開發及多角化零售事業。",
+   "ticker": "9945",
+   "verified": true
+  },
+  "台灣精銳": {
+   "country": "台灣",
+   "intro": "台灣精銳科技，精密減速機廠；主力產品為行星減速機，應用於半導體、面板及工具機自動化設備，並開發微型減速機搶攻人形機器人關節模組商機。",
+   "ticker": "4583",
+   "verified": true
+  },
+  "騰輝電子-KY": {
+   "country": "台灣",
+   "intro": "台灣騰輝電子-KY（開曼註冊，主要生產基地在中國蘇州、江陰），電子材料廠；生產銅箔基板（CCL）、散熱鋁基板（IMS）及膠片，應用於工業車用散熱與軍工航太電路板。",
+   "ticker": "6672",
+   "verified": true
+  },
+  "碩天": {
+   "country": "台灣",
+   "intro": "台灣碩天科技，不斷電系統（UPS）廠；以自有品牌CyberPower行銷全球，產品含家用及資料中心用UPS系統、電源保護與電源管理設備。",
+   "ticker": "3617",
+   "verified": true
+  },
+  "和桐": {
+   "country": "台灣",
+   "intro": "台灣和桐公司，石化業者；主要生產直鏈烷烴、直鏈烯烴等石化原料，並跨足清潔用品製造與化學品國際貿易。",
+   "ticker": "1714",
+   "verified": true
+  },
+  "盛群": {
+   "country": "台灣",
+   "intro": "台灣盛群半導體，微控制器（MCU）IC設計公司；產品涵蓋8/32位元MCU及顯示驅動、電源管理、觸控等周邊IC，應用於家電、健康量測、物聯網等領域。",
+   "ticker": "6202",
+   "verified": true
+  },
+  "裕隆汽車": {
+   "country": "台灣",
+   "intro": "台灣裕隆汽車，汽車製造與集團控股公司；主要從事汽車製造銷售及相關投資，2008年創立國產自主品牌納智捷（Luxgen）。",
+   "ticker": "2201",
+   "verified": true
+  },
+  "凱美": {
+   "country": "台灣",
+   "intro": "台灣凱美電機，被動元件廠；主要生產電容器、電阻器及其生產設備零件，產品應用於通信與光電電子器材。",
+   "ticker": "2375",
+   "verified": true
+  },
+  "威健": {
+   "country": "台灣",
+   "intro": "台灣威健實業，半導體電子零組件通路商；代理超微（AMD）、英飛凌、恩智浦等國際大廠微控制器、電源管理IC及類比IC產品，銷售予下游製造商。",
+   "ticker": "3033",
+   "verified": true
+  },
+  "豐祥-KY": {
+   "country": "台灣",
+   "intro": "台灣豐祥-KY（開曼註冊，台股掛牌），汽機車零組件廠；主要生產汽機車零件、精密五金與機構零組件，並跨足醫療器材及休閒車零件製造。",
+   "ticker": "5288",
+   "verified": true
+  },
+  "康舒": {
+   "country": "台灣",
+   "intro": "台灣康舒科技，電源供應器廠；為英業達集團成員，全球前十大交換式電源供應器製造商之一，主要生產各式電源供應器及硬體零組件。",
+   "ticker": "6282",
+   "verified": true
+  },
+  "百和": {
+   "country": "台灣",
+   "intro": "台灣百和興業，紡織副料廠；主要生產各式黏扣帶（魔鬼氈）、織帶、鬆緊帶及射出金勾等產品，供應成衣與鞋類製造業。",
+   "ticker": "9938",
+   "verified": true
+  },
+  "大樹醫藥": {
+   "country": "台灣",
+   "intro": "台灣大樹醫藥（大樹連鎖藥局），連鎖藥局通路商；透過連鎖藥局銷售各式藥品、保健食品、嬰幼兒用品及化妝品，為台灣規模領先之連鎖藥局品牌。",
+   "ticker": "6469",
+   "verified": true
+  },
+  "達工": {
+   "country": "台灣",
+   "intro": "台灣達欣工程，營造工程公司；承攬住宅商辦大樓、半導體廠房及科技廠房等土木建築工程，並涉足捷運、道路等綜合交通工程。",
+   "ticker": "2535",
+   "verified": true
+  },
+  "力積電": {
+   "country": "台灣",
+   "intro": "台灣力積電（PSMC），晶圓代工廠；前身為記憶體大廠力晶，轉型後以「Open Foundry」策略跨足邏輯、利基型記憶體及3D先進封裝等晶圓代工業務。",
+   "ticker": "6770",
+   "verified": true
+  },
+  "晟德": {
+   "country": "台灣",
+   "intro": "台灣晟德大藥廠，生技控股公司；原為製藥廠，現轉型為生技投資控股公司，旗下轉投資多家新藥研發與醫療相關企業。",
+   "ticker": "4123",
+   "verified": true
+  },
+  "根基": {
+   "country": "台灣",
+   "intro": "台灣根基營造，營造工程公司；主要承攬土木、建築、水利及整地工程，並從事橋樑、隧道等基礎工程建設。",
+   "ticker": "2546",
+   "verified": true
+  },
+  "長興": {
+   "country": "台灣",
+   "intro": "台灣長興材料工業，特用化學品廠；主要生產工業用合成樹脂、印刷電路板材料、光阻材料等電子材料及特用化學品。",
+   "ticker": "1717",
+   "verified": true
+  },
+  "新紡": {
+   "country": "台灣",
+   "intro": "台灣新光紡織，紡織業者；主要從事紡織品及成衣加工製造買賣，並跨足商用大樓與住宅之建築租售業務。",
+   "ticker": "1419",
+   "verified": true
+  },
+  "豐興": {
+   "country": "台灣",
+   "intro": "台灣豐興鋼鐵，鋼鐵廠；主要生產各式角鋼、扁鋼、槽鋼、鋼板、H型鋼及螺紋鋼（鋼筋）、圓鋼等特殊鋼材。",
+   "ticker": "2015",
+   "verified": true
+  },
+  "大銀微系統": {
+   "country": "台灣",
+   "intro": "台灣大銀微系統，精密運動控制元件廠；主要生產線性馬達、直驅馬達、力矩馬達、伺服驅動器及運動控制器，應用於半導體、工具機及自動化設備。",
+   "ticker": "4576",
+   "verified": true
+  },
+  "波若威": {
+   "country": "台灣",
+   "intro": "台灣波若威科技，光纖通訊零組件廠；主要設計生產Shuffle Box、FAU、MPO/MMC等高密度光纖套件，產品可對接CPO（共封裝光學）光引擎。",
+   "ticker": "3163",
+   "verified": true
+  },
+  "精  材": {
+   "country": "台灣",
+   "intro": "台灣精材科技，半導體晶圓級封裝廠；主要業務為晶圓級尺寸封裝、晶圓級後護層封裝及晶圓測試，為台積電集團旗下先進封裝廠商。",
+   "ticker": "3374",
+   "verified": true
+  },
+  "SPACE EXPLORATION TECHN-CL A": {
+   "country": "美國",
+   "intro": "美國太空探索技術公司（SpaceX），研發火箭發射與星鏈衛星寬頻服務；由伊隆‧馬斯克創辦，目前為未上市私人公司，基金經特殊管道間接持有其股權。",
+   "ticker": "SPCX",
+   "verified": true
+  },
+  "PALANTIR TECHNOLOGIES INC-A": {
+   "country": "美國",
+   "intro": "美國 Palantir（PLTR），大數據分析與人工智慧軟體公司；主要客戶為美國政府與國防機構，近年積極拓展商業企業市場。",
+   "ticker": "PLTR",
+   "verified": true
+  },
+  "COHERENT CORP": {
+   "country": "美國",
+   "intro": "美國 Coherent（COHR），光子學與雷射技術公司；產品涵蓋工業雷射、光通訊元件與光學材料，前身為 II-VI，2022年併購 Coherent Inc 後更名。",
+   "ticker": "COHR",
+   "verified": true
+  },
+  "CROWDSTRIKE HOLDINGS INC - A": {
+   "country": "美國",
+   "intro": "美國 CrowdStrike（CRWD），雲端原生資安防護公司；主力產品為 Falcon 端點防護平台，提供威脅偵測、防護與應變服務。",
+   "ticker": "CRWD",
+   "verified": true
+  },
+  "TERADYNE INC": {
+   "country": "美國",
+   "intro": "美國 Teradyne（TER），半導體自動化測試設備供應商；產品涵蓋晶片測試系統與工業機器人，客戶遍及全球半導體與電子製造業。",
+   "ticker": "TER",
+   "verified": true
+  },
+  "Chime Financial Inc": {
+   "country": "美國",
+   "intro": "美國 Chime（CHYM），數位銀行服務公司；主打無實體分行、免手續費金融帳戶，主要服務對象為一般消費者，2025年掛牌上市。",
+   "ticker": "CHYM",
+   "verified": true
+  },
+  "NEBIUS GROUP NV": {
+   "country": "荷蘭",
+   "intro": "荷蘭 Nebius Group，人工智慧雲端運算基礎設施公司；提供 GPU 算力租賃與資料中心服務，前身為 Yandex 國際業務，2024年重組後於那斯達克掛牌。",
+   "ticker": "NBIS",
+   "verified": true
+  },
+  "AXON ENTERPRISE INC": {
+   "country": "美國",
+   "intro": "美國 Axon（AXON），公共安全科技公司；產品涵蓋 TASER 電擊槍、警用密錄器與雲端證據管理軟體，客戶主要為執法與政府機關。",
+   "ticker": "AXON",
+   "verified": true
+  },
+  "INTEL CORP": {
+   "country": "美國",
+   "intro": "美國 Intel（INTC），半導體製造大廠；產品涵蓋中央處理器、晶片組與人工智慧加速器，並跨足晶圓代工業務。",
+   "ticker": "INTC",
+   "verified": true
+  },
+  "CLOUDFLARE INC - CLASS A": {
+   "country": "美國",
+   "intro": "美國 Cloudflare（NET），網路基礎設施與資安服務公司；提供內容傳遞網路、DDoS 防護與網域名稱服務，全球據點涵蓋逾百國。",
+   "ticker": "NET",
+   "verified": true
+  },
+  "CIRCLE INTERNET GROUP INC": {
+   "country": "美國",
+   "intro": "美國 Circle（CRCL），金融科技公司；為美元穩定幣 USDC 發行商，業務聚焦數位貨幣支付與區塊鏈金融應用，2025年掛牌上市。",
+   "ticker": "CRCL",
+   "verified": true
+  },
+  "貝萊德公司": {
+   "country": "美國",
+   "intro": "美國貝萊德（BlackRock），全球最大資產管理公司；提供投資管理、風險管理與財務顧問服務，旗下 iShares 為知名 ETF 品牌。",
+   "ticker": "BLK",
+   "verified": true
+  },
+  "環匯公司": {
+   "country": "美國",
+   "intro": "美國環匯（Global Payments），支付科技公司；提供商戶收單、支付處理與相關金融科技解決方案，服務範圍涵蓋逾百國市場。",
+   "ticker": "GPN",
+   "verified": true
+  },
+  "UBER TECHNOLOGIES INC": {
+   "country": "美國",
+   "intro": "美國 Uber（UBER），共享出行與外送平台公司；業務涵蓋叫車服務、餐飲外送 Uber Eats 與貨運物流，據點遍及全球數千城市。",
+   "ticker": "UBER",
+   "verified": true
+  },
+  "黑石公司": {
+   "country": "美國",
+   "intro": "美國黑石（Blackstone），全球最大另類資產管理公司；業務涵蓋私募股權、不動產、信貸與基礎建設投資。",
+   "ticker": "BX",
+   "verified": true
+  },
+  "戰神管理公司": {
+   "country": "美國",
+   "intro": "美國戰神管理（Ares Management），另類資產管理公司；業務涵蓋信貸、不動產、私募股權與基礎建設投資，服務機構法人與私人財富客戶。",
+   "ticker": "ARES",
+   "verified": true
+  },
+  "Texas Instruments Inc": {
+   "country": "美國",
+   "intro": "美國德州儀器（Texas Instruments），類比與嵌入式處理半導體大廠；產品廣泛應用於工業、汽車與消費性電子，客戶數逾十萬家。",
+   "ticker": "TXN",
+   "verified": true
+  },
+  "NATERA INC": {
+   "country": "美國",
+   "intro": "美國 Natera（NTRA），基因檢測公司；主力為無創細胞游離 DNA 檢測技術，應用於女性健康、腫瘤與器官健康篩檢領域。",
+   "ticker": "NTRA",
+   "verified": true
+  },
+  "SITIME CORP": {
+   "country": "美國",
+   "intro": "美國 SiTime（SITM），精準計時半導體公司；主力產品為 MEMS 石英振盪器替代方案，應用於通訊、車用與工業電子領域。",
+   "ticker": "SITM",
+   "verified": true
+  },
+  "Analog Devices Inc": {
+   "country": "美國",
+   "intro": "美國亞德諾（Analog Devices），類比與混合訊號半導體大廠；產品涵蓋訊號處理、功率管理與射頻晶片，應用橫跨工業、車用與通訊領域。",
+   "ticker": "ADI",
+   "verified": true
+  },
+  "CIENA CORP": {
+   "country": "美國",
+   "intro": "美國 Ciena（CIEN），光通訊網路設備公司；產品涵蓋光網路傳輸、路由與交換系統，客戶主要為電信業者與政府機構。",
+   "ticker": "CIEN",
+   "verified": true
+  },
+  "ASML Holding NV": {
+   "country": "荷蘭",
+   "intro": "荷蘭 ASML，半導體微影設備大廠；目前是全球極紫外光（EUV）微影機的獨家供應商，為先進製程晶片生產的關鍵設備商。",
+   "ticker": "ASML",
+   "verified": true
+  },
+  "KLA Corp": {
+   "country": "美國",
+   "intro": "美國 KLA（KLAC），半導體製程控制設備公司；主力產品為晶圓檢測與量測系統，協助晶片廠監控良率，客戶含台積電等主要晶圓代工廠。",
+   "ticker": "KLAC",
+   "verified": true
+  },
+  "Cadence Design Systems Inc": {
+   "country": "美國",
+   "intro": "美國益華電腦（Cadence），電子設計自動化（EDA）軟體公司；提供晶片設計、驗證與半導體智財授權服務，客戶涵蓋全球主要半導體廠商。",
+   "ticker": "CDNS",
+   "verified": true
+  },
+  "IONQ INC": {
+   "country": "美國",
+   "intro": "美國 IonQ（IONQ），量子運算公司；主力為離子阱量子電腦硬體與軟體開發，目標應用於藥物開發、材料科學與金融模型等領域。",
+   "ticker": "IONQ",
+   "verified": true
+  },
+  "Remitly全球公司": {
+   "country": "美國",
+   "intro": "美國 Remitly，跨境匯款金融科技公司；提供國際小額匯款與跨境金融服務，據點覆蓋逾170個國家。",
+   "ticker": "RELY",
+   "verified": true
+  },
+  "ATLASSIAN CORP-CL A": {
+   "country": "美國",
+   "intro": "美國 Atlassian（TEAM），企業協作與軟體開發工具公司；主力產品為 Jira 與 Confluence，2002年創立於澳洲雪梨，2022年完成美國德拉瓦州法人重組。",
+   "ticker": "TEAM",
+   "verified": true
+  },
+  "MONOLITHIC POWER SYSTEMS INC": {
+   "country": "美國",
+   "intro": "美國 Monolithic Power Systems（MPWR），無晶圓廠類比半導體公司；專精高效能電源管理晶片，產品用於資料中心、AI 伺服器、車用與工業電子。",
+   "ticker": "MPWR",
+   "verified": true
+  },
+  "COREWEAVE INC-CL A": {
+   "country": "美國",
+   "intro": "美國 CoreWeave（CRWV），雲端運算服務公司；以 GPU 為核心提供 AI 模型訓練與部署用雲端基礎設施，2025 年 3 月於那斯達克掛牌上市。",
+   "ticker": "CRWV",
+   "verified": true
+  },
+  "NETSKOPE INC-CL A": {
+   "country": "美國",
+   "intro": "美國 Netskope（NTSK），雲端資安公司；主力產品為安全服務邊緣（SSE）與 SASE 解決方案，協助企業防護雲端應用與資料，2025 年 9 月掛牌上市。",
+   "ticker": "NTSK",
+   "verified": true
+  },
+  "Microchip Technology Inc": {
+   "country": "美國",
+   "intro": "美國 Microchip Technology（MCHP），半導體公司；主要生產微控制器（MCU）與類比、混合訊號晶片，產品用於車用、工業與通訊嵌入式系統。",
+   "ticker": "MCHP",
+   "verified": true
+  },
+  "DOORDASH INC - A": {
+   "country": "美國",
+   "intro": "美國 DoorDash（DASH），外送與在地商務平台；連結消費者、商家與外送員，提供餐飲及零售外送服務，並經營訂閱制會員服務 DashPass。",
+   "ticker": "DASH",
+   "verified": true
+  },
+  "AXT INC": {
+   "country": "美國",
+   "intro": "美國 AXT（AXTI），半導體材料公司；生產砷化鎵（GaAs）、磷化銦（InP）等化合物半導體基板，應用於光通訊、AI 基礎設施與感測元件。",
+   "ticker": "AXTI",
+   "verified": true
+  },
+  "ARM Holdings PLC": {
+   "country": "英國",
+   "intro": "英國 Arm Holdings（ARM），晶片架構設計公司；不自行製造晶片，而是授權處理器架構予高通、蘋果、三星等廠商，大股東為日本軟銀集團。",
+   "ticker": "ARM",
+   "verified": true
+  },
+  "RUBRIK INC-A": {
+   "country": "美國",
+   "intro": "美國 Rubrik（RBRK），資料安全與備援公司；提供雲端與企業資料保護、勒索軟體防護及復原服務，2024 年 4 月於紐約證交所掛牌上市。",
+   "ticker": "RBRK",
+   "verified": true
+  },
+  "Netflix Inc": {
+   "country": "美國",
+   "intro": "美國 Netflix（NFLX），全球最大訂閱制串流影音平台；提供影集、電影、紀錄片與遊戲等內容，服務遍及全球逾 190 個國家。",
+   "ticker": "NFLX",
+   "verified": true
+  },
+  "FORMFACTOR INC": {
+   "country": "美國",
+   "intro": "美國 FormFactor（FORM），半導體測試設備公司；主要生產探針卡與探針台，用於晶圓級電性測試，客戶涵蓋邏輯、記憶體與影像感測晶片廠。",
+   "ticker": "FORM",
+   "verified": true
+  },
+  "Celestica Inc": {
+   "country": "加拿大",
+   "intro": "加拿大 Celestica（CLS），電子專業製造服務（EMS）公司；提供設計、製造與供應鏈整合服務，近年拓展 AI 伺服器機櫃相關業務。",
+   "ticker": "CLS",
+   "verified": true
+  },
+  "MongoDB Inc": {
+   "country": "美國",
+   "intro": "美國 MongoDB（MDB），資料庫軟體公司；提供文件導向的通用資料庫平台 MongoDB Atlas 等雲端服務，為主要 NoSQL 資料庫供應商之一。",
+   "ticker": "MDB",
+   "verified": true
+  },
+  "DIODES INC": {
+   "country": "美國",
+   "intro": "美國 Diodes（DIOD），分離式與類比半導體公司；生產二極體、整流器、電晶體、MOSFET 等元件，應用於車用、工業與消費性電子。",
+   "ticker": "DIOD",
+   "verified": true
+  },
+  "ROCKET LAB USA INC": {
+   "country": "美國",
+   "intro": "美國 Rocket Lab（RKLB），太空發射與衛星系統公司；主力產品為 Electron 小型運載火箭，並研發 Neutron 中型火箭，2021 年以 SPAC 方式掛牌。",
+   "ticker": "RKLB",
+   "verified": true
+  },
+  "Booking Holdings Inc": {
+   "country": "美國",
+   "intro": "美國 Booking Holdings（BKNG），全球線上旅遊集團；旗下擁有 Booking.com、Priceline、Agoda、KAYAK 等訂房與旅遊比價平台。",
+   "ticker": "BKNG",
+   "verified": true
+  },
+  "Silicon Motion Technology Corp": {
+   "country": "台灣",
+   "intro": "台灣 Silicon Motion 慧榮科技（SIMO），NAND 快閃記憶體控制晶片設計公司；產品用於固態硬碟（SSD）、eMMC/UFS 行動儲存，總部位於竹北。",
+   "ticker": "SIMO",
+   "verified": true
+  },
+  "AGNICO EAGLE MINES LTD": {
+   "country": "加拿大",
+   "intro": "加拿大 Agnico Eagle Mines（AEM），全球第二大黃金生產商；於加拿大、澳洲、芬蘭與墨西哥經營多座金礦，總部位於多倫多。",
+   "ticker": "AEM",
+   "verified": true
+  },
+  "TWILIO INC - A": {
+   "country": "美國",
+   "intro": "美國 Twilio（TWLO），雲端通訊平台公司；提供簡訊、語音、電子郵件、視訊等 API 服務，協助企業建構客戶溝通與行銷應用。",
+   "ticker": "TWLO",
+   "verified": true
+  },
+  "Alibaba Group Holding Ltd": {
+   "country": "中國",
+   "intro": "中國 阿里巴巴集團（BABA），大型電子商務與雲端服務集團；旗下擁有淘寶、天貓、阿里雲等業務，1999 年由馬雲創立，總部位於杭州。",
+   "ticker": "BABA",
+   "verified": true
+  },
+  "Take-Two Interactive Software Inc": {
+   "country": "美國",
+   "intro": "美國 Take-Two Interactive（TTWO），電玩遊戲開發與發行商；旗下擁有 Rockstar Games（俠盜獵車手系列）與 2K（NBA 2K 系列）等工作室。",
+   "ticker": "TTWO",
+   "verified": true
+  },
+  "REVOLUTION MEDICINES INC": {
+   "country": "美國",
+   "intro": "美國 Revolution Medicines（RVMD），臨床階段精準腫瘤新藥公司；研發鎖定 RAS 致癌基因突變的口服小分子藥物，主攻胰臟癌、肺癌等癌種。",
+   "ticker": "RVMD",
+   "verified": true
+  },
+  "TWIST BIOSCIENCE CORP": {
+   "country": "美國",
+   "intro": "美國 Twist Bioscience（TWST），合成生物科技公司；以矽晶片平台製造合成 DNA，產品用於基因體學研究、藥物開發與資料儲存等領域。",
+   "ticker": "TWST",
+   "verified": true
+  },
+  "CEREBRAS SYSTEMS INC - A": {
+   "country": "美國",
+   "intro": "美國 Cerebras Systems（CBRS），AI 運算晶片公司；以晶圓級引擎（Wafer-Scale Engine）架構打造 AI 加速器，2026 年 5 月於那斯達克掛牌上市。",
+   "ticker": "CBRS",
+   "verified": true
+  },
+  "Fastly Inc": {
+   "country": "美國",
+   "intro": "美國 Fastly（FSLY），邊緣雲端運算公司；提供內容傳遞網路（CDN）、邊緣運算與資安防護服務，客戶涵蓋電商、串流媒體與遊戲產業。",
+   "ticker": "FSLY",
+   "verified": true
+  },
+  "Spotify Technology SA": {
+   "country": "瑞典",
+   "intro": "瑞典 Spotify（SPOT），全球音樂串流平台；提供音樂與 Podcast 訂閱及廣告支持服務，總部位於斯德哥爾摩，控股公司登記於盧森堡。",
+   "ticker": "SPOT",
+   "verified": true
+  },
+  "Samsara Inc": {
+   "country": "美國",
+   "intro": "美國 Samsara（IOT），物聯網（IoT）與車隊管理平台公司；提供車輛遙測、駕駛安全、資產追蹤等雲端軟體服務，2021 年 12 月掛牌上市。",
+   "ticker": "IOT",
+   "verified": true
+  },
+  "Zscaler Inc": {
+   "country": "美國",
+   "intro": "美國 Zscaler（ZS），雲端資安公司；提供零信任架構（Zero Trust）網路安全服務，協助企業用戶安全存取雲端應用，2018 年於那斯達克掛牌上市。",
+   "ticker": "ZS",
+   "verified": true
   }
  }
 }
