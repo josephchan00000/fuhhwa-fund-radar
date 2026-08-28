@@ -278,7 +278,7 @@ def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
 
 def test_watchlist_matches_weekly_report():
     codes = [c for c, *_ in etfwatch.WATCHLIST]
-    assert len(codes) == len(set(codes)) == 33
+    assert len(codes) == len(set(codes)) == 35
     passive = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "passive"]
     active = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "active"]
     assert set(passive) == {"0056", "00878", "00919", "00929", "0050", "006208"}
@@ -288,9 +288,9 @@ def test_watchlist_matches_weekly_report():
     # 2026-08-05 使用者指示補齊缺檔（兩批；00410A 為「即將登場」畢業轉正的第一例）
     assert {"00404A", "00405A", "00996A", "00410A"} <= set(active)
     assert {"00400A", "00401A", "00402A", "00406A", "00408A", "00999A"} <= set(active)
-    # 「其他」分類＝本家上櫃兩檔（00998A 股票＋00986D 債券，Yahoo 代碼 .TWO）
+    # 「其他」分類＝上櫃檔（本家 00998A/00986D＋統一 00411A/00987D，Yahoo 代碼 .TWO）
     other = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "other"]
-    assert other == ["00998A", "00986D"]
+    assert other == ["00998A", "00986D", "00411A", "00987D"]
     assert etfwatch.bond_codes() >= {"00986D"}         # 債券型放寬髒序列門檻的名單
     # 成立日期為 WATCHLIST 靜態值（不需抓、永不空白）
     for c, name, kind, cat, inception in etfwatch.WATCHLIST:
