@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/30 06:50",
+  "as_of": "2026/08/31 06:51",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -53,18 +53,18 @@
       ],
       "items": [
         {
+          "title": "跟著川普投顧走! 川普提高金融持股比例 專家:可關注全球金融ETF-00998A",
+          "url": "https://tw.news.yahoo.com/%E8%B7%9F%E8%91%97%E5%B7%9D%E6%99%AE%E6%8A%95%E9%A1%A7%E8%B5%B0-%E5%B7%9D%E6%99%AE%E6%8F%90%E9%AB%98%E9%87%91%E8%9E%8D%E6%8C%81%E8%82%A1%E6%AF%94%E4%BE%8B-%E5%B0%88%E5%AE%B6-%E5%8F%AF%E9%97%9C%E6%B3%A8%E5%85%A8%E7%90%83%E9%87%91%E8%9E%8Detf-00998a-140528029.html",
+          "source": "Yahoo新聞",
+          "date": "2026-08-27 22:05",
+          "datetime": "2026-08-27T22:05:28+08:00"
+        },
+        {
           "title": "股神巴菲特金融持股逾34%！全球金融股00998A以年化9%成焦點",
           "url": "https://www.watchmedia01.com/archives/543627",
           "source": "觀傳媒",
           "date": "2026-08-27 21:24",
           "datetime": "2026-08-27T21:24:31+08:00"
-        },
-        {
-          "title": "巴菲特、川普都在加碼金融股! 全球金融00998A引發市場高度關注",
-          "url": "https://sunmedia.tw/news/finance/%E5%B7%B4%E8%8F%B2%E7%89%B9%E3%80%81%E5%B7%9D%E6%99%AE%E9%83%BD%E5%9C%A8%E5%8A%A0%E7%A2%BC%E9%87%91%E8%9E%8D%E8%82%A1!-%E5%85%A8%E7%90%83%E9%87%91%E8%9E%8D00998A%E5%BC%95%E7%99%BC%E5%B8%82%E5%A0%B4%E9%AB%98%E5%BA%A6%E9%97%9C%E6%B3%A8-1787835987106",
-          "source": "商傳媒",
-          "date": "2026-08-27 21:06",
-          "datetime": "2026-08-27T21:06:31+08:00"
         }
       ]
     },
@@ -421,7 +421,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/T3JaT2z58y8",
       "date": "2026-08-24",
-      "views": 911,
+      "views": 992,
       "official": true,
       "short": true
     },
@@ -431,17 +431,9 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/Q-7zHjzBIGA",
       "date": "2026-08-24",
-      "views": 217,
+      "views": 261,
       "official": true,
       "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "00929 配息暴增 46% 創新高!#富人思維 #財富自由 #被動收入",
-      "channel": "財富閒叔跡",
-      "url": "https://www.youtube.com/watch?v=jQO_njBJ2I0",
-      "date": "2026-08-23",
-      "views": 361
     },
     {
       "platform": "youtube",
@@ -449,7 +441,7 @@
       "channel": "財富閒叔跡",
       "url": "https://www.youtube.com/watch?v=C60XEqYmGV4",
       "date": "2026-08-24",
-      "views": 197
+      "views": 238
     },
     {
       "platform": "youtube",
@@ -462,34 +454,21 @@
     },
     {
       "platform": "youtube",
+      "title": "高股息ETF今日買賣超｜凱基金1檔基金同步加碼、鈊象減碼最多｜買超賣超Top10｜2026/08/24 #高股息ETF #高股息 #台股 #ETF #存股 #shorts #凱基金 #鈊象",
+      "channel": "Steven Lin",
+      "url": "https://www.youtube.com/shorts/bE6pKXQjrcs",
+      "date": "2026-08-24",
+      "views": 29,
+      "short": true
+    },
+    {
+      "platform": "youtube",
       "title": "【股票】台股崩跌前10天就知道？4大心法首度拆解：關鍵訊號藏在這根黑K裡？ft.朱家泓、林穎｜下班經濟學770｜謝哲青、張瓊方",
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=4N6rmHHj-qA",
       "date": "2026-08-27",
-      "views": 263761,
+      "views": 301529,
       "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "趙建銘要兒子先簽同意書 再歸還2300萬教育基金",
-      "channel": "中天新聞",
-      "url": "https://www.youtube.com/shorts/DzKze0xk1jw",
-      "date": "2026-08-25",
-      "views": 202517,
-      "peer": true,
-      "short": true,
-      "cat": "基金"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股APP夯! 男大生開發「板塊輪動」、28歲年輕股民創「股市智投」　｜TVBS新聞 @TVBSNEWS01",
-      "channel": "TVBS NEWS",
-      "url": "https://www.youtube.com/shorts/p908TfJ90MU",
-      "date": "2026-08-26",
-      "views": 131928,
-      "peer": true,
-      "short": true,
       "cat": "市場趨勢"
     },
     {
@@ -498,18 +477,40 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/6m-fgcgh3mM",
       "date": "2026-08-28",
-      "views": 116746,
+      "views": 141131,
       "peer": true,
       "short": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "美股 NVDA、MRVL、INTU、CRWD、CRM财报波动！对冲基金上周大抛售！大逆转，Altman承认AI时间表看法错误！",
-      "channel": "视野环球财经",
-      "url": "https://www.youtube.com/watch?v=Z9T89cdzuyo",
-      "date": "2026-08-25",
-      "views": 82187,
+      "title": "台股APP夯! 男大生開發「板塊輪動」、28歲年輕股民創「股市智投」　｜TVBS新聞 @TVBSNEWS01",
+      "channel": "TVBS NEWS",
+      "url": "https://www.youtube.com/shorts/p908TfJ90MU",
+      "date": "2026-08-26",
+      "views": 137363,
+      "peer": true,
+      "short": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股投資人剉哩等!欣興驚傳涉&quot;洗產地&quot; 周一開盤恐引爆踩踏? 51檔ETF納入! 00981A.00987A減碼壓力大｜非凡財經新聞｜20260830",
+      "channel": "USTV 非凡電視",
+      "url": "https://www.youtube.com/shorts/97tquEhNBAw",
+      "date": "2026-08-30",
+      "views": 105165,
+      "peer": true,
+      "short": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "周冠男談校務基金：不投資，就是把風險留給下一代｜投資你來講EP.146｜Feat. 政大商學院 副院長 周冠男 教授",
+      "channel": "阿爾發機器人理財 - 阿爾發投顧 | AI 投資長",
+      "url": "https://www.youtube.com/watch?v=8U_S5RweWuQ",
+      "date": "2026-08-27",
+      "views": 63823,
       "peer": true,
       "cat": "基金"
     },
@@ -519,29 +520,9 @@
       "channel": "知美JiMMY",
       "url": "https://www.youtube.com/watch?v=SnHmIRfTqJE",
       "date": "2026-08-29",
-      "views": 50854,
+      "views": 60389,
       "peer": true,
       "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "主力偷買這幾檔!你手中的持股可能要反彈了!主動式ETF集體換股!跟上步伐.把握下波主流股║陳昆仁、鐘崑禎、江國中║2026.08.27",
-      "channel": "瘋狂股市福利社Free Free Free!",
-      "url": "https://www.youtube.com/watch?v=hBlENfPA4I0",
-      "date": "2026-08-27",
-      "views": 33682,
-      "peer": true,
-      "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "0050正二同期績效勝0050四倍！定期定額長存必賺？用0050正二搭配現金效果最好！怎麼搭？！EP173 ft.股魚《投資嗨什麼》",
-      "channel": "投資嗨什麼",
-      "url": "https://www.youtube.com/watch?v=R1Rk0fkDqmY",
-      "date": "2026-08-25",
-      "views": 33680,
-      "peer": true,
-      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -549,25 +530,46 @@
       "channel": "黑石財經溫建勳",
       "url": "https://www.youtube.com/shorts/xpv0FMJoKtk",
       "date": "2026-08-28",
-      "views": 33501,
+      "views": 51496,
       "peer": true,
       "short": true,
       "cat": "市值型"
     },
     {
       "platform": "youtube",
-      "title": "法人開始汰弱留強 五萬點主流股是誰 ft.#徐紹軒 #謝文琪 #超馬芭樂 #楊勝帆｜#金臨天下 20260828 完整版 @TVBSFinanceLive #台股 #輝達 #ETF #半導體 #AI",
-      "channel": "TVBS財經",
-      "url": "https://www.youtube.com/watch?v=MIwI7nZCyZs",
-      "date": "2026-08-29",
-      "views": 27995,
+      "title": "主動ETF更勝0050？超馬芭樂挑出這一檔｜投資聊一SHOT ft.#林昌興 #超馬芭樂 20260827完整版 @vlmoney",
+      "channel": "緯來財經",
+      "url": "https://www.youtube.com/watch?v=OKH2hfSqYDs",
+      "date": "2026-08-27",
+      "views": 45322,
+      "peer": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "通脹偷錢！$1000起步，新手投資第一堂：ETF、月供、複利滾雪球，不投資才是最大風險【施傅教學】 #投資101",
+      "channel": "我要做富翁",
+      "url": "https://www.youtube.com/watch?v=RwwKQYxJ_A8",
+      "date": "2026-08-30",
+      "views": 44220,
       "peer": true,
       "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "9月迎ETF換血旺季 0050.0052接力洗牌! 市場最看好藥華藥入列0050 光聖.聯鈞被點名搭上0052班車｜非凡財經新聞｜20260830",
+      "channel": "USTV 非凡電視",
+      "url": "https://www.youtube.com/shorts/g67iEtT2NOA",
+      "date": "2026-08-30",
+      "views": 33659,
+      "peer": true,
+      "short": true,
+      "cat": "市值型"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00991A、00998A、台灣科技高股息（詳下方新聞標籤）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：【股票】台股崩跌前10天就知道？4大心法首度拆解：關鍵訊號藏在這根黑K裡？ft.朱家泓、林穎｜下班經濟學770｜謝哲青、張瓊方（風傳媒 The Storm Media・263,761 次觀看）"
+    "YouTube 熱片：【股票】台股崩跌前10天就知道？4大心法首度拆解：關鍵訊號藏在這根黑K裡？ft.朱家泓、林穎｜下班經濟學770｜謝哲青、張瓊方（風傳媒 The Storm Media・301,529 次觀看）"
   ]
 }
