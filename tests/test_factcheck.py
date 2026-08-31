@@ -267,3 +267,25 @@ def test_foreign_dealer_row_not_extracted_as_inst_foreign():
     t2 = "8/4 外資及陸資（不含外資自營商）賣超 57.3 億元"
     got = [c for c in factcheck.extract_claims(t2, year=2026) if c.kind == "inst_foreign"]
     assert len(got) == 1 and got[0].value == 57.3
+
+
+def test_index_chg_skips_intraday_context():
+    """盤中口徑（開盤／盤中最低／一度重挫）的漲跌點不是收盤漲跌。
+
+    2026-09-01 假 🔴：台股報「8/31 開盤 46,224.69 點、下跌 106.76 點」被抽成當日
+    index_chg，官方收盤 -202.98 → 🔴，但報告沒寫錯（標題已寫「終場跌 202 點」）。
+    美股 chg 早有 intraday 防呆，台股這條沒接上。
+    """
+    def chg(sent):
+        return [c.value for c in factcheck.extract_claims(sent, year=2026)
+                if c.kind == "index_chg"]
+
+    # 開盤／盤中／一度 的點數一律不抽
+    assert chg("台股 8/31 開盤 46,224.69 點、下跌 106.76 點，盤中最低下探 45,450.21 點、"
+               "一度重挫 881 點") == []
+    # 同句盤中在前、終場在後 → 仍要抽得到終場那個（逐個匹配、非只看第一個）
+    assert chg("台股 8/31 盤中一度重挫 881 點，終場下跌 202.98 點") == [202.98]
+    assert chg("台股 8/31 開低 106 點，收盤下跌 202.98 點") == [202.98]
+    # 回歸保護：純收盤句、盤中詞在數字之後，照抽
+    assert chg("台股 8/31 終場下跌 202.98 點，收 46,021.00 點") == [202.98]
+    assert chg("台股 8/31 終場下跌 202.98 點，盤中最低下探 45,450.21 點") == [202.98]
