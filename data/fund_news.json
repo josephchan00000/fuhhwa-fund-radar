@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/08/31 09:23",
+  "as_of": "2026/08/31 09:41",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -431,7 +431,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/Q-7zHjzBIGA",
       "date": "2026-08-24",
-      "views": 263,
+      "views": 261,
       "official": true,
       "short": true
     },
@@ -467,7 +467,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=4N6rmHHj-qA",
       "date": "2026-08-27",
-      "views": 304090,
+      "views": 304405,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -477,7 +477,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/6m-fgcgh3mM",
       "date": "2026-08-28",
-      "views": 141448,
+      "views": 141492,
       "peer": true,
       "short": true,
       "cat": "高股息"
@@ -488,7 +488,7 @@
       "channel": "TVBS NEWS",
       "url": "https://www.youtube.com/shorts/p908TfJ90MU",
       "date": "2026-08-26",
-      "views": 137473,
+      "views": 137507,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -499,7 +499,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/97tquEhNBAw",
       "date": "2026-08-30",
-      "views": 128527,
+      "views": 130883,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -510,7 +510,7 @@
       "channel": "阿爾發機器人理財 - 阿爾發投顧 | AI 投資長",
       "url": "https://www.youtube.com/watch?v=8U_S5RweWuQ",
       "date": "2026-08-27",
-      "views": 64516,
+      "views": 64596,
       "peer": true,
       "cat": "基金"
     },
@@ -520,7 +520,7 @@
       "channel": "知美JiMMY",
       "url": "https://www.youtube.com/watch?v=SnHmIRfTqJE",
       "date": "2026-08-29",
-      "views": 60679,
+      "views": 60727,
       "peer": true,
       "cat": "高股息"
     },
@@ -530,7 +530,7 @@
       "channel": "黑石財經溫建勳",
       "url": "https://www.youtube.com/shorts/xpv0FMJoKtk",
       "date": "2026-08-28",
-      "views": 52646,
+      "views": 52846,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -541,7 +541,7 @@
       "channel": "我要做富翁",
       "url": "https://www.youtube.com/watch?v=RwwKQYxJ_A8",
       "date": "2026-08-30",
-      "views": 48602,
+      "views": 49529,
       "peer": true,
       "cat": "綜合"
     },
@@ -551,7 +551,7 @@
       "channel": "緯來財經",
       "url": "https://www.youtube.com/watch?v=OKH2hfSqYDs",
       "date": "2026-08-27",
-      "views": 45997,
+      "views": 46113,
       "peer": true,
       "cat": "主動式"
     },
@@ -561,7 +561,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=KvbjnFJ_HvA",
       "date": "2026-08-30",
-      "views": 38875,
+      "views": 40116,
       "peer": true,
       "cat": "債券"
     }
@@ -569,6 +569,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00991A、00998A、台灣科技高股息（詳下方新聞標籤）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：【股票】台股崩跌前10天就知道？4大心法首度拆解：關鍵訊號藏在這根黑K裡？ft.朱家泓、林穎｜下班經濟學770｜謝哲青、張瓊方（風傳媒 The Storm Media・304,090 次觀看）"
+    "YouTube 熱片：【股票】台股崩跌前10天就知道？4大心法首度拆解：關鍵訊號藏在這根黑K裡？ft.朱家泓、林穎｜下班經濟學770｜謝哲青、張瓊方（風傳媒 The Storm Media・304,405 次觀看）"
   ]
 }
