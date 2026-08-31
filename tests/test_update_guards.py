@@ -179,6 +179,9 @@ def test_specs_carry_selection_rules():
                  macronews.SPEC_MACRO):
         assert "選題流程" in spec and "補漏自查" in spec       # pick_note 五步
         assert "評分校準" in spec and "湊卡工具" in spec       # SEV_RUBRIC 證據錨定
+        # 2026-08-31 使用者定調：重要度＝投資影響本位——聲量不加分、與漲跌分析互鎖、地緣走資產通道
+        assert "評分本位＝「對投資的影響」" in spec and "資產通道" in spec
+        assert "不能單獨撐起 7 分" in spec and "至多 6 分" in spec
         assert "清單外" in spec                               # 開放式掃描判準（勿刪）
     assert "經濟日報頭版頭條" in twnews.SPEC_PRE               # 台股掃描清單保留頭條必收
     assert "已公布的重大數據" in macronews.SPEC_MACRO          # 總經掃描含行事曆已公布項

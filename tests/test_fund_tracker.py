@@ -109,8 +109,12 @@ def test_weekend_note_merged_window():
     # 2026-07-06（一）：須綜合週五晚間＋週六＋週日整個週末
     n = usnews.weekend_note(date(2026, 7, 6))
     assert "週一" in n and "週六與週日" in n and "綜合整理" in n
-    # 週日：涵蓋週五晚間＋週六；週六：涵蓋週五晚間起
+    # 2026-08-31 Warsh 案：時窗內最重大事件即使無新進展也必須成卡重收，
+    # 保底規則優先於已報導清單的「略過」（否則週一報告會把週五最大事件整個蓋掉）
+    assert "週末最重大事件保底" in n and "必須成卡重收" in n and "週末綜整" in n
+    # 週日：涵蓋週五晚間＋週六；週六：涵蓋週五晚間起（保底段週末三日都要有）
     assert "週六全日" in usnews.weekend_note(date(2026, 7, 5))
+    assert "週末最重大事件保底" in usnews.weekend_note(date(2026, 7, 5))
     assert usnews.weekend_note(date(2026, 7, 4)).startswith("【週末合併時窗】")
     # 平日（週二~週五）不加註
     assert usnews.weekend_note(date(2026, 7, 7)) == ""
@@ -135,6 +139,8 @@ def test_prior_block_lists_reported_titles(tmp_path):
     assert titles == ["台積電營收創高"]
     block = usnews.prior_block(titles, "前一日測試")
     assert "勿原樣重收" in block and "台積電營收創高" in block and "【延伸】" in block
+    # 2026-08-31 Warsh 案：略過規則須明載「週末最重大事件保底」例外，避免週一壓掉週五大事
+    assert "週末最重大事件保底" in block
     # 沒有更早檔案時回空、prior_block 回空字串（提示包會略過）
     assert usnews.prior_titles(tmp_path, date(2026, 7, 4)) == []
     assert usnews.prior_block([]) == ""
