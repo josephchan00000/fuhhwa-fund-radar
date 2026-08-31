@@ -112,6 +112,8 @@ def test_weekend_note_merged_window():
     # 2026-08-31 Warsh 案：時窗內最重大事件即使無新進展也必須成卡重收，
     # 保底規則優先於已報導清單的「略過」（否則週一報告會把週五最大事件整個蓋掉）
     assert "週末最重大事件保底" in n and "必須成卡重收" in n and "週末綜整" in n
+    # 2026-08-31 伊朗案（反向風險）：週日／今晨才發生的事最容易漏——錨定序列還沒反映
+    assert "週日與今晨才發生的事最容易整個漏掉" in n and "錨定沒旗標" in n
     # 週日：涵蓋週五晚間＋週六；週六：涵蓋週五晚間起（保底段週末三日都要有）
     assert "週六全日" in usnews.weekend_note(date(2026, 7, 5))
     assert "週末最重大事件保底" in usnews.weekend_note(date(2026, 7, 5))
