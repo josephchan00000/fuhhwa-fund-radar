@@ -183,6 +183,9 @@ def test_specs_carry_selection_rules():
         assert "評分本位＝「對投資的影響」" in spec and "資產通道" in spec
         assert "不能單獨撐起 7 分" in spec and "至多 6 分" in spec
         assert "清單外" in spec                               # 開放式掃描判準（勿刪）
+    # 2026-08-31 伊朗案：持續性議題須查最近 24 小時新事件，不可用同題舊稿代替
+    assert "持續性議題的最新一手進展" in macronews.SPEC_MACRO
+    assert "今晨亞洲盤的國際突發" in twnews.SPEC_PRE
     assert "經濟日報頭版頭條" in twnews.SPEC_PRE               # 台股掃描清單保留頭條必收
     assert "已公布的重大數據" in macronews.SPEC_MACRO          # 總經掃描含行事曆已公布項
 
