@@ -840,11 +840,13 @@ def test_fetch_fundhot_merges_sources(monkeypatch):
     monkeypatch.setattr(fundnews, "get_bytes", fake_get_bytes)
     out = fundnews.fetch_fundhot(days=3650)
     titles = [i["title"] for i in out]
-    # 新站：金複合話題＋00929 相關收、站務文/0050 不相關剔；feed：同標題跨源去重、新話題補進
+    # 新站：整站熱門討論都收（站務文除外）；feed：同標題跨源去重、新話題補進
     assert any(t.startswith("復華傳家二號") for t in titles)
     assert "00929 配息討論串" in titles
     assert "金複合理財機器人進場訊號回測" in titles
-    assert all("新網站" not in t and "0050" not in t for t in titles)
+    # 2026-09-01 使用者：強基金改「整站熱門文章」，不再只留復華相關
+    assert "0050 長期持有心得" in titles
+    assert all("新網站" not in t for t in titles)          # 站務公告仍不收
     assert sum(1 for t in titles if t.startswith("復華傳家二號")) == 1
 
     def broken_page(url, **kw):                  # 新站被擋 → feed 照常（單源失敗不牽連）
@@ -1105,3 +1107,15 @@ def test_japanese_youtube_filtered():
     assert fundnews.yt_peer_relevant("高股息ETF大解密・0056 vs 00878")
     assert fundnews.yt_peer_relevant("台股大盤解析ー AI供應鏈續強？")
     assert fundnews.yt_relevant("復華00929解析・8月配息出爐")
+
+
+def test_fundhot_ok_takes_any_fund_topic_but_not_junk():
+    """強基金＝整站基金討論，收熱門文章不看有沒有「復華」（2026-09-01 使用者指示）；
+    負面題材、站務公告、平台/列表頁 junk 詞仍擋。"""
+    assert fundnews.fundhot_ok("0050 長期持有心得分享")
+    assert fundnews.fundhot_ok("債券ETF 這波該加碼還是等等看")
+    assert not fundnews.ptt_relevant("0050 長期持有心得分享")   # 舊判準會濾掉，故不共用
+    assert not fundnews.fundhot_ok("✍️為何強基金要冒風險花大錢作新網站？")
+    assert not fundnews.fundhot_ok("00929 套牢慘賠中")
+    assert not fundnews.fundhot_ok("基金淨值表")
+    assert not fundnews.fundhot_ok("推薦")                      # 過短
