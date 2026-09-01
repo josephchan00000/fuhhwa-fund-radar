@@ -533,7 +533,8 @@ def test_dashboard_shows_upcoming_etf_section():
     # 分頁骨架與日期無關（前瞻項目會隨時間過期，故 render 測試只驗恆存的結構）
     html = fund_dashboard.render()
     assert 'id="etf-upcoming"' in html and "即將登場的新 ETF" in html
-    assert 'href="#etf-upcoming"' in html                 # 分頁導覽新增「即將登場」錨點
+    assert 'for="sec-eup"' in html                        # 分頁導覽有「即將登場」分段鈕
+    assert '<div class="sec" data-sec="eup">' in html      # 且該段有分段包裝
     assert "即將登場的新 ETF" in html                       # 區塊標題
     # 有前瞻資料時列卡片、無則顯示「近期無」提示——兩者其一必在
     assert "活動介紹" in html or "近期無" in html

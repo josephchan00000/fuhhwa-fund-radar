@@ -1326,7 +1326,8 @@ def test_etf_subnav_matches_sections():
     import re
     html = fd._topbar([], True, "2026-07-31", "2026-07-31 08:00")
     nav = re.search(r'<nav class="tb-nav tb-nav-etf">(.*?)</nav>', html, re.S).group(1)
-    assert re.findall(r'href="(#[\w-]+)"', nav) == ["#etf-upcoming", "#etfwatch", "#etf-detail"]
+    # 2026-09-01 起二級選單＝分段切換 label（不再是錨點）；名稱與順序不變
+    assert re.findall(r'for="(sec-[\w-]+)"', nav) == ["sec-eup", "sec-ewatch", "sec-edet"]
     assert "ETF 數據追蹤" in nav and "ETF 持股詳情" in nav
 
 
