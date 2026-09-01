@@ -153,6 +153,27 @@ def _md(text: str) -> str:
     return "\n".join(out)
 
 
+# ── 卡片欄位的「層次斷行」（2026-09-01 使用者：「不只是速覽，整個新聞卡也要套用」）──
+# 純呈現層：不改一個字，只把欄內已經寫成層次的敘述斷成獨立行——實測當日卡片單句最長
+# 146 字、每卡 5~10 句超過 60 字，整欄擠成一塊是「讀不下去」的主因之一。
+# 只認**明確的列舉標記**（第N層／其N／①…）與句末的「後續觀察：」，句號一律不亂斷：
+# 亂斷會把「甲公司。乙公司」這種連續敘述切碎，比不斷更難讀。
+_LAYER_RE = re.compile(
+    r"(?<=[。；;])\s*(?=(?:後續觀察|第[一二三四五六]層|其[一二三四五六][，、：:]|[①②③④⑤⑥]))")
+
+
+def _lines(html_txt: str) -> str:
+    """欄內文字（已是 inline HTML）→ 層次斷行；沒有列舉標記就原樣回傳。"""
+    parts = [x for x in _LAYER_RE.split(html_txt) if x.strip()]
+    if len(parts) < 2:
+        return html_txt
+    out = [parts[0]]
+    for x in parts[1:]:
+        cls = "nwatch" if x.startswith("後續觀察") else "nln"
+        out.append(f'<div class="{cls}">{x}</div>')
+    return "".join(out)
+
+
 def _inline(s: str) -> str:
     s = _esc(usnews.scrub(s))
     s = re.sub(r"\[([^\]]+)\]\((https?://[^\s)]+)\)",
@@ -574,14 +595,14 @@ def _news_view(md: str, empty_hint: str,
         badges = _news_badges(c.get("etype"), c.get("importance"))
         meta = f'<span class="nim">{_esc(c["meta"])}</span>' if c.get("meta") else ""
         one = f'<div class="nlone">{_esc(c["oneline"])}</div>' if c.get("oneline") else ""
-        summ = f'<div class="ngs">{_inline(c["summary"])}</div>' if c.get("summary") else ""
+        summ = f'<div class="ngs">{_lines(_inline(c["summary"]))}</div>' if c.get("summary") else ""
         # 漲跌分析（2026-08-19 起每卡必填：實際漲跌幅＋大漲大跌歸因）；舊報告無此欄不顯示
-        mv = (f'<div class="ngmv"><span class="mvtag">漲跌分析</span>{_inline(c["move"])}</div>'
+        mv = (f'<div class="ngmv"><span class="mvtag">漲跌分析</span>{_lines(_inline(c["move"]))}</div>'
               if c.get("move") else "")
         # 【深度】精選的「為什麼值得讀」：2026-08-19 前寫在報告裡卻沒被解析、整行消失
         why = (f'<div class="ngwhy"><span class="whytag">為什麼值得讀</span>{_inline(c["why"])}</div>'
                if c.get("why") else "")
-        pts = "".join(f'<li><span class="klabel">{_esc(lab)}</span>{_inline(txt)}</li>'
+        pts = "".join(f'<li><span class="klabel">{_esc(lab)}</span>{_lines(_inline(txt))}</li>'
                       for lab, txt in (c.get("points") or []))
         pts = f'<ul class="ngpts">{pts}</ul>' if pts else ""
         ordered = sorted(c.get("links") or [],             # 先排序再截 5（富途優先；審查 #7）
@@ -2200,6 +2221,10 @@ a.chip:hover{background:rgba(47,111,208,.16)}
   color:var(--ink);border-left:2px solid rgba(47,111,208,.22)}
 .nibody .ngpts li:before{display:none}
 /* 漲跌分析塊（2026-08-19 每卡新增欄）：金色左框＋淡金底，與影響分析（藍系）視覺區隔 */
+/* 層次斷行（2026-09-01）：第N層／其N／① 各自成行，「後續觀察」另起一行並壓低對比 */
+.nln{margin-top:7px}
+.nwatch{margin-top:9px;padding-top:7px;border-top:1px dashed var(--line);color:var(--ink2);font-size:14.5px}
+.nwatch:before{content:"";display:inline-block}
 .ngmv{margin:2px 0 6px;padding:8px 12px;border-left:3px solid var(--gold);border-radius:0 10px 10px 0;
   background:rgba(200,134,15,.07);font-size:15.5px;line-height:1.85;color:var(--ink)}
 .ngmv .mvtag{display:inline-block;font-weight:700;font-size:12.5px;color:var(--gold);
