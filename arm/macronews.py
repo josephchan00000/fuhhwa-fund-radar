@@ -44,6 +44,7 @@ SPEC_MACRO = f"""【版型：昨夜美股交易時段・總經／政策面速寫
 {usnews.SEV_RUBRIC}
 {usnews.HILITE_RULE}
 {usnews.BRIEF_STYLE}
+{usnews.READ_RULE}
 {usnews.LABEL_RULE}
 {usnews.depth_note(200)}
 {usnews.move_note('macro')}

@@ -184,3 +184,43 @@ def test_check_brief_counts_prose_and_bullets_separately():
     fat = _brief_doc("- **項**：" + "把整段長文塞進條列想繞過上限。" * 12
                      + "\n\n結論一句，**方向**明確、**族群**分歧。")
     assert any("條列是索引" in e for e in check._check_brief(fat, "x.md"))
+
+
+# ── 卡片可讀性閘門（2026-09-01 使用者：「不只是速覽，整個新聞卡也要套用」）──
+
+def _read_card(summary: str, points: str = "影響很大，**族群**受惠。") -> str:
+    return ("# 〈台股盤前重點〉2026-09-02\n\n## 🔹盤前卡\n\n"
+            "### 測試卡（來源：X｜2026/09/02｜【新事件】｜重要度 7/10）\n\n"
+            f"1. **新聞摘要**：{summary}\n"
+            "3. **漲跌分析**：收 **100 元、跌 1%**，主因外資調節。\n"
+            f"4. **對持股／族群影響**：{points}\n"
+            "6. **參考連結**：[來源](https://example.com/a)\n")
+
+
+def test_check_card_read_gate():
+    import importlib
+    sys.path.insert(0, str(ROOT / "scripts"))
+    check = importlib.import_module("check_reports")
+    p = Path  # noqa: F841
+
+    ok = _read_card("公司公告新案，總額 **39 億美元**，創**歷史新高**。買方為產業龍頭。")
+    assert check._check_card_read(_tmp_md(ok), "x.md") == []
+
+    thin = _read_card("公司公告新案，總額 39 億美元，創歷史新高。", points="影響有限。")
+    assert any("粗體僅" in e for e in check._check_card_read(_tmp_md(thin), "x.md"))
+
+    longsent = _read_card("公司公告新案，" + "並且同時說明後續安排與各項配套細節" * 5 + "。"
+                          + "另外" + "補充說明各項配套與時程安排的具體內容" * 4 + "。"
+                          + "再者" + "說明未來數年的產能與物料成本安排規劃" * 4 + "。"
+                          "總額 **39 億美元**、創**新高**、買方為**龍頭**。")
+    assert any("超過 60 字" in e for e in check._check_card_read(_tmp_md(longsent), "x.md"))
+
+    filler = _read_card("值得注意的是，公司公告新案，總額 **39 億**，創**新高**，買方為**龍頭**。")
+    assert any("填充語" in e for e in check._check_card_read(_tmp_md(filler), "x.md"))
+
+
+def _tmp_md(text: str) -> Path:
+    import tempfile
+    f = Path(tempfile.mkdtemp()) / "r.md"
+    f.write_text(text, encoding="utf-8")
+    return f
