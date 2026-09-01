@@ -189,6 +189,12 @@ _US_IDX_PAT = {"sox": r"費半|費城半導體|SOX", "ndq": r"那斯達克|那�
 # 2026-07-27 起硬化：兩天內兩度誤殺（費半週跌幅、那指 100 期貨 +1.2%）。
 _NON_SPOT = r"期貨|期指|夜盤|盤前|盤後"
 
+# 盤中口徑（開盤／盤中最低／一度重挫）不是收盤漲跌，拿日線收盤驗必假 🔴。
+# 2026-09-01 誤判：台股報「8/31 開盤 46,224.69 點、下跌 106.76 點」被抽成當日
+# index_chg，官方收盤 -202.98 → 🔴；報告本身沒寫錯（標題已寫「終場跌 202 點」），
+# 是抽取器少了脈絡排除——同型於美股 chg 早就有的 intraday 防呆，只是台股沒接上。
+_INTRADAY = r"盤初|盤中|早盤|日盤|殺盤|一度|最[高低]|開盤|開低|開高"
+
 
 def extract_us_index_claims(text: str, session_day: date) -> list[Claim]:
     """美股指數（費半／那指／標普／道瓊）漲跌%與收盤點位——句內常無日期，
@@ -217,7 +223,7 @@ def extract_us_index_claims(text: str, session_day: date) -> list[Claim]:
             # 盤中/個股口徑非收盤指數漲跌，不可拿日線驗（07-23/24 誤殺修正）：
             # ①盤中詞（盤初/盤中/早盤/日盤/殺盤/一度/最高低）②視窗內先出現個股名（英特爾/AMD…）
             # ③期貨／夜盤等非現貨口徑（07-27 誤殺：「那指 100 期貨漲 1.2%」被當那指現貨日變動）
-            intraday = re.search(rf"盤初|盤中|早盤|日盤|殺盤|一度|最[高低]|{_NON_SPOT}",
+            intraday = re.search(rf"{_INTRADAY}|{_NON_SPOT}",
                                  win[:m.end(2)]) if m else None
             stock = re.search(r"英特爾|Intel|AMD|超微|輝達|NVIDIA|美光|Micron|台積|蘋果|Apple|"
                               r"特斯拉|Tesla|Alphabet|Meta|微軟", win[:m.end(2)]) if m else None
@@ -262,9 +268,18 @@ def extract_claims(text: str, year: int | None = None) -> list[Claim]:
         # 美股句（含道瓊/那指/標普/費半）不可被台股加權 index_chg 撈走
         # （07-24 誤殺：「道瓊下跌 506.93 點」被當加權漲跌點）
         us_ctx = re.search(r"道瓊|那斯達克|那指|標普|費半|S&P|Nasdaq|Dow", sent)
-        m = re.search(r"(?:加權|台股|大盤)?[^0-9%]{0,6}(?:下跌|大跌|漲|上漲)\s*([\d,]+\.?\d*)\s*點", sent)
-        if m and _num(m.group(1)) >= 100 and not us_ctx and not non_spot:  # 小波動不核對（口語四捨五入多）
+        # 同句可能先寫盤中、後寫終場（「盤中一度重挫 881 點，終場下跌 202.98 點」），
+        # 故逐個匹配、跳過盤中口徑者，取第一個真正的收盤漲跌點。
+        for m in re.finditer(r"(?:加權|台股|大盤)?[^0-9%]{0,6}(?:下跌|大跌|漲|上漲)\s*([\d,]+\.?\d*)\s*點", sent):
+            if _num(m.group(1)) < 100 or us_ctx or non_spot:  # 小波動不核對（口語四捨五入多）
+                continue
+            # 判定窗口延到數字前（含匹配自身的「終場下跌」前置字），否則「，終場」
+            # 會被 regex 的前置 [^0-9%]{0,6} 吃進 m.group(0)，豁免詞就看不到了。
+            near = sent[max(0, m.start() - 16):m.start(1)]
+            if re.search(_INTRADAY, near) and not re.search(r"終場|收盤|收紅|收黑", near):
+                continue
             claims.append(Claim("index_chg", _num(m.group(1)), d, sent.strip()))
+            break
         m = re.search(r"三大法人[^0-9]{0,15}[買賣]超[^0-9]{0,8}([\d,]+\.?\d*)\s*億", sent)
         if m:
             claims.append(Claim("inst_total", _num(m.group(1)), d, sent.strip()))
