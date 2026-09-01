@@ -883,6 +883,125 @@ def test_carry_social_covers_fundhot(tmp_path, monkeypatch):
     assert [s["title"] for s in got["social"]] == ["金複合機器人討論"]
 
 
+# ── 強基金「都沒有在更新」的三道修法（2026-09-01 使用者回報）────────────────────
+# ①死分類頁不再拖累其他頁、分類自尋；②失敗印訊息本體（原本只印 RuntimeError）；
+# ③無日期項目標首見日並據以老化（原本永遠豁免時窗、來源掛掉即原地凍結）。
+
+_FUNDHOT_DATED = """
+<li><a href="/forum/ETF/00929-aug/13901">00929 八月配息討論</a>
+    <time datetime="2026-08-31T10:00:00+08:00">8月31日</time></li>
+<li><a href="/forum/%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE/robot/13902">復華強勢通調整心得</a>
+    <time datetime="2026-08-30T09:00:00+08:00">8月30日</time></li>
+"""
+
+_PHPBB_ACTIVE = """
+<ul class="topiclist"><li class="row">
+  <a href="./viewtopic.php?f=25&amp;t=13950&amp;sid=ab" class="topictitle">金複合機器人今年績效回顧</a>
+  <div class="responsive-hide">最後發表 <time datetime="2026-08-30T21:30:00+08:00">昨天</time></div>
+</li><li class="row">
+  <a class="topictitle" href="https://forum.fundhot.com/viewtopic.php?t=13951">復華全球大趨勢還能抱嗎</a>
+  <time datetime="2026-08-29T08:00:00+08:00">前天</time>
+</li><li class="row">
+  <a href="./viewtopic.php?t=100" class="topictitle">復華舊討論串（出窗）</a>
+  <time datetime="2026-01-05T08:00:00+08:00">1月</time>
+</li></ul>
+"""
+
+
+def test_parse_fundhot_page_takes_time_datetime():
+    """列表頁若帶 <time datetime> 就用它當發文日；沒有才留空（不猜純文字日期）。"""
+    out = fundnews.parse_fundhot_page(_FUNDHOT_DATED)
+    assert [i["date"] for i in out] == ["2026-08-31", "2026-08-30"]
+    assert out[1]["board"] == "資產配置"
+    assert all("date" not in i for i in fundnews.parse_fundhot_page(_FUNDHOT_PAGE))
+
+
+def test_parse_phpbb_topics_both_attr_orders_and_window():
+    """舊站最新討論頁（feed.php 對訪客關閉時的備援）：href/class 兩種先後都認、
+    相對網址補完整、有日期者做時窗過濾。"""
+    out = fundnews.parse_phpbb_topics(_PHPBB_ACTIVE, days=7000)
+    assert [i["url"].rsplit("t=", 1)[-1] for i in out] == ["13950", "13951", "100"]
+    assert out[0]["url"].startswith("https://forum.fundhot.com/viewtopic.php")
+    assert out[0]["date"] == "2026-08-30" and out[1]["title"].startswith("復華全球")
+    days = (datetime.now(timezone.utc) - datetime(2026, 8, 25, tzinfo=timezone.utc)).days
+    assert [i["url"][-3:] for i in fundnews.parse_phpbb_topics(_PHPBB_ACTIVE, days=days)] \
+        == ["950", "951"]                        # 1 月舊串出窗剔除
+
+
+def test_fetch_fundhot_dead_category_and_old_site_fallback(monkeypatch, capsys):
+    """死分類頁（404）只損失自己：其餘頁照抓、失敗訊息本體入日誌；
+    feed 掛掉 → 退到舊站最新討論頁（單源失敗不牽連）。"""
+    def fake(url, **kw):
+        if "%E8%82%A1%E7%A5%A8%E5%9F%BA%E9%87%91" in url:      # 股票基金頁：假設 404
+            raise RuntimeError(f"GET 失敗 {url}: HTTP Error 404: Not Found")
+        if "feed.php" in url:
+            raise RuntimeError("GET 失敗 feed: HTTP Error 404: Not Found")
+        if "search.php" in url:
+            return _PHPBB_ACTIVE.encode("utf-8")
+        return _FUNDHOT_PAGE.encode("utf-8")
+
+    monkeypatch.setattr(fundnews, "get_bytes", fake)
+    titles = [i["title"] for i in fundnews.fetch_fundhot(days=3650)]
+    assert any(t.startswith("復華傳家二號") for t in titles)      # 其餘新站頁照抓
+    assert "金複合機器人今年績效回顧" in titles                    # 舊站備援有進來
+    log = capsys.readouterr().out
+    assert "404" in log and "列表頁抓取失敗" in log               # 原因看得出來
+
+
+def test_fetch_fundhot_discovers_boards_from_overview(monkeypatch):
+    """分類清單自尋：總覽頁話題連結的分類段會被排進待抓佇列（版面改名不會整批失效），
+    且總頁數受 FUNDHOT_MAX_PAGES 限制。"""
+    import urllib.parse
+    hit: list[str] = []
+
+    def fake(url, **kw):
+        hit.append(url)
+        if "fundhot.com/forum" in url:
+            return _FUNDHOT_PAGE.encode("utf-8")
+        raise RuntimeError("no old site")
+
+    monkeypatch.setattr(fundnews, "get_bytes", fake)
+    fundnews.fetch_fundhot(days=3650)
+    pages = [u for u in hit if "fundhot.com/forum" in u]
+    assert any(urllib.parse.quote("其他") in u for u in pages)   # 總覽頁挖到的新分類
+    assert len(pages) <= fundnews.FUNDHOT_MAX_PAGES
+
+
+def test_first_seen_stamped_and_ages_out(tmp_path, monkeypatch):
+    """無日期社群項目：首見日沿用既有值（不因每天重抓而變新），出窗後不再被沿用。"""
+    import json
+    monkeypatch.setattr(fundnews, "OUT", tmp_path / "fund_news.json")
+    url = "https://fundhot.com/forum/a/b/1"
+    old_day = (datetime.now(fundnews.TW_TZ) - timedelta(days=30)).strftime("%Y-%m-%d")
+    prev = {"window_days": 7, "brand": [{"title": "舊稿", "source": "經濟日報"}], "funds": [],
+            "social": [{"platform": "fundhot", "title": "金複合機器人討論",
+                        "url": url, "first_seen": old_day}]}
+    fundnews.OUT.write_text(json.dumps(prev, ensure_ascii=False), encoding="utf-8")
+
+    doc = {"window_days": 7, "brand": [{"title": "新稿", "source": "經濟日報"}],
+           "funds": [], "social": [{"platform": "fundhot", "title": "金複合機器人討論",
+                                    "url": url}], "highlights": []}
+    fundnews.save(doc)
+    got = json.loads(fundnews.OUT.read_text(encoding="utf-8"))
+    assert got["social"][0]["first_seen"] == old_day        # 沿用最早值、不刷新
+
+    doc2 = {"window_days": 7, "brand": [{"title": "更新稿", "source": "經濟日報"}],
+            "funds": [], "social": [], "highlights": []}    # 強基金本次全空
+    fundnews.save(doc2)
+    got2 = json.loads(fundnews.OUT.read_text(encoding="utf-8"))
+    assert got2["social"] == []                             # 首見日出窗 → 不再沿用
+
+
+def test_view_marks_first_seen_when_no_post_date():
+    """無發文日的社群項目在版面上標「首見 M/D」——舊版整欄空白，長掛的舊討論
+    看起來就像今天的新討論。"""
+    doc = {"as_of": "2026/09/01", "window_days": 7, "brand": [], "funds": [],
+           "social": [{"platform": "fundhot", "board": "ETF", "title": "00929 討論串",
+                       "url": "https://fundhot.com/forum/ETF/x/1",
+                       "first_seen": "2026-08-25"}]}
+    assert "首見 08/25" in _fundnews_view(doc)
+
+
 def test_sanitize_scrubs_existing_junk_from_disk_doc():
     """讀取端同一套過濾：既有落檔裡的報價頁/論壇文（舊規則抓的）重建儀表板即消失。"""
     doc = {"window_days": 7,

@@ -541,7 +541,8 @@ def fetch_ptt(pages: int = 3, boards: tuple[str, ...] = PTT_BOARDS) -> list[dict
             try:
                 html = get_bytes(url, cache_ttl=1800,
                                  headers={"Cookie": "over18=1"}).decode("utf-8", "ignore")
-            except Exception:
+            except Exception as e:               # 靜默 break 會讓「被擋」與「查無相關
+                print(f"[ptt] {board} 板抓取失敗: {e}")   # 討論」在日誌上長得一模一樣
                 break
             for blk in _PTT_ENT.findall(html):
                 mt = _PTT_TITLE.search(blk)
@@ -573,12 +574,22 @@ def fetch_ptt(pages: int = 3, boards: tuple[str, ...] = PTT_BOARDS) -> list[dict
 # （repo 慣例：印上下文片段才能一輪定位，別只印次數）。
 
 FUNDHOT_BASE = "https://fundhot.com"
+# ⚠ 2026-09-01 使用者回報「強基金都沒有在更新」的根因之一：舊種子清單裡的
+# `/forum/股票` 是**舊 phpBB 的版名**，新站沒有這個分類 → CI 每天抓它必失敗，
+# 三頁只剩總覽頁一頁在跑（且當時錯誤只印 type(e).__name__＝「RuntimeError」，
+# 看不出是 404 還是被擋，連續數週沒人發現）。修法三道：種子改用實際存在的分類、
+# 分類清單由總覽頁話題連結**自尋**補上（版面改名不會整批失效）、失敗印訊息本體。
 FUNDHOT_PAGES = [                       # 新站討論區列表頁（總覽＋復華討論密度高的分類）
     FUNDHOT_BASE + "/forum",
     FUNDHOT_BASE + "/forum/" + urllib.parse.quote("股票基金"),
-    FUNDHOT_BASE + "/forum/" + urllib.parse.quote("股票"),
+    FUNDHOT_BASE + "/forum/ETF",
+    FUNDHOT_BASE + "/forum/" + urllib.parse.quote("資產配置"),
 ]
+FUNDHOT_MAX_PAGES = 6                   # 含自尋分類的抓取上限（禮貌抓取、不無限展開）
 FUNDHOT_FEED = "https://forum.fundhot.com/feed.php?mode=topics"   # phpBB 標準 Atom
+# 舊站「最新討論」HTML 頁：feed.php 對訪客常被關閉（實測 CI 每天失敗），此為備援；
+# phpBB 標準版式 `<a class="topictitle" href="./viewtopic.php?...t=NNN">`＋列內 <time>。
+FUNDHOT_ACTIVE = "https://forum.fundhot.com/search.php?search_id=active_topics"
 # 話題連結＝ /forum/{分類}/{slug}/{數字id}（分類/slug 常為 URL 編碼中文）；
 # 分類頁連結只有兩段、不帶數字尾＝不會誤入。
 _FUNDHOT_LINK = re.compile(
@@ -586,15 +597,20 @@ _FUNDHOT_LINK = re.compile(
     r'[^>]*>(.*?)</a>', re.S | re.I)
 _ATOM_ENTRY = re.compile(r"<entry>(.*?)</entry>", re.S | re.I)
 _ATOM_LINK = re.compile(r'<link[^>]+href="([^"]+)"', re.I)
+# 只認機器可讀的 <time datetime="YYYY-MM-DD…">：列表頁的純文字日期格式不明，
+# 猜錯會把鄰列日期安到別篇上——寧可無日期（改以 first_seen 誠實標「首見」）。
+_HTML_TIME = re.compile(r'<time[^>]+datetime="(\d{4}-\d{2}-\d{2})', re.I)
 
 
 def parse_fundhot_page(html: str) -> list[dict]:
-    """新站列表頁 → [{platform, board, title, url}]。純函式可單測；不做相關性過濾
-    （fetch_fundhot 統一過）。board＝URL 分類段解碼（股票基金／其他…）。"""
+    """新站列表頁 → [{platform, board, title, url, date?}]。純函式可單測；不做相關性
+    過濾（fetch_fundhot 統一過）。board＝URL 分類段解碼（股票基金／其他…）；
+    date 只在連結後 400 字內找得到 <time datetime> 時才給（找不到就不給，見上方註）。"""
     from html import unescape
 
     out, seen = [], set()
-    for m in _FUNDHOT_LINK.finditer(html or ""):
+    text = html or ""
+    for m in _FUNDHOT_LINK.finditer(text):
         path, cat, _tid, raw = m.groups()
         title = unescape(_RSS_HTML.sub("", raw)).strip()
         if len(title) < 4:                       # 導覽箭頭/「繼續閱讀」式短字連結
@@ -603,8 +619,50 @@ def parse_fundhot_page(html: str) -> list[dict]:
         if url in seen:
             continue
         seen.add(url)
-        out.append({"platform": "fundhot", "board": urllib.parse.unquote(cat),
-                    "title": title, "url": url})
+        it = {"platform": "fundhot", "board": urllib.parse.unquote(cat),
+              "title": title, "url": url}
+        mt = _HTML_TIME.search(text[m.end():m.end() + 400])
+        if mt:
+            it["date"] = mt.group(1)
+        out.append(it)
+    return out
+
+
+# phpBB 話題列（舊站最新討論頁）：`<a href="./viewtopic.php?…t=123" class="topictitle">`；
+# class 與 href 的先後在佈景主題間會互換，故兩種順序都認。⚠ href 內的參數分隔字元是
+# **HTML 實體 `&amp;`**（`?f=25&amp;t=13950`）——只寫 [?&]t= 會整批漏掉多參數的話題列。
+_T_PARAM = r'(?:[?&]|&amp;)t=(\d+)'
+_PHPBB_TOPIC = re.compile(
+    rf'<a[^>]+(?:href="([^"]*viewtopic\.php[^"]*?{_T_PARAM}[^"]*)"[^>]*class="[^"]*topictitle'
+    rf'|class="[^"]*topictitle[^"]*"[^>]*href="([^"]*viewtopic\.php[^"]*?{_T_PARAM}[^"]*)")'
+    r'[^>]*>(.*?)</a>', re.S | re.I)
+
+
+def parse_phpbb_topics(html: str, days: int = WINDOW_DAYS) -> list[dict]:
+    """舊站「最新討論」HTML → [{platform, board, title, url, date?}]。純函式可單測。
+    日期取話題連結後 600 字內的 <time datetime>（phpBB 列內「最後發表」時戳）；
+    有日期才做時窗過濾，沒有的照留（由 first_seen 負責老化）。"""
+    from html import unescape
+
+    cutoff = (datetime.now(TW_TZ) - timedelta(days=days)).strftime("%Y-%m-%d")
+    out, seen = [], set()
+    text = html or ""
+    for m in _PHPBB_TOPIC.finditer(text):
+        href, tid = m.group(1) or m.group(3), m.group(2) or m.group(4)
+        title = unescape(_RSS_HTML.sub("", m.group(5))).strip()
+        if not href or len(title) < 4 or tid in seen:
+            continue
+        seen.add(tid)
+        # 網址正規化成 viewtopic.php?t={id}：原始 href 帶 sid（每次抓都不同）、相對路徑
+        # 兩種形式，直接沿用會讓 first_seen 台帳與去重永遠對不上同一篇。
+        it = {"platform": "fundhot", "board": "", "title": title,
+              "url": f"https://forum.fundhot.com/viewtopic.php?t={tid}"}
+        mt = _HTML_TIME.search(text[m.end():m.end() + 600])
+        if mt:
+            if mt.group(1) < cutoff:
+                continue
+            it["date"] = mt.group(1)
+        out.append(it)
     return out
 
 
@@ -642,9 +700,12 @@ def parse_fundhot_feed(xml_text: str, days: int = WINDOW_DAYS) -> list[dict]:
 
 
 def fetch_fundhot(days: int = WINDOW_DAYS, limit: int = 8) -> list[dict]:
-    """強基金討論：新站列表頁＋舊 phpBB feed 並抓，同標題（前 24 字）跨源去重，
-    留自家相關者（ptt_relevant 同判準：品牌詞/金複合/自家代碼、負面排除）。
-    新站在前（現行主站）、feed 補歷史並存期的漏；單源失敗不牽連。"""
+    """強基金討論：新站列表頁（總覽＋分類，分類清單自尋）＋舊站 feed／最新討論頁並抓，
+    同標題（前 24 字）跨源去重，留自家相關者（ptt_relevant 同判準：品牌詞/金複合/
+    自家代碼、負面排除）。新站在前（現行主站）、舊站補漏；單源失敗不牽連。
+
+    抓取用 retries=1／timeout=12：整站被擋時 3 retries×25s 會讓每頁空轉逾一分鐘
+    （每日 routine 全長也才 ~80 秒），而這裡本來就是 fail-open 的加分來源。"""
     out: list[dict] = []
     seen: set[str] = set()
 
@@ -656,11 +717,20 @@ def fetch_fundhot(days: int = WINDOW_DAYS, limit: int = 8) -> list[dict]:
             seen.add(k)
             out.append(it)
 
-    for url in FUNDHOT_PAGES:
+    def _get(url: str) -> str:
+        return get_bytes(url, cache_ttl=1800, retries=1,
+                         timeout=12).decode("utf-8", "ignore")
+
+    queue, done, probed = list(FUNDHOT_PAGES), set(), False
+    while queue and len(done) < FUNDHOT_MAX_PAGES:
+        url = queue.pop(0)
+        if url in done:
+            continue
+        done.add(url)
         try:
-            page = get_bytes(url, cache_ttl=1800).decode("utf-8", "ignore")
-        except Exception as e:
-            print(f"[fundhot] 列表頁抓取失敗 {url}: {type(e).__name__}")
+            page = _get(url)
+        except Exception as e:                   # 印訊息本體（含 HTTP 狀態）：只印
+            print(f"[fundhot] 列表頁抓取失敗: {e}")   # type name 看不出 404／被擋
             continue
         topics = parse_fundhot_page(page)
         if not topics:                           # 結構探針：一輪定位版式（repo 慣例）
@@ -668,12 +738,33 @@ def fetch_fundhot(days: int = WINDOW_DAYS, limit: int = 8) -> list[dict]:
             print(f"[fundhot] {url} 解析 0 筆話題——探針："
                   + (repr(page[max(0, i - 80):i + 240]) if i >= 0
                      else f"頁面無 /forum/ 連結（{len(page)} bytes）"))
+        elif not probed and not any(t.get("date") for t in topics):
+            probed = True                        # 版式若其實帶日期，一輪即可收斂
+            i = page.find(topics[0]["url"].replace(FUNDHOT_BASE, ""))
+            print("[fundhot] 列表頁無 <time datetime>（項目改以首見日老化）——探針："
+                  + repr(page[max(0, i - 120):i + 320]))
+        for t in topics:                         # 自尋分類頁：版面改名不會整批失效
+            cand = FUNDHOT_BASE + "/forum/" + urllib.parse.quote(t.get("board") or "")
+            if (t.get("board") and cand not in done and cand not in queue
+                    and len(done) + len(queue) < FUNDHOT_MAX_PAGES):
+                queue.append(cand)
         _add(topics)
+
+    old: list[dict] = []
     try:
-        xml = get_bytes(FUNDHOT_FEED, cache_ttl=1800).decode("utf-8", "ignore")
-        _add(parse_fundhot_feed(xml, days=days))
+        old = parse_fundhot_feed(_get(FUNDHOT_FEED), days=days)
     except Exception as e:
-        print(f"[fundhot] phpBB feed 抓取失敗: {type(e).__name__}")
+        print(f"[fundhot] phpBB feed 抓取失敗: {e}")
+    if not old:                     # feed 對訪客關閉時的備援＝舊站「最新討論」HTML 頁
+        try:
+            html = _get(FUNDHOT_ACTIVE)
+            old = parse_phpbb_topics(html, days=days)
+            if not old:
+                print("[fundhot] 舊站最新討論頁解析 0 筆——探針："
+                      + repr(html[:240]))
+        except Exception as e:
+            print(f"[fundhot] 舊站最新討論頁抓取失敗: {e}")
+    _add(old)
     return out[:limit]
 
 
@@ -1172,6 +1263,32 @@ def is_empty(doc: dict | None) -> bool:
                 or any(g.get("items") for g in doc.get("funds") or []))
 
 
+def _social_in_window(s: dict, cutoff: str) -> bool:
+    """社群項目是否還在時窗內（_carry_social 沿用判準）：ISO 日期照日期比；PTT 短日期
+    無年份、不做窗檢（隨下次成功抓取整批汰換）；**無日期者改比首見日**——沒有這條，
+    強基金新站列表頁那種無日期項目會永遠豁免窗檢、來源掛掉時原地凍結（2026-09-01）。
+    連首見日都沒有的舊落檔項目 fail-open 留著，下次 save 就會被 _stamp_first_seen 補上。"""
+    d = s.get("date") or ""
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
+        return d >= cutoff
+    if d:
+        return True
+    fs = s.get("first_seen") or ""
+    return fs >= cutoff if fs else True
+
+
+def _stamp_first_seen(doc: dict, prev: dict | None) -> None:
+    """無日期的社群項目補「首見日」：同 url 沿用既有值（不因每天重抓而變新），
+    新項目記今天。用途有二——①老化（見 _social_in_window）②儀表板標「首見 M/D」，
+    讓「站上還掛著的舊討論」一眼看得出不是今天的新討論。有 date 者不動
+    （date＝發文日，first_seen 只是替代品）。"""
+    old = {s.get("url"): s.get("first_seen") for s in (prev or {}).get("social") or []}
+    today = datetime.now(TW_TZ).strftime("%Y-%m-%d")
+    for s in doc.get("social") or []:
+        if not s.get("date"):
+            s["first_seen"] = old.get(s.get("url")) or today
+
+
 def _carry_social(doc: dict, prev: dict | None) -> None:
     """社群「來源級」防呆：本次某平台（ptt／fundhot／youtube）全空而既有落檔該平台非空 →
     沿用既有項目（來源異常≠查無討論），並印 CI 日誌讓異常可見。
@@ -1196,9 +1313,7 @@ def _carry_social(doc: dict, prev: dict | None) -> None:
     for p in ("ptt", "fundhot", "youtube"):
         if any(plat(s) == p for s in cur):
             continue
-        keep = [s for s in old if plat(s) == p
-                and (not re.fullmatch(r"\d{4}-\d{2}-\d{2}", s.get("date") or "")
-                     or (s.get("date") or "") >= cutoff)]
+        keep = [s for s in old if plat(s) == p and _social_in_window(s, cutoff)]
         if keep:
             print(f"[fundnews] 社群 {p} 本次全空、沿用既有 {len(keep)} 則"
                   f"（來源異常≠查無討論）")
@@ -1219,6 +1334,7 @@ def save(doc: dict) -> tuple[Path, bool]:
     if is_empty(doc) and not is_empty(prev):
         return OUT, False
     _carry_social(doc, prev)
+    _stamp_first_seen(doc, prev)
     OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
     return OUT, True
 
