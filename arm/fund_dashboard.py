@@ -1992,11 +1992,17 @@ def _fundnews_view(doc: dict | None) -> str:
                 # 舊落檔項目無 board 欄＝雙板改版前抓的股票板（2026-08-07 起帶 board）
                 bname = {"Stock": "股票板", "Fund": "基金板"}.get(s.get("board") or "Stock")
                 src = f"PTT {bname}" if bname else "PTT"
+            # 日期：來源沒給發文日時改標「首見 M/D」（強基金新站列表頁無 <time>）——
+            # 2026-09-01 使用者「強基金都沒有在更新」：舊版那欄整片空白，站上長掛的
+            # 舊討論看起來就像今天的新討論，缺口完全看不出來。
+            when = s.get("date") or ""
+            if not when and s.get("first_seen"):
+                when = "首見 " + s["first_seen"][5:].replace("-", "/")
             rows.append(
                 f'<div class="fnit fnsoc" data-fcat="{grp}">{badge}'
                 f'<div class="fnsocb"><a class="fnt" href="{_esc(s.get("url") or "#")}" '
                 f'target="_blank" rel="noopener">{_esc(s.get("title"))}</a>'
-                f'<div class="fnmeta"><span class="fnd">{_esc(s.get("date") or "")}</span>'
+                f'<div class="fnmeta"><span class="fnd">{_esc(when)}</span>'
                 f'<span class="fnsrc">{src}</span>{pill}</div></div></div>')
         # 分類篩選列（2026-08-15 使用者：「太長了…有分類可以點然後就可以篩選」；同日再指示
         # 「比照其他地方」＝沿用基金詳情/ETF 詳情的 .fundbar 版式：🔍 搜尋框＋標準尺寸 chips、
