@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/01 07:07",
+  "as_of": "2026/09/01 08:06",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -30,6 +30,13 @@
       ],
       "items": [
         {
+          "title": "欣興三度發重訊，股價明天能不跌停？00981A、00991A、00994A…瑤池金母有賣成？主動式ETF進出曝光",
+          "url": "https://www.businesstoday.com.tw/article/category/183008/post/202608310039/",
+          "source": "今周刊",
+          "date": "2026-08-31 18:15",
+          "datetime": "2026-08-31T18:15:00+08:00"
+        },
+        {
           "title": "欣興利空ETF該賣嗎？0050、00981A、00991A持股權重、欣興股價跌停與影響一次看｜豐雲學堂2026 年 08 月",
           "url": "https://www.sinotrade.com.tw/richclub/primary/%E6%AC%A3%E8%88%88%E5%88%A9%E7%A9%BAETF%E8%A9%B2%E8%B3%A3%E5%97%8E-0050-00981A-00991A%E6%8C%81%E8%82%A1%E6%AC%8A%E9%87%8D-%E6%AC%A3%E8%88%88%E8%82%A1%E5%83%B9%E8%B7%8C%E5%81%9C%E8%88%87%E5%BD%B1%E9%9F%BF%E4%B8%80%E6%AC%A1%E7%9C%8B-6a95350ebd26990bb1d62ae5",
           "source": "sinotrade.com.tw",
@@ -42,13 +49,6 @@
           "source": "CMoney",
           "date": "2026-08-31 13:39",
           "datetime": "2026-08-31T13:39:28+08:00"
-        },
-        {
-          "title": "欣興慘跌市值蒸發近3千億！拖累主動ETF 00981A、00991A下殺",
-          "url": "https://tw.news.yahoo.com/%E6%AC%A3%E8%88%88%E6%85%98%E8%B7%8C%E5%B8%82%E5%80%BC%E8%92%B8%E7%99%BC%E8%BF%913%E5%8D%83%E5%84%84-%E6%8B%96%E7%B4%AF%E4%B8%BB%E5%8B%95etf-00981a-00991a%E4%B8%8B%E6%AE%BA-045400475.html",
-          "source": "Yahoo新聞",
-          "date": "2026-08-31 12:54",
-          "datetime": "2026-08-31T12:54:00+08:00"
         }
       ]
     },
@@ -431,19 +431,22 @@
       "platform": "fundhot",
       "board": "天使",
       "title": "復華強勢通理財機器人再度大幅調升現金比重",
-      "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/%E5%BE%A9%E8%8F%AF%E5%BC%B7%E5%8B%A2%E9%80%9A%E7%90%86%E8%B2%A1%E6%A9%9F%E5%99%A8%E4%BA%BA%E5%86%8D%E5%BA%A6%E5%A4%A7%E5%B9%85%E8%AA%BF%E5%8D%87%E7%8F%BE%E9%87%91%E6%AF%94%E9%87%8D/13897"
+      "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/%E5%BE%A9%E8%8F%AF%E5%BC%B7%E5%8B%A2%E9%80%9A%E7%90%86%E8%B2%A1%E6%A9%9F%E5%99%A8%E4%BA%BA%E5%86%8D%E5%BA%A6%E5%A4%A7%E5%B9%85%E8%AA%BF%E5%8D%87%E7%8F%BE%E9%87%91%E6%AF%94%E9%87%8D/13897",
+      "first_seen": "2026-09-01"
     },
     {
       "platform": "fundhot",
       "board": "ETF",
       "title": "00929今年漲75％又配10％，高股息ETF黃金年代來了",
-      "url": "https://fundhot.com/forum/ETF/00929%E4%BB%8A%E5%B9%B4%E6%BC%B275%EF%BC%85%E5%8F%88%E9%85%8D10%EF%BC%85%EF%BC%8C%E9%AB%98%E8%82%A1%E6%81%AFETF%E9%BB%83%E9%87%91%E5%B9%B4%E4%BB%A3%E4%BE%86%E4%BA%86/13796"
+      "url": "https://fundhot.com/forum/ETF/00929%E4%BB%8A%E5%B9%B4%E6%BC%B275%EF%BC%85%E5%8F%88%E9%85%8D10%EF%BC%85%EF%BC%8C%E9%AB%98%E8%82%A1%E6%81%AFETF%E9%BB%83%E9%87%91%E5%B9%B4%E4%BB%A3%E4%BE%86%E4%BA%86/13796",
+      "first_seen": "2026-09-01"
     },
     {
       "platform": "fundhot",
       "board": "ETF",
       "title": "00929持有半年，每月領息又賺43％，對帳單揭開真相",
-      "url": "https://fundhot.com/forum/ETF/00929%E6%8C%81%E6%9C%89%E5%8D%8A%E5%B9%B4%EF%BC%8C%E6%AF%8F%E6%9C%88%E9%A0%98%E6%81%AF%E5%8F%88%E8%B3%BA43%EF%BC%85%EF%BC%8C%E5%B0%8D%E5%B8%B3%E5%96%AE%E6%8F%AD%E9%96%8B%E7%9C%9F%E7%9B%B8/13889"
+      "url": "https://fundhot.com/forum/ETF/00929%E6%8C%81%E6%9C%89%E5%8D%8A%E5%B9%B4%EF%BC%8C%E6%AF%8F%E6%9C%88%E9%A0%98%E6%81%AF%E5%8F%88%E8%B3%BA43%EF%BC%85%EF%BC%8C%E5%B0%8D%E5%B8%B3%E5%96%AE%E6%8F%AD%E9%96%8B%E7%9C%9F%E7%9B%B8/13889",
+      "first_seen": "2026-09-01"
     },
     {
       "platform": "youtube",
@@ -478,7 +481,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=4N6rmHHj-qA",
       "date": "2026-08-27",
-      "views": 318394,
+      "views": 318600,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -488,10 +491,20 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/97tquEhNBAw",
       "date": "2026-08-30",
-      "views": 225183,
+      "views": 225450,
       "peer": true,
       "short": true,
       "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "【股票】台股崩跌竟是多頭起點？杜金龍緊盯「1大關鍵指標」：反彈後秒噴發！ft. 杜金龍｜下班經濟學772｜謝哲青、張瓊方",
+      "channel": "風傳媒 The Storm Media",
+      "url": "https://www.youtube.com/watch?v=RJGY-gm3hnE",
+      "date": "2026-08-31",
+      "views": 217427,
+      "peer": true,
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -499,21 +512,10 @@
       "channel": "鏡發財",
       "url": "https://www.youtube.com/shorts/Rt7quPqBTjw",
       "date": "2026-08-29",
-      "views": 158641,
+      "views": 159598,
       "peer": true,
       "short": true,
       "cat": "市值型"
-    },
-    {
-      "platform": "youtube",
-      "title": "【聯博投資最前線】台股Q3震盪後有戲？第四季行情與收益機會浮現！",
-      "channel": "聯博投信",
-      "url": "https://www.youtube.com/shorts/nBnjg_KYJO4",
-      "date": "2026-08-27",
-      "views": 151594,
-      "peer": true,
-      "short": true,
-      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -521,7 +523,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/6m-fgcgh3mM",
       "date": "2026-08-28",
-      "views": 147733,
+      "views": 147800,
       "peer": true,
       "short": true,
       "cat": "高股息"
@@ -532,7 +534,7 @@
       "channel": "我要做富翁",
       "url": "https://www.youtube.com/watch?v=RwwKQYxJ_A8",
       "date": "2026-08-30",
-      "views": 95054,
+      "views": 95936,
       "peer": true,
       "cat": "綜合"
     },
@@ -542,7 +544,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=z_ueoj6dukY",
       "date": "2026-08-30",
-      "views": 87942,
+      "views": 87974,
       "peer": true,
       "cat": "綜合"
     },
@@ -552,7 +554,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=sK203CxLZNQ",
       "date": "2026-08-31",
-      "views": 75711,
+      "views": 77499,
       "peer": true,
       "cat": "基金"
     },
@@ -562,25 +564,24 @@
       "channel": "阿爾發機器人理財 - 阿爾發投顧 | AI 投資長",
       "url": "https://www.youtube.com/watch?v=8U_S5RweWuQ",
       "date": "2026-08-27",
-      "views": 70596,
+      "views": 70680,
       "peer": true,
       "cat": "基金"
     },
     {
       "platform": "youtube",
-      "title": "0050洗牌 為何刪除反漲 潛規則曝光 #0050  #台股 #etf",
-      "channel": "黑石財經溫建勳",
-      "url": "https://www.youtube.com/shorts/xpv0FMJoKtk",
-      "date": "2026-08-28",
-      "views": 64115,
+      "title": "有10張00878就贏快80%投資人！逆襲0056重回高股息人氣王　存幾張能退休？｜懶錢包LazyWallet",
+      "channel": "懶錢包 Lazy Wallet",
+      "url": "https://www.youtube.com/watch?v=FoUaeXqf_9M",
+      "date": "2026-08-31",
+      "views": 64833,
       "peer": true,
-      "short": true,
-      "cat": "市值型"
+      "cat": "高股息"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、台灣科技高股息（詳下方新聞標籤）",
     "社群聲量最高：復華強勢通理財機器人再度大幅調升現金比重（0 推）",
-    "YouTube 熱片：【股票】台股崩跌前10天就知道？4大心法首度拆解：關鍵訊號藏在這根黑K裡？ft.朱家泓、林穎｜下班經濟學770｜謝哲青、張瓊方（風傳媒 The Storm Media・318,394 次觀看）"
+    "YouTube 熱片：【股票】台股崩跌前10天就知道？4大心法首度拆解：關鍵訊號藏在這根黑K裡？ft.朱家泓、林穎｜下班經濟學770｜謝哲青、張瓊方（風傳媒 The Storm Media・318,600 次觀看）"
   ]
 }
