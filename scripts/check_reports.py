@@ -100,6 +100,70 @@ def _check_process_language(md: str, rel: str) -> list[str]:
     return errs
 
 
+# ── 速覽／總覽段文風閘門（2026-09-01 使用者：「整段粗體的偏少…廢話不要太多、用詞精準」）──
+# 只管頭段那幾行（卡片求深、速覽求快，兩套標準不衝突）。三條都是「一眼可見」的結構性問題：
+# 太長、把版型標籤寫進正文、整段沒有粗體落點。
+BRIEF_SINCE = "2026-09-01"
+BRIEF_MAX = 320            # 散文段字數；提示包要求 ≤220 字，閘門給緩衝、只擋明顯超長
+BRIEF_MAX_BULLETS = 6      # 條列（索引式總覽）條數上限
+BRIEF_MAX_BULLET_LEN = 130  # 每條條列字數上限——防止把長文塞進 bullet 繞過上限
+_BRIEF_BAN = re.compile(
+    r"一句帶過|細節留給|中性陳述|值得注意的是|整體而言|整體來看|換言之")
+
+
+def _brief_sections(md: str) -> list[tuple[str, str]]:
+    """回 [(標題, 內文)]——標題含「速覽」或「總覽」的小節（頭段那幾行）。"""
+    out, cur, buf = [], "", []
+    for line in (md or "").splitlines():
+        if re.match(r"^#{2,3}\s", line.strip()):
+            if cur:
+                out.append((cur, "\n".join(buf)))
+            cur, buf = line.strip(), []
+            continue
+        if cur:
+            buf.append(line)
+    if cur:
+        out.append((cur, "\n".join(buf)))
+    return [(h, b) for h, b in out if ("速覽" in h or "總覽" in h)]
+
+
+def _plain(t: str) -> str:
+    return re.sub(r"\s+", "", re.sub(r"[*`>\-]", "", t))
+
+
+def _check_brief(md: str, rel: str) -> list[str]:
+    """⚠ 字數只算「散文段」，條列行分開算（2026-09-01 首版把兩者合計，害得
+    美股／總經那種「指數收盤條列＋一段解析」的索引式總覽必紅——而條列本來就是
+    好掃的版式、不是使用者抱怨的那種長篇敘述）。條列改以「條數×每條長度」設限，
+    免得有人把長文塞進 bullet 繞過閘門。"""
+    errs = []
+    for head, body in _brief_sections(md):
+        name = head.lstrip("# ").strip()
+        bullets = [ln for ln in body.splitlines() if ln.strip().startswith(("-", "*", "・"))]
+        prose = "\n".join(ln for ln in body.splitlines()
+                           if not ln.strip().startswith(("-", "*", "・")))
+        text = _plain(prose)
+        if not _plain(body):
+            continue
+        if len(text) > BRIEF_MAX:
+            errs.append(f"{rel}：「{name}」散文 {len(text)} 字超過上限 {BRIEF_MAX}"
+                        "——速覽是給只看 10 秒的讀者，長內容請放進卡片")
+        if len(bullets) > BRIEF_MAX_BULLETS:
+            errs.append(f"{rel}：「{name}」條列 {len(bullets)} 條超過 {BRIEF_MAX_BULLETS} 條")
+        for b in bullets:
+            if len(_plain(b)) > BRIEF_MAX_BULLET_LEN:
+                errs.append(f"{rel}：「{name}」有一條條列 {len(_plain(b))} 字"
+                            f"（上限 {BRIEF_MAX_BULLET_LEN}）——條列是索引、不是段落")
+        m = _BRIEF_BAN.search(body)
+        if m:
+            errs.append(f"{rel}：「{name}」出現版型標籤／填充語「{m.group(0)}」"
+                        "——段名與內規說明不入正文，要分段就直接換段")
+        if len(re.findall(r"\*\*[^*\n]+\*\*", body)) < 2:
+            errs.append(f"{rel}：「{name}」粗體不足 2 處——整段沒有視覺落點，"
+                        "關鍵數字與結論詞組（方向／受影響對象／檢核點）都要標")
+    return errs
+
+
 # ── 大變動提及閘門（2026-08-20 起）──
 # ⚠ 設計原則（使用者 2026-08-19：「閘門不能反過來限縮新聞範圍」）：本閘門只會因
 # 「官方序列顯示大變動、報告全文卻隻字未提」多報一條錯——提及即過（不要求成卡）、
@@ -150,6 +214,12 @@ def run(date: str) -> int:
     errs += _check_cards(ROOT / f"reports/twnews/{date}.md", date)
     errs += _check_cards(ROOT / f"reports/macronews/{date}.md", date)
     errs += _check_calendar(ROOT / f"reports/macrocal/{date}.md", date)
+    if date >= BRIEF_SINCE:                    # 速覽／總覽文風（長度／版型標籤／粗體落點）
+        for rel in (f"reports/usnews/{date}_v1.md", f"reports/usnews/{date}_v2.md",
+                    f"reports/twnews/{date}.md", f"reports/macronews/{date}.md"):
+            p = ROOT / rel
+            if p.exists():
+                errs += _check_brief(p.read_text(encoding="utf-8"), rel)
     if date >= MOVE_SINCE:                     # 大變動提及閘門（fail-open：落檔讀不到＝跳過）
         try:
             import datetime as _dt
