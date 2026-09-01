@@ -604,6 +604,25 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
   同標題跨源去重、單源失敗不牽連；容器 proxy 擋 fundhot（同 PTT 型）、真正抓取在 CI，
   新站解析 0 筆會印**結構探針**片段（grep `[fundhot]`）供一輪收斂；`_carry_social` 平台
   清單已含 fundhot（來源異常沿用既有項目）。渲染＝💬 章＋「強基金・板名」來源標。
+- **⚠ 強基金「都沒有在更新」＝三個結構性缺陷疊加（2026-09-01 使用者回報；同一組項目
+  連掛一週以上，勿再走回頭路）**：CI 日誌 `[fundhot]` 每天印三行失敗、卻沒人看得出原因——
+  ①**種子分類頁有一支根本不存在**：`/forum/股票` 是舊 phpBB 的版名，新站分類是
+  股票基金／ETF／資產配置／天使…，三頁只剩總覽頁一頁在跑（連 `/forum/股票基金` 當天也失敗，
+  原因待新日誌確認）。現種子改成實際存在的分類，並由**總覽頁話題連結的分類段自尋**補上
+  （`FUNDHOT_MAX_PAGES`=6 上限），版面改名不會整批失效。
+  ②**失敗只印 `type(e).__name__`**＝「RuntimeError」，看不出是 404 還是被擋（`get_bytes` 的
+  訊息本體已含 URL 與 HTTP 狀態，只是被丟掉）。**同型的靜默 `except: break` 也存在於
+  `fetch_ptt`**（「PTT 0 則」到底是被擋還是查無討論，日誌上長得一模一樣）——兩處都改印訊息本體。
+  ③**新站列表頁項目沒有日期**，`_carry_social` 的時窗檢查對「無 ISO 日期」一律豁免 → 來源掛掉
+  時原地凍結、版面上那欄還是空白，看起來就像今天的新討論。現：`parse_fundhot_page` 只在
+  找得到 `<time datetime>` 時給 date（不猜純文字日期，猜錯會把鄰列日期安到別篇上；
+  找不到會印一次探針片段供日後收斂），無日期者由 `_stamp_first_seen()` 記**首見日**
+  （同 url 沿用最早值），`_social_in_window()` 據以老化、儀表板標「首見 M/D」。
+  另：`feed.php?mode=topics` 對訪客常被關閉 → 加舊站「最新討論」HTML 備援
+  （`FUNDHOT_ACTIVE`＝`search.php?search_id=active_topics`，`parse_phpbb_topics`；
+  href 內分隔字元是 **`&amp;`** 不是 `&`，網址正規化成 `viewtopic.php?t={id}` 去掉 sid，
+  否則 first_seen 台帳與去重永遠對不上同一篇）。抓取一律 `retries=1／timeout=12`——
+  整站被擋時預設 3×25s 會讓每頁空轉逾一分鐘（每日 routine 全長才 ~80 秒）。
 - **社群討論＝PTT＋YouTube（2026-08-06 使用者需求）**：`fundnews.fetch_youtube()` 走 YouTube
   Data API v3，金鑰＝Actions secret `YOUTUBE_API_KEY`（v0.12 舊金鑰未曾建成 repo secret、
   已隨舊容器佚失，2026-08-06 使用者重設一把；本機備援 `~/.fh_youtube_key`）。無金鑰／被擋
