@@ -202,16 +202,16 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     <span class="tb-meta">持股基準 {_esc(as_of)}｜產表 {_esc(now)}</span>
     <span class="tb-lamp">{lamp}</span>
     <nav class="tb-nav tb-nav-fund">
-      <a href="#brief">今日重點</a><a href="#news">新聞</a>
-      <a href="#fundnews">復華新聞</a>
-      <a href="#overview">基金總覽</a>
-      <a href="#details">基金詳情</a>
+      <label class="sl" for="sec-brief">今日重點</label><label class="sl" for="sec-news">新聞</label>
+      <label class="sl" for="sec-fnews">復華新聞</label>
+      <label class="sl" for="sec-over">基金總覽</label>
+      <label class="sl" for="sec-det">基金詳情</label>
     </nav>
     <nav class="tb-nav tb-nav-macro">
-      <a href="#macro-cal">本週行事曆</a><a href="#macro-ov">政策總覽</a><a href="#macro">政策新聞</a><a href="#macro-data">市場數據</a>
+      <label class="sl" for="sec-mcal">本週行事曆</label><label class="sl" for="sec-mov">政策總覽</label><label class="sl" for="sec-mnews">政策新聞</label><label class="sl" for="sec-mdata">市場數據</label>
     </nav>
     <nav class="tb-nav tb-nav-etf">
-      <a href="#etf-upcoming">即將登場</a><a href="#etfwatch">ETF 數據追蹤</a><a href="#etf-detail">ETF 持股詳情&amp;異動</a>
+      <label class="sl" for="sec-eup">即將登場</label><label class="sl" for="sec-ewatch">ETF 數據追蹤</label><label class="sl" for="sec-edet">ETF 持股詳情&amp;異動</label>
     </nav>
   </div>
 </div>"""
@@ -2101,6 +2101,55 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 .tb-nav{margin-left:auto;display:flex;gap:2px;flex-wrap:wrap}
 .tb-nav a{color:var(--ink2);text-decoration:none;font-size:13.5px;padding:5px 9px;border-radius:0;background:none;border:0;transition:color .15s}
 .tb-nav a:hover{color:var(--acc)}
+/* ── 二級分段（2026-09-01 使用者：「字好多閱讀不下去」，選了「分頁內再分段」）──
+   每個分頁一次只顯示一段，頂欄那排標籤就是黏頂目錄。切換本體是純 CSS radio
+   （同一級分頁的作法，JS 停用也能按）；JS 只負責切段後捲回頂端與閱讀進度條。
+   ⚠ 隱藏段落裡的錨點（ETF 表的「詳情 ↓」跳 #etf-detail）由 JS 的 a[href^="#"]
+   攔截器補上「先切段再捲」，不要改回讓所有段落都顯示。 */
+.secradio{position:fixed;opacity:0;pointer-events:none}
+.sec{display:none}
+#sec-brief:checked ~ * .sec[data-sec="brief"],
+#sec-news:checked ~ * .sec[data-sec="news"],
+#sec-fnews:checked ~ * .sec[data-sec="fnews"],
+#sec-over:checked ~ * .sec[data-sec="over"],
+#sec-det:checked ~ * .sec[data-sec="det"],
+#sec-mcal:checked ~ * .sec[data-sec="mcal"],
+#sec-mov:checked ~ * .sec[data-sec="mov"],
+#sec-mnews:checked ~ * .sec[data-sec="mnews"],
+#sec-mdata:checked ~ * .sec[data-sec="mdata"],
+#sec-eup:checked ~ * .sec[data-sec="eup"],
+#sec-ewatch:checked ~ * .sec[data-sec="ewatch"],
+#sec-edet:checked ~ * .sec[data-sec="edet"]{display:block}
+.tb-nav .sl{color:var(--ink2);font-size:13.5px;padding:5px 9px;border-radius:8px;cursor:pointer;
+  white-space:nowrap;transition:color .15s,background .15s}
+.tb-nav .sl:hover{color:var(--acc);background:var(--card2)}
+#sec-brief:checked ~ .topbar .sl[for="sec-brief"],
+#sec-news:checked ~ .topbar .sl[for="sec-news"],
+#sec-fnews:checked ~ .topbar .sl[for="sec-fnews"],
+#sec-over:checked ~ .topbar .sl[for="sec-over"],
+#sec-det:checked ~ .topbar .sl[for="sec-det"],
+#sec-mcal:checked ~ .topbar .sl[for="sec-mcal"],
+#sec-mov:checked ~ .topbar .sl[for="sec-mov"],
+#sec-mnews:checked ~ .topbar .sl[for="sec-mnews"],
+#sec-mdata:checked ~ .topbar .sl[for="sec-mdata"],
+#sec-eup:checked ~ .topbar .sl[for="sec-eup"],
+#sec-ewatch:checked ~ .topbar .sl[for="sec-ewatch"],
+#sec-edet:checked ~ .topbar .sl[for="sec-edet"]{color:var(--acc);background:var(--card2);font-weight:700}
+/* 閱讀進度（黏頂目錄的配套）：目前這一段捲到哪 */
+.rprog{position:fixed;left:0;top:0;height:3px;width:0;background:var(--acc);z-index:60;
+  transition:width .12s linear;border-radius:0 3px 3px 0}
+@media(max-width:820px){
+  /* 手機：目錄改單行橫捲，段名不換行、不佔掉整個頂欄高度 */
+  .tb-nav{margin-left:0;width:100%;flex-wrap:nowrap;overflow-x:auto;gap:2px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tb-nav::-webkit-scrollbar{display:none}
+  .tb-nav .sl{font-size:13px;padding:6px 10px}
+}
+@media(min-width:1100px){
+  /* 桌機：分段後單屏留白變多，把清單型區塊排成兩欄（新聞卡／社群列本來就是等寬卡） */
+  .sec[data-sec="fnews"] .fnlist{column-count:2;column-gap:16px}
+  .sec[data-sec="fnews"] .fnit{break-inside:avoid}
+}
 /* ① brief */
 .ixrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 .ixc{flex:1;min-width:150px;background:var(--card2);border:0;border-radius:10px;padding:10px 14px}
@@ -2643,11 +2692,33 @@ document.querySelectorAll('.mkradio').forEach(r=>r.addEventListener('change',()=
 // 詳情卡預設收合：從總覽/連結點過去（#fund-xx）→ 自動展開該卡（2026-07-20 使用者指示）
 function openFund(id){const el=document.getElementById(id);
   if(el&&el.tagName==='DETAILS')el.open=true;return el}
+// 二級分段（2026-09-01）：切段是純 CSS radio，JS 補三件事——
+// ①隱藏段落裡的錨點（ETF 表「詳情 ↓」跳 #etf-detail）要先切到那一段再捲；
+// ②按目錄切段後捲回內容頂端（否則會停在上一段的捲動位置、看起來像沒反應）；
+// ③閱讀進度條。
+function secOf(el){const s=el&&el.closest('.sec');return s?s.dataset.sec:''}
+function showSec(name){const r=name&&document.getElementById('sec-'+name);
+  if(r&&!r.checked){r.checked=true;try{localStorage.setItem('sec-'+r.name,name)}catch(e){}return true}
+  return false}
+function toTop(){const w=document.querySelector('.wrap');
+  const tb=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tbh'))||64;
+  if(w)scrollTo({top:Math.max(0,w.offsetTop-tb+8),behavior:'smooth'})}
+document.querySelectorAll('.tb-nav .sl').forEach(l=>l.addEventListener('click',()=>{
+  const n=(l.getAttribute('for')||'').replace('sec-','');
+  try{localStorage.setItem('sec-'+(document.getElementById('sec-'+n)||{}).name,n)}catch(e){}
+  setTimeout(toTop,30)}));
+(function(){try{for(const g of ['secf','secm','sece']){const v=localStorage.getItem('sec-'+g);
+  if(v)showSec(v)}}catch(e){}})();
+(function(){const bar=document.getElementById('rprog');if(!bar)return;
+  const upd=()=>{const h=document.documentElement.scrollHeight-innerHeight;
+    bar.style.width=(h>40?Math.min(100,Math.max(0,scrollY/h*100)):0)+'%';};
+  upd();addEventListener('scroll',upd,{passive:true});addEventListener('resize',upd);})();
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>{
   const href=a.getAttribute('href');
   const el=href.startsWith('#fund-')?openFund(href.slice(1)):document.querySelector(href);
   const mv=el&&el.closest('.mkt');
   if(mv&&mv.dataset.mkt!==curMkt())setMkt(mv.dataset.mkt);
+  if(showSec(secOf(el))&&el)setTimeout(()=>el.scrollIntoView({block:'start',behavior:'smooth'}),40);
 }));
 if(location.hash.startsWith('#fund-'))openFund(location.hash.slice(1));
 addEventListener('hashchange',()=>{if(location.hash.startsWith('#fund-'))openFund(location.hash.slice(1))});
@@ -2992,8 +3063,11 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
   // 上方 ETF 表「詳情 ↓」：展開該檔並捲過來
   document.querySelectorAll('.edjump').forEach(function(b){b.onclick=function(){
     var card=document.getElementById('etfd-'+b.dataset.c); if(!card)return;
+    // 2026-09-01 二級分段後，詳情卡與上表不在同一段——先切到「持股詳情」段再捲，
+    // 否則按了完全沒反應（切段是 CSS radio，元素在 DOM 裡但整段 display:none）
+    var moved=(typeof showSec==='function')&&showSec('edet');
     card.classList.remove('fhide'); card.open=true; render(card);
-    card.scrollIntoView({behavior:'smooth',block:'start'})}});
+    setTimeout(function(){card.scrollIntoView({behavior:'smooth',block:'start'})},moved?60:0)}});
 })();
 // （逾期未重建警告只保留上方那一份——此處原有一份重複的同樣 IIFE，逾期時會 prepend 兩條橫幅，2026-08-03 去重）
 """
@@ -3201,25 +3275,40 @@ def render() -> str:
 <input class="mkradio" type="radio" name="mkt" id="mkt-tw" checked>
 <input class="mkradio" type="radio" name="mkt" id="mkt-gl">
 <input class="mkradio" type="radio" name="mkt" id="mkt-etf">
+<input class="secradio" type="radio" name="secf" id="sec-brief" checked>
+<input class="secradio" type="radio" name="secf" id="sec-news">
+<input class="secradio" type="radio" name="secf" id="sec-fnews">
+<input class="secradio" type="radio" name="secf" id="sec-over">
+<input class="secradio" type="radio" name="secf" id="sec-det">
+<input class="secradio" type="radio" name="secm" id="sec-mcal" checked>
+<input class="secradio" type="radio" name="secm" id="sec-mov">
+<input class="secradio" type="radio" name="secm" id="sec-mnews">
+<input class="secradio" type="radio" name="secm" id="sec-mdata">
+<input class="secradio" type="radio" name="sece" id="sec-eup" checked>
+<input class="secradio" type="radio" name="sece" id="sec-ewatch">
+<input class="secradio" type="radio" name="sece" id="sec-edet">
+<div class="rprog" id="rprog"></div>
 {_topbar(banned, bool(news or tw or macro), as_of, now)}
 <div class="wrap">
 <div class="hero"><div class="hero-t">復華<b>基金雷達</b></div>
 <div class="hero-s">每日晨間更新・基金淨值 × 市場新聞 × 總經政策 × ETF 追蹤</div>
 <div class="hero-meta"><span class="hero-chip">產表 {now}</span><span class="hero-chip">持股基準 {as_of}</span></div></div>
 {sec_fresh}
-<div class="macroview">{sec_macro_cal}
-{sec_macro_ov}
-{sec_macro}
-{sec_macro_data}</div>
-<div class="etfview">{sec_etf_up}
-{sec_etf}
-{sec_etf_det}</div>
+<div class="macroview">
+<div class="sec" data-sec="mcal">{sec_macro_cal}</div>
+<div class="sec" data-sec="mov">{sec_macro_ov}</div>
+<div class="sec" data-sec="mnews">{sec_macro}</div>
+<div class="sec" data-sec="mdata">{sec_macro_data}</div></div>
+<div class="etfview">
+<div class="sec" data-sec="eup">{sec_etf_up}</div>
+<div class="sec" data-sec="ewatch">{sec_etf}</div>
+<div class="sec" data-sec="edet">{sec_etf_det}</div></div>
 <div class="fundview">
-{sec_brief}
-{sec_news}
-{sec_fnews}
-{sec_over}
-{sec_det}
+<div class="sec" data-sec="brief">{sec_brief}</div>
+<div class="sec" data-sec="news">{sec_news}</div>
+<div class="sec" data-sec="fnews">{sec_fnews}</div>
+<div class="sec" data-sec="over">{sec_over}</div>
+<div class="sec" data-sec="det">{sec_det}</div>
 </div>
 <div class="foot">
   資料來源：復華投信官網（fhtrust.com.tw）基金淨值／持股揭露（月度）；新聞／政策／行事曆為公開來源彙編（出處連結見各則新聞卡），僅為市場資訊彙編／教育用途；重點標的簡介為中性事實敘述、非投資建議。<br>
