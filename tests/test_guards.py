@@ -142,3 +142,45 @@ def test_check_reports_blocks_process_language_in_body():
     assert "官方落檔" in errs[0] and "見資料侷限" in errs[1]
     clean = "## 🔹總覽\n費半收 12,417.05 點（−0.31%）。\n## 資料侷限說明\n採官方落檔。\n"
     assert check._check_process_language(clean, "x.md") == []
+
+
+# ── 速覽／總覽文風閘門（2026-09-01 使用者：「整段粗體的偏少…廢話不要太多、用詞精準」）──
+
+def _brief_doc(body: str) -> str:
+    return "# 〈台股盤前重點〉2026/09/01\n\n## 🔹盤前速覽\n\n" + body + "\n\n---\n\n## 🔹盤前卡\n"
+
+
+def test_check_brief_style_gate():
+    import importlib
+    sys.path.insert(0, str(ROOT / "scripts"))
+    check = importlib.import_module("check_reports")
+
+    ok = _brief_doc("昨夜訊號分歧：**費半 +0.57%**，台積電 ADR **-0.53%**。資金集中記憶體。")
+    assert check._check_brief(ok, "x.md") == []
+
+    long_one = _brief_doc("台指期夜盤在 **45,983 點**附近整理。" + "補充說明。" * 70)
+    assert any("超過上限" in e for e in check._check_brief(long_one, "x.md"))
+
+    tagged = _brief_doc("國際背景一句帶過（細節留給總經報告）：**油價**走高，**電子權值**承壓。")
+    assert any("版型標籤" in e for e in check._check_brief(tagged, "x.md"))
+
+    plain = _brief_doc("昨夜三大指數收黑，資金集中記憶體與設備族群，權值代工持平。")
+    assert any("粗體不足" in e for e in check._check_brief(plain, "x.md"))
+
+
+def test_check_brief_counts_prose_and_bullets_separately():
+    """索引式總覽（指數收盤條列＋一段解析）不可因「條列＋散文合計」被誤殺——
+    條列本來就是好掃的版式，不是使用者抱怨的長篇敘述；改以條數／每條長度設限。"""
+    import importlib
+    sys.path.insert(0, str(ROOT / "scripts"))
+    check = importlib.import_module("check_reports")
+    bullets = "\n".join(f"- **指數{i}**：收 1,00{i} 點，下跌 0.{i}%，為八月最後一個交易日。"
+                        for i in range(4))
+    doc = _brief_doc(bullets + "\n\n八月最後一日是**板塊分流**，**能源**收紅、道瓊吃下最大跌點。")
+    assert check._check_brief(doc, "x.md") == []
+    too_many = _brief_doc("\n".join(f"- **項{i}**：內容內容內容。" for i in range(9))
+                          + "\n\n結論一句，**方向**明確、**族群**分歧。")
+    assert any("條列" in e and "超過" in e for e in check._check_brief(too_many, "x.md"))
+    fat = _brief_doc("- **項**：" + "把整段長文塞進條列想繞過上限。" * 12
+                     + "\n\n結論一句，**方向**明確、**族群**分歧。")
+    assert any("條列是索引" in e for e in check._check_brief(fat, "x.md"))
