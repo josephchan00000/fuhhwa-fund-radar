@@ -609,15 +609,32 @@ _FUNDHOT_LINK = re.compile(
     r'[^>]*>(.*?)</a>', re.S | re.I)
 _ATOM_ENTRY = re.compile(r"<entry>(.*?)</entry>", re.S | re.I)
 _ATOM_LINK = re.compile(r'<link[^>]+href="([^"]+)"', re.I)
-# 只認機器可讀的 <time datetime="YYYY-MM-DD…">：列表頁的純文字日期格式不明，
-# 猜錯會把鄰列日期安到別篇上——寧可無日期（改以 first_seen 誠實標「首見」）。
 _HTML_TIME = re.compile(r'<time[^>]+datetime="(\d{4}-\d{2}-\d{2})', re.I)
+# 強基金新站列表頁沒有 <time datetime>，時間是**相對字串**（2026-09-01 加寬探針才看到：
+# `<span class="text-auxiliary …">10小時前</span>`，緊接在標題 </a> 之後、作者連結之前）。
+# 這是本來「日期整欄空白」的根因——有了它，強基金項目才有真日期可老化與顯示。
+_REL_TIME = re.compile(r"(\d+)\s*(分鐘|小時|天|週|周|個月|月|年)前")
+_REL_UNIT = {"分鐘": 1 / 1440, "小時": 1 / 24, "天": 1, "週": 7, "周": 7,
+             "個月": 30, "月": 30, "年": 365}
+
+
+def _rel_date(text: str) -> str:
+    """「10小時前」「3天前」「1個月前」→ ISO 日期（台北時區）；認不出回空字串。
+    月／年用 30／365 天近似——出了時窗就是舊文，差幾天不影響用途。"""
+    m = _REL_TIME.search(text or "")
+    if not m:
+        return ""
+    days = _REL_UNIT[m.group(2)] * int(m.group(1))
+    return (datetime.now(TW_TZ) - timedelta(days=days)).strftime("%Y-%m-%d")
 
 
 def parse_fundhot_page(html: str) -> list[dict]:
     """新站列表頁 → [{platform, board, title, url, date?}]。純函式可單測；不做相關性
-    過濾（fetch_fundhot 統一過）。board＝URL 分類段解碼（股票基金／其他…）；
-    date 只在連結後 400 字內找得到 <time datetime> 時才給（找不到就不給，見上方註）。"""
+    與時窗過濾（fetch_fundhot 統一過）。board＝URL 分類段解碼（股票基金／其他…）；
+    date 取標題後的 <time datetime>，沒有就解析相對時間（「10小時前」＝現行版式）。
+
+    ⚠ 判定窗口切在**下一個 `<a `** 之前：時間標籤就在標題 `</a>` 與作者連結之間，
+    這樣切既拿得到本列時間，也不會抓到下一列的（猜錯日期比沒日期更糟）。"""
     from html import unescape
 
     out, seen = [], set()
@@ -633,9 +650,12 @@ def parse_fundhot_page(html: str) -> list[dict]:
         seen.add(url)
         it = {"platform": "fundhot", "board": urllib.parse.unquote(cat),
               "title": title, "url": url}
-        mt = _HTML_TIME.search(text[m.end():m.end() + 400])
-        if mt:
-            it["date"] = mt.group(1)
+        nxt = text.find("<a ", m.end())
+        win = text[m.end():min(nxt if nxt > 0 else len(text), m.end() + 700)]
+        mt = _HTML_TIME.search(win)
+        d = mt.group(1) if mt else _rel_date(win)
+        if d:
+            it["date"] = d
         out.append(it)
     return out
 
@@ -721,11 +741,16 @@ def fetch_fundhot(days: int = WINDOW_DAYS, limit: int = 8) -> list[dict]:
     out: list[dict] = []
     seen: set[str] = set()
 
+    cutoff = (datetime.now(TW_TZ) - timedelta(days=days)).strftime("%Y-%m-%d")
+
     def _add(items: list[dict]) -> None:
         for it in items:
             k = (it.get("title") or "")[:24]
             if not k or k in seen or not ptt_relevant(it["title"]):
                 continue
+            d = it.get("date") or ""             # 有日期就照日期老化：站上長掛的舊討論
+            if re.fullmatch(r"\d{4}-\d{2}-\d{2}", d) and d < cutoff:
+                continue                         # 不再以「新討論」姿態佔版面
             seen.add(k)
             out.append(it)
 
