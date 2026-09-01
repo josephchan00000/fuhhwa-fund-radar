@@ -317,3 +317,14 @@ def test_yt_watch_chip_flags_zero_youtube(tmp_path, monkeypatch):
     fp.write_text(json.dumps({**asof, "social": [{"platform": "youtube", "title": "y"}]}),
                   encoding="utf-8")
     assert fd._yt_watch_chip(today=t) == ""                # 有影片＝正常
+
+
+def test_brief_style_in_all_five_templates():
+    """速覽／總覽文風規格要進五份版型（美股 v1/v2、台股盤前/盤後、總經）——
+    生效條件同其他提示包規則：merge 進 main 後做一次「排程搬家」。"""
+    from arm import macronews, twnews, usnews
+    assert "≤ 220 字" in usnews.BRIEF_STYLE and "粗體要有落點" in usnews.BRIEF_STYLE
+    assert "段名與內規說明一律不寫" in usnews.BRIEF_STYLE      # 「一句帶過」那類標籤
+    for spec in (usnews.SPEC_V1, usnews.SPEC_V2, twnews.SPEC_PRE, twnews.SPEC_POST,
+                 macronews.SPEC_MACRO):
+        assert "速覽／總覽段的寫法" in spec
