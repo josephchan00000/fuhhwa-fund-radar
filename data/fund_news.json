@@ -1,12 +1,49 @@
 {
-  "as_of": "2026/09/01 09:57",
+  "as_of": "2026/09/02 07:02",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
     {
+      "title": "三檔海外ETF今天掛牌",
+      "url": "https://udn.com/news/story/123006/9728218",
+      "source": "UDN",
+      "date": "2026-09-01 23:20",
+      "datetime": "2026-09-01T23:20:52+08:00"
+    },
+    {
+      "title": "00409A 復華全球未來50主動式ETF ｜成分股？配息？優缺點？上市時間？",
+      "url": "https://www.stockfeel.com.tw/00409a-%e5%be%a9%e8%8f%af%e5%85%a8%e7%90%83%e6%9c%aa%e4%be%8650%e4%b8%bb%e5%8b%95%e5%bc%8f-etf/",
+      "source": "股感 StockFeel",
+      "date": "2026-09-01 21:58",
+      "datetime": "2026-09-01T21:58:17+08:00",
+      "summary": "2026 年全球金融市場迎來全新的AI大時代。隨著AI技術從 1.0 的「算力基礎建設」逐步跨入 2.0 的「 [&#8230;]\nThe post 00409A 復華全球未來50主動式ETF ｜成分…"
+    },
+    {
+      "title": "00929配息0.38元不變！年化配息率逾15％ 領息最晚這天買",
+      "url": "https://mknews.com.tw/2026/09/986901/",
+      "source": "天天上新聞",
+      "date": "2026-09-01 18:59",
+      "datetime": "2026-09-01T18:59:49+08:00"
+    },
+    {
+      "title": "00929 復華台灣科技優息 ETF｜成分股？配息？優缺點？",
+      "url": "https://www.stockfeel.com.tw/00929-%e5%be%a9%e8%8f%af%e5%8f%b0%e7%81%a3%e7%a7%91%e6%8a%80%e5%84%aa%e6%81%af-etf/",
+      "source": "股感 StockFeel",
+      "date": "2026-09-01 16:56",
+      "datetime": "2026-09-01T16:56:00+08:00",
+      "summary": "台灣科技產業在全球供應鏈中扮演著不可或缺的角色，從半導體到電子零組件，無論是技術實力還是供應鏈完整度，都處於領 [&#8230;]\nThe post 00929 復華台灣科技優息 ETF｜成分股？配息…"
+    },
+    {
+      "title": "債券配息族注意！非投等債始祖00710B配息創8.19%新高！",
+      "url": "https://www.taisounds.com/news/content/76/286337",
+      "source": "太報 TaiSounds",
+      "date": "2026-09-01 15:43",
+      "datetime": "2026-09-01T15:43:00+08:00"
+    },
+    {
       "title": "復華00409A、玉山009827、中信009828三檔 ETF 9月2日同天掛牌",
       "url": "https://udn.com/news/story/7239/9726179",
-      "source": "UDN",
+      "source": "money.udn.com",
       "date": "2026-09-01 08:27",
       "datetime": "2026-09-01T08:27:50+08:00"
     }
@@ -21,11 +58,40 @@
       ],
       "items": [
         {
-          "title": "00929 復華台灣科技優息 - 今天突然想買他 但是不是有點高 還是現在快點買 - 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/article/183285649",
-          "source": "CMoney",
-          "date": "2026-08-27 11:44",
-          "datetime": "2026-08-27T11:44:12+08:00"
+          "title": "復華 ETF 00929連三個月配15%",
+          "url": "https://udn.com/news/story/7239/9728656?from=udn-ch1_breaknews-1-99-news",
+          "source": "UDN",
+          "date": "2026-09-02 06:35",
+          "datetime": "2026-09-02T06:35:21+08:00"
+        },
+        {
+          "title": "00929配息0.38元不變！年化配息率逾15％ 領息最晚這天買",
+          "url": "https://mknews.com.tw/2026/09/986901/",
+          "source": "墨新聞-MORE News",
+          "date": "2026-09-01 18:59",
+          "datetime": "2026-09-01T18:59:49+08:00"
+        },
+        {
+          "title": "00929、00919、00918配息最新！除息日發息日、年化配息率誰高？拿100萬選它：1季多領1.6萬",
+          "url": "https://www.businesstoday.com.tw/article/category/183013/post/202609010038/",
+          "source": "今周刊",
+          "date": "2026-09-01 17:39",
+          "datetime": "2026-09-01T17:39:33+08:00"
+        },
+        {
+          "title": "00929 復華台灣科技優息 ETF｜成分股？配息？優缺點？",
+          "url": "https://www.stockfeel.com.tw/00929-%e5%be%a9%e8%8f%af%e5%8f%b0%e7%81%a3%e7%a7%91%e6%8a%80%e5%84%aa%e6%81%af-etf/",
+          "source": "股感 StockFeel",
+          "date": "2026-09-01 16:56",
+          "datetime": "2026-09-01T16:56:00+08:00",
+          "summary": "台灣科技產業在全球供應鏈中扮演著不可或缺的角色，從半導體到電子零組件，無論是技術實力還是供應鏈完整度，都處於領 [&#8230;]\nThe post 00929 復華台灣科技優息 ETF｜成分股？配息…"
+        },
+        {
+          "title": "44萬人注意！00929月配0.38元　年化息率衝15.6%",
+          "url": "https://finance.ettoday.net/news/3229644",
+          "source": "ETtoday財經雲",
+          "date": "2026-09-01 16:47",
+          "datetime": "2026-09-01T16:47:00+08:00"
         }
       ]
     },
@@ -45,13 +111,6 @@
           "datetime": "2026-08-31T18:15:00+08:00"
         },
         {
-          "title": "欣興利空ETF該賣嗎？0050、00981A、00991A持股權重、欣興股價跌停與影響一次看｜豐雲學堂2026 年 08 月",
-          "url": "https://www.sinotrade.com.tw/richclub/primary/%E6%AC%A3%E8%88%88%E5%88%A9%E7%A9%BAETF%E8%A9%B2%E8%B3%A3%E5%97%8E-0050-00981A-00991A%E6%8C%81%E8%82%A1%E6%AC%8A%E9%87%8D-%E6%AC%A3%E8%88%88%E8%82%A1%E5%83%B9%E8%B7%8C%E5%81%9C%E8%88%87%E5%BD%B1%E9%9F%BF%E4%B8%80%E6%AC%A1%E7%9C%8B-6a95350ebd26990bb1d62ae5",
-          "source": "sinotrade.com.tw",
-          "date": "2026-08-31 16:14",
-          "datetime": "2026-08-31T16:14:07.953000+08:00"
-        },
-        {
           "title": "00991A 主動復華未來50 - 主動式ETF 戰國時代來臨！這檔績效狂飆77% 吸粉76萬人- 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/article/183572913",
           "source": "CMoney",
@@ -69,16 +128,23 @@
       ],
       "items": [
         {
-          "title": "【主動ETF PK】輝達也救不了？海外新兵一半破發 00998A卻漲逾2成",
-          "url": "https://tw.stock.yahoo.com/news/%E3%80%90%E4%B8%BB%E5%8B%95etf-pk%E3%80%91%E8%BC%9D%E9%81%94%E4%B9%9F%E6%95%91%E4%B8%8D%E4%BA%86%EF%BC%9F%E6%B5%B7%E5%A4%96%E6%96%B0%E5%85%B5%E4%B8%80%E5%8D%8A%E7%A0%B4%E7%99%BC-00998a%E5%8D%BB%E6%BC%B2%E9%80%BE2%E6%88%90-095431312.html",
-          "source": "Yahoo股市",
-          "date": "2026-08-31 17:54",
-          "datetime": "2026-08-31T17:54:31+08:00"
+          "title": "00998A最新配息0.424元、年化衝上9.5%！科技狂熱遇估值震盪教你看懂波克夏「金融防禦密碼」",
+          "url": "https://tw.news.yahoo.com/00998a%E6%9C%80%E6%96%B0%E9%85%8D%E6%81%AF0-424%E5%85%83-%E5%B9%B4%E5%8C%96%E8%A1%9D%E4%B8%8A9-5-%E7%A7%91%E6%8A%80%E7%8B%82%E7%86%B1%E9%81%87%E4%BC%B0%E5%80%BC%E9%9C%87%E7%9B%AA-122128940.html",
+          "source": "Yahoo新聞",
+          "date": "2026-09-01 20:21",
+          "datetime": "2026-09-01T20:21:28+08:00"
+        },
+        {
+          "title": "00998A配息加碼至0.424元、年化衝9.5%！科技股估值震盪之際 以金融實質獲利勝出",
+          "url": "https://tw.news.yahoo.com/00998a%E9%85%8D%E6%81%AF%E5%8A%A0%E7%A2%BC%E8%87%B30-424%E5%85%83-%E5%B9%B4%E5%8C%96%E8%A1%9D9-5-%E7%A7%91%E6%8A%80%E8%82%A1%E4%BC%B0%E5%80%BC%E9%9C%87%E7%9B%AA%E4%B9%8B%E9%9A%9B-121932387.html",
+          "source": "Yahoo新聞",
+          "date": "2026-09-01 20:19",
+          "datetime": "2026-09-01T20:19:32+08:00"
         },
         {
           "title": "跟著川普投顧走! 川普提高金融持股比例 專家:可關注全球金融ETF-00998A",
           "url": "https://tw.news.yahoo.com/%E8%B7%9F%E8%91%97%E5%B7%9D%E6%99%AE%E6%8A%95%E9%A1%A7%E8%B5%B0-%E5%B7%9D%E6%99%AE%E6%8F%90%E9%AB%98%E9%87%91%E8%9E%8D%E6%8C%81%E8%82%A1%E6%AF%94%E4%BE%8B-%E5%B0%88%E5%AE%B6-%E5%8F%AF%E9%97%9C%E6%B3%A8%E5%85%A8%E7%90%83%E9%87%91%E8%9E%8Detf-00998a-140528029.html",
-          "source": "Life 生活網",
+          "source": "報新聞",
           "date": "2026-08-27 22:05",
           "datetime": "2026-08-27T22:05:10+08:00"
         }
@@ -102,9 +168,17 @@
       ],
       "items": [
         {
+          "title": "00409A 復華全球未來50主動式ETF ｜成分股？配息？優缺點？上市時間？",
+          "url": "https://www.stockfeel.com.tw/00409a-%e5%be%a9%e8%8f%af%e5%85%a8%e7%90%83%e6%9c%aa%e4%be%8650%e4%b8%bb%e5%8b%95%e5%bc%8f-etf/",
+          "source": "股感 StockFeel",
+          "date": "2026-09-01 21:58",
+          "datetime": "2026-09-01T21:58:17+08:00",
+          "summary": "2026 年全球金融市場迎來全新的AI大時代。隨著AI技術從 1.0 的「算力基礎建設」逐步跨入 2.0 的「 [&#8230;]\nThe post 00409A 復華全球未來50主動式ETF ｜成分…"
+        },
+        {
           "title": "復華00409A、玉山009827、中信009828三檔 ETF 9月2日同天掛牌",
           "url": "https://udn.com/news/story/7239/9726179",
-          "source": "UDN",
+          "source": "money.udn.com",
           "date": "2026-09-01 08:27",
           "datetime": "2026-09-01T08:27:50+08:00"
         },
@@ -116,8 +190,8 @@
           "datetime": "2026-08-30T17:00:00+08:00"
         },
         {
-          "title": "00409A(00409A)子公司與轉投資主要持股明細 - 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/stock/00409A?s=reinvestment",
+          "title": "00409A(00409A)現金流量表｜年度與季度投資、融資現金流 - 股市爆料同學會",
+          "url": "https://www.cmoney.tw/forum/stock/00409A?s=cash-flow",
           "source": "CMoney",
           "date": "2026-08-30 17:00",
           "datetime": "2026-08-30T17:00:00+08:00"
@@ -437,10 +511,24 @@
   "social": [
     {
       "platform": "fundhot",
+      "board": "資產配置",
+      "title": "幫兩老思考未來退休現金流規劃配置",
+      "url": "https://fundhot.com/forum/%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE/%E5%B9%AB%E5%85%A9%E8%80%81%E6%80%9D%E8%80%83%E6%9C%AA%E4%BE%86%E9%80%80%E4%BC%91%E7%8F%BE%E9%87%91%E6%B5%81%E8%A6%8F%E5%8A%83%E9%85%8D%E7%BD%AE/13932",
+      "date": "2026-09-01"
+    },
+    {
+      "platform": "fundhot",
+      "board": "股票基金",
+      "title": "用這個標準找穩健基金可以嗎？",
+      "url": "https://fundhot.com/forum/%E8%82%A1%E7%A5%A8%E5%9F%BA%E9%87%91/%E7%94%A8%E9%80%99%E5%80%8B%E6%A8%99%E6%BA%96%E6%89%BE%E7%A9%A9%E5%81%A5%E5%9F%BA%E9%87%91%E5%8F%AF%E4%BB%A5%E5%97%8E%EF%BC%9F/13931",
+      "date": "2026-09-01"
+    },
+    {
+      "platform": "fundhot",
       "board": "其他",
       "title": "基富通質押的部位也一起顯示在資產總庫存",
       "url": "https://fundhot.com/forum/%E5%85%B6%E4%BB%96/%E5%9F%BA%E5%AF%8C%E9%80%9A%E8%B3%AA%E6%8A%BC%E7%9A%84%E9%83%A8%E4%BD%8D%E4%B9%9F%E4%B8%80%E8%B5%B7%E9%A1%AF%E7%A4%BA%E5%9C%A8%E8%B3%87%E7%94%A2%E7%B8%BD%E5%BA%AB%E5%AD%98/13930",
-      "date": "2026-08-31"
+      "first_seen": "2026-09-02"
     },
     {
       "platform": "fundhot",
@@ -478,26 +566,30 @@
       "first_seen": "2026-09-01"
     },
     {
-      "platform": "fundhot",
-      "board": "天使",
-      "title": "半導體ETF強AI出現多倍訊號，勝率與報酬率都很不錯",
-      "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/%E5%8D%8A%E5%B0%8E%E9%AB%94ETF%E5%BC%B7AI%E5%87%BA%E7%8F%BE%E5%A4%9A%E5%80%8D%E8%A8%8A%E8%99%9F%EF%BC%8C%E5%8B%9D%E7%8E%87%E8%88%87%E5%A0%B1%E9%85%AC%E7%8E%87%E9%83%BD%E5%BE%88%E4%B8%8D%E9%8C%AF/13923",
-      "first_seen": "2026-09-01"
-    },
-    {
-      "platform": "fundhot",
-      "board": "天使",
-      "title": "美股進入「垃圾時間」？期中選舉年近90％出現逾7％回撤",
-      "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/%E7%BE%8E%E8%82%A1%E9%80%B2%E5%85%A5%E3%80%8C%E5%9E%83%E5%9C%BE%E6%99%82%E9%96%93%E3%80%8D%EF%BC%9F%E6%9C%9F%E4%B8%AD%E9%81%B8%E8%88%89%E5%B9%B4%E8%BF%9190%EF%BC%85%E5%87%BA%E7%8F%BE%E9%80%BE7%EF%BC%85%E5%9B%9E%E6%92%A4/13922",
-      "first_seen": "2026-09-01"
+      "platform": "youtube",
+      "title": "在穩定與心動之間… 誰是你的真命天債？",
+      "channel": "復華ETF情報站",
+      "url": "https://www.youtube.com/shorts/M2S9GNjmfa0",
+      "date": "2026-09-01",
+      "views": 2648,
+      "official": true,
+      "short": true
     },
     {
       "platform": "youtube",
-      "title": "高股息ETF今日買賣超｜大聯大加碼最多、鈊象減碼最多｜買超賣超Top10｜2026/08/25 #高股息ETF #高股息 #台股 #ETF #存股 #shorts #大聯大 #鈊象",
+      "title": "00712 復華富時不動產長線投資與進場時機評估--退休存股、投資、技術分析|夜市談財經|退休族專屬|David&#39;s Nose",
+      "channel": "夜市談財經",
+      "url": "https://www.youtube.com/watch?v=j8Hdik-8qE4",
+      "date": "2026-09-01",
+      "views": 104
+    },
+    {
+      "platform": "youtube",
+      "title": "高股息ETF今日買賣超｜廣達加碼最多、鈊象減碼最多｜買超賣超Top10｜2026/08/31 #高股息ETF #高股息 #台股 #ETF #存股 #shorts #廣達 #鈊象",
       "channel": "Steven Lin",
-      "url": "https://www.youtube.com/shorts/Erik1CtH1lE",
-      "date": "2026-08-25",
-      "views": 76,
+      "url": "https://www.youtube.com/shorts/ysWdKQoqKBw",
+      "date": "2026-08-31",
+      "views": 54,
       "short": true
     },
     {
@@ -506,28 +598,40 @@
       "channel": "JJ的理財智慧星",
       "url": "https://www.youtube.com/shorts/aMfAMt5MnE8",
       "date": "2026-08-30",
-      "views": 34,
+      "views": 49,
       "short": true
     },
     {
       "platform": "youtube",
-      "title": "高股息ETF今日買賣超｜廣達加碼最多、鈊象減碼最多｜買超賣超Top10｜2026/08/31 #高股息ETF #高股息 #台股 #ETF #存股 #shorts #廣達 #鈊象",
-      "channel": "Steven Lin",
-      "url": "https://www.youtube.com/shorts/ysWdKQoqKBw",
-      "date": "2026-08-31",
-      "views": 19,
-      "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "【聯博投資最前線】台股Q3震盪後有戲？第四季行情與收益機會浮現！",
-      "channel": "聯博投信",
-      "url": "https://www.youtube.com/shorts/nBnjg_KYJO4",
-      "date": "2026-08-27",
-      "views": 153427,
+      "title": "台股投資人剉哩等!欣興驚傳涉&quot;洗產地&quot; 周一開盤恐引爆踩踏? 51檔ETF納入! 00981A.00987A減碼壓力大｜非凡財經新聞｜20260830",
+      "channel": "USTV 非凡電視",
+      "url": "https://www.youtube.com/shorts/97tquEhNBAw",
+      "date": "2026-08-30",
+      "views": 229744,
       "peer": true,
       "short": true,
-      "cat": "市場趨勢"
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股9月會變盤?蔡明翰:大跌機率低 #台股 #投資 #美股 #台積電 #0050",
+      "channel": "鏡發財",
+      "url": "https://www.youtube.com/shorts/Rt7quPqBTjw",
+      "date": "2026-08-29",
+      "views": 188416,
+      "peer": true,
+      "short": true,
+      "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "基金賺多少該停利？從小微笑到「仰天長笑」，能承受多少波動，決定你適合抱多久｜ft.蕭碧燕【理財資優生】EP90",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/watch?v=sK203CxLZNQ",
+      "date": "2026-08-31",
+      "views": 158575,
+      "peer": true,
+      "cat": "基金"
     },
     {
       "platform": "youtube",
@@ -535,30 +639,10 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/6m-fgcgh3mM",
       "date": "2026-08-28",
-      "views": 147905,
+      "views": 151444,
       "peer": true,
       "short": true,
       "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "通脹偷錢！$1000起步，新手投資第一堂：ETF、月供、複利滾雪球，不投資才是最大風險【施傅教學】 #投資101",
-      "channel": "我要做富翁",
-      "url": "https://www.youtube.com/watch?v=RwwKQYxJ_A8",
-      "date": "2026-08-30",
-      "views": 98641,
-      "peer": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "夜盤跌逾400點!明天台股壓力大?欣興恐吞一根?景碩怎麼辦?ETF持股有影響嗎?半導體展關注誰? #台股 #欣興 #景碩 #台積電 #大立光",
-      "channel": "一綺聊股",
-      "url": "https://www.youtube.com/watch?v=z_ueoj6dukY",
-      "date": "2026-08-30",
-      "views": 88157,
-      "peer": true,
-      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -566,30 +650,30 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=FoUaeXqf_9M",
       "date": "2026-08-31",
-      "views": 75342,
+      "views": 136555,
       "peer": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "0050洗牌 為何刪除反漲 潛規則曝光 #0050  #台股 #etf",
-      "channel": "黑石財經溫建勳",
-      "url": "https://www.youtube.com/shorts/xpv0FMJoKtk",
-      "date": "2026-08-28",
-      "views": 64726,
+      "title": "如何買好股？杜金龍：...除了國巨 #台股 #杜金龍 #盧燕俐 #shorts 20260829",
+      "channel": "鈔錢部署–華視優選",
+      "url": "https://www.youtube.com/shorts/_JodA-zhNzc",
+      "date": "2026-08-29",
+      "views": 132304,
       "peer": true,
       "short": true,
-      "cat": "市值型"
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
-      "title": "主動ETF更勝0050？超馬芭樂挑出這一檔｜投資聊一SHOT ft.#林昌興 #超馬芭樂 20260827完整版 @vlmoney",
-      "channel": "緯來財經",
-      "url": "https://www.youtube.com/watch?v=OKH2hfSqYDs",
-      "date": "2026-08-27",
-      "views": 51423,
+      "title": "通脹偷錢！$1000起步，新手投資第一堂：ETF、月供、複利滾雪球，不投資才是最大風險【施傅教學】 #投資101",
+      "channel": "我要做富翁",
+      "url": "https://www.youtube.com/watch?v=RwwKQYxJ_A8",
+      "date": "2026-08-30",
+      "views": 122176,
       "peer": true,
-      "cat": "主動式"
+      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -597,36 +681,36 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=YV1GY-V-ndU",
       "date": "2026-08-31",
-      "views": 49198,
+      "views": 112054,
       "peer": true,
       "cat": "主動式"
     },
     {
       "platform": "youtube",
-      "title": "美債免驚?一兆美元救市!美台股九月樂觀攻5萬? 輝達財報炸裂!AI吸金&quot;多頭之路&quot;還很長?｜三立財經iNEWS",
-      "channel": "三立財經iNEWS",
-      "url": "https://www.youtube.com/watch?v=KvbjnFJ_HvA",
+      "title": "夜盤跌逾400點!明天台股壓力大?欣興恐吞一根?景碩怎麼辦?ETF持股有影響嗎?半導體展關注誰? #台股 #欣興 #景碩 #台積電 #大立光",
+      "channel": "一綺聊股",
+      "url": "https://www.youtube.com/watch?v=z_ueoj6dukY",
       "date": "2026-08-30",
-      "views": 48435,
+      "views": 89159,
       "peer": true,
-      "cat": "債券"
+      "cat": "綜合"
     },
     {
       "platform": "youtube",
-      "title": "9月迎ETF換血旺季 0050.0052接力洗牌! 市場最看好藥華藥入列0050 光聖.聯鈞被點名搭上0052班車｜非凡財經新聞｜20260830",
-      "channel": "USTV 非凡電視",
-      "url": "https://www.youtube.com/shorts/g67iEtT2NOA",
-      "date": "2026-08-30",
-      "views": 42337,
+      "title": "確信台股衝破5萬點 柯文哲警告：台灣真正危機才開始",
+      "channel": "udn video",
+      "url": "https://www.youtube.com/shorts/l47IJlTcbq0",
+      "date": "2026-08-29",
+      "views": 87767,
       "peer": true,
       "short": true,
-      "cat": "市值型"
+      "cat": "市場趨勢"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、台灣科技高股息（詳下方新聞標籤）",
-    "品牌焦點：復華00409A、玉山009827、中信009828三檔 ETF 9月2日同天掛牌（UDN）",
-    "社群聲量最高：基富通質押的部位也一起顯示在資產總庫存（0 推）",
-    "YouTube 熱片：【聯博投資最前線】台股Q3震盪後有戲？第四季行情與收益機會浮現！（聯博投信・153,427 次觀看）"
+    "品牌焦點：三檔海外ETF今天掛牌（UDN）",
+    "社群聲量最高：幫兩老思考未來退休現金流規劃配置（0 推）",
+    "YouTube 熱片：台股投資人剉哩等!欣興驚傳涉&quot;洗產地&quot; 周一開盤恐引爆踩踏? 51檔ETF納入! 00981A.00987A減碼壓力大｜非凡財經新聞｜20260830（USTV 非凡電視・229,744 次觀看）"
   ]
 }
