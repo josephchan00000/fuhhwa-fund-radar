@@ -529,6 +529,18 @@ def ptt_relevant(title: str) -> bool:
     return (_brand_hit(t) or _code_hit(t)) and not is_negative_title(t)
 
 
+def fundhot_ok(title: str) -> bool:
+    """強基金項目是否收：**不做復華品牌詞過濾**（2026-09-01 使用者：「強基金也不要針對
+    復華，就是把裡面的熱門文章拉出來就好」）——該站整站都是基金／ETF 討論，天生就在
+    守備範圍內，硬套 ptt_relevant 的話一份 20 篇的熱門清單只留得下 2~3 篇，而且那 2~3 篇
+    常是被回文頂上來的舊串（＝「都沒有在更新」的觀感來源）。只擋三種：
+    負面／司法題材（沿用使用者「不要抓負面的」原則）、站務公告、平台/列表頁 junk 詞。"""
+    t = (title or "").strip()
+    if len(t) < 6 or is_negative_title(t) or _JUNK_TITLE.search(t):
+        return False
+    return not _FUNDHOT_SITE_POST.search(t)
+
+
 def fetch_ptt(pages: int = 3, boards: tuple[str, ...] = PTT_BOARDS) -> list[dict]:
     """PTT 股票板＋基金板近幾頁標題，留與復華相關者（2026-08-07 使用者需求：
     「也找股票版不要只找基金版」→ 兩板都抓）。單板被擋／網路失敗該板回空、
@@ -597,6 +609,13 @@ FUNDHOT_ACTIVE = "https://forum.fundhot.com/search.php?search_id=active_topics"
 # Accept-Language／Referer），UA 仍誠實標示研究用途；本層每輪最多 6 個請求。
 # 下一輪日誌若仍 403 → 就是 IP／WAF 層擋機房，屆時要嘛放棄此來源、要嘛另想辦法，
 # **不要再往「多加幾支網址」的方向修**（那已被本輪證偽）。
+# 站務公告（站方自己發的功能/改版/活動文）不是討論內容，熱門清單不收。
+# ⚠ 別寫成「強基金.{0,6}新網站」：實例標題「為何強基金要冒風險花大錢作新網站？」
+# 中間隔了 8 個字，窗口式寫法會漏。站務詞本身在投資討論裡就罕見，直接列詞即可。
+_FUNDHOT_SITE_POST = re.compile(
+    r"新網站|改版上線|站務|本站公告|系統(?:維護|公告)|活動辦法|得獎名單|"
+    r"強基金.{0,12}(?:上線|公告|維護)")
+
 FUNDHOT_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "zh-TW,zh;q=0.9,en;q=0.8",
@@ -733,8 +752,8 @@ def parse_fundhot_feed(xml_text: str, days: int = WINDOW_DAYS) -> list[dict]:
 
 def fetch_fundhot(days: int = WINDOW_DAYS, limit: int = 8) -> list[dict]:
     """強基金討論：新站列表頁（總覽＋分類，分類清單自尋）＋舊站 feed／最新討論頁並抓，
-    同標題（前 24 字）跨源去重，留自家相關者（ptt_relevant 同判準：品牌詞/金複合/
-    自家代碼、負面排除）。新站在前（現行主站）、舊站補漏；單源失敗不牽連。
+    同標題（前 24 字）跨源去重，收判準＝fundhot_ok（**整站熱門討論、不限復華**，
+    只擋負面/站務/平台頁）。新站在前（現行主站）、舊站補漏；單源失敗不牽連。
 
     抓取用 retries=1／timeout=12：整站被擋時 3 retries×25s 會讓每頁空轉逾一分鐘
     （每日 routine 全長也才 ~80 秒），而這裡本來就是 fail-open 的加分來源。"""
@@ -746,7 +765,7 @@ def fetch_fundhot(days: int = WINDOW_DAYS, limit: int = 8) -> list[dict]:
     def _add(items: list[dict]) -> None:
         for it in items:
             k = (it.get("title") or "")[:24]
-            if not k or k in seen or not ptt_relevant(it["title"]):
+            if not k or k in seen or not fundhot_ok(it["title"]):
                 continue
             d = it.get("date") or ""             # 有日期就照日期老化：站上長掛的舊討論
             if re.fullmatch(r"\d{4}-\d{2}-\d{2}", d) and d < cutoff:
@@ -808,6 +827,8 @@ def fetch_fundhot(days: int = WINDOW_DAYS, limit: int = 8) -> list[dict]:
         except Exception as e:
             print(f"[fundhot] 舊站最新討論頁抓取失敗: {e}")
     _add(old)
+    # 新→舊排序（無日期者殿後）：熱門清單本來就該把最新的討論放前面
+    out.sort(key=lambda i: i.get("date") or "", reverse=True)
     # 一行收支帳（每輪固定印）：抓到幾頁、解析幾篇、其中幾篇有日期、最後留幾篇。
     # 2026-09-01 需要它的理由：相對時間解析上線後，落檔裡的強基金項目**仍然沒有日期**，
     # 而從落檔分不出是「取得的那幾篇本來就沒時間標」（總覽頁的熱門/精選區塊）還是
