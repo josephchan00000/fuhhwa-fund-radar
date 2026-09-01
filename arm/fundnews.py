@@ -590,6 +590,18 @@ FUNDHOT_FEED = "https://forum.fundhot.com/feed.php?mode=topics"   # phpBB 標準
 # 舊站「最新討論」HTML 頁：feed.php 對訪客常被關閉（實測 CI 每天失敗），此為備援；
 # phpBB 標準版式 `<a class="topictitle" href="./viewtopic.php?...t=NNN">`＋列內 <time>。
 FUNDHOT_ACTIVE = "https://forum.fundhot.com/search.php?search_id=active_topics"
+# ⚠ 2026-09-01 CI 實證（錯誤訊息一改印本體，一輪就定位）：`/forum` 總覽頁 **200**，
+# 但**每一支分類頁（股票基金／ETF／資產配置／其他／天使）與舊站兩支端點全部 403**
+# ——所以不是網址寫錯（本來猜是 404 死連結），是站方對「不像瀏覽器」的請求擋動態路由。
+# 先試不涉及偽裝身分的作法：補齊瀏覽器一定會送、爬蟲常漏的標頭（Accept／
+# Accept-Language／Referer），UA 仍誠實標示研究用途；本層每輪最多 6 個請求。
+# 下一輪日誌若仍 403 → 就是 IP／WAF 層擋機房，屆時要嘛放棄此來源、要嘛另想辦法，
+# **不要再往「多加幾支網址」的方向修**（那已被本輪證偽）。
+FUNDHOT_HEADERS = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "zh-TW,zh;q=0.9,en;q=0.8",
+    "Referer": FUNDHOT_BASE + "/forum",
+}
 # 話題連結＝ /forum/{分類}/{slug}/{數字id}（分類/slug 常為 URL 編碼中文）；
 # 分類頁連結只有兩段、不帶數字尾＝不會誤入。
 _FUNDHOT_LINK = re.compile(
@@ -718,8 +730,8 @@ def fetch_fundhot(days: int = WINDOW_DAYS, limit: int = 8) -> list[dict]:
             out.append(it)
 
     def _get(url: str) -> str:
-        return get_bytes(url, cache_ttl=1800, retries=1,
-                         timeout=12).decode("utf-8", "ignore")
+        return get_bytes(url, cache_ttl=1800, retries=1, timeout=12,
+                         headers=FUNDHOT_HEADERS).decode("utf-8", "ignore")
 
     queue, done, probed = list(FUNDHOT_PAGES), set(), False
     while queue and len(done) < FUNDHOT_MAX_PAGES:
@@ -741,8 +753,10 @@ def fetch_fundhot(days: int = WINDOW_DAYS, limit: int = 8) -> list[dict]:
         elif not probed and not any(t.get("date") for t in topics):
             probed = True                        # 版式若其實帶日期，一輪即可收斂
             i = page.find(topics[0]["url"].replace(FUNDHOT_BASE, ""))
+            # 窗口要夠寬才看得到「標題之後」有沒有日期欄（2026-09-01 首輪只印到 +320，
+            # 剛好停在 <h3> 標題結束處、看不出下一格是什麼）。
             print("[fundhot] 列表頁無 <time datetime>（項目改以首見日老化）——探針："
-                  + repr(page[max(0, i - 120):i + 320]))
+                  + repr(page[max(0, i - 120):i + 700]))
         for t in topics:                         # 自尋分類頁：版面改名不會整批失效
             cand = FUNDHOT_BASE + "/forum/" + urllib.parse.quote(t.get("board") or "")
             if (t.get("board") and cand not in done and cand not in queue
