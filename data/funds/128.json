@@ -11,10 +11,10 @@
   "risk_level": "RR4",
   "mgmt_fee": "最高為1.20%",
   "size_twd": 2181419028.0,
-  "nav": 10.34,
-  "nav_date": "2026/08/28",
-  "nav_change": -0.02,
-  "nav_change_pct": "-0.19%",
+  "nav": 10.31,
+  "nav_date": "2026/08/31",
+  "nav_change": -0.03,
+  "nav_change_pct": "-0.29%",
   "returns": {
     "ytd": "—",
     "3m": "—",
@@ -143,5 +143,5 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-09-01 09:57"
+  "fetched_at": "2026-09-01 19:01"
 }
