@@ -122,7 +122,7 @@
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-09-01 20:46",
+  "fetched_at": "2026-09-01 23:27",
   "returns_daily": {
     "1m": 23.55781,
     "3m": 0.22803,
@@ -130,5 +130,5 @@
     "1y": 147.35747,
     "ytd": 93.02148
   },
-  "returns_daily_asof": "2026/08/31"
+  "returns_daily_asof": "2026/09/01"
 }
