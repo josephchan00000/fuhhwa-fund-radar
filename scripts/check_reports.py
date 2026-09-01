@@ -164,6 +164,46 @@ def _check_brief(md: str, rel: str) -> list[str]:
     return errs
 
 
+# ── 卡片可讀性閘門（2026-09-01 使用者：「不只是速覽，整個新聞卡也要套用」）──
+# 只擋「一眼可見」的三件事：整卡沒有粗體落點、句子長到讀不下去、填充語。
+# 深度本身由 depth_note／既有的字數閘門管——這裡不看深度、也不會逼人少寫。
+READ_SINCE = "2026-09-02"   # 規則進提示包後的首個產出日起（今日既有報告不回溯）
+READ_MIN_BOLD = 3           # 每卡（摘要＋漲跌＋影響欄合計）粗體處數下限
+READ_LONG_SENT = 60         # 單句字數：提示包要求 ≤40，閘門只擋明顯超長
+READ_MAX_LONG = 2           # 每卡容許的超長句數（緩衝，超過即整卡難讀）
+_FILLER = re.compile(r"值得注意的是|整體而言|整體來看|換言之|可以說是|這也是.{0,12}的背景")
+
+
+def _card_body(c: dict) -> str:
+    return " ".join([c.get("summary") or "", c.get("move") or "", c.get("why") or ""]
+                    + [t for _, t in (c.get("points") or [])])
+
+
+def _check_card_read(path: Path, rel: str) -> list[str]:
+    errs = []
+    if not path.exists():
+        return errs
+    _head, cards, _tail = usnews.split_doc(path.read_text(encoding="utf-8"))
+    for c in cards:
+        body = _card_body(c)
+        if not body.strip():
+            continue
+        title = (c.get("title") or "")[:18]
+        bolds = len(re.findall(r"\*\*[^*\n]+\*\*", body))
+        if bolds < READ_MIN_BOLD:
+            errs.append(f"{rel}：「{title}」粗體僅 {bolds} 處（需 ≥{READ_MIN_BOLD}）"
+                        "——結論詞組（方向／受影響對象／檢核點）也要標，不是只標數字")
+        plain = re.sub(r"\*\*", "", body)
+        longs = [x for x in re.split(r"[。；;]", plain) if len(x.strip()) >= READ_LONG_SENT]
+        if len(longs) > READ_MAX_LONG:
+            errs.append(f"{rel}：「{title}」有 {len(longs)} 句超過 {READ_LONG_SENT} 字"
+                        f"（最長 {max(len(x) for x in longs)} 字）——拆成短句，總字數不必減")
+        m = _FILLER.search(body)
+        if m:
+            errs.append(f"{rel}：「{title}」出現填充語「{m.group(0)}」")
+    return errs
+
+
 # ── 大變動提及閘門（2026-08-20 起）──
 # ⚠ 設計原則（使用者 2026-08-19：「閘門不能反過來限縮新聞範圍」）：本閘門只會因
 # 「官方序列顯示大變動、報告全文卻隻字未提」多報一條錯——提及即過（不要求成卡）、
@@ -214,12 +254,16 @@ def run(date: str) -> int:
     errs += _check_cards(ROOT / f"reports/twnews/{date}.md", date)
     errs += _check_cards(ROOT / f"reports/macronews/{date}.md", date)
     errs += _check_calendar(ROOT / f"reports/macrocal/{date}.md", date)
+    _reports = (f"reports/usnews/{date}_v1.md", f"reports/usnews/{date}_v2.md",
+                f"reports/twnews/{date}.md", f"reports/macronews/{date}.md")
     if date >= BRIEF_SINCE:                    # 速覽／總覽文風（長度／版型標籤／粗體落點）
-        for rel in (f"reports/usnews/{date}_v1.md", f"reports/usnews/{date}_v2.md",
-                    f"reports/twnews/{date}.md", f"reports/macronews/{date}.md"):
+        for rel in _reports:
             p = ROOT / rel
             if p.exists():
                 errs += _check_brief(p.read_text(encoding="utf-8"), rel)
+    if date >= READ_SINCE:                     # 卡片可讀性（粗體落點／超長句／填充語）
+        for rel in _reports:
+            errs += _check_card_read(ROOT / rel, rel)
     if date >= MOVE_SINCE:                     # 大變動提及閘門（fail-open：落檔讀不到＝跳過）
         try:
             import datetime as _dt
