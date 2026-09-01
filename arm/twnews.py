@@ -40,6 +40,7 @@ SPEC_POST = f"""【版型：台股盤後重點】
 {usnews.ETYPE_RULE}
 {usnews.SEV_RUBRIC}
 {usnews.HILITE_RULE}
+{usnews.BRIEF_STYLE}
 {usnews.LABEL_RULE}
 {usnews.depth_note(180)}
 {usnews.move_note('tw_post')}
@@ -75,6 +76,7 @@ SPEC_PRE = f"""【版型：台股盤前重點】
 {usnews.ETYPE_RULE}
 {usnews.SEV_RUBRIC}
 {usnews.HILITE_RULE}
+{usnews.BRIEF_STYLE}
 {usnews.LABEL_RULE}
 {usnews.depth_note(180)}
 {usnews.move_note('tw_pre')}
