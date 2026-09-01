@@ -908,12 +908,48 @@ _PHPBB_ACTIVE = """
 """
 
 
+_FUNDHOT_REL = """
+<div class="py-2.5 border-b"><div><a href="/forum/ETF/00929-aug/13940" class="">
+  <h3 class="fund-text-base">00929 配息公告討論</h3></a></div>
+  <div class="flex"><span class="text-auxiliary">10小時前</span>
+  <a href="/user/45272" class="">某強友</a></div></div>
+<div class="py-2.5 border-b"><div><a href="/forum/%E5%A4%A9%E4%BD%BF/old/13500" class="">
+  <h3>復華強勢通舊討論串</h3></a></div>
+  <div class="flex"><span class="text-auxiliary">3個月前</span>
+  <a href="/user/9" class="">某強友</a></div></div>
+"""
+
+
 def test_parse_fundhot_page_takes_time_datetime():
-    """列表頁若帶 <time datetime> 就用它當發文日；沒有才留空（不猜純文字日期）。"""
+    """列表頁若帶 <time datetime> 就用它當發文日；兩者都沒有才留空。"""
     out = fundnews.parse_fundhot_page(_FUNDHOT_DATED)
     assert [i["date"] for i in out] == ["2026-08-31", "2026-08-30"]
     assert out[1]["board"] == "資產配置"
     assert all("date" not in i for i in fundnews.parse_fundhot_page(_FUNDHOT_PAGE))
+
+
+def test_parse_fundhot_page_reads_relative_time():
+    """現行版式沒有 <time datetime>、只有「10小時前」這類相對時間（2026-09-01 探針發現）
+    ——解析成真日期，且窗口切在下一個 <a > 前，不會抓到下一列的時間。"""
+    out = fundnews.parse_fundhot_page(_FUNDHOT_REL)
+    now = datetime.now(fundnews.TW_TZ)
+    # 小時／分鐘照實扣（清晨跑時「10小時前」＝昨天，不可四捨五入成今天）
+    assert out[0]["date"] == (now - timedelta(hours=10)).strftime("%Y-%m-%d")
+    assert out[1]["date"] == (now - timedelta(days=90)).strftime("%Y-%m-%d")
+
+
+def test_fetch_fundhot_drops_out_of_window_topics(monkeypatch):
+    """有日期就照日期老化：站上長掛的舊討論不再以「新討論」姿態佔版面
+    （2026-09-01 使用者回報「都沒有在更新」的可見症狀之一）。"""
+    def fake(url, **kw):
+        if "fundhot.com/forum" in url:
+            return _FUNDHOT_REL.encode("utf-8")
+        raise RuntimeError("no old site")
+
+    monkeypatch.setattr(fundnews, "get_bytes", fake)
+    titles = [i["title"] for i in fundnews.fetch_fundhot(days=7)]
+    assert titles == ["00929 配息公告討論"]          # 3 個月前那篇出窗剔除
+    assert len(fundnews.fetch_fundhot(days=3650)) == 2   # 放寬時窗就都收得到
 
 
 def test_parse_phpbb_topics_both_attr_orders_and_window():
