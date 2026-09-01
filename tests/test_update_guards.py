@@ -328,3 +328,25 @@ def test_brief_style_in_all_five_templates():
     for spec in (usnews.SPEC_V1, usnews.SPEC_V2, twnews.SPEC_PRE, twnews.SPEC_POST,
                  macronews.SPEC_MACRO):
         assert "速覽／總覽段的寫法" in spec
+
+
+def test_card_read_rule_in_all_five_templates():
+    """卡片可讀性規格要進五份版型；同時確認 HILITE_RULE 的粗體上限已放寬
+    （原本「每欄至多 2 處」正是台股卡只有 0–3 處粗體的來源）。"""
+    from arm import macronews, twnews, usnews
+    assert "每句 ≤40 字" in usnews.READ_RULE and "結論詞組也要標" in usnews.READ_RULE
+    assert "每欄 **2–3 處**" in usnews.HILITE_RULE
+    assert "每欄至多 2 處" not in usnews.HILITE_RULE   # 舊上限指令已移除（註解裡的引述不算）
+    for spec in (usnews.SPEC_V1, usnews.SPEC_V2, twnews.SPEC_PRE, twnews.SPEC_POST,
+                 macronews.SPEC_MACRO):
+        assert "卡片可讀性" in spec
+
+
+def test_card_field_layer_line_breaks():
+    """欄內層次敘述自動斷行（純呈現層，今日既有報告重建即生效）：
+    只認明確列舉標記，句號不亂斷——亂斷會把連續敘述切碎、比不斷更難讀。"""
+    from arm import fund_dashboard as fd
+    out = fd._lines("三層拆開看。第一層是資金：內容甲。第二層是訂單：內容乙。後續觀察：下週法說。")
+    assert out.count('<div class="nln">') == 2 and '<div class="nwatch">後續觀察' in out
+    assert fd._lines("甲公司公告。乙公司跟進。") == "甲公司公告。乙公司跟進。"   # 無標記不動
+    assert ".nwatch{" in fd._CSS and ".nln{" in fd._CSS
