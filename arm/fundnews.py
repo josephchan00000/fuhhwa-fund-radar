@@ -759,6 +759,7 @@ def fetch_fundhot(days: int = WINDOW_DAYS, limit: int = 8) -> list[dict]:
                          headers=FUNDHOT_HEADERS).decode("utf-8", "ignore")
 
     queue, done, probed = list(FUNDHOT_PAGES), set(), False
+    pages_ok, new_n, new_dated = set(), 0, 0
     while queue and len(done) < FUNDHOT_MAX_PAGES:
         url = queue.pop(0)
         if url in done:
@@ -769,7 +770,10 @@ def fetch_fundhot(days: int = WINDOW_DAYS, limit: int = 8) -> list[dict]:
         except Exception as e:                   # 印訊息本體（含 HTTP 狀態）：只印
             print(f"[fundhot] 列表頁抓取失敗: {e}")   # type name 看不出 404／被擋
             continue
+        pages_ok.add(url)
         topics = parse_fundhot_page(page)
+        new_n += len(topics)
+        new_dated += sum(1 for t in topics if t.get("date"))
         if not topics:                           # 結構探針：一輪定位版式（repo 慣例）
             i = page.find("/forum/")
             print(f"[fundhot] {url} 解析 0 筆話題——探針："
@@ -804,6 +808,12 @@ def fetch_fundhot(days: int = WINDOW_DAYS, limit: int = 8) -> list[dict]:
         except Exception as e:
             print(f"[fundhot] 舊站最新討論頁抓取失敗: {e}")
     _add(old)
+    # 一行收支帳（每輪固定印）：抓到幾頁、解析幾篇、其中幾篇有日期、最後留幾篇。
+    # 2026-09-01 需要它的理由：相對時間解析上線後，落檔裡的強基金項目**仍然沒有日期**，
+    # 而從落檔分不出是「取得的那幾篇本來就沒時間標」（總覽頁的熱門/精選區塊）還是
+    # 「整頁沒抓到、_carry_social 沿用舊項目」——這兩者的下一步差很多。
+    print(f"[fundhot] 新站 {len(pages_ok)}/{len(done)} 頁 OK、解析 {new_n} 篇"
+          f"（有日期 {new_dated} 篇）｜舊站 {len(old)} 篇 → 相關留用 {len(out[:limit])} 篇")
     return out[:limit]
 
 
