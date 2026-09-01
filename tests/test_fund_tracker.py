@@ -438,3 +438,47 @@ def test_fof_asset_alloc_parse(monkeypatch):
     out2 = fhfund.fetch_holdings("47")
     assert out2["asset_alloc"] == []
     assert out2["country_alloc"] == [{"name": "美國", "weight": 60.76}]
+
+
+# ── 二級分段（2026-09-01 使用者：「整個網頁不好閱讀…字好多閱讀不下去」，選了
+#    「分頁內再分段＋黏頂目錄」）─────────────────────────────────────────────
+
+_SECS = [("brief", "secf"), ("news", "secf"), ("fnews", "secf"), ("over", "secf"),
+         ("det", "secf"), ("mcal", "secm"), ("mov", "secm"), ("mnews", "secm"),
+         ("mdata", "secm"), ("eup", "sece"), ("ewatch", "sece"), ("edet", "sece")]
+
+
+def test_second_level_sections_wrap_every_block():
+    """每個區塊都包在 .sec 裡、每段都有對應 radio，且三個分頁各有一個預設段。"""
+    from arm import fund_dashboard as fd
+    html = fd.render()
+    for name, group in _SECS:
+        assert f'<div class="sec" data-sec="{name}">' in html, name
+        assert f'id="sec-{name}"' in html, name
+    for g in ("secf", "secm", "sece"):
+        checked = [n for n, gg in _SECS if gg == g
+                   and f'name="{g}" id="sec-{n}" checked' in html]
+        assert len(checked) == 1, (g, checked)      # 每組剛好一個預設選中
+    assert '<div class="rprog"' in html             # 閱讀進度條
+
+
+def test_subnav_labels_match_section_ids():
+    """黏頂目錄的 label for 必須對得上 .sec——改名脫鉤會讓整段永遠打不開
+    （同 2026-07-31『ETF 分頁二級選單與區塊 id 對得上』的守法）。"""
+    from arm import fund_dashboard as fd
+    import re
+    html = fd.render()
+    fors = re.findall(r'<label class="sl" for="(sec-[\w-]+)"', html)
+    assert len(fors) == len(_SECS) and set(fors) == {"sec-" + n for n, _ in _SECS}
+    for name, _ in _SECS:                            # CSS 有對應的顯示規則
+        assert f'#sec-{name}:checked ~ * .sec[data-sec="{name}"]' in fd._CSS
+    assert ".sec{display:none}" in fd._CSS
+
+
+def test_hidden_section_anchor_and_etf_jump_switch_section():
+    """隱藏段落裡的錨點要先切段再捲：ETF 表的「詳情 ↓」與 a[href^='#'] 兩條路徑
+    都得呼叫 showSec，否則按了完全沒反應（元素在 DOM 裡但整段 display:none）。"""
+    from arm import fund_dashboard as fd
+    assert "function showSec(" in fd._JS
+    assert "showSec(secOf(el))" in fd._JS            # 一般錨點
+    assert "showSec('edet')" in fd._JS               # ETF 表「詳情 ↓」
