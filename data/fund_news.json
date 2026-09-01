@@ -1,16 +1,8 @@
 {
-  "as_of": "2026/09/01 09:50",
+  "as_of": "2026/09/01 09:57",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
-    {
-      "title": "主動復華全球50、玉山未來全球算力及中信台日韓PCB ETF明起掛牌上市",
-      "url": "https://tw.stock.yahoo.com/news/%E4%B8%BB%E5%8B%95%E5%BE%A9%E8%8F%AF%E5%85%A8%E7%90%8350-%E7%8E%89%E5%B1%B1%E6%9C%AA%E4%BE%86%E5%85%A8%E7%90%83%E7%AE%97%E5%8A%9B%E5%8F%8A%E4%B8%AD%E4%BF%A1%E5%8F%B0%E6%97%A5%E9%9F%93pcb-etf%E6%98%8E%E8%B5%B7%E6%8E%9B%E7%89%8C%E4%B8%8A%E5%B8%82-004346753.html",
-      "source": "Yahoo股市",
-      "date": "2026-09-01 08:43",
-      "datetime": "2026-09-01T08:43:46+08:00",
-      "summary": "證交所表示，由復華投信募集發行之「復華全球未來50主動式ETF證券投資信託基金」(簡稱：主動復華全球50，證券代碼：00409A)、玉山投信募集發行之「玉山未來全球算力ETF證券投資信託基金」(簡稱："
-    },
     {
       "title": "復華00409A、玉山009827、中信009828三檔 ETF 9月2日同天掛牌",
       "url": "https://udn.com/news/story/7239/9726179",
@@ -523,50 +515,19 @@
       "channel": "Steven Lin",
       "url": "https://www.youtube.com/shorts/ysWdKQoqKBw",
       "date": "2026-08-31",
-      "views": 18,
+      "views": 19,
       "short": true
     },
     {
       "platform": "youtube",
-      "title": "【股票】台股崩跌前10天就知道？4大心法首度拆解：關鍵訊號藏在這根黑K裡？ft.朱家泓、林穎｜下班經濟學770｜謝哲青、張瓊方",
-      "channel": "風傳媒 The Storm Media",
-      "url": "https://www.youtube.com/watch?v=4N6rmHHj-qA",
+      "title": "【聯博投資最前線】台股Q3震盪後有戲？第四季行情與收益機會浮現！",
+      "channel": "聯博投信",
+      "url": "https://www.youtube.com/shorts/nBnjg_KYJO4",
       "date": "2026-08-27",
-      "views": 319247,
-      "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "【股票】台股崩跌竟是多頭起點？杜金龍緊盯「1大關鍵指標」：反彈後秒噴發！ft. 杜金龍｜下班經濟學772｜謝哲青、張瓊方",
-      "channel": "風傳媒 The Storm Media",
-      "url": "https://www.youtube.com/watch?v=RJGY-gm3hnE",
-      "date": "2026-08-31",
-      "views": 226521,
-      "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股投資人剉哩等!欣興驚傳涉&quot;洗產地&quot; 周一開盤恐引爆踩踏? 51檔ETF納入! 00981A.00987A減碼壓力大｜非凡財經新聞｜20260830",
-      "channel": "USTV 非凡電視",
-      "url": "https://www.youtube.com/shorts/97tquEhNBAw",
-      "date": "2026-08-30",
-      "views": 226387,
+      "views": 153427,
       "peer": true,
       "short": true,
-      "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股9月會變盤?蔡明翰:大跌機率低 #台股 #投資 #美股 #台積電 #0050",
-      "channel": "鏡發財",
-      "url": "https://www.youtube.com/shorts/Rt7quPqBTjw",
-      "date": "2026-08-29",
-      "views": 162233,
-      "peer": true,
-      "short": true,
-      "cat": "市值型"
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -574,7 +535,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/6m-fgcgh3mM",
       "date": "2026-08-28",
-      "views": 147895,
+      "views": 147905,
       "peer": true,
       "short": true,
       "cat": "高股息"
@@ -585,7 +546,7 @@
       "channel": "我要做富翁",
       "url": "https://www.youtube.com/watch?v=RwwKQYxJ_A8",
       "date": "2026-08-30",
-      "views": 98482,
+      "views": 98641,
       "peer": true,
       "cat": "綜合"
     },
@@ -595,19 +556,9 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=z_ueoj6dukY",
       "date": "2026-08-30",
-      "views": 88134,
+      "views": 88157,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "基金賺多少該停利？從小微笑到「仰天長笑」，能承受多少波動，決定你適合抱多久｜ft.蕭碧燕【理財資優生】EP90",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/watch?v=sK203CxLZNQ",
-      "date": "2026-08-31",
-      "views": 84420,
-      "peer": true,
-      "cat": "基金"
     },
     {
       "platform": "youtube",
@@ -615,25 +566,67 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=FoUaeXqf_9M",
       "date": "2026-08-31",
-      "views": 74576,
+      "views": 75342,
       "peer": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "周冠男談校務基金：不投資，就是把風險留給下一代｜投資你來講EP.146｜Feat. 政大商學院 副院長 周冠男 教授",
-      "channel": "阿爾發機器人理財 - 阿爾發投顧 | AI 投資長",
-      "url": "https://www.youtube.com/watch?v=8U_S5RweWuQ",
-      "date": "2026-08-27",
-      "views": 71085,
+      "title": "0050洗牌 為何刪除反漲 潛規則曝光 #0050  #台股 #etf",
+      "channel": "黑石財經溫建勳",
+      "url": "https://www.youtube.com/shorts/xpv0FMJoKtk",
+      "date": "2026-08-28",
+      "views": 64726,
       "peer": true,
-      "cat": "基金"
+      "short": true,
+      "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "主動ETF更勝0050？超馬芭樂挑出這一檔｜投資聊一SHOT ft.#林昌興 #超馬芭樂 20260827完整版 @vlmoney",
+      "channel": "緯來財經",
+      "url": "https://www.youtube.com/watch?v=OKH2hfSqYDs",
+      "date": "2026-08-27",
+      "views": 51423,
+      "peer": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "欣興暴雷.台股將連環爆?主動ETF也遭殃.下一個是誰?記憶體.散熱.光通訊大漲是逃命波?下個月就買這檔!║張貽程、林鈺凱、林昌興║2026.08.31",
+      "channel": "瘋狂股市福利社Free Free Free!",
+      "url": "https://www.youtube.com/watch?v=YV1GY-V-ndU",
+      "date": "2026-08-31",
+      "views": 49198,
+      "peer": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "美債免驚?一兆美元救市!美台股九月樂觀攻5萬? 輝達財報炸裂!AI吸金&quot;多頭之路&quot;還很長?｜三立財經iNEWS",
+      "channel": "三立財經iNEWS",
+      "url": "https://www.youtube.com/watch?v=KvbjnFJ_HvA",
+      "date": "2026-08-30",
+      "views": 48435,
+      "peer": true,
+      "cat": "債券"
+    },
+    {
+      "platform": "youtube",
+      "title": "9月迎ETF換血旺季 0050.0052接力洗牌! 市場最看好藥華藥入列0050 光聖.聯鈞被點名搭上0052班車｜非凡財經新聞｜20260830",
+      "channel": "USTV 非凡電視",
+      "url": "https://www.youtube.com/shorts/g67iEtT2NOA",
+      "date": "2026-08-30",
+      "views": 42337,
+      "peer": true,
+      "short": true,
+      "cat": "市值型"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、台灣科技高股息（詳下方新聞標籤）",
-    "品牌焦點：主動復華全球50、玉山未來全球算力及中信台日韓PCB ETF明起掛牌上市（Yahoo股市）",
+    "品牌焦點：復華00409A、玉山009827、中信009828三檔 ETF 9月2日同天掛牌（UDN）",
     "社群聲量最高：基富通質押的部位也一起顯示在資產總庫存（0 推）",
-    "YouTube 熱片：【股票】台股崩跌前10天就知道？4大心法首度拆解：關鍵訊號藏在這根黑K裡？ft.朱家泓、林穎｜下班經濟學770｜謝哲青、張瓊方（風傳媒 The Storm Media・319,247 次觀看）"
+    "YouTube 熱片：【聯博投資最前線】台股Q3震盪後有戲？第四季行情與收益機會浮現！（聯博投信・153,427 次觀看）"
   ]
 }
