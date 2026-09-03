@@ -126,13 +126,13 @@
   "country_alloc": [],
   "sector_alloc": [],
   "group": "global_fof",
-  "fetched_at": "2026-09-03 20:17",
+  "fetched_at": "2026-09-03 23:00",
   "returns_daily": {
-    "1m": 1.85676,
-    "3m": -3.48294,
-    "6m": 13.89831,
-    "1y": 34.6019,
-    "ytd": 23.69995
+    "1m": 1.6673,
+    "3m": -4.00716,
+    "6m": 14.12165,
+    "1y": 34.95976,
+    "ytd": 23.46986
   },
-  "returns_daily_asof": "2026/09/01"
+  "returns_daily_asof": "2026/09/02"
 }
