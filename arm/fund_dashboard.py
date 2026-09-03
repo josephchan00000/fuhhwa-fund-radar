@@ -1045,7 +1045,11 @@ def _chg_cell(i: dict) -> str:
     # 表上卻顯示 +2.07%，那是 9/1 相對 8/31 的漲幅，9/2 實為約 -1.5%。當時全表 31 檔皆如此，
     # 而 gen 端「算不出就保留既有值」與 CI 完整性斷言都不覆蓋此型，是完全靜默的錯位。
     # 寧缺勿錯：不顯示會誤導的數字，改標序列基準日讓落後看得見（同 _md_stale_badge 的教訓）。
-    ao, pa = i.get("as_of"), i.get("perf_asof")
+    # 判準用 chg_asof（漲跌所屬交易日）而非 perf_asof（序列末日）：兩者在 L1 備案下會不同
+    # ——序列落後但 etfinfo 前收自算成功時，漲跌其實是當日的，不該被誤標過期。
+    # 舊落檔沒有 chg_asof → 退回 perf_asof（與本防呆上線前的行為一致）。
+    ao = i.get("as_of")
+    pa = i.get("chg_asof") or i.get("perf_asof")
     if ao and pa and pa < ao:
         tip = (f"報酬序列最新只到 {pa}，收盤價已是 {ao}——當日漲跌需兩者同日才算得準，"
                f"暫不顯示以免與收盤價差一天（來源補上 {ao} 的日線後自動恢復）")
