@@ -623,6 +623,27 @@ def _is_degenerate(series: dict[str, float], relax: bool = False) -> bool:
     return n >= 10 and len(set(series.values())) < n * thr
 
 
+def _official_day_quotes() -> dict[str, dict]:
+    """官方全市場「當日收盤」表 → {code: {date, close, change, …}}（上市＋上櫃各 1 請求）。
+
+    2026-09-03 使用者：「沒辦法從其他地方補嗎？」——當日漲跌原本只有報酬序列一條路，
+    Yahoo 日線缺當日 bar 就整格失真。這兩支官方 openapi 是**現成的**：CI 每天已在打
+    （新 ETF 發現層篩代碼、ETF 持股貢獻取報價），ETF 代碼確定在回傳內，且**直接帶
+    `change` 漲跌額**，連前收都不必自己找。整輪只發 2 個請求（`get_json` 另有 30 分快取，
+    同輪其他腳本打過就不重打），不違反「多班次不放大來源站請求」。
+    口徑＝官方市價，與 etfinfo 的 close_px 同一種價（不是 Yahoo 的還原收盤）。
+    單邊失敗只損失該市場、不影響另一邊；全失敗回空 → 上層自動退下一層備案。"""
+    from importlib import import_module
+    out: dict[str, dict] = {}
+    for mod in ("twse", "tpex"):
+        try:
+            out.update(import_module(f".connectors.{mod}", __package__)
+                       .fetch_today_all(retries=1, timeout=12))   # 硬性上限：被擋時預設 3×25s 會讓整輪空轉（同 fundhot 前例）
+        except Exception as e:
+            print(f"  ⚠ {mod} 當日收盤表不可得（當日漲跌改走下一層備案）：{e}")
+    return out
+
+
 def _fetch_returns(code: str, today: date | None = None) -> dict:
     """過去一週／一月報酬 —— 多來源、單檔單請求，取第一個「乾淨且夠密」的序列。
 
@@ -682,7 +703,8 @@ def fetch() -> dict:
     up_freq = {it["code"]: it.get("freq") for it in UPCOMING
                if it.get("freq") and it["freq"] != "—"}
     items, got_mkt, got_ret, got_est = [], 0, 0, 0
-    got_chg_l1 = 0        # 當日漲跌走 L1 備案（etfinfo 前收自算）的檔數，供 CI 日誌診斷
+    got_chg_off = got_chg_l1 = 0   # 當日漲跌走備案的檔數（官方當日表／etfinfo 前收），供 CI 日誌診斷
+    day_q = _official_day_quotes()  # 迴圈外取一次：整輪 2 請求，不是逐檔
     for code, name, kind, cat, inception in watch_tuples():
         old = prev.get(code) or {}
         base = SEED_PERF.get(code, {}) or (
@@ -772,13 +794,32 @@ def fetch() -> dict:
         except Exception as e:
             print(f"  ⚠ {code} 報酬抓取失敗（沿用既有值／週報底稿）：{e}")
 
-        # ②-b 當日漲跌備案 L1（2026-09-03 使用者：「抓不到的時候應該要有解決備案」）──
+        # ②-b 當日漲跌備案 L1＝官方全市場當日收盤表（2026-09-03 使用者：「沒辦法從其他
+        # 地方補嗎？」）──序列缺當日 bar 時的**第一順位**備案：TWSE／TPEx openapi 直接給
+        # 當日 close 與 change，官方權威（非 Tier B）、整輪只 2 請求、市價口徑與 close_px 一致。
+        # 漲跌基準 ref＝close − change：除息日證交所的 change 本就對「除息參考價」計算，
+        # 與 _returns_from_series 的除息處理同口徑，不必另外扣息。
+        # 以來源自報的 date 當 chg_asof——官方表若自己也落後，渲染端的日期判準會照樣揭露。
+        ao = item.get("as_of")
+        if ao and (not item.get("chg_asof") or item["chg_asof"] < ao):
+            q = day_q.get(code) or {}
+            qc, qch, qd = q.get("close"), q.get("change"), q.get("date")
+            if qc and qch is not None and qd:
+                ref = round(qc - qch, 4)
+                if ref:
+                    item["chg_amt"], item["chg_pct"] = round(qch, 4), round(qch / ref * 100, 2)
+                    item["prev_close"], item["prev_date"] = ref, None   # 官方表不給前一交易日日期
+                    item["chg_ex_div"] = None
+                    item["chg_asof"], item["chg_src"] = str(qd)[:10], "twse_today"
+                    got_chg_off += 1
+
+        # ②-c 當日漲跌備案 L2＝etfinfo 自帶前收自算（官方當日表也拿不到時的零請求退路）──
         # 序列缺當日 bar 時（Yahoo 對台股 ETF 的當日日線不穩定，實測會跳動甚至倒退），
         # 末兩點會退成「前一交易日 vs 再前一日」，與 etfinfo 當日收盤價差一天並排、方向可能
         # 相反（2026-09-02：0050 收 106.80 實跌約 1.5%，序列卻給 +2.07%＝9/1 的漲幅）。
         # 備案＝改用 etfinfo 自己的前一個資料日收盤（prev_px）自算：與 close_px 同源同口徑、
-        # 零額外請求（不必為此多打 TWSE 三個月的月表，同「多班次不放大來源站請求」原則）。
-        # 僅在「序列的漲跌比收盤價舊」時接手；序列夠新時一律讓序列走（它帶除息還原資訊）。
+        # 零額外請求。僅在序列與官方當日表都給不出當日時接手；序列夠新時一律讓序列走
+        # （它帶除息還原資訊）。
         ao = item.get("as_of")
         if ao and (not item.get("chg_asof") or item["chg_asof"] < ao):
             ppx, ppd = item.get("prev_px"), item.get("prev_px_date")
@@ -841,8 +882,8 @@ def fetch() -> dict:
         items.append(item)
     got = got_mkt + got_ret
     # L1 備案用量進 CI 日誌：常態應為 0，持續非 0＝主序列的當日 bar 長期缺（該查來源端）
-    if got_chg_l1:
-        print(f"  ℹ 當日漲跌走 L1 備案（etfinfo 前收自算）：{got_chg_l1} 檔"
+    if got_chg_off or got_chg_l1:
+        print(f"  ℹ 當日漲跌走備案：官方當日表 {got_chg_off} 檔、etfinfo 前收自算 {got_chg_l1} 檔"
               f"——主序列缺當日 bar，非資料錯誤；持續發生請查 Yahoo/stooq 當日日線")
     as_of = max((i.get("as_of") or "" for i in items), default="") or \
         (load() or {}).get("as_of") or clock.today_tw().isoformat()
