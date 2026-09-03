@@ -483,6 +483,21 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
 
 ## 已知環境限制與防呆（曾踩過的坑，不要再犯）
 
+- **落檔鍵名速查（2026-09-04 新增；同一輪自驗連猜錯三次鍵名，浪費多輪 round-trip）**：
+  用 `git show origin/main:data/xxx.json | python3 -m json.tool` 直接看，別憑印象猜——
+  三支最常查的落檔鍵名如下：
+  · `data/etf_watch.json` → 頂層 `items`（list），單檔欄位 `close_px`（非 `close`）／`chg_pct`／
+    `chg_asof`／`chg_src`／`perf_asof`／`ret_1w`／`ret_1m`。
+  · `data/etf_holdings.json` → 頂層 `etfs`（**dict，鍵＝代碼**，不是 `items`），
+    單檔 `date`／`src`／`prev_date`／`prev_src`／`holdings`（list）／`prev`（**dict，鍵＝代碼**）／
+    `detail`（`mv`＝異動、`all`＝完整持股）。
+  · `data/macro_chips.json` → 頂層 `series`（dict，鍵＝指標代碼，值＝`{ISO日期: 數值}`）。
+    **指標代碼不是 Yahoo ticker**：10 年期公債殖利率是 `us10y`（不是 `tnx`／`^TNX`——
+    那是 `GLOBAL_SPECS` 裡的 Yahoo symbol，不是序列鍵）；其餘常用鍵：
+    `sox`／`tsm_adr`／`vix`／`dxy`／`usdtwd`／`brent`／`gold`（全球）、
+    `inst_total`／`inst_foreign`／`inst_trust`／`inst_dealer`／`tx_foreign_net`／
+    `margin_bal`／`short_bal`／`pc_ratio`（台股籌碼，定義見 `arm/macrochips.py` 的
+    `GLOBAL_SPECS`／`TW_KEYS`）。
 - **時區**：本機/CI/雲端容器多為 UTC，台北清晨執行時 `date.today()` 會差一天。
   程式內一律用 `arm/clock.py` 的 `today_tw()/now_tw()/stamp_tw()`；跑腳本時帶 `TZ=Asia/Taipei` 雙保險。
 - **雲端 Claude 容器的網路政策會擋部分站點**（曾實測被擋：`fhtrust.com.tw`、Google News RSS、PTT；
