@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/03 07:51",
+  "as_of": "2026/09/03 08:30",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -58,18 +58,25 @@
       ],
       "items": [
         {
+          "title": "高股息ETF最強是它！00929今年報酬逾71%奪冠 8月狂吸65億",
+          "url": "https://leho.com.tw/archives/373622",
+          "source": "樂聯網",
+          "date": "2026-09-03 00:00",
+          "datetime": "2026-09-03T00:00:48+08:00"
+        },
+        {
+          "title": "【即時新聞】最新00929配息上看15.6％，法人狂掃逾萬張卡位！",
+          "url": "https://www.cmoney.tw/notes/note-detail.aspx?nid=1260150",
+          "source": "CMoney",
+          "date": "2026-09-02 10:30",
+          "datetime": "2026-09-02T10:30:58+08:00"
+        },
+        {
           "title": "00929連三月配0.38元 今年含息報酬71.55% 成長、收益雙料亮眼",
           "url": "https://www.marketersgo.com/media-collaboration/202609/00929%E9%80%A3%E4%B8%89%E6%9C%88%E9%85%8D0-38%E5%85%83-%E4%BB%8A%E5%B9%B4%E5%90%AB%E6%81%AF%E5%A0%B1%E9%85%AC71-55-%E6%88%90%E9%95%B7%E3%80%81%E6%94%B6%E7%9B%8A%E9%9B%99%E6%96%99%E4%BA%AE%E7%9C%BC/",
           "source": "yesmedia.com.tw",
           "date": "2026-09-02 08:20",
           "datetime": "2026-09-02T08:20:35+08:00"
-        },
-        {
-          "title": "00929配息0.38元不變！年化配息率逾15％ 領息最晚這天買",
-          "url": "https://mknews.com.tw/2026/09/986901/",
-          "source": "Yahoo新聞",
-          "date": "2026-09-01 17:24",
-          "datetime": "2026-09-01T17:24:45+08:00"
         },
         {
           "title": "00929 復華台灣科技優息 ETF｜成分股？配息？優缺點？",
@@ -130,7 +137,7 @@
         {
           "title": "00998A最新配息0.424元！年化衝破9.5% 葉育碩：科技股買太多的人可列觀察清單",
           "url": "https://sunmedia.tw/news/finance/00998A%E6%9C%80%E6%96%B0%E9%85%8D%E6%81%AF0424%E5%85%83%EF%BC%81%E5%B9%B4%E5%8C%96%E8%A1%9D%E7%A0%B495-%E8%91%89%E8%82%B2%E7%A2%A9%EF%BC%9A%E7%A7%91%E6%8A%80%E8%82%A1%E8%B2%B7%E5%A4%AA%E5%A4%9A%E7%9A%84%E4%BA%BA%E5%8F%AF%E5%88%97%E8%A7%80%E5%AF%9F%E6%B8%85%E5%96%AE-1788343842797",
-          "source": "sunmedia.tw",
+          "source": "商傳媒",
           "date": "2026-09-02 18:11",
           "datetime": "2026-09-02T18:11:10+08:00"
         }
@@ -161,26 +168,19 @@
           "datetime": "2026-09-02T21:35:35+08:00"
         },
         {
+          "title": "3檔ETF新兵出師不利 復華00409A、玉山009827及中信009828今全破發",
+          "url": "https://tw.stock.yahoo.com/news/3%E6%AA%94etf%E6%96%B0%E5%85%B5%E5%87%BA%E5%B8%AB%E4%B8%8D%E5%88%A9-%E5%BE%A9%E8%8F%AF00409a-%E7%8E%89%E5%B1%B1009827%E5%8F%8A%E4%B8%AD%E4%BF%A1009828%E4%BB%8A%E5%85%A8%E7%A0%B4%E7%99%BC-082000179.html",
+          "source": "Yahoo股市",
+          "date": "2026-09-02 16:20",
+          "datetime": "2026-09-02T16:20:00+08:00"
+        },
+        {
           "title": "00409A 復華全球未來50主動式ETF ｜成分股？配息？優缺點？上市時間？",
           "url": "https://www.stockfeel.com.tw/00409a-%e5%be%a9%e8%8f%af%e5%85%a8%e7%90%83%e6%9c%aa%e4%be%8650%e4%b8%bb%e5%8b%95%e5%bc%8f-etf/",
           "source": "股感 StockFeel",
           "date": "2026-09-01 21:58",
           "datetime": "2026-09-01T21:58:17+08:00",
           "summary": "2026 年全球金融市場迎來全新的AI大時代。隨著AI技術從 1.0 的「算力基礎建設」逐步跨入 2.0 的「 [&#8230;]\nThe post 00409A 復華全球未來50主動式ETF ｜成分…"
-        },
-        {
-          "title": "復華00409A、玉山009827、中信009828三檔 ETF 9月2日同天掛牌",
-          "url": "https://udn.com/news/story/7239/9726179",
-          "source": "經濟日報",
-          "date": "2026-09-01 08:27",
-          "datetime": "2026-09-01T08:27:50+08:00"
-        },
-        {
-          "title": "00409A(00409A)董事與內部人持股｜監察人及關係人持股變化 - 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/stock/00409A?s=director-holder",
-          "source": "CMoney",
-          "date": "2026-08-30 17:00",
-          "datetime": "2026-08-30T17:00:00+08:00"
         }
       ]
     },
@@ -549,7 +549,7 @@
       "channel": "復華ETF情報站",
       "url": "https://www.youtube.com/shorts/M2S9GNjmfa0",
       "date": "2026-09-01",
-      "views": 51804,
+      "views": 52761,
       "official": true,
       "short": true
     },
@@ -585,7 +585,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=RJGY-gm3hnE",
       "date": "2026-08-31",
-      "views": 351824,
+      "views": 352105,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -595,7 +595,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/97tquEhNBAw",
       "date": "2026-08-30",
-      "views": 230094,
+      "views": 230098,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -606,7 +606,7 @@
       "channel": "鏡發財",
       "url": "https://www.youtube.com/shorts/Rt7quPqBTjw",
       "date": "2026-08-29",
-      "views": 228579,
+      "views": 229365,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -617,7 +617,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=sK203CxLZNQ",
       "date": "2026-08-31",
-      "views": 201217,
+      "views": 201668,
       "peer": true,
       "cat": "基金"
     },
@@ -627,7 +627,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=FoUaeXqf_9M",
       "date": "2026-08-31",
-      "views": 157262,
+      "views": 157406,
       "peer": true,
       "cat": "高股息"
     },
@@ -637,7 +637,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/f-2qnXqmBqE",
       "date": "2026-09-02",
-      "views": 155190,
+      "views": 157351,
       "peer": true,
       "short": true,
       "cat": "債券"
@@ -648,7 +648,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=TrzuopEcNDE",
       "date": "2026-08-29",
-      "views": 147085,
+      "views": 147276,
       "peer": true,
       "cat": "基金"
     },
@@ -658,7 +658,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/shorts/_JodA-zhNzc",
       "date": "2026-08-29",
-      "views": 144253,
+      "views": 144417,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -669,7 +669,7 @@
       "channel": "我要做富翁",
       "url": "https://www.youtube.com/watch?v=RwwKQYxJ_A8",
       "date": "2026-08-30",
-      "views": 141972,
+      "views": 142365,
       "peer": true,
       "cat": "綜合"
     },
@@ -679,7 +679,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=YV1GY-V-ndU",
       "date": "2026-08-31",
-      "views": 120304,
+      "views": 120303,
       "peer": true,
       "cat": "主動式"
     }
@@ -688,6 +688,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A（詳下方新聞標籤）",
     "品牌焦點：三檔海外 ETF 今天掛牌（經濟日報）",
     "社群聲量最高：預估後年買房，這樣做可行嗎？（0 推）",
-    "YouTube 熱片：【股票】台股崩跌竟是多頭起點？杜金龍緊盯「1大關鍵指標」：反彈後秒噴發！ft. 杜金龍｜下班經濟學772｜謝哲青、張瓊方（風傳媒 The Storm Media・351,824 次觀看）"
+    "YouTube 熱片：【股票】台股崩跌竟是多頭起點？杜金龍緊盯「1大關鍵指標」：反彈後秒噴發！ft. 杜金龍｜下班經濟學772｜謝哲青、張瓊方（風傳媒 The Storm Media・352,105 次觀看）"
   ]
 }
