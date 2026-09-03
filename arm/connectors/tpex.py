@@ -32,7 +32,7 @@ def _num(x) -> float | None:
         return None
 
 
-def fetch_today_all() -> dict[str, dict]:
+def fetch_today_all(**kw) -> dict[str, dict]:
     """回傳 {code: {date,name,close,change,volume}}，與 twse.fetch_today_all 同格式。
 
     上櫃每日收盤含 Close/Change/TradingShares；date 為 ISO。取不到單欄即 None。
@@ -43,7 +43,7 @@ def fetch_today_all() -> dict[str, dict]:
     CI 日誌（本容器 proxy 擋 tpex，日誌是唯一除錯管道）。
     """
     try:
-        rows = get_json(ALL_URL, cache_ttl=1800)
+        rows = get_json(ALL_URL, cache_ttl=1800, **kw)
         out = _from_openapi(rows)
         if out:
             return out

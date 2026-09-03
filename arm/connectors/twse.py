@@ -38,9 +38,9 @@ def _num(x: str) -> float | None:
         return None
 
 
-def fetch_today_all() -> dict[str, dict]:
+def fetch_today_all(**kw) -> dict[str, dict]:
     """回傳 {code: {date,close,change,volume,name}}，date 為 ISO。"""
-    rows = get_json(ALL_URL, cache_ttl=1800)
+    rows = get_json(ALL_URL, cache_ttl=1800, **kw)
     out: dict[str, dict] = {}
     for r in rows:  # type: ignore[union-attr]
         out[r["Code"]] = {
