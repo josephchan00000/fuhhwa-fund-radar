@@ -1,9 +1,29 @@
 {
- "as_of": "2026-09-02 09:13",
- "count": 0,
- "items": [],
+ "as_of": "2026-09-03 07:53",
+ "count": 1,
+ "items": [
+  {
+   "code": null,
+   "name": "台新臺灣中小主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "主動式ETF",
+   "approve": "115.8.28申報生效"
+  }
+ ],
  "pipeline_n": 7,
  "pipeline": [
+  {
+   "code": null,
+   "name": "永豐精選息收非投資等級債券ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
+   "cat": "ETF"
+  },
   {
    "code": null,
    "name": "貝萊德iShares安碩世界礦業ETF基金",
@@ -27,15 +47,6 @@
   {
    "code": null,
    "name": "復華台灣新星主動式ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "主動式ETF"
-  },
-  {
-   "code": null,
-   "name": "台新臺灣中小主動式ETF基金",
    "first_seen": null,
    "kind": "offering",
    "src": "cnyes",
