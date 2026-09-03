@@ -1038,6 +1038,23 @@ def _chg_cell(i: dict) -> str:
     v = i.get("chg_pct")
     if v is None:
         return _pct_span(v)
+    # ── 序列落後 → 不以舊漲跌冒充「當日」（2026-09-03 使用者回報「當日漲跌是不是沒更新」）──
+    # 當日漲跌取自報酬序列末兩點（perf_asof＝序列末日），收盤價卻走 etfinfo 市價（as_of）：
+    # 兩條線不同源。序列缺當日 bar 時末兩點會退成「前一交易日 vs 再前一日」，與同列的收盤價
+    # 差一天並排，而且方向可能完全相反——2026-09-02 實例：0050 收 106.80（9/2、台股當天大跌），
+    # 表上卻顯示 +2.07%，那是 9/1 相對 8/31 的漲幅，9/2 實為約 -1.5%。當時全表 31 檔皆如此，
+    # 而 gen 端「算不出就保留既有值」與 CI 完整性斷言都不覆蓋此型，是完全靜默的錯位。
+    # 寧缺勿錯：不顯示會誤導的數字，改標序列基準日讓落後看得見（同 _md_stale_badge 的教訓）。
+    # 判準用 chg_asof（漲跌所屬交易日）而非 perf_asof（序列末日）：兩者在 L1 備案下會不同
+    # ——序列落後但 etfinfo 前收自算成功時，漲跌其實是當日的，不該被誤標過期。
+    # 舊落檔沒有 chg_asof → 退回 perf_asof（與本防呆上線前的行為一致）。
+    ao = i.get("as_of")
+    pa = i.get("chg_asof") or i.get("perf_asof")
+    if ao and pa and pa < ao:
+        tip = (f"報酬序列最新只到 {pa}，收盤價已是 {ao}——當日漲跌需兩者同日才算得準，"
+               f"暫不顯示以免與收盤價差一天（來源補上 {ao} 的日線後自動恢復）")
+        return (f'{_pct_span(None)}<span class="mdstale" title="{_esc(tip)}">'
+                f'⚠ 基準 {pa}</span>')
     amt, pc, pd_ = i.get("chg_amt"), i.get("prev_close"), i.get("prev_date")
     exd = i.get("chg_ex_div")
     parts = [f"{'+' if (amt or 0) > 0 else ''}{amt:g} 元" if amt is not None else "",

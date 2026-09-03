@@ -86,6 +86,8 @@ WATCHLIST: list[tuple[str, str, str, str, str]] = [
     # · 2026-08-28 轉正：統一股債雙主動傘型（8/5~8/7 募集、8/26 櫃買掛牌）：
     ("00411A", "主動統一前沿科技", "active", "主動式股票・上櫃", "2026/08/11"),  # 全球前沿科技（AI 基建/機器人/自駕/太空/量子），年配；成立日 8/11（WebSearch 查證）
     ("00987D", "主動統一美國公債量化增益", "active", "主動式債券・上櫃", "2026/08/26"),  # 美債量化多空策略，季配；成立日查無、暫用掛牌日 8/26——同 00986D 前例
+    # · 2026-09-03 轉正：本家復華全球未來50（8/12~8/14 募集、9/2 上市掛牌）：
+    ("00409A", "主動復華全球未來50", "active", "主動式", "2026/09/02"),  # 全球 AI 產業贏家 50 檔（美日韓台），年配（TVBS＋股感兩來源一致，首次評價日每年 10 月底）；成立日查無、暫用掛牌日 9/2——同 00986D 前例
 ]
 
 # 債券型追蹤檔（cat 含「債」）：收盤價 tick 小、日波動低，收盤值天然高度重複，
@@ -305,6 +307,9 @@ SEED_PERF: dict[str, dict] = {
     # 首次配息皆未到（00411A 年配、00987D 季配）→ last_div 留空）：
     "00411A": {"aum_e8": 70.3, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "年配"},
     "00987D": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "季配"},
+    # 2026-09-03 轉正（上市檔、etfinfo 已收錄 → 規模／報酬待 CI 首抓；募集完成規模查無兩來源
+    # 一致值 → 留 None、寧缺勿錯，同 00987D 前例。年配、首次配息未到 → last_div 留空）：
+    "00409A": {"aum_e8": None, "ret_1w": None, "ret_1m": None, "yield_pct": None, "freq": "年配"},
 }
 
 # 「待首次 CI 抓取」的新增檔：本環境（雲端 Claude proxy）抓不到乾淨報酬／規模，且無使用者週報底稿，
@@ -313,7 +318,7 @@ SEED_PERF: dict[str, dict] = {
 _SEED_PENDING: set[str] = {"00988A", "00990A", "00403A", "00407A", "00998A", "00986D",
                            "00404A", "00405A", "00996A", "00410A",
                            "00400A", "00401A", "00402A", "00406A", "00408A", "00999A",
-                           "00411A", "00987D"}
+                           "00411A", "00987D", "00409A"}
 
 # 收益分配頻率的英文 → 表內中文（etfinfo dividendFrequency 兩種寫法都見過，中文直接放行）
 _FREQ_MAP = {"monthly": "月配", "quarterly": "季配", "semiannual": "半年配",
@@ -677,6 +682,7 @@ def fetch() -> dict:
     up_freq = {it["code"]: it.get("freq") for it in UPCOMING
                if it.get("freq") and it["freq"] != "—"}
     items, got_mkt, got_ret, got_est = [], 0, 0, 0
+    got_chg_l1 = 0        # 當日漲跌走 L1 備案（etfinfo 前收自算）的檔數，供 CI 日誌診斷
     for code, name, kind, cat, inception in watch_tuples():
         old = prev.get(code) or {}
         base = SEED_PERF.get(code, {}) or (
@@ -698,6 +704,12 @@ def fetch() -> dict:
                 "chg_pct": old.get("chg_pct"), "chg_amt": old.get("chg_amt"),
                 "prev_close": old.get("prev_close"), "prev_date": old.get("prev_date"),
                 "chg_ex_div": old.get("chg_ex_div"),
+                # 當日漲跌備案 L1 用（2026-09-03）：etfinfo 收盤價的「前一個資料日快照」。
+                # as_of 推進時把舊 close_px 降級存於此（同 etfholdings.merge_one 的 prev 慣例），
+                # 供序列缺當日 bar 時自算——與 close_px 同為 etfinfo 市價，口徑天然一致。
+                "prev_px": old.get("prev_px"), "prev_px_date": old.get("prev_px_date"),
+                "chg_asof": old.get("chg_asof"),   # 當日漲跌所屬交易日（≠perf_asof：漲跌可走 L1）
+                "chg_src": old.get("chg_src"),     # 漲跌來源：序列來源名／etfinfo_prev
                 "as_of": old.get("as_of"),
                 "perf_asof": old.get("perf_asof") or SEED_ASOF,  # 報酬數據基準日
                 "ret_src": old.get("ret_src") or "seed",         # 報酬來源（yahoo/finmind/twse/seed）
@@ -707,6 +719,7 @@ def fetch() -> dict:
         try:
             m = _fetch_market(code)
             aum = _norm_aum_e8(m.get("aum_raw"), item["aum_e8"])
+            px_before, asof_before = item.get("close_px"), item.get("as_of")  # 覆蓋前的落檔快照
             for k, v in (("aum_e8", aum), ("close_px", m.get("close_px")),
                          ("yield_pct", m.get("yield_pct")), ("freq", m.get("freq")),
                          ("last_div", m.get("last_div")), ("last_div_date", m.get("last_div_date"))):
@@ -719,6 +732,11 @@ def fetch() -> dict:
                 item["src"] = "etfinfo+px"
                 if m.get("mkt_date"):
                     item["as_of"] = str(m["mkt_date"])[:10]
+                # 資料日「真的推進」才把舊收盤降級為前收——同一資料日重抓時若照降，
+                # prev_px 會被洗成今天自己、當日漲跌永遠算成 0（同 etfholdings 的假無異動坑）。
+                if (asof_before and item.get("as_of") and item["as_of"] > asof_before
+                        and px_before is not None):
+                    item["prev_px"], item["prev_px_date"] = px_before, asof_before
                 got_mkt += 1
         except Exception as e:                     # proxy 擋站/斷網 → 沿用 fallback 值
             print(f"  ⚠ {code} 規模／殖利率抓取失敗（沿用既有值／週報底稿）：{e}")
@@ -743,6 +761,9 @@ def fetch() -> dict:
             if r.get("chg_pct") is not None:
                 for k in ("chg_pct", "chg_amt", "prev_close", "prev_date", "chg_ex_div"):
                     item[k] = r.get(k)
+                # 漲跌所屬交易日＝序列末日（供渲染端判斷是否與收盤價同日；L1 會覆寫成 as_of）
+                item["chg_asof"] = str(r["perf_date"])[:10] if r.get("perf_date") else None
+                item["chg_src"] = r.get("ret_src")
             # etfinfo 未收錄（上櫃 00998A/00986D）→ 收盤價用報酬序列最新收盤回填
             if item.get("close_px") is None and r.get("last_close") is not None:
                 item["close_px"] = round(float(r["last_close"]), 2)
@@ -750,6 +771,30 @@ def fetch() -> dict:
                     item["as_of"] = str(r["perf_date"])[:10]
         except Exception as e:
             print(f"  ⚠ {code} 報酬抓取失敗（沿用既有值／週報底稿）：{e}")
+
+        # ②-b 當日漲跌備案 L1（2026-09-03 使用者：「抓不到的時候應該要有解決備案」）──
+        # 序列缺當日 bar 時（Yahoo 對台股 ETF 的當日日線不穩定，實測會跳動甚至倒退），
+        # 末兩點會退成「前一交易日 vs 再前一日」，與 etfinfo 當日收盤價差一天並排、方向可能
+        # 相反（2026-09-02：0050 收 106.80 實跌約 1.5%，序列卻給 +2.07%＝9/1 的漲幅）。
+        # 備案＝改用 etfinfo 自己的前一個資料日收盤（prev_px）自算：與 close_px 同源同口徑、
+        # 零額外請求（不必為此多打 TWSE 三個月的月表，同「多班次不放大來源站請求」原則）。
+        # 僅在「序列的漲跌比收盤價舊」時接手；序列夠新時一律讓序列走（它帶除息還原資訊）。
+        ao = item.get("as_of")
+        if ao and (not item.get("chg_asof") or item["chg_asof"] < ao):
+            ppx, ppd = item.get("prev_px"), item.get("prev_px_date")
+            px = item.get("close_px")
+            if px is not None and ppx is not None and ppd and ppd < ao:
+                # 除息日仍以「除息參考價＝前收 − 每單位配息」為基準（同 _returns_from_series；
+                # etfinfo 是市價、跨除息不還原，不扣就會把整段配息算成跌幅）
+                exd = round((_DIV_EVENTS.get(code) or {}).get(ao) or 0, 4)
+                ref = round(ppx - exd, 4) if exd else ppx
+                if ref:
+                    item["chg_amt"] = round(px - ref, 4)
+                    item["chg_pct"] = round((px / ref - 1) * 100, 2)
+                    item["prev_close"], item["prev_date"] = ppx, ppd
+                    item["chg_ex_div"] = exd or None
+                    item["chg_asof"], item["chg_src"] = ao, "etfinfo_prev"
+                    got_chg_l1 += 1
 
         # ③ 當月預估配息（僅取本月、除息日尚未到期者）：etfinfo 未揭露預告時，
         #    依序補 MOPS 公告 → 投信已公告人工清單 ANNOUNCED_EST（etfinfo/MOPS 皆抓不到時的可靠來源）。
@@ -795,6 +840,10 @@ def fetch() -> dict:
 
         items.append(item)
     got = got_mkt + got_ret
+    # L1 備案用量進 CI 日誌：常態應為 0，持續非 0＝主序列的當日 bar 長期缺（該查來源端）
+    if got_chg_l1:
+        print(f"  ℹ 當日漲跌走 L1 備案（etfinfo 前收自算）：{got_chg_l1} 檔"
+              f"——主序列缺當日 bar，非資料錯誤；持續發生請查 Yahoo/stooq 當日日線")
     as_of = max((i.get("as_of") or "" for i in items), default="") or \
         (load() or {}).get("as_of") or clock.today_tw().isoformat()
     est_note = f"；當月預估配息 ← 投信公告／MOPS（{got_est} 檔）" if got_est else ""
