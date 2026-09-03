@@ -279,11 +279,11 @@ def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
 
 def test_watchlist_matches_weekly_report():
     codes = [c for c, *_ in etfwatch.WATCHLIST]
-    assert len(codes) == len(set(codes)) == 35
+    assert len(codes) == len(set(codes)) == 36
     passive = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "passive"]
     active = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "active"]
     assert set(passive) == {"0056", "00878", "00919", "00929", "0050", "006208"}
-    assert "00991A" in active and len(active) == 29    # 含本家主動復華未來50＋上櫃 4 檔
+    assert "00991A" in active and len(active) == 30    # 含本家主動復華未來50／全球未來50＋上櫃 4 檔
     # 2026-07-06 新增熱門／新募集主動式 ETF 皆在清單中
     assert {"00988A", "00990A", "00403A", "00407A"} <= set(active)
     # 2026-08-05 使用者指示補齊缺檔（兩批；00410A 為「即將登場」畢業轉正的第一例）
@@ -730,3 +730,89 @@ def test_new_codes_have_seed_freq_and_pending():
     assert etfwatch.SEED_PERF["00996A"]["freq"] == "季配"
     assert etfwatch.SEED_PERF["00410A"]["freq"] == "半年配"
     assert {"00404A", "00405A", "00996A", "00410A"} <= etfwatch._SEED_PENDING
+
+
+# ── 當日漲跌備案 L1：序列缺當日 bar 時用 etfinfo 前收自算（2026-09-03） ──────────
+
+def _mkt(px, mkt_date):
+    """etfinfo 端只回收盤價與資料日（其餘欄位不影響本組測試）。"""
+    return lambda code: {"close_px": px, "mkt_date": mkt_date}
+
+
+def test_當日漲跌_序列缺當日bar時走L1備案由etfinfo前收自算(monkeypatch):
+    """重現 2026-09-02 事故並驗證備案接手。
+
+    當天 Yahoo 日線缺 9/2 bar，序列末兩點退成「9/1 vs 8/31」＝+2.07%，與 etfinfo 的
+    9/2 收盤 106.80 並排——而 0050 當天其實跌約 1.5%，**方向完全相反**。
+    備案＝改用落檔存下的 etfinfo 前收（9/1 的 108.45）自算，同源同口徑、零額外請求。
+    """
+    prev = {"items": [{"code": "0050", "close_px": 108.45, "as_of": "2026-09-01",
+                       "prev_px": 106.25, "prev_px_date": "2026-08-31"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(106.8, "2026-09-02"))
+    # 序列只到 9/1：末兩點給出「9/1 vs 8/31」的舊漲跌（正是事故當天的形狀）
+    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, today=None: {
+        "ret_1w": 3.88, "ret_1m": 5.44, "perf_date": "2026-09-01", "ret_src": "yahoo",
+        "chg_pct": 2.07, "chg_amt": 2.2, "prev_close": 106.25, "prev_date": "2026-08-31"})
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0050"]
+
+    # ① as_of 推進 → 舊收盤降級為前收
+    assert i["prev_px"] == 108.45 and i["prev_px_date"] == "2026-09-01"
+    # ② 當日漲跌改由 L1 自算，且方向正確（106.80 / 108.45 - 1 ≈ -1.52%）
+    assert i["chg_src"] == "etfinfo_prev" and i["chg_asof"] == "2026-09-02"
+    assert i["chg_pct"] == -1.52 and i["prev_date"] == "2026-09-01"
+    assert i["chg_pct"] < 0                      # 事故版本會是 +2.07%（方向相反）
+    # ③ 週／月報酬仍走序列（保留 Yahoo 還原收盤的總報酬口徑，不被 L1 影響）
+    assert i["ret_1w"] == 3.88 and i["perf_asof"] == "2026-09-01"
+
+
+def test_當日漲跌_序列夠新時不啟用L1(monkeypatch):
+    """序列自己就有當日 bar → 一律讓序列走（它帶除息還原資訊，優於 etfinfo 市價）。"""
+    prev = {"items": [{"code": "0050", "close_px": 108.45, "as_of": "2026-09-01"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(106.8, "2026-09-02"))
+    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, today=None: {
+        "ret_1w": 1.0, "ret_1m": 2.0, "perf_date": "2026-09-02", "ret_src": "yahoo",
+        "chg_pct": -1.52, "chg_amt": -1.65, "prev_close": 108.45, "prev_date": "2026-09-01"})
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0050"]
+    assert i["chg_src"] == "yahoo" and i["chg_asof"] == "2026-09-02"
+
+
+def test_當日漲跌_同一資料日重抓不得把前收洗成今天自己(monkeypatch):
+    """同 etfholdings 的「假無異動」坑：同一 as_of 重抓若照樣降級，
+    prev_px 會被洗成今天自己、當日漲跌永遠算成 0。"""
+    prev = {"items": [{"code": "0050", "close_px": 106.8, "as_of": "2026-09-02",
+                       "prev_px": 108.45, "prev_px_date": "2026-09-01"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(106.8, "2026-09-02"))   # 同日重抓
+    monkeypatch.setattr(etfwatch, "_fetch_returns", _boom)
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0050"]
+    assert i["prev_px"] == 108.45 and i["prev_px_date"] == "2026-09-01"   # 未被洗成 106.8
+    assert i["chg_pct"] != 0
+
+
+def test_當日漲跌_落檔無收盤價可降級時不亂算(monkeypatch):
+    """真正沒有前收可用（新檔首輪：落檔連 close_px 都還沒有）→ L1 不啟用、不杜撰。
+
+    註：降級發生在同一輪的 etfinfo 段，所以「as_of 首次推進」的那一輪 L1 就已可用
+    （不必等下一輪）——見上面的事故重現測試。這裡測的是連可降級的舊收盤都沒有的情形。
+    """
+    prev = {"items": [{"code": "0050", "as_of": "2026-09-01"}]}     # 無 close_px 可降級
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(106.8, "2026-09-02"))
+    monkeypatch.setattr(etfwatch, "_fetch_returns", _boom)
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0050"]
+    assert i.get("prev_px") is None              # 沒有舊收盤可降級
+    assert i.get("chg_src") != "etfinfo_prev"    # 就不啟用 L1（寧缺勿錯）

@@ -482,3 +482,34 @@ def test_hidden_section_anchor_and_etf_jump_switch_section():
     assert "function showSec(" in fd._JS
     assert "showSec(secOf(el))" in fd._JS            # 一般錨點
     assert "showSec('edet')" in fd._JS               # ETF 表「詳情 ↓」
+
+
+def test_chg_cell_序列落後時不以舊漲跌冒充當日():
+    """ETF 當日漲跌與收盤價出自不同來源，序列落後時不得並排顯示（2026-09-03）。
+
+    事故：當日漲跌取自報酬序列末兩點（perf_asof），收盤價走 etfinfo 市價（as_of）。
+    2026-09-02 全表 31 檔序列缺當日 bar，末兩點退成「9/1 vs 8/31」，卻與 9/2 的收盤價
+    並排——0050 顯示 +2.07%，而它 9/2 實際跌約 1.5%，**方向完全相反**。
+    gen 端「算不出就保留既有值」與 CI 完整性斷言都不覆蓋此型，屬完全靜默的錯位。
+    """
+    from arm import fund_dashboard as fd
+
+    # ① 序列落後（perf_asof < as_of）→ 不顯示數字、標出序列基準日
+    stale = fd._chg_cell({"chg_pct": 2.07, "chg_amt": 2.2, "prev_close": 106.25,
+                          "prev_date": "2026-08-31",
+                          "as_of": "2026-09-02", "perf_asof": "2026-09-01"})
+    assert "2.07%" not in stale                      # 誤導數字不得出現
+    assert "mdstale" in stale and "基準 2026-09-01" in stale
+    assert "2026-09-02" in stale                     # tooltip 要講清楚收盤價是哪天
+
+    # ② 兩者同日 → 正常顯示，不掛過期章
+    ok = fd._chg_cell({"chg_pct": -1.52, "chg_amt": -1.65, "prev_close": 108.45,
+                       "prev_date": "2026-09-01",
+                       "as_of": "2026-09-02", "perf_asof": "2026-09-02"})
+    assert "-1.52%" in ok and "mdstale" not in ok
+
+    # ③ 缺日期資訊 → fail-open（照顯示，不因判不出而整欄空白）
+    assert "1.00%" in fd._chg_cell({"chg_pct": 1.0, "as_of": None, "perf_asof": None})
+
+    # ④ chg 本來就沒有 → 維持既有「—」行為
+    assert "—" in fd._chg_cell({"chg_pct": None})
