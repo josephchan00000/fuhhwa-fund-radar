@@ -1,6 +1,8 @@
 """ETF 數據追蹤（arm/etfwatch＋儀表板第四分頁）測試——離線、吃 repo 內種子落檔。"""
 import json
 import re
+
+import pytest
 from datetime import date, timedelta
 
 from arm import etfwatch, fund_dashboard
@@ -346,11 +348,23 @@ def _boom(*a, **k):
     raise RuntimeError("CONNECT 403")
 
 
+@pytest.fixture(autouse=True)
+def _no_network_day_quotes(monkeypatch):
+    """測試一律不打官方當日收盤表（2026-09-03）。
+
+    這支在 fetch() 迴圈外呼叫 twse／tpex openapi，被擋時預設 retries=3×timeout=25
+    會讓整個測試檔空轉數分鐘（實測 38 個連線失敗、pytest 逾時）。預設回空＝
+    「官方表不可得」，需要它的測試自行 setattr 覆寫。
+    """
+    monkeypatch.setattr(etfwatch, "_official_day_quotes", lambda: {})
+
+
 def _down_both(monkeypatch):
     """所有外部來源皆不可達（etfinfo 規模／殖利率 ＋ 報酬 ＋ MOPS 預估）。"""
     import arm.connectors.mops as mops
     monkeypatch.setattr(etfwatch, "_fetch_market", _boom)
     monkeypatch.setattr(etfwatch, "_fetch_returns", _boom)
+    monkeypatch.setattr(etfwatch, "_official_day_quotes", lambda: {})  # 測試一律不打網路
     monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
 
 
@@ -816,3 +830,69 @@ def test_當日漲跌_落檔無收盤價可降級時不亂算(monkeypatch):
     i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0050"]
     assert i.get("prev_px") is None              # 沒有舊收盤可降級
     assert i.get("chg_src") != "etfinfo_prev"    # 就不啟用 L1（寧缺勿錯）
+
+
+def _day_q(quotes):
+    """官方全市場當日收盤表（twse+tpex 合併後的形狀）。"""
+    return lambda: quotes
+
+
+def test_當日漲跌_序列缺當日bar時優先用官方當日收盤表(monkeypatch):
+    """2026-09-03 使用者：「沒辦法從其他地方補嗎？」——官方 openapi 全市場當日表
+    直接給 close 與 change，是序列缺當日 bar 時的第一順位備案（優於 etfinfo 前收自算）。
+    """
+    prev = {"items": [{"code": "0050", "close_px": 108.45, "as_of": "2026-09-01",
+                       "prev_px": 106.25, "prev_px_date": "2026-08-31"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(106.8, "2026-09-02"))
+    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, today=None: {
+        "ret_1w": 3.88, "ret_1m": 5.44, "perf_date": "2026-09-01", "ret_src": "yahoo",
+        "chg_pct": 2.07, "chg_amt": 2.2, "prev_close": 106.25, "prev_date": "2026-08-31"})
+    # 官方表：9/2 收 106.80、跌 1.65（＝前收 108.45）
+    monkeypatch.setattr(etfwatch, "_official_day_quotes",
+                        _day_q({"0050": {"date": "2026-09-02", "close": 106.8,
+                                         "change": -1.65, "name": "元大台灣50"}}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0050"]
+    assert i["chg_src"] == "twse_today" and i["chg_asof"] == "2026-09-02"
+    assert i["chg_pct"] == -1.52 and i["prev_close"] == 108.45   # ref = close − change
+    assert i["ret_1w"] == 3.88                                    # 週報酬仍走序列、不受影響
+
+
+def test_當日漲跌_官方當日表不可得時才退到etfinfo前收(monkeypatch):
+    """層級順序：序列 → 官方當日表 → etfinfo 前收自算 → （都沒有就維持既有值）。"""
+    prev = {"items": [{"code": "0050", "close_px": 108.45, "as_of": "2026-09-01",
+                       "prev_px": 106.25, "prev_px_date": "2026-08-31"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(106.8, "2026-09-02"))
+    monkeypatch.setattr(etfwatch, "_fetch_returns", _boom)
+    monkeypatch.setattr(etfwatch, "_official_day_quotes", _day_q({}))   # 官方表整個不可得
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0050"]
+    assert i["chg_src"] == "etfinfo_prev" and i["chg_pct"] == -1.52
+
+
+def test_當日漲跌_全部備案都落後時誠實記日期不假裝當日(monkeypatch):
+    """官方表也停在舊日、且無前收可退 → 保留該值但 chg_asof 記其自報日，交由渲染端揭露。
+
+    註：官方表落後而 etfinfo 前收「可用」時，會繼續退到前收拿真正的當日漲跌——
+    層級是「一路試到拿得到當日為止」，不是「寫入就停」。此處刻意讓前收也不可用。
+    """
+    prev = {"items": [{"code": "0050", "as_of": "2026-09-01"}]}   # 無 close_px 可降級為前收
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(106.8, "2026-09-02"))
+    monkeypatch.setattr(etfwatch, "_fetch_returns", _boom)
+    monkeypatch.setattr(etfwatch, "_official_day_quotes",
+                        _day_q({"0050": {"date": "2026-09-01", "close": 108.45,
+                                         "change": 2.2, "name": "元大台灣50"}}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0050"]
+    assert i["chg_asof"] == "2026-09-01"          # 誠實記來源自報日（< as_of 9/2）
+    from arm import fund_dashboard as fd
+    assert "mdstale" in fd._chg_cell(i)           # 渲染端據此標過期、不冒充當日
