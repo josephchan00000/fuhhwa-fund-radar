@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/05 06:49",
+  "as_of": "2026/09/05 06:52",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -35,9 +35,16 @@
     {
       "title": "00929 復華台灣科技優息 ETF｜成分股？配息？優缺點？",
       "url": "https://www.stockfeel.com.tw/00929-%E5%BE%A9%E8%8F%AF%E5%8F%B0%E7%81%A3%E7%A7%91%E6%8A%80%E5%84%AA%E6%81%AF-etf/",
-      "source": "StockFeel 股感",
+      "source": "stockfeel.com.tw",
       "date": "2026-09-01 15:00",
       "datetime": "2026-09-01T15:00:00+08:00"
+    },
+    {
+      "title": "基金：主動復華全球50、玉山未來全球算力及中信台日韓PCB ETF明起掛牌上市",
+      "url": "https://ww2.money-link.com.tw/RealtimeNews/NewsContent.aspx?SN=2414712002&PU=0010",
+      "source": "ww2.money-link.com.tw",
+      "date": "2026-09-01 08:43",
+      "datetime": "2026-09-01T08:43:00+08:00"
     },
     {
       "title": "復華00409A、玉山009827、中信009828三檔 ETF 9月2日同天掛牌",
@@ -145,6 +152,13 @@
         "00409A"
       ],
       "items": [
+        {
+          "title": "主動復華全球5000409A當日股價走勢_個股_台股",
+          "url": "https://ww2.money-link.com.tw/TWStock/StockChart.aspx?SymId=00409A",
+          "source": "ww2.money-link.com.tw",
+          "date": "2026-09-03 07:50",
+          "datetime": "2026-09-03T07:50:57+08:00"
+        },
         {
           "title": "主動復華全球50(00409A) 今日股價與討論 - 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/stock/00409A?s=constituent",
@@ -544,7 +558,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/u5C0Xson2lg",
       "date": "2026-09-03",
-      "views": 84570,
+      "views": 84742,
       "official": true,
       "short": true
     },
@@ -554,7 +568,7 @@
       "channel": "復華ETF情報站",
       "url": "https://www.youtube.com/shorts/M2S9GNjmfa0",
       "date": "2026-09-01",
-      "views": 161347,
+      "views": 161380,
       "official": true,
       "short": true
     },
@@ -564,7 +578,7 @@
       "channel": "財富閒叔跡",
       "url": "https://www.youtube.com/watch?v=nm32h1jPCIQ",
       "date": "2026-09-03",
-      "views": 459
+      "views": 515
     },
     {
       "platform": "youtube",
@@ -589,7 +603,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=RJGY-gm3hnE",
       "date": "2026-08-31",
-      "views": 377814,
+      "views": 377827,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -599,7 +613,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=sK203CxLZNQ",
       "date": "2026-08-31",
-      "views": 248278,
+      "views": 248314,
       "peer": true,
       "cat": "基金"
     },
@@ -609,7 +623,7 @@
       "channel": "安聯投信 Allianz Global Investors Taiwan",
       "url": "https://www.youtube.com/shorts/1e2ayZA7Oik",
       "date": "2026-09-01",
-      "views": 235507,
+      "views": 235575,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -661,7 +675,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=YV1GY-V-ndU",
       "date": "2026-08-31",
-      "views": 120551,
+      "views": 120549,
       "peer": true,
       "cat": "主動式"
     },
@@ -690,6 +704,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A（詳下方新聞標籤）",
     "品牌焦點：00409A 復華全球未來50 今日掛牌，選股邏輯、配息與成分股一次看懂！（pocket.tw）",
     "社群聲量最高：聯準會升息美股就會跌？歷史數據告訴你這樣做反而有賺頭（0 推）",
-    "YouTube 熱片：【股票】台股崩跌竟是多頭起點？杜金龍緊盯「1大關鍵指標」：反彈後秒噴發！ft. 杜金龍｜下班經濟學772｜謝哲青、張瓊方（風傳媒 The Storm Media・377,814 次觀看）"
+    "YouTube 熱片：【股票】台股崩跌竟是多頭起點？杜金龍緊盯「1大關鍵指標」：反彈後秒噴發！ft. 杜金龍｜下班經濟學772｜謝哲青、張瓊方（風傳媒 The Storm Media・377,827 次觀看）"
   ]
 }
