@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/05 06:44",
+  "as_of": "2026/09/05 06:49",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -544,7 +544,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/u5C0Xson2lg",
       "date": "2026-09-03",
-      "views": 84377,
+      "views": 84570,
       "official": true,
       "short": true
     },
@@ -554,7 +554,7 @@
       "channel": "復華ETF情報站",
       "url": "https://www.youtube.com/shorts/M2S9GNjmfa0",
       "date": "2026-09-01",
-      "views": 161296,
+      "views": 161347,
       "official": true,
       "short": true
     },
@@ -564,7 +564,7 @@
       "channel": "財富閒叔跡",
       "url": "https://www.youtube.com/watch?v=nm32h1jPCIQ",
       "date": "2026-09-03",
-      "views": 515
+      "views": 459
     },
     {
       "platform": "youtube",
@@ -589,7 +589,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=RJGY-gm3hnE",
       "date": "2026-08-31",
-      "views": 377804,
+      "views": 377814,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -599,7 +599,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=sK203CxLZNQ",
       "date": "2026-08-31",
-      "views": 248254,
+      "views": 248278,
       "peer": true,
       "cat": "基金"
     },
@@ -631,7 +631,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=FoUaeXqf_9M",
       "date": "2026-08-31",
-      "views": 175710,
+      "views": 175722,
       "peer": true,
       "cat": "高股息"
     },
@@ -651,7 +651,7 @@
       "channel": "G MONEY",
       "url": "https://www.youtube.com/watch?v=_MXkmJGKEA0",
       "date": "2026-09-01",
-      "views": 133015,
+      "views": 133013,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -661,7 +661,7 @@
       "channel": "瘋狂股市福利社Free Free Free!",
       "url": "https://www.youtube.com/watch?v=YV1GY-V-ndU",
       "date": "2026-08-31",
-      "views": 120549,
+      "views": 120551,
       "peer": true,
       "cat": "主動式"
     },
@@ -671,7 +671,7 @@
       "channel": "百靈果News",
       "url": "https://www.youtube.com/watch?v=H00G-1vMcmY",
       "date": "2026-09-01",
-      "views": 109245,
+      "views": 109259,
       "peer": true,
       "cat": "綜合"
     },
@@ -681,7 +681,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/watch?v=HM-bzZjfPqg",
       "date": "2026-09-01",
-      "views": 100898,
+      "views": 100902,
       "peer": true,
       "cat": "高股息"
     }
@@ -690,6 +690,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A（詳下方新聞標籤）",
     "品牌焦點：00409A 復華全球未來50 今日掛牌，選股邏輯、配息與成分股一次看懂！（pocket.tw）",
     "社群聲量最高：聯準會升息美股就會跌？歷史數據告訴你這樣做反而有賺頭（0 推）",
-    "YouTube 熱片：【股票】台股崩跌竟是多頭起點？杜金龍緊盯「1大關鍵指標」：反彈後秒噴發！ft. 杜金龍｜下班經濟學772｜謝哲青、張瓊方（風傳媒 The Storm Media・377,804 次觀看）"
+    "YouTube 熱片：【股票】台股崩跌竟是多頭起點？杜金龍緊盯「1大關鍵指標」：反彈後秒噴發！ft. 杜金龍｜下班經濟學772｜謝哲青、張瓊方（風傳媒 The Storm Media・377,814 次觀看）"
   ]
 }
