@@ -154,6 +154,15 @@ jobs:
           pip install --quiet playwright || echo "::warning::playwright 安裝失敗——瀏覽器煙測跳過（infra）"
           TZ=Asia/Taipei python3 scripts/smoke_dashboard.py dashboard/index.html
 
+      - name: 列印版分頁驗證（headless Chromium 印成 A4 PDF；只告警不擋——2026-09-07）
+        # 列印版（頂欄「列印／PDF」）五個區塊「不可切頁」只有真的印出來才知道，pytest 只守字串。
+        # 紅＝::warning::，不影響 commit／部署；pip／瀏覽器 infra 故障腳本自回 ⚪（exit 2）同樣不擋。
+        # 瀏覽器沿用上一步裝好的 playwright＋runner 內建 Chrome（channel=chrome，零下載）。
+        run: |
+          pip install --quiet pymupdf || echo "::warning::pymupdf 安裝失敗——列印版分頁驗證跳過（infra）"
+          TZ=Asia/Taipei python3 scripts/check_print_layout.py dashboard/index.html \
+            || echo "::warning::列印版分頁驗證未通過或未執行（見上方訊息）——不擋發佈；🔴 時請調 arm/printview.py 版面"
+
       - name: 上傳儀表板與持股快照為 artifact
         uses: actions/upload-artifact@v4
         with:

@@ -222,6 +222,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     <span class="mkswitch"><label class="mk" for="mkt-macro">總經</label><label class="mk" for="mkt-tw">台股</label><label class="mk" for="mkt-gl">全球</label><label class="mk" for="mkt-etf">ETF</label></span>
     <span class="tb-meta">持股基準 {_esc(as_of)}｜產表 {_esc(now)}</span>
     <span class="tb-lamp">{lamp}</span>
+    <button type="button" class="tb-print" id="pbtn" title="列印或另存 PDF——列印版只含五組重點：本週行事曆・市場數據・盤勢總覽・8分以上新聞（總經台股全球各至少一則）・基金ETF報酬率（A4 直式）">{_ic("printer", plain=True)}<span class="tb-pl">列印／PDF</span></button><button type="button" class="tb-print tb-pv" data-pv="1" title="在螢幕預覽列印版的版面（Esc 或「返回網頁版」關閉）">預覽</button>
     <nav class="tb-nav tb-nav-fund">
       <label class="sl" for="sec-brief">今日重點</label><label class="sl" for="sec-news">新聞</label>
       <label class="sl" for="sec-fnews">復華新聞</label>
@@ -3308,10 +3309,29 @@ def render() -> str:
                f'<button class="fexp" id="fcol">全部收合</button></div></div>'
                f'{_mkt(c_tw, c_gl)}')
 
+    # ⑥ 列印版（2026-09-07 使用者需求：每天早上可列印／存 PDF）——獨立的 #print 樹，只放五組重點
+    #    （行事曆・市場數據・盤勢總覽・8 分以上新聞每報至少一則・基金 ETF 報酬率），A4 直式、每塊不可切頁；
+    #    資料全部沿用上面已載入的物件（見 arm/printview.py 模組說明）。函式內匯入：printview
+    #    依賴本模組的渲染小工具，頂層互相 import 會成環。
+    from . import printview
+    us_head, _, _ = usnews.split_doc(us_md or "")
+    sec_print = printview.render({
+        "today": clock.today_tw(), "now": now, "nav_date": nav_date, "as_of": hold_asof,
+        "cal": cal, "mc": mc_doc,
+        "overviews": [("總經・政策總覽", mac_ov, mac_date),
+                      (f"台股{pm_title}", premkt_md, tw_date),
+                      ("全球・昨夜美股總覽", _extract_overview(us_head), us_date)],
+        "lanes": [("macro", "總經", macro_md), ("tw", "台股", tw_md), ("us", "美股", us_md)],
+        "rows_tw": rows_tw, "rows_gl": rows_gl, "marks": leaders, "etf_doc": etf_doc,
+    })
+    pvbar = ('<div class="pvbar"><span class="pvt">列印版預覽（A4 直式；實際分頁以列印對話框為準）</span>'
+             f'<button type="button" id="pvprint">{_ic("printer", plain=True)} 列印／存 PDF</button>'
+             '<button type="button" class="ghost" data-pv="0">返回網頁版</button></div>')
+
     return f"""<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>復華基金雷達 · 台股/全球雙視圖</title>
-<style>{_CSS}</style></head>
+<style>{_CSS}{printview.CSS}</style></head>
 <body>
 <input class="mkradio" type="radio" name="mkt" id="mkt-macro">
 <input class="mkradio" type="radio" name="mkt" id="mkt-tw" checked>
@@ -3361,6 +3381,8 @@ def render() -> str:
   本版本不呈現「每天持股變化」（共同基金無逐日持股張數）。
 </div>
 </div>
+{sec_print}
+{pvbar}
 <a class="backtop" href="#" onclick="window.scrollTo({{top:0,behavior:'smooth'}});return false;">↑ 回頂端</a>
-<script>{_JS}</script>
+<script>{_JS}{printview.JS}</script>
 </body></html>"""
