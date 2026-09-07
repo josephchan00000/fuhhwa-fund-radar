@@ -16,13 +16,21 @@ def test_no_syntax_warnings_in_arm_modules():
     assert r.returncode == 0, r.stderr
 
 
-# ── ② 晨會列印版已整組移除（2026-07-20 使用者指示：格式醜、整個功能刪掉）——鎖回歸 ──
+# ── ② 列印版的兩段歷史——鎖「舊作法」不回歸、「新作法」不走樣 ──
+# 2026-07-20：第一版「晨會列印版」（把螢幕區塊套 @media print 硬印、beforeprint 動手腳）使用者看過
+#   後指示「格式醜、整個功能刪掉」，本測試原本鎖的是「整組不得回來」。
+# 2026-09-07：使用者重新提出明確需求（每天早上可列印／存 PDF、排版乾淨不可切頁、字小無妨、
+#   五組重點、基金 ETF 報酬率單獨一頁）——改為獨立的 #print 樹（arm/printview.py），與舊版
+#   「硬印螢幕區塊」是不同作法。守法改成：舊版殘留符號不得回來；新版必須是獨立樹、且 @media print
+#   只印 #print（不是再把螢幕區塊拿去印）。
 
-def test_print_feature_removed():
-    from arm import fund_dashboard
+def test_print_feature_is_independent_tree_not_old_overlay():
+    from arm import fund_dashboard, printview
     html = fund_dashboard.render()
-    assert "tb-print" not in html and "printhead" not in html
-    assert "beforeprint" not in html and "@media print" not in html
+    assert "printhead" not in html and "beforeprint" not in html          # 舊版殘留
+    assert '\n<div id="print" class="pr">' in html                          # 新版＝body 直屬獨立樹
+    assert "body>*:not(#print){display:none!important}" in printview.CSS   # 只印 #print
+    assert "@media print" not in fund_dashboard._CSS                       # 螢幕版 CSS 不再夾帶列印規則
 
 
 # ── ③ 內容 QA 閘門：通過／缺檔／卡數不足三條路徑 ──
