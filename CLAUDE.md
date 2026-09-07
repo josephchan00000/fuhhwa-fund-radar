@@ -757,6 +757,15 @@ iOS Safari 皆同一條路，零外掛；CJK 字型交給瀏覽器）；「預�
 - **不放的東西**：只用網頁現有資訊（使用者原話）——費半／台積電 ADR 序列雖在 `macro_chips.json`
   但溫度計表沒列，列印版也不列；新聞卡只印 8 分以上（6–7 分見網頁版，每報保底補入者除外）；
   持股、社群、ETF 詳情不印。
+- **⚠ 程式碼改動「merge 進 main ≠ 線上生效」，還要補一輪重建（2026-09-07 使用者回報「沒東西」）**：
+  `daily.yml` 固定 `checkout main`、併檔段只帶 `reports/*.md`＋`data/etf_upcoming.json`＋
+  `config/holding_profiles.json`（該段自己註明「**程式碼一律不自動併（注入面，人工 merge）**」），
+  而**線上頁＝入庫的 `dashboard/index.html`**——那是 CI 上一輪用**當時 main 的程式碼**建的。
+  當天時間軸：08:15 CI 建表（列印碼還沒進 main）→ 08:42 使用者 merge PR #240 → **merge 本身不重建**
+  → 線上仍是 08:15 那份、沒有按鈕。**修法＝merge 後 dispatch 一輪 `daily.yml`**（ref=main、
+  `news_ref` 留空＝只用 main 現有新聞重刷資料＋重建＋部署；當天 run 34071078270、commit
+  `feca7ac` 08:52 即補上）。**任何動到 `arm/`／`scripts/` 渲染端的 PR merge 後都要這一步**，
+  否則要等到隔天 06:35 那班才會自然生效。驗證＝`git show origin/main:dashboard/index.html | grep -c tb-print`。
 - **驗證＝真的印**：`TZ=Asia/Taipei python3 scripts/check_print_layout.py dashboard/index.html --png DIR`
   （需 `pip install playwright pymupdf`；本容器瀏覽器 `/opt/pw-browsers/chromium-*/chrome-linux/chrome`）
   ——headless Chromium 印 A4 PDF、印前在每區塊／卡片首尾塞 2pt 白字標記 `@@BEG/END:id@@`，PyMuPDF 讀回
