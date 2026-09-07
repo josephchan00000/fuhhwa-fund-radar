@@ -118,7 +118,8 @@ tests/test_insights.py         洞察層/台股新聞/儀表板單測
 ## 列印／存 PDF（每日晨報列印版）
 
 儀表板頂欄「🖨 列印／PDF」會以獨立的列印版面（A4 直式）輸出五組重點：本週行事曆、市場數據追蹤、
-總經／台股／全球盤勢總覽、重要度 9 分以上新聞、基金・ETF 報酬率（單獨一頁總表）；每個區塊不切頁。
+總經／台股／全球盤勢總覽、重要度 8 分以上新聞（總經／台股／全球每報至少一則）、基金・ETF 報酬率
+（單獨一頁總表）；每個區塊不切頁。
 瀏覽器列印對話框選「儲存為 PDF」即得檔案；「預覽」可先在螢幕看版面。實作見 `arm/printview.py`，
 分頁驗證：`pip install playwright pymupdf && TZ=Asia/Taipei python3 scripts/check_print_layout.py dashboard/index.html`。
 

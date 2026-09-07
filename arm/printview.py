@@ -9,8 +9,8 @@
 版面（A4 直式、邊界 8–10mm；字 7–8.5pt——使用者：「我可以接受字很小只要清楚就好」）：
   第 1 頁      ① 本週行事曆 ＋ ② 市場數據追蹤（兩塊各自 break-inside:avoid；行事曆過長時 ② 整塊順延）
   第 2 頁起    ③ 盤勢總覽（總經／台股／全球三欄並排、一整塊不切）
-               ④ 重要度 9 分以上新聞（每卡不切、卡與卡之間可換頁；無 9 分卡時改列當日最高分
-                 事件標題，版面不留白）
+               ④ 重要度 8 分以上新聞（三報合併；**每報至少 1 則**——該報當天沒有 8 分卡時補其最高分
+                 事件卡並標灰章「本報最高 N 分」；每卡不切、卡與卡之間可換頁）
   最後一頁     ⑤ 基金・ETF 報酬率：break-before:page 獨立一頁，基金（左）／ETF（右）並排，
                字級依單側列數自動收斂（fit_pt）確保一頁塞得下（使用者：「這個單獨全部擠在一頁」）。
 「同一資訊不可切到兩頁」＝ CSS break-inside:avoid（區塊／卡片／表格）＋ 只在 ⑤ 前強制分頁，
@@ -29,8 +29,9 @@ from datetime import date
 from . import clock, macrochips, usnews
 from . import fund_dashboard as fd
 
-MIN_SEV = 9                        # ④ 新聞門檻（使用者：9 分以上）
-FALLBACK_TOP = 5                   # 無 9 分卡時列出的最高分事件數
+MIN_SEV = 8                        # ④ 新聞門檻（2026-09-07 使用者：先 9 分、同日放寬到 8 分以上）
+LANE_MIN = 1                       # 每份報告（總經／台股／美股）至少幾則——使用者：「總經台股全球的都要涵蓋進去」；
+                                   # 該報無達門檻卡時補其最高分事件卡並標「本報最高 N 分」；設 0 關閉保底
 _WD = "一二三四五六日"
 _ETYPE = {"new": "新事件", "ext": "延伸", "deep": "深度"}
 # 報告順序＝使用者列舉的「總經、台股、全球」；同分時依此排、同報告內維持原序
@@ -211,23 +212,39 @@ def overview_block(cols: list[tuple[str, str, str | None]]) -> str:
                     f'<div class="pr-ov">{"".join(parts)}</div>')
 
 
-# ── ④ 重要度 9 分以上新聞 ─────────────────────────────────────────
+# ── ④ 重要度 8 分以上新聞（每報至少 1 則） ──────────────────────────
 
-def pick_cards(lanes: list[tuple[str, str, str]], min_sev: int = MIN_SEV) -> tuple[list[dict], list[dict]]:
-    """lanes＝[(lane_key, lane_label, markdown)]（順序即同分時的排序）→
-    (≥min_sev 的卡, 全部有分數的卡)；皆依重要度高→低，同分依 lanes 順序、同報告內維持原序，
-    【深度】精選殿後（同螢幕版 _news_view 的排序慣例）。"""
+def _sort_key(c: dict):
+    """重要度高→低；同分依 lanes 順序、同報告內維持原序；【深度】精選殿後（同螢幕版 _news_view）。"""
+    return (c.get("etype") == "deep", -c["importance"], c["_o"])
+
+
+def pick_cards(lanes: list[tuple[str, str, str]], min_sev: int = MIN_SEV,
+               lane_min: int = LANE_MIN) -> tuple[list[dict], list[dict]]:
+    """lanes＝[(lane_key, lane_label, markdown)]（順序即同分時的排序）→ (入選卡, 全部有分數的卡)。
+    入選＝重要度 ≥ min_sev 的全部卡；某報入選不足 lane_min 則時，補該報分數最高的卡
+    （非【深度】優先）並標 fill=True——三個視角每天都在版面上
+    （使用者 2026-09-07：「記得總經台股全球的都要涵蓋進去」）。"""
     allc: list[dict] = []
     for li, (lk, ll, md) in enumerate(lanes):
         for ci, c in enumerate(usnews.extract_cards(md or "")):
             if isinstance(c.get("importance"), int):
-                allc.append({**c, "lane": lk, "lane_label": ll, "_o": (li, ci)})
-    allc.sort(key=lambda c: (c.get("etype") == "deep", -c["importance"], c["_o"]))
-    return [c for c in allc if c["importance"] >= min_sev], allc
+                allc.append({**c, "lane": lk, "lane_label": ll, "_o": (li, ci), "fill": False})
+    allc.sort(key=_sort_key)
+    picked = [c for c in allc if c["importance"] >= min_sev]
+    for lk, _ll, _md in lanes:
+        short = lane_min - sum(1 for c in picked if c["lane"] == lk)
+        if short > 0:                                   # 該報不足：補未達門檻中分數最高者（allc 已排序）
+            pool = [c for c in allc if c["lane"] == lk and c["importance"] < min_sev]
+            picked += [{**c, "fill": True} for c in pool[:short]]
+    picked.sort(key=_sort_key)
+    return picked, allc
 
 
 def _card(c: dict) -> str:
     ety = f'<span class="pr-ety">{_ETYPE[c["etype"]]}</span>' if c.get("etype") in _ETYPE else ""
+    sev = (f'<span class="pr-sev fill" title="本報今日無達門檻新聞，補入該報最高分事件">本報最高 {c["importance"]} 分</span>'
+           if c.get("fill") else f'<span class="pr-sev">重要度 {c["importance"]}</span>')
     src = (c.get("meta") or "").split("｜")[0].strip()          # 「CNBC、CNN，2026/09/03」
     src_html = f'<span class="pr-src">{_esc(src)}</span>' if src and "重要度" not in src else ""
     one = f'<div class="pr-one">{fd._inline(c["oneline"])}</div>' if c.get("oneline") else ""
@@ -243,27 +260,22 @@ def _card(c: dict) -> str:
     links = sorted(c.get("links") or [], key=lambda tu: 0 if "futunn.com" in tu[1] else 1)[:3]
     links_html = "".join(f'<a href="{fd._safe_url(u)}">↗ {_esc(t[:60])}</a>' for t, u in links)
     return (f'<article class="pr-card"><div class="pr-ch">'
-            f'<span class="pr-lane {c["lane"]}">{_esc(c["lane_label"])}</span>'
-            f'<span class="pr-sev">重要度 {c["importance"]}</span>{ety}'
+            f'<span class="pr-lane {c["lane"]}">{_esc(c["lane_label"])}</span>{sev}{ety}'
             f'<span class="pr-ct">{_esc(c["title"])}</span>{src_html}</div>{one}'
             f'<dl class="pr-kv">{kv_html}</dl>'
             + (f'<div class="pr-links">{links_html}</div>' if links_html else "") + '</article>')
 
 
-def news_block(picked: list[dict], allc: list[dict], min_sev: int = MIN_SEV) -> str:
+def news_block(picked: list[dict], min_sev: int = MIN_SEV) -> str:
     title = f"④ 重要度 {min_sev} 分以上新聞"
-    if picked:
-        sub = f'{len(picked)} 則・總經／台股／美股三份報告合併、依重要度排序（原文連結在 PDF 內可點）'
-        return _section("p-news", title, sub, "".join(_card(c) for c in picked), flow=True)
-    top = [c for c in allc if c.get("etype") != "deep"][:FALLBACK_TOP] or allc[:FALLBACK_TOP]
-    if not top:
-        return _section("p-news", title, "", '<div class="pr-empty">今日無新聞卡</div>')
-    lis = "".join(f'<li><span class="pr-sev">{c["importance"]}</span>'
-                  f'<span class="pr-lane {c["lane"]}">{_esc(c["lane_label"])}</span>{_esc(c["title"])}</li>'
-                  for c in top)
-    body = (f'<div class="pr-fb">今日無重要度 {min_sev} 分以上新聞。當日最高分事件（僅列標題，'
-            f'全文與影響分析見網頁版）：<ol>{lis}</ol></div>')
-    return _section("p-news", title, "今日 0 則", body)
+    if not picked:
+        return _section("p-news", title, "今日 0 則", '<div class="pr-empty">今日無新聞卡</div>')
+    n_fill = sum(1 for c in picked if c.get("fill"))
+    sub = f'{len(picked)} 則・總經／台股／美股三報合併、依重要度排序'
+    if n_fill:
+        sub += f'・{n_fill} 則為該報今日未達 {min_sev} 分時補入的最高分事件（灰章）'
+    sub += '（原文連結在 PDF 內可點）'
+    return _section("p-news", title, sub, "".join(_card(c) for c in picked), flow=True)
 
 
 # ── ⑤ 基金・ETF 報酬率（獨立一頁） ────────────────────────────────
@@ -410,10 +422,10 @@ def render(ctx: dict) -> str:
             f'<div class="pr-meta">{today:%Y/%m/%d}（週{_WD[today.weekday()]}）　'
             f'產表 {_esc(ctx.get("now") or "—")}　NAV {_esc(ctx.get("nav_date") or "—")}　'
             f'持股基準 {_esc(ctx.get("as_of") or "—")}</div></header>')
-    picked, allc = pick_cards(ctx.get("lanes") or [])
+    picked, _allc = pick_cards(ctx.get("lanes") or [])
     return (f'<div id="print" class="pr">{head}'
             f'{calendar_block(ctx.get("cal"))}{market_block(ctx.get("mc"))}'
-            f'{overview_block(ctx.get("overviews") or [])}{news_block(picked, allc)}'
+            f'{overview_block(ctx.get("overviews") or [])}{news_block(picked)}'
             f'{returns_block(ctx.get("rows_tw") or [], ctx.get("rows_gl") or [], ctx.get("marks") or {}, ctx.get("etf_doc"), ctx.get("nav_date"))}'
             f'<footer class="pr-foot">{_FOOT}</footer></div>')
 
@@ -505,6 +517,7 @@ CSS = """
 .pr-lane{font-size:6.8pt;font-weight:800;color:#fff;background:#173460;border-radius:3px;padding:0 5px;white-space:nowrap}
 .pr-lane.tw{background:#0f766e}.pr-lane.us{background:#1c4fa8}.pr-lane.macro{background:#6d28d9}
 .pr-sev{font-size:6.8pt;font-weight:800;color:#a02c2c;background:#fbe1e1;border-radius:3px;padding:0 5px;white-space:nowrap}
+.pr-sev.fill{color:#5b6672;background:#e9edf3}   /* 該報未達門檻時補入的最高分卡：灰章，與紅章的達標卡區分 */
 .pr-ety{font-size:6.8pt;color:#555;border:1px solid #ccc;border-radius:3px;padding:0 4px;white-space:nowrap}
 .pr-ct{font-size:9.5pt;font-weight:800;color:#111}
 .pr-src{font-size:6.8pt;color:#777;margin-left:auto;white-space:nowrap}
@@ -516,9 +529,6 @@ CSS = """
 .pr .nwatch{display:block;color:#444;border-top:1px dotted #ccc;margin-top:1px;padding-top:1px;font-size:inherit}
 .pr-links{margin-top:3px;font-size:7pt;line-height:1.5}
 .pr-links a{display:inline-block;color:#1c4fa8;border-bottom:1px dotted #1c4fa8;margin-right:9px}
-.pr-fb{font-size:8pt;color:#222}
-.pr-fb ol{margin:3px 0 0;padding-left:16px}
-.pr-fb li{margin:1px 0}.pr-fb li .pr-sev,.pr-fb li .pr-lane{margin-right:4px}
 /* ⑤ 報酬率單頁 */
 .pr-break{break-before:page;page-break-before:always}
 .pr-ret{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;align-items:start;break-inside:avoid;page-break-inside:avoid}

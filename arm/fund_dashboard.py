@@ -222,7 +222,7 @@ def _topbar(banned_hits: list[str], has_news: bool, as_of: str, now: str) -> str
     <span class="mkswitch"><label class="mk" for="mkt-macro">總經</label><label class="mk" for="mkt-tw">台股</label><label class="mk" for="mkt-gl">全球</label><label class="mk" for="mkt-etf">ETF</label></span>
     <span class="tb-meta">持股基準 {_esc(as_of)}｜產表 {_esc(now)}</span>
     <span class="tb-lamp">{lamp}</span>
-    <button type="button" class="tb-print" id="pbtn" title="列印或另存 PDF——列印版只含五組重點：本週行事曆・市場數據・盤勢總覽・9分以上新聞・基金ETF報酬率（A4 直式）">{_ic("printer", plain=True)}<span class="tb-pl">列印／PDF</span></button><button type="button" class="tb-print tb-pv" data-pv="1" title="在螢幕預覽列印版的版面（Esc 或「返回網頁版」關閉）">預覽</button>
+    <button type="button" class="tb-print" id="pbtn" title="列印或另存 PDF——列印版只含五組重點：本週行事曆・市場數據・盤勢總覽・8分以上新聞（總經台股全球各至少一則）・基金ETF報酬率（A4 直式）">{_ic("printer", plain=True)}<span class="tb-pl">列印／PDF</span></button><button type="button" class="tb-print tb-pv" data-pv="1" title="在螢幕預覽列印版的版面（Esc 或「返回網頁版」關閉）">預覽</button>
     <nav class="tb-nav tb-nav-fund">
       <label class="sl" for="sec-brief">今日重點</label><label class="sl" for="sec-news">新聞</label>
       <label class="sl" for="sec-fnews">復華新聞</label>
@@ -3310,7 +3310,7 @@ def render() -> str:
                f'{_mkt(c_tw, c_gl)}')
 
     # ⑥ 列印版（2026-09-07 使用者需求：每天早上可列印／存 PDF）——獨立的 #print 樹，只放五組重點
-    #    （行事曆・市場數據・盤勢總覽・9 分以上新聞・基金 ETF 報酬率），A4 直式、每塊不可切頁；
+    #    （行事曆・市場數據・盤勢總覽・8 分以上新聞每報至少一則・基金 ETF 報酬率），A4 直式、每塊不可切頁；
     #    資料全部沿用上面已載入的物件（見 arm/printview.py 模組說明）。函式內匯入：printview
     #    依賴本模組的渲染小工具，頂層互相 import 會成環。
     from . import printview
