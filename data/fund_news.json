@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/08 06:40",
+  "as_of": "2026/09/08 06:43",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -45,28 +45,28 @@
         {
           "title": "10大熱門1表看》台股ETF風向變！0050、00878、00929、00919、00981A...最新受益人數變動出爐了：2檔被買爆、1支驚現下車潮",
           "url": "https://wantrich.chinatimes.com/news/20260908900005-420401",
-          "source": "旺得富理財網",
+          "source": "wantrich.chinatimes.com",
           "date": "2026-09-08 05:29",
           "datetime": "2026-09-08T05:29:06+08:00"
         },
         {
           "title": "台股站回4萬7，為何反而要買高股息？00919、00929、00406A...卡位9月除息，「3種賺法」一次看",
           "url": "https://www.businesstoday.com.tw/article/category/183013/post/202609070027/",
-          "source": "今周刊",
+          "source": "businesstoday.com.tw",
           "date": "2026-09-07 17:18",
           "datetime": "2026-09-07T17:18:00+08:00"
         },
         {
           "title": "00929買100張，每月可領多少錢？她從月領8千變3萬8！近1年股價18→29元、價差賺逾百萬...現在還能進場？",
           "url": "https://www.businesstoday.com.tw/article/category/183013/post/202609070009/",
-          "source": "今周刊",
+          "source": "businesstoday.com.tw",
           "date": "2026-09-07 10:56",
           "datetime": "2026-09-07T10:56:00+08:00"
         },
         {
           "title": "今年報酬破70%、還配16%！00929奪高股息ETF雙冠 00878績效居次同勝大盤",
           "url": "https://www.moneyweekly.com.tw/ArticleData/Info/Article/247164",
-          "source": "moneyweekly.com.tw",
+          "source": "理財周刊",
           "date": "2026-09-07 08:00",
           "datetime": "2026-09-07T08:00:02+08:00"
         },
@@ -91,14 +91,14 @@
         {
           "title": "00981A、00991A、00992A...這檔今年績效84%遠勝大盤！主動式ETF怎麼挑？達人：觀察下跌時誰守住",
           "url": "https://www.businesstoday.com.tw/article/category/183013/post/202609040011/",
-          "source": "今周刊",
+          "source": "businesstoday.com.tw",
           "date": "2026-09-04 16:59",
           "datetime": "2026-09-04T16:59:00+08:00"
         },
         {
           "title": "1表看》00981A、00991A、00992A…最新主動式ETF績效榜前3名今年大漲8成要不要衝？達人看「9字訣」再決定- 基金",
           "url": "https://wantrich.chinatimes.com/news/20260906900004-420401",
-          "source": "旺得富理財網",
+          "source": "wantrich.chinatimes.com",
           "date": "2026-09-06 07:08",
           "datetime": "2026-09-06T07:08:31+08:00"
         }
@@ -616,7 +616,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/m7hXKW7bBYg",
       "date": "2026-09-05",
-      "views": 171941,
+      "views": 171983,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -637,7 +637,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=mHhq_HrXEwk",
       "date": "2026-09-07",
-      "views": 111692,
+      "views": 111872,
       "peer": true,
       "cat": "綜合"
     },
@@ -647,7 +647,7 @@
       "channel": "StayRich小資理財藍圖",
       "url": "https://www.youtube.com/watch?v=9HSku4cxTAY",
       "date": "2026-09-03",
-      "views": 99913,
+      "views": 99918,
       "peer": true,
       "cat": "主動式"
     },
@@ -707,7 +707,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=DdViJ6oeC-4",
       "date": "2026-09-04",
-      "views": 75272,
+      "views": 75264,
       "peer": true,
       "cat": "市值型"
     }
