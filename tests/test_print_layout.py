@@ -1,4 +1,4 @@
-"""列印版（arm/printview，2026-09-07）：五區塊齊全、9 分門檻與保底、報酬率頁涵蓋全部基金與 ETF、
+"""列印版（arm/printview，2026-09-07）：五區塊齊全、8 分門檻與每報保底、報酬率頁涵蓋全部基金與 ETF、
 分頁 CSS 規則、不與螢幕版分頁機制撞名、按鈕與 JS 鉤子。
 
 真正的「有沒有切頁」只有印出來才知道——那在 scripts/check_print_layout.py（headless Chromium 印 PDF
@@ -74,23 +74,29 @@ def test_pick_cards_threshold_and_order():
              ("tw", "台股", _cards_md([("台股甲", 8, "新事件"), ("台股深", 9, "深度")])),
              ("us", "美股", _cards_md([("美股甲", 10, "新事件"), ("美股乙", 9, "延伸")]))]
     picked, allc = pv.pick_cards(lanes)
-    # 分數高→低；同分依總經→台股→美股；【深度】殿後（同螢幕版）
-    assert [c["title"] for c in picked] == ["美股甲", "總經甲", "美股乙", "台股深"]
-    assert all(c["importance"] >= 9 for c in picked)
+    # 門檻 8：分數高→低；同分依總經→台股→美股；【深度】殿後（同螢幕版）；三報都有達標卡 → 無補入
+    assert [c["title"] for c in picked] == ["美股甲", "總經甲", "美股乙", "台股甲", "台股深"]
+    assert all(c["importance"] >= 8 for c in picked) and not any(c["fill"] for c in picked)
     assert len(allc) == 6 and allc[0]["title"] == "美股甲"
-    html = pv.news_block(picked, allc)
-    assert html.count('<article class="pr-card">') == 4
+    html = pv.news_block(picked)
+    assert html.count('<article class="pr-card">') == 5 and "pr-sev fill" not in html
     assert "pr-lane us" in html and "重要度 10" in html and "新聞摘要" in html and "漲跌分析" in html
     assert 'href="https://example.com/a"' in html               # 原文連結留在 PDF 內可點
 
 
-def test_news_block_fallback_when_no_nine():
-    lanes = [("tw", "台股", _cards_md([("台股甲", 8, "新事件"), ("台股乙", 6, "延伸"), ("深度文", 8, "深度")]))]
-    picked, allc = pv.pick_cards(lanes)
-    assert picked == []
-    html = pv.news_block(picked, allc)
-    assert "今日無重要度 9 分以上新聞" in html and '<article class="pr-card">' not in html
-    assert "台股甲" in html and "台股乙" in html and "深度文" not in html   # 保底只列事件卡標題
+def test_lane_without_threshold_card_gets_its_top_card():
+    """每報保底（使用者：「總經台股全球的都要涵蓋進去」）：某報當天無 8 分卡 → 補該報最高分事件卡
+    （非【深度】優先）並標灰章；報告整份沒有卡就不補；LANE_MIN=0 可關閉。"""
+    lanes = [("macro", "總經", ""),
+             ("tw", "台股", _cards_md([("台股乙", 6, "延伸"), ("台股深", 7, "深度"), ("台股甲", 7, "新事件")])),
+             ("us", "美股", _cards_md([("美股甲", 8, "新事件")]))]
+    picked, _ = pv.pick_cards(lanes)
+    assert [(c["title"], c["fill"]) for c in picked] == [("美股甲", False), ("台股甲", True)]
+    html = pv.news_block(picked)
+    assert html.count("本報最高 7 分") == 1 and "重要度 8" in html and "1 則為該報今日未達 8 分" in html
+    only, _ = pv.pick_cards(lanes, lane_min=0)
+    assert [c["title"] for c in only] == ["美股甲"]
+    assert "今日無新聞卡" in pv.news_block([])
 
 
 def test_returns_block_covers_every_fund_and_etf():
