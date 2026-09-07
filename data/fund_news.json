@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/08 06:43",
+  "as_of": "2026/09/08 06:47",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -45,21 +45,21 @@
         {
           "title": "10大熱門1表看》台股ETF風向變！0050、00878、00929、00919、00981A...最新受益人數變動出爐了：2檔被買爆、1支驚現下車潮",
           "url": "https://wantrich.chinatimes.com/news/20260908900005-420401",
-          "source": "wantrich.chinatimes.com",
+          "source": "旺得富理財網",
           "date": "2026-09-08 05:29",
           "datetime": "2026-09-08T05:29:06+08:00"
         },
         {
           "title": "台股站回4萬7，為何反而要買高股息？00919、00929、00406A...卡位9月除息，「3種賺法」一次看",
           "url": "https://www.businesstoday.com.tw/article/category/183013/post/202609070027/",
-          "source": "businesstoday.com.tw",
+          "source": "今周刊",
           "date": "2026-09-07 17:18",
           "datetime": "2026-09-07T17:18:00+08:00"
         },
         {
           "title": "00929買100張，每月可領多少錢？她從月領8千變3萬8！近1年股價18→29元、價差賺逾百萬...現在還能進場？",
           "url": "https://www.businesstoday.com.tw/article/category/183013/post/202609070009/",
-          "source": "businesstoday.com.tw",
+          "source": "今周刊",
           "date": "2026-09-07 10:56",
           "datetime": "2026-09-07T10:56:00+08:00"
         },
@@ -91,14 +91,14 @@
         {
           "title": "00981A、00991A、00992A...這檔今年績效84%遠勝大盤！主動式ETF怎麼挑？達人：觀察下跌時誰守住",
           "url": "https://www.businesstoday.com.tw/article/category/183013/post/202609040011/",
-          "source": "businesstoday.com.tw",
+          "source": "今周刊",
           "date": "2026-09-04 16:59",
           "datetime": "2026-09-04T16:59:00+08:00"
         },
         {
           "title": "1表看》00981A、00991A、00992A…最新主動式ETF績效榜前3名今年大漲8成要不要衝？達人看「9字訣」再決定- 基金",
           "url": "https://wantrich.chinatimes.com/news/20260906900004-420401",
-          "source": "wantrich.chinatimes.com",
+          "source": "旺得富理財網",
           "date": "2026-09-06 07:08",
           "datetime": "2026-09-06T07:08:31+08:00"
         }
@@ -385,7 +385,15 @@
         "台灣科技高股息A",
         "台灣科技高股息B"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "00929 復華台灣科技優息 ETF｜成分股？配息？優缺點？",
+          "url": "https://www.stockfeel.com.tw/00929-%E5%BE%A9%E8%8F%AF%E5%8F%B0%E7%81%A3%E7%A7%91%E6%8A%80%E5%84%AA%E6%81%AF-etf/",
+          "source": "StockFeel 股感",
+          "date": "2026-09-01 15:00",
+          "datetime": "2026-09-01T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華傳家基金",
@@ -551,7 +559,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/f1D4gyLyZk0",
       "date": "2026-09-05",
-      "views": 332,
+      "views": 333,
       "official": true,
       "short": true
     },
@@ -571,7 +579,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/u5C0Xson2lg",
       "date": "2026-09-03",
-      "views": 331363,
+      "views": 331389,
       "official": true,
       "short": true
     },
@@ -581,7 +589,7 @@
       "channel": "復華ETF情報站",
       "url": "https://www.youtube.com/shorts/M2S9GNjmfa0",
       "date": "2026-09-01",
-      "views": 322678,
+      "views": 322706,
       "official": true,
       "short": true
     },
@@ -608,7 +616,7 @@
       "channel": "財富閒叔跡",
       "url": "https://www.youtube.com/watch?v=nm32h1jPCIQ",
       "date": "2026-09-03",
-      "views": 4252
+      "views": 4253
     },
     {
       "platform": "youtube",
@@ -616,7 +624,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/m7hXKW7bBYg",
       "date": "2026-09-05",
-      "views": 171983,
+      "views": 172030,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -627,7 +635,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=OunGyJJy9x8",
       "date": "2026-09-05",
-      "views": 120159,
+      "views": 120167,
       "peer": true,
       "cat": "債券"
     },
@@ -637,7 +645,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=mHhq_HrXEwk",
       "date": "2026-09-07",
-      "views": 111872,
+      "views": 112113,
       "peer": true,
       "cat": "綜合"
     },
@@ -647,7 +655,7 @@
       "channel": "StayRich小資理財藍圖",
       "url": "https://www.youtube.com/watch?v=9HSku4cxTAY",
       "date": "2026-09-03",
-      "views": 99918,
+      "views": 99919,
       "peer": true,
       "cat": "主動式"
     },
@@ -667,7 +675,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=EwA22XHZy7I",
       "date": "2026-09-03",
-      "views": 87601,
+      "views": 87603,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -687,7 +695,7 @@
       "channel": "鏡新聞",
       "url": "https://www.youtube.com/watch?v=VwpuDfKuioc",
       "date": "2026-09-06",
-      "views": 83235,
+      "views": 83242,
       "peer": true,
       "cat": "債券"
     },
@@ -707,15 +715,15 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=DdViJ6oeC-4",
       "date": "2026-09-04",
-      "views": 75264,
+      "views": 75272,
       "peer": true,
       "cat": "市值型"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、台灣科技高股息（詳下方新聞標籤）",
     "品牌焦點：00409A 復華全球未來50 今日掛牌，選股邏輯、配息與成分股一次看懂！（pocket.tw）",
     "社群聲量最高：美股為何跌不深、台股還衝破四萬七？看懂原因請務必抱緊處理（0 推）",
-    "YouTube 熱片：EP2 賭上未來！00991A直球對決網友QA（復華投信・331,363 次觀看）"
+    "YouTube 熱片：EP2 賭上未來！00991A直球對決網友QA（復華投信・331,389 次觀看）"
   ]
 }
