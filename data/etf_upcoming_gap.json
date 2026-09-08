@@ -1,7 +1,14 @@
 {
- "as_of": "2026-09-08 09:14",
- "count": 1,
+ "as_of": "2026-09-09 06:55",
+ "count": 2,
  "items": [
+  {
+   "code": null,
+   "name": "豐PLUS台灣AI動能主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes"
+  },
   {
    "code": null,
    "name": "台新日本AI機器人ETF",
@@ -10,8 +17,17 @@
    "src": "cnyes"
   }
  ],
- "pipeline_n": 7,
+ "pipeline_n": 8,
  "pipeline": [
+  {
+   "code": null,
+   "name": "第一金全球加密科技ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
+   "cat": "ETF"
+  },
   {
    "code": null,
    "name": "永豐精選息收非投資等級債券ETF基金",
