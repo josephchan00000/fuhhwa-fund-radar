@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/10 06:53",
+  "as_of": "2026/09/10 09:04",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -13,9 +13,23 @@
       ],
       "items": [
         {
+          "title": "股票小白一次買20張ETF⋯00929、00919、00927能長抱？網曝關鍵點",
+          "url": "https://udn.com/news/story/123006/9744409",
+          "source": "UDN",
+          "date": "2026-09-10 08:09",
+          "datetime": "2026-09-10T08:09:19+08:00"
+        },
+        {
+          "title": "高股息ETF今年報酬率差很大！前後段班差逾40個百分點 阮慕驊點名00929表現最亮眼",
+          "url": "https://www.yesmedia.com.tw/%E9%AB%98%E8%82%A1%E6%81%AFetf%E4%BB%8A%E5%B9%B4%E5%A0%B1%E9%85%AC%E7%8E%87%E5%B7%AE%E5%BE%88%E5%A4%A7%EF%BC%81%E5%89%8D%E5%BE%8C%E6%AE%B5%E7%8F%AD%E5%B7%AE%E9%80%BE40%E5%80%8B%E7%99%BE%E5%88%86/",
+          "source": "yesmedia.com.tw",
+          "date": "2026-09-10 08:00",
+          "datetime": "2026-09-10T08:00:12+08:00"
+        },
+        {
           "title": "00929 復華台灣科技優息- 9/9(三)筆記 - 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/article/184487333",
-          "source": "cmoney.tw",
+          "source": "CMoney",
           "date": "2026-09-09 19:42",
           "datetime": "2026-09-09T19:42:50+08:00"
         },
@@ -25,13 +39,6 @@
           "source": "TVBS新聞網",
           "date": "2026-09-09 14:59",
           "datetime": "2026-09-09T14:59:00+08:00"
-        },
-        {
-          "title": "台股急殺掀震撼教育！股魚：00929具「硬頸」防禦力 宛如存股族救生圈",
-          "url": "https://www.yesmedia.com.tw/%E5%8F%B0%E8%82%A1%E6%80%A5%E6%AE%BA%E6%8E%80%E9%9C%87%E6%92%BC%E6%95%99%E8%82%B2%EF%BC%81%E8%82%A1%E9%AD%9A%EF%BC%9A00929%E5%85%B7%E3%80%8C%E7%A1%AC%E9%A0%B8%E3%80%8D%E9%98%B2%E7%A6%A6%E5%8A%9B/",
-          "source": "yesmedia.com.tw",
-          "date": "2026-09-09 08:00",
-          "datetime": "2026-09-09T08:00:45+08:00"
         }
       ]
     },
@@ -46,7 +53,7 @@
         {
           "title": "00991A 主動復華未來50 - 09/09 主動式ETF共識｜伺服器遭砍，4家逆勢大買穎崴15% - 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/article/184489284",
-          "source": "cmoney.tw",
+          "source": "CMoney",
           "date": "2026-09-09 06:22",
           "datetime": "2026-09-09T06:22:19+08:00"
         }
@@ -63,21 +70,21 @@
         {
           "title": "大盤資金轉向金融股！00998A季配息年化衝上9.5% 專家：搶攻存股族目光",
           "url": "https://tw.news.yahoo.com/%E5%A4%A7%E7%9B%A4%E8%B3%87%E9%87%91%E8%BD%89%E5%90%91%E9%87%91%E8%9E%8D%E8%82%A1-00998a%E5%AD%A3%E9%85%8D%E6%81%AF%E5%B9%B4%E5%8C%96%E8%A1%9D%E4%B8%8A9-5-%E5%B0%88%E5%AE%B6-%E6%90%B6%E6%94%BB%E5%AD%98%E8%82%A1%E6%97%8F%E7%9B%AE%E5%85%89-032524037.html",
-          "source": "Yahoo新聞",
+          "source": "tw.news.yahoo.com",
           "date": "2026-09-09 11:25",
           "datetime": "2026-09-09T11:25:24+08:00"
         },
         {
           "title": "台股震盪555點 金融股逆揚撐盤！ 00998A配息創高 年化配息率達9.5%",
           "url": "https://www.watchmedia01.com/archives/547526",
-          "source": "watchmedia01.com",
+          "source": "觀傳媒",
           "date": "2026-09-09 11:26",
           "datetime": "2026-09-09T11:26:53+08:00"
         },
         {
           "title": "高股息ETF大漲真相曝光！五大金控占比逾52% 專家：00998A年化配息達9.5% 布局金融更純粹",
           "url": "https://www.watchmedia01.com/archives/547518",
-          "source": "watchmedia01.com",
+          "source": "觀傳媒",
           "date": "2026-09-09 11:22",
           "datetime": "2026-09-09T11:22:20+08:00"
         }
@@ -103,21 +110,21 @@
         {
           "title": "00409A 主動復華全球50 - 走勢與討論 - 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/stock/00409A?s=fund-holdings",
-          "source": "cmoney.tw",
+          "source": "CMoney",
           "date": "2026-09-08 21:20",
           "datetime": "2026-09-08T21:20:35+08:00"
         },
         {
           "title": "00409A 主動復華全球50 - ETF 即時淨值與折溢價查詢 - 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/stock/00409A?s=discount-premium",
-          "source": "cmoney.tw",
+          "source": "CMoney",
           "date": "2026-09-07 14:24",
           "datetime": "2026-09-07T14:24:21+08:00"
         },
         {
           "title": "00409A 主動復華全球50 - 融資融券與借券 - 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/stock/00409A?s=margin-trading",
-          "source": "cmoney.tw",
+          "source": "CMoney",
           "date": "2026-09-07 10:54",
           "datetime": "2026-09-07T10:54:08+08:00"
         }
@@ -428,6 +435,13 @@
   "social": [
     {
       "platform": "fundhot",
+      "board": "ETF",
+      "title": "兆豐洲際半導體ETF－00911 這檔全美半導體績效不錯，請幫忙加入．",
+      "url": "https://fundhot.com/forum/ETF/%E5%85%86%E8%B1%90%E6%B4%B2%E9%9A%9B%E5%8D%8A%E5%B0%8E%E9%AB%94ETF%EF%BC%8D00911%20%E9%80%99%E6%AA%94%E5%85%A8%E7%BE%8E%E5%8D%8A%E5%B0%8E%E9%AB%94%E7%B8%BE%E6%95%88%E4%B8%8D%E9%8C%AF%EF%BC%8C%E8%AB%8B%E5%B9%AB%E5%BF%99%E5%8A%A0%E5%85%A5%EF%BC%8E/13947",
+      "date": "2026-09-10"
+    },
+    {
+      "platform": "fundhot",
       "board": "資產配置",
       "title": "鉅亨自由Pay大升級！原幣申購、指定贖回、Pay出門檻自己設",
       "url": "https://fundhot.com/forum/%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE/%E9%89%85%E4%BA%A8%E8%87%AA%E7%94%B1Pay%E5%A4%A7%E5%8D%87%E7%B4%9A%EF%BC%81%E5%8E%9F%E5%B9%A3%E7%94%B3%E8%B3%BC%E3%80%81%E6%8C%87%E5%AE%9A%E8%B4%96%E5%9B%9E%E3%80%81Pay%E5%87%BA%E9%96%80%E6%AA%BB%E8%87%AA%E5%B7%B1%E8%A8%AD/13946",
@@ -476,13 +490,6 @@
       "first_seen": "2026-09-06"
     },
     {
-      "platform": "fundhot",
-      "board": "天使",
-      "title": "2026 Semicon Taiwan 台灣半導體展的15大主題報告",
-      "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/2026%20Semicon%20Taiwan%20%E5%8F%B0%E7%81%A3%E5%8D%8A%E5%B0%8E%E9%AB%94%E5%B1%95%E7%9A%8415%E5%A4%A7%E4%B8%BB%E9%A1%8C%E5%A0%B1%E5%91%8A/13936",
-      "first_seen": "2026-09-06"
-    },
-    {
       "platform": "youtube",
       "title": "全球AI趨勢變太快？看00409A主動出擊，快攻逆轉全場！",
       "channel": "復華投信",
@@ -498,7 +505,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/ruOedIdscDw",
       "date": "2026-09-08",
-      "views": 120,
+      "views": 7776,
       "official": true,
       "short": true
     },
@@ -518,7 +525,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/ErKuNlFJa2M",
       "date": "2026-09-05",
-      "views": 376,
+      "views": 377,
       "official": true,
       "short": true
     },
@@ -538,7 +545,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/u5C0Xson2lg",
       "date": "2026-09-03",
-      "views": 405360,
+      "views": 405363,
       "official": true,
       "short": true
     },
@@ -548,7 +555,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/8drmjPruIlY",
       "date": "2026-09-05",
-      "views": 22192,
+      "views": 22221,
       "short": true
     },
     {
@@ -565,7 +572,7 @@
       "channel": "財富閒叔跡",
       "url": "https://www.youtube.com/watch?v=nm32h1jPCIQ",
       "date": "2026-09-03",
-      "views": 4365
+      "views": 4366
     },
     {
       "platform": "youtube",
@@ -573,7 +580,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=mHhq_HrXEwk",
       "date": "2026-09-07",
-      "views": 335176,
+      "views": 336709,
       "peer": true,
       "cat": "綜合"
     },
@@ -594,20 +601,10 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/m7hXKW7bBYg",
       "date": "2026-09-05",
-      "views": 216705,
+      "views": 217424,
       "peer": true,
       "short": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股市值三年暴增百兆元 有錢人都在做的資產規畫｜#聽了財知道 EP366 #贈與 #信託",
-      "channel": "財訊",
-      "url": "https://www.youtube.com/watch?v=WkhAcmRmcEg",
-      "date": "2026-09-07",
-      "views": 164318,
-      "peer": true,
-      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -615,7 +612,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=OunGyJJy9x8",
       "date": "2026-09-05",
-      "views": 128093,
+      "views": 128336,
       "peer": true,
       "cat": "債券"
     },
@@ -625,19 +622,20 @@
       "channel": "群益投信",
       "url": "https://www.youtube.com/shorts/U5mgcIIrqGQ",
       "date": "2026-09-07",
-      "views": 109925,
+      "views": 111182,
       "peer": true,
       "short": true,
       "cat": "主動式"
     },
     {
       "platform": "youtube",
-      "title": "【蘋果發表會接棒！非農引爆升息壓力，台股前高攻防戰】|《股市先修班》EP27_20260906 #新聞 #蘋果 #AI #博通 #iPhone #蔡明翰 #台股 #投資 #理財",
-      "channel": "財經震翰彈_蔡明翰",
-      "url": "https://www.youtube.com/watch?v=NdX8UUqItUI",
-      "date": "2026-09-06",
-      "views": 101474,
+      "title": "台股反轉看這月份!! 注意1關鍵訊號【小宇宙大爆發 】#shorts #理財",
+      "channel": "小宇宙大爆發",
+      "url": "https://www.youtube.com/shorts/_XMCDCA2WR8",
+      "date": "2026-09-07",
+      "views": 98837,
       "peer": true,
+      "short": true,
       "cat": "市場趨勢"
     },
     {
@@ -646,7 +644,7 @@
       "channel": "理周FUN財經",
       "url": "https://www.youtube.com/watch?v=WBAuxPl-YJ4",
       "date": "2026-09-05",
-      "views": 87163,
+      "views": 87246,
       "peer": true,
       "cat": "市值型"
     },
@@ -656,9 +654,19 @@
       "channel": "EBC地產王",
       "url": "https://www.youtube.com/watch?v=4YZn1SeJJC0",
       "date": "2026-09-07",
-      "views": 82246,
+      "views": 83292,
       "peer": true,
       "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "【精華】亞幣爆升台幣嚴重低估！游庭皓喊台股年底8萬 中國價格戰拖累全球車廠！BMW與英國豪車爆裁員潮   #游庭皓 #金臨天下 @TVBSFinanceLive  20260908",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=gOzsvTetDiE",
+      "date": "2026-09-09",
+      "views": 80712,
+      "peer": true,
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -666,14 +674,14 @@
       "channel": "BC 股倉",
       "url": "https://www.youtube.com/watch?v=GpXTWNl_Z5Q",
       "date": "2026-09-05",
-      "views": 76205,
+      "views": 76445,
       "peer": true,
       "cat": "高股息"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A（詳下方新聞標籤）",
-    "社群聲量最高：鉅亨自由Pay大升級！原幣申購、指定贖回、Pay出門檻自己設（0 推）",
-    "YouTube 熱片：EP2 賭上未來！00991A直球對決網友QA（復華投信・405,360 次觀看）"
+    "社群聲量最高：兆豐洲際半導體ETF－00911 這檔全美半導體績效不錯，請幫忙加入．（0 推）",
+    "YouTube 熱片：EP2 賭上未來！00991A直球對決網友QA（復華投信・405,363 次觀看）"
   ]
 }
