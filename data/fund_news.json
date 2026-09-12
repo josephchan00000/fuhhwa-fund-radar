@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/12 07:00",
+  "as_of": "2026/09/12 09:07",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -77,14 +77,14 @@
         {
           "title": "AI不只吃晶片也吃資本！00998A搶佔全球金融新多頭 9/16參與配息最後卡位",
           "url": "https://fnc.ebc.net.tw/fncnews/stock/217938",
-          "source": "東森電視",
+          "source": "fnc.ebc.net.tw",
           "date": "2026-09-11 10:53",
           "datetime": "2026-09-11T10:53:00+08:00"
         },
         {
           "title": "13家金控賺法大不同！專家：AI鋪路金融股大多頭 00998A年化達9.5% 分散布局全球金融龍頭",
           "url": "https://fnc.ebc.net.tw/fncnews/stock/217935",
-          "source": "東森電視",
+          "source": "fnc.ebc.net.tw",
           "date": "2026-09-11 10:31",
           "datetime": "2026-09-11T10:31:00+08:00"
         },
@@ -513,7 +513,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/ruOedIdscDw",
       "date": "2026-09-08",
-      "views": 82755,
+      "views": 84405,
       "official": true,
       "short": true
     },
@@ -543,7 +543,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/8drmjPruIlY",
       "date": "2026-09-05",
-      "views": 23035,
+      "views": 23073,
       "short": true
     },
     {
@@ -552,7 +552,7 @@
       "channel": "財富閒叔跡",
       "url": "https://www.youtube.com/watch?v=FCRBeDqYgn8",
       "date": "2026-09-05",
-      "views": 999
+      "views": 1000
     },
     {
       "platform": "youtube",
@@ -560,7 +560,7 @@
       "channel": "生活理財實驗室",
       "url": "https://www.youtube.com/watch?v=z03upIA60KY",
       "date": "2026-09-09",
-      "views": 761
+      "views": 768
     },
     {
       "platform": "youtube",
@@ -568,7 +568,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=feMzFS5gjhs",
       "date": "2026-09-07",
-      "views": 923084,
+      "views": 924301,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -578,7 +578,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=mHhq_HrXEwk",
       "date": "2026-09-07",
-      "views": 393773,
+      "views": 394387,
       "peer": true,
       "cat": "綜合"
     },
@@ -588,20 +588,9 @@
       "channel": "財訊",
       "url": "https://www.youtube.com/watch?v=WkhAcmRmcEg",
       "date": "2026-09-07",
-      "views": 201875,
+      "views": 202251,
       "peer": true,
       "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "開啟新市值50👉00415A 主動群益核心50｜9/30~10/2強勢募集💪",
-      "channel": "群益投信",
-      "url": "https://www.youtube.com/shorts/U5mgcIIrqGQ",
-      "date": "2026-09-07",
-      "views": 183425,
-      "peer": true,
-      "short": true,
-      "cat": "主動式"
     },
     {
       "platform": "youtube",
@@ -609,7 +598,7 @@
       "channel": "EBC地產王",
       "url": "https://www.youtube.com/watch?v=4YZn1SeJJC0",
       "date": "2026-09-07",
-      "views": 109528,
+      "views": 109732,
       "peer": true,
       "cat": "高股息"
     },
@@ -619,7 +608,7 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=O9KjEnPsgKk",
       "date": "2026-09-08",
-      "views": 101398,
+      "views": 101837,
       "peer": true,
       "cat": "綜合"
     },
@@ -629,7 +618,7 @@
       "channel": "台新投信 TSIT",
       "url": "https://www.youtube.com/shorts/rGWzZqyZtKE",
       "date": "2026-09-08",
-      "views": 100804,
+      "views": 101682,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -640,7 +629,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=roh7PmKupn4",
       "date": "2026-09-09",
-      "views": 82941,
+      "views": 83252,
       "peer": true,
       "cat": "高股息"
     },
@@ -650,9 +639,19 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/watch?v=NH9m2fRAQDQ",
       "date": "2026-09-09",
-      "views": 60637,
+      "views": 60686,
       "peer": true,
       "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "主動式ETF買哪一檔!｜【浦男搜股】EP.378",
+      "channel": "老王愛說笑",
+      "url": "https://www.youtube.com/watch?v=BPoKGn1n8K4",
+      "date": "2026-09-09",
+      "views": 51737,
+      "peer": true,
+      "cat": "主動式"
     },
     {
       "platform": "youtube",
@@ -660,7 +659,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=bqTW9kh347Y",
       "date": "2026-09-08",
-      "views": 49071,
+      "views": 49240,
       "peer": true,
       "cat": "基金"
     }
@@ -668,6 +667,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、台灣智能（詳下方新聞標籤）",
     "社群聲量最高：以目前家族的財務狀況，適合在台北市再買一個套房嗎？（0 推）",
-    "YouTube 熱片：台股本週上5萬點？PCB女王喊股價拉回閉眼買！這5檔黑馬抱到明年超賺！【#財經鈔能力】｜20260907 趙慶翔 ft.PCB女王 廖婉婷 #富喬 #聯茂 #騰輝 #健鼎 #尖點（TVBS財經・923,084 次觀看）"
+    "YouTube 熱片：台股本週上5萬點？PCB女王喊股價拉回閉眼買！這5檔黑馬抱到明年超賺！【#財經鈔能力】｜20260907 趙慶翔 ft.PCB女王 廖婉婷 #富喬 #聯茂 #騰輝 #健鼎 #尖點（TVBS財經・924,301 次觀看）"
   ]
 }
