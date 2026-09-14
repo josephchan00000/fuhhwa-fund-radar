@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/14 08:17",
+  "as_of": "2026/09/14 09:04",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -12,6 +12,13 @@
         "00929"
       ],
       "items": [
+        {
+          "title": "調薪追不上通膨！財經雪倫曝存股心法：持有一年百張00929 月配息翻3倍兼賺百萬價差",
+          "url": "https://tw.stock.yahoo.com/news/%E8%AA%BF%E8%96%AA%E8%BF%BD%E4%B8%8D%E4%B8%8A%E9%80%9A%E8%86%A8-%E8%B2%A1%E7%B6%93%E9%9B%AA%E5%80%AB%E6%9B%9D%E5%AD%98%E8%82%A1%E5%BF%83%E6%B3%95-%E6%8C%81%E6%9C%89-%E5%B9%B4%E7%99%BE%E5%BC%B500929-%E6%9C%88%E9%85%8D%E6%81%AF%E7%BF%BB3%E5%80%8D%E5%85%BC%E8%B3%BA%E7%99%BE%E8%90%AC%E5%83%B9%E5%B7%AE-003000052.html",
+          "source": "Yahoo股市",
+          "date": "2026-09-14 08:30",
+          "datetime": "2026-09-14T08:30:00+08:00"
+        },
         {
           "title": "23檔高股息ETF績效排行｜00929奪冠、0056只排第6，亞軍是這檔「隱形黑馬」 | 數位時代",
           "url": "https://today.line.me/tw/v3/article/WBRo6l5",
@@ -56,9 +63,9 @@
         {
           "title": "主動式ETF科技比重逾8成 ，00998A獨押金融股，9月16日最後買進日搶配息0.424元",
           "url": "https://tw.news.yahoo.com/%E4%B8%BB%E5%8B%95%E5%BC%8Fetf%E7%A7%91%E6%8A%80%E6%AF%94%E9%87%8D%E9%80%BE8%E6%88%90-00998a%E7%8D%A8%E6%8A%BC%E9%87%91%E8%9E%8D%E8%82%A1-9%E6%9C%8816%E6%97%A5%E6%9C%80%E5%BE%8C%E8%B2%B7%E9%80%B2%E6%97%A5%E6%90%B6%E9%85%8D%E6%81%AF0-424%E5%85%83-235159120.html",
-          "source": "Yahoo新聞",
+          "source": "觀傳媒",
           "date": "2026-09-14 07:51",
-          "datetime": "2026-09-14T07:51:59+08:00"
+          "datetime": "2026-09-14T07:51:57+08:00"
         },
         {
           "title": "巴菲特金融股佔比近35%給啟示！ 00998A成市場關注焦點 配息0.424元創新高",
@@ -496,7 +503,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/po_tsFwDFfs",
       "date": "2026-09-09",
-      "views": 251359,
+      "views": 253383,
       "official": true,
       "short": true
     },
@@ -506,7 +513,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/ruOedIdscDw",
       "date": "2026-09-08",
-      "views": 186765,
+      "views": 188391,
       "official": true,
       "short": true
     },
@@ -516,7 +523,7 @@
       "channel": "生活理財實驗室",
       "url": "https://www.youtube.com/watch?v=z03upIA60KY",
       "date": "2026-09-09",
-      "views": 1210
+      "views": 1238
     },
     {
       "platform": "youtube",
@@ -524,7 +531,7 @@
       "channel": "絕世好CHEN – Tony的理財日常",
       "url": "https://www.youtube.com/watch?v=jle0nhoDuZs",
       "date": "2026-09-12",
-      "views": 624
+      "views": 628
     },
     {
       "platform": "youtube",
@@ -562,7 +569,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=gOzsvTetDiE",
       "date": "2026-09-09",
-      "views": 194238,
+      "views": 194414,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -572,7 +579,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=jdqa_lqFX8k",
       "date": "2026-09-10",
-      "views": 190003,
+      "views": 190116,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -582,7 +589,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=roh7PmKupn4",
       "date": "2026-09-09",
-      "views": 112271,
+      "views": 112324,
       "peer": true,
       "cat": "高股息"
     },
@@ -592,7 +599,7 @@
       "channel": "寶得富Fun投資",
       "url": "https://www.youtube.com/shorts/5tZgzRykKnM",
       "date": "2026-09-11",
-      "views": 93520,
+      "views": 93662,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -603,7 +610,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=SMJdxwUrELE",
       "date": "2026-09-13",
-      "views": 62752,
+      "views": 64059,
       "peer": true,
       "cat": "綜合"
     },
@@ -633,7 +640,7 @@
       "channel": "老王愛說笑",
       "url": "https://www.youtube.com/watch?v=BPoKGn1n8K4",
       "date": "2026-09-09",
-      "views": 52912,
+      "views": 52915,
       "peer": true,
       "cat": "主動式"
     }
