@@ -32,104 +32,108 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/29.pdf",
   "dist_date": "2026/08/31",
   "dist_rate": "—",
-  "as_of": "2026/07/31",
+  "as_of": "2026/08/31",
   "top_holdings": [
     {
       "sector": "資訊技術",
+      "name": "台燿",
+      "weight": 5.23
+    },
+    {
+      "sector": "資訊技術",
       "name": "旺矽",
-      "weight": 7.12
+      "weight": 5.17
     },
     {
       "sector": "資訊技術",
       "name": "台光電",
-      "weight": 5.03
-    },
-    {
-      "sector": "資訊技術",
-      "name": "台燿",
-      "weight": 5.02
-    },
-    {
-      "sector": "資訊技術",
-      "name": "SK HYNIX INC",
-      "weight": 4.83
-    },
-    {
-      "sector": "資訊技術",
-      "name": "信驊",
-      "weight": 4.31
-    },
-    {
-      "sector": "資訊技術",
-      "name": "KIOXIA HOLDINGS CORP",
-      "weight": 4.13
-    },
-    {
-      "sector": "資訊技術",
-      "name": "欣興",
-      "weight": 3.94
-    },
-    {
-      "sector": "資訊技術",
-      "name": "台積電",
-      "weight": 3.46
-    },
-    {
-      "sector": "資訊技術",
-      "name": "景碩",
-      "weight": 3.28
+      "weight": 4.68
     },
     {
       "sector": "資訊技術",
       "name": "禾伸堂",
-      "weight": 3.21
+      "weight": 4.26
+    },
+    {
+      "sector": "資訊技術",
+      "name": "欣興",
+      "weight": 4.03
+    },
+    {
+      "sector": "資訊技術",
+      "name": "信驊",
+      "weight": 3.84
+    },
+    {
+      "sector": "資訊技術",
+      "name": "景碩",
+      "weight": 3.41
+    },
+    {
+      "sector": "資訊技術",
+      "name": "華通",
+      "weight": 3.18
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SK HYNIX INC",
+      "weight": 2.8
+    },
+    {
+      "sector": "資訊技術",
+      "name": "台積電",
+      "weight": 2.76
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "臺灣",
-      "weight": 74.63
+      "weight": 74.85
     },
     {
       "name": "美國",
-      "weight": 10.93
+      "weight": 11.98
     },
     {
       "name": "韓國",
-      "weight": 6.77
+      "weight": 5.18
     },
     {
       "name": "日本",
-      "weight": 4.94
+      "weight": 4.01
     },
     {
       "name": "流動資產",
-      "weight": 2.72
+      "weight": 3.98
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 92.68
+      "weight": 90.7
     },
     {
       "name": "工業",
-      "weight": 4.6
+      "weight": 4.89
+    },
+    {
+      "name": "原材料",
+      "weight": 0.44
     },
     {
       "name": "流動資產",
-      "weight": 2.72
+      "weight": 3.98
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-09-14 22:24",
+  "fetched_at": "2026-09-15 06:49",
   "returns_daily": {
-    "1m": 5.88843,
-    "3m": -0.67829,
-    "6m": 61.29032,
-    "1y": 114.8847,
-    "ytd": 87.38574
+    "1m": 2.69995,
+    "3m": -3.90848,
+    "6m": 50.8982,
+    "1y": 110.43841,
+    "ytd": 84.27788
   },
   "returns_daily_asof": "2026/09/11"
 }

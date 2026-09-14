@@ -32,81 +32,81 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/79.pdf",
   "dist_date": "2026/08/31",
   "dist_rate": "—",
-  "as_of": "2026/07/31",
+  "as_of": "2026/08/31",
   "top_holdings": [
     {
       "sector": null,
-      "name": "復華股債指數傘型證券投資信託基金之復華5至10年期投資等級債券指數證券投資信託基金 (新臺幣)",
-      "weight": 11.81
+      "name": "元大台灣加權股價指數證券投資信託基金 A 類型 (新台幣)",
+      "weight": 11.12
     },
     {
       "sector": null,
-      "name": "元大台灣加權股價指數證券投資信託基金 A 類型 (新台幣)",
-      "weight": 11.42
+      "name": "復華股債指數傘型證券投資信託基金之復華5至10年期投資等級債券指數證券投資信託基金 (新臺幣)",
+      "weight": 10.46
     },
     {
       "sector": null,
       "name": "元大台灣50",
-      "weight": 9.72
+      "weight": 9.13
     },
     {
       "sector": null,
       "name": "安聯台灣科技證券投資信託基金",
-      "weight": 8.39
+      "weight": 9.04
     },
     {
       "sector": null,
       "name": "國泰台灣高股息傘型證券投資信託基金之台灣高股息證券投資信託基金 A類型 (新臺幣)",
-      "weight": 6.54
+      "weight": 7.04
     },
     {
       "sector": null,
       "name": "統一黑馬證券投資信託基金",
-      "weight": 5.66
-    },
-    {
-      "sector": null,
-      "name": "富邦科技",
-      "weight": 5.52
+      "weight": 6.36
     },
     {
       "sector": null,
       "name": "野村優質證券投資信託基金 S (新臺幣)",
-      "weight": 5.37
+      "weight": 6.21
     },
     {
       "sector": null,
       "name": "野村高科技證券投資信託基金 累積 (新臺幣)",
-      "weight": 4.71
+      "weight": 5.81
+    },
+    {
+      "sector": null,
+      "name": "富邦科技",
+      "weight": 5.2
     },
     {
       "sector": null,
       "name": "復華復華證券投資信託基金",
-      "weight": 4.29
+      "weight": 4.81
     }
   ],
   "asset_alloc": [
     {
       "name": "台灣股票",
-      "weight": 76.59
+      "weight": 81.57
     },
     {
       "name": "環球債券",
-      "weight": 16.43
+      "weight": 14.59
     },
     {
       "name": "貨幣市場",
-      "weight": 4.09
+      "weight": 1.73
     },
     {
       "name": "流動資產",
-      "weight": 2.88
+      "weight": 2.1
     }
   ],
   "country_alloc": [],
   "sector_alloc": [],
   "group": "tw_fof",
-  "fetched_at": "2026-09-14 22:25",
+  "fetched_at": "2026-09-15 06:50",
   "returns_daily": {
     "1m": -2.59851,
     "3m": 0.61606,
