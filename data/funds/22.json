@@ -12,9 +12,9 @@
   "mgmt_fee": "1.00%",
   "size_twd": 7266788717.0,
   "nav": 26.77,
-  "nav_date": "2026/09/10",
-  "nav_change": -0.15,
-  "nav_change_pct": "-0.56%",
+  "nav_date": "2026/09/11",
+  "nav_change": 0.0,
+  "nav_change_pct": "0.00%",
   "returns": {
     "ytd": "23.88%",
     "3m": "-2.68%",
@@ -126,7 +126,7 @@
   "country_alloc": [],
   "sector_alloc": [],
   "group": "global_fof",
-  "fetched_at": "2026-09-14 09:05",
+  "fetched_at": "2026-09-14 22:24",
   "returns_daily": {
     "1m": -1.10824,
     "3m": -0.11194,
@@ -134,5 +134,5 @@
     "1y": 32.91956,
     "ytd": 23.19374
   },
-  "returns_daily_asof": "2026/09/10"
+  "returns_daily_asof": "2026/09/11"
 }
