@@ -34,57 +34,57 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/01.pdf",
   "dist_date": "2026/08/31",
   "dist_rate": "—",
-  "as_of": "2026/07/31",
+  "as_of": "2026/08/31",
   "top_holdings": [
     {
       "sector": "電子零組件",
       "name": "台光電",
-      "weight": 14.58
-    },
-    {
-      "sector": "電子零組件",
-      "name": "欣興",
-      "weight": 9.07
+      "weight": 11.24
     },
     {
       "sector": "半導體",
       "name": "南亞科",
-      "weight": 8.66
+      "weight": 9.28
     },
     {
       "sector": "電子零組件",
-      "name": "國巨*",
-      "weight": 7.71
+      "name": "川湖",
+      "weight": 8.24
     },
     {
-      "sector": "半導體",
-      "name": "旺矽",
-      "weight": 6.85
-    },
-    {
-      "sector": "半導體",
-      "name": "聯發科",
-      "weight": 6.83
-    },
-    {
-      "sector": "半導體",
-      "name": "台積電",
-      "weight": 6.29
-    },
-    {
-      "sector": "半導體",
-      "name": "鴻勁",
-      "weight": 6.23
+      "sector": "電子零組件",
+      "name": "欣興",
+      "weight": 8.19
     },
     {
       "sector": "通信網路",
-      "name": "智邦",
-      "weight": 6.12
+      "name": "聯亞",
+      "weight": 5.06
     },
     {
       "sector": "電子零組件",
       "name": "南電",
-      "weight": 5.3
+      "weight": 5.04
+    },
+    {
+      "sector": "電腦及週邊設備",
+      "name": "奇鋐",
+      "weight": 4.91
+    },
+    {
+      "sector": "電腦及週邊設備",
+      "name": "緯穎",
+      "weight": 4.85
+    },
+    {
+      "sector": "電子零組件",
+      "name": "國巨*",
+      "weight": 4.84
+    },
+    {
+      "sector": "半導體",
+      "name": "台積電",
+      "weight": 4.11
     }
   ],
   "asset_alloc": [],
@@ -92,23 +92,27 @@
   "sector_alloc": [
     {
       "name": "電子零組件",
-      "weight": 49.01
+      "weight": 44.88
     },
     {
       "name": "半導體",
-      "weight": 43.53
+      "weight": 30.01
+    },
+    {
+      "name": "電腦及週邊設備",
+      "weight": 9.76
     },
     {
       "name": "通信網路",
-      "weight": 6.12
+      "weight": 7.57
     },
     {
       "name": "流動資產",
-      "weight": 1.34
+      "weight": 7.78
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-09-15 06:49",
+  "fetched_at": "2026-09-15 09:28",
   "returns_daily": {
     "1m": -8.26416,
     "3m": -5.57675,

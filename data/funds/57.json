@@ -34,114 +34,114 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/57.pdf",
   "dist_date": "2026/08/31",
   "dist_rate": "—",
-  "as_of": "2026/07/31",
+  "as_of": "2026/08/31",
   "top_holdings": [
     {
       "sector": "資訊技術",
-      "name": "中際旭創股份有限公司",
-      "weight": 6.93
+      "name": "景碩",
+      "weight": 5.83
     },
     {
       "sector": "資訊技術",
       "name": "聯發科",
-      "weight": 5.58
-    },
-    {
-      "sector": "資訊技術",
-      "name": "景碩",
-      "weight": 4.89
-    },
-    {
-      "sector": "資訊技術",
-      "name": "中微半導體設備（上海）股份有",
-      "weight": 3.96
-    },
-    {
-      "sector": "資訊技術",
-      "name": "台積電",
-      "weight": 3.88
-    },
-    {
-      "sector": "資訊技術",
-      "name": "台達電",
-      "weight": 3.73
+      "weight": 5.69
     },
     {
       "sector": "資訊技術",
       "name": "廣東生益科技股份有限公司",
-      "weight": 3.69
+      "weight": 4.97
+    },
+    {
+      "sector": "資訊技術",
+      "name": "中際旭創股份有限公司",
+      "weight": 4.88
+    },
+    {
+      "sector": "資訊技術",
+      "name": "台達電",
+      "weight": 4.41
+    },
+    {
+      "sector": "資訊技術",
+      "name": "中微半導體設備（上海）股份有",
+      "weight": 3.68
     },
     {
       "sector": "資訊技術",
       "name": "滬士電子股份有限公司",
-      "weight": 3.16
+      "weight": 3.37
     },
     {
       "sector": "資訊技術",
       "name": "陝西源傑半導體科技股份有限公",
-      "weight": 2.68
+      "weight": 3.25
     },
     {
       "sector": "資訊技術",
-      "name": "拓荊科技股份有限公司",
-      "weight": 2.65
+      "name": "SAMSUNG ELECTRO-MECHANICS CO",
+      "weight": 3.12
+    },
+    {
+      "sector": "資訊技術",
+      "name": "南電",
+      "weight": 3.09
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "中國",
-      "weight": 42.43
+      "weight": 41.42
     },
     {
       "name": "臺灣",
-      "weight": 23.96
+      "weight": 27.29
     },
     {
       "name": "美國",
-      "weight": 16.49
+      "weight": 16.04
     },
     {
       "name": "香港",
-      "weight": 4.91
+      "weight": 5.5
     },
     {
       "name": "日本",
-      "weight": 3.66
+      "weight": 4.02
     },
     {
       "name": "韓國",
-      "weight": 3.43
+      "weight": 3.93
     },
     {
       "name": "流動資產",
-      "weight": 5.12
+      "weight": 1.8
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 87.29
+      "weight": 91.26
     },
     {
       "name": "工業",
-      "weight": 3.88
+      "weight": 3.09
     },
     {
       "name": "原材料",
-      "weight": 2.2
+      "weight": 2.9
     },
     {
       "name": "其他",
-      "weight": 1.51
+      "weight": 0.96
     },
     {
       "name": "流動資產",
-      "weight": 5.12
+      "weight": 1.8
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-09-15 06:49",
+  "fetched_at": "2026-09-15 09:28",
   "returns_daily": {
     "1m": 1.17253,
     "3m": -4.65667,
