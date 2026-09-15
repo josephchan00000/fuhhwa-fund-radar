@@ -3297,6 +3297,36 @@
    "intro": "美國VanEck黃金礦業ETF（GDX），追蹤MarketVector全球黃金礦業指數，主要投資全球從事金銀礦業開採的上市公司股票。",
    "ticker": "GDX",
    "verified": true
+  },
+  "健鼎": {
+   "country": "台灣",
+   "intro": "台灣健鼎科技，全球前十大印刷電路板（PCB）製造廠；產品應用於伺服器、網通、車用電子與記憶體模組，AI伺服器與車用電子為主要成長引擎。",
+   "ticker": "3044",
+   "verified": true
+  },
+  "HECLA MINING CO": {
+   "country": "美國",
+   "intro": "美國Hecla Mining（HL），美加最大原生白銀生產商；主要礦區位於阿拉斯加、愛達荷州與加拿大育空地區，亦生產金、鋅、鉛等金屬。",
+   "ticker": "HL",
+   "verified": true
+  },
+  "ABRASILVER RESOURCE CORP": {
+   "country": "加拿大",
+   "intro": "加拿大AbraSilver Resource，金銀礦開發公司；核心資產為阿根廷薩爾塔省Diablillos金銀礦專案，正朝最終投資決策階段推進。",
+   "ticker": "ABRA",
+   "verified": true
+  },
+  "CAMECO CORP": {
+   "country": "加拿大",
+   "intro": "加拿大Cameco（CCJ），全球最大上市鈾生產商之一；業務涵蓋鈾礦開採、燃料轉化服務，並透過Westinghouse部門提供核反應爐技術與維運服務。",
+   "ticker": "CCJ",
+   "verified": true
+  },
+  "ALBEMARLE CORP": {
+   "country": "美國",
+   "intro": "美國Albemarle（ALB），全球最大鋰生產商；為電動車電池提供碳酸鋰／氫氧化鋰等鋰化合物原料，另涉及溴素與煉油觸媒業務。",
+   "ticker": "ALB",
+   "verified": true
   }
  }
 }
