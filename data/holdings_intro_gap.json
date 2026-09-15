@@ -1,47 +1,46 @@
 {
- "as_of": "2026-09-15 09:29",
- "count": 4,
+ "as_of": "2026-09-15 15:37",
+ "count": 5,
  "items": [
   {
-   "name": "聯亞",
-   "sector": "資訊技術",
-   "count": 6,
+   "name": "健鼎",
+   "sector": "電子零組件",
+   "count": 2,
    "funds": [
-    "全球大趨勢新臺幣",
-    "華人世紀",
-    "亞太成長",
-    "亞太平衡",
-    "復華",
-    "高成長"
+    "台灣科技高股息A",
+    "台灣科技高股息B"
    ]
   },
   {
-   "name": "大立光",
-   "sector": "資訊技術",
-   "count": 6,
-   "funds": [
-    "全球大趨勢新臺幣",
-    "亞太成長",
-    "亞太神龍科技新臺幣",
-    "中小精選",
-    "傳家",
-    "神盾"
-   ]
-  },
-  {
-   "name": "華通",
-   "sector": "資訊技術",
+   "name": "HECLA MINING CO",
+   "sector": "原材料",
    "count": 1,
    "funds": [
-    "大中華中小策略"
+    "全球原物料"
    ]
   },
   {
-   "name": "VanEck黃金礦業交易所交易基金",
-   "sector": "ETF",
+   "name": "ABRASILVER RESOURCE CORP",
+   "sector": "原材料",
    "count": 1,
    "funds": [
-    "全球平衡新臺幣"
+    "全球原物料"
+   ]
+  },
+  {
+   "name": "CAMECO CORP",
+   "sector": "能源",
+   "count": 1,
+   "funds": [
+    "全球原物料"
+   ]
+  },
+  {
+   "name": "ALBEMARLE CORP",
+   "sector": "原材料",
+   "count": 1,
+   "funds": [
+    "全球原物料"
    ]
   }
  ]
