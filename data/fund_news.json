@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/15 15:36",
+  "as_of": "2026/09/15 16:40",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -15,7 +15,7 @@
         {
           "title": "高息一定更好？股債發威00981T 回檔期間績效贏 0056、00929 打破存股迷思",
           "url": "https://www.watchmedia01.com/archives/549463",
-          "source": "watchmedia01.com",
+          "source": "觀傳媒",
           "date": "2026-09-15 11:05",
           "datetime": "2026-09-15T11:05:02+08:00"
         },
@@ -77,14 +77,14 @@
         {
           "title": "AI從燒錢研發轉向商業變現 金融業成應用受惠者! 00998A配息0.424元 9/16最後買進日",
           "url": "https://www.scooptw.com/local_news/527647/ai%E5%BE%9E%E7%87%92%E9%8C%A2%E7%A0%94%E7%99%BC%E8%BD%89%E5%90%91%E5%95%86%E6%A5%AD%E8%AE%8A%E7%8F%BE-%E9%87%91%E8%9E%8D%E6%A5%AD%E6%88%90%E6%87%89%E7%94%A8%E5%8F%97%E6%83%A0%E8%80%85-00998a/",
-          "source": "watchmedia01.com",
+          "source": "觀傳媒",
           "date": "2026-09-15 08:08",
           "datetime": "2026-09-15T08:08:00+08:00"
         },
         {
           "title": "「金融股流行起來了嗎？」00998A等金融類ETF掀起討論熱潮 網讚：配息有0.424元！",
           "url": "https://www.watchmedia01.com/archives/549424",
-          "source": "watchmedia01.com",
+          "source": "觀傳媒",
           "date": "2026-09-15 08:04",
           "datetime": "2026-09-15T08:04:15+08:00"
         }
@@ -511,7 +511,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/po_tsFwDFfs",
       "date": "2026-09-09",
-      "views": 275266,
+      "views": 276831,
       "official": true,
       "short": true
     },
@@ -521,7 +521,7 @@
       "channel": "生活理財實驗室",
       "url": "https://www.youtube.com/watch?v=z03upIA60KY",
       "date": "2026-09-09",
-      "views": 1362
+      "views": 1358
     },
     {
       "platform": "youtube",
@@ -529,7 +529,7 @@
       "channel": "絕世好CHEN – Tony的理財日常",
       "url": "https://www.youtube.com/watch?v=jle0nhoDuZs",
       "date": "2026-09-12",
-      "views": 820
+      "views": 821
     },
     {
       "platform": "youtube",
@@ -537,7 +537,7 @@
       "channel": "理財周刊+",
       "url": "https://www.youtube.com/shorts/CJ5EayLqPS0",
       "date": "2026-09-14",
-      "views": 350,
+      "views": 347,
       "short": true
     },
     {
@@ -557,7 +557,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=jdqa_lqFX8k",
       "date": "2026-09-10",
-      "views": 197362,
+      "views": 197475,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -567,7 +567,7 @@
       "channel": "財經震翰彈_蔡明翰",
       "url": "https://www.youtube.com/watch?v=fEPK-aIotSE",
       "date": "2026-09-13",
-      "views": 121562,
+      "views": 121819,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -577,7 +577,7 @@
       "channel": "寶得富Fun投資",
       "url": "https://www.youtube.com/shorts/5tZgzRykKnM",
       "date": "2026-09-11",
-      "views": 110436,
+      "views": 110756,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -588,7 +588,7 @@
       "channel": "台新投信 TSIT",
       "url": "https://www.youtube.com/shorts/DCMHyz1PHZc",
       "date": "2026-09-15",
-      "views": 100237,
+      "views": 105886,
       "peer": true,
       "short": true,
       "cat": "高股息"
@@ -599,9 +599,19 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=SMJdxwUrELE",
       "date": "2026-09-13",
-      "views": 97987,
+      "views": 98798,
       "peer": true,
       "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "放棄006208！我無腦買台灣50 ETF「換存0050」　再加買1檔有原因｜懶錢包LazyWallet",
+      "channel": "懶錢包 Lazy Wallet",
+      "url": "https://www.youtube.com/watch?v=jwRw2-gE9pM",
+      "date": "2026-09-14",
+      "views": 82344,
+      "peer": true,
+      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -609,21 +619,10 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/IxRnDLipbUQ",
       "date": "2026-09-11",
-      "views": 43975,
+      "views": 44003,
       "peer": true,
       "short": true,
       "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "外資才買4.4萬張0050，幾天後又賣4.2萬張？你還要跟嗎｜#投資研究52 #台股 #投資研究 #mrm財富研究室",
-      "channel": "Mr.m財富研究室",
-      "url": "https://www.youtube.com/shorts/ncouq7f23A8",
-      "date": "2026-09-14",
-      "views": 23560,
-      "peer": true,
-      "short": true,
-      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -631,7 +630,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/bR2_vP5vflY",
       "date": "2026-09-13",
-      "views": 15050,
+      "views": 15335,
       "peer": true,
       "short": true,
       "cat": "主動式"

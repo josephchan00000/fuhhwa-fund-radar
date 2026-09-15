@@ -1,47 +1,5 @@
 {
- "as_of": "2026-09-15 15:37",
- "count": 5,
- "items": [
-  {
-   "name": "健鼎",
-   "sector": "電子零組件",
-   "count": 2,
-   "funds": [
-    "台灣科技高股息A",
-    "台灣科技高股息B"
-   ]
-  },
-  {
-   "name": "HECLA MINING CO",
-   "sector": "原材料",
-   "count": 1,
-   "funds": [
-    "全球原物料"
-   ]
-  },
-  {
-   "name": "ABRASILVER RESOURCE CORP",
-   "sector": "原材料",
-   "count": 1,
-   "funds": [
-    "全球原物料"
-   ]
-  },
-  {
-   "name": "CAMECO CORP",
-   "sector": "能源",
-   "count": 1,
-   "funds": [
-    "全球原物料"
-   ]
-  },
-  {
-   "name": "ALBEMARLE CORP",
-   "sector": "原材料",
-   "count": 1,
-   "funds": [
-    "全球原物料"
-   ]
-  }
- ]
+ "as_of": "2026-09-15 16:41",
+ "count": 0,
+ "items": []
 }
