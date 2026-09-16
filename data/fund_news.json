@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/16 06:55",
+  "as_of": "2026/09/16 09:25",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -12,6 +12,20 @@
         "00929"
       ],
       "items": [
+        {
+          "title": "年化配息率飆16%！00929月配0.38元今最後買進日 狂增1.8萬股民搶領錢",
+          "url": "https://tw.stock.yahoo.com/news/%E5%B9%B4%E5%8C%96%E9%85%8D%E6%81%AF%E7%8E%87%E9%A3%8616-00929%E6%9C%88%E9%85%8D0-38%E5%85%83%E4%BB%8A%E6%9C%80%E5%BE%8C%E8%B2%B7%E9%80%B2%E6%97%A5-%E7%8B%82%E5%A2%9E1-8%E8%90%AC%E8%82%A1%E6%B0%91%E6%90%B6%E9%A0%98%E9%8C%A2-005000657.html",
+          "source": "Yahoo股市",
+          "date": "2026-09-16 08:50",
+          "datetime": "2026-09-16T08:50:00+08:00"
+        },
+        {
+          "title": "1個月暴近2萬人上車！00929明除息0.38元 今最後買進日",
+          "url": "https://tw.stock.yahoo.com/news/1%E5%80%8B%E6%9C%88%E6%9A%B4%E8%BF%912%E8%90%AC%E4%BA%BA%E4%B8%8A%E8%BB%8A%EF%BC%8100929%E6%98%8E%E9%99%A4%E6%81%AF038%E5%85%83-%E4%BB%8A%E6%9C%80%E5%BE%8C%E8%B2%B7%E9%80%B2%E6%97%A5-001650718.html",
+          "source": "Yahoo股市",
+          "date": "2026-09-16 08:16",
+          "datetime": "2026-09-16T08:16:50+08:00"
+        },
         {
           "title": "高息一定更好？股債發威00981T 回檔期間績效贏 0056、00929 打破存股迷思",
           "url": "https://www.watchmedia01.com/archives/549463",
@@ -54,32 +68,40 @@
       ],
       "items": [
         {
+          "title": "5檔金融股飆天價！00998A同場吸避險資金本次配息0.424元、年化達9.5%",
+          "url": "https://www.watchmedia01.com/archives/549752",
+          "source": "觀傳媒",
+          "date": "2026-09-16 08:41",
+          "datetime": "2026-09-16T08:41:52+08:00"
+        },
+        {
+          "title": "升息效應發酵 金融股成資金新寵 00998A季配息續創高、年化配息率上看9.55%",
+          "url": "https://tw.news.yahoo.com/%E5%8D%87%E6%81%AF%E6%95%88%E6%87%89%E7%99%BC%E9%85%B5-%E9%87%91%E8%9E%8D%E8%82%A1%E6%88%90%E8%B3%87%E9%87%91%E6%96%B0%E5%AF%B5-00998a%E5%AD%A3%E9%85%8D%E6%81%AF%E7%BA%8C%E5%89%B5%E9%AB%98-%E5%B9%B4%E5%8C%96%E9%85%8D%E6%81%AF%E7%8E%87%E4%B8%8A%E7%9C%8B9-55-004034386.html",
+          "source": "tw.news.yahoo.com",
+          "date": "2026-09-16 08:40",
+          "datetime": "2026-09-16T08:40:34+08:00"
+        },
+        {
           "title": "金融股債ETF有魅力 00998A受益人本月來增加二成最突出",
           "url": "https://udn.com/news/amp/story/123006/9756824",
-          "source": "UDN",
+          "source": "udn.com",
           "date": "2026-09-16 01:02",
           "datetime": "2026-09-16T01:02:55+08:00"
         },
         {
           "title": "金融股值得投資嗎？FOMC升息預期狂飆，0055、00998A、00919…熱門含金ETF投資攻略",
           "url": "https://news.cnyes.com/news/id/6606765",
-          "source": "news.cnyes.com",
+          "source": "鉅亨網",
           "date": "2026-09-15 14:13",
-          "datetime": "2026-09-15T14:13:26+08:00"
+          "datetime": "2026-09-15T14:13:26+08:00",
+          "summary": "升息預期升溫，金融股近期成為市場資金關注焦點，但升息是否真的有利金融業？銀行、保險與證券業的獲利結構不同，利率變化帶來的影響也有所差異。隨著金融股股價走強，0055、00998A等金融ETF，以及金融…"
         },
         {
-          "title": "金融股ETF怎麼選？升息對金融股好嗎？金融ETF 0055、00998A、00919…績效與投資風險比較｜豐雲學堂2026 年 09 月",
-          "url": "https://www.sinotrade.com.tw/richclub/aiinvest/%E9%87%91%E8%9E%8D%E8%82%A1ETF%E6%80%8E%E9%BA%BC%E9%81%B8-%E5%8D%87%E6%81%AF%E5%B0%8D%E9%87%91%E8%9E%8D%E8%82%A1%E5%A5%BD%E5%97%8E-%E9%87%91%E8%9E%8DETF-0055-00998A-00919%E2%80%A6%E7%B8%BE%E6%95%88%E8%88%87%E6%8A%95%E8%B3%87%E9%A2%A8%E9%9A%AA%E6%AF%94%E8%BC%83-6aa8b8c7bd2fa141fef7f79b",
-          "source": "sinotrade.com.tw",
-          "date": "2026-09-15 11:25",
-          "datetime": "2026-09-15T11:25:26.033000+08:00"
-        },
-        {
-          "title": "AI三巨頭喊煞車、科技股評價修正 資金轉向金融股避險 00998A配息0.424元創新高！",
-          "url": "https://tw.news.yahoo.com/ai%E4%B8%89%E5%B7%A8%E9%A0%AD%E5%96%8A%E7%85%9E%E8%BB%8A-%E7%A7%91%E6%8A%80%E8%82%A1%E8%A9%95%E5%83%B9%E4%BF%AE%E6%AD%A3-%E8%B3%87%E9%87%91%E8%BD%89%E5%90%91%E9%87%91%E8%9E%8D%E8%82%A1%E9%81%BF%E9%9A%AA-00998a%E9%85%8D%E6%81%AF0-424%E5%85%83%E5%89%B5%E6%96%B0%E9%AB%98-030255945.html",
-          "source": "Yahoo新聞",
-          "date": "2026-09-15 11:02",
-          "datetime": "2026-09-15T11:02:55+08:00"
+          "title": "避險買盤持續進駐金融股！ 00998A配息0.424元受矚目 最後買進日9/16成熱搜關鍵字",
+          "url": "https://www.moneyweekly.com.tw/ArticleData/Info/Article/248743",
+          "source": "理財周刊",
+          "date": "2026-09-15 09:57",
+          "datetime": "2026-09-15T09:57:19+08:00"
         }
       ]
     },
@@ -514,7 +536,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/watch?v=X8uCLkMrkDg",
       "date": "2026-09-15",
-      "views": 174477
+      "views": 175339
     },
     {
       "platform": "youtube",
@@ -530,7 +552,7 @@
       "channel": "絕世好CHEN – Tony的理財日常",
       "url": "https://www.youtube.com/watch?v=jle0nhoDuZs",
       "date": "2026-09-12",
-      "views": 893
+      "views": 896
     },
     {
       "platform": "youtube",
@@ -538,7 +560,7 @@
       "channel": "貝萊德投信 BlackRock Taiwan",
       "url": "https://www.youtube.com/shorts/bVgGApyJjrI",
       "date": "2026-09-14",
-      "views": 817021,
+      "views": 817024,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -549,7 +571,7 @@
       "channel": "台新投信 TSIT",
       "url": "https://www.youtube.com/shorts/DCMHyz1PHZc",
       "date": "2026-09-15",
-      "views": 224986,
+      "views": 232535,
       "peer": true,
       "short": true,
       "cat": "高股息"
@@ -560,7 +582,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=jwRw2-gE9pM",
       "date": "2026-09-14",
-      "views": 126536,
+      "views": 127120,
       "peer": true,
       "cat": "市值型"
     },
@@ -570,7 +592,7 @@
       "channel": "寶得富Fun投資",
       "url": "https://www.youtube.com/shorts/5tZgzRykKnM",
       "date": "2026-09-11",
-      "views": 116727,
+      "views": 116968,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -581,7 +603,7 @@
       "channel": "數字台灣",
       "url": "https://www.youtube.com/watch?v=YXLM1w3XpG0",
       "date": "2026-09-13",
-      "views": 115984,
+      "views": 116086,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -591,7 +613,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=oC0m-RIaSjA",
       "date": "2026-09-12",
-      "views": 113422,
+      "views": 113627,
       "peer": true,
       "cat": "綜合"
     },
@@ -601,7 +623,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=L3u5pZ4dvos",
       "date": "2026-09-11",
-      "views": 94455,
+      "views": 94461,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -611,7 +633,7 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/IxRnDLipbUQ",
       "date": "2026-09-11",
-      "views": 44123,
+      "views": 44125,
       "peer": true,
       "short": true,
       "cat": "高股息"
@@ -622,7 +644,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/bR2_vP5vflY",
       "date": "2026-09-13",
-      "views": 19335,
+      "views": 19503,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -633,7 +655,7 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=P_U_FgHgiik",
       "date": "2026-09-11",
-      "views": 12995,
+      "views": 13037,
       "peer": true,
       "cat": "主動式"
     }
@@ -641,6 +663,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、全球創新金融指數、全球AI動力成長指數（詳下方新聞標籤）",
     "社群聲量最高：AI喊煞車、聯準會升息、油價飆，注意美股最佳買點即將出現（0 推）",
-    "YouTube 熱片：讓投資，不只是選擇丨貝萊德iShares ETF（貝萊德投信 BlackRock Taiwan・817,021 次觀看）"
+    "YouTube 熱片：讓投資，不只是選擇丨貝萊德iShares ETF（貝萊德投信 BlackRock Taiwan・817,024 次觀看）"
   ]
 }
