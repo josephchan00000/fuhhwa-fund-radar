@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/17 06:52",
+  "as_of": "2026/09/17 09:25",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -13,11 +13,11 @@
       ],
       "items": [
         {
-          "title": "00919和00929指數定期審核結果成分股維持不變| 存股族愛ETF | 股市",
-          "url": "https://udn.com/news/story/123006/9758846",
-          "source": "udn.com",
-          "date": "2026-09-16 20:47",
-          "datetime": "2026-09-16T20:47:42+08:00"
+          "title": "45萬多人開心！00929除息首日 填息率一度超過六成",
+          "url": "https://tw.stock.yahoo.com/news/45%E8%90%AC%E5%A4%9A%E4%BA%BA%E9%96%8B%E5%BF%83%EF%BC%8100929%E9%99%A4%E6%81%AF%E9%A6%96%E6%97%A5-%E5%A1%AB%E6%81%AF%E7%8E%87%E4%B8%80%E5%BA%A6%E8%B6%85%E9%81%8E%E5%85%AD%E6%88%90-010621240.html",
+          "source": "Yahoo股市",
+          "date": "2026-09-17 09:06",
+          "datetime": "2026-09-17T09:06:21+08:00"
         },
         {
           "title": "00919、00929最新成分股審查結果今出爐 結果出乎意外",
@@ -49,7 +49,15 @@
       "short_names": [
         "00991A"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "9/16 00991A 停兩天後動三筆",
+          "url": "https://www.cmoney.tw/forum/article/184701356",
+          "source": "CMoney",
+          "date": "2026-09-16 17:19",
+          "datetime": "2026-09-16T17:19:04+08:00"
+        }
+      ]
     },
     {
       "base": "主動復華金融股息",
@@ -83,7 +91,7 @@
         {
           "title": "Fed升息機率高…資金靠攏金融股！ 00998A配息0.424元年化配息率高達9.59% 今日最後買進日",
           "url": "https://www.watchmedia01.com/archives/549787",
-          "source": "watchmedia01.com",
+          "source": "觀傳媒",
           "date": "2026-09-16 10:28",
           "datetime": "2026-09-16T10:28:53+08:00"
         }
@@ -450,6 +458,13 @@
   "social": [
     {
       "platform": "fundhot",
+      "board": "總經觀點",
+      "title": "AI壓不住通膨，聯準會升息引爆高利率時代！槓桿投資如何因應",
+      "url": "https://fundhot.com/forum/%E7%B8%BD%E7%B6%93%E8%A7%80%E9%BB%9E/AI%E5%A3%93%E4%B8%8D%E4%BD%8F%E9%80%9A%E8%86%A8%EF%BC%8C%E8%81%AF%E6%BA%96%E6%9C%83%E5%8D%87%E6%81%AF%E5%BC%95%E7%88%86%E9%AB%98%E5%88%A9%E7%8E%87%E6%99%82%E4%BB%A3%EF%BC%81%E6%A7%93%E6%A1%BF%E6%8A%95%E8%B3%87%E5%A6%82%E4%BD%95%E5%9B%A0%E6%87%89/13957",
+      "date": "2026-09-17"
+    },
+    {
+      "platform": "fundhot",
       "board": "天使",
       "title": "企業內部人員正在以創紀錄的速度購買科技股",
       "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/%E4%BC%81%E6%A5%AD%E5%85%A7%E9%83%A8%E4%BA%BA%E5%93%A1%E6%AD%A3%E5%9C%A8%E4%BB%A5%E5%89%B5%E7%B4%80%E9%8C%84%E7%9A%84%E9%80%9F%E5%BA%A6%E8%B3%BC%E8%B2%B7%E7%A7%91%E6%8A%80%E8%82%A1/13955",
@@ -498,19 +513,12 @@
       "first_seen": "2026-09-13"
     },
     {
-      "platform": "fundhot",
-      "board": "天使",
-      "title": "美股漲不動，它卻天天逆勢翻紅！資金正在偷押這個AI新題材",
-      "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/%E7%BE%8E%E8%82%A1%E6%BC%B2%E4%B8%8D%E5%8B%95%EF%BC%8C%E5%AE%83%E5%8D%BB%E5%A4%A9%E5%A4%A9%E9%80%86%E5%8B%A2%E7%BF%BB%E7%B4%85%EF%BC%81%E8%B3%87%E9%87%91%E6%AD%A3%E5%9C%A8%E5%81%B7%E6%8A%BC%E9%80%99%E5%80%8BAI%E6%96%B0%E9%A1%8C%E6%9D%90/13948",
-      "first_seen": "2026-09-12"
-    },
-    {
       "platform": "youtube",
       "title": "【阿格力】100萬存高股息ETF，三年少買好幾隻勞力士？現在我都存高資本利得又有高股息的ETF，光00830今年股息就領90萬。加碼00935、00881、00927、00923、00929大評比。",
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/watch?v=X8uCLkMrkDg",
       "date": "2026-09-15",
-      "views": 214978
+      "views": 217966
     },
     {
       "platform": "youtube",
@@ -526,7 +534,7 @@
       "channel": "退役備考",
       "url": "https://www.youtube.com/watch?v=UQrsY9KFH88",
       "date": "2026-09-14",
-      "views": 634
+      "views": 637
     },
     {
       "platform": "youtube",
@@ -534,7 +542,7 @@
       "channel": "貝萊德投信 BlackRock Taiwan",
       "url": "https://www.youtube.com/shorts/bVgGApyJjrI",
       "date": "2026-09-14",
-      "views": 817040,
+      "views": 817041,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -545,7 +553,7 @@
       "channel": "台新投信 TSIT",
       "url": "https://www.youtube.com/shorts/DCMHyz1PHZc",
       "date": "2026-09-15",
-      "views": 412288,
+      "views": 421362,
       "peer": true,
       "short": true,
       "cat": "高股息"
@@ -556,7 +564,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=jwRw2-gE9pM",
       "date": "2026-09-14",
-      "views": 157709,
+      "views": 158180,
       "peer": true,
       "cat": "市值型"
     },
@@ -566,7 +574,7 @@
       "channel": "數字台灣",
       "url": "https://www.youtube.com/watch?v=YXLM1w3XpG0",
       "date": "2026-09-13",
-      "views": 118576,
+      "views": 118676,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -576,7 +584,7 @@
       "channel": "陳智霖股票分析師 Equity Research Analyst",
       "url": "https://www.youtube.com/watch?v=C6ibWthi-g8",
       "date": "2026-09-12",
-      "views": 118364,
+      "views": 118366,
       "peer": true,
       "cat": "債券"
     },
@@ -586,7 +594,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=SMJdxwUrELE",
       "date": "2026-09-13",
-      "views": 114145,
+      "views": 114417,
       "peer": true,
       "cat": "綜合"
     },
@@ -596,7 +604,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=CHFrOcrCUM0",
       "date": "2026-09-15",
-      "views": 75488,
+      "views": 75530,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -606,7 +614,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=EQLk1Posk_U",
       "date": "2026-09-16",
-      "views": 58819,
+      "views": 60970,
       "peer": true,
       "cat": "債券"
     },
@@ -616,7 +624,7 @@
       "channel": "Mr.m財富研究室",
       "url": "https://www.youtube.com/shorts/ncouq7f23A8",
       "date": "2026-09-14",
-      "views": 54567,
+      "views": 54913,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -627,14 +635,14 @@
       "channel": "BC 股倉",
       "url": "https://www.youtube.com/watch?v=-lMuBmApefY",
       "date": "2026-09-14",
-      "views": 44388,
+      "views": 44549,
       "peer": true,
       "cat": "高股息"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、全球創新金融指數、全球AI動力成長指數（詳下方新聞標籤）",
-    "社群聲量最高：企業內部人員正在以創紀錄的速度購買科技股（0 推）",
-    "YouTube 熱片：讓投資，不只是選擇丨貝萊德iShares ETF（貝萊德投信 BlackRock Taiwan・817,040 次觀看）"
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、全球創新金融指數、全球AI動力成長指數（詳下方新聞標籤）",
+    "社群聲量最高：AI壓不住通膨，聯準會升息引爆高利率時代！槓桿投資如何因應（0 推）",
+    "YouTube 熱片：讓投資，不只是選擇丨貝萊德iShares ETF（貝萊德投信 BlackRock Taiwan・817,041 次觀看）"
   ]
 }
