@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/18 06:52",
+  "as_of": "2026/09/18 09:17",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -53,14 +53,14 @@
         {
           "title": "9/16 00991A 停兩天後動三筆",
           "url": "https://www.cmoney.tw/forum/article/184701356",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-09-16 17:19",
           "datetime": "2026-09-16T17:19:04+08:00"
         },
         {
           "title": "9/15 00991A 50檔只有20檔有份量",
           "url": "https://www.cmoney.tw/forum/article/184643898",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-09-15 18:07",
           "datetime": "2026-09-15T18:07:03+08:00"
         }
@@ -75,6 +75,13 @@
       ],
       "items": [
         {
+          "title": "資金用腳投票！00998A受益人數逆勢增25.1% 含息報酬6.9%同步居冠",
+          "url": "https://www.watchmedia01.com/archives/550511",
+          "source": "觀傳媒",
+          "date": "2026-09-18 09:12",
+          "datetime": "2026-09-18T09:12:49+08:00"
+        },
+        {
           "title": "科技股獨霸時代過了？金融股迎大利多　00998A季配息同步吸睛　今天最後買進日！ | 生活 | CTWANT",
           "url": "https://www.ctwant.com/amp/article/498348/",
           "source": "CTWANT",
@@ -87,20 +94,6 @@
           "source": "ENN台灣電報",
           "date": "2026-09-16 10:37",
           "datetime": "2026-09-16T10:37:53+08:00"
-        },
-        {
-          "title": "Fed升息機率高…資金靠攏金融股！ 00998A配息0.424元年化配息率高達9.59% 今日最後買進日",
-          "url": "https://www.watchmedia01.com/archives/549787",
-          "source": "觀傳媒",
-          "date": "2026-09-16 10:28",
-          "datetime": "2026-09-16T10:28:53+08:00"
-        },
-        {
-          "title": "國泰金壽險淨值挑戰兆元大關！ 00998A季配息、AI資本支出雙題材加持 今天最後買進日",
-          "url": "https://www.watchmedia01.com/archives/549783",
-          "source": "觀傳媒",
-          "date": "2026-09-16 10:27",
-          "datetime": "2026-09-16T10:27:39+08:00"
         }
       ]
     },
@@ -124,21 +117,21 @@
         {
           "title": "00409A 主動復華全球50 - 說個笑話王牌經理人的雞笑- 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/article/184701939",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-09-16 17:50",
           "datetime": "2026-09-16T17:50:34+08:00"
         },
         {
           "title": "主動復華全球50(00409A)-研究報告與產業動態 - 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/stock/00409A?tab=report",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-09-13 23:05",
           "datetime": "2026-09-13T23:05:16+08:00"
         },
         {
           "title": "00409A 主動復華全球50 - 2026 年歷年配息 / 股息與除息日哪一天？ - 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/stock/00409A?s=dividend",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-09-13 11:53",
           "datetime": "2026-09-13T11:53:22+08:00"
         }
@@ -427,7 +420,7 @@
         {
           "title": "復華全球創新金融指數基金-新臺幣 - 配息率與配息紀錄 - 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/fund/98642641?s=dividend",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-09-14 08:40",
           "datetime": "2026-09-14T08:40:08+08:00"
         }
@@ -517,7 +510,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/watch?v=X8uCLkMrkDg",
       "date": "2026-09-15",
-      "views": 272678
+      "views": 274191
     },
     {
       "platform": "youtube",
@@ -525,7 +518,7 @@
       "channel": "絕世好CHEN – Tony的理財日常",
       "url": "https://www.youtube.com/watch?v=jle0nhoDuZs",
       "date": "2026-09-12",
-      "views": 1024
+      "views": 1025
     },
     {
       "platform": "youtube",
@@ -533,7 +526,7 @@
       "channel": "退役備考",
       "url": "https://www.youtube.com/watch?v=UQrsY9KFH88",
       "date": "2026-09-14",
-      "views": 764
+      "views": 775
     },
     {
       "platform": "youtube",
@@ -541,7 +534,7 @@
       "channel": "台新投信 TSIT",
       "url": "https://www.youtube.com/shorts/DCMHyz1PHZc",
       "date": "2026-09-15",
-      "views": 614775,
+      "views": 617347,
       "peer": true,
       "short": true,
       "cat": "高股息"
@@ -552,7 +545,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=jwRw2-gE9pM",
       "date": "2026-09-14",
-      "views": 169505,
+      "views": 170876,
       "peer": true,
       "cat": "市值型"
     },
@@ -562,7 +555,7 @@
       "channel": "數字台灣",
       "url": "https://www.youtube.com/watch?v=YXLM1w3XpG0",
       "date": "2026-09-13",
-      "views": 120427,
+      "views": 120542,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -572,7 +565,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=HHkj0fpEyo0",
       "date": "2026-09-16",
-      "views": 119857,
+      "views": 119516,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -582,7 +575,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=SMJdxwUrELE",
       "date": "2026-09-13",
-      "views": 115126,
+      "views": 115225,
       "peer": true,
       "cat": "綜合"
     },
@@ -592,7 +585,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=EQLk1Posk_U",
       "date": "2026-09-16",
-      "views": 90479,
+      "views": 93146,
       "peer": true,
       "cat": "債券"
     },
@@ -602,7 +595,7 @@
       "channel": "Caven 投資成長家",
       "url": "https://www.youtube.com/watch?v=Tqbx9SFt0Lw",
       "date": "2026-09-13",
-      "views": 85925,
+      "views": 86285,
       "peer": true,
       "cat": "綜合"
     },
@@ -612,7 +605,7 @@
       "channel": "Mr.m財富研究室",
       "url": "https://www.youtube.com/shorts/ncouq7f23A8",
       "date": "2026-09-14",
-      "views": 73887,
+      "views": 74785,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -633,7 +626,7 @@
       "channel": "中國信託投信",
       "url": "https://www.youtube.com/watch?v=bHZlryugJzQ",
       "date": "2026-09-15",
-      "views": 48792,
+      "views": 49086,
       "peer": true,
       "cat": "主動式"
     }
@@ -641,6 +634,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、全球創新金融指數（詳下方新聞標籤）",
     "社群聲量最高：AI壓不住通膨，聯準會升息引爆高利率時代！槓桿投資如何因應（0 推）",
-    "YouTube 熱片：00416A【10/5起 強力募集】台新臺灣中小主動式ETF基金(基金之配息來源可能為收益平準)（台新投信 TSIT・614,775 次觀看）"
+    "YouTube 熱片：00416A【10/5起 強力募集】台新臺灣中小主動式ETF基金(基金之配息來源可能為收益平準)（台新投信 TSIT・617,347 次觀看）"
   ]
 }
