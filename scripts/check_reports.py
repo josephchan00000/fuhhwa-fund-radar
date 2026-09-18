@@ -18,7 +18,11 @@
   · 正文禁流程性字句：檔名/欄位名/落檔字樣（「取自官方落檔」「series.sox」「macro_chips.json」）
     只能出現在「資料侷限說明」「合規揭露」段（2026-08-17 踩坑：總覽正文出現
     「數字取自本機官方落檔 `series.sox`」，讀者不需要知道數字從哪支檔讀）
-  · 行事曆：表頭「更新：」需為今日
+  · 行事曆：表頭「更新：」需為今日；**2026-09-19 起須含 ≥1 列「台：」**（台灣官方時程——
+    央行季會／主計總處／財政部／台股休市等；2026-09-17 央行連 10 凍＋房市鬆綁整週沒列，使用者要求
+    行事曆加台灣重要的事與展會開幕；「展：」列本週無展會可無，不設閘門）
+  · 央行理監事會決議日與隔日（arm.twevents.cbc_recent）：台股報全文須提及「央行」
+    ——同「大變動提及」設計，提及即過、不要求成卡（提示包另有必成卡旗標）
 
 用法：TZ=Asia/Taipei python3 scripts/check_reports.py [YYYY-MM-DD]（預設今日台北）
 """
@@ -28,7 +32,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from arm import usnews  # noqa: E402
+from arm import twevents, usnews  # noqa: E402
 from arm.clock import today_tw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -36,6 +40,8 @@ MIN_CARDS = 4
 # 「漲跌分析」欄＋深度下限自此日起強制（此前的舊報告不回溯——新提示包自 08-20 首輪起才會產此欄）
 MOVE_SINCE = "2026-08-20"
 MIN_ANALYSIS = 120        # 每卡摘要＋漲跌分析＋影響分析合計字數下限（提示包要求 150–200，此為寬鬆底線）
+# 行事曆「台：」列與央行決議日提及閘門自此日起（2026-09-18 當日報告不回溯——使用者選「只改規則」）
+TW_CAL_SINCE = "2026-09-19"
 
 
 def _check_cards(path: Path, date: str) -> list[str]:
@@ -244,7 +250,30 @@ def _check_calendar(path: Path, date: str) -> list[str]:
     d_slash = date.replace("-", "/")
     if f"更新：{d_slash}" not in md and f"更新：{date}" not in md:
         errs.append(f"{rel}：表頭「更新：」非今日（{d_slash}）")
+    if date >= TW_CAL_SINCE:
+        tw_rows = [l for l in rows if re.match(r"^\|\s*[^|]*\|\s*台\s*[：:]", l.strip())]
+        if not tw_rows:
+            errs.append(f"{rel}：行事曆無任何「台：」列（台灣官方時程——央行季會／主計總處／財政部／"
+                        "經濟部統計／台股休市／台積電法說至少 1 列；提示包「台灣固定時程」段有本週必列項目）")
     return errs
+
+
+def _check_cbc_mention(path: Path, date: str) -> list[str]:
+    """央行理監事會當日／隔日（含隔兩日）：台股報全文須提及「央行」。提及即過（下限保證）。"""
+    if date < TW_CAL_SINCE or not path.exists():
+        return []
+    try:
+        import datetime as _dt
+        meet = twevents.cbc_recent(_dt.date.fromisoformat(date))
+    except Exception:
+        return []
+    if not meet:
+        return []
+    md = path.read_text(encoding="utf-8")
+    if "央行" not in md:
+        return [f"{path.relative_to(ROOT)}：{meet:%m/%d} 央行理監事會（利率決議／房市信用管制）全文隻字未提"
+                "——台股本位必成卡（2026-09-17 曾三份全漏）"]
+    return []
 
 
 def run(date: str) -> int:
@@ -254,6 +283,7 @@ def run(date: str) -> int:
     errs += _check_cards(ROOT / f"reports/twnews/{date}.md", date)
     errs += _check_cards(ROOT / f"reports/macronews/{date}.md", date)
     errs += _check_calendar(ROOT / f"reports/macrocal/{date}.md", date)
+    errs += _check_cbc_mention(ROOT / f"reports/twnews/{date}.md", date)
     _reports = (f"reports/usnews/{date}_v1.md", f"reports/usnews/{date}_v2.md",
                 f"reports/twnews/{date}.md", f"reports/macronews/{date}.md")
     if date >= BRIEF_SINCE:                    # 速覽／總覽文風（長度／版型標籤／粗體落點）

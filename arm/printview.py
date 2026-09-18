@@ -481,6 +481,7 @@ CSS = """
   vertical-align:1px;line-height:1.4}
 .pr-reg.us{color:#1d4f9c;background:#dce7fa}.pr-reg.eu{color:#5b3ea8;background:#e9e2fa}
 .pr-reg.cn{color:#a02c2c;background:#fbe1e1}.pr-reg.jp{color:#0f6f6b;background:#d9f0ee}
+.pr-reg.tw{color:#8a4b00;background:#fbe6cc}.pr-reg.ex{color:#8a2a6a;background:#f7dcee}
 .pr-reg.er{color:#7a4b00;background:#fdecc8}
 .pr-st{font-size:6.8pt;font-weight:700;white-space:nowrap}
 .pr-st.done{color:#1d6b3a}.pr-st.wait{color:#1d4f9c}.pr-st.halt{color:#8a5410}

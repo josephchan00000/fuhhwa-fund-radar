@@ -154,7 +154,8 @@ def test_cal_spec_covers_regions_and_earnings():
     from arm import macronews
     s = macronews.SPEC_CAL
     assert "歐" in s and "ECB" in s and "中" in s and "日銀" in s and "財報" in s
-    assert "美：／歐：／中：／日：／財報：" in s
+    assert "美：／歐：／中：／日：／台：／展：／財報：" in s
+    assert "央行理監事會" in s and "SEMICON Taiwan" in s      # 台灣官方時程＋展會（2026-09-18 使用者需求）
     assert "本週重點財經行事曆" in s
 
 

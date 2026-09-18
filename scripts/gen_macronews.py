@@ -14,7 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from arm import clock, macronews, usnews  # noqa: E402
+from arm import clock, macronews, twevents, usnews  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 PROMPT_DIR = ROOT / "reports" / "macronews" / "prompts"
@@ -22,9 +22,12 @@ CAL_PROMPT_DIR = ROOT / "reports" / "macrocal" / "prompts"
 
 
 def build_cal_prompt(today: date) -> str:
+    tw = twevents.calendar_note(today)   # 台灣固定時程＋展會：本週必列／下週預告（種子檔＋央行季會自算）
     return f"""你是「台灣投信公司政策面速寫編輯」。請以繁體中文、用 WebSearch/WebFetch 實際查證，
-產出【本週美國重點經濟數據行事曆】，存成：reports/macrocal/{today:%Y-%m-%d}.md
+產出【本週重點財經行事曆（美歐中日＋台灣＋展會＋財報）】，存成：reports/macrocal/{today:%Y-%m-%d}.md
 （台北今日 {today:%Y/%m/%d}；以今日所在整週週一~週五為範圍）。
+
+{tw}
 
 ────────────────────────────────────────
 {macronews.SPEC_CAL}

@@ -623,10 +623,11 @@ def _news_view(md: str, empty_hint: str,
     return "".join(items) or f'<div class="muted">{empty_hint}</div>'
 
 
-# ── 總經：本週重點財經行事曆（美歐中日＋重要企業財報） ──────────────────────────────────
+# ── 總經：本週重點財經行事曆（美歐中日＋台灣＋展會＋重要企業財報） ──────────────────────────────────
 
-# 地區徽章的 CSS class 對照（美／歐／中／日；財報獨立子表不掛徽章）
-_CAL_REGION_CLS = {"美": "us", "歐": "eu", "中": "cn", "日": "jp"}
+# 地區徽章的 CSS class 對照（美／歐／中／日／台／展；財報獨立子表不掛徽章）
+# 台＝台灣官方時程（央行季會、主計總處、台股休市…）、展＝展會／發表會開幕（2026-09-18 加）
+_CAL_REGION_CLS = {"美": "us", "歐": "eu", "中": "cn", "日": "jp", "台": "tw", "展": "ex"}
 
 
 def _cal_cons_cell(cons) -> str:
@@ -671,7 +672,7 @@ def _cal_table_html(rows: list[dict], with_region: bool) -> str:
 
 
 def _macro_cal_view(cal: dict | None) -> str:
-    """本週重點財經行事曆（美歐中日＋財報）：
+    """本週重點財經行事曆（美歐中日＋台灣＋展會＋財報）：
     經濟數據表（地區以彩色小徽章標示）＋「重要財報／法說」獨立子表。"""
     if not cal or not cal.get("rows"):
         return ('<div class="muted">尚無本週行事曆。請由會上網查證的 Claude 依提示包'
@@ -2392,6 +2393,8 @@ a.tk:hover{color:var(--acc)}
 .creg.eu{color:#5b3ea8;background:rgba(122,92,219,.14);border-color:rgba(122,92,219,.42)}
 .creg.cn{color:#a02c2c;background:rgba(206,66,66,.13);border-color:rgba(206,66,66,.4)}
 .creg.jp{color:#0f6f6b;background:rgba(23,146,140,.13);border-color:rgba(23,146,140,.42)}
+.creg.tw{color:#8a4b00;background:rgba(224,132,24,.16);border-color:rgba(224,132,24,.45)}
+.creg.ex{color:#8a2a6a;background:rgba(196,60,150,.14);border-color:rgba(196,60,150,.42)}
 .calsub{margin:16px 0 6px;font-size:14px;font-weight:800;color:var(--ink);padding-left:9px;border-left:4px solid #2f9d57}
 .chip.halt{color:#8a5410;background:rgba(200,118,15,.12);border-color:rgba(200,118,15,.5);font-weight:700}
 /* 總經：市場溫度計（全球指標＋台股籌碼）——第一欄（指標）凍結，數值欄手機可左右捲 */
