@@ -1,7 +1,13 @@
 {
- "as_of": "2026-09-19 09:11",
- "count": 3,
+ "as_of": "2026-09-20 06:58",
+ "count": 4,
  "items": [
+  {
+   "code": "009829",
+   "name": "大華韓國KOSPI50",
+   "first_seen": "2026-08-22",
+   "kind": "listed"
+  },
   {
    "code": null,
    "name": "復華台灣新星主動式ETF基金",
