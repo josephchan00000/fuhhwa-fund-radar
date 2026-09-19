@@ -339,5 +339,5 @@ def test_save_gap_routes_applied_to_pipeline(tmp_path, monkeypatch):
 def test_known_codes_includes_watchlist_and_upcoming():
     """已登錄＝追蹤清單＋UPCOMING（含 track:False 展示檔與已升級檔），未派碼條目跳過。"""
     known = etfdiscover.known_codes()
-    assert {"0050", "00991A", "00409A", "009829"} <= known      # 追蹤＋前瞻＋展示檔都算已知
+    assert {"0050", "00991A", "00409A", "009827"} <= known      # 追蹤＋前瞻＋展示檔都算已知
     assert all(c for c in known)                                # 不含 None（未派碼 hint 條目）

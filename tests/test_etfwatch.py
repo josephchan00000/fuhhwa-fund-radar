@@ -529,9 +529,10 @@ def test_upcoming_entries_have_required_fields():
 
 def test_upcoming_seminar_slide_completeness():
     """2026-08-10 使用者研討會「即將上市ETF」投影片名單須全數在列——資料補齊的直接驗證。
-    （條目掛牌後可清理，屆時把已下市場的代碼從此清單移除即可。）"""
+    （條目掛牌後可清理，屆時把已下市場的代碼從此清單移除即可；009829 已於 2026-09-20
+    因掛牌逾 30 天依 stale guard 規則清理，故自本斷言移除。）"""
     codes = {it["code"] for it in etfwatch.UPCOMING}
-    assert {"009829", "00411A", "00987D", "009827", "00409A", "009828", "00412A"} <= codes
+    assert {"00411A", "00987D", "009827", "00409A", "009828", "00412A"} <= codes
 
 
 def test_upcoming_single_source_is_data_file():
@@ -565,7 +566,7 @@ def test_upcoming_view_renders_cards_with_links():
     assert "已核准・募集時程未定" in out                     # 第三組（2026-08-10 使用者指示分類）
     assert "009827" in out and "00409A" in out and "00412A" in out
     assert "募集中 08/10–08/14" in out                       # 玉山 8/10 起正在募集
-    assert "掛牌 08/21" in out and "掛牌 08/26" in out        # 大華銀 KOSPI50／統一雙檔
+    assert "掛牌 08/26" in out                                # 統一雙檔
     assert "預定掛牌 09/02" in out                            # 募集卡帶掛牌日副標
     # 核准組＝精簡列：未派碼檔顯示「代號未定」、不佔卡片（uprow 非 upcard）。
     # 列數／未派碼數由資料推導——條目會隨每輪發現增補，釘死數字只會每次都紅。
