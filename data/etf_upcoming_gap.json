@@ -1,6 +1,6 @@
 {
- "as_of": "2026-09-20 06:58",
- "count": 4,
+ "as_of": "2026-09-21 06:42",
+ "count": 6,
  "items": [
   {
    "code": "009829",
@@ -31,6 +31,26 @@
   },
   {
    "code": null,
+   "name": "野村亞洲傘型之野村韓國科技30ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "主動式ETF",
+   "approve": "115.9.21申報生效"
+  },
+  {
+   "code": null,
+   "name": "野村亞洲傘型之野村亞洲科技主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "主動式ETF",
+   "approve": "115.9.21申報生效"
+  },
+  {
+   "code": null,
    "name": "中國信託台灣聚焦成長主動式ETF基金",
    "first_seen": null,
    "kind": "offering",
@@ -40,7 +60,7 @@
    "approve": "115.9.8申報生效"
   }
  ],
- "pipeline_n": 9,
+ "pipeline_n": 7,
  "pipeline": [
   {
    "code": null,
@@ -71,26 +91,6 @@
    "stage": "applied",
    "cat": "ETF",
    "approve": "審查中"
-  },
-  {
-   "code": null,
-   "name": "野村亞洲傘型之野村韓國科技30ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "主動式ETF",
-   "approve": "115.9.21申報生效"
-  },
-  {
-   "code": null,
-   "name": "野村亞洲傘型之野村亞洲科技主動式ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "主動式ETF",
-   "approve": "115.9.21申報生效"
   },
   {
    "code": null,
