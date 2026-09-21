@@ -1,12 +1,63 @@
 {
- "as_of": "2026-09-21 08:10",
- "count": 1,
+ "as_of": "2026-09-21 08:30",
+ "count": 6,
  "items": [
   {
    "code": "009829",
    "name": "大華韓國KOSPI50",
    "first_seen": "2026-08-22",
    "kind": "listed"
+  },
+  {
+   "code": null,
+   "name": "復華台灣新星主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "主動式ETF",
+   "approve": "115.9.10申報生效",
+   "period": "20261021"
+  },
+  {
+   "code": null,
+   "name": "施羅德AI科技台股主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "主動式ETF",
+   "approve": "115.9.11申報生效"
+  },
+  {
+   "code": null,
+   "name": "野村亞洲傘型之野村韓國科技30ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "主動式ETF",
+   "approve": "115.9.21申報生效"
+  },
+  {
+   "code": null,
+   "name": "野村亞洲傘型之野村亞洲科技主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "主動式ETF",
+   "approve": "115.9.21申報生效"
+  },
+  {
+   "code": null,
+   "name": "中國信託台灣聚焦成長主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "主動式ETF",
+   "approve": "115.9.8申報生效"
   }
  ],
  "pipeline_n": 7,

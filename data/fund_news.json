@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/21 08:09",
+  "as_of": "2026/09/21 08:29",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -47,9 +47,23 @@
         {
           "title": "聯電股價飆160元漲9%誰拱的？不只外資2買，00981A、00403A、00991A...主動式ETF重押能跟買？",
           "url": "https://www.businesstoday.com.tw/article/category/183008/post/202609180001/",
-          "source": "今周刊",
+          "source": "businesstoday.com.tw",
           "date": "2026-09-18 10:26",
           "datetime": "2026-09-18T10:26:00+08:00"
+        },
+        {
+          "title": "9/17 00991A(主動復華未來50) 持股異動｜新增 1 檔、刪除 1 檔-ETF股長",
+          "url": "https://cmnews.com.tw/article/etfchief-ce5266a8-b285-11f1-a43a-cc733bad6be3",
+          "source": "cmnews.com.tw",
+          "date": "2026-09-17 18:51",
+          "datetime": "2026-09-17T18:51:58+08:00"
+        },
+        {
+          "title": "【00991A】09/16 操作日報｜資金大挪移，獨家加碼聯發科-CMoney官方",
+          "url": "https://cmnews.com.tw/article/cmoney-f2b303a2-b1bd-11f1-8ae2-328ed7960848",
+          "source": "cmnews.com.tw",
+          "date": "2026-09-16 19:01",
+          "datetime": "2026-09-16T19:01:20+08:00"
         }
       ]
     },
@@ -133,13 +147,6 @@
     },
     {
       "base": "復華台美策略精準高息股債平衡ETF基金",
-      "code": null,
-      "fund_ids": [],
-      "short_names": [],
-      "items": []
-    },
-    {
-      "base": "復華台灣新星主動式ETF基金",
       "code": null,
       "fund_ids": [],
       "short_names": [],
@@ -511,7 +518,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/watch?v=X8uCLkMrkDg",
       "date": "2026-09-15",
-      "views": 333210
+      "views": 333305
     },
     {
       "platform": "youtube",
@@ -519,7 +526,7 @@
       "channel": "退役備考",
       "url": "https://www.youtube.com/watch?v=UQrsY9KFH88",
       "date": "2026-09-14",
-      "views": 987
+      "views": 989
     },
     {
       "platform": "youtube",
@@ -527,7 +534,7 @@
       "channel": "家裡隨便聊",
       "url": "https://www.youtube.com/watch?v=OK4GOLgIoJo",
       "date": "2026-09-17",
-      "views": 511
+      "views": 515
     },
     {
       "platform": "youtube",
@@ -535,7 +542,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=zUUl2W_f3DQ",
       "date": "2026-09-20",
-      "views": 191343,
+      "views": 192214,
       "peer": true,
       "cat": "綜合"
     },
@@ -545,7 +552,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=EQLk1Posk_U",
       "date": "2026-09-16",
-      "views": 159176,
+      "views": 159372,
       "peer": true,
       "cat": "債券"
     },
@@ -555,7 +562,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=23i9PIEw16E",
       "date": "2026-09-18",
-      "views": 135996,
+      "views": 136060,
       "peer": true,
       "cat": "高股息"
     },
@@ -565,7 +572,7 @@
       "channel": "緯來財經",
       "url": "https://www.youtube.com/watch?v=G9yWNP44MTI",
       "date": "2026-09-17",
-      "views": 121657,
+      "views": 121647,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -575,7 +582,7 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/shorts/rtEC4PgMbxQ",
       "date": "2026-09-16",
-      "views": 119569,
+      "views": 119814,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -586,7 +593,7 @@
       "channel": "Catch大錢潮",
       "url": "https://www.youtube.com/watch?v=0vSclyI87KE",
       "date": "2026-09-19",
-      "views": 118399,
+      "views": 118493,
       "peer": true,
       "cat": "綜合"
     },
@@ -596,7 +603,7 @@
       "channel": "SHIN LI",
       "url": "https://www.youtube.com/shorts/K37xZ1ViQ4c",
       "date": "2026-09-16",
-      "views": 95739,
+      "views": 95833,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -607,7 +614,7 @@
       "channel": "群益投信",
       "url": "https://www.youtube.com/shorts/U7Ay8PLoMSA",
       "date": "2026-09-18",
-      "views": 95180,
+      "views": 95341,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -618,7 +625,7 @@
       "channel": "柴鼠兄弟 ZRBros",
       "url": "https://www.youtube.com/watch?v=pkE7nj9Ck4w",
       "date": "2026-09-16",
-      "views": 75373,
+      "views": 75400,
       "peer": true,
       "cat": "高股息"
     },
@@ -628,7 +635,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=dytBngg0yBE",
       "date": "2026-09-16",
-      "views": 59282,
+      "views": 59308,
       "peer": true,
       "cat": "市值型"
     }
@@ -637,6 +644,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、全球創新金融指數（詳下方新聞標籤）",
     "品牌焦點：九倍女戰神大戰瑤池金母！00418A對上2,693億的00981A　同一個選股池開打（ETtoday財經雲）",
     "社群聲量最高：路是對的，就不怕遠（0 推）",
-    "YouTube 熱片：【阿格力】100萬存高股息ETF，三年少買好幾隻勞力士？現在我都存高資本利得又有高股息的ETF，光00830今年股息就領90萬。加碼00935、00881、00927、00923、00929大評比。（阿格力博識・333,210 次觀看）"
+    "YouTube 熱片：【阿格力】100萬存高股息ETF，三年少買好幾隻勞力士？現在我都存高資本利得又有高股息的ETF，光00830今年股息就領90萬。加碼00935、00881、00927、00923、00929大評比。（阿格力博識・333,305 次觀看）"
   ]
 }
