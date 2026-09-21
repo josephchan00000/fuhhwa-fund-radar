@@ -958,6 +958,23 @@ stale guard 都只認得「已登錄」條目，**一檔從沒登錄過的 ETF �
   （只給檔數不列名稱清單——長名稱堆版頭只是噪音，清單在 gap 檔週掃讀得到）；
   申請中（stage=applied）在 `save_gap()` 資料層就分流進 **`pipeline` 欄**——不進 count、
   不上版，核准後下輪自動升入 items 才計數。
+- **第三種狀態 `not_tracked`＝「已掛牌、看到了、刻意不追蹤」（2026-09-21 新增，009829 實例）**：
+  **stale guard 與發現層原本互相矛盾**——前者要求「掛牌逾 30 天的條目清出 UPCOMING」（對的，
+  否則「即將登場」永遠掛著已掛牌舊檔），但條目一離開 UPCOMING，`known_codes()` 就再也不認得它，
+  於是**每天判成 🔴「已掛牌未登錄」真漏網**。009829 大華銀韓國KOSPI50（`track:false` 海外被動檔）
+  就是 09-20 週掃依規清理後，隔天起天天誤報——儀表板紅章＋**4 個 pytest 連紅**（`known_codes`／
+  seminar／upcoming_view／freshness_view 各一）。**兩邊都沒錯，缺的是第三種狀態。**
+  · 登記處＝`data/etf_upcoming.json` 頂層 **`not_tracked`**（與 UPCOMING 同檔＝週掃只推資料檔
+    即可經 daily.yml 併檔通道自動入 main；該通道只驗 `items`，新增頂層鍵原封帶過）；
+    欄位 `{code, name, issuer, list_date, why, asof}`——**`why` 必填**，這是「把判斷記下來」
+    而不是「把警示關掉」，日後要複核才有依據（tests 有守）。
+  · `etfwatch.NOT_TRACKED`（`_load_not_tracked()`，壞檔 fail-open 回 `[]`＝該檔重新被警示，
+    **寧可多警示、不可靜默漏掉真新檔**）→ `etfdiscover.known_codes()`／`known_names()` 都吃。
+  · **`load_gap()` 讀取端再濾一次已登錄代碼**：gap 檔是 CI 快照，補登後到下一輪重算前紅章
+    會繼續掛著（補的人看不到自己補好了，以為沒生效）——現在補登後**下一次重建即滅章**，
+    `count` 一併重算（否則章上檔數與清單不一致）。未派碼條目（`code: None`）一律保留。
+  · **何時該用**：只給「已確認掛牌、且我們決定不納入追蹤表」的檔（目前＝海外被動指數檔，
+    因為被動組是策展的 6 檔台股大表）。**本家復華新檔一律不得列此**——那是要轉正進 WATCHLIST 的。
 - **三個踩過／預防的坑**：①**baseline**——台帳空時把當下全市場一次認列既有（`first: None`）、
   不報警，否則第一輪噴出市場 200+ 檔；②**baseline 只在市場檔數 ≥`MIN_MARKET_FOR_BASELINE`=100
   時才建**——首建那輪若剛好單邊交易所掛掉（2026-08-05 tpex openapi 曾整輪失敗），

@@ -179,6 +179,7 @@ def known_names() -> set[str]:
     from . import etfwatch
     out = {_norm_name(n) for _c, n, *_ in etfwatch.watch_tuples()}
     out |= {_norm_name(it.get("name") or "") for it in etfwatch.UPCOMING}
+    out |= {_norm_name(it.get("name") or "") for it in etfwatch.NOT_TRACKED}
     return {n for n in out if n}
 
 
@@ -344,10 +345,17 @@ def attach_offering_meta(gaps: list[dict], table: list[dict]) -> list[dict]:
 
 
 def known_codes() -> set[str]:
-    """已在雷達上的代碼＝WATCHLIST（含升級檔）＋ UPCOMING 全部條目（含未派碼者跳過）。"""
+    """已在雷達上的代碼＝WATCHLIST（含升級檔）＋ UPCOMING 全部條目（含未派碼者跳過）
+    ＋ NOT_TRACKED（已掛牌但刻意不追蹤的登記簿）。
+
+    NOT_TRACKED 是 2026-09-21 補的第三種狀態：`track:false` 的海外被動檔掛牌逾 30 天
+    被 stale guard 依規清出 UPCOMING 後，舊版這裡就再也不認得它 → 天天誤判「已掛牌未登錄」
+    （009829 實例）。見 `etfwatch._load_not_tracked()`。
+    """
     from . import etfwatch
     out = {c for c, *_ in etfwatch.watch_tuples()}
     out |= {it["code"] for it in etfwatch.UPCOMING if it.get("code")}
+    out |= {it["code"] for it in etfwatch.NOT_TRACKED if it.get("code")}
     return out
 
 
@@ -377,9 +385,27 @@ def save_gap(gaps: list[dict], sources_ok: bool) -> tuple[Path, bool]:
 
 
 def load_gap() -> dict:
-    """儀表板用：讀最近一次缺口檔；無檔回 count=0（不壞版）。"""
+    """儀表板用：讀最近一次缺口檔；無檔回 count=0（不壞版）。
+
+    **讀取端再濾一次「已登錄」（2026-09-21）**：gap 檔是 CI 的快照，補登之後那筆缺口在
+    下一輪 CI 重算前仍留在檔裡——舊版會讓紅章繼續掛著（補完的人看不到自己補好了，
+    還以為沒生效）。改為讀取時剔除已進 WATCHLIST／UPCOMING／NOT_TRACKED 的代碼：
+    補登＝下一次重建即滅章，不必等 CI 重跑發現層（同 check_holdings_intro 把本地 gap
+    歸零的慣例）。`count` 一併重算，否則章上的檔數與清單會不一致。
+    未派碼條目（code 為 None）沿用名稱層無從比對 → 一律保留，寧可多警示。
+    known_codes() 失敗（載入器異常）→ 不濾，維持原樣（fail-open：不因此漏掉真缺口）。
+    """
     try:
         d = json.loads(GAP_FP.read_text(encoding="utf-8"))
-        return d if isinstance(d, dict) else {"count": 0, "items": []}
+        if not isinstance(d, dict):
+            return {"count": 0, "items": []}
     except (OSError, json.JSONDecodeError):
         return {"count": 0, "items": []}
+    try:
+        known = known_codes()
+    except Exception:                                    # noqa: BLE001 —— fail-open 不濾
+        return d
+    items = [g for g in (d.get("items") or []) if (g.get("code") or "") not in known]
+    if len(items) != len(d.get("items") or []):
+        d = dict(d, items=items, count=len(items))
+    return d

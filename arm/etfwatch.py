@@ -169,6 +169,30 @@ def _load_upcoming() -> list[dict]:
 UPCOMING: list[dict] = _load_upcoming()
 
 
+def _load_not_tracked() -> list[dict]:
+    """讀 data/etf_upcoming.json 的 not_tracked——「已掛牌、但刻意不納入追蹤」的登記簿。
+
+    **要解的洞（2026-09-21，009829 大華銀韓國KOSPI50 實例）**：stale guard 與自動發現層
+    對 `track:false` 的海外被動檔互相矛盾——前者要求「掛牌逾 30 天的條目要清理」（對的，
+    否則「即將登場」永遠掛著已掛牌的舊檔），但條目一離開 UPCOMING，`etfdiscover.known_codes()`
+    就再也不認得它，於是每天判成「已掛牌未登錄」🔴 真漏網（儀表板紅章＋4 個 pytest 紅）。
+    009829 就是 09-20 週掃依規清理後，隔天開始天天誤報。
+    **兩邊都沒錯，缺的是第三種狀態**：「看到了、認得、就是不追蹤」。列此即不再警示，
+    而且**留下 why 供日後複核**——不是把警示關掉，是把判斷記下來。
+    與 UPCOMING 同放資料檔（非程式碼）：週掃 Routine 只推資料檔即可經 daily.yml 併入 main。
+    壞檔／缺鍵 fail-open 回 []（退回修法前行為＝該檔重新被警示，不會靜默漏掉真的新 ETF）。
+    """
+    try:
+        d = json.loads(UPCOMING_FP.read_text(encoding="utf-8"))
+        rows = d.get("not_tracked") if isinstance(d, dict) else None
+        return [r for r in rows if isinstance(r, dict)] if isinstance(rows, list) else []
+    except (OSError, json.JSONDecodeError):
+        return []                                  # _load_upcoming 已印過同檔的讀取錯誤
+
+
+NOT_TRACKED: list[dict] = _load_not_tracked()
+
+
 def upcoming(today: date | None = None) -> dict:
     """即將登場的新 ETF（前瞻，手動維護 UPCOMING）——五狀態、三分組自動歸類與過期。
 
