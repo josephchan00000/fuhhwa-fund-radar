@@ -333,10 +333,10 @@ def _etf_chg(i: dict) -> str:
     同樣不可信——螢幕版與列印版必須同步，否則印出來的那份會留著螢幕上已擋掉的錯值。
     """
     v = i.get("chg_pct")
-    ao, pa = i.get("as_of"), (i.get("chg_asof") or i.get("perf_asof"))
-    if v is not None and ao and pa and pa != ao:
-        return (f'<span class="na" title="報酬序列為 {_esc(pa)}、收盤價為 {_esc(ao)}'
-                f'，兩者不同日故不顯示">—<sup>⚠</sup></span>')
+    if v is not None:
+        state, tip = fd.chg_trust(i)          # 與螢幕版共用同一支判定，避免兩邊規則漂移
+        if state != "ok":
+            return f'<span class="na" title="{_esc(tip)}">—<sup>⚠</sup></span>'
     return fd._pct_span(v)
 
 
