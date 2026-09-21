@@ -1028,6 +1028,40 @@ def _div_cell(i: dict) -> str:
     return main
 
 
+def chg_trust(i: dict) -> tuple[str, str]:
+    """當日漲跌可信度 →（狀態, 說明）。狀態＝ok／lag／bad。
+
+    **為何要把「落後」和「日期不可能」分開（2026-09-21 使用者回報）**：首版防呆一律印
+    `⚠ 基準 {日期}`，結果假 bar 那輪整張表 36 列都掛「⚠ 基準 **2026-09-20**」——那是**週日**。
+    使用者的話：「週末當然沒有，你這樣不就全部都是錯誤了嗎」——完全正確：
+    ①把一個不可能的日期當「基準」印給讀者，等於宣告系統把週日當交易日，
+      產品看起來比顯示錯數字還糟；②讀者無從判斷這是「資料晚一天」還是「壞了」。
+    · **lag（chg_asof < as_of）＝有意義**：數字確實是某個較早交易日的，印出那個日期
+      讀者就知道「這格晚一天」，保留原本的 ⚠ 基準 章。
+    · **bad（chg_asof > as_of，或落在週末）＝無意義**：來源給了未收盤或根本不存在的
+      交易日，那個日期對讀者沒有任何資訊價值，只會製造「全表壞掉」的錯覺 →
+      一律退成 `—`＋tooltip，**不印該日期**。
+    （根因端的修法是 etfwatch._sane_series 濾掉假 bar＋L1／L2 自癒；這裡只管
+      「萬一落檔仍帶髒值、又還沒成功重抓」時怎麼誠實呈現——重建型的 CI 班次
+      不會重抓 etf_watch，那個時窗確實存在。）
+    """
+    ao, pa = i.get("as_of"), (i.get("chg_asof") or i.get("perf_asof"))
+    if not (ao and pa):
+        return "ok", ""                                  # 缺日期資訊 → fail-open 照顯示
+    if pa == ao:
+        return "ok", ""
+    try:
+        wknd = date.fromisoformat(str(pa)[:10]).weekday() >= 5
+    except (TypeError, ValueError):
+        wknd = True                                      # 日期解析不了＝髒值，當 bad
+    if pa > ao or wknd:
+        return "bad", (f"來源回報的漲跌日 {pa} 不是可用的收盤交易日"
+                       f"（{'週末' if wknd else '比收盤價 ' + str(ao) + ' 還新、當日尚未收盤'}），"
+                       f"暫不顯示以免誤導；來源補上 {ao} 的日線後自動恢復")
+    return "lag", (f"報酬序列最新只到 {pa}，收盤價已是 {ao}——當日漲跌需兩者同日才算得準，"
+                   f"暫不顯示以免與收盤價差一天（來源補上 {ao} 的日線後自動恢復）")
+
+
 def _chg_cell(i: dict) -> str:
     """當日漲跌格：只顯示紅漲綠跌 ±%（2026-07-30 使用者：底下灰字看不懂，都刪掉）。
 
@@ -1049,19 +1083,12 @@ def _chg_cell(i: dict) -> str:
     # 判準用 chg_asof（漲跌所屬交易日）而非 perf_asof（序列末日）：兩者在 L1 備案下會不同
     # ——序列落後但 etfinfo 前收自算成功時，漲跌其實是當日的，不該被誤標過期。
     # 舊落檔沒有 chg_asof → 退回 perf_asof（與本防呆上線前的行為一致）。
-    # 2026-09-21：判準由「pa < ao」改為「pa != ao」——序列日期**超前**收盤價時同樣不可信。
-    # 當天 Yahoo 對 36 檔全回了一個 9/20（週日）的假 bar，chg_asof=9/20 > as_of=9/18，
-    # 舊判準放行 → 0050 掛 -7.15%、00998A 掛 +4.99%（實為 -2.70%）全部照常渲染。
-    # 兩個欄位來自不同來源並排時，「不同日」本身就是不可信的訊號，方向不分前後。
-    ao = i.get("as_of")
-    pa = i.get("chg_asof") or i.get("perf_asof")
-    if ao and pa and pa != ao:
-        tip = ((f"報酬序列最新只到 {pa}，收盤價已是 {ao}" if pa < ao else
-                f"報酬序列的 {pa} 比收盤價的 {ao} 還新（來源回了未收盤或不存在的交易日）")
-               + f"——當日漲跌需兩者同日才算得準，暫不顯示以免與收盤價差一天"
-                 f"（來源補上 {ao} 的日線後自動恢復）")
+    state, tip = chg_trust(i)
+    if state == "lag":          # 落後＝印出基準日，讀者據此知道「這格晚一天」（有資訊價值）
         return (f'{_pct_span(None)}<span class="mdstale" title="{_esc(tip)}">'
-                f'⚠ 基準 {pa}</span>')
+                f'⚠ 基準 {i.get("chg_asof") or i.get("perf_asof")}</span>')
+    if state == "bad":          # 日期不可能（週末／未收盤）＝那個日期對讀者沒有意義，不印
+        return f'<span class="na" title="{_esc(tip)}">—<sup class="estmk">⚠</sup></span>'
     amt, pc, pd_ = i.get("chg_amt"), i.get("prev_close"), i.get("prev_date")
     exd = i.get("chg_ex_div")
     parts = [f"{'+' if (amt or 0) > 0 else ''}{amt:g} 元" if amt is not None else "",

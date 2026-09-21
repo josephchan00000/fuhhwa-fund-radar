@@ -513,3 +513,54 @@ def test_chg_cell_序列落後時不以舊漲跌冒充當日():
 
     # ④ chg 本來就沒有 → 維持既有「—」行為
     assert "—" in fd._chg_cell({"chg_pct": None})
+
+
+# ── 當日漲跌：「落後」與「日期根本不可能」要分開呈現（2026-09-21 使用者回報） ──────
+# 「當日漲跌全部變成 ⚠ 基準 2026-09-20，週末當然沒有，你這樣不就全部都是錯誤了嗎」
+
+def _vis(html: str) -> str:
+    """讀者實際看得到的文字（剝掉標籤與 tooltip）——版面類斷言不可拿 title 當代理指標。"""
+    import re
+    return re.sub(r"<[^>]*>", "", re.sub(r'title="[^"]*"', "", html))
+
+
+def test_chg_trust_三態判定():
+    from arm import fund_dashboard as fd
+    assert fd.chg_trust({"as_of": "2026-09-18", "chg_asof": "2026-09-18"})[0] == "ok"
+    assert fd.chg_trust({"as_of": "2026-09-02", "chg_asof": "2026-09-01"})[0] == "lag"
+    assert fd.chg_trust({"as_of": "2026-09-18", "chg_asof": "2026-09-20"})[0] == "bad"  # 週日
+    assert fd.chg_trust({"as_of": "2026-09-18", "chg_asof": "2026-09-21"})[0] == "bad"  # 超前
+    assert fd.chg_trust({"as_of": None, "chg_asof": None})[0] == "ok"            # fail-open
+    assert fd.chg_trust({"as_of": "2026-09-18", "chg_asof": "壞值"})[0] == "bad"  # 解析不了
+
+
+def test_不可能的日期不得出現在畫面上():
+    """首版一律印「⚠ 基準 {日期}」，假 bar 那輪整表 36 列掛「⚠ 基準 2026-09-20」＝週日。
+    把不可能的日期當「基準」印給讀者，等於宣告系統把週日當交易日。
+    改為只印 —⚠，該日期僅留在 tooltip 供診斷。"""
+    from arm import fund_dashboard as fd
+    i = {"chg_pct": -7.15, "as_of": "2026-09-18", "chg_asof": "2026-09-20"}
+    html = fd._chg_cell(i)
+    assert "2026-09-20" not in _vis(html)        # 讀者看不到那個週日日期
+    assert "基準" not in _vis(html)
+    assert _vis(html).strip() == "—⚠"
+    assert "-7.15" not in html                   # 更不可顯示那個錯數字
+    assert "2026-09-20" in html                  # 但 tooltip 要留著供追查
+
+
+def test_真落後仍印基準日因為對讀者有資訊價值():
+    """lag 與 bad 的差別＝那個日期有沒有意義：數字確實來自某個較早「交易日」時，
+    印出它讀者才知道「這格晚一天」；週末／未收盤的日期則沒有任何資訊價值。"""
+    from arm import fund_dashboard as fd
+    html = fd._chg_cell({"chg_pct": 2.07, "as_of": "2026-09-02", "chg_asof": "2026-09-01"})
+    assert "⚠ 基準 2026-09-01" in _vis(html) and "2.07" not in html
+
+
+def test_列印版與螢幕版共用同一支判定():
+    """兩邊規則漂移過一次（2026-09-21 前列印版自己寫一套）——現統一走 fd.chg_trust。"""
+    from arm import printview as pv
+    for i in ({"chg_pct": -7.15, "as_of": "2026-09-18", "chg_asof": "2026-09-20"},
+              {"chg_pct": 2.07, "as_of": "2026-09-02", "chg_asof": "2026-09-01"}):
+        assert "⚠" in pv._etf_chg(i) and "—" in pv._etf_chg(i)
+    ok = pv._etf_chg({"chg_pct": 1.67, "as_of": "2026-09-18", "chg_asof": "2026-09-18"})
+    assert "+1.67%" in ok and "⚠" not in ok
