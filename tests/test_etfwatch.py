@@ -533,9 +533,14 @@ def test_upcoming_entries_have_required_fields():
 
 def test_upcoming_seminar_slide_completeness():
     """2026-08-10 使用者研討會「即將上市ETF」投影片名單須全數在列——資料補齊的直接驗證。
-    （條目掛牌後可清理，屆時把已下市場的代碼從此清單移除即可。）"""
-    codes = {it["code"] for it in etfwatch.UPCOMING}
-    assert {"009829", "00411A", "00987D", "009827", "00409A", "009828", "00412A"} <= codes
+
+    條目掛牌後會被 stale guard 清出 UPCOMING，但**不可從雷達上消失**：轉正進 WATCHLIST
+    或（track:false 的海外被動檔）列入 NOT_TRACKED，兩者都算「認得」。所以斷言對
+    known_codes() 而非只對 UPCOMING——009829 於 2026-09-20 週掃清理後就是走 NOT_TRACKED
+    這條，舊斷言只看 UPCOMING 才會紅（2026-09-21 修）。"""
+    from arm import etfdiscover
+    known = etfdiscover.known_codes()
+    assert {"009829", "00411A", "00987D", "009827", "00409A", "009828", "00412A"} <= known
 
 
 def test_upcoming_single_source_is_data_file():
@@ -569,7 +574,9 @@ def test_upcoming_view_renders_cards_with_links():
     assert "已核准・募集時程未定" in out                     # 第三組（2026-08-10 使用者指示分類）
     assert "009827" in out and "00409A" in out and "00412A" in out
     assert "募集中 08/10–08/14" in out                       # 玉山 8/10 起正在募集
-    assert "掛牌 08/21" in out and "掛牌 08/26" in out        # 大華銀 KOSPI50／統一雙檔
+    assert "掛牌 08/26" in out                               # 統一雙檔
+    # 註：大華銀 KOSPI50（009829）原本也在這組（掛牌 08/21），2026-09-20 週掃依 stale guard
+    # 清出 UPCOMING、改列 NOT_TRACKED，故不再上版——由 seminar 測試確認它仍被認得。
     assert "預定掛牌 09/02" in out                            # 募集卡帶掛牌日副標
     # 核准組＝精簡列：未派碼檔顯示「代號未定」、不佔卡片（uprow 非 upcard）。
     # 列數／未派碼數由資料推導——條目會隨每輪發現增補，釘死數字只會每次都紅。
@@ -1010,3 +1017,44 @@ def test_上櫃收盤價_官方表不可得時行為與修法前一致(monkeypat
     i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00998A"]
     assert i["close_px"] == 17.30 and i["as_of"] == "2026-09-18" and i["src"] == "etfinfo+px"
     assert i["prev_px"] == 17.78 and i["prev_px_date"] == "2026-09-17"   # 降級照舊運作
+
+
+# ── NOT_TRACKED：「已掛牌、但刻意不追蹤」的第三種狀態（2026-09-21） ──────────────
+
+def test_not_tracked_來源是資料檔且欄位齊全():
+    """與 UPCOMING 同放 data/etf_upcoming.json（週掃只推資料檔即可自動入 main）。"""
+    doc = json.loads(etfwatch.UPCOMING_FP.read_text(encoding="utf-8"))
+    assert doc["not_tracked"] == etfwatch.NOT_TRACKED and etfwatch.NOT_TRACKED
+    for it in etfwatch.NOT_TRACKED:
+        assert it.get("code") and it.get("name") and it.get("why")   # why＝供日後複核
+        date.fromisoformat(it["asof"])
+
+
+def test_not_tracked_檔不再被判已掛牌未登錄():
+    """009829 大華銀韓國KOSPI50 實例：stale guard 與自動發現層原本互相矛盾——
+    掛牌逾 30 天依規清出 UPCOMING 後，發現層就天天判它「已掛牌未登錄」🔴 真漏網
+    （儀表板紅章＋4 個 pytest 紅）。列入 NOT_TRACKED 後不再警示。"""
+    from arm import etfdiscover
+    known, today = etfdiscover.known_codes(), date(2026, 9, 21)
+    seen = {"codes": {"009829": {"first": "2026-08-22", "name": "大華韓國KOSPI50"},
+                      "00999X": {"first": "2026-09-15", "name": "某檔真的沒登錄的新 ETF"}}}
+    codes = {g.get("code") for g in etfdiscover.listed_gaps(seen, known, today)}
+    assert "009829" not in codes                 # 已列 NOT_TRACKED → 不再誤報
+    assert "00999X" in codes                     # 真沒登錄的照樣抓到（不可把警示整個關掉）
+
+
+def test_not_tracked_載入失敗時退回原行為(monkeypatch, tmp_path):
+    """壞檔 fail-open 回 []＝該檔重新被警示（寧可多警示，不可靜默漏掉真的新 ETF）。"""
+    bad = tmp_path / "broken.json"
+    bad.write_text("{ not json", encoding="utf-8")
+    monkeypatch.setattr(etfwatch, "UPCOMING_FP", bad)
+    assert etfwatch._load_not_tracked() == []
+
+
+def test_gap檔讀取端剔除已登錄代碼():
+    """gap 檔是 CI 快照：補登後、下一輪重算前，舊版紅章會繼續掛著（補的人看不到生效）。
+    讀取端再濾一次 → 補登後下一次重建即滅章。count 要跟著重算，否則章上檔數與清單不一致。"""
+    from arm import etfdiscover
+    g = etfdiscover.load_gap()
+    assert all((i.get("code") or "") not in etfdiscover.known_codes() for i in g["items"])
+    assert g["count"] == len(g["items"])
