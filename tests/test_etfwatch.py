@@ -1058,3 +1058,27 @@ def test_gap檔讀取端剔除已登錄代碼():
     g = etfdiscover.load_gap()
     assert all((i.get("code") or "") not in etfdiscover.known_codes() for i in g["items"])
     assert g["count"] == len(g["items"])
+
+
+def test_落檔已被假bar汙染時_下一輪自動修正不需等來源恢復(monkeypatch):
+    """今日（2026-09-21）落檔已帶 chg_asof=9/20 的假值：0050 -7.15%、0056 0.00%。
+    雙向判準的附加好處——那個被沿用的髒值本身就會**觸發** L1／L2 去拿真值，
+    不必等 Yahoo 恢復。舊版判準（< as_of）對它是 False，會原地凍結。
+    此處刻意讓序列整個抓不到（最壞情況），驗證仍能自癒。"""
+    prev = {"items": [{"code": "0050", "close_px": 109.85, "as_of": "2026-09-18",
+                       "prev_px": 108.05, "prev_px_date": "2026-09-17",
+                       "chg_pct": -7.15, "chg_amt": -7.85, "chg_asof": "2026-09-20",
+                       "chg_src": "yahoo", "perf_asof": "2026-09-20"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(109.85, "2026-09-18"))
+    monkeypatch.setattr(etfwatch, "_fetch_returns", _boom)          # 序列整個抓不到
+    monkeypatch.setattr(etfwatch, "_official_day_quotes", _day_q({}))   # 官方表也不可得
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0050"]
+    # 退到 L2（etfinfo 前收）：109.85 / 108.05 - 1 = +1.67%，且日期與收盤價同日
+    assert i["chg_src"] == "etfinfo_prev" and i["chg_asof"] == "2026-09-18"
+    assert i["chg_pct"] == 1.67 and i["chg_pct"] > 0
+    from arm import fund_dashboard as fd
+    assert "mdstale" not in fd._chg_cell(i)        # 不再是 ⚠，是真數字
