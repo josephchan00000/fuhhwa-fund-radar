@@ -1049,11 +1049,17 @@ def _chg_cell(i: dict) -> str:
     # 判準用 chg_asof（漲跌所屬交易日）而非 perf_asof（序列末日）：兩者在 L1 備案下會不同
     # ——序列落後但 etfinfo 前收自算成功時，漲跌其實是當日的，不該被誤標過期。
     # 舊落檔沒有 chg_asof → 退回 perf_asof（與本防呆上線前的行為一致）。
+    # 2026-09-21：判準由「pa < ao」改為「pa != ao」——序列日期**超前**收盤價時同樣不可信。
+    # 當天 Yahoo 對 36 檔全回了一個 9/20（週日）的假 bar，chg_asof=9/20 > as_of=9/18，
+    # 舊判準放行 → 0050 掛 -7.15%、00998A 掛 +4.99%（實為 -2.70%）全部照常渲染。
+    # 兩個欄位來自不同來源並排時，「不同日」本身就是不可信的訊號，方向不分前後。
     ao = i.get("as_of")
     pa = i.get("chg_asof") or i.get("perf_asof")
-    if ao and pa and pa < ao:
-        tip = (f"報酬序列最新只到 {pa}，收盤價已是 {ao}——當日漲跌需兩者同日才算得準，"
-               f"暫不顯示以免與收盤價差一天（來源補上 {ao} 的日線後自動恢復）")
+    if ao and pa and pa != ao:
+        tip = ((f"報酬序列最新只到 {pa}，收盤價已是 {ao}" if pa < ao else
+                f"報酬序列的 {pa} 比收盤價的 {ao} 還新（來源回了未收盤或不存在的交易日）")
+               + f"——當日漲跌需兩者同日才算得準，暫不顯示以免與收盤價差一天"
+                 f"（來源補上 {ao} 的日線後自動恢復）")
         return (f'{_pct_span(None)}<span class="mdstale" title="{_esc(tip)}">'
                 f'⚠ 基準 {pa}</span>')
     amt, pc, pd_ = i.get("chg_amt"), i.get("prev_close"), i.get("prev_date")

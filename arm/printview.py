@@ -327,11 +327,16 @@ def _fund_table(rows: list[dict], marks: dict) -> tuple[str, int]:
 
 
 def _etf_chg(i: dict) -> str:
-    """當日漲跌：序列落後收盤價時不以舊值冒充（同 fund_dashboard._chg_cell 的防呆），印 —⚠。"""
+    """當日漲跌：序列與收盤價不同日時不以該值冒充（同 fund_dashboard._chg_cell 的防呆），印 —⚠。
+
+    2026-09-21 起判準為「≠」而非「<」：序列日期超前收盤價（來源回了週末／未收盤的假 bar）
+    同樣不可信——螢幕版與列印版必須同步，否則印出來的那份會留著螢幕上已擋掉的錯值。
+    """
     v = i.get("chg_pct")
     ao, pa = i.get("as_of"), (i.get("chg_asof") or i.get("perf_asof"))
-    if v is not None and ao and pa and pa < ao:
-        return f'<span class="na" title="報酬序列只到 {_esc(pa)}，收盤價已是 {_esc(ao)}">—<sup>⚠</sup></span>'
+    if v is not None and ao and pa and pa != ao:
+        return (f'<span class="na" title="報酬序列為 {_esc(pa)}、收盤價為 {_esc(ao)}'
+                f'，兩者不同日故不顯示">—<sup>⚠</sup></span>')
     return fd._pct_span(v)
 
 
