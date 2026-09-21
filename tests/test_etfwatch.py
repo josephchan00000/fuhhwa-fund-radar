@@ -182,7 +182,11 @@ def test_fetch_returns_prefers_first_dense_source(monkeypatch):
     monkeypatch.setattr(etfwatch, "_twse_series", lambda code, today: {})
     r = etfwatch._fetch_returns("0056", today=date(2026, 7, 6))
     assert r["ret_1w"] is not None and r["ret_1m"] is not None
-    assert r["perf_date"] == "2026-07-06" and r["ret_src"] == "finmind" and r["ret_n"] == 40
+    # ret_n＝「經日期防呆濾過後」的點數：_dense_series 是日曆日密序列（含週末），
+    # 而 _sane_series 會把週六日剔掉（台股不交易）——2026-09-21 起的正確行為。
+    weekdays = sum(1 for d in dense if date.fromisoformat(d).weekday() < 5)
+    assert r["perf_date"] == "2026-07-06" and r["ret_src"] == "finmind"
+    assert r["ret_n"] == weekdays < 40
 
 
 def test_fetch_returns_skips_degenerate_series(monkeypatch):
@@ -896,3 +900,113 @@ def test_當日漲跌_全部備案都落後時誠實記日期不假裝當日(mon
     assert i["chg_asof"] == "2026-09-01"          # 誠實記來源自報日（< as_of 9/2）
     from arm import fund_dashboard as fd
     assert "mdstale" in fd._chg_cell(i)           # 渲染端據此標過期、不冒充當日
+
+
+# ── 2026-09-21 事故：來源回了「週日」假 bar，整表當日漲跌與週／月報酬全錯 ──────────
+# 使用者回報：「ETF 的當日淨值上櫃的沒有更新到，當日股價變動%都沒有更新到」
+#             「你看你 00998A 整個數字都是錯的」
+
+def test_假bar_週末與未來日期一律剔除():
+    """Yahoo 2026-09-21 對 36 檔全回一個 9/20（週日）bar —— 台股週末不交易，不可能存在。"""
+    today = date(2026, 9, 21)                      # 週一
+    series = {"2026-09-16": 106.9, "2026-09-17": 108.05, "2026-09-18": 109.85,
+              "2026-09-19": 111.0,                 # 週六（假）
+              "2026-09-20": 102.0,                 # 週日（假）＝事故當天那個 bar
+              "2026-09-22": 120.0}                 # 未來日（假）
+    out = etfwatch._sane_series(series, today, "0050")
+    assert sorted(out) == ["2026-09-16", "2026-09-17", "2026-09-18"]
+    assert "2026-09-20" in etfwatch._BAD_BARS["0050"]      # 進 CI 日誌摘要
+
+
+def test_假bar_被剔除後當日漲跌與週月報酬都回到正確值():
+    """事故重現：0050 週五收 109.85、週四 108.05＝+1.67%。
+    假 bar（週日 102.0）若採信，會算成 -7.15%（方向相反、幅度離譜）。"""
+    today = date(2026, 9, 21)
+    good = {"2026-09-11": 105.0, "2026-09-16": 106.9,
+            "2026-09-17": 108.05, "2026-09-18": 109.85}
+    bad = dict(good, **{"2026-09-20": 102.0})
+
+    # 未濾：末兩點＝9/18 → 9/20，算出事故當天那個 -7.15%
+    r_bad = etfwatch._returns_from_series(bad)
+    assert r_bad["chg_pct"] == -7.15 and r_bad["perf_date"] == "2026-09-20"
+    # 已濾：末兩點回到 9/17 → 9/18
+    r_ok = etfwatch._returns_from_series(etfwatch._sane_series(bad, today))
+    assert r_ok["perf_date"] == "2026-09-18"
+    assert r_ok["chg_pct"] == 1.67 == etfwatch._returns_from_series(good)["chg_pct"]
+    assert r_ok["ret_1w"] == etfwatch._returns_from_series(good)["ret_1w"]   # 區間報酬同時止血
+
+
+def test_當日漲跌_序列日期超前收盤價時不採信改走官方當日表(monkeypatch):
+    """舊版判準只擋「序列落後」（chg_asof < as_of），**超前**反而直接勝出並繞過所有防線
+    ——2026-09-21 就是這樣讓 -7.15% 靜默上線的。超前只有兩種來路，都是壞資料：
+    週末／未來的假 bar，或盤中未收盤的 partial bar。"""
+    prev = {"items": [{"code": "0050", "close_px": 108.05, "as_of": "2026-09-17"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(109.85, "2026-09-18"))
+    # 序列硬回一個比 as_of 還新的日期（模擬防呆被繞過的情形）
+    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, today=None: {
+        "ret_1w": 1.0, "ret_1m": 2.0, "perf_date": "2026-09-20", "ret_src": "yahoo",
+        "chg_pct": -7.15, "chg_amt": -7.85, "prev_close": 109.85, "prev_date": "2026-09-18"})
+    monkeypatch.setattr(etfwatch, "_official_day_quotes",
+                        _day_q({"0050": {"date": "2026-09-18", "close": 109.85,
+                                         "change": 1.8, "name": "元大台灣50"}}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0050"]
+    assert i["chg_src"] == "twse_today" and i["chg_asof"] == "2026-09-18" == i["as_of"]
+    assert i["chg_pct"] == 1.67 and i["chg_pct"] > 0      # 事故版本是 -7.15%（方向相反）
+
+
+def test_上櫃收盤價_官方當日表覆蓋etfinfo落後一日的市價(monkeypatch):
+    """etfinfo 對上櫃檔的市價慢一個交易日、卻照樣把 mkt_date 標成當日
+    （2026-09-21 逐日實測：00998A etfinfo 17.30@9/18 其實是 9/17 的收盤，9/18 實為 17.22）。
+    官方全市場當日表同日也要覆蓋——上櫃的坑正是「日期相同、值差一天」。"""
+    prev = {"items": [{"code": "00998A", "close_px": 17.78, "as_of": "2026-09-17"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(17.30, "2026-09-18"))   # 落後一日的值
+    monkeypatch.setattr(etfwatch, "_fetch_returns", _boom)
+    monkeypatch.setattr(etfwatch, "_official_day_quotes",
+                        _day_q({"00998A": {"date": "2026-09-18", "close": 17.22,
+                                           "change": -0.08, "name": "主動復華金融股息"}}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00998A"]
+    assert i["close_px"] == 17.22 and i["as_of"] == "2026-09-18"   # 官方值勝出（非 17.30）
+    assert i["src"] == "official_px+etfinfo"
+    # 漲跌與收盤價同源同日 → 渲染端不會標過期
+    assert i["chg_asof"] == "2026-09-18" and i["chg_src"] == "twse_today"
+    from arm import fund_dashboard as fd
+    assert "mdstale" not in fd._chg_cell(i)
+
+
+def test_上櫃收盤價_官方表落後時不倒灌回舊值(monkeypatch):
+    """官方表自己停在舊日 → 不得把 as_of 往回拉、也不得覆蓋較新的 etfinfo 值。"""
+    prev = {"items": [{"code": "00998A", "close_px": 17.78, "as_of": "2026-09-17"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(17.30, "2026-09-18"))
+    monkeypatch.setattr(etfwatch, "_fetch_returns", _boom)
+    monkeypatch.setattr(etfwatch, "_official_day_quotes",
+                        _day_q({"00998A": {"date": "2026-09-17", "close": 17.78,
+                                           "change": 0.1, "name": "主動復華金融股息"}}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00998A"]
+    assert i["close_px"] == 17.30 and i["as_of"] == "2026-09-18"   # 維持 etfinfo 的較新日
+
+
+def test_上櫃收盤價_官方表不可得時行為與修法前一致(monkeypatch):
+    """day_q 空（本容器 proxy 擋 twse/tpex）→ 整段跳過，不改任何欄位（fail-open）。"""
+    prev = {"items": [{"code": "00998A", "close_px": 17.78, "as_of": "2026-09-17"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(17.30, "2026-09-18"))
+    monkeypatch.setattr(etfwatch, "_fetch_returns", _boom)
+    monkeypatch.setattr(etfwatch, "_official_day_quotes", _day_q({}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00998A"]
+    assert i["close_px"] == 17.30 and i["as_of"] == "2026-09-18" and i["src"] == "etfinfo+px"
+    assert i["prev_px"] == 17.78 and i["prev_px_date"] == "2026-09-17"   # 降級照舊運作

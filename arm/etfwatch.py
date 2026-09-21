@@ -623,6 +623,40 @@ def _is_degenerate(series: dict[str, float], relax: bool = False) -> bool:
     return n >= 10 and len(set(series.values())) < n * thr
 
 
+_BAD_BARS: dict[str, set[str]] = {}     # {code: 被剔除的日期}——fetch() 收尾印一行摘要
+
+
+def _sane_series(series: dict[str, float], today: date, code: str = "") -> dict[str, float]:
+    """剔除「不可能存在」的日期：未來日與週末日（台股週六／日不交易）。
+
+    **2026-09-21 踩坑（使用者：「00998A 整個數字都是錯的」）**：Yahoo 對全部 36 檔都多回
+    一個 **2026-09-20（週日）** 的 bar，整張表被它一手汙染——當日漲跌 0050 顯示 -7.15%、
+    0056 顯示 0.00%、00998A 顯示 +4.99%（實為 -2.70%，方向相反），連週／月報酬一起中毒
+    （00998A 一週 +4.66%／一月 +4.37%，實為約 +0.25%／-0.03%）。
+    而且**完全靜默**：那個假 bar 的日期比 etfinfo 資料日「還新」，L1／L2 備案與渲染端
+    過期章的判準當時都只看「序列落後」（chg_asof < as_of），三道防線一致放行。
+
+    根因是「來源給什麼就收什麼」＝把不可能的日期當事實。在入口一次濾掉，當日漲跌與
+    區間報酬同時止血（兩者都讀同一條序列）。
+
+    註：台股偶有颱風補行交易的週六（如 2021-02-20），本濾網會連那天一起丟。代價可接受
+    ——區間報酬有 12 天基準容差、當日漲跌另有官方當日表（L1）頂上，而「丟掉一個真 bar」
+    遠輕於「採信一個假 bar」（寧缺勿錯，同 _md_stale_badge 的取捨）。
+    """
+    out: dict[str, float] = {}
+    for d, c in (series or {}).items():
+        try:
+            dt = date.fromisoformat(str(d)[:10])
+        except (TypeError, ValueError):
+            _BAD_BARS.setdefault(code, set()).add(str(d))    # 版式漂移：日期格式不對，不收
+            continue
+        if dt > today or dt.weekday() >= 5:                  # 未來日／週六日＝不可能的交易日
+            _BAD_BARS.setdefault(code, set()).add(str(d)[:10])
+            continue
+        out[d] = c
+    return out
+
+
 def _official_day_quotes() -> dict[str, dict]:
     """官方全市場「當日收盤」表 → {code: {date, close, change, …}}（上市＋上櫃各 1 請求）。
 
@@ -658,7 +692,7 @@ def _fetch_returns(code: str, today: date | None = None) -> dict:
                        ("yahoo", lambda: _yahoo_series(code)),
                        ("finmind", lambda: _finmind_series(code, today)),
                        ("twse", lambda: _twse_series(code, today))):
-        series = fetch()
+        series = _sane_series(fetch(), today, code)   # 先濾掉不可能的日期（未來／週末）
         n = len(series)
         if n < 5 or _is_degenerate(series, relax=relax):  # 太短或髒（重複值）→ 換下一來源
             continue
@@ -738,10 +772,11 @@ def fetch() -> dict:
                 "src": old.get("src") or "seed"}
         # ① 規模／收盤價／配息（實際＋預估）／殖利率／頻率 ← etfinfo
         yield_from_src = False        # etfinfo 本輪是否給了殖利率（否→步驟④可用配息+收盤自算）
+        # 覆蓋前的落檔快照（①-b 官方表覆蓋與 prev_px 降級都要用 → 提到 try 之外）
+        px_before, asof_before = item.get("close_px"), item.get("as_of")
         try:
             m = _fetch_market(code)
             aum = _norm_aum_e8(m.get("aum_raw"), item["aum_e8"])
-            px_before, asof_before = item.get("close_px"), item.get("as_of")  # 覆蓋前的落檔快照
             for k, v in (("aum_e8", aum), ("close_px", m.get("close_px")),
                          ("yield_pct", m.get("yield_pct")), ("freq", m.get("freq")),
                          ("last_div", m.get("last_div")), ("last_div_date", m.get("last_div_date"))):
@@ -754,14 +789,35 @@ def fetch() -> dict:
                 item["src"] = "etfinfo+px"
                 if m.get("mkt_date"):
                     item["as_of"] = str(m["mkt_date"])[:10]
-                # 資料日「真的推進」才把舊收盤降級為前收——同一資料日重抓時若照降，
-                # prev_px 會被洗成今天自己、當日漲跌永遠算成 0（同 etfholdings 的假無異動坑）。
-                if (asof_before and item.get("as_of") and item["as_of"] > asof_before
-                        and px_before is not None):
-                    item["prev_px"], item["prev_px_date"] = px_before, asof_before
                 got_mkt += 1
         except Exception as e:                     # proxy 擋站/斷網 → 沿用 fallback 值
             print(f"  ⚠ {code} 規模／殖利率抓取失敗（沿用既有值／週報底稿）：{e}")
+
+        # ①-b 收盤價／資料日以「官方全市場當日收盤表」為準（2026-09-21 使用者回報
+        # 「ETF 的當日淨值上櫃的沒有更新到」）──**etfinfo 對上櫃檔的市價慢一個交易日、
+        # 卻照樣把 mkt_date 標成當日**，實測逐日成立（etfinfo close_px@D == 官方收盤@D-1）：
+        #   00998A etfinfo 17.30@9/18 ＝ 9/17 收盤（9/18 實為 17.22）
+        #   00411A etfinfo  9.91@9/18 ＝ 9/17 收盤（9/18 實為 10.13）
+        #   00986D etfinfo 14.17@9/18 ＝ 9/17 收盤（9/18 實為 14.20）
+        # 上市檔（0050 等 32 檔）則逐日與官方同值——所以這是 etfinfo 的上櫃口徑問題，
+        # 不是我們的合併邏輯。原本唯一能修正它的路徑（序列末值回填）被 `close_px is None`
+        # 擋住＝**只有史上第一輪會生效**，之後永遠沿用 etfinfo 的落後值。
+        # 修法＝改用 day_q：官方權威（非 Tier B）、市價口徑與 close_px 一致、
+        # **整輪只 2 請求且已在 L1 取過**（零額外成本），日期同源＝與 L1 漲跌天然同日。
+        # 同日也覆蓋（不只更新日）：上櫃的坑正是「日期相同、值差一天」。
+        # day_q 取不到（本容器 proxy 擋 twse/tpex）→ 整段跳過，行為與修法前一致（fail-open）。
+        q0 = day_q.get(code) or {}
+        qc0, qd0 = q0.get("close"), q0.get("date")
+        if qc0 and qd0 and (not item.get("as_of") or str(qd0)[:10] >= item["as_of"]):
+            item["close_px"], item["as_of"] = round(float(qc0), 4), str(qd0)[:10]
+            item["src"] = "official_px+etfinfo"
+
+        # 資料日「真的推進」才把舊收盤降級為前收——同一資料日重抓時若照降，
+        # prev_px 會被洗成今天自己、當日漲跌永遠算成 0（同 etfholdings 的假無異動坑）。
+        # 置於 ①-b 之後：判準要用最終 as_of（官方表可能比 etfinfo 更新）。
+        if (asof_before and item.get("as_of") and item["as_of"] > asof_before
+                and px_before is not None):
+            item["prev_px"], item["prev_px_date"] = px_before, asof_before
 
         # ② 過去一週／一月報酬 ← Yahoo 還原收盤／FinMind／TWSE（依序取密序列）自算
         try:
@@ -800,8 +856,12 @@ def fetch() -> dict:
         # 漲跌基準 ref＝close − change：除息日證交所的 change 本就對「除息參考價」計算，
         # 與 _returns_from_series 的除息處理同口徑，不必另外扣息。
         # 以來源自報的 date 當 chg_asof——官方表若自己也落後，渲染端的日期判準會照樣揭露。
+        # 判準是「≠ as_of」而非「< as_of」（2026-09-21）：序列日期**超前**收盤價時同樣
+        # 不可信——實測超前只有兩種來路，都是壞資料：①週末／未來的假 bar（9/20 那次）；
+        # ②盤中未收盤的 partial bar（9/17 09:28 那輪 0050 給 +2.07%，收盤實為 +1.69%）。
+        # 舊版只擋「落後」，超前反而直接勝過官方備案並繞過渲染端過期章＝完全靜默。
         ao = item.get("as_of")
-        if ao and (not item.get("chg_asof") or item["chg_asof"] < ao):
+        if ao and (not item.get("chg_asof") or item["chg_asof"] != ao):
             q = day_q.get(code) or {}
             qc, qch, qd = q.get("close"), q.get("change"), q.get("date")
             if qc and qch is not None and qd:
@@ -821,7 +881,7 @@ def fetch() -> dict:
         # 零額外請求。僅在序列與官方當日表都給不出當日時接手；序列夠新時一律讓序列走
         # （它帶除息還原資訊）。
         ao = item.get("as_of")
-        if ao and (not item.get("chg_asof") or item["chg_asof"] < ao):
+        if ao and (not item.get("chg_asof") or item["chg_asof"] != ao):   # 同上：超前也算不一致
             ppx, ppd = item.get("prev_px"), item.get("prev_px_date")
             px = item.get("close_px")
             if px is not None and ppx is not None and ppd and ppd < ao:
@@ -885,6 +945,12 @@ def fetch() -> dict:
     if got_chg_off or got_chg_l1:
         print(f"  ℹ 當日漲跌走備案：官方當日表 {got_chg_off} 檔、etfinfo 前收自算 {got_chg_l1} 檔"
               f"——主序列缺當日 bar，非資料錯誤；持續發生請查 Yahoo/stooq 當日日線")
+    # 假 bar 剔除摘要（2026-09-21）：常態應為 0 行。多檔同時出現同一個日期＝來源整批回了
+    # 不可能的交易日（9/20 那次 36 檔全中），這行是唯一看得見它的地方。
+    if _BAD_BARS:
+        dates = sorted({d for ds in _BAD_BARS.values() for d in ds})
+        print(f"  ⚠ 已剔除來源回傳的「不可能交易日」bar：{len(_BAD_BARS)} 檔、日期 {dates}"
+              f"——未來日或週末日，採信會汙染當日漲跌與週／月報酬（2026-09-21 踩坑）")
     as_of = max((i.get("as_of") or "" for i in items), default="") or \
         (load() or {}).get("as_of") or clock.today_tw().isoformat()
     est_note = f"；當月預估配息 ← 投信公告／MOPS（{got_est} 檔）" if got_est else ""
