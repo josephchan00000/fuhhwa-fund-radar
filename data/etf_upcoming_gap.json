@@ -1,6 +1,6 @@
 {
- "as_of": "2026-09-21 09:06",
- "count": 5,
+ "as_of": "2026-09-22 09:38",
+ "count": 7,
  "items": [
   {
    "code": null,
@@ -45,6 +45,26 @@
   },
   {
    "code": null,
+   "name": "摩根收益傘型之摩根歐洲鑫收益主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "主動式ETF",
+   "approve": "115.9.22申報生效"
+  },
+  {
+   "code": null,
+   "name": "摩根收益傘型之摩根日本鑫收益主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "主動式ETF",
+   "approve": "115.9.22申報生效"
+  },
+  {
+   "code": null,
    "name": "中國信託台灣聚焦成長主動式ETF基金",
    "first_seen": null,
    "kind": "offering",
@@ -54,7 +74,7 @@
    "approve": "115.9.8申報生效"
   }
  ],
- "pipeline_n": 7,
+ "pipeline_n": 5,
  "pipeline": [
   {
    "code": null,
@@ -85,26 +105,6 @@
    "stage": "applied",
    "cat": "ETF",
    "approve": "審查中"
-  },
-  {
-   "code": null,
-   "name": "摩根收益傘型之摩根歐洲鑫收益主動式ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "主動式ETF",
-   "approve": "115.9.22申報生效"
-  },
-  {
-   "code": null,
-   "name": "摩根收益傘型之摩根日本鑫收益主動式ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "主動式ETF",
-   "approve": "115.9.22申報生效"
   },
   {
    "code": null,
