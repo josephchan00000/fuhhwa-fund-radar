@@ -214,6 +214,30 @@ def test_fetch_returns_accepts_equal_bases_when_series_varied(monkeypatch):
     assert not hasattr(etfwatch, "_same_base_price")             # 舊守衛確已移除
 
 
+def test_yahoo_series_drops_weekend_bars(monkeypatch):
+    # 2026-09-21 踩坑：Yahoo chart API 對台股 ETF 偶發回傳一筆週日日期的假 bar
+    # （2026-09-20，週日）取代真正的最新交易日（2026-09-18，週五），害「當日漲跌」
+    # 全面算成假值（0050 一度顯示 -7.15%，當天大盤實際上漲）。_yahoo_series 須把
+    # 台股不可能交易的六、日 bar 一律濾除，讓序列末筆回到真正的最新交易日。
+    import arm.http as http_mod
+    from arm.clock import TW_TZ
+    from datetime import datetime as _dt
+
+    def _ts(iso: str) -> int:
+        return int(_dt.combine(date.fromisoformat(iso), _dt.min.time(),
+                                tzinfo=TW_TZ).timestamp())
+
+    fake = {"chart": {"result": [{
+        "timestamp": [_ts("2026-09-17"), _ts("2026-09-18"), _ts("2026-09-20")],
+        "indicators": {"quote": [{"close": [10.13, 9.91, 9.50]}]},
+        "events": {},
+    }]}}
+    monkeypatch.setattr(http_mod, "get_json", lambda url, **kw: fake)
+    series = etfwatch._yahoo_series("00411A")
+    assert "2026-09-20" not in series                              # 週日 bar 已濾除
+    assert series == {"2026-09-17": 10.13, "2026-09-18": 9.91}      # 只留真正的交易日
+
+
 def test_returns_add_back_dividend_in_window():
     # 2026-07-22 教訓：原始收盤跨除息日會把配息當跌幅（006208 7/16 除息 4.75，一週報酬比
     # 同指數 0050 多跌整整一個股息）→ 區間內除息須加回（總報酬口徑）。

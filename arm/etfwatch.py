@@ -510,8 +510,10 @@ def _yahoo_series(code: str) -> dict[str, float]:
         c = raw[i] if i < len(raw) and raw[i] is not None else \
             (adj[i] if i < len(adj) and adj[i] is not None else None)
         if c:
-            iso = datetime.fromtimestamp(t, clock.TW_TZ).date().isoformat()
-            out[iso] = float(c)
+            d = datetime.fromtimestamp(t, clock.TW_TZ).date()
+            if d.weekday() >= 5:      # 六、日：台股從不交易，過濾 Yahoo 偶發的週末錯位假 bar
+                continue               # （2026-09-21 踩坑：整批 ETF 當日漲跌被灌成週日錯值）
+            out[d.isoformat()] = float(c)
     return out
 
 
