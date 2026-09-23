@@ -134,7 +134,7 @@ def test_fetch_fills_estimate_from_mops_for_current_month(monkeypatch):
     today = date(2026, 7, 6)
     monkeypatch.setattr(etfwatch, "load", lambda: None)
     monkeypatch.setattr(etfwatch, "_fetch_market", lambda code: {})      # etfinfo 無配息/預估
-    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code: {"ret_1w": None, "ret_1m": None,
+    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, **k: {"ret_1w": None, "ret_1m": None,
                                                                   "perf_date": None, "ret_src": None})
     monkeypatch.setattr(etfwatch.clock, "today_tw", lambda: today)
     monkeypatch.setattr(etfwatch, "ANNOUNCED_EST", {})   # 隔離：本測試只驗 MOPS 來源
@@ -258,7 +258,7 @@ def test_fetch_fills_close_px_and_last_div_for_tpex_codes(monkeypatch):
     monkeypatch.setattr(etfwatch, "load", lambda: None)
     monkeypatch.setattr(etfwatch, "_fetch_market", _boom)     # etfinfo 全倒（上櫃檔常態）
     monkeypatch.setattr(etfwatch, "_fetch_returns",
-                        lambda code: {"ret_1w": -0.29, "ret_1m": 1.48, "perf_date": "2026-07-21",
+                        lambda code, **k: {"ret_1w": -0.29, "ret_1m": 1.48, "perf_date": "2026-07-21",
                                       "ret_src": "yahoo", "ret_n": 64, "last_close": 17.13,
                                       "ret_1w_base": "2026-07-14=17.18",
                                       "ret_1m_base": "2026-06-18=16.88"})
@@ -776,7 +776,7 @@ def test_當日漲跌_序列缺當日bar時走L1備案由etfinfo前收自算(mon
     monkeypatch.setattr(etfwatch, "load", lambda: prev)
     monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(106.8, "2026-09-02"))
     # 序列只到 9/1：末兩點給出「9/1 vs 8/31」的舊漲跌（正是事故當天的形狀）
-    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, today=None: {
+    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, today=None, **k: {
         "ret_1w": 3.88, "ret_1m": 5.44, "perf_date": "2026-09-01", "ret_src": "yahoo",
         "chg_pct": 2.07, "chg_amt": 2.2, "prev_close": 106.25, "prev_date": "2026-08-31"})
     import arm.connectors.mops as mops
@@ -799,7 +799,7 @@ def test_當日漲跌_序列夠新時不啟用L1(monkeypatch):
     prev = {"items": [{"code": "0050", "close_px": 108.45, "as_of": "2026-09-01"}]}
     monkeypatch.setattr(etfwatch, "load", lambda: prev)
     monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(106.8, "2026-09-02"))
-    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, today=None: {
+    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, today=None, **k: {
         "ret_1w": 1.0, "ret_1m": 2.0, "perf_date": "2026-09-02", "ret_src": "yahoo",
         "chg_pct": -1.52, "chg_amt": -1.65, "prev_close": 108.45, "prev_date": "2026-09-01"})
     import arm.connectors.mops as mops
@@ -856,7 +856,7 @@ def test_當日漲跌_序列缺當日bar時優先用官方當日收盤表(monkey
                        "prev_px": 106.25, "prev_px_date": "2026-08-31"}]}
     monkeypatch.setattr(etfwatch, "load", lambda: prev)
     monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(106.8, "2026-09-02"))
-    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, today=None: {
+    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, today=None, **k: {
         "ret_1w": 3.88, "ret_1m": 5.44, "perf_date": "2026-09-01", "ret_src": "yahoo",
         "chg_pct": 2.07, "chg_amt": 2.2, "prev_close": 106.25, "prev_date": "2026-08-31"})
     # 官方表：9/2 收 106.80、跌 1.65（＝前收 108.45）
@@ -951,7 +951,7 @@ def test_當日漲跌_序列日期超前收盤價時不採信改走官方當日�
     monkeypatch.setattr(etfwatch, "load", lambda: prev)
     monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(109.85, "2026-09-18"))
     # 序列硬回一個比 as_of 還新的日期（模擬防呆被繞過的情形）
-    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, today=None: {
+    monkeypatch.setattr(etfwatch, "_fetch_returns", lambda code, today=None, **k: {
         "ret_1w": 1.0, "ret_1m": 2.0, "perf_date": "2026-09-20", "ret_src": "yahoo",
         "chg_pct": -7.15, "chg_amt": -7.85, "prev_close": 109.85, "prev_date": "2026-09-18"})
     monkeypatch.setattr(etfwatch, "_official_day_quotes",
@@ -1082,3 +1082,58 @@ def test_落檔已被假bar汙染時_下一輪自動修正不需等來源恢復(
     assert i["chg_pct"] == 1.67 and i["chg_pct"] > 0
     from arm import fund_dashboard as fd
     assert "mdstale" not in fd._chg_cell(i)        # 不再是 ⚠，是真數字
+
+
+# ── 報酬序列錨定官方當日收盤（2026-09-23 使用者：「所有的報酬率都是錯的」） ──────
+
+def _ser(end: date, n: int = 40, px: float = 100.0) -> dict[str, float]:
+    out, d = {}, end
+    while len(out) < n:
+        if d.weekday() < 5:
+            out[d.isoformat()] = px - len(out) * 0.1      # 越早越低
+        d -= timedelta(days=1)
+    return out
+
+
+def test_anchor_appends_official_close_when_series_lags_one_day():
+    """重現 9/22：Yahoo 序列停在 9/21、收盤價已是 9/22 → 補上官方 9/22，報酬與收盤價同日。"""
+    s = _ser(date(2026, 9, 21))
+    out = etfwatch._anchor_series(s, {"date": "2026-09-22", "close": 111.85})
+    assert max(out) == "2026-09-22" and out["2026-09-22"] == 111.85
+    r = etfwatch._returns_from_series(out)
+    assert r["perf_date"] == "2026-09-22" and r["prev_date"] == "2026-09-21"
+    assert r["ret_1w_base"].startswith("2026-09-15")      # 基準日跟著推進一天
+
+
+def test_anchor_across_weekend_is_one_trading_day():
+    s = _ser(date(2026, 9, 18))                           # 週五
+    out = etfwatch._anchor_series(s, {"date": "2026-09-21", "close": 1.0})   # 週一
+    assert "2026-09-21" in out
+
+
+def test_anchor_does_not_bridge_missing_trading_days():
+    """落後超過一個交易日 → 不硬接（中間缺日會讓當日漲跌算成兩天的漲幅）。"""
+    s = _ser(date(2026, 9, 17))
+    out = etfwatch._anchor_series(s, {"date": "2026-09-22", "close": 1.0})
+    assert "2026-09-22" not in out and max(out) == "2026-09-17"
+
+
+def test_anchor_drops_bars_newer_than_official_and_overrides_same_day():
+    """序列末日比官方日還新＝盤中 partial bar → 丟；同日不同值 → 官方為準。"""
+    s = _ser(date(2026, 9, 23))
+    out = etfwatch._anchor_series(s, {"date": "2026-09-22", "close": 99.0})
+    assert max(out) == "2026-09-22" and out["2026-09-22"] == 99.0
+
+
+def test_anchor_missing_is_noop():
+    s = _ser(date(2026, 9, 21))
+    assert etfwatch._anchor_series(s, None) == s
+    assert etfwatch._anchor_series(s, {"date": "2026-09-22", "close": None}) == s
+
+
+def test_fetch_returns_uses_anchor(monkeypatch):
+    monkeypatch.setattr(etfwatch, "_stooq_series", lambda code: {})
+    monkeypatch.setattr(etfwatch, "_yahoo_series", lambda code: _ser(date(2026, 9, 21)))
+    r = etfwatch._fetch_returns("0050", today=date(2026, 9, 23),
+                                anchor={"date": "2026-09-22", "close": 111.85})
+    assert r["perf_date"] == "2026-09-22" and r["last_close"] == 111.85
