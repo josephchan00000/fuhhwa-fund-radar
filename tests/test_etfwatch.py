@@ -1001,7 +1001,8 @@ def test_上櫃收盤價_官方表落後時不倒灌回舊值(monkeypatch):
     monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
 
     i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00998A"]
-    assert i["close_px"] == 17.30 and i["as_of"] == "2026-09-18"   # 維持 etfinfo 的較新日
+    # 2026-09-23 起上櫃不收 etfinfo 市價（慢一天卻標當日）→ 以官方表為準，即使官方日較舊
+    assert i["close_px"] == 17.78 and i["as_of"] == "2026-09-17"
 
 
 def test_上櫃收盤價_官方表不可得時行為與修法前一致(monkeypatch):
@@ -1015,8 +1016,9 @@ def test_上櫃收盤價_官方表不可得時行為與修法前一致(monkeypat
     monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
 
     i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00998A"]
-    assert i["close_px"] == 17.30 and i["as_of"] == "2026-09-18" and i["src"] == "etfinfo+px"
-    assert i["prev_px"] == 17.78 and i["prev_px_date"] == "2026-09-17"   # 降級照舊運作
+    # 上櫃不收 etfinfo 市價：官方表不可得時沿用既有收盤，不被 etfinfo 的前一日值冒充當日
+    assert i["close_px"] == 17.78 and i["as_of"] == "2026-09-17"
+    assert i.get("prev_px") is None                                     # 資料日未推進 → 不降級
 
 
 # ── NOT_TRACKED：「已掛牌、但刻意不追蹤」的第三種狀態（2026-09-21） ──────────────
@@ -1137,3 +1139,36 @@ def test_fetch_returns_uses_anchor(monkeypatch):
     r = etfwatch._fetch_returns("0050", today=date(2026, 9, 23),
                                 anchor={"date": "2026-09-22", "close": 111.85})
     assert r["perf_date"] == "2026-09-22" and r["last_close"] == 111.85
+
+
+def test_上櫃_官方表未更新時不把etfinfo前一日價標成當日(monkeypatch):
+    """重現 2026-09-23 15:35：官方表仍是 9/22、etfinfo 給 00998A 17.16@9/23（實為 9/22 收盤）
+    → 舊版 as_of 推進到 9/23、當日漲跌 0.00%。修後維持官方 9/22，不假裝當日。"""
+    prev = {"items": [{"code": "00998A", "close_px": 17.16, "as_of": "2026-09-22"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(17.16, "2026-09-23"))
+    monkeypatch.setattr(etfwatch, "_fetch_returns", _boom)
+    monkeypatch.setattr(etfwatch, "_official_day_quotes",
+                        _day_q({"00998A": {"date": "2026-09-22", "close": 17.16, "change": 0.12}}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00998A"]
+    assert i["as_of"] == "2026-09-22" and i.get("prev_px") is None
+
+
+def test_上市_官方表未更新時報酬錨定etfinfo收盤(monkeypatch):
+    """上市 etfinfo 與官方同值 → 官方表未更新時以 etfinfo 當日收盤當錨點，報酬與收盤價同日。"""
+    prev = {"items": [{"code": "0050", "close_px": 111.85, "as_of": "2026-09-22"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(112.45, "2026-09-23"))
+    monkeypatch.setattr(etfwatch, "_official_day_quotes", _day_q({}))
+    seen = {}
+
+    def fake(code, today=None, anchor=None):
+        seen[code] = anchor
+        return {"ret_1w": None, "ret_1m": None, "perf_date": None}
+    monkeypatch.setattr(etfwatch, "_fetch_returns", fake)
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+    etfwatch.fetch()
+    assert seen["0050"] == {"date": "2026-09-23", "close": 112.45}
