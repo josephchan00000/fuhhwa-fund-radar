@@ -702,7 +702,43 @@ def _official_day_quotes() -> dict[str, dict]:
     return out
 
 
-def _fetch_returns(code: str, today: date | None = None) -> dict:
+def _anchor_series(series: dict[str, float], anchor: dict | None) -> dict[str, float]:
+    """把報酬序列「錨定」到官方當日收盤（2026-09-23 使用者：「所有的報酬率都是錯的」）。
+
+    收盤價走官方當日表（①-b），週／月報酬卻讀 Yahoo 序列——兩者各自降級、從不對齊：
+    9/22 晚間起上市 31 檔的序列停在 9/21，表上是「9/22 收盤 111.85」配「截至 9/21 的一週
+    +4.16%」（實為 +5.27%）；02:00 那輪連上櫃檔也拿到落後序列，00998A 一週從 -0.94% 跳成
+    -1.72%。報酬數字每一班都在跳，因為每一班 Yahoo 回的序列末日不一樣。
+    修法＝以官方當日表（與 close_px 同一個數字、同一天）為準：
+      · 序列日期晚於官方日 → 丟掉（盤中 partial bar 或假 bar）；
+      · 官方日已在序列 → 以官方收盤覆蓋（同日不同值時官方為準）；
+      · 序列只落後「一個交易日」→ 補上官方這一點（中間沒有缺日，前收仍是真的前一交易日）；
+      · 落後更多 → 不補（中間缺日會讓當日漲跌與基準失真），維持序列原樣、由上層揭露。
+    口徑：Yahoo 取原始收盤（quote.close），與官方收盤同為市價，可直接拼接；除息另由
+    _DIV_EVENTS 加回，不受影響。anchor 缺值（容器 proxy 擋 twse/tpex）→ 原樣回傳（fail-open）。"""
+    ad, ac = (anchor or {}).get("date"), (anchor or {}).get("close")
+    if not series or not ad or not ac:
+        return series
+    ad = str(ad)[:10]
+    try:
+        a_d = date.fromisoformat(ad)
+    except ValueError:
+        return series
+    out = {d: c for d, c in series.items() if d <= ad}
+    if not out:
+        return series
+    last = max(out)
+    if last == ad:
+        out[ad] = float(ac)
+        return out
+    gap = [a_d - timedelta(days=i) for i in range(1, (a_d - date.fromisoformat(last)).days)]
+    if any(g.weekday() < 5 for g in gap):                 # 中間還有平日沒資料 → 不硬接
+        return out
+    out[ad] = float(ac)
+    return out
+
+
+def _fetch_returns(code: str, today: date | None = None, anchor: dict | None = None) -> dict:
     """過去一週／一月報酬 —— 多來源、單檔單請求，取第一個「乾淨且夠密」的序列。
 
     來源順序：stooq（乾淨日線）→ Yahoo → FinMind → TWSE。序列須 ≥ _MIN_SERIES 點且非「重複值
@@ -717,6 +753,7 @@ def _fetch_returns(code: str, today: date | None = None) -> dict:
                        ("finmind", lambda: _finmind_series(code, today)),
                        ("twse", lambda: _twse_series(code, today))):
         series = _sane_series(fetch(), today, code)   # 先濾掉不可能的日期（未來／週末）
+        series = _anchor_series(series, anchor)       # 對齊官方當日收盤（與 close_px 同日）
         n = len(series)
         if n < 5 or _is_degenerate(series, relax=relax):  # 太短或髒（重複值）→ 換下一來源
             continue
@@ -845,7 +882,7 @@ def fetch() -> dict:
 
         # ② 過去一週／一月報酬 ← Yahoo 還原收盤／FinMind／TWSE（依序取密序列）自算
         try:
-            r = _fetch_returns(code)
+            r = _fetch_returns(code, anchor=q0 if qc0 and qd0 else None)
             if r.get("ret_1w") is not None:
                 item["ret_1w"] = r["ret_1w"]
             if r.get("ret_1m") is not None:

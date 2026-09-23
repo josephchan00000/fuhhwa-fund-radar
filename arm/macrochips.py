@@ -72,8 +72,32 @@ def _norm_yield(v: float) -> float:
     return round(v / 10.0, 4) if v > 20 else round(v, 4)
 
 
-def _yahoo_series(sym: str, norm=None) -> dict[str, float]:
-    """Yahoo 圖表 API 近 1 個月日線 → {ISO日期: 收盤}。norm＝逐值正規化函式（如殖利率）。失敗回 {}。"""
+# 「只收收盤值」的美股時段標的（2026-09-23 使用者：「你的費半又抓到盤中資料了」）。
+# 盤後刷新班次（台北 22:30／01:00／02:00）落在美股盤中，Yahoo 日線的「當日 bar」此時是
+# **盤中即時價**，照收就入檔成當日收盤——9/22 那天 02:00 班寫入費半 12,617.21（盤中），
+# 06:35 晨報照抄成「收 12,617.21、+1.48%」，實際收盤 12,689.82（+2.06%）；ADR 448.97 vs 452.00。
+# 05:08 收盤班沒跑到時，錯值就這樣一路進報告。修法＝盤中 bar 一律不收、並把先前誤收的同日值剔除
+# （見 fetch()）；收盤後的班次才寫入當日值。期貨／外匯（油、金、美元、台幣）近 24 小時交易、
+# 溫度計本來就顯示最新價，不在此列。
+_CLOSE_ONLY = {"sox", "tsm_adr", "vix"}
+_OPEN_BAR: dict[str, str] = {}        # {Yahoo 代碼: 盤中未收盤 bar 的 ISO 日}——fetch() 據以剔除舊值
+
+
+def _open_session_start(meta: dict, now_ts: float) -> float | None:
+    """Yahoo meta.currentTradingPeriod.regular 正處於交易時段 → 回該時段開盤時戳；否則 None。"""
+    reg = ((meta or {}).get("currentTradingPeriod") or {}).get("regular") or {}
+    st, en = reg.get("start"), reg.get("end")
+    if isinstance(st, (int, float)) and isinstance(en, (int, float)) and st <= now_ts < en:
+        return float(st)
+    return None
+
+
+def _yahoo_series(sym: str, norm=None, close_only: bool = False) -> dict[str, float]:
+    """Yahoo 圖表 API 近 1 個月日線 → {ISO日期: 收盤}。norm＝逐值正規化函式（如殖利率）。失敗回 {}。
+
+    close_only＝美股時段標的：現在若仍在交易時段，丟掉時戳 ≥ 本時段開盤的 bar（盤中值），
+    並把該日記進 _OPEN_BAR 供上層剔除先前誤收的同日值。"""
+    _OPEN_BAR.pop(sym, None)
     try:
         url = ("https://query1.finance.yahoo.com/v8/finance/chart/"
                f"{urllib.parse.quote(sym)}?range=1mo&interval=1d")
@@ -86,11 +110,16 @@ def _yahoo_series(sym: str, norm=None) -> dict[str, float]:
     except Exception:
         return {}
     from datetime import datetime, timezone
+    import time
+    open_st = _open_session_start(res.get("meta") or {}, time.time()) if close_only else None
     out: dict[str, float] = {}
     for t, c in zip(ts, closes):
+        iso = datetime.fromtimestamp(t, timezone.utc).date().isoformat()
+        if open_st is not None and t >= open_st:          # 盤中 bar：不是收盤值，不收
+            _OPEN_BAR[sym] = iso
+            continue
         if c is None:
             continue
-        iso = datetime.fromtimestamp(t, timezone.utc).date().isoformat()
         val = float(c)
         out[iso] = norm(val) if norm else round(val, 4)
     return out
@@ -526,8 +555,12 @@ def fetch() -> dict:
 
     # ① 全球溫度計 ← Yahoo（^TNX 為殖利率×10）
     for key, _label, sym in GLOBAL_SPECS:
-        new = _yahoo_series(sym, norm=_norm_yield if key == "us10y" else None)
+        new = _yahoo_series(sym, norm=_norm_yield if key == "us10y" else None,
+                            close_only=key in _CLOSE_ONLY)
         series[key] = _merge(series[key], new)
+        ob = _OPEN_BAR.get(sym)
+        if ob and series[key].pop(ob, None) is not None:  # 先前班次誤收的盤中值 → 剔除，收盤後再補
+            print(f"  ⚠ {key}: 剔除 {ob} 盤中值（美股尚未收盤，收盤後班次再寫入）")
         _note(key, len(new), f"yahoo:{sym}")
 
     # ② 三大法人買賣超（TWSE BFI82U，逐日補缺）：合計＋外資／投信／自營商分項
