@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/24 06:38",
+  "as_of": "2026/09/24 06:41",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -9,13 +9,6 @@
       "source": "放言Fount Media",
       "date": "2026-09-22 16:36",
       "datetime": "2026-09-22T16:36:47+08:00"
-    },
-    {
-      "title": "九倍女戰神大戰瑤池金母！00418A對上2,693億的00981A　同一個選股池開打",
-      "url": "https://finance.ettoday.net/news/3240092",
-      "source": "ETtoday財經雲",
-      "date": "2026-09-18 20:54",
-      "datetime": "2026-09-18T20:54:00+08:00"
     }
   ],
   "funds": [
@@ -525,7 +518,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/shorts/bZxJHj7SdFI",
       "date": "2026-09-22",
-      "views": 15237,
+      "views": 15248,
       "short": true
     },
     {
@@ -550,7 +543,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=ljvn6cLqGGw",
       "date": "2026-09-21",
-      "views": 291711,
+      "views": 291739,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -560,7 +553,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/Qr5bxWbJ2b4",
       "date": "2026-09-22",
-      "views": 276839,
+      "views": 276845,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -591,7 +584,7 @@
       "channel": "台灣Cheers",
       "url": "https://www.youtube.com/watch?v=prTsbbKir5c",
       "date": "2026-09-20",
-      "views": 182613,
+      "views": 182633,
       "peer": true,
       "cat": "高股息"
     },
@@ -601,7 +594,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=pKhK6PciBQs",
       "date": "2026-09-21",
-      "views": 171014,
+      "views": 171016,
       "peer": true,
       "cat": "綜合"
     },
@@ -650,6 +643,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、（詳下方新聞標籤）",
     "品牌焦點：AI推動千金股遍地開花 投信搶推中小型股ETF（放言Fount Media）",
     "社群聲量最高：美伊衝突下，近半年70％以上報酬的台股績優基金（0 推）",
-    "YouTube 熱片：【股票】外資喊台股衝5萬4！AI泡沫成最大隱憂？楊應超示警：股市已過熱！ft. 楊應超｜下班經濟學781｜謝哲青、張瓊方（風傳媒 The Storm Media・291,711 次觀看）"
+    "YouTube 熱片：【股票】外資喊台股衝5萬4！AI泡沫成最大隱憂？楊應超示警：股市已過熱！ft. 楊應超｜下班經濟學781｜謝哲青、張瓊方（風傳媒 The Storm Media・291,739 次觀看）"
   ]
 }
