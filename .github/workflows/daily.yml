@@ -105,6 +105,9 @@ jobs:
             elif [ "$NEW_AS" \< "$CUR_AS" ]; then
               echo "  · $UPF 分支版 as_of=$NEW_AS 舊於 main=$CUR_AS——不倒灌"
             else
+              # 分支版缺 not_tracked（分岔自 09-21 之前的舊分支）→ 沿用 main 的，不可整段洗掉
+              # （2026-09-23 踩坑：09-21 週掃在舊分支上改檔、as_of 同日，覆蓋後 009829 又被判漏網）
+              python3 -c "import json; n=json.load(open('/tmp/etf_up_new.json')); c=json.load(open('$UPF')); [n.setdefault(k, c[k]) for k in ('not_tracked_note','not_tracked') if k in c]; json.dump(n, open('/tmp/etf_up_new.json','w'), ensure_ascii=False, indent=1)" 2>/dev/null || true
               cp /tmp/etf_up_new.json "$UPF"; echo "  併入 $UPF（as_of=$NEW_AS）"
             fi
           fi

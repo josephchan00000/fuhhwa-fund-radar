@@ -325,3 +325,68 @@ def test_inst_refetches_latest_present_day_for_revision(monkeypatch):
     doc = mc.fetch()
     assert "2026-08-04" in asked                         # 已在序列裡的最新一天仍被重抓
     assert doc["series"]["inst_total"]["2026-08-04"] == 20.0   # 官方修正值覆蓋（round 1 位）
+
+
+def _fake_chart(monkeypatch, mc, ts, closes, reg_start, reg_end):
+    import io
+    doc = {"chart": {"result": [{"meta": {"currentTradingPeriod": {
+        "regular": {"start": reg_start, "end": reg_end}}},
+        "timestamp": ts, "indicators": {"quote": [{"close": closes}]}}]}}
+
+    class _R(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+    monkeypatch.setattr(mc.urllib.request, "urlopen",
+                        lambda *a, **k: _R(json.dumps(doc).encode()))
+
+
+def test_yahoo_close_only_drops_intraday_bar(monkeypatch):
+    """2026-09-23 踩坑：台北 02:00 班在美股盤中抓 ^SOX，當日 bar＝盤中價 12,617.21 被當收盤入檔
+    （實際收盤 12,689.82）。交易時段中的 bar 一律不收，並記下日期供剔除舊值。"""
+    import time
+    from arm import macrochips as mc
+    now = time.time()
+    d1, d2 = int(now - 86400 * 2), int(now - 3600)       # 前一日收盤 bar、今日盤中 bar
+    _fake_chart(monkeypatch, mc, [d1, d2], [12433.17, 12617.21], d2 - 60, now + 3600)
+    out = mc._yahoo_series("^SOX", close_only=True)
+    assert list(out.values()) == [12433.17]              # 盤中值不收
+    assert mc._OPEN_BAR["^SOX"]                          # 記下盤中日供上層剔除
+    # 非 close_only（油金匯等 24h 標的）照舊收最新價
+    assert len(mc._yahoo_series("BZ=F")) == 2
+
+
+def test_yahoo_close_only_keeps_bar_after_close(monkeypatch):
+    import time
+    from arm import macrochips as mc
+    now = time.time()
+    d2 = int(now - 7 * 3600)
+    _fake_chart(monkeypatch, mc, [d2], [12689.82], d2 - 60, now - 3600)   # 時段已結束
+    assert list(mc._yahoo_series("^SOX", close_only=True).values()) == [12689.82]
+    assert "^SOX" not in mc._OPEN_BAR
+
+
+def test_fetch_purges_previously_stored_intraday_value(monkeypatch):
+    """先前班次已誤收的盤中值：本輪發現該日仍在盤中 → 從序列剔除（收盤後班次再寫入）。"""
+    from datetime import date, datetime
+    from arm import macrochips as mc
+
+    def fake_y(sym, norm=None, close_only=False):
+        mc._OPEN_BAR.pop(sym, None)
+        if sym == "^SOX":
+            mc._OPEN_BAR[sym] = "2026-09-22"
+            return {"2026-09-21": 12433.17}
+        return {}
+    monkeypatch.setattr(mc, "_yahoo_series", fake_y)
+    monkeypatch.setattr(mc, "_twse_inst_all", lambda d, diag=None: (None, "x"))
+    monkeypatch.setattr(mc, "_twse_margin", lambda d: None)
+    monkeypatch.setattr(mc, "_taifex_tx_foreign", lambda *a, **k: {})
+    monkeypatch.setattr(mc, "_taifex_pc_ratio", lambda *a, **k: {})
+    monkeypatch.setattr(mc.clock, "today_tw", lambda: date(2026, 9, 23))
+    monkeypatch.setattr(mc.clock, "now_tw", lambda: datetime(2026, 9, 23, 2, 0))
+    monkeypatch.setattr(mc, "load", lambda: {"series": {
+        "sox": {"2026-09-21": 12433.17, "2026-09-22": 12538.74}}})
+    doc = mc.fetch()
+    assert doc["series"]["sox"] == {"2026-09-21": 12433.17}
