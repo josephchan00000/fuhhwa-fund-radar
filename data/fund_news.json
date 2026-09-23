@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/23 08:20",
+  "as_of": "2026/09/23 08:26",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -13,7 +13,7 @@
     {
       "title": "九倍女戰神大戰瑤池金母！00418A對上2,693億的00981A　同一個選股池開打",
       "url": "https://finance.ettoday.net/news/3240092",
-      "source": "ETtoday財經雲",
+      "source": "finance.ettoday.net",
       "date": "2026-09-18 20:54",
       "datetime": "2026-09-18T20:54:00+08:00"
     }
@@ -68,7 +68,7 @@
         {
           "title": "6223 旺矽- 00991A減碼旺矽150張！AI測試開始進入獲利調節階段- 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/article/184891196",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-09-22 19:41",
           "datetime": "2026-09-22T19:41:00+08:00"
         }
@@ -92,7 +92,7 @@
         {
           "title": "00998A 主動復華金融股息 - ETF 即時淨值與折溢價查詢 - 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/stock/00998A?s=discount-premium",
-          "source": "CMoney",
+          "source": "cmoney.tw",
           "date": "2026-09-19 18:07",
           "datetime": "2026-09-19T18:07:32+08:00"
         },
@@ -125,14 +125,14 @@
         {
           "title": "Q4旺季行情提前點火！00409A成交量衝18萬張　居海外主動式ETF之冠",
           "url": "https://finance.ettoday.net/amp/3242137",
-          "source": "ETtoday財經雲",
+          "source": "finance.ettoday.net",
           "date": "2026-09-22 16:10",
           "datetime": "2026-09-22T16:10:00+08:00"
         },
         {
           "title": "Q4旺季行情提前卡位！00409A搶進Robinhood、BitMine漲逾2成 光通訊AXT同業唯一持有",
           "url": "https://www.moneyweekly.com.tw/Home/ChangePage/Article/250276/?Type=3&Line=Home_ArticleSet_103&Page=FCE914305A6531AB6432D7582FBD3210ED807EA1EE4F0EF46B3AD8D7E7A5E9BC32044E43358EF7BE3FFE2B65D95AA3586B10D937329E59C7ED705BACED8B4A93BD912BF951D1FBBCD80C0A736A30F986A1455562434D657A85A3E1709B59167E9BEE9B2534086EF8A781C32F1CBAE04CF19894B679F6BB51E0E34B8F7CFFFA19255852B62461669D40EBC1C579CF8297363B86A5B1CB5E6F4DDE50B05A267F74422DFA5BBDFCB6FCEB97143B1C63EE889B16514DDC2835398750C61456105CBFE993F5944260112E5852E563FAB5DB15C683B16695667A47",
-          "source": "理財周刊",
+          "source": "moneyweekly.com.tw",
           "date": "2026-09-22 12:11",
           "datetime": "2026-09-22T12:11:25+08:00"
         },
@@ -550,7 +550,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=ljvn6cLqGGw",
       "date": "2026-09-21",
-      "views": 256688,
+      "views": 256734,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -560,7 +560,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/Qr5bxWbJ2b4",
       "date": "2026-09-22",
-      "views": 163236,
+      "views": 163690,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -571,7 +571,7 @@
       "channel": "群益投信",
       "url": "https://www.youtube.com/shorts/U7Ay8PLoMSA",
       "date": "2026-09-18",
-      "views": 161950,
+      "views": 162000,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -582,7 +582,7 @@
       "channel": "台灣Cheers",
       "url": "https://www.youtube.com/watch?v=prTsbbKir5c",
       "date": "2026-09-20",
-      "views": 159069,
+      "views": 159113,
       "peer": true,
       "cat": "高股息"
     },
@@ -592,7 +592,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=pKhK6PciBQs",
       "date": "2026-09-21",
-      "views": 158708,
+      "views": 158727,
       "peer": true,
       "cat": "綜合"
     },
@@ -602,7 +602,7 @@
       "channel": "Catch大錢潮",
       "url": "https://www.youtube.com/watch?v=0vSclyI87KE",
       "date": "2026-09-19",
-      "views": 151203,
+      "views": 151288,
       "peer": true,
       "cat": "綜合"
     },
@@ -612,7 +612,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=23i9PIEw16E",
       "date": "2026-09-18",
-      "views": 144001,
+      "views": 144012,
       "peer": true,
       "cat": "高股息"
     },
@@ -622,7 +622,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=HpXVLK0Byrg",
       "date": "2026-09-22",
-      "views": 121961,
+      "views": 122417,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -632,7 +632,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/watch?v=ZOkHY6HmPIM",
       "date": "2026-09-22",
-      "views": 103232,
+      "views": 103289,
       "peer": true,
       "cat": "市值型"
     },
@@ -642,7 +642,7 @@
       "channel": "財經拆局",
       "url": "https://www.youtube.com/watch?v=pDfaCju7ZCQ",
       "date": "2026-09-21",
-      "views": 38288,
+      "views": 38293,
       "peer": true,
       "cat": "基金"
     }
@@ -651,6 +651,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、（詳下方新聞標籤）",
     "品牌焦點：AI推動千金股遍地開花 投信搶推中小型股ETF（放言Fount Media）",
     "社群聲量最高：美股垃圾時間快結束？利空退場，光輝十月要來了（0 推）",
-    "YouTube 熱片：【股票】外資喊台股衝5萬4！AI泡沫成最大隱憂？楊應超示警：股市已過熱！ft. 楊應超｜下班經濟學781｜謝哲青、張瓊方（風傳媒 The Storm Media・256,688 次觀看）"
+    "YouTube 熱片：【股票】外資喊台股衝5萬4！AI泡沫成最大隱憂？楊應超示警：股市已過熱！ft. 楊應超｜下班經濟學781｜謝哲青、張瓊方（風傳媒 The Storm Media・256,734 次觀看）"
   ]
 }
