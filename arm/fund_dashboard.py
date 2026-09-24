@@ -441,8 +441,8 @@ def _freshness_view(gen_stamp: str, sources: list[tuple[str, str | None, int | N
     stale = [k for k, v, tol in sources if _is_stale(v, tol, today)]
     sub = (f'<span class="stale-note">⚠ {len(stale)} 項資料逾期未更新（{"、".join(stale)}），'
            f'請跑「全部更新」或檢查 CI</span>' if stale
-           else '各資料來源的更新時間標於各區塊標題列（皆台北時間）')
-    return (f'<div class="section" id="freshness"><div class="st">{_ic("clock")}網頁更新時間　'
+           else "")
+    return (f'<div class="section freshbar" id="freshness"><div class="st">{_ic("clock", plain=True)}網頁更新時間　'
             f'{_fresh_chip("網頁更新", gen_stamp, None, today, gen=True)} '
             f'{_factcheck_chip(today)} {_intro_gap_chip()} {_afterhours_chip(today)} '
             f'{_yt_watch_chip(today)} {_new_etf_chip()} '
@@ -459,7 +459,7 @@ def _brief_view(indices: list[dict], best: dict | None, worst: dict | None,
         f'<div class="ixp">{_pct_span(ix["pct"] if ix["up"] else -ix["pct"])}</div></div>'
         for ix in indices)
     if not idx_cards:
-        idx_cards = '<div class="muted">（指數收盤點位以官方為準——詳見下方新聞）</div>'
+        idx_cards = ""
     chips = []
     if best:
         chips.append(f'<a class="chip" href="#fund-{_esc(best["fund_id"])}">▲ 今日最強：'
@@ -568,6 +568,15 @@ def _extract_overview(head_md: str) -> str:
     return "\n".join(body).strip()
 
 
+_META_DUP = re.compile(r"[｜|]?\s*(?:【[^】]*】|重要度\s*\d{1,2}\s*/\s*10)\s*")
+
+
+def _meta_clean(meta: str) -> str:
+    """卡標題括注去掉【新事件／延伸／深度】與「重要度 N/10」——兩者已由徽章呈現，
+    灰字只留來源＋日期（＋TST）。"""
+    return _META_DUP.sub("", meta or "").strip(" ｜|，,")
+
+
 def _news_view(md: str, empty_hint: str,
                overview: tuple[str, str] | None = None) -> str:
     """單一新聞區：每則新聞一個 <details>（預設收合）。
@@ -594,7 +603,8 @@ def _news_view(md: str, empty_hint: str,
                      f'<div class="ndoc premkt">{_md(ov)}</div></div>')
     for c in cards:
         badges = _news_badges(c.get("etype"), c.get("importance"))
-        meta = f'<span class="nim">{_esc(c["meta"])}</span>' if c.get("meta") else ""
+        mtxt = _meta_clean(c.get("meta") or "")
+        meta = f'<span class="nim">{_esc(mtxt)}</span>' if mtxt else ""
         one = f'<div class="nlone">{_esc(c["oneline"])}</div>' if c.get("oneline") else ""
         summ = f'<div class="ngs">{_lines(_inline(c["summary"]))}</div>' if c.get("summary") else ""
         # 漲跌分析（2026-08-19 起每卡必填：實際漲跌幅＋大漲大跌歸因）；舊報告無此欄不顯示
@@ -2110,20 +2120,6 @@ body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.7 -apple-system,
 .klabel{display:inline-block;color:var(--accd);font-weight:700;letter-spacing:.02em;margin-right:8px}
 a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5px;color:var(--accd)}
 .wrap{max-width:1240px;margin:0 auto;padding:10px 18px 60px}
-/* 品牌漸層 Hero（瘦身版：識別保留、高度收斂，把空間留給內容） */
-.hero{background:linear-gradient(120deg,#0a3e7d 0%,#1660bd 62%,#2f7fd8 100%);border-radius:14px;
-  padding:15px 20px 13px;margin:8px 0 4px;color:#fff;position:relative;overflow:hidden}
-.hero:before{content:"";position:absolute;right:-60px;top:-70px;width:230px;height:230px;border-radius:50%;
-  background:radial-gradient(circle,rgba(255,255,255,.14),rgba(255,255,255,0) 70%)}
-.hero:after{content:"";position:absolute;right:70px;bottom:-90px;width:180px;height:180px;border-radius:50%;
-  background:radial-gradient(circle,rgba(224,171,66,.25),rgba(224,171,66,0) 72%)}
-.hero-t{font-size:20px;font-weight:800;letter-spacing:.04em}
-.hero-t b{color:#f4c15d;background:none;padding:0}
-.hero-s{font-size:13px;color:rgba(255,255,255,.85);margin-top:3px;letter-spacing:.02em}
-.hero-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;position:relative;z-index:1}
-.hero-chip{background:rgba(255,255,255,.14);border:0;border-radius:7px;
-  padding:3px 10px;font-size:12px;color:#fff}
-@media(max-width:640px){.hero{padding:12px 14px 11px}.hero-t{font-size:17.5px}.hero-s{display:none}}
 /* SVG 圖標：區塊標題彩色圖標磚（雲學堂式模組色）＋行內 plain */
 .ic{display:inline-flex;align-items:center;justify-content:center;width:29px;height:29px;
   border-radius:9px;background:rgba(47,111,208,.11);color:var(--accd);flex:0 0 auto}
@@ -2173,25 +2169,12 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 .tb-nav{margin-left:auto;display:flex;gap:2px;flex-wrap:wrap}
 .tb-nav a{color:var(--ink2);text-decoration:none;font-size:13.5px;padding:5px 9px;border-radius:0;background:none;border:0;transition:color .15s}
 .tb-nav a:hover{color:var(--acc)}
-/* ── 二級分段（2026-09-01 使用者：「字好多閱讀不下去」，選了「分頁內再分段」）──
-   每個分頁一次只顯示一段，頂欄那排標籤就是黏頂目錄。切換本體是純 CSS radio
-   （同一級分頁的作法，JS 停用也能按）；JS 只負責切段後捲回頂端與閱讀進度條。
-   ⚠ 隱藏段落裡的錨點（ETF 表的「詳情 ↓」跳 #etf-detail）由 JS 的 a[href^="#"]
-   攔截器補上「先切段再捲」，不要改回讓所有段落都顯示。 */
+/* ── 分頁內各段（2026-09-24 使用者：「要點才會出現對應資訊不好用」）──
+   同一分頁的各段一律由上往下全部顯示；頂欄那排標籤＝跳段目錄，點了捲到該段，
+   捲動時由 JS 自動標亮目前所在段。radio 只當「目前段」的標記（標亮用），不再控制顯示。
+   （2026-09-01～09-23 曾改為「一次只顯示一段」，使用者用過後決定改回整頁顯示。） */
 .secradio{position:fixed;opacity:0;pointer-events:none}
-.sec{display:none}
-#sec-brief:checked ~ * .sec[data-sec="brief"],
-#sec-news:checked ~ * .sec[data-sec="news"],
-#sec-fnews:checked ~ * .sec[data-sec="fnews"],
-#sec-over:checked ~ * .sec[data-sec="over"],
-#sec-det:checked ~ * .sec[data-sec="det"],
-#sec-mcal:checked ~ * .sec[data-sec="mcal"],
-#sec-mov:checked ~ * .sec[data-sec="mov"],
-#sec-mnews:checked ~ * .sec[data-sec="mnews"],
-#sec-mdata:checked ~ * .sec[data-sec="mdata"],
-#sec-eup:checked ~ * .sec[data-sec="eup"],
-#sec-ewatch:checked ~ * .sec[data-sec="ewatch"],
-#sec-edet:checked ~ * .sec[data-sec="edet"]{display:block}
+.sec[data-sec]{scroll-margin-top:var(--tbh,64px)}
 .tb-nav .sl{color:var(--ink2);font-size:13.5px;padding:5px 9px;border-radius:8px;cursor:pointer;
   white-space:nowrap;transition:color .15s,background .15s}
 .tb-nav .sl:hover{color:var(--acc);background:var(--card2)}
@@ -2207,7 +2190,7 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 #sec-eup:checked ~ .topbar .sl[for="sec-eup"],
 #sec-ewatch:checked ~ .topbar .sl[for="sec-ewatch"],
 #sec-edet:checked ~ .topbar .sl[for="sec-edet"]{color:var(--acc);background:var(--card2);font-weight:700}
-/* 閱讀進度（黏頂目錄的配套）：目前這一段捲到哪 */
+/* 閱讀進度（黏頂目錄的配套）：整頁捲到哪 */
 .rprog{position:fixed;left:0;top:0;height:3px;width:0;background:var(--acc);z-index:60;
   transition:width .12s linear;border-radius:0 3px 3px 0}
 @media(max-width:820px){
@@ -2218,7 +2201,7 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
   .tb-nav .sl{font-size:13px;padding:6px 10px}
 }
 @media(min-width:1100px){
-  /* 桌機：分段後單屏留白變多，把清單型區塊排成兩欄（新聞卡／社群列本來就是等寬卡） */
+  /* 桌機：清單型區塊排成兩欄（新聞卡／社群列本來就是等寬卡） */
   .sec[data-sec="fnews"] .fnlist{column-count:2;column-gap:16px}
   .sec[data-sec="fnews"] .fnit{break-inside:avoid}
 }
@@ -2236,6 +2219,9 @@ a{color:var(--acc)} code{background:var(--inset);padding:1px 6px;border-radius:5
 .st .chip.fresh{font-size:11.5px;padding:2px 10px;margin-left:4px;font-weight:400;vertical-align:middle}
 .st .chip.fresh b{font-weight:600}
 .stale-note{color:#c62828;font-weight:700}
+/* 網頁更新時間＝細條（2026-09-24 使用者：頁首太佔版面）——各區塊標題列另有自己的鮮度章 */
+.freshbar{padding:8px 0 6px}
+.freshbar>.st{font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:0;gap:6px}
 /* 數字核對 🔴 可展開明細（2026-08-07）：收合＝一顆 chip 大小，點開才佔版面 */
 .st details.fcd{display:inline-block;vertical-align:middle;margin-left:4px;background:rgba(198,40,40,.08);border-radius:8px;padding:2px 10px;font-size:11.5px;color:#c62828;font-weight:700}
 .st details.fcd summary{list-style:none;cursor:pointer;display:inline}
@@ -2768,23 +2754,30 @@ document.querySelectorAll('.mkradio').forEach(r=>r.addEventListener('change',()=
 // 詳情卡預設收合：從總覽/連結點過去（#fund-xx）→ 自動展開該卡（2026-07-20 使用者指示）
 function openFund(id){const el=document.getElementById(id);
   if(el&&el.tagName==='DETAILS')el.open=true;return el}
-// 二級分段（2026-09-01）：切段是純 CSS radio，JS 補三件事——
-// ①隱藏段落裡的錨點（ETF 表「詳情 ↓」跳 #etf-detail）要先切到那一段再捲；
-// ②按目錄切段後捲回內容頂端（否則會停在上一段的捲動位置、看起來像沒反應）；
-// ③閱讀進度條。
-function secOf(el){const s=el&&el.closest('.sec');return s?s.dataset.sec:''}
-function showSec(name){const r=name&&document.getElementById('sec-'+name);
-  if(r&&!r.checked){r.checked=true;try{localStorage.setItem('sec-'+r.name,name)}catch(e){}return true}
-  return false}
-function toTop(){const w=document.querySelector('.wrap');
-  const tb=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tbh'))||64;
-  if(w)scrollTo({top:Math.max(0,w.offsetTop-tb+8),behavior:'smooth'})}
+// 分頁內各段（2026-09-24 起全部顯示）：頂欄標籤＝跳段目錄。JS 負責三件事——
+// ①點標籤捲到該段；②捲動時自動標亮目前所在段（手機橫捲目錄同步捲到可見）；③閱讀進度條。
+function tbh(){return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tbh'))||64}
+function visSecs(){return [...document.querySelectorAll('.sec[data-sec]')].filter(e=>e.offsetParent)}
+let spyLock=0;
+function markSec(name){const r=name&&document.getElementById('sec-'+name);
+  if(!r||r.checked)return;r.checked=true;
+  const l=document.querySelector('.tb-nav .sl[for="sec-'+name+'"]'),nav=l&&l.parentElement;
+  if(nav&&nav.scrollWidth>nav.clientWidth)
+    nav.scrollTo({left:Math.max(0,l.offsetLeft-nav.clientWidth/2+l.offsetWidth/2),behavior:'smooth'})}
+function spy(){if(Date.now()<spyLock)return;const secs=visSecs();if(!secs.length)return;
+  const y=tbh()+40;let cur=secs[0];
+  for(const e of secs){if(e.getBoundingClientRect().top<=y)cur=e}
+  if(innerHeight+scrollY>=document.documentElement.scrollHeight-4)cur=secs[secs.length-1];
+  markSec(cur.dataset.sec)}
 document.querySelectorAll('.tb-nav .sl').forEach(l=>l.addEventListener('click',()=>{
   const n=(l.getAttribute('for')||'').replace('sec-','');
-  try{localStorage.setItem('sec-'+(document.getElementById('sec-'+n)||{}).name,n)}catch(e){}
-  setTimeout(toTop,30)}));
-(function(){try{for(const g of ['secf','secm','sece']){const v=localStorage.getItem('sec-'+g);
-  if(v)showSec(v)}}catch(e){}})();
+  const el=visSecs().find(e=>e.dataset.sec===n);if(!el)return;
+  spyLock=Date.now()+900;
+  scrollTo({top:Math.max(0,el.getBoundingClientRect().top+scrollY-tbh()+4),behavior:'smooth'})}));
+addEventListener('scroll',spy,{passive:true});addEventListener('resize',spy);
+document.querySelectorAll('.mkradio').forEach(r=>r.addEventListener('change',()=>{
+  scrollTo({top:0,behavior:'instant'});setTimeout(spy,80)}));   // 換主分頁＝從該頁頂端讀起
+setTimeout(spy,0);
 (function(){const bar=document.getElementById('rprog');if(!bar)return;
   const upd=()=>{const h=document.documentElement.scrollHeight-innerHeight;
     bar.style.width=(h>40?Math.min(100,Math.max(0,scrollY/h*100)):0)+'%';};
@@ -2794,7 +2787,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',
   const el=href.startsWith('#fund-')?openFund(href.slice(1)):document.querySelector(href);
   const mv=el&&el.closest('.mkt');
   if(mv&&mv.dataset.mkt!==curMkt())setMkt(mv.dataset.mkt);
-  if(showSec(secOf(el))&&el)setTimeout(()=>el.scrollIntoView({block:'start',behavior:'smooth'}),40);
 }));
 if(location.hash.startsWith('#fund-'))openFund(location.hash.slice(1));
 addEventListener('hashchange',()=>{if(location.hash.startsWith('#fund-'))openFund(location.hash.slice(1))});
@@ -3139,11 +3131,8 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
   // 上方 ETF 表「詳情 ↓」：展開該檔並捲過來
   document.querySelectorAll('.edjump').forEach(function(b){b.onclick=function(){
     var card=document.getElementById('etfd-'+b.dataset.c); if(!card)return;
-    // 2026-09-01 二級分段後，詳情卡與上表不在同一段——先切到「持股詳情」段再捲，
-    // 否則按了完全沒反應（切段是 CSS radio，元素在 DOM 裡但整段 display:none）
-    var moved=(typeof showSec==='function')&&showSec('edet');
     card.classList.remove('fhide'); card.open=true; render(card);
-    setTimeout(function(){card.scrollIntoView({behavior:'smooth',block:'start'})},moved?60:0)}});
+    card.scrollIntoView({behavior:'smooth',block:'start'})}});
 })();
 // （逾期未重建警告只保留上方那一份——此處原有一份重複的同樣 IIFE，逾期時會 prepend 兩條橫幅，2026-08-03 去重）
 """
@@ -3385,9 +3374,6 @@ def render() -> str:
 <div class="rprog" id="rprog"></div>
 {_topbar(banned, bool(news or tw or macro), as_of, now)}
 <div class="wrap">
-<div class="hero"><div class="hero-t">復華<b>基金雷達</b></div>
-<div class="hero-s">每日晨間更新・基金淨值 × 市場新聞 × 總經政策 × ETF 追蹤</div>
-<div class="hero-meta"><span class="hero-chip">產表 {now}</span><span class="hero-chip">持股基準 {as_of}</span></div></div>
 {sec_fresh}
 <div class="macroview">
 <div class="sec" data-sec="mcal">{sec_macro_cal}</div>
