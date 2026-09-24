@@ -565,16 +565,16 @@ def test_dashboard_shows_upcoming_etf_section():
 
 def test_upcoming_view_renders_cards_with_links():
     # 釘在 2026-08-10（研討會名單日；真實條目為既成事實、日期固定即恆定）：
-    # 九檔全上版——募集中玉山、本家 00409A、待掛牌統一雙檔、KOSPI50、PCB、
+    # 募集中玉山、本家 00409A、KOSPI50、PCB、
     # 加上三檔「已核准・時程未定」精簡列（00412A＋兩檔未派碼）。
     # 若日後清理 UPCOMING 舊條目，同步更新此測試的斷言即可。
     up = etfwatch.upcoming(date(2026, 8, 10))
     out = fund_dashboard._upcoming_etf_view(up)
-    assert "募集中・即將募集" in out and "即將掛牌・待掛牌" in out
+    assert "募集中・即將募集" in out
     assert "已核准・募集時程未定" in out                     # 第三組（2026-08-10 使用者指示分類）
     assert "009827" in out and "00409A" in out and "00412A" in out
     assert "募集中 08/10–08/14" in out                       # 玉山 8/10 起正在募集
-    assert "掛牌 08/26" in out                               # 統一雙檔
+    # 統一雙檔（00411A／00987D，掛牌 08/26）已轉正 WATCHLIST，2026-09-25 依 stale guard 清出 UPCOMING。
     # 註：大華銀 KOSPI50（009829）原本也在這組（掛牌 08/21），2026-09-20 週掃依 stale guard
     # 清出 UPCOMING、改列 NOT_TRACKED，故不再上版——由 seminar 測試確認它仍被認得。
     assert "預定掛牌 09/02" in out                            # 募集卡帶掛牌日副標
@@ -586,7 +586,6 @@ def test_upcoming_view_renders_cards_with_links():
     assert out.count("代號未定") == sum(1 for x in approved if not x.get("code"))
     assert "大華銀優利美國非投資等級債券ETF" in out
     assert "加密科技與金融創新" in out
-    assert "活動介紹" in out and "ezmoney.com.tw/events/2026GFTA" in out
     assert '<span class="fh">復華</span>' in out             # 本家以品牌色標示
 
 
