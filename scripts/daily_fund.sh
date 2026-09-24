@@ -18,8 +18,8 @@ P_HOLD=$!
 ( python3 scripts/fetch_fund_news.py \
     || echo "  ⚠ 基金新聞擷取失敗，續跑（區塊沿用前次落檔或顯示提示）" ) >"$LOGD/fundnews.log" 2>&1 &
 P_NEWS=$!
-( python3 scripts/fetch_etf_watch.py \
-    || echo "  ⚠ ETF 追蹤擷取失敗，續跑（分頁沿用前次落檔）" ) >"$LOGD/etf.log" 2>&1 &
+( timeout -k 10 600 python3 -u scripts/fetch_etf_watch.py \
+    || echo "  ⚠ ETF 追蹤擷取失敗或逾時，續跑（分頁沿用前次落檔）" ) >"$LOGD/etf.log" 2>&1 &
 P_ETF=$!
 ( python3 scripts/fetch_macro_chips.py \
     || echo "  ⚠ 總經・籌碼數據擷取失敗，續跑（市場溫度計沿用前次落檔）" ) >"$LOGD/macro.log" 2>&1 &

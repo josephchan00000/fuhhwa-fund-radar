@@ -81,8 +81,10 @@ jobs:
           ( python3 scripts/fetch_macro_chips.py \
               || echo "  ⚠ 總經・籌碼抓取失敗，沿用既有落檔" ) &
           P_MACRO=$!
-          ( python3 scripts/fetch_etf_watch.py \
-              || echo "  ⚠ ETF 追蹤抓取失敗，沿用既有落檔" ) &
+          # timeout：2026-09-24 兩班卡在本支 30 分鐘無輸出、整個 run 被 job timeout 砍掉，
+          # 連已抓好的籌碼／NAV 都沒 commit。正常約 100 秒，逾 10 分鐘直接放棄（沿用既有落檔）。
+          ( timeout -k 10 600 python3 -u scripts/fetch_etf_watch.py \
+              || echo "  ⚠ ETF 追蹤抓取失敗或逾時，沿用既有落檔" ) &
           P_ETF=$!
           wait "$P_MACRO" || true
           wait "$P_ETF" || true
