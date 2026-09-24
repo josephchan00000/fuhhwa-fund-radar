@@ -1,12 +1,12 @@
 {
-  "as_of": "2026/09/24 23:50",
+  "as_of": "2026/09/25 06:45",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
     {
       "title": "AI推動千金股遍地開花 投信搶推中小型股ETF",
       "url": "https://www.fountmedia.io/article/427017",
-      "source": "放言Fount Media",
+      "source": "fountmedia.io",
       "date": "2026-09-22 16:36",
       "datetime": "2026-09-22T16:36:47+08:00"
     },
@@ -78,7 +78,7 @@
         {
           "title": "掛牌才5個月！00998A逆勢奪海外主動式ETF申購冠軍 規模逼近翻倍",
           "url": "https://rise-mediacorp.com/archives/146091",
-          "source": "崛起新傳媒",
+          "source": "墨新聞-MORE News",
           "date": "2026-09-20 10:00",
           "datetime": "2026-09-20T10:00:49+08:00"
         },
@@ -510,7 +510,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/R7-0lRq6KjQ",
       "date": "2026-09-24",
-      "views": 32,
+      "views": 61,
       "official": true,
       "short": true
     },
@@ -520,7 +520,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/POqpnf3mGDs",
       "date": "2026-09-24",
-      "views": 26,
+      "views": 61,
       "official": true,
       "short": true
     },
@@ -530,7 +530,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/nitQ95TWv_c",
       "date": "2026-09-24",
-      "views": 18,
+      "views": 24,
       "official": true,
       "short": true
     },
@@ -540,7 +540,16 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/shorts/bZxJHj7SdFI",
       "date": "2026-09-22",
-      "views": 22417,
+      "views": 24704,
+      "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "女霸總逆勢佈局00929，5年後結局超爽快！🥂",
+      "channel": "永豐金證券",
+      "url": "https://www.youtube.com/shorts/85WXLZfLsBk",
+      "date": "2026-09-24",
+      "views": 131,
       "short": true
     },
     {
@@ -553,20 +562,11 @@
     },
     {
       "platform": "youtube",
-      "title": "00929除息0.38元創新高，台積電早就不在裡面了",
-      "channel": "股市基友",
-      "url": "https://www.youtube.com/shorts/L9lwnSFVHSY",
-      "date": "2026-09-18",
-      "views": 68,
-      "short": true
-    },
-    {
-      "platform": "youtube",
       "title": "【股票】外資喊台股衝5萬4！AI泡沫成最大隱憂？楊應超示警：股市已過熱！ft. 楊應超｜下班經濟學781｜謝哲青、張瓊方",
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=ljvn6cLqGGw",
       "date": "2026-09-21",
-      "views": 304787,
+      "views": 307014,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -576,7 +576,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/shorts/Qr5bxWbJ2b4",
       "date": "2026-09-22",
-      "views": 279539,
+      "views": 280016,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -587,7 +587,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=zUUl2W_f3DQ",
       "date": "2026-09-20",
-      "views": 264955,
+      "views": 266788,
       "peer": true,
       "cat": "綜合"
     },
@@ -597,7 +597,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=HpXVLK0Byrg",
       "date": "2026-09-22",
-      "views": 229304,
+      "views": 234659,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -607,7 +607,7 @@
       "channel": "台灣Cheers",
       "url": "https://www.youtube.com/watch?v=prTsbbKir5c",
       "date": "2026-09-20",
-      "views": 195878,
+      "views": 200733,
       "peer": true,
       "cat": "高股息"
     },
@@ -617,7 +617,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=pKhK6PciBQs",
       "date": "2026-09-21",
-      "views": 180906,
+      "views": 184492,
       "peer": true,
       "cat": "綜合"
     },
@@ -627,7 +627,7 @@
       "channel": "郭哲榮分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/watch?v=ZOkHY6HmPIM",
       "date": "2026-09-22",
-      "views": 108034,
+      "views": 108200,
       "peer": true,
       "cat": "市值型"
     },
@@ -637,7 +637,7 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/watch?v=xQW_u77Ho7I",
       "date": "2026-09-23",
-      "views": 68915,
+      "views": 73097,
       "peer": true,
       "cat": "主動式"
     },
@@ -647,25 +647,25 @@
       "channel": "基金小姐姐詹璇依",
       "url": "https://www.youtube.com/watch?v=7VxbdXC9C6A",
       "date": "2026-09-22",
-      "views": 46734,
+      "views": 51318,
       "peer": true,
       "cat": "主動式"
     },
     {
       "platform": "youtube",
-      "title": "加息又嚟！全球破紀錄現金湧去收息！定期 vs 貨幣基金 vs 債券/ETF收息策略, 一片講晒！",
-      "channel": "維尼姐Step by Step",
-      "url": "https://www.youtube.com/watch?v=EgcjwIXVFa4",
-      "date": "2026-09-21",
-      "views": 41496,
+      "title": "別被ETF新高價騙了! 真正決定實際報酬的關鍵藏在... 市值型VS.高股息大對決! 誰才是今年真正ETF績效王?│陳斐娟 主持 │20260924│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=XOoy_fyDvjM",
+      "date": "2026-09-24",
+      "views": 44756,
       "peer": true,
-      "cat": "債券"
+      "cat": "高股息"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A（詳下方新聞標籤）",
-    "品牌焦點：AI推動千金股遍地開花 投信搶推中小型股ETF（放言Fount Media）",
+    "品牌焦點：AI推動千金股遍地開花 投信搶推中小型股ETF（fountmedia.io）",
     "社群聲量最高：佈局美國期中選舉後行情，我買進這4組ETF抱到明年第一季（0 推）",
-    "YouTube 熱片：【股票】外資喊台股衝5萬4！AI泡沫成最大隱憂？楊應超示警：股市已過熱！ft. 楊應超｜下班經濟學781｜謝哲青、張瓊方（風傳媒 The Storm Media・304,787 次觀看）"
+    "YouTube 熱片：【股票】外資喊台股衝5萬4！AI泡沫成最大隱憂？楊應超示警：股市已過熱！ft. 楊應超｜下班經濟學781｜謝哲青、張瓊方（風傳媒 The Storm Media・307,014 次觀看）"
   ]
 }
