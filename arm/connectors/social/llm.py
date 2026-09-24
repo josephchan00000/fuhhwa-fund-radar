@@ -31,7 +31,7 @@ _SCHEMA = {
 }
 
 _SYS = (
-    "你是復華投信的行銷情報分析師。逐則分析社群/新聞對 ETF 的提及，輸出 JSON："
+    "你是復華投信的行銷情報分析師。逐則分析社群/新聞對 ETF 的提及，各欄位："
     "sentiment（對該檔的情緒）；selling_points（文中觸及的賣點，繁中短語）；"
     "suspected_ad（是否疑似業配/合作/邀稿）與 ad_reason（依據，無則寫『無明顯業配訊號』）；"
     "reusable_phrasing（可借用的說法，一句）；fh_adaptation（套用到復華主動式ETF的改法，一句）；"
