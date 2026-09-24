@@ -64,7 +64,11 @@ def is_trading_day(d: date, macrocal_text: str | None) -> bool:
     seg = next((p for p in re.split(r"[；;]", macrocal_text or "") if "市況" in p), "")
     m = _TW_STAT_RE.search(seg)
     if m and "休市" in m.group(1):
-        return False
+        # 市況段常預告「明天」休市（2026-09-24「台股 9/25 因中秋節休市」曾讓當日被判非交易日、
+        # 看門狗整晚失明）→ 有寫日期就只認今天那一天；沒寫日期才視為當日休市。
+        days = {(int(a), int(b)) for a, b in re.findall(r"(\d{1,2})/(\d{1,2})", m.group(1))}
+        if not days or (d.month, d.day) in days:
+            return False
     return True
 
 
