@@ -440,8 +440,8 @@ def test_fof_asset_alloc_parse(monkeypatch):
     assert out2["country_alloc"] == [{"name": "美國", "weight": 60.76}]
 
 
-# ── 二級分段（2026-09-01 使用者：「整個網頁不好閱讀…字好多閱讀不下去」，選了
-#    「分頁內再分段＋黏頂目錄」）─────────────────────────────────────────────
+# ── 分頁內各段（2026-09-01 改「一次一段」；2026-09-24 使用者：「要點才會出現對應資訊
+#    不是很好用」→ 改回整頁全部顯示，頂欄標籤＝跳段目錄＋捲動自動標亮）──────────────
 
 _SECS = [("brief", "secf"), ("news", "secf"), ("fnews", "secf"), ("over", "secf"),
          ("det", "secf"), ("mcal", "secm"), ("mov", "secm"), ("mnews", "secm"),
@@ -449,7 +449,7 @@ _SECS = [("brief", "secf"), ("news", "secf"), ("fnews", "secf"), ("over", "secf"
 
 
 def test_second_level_sections_wrap_every_block():
-    """每個區塊都包在 .sec 裡、每段都有對應 radio，且三個分頁各有一個預設段。"""
+    """每個區塊都包在 .sec 裡、每段都有對應 radio（標亮用），且三個分頁各有一個預設段。"""
     from arm import fund_dashboard as fd
     html = fd.render()
     for name, group in _SECS:
@@ -462,26 +462,33 @@ def test_second_level_sections_wrap_every_block():
     assert '<div class="rprog"' in html             # 閱讀進度條
 
 
-def test_subnav_labels_match_section_ids():
-    """黏頂目錄的 label for 必須對得上 .sec——改名脫鉤會讓整段永遠打不開
-    （同 2026-07-31『ETF 分頁二級選單與區塊 id 對得上』的守法）。"""
+def test_sections_all_visible_and_subnav_jumps():
+    """各段不得再被 radio 隱藏（使用者不要「點了才出現」）；目錄標籤對得上 .sec，
+    點了捲到該段、捲動時自動標亮。"""
     from arm import fund_dashboard as fd
     import re
     html = fd.render()
     fors = re.findall(r'<label class="sl" for="(sec-[\w-]+)"', html)
     assert len(fors) == len(_SECS) and set(fors) == {"sec-" + n for n, _ in _SECS}
-    for name, _ in _SECS:                            # CSS 有對應的顯示規則
-        assert f'#sec-{name}:checked ~ * .sec[data-sec="{name}"]' in fd._CSS
-    assert ".sec{display:none}" in fd._CSS
+    assert ".sec{display:none}" not in fd._CSS
+    for name, _ in _SECS:
+        assert f'#sec-{name}:checked ~ * .sec[data-sec="{name}"]' not in fd._CSS
+    assert "function spy(" in fd._JS and "function markSec(" in fd._JS
+    assert "addEventListener('scroll',spy" in fd._JS
+    assert "showSec" not in fd._JS                   # 舊「先切段再捲」機制已不需要
 
 
-def test_hidden_section_anchor_and_etf_jump_switch_section():
-    """隱藏段落裡的錨點要先切段再捲：ETF 表的「詳情 ↓」與 a[href^='#'] 兩條路徑
-    都得呼叫 showSec，否則按了完全沒反應（元素在 DOM 裡但整段 display:none）。"""
+def test_header_compact_and_news_meta_dedup():
+    """頁首瘦身（2026-09-24）：拿掉品牌橫幅、網頁更新時間壓成細條；
+    新聞卡灰字不再重複【屬性】／重要度（已有徽章）；指數卡缺時不印流程字句。"""
     from arm import fund_dashboard as fd
-    assert "function showSec(" in fd._JS
-    assert "showSec(secOf(el))" in fd._JS            # 一般錨點
-    assert "showSec('edet')" in fd._JS               # ETF 表「詳情 ↓」
+    html = fd.render()
+    assert 'class="hero"' not in html
+    assert 'class="section freshbar" id="freshness"' in html
+    assert "指數收盤點位以官方為準" not in html
+    assert fd._meta_clean("經濟日報／工商時報，2026/09/23｜【新事件】｜重要度9/10") == "經濟日報／工商時報，2026/09/23"
+    assert fd._meta_clean("Reuters，2026/09/23 05:30 TST｜【延伸】｜重要度 7/10") == "Reuters，2026/09/23 05:30 TST"
+    assert fd._meta_clean("中央社，2026/09/23") == "中央社，2026/09/23"
 
 
 def test_chg_cell_序列落後時不以舊漲跌冒充當日():
