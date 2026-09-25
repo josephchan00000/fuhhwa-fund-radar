@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/26 07:01",
+  "as_of": "2026/09/26 07:05",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -276,15 +276,7 @@
       "short_names": [
         "復華"
       ],
-      "items": [
-        {
-          "title": "《國內基金淨值漲幅前30名3-2》復華人生目標(1.2752%)",
-          "url": "https://ww2.money-link.com.tw/RealtimeNews/NewsContent.aspx?SN=6312545001&PU=0010",
-          "source": "ww2.money-link.com.tw",
-          "date": "2026-09-25 11:05",
-          "datetime": "2026-09-25T11:05:00+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華高成長基金",
@@ -294,15 +286,7 @@
       "short_names": [
         "高成長"
       ],
-      "items": [
-        {
-          "title": "《國內基金淨值漲幅前30名3-3》復華高成長(1.0471%)",
-          "url": "https://ww2.money-link.com.tw/RealtimeNews/NewsContent.aspx?SN=6312546001&PU=0010",
-          "source": "ww2.money-link.com.tw",
-          "date": "2026-09-25 11:05",
-          "datetime": "2026-09-25T11:05:00+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華數位經濟基金",
@@ -322,15 +306,7 @@
       "short_names": [
         "中小精選"
       ],
-      "items": [
-        {
-          "title": "《國內基金淨值漲幅前30名3-2》復華人生目標(1.2752%)",
-          "url": "https://ww2.money-link.com.tw/RealtimeNews/NewsContent.aspx?SN=6312545001&PU=0010",
-          "source": "ww2.money-link.com.tw",
-          "date": "2026-09-25 11:05",
-          "datetime": "2026-09-25T11:05:00+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華全方位基金",
@@ -342,15 +318,7 @@
         "全方位A",
         "全方位TISA"
       ],
-      "items": [
-        {
-          "title": "《國內基金淨值漲幅前30名3-2》復華人生目標(1.2752%)",
-          "url": "https://ww2.money-link.com.tw/RealtimeNews/NewsContent.aspx?SN=6312545001&PU=0010",
-          "source": "ww2.money-link.com.tw",
-          "date": "2026-09-25 11:05",
-          "datetime": "2026-09-25T11:05:00+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華台灣好收益基金",
@@ -382,15 +350,7 @@
       "short_names": [
         "傳家"
       ],
-      "items": [
-        {
-          "title": "《國內基金淨值漲幅前30名3-3》復華高成長(1.0471%)",
-          "url": "https://ww2.money-link.com.tw/RealtimeNews/NewsContent.aspx?SN=6312546001&PU=0010",
-          "source": "ww2.money-link.com.tw",
-          "date": "2026-09-25 11:05",
-          "datetime": "2026-09-25T11:05:00+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華傳家二號基金",
@@ -410,15 +370,7 @@
       "short_names": [
         "人生目標"
       ],
-      "items": [
-        {
-          "title": "《國內基金淨值漲幅前30名3-2》復華人生目標(1.2752%)",
-          "url": "https://ww2.money-link.com.tw/RealtimeNews/NewsContent.aspx?SN=6312545001&PU=0010",
-          "source": "ww2.money-link.com.tw",
-          "date": "2026-09-25 11:05",
-          "datetime": "2026-09-25T11:05:00+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華神盾基金",
@@ -428,15 +380,7 @@
       "short_names": [
         "神盾"
       ],
-      "items": [
-        {
-          "title": "《國內基金淨值漲幅前30名3-3》復華高成長(1.0471%)",
-          "url": "https://ww2.money-link.com.tw/RealtimeNews/NewsContent.aspx?SN=6312546001&PU=0010",
-          "source": "ww2.money-link.com.tw",
-          "date": "2026-09-25 11:05",
-          "datetime": "2026-09-25T11:05:00+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華台灣智能基金",
@@ -552,7 +496,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/POqpnf3mGDs",
       "date": "2026-09-24",
-      "views": 137,
+      "views": 136,
       "official": true,
       "short": true
     },
@@ -582,7 +526,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/shorts/bZxJHj7SdFI",
       "date": "2026-09-22",
-      "views": 28621,
+      "views": 28627,
       "short": true
     },
     {
@@ -591,7 +535,7 @@
       "channel": "永豐金證券",
       "url": "https://www.youtube.com/shorts/85WXLZfLsBk",
       "date": "2026-09-24",
-      "views": 8499,
+      "views": 8521,
       "short": true
     },
     {
@@ -608,7 +552,7 @@
       "channel": "風傳媒 The Storm Media",
       "url": "https://www.youtube.com/watch?v=ljvn6cLqGGw",
       "date": "2026-09-21",
-      "views": 320119,
+      "views": 320138,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -650,7 +594,7 @@
       "channel": "群益投信",
       "url": "https://www.youtube.com/shorts/Z-odD6lDiNc",
       "date": "2026-09-23",
-      "views": 205690,
+      "views": 205819,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -661,7 +605,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=pKhK6PciBQs",
       "date": "2026-09-21",
-      "views": 194791,
+      "views": 194793,
       "peer": true,
       "cat": "綜合"
     },
@@ -682,7 +626,7 @@
       "channel": "先探i投資",
       "url": "https://www.youtube.com/watch?v=XsXQMljGCno",
       "date": "2026-09-22",
-      "views": 102734,
+      "views": 102747,
       "peer": true,
       "cat": "綜合"
     },
@@ -692,7 +636,7 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/watch?v=xQW_u77Ho7I",
       "date": "2026-09-23",
-      "views": 87256,
+      "views": 87283,
       "peer": true,
       "cat": "主動式"
     },
@@ -702,15 +646,15 @@
       "channel": "StayRich小資理財藍圖",
       "url": "https://www.youtube.com/watch?v=skYv3jjjE34",
       "date": "2026-09-24",
-      "views": 54204,
+      "views": 54217,
       "peer": true,
       "cat": "基金"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、、高成長 等 11 檔（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A（詳下方新聞標籤）",
     "品牌焦點：AI推動千金股遍地開花 投信搶推中小型股ETF（放言Fount Media）",
     "社群聲量最高：機構投資者連續3週大買美股，散戶卻連賣8週極度悲觀（0 推）",
-    "YouTube 熱片：【股票】外資喊台股衝5萬4！AI泡沫成最大隱憂？楊應超示警：股市已過熱！ft. 楊應超｜下班經濟學781｜謝哲青、張瓊方（風傳媒 The Storm Media・320,119 次觀看）"
+    "YouTube 熱片：【股票】外資喊台股衝5萬4！AI泡沫成最大隱憂？楊應超示警：股市已過熱！ft. 楊應超｜下班經濟學781｜謝哲青、張瓊方（風傳媒 The Storm Media・320,138 次觀看）"
   ]
 }
