@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/25 08:38",
+  "as_of": "2026/09/25 08:39",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -92,7 +92,7 @@
         {
           "title": "金融股突然夯起來！ 00998A、00919掀熱議 過來人：小心最後一棒",
           "url": "https://tw.stock.yahoo.com/news/%E9%87%91%E8%9E%8D%E8%82%A1%E7%AA%81%E7%84%B6%E5%A4%AF%E8%B5%B7%E4%BE%86-00998a-00919%E6%8E%80%E7%86%B1%E8%AD%B0-%E9%81%8E%E4%BE%86%E4%BA%BA-%E5%B0%8F%E5%BF%83%E6%9C%80%E5%BE%8C-090600009.html",
-          "source": "Yahoo股市",
+          "source": "tw.stock.yahoo.com",
           "date": "2026-09-18 17:06",
           "datetime": "2026-09-18T17:06:00+08:00"
         }
@@ -657,7 +657,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=XOoy_fyDvjM",
       "date": "2026-09-24",
-      "views": 45104,
+      "views": 45132,
       "peer": true,
       "cat": "高股息"
     }
