@@ -1,16 +1,16 @@
 {
  "date": "2026-09-26",
- "as_of": "2026-09-26 07:00",
- "green": 1,
+ "as_of": "2026-09-26 07:04",
+ "green": 2,
  "red": 0,
- "skipped": 1,
+ "skipped": 0,
  "items": [
   {
-   "status": "⚪",
+   "status": "🟢",
    "file": "2026-09-26.md",
    "kind": "index_close",
    "claimed": 48024.6,
-   "official": null,
+   "official": 48024.6,
    "day": "09/24",
    "sentence": "最近交易日9/24加權指數收**48,024.6點**、跌0.28%，**週線仍收紅**"
   },
