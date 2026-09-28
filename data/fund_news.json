@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/28 09:39",
+  "as_of": "2026/09/29 06:43",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -13,11 +13,18 @@
       ],
       "items": [
         {
-          "title": "月月配1表比》00929、00400A、00406A...500萬元本金買誰好？百張達人說話了：這檔紅包最大包- 基金",
-          "url": "https://wantrich.chinatimes.com/news/20260926900003-420401",
-          "source": "wantrich.chinatimes.com",
-          "date": "2026-09-26 05:16",
-          "datetime": "2026-09-26T05:16:32+08:00"
+          "title": "00929 復華台灣科技優息- 台股高息ETF今年績效前五強出列！ - 股市爆料同學會",
+          "url": "https://www.cmoney.tw/forum/article/184977426",
+          "source": "CMoney",
+          "date": "2026-09-28 11:38",
+          "datetime": "2026-09-28T11:38:07+08:00"
+        },
+        {
+          "title": "台股高息ETF今年績效前五強出列！00929穩居冠 00878、00939後來居上",
+          "url": "https://news.cnyes.com/news/id/6616596",
+          "source": "news.cnyes.com",
+          "date": "2026-09-28 10:35",
+          "datetime": "2026-09-28T10:35:05+08:00"
         }
       ]
     },
@@ -35,13 +42,6 @@
           "source": "CMoney",
           "date": "2026-09-26 10:52",
           "datetime": "2026-09-26T10:52:37+08:00"
-        },
-        {
-          "title": "3189 景碩- 00991A只買景碩！ABF重新成為資金焦點- 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/article/184947004",
-          "source": "CMoney",
-          "date": "2026-09-24 17:26",
-          "datetime": "2026-09-24T17:26:16+08:00"
         }
       ]
     },
@@ -79,18 +79,18 @@
           "datetime": "2026-09-23T22:34:25+08:00"
         },
         {
-          "title": "00409A 主動復華全球50 - 漲幅最少….加油別讓我失望… - 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/article/184917634",
-          "source": "CMoney",
-          "date": "2026-09-23 14:08",
-          "datetime": "2026-09-23T14:08:47+08:00"
-        },
-        {
           "title": "Q4旺季行情提前點火！00409A成交量衝18萬張 居海外主動式ETF之冠",
           "url": "https://finance.ettoday.net/amp/3242137",
           "source": "獨家報導",
           "date": "2026-09-22 16:10",
           "datetime": "2026-09-22T16:10:00+08:00"
+        },
+        {
+          "title": "解套賣壓湧現也擋不住！00409A受益人數衝破5萬人 淨值4天反彈逾6%",
+          "url": "https://www.watchmedia01.com/archives/551907",
+          "source": "Life 生活網",
+          "date": "2026-09-22 12:09",
+          "datetime": "2026-09-22T12:09:10+08:00"
         }
       ]
     },
@@ -409,7 +409,7 @@
       "board": "資產配置",
       "title": "第一次信貸投資單筆買基金，用每月薪資還款",
       "url": "https://fundhot.com/forum/%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE/%E7%AC%AC%E4%B8%80%E6%AC%A1%E4%BF%A1%E8%B2%B8%E6%8A%95%E8%B3%87%E5%96%AE%E7%AD%86%E8%B2%B7%E5%9F%BA%E9%87%91%EF%BC%8C%E7%94%A8%E6%AF%8F%E6%9C%88%E8%96%AA%E8%B3%87%E9%82%84%E6%AC%BE/13979",
-      "date": "2026-09-27"
+      "first_seen": "2026-09-29"
     },
     {
       "platform": "fundhot",
@@ -466,7 +466,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/R7-0lRq6KjQ",
       "date": "2026-09-24",
-      "views": 209,
+      "views": 220,
       "official": true,
       "short": true
     },
@@ -476,7 +476,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/POqpnf3mGDs",
       "date": "2026-09-24",
-      "views": 192,
+      "views": 206,
       "official": true,
       "short": true
     },
@@ -486,7 +486,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/nitQ95TWv_c",
       "date": "2026-09-24",
-      "views": 143,
+      "views": 162,
       "official": true,
       "short": true
     },
@@ -496,7 +496,7 @@
       "channel": "睡後收入",
       "url": "https://www.youtube.com/watch?v=riX8Ig1AFO0",
       "date": "2026-09-25",
-      "views": 67255
+      "views": 82075
     },
     {
       "platform": "youtube",
@@ -504,7 +504,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/shorts/bZxJHj7SdFI",
       "date": "2026-09-22",
-      "views": 32604,
+      "views": 33355,
       "short": true
     },
     {
@@ -513,7 +513,7 @@
       "channel": "永豐金證券",
       "url": "https://www.youtube.com/shorts/85WXLZfLsBk",
       "date": "2026-09-24",
-      "views": 19141,
+      "views": 19204,
       "short": true
     },
     {
@@ -522,30 +522,9 @@
       "channel": "阮蕙慈分析師-大華國際投顧-金融阮實力",
       "url": "https://www.youtube.com/shorts/mBzBNSqBvU8",
       "date": "2026-09-24",
-      "views": 620993,
+      "views": 693183,
       "peer": true,
       "short": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "00415A核心英雄傳（下）｜真假武林鬧雙胞！？三關比試找出真武林英雄｜投資你需要00415A 9/30強勢募集 #中秋追劇就這檔",
-      "channel": "群益投信",
-      "url": "https://www.youtube.com/shorts/Z-odD6lDiNc",
-      "date": "2026-09-23",
-      "views": 364810,
-      "peer": true,
-      "short": true,
-      "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股5萬點「台灣快爛掉」？鄭麗文唱衰害慘蔣萬安？腦袋有洞？吳嘉隆：巴結共產黨讓台灣人看不起-吳嘉隆 劉寶傑《寶傑怎麼說》20260924-2",
-      "channel": "寶傑點兵／寶傑怎麼說",
-      "url": "https://www.youtube.com/watch?v=6PbAuz-0i6g",
-      "date": "2026-09-25",
-      "views": 351513,
-      "peer": true,
       "cat": "市場趨勢"
     },
     {
@@ -554,7 +533,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=OPMN2l4b2sY",
       "date": "2026-09-24",
-      "views": 220128,
+      "views": 238112,
       "peer": true,
       "cat": "基金"
     },
@@ -564,19 +543,19 @@
       "channel": "緯來財經",
       "url": "https://www.youtube.com/watch?v=ZsltSYWI6EM",
       "date": "2026-09-24",
-      "views": 198940,
+      "views": 212832,
       "peer": true,
       "cat": "綜合"
     },
     {
       "platform": "youtube",
-      "title": "卡位趁現在，AI「這族群」繼續漲！買「這三檔」股票 績效贏過主動式ETF？｜鄭廳宜、王志郁｜【富足今周起】EP121",
-      "channel": "今周刊",
-      "url": "https://www.youtube.com/watch?v=xQW_u77Ho7I",
-      "date": "2026-09-23",
-      "views": 121306,
+      "title": "台股市值躍升全球第四大 政府應該思考的下一步｜#老謝開講 EP294 #財訊",
+      "channel": "財訊",
+      "url": "https://www.youtube.com/watch?v=tpUuNwcWiFU",
+      "date": "2026-09-25",
+      "views": 169255,
       "peer": true,
-      "cat": "主動式"
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -584,9 +563,19 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=K9f3FongRaQ",
       "date": "2026-09-26",
-      "views": 109202,
+      "views": 127409,
       "peer": true,
       "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "美股債雙殺 美伊和平期待落空 晶片股熄火!川普親迎習近平 WSJ曝中方要求高規格待遇!美財長:美中貿易休戰延至明年1/10｜主播貝庭｜【非凡Morning Call】20260924｜非凡財經新聞",
+      "channel": "USTV 非凡電視",
+      "url": "https://www.youtube.com/watch?v=CODBsfdVZ8E",
+      "date": "2026-09-24",
+      "views": 117658,
+      "peer": true,
+      "cat": "債券"
     },
     {
       "platform": "youtube",
@@ -594,7 +583,7 @@
       "channel": "清流君",
       "url": "https://www.youtube.com/watch?v=TdJQ9ynJGOo",
       "date": "2026-09-26",
-      "views": 80321,
+      "views": 89256,
       "peer": true,
       "cat": "市值型"
     },
@@ -604,25 +593,34 @@
       "channel": "StayRich小資理財藍圖",
       "url": "https://www.youtube.com/watch?v=skYv3jjjE34",
       "date": "2026-09-24",
-      "views": 76320,
+      "views": 85353,
       "peer": true,
       "cat": "基金"
     },
     {
       "platform": "youtube",
-      "title": "42歲只有100萬，無腦存高股息ETF真的能翻身嗎？ ft 謝富旭",
-      "channel": "理財小時候",
-      "url": "https://www.youtube.com/shorts/HjcQre6bTaY",
-      "date": "2026-09-23",
-      "views": 67699,
+      "title": "外資狂掃主動ETF..不是看好台股 驚爆套利大陰謀!? 外資獨寵&quot;兩檔主動型ETF&quot;?!不是因大賺..竟是折價?│陳斐娟 主持 │20260925│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=suEl8vkjiQA",
+      "date": "2026-09-25",
+      "views": 74625,
       "peer": true,
-      "short": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "高股息ETF配息排行榜｜月領3萬、提早退休？ 第一名我反而不敢買？ //BC股倉 (開啟字幕)",
+      "channel": "BC 股倉",
+      "url": "https://www.youtube.com/watch?v=TsV7dEYoWtM",
+      "date": "2026-09-26",
+      "views": 71479,
+      "peer": true,
       "cat": "高股息"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00409A（詳下方新聞標籤）",
     "社群聲量最高：第一次信貸投資單筆買基金，用每月薪資還款（0 推）",
-    "YouTube 熱片：Meta  Muse爆紅 台股誰受惠（阮蕙慈分析師-大華國際投顧-金融阮實力・620,993 次觀看）"
+    "YouTube 熱片：Meta  Muse爆紅 台股誰受惠（阮蕙慈分析師-大華國際投顧-金融阮實力・693,183 次觀看）"
   ]
 }
