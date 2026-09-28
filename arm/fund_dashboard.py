@@ -17,6 +17,7 @@
 """
 from __future__ import annotations
 
+import functools
 import html
 import json
 import re
@@ -253,20 +254,77 @@ def _age_days(value: str | None, today=None) -> int | None:
     return ((today or clock.today_tw()) - d).days
 
 
-def _is_stale(value: str | None, tol: int | None, today=None) -> bool:
-    """時戳超過容忍天數（或缺值）視為逾期；tol=None 永不逾期。"""
+# ── 台股交易日（2026-09-28 誤報：9/25 中秋＋週末＋9/28 教師節，資料停在 9/24 是對的，
+#    以日曆天計卻被判「ETF 持股揭露／多期報酬逾期」）──
+# 休市日取自行事曆報告（每天由晨間 Routine 產出，週表列「台股休市」、市況段寫「台股 M/D 因〇〇休市」）
+# ——重用既有事實、不另建假日表（同 check_afterhours_fresh.py）。行事曆沒寫到的休市日只會讓判定
+# 偏嚴（多報一天逾期），不會漏報。
+_MC_ROW = re.compile(r"^\|\s*(\d{1,2})/(\d{1,2})\s*\|([^|]*)\|", re.M)
+_MC_MD = re.compile(r"(\d{1,2})/(\d{1,2})")
+
+
+def _mc_date(y: int, fm: int, m: int, d: int):
+    """行事曆內的 M/D 補年份（跨年：12 月檔提到 1 月＝明年、1 月檔提到 12 月＝去年）。"""
+    yy = y + 1 if (fm == 12 and m == 1) else (y - 1 if (fm == 1 and m == 12) else y)
+    try:
+        return date(yy, m, d)
+    except ValueError:
+        return None
+
+
+@functools.lru_cache(maxsize=1)
+def _tw_closed_days() -> frozenset:
+    out = set()
+    for fp in sorted((ROOT_DIR / "reports" / "macrocal").glob("*.md"))[-90:]:
+        fm_ = re.match(r"(\d{4})-(\d{2})-(\d{2})\.md$", fp.name)
+        if not fm_:
+            continue
+        y, fm = int(fm_.group(1)), int(fm_.group(2))
+        try:
+            txt = fp.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for m in _MC_ROW.finditer(txt):
+            if "台股" in m.group(3) and "休市" in m.group(3):
+                out.add(_mc_date(y, fm, int(m.group(1)), int(m.group(2))))
+        # 市況段「台股 M/D 因〇〇休市」：只取寫明的日期——前一天的檔會預告隔天休市，
+        # 不可把檔案日期本身當休市
+        seg = re.search(r"市況：\s*台股\s*([^｜|；;]*)", txt)
+        if seg and "休市" in seg.group(1):
+            for md in _MC_MD.finditer(seg.group(1)):
+                out.add(_mc_date(y, fm, int(md.group(1)), int(md.group(2))))
+    out.discard(None)
+    return frozenset(out)
+
+
+def _trade_age(value: str | None, today=None) -> int | None:
+    """資料日之後到今天（含）經過幾個台股交易日——週末與行事曆載明的休市日不計。"""
+    age = _age_days(value, today)
+    if age is None:
+        return None
+    t = today or clock.today_tw()
+    closed = _tw_closed_days()
+    return sum(1 for i in range(age) if (x := t - timedelta(days=i)).weekday() < 5
+               and x not in closed)
+
+
+def _is_stale(value: str | None, tol: int | None, today=None, trading: bool = False) -> bool:
+    """時戳超過容忍天數（或缺值）視為逾期；tol=None 永不逾期。
+    trading=True：tol 以「台股交易日」計（跟著交易日產生的資料——NAV、持股揭露、報酬），
+    否則以日曆天計（新聞、抓取時戳等每天都該動的）。"""
     if tol is None:
         return False
-    age = _age_days(value, today)
+    age = _trade_age(value, today) if trading else _age_days(value, today)
     return age is None or age > tol
 
 
 def _fresh_chip(label: str, value: str | None, tol: int | None = None,
-                today=None, gen: bool = False) -> str:
+                today=None, gen: bool = False, trading: bool = False) -> str:
     """單一鮮度徽章：逾期標紅 ⚠；gen=True 帶 data-gen 供瀏覽器端逾期偵測。"""
-    stale = _is_stale(value, tol, today)
-    age = _age_days(value, today)
-    warn = f"　⚠ {age} 天未更新" if (stale and age is not None) else ("　⚠ 缺資料" if stale else "")
+    stale = _is_stale(value, tol, today, trading)
+    age = _trade_age(value, today) if trading else _age_days(value, today)
+    unit = "個交易日" if trading else "天"
+    warn = f"　⚠ {age} {unit}未更新" if (stale and age is not None) else ("　⚠ 缺資料" if stale else "")
     attr = f' data-gen="{_esc(value)}"' if (gen and value) else ""
     cls = " stale" if stale else ("" if value else " dim")
     return (f'<span class="chip fresh{cls}"{attr}><b>{_esc(label)}</b>　'
@@ -438,7 +496,7 @@ def _afterhours_chip(today=None) -> str:
 def _freshness_view(gen_stamp: str, sources: list[tuple[str, str | None, int | None]],
                     today=None) -> str:
     """最上方只標「網頁更新時間」；各來源時戳分散標於各自區塊標題列，這裡只彙總逾期警示。"""
-    stale = [k for k, v, tol in sources if _is_stale(v, tol, today)]
+    stale = [k for k, v, tol, *tr in sources if _is_stale(v, tol, today, bool(tr and tr[0]))]
     sub = (f'<span class="stale-note">⚠ {len(stale)} 項資料逾期未更新（{"、".join(stale)}），'
            f'請跑「全部更新」或檢查 CI</span>' if stale
            else "")
@@ -3206,16 +3264,16 @@ def render() -> str:
     # 多期報酬（鉅亨每日基準）鮮度：CI 接上前為 None——不列警示、總覽區顯示過渡註記
     ret_asof = max((d.get("returns_daily_asof") or "" for d in funds), default="") or None
     sec_fresh = _freshness_view(now, [
-        ("NAV 日", nav_date, 6), ("持股基準", hold_asof, 45), ("持股快照抓取", fetched_at, 3),
+        ("NAV 日", nav_date, 3, True), ("持股基準", hold_asof, 45), ("持股快照抓取", fetched_at, 3),
         ("美股新聞", us_date, 3), ("台股新聞", tw_date, 3),
         ("總經・政策", mac_date, 3), ("經濟行事曆", cal_date, 8),
-        ("復華新聞・社群", fn_asof, 3), ("ETF 數據追蹤", etf_asof, 10),
+        ("復華新聞・社群", fn_asof, 3), ("ETF 數據追蹤", etf_asof, 6, True),
         # ETF 持股揭露＝展開明細資料層（etf_holdings.yml 台北週一~五 17:40 抓）——
-        # 停更超過 3 天代表該 workflow 掛了，要列進逾期警示（同其他來源慣例）
+        # 停更超過 2 個交易日代表該 workflow 掛了，要列進逾期警示（同其他來源慣例）
         ("ETF 持股揭露", max(((v.get("date") or "") for v in ((eh_doc or {}).get("etfs") or {}).values()),
-                             default="") or None, 3),
+                             default="") or None, 2, True),
         ("總經・籌碼數據", mc_asof, 4),
-    ] + ([("多期報酬(鉅亨)", ret_asof, 4)] if ret_asof else []))
+    ] + ([("多期報酬(鉅亨)", ret_asof, 3, True)] if ret_asof else []))
 
     # ① 今日重點（雙視圖）；台股盤前速覽自新聞頭段抽出、直接顯示於此（不再埋於收合塊）
     premkt_md, tw_md_news = _extract_premarket(tw_md)
@@ -3282,8 +3340,8 @@ def render() -> str:
     eh_date = max(((v.get("date") or "") for v in ((eh_doc or {}).get("etfs") or {}).values()),
                   default="") or None
     sec_etf = (f'<div class="section" id="etfwatch"><div class="st">{_ic("activity", tone="teal")}ETF 數據追蹤 '
-               f'{_fresh_chip("資料基準", etf_asof, 10)} '
-               f'{_fresh_chip("持股揭露", eh_date, 3) if eh_date else ""} '
+               f'{_fresh_chip("資料基準", etf_asof, 6, trading=True)} '
+               f'{_fresh_chip("持股揭露", eh_date, 2, trading=True) if eh_date else ""} '
                f'<span class="stsub">台股被動（高股息／市值型）＋主動式 ETF・收盤／規模／成立／週月報酬／'
                f'最近一次配息金額／換算年化配息率／分配頻率・點欄位標題可排序</span></div>'
                f'{_etfwatch_view(etf_doc, eh_doc)}</div>')
@@ -3302,13 +3360,13 @@ def render() -> str:
     #    新聞連動資料仍餵基金詳情卡的持股 🔗 高亮（linked_by_fund）
 
     # ④ 基金總覽（多期報酬＝鉅亨每日基準優先；未接上前 ret_asof 為 None、不顯示 chip）
-    ret_chip = _fresh_chip("多期報酬", ret_asof, 4) if ret_asof else ""
+    ret_chip = _fresh_chip("多期報酬", ret_asof, 3, trading=True) if ret_asof else ""
     ret_note = ("報酬欄＝鉅亨每日基準（缺值回退官網月底值）" if ret_asof else
                 "多期報酬暫為官網月底基準（鉅亨每日覆蓋待 CI 接上）")
     o_tw = _overview_view(rows_tw, leaders, tw_pend)
     o_gl = _overview_view(rows_gl, leaders, gl_pend)
     sec_over = (f'<div class="section" id="overview"><div class="st">{_ic("chart", tone="green")}基金總覽 '
-                f'{_fresh_chip("NAV 日", nav_date, 6)}{_fresh_chip("持股基準", hold_asof, 45)}'
+                f'{_fresh_chip("NAV 日", nav_date, 3, trading=True)}{_fresh_chip("持股基準", hold_asof, 45)}'
                 f'{_fresh_chip("快照抓取", fetched_at, 3)}{ret_chip} '
                 f'<span class="stsub">色塊＝各組各欄漲跌極值（見下方圖例）・點欄位標題可排序・{ret_note}・'
                 f'1週/1月＝往回滾動7/30日曆日（非月初起算，缺值以自建NAV序列自算，'
@@ -3319,7 +3377,7 @@ def render() -> str:
     c_tw = _details_block(tw_funds, gavg, linked_by_fund, tw_pend)
     c_gl = _details_block(gl_funds, gavg, linked_by_fund, gl_pend)
     sec_det = (f'<div class="section" id="details"><div class="st">{_ic("book", tone="navy")}基金詳情 '
-               f'{_fresh_chip("NAV 日", nav_date, 6)}{_fresh_chip("持股基準", hold_asof, 45)} '
+               f'{_fresh_chip("NAV 日", nav_date, 3, trading=True)}{_fresh_chip("持股基準", hold_asof, 45)} '
                f'<span class="stsub">預設收合・點卡片展開；績效格「●」＝高於同組平均</span></div>'
                f'<div class="fundbar">{_ic("search", plain=True)}'
                f'<input id="fsearch" type="search" placeholder="輸入基金名稱關鍵字篩選…">'
