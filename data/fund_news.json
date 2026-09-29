@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/29 07:51",
+  "as_of": "2026/09/29 10:34",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -100,11 +100,11 @@
           "datetime": "2026-09-22T16:10:00+08:00"
         },
         {
-          "title": "Q4旺季行情提前卡位！00409A搶進Robinhood、BitMine漲逾2成",
-          "url": "https://www.moneyweekly.com.tw/Home/ChangePage/Article/250276/?Type=3&Line=Home_ArticleSet_103&Page=FCE914305A6531AB6432D7582FBD3210ED807EA1EE4F0EF46B3AD8D7E7A5E9BC32044E43358EF7BE3FFE2B65D95AA3586B10D937329E59C7ED705BACED8B4A93BD912BF951D1FBBCD80C0A736A30F986A1455562434D657A85A3E1709B59167E9BEE9B2534086EF8A781C32F1CBAE04CF19894B679F6BB51E0E34B8F7CFFFA19255852B62461669D40EBC1C579CF8297363B86A5B1CB5E6F4DDE50B05A267F74422DFA5BBDFCB6FCEB97143B1C63EE889B16514DDC2835398750C61456105CBFE993F5944260112E5852E563FAB5DB15C683B16695667A47",
-          "source": "ShareLife 台灣旅行趣",
-          "date": "2026-09-22 12:11",
-          "datetime": "2026-09-22T12:11:25+08:00"
+          "title": "解套賣壓湧現也擋不住！00409A受益人數衝破5萬人 淨值4天反彈逾6%",
+          "url": "https://www.watchmedia01.com/archives/551907",
+          "source": "Life 生活網",
+          "date": "2026-09-22 12:09",
+          "datetime": "2026-09-22T12:09:10+08:00"
         }
       ]
     },
@@ -490,7 +490,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/POqpnf3mGDs",
       "date": "2026-09-24",
-      "views": 206,
+      "views": 207,
       "official": true,
       "short": true
     },
@@ -500,7 +500,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/nitQ95TWv_c",
       "date": "2026-09-24",
-      "views": 162,
+      "views": 164,
       "official": true,
       "short": true
     },
@@ -510,7 +510,7 @@
       "channel": "睡後收入",
       "url": "https://www.youtube.com/watch?v=riX8Ig1AFO0",
       "date": "2026-09-25",
-      "views": 82264
+      "views": 83273
     },
     {
       "platform": "youtube",
@@ -518,7 +518,7 @@
       "channel": "葉芷娟",
       "url": "https://www.youtube.com/shorts/bZxJHj7SdFI",
       "date": "2026-09-22",
-      "views": 33354,
+      "views": 33442,
       "short": true
     },
     {
@@ -527,7 +527,7 @@
       "channel": "永豐金證券",
       "url": "https://www.youtube.com/shorts/85WXLZfLsBk",
       "date": "2026-09-24",
-      "views": 19204,
+      "views": 19200,
       "short": true
     },
     {
@@ -536,7 +536,7 @@
       "channel": "阮蕙慈分析師-大華國際投顧-金融阮實力",
       "url": "https://www.youtube.com/shorts/mBzBNSqBvU8",
       "date": "2026-09-24",
-      "views": 715790,
+      "views": 715898,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -547,7 +547,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=OPMN2l4b2sY",
       "date": "2026-09-24",
-      "views": 238289,
+      "views": 240011,
       "peer": true,
       "cat": "基金"
     },
@@ -557,7 +557,7 @@
       "channel": "緯來財經",
       "url": "https://www.youtube.com/watch?v=ZsltSYWI6EM",
       "date": "2026-09-24",
-      "views": 213121,
+      "views": 215124,
       "peer": true,
       "cat": "綜合"
     },
@@ -567,7 +567,7 @@
       "channel": "財訊",
       "url": "https://www.youtube.com/watch?v=tpUuNwcWiFU",
       "date": "2026-09-25",
-      "views": 169428,
+      "views": 170309,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -577,19 +577,9 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=K9f3FongRaQ",
       "date": "2026-09-26",
-      "views": 127592,
+      "views": 129127,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "美股債雙殺 美伊和平期待落空 晶片股熄火!川普親迎習近平 WSJ曝中方要求高規格待遇!美財長:美中貿易休戰延至明年1/10｜主播貝庭｜【非凡Morning Call】20260924｜非凡財經新聞",
-      "channel": "USTV 非凡電視",
-      "url": "https://www.youtube.com/watch?v=CODBsfdVZ8E",
-      "date": "2026-09-24",
-      "views": 117674,
-      "peer": true,
-      "cat": "債券"
     },
     {
       "platform": "youtube",
@@ -597,7 +587,7 @@
       "channel": "清流君",
       "url": "https://www.youtube.com/watch?v=TdJQ9ynJGOo",
       "date": "2026-09-26",
-      "views": 89349,
+      "views": 89782,
       "peer": true,
       "cat": "市值型"
     },
@@ -607,7 +597,7 @@
       "channel": "StayRich小資理財藍圖",
       "url": "https://www.youtube.com/watch?v=skYv3jjjE34",
       "date": "2026-09-24",
-      "views": 85432,
+      "views": 85977,
       "peer": true,
       "cat": "基金"
     },
@@ -617,7 +607,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=suEl8vkjiQA",
       "date": "2026-09-25",
-      "views": 74620,
+      "views": 74695,
       "peer": true,
       "cat": "主動式"
     },
@@ -627,7 +617,17 @@
       "channel": "BC 股倉",
       "url": "https://www.youtube.com/watch?v=TsV7dEYoWtM",
       "date": "2026-09-26",
-      "views": 71598,
+      "views": 72451,
+      "peer": true,
+      "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "買這幾檔ETF.竟然能月月配10%? 月月配ETF你所不知道的事!怎麼樣才能安穩配置退休資產?║林昌興、張貽程、廖祿民║2026.09.25",
+      "channel": "瘋狂股市福利社Free Free Free!",
+      "url": "https://www.youtube.com/watch?v=t85_uuK5J3k",
+      "date": "2026-09-25",
+      "views": 67103,
       "peer": true,
       "cat": "高股息"
     }
@@ -635,6 +635,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00409A（詳下方新聞標籤）",
     "社群聲量最高：第一次信貸投資單筆買基金，用每月薪資還款（0 推）",
-    "YouTube 熱片：Meta  Muse爆紅 台股誰受惠（阮蕙慈分析師-大華國際投顧-金融阮實力・715,790 次觀看）"
+    "YouTube 熱片：Meta  Muse爆紅 台股誰受惠（阮蕙慈分析師-大華國際投顧-金融阮實力・715,898 次觀看）"
   ]
 }
