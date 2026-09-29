@@ -1,8 +1,19 @@
 {
- "as_of": "2026-09-29 10:35",
- "count": 0,
- "items": [],
- "pipeline_n": 5,
+ "as_of": "2026-09-30 06:43",
+ "count": 1,
+ "items": [
+  {
+   "code": null,
+   "name": "華南永昌全球娛樂科技優選ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "ETF",
+   "approve": "115.9.30申報生效"
+  }
+ ],
+ "pipeline_n": 4,
  "pipeline": [
   {
    "code": null,
@@ -13,16 +24,6 @@
    "stage": "applied",
    "cat": "ETF",
    "approve": "審查中"
-  },
-  {
-   "code": null,
-   "name": "華南永昌全球娛樂科技優選ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "ETF",
-   "approve": "115.9.30申報生效"
   },
   {
    "code": null,
