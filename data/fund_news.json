@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/09/30 06:42",
+  "as_of": "2026/09/30 07:21",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -459,7 +459,7 @@
       "channel": "睡後收入",
       "url": "https://www.youtube.com/watch?v=riX8Ig1AFO0",
       "date": "2026-09-25",
-      "views": 99745
+      "views": 99878
     },
     {
       "platform": "youtube",
@@ -484,7 +484,7 @@
       "channel": "財訊",
       "url": "https://www.youtube.com/watch?v=tpUuNwcWiFU",
       "date": "2026-09-25",
-      "views": 176113,
+      "views": 176140,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -494,7 +494,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/watch?v=olxgD26vY6g",
       "date": "2026-09-26",
-      "views": 176028,
+      "views": 176056,
       "peer": true,
       "cat": "綜合"
     },
@@ -504,7 +504,7 @@
       "channel": "裝修小武郎",
       "url": "https://www.youtube.com/watch?v=KI8GZ67np8k",
       "date": "2026-09-27",
-      "views": 141835,
+      "views": 141911,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -514,7 +514,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=K9f3FongRaQ",
       "date": "2026-09-26",
-      "views": 134966,
+      "views": 135011,
       "peer": true,
       "cat": "綜合"
     },
@@ -524,7 +524,7 @@
       "channel": "清流君",
       "url": "https://www.youtube.com/watch?v=TdJQ9ynJGOo",
       "date": "2026-09-26",
-      "views": 94240,
+      "views": 94274,
       "peer": true,
       "cat": "市值型"
     },
@@ -534,7 +534,7 @@
       "channel": "BC 股倉",
       "url": "https://www.youtube.com/watch?v=TsV7dEYoWtM",
       "date": "2026-09-26",
-      "views": 82591,
+      "views": 82640,
       "peer": true,
       "cat": "高股息"
     },
@@ -544,7 +544,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=BrVtbMYSC1s",
       "date": "2026-09-29",
-      "views": 75401,
+      "views": 76467,
       "peer": true,
       "cat": "高股息"
     },
@@ -574,7 +574,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=CM9jcu5v3fY",
       "date": "2026-09-27",
-      "views": 60841,
+      "views": 60861,
       "peer": true,
       "cat": "市值型"
     }
@@ -582,6 +582,6 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00409A（詳下方新聞標籤）",
     "社群聲量最高：ETF投資一年能賺多少？我用年化報酬率教孩子設定合理目標（0 推）",
-    "YouTube 熱片：台股市值躍升全球第四大 政府應該思考的下一步｜#老謝開講 EP294 #財訊（財訊・176,113 次觀看）"
+    "YouTube 熱片：台股市值躍升全球第四大 政府應該思考的下一步｜#老謝開講 EP294 #財訊（財訊・176,140 次觀看）"
   ]
 }
