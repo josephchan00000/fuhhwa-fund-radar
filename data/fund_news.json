@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/01 06:42",
+  "as_of": "2026/10/01 10:09",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [],
@@ -30,11 +30,11 @@
       ],
       "items": [
         {
-          "title": "第四季台股聚焦AI主流 主動式ETF強勢布局 00991A成投資關注熱點",
-          "url": "https://www.setn.com/news/1915039",
-          "source": "三立新聞網SETN.com",
-          "date": "2026-09-30 17:00",
-          "datetime": "2026-09-30T17:00:00+08:00"
+          "title": "主動式ETF瘋搶台塑二寶！00991A、00400A猛增持「這1寶」 內外資都看好：目標價最高400元",
+          "url": "https://tw.stock.yahoo.com/news/%E4%B8%BB%E5%8B%95%E5%BC%8Fetf%E7%98%8B%E6%90%B6%E5%8F%B0%E5%A1%91%E4%BA%8C%E5%AF%B6-00991a-00400a%E7%8C%9B%E5%A2%9E%E6%8C%81-%E9%80%991%E5%AF%B6-%E5%85%A7%E5%A4%96%E8%B3%87%E9%83%BD%E7%9C%8B%E5%A5%BD-014000775.html",
+          "source": "Yahoo股市",
+          "date": "2026-10-01 09:40",
+          "datetime": "2026-10-01T09:40:00+08:00"
         }
       ]
     },
@@ -445,16 +445,7 @@
       "channel": "睡後收入",
       "url": "https://www.youtube.com/watch?v=riX8Ig1AFO0",
       "date": "2026-09-25",
-      "views": 116584
-    },
-    {
-      "platform": "youtube",
-      "title": "女霸總逆勢佈局00929，5年後結局超爽快！🥂",
-      "channel": "永豐金證券",
-      "url": "https://www.youtube.com/shorts/85WXLZfLsBk",
-      "date": "2026-09-24",
-      "views": 19225,
-      "short": true
+      "views": 118334
     },
     {
       "platform": "youtube",
@@ -462,17 +453,15 @@
       "channel": "財經不懸",
       "url": "https://www.youtube.com/watch?v=D1ITov98Pvc",
       "date": "2026-09-25",
-      "views": 1945
+      "views": 1946
     },
     {
       "platform": "youtube",
-      "title": "持倉五成拉到七成 Q4靠這8檔備戰｜楚狂人 ft. 資深財經專家 阮慕驊｜財富狂犇｜玩股網20260926",
-      "channel": "玩股網楚狂人",
-      "url": "https://www.youtube.com/watch?v=olxgD26vY6g",
-      "date": "2026-09-26",
-      "views": 181401,
-      "peer": true,
-      "cat": "綜合"
+      "title": "高息ETF今年暴賺74%！00929奪冠",
+      "channel": "財經快報",
+      "url": "https://www.youtube.com/watch?v=foVHz1KDwj4",
+      "date": "2026-09-28",
+      "views": 1540
     },
     {
       "platform": "youtube",
@@ -480,7 +469,7 @@
       "channel": "裝修小武郎",
       "url": "https://www.youtube.com/watch?v=KI8GZ67np8k",
       "date": "2026-09-27",
-      "views": 153358,
+      "views": 153765,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -490,7 +479,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=BrVtbMYSC1s",
       "date": "2026-09-29",
-      "views": 149404,
+      "views": 152720,
       "peer": true,
       "cat": "高股息"
     },
@@ -500,7 +489,17 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=K9f3FongRaQ",
       "date": "2026-09-26",
-      "views": 136900,
+      "views": 137007,
+      "peer": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "手上有10張0056「就贏80%投資人」！　存幾張才能財富自由？｜懶錢包LazyWallet",
+      "channel": "懶錢包 Lazy Wallet",
+      "url": "https://www.youtube.com/watch?v=k-6RiLEdEnY",
+      "date": "2026-09-28",
+      "views": 114897,
       "peer": true,
       "cat": "綜合"
     },
@@ -510,7 +509,7 @@
       "channel": "清流君",
       "url": "https://www.youtube.com/watch?v=TdJQ9ynJGOo",
       "date": "2026-09-26",
-      "views": 97433,
+      "views": 97601,
       "peer": true,
       "cat": "市值型"
     },
@@ -520,7 +519,7 @@
       "channel": "BC 股倉",
       "url": "https://www.youtube.com/watch?v=TsV7dEYoWtM",
       "date": "2026-09-26",
-      "views": 90513,
+      "views": 90884,
       "peer": true,
       "cat": "高股息"
     },
@@ -530,7 +529,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=AbcufeOK-lc",
       "date": "2026-09-26",
-      "views": 82877,
+      "views": 85620,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -540,7 +539,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=CM9jcu5v3fY",
       "date": "2026-09-27",
-      "views": 62930,
+      "views": 63243,
       "peer": true,
       "cat": "市值型"
     },
@@ -550,24 +549,24 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=xZxCh-_uCv4",
       "date": "2026-09-28",
-      "views": 62733,
+      "views": 62874,
       "peer": true,
       "cat": "債券"
     },
     {
       "platform": "youtube",
-      "title": "0050高檔敢買? 杜金龍ETF「1/3配置法」 正2要衝了? 遇震盪盤小心耗損? 跟著主動式ETF挑飆股?【理財我指路】feat.杜金龍 VS 致富達人 周致偉 中秋特別版",
-      "channel": "理周FUN財經",
-      "url": "https://www.youtube.com/watch?v=uTj_cAiTfkY",
-      "date": "2026-09-26",
-      "views": 42725,
+      "title": "【錢鏡你家】4年從負債翻身1300萬！鐵蛋ETF二刀流 拚成長也穩領息ft.鐵蛋存錢日記 鐵蛋｜鏡發財",
+      "channel": "鏡發財",
+      "url": "https://www.youtube.com/watch?v=LFJXjNlkgvE",
+      "date": "2026-09-29",
+      "views": 35375,
       "peer": true,
-      "cat": "主動式"
+      "cat": "債券"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00409A（詳下方新聞標籤）",
     "社群聲量最高：ETF投資一年能賺多少？我用年化報酬率教孩子設定合理目標（0 推）",
-    "YouTube 熱片：持倉五成拉到七成 Q4靠這8檔備戰｜楚狂人 ft. 資深財經專家 阮慕驊｜財富狂犇｜玩股網20260926（玩股網楚狂人・181,401 次觀看）"
+    "YouTube 熱片：台股高檔還敢All in？專家喊100萬全押！第四季還能漲？【武哥聊股市】（裝修小武郎・153,765 次觀看）"
   ]
 }
