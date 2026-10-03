@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/03 06:41",
+  "as_of": "2026/10/03 09:57",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -40,13 +40,6 @@
           "source": "今周刊",
           "date": "2026-10-01 17:57",
           "datetime": "2026-10-01T17:57:00+08:00"
-        },
-        {
-          "title": "45萬股民嗨翻！00929連4配0.38元「年化配息率衝破15%」 最後買進日曝光",
-          "url": "https://tw.stock.yahoo.com/news/45%E8%90%AC%E8%82%A1%E6%B0%91%E5%97%A8%E7%BF%BB-00929%E9%80%A34%E9%85%8D0-38%E5%85%83-%E5%B9%B4%E5%8C%96%E9%85%8D%E6%81%AF%E7%8E%87%E8%A1%9D%E7%A0%B415-%E6%9C%80%E5%BE%8C%E8%B2%B7%E9%80%B2%E6%97%A5%E6%9B%9D%E5%85%89-093800610.html",
-          "source": "Yahoo股市",
-          "date": "2026-10-01 17:38",
-          "datetime": "2026-10-01T17:38:00+08:00"
         }
       ]
     },
@@ -64,13 +57,6 @@
           "source": "UDN",
           "date": "2026-10-02 09:00",
           "datetime": "2026-10-02T09:00:30+08:00"
-        },
-        {
-          "title": "主動式ETF瘋搶台塑二寶！00991A、00400A猛增持「這1寶」 內外資都看好：目標價最高400元",
-          "url": "https://tw.stock.yahoo.com/news/%E4%B8%BB%E5%8B%95%E5%BC%8Fetf%E7%98%8B%E6%90%B6%E5%8F%B0%E5%A1%91%E4%BA%8C%E5%AF%B6-00991a-00400a%E7%8C%9B%E5%A2%9E%E6%8C%81-%E9%80%991%E5%AF%B6-%E5%85%A7%E5%A4%96%E8%B3%87%E9%83%BD%E7%9C%8B%E5%A5%BD-014000775.html",
-          "source": "Yahoo股市",
-          "date": "2026-10-01 09:40",
-          "datetime": "2026-10-01T09:40:00+08:00"
         },
         {
           "title": "10/1 00991A 台塑化2天買8500張",
@@ -503,7 +489,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/watch?v=VyrVmgAQDHk",
       "date": "2026-10-01",
-      "views": 1799,
+      "views": 1813,
       "official": true
     },
     {
@@ -512,7 +498,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/5zFT2JJ_P6A",
       "date": "2026-10-01",
-      "views": 224,
+      "views": 225,
       "official": true,
       "short": true
     },
@@ -522,7 +508,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/Hbv8EfF4bN8",
       "date": "2026-10-01",
-      "views": 61,
+      "views": 63,
       "official": true,
       "short": true
     },
@@ -542,7 +528,7 @@
       "channel": "賺錢放大術",
       "url": "https://www.youtube.com/watch?v=wbKaoCmik9E",
       "date": "2026-10-02",
-      "views": 15256
+      "views": 15884
     },
     {
       "platform": "youtube",
@@ -558,7 +544,7 @@
       "channel": "寰宇新聞 頻道",
       "url": "https://www.youtube.com/watch?v=6CrPT2j2180",
       "date": "2026-10-01",
-      "views": 1384
+      "views": 1395
     },
     {
       "platform": "youtube",
@@ -566,7 +552,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/watch?v=YY_6KXDSF3Y",
       "date": "2026-09-28",
-      "views": 684147,
+      "views": 690388,
       "peer": true,
       "cat": "市值型"
     },
@@ -576,7 +562,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=BrVtbMYSC1s",
       "date": "2026-09-29",
-      "views": 187398,
+      "views": 188497,
       "peer": true,
       "cat": "高股息"
     },
@@ -586,7 +572,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=k-6RiLEdEnY",
       "date": "2026-09-28",
-      "views": 129312,
+      "views": 129584,
       "peer": true,
       "cat": "綜合"
     },
@@ -596,7 +582,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/shorts/1F80niHQjag",
       "date": "2026-10-01",
-      "views": 97717,
+      "views": 104330,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -607,7 +593,7 @@
       "channel": "卡爾先生",
       "url": "https://www.youtube.com/watch?v=ywA7E4oav_4",
       "date": "2026-09-30",
-      "views": 94703,
+      "views": 95442,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -627,20 +613,9 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/watch?v=xZxCh-_uCv4",
       "date": "2026-09-28",
-      "views": 64842,
+      "views": 64876,
       "peer": true,
       "cat": "債券"
-    },
-    {
-      "platform": "youtube",
-      "title": "剛換去主動式ETF，高股息ETF就漲了！跟風換ETF最怕這件事｜ft.超馬芭樂、葉芷娟 #ETF #ETF錢滾錢",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/shorts/EZ7urI1s0DQ",
-      "date": "2026-09-30",
-      "views": 60485,
-      "peer": true,
-      "short": true,
-      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -648,10 +623,21 @@
       "channel": "基金小姐姐詹璇依",
       "url": "https://www.youtube.com/shorts/VMZNU5W2CtA",
       "date": "2026-10-01",
-      "views": 58537,
+      "views": 62683,
       "peer": true,
       "short": true,
       "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "剛換去主動式ETF，高股息ETF就漲了！跟風換ETF最怕這件事｜ft.超馬芭樂、葉芷娟 #ETF #ETF錢滾錢",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/shorts/EZ7urI1s0DQ",
+      "date": "2026-09-30",
+      "views": 61494,
+      "peer": true,
+      "short": true,
+      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -659,7 +645,7 @@
       "channel": "鏡發財",
       "url": "https://www.youtube.com/watch?v=LFJXjNlkgvE",
       "date": "2026-09-29",
-      "views": 44760,
+      "views": 45054,
       "peer": true,
       "cat": "債券"
     }
@@ -668,6 +654,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A（詳下方新聞標籤）",
     "品牌焦點：00929連四次配息0.38元！年化配息率15.4％ 今年績效居高股息ETF之冠（蕃新聞）",
     "社群聲量最高：現在借錢投資利率能多低？強友分享信貸2．12％核准經驗（0 推）",
-    "YouTube 熱片：存股千萬別只抱0050!! 1關鍵退休金狂賺600% ft. 阮慕驊【 小宇宙大爆發 】（小宇宙大爆發・684,147 次觀看）"
+    "YouTube 熱片：存股千萬別只抱0050!! 1關鍵退休金狂賺600% ft. 阮慕驊【 小宇宙大爆發 】（小宇宙大爆發・690,388 次觀看）"
   ]
 }
