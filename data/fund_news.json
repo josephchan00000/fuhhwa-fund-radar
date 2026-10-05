@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/05 06:42",
+  "as_of": "2026/10/05 08:12",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -28,6 +28,13 @@
       ],
       "items": [
         {
+          "title": "配得高也漲得多！00929連四月穩配0.38元 今年以來含息報酬達75.12%",
+          "url": "https://n.yam.com/Article/20261005442823",
+          "source": "n.yam.com",
+          "date": "2026-10-05 08:00",
+          "datetime": "2026-10-05T08:00:00+08:00"
+        },
+        {
           "title": "00929 今年含息報酬逾 7 成，贏過0056等23 檔高股息 ETF！成分股、配息時間與風險一次看",
           "url": "https://www.managertoday.com.tw/articles/view/73055",
           "source": "經理人",
@@ -37,7 +44,7 @@
         {
           "title": "5檔熱門ETF本周發錢！台股迎384億元活水　00981A、00929息利雙收",
           "url": "https://finance.ettoday.net/news/3248775",
-          "source": "finance.ettoday.net",
+          "source": "ETtoday財經雲",
           "date": "2026-10-04 13:00",
           "datetime": "2026-10-04T13:00:00+08:00"
         }
@@ -54,7 +61,7 @@
         {
           "title": "1表看》主動式ETF人氣大洗牌！00981A受益人逼近百萬00403A、00991A緊追- 基金",
           "url": "https://wantrich.chinatimes.com/news/20261004900002-420401",
-          "source": "旺得富理財網",
+          "source": "wantrich.chinatimes.com",
           "date": "2026-10-04 06:07",
           "datetime": "2026-10-04T06:07:30+08:00"
         },
@@ -85,14 +92,14 @@
         {
           "title": "第三季財報季由金融巨頭打頭陣 00998A近日回檔財報前逢低加碼時機浮現",
           "url": "https://www.watchmedia01.com/archives/555369",
-          "source": "觀傳媒",
+          "source": "watchmedia01.com",
           "date": "2026-10-04 17:35",
           "datetime": "2026-10-04T17:35:53+08:00"
         },
         {
           "title": "科技基金單週失血26.3億美元金融基金逆勢吸金11.3億美元 00998A回檔浮現布局良機",
           "url": "https://www.watchmedia01.com/archives/555358",
-          "source": "觀傳媒",
+          "source": "watchmedia01.com",
           "date": "2026-10-04 17:34",
           "datetime": "2026-10-04T17:34:37+08:00"
         },
@@ -139,16 +146,9 @@
         {
           "title": "美光財報超狂，「反指標女神」也打不穿！00409A重押，記憶體多頭再起？",
           "url": "https://www.watchmedia01.com/archives/555028",
-          "source": "觀傳媒",
+          "source": "watchmedia01.com",
           "date": "2026-10-02 18:34",
           "datetime": "2026-10-02T18:34:23+08:00"
-        },
-        {
-          "title": "00409A 主動復華全球50 - 折價-0.14 -1.36% 這樣賣的話不就是笨蛋了嗎🤨❓ - 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/article/185042616",
-          "source": "CMoney",
-          "date": "2026-10-01 10:15",
-          "datetime": "2026-10-01T10:15:40+08:00"
         }
       ]
     },
@@ -161,9 +161,11 @@
     },
     {
       "base": "復華台灣新星主動式ETF基金",
-      "code": null,
+      "code": "00418A",
       "fund_ids": [],
-      "short_names": [],
+      "short_names": [
+        "00418A"
+      ],
       "items": []
     },
     {
@@ -563,7 +565,7 @@
       "channel": "賺錢放大術",
       "url": "https://www.youtube.com/watch?v=wbKaoCmik9E",
       "date": "2026-10-02",
-      "views": 24062
+      "views": 24146
     },
     {
       "platform": "youtube",
@@ -571,7 +573,7 @@
       "channel": "VS MEDIA Taiwan",
       "url": "https://www.youtube.com/watch?v=vaS88i6kOoY",
       "date": "2026-10-03",
-      "views": 6564
+      "views": 6552
     },
     {
       "platform": "youtube",
@@ -579,7 +581,7 @@
       "channel": "寰宇新聞 頻道",
       "url": "https://www.youtube.com/watch?v=6CrPT2j2180",
       "date": "2026-10-01",
-      "views": 3065
+      "views": 3073
     },
     {
       "platform": "youtube",
@@ -587,7 +589,7 @@
       "channel": "基金小姐姐詹璇依",
       "url": "https://www.youtube.com/shorts/VMZNU5W2CtA",
       "date": "2026-10-01",
-      "views": 217657,
+      "views": 220047,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -598,7 +600,7 @@
       "channel": "賺錢放大術",
       "url": "https://www.youtube.com/watch?v=LIaX75M52RY",
       "date": "2026-10-02",
-      "views": 210347,
+      "views": 211826,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -608,7 +610,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/shorts/1F80niHQjag",
       "date": "2026-10-01",
-      "views": 174954,
+      "views": 175656,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -629,7 +631,7 @@
       "channel": "57東森財經新聞",
       "url": "https://www.youtube.com/watch?v=L0gg_ERC9w8",
       "date": "2026-10-03",
-      "views": 119223,
+      "views": 119594,
       "peer": true,
       "cat": "高股息"
     },
@@ -639,7 +641,7 @@
       "channel": "ETtoday新聞雲",
       "url": "https://www.youtube.com/shorts/RKeuvPxvBrc",
       "date": "2026-10-04",
-      "views": 99160,
+      "views": 99582,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -650,7 +652,7 @@
       "channel": "玉山投信",
       "url": "https://www.youtube.com/shorts/LLjr7Gt4Koo",
       "date": "2026-09-30",
-      "views": 76884,
+      "views": 77453,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -661,7 +663,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/EZ7urI1s0DQ",
       "date": "2026-09-30",
-      "views": 75386,
+      "views": 75642,
       "peer": true,
       "short": true,
       "cat": "高股息"
@@ -672,7 +674,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/shorts/A7kRn8NuWrw",
       "date": "2026-10-01",
-      "views": 51882,
+      "views": 52219,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -693,6 +695,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A（詳下方新聞標籤）",
     "品牌焦點：00929 今年含息報酬逾 7 成，贏過0056等23 檔高股息 ETF！成分股、配息時間與風險一次看（經理人）",
     "社群聲量最高：現在借錢投資利率能多低？強友分享信貸2．12％核准經驗（0 推）",
-    "YouTube 熱片：主動式ETF跌落神壇？！ #基金小姐姐 #投資（基金小姐姐詹璇依・217,657 次觀看）"
+    "YouTube 熱片：主動式ETF跌落神壇？！ #基金小姐姐 #投資（基金小姐姐詹璇依・220,047 次觀看）"
   ]
 }
