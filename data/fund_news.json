@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/10 10:20",
+  "as_of": "2026/10/11 06:43",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -39,6 +39,13 @@
       "datetime": "2026-10-06T01:10:27+08:00"
     },
     {
+      "title": "00991A 主動復華未來50 - 復華00418A採雙經理人、不配息聚焦三大類股搶吃「整條魚」行情 - 股市爆料同學會",
+      "url": "https://www.cmoney.tw/forum/article/185143332",
+      "source": "CMoney",
+      "date": "2026-10-05 21:23",
+      "datetime": "2026-10-05T21:23:42+08:00"
+    },
+    {
       "title": "復華00418A採雙經理人、不配息 聚焦三大類股搶吃「整條魚」行情",
       "url": "https://news.cnyes.com/news/id/6622051",
       "source": "鉅亨網",
@@ -48,7 +55,7 @@
     {
       "title": "復華投信再推主動式ETF 00418A鎖定三大成長契機- 新聞",
       "url": "https://m.moneydj.com/f1a.aspx?a=cab2063a-cb06-4580-8204-8b4856cb0664",
-      "source": "MoneyDJ理財網",
+      "source": "MoneyDJ",
       "date": "2026-10-05 18:49",
       "datetime": "2026-10-05T18:49:00+08:00"
     },
@@ -60,18 +67,11 @@
       "datetime": "2026-10-05T17:56:14+08:00"
     },
     {
-      "title": "台股5萬點近在咫尺 投信：要吃整隻魚、不要賣飛",
-      "url": "https://www.knews.com.tw/news/3E5A9FE39A12B186BB17F62513971B2F",
-      "source": "知新聞",
-      "date": "2026-10-05 17:12",
-      "datetime": "2026-10-05T17:12:00+08:00"
-    },
-    {
-      "title": "00418A主動復華台灣新星、21日開募掌握三大類股成長爆發力- 理財",
-      "url": "https://www.ctee.com.tw/news/20261005701567-430403",
-      "source": "工商時報",
-      "date": "2026-10-05 17:03",
-      "datetime": "2026-10-05T17:03:00+08:00"
+      "title": "00418A主動復華台灣新星來囉 曾創9倍報酬操盤手戎宜蘋出馬！",
+      "url": "https://tw.news.yahoo.com/00418a%E4%B8%BB%E5%8B%95%E5%BE%A9%E8%8F%AF%E5%8F%B0%E7%81%A3%E6%96%B0%E6%98%9F%E4%BE%86%E5%9B%89-%E6%9B%BE%E5%89%B59%E5%80%8D%E5%A0%B1%E9%85%AC%E6%93%8D%E7%9B%A4%E6%89%8B%E6%88%8E%E5%AE%9C%E8%98%8B%E5%87%BA%E9%A6%AC-071412142.html",
+      "source": "民視運動網",
+      "date": "2026-10-05 15:14",
+      "datetime": "2026-10-05T15:14:00+08:00"
     }
   ],
   "funds": [
@@ -117,18 +117,18 @@
           "datetime": "2026-10-09T00:34:33+08:00"
         },
         {
-          "title": "10月底FOMC、日銀動向成變數　金融股挑著買時代來了！00998A怎麼選股 | 生活 | CTWANT",
-          "url": "https://www.ctwant.com/amp/article/501424/",
-          "source": "CTWANT",
-          "date": "2026-10-08 16:01",
-          "datetime": "2026-10-08T16:01:46+08:00"
-        },
-        {
           "title": "全球金融股回檔近歷史常態區間 00998A淨值僅跌8%凸顯抗跌力",
           "url": "https://tw.news.yahoo.com/%E5%85%A8%E7%90%83%E9%87%91%E8%9E%8D%E8%82%A1%E5%9B%9E%E6%AA%94%E8%BF%91%E6%AD%B7%E5%8F%B2%E5%B8%B8%E6%85%8B%E5%8D%80%E9%96%93-00998a%E6%B7%A8%E5%80%BC%E5%83%85%E8%B7%8C8-%E5%87%B8%E9%A1%AF%E6%8A%97%E8%B7%8C%E5%8A%9B-012856820.html",
           "source": "警政時報",
           "date": "2026-10-08 09:28",
           "datetime": "2026-10-08T09:28:56+08:00"
+        },
+        {
+          "title": "00998A 主動復華金融股息 - 所以昨天是給人逃命的 今天直接跳到底井欸 - 股市爆料同學會",
+          "url": "https://www.cmoney.tw/forum/article/185234481",
+          "source": "CMoney",
+          "date": "2026-10-08 10:05",
+          "datetime": "2026-10-08T10:05:37+08:00"
         }
       ]
     },
@@ -171,11 +171,11 @@
           "datetime": "2026-10-08T15:05:11+08:00"
         },
         {
-          "title": "記憶體合約價再喊漲二成 00409A從漲價循環看AI供應鏈議價力",
-          "url": "https://tw.news.yahoo.com/%E8%A8%98%E6%86%B6%E9%AB%94%E5%90%88%E7%B4%84%E5%83%B9%E5%86%8D%E5%96%8A%E6%BC%B2%E4%BA%8C%E6%88%90-00409a%E5%BE%9E%E6%BC%B2%E5%83%B9%E5%BE%AA%E7%92%B0%E7%9C%8Bai%E4%BE%9B%E6%87%89%E9%8F%88%E8%AD%B0%E5%83%B9%E5%8A%9B-031722246.html",
-          "source": "Yahoo",
-          "date": "2026-10-08 11:22",
-          "datetime": "2026-10-08T11:22:15+08:00"
+          "title": "從玻纖布到被動元件 AI帶旺電子材料 00409A延伸布局日本材料與零組件強國",
+          "url": "https://n.yam.com/Article/20261008559719",
+          "source": "觀傳媒",
+          "date": "2026-10-08 09:39",
+          "datetime": "2026-10-08T09:39:00+08:00"
         }
       ]
     },
@@ -207,13 +207,6 @@
           "source": "ENN台灣電報",
           "date": "2026-10-08 06:30",
           "datetime": "2026-10-08T06:30:47+08:00"
-        },
-        {
-          "title": "不只買現在的明星！AI需求從晶片擴散至散熱、光通訊 00418A 卡位「尚未被定價」的黑馬",
-          "url": "https://www.watchmedia01.com/archives/556867",
-          "source": "觀傳媒",
-          "date": "2026-10-07 18:25",
-          "datetime": "2026-10-07T18:25:43+08:00"
         }
       ]
     },
@@ -441,7 +434,7 @@
         {
           "title": "00418A主動復華台灣新星來囉 曾創9倍報酬操盤手戎宜蘋出馬！",
           "url": "https://tw.news.yahoo.com/00418a%E4%B8%BB%E5%8B%95%E5%BE%A9%E8%8F%AF%E5%8F%B0%E7%81%A3%E6%96%B0%E6%98%9F%E4%BE%86%E5%9B%89-%E6%9B%BE%E5%89%B59%E5%80%8D%E5%A0%B1%E9%85%AC%E6%93%8D%E7%9B%A4%E6%89%8B%E6%88%8E%E5%AE%9C%E8%98%8B%E5%87%BA%E9%A6%AC-071412142.html",
-          "source": "民視運動網",
+          "source": "民視財經網",
           "date": "2026-10-05 15:14",
           "datetime": "2026-10-05T15:14:00+08:00"
         }
@@ -539,10 +532,24 @@
   "social": [
     {
       "platform": "fundhot",
+      "board": "總經觀點",
+      "title": "第一次投資賺70％就想賣？想通這觀念，女兒成年禮賺362％",
+      "url": "https://fundhot.com/forum/%E7%B8%BD%E7%B6%93%E8%A7%80%E9%BB%9E/%E7%AC%AC%E4%B8%80%E6%AC%A1%E6%8A%95%E8%B3%87%E8%B3%BA70%EF%BC%85%E5%B0%B1%E6%83%B3%E8%B3%A3%EF%BC%9F%E6%83%B3%E9%80%9A%E9%80%99%E8%A7%80%E5%BF%B5%EF%BC%8C%E5%A5%B3%E5%85%92%E6%88%90%E5%B9%B4%E7%A6%AE%E8%B3%BA362%EF%BC%85/13998",
+      "date": "2026-10-10"
+    },
+    {
+      "platform": "fundhot",
+      "board": "股票",
+      "title": "台股賺贏美股，只有200萬該全押台股還是分散投資？",
+      "url": "https://fundhot.com/forum/%E8%82%A1%E7%A5%A8/%E5%8F%B0%E8%82%A1%E8%B3%BA%E8%B4%8F%E7%BE%8E%E8%82%A1%EF%BC%8C%E5%8F%AA%E6%9C%89200%E8%90%AC%E8%A9%B2%E5%85%A8%E6%8A%BC%E5%8F%B0%E8%82%A1%E9%82%84%E6%98%AF%E5%88%86%E6%95%A3%E6%8A%95%E8%B3%87%EF%BC%9F/13996",
+      "date": "2026-10-10"
+    },
+    {
+      "platform": "fundhot",
       "board": "資產配置",
       "title": "職場環境差想退休，房貸繳清的自住房該算進淨資產嗎？",
       "url": "https://fundhot.com/forum/%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE/%E8%81%B7%E5%A0%B4%E7%92%B0%E5%A2%83%E5%B7%AE%E6%83%B3%E9%80%80%E4%BC%91%EF%BC%8C%E6%88%BF%E8%B2%B8%E7%B9%B3%E6%B8%85%E7%9A%84%E8%87%AA%E4%BD%8F%E6%88%BF%E8%A9%B2%E7%AE%97%E9%80%B2%E6%B7%A8%E8%B3%87%E7%94%A2%E5%97%8E%EF%BC%9F/13994",
-      "date": "2026-10-09"
+      "first_seen": "2026-10-11"
     },
     {
       "platform": "fundhot",
@@ -580,18 +587,14 @@
       "first_seen": "2026-10-06"
     },
     {
-      "platform": "fundhot",
-      "board": "其他",
-      "title": "現在借錢投資利率能多低？強友分享信貸2．12％核准經驗",
-      "url": "https://fundhot.com/forum/%E5%85%B6%E4%BB%96/%E7%8F%BE%E5%9C%A8%E5%80%9F%E9%8C%A2%E6%8A%95%E8%B3%87%E5%88%A9%E7%8E%87%E8%83%BD%E5%A4%9A%E4%BD%8E%EF%BC%9F%E5%BC%B7%E5%8F%8B%E5%88%86%E4%BA%AB%E4%BF%A1%E8%B2%B82%EF%BC%8E12%EF%BC%85%E6%A0%B8%E5%87%86%E7%B6%93%E9%A9%97/13988",
-      "first_seen": "2026-10-04"
-    },
-    {
-      "platform": "fundhot",
-      "board": "總經觀點",
-      "title": "台灣人有錢程度躍升全球第5，你怎麼能不認真投資",
-      "url": "https://fundhot.com/forum/%E7%B8%BD%E7%B6%93%E8%A7%80%E9%BB%9E/%E5%8F%B0%E7%81%A3%E4%BA%BA%E6%9C%89%E9%8C%A2%E7%A8%8B%E5%BA%A6%E8%BA%8D%E5%8D%87%E5%85%A8%E7%90%83%E7%AC%AC5%EF%BC%8C%E4%BD%A0%E6%80%8E%E9%BA%BC%E8%83%BD%E4%B8%8D%E8%AA%8D%E7%9C%9F%E6%8A%95%E8%B3%87/13987",
-      "first_seen": "2026-10-04"
+      "platform": "youtube",
+      "title": "掌握大中小型潛力股 #00418A 三大成長類型 全方位拿下",
+      "channel": "復華投信",
+      "url": "https://www.youtube.com/shorts/6Pmy_7PNRYk",
+      "date": "2026-10-06",
+      "views": 515434,
+      "official": true,
+      "short": true
     },
     {
       "platform": "youtube",
@@ -599,17 +602,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/bOyDe1wftI8",
       "date": "2026-10-06",
-      "views": 396001,
-      "official": true,
-      "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "掌握大中小型潛力股 #00418A 三大成長類型 全方位拿下",
-      "channel": "復華投信",
-      "url": "https://www.youtube.com/shorts/6Pmy_7PNRYk",
-      "date": "2026-10-06",
-      "views": 374746,
+      "views": 514328,
       "official": true,
       "short": true
     },
@@ -619,17 +612,9 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/yedchjOs1EI",
       "date": "2026-10-06",
-      "views": 344740,
+      "views": 454947,
       "official": true,
       "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "近50萬人離場他卻抱了105張？散戶曝00929投資倖存者心聲｜VS MEDIAｘ@Yen-Liang",
-      "channel": "VS MEDIA Taiwan",
-      "url": "https://www.youtube.com/watch?v=vaS88i6kOoY",
-      "date": "2026-10-03",
-      "views": 6857
     },
     {
       "platform": "youtube",
@@ -637,46 +622,33 @@
       "channel": "ZZ FINANCE",
       "url": "https://www.youtube.com/watch?v=YLbqr1bzhv0",
       "date": "2026-10-05",
-      "views": 4400
+      "views": 4611
     },
     {
       "platform": "youtube",
-      "title": "00712連跌5天！",
-      "channel": "投資趣",
-      "url": "https://www.youtube.com/shorts/NeNMMwwMXnw",
-      "date": "2026-10-03",
-      "views": 475,
-      "short": true
+      "title": "00929人氣第九卻流失10萬人！今年漲逾74%，月配息還值得存嗎？｜家裡隨便聊",
+      "channel": "家裡隨便聊",
+      "url": "https://www.youtube.com/watch?v=60AtWmRFdeA",
+      "date": "2026-10-08",
+      "views": 430
     },
     {
       "platform": "youtube",
-      "title": "【股票】台股衝破4萬9小心變盤！杜金龍示警Q4四大危機：搶先佈局2檔避風港股！ft. 杜金龍｜下班經濟學787｜謝哲青、張瓊方",
-      "channel": "風傳媒 The Storm Media",
-      "url": "https://www.youtube.com/watch?v=mx_1NV_T-F0",
-      "date": "2026-10-05",
-      "views": 740077,
+      "title": "拒絕死守大盤！買對 AI 算力賺十年，破解 00409A 顛覆傳統 ETF 的主動獲利密碼｜物流策略師解構主動復華全球50 ：鎖定台美日半導體與 CPO 矽光子，精準調撥主動式 ETF 算力供應...",
+      "channel": "物流策展人",
+      "url": "https://www.youtube.com/watch?v=mtql0TXwwkY",
+      "date": "2026-10-04",
+      "views": 103
+    },
+    {
+      "platform": "youtube",
+      "title": "超高配息很開心💰但三件事情不能忘記 00913績效破百趴的關鍵 當高含積遇上神山休眠 [國民ETF人氣榜2026年10月號]",
+      "channel": "柴鼠兄弟 ZRBros",
+      "url": "https://www.youtube.com/watch?v=olg_JkfFUDU",
+      "date": "2026-10-06",
+      "views": 182019,
       "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "又創紀錄！元大台灣50（0050）「有無敵買法」　投資23年資產超驚人（2026版）｜懶錢包LazyWallet",
-      "channel": "懶錢包 Lazy Wallet",
-      "url": "https://www.youtube.com/watch?v=GayfHvhj3GQ",
-      "date": "2026-10-05",
-      "views": 218560,
-      "peer": true,
-      "cat": "市值型"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股創新高千萬別亂買! 1致命訊號高價AI股崩跌?! ft. 孫慶龍【 小宇宙大爆發 】",
-      "channel": "小宇宙大爆發",
-      "url": "https://www.youtube.com/watch?v=UrdBsC2zppo",
-      "date": "2026-10-05",
-      "views": 190978,
-      "peer": true,
-      "cat": "市場趨勢"
+      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -684,9 +656,29 @@
       "channel": "錢線百分百",
       "url": "https://www.youtube.com/watch?v=P6KFRO4rH08",
       "date": "2026-10-06",
-      "views": 141513,
+      "views": 149824,
       "peer": true,
       "cat": "債券"
+    },
+    {
+      "platform": "youtube",
+      "title": "亞馬遜砸16億入股 金像電還能追？台股迎5萬選它穩贏 3檔金融明年股利噴《鈔錢部署》盧燕俐 ft.王昭文 20261006",
+      "channel": "鈔錢部署–華視優選",
+      "url": "https://www.youtube.com/watch?v=Gc6VlnH-48Y",
+      "date": "2026-10-06",
+      "views": 149091,
+      "peer": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "【怕買不到？】台股5萬,現在最怕你做這件事! #鐵板神授 謝晨彥分析師",
+      "channel": "謝晨彥分析師-摩爾證券投顧",
+      "url": "https://www.youtube.com/watch?v=lDouVNyfoQs",
+      "date": "2026-10-06",
+      "views": 103852,
+      "peer": true,
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -694,18 +686,29 @@
       "channel": "Catch大錢潮",
       "url": "https://www.youtube.com/watch?v=pQY8C95HL4A",
       "date": "2026-10-05",
-      "views": 99923,
+      "views": 101170,
       "peer": true,
       "cat": "債券"
     },
     {
       "platform": "youtube",
-      "title": "已經有了0050，為何還要買主動式ETF？",
-      "channel": "辣媽Shania",
-      "url": "https://www.youtube.com/watch?v=LO9G7ibunWw",
-      "date": "2026-10-05",
-      "views": 65051,
+      "title": "【#財經風向球】台股5萬點還能進場? 指數高檔怎挑基金? 績效好還不夠&quot;這點&quot;更重要 ft. 蕭碧燕 20261007",
+      "channel": "中天財經頻道",
+      "url": "https://www.youtube.com/watch?v=8Yhoo0xcQP0",
+      "date": "2026-10-07",
+      "views": 97622,
       "peer": true,
+      "cat": "基金"
+    },
+    {
+      "platform": "youtube",
+      "title": "一分鐘看懂主動式ETF漲跌原因！！！ #基金小姐姐 #投資 #00991a #00981a",
+      "channel": "基金小姐姐詹璇依",
+      "url": "https://www.youtube.com/shorts/M1S5sZqkRDk",
+      "date": "2026-10-09",
+      "views": 96934,
+      "peer": true,
+      "short": true,
       "cat": "主動式"
     },
     {
@@ -714,46 +717,36 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/o_1UZ5iP8RU",
       "date": "2026-10-08",
-      "views": 56805,
+      "views": 70325,
       "peer": true,
       "short": true,
       "cat": "市值型"
     },
     {
       "platform": "youtube",
-      "title": "退休不用等65歲！晚起步靠ETF也能打造現金流？不敗教主陳重銘揭「ETF互補存股術」【理財密碼】",
-      "channel": "57東森財經新聞",
-      "url": "https://www.youtube.com/watch?v=dLVn3NDZDb8",
-      "date": "2026-10-05",
-      "views": 53460,
-      "peer": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "高股息存到多少，我可以少工作一天？從月領5千到3萬，人生真的會不一樣 !",
-      "channel": "杉本來了",
-      "url": "https://www.youtube.com/watch?v=3V9MOEhz3zU",
-      "date": "2026-10-07",
-      "views": 46525,
+      "title": "台股5萬點不是終點？股海老牛點名「台股三本柱」！第4季還有一波行情？高股息ETF今年加速快跑，0056、00878、00919還能抱？｜峰哥ft. 股海老牛｜Smart智富．投資的一千零一夜254",
+      "channel": "Smart智富月刊",
+      "url": "https://www.youtube.com/watch?v=o4KXRKrwlUs",
+      "date": "2026-10-10",
+      "views": 68524,
       "peer": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "超馬芭樂揭3檔ETF布局關鍵！ 5萬點行情買0050還是主動式ETF？主動式ETF遭贖回恐引發賣壓？｜94要賺錢",
-      "channel": "94要賺錢",
-      "url": "https://www.youtube.com/watch?v=Et7RRLETRK4",
+      "title": "009816報酬勝0050？ETF選股規則大比拚！不敗教主陳重銘揭千萬現金流怎麼存【理財密碼】",
+      "channel": "57東森財經新聞",
+      "url": "https://www.youtube.com/watch?v=WcGnHUsZQ0k",
       "date": "2026-10-08",
-      "views": 36843,
+      "views": 58452,
       "peer": true,
-      "cat": "主動式"
+      "cat": "市值型"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A、全方位、傳家 等 7 檔（詳下方新聞標籤）",
     "品牌焦點：「九倍女戰神」戎宜蘋轉戰復華 主動式ETF布局台股前300大（中時新聞網）",
-    "社群聲量最高：職場環境差想退休，房貸繳清的自住房該算進淨資產嗎？（0 推）",
-    "YouTube 熱片：【股票】台股衝破4萬9小心變盤！杜金龍示警Q4四大危機：搶先佈局2檔避風港股！ft. 杜金龍｜下班經濟學787｜謝哲青、張瓊方（風傳媒 The Storm Media・740,077 次觀看）"
+    "社群聲量最高：第一次投資賺70％就想賣？想通這觀念，女兒成年禮賺362％（0 推）",
+    "YouTube 熱片：掌握大中小型潛力股 #00418A 三大成長類型 全方位拿下（復華投信・515,434 次觀看）"
   ]
 }
