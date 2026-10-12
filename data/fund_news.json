@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/12 08:10",
+  "as_of": "2026/10/12 10:24",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -84,11 +84,11 @@
       ],
       "items": [
         {
-          "title": "股海老牛教戰被動加薪！00929連4月配0.38元 買進25張每月領息近萬元",
-          "url": "https://inews.setn.com/news/1919006",
-          "source": "三立新聞",
-          "date": "2026-10-08 08:04",
-          "datetime": "2026-10-08T08:04:36+08:00"
+          "title": "拒當窮忙族！00929連配0.38元 財經雪倫教養「啞巴兒子」：存79張爽領3萬孝親費",
+          "url": "https://www.yesmedia.com.tw/%E6%8B%92%E7%95%B6%E7%AA%AE%E5%BF%99%E6%97%8F%EF%BC%8100929%E9%80%A3%E9%85%8D0-38%E5%85%83-%E8%B2%A1%E7%B6%93%E9%9B%AA%E5%80%AB%E6%95%99%E9%A4%8A%E3%80%8C%E5%95%9E%E5%B7%B4%E5%85%92%E5%AD%90%E3%80%8D/",
+          "source": "www.yesmedia.com.tw",
+          "date": "2026-10-12 08:00",
+          "datetime": "2026-10-12T08:00:31+08:00"
         }
       ]
     },
@@ -165,25 +165,40 @@
       ],
       "items": [
         {
-          "title": "道瓊收高、費半續弱美股資金悄悄輪動 00409A完整布局AI全產業鏈",
-          "url": "https://tw.news.yahoo.com/%E9%81%93%E7%93%8A%E6%94%B6%E9%AB%98-%E8%B2%BB%E5%8D%8A%E7%BA%8C%E5%BC%B1%E7%BE%8E%E8%82%A1%E8%B3%87%E9%87%91%E6%82%84%E6%82%84%E8%BC%AA%E5%8B%95-00409a%E5%AE%8C%E6%95%B4%E5%B8%83%E5%B1%80ai%E5%85%A8%E7%94%A2%E6%A5%AD%E9%8F%88-094251861.html",
+          "title": "AI電力需求爆發 美國電力新貴營收年增166% 00409A布局台股看不到的關鍵環節",
+          "url": "https://sunmedia.tw/news/finance/AI%E9%9B%BB%E5%8A%9B%E9%9C%80%E6%B1%82%E7%88%86%E7%99%BC-%E7%BE%8E%E5%9C%8B%E9%9B%BB%E5%8A%9B%E6%96%B0%E8%B2%B4%E7%87%9F%E6%94%B6%E5%B9%B4%E5%A2%9E166-00409A%E5%B8%83%E5%B1%80%E5%8F%B0%E8%82%A1%E7%9C%8B%E4%B8%8D%E5%88%B0%E7%9A%84%E9%97%9C%E9%8D%B5%E7%92%B0%E7%AF%80-1791770060152",
+          "source": "商傳媒",
+          "date": "2026-10-12 10:01",
+          "datetime": "2026-10-12T10:01:04+08:00"
+        },
+        {
+          "title": "「沒有電的晶片只是庫存」 布魯姆能源營收翻倍 00409A第二大持股卡位AI電力源頭",
+          "url": "https://tw.stock.yahoo.com/news/%E6%B2%92%E6%9C%89%E9%9B%BB%E7%9A%84%E6%99%B6%E7%89%87%E5%8F%AA%E6%98%AF%E5%BA%AB%E5%AD%98-%E5%B8%83%E9%AD%AF%E5%A7%86%E8%83%BD%E6%BA%90%E7%87%9F%E6%94%B6%E7%BF%BB%E5%80%8D-00409a%E7%AC%AC%E4%BA%8C%E5%A4%A7%E6%8C%81%E8%82%A1%E5%8D%A1%E4%BD%8Dai%E9%9B%BB%E5%8A%9B%E6%BA%90%E9%A0%AD-020104518.html",
+          "source": "Yahoo股市",
+          "date": "2026-10-12 10:01",
+          "datetime": "2026-10-12T10:01:04+08:00",
+          "summary": "「沒有電的晶片只是庫存」 布魯姆能源營收翻倍 00409A第二大持股卡位AI電力源頭 圖/PEXELS 商傳媒｜記者陳宜靖／台北報導AI資料中心愈蓋愈多，電力正成為最關鍵的瓶頸。美國資料中心電力供應商"
+        },
+        {
+          "title": "帕蘭提爾獲調升評等 AI軟體正在收錢！ 00409A持股直取台股沒有的AI變現企業",
+          "url": "https://tw.news.yahoo.com/%E5%B8%95%E8%98%AD%E6%8F%90%E7%88%BE%E7%8D%B2%E8%AA%BF%E5%8D%87%E8%A9%95%E7%AD%89-ai%E8%BB%9F%E9%AB%94%E6%AD%A3%E5%9C%A8%E6%94%B6%E9%8C%A2-00409a%E6%8C%81%E8%82%A1%E7%9B%B4%E5%8F%96%E5%8F%B0%E8%82%A1%E6%B2%92%E6%9C%89%E7%9A%84ai%E8%AE%8A%E7%8F%BE%E4%BC%81%E6%A5%AD-015330960.html",
           "source": "Yahoo新聞",
-          "date": "2026-10-11 17:42",
-          "datetime": "2026-10-11T17:42:51+08:00"
+          "date": "2026-10-12 09:53",
+          "datetime": "2026-10-12T09:53:30+08:00"
         },
         {
-          "title": "蘋果傳砍新機訂單 但晶片需求仍強 00409A聚焦AI獲利成長源頭",
-          "url": "https://n.yam.com/Article/20261011402174",
-          "source": "蕃新聞",
-          "date": "2026-10-11 17:40",
-          "datetime": "2026-10-11T17:40:00+08:00"
+          "title": "高利率下誰最穩？輝達本益比低於大盤 AI源頭企業現金流強 00409A聚焦美國獲利巨頭",
+          "url": "https://tw.news.yahoo.com/%E9%AB%98%E5%88%A9%E7%8E%87%E4%B8%8B%E8%AA%B0%E6%9C%80%E7%A9%A9-%E8%BC%9D%E9%81%94%E6%9C%AC%E7%9B%8A%E6%AF%94%E4%BD%8E%E6%96%BC%E5%A4%A7%E7%9B%A4-ai%E6%BA%90%E9%A0%AD%E4%BC%81%E6%A5%AD%E7%8F%BE%E9%87%91%E6%B5%81%E5%BC%B7-00409a%E8%81%9A%E7%84%A6%E7%BE%8E%E5%9C%8B%E7%8D%B2%E5%88%A9%E5%B7%A8%E9%A0%AD-015144774.html",
+          "source": "Yahoo新聞",
+          "date": "2026-10-12 09:51",
+          "datetime": "2026-10-12T09:51:44+08:00"
         },
         {
-          "title": "記憶體獲利突破百兆00409A布局美光、晟碟 參與AI記憶體獲利循環",
-          "url": "https://www.watchmedia01.com/archives/557905",
-          "source": "觀傳媒",
-          "date": "2026-10-11 17:39",
-          "datetime": "2026-10-11T17:39:21+08:00"
+          "title": "輝達市值逼近6兆美元 AI獲利源頭在美國 台股之外再配置00409A抓住源頭企業",
+          "url": "https://tw.news.yahoo.com/%E8%BC%9D%E9%81%94%E5%B8%82%E5%80%BC%E9%80%BC%E8%BF%916%E5%85%86%E7%BE%8E%E5%85%83-ai%E7%8D%B2%E5%88%A9%E6%BA%90%E9%A0%AD%E5%9C%A8%E7%BE%8E%E5%9C%8B-%E5%8F%B0%E8%82%A1%E4%B9%8B%E5%A4%96%E5%86%8D%E9%85%8D%E7%BD%AE00409a%E6%8A%93%E4%BD%8F%E6%BA%90%E9%A0%AD%E4%BC%81%E6%A5%AD-014840001.html",
+          "source": "Yahoo新聞",
+          "date": "2026-10-12 09:48",
+          "datetime": "2026-10-12T09:48:40+08:00"
         }
       ]
     },
@@ -600,7 +615,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/6Pmy_7PNRYk",
       "date": "2026-10-06",
-      "views": 704433,
+      "views": 713935,
       "official": true,
       "short": true
     },
@@ -610,7 +625,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/bOyDe1wftI8",
       "date": "2026-10-06",
-      "views": 682349,
+      "views": 689599,
       "official": true,
       "short": true
     },
@@ -620,7 +635,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/yedchjOs1EI",
       "date": "2026-10-06",
-      "views": 621166,
+      "views": 630563,
       "official": true,
       "short": true
     },
@@ -630,7 +645,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
       "date": "2026-10-11",
-      "views": 6298,
+      "views": 7509,
       "short": true
     },
     {
@@ -639,7 +654,7 @@
       "channel": "ZZ FINANCE",
       "url": "https://www.youtube.com/watch?v=YLbqr1bzhv0",
       "date": "2026-10-05",
-      "views": 4966
+      "views": 4964
     },
     {
       "platform": "youtube",
@@ -647,7 +662,7 @@
       "channel": "家裡隨便聊",
       "url": "https://www.youtube.com/watch?v=60AtWmRFdeA",
       "date": "2026-10-08",
-      "views": 517
+      "views": 526
     },
     {
       "platform": "youtube",
@@ -655,7 +670,7 @@
       "channel": "基金小姐姐詹璇依",
       "url": "https://www.youtube.com/shorts/M1S5sZqkRDk",
       "date": "2026-10-09",
-      "views": 184892,
+      "views": 184922,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -666,7 +681,7 @@
       "channel": "中天財經頻道",
       "url": "https://www.youtube.com/watch?v=8Yhoo0xcQP0",
       "date": "2026-10-07",
-      "views": 103018,
+      "views": 103532,
       "peer": true,
       "cat": "基金"
     },
@@ -676,7 +691,7 @@
       "channel": "寶傑點兵／寶傑怎麼說",
       "url": "https://www.youtube.com/watch?v=o2QWnkPTg54",
       "date": "2026-10-07",
-      "views": 102910,
+      "views": 103034,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -686,7 +701,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=yXJKxPU1Nrc",
       "date": "2026-10-10",
-      "views": 87595,
+      "views": 89416,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -696,7 +711,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=o4KXRKrwlUs",
       "date": "2026-10-10",
-      "views": 85432,
+      "views": 86616,
       "peer": true,
       "cat": "高股息"
     },
@@ -706,7 +721,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/o_1UZ5iP8RU",
       "date": "2026-10-08",
-      "views": 83692,
+      "views": 84455,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -717,7 +732,7 @@
       "channel": "永豐金證券",
       "url": "https://www.youtube.com/watch?v=PXpvZEf2HpM",
       "date": "2026-10-10",
-      "views": 66614,
+      "views": 71816,
       "peer": true,
       "cat": "主動式"
     },
@@ -727,7 +742,7 @@
       "channel": "財富履行團",
       "url": "https://www.youtube.com/shorts/u2QNrUrddUc",
       "date": "2026-10-08",
-      "views": 61949,
+      "views": 62739,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -738,7 +753,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=YISny6TMPRY",
       "date": "2026-10-10",
-      "views": 59220,
+      "views": 62384,
       "peer": true,
       "cat": "綜合"
     },
@@ -748,7 +763,7 @@
       "channel": "非凡 股市現場",
       "url": "https://www.youtube.com/watch?v=wt58lJ8MihM",
       "date": "2026-10-10",
-      "views": 56218,
+      "views": 57310,
       "peer": true,
       "cat": "綜合"
     }
@@ -757,6 +772,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全方位 等 8 檔（詳下方新聞標籤）",
     "品牌焦點：AI商機從大廠向外擴散復華投信解析下一批台股新星| 財經焦點| 產經（UDN）",
     "社群聲量最高：00985A真金白銀實戰！掛牌後賺144％，0050升級成功（0 推）",
-    "YouTube 熱片：掌握大中小型潛力股 #00418A 三大成長類型 全方位拿下（復華投信・704,433 次觀看）"
+    "YouTube 熱片：掌握大中小型潛力股 #00418A 三大成長類型 全方位拿下（復華投信・713,935 次觀看）"
   ]
 }
