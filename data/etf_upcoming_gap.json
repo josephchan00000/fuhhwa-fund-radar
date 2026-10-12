@@ -1,8 +1,29 @@
 {
- "as_of": "2026-10-12 10:25",
- "count": 0,
- "items": [],
- "pipeline_n": 4,
+ "as_of": "2026-10-13 06:44",
+ "count": 2,
+ "items": [
+  {
+   "code": null,
+   "name": "貝萊德iShares安碩世界礦業ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "ETF",
+   "approve": "115.10.7申報生效"
+  },
+  {
+   "code": null,
+   "name": "貝萊德iShares安碩世界黃金ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "ETF",
+   "approve": "115.10.7申報生效"
+  }
+ ],
+ "pipeline_n": 2,
  "pipeline": [
   {
    "code": null,
@@ -17,26 +38,6 @@
   {
    "code": null,
    "name": "永豐精選息收非投資等級債券ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "ETF",
-   "approve": "審查中"
-  },
-  {
-   "code": null,
-   "name": "貝萊德iShares安碩世界礦業ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "ETF",
-   "approve": "審查中"
-  },
-  {
-   "code": null,
-   "name": "貝萊德iShares安碩世界黃金ETF基金",
    "first_seen": null,
    "kind": "offering",
    "src": "cnyes",
