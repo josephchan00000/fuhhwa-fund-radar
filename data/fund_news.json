@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/12 06:42",
+  "as_of": "2026/10/12 08:10",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -402,7 +402,7 @@
         {
           "title": "00418A主動復華台灣新星來囉 曾創9倍報酬操盤手戎宜蘋出馬！",
           "url": "https://tw.news.yahoo.com/00418a%E4%B8%BB%E5%8B%95%E5%BE%A9%E8%8F%AF%E5%8F%B0%E7%81%A3%E6%96%B0%E6%98%9F%E4%BE%86%E5%9B%89-%E6%9B%BE%E5%89%B59%E5%80%8D%E5%A0%B1%E9%85%AC%E6%93%8D%E7%9B%A4%E6%89%8B%E6%88%8E%E5%AE%9C%E8%98%8B%E5%87%BA%E9%A6%AC-071412142.html",
-          "source": "winnews.com.tw",
+          "source": "民視運動網",
           "date": "2026-10-05 15:14",
           "datetime": "2026-10-05T15:14:00+08:00"
         }
@@ -460,7 +460,7 @@
         {
           "title": "00418A主動復華台灣新星來囉 曾創9倍報酬操盤手戎宜蘋出馬！",
           "url": "https://tw.news.yahoo.com/00418a%E4%B8%BB%E5%8B%95%E5%BE%A9%E8%8F%AF%E5%8F%B0%E7%81%A3%E6%96%B0%E6%98%9F%E4%BE%86%E5%9B%89-%E6%9B%BE%E5%89%B59%E5%80%8D%E5%A0%B1%E9%85%AC%E6%93%8D%E7%9B%A4%E6%89%8B%E6%88%8E%E5%AE%9C%E8%98%8B%E5%87%BA%E9%A6%AC-071412142.html",
-          "source": "winnews.com.tw",
+          "source": "民視運動網",
           "date": "2026-10-05 15:14",
           "datetime": "2026-10-05T15:14:00+08:00"
         }
@@ -540,6 +540,13 @@
   "social": [
     {
       "platform": "fundhot",
+      "board": "ETF",
+      "title": "00985A真金白銀實戰！掛牌後賺144％，0050升級成功",
+      "url": "https://fundhot.com/forum/ETF/00985A%E7%9C%9F%E9%87%91%E7%99%BD%E9%8A%80%E5%AF%A6%E6%88%B0%EF%BC%81%E6%8E%9B%E7%89%8C%E5%BE%8C%E8%B3%BA144%EF%BC%85%EF%BC%8C0050%E5%8D%87%E7%B4%9A%E6%88%90%E5%8A%9F/13999",
+      "date": "2026-10-12"
+    },
+    {
+      "platform": "fundhot",
       "board": "總經觀點",
       "title": "第一次投資賺70％就想賣？想通這觀念，女兒成年禮賺362％",
       "url": "https://fundhot.com/forum/%E7%B8%BD%E7%B6%93%E8%A7%80%E9%BB%9E/%E7%AC%AC%E4%B8%80%E6%AC%A1%E6%8A%95%E8%B3%87%E8%B3%BA70%EF%BC%85%E5%B0%B1%E6%83%B3%E8%B3%A3%EF%BC%9F%E6%83%B3%E9%80%9A%E9%80%99%E8%A7%80%E5%BF%B5%EF%BC%8C%E5%A5%B3%E5%85%92%E6%88%90%E5%B9%B4%E7%A6%AE%E8%B3%BA362%EF%BC%85/13998",
@@ -588,19 +595,12 @@
       "first_seen": "2026-10-07"
     },
     {
-      "platform": "fundhot",
-      "board": "ETF",
-      "title": "操盤野村運籌暴漲920％！戎宜蘋領軍新ETF「00418A」",
-      "url": "https://fundhot.com/forum/ETF/%E6%93%8D%E7%9B%A4%E9%87%8E%E6%9D%91%E9%81%8B%E7%B1%8C%E6%9A%B4%E6%BC%B2920%EF%BC%85%EF%BC%81%E6%88%8E%E5%AE%9C%E8%98%8B%E9%A0%98%E8%BB%8D%E6%96%B0ETF%E3%80%8C00418A%E3%80%8D/13989",
-      "first_seen": "2026-10-06"
-    },
-    {
       "platform": "youtube",
       "title": "掌握大中小型潛力股 #00418A 三大成長類型 全方位拿下",
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/6Pmy_7PNRYk",
       "date": "2026-10-06",
-      "views": 699841,
+      "views": 704433,
       "official": true,
       "short": true
     },
@@ -610,7 +610,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/bOyDe1wftI8",
       "date": "2026-10-06",
-      "views": 678933,
+      "views": 682349,
       "official": true,
       "short": true
     },
@@ -620,7 +620,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/yedchjOs1EI",
       "date": "2026-10-06",
-      "views": 617114,
+      "views": 621166,
       "official": true,
       "short": true
     },
@@ -630,7 +630,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
       "date": "2026-10-11",
-      "views": 5896,
+      "views": 6298,
       "short": true
     },
     {
@@ -639,7 +639,7 @@
       "channel": "ZZ FINANCE",
       "url": "https://www.youtube.com/watch?v=YLbqr1bzhv0",
       "date": "2026-10-05",
-      "views": 4962
+      "views": 4966
     },
     {
       "platform": "youtube",
@@ -647,7 +647,7 @@
       "channel": "家裡隨便聊",
       "url": "https://www.youtube.com/watch?v=60AtWmRFdeA",
       "date": "2026-10-08",
-      "views": 512
+      "views": 517
     },
     {
       "platform": "youtube",
@@ -655,10 +655,20 @@
       "channel": "基金小姐姐詹璇依",
       "url": "https://www.youtube.com/shorts/M1S5sZqkRDk",
       "date": "2026-10-09",
-      "views": 184875,
+      "views": 184892,
       "peer": true,
       "short": true,
       "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "【#財經風向球】台股5萬點還能進場? 指數高檔怎挑基金? 績效好還不夠&quot;這點&quot;更重要 ft. 蕭碧燕 20261007",
+      "channel": "中天財經頻道",
+      "url": "https://www.youtube.com/watch?v=8Yhoo0xcQP0",
+      "date": "2026-10-07",
+      "views": 103018,
+      "peer": true,
+      "cat": "基金"
     },
     {
       "platform": "youtube",
@@ -672,21 +682,11 @@
     },
     {
       "platform": "youtube",
-      "title": "【#財經風向球】台股5萬點還能進場? 指數高檔怎挑基金? 績效好還不夠&quot;這點&quot;更重要 ft. 蕭碧燕 20261007",
-      "channel": "中天財經頻道",
-      "url": "https://www.youtube.com/watch?v=8Yhoo0xcQP0",
-      "date": "2026-10-07",
-      "views": 102890,
-      "peer": true,
-      "cat": "基金"
-    },
-    {
-      "platform": "youtube",
       "title": "【週末鈔能力】台積電1訊號直攻3000？台股第四季選這3檔穩贏！ft.杜金龍、股海老牛｜趙慶翔 #財經鈔能力",
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=yXJKxPU1Nrc",
       "date": "2026-10-10",
-      "views": 87086,
+      "views": 87595,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -696,7 +696,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=o4KXRKrwlUs",
       "date": "2026-10-10",
-      "views": 85153,
+      "views": 85432,
       "peer": true,
       "cat": "高股息"
     },
@@ -706,7 +706,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/o_1UZ5iP8RU",
       "date": "2026-10-08",
-      "views": 83450,
+      "views": 83692,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -717,7 +717,7 @@
       "channel": "永豐金證券",
       "url": "https://www.youtube.com/watch?v=PXpvZEf2HpM",
       "date": "2026-10-10",
-      "views": 65259,
+      "views": 66614,
       "peer": true,
       "cat": "主動式"
     },
@@ -727,7 +727,7 @@
       "channel": "財富履行團",
       "url": "https://www.youtube.com/shorts/u2QNrUrddUc",
       "date": "2026-10-08",
-      "views": 61634,
+      "views": 61949,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -738,7 +738,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=YISny6TMPRY",
       "date": "2026-10-10",
-      "views": 58645,
+      "views": 59220,
       "peer": true,
       "cat": "綜合"
     },
@@ -748,7 +748,7 @@
       "channel": "非凡 股市現場",
       "url": "https://www.youtube.com/watch?v=wt58lJ8MihM",
       "date": "2026-10-10",
-      "views": 55834,
+      "views": 56218,
       "peer": true,
       "cat": "綜合"
     }
@@ -756,7 +756,7 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全方位 等 8 檔（詳下方新聞標籤）",
     "品牌焦點：AI商機從大廠向外擴散復華投信解析下一批台股新星| 財經焦點| 產經（UDN）",
-    "社群聲量最高：第一次投資賺70％就想賣？想通這觀念，女兒成年禮賺362％（0 推）",
-    "YouTube 熱片：掌握大中小型潛力股 #00418A 三大成長類型 全方位拿下（復華投信・699,841 次觀看）"
+    "社群聲量最高：00985A真金白銀實戰！掛牌後賺144％，0050升級成功（0 推）",
+    "YouTube 熱片：掌握大中小型潛力股 #00418A 三大成長類型 全方位拿下（復華投信・704,433 次觀看）"
   ]
 }
