@@ -201,13 +201,30 @@ def market_block(mc: dict | None) -> str:
 
 # ── ③ 盤勢總覽（總經／台股／全球三欄） ──────────────────────────
 
-def overview_block(cols: list[tuple[str, str, str | None]]) -> str:
-    """cols＝[(欄名, markdown 內文, 日期)]×3；空內文顯示「今日無此段」。"""
+_US_TRADE = re.compile(r"對應美股交易日\s*(\d{4})[/-](\d{1,2})[/-](\d{1,2})")
+
+
+def us_trade_note(md: str) -> str:
+    """美股報標題「對應美股交易日 2026/10/09」→「美股 10/09（五）」——週一那份寫的是上週五、
+    休市隔日寫的是前一交易日，欄頭只印報告日會讓人以為是昨夜；解析不到回空字串。"""
+    m = _US_TRADE.search((md or "")[:400])
+    if not m:
+        return ""
+    try:
+        d = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    except ValueError:
+        return ""
+    return f"美股 {d:%m/%d}（{_WD[d.weekday()]}）"
+
+
+def overview_block(cols: list[tuple]) -> str:
+    """cols＝[(欄名, markdown 內文, 日期[, 欄頭附註])]×3；空內文顯示「今日無此段」。"""
     parts = []
-    for name, md, d in cols:
+    for name, md, d, *rest in cols:
+        note = f"・{_esc(rest[0])}" if rest and rest[0] else ""
         body = f'<div class="pr-doc">{fd._md(md)}</div>' if (md or "").strip() else \
                '<div class="pr-empty">（今日無此段）</div>'
-        parts.append(f'<div class="pr-col"><h3>{_esc(name)}<small>{_mmdd(d)}</small></h3>{body}</div>')
+        parts.append(f'<div class="pr-col"><h3>{_esc(name)}<small>{_mmdd(d)}{note}</small></h3>{body}</div>')
     return _section("p-ov", "③ 盤勢總覽", "總經・政策／台股／全球（昨夜美股）・取自各報告總覽段",
                     f'<div class="pr-ov">{"".join(parts)}</div>')
 

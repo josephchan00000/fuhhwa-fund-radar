@@ -18,6 +18,9 @@
   · 正文禁流程性字句：檔名/欄位名/落檔字樣（「取自官方落檔」「series.sox」「macro_chips.json」）
     只能出現在「資料侷限說明」「合規揭露」段（2026-08-17 踩坑：總覽正文出現
     「數字取自本機官方落檔 `series.sox`」，讀者不需要知道數字從哪支檔讀）
+  · 頭段總覽／速覽（2026-10-13 起）：美股 v1／總經的「…總覽」、台股的「盤前／盤後速覽」須抽得到
+    且有內文——儀表板置頂總覽卡與列印版 ③ 盤勢總覽三欄都靠它（2026-09-19 起美股報把段名寫成
+    「🔹**…總覽**」粗體行，舊解析只認 ## 標題，網頁與列印版的美股總覽靜默空了三週）
   · 行事曆：表頭「更新：」需為今日
 
 用法：TZ=Asia/Taipei python3 scripts/check_reports.py [YYYY-MM-DD]（預設今日台北）
@@ -112,19 +115,45 @@ _BRIEF_BAN = re.compile(
 
 
 def _brief_sections(md: str) -> list[tuple[str, str]]:
-    """回 [(標題, 內文)]——標題含「速覽」或「總覽」的小節（頭段那幾行）。"""
-    out, cur, buf = [], "", []
+    """回 [(段名, 內文)]——段名含「速覽」或「總覽」的頭段小節。
+    段名行的寫法交 usnews.find_section 統一認（同儀表板）：舊版只認 ## 標題，美股報
+    09-19 起寫成「🔹**…總覽**」粗體行後，本閘門對美股總覽靜默跳過了三週。"""
+    labs: list[str] = []
     for line in (md or "").splitlines():
-        if re.match(r"^#{2,3}\s", line.strip()):
-            if cur:
-                out.append((cur, "\n".join(buf)))
-            cur, buf = line.strip(), []
-            continue
-        if cur:
-            buf.append(line)
-    if cur:
-        out.append((cur, "\n".join(buf)))
-    return [(h, b) for h, b in out if ("速覽" in h or "總覽" in h)]
+        lab = usnews.section_label(line)
+        if lab and ("速覽" in lab or "總覽" in lab) and lab not in labs:
+            labs.append(lab)
+    out = []
+    for lab in labs:
+        sec = usnews.find_section(md, rf"^{re.escape(lab)}$")
+        if sec:
+            out.append((lab, sec[1]))
+    return out
+
+
+# ── 頭段小節存在閘門（2026-10-13 使用者：「印出來的昨夜美股總覽那欄都是空的」）──
+# 儀表板置頂總覽卡／台股速覽卡、列印版 ③ 盤勢總覽三欄都靠這段；抽不到時網頁與列印版
+# 只會安靜少一塊，合規掃描與其他閘門照樣 🟢——這正是美股總覽空了三週沒人發現的原因。
+HEAD_SINCE = "2026-10-13"
+
+
+def _check_head_sections(date: str) -> list[str]:
+    """美股 v1／總經＝「…總覽」、台股＝「盤前／盤後速覽」須抽得到且有內文（同儀表板的抽法）。"""
+    errs = []
+    for rel, key, want, use_head in (
+            (f"reports/usnews/{date}_v1.md", usnews.OVERVIEW_KEY,
+             "## 🔹前後 24 小時重大公司與產業事項總覽", True),
+            (f"reports/macronews/{date}.md", usnews.OVERVIEW_KEY, "## 🔹前後 24 小時政策總覽", True),
+            (f"reports/twnews/{date}.md", usnews.PREMKT_KEY, "## 🔹盤前速覽／## 🔹盤後速覽", False)):
+        p = ROOT / rel
+        if not p.exists():
+            continue                                  # 缺檔由 _check_cards 回報
+        md = p.read_text(encoding="utf-8")
+        sec = usnews.find_section(usnews.split_doc(md)[0] if use_head else md, key)
+        if not sec or not sec[1].strip():
+            errs.append(f"{rel}：抽不到頭段「{want.split('🔹')[-1]}」或內文為空——段名請寫成獨立一行"
+                        f"『{want}』；抽不到時網頁總覽卡與列印版 ③ 盤勢總覽該欄整片空白")
+    return errs
 
 
 def _plain(t: str) -> str:
@@ -256,6 +285,8 @@ def run(date: str) -> int:
     errs += _check_calendar(ROOT / f"reports/macrocal/{date}.md", date)
     _reports = (f"reports/usnews/{date}_v1.md", f"reports/usnews/{date}_v2.md",
                 f"reports/twnews/{date}.md", f"reports/macronews/{date}.md")
+    if date >= HEAD_SINCE:                     # 頭段總覽／速覽須抽得到（網頁總覽卡＋列印版 ③）
+        errs += _check_head_sections(date)
     if date >= BRIEF_SINCE:                    # 速覽／總覽文風（長度／版型標籤／粗體落點）
         for rel in _reports:
             p = ROOT / rel
