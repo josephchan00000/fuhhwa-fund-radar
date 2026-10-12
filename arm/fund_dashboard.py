@@ -568,22 +568,20 @@ def _market_status(note: str) -> tuple[str, str]:
     return "", ""
 
 
-_PREMKT_HEAD = re.compile(r"^##\s*🔹?\s*盤[前後]速覽")
-
-
 def _extract_premarket(md: str) -> tuple[str, str]:
-    """抽出台股新聞的「## 🔹盤前速覽／盤後速覽」段（改置今日重點），回 (段落內文, 移除後全文)。
+    """抽出台股新聞的「🔹盤前速覽／盤後速覽」段（改置今日重點），回 (段落內文, 移除後全文)。
     （2026-07-19 踩坑：週末/盤後版標題是「盤後速覽」，只認盤前會讓今日重點整段空白。）
+    標籤行寫法交 usnews.find_section 統一認（## 標題／🔹**粗體行**／### 皆收——2026-08 有
+    22 天子代理寫成「### 🔹盤前速覽」「🔹**盤前速覽**」，舊版只認 ## 而整張卡消失）。
     無此段 → 回 ("", 原文)，今日重點不多出空卡。"""
-    lines = (md or "").splitlines()
-    s = next((i for i, l in enumerate(lines) if _PREMKT_HEAD.match(l.strip())), None)
-    if s is None:
-        return "", md or ""
-    e = next((j for j in range(s + 1, len(lines))
-              if lines[j].strip().startswith("## ") or lines[j].strip() == "---"), len(lines))
-    body = "\n".join(lines[s + 1:e]).strip()
-    rest = "\n".join(lines[:s] + lines[e:]).strip()
-    return body, rest
+    sec = usnews.find_section(md or "", usnews.PREMKT_KEY)
+    return (sec[1], sec[2]) if sec else ("", md or "")
+
+
+def _premarket_title(md: str) -> str:
+    """速覽卡標題跟著報告實際的段名走（盤前速覽／盤後速覽）。"""
+    sec = usnews.find_section(md or "", usnews.PREMKT_KEY)
+    return "盤後速覽" if sec and sec[0].startswith("盤後") else "盤前速覽"
 
 
 def _premarket_card(pre_md: str, title: str = "盤前速覽") -> str:
@@ -610,20 +608,12 @@ def _news_badges(etype: str | None, importance: int | None) -> str:
     return f'<span class="nbadges">{out}</span>' if out else ""
 
 
-_OVERVIEW_HEAD = re.compile(r"^#{2,3}\s*🔹?\s*.*總覽")
-
-
 def _extract_overview(head_md: str) -> str:
-    """從新聞頭段抽「…總覽」小節內文（供置頂可見卡）；無此節回空字串。"""
-    lines = (head_md or "").splitlines()
-    s = next((i for i, l in enumerate(lines) if _OVERVIEW_HEAD.match(l.strip())), None)
-    if s is None:
-        return ""
-    e = next((j for j in range(s + 1, len(lines))
-              if lines[j].strip().startswith("#") or lines[j].strip() == "---"), len(lines))
-    # _md 不支援 blockquote：拆掉「> 」前綴讓引言（如【交易確認】）以一般段落呈現
-    body = [re.sub(r"^\s*>\s?", "", l) for l in lines[s + 1:e]]
-    return "\n".join(body).strip()
+    """從新聞頭段抽「…總覽」小節內文（供置頂可見卡與列印版 ③）；無此節回空字串。
+    標籤行寫法交 usnews.find_section 統一認——美股報 09-19 起寫成「🔹**…總覽**」整行粗體，
+    舊版只認 ## 標題，螢幕版總覽卡與列印版全球欄因此空了三週（2026-10-13 使用者抓包）。"""
+    sec = usnews.find_section(head_md or "", usnews.OVERVIEW_KEY)
+    return sec[1] if sec else ""
 
 
 _META_DUP = re.compile(r"[｜|]?\s*(?:【[^】]*】|重要度\s*\d{1,2}\s*/\s*10)\s*")
@@ -3277,7 +3267,7 @@ def render() -> str:
 
     # ① 今日重點（雙視圖）；台股盤前速覽自新聞頭段抽出、直接顯示於此（不再埋於收合塊）
     premkt_md, tw_md_news = _extract_premarket(tw_md)
-    pm_title = "盤後速覽" if re.search(r"^##\s*🔹?\s*盤後速覽", tw_md or "", re.M) else "盤前速覽"
+    pm_title = _premarket_title(tw_md)
     b_tw = _brief_view(twnews.extract_indices(tw_md), *fund_insights.movers(tw_funds),
                        fund_insights.upcoming_distributions(tw_funds), hol_tw)
     b_tw += _premarket_card(premkt_md, pm_title)
@@ -3400,7 +3390,8 @@ def render() -> str:
         "cal": cal, "mc": mc_doc,
         "overviews": [("總經・政策總覽", mac_ov, mac_date),
                       (f"台股{pm_title}", premkt_md, tw_date),
-                      ("全球・昨夜美股總覽", _extract_overview(us_head), us_date)],
+                      ("全球・昨夜美股總覽", _extract_overview(us_head), us_date,
+                       printview.us_trade_note(us_md))],
         "lanes": [("macro", "總經", macro_md), ("tw", "台股", tw_md), ("us", "美股", us_md)],
         "rows_tw": rows_tw, "rows_gl": rows_gl, "marks": leaders, "etf_doc": etf_doc,
     })
