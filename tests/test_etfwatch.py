@@ -285,11 +285,11 @@ def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
 
 def test_watchlist_matches_weekly_report():
     codes = [c for c, *_ in etfwatch.WATCHLIST]
-    assert len(codes) == len(set(codes)) == 36
+    assert len(codes) == len(set(codes)) == 37
     passive = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "passive"]
     active = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "active"]
     assert set(passive) == {"0056", "00878", "00919", "00929", "0050", "006208"}
-    assert "00991A" in active and len(active) == 30    # 含本家主動復華未來50／全球未來50＋上櫃 4 檔
+    assert "00991A" in active and len(active) == 31    # 含本家主動復華未來50／全球未來50＋上櫃 4 檔＋10/13 轉正 00412A
     # 2026-07-06 新增熱門／新募集主動式 ETF 皆在清單中
     assert {"00988A", "00990A", "00403A", "00407A"} <= set(active)
     # 2026-08-05 使用者指示補齊缺檔（兩批；00410A 為「即將登場」畢業轉正的第一例）
@@ -564,23 +564,22 @@ def test_dashboard_shows_upcoming_etf_section():
 
 
 def test_upcoming_view_renders_cards_with_links():
-    # 釘在 2026-08-10（研討會名單日；真實條目為既成事實、日期固定即恆定）：
-    # 募集中玉山 009827、本家 00409A、PCB 009828，加上「已核准・時程未定」精簡列（00412A 等）。
-    # 若日後清理 UPCOMING 舊條目，同步更新此測試的斷言即可——2026-09-25：統一雙檔
-    # （00411A/00987D，掛牌 08/26）已轉正並清出 UPCOMING，8/10 的「即將掛牌」組因此變空，
-    # 該組改由 8/20 的待掛牌檔（00409A、009827，掛牌 09/02）驗證。
-    # 註：大華銀 KOSPI50（009829）2026-09-20 週掃依 stale guard 清出 UPCOMING、改列
-    # NOT_TRACKED，故不再上版——由 seminar 測試確認它仍被認得。
-    up = etfwatch.upcoming(date(2026, 8, 10))
+    # 釘在 2026-10-05（真實條目為既成事實、日期固定即恆定）：
+    # 募集中富蘭克林 009831（10/05–10/08、掛牌 10/29）、即將掛牌安聯 00412A（10/13），
+    # 加上「已核准・時程未定」精簡列（本家兩檔等）。
+    # 沿革：原釘 2026-08-10 研討會名單日（009827/00409A/009828），三檔 9/02 掛牌、
+    # 2026-10-02 依 stale guard 清出 UPCOMING（009827/009828 改列 NOT_TRACKED、
+    # 00409A 已轉正），故改釘當前條目。日後再清理舊條目時同步更新此處斷言即可。
+    up = etfwatch.upcoming(date(2026, 10, 5))
     out = fund_dashboard._upcoming_etf_view(up)
     assert "募集中・即將募集" in out
     assert "已核准・募集時程未定" in out                     # 第三組（2026-08-10 使用者指示分類）
-    assert "009827" in out and "00409A" in out and "00412A" in out
-    assert "募集中 08/10–08/14" in out                       # 玉山 8/10 起正在募集
-    assert "預定掛牌 09/02" in out                            # 募集卡帶掛牌日副標
+    assert "009831" in out and "00412A" in out
+    assert "募集中 10/05–10/08" in out                       # 富蘭克林 10/5 起正在募集
+    assert "預定掛牌 10/29" in out                            # 募集卡帶掛牌日副標
     # 募集結束後轉入「即將掛牌・待掛牌」組
-    out2 = fund_dashboard._upcoming_etf_view(etfwatch.upcoming(date(2026, 8, 20)))
-    assert "即將掛牌・待掛牌" in out2 and "掛牌 09/02" in out2
+    out2 = fund_dashboard._upcoming_etf_view(etfwatch.upcoming(date(2026, 10, 15)))
+    assert "即將掛牌・待掛牌" in out2 and "掛牌 10/29" in out2
     # 核准組＝精簡列：未派碼檔顯示「代號未定」、不佔卡片（uprow 非 upcard）。
     # 列數／未派碼數由資料推導——條目會隨每輪發現增補，釘死數字只會每次都紅。
     approved = up["approved"]
@@ -589,7 +588,7 @@ def test_upcoming_view_renders_cards_with_links():
     assert out.count("代號未定") == sum(1 for x in approved if not x.get("code"))
     assert "大華銀優利美國非投資等級債券ETF" in out
     assert "加密科技與金融創新" in out
-    assert "活動介紹" in out and "esunam.com/act/etf_009827" in out   # 卡片附投信活動頁
+    assert "udn.com/news/story/123006/9743517" in out          # 卡片附介紹連結
     assert '<span class="fh">復華</span>' in out             # 本家以品牌色標示
 
 
