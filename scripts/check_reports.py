@@ -23,6 +23,7 @@
     「🔹**…總覽**」粗體行，舊解析只認 ## 標題，網頁與列印版的美股總覽靜默空了三週）
   · 行事曆：表頭「更新：」需為今日；2026-10-13 起須有「台股：」公司法說／財報列（代號必填、≤10 列），
     或註明「台股：本週無觀察清單內公司法說／財報」——只確認有查，不強求一定有事件
+  · 市況台股欄 vs 證交所官方休市表（2026-10-13 起）：本週官方休市日沒寫、或寫了官方表沒有的休市日 → 🔴
   · 行事曆精簡（2026-10-13 起）：「台：」台灣經濟數據列（≤4）或註明「台：本週無台灣重點經濟數據」；
     總列數 ≤30（休市列不計）；引言 ≤220 字（只留更新／市況／本週焦點）
 
@@ -280,6 +281,50 @@ def _check_calendar(path: Path, date: str) -> list[str]:
         errs += _check_calendar_tw(md, rel)
     if date >= CALSLIM_SINCE:
         errs += _check_calendar_slim(md, rel)
+    if date >= HOLIDAY_SINCE:
+        errs += _check_calendar_holidays(md, rel, date)
+    return errs
+
+
+# ── 市況台股欄 vs 證交所官方休市表（2026-10-13 使用者：「你抓資料要確認資料的可信度還有穩定度」）──
+# 這段文字原本直接驅動盤後看門狗的交易日判定；判定已改讀官方表（arm/twholidays），但它仍是
+# 讀者看到的「本週休市」——與官方表不一致就是錯資訊上版。官方表未涵蓋的年份跳過（fail-open）。
+HOLIDAY_SINCE = "2026-10-13"
+
+
+def _check_calendar_holidays(md: str, rel: str, date_iso: str) -> list[str]:
+    import datetime as _dt
+    from arm import macronews, twholidays
+    rng = re.search(r"（(\d{1,2})/(\d{1,2})[–\-~～](\d{1,2})/(\d{1,2})）", md)
+    if not rng:
+        return []
+    y = int(date_iso[:4])
+    m1, d1, m2, d2 = map(int, rng.groups())
+    try:
+        start = _dt.date(y - (1 if m1 == 12 and date_iso[5:7] == "01" else 0), m1, d1)
+        end = _dt.date(start.year + (1 if m2 < m1 else 0), m2, d2)
+    except ValueError:
+        return []
+    years = twholidays.load()
+    days = [start + _dt.timedelta(n) for n in range((end - start).days + 1)]
+    days = [d for d in days if d.weekday() < 5 and d.year in years]
+    if not days:
+        return []
+    seg = re.search(r"市況：\s*台股\s*([^｜|；;]*)", macronews._cal_note(md) or "")
+    seg = seg.group(1) if seg else ""
+    claimed = set()
+    if "休市" in seg:
+        for mm, dd in re.findall(r"(\d{1,2})/(\d{1,2})", seg):
+            claimed.add((int(mm), int(dd)))
+    errs = []
+    for d in days:
+        off = twholidays.is_closed(d, years)
+        said = (d.month, d.day) in claimed
+        if off and not said:
+            errs.append(f"{rel}：證交所官方表 {d:%m/%d} 台股休市（{twholidays.closed_days(years)[d]}），"
+                        "市況「台股」欄沒寫——照提示包【交易日曆錨定】的官方休市表寫")
+        elif said and not off:
+            errs.append(f"{rel}：市況「台股」欄寫 {d:%m/%d} 休市，證交所官方表該日為交易日——勿自行推算假日")
     return errs
 
 
