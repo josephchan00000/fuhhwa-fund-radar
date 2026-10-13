@@ -25,6 +25,7 @@ def build_cal_prompt(today: date) -> str:
     tw = macronews.tw_watch_block(macronews.tw_watch())   # 讀不到持股落檔＝空字串、整段略過
     anchor = usnews.calendar_anchor(today)                # 官方休市表（台股證交所＋美股 NYSE）——市況段據此寫
     prior = macronews.prior_cal(today)                    # 同週昨日版＝今天的底稿（Phase 2：不再每天重寫）
+    anchors = macronews.schedule_block(macronews.target_week_start(today))   # 核心排程錨（Phase 3）
     carry = (f"{macronews.CAL_CARRY_RULE}\n【同週昨日版（{prior[0]:%Y/%m/%d}）】\n{prior[1].strip()}\n"
              if prior else "")
     return f"""你是「台灣投信公司政策面速寫編輯」。請以繁體中文、用 WebSearch/WebFetch 實際查證，
@@ -34,7 +35,7 @@ def build_cal_prompt(today: date) -> str:
 
 ────────────────────────────────────────
 {macronews.SPEC_CAL}
-{tw}
+{anchors + chr(10) if anchors else ''}{tw}
 {carry}
 【必守】數字勿杜撰、查不到填「—」；狀態只填「已公布／未公布／休市」；僅資訊彙編、非投資建議、不含禁用詞。
 """
