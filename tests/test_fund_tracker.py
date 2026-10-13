@@ -154,7 +154,7 @@ def test_cal_spec_covers_regions_and_earnings():
     from arm import macronews
     s = macronews.SPEC_CAL
     assert "歐" in s and "ECB" in s and "中" in s and "日銀" in s and "財報" in s
-    assert "美：／歐：／中：／日：／財報：" in s
+    assert "美：／歐：／中：／日：" in s and "財報：" in s      # 2026-10-13 起分三區列（全球／台灣／海外財報）
     assert "本週重點財經行事曆" in s
 
 
@@ -260,20 +260,26 @@ def test_tw_region_prefix_and_legacy_retag():
 
 
 def test_macro_cal_view_tw_subtable_with_holding_chip():
+    # 台灣區＝「台：」官方數據＋「台股：」公司法說財報合一張表（2026-10-13：台灣資訊集中一處、不零散）
     from arm import fund_dashboard as fd
     row = lambda d, item, reg: {"date": d, "item": item, "region": reg, "cons": "—", "actual": "—",
                                "prev": "—", "status": "未公布"}
     cal = {"date": "2026-10-13", "note": "", "rows": [
         row("10/14", "9月CPI", "美"), row("10/15", "台積電（2330）Q3法說會", "台股"),
-        row("10/16", "鴻海（2317）法說會", "台股"), row("10/14", "ASML Q3財報", "財報")]}
+        row("10/16", "鴻海（2317）法說會", "台股"), row("10/16", "9月外銷訂單（年增）", "台"),
+        row("10/14", "ASML Q3財報", "財報")]}
     held = {"2330": {"code": "2330", "name": "台積電", "funds": 13, "etfs": ["00991A"], "cap": True}}
     html = fd._macro_cal_view(cal, held)
-    i_data, i_tw, i_os = html.index("9月CPI"), html.index("台股法說・財報"), html.index("海外財報／法說")
-    assert i_data < i_tw < html.index("台積電") < i_os < html.index("ASML")   # 數據表 → 台股 → 海外
+    i_data, i_tw, i_os = html.index("9月CPI"), html.index("台灣：經濟數據・法說財報"), html.index("海外財報／法說")
+    assert i_data < i_tw < html.index("台積電") < i_os < html.index("ASML")   # 全球數據 → 台灣 → 海外
+    assert i_tw < html.index("9月外銷訂單") < i_os           # 台灣官方數據與公司事件在同一張表
+    assert html.count('<table class="caltbl">') == 3         # 新增台灣數據不多開表：仍是三張
     assert html.count('class="chold"') == 1                 # 只有復華持有的台積電掛章、鴻海不掛
     assert "基金前十大 13 檔、00991A" in html and "1 項為復華持股" in html
-    assert "台股：" not in html
-    assert "台股法說・財報" not in fd._macro_cal_view({**cal, "rows": cal["rows"][:1]}, held)  # 無台股列不出子表
+    assert "台股：" not in html and "台：" not in html
+    assert "台灣：經濟數據" not in fd._macro_cal_view({**cal, "rows": cal["rows"][:1]}, held)  # 無台灣列不出子表
+    only_data = fd._macro_cal_view({**cal, "rows": [cal["rows"][0], cal["rows"][3]]}, held)
+    assert "台灣：經濟數據" in only_data and "復華持股" not in only_data   # 只有官方數據也成表、不掛持股章
 
 
 def test_print_calendar_tw_badge_and_holding_mark():
@@ -283,8 +289,22 @@ def test_print_calendar_tw_badge_and_holding_mark():
          "prev": "—", "status": "未公布"}]}
     html = printview.calendar_block(cal, {"2330": {}})
     assert '<span class="pr-reg tw">台股</span>' in html and 'class="pr-hold"' in html
+    data = {**cal, "rows": [{**cal["rows"][0], "item": "9月出口（年增）", "region": "台"}]}
+    assert '<span class="pr-reg tw">台</span>' in printview.calendar_block(data, {"2330": {}})
     assert "前十大持股內" in html                           # 表底說明「持股」章意義
     assert 'class="pr-hold"' not in printview.calendar_block(cal, {})
+
+
+def test_cal_spec_tw_data_and_slim_rules():
+    # 2026-10-13：加台灣數據的同時把精簡上限寫進版型（總列數／口徑合併／只收排定事件／引言三段）
+    from arm import macronews
+    s = macronews.SPEC_CAL
+    assert "台：" in s and "台灣區" in s and "至多 4 列" in s and "台：本週無台灣重點經濟數據" in s
+    assert "總列數 ≤ 30" in s and "併一列" in s and "事先排定" in s and "本週焦點" in s
+    assert "昨夜重點不寫" in s
+    rows = macronews._parse_cal_rows("| 07/08 | 台：6月出口（年增） | — | — | +38.6% | 未公布 |\n"
+                                     "| 07/16 | 台股：台積電（2330）Q2法說會 | — | — | — | 未公布 |\n")
+    assert [r["region"] for r in rows] == ["台", "台股"]       # 「台股」不被「台」吃掉前兩字
 
 
 def test_cal_prompt_carries_tw_watchlist(monkeypatch):
