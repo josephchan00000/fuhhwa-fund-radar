@@ -18,6 +18,7 @@ data/funds/*
 !data/fund_news_seen.json
 # 總經・籌碼數據（市場溫度計）落檔：跨日累積序列＋來源被擋時的 fallback，必須入庫
 !data/macro_chips.json
+!data/tw_holidays.json
 # ETF 每日持股揭露（展開明細「加減碼／當日貢獻」資料層）：**必須入庫**——
 # 「今日 vs 前一揭露日」的比較全靠落檔裡的 prev，CI 從零開始就永遠只有今天、Δ 整片是 —
 !data/etf_holdings.json
