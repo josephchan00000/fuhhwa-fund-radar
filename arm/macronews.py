@@ -14,8 +14,9 @@
 """
 from __future__ import annotations
 
+import json
 import re
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from . import usnews
@@ -58,7 +59,8 @@ SPEC_MACRO = f"""【版型：昨夜美股交易時段・總經／政策面速寫
  央行／利率／匯率／財政／關稅類走折現率通道牽動所有資產，同等證據下天然高於單一地緣事件。）
 
 版面：
-  🔹前後 24 小時政策總覽（Fed／美政府／國際政策各 1 句 ＋ 1 句市場解析：資產大漲大跌時點出主因）
+  ## 🔹前後 24 小時政策總覽
+     ↑ 段名行原樣照抄（含 ##）；內容：（Fed／美政府／國際政策各 1 句 ＋ 1 句市場解析：資產大漲大跌時點出主因）
   🔹政策新聞卡（每則 200–320 字，依「分析深度」要求寫滿因果鏈；≥4 則）：
      標題（來源＋日期＋TST｜【新事件】或【延伸】｜重要度 N/10）  ← 括注三段缺一不可，供儀表板解析徽章
      1. 新聞摘要（2–3 句） 2. 一句話重點 3. 漲跌分析 4. 對全球經濟影響
@@ -75,35 +77,68 @@ SPEC_MACRO = f"""【版型：昨夜美股交易時段・總經／政策面速寫
 
 # 本週財經行事曆版型（給提示包用）——2026-07-05 使用者需求：
 # 除美國經濟數據外，加入歐盟、中國、日本重點數據與「重要企業財報／法說」。
-SPEC_CAL = """【版型：本週重點財經行事曆（美國＋歐盟＋中國＋日本＋重要企業財報）】
-用 WebSearch 查證本週（週一~週五，以台北日期所在整週）重點財經行事曆，涵蓋五類
-（「項目」欄一律加地區／類別前綴「美：／歐：／中：／日：／財報：」，休市列可免）：
-  · 美：非農/失業率/時薪、CPI/PCE/核心通膨、FOMC 與 Fed 官員談話、GDP、零售銷售、
+SPEC_CAL = """【版型：本週重點財經行事曆（全球數據＋台灣區＋海外財報）】
+用 WebSearch 查證本週（週一~週五，以台北日期所在整週）重點財經行事曆。
+「項目」欄一律加前綴（休市列可免），共七類、分三區呈現：
+  ▸ 全球數據：美：／歐：／中：／日：
+  ▸ 台灣區（網頁合成一張表）：台：（官方經濟數據）／台股：（公司法說・財報）
+  ▸ 海外財報：財報：
+  · 美：非農/失業率/時薪、CPI/PCE/核心通膨、FOMC 與 Fed 官員排定談話、GDP、零售銷售、
     ISM/PMI、初領失業金、JOLTS、消費者信心、重大財政/關稅時程；並標示美股休市日。
   · 歐：ECB 利率決議與官員談話、歐元區 CPI/PMI/GDP/零售銷售、歐盟重大貿易／關稅／監管時程。
   · 中：CPI/PPI、進出口、官方與財新 PMI、社融/信貸、LPR 與人行動作、重大政策會議。
   · 日：日銀（BOJ）會議與官員談話、CPI、短觀、薪資／貿易數據。
-  · 財報：本週排定之重要企業財報／法說會（美股大型權值與關鍵半導體、台股台積電等指標企業；
-    「預期／前值」欄可填市場共識 EPS 或營收，查不到填「—」）。
+  · 台：台灣官方經濟數據**只收六類**——央行理監事會利率決議（季會）、財政部出口、經濟部外銷訂單、
+    主計總處 CPI、主計總處 GDP 概估／經濟成長率預測、國發會景氣對策信號；**至多 4 列**。
+    日期以主計總處「國家統計發布時間表」或主管機關公告為準；「前值」填上月（季）官方值。
+    本週六類皆無公布時，「註」必寫「台：本週無台灣重點經濟數據」（內容 QA 據此確認有查）。
+  · 台股：本週台股公司事件——法說會（含線上）、董事會通過季報／年報、台積電月營收、
+    權值龍頭除權息。**選股以提示包下方【台股公司觀察清單】為準**（復華持股＋權值龍頭，
+    排越前面越優先），逐家查本週有無事件；清單外只收當週媒體大幅報導的市場焦點級法說。
+    項目寫「台股：公司名（代號）Q3法說會」——**代號必填**（儀表板據以掛「復華持股」章；
+    多家同日可併一列「台股：聯發科（2454）、日月光投控（3711）法說會」）。
+    「預期」＝具名來源的市場共識（營收／EPS，加 *）、「前值」＝上季實際或公司本季財測區間；
+    已舉行者「實際」填一句要點（≤20 字，如「Q4 營收財測季增 5–8%」）。
+    日期以公開資訊觀測站「法人說明會一覽表」或公司公告為準，媒體「法說會行事曆」須兩來源一致。
+    **至多 8 列**（持股多者優先），其餘在「註」一句帶過；清單內本週無事件時，「註」必寫
+    「台股：本週無觀察清單內公司法說／財報」。
+  · 財報：本週排定之**海外**重要企業財報／法說會（美股大型權值與關鍵半導體、歐日韓指標企業；
+    「預期／前值」欄可填市場共識 EPS 或營收，查不到填「—」）。台股公司一律用「台股：」。
 以「已公布」列出實際值、「未公布」留待公布。
+
+【精簡規則——讀者要的是「這週哪幾個時點要看」，不是把所有能查到的都列上（2026-10-13 使用者：
+「不要讓資訊過於複雜零散」）】
+  ① **總列數 ≤ 30**（休市列不計）。超過就依「對市場影響」刪尾端，不是縮字。
+  ② **同一指標的不同口徑併一列**：月增／年增／核心寫成一列，主口徑在前、次口徑括號——
+     如「美：9月CPI（年增；核心）」預期「+3.6%（核心+3.0%）*」。不同指標（CPI 與 PPI）仍分列。
+  ③ **只收「事先排定」的事件**：數據公布、央行會議、排定的官員談話／聽證、峰會與重大會議、
+     財報法說、休市。突發新聞與已發生的事件回應（如「某國回應某提議」）屬總經報，不入行事曆。
+  ④ **引言只寫三段**：「更新：…；市況：…；本週焦點：…（≤80 字，本週最關鍵 1–2 個時點；
+     段內用「、」「，」分隔、**勿用「；」**——網頁以「；」切成條列，用了會被拆成兩條）」，
+     整行 ≤220 字。昨夜重點不寫——同頁「政策總覽」已有，重複只會讓讀者讀兩遍。
+     詳細的資料來源、口徑說明一律放表下「註」（網頁與列印版不顯示，供查核）。
 
 嚴格輸出成一個 markdown 表格（欄位固定、供程式解析）：
 
 # 本週重點財經行事曆（{起}–{迄}）
-> 更新：{今天}；市況：台股 正常交易｜美股 正常交易｜日股 7/20 海之日休市｜韓股 正常交易｜陸股 正常交易｜港股 正常交易；{其餘：已公布重點／政策時程／後市焦點等}
+> 更新：{今天}；市況：台股 正常交易｜美股 正常交易｜日股 7/20 海之日休市｜韓股 正常交易｜陸股 正常交易｜港股 正常交易；本週焦點：{≤80 字}
 
 「市況」段格式固定（供儀表板「今日重點」雙視圖解析，**勿改格式**）：六市場依序
 台股／美股／日股／韓股／陸股／港股，以全形「｜」分隔；各市場填「正常交易」或
 「M/D 因〇〇休市」（同週多日以「、」連列；查證各交易所本週公告假期，勿杜撰）。
+**台股與美股兩欄一律照提示包【交易日曆錨定】的官方休市表寫**（證交所／NYSE 公告；2026-10-13 起，
+市況台股欄與官方表不一致 → 內容 QA 🔴）——這段文字曾直接驅動盤後看門狗的交易日判定。
 
 | 日期 | 項目 | 預期 | 實際 | 前值 | 狀態 |
 |---|---|---|---|---|---|
 | 07/02 | 美：6月非農就業 | +11.5萬 | +5.7萬 | +14.4萬 | 已公布 |
 | 07/01 | 美：Fed理事沃勒談話 | — | 支持近期降息、關稅通膨屬一次性 | — | 已公布 |
 | 07/03 | 美股國慶假期休市 | — | — | — | 休市 |
-| 07/02 | 歐：歐元區6月CPI（年增） | +2.0% | — | +1.9% | 未公布 |
+| 07/02 | 歐：歐元區6月CPI（年增；核心） | +2.0%（核心+2.3%） | — | +1.9%（核心+2.3%） | 未公布 |
 | 07/03 | 中：6月財新服務業PMI | — | — | 51.1 | 未公布 |
 | 07/01 | 日：日銀短觀（Q2 大型製造業） | +12 | +13 | +12 | 已公布 |
+| 07/08 | 台：6月出口（年增） | — | — | +38.6% | 未公布 |
+| 07/16 | 台股：台積電（2330）Q2法說會 | — | — | 財測營收284–292億美元 | 未公布 |
 | 07/02 | 財報：美光（MU）FY26Q3 財報 | EPS 2.5美元 | — | — | 未公布 |
 
 規則：日期用 MM/DD；狀態只填「已公布／未公布／休市」三者之一；已公布須填實際值，未公布實際值填「—」；
@@ -115,13 +150,128 @@ SPEC_CAL = """【版型：本週重點財經行事曆（美國＋歐盟＋中國
 如「通膨風險大於就業、必要時支持升息」，以主流媒體報導查證）——**不得「已公布」卻留「—」**
 （2026-08-06 使用者回報：庫克談話已公布、實際欄卻仍是「—」，等於白列一行）。
 至少涵蓋本週所有交易日的重點項目（無數據日可只標休市或略過）；
-歐／中／日與財報僅收「對市場有影響力」的重點項目，勿灌水湊列。
+歐／中／日與海外財報僅收「對市場有影響力」的重點項目，勿灌水湊列。
 僅為資訊彙編、非投資建議；不預測數值、不含禁用詞。"""
 
 
-# 行事曆「項目」欄的地區／類別前綴（美：／歐：／中：／日：／財報：）——
-# md 檔保留前綴供程式解析；儀表板顯示時轉成彩色小徽章、財報獨立子表。
-_REGION_RE = re.compile(r"^(美|歐|中|日|財報)\s*[：:]\s*")
+# 行事曆「項目」欄的地區／類別前綴（美：／歐：／中：／日：／台：／台股：／財報：）——
+# md 檔保留前綴供程式解析；儀表板顯示時轉成彩色小徽章。網頁分三區：全球數據（美歐中日）／
+# 台灣區（台：官方數據＋台股：公司法說財報合一張表）／海外財報。「台股」須排在「台」之前。
+_REGION_RE = re.compile(r"^(美|歐|中|日|財報|台股|台)\s*[：:]\s*")
+TW_REGIONS = ("台", "台股")       # 台灣區＝這兩類合成一張表（2026-10-13：台灣資訊集中一處、不零散）
+
+
+# ── 行事曆「台股公司」觀察清單（2026-10-13 使用者：「行事曆是不是也要把台股的重要公司法說
+#    或是財報公布都加進去」）。舊版型只寫「台股台積電等指標企業」，歷史行事曆裡的台股公司
+#    事件因此只出現過台積電。清單由資料推出、不寫死名單：復華基金前十大＋本家 ETF 前十大
+#    （＝讀者真正持有、法說最牽動淨值者）＋0050 前十大（權值龍頭，依每日 PCF 權重）。
+#    提示包據此列「本週必查」，儀表板據此替行事曆列掛「復華持股」章——同一份清單，兩邊不會漂。
+_TW_CODE = re.compile(r"^[1-9]\d{3}$")       # 台股公司代號（00 開頭是 ETF——組合型基金持有的 0050 不算公司）
+_TW_ITEM_CODE = re.compile(r"[（(](\d{4})[）)]")
+_TW_COUNTRY = ("台灣", "臺灣")
+TW_CAP_ETF = "0050"           # 權值龍頭的來源 ETF
+TW_CAL_MAX = 8                # 行事曆台股列上限（法說旺季清單內公司可能一週十幾家，持股多者優先）
+TW_DATA_MAX = 4               # 台灣官方經濟數據列上限（只收六類核心數據）
+CAL_MAX_ROWS = 30             # 行事曆總列數上限（休市列不計）——2026-10-13 使用者：「不要讓資訊過於複雜零散」
+CAL_NOTE_MAX = 220            # 引言（> 行）字數上限：只留 更新／市況／本週焦點
+
+
+def _read_json(p: Path):
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def tw_watch(funds: list[dict] | None = None, eh_doc: dict | None = None,
+             profiles: dict | None = None) -> list[dict]:
+    """台股公司觀察清單 [{code, name, funds, etfs, cap}]（讀檔失敗一律 fail-open，回讀得到的部分）。
+      funds＝出現在幾檔復華基金前十大；etfs＝持有它（前十大）的本家 ETF 代碼；cap＝0050 前十大。
+    排序：復華持股（基金檔數＋本家 ETF 檔數）多者在前，同數依權值；純權值龍頭殿後。"""
+    if funds is None:
+        funds = [d for f in sorted((ROOT / "data" / "funds").glob("*.json"))
+                 if not f.name.startswith("_") and isinstance(d := _read_json(f), dict)]
+    if eh_doc is None:
+        eh_doc = _read_json(ROOT / "data" / "etf_holdings.json") or {}
+    if profiles is None:
+        profiles = (_read_json(ROOT / "config" / "holding_profiles.json") or {}).get("profiles") or {}
+    out: dict[str, dict] = {}
+    names: dict[str, list[str]] = {}       # 代號 → 各來源名稱；取最短者＝常用簡稱（台積電，非「台灣積體」）
+    for pname, p in profiles.items():
+        tk = str((p or {}).get("ticker") or "")
+        if _TW_CODE.match(tk) and (p or {}).get("country") in _TW_COUNTRY:
+            names.setdefault(tk, []).append(pname.rstrip("*").strip())
+
+    def row(code: str, name: str) -> dict:
+        if name:
+            names.setdefault(code, []).append(name)
+        return out.setdefault(code, {"code": code, "name": "", "funds": 0, "etfs": [], "cap": False, "w": 0.0})
+
+    for f in funds:
+        for h in f.get("top_holdings") or []:
+            tk = str((profiles.get(h.get("name")) or {}).get("ticker") or "")
+            if _TW_CODE.match(tk) and (profiles.get(h.get("name")) or {}).get("country") in _TW_COUNTRY:
+                row(tk, str(h.get("name") or "").rstrip("*"))["funds"] += 1
+    etfs = (eh_doc or {}).get("etfs") or {}
+    try:
+        from . import etfwatch                             # 函式內匯入：本模組被 etfwatch 以外多處引用
+        own = [c for c, n, *_ in etfwatch.watch_tuples() if "復華" in n]
+    except Exception:
+        own = []
+    for code in own + [TW_CAP_ETF]:
+        hs = sorted(((etfs.get(code) or {}).get("holdings") or []),
+                    key=lambda h: -(h.get("weight") or 0))
+        top = [h for h in hs if _TW_CODE.match(str(h.get("stock_id") or ""))][:10]
+        for h in top:
+            r = row(str(h["stock_id"]), str(h.get("name") or ""))
+            r["w"] = max(r["w"], float(h.get("weight") or 0))
+            if code == TW_CAP_ETF:
+                r["cap"] = True
+            elif code not in r["etfs"]:
+                r["etfs"].append(code)
+    for c, r in out.items():
+        r["name"] = min(names.get(c) or [c], key=len)
+    rows = sorted(out.values(), key=lambda r: (-(r["funds"] + len(r["etfs"])), -r["w"], r["code"]))
+    for r in rows:
+        r.pop("w", None)
+    return rows
+
+
+def tw_held(watch: list[dict]) -> dict[str, dict]:
+    """觀察清單中「復華實際持有」者（基金前十大或本家 ETF 前十大）→ {代碼: 清單列}。"""
+    return {r["code"]: r for r in watch if r["funds"] or r["etfs"]}
+
+
+def tw_codes(item: str) -> list[str]:
+    """行事曆項目內的台股代碼（「聯發科（2454）、日月光投控（3711）法說會」→ ['2454', '3711']）。"""
+    return _TW_ITEM_CODE.findall(item or "")
+
+
+def retag_tw(rows: list[dict], codes: set[str]) -> list[dict]:
+    """舊版型把台股公司事件寫在「財報：」（如「財報：台積電（2330）Q3法說會」）——代碼在觀察
+    清單內者改歸「台股」。只認清單內代碼：日股代號也是 4 碼（東京威力 8035），不可單憑碼長判斷。"""
+    for r in rows:
+        if r.get("region") == "財報" and any(c in codes for c in tw_codes(r.get("item"))):
+            r["region"] = "台股"
+    return rows
+
+
+def tw_watch_block(watch: list[dict]) -> str:
+    """行事曆提示包的「台股公司觀察清單」段；清單空（落檔讀不到）回空字串、整段略過。"""
+    if not watch:
+        return ""
+    held = [r for r in watch if r["funds"] or r["etfs"]]
+    cap = [r for r in watch if r["cap"] and not (r["funds"] or r["etfs"])]
+
+    def fmt(r: dict) -> str:
+        tag = "、".join(([f"基金×{r['funds']}"] if r["funds"] else []) + r["etfs"])
+        return f"{r['name']}（{r['code']}）" + (f"［{tag}］" if tag else "")
+    lines = ["【台股公司觀察清單（本週必查；由持股落檔自動產生）】"]
+    if held:
+        lines.append("· 復華持股（基金前十大檔數／本家 ETF；持有越多越優先）：" + "、".join(fmt(r) for r in held))
+    if cap:
+        lines.append(f"· 權值龍頭（{TW_CAP_ETF} 前十大）：" + "、".join(fmt(r) for r in cap))
+    return "\n".join(lines)
 
 
 def _parse_cal_rows(md: str) -> list[dict]:
@@ -159,6 +309,174 @@ def _cal_note(md: str) -> str:
     return ""
 
 
+# ── 行事曆「以昨日版為底稿」＋漂移偵測（資料可信度盤查 Phase 2，2026-10-13）──
+# 盤查實測：同週相鄰兩日比對 79 組／1,387 列，日期變動 14 次（6 月貿易收支 08/04→08/05→08/04
+# 來回翻）、已公布實際值改寫 19 次——每天從零重寫、只靠搜尋摘要，同一件事今天和昨天說法不同。
+# 改為：提示包附上「同週昨日版」當底稿增修；日期／已公布數字要改須在「註」寫「修正：」並附來源，
+# check_reports 比對昨日版擋下沒交代的改動。
+_CAL_WEEK = re.compile(r"（(\d{1,2})/(\d{1,2})[–\-~～]")
+_CAL_KEY_STRIP = re.compile(r"[\s（）()、，,．.：:\-—／/＊*「」]")
+_CAL_NUM = re.compile(r"[-+−]?\d+(?:\.\d+)?")
+
+
+def cal_week_start(md: str, file_date: date) -> date | None:
+    """行事曆標題「（10/12–10/16）」→ 週一日期（跨年週以檔案日期推年份）。"""
+    m = _CAL_WEEK.search(md or "")
+    if not m:
+        return None
+    mo, d = int(m.group(1)), int(m.group(2))
+    y = file_date.year + (mo == 1 and file_date.month == 12) - (mo == 12 and file_date.month == 1)
+    try:
+        return date(y, mo, d)
+    except ValueError:
+        return None
+
+
+def target_week_start(today: date) -> date:
+    """今日行事曆該涵蓋哪一週：平日＝本週一；週末＝下週一（同實際產出慣例）。"""
+    wd = today.weekday()
+    return today - timedelta(days=wd) if wd < 5 else today + timedelta(days=7 - wd)
+
+
+def prior_cal(today: date, week_start: date | None = None, cal_dir: Path | None = None) -> tuple[date, str] | None:
+    """同一週、日期早於 today 的最新一份行事曆 → (檔案日期, md)；週一第一份或找不到回 None。"""
+    ws = week_start or target_week_start(today)
+    for f in sorted((cal_dir or CAL_DIR).glob("*.md"), reverse=True):
+        m = re.match(r"(\d{4}-\d{2}-\d{2})\.md$", f.name)
+        if not m:
+            continue
+        fdate = date.fromisoformat(m.group(1))
+        if fdate >= today:
+            continue
+        if fdate < ws - timedelta(days=3):          # 比該週前一個週五還早＝不會是同週版本
+            break
+        md = f.read_text(encoding="utf-8")
+        if cal_week_start(md, fdate) == ws:
+            return fdate, md
+    return None
+
+
+def cal_key(r: dict) -> str:
+    return _CAL_KEY_STRIP.sub("", (r.get("region") or "") + (r.get("item") or ""))
+
+
+def _nums(s: str) -> list[str]:
+    return [x.replace("−", "-").replace("+", "") for x in _CAL_NUM.findall(s or "")]
+
+
+def _num_eq(x: str, y: str) -> bool:
+    """精度不同時以較粗的位數比（727 萬 vs 727.1 萬＝同一個數）。"""
+    dec = min(len(x.split(".")[1]) if "." in x else 0, len(y.split(".")[1]) if "." in y else 0)
+    return round(float(x), dec) == round(float(y), dec)
+
+
+def _nums_kept(old: list[str], new: list[str]) -> bool:
+    """昨日版的每個數字今天都還在＝沒改動（換順序、補充細節都不算；舊數字消失才算改了事實）。"""
+    return all(any(_num_eq(x, y) for y in new) for x in old)
+
+
+def _is_data_row(r: dict) -> bool:
+    """數據列（有數字前值／預期，或實際值本身就是數字開頭）才比數字；談話／會議要點裡的數字是附帶的。"""
+    return bool(_nums(r.get("prev")) or _nums(r.get("cons")) or _CAL_NUM.match((r.get("actual") or "").strip()))
+
+
+def cal_drift(prev_md: str, cur_md: str) -> list[dict]:
+    """同週兩版行事曆比對：同一列（前綴＋項目正規化後相同）的日期改了、已公布實際值的數字改了、
+    或已公布退回未公布 → [{key, item, kind, old, new}]。只比數字（「55.6」→「55.6%」、談話要點換句話說
+    都不算改動），項目改寫成另一種說法時對不上就不比（fail-open）。休市列不比。"""
+    prev = {cal_key(r): r for r in _parse_cal_rows(prev_md) if "休市" not in r["status"]}
+    out = []
+    for r in _parse_cal_rows(cur_md):
+        if "休市" in r["status"]:
+            continue
+        p = prev.get(cal_key(r))
+        if not p:
+            continue
+        if p["date"] != r["date"]:
+            out.append({"key": cal_key(r), "item": r["item"], "kind": "日期", "old": p["date"], "new": r["date"]})
+        if "已公布" in p["status"]:
+            if "已公布" not in r["status"]:
+                out.append({"key": cal_key(r), "item": r["item"], "kind": "狀態", "old": "已公布", "new": r["status"]})
+            elif (_is_data_row(p) and _nums(p["actual"]) and _nums(r["actual"])
+                  and not _nums_kept(_nums(p["actual"]), _nums(r["actual"]))):
+                out.append({"key": cal_key(r), "item": r["item"], "kind": "實際值", "old": p["actual"], "new": r["actual"]})
+    return out
+
+
+def drift_explained(d: dict, md: str) -> bool:
+    """「註」裡有一行寫「修正」且提到該項目（項目正規化後前 4 字）＝有交代。"""
+    tag = _CAL_KEY_STRIP.sub("", d["item"])[:4]
+    return any("修正" in ln and tag in _CAL_KEY_STRIP.sub("", ln) for ln in (md or "").splitlines()
+               if not ln.lstrip().startswith("|"))
+
+
+CAL_CARRY_RULE = """【以昨日版為底稿增修（2026-10-13 起；同一週才適用）】
+下方附「同週昨日版」行事曆——**在它上面增修，不要整份重寫**：
+  ① 已列的事件保留原寫法（項目文字不要換說法），除非事件取消或改期；
+  ② 日期與「已公布」列的實際值**不得改動**，除非官方修正／改期——改動時必須在表下「註」加一行
+     「修正：{項目}——原 X 改為 Y（來源：官方新聞稿或兩家主流媒體）」，沒寫「修正：」的改動內容 QA 會擋；
+  ③ 今天才公布的事件：狀態改「已公布」、填實際值（以官方新聞稿為準）；新事件照版型補列（守總列數上限）。
+"""
+
+
+# ── 核心排程錨（資料可信度盤查 Phase 3，2026-10-13）──
+# 盤查：行事曆日期全靠搜尋摘要（彙整站行事曆＋媒體），央行會議與重大數據的日期也會來回翻。
+# 改為：核心事件（各國央行決議、美國 CPI／非農、台灣官方數據）以 config/official_schedule.json 為準——
+# 每筆附來源與層級（official＝官方排程頁／主管機關新聞稿；secondary＝兩家主流媒體一致，使用者同意可收）。
+# 提示包帶「本週排程錨」、內容 QA 擋「核心事件沒列／日期不同」。檔案讀不到＝整段略過（fail-open）。
+SCHEDULE_PATH = ROOT / "config" / "official_schedule.json"
+_LEVEL = {"official": "官方", "secondary": "可信次級"}
+
+
+def load_schedule(path: Path | None = None) -> list[dict]:
+    try:
+        doc = json.loads((path or SCHEDULE_PATH).read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    out = []
+    for e in doc.get("events") or []:
+        try:
+            out.append({**e, "d": date.fromisoformat(e["date"])})
+        except Exception:
+            continue
+    return sorted(out, key=lambda e: e["d"])
+
+
+def week_anchors(week_start: date, events: list[dict] | None = None) -> list[dict]:
+    """該週（週一～週五）的排程錨。"""
+    evs = load_schedule() if events is None else events
+    return [e for e in evs if week_start <= e["d"] <= week_start + timedelta(days=4)]
+
+
+def anchor_matches(ev: dict, row: dict) -> bool:
+    """行事曆列是否為該排程事件：前綴相同，且 match 任一組關鍵詞全數出現在項目裡。"""
+    if (row.get("region") or "") != ev.get("region"):
+        return False
+    item = (row.get("item") or "").upper()
+
+    def hit(k: str) -> bool:
+        # 月份詞要整詞比：「1月」不可命中「11月」、「2月」不可命中「12月」
+        if re.fullmatch(r"\d{1,2}月", k):
+            return re.search(rf"(?<!\d){k}", item) is not None
+        return k.upper() in item
+    return any(all(hit(k) for k in grp) for grp in ev.get("match") or [])
+
+
+def schedule_block(week_start: date, events: list[dict] | None = None) -> str:
+    """提示包「本週核心排程錨」段；該週沒有錨＝空字串。"""
+    evs = week_anchors(week_start, events)
+    if not evs:
+        return ""
+    wd = "一二三四五六日"
+    lines = ["【本週核心排程錨（config/official_schedule.json；日期以此為準、這些事件必列）】"]
+    for e in evs:
+        t = f"——{e['time']}" if e.get("time") else ""
+        lines.append(f"· {e['d']:%m/%d}（週{wd[e['d'].weekday()]}）{e['region']}：{e['item']}{t}"
+                     f"［{_LEVEL.get(e.get('level'), e.get('level') or '')}］")
+    lines.append("若查到主管機關正式改期，照官方日期寫，並在表下「註」加「修正：{項目}——改期（來源）」。")
+    return "\n".join(lines)
+
+
 def load_calendar() -> dict | None:
     """dashboard 用：最新一份本週行事曆 {date, md, rows, note, title}。"""
     if not CAL_DIR.exists():
@@ -171,8 +489,8 @@ def load_calendar() -> dict | None:
     md = (CAL_DIR / f"{d}.md").read_text(encoding="utf-8")
     title = next((ln.lstrip("# ").strip() for ln in md.splitlines()
                   if ln.startswith("#")), "本週重點財經行事曆")
-    return {"date": d, "md": md, "rows": _parse_cal_rows(md),
-            "note": _cal_note(md), "title": title}
+    rows = retag_tw(_parse_cal_rows(md), {r["code"] for r in tw_watch()})
+    return {"date": d, "md": md, "rows": rows, "note": _cal_note(md), "title": title}
 
 
 def load_latest() -> dict | None:

@@ -19,7 +19,10 @@
    - `reports/usnews/{今日}_v1.md`、`_v2.md`（昨夜美股；先查證美股當日是否休市）
    - `reports/twnews/{今日}.md`（台股；週末/休市日改寫最近交易日並註明）
    - `reports/macronews/{今日}.md`、`reports/macrocal/{今日}.md`（總經政策＋本週行事曆；
-     行事曆涵蓋**美國＋歐盟＋中國＋日本**重點數據與**重要企業財報／法說**，項目加「美：／歐：／中：／日：／財報：」前綴；
+     行事曆涵蓋**美國＋歐盟＋中國＋日本**重點數據與**海外企業財報／法說**，項目加「美：／歐：／中：／日：／財報：」前綴；
+     **台灣區另用「台：」（官方經濟數據）與「台股：」（公司法說・財報，代號必填）前綴**；
+     **精簡上限：總列數 ≤30、同指標口徑併一列、只收排定事件、引言只寫更新／市況／本週焦點**
+     （2026-10-13 起，見下方「行事曆台灣區與精簡規則」專節）；
      引言須含**「市況」段**（2026-07-22 使用者需求）：`市況：台股 …｜美股 …｜日股 …｜韓股 …｜陸股 …｜港股 …`
      六市場依序、全形「｜」分隔，各填「正常交易」或「M/D 因〇〇休市」——儀表板今日重點據此
      產雙視圖 chip（台股頁＝台股本身、全球頁＝美＋日韓陸港），格式勿改）
@@ -216,6 +219,8 @@
    另跑 `TZ=Asia/Taipei python3 scripts/check_reports.py` 須 🟢（檔案齊全／每報≥4卡／每卡有連結與重要度／
    **每卡摘要或影響分析非空**／**2026-08-20 起：每卡漲跌分析欄＋影響分析≥2條＋分析合計≥120字**（【深度】卡豁免）／
    **2026-08-20 起：大變動提及**（官方序列旗標的資產，對應報告全文須提及；序列過期或落檔讀不到＝跳過）／
+   **2026-10-13 起：頭段總覽／速覽抽得到**（美股 v1／總經「…總覽」、台股「盤前／盤後速覽」；見列印版專節踩坑⑤）／
+   **2026-10-13 起：行事曆台灣區與精簡上限**（台／台股列或「本週無」註記、總列數 ≤30、引言 ≤220 字）／
    行事曆為今日）——「摘要／影響分析皆空」該項是 2026-07-31 新增的防呆，
    🔴 訊息會直接指出是標籤沒加 `**粗體**`（見步驟 2 與下方專節），照著把該報告的 `N. 標籤：` 改成
    `N. **標籤**：` 即可，勿改渲染端；
@@ -404,7 +409,7 @@ Routine prompt 原文①——每日全部更新（06:35）：
 
 Routine prompt 原文②——盤後籌碼即時更新（15:33）：
 
-> （排程自動觸發）盤後籌碼即時更新——GitHub cron 實測遲 1~3 小時，本 Routine 負責準時；全程只做三件事、不跑任何資料抓取腳本、不動 reports/**：① 用 mcp__github__actions_run_trigger（method=run_workflow、workflow_id=afterhours_refresh.yml、ref=main）觸發盤後刷新，成功觸發即收工、不等它跑完；MCP 不可用時備援＝在本會話指定分支寫 .ping/afterhours（內容任意）後 git add -f、commit、push——該路徑 push 會自動觸發同一 workflow。② 前十大簡介缺口順手補（使用者 2026-08-12：不佔早上、掛在本班——本班最輕且在晨間持股抓取之後）：git fetch origin main 讀 data/holdings_intro_gap.json，count=0 → 跳過；count>0 → 依 CLAUDE.md 步驟 9⑤ 極簡迴路：每檔 1 次 WebSearch 查證（公司本業／代號／國別）→ 補 config/holding_profiles.json（{原字串:{intro,ticker,country,verified}}，intro 純事實、避開禁用詞）→ python3 -m pytest -q tests/test_holdings_intro.py → commit「chore: 補持股簡介 N 檔」push 本會話指定分支——push 自動觸發 daily.yml 併檔＋重建上線，不需 PR、不需監看。③ send_later 排 60 分鐘後自驗：git fetch origin main 讀 data/macro_chips.json，若為交易日（當日 reports/macrocal 市況段「台股」不含休市）而 inst_total 仍缺今日 → 補 dispatch 一次、再 send_later 25 分鐘後檢查，仍缺才 PushNotification 一句話（缺什麼＋afterhours run 日誌看到的原因）；資料已到或休市 → 安靜結束、不推播、不留言（使用者 2026-08-03 指定「失敗才推播」）；若②有補簡介，同回合加驗 origin/main 的 data/holdings_intro_gap.json 已歸 0，仍 >0（分支 workflow 檔太舊、併檔通道沒生效）→ mcp__github__actions_run_trigger dispatch daily.yml（ref=main、news_ref=本會話指定分支）一次即可修復。send_later／create_trigger 若回 MCP error -32003（需審批、無人值守無法核准）：勿跳過自驗、也勿只推播「排程失敗」了事——改用 Bash run_in_background 背景 until 迴圈（每 5 分鐘 git fetch origin main 檢查一次直到自驗時點）等到時點喚醒後照樣自驗與後續處置，機制見 CLAUDE.md「已知環境限制與防呆」-32003 條。
+> （排程自動觸發）盤後籌碼即時更新——GitHub cron 實測遲 1~3 小時，本 Routine 負責準時；全程只做三件事、不跑任何資料抓取腳本、不動 reports/**：① 用 mcp__github__actions_run_trigger（method=run_workflow、workflow_id=afterhours_refresh.yml、ref=main）觸發盤後刷新，成功觸發即收工、不等它跑完；MCP 不可用時備援＝在本會話指定分支寫 .ping/afterhours（內容任意）後 git add -f、commit、push——該路徑 push 會自動觸發同一 workflow。② 前十大簡介缺口順手補（使用者 2026-08-12：不佔早上、掛在本班——本班最輕且在晨間持股抓取之後）：git fetch origin main 讀 data/holdings_intro_gap.json，count=0 → 跳過；count>0 → 依 CLAUDE.md 步驟 9⑤ 極簡迴路：每檔 1 次 WebSearch 查證（公司本業／代號／國別）→ 補 config/holding_profiles.json（{原字串:{intro,ticker,country,verified}}，intro 純事實、避開禁用詞）→ python3 -m pytest -q tests/test_holdings_intro.py → commit「chore: 補持股簡介 N 檔」push 本會話指定分支——push 自動觸發 daily.yml 併檔＋重建上線，不需 PR、不需監看。③ send_later 排 60 分鐘後自驗：git fetch origin main 讀 data/macro_chips.json，若為交易日（以證交所官方休市表為準：python3 -c "from arm import twholidays,clock; print(twholidays.is_closed(clock.today_tw()))" 印 False 才是交易日）而 inst_total 仍缺今日 → 補 dispatch 一次、再 send_later 25 分鐘後檢查，仍缺才 PushNotification 一句話（缺什麼＋afterhours run 日誌看到的原因）；資料已到或休市 → 安靜結束、不推播、不留言（使用者 2026-08-03 指定「失敗才推播」）；若②有補簡介，同回合加驗 origin/main 的 data/holdings_intro_gap.json 已歸 0，仍 >0（分支 workflow 檔太舊、併檔通道沒生效）→ mcp__github__actions_run_trigger dispatch daily.yml（ref=main、news_ref=本會話指定分支）一次即可修復。send_later／create_trigger 若回 MCP error -32003（需審批、無人值守無法核准）：勿跳過自驗、也勿只推播「排程失敗」了事——改用 Bash run_in_background 背景 until 迴圈（每 5 分鐘 git fetch origin main 檢查一次直到自驗時點）等到時點喚醒後照樣自驗與後續處置，機制見 CLAUDE.md「已知環境限制與防呆」-32003 條。
 
 Routine prompt 原文③——晚間 NAV·PCF 即時更新（18:58）：
 
@@ -412,7 +417,7 @@ Routine prompt 原文③——晚間 NAV·PCF 即時更新（18:58）：
 
 Routine prompt 原文④——美股收盤序列更新（05:08，2026-08-05 建立、2026-08-07 補記本檔）：
 
-> （排程自動觸發）美股收盤序列更新（費半 ^SOX／台積電 ADR 昨夜收盤入檔，供 06:35 晨報引用；台北 05:08＝美東收盤後，夏令 17:08／冬令 16:08）——全程不跑任何資料抓取腳本、不動 reports/**：① 用 mcp__github__actions_run_trigger（method=run_workflow、workflow_id=afterhours_refresh.yml、ref=main）觸發刷新，成功觸發即收工、不等它跑完；MCP 不可用時備援＝在本會話指定分支寫 .ping/afterhours（內容任意）後 git add -f、commit、push——該路徑 push 會自動觸發同一 workflow。② send_later 排 35 分鐘後自驗：git fetch origin main 讀 data/macro_chips.json，series.sox 與 series.tsm_adr 須含最近一個美股交易日（以前一美東平日為準；美股休市日無新 bar 屬正常、勿誤報——拿不準就查前一日 reports/macrocal 市況段「美股」欄）；缺 → 補 dispatch 一次、再 send_later 20 分鐘後檢查，仍缺才 PushNotification 一句話（缺什麼＋afterhours run 日誌看到的原因）；已到或休市 → 安靜結束、不推播（失敗才推播）。send_later／create_trigger 若回 MCP error -32003（需審批、無人值守無法核准）：勿跳過自驗、也勿只推播「排程失敗」了事——改用 Bash run_in_background 背景 until 迴圈（每 5 分鐘 git fetch origin main 檢查一次直到自驗時點）等到時點喚醒後照樣自驗與後續處置，機制見 CLAUDE.md「已知環境限制與防呆」-32003 條。
+> （排程自動觸發）美股收盤序列更新（費半 ^SOX／台積電 ADR 昨夜收盤入檔，供 06:35 晨報引用；台北 05:08＝美東收盤後，夏令 17:08／冬令 16:08）——全程不跑任何資料抓取腳本、不動 reports/**：① 用 mcp__github__actions_run_trigger（method=run_workflow、workflow_id=afterhours_refresh.yml、ref=main）觸發刷新，成功觸發即收工、不等它跑完；MCP 不可用時備援＝在本會話指定分支寫 .ping/afterhours（內容任意）後 git add -f、commit、push——該路徑 push 會自動觸發同一 workflow。② send_later 排 35 分鐘後自驗：git fetch origin main 讀 data/macro_chips.json，series.sox 與 series.tsm_adr 須含最近一個美股交易日（以前一美東平日為準；美股休市日無新 bar 屬正常、勿誤報——休市日以 arm/usnews._US_MKT_HOLIDAYS（NYSE 公告表）為準）；缺 → 補 dispatch 一次、再 send_later 20 分鐘後檢查，仍缺才 PushNotification 一句話（缺什麼＋afterhours run 日誌看到的原因）；已到或休市 → 安靜結束、不推播（失敗才推播）。send_later／create_trigger 若回 MCP error -32003（需審批、無人值守無法核准）：勿跳過自驗、也勿只推播「排程失敗」了事——改用 Bash run_in_background 背景 until 迴圈（每 5 分鐘 git fetch origin main 檢查一次直到自驗時點）等到時點喚醒後照樣自驗與後續處置，機制見 CLAUDE.md「已知環境限制與防呆」-32003 條。
 
 Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建立）：
 
@@ -450,8 +455,7 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
     `check_afterhours_fresh.py --guard` 守門**零請求早退**——多班次不放大對 TWSE/etfinfo 的請求，
     仍是對齊公布時點的事件驅動、**不是高頻輪詢**（07-31 與使用者確認過不做 30 分鐘輪詢，此原則不變）；
   ③ **當日完整性看門狗**（同腳本 `--write`/`--assert`；根治「run 全綠、無 commit、沒人知道」）：
-    交易日（讀當日 macrocal 市況段判休市；**市況寫了日期就只認今天那一天**——2026-09-24「台股 9/25 因中秋節休市」
-    曾把當日判成非交易日、融資融券缺今日整晚沒警示）16:30 後三大法人須含今日、22:45 後融資融券須含今日且
+    交易日（**證交所官方休市表** `arm/twholidays`；2026-10-13 前是讀行事曆市況段，見「資料可信度盤查」專節；官方表未涵蓋時退回市況段，**市況寫了日期就只認今天那一天**——2026-09-24「台股 9/25 因中秋節休市」曾把當日判成非交易日）16:30 後三大法人須含今日、22:45 後融資融券須含今日且
     NAV 不斷更，缺 → `data/afterhours_alert.json` 入板（儀表板「網頁更新時間」列紅章＋瀏覽器端
     16:40／22:50 兩個時窗的延遲橫幅）＋ workflow 最後一步 exit 1（run ❌ → GitHub 寄 failure 信）
     ＋ Routine 自驗 25~60 分後失敗才 PushNotification（使用者 2026-08-03 選「失敗才推播」）。
@@ -778,6 +782,117 @@ iOS Safari 皆同一條路，零外掛；CJK 字型交給瀏覽器）；「預�
   `.tb-print span`**——圖標外層也是 `<span class="ic">`，會連圖標一起藏、按鈕剩一顆空底色；文字獨立
   class `.tb-pl`。④新聞卡標籤欄用 `grid-template-columns:auto 1fr`——固定 5.6em 會讓「對市場情緒與股價影響」
   9 字標籤壓到內文。
+  ⑤**③ 全球欄空了三週（2026-10-13 使用者：「印出來的昨夜美股總覽那欄都是空的」）**——
+  版型只寫「🔹段名」沒寫 `##`，美股子代理 09-19 起寫成 `🔹**…總覽**` 粗體行，`_extract_overview`
+  只認 `##` 標題 → **螢幕版「昨夜美股總覽」卡、列印版 ③ 全球欄、`check_reports` 速覽文風閘門三處同時
+  靜默落空**（台股 8 月也有 22 天 `### 🔹盤前速覽`／`🔹**盤前速覽**` 同型讓速覽卡消失）。修法三層：
+  ①**單一解析器 `usnews.find_section()`／`section_label()`**（## ／### 標題、整行粗體、🔹 起頭短行皆認，
+  止於標題／`---`／`────`／下一個 🔹 段名；儀表板、列印版、check_reports 共用，段名 key 也集中在
+  `usnews.OVERVIEW_KEY／PREMKT_KEY`）——歷史美股報 25 份空白全數復原、原本抽得到的 255 份（美股／總經／台股）輸出零變動；
+  ②**版型源頭**：三支產生器段名行改成明寫 `## 🔹段名`＋`LABEL_RULE` 補一句；台股盤後版段名由
+  「指數速覽」改「盤後速覽」（儀表板刻意不把指數速覽當速覽卡，照版型寫反而落空）；
+  ③**閘門 `check_reports._check_head_sections`**：抽不到或內文空 → 🔴。另：③ 全球欄頭加印
+  實際對應的美股交易日（`printview.us_trade_note`，週一那份是上週五）。**生效條件**：解析器＋閘門＝
+  merge 進 main（CI 用 main 的程式建表）；版型＝merge 後再「排程搬家」。
+
+## 行事曆「台灣區與精簡規則」（2026-10-13 使用者兩輪：「行事曆是不是也要把台股的重要公司法說或是財報公布都加進去」→「我希望可以不要讓資訊過於複雜零散」）
+
+- **同日第二輪：加台灣官方數據＋精簡**。評估當時近 12 份行事曆：20–39 列（美國單區 10–24 列，
+  CPI 月增／年增／核心拆三列）、引言 314–418 字（「昨夜重點」與同頁政策總覽重複）、非排定的突發新聞
+  被硬塞成列（「克宮回應」「WPC 能源大會」掛「歐：」只為了分類）。加資訊的同時把總量上限講死：
+  · **「台：」只收六類**——央行理監事會、出口、外銷訂單、CPI、GDP 概估／預測、景氣燈號；≤4 列（`TW_DATA_MAX`）；
+    無公布時註「台：本週無台灣重點經濟數據」。
+  · **台灣集中一處**：網頁＝全球數據（美歐中日）→ **台灣表（台＋台股合一張）** → 海外財報，仍是三張表；
+    列印版同一張表、台灣列綠章（原台股紅章與「中」撞色已改）。`macronews.TW_REGIONS` 為唯一定義。
+  · **精簡四條（SPEC_CAL）**：①總列數 ≤30（休市不計，`CAL_MAX_ROWS`）②同一指標口徑併一列
+    （「9月CPI（年增；月增／核心月增）」值寫「+3.6%（+0.6%／+0.2%）*」）③只收事先排定事件
+    ④引言只寫「更新；市況；本週焦點（≤80 字）」、整行 ≤220 字（`CAL_NOTE_MAX`），**本週焦點內勿用「；」**
+    （網頁以「；」切條列，用了會被拆成兩條——當日實際踩到）。來源與口徑說明放表下「註」（網頁與列印都不顯示）。
+  · **閘門** `check_reports._check_calendar_slim`：缺台列也缺「台：本週無」註記／台列 >4／總列數 >30／引言 >220 → 🔴。
+  · 當日套用結果：28 列 → 24 列（含台股 3 列）、引言 384 → 117 字、列印版 ③ 從頁底擠壓改為留白。
+  · `台股：` 上限同日由 10 下修為 8（`TW_CAL_MAX`）。
+
+### 台股公司法說・財報（同日第一輪）
+
+- **缺口**：舊版型只寫「台股台積電等指標企業」歸在「財報：」——歷史行事曆的台股公司事件**只出現過台積電**
+  （法說／月營收／除息），復華基金真正重押的台光電、欣興、南電、奇鋐…法說從沒上過行事曆。
+- **觀察清單由資料推出、不寫死** `macronews.tw_watch()`：復華基金前十大（`data/funds/*.json` × `holding_profiles` 代號）
+  ＋本家 ETF 前十大（etfwatch 名稱含復華者，`data/etf_holdings.json`）＋**0050 前十大**（權值龍頭，每日 PCF 權重）；
+  依「持有檔數」排序、00 開頭（組合型基金持有的 0050 等 ETF）排除、名稱取各來源最短者＝常用簡稱。
+  **同一份清單兩處用**：行事曆提示包「本週必查」段（`tw_watch_block`）＋儀表板台股列「復華持股」章（`tw_held`）。
+- **版型** `SPEC_CAL`：新增「台股：」前綴（法說會／董事會通過季報・年報／台積電月營收／權值龍頭除權息），
+  代號必填、≤8 列（`TW_CAL_MAX`，同日第二輪由 10 下修）、清單內本週無事件時「註」必寫「台股：本週無觀察清單內公司法說／財報」；
+  「財報：」收窄為海外企業。
+- **呈現**：網頁＝台股列放進「台灣：經濟數據・法說財報」表（第二輪與「台：」合併；復華持股掛金章、tooltip 列持有來源）；
+  列印版 ① 同一張表、台股列綠「台股」章＋「持股」小章、表底註明意義。
+- **過渡相容** `retag_tw()`：舊版型寫在「財報：」且代號在觀察清單內者自動改歸台股——**只認清單內代號**
+  （日股代號也是 4 碼，東京威力 8035，不可單憑碼長判斷）。所以排程搬家前的舊格式行事曆也會正確分組。
+- **閘門** `check_reports._check_calendar_tw`（2026-10-13 起）：沒有台股列也沒「本週無」註記／台股列缺代號／超過 8 列 → 🔴。
+  只確認「有查」，不強求一定有事件（法說淡季本來就可能沒有）。
+- **生效條件**：呈現與相容＝merge 進 main；提示包與閘門＝merge 後「排程搬家」（同其他版型規則的傳播機制）。
+
+## 資料可信度盤查與因應（2026-10-13 使用者：「你行事曆的資料是不是第一手的？你抓資料要確認資料的可信度還有穩定度」）
+
+**盤查結論**：行事曆除「台股觀察清單」（讀持股落檔）外，日期／實際值／前值／市況全由子代理每天依搜尋摘要
+重寫——非第一手；預期值（市場共識）本來就沒有第一手來源，維持第三方並標 *。三個實證風險：
+① **控制面依賴**：盤後看門狗 `check_afterhours_fresh.is_trading_day()` 與鮮度 `_tw_closed_days()` 都讀行事曆
+「市況」段決定台股有沒有開——**2026-10-05～08 市況連四天寫「台股 正常交易」，同週 10/09 國慶補假其實休市**
+（今日重點 chip 因此連四天告訴讀者「本週無休市」；9/29～10/02 對 9/28 教師節同型）；
+② **每日重寫不穩定**：同週相鄰兩日比對 79 組／1,387 列——日期變動 14 次（含 6 月貿易收支 08/04→08/05→08/04
+來回翻）、已公布實際值改寫 19 次、前值變動 64 次；③ **年度表到期**：美股假日表只到 2026、無測試守。
+**分三階段因應**（使用者同意；第三步非官方但可信度足夠者可收，須註明來源層級）：
+
+### Phase 1：官方休市表（2026-10-13 完成）
+- `arm/twholidays.py`：**證交所官方表優先**——CI 每日 `scripts/fetch_tw_holidays.py`（`daily_fund.sh`）抓
+  `openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule`（欄位 Name／Date＝民國 7 碼／Weekday／Description；
+  週末列、「最後交易日／開始交易日」不算休市、「無交易僅辦理結算交割」算）→ `data/tw_holidays.json`（**必須入庫**，
+  `.gitignore` 例外＋daily.yml add 已設）。一年解析 <5 天不採信、抓不到沿用既有（fail-open）、與種子不一致印日誌。
+- **內建 2026 種子 `SEED`**（容器擋 twse、不必等 CI 首輪）：18 個平日休市，兩來源核對＋總數自洽
+  （2026 平日 261 − 證交所公告交易日 243 ＝ 18）。
+- 消費端：`is_trading_day()`／`_tw_closed_days()` 官方表涵蓋的年份**只信官方**（行事曆誤寫休市不入表、
+  漏寫也照樣判休市），未涵蓋才退回文字；`usnews.calendar_anchor()` 加「台股近 10 日休市（證交所官方表）」行，
+  行事曆提示包也帶入整段錨定。美股表補 2027（NYSE Group 2026–2028 公告；11/26 提前收盤不列）並改名 `_US_MKT_HOLIDAYS`。
+- 閘門 `check_reports._check_calendar_holidays`：本週官方休市日市況台股欄沒寫／寫了官方沒有的休市日 → 🔴
+  （歷史回測正好抓出上述 8 天）。`tests/test_twholidays.py::test_holiday_tables_cover_next_45_days`：
+  台／美任一表未涵蓋「今日＋45 天」→ 紅＝**每年 11 月中逼補下一年**（證交所通常 10 月底公告隔年表）。
+- **暫代層 `twholidays.PROVISIONAL`（2026-10-13 補 2027）**：證交所隔年表公告前（2026 年表是 2025-10-29 才公告），
+  先放**人事行政總處已核定的辦公日曆**平日放假日（2027＝17 天，2026-05-21 核定；週末 104＋17＝全年 121 天自洽）。
+  語意＝「**已知必休**」：辦公日曆放假日 `is_closed`→True；其餘平日→**None（未知）**，交給後備（行事曆文字）——
+  因為證交所另有自己加的休市日（春節前「無交易僅結算」兩天，2026 是 2/12、2/13），辦公日曆上沒有，**不猜**。
+  提示包把這些日子標「＊」並註明「證交所年度表未公告」；閘門只驗「辦公日曆放假日有沒有寫」、其餘平日不驗。
+  證交所表一到（CI 落檔或補進 SEED）即整年取代，CI 日誌印「證交所另加：…」供核對。
+  `test_provisional_year_replaced_before_december`：**隔年前一年 12/1 還在暫代 → 紅**＝確認 CI 有沒有抓到；
+  官方 API 若不含隔年，就依證交所公告補 `SEED[年]`。同日閘門也補了區間寫法（「2/12–2/20 休市」中間的日子算有寫）。
+
+### Phase 2：以昨日版為底稿＋漂移閘門（2026-10-13 完成）
+- **提示包**：`gen_macronews.build_cal_prompt` 附「同週昨日版」全文＋`macronews.CAL_CARRY_RULE`——在昨日版上增修、
+  不整份重寫；項目文字不換說法；日期與已公布實際值不得改，除非官方修正／改期並在「註」寫「修正：…（來源）」。
+  同週判定 `cal_week_start()`（讀標題「（10/12–10/16）」）＋`target_week_start()`（週末的檔＝下週預覽，
+  所以週一的底稿是週末那份）；週一換新週沒有同週前版＝不附、不比。
+- **偵測 `macronews.cal_drift()`**：列以「前綴＋項目」正規化對齊（對不上就不比，fail-open）；抓三種：
+  日期改了／已公布實際值的**舊數字消失**／已公布退回未公布。**不算改動**：換順序、補細節（舊數字都還在）、
+  精度不同（727 萬 vs 727.1 萬）、談話會議列（無數字前值／預期且實際值非數字開頭）換句話說。
+  這幾條是回測調出來的——首版逐一比數字序列，26 筆裡有 5 筆是換順序／精度／談話要點的假警報。
+- **閘門 `check_reports._check_calendar_drift`（2026-10-14 起）**：有漂移且「註」沒有提到該項目的「修正」行 → 🔴。
+  回測 2026-07～10：同週有前版的 84 天中 15 天會紅（日期來回翻 14、實際值改 7——8 月失業率 4.3%→4.1%、
+  時薪 3.7%→3.1%、核心 PCE 3.6%→3.3%、財新 PMI 50.9→51.5…），每一筆都是「同一事實兩天兩種說法」。
+- 生效條件：閘門＝merge 即生效（容器端 check_reports）；提示包＝merge 後「排程搬家」。
+
+### Phase 3：核心排程錨 `config/official_schedule.json`（2026-10-13 完成）
+- **收錄範圍＝少而確實**：各國央行決議（FOMC／ECB／BOJ／台灣央行理監事會）、美國 CPI／非農、台灣官方數據
+  （出口、外銷訂單、CPI、GDP 概估／預測、景氣燈號）。日期＝**發布地當地日**（與行事曆慣例一致；台北時間寫在 `time`）。
+- **來源層級**（使用者 2026-10-13：「不是官方的但資料可信度你覺得可以還是可以放」）：`official`＝官方排程頁或主管機關
+  新聞稿載明（含新聞稿末「下次發布日期」）；`secondary`＝**兩家主流媒體**一致（`source` 至少兩個連結，tests 守）。
+  「通常是每月 20 日」這類慣例推估**不收**——查不到確切日期就不列，行事曆照舊由代理查證。
+- `match`＝任一組關鍵詞全數出現在行事曆項目即同一事件（前綴須相同——「美：9月CPI」與「中：9月CPI」不會混）。
+- 提示包 `macronews.schedule_block()`：「本週核心排程錨」逐條列日期＋時間＋層級；閘門
+  `check_reports._check_calendar_anchors`（2026-10-14 起）：本週錨沒列／日期不同且「註」沒有「修正：」→ 🔴。
+- **維護**：`tests/test_schedule_anchors.py::test_schedule_not_running_out`——最後一筆在 21 天內 → 紅＝補下一段
+  （FOMC／ECB／BOJ／BLS 隔年排程年初前都已公布；台灣各機關新聞稿末段載「下次發布日期」可逐月補）。
+  2026-10-13 已補到 **2027-03-18**（BLS 2027 排程 10/9 公告、Fed 2027 暫定排程、ECB／日銀 2027 日程，全為 official）。
+  **台灣數據只有「下一次」可查**（財政部／國發會在新聞稿或首頁只預告下一次，主計總處／經濟部的年度發布時間表
+  搜尋摘要看不到內容）——所以台灣錨只會零星有幾筆，每次發布後看到「下次發布日期」再補。
+- `match` 的月份詞**整詞比**（`anchor_matches`）：「1月」不命中「11月」、「2月」不命中「12月」。
 
 ## 儀表板「🕒 資料更新時間」區塊
 
@@ -792,6 +907,12 @@ iOS Safari 皆同一條路，零外掛；CJK 字型交給瀏覽器）；「預�
 `arm/fund_dashboard.py` 的 `_freshness_view()`，顯示各資料來源鮮度（皆台北時間）：
 NAV 日／持股基準（月度）／持股快照抓取／美股新聞／台股新聞／總經・政策／經濟行事曆／復華新聞・社群（2026-08-12 前叫「基金新聞・社群」）／
 ETF 數據追蹤／ETF 持股揭露／總經・籌碼數據／儀表板產表。新增資料來源時請同步加進此區塊。
+
+**逾期判定分兩種口徑（2026-09-28 使用者抓包誤報）**：跟著台股交易日產生的四項——NAV 日、ETF 持股揭露、
+多期報酬（鉅亨）、ETF 資料基準——以**交易日**計（`_trade_age`；sources 第 4 欄／`_fresh_chip(trading=True)`），
+其餘（新聞、抓取時戳）照日曆天。當時 9/25 中秋＋週末＋9/28 教師節，資料停在 9/24 完全正確，日曆天口徑卻判
+「持股揭露／多期報酬逾期」。休市日由 `_tw_closed_days()` 取**證交所官方休市表**（`arm/twholidays`，2026-10-13 起；官方表未涵蓋的年份才退回）讀 `reports/macrocal/*.md` 的週表休市列與市況段
+**寫明的日期**（前一天的檔會預告隔天休市，不可把檔案日期當休市）；行事曆沒寫到的休市只會偏嚴、不會漏報。
 
 **注意 `_freshness_view()` 只輸出「逾期」項目**（2026-07-30 踩坑）：資料正常時來源名稱
 **完全不會出現在 HTML 裡**——正常時戳一律標在各自區塊標題列的 `_fresh_chip()`。所以

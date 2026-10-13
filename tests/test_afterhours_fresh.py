@@ -54,7 +54,8 @@ def test_trading_day_預告明天休市不影響今天():
 
 
 def test_trading_day_休市未寫日期視為當日():
-    assert af.is_trading_day(_MON, "> 市況：台股 休市｜美股 正常交易；") is False
+    # 官方休市表涵蓋的年份以官方為準，故用未涵蓋的年份驗證市況段退回邏輯
+    assert af.is_trading_day(date(2030, 3, 4), "> 市況：台股 休市｜美股 正常交易；") is False
 
 
 def test_trading_day_週末一律非交易日():

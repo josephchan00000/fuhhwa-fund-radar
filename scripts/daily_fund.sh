@@ -46,6 +46,7 @@ echo "── ETF 數據追蹤 ──";       cat "$LOGD/etf.log"
 echo "── 總經・籌碼數據 ──";     cat "$LOGD/macro.log"
 
 echo "[3.5/4] 前十大持股簡介覆蓋率檢查（新持股缺簡介只在 CI 端現形——寫 gap 檔供儀表板 ⚠）…"
+TZ=Asia/Taipei python3 scripts/fetch_tw_holidays.py || true      # 證交所官方休市表（一個請求；抓不到沿用既有／內建種子）
 TZ=Asia/Taipei python3 scripts/check_holdings_intro.py || true   # 不擋發佈：缺口寫檔、儀表板顯示、下一輪 SOP 補
 
 echo "[3.6/4] 新 ETF 自動發現（市場首見台帳＋募集頁；沒被登錄過的檔只有這裡會現形）…"

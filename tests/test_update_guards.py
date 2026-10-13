@@ -91,6 +91,49 @@ def test_freshness_view_top_shows_gen_and_aggregates_stale():
     assert "NAV 日、復華新聞・社群" in html_out
 
 
+def test_trading_day_freshness_skips_weekend_and_holidays(monkeypatch):
+    """跟著台股交易日產生的資料（NAV、持股揭露、報酬）以交易日計逾期（2026-09-28 誤報：
+    9/25 中秋＋週末＋9/28 教師節，資料停在 9/24 是對的，以日曆天計卻被判逾期）。"""
+    from arm import fund_dashboard as fd
+    monkeypatch.setattr(fd, "_tw_closed_days", lambda: frozenset({date(2026, 9, 25), date(2026, 9, 28)}))
+    assert fd._trade_age("2026-09-24", date(2026, 9, 28)) == 0         # 中間全是休市／週末
+    assert fd._trade_age("2026-09-24", date(2026, 9, 29)) == 1
+    assert not fd._is_stale("2026-09-24", 2, date(2026, 9, 28), trading=True)
+    assert fd._is_stale("2026-09-24", 2, date(2026, 9, 28))              # 日曆天口徑仍是 4 天
+    assert fd._is_stale("2026-09-24", 2, date(2026, 10, 1), trading=True)  # 真的停更照報
+    chip = fd._fresh_chip("持股揭露", "2026-09-24", 2, today=date(2026, 10, 1), trading=True)
+    assert "⚠ 3 個交易日未更新" in chip
+    html_out = fd._freshness_view("2026/09/28 08:00", [
+        ("ETF 持股揭露", "2026-09-24", 2, True), ("多期報酬(鉅亨)", "2026/09/23", 3, True),
+        ("台股新聞", "2026-09-28", 3)], today=date(2026, 9, 28))
+    assert "逾期" not in html_out
+
+
+def test_tw_closed_days_reads_calendar_without_marking_the_preview_day(tmp_path, monkeypatch):
+    """行事曆文字＝官方休市表未涵蓋年份的後備（2026-10-13 起官方表優先，見 arm/twholidays）：
+    週表休市列＋市況段寫明的日期；前一天的檔預告隔天休市時，不可把檔案日期本身當休市
+    （9/24 的市況寫「台股 9/25 因中秋節休市」）。官方表涵蓋的年份，行事曆誤寫的休市不入表。"""
+    from arm import fund_dashboard as fd
+    mc = tmp_path / "reports" / "macrocal"
+    mc.mkdir(parents=True)
+    (mc / "2031-09-24.md").write_text(          # 2031：官方表未涵蓋 → 走行事曆文字後備
+        "> 更新：2031/09/24；市況：台股 9/25 因中秋節休市｜美股 正常交易；其他\n"
+        "| 09/25 | 台股休市（中秋節） | — | — | — | 休市 |\n"
+        "| 09/26 | 美：零售銷售 | — | — | — | 待公布 |\n", encoding="utf-8")
+    (mc / "2031-09-29.md").write_text(
+        "> 更新：2031/09/29；市況：台股 9/29 因教師節休市｜美股 正常交易\n", encoding="utf-8")
+    (mc / "2026-10-13.md").write_text(          # 2026：官方表涵蓋 → 行事曆誤寫的 10/14 休市不入表
+        "> 更新：2026/10/13；市況：台股 10/14 因颱風休市｜美股 正常交易\n", encoding="utf-8")
+    monkeypatch.setattr(fd, "ROOT_DIR", tmp_path)
+    fd._tw_closed_days.cache_clear()
+    try:
+        got = fd._tw_closed_days()
+        assert {date(2031, 9, 25), date(2031, 9, 29)} <= got and date(2031, 9, 24) not in got
+        assert date(2026, 10, 14) not in got and date(2026, 10, 26) in got
+    finally:
+        fd._tw_closed_days.cache_clear()
+
+
 def test_freshness_view_all_fresh_no_warning():
     from arm import fund_dashboard as fd
     t = date(2026, 7, 4)

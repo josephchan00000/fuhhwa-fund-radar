@@ -275,7 +275,9 @@ def test_save_gap_never_writes_when_sources_down(tmp_path, monkeypatch):
     monkeypatch.setattr(etfdiscover, "GAP_FP", fp)
     _p, saved = etfdiscover.save_gap([], sources_ok=False)             # 無既有檔也不建
     assert saved is False and not fp.exists()
-    etfdiscover.save_gap([{"code": "00413A", "name": "", "first_seen": None,
+    # 代碼一律用虛構的 00999X：load_gap 讀取端會濾掉已登錄代碼，用真實新檔（曾用 00413A）
+    # 一旦週掃補登就讓這支測試莫名變紅（2026-10-13 踩到）。
+    etfdiscover.save_gap([{"code": "00999X", "name": "", "first_seen": None,
                            "kind": "offering"}], sources_ok=True)
     assert etfdiscover.load_gap()["count"] == 1
     _p, saved = etfdiscover.save_gap([], sources_ok=False)
@@ -291,9 +293,9 @@ def test_new_etf_chip_shows_only_when_gap(tmp_path, monkeypatch):
     fp.write_text(json.dumps({"count": 0, "items": []}), encoding="utf-8")
     assert fund_dashboard._new_etf_chip() == ""                        # 0 缺口＝不顯示
     fp.write_text(json.dumps({"count": 1, "items": [
-        {"code": "00413A", "name": "主動測試", "kind": "listed"}]}), encoding="utf-8")
+        {"code": "00999X", "name": "主動測試", "kind": "listed"}]}), encoding="utf-8")   # 虛構代碼，理由同上
     chip = fund_dashboard._new_etf_chip()
-    assert "🔴" in chip and "00413A" in chip and "新 ETF 未登錄" in chip and "stale" in chip
+    assert "🔴" in chip and "00999X" in chip and "新 ETF 未登錄" in chip and "stale" in chip
 
 
 def test_new_etf_chip_graded_severity(tmp_path, monkeypatch):

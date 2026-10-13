@@ -214,7 +214,10 @@ def move_note(kind: str) -> str:
 # 連結；過去只靠派工 prompt 點名，現直接寫進提示包當源頭防呆；check_reports 仍為最後閘門）。
 LABEL_RULE = ("卡內欄位標籤一律寫成『N. **標籤**：內文』——標籤必須加 **粗體**"
               "（例：1. **新聞摘要**：…／3. **漲跌分析**：…／4. **對公司影響**：…）；"
-              "儀表板解析依賴粗體標籤，漏加粗體＝該欄在儀表板上整段消失。")
+              "儀表板解析依賴粗體標籤，漏加粗體＝該欄在儀表板上整段消失。\n"
+              "頭段小節（總覽／速覽）標題一律寫成獨立一行『## 🔹段名』（版面列出的段名原樣照抄、含 ##），"
+              "勿寫成『🔹**段名**』粗體行——儀表板總覽卡與列印版 ③ 盤勢總覽靠這行定位"
+              "（2026-09-19 起美股報改寫粗體行，總覽在網頁與列印版空了三週）。")
 
 
 # ── 選題流程＋市場變動錨定（2026-08-19 使用者：「要真的篩到熱門、市場真正重要的新聞」）──
@@ -431,7 +434,8 @@ SPEC_V1 = f"""【版型一：昨夜美股公司與產業面速寫包（完整版
 {pick_note('us')}
 
 版面：
-  🔹前後 24 小時重大公司與產業事項總覽（Nasdaq／費半／S&P500 各 1 句：收盤與漲跌幅、
+  ## 🔹前後 24 小時重大公司與產業事項總覽
+     ↑ 段名行原樣照抄（含 ##）；內容：（Nasdaq／費半／S&P500 各 1 句：收盤與漲跌幅、
      大漲大跌時加一句主因 ＋ 1 句市場解析：主題動能與板塊輪動）
   🔹新聞卡（每則 200–320 字，依「分析深度」要求寫滿因果鏈；≥4 則）：
      標題（來源＋日期＋TST｜【新事件】或【延伸】｜重要度 N/10）  ← 括注三段缺一不可，供儀表板解析徽章
@@ -563,21 +567,29 @@ def us_session_date(today: date | None = None) -> date:
 
 _WD = ["週一", "週二", "週三", "週四", "週五", "週六", "週日"]
 
-# NYSE／Nasdaq 2026 全日休市日（美股）——僅供提示錨定，實際以交易所公告為準。
+# NYSE／Nasdaq 全日休市日（美股）——僅供提示錨定，實際以交易所公告為準。
 # 7/4（美國國慶）2026 適逢週六，故 7/3（五）補假休市。
-_US_MKT_HOLIDAYS_2026 = {
+# 2027 依 NYSE Group 2026–2028 假日表（ICE IR／Business Wire 2025-12-23）補入（2026-10-13：
+# 表只到 2026 會在跨年後讓 calendar_anchor 靜默退化，tests 守「涵蓋今日起 45 天」）；
+# 11/26 為下午 1 點提前收盤、非全日休市，不列。
+_US_MKT_HOLIDAYS = {
     date(2026, 1, 1): "元旦", date(2026, 1, 19): "馬丁路德金恩日",
     date(2026, 2, 16): "總統日", date(2026, 4, 3): "耶穌受難日",
     date(2026, 5, 25): "陣亡將士紀念日", date(2026, 6, 19): "六月節",
     date(2026, 7, 3): "美國國慶補假（7/4 適逢週六）", date(2026, 9, 7): "勞動節",
     date(2026, 11, 26): "感恩節", date(2026, 12, 25): "耶誕節",
+    date(2027, 1, 1): "元旦", date(2027, 1, 18): "馬丁路德金恩日",
+    date(2027, 2, 15): "總統日", date(2027, 3, 26): "耶穌受難日",
+    date(2027, 5, 31): "陣亡將士紀念日", date(2027, 6, 18): "六月節補假（6/19 適逢週六）",
+    date(2027, 7, 5): "美國國慶補假（7/4 適逢週日）", date(2027, 9, 6): "勞動節",
+    date(2027, 11, 25): "感恩節", date(2027, 12, 24): "耶誕節補假（12/25 適逢週六）",
 }
 
 
 def _prev_us_trading_day(d: date) -> date:
     """從 d 起（含 d）往回找最近一個美股實際交易日（跳週末＋已知國定假日）。"""
     x = d
-    while x.weekday() >= 5 or x in _US_MKT_HOLIDAYS_2026:
+    while x.weekday() >= 5 or x in _US_MKT_HOLIDAYS:
         x -= timedelta(days=1)
     return x
 
@@ -592,24 +604,44 @@ def calendar_anchor(today: date | None = None) -> str:
     lines = ["【交易日曆錨定（以下為系統計算，勿再自行推算星期或假日；仍以交易所公告為準）】",
              f"· 台北今日：{d:%Y/%m/%d}（{_WD[d.weekday()]}）"]
     if real != ses:
-        skipped = "、".join(f"{h:%m/%d}（{_WD[h.weekday()]}）{_US_MKT_HOLIDAYS_2026.get(h, '休市')}"
+        skipped = "、".join(f"{h:%m/%d}（{_WD[h.weekday()]}）{_US_MKT_HOLIDAYS.get(h, '休市')}"
                             for h in (ses - timedelta(n) for n in range((ses - real).days))
-                            if h.weekday() < 5 and h in _US_MKT_HOLIDAYS_2026)
+                            if h.weekday() < 5 and h in _US_MKT_HOLIDAYS)
         note = f"（{skipped} 美股休市，故往回取）" if skipped else ""
         lines.append(f"· 對應昨夜美股實際交易日（美東）：{real:%Y/%m/%d}（{_WD[real.weekday()]}）{note}")
     else:
         lines.append(f"· 對應昨夜美股交易日（美東）：{ses:%Y/%m/%d}（{_WD[ses.weekday()]}）")
-    covered = {h.year for h in _US_MKT_HOLIDAYS_2026}
+    covered = {h.year for h in _US_MKT_HOLIDAYS}
     if d.year not in covered or ses.year not in covered:
         lines.append("· ⚠ 系統假日表未涵蓋本年份——請自行以 WebSearch 確認美股休市日，勿逕信上列推算")
+        lines.append(_tw_holiday_line(d))
         return chr(10).join(lines)
-    near = [(h, name) for h, name in sorted(_US_MKT_HOLIDAYS_2026.items()) if abs((h - d).days) <= 4]
+    near = [(h, name) for h, name in sorted(_US_MKT_HOLIDAYS.items()) if abs((h - d).days) <= 4]
     if near:
         lines.append("· 鄰近美股休市日：" +
                      "；".join(f"{h:%m/%d}（{_WD[h.weekday()]}）{name}" for h, name in near))
     else:
         lines.append("· 本週美股無鄰近國定假日、正常交易")
+    lines.append(_tw_holiday_line(d))
     return "\n".join(lines)
+
+
+def _tw_holiday_line(d: date) -> str:
+    """台股近 10 日官方休市（證交所表，arm/twholidays；2026-10-13 起）——行事曆「市況」段的
+    台股欄據此寫，不再由代理自行搜尋推算（那段文字曾直接驅動盤後看門狗的交易日判定）。"""
+    from . import twholidays
+    horizon = d + timedelta(days=9)
+    if not twholidays.covers_partly(d) or not twholidays.covers_partly(horizon):
+        return "· ⚠ 證交所休市表未涵蓋本年份——台股休市日請以證交所公告為準"
+    up = twholidays.upcoming(d, 10)
+    prov = not (twholidays.covers(d) and twholidays.covers(horizon))
+    if not up:
+        return ("· 台股近 10 日無休市日（證交所官方表）" if not prov else
+                "· 台股近 10 日辦公日曆無放假日（證交所年度表未公告，另加休市日以證交所公告為準）")
+    items = "；".join(f"{h:%m/%d}（{_WD[h.weekday()]}）{n}" + ("" if off else "＊") for h, n, off in up)
+    tail = ("" if all(off for *_x, off in up) else
+            "｜＊＝人事行政總處辦公日曆放假日（證交所年度表未公告；證交所另加的休市日以其公告為準）")
+    return "· 台股近 10 日休市（證交所官方表，行事曆「市況」台股欄據此寫）：" + items + tail
 
 
 def prior_titles(news_dir, today: date, stem_re: str = r"(\d{4}-\d{2}-\d{2})\.md$",
@@ -791,6 +823,59 @@ def split_doc(md: str) -> tuple[str, list[dict], str]:
             break
     tail = "\n".join(lines[tail_start:]).strip()
     return head, extract_cards(md), tail
+
+
+# ── 頭段小節（總覽／速覽）解析——單一實作：儀表板、列印版、check_reports 共用 ──
+# 2026-10-13 使用者：「印出來的昨夜美股總覽那欄都是空的」。根因＝版型只寫「🔹…總覽」沒寫 ##，
+# 子代理寫成「## 🔹…」或「🔹**…**」整行粗體全憑運氣；舊解析只認 ## 標題 → 美股報自 09-19 改寫
+# 粗體行後，螢幕版「昨夜美股總覽」卡、列印版 ③ 全球欄、check_reports 速覽文風閘門三處同時
+# 靜默落空三週（台股 8 月也有 22 天「### 🔹盤前速覽」「🔹**盤前速覽**」同型落空）。
+# 認法：整行就是「## 標題／整行粗體／🔹 起頭短行」才算標籤——「**記憶體領跌**。中國長鑫…」
+# 這種粗體開頭的正文段落不是標籤（粗體後還有字）。
+_SEC_MARK = "🔹🔸"
+_SEC_RULE = re.compile(r"^(?:-{3,}|[─━—＝=_]{3,})$")     # 分隔線：--- 與台股報的 ──── 皆算
+_SEC_LABEL_MAX = 40                                       # 標籤字數上限：長標題是新聞卡、不是小節
+OVERVIEW_KEY = "總覽"                                      # 美股／總經報頭段總覽
+PREMKT_KEY = r"^盤[前後]速覽"                              # 台股報頭段速覽（「指數速覽」刻意不算）
+
+
+def section_label(line: str) -> str | None:
+    """小節標籤行 → 標籤文字（去 #／粗體／🔹／尾冒號）；不是標籤行回 None。
+    認：『## 🔹X』『### X』（標題）、『🔹**X**』『**🔹X**』『**X**』（整行粗體）、
+    『🔹X』（🔹 起頭、不含句號的短行）；前綴『> 』引言亦可。"""
+    s = re.sub(r"^>\s?", "", (line or "").strip())
+    if (m := re.match(r"^#{2,4}\s*(.+)$", s)):
+        t = m.group(1)
+    elif re.fullmatch(rf"[{_SEC_MARK}]?\s*\*\*[^*\n]+\*\*\s*[：:]?", s) or \
+            (s[:1] in _SEC_MARK and "。" not in s):
+        t = s
+    else:
+        return None
+    t = re.sub(rf"[*{_SEC_MARK}]", "", t).strip().rstrip("：:").strip()
+    return t if 0 < len(t) <= _SEC_LABEL_MAX else None
+
+
+def _section_end(line: str) -> bool:
+    """小節到此結束：任一 # 標題、分隔線、或下一個 🔹 標籤。不帶 🔹 的整行粗體不算——
+    總覽正文偶有「**市場解析**」這種獨立粗體行，不可提早切斷。"""
+    s = re.sub(r"^>\s?", "", (line or "").strip())
+    if s.startswith("#") or _SEC_RULE.match(s):
+        return True
+    return section_label(s) is not None and s.lstrip("*").lstrip()[:1] in _SEC_MARK
+
+
+def find_section(md: str, key: str) -> tuple[str, str, str] | None:
+    """找第一個標籤符合 key（regex search）的頭段小節 → (標籤, 內文, 移除該節後全文)；
+    找不到回 None。內文拆掉『> 』引言前綴（儀表板 _md 不支援 blockquote）。"""
+    lines = scrub(md).splitlines()
+    pat = re.compile(key)
+    for i, line in enumerate(lines):
+        lab = section_label(line)
+        if lab and pat.search(lab):
+            e = next((j for j in range(i + 1, len(lines)) if _section_end(lines[j])), len(lines))
+            body = "\n".join(re.sub(r"^\s*>\s?", "", x) for x in lines[i + 1:e]).strip()
+            return lab, body, "\n".join(lines[:i] + lines[e:]).strip()
+    return None
 
 
 def _latest_pair() -> dict | None:

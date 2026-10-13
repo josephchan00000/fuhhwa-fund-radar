@@ -18,7 +18,17 @@
   · 正文禁流程性字句：檔名/欄位名/落檔字樣（「取自官方落檔」「series.sox」「macro_chips.json」）
     只能出現在「資料侷限說明」「合規揭露」段（2026-08-17 踩坑：總覽正文出現
     「數字取自本機官方落檔 `series.sox`」，讀者不需要知道數字從哪支檔讀）
-  · 行事曆：表頭「更新：」需為今日
+  · 頭段總覽／速覽（2026-10-13 起）：美股 v1／總經的「…總覽」、台股的「盤前／盤後速覽」須抽得到
+    且有內文——儀表板置頂總覽卡與列印版 ③ 盤勢總覽三欄都靠它（2026-09-19 起美股報把段名寫成
+    「🔹**…總覽**」粗體行，舊解析只認 ## 標題，網頁與列印版的美股總覽靜默空了三週）
+  · 行事曆：表頭「更新：」需為今日；2026-10-13 起須有「台股：」公司法說／財報列（代號必填、≤10 列），
+    或註明「台股：本週無觀察清單內公司法說／財報」——只確認有查，不強求一定有事件
+  · 行事曆漂移（2026-10-14 起）：與同週昨日版相比，日期改了、已公布實際值的數字不見了、已公布退回未公布，
+    而「註」沒有「修正：」交代 → 🔴
+  · 核心排程錨（2026-10-14 起）：config/official_schedule.json 列在本週的事件沒列、或日期不同且沒有「修正：」→ 🔴
+  · 市況台股欄 vs 證交所官方休市表（2026-10-13 起）：本週官方休市日沒寫、或寫了官方表沒有的休市日 → 🔴
+  · 行事曆精簡（2026-10-13 起）：「台：」台灣經濟數據列（≤4）或註明「台：本週無台灣重點經濟數據」；
+    總列數 ≤30（休市列不計）；引言 ≤220 字（只留更新／市況／本週焦點）
 
 用法：TZ=Asia/Taipei python3 scripts/check_reports.py [YYYY-MM-DD]（預設今日台北）
 """
@@ -112,19 +122,45 @@ _BRIEF_BAN = re.compile(
 
 
 def _brief_sections(md: str) -> list[tuple[str, str]]:
-    """回 [(標題, 內文)]——標題含「速覽」或「總覽」的小節（頭段那幾行）。"""
-    out, cur, buf = [], "", []
+    """回 [(段名, 內文)]——段名含「速覽」或「總覽」的頭段小節。
+    段名行的寫法交 usnews.find_section 統一認（同儀表板）：舊版只認 ## 標題，美股報
+    09-19 起寫成「🔹**…總覽**」粗體行後，本閘門對美股總覽靜默跳過了三週。"""
+    labs: list[str] = []
     for line in (md or "").splitlines():
-        if re.match(r"^#{2,3}\s", line.strip()):
-            if cur:
-                out.append((cur, "\n".join(buf)))
-            cur, buf = line.strip(), []
-            continue
-        if cur:
-            buf.append(line)
-    if cur:
-        out.append((cur, "\n".join(buf)))
-    return [(h, b) for h, b in out if ("速覽" in h or "總覽" in h)]
+        lab = usnews.section_label(line)
+        if lab and ("速覽" in lab or "總覽" in lab) and lab not in labs:
+            labs.append(lab)
+    out = []
+    for lab in labs:
+        sec = usnews.find_section(md, rf"^{re.escape(lab)}$")
+        if sec:
+            out.append((lab, sec[1]))
+    return out
+
+
+# ── 頭段小節存在閘門（2026-10-13 使用者：「印出來的昨夜美股總覽那欄都是空的」）──
+# 儀表板置頂總覽卡／台股速覽卡、列印版 ③ 盤勢總覽三欄都靠這段；抽不到時網頁與列印版
+# 只會安靜少一塊，合規掃描與其他閘門照樣 🟢——這正是美股總覽空了三週沒人發現的原因。
+HEAD_SINCE = "2026-10-13"
+
+
+def _check_head_sections(date: str) -> list[str]:
+    """美股 v1／總經＝「…總覽」、台股＝「盤前／盤後速覽」須抽得到且有內文（同儀表板的抽法）。"""
+    errs = []
+    for rel, key, want, use_head in (
+            (f"reports/usnews/{date}_v1.md", usnews.OVERVIEW_KEY,
+             "## 🔹前後 24 小時重大公司與產業事項總覽", True),
+            (f"reports/macronews/{date}.md", usnews.OVERVIEW_KEY, "## 🔹前後 24 小時政策總覽", True),
+            (f"reports/twnews/{date}.md", usnews.PREMKT_KEY, "## 🔹盤前速覽／## 🔹盤後速覽", False)):
+        p = ROOT / rel
+        if not p.exists():
+            continue                                  # 缺檔由 _check_cards 回報
+        md = p.read_text(encoding="utf-8")
+        sec = usnews.find_section(usnews.split_doc(md)[0] if use_head else md, key)
+        if not sec or not sec[1].strip():
+            errs.append(f"{rel}：抽不到頭段「{want.split('🔹')[-1]}」或內文為空——段名請寫成獨立一行"
+                        f"『{want}』；抽不到時網頁總覽卡與列印版 ③ 盤勢總覽該欄整片空白")
+    return errs
 
 
 def _plain(t: str) -> str:
@@ -244,6 +280,173 @@ def _check_calendar(path: Path, date: str) -> list[str]:
     d_slash = date.replace("-", "/")
     if f"更新：{d_slash}" not in md and f"更新：{date}" not in md:
         errs.append(f"{rel}：表頭「更新：」非今日（{d_slash}）")
+    if date >= TWCAL_SINCE:
+        errs += _check_calendar_tw(md, rel)
+    if date >= CALSLIM_SINCE:
+        errs += _check_calendar_slim(md, rel)
+    if date >= HOLIDAY_SINCE:
+        errs += _check_calendar_holidays(md, rel, date)
+    if date >= DRIFT_SINCE:
+        errs += _check_calendar_drift(md, rel, date)
+    if date >= ANCHOR_SINCE:
+        errs += _check_calendar_anchors(md, rel, date)
+    return errs
+
+
+# ── 核心排程錨（資料可信度盤查 Phase 3）：config/official_schedule.json 的本週事件必列、日期須一致 ──
+ANCHOR_SINCE = "2026-10-14"
+
+
+def _check_calendar_anchors(md: str, rel: str, date_iso: str) -> list[str]:
+    import datetime as _dt
+    from arm import macronews
+    ws = macronews.cal_week_start(md, _dt.date.fromisoformat(date_iso))
+    if not ws:
+        return []
+    rows = macronews._parse_cal_rows(md)
+    errs = []
+    for ev in macronews.week_anchors(ws):
+        lv = {"official": "官方", "secondary": "可信次級"}.get(ev.get("level"), ev.get("level"))
+        hits = [r for r in rows if macronews.anchor_matches(ev, r)]
+        if not hits:
+            errs.append(f"{rel}：核心排程「{ev['region']}：{ev['item']}」（{ev['d']:%m/%d}，{lv}）沒列——本週排程錨必列")
+            continue
+        def _md(s):
+            m = re.match(r"\s*(\d{1,2})/(\d{1,2})", s or "")
+            return (int(m.group(1)), int(m.group(2))) if m else None
+        if not any(_md(r["date"]) == (ev["d"].month, ev["d"].day) for r in hits) and \
+                not macronews.drift_explained({"item": ev["item"]}, md):
+            errs.append(f"{rel}：「{ev['region']}：{ev['item']}」寫成 {hits[0]['date']}，排程錨為 "
+                        f"{ev['d']:%m/%d}（{lv}，{ev.get('source', '')[:60]}）——照錨寫；確屬官方改期須在「註」寫「修正：」")
+    return errs
+
+
+# ── 行事曆漂移閘門（資料可信度盤查 Phase 2）──
+# 回測 2026-07～10：同週有前一版的 84 天中 15 天出現沒交代的改動（日期來回翻 14 次、已公布實際值
+# 改了 7 次——8 月失業率 4.3%→4.1%、時薪 3.7%→3.1%、核心 PCE 3.6%→3.3%…）。提示包已附昨日版當底稿；
+# 這裡擋「改了卻沒在註寫『修正：』」。換順序、補細節、精度不同、談話要點換句話說都不算改動。
+DRIFT_SINCE = "2026-10-14"
+
+
+def _check_calendar_drift(md: str, rel: str, date_iso: str) -> list[str]:
+    import datetime as _dt
+    from arm import macronews
+    today = _dt.date.fromisoformat(date_iso)
+    ws = macronews.cal_week_start(md, today)
+    prior = macronews.prior_cal(today, ws, cal_dir=ROOT / "reports" / "macrocal") if ws else None
+    if not prior:
+        return []
+    errs = []
+    for d in macronews.cal_drift(prior[1], md):
+        if not macronews.drift_explained(d, md):
+            errs.append(f"{rel}：「{d['item'][:20]}」{d['kind']}與昨日版不同（{d['old'][:16]} → {d['new'][:16]}）"
+                        "——若是官方修正／改期，在表下「註」加「修正：…（來源）」；否則照昨日版")
+    return errs
+
+
+# ── 市況台股欄 vs 證交所官方休市表（2026-10-13 使用者：「你抓資料要確認資料的可信度還有穩定度」）──
+# 這段文字原本直接驅動盤後看門狗的交易日判定；判定已改讀官方表（arm/twholidays），但它仍是
+# 讀者看到的「本週休市」——與官方表不一致就是錯資訊上版。官方表未涵蓋的年份跳過（fail-open）。
+HOLIDAY_SINCE = "2026-10-13"
+
+
+def _check_calendar_holidays(md: str, rel: str, date_iso: str) -> list[str]:
+    import datetime as _dt
+    from arm import macronews, twholidays
+    rng = re.search(r"（(\d{1,2})/(\d{1,2})[–\-~～](\d{1,2})/(\d{1,2})）", md)
+    if not rng:
+        return []
+    y = int(date_iso[:4])
+    m1, d1, m2, d2 = map(int, rng.groups())
+    try:
+        start = _dt.date(y - (1 if m1 == 12 and date_iso[5:7] == "01" else 0), m1, d1)
+        end = _dt.date(start.year + (1 if m2 < m1 else 0), m2, d2)
+    except ValueError:
+        return []
+    years = twholidays.load()
+    names = twholidays.closed_days(years, with_provisional=True)
+    days = [start + _dt.timedelta(n) for n in range((end - start).days + 1)]
+    # 暫代年份（證交所表未公告、只有人事行政總處辦公日曆）：只驗「辦公日曆放假日有沒有寫」，
+    # 其餘平日 is_closed＝None（證交所可能另加休市日）→ 兩個方向都不驗
+    days = [d for d in days if d.weekday() < 5 and (d.year in years or d.year in twholidays.PROVISIONAL)]
+    if not days:
+        return []
+    seg = re.search(r"市況：\s*台股\s*([^｜|；;]*)", macronews._cal_note(md) or "")
+    seg = seg.group(1) if seg else ""
+    claimed = set()
+    if "休市" in seg:
+        for mm, dd in re.findall(r"(\d{1,2})/(\d{1,2})", seg):
+            claimed.add((int(mm), int(dd)))
+        # 區間寫法「2/12–2/20 因春節休市」：中間的日子也算有寫（只取端點會誤報漏寫）
+        for a, b, c, e in re.findall(r"(\d{1,2})/(\d{1,2})\s*[–\-~～至到]\s*(\d{1,2})/(\d{1,2})", seg):
+            try:
+                lo = _dt.date(start.year, int(a), int(b))
+                hi = _dt.date(start.year + (1 if int(c) < int(a) else 0), int(c), int(e))
+            except ValueError:
+                continue
+            for n in range(min((hi - lo).days, 31) + 1):
+                x = lo + _dt.timedelta(n)
+                claimed.add((x.month, x.day))
+    errs = []
+    for d in days:
+        off = twholidays.is_closed(d, years)
+        said = (d.month, d.day) in claimed
+        if off and not said:
+            src = "證交所官方表" if d.year in years else "人事行政總處辦公日曆（證交所表未公告）"
+            errs.append(f"{rel}：{src} {d:%m/%d} 台股休市（{names.get(d, '休市')}），"
+                        "市況「台股」欄沒寫——照提示包【交易日曆錨定】的官方休市表寫")
+        elif said and off is False:
+            errs.append(f"{rel}：市況「台股」欄寫 {d:%m/%d} 休市，證交所官方表該日為交易日——勿自行推算假日")
+    return errs
+
+
+# ── 行事曆台股公司列（2026-10-13 使用者：「行事曆是不是也要把台股的重要公司法說或是財報公布都加進去」）──
+# 舊版型只點名「台股台積電等指標企業」，歷史行事曆裡的台股公司事件只出現過台積電。
+# 閘門只問「有沒有查」：有台股列，或註明本週清單內無事件；不要求一定有事件（淡季本來就可能沒有）。
+TWCAL_SINCE = "2026-10-13"
+
+
+def _check_calendar_tw(md: str, rel: str) -> list[str]:
+    from arm import macronews
+    rows = macronews.retag_tw(macronews._parse_cal_rows(md), {r["code"] for r in macronews.tw_watch()})
+    tw = [r for r in rows if r["region"] == "台股"]
+    errs = []
+    if not tw and not re.search(r"台股[：:]\s*本週無", md):
+        errs.append(f"{rel}：沒有「台股：」公司法說／財報列，也沒註明「台股：本週無觀察清單內公司法說／財報」"
+                    "——請依提示包【台股公司觀察清單】逐家查證")
+    for r in tw:
+        if not macronews.tw_codes(r["item"]):
+            errs.append(f"{rel}：台股列「{r['item'][:24]}」缺代號——寫成「公司名（代號）」，"
+                        "儀表板才比對得到復華持股")
+    if len(tw) > macronews.TW_CAL_MAX:
+        errs.append(f"{rel}：台股列 {len(tw)} 列超過 {macronews.TW_CAL_MAX}——持股多者優先，其餘在「註」帶過")
+    return errs
+
+
+# ── 行事曆台灣數據＋精簡上限（2026-10-13 使用者：「不要讓資訊過於複雜零散」）──
+# 近 12 份行事曆 20–39 列（美國單區 10–24 列、同一指標拆成月增／年增／核心多列）、引言 314–418 字
+# （「昨夜重點」與同頁政策總覽重複）。加入台灣官方數據的同時把上限講死，總量才不會只增不減。
+CALSLIM_SINCE = "2026-10-13"
+
+
+def _check_calendar_slim(md: str, rel: str) -> list[str]:
+    from arm import macronews
+    rows = macronews._parse_cal_rows(md)
+    errs = []
+    tw_data = [r for r in rows if r["region"] == "台"]
+    if not tw_data and not re.search(r"(?<!股)台[：:]\s*本週無", md):
+        errs.append(f"{rel}：沒有「台：」台灣經濟數據列，也沒註明「台：本週無台灣重點經濟數據」"
+                    "——央行理監事會／出口／外銷訂單／CPI／GDP／景氣燈號六類逐項查證")
+    if len(tw_data) > macronews.TW_DATA_MAX:
+        errs.append(f"{rel}：台灣數據 {len(tw_data)} 列超過 {macronews.TW_DATA_MAX}——只收六類核心數據")
+    n = sum(1 for r in rows if "休市" not in (r.get("status") or ""))
+    if n > macronews.CAL_MAX_ROWS:
+        errs.append(f"{rel}：行事曆 {n} 列超過 {macronews.CAL_MAX_ROWS}（休市列不計）——同一指標的月增／年增／"
+                    "核心併一列、刪非排定事件、依市場影響刪尾端")
+    note = macronews._cal_note(md)
+    if len(note) > macronews.CAL_NOTE_MAX:
+        errs.append(f"{rel}：引言 {len(note)} 字超過 {macronews.CAL_NOTE_MAX}——只寫「更新／市況／本週焦點」，"
+                    "昨夜重點不寫（同頁政策總覽已有），來源說明放表下「註」")
     return errs
 
 
@@ -256,6 +459,8 @@ def run(date: str) -> int:
     errs += _check_calendar(ROOT / f"reports/macrocal/{date}.md", date)
     _reports = (f"reports/usnews/{date}_v1.md", f"reports/usnews/{date}_v2.md",
                 f"reports/twnews/{date}.md", f"reports/macronews/{date}.md")
+    if date >= HEAD_SINCE:                     # 頭段總覽／速覽須抽得到（網頁總覽卡＋列印版 ③）
+        errs += _check_head_sections(date)
     if date >= BRIEF_SINCE:                    # 速覽／總覽文風（長度／版型標籤／粗體落點）
         for rel in _reports:
             p = ROOT / rel
