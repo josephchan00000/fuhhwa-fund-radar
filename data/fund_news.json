@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/13 08:10",
+  "as_of": "2026/10/13 08:35",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -42,6 +42,13 @@
       ],
       "items": [
         {
+          "title": "不想動用薪水也能年年出國玩？存股達人孫太試算300萬存00929 一年多45萬旅遊預算",
+          "url": "https://www.ftnn.com.tw/news/585401",
+          "source": "FTNN 新聞網",
+          "date": "2026-10-13 08:20",
+          "datetime": "2026-10-13T08:20:00+08:00"
+        },
+        {
           "title": "追逐現金流？先看懂月配息ETF！00929今年漲79%奪冠 配息率15.8%吸睛",
           "url": "https://udn.com/news/story/123006/9809800",
           "source": "UDN",
@@ -61,13 +68,6 @@
           "source": "Yahoo新聞",
           "date": "2026-10-12 14:24",
           "datetime": "2026-10-12T14:24:00+08:00"
-        },
-        {
-          "title": "拒當窮忙族！00929連配0.38元 財經雪倫教養「啞巴兒子」：存79張爽領3萬孝親費",
-          "url": "https://www.yesmedia.com.tw/%E6%8B%92%E7%95%B6%E7%AA%AE%E5%BF%99%E6%97%8F%EF%BC%8100929%E9%80%A3%E9%85%8D0-38%E5%85%83-%E8%B2%A1%E7%B6%93%E9%9B%AA%E5%80%AB%E6%95%99%E9%A4%8A%E3%80%8C%E5%95%9E%E5%B7%B4%E5%85%92%E5%AD%90%E3%80%8D/",
-          "source": "https://www.yesmedia.com.tw/",
-          "date": "2026-10-12 08:00",
-          "datetime": "2026-10-12T08:00:31+08:00"
         }
       ]
     },
@@ -593,7 +593,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/6Pmy_7PNRYk",
       "date": "2026-10-06",
-      "views": 882167,
+      "views": 884038,
       "official": true,
       "short": true
     },
@@ -603,7 +603,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/bOyDe1wftI8",
       "date": "2026-10-06",
-      "views": 846991,
+      "views": 848170,
       "official": true,
       "short": true
     },
@@ -613,7 +613,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/yedchjOs1EI",
       "date": "2026-10-06",
-      "views": 767269,
+      "views": 768656,
       "official": true,
       "short": true
     },
@@ -623,7 +623,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
       "date": "2026-10-11",
-      "views": 12643,
+      "views": 12720,
       "short": true
     },
     {
@@ -649,7 +649,7 @@
       "channel": "基金小姐姐詹璇依",
       "url": "https://www.youtube.com/shorts/M1S5sZqkRDk",
       "date": "2026-10-09",
-      "views": 185156,
+      "views": 185153,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -660,7 +660,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=REtGASDFkEM",
       "date": "2026-10-12",
-      "views": 102990,
+      "views": 105303,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -670,7 +670,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/K73CdclhNdU",
       "date": "2026-10-10",
-      "views": 96707,
+      "views": 97038,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -681,7 +681,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/o_1UZ5iP8RU",
       "date": "2026-10-08",
-      "views": 92083,
+      "views": 92135,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -692,7 +692,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=o4KXRKrwlUs",
       "date": "2026-10-10",
-      "views": 90340,
+      "views": 90382,
       "peer": true,
       "cat": "高股息"
     },
@@ -702,7 +702,7 @@
       "channel": "永豐金證券",
       "url": "https://www.youtube.com/watch?v=PXpvZEf2HpM",
       "date": "2026-10-10",
-      "views": 84721,
+      "views": 84857,
       "peer": true,
       "cat": "主動式"
     },
@@ -712,7 +712,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=YISny6TMPRY",
       "date": "2026-10-10",
-      "views": 76262,
+      "views": 76407,
       "peer": true,
       "cat": "綜合"
     },
@@ -722,7 +722,7 @@
       "channel": "財富履行團",
       "url": "https://www.youtube.com/shorts/u2QNrUrddUc",
       "date": "2026-10-08",
-      "views": 69983,
+      "views": 70052,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -733,7 +733,7 @@
       "channel": "非凡Hot台股",
       "url": "https://www.youtube.com/watch?v=Im5Efa57w3g",
       "date": "2026-10-09",
-      "views": 60017,
+      "views": 60079,
       "peer": true,
       "cat": "高股息"
     },
@@ -752,6 +752,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全球大趨勢 等 8 檔（詳下方新聞標籤）",
     "品牌焦點：復華觀點｜從想像空間邁入獲利兌現：復華全方位基金動態配置抓住AI長紅趨勢（鉅亨買基金）",
     "社群聲量最高：統一奔騰基金與00981A是同一個經理人，選費用便宜的就好？（0 推）",
-    "YouTube 熱片：掌握大中小型潛力股 #00418A 三大成長類型 全方位拿下（復華投信・882,167 次觀看）"
+    "YouTube 熱片：掌握大中小型潛力股 #00418A 三大成長類型 全方位拿下（復華投信・884,038 次觀看）"
   ]
 }
