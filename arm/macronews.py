@@ -14,6 +14,7 @@
 """
 from __future__ import annotations
 
+import json
 import re
 from datetime import date
 from pathlib import Path
@@ -58,7 +59,8 @@ SPEC_MACRO = f"""【版型：昨夜美股交易時段・總經／政策面速寫
  央行／利率／匯率／財政／關稅類走折現率通道牽動所有資產，同等證據下天然高於單一地緣事件。）
 
 版面：
-  🔹前後 24 小時政策總覽（Fed／美政府／國際政策各 1 句 ＋ 1 句市場解析：資產大漲大跌時點出主因）
+  ## 🔹前後 24 小時政策總覽
+     ↑ 段名行原樣照抄（含 ##）；內容：（Fed／美政府／國際政策各 1 句 ＋ 1 句市場解析：資產大漲大跌時點出主因）
   🔹政策新聞卡（每則 200–320 字，依「分析深度」要求寫滿因果鏈；≥4 則）：
      標題（來源＋日期＋TST｜【新事件】或【延伸】｜重要度 N/10）  ← 括注三段缺一不可，供儀表板解析徽章
      1. 新聞摘要（2–3 句） 2. 一句話重點 3. 漲跌分析 4. 對全球經濟影響
@@ -75,16 +77,26 @@ SPEC_MACRO = f"""【版型：昨夜美股交易時段・總經／政策面速寫
 
 # 本週財經行事曆版型（給提示包用）——2026-07-05 使用者需求：
 # 除美國經濟數據外，加入歐盟、中國、日本重點數據與「重要企業財報／法說」。
-SPEC_CAL = """【版型：本週重點財經行事曆（美國＋歐盟＋中國＋日本＋重要企業財報）】
-用 WebSearch 查證本週（週一~週五，以台北日期所在整週）重點財經行事曆，涵蓋五類
-（「項目」欄一律加地區／類別前綴「美：／歐：／中：／日：／財報：」，休市列可免）：
+SPEC_CAL = """【版型：本週重點財經行事曆（美國＋歐盟＋中國＋日本＋海外企業財報＋台股公司法說・財報）】
+用 WebSearch 查證本週（週一~週五，以台北日期所在整週）重點財經行事曆，涵蓋六類
+（「項目」欄一律加地區／類別前綴「美：／歐：／中：／日：／財報：／台股：」，休市列可免）：
   · 美：非農/失業率/時薪、CPI/PCE/核心通膨、FOMC 與 Fed 官員談話、GDP、零售銷售、
     ISM/PMI、初領失業金、JOLTS、消費者信心、重大財政/關稅時程；並標示美股休市日。
   · 歐：ECB 利率決議與官員談話、歐元區 CPI/PMI/GDP/零售銷售、歐盟重大貿易／關稅／監管時程。
   · 中：CPI/PPI、進出口、官方與財新 PMI、社融/信貸、LPR 與人行動作、重大政策會議。
   · 日：日銀（BOJ）會議與官員談話、CPI、短觀、薪資／貿易數據。
-  · 財報：本週排定之重要企業財報／法說會（美股大型權值與關鍵半導體、台股台積電等指標企業；
-    「預期／前值」欄可填市場共識 EPS 或營收，查不到填「—」）。
+  · 財報：本週排定之**海外**重要企業財報／法說會（美股大型權值與關鍵半導體、歐日韓指標企業；
+    「預期／前值」欄可填市場共識 EPS 或營收，查不到填「—」）。台股公司一律改用「台股：」前綴。
+  · 台股：本週台股公司事件——法說會（含線上）、董事會通過季報／年報、台積電月營收、
+    權值龍頭除權息。**選股以提示包下方【台股公司觀察清單】為準**（復華持股＋權值龍頭，
+    排越前面越優先），逐家查本週有無事件；清單外只收當週媒體大幅報導的市場焦點級法說。
+    項目寫「台股：公司名（代號）Q3法說會」——**代號必填**（儀表板據以掛「復華持股」章；
+    多家同日可併一列「台股：聯發科（2454）、日月光投控（3711）法說會」）。
+    「預期」＝具名來源的市場共識（營收／EPS，加 *）、「前值」＝上季實際或公司本季財測區間；
+    已舉行者「實際」填一句要點（≤20 字，如「Q4 營收財測季增 5–8%」）。
+    日期以公開資訊觀測站「法人說明會一覽表」或公司公告為準，媒體「法說會行事曆」須兩來源一致。
+    台股列至多 10 列（持股多者優先），其餘在「註」一句帶過；**清單內本週無事件時，「註」必寫
+    「台股：本週無觀察清單內公司法說／財報」**（內容 QA 據此確認有查、不是漏查）。
 以「已公布」列出實際值、「未公布」留待公布。
 
 嚴格輸出成一個 markdown 表格（欄位固定、供程式解析）：
@@ -105,6 +117,7 @@ SPEC_CAL = """【版型：本週重點財經行事曆（美國＋歐盟＋中國
 | 07/03 | 中：6月財新服務業PMI | — | — | 51.1 | 未公布 |
 | 07/01 | 日：日銀短觀（Q2 大型製造業） | +12 | +13 | +12 | 已公布 |
 | 07/02 | 財報：美光（MU）FY26Q3 財報 | EPS 2.5美元 | — | — | 未公布 |
+| 07/16 | 台股：台積電（2330）Q2法說會 | — | — | 財測營收284–292億美元 | 未公布 |
 
 規則：日期用 MM/DD；狀態只填「已公布／未公布／休市」三者之一；已公布須填實際值，未公布實際值填「—」；
 數字查不到或跨來源矛盾者填「—」並不杜撰。**未公布之數據列（如初領失業金、CPI/PPI、零售銷售、
@@ -115,13 +128,123 @@ SPEC_CAL = """【版型：本週重點財經行事曆（美國＋歐盟＋中國
 如「通膨風險大於就業、必要時支持升息」，以主流媒體報導查證）——**不得「已公布」卻留「—」**
 （2026-08-06 使用者回報：庫克談話已公布、實際欄卻仍是「—」，等於白列一行）。
 至少涵蓋本週所有交易日的重點項目（無數據日可只標休市或略過）；
-歐／中／日與財報僅收「對市場有影響力」的重點項目，勿灌水湊列。
+歐／中／日與海外財報僅收「對市場有影響力」的重點項目，勿灌水湊列。
 僅為資訊彙編、非投資建議；不預測數值、不含禁用詞。"""
 
 
-# 行事曆「項目」欄的地區／類別前綴（美：／歐：／中：／日：／財報：）——
-# md 檔保留前綴供程式解析；儀表板顯示時轉成彩色小徽章、財報獨立子表。
-_REGION_RE = re.compile(r"^(美|歐|中|日|財報)\s*[：:]\s*")
+# 行事曆「項目」欄的地區／類別前綴（美：／歐：／中：／日：／財報：／台股：）——
+# md 檔保留前綴供程式解析；儀表板顯示時轉成彩色小徽章，台股公司事件與海外財報各自獨立子表。
+_REGION_RE = re.compile(r"^(美|歐|中|日|財報|台股)\s*[：:]\s*")
+
+
+# ── 行事曆「台股公司」觀察清單（2026-10-13 使用者：「行事曆是不是也要把台股的重要公司法說
+#    或是財報公布都加進去」）。舊版型只寫「台股台積電等指標企業」，歷史行事曆裡的台股公司
+#    事件因此只出現過台積電。清單由資料推出、不寫死名單：復華基金前十大＋本家 ETF 前十大
+#    （＝讀者真正持有、法說最牽動淨值者）＋0050 前十大（權值龍頭，依每日 PCF 權重）。
+#    提示包據此列「本週必查」，儀表板據此替行事曆列掛「復華持股」章——同一份清單，兩邊不會漂。
+_TW_CODE = re.compile(r"^[1-9]\d{3}$")       # 台股公司代號（00 開頭是 ETF——組合型基金持有的 0050 不算公司）
+_TW_ITEM_CODE = re.compile(r"[（(](\d{4})[）)]")
+_TW_COUNTRY = ("台灣", "臺灣")
+TW_CAP_ETF = "0050"           # 權值龍頭的來源 ETF
+TW_CAL_MAX = 10               # 行事曆台股列上限（法說旺季清單內公司可能一週十幾家，持股多者優先）
+
+
+def _read_json(p: Path):
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def tw_watch(funds: list[dict] | None = None, eh_doc: dict | None = None,
+             profiles: dict | None = None) -> list[dict]:
+    """台股公司觀察清單 [{code, name, funds, etfs, cap}]（讀檔失敗一律 fail-open，回讀得到的部分）。
+      funds＝出現在幾檔復華基金前十大；etfs＝持有它（前十大）的本家 ETF 代碼；cap＝0050 前十大。
+    排序：復華持股（基金檔數＋本家 ETF 檔數）多者在前，同數依權值；純權值龍頭殿後。"""
+    if funds is None:
+        funds = [d for f in sorted((ROOT / "data" / "funds").glob("*.json"))
+                 if not f.name.startswith("_") and isinstance(d := _read_json(f), dict)]
+    if eh_doc is None:
+        eh_doc = _read_json(ROOT / "data" / "etf_holdings.json") or {}
+    if profiles is None:
+        profiles = (_read_json(ROOT / "config" / "holding_profiles.json") or {}).get("profiles") or {}
+    out: dict[str, dict] = {}
+    names: dict[str, list[str]] = {}       # 代號 → 各來源名稱；取最短者＝常用簡稱（台積電，非「台灣積體」）
+    for pname, p in profiles.items():
+        tk = str((p or {}).get("ticker") or "")
+        if _TW_CODE.match(tk) and (p or {}).get("country") in _TW_COUNTRY:
+            names.setdefault(tk, []).append(pname.rstrip("*").strip())
+
+    def row(code: str, name: str) -> dict:
+        if name:
+            names.setdefault(code, []).append(name)
+        return out.setdefault(code, {"code": code, "name": "", "funds": 0, "etfs": [], "cap": False, "w": 0.0})
+
+    for f in funds:
+        for h in f.get("top_holdings") or []:
+            tk = str((profiles.get(h.get("name")) or {}).get("ticker") or "")
+            if _TW_CODE.match(tk) and (profiles.get(h.get("name")) or {}).get("country") in _TW_COUNTRY:
+                row(tk, str(h.get("name") or "").rstrip("*"))["funds"] += 1
+    etfs = (eh_doc or {}).get("etfs") or {}
+    try:
+        from . import etfwatch                             # 函式內匯入：本模組被 etfwatch 以外多處引用
+        own = [c for c, n, *_ in etfwatch.watch_tuples() if "復華" in n]
+    except Exception:
+        own = []
+    for code in own + [TW_CAP_ETF]:
+        hs = sorted(((etfs.get(code) or {}).get("holdings") or []),
+                    key=lambda h: -(h.get("weight") or 0))
+        top = [h for h in hs if _TW_CODE.match(str(h.get("stock_id") or ""))][:10]
+        for h in top:
+            r = row(str(h["stock_id"]), str(h.get("name") or ""))
+            r["w"] = max(r["w"], float(h.get("weight") or 0))
+            if code == TW_CAP_ETF:
+                r["cap"] = True
+            elif code not in r["etfs"]:
+                r["etfs"].append(code)
+    for c, r in out.items():
+        r["name"] = min(names.get(c) or [c], key=len)
+    rows = sorted(out.values(), key=lambda r: (-(r["funds"] + len(r["etfs"])), -r["w"], r["code"]))
+    for r in rows:
+        r.pop("w", None)
+    return rows
+
+
+def tw_held(watch: list[dict]) -> dict[str, dict]:
+    """觀察清單中「復華實際持有」者（基金前十大或本家 ETF 前十大）→ {代碼: 清單列}。"""
+    return {r["code"]: r for r in watch if r["funds"] or r["etfs"]}
+
+
+def tw_codes(item: str) -> list[str]:
+    """行事曆項目內的台股代碼（「聯發科（2454）、日月光投控（3711）法說會」→ ['2454', '3711']）。"""
+    return _TW_ITEM_CODE.findall(item or "")
+
+
+def retag_tw(rows: list[dict], codes: set[str]) -> list[dict]:
+    """舊版型把台股公司事件寫在「財報：」（如「財報：台積電（2330）Q3法說會」）——代碼在觀察
+    清單內者改歸「台股」。只認清單內代碼：日股代號也是 4 碼（東京威力 8035），不可單憑碼長判斷。"""
+    for r in rows:
+        if r.get("region") == "財報" and any(c in codes for c in tw_codes(r.get("item"))):
+            r["region"] = "台股"
+    return rows
+
+
+def tw_watch_block(watch: list[dict]) -> str:
+    """行事曆提示包的「台股公司觀察清單」段；清單空（落檔讀不到）回空字串、整段略過。"""
+    if not watch:
+        return ""
+    held = [r for r in watch if r["funds"] or r["etfs"]]
+    cap = [r for r in watch if r["cap"] and not (r["funds"] or r["etfs"])]
+
+    def fmt(r: dict) -> str:
+        tag = "、".join(([f"基金×{r['funds']}"] if r["funds"] else []) + r["etfs"])
+        return f"{r['name']}（{r['code']}）" + (f"［{tag}］" if tag else "")
+    lines = ["【台股公司觀察清單（本週必查；由持股落檔自動產生）】"]
+    if held:
+        lines.append("· 復華持股（基金前十大檔數／本家 ETF；持有越多越優先）：" + "、".join(fmt(r) for r in held))
+    if cap:
+        lines.append(f"· 權值龍頭（{TW_CAP_ETF} 前十大）：" + "、".join(fmt(r) for r in cap))
+    return "\n".join(lines)
 
 
 def _parse_cal_rows(md: str) -> list[dict]:
@@ -171,8 +294,8 @@ def load_calendar() -> dict | None:
     md = (CAL_DIR / f"{d}.md").read_text(encoding="utf-8")
     title = next((ln.lstrip("# ").strip() for ln in md.splitlines()
                   if ln.startswith("#")), "本週重點財經行事曆")
-    return {"date": d, "md": md, "rows": _parse_cal_rows(md),
-            "note": _cal_note(md), "title": title}
+    rows = retag_tw(_parse_cal_rows(md), {r["code"] for r in tw_watch()})
+    return {"date": d, "md": md, "rows": rows, "note": _cal_note(md), "title": title}
 
 
 def load_latest() -> dict | None:

@@ -26,7 +26,7 @@ from __future__ import annotations
 import re
 from datetime import date
 
-from . import clock, macrochips, usnews
+from . import clock, macrochips, macronews, usnews
 from . import fund_dashboard as fd
 
 MIN_SEV = 8                        # ④ 新聞門檻（2026-09-07 使用者：先 9 分、同日放寬到 8 分以上）
@@ -92,7 +92,8 @@ def note_parts(note: str) -> tuple[list[tuple[str, str]], str]:
     return stat, "；".join(focus)
 
 
-def calendar_block(cal: dict | None) -> str:
+def calendar_block(cal: dict | None, held: dict | None = None) -> str:
+    """held＝復華持股 {代碼: 清單列}（macronews.tw_held）：台股列項目內代碼命中即加印「持股」小章。"""
     title = "① 本週重點財經行事曆"
     if not cal or not cal.get("rows"):
         return _section("p-cal", title, "", '<div class="pr-empty">尚無本週行事曆</div>')
@@ -112,20 +113,25 @@ def calendar_block(cal: dict | None) -> str:
         dcell = "" if d == prev_d else (_esc(d) + (f'<span class="pr-wd">（{wd}）</span>' if wd else ""))
         prev_d = d
         reg = r.get("region") or ""
-        rc = fd._CAL_REGION_CLS.get(reg) or ("er" if reg == "財報" else "")
+        rc = fd._CAL_REGION_CLS.get(reg) or {"財報": "er", "台股": "tw"}.get(reg, "")
         reg_html = f'<span class="pr-reg {rc}">{_esc(reg)}</span>' if reg else ""
+        hold = ('<span class="pr-hold">持股</span>'
+                if reg == "台股" and held and any(c in held for c in macronews.tw_codes(r.get("item"))) else "")
         av = r.get("actual") or ""
         actual = _esc(av) if av and av != "—" else '<span class="na">—</span>'
         trs.append(f'<tr class="cr-{cls}"><td class="l cd">{dcell}</td>'
-                   f'<td class="l ci">{reg_html}{_esc(r.get("item"))}</td>'
+                   f'<td class="l ci">{reg_html}{_esc(r.get("item"))}{hold}</td>'
                    f'<td>{fd._cal_cons_cell(r.get("cons"))}</td><td class="cav">{actual}</td>'
                    f'<td class="cpv">{_esc(r.get("prev") or "—")}</td>'
                    f'<td><span class="pr-st {cls}">{label}</span></td></tr>')
     tbl = (f'<table class="pr-tbl pr-cal"><thead><tr><th class="l">日期</th><th class="l">項目</th>'
            f'<th>預期</th><th>實際</th><th>前值</th><th>狀態</th></tr></thead>'
            f'<tbody>{"".join(trs)}</tbody></table>')
-    foot = ('<div class="pr-note">預期欄標 * 者為市場共識預估（非官方）；實際以官方公布為準。</div>'
-            if any(str(r.get("cons") or "").strip().endswith("*") for r in cal["rows"]) else "")
+    notes = (["預期欄標 * 者為市場共識預估（非官方）；實際以官方公布為準。"]
+             if any(str(r.get("cons") or "").strip().endswith("*") for r in cal["rows"]) else [])
+    if "持股" in "".join(trs):
+        notes.append("「持股」＝該公司在復華基金或本家 ETF 前十大持股內。")
+    foot = f'<div class="pr-note">{"".join(notes)}</div>' if notes else ""
     return _section("p-cal", title, f'更新 {_mmdd(cal.get("date"))}・{len(cal["rows"])} 項',
                     head + tbl + foot)
 
@@ -201,13 +207,30 @@ def market_block(mc: dict | None) -> str:
 
 # ── ③ 盤勢總覽（總經／台股／全球三欄） ──────────────────────────
 
-def overview_block(cols: list[tuple[str, str, str | None]]) -> str:
-    """cols＝[(欄名, markdown 內文, 日期)]×3；空內文顯示「今日無此段」。"""
+_US_TRADE = re.compile(r"對應美股交易日\s*(\d{4})[/-](\d{1,2})[/-](\d{1,2})")
+
+
+def us_trade_note(md: str) -> str:
+    """美股報標題「對應美股交易日 2026/10/09」→「美股 10/09（五）」——週一那份寫的是上週五、
+    休市隔日寫的是前一交易日，欄頭只印報告日會讓人以為是昨夜；解析不到回空字串。"""
+    m = _US_TRADE.search((md or "")[:400])
+    if not m:
+        return ""
+    try:
+        d = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    except ValueError:
+        return ""
+    return f"美股 {d:%m/%d}（{_WD[d.weekday()]}）"
+
+
+def overview_block(cols: list[tuple]) -> str:
+    """cols＝[(欄名, markdown 內文, 日期[, 欄頭附註])]×3；空內文顯示「今日無此段」。"""
     parts = []
-    for name, md, d in cols:
+    for name, md, d, *rest in cols:
+        note = f"・{_esc(rest[0])}" if rest and rest[0] else ""
         body = f'<div class="pr-doc">{fd._md(md)}</div>' if (md or "").strip() else \
                '<div class="pr-empty">（今日無此段）</div>'
-        parts.append(f'<div class="pr-col"><h3>{_esc(name)}<small>{_mmdd(d)}</small></h3>{body}</div>')
+        parts.append(f'<div class="pr-col"><h3>{_esc(name)}<small>{_mmdd(d)}{note}</small></h3>{body}</div>')
     return _section("p-ov", "③ 盤勢總覽", "總經・政策／台股／全球（昨夜美股）・取自各報告總覽段",
                     f'<div class="pr-ov">{"".join(parts)}</div>')
 
@@ -429,7 +452,7 @@ def render(ctx: dict) -> str:
             f'持股基準 {_esc(ctx.get("as_of") or "—")}</div></header>')
     picked, _allc = pick_cards(ctx.get("lanes") or [])
     return (f'<div id="print" class="pr">{head}'
-            f'{calendar_block(ctx.get("cal"))}{market_block(ctx.get("mc"))}'
+            f'{calendar_block(ctx.get("cal"), ctx.get("tw_held"))}{market_block(ctx.get("mc"))}'
             f'{overview_block(ctx.get("overviews") or [])}{news_block(picked)}'
             f'{returns_block(ctx.get("rows_tw") or [], ctx.get("rows_gl") or [], ctx.get("marks") or {}, ctx.get("etf_doc"), ctx.get("nav_date"))}'
             f'<footer class="pr-foot">{_FOOT}</footer></div>')
@@ -486,7 +509,9 @@ CSS = """
   vertical-align:1px;line-height:1.4}
 .pr-reg.us{color:#1d4f9c;background:#dce7fa}.pr-reg.eu{color:#5b3ea8;background:#e9e2fa}
 .pr-reg.cn{color:#a02c2c;background:#fbe1e1}.pr-reg.jp{color:#0f6f6b;background:#d9f0ee}
-.pr-reg.er{color:#7a4b00;background:#fdecc8}
+.pr-reg.er{color:#7a4b00;background:#fdecc8}.pr-reg.tw{color:#9b1c1c;background:#fde3e3}
+.pr .pr-hold{display:inline-block;font-size:6pt;font-weight:800;padding:0 3px;margin-left:3px;border-radius:3px;
+  color:#8a5a00;border:.5pt solid #d6a02e}
 .pr-st{font-size:6.8pt;font-weight:700;white-space:nowrap}
 .pr-st.done{color:#1d6b3a}.pr-st.wait{color:#1d4f9c}.pr-st.halt{color:#8a5410}
 /* ② 市場數據 */
