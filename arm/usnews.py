@@ -630,13 +630,18 @@ def _tw_holiday_line(d: date) -> str:
     """台股近 10 日官方休市（證交所表，arm/twholidays；2026-10-13 起）——行事曆「市況」段的
     台股欄據此寫，不再由代理自行搜尋推算（那段文字曾直接驅動盤後看門狗的交易日判定）。"""
     from . import twholidays
-    if not twholidays.covers(d):
+    horizon = d + timedelta(days=9)
+    if not twholidays.covers_partly(d) or not twholidays.covers_partly(horizon):
         return "· ⚠ 證交所休市表未涵蓋本年份——台股休市日請以證交所公告為準"
     up = twholidays.upcoming(d, 10)
+    prov = not (twholidays.covers(d) and twholidays.covers(horizon))
     if not up:
-        return "· 台股近 10 日無休市日（證交所官方表）"
-    return ("· 台股近 10 日休市（證交所官方表，行事曆「市況」台股欄據此寫）："
-            + "；".join(f"{h:%m/%d}（{_WD[h.weekday()]}）{n}" for h, n in up))
+        return ("· 台股近 10 日無休市日（證交所官方表）" if not prov else
+                "· 台股近 10 日辦公日曆無放假日（證交所年度表未公告，另加休市日以證交所公告為準）")
+    items = "；".join(f"{h:%m/%d}（{_WD[h.weekday()]}）{n}" + ("" if off else "＊") for h, n, off in up)
+    tail = ("" if all(off for *_x, off in up) else
+            "｜＊＝人事行政總處辦公日曆放假日（證交所年度表未公告；證交所另加的休市日以其公告為準）")
+    return "· 台股近 10 日休市（證交所官方表，行事曆「市況」台股欄據此寫）：" + items + tail
 
 
 def prior_titles(news_dir, today: date, stem_re: str = r"(\d{4}-\d{2}-\d{2})\.md$",

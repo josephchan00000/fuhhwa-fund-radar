@@ -49,6 +49,36 @@ SEED: dict[int, dict[str, str]] = {
     },
 }
 
+# **暫代層**：證交所隔年表公告前（2026 年表是 2025-10-29 才公告），先放行政院人事行政總處
+# 已核定的「政府行政機關辦公日曆表」平日放假日。語意是「**已知必休**」——政府放假日證交所
+# 一定休市，但證交所另有自己加的休市日（春節前「無交易、僅辦理結算交割」那兩天，2026 是
+# 2/12、2/13），辦公日曆上不會有。所以暫代年份的其他平日一律回「未知」（is_closed→None），
+# 交給呼叫端的後備判斷——**不把猜測寫成官方**。證交所表一到（CI 落檔或補進 SEED）即整年取代；
+# `tests/test_twholidays.py` 守著：隔年 12/1 前還沒換成證交所表 → 紅。
+# 2027（116 年）：人事行政總處 2026-05-21 核定，全年放假 121 天、無補行上班日；
+# 週末 104 天＋平日 17 天＝121（自洽）。來源：dgpa.gov.tw 新聞稿（pid=12983）、中央社 2026-05-21。
+PROVISIONAL: dict[int, dict[str, str]] = {
+    2027: {
+        "2027-01-01": "開國紀念日",
+        "2027-02-04": "除夕前一日",
+        "2027-02-05": "除夕",
+        "2027-02-08": "春節",
+        "2027-02-09": "春節補假",
+        "2027-02-10": "春節補假",
+        "2027-03-01": "和平紀念日補假",
+        "2027-04-05": "清明節",
+        "2027-04-06": "兒童節補假",
+        "2027-04-30": "勞動節補假",
+        "2027-06-09": "端午節",
+        "2027-09-15": "中秋節",
+        "2027-09-28": "孔子誕辰紀念日暨教師節",
+        "2027-10-11": "國慶日補假",
+        "2027-10-25": "臺灣光復暨金門古寧頭大捷紀念日",
+        "2027-12-24": "行憲紀念日補假",
+        "2027-12-31": "開國紀念日補假（2028-01-01 逢週六）",
+    },
+}
+
 _OPEN_MARK = re.compile(r"開始交易|最後交易")      # 這兩種列是「交易日」的註記、不是休市
 _NO_TRADE = re.compile(r"無交易")
 
@@ -104,27 +134,51 @@ def load() -> dict[int, dict[str, str]]:
     return years
 
 
+def provisional(years: dict | None = None) -> dict[int, dict[str, str]]:
+    """證交所表尚未涵蓋、只有暫代層（人事行政總處辦公日曆）的年份。"""
+    years = load() if years is None else years
+    return {y: v for y, v in PROVISIONAL.items() if y not in years}
+
+
 def is_closed(d: date, years: dict | None = None) -> bool | None:
-    """官方表涵蓋該年 → True／False（週末一律 True）；未涵蓋 → None（呼叫端自行退回後備判斷）。"""
+    """證交所表涵蓋該年 → True／False（週末一律 True）；只有暫代層 → 辦公日曆放假日 True、
+    其餘平日 None（證交所可能另加休市日，不猜）；都沒有 → None。None＝呼叫端自行退回後備判斷。"""
     years = load() if years is None else years
-    if d.year not in years:
-        return None
-    return d.weekday() >= 5 or d.isoformat() in years[d.year]
+    if d.weekday() >= 5 and (d.year in years or d.year in PROVISIONAL):
+        return True
+    if d.year in years:
+        return d.isoformat() in years[d.year]
+    if d.isoformat() in PROVISIONAL.get(d.year, {}):
+        return True
+    return None
 
 
-def closed_days(years: dict | None = None) -> dict[date, str]:
+def closed_days(years: dict | None = None, with_provisional: bool = False) -> dict[date, str]:
     years = load() if years is None else years
-    return {date.fromisoformat(k): n for v in years.values() for k, n in v.items()}
+    out = {date.fromisoformat(k): n for v in years.values() for k, n in v.items()}
+    if with_provisional:
+        out.update({date.fromisoformat(k): n for v in provisional(years).values() for k, n in v.items()})
+    return out
 
 
 def covers(d: date) -> bool:
+    """證交所表（種子或 CI 落檔）完整涵蓋該年。"""
     return d.year in load()
 
 
-def upcoming(today: date, days: int = 10) -> list[tuple[date, str]]:
-    """today 起 days 天內的官方休市平日（提示包用）。"""
-    cd = closed_days()
-    return sorted((d, n) for d, n in cd.items() if today <= d < today + timedelta(days=days))
+def covers_partly(d: date) -> bool:
+    """至少有暫代層（只知道一定休市的日子）。"""
+    return covers(d) or d.year in PROVISIONAL
+
+
+def upcoming(today: date, days: int = 10) -> list[tuple[date, str, bool]]:
+    """today 起 days 天內的休市平日（提示包用）：(日期, 名稱, 是否為證交所表)。
+    暫代層的日子以 False 標示，呼叫端要註明「證交所年度表未公告」。"""
+    years = load()
+    off = closed_days(years)
+    prov = closed_days(years, with_provisional=True)
+    return sorted((d, n, d in off) for d, n in prov.items()
+                  if today <= d < today + timedelta(days=days))
 
 
 def fetch_and_save(log=print) -> bool:
@@ -150,6 +204,10 @@ def fetch_and_save(log=print) -> bool:
         if y in SEED and set(SEED[y]) != set(v):
             log(f"[台股休市表] ⚠ {y} 官方表與內建種子不一致——僅官方：{sorted(set(v) - set(SEED[y]))}"
                 f"；僅種子：{sorted(set(SEED[y]) - set(v))}（以官方為準）")
+        elif y in PROVISIONAL:                   # 暫代層被取代：印出證交所自己加的休市日供核對
+            log(f"[台股休市表] {y} 證交所表已公告、取代人事行政總處暫代層——證交所另加："
+                f"{sorted(set(v) - set(PROVISIONAL[y]))}；辦公日曆有而證交所沒有："
+                f"{sorted(set(PROVISIONAL[y]) - set(v))}")
         years[str(y)] = dict(sorted(v.items()))
         wrote = True
     if not wrote:

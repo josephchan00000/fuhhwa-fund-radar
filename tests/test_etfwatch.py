@@ -285,11 +285,12 @@ def test_fetch_returns_none_when_all_sources_empty(monkeypatch):
 
 def test_watchlist_matches_weekly_report():
     codes = [c for c, *_ in etfwatch.WATCHLIST]
-    assert len(codes) == len(set(codes)) == 36
+    assert len(codes) == len(set(codes)) == 37
     passive = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "passive"]
     active = [c for c, _, k, *_ in etfwatch.WATCHLIST if k == "active"]
     assert set(passive) == {"0056", "00878", "00919", "00929", "0050", "006208"}
-    assert "00991A" in active and len(active) == 30    # 含本家主動復華未來50／全球未來50＋上櫃 4 檔
+    assert "00991A" in active and len(active) == 31    # 含本家主動復華未來50／全球未來50＋上櫃 4 檔
+    assert "00412A" in active                          # 2026-10-13 掛牌當天轉正（安聯亞洲半導體）
     # 2026-07-06 新增熱門／新募集主動式 ETF 皆在清單中
     assert {"00988A", "00990A", "00403A", "00407A"} <= set(active)
     # 2026-08-05 使用者指示補齊缺檔（兩批；00410A 為「即將登場」畢業轉正的第一例）
@@ -563,30 +564,45 @@ def test_dashboard_shows_upcoming_etf_section():
     assert "活動介紹" in html or "近期無" in html
 
 
-def test_upcoming_view_renders_cards_with_links():
-    # 釘在 2026-08-10（研討會名單日；真實條目為既成事實、日期固定即恆定）：
-    # 募集中玉山 009827、本家 00409A、PCB 009828，加上「已核准・時程未定」精簡列（00412A 等）。
-    # 若日後清理 UPCOMING 舊條目，同步更新此測試的斷言即可——2026-09-25：統一雙檔
-    # （00411A/00987D，掛牌 08/26）已轉正並清出 UPCOMING，8/10 的「即將掛牌」組因此變空，
-    # 該組改由 8/20 的待掛牌檔（00409A、009827，掛牌 09/02）驗證。
-    # 註：大華銀 KOSPI50（009829）2026-09-20 週掃依 stale guard 清出 UPCOMING、改列
-    # NOT_TRACKED，故不再上版——由 seminar 測試確認它仍被認得。
+# 2026-08-10（研討會名單日）的「即將登場」名單快照——2026-10-13 起改用固定夾具：
+# 舊版直接讀真實 UPCOMING，條目每次依 stale guard 清出（009827、00409A……）就紅一次，
+# 測試守的是「分組與渲染」，不該跟著資料維護起落。內容取自當日真實條目、只留渲染用欄位。
+_UPCOMING_0810 = [
+    {"code": "009827", "name": "玉山美國算力關鍵科技ETF", "issuer": "玉山投信", "track": False,
+     "raise_start": "2026-08-10", "raise_end": "2026-08-14", "list_date": "2026-09-02",
+     "freq": "季配", "theme": "美國算力供應鏈", "url": "https://www.esunam.com/act/etf_009827/"},
+    {"code": "00409A", "name": "主動復華全球未來50", "issuer": "復華投信",
+     "raise_start": "2026-08-12", "raise_end": "2026-08-14", "list_date": "2026-09-02",
+     "freq": "年配", "theme": "全球 AI 產業贏家 50 檔", "url": "https://www.fhtrust.com.tw/"},
+    {"code": "00412A", "name": "主動安聯亞洲半導體", "issuer": "安聯投信",
+     "raise_hint": "已核准，預計第三季底募集", "asof": "2026-08-04", "url": "https://x/00412a"},
+    {"code": None, "name": "大華銀優利美國非投資等級債券ETF", "issuer": "大華銀投信",
+     "raise_hint": "已核准待募，時程未公告", "asof": "2026-08-10", "url": "https://x/uob"},
+    {"code": None, "name": "安聯加密科技與金融創新主動式ETF", "issuer": "安聯投信",
+     "raise_hint": "已核准待募，時程未公告", "asof": "2026-08-10", "url": "https://x/crypto"},
+    {"code": "00411A", "name": "主動統一前沿科技", "issuer": "統一投信",   # 已掛牌＝前瞻卡退場
+     "raise_start": "2026-07-01", "raise_end": "2026-07-03", "list_date": "2026-07-20"},
+]
+
+
+def test_upcoming_view_renders_cards_with_links(monkeypatch):
+    monkeypatch.setattr(etfwatch, "UPCOMING", _UPCOMING_0810)
     up = etfwatch.upcoming(date(2026, 8, 10))
     out = fund_dashboard._upcoming_etf_view(up)
     assert "募集中・即將募集" in out
     assert "已核准・募集時程未定" in out                     # 第三組（2026-08-10 使用者指示分類）
     assert "009827" in out and "00409A" in out and "00412A" in out
+    assert "00411A" not in out                               # 掛牌日已過＝退場、交給升級機制
     assert "募集中 08/10–08/14" in out                       # 玉山 8/10 起正在募集
     assert "預定掛牌 09/02" in out                            # 募集卡帶掛牌日副標
     # 募集結束後轉入「即將掛牌・待掛牌」組
     out2 = fund_dashboard._upcoming_etf_view(etfwatch.upcoming(date(2026, 8, 20)))
     assert "即將掛牌・待掛牌" in out2 and "掛牌 09/02" in out2
-    # 核准組＝精簡列：未派碼檔顯示「代號未定」、不佔卡片（uprow 非 upcard）。
-    # 列數／未派碼數由資料推導——條目會隨每輪發現增補，釘死數字只會每次都紅。
+    # 核准組＝精簡列：未派碼檔顯示「代號未定」、不佔卡片（uprow 非 upcard）
     approved = up["approved"]
-    assert len(approved) >= 3
+    assert len(approved) == 3
     assert out.count('class="uprow"') == len(approved)
-    assert out.count("代號未定") == sum(1 for x in approved if not x.get("code"))
+    assert out.count("代號未定") == 2
     assert "大華銀優利美國非投資等級債券ETF" in out
     assert "加密科技與金融創新" in out
     assert "活動介紹" in out and "esunam.com/act/etf_009827" in out   # 卡片附投信活動頁
