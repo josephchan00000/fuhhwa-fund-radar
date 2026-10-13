@@ -21,7 +21,8 @@
   · 頭段總覽／速覽（2026-10-13 起）：美股 v1／總經的「…總覽」、台股的「盤前／盤後速覽」須抽得到
     且有內文——儀表板置頂總覽卡與列印版 ③ 盤勢總覽三欄都靠它（2026-09-19 起美股報把段名寫成
     「🔹**…總覽**」粗體行，舊解析只認 ## 標題，網頁與列印版的美股總覽靜默空了三週）
-  · 行事曆：表頭「更新：」需為今日
+  · 行事曆：表頭「更新：」需為今日；2026-10-13 起須有「台股：」公司法說／財報列（代號必填、≤10 列），
+    或註明「台股：本週無觀察清單內公司法說／財報」——只確認有查，不強求一定有事件
 
 用法：TZ=Asia/Taipei python3 scripts/check_reports.py [YYYY-MM-DD]（預設今日台北）
 """
@@ -273,6 +274,31 @@ def _check_calendar(path: Path, date: str) -> list[str]:
     d_slash = date.replace("-", "/")
     if f"更新：{d_slash}" not in md and f"更新：{date}" not in md:
         errs.append(f"{rel}：表頭「更新：」非今日（{d_slash}）")
+    if date >= TWCAL_SINCE:
+        errs += _check_calendar_tw(md, rel)
+    return errs
+
+
+# ── 行事曆台股公司列（2026-10-13 使用者：「行事曆是不是也要把台股的重要公司法說或是財報公布都加進去」）──
+# 舊版型只點名「台股台積電等指標企業」，歷史行事曆裡的台股公司事件只出現過台積電。
+# 閘門只問「有沒有查」：有台股列，或註明本週清單內無事件；不要求一定有事件（淡季本來就可能沒有）。
+TWCAL_SINCE = "2026-10-13"
+
+
+def _check_calendar_tw(md: str, rel: str) -> list[str]:
+    from arm import macronews
+    rows = macronews.retag_tw(macronews._parse_cal_rows(md), {r["code"] for r in macronews.tw_watch()})
+    tw = [r for r in rows if r["region"] == "台股"]
+    errs = []
+    if not tw and not re.search(r"台股[：:]\s*本週無", md):
+        errs.append(f"{rel}：沒有「台股：」公司法說／財報列，也沒註明「台股：本週無觀察清單內公司法說／財報」"
+                    "——請依提示包【台股公司觀察清單】逐家查證")
+    for r in tw:
+        if not macronews.tw_codes(r["item"]):
+            errs.append(f"{rel}：台股列「{r['item'][:24]}」缺代號——寫成「公司名（代號）」，"
+                        "儀表板才比對得到復華持股")
+    if len(tw) > macronews.TW_CAL_MAX:
+        errs.append(f"{rel}：台股列 {len(tw)} 列超過 {macronews.TW_CAL_MAX}——持股多者優先，其餘在「註」帶過")
     return errs
 
 

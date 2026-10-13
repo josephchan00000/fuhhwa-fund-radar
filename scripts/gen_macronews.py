@@ -22,12 +22,14 @@ CAL_PROMPT_DIR = ROOT / "reports" / "macrocal" / "prompts"
 
 
 def build_cal_prompt(today: date) -> str:
+    tw = macronews.tw_watch_block(macronews.tw_watch())   # 讀不到持股落檔＝空字串、整段略過
     return f"""你是「台灣投信公司政策面速寫編輯」。請以繁體中文、用 WebSearch/WebFetch 實際查證，
-產出【本週美國重點經濟數據行事曆】，存成：reports/macrocal/{today:%Y-%m-%d}.md
+產出【本週重點財經行事曆】，存成：reports/macrocal/{today:%Y-%m-%d}.md
 （台北今日 {today:%Y/%m/%d}；以今日所在整週週一~週五為範圍）。
 
 ────────────────────────────────────────
 {macronews.SPEC_CAL}
+{tw}
 
 【必守】數字勿杜撰、查不到填「—」；狀態只填「已公布／未公布／休市」；僅資訊彙編、非投資建議、不含禁用詞。
 """
