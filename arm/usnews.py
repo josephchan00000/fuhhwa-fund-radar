@@ -567,21 +567,29 @@ def us_session_date(today: date | None = None) -> date:
 
 _WD = ["週一", "週二", "週三", "週四", "週五", "週六", "週日"]
 
-# NYSE／Nasdaq 2026 全日休市日（美股）——僅供提示錨定，實際以交易所公告為準。
+# NYSE／Nasdaq 全日休市日（美股）——僅供提示錨定，實際以交易所公告為準。
 # 7/4（美國國慶）2026 適逢週六，故 7/3（五）補假休市。
-_US_MKT_HOLIDAYS_2026 = {
+# 2027 依 NYSE Group 2026–2028 假日表（ICE IR／Business Wire 2025-12-23）補入（2026-10-13：
+# 表只到 2026 會在跨年後讓 calendar_anchor 靜默退化，tests 守「涵蓋今日起 45 天」）；
+# 11/26 為下午 1 點提前收盤、非全日休市，不列。
+_US_MKT_HOLIDAYS = {
     date(2026, 1, 1): "元旦", date(2026, 1, 19): "馬丁路德金恩日",
     date(2026, 2, 16): "總統日", date(2026, 4, 3): "耶穌受難日",
     date(2026, 5, 25): "陣亡將士紀念日", date(2026, 6, 19): "六月節",
     date(2026, 7, 3): "美國國慶補假（7/4 適逢週六）", date(2026, 9, 7): "勞動節",
     date(2026, 11, 26): "感恩節", date(2026, 12, 25): "耶誕節",
+    date(2027, 1, 1): "元旦", date(2027, 1, 18): "馬丁路德金恩日",
+    date(2027, 2, 15): "總統日", date(2027, 3, 26): "耶穌受難日",
+    date(2027, 5, 31): "陣亡將士紀念日", date(2027, 6, 18): "六月節補假（6/19 適逢週六）",
+    date(2027, 7, 5): "美國國慶補假（7/4 適逢週日）", date(2027, 9, 6): "勞動節",
+    date(2027, 11, 25): "感恩節", date(2027, 12, 24): "耶誕節補假（12/25 適逢週六）",
 }
 
 
 def _prev_us_trading_day(d: date) -> date:
     """從 d 起（含 d）往回找最近一個美股實際交易日（跳週末＋已知國定假日）。"""
     x = d
-    while x.weekday() >= 5 or x in _US_MKT_HOLIDAYS_2026:
+    while x.weekday() >= 5 or x in _US_MKT_HOLIDAYS:
         x -= timedelta(days=1)
     return x
 
@@ -596,24 +604,39 @@ def calendar_anchor(today: date | None = None) -> str:
     lines = ["【交易日曆錨定（以下為系統計算，勿再自行推算星期或假日；仍以交易所公告為準）】",
              f"· 台北今日：{d:%Y/%m/%d}（{_WD[d.weekday()]}）"]
     if real != ses:
-        skipped = "、".join(f"{h:%m/%d}（{_WD[h.weekday()]}）{_US_MKT_HOLIDAYS_2026.get(h, '休市')}"
+        skipped = "、".join(f"{h:%m/%d}（{_WD[h.weekday()]}）{_US_MKT_HOLIDAYS.get(h, '休市')}"
                             for h in (ses - timedelta(n) for n in range((ses - real).days))
-                            if h.weekday() < 5 and h in _US_MKT_HOLIDAYS_2026)
+                            if h.weekday() < 5 and h in _US_MKT_HOLIDAYS)
         note = f"（{skipped} 美股休市，故往回取）" if skipped else ""
         lines.append(f"· 對應昨夜美股實際交易日（美東）：{real:%Y/%m/%d}（{_WD[real.weekday()]}）{note}")
     else:
         lines.append(f"· 對應昨夜美股交易日（美東）：{ses:%Y/%m/%d}（{_WD[ses.weekday()]}）")
-    covered = {h.year for h in _US_MKT_HOLIDAYS_2026}
+    covered = {h.year for h in _US_MKT_HOLIDAYS}
     if d.year not in covered or ses.year not in covered:
         lines.append("· ⚠ 系統假日表未涵蓋本年份——請自行以 WebSearch 確認美股休市日，勿逕信上列推算")
+        lines.append(_tw_holiday_line(d))
         return chr(10).join(lines)
-    near = [(h, name) for h, name in sorted(_US_MKT_HOLIDAYS_2026.items()) if abs((h - d).days) <= 4]
+    near = [(h, name) for h, name in sorted(_US_MKT_HOLIDAYS.items()) if abs((h - d).days) <= 4]
     if near:
         lines.append("· 鄰近美股休市日：" +
                      "；".join(f"{h:%m/%d}（{_WD[h.weekday()]}）{name}" for h, name in near))
     else:
         lines.append("· 本週美股無鄰近國定假日、正常交易")
+    lines.append(_tw_holiday_line(d))
     return "\n".join(lines)
+
+
+def _tw_holiday_line(d: date) -> str:
+    """台股近 10 日官方休市（證交所表，arm/twholidays；2026-10-13 起）——行事曆「市況」段的
+    台股欄據此寫，不再由代理自行搜尋推算（那段文字曾直接驅動盤後看門狗的交易日判定）。"""
+    from . import twholidays
+    if not twholidays.covers(d):
+        return "· ⚠ 證交所休市表未涵蓋本年份——台股休市日請以證交所公告為準"
+    up = twholidays.upcoming(d, 10)
+    if not up:
+        return "· 台股近 10 日無休市日（證交所官方表）"
+    return ("· 台股近 10 日休市（證交所官方表，行事曆「市況」台股欄據此寫）："
+            + "；".join(f"{h:%m/%d}（{_WD[h.weekday()]}）{n}" for h, n in up))
 
 
 def prior_titles(news_dir, today: date, stem_re: str = r"(\d{4}-\d{2}-\d{2})\.md$",
