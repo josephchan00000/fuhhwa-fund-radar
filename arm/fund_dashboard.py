@@ -568,22 +568,20 @@ def _market_status(note: str) -> tuple[str, str]:
     return "", ""
 
 
-_PREMKT_HEAD = re.compile(r"^##\s*🔹?\s*盤[前後]速覽")
-
-
 def _extract_premarket(md: str) -> tuple[str, str]:
-    """抽出台股新聞的「## 🔹盤前速覽／盤後速覽」段（改置今日重點），回 (段落內文, 移除後全文)。
+    """抽出台股新聞的「🔹盤前速覽／盤後速覽」段（改置今日重點），回 (段落內文, 移除後全文)。
     （2026-07-19 踩坑：週末/盤後版標題是「盤後速覽」，只認盤前會讓今日重點整段空白。）
+    標籤行寫法交 usnews.find_section 統一認（## 標題／🔹**粗體行**／### 皆收——2026-08 有
+    22 天子代理寫成「### 🔹盤前速覽」「🔹**盤前速覽**」，舊版只認 ## 而整張卡消失）。
     無此段 → 回 ("", 原文)，今日重點不多出空卡。"""
-    lines = (md or "").splitlines()
-    s = next((i for i, l in enumerate(lines) if _PREMKT_HEAD.match(l.strip())), None)
-    if s is None:
-        return "", md or ""
-    e = next((j for j in range(s + 1, len(lines))
-              if lines[j].strip().startswith("## ") or lines[j].strip() == "---"), len(lines))
-    body = "\n".join(lines[s + 1:e]).strip()
-    rest = "\n".join(lines[:s] + lines[e:]).strip()
-    return body, rest
+    sec = usnews.find_section(md or "", usnews.PREMKT_KEY)
+    return (sec[1], sec[2]) if sec else ("", md or "")
+
+
+def _premarket_title(md: str) -> str:
+    """速覽卡標題跟著報告實際的段名走（盤前速覽／盤後速覽）。"""
+    sec = usnews.find_section(md or "", usnews.PREMKT_KEY)
+    return "盤後速覽" if sec and sec[0].startswith("盤後") else "盤前速覽"
 
 
 def _premarket_card(pre_md: str, title: str = "盤前速覽") -> str:
@@ -610,20 +608,12 @@ def _news_badges(etype: str | None, importance: int | None) -> str:
     return f'<span class="nbadges">{out}</span>' if out else ""
 
 
-_OVERVIEW_HEAD = re.compile(r"^#{2,3}\s*🔹?\s*.*總覽")
-
-
 def _extract_overview(head_md: str) -> str:
-    """從新聞頭段抽「…總覽」小節內文（供置頂可見卡）；無此節回空字串。"""
-    lines = (head_md or "").splitlines()
-    s = next((i for i, l in enumerate(lines) if _OVERVIEW_HEAD.match(l.strip())), None)
-    if s is None:
-        return ""
-    e = next((j for j in range(s + 1, len(lines))
-              if lines[j].strip().startswith("#") or lines[j].strip() == "---"), len(lines))
-    # _md 不支援 blockquote：拆掉「> 」前綴讓引言（如【交易確認】）以一般段落呈現
-    body = [re.sub(r"^\s*>\s?", "", l) for l in lines[s + 1:e]]
-    return "\n".join(body).strip()
+    """從新聞頭段抽「…總覽」小節內文（供置頂可見卡與列印版 ③）；無此節回空字串。
+    標籤行寫法交 usnews.find_section 統一認——美股報 09-19 起寫成「🔹**…總覽**」整行粗體，
+    舊版只認 ## 標題，螢幕版總覽卡與列印版全球欄因此空了三週（2026-10-13 使用者抓包）。"""
+    sec = usnews.find_section(head_md or "", usnews.OVERVIEW_KEY)
+    return sec[1] if sec else ""
 
 
 _META_DUP = re.compile(r"[｜|]?\s*(?:【[^】]*】|重要度\s*\d{1,2}\s*/\s*10)\s*")
@@ -691,10 +681,24 @@ def _news_view(md: str, empty_hint: str,
     return "".join(items) or f'<div class="muted">{empty_hint}</div>'
 
 
-# ── 總經：本週重點財經行事曆（美歐中日＋重要企業財報） ──────────────────────────────────
+# ── 總經：本週重點財經行事曆（美歐中日＋台股公司法說・財報＋海外財報） ──────────────────
 
-# 地區徽章的 CSS class 對照（美／歐／中／日；財報獨立子表不掛徽章）
+# 地區徽章的 CSS class 對照（美／歐／中／日；台股與海外財報各自獨立子表、不掛徽章）
 _CAL_REGION_CLS = {"美": "us", "歐": "eu", "中": "cn", "日": "jp"}
+
+
+def _cal_hold_chip(item: str, held: dict | None) -> str:
+    """台股列的「復華持股」章：項目內任一代碼在復華基金前十大／本家 ETF 前十大即掛，
+    tooltip 列出各自的持有來源（macronews.tw_watch 同一份清單，與提示包必查清單一致）。"""
+    if not held:
+        return ""
+    tips = []
+    for c in macronews.tw_codes(item):
+        r = held.get(c)
+        if r:
+            src = ([f"基金前十大 {r['funds']} 檔"] if r["funds"] else []) + r["etfs"]
+            tips.append(f"{r['name']}（{c}）：{'、'.join(src)}")
+    return (f'<span class="chold" title="{_esc("；".join(tips))}">復華持股</span>' if tips else "")
 
 
 def _cal_cons_cell(cons) -> str:
@@ -710,8 +714,9 @@ def _cal_cons_cell(cons) -> str:
     return _esc(s)
 
 
-def _cal_rows_html(rows: list[dict], with_region: bool) -> str:
-    """行事曆列 → <tr>…；with_region＝在項目前掛地區小徽章（財報子表免掛）。"""
+def _cal_rows_html(rows: list[dict], with_region: bool, held: dict | None = None) -> str:
+    """行事曆列 → <tr>…；with_region＝在項目前掛地區小徽章（財報子表免掛）；
+    held＝復華持股 {代碼: 清單列}（只有台股子表傳入，掛「復華持股」章）。"""
     trs = []
     for r in rows:
         st = r.get("status") or ""
@@ -724,23 +729,23 @@ def _cal_rows_html(rows: list[dict], with_region: bool) -> str:
                     if with_region and reg in _CAL_REGION_CLS else "")
         trs.append(
             f'<tr class="cr-{cls}"><td class="cd">{_esc(r.get("date"))}</td>'
-            f'<td class="ci">{reg_html}{_esc(r.get("item"))}</td>'
+            f'<td class="ci">{reg_html}{_esc(r.get("item"))}{_cal_hold_chip(r.get("item"), held)}</td>'
             f'<td>{_cal_cons_cell(r.get("cons"))}</td><td class="cav">{actual}</td>'
             f'<td class="cpv">{_esc(r.get("prev"))}</td>'
             f'<td><span class="cst {cls}">{badge}</span></td></tr>')
     return "".join(trs)
 
 
-def _cal_table_html(rows: list[dict], with_region: bool) -> str:
+def _cal_table_html(rows: list[dict], with_region: bool, held: dict | None = None) -> str:
     return (f'<div class="ovwrap"><table class="caltbl">'
             f'<thead><tr><th class="l">日期</th><th class="l">項目</th><th>預期</th>'
             f'<th>實際</th><th>前值</th><th>狀態</th></tr></thead>'
-            f'<tbody>{_cal_rows_html(rows, with_region)}</tbody></table></div>')
+            f'<tbody>{_cal_rows_html(rows, with_region, held)}</tbody></table></div>')
 
 
-def _macro_cal_view(cal: dict | None) -> str:
-    """本週重點財經行事曆（美歐中日＋財報）：
-    經濟數據表（地區以彩色小徽章標示）＋「重要財報／法說」獨立子表。"""
+def _macro_cal_view(cal: dict | None, held: dict | None = None) -> str:
+    """本週重點財經行事曆：經濟數據表（美歐中日，地區以彩色小徽章標示）＋
+    「台股法說・財報」子表（復華持股掛章，2026-10-13 起）＋「海外財報／法說」子表。"""
     if not cal or not cal.get("rows"):
         return ('<div class="muted">尚無本週行事曆。請由會上網查證的 Claude 依提示包'
                 '產 <code>reports/macrocal/{date}.md</code>。</div>')
@@ -761,11 +766,17 @@ def _macro_cal_view(cal: dict | None) -> str:
             note_html = f'<div class="calnote"><ul class="cnlist">{lis}</ul></div>'
         else:
             note_html = f'<div class="calnote">{_ic("bell", plain=True)} {_inline(note)}</div>'
-    data_rows = [r for r in cal["rows"] if r.get("region") != "財報"]
+    data_rows = [r for r in cal["rows"] if r.get("region") not in ("財報", "台股")]
+    tw_rows = [r for r in cal["rows"] if r.get("region") == "台股"]
     earn_rows = [r for r in cal["rows"] if r.get("region") == "財報"]
     html = note_html + _cal_table_html(data_rows, with_region=True)
+    if tw_rows:
+        n_held = sum(1 for r in tw_rows if _cal_hold_chip(r.get("item"), held))
+        sub = f'<span class="stsub">{n_held} 項為復華持股</span>' if n_held else ""
+        html += (f'<div class="calsub tw">{_ic("chart", plain=True)} 台股法說・財報 {sub}</div>'
+                 + _cal_table_html(tw_rows, with_region=False, held=held))
     if earn_rows:
-        html += (f'<div class="calsub">{_ic("chart", plain=True)} 重要財報／法說</div>'
+        html += (f'<div class="calsub">{_ic("chart", plain=True)} 海外財報／法說</div>'
                  + _cal_table_html(earn_rows, with_region=False))
     if any(str(r.get("cons") or "").strip().endswith("*") for r in cal["rows"]):
         html += ('<div class="calfoot">預期欄標 <sup class="estmk">*</sup> 者為'
@@ -2470,6 +2481,8 @@ a.tk:hover{color:var(--acc)}
 .creg.cn{color:#a02c2c;background:rgba(206,66,66,.13);border-color:rgba(206,66,66,.4)}
 .creg.jp{color:#0f6f6b;background:rgba(23,146,140,.13);border-color:rgba(23,146,140,.42)}
 .calsub{margin:16px 0 6px;font-size:14px;font-weight:800;color:var(--ink);padding-left:9px;border-left:4px solid #2f9d57}
+.calsub.tw{border-left-color:#c8102e}
+.chold{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 6px;margin-left:6px;border-radius:5px;vertical-align:1px;white-space:nowrap;color:#8a5a00;background:rgba(214,158,46,.18)}
 .chip.halt{color:#8a5410;background:rgba(200,118,15,.12);border-color:rgba(200,118,15,.5);font-weight:700}
 /* 總經：市場溫度計（全球指標＋台股籌碼）——第一欄（指標）凍結，數值欄手機可左右捲 */
 .mdtbl{font-size:14px}
@@ -3210,6 +3223,7 @@ def render() -> str:
     tw = twnews.load_latest()
     macro = macronews.load_latest()
     cal = macronews.load_calendar()
+    tw_held = macronews.tw_held(macronews.tw_watch())   # 行事曆台股列「復華持股」章（同提示包必查清單）
     us_md = (news or {}).get("v1") or (news or {}).get("v2") or ""
     tw_md = (tw or {}).get("md") or ""
     macro_md = (macro or {}).get("md") or ""
@@ -3277,7 +3291,7 @@ def render() -> str:
 
     # ① 今日重點（雙視圖）；台股盤前速覽自新聞頭段抽出、直接顯示於此（不再埋於收合塊）
     premkt_md, tw_md_news = _extract_premarket(tw_md)
-    pm_title = "盤後速覽" if re.search(r"^##\s*🔹?\s*盤後速覽", tw_md or "", re.M) else "盤前速覽"
+    pm_title = _premarket_title(tw_md)
     b_tw = _brief_view(twnews.extract_indices(tw_md), *fund_insights.movers(tw_funds),
                        fund_insights.upcoming_distributions(tw_funds), hol_tw)
     b_tw += _premarket_card(premkt_md, pm_title)
@@ -3305,7 +3319,7 @@ def render() -> str:
     sec_macro_cal = (f'<div class="section" id="macro-cal"><div class="st">{_ic("calendar")}本週重點財經行事曆 '
                      f'{_fresh_chip("更新", cal_date, 8)} '
                      f'<span class="stsub">預期／已公布實際值／未公布・美股休市另標</span></div>'
-                     f'{_macro_cal_view(cal)}</div>')
+                     f'{_macro_cal_view(cal, tw_held)}</div>')
     # 政策總覽與政策新聞拆成兩獨立區塊（2026-07-15 使用者指示：比照台股/全球的
     # 「今日重點」與「新聞」）；總覽卡自新聞頭段抽出、新聞區只留逐則卡
     mac_head, _, _ = usnews.split_doc(macro_md or "")
@@ -3397,10 +3411,11 @@ def render() -> str:
     us_head, _, _ = usnews.split_doc(us_md or "")
     sec_print = printview.render({
         "today": clock.today_tw(), "now": now, "nav_date": nav_date, "as_of": hold_asof,
-        "cal": cal, "mc": mc_doc,
+        "cal": cal, "mc": mc_doc, "tw_held": tw_held,
         "overviews": [("總經・政策總覽", mac_ov, mac_date),
                       (f"台股{pm_title}", premkt_md, tw_date),
-                      ("全球・昨夜美股總覽", _extract_overview(us_head), us_date)],
+                      ("全球・昨夜美股總覽", _extract_overview(us_head), us_date,
+                       printview.us_trade_note(us_md))],
         "lanes": [("macro", "總經", macro_md), ("tw", "台股", tw_md), ("us", "美股", us_md)],
         "rows_tw": rows_tw, "rows_gl": rows_gl, "marks": leaders, "etf_doc": etf_doc,
     })

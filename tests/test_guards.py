@@ -158,6 +158,51 @@ def _brief_doc(body: str) -> str:
     return "# 〈台股盤前重點〉2026/09/01\n\n## 🔹盤前速覽\n\n" + body + "\n\n---\n\n## 🔹盤前卡\n"
 
 
+def test_check_calendar_tw_gate(monkeypatch):
+    # 2026-10-13 起行事曆須查台股公司法說／財報：有台股列、或註明本週無；代號必填；≤10 列
+    import importlib
+    sys.path.insert(0, str(ROOT / "scripts"))
+    check = importlib.import_module("check_reports")
+    from arm import macronews
+    monkeypatch.setattr(macronews, "tw_watch", lambda *a, **k: [{"code": "2330"}])
+    head = "| 日期 | 項目 | 預期 | 實際 | 前值 | 狀態 |\n|---|---|---|---|---|---|\n| 10/14 | 美：CPI | — | — | — | 未公布 |\n"
+    tw = lambda i: f"| 10/15 | 台股：公司{i}（{2330 + i}）法說會 | — | — | — | 未公布 |\n"
+    assert any("沒有「台股：」" in e for e in check._check_calendar_tw(head, "c.md"))
+    assert check._check_calendar_tw(head + "註：\n- 台股：本週無觀察清單內公司法說／財報\n", "c.md") == []
+    assert check._check_calendar_tw(head + tw(0), "c.md") == []
+    legacy = head + "| 10/15 | 財報：台積電（2330）Q3法說會 | — | — | — | 未公布 |\n"
+    assert check._check_calendar_tw(legacy, "c.md") == []    # 舊版型寫在財報：也算有查
+    no_code = head + "| 10/15 | 台股：聯發科法說會 | — | — | — | 未公布 |\n"
+    assert any("缺代號" in e for e in check._check_calendar_tw(no_code, "c.md"))
+    many = head + "".join(tw(i) for i in range(11))
+    assert any("超過 10" in e for e in check._check_calendar_tw(many, "c.md"))
+
+
+def test_check_head_sections_gate(tmp_path, monkeypatch):
+    # 2026-10-13 使用者：「印出來的昨夜美股總覽那欄都是空的」——總覽／速覽抽不到時網頁與列印版
+    # 只會安靜少一塊，其他閘門照樣 🟢；此閘門讓它變紅。段名寫成粗體行也要認得（同儀表板）。
+    import importlib
+    sys.path.insert(0, str(ROOT / "scripts"))
+    check = importlib.import_module("check_reports")
+    monkeypatch.setattr(check, "ROOT", tmp_path)
+    d = check.HEAD_SINCE
+
+    def put(rel: str, text: str) -> None:
+        p = tmp_path / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text + "\n### 卡 1｜某事（來源｜【新事件】｜重要度 7/10）\n內文。\n", encoding="utf-8")
+
+    put(f"reports/usnews/{d}_v1.md", "# 標題\n\n🔹**前後24小時重大公司與產業事項總覽**\n\n- 費半跌 **2%**。\n\n---")
+    put(f"reports/macronews/{d}.md", "# 標題\n\n## 🔹前後 24 小時政策總覽\n\n**油價**領漲。\n\n---")
+    put(f"reports/twnews/{d}.md", "# 標題\n\n### 🔹盤前速覽\n\n夜盤收跌。\n\n────")
+    assert check._check_head_sections(d) == []               # 三種寫法都認得
+    put(f"reports/usnews/{d}_v1.md", "# 標題\n\n- 費半跌 **2%**。\n\n---")
+    put(f"reports/twnews/{d}.md", "# 標題\n\n## 🔹指數速覽\n\n加權收高。\n")
+    errs = check._check_head_sections(d)
+    assert len(errs) == 2 and "usnews" in errs[0] and "twnews" in errs[1]
+    assert "列印版" in errs[0]                                # 訊息要講清楚後果
+
+
 def test_check_brief_style_gate():
     import importlib
     sys.path.insert(0, str(ROOT / "scripts"))
