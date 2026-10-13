@@ -113,7 +113,7 @@ def calendar_block(cal: dict | None, held: dict | None = None) -> str:
         dcell = "" if d == prev_d else (_esc(d) + (f'<span class="pr-wd">（{wd}）</span>' if wd else ""))
         prev_d = d
         reg = r.get("region") or ""
-        rc = fd._CAL_REGION_CLS.get(reg) or {"財報": "er", "台股": "tw"}.get(reg, "")
+        rc = fd._CAL_REGION_CLS.get(reg) or {"財報": "er", "台": "tw", "台股": "tw"}.get(reg, "")
         reg_html = f'<span class="pr-reg {rc}">{_esc(reg)}</span>' if reg else ""
         hold = ('<span class="pr-hold">持股</span>'
                 if reg == "台股" and held and any(c in held for c in macronews.tw_codes(r.get("item"))) else "")
@@ -509,7 +509,7 @@ CSS = """
   vertical-align:1px;line-height:1.4}
 .pr-reg.us{color:#1d4f9c;background:#dce7fa}.pr-reg.eu{color:#5b3ea8;background:#e9e2fa}
 .pr-reg.cn{color:#a02c2c;background:#fbe1e1}.pr-reg.jp{color:#0f6f6b;background:#d9f0ee}
-.pr-reg.er{color:#7a4b00;background:#fdecc8}.pr-reg.tw{color:#9b1c1c;background:#fde3e3}
+.pr-reg.er{color:#7a4b00;background:#fdecc8}.pr-reg.tw{color:#2d6a1f;background:#e3f1da}
 .pr .pr-hold{display:inline-block;font-size:6pt;font-weight:800;padding:0 3px;margin-left:3px;border-radius:3px;
   color:#8a5a00;border:.5pt solid #d6a02e}
 .pr-st{font-size:6.8pt;font-weight:700;white-space:nowrap}
