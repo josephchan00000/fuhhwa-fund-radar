@@ -1,0 +1,19 @@
+{
+  "as_of": "2026-10-13",
+  "note": "行事曆核心排程錨（資料可信度盤查 Phase 3）。日期為發布地當地日；official＝官方排程頁或主管機關新聞稿載明，secondary＝兩家主流媒體一致（使用者 2026-10-13 同意：非官方但可信度足夠者可收、須標層級）。match＝任一組關鍵詞全數出現在行事曆項目即視為同一事件。",
+  "events": [
+    {"date": "2026-10-14", "region": "美", "item": "9月CPI", "match": [["9月", "CPI"]], "time": "美東 08:30（台北 20:30）", "level": "official", "source": "https://www.bls.gov/schedule/news_release/cpi.htm"},
+    {"date": "2026-10-28", "region": "美", "item": "FOMC 利率決議（10/27–28 會議）", "match": [["FOMC"], ["聯準會", "利率"], ["Fed", "利率決議"]], "time": "美東 14:00（台北 10/29 02:00）", "level": "official", "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"},
+    {"date": "2026-10-29", "region": "歐", "item": "ECB 利率決議", "match": [["ECB"], ["歐洲央行"], ["歐央行"]], "time": "歐洲 14:15 CET（台北 21:15）", "level": "official", "source": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html"},
+    {"date": "2026-10-30", "region": "日", "item": "日銀利率決議（10/29–30 會議）", "match": [["日銀"], ["BOJ"], ["日本央行"]], "time": "總裁記者會 15:30 JST", "level": "official", "source": "https://www.boj.or.jp/mopo/mpmsche_minu/m_ref/mref250731a.pdf"},
+    {"date": "2026-11-06", "region": "美", "item": "10月非農就業", "match": [["10月", "非農"]], "time": "美東 08:30（台北 21:30）", "level": "official", "source": "https://www.bls.gov/schedule/news_release/empsit.htm"},
+    {"date": "2026-11-09", "region": "台", "item": "10月出口", "match": [["10月", "出口"]], "time": "16:00", "level": "official", "source": "https://www.mof.gov.tw/"},
+    {"date": "2026-11-10", "region": "美", "item": "10月CPI", "match": [["10月", "CPI"]], "time": "美東 08:30（台北 21:30）", "level": "official", "source": "https://www.bls.gov/schedule/news_release/cpi.htm"},
+    {"date": "2026-12-04", "region": "美", "item": "11月非農就業", "match": [["11月", "非農"]], "time": "美東 08:30（台北 21:30）", "level": "official", "source": "https://www.bls.gov/schedule/news_release/empsit.htm"},
+    {"date": "2026-12-09", "region": "美", "item": "FOMC 利率決議（12/8–9 會議，含經濟預測）", "match": [["FOMC"], ["聯準會", "利率"], ["Fed", "利率決議"]], "time": "美東 14:00（台北 12/10 03:00）", "level": "official", "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"},
+    {"date": "2026-12-10", "region": "美", "item": "11月CPI", "match": [["11月", "CPI"]], "time": "美東 08:30（台北 21:30）", "level": "official", "source": "https://www.bls.gov/schedule/news_release/cpi.htm"},
+    {"date": "2026-12-17", "region": "歐", "item": "ECB 利率決議", "match": [["ECB"], ["歐洲央行"], ["歐央行"]], "time": "歐洲 14:15 CET（台北 21:15）", "level": "official", "source": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html"},
+    {"date": "2026-12-17", "region": "台", "item": "央行理監事會（第4季）", "match": [["央行", "理監事"]], "time": "會後記者會", "level": "official", "source": "https://www.cbc.gov.tw/tw/cp-357-189514-82841-1.html"},
+    {"date": "2026-12-18", "region": "日", "item": "日銀利率決議（12/17–18 會議）", "match": [["日銀"], ["BOJ"], ["日本央行"]], "time": "", "level": "official", "source": "https://www.boj.or.jp/mopo/mpmsche_minu/m_ref/mref250731a.pdf"}
+  ]
+}
