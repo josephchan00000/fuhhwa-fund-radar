@@ -188,6 +188,7 @@ jobs:
           git add -f data/fund_news_seen.json 2>/dev/null || true # 新聞日期台帳（date_verify 防 Google 舊文重標日期；漏 add 會每輪重驗）
           git add -f data/etf_watch.json 2>/dev/null || true      # ETF 數據追蹤（fetch_etf_watch.py 產出）
           git add -f data/macro_chips.json 2>/dev/null || true    # 總經・籌碼數據（fetch_macro_chips.py 產出）
+          git add -f data/tw_holidays.json 2>/dev/null || true    # 證交所官方休市表（交易日判定的權威，fetch_tw_holidays.py 產出）
           git add -f data/etf_holdings.json 2>/dev/null || true   # ETF 每日持股（展開明細；漏 add 會斷「前一揭露日」、Δ 整片變 —）
           git add -f data/holdings_intro_gap.json 2>/dev/null || true  # 前十大簡介缺口警示（check_holdings_intro.py 產）
           git add -f data/etf_seen.json 2>/dev/null || true        # ETF 首見台帳——漏 add 會每輪重建 baseline、新檔永遠發現不了

@@ -22,9 +22,10 @@
             不得早於上一交易日（境內 NAV 傍晚公布、海外 T+1——只驗「沒有連兩天斷更」，
             避免對正常 T+1 誤報）。
 
-交易日判定：週一~五 且 當日 reports/macrocal/{today}.md 的「市況」段中「台股」不含「休市」
-（行事曆每天由早上 Routine 產出、休市日會寫明——重用既有事實，不用另建假日表）。
-行事曆缺檔＝視為交易日：寧可誤報一次，也不要在「連新聞都沒產」的壞日子靜默。
+交易日判定：週一~五 且 **證交所官方休市表**（arm/twholidays；2026-10-13 起）未列為休市。
+舊版只讀 reports/macrocal/{today}.md 市況段——那是子代理每天依搜尋摘要重寫的文字，漏寫或誤寫
+都會讓看門狗誤報或靜默放行；現僅在官方表未涵蓋該年時退回讀它（兩者不一致時印日誌）。
+官方表與行事曆皆缺＝視為交易日：寧可誤報一次，也不要在「連新聞都沒產」的壞日子靜默。
 """
 from __future__ import annotations
 
@@ -38,7 +39,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from arm import clock  # noqa: E402
+from arm import clock, twholidays  # noqa: E402
 
 ALERT_FP = ROOT / "data" / "afterhours_alert.json"
 CHIPS_FP = ROOT / "data" / "macro_chips.json"
@@ -58,14 +59,21 @@ def _load(fp: Path) -> dict | None:
 
 
 def is_trading_day(d: date, macrocal_text: str | None) -> bool:
-    """台股今日是否交易：平日＋行事曆市況段「台股」不含休市（缺檔視為交易日）。"""
+    """台股今日是否交易。**證交所官方休市表優先**（arm/twholidays，2026-10-13 起）——
+    舊版只看子代理寫的行事曆市況段，漏寫休市＝當天誤報紅燈、誤寫休市＝缺資料靜默放行。
+    官方表未涵蓋該年才退回行事曆文字（缺檔視為交易日）；兩者不一致時印日誌、以官方為準。"""
     if d.weekday() >= 5:
         return False
     seg = next((p for p in re.split(r"[；;]", macrocal_text or "") if "市況" in p), "")
     m = _TW_STAT_RE.search(seg)
-    if m and "休市" in m.group(1):
-        return False
-    return True
+    text_closed = bool(m and "休市" in m.group(1))
+    official = twholidays.is_closed(d)
+    if official is None:
+        return not text_closed
+    if macrocal_text is not None and text_closed != official:
+        print(f"  ⚠ 行事曆市況與證交所官方休市表不一致：{d} 官方＝{'休市' if official else '交易日'}"
+              f"、行事曆＝{'休市' if text_closed else '交易'}（以官方為準）")
+    return not official
 
 
 def _macrocal_text(d: date) -> str | None:

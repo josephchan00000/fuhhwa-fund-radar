@@ -409,7 +409,7 @@ Routine prompt 原文①——每日全部更新（06:35）：
 
 Routine prompt 原文②——盤後籌碼即時更新（15:33）：
 
-> （排程自動觸發）盤後籌碼即時更新——GitHub cron 實測遲 1~3 小時，本 Routine 負責準時；全程只做三件事、不跑任何資料抓取腳本、不動 reports/**：① 用 mcp__github__actions_run_trigger（method=run_workflow、workflow_id=afterhours_refresh.yml、ref=main）觸發盤後刷新，成功觸發即收工、不等它跑完；MCP 不可用時備援＝在本會話指定分支寫 .ping/afterhours（內容任意）後 git add -f、commit、push——該路徑 push 會自動觸發同一 workflow。② 前十大簡介缺口順手補（使用者 2026-08-12：不佔早上、掛在本班——本班最輕且在晨間持股抓取之後）：git fetch origin main 讀 data/holdings_intro_gap.json，count=0 → 跳過；count>0 → 依 CLAUDE.md 步驟 9⑤ 極簡迴路：每檔 1 次 WebSearch 查證（公司本業／代號／國別）→ 補 config/holding_profiles.json（{原字串:{intro,ticker,country,verified}}，intro 純事實、避開禁用詞）→ python3 -m pytest -q tests/test_holdings_intro.py → commit「chore: 補持股簡介 N 檔」push 本會話指定分支——push 自動觸發 daily.yml 併檔＋重建上線，不需 PR、不需監看。③ send_later 排 60 分鐘後自驗：git fetch origin main 讀 data/macro_chips.json，若為交易日（當日 reports/macrocal 市況段「台股」不含休市）而 inst_total 仍缺今日 → 補 dispatch 一次、再 send_later 25 分鐘後檢查，仍缺才 PushNotification 一句話（缺什麼＋afterhours run 日誌看到的原因）；資料已到或休市 → 安靜結束、不推播、不留言（使用者 2026-08-03 指定「失敗才推播」）；若②有補簡介，同回合加驗 origin/main 的 data/holdings_intro_gap.json 已歸 0，仍 >0（分支 workflow 檔太舊、併檔通道沒生效）→ mcp__github__actions_run_trigger dispatch daily.yml（ref=main、news_ref=本會話指定分支）一次即可修復。send_later／create_trigger 若回 MCP error -32003（需審批、無人值守無法核准）：勿跳過自驗、也勿只推播「排程失敗」了事——改用 Bash run_in_background 背景 until 迴圈（每 5 分鐘 git fetch origin main 檢查一次直到自驗時點）等到時點喚醒後照樣自驗與後續處置，機制見 CLAUDE.md「已知環境限制與防呆」-32003 條。
+> （排程自動觸發）盤後籌碼即時更新——GitHub cron 實測遲 1~3 小時，本 Routine 負責準時；全程只做三件事、不跑任何資料抓取腳本、不動 reports/**：① 用 mcp__github__actions_run_trigger（method=run_workflow、workflow_id=afterhours_refresh.yml、ref=main）觸發盤後刷新，成功觸發即收工、不等它跑完；MCP 不可用時備援＝在本會話指定分支寫 .ping/afterhours（內容任意）後 git add -f、commit、push——該路徑 push 會自動觸發同一 workflow。② 前十大簡介缺口順手補（使用者 2026-08-12：不佔早上、掛在本班——本班最輕且在晨間持股抓取之後）：git fetch origin main 讀 data/holdings_intro_gap.json，count=0 → 跳過；count>0 → 依 CLAUDE.md 步驟 9⑤ 極簡迴路：每檔 1 次 WebSearch 查證（公司本業／代號／國別）→ 補 config/holding_profiles.json（{原字串:{intro,ticker,country,verified}}，intro 純事實、避開禁用詞）→ python3 -m pytest -q tests/test_holdings_intro.py → commit「chore: 補持股簡介 N 檔」push 本會話指定分支——push 自動觸發 daily.yml 併檔＋重建上線，不需 PR、不需監看。③ send_later 排 60 分鐘後自驗：git fetch origin main 讀 data/macro_chips.json，若為交易日（以證交所官方休市表為準：python3 -c "from arm import twholidays,clock; print(twholidays.is_closed(clock.today_tw()))" 印 False 才是交易日）而 inst_total 仍缺今日 → 補 dispatch 一次、再 send_later 25 分鐘後檢查，仍缺才 PushNotification 一句話（缺什麼＋afterhours run 日誌看到的原因）；資料已到或休市 → 安靜結束、不推播、不留言（使用者 2026-08-03 指定「失敗才推播」）；若②有補簡介，同回合加驗 origin/main 的 data/holdings_intro_gap.json 已歸 0，仍 >0（分支 workflow 檔太舊、併檔通道沒生效）→ mcp__github__actions_run_trigger dispatch daily.yml（ref=main、news_ref=本會話指定分支）一次即可修復。send_later／create_trigger 若回 MCP error -32003（需審批、無人值守無法核准）：勿跳過自驗、也勿只推播「排程失敗」了事——改用 Bash run_in_background 背景 until 迴圈（每 5 分鐘 git fetch origin main 檢查一次直到自驗時點）等到時點喚醒後照樣自驗與後續處置，機制見 CLAUDE.md「已知環境限制與防呆」-32003 條。
 
 Routine prompt 原文③——晚間 NAV·PCF 即時更新（18:58）：
 
@@ -417,7 +417,7 @@ Routine prompt 原文③——晚間 NAV·PCF 即時更新（18:58）：
 
 Routine prompt 原文④——美股收盤序列更新（05:08，2026-08-05 建立、2026-08-07 補記本檔）：
 
-> （排程自動觸發）美股收盤序列更新（費半 ^SOX／台積電 ADR 昨夜收盤入檔，供 06:35 晨報引用；台北 05:08＝美東收盤後，夏令 17:08／冬令 16:08）——全程不跑任何資料抓取腳本、不動 reports/**：① 用 mcp__github__actions_run_trigger（method=run_workflow、workflow_id=afterhours_refresh.yml、ref=main）觸發刷新，成功觸發即收工、不等它跑完；MCP 不可用時備援＝在本會話指定分支寫 .ping/afterhours（內容任意）後 git add -f、commit、push——該路徑 push 會自動觸發同一 workflow。② send_later 排 35 分鐘後自驗：git fetch origin main 讀 data/macro_chips.json，series.sox 與 series.tsm_adr 須含最近一個美股交易日（以前一美東平日為準；美股休市日無新 bar 屬正常、勿誤報——拿不準就查前一日 reports/macrocal 市況段「美股」欄）；缺 → 補 dispatch 一次、再 send_later 20 分鐘後檢查，仍缺才 PushNotification 一句話（缺什麼＋afterhours run 日誌看到的原因）；已到或休市 → 安靜結束、不推播（失敗才推播）。send_later／create_trigger 若回 MCP error -32003（需審批、無人值守無法核准）：勿跳過自驗、也勿只推播「排程失敗」了事——改用 Bash run_in_background 背景 until 迴圈（每 5 分鐘 git fetch origin main 檢查一次直到自驗時點）等到時點喚醒後照樣自驗與後續處置，機制見 CLAUDE.md「已知環境限制與防呆」-32003 條。
+> （排程自動觸發）美股收盤序列更新（費半 ^SOX／台積電 ADR 昨夜收盤入檔，供 06:35 晨報引用；台北 05:08＝美東收盤後，夏令 17:08／冬令 16:08）——全程不跑任何資料抓取腳本、不動 reports/**：① 用 mcp__github__actions_run_trigger（method=run_workflow、workflow_id=afterhours_refresh.yml、ref=main）觸發刷新，成功觸發即收工、不等它跑完；MCP 不可用時備援＝在本會話指定分支寫 .ping/afterhours（內容任意）後 git add -f、commit、push——該路徑 push 會自動觸發同一 workflow。② send_later 排 35 分鐘後自驗：git fetch origin main 讀 data/macro_chips.json，series.sox 與 series.tsm_adr 須含最近一個美股交易日（以前一美東平日為準；美股休市日無新 bar 屬正常、勿誤報——休市日以 arm/usnews._US_MKT_HOLIDAYS（NYSE 公告表）為準）；缺 → 補 dispatch 一次、再 send_later 20 分鐘後檢查，仍缺才 PushNotification 一句話（缺什麼＋afterhours run 日誌看到的原因）；已到或休市 → 安靜結束、不推播（失敗才推播）。send_later／create_trigger 若回 MCP error -32003（需審批、無人值守無法核准）：勿跳過自驗、也勿只推播「排程失敗」了事——改用 Bash run_in_background 背景 until 迴圈（每 5 分鐘 git fetch origin main 檢查一次直到自驗時點）等到時點喚醒後照樣自驗與後續處置，機制見 CLAUDE.md「已知環境限制與防呆」-32003 條。
 
 Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建立）：
 
@@ -455,7 +455,7 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
     `check_afterhours_fresh.py --guard` 守門**零請求早退**——多班次不放大對 TWSE/etfinfo 的請求，
     仍是對齊公布時點的事件驅動、**不是高頻輪詢**（07-31 與使用者確認過不做 30 分鐘輪詢，此原則不變）；
   ③ **當日完整性看門狗**（同腳本 `--write`/`--assert`；根治「run 全綠、無 commit、沒人知道」）：
-    交易日（讀當日 macrocal 市況段判休市）16:30 後三大法人須含今日、22:45 後融資融券須含今日且
+    交易日（**證交所官方休市表** `arm/twholidays`；2026-10-13 前是讀行事曆市況段，見「資料可信度盤查」專節）16:30 後三大法人須含今日、22:45 後融資融券須含今日且
     NAV 不斷更，缺 → `data/afterhours_alert.json` 入板（儀表板「網頁更新時間」列紅章＋瀏覽器端
     16:40／22:50 兩個時窗的延遲橫幅）＋ workflow 最後一步 exit 1（run ❌ → GitHub 寄 failure 信）
     ＋ Routine 自驗 25~60 分後失敗才 PushNotification（使用者 2026-08-03 選「失敗才推播」）。
@@ -831,6 +831,31 @@ iOS Safari 皆同一條路，零外掛；CJK 字型交給瀏覽器）；「預�
   只確認「有查」，不強求一定有事件（法說淡季本來就可能沒有）。
 - **生效條件**：呈現與相容＝merge 進 main；提示包與閘門＝merge 後「排程搬家」（同其他版型規則的傳播機制）。
 
+## 資料可信度盤查與因應（2026-10-13 使用者：「你行事曆的資料是不是第一手的？你抓資料要確認資料的可信度還有穩定度」）
+
+**盤查結論**：行事曆除「台股觀察清單」（讀持股落檔）外，日期／實際值／前值／市況全由子代理每天依搜尋摘要
+重寫——非第一手；預期值（市場共識）本來就沒有第一手來源，維持第三方並標 *。三個實證風險：
+① **控制面依賴**：盤後看門狗 `check_afterhours_fresh.is_trading_day()` 與鮮度 `_tw_closed_days()` 都讀行事曆
+「市況」段決定台股有沒有開——**2026-10-05～08 市況連四天寫「台股 正常交易」，同週 10/09 國慶補假其實休市**
+（今日重點 chip 因此連四天告訴讀者「本週無休市」；9/29～10/02 對 9/28 教師節同型）；
+② **每日重寫不穩定**：同週相鄰兩日比對 79 組／1,387 列——日期變動 14 次（含 6 月貿易收支 08/04→08/05→08/04
+來回翻）、已公布實際值改寫 19 次、前值變動 64 次；③ **年度表到期**：美股假日表只到 2026、無測試守。
+**分三階段因應**（使用者同意；第三步非官方但可信度足夠者可收，須註明來源層級）：
+
+### Phase 1：官方休市表（2026-10-13 完成）
+- `arm/twholidays.py`：**證交所官方表優先**——CI 每日 `scripts/fetch_tw_holidays.py`（`daily_fund.sh`）抓
+  `openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule`（欄位 Name／Date＝民國 7 碼／Weekday／Description；
+  週末列、「最後交易日／開始交易日」不算休市、「無交易僅辦理結算交割」算）→ `data/tw_holidays.json`（**必須入庫**，
+  `.gitignore` 例外＋daily.yml add 已設）。一年解析 <5 天不採信、抓不到沿用既有（fail-open）、與種子不一致印日誌。
+- **內建 2026 種子 `SEED`**（容器擋 twse、不必等 CI 首輪）：18 個平日休市，兩來源核對＋總數自洽
+  （2026 平日 261 − 證交所公告交易日 243 ＝ 18）。
+- 消費端：`is_trading_day()`／`_tw_closed_days()` 官方表涵蓋的年份**只信官方**（行事曆誤寫休市不入表、
+  漏寫也照樣判休市），未涵蓋才退回文字；`usnews.calendar_anchor()` 加「台股近 10 日休市（證交所官方表）」行，
+  行事曆提示包也帶入整段錨定。美股表補 2027（NYSE Group 2026–2028 公告；11/26 提前收盤不列）並改名 `_US_MKT_HOLIDAYS`。
+- 閘門 `check_reports._check_calendar_holidays`：本週官方休市日市況台股欄沒寫／寫了官方沒有的休市日 → 🔴
+  （歷史回測正好抓出上述 8 天）。`tests/test_twholidays.py::test_holiday_tables_cover_next_45_days`：
+  台／美任一表未涵蓋「今日＋45 天」→ 紅＝**每年 11 月中逼補下一年**（證交所通常 10 月底公告隔年表）。
+
 ## 儀表板「🕒 資料更新時間」區塊
 
 **版面（2026-09-24 使用者：「要點才會出現對應資訊不好用」，分頁架構維持不動）**：四分頁內的各段
@@ -848,7 +873,7 @@ ETF 數據追蹤／ETF 持股揭露／總經・籌碼數據／儀表板產表。
 **逾期判定分兩種口徑（2026-09-28 使用者抓包誤報）**：跟著台股交易日產生的四項——NAV 日、ETF 持股揭露、
 多期報酬（鉅亨）、ETF 資料基準——以**交易日**計（`_trade_age`；sources 第 4 欄／`_fresh_chip(trading=True)`），
 其餘（新聞、抓取時戳）照日曆天。當時 9/25 中秋＋週末＋9/28 教師節，資料停在 9/24 完全正確，日曆天口徑卻判
-「持股揭露／多期報酬逾期」。休市日由 `_tw_closed_days()` 讀 `reports/macrocal/*.md` 的週表休市列與市況段
+「持股揭露／多期報酬逾期」。休市日由 `_tw_closed_days()` 取**證交所官方休市表**（`arm/twholidays`，2026-10-13 起；官方表未涵蓋的年份才退回）讀 `reports/macrocal/*.md` 的週表休市列與市況段
 **寫明的日期**（前一天的檔會預告隔天休市，不可把檔案日期當休市）；行事曆沒寫到的休市只會偏嚴、不會漏報。
 
 **注意 `_freshness_view()` 只輸出「逾期」項目**（2026-07-30 踩坑）：資料正常時來源名稱

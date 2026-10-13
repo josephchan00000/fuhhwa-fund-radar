@@ -110,21 +110,26 @@ def test_trading_day_freshness_skips_weekend_and_holidays(monkeypatch):
 
 
 def test_tw_closed_days_reads_calendar_without_marking_the_preview_day(tmp_path, monkeypatch):
-    """休市日取自行事曆：週表休市列＋市況段寫明的日期；前一天的檔預告隔天休市時，
-    不可把檔案日期本身當休市（9/24 的市況寫「台股 9/25 因中秋節休市」）。"""
+    """行事曆文字＝官方休市表未涵蓋年份的後備（2026-10-13 起官方表優先，見 arm/twholidays）：
+    週表休市列＋市況段寫明的日期；前一天的檔預告隔天休市時，不可把檔案日期本身當休市
+    （9/24 的市況寫「台股 9/25 因中秋節休市」）。官方表涵蓋的年份，行事曆誤寫的休市不入表。"""
     from arm import fund_dashboard as fd
     mc = tmp_path / "reports" / "macrocal"
     mc.mkdir(parents=True)
-    (mc / "2026-09-24.md").write_text(
-        "> 更新：2026/09/24；市況：台股 9/25 因中秋節休市｜美股 正常交易；其他\n"
+    (mc / "2031-09-24.md").write_text(          # 2031：官方表未涵蓋 → 走行事曆文字後備
+        "> 更新：2031/09/24；市況：台股 9/25 因中秋節休市｜美股 正常交易；其他\n"
         "| 09/25 | 台股休市（中秋節） | — | — | — | 休市 |\n"
         "| 09/26 | 美：零售銷售 | — | — | — | 待公布 |\n", encoding="utf-8")
-    (mc / "2026-09-28.md").write_text(
-        "> 更新：2026/09/28；市況：台股 9/28 因教師節休市｜美股 正常交易\n", encoding="utf-8")
+    (mc / "2031-09-29.md").write_text(
+        "> 更新：2031/09/29；市況：台股 9/29 因教師節休市｜美股 正常交易\n", encoding="utf-8")
+    (mc / "2026-10-13.md").write_text(          # 2026：官方表涵蓋 → 行事曆誤寫的 10/14 休市不入表
+        "> 更新：2026/10/13；市況：台股 10/14 因颱風休市｜美股 正常交易\n", encoding="utf-8")
     monkeypatch.setattr(fd, "ROOT_DIR", tmp_path)
     fd._tw_closed_days.cache_clear()
     try:
-        assert fd._tw_closed_days() == frozenset({date(2026, 9, 25), date(2026, 9, 28)})
+        got = fd._tw_closed_days()
+        assert {date(2031, 9, 25), date(2031, 9, 29)} <= got and date(2031, 9, 24) not in got
+        assert date(2026, 10, 14) not in got and date(2026, 10, 26) in got
     finally:
         fd._tw_closed_days.cache_clear()
 
