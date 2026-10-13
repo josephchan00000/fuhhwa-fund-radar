@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/13 12:44",
+  "as_of": "2026/10/13 15:46",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -20,7 +20,7 @@
     {
       "title": "AI商機從大廠向外擴散復華投信解析下一批台股新星| 財經焦點| 產經",
       "url": "https://udn.com/news/story/7238/9798554",
-      "source": "UDN",
+      "source": "udn",
       "date": "2026-10-12 00:00",
       "datetime": "2026-10-12T00:00:00+08:00"
     },
@@ -120,7 +120,7 @@
         {
           "title": "兩大產業相關係數僅 0.58！科技股拉回引導資金轉入金融 00998A 迎跨國配置布局甜蜜點",
           "url": "https://n.yam.com/Article/20261013543803",
-          "source": "蕃新聞",
+          "source": "觀傳媒",
           "date": "2026-10-13 10:38",
           "datetime": "2026-10-13T10:38:00+08:00"
         }
@@ -196,18 +196,18 @@
           "datetime": "2026-10-13T10:46:27+08:00"
         },
         {
+          "title": "別只死守大盤權值股！中小型股迎「獲利＋評價」00418A 主動挖寶下一顆台股明星",
+          "url": "https://n.yam.com/Article/20261013195572",
+          "source": "Yahoo新聞",
+          "date": "2026-10-13 10:55",
+          "datetime": "2026-10-13T10:55:00+08:00"
+        },
+        {
           "title": "傳產零組件華麗轉身AI供應鏈 00418A萬元搶先卡位「重估價差」甜蜜點",
           "url": "https://tw.news.yahoo.com/%E5%82%B3%E7%94%A2%E9%9B%B6%E7%B5%84%E4%BB%B6%E8%8F%AF%E9%BA%97%E8%BD%89%E8%BA%ABai%E4%BE%9B%E6%87%89%E9%8F%88-00418a%E8%90%AC%E5%85%83%E6%90%B6%E5%85%88%E5%8D%A1%E4%BD%8D-%E9%87%8D%E4%BC%B0%E5%83%B9%E5%B7%AE-%E7%94%9C%E8%9C%9C%E9%BB%9E-030630895.html",
           "source": "Yahoo新聞",
           "date": "2026-10-13 11:06",
           "datetime": "2026-10-13T11:06:30+08:00"
-        },
-        {
-          "title": "別只死守大盤權值股！中小型股迎「獲利＋評價」00418A 主動挖寶下一顆台股明星",
-          "url": "https://n.yam.com/Article/20261013195572",
-          "source": "觀傳媒",
-          "date": "2026-10-13 10:55",
-          "datetime": "2026-10-13T10:55:00+08:00"
         },
         {
           "title": "除「瑤池金母」外還有9倍女戰神！戎宜蘋00418A 10/21起募集| 財經",
@@ -556,7 +556,7 @@
       "board": "資產配置",
       "title": "資產再平衡：AI一直要我提高現金，轉入債券",
       "url": "https://fundhot.com/forum/%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE/%E8%B3%87%E7%94%A2%E5%86%8D%E5%B9%B3%E8%A1%A1%EF%BC%9AAI%E4%B8%80%E7%9B%B4%E8%A6%81%E6%88%91%E6%8F%90%E9%AB%98%E7%8F%BE%E9%87%91%EF%BC%8C%E8%BD%89%E5%85%A5%E5%82%B5%E5%88%B8/14000",
-      "date": "2026-10-12"
+      "first_seen": "2026-10-13"
     },
     {
       "platform": "fundhot",
@@ -592,7 +592,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/6Pmy_7PNRYk",
       "date": "2026-10-06",
-      "views": 914307,
+      "views": 937199,
       "official": true,
       "short": true
     },
@@ -602,7 +602,7 @@
       "channel": "復華投信",
       "url": "https://www.youtube.com/shorts/bOyDe1wftI8",
       "date": "2026-10-06",
-      "views": 874450,
+      "views": 904841,
       "official": true,
       "short": true
     },
@@ -612,7 +612,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
       "date": "2026-10-11",
-      "views": 13393,
+      "views": 13783,
       "short": true
     },
     {
@@ -621,7 +621,7 @@
       "channel": "家裡隨便聊",
       "url": "https://www.youtube.com/watch?v=60AtWmRFdeA",
       "date": "2026-10-08",
-      "views": 562
+      "views": 578
     },
     {
       "platform": "youtube",
@@ -629,7 +629,7 @@
       "channel": "天腳下說書人",
       "url": "https://www.youtube.com/shorts/FkfJvJ2QA10",
       "date": "2026-10-12",
-      "views": 330,
+      "views": 336,
       "short": true
     },
     {
@@ -638,7 +638,7 @@
       "channel": "基金小姐姐詹璇依",
       "url": "https://www.youtube.com/shorts/M1S5sZqkRDk",
       "date": "2026-10-09",
-      "views": 185207,
+      "views": 185053,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -649,7 +649,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=REtGASDFkEM",
       "date": "2026-10-12",
-      "views": 123151,
+      "views": 126547,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -659,7 +659,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/K73CdclhNdU",
       "date": "2026-10-10",
-      "views": 100360,
+      "views": 102786,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -670,7 +670,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/o_1UZ5iP8RU",
       "date": "2026-10-08",
-      "views": 92777,
+      "views": 93501,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -681,7 +681,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=o4KXRKrwlUs",
       "date": "2026-10-10",
-      "views": 90614,
+      "views": 90806,
       "peer": true,
       "cat": "高股息"
     },
@@ -691,7 +691,7 @@
       "channel": "永豐金證券",
       "url": "https://www.youtube.com/watch?v=PXpvZEf2HpM",
       "date": "2026-10-10",
-      "views": 85901,
+      "views": 86550,
       "peer": true,
       "cat": "主動式"
     },
@@ -701,20 +701,9 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=YISny6TMPRY",
       "date": "2026-10-10",
-      "views": 77921,
+      "views": 79066,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "同樣是市值型ETF 放棄0050賺更多？台股上漲全靠科技股 小台積電0052更好賺？",
-      "channel": "財富履行團",
-      "url": "https://www.youtube.com/shorts/u2QNrUrddUc",
-      "date": "2026-10-08",
-      "views": 70697,
-      "peer": true,
-      "short": true,
-      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -722,7 +711,7 @@
       "channel": "非凡Hot台股",
       "url": "https://www.youtube.com/watch?v=Im5Efa57w3g",
       "date": "2026-10-09",
-      "views": 60859,
+      "views": 61504,
       "peer": true,
       "cat": "高股息"
     },
@@ -735,12 +724,22 @@
       "views": 59440,
       "peer": true,
       "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "看好的股票不漲，別人的一直漲！前基金經理人談：什麼時候該等、什麼訊號該減碼？｜ft.黃豐凱【理財資優生】EP96",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/watch?v=HF7hiHSeZpU",
+      "date": "2026-10-12",
+      "views": 52694,
+      "peer": true,
+      "cat": "基金"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全球物聯網科技 等 7 檔（詳下方新聞標籤）",
     "品牌焦點：復華觀點｜從想像空間邁入獲利兌現：復華全方位基金動態配置抓住AI長紅趨勢（鉅亨買基金）",
     "社群聲量最高：美股獲利預估上修！標普500上萬點可能提前到這一年（0 推）",
-    "YouTube 熱片：掌握大中小型潛力股 #00418A 三大成長類型 全方位拿下（復華投信・914,307 次觀看）"
+    "YouTube 熱片：掌握大中小型潛力股 #00418A 三大成長類型 全方位拿下（復華投信・937,199 次觀看）"
   ]
 }

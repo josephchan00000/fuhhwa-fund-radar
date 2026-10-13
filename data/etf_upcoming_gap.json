@@ -1,9 +1,27 @@
 {
- "as_of": "2026-10-13 12:46",
+ "as_of": "2026-10-13 15:50",
  "count": 0,
  "items": [],
- "pipeline_n": 2,
+ "pipeline_n": 4,
  "pipeline": [
+  {
+   "code": null,
+   "name": "凱基全球AI生態系主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
+   "cat": "主動式ETF"
+  },
+  {
+   "code": null,
+   "name": "野村臺灣科技收益主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
+   "cat": "主動式ETF"
+  },
   {
    "code": null,
    "name": "第一金全球加密科技ETF基金",
