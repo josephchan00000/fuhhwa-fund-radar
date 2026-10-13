@@ -745,7 +745,8 @@ def _cal_table_html(rows: list[dict], with_region: bool, held: dict | None = Non
 
 def _macro_cal_view(cal: dict | None, held: dict | None = None) -> str:
     """本週重點財經行事曆：經濟數據表（美歐中日，地區以彩色小徽章標示）＋
-    「台股法說・財報」子表（復華持股掛章，2026-10-13 起）＋「海外財報／法說」子表。"""
+    「台灣」子表（台：官方經濟數據＋台股：公司法說財報合一張，復華持股掛章）＋「海外財報／法說」子表。
+    台灣資訊集中一處、不拆兩張（2026-10-13 使用者：「不要讓資訊過於複雜零散」）。"""
     if not cal or not cal.get("rows"):
         return ('<div class="muted">尚無本週行事曆。請由會上網查證的 Claude 依提示包'
                 '產 <code>reports/macrocal/{date}.md</code>。</div>')
@@ -766,14 +767,14 @@ def _macro_cal_view(cal: dict | None, held: dict | None = None) -> str:
             note_html = f'<div class="calnote"><ul class="cnlist">{lis}</ul></div>'
         else:
             note_html = f'<div class="calnote">{_ic("bell", plain=True)} {_inline(note)}</div>'
-    data_rows = [r for r in cal["rows"] if r.get("region") not in ("財報", "台股")]
-    tw_rows = [r for r in cal["rows"] if r.get("region") == "台股"]
+    data_rows = [r for r in cal["rows"] if r.get("region") not in ("財報",) + macronews.TW_REGIONS]
+    tw_rows = [r for r in cal["rows"] if r.get("region") in macronews.TW_REGIONS]
     earn_rows = [r for r in cal["rows"] if r.get("region") == "財報"]
     html = note_html + _cal_table_html(data_rows, with_region=True)
     if tw_rows:
         n_held = sum(1 for r in tw_rows if _cal_hold_chip(r.get("item"), held))
         sub = f'<span class="stsub">{n_held} 項為復華持股</span>' if n_held else ""
-        html += (f'<div class="calsub tw">{_ic("chart", plain=True)} 台股法說・財報 {sub}</div>'
+        html += (f'<div class="calsub tw">{_ic("chart", plain=True)} 台灣：經濟數據・法說財報 {sub}</div>'
                  + _cal_table_html(tw_rows, with_region=False, held=held))
     if earn_rows:
         html += (f'<div class="calsub">{_ic("chart", plain=True)} 海外財報／法說</div>'
@@ -2481,7 +2482,7 @@ a.tk:hover{color:var(--acc)}
 .creg.cn{color:#a02c2c;background:rgba(206,66,66,.13);border-color:rgba(206,66,66,.4)}
 .creg.jp{color:#0f6f6b;background:rgba(23,146,140,.13);border-color:rgba(23,146,140,.42)}
 .calsub{margin:16px 0 6px;font-size:14px;font-weight:800;color:var(--ink);padding-left:9px;border-left:4px solid #2f9d57}
-.calsub.tw{border-left-color:#c8102e}
+.calsub.tw{border-left-color:#3a8a2a}
 .chold{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 6px;margin-left:6px;border-radius:5px;vertical-align:1px;white-space:nowrap;color:#8a5a00;background:rgba(214,158,46,.18)}
 .chip.halt{color:#8a5410;background:rgba(200,118,15,.12);border-color:rgba(200,118,15,.5);font-weight:700}
 /* 總經：市場溫度計（全球指標＋台股籌碼）——第一欄（指標）凍結，數值欄手機可左右捲 */

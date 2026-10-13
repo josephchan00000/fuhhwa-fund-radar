@@ -23,6 +23,8 @@
     「🔹**…總覽**」粗體行，舊解析只認 ## 標題，網頁與列印版的美股總覽靜默空了三週）
   · 行事曆：表頭「更新：」需為今日；2026-10-13 起須有「台股：」公司法說／財報列（代號必填、≤10 列），
     或註明「台股：本週無觀察清單內公司法說／財報」——只確認有查，不強求一定有事件
+  · 行事曆精簡（2026-10-13 起）：「台：」台灣經濟數據列（≤4）或註明「台：本週無台灣重點經濟數據」；
+    總列數 ≤30（休市列不計）；引言 ≤220 字（只留更新／市況／本週焦點）
 
 用法：TZ=Asia/Taipei python3 scripts/check_reports.py [YYYY-MM-DD]（預設今日台北）
 """
@@ -276,6 +278,8 @@ def _check_calendar(path: Path, date: str) -> list[str]:
         errs.append(f"{rel}：表頭「更新：」非今日（{d_slash}）")
     if date >= TWCAL_SINCE:
         errs += _check_calendar_tw(md, rel)
+    if date >= CALSLIM_SINCE:
+        errs += _check_calendar_slim(md, rel)
     return errs
 
 
@@ -299,6 +303,33 @@ def _check_calendar_tw(md: str, rel: str) -> list[str]:
                         "儀表板才比對得到復華持股")
     if len(tw) > macronews.TW_CAL_MAX:
         errs.append(f"{rel}：台股列 {len(tw)} 列超過 {macronews.TW_CAL_MAX}——持股多者優先，其餘在「註」帶過")
+    return errs
+
+
+# ── 行事曆台灣數據＋精簡上限（2026-10-13 使用者：「不要讓資訊過於複雜零散」）──
+# 近 12 份行事曆 20–39 列（美國單區 10–24 列、同一指標拆成月增／年增／核心多列）、引言 314–418 字
+# （「昨夜重點」與同頁政策總覽重複）。加入台灣官方數據的同時把上限講死，總量才不會只增不減。
+CALSLIM_SINCE = "2026-10-13"
+
+
+def _check_calendar_slim(md: str, rel: str) -> list[str]:
+    from arm import macronews
+    rows = macronews._parse_cal_rows(md)
+    errs = []
+    tw_data = [r for r in rows if r["region"] == "台"]
+    if not tw_data and not re.search(r"(?<!股)台[：:]\s*本週無", md):
+        errs.append(f"{rel}：沒有「台：」台灣經濟數據列，也沒註明「台：本週無台灣重點經濟數據」"
+                    "——央行理監事會／出口／外銷訂單／CPI／GDP／景氣燈號六類逐項查證")
+    if len(tw_data) > macronews.TW_DATA_MAX:
+        errs.append(f"{rel}：台灣數據 {len(tw_data)} 列超過 {macronews.TW_DATA_MAX}——只收六類核心數據")
+    n = sum(1 for r in rows if "休市" not in (r.get("status") or ""))
+    if n > macronews.CAL_MAX_ROWS:
+        errs.append(f"{rel}：行事曆 {n} 列超過 {macronews.CAL_MAX_ROWS}（休市列不計）——同一指標的月增／年增／"
+                    "核心併一列、刪非排定事件、依市場影響刪尾端")
+    note = macronews._cal_note(md)
+    if len(note) > macronews.CAL_NOTE_MAX:
+        errs.append(f"{rel}：引言 {len(note)} 字超過 {macronews.CAL_NOTE_MAX}——只寫「更新／市況／本週焦點」，"
+                    "昨夜重點不寫（同頁政策總覽已有），來源說明放表下「註」")
     return errs
 
 

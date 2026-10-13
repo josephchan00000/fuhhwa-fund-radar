@@ -174,8 +174,36 @@ def test_check_calendar_tw_gate(monkeypatch):
     assert check._check_calendar_tw(legacy, "c.md") == []    # 舊版型寫在財報：也算有查
     no_code = head + "| 10/15 | 台股：聯發科法說會 | — | — | — | 未公布 |\n"
     assert any("缺代號" in e for e in check._check_calendar_tw(no_code, "c.md"))
-    many = head + "".join(tw(i) for i in range(11))
-    assert any("超過 10" in e for e in check._check_calendar_tw(many, "c.md"))
+    many = head + "".join(tw(i) for i in range(9))
+    assert any("超過 8" in e for e in check._check_calendar_tw(many, "c.md"))
+
+
+def test_check_calendar_slim_gate():
+    # 2026-10-13 使用者：「不要讓資訊過於複雜零散」——台灣數據要查、總列數與引言長度設上限
+    import importlib
+    sys.path.insert(0, str(ROOT / "scripts"))
+    check = importlib.import_module("check_reports")
+    head = "| 日期 | 項目 | 預期 | 實際 | 前值 | 狀態 |\n|---|---|---|---|---|---|\n"
+    row = lambda i, item="美：數據", st="未公布": f"| 10/1{i % 5} | {item}{i} | — | — | — | {st} |\n"
+    note = "> 更新：2026/10/13；市況：台股 正常交易；本週焦點：10/15 台積電法說\n\n"
+    tw = row(0, "台：9月出口（年增）")
+    ok = note + head + tw + "".join(row(i) for i in range(10))
+    assert check._check_calendar_slim(ok, "c.md") == []
+    no_tw = note + head + "".join(row(i) for i in range(10))
+    assert any("沒有「台：」" in e for e in check._check_calendar_slim(no_tw, "c.md"))
+    said = no_tw + "註：\n- 台：本週無台灣重點經濟數據\n"
+    assert check._check_calendar_slim(said, "c.md") == []
+    only_stock_note = no_tw + "- 台股：本週無觀察清單內公司法說／財報\n"     # 台股的註記不能頂替台灣數據
+    assert any("沒有「台：」" in e for e in check._check_calendar_slim(only_stock_note, "c.md"))
+    big = note + head + tw + "".join(row(i) for i in range(30))
+    assert any("超過 30" in e for e in check._check_calendar_slim(big, "c.md"))
+    holidays = note + head + tw + "".join(row(i) for i in range(29)) + "".join(
+        row(i, "休市", "休市") for i in range(5))
+    assert check._check_calendar_slim(holidays, "c.md") == []          # 休市列不計入上限
+    long_note = "> 更新：2026/10/13；昨夜重點：" + "事" * 230 + "\n\n" + head + tw
+    assert any("引言" in e for e in check._check_calendar_slim(long_note, "c.md"))
+    many_tw = note + head + "".join(row(i, "台：數據") for i in range(5))
+    assert any("台灣數據 5 列" in e for e in check._check_calendar_slim(many_tw, "c.md"))
 
 
 def test_check_head_sections_gate(tmp_path, monkeypatch):
