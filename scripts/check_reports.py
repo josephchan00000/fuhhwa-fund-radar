@@ -23,6 +23,8 @@
     「🔹**…總覽**」粗體行，舊解析只認 ## 標題，網頁與列印版的美股總覽靜默空了三週）
   · 行事曆：表頭「更新：」需為今日；2026-10-13 起須有「台股：」公司法說／財報列（代號必填、≤10 列），
     或註明「台股：本週無觀察清單內公司法說／財報」——只確認有查，不強求一定有事件
+  · 行事曆漂移（2026-10-14 起）：與同週昨日版相比，日期改了、已公布實際值的數字不見了、已公布退回未公布，
+    而「註」沒有「修正：」交代 → 🔴
   · 市況台股欄 vs 證交所官方休市表（2026-10-13 起）：本週官方休市日沒寫、或寫了官方表沒有的休市日 → 🔴
   · 行事曆精簡（2026-10-13 起）：「台：」台灣經濟數據列（≤4）或註明「台：本週無台灣重點經濟數據」；
     總列數 ≤30（休市列不計）；引言 ≤220 字（只留更新／市況／本週焦點）
@@ -283,6 +285,31 @@ def _check_calendar(path: Path, date: str) -> list[str]:
         errs += _check_calendar_slim(md, rel)
     if date >= HOLIDAY_SINCE:
         errs += _check_calendar_holidays(md, rel, date)
+    if date >= DRIFT_SINCE:
+        errs += _check_calendar_drift(md, rel, date)
+    return errs
+
+
+# ── 行事曆漂移閘門（資料可信度盤查 Phase 2）──
+# 回測 2026-07～10：同週有前一版的 84 天中 15 天出現沒交代的改動（日期來回翻 14 次、已公布實際值
+# 改了 7 次——8 月失業率 4.3%→4.1%、時薪 3.7%→3.1%、核心 PCE 3.6%→3.3%…）。提示包已附昨日版當底稿；
+# 這裡擋「改了卻沒在註寫『修正：』」。換順序、補細節、精度不同、談話要點換句話說都不算改動。
+DRIFT_SINCE = "2026-10-14"
+
+
+def _check_calendar_drift(md: str, rel: str, date_iso: str) -> list[str]:
+    import datetime as _dt
+    from arm import macronews
+    today = _dt.date.fromisoformat(date_iso)
+    ws = macronews.cal_week_start(md, today)
+    prior = macronews.prior_cal(today, ws, cal_dir=ROOT / "reports" / "macrocal") if ws else None
+    if not prior:
+        return []
+    errs = []
+    for d in macronews.cal_drift(prior[1], md):
+        if not macronews.drift_explained(d, md):
+            errs.append(f"{rel}：「{d['item'][:20]}」{d['kind']}與昨日版不同（{d['old'][:16]} → {d['new'][:16]}）"
+                        "——若是官方修正／改期，在表下「註」加「修正：…（來源）」；否則照昨日版")
     return errs
 
 
