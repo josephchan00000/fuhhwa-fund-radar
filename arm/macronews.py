@@ -453,7 +453,13 @@ def anchor_matches(ev: dict, row: dict) -> bool:
     if (row.get("region") or "") != ev.get("region"):
         return False
     item = (row.get("item") or "").upper()
-    return any(all(k.upper() in item for k in grp) for grp in ev.get("match") or [])
+
+    def hit(k: str) -> bool:
+        # 月份詞要整詞比：「1月」不可命中「11月」、「2月」不可命中「12月」
+        if re.fullmatch(r"\d{1,2}月", k):
+            return re.search(rf"(?<!\d){k}", item) is not None
+        return k.upper() in item
+    return any(all(hit(k) for k in grp) for grp in ev.get("match") or [])
 
 
 def schedule_block(week_start: date, events: list[dict] | None = None) -> str:

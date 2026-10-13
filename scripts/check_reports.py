@@ -364,8 +364,11 @@ def _check_calendar_holidays(md: str, rel: str, date_iso: str) -> list[str]:
     except ValueError:
         return []
     years = twholidays.load()
+    names = twholidays.closed_days(years, with_provisional=True)
     days = [start + _dt.timedelta(n) for n in range((end - start).days + 1)]
-    days = [d for d in days if d.weekday() < 5 and d.year in years]
+    # 暫代年份（證交所表未公告、只有人事行政總處辦公日曆）：只驗「辦公日曆放假日有沒有寫」，
+    # 其餘平日 is_closed＝None（證交所可能另加休市日）→ 兩個方向都不驗
+    days = [d for d in days if d.weekday() < 5 and (d.year in years or d.year in twholidays.PROVISIONAL)]
     if not days:
         return []
     seg = re.search(r"市況：\s*台股\s*([^｜|；;]*)", macronews._cal_note(md) or "")
@@ -374,14 +377,25 @@ def _check_calendar_holidays(md: str, rel: str, date_iso: str) -> list[str]:
     if "休市" in seg:
         for mm, dd in re.findall(r"(\d{1,2})/(\d{1,2})", seg):
             claimed.add((int(mm), int(dd)))
+        # 區間寫法「2/12–2/20 因春節休市」：中間的日子也算有寫（只取端點會誤報漏寫）
+        for a, b, c, e in re.findall(r"(\d{1,2})/(\d{1,2})\s*[–\-~～至到]\s*(\d{1,2})/(\d{1,2})", seg):
+            try:
+                lo = _dt.date(start.year, int(a), int(b))
+                hi = _dt.date(start.year + (1 if int(c) < int(a) else 0), int(c), int(e))
+            except ValueError:
+                continue
+            for n in range(min((hi - lo).days, 31) + 1):
+                x = lo + _dt.timedelta(n)
+                claimed.add((x.month, x.day))
     errs = []
     for d in days:
         off = twholidays.is_closed(d, years)
         said = (d.month, d.day) in claimed
         if off and not said:
-            errs.append(f"{rel}：證交所官方表 {d:%m/%d} 台股休市（{twholidays.closed_days(years)[d]}），"
+            src = "證交所官方表" if d.year in years else "人事行政總處辦公日曆（證交所表未公告）"
+            errs.append(f"{rel}：{src} {d:%m/%d} 台股休市（{names.get(d, '休市')}），"
                         "市況「台股」欄沒寫——照提示包【交易日曆錨定】的官方休市表寫")
-        elif said and not off:
+        elif said and off is False:
             errs.append(f"{rel}：市況「台股」欄寫 {d:%m/%d} 休市，證交所官方表該日為交易日——勿自行推算假日")
     return errs
 
