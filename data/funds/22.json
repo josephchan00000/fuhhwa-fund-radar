@@ -11,18 +11,18 @@
   "risk_level": "RR3",
   "mgmt_fee": "1.00%",
   "size_twd": 7266788717.0,
-  "nav": 27.16,
-  "nav_date": "2026/09/23",
-  "nav_change": -0.1,
-  "nav_change_pct": "-0.37%",
+  "nav": 27.3,
+  "nav_date": "2026/10/08",
+  "nav_change": -0.18,
+  "nav_change_pct": "-0.66%",
   "returns": {
-    "ytd": "23.88%",
-    "3m": "-2.68%",
-    "6m": "14.07%",
-    "1y": "34.80%",
-    "2y": "37.77%",
-    "3y": "58.54%",
-    "since": "169.20%"
+    "ytd": "24.34%",
+    "3m": "-5.03%",
+    "6m": "22.04%",
+    "1y": "31.87%",
+    "2y": "38.07%",
+    "3y": "63.16%",
+    "since": "170.20%"
   },
   "managers": [
     "朱展志"
@@ -30,7 +30,7 @@
   "co_managers": [],
   "strategy": "分散投資於多元的全球各大類市場，兼顧資本利得和股息債息收益，提供多元獲利來源 充分分析並掌握各市場的中長期趨勢及風險變化，以利動態調整配置、汰弱換強，提升投資效率",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/22.pdf",
-  "dist_date": "2026/08/31",
+  "dist_date": "2026/09/30",
   "dist_rate": "—",
   "as_of": "2026/08/31",
   "top_holdings": [
@@ -85,54 +85,17 @@
       "weight": 3.03
     }
   ],
-  "asset_alloc": [
-    {
-      "name": "已開發國家股票",
-      "weight": 34.24
-    },
-    {
-      "name": "新興市場股票",
-      "weight": 18.37
-    },
-    {
-      "name": "環球債券",
-      "weight": 15.95
-    },
-    {
-      "name": "新興市場債券",
-      "weight": 12.96
-    },
-    {
-      "name": "產業股票",
-      "weight": 4.62
-    },
-    {
-      "name": "平衡型",
-      "weight": 4.07
-    },
-    {
-      "name": "非投資等級債券",
-      "weight": 1.56
-    },
-    {
-      "name": "貨幣市場",
-      "weight": 0.99
-    },
-    {
-      "name": "流動資產",
-      "weight": 7.22
-    }
-  ],
+  "asset_alloc": [],
   "country_alloc": [],
   "sector_alloc": [],
   "group": "global_fof",
-  "fetched_at": "2026-09-26 07:01",
+  "fetched_at": "2026-10-13 12:44",
   "returns_daily": {
-    "1m": 0.96654,
-    "3m": -3.37958,
-    "6m": 20.07073,
-    "1y": 33.07202,
-    "ytd": 24.9885
+    "1m": 1.18606,
+    "3m": -0.18282,
+    "6m": 16.17021,
+    "1y": 31.37632,
+    "ytd": 25.63277
   },
-  "returns_daily_asof": "2026/09/23"
+  "returns_daily_asof": "2026/10/08"
 }

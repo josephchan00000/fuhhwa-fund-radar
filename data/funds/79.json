@@ -11,18 +11,18 @@
   "risk_level": "RR4",
   "mgmt_fee": "1.20%",
   "size_twd": 19277740084.0,
-  "nav": 48.03,
-  "nav_date": "2026/09/24",
-  "nav_change": 0.06,
-  "nav_change_pct": "0.13%",
+  "nav": 49.5,
+  "nav_date": "2026/10/12",
+  "nav_change": 0.03,
+  "nav_change_pct": "0.06%",
   "returns": {
-    "ytd": "55.33%",
-    "3m": "0.43%",
-    "6m": "33.16%",
-    "1y": "83.43%",
-    "2y": "103.47%",
-    "3y": "149.28%",
-    "since": "369.40%"
+    "ytd": "57.91%",
+    "3m": "0.93%",
+    "6m": "41.69%",
+    "1y": "80.76%",
+    "2y": "110.96%",
+    "3y": "158.36%",
+    "since": "377.20%"
   },
   "managers": [
     "劉明滄"
@@ -30,7 +30,7 @@
   "co_managers": [],
   "strategy": "主要投資國內股票型(含ETF)及平衡型基金來參與台灣股市表現，並經由量化與質化分析，篩選表現相對強勢之子基金，追求較佳之上漲動能 研判市場趨勢與轉折，調整資產配置，以達到較佳的抗跌效果，創造長期相對穩健之績效",
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/79.pdf",
-  "dist_date": "2026/08/31",
+  "dist_date": "2026/09/30",
   "dist_rate": "—",
   "as_of": "2026/08/31",
   "top_holdings": [
@@ -85,34 +85,17 @@
       "weight": 4.81
     }
   ],
-  "asset_alloc": [
-    {
-      "name": "台灣股票",
-      "weight": 81.57
-    },
-    {
-      "name": "環球債券",
-      "weight": 14.59
-    },
-    {
-      "name": "貨幣市場",
-      "weight": 1.73
-    },
-    {
-      "name": "流動資產",
-      "weight": 2.1
-    }
-  ],
+  "asset_alloc": [],
   "country_alloc": [],
   "sector_alloc": [],
   "group": "tw_fof",
-  "fetched_at": "2026-09-26 07:01",
+  "fetched_at": "2026-10-13 12:44",
   "returns_daily": {
-    "1m": 6.0499,
-    "3m": 1.22234,
-    "6m": 39.33856,
-    "1y": 80.76778,
-    "ytd": 58.93448
+    "1m": 7.56193,
+    "3m": 7.91367,
+    "6m": 30.57241,
+    "1y": 80.39359,
+    "ytd": 63.79881
   },
-  "returns_daily_asof": "2026/09/24"
+  "returns_daily_asof": "2026/10/12"
 }
