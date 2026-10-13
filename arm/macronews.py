@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from . import usnews
@@ -307,6 +307,116 @@ def _cal_note(md: str) -> str:
         if s.startswith(">"):
             return s.lstrip("> ").strip()
     return ""
+
+
+# ── 行事曆「以昨日版為底稿」＋漂移偵測（資料可信度盤查 Phase 2，2026-10-13）──
+# 盤查實測：同週相鄰兩日比對 79 組／1,387 列，日期變動 14 次（6 月貿易收支 08/04→08/05→08/04
+# 來回翻）、已公布實際值改寫 19 次——每天從零重寫、只靠搜尋摘要，同一件事今天和昨天說法不同。
+# 改為：提示包附上「同週昨日版」當底稿增修；日期／已公布數字要改須在「註」寫「修正：」並附來源，
+# check_reports 比對昨日版擋下沒交代的改動。
+_CAL_WEEK = re.compile(r"（(\d{1,2})/(\d{1,2})[–\-~～]")
+_CAL_KEY_STRIP = re.compile(r"[\s（）()、，,．.：:\-—／/＊*「」]")
+_CAL_NUM = re.compile(r"[-+−]?\d+(?:\.\d+)?")
+
+
+def cal_week_start(md: str, file_date: date) -> date | None:
+    """行事曆標題「（10/12–10/16）」→ 週一日期（跨年週以檔案日期推年份）。"""
+    m = _CAL_WEEK.search(md or "")
+    if not m:
+        return None
+    mo, d = int(m.group(1)), int(m.group(2))
+    y = file_date.year + (mo == 1 and file_date.month == 12) - (mo == 12 and file_date.month == 1)
+    try:
+        return date(y, mo, d)
+    except ValueError:
+        return None
+
+
+def target_week_start(today: date) -> date:
+    """今日行事曆該涵蓋哪一週：平日＝本週一；週末＝下週一（同實際產出慣例）。"""
+    wd = today.weekday()
+    return today - timedelta(days=wd) if wd < 5 else today + timedelta(days=7 - wd)
+
+
+def prior_cal(today: date, week_start: date | None = None, cal_dir: Path | None = None) -> tuple[date, str] | None:
+    """同一週、日期早於 today 的最新一份行事曆 → (檔案日期, md)；週一第一份或找不到回 None。"""
+    ws = week_start or target_week_start(today)
+    for f in sorted((cal_dir or CAL_DIR).glob("*.md"), reverse=True):
+        m = re.match(r"(\d{4}-\d{2}-\d{2})\.md$", f.name)
+        if not m:
+            continue
+        fdate = date.fromisoformat(m.group(1))
+        if fdate >= today:
+            continue
+        if fdate < ws - timedelta(days=3):          # 比該週前一個週五還早＝不會是同週版本
+            break
+        md = f.read_text(encoding="utf-8")
+        if cal_week_start(md, fdate) == ws:
+            return fdate, md
+    return None
+
+
+def cal_key(r: dict) -> str:
+    return _CAL_KEY_STRIP.sub("", (r.get("region") or "") + (r.get("item") or ""))
+
+
+def _nums(s: str) -> list[str]:
+    return [x.replace("−", "-").replace("+", "") for x in _CAL_NUM.findall(s or "")]
+
+
+def _num_eq(x: str, y: str) -> bool:
+    """精度不同時以較粗的位數比（727 萬 vs 727.1 萬＝同一個數）。"""
+    dec = min(len(x.split(".")[1]) if "." in x else 0, len(y.split(".")[1]) if "." in y else 0)
+    return round(float(x), dec) == round(float(y), dec)
+
+
+def _nums_kept(old: list[str], new: list[str]) -> bool:
+    """昨日版的每個數字今天都還在＝沒改動（換順序、補充細節都不算；舊數字消失才算改了事實）。"""
+    return all(any(_num_eq(x, y) for y in new) for x in old)
+
+
+def _is_data_row(r: dict) -> bool:
+    """數據列（有數字前值／預期，或實際值本身就是數字開頭）才比數字；談話／會議要點裡的數字是附帶的。"""
+    return bool(_nums(r.get("prev")) or _nums(r.get("cons")) or _CAL_NUM.match((r.get("actual") or "").strip()))
+
+
+def cal_drift(prev_md: str, cur_md: str) -> list[dict]:
+    """同週兩版行事曆比對：同一列（前綴＋項目正規化後相同）的日期改了、已公布實際值的數字改了、
+    或已公布退回未公布 → [{key, item, kind, old, new}]。只比數字（「55.6」→「55.6%」、談話要點換句話說
+    都不算改動），項目改寫成另一種說法時對不上就不比（fail-open）。休市列不比。"""
+    prev = {cal_key(r): r for r in _parse_cal_rows(prev_md) if "休市" not in r["status"]}
+    out = []
+    for r in _parse_cal_rows(cur_md):
+        if "休市" in r["status"]:
+            continue
+        p = prev.get(cal_key(r))
+        if not p:
+            continue
+        if p["date"] != r["date"]:
+            out.append({"key": cal_key(r), "item": r["item"], "kind": "日期", "old": p["date"], "new": r["date"]})
+        if "已公布" in p["status"]:
+            if "已公布" not in r["status"]:
+                out.append({"key": cal_key(r), "item": r["item"], "kind": "狀態", "old": "已公布", "new": r["status"]})
+            elif (_is_data_row(p) and _nums(p["actual"]) and _nums(r["actual"])
+                  and not _nums_kept(_nums(p["actual"]), _nums(r["actual"]))):
+                out.append({"key": cal_key(r), "item": r["item"], "kind": "實際值", "old": p["actual"], "new": r["actual"]})
+    return out
+
+
+def drift_explained(d: dict, md: str) -> bool:
+    """「註」裡有一行寫「修正」且提到該項目（項目正規化後前 4 字）＝有交代。"""
+    tag = _CAL_KEY_STRIP.sub("", d["item"])[:4]
+    return any("修正" in ln and tag in _CAL_KEY_STRIP.sub("", ln) for ln in (md or "").splitlines()
+               if not ln.lstrip().startswith("|"))
+
+
+CAL_CARRY_RULE = """【以昨日版為底稿增修（2026-10-13 起；同一週才適用）】
+下方附「同週昨日版」行事曆——**在它上面增修，不要整份重寫**：
+  ① 已列的事件保留原寫法（項目文字不要換說法），除非事件取消或改期；
+  ② 日期與「已公布」列的實際值**不得改動**，除非官方修正／改期——改動時必須在表下「註」加一行
+     「修正：{項目}——原 X 改為 Y（來源：官方新聞稿或兩家主流媒體）」，沒寫「修正：」的改動內容 QA 會擋；
+  ③ 今天才公布的事件：狀態改「已公布」、填實際值（以官方新聞稿為準）；新事件照版型補列（守總列數上限）。
+"""
 
 
 def load_calendar() -> dict | None:
