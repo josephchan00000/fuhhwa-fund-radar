@@ -419,6 +419,58 @@ CAL_CARRY_RULE = """【以昨日版為底稿增修（2026-10-13 起；同一週�
 """
 
 
+# ── 核心排程錨（資料可信度盤查 Phase 3，2026-10-13）──
+# 盤查：行事曆日期全靠搜尋摘要（彙整站行事曆＋媒體），央行會議與重大數據的日期也會來回翻。
+# 改為：核心事件（各國央行決議、美國 CPI／非農、台灣官方數據）以 config/official_schedule.json 為準——
+# 每筆附來源與層級（official＝官方排程頁／主管機關新聞稿；secondary＝兩家主流媒體一致，使用者同意可收）。
+# 提示包帶「本週排程錨」、內容 QA 擋「核心事件沒列／日期不同」。檔案讀不到＝整段略過（fail-open）。
+SCHEDULE_PATH = ROOT / "config" / "official_schedule.json"
+_LEVEL = {"official": "官方", "secondary": "可信次級"}
+
+
+def load_schedule(path: Path | None = None) -> list[dict]:
+    try:
+        doc = json.loads((path or SCHEDULE_PATH).read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    out = []
+    for e in doc.get("events") or []:
+        try:
+            out.append({**e, "d": date.fromisoformat(e["date"])})
+        except Exception:
+            continue
+    return sorted(out, key=lambda e: e["d"])
+
+
+def week_anchors(week_start: date, events: list[dict] | None = None) -> list[dict]:
+    """該週（週一～週五）的排程錨。"""
+    evs = load_schedule() if events is None else events
+    return [e for e in evs if week_start <= e["d"] <= week_start + timedelta(days=4)]
+
+
+def anchor_matches(ev: dict, row: dict) -> bool:
+    """行事曆列是否為該排程事件：前綴相同，且 match 任一組關鍵詞全數出現在項目裡。"""
+    if (row.get("region") or "") != ev.get("region"):
+        return False
+    item = (row.get("item") or "").upper()
+    return any(all(k.upper() in item for k in grp) for grp in ev.get("match") or [])
+
+
+def schedule_block(week_start: date, events: list[dict] | None = None) -> str:
+    """提示包「本週核心排程錨」段；該週沒有錨＝空字串。"""
+    evs = week_anchors(week_start, events)
+    if not evs:
+        return ""
+    wd = "一二三四五六日"
+    lines = ["【本週核心排程錨（config/official_schedule.json；日期以此為準、這些事件必列）】"]
+    for e in evs:
+        t = f"——{e['time']}" if e.get("time") else ""
+        lines.append(f"· {e['d']:%m/%d}（週{wd[e['d'].weekday()]}）{e['region']}：{e['item']}{t}"
+                     f"［{_LEVEL.get(e.get('level'), e.get('level') or '')}］")
+    lines.append("若查到主管機關正式改期，照官方日期寫，並在表下「註」加「修正：{項目}——改期（來源）」。")
+    return "\n".join(lines)
+
+
 def load_calendar() -> dict | None:
     """dashboard 用：最新一份本週行事曆 {date, md, rows, note, title}。"""
     if not CAL_DIR.exists():

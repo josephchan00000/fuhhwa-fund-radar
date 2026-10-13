@@ -25,6 +25,7 @@
     或註明「台股：本週無觀察清單內公司法說／財報」——只確認有查，不強求一定有事件
   · 行事曆漂移（2026-10-14 起）：與同週昨日版相比，日期改了、已公布實際值的數字不見了、已公布退回未公布，
     而「註」沒有「修正：」交代 → 🔴
+  · 核心排程錨（2026-10-14 起）：config/official_schedule.json 列在本週的事件沒列、或日期不同且沒有「修正：」→ 🔴
   · 市況台股欄 vs 證交所官方休市表（2026-10-13 起）：本週官方休市日沒寫、或寫了官方表沒有的休市日 → 🔴
   · 行事曆精簡（2026-10-13 起）：「台：」台灣經濟數據列（≤4）或註明「台：本週無台灣重點經濟數據」；
     總列數 ≤30（休市列不計）；引言 ≤220 字（只留更新／市況／本週焦點）
@@ -287,6 +288,36 @@ def _check_calendar(path: Path, date: str) -> list[str]:
         errs += _check_calendar_holidays(md, rel, date)
     if date >= DRIFT_SINCE:
         errs += _check_calendar_drift(md, rel, date)
+    if date >= ANCHOR_SINCE:
+        errs += _check_calendar_anchors(md, rel, date)
+    return errs
+
+
+# ── 核心排程錨（資料可信度盤查 Phase 3）：config/official_schedule.json 的本週事件必列、日期須一致 ──
+ANCHOR_SINCE = "2026-10-14"
+
+
+def _check_calendar_anchors(md: str, rel: str, date_iso: str) -> list[str]:
+    import datetime as _dt
+    from arm import macronews
+    ws = macronews.cal_week_start(md, _dt.date.fromisoformat(date_iso))
+    if not ws:
+        return []
+    rows = macronews._parse_cal_rows(md)
+    errs = []
+    for ev in macronews.week_anchors(ws):
+        lv = {"official": "官方", "secondary": "可信次級"}.get(ev.get("level"), ev.get("level"))
+        hits = [r for r in rows if macronews.anchor_matches(ev, r)]
+        if not hits:
+            errs.append(f"{rel}：核心排程「{ev['region']}：{ev['item']}」（{ev['d']:%m/%d}，{lv}）沒列——本週排程錨必列")
+            continue
+        def _md(s):
+            m = re.match(r"\s*(\d{1,2})/(\d{1,2})", s or "")
+            return (int(m.group(1)), int(m.group(2))) if m else None
+        if not any(_md(r["date"]) == (ev["d"].month, ev["d"].day) for r in hits) and \
+                not macronews.drift_explained({"item": ev["item"]}, md):
+            errs.append(f"{rel}：「{ev['region']}：{ev['item']}」寫成 {hits[0]['date']}，排程錨為 "
+                        f"{ev['d']:%m/%d}（{lv}，{ev.get('source', '')[:60]}）——照錨寫；確屬官方改期須在「註」寫「修正：」")
     return errs
 
 
