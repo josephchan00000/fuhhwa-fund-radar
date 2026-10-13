@@ -275,9 +275,11 @@ def _mc_date(y: int, fm: int, m: int, d: int):
 @functools.lru_cache(maxsize=1)
 def _tw_closed_days() -> frozenset:
     """台股休市平日＝**證交所官方表**（arm/twholidays，2026-10-13 起）；官方表未涵蓋的年份才退回
-    讀行事曆文字（子代理每天重寫的市況段，漏寫或誤寫都會讓交易日口徑的鮮度判定失準）。"""
+    讀行事曆文字（子代理每天重寫的市況段，漏寫或誤寫都會讓交易日口徑的鮮度判定失準）。
+    證交所隔年表公告前，人事行政總處辦公日曆的放假日（暫代層，一定休市）照樣計入，
+    其餘仍由行事曆文字補。"""
     years = twholidays.load()
-    official = set(twholidays.closed_days(years))
+    official = set(twholidays.closed_days(years, with_provisional=True))
     out = set(official)
     for fp in sorted((ROOT_DIR / "reports" / "macrocal").glob("*.md"))[-90:]:
         fm_ = re.match(r"(\d{4})-(\d{2})-(\d{2})\.md$", fp.name)

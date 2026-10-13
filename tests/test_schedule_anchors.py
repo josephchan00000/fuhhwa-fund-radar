@@ -41,6 +41,11 @@ def test_anchor_matches_region_and_keywords():
     fomc = {"region": "美", "item": "FOMC", "match": [["FOMC"], ["聯準會", "利率"], ["Fed", "利率決議"]]}
     assert macronews.anchor_matches(fomc, {"region": "美", "item": "聯準會利率決議（10/27–28）"})
     assert macronews.anchor_matches(fomc, {"region": "美", "item": "fomc 利率決議"})        # 大小寫不拘
+    jan = {"region": "美", "item": "1月CPI", "match": [["1月", "CPI"]]}
+    assert macronews.anchor_matches(jan, {"region": "美", "item": "1月CPI（年增）"})
+    assert not macronews.anchor_matches(jan, {"region": "美", "item": "11月CPI（年增）"})   # 月份整詞比
+    feb = {"region": "美", "item": "2月CPI", "match": [["2月", "CPI"]]}
+    assert not macronews.anchor_matches(feb, {"region": "美", "item": "12月CPI"})
 
 
 _EVS = [{"d": date(2026, 10, 14), "date": "2026-10-14", "region": "美", "item": "9月CPI",
