@@ -60,6 +60,7 @@ CODE_RE = re.compile(r"^(\d{4}[A-Z]?|00\d{2,4}[A-Z]?)$")
 _TAG = re.compile(r"<[^>]+>")
 
 LOG: list[str] = []      # 本輪診斷（呼叫端可整批印）
+NAMES: dict[str, str] = {}  # 本輪解析價量時順手收的官方名稱（collect 併入 data/lab/names_mkt.json）
 
 
 def log(msg: str) -> None:
@@ -196,6 +197,9 @@ def parse_mi_index(doc) -> tuple[dict, dict]:
             close = num(r[cc])
             if close is None:
                 continue
+            cn = col(fields, "證券名稱")
+            if cn is not None:
+                NAMES[c] = _TAG.sub("", str(r[cn])).strip()
             q[c] = [num(r[co]) if co is not None else None,
                     num(r[ch]) if ch is not None else None,
                     num(r[cl]) if cl is not None else None,
@@ -311,6 +315,8 @@ def parse_tp_quotes(doc) -> dict:
             close = num(r[cc])
             if close is None:
                 continue
+            if len(r) > 1:
+                NAMES[c] = _TAG.sub("", str(r[1])).strip()
             g = (lambda k: (num(r[k]) if k is not None and k < len(r) else None))
             out[c] = [g(co), g(ch), g(cl), close,
                       _int(r[cv]) if cv is not None and cv < len(r) else None,

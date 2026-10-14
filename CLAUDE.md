@@ -350,7 +350,7 @@
 `pipeline` 內申請中檔有無新生效。正常情況下每日已把新缺口補掉，週掃多半只是核對與清理。
 
 每週 Routine（台北週一 08:05）火進綁定會話執行；使用者手動打「ETF 募集週掃」也照跑。
-**全程不跑資料抓取腳本、不動 reports/**、只改 `data/etf_upcoming.json`**：
+**全程不跑資料抓取腳本、不動 reports/**、只改 `data/etf_upcoming.json`（＋審核相關時 `config/index_reviews.json`）**：
 
 1. `git fetch origin main` 後讀 **origin/main** 的 `data/etf_upcoming_gap.json`（CI 自動發現的
    漏網檔，見「新 ETF 自動發現層」專節；`items`＝待登錄的已核准／募集中／已掛牌檔＋
@@ -364,9 +364,17 @@
    - hint 檔等到日期公告 → 改填 `raise_start`/`raise_end`/`list_date` 正式欄位；
    - 已登錄檔核對募集期間／掛牌日／配息頻率有無異動；掛牌逾期條目清理；
    - 海外被動指數檔 `track: false`；**本家復華新檔最優先、絕不可漏**。
+2.5 **指數審核維護（2026-10-14 起；籌碼雷達「指數調整」資料源 `config/index_reviews.json`）**：
+   每週掃一次即可、只在「有事」時改檔——①`next` 標「推算／未公布」的日期，查官方公告
+   （富時羅素／證交所＝臺灣50、臺灣高股息；MSCI 半年度表＝00878；臺灣指數公司 technical notice
+   ＝00919／00929，通常前一個月初公布下月時程）→ 查到就改日期、`status:"官方"`；②公告日過後
+   把官方納入／刪除寫進 `history`（`adds`/`dels` 用 4 碼代號，`src` 至少一條、兩來源一致才寫），
+   並把 `next` 推到下一次；③規則若改版（成分檔數、緩衝名次）同步改 `rule`，數字不確定寫「未查證」。
+   **不猜日期、不猜名單**——查不到就維持「推算」。更新頂層 `as_of`＝今日；
+   `pytest tests/test_lab.py -q` 須綠（守 JSON 格式與代號）。
 3. 更新頂層 `as_of`＝今日 → pytest 全綠 → commit `chore: ETF 募集週掃 {日期}` push 本會話
-   指定分支——**push 動到該檔會自動觸發 daily.yml**（on.push.paths 含它），併檔段驗證後
-   帶進 main 重建上線，**不需人工 merge**。
+   指定分支——**push 動到該檔會自動觸發 daily.yml**（on.push.paths 含它與 `config/index_reviews.json`），
+   併檔段驗證後帶進 main 重建上線，**不需人工 merge**。
 4. 結果：**有異動 → PushNotification 一句話**（改了哪幾檔）；無異動 → 安靜結束不推播；
    失敗 → 推播卡在哪一步。
 
@@ -421,7 +429,7 @@ Routine prompt 原文④——美股收盤序列更新（05:08，2026-08-05 建�
 
 Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建立）：
 
-> （排程自動觸發）ETF 募集週掃——找到新 ETF 募集資訊、主動更新「即將登場」（使用者 2026-08-10 指示：主動更新、一週一次）。依 repo CLAUDE.md「指令：ETF 募集週掃」SOP 執行：全程不跑資料抓取腳本、不動 reports/**、只改 data/etf_upcoming.json。① git fetch origin main 讀 origin/main 的 data/etf_upcoming_gap.json（CI 自動發現的漏網檔）與 data/etf_upcoming.json 現況，pytest tests/test_etfwatch.py 看 stale guard 有無紅；② WebSearch 盤點（鉅亨 IPO 頁 fund.cnyes.com/IPO/index.htm＋MoneyDJ 新基金頁＋工商時報／經濟日報「投信新基金」稿，容器擋原頁就用搜尋摘要），逐檔兩來源核對：新核准檔補登（時程未定 raise_hint＋asof、未派碼 code:null）、hint 檔補正式日期、募集期間／掛牌日／配息頻率異動修正、掛牌逾期條目清理；海外被動指數檔 track:false；本家復華新檔最優先、絕不可漏；③ 更新頂層 as_of＝今日 → pytest 全綠 → commit「chore: ETF 募集週掃 {日期}」push 本會話指定分支（push 動到該檔自動觸發 daily.yml 併入 main 重建上線，不需人工 merge）；④ 有異動 → PushNotification 一句話列出異動檔；無異動 → 安靜結束不推播；失敗 → 推播卡在哪一步。
+> （排程自動觸發）ETF 募集週掃——找到新 ETF 募集資訊、主動更新「即將登場」（使用者 2026-08-10 指示：主動更新、一週一次）。依 repo CLAUDE.md「指令：ETF 募集週掃」SOP 執行：全程不跑資料抓取腳本、不動 reports/**、只改 data/etf_upcoming.json。① git fetch origin main 讀 origin/main 的 data/etf_upcoming_gap.json（CI 自動發現的漏網檔）與 data/etf_upcoming.json 現況，pytest tests/test_etfwatch.py 看 stale guard 有無紅；② WebSearch 盤點（鉅亨 IPO 頁 fund.cnyes.com/IPO/index.htm＋MoneyDJ 新基金頁＋工商時報／經濟日報「投信新基金」稿，容器擋原頁就用搜尋摘要），逐檔兩來源核對：新核准檔補登（時程未定 raise_hint＋asof、未派碼 code:null）、hint 檔補正式日期、募集期間／掛牌日／配息頻率異動修正、掛牌逾期條目清理；海外被動指數檔 track:false；本家復華新檔最優先、絕不可漏；③ 更新頂層 as_of＝今日 → pytest 全綠 → commit「chore: ETF 募集週掃 {日期}」push 本會話指定分支（push 動到該檔自動觸發 daily.yml 併入 main 重建上線，不需人工 merge）；③-b 依 CLAUDE.md 週掃步驟 2.5 維護 config/index_reviews.json（被動指數審核時程與官方結果：只改查得到官方公告的日期與名單、不猜，as_of＝今日，pytest tests/test_lab.py 須綠，與 etf_upcoming 同一個 commit push）；④ 有異動 → PushNotification 一句話列出異動檔；無異動 → 安靜結束不推播；失敗 → 推播卡在哪一步。
 
 ## 每日固定時間自動更新（2026-07-18 建立；同日改「火進主會話」模式）
 
@@ -1650,3 +1658,24 @@ ledger（ETF 部位帳本）／ta（技術指標）／analyze（逐檔彙整＋�
 t+5／t+20 收盤出場、扣來回 0.585%、對加權指數超額、同檔 5 日內重複只計一次、**樣本 <30 灰字不排名**——
 ETF 持股史從 2026-07 底才有，初期多數訊號樣本不足屬正常，別調門檻去「湊出好成績」（過擬合）。
 用字遵守專案禁用詞（tests 守）：只呈現訊號與歷史統計，不寫建議買賣／目標價。
+
+**擴充 ETF（2026-10-14 使用者：「別的規模大的 ETF 也可以納入」）**：`collect.update_extra_etfs()`——
+etf_holdings.yml 每輪 `fetch_lab.py --extra`：etfinfo 全清單依規模取前 45 名候選、排除已追蹤與債券／槓桿／
+反向／期貨字尾（B/L/R/U/K/D/C），抓持股後**台股權重 ≥70% 且 ≥10 檔才納入**（其餘記 `skip` 不再重抓），
+上限 30 檔。只進 pos 分片與 `data/lab/extra_etfs.json`（頁面標「擴充」），**不碰主頁策展的 ETF 追蹤表**。
+已到最新揭露日者跳過，每檔每天約 1～2 個 etfinfo 請求。擴充檔的部位帳本從納入當天起算（成本品質 B）。
+**etfinfo 清單鍵名首輪未知**——CI 日誌印「首筆鍵名」，0 候選時照鍵名修 `_pick()`。
+
+**指數調整（2026-10-14 使用者：「被動預計換的時間、依選股邏輯可能加入或踢除的個股」；分階段）**：
+`arm/lab/indexes.py`＋`config/index_reviews.json`（時程、規則摘要、歷次官方結果與來源；週掃步驟 2.5 維護、
+走 daily.yml 併檔通道）。
+- **第一階段（已做）**：①臺灣50 公告前預測——上市普通股總市值排名、40／61 緩衝、固定 50 檔；
+  截止日前用「還差幾 %」＋依 60 日波動估跨線機率，**截止日後改用截止日排名（指數公司用的那天）**；
+  刪除股賣量＝0050＋006208 實際持股，納入股買量＝ETF 股票部位 × 預估權重（成分股權重／市值中位數反推自由流通）；
+  ②回測：用歷次截止日價量重跑規則對照實際結果（審核前成分股＝生效日前一個 0050 揭露、更早的以實際結果往回推）；
+  ③所有被動 ETF（含擴充）近 10 日新進／出清／真加減碼彙整——換股期間先反映，不靠任何規則。
+- **第二階段**：00919／00929（需股利、前三季 EPS——先探針確認公開資訊觀測站免費端點）。
+- **第三階段**：0056 以證交所殖利率代理 I/B/E/S 預估（信心中低，上版但標信心）。
+- **不做**：00878 公告前預測（MSCI ESG 評分付費）——只做公告後與提前建倉追蹤。
+- 規則數字多取自規則摘要與媒體交叉（容器打不開官方 PDF）；0056 的 35／66 緩衝僅見轉述，寫進程式前要再核對。
+

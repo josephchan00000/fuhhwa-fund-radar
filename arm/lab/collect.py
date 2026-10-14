@@ -203,6 +203,10 @@ def fill_market(days: list[str], parts_for, *, budget_s: float, today: date,
         if changed:
             store.write("mkt", d, doc)
     store.write_json(NODATA, {k: sorted(v) for k, v in sorted(nod.items())})
+    if market.NAMES:
+        nm = store.read_json("names_mkt.json", {}) or {}
+        nm.update({k: v for k, v in market.NAMES.items() if v})
+        store.write_json("names_mkt.json", nm)
     return stat
 
 
@@ -221,3 +225,110 @@ def update_tdcc() -> bool:
 def prune_all(today: date) -> None:
     for k in ("mkt", "pos", "tdcc"):
         store.prune(k, today=today)
+
+
+# ── 擴充 ETF（2026-10-14 使用者：「別的規模大的 ETF 也可以納入」） ─────────
+# 只進籌碼雷達（pos 分片＋data/lab/extra_etfs.json），**不碰主頁策展的 ETF 追蹤表**。
+# 每輪自 etfinfo 全清單依規模挑台股權益型（主動＋被動）前 N 大，未追蹤者才抓持股。
+
+EXTRA_FP = "extra_etfs.json"
+EXTRA_TOP = 45          # 依規模取前 45 名候選（含已追蹤者），篩完通常剩 20～30 檔
+EXTRA_MAX = 30
+EXTRA_TW_SHARE = 0.7    # 台股權重 ≥70% 才算台股權益型（排除海外指數、債券、期貨型）
+_BAD_SUFFIX = ("B", "L", "R", "U", "K", "D", "C")   # 債券／槓桿／反向／期貨／海外等字尾
+
+
+def _pick(d: dict, *keys):
+    for k in keys:
+        for kk, v in d.items():
+            if kk.lower() == k.lower() and v not in (None, ""):
+                return v
+    return None
+
+
+def _aum(v) -> float:
+    try:
+        return float(str(v).replace(",", ""))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def extra_candidates(items: list[dict], tracked: set[str]) -> list[dict]:
+    out = []
+    for it in items or []:
+        if not isinstance(it, dict):
+            continue
+        code = str(_pick(it, "code", "symbol", "stockId", "id") or "").strip()
+        if not market.CODE_RE.match(code) or not code.startswith("00"):
+            continue
+        if code[-1].isalpha() and code[-1] in _BAD_SUFFIX:
+            continue
+        aum = _aum(_pick(it, "aum", "AUM", "fundSize", "size"))
+        style = str(_pick(it, "managementStyle", "style") or "").lower()
+        out.append({"code": code, "aum": aum, "name": _pick(it, "name", "shortName") or code,
+                    "style": "a" if style.startswith("act") or code.endswith("A") else "p",
+                    "issuer": _pick(it, "issuer", "company")})
+    out.sort(key=lambda x: -x["aum"])
+    return [x for x in out[:EXTRA_TOP] if x["code"] not in tracked]
+
+
+def update_extra_etfs(ref_date: str | None) -> int:
+    """抓擴充 ETF 持股寫進 pos 分片。ref_date＝已追蹤 ETF 的最新揭露日；擴充檔已到此日就跳過。"""
+    from ..connectors import etfinfo
+    try:
+        from .. import etfwatch
+        tracked = {t[0] for t in etfwatch.watch_tuples()}
+    except Exception:                                     # noqa: BLE001
+        tracked = set()
+    try:
+        items = etfinfo.list_etfs()
+    except Exception as e:                                # noqa: BLE001
+        market.log(f"etfinfo 全清單失敗：{e}")
+        return 0
+    if items:
+        market.log(f"etfinfo 全清單 {len(items)} 檔；首筆鍵名={list(items[0])[:16]}")
+    cands = extra_candidates(items, tracked)
+    if not cands:
+        market.log("擴充 ETF 候選 0 檔（清單鍵名不符？見上行）")
+        return 0
+    meta = store.read_json(EXTRA_FP, {}) or {}
+    etfs = meta.setdefault("etfs", {})
+    last_pos = {}
+    for d, doc in store.load("pos", last=12):
+        for e in (doc.get("etf") or {}):
+            last_pos[e] = d
+    n = 0
+    kept = 0
+    for c in cands:
+        if kept >= EXTRA_MAX:
+            break
+        code = c["code"]
+        old = etfs.get(code)
+        if old and old.get("skip"):
+            continue                                       # 已判定非台股權益型
+        if ref_date and last_pos.get(code, "") >= ref_date:
+            kept += 1
+            continue
+        try:
+            rows, m = etfinfo.holdings_fresh(code)
+        except Exception as e:                            # noqa: BLE001
+            market.log(f"擴充 {code} 持股失敗：{str(e)[:80]}")
+            continue
+        h = {r["stock_id"]: [r["shares"], r["weight"]] for r in rows if r.get("shares")}
+        tot = sum(v[1] or 0 for v in h.values()) or 1
+        tw = sum(v[1] or 0 for k, v in h.items() if k[:4].isdigit() and " " not in k) / tot
+        d = m.get("as_of")
+        if len(h) < 10 or tw < EXTRA_TW_SHARE or not d:
+            etfs[code] = {"n": c["name"], "skip": True, "why": f"{len(h)} 檔、台股權重 {tw:.0%}"}
+            continue
+        d = str(d)[:10]
+        etfs[code] = {"n": m.get("name") or c["name"], "k": c["style"],
+                      "is": m.get("issuer") or c.get("issuer"), "aum": c["aum"]}
+        merge_names({r["stock_id"]: r["stock_name"] for r in rows if r.get("stock_name")})
+        n += merge_snaps({d: {code: {"src": "etfinfo", "h": h, "px": {}, "cur": True}}})
+        kept += 1
+    meta["as_of"] = ref_date
+    store.write_json(EXTRA_FP, meta)
+    market.log(f"擴充 ETF：候選 {len(cands)}、納入 {sum(1 for v in etfs.values() if not v.get('skip'))}、"
+               f"本輪更新分片 {n}")
+    return n

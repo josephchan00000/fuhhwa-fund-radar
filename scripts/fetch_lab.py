@@ -20,7 +20,16 @@ RECENT_CAL_DAYS = 10     # 每輪檢查最近 10 個日曆天（含連假後補�
 def main() -> None:
     n = collect.update_pos_from_current()
     print(f"[lab] pos 分片更新 {n} 檔")
-    if "--pos-only" in sys.argv[1:]:
+    if "--extra" in sys.argv[1:]:
+        # 擴充 ETF 只在持股班次跑（etf_holdings.yml）：以已追蹤 ETF 的最新揭露日為基準，到位者跳過
+        import json
+        try:
+            hd = json.loads(collect.HOLD_FP.read_text(encoding="utf-8"))
+            ref = max((e.get("date") or "" for e in (hd.get("etfs") or {}).values()), default=None)
+        except Exception:                                 # noqa: BLE001
+            ref = None
+        collect.update_extra_etfs(ref)
+    if "--pos-only" in sys.argv[1:] or "--extra" in sys.argv[1:]:
         return
     today = clock.today_tw()
     days = collect.candidate_days(today, RECENT_CAL_DAYS)

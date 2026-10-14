@@ -179,3 +179,56 @@ def test_entrance_is_low_key_footer_link_only():
     assert src.count('href="x9.html"') == 1
     foot = src.split('<div class="foot">', 1)[1].split("</div>", 1)[0]
     assert 'href="x9.html"' in foot
+
+
+# ── 指數調整（臺灣50）與擴充 ETF ─────────────────────────────────────
+
+def test_tw50_buffer_rule_and_fixed_count():
+    from arm.lab import indexes
+    ranked = [(f"{1000 + i}", 1e12 - i * 1e9, 100.0) for i in range(120)]
+    cons = {f"{1000 + i}" for i in range(50)}
+    cons -= {"1039"}                      # 第 40 名不在成分股 → 必須納入
+    cons |= {"1065"}                      # 第 66 名在成分股 → 必須刪除
+    adds, dels = indexes.tw50_select(ranked, cons)
+    assert "1039" in adds and "1065" in dels
+    assert len(cons) - len(dels) + len(adds) == 50
+    # 41～60 名的成分股留任（緩衝區）
+    cons2 = {f"{1000 + i}" for i in range(40)} | {f"{1000 + i}" for i in range(45, 55)}
+    adds2, dels2 = indexes.tw50_select(ranked, cons2)
+    assert not dels2 and not adds2
+
+
+def test_tw50_common_stock_filter():
+    from arm.lab import indexes
+    assert indexes._common_tw("2330")
+    assert not indexes._common_tw("0050")       # ETF
+    assert not indexes._common_tw("2881A")      # 特別股
+    assert not indexes._common_tw("9105")       # TDR
+
+
+def test_index_reviews_config_is_well_formed():
+    import json
+    from pathlib import Path
+    d = json.loads(Path(__file__).resolve().parents[1].joinpath("config", "index_reviews.json")
+                   .read_text("utf-8"))
+    assert d.get("as_of") and d["indexes"]
+    for k, ix in d["indexes"].items():
+        assert ix.get("name") and ix.get("etfs") and ix.get("rule"), k
+        for h in ix.get("history") or []:
+            assert h.get("src"), (k, h.get("review"))          # 每筆結果都要有來源
+            for c in (h.get("adds") or []) + (h.get("dels") or []):
+                assert len(c) == 4 and c.isdigit(), (k, c)
+
+
+def test_extra_etf_candidates_filter():
+    from arm.lab import collect
+    items = [
+        {"code": "0050", "aum": 9e11, "managementStyle": "passive", "name": "元大台灣50"},
+        {"code": "009816", "aum": 2e11, "managementStyle": "passive", "name": "某台灣TOP50"},
+        {"code": "00679B", "aum": 3e11, "managementStyle": "passive", "name": "某美債20年"},
+        {"code": "00631L", "aum": 4e11, "managementStyle": "passive", "name": "某正2"},
+        {"code": "00940", "aum": 1e11, "managementStyle": "passive", "name": "某高息"},
+        {"code": "2330", "aum": 9e12, "name": "台積電"},
+    ]
+    out = collect.extra_candidates(items, tracked={"0050"})
+    assert [x["code"] for x in out] == ["009816", "00940"]     # 依規模、排除已追蹤／債券／槓桿／個股
