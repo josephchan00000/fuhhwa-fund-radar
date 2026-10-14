@@ -483,7 +483,7 @@ def run(data: Data | None = None) -> dict:
                              _lots(ev.conv if ev.kind != LG.EXIT else -ev.s0, tw)])
     for k in iev:
         iev[k].sort(key=lambda x: (x[0], abs(x[5] or 0)), reverse=True)
-        iev[k] = iev[k][:40]
+        iev[k] = iev[k][:300]       # 投信頁依股票彙整新建倉／加碼／減碼／出清檔數，截太短會少算（安聯 5 日就有 212 筆）
     mw_map = {r["c"]: r.get("mw") for r in rows}
     iss_w: dict[str, dict] = defaultdict(lambda: defaultdict(list))
     for etf in act_tw:
