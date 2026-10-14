@@ -42,7 +42,8 @@ class HD:
                     self.eps[c] = doc["eps"]
                 if c in tw_codes:
                     continue
-                for ex_c, cash, _ex_s, _st, _yr in doc.get("div") or []:
+                for row in doc.get("div") or []:
+                    ex_c, cash = row[0], row[1]
                     if ex_c and cash:
                         self.div[c].append((str(ex_c)[:10], float(cash), False))
         for c in self.div:
