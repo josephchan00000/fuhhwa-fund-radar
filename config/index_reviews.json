@@ -275,38 +275,198 @@
    "n": 50,
    "conf": "中低",
    "predict": null,
-   "rule": "母體＝臺灣50＋中型100；依 I/B/E/S 未來一年預測現金殖利率取 50 檔、殖利率加權；緩衝 35／66 名（摘要轉述、未見原文）；生效後 5 個交易日過渡",
+   "rule": "母體＝臺灣50＋中型100（2025-12 起限臺灣註冊、KY 股不得納入）；依 I/B/E/S 未來 12 個月預測現金殖利率排名（截止日收盤價）取 50 檔、殖利率加權；非成分股前 35 名納入、成分股第 66 名後刪除；每次最多 5 進 5 出（v4.2）；2025-12 起新進者須至少 2 位分析師預測、流動性與 6 個月報酬不在母體最低 10%；資料截止＝生效週一前 4 週的週一；審核月第一個週五盤後公告；第三個週五收盤後生效，其後 5 個交易日逐日過渡",
    "next": {
     "review": "2026-12",
+    "cutoff": "2026-11-23",
     "announce": "2026-12-04",
     "effective": "2026-12-18",
+    "trans_start": "2026-12-21",
+    "trans_end": "2026-12-28",
     "transition": 5,
+    "max_changes": 5,
     "status": "推算"
    },
    "history": [
     {
      "review": "2026-06",
+     "cutoff": "2026-05-25",
+     "announce": "2026-06-05",
      "effective": "2026-06-18",
-     "adds_names": [
-      "中興電",
-      "遠傳",
-      "南亞",
-      "南亞科",
-      "華邦電"
+     "trans_start": "2026-06-22",
+     "trans_end": "2026-06-26",
+     "adds": [
+      "1513",
+      "4904",
+      "1303",
+      "2408",
+      "2344"
      ],
-     "dels_names": [
-      "聚陽",
-      "瑞儀",
-      "東陽",
-      "東和鋼鐵"
+     "dels": [
+      "1477",
+      "6176",
+      "1319",
+      "2006"
+     ],
+     "aum": 7122,
+     "src": [
+      "https://news.cnyes.com/news/id/6486388",
+      "https://finance.ettoday.net/news/3178448",
+      "https://www.ctee.com.tw/news/20260605701573-430403"
+     ]
+    },
+    {
+     "review": "2026-03",
+     "kind": "季審",
+     "cutoff": "2026-02-23",
+     "announce": "2026-03-06",
+     "effective": "2026-03-20",
+     "trans_start": "2026-03-23",
+     "trans_end": "2026-03-27",
+     "adds": [],
+     "dels": [
+      "9941"
+     ],
+     "note": "季審只隨母體刪除、不遞補（49 檔）",
+     "src": [
+      "https://www.businesstoday.com.tw/article/category/183013/post/202603060040/",
+      "https://ctinews.com/news/items/gzaeJ5kgxm"
+     ]
+    },
+    {
+     "review": "2025-12",
+     "cutoff": "2025-11-24",
+     "announce": "2025-12-05",
+     "effective": "2025-12-19",
+     "trans_start": "2025-12-22",
+     "trans_end": "2025-12-29",
+     "adds": [
+      "2884",
+      "2645",
+      "3045"
+     ],
+     "dels": [
+      "5871",
+      "1504",
+      "4958"
+     ],
+     "aum": 5161,
+     "src": [
+      "https://news.cnyes.com/news/id/6263201",
+      "https://money.udn.com/money/story/5618/9184801",
+      "https://finance.ettoday.net/news/3079320"
+     ]
+    },
+    {
+     "review": "2025-06",
+     "cutoff": "2025-05-26",
+     "announce": "2025-06-06",
+     "effective": "2025-06-20",
+     "trans_start": "2025-06-23",
+     "trans_end": "2025-06-27",
+     "adds": [
+      "2883",
+      "9904",
+      "3023",
+      "2887",
+      "1216"
+     ],
+     "dels": [
+      "2383",
+      "2542",
+      "4763",
+      "1303",
+      "2609"
+     ],
+     "aum": 4668,
+     "src": [
+      "https://money.udn.com/money/story/5618/8790092",
+      "https://newtalk.tw/news/view/2025-06-07/975073",
+      "https://finance.ettoday.net/news/2973896"
+     ]
+    },
+    {
+     "review": "2024-12",
+     "cutoff": "2024-11-25",
+     "announce": "2024-12-06",
+     "effective": "2024-12-20",
+     "trans_start": "2024-12-23",
+     "trans_end": "2024-12-27",
+     "adds": [
+      "2618",
+      "2603",
+      "2542",
+      "2880",
+      "4763",
+      "5876",
+      "1504",
+      "2609"
+     ],
+     "dels": [
+      "1402",
+      "5522",
+      "3532",
+      "2809",
+      "2915",
+      "9917",
+      "1605"
+     ],
+     "aum": 3555,
+     "src": [
+      "https://finance.ettoday.net/news/2868990",
+      "https://ec.ltn.com.tw/article/breakingnews/4886189",
+      "https://www.businesstoday.com.tw/article/category/183013/post/202412070006/"
+     ]
+    },
+    {
+     "review": "2024-09",
+     "kind": "季審",
+     "cutoff": "2024-08-26",
+     "announce": "2024-09-06",
+     "effective": "2024-09-20",
+     "trans_start": "2024-09-23",
+     "trans_end": "2024-09-27",
+     "adds": [],
+     "dels": [
+      "4919"
+     ],
+     "note": "隨中型100 刪除同步剔除、不遞補（49 檔）",
+     "src": [
+      "https://www.ftnn.com.tw/news/298121",
+      "https://finance.ettoday.net/news/2812205"
+     ]
+    },
+    {
+     "review": "2024-06",
+     "cutoff": "2024-05-27",
+     "announce": "2024-06-07",
+     "effective": "2024-06-21",
+     "trans_start": "2024-06-24",
+     "trans_end": "2024-06-28",
+     "adds": [
+      "5871",
+      "3532",
+      "4919",
+      "1319",
+      "9941"
+     ],
+     "dels": [
+      "2409",
+      "3665",
+      "1301",
+      "2542",
+      "8046"
      ],
      "src": [
-      "https://news.cnyes.com/news/id/6486388"
+      "https://finance.ettoday.net/news/2753892",
+      "https://udn.com/news/story/123006/8017244"
      ]
     }
    ],
    "src": [
-    "https://www.twse.com.tw/downloads/zh/products/indices/IndexS33.pdf"
+    "https://www.twse.com.tw/downloads/zh/products/indices/IndexS33.pdf",
+    "https://www.lseg.com/content/dam/ftse-russell/en_us/documents/ground-rules/ftse-twse-taiwan-dividend-plus-index-ground-rules.pdf",
+    "https://www.yuantaetfs.com/product/detail/0056/Basic_information"
    ]
   },
   "msci_esg30": {
@@ -319,37 +479,178 @@
    "n": 30,
    "conf": "低",
    "predict": null,
-   "rule": "母體＝MSCI 臺灣指數；ESG 評級 BB 以上（付費資料）；股利分數＝0.25×近 12 月殖利率＋0.75×近 3 年平均殖利率取前 30；緩衝 21～40 名；單一上限 10%；投信常在生效日前分批建倉",
+   "rule": "母體＝MSCI 臺灣指數（大型＋中型）；MSCI ESG 評級 BB 以上、爭議分數 ≥3（付費資料）；當期與近 3 年各年殖利率任一組後 10% 剔除、股利波動過大剔除；股利分數＝0.25×近 12 個月殖利率＋0.75×近 3 年平均殖利率取 30 檔；2026-05 起前 20 名納入、既有成分股前 40 名留任；依股利分數加權、單檔上限 10%、個股投資金額 ≤ 發行市值 6%；與 MSCI 半年度審核（5／11 月）同日收盤生效；名單不公開發布——00878 約生效日前 5～6 個交易日開始分批換股、從每日持股揭露才看得到；母指數刪除時同步刪除、不遞補",
    "next": {
     "review": "2026-11",
-    "announce": "2026-11-11",
+    "announce": "2026-11-12",
+    "reveal": "2026-11-20",
     "effective": "2026-11-30",
+    "trans_start": "2026-11-20",
+    "trans_end": "2026-12-04",
     "transition": 0,
-    "status": "推算"
+    "status": "推算",
+    "note": "announce＝MSCI 公布日（台灣時間，不含本指數名單）；reveal＝預估 00878 開始換股、每日持股揭露看得到名單的日子；MSCI 價格截止日為 10 月最後 10 個營業日之一（事前不公布）；審核前 29 檔"
    },
    "history": [
     {
-     "review": "2026-05",
-     "effective": "2026-05-29",
-     "adds_names": [
-      "長榮",
-      "長榮航",
-      "華南金",
-      "台新新光金",
-      "統一超"
+     "review": "2026-08",
+     "kind": "季審",
+     "announce": "2026-08-13",
+     "reveal": "2026-08-17",
+     "effective": "2026-08-31",
+     "trans_start": "2026-08-17",
+     "trans_end": "2026-09-02",
+     "adds": [],
+     "dels": [
+      "3293"
      ],
-     "dels_names": [
-      "遠東新",
-      "仁寶",
-      "可成",
-      "京元電"
-     ],
+     "note": "MSCI 季審移出母指數、同步刪除不遞補（29 檔）",
      "src": [
-      "https://money.udn.com/money/story/5607/9541037"
+      "https://money.udn.com/money/story/5607/9688691",
+      "https://finance.technews.tw/2026/08/13/mscis-latest-quarterly-adjustments-have-been-released/"
+     ]
+    },
+    {
+     "review": "2026-05",
+     "announce": "2026-05-13",
+     "reveal": "2026-05-21",
+     "effective": "2026-05-29",
+     "trans_start": "2026-05-21",
+     "trans_end": "2026-06-04",
+     "adds": [
+      "2603",
+      "2618",
+      "2880",
+      "2887",
+      "2912"
+     ],
+     "dels": [
+      "1402",
+      "2324",
+      "2474",
+      "2449"
+     ],
+     "aum": 6000,
+     "src": [
+      "https://money.udn.com/money/story/5607/9541037",
+      "https://www.ctee.com.tw/news/20260602701752-430403",
+      "https://finance.ettoday.net/news/3176390"
+     ]
+    },
+    {
+     "review": "2026-02",
+     "kind": "季審",
+     "announce": "2026-02-11",
+     "reveal": "2026-02-23",
+     "effective": "2026-02-26",
+     "trans_start": "2026-02-23",
+     "trans_end": "2026-03-05",
+     "adds": [],
+     "dels": [
+      "2105"
+     ],
+     "note": "MSCI 季審移出母指數；未見媒體直接報導 00878 刪除，依投信賣超與持股推定",
+     "src": [
+      "https://news.cnyes.com/news/id/6341546",
+      "https://finance.technews.tw/2026/02/11/msci-index-adjusts-taiwan-weightings-1-up-2-down/"
+     ]
+    },
+    {
+     "review": "2025-11",
+     "announce": "2025-11-06",
+     "reveal": "2025-11-14",
+     "effective": "2025-11-24",
+     "trans_start": "2025-11-14",
+     "trans_end": "2025-11-25",
+     "adds": [
+      "2449",
+      "3293",
+      "4958"
+     ],
+     "dels": [
+      "2377",
+      "2615",
+      "3702"
+     ],
+     "aum": 4387,
+     "src": [
+      "https://finance.ettoday.net/news/3074063",
+      "https://uanalyze.com.tw/articles/8841439800",
+      "https://www.businesstoday.com.tw/article/category/183013/post/202512050039/"
+     ]
+    },
+    {
+     "review": "2025-05",
+     "announce": "2025-05-14",
+     "reveal": "2025-05-22",
+     "effective": "2025-05-29",
+     "trans_start": "2025-05-22",
+     "trans_end": "2025-06-05",
+     "adds": [
+      "5871",
+      "2474",
+      "2615"
+     ],
+     "dels": [
+      "1101",
+      "2890",
+      "2892"
+     ],
+     "aum": 4368,
+     "note": "MSCI 5/30 生效、台股端午補假休市 → 以 5/29 收盤為準",
+     "src": [
+      "https://wantrich.chinatimes.com/news/20250603900474-420101",
+      "https://wantrich.chinatimes.com/news/20250523900006-420101",
+      "https://finance.ettoday.net/news/2971656"
+     ]
+    },
+    {
+     "review": "2024-11",
+     "announce": "2024-11-07",
+     "reveal": "2024-11-18",
+     "effective": "2024-11-25",
+     "trans_start": "2024-11-18",
+     "trans_end": "2024-11-28",
+     "adds": [
+      "2357"
+     ],
+     "dels": [
+      "2474"
+     ],
+     "aum": 3616,
+     "src": [
+      "https://www.ctee.com.tw/news/20241126700770-430402",
+      "https://finance.ettoday.net/news/2862041"
+     ]
+    },
+    {
+     "review": "2024-05",
+     "announce": "2024-05-15",
+     "reveal": "2024-05-20",
+     "effective": "2024-05-31",
+     "trans_start": "2024-05-20",
+     "trans_end": "2024-05-31",
+     "adds": [
+      "3034",
+      "2412",
+      "2105"
+     ],
+     "dels": [
+      "1303",
+      "2347",
+      "2357"
+     ],
+     "aum": 2823,
+     "src": [
+      "https://www.cna.com.tw/news/afe/202406030032.aspx",
+      "https://money.udn.com/money/story/5618/8005834",
+      "https://finance.ettoday.net/news/2744809"
      ]
     }
    ],
    "src": [
+    "https://www.msci.com/indexes/index/731943",
+    "https://www.msci.com/eqb/methodology/meth_docs/MSCI_Taiwan_Select_ESG_Sustainability_High_Yield_Top_30_Index_Nov2022.pdf",
     "https://www.msci.com/eqb/pressreleases/archive/ir_dates.pdf"
    ]
   },
@@ -363,18 +664,232 @@
    "n": 40,
    "conf": "中",
    "predict": null,
-   "rule": "母體＝上市櫃市值前 300、日均成交 >8,000 萬、ROE>0；12 月依「近四季股利率×(1＋前三季 EPS 成長率)」排序（資料至 11 月最後交易日）；前 20 名直接納入、跌出 61 名刪除；12 月最多換 8 檔；至少 20 檔來自市值前 150（其中 7 檔前 50）；8 個交易日過渡",
+   "rule": "母體＝上市櫃市值前 300、近四季 ROE>0、日均成交 >8,000 萬（既有成分股 >6,000 萬）；5 月依「近四季已公告現金股利 ÷ 資料截止日股價」排序（截止日前董事會未決議股利、生效前已除息的年配股不列入）、12 月依「股利率×(1＋前三季 EPS 年增率)」排序；前 20 名直接納入、既有成分股第 61 名後刪除、其餘依排名既有優先；至少 7 檔屬市值前 50、20 檔屬前 150；12 月最多換 8 檔；股利率加權、單檔上限 15%；資料截止：5 月第 10 個交易日、12 月＝11 月最後交易日；審核日後第 5 個交易日盤後公告並生效，次日起 8 個交易日過渡",
    "next": {
     "review": "2026-12",
-    "cutoff": "2026-12-09",
+    "cutoff": "2026-11-30",
     "announce": "2026-12-16",
-    "effective": "2026-12-17",
+    "effective": "2026-12-16",
+    "trans_start": "2026-12-17",
+    "trans_end": "2026-12-29",
     "transition": 8,
+    "max_changes": 8,
     "status": "推算"
    },
-   "history": [],
+   "history": [
+    {
+     "review": "2026-05",
+     "cutoff": "2026-05-15",
+     "announce": "2026-06-02",
+     "effective": "2026-06-02",
+     "trans_start": "2026-06-03",
+     "trans_end": "2026-06-12",
+     "adds": [
+      "1210",
+      "1319",
+      "1402",
+      "2105",
+      "2347",
+      "2379",
+      "2382",
+      "2542",
+      "2597",
+      "2855",
+      "2883",
+      "3293",
+      "4938",
+      "5871",
+      "6890",
+      "8454",
+      "9910",
+      "9941"
+     ],
+     "dels": [
+      "1215",
+      "2027",
+      "2303",
+      "2404",
+      "2451",
+      "2609",
+      "3036",
+      "3211",
+      "3702",
+      "5347",
+      "6005",
+      "6176",
+      "6239",
+      "6278",
+      "6412",
+      "6757",
+      "8070",
+      "8422"
+     ],
+     "aum": 5000,
+     "src": [
+      "https://newtalk.tw/news/view/2026-06-02/1038885",
+      "https://www.ctee.com.tw/news/20260602701830-430403",
+      "https://news.cnyes.com/news/id/6481268"
+     ]
+    },
+    {
+     "review": "2025-12",
+     "cutoff": "2025-11-28",
+     "announce": "2025-12-16",
+     "effective": "2025-12-16",
+     "trans_start": "2025-12-17",
+     "trans_end": "2025-12-29",
+     "adds": [
+      "1215",
+      "2027",
+      "2211",
+      "2357",
+      "2887",
+      "3036",
+      "3702",
+      "8422"
+     ],
+     "dels": [
+      "1442",
+      "2371",
+      "2393",
+      "2439",
+      "2520",
+      "3592",
+      "5508",
+      "8299"
+     ],
+     "aum": 4164,
+     "src": [
+      "https://wantrich.chinatimes.com/news/20251216900588-420101",
+      "https://finance.ettoday.net/news/3085090"
+     ]
+    },
+    {
+     "review": "2025-05",
+     "cutoff": "2025-05-15",
+     "announce": "2025-06-03",
+     "effective": "2025-06-03",
+     "trans_start": "2025-06-04",
+     "trans_end": "2025-06-13",
+     "adds": [
+      "1477",
+      "2371",
+      "2385",
+      "2439",
+      "2458",
+      "2474",
+      "2520",
+      "2609",
+      "2881",
+      "2882",
+      "3211",
+      "4763",
+      "6412",
+      "6670",
+      "6757",
+      "8070"
+     ],
+     "dels": [
+      "2348",
+      "2454",
+      "2809",
+      "2889",
+      "5904",
+      "6691"
+     ],
+     "aum": 3600,
+     "note": "30 檔擴為 40 檔",
+     "src": [
+      "https://www.cna.com.tw/news/afe/202506030315.aspx",
+      "https://money.udn.com/money/story/5618/8782409",
+      "https://finance.ettoday.net/news/2971837"
+     ]
+    },
+    {
+     "review": "2024-12",
+     "cutoff": "2024-11-29",
+     "announce": "2024-12-17",
+     "effective": "2024-12-17",
+     "trans_start": "2024-12-18",
+     "trans_end": "2024-12-27",
+     "trans_guess": true,
+     "adds": [
+      "1442",
+      "2348",
+      "2393",
+      "2606",
+      "2637",
+      "3592",
+      "5522",
+      "8299"
+     ],
+     "dels": [
+      "2211",
+      "2548",
+      "3014",
+      "3264",
+      "5483",
+      "5536",
+      "8016",
+      "8070"
+     ],
+     "aum": 3126,
+     "note": "過渡期查無報導，依 2025 年起「生效次日起 8 個交易日」推算",
+     "src": [
+      "https://finance.ettoday.net/news/2875442",
+      "https://www.linebank.com.tw/wealth-investment/topics/762"
+     ]
+    },
+    {
+     "review": "2024-05",
+     "cutoff": "2024-05-15",
+     "announce": "2024-05-31",
+     "effective": "2024-05-31",
+     "trans_start": "2024-05-29",
+     "trans_end": "2024-06-07",
+     "adds": [
+      "2451",
+      "2504",
+      "2548",
+      "2618",
+      "2809",
+      "2889",
+      "3014",
+      "5347",
+      "5508",
+      "5536",
+      "6005",
+      "8070",
+      "8112"
+     ],
+     "dels": [
+      "1504",
+      "1722",
+      "2379",
+      "2385",
+      "2449",
+      "2886",
+      "3005",
+      "3044",
+      "3231",
+      "3293",
+      "3592",
+      "3711",
+      "6147"
+     ],
+     "aum": 2000,
+     "note": "ETF 在公告前（5/29）就開始買新成分股；規模為「邁向 2,000 億」概數",
+     "src": [
+      "https://www.businesstoday.com.tw/article/category/183013/post/202406010001/",
+      "https://ec.ltn.com.tw/article/breakingnews/4691614",
+      "https://wantrich.chinatimes.com/news/20240530900005-420101"
+     ]
+    }
+   ],
    "src": [
-    "https://taiwanindex.com.tw/en/indexes/IX0170"
+    "https://taiwanindex.com.tw/en/indexes/IX0170",
+    "https://www.moneyweekly.com.tw/ArticleData/Info/Article/132386/",
+    "https://www.cna.com.tw/news/afe/202506030315.aspx"
    ]
   },
   "tip_tech": {
@@ -387,14 +902,220 @@
    "n": 50,
    "conf": "中",
    "predict": null,
-   "rule": "市值前 200 且 >50 億之科技相關（含生技、雲端、綠能）；流動性、剔除波動前 10%、近 3 年 ROE 正、剔除 3 年平均殖利率後 10%；殖利率＝最近年度現金股利÷截止日價、殖利率加權（上限 10%）；12 月優先近四季配息 ≥2 次、最多換 16 檔；8 個交易日過渡",
+   "rule": "母體＝上市櫃科技相關（2025-12 起加生技醫療、綠能環保、數位雲端）市值前 200 且 ≥50 億；ROE 連 3 年為正、剔除波動前 10%、3 年平均殖利率後 10%、5 年現金股利變異前 10%；依殖利率（當年度已宣告現金股利 ÷ 資料日股價）取前 50（2025-12 前 40）；12 月優先近四季配息 ≥2 次者；6 月最多換 24 檔、12 月最多 16 檔；殖利率加權、上限 10%；資料日＝審核月第 7 個交易日；第 19 個交易日盤後公告並生效，次日起 8 個交易日過渡",
    "next": {
     "review": "2026-12",
-    "status": "未公布"
+    "cutoff": "2026-12-09",
+    "announce": "2026-12-28",
+    "effective": "2026-12-28",
+    "trans_start": "2026-12-29",
+    "trans_end": "2027-01-08",
+    "transition": 8,
+    "max_changes": 16,
+    "status": "推算"
    },
-   "history": [],
+   "history": [
+    {
+     "review": "2026-06",
+     "cutoff": "2026-06-09",
+     "announce": "2026-06-26",
+     "effective": "2026-06-26",
+     "trans_start": "2026-06-29",
+     "trans_end": "2026-07-08",
+     "adds": [
+      "2317",
+      "2352",
+      "2356",
+      "2376",
+      "2377",
+      "2379",
+      "2382",
+      "2412",
+      "3023",
+      "3045",
+      "3231",
+      "3706",
+      "4904",
+      "5269",
+      "5434",
+      "5469",
+      "6139",
+      "6191",
+      "6409",
+      "6691",
+      "8069",
+      "8112"
+     ],
+     "dels": [
+      "2324",
+      "2330",
+      "2353",
+      "2385",
+      "2393",
+      "2439",
+      "2454",
+      "3005",
+      "3036",
+      "3680",
+      "4938",
+      "5388",
+      "6147",
+      "6176",
+      "6188",
+      "6239",
+      "6412",
+      "6488",
+      "6561",
+      "6803",
+      "8016",
+      "8454"
+     ],
+     "aum": 1455,
+     "src": [
+      "https://www.ctee.com.tw/news/20260626701731-430403",
+      "https://ec.ltn.com.tw/article/breakingnews/5486020",
+      "https://news.cnyes.com/news/id/6514696"
+     ]
+    },
+    {
+     "review": "2025-12",
+     "cutoff": "2025-12-09",
+     "announce": "2025-12-26",
+     "effective": "2025-12-26",
+     "trans_start": "2025-12-29",
+     "trans_end": "2026-01-08",
+     "adds": [
+      "2330",
+      "2393",
+      "2454",
+      "3008",
+      "3563",
+      "3680",
+      "4915",
+      "4966",
+      "5536",
+      "6188",
+      "6488",
+      "6548",
+      "6561",
+      "6803",
+      "8422",
+      "8454"
+     ],
+     "dels": [
+      "2451",
+      "3078",
+      "3617",
+      "4961",
+      "6197",
+      "6206"
+     ],
+     "note": "40 檔擴為 50 檔（新制首次）",
+     "src": [
+      "https://www.ctee.com.tw/news/20251226701217-430403",
+      "https://ec.ltn.com.tw/article/breakingnews/5290710",
+      "https://money.udn.com/money/story/5618/9227949"
+     ]
+    },
+    {
+     "review": "2025-06",
+     "cutoff": "2025-06-10",
+     "announce": "2025-06-26",
+     "effective": "2025-06-26",
+     "trans_start": "2025-06-27",
+     "trans_end": "2025-07-08",
+     "adds": [
+      "2324",
+      "2357",
+      "2439",
+      "2451",
+      "2458",
+      "3036",
+      "3078",
+      "3090",
+      "3211",
+      "3227",
+      "3260",
+      "3617",
+      "6197",
+      "6206",
+      "6257",
+      "6412",
+      "8070"
+     ],
+     "dels": [
+      "2393",
+      "2449",
+      "2454",
+      "3010",
+      "3014",
+      "3042",
+      "3045",
+      "3596",
+      "3711",
+      "4904",
+      "4915",
+      "6189",
+      "6191",
+      "6269",
+      "6285",
+      "6414",
+      "8112"
+     ],
+     "src": [
+      "https://www.moneydj.com/kmdj/news/newsviewer.aspx?a=da552d38-8b4c-4579-943a-cd192f89061a",
+      "https://ec.ltn.com.tw/article/breakingnews/5087884",
+      "https://news.cnyes.com/news/id/6040274"
+     ]
+    },
+    {
+     "review": "2024-06",
+     "cutoff": "2024-06-12",
+     "announce": "2024-06-28",
+     "effective": "2024-06-28",
+     "trans_start": "2024-06-28",
+     "trans_end": "2024-06-28",
+     "trans_guess": true,
+     "adds": [
+      "2393",
+      "3005",
+      "3010",
+      "3042",
+      "3045",
+      "4904",
+      "4961",
+      "5347",
+      "5388",
+      "6189",
+      "6269",
+      "6278"
+     ],
+     "dels": [
+      "2313",
+      "2337",
+      "2352",
+      "2379",
+      "3189",
+      "4919",
+      "4958",
+      "5371",
+      "5469",
+      "6182",
+      "8050",
+      "8081"
+     ],
+     "note": "舊制每年 6 月審一次、40 檔；過渡期查無報導，視為生效日收盤一次換完",
+     "src": [
+      "https://ec.ltn.com.tw/article/breakingnews/4720017",
+      "https://finance.ettoday.net/news/2766969",
+      "https://news.cnyes.com/news/id/5619788"
+     ]
+    }
+   ],
    "src": [
-    "https://taiwanindex.com.tw/en/indexes/IX0179"
+    "https://taiwanindex.com.tw/en/indexes/IX0179",
+    "https://money.udn.com/money/story/5618/8828413",
+    "https://www.ctee.com.tw/news/20251106701308-430403"
    ]
   }
  }

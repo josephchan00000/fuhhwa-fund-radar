@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/14 17:31",
+  "as_of": "2026/10/14 18:47",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -25,9 +25,16 @@
       "datetime": "2026-10-12T17:28:29+08:00"
     },
     {
+      "title": "陸股ETF資金大洗牌！00877成十一長假後唯一吸金標的| 財經焦點",
+      "url": "https://www.taisounds.com/news/content/76/293540",
+      "source": "太報 TaiSounds",
+      "date": "2026-10-12 15:08",
+      "datetime": "2026-10-12T15:08:00+08:00"
+    },
+    {
       "title": "AI商機從大廠向外擴散復華投信解析下一批台股新星| 財經焦點| 產經",
       "url": "https://udn.com/news/story/7238/9798554",
-      "source": "UDN",
+      "source": "udn",
       "date": "2026-10-12 00:00",
       "datetime": "2026-10-12T00:00:00+08:00"
     }
@@ -99,16 +106,9 @@
         {
           "title": "台股高檔震盪資金尋找配置平衡 00998A布局全球金融龍頭兼具9％高配息",
           "url": "https://www.watchmedia01.com/archives/559007",
-          "source": "Yahoo新聞",
+          "source": "觀傳媒",
           "date": "2026-10-14 11:37",
           "datetime": "2026-10-14T11:37:13+08:00"
-        },
-        {
-          "title": "殖利率壓力若緩解 金融股評價修正有望收斂 00998A逆勢抗跌受矚目",
-          "url": "https://n.yam.com/Article/20261013311377",
-          "source": "蕃新聞",
-          "date": "2026-10-13 19:04",
-          "datetime": "2026-10-13T19:04:00+08:00"
         }
       ]
     },
@@ -586,7 +586,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
       "date": "2026-10-11",
-      "views": 16543,
+      "views": 16609,
       "short": true
     },
     {
@@ -595,7 +595,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
       "date": "2026-10-12",
-      "views": 5321
+      "views": 5382
     },
     {
       "platform": "youtube",
@@ -603,7 +603,7 @@
       "channel": "小童 x Happy Trading Life",
       "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
       "date": "2026-10-13",
-      "views": 1594,
+      "views": 1607,
       "short": true
     },
     {
@@ -623,19 +623,9 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/XFDp4rY4FsQ",
       "date": "2026-10-12",
-      "views": 150516,
+      "views": 152830,
       "peer": true,
       "short": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "【理財達人秀】337調查利空台股超勇？大立光噴出變友達.上詮法會？封測、PCB三招 抓低檔黑馬！重電.機器人底部耐震？｜李兆華、李永年、楊雲翔、林漢偉2026.10.12【電視完整版】",
-      "channel": "理財達人秀 EBCmoneyshow",
-      "url": "https://www.youtube.com/watch?v=REtGASDFkEM",
-      "date": "2026-10-12",
-      "views": 135655,
-      "peer": true,
       "cat": "市場趨勢"
     },
     {
@@ -644,10 +634,20 @@
       "channel": "安聯投信 Allianz Global Investors Taiwan",
       "url": "https://www.youtube.com/shorts/b-T8DfBiuuk",
       "date": "2026-10-12",
-      "views": 134508,
+      "views": 139045,
       "peer": true,
       "short": true,
       "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "【理財達人秀】337調查利空台股超勇？大立光噴出變友達.上詮法會？封測、PCB三招 抓低檔黑馬！重電.機器人底部耐震？｜李兆華、李永年、楊雲翔、林漢偉2026.10.12【電視完整版】",
+      "channel": "理財達人秀 EBCmoneyshow",
+      "url": "https://www.youtube.com/watch?v=REtGASDFkEM",
+      "date": "2026-10-12",
+      "views": 135836,
+      "peer": true,
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -655,7 +655,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=o4KXRKrwlUs",
       "date": "2026-10-10",
-      "views": 91693,
+      "views": 91750,
       "peer": true,
       "cat": "高股息"
     },
@@ -665,7 +665,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=YISny6TMPRY",
       "date": "2026-10-10",
-      "views": 85256,
+      "views": 85625,
       "peer": true,
       "cat": "綜合"
     },
@@ -675,7 +675,7 @@
       "channel": "94要賺錢",
       "url": "https://www.youtube.com/watch?v=2bj5TUPrVto",
       "date": "2026-10-12",
-      "views": 77956,
+      "views": 81449,
       "peer": true,
       "cat": "綜合"
     },
@@ -685,7 +685,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=1iIDAJTm3bk",
       "date": "2026-10-12",
-      "views": 77471,
+      "views": 78397,
       "peer": true,
       "cat": "高股息"
     },
@@ -695,7 +695,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/sgOyzfXKakU",
       "date": "2026-10-13",
-      "views": 53827,
+      "views": 56956,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -706,7 +706,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=NUXLQRXjsOU",
       "date": "2026-10-11",
-      "views": 33713,
+      "views": 33712,
       "peer": true,
       "cat": "市值型"
     }
