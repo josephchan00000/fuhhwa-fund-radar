@@ -616,3 +616,63 @@ def probe3(d: str) -> None:
         tb = tables(doc)
         print(f"[probe3] {name}: stat={doc.get('stat') if isinstance(doc, dict) else '?'} "
               f"{(len(max(tb, key=lambda t: len(t[1]))[1]) if tb else 0)} 列")
+
+
+# ── 月營收（官方 openapi，上市＋上櫃各一請求；2026-10-14 探針確認可達） ─────────
+REV_URLS = ("https://openapi.twse.com.tw/v1/opendata/t187ap05_L",
+            "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap05_O")
+
+
+def parse_revenue(rows) -> tuple[str | None, dict]:
+    """→ (資料年月 YYYY-MM, {code: [當月營收(千元), 年增%, 累計年增%]})。"""
+    out, ym = {}, None
+    for r in rows or []:
+        if not isinstance(r, dict):
+            continue
+        code = str(r.get("公司代號") or "").strip()
+        if not CODE_RE.match(code):
+            continue
+        k = str(r.get("資料年月") or "").strip()
+        if len(k) == 5 and k.isdigit():
+            ym = ym or f"{int(k[:3]) + 1911:04d}-{k[3:]}"
+        rev = num(r.get("營業收入-當月營收"))
+        yoy = num(r.get("營業收入-去年同月增減(%)"))
+        cy = num(r.get("累計營業收入-前期比較增減(%)"))
+        out[code] = [rev, None if yoy is None else round(yoy, 2), None if cy is None else round(cy, 2)]
+    return ym, out
+
+
+def fetch_revenue() -> tuple[str | None, dict]:
+    ym, out = None, {}
+    for url in REV_URLS:
+        try:
+            rows = json.loads(get_bytes(url, retries=2, timeout=30, use_cache=False).decode("utf-8"))
+        except Exception as e:                            # noqa: BLE001
+            log(f"月營收 ✗ {url[:60]} {str(e)[:80]}")
+            continue
+        y, o = parse_revenue(rows)
+        ym = ym or y
+        out.update(o)
+    return ym, out
+
+
+def finmind_revenue(code: str, start: str = "2023-01-01") -> dict[str, float]:
+    """FinMind 月營收歷史（第三方整理官方數字；只用在回測）→ {YYYY-MM: 營收(元)}。"""
+    from .. import clock
+    url = ("https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMonthRevenue"
+           f"&data_id={code}&start_date={start}&end_date={clock.today_tw().isoformat()}")
+    try:
+        doc = json.loads(get_bytes(url, retries=2, timeout=30, use_cache=False).decode("utf-8"))
+    except Exception as e:                                # noqa: BLE001
+        log(f"FinMind 月營收 {code} ✗ {str(e)[:80]}")
+        return {}
+    if not isinstance(doc, dict) or doc.get("status") not in (200, "200"):
+        log(f"FinMind 月營收 {code} status={doc.get('status') if isinstance(doc, dict) else '?'} "
+            f"msg={str(doc.get('msg') if isinstance(doc, dict) else '')[:80]}")
+        return {}
+    out = {}
+    for r in doc.get("data") or []:
+        y, m, v = r.get("revenue_year"), r.get("revenue_month"), r.get("revenue")
+        if y and m and v:
+            out[f"{int(y):04d}-{int(m):02d}"] = float(v)
+    return out

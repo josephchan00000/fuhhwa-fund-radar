@@ -418,6 +418,7 @@ function vSt(){
       fw.map(t=>`<tr data-c="${esc(t.c)}" class="${t.st==='skip'?'grey':''}"><td><span class=nm>${esc(t.n)}</span><span class=cd>${esc(t.c)}</span></td><td>${md(t.d)}</td><td>${t.st==='skip'?'放棄：'+esc(t.why||''):t.st==='open'?'持有中':esc(t.why||'')}${t.review?` <span class=pill>${esc(t.review)}</span>`:''}</td><td>${t.gap==null?'—':sgn(t.gap,1,'%')}</td><td>${t.entry==null?'—':f(t.entry,2)}</td><td>${t.exit!=null?f(t.exit,2):t.now!=null?f(t.now,2):'—'}</td><td>${t.held==null?'—':t.held+' 日'}</td><td>${sgn(t.r,2,'%')}</td><td>${t.x==null?'—':sgn(t.x,2,'%')}</td></tr>`).join('')+`</tbody></table></div>`;
     h+='</div>';
   }
+  h+=vGrow();
   const al=X.alerts||[];
   h+=`<div class=card><h4>跳空減碼提醒 <span class=pill>${al.length}</span></h4><div class=st>前一交易日「共識加碼」、今日開盤跳空 ≥3% 的股票。樣本內（7/27～10/13，約 19 筆，大盤基準與進場同一時窗）：之後持有 1～10 日的每一個持有期平均超額都為負（−1.9%～−3.6%），是目前最穩定的結果之一。給已持有者參考，不做放空。</div>`+
     (al.length?`<div class=tw><table><tbody>`+al.map(a=>`<tr data-c="${esc(a.c)}"><td><span class=nm>${esc(a.n)}</span><span class=cd>${esc(a.c)}</span></td><td>${md(a.d)}</td><td>開盤 ${sgn(a.gap,1,'%')}</td></tr>`).join('')+`</tbody></table></div>`:'<div class=st>今日無</div>')+`</div>`;
@@ -428,6 +429,32 @@ function vSt(){
   document.querySelectorAll('tr[data-c]').forEach(e=>e.onclick=()=>{if(D.rows.find(x=>x.c===e.dataset.c))openStock(e.dataset.c);});
 }
 
+
+/* ---------- 長線：投信動能成長股 ---------- */
+function gRow(lbl,g){if(!g||!g.n)return `<tr><td>${lbl}</td><td colspan=8 class=mu>無樣本</td></tr>`;
+  const r=(x)=>x&&x[0]!=null?`${f(x[0],1)}%<span class=mu>（${x[1]}）</span>`:'—';
+  return `<tr><td>${lbl}</td><td>${g.n}</td><td>${r(g.dbl6)}</td><td>${r(g.dbl12)}</td><td>${g.end6&&g.end6[0]!=null?sgn(g.end6[0],1,'%')+'／'+sgn(g.end6[1],1,'%'):'—'}</td><td>${g.rule?sgn(g.rule[0],1,'%')+'／'+sgn(g.rule[1],1,'%'):'—'}</td><td>${g.rule_w==null?'—':g.rule_w+'%'}</td><td>${g.rule_aw==null?'—':sgn(g.rule_aw,1,'%')+'／'+sgn(g.rule_al,1,'%')}</td><td>${g.rule_big==null?'—':f(g.rule_big,1)+'%'}</td></tr>`;}
+function vGrow(){
+  const G=D.grow||{};if(G.err)return `<div class=card><h4>長線：投信動能成長股</h4><div class=st>錯誤：${esc(G.err)}</div></div>`;
+  const B=G.bt||{};const ms=B.months||[];
+  let h=`<div class=card><h4>長線：投信動能成長股 <span class=pill>回測 ${ms.length} 個月${ms.length?`（${md(ms[0])}～${md(ms[ms.length-1])}）`:''}</span></h4>
+<ul class=doc style="margin:4px 0">
+<li class=st><b>投信關</b>：投信 20 日買超 ≥ 股本 0.5%，且 20 天中 ≥12 天買超（今日篩選另認：主動 ETF 20 日內 ≥2 家投信新建倉）</li>
+<li class=st><b>成長關</b>：最新月營收年增 ≥20%、累計年增 ≥15%</li>
+<li class=st><b>動能關</b>：收盤 > 60 日線 > 120 日線、60 日線上揚、距 120 日高點 20% 內、比低點高 30% 以上、120 日報酬全市場前 30%</li>
+<li class=st><b>空間關</b>：市值 50～1,500 億、20 日均成交值 ≥1 億</li>
+<li class=st><b>照規則操作</b>：隔日開盤進；停損 −10%；曾漲 30% 後停損拉到成本；之後收盤跌破 60 日線出場；最長 250 個交易日</li></ul>
+<div class=note>「曾翻倍」＝進場後 6／12 個月內最高價曾達進場價 2 倍（括號＝前瞻期完整的樣本數）；「照規則操作」＝真的照上面停損／移動出場做出來的報酬（已扣成本）。基準＝同期所有通過「空間關」的股票。宇宙只含現存上市櫃股，結果偏樂觀；兩年資料大致是多頭。</div>
+<div class=tw><table><thead><tr><th>組別</th><th>篩出檔次</th><th>6 個月內曾翻倍</th><th>12 個月內曾翻倍</th><th>6 個月期末 平均／中位</th><th>照規則 平均／中位</th><th>勝率</th><th>平均賺／平均賠</th><th>照規則翻倍比例</th></tr></thead><tbody>`+
+    gRow('基準（空間關）',B.base)+gRow('只看動能',B.mom)+gRow('只看投信',B.trust)+gRow('投信＋動能',B.trust_mom)+gRow('四關全過',B.all4)+`</tbody></table></div>`;
+  if((B.top||[]).length)h+=`<div class=st style="margin-top:6px">歷史篩出、漲最多的：`+B.top.slice(0,8).map(x=>`${esc(x[1])}（${md(x[2])} 篩出，最高 +${x[3]}%${x[4]!=null?'，照規則 '+(x[4]>0?'+':'')+x[4]+'%':''}）`).join('、')+`</div>`;
+  const sc=G.screen||[];const ok=sc.filter(x=>x.pass);
+  h+=`<h4 style="margin:12px 0 4px">今日篩選 <span class=pill>四關全過 ${ok.length}</span> <span class=pill>差一關 ${sc.length-ok.length}</span></h4><div class=note>月營收：${esc(G.rev_ym||'尚無')}；宇宙 ${G.n_uni||0} 檔。進場仍照短線研究的結論：不追開高 3% 以上，等突破隔日或回測 20 日線。</div>`;
+  const ck=b=>b?'<span class=up>✓</span>':'<span class=mu>✗</span>';
+  h+=sc.length?`<div class=tw><table><thead><tr><th>代號／名稱</th><th>投信</th><th>成長</th><th>動能</th><th>市值(億)</th><th>日均成交(億)</th></tr></thead><tbody>`+
+    sc.map(x=>`<tr data-c="${esc(x.c)}" class="${x.pass?'':'grey'}"><td><span class=nm>${esc(x.n)}</span><span class=cd>${esc(x.c)}</span></td><td>${ck(x.g_trust)} ${x.trust==null?'':f(x.trust,2)+'%股本'}${x.tdays!=null?'・買 '+x.tdays+' 日':''}${x.etf2?' <span class=sg>主動ETF多家建倉</span>':''}</td><td>${ck(x.g_grow)} ${x.yoy==null?'':'年增 '+f(x.yoy,0)+'%'}${x.cyoy==null?'':'・累計 '+f(x.cyoy,0)+'%'}</td><td>${ck(x.g_mom)} ${x.rs==null?'':'強度前 '+(100-x.rs)+'%'}</td><td>${f(x.cap,0)}</td><td>${f(x.liq,1)}</td></tr>`).join('')+`</tbody></table></div>`:'<div class=st>今日無</div>';
+  return h+'</div>';
+}
 /* ---------- 分頁 ---------- */
 const VIEWS={tbl:vTbl,st:vSt,sig:vSig,iss:vIss,idx:vIdx,bt:vBt,doc:vDoc};
 function go(t){S.tab=t;save();document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on',a.dataset.t===t));VIEWS[t]();window.scrollTo(0,0);}

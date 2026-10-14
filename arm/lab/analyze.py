@@ -524,6 +524,25 @@ def run(data: Data | None = None) -> dict:
         strat = strategy.run(D, sig_hist, L, meta, taiex, D.names)
     except Exception as e:                                # noqa: BLE001
         strat = {"err": f"{type(e).__name__}: {e}"}
+    # 長線：投信動能成長股（回測＋今日篩選）
+    try:
+        from . import growth
+        P = growth.Panel(D)
+        gbt = growth.backtest(P, growth.load_rev_hist())
+        gbt.pop("cand_codes", None)
+        rv = store.load("rev", last=1)
+        rev_now = {c: (x[1], x[2]) for c, x in (rv[-1][1].get("s") or {}).items()} if rv else {}
+        new20: dict[str, set] = defaultdict(set)
+        cut20 = set(D.cal[-20:])
+        for ev in L.events:
+            m = meta.get(ev.etf) or {}
+            if ev.kind == LG.NEW and m.get("k") == "a" and ev.date in cut20:
+                new20[ev.code].add(m["is"])
+        etf2 = {c for c, s_ in new20.items() if len(s_) >= 2}
+        grow = {"bt": gbt, "screen": growth.screen_now(P, rev_now, etf2),
+                "rev_ym": rv[-1][0] if rv else None, "n_uni": len(P.codes)}
+    except Exception as e:                                # noqa: BLE001
+        grow = {"err": f"{type(e).__name__}: {e}"}
     iss_stats = backtest.issuer_stats(D, L, meta, taiex)
     asof = {
         "pos": D.pos[-1][0] if D.pos else None,
@@ -538,7 +557,7 @@ def run(data: Data | None = None) -> dict:
     return {"asof": asof, "etfs": meta, "rows": rows, "ser": ser,
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
             "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow, "ca": L.ca[-30:],
-            "idx": idx_out, "strat": strat,
+            "idx": idx_out, "strat": strat, "grow": grow,
             "dates": D.cal[-CHART_N:]}
 
 

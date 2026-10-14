@@ -39,6 +39,10 @@ def main() -> None:
         collect.update_tdcc()
     except Exception as e:                                # noqa: BLE001
         print(f"[lab] TDCC 失敗：{e}")
+    try:
+        collect.update_revenue()
+    except Exception as e:                                # noqa: BLE001
+        print(f"[lab] 月營收失敗：{e}")
     collect.prune_all(today)
 
 
