@@ -74,8 +74,31 @@ def _nearest_mkt_on_or_before(D, d: str) -> str | None:
     return best
 
 
-def tw50_select(ranked: list[tuple], cons: set[str]) -> tuple[list[str], list[str]]:
-    """依規則推出 (納入, 刪除)。固定 50 檔：納入多於刪除時，剔除排名最後的留任成分股；反之由最高排名非成分股遞補。"""
+def listing_dates(ix: dict) -> dict[str, str]:
+    """{代號: 上市日}：證交所基本資料落檔（CI 抓）＋設定檔人工註記（有來源，優先）。"""
+    out = {}
+    try:
+        from .. import stockmeta
+        out.update(stockmeta.listing_dates())
+    except Exception:                                     # noqa: BLE001
+        pass
+    for c, v in (ix.get("listing") or {}).items():
+        if isinstance(v, dict) and v.get("date"):
+            out[c] = v["date"]
+    return out
+
+
+def not_listed(ranked: list[tuple], cons: set[str], listed: dict[str, str], cutoff: str) -> set[str]:
+    """資料截止日時還沒在證交所上市的非成分股（興櫃轉上市要等上市後才有資格）。
+    2026-10-14 回測：鴻勁 2025-11-27 才轉上市，2025-09／12 兩次都被誤列預估納入；排除後 8 次全對。"""
+    return {c for c, _, _ in ranked[:TW50_OUT] if c not in cons and (listed.get(c) or "") > cutoff}
+
+
+def tw50_select(ranked: list[tuple], cons: set[str], skip: set[str] | None = None) -> tuple[list[str], list[str]]:
+    """依規則推出 (納入, 刪除)。固定 50 檔：納入多於刪除時，剔除排名最後的留任成分股；反之由最高排名非成分股遞補。
+    skip＝不具資格的非成分股（例：截止日時尚未上市），排名照算、但不會被選入。"""
+    if skip:
+        ranked = [r for r in ranked if r[0] not in skip]
     rank = {c: i + 1 for i, (c, _, _) in enumerate(ranked)}
     adds = [c for c, _, _ in ranked[:TW50_IN] if c not in cons]
     dels = [c for c in cons if rank.get(c, 10 ** 6) >= TW50_OUT]
@@ -144,10 +167,15 @@ def tw50(D, cfg: dict, today: date, names: dict) -> dict:
     cons = {c for c in h0050 if _common_tw(c) or (len(c) == 4 and c.isdigit())}
     if len(ranked) < 200 or len(cons) < 40:
         return {"ok": False, "why": f"資料不足（排名 {len(ranked)} 檔、成分股 {len(cons)} 檔）"}
+    listed = listing_dates(ix)
+    skip = not_listed(ranked, cons, listed, cutoff or use)
+    ranked = [r for r in ranked if r[0] not in skip]
     rank = {c: i + 1 for i, (c, _, _) in enumerate(ranked)}
     cap = {c: v for c, v, _ in ranked}
     px = {c: p for c, _, p in ranked}
     adds, dels = tw50_select(ranked, cons)
+    ui = D.ix.get(use)
+    top = top_half(adds, {c: momentum(D, c, ui) for c in adds} if ui is not None else {})
     n_days = 0 if frozen or not cutoff else _trading_days_between(today, date.fromisoformat(cutoff))
     cap40 = ranked[TW50_IN - 1][1]
     cap60 = ranked[TW50_OUT - 2][1]
@@ -197,9 +225,13 @@ def tw50(D, cfg: dict, today: date, names: dict) -> dict:
             sh = sum(held[e].get(c, 0) for e in etfs)
             sh = -sh if sh else None
         av = _avgvol(c)
+        mo = momentum(D, c, ui) if ui is not None else None
+        ld = listed.get(c)
+        recent = ld if ld and cutoff and ld > _days_before(cutoff, 92) else None
         return [c, names.get(c, c), r, round(cap.get(c, 0) / 1e8), None if need is None else round(need * 100, 1),
                 None if prob is None else round(prob * 100), None if sh is None else round(sh / 1000),
-                round(abs(sh) / av, 1) if sh and av else None, px.get(c)]
+                round(abs(sh) / av, 1) if sh and av else None, px.get(c),
+                None if mo is None else round(mo * 100, 1), recent, int(c in top)]
 
     watch_in = [c for c, _, _ in ranked[TW50_IN:TW50_IN + 12] if c not in cons and c not in adds]
     watch_out = [c for c in sorted(cons, key=lambda c: rank.get(c, 10 ** 6))
@@ -211,48 +243,88 @@ def tw50(D, cfg: dict, today: date, names: dict) -> dict:
         "watch_out": [row(c, "del") for c in watch_out[:8]],
         "eq": {e: round(v / 1e8) for e, v in eq.items()},
         "replay": tw50_replay(D, ix, h0050, issued),
+        "skip": sorted(skip),
     }
 
 
-def tw50_replay(D, ix: dict, h0050: dict, issued: dict) -> list[dict]:
-    """用歷次審核的截止日價量重跑規則，對照實際結果（上線前先看命中率）。
-    審核前成分股：最近一次＝0050 生效日前一天的揭露持股；更早的以實際結果往回推。"""
-    hist = sorted(ix.get("history") or [], key=lambda h: h.get("effective") or "", reverse=True)
-    out = []
+def _days_before(d: str, n: int) -> str:
+    return date.fromordinal(date.fromisoformat(d).toordinal() - n).isoformat()
+
+
+def momentum(D, code: str, t: int | None, n: int = 40) -> float | None:
+    """t 日收盤相對 n 個交易日前的漲幅（2026-10-14 歸因：同次審核裡，截止前 40 日漲最多的納入股，
+    公告後也漲最多——4 次有 2 檔以上納入的審核全都如此）。"""
+    if t is None or t < n:
+        return None
+    c = D.series(code)["c"]
+    return c[t] / c[t - n] - 1 if c[t] and c[t - n] else None
+
+
+def top_half(codes: list[str], mom: dict) -> set[str]:
+    """漲勢前一半（無條件進位；只有 1 檔就是它）——2026-10-14 使用者定案的選股規則。"""
+    if not codes:
+        return set()
+    ranked = sorted(codes, key=lambda c: -(mom.get(c) if mom.get(c) is not None else -9e9))
+    return set(ranked[:(len(codes) + 1) // 2])
+
+
+def tw50_pre_sets(D, ix: dict, h0050: dict) -> dict[str, set]:
+    """各次審核「審核前」成分股：最近一次＝0050 生效日前一天的揭露持股；更早的以實際結果往回推
+    （本次審核前 − 更早那次的納入 ＋ 其刪除）。揭露史晚於最近一次生效日時，從最新成分股一路往回推。"""
+    hist = sorted((h for h in ix.get("history") or [] if h.get("effective") and (h.get("adds") or h.get("dels"))),
+                  key=lambda h: h["effective"], reverse=True)
+    out: dict[str, set] = {}
     pre = None
     for i, h in enumerate(hist):
-        eff = h.get("effective")
-        if not eff or not h.get("adds") and not h.get("dels"):
-            continue
         if pre is None:
             snap = None
             for d, doc in D.pos:
                 ent = (doc.get("etf") or {}).get("0050")
-                if ent and d < eff:            # 揭露日＝收盤後部位；生效日當天已換完，取前一個揭露
+                if ent and d < h["effective"]:  # 揭露日＝收盤後部位；生效日當天已換完，取前一個揭露
                     snap = {c for c in (ent.get("h") or {}) if len(c) == 4 and c.isdigit()}
             if not snap:
-                # 揭露史晚於這次生效日 → 以最新成分股往回推到這次之前
                 snap = {c for c in h0050 if len(c) == 4 and c.isdigit()}
                 for later in hist[:i]:
                     snap = (snap - set(later.get("adds") or [])) | set(later.get("dels") or [])
-                post = snap
-                snap = (post - set(h.get("adds") or [])) | set(h.get("dels") or [])
+                snap = (snap - set(h.get("adds") or [])) | set(h.get("dels") or [])
             pre = snap
-        cd = _nearest_mkt_on_or_before(D, h.get("cutoff") or "")
-        rec = {"review": h.get("review"), "cutoff": h.get("cutoff"), "data": cd,
-               "act_add": h.get("adds") or [], "act_del": h.get("dels") or []}
-        if cd and pre and len(pre) >= 45:
-            ranked = caps_at(D, cd, issued)
-            if len(ranked) >= 200:
-                pa, pd = tw50_select(ranked, pre)
-                rec.update({"pred_add": pa, "pred_del": pd,
-                            "hit_add": len(set(pa) & set(rec["act_add"])),
-                            "hit_del": len(set(pd) & set(rec["act_del"]))})
-        out.append(rec)
-        # 往更早一次：審核前成分股 = 本次審核前 − 上一次（更早）的納入 + 其刪除
+        out[h["review"]] = set(pre)
         nxt = hist[i + 1] if i + 1 < len(hist) else None
-        if pre is not None and nxt:
+        if nxt:
             pre = (pre - set(nxt.get("adds") or [])) | set(nxt.get("dels") or [])
+    return out
+
+
+def tw50_predict_at(D, h: dict, pre: set, issued: dict, listed: dict, d: str | None = None):
+    """以 d（預設＝該次資料截止日）的市值排名重跑規則 → (資料日, 預測納入, 預測刪除)；資料不足回 None。"""
+    cd = _nearest_mkt_on_or_before(D, d or h.get("cutoff") or "")
+    if not cd or not pre or len(pre) < 45:
+        return None
+    ranked = caps_at(D, cd, issued)
+    if len(ranked) < 200:
+        return None
+    pa, pd = tw50_select(ranked, pre, not_listed(ranked, pre, listed, h.get("cutoff") or cd))
+    return cd, pa, pd
+
+
+def tw50_replay(D, ix: dict, h0050: dict, issued: dict) -> list[dict]:
+    """用歷次審核的截止日價量重跑規則，對照實際結果（上線前先看命中率）。"""
+    listed = listing_dates(ix)
+    pres = tw50_pre_sets(D, ix, h0050)
+    out = []
+    for h in sorted(ix.get("history") or [], key=lambda h: h.get("effective") or "", reverse=True):
+        if h.get("review") not in pres:
+            continue
+        rec = {"review": h.get("review"), "cutoff": h.get("cutoff"),
+               "data": _nearest_mkt_on_or_before(D, h.get("cutoff") or ""),
+               "act_add": h.get("adds") or [], "act_del": h.get("dels") or []}
+        got = tw50_predict_at(D, h, pres[h["review"]], issued, listed)
+        if got:
+            _, pa, pd = got
+            rec.update({"pred_add": pa, "pred_del": pd,
+                        "hit_add": len(set(pa) & set(rec["act_add"])),
+                        "hit_del": len(set(pd) & set(rec["act_del"]))})
+        out.append(rec)
     return out
 
 
@@ -305,4 +377,34 @@ def run(D, L, meta: dict, today: date) -> dict:
         out["tw50"] = tw50(D, cfg, today, names)
     except Exception as e:                                # noqa: BLE001
         out["tw50"] = {"ok": False, "why": f"{type(e).__name__}: {e}"}
+    try:                                                  # 臺灣50 換股研究（預測準度、進場時點、歸因）
+        from . import tw50study
+        out["study"] = tw50study.run(D, cfg)
+    except Exception as e:                                # noqa: BLE001
+        out["study"] = {"n": 0, "err": f"{type(e).__name__}: {e}"}
+    try:                                                  # 高股息四檔：換股研究＋下一次預估名單（2026-10-14）
+        out["hd"] = hd(D, cfg)
+    except Exception as e:                                # noqa: BLE001
+        out["hd"] = {"err": f"{type(e).__name__}: {e}"}
     return out
+
+
+def hd(D, cfg: dict) -> dict:
+    from . import hdpredict, hdstudy
+    from .hdmodel import HD
+    H = HD(D)
+    try:
+        ind = json.loads((store.ROOT / "data" / "stock_industry.json").read_text(encoding="utf-8")).get("industry") or {}
+    except Exception:                                     # noqa: BLE001
+        ind = {}
+    from . import hdflow
+    reps = hdpredict.replay(D, H, cfg, ind)
+    rows = hdflow.realized(D, H, cfg)
+    F = hdflow.fk(rows)
+    live = hdpredict.live(D, H, cfg, ind, reps, F=F)
+    return {"study": hdstudy.page_data(D, cfg, H), "live": live,
+            "flow": hdflow.study(rows, F, reps, D, H, cfg), "alert": hdflow.alerts(D, H, cfg, F, live),
+            "replay": [{"key": r["key"], "review": r["review"], "cutoff": r["cutoff"], "act_add": r["act_add"],
+                        "act_del": r["act_del"], **({"pred_add": r["lead"][0]["pred_add"], "pred_del": r["lead"][0]["pred_del"],
+                                                     "hit_add": r["lead"][0]["hit_add"], "hit_del": r["lead"][0]["hit_del"]}
+                                                    if 0 in r["lead"] else {})} for r in reps]}

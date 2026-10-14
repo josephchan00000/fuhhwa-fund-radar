@@ -446,3 +446,106 @@ def backfill_rev_hist(codes: list[str], *, budget_s: float = 1200) -> int:
             fail += 1
     market.log(f"營收歷史（FinMind）：候選 {len(codes)} 檔、本輪新增 {n}")
     return n
+
+
+# ── 高股息研究資料：股利（證交所逐年＋上櫃 FinMind）與單季 EPS（FinMind），可重跑續補 ───────────
+
+def hd_universe(n: int = 320) -> list[str]:
+    """最新一天上市＋上櫃普通股市值前 n 名（高股息指數母體都在這裡面：00919 前 300、00929 科技前 200、0056 前 150）。
+    上市發行股數（MI_QFIIS）不是每天都有 → 往前找最近一份。"""
+    q_tw = q_tp = x_tw = None
+    for d in reversed(store.dates("mkt")):
+        doc = store.read("mkt", d) or {}
+        q_tw = q_tw or doc.get("q_tw")
+        q_tp = q_tp or doc.get("q_tp")
+        x_tw = x_tw or doc.get("x_tw")
+        if q_tw and q_tp and x_tw:
+            break
+    caps = {}
+    for c, r in (q_tw or {}).items():
+        iss = ((x_tw or {}).get(c) or [None, None])[1]
+        if r and r[3] and iss:
+            caps[c] = r[3] * iss
+    for c, r in (q_tp or {}).items():
+        if r and r[3] and len(r) > 6 and r[6]:
+            caps[c] = r[3] * r[6]
+    ok = [c for c in caps if len(c) == 4 and c.isdigit() and not c.startswith("00") and not c.startswith("91")]
+    return sorted(ok, key=lambda c: -caps[c])[:n]
+
+
+def _hd_cfg_codes() -> set[str]:
+    """設定檔裡高股息指數歷次納入／刪除過的股票（小型股可能掉出市值前 N，回放時仍要有資料）。"""
+    try:
+        cfg = json.loads((store.ROOT / "config" / "index_reviews.json").read_text(encoding="utf-8"))
+    except Exception:                                     # noqa: BLE001
+        return set()
+    out = set()
+    for k in ("tw_div", "msci_esg30", "tip_hd", "tip_tech"):
+        for h in ((cfg.get("indexes") or {}).get(k) or {}).get("history") or []:
+            out |= {c for c in (h.get("adds") or []) + (h.get("dels") or []) if len(c) == 4 and c.isdigit()}
+    return out
+
+
+def backfill_hd(*, budget_s: float = 2700, years: tuple = (2021, 2022, 2023, 2024, 2025, 2026), n: int = 460) -> dict:
+    """高股息研究資料：① 證交所除權息（一年一請求）② FinMind 單季 EPS（市值前 n＋設定檔歷次異動股）
+    ③ 上櫃股與有「權息」紀錄的上市股抓 FinMind 股利政策（現金部分）。EPS／股利各自記抓取日（asof／div_asof），20 天內抓過的跳過；限流就停、下一輪續補。"""
+    t0 = time.time()
+    st = {"twt49u": 0, "eps": 0, "div": 0, "skip": 0, "limit": False}
+    this_year = clock.today_tw().year
+    for y in years:                                       # ① 證交所除權息（過去年度有檔就不重抓；今年每輪重抓）
+        old_rows = (store.read("divtw", str(y)) or {}).get("rows") or []
+        if old_rows and y < this_year and len(old_rows[0]) >= 6:   # 舊格式（沒有前收盤價）→ 重抓
+            continue
+        rows = market.twse_exright_year(y)
+        time.sleep(market.UA_SLEEP_TWSE)
+        if rows:
+            store.write("divtw", str(y), {"rows": rows})
+            st["twt49u"] += len(rows)
+    uni = hd_universe(n)
+    uni += sorted(_hd_cfg_codes() - set(uni))
+    doc = store.read("mkt", store.dates("mkt")[-1]) if store.dates("mkt") else {}
+    tp = set((doc or {}).get("q_tp") or {})
+    # 上市股有「權息」（配股＋現金）紀錄的，證交所表只有合計值 → 也抓 FinMind 股利政策拿現金部分
+    qx = {r[1] for y in store.dates("divtw") for r in (store.read("divtw", y) or {}).get("rows") or [] if r[3] == "權息"}
+    today = clock.today_tw()
+
+    def stale(d):
+        return not d or (today - date.fromisoformat(d)).days >= 20
+
+    for c in uni:                                         # ② FinMind：EPS（全部）＋股利（上櫃）
+        if time.time() - t0 > budget_s:
+            break
+        old = store.read("fin", c) or {}
+        div_asof = old.get("div_asof") or (old.get("asof") if old.get("div") else None)
+        need_eps, need_div = stale(old.get("asof")), ((c in tp or c in qx) and stale(div_asof))
+        if not need_eps and not need_div:
+            st["skip"] += 1
+            continue
+        new = dict(old)
+        if need_eps:
+            r = market.finmind("TaiwanStockFinancialStatements", c)
+            time.sleep(1.2)
+            if r == market.FINMIND_LIMIT:
+                st["limit"] = True
+                break
+            if r is not None:
+                new["eps"] = market.fm_eps(r) or old.get("eps") or {}
+                new["asof"] = today.isoformat()
+                st["eps"] += 1
+        if need_div:
+            r2 = market.finmind("TaiwanStockDividend", c)
+            time.sleep(1.2)
+            if r2 == market.FINMIND_LIMIT:
+                st["limit"] = True
+                if new != old:
+                    store.write("fin", c, new)
+                break
+            if r2 is not None:
+                new["div"] = market.fm_div(r2) or old.get("div") or []
+                new["div_asof"] = today.isoformat()
+                st["div"] += 1
+        if new != old:
+            store.write("fin", c, new)
+    market.log(f"高股息資料：證交所除權息 {st['twt49u']} 列、EPS {st['eps']} 檔、FinMind 股利 {st['div']} 檔、"
+               f"跳過（20 天內抓過）{st['skip']}；母體 {len(uni)} 檔{'；FinMind 限流，下一輪續補' if st['limit'] else ''}")
+    return st

@@ -56,16 +56,42 @@ STRATEGIES = [
 ]
 
 
-S3 = {"key": "s3", "ver": 1, "since": "2026-10-14", "name": "臺灣50 換股（官方名單）",
-      "bet": "0050、006208 在生效日收盤必須照官方名單買賣：先買進納入股、再賣給被動買盤；刪除股則在被動賣壓最重時承接。",
-      "why": "被動基金規模大，買什麼、買多少、哪一天，事前都算得出來——這是規則造成的資金流，不用猜經理人。"
-             "兩條都在官方公告後才進場，不靠預測。",
-      "more": [],
-      "fail": ["大家都知道，公告前就可能先漲", "納入股生效後常回落，生效日一定要出", "一年 4 次、每次幾檔，樣本少"],
+S3 = {"key": "s3", "ver": 1, "since": "2026-10-14", "name": "臺灣50 換股",
+      "bet": "0050、006208 生效日前一定要買進納入股。資料截止前一個多月，排名接近前 40、漲勢最強的那幾檔最有機會被納入、"
+             "也漲得最多——先卡位，截止日再照規則校正。",
+      "why": "名單由市值排名決定、規則公開，資料截止日收盤後照規則重算就知道誰會被納入，不用猜經理人。"
+             "漲幅有一大段發生在截止日之前：股票會被納入，本來就是因為它一路漲、市值擠進前 40 名，提前卡位等於跟著這股漲勢走；"
+             "截止日再把沒進名單的賣掉、把確定納入的補進。至於哪幾檔漲最多：權重大小幾乎看不出差別，看得出差別的是截止前的漲勢與週轉率——"
+             "市場正在追的股票，再加上一筆確定的被動買盤，漲得最多。",
+      "more": ["「提前幾天建倉」「最多 4 檔」「生效前一天賣」都是看過歷史資料、逐日回測後才定的，樣本內成績只能參考；"
+               "起算日之後的前瞻成績才算數，和公告後進場版並列記帳比較。",
+               "截止日名單用證交所收盤價×發行股數重排；實際指數另看自由流通與流動性，邊界名次可能不同。",
+               "原「官方名單全部」版本（全部納入股、生效日收盤賣，另含刪除股）留作對照。"],
+      "fail": ["一年只有 4 次審核，樣本少、成績可能集中在少數幾次", "提前買的股票最後可能沒進名單（截止日隔天開盤賣，可能小賠）",
+               "截止前已經漲很多的股票，生效前可能先回落", "不設停損（進出日期事先定好），單筆可能大賠"],
       "rule": ["名單：富時／證交所官方公告的納入與刪除（週一 ETF 週掃寫入 config/index_reviews.json）",
                "納入：公告後第一個交易日開盤買進，生效日收盤賣出（賣給被動買盤）",
                "刪除：生效日收盤買進（承接被動賣壓），第 5 個交易日收盤賣出"],
       "hold": None}
+
+# 臺灣50 兩個新版本（2026-10-14 使用者：「公告前就先預估可能納進去的…也幫我去歸因哪些股票會漲最多」→
+# 「不用一檔可以 3-4 檔，然後能越早卡位越好」）：提前卡位（截止前 25 個交易日、最多 4 檔）與公告後進場並列紙上比較。
+# 交易由 tw50study.version_trades 依同一套規則重算。上面的 S3（官方名單全部）規則不變，留作對照組。
+TW50_VERS = [
+    {"k": "early", "ver": 1, "since": "2026-10-14", "name": "提前卡位・漲勢前 4 檔",
+     "buy": "截止前 25 個交易日的隔天開盤", "sell": "生效前一天收盤",
+     "rule": ["建倉：資料截止日前第 25 個交易日收盤後選股，隔天開盤買進",
+              "候選：當天市值排名的預估納入股（非成分股進前 40 名；截止時還沒上市的不算），加上第 41～45 名的非成分股",
+              "選股：候選裡截止前 40 個交易日漲幅最大的 4 檔（不到 4 檔就全買）",
+              "校正：資料截止日收盤後照規則重算名單——名單沒有的隔天開盤賣；名單上有、還沒買到的依漲幅補到 4 檔（隔天開盤買）",
+              "出場：生效日前一個交易日收盤全部賣出；官方公告名單沒有的 → 公告後第一個交易日開盤賣出"]},
+    {"k": "post", "ver": 1, "since": "2026-10-14", "name": "公告後進場・漲勢前一半",
+     "buy": "公告後第一個交易日開盤", "sell": "生效前一天收盤",
+     "rule": ["名單：富時／證交所官方公告的納入股",
+              "選股：依資料截止日前 40 個交易日漲幅排序，買前一半（無條件進位；只有 1 檔就買它）",
+              "進場：公告後第一個交易日開盤買進",
+              "出場：生效日前一個交易日收盤賣出（個股生效日延後時，以個股為準）"]},
+]
 
 
 def _pct(xs: list[float], q: float) -> float | None:
@@ -136,36 +162,45 @@ def trading_days_after(d: str, n: int) -> list[str]:
 
 
 def tw50_trades(D, idx: list, io: list, names: dict, today: str) -> list[dict]:
-    """依官方歷次結果模擬 S3。公告在收盤後 → 納入股進場＝公告日之後第一個交易日開盤。"""
+    """依官方歷次結果模擬 S3（對照組）。公告在收盤後 → 納入股進場＝公告日之後第一個交易日開盤。
+    資料還沒到該進場／出場的日子 → 待進場（cand）／持有中（open），不拿最新收盤冒充進出場價。"""
     from . import indexes
     ix = ((indexes.load_cfg().get("indexes") or {}).get("tw50") or {})
     out = []
     cal = D.cal
+    last = cal[-1] if cal else ""
     for h in sorted(ix.get("history") or [], key=lambda x: x.get("effective") or ""):
-        ann, eff = h.get("announce"), h.get("effective")
-        if not ann or not eff:
+        ann, eff0 = h.get("announce"), h.get("effective")
+        if not ann or not eff0:
             continue
         a_i = next((i for i, d in enumerate(cal) if d > ann), None)
-        e_i = max((i for i, d in enumerate(cal) if d <= eff), default=None)
-        if a_i is None or e_i is None or e_i < a_i:
-            continue
         for side, codes in (("add", h.get("adds") or []), ("del", h.get("dels") or [])):
             for c in codes:
-                S = D.series(c)
+                # 個股生效日延後（處置股依基本規則延後，例：南亞科 2025-12-30）→ 以個股為準
+                eff = (h.get("eff_override") or {}).get(c) or eff0
                 base = {"c": c, "n": names.get(c, c), "d": eff, "side": side, "review": h.get("review")}
+                S = D.series(c)
                 if side == "add":
-                    i0, px0, b0, i1 = a_i, S["o"][a_i], io[a_i], e_i
+                    if a_i is None:
+                        out.append({**base, "st": "cand"})
+                        continue
+                    i0, px0 = a_i, S["o"][a_i]
+                    b0 = io[a_i] or (idx[a_i - 1] if a_i else None)
+                    i1 = max((i for i, d in enumerate(cal) if d <= eff), default=None) if last >= eff else None
                 else:
-                    i0, px0, b0, i1 = e_i, S["c"][e_i], idx[e_i], e_i + 5
-                if i1 >= D.T or eff >= today and i1 >= D.T - 1 and side == "add" and cal[-1] < eff:
-                    out.append({**base, "st": "open", "entry": px0})
-                    continue
-                if not px0 or i1 >= D.T or not S["c"][i1]:
-                    out.append({**base, "st": "open", "entry": px0})
+                    if last < eff:
+                        out.append({**base, "st": "cand"})
+                        continue
+                    i0 = max(i for i, d in enumerate(cal) if d <= eff)
+                    px0, b0, i1 = S["c"][i0], idx[i0], i0 + 5
+                if i1 is None or i1 >= D.T or not px0 or not S["c"][i1]:
+                    li = max((i for i in range(i0, D.T) if S["c"][i]), default=None)
+                    out.append({**base, "st": "open", "entry": px0, "now": None if li is None else S["c"][li]})
                     continue
                 r = S["c"][i1] / px0 - 1 - COST
                 b = idx[i1] / b0 - 1 if b0 and idx[i1] else None
-                out.append({**base, "st": "closed", "entry": px0, "exit": S["c"][i1], "held": i1 - i0,
+                out.append({**base, "st": "closed", "entry": px0, "exit": S["c"][i1],
+                            "held": i1 - i0 + (1 if side == "add" else 0),
                             "why": "納入・生效日出" if side == "add" else "刪除・5 日出",
                             "r": round(r * 100, 2), "x": None if b is None else round((r - b) * 100, 2)})
     return out
@@ -299,27 +334,182 @@ def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict) -> dict:
                     "ins_n": len(ins), "cands": cands,
                     "scan": scan(grps, ser_only, idx, io, st["scan_h"]),
                     "dist": dist(ins), "ins": [t for t in ins if t.get("st") in ("closed", "open")][-80:]})
-    # S3 臺灣50 換股：事件型、驗證期滿判準用「兩次審核」（筆數少、每季一次）
+    # S3 臺灣50 換股：事件型、驗證期滿判準用「兩次審核」（筆數少、每季一次）。
+    # 卡片＝三個版本並列：公告前卡位／公告後進場（兩個新版本）＋官方名單全部（原 S3，對照）。
     trs = tw50_trades(D, idx, io, names, D.cal[-1] if D.cal else "")
     fwd = [t for t in trs if t["d"] >= S3["since"]]
     ins = [t for t in trs if t["d"] < S3["since"]]
-    n_rev = len({t["review"] for t in fwd if t.get("st") == "closed"})
-    g = _agg(fwd)
-    status = ("達標" if g["n"] and g["x"] > 0 and g["w"] > 50 else "不達標") if n_rev >= 2 else "驗證中"
-    out.insert(2, {"key": "s3", "ver": S3["ver"], "since": S3["since"], "name": S3["name"], "rule": S3["rule"],
-                   "bet": S3["bet"], "why": S3["why"], "more": S3["more"], "fail": S3["fail"],
-                   "status": status, "days": n_rev, "fwd": fwd[-60:], "fwd_stats": g, "ins_stats": _agg(ins),
-                   "ins_n": len(ins), "cands": [], "event": True,
-                   "sides": {sd: {**_agg([t for t in ins if t["side"] == sd]),
-                                  **{"p": dist([t for t in ins if t["side"] == sd]).get("p")}}
-                             for sd in ("add", "del")},
-                   "post5": _post_effective(D, ins, idx), "ins": ins[-80:]})
+    status, n_rev = _ev_status(fwd)
+    s3 = {"key": "s3", "ver": S3["ver"], "since": S3["since"], "name": S3["name"], "rule": S3["rule"],
+          "bet": S3["bet"], "why": S3["why"], "more": S3["more"], "fail": S3["fail"],
+          "status": status, "days": n_rev, "fwd": fwd[-60:], "fwd_stats": _agg(fwd), "ins_stats": _agg(ins),
+          "ins_n": len(ins), "cands": [], "event": True,
+          "sides": {sd: {**_agg([t for t in ins if t["side"] == sd]),
+                         **{"p": dist([t for t in ins if t["side"] == sd]).get("p")}}
+                    for sd in ("add", "del")},
+          "post5": _post_effective(D, ins, idx), "ins": ins[-80:]}
+    try:
+        s3.update(tw50_versions(D, names, s3, fwd, ins))
+    except Exception as e:                                # noqa: BLE001 —— 新版本壞掉不連累整張卡
+        s3["vers_err"] = f"{type(e).__name__}: {e}"
+    out.insert(2, s3)
     # 跳空減碼提醒的證據：共識加碼亮燈、隔日開高 ≥3% 那一組（樣本內）
     s1 = STRATEGIES[0]
     s1_ins = [(c, t) for c, t in _signals("s1", D, sig_hist, L, meta) if D.cal[t] < s1["since"]]
     a_scan = scan([("g3", "共識加碼・隔日開高 ≥3%", s1_ins, lambda gp: gp >= 0.03)], ser_only, idx, io, 10)
     return {"list": out, "alerts": gap_alerts(D, sig_hist, names), "alert_scan": a_scan,
             "pass": [PASS_N, PASS_DAYS], "next": nxt[:5]}
+
+
+def _ev_stats(trs: list[dict]) -> dict:
+    """事件型版本的成績（已出場、扣成本）：報酬平均／中位／賺錢比例＋平均超額。"""
+    cl = [t for t in trs if t.get("st") == "closed" and t.get("r") is not None]
+    if not cl:
+        return {"n": 0}
+    rs = [t["r"] for t in cl]
+    xs = [t["x"] for t in cl if t.get("x") is not None]
+    return {"n": len(cl), "rev": len({t.get("review") for t in cl}),
+            "avg": round(statistics.mean(rs), 2), "med": round(statistics.median(rs), 2),
+            "win": round(sum(1 for r in rs if r > 0) / len(rs) * 100),
+            "x": round(statistics.mean(xs), 2) if xs else None,
+            "xw": round(sum(1 for x in xs if x > 0) / len(xs) * 100) if xs else None,
+            "lo": round(min(rs), 2), "hi": round(max(rs), 2)}
+
+
+def _ev_status(fwd: list[dict]) -> tuple[str, int]:
+    """事件型：前瞻滿 2 次審核才判定（平均超額＞0 且勝率＞50% → 達標）。"""
+    n_rev = len({t["review"] for t in fwd if t.get("st") == "closed"})
+    g = _agg(fwd)
+    if n_rev < 2:
+        return "驗證中", n_rev
+    return ("達標" if g["n"] and g["x"] > 0 and g["w"] > 50 else "不達標"), n_rev
+
+
+def _rev_stats(trs: list[dict]) -> dict:
+    """事件型版本「每次審核」的成績：同一次的各筆平均分配資金，一次算一個報酬（扣成本），再看幾次賺、最差一次。"""
+    by: dict[str, list] = defaultdict(list)
+    bx: dict[str, list] = defaultdict(list)
+    for t in trs:
+        if t.get("st") == "closed" and t.get("r") is not None:
+            by[t.get("review")].append(t["r"])
+            if t.get("x") is not None:
+                bx[t.get("review")].append(t["x"])
+    if not by:
+        return {"n": 0}
+    per = [statistics.mean(v) for v in by.values()]
+    px = [statistics.mean(v) for v in bx.values()]
+    return {"n": len(per), "trades": sum(len(v) for v in by.values()),
+            "avg": round(statistics.mean(per), 2), "med": round(statistics.median(per), 2),
+            "win": sum(1 for x in per if x > 0), "lo": round(min(per), 2),
+            "x": round(statistics.mean(px), 2) if px else None, "xw": sum(1 for x in px if x > 0)}
+
+
+def tw50_versions(D, names: dict, s3: dict, fwd: list[dict], ins: list[dict]) -> dict:
+    """臺灣50 三個版本的成績＋「目前這一次」審核的計畫（日期、名單、漲勢、各版本部位）。"""
+    from . import indexes, tw50study
+    cfg = indexes.load_cfg()
+    pl = tw50study.plans(D, cfg)
+    V = tw50study.version_trades(D, cfg, names, pl)
+    vers = []
+    for vm in TW50_VERS:
+        tv = V.get(vm["k"]) or []
+        iv = [t for t in tv if t["d"] < vm["since"]]
+        fv = [t for t in tv if t["d"] >= vm["since"]]
+        st, nr = _ev_status(fv)
+        vers.append({**{k: vm[k] for k in ("k", "ver", "since", "name", "buy", "sell", "rule")},
+                     "status": st, "days": nr, "ins_stats": _ev_stats(iv), "fwd_stats": _ev_stats(fv),
+                     "rev_stats": _rev_stats(iv), "fwd_rev": _rev_stats(fv),
+                     "fwd": fv[-40:], "ins": iv[-80:], "dist": dist(iv)})
+    add_i = [t for t in ins if t.get("side") == "add"]
+    vers.append({"k": "all", "ver": S3["ver"], "since": S3["since"], "name": "官方名單全部（對照）",
+                 "buy": "公告後第一個交易日開盤", "sell": "生效日收盤", "rule": S3["rule"],
+                 "status": s3["status"], "days": s3["days"], "ins_stats": _ev_stats(add_i),
+                 "fwd_stats": _ev_stats([t for t in fwd if t.get("side") == "add"]),
+                 "rev_stats": _rev_stats(add_i), "fwd_rev": _rev_stats([t for t in fwd if t.get("side") == "add"]),
+                 "del_stats": _ev_stats([t for t in ins if t.get("side") == "del"]),
+                 "fwd": fwd[-40:], "ins": ins[-80:], "dist": dist(add_i)})
+    by_rev, sens = _tw50_by_review(D, pl, V, add_i)
+    # 目前這一次：還沒走完（出場日 ≥ 最新資料日）的最早一次審核
+    last = D.cal[-1] if D.cal else ""
+    cur = next((p for p in pl if (p.get("out") or "") >= last), None)
+    plan = None
+    if cur:
+        stage = ("watch" if cur.get("e_t") is None and not cur["frozen"] else
+                 "early" if not cur["frozen"] else "frozen" if not cur["official"] else "announced")
+        tr = {k: {t["c"]: t for t in V.get(k) or [] if t.get("review") == cur["review"]} for k in ("early", "post")}
+        pred, act = cur["pred"] or [], cur["act"] or []
+        if stage == "watch":
+            codes = list(cur["pick_now"])
+        elif stage == "early":
+            codes = list(cur["pick_e"])
+        else:                                        # 截止後：先列持有中（早買仍在名單＋補位）、再列賣掉的、最後是沒買的
+            held = [c for c in cur["pick_e"] if c in pred] + list(cur["pick_t"])
+            sold = [c for c in cur["pick_e"] if c not in pred]
+            codes = list(dict.fromkeys(held + sold + list(pred) + list(act)))
+        mom_c, mom_e = cur.get("mom") or {}, cur.get("mom_e") or {}
+        b_if = indexes.top_half(pred, mom_c) if stage == "frozen" else set()
+        items = []
+        for c in codes:
+            m = mom_e.get(c) if stage in ("watch", "early") or c in cur["pick_e"] else mom_c.get(c)
+            items.append({"c": c, "n": names.get(c, c), "rank": (cur.get("rank") or {}).get(c), "px": _last_close(D, c),
+                          "mom": None if m is None else round(m * 100, 1),
+                          "e": c in cur["pick_e"], "t": c in cur["pick_t"],
+                          "pred": (c in pred) if cur["frozen"] else None, "act": (c in act) if cur["official"] else None,
+                          "b": c in cur["pick_b"] or c in b_if,
+                          "ta": _slim(tr["early"].get(c)), "tb": _slim(tr["post"].get(c))})
+        plan = {k: cur.get(k) for k in ("review", "cutoff", "a_in", "announce", "b_in", "out", "effective", "status",
+                                       "e_sig", "e_in")}
+        plan.update({"stage": stage, "items": items, "out_c": cur.get("out_c") or {},
+                     "K": tw50study.EARLY_K, "N": tw50study.EARLY_N,
+                     "dels": [[c, names.get(c, c)] for c in ((cur.get("act_del") if cur["official"] else cur.get("pred_del")) or [])]})
+    return {"vers": vers, "plan": plan, "by_rev": by_rev, "sens": sens}
+
+
+def _tw50_by_review(D, pl: list[dict], V: dict, add_i: list[dict]) -> tuple[list, dict | None]:
+    """逐次比較（樣本內、已出場、扣成本平均報酬）＋敏感度：扣掉兩版差距最大的 2 次後各剩多少。
+    2026-10-14 發現：公告後版的成績幾乎都來自 2026-03、06 兩次——公告後第一天開盤納入股跌 9～10%（大盤急跌），
+    剛好買在低點。這種「集中在少數幾次」要讓頁面自己算出來、自己講，不寫死。"""
+    def avg(xs):
+        xs = [x for x in xs if x is not None]
+        return round(statistics.mean(xs), 2) if xs else None
+    since = TW50_VERS[0]["since"]
+    cl = {k: [t for t in V.get(k) or [] if t.get("st") == "closed" and t["d"] < since] for k in ("early", "post")}
+    ctl = [t for t in add_i if t.get("st") == "closed"]
+    rows = []
+    for p in pl:
+        rv = p["review"]
+        ea = [t["r"] for t in cl["early"] if t["review"] == rv]
+        post = [t["r"] for t in cl["post"] if t["review"] == rv]
+        if not ea and not post:
+            continue
+        gaps = []                                          # 公告後版進場那天：開盤相對公告日收盤
+        i0 = next((i for i, x in enumerate(D.cal) if p.get("announce") and x > p["announce"]), None)
+        if i0:
+            for c in p["pick_b"]:
+                S = D.series(c)
+                if S["o"][i0] and S["c"][i0 - 1]:
+                    gaps.append((S["o"][i0] / S["c"][i0 - 1] - 1) * 100)
+        rows.append([rv, avg(ea), avg(post), avg([t["r"] for t in ctl if t["review"] == rv]), avg(gaps)])
+    both = [r for r in rows if r[1] is not None and r[2] is not None]
+    sens = None
+    if len(both) >= 4:
+        top = sorted(both, key=lambda r: -abs(r[2] - r[1]))[:2]
+        drop = {r[0] for r in top}
+        left = [r for r in both if r[0] not in drop]
+        sens = {"revs": [r[0] for r in top], "gaps": [r[4] for r in top],
+                "early": avg([r[1] for r in left]), "post": avg([r[2] for r in left]),
+                "early_all": avg([r[1] for r in both]), "post_all": avg([r[2] for r in both]),
+                "n_left": len(left)}
+    return rows, sens
+
+
+def _last_close(D, c: str) -> float | None:
+    cs = D.series(c)["c"]
+    return next((x for x in reversed(cs) if x), None)
+
+
+def _slim(t: dict | None) -> dict | None:
+    return None if not t else {k: t.get(k) for k in ("st", "entry", "exit", "now", "r", "x", "held", "ent", "out", "why")}
 
 
 def _other_new(D, L, meta: dict, since: str) -> list[tuple[str, int]]:

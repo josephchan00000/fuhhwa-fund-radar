@@ -676,3 +676,104 @@ def finmind_revenue(code: str, start: str = "2023-01-01") -> dict[str, float]:
         if y and m and v:
             out[f"{int(y):04d}-{int(m):02d}"] = float(v)
     return out
+
+
+# ── 高股息研究資料（2026-10-14 使用者：「幫我套用在高股息ETF」）───────────────────
+# 證交所除權息計算結果表：區間查詢一次回整年所有除權息事件（2026-10-14 probe2 實測 1 年 1,490 列）。
+# 表頭：資料日期（民國「114年10月13日」）/股票代號/股票名稱/除權息前收盤價/除權息參考價/權值+息值/權/息/…
+# 「息」＝現金股利；「權息」只有合計值（配股另計），先照記、用的時候標示。上櫃股與 EPS 走 FinMind（同日 probe3 實測可達）。
+
+def _roc_date(s) -> str | None:
+    m = re.search(r"(\d{2,3})\D+(\d{1,2})\D+(\d{1,2})", str(s or ""))
+    if not m:
+        return None
+    y, mo, d = (int(x) for x in m.groups())
+    return f"{y + 1911:04d}-{mo:02d}-{d:02d}"
+
+
+def parse_twt49u(doc) -> list[list]:
+    """→ [[除權息日 ISO, 代號, 權值+息值, 權/息, 除權息前收盤價, 除權息參考價]]。
+    前收盤價是「當時」每股價格——用來把股利換算到價量序列的口徑（面額變更、配股後 Yahoo 歷史價會被還原）。"""
+    out = []
+    for fields, rows in tables(doc):
+        cd, cc = col(fields, "資料日期"), col(fields, "股票代號")
+        cv, ct = col(fields, "權值+息值", "權值"), col(fields, "權/息")
+        cp, cr = col(fields, "前收盤"), col(fields, "參考價", excl=("減除",))
+        if None in (cd, cc, cv, ct):
+            continue
+        for r in rows:
+            c = _TAG.sub("", str(r[cc])).strip()
+            d = _roc_date(r[cd])
+            v = num(r[cv])
+            if CODE_RE.match(c) and d and v is not None:
+                out.append([d, c, v, _TAG.sub("", str(r[ct])).strip(),
+                            num(r[cp]) if cp is not None else None, num(r[cr]) if cr is not None else None])
+    if not out:
+        tb = tables(doc)
+        if tb:
+            _probe("TWT49U", *max(tb, key=lambda t: len(t[1])))
+    return out
+
+
+def twse_exright_year(y: int) -> list[list]:
+    url = (f"https://www.twse.com.tw/rwd/zh/exRight/TWT49U?startDate={y}0101&endDate={y}1231&response=json")
+    try:
+        doc = json.loads(get_bytes(url, retries=2, timeout=30, use_cache=False).decode("utf-8", "replace"))
+    except Exception as e:                                # noqa: BLE001
+        log(f"TWT49U {y} ✗ {str(e)[:100]}")
+        return []
+    return parse_twt49u(doc)
+
+
+FINMIND_LIMIT = "finmind_limit"
+
+
+def finmind(dataset: str, code: str, start: str = "2021-01-01"):
+    """FinMind 單檔資料集 → list[dict]；被限流回 FINMIND_LIMIT（呼叫端停下來，下一輪續補）。"""
+    from .. import clock
+    url = (f"https://api.finmindtrade.com/api/v4/data?dataset={dataset}&data_id={code}"
+           f"&start_date={start}&end_date={clock.today_tw().isoformat()}")
+    try:
+        doc = json.loads(get_bytes(url, retries=1, timeout=30, use_cache=False).decode("utf-8"))
+    except Exception as e:                                # noqa: BLE001
+        msg = str(e)
+        log(f"FinMind {dataset} {code} ✗ {msg[:100]}")
+        return FINMIND_LIMIT if ("402" in msg or "429" in msg) else None
+    if not isinstance(doc, dict):
+        return None
+    st, msg = doc.get("status"), str(doc.get("msg") or "")
+    if st not in (200, "200"):
+        log(f"FinMind {dataset} {code} status={st} msg={msg[:100]}")
+        return FINMIND_LIMIT if (str(st) in ("402", "429") or "limit" in msg.lower() or "upper" in msg.lower()) else None
+    return doc.get("data") or []
+
+
+def fm_eps(rows) -> dict[str, float]:
+    """FinMind 綜合損益 → {季底日期: 基本每股盈餘}（單季）。"""
+    out = {}
+    for r in rows or []:
+        if r.get("type") == "EPS" or "每股盈餘" in str(r.get("origin_name") or ""):
+            v = r.get("value")
+            if r.get("date") and v is not None:
+                out[str(r["date"])[:10]] = float(v)
+    return out
+
+
+_FM_DIV_KEYS: set = set()
+
+
+def fm_div(rows) -> list[list]:
+    """FinMind 股利政策 → [[現金除息日, 現金股利, 配股除權日, 配股(元), 所屬年度, 公告日]]；鍵名第一次印出供核對。"""
+    out = []
+    for r in rows or []:
+        if not _FM_DIV_KEYS:
+            _FM_DIV_KEYS.update(r)
+            log(f"FinMind 股利政策鍵名：{sorted(r)[:30]}")
+        cash = sum(float(r.get(k) or 0) for k in ("CashEarningsDistribution", "CashStatutorySurplus"))
+        stock = sum(float(r.get(k) or 0) for k in ("StockEarningsDistribution", "StockStatutorySurplus"))
+        ex_c, ex_s = r.get("CashExDividendTradingDate") or None, r.get("StockExDividendTradingDate") or None
+        if cash or stock:
+            out.append([ex_c, round(cash, 6), ex_s, round(stock, 6), str(r.get("year") or ""),
+                        str(r.get("AnnouncementDate") or r.get("date") or "")[:10] or None])
+    return out
+
