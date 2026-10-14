@@ -333,3 +333,19 @@ def test_store_dates_handles_month_shards(tmp_path, monkeypatch):
     store.write("mkt", "2026-10-13", {"q_tw": {}})
     assert store.dates("rev") == ["2026-09"] and store.load("rev")[0][0] == "2026-09"
     assert store.dates("mkt") == ["2026-10-13"]
+
+
+def test_extra_etf_candidates_read_nested_latest_market_aum():
+    """etfinfo 清單的規模在 latestMarket.aum（2026-10-14 正式環境首輪實測鍵名）。"""
+    from arm.lab import collect
+    items = [{"code": "0051", "name": "小檔", "managementStyle": "passive", "latestMarket": {"aum": 5e9}},
+             {"code": "009816", "name": "大檔", "managementStyle": "passive", "latestMarket": {"aum": 2e11}},
+             {"code": "00981A", "name": "主動大檔", "managementStyle": "active", "latestMarket": {"aum": 1e11}}]
+    out = collect.extra_candidates(items, tracked=set())
+    assert [x["code"] for x in out] == ["009816", "00981A", "0051"]
+    assert out[1]["style"] == "a"
+
+
+def test_shard_retention_covers_long_term_backtest():
+    """長線回測（月選、12 個月前瞻＋120 日均線暖身）至少要兩年分片，保留天數不可再縮回 400。"""
+    assert store.KEEP_DAYS >= 730
