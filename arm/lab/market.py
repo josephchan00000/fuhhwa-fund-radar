@@ -26,7 +26,7 @@ import time
 
 from ..http import get_bytes
 
-UA_SLEEP_TWSE = 3.0      # 證交所 www 端有頻率限制（約每 5 秒 3 次），保守間隔
+UA_SLEEP_TWSE = 3.5      # 證交所 www 端有頻率限制（約每 5 秒 3 次），保守間隔
 UA_SLEEP_TPEX = 1.6
 
 TWSE = {
@@ -133,14 +133,34 @@ def _probe(name: str, fields, rows) -> None:
     log(f"{name} 解析 0 列——表頭={head}｜首列={first}")
 
 
+_BLOCK_STREAK = [0]
+
+
+def _is_block_page(b: bytes) -> bool:
+    """證交所頻率限制回的 611B XHTML 擋頁（2026-10-14 回補實測：144/564 請求中招）。"""
+    return len(b) < 3000 and b.lstrip()[:15].lower().startswith((b"<!doctype", b"<html"))
+
+
 def _get(url: str, *, sleep: float, timeout: int = 25):
-    """GET → (doc, status)。status：ok／nodata（官方明示查無）／err。"""
-    try:
-        b = get_bytes(url, retries=2, timeout=timeout, use_cache=False)
-    except Exception as e:                                # noqa: BLE001
+    """GET → (doc, status)。status：ok／nodata（官方明示查無）／err。
+    遇證交所擋頁：等 45 秒重試一次；連 3 次擋頁再多等 2 分鐘（讓 IP 冷卻，不硬撞）。"""
+    b = b""
+    for attempt in range(2):
+        try:
+            b = get_bytes(url, retries=2, timeout=timeout, use_cache=False)
+        except Exception as e:                            # noqa: BLE001
+            time.sleep(sleep)
+            return None, f"err:{str(e)[:120]}"
         time.sleep(sleep)
-        return None, f"err:{str(e)[:120]}"
-    time.sleep(sleep)
+        if not _is_block_page(b):
+            _BLOCK_STREAK[0] = 0
+            break
+        _BLOCK_STREAK[0] += 1
+        if _BLOCK_STREAK[0] >= 3:
+            log(f"連續 {_BLOCK_STREAK[0]} 次擋頁，冷卻 120 秒")
+            time.sleep(120)
+        elif attempt == 0:
+            time.sleep(45)
     txt = b.decode("utf-8", "replace").strip()
     if not txt.startswith("{") and not txt.startswith("["):
         return None, f"err:非 JSON（{len(b)}B 開頭 {txt[:60]!r}）"
