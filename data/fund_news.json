@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/14 12:28",
+  "as_of": "2026/10/14 14:52",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -49,11 +49,11 @@
       ],
       "items": [
         {
-          "title": "00929連四配0.38元還能撐多久？年化配息率逾15％　阮慕驊揭「配息底氣」藏這裡",
-          "url": "https://finance.ettoday.net/news/3253670",
-          "source": "ETtoday財經雲",
-          "date": "2026-10-14 08:30",
-          "datetime": "2026-10-14T08:30:00+08:00"
+          "title": "00929逼近歷史高檔該賣嗎？阮慕驊曝「這存糧」充足就別急著下車",
+          "url": "https://www.yesmedia.com.tw/00929%E9%80%BC%E8%BF%91%E6%AD%B7%E5%8F%B2%E9%AB%98%E6%AA%94%E8%A9%B2%E8%B3%A3%E5%97%8E%EF%BC%9F%E9%98%AE%E6%85%95%E9%A9%8A%E6%9B%9D%E3%80%8C%E9%80%99%E5%AD%98%E7%B3%A7%E3%80%8D%E5%85%85%E8%B6%B3/",
+          "source": "https://www.yesmedia.com.tw/",
+          "date": "2026-10-14 08:00",
+          "datetime": "2026-10-14T08:00:23+08:00"
         },
         {
           "title": "靠存股出國玩！存股達人孫太傳授「股息旅遊法」 300萬買00929一年多45萬玩樂金",
@@ -61,13 +61,6 @@
           "source": "https://www.yesmedia.com.tw/",
           "date": "2026-10-13 08:00",
           "datetime": "2026-10-13T08:00:00+08:00"
-        },
-        {
-          "title": "追逐現金流？先看懂月配息ETF！00929今年漲79%奪冠 配息率15.8%吸睛",
-          "url": "https://udn.com/news/story/123006/9809800",
-          "source": "UDN",
-          "date": "2026-10-12 17:11",
-          "datetime": "2026-10-12T17:11:42+08:00"
         }
       ]
     },
@@ -80,7 +73,7 @@
       ],
       "items": [
         {
-          "title": "南亞 受惠00991A加持，今天強過台積 &大盤",
+          "title": "1303 南亞 - 南亞受惠00991A加持，今天強過台積&大盤 - 股市爆料同學會",
           "url": "https://www.cmoney.tw/forum/article/185587982",
           "source": "CMoney",
           "date": "2026-10-13 18:02",
@@ -111,18 +104,18 @@
       ],
       "items": [
         {
-          "title": "台股高檔震盪資金尋找配置平衡 00998A布局全球金融龍頭兼具9％高配息",
-          "url": "https://www.watchmedia01.com/archives/559007",
-          "source": "觀傳媒",
-          "date": "2026-10-14 11:37",
-          "datetime": "2026-10-14T11:37:13+08:00"
+          "title": "美日貨幣政策步調分道揚鑣 全球金融股恐現表現分化 00998A現主動選股價值",
+          "url": "https://mypeoplevol.com/2026/yahoo/116319/",
+          "source": "民眾新聞網",
+          "date": "2026-10-14 12:42",
+          "datetime": "2026-10-14T12:42:15+08:00"
         },
         {
-          "title": "10月底FOMC、日銀動向成變數 00998A掌握全球金融股選股機會",
-          "url": "https://sunmedia.tw/news/finance/10%E6%9C%88%E5%BA%95FOMC%E3%80%81%E6%97%A5%E9%8A%80%E5%8B%95%E5%90%91%E6%88%90%E8%AE%8A%E6%95%B8-00998A%E6%8E%8C%E6%8F%A1%E5%85%A8%E7%90%83%E9%87%91%E8%9E%8D%E8%82%A1%E9%81%B8%E8%82%A1%E6%A9%9F%E6%9C%83-1791943513400",
-          "source": "商傳媒",
-          "date": "2026-10-14 10:10",
-          "datetime": "2026-10-14T10:10:38+08:00"
+          "title": "台股高檔震盪資金尋找配置平衡 00998A布局全球金融龍頭兼具9％高配息",
+          "url": "https://www.watchmedia01.com/archives/559007",
+          "source": "Yahoo新聞",
+          "date": "2026-10-14 11:37",
+          "datetime": "2026-10-14T11:37:13+08:00"
         },
         {
           "title": "殖利率壓力若緩解 金融股評價修正有望收斂 00998A逆勢抗跌受矚目",
@@ -130,13 +123,6 @@
           "source": "蕃新聞",
           "date": "2026-10-13 19:04",
           "datetime": "2026-10-13T19:04:00+08:00"
-        },
-        {
-          "title": "海外金融資產稅負效率受關注！00998A成高資產族群布局另類選項",
-          "url": "https://www.watchmedia01.com/archives/558721",
-          "source": "觀傳媒",
-          "date": "2026-10-13 17:41",
-          "datetime": "2026-10-13T17:41:19+08:00"
         }
       ]
     },
@@ -158,32 +144,32 @@
       ],
       "items": [
         {
-          "title": "台股法人高檔連日調節美股指數同創新高 00409A直鎖美國AI獲利源頭",
-          "url": "https://www.watchmedia01.com/archives/558998",
-          "source": "觀傳媒",
-          "date": "2026-10-14 11:32",
-          "datetime": "2026-10-14T11:32:45+08:00"
+          "title": "Robinhood單季淨利5.7億美元！00409A不只選源頭 更選真獲利",
+          "url": "https://tw.news.yahoo.com/robinhood%E5%96%AE%E5%AD%A3%E6%B7%A8%E5%88%A95-7%E5%84%84%E7%BE%8E%E5%85%83-00409a%E4%B8%8D%E5%8F%AA%E9%81%B8%E6%BA%90%E9%A0%AD-%E6%9B%B4%E9%81%B8%E7%9C%9F%E7%8D%B2%E5%88%A9-061544211.html",
+          "source": "Yahoo新聞",
+          "date": "2026-10-14 14:15",
+          "datetime": "2026-10-14T14:15:44+08:00"
         },
         {
-          "title": "台灣造AI、美國賺AI！複委託交易暴增97% 00409A跨海布局AI獲利源頭",
-          "url": "https://www.watchmedia01.com/archives/558995",
-          "source": "觀傳媒",
-          "date": "2026-10-14 11:31",
-          "datetime": "2026-10-14T11:31:24+08:00"
-        },
-        {
-          "title": "Astera Labs營收翻倍成長 AI機櫃連接晶片崛起 00409A 00409A串起晶片成長新鏈",
-          "url": "https://www.watchmedia01.com/archives/558992",
-          "source": "觀傳媒",
-          "date": "2026-10-14 11:30",
-          "datetime": "2026-10-14T11:30:16+08:00"
+          "title": "4個月狂買5.8兆！台灣資金瘋搶美股 00409A已擄獲全球AI獲利商機",
+          "url": "https://n.yam.com/Article/20261014108451",
+          "source": "蕃新聞",
+          "date": "2026-10-14 14:17",
+          "datetime": "2026-10-14T14:17:00+08:00"
         },
         {
           "title": "AI砸錢時代轉向獲利驗收！美股Q3財報季登場 00409A布局全球AI獲利核心",
           "url": "https://www.watchmedia01.com/archives/558989",
-          "source": "觀傳媒",
+          "source": "Yahoo新聞",
           "date": "2026-10-14 11:29",
           "datetime": "2026-10-14T11:29:01+08:00"
+        },
+        {
+          "title": "台股法人高檔連日調節美股指數同創新高 00409A直鎖美國AI獲利源頭",
+          "url": "https://www.watchmedia01.com/archives/558998",
+          "source": "Yahoo新聞",
+          "date": "2026-10-14 11:32",
+          "datetime": "2026-10-14T11:32:45+08:00"
         }
       ]
     },
@@ -203,6 +189,13 @@
       ],
       "items": [
         {
+          "title": "傳統工業藉 AI 華麗轉身 00418A 靠「大市值＋AI 轉型黑馬」搶先卡位",
+          "url": "https://tw.news.yahoo.com/%E5%82%B3%E7%B5%B1%E5%B7%A5%E6%A5%AD%E8%97%89-ai-%E8%8F%AF%E9%BA%97%E8%BD%89%E8%BA%AB-00418a-%E9%9D%A0-044040057.html",
+          "source": "Yahoo新聞",
+          "date": "2026-10-14 12:40",
+          "datetime": "2026-10-14T12:40:40+08:00"
+        },
+        {
           "title": "00418A 復華台灣新星主動式 ETF｜成分股？配息？優缺點？募集時間？",
           "url": "https://www.stockfeel.com.tw/00418a-%E5%BE%A9%E8%8F%AF%E5%8F%B0%E7%81%A3%E6%96%B0%E6%98%9F%E4%B8%BB%E5%8B%95%E5%BC%8F-etf/",
           "source": "StockFeel 股感",
@@ -215,13 +208,6 @@
           "source": "CTWANT",
           "date": "2026-10-13 16:15",
           "datetime": "2026-10-13T16:15:10+08:00"
-        },
-        {
-          "title": "傳產外銷訂單強勢回溫！AI 帶動傳統製造業質變 00418A主動選股卡位下一個產業爆發點",
-          "url": "https://n.yam.com/Article/20261013635109",
-          "source": "蕃新聞",
-          "date": "2026-10-13 11:07",
-          "datetime": "2026-10-13T11:07:00+08:00"
         },
         {
           "title": "AI行情不只看台積電！00418A擴大布局市值前300大 尋找台灣下一批成長新星",
@@ -606,7 +592,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
       "date": "2026-10-11",
-      "views": 16336,
+      "views": 16386,
       "short": true
     },
     {
@@ -615,7 +601,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
       "date": "2026-10-12",
-      "views": 5094
+      "views": 5194
     },
     {
       "platform": "youtube",
@@ -623,7 +609,7 @@
       "channel": "小童 x Happy Trading Life",
       "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
       "date": "2026-10-13",
-      "views": 1466,
+      "views": 1480,
       "short": true
     },
     {
@@ -632,7 +618,7 @@
       "channel": "基金小姐姐詹璇依",
       "url": "https://www.youtube.com/shorts/M1S5sZqkRDk",
       "date": "2026-10-09",
-      "views": 185240,
+      "views": 185260,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -643,7 +629,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/XFDp4rY4FsQ",
       "date": "2026-10-12",
-      "views": 143549,
+      "views": 146558,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -654,7 +640,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=REtGASDFkEM",
       "date": "2026-10-12",
-      "views": 135171,
+      "views": 135399,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -664,7 +650,7 @@
       "channel": "安聯投信 Allianz Global Investors Taiwan",
       "url": "https://www.youtube.com/shorts/b-T8DfBiuuk",
       "date": "2026-10-12",
-      "views": 114001,
+      "views": 117425,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -675,7 +661,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=o4KXRKrwlUs",
       "date": "2026-10-10",
-      "views": 91514,
+      "views": 91571,
       "peer": true,
       "cat": "高股息"
     },
@@ -685,7 +671,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=YISny6TMPRY",
       "date": "2026-10-10",
-      "views": 84126,
+      "views": 84700,
       "peer": true,
       "cat": "綜合"
     },
@@ -695,7 +681,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=1iIDAJTm3bk",
       "date": "2026-10-12",
-      "views": 75147,
+      "views": 76253,
       "peer": true,
       "cat": "高股息"
     },
@@ -705,7 +691,7 @@
       "channel": "94要賺錢",
       "url": "https://www.youtube.com/watch?v=2bj5TUPrVto",
       "date": "2026-10-12",
-      "views": 64317,
+      "views": 71416,
       "peer": true,
       "cat": "綜合"
     },
@@ -715,7 +701,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/sgOyzfXKakU",
       "date": "2026-10-13",
-      "views": 42225,
+      "views": 48057,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -726,7 +712,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=NUXLQRXjsOU",
       "date": "2026-10-11",
-      "views": 33696,
+      "views": 33707,
       "peer": true,
       "cat": "市值型"
     }
@@ -735,6 +721,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全球物聯網科技 等 7 檔（詳下方新聞標籤）",
     "品牌焦點：00418A 復華台灣新星主動式 ETF｜成分股？配息？優缺點？募集時間？（StockFeel 股感）",
     "社群聲量最高：00929今年賺近80％！兩次換股策略揭開績效關鍵（0 推）",
-    "YouTube 熱片：一分鐘看懂主動式ETF漲跌原因！！！ #基金小姐姐 #投資 #00991a #00981a（基金小姐姐詹璇依・185,240 次觀看）"
+    "YouTube 熱片：一分鐘看懂主動式ETF漲跌原因！！！ #基金小姐姐 #投資 #00991a #00981a（基金小姐姐詹璇依・185,260 次觀看）"
   ]
 }
