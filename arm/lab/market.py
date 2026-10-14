@@ -692,11 +692,13 @@ def _roc_date(s) -> str | None:
 
 
 def parse_twt49u(doc) -> list[list]:
-    """→ [[除權息日 ISO, 代號, 權值+息值, 權/息]]。"""
+    """→ [[除權息日 ISO, 代號, 權值+息值, 權/息, 除權息前收盤價, 除權息參考價]]。
+    前收盤價是「當時」每股價格——用來把股利換算到價量序列的口徑（面額變更、配股後 Yahoo 歷史價會被還原）。"""
     out = []
     for fields, rows in tables(doc):
         cd, cc = col(fields, "資料日期"), col(fields, "股票代號")
         cv, ct = col(fields, "權值+息值", "權值"), col(fields, "權/息")
+        cp, cr = col(fields, "前收盤"), col(fields, "參考價", excl=("減除",))
         if None in (cd, cc, cv, ct):
             continue
         for r in rows:
@@ -704,7 +706,8 @@ def parse_twt49u(doc) -> list[list]:
             d = _roc_date(r[cd])
             v = num(r[cv])
             if CODE_RE.match(c) and d and v is not None:
-                out.append([d, c, v, _TAG.sub("", str(r[ct])).strip()])
+                out.append([d, c, v, _TAG.sub("", str(r[ct])).strip(),
+                            num(r[cp]) if cp is not None else None, num(r[cr]) if cr is not None else None])
     if not out:
         tb = tables(doc)
         if tb:

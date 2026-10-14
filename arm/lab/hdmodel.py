@@ -1,10 +1,16 @@
 """籌碼雷達：高股息指數事前預測的資料層（股利、殖利率、EPS、上市櫃市值、流動性、波動）。
 
 資料來源（`backfill_lab.py --hd`，CI 抓）：
-  · `data/lab/divtw/{年}.json.gz`：證交所除權息計算結果表（上市，一年一請求）→ [除權息日, 代號, 權值+息值, 權/息]。
-    「息」＝現金股利；「權息」只有合計值（配股另計）→ 視為現金、標 approx；「權」＝純配股、不算現金。
-  · `data/lab/fin/{代號}.json.gz`：FinMind 單季 EPS（市值前 320）＋上櫃股利政策（現金除息日、現金股利）。
-價格與成交量沿用 analyze.Data（官方分片＋Yahoo 兩年日線）。發行股數用最新值（同臺灣50 的 caps_at）。
+  · `data/lab/divtw/{年}.json.gz`：證交所除權息計算結果表（上市，一年一請求）→ [除權息日, 代號, 權值+息值, 權/息,
+    除權息前收盤價, 參考價]。「息」＝現金股利；「權息」只有合計值 → 有 FinMind 資料就改用它的現金部分，
+    沒有才照記並標 approx；「權」＝純配股、不算現金。
+  · `data/lab/fin/{代號}.json.gz`：FinMind 單季 EPS ＋ 股利政策（上櫃股、有「權息」紀錄的上市股）。
+
+價格口徑（踩過的坑，2026-10-14）：價量序列是「官方分片（當時價、沒還原）＋缺的日子用 Yahoo（依目前股數還原）」
+拼起來的。面額變更（寶雅 2026-07-30 十比一）、配股之後，同一檔在兩種來源間會差好幾倍，股利也是「當時每股」——
+直接相除會算出 40%、50% 的假殖利率。這裡一律換算到「目前股數」口徑：
+  · 價格：官方日的價格除以之後發生的拆分倍數（官方連續兩個交易日跳接近整數倍才算拆分）；Yahoo 日不動。
+  · 股利：有除權息前收盤價（證交所表）→ 乘上「序列前一天收盤 ÷ 當時前收盤」；官方口徑再除以之後的拆分倍數。
 """
 from __future__ import annotations
 
@@ -15,6 +21,8 @@ from datetime import date, timedelta
 
 from . import store
 
+_K = (2, 2.5, 4, 5, 10, 20, 25, 40, 50, 100)
+
 
 def _d(s: str) -> date:
     return date.fromisoformat(s[:10])
@@ -23,16 +31,12 @@ def _d(s: str) -> date:
 class HD:
     def __init__(self, D):
         self.D = D
-        self.div: dict[str, list] = defaultdict(list)          # 代號 → [(除息日, 現金股利, approx)]
-        self.approx: set[str] = set()
+        tw: dict[str, list] = defaultdict(list)             # 代號 → [(除息日, 值, 類型, 前收盤)]
         for y in store.dates("divtw"):
-            for d, c, v, t in (store.read("divtw", y) or {}).get("rows") or []:
-                if "息" in str(t) and v:
-                    self.div[c].append((d, float(v), "權" in str(t)))
-                    if "權" in str(t):
-                        self.approx.add(c)
+            for r in (store.read("divtw", y) or {}).get("rows") or []:
+                tw[r[1]].append((r[0], r[2], str(r[3]), r[4] if len(r) > 4 else None))
         self.eps: dict[str, dict] = {}
-        tw_codes = set(self.div)                                  # 上市股已有證交所資料 → FinMind 股利不重複加
+        fm: dict[str, list] = {}
         fin_dir = store.LAB / "fin"
         if fin_dir.exists():
             for p in fin_dir.glob("*.json.gz"):
@@ -40,15 +44,26 @@ class HD:
                 doc = store.read("fin", c) or {}
                 if doc.get("eps"):
                     self.eps[c] = doc["eps"]
-                if c in tw_codes:
-                    continue
-                for row in doc.get("div") or []:
-                    ex_c, cash = row[0], row[1]
-                    if ex_c and cash:
-                        self.div[c].append((str(ex_c)[:10], float(cash), False))
-        for c in self.div:
-            self.div[c] = sorted(set(self.div[c]))
+                rows = [(str(r[0])[:10], float(r[1])) for r in doc.get("div") or [] if r and r[0] and r[1]]
+                if rows or doc.get("div_asof"):
+                    fm[c] = rows
+        self.raw: dict[str, list] = {}                         # 代號 → [(除息日, 當時每股現金股利, 前收盤或 None, approx)]
+        self.approx: set[str] = set()
+        for c in set(tw) | set(fm):
+            pre_by = {d: pre for d, _, _, pre in tw.get(c, []) if pre}
+            if c in fm:                                         # FinMind 現金股利（上櫃、或上市有配股的）
+                ev = [(d, v, pre_by.get(d), False) for d, v in fm[c]]
+            else:
+                ev = []
+                for d, v, t, pre in tw.get(c, []):
+                    if "息" in t and v:
+                        ev.append((d, float(v), pre, "權" in t))
+                        if "權" in t:
+                            self.approx.add(c)
+            self.raw[c] = sorted(set(ev), key=lambda x: x[0])
         self.iss_tw, self.iss_tp = self._issued()
+        self._ser: dict = {}
+        self._div: dict = {}
 
     def _issued(self) -> tuple[dict, dict]:
         tw = tp = None
@@ -60,51 +75,145 @@ class HD:
                 break
         return tw or {}, tp or {}
 
-    # —— 價量
+    # —— 價量（目前股數口徑）
+    def ser(self, c: str) -> dict:
+        """→ {c: 收盤(目前股數口徑), raw: 原始收盤, src: 'o' 官方／'y' Yahoo, v, val, splits: [(日, 倍數)]}。"""
+        if c in self._ser:
+            return self._ser[c]
+        D = self.D
+        T = D.T
+        raw, src, v, val = [None] * T, [None] * T, [None] * T, [None] * T
+        for i, d in enumerate(D.cal):
+            doc = D.mkt.get(d)
+            q = None
+            if doc:
+                for part in ("q_tw", "q_tp"):
+                    x = (doc.get(part) or {}).get(c)
+                    if x and x[3]:
+                        q = x
+                        break
+            if q:
+                raw[i], src[i], v[i], val[i] = q[3], "o", q[4], q[5]
+                continue
+            if doc and doc.get("q_tw") and doc.get("q_tp"):
+                continue                                        # 官方兩市齊全卻沒有此檔＝當天沒交易
+            y = (D.yh.get(c) or {}).get(d)
+            if y and y[3]:
+                raw[i], src[i], v[i] = y[3], "y", y[4]
+        splits = []
+        last = None
+        for i in range(T):
+            if raw[i] is None or src[i] != "o":
+                continue
+            if last is not None and last == i - 1:
+                r = raw[last] / raw[i]
+                for k in _K:
+                    if abs(r / k - 1) < 0.12:
+                        splits.append((D.cal[i], float(k)))
+                        break
+                    if abs(r * k - 1) < 0.12:
+                        splits.append((D.cal[i], 1.0 / k))
+                        break
+            last = i
+        adj = list(raw)
+        for i in range(T):
+            if raw[i] is not None and src[i] == "o":
+                f = 1.0
+                for sd, k in splits:
+                    if sd > D.cal[i]:
+                        f *= k
+                adj[i] = raw[i] / f
+        self._ser[c] = {"c": adj, "raw": raw, "src": src, "v": v, "val": val, "splits": splits}
+        return self._ser[c]
+
+    def _i(self, d: str) -> int | None:
+        i = self.D.ix.get(d)
+        if i is not None:
+            return i
+        k = None
+        for j, x in enumerate(self.D.cal):
+            if x <= d:
+                k = j
+            else:
+                break
+        return k
+
     def px(self, c: str, d: str) -> float | None:
-        q = self.D.quote(c, d)
-        return q[3] if q else None
+        i = self._i(d)
+        if i is None:
+            return None
+        cs = self.ser(c)["c"]
+        for k in range(i, max(i - 5, -1), -1):
+            if cs[k]:
+                return cs[k]
+        return None
 
     def caps(self, d: str) -> dict[str, float]:
-        """d 日上市＋上櫃普通股市值（元）。"""
+        """d 日上市＋上櫃普通股市值（元）＝最新發行股數 × 目前股數口徑收盤（當天有成交的才算）。"""
         out = {}
         for iss in (self.iss_tw, self.iss_tp):
             for c, sh in iss.items():
                 if len(c) != 4 or not c.isdigit() or c.startswith("00") or c.startswith("91"):
                     continue
-                p = self.px(c, d)
-                if p:
-                    out[c] = p * sh
+                if self.D.quote(c, d):
+                    p = self.px(c, d)
+                    if p:
+                        out[c] = p * sh
         return out
 
     def adv(self, c: str, i: int, n: int = 20) -> float | None:
-        """近 n 日平均成交金額（元）：官方有成交金額就用、否則收盤×成交股數。"""
-        s = self.D.series(c)
+        """近 n 日平均成交金額（元）：官方有成交金額就用、否則原始收盤 × 成交股數。"""
+        s = self.ser(c)
         xs = []
         for k in range(max(i - n + 1, 0), i + 1):
             if s["val"][k]:
                 xs.append(s["val"][k])
-            elif s["v"][k] and s["c"][k]:
-                xs.append(s["v"][k] * s["c"][k])
+            elif s["v"][k] and s["raw"][k]:
+                xs.append(s["v"][k] * s["raw"][k])
         return sum(xs) / len(xs) if xs else None
 
     def vol(self, c: str, i: int, n: int = 250) -> float | None:
         """近 n 日日報酬標準差年化。"""
-        cs = [x for x in self.D.series(c)["c"][max(i - n, 0):i + 1] if x]
+        cs = [x for x in self.ser(c)["c"][max(i - n, 0):i + 1] if x]
         rs = [math.log(b / a) for a, b in zip(cs, cs[1:]) if a and b]
         return statistics.pstdev(rs) * math.sqrt(250) if len(rs) >= 60 else None
 
-    # —— 股利與殖利率
+    # —— 股利（目前股數口徑）
+    def divs(self, c: str) -> list[tuple]:
+        """→ [(除息日, 目前股數口徑現金股利, approx)]。"""
+        if c in self._div:
+            return self._div[c]
+        s = self.ser(c)
+        out = []
+        for d, v, pre, ap in self.raw.get(c, []):
+            i = self._i((_d(d) - timedelta(days=1)).isoformat())
+            f, yahoo = 1.0, False
+            if pre and i is not None:
+                for k in range(i, max(i - 5, -1), -1):          # 序列前一天收盤 ÷ 當時前收盤
+                    if s["c"][k]:
+                        f = s["c"][k] / pre
+                        yahoo = s["src"][k] == "y"
+                        break
+                if not 0.005 < f < 50:
+                    f, yahoo = 1.0, False
+            if not yahoo:                                        # 官方口徑 → 再除以之後的拆分倍數
+                for sd, k in s["splits"]:
+                    if sd > d:
+                        f /= k
+            out.append((d, v * f, ap))
+        self._div[c] = out
+        return out
+
     def cash_between(self, c: str, d0: str, d1: str) -> float:
-        """除息日落在 (d0, d1] 的現金股利合計。"""
-        return sum(v for d, v, _ in self.div.get(c, []) if d0 < d <= d1)
+        """除息日落在 (d0, d1] 的現金股利合計（目前股數口徑）。"""
+        return sum(v for d, v, _ in self.divs(c) if d0 < d <= d1)
 
     def ttm(self, c: str, d: str, days: int = 365) -> float:
         return self.cash_between(c, (_d(d) - timedelta(days=days)).isoformat(), d)
 
     def n_pay(self, c: str, d: str, days: int = 365) -> int:
         d0 = (_d(d) - timedelta(days=days)).isoformat()
-        return sum(1 for x, _, _ in self.div.get(c, []) if d0 < x <= d)
+        return sum(1 for x, _, _ in self.divs(c) if d0 < x <= d)
 
     def yld(self, c: str, d: str, days: int = 365) -> float | None:
         p = self.px(c, d)
@@ -135,4 +244,3 @@ class HD:
         e = self.eps.get(c) or {}
         qs = sorted(k for k in e if k <= d)[-4:]
         return sum(e[k] for k in qs) if len(qs) == 4 else None
-
