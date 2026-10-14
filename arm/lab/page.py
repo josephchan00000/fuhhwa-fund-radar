@@ -407,7 +407,7 @@ function vSt(){
   let h=`<div class=note>規則寫死、從起算日之後的訊號才記入紙上交易（起算日前只當樣本內參考，因為規則就是看那段資料挑的）。每天收盤後自動以「隔日開盤進場、到期或停損出場」記帳，扣來回成本 0.585%，超額對加權指數。驗證期滿（${P[0]} 筆或 ${P[1]} 個交易日，先到者）：平均超額＞0 且勝率＞50% 才算達標。</div>`;
   if(X.err)h+=`<div class=st>策略區塊錯誤：${esc(X.err)}</div>`;
   for(const s of (X.list||[])){
-    const badge=s.status==='達標'?'<span class=pill style="background:#fdecea;color:#d33a34">達標</span>':s.status==='不達標'?'<span class=pill>不達標</span>':`<span class=pill style="background:rgba(37,99,201,.1);color:#1c4fa8">驗證中 ${(s.fwd_stats||{}).n||0}／${P[0]} 筆・${s.days}／${P[1]} 日</span>`;
+    const badge=s.status==='達標'?'<span class=pill style="background:#fdecea;color:#d33a34">達標</span>':s.status==='不達標'?'<span class=pill>不達標</span>':`<span class=pill style="background:rgba(37,99,201,.1);color:#1c4fa8">驗證中 ${s.event?`${s.days}／2 次審核`:`${(s.fwd_stats||{}).n||0}／${P[0]} 筆・${s.days}／${P[1]} 日`}</span>`;
     h+=`<div class=card><h4>${esc(s.name)} <span class=pill>v${s.ver}・${md(s.since)} 起</span> ${badge}</h4><ul class=doc style="margin:4px 0">${(s.rule||[]).map(x=>`<li class=st>${esc(x)}</li>`).join('')}</ul>`+
       `<div class=st><b>前瞻紙上交易：</b>${stStat(s.fwd_stats)}</div><div class=st>樣本內參考（起算日前、同規則）：${stStat(s.ins_stats)}</div>`;
     const cs=s.cands||[];
@@ -415,13 +415,13 @@ function vSt(){
       cs.map(c=>`<tr data-c="${esc(c.c)}"><td><span class=nm>${esc(c.n)}</span><span class=cd>${esc(c.c)}</span></td><td>${md(c.d)}</td><td>${f(c.px,2)}</td><td>${c.gap_max===0?f(c.px,2):'開盤價'}</td><td>${c.stop==null?'—':f(c.stop,2)}</td></tr>`).join('')+`</tbody></table></div>`:'<div class=st>無</div>');
     const fw=(s.fwd||[]).slice().reverse();
     if(fw.length)h+=`<h4 style="margin:10px 0 4px">紙上交易紀錄</h4><div class=tw><table><thead><tr><th>代號／名稱</th><th>訊號日</th><th>狀態</th><th>跳空</th><th>進場</th><th>出場／現價</th><th>持有</th><th>報酬</th><th>超額</th></tr></thead><tbody>`+
-      fw.map(t=>`<tr data-c="${esc(t.c)}" class="${t.st==='skip'?'grey':''}"><td><span class=nm>${esc(t.n)}</span><span class=cd>${esc(t.c)}</span></td><td>${md(t.d)}</td><td>${t.st==='skip'?'放棄：'+esc(t.why||''):t.st==='open'?'持有中':esc(t.why||'')}</td><td>${t.gap==null?'—':sgn(t.gap,1,'%')}</td><td>${t.entry==null?'—':f(t.entry,2)}</td><td>${t.exit!=null?f(t.exit,2):t.now!=null?f(t.now,2):'—'}</td><td>${t.held==null?'—':t.held+' 日'}</td><td>${sgn(t.r,2,'%')}</td><td>${t.x==null?'—':sgn(t.x,2,'%')}</td></tr>`).join('')+`</tbody></table></div>`;
+      fw.map(t=>`<tr data-c="${esc(t.c)}" class="${t.st==='skip'?'grey':''}"><td><span class=nm>${esc(t.n)}</span><span class=cd>${esc(t.c)}</span></td><td>${md(t.d)}</td><td>${t.st==='skip'?'放棄：'+esc(t.why||''):t.st==='open'?'持有中':esc(t.why||'')}${t.review?` <span class=pill>${esc(t.review)}</span>`:''}</td><td>${t.gap==null?'—':sgn(t.gap,1,'%')}</td><td>${t.entry==null?'—':f(t.entry,2)}</td><td>${t.exit!=null?f(t.exit,2):t.now!=null?f(t.now,2):'—'}</td><td>${t.held==null?'—':t.held+' 日'}</td><td>${sgn(t.r,2,'%')}</td><td>${t.x==null?'—':sgn(t.x,2,'%')}</td></tr>`).join('')+`</tbody></table></div>`;
     h+='</div>';
   }
   const al=X.alerts||[];
-  h+=`<div class=card><h4>跳空減碼提醒 <span class=pill>${al.length}</span></h4><div class=st>前一交易日「共識加碼」、今日開盤跳空 ≥3% 的股票。樣本內（7/27～10/13，約 19 筆）：之後持有 1～10 日的每一個持有期平均超額都為負（−4%～−8%），是目前最穩定的結果。給已持有者參考，不做放空。</div>`+
+  h+=`<div class=card><h4>跳空減碼提醒 <span class=pill>${al.length}</span></h4><div class=st>前一交易日「共識加碼」、今日開盤跳空 ≥3% 的股票。樣本內（7/27～10/13，約 19 筆，大盤基準與進場同一時窗）：之後持有 1～10 日的每一個持有期平均超額都為負（−1.9%～−3.6%），是目前最穩定的結果之一。給已持有者參考，不做放空。</div>`+
     (al.length?`<div class=tw><table><tbody>`+al.map(a=>`<tr data-c="${esc(a.c)}"><td><span class=nm>${esc(a.n)}</span><span class=cd>${esc(a.c)}</span></td><td>${md(a.d)}</td><td>開盤 ${sgn(a.gap,1,'%')}</td></tr>`).join('')+`</tbody></table></div>`:'<div class=st>今日無</div>')+`</div>`;
-  h+=`<div class=card><h4>臺灣50 換股</h4><div class=st>規則待三次審核（3／6／9 月）實際漲跌補齊後再寫死；目前預估與邊緣名單見「指數調整」分頁。12 月時程：資料截止 11/23、公告 12/4、生效 12/18 收盤（推算）。</div></div>`;
+  h+=`<div class=card><h4>臺灣50 下次審核</h4><div class=st>12 月時程：資料截止 11/23、公告 12/4、生效 12/18 收盤（推算）。截止日後「指數調整」分頁的預估就是用截止日排名（三次回測 19／20 命中），公告後即依官方名單執行上方「臺灣50 換股」策略。</div></div>`;
   h+=`<div class=card><h4>0056／00919／00929 換股過渡期</h4><div class=st>12 月首次觀察：公告後被動資金分 5～8 個交易日買賣，「指數調整」分頁的被動換股表會先反映。只考慮被動買盤 ≥1 日成交量的個股，先紙上觀察。</div></div>`;
   h+=`<div class=note>部位與風控（所有策略共用）：單筆虧損（停損距離×張數）≤ 總資金 0.5%、單筆 ≤ 5%；只做 20 日均成交值 ≥1 億、張數 ≤ 20 日均量 2%；同時 ≤8 檔、同產業 ≤3 檔；注意股／處置股不碰。持有少於 3 天時優勢容易被成本吃掉。</div>`;
   $('#main').innerHTML=h;

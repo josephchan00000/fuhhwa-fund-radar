@@ -26,15 +26,61 @@ STRATEGIES = [
      "rule": ["訊號：收盤後「共識加碼」亮燈（5 日內 ≥3 家投信主動 ETF 真加碼、主動合計淨買；同檔 5 日內只算第一次）",
               "進場：隔日開盤價「低於」訊號日收盤才以開盤價買進（8:59 看試撮）；平盤或開高則放棄",
               "出場：第 3 個交易日收盤；期間收盤跌破「進場價 − 2×ATR(14)」當日收盤停損",
-              "依據（7/27～10/13）：開低組持有 1～10 日中 8 個持有期平均超額為正（+0.9%～+1.8%）、3 日 +1.8%／勝率 59%（34 筆）；不加條件跟進則 10 個持有期全為負"],
+              "依據（7/27～10/13，大盤基準與進場同一時窗）：開低組持有 1～10 日中 9 個持有期平均超額為正（+0.6%～+1.7%）、3 日 +1.7%／勝率 56%；不加條件跟進則 10 個持有期全為負"],
      "hold": 3, "stop_atr": 2.0, "gap_max": 0.0, "gap_strict": True},
     {"key": "s4", "ver": 1, "since": "2026-10-14", "name": "群益新建倉（觀察）",
      "rule": ["訊號：群益任一主動 ETF 新建倉（觀測期內首次持有）",
               "進場：隔日開盤價買進（不設跳空條件）",
               "出場：第 10 個交易日收盤；收盤跌破「進場價 − 3×ATR(14)」停損",
-              "依據：持有 1～20 日各期平均超額皆為正（+0.5%～+3.3%，約 40 筆）；10 日 +3.3%／勝率 63%"],
+              "依據：持有 1～20 日各期平均超額皆為正（+0.6%～+3.8%，約 44 筆）；10 日 +3.8%／勝率 59%"],
      "hold": 10, "stop_atr": 3.0, "gap_max": None},
 ]
+
+
+S3 = {"key": "s3", "ver": 1, "since": "2026-10-14", "name": "臺灣50 換股（官方名單）",
+      "rule": ["名單：富時／證交所官方公告的納入與刪除（週一 ETF 週掃寫入 config/index_reviews.json）——"
+               "兩條都在公告後才進場，用不到預測",
+               "納入：公告後第一個交易日開盤買進，生效日收盤賣出（賣給被動買盤）",
+               "刪除：生效日收盤買進（承接被動賣壓），第 5 個交易日收盤賣出",
+               "依據（2026 年 3／6／9 月，各 10 檔）：納入 +14.9%（9/10 為正）；刪除 +1.7%（8/10）；"
+               "納入股生效後續抱 5 日 −3.3%（1/10）→ 生效日一定要出"],
+      "hold": None}
+
+
+def tw50_trades(D, idx: list, io: list, names: dict, today: str) -> list[dict]:
+    """依官方歷次結果模擬 S3。公告在收盤後 → 納入股進場＝公告日之後第一個交易日開盤。"""
+    from . import indexes
+    ix = ((indexes.load_cfg().get("indexes") or {}).get("tw50") or {})
+    out = []
+    cal = D.cal
+    for h in sorted(ix.get("history") or [], key=lambda x: x.get("effective") or ""):
+        ann, eff = h.get("announce"), h.get("effective")
+        if not ann or not eff:
+            continue
+        a_i = next((i for i, d in enumerate(cal) if d > ann), None)
+        e_i = max((i for i, d in enumerate(cal) if d <= eff), default=None)
+        if a_i is None or e_i is None or e_i < a_i:
+            continue
+        for side, codes in (("add", h.get("adds") or []), ("del", h.get("dels") or [])):
+            for c in codes:
+                S = D.series(c)
+                base = {"c": c, "n": names.get(c, c), "d": eff, "side": side, "review": h.get("review")}
+                if side == "add":
+                    i0, px0, b0, i1 = a_i, S["o"][a_i], io[a_i], e_i
+                else:
+                    i0, px0, b0, i1 = e_i, S["c"][e_i], idx[e_i], e_i + 5
+                if i1 >= D.T or eff >= today and i1 >= D.T - 1 and side == "add" and cal[-1] < eff:
+                    out.append({**base, "st": "open", "entry": px0})
+                    continue
+                if not px0 or i1 >= D.T or not S["c"][i1]:
+                    out.append({**base, "st": "open", "entry": px0})
+                    continue
+                r = S["c"][i1] / px0 - 1 - COST
+                b = idx[i1] / b0 - 1 if b0 and idx[i1] else None
+                out.append({**base, "st": "closed", "entry": px0, "exit": S["c"][i1], "held": i1 - i0,
+                            "why": "納入・生效日出" if side == "add" else "刪除・5 日出",
+                            "r": round(r * 100, 2), "x": None if b is None else round((r - b) * 100, 2)})
+    return out
 
 
 def _signals(key: str, D, sig_hist: dict, L, meta: dict) -> list[tuple[str, int]]:
@@ -146,6 +192,16 @@ def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict) -> dict:
                     "rule": st["rule"], "status": status, "days": days,
                     "fwd": fwd[-60:], "fwd_stats": g, "ins_stats": _agg(ins),
                     "ins_n": len(ins), "cands": cands})
+    # S3 臺灣50 換股：事件型、驗證期滿判準用「兩次審核」（筆數少、每季一次）
+    trs = tw50_trades(D, idx, io, names, D.cal[-1] if D.cal else "")
+    fwd = [t for t in trs if t["d"] >= S3["since"]]
+    ins = [t for t in trs if t["d"] < S3["since"]]
+    n_rev = len({t["review"] for t in fwd if t.get("st") == "closed"})
+    g = _agg(fwd)
+    status = ("達標" if g["n"] and g["x"] > 0 and g["w"] > 50 else "不達標") if n_rev >= 2 else "驗證中"
+    out.insert(2, {"key": "s3", "ver": S3["ver"], "since": S3["since"], "name": S3["name"], "rule": S3["rule"],
+                   "status": status, "days": n_rev, "fwd": fwd[-60:], "fwd_stats": g, "ins_stats": _agg(ins),
+                   "ins_n": len(ins), "cands": [], "event": True})
     return {"list": out, "alerts": gap_alerts(D, sig_hist, names), "pass": [PASS_N, PASS_DAYS]}
 
 
