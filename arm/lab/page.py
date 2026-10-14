@@ -447,6 +447,11 @@ function vGrow(){
 <div class=note>「曾翻倍」＝進場後 6／12 個月內最高價曾達進場價 2 倍（括號＝前瞻期完整的樣本數）；「照規則操作」＝真的照上面停損／移動出場做出來的報酬（已扣成本）。基準＝同期所有通過「空間關」的股票。宇宙只含現存上市櫃股，結果偏樂觀；兩年資料大致是多頭。</div>
 <div class=tw><table><thead><tr><th>組別</th><th>篩出檔次</th><th>6 個月內曾翻倍</th><th>12 個月內曾翻倍</th><th>6 個月期末 平均／中位</th><th>照規則 平均／中位</th><th>勝率</th><th>平均賺／平均賠</th><th>照規則翻倍比例</th></tr></thead><tbody>`+
     gRow('基準（空間關）',B.base)+gRow('只看動能',B.mom)+gRow('只看投信',B.trust)+gRow('投信＋動能',B.trust_mom)+gRow('四關全過',B.all4)+`</tbody></table></div>`;
+  const EX=B.exits||{},EL=B.exit_lbl||{};
+  if(EX.trust_mom){h+=`<h4 style="margin:12px 0 4px">出場方式比較（同一檔 6 個月內只算一次、只計前瞻滿 6 個月者）</h4><div class=tw><table><thead><tr><th>出場方式</th><th>組別</th><th>筆數</th><th>平均</th><th>中位</th><th>勝率</th><th>平均賺／賠</th><th>翻倍比例</th><th>平均持有</th></tr></thead><tbody>`;
+    for(const ek of Object.keys(EL)){for(const [gk,gl] of [['trust_mom','投信＋動能'],['mom','只看動能'],['base','基準']]){const x=(EX[gk]||{})[ek]||{};if(!x.n)continue;
+      h+=`<tr class="${gk==='trust_mom'?'':'grey'}"><td>${gk==='trust_mom'?esc(EL[ek]):''}</td><td>${gl}</td><td>${x.n}</td><td>${sgn(x.avg,1,'%')}</td><td>${sgn(x.med,1,'%')}</td><td>${x.win}%</td><td>${x.aw==null?'—':sgn(x.aw,1,'%')}／${x.al==null?'—':sgn(x.al,1,'%')}</td><td>${f(x.dbl,1)}%</td><td>${x.days} 日</td></tr>`;}}
+    h+=`</tbody></table></div>`;}
   if((B.top||[]).length)h+=`<div class=st style="margin-top:6px">歷史篩出、漲最多的：`+B.top.slice(0,8).map(x=>`${esc(x[1])}（${md(x[2])} 篩出，最高 +${x[3]}%${x[4]!=null?'，照規則 '+(x[4]>0?'+':'')+x[4]+'%':''}）`).join('、')+`</div>`;
   const sc=G.screen||[];const ok=sc.filter(x=>x.pass);
   h+=`<h4 style="margin:12px 0 4px">今日篩選 <span class=pill>四關全過 ${ok.length}</span> <span class=pill>差一關 ${sc.length-ok.length}</span></h4><div class=note>月營收：${esc(G.rev_ym||'尚無')}；宇宙 ${G.n_uni||0} 檔。進場仍照短線研究的結論：不追開高 3% 以上，等突破隔日或回測 20 日線。</div>`;
