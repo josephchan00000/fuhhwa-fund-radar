@@ -45,25 +45,86 @@ def _idx(D, d: str | None) -> int | None:
     return TS._on_or_before(D, d) if d else None
 
 
-def anchors(D, h: dict) -> dict | None:
-    """一次審核的時間錨點（交易日索引）。"""
+def _trust(D, c: str, d: str):
+    doc = D.mkt.get(d) or {}
+    for part in ("i_tw", "i_tp"):
+        v = (doc.get(part) or {}).get(c)
+        if v and len(v) > 1 and v[1] is not None:
+            return v[1]
+    return None
+
+
+def trade_window(D, h: dict, iA: int, thr: float = 0.3) -> tuple[int, int] | None:
+    """被動 ETF 實際換股的日子（官方投信買賣超推得）：納入股每天的投信買超 ÷ 該檔區間最大值，平均 ≥ thr 的連續交易日
+    （容許中間 1 天低於門檻）；沒有納入股就看刪除股的賣超。實測（2026-10-14）：00919 常在公告前 2～3 天就開始買
+    （2024-05、2024-12、2025-05）、0056 在生效日（第三個週五）收盤起 5 天、00929 從公告當天收盤起 8 天。"""
+    codes, sign = (h.get("adds") or []), 1
+    if not codes:
+        codes, sign = (h.get("dels") or []), -1
+    lo, hi = max(iA - 12, 0), min(iA + 22, D.T - 1)
+    mx = {}
+    for c in codes:
+        xs = [abs(_trust(D, c, D.cal[j]) or 0) for j in range(lo, hi + 1)]
+        if max(xs or [0]) > 0:
+            mx[c] = max(xs)
+    if not mx:
+        return None
+    hit = []
+    for i in range(lo, hi + 1):
+        xs = [(_trust(D, c, D.cal[i]) or 0) / m * sign for c, m in mx.items()]
+        hit.append(statistics.mean(xs) >= thr if xs else False)
+    best, cur = None, None
+    gap = 0
+    for k, ok in enumerate(hit):
+        if ok:
+            cur = [cur[0] if cur else k, k]
+            gap = 0
+        elif cur:
+            gap += 1
+            if gap > 1:
+                best = cur if not best or cur[1] - cur[0] > best[1] - best[0] else best
+                cur, gap = None, 0
+    if cur:
+        best = cur if not best or cur[1] - cur[0] > best[1] - best[0] else best
+    if not best or best[1] - best[0] < 2:
+        return None
+    return lo + best[0], lo + best[1]
+
+
+def _conv_window(D, key: str, h: dict) -> tuple[str | None, str | None]:
+    """沒有投信買賣超可推（未來的審核）時的慣例：0056 生效日（第三個週五）收盤起到過渡期最後一天前一日；
+    00919／00929 公告當天收盤起到過渡期最後一天前一日；00878 依設定檔（約生效日前 6 天到生效後幾天）。"""
+    te = h.get("trans_end")
+    te1 = TS.td_shift(te, -1) if te else None
+    if key == "tw_div":
+        return h.get("effective"), te1
+    if key in ("tip_hd", "tip_tech"):
+        return h.get("announce"), te1
+    return h.get("trans_start") or h.get("effective"), te or h.get("effective")
+
+
+def anchors(D, h: dict, key: str | None = None) -> dict | None:
+    """一次審核的時間錨點（交易日索引）。A＝名單變得「看得到」的那天收盤（公告日、00878 的 reveal、
+    或 ETF 公告前就開始換股時的第一天——每日持股揭露當晚就看得到）。"""
     ann, eff = h.get("reveal") or h.get("announce"), h.get("effective")   # reveal＝名單實際曝光日（00878 看持股揭露）
     if not ann or not eff:
         return None
     iA = _idx(D, ann)
-    if iA is not None and h.get("ann_pre_open"):     # 台灣開盤前就公布（MSCI 美東收盤後）→ 名單在公告日開盤前已知
-        iA = iA - 1 if D.cal[iA] == ann else iA
-    t0 = h.get("trans_start") or eff
-    t1 = h.get("trans_end") or t0
-    i0, i1 = _idx(D, t0), _idx(D, t1)
-    if iA is None or i0 is None or i1 is None or iA < 0 or i1 < i0:
+    if iA is None or iA < 0:
         return None
-    # 被動買盤可能在公告當天甚至公告前就開始（00878 名單從持股揭露才看得到；00919 2024-05 公告前已買）
-    # → 公告後的時窗只算「公告後還剩下的過渡期」
+    tw = trade_window(D, h, iA)
+    if tw:
+        i0, i1 = tw
+    else:
+        t0, t1 = _conv_window(D, key or "", h)
+        i0, i1 = _idx(D, t0), _idx(D, t1)
+    if i0 is None or i1 is None or i1 < i0:
+        return None
+    iA = min(iA, i0)
     iC = _idx(D, h.get("cutoff")) if h.get("cutoff") else None
     mid = (max(i0, iA + 1) + i1) // 2
     return {"A": iA, "C": iC if iC is not None and iC <= iA else None, "T0": i0, "T1": i1,
-            "mid": mid if mid > iA else None}
+            "mid": mid if mid > iA else None, "t86": bool(tw)}
 
 
 def _r(P: TS._Px, c: str, i0, o0: bool, i1, o1: bool):
@@ -199,7 +260,7 @@ def events(D, cfg: dict, H=None, keys=HD_KEYS) -> list[dict]:
         ix = (cfg.get("indexes") or {}).get(k) or {}
         cons = constituents(ix)
         for h in sorted(ix.get("history") or [], key=lambda x: x.get("effective") or ""):
-            a = anchors(D, h)
+            a = anchors(D, h, k)
             if not a:
                 continue
             A, C, T0, T1 = a["A"], a["C"], a["T0"], a["T1"]
@@ -336,3 +397,25 @@ if __name__ == "__main__":                  # 研究用：python3 -m arm.lab.hds
             print("   ", r)
         print("  因子：", [(f["k"], f["rho"], f["rho_e"], f["n"]) for f in b["fac"]])
     print("\n全部：", [(f["k"], f["rho"], f["rho_e"], f["n"]) for f in out["fac"]])
+
+
+# —— 頁面用（指數頁「高股息換股」研究段）
+PAGE_WIN = [("e10", "公告前 10 日買 → 被動買盤前一天賣"), ("c_T0", "資料截止日隔天買 → 被動買盤前一天賣"),
+            ("ann_T1", "名單公開後買 → 被動買盤最後一天賣"), ("in_T", "被動買盤前一天買 → 被動買盤最後一天賣"),
+            ("T1_5", "被動買盤結束 → 5 日後"), ("T1_10", "被動買盤結束 → 10 日後")]
+PAGE_DEL = [("pre", "公告前 25 日 → 公告日"), ("ann_T1", "名單公開後 → 被動賣盤最後一天"), ("T1_10", "被動賣盤結束 → 10 日後")]
+
+
+def page_data(D, cfg: dict, H=None) -> dict:
+    out = run(D, cfg, H)
+    if not out.get("n"):
+        return {"n": 0}
+    by = {}
+    for k, b in (out.get("by") or {}).items():
+        by[k] = {"etf": b["etf"], "n_rev": b["n_rev"], "n_add": b["n_add"], "n_del": b["n_del"],
+                 "add": {w: b["add"][w] for w, _ in PAGE_WIN}, "del": {w: b["del"][w] for w, _ in PAGE_DEL},
+                 "revs": [{kk: r.get(kk) for kk in ("review", "announce", "t0", "t1", "n_add", "n_del",
+                                                    "a_e10", "ac_e10", "a_in_T", "ac_in_T", "a_ann_T1", "ac_ann_T1",
+                                                    "a_T1_5", "ac_T1_5", "d_pre", "dc_pre")} for r in b["revs"]]}
+    return {"n": out["n"], "by": by, "win": PAGE_WIN, "dwin": PAGE_DEL,
+            "fac": [f for f in out.get("fac") or [] if f["k"] in ("mom", "dem_days", "yld", "ovl")]}
