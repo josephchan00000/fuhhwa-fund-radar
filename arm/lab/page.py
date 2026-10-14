@@ -26,8 +26,19 @@ def build(out: Path = OUT) -> bool:
     return True
 
 
+def _slim(x):
+    """整數值的浮點數輸出成整數（2490.0 → 2490），價量序列可省約兩成體積。"""
+    if isinstance(x, float):
+        return int(x) if x.is_integer() and abs(x) < 1e15 else x
+    if isinstance(x, list):
+        return [_slim(v) for v in x]
+    if isinstance(x, dict):
+        return {k: _slim(v) for k, v in x.items()}
+    return x
+
+
 def render(data: dict) -> str:
-    blob = json.dumps(data, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    blob = json.dumps(_slim(data), ensure_ascii=False, separators=(",", ":"), sort_keys=True)
     blob = blob.replace("</", "<\\/")
     a = data.get("asof") or {}
     sub = " · ".join(f"{k} {html.escape(str(v)[5:] if v else '—')}" for k, v in (
@@ -130,7 +141,7 @@ function sgn(x,d=1,suf=''){if(x===null||x===undefined)return '<span class=mu>—
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function sgChips(arr){return (arr||[]).map(k=>`<span class="sg${RISK.has(k)?' rk':''}">${esc((SD[k]||[k])[0])}</span>`).join('');}
 const MK={tw:'上市',tp:'上櫃',os:'海外'};const MKF={twall:'台股',tw:'上市',tp:'上櫃',os:'海外',all:'全部'};
-const S={tab:'tbl',q:'',mk:'twall',sig:'',liq:false,sort:'a5',dir:-1,n:60};
+const S={tab:'tbl',q:'',mk:'twall',sig:'',liq:false,sort:'a5v',dir:-1,n:60};
 try{const z=JSON.parse(localStorage.getItem('lab.s')||'{}');Object.assign(S,z,{n:60});}catch(e){}
 function save(){try{localStorage.setItem('lab.s',JSON.stringify({tab:S.tab,mk:S.mk,sort:S.sort,dir:S.dir,liq:S.liq}));}catch(e){}}
 
@@ -139,7 +150,7 @@ const COLS=[
  ['px','收盤',r=>`${f(r.px,2)}<br>${sgn(r.ch,2,'%')}`,r=>r.ch],
  ['ne','ETF 數<br>主／被',r=>`${r.ne}<br><span class=mu>${r.na}／${r.np}</span>`,r=>r.ne],
  ['hp','ETF<br>持股率',r=>r.hp==null?'—':f(r.hp,2)+'%',r=>r.hp],
- ['a5','主動 5 日<br>真加碼(張)',r=>sgn(r.a5,0),r=>r.a5],
+ ['a5v','主動 5 日真加碼<br>金額(億)／張',r=>`${sgn(r.a5v,2)}<br><span class=mu>${r.a5==null?'—':(r.a5>0?'+':'')+f(r.a5,0)} 張</span>`,r=>r.a5v],
  ['ia5','加碼／減碼<br>投信家數',r=>`<span class=up>${(r.ia5||[]).length}</span>／<span class=dn>${(r.ic5||[]).length}</span>`,r=>(r.ia5||[]).length-(r.ic5||[]).length],
  ['ow','主動超配<br>(百分點)',r=>sgn(r.ow,2),r=>r.ow],
  ['dev','主動成本<br>乖離',r=>sgn(r.dev,1,'%'),r=>r.dev],
@@ -153,7 +164,7 @@ function rowsFiltered(){
   const q=S.q.trim().toLowerCase();
   let rs=D.rows.filter(r=>(S.mk==='all'||r.m===S.mk||(S.mk==='twall'&&r.m!=='os'))&&(!S.sig||(r.sg||[]).includes(S.sig))&&(!S.liq||(r.liq||0)>=1)
     &&(!q||r.c.toLowerCase().includes(q)||String(r.n).toLowerCase().includes(q)||String(r.ind||'').includes(q)));
-  const col=COLS.find(c=>c[0]===S.sort)||COLS[4];
+  const col=COLS.find(c=>c[0]===S.sort)||COLS.find(c=>c[0]==='a5v');
   rs.sort((a,b)=>{const x=col[3](a),y=col[3](b);if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return (x<y?-1:x>y?1:0)*S.dir;});
   return rs;
 }
@@ -262,8 +273,8 @@ function renderStock(c){
    kv('ETF 合計持股',`${f(r.sh,tw?0:0)} ${u}`)+
    (tw?kv('ETF 持股率',r.hp==null?'—':f(r.hp,2)+'%','占發行股數'):'')+
    (tw?kv('消化天數',r.dx==null?'—':f(r.dx,1)+' 天','合計持股 ÷ 20 日均量'):'')+
-   kv('主動真加碼 1／5／20 日',`${sgn(r.a1,0)}／${sgn(r.a5,0)}／${sgn(r.a20,0)}`,u)+
-   kv('全部 ETF 淨增減 5 日',sgn(r.r5,0),(r.v5!=null?`占 5 日量 ${f(r.v5,1)}%`:'')+' '+u)+
+   kv(`主動真加碼 1／5／20 日（${u}）`,`${sgn(r.a1,0)}／${sgn(r.a5,0)}／${sgn(r.a20,0)}`,r.a5v!=null?`5 日約 ${f(r.a5v,2)} 億`:'')+
+   kv('全部 ETF 淨增減 5 日',`${sgn(r.r5,0)} ${u}`,r.v5!=null?`占 5 日成交量 ${f(r.v5,1)}%`:'')+
    kv('加碼投信（5 日）',(r.ia5||[]).join('、')||'—')+
    kv('減碼投信（5 日）',(r.ic5||[]).join('、')||'—')+
    kv('10 日內新建倉',(r.nb10||[]).join('、')||'—')+
@@ -358,7 +369,7 @@ function vIdx(){
   let h=`<div class=note>被動 ETF 追蹤的指數定期換股，生效日被動資金會集中買賣。<b>預測</b>只對規則可複製的指數做（目前：臺灣50）；其他指數先看每日持股揭露裡已經發生的換股。日期標「推算」者官方尚未公告。</div>`;
   if(X.err)h+=`<div class=st>指數區塊錯誤：${esc(X.err)}</div>`;
   h+=`<h3>審核行事曆</h3><div class=tw><table><thead><tr><th>指數</th><th>ETF</th><th>資料截止</th><th>公告</th><th>生效／被動交易</th><th>過渡</th><th>狀態</th><th>預測</th></tr></thead><tbody>`+
-   (X.cal||[]).map(r=>`<tr><td><span class=nm>${esc(r[1])}</span></td><td>${esc((r[2]||[]).join(' '))}</td><td>${md(r[4])}</td><td>${md(r[5])}</td><td>${md(r[6])}${r[10]!=null&&r[10]>=0?` <span class=pill>${r[10]} 天後</span>`:''}</td><td>${r[7]?r[7]+' 日':'一次'}</td><td>${esc(r[8]||'')}</td><td>${r[12]?'信心 '+esc(r[9]||''):'<span class=mu>未預測（信心 '+esc(r[9]||'')+'）</span>'}</td></tr>`).join('')+`</tbody></table></div>`;
+   (X.cal||[]).map(r=>`<tr><td><span class=nm>${esc(r[1])}</span></td><td>${esc((r[2]||[]).join(' '))}</td><td>${md(r[4])}</td><td>${md(r[5])}</td><td>${md(r[6])}${r[10]!=null&&r[10]>=0?` <span class=pill>${r[10]} 天後</span>`:''}</td><td>${r[7]==null?'—':(r[7]?r[7]+' 日':'一次')}</td><td>${esc(r[8]||'')}</td><td>${r[12]?'信心 '+esc(r[9]||''):'<span class=mu>未預測（信心 '+esc(r[9]||'')+'）</span>'}</td></tr>`).join('')+`</tbody></table></div>`;
   const t=X.tw50||{};
   h+=`<h3>臺灣50（0050／006208）換股預測</h3>`;
   if(!t.ok)h+=`<div class=st>${esc(t.why||'尚無資料')}</div>`;

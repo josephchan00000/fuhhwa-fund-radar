@@ -44,13 +44,16 @@ def _issued_twse(D) -> dict[str, int]:
 
 
 def caps_at(D, d: str, issued: dict[str, int]) -> list[tuple[str, float, float]]:
-    """某日上市普通股總市值排名 [(code, 市值, 收盤)]（發行股數用最新值——審核日前後股本變動極少）。"""
+    """某日上市普通股總市值排名 [(code, 市值, 收盤)]（發行股數用最新值——審核日前後股本變動極少）。
+    排除創新板（名稱以「-創」結尾；2026-10-14 回測 9 月審核時 6949 被誤列納入）。"""
     doc = D.mkt.get(d) or {}
     q = doc.get("q_tw") or {}
     xt = doc.get("x_tw") or {}
     out = []
     for c, row in q.items():
         if not _common_tw(c) or not row or not row[3]:
+            continue
+        if str(D.names.get(c, "")).endswith("-創"):
             continue
         iss = (xt.get(c) or [None, None])[1] or issued.get(c)
         if iss:
