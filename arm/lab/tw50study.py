@@ -9,6 +9,7 @@
   · 進場時點：同一批納入股，比較「截止日隔天開盤／公告日收盤／公告後開盤」進場、「生效前一天／生效日」出場。
   · 歸因：截止前 40 日漲幅、估計權重、被動買盤（張數、占日均量天數）、日週轉率，對公告後漲幅的
     Spearman 相關；另看同一次審核裡漲最多的是不是「漲勢最強」或「權重最大」的那檔。
+  · 提前幾天建倉：同一套「最多 4 檔、截止日校正＋補位」規則，從截止前 35 個交易日到截止日逐日回測（early_scan）。
 
 口徑：進場用開盤或收盤（各列寫明）、出場用收盤；報酬扣來回成本 0.585%；超額＝減去加權指數同一時窗。
 個股生效日可能延後（處置股依基本規則 3.4.1 延後，例：南亞科 2025-12-30）→ 以 `eff_override` 為準。
@@ -222,7 +223,7 @@ def _stat(xs: list) -> dict:
             "win": round(sum(1 for x in xs if x > 0) / len(xs) * 100)}
 
 
-ENTRY = [("cut", "截止日隔天開盤 → 生效前一天收盤", "公告前卡位"),
+ENTRY = [("cut", "截止日隔天開盤 → 生效前一天收盤", "截止日才買"),
          ("post", "公告後開盤 → 生效前一天收盤", "公告後進場"),
          ("eff", "公告後開盤 → 生效日收盤", "原官方名單做法"),
          ("fri", "公告日收盤（消息出來前）→ 生效前一天收盤", ""),
@@ -233,6 +234,16 @@ FACTORS = [("mom", "截止前 40 日漲幅"), ("w", "估計權重"), ("dem_lots"
 
 
 def run(D, cfg: dict) -> dict:
+    out = _run(D, cfg)
+    if out.get("n"):
+        try:
+            out["early"] = early_scan(D, cfg)
+        except Exception as e:                            # noqa: BLE001 —— 掃描壞掉不連累研究頁其他段
+            out["early"] = {"err": f"{type(e).__name__}: {e}"}
+    return out
+
+
+def _run(D, cfg: dict) -> dict:
     ev = events(D, cfg)
     rows = [dict(a, review=e["review"]) for e in ev for a in e["adds"]]
     if not rows:
@@ -284,11 +295,18 @@ def run(D, cfg: dict) -> dict:
                      [D.names.get(c, c) for c in e["act"]], [D.names.get(c, c) for c in e["pred"]]] for e in ev]}
 
 
-# ── 策略版本（2026-10-14 使用者定案：兩種進場都紙上比較、只買「漲勢前一半」、生效前一天收盤出）──────────
-# pre＝公告前卡位：資料截止日收盤後就照規則算出納入名單（過去 8 次 19／19 全對），隔天開盤買漲勢前一半；
-#      公告沒被納入的隔一個交易日開盤賣，有納入的抱到生效前一天收盤。
-# post＝公告後進場：官方公告的納入股裡挑漲勢前一半（同樣用截止日的 40 日漲幅），公告後第一個交易日開盤買、
-#      生效前一天收盤賣。兩版都不設停損——進出日期事先就定好，這是事件型交易。
+# ── 策略版本 ─────────────────────────────────────────────────────────────────────────────
+# early＝提前卡位（2026-10-14 使用者：「不用一檔可以 3-4 檔，然後能越早卡位越好」）：資料截止日前第 EARLY_K 個
+#      交易日收盤，從「當天排名的預估納入股＋第 41～EARLY_W 名非成分股」挑 40 日漲最多的 EARLY_N 檔，隔天開盤買；
+#      截止日收盤名單沒有的 → 隔天開盤賣；名單上有、還沒買到的 → 依漲勢補到 EARLY_N 檔（隔天開盤買）；
+#      全部抱到生效前一天收盤（官方沒納入 → 公告後第一天開盤賣）。
+#      EARLY_K＝25 是逐日回測（0～35 日）後選的：18～25 日每次平均都在 +9%～+12%、8 次賺 7 次；
+#      30 日以上最差一次跌到 −15% 以上，再早就會碰到上一次審核還沒生效。看過資料才定的，樣本內只能參考。
+# post＝公告後進場：官方公告的納入股裡挑漲勢前一半（截止日的 40 日漲幅），公告後第一個交易日開盤買、生效前一天收盤賣。
+# 兩版都不設停損——進出日期事先就定好，這是事件型交易。
+# （原「公告前卡位・漲勢前一半」＝截止日隔天開盤進，同日改為上面的 early，沒有任何前瞻交易。）
+EARLY_K, EARLY_N, EARLY_W = 25, 4, 45
+
 
 def td_shift(d: str, n: int) -> str:
     """d 往後（n>0）或往前（n<0）第 |n| 個台股交易日（週末＋證交所官方休市表；表未涵蓋的平日視為開市）。"""
@@ -313,16 +331,78 @@ def _pre_next(D, eff: str | None) -> set:
     return snap
 
 
-def plans(D, cfg: dict) -> list[dict]:
-    """歷次＋下一次審核的交易計畫：截止日預測名單與漲勢前一半、官方名單與漲勢前一半、各版本進出日期。"""
-    ix = (cfg.get("indexes") or {}).get("tw50") or {}
-    issued = IX._issued_twse(D)
-    _, h0050 = IX._etf_equity(D, "0050")
-    listed = IX.listing_dates(ix)
-    pres = IX.tw50_pre_sets(D, ix, h0050)
+class _Ctx:
+    """排名快取（同一天的市值排名只算一次）與審核前成分股、上市日。"""
+
+    def __init__(self, D, cfg: dict):
+        self.D = D
+        self.ix = (cfg.get("indexes") or {}).get("tw50") or {}
+        self.issued = IX._issued_twse(D)
+        _, self.h0050 = IX._etf_equity(D, "0050")
+        self.listed = IX.listing_dates(self.ix)
+        self.pres = IX.tw50_pre_sets(D, self.ix, self.h0050)
+        self.P = _Px(D)
+        self._caps: dict[str, list] = {}
+
+    def ranked(self, d: str, pre: set, cutoff: str) -> list:
+        if d not in self._caps:
+            self._caps[d] = IX.caps_at(self.D, d, self.issued)
+        caps = self._caps[d]
+        skip = IX.not_listed(caps, pre, self.listed, cutoff)
+        return [r for r in caps if r[0] not in skip]
+
+    def pool(self, d: str, pre: set, cutoff: str, watch: int = EARLY_W):
+        """d 日收盤排名的預估納入股（含遞補）＋第 41～watch 名非成分股，依排名順；資料不足回 (None, [])。"""
+        cd = IX._nearest_mkt_on_or_before(self.D, d)
+        if not cd or not pre or len(pre) < 45:
+            return None, []
+        ranked = self.ranked(cd, pre, cutoff)
+        if len(ranked) < 200:
+            return None, []
+        adds, _ = IX.tw50_select(ranked, pre)
+        near = [c for c, _, _ in ranked[IX.TW50_IN:watch] if c not in pre and c not in adds] if watch else []
+        return cd, adds + near
+
+    def mom(self, c: str, t: int | None, n: int = MOM_N) -> float | None:
+        if t is None or t < n:
+            return None
+        cs = self.P.s(c)["c"]
+        return cs[t] / cs[t - n] - 1 if cs[t] and cs[t - n] else None
+
+    def top(self, codes: list, t: int | None, n: int) -> list:
+        """依 t 日的 40 日漲幅由高到低取前 n 檔（沒有漲幅的排最後、維持原順序）。"""
+        m = {c: self.mom(c, t) for c in codes}
+        return sorted(codes, key=lambda c: -(m[c] if m[c] is not None else -9e9))[:n]
+
+
+def early_picks(ctx: _Ctx, p: dict, pre: set, k: int = EARLY_K, n: int = EARLY_N) -> dict:
+    """提前卡位：截止前第 k 個交易日的選股＋截止日補位。k＝0 即截止日當天（只從截止日名單挑）。"""
+    D = ctx.D
+    last = D.cal[-1] if D.cal else ""
+    e_sig = td_shift(p["cutoff"], -k) if k else p["cutoff"]
+    out = {"e_sig": e_sig, "e_in": td_shift(e_sig, 1), "e_t": None, "pick_e": [], "pick_t": []}
+    if last >= e_sig and pre:
+        if k:
+            cd, pool = ctx.pool(e_sig, pre, p["cutoff"])
+        else:
+            cd, pool = (IX._nearest_mkt_on_or_before(D, e_sig), list(p["pred"] or []))
+        if cd:                                       # 候選是空的也算到了建倉日（之後照樣截止日補位）
+            out["e_t"] = D.ix.get(cd)
+            out["pick_e"] = ctx.top(pool, out["e_t"], n) if pool else []
+    if p["frozen"] and p["pred"]:
+        kept = [c for c in out["pick_e"] if c in p["pred"]]
+        rest = [c for c in ctx.top(list(p["pred"]), p["ic"], len(p["pred"])) if c not in out["pick_e"]]
+        out["pick_t"] = rest[:max(0, n - len(kept))]
+    return out
+
+
+def plans(D, cfg: dict, ctx: _Ctx | None = None) -> list[dict]:
+    """歷次＋下一次審核的交易計畫：提前卡位名單（截止前選股＋截止日補位）、截止日預測名單、官方名單與漲勢前一半、各版本進出日期。"""
+    ctx = ctx or _Ctx(D, cfg)
+    ix, issued, listed = ctx.ix, ctx.issued, ctx.listed
     hs = sorted((h for h in ix.get("history") or [] if h.get("cutoff") and h.get("effective")),
                 key=lambda h: h["effective"])
-    items = [(h, pres.get(h.get("review")), True) for h in hs]
+    items = [(h, ctx.pres.get(h.get("review")), True) for h in hs]
     nxt = ix.get("next") or {}
     if nxt.get("cutoff") and nxt.get("effective") and nxt.get("review") not in {h.get("review") for h in hs}:
         items.append((nxt, _pre_next(D, nxt.get("effective")), False))
@@ -334,9 +414,9 @@ def plans(D, cfg: dict) -> list[dict]:
         p = {"review": h.get("review"), "cutoff": cut, "announce": ann, "effective": eff,
              "official": official, "status": h.get("status"), "frozen": last >= cut,
              "a_in": td_shift(cut, 1), "b_in": td_shift(ann, 1) if ann else None, "out": td_shift(eff, -1),
-             "out_c": {c: td_shift(v, -1) for c, v in effo.items() if v}, "pred": None, "pick_a": [],
+             "out_c": {c: td_shift(v, -1) for c, v in effo.items() if v}, "pred": None,
              "act": (h.get("adds") or []) if official else None, "pick_b": [], "mom": {},
-             "act_del": (h.get("dels") or []) if official else None, "pred_del": None, "rank": {}}
+             "act_del": (h.get("dels") or []) if official else None, "pred_del": None, "rank": {}, "pick_now": []}
         cd = IX._nearest_mkt_on_or_before(D, cut) if p["frozen"] else None
         ic = D.ix.get(cd) if cd else None
         p["ic"] = ic
@@ -344,16 +424,20 @@ def plans(D, cfg: dict) -> list[dict]:
             got = IX.tw50_predict_at(D, h, pre, issued, listed)
             if got:
                 p["pred"], p["pred_del"] = got[1], got[2]
-        codes = set(p["pred"] or []) | set(p["act"] or [])
-        if cd and codes:
-            caps = IX.caps_at(D, cd, issued)
-            skip = IX.not_listed(caps, pre or set(), listed, cut)
-            rk = {c: i + 1 for i, (c, _, _) in enumerate(r for r in caps if r[0] not in skip)}
+        p.update(early_picks(ctx, p, pre))
+        if p["e_t"] is None and not p["frozen"] and pre and last:      # 還沒到建倉日：用最新一天試算（預覽）
+            cdn, pool = ctx.pool(last, pre, cut)
+            if pool:
+                p["pick_now"] = ctx.top(pool, D.ix.get(cdn), EARLY_N)
+        codes = set(p["pred"] or []) | set(p["act"] or []) | set(p["pick_e"]) | set(p["pick_now"])
+        rd = cd or IX._nearest_mkt_on_or_before(D, last)          # 截止後看截止日排名、之前看最新排名
+        if rd and codes and pre:
+            rk = {c: i + 1 for i, (c, _, _) in enumerate(ctx.ranked(rd, pre, cut))}
             p["rank"] = {c: rk.get(c) for c in codes}
-        p["mom"] = {c: IX.momentum(D, c, ic, MOM_N) for c in codes} if ic is not None else {}
+        p["mom"] = {c: ctx.mom(c, ic) for c in codes} if ic is not None else {}
+        t_e = p["e_t"] if p["e_t"] is not None else D.ix.get(IX._nearest_mkt_on_or_before(D, last) or "")
+        p["mom_e"] = {c: ctx.mom(c, t_e) for c in set(p["pick_e"]) | set(p["pick_now"])}
         byrank = lambda xs: sorted(xs, key=lambda c: -(p["mom"].get(c) if p["mom"].get(c) is not None else -9e9))
-        if p["pred"]:
-            p["pick_a"] = byrank(IX.top_half(p["pred"], p["mom"]))
         if p["act"]:
             p["pick_b"] = byrank(IX.top_half(p["act"], p["mom"]))
         out.append(p)
@@ -388,26 +472,74 @@ def _trade(D, P: _Px, c: str, i0: int | None, ent_d: str, out_d: str, out_open: 
             "x": None if x is None else round(x * 100, 2), "ent": ent_d, "out": out_d}
 
 
+def _pct1(x):
+    return None if x is None else round(x * 100, 1)
+
+
+def early_trades(D, P: _Px, p: dict, names: dict, picks: dict | None = None, mom_c: dict | None = None) -> list[dict]:
+    """提前卡位版的交易：早買名單（截止日名單沒有的隔天開盤賣）＋截止日補位；其餘抱到生效前一天收盤。"""
+    pk = picks or p
+    mom_c = p.get("mom") if mom_c is None else mom_c
+    out = []
+    if pk.get("e_t") is not None:
+        i0 = pk["e_t"] + 1 if pk["e_t"] + 1 < D.T else None
+        for c in pk["pick_e"]:
+            base = {"c": c, "n": names.get(c, c), "d": pk["e_sig"], "review": p["review"], "tag": "早",
+                    "mom": _pct1((p.get("mom_e") or {}).get(c))}
+            if p["frozen"] and c not in (p["pred"] or []):
+                out.append(_trade(D, P, c, i0, pk["e_in"], p["a_in"], True, "截止日名單沒有・隔天開盤出", base))
+            elif p["official"] and c not in (p["act"] or []):
+                out.append(_trade(D, P, c, i0, pk["e_in"], p["b_in"], True, "公告未納入・隔日開盤出", base))
+            else:
+                out.append(_trade(D, P, c, i0, pk["e_in"], p["out_c"].get(c) or p["out"], False, "生效前一天出", base))
+    for c in pk["pick_t"]:
+        i0 = p["ic"] + 1 if p["ic"] is not None and p["ic"] + 1 < D.T else None
+        base = {"c": c, "n": names.get(c, c), "d": p["cutoff"], "review": p["review"], "tag": "補",
+                "mom": _pct1((mom_c or {}).get(c))}
+        if p["official"] and c not in (p["act"] or []):
+            out.append(_trade(D, P, c, i0, p["a_in"], p["b_in"], True, "公告未納入・隔日開盤出", base))
+        else:
+            out.append(_trade(D, P, c, i0, p["a_in"], p["out_c"].get(c) or p["out"], False, "截止日補位・生效前一天出", base))
+    return out
+
+
 def version_trades(D, cfg: dict, names: dict, pl: list[dict] | None = None) -> dict[str, list[dict]]:
-    """兩個版本的交易（樣本內＋前瞻同一套規則）。d＝訊號日：卡位版＝資料截止日、公告後版＝公告日。"""
+    """兩個版本的交易（樣本內＋前瞻同一套規則）。d＝訊號日：提前卡位＝建倉選股日（補位＝截止日）、公告後版＝公告日。"""
     pl = plans(D, cfg) if pl is None else pl
     P = _Px(D)
-    out = {"pre": [], "post": []}
+    out = {"early": [], "post": []}
     for p in pl:
-        rv = p["review"]
-        for c in p["pick_a"]:
-            out_d = p["out_c"].get(c) or p["out"]
-            base = {"c": c, "n": names.get(c, c), "d": p["cutoff"], "review": rv, "side": "add",
-                    "mom": None if p["mom"].get(c) is None else round(p["mom"][c] * 100, 1)}
-            i0 = p["ic"] + 1 if p["ic"] is not None and p["ic"] + 1 < D.T else None
-            if p["official"] and c not in (p["act"] or []):
-                out["pre"].append(_trade(D, P, c, i0, p["a_in"], p["b_in"], True, "公告未納入・隔日開盤出", base))
-            else:
-                out["pre"].append(_trade(D, P, c, i0, p["a_in"], out_d, False, "生效前一天出", base))
+        out["early"] += early_trades(D, P, p, names)
         for c in p["pick_b"]:
             out_d = p["out_c"].get(c) or p["out"]
-            base = {"c": c, "n": names.get(c, c), "d": p["announce"], "review": rv, "side": "add",
-                    "mom": None if p["mom"].get(c) is None else round(p["mom"][c] * 100, 1)}
+            base = {"c": c, "n": names.get(c, c), "d": p["announce"], "review": p["review"], "side": "add",
+                    "mom": _pct1(p["mom"].get(c))}
             i0 = _first_after(D, p["announce"]) if p["announce"] else None
             out["post"].append(_trade(D, P, c, i0, p["b_in"], out_d, False, "生效前一天出", base))
     return out
+
+
+def early_scan(D, cfg: dict, ks=range(35, -1, -1), ctx: _Ctx | None = None, pl: list[dict] | None = None) -> dict:
+    """提前幾個交易日建倉最好？同一套規則（最多 EARLY_N 檔、截止日校正＋補位），逐日回測歷次審核。
+    只算建倉日在上一次審核生效之後的（更早會和上一次審核重疊）。單位＝每次審核的平均報酬（每筆平均分配）。"""
+    ctx = ctx or _Ctx(D, cfg)
+    pl = [p for p in (pl or plans(D, cfg, ctx)) if p["official"]]
+    prev = {b["review"]: a["effective"] for a, b in zip(pl, pl[1:])}
+    res = {"k": [], "avg": [], "med": [], "win": [], "n": [], "lo": [], "pick": EARLY_K, "N": EARLY_N}
+    for k in ks:
+        per = []
+        for p in pl:
+            pre = ctx.pres.get(p["review"])
+            pk = early_picks(ctx, p, pre, k)
+            if pk["e_t"] is None or (prev.get(p["review"]) and pk["e_sig"] <= prev[p["review"]]):
+                continue
+            rs = [t["r"] for t in early_trades(D, ctx.P, p, {}, pk, {}) if t.get("st") == "closed"]
+            if rs:
+                per.append(statistics.mean(rs))
+        res["k"].append(k)
+        res["n"].append(len(per))
+        res["avg"].append(round(statistics.mean(per), 1) if per else None)
+        res["med"].append(round(statistics.median(per), 1) if per else None)
+        res["win"].append(sum(1 for x in per if x > 0))
+        res["lo"].append(round(min(per), 1) if per else None)
+    return res

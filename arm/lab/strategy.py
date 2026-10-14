@@ -57,31 +57,34 @@ STRATEGIES = [
 
 
 S3 = {"key": "s3", "ver": 1, "since": "2026-10-14", "name": "臺灣50 換股",
-      "bet": "0050、006208 生效日前一定要買進納入股。名單在資料截止日收盤就算得出來；同一批納入股裡，截止前漲勢最強的那幾檔，之後也漲最多。",
+      "bet": "0050、006208 生效日前一定要買進納入股。資料截止前一個多月，排名接近前 40、漲勢最強的那幾檔最有機會被納入、"
+             "也漲得最多——先卡位，截止日再照規則校正。",
       "why": "名單由市值排名決定、規則公開，資料截止日收盤後照規則重算就知道誰會被納入，不用猜經理人。"
-             "至於哪幾檔漲最多：被動買盤張數的多寡幾乎看不出差別，看得出差別的是截止前的漲勢與週轉率——"
+             "漲幅有一大段發生在截止日之前：股票會被納入，本來就是因為它一路漲、市值擠進前 40 名，提前卡位等於跟著這股漲勢走；"
+             "截止日再把沒進名單的賣掉、把確定納入的補進。至於哪幾檔漲最多：權重大小幾乎看不出差別，看得出差別的是截止前的漲勢與週轉率——"
              "市場正在追的股票，再加上一筆確定的被動買盤，漲得最多。",
-      "more": ["「公告前卡位」與「公告後進場」兩個版本、「只買漲勢前一半」與「生效前一天賣」都是看過歷史資料後才定的，"
-               "樣本內成績只能參考；起算日之後的前瞻成績才算數，兩版並列記帳比較。",
+      "more": ["「提前幾天建倉」「最多 4 檔」「生效前一天賣」都是看過歷史資料、逐日回測後才定的，樣本內成績只能參考；"
+               "起算日之後的前瞻成績才算數，和公告後進場版並列記帳比較。",
                "截止日名單用證交所收盤價×發行股數重排；實際指數另看自由流通與流動性，邊界名次可能不同。",
                "原「官方名單全部」版本（全部納入股、生效日收盤賣，另含刪除股）留作對照。"],
-      "fail": ["一年只有 4 次審核，樣本少、成績可能集中在少數幾次", "截止前已經漲很多的股票，生效前可能先回落",
-               "公告後第一天大盤急跌，會先吃掉一段", "不設停損（進出日期事先定好），單筆可能大賠"],
+      "fail": ["一年只有 4 次審核，樣本少、成績可能集中在少數幾次", "提前買的股票最後可能沒進名單（截止日隔天開盤賣，可能小賠）",
+               "截止前已經漲很多的股票，生效前可能先回落", "不設停損（進出日期事先定好），單筆可能大賠"],
       "rule": ["名單：富時／證交所官方公告的納入與刪除（週一 ETF 週掃寫入 config/index_reviews.json）",
                "納入：公告後第一個交易日開盤買進，生效日收盤賣出（賣給被動買盤）",
                "刪除：生效日收盤買進（承接被動賣壓），第 5 個交易日收盤賣出"],
       "hold": None}
 
-# 臺灣50 兩個新版本（2026-10-14 使用者：「公告前就先預估可能納進去的…也幫我去歸因哪些股票會漲最多」；
-# 定案：兩種進場都紙上比較、只買漲勢前一半、生效前一天收盤賣）。交易由 tw50study.version_trades 依同一套規則重算。
-# 上面的 S3（官方名單全部）規則不變，留作對照組。
+# 臺灣50 兩個新版本（2026-10-14 使用者：「公告前就先預估可能納進去的…也幫我去歸因哪些股票會漲最多」→
+# 「不用一檔可以 3-4 檔，然後能越早卡位越好」）：提前卡位（截止前 25 個交易日、最多 4 檔）與公告後進場並列紙上比較。
+# 交易由 tw50study.version_trades 依同一套規則重算。上面的 S3（官方名單全部）規則不變，留作對照組。
 TW50_VERS = [
-    {"k": "pre", "ver": 1, "since": "2026-10-14", "name": "公告前卡位・漲勢前一半",
-     "buy": "截止日隔天開盤", "sell": "生效前一天收盤",
-     "rule": ["名單：資料截止日收盤後，用證交所收盤價×發行股數重排上市普通股市值，照規則算出預估納入股（非成分股進前 40 名；截止時還沒上市的不算）",
-              "選股：預估納入股依截止日前 40 個交易日漲幅排序，買前一半（無條件進位；只有 1 檔就買它）",
-              "進場：資料截止日隔天開盤買進",
-              "出場：生效日前一個交易日收盤賣出；官方公告名單沒有它 → 公告後第一個交易日開盤賣出"]},
+    {"k": "early", "ver": 1, "since": "2026-10-14", "name": "提前卡位・漲勢前 4 檔",
+     "buy": "截止前 25 個交易日的隔天開盤", "sell": "生效前一天收盤",
+     "rule": ["建倉：資料截止日前第 25 個交易日收盤後選股，隔天開盤買進",
+              "候選：當天市值排名的預估納入股（非成分股進前 40 名；截止時還沒上市的不算），加上第 41～45 名的非成分股",
+              "選股：候選裡截止前 40 個交易日漲幅最大的 4 檔（不到 4 檔就全買）",
+              "校正：資料截止日收盤後照規則重算名單——名單沒有的隔天開盤賣；名單上有、還沒買到的依漲幅補到 4 檔（隔天開盤買）",
+              "出場：生效日前一個交易日收盤全部賣出；官方公告名單沒有的 → 公告後第一個交易日開盤賣出"]},
     {"k": "post", "ver": 1, "since": "2026-10-14", "name": "公告後進場・漲勢前一半",
      "buy": "公告後第一個交易日開盤", "sell": "生效前一天收盤",
      "rule": ["名單：富時／證交所官方公告的納入股",
@@ -382,6 +385,25 @@ def _ev_status(fwd: list[dict]) -> tuple[str, int]:
     return ("達標" if g["n"] and g["x"] > 0 and g["w"] > 50 else "不達標"), n_rev
 
 
+def _rev_stats(trs: list[dict]) -> dict:
+    """事件型版本「每次審核」的成績：同一次的各筆平均分配資金，一次算一個報酬（扣成本），再看幾次賺、最差一次。"""
+    by: dict[str, list] = defaultdict(list)
+    bx: dict[str, list] = defaultdict(list)
+    for t in trs:
+        if t.get("st") == "closed" and t.get("r") is not None:
+            by[t.get("review")].append(t["r"])
+            if t.get("x") is not None:
+                bx[t.get("review")].append(t["x"])
+    if not by:
+        return {"n": 0}
+    per = [statistics.mean(v) for v in by.values()]
+    px = [statistics.mean(v) for v in bx.values()]
+    return {"n": len(per), "trades": sum(len(v) for v in by.values()),
+            "avg": round(statistics.mean(per), 2), "med": round(statistics.median(per), 2),
+            "win": sum(1 for x in per if x > 0), "lo": round(min(per), 2),
+            "x": round(statistics.mean(px), 2) if px else None, "xw": sum(1 for x in px if x > 0)}
+
+
 def tw50_versions(D, names: dict, s3: dict, fwd: list[dict], ins: list[dict]) -> dict:
     """臺灣50 三個版本的成績＋「目前這一次」審核的計畫（日期、名單、漲勢、各版本部位）。"""
     from . import indexes, tw50study
@@ -396,12 +418,14 @@ def tw50_versions(D, names: dict, s3: dict, fwd: list[dict], ins: list[dict]) ->
         st, nr = _ev_status(fv)
         vers.append({**{k: vm[k] for k in ("k", "ver", "since", "name", "buy", "sell", "rule")},
                      "status": st, "days": nr, "ins_stats": _ev_stats(iv), "fwd_stats": _ev_stats(fv),
+                     "rev_stats": _rev_stats(iv), "fwd_rev": _rev_stats(fv),
                      "fwd": fv[-40:], "ins": iv[-80:], "dist": dist(iv)})
     add_i = [t for t in ins if t.get("side") == "add"]
     vers.append({"k": "all", "ver": S3["ver"], "since": S3["since"], "name": "官方名單全部（對照）",
                  "buy": "公告後第一個交易日開盤", "sell": "生效日收盤", "rule": S3["rule"],
                  "status": s3["status"], "days": s3["days"], "ins_stats": _ev_stats(add_i),
                  "fwd_stats": _ev_stats([t for t in fwd if t.get("side") == "add"]),
+                 "rev_stats": _rev_stats(add_i), "fwd_rev": _rev_stats([t for t in fwd if t.get("side") == "add"]),
                  "del_stats": _ev_stats([t for t in ins if t.get("side") == "del"]),
                  "fwd": fwd[-40:], "ins": ins[-80:], "dist": dist(add_i)})
     by_rev, sens = _tw50_by_review(D, pl, V, add_i)
@@ -410,46 +434,53 @@ def tw50_versions(D, names: dict, s3: dict, fwd: list[dict], ins: list[dict]) ->
     cur = next((p for p in pl if (p.get("out") or "") >= last), None)
     plan = None
     if cur:
-        stage = "watch" if not cur["frozen"] else ("frozen" if not cur["official"] else "announced")
-        codes = (cur["act"] if cur["official"] else cur["pred"]) or []
-        tr = {k: {t["c"]: t for t in V.get(k) or [] if t.get("review") == cur["review"]} for k in ("pre", "post")}
-        mom = cur.get("mom") or {}
+        stage = ("watch" if cur.get("e_t") is None and not cur["frozen"] else
+                 "early" if not cur["frozen"] else "frozen" if not cur["official"] else "announced")
+        tr = {k: {t["c"]: t for t in V.get(k) or [] if t.get("review") == cur["review"]} for k in ("early", "post")}
+        pred, act = cur["pred"] or [], cur["act"] or []
+        if stage == "watch":
+            codes = list(cur["pick_now"])
+        elif stage == "early":
+            codes = list(cur["pick_e"])
+        else:                                        # 截止後：先列持有中（早買仍在名單＋補位）、再列賣掉的、最後是沒買的
+            held = [c for c in cur["pick_e"] if c in pred] + list(cur["pick_t"])
+            sold = [c for c in cur["pick_e"] if c not in pred]
+            codes = list(dict.fromkeys(held + sold + list(pred) + list(act)))
+        mom_c, mom_e = cur.get("mom") or {}, cur.get("mom_e") or {}
+        b_if = indexes.top_half(pred, mom_c) if stage == "frozen" else set()
         items = []
-        for c in sorted(codes, key=lambda c: -(mom.get(c) if mom.get(c) is not None else -9e9)):
+        for c in codes:
+            m = mom_e.get(c) if stage in ("watch", "early") or c in cur["pick_e"] else mom_c.get(c)
             items.append({"c": c, "n": names.get(c, c), "rank": (cur.get("rank") or {}).get(c), "px": _last_close(D, c),
-                          "mom": None if mom.get(c) is None else round(mom[c] * 100, 1),
-                          "a": c in cur["pick_a"], "b": c in cur["pick_b"],
-                          "pred": c in (cur["pred"] or []), "act": c in (cur["act"] or []),
-                          "ta": _slim(tr["pre"].get(c)), "tb": _slim(tr["post"].get(c))})
-        # 預估過、但官方沒納入的（卡位版會在公告後第一天開盤賣掉）
-        for c in cur["pick_a"]:
-            if cur["official"] and c not in codes:
-                items.append({"c": c, "n": names.get(c, c), "rank": (cur.get("rank") or {}).get(c), "px": _last_close(D, c),
-                              "mom": None if mom.get(c) is None else round(mom[c] * 100, 1),
-                              "a": True, "b": False, "pred": True, "act": False,
-                              "ta": _slim(tr["pre"].get(c)), "tb": None})
-        plan = {k: cur.get(k) for k in ("review", "cutoff", "a_in", "announce", "b_in", "out", "effective", "status")}
+                          "mom": None if m is None else round(m * 100, 1),
+                          "e": c in cur["pick_e"], "t": c in cur["pick_t"],
+                          "pred": (c in pred) if cur["frozen"] else None, "act": (c in act) if cur["official"] else None,
+                          "b": c in cur["pick_b"] or c in b_if,
+                          "ta": _slim(tr["early"].get(c)), "tb": _slim(tr["post"].get(c))})
+        plan = {k: cur.get(k) for k in ("review", "cutoff", "a_in", "announce", "b_in", "out", "effective", "status",
+                                       "e_sig", "e_in")}
         plan.update({"stage": stage, "items": items, "out_c": cur.get("out_c") or {},
+                     "K": tw50study.EARLY_K, "N": tw50study.EARLY_N,
                      "dels": [[c, names.get(c, c)] for c in ((cur.get("act_del") if cur["official"] else cur.get("pred_del")) or [])]})
     return {"vers": vers, "plan": plan, "by_rev": by_rev, "sens": sens}
 
 
 def _tw50_by_review(D, pl: list[dict], V: dict, add_i: list[dict]) -> tuple[list, dict | None]:
     """逐次比較（樣本內、已出場、扣成本平均報酬）＋敏感度：扣掉兩版差距最大的 2 次後各剩多少。
-    2026-10-14 發現：公告後版的領先幾乎都來自 2026-03、06 兩次——公告後第一天開盤納入股跌 9～10%（大盤急跌），
+    2026-10-14 發現：公告後版的成績幾乎都來自 2026-03、06 兩次——公告後第一天開盤納入股跌 9～10%（大盤急跌），
     剛好買在低點。這種「集中在少數幾次」要讓頁面自己算出來、自己講，不寫死。"""
     def avg(xs):
         xs = [x for x in xs if x is not None]
         return round(statistics.mean(xs), 2) if xs else None
     since = TW50_VERS[0]["since"]
-    cl = {k: [t for t in V.get(k) or [] if t.get("st") == "closed" and t["d"] < since] for k in ("pre", "post")}
+    cl = {k: [t for t in V.get(k) or [] if t.get("st") == "closed" and t["d"] < since] for k in ("early", "post")}
     ctl = [t for t in add_i if t.get("st") == "closed"]
     rows = []
     for p in pl:
         rv = p["review"]
-        pre = [t["r"] for t in cl["pre"] if t["review"] == rv]
+        ea = [t["r"] for t in cl["early"] if t["review"] == rv]
         post = [t["r"] for t in cl["post"] if t["review"] == rv]
-        if not pre and not post:
+        if not ea and not post:
             continue
         gaps = []                                          # 公告後版進場那天：開盤相對公告日收盤
         i0 = next((i for i, x in enumerate(D.cal) if p.get("announce") and x > p["announce"]), None)
@@ -458,16 +489,17 @@ def _tw50_by_review(D, pl: list[dict], V: dict, add_i: list[dict]) -> tuple[list
                 S = D.series(c)
                 if S["o"][i0] and S["c"][i0 - 1]:
                     gaps.append((S["o"][i0] / S["c"][i0 - 1] - 1) * 100)
-        rows.append([rv, avg(pre), avg(post), avg([t["r"] for t in ctl if t["review"] == rv]), avg(gaps)])
+        rows.append([rv, avg(ea), avg(post), avg([t["r"] for t in ctl if t["review"] == rv]), avg(gaps)])
     both = [r for r in rows if r[1] is not None and r[2] is not None]
     sens = None
     if len(both) >= 4:
         top = sorted(both, key=lambda r: -abs(r[2] - r[1]))[:2]
         drop = {r[0] for r in top}
+        left = [r for r in both if r[0] not in drop]
         sens = {"revs": [r[0] for r in top], "gaps": [r[4] for r in top],
-                "pre": avg([t["r"] for t in cl["pre"] if t["review"] not in drop]),
-                "post": avg([t["r"] for t in cl["post"] if t["review"] not in drop]),
-                "n_left": len(both) - 2}
+                "early": avg([r[1] for r in left]), "post": avg([r[2] for r in left]),
+                "early_all": avg([r[1] for r in both]), "post_all": avg([r[2] for r in both]),
+                "n_left": len(left)}
     return rows, sens
 
 

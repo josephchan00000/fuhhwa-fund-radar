@@ -401,23 +401,47 @@ def test_tw50_by_review_drops_two_largest_gaps_between_versions():
     pl = [{"review": r, "announce": a, "pick_b": ["A"] if a else []}
           for r, a in (("2025-12", None), ("2026-03", "2026-03-06"), ("2026-06", "2026-06-05"), ("2025-09", None))]
     tr = lambda r, v: {"review": r, "r": v, "st": "closed", "d": "2025-01-01"}
-    V = {"pre": [tr("2025-12", 5.0), tr("2026-03", 10.0), tr("2026-06", 4.0), tr("2025-09", 3.0)],
+    V = {"early": [tr("2025-12", 5.0), tr("2026-03", 10.0), tr("2026-06", 4.0), tr("2025-09", 3.0)],
          "post": [tr("2025-12", 4.0), tr("2026-03", 30.0), tr("2026-06", 30.0), tr("2025-09", 1.0)]}
     rows, sens = strategy._tw50_by_review(D, pl, V, [])
     assert [r[0] for r in rows] == ["2025-12", "2026-03", "2026-06", "2025-09"]
     assert rows[1][4] == -10.0 and rows[2][4] == -5.0 and rows[0][4] is None
-    assert sorted(sens["revs"]) == ["2026-03", "2026-06"] and sens["pre"] == 4.0 and sens["post"] == 2.5
-    assert sens["n_left"] == 2
+    assert sorted(sens["revs"]) == ["2026-03", "2026-06"] and sens["early"] == 4.0 and sens["post"] == 2.5
+    assert sens["n_left"] == 2 and sens["early_all"] == 5.5 and sens["post_all"] == 16.25
+
+
+def test_tw50_early_basket_cutoff_check_and_topup():
+    """提前卡位：早買的股票截止日名單沒有 → 截止日隔天開盤賣；名單上有的抱到生效前一天；沒買到的確定納入股補位。"""
+    from arm.lab import tw50study as TS
+    cal = ["2026-10-16", "2026-10-19", "2026-11-23", "2026-11-24", "2026-12-04", "2026-12-07", "2026-12-17", "2026-12-18"]
+    S = {"A": {"o": [None, 100.0, None, 120.0, None, None, None, None], "c": [99.0, 101, 118, 121, 125, 126, 130, 128]},
+         "C": {"o": [None, 50.0, None, 47.0, None, None, None, None], "c": [50.0, 50, 48, 47, 46, 46, 45, 45]},
+         "B": {"o": [None, 80.0, None, 90.0, None, None, None, None], "c": [80.0, 82, 88, 91, 95, 96, 99, 97]}}
+    D = _tw50_fake(cal, S, [1000.0] * 8, [1000.0] * 8)
+    p = {"review": "2026-12", "cutoff": "2026-11-23", "frozen": True, "official": True, "pred": ["A", "B"],
+         "act": ["A", "B"], "ic": 2, "a_in": "2026-11-24", "b_in": "2026-12-07", "out": "2026-12-17", "out_c": {},
+         "e_sig": "2026-10-16", "e_in": "2026-10-19", "e_t": 0, "pick_e": ["A", "C"], "pick_t": ["B"],
+         "mom": {}, "mom_e": {}}
+    trs = {t["c"]: t for t in TS.early_trades(D, TS._Px(D), p, {})}
+    assert trs["A"]["entry"] == 100 and trs["A"]["exit"] == 130 and trs["A"]["tag"] == "早"
+    assert trs["C"]["exit"] == 47 and trs["C"]["why"].startswith("截止日名單沒有")       # 截止日隔天開盤賣
+    assert trs["B"]["entry"] == 90 and trs["B"]["exit"] == 99 and trs["B"]["tag"] == "補"
+    p2 = dict(p, frozen=False, official=False, pred=None, act=None, pick_t=[])           # 截止前：持有中
+    D2 = _tw50_fake(cal[:2], {c: {k: v[:2] for k, v in x.items()} for c, x in S.items()}, [1000.0] * 2, [1000.0] * 2)
+    t2 = {t["c"]: t for t in TS.early_trades(D2, TS._Px(D2), p2, {})}
+    assert t2["A"]["st"] == "open" and t2["C"]["st"] == "open" and t2["A"]["now"] == 101
 
 
 def test_tw50_card_has_versions_plan_and_research_section():
     """臺灣50 卡：三個版本並列（兩個新版本＋原官方名單對照）、下一次計畫；指數頁有換股研究段。"""
     from arm.lab import strategy
-    assert [v["k"] for v in strategy.TW50_VERS] == ["pre", "post"]
+    from arm.lab import tw50study
+    assert [v["k"] for v in strategy.TW50_VERS] == ["early", "post"]
     assert all(v["since"] == "2026-10-14" and v["ver"] == 1 and v["rule"] for v in strategy.TW50_VERS)
+    assert (tw50study.EARLY_K, tw50study.EARLY_N, tw50study.EARLY_W) == (25, 4, 45)   # 使用者：3～4 檔、越早越好
     js = page._JS
     for k in ("sq('三個版本'", "sq('下一次'", "function studySec(", "h+=studySec(X.study);", "'idx-study'",
-              "'漲勢前一半':", "'資料截止日':"):
+              "'漲勢前一半':", "'資料截止日':", "'估計權重':", "function earlyChart(", "提前幾天建倉"):
         assert k in js, k
 
 
