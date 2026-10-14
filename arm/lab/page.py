@@ -712,7 +712,7 @@ function studySec(S){
     `</tbody></table></div><div class=note>報酬扣成本。卡位＝截止日隔天開盤買、生效前一天收盤賣；公告後＝公告後第一個交易日開盤買、生效前一天收盤賣；生效後 5 日＝生效日收盤到 5 個交易日後收盤。個股生效日延後時以個股為準。被動買盤為估計（0050＋006208 規模 ÷ 前 50 大市值 × 發行股數，未做自由流通調整）。</div></details>`;
   return sec('idx-study','換股研究','臺灣50 換股研究',`過去 ${S.n_rev} 次審核（${esc(S.first)}～${esc(S.last)}）、${S.n} 檔納入股`,b);}
 /* 高股息四檔（0056／00878／00919／00929）：下一次預估名單＋換股研究（數字由 hdpredict／hdstudy 每次建表重算） */
-const HDK=['tip_hd','tip_tech','tw_div','msci_esg30'];
+const HDK=['tip_hd','tip_tech','tw_div','msci_esg30'],HDP=['tip_hd','tip_tech'];
 const HDN={tw_div:'0056 臺灣高股息',msci_esg30:'00878 MSCI ESG 高息30',tip_hd:'00919 精選高息',tip_tech:'00929 科技優息'};
 const HDE={tw_div:'0056',msci_esg30:'00878',tip_hd:'00919',tip_tech:'00929'};
 const HDNOTE={tip_hd:'規則公開，照規則重算（股利、EPS 用公開資料近似）',tip_tech:'規則公開，照規則重算（流動性門檻、本益比差距指標未公開，略過）',
@@ -727,6 +727,9 @@ function hdPredSec(H){const L=(H||{}).live||{};let b='';
     if(v.err){b+=`<div class=card><h4>${esc(HDN[k])}</h4><div class=st>預測錯誤：${esc(v.err)}</div></div>`;continue;}
     const tl=[v.cutoff?`資料截止 ${md(v.cutoff)}${k==='msci_esg30'?'（估計）':''}`:'',v.announce?`${k==='msci_esg30'?'MSCI 公布':'公告'} ${md(v.announce)}`:'',
       v.reveal?`名單約 ${md(v.reveal)} 起從持股揭露看得到`:'',v.trade&&v.trade[0]?`被動買賣約 ${md(v.trade[0])}～${md(v.trade[1])}`:''].filter(Boolean).join('・');
+    if(v.nopred){b+=`<div class=card><h4>${esc(HDN[k])} <span class=pill>${esc(v.review||'')}</span>${v.status==='推算'?' <span class=mu style="font-weight:400">日期推算</span>':''}</h4>`+
+      `<div class=st>${tl}</div><div class=st>規模 ${f(v.aum,0)} 億・審核前 ${v.n_pre} 檔</div><div class=st><b>不做公告前預測</b>：${esc(v.nopred)}。</div>`+
+      (hdAcc(v.acc)?`<div class=note>試算過的近似方法：${hdAcc(v.acc)}</div>`:'')+`</div>`;continue;}
     b+=`<div class=card><h4>${esc(HDN[k])} <span class=pill>${esc(v.review||'')}</span>${v.status==='推算'?' <span class=mu style="font-weight:400">日期推算</span>':''}</h4>`+
       `<div class=st>${tl}</div><div class=st>排名基準 ${md(v.asof)}${v.frozen?'（＝資料截止日，名單已定）':'（資料截止前每天重算）'}・規模 ${f(v.aum,0)} 億・審核前 ${v.n_pre} 檔${v.max_chg?`・最多換 ${v.max_chg} 檔`:''}</div>`+
       `<div class=st>${esc(HDNOTE[k])}</div>`+hdRows(v.adds,'add')+
@@ -757,10 +760,10 @@ function hdStudySec(H){const S=(H||{}).study||{};if(!S.n)return '';
 function calCard(r){const d=r[10];
   return `<div class=ev><div class=cdn>${d!=null&&d>=0?`${d}<small>天後生效</small>`:'<small>日期未定</small>'}</div><div class=evn>${esc(r[1])} <span class=mu style="font-weight:400">${esc((r[2]||[]).join(' '))}</span></div>`+
    `<div class=evm>${r[4]?`資料截止 ${md(r[4])}・`:''}${r[5]?`公告 ${md(r[5])}・`:''}${r[6]?`生效 ${md(r[6])}`:'生效日未定'}${r[7]?`・分 ${r[7]} 日買賣`:r[7]===0?'・一次買賣':''}</div>`+
-   `<div class=evm>${r[8]==='推算'?'日期為推算（官方未公告）':esc(r[8]||'')}・${r[12]?`<b class=up>有公告前預測</b>（信心 ${esc(r[9]||'')}）`:`未預測（信心 ${esc(r[9]||'')}）`}</div></div>`;}
+   `<div class=evm>${r[8]==='推算'?'日期為推算（官方未公告）':esc(r[8]||'')}・${r[12]||HDP.includes(r[0])?`<b class=up>有公告前預測</b>（信心 ${esc(r[9]||'')}）`:`未預測（信心 ${esc(r[9]||'')}）`}</div></div>`;}
 function vIdx(){
   const X=D.idx||{};
-  let h=`<div class=intro>被動 ETF 追蹤的指數定期換股，生效日前後被動資金會集中買賣。<b>公告前預測</b>：臺灣50、00919、00929 照公開規則重算；0056、00878 的選股資料（分析師預估、ESG 評級）要付費，只能近似、準度低。</div>`;
+  let h=`<div class=intro>被動 ETF 追蹤的指數定期換股，生效日前後被動資金會集中買賣。<b>公告前預測</b>：臺灣50、00919、00929 照公開規則重算；0056、00878 的選股資料（分析師預估、ESG 評級）要付費，不做預測、只列時程。</div>`;
   if(X.err)h+=`<div class=st>指數區塊錯誤：${esc(X.err)}</div>`;
   const cal=(X.cal||[]).slice().sort((a,b)=>(a[10]??1e9)-(b[10]??1e9));
   h+=sec('idx-cal','時程','審核時程','依生效日排序',cal.length?`<div class=evs>${cal.map(calCard).join('')}</div>`:'<div class=st>尚無排定</div>');
@@ -785,7 +788,7 @@ function vIdx(){
   h+=sec('idx-pf','被動換股','被動 ETF 近 10 個交易日換股動作','所有被動 ETF（含規模前段擴充檔）已發生的新進、出清與真加減碼，依個股彙整；換股期間這裡會先反映',
     pf.length?`<div class=tw><table><thead><tr><th>股票</th><th>被動淨買賣(張)</th><th>約幾日量</th><th class=l>新進</th><th class=l>出清</th><th class=l>涉及 ETF</th></tr></thead><tbody>`+pf.map(r=>`<tr data-c="${esc(r[0])}"><td><span class=nm>${esc(r[1])}</span><span class=cd>${esc(r[0])}</span></td><td>${sgn(r[2],0)}</td><td>${r[3]==null?'—':sgn(r[3],2)}</td><td class=l>${esc((r[4]||[]).join(' '))}</td><td class=l>${esc((r[5]||[]).join(' '))}</td><td class="l mu">${esc((r[6]||[]).join(' '))}</td></tr>`).join('')+`</tbody></table></div>`:'<div class=st>近 10 日無被動換股動作</div>');
   let o='';
-  for(const r of (X.cal||[])){if(r[12])continue;const hi=(r[13]||[])[0];
+  for(const r of (X.cal||[])){if(r[12]||HDK.includes(r[0]))continue;const hi=(r[13]||[])[0];
     o+=`<div class=card><h4>${esc(r[1])} <span class=pill>${esc((r[2]||[]).join(' '))}</span></h4><div class=st>${esc(r[11]||'')}</div>`+
      (hi?`<div class=st style="margin-top:4px">上次（${esc(hi.review||'')}）納入：${esc((hi.adds_names||(hi.adds||[]).map(nmOf)).join('、')||'—')}；刪除：${esc((hi.dels_names||(hi.dels||[]).map(nmOf)).join('、')||'—')}</div>`:'')+
      `<div class=st style="margin-top:4px">公告前預測：${r[0]==='msci_esg30'?'ESG 評分為付費資料，不做；公告後看持股揭露追蹤提前建倉':r[0]==='tw_div'?'第三階段（以公開殖利率代理分析師預估，信心中低）':'第二階段（需股利、EPS 資料）'}</div></div>`;}

@@ -411,6 +411,11 @@ if __name__ == "__main__":                  # 研究用：python3 -m arm.lab.hdp
 
 KEYS = ("tip_hd", "tip_tech", "tw_div", "msci_esg30")
 CAP = {"tip_hd": 0.15, "tip_tech": 0.10, "tw_div": 0.10, "msci_esg30": 0.10}
+# 回放準度夠才放預估名單。0056：五種近似（近四季股利、EPS×配發率、近兩季年化…）回放最好也只中 7／21、多猜 30
+# （2026-10-14）——官方用分析師預估股利，免費資料重現不了；00878：ESG 評級拿不到。這兩檔只列時程，名單等公告。
+PRED_KEYS = ("tip_hd", "tip_tech")
+NOPRED_WHY = {"tw_div": "官方用分析師預估股利（付費資料）排名，免費資料重現不了（回放 21 檔只中 7 檔）——名單等公告；公告後到被動買盤開始還有約兩週",
+              "msci_esg30": "ESG 評級是付費資料、母體不公開，名單重現不了——等 00878 開始換股、每日持股揭露出現新股票才知道"}
 
 
 def _cur_holdings(etf: str) -> set[str]:
@@ -448,7 +453,6 @@ def _acc(reps: list[dict], key: str) -> dict:
 def live(D, H, cfg: dict, industry: dict, reps: list[dict] | None = None, keys=KEYS) -> dict:
     """各指數下一次審核：用最新資料（過了資料截止日就用截止日）重跑規則 → 預估納入／刪除＋估計被動買賣。"""
     from . import hdstudy as HS
-    from .indexes import momentum
     cx = Ctx(D, H, industry)
     reps = reps if reps is not None else replay(D, H, cfg, industry)
     last = D.cal[-1]
@@ -463,6 +467,13 @@ def live(D, H, cfg: dict, industry: dict, reps: list[dict] | None = None, keys=K
         cut = nx.get("cutoff") or (_msci_cutoff_est(nx) if k == "msci_esg30" else None)
         d = min(cut, last) if cut else last
         frozen = bool(cut and last >= cut)
+        t0, t1 = HS._conv_window(D, k, nx)
+        if k not in PRED_KEYS:
+            out[k] = {"etf": etf, "review": nx.get("review"), "cutoff": cut, "announce": nx.get("announce"),
+                      "reveal": nx.get("reveal"), "effective": nx.get("effective"), "trade": [t0, t1],
+                      "status": nx.get("status"), "aum": HS._cur_aum(etf)[1], "n_pre": len(pre), "nopred": NOPRED_WHY.get(k),
+                      "acc": _acc(reps, k)}
+            continue
         try:
             p = predict(cx, k, nx, pre, d)
         except Exception as e:                            # noqa: BLE001
@@ -479,7 +490,7 @@ def live(D, H, cfg: dict, industry: dict, reps: list[dict] | None = None, keys=K
         rk = {c: i + 1 for i, c in enumerate(p["ranked"])}
 
         def row(c, side):
-            m = momentum(D, c, ia) if ia is not None else None
+            m = H.mom(c, ia) if ia is not None else None
             a20 = cx.adv(c, d, 20)
             amt = aum * w.get(c, 0) if (aum and side == "add") else None
             if side == "del" and aum:
@@ -488,7 +499,6 @@ def live(D, H, cfg: dict, industry: dict, reps: list[dict] | None = None, keys=K
                     None if m is None else round(m * 100, 1),
                     None if amt is None else round(amt, 1),
                     round(amt * 1e8 / a20, 1) if (amt and a20) else None, cx.px(c, d)]
-        t0, t1 = HS._conv_window(D, k, nx)
         out[k] = {"etf": etf, "review": nx.get("review"), "asof": d, "frozen": frozen, "cutoff": cut,
                   "announce": nx.get("announce"), "reveal": nx.get("reveal"), "effective": nx.get("effective"),
                   "trade": [t0, t1], "status": nx.get("status"), "aum": aum, "n_pre": len(pre),

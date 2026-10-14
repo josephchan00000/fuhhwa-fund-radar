@@ -9,8 +9,8 @@
 價格口徑（踩過的坑，2026-10-14）：價量序列是「官方分片（當時價、沒還原）＋缺的日子用 Yahoo（依目前股數還原）」
 拼起來的。面額變更（寶雅 2026-07-30 十比一）、配股之後，同一檔在兩種來源間會差好幾倍，股利也是「當時每股」——
 直接相除會算出 40%、50% 的假殖利率。這裡一律換算到「目前股數」口徑：
-  · 價格：官方日的價格除以之後發生的拆分倍數（官方連續兩個交易日跳接近整數倍才算拆分）；Yahoo 日不動。
-  · 股利：有除權息前收盤價（證交所表）→ 乘上「序列前一天收盤 ÷ 當時前收盤」；官方口徑再除以之後的拆分倍數。
+  · 價格：相鄰兩個有價交易日的價格比超過 1.8 倍（台股漲跌幅限制 10%）＝口徑改變，更早的價格全部換到最新口徑。
+  · 股利：有除權息前收盤價（證交所表）→ 乘上「序列前一天收盤 ÷ 當時前收盤」；沒有就除以當天的口徑倍數。
 """
 from __future__ import annotations
 
@@ -20,9 +20,6 @@ from collections import defaultdict
 from datetime import date, timedelta
 
 from . import store
-
-_K = (2, 2.5, 4, 5, 10, 20, 25, 40, 50, 100)
-
 
 def _d(s: str) -> date:
     return date.fromisoformat(s[:10])
@@ -77,12 +74,15 @@ class HD:
 
     # —— 價量（目前股數口徑）
     def ser(self, c: str) -> dict:
-        """→ {c: 收盤(目前股數口徑), raw: 原始收盤, src: 'o' 官方／'y' Yahoo, v, val, splits: [(日, 倍數)]}。"""
+        """→ {o, c: 開／收盤(目前股數口徑), raw: 原始收盤, src: 'o' 官方／'y' Yahoo, v, val, F: 口徑倍數, jumps}。
+        口徑連續化：相鄰兩個有價的交易日價格比超過 1.8 倍（台股單日漲跌幅限制 10%，不可能是真漲跌）＝口徑改變
+        （面額變更、減資、Yahoo 與官方口徑不同），之前的價格全部換到最新口徑。2026-10-14 實例：寶雅 7/30 十比一、
+        緯穎 6/3 前的 Yahoo 歷史價只有官方的三分之一。"""
         if c in self._ser:
             return self._ser[c]
         D = self.D
         T = D.T
-        raw, src, v, val = [None] * T, [None] * T, [None] * T, [None] * T
+        raw, ro, src, v, val = [None] * T, [None] * T, [None] * T, [None] * T, [None] * T
         for i, d in enumerate(D.cal):
             doc = D.mkt.get(d)
             q = None
@@ -93,38 +93,35 @@ class HD:
                         q = x
                         break
             if q:
-                raw[i], src[i], v[i], val[i] = q[3], "o", q[4], q[5]
+                raw[i], ro[i], src[i], v[i], val[i] = q[3], q[0], "o", q[4], q[5]
                 continue
             if doc and doc.get("q_tw") and doc.get("q_tp"):
                 continue                                        # 官方兩市齊全卻沒有此檔＝當天沒交易
             y = (D.yh.get(c) or {}).get(d)
             if y and y[3]:
-                raw[i], src[i], v[i] = y[3], "y", y[4]
-        splits = []
-        last = None
-        for i in range(T):
-            if raw[i] is None or src[i] != "o":
-                continue
-            if last is not None and last == i - 1:
-                r = raw[last] / raw[i]
-                for k in _K:
-                    if abs(r / k - 1) < 0.12:
-                        splits.append((D.cal[i], float(k)))
-                        break
-                    if abs(r * k - 1) < 0.12:
-                        splits.append((D.cal[i], 1.0 / k))
-                        break
-            last = i
-        adj = list(raw)
-        for i in range(T):
-            if raw[i] is not None and src[i] == "o":
-                f = 1.0
-                for sd, k in splits:
-                    if sd > D.cal[i]:
-                        f *= k
-                adj[i] = raw[i] / f
-        self._ser[c] = {"c": adj, "raw": raw, "src": src, "v": v, "val": val, "splits": splits}
+                raw[i], ro[i], src[i], v[i] = y[3], y[0], "y", y[4]
+        F, jumps = [1.0] * T, []
+        f, later = 1.0, None
+        for i in range(T - 1, -1, -1):                          # 由新往舊：口徑跳動就把更早的價格換算
+            if raw[i] is not None:
+                if later is not None:
+                    r = raw[i] / raw[later]
+                    if r > 1.8 or r < 1 / 1.8:
+                        f *= r
+                        jumps.append((D.cal[later], round(r, 4)))
+                later = i
+            F[i] = f
+        cc = [None if raw[i] is None else raw[i] / F[i] for i in range(T)]
+        oo = [None if ro[i] is None else ro[i] / F[i] for i in range(T)]
+        self._ser[c] = {"o": oo, "c": cc, "raw": raw, "src": src, "v": v, "val": val, "F": F, "jumps": jumps[::-1]}
         return self._ser[c]
+
+    def mom(self, c: str, i: int | None, n: int = 40) -> float | None:
+        """i 日收盤相對 n 個交易日前（目前股數口徑）。"""
+        cs = self.ser(c)["c"]
+        if i is None or i < n or not cs[i] or not cs[i - n]:
+            return None
+        return cs[i] / cs[i - n] - 1
 
     def _i(self, d: str) -> int | None:
         i = self.D.ix.get(d)
@@ -180,26 +177,21 @@ class HD:
 
     # —— 股利（目前股數口徑）
     def divs(self, c: str) -> list[tuple]:
-        """→ [(除息日, 目前股數口徑現金股利, approx)]。"""
+        """→ [(除息日, 目前股數口徑現金股利, approx)]。有除權息前收盤價（證交所表）→ 乘「序列前一天收盤 ÷ 當時前收盤」；
+        沒有（FinMind 上櫃股）→ 除以前一天的口徑倍數 F。"""
         if c in self._div:
             return self._div[c]
         s = self.ser(c)
         out = []
         for d, v, pre, ap in self.raw.get(c, []):
             i = self._i((_d(d) - timedelta(days=1)).isoformat())
-            f, yahoo = 1.0, False
-            if pre and i is not None:
-                for k in range(i, max(i - 5, -1), -1):          # 序列前一天收盤 ÷ 當時前收盤
-                    if s["c"][k]:
-                        f = s["c"][k] / pre
-                        yahoo = s["src"][k] == "y"
-                        break
-                if not 0.005 < f < 50:
-                    f, yahoo = 1.0, False
-            if not yahoo:                                        # 官方口徑 → 再除以之後的拆分倍數
-                for sd, k in s["splits"]:
-                    if sd > d:
-                        f /= k
+            f = 1.0
+            if i is not None:
+                k = next((k for k in range(i, max(i - 5, -1), -1) if s["c"][k]), None)
+                if k is not None:
+                    f = s["c"][k] / pre if pre else 1.0 / s["F"][k]
+                    if not 0.005 < f < 50:
+                        f = 1.0
             out.append((d, v * f, ap))
         self._div[c] = out
         return out

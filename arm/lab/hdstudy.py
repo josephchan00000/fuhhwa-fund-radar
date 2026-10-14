@@ -127,6 +127,24 @@ def anchors(D, h: dict, key: str | None = None) -> dict | None:
             "mid": mid if mid > iA else None, "t86": bool(tw)}
 
 
+class _HPx(TS._Px):
+    """同 tw50study._Px，但個股價格用 HD.ser（目前股數口徑）：面額變更、減資、Yahoo 與官方口徑不同時不會算出假報酬。"""
+
+    def __init__(self, D, H):
+        super().__init__(D)
+        self.H = H
+
+    def s(self, code):
+        if code not in self.cache:
+            x = self.H.ser(code)
+            self.cache[code] = {"o": x["o"], "c": x["c"]}
+        return self.cache[code]
+
+
+def _px(D, H):
+    return _HPx(D, H) if H is not None else TS._Px(D)
+
+
 def _r(P: TS._Px, c: str, i0, o0: bool, i1, o1: bool):
     if i0 is None or i1 is None or i1 < i0 or (i1 == i0 and o0 == o1) or i1 >= P.D.T or i0 < 0:
         return None, None
@@ -183,16 +201,17 @@ def _weights(H, codes: set, d: str, cap: float) -> dict[str, float]:
 
 
 def _demand(D, H, c: str, i: int, aum: float | None, w: float | None) -> tuple[float | None, float | None]:
-    """被動買盤（億元）與占 20 日均量天數。"""
+    """被動買盤（億元）與占 20 日平均成交金額的天數（金額不受面額變更影響）。"""
     if not aum or not w:
         return None, None
-    s = D.series(c)
-    px = s["c"][i] if 0 <= i < D.T else None
-    vs = [x for x in s["v"][max(i - 19, 0):i + 1] if x]
-    if not px or not vs:
-        return None, None
     amt = aum * w
-    return round(amt, 1), round(amt * 1e8 / px / (sum(vs) / len(vs)), 2)
+    if H is not None:
+        adv = H.adv(c, i, 20)
+    else:
+        s = D.series(c)
+        vs = [s["v"][k] * s["c"][k] for k in range(max(i - 19, 0), i + 1) if s["v"][k] and s["c"][k]]
+        adv = sum(vs) / len(vs) if vs else None
+    return round(amt, 1), (round(amt * 1e8 / adv, 2) if adv else None)
 
 
 def _cur_aum(etf: str) -> tuple[str | None, float | None]:
@@ -254,7 +273,7 @@ def _wins(P: TS._Px, c: str, a: dict) -> dict:
 
 def events(D, cfg: dict, H=None, keys=HD_KEYS) -> list[dict]:
     """逐次審核的納入／刪除股各時窗表現。超額有兩種：對加權指數（x）、對留任成分股等權平均（c，扣掉高股息風格本身的漲跌）。"""
-    P = TS._Px(D)
+    P = _px(D, H)
     out = []
     for k in keys:
         ix = (cfg.get("indexes") or {}).get(k) or {}
@@ -279,7 +298,7 @@ def events(D, cfg: dict, H=None, keys=HD_KEYS) -> list[dict]:
                 for c in codes:
                     if len(c) != 4 or not c.isdigit():
                         continue
-                    m = TS.IX.momentum(D, c, A)
+                    m = H.mom(c, A) if H is not None else TS.IX.momentum(D, c, A)
                     row = {"c": c, "n": D.names.get(c, c), "side": side, "mom": None if m is None else round(m * 100, 1)}
                     if side == "add":
                         row["w"] = round(wts[c] * 100, 2) if c in wts else None

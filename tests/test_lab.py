@@ -666,3 +666,106 @@ def test_workflows_commit_series_file_on_its_own_line():
         for i in page_lines:
             assert "x9s.json" not in lines[i], name
             assert lines[i + 1].strip().startswith("git add -f dashboard/x9s.json"), (name, i)
+
+
+# ── 高股息四檔（0056／00878／00919／00929）換股研究與預測（2026-10-14）────────────
+
+def _hd_fake(cal, mkt, yh=None):
+    class _D:
+        pass
+    D = _D()
+    D.cal, D.T, D.mkt, D.yh = cal, len(cal), mkt, yh or {}
+    D.ix = {d: i for i, d in enumerate(cal)}
+    D.names = {}
+
+    def quote(c, d):
+        doc = D.mkt.get(d) or {}
+        for part in ("q_tw", "q_tp"):
+            q = (doc.get(part) or {}).get(c)
+            if q and q[3]:
+                return q
+        y = (D.yh.get(c) or {}).get(d)
+        return [y[0], y[1], y[2], y[3], y[4], None] if y else None
+    D.quote = quote
+    return D
+
+
+def _hd_model(D, raw):
+    from arm.lab.hdmodel import HD
+    H = HD.__new__(HD)
+    H.D, H.raw, H.approx, H.eps = D, raw, set(), {}
+    H.iss_tw, H.iss_tp, H._ser, H._div = {}, {}, {}, {}
+    return H
+
+
+def test_hd_par_value_change_restates_prices_and_dividends():
+    """面額十比一（寶雅 2026-07-30 實例）：相鄰兩日價格比超過 1.8 倍＝口徑改變，更早的價格與股利全部換到最新口徑
+    （Yahoo 區段本來就是新口徑，接到官方舊價那天也會被接回來）。"""
+    cal = ["2026-06-01", "2026-06-02", "2026-07-29", "2026-07-30", "2026-07-31"]
+    q = lambda p: {"q_tw": {}, "q_tp": {"5904": [p, p, p, p, 1000, p * 1000]}}
+    mkt = {"2026-06-02": q(570.0), "2026-07-29": q(720.0), "2026-07-30": q(72.0), "2026-07-31": q(73.0)}
+    yh = {"5904": {"2026-06-01": [56.8, 56.8, 56.8, 56.8, 1000]}}
+    D = _hd_fake(cal, mkt, yh)
+    H = _hd_model(D, {"5904": [("2026-07-16", 25.5, None, False)]})
+    s = H.ser("5904")
+    assert [d for d, _ in s["jumps"]] == ["2026-06-02", "2026-07-30"]  # Yahoo→官方、面額變更各一次
+    assert [round(x, 2) for x in s["c"]] == [57.0, 57.0, 72.0, 72.0, 73.0]   # 全部換成最新口徑
+    assert abs(H.divs("5904")[0][1] - 2.55) < 1e-9                     # 舊股股利 25.5 → 新股 2.55
+    assert abs(H.yld("5904", "2026-07-31") - 2.55 / 73.0) < 1e-9
+    assert abs(H.mom("5904", 4, 3) - (73.0 / 57.0 - 1)) < 1e-9          # 動能跨過口徑改變也正確
+
+
+def test_hd_dividend_rescaled_by_pre_ex_close_on_yahoo_days():
+    """Yahoo 區段的價格已依日後面額變更還原，股利是「當時每股」→ 用證交所除權息前收盤價換算（可寧衛 8422 實例）。"""
+    cal = ["2025-06-09", "2025-06-10", "2025-06-11"]
+    yh = {"8422": {"2025-06-09": [19.1, 19.1, 19.1, 19.1, 100], "2025-06-10": [18.2, 18.2, 18.2, 18.2, 100],
+                   "2025-06-11": [18.3, 18.3, 18.3, 18.3, 100]}}
+    D = _hd_fake(cal, {}, yh)
+    H = _hd_model(D, {"8422": [("2025-06-10", 9.94, 191.0, False)]})
+    assert abs(H.divs("8422")[0][1] - 9.94 * 19.1 / 191.0) < 1e-9       # ≈ 0.994
+
+
+def test_hd_trade_window_inferred_from_trust_flows():
+    """被動買賣期間＝納入股投信買超（÷該檔區間最大）平均 ≥ 0.3 的連續交易日，容許中間 1 天低於門檻。"""
+    from arm.lab import hdstudy as HS
+    from datetime import date
+    cal = [f"2026-06-{d:02d}" for d in range(1, 29) if date(2026, 6, d).weekday() < 5]
+    buy = {"2026-06-10": 0.9, "2026-06-11": 1.0, "2026-06-12": 0.1, "2026-06-15": 0.8, "2026-06-16": 0.7}
+    mkt = {d: {"i_tw": {c: [0, int(buy.get(d, 0.02) * 1e6), 0] for c in ("1111", "2222")}} for d in cal}
+    D = _hd_fake(cal, mkt)
+    w = HS.trade_window(D, {"adds": ["1111", "2222"]}, D.ix["2026-06-11"])
+    assert (D.cal[w[0]], D.cal[w[1]]) == ("2026-06-10", "2026-06-16")
+    assert HS.trade_window(D, {"adds": ["9999"]}, 10) is None             # 沒有投信資料 → 交給慣例
+
+
+def test_hd_constituents_walk_back_from_current_holdings(monkeypatch):
+    from arm.lab import hdstudy as HS
+    monkeypatch.setattr(HS, "_cur_holdings", lambda etf: {"A", "B", "C"})
+    ix = {"etfs": ["X"], "n": 3, "history": [
+        {"review": "2026-06", "effective": "2026-06-18", "adds": ["C"], "dels": ["D"]},
+        {"review": "2026-03", "effective": "2026-03-20", "adds": [], "dels": ["E"], "kind": "季審"},
+        {"review": "2025-12", "effective": "2025-12-19", "adds": ["D"], "dels": ["F"]}]}
+    cons = HS.constituents(ix)
+    assert cons["2026-06"] == ({"A", "B", "D"}, {"A", "B", "C"})
+    assert cons["2026-03"] == ({"A", "B", "D", "E"}, {"A", "B", "D"})
+    assert cons["2025-12"] == ({"A", "B", "E", "F"}, {"A", "B", "D", "E"})
+    bad = {"etfs": ["X"], "history": [{"review": "2026-06", "effective": "2026-06-18", "adds": ["Z"], "dels": []}]}
+    assert HS.constituents(bad)["2026-06"] is None                       # 納入股不在目前持股 → 對不上，不用
+
+
+def test_hd_buffer_select_top_in_keep_rank_and_change_cap():
+    from arm.lab import hdpredict as HP
+    ranked = [f"S{i:02d}" for i in range(1, 13)]
+    pre = {"S03", "S07", "S09", "S12", "X1"}                              # X1 不合格（沒有名次）
+    sel, adds, dels = HP.buffer_select(ranked, pre, 5, 2, 8)
+    assert sel == ["S01", "S02", "S03", "S07", "S04"] and adds == ["S01", "S02", "S04"]
+    assert dels[0] == "X1" and set(dels) == {"X1", "S09", "S12"}
+    sel2, adds2, dels2 = HP.buffer_select(ranked, pre, 5, 2, 8, max_chg=1)
+    assert adds2 == ["S01"] and len(sel2) == 5 and "X1" in dels2 and len(dels2) == 1
+
+
+def test_hd_page_sections_and_glossary():
+    js = page._JS
+    for k in ("function hdPredSec(", "function hdStudySec(", "h+=hdPredSec(X.hd)+hdStudySec(X.hd);", "'idx-hd'", "'idx-hds'",
+              "'被動買賣期間':", "'對其他成分股':", "高股息預估納入"):
+        assert k in js, k
