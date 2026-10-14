@@ -253,15 +253,24 @@ def run(data: Data | None = None) -> dict:
             if e in act_set and s > 0 and cst > 0:
                 agg[c][0] += s
                 agg[c][1] += cst
-        for c, (s, cst) in agg.items():
-            per_code_days[c][i] = cst / s
+        cnt: dict[str, int] = defaultdict(int)
+        for (e, c), (s, cst) in state.items():
+            if e in act_set and s > 0:
+                cnt[c] += 1
+        for c in set(agg) | set(cnt):
+            s, cst = agg.get(c, (0.0, 0.0))
+            per_code_days[c][i] = ((cst / s) if s else None, cnt.get(c, 0))
+    act_n: dict[str, list] = {}
     for c, arr in per_code_days.items():
-        last_v = None
-        out = []
+        last_v, last_n = None, 0
+        out, outn = [], []
         for x in arr:
-            last_v = x if x is not None else last_v
+            if x is not None:
+                last_v, last_n = x
             out.append(last_v)
+            outn.append(last_n)
         cost_line[c] = out
+        act_n[c] = outn
 
     # ETF 合計持股（逐 ETF 前推）
     etf_tot: dict[str, list] = defaultdict(lambda: [0.0] * T)
@@ -311,6 +320,7 @@ def run(data: Data | None = None) -> dict:
         ma20, ma60 = ta.sma(c, 20), ta.sma(c, 60)
         v20 = ta.sma(v, 20)
         cl = cost_line.get(code, [None] * T)
+        an = act_n.get(code, [0] * T)
 
         def sig_at(t: int) -> list[str]:
             out = []
@@ -329,8 +339,7 @@ def run(data: Data | None = None) -> dict:
             if len(iss_cut) >= 3 and net5 < 0:
                 out.append("exit")
             if tw and c[t] and cl[t]:
-                holders = sum(1 for e in act_set if (state_at.get((e, code)) or 0) > 0) \
-                    if t == T - 1 else 2
+                holders = an[t]
                 was_above = any(c[i] and cl[i] and c[i] / cl[i] - 1 > 0.05
                                 for i in range(max(t - 20, 0), t))
                 net10 = sum(conv_act[i] for i in range(max(t - 9, 0), t + 1))
@@ -349,7 +358,6 @@ def run(data: Data | None = None) -> dict:
                     out.append("brk")
             return out
 
-        state_at = {(e, cc): p.shares for (e, cc), p in L.pos.items() if cc == code}
         hist = [sig_at(t) for t in range(T)]
         sig_hist[code] = hist
         last_t = T - 1
@@ -404,8 +412,7 @@ def run(data: Data | None = None) -> dict:
         w10 = range(max(T - 10, 0), T)
         row = {
             "c": code, "n": D.names.get(code, code), "ind": ind.get(code),
-            "m": ("tw" if any((D.mkt.get(d) or {}).get("q_tw", {}).get(code) for d in D.cal[-5:])
-                  else "tp" if tw else "os"),
+            "m": _market(D, code, tw),
             "px": _r(px_now), "ch": _r(chg),
             "ne": len(hd), "na": sum(1 for r in hd if meta[r[0]]["k"] == "a"),
             "np": sum(1 for r in hd if meta[r[0]]["k"] == "p"),
@@ -443,6 +450,36 @@ def run(data: Data | None = None) -> dict:
         rows.append(row)
         ser[code] = _series_out(D, S, C, cl, etf_tot.get(code), tw)
 
+    # —— 投信動向：近 5 個交易日的真加減碼事件＋各投信超配最多的個股
+    recent5 = set(D.cal[-5:])
+    iev: dict[str, list] = defaultdict(list)
+    for ev in L.events:
+        m = meta.get(ev.etf) or {}
+        if m.get("k") != "a" or ev.date not in recent5 or ev.kind == LG.HOLD:
+            continue
+        tw = LG.is_tw(ev.code)
+        iev[m["is"]].append([ev.date, ev.kind, ev.code, D.names.get(ev.code, ev.code), ev.etf,
+                             _lots(ev.conv if ev.kind != LG.EXIT else -ev.s0, tw)])
+    for k in iev:
+        iev[k].sort(key=lambda x: (x[0], abs(x[5] or 0)), reverse=True)
+        iev[k] = iev[k][:40]
+    mw_map = {r["c"]: r.get("mw") for r in rows}
+    iss_w: dict[str, dict] = defaultdict(lambda: defaultdict(list))
+    for etf in act_tw:
+        for c2, w in (last_w.get(etf) or {}).items():
+            iss_w[meta[etf]["is"]][c2].append(w or 0)
+    iss_ow = {}
+    for i_, mp in iss_w.items():
+        n_etf = sum(1 for e in act_tw if meta[e]["is"] == i_)
+        lst = []
+        for c2, ws in mp.items():
+            aw_ = sum(ws) / n_etf
+            mw_ = mw_map.get(c2)
+            if mw_ is not None:
+                lst.append([c2, D.names.get(c2, c2), round(aw_, 2), mw_, round(aw_ - mw_, 2)])
+        lst.sort(key=lambda x: -x[4])
+        iss_ow[i_] = lst[:8]
+
     from . import backtest
     stats = backtest.signal_stats(D, sig_hist, taiex)
     iss_stats = backtest.issuer_stats(D, L, meta, taiex)
@@ -458,12 +495,24 @@ def run(data: Data | None = None) -> dict:
     }
     return {"asof": asof, "etfs": meta, "rows": rows, "ser": ser,
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
-            "stats": stats, "iss": iss_stats, "ca": L.ca[-30:],
+            "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow, "ca": L.ca[-30:],
             "dates": D.cal[-CHART_N:]}
 
 
 CHART_N = 130
 CHIP_N = 60
+
+
+def _market(D: Data, code: str, tw: bool) -> str:
+    if not tw:
+        return "os"
+    for d in reversed(D.cal[-10:]):
+        doc = D.mkt.get(d) or {}
+        if code in (doc.get("q_tw") or {}):
+            return "tw"
+        if code in (doc.get("q_tp") or {}):
+            return "tp"
+    return "tw"
 
 
 def _chip_metrics(C: dict, S: dict, T: int, issued: int | None) -> dict:

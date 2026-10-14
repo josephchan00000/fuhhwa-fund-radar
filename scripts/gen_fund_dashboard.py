@@ -25,6 +25,13 @@ def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(fund_dashboard.render(), encoding="utf-8")
     print(f"[儀表板] 已寫入 {OUT}")
+    # 籌碼雷達獨立頁（dashboard/x9.html；主頁頁尾右下角小點進入）。失敗不影響主頁。
+    try:
+        from arm.lab import page as lab_page
+        changed = lab_page.build()
+        print(f"[籌碼雷達] {'已更新' if changed else '無變更'} {lab_page.OUT}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[籌碼雷達] 建頁失敗（不影響主頁）：{type(e).__name__}: {e}")
     if "--open" in sys.argv[1:]:
         webbrowser.open(OUT.as_uri())
 
