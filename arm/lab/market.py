@@ -534,3 +534,42 @@ def probe2(d: str) -> None:
             continue
         f, rows = max(tb, key=lambda t: len(t[1]))
         print(f"[probe2] {name}: {len(rows)} 列；表頭={'/'.join(f[:20])}；首列={json.dumps(rows[0], ensure_ascii=False)[:260]}")
+
+
+# ── 歷史價量備援：Yahoo 逐檔日線（2026-10-14） ─────────────────────────────
+# 證交所 MI_INDEX 逐日回補被頻率限制卡死（兩輪 100 分鐘只補到 6/3），改以 Yahoo 逐檔
+# 一次取兩年日線，只補「官方分片沒有的日子」。Yahoo 對台股偶有不可能的 bar（2026-09-20
+# 週日 bar 事件）與盤中未收盤 bar → 週末與今日以後一律丟掉。
+
+def yahoo_hist(sym: str, *, rng: str = "2y") -> dict[str, list]:
+    import urllib.parse
+    from datetime import datetime
+
+    from .. import clock
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(sym)}?range={rng}&interval=1d"
+    try:
+        doc = json.loads(get_bytes(url, retries=2, timeout=20, use_cache=False).decode("utf-8"))
+    except Exception as e:                                # noqa: BLE001
+        log(f"Yahoo {sym} ✗ {str(e)[:80]}")
+        return {}
+    res = (((doc or {}).get("chart") or {}).get("result") or [None])[0]
+    if not res:
+        return {}
+    ts = res.get("timestamp") or []
+    q = ((res.get("indicators") or {}).get("quote") or [{}])[0] or {}
+    today = clock.today_tw().isoformat()
+    out = {}
+    for i, t in enumerate(ts):
+        d = datetime.fromtimestamp(int(t), clock.TW_TZ).date()
+        if d.weekday() >= 5 or d.isoformat() >= today:
+            continue
+
+        def g(k):
+            arr = q.get(k) or []
+            v = arr[i] if i < len(arr) else None
+            return None if v is None else round(float(v), 4)
+        c = g("close")
+        if c:
+            v = g("volume")
+            out[d.isoformat()] = [g("open"), g("high"), g("low"), c, None if v is None else int(v)]
+    return out
