@@ -386,13 +386,14 @@ const GL={
 '漲勢前一半':'同一次審核的納入股，依資料截止日前 40 個交易日的漲幅排序，取前一半（無條件進位；只有 1 檔就是它）。',
 '被動買盤':'0050＋006208 規模 ÷ 前 50 大市值＝被動資金持有比例，乘上發行股數，估計生效日要買進的張數；沒有做自由流通調整，是估計值。',
 '週轉率':'20 日平均成交股數 ÷ 發行股數（%）；越高代表市場越熱衷交易這檔。',
+'估計權重':'新納入股在臺灣50 的權重估計＝個股市值 ÷ 前 50 大市值合計（未做自由流通調整）。被動買盤金額約＝0050＋006208 規模 × 權重。新進的股票都剛擠進前 40 名，彼此權重差不多。',
 '等級相關':'兩組數字的排序有多一致，−1～+1：+1＝排序完全相同、0＝看不出關係、負＝反方向。這裡樣本只有十幾檔，看方向與大小就好。',
 };
 const GLG=[['ETF 面',['真加碼','申贖倍率','主動 5 日淨買','加碼／減碼家數','持有 ETF','新建倉','建倉日','主動成本','成本乖離','超配','ETF 持股率','消化天數']],
  ['法人籌碼',['投信 5 日','外資 5 日','連買','60 日買超均價','融資','借券賣出','千張大戶']],
  ['技術面',['趨勢','乖離','量比','RSI','KD','MACD','一年區間位置','相對大盤','ATR','日均成交']],
  ['成績與策略',['超額','勝率','隔夜跳空','樣本','紙上交易','樣本內','前瞻','驗證期滿']],
- ['指數換股',['資料截止日','漲勢前一半','被動買盤','週轉率','等級相關']]];
+ ['指數換股',['資料截止日','漲勢前一半','估計權重','被動買盤','週轉率','等級相關']]];
 function gi(k){return (GL[k]||SD[k])?`<i class=gi data-g="${esc(k)}" role=button tabindex=0 aria-label="說明">i</i>`:'';}
 const POP=$('#pop');let popFor=null,popPin=false;
 function showPop(el,pin){const k=el.dataset.g;const t=GL[k]||(SD[k]||[])[1];if(!t)return;
@@ -662,7 +663,7 @@ function studySec(S){
   const a0=A(0),a20=A(20),pre=E('pre'),post=E('post'),L=[];
   if(a0)L.push(`<b>名單：</b>資料截止日${gi('資料截止日')}收盤後照規則重算，${a0.hit}／${a0.tot} 檔${a0.hit===a0.tot?'全對':'命中'}${a0.fp?`、多猜 ${a0.fp} 檔`:'、沒有多猜'}${a20?`；提前 20 個交易日只對 ${a20.hit} 檔`:''}。`);
   if(pre.all&&pre.all.n&&post.all&&post.all.n)L.push(`<b>時點：</b>截止日到公告這兩週，納入股平均 ${pctT(pre.all.avg)}（${pre.all.win}% 上漲）；公告後才進場、生效前一天賣，平均 ${pctT(post.all.avg)}（${post.all.win}% 賺）。`);
-  if(W.length)L.push(`<b>選股：</b>同一次審核裡漲最多的，${W.filter(w=>w.same).length}／${W.length} 次就是截止前漲勢最強的那檔；被動買盤${gi('被動買盤')}張數和漲幅的相關只有 ${f(F('dem_lots').rho,2)}，看不太出差別。`);
+  if(W.length)L.push(`<b>選股：</b>同一次審核裡漲最多的，${W.filter(w=>w.same).length}／${W.length} 次是截止前漲勢最強的那檔，權重${gi('估計權重')}最大的只有 ${W.filter(w=>w.heavy_same).length}／${W.length} 次；權重和漲幅的相關只有 ${f(F('w').rho,2)}——新進的股票都剛擠進前 40 名，權重本來就差不多。`);
   let b=`<div class=lead><ul>${L.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
   b+=`<h4 class=sh>名單什麼時候就準了</h4><div class=tw><table><thead><tr><th>用哪天的排名</th><th>命中</th><th>多猜</th></tr></thead><tbody>`+
     (S.acc||[]).map(a=>`<tr><td>${a.k?`截止前 ${a.k} 個交易日`:'資料截止日當天'}</td><td>${a.hit}／${a.tot}</td><td>${a.fp}</td></tr>`).join('')+
@@ -674,12 +675,13 @@ function studySec(S){
   b+=`<h4 class=sh>哪些納入股漲最多</h4><div class=st>各項數字和「公告後進場、生效前一天賣」超額報酬的等級相關${gi('等級相關')}（${S.n} 檔）：</div><div class=tw><table><thead><tr><th>數字</th><th class=l>和公告後表現</th><th class=l>和卡位表現</th></tr></thead><tbody>`+
     (S.fac||[]).map(x=>`<tr><td>${esc(x.lbl)}</td><td class=l>${crb(x.rho)}</td><td class=l>${crb(x.rho_cut)}</td></tr>`).join('')+`</tbody></table></div>`;
   b+=stScatter(S);
-  if(W.length)b+=`<div class=tw style="margin-top:8px"><table><thead><tr><th>審核</th><th>前一半<br><span class=mu>平均超額</span></th><th>後一半</th><th class=l>漲最多的</th></tr></thead><tbody>`+
-    W.map(w=>`<tr><td>${esc(w.review)}<div class=sm2>${w.n} 檔納入</div></td><td>${sgn(w.hi,1,'%')}</td><td>${sgn(w.lo,1,'%')}</td><td class=l>${esc(w.best||'—')}${w.same?' <b class=up>✓</b>':`<div class=sm2>漲勢最強：${esc(w.strongest||'—')}</div>`}</td></tr>`).join('')+
-    `</tbody></table></div><div class=note>只列有 2 檔以上納入的審核；✓＝也是截止前 40 日漲最多的那檔。超額＝公告後第一個交易日開盤買、生效前一天收盤賣，減去同期加權指數。</div>`;
+  const wc=(nm,x,ok)=>`<td class=l>${esc(nm||'—')}${ok?' <b class=up>✓</b>':''}<div class=sm2>${x==null?'—':pctT(x)}</div></td>`;
+  if(W.length)b+=`<div class=tw style="margin-top:8px"><table><thead><tr><th>審核</th><th class=l>漲最多的</th><th class=l>截止前漲勢最強</th><th class=l>權重最大</th></tr></thead><tbody>`+
+    W.map(w=>`<tr><td>${esc(w.review)}<div class=sm2>${w.n} 檔納入</div></td>${wc(w.best,w.best_x,false)}${wc(w.strongest,w.strongest_x,w.same)}${wc(w.heavy,w.heavy_x,w.heavy_same)}</tr>`).join('')+
+    `</tbody></table></div><div class=note>只列有 2 檔以上納入的審核；✓＝就是漲最多的那檔。小字＝公告後第一個交易日開盤買、生效前一天收盤賣的超額（減去同期加權指數）。權重＝市值 ÷ 前 50 大市值（未做自由流通調整）。</div>`;
   const R=(S.rows||[]).slice().reverse();
-  b+=`<details class=mr><summary>逐次明細（${R.length} 檔）</summary><div class=tw><table><thead><tr><th>股票</th><th>審核</th><th>市值排名</th><th>40 日漲幅</th><th>週轉率${gi('週轉率')}</th><th>被動買盤(張)</th><th>約幾日量</th><th>卡位</th><th>公告後</th><th>生效後 5 日</th></tr></thead><tbody>`+
-    R.map(r=>`<tr data-c="${esc(r[1])}"><td><span class=nm>${esc(r[2])}</span><span class=cd>${esc(r[1])}${r[9]?' · <b class=up>前一半</b>':''}</span></td><td>${esc(r[0])}</td><td>${r[3]??'—'}</td><td>${r[5]==null?'—':sgn(r[5],1,'%')}</td><td>${r[6]==null?'—':f(r[6],2)+'%'}</td><td>${r[7]==null?'—':f(r[7],0)}</td><td>${r[8]==null?'—':f(r[8],2)}</td><td>${sgn(r[13],1,'%')}</td><td>${sgn(r[11],1,'%')}</td><td>${sgn(r[15],1,'%')}</td></tr>`).join('')+
+  b+=`<details class=mr><summary>逐次明細（${R.length} 檔）</summary><div class=tw><table><thead><tr><th>股票</th><th>審核</th><th>估計權重</th><th>40 日漲幅</th><th>週轉率${gi('週轉率')}</th><th>被動買盤(張)</th><th>約幾日量</th><th>卡位</th><th>公告後</th><th>生效後 5 日</th></tr></thead><tbody>`+
+    R.map(r=>`<tr data-c="${esc(r[1])}"><td><span class=nm>${esc(r[2])}</span><span class=cd>${esc(r[1])}${r[9]?' · <b class=up>前一半</b>':''}</span></td><td>${esc(r[0])}</td><td>${r[4]==null?'—':f(r[4],2)+'%'}</td><td>${r[5]==null?'—':sgn(r[5],1,'%')}</td><td>${r[6]==null?'—':f(r[6],2)+'%'}</td><td>${r[7]==null?'—':f(r[7],0)}</td><td>${r[8]==null?'—':f(r[8],2)}</td><td>${sgn(r[13],1,'%')}</td><td>${sgn(r[11],1,'%')}</td><td>${sgn(r[15],1,'%')}</td></tr>`).join('')+
     `</tbody></table></div><div class=note>報酬扣成本。卡位＝截止日隔天開盤買、生效前一天收盤賣；公告後＝公告後第一個交易日開盤買、生效前一天收盤賣；生效後 5 日＝生效日收盤到 5 個交易日後收盤。個股生效日延後時以個股為準。被動買盤為估計（0050＋006208 規模 ÷ 前 50 大市值 × 發行股數，未做自由流通調整）。</div></details>`;
   return sec('idx-study','換股研究','臺灣50 換股研究',`過去 ${S.n_rev} 次審核（${esc(S.first)}～${esc(S.last)}）、${S.n} 檔納入股`,b);}
 function calCard(r){const d=r[10];
@@ -795,10 +797,10 @@ function evShort(g){return g&&g.n?`超額 ${sgn(g.x,2,'%')}・勝率 ${f(g.xw,0)
 function vBadge(v){return v.status==='達標'?'<span class=pill style="background:#fdecea;color:#d33a34">達標</span>':v.status==='不達標'?'<span class=pill>不達標</span>':`<span class=pill style="background:rgba(37,99,201,.1);color:#1c4fa8">驗證中 ${v.days}／2 次審核</span>`;}
 function s3Ev(s){const S=(D.idx||{}).study||{},p5=s.post5||{},L=[];
   if(S.n){const a0=(S.acc||[]).find(a=>a.k===0),pre=((S.entry||[]).find(e=>e.key==='pre')||{}).all,W=S.within||[],
-      M=(S.fac||[]).find(x=>x.k==='mom')||{},F=(S.fac||[]).find(x=>x.k==='dem_lots')||{};
+      M=(S.fac||[]).find(x=>x.k==='mom')||{},F=(S.fac||[]).find(x=>x.k==='w')||{};
     if(a0)L.push(`過去 ${S.n_rev} 次審核，資料截止日照規則重算的名單 ${a0.hit}／${a0.tot} 檔${a0.hit===a0.tot&&!a0.fp?'全對':'命中'}`);
     if(pre&&pre.n)L.push(`但截止日到公告這兩週，納入股平均 ${pctT(pre.avg)}（${pre.win}% 上漲），漲幅多在公告之後`);
-    if(W.length)L.push(`同一次審核裡漲最多的，${W.filter(w=>w.same).length}／${W.length} 次就是截止前漲勢最強的那檔（漲勢和漲幅的相關 ${f(M.rho,2)}，被動買盤張數只有 ${f(F.rho,2)}）`);}
+    if(W.length)L.push(`同一次審核裡漲最多的，${W.filter(w=>w.same).length}／${W.length} 次就是截止前漲勢最強的那檔，權重最大的只有 ${W.filter(w=>w.heavy_same).length}／${W.length} 次（漲勢和漲幅的相關 ${f(M.rho,2)}，權重只有 ${f(F.rho,2)}）`);}
   if(p5.n)L.push(`納入股生效後續抱 5 天平均 ${pctT(p5.r)}（${p5.w}% 賺），所以生效前就賣`);
   return L.length?L.join('；')+'。':'';}
 function s3Vers(s){const V=s.vers||[];if(!V.length)return '';
