@@ -450,8 +450,11 @@ def _acc(reps: list[dict], key: str) -> dict:
     return out
 
 
-def live(D, H, cfg: dict, industry: dict, reps: list[dict] | None = None, keys=KEYS) -> dict:
-    """各指數下一次審核：用最新資料（過了資料截止日就用截止日）重跑規則 → 預估納入／刪除＋估計被動買賣。"""
+def live(D, H, cfg: dict, industry: dict, reps: list[dict] | None = None, keys=KEYS, F: dict | None = None) -> dict:
+    """各指數下一次審核：用最新資料（過了資料截止日就用截止日）重跑規則 → 預估納入／刪除＋估計被動買賣。
+    F＝hdflow.fk()：納入股估計買進＝市值 × 該指數過去「實際買進占市值」中位數；刪除股＝ETF 目前實際持股。
+    沒有 F 時退回「規模 × 殖利率占比」（舊估法，冷門股會高估）。"""
+    from . import hdflow as HF
     from . import hdstudy as HS
     cx = Ctx(D, H, industry)
     reps = reps if reps is not None else replay(D, H, cfg, industry)
@@ -489,20 +492,25 @@ def live(D, H, cfg: dict, industry: dict, reps: list[dict] | None = None, keys=K
         w = {c: min(y / tot, CAP.get(k, 0.1)) for c, y in ys.items()}
         rk = {c: i + 1 for i, c in enumerate(p["ranked"])}
 
+        fk = ((F or {}).get(k) or {}).get("f")
+
         def row(c, side):
             m = H.mom(c, ia) if ia is not None else None
             a20 = cx.adv(c, d, 20)
-            amt = aum * w.get(c, 0) if (aum and side == "add") else None
-            if side == "del" and aum:
-                amt = aum * (1 / max(len(pre), 1))                # 刪除股以等權估（實際持股權重見 ETF 持股）
+            if side == "add" and fk:
+                amt, days = HF.est_days(H, c, d, ia, fk, HF.CAPW.get(k, 0.1) * aum if aum else None)
+            elif side == "del" and F is not None:
+                amt, days = HF.del_est(D, H, etf, c, d, ia)
+            else:
+                amt = aum * w.get(c, 0) if (aum and side == "add") else (aum / max(len(pre), 1) if aum else None)
+                days = round(amt * 1e8 / a20, 1) if (amt and a20) else None
             return [c, D.names.get(c, c), rk.get(c), (p["info"].get(c) or {}).get("yld"),
                     None if m is None else round(m * 100, 1),
-                    None if amt is None else round(amt, 1),
-                    round(amt * 1e8 / a20, 1) if (amt and a20) else None, cx.px(c, d)]
+                    None if amt is None else round(amt, 1), days, cx.px(c, d)]
         out[k] = {"etf": etf, "review": nx.get("review"), "asof": d, "frozen": frozen, "cutoff": cut,
                   "announce": nx.get("announce"), "reveal": nx.get("reveal"), "effective": nx.get("effective"),
                   "trade": [t0, t1], "status": nx.get("status"), "aum": aum, "n_pre": len(pre),
-                  "max_chg": nx.get("max_changes"),
+                  "max_chg": nx.get("max_changes"), "fk": None if not fk else round(fk * 100, 2),
                   "adds": [row(c, "add") for c in p["adds"]], "dels": [row(c, "del") for c in p["dels"]],
                   "acc": _acc(reps, k)}
     return out

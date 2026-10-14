@@ -212,9 +212,10 @@ def test_page_has_no_banned_words():
     from arm.lab import analyze
     banned = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "建議買賣", "建議買",
               "建議賣", "目標價", "零風險", "無風險", "穩賺不賠")
-    from arm.lab import growth, strategy
+    from arm.lab import growth, hdflow, strategy
     st_txt = "".join(str(v) for x in strategy.STRATEGIES + [strategy.S3, growth.S5] + strategy.TW50_VERS
                      for k, v in x.items() if k in ("name", "bet", "why", "more", "fail", "rule", "buy", "sell"))
+    st_txt += hdflow.ALERT["name"] + "".join(hdflow.ALERT["rule"]) + "".join(t[2] for t in hdflow.TESTS)
     text = page._HTML + page._JS + "".join(n + d for n, d in analyze.SIG_DEF.values()) + st_txt
     assert not [w for w in banned if w in text]
 
@@ -766,6 +767,73 @@ def test_hd_buffer_select_top_in_keep_rank_and_change_cap():
 
 def test_hd_page_sections_and_glossary():
     js = page._JS
-    for k in ("function hdPredSec(", "function hdStudySec(", "h+=hdPredSec(X.hd)+hdStudySec(X.hd);", "'idx-hd'", "'idx-hds'",
+    for k in ("function hdPredSec(", "function hdStudySec(", "h+=hdPredSec(X.hd)+hdStudySec(X.hd)", "'idx-hd'", "'idx-hds'",
               "'被動買賣期間':", "'對其他成分股':", "高股息預估納入"):
         assert k in js, k
+
+
+# —— 高股息：被動買盤大小（hdflow）
+
+def test_hdflow_flow_subtracts_baseline_and_counts_days_of_volume():
+    """被動買賣＝期間投信買賣超扣掉平常水準（之前第 25～6 個交易日中位數），× 期間均價 ÷ 20 日均成交金額＝幾天的量。"""
+    from datetime import date, timedelta
+    from arm.lab import hdflow as HF
+    cal, d = [], date(2026, 3, 2)
+    while len(cal) < 40:
+        if d.weekday() < 5:
+            cal.append(d.isoformat())
+        d += timedelta(days=1)
+    T0, T1 = 30, 32
+    mkt = {x: {"q_tw": {"1111": [50.0, 50.0, 50.0, 50.0, 20000, 1_000_000]}, "q_tp": {},
+               "i_tw": {"1111": [0, 101_000 if T0 <= i <= T1 else 1_000, 0]}} for i, x in enumerate(cal)}
+    D = _hd_fake(cal, mkt)
+    H = _hd_model(D, {})
+    val, days = HF._flow(D, H, "1111", T0, T1)
+    assert val == 3 * 100_000 * 50.0                                       # 平常每天 1,000 股不算被動買盤
+    assert abs(days - 15.0) < 1e-9                                         # 1,500 萬 ÷ 每天 100 萬
+
+
+def test_hdflow_fk_median_and_leave_one_out():
+    """f_k＝各次審核「買進金額占市值」中位數的中位數；回測時用「其他次」的（不用到當次自己）。"""
+    from arm.lab import hdflow as HF
+    rows = [{"k": "tip_hd", "rev": r, "side": "add", "val": 1.0, "fm": fm}
+            for r, fms in (("A", (4, 6)), ("B", (2, 2)), ("C", (10, 10))) for fm in fms]
+    rows.append({"k": "tip_hd", "rev": "D", "side": "add", "val": 1.0, "fm": 50})       # 只有 1 檔的審核不算
+    rows.append({"k": "tip_hd", "rev": "A", "side": "del", "val": -9.0, "fm": -3})      # 刪除股不算
+    F = HF.fk(rows)
+    assert abs(F["tip_hd"]["f"] - 0.05) < 1e-12 and set(F["tip_hd"]["per"]) == {"A", "B", "C"}
+    assert abs(HF._f_loo(F, "tip_hd", "A") - 0.06) < 1e-12
+    assert HF._f_loo(F, "tw_div", "A") is None
+
+
+def test_hdflow_estimate_capped_by_single_stock_weight_limit():
+    """市值 × f 對權值股會爆掉（台積電 × 2.35% ≈ 1.5 兆）→ 以單檔權重上限 × 規模封頂。"""
+    from arm.lab import hdflow as HF
+    assert abs(HF.est_amt(0.0235, 645_000, 0.10 * 1611) - 161.1) < 1e-9
+    assert abs(HF.est_amt(0.045, 500, 0.15 * 6310) - 22.5) < 1e-9
+    assert HF.est_amt(None, 500) is None and HF.est_amt(0.03, None) is None
+
+
+def test_hdflow_phase_and_per_review_weighting():
+    from arm.lab import hdflow as HF
+    from arm.lab import tw50study as TS
+    t0, t1 = "2026-12-16", "2026-12-28"
+    until = TS.td_shift(t1, HF.AFTER)
+    assert HF._phase("2026-10-14", t0, t1) == ("pre", until)
+    assert HF._phase("2026-12-22", t0, t1)[0] == "in" and HF._phase(t1, t0, t1)[0] == "in"
+    assert HF._phase(TS.td_shift(t1, 1), t0, t1)[0] == "after" and HF._phase(until, t0, t1)[0] == "after"
+    assert HF._phase(TS.td_shift(t1, HF.AFTER + 1), t0, t1)[0] == "done"
+    assert HF._phase("2026-10-14", None, None) == ("pre", None)
+    rows = [{"k": "tip_hd", "rev": "R1", "x": -1.0}] * 3 + [{"k": "tip_hd", "rev": "R2", "x": 5.0}]
+    out = HF._per_rev(rows, lambda r: True, "x")                         # 每次審核等權：(−1＋5)／2
+    assert out["rev"] == {"n": 2, "avg": 2.0, "med": 2.0, "pos": 1}
+    assert out["tr"]["n"] == 4 and out["tr"]["avg"] == 0.5 and out["by"][0][:2] == ["00919", "R1"]
+
+
+def test_hd_flow_sections_alert_card_and_today_row():
+    js = page._JS
+    for k in ("function hdFlowSec(", "'idx-hdw'", "h+=hdPredSec(X.hd)+hdStudySec(X.hd)+hdFlowSec(X.hd);",
+              "function hdAlertCard(", "hdAlertCard());", "+hdRisk());", "function hdRisk(", "'被動買賣日量':", "'被動買賣提醒':",
+              "id=st-hd", "data-at=\"st-hd\""):
+        assert k in js, k
+    assert "12 月首次觀察" not in js                                    # 舊的佔位卡已換成提醒卡
