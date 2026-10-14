@@ -1625,7 +1625,7 @@ CI 從零開始會整片變 —，同 etf_watch 的坑）；`fetch_holdings.py` 
 **模組（`arm/lab/`）**：store（日分片 gzip、決定性輸出）／market（官方全市場端點）／collect（冪等落檔）／
 ledger（ETF 部位帳本）／ta（技術指標）／analyze（逐檔彙整＋訊號）／backtest（成績單）／page（獨立頁）。
 建頁掛在 `scripts/gen_fund_dashboard.py` 尾端（fail-open）——**凡重建主頁的地方（含 push 重試迴圈）都會一起重建**，
-三支 workflow 的 `git add` 都已補 `data/lab dashboard/x9.html`。
+三支 workflow 的 `git add` 都已補 `data/lab dashboard/x9.html`，個股走勢序列 `dashboard/x9s.json` 另起一行 add（缺檔時 git 整行放棄，不可連累分片；tests 守）。
 
 **資料層 `data/lab/`（必須入庫，`.gitignore` 已加例外）**：
 - `pos/{揭露日}.json.gz`：各 ETF 每日持股股數／權重（＋揭露當下收盤，供海外估成本）。來源＝`data/etf_holdings.json`，
@@ -1724,3 +1724,10 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
 - **CSS 撞名坑**：同一頁的事件卡已用 `.ev`，投信卡項目首版也叫 `.ev` → 手機上變成一格格重疊的框；新增 class 前先 grep。
 - 驗證：容器內 `page.render(analyze.run())` 寫到暫存檔、Playwright 開 file:// 截桌機 1280／手機 390；
   `dashboard/x9.html` 本身不 commit（CI 重建，同主頁 index.html 慣例）。
+- **個股走勢序列延遲載入（2026-10-14 第 5 階段）**：`ser` 另存 `dashboard/x9s.json`（約 1.9MB），頁面只剩 0.7MB
+  （壓縮後 744KB → 187KB）；開個股卡才 fetch（電腦閒置 1.5 秒預抓），載入中顯示「走勢載入中…」、失敗顯示「重試」，
+  `file://` 開本機檔也是這樣（瀏覽器擋 file 的 fetch——本機驗版要起 `python3 -m http.server`）。
+  序列檔自帶 `dates`：若它比頁面舊，圖照畫到它自己的日期並標「走勢資料到 M/D（尚未更新到最新）」，不會錯位。
+  · **過渡期坑**：push 觸發的 daily.yml 用「被推分支」上的 workflow 檔——排程會話分支若分岔自本改版合併前，
+    那一輪不會 add `x9s.json`，線上序列檔停在前一班 main workflow（cron／dispatch）產的版本（照上面的日期註記顯示）；
+    下一班 cron／dispatch 自然補上，根治＝合併後做一次「排程搬家」。
