@@ -306,20 +306,6 @@ def run(data: Data | None = None) -> dict:
         cost_line[c] = out
         act_n[c] = outn
 
-    # ETF 合計持股（逐 ETF 前推）
-    etf_tot: dict[str, list] = defaultdict(lambda: [0.0] * T)
-    for etf, seq in L.snaps.items():
-        j = 0
-        cur = {}
-        for i, d in enumerate(D.cal):
-            while j < len(seq) and seq[j][0] <= d:
-                cur = seq[j][1]
-                j += 1
-            if j == 0:
-                continue
-            for c, s in cur.items():
-                etf_tot[c][i] += s
-
     rows, ser, sig_hist = [], {}, {}
     for code in universe:
         tw = LG.is_tw(code)
@@ -483,7 +469,7 @@ def run(data: Data | None = None) -> dict:
                 row["hold"] = big[2]
                 row["holdd"] = (big[2] - bigp[2]) if bigp and big[2] and bigp[2] else None
         rows.append(row)
-        ser[code] = _series_out(D, S, C, cl, etf_tot.get(code), tw)
+        ser[code] = _series_out(D, S, C, cl, conv_act, tw)
 
     # —— 投信動向：近 5 個交易日的真加減碼事件＋各投信超配最多的個股
     recent5 = set(D.cal[-5:])
@@ -667,7 +653,7 @@ def _ta_metrics(S: dict, taiex: list, T: int) -> dict:
     }
 
 
-def _series_out(D: Data, S: dict, C: dict | None, cl: list, et: list | None, tw: bool) -> dict:
+def _series_out(D: Data, S: dict, C: dict | None, cl: list, qa: list, tw: bool) -> dict:
     n = CHART_N
     sl = slice(-n, None)
 
@@ -678,8 +664,10 @@ def _series_out(D: Data, S: dict, C: dict | None, cl: list, et: list | None, tw:
         out.update({"o": rr(S["o"]), "h": rr(S["h"]), "l": rr(S["l"]),
                     "v": [None if x is None else round(x / 1000) for x in S["v"][sl]]})
     out["ac"] = rr(cl)
-    if et:
-        out["et"] = [round(x / 1000) if tw else round(x) for x in et[sl]]
+    # 主動 ETF 每日真加減碼（已扣申贖；近 CHIP_N 日）。原「ETF 合計持股」走勢已拿掉：
+    # ETF 陸續進資料集（回補、擴充檔納入）會讓合計持股憑空跳增，畫成走勢會誤導。
+    if any(qa[-CHIP_N:]):
+        out["qa"] = [round(x / 1000) if tw else round(x) for x in qa[-CHIP_N:]]
     if C:
         m = CHIP_N
         for k in ("f", "t", "d"):

@@ -385,3 +385,17 @@ def test_extra_etf_candidates_read_nested_latest_market_aum():
 def test_shard_retention_covers_long_term_backtest():
     """長線回測（月選、12 個月前瞻＋120 日均線暖身）至少要兩年分片，保留天數不可再縮回 400。"""
     assert store.KEEP_DAYS >= 730
+
+
+def test_series_out_exports_active_flow_not_etf_total():
+    """個股走勢圖下方改畫「主動 ETF 每日真加減碼」：ETF 陸續進資料集會讓合計持股憑空跳增，不再輸出 et。"""
+    from arm.lab import analyze
+    T = analyze.CHART_N + 5
+    S = {k: [100.0] * T for k in ("c", "o", "h", "l")}
+    S["v"] = [5000.0] * T
+    qa = [0.0] * T
+    out = analyze._series_out(None, S, None, [None] * T, qa, True)
+    assert "et" not in out and "qa" not in out                      # 全 0 不輸出
+    qa[-1], qa[-3] = 12_400.0, -3_000.0                             # 股 → 張
+    out = analyze._series_out(None, S, None, [None] * T, qa, True)
+    assert len(out["qa"]) == analyze.CHIP_N and out["qa"][-1] == 12 and out["qa"][-3] == -3

@@ -208,26 +208,49 @@ details.mr>summary:before{content:"▸ "}details.mr[open]>summary:before{content
 .k-new{color:var(--gain);font-weight:700}.k-add{color:var(--gain)}.k-cut{color:var(--loss)}.k-exit{color:var(--loss);font-weight:700}
 .grey td{color:#a0a8b3}
 .dv{position:fixed;inset:0;z-index:50;background:rgba(15,23,42,.35);overflow-y:auto;overscroll-behavior:contain}
-.dvin{background:var(--bg);max-width:980px;margin:0 auto;min-height:100%;padding:12px 16px 60px}
-.dvh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px;position:sticky;top:0;background:var(--bg);z-index:3}
-.dvh b{font-size:19px}.dvh .px{font-size:17px;font-weight:700}
-.x{margin-left:auto;font-size:22px;color:var(--mut);padding:0 4px}
 h3{font-size:14.5px;margin:18px 0 6px;color:var(--accd)}
-.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 10px}
-.kv div{background:var(--card2);border-radius:8px;padding:6px 10px}
-.kv>div>span{display:block;color:var(--mut);font-size:11.5px}.kv b{font-size:14.5px}
-.kv em{font-style:normal;font-size:12px;margin-left:4px}
+.dvin{background:var(--bg);max-width:980px;margin:0 auto;min-height:100%;padding:0 16px 60px}
+.dvh{position:sticky;top:0;z-index:3;background:var(--bg);border-bottom:1px solid var(--line);margin:0 -16px;padding:10px 16px 0}
+.dvt{display:flex;align-items:center;gap:10px;padding-bottom:6px}
+.dvt .ttl{flex:1;min-width:0}.dvt .ttl b{display:block;font-size:19px;line-height:1.3}
+.dvt .ttl .cd{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pxw{text-align:right;line-height:1.3;white-space:nowrap}.pxw b{display:block;font-size:18px}
+.nv{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;background:var(--card2);color:var(--accd);font-size:22px;line-height:1;user-select:none;flex:0 0 auto}
+.nv.off{opacity:.3;pointer-events:none}
+.x{font-size:26px;line-height:1;color:var(--mut);padding:0 2px 2px 6px;flex:0 0 auto}
+.cnav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:2px 0 8px}.cnav::-webkit-scrollbar{display:none}
+.cnav a{padding:2px 10px;border-radius:12px;color:var(--ink2);font-size:13px;white-space:nowrap}
+.cnav a.on{background:var(--hlbg);color:var(--accd);font-weight:700}
+.csec{padding:16px 0 4px}
+.csec>h3{font-size:16px;color:var(--ink);margin:0 0 10px}.csec>h3 .sub{font-size:12px;color:var(--mut);font-weight:400;margin-left:8px}
+.sgrow{margin:0 0 2px}
+.sum{margin:6px 0 14px;padding-left:20px}.sum li{margin:6px 0;line-height:1.75}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kp{background:var(--card2);border-radius:10px;padding:8px 11px;min-width:0}
+.kp>span{display:flex;align-items:center;color:var(--mut);font-size:12px;white-space:nowrap}
+.kp>b{display:block;font-size:18px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kp>em{display:block;font-style:normal;font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kps .kp>b{font-size:15px}
+.hdt td,.hdt th{padding:6px 7px}
+.pasl{margin:10px 0 0;font-size:13.5px;line-height:1.8}.nw{white-space:nowrap}
+.sgi{padding:8px 0;border-bottom:1px solid var(--line)}
+.lg{margin-top:6px}.lg .dsh{width:16px;height:0;border-top:2px dashed #a16207;background:none}.lg b{font-size:11px;margin-right:3px}
+.tip{position:absolute;pointer-events:none;background:rgba(31,39,51,.94);color:#fff;font-size:12px;line-height:1.6;padding:6px 9px;border-radius:8px;max-width:min(380px,94%);z-index:2}
 .note{color:var(--mut);font-size:12px;margin:4px 0}
 svg{display:block;width:100%;height:auto}
 .lg{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--mut)}.lg i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:4px}
 ul.doc{padding-left:18px}ul.doc li{margin:4px 0}
-.tip{position:absolute;pointer-events:none;background:rgba(31,39,51,.92);color:#fff;font-size:12px;padding:4px 8px;border-radius:6px;white-space:nowrap}
 .cw{position:relative}
 .glh{font-size:15px;color:var(--accd);margin:20px 0 6px}
 .gll{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0 22px}
 .gll div{padding:8px 0;border-bottom:1px solid var(--line)}
 .gll b{display:block;font-size:14px}.gll span{font-size:13px;color:var(--ink2);line-height:1.7}
 @media(min-width:760px){.dvin{margin:24px auto;min-height:auto;border-radius:12px}}
+@media(min-width:1100px){
+ .dv.pane{left:auto;width:min(640px,46vw);background:var(--bg);border-left:1px solid var(--line);box-shadow:-10px 0 30px rgba(15,23,42,.10)}
+ .dv.pane .dvin{margin:0;max-width:none;min-height:100%;border-radius:0}
+ body.pane .top,body.pane .hdi,body.pane main{margin-right:calc(min(640px,46vw) + 12px);margin-left:20px;max-width:none}
+}
 @media(max-width:760px){.g2{grid-template-columns:1fr}.nbs{grid-auto-flow:row;grid-template-columns:1fr;grid-template-rows:none!important}}
 @media(max-width:600px){
  .top{padding:8px 12px 2px}.asof{flex-basis:100%;order:3;font-size:12px}
@@ -240,6 +263,8 @@ ul.doc{padding-left:18px}ul.doc li{margin:4px 0}
  .fbar input[type=search]{flex-basis:100%}.fbar select{flex:1 1 0;min-width:0}
  .seg a{padding:5px 11px}
  .stk td:first-child{min-width:92px;max-width:118px}.stk .nm,.stk .cd{max-width:108px}
+ .kp>b{font-size:16px}.kps{grid-template-columns:repeat(2,minmax(0,1fr))}.kps.k3{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .dvt{gap:8px}.dvt .ttl b{font-size:17px}.pxw b{font-size:16px}
 }
 """
 
@@ -327,7 +352,7 @@ addEventListener('scroll',()=>{if(!POP.hidden)hidePop();},true);
 
 /* ---------- 共用：點代號開個股卡 ---------- */
 document.addEventListener('click',e=>{if(e.defaultPrevented)return;const a=e.target.closest&&e.target.closest('[data-c]');
-  if(a&&BY[a.dataset.c]){e.preventDefault();openStock(a.dataset.c);}});
+  if(a&&BY[a.dataset.c]){e.preventDefault();if(!a.closest('#dv'))CTX=ctxOf(a);openStock(a.dataset.c);}});
 
 /* ---------- 今日 ---------- */
 function nmL(r){return `<a data-c="${esc(r.c)}">${esc(r.n)}</a>`;}
@@ -628,119 +653,175 @@ function vGrow(){
   return sec('st-grow','長線','長線：投信動能成長股','',h+'</div>');
 }
 
-/* ---------- 個股卡 ---------- */
-function kv(lbl,val,extra=''){return `<div><span>${lbl}</span><b>${val}</b>${extra?`<em>${extra}</em>`:''}</div>`;}
-function openStock(c){if(location.hash!=='#s='+c)location.hash='s='+c;else renderStock(c);}
+/* ---------- 個股卡（電腦：右側面板、不遮表格；手機：全螢幕） ---------- */
+let CTX=[],PUSHED=false;
+function isPane(){return matchMedia('(min-width:1100px)').matches;}
+function ctxOf(a){if(a.closest('#stkt'))return STK.slice();const box=a.closest('.sec')||a.closest('.card')||$('#main');const out=[];
+  box.querySelectorAll('[data-c]').forEach(e=>{const c=e.dataset.c;if(BY[c]&&!out.includes(c))out.push(c);});return out;}
+function openStock(c){if(!$('#dv').hidden){history.replaceState(null,'','#s='+encodeURIComponent(c));renderStock(c);return;}
+  PUSHED=true;location.hash='s='+encodeURIComponent(c);}
 function lockBody(on){document.body.style.overflow=on?'hidden':'';}
-function closeStock(){if(location.hash.startsWith('#s='))history.back();$('#dv').hidden=true;lockBody(!$('#gl').hidden);}
-window.addEventListener('hashchange',()=>{const m=location.hash.match(/^#s=(.+)$/);if(m)renderStock(decodeURIComponent(m[1]));else{$('#dv').hidden=true;lockBody(!$('#gl').hidden);}});
-document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(!POP.hidden){hidePop();return;}if(!$('#dv').hidden)closeStock();else if(!$('#gl').hidden)closeGl();});
-$('#dv').addEventListener('click',e=>{if(e.target.id==='dv')closeStock();});
+function hideStock(){$('#dv').hidden=true;$('#dv').classList.remove('pane');document.body.classList.remove('pane');lockBody(!$('#gl').hidden);}
+function closeStock(){if(PUSHED&&location.hash.startsWith('#s=')){PUSHED=false;history.back();}else{history.replaceState(null,'',location.pathname+location.search);hideStock();}}
+function stepStock(d){const c=decodeURIComponent((location.hash.match(/^#s=(.+)$/)||[])[1]||'');const i=CTX.indexOf(c);const t=CTX[i+d];if(i>=0&&t)openStock(t);}
+window.addEventListener('hashchange',()=>{const m=location.hash.match(/^#s=(.+)$/);if(m)renderStock(decodeURIComponent(m[1]));else hideStock();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!POP.hidden){hidePop();return;}if(!$('#gl').hidden)closeGl();else if(!$('#dv').hidden)closeStock();return;}
+  if($('#dv').hidden||!$('#gl').hidden||/INPUT|SELECT|TEXTAREA/.test((e.target||{}).tagName||''))return;
+  if(e.key==='ArrowLeft'){e.preventDefault();stepStock(-1);}else if(e.key==='ArrowRight'){e.preventDefault();stepStock(1);}});
+$('#dv').addEventListener('click',e=>{if(e.target.id==='dv'&&!$('#dv').classList.contains('pane'))closeStock();});
+let RSZ=0;addEventListener('resize',()=>{clearTimeout(RSZ);RSZ=setTimeout(()=>{const m=location.hash.match(/^#s=(.+)$/);if(m&&!$('#dv').hidden)renderStock(decodeURIComponent(m[1]),true);},250);});
 
-function renderStock(c){
-  const r=BY[c];if(!r)return;const s=(D.ser||{})[c]||{};const tw=r.m!=='os';const u=tw?'張':'股';
-  let h=`<div class=dvh><b>${esc(r.n)}</b><span class=cd>${esc(r.c)} · ${MK[r.m]||''}${r.ind?' · '+esc(r.ind):''}</span><span class=px>${f(r.px,2)}</span>${sgn(r.ch,2,'%')}<a class=x id=x>×</a></div>`;
-  h+=`<div style="margin:8px 0">${sgChips(r.sg)||'<span class=st>今日無觸發訊號</span>'}</div>`;
-  h+=`<h3>ETF 面</h3><div class=kv>`+
-   kv('持有 ETF',`${r.ne} 檔`,`主動 ${r.na}／被動 ${r.np} · ${r.ni} 家投信`)+
-   kv('ETF 合計持股',`${f(r.sh,0)} ${u}`)+
-   (tw?kv('ETF 持股率',r.hp==null?'—':f(r.hp,2)+'%','占發行股數'):'')+
-   (tw?kv('消化天數',r.dx==null?'—':f(r.dx,1)+' 天','合計持股 ÷ 20 日均量'):'')+
-   kv(`主動真加碼 1／5／20 日（${u}）`,`${sgn(r.a1,0)}／${sgn(r.a5,0)}／${sgn(r.a20,0)}`,r.a5v!=null?`5 日約 ${f(r.a5v,2)} 億`:'')+
-   kv('全部 ETF 淨增減 5 日',`${sgn(r.r5,0)} ${u}`,r.v5!=null?`占 5 日成交量 ${f(r.v5,1)}%`:'')+
-   kv('加碼投信（5 日）',(r.ia5||[]).join('、')||'—')+
-   kv('減碼投信（5 日）',(r.ic5||[]).join('、')||'—')+
-   kv('10 日內新建倉',(r.nb10||[]).join('、')||'—')+
-   kv('主動 ETF 估計成本',r.cost==null?'—':f(r.cost,2),`品質 ${r.cq}`)+
-   kv('現價對成本',sgn(r.dev,1,'%'))+
-   (tw?kv('超配（主動平均 − 市值權重）',sgn(r.ow,2,'pp'),`主動 ${r.aw==null?'—':f(r.aw,2)}% vs 市值 ${r.mw==null?'—':f(r.mw,2)}%`):'')+
-   (tw&&r.now!=null?kv('超配投信家數',`${r.now}／${r.nact}`):'')+`</div>`;
-  if(s.c&&s.c.some(x=>x!=null))h+=`<h3>走勢（${(D.dates||[]).length} 個交易日）</h3><div class=cw id=kc>${kline(s,tw)}</div><div class=lg><span><i style="background:#2563c9"></i>20 日線</span><span><i style="background:#f59e0b"></i>60 日線</span><span><i style="background:#a16207;height:2px;border-top:2px dashed #a16207"></i>主動 ETF 成本線</span></div>`;
-  if(s.et&&s.et.some(x=>x))h+=`<h3>ETF 合計持股（${u}）</h3>${lineChart(s.et,'#2563c9',90)}`;
-  h+=`<h3>持有明細</h3><div class=tw><table><thead><tr><th>ETF</th><th>權重</th><th>${u}數</th><th>建倉日</th><th>持有</th><th>估計成本</th><th>損益</th><th>5 日真加減</th><th>最近動作</th></tr></thead><tbody>`+
-   (r.hd||[]).slice().sort((a,b)=>(b[1]||0)-(a[1]||0)).map(x=>{const m=E[x[0]]||{};return `<tr><td><span class=nm>${esc(x[0])}</span><span class=cd>${esc(m.is||'')}${m.k==='p'?' · 被動':''}</span></td><td>${f(x[1],2)}%</td><td>${f(x[2],tw?1:0)}</td><td>${x[3]?(x[4]?'':'≤')+md(x[3]):'—'}</td><td>${x[5]==null?'—':x[5]+' 日'}</td><td>${x[6]==null?'—':f(x[6],2)}${x[12]==='B'?'<sup class=mu>B</sup>':''}</td><td>${sgn(x[7],1,'%')}</td><td>${sgn(x[8],tw?1:0)}</td><td>${x[9]?`<span class="k-${x[9]}">${KN[x[9]]}</span> <span class=mu>${md(x[10])}</span>${Math.abs(x[11])>=2?` <span class=pill>連${Math.abs(x[11])}</span>`:''}`:'—'}</td></tr>`;}).join('')+
-   (r.ex||[]).map(x=>`<tr class=grey><td>${esc(x[0])}</td><td colspan=7>已出清 ${f(x[2],1)} ${u}</td><td>${md(x[1])}</td></tr>`).join('')+`</tbody></table></div>`;
-  if(tw&&r.f5!==undefined){
-    h+=`<h3>籌碼</h3><div class=kv>`+
-     kv('外資 1／5／20 日',`${sgn(r.f1,0)}／${sgn(r.f5,0)}／${sgn(r.f20,0)}`,(r.fs?`連${r.fs>0?'買':'賣'} ${Math.abs(r.fs)} 日`:''))+
-     kv('投信 1／5／20 日',`${sgn(r.t1,0)}／${sgn(r.t5,0)}／${sgn(r.t20,0)}`,(r.ts?`連${r.ts>0?'買':'賣'} ${Math.abs(r.ts)} 日`:''))+
-     kv('自營商 5 日',sgn(r.d5,0))+
-     kv('投信 60 日買超均價',r.tc==null?'—':f(r.tc,2),r.tc&&r.px?`現價 ${sgn((r.px/r.tc-1)*100,1,'%')}`:'')+
-     kv('外資 60 日買超均價',r.fc==null?'—':f(r.fc,2),r.fc&&r.px?`現價 ${sgn((r.px/r.fc-1)*100,1,'%')}`:'')+
-     kv('投信 20 日買超占股本',r.t20p==null?'—':sgn(r.t20p,3,'%'))+
-     (r.fp!=null?kv('外資持股比',f(r.fp,2)+'%',`20 日 ${sgn(r.fpd,2,'pp')}`):'')+
-     kv('融資餘額',r.mb==null?'—':f(r.mb,0)+' 張',`5 日 ${sgn(r.mb5,1,'%')}／20 日 ${sgn(r.mb20,1,'%')}`)+
-     kv('融券餘額',r.sb==null?'—':f(r.sb,0)+' 張',r.sr!=null?`券資比 ${f(r.sr,1)}%`:'')+
-     (r.lb!=null?kv('借券賣出餘額',f(r.lb,0)+' 張',`5 日 ${sgn(r.lb5,0)}`):'')+
-     (r.big!=null?kv('千張大戶持股',f(r.big,2)+'%',`週變化 ${sgn(r.bigd,2,'pp')}`):'')+
-     (r.hold!=null?kv('股東人數',f(r.hold,0),r.holdd!=null?`週 ${sgn(r.holdd,0)}`:''):'')+`</div>`;
-    if(s.qf)h+=`<div class=note>外資（上）／投信（下）每日買賣超（張），近 ${s.qf.length} 日</div>${bars(s.qf,60)}${bars(s.qt,60)}`;
-  }
-  if(tw&&r.al!==undefined){
-    const ma=r.ma||{};
-    h+=`<h3>技術面</h3><div class=kv>`+
-     kv('均線排列',r.al||'—',Object.entries(ma).map(([k,v])=>`${k}日 ${f(v,1)}`).slice(0,3).join(' '))+
-     kv('乖離 20／60 日',`${sgn(r.b20,1,'%')}／${sgn(r.b60,1,'%')}`)+
-     kv('量比（今日 ÷ 20 日均量）',r.vr==null?'—':f(r.vr,2)+' 倍')+
-     kv('KD(9)',`${f(r.k,0)}／${f(r.d,0)}`)+kv('RSI(14)',f(r.rsi,0))+
-     kv('MACD 柱',sgn(r.mh,2),r.mx===1?'剛翻正':r.mx===-1?'剛翻負':'')+
-     kv('突破',[r.h20?'創 20 日高':'',r.h60?'創 60 日高':'',r.l20?'破 20 日低':''].filter(Boolean).join('、')||'—')+
-     kv('一年區間位置',r.p52==null?'—':f(r.p52,0)+'%',r.n52<240?`僅 ${r.n52} 日資料`:'0%＝一年低、100%＝一年高')+
-     kv('20 日相對大盤',sgn(r.rs20,1,'pp'))+
-     kv('ATR 波動',r.atrp==null?'—':f(r.atrp,2)+'%','14 日平均真實區間 ÷ 股價')+
-     kv('日均成交值',r.liq==null?'—':f(r.liq,2)+' 億','20 日')+`</div>`;
-  }
-  h+=idxCard(c);
-  if((r.sg||[]).length){h+=`<h3>觸發訊號與歷史成績</h3>`+(r.sg||[]).map(k=>`<div class=card><h4>${RISK.has(k)?'⚠ ':''}${esc((SD[k]||[k])[0])}</h4><div class=st>${esc((SD[k]||['',''])[1])}</div>${statLine(k)}</div>`).join('');}
-  $('#dvin').innerHTML=h;$('#dv').hidden=false;lockBody(true);$('#dv').scrollTop=0;
-  $('#x').onclick=closeStock;bindTip();
-}
-function idxCard(c){
+function gp(k,t='。'){return `<span class=nw>${gi(k)}${t}</span>`;}
+function nameList(a,n=4){return a.length<=n?a.join('、'):a.slice(0,n).join('、')+` 等 ${a.length} 家`;}
+function cls(x){return x>0?'up':x<0?'dn':'';}
+function pm(x,d=0){return x==null?'—':(x>0?'+':'')+f(x,d);}
+function sumLines(r){const tw=r.m!=='os',u=tw?'張':'股',L=[];const ia=r.ia5||[],ic=r.ic5||[],nb=issOf(r.nb10);
+  L.push(r.ne?`<b>${r.ne} 檔 ETF</b> 持有（主動 ${r.na}、被動 ${r.np}）${tw&&r.hp!=null?`，合計占發行股數 <b>${f(r.hp,2)}%</b>`:''}${tw&&r.dx!=null?`，約等於 ${f(r.dx,1)} 天成交量${gp('消化天數')}`:'。'}`:'目前沒有追蹤中的 ETF 持有。');
+  L.push((r.a5||ia.length||ic.length?`主動 ETF 近 5 日<b class=${cls(r.a5)}>淨${(r.a5||0)>=0?'買':'賣'} ${f(Math.abs(r.a5||0),0)} ${u}</b>${gi('真加碼')}${r.a5v!=null?`（約 ${f(Math.abs(r.a5v),1)} 億）`:''}${ia.length?`：${esc(nameList(ia))}加碼`:''}${ic.length?`${ia.length?'；':'：'}${esc(nameList(ic))}減碼`:''}。`:'主動 ETF 近 5 日沒有真加減碼。')+
+    (nb.length?`10 日內新建倉：<b>${esc(nb.join('、'))}</b>。`:''));
+  if(r.cost!=null&&r.dev!=null)L.push(`主動 ETF 估計成本 <b>${fp(r.cost)}</b>${gi('主動成本')}，現價${r.dev>=0?'高於':'低於'}成本 <b class=${cls(r.dev)}>${f(Math.abs(r.dev),1)}%</b>${r.cq==='B'?'（含觀測起點前部位，為近似值）':''}`+
+    (tw&&r.ow!=null?`；平均權重比市值權重${r.ow>=0?'高':'低'} ${f(Math.abs(r.ow),2)} 個百分點${r.now!=null?`（${r.now}／${r.nact} 家投信超配）`:''}${gp('超配')}`:'。'));
+  if(tw&&r.t5!==undefined)L.push(`法人：投信${r.ts?`連${r.ts>0?'買':'賣'} ${Math.abs(r.ts)} 日、`:''}5 日 ${sgn(r.t5,0)} 張；外資${r.fs?`連${r.fs>0?'買':'賣'} ${Math.abs(r.fs)} 日、`:''}5 日 ${sgn(r.f5,0)} 張${r.mb5!=null&&Math.abs(r.mb5)>=10?`；融資 5 日 ${sgn(r.mb5,1,'%')}`:''}。`);
+  if(tw&&r.al)L.push(`技術面<b>${r.al}</b>${r.h60?'、創 60 日新高':r.h20?'、創 20 日新高':r.l20?'、跌破 20 日低點':''}${r.p52!=null?`；在一年區間的 ${f(r.p52,0)}% 位置`:''}${r.rs20!=null?`，近 20 日${r.rs20>=0?'強於':'弱於'}大盤 ${f(Math.abs(r.rs20),1)} 個百分點`:''}。`);
+  return L;}
+function kp(lbl,g,val,sub,c=''){return `<div class=kp><span>${lbl}${g?gi(g):''}</span><b class="${c}">${val}</b>${sub?`<em>${sub}</em>`:''}</div>`;}
+function kpis(r){const tw=r.m!=='os';const k=[
+  kp('持有 ETF','持有 ETF',`${r.ne} 檔`,`主動 ${r.na}・被動 ${r.np}`),
+  kp('主動 5 日淨買','主動 5 日淨買',tw&&r.a5v!=null?`${pm(r.a5v,1)} 億`:`${pm(r.a5)} ${tw?'張':'股'}`,`${(r.ia5||[]).length} 家加・${(r.ic5||[]).length} 家減`,cls(r.a5)),
+  kp('成本乖離','成本乖離',r.dev==null?'—':pm(r.dev,1)+'%',r.cost==null?'':`主動成本 ${fp(r.cost)}`,cls(r.dev))];
+  if(tw&&r.t5!==undefined)k.push(kp('投信 5 日','投信 5 日',pm(r.t5)+' 張',r.ts?`連${r.ts>0?'買':'賣'} ${Math.abs(r.ts)} 日`:'',cls(r.t5)),
+    kp('外資 5 日','外資 5 日',pm(r.f5)+' 張',r.fs?`連${r.fs>0?'買':'賣'} ${Math.abs(r.fs)} 日`:'',cls(r.f5)),
+    kp('技術','趨勢',r.al||'—',r.rsi!=null?`RSI ${f(r.rsi,0)}`:'',r.al==='多頭'?'up':r.al==='空頭'?'dn':''));
+  return k.join('');}
+function holdTbl(rows,tw){const u=tw?'張':'股';
+  return `<div class=tw><table class=hdt><thead><tr><th>ETF</th><th>權重</th><th>${u}數</th><th>建倉${gi('建倉日')}</th><th>成本・損益${gi('成本品質')}</th><th>5 日真加減${gi('真加碼')}</th><th class=l>最近動作</th></tr></thead><tbody>`+
+   rows.map(x=>{const m=E[x[0]]||{};return `<tr><td><span class=nm>${esc(x[0])}</span><span class=cd>${esc(m.is||'')}${m.k==='p'?' · 被動':''}${m.x?' · 擴充':''}</span></td><td>${f(x[1],2)}%</td><td>${f(x[2],tw?0:0)}</td><td>${x[3]?(x[4]?'':'≤')+md(x[3]):'—'}<br><span class=mu>${x[5]==null?'':x[5]+' 日'}</span></td><td>${x[6]==null?'—':fp(x[6])}${x[12]==='B'?'<sup class=mu>B</sup>':''}<br>${sgn(x[7],1,'%')}</td><td>${sgn(x[8],0)}</td><td class=l>${x[9]?`<span class="k-${x[9]}">${KN[x[9]]}</span> <span class=mu>${md(x[10])}</span>${Math.abs(x[11])>=2?` <span class=pill>連 ${Math.abs(x[11])}</span>`:''}`:'<span class=mu>—</span>'}</td></tr>`;}).join('')+`</tbody></table></div>`;}
+function idxHits(c){
   const t=(D.idx||{}).tw50||{};const hits=[];
   const lab={adds:'預估納入臺灣50',dels:'預估自臺灣50 刪除',watch_in:'臺灣50 邊緣（可能升入）',watch_out:'臺灣50 邊緣（可能跌出）'};
-  for(const k of Object.keys(lab)){const r=(t[k]||[]).find(x=>x[0]===c);if(r)hits.push(kv(lab[k],`第 ${r[2]} 名`,`${r[4]===0?'已跨線':'還差 '+f(r[4],1)+'%'}${r[5]!=null?' · 機率 '+r[5]+'%':''}${r[6]!=null?' · 被動 '+(r[6]>0?'+':'')+f(r[6],0)+' 張（約 '+f(r[7],1)+' 日量）':''}`));}
+  for(const k of Object.keys(lab)){const r=(t[k]||[]).find(x=>x[0]===c);if(r)hits.push(kp(lab[k],'',`第 ${r[2]} 名`,`${r[4]===0?'已跨線':'還差 '+f(r[4],1)+'%'}${r[5]!=null?'・機率 '+r[5]+'%':''}${r[6]!=null?'・被動 '+pm(r[6])+' 張（'+f(r[7],1)+' 日量）':''}`));}
   const pf=((D.idx||{}).pflow||[]).find(x=>x[0]===c);
-  if(pf)hits.push(kv('被動 ETF 近 10 日淨買賣',sgn(pf[2],0)+' 張',`${pf[3]!=null?'約 '+f(pf[3],2)+' 日量 · ':''}${(pf[4]||[]).length?'新進 '+pf[4].join(' '):''}${(pf[5]||[]).length?' 出清 '+pf[5].join(' '):''}`));
-  return hits.length?`<h3>指數調整</h3><div class=kv>${hits.join('')}</div>`:'';
-}
+  if(pf)hits.push(kp('被動 ETF 近 10 日淨買賣','',pm(pf[2])+' 張',`${pf[3]!=null?'約 '+f(pf[3],2)+' 日量':''}${(pf[4]||[]).length?'・新進 '+pf[4].join(' '):''}${(pf[5]||[]).length?'・出清 '+pf[5].join(' '):''}`,cls(pf[2])));
+  return hits.join('');}
 
-/* ---------- 圖 ---------- */
+function renderStock(c,keep){
+  const r=BY[c];if(!r){hideStock();return;}const s=(D.ser||{})[c]||{};const tw=r.m!=='os';const u=tw?'張':'股';
+  const dv=$('#dv'),pane=isPane(),st0=keep?dv.scrollTop:0;
+  dv.classList.toggle('pane',pane);document.body.classList.toggle('pane',pane);dv.hidden=false;lockBody(!pane);
+  const W=Math.max(300,Math.floor($('#dvin').clientWidth-32));
+  const i=CTX.indexOf(c),pv=i>0,nx=i>=0&&i<CTX.length-1;
+  const secs=[['c-sum','重點'],['c-chart','走勢'],['c-hold','ETF 持有'],...(tw&&r.t5!==undefined?[['c-chip','籌碼'],['c-ta','技術']]:[]),['c-sig','訊號']];
+  let h=`<div class=dvh><div class=dvt><a class="nv${pv?'':' off'}" id=pv title="上一檔（←）">‹</a>`+
+   `<div class=ttl><b>${esc(r.n)}</b><span class=cd>${i>=0?`${i+1}／${CTX.length} · `:''}${esc(r.c)} · ${MK[r.m]||''}${r.ind?' · '+esc(r.ind):''}</span></div>`+
+   `<div class=pxw><b>${fp(r.px)}</b>${sgn(r.ch,2,'%')}</div><a class="nv${nx?'':' off'}" id=nx title="下一檔（→）">›</a><a class=x id=x title="關閉（Esc）">×</a></div>`+
+   `<nav class=cnav>${secs.map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
+  h+=`<section class=csec id=c-sum><div class=sgrow>${sgChips(r.sg)||'<span class=st>今日無觸發訊號</span>'}</div><ul class=sum>${sumLines(r).map(x=>`<li>${x}</li>`).join('')}</ul><div class=kpis>${kpis(r)}</div></section>`;
+  if(s.c&&s.c.some(x=>x!=null))h+=`<section class=csec id=c-chart><h3>走勢<span class=sub>近 ${s.c.length} 個交易日・游標移到圖上看每日數字</span></h3><div class=cw id=kc>${chart(s,r,W)}</div>`+
+   `<div class=lg><span><i style="background:#2563c9"></i>20 日線</span><span><i style="background:#f59e0b"></i>60 日線</span><span><i class=dsh></i>主動 ETF 成本</span><span><b class=up>▲</b> 主動 ETF 新建倉</span><span><b class=dn>▼</b> 出清</span>${s.qa?'<span>下方長條＝主動 ETF 每日真加減碼（已扣申贖）</span>':''}</div></section>`;
+  const act=(r.hd||[]).filter(x=>(E[x[0]]||{}).k==='a').sort((a,b)=>(b[1]||0)-(a[1]||0));
+  const pas=(r.hd||[]).filter(x=>(E[x[0]]||{}).k!=='a').sort((a,b)=>(b[1]||0)-(a[1]||0));
+  h+=`<section class=csec id=c-hold><h3>ETF 持有<span class=sub>主動 ${act.length}・被動 ${pas.length}・合計 ${f(r.sh,0)} ${u}</span></h3>`+
+   (act.length?holdTbl(act.slice(0,10),tw)+(act.length>10?`<details class=mr><summary>其餘主動 ${act.length-10} 檔</summary>${holdTbl(act.slice(10),tw)}</details>`:''):'<div class=st>沒有主動 ETF 持有</div>')+
+   (pas.length?`<div class=pasl><b>被動 ${pas.length} 檔：</b>${pas.slice(0,8).map(x=>`${esc(x[0])} <span class=mu>${f(x[1],2)}%</span>`).join('、')}${pas.length>8?' 等':''}</div><details class=mr><summary>被動明細</summary>${holdTbl(pas,tw)}</details>`:'')+
+   ((r.ex||[]).length?`<div class=st style="margin-top:6px">近期出清：${r.ex.map(x=>`${esc(x[0])}（${md(x[1])}）`).join('、')}</div>`:'')+`</section>`;
+  if(tw&&r.f5!==undefined){
+    h+=`<section class=csec id=c-chip><h3>籌碼</h3><div class="kpis kps">`+
+     kp('外資 5 日','外資 5 日',pm(r.f5)+' 張',`1 日 ${pm(r.f1)}・20 日 ${pm(r.f20)}${r.fs?`・連${r.fs>0?'買':'賣'} ${Math.abs(r.fs)} 日`:''}`,cls(r.f5))+
+     kp('投信 5 日','投信 5 日',pm(r.t5)+' 張',`1 日 ${pm(r.t1)}・20 日 ${pm(r.t20)}${r.ts?`・連${r.ts>0?'買':'賣'} ${Math.abs(r.ts)} 日`:''}`,cls(r.t5))+
+     kp('自營商 5 日','',pm(r.d5)+' 張','',cls(r.d5))+
+     kp('投信 60 日買超均價','60 日買超均價',r.tc==null?'—':fp(r.tc),r.tc&&r.px?`現價 ${pm((r.px/r.tc-1)*100,1)}%`:'')+
+     kp('外資 60 日買超均價','60 日買超均價',r.fc==null?'—':fp(r.fc),r.fc&&r.px?`現價 ${pm((r.px/r.fc-1)*100,1)}%`:'')+
+     kp('投信 20 日買超占股本','',r.t20p==null?'—':pm(r.t20p,3)+'%','',cls(r.t20p))+
+     (r.fp!=null?kp('外資持股比','',f(r.fp,2)+'%',`20 日 ${pm(r.fpd,2)}pp`):'')+
+     kp('融資餘額','融資',r.mb==null?'—':f(r.mb,0)+' 張',`5 日 ${pm(r.mb5,1)}%・20 日 ${pm(r.mb20,1)}%`)+
+     kp('融券餘額','',r.sb==null?'—':f(r.sb,0)+' 張',r.sr!=null?`券資比 ${f(r.sr,1)}%`:'')+
+     (r.lb!=null?kp('借券賣出餘額','借券賣出',f(r.lb,0)+' 張',`5 日 ${pm(r.lb5)}`):'')+
+     (r.big!=null?kp('千張大戶','千張大戶',f(r.big,2)+'%',r.bigd!=null?`週變化 ${pm(r.bigd,2)}pp`:'每週公布'):'')+
+     (r.hold!=null?kp('股東人數','',f(r.hold,0),r.holdd!=null?`週 ${pm(r.holdd)}`:''):'')+`</div>`;
+    if(s.qf)h+=`<div class=note style="margin-top:10px">每日買賣超（張），近 ${s.qf.length} 個交易日</div>${bars(s.qf,W,'外資')}${bars(s.qt,W,'投信')}`;
+    h+=`</section>`;
+  }
+  if(tw&&r.al!==undefined){const ma=r.ma||{};
+    h+=`<section class=csec id=c-ta><h3>技術面</h3><div class="kpis kps k3">`+
+     kp('均線排列','趨勢',r.al||'—',['5','20','60'].filter(k=>ma[k]!=null).map(k=>`${k} 日 ${fp(ma[k])}`).join('・'),r.al==='多頭'?'up':r.al==='空頭'?'dn':'')+
+     kp('20 日乖離','乖離',pm(r.b20,1)+'%',`60 日 ${pm(r.b60,1)}%`,cls(r.b20))+
+     kp('量比','量比',r.vr==null?'—':f(r.vr,2)+' 倍','今日 ÷ 20 日均量')+
+     kp('KD(9)','KD',`${f(r.k,0)}／${f(r.d,0)}`)+kp('RSI(14)','RSI',f(r.rsi,0))+
+     kp('MACD 柱','MACD',pm(r.mh,2),r.mx===1?'剛翻正':r.mx===-1?'剛翻負':'',cls(r.mh))+
+     kp('突破','',[r.h20?'創 20 日高':'',r.h60?'創 60 日高':'',r.l20?'破 20 日低':''].filter(Boolean).join('、')||'—')+
+     kp('一年區間位置','一年區間位置',r.p52==null?'—':f(r.p52,0)+'%',r.n52<240?`僅 ${r.n52} 日資料`:'')+
+     kp('20 日相對大盤','相對大盤',pm(r.rs20,1)+'pp','',cls(r.rs20))+
+     kp('ATR 波動','ATR',r.atrp==null?'—':f(r.atrp,2)+'%')+
+     kp('日均成交','日均成交',r.liq==null?'—':f(r.liq,2)+' 億','20 日')+`</div></section>`;}
+  const ih=idxHits(c);
+  h+=`<section class=csec id=c-sig><h3>訊號與指數</h3>`+((r.sg||[]).length?(r.sg||[]).map(k=>`<div class=sgi><b>${RISK.has(k)?'⚠ ':''}${esc((SD[k]||[k])[0])}</b><div class=st>${esc((SD[k]||['',''])[1])}</div>${statLine(k)}</div>`).join(''):'<div class=st>今日沒有觸發訊號。</div>')+
+   (ih?`<div class="kpis kps" style="margin-top:10px">${ih}</div>`:'')+`</section>`;
+  $('#dvin').innerHTML=h;dv.scrollTop=st0;
+  $('#x').onclick=closeStock;$('#pv').onclick=()=>stepStock(-1);$('#nx').onclick=()=>stepStock(1);
+  $$('#dvin [data-cto]').forEach(a=>a.onclick=()=>{const t=document.getElementById(a.dataset.cto);if(t)dv.scrollTo({top:dv.scrollTop+t.getBoundingClientRect().top-dv.getBoundingClientRect().top-$('#dvin .dvh').offsetHeight+2,behavior:'smooth'});});
+  cspy();bindTip(c);
+}
+function cspy(){const dv=$('#dv');if(dv.hidden)return;const hh=$('#dvin .dvh');if(!hh)return;const y=hh.getBoundingClientRect().bottom+8;let cur=null;
+  $$('#dvin .csec').forEach(s=>{if(s.getBoundingClientRect().top<=y)cur=s.id;});if(!cur){const f0=$('#dvin .csec');cur=f0&&f0.id;}
+  if(dv.scrollTop+dv.clientHeight>=dv.scrollHeight-4){const all=$$('#dvin .csec');cur=all.length?all[all.length-1].id:cur;}
+  $$('#dvin [data-cto]').forEach(a=>a.classList.toggle('on',a.dataset.cto===cur));}
+$('#dv').addEventListener('scroll',()=>requestAnimationFrame(cspy),{passive:true});
+
+/* ---------- 圖（以實際像素寬繪製，手機字不會縮小） ---------- */
 function rng(arrs){let lo=Infinity,hi=-Infinity;arrs.forEach(a=>(a||[]).forEach(v=>{if(v!=null){lo=Math.min(lo,v);hi=Math.max(hi,v);}}));if(lo===Infinity)return [0,1];if(lo===hi){lo*=.98;hi*=1.02;}return [lo,hi];}
 function sma(a,n){const o=[];let s=0,q=[];for(const v of a){if(v==null){o.push(null);continue;}q.push(v);s+=v;if(q.length>n)s-=q.shift();o.push(q.length===n?s/n:null);}return o;}
 function path(a,x,y){let d='',pen=false;a.forEach((v,i)=>{if(v==null){pen=false;return;}d+=(pen?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1);pen=true;});return d;}
-function kline(s,tw){
-  const n=s.c.length,W=720,H=260,VH=60,pad=4;const c=s.c,o=s.o||c,hi=s.h||c,lo=s.l||c;
-  const [a,b]=rng([hi,lo,s.ac]);const x=i=>pad+(i+.5)*(W-2*pad)/n,y=v=>8+(H-16)*(1-(v-a)/(b-a));
-  const cw=Math.max(1,(W-2*pad)/n*.62);let g='';
+function mkrs(r,n){const ds=(D.dates||[]).slice(-n),ix={},M={};ds.forEach((d,i)=>ix[d]=i);
+  for(const x of (r.hd||[])){const m=E[x[0]]||{};if(m.k!=='a'||!x[4]||!x[3]||ix[x[3]]==null)continue;(M[ix[x[3]]]=M[ix[x[3]]]||{n:[],x:[]}).n.push(x[0]);}
+  for(const x of (r.ex||[])){const m=E[x[0]]||{};if(m.k!=='a'||ix[x[1]]==null)continue;(M[ix[x[1]]]=M[ix[x[1]]]||{n:[],x:[]}).x.push(x[0]);}
+  return M;}
+function qaOf(s){if(!s.qa||!s.c)return null;const n=s.c.length,off=n-s.qa.length;return Array.from({length:n},(_,i)=>i<off?null:s.qa[i-off]);}
+let CH=null;
+function chart(s,r,W){
+  const n=s.c.length,pl=4,pr=50,G=10;const c=s.c,o=s.o||c,hi=s.h||c,lo=s.l||c;const qa=qaOf(s);
+  const HA=W<520?190:230,HB=s.v?42:0,HC=qa?64:0,HX=18;const yB=HA+G,yC=yB+HB+(HB?G:0),H=yC+HC+HX;
+  const x=i=>pl+(i+.5)*(W-pl-pr)/n,cw=Math.max(1,(W-pl-pr)/n*.62);
+  const [a,b]=rng([hi,lo,s.ac]);const ya=v=>8+(HA-22)*(1-(v-a)/(b-a));
+  let g='';
+  for(const t of [a,(a+b)/2,b]){const yy=ya(t).toFixed(1);g+=`<line x1=${pl} x2=${W-pr} y1=${yy} y2=${yy} stroke="#eef1f5"/><text x=${W-pr+6} y=${(+yy+4).toFixed(0)} font-size=11 fill="#727e8c">${fp(t)}</text>`;}
   for(let i=0;i<n;i++){if(c[i]==null)continue;const up=c[i]>=(o[i]??c[i]);const col=up?'#d33a34':'#1f9d57';
-    g+=`<line x1=${x(i).toFixed(1)} x2=${x(i).toFixed(1)} y1=${y(hi[i]??c[i]).toFixed(1)} y2=${y(lo[i]??c[i]).toFixed(1)} stroke="${col}" stroke-width=1 />`;
-    const t=y(Math.max(o[i]??c[i],c[i])),bt=y(Math.min(o[i]??c[i],c[i]));g+=`<rect x=${(x(i)-cw/2).toFixed(1)} y=${t.toFixed(1)} width=${cw.toFixed(1)} height=${Math.max(1,bt-t).toFixed(1)} fill="${col}"/>`;}
-  g+=`<path d="${path(sma(c,20),x,y)}" fill=none stroke="#2563c9" stroke-width=1.4 />`;
-  g+=`<path d="${path(sma(c,60),x,y)}" fill=none stroke="#f59e0b" stroke-width=1.4 />`;
-  if(s.ac)g+=`<path d="${path(s.ac,x,y)}" fill=none stroke="#a16207" stroke-width=1.6 stroke-dasharray="5 4" />`;
-  let vb='';if(s.v){const vm=Math.max(...s.v.filter(v=>v!=null),1);s.v.forEach((v,i)=>{if(v==null)return;const up=c[i]!=null&&c[i]>=(o[i]??c[i]);const hh=(VH-6)*v/vm;vb+=`<rect x=${(x(i)-cw/2).toFixed(1)} y=${(H+VH-hh).toFixed(1)} width=${cw.toFixed(1)} height=${hh.toFixed(1)} fill="${up?'#d33a34':'#1f9d57'}" opacity=.45 />`;});}
-  const ds=D.dates||[];const lab=[0,Math.floor(n/2),n-1].map(i=>`<text x=${x(i).toFixed(0)} y=${H+VH+14} font-size=11 fill="#727e8c" text-anchor=${i===0?'start':i===n-1?'end':'middle'}>${esc((ds[ds.length-n+i]||'').slice(5))}</text>`).join('');
-  const yl=[a,(a+b)/2,b].map(v=>`<text x=${W-2} y=${(y(v)-3).toFixed(0)} font-size=11 fill="#727e8c" text-anchor=end>${f(v,v<100?2:0)}</text>`).join('');
-  return `<svg viewBox="0 0 ${W} ${H+VH+18}" data-n=${n} data-w=${W}>${g}${vb}${lab}${yl}<rect class=hit x=0 y=0 width=${W} height=${H+VH} fill=transparent /></svg>`;
+    g+=`<line x1=${x(i).toFixed(1)} x2=${x(i).toFixed(1)} y1=${ya(hi[i]??c[i]).toFixed(1)} y2=${ya(lo[i]??c[i]).toFixed(1)} stroke="${col}" stroke-width=1 />`;
+    const t=ya(Math.max(o[i]??c[i],c[i])),bt=ya(Math.min(o[i]??c[i],c[i]));g+=`<rect x=${(x(i)-cw/2).toFixed(1)} y=${t.toFixed(1)} width=${cw.toFixed(1)} height=${Math.max(1,bt-t).toFixed(1)} fill="${col}"/>`;}
+  g+=`<path d="${path(sma(c,20),x,ya)}" fill=none stroke="#2563c9" stroke-width=1.4 /><path d="${path(sma(c,60),x,ya)}" fill=none stroke="#f59e0b" stroke-width=1.4 />`;
+  if(s.ac)g+=`<path d="${path(s.ac,x,ya)}" fill=none stroke="#a16207" stroke-width=1.8 stroke-dasharray="5 4" />`;
+  const M=mkrs(r,n);
+  for(const [k,m] of Object.entries(M)){const xx=x(+k);if(m.n.length)g+=`<path d="M${(xx-5).toFixed(1)} ${HA-3} L${(xx+5).toFixed(1)} ${HA-3} L${xx.toFixed(1)} ${HA-11} Z" fill="#d33a34"/>`;
+    if(m.x.length)g+=`<path d="M${(xx-5).toFixed(1)} ${HA-13} L${(xx+5).toFixed(1)} ${HA-13} L${xx.toFixed(1)} ${HA-5} Z" fill="#1f9d57"/>`;}
+  if(s.v){const vm=Math.max(...s.v.filter(v=>v!=null),1);s.v.forEach((v,i)=>{if(v==null)return;const up=c[i]!=null&&c[i]>=(o[i]??c[i]);const hh=(HB-4)*v/vm;g+=`<rect x=${(x(i)-cw/2).toFixed(1)} y=${(yB+HB-hh).toFixed(1)} width=${cw.toFixed(1)} height=${hh.toFixed(1)} fill="${up?'#d33a34':'#1f9d57'}" opacity=.4 />`;});
+    g+=`<text x=${pl+2} y=${yB+11} font-size=11 fill="#727e8c">成交量</text>`;}
+  if(qa){const qm=Math.max(1,...qa.filter(v=>v!=null).map(Math.abs)),z=yC+HC/2,i0=qa.findIndex(v=>v!=null),bw=Math.max(1.5,cw);
+    g+=`<rect x=${(x(i0)-cw).toFixed(1)} y=${yC} width=${(x(n-1)-x(i0)+2*cw).toFixed(1)} height=${HC} fill="#f7f9fc"/><line x1=${(x(i0)-cw).toFixed(1)} x2=${W-pr} y1=${z} y2=${z} stroke="#dfe4ec"/>`;
+    qa.forEach((v,i)=>{if(!v)return;const hh=Math.max(1,(HC/2-4)*Math.abs(v)/qm);g+=`<rect x=${(x(i)-bw/2).toFixed(1)} y=${(v>0?z-hh:z).toFixed(1)} width=${bw.toFixed(1)} height=${hh.toFixed(1)} fill="${v>0?'#d33a34':'#1f9d57'}"/>`;});
+    g+=`<text x=${pl+2} y=${yC+11} font-size=11 fill="#727e8c">主動 ETF 真加減碼（${r.m!=='os'?'張':'股'}・近 ${s.qa.length} 日）</text><text x=${W-pr+6} y=${yC+11} font-size=11 fill="#727e8c">+${f(qm,0)}</text><text x=${W-pr+6} y=${yC+HC-2} font-size=11 fill="#727e8c">−${f(qm,0)}</text>`;}
+  const ds=(D.dates||[]).slice(-n);
+  for(const i of [0,Math.round((n-1)/3),Math.round(2*(n-1)/3),n-1])g+=`<text x=${x(i).toFixed(0)} y=${H-4} font-size=11 fill="#727e8c" text-anchor=${i===0?'start':i===n-1?'end':'middle'}>${md(ds[i]||'')}</text>`;
+  CH={n,pl,pr,W,M,x};
+  return `<svg width=${W} height=${H} viewBox="0 0 ${W} ${H}">${g}<line id=xh x1=0 x2=0 y1=0 y2=${H-HX} stroke="#94a3b8" stroke-dasharray="3 3" visibility=hidden /><rect class=hit x=0 y=0 width=${W} height=${H-HX} fill=transparent /></svg>`;
 }
-function lineChart(a,col,H){const n=a.length,W=720;const [lo,hi]=rng([a]);const x=i=>(i+.5)*W/n,y=v=>6+(H-12)*(1-(v-lo)/(hi-lo));
-  return `<svg viewBox="0 0 ${W} ${H+14}"><path d="${path(a,x,y)}" fill=none stroke="${col}" stroke-width=1.6 /><text x=2 y=12 font-size=11 fill="#727e8c">${f(hi,0)}</text><text x=2 y=${H} font-size=11 fill="#727e8c">${f(lo,0)}</text></svg>`;}
-function bars(a,H){if(!a)return '';const n=a.length,W=720;const m=Math.max(...a.filter(v=>v!=null).map(Math.abs),1);const z=H/2,bw=Math.max(1,W/n*.7);
-  let g=`<line x1=0 x2=${W} y1=${z} y2=${z} stroke="#e8ebf1"/>`;a.forEach((v,i)=>{if(v==null||v===0)return;const hh=(H/2-2)*Math.abs(v)/m;const xx=(i+.5)*W/n-bw/2;g+=`<rect x=${xx.toFixed(1)} y=${(v>0?z-hh:z).toFixed(1)} width=${bw.toFixed(1)} height=${hh.toFixed(1)} fill="${v>0?'#d33a34':'#1f9d57'}"/>`;});
-  return `<svg viewBox="0 0 ${W} ${H}">${g}<text x=${W-2} y=11 font-size=11 fill="#727e8c" text-anchor=end>±${f(m,0)}</text></svg>`;}
-function bindTip(){const kc=document.getElementById('kc');if(!kc)return;const svg=kc.querySelector('svg');
+function bars(a,W,lbl){if(!a)return '';const n=a.length,H=64,pl=4,pr=50;const m=Math.max(...a.filter(v=>v!=null).map(Math.abs),1);const z=H/2,bw=Math.max(1,(W-pl-pr)/n*.7);
+  let g=`<line x1=${pl} x2=${W-pr} y1=${z} y2=${z} stroke="#e8ebf1"/>`;a.forEach((v,i)=>{if(v==null||v===0)return;const hh=(H/2-3)*Math.abs(v)/m;const xx=pl+(i+.5)*(W-pl-pr)/n-bw/2;g+=`<rect x=${xx.toFixed(1)} y=${(v>0?z-hh:z).toFixed(1)} width=${bw.toFixed(1)} height=${hh.toFixed(1)} fill="${v>0?'#d33a34':'#1f9d57'}"/>`;});
+  return `<svg width=${W} height=${H} viewBox="0 0 ${W} ${H}">${g}<text x=${pl+2} y=12 font-size=12 font-weight=600 fill="#44505f">${esc(lbl)}</text><text x=${W-pr+6} y=12 font-size=11 fill="#727e8c">+${f(m,0)}</text><text x=${W-pr+6} y=${H-3} font-size=11 fill="#727e8c">−${f(m,0)}</text></svg>`;}
+function bindTip(code){const kc=document.getElementById('kc');if(!kc||!CH)return;const svg=kc.querySelector('svg');
   let tip=kc.querySelector('.tip');if(!tip){tip=document.createElement('div');tip.className='tip';tip.hidden=true;kc.appendChild(tip);}
-  const code=decodeURIComponent((location.hash.match(/^#s=(.+)$/)||[])[1]||'');const s=(D.ser||{})[code]||{};const n=+svg.dataset.n,W=+svg.dataset.w;const ds=D.dates||[];
-  const mv=e=>{const rc=svg.getBoundingClientRect();const px=((e.touches?e.touches[0].clientX:e.clientX)-rc.left)/rc.width*W;const i=Math.max(0,Math.min(n-1,Math.floor((px-4)/((W-8)/n))));
-    if(s.c[i]==null){tip.hidden=true;return;}tip.hidden=false;
-    tip.innerHTML=`${esc((ds[ds.length-n+i]||''))}　收 ${f(s.c[i],2)}${s.o?`　開 ${f(s.o[i],2)} 高 ${f(s.h[i],2)} 低 ${f(s.l[i],2)}`:''}${s.v?`　量 ${f(s.v[i],0)} 張`:''}${s.ac&&s.ac[i]?`　ETF 成本 ${f(s.ac[i],2)}`:''}`;
-    const left=Math.min(rc.width-tip.offsetWidth-4,Math.max(0,(px/W)*rc.width+8));tip.style.left=left+'px';tip.style.top='4px';};
-  svg.onmousemove=mv;svg.ontouchmove=mv;svg.onmouseleave=()=>tip.hidden=true;}
+  const s=(D.ser||{})[code]||{};const qa=qaOf(s);const ds=(D.dates||[]).slice(-CH.n);const xh=svg.querySelector('#xh');const {n,pl,pr,W,M,x}=CH;
+  const mv=e=>{const rc=svg.getBoundingClientRect();const px=((e.touches?e.touches[0].clientX:e.clientX)-rc.left);const i=Math.max(0,Math.min(n-1,Math.floor((px-pl)/((W-pl-pr)/n))));
+    if(s.c[i]==null){tip.hidden=true;return;}const m=M[i];
+    xh.setAttribute('x1',x(i));xh.setAttribute('x2',x(i));xh.setAttribute('visibility','visible');
+    tip.innerHTML=`<b>${esc(ds[i]||'')}</b>　收 ${fp(s.c[i])}${s.o?`　開 ${fp(s.o[i])}　高 ${fp(s.h[i])}　低 ${fp(s.l[i])}`:''}${s.v?`<br>量 ${f(s.v[i],0)} 張`:''}${s.ac&&s.ac[i]?`　主動成本 ${fp(s.ac[i])}`:''}${qa&&qa[i]?`<br>主動 ETF 真${qa[i]>0?'加':'減'}碼 ${f(Math.abs(qa[i]),0)} ${s.o?'張':'股'}`:''}`+
+      (m&&m.n.length?`<br><span style="color:#fca5a5">▲ 新建倉：${m.n.map(e=>esc(e)+' '+esc((E[e]||{}).is||'')).join('、')}</span>`:'')+(m&&m.x.length?`<br><span style="color:#86efac">▼ 出清：${m.x.map(e=>esc(e)+' '+esc((E[e]||{}).is||'')).join('、')}</span>`:'');
+    tip.hidden=false;const left=Math.min(rc.width-tip.offsetWidth-4,Math.max(0,px+12));tip.style.left=left+'px';tip.style.top='4px';};
+  const out=()=>{tip.hidden=true;xh.setAttribute('visibility','hidden');};
+  svg.onmousemove=mv;svg.ontouchstart=mv;svg.ontouchmove=mv;svg.onmouseleave=out;}
 
 /* ---------- 名詞頁 ---------- */
 function openGl(){
   const st=(D.asof||{}).start;
-  let h=`<div class=dvh><b>名詞與方法</b><a class=x id=glx>×</a></div>`;
+  let h=`<div class=dvh><div class=dvt><div class=ttl><b>名詞與方法</b></div><a class=x id=glx>×</a></div></div>`;
   for(const [g,ks] of GLG)h+=`<div class=glh>${esc(g)}</div><div class=gll>${ks.map(k=>`<div><b>${esc(k)}</b><span>${esc(GL[k])}</span></div>`).join('')}</div>`;
   h+=`<div class=glh>訊號</div><div class=gll>${Object.keys(SD).map(k=>`<div><b>${RISK.has(k)?'⚠ ':''}${esc(SD[k][0])}</b><span>${esc(SD[k][1])}</span></div>`).join('')}</div>`;
   h+=`<div class=glh>方法</div><ul class=doc>
@@ -754,7 +835,7 @@ function openGl(){
 <li>海外持股只有 ETF 面（無官方籌碼、技術面）；櫃買無借券與外資持股比欄位。</li>
 <li>資料：ETF 持股＝etfinfo／復華官網；價量與籌碼＝證交所、櫃買中心、集保結算所公開資料。本頁為資料整理與統計，不構成任何投資建議。</li></ul>`;
   $('#glin').innerHTML=h;$('#gl').hidden=false;lockBody(true);$('#gl').scrollTop=0;$('#glx').onclick=closeGl;}
-function closeGl(){$('#gl').hidden=true;lockBody(!$('#dv').hidden);}
+function closeGl(){$('#gl').hidden=true;lockBody(!$('#dv').hidden&&!$('#dv').classList.contains('pane'));}
 $('#glb').onclick=e=>{e.preventDefault();openGl();};
 $('#gl').addEventListener('click',e=>{if(e.target.id==='gl')closeGl();});
 
