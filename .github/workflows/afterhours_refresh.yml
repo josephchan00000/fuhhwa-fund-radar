@@ -94,6 +94,9 @@ jobs:
             python3 scripts/check_holdings_intro.py || true
           fi
 
+      - name: 籌碼雷達官方個股價量／籌碼（只補缺部件、資料齊時零請求；失敗不擋）
+        run: timeout 300 python3 scripts/fetch_lab.py || echo "  ⚠ 籌碼雷達抓取失敗，沿用既有分片"
+
       - name: 當日完整性看門狗（寫/清 data/afterhours_alert.json——儀表板紅章資料源）
         run: python3 scripts/check_afterhours_fresh.py --write
 
@@ -136,6 +139,7 @@ jobs:
           git add -f data/holdings_intro_gap.json 2>/dev/null || true  # 前十大簡介缺口警示
           git add -f data/afterhours_alert.json 2>/dev/null || true    # 盤後完整性警示（看門狗產）
           git add dashboard/index.html 2>/dev/null || true
+          git add -f data/lab dashboard/x9.html 2>/dev/null || true   # 籌碼雷達（分片＋隱藏頁，2026-10-14）
           git commit -m "chore: 盤後數據刷新 $(date '+%F %H:%M')" || { echo "無變更，跳過 push"; exit 0; }
           # main 可能被其他 workflow 推進 → rebase 重試；rebase 後必須用合併結果重建再推
           #（同 daily.yml 慣例：-X theirs 會拼出新舊混雜的 index.html，必須重建）
@@ -145,6 +149,7 @@ jobs:
             git pull --rebase -X theirs origin main || git rebase --abort || true
             TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py || true
             git add dashboard/index.html 2>/dev/null || true
+            git add -f data/lab dashboard/x9.html 2>/dev/null || true   # 籌碼雷達（分片＋隱藏頁，2026-10-14）
             git commit --amend --no-edit || true
             sleep 5
           done
