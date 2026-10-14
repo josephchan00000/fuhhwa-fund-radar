@@ -5,7 +5,9 @@
     不可能用 t 的價格成交——用 t 收盤會偷看未來）。
   · 出場＝t+h 收盤（h＝5、20 個交易日）。
   · 報酬扣來回成本 0.585%（手續費 0.1425%×2 未折扣＋證交稅 0.3%）。
-  · 超額＝個股報酬 − 加權指數同期（t 收盤 → t+h 收盤）報酬。
+  · 超額＝個股報酬 − 加權指數**同一時窗**報酬（t+1 開盤 → t+h 收盤；指數開盤取 Yahoo ^TWII）。
+    ⚠ 2026-10-14 踩坑：原本基準從 t 收盤起算，大盤開低的日子（如 2026-03-09 開盤 −3.7%）會把
+    指數的跳空算成「贏大盤」——「開低才進」的超額因此被灌水。指數開盤缺值時才退回 t 收盤。
   · 「隔夜跳空」＝t+1 開盤 / t 收盤 − 1：抄作業的人多時，好處可能全在跳空裡、進場後已無肉。
   · 同一檔同一訊號 5 個交易日內重複觸發只算第一次（避免同一波段灌水樣本）。
   · 樣本 <30 標灰、不排名。
@@ -20,14 +22,15 @@ DEDUP = 5
 MIN_N = 30
 
 
-def _ret(S, idx, t, h):
+def _ret(S, idx, t, h, idx_open=None):
     T = len(S["c"])
     if t + h >= T:
         return None
     o1 = S["o"][t + 1] or S["c"][t + 1]
     ch = S["c"][t + h]
     c0 = S["c"][t]
-    i0, ih = idx[t], idx[t + h]
+    i0 = (idx_open[t + 1] if idx_open and idx_open[t + 1] else None) or idx[t]
+    ih = idx[t + h]
     if not (o1 and ch and c0 and i0 and ih):
         return None
     r = ch / o1 - 1 - COST
@@ -48,6 +51,7 @@ def _agg(rs: list[dict]) -> dict:
 
 def signal_stats(D, sig_hist: dict, idx: list) -> dict:
     out = {}
+    io = D.taiex_open()
     series_cache = {}
     keys = sorted({k for h in sig_hist.values() for day in h for k in day})
     for k in keys:
@@ -65,7 +69,7 @@ def signal_stats(D, sig_hist: dict, idx: list) -> dict:
                     continue
                 last_fire = t
                 for h in HORIZONS:
-                    r = _ret(S, idx, t, h)
+                    r = _ret(S, idx, t, h, io)
                     if r:
                         per_h[h].append(r)
         out[k] = {str(h): _agg(v) for h, v in per_h.items()}
@@ -87,13 +91,14 @@ def issuer_stats(D, L, meta: dict, idx: list) -> dict:
         first_by_code.setdefault(ev.code, []).append((t, m["is"]))
     cache = {}
     out = {}
+    io = D.taiex_open()
     for iss, lst in news.items():
         res = {h: [] for h in HORIZONS}
         for code, t in lst:
             S = cache.get(code) or D.series(code)
             cache[code] = S
             for h in HORIZONS:
-                r = _ret(S, idx, t, h)
+                r = _ret(S, idx, t, h, io)
                 if r:
                     res[h].append(r)
         out[iss] = {str(h): _agg(v) for h, v in res.items()}

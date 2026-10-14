@@ -341,8 +341,9 @@ def yh_codes() -> list[str]:
     return sorted(p.name.split(".json")[0] for p in d.glob("*.json.gz")) if d.exists() else []
 
 
-def backfill_yahoo(*, top: int = 250, budget_s: float = 900) -> int:
-    """宇宙＝最新上市市值前 top＋所有 ETF 曾持有台股＋臺灣50 歷次異動股＋加權指數。已有者跳過。"""
+def backfill_yahoo(*, top: int = 250, budget_s: float = 900, min_cap: float | None = None) -> int:
+    """宇宙＝最新上市市值前 top＋所有 ETF 曾持有台股＋臺灣50 歷次異動股＋加權指數。已有者跳過。
+    min_cap（元）有給時，另把上市櫃所有市值 ≥ min_cap 的普通股納入（長線成長股回測用）。"""
     import json as _json
     t0 = time.time()
     mk = dict(store.load("mkt", last=15))
@@ -356,6 +357,12 @@ def backfill_yahoo(*, top: int = 250, budget_s: float = 900) -> int:
     caps = sorted(((c, q[3] * iss[c]) for c, q in q_tw.items() if c in iss and q and q[3]
                    and len(c) == 4 and c.isdigit() and not c.startswith("00")), key=lambda x: -x[1])
     uni = {c for c, _ in caps[:top]}
+    if min_cap:
+        uni |= {c for c, v in caps if v >= min_cap}
+        for c, q in q_tp.items():                      # 上櫃：發行股數在日收盤表第 7 欄
+            if len(c) == 4 and c.isdigit() and q and q[3] and len(q) > 6 and q[6] \
+                    and q[3] * q[6] >= min_cap:
+                uni.add(c)
     for _, doc in store.load("pos"):
         for ent in (doc.get("etf") or {}).values():
             uni |= {c for c in (ent.get("h") or {}) if len(c) == 4 and c.isdigit()}

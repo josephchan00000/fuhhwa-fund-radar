@@ -70,6 +70,8 @@ jobs:
             python3 scripts/backfill_lab.py --probe2
           elif [ "$MODE" = "probe3" ]; then
             python3 scripts/backfill_lab.py --probe3
+          elif [ "$MODE" = "growth" ] || [ "${MODE#growth}" != "$MODE" ]; then
+            python3 scripts/backfill_lab.py --growth --budget-min 50
           elif [ "$MODE" = "yahoo" ]; then
             python3 scripts/backfill_lab.py --yahoo
           else

@@ -5,7 +5,7 @@
     「樣本內參考」，因為規則本身就是看那段資料挑出來的。要改規則＝新版本、新起算日、成績歸零。
   · **每次建表由分片資料重算**，不存交易狀態：同樣的資料永遠算出同樣的帳，不會有狀態檔壞掉的問題。
   · 進出場一律用「當時已知」的價格：訊號日 t 收盤後才知道 → 最早 t+1 開盤。
-  · 成本：來回 0.585%；超額：對加權指數（t 收盤 → 出場日收盤），與成績單同口徑。
+  · 成本：來回 0.585%；超額：對加權指數同一時窗（進場日開盤 → 出場日收盤；指數開盤取 Yahoo ^TWII），與成績單同口徑。
   · 驗證期滿（30 筆或 30 個交易日，先到者）：平均超額＞0 且勝率＞50% → 達標；否則不達標。
 """
 from __future__ import annotations
@@ -64,7 +64,8 @@ def _signals(key: str, D, sig_hist: dict, L, meta: dict) -> list[tuple[str, int]
     return out
 
 
-def _trade(st: dict, code: str, t: int, S: dict, atr: list, idx: list, T: int) -> dict | None:
+def _trade(st: dict, code: str, t: int, S: dict, atr: list, idx: list, T: int,
+           idx_open: list | None = None) -> dict | None:
     """模擬一筆。回傳 None＝資料還沒到訊號隔日（候選中）。"""
     o, c = S["o"], S["c"]
     if t + 1 >= T or c[t] is None:
@@ -94,7 +95,8 @@ def _trade(st: dict, code: str, t: int, S: dict, atr: list, idx: list, T: int) -
                     "r": None if r is None else round(r * 100, 2)})
         return rec
     r = c[exit_i] / entry - 1 - COST
-    b = idx[exit_i] / idx[t] - 1 if idx[exit_i] and idx[t] else None
+    i0 = (idx_open[t + 1] if idx_open and idx_open[t + 1] else None) or idx[t]
+    b = idx[exit_i] / i0 - 1 if idx[exit_i] and i0 else None
     rec.update({"st": "closed", "exit": c[exit_i], "why": why, "held": exit_i - t,
                 "r": round(r * 100, 2), "x": None if b is None else round((r - b) * 100, 2)})
     return rec
@@ -110,6 +112,7 @@ def _agg(trs: list[dict]) -> dict:
 
 def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict) -> dict:
     T = D.T
+    io = D.taiex_open()
     cache: dict[str, tuple] = {}
 
     def series(code):
@@ -124,7 +127,7 @@ def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict) -> dict:
         fwd, ins, cands = [], [], []
         for code, t in sigs:
             S, atr = series(code)
-            rec = _trade(st, code, t, S, atr, idx, T)
+            rec = _trade(st, code, t, S, atr, idx, T, io)
             base = {"c": code, "n": names.get(code, code), "d": D.cal[t]}
             if rec is None:
                 a = ta.last_at(atr, t)

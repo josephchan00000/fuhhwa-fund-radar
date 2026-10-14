@@ -142,6 +142,11 @@ class Data:
                 fp[i] = q[0]
         return {"f": f, "t": t, "d": dl, "mb": mb, "sb": sb, "lb": lb, "fp": fp}
 
+    def taiex_open(self) -> list:
+        """加權指數開盤（Yahoo ^TWII；官方 MI_INDEX 只有收盤）。開盤進場的回測必須用它當基準起點。"""
+        yi = self.yh.get("TWII") or {}
+        return [(yi.get(d) or [None])[0] for d in self.cal]
+
     def taiex(self) -> list:
         yi = self.yh.get("TWII") or {}
         return [((self.mkt.get(d) or {}).get("idx") or {}).get("taiex") or (yi.get(d) or [None] * 4)[3]
