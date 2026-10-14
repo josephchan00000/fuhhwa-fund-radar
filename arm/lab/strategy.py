@@ -11,7 +11,10 @@
 from __future__ import annotations
 
 import statistics
+from collections import defaultdict
+from datetime import date, timedelta
 
+from . import backtest
 from . import ledger as LG
 from . import ta
 
@@ -19,32 +22,117 @@ COST = 0.00585
 PASS_N = 30
 PASS_DAYS = 30
 
+# 頁面「策略」分頁每條策略一張卡、四個小標（2026-10-14 使用者：「看不太懂為什麼……規劃的更深入完整一些」，
+# 版面定案「一張卡四小標、細節收在展開」）：
+#   bet＝在賭什麼（一句話）；why＝為什麼可能有效（機制，不寫死數字——證據數字由樣本內計算即時帶出）；
+#   more＝補充（收在展開）；fail＝什麼情況會失效（短句）；rule＝實際操作規則（訊號／進場／出場，收在展開）。
 STRATEGIES = [
-    # 持有期是看過 1～10 日全掃描後選的（開低組 10 個持有期中 8 個為正、5 日恰好為負）——
-    # 方向不隨持有期改變，選 3 日只是取短；這段話同步寫在頁面上，不假裝是事前決定。
+    # 持有期是看過 1～10 日全掃描後選的（開低組多數持有期為正、方向不隨持有期改變）——
+    # 選 3 日只是取短；這段話同步寫在頁面上，不假裝是事前決定。
     {"key": "s1", "ver": 1, "since": "2026-10-14", "name": "共識加碼・開低才進",
+     "bet": "多家投信同時加碼的股票，隔天開盤沒被搶高的，接下來幾天仍有機會補漲。",
+     "why": "多家投信同時加碼＝好幾個研究團隊各自看好同一檔。但持股每天公開、人人看得到，"
+            "隔天一開盤就被買高的，好處已經被搶走；開盤反而比前一天收盤低時才跟，價格比經理人買的還便宜。",
+     "more": ["持有 3 天是看過 1～10 天全部結果後選的：方向不隨天數改變，取短。因為是看過資料才定的，"
+              "樣本內成績只能參考，起算日之後的前瞻成績才算數。"],
+     "fail": ["樣本約 40 筆，成績集中在 8 月", "跟單的人變多，連開低也會被搶", "只抱 3 天，成本 0.585% 先吃掉一部分"],
      "rule": ["訊號：收盤後「共識加碼」亮燈（5 日內 ≥3 家投信主動 ETF 真加碼、主動合計淨買；同檔 5 日內只算第一次）",
               "進場：隔日開盤價「低於」訊號日收盤才以開盤價買進（8:59 看試撮）；平盤或開高則放棄",
-              "出場：第 3 個交易日收盤；期間收盤跌破「進場價 − 2×ATR(14)」當日收盤停損",
-              "依據（7/27～10/13，大盤基準與進場同一時窗）：開低組持有 1～10 日中 9 個持有期平均超額為正（+0.6%～+1.7%）、3 日 +1.7%／勝率 56%；不加條件跟進則 10 個持有期全為負"],
+              "出場：第 3 個交易日收盤；期間收盤跌破「進場價 − 2×ATR(14)」當日收盤停損"],
+     "scan": [["s", "開盤低於前收（本策略）"], ["c", "開平或開高（放棄）"]], "scan_h": 10,
      "hold": 3, "stop_atr": 2.0, "gap_max": 0.0, "gap_strict": True},
     {"key": "s4", "ver": 1, "since": "2026-10-14", "name": "群益新建倉（觀察）",
+     "bet": "群益主動 ETF 新買進的股票，接下來兩週比大盤強。",
+     "why": "各家投信新建倉之後的表現差很多：樣本內群益在每個持有天數都贏大盤，其他投信合起來看反而多半輸。"
+            "原因還不確定，所以這條只做紙上記帳觀察。",
+     "more": ["可能和群益的選股風格、建倉節奏有關；資料只能證明「過去如此」，不能證明以後也會。"
+              "累積 30 筆前瞻成績再決定要不要用。"],
+     "fail": ["樣本幾乎都在 8 月，同一段行情", "經理人或選股風格改變就可能失效", "停損放寬到 3 倍 ATR，單筆可能賠很多"],
      "rule": ["訊號：群益任一主動 ETF 新建倉（觀測期內首次持有）",
               "進場：隔日開盤價買進（不設跳空條件）",
-              "出場：第 10 個交易日收盤；收盤跌破「進場價 − 3×ATR(14)」停損",
-              "依據：持有 1～20 日各期平均超額皆為正（+0.6%～+3.8%，約 44 筆）；10 日 +3.8%／勝率 59%"],
+              "出場：第 10 個交易日收盤；收盤跌破「進場價 − 3×ATR(14)」停損"],
+     "scan": [["s", "群益新建倉（本策略）"], ["c", "其他投信新建倉"]], "scan_h": 20,
      "hold": 10, "stop_atr": 3.0, "gap_max": None},
 ]
 
 
 S3 = {"key": "s3", "ver": 1, "since": "2026-10-14", "name": "臺灣50 換股（官方名單）",
-      "rule": ["名單：富時／證交所官方公告的納入與刪除（週一 ETF 週掃寫入 config/index_reviews.json）——"
-               "兩條都在公告後才進場，用不到預測",
+      "bet": "0050、006208 在生效日收盤必須照官方名單買賣：先買進納入股、再賣給被動買盤；刪除股則在被動賣壓最重時承接。",
+      "why": "被動基金規模大，買什麼、買多少、哪一天，事前都算得出來——這是規則造成的資金流，不用猜經理人。"
+             "兩條都在官方公告後才進場，不靠預測。",
+      "more": [],
+      "fail": ["大家都知道，公告前就可能先漲", "納入股生效後常回落，生效日一定要出", "一年 4 次、每次幾檔，樣本少"],
+      "rule": ["名單：富時／證交所官方公告的納入與刪除（週一 ETF 週掃寫入 config/index_reviews.json）",
                "納入：公告後第一個交易日開盤買進，生效日收盤賣出（賣給被動買盤）",
-               "刪除：生效日收盤買進（承接被動賣壓），第 5 個交易日收盤賣出",
-               "依據（2026 年 3／6／9 月，各 10 檔）：納入 +14.9%（9/10 為正）；刪除 +1.7%（8/10）；"
-               "納入股生效後續抱 5 日 −3.3%（1/10）→ 生效日一定要出"],
+               "刪除：生效日收盤買進（承接被動賣壓），第 5 個交易日收盤賣出"],
       "hold": None}
+
+
+def _pct(xs: list[float], q: float) -> float | None:
+    xs = sorted(xs)
+    if not xs:
+        return None
+    k = (len(xs) - 1) * q
+    f = int(k)
+    c = min(f + 1, len(xs) - 1)
+    return xs[f] + (xs[c] - xs[f]) * (k - f)
+
+
+def dist(trs: list[dict]) -> dict:
+    """已出場交易的報酬分布——頁面「參考價位」據此把今日收盤換算成價位（歷史統計，非預測）。
+    p＝毛報酬（出場價÷進場價−1，%）的 10／25／50／75／90 分位；aw／al＝扣成本後平均賺／平均賠；
+    mo＝逐月 [月份, 筆數, 平均超額]（看成績是否集中在某一段行情）。"""
+    cl = [t for t in trs if t.get("st") == "closed" and t.get("entry") and t.get("exit")]
+    if not cl:
+        return {"n": 0}
+    g = [(t["exit"] / t["entry"] - 1) * 100 for t in cl]
+    rs = [t["r"] for t in cl if t.get("r") is not None]
+    win = [r for r in rs if r > 0]
+    loss = [r for r in rs if r <= 0]
+    mo: dict[str, list] = defaultdict(list)
+    for t in cl:
+        if t.get("x") is not None:
+            mo[t["d"][:7]].append(t["x"])
+    return {"n": len(cl), "p": [round(_pct(g, q), 2) for q in (0.1, 0.25, 0.5, 0.75, 0.9)],
+            "aw": round(statistics.mean(win), 2) if win else None,
+            "al": round(statistics.mean(loss), 2) if loss else None,
+            "lo": round(min(rs), 2) if rs else None, "hi": round(max(rs), 2) if rs else None,
+            "stop": sum(1 for t in cl if t.get("why") == "停損"),
+            "held": round(statistics.mean(t["held"] for t in cl if t.get("held") is not None), 1),
+            "mo": [[m, len(v), round(statistics.mean(v), 2)] for m, v in sorted(mo.items())]}
+
+
+def scan(groups: list, series, idx: list, io: list, H: int) -> dict:
+    """樣本內持有期掃描：每組在持有 1～H 個交易日（t+1 開盤進、t+h 收盤出，同成績單口徑）的
+    平均超額與勝率。groups＝[(鍵, 標籤, [(代號, 訊號日索引)], 條件(隔夜跳空)->bool 或 None)]。
+    用途：證明結論「不是挑了某一個持有期才成立」。"""
+    out = {"h": H, "grp": []}
+    for k, lbl, sigs, cond in groups:
+        g = {"k": k, "lbl": lbl, "n": [], "x": [], "w": []}
+        for h in range(1, H + 1):
+            xs = []
+            for code, t in sigs:
+                r = backtest._ret(series(code), idx, t, h, io)
+                if r and (cond is None or cond(r["g"])):
+                    xs.append(r["x"])
+            g["n"].append(len(xs))
+            g["x"].append(round(statistics.mean(xs) * 100, 2) if xs else None)
+            g["w"].append(round(sum(1 for x in xs if x > 0) / len(xs) * 100) if xs else None)
+        out["grp"].append(g)
+    return out
+
+
+def trading_days_after(d: str, n: int) -> list[str]:
+    """d 之後的 n 個台股交易日（週末＋證交所官方休市表；表未涵蓋的平日視為開市）。"""
+    from .. import twholidays
+    years = twholidays.load()
+    out, x = [], date.fromisoformat(d)
+    while len(out) < n:
+        x += timedelta(days=1)
+        if x.weekday() >= 5 or twholidays.is_closed(x, years):
+            continue
+        out.append(x.isoformat())
+    return out
 
 
 def tw50_trades(D, idx: list, io: list, names: dict, today: str) -> list[dict]:
@@ -167,6 +255,10 @@ def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict) -> dict:
             cache[code] = (S, ta.atr(S["h"], S["l"], S["c"]))
         return cache[code]
 
+    def ser_only(code):
+        return series(code)[0]
+
+    nxt = trading_days_after(D.cal[-1], 25) if D.cal else []
     out = []
     for st in STRATEGIES:
         sigs = _signals(st["key"], D, sig_hist, L, meta)
@@ -177,9 +269,13 @@ def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict) -> dict:
             base = {"c": code, "n": names.get(code, code), "d": D.cal[t]}
             if rec is None:
                 a = ta.last_at(atr, t)
-                cands.append({**base, "px": S["c"][t],
-                              "stop": round(S["c"][t] - st["stop_atr"] * a, 2) if a and S["c"][t] else None,
-                              "gap_max": st["gap_max"]})
+                px = S["c"][t]
+                cands.append({**base, "px": px,
+                              "stop": round(px - st["stop_atr"] * a, 2) if a and px else None,
+                              "atr": round(a, 2) if a else None, "gap_max": st["gap_max"],
+                              # 進場＝訊號日隔一個交易日開盤；出場＝訊號日後第 hold 個交易日收盤
+                              "ent": nxt[0] if t == T - 1 and nxt else None,
+                              "out": nxt[st["hold"] - 1] if t == T - 1 and len(nxt) >= st["hold"] else None})
                 continue
             (fwd if D.cal[t] >= st["since"] else ins).append({**base, **rec})
         days = sum(1 for d in D.cal if d >= st["since"])
@@ -188,10 +284,21 @@ def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict) -> dict:
             status = "達標" if g["n"] and g["x"] > 0 and g["w"] > 50 else "不達標"
         else:
             status = "驗證中"
+        ins_sigs = [(c, t) for c, t in sigs if D.cal[t] < st["since"]]
+        if st["key"] == "s1":
+            grps = [(st["scan"][0][0], st["scan"][0][1], ins_sigs, lambda gp: gp < 0),
+                    (st["scan"][1][0], st["scan"][1][1], ins_sigs, lambda gp: gp >= 0)]
+        else:
+            grps = [(st["scan"][0][0], st["scan"][0][1], ins_sigs, None),
+                    (st["scan"][1][0], st["scan"][1][1], _other_new(D, L, meta, st["since"]), None)]
         out.append({"key": st["key"], "ver": st["ver"], "since": st["since"], "name": st["name"],
+                    "bet": st["bet"], "why": st["why"], "more": st["more"], "fail": st["fail"], "hold": st["hold"],
+                    "stop_atr": st["stop_atr"],
                     "rule": st["rule"], "status": status, "days": days,
                     "fwd": fwd[-60:], "fwd_stats": g, "ins_stats": _agg(ins),
-                    "ins_n": len(ins), "cands": cands})
+                    "ins_n": len(ins), "cands": cands,
+                    "scan": scan(grps, ser_only, idx, io, st["scan_h"]),
+                    "dist": dist(ins), "ins": [t for t in ins if t.get("st") in ("closed", "open")][-80:]})
     # S3 臺灣50 換股：事件型、驗證期滿判準用「兩次審核」（筆數少、每季一次）
     trs = tw50_trades(D, idx, io, names, D.cal[-1] if D.cal else "")
     fwd = [t for t in trs if t["d"] >= S3["since"]]
@@ -200,9 +307,48 @@ def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict) -> dict:
     g = _agg(fwd)
     status = ("達標" if g["n"] and g["x"] > 0 and g["w"] > 50 else "不達標") if n_rev >= 2 else "驗證中"
     out.insert(2, {"key": "s3", "ver": S3["ver"], "since": S3["since"], "name": S3["name"], "rule": S3["rule"],
+                   "bet": S3["bet"], "why": S3["why"], "more": S3["more"], "fail": S3["fail"],
                    "status": status, "days": n_rev, "fwd": fwd[-60:], "fwd_stats": g, "ins_stats": _agg(ins),
-                   "ins_n": len(ins), "cands": [], "event": True})
-    return {"list": out, "alerts": gap_alerts(D, sig_hist, names), "pass": [PASS_N, PASS_DAYS]}
+                   "ins_n": len(ins), "cands": [], "event": True,
+                   "sides": {sd: {**_agg([t for t in ins if t["side"] == sd]),
+                                  **{"p": dist([t for t in ins if t["side"] == sd]).get("p")}}
+                             for sd in ("add", "del")},
+                   "post5": _post_effective(D, ins, idx), "ins": ins[-80:]})
+    # 跳空減碼提醒的證據：共識加碼亮燈、隔日開高 ≥3% 那一組（樣本內）
+    s1 = STRATEGIES[0]
+    s1_ins = [(c, t) for c, t in _signals("s1", D, sig_hist, L, meta) if D.cal[t] < s1["since"]]
+    a_scan = scan([("g3", "共識加碼・隔日開高 ≥3%", s1_ins, lambda gp: gp >= 0.03)], ser_only, idx, io, 10)
+    return {"list": out, "alerts": gap_alerts(D, sig_hist, names), "alert_scan": a_scan,
+            "pass": [PASS_N, PASS_DAYS], "next": nxt[:5]}
+
+
+def _other_new(D, L, meta: dict, since: str) -> list[tuple[str, int]]:
+    """S4 對照組：群益以外投信主動 ETF 的新建倉（台股、樣本內、同檔同日只算一次）。"""
+    seen, out = set(), []
+    for ev in L.events:
+        m = meta.get(ev.etf) or {}
+        if ev.kind == LG.NEW and m.get("k") == "a" and m.get("is") != "群益" and LG.is_tw(ev.code) \
+                and ev.date in D.ix and ev.date < since:
+            k = (ev.code, D.ix[ev.date])
+            if k not in seen:
+                seen.add(k)
+                out.append(k)
+    return sorted(out, key=lambda x: (x[1], x[0]))
+
+
+def _post_effective(D, trs: list[dict], idx: list) -> dict:
+    """納入股生效日收盤之後續抱 5 個交易日的報酬（扣成本）——證明「生效日一定要出」。"""
+    xs = []
+    for t in trs:
+        if t.get("side") != "add" or t.get("st") != "closed" or t["d"] not in D.ix:
+            continue
+        i = D.ix[t["d"]]
+        S = D.series(t["c"])
+        if i + 5 < D.T and S["c"][i] and S["c"][i + 5]:
+            xs.append((S["c"][i + 5] / S["c"][i] - 1 - COST) * 100)
+    if not xs:
+        return {"n": 0}
+    return {"n": len(xs), "r": round(statistics.mean(xs), 2), "w": round(sum(1 for x in xs if x > 0) / len(xs) * 100)}
 
 
 def gap_alerts(D, sig_hist: dict, names: dict) -> list[dict]:
