@@ -7,8 +7,8 @@
   · 預測準度：用「資料截止日」的上市普通股總市值排名重跑規則（排除截止日時還沒上市的股票），
     對照官方名單；另看截止日前 5／10／20 個交易日就預測會差多少。
   · 進場時點：同一批納入股，比較「截止日隔天開盤／公告日收盤／公告後開盤」進場、「生效前一天／生效日」出場。
-  · 歸因：截止前 40 日漲幅、日週轉率、被動買盤（張數、占日均量天數）、市值、排名，對公告後漲幅的
-    Spearman 相關；另看同一次審核裡「漲勢前一半 vs 後一半」。
+  · 歸因：截止前 40 日漲幅、估計權重、被動買盤（張數、占日均量天數）、日週轉率，對公告後漲幅的
+    Spearman 相關；另看同一次審核裡漲最多的是不是「漲勢最強」或「權重最大」的那檔。
 
 口徑：進場用開盤或收盤（各列寫明）、出場用收盤；報酬扣來回成本 0.585%；超額＝減去加權指數同一時窗。
 個股生效日可能延後（處置股依基本規則 3.4.1 延後，例：南亞科 2025-12-30）→ 以 `eff_override` 為準。
@@ -185,11 +185,14 @@ def events(D, cfg: dict) -> list[dict]:
             dem = s_t * sh if s_t and sh else None
             row = {"c": c, "n": D.names.get(c, c), "rank": rank.get(c),
                    "cap": round(px * sh / 1e8) if px and sh else None,
+                   # 估計權重＝市值 ÷ 前 50 大市值（未做自由流通調整）。不用原始市值比較：2026 年市值整體變大、
+                   # 那兩次又剛好大漲，原始市值和漲幅的相關會被時間灌高（0.49 → 換成權重只剩 0.1）
+                   "w": round(px * sh / top50 * 100, 2) if px and sh and top50 else None,
                    "mom": None if mom.get(c) is None else round(mom[c] * 100, 1),
                    "turn": round(adv / sh * 100, 2) if adv and sh else None,
                    "dem_lots": round(dem / 1000) if dem else None,
                    "dem_days": round(dem / adv, 2) if dem and adv else None,
-                   "top": int(c in top), "eff": D.cal[je] if je is not None else None}
+                   "top": int(c in top), "eff_d": D.cal[je] if je is not None else None}
             # 各時窗（扣成本報酬 r、超額 x）
             for key, (i0, o0, i1, o1) in {
                     "pre": (ic + 1, True, ia, False),            # 截止日隔天開盤 → 公告日收盤
@@ -225,8 +228,8 @@ ENTRY = [("cut", "截止日隔天開盤 → 生效前一天收盤", "公告前�
          ("fri", "公告日收盤（消息出來前）→ 生效前一天收盤", ""),
          ("pre", "截止日隔天開盤 → 公告日收盤", "只抱到公告")]
 
-FACTORS = [("mom", "截止前 40 日漲幅"), ("turn", "日週轉率"), ("dem_days", "被動買盤 ÷ 日均量（天）"),
-           ("dem_lots", "被動買盤張數"), ("cap", "市值"), ("rank", "市值排名（數字小＝大）")]
+FACTORS = [("mom", "截止前 40 日漲幅"), ("w", "估計權重"), ("dem_lots", "被動買盤張數"),
+           ("dem_days", "被動買盤 ÷ 日均量（天）"), ("turn", "日週轉率")]
 
 
 def run(D, cfg: dict) -> dict:
@@ -263,14 +266,18 @@ def run(D, cfg: dict) -> dict:
         lo = [a["postx"] for a in e["adds"] if not a["top"] and a["postx"] is not None]
         best = max((a for a in e["adds"] if a["postx"] is not None), key=lambda a: a["postx"], default=None)
         strongest = max((a for a in e["adds"] if a["mom"] is not None), key=lambda a: a["mom"], default=None)
+        heavy = max((a for a in e["adds"] if a["w"] is not None), key=lambda a: a["w"], default=None)
         within.append({"review": e["review"], "n": len(e["adds"]),
                        "hi": round(statistics.mean(hi), 1) if hi else None,
                        "lo": round(statistics.mean(lo), 1) if lo else None,
-                       "best": best and best["n"], "strongest": strongest and strongest["n"],
-                       "same": bool(best and strongest and best["c"] == strongest["c"])})
+                       "best": best and best["n"], "best_x": best and best["postx"],
+                       "strongest": strongest and strongest["n"], "strongest_x": strongest and strongest["postx"],
+                       "heavy": heavy and heavy["n"], "heavy_x": heavy and heavy["postx"], "heavy_w": heavy and heavy["w"],
+                       "same": bool(best and strongest and best["c"] == strongest["c"]),
+                       "heavy_same": bool(best and heavy and best["c"] == heavy["c"])})
     return {"n": len(rows), "n_rev": len(ev), "first": ev[0]["review"], "last": ev[-1]["review"],
             "acc": acc, "entry": entry, "fac": fac, "within": within,
-            "rows": [[r["review"], r["c"], r["n"], r["rank"], r["cap"], r["mom"], r["turn"], r["dem_lots"],
+            "rows": [[r["review"], r["c"], r["n"], r["rank"], r["w"], r["mom"], r["turn"], r["dem_lots"],
                       r["dem_days"], r["top"], r["pre"], r["post"], r["postx"], r["cut"], r["eff"], r["aft"]]
                      for r in rows],
             "rev": [[e["review"], e["cutoff"], e["announce"], e["effective"], e["s"],
