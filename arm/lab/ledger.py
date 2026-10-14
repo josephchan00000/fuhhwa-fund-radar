@@ -11,9 +11,12 @@
 3. **平均成本法**：加碼按當日均價（成交金額÷成交股數；缺則收盤）入帳；減碼按平均成本
    沖銷、記已實現損益。**觀測起點前就持有的部位，成本以首次觀測日均價計**（品質 B），
    觀測期內才建倉者為品質 A——頁面據此標註，不假裝知道更早的買價。
-4. **公司行動**：減資／股票股利／面額變更會讓股數跳動但不是交易。判準＝股數比 r 偏離
-   申贖倍率 ≥4%，且股價同時反向變動同比例（|價比×r−1|<3%），並且（≥2 檔 ETF 同向一致，
-   或 |r−1|≥12% 超出漲跌幅限制）→ 股數與每股成本一起換算、不記交易。
+4. **公司行動**：減資／股票股利／面額變更會讓股數跳動但不是交易。兩條路徑：
+   A. 分割／減資（股數與股價同日反向變動）：|r−1|≥4%、|價比×r−1|<3%，且（≥3 檔一致或 |r−1|≥12%）；
+   B. **股票股利入帳（2026-10-14 補）**：配股在除權日後數週才撥入，入帳日股價不動——價格檢查必然落空，
+      舊規則會把它當成「所有 ETF 一起真加碼」。判準＝1.003≤r≤1.6、≥3 檔 ETF 的 r 相差 <0.003、
+      且占當日同時持有該股 ETF 的 ≥70%。
+   → 股數與每股成本一起換算、不記交易。
 """
 from __future__ import annotations
 
@@ -27,7 +30,6 @@ SIG_ABS_TW = 1000       # 且 ≥1 張（台股）；海外以 1 股計
 FLOW_MIN_COMMON = 5     # 共同持股少於 5 檔時不估申贖倍率（f=1）
 CA_REL = 0.04
 CA_PX_TOL = 0.03
-CA_BIG = 0.12
 
 
 def is_tw(code: str) -> bool:
@@ -99,8 +101,10 @@ def _kind(s0: float, s1: float, conv: float, code: str) -> str:
     return HOLD
 
 
-def build(pos_docs: list[tuple[str, dict]], price, *, skip_etfs: set[str] | None = None) -> Ledger:
-    """pos_docs＝store.load("pos")；price(code, date)->(均價, 收盤) 或 None。"""
+def build(pos_docs: list[tuple[str, dict]], price, *, skip_etfs: set[str] | None = None,
+          cal: dict[str, int] | None = None) -> Ledger:
+    """pos_docs＝store.load("pos")；price(code, date)->(均價, 收盤) 或 None；
+    cal＝{交易日: 序號}（判斷相鄰交易日用，可省略）。"""
     skip_etfs = skip_etfs or set()
     L = Ledger()
     # 每檔 ETF 的揭露序列
@@ -115,28 +119,41 @@ def build(pos_docs: list[tuple[str, dict]], price, *, skip_etfs: set[str] | None
     for etf in L.snaps:
         L.snaps[etf].sort()
 
-    # 第一遍：收集各 (code, date) 的股數比 r，供公司行動跨 ETF 一致性判斷
+    # 第一遍：收集各 (code, date) 所有同時持有 ETF 的股數比 r（已扣申贖），供跨 ETF 一致性判斷
     ratios: dict[tuple[str, str], list[float]] = {}
     for etf, seq in L.snaps.items():
         for (a, ha), (b, hb) in zip(seq, seq[1:]):
             f = _flow_factor(ha, hb)
             for c in ha:
                 if c in hb and ha[c] > 0:
-                    r = hb[c] / (ha[c] * f)
-                    if abs(r - 1) >= CA_REL:
-                        ratios.setdefault((c, b), []).append(r)
+                    ratios.setdefault((c, b), []).append(hb[c] / (ha[c] * f))
 
     def _is_ca(c: str, a: str, b: str, r: float) -> bool:
         if not is_tw(c):
             return False
+        peers = ratios.get((c, b)) or []
+        # B. 股票股利入帳：多檔 ETF 同比例增加、股價不必動
+        if 1.003 <= r <= 1.6:
+            agree = sum(1 for x in peers if abs(x - r) < 0.003)
+            if agree >= 3 and agree >= 0.7 * len(peers):
+                return True
+        if abs(r - 1) < CA_REL:
+            return False
+        # A. 分割／減資：股價同日反向變動
         pa, pb = price(c, a), price(c, b)
         if not pa or not pb or not pa[1] or not pb[1]:
             return False
         if abs(pb[1] / pa[1] * r - 1) >= CA_PX_TOL:
             return False
-        peers = ratios.get((c, b)) or []
         agree = sum(1 for x in peers if abs(x - r) < 0.01)
-        return agree >= 2 or abs(r - 1) >= CA_BIG
+        if agree >= max(2, 0.7 * len(peers)):
+            return True
+        # 相鄰交易日股價變動超過 ±10% 漲跌幅＝除權／分割日（單一持有者也成立）
+        if cal and a in cal and b in cal and cal[b] - cal[a] == 1 and abs(pb[1] / pa[1] - 1) > 0.105:
+            return True
+        # 2026-10-14 回測抓到的假陽性：單一 ETF 揭露隔數日、又維持固定權重 → 股數恰好與股價反向，
+        # 長得像減資（華邦電 0.847、大聯大 0.879、南電 1.127）——所以不再接受「只有 |r−1|≥12%」
+        return False
 
     # 第二遍：逐 ETF 記帳
     for etf, seq in L.snaps.items():
@@ -160,7 +177,7 @@ def build(pos_docs: list[tuple[str, dict]], price, *, skip_etfs: set[str] | None
                     P = L.pos[(etf, c)] = Pos()
                 if s0 > 0 and s1 > 0:
                     r = s1 / (s0 * f)
-                    if abs(r - 1) >= CA_REL and _is_ca(c, a, b, r):
+                    if abs(r - 1) >= 0.003 and _is_ca(c, a, b, r):
                         L.ca.append((b, c, round(r, 4)))
                         P.shares *= r                        # 股數換算、總成本不變
                         s0 = s0 * r

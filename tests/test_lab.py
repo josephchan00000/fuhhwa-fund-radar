@@ -113,7 +113,7 @@ def test_capital_reduction_is_corporate_action_not_selling():
     merged: dict[str, dict] = {}
     for d, doc in seq:
         merged.setdefault(d, {"etf": {}})["etf"].update(doc["etf"])
-    L = ledger.build(sorted(merged.items()), px)
+    L = ledger.build(sorted(merged.items()), px, cal={"2026-10-01": 0, "2026-10-02": 1})
     assert ("2026-10-02", "2603", 0.5) in L.ca
     assert not [e for e in L.events if e.code == "2603" and e.kind in (ledger.CUT, ledger.EXIT)]
     assert abs(L.pos[("A", "2603")].avg - 100.0) < 1e-6   # 每股成本 50 → 100
@@ -232,3 +232,27 @@ def test_extra_etf_candidates_filter():
     ]
     out = collect.extra_candidates(items, tracked={"0050"})
     assert [x["code"] for x in out] == ["009816", "00940"]     # 依規模、排除已追蹤／債券／槓桿／個股
+
+
+def test_weight_constant_trim_is_not_mistaken_for_capital_reduction():
+    """單一 ETF 維持固定權重：股價隔數日漲 18%、股數減 15% → 是交易，不是減資（華邦電 8/5 實例）。"""
+    filler = {f"{1300 + i}": 9000.0 for i in range(6)}
+    px = _px({("2344", "2026-08-03"): (143.0, 143.0), ("2344", "2026-08-05"): (169.0, 169.0)})
+    seq = [_pos("2026-08-03", "A", {**filler, "2344": 100000.0}),
+           _pos("2026-08-05", "A", {**filler, "2344": 84700.0})]
+    L = ledger.build(seq, px, cal={"2026-08-03": 0, "2026-08-04": 1, "2026-08-05": 2})
+    assert not L.ca
+    assert any(e.code == "2344" and e.kind == ledger.CUT for e in L.events)
+
+
+def test_stock_dividend_credit_without_price_move_is_corporate_action():
+    """配股入帳日股價不動、所有持有 ETF 同比例增加 4% → 公司行動，不是集體加碼（元大金 8/18 實例）。"""
+    filler = {f"{1400 + i}": 9000.0 for i in range(6)}
+    px = _px({("2885", "2026-08-17"): (40.0, 40.0), ("2885", "2026-08-18"): (40.2, 40.2)})
+    merged: dict[str, dict] = {"2026-08-17": {"etf": {}}, "2026-08-18": {"etf": {}}}
+    for etf in ("A", "B", "C"):
+        merged["2026-08-17"]["etf"][etf] = {"h": {**{c: [s, 1] for c, s in filler.items()}, "2885": [100000, 1]}}
+        merged["2026-08-18"]["etf"][etf] = {"h": {**{c: [s, 1] for c, s in filler.items()}, "2885": [104000, 1]}}
+    L = ledger.build(sorted(merged.items()), px)
+    assert {(d, c) for d, c, _ in L.ca} == {("2026-08-18", "2885")}
+    assert not [e for e in L.events if e.code == "2885" and e.kind == ledger.ADD]

@@ -192,7 +192,7 @@ def run(data: Data | None = None) -> dict:
     D = data or Data()
     meta = etf_meta()
     skip = {e for d, doc in D.pos for e in (doc.get("etf") or {}) if e not in meta}
-    L = LG.build(D.pos, D.price, skip_etfs=skip)
+    L = LG.build(D.pos, D.price, skip_etfs=skip, cal=D.ix)
     T = D.T
     if T == 0:
         return {"empty": True}
@@ -432,6 +432,7 @@ def run(data: Data | None = None) -> dict:
             "r1": _lots(raw_all[-1], tw), "r5": _lots(sum(raw_all[i] for i in w5), tw),
             "r20": _lots(sum(raw_all[max(T - 20, 0):]), tw),
             "a1": _lots(conv_act[-1], tw), "a5": _lots(sum(conv_act[i] for i in w5), tw),
+            "a5v": _r(sum(conv_act[i] for i in w5) * px_now / 1e8, 2) if tw and px_now else None,
             "a20": _lots(sum(conv_act[max(T - 20, 0):]), tw),
             "v5": _r(sum(raw_all[i] for i in w5) / (5 * avg_v20) * 100, 1) if tw and avg_v20 else None,
             "ia5": sorted(set().union(*(add_iss[i] for i in w5))),
