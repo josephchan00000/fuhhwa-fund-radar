@@ -315,7 +315,8 @@ def screen_now(P: Panel, rev_now: dict, etf_new2: set[str]) -> list[dict]:
         f = P.factors(c, t, rk)
         if not f or not f["g_space"]:
             continue
-        g_trust = f["g_trust"] or c in etf_new2
+        # 主動 ETF 多家建倉這條路徑，前提是投信整體 20 日不是淨賣（欣銓 10/13：ETF 兩家建倉、投信卻賣超股本 5%）
+        g_trust = f["g_trust"] or (c in etf_new2 and (f["trust"] or 0) >= 0)
         rv = rev_now.get(c)
         g_grow = bool(rv and rv[0] is not None and rv[0] >= 20 and (rv[1] or 0) >= 15)
         n_pass = sum([g_trust, g_grow, f["g_mom"]])
@@ -329,3 +330,102 @@ def screen_now(P: Panel, rev_now: dict, etf_new2: set[str]) -> list[dict]:
                     "near": f["near_hi"], "cap": round(f["cap"] / 1e8), "liq": round((f["liq"] or 0) / 1e8, 1)})
     out.sort(key=lambda r: (not r["pass"], -(r["rs"] or 0)))
     return out[:60]
+
+
+# ── S5：長線投信動能成長（月選）前瞻紙上交易 ─────────────────────────────
+# 出場選「−20% 停損・高點回落 30%・最長 250 日」而不是樣本內最高的「持有 6 個月」：
+# 樣本（2025-04～2026-09）全段多頭、沒有崩盤可測；移動出場在較大的群組（基準、只看動能）反而勝出，
+# 且是唯一在下跌段有保護的版本。進場延用短線研究最穩的結論：開高 ≥3% 不追（最多等 5 日）。
+S5 = {"key": "s5", "ver": 1, "since": "2026-10-14", "name": "長線：投信動能成長（月選）",
+      "init": 0.20, "trail": 0.30, "maxd": H12, "gap": 0.03, "wait": 5,
+      "rule": ["每月最後一個交易日收盤後篩選：投信關＋成長關＋動能關＋空間關四關全過",
+               "進場：隔日開盤買；開盤比前日收盤高 ≥3% 則不追，最多等 5 個交易日",
+               "出場：跌破進場價 −20% 停損；之後收盤從最高收盤回落 30% 出場；最長持有 250 個交易日",
+               "同一檔已持有中不重複買；部位：每檔停損時虧損 ≤ 總資金 1%、最多 8 檔、同產業 ≤3 檔"],
+      "pass": "滿 12 個月或 20 筆（先到者）：平均超額＞0 且中位數＞0"}
+
+
+def _rev_shard_avail(rev_shards: dict, d: str):
+    """前瞻期用官方月營收分片 {YYYY-MM: {code: [營收, 年增%, 累計年增%]}} → 篩選日可得月份。"""
+    y, m, day = int(d[:4]), int(d[5:7]), int(d[8:10])
+    m -= 1 if day >= 11 else 2
+    while m <= 0:
+        m += 12
+        y -= 1
+    return rev_shards.get(f"{y:04d}-{m:02d}") or {}
+
+
+def s5_trades(P: Panel, rev_hist: dict, rev_shards: dict, idx: list, io: list) -> dict:
+    cal = P.D.cal
+    T = P.T
+    names = P.D.names
+    recs, held_until = [], {}
+    for t in _month_ends(cal):
+        if t < 125 or P.trust_cov(t) < 15:
+            continue
+        d = cal[t]
+        rk = P.rs_rank(t)
+        shard = _rev_shard_avail(rev_shards, d) if d >= S5["since"] else {}
+        for c in P.codes:
+            if held_until.get(c, -1) >= t:
+                continue
+            f = P.factors(c, t, rk)
+            if not f or not (f["g_space"] and f["g_mom"] and f["g_trust"]):
+                continue
+            if d >= S5["since"]:
+                x = shard.get(c)
+                ok = bool(x and x[1] is not None and x[1] >= 20 and (x[2] or 0) >= 15)
+            else:
+                rv = _rev_avail(rev_hist.get(c) or {}, d)
+                ok = bool(rv and rv[0] >= 0.2 and (rv[1] or 0) >= 0.15)
+            if not ok:
+                continue
+            S = P.s[c]
+            base = {"c": c, "n": names.get(c, c), "d": d}
+            j = None
+            for k in range(t + 1, min(t + 1 + S5["wait"], T)):
+                if S["o"][k] and S["c"][k - 1] and S["o"][k] < S["c"][k - 1] * (1 + S5["gap"]):
+                    j = k
+                    break
+            if j is None:
+                if t + S5["wait"] < T:
+                    recs.append({**base, "st": "skip", "why": "連 5 日開高 ≥3%"})
+                else:
+                    recs.append({**base, "st": "cand"})
+                continue
+            e = S["o"][j]
+            stop, peak, xi = e * (1 - S5["init"]), e, None
+            last = min(j + S5["maxd"], T - 1)
+            for i in range(j, last + 1):
+                cl = S["c"][i]
+                if not cl:
+                    continue
+                peak = max(peak, cl)
+                stop = max(stop, peak * (1 - S5["trail"]))
+                if cl < stop:
+                    xi = i
+                    break
+            done = xi is not None or last == j + S5["maxd"]
+            xi = xi if xi is not None else max(i for i in range(j, last + 1) if S["c"][i])
+            r = S["c"][xi] / e - 1 - 0.00585
+            i0 = io[j] or idx[j - 1]
+            b = idx[xi] / i0 - 1 if idx[xi] and i0 else None
+            held_until[c] = xi if done else T
+            recs.append({**base, "st": "closed" if done else "open", "entry": e, "exit" if done else "now": S["c"][xi],
+                         "held": xi - t, "why": ("停損／回落出場" if xi - j < S5["maxd"] else "滿 250 日") if done else None,
+                         "r": round(r * 100, 2), "x": None if b is None else round((r - b) * 100, 2)})
+    fwd = [r for r in recs if r["d"] >= S5["since"]]
+    ins = [r for r in recs if r["d"] < S5["since"]]
+
+    def agg(rs):
+        xs = [r["r"] for r in rs if r.get("st") in ("closed", "open") and r.get("r") is not None]
+        if not xs:
+            return {"n": 0}
+        return {"n": len(xs), "avg": round(statistics.mean(xs), 1), "med": round(statistics.median(xs), 1),
+                "win": round(sum(1 for x in xs if x > 0) / len(xs) * 100),
+                "dbl": round(sum(1 for x in xs if x >= 100) / len(xs) * 100, 1),
+                "x": round(statistics.mean(r["x"] for r in rs if r.get("x") is not None), 1)
+                if any(r.get("x") is not None for r in rs) else None,
+                "open": sum(1 for r in rs if r.get("st") == "open")}
+    return {**{k: S5[k] for k in ("key", "ver", "since", "name", "rule", "pass")},
+            "fwd": fwd[-40:], "ins": ins[-40:], "fwd_stats": agg(fwd), "ins_stats": agg(ins)}

@@ -439,11 +439,11 @@ function vGrow(){
   const B=G.bt||{};const ms=B.months||[];
   let h=`<div class=card><h4>長線：投信動能成長股 <span class=pill>回測 ${ms.length} 個月${ms.length?`（${md(ms[0])}～${md(ms[ms.length-1])}）`:''}</span></h4>
 <ul class=doc style="margin:4px 0">
-<li class=st><b>投信關</b>：投信 20 日買超 ≥ 股本 0.5%，且 20 天中 ≥12 天買超（今日篩選另認：主動 ETF 20 日內 ≥2 家投信新建倉）</li>
+<li class=st><b>投信關</b>：投信 20 日買超 ≥ 股本 0.5%，且 20 天中 ≥12 天買超（今日篩選另認：主動 ETF 20 日內 ≥2 家投信新建倉、且投信整體 20 日未淨賣）</li>
 <li class=st><b>成長關</b>：最新月營收年增 ≥20%、累計年增 ≥15%</li>
 <li class=st><b>動能關</b>：收盤 > 60 日線 > 120 日線、60 日線上揚、距 120 日高點 20% 內、比低點高 30% 以上、120 日報酬全市場前 30%</li>
 <li class=st><b>空間關</b>：市值 50～1,500 億、20 日均成交值 ≥1 億</li>
-<li class=st><b>照規則操作</b>：隔日開盤進；停損 −10%；曾漲 30% 後停損拉到成本；之後收盤跌破 60 日線出場；最長 250 個交易日</li></ul>
+<li class=st><b>照規則操作（上表「照規則」欄）</b>：原規則——隔日開盤進；停損 −10%；曾漲 30% 後停損拉到成本；之後收盤跌破 60 日線出場。下方出場比較顯示它太緊，S5 已改用「−20% 停損・高點回落 30%」</li></ul>
 <div class=note>「曾翻倍」＝進場後 6／12 個月內最高價曾達進場價 2 倍（括號＝前瞻期完整的樣本數）；「照規則操作」＝真的照上面停損／移動出場做出來的報酬（已扣成本）。基準＝同期所有通過「空間關」的股票。宇宙只含現存上市櫃股，結果偏樂觀；兩年資料大致是多頭。</div>
 <div class=tw><table><thead><tr><th>組別</th><th>篩出檔次</th><th>6 個月內曾翻倍</th><th>12 個月內曾翻倍</th><th>6 個月期末 平均／中位</th><th>照規則 平均／中位</th><th>勝率</th><th>平均賺／平均賠</th><th>照規則翻倍比例</th></tr></thead><tbody>`+
     gRow('基準（空間關）',B.base)+gRow('只看動能',B.mom)+gRow('只看投信',B.trust)+gRow('投信＋動能',B.trust_mom)+gRow('四關全過',B.all4)+`</tbody></table></div>`;
@@ -453,6 +453,13 @@ function vGrow(){
       h+=`<tr class="${gk==='trust_mom'?'':'grey'}"><td>${gk==='trust_mom'?esc(EL[ek]):''}</td><td>${gl}</td><td>${x.n}</td><td>${sgn(x.avg,1,'%')}</td><td>${sgn(x.med,1,'%')}</td><td>${x.win}%</td><td>${x.aw==null?'—':sgn(x.aw,1,'%')}／${x.al==null?'—':sgn(x.al,1,'%')}</td><td>${f(x.dbl,1)}%</td><td>${x.days} 日</td></tr>`;}}
     h+=`</tbody></table></div>`;}
   if((B.top||[]).length)h+=`<div class=st style="margin-top:6px">歷史篩出、漲最多的：`+B.top.slice(0,8).map(x=>`${esc(x[1])}（${md(x[2])} 篩出，最高 +${x[3]}%${x[4]!=null?'，照規則 '+(x[4]>0?'+':'')+x[4]+'%':''}）`).join('、')+`</div>`;
+  const S5=G.s5;
+  if(S5){const st5=(g)=>g&&g.n?`平均 ${sgn(g.avg,1,'%')}、中位 ${sgn(g.med,1,'%')}、勝率 ${g.win}%、翻倍 ${f(g.dbl,1)}%、平均超額 ${sgn(g.x,1,'%')}（${g.n} 筆，持有中 ${g.open}）`:'尚無';
+    h+=`<h4 style="margin:12px 0 4px">${esc(S5.name)} <span class=pill>v${S5.ver}・${md(S5.since)} 起</span> <span class=pill style="background:rgba(37,99,201,.1);color:#1c4fa8">驗證中</span></h4><ul class=doc style="margin:4px 0">${(S5.rule||[]).map(x=>`<li class=st>${esc(x)}</li>`).join('')}<li class=st>驗證：${esc(S5.pass)}</li></ul>`+
+      `<div class=st><b>前瞻紙上交易：</b>${st5(S5.fwd_stats)}</div><div class=st>樣本內參考（同規則、2025-04 起）：${st5(S5.ins_stats)}。成績集中在趨勢明確的月份（2025/10～2026/2），盤整月份多為 −20% 停損——這是動能策略的常態，不是例外。</div>`;
+    const rows=[...(S5.fwd||[]).map(x=>({...x,f:1})),...(S5.ins||[]).slice().reverse()];
+    if(rows.length)h+=`<div class=tw><table><thead><tr><th>代號／名稱</th><th>篩選月</th><th>狀態</th><th>進場</th><th>出場／現價</th><th>持有</th><th>報酬</th><th>超額</th></tr></thead><tbody>`+
+      rows.slice(0,40).map(t=>`<tr data-c="${esc(t.c)}" class="${t.f?'':'grey'}"><td><span class=nm>${esc(t.n)}</span><span class=cd>${esc(t.c)}${t.f?'':'・樣本內'}</span></td><td>${esc((t.d||'').slice(0,7))}</td><td>${t.st==='open'?'持有中':t.st==='skip'?'放棄：'+esc(t.why||''):t.st==='cand'?'待進場':esc(t.why||'')}</td><td>${t.entry==null?'—':f(t.entry,2)}</td><td>${t.exit!=null?f(t.exit,2):t.now!=null?f(t.now,2):'—'}</td><td>${t.held==null?'—':t.held+' 日'}</td><td>${sgn(t.r,1,'%')}</td><td>${t.x==null?'—':sgn(t.x,1,'%')}</td></tr>`).join('')+`</tbody></table></div>`;}
   const sc=G.screen||[];const ok=sc.filter(x=>x.pass);
   h+=`<h4 style="margin:12px 0 4px">今日篩選 <span class=pill>四關全過 ${ok.length}</span> <span class=pill>差一關 ${sc.length-ok.length}</span></h4><div class=note>月營收：${esc(G.rev_ym||'尚無')}；宇宙 ${G.n_uni||0} 檔。進場仍照短線研究的結論：不追開高 3% 以上，等突破隔日或回測 20 日線。</div>`;
   const ck=b=>b?'<span class=up>✓</span>':'<span class=mu>✗</span>';

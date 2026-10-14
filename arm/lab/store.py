@@ -58,7 +58,9 @@ def dates(kind: str) -> list[str]:
     d = LAB / kind
     if not d.exists():
         return []
-    return sorted(p.name[:10] for p in d.glob("*.json.gz"))
+    # 用副檔名切、不要固定取前 10 字：月份分片叫 2026-09.json.gz，前 10 字會變成「2026-09.js」
+    #（2026-10-14 踩坑：月營收整份讀不到，長線篩選的成長關全數落空）
+    return sorted(p.name[:-len(".json.gz")] for p in d.glob("*.json.gz"))
 
 
 def load(kind: str, *, since: str | None = None, last: int | None = None) -> list[tuple[str, dict]]:
