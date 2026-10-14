@@ -172,6 +172,29 @@ def test_page_has_no_banned_words():
     assert not [w for w in banned if w in text]
 
 
+def test_page_layout_six_tabs_today_first_and_glossary():
+    """2026-10-14 改版定案：今日｜個股｜投信｜訊號｜策略｜指數，一打開是「今日」；「說明」改為 ⓘ 名詞。"""
+    import re
+    tabs = re.findall(r'<a data-t="(\w+)">([^<]+)</a>', page._HTML)
+    assert tabs == [("today", "今日"), ("stk", "個股"), ("iss", "投信"), ("sig", "訊號"),
+                    ("st", "策略"), ("idx", "指數")]
+    assert 'id="glb"' in page._HTML and "說明</a>" not in page._HTML
+    assert "go('today');" in page._JS
+    js_views = re.search(r"const VIEWS=\{([^}]*)\}", page._JS).group(1)
+    assert [k.split(":")[0] for k in js_views.split(",")] == [t for t, _ in tabs]
+
+
+def test_asof_line_merges_same_day_and_flags_lagging():
+    data = {"asof": {"pos": "2026-10-13", "px": "2026-10-13", "chip": "2026-10-13",
+                     "margin": "2026-10-12", "tdcc": "2026-10-08"},
+            "etfs": {"A": {"d": "2026-10-13"}, "B": {"d": "2026-10-12"}}}
+    s = page.asof_line(data)
+    assert s.startswith("資料日 10/13")
+    assert "融資券 10/12" in s and "價量" not in s and "法人" not in s
+    assert "集保 10/8（每週）" in s and "ETF 揭露 1/2 檔到 10/13" in s
+    assert page.asof_line({}) == "尚無資料"
+
+
 def test_entrance_is_low_key_footer_link_only():
     """入口只在頁尾、不進導覽列（使用者：沒那麼好找到就好）。"""
     from pathlib import Path
