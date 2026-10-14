@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-10-14 14:54",
+  "as_of": "2026-10-14 16:24",
   "funds": [
     {
       "id": "47",
@@ -40,8 +40,8 @@
       "group": "global_equity",
       "category": "跨國投資股票型",
       "region": "大中華地區",
-      "nav": 71.94,
-      "nav_date": "2026/10/12",
+      "nav": 70.74,
+      "nav_date": "2026/10/13",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -51,8 +51,8 @@
       "group": "global_equity",
       "category": "跨國投資股票型",
       "region": "亞太地區",
-      "nav": 43.88,
-      "nav_date": "2026/10/12",
+      "nav": 42.66,
+      "nav_date": "2026/10/13",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -62,8 +62,8 @@
       "group": "global_equity",
       "category": "跨國投資股票型",
       "region": "亞太地區",
-      "nav": 51.04,
-      "nav_date": "2026/10/12",
+      "nav": 49.69,
+      "nav_date": "2026/10/13",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -106,8 +106,8 @@
       "group": "global_balanced",
       "category": "跨國投資平衡型",
       "region": "全球",
-      "nav": 55.79,
-      "nav_date": "2026/10/12",
+      "nav": 55.06,
+      "nav_date": "2026/10/13",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -128,8 +128,8 @@
       "group": "global_balanced",
       "category": "跨國投資平衡型",
       "region": "亞太地區",
-      "nav": 34.7,
-      "nav_date": "2026/10/12",
+      "nav": 34.06,
+      "nav_date": "2026/10/13",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -150,8 +150,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 131.43,
-      "nav_date": "2026/10/13",
+      "nav": 132.45,
+      "nav_date": "2026/10/14",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -161,8 +161,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 468.28,
-      "nav_date": "2026/10/13",
+      "nav": 472.17,
+      "nav_date": "2026/10/14",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -172,8 +172,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 169.73,
-      "nav_date": "2026/10/13",
+      "nav": 171.0,
+      "nav_date": "2026/10/14",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -183,8 +183,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 464.37,
-      "nav_date": "2026/10/13",
+      "nav": 468.36,
+      "nav_date": "2026/10/14",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -216,8 +216,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 17.21,
-      "nav_date": "2026/10/13",
+      "nav": 17.32,
+      "nav_date": "2026/10/14",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -227,8 +227,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 19.21,
-      "nav_date": "2026/10/13",
+      "nav": 19.28,
+      "nav_date": "2026/10/14",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -238,8 +238,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 16.83,
-      "nav_date": "2026/10/13",
+      "nav": 16.89,
+      "nav_date": "2026/10/14",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -304,8 +304,8 @@
       "group": "global_equity",
       "category": "跨國投資指數型",
       "region": "全球",
-      "nav": 27.16,
-      "nav_date": "2026/10/12",
+      "nav": 27.3,
+      "nav_date": "2026/10/13",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -326,8 +326,8 @@
       "group": "global_equity",
       "category": "跨國投資指數型",
       "region": "全球",
-      "nav": 10.89,
-      "nav_date": "2026/10/12",
+      "nav": 10.9,
+      "nav_date": "2026/10/13",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -337,8 +337,8 @@
       "group": "tw_equity",
       "category": "國內投資指數型",
       "region": "台灣",
-      "nav": 10.41,
-      "nav_date": "2026/10/13",
+      "nav": 10.43,
+      "nav_date": "2026/10/14",
       "as_of": null,
       "n_top": 10
     }
