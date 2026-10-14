@@ -42,8 +42,18 @@ def main() -> None:
         collect.backfill_yahoo(min_cap=30e8, budget_s=1200)
         left = a.budget_min * 60 - (_t.time() - t0)
         days = collect.candidate_days(today, 735)
-        st = collect.fill_market(days, lambda d: ["i_tp", "i_tw"], budget_s=max(left, 60), today=today)
+        collect.update_revenue()
+        st = collect.fill_market(days, lambda d: ["i_tp", "i_tw"], budget_s=max(left - 600, 60), today=today)
         print(f"[lab] 兩年投信買賣超回補：{st}")
+        # 長線候選股（投信關＋動能關曾同時通過）才抓營收歷史，請求最少
+        try:
+            from arm.lab import analyze, growth
+            P = growth.Panel(analyze.Data())
+            bt = growth.backtest(P, {})
+            print(f"[lab] 長線候選 {len(bt['cand_codes'])} 檔、篩選月份 {bt['months']}")
+            collect.backfill_rev_hist(bt["cand_codes"], budget_s=max(a.budget_min * 60 - (_t.time() - t0), 60))
+        except Exception as e:                            # noqa: BLE001
+            print(f"[lab] 營收歷史步驟失敗：{type(e).__name__}: {e}")
         return
     if a.probe2:
         market.probe2(collect.candidate_days(today, 7)[1])

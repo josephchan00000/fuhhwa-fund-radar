@@ -397,3 +397,45 @@ def backfill_yahoo(*, top: int = 250, budget_s: float = 900, min_cap: float | No
                 break
     market.log(f"Yahoo 歷史日線：宇宙 {len(todo)} 檔、本輪新增 {n} 檔")
     return n
+
+
+# ── 月營收（官方，每月一次）與營收歷史（FinMind，只抓長線候選股） ───────────
+
+def update_revenue() -> bool:
+    last = store.dates("rev")
+    if last and (clock.today_tw() - date.fromisoformat(last[-1] + "-01")).days < 35:
+        # 已有最近一個月；每月 10 日後才可能有新月份
+        if clock.today_tw().day < 10 or last[-1] >= (clock.today_tw().replace(day=1) - timedelta(days=1)).strftime("%Y-%m"):
+            return False
+    ym, data = market.fetch_revenue()
+    if not ym or len(data) < 1000:
+        market.log(f"月營收解析偏少：{len(data)} 檔（{ym}）")
+        return False
+    store.write("rev", ym, {"ym": ym, "s": data})
+    market.log(f"月營收 {ym}：{len(data)} 檔")
+    return True
+
+
+def backfill_rev_hist(codes: list[str], *, budget_s: float = 1200) -> int:
+    t0 = time.time()
+    have = set()
+    d = store.LAB / "revh"
+    if d.exists():
+        have = {p.name.split(".json")[0] for p in d.glob("*.json.gz")}
+    n = fail = 0
+    for c in codes:
+        if c in have:
+            continue
+        if time.time() - t0 > budget_s or fail >= 5:
+            market.log(f"營收歷史：停在 {c}（已補 {n} 檔；失敗 {fail}）")
+            break
+        r = market.finmind_revenue(c)
+        time.sleep(1.2)
+        if r:
+            store.write("revh", c, {"r": r})
+            n += 1
+            fail = 0
+        else:
+            fail += 1
+    market.log(f"營收歷史（FinMind）：候選 {len(codes)} 檔、本輪新增 {n}")
+    return n
