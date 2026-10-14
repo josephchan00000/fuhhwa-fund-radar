@@ -236,6 +236,20 @@ h4.sh{font-size:14px;margin:14px 0 6px;color:var(--ink)}
 .pill{display:inline-block;font-size:11.5px;padding:0 6px;border-radius:7px;background:var(--card2);color:var(--mut);font-weight:600}
 .k-new{color:var(--gain);font-weight:700}.k-add{color:var(--gain)}.k-cut{color:var(--loss)}.k-exit{color:var(--loss);font-weight:700}
 .grey td{color:#a0a8b3}
+.stc{padding:6px 14px 10px}
+.sq{display:grid;grid-template-columns:5.6em minmax(0,1fr);gap:4px 12px;padding:10px 0;border-top:1px solid var(--line)}
+.sq:first-child{border-top:0}
+.sqk{font-weight:700;color:var(--accd);font-size:13.5px;white-space:nowrap;padding-top:1px}
+.sq>div{font-size:14px;line-height:1.75;min-width:0}
+.sqe{margin-top:5px;font-size:13px;color:var(--ink2);background:var(--card2);border-radius:8px;padding:6px 10px}
+.fxs{display:flex;flex-wrap:wrap;gap:2px 16px}.fx{font-size:13.5px;color:var(--ink2)}
+.pcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.pcn{font-size:13.5px;color:var(--ink2);margin:0 0 8px}
+.pc{border:1px solid var(--line);border-radius:10px;padding:8px 12px 9px}
+.pch{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:3px}.pch a b{font-size:15px}.pk{color:var(--ink)}
+.pcr{display:grid;grid-template-columns:4.8em minmax(0,1fr);gap:8px;font-size:13px;line-height:1.7}.pcr>span:first-child{color:var(--mut)}
+.pcw{font-size:12.5px;line-height:1.65;margin-top:5px;color:var(--ink2)}.pcw b{margin-right:6px;color:var(--mut);font-weight:600}
+.pcx{font-size:12.5px;line-height:1.6;margin-top:4px;color:var(--warn)}
 .dv{position:fixed;inset:0;z-index:50;background:rgba(15,23,42,.35);overflow-y:auto;overscroll-behavior:contain}
 h3{font-size:14.5px;margin:18px 0 6px;color:var(--accd)}
 .dvin{background:var(--bg);max-width:980px;margin:0 auto;min-height:100%;padding:0 16px 60px}
@@ -261,6 +275,7 @@ h3{font-size:14.5px;margin:18px 0 6px;color:var(--accd)}
 .kp>em{display:block;font-style:normal;font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kps .kp>b{font-size:15px}
 .hdt td,.hdt th{padding:6px 7px}
+
 .pasl{margin:10px 0 0;font-size:13.5px;line-height:1.8}.nw{white-space:nowrap}
 .sgi{padding:8px 0;border-bottom:1px solid var(--line)}
 .lg{margin-top:6px}.lg .dsh{width:16px;height:0;border-top:2px dashed #a16207;background:none}.lg b{font-size:11px;margin-right:3px}
@@ -295,6 +310,7 @@ ul.doc{padding-left:18px}ul.doc li{margin:4px 0}
  .stk td:first-child{min-width:92px;max-width:118px}.stk .nm,.stk .cd{max-width:108px}
  .hm{display:none}
  .isr{grid-template-columns:1fr;gap:2px}.rl{grid-template-columns:4em minmax(0,1fr)}
+ .sq{grid-template-columns:1fr;gap:3px}.stc{padding:4px 12px 8px}
  .kp>b{font-size:16px}.kps{grid-template-columns:repeat(2,minmax(0,1fr))}.kps.k3{grid-template-columns:repeat(3,minmax(0,1fr))}
  .dvt{gap:8px}.dvt .ttl b{font-size:17px}.pxw b{font-size:16px}
 }
@@ -329,9 +345,9 @@ const GL={
 '持有 ETF':'目前持有這檔股票的追蹤 ETF 檔數（主動式／被動式）。',
 '新建倉':'主動 ETF 在觀測期內第一次持有這檔股票。',
 '建倉日':'觀測期內第一次出現在該 ETF 持股的日期；標「≤」代表觀測起點前就已持有。',
-'主動成本':'主動 ETF 的估計平均持有成本：每次加碼按當日成交均價入帳、減碼按平均成本沖銷。未計配息。',
-'成本乖離':'現價比主動 ETF 估計成本高（正）或低（負）多少 %。',
-'成本品質':'A＝觀測期內才建倉，成本逐筆入帳算出；B＝觀測起點前就已持有，成本以第一次觀測日的均價代入，只是近似值。',
+'主動成本':'近期新建倉的主動 ETF 平均買在多少：只算開始追蹤（7/27 起）之後才新建倉的部位——建倉、加碼按當天成交均價入帳，減碼按平均成本扣除，再把各檔 ETF 合起來平均。追蹤前就持有的舊部位，網路上查不到真正的買價，所以不計。未計配息與手續費。',
+'成本乖離':'現價比主動 ETF 新建倉成本高（正）或低（負）多少 %。沒有近期新建倉的股票不計算。',
+
 '超配':'主動 ETF 給這檔的平均權重，減去它占台股（上市＋上櫃普通股）總市值的比重，單位百分點。正＝比市值權重更看好。台積電在主動 ETF 約占一成、市值占比卻近四成，所以是負的。',
 'ETF 持股率':'所有追蹤 ETF 合計持股 ÷ 發行股數。',
 '消化天數':'ETF 合計持股 ÷ 20 日均量：如果這些 ETF 一起出清，大約要賣幾天。',
@@ -361,7 +377,7 @@ const GL={
 '前瞻':'規則起算日之後才發生的訊號；這部分的成績才算數。',
 '驗證期滿':'累積 30 筆交易或 30 個交易日（先到者）。平均超額＞0 且勝率＞50% 才算達標。',
 };
-const GLG=[['ETF 面',['真加碼','申贖倍率','主動 5 日淨買','加碼／減碼家數','持有 ETF','新建倉','建倉日','主動成本','成本乖離','成本品質','超配','ETF 持股率','消化天數']],
+const GLG=[['ETF 面',['真加碼','申贖倍率','主動 5 日淨買','加碼／減碼家數','持有 ETF','新建倉','建倉日','主動成本','成本乖離','超配','ETF 持股率','消化天數']],
  ['法人籌碼',['投信 5 日','外資 5 日','連買','60 日買超均價','融資','借券賣出','千張大戶']],
  ['技術面',['趨勢','乖離','量比','RSI','KD','MACD','一年區間位置','相對大盤','ATR','日均成交']],
  ['成績與策略',['超額','勝率','隔夜跳空','樣本','紙上交易','樣本內','前瞻','驗證期滿']]];
@@ -639,36 +655,107 @@ function vIdx(){
   $('#main').innerHTML=h;
 }
 
-/* ---------- 策略＋紙上交易 ---------- */
-const STYPE={s1:'短線・持有 3 日',s4:'短線・持有 10 日',s3:'事件・臺灣50 換股',s5:'長線・每月選股'};
+/* ---------- 策略＋紙上交易（每條一張卡、四個小標：在賭什麼／為什麼有效／候選／會失效；細節收在展開） ---------- */
+const STYPE={s1:'短線・持有 3 天',s4:'短線・持有 10 天',s3:'事件・臺灣50 換股',s5:'長線・每月選股'};
 function stStat(g){return g&&g.n?`平均超額 ${sgn(g.x,2,'%')}、中位 ${sgn(g.xm,2,'%')}、勝率 ${f(g.w,0)}%（${g.n} 筆）`:'尚無已出場交易';}
 function stShort(g,s5){return g&&g.n?(s5?`平均 ${sgn(g.avg,1,'%')}・勝率 ${g.win}%（${g.n} 筆）`:`超額 ${sgn(g.x,2,'%')}・勝率 ${f(g.w,0)}%（${g.n} 筆）`):'<span class=mu>尚無</span>';}
 function st5(g){return g&&g.n?`平均 ${sgn(g.avg,1,'%')}、中位 ${sgn(g.med,1,'%')}、勝率 ${g.win}%、翻倍 ${f(g.dbl,1)}%、平均超額 ${sgn(g.x,1,'%')}（${g.n} 筆${g.open?`，持有中 ${g.open}`:''}）`:'尚無已出場交易';}
 function ruleRows(rules){return rules.map(x=>{const i=x.indexOf('：');const lab=i>0&&i<=8?x.slice(0,i):'';return `<div class="rl${lab?'':' nl'}">${lab?`<span class=rlk>${esc(lab)}</span>`:''}<span>${esc(lab?x.slice(i+1):x)}</span></div>`;}).join('');}
-function stBadge(s,P){return s.status==='達標'?'<span class=pill style="background:#fdecea;color:#d33a34">達標</span>':s.status==='不達標'?'<span class=pill>不達標</span>':`<span class=pill style="background:rgba(37,99,201,.1);color:#1c4fa8">驗證中 ${s.event?`${s.days}／2 次審核`:`${(s.fwd_stats||{}).n||0}／${P[0]} 筆・${s.days}／${P[1]} 日`}</span>`;}
+function stBadge(s,P){return s.status==='達標'?'<span class=pill style="background:#fdecea;color:#d33a34">達標</span>':s.status==='不達標'?'<span class=pill>不達標</span>':`<span class=pill style="background:rgba(37,99,201,.1);color:#1c4fa8">驗證中 ${s.event?`${s.days}／2 次審核`:`${(s.fwd_stats||{}).n||0}／${P[0]} 筆`}</span>`;}
 function tradeTbl(rows,monthly){return `<div class=tw><table><thead><tr><th>股票</th><th>${monthly?'篩選月':'訊號日'}</th><th class=l>狀態</th>${monthly?'':'<th>跳空</th>'}<th>進場</th><th>出場／現價</th><th>持有</th><th>報酬</th><th>超額${gi('超額')}</th></tr></thead><tbody>`+
-  rows.map(t=>`<tr data-c="${esc(t.c)}" class="${t.st==='skip'||t.ins?'grey':''}"><td><span class=nm>${esc(t.n)}</span><span class=cd>${esc(t.c)}${t.ins?'・樣本內':''}</span></td><td>${monthly?esc((t.d||'').slice(0,7)):md(t.d)}</td><td class=l>${t.st==='skip'?'放棄：'+esc(t.why||''):t.st==='open'?'持有中':t.st==='cand'?'待進場':esc(t.why||'')}${t.review?` <span class=pill>${esc(t.review)}</span>`:''}</td>${monthly?'':`<td>${t.gap==null?'—':sgn(t.gap,1,'%')}</td>`}<td>${t.entry==null?'—':fp(t.entry)}</td><td>${t.exit!=null?fp(t.exit):t.now!=null?fp(t.now):'—'}</td><td>${t.held==null?'—':t.held+' 日'}</td><td>${sgn(t.r,1,'%')}</td><td>${t.x==null?'—':sgn(t.x,1,'%')}</td></tr>`).join('')+`</tbody></table></div>`;}
+  rows.map(t=>`<tr data-c="${esc(t.c)}" class="${t.st==='skip'?'grey':''}"><td><span class=nm>${esc(t.n)}</span><span class=cd>${esc(t.c)}</span></td><td>${monthly?esc((t.d||'').slice(0,7)):md(t.d)}</td><td class=l>${t.st==='skip'?'放棄：'+esc(t.why||''):t.st==='open'?'持有中':t.st==='cand'?'待進場':esc(t.why||'')}${t.side?` <span class=pill>${t.side==='add'?'納入':'刪除'}</span>`:''}</td>${monthly?'':`<td>${t.gap==null?'—':sgn(t.gap,1,'%')}</td>`}<td>${t.entry==null?'—':fp(t.entry)}</td><td>${t.exit!=null?fp(t.exit):t.now!=null?fp(t.now):'—'}</td><td>${t.held==null?'—':t.held+' 日'}</td><td>${sgn(t.r,1,'%')}</td><td>${t.x==null?'—':sgn(t.x,1,'%')}</td></tr>`).join('')+`</tbody></table></div>`;}
+function pctT(x,d=1){return x==null?'—':(x>0?'+':x<0?'−':'')+f(Math.abs(x),d)+'%';}
+function lv(px,p){return px*(1+p/100);}
+function sq(k,v){return `<div class=sq><span class=sqk>${k}</span><div>${v}</div></div>`;}
+function failRow(xs){return (xs||[]).map((x,i)=>`<span class=fx>${'①②③④'[i]||'・'} ${esc(x)}</span>`).join('');}
+function stW(){return Math.max(280,Math.min(760,($('#main').clientWidth||360)-34));}
+/* 持有天數掃描：每根柱子＝第 N 天收盤出場的平均超額；本策略紅綠、對照組灰；藍底＝採用的天數 */
+function scanChart(sc,hold){if(!sc||!(sc.grp||[]).length)return '';const H=sc.h,g=sc.grp,W=stW(),HH=150,pl=40,pr=6,pt=12,pb=22;
+  const vals=g.flatMap(x=>x.x).filter(v=>v!=null);if(!vals.length)return '';const mx=Math.max(1,...vals.map(Math.abs));
+  const y=v=>pt+(HH-pt-pb)/2*(1-v/mx),z=y(0),cw=(W-pl-pr)/H,bw=Math.max(2,Math.min(14,cw/(g.length+.8)));
+  let s='';if(hold&&hold<=H){const cx=pl+(hold-.5)*cw;s+=`<rect x=${(cx-cw/2).toFixed(1)} y=${pt-8} width=${cw.toFixed(1)} height=${HH-pt-pb+14} fill="#e8effb" rx=3 />`;}
+  s+=`<line x1=${pl} x2=${W-pr} y1=${z.toFixed(1)} y2=${z.toFixed(1)} stroke="#c9d0da"/>`;
+  for(const t of [mx,-mx])s+=`<text x=${pl-5} y=${(y(t)+4).toFixed(0)} font-size=11 fill="#727e8c" text-anchor=end>${t>0?'+':'−'}${f(Math.abs(t),1)}%</text>`;
+  s+=`<text x=${pl-5} y=${(z+4).toFixed(0)} font-size=11 fill="#727e8c" text-anchor=end>0</text>`;
+  for(let h=1;h<=H;h++){const cx=pl+(h-.5)*cw;
+    g.forEach((gr,k)=>{const v=gr.x[h-1];if(v==null)return;const x0=cx+(k-(g.length-1)/2)*bw*1.1-bw/2,hh=Math.max(1,Math.abs(y(v)-z));
+      s+=`<rect x=${x0.toFixed(1)} y=${Math.min(y(v),z).toFixed(1)} width=${bw.toFixed(1)} height=${hh.toFixed(1)} fill="${k?'#b6bfcb':v>=0?'#d33a34':'#1f9d57'}"/>`;});
+    if(H<=10||h%2===1||h===hold)s+=`<text x=${cx.toFixed(1)} y=${HH-6} font-size=11 fill="${h===hold?'#1c4fa8':'#727e8c'}" font-weight="${h===hold?700:400}" text-anchor=middle>${h}</text>`;}
+  return `<svg width=${W} height=${HH} viewBox="0 0 ${W} ${HH}">${s}</svg><div class=lg><span><i style="background:#d33a34"></i>${esc(g[0].lbl)}（紅＝贏大盤、綠＝輸）</span>${g[1]?`<span><i style="background:#b6bfcb"></i>${esc(g[1].lbl)}</span>`:''}<span>橫軸＝持有天數；藍底＝採用 ${hold} 天</span></div>`;}
+function scanLine(s){const sc=s.scan;if(!sc||!(sc.grp||[]).length)return '';const H=sc.h,h=Math.min(s.hold||1,H);
+  const win=gr=>gr.x.filter(v=>v!=null&&v>0).length,nm=gr=>esc(gr.lbl.replace(/（.*?）/g,''));const a=sc.grp[0],b=sc.grp[1];
+  return `樣本內，${nm(a)}的 ${a.n[h-1]} 筆：持有 1～${H} 天中 <b>${win(a)} 個</b>天數平均贏大盤`+(b?`；${nm(b)}的 ${b.n[h-1]} 筆只有 <b>${win(b)} 個</b>`:'')+'。';}
+function distTxt(ds,net){if(!ds||!ds.n||!ds.p)return '';const p=ds.p;
+  return `${ds.n} 筆的出場價相對進場價：一成 ≤ ${pctT(p[0])}、四分之一 ≤ ${pctT(p[1])}、中位 ${pctT(p[2])}、四分之一 ≥ ${pctT(p[3])}、一成 ≥ ${pctT(p[4])}。`+
+    (net!==false&&ds.aw!=null?`扣成本後賺的平均 ${pctT(ds.aw)}、賠的平均 ${pctT(ds.al)}`:'')+(ds.stop!=null&&net!==false?`；停損 ${ds.stop} 次。`:'');}
+function moTxt(ds){return ds&&(ds.mo||[]).length?'逐月平均超額：'+ds.mo.map(m=>`${+m[0].slice(5)} 月 ${m[1]} 筆 ${pctT(m[2])}`).join('｜'):'';}
+/* 候選的交易計畫：進場／停損／出場／過去同類（歷史分布換算的價位，非預測）＋入選理由 */
+function pcRow(k,v){return `<div class=pcr><span>${k}</span><span>${v}</span></div>`;}
+function pcHead(c,px){const t=`<b>${esc(c.n)}</b> <span class=cd>${esc(c.c)}</span>`;return `<div class=pch>${BY[c.c]?`<a data-c="${esc(c.c)}">${t}</a>`:`<span>${t}</span>`}<span class=mu>收 <b class=pk>${fp(px)}</b></span></div>`;}
+function pastRow(ds,px){const p=ds&&ds.p;return p&&px?pcRow('過去同類',`中位 <b>${fp(lv(px,p[2]))}</b>，一半落在 ${fp(lv(px,p[1]))}～${fp(lv(px,p[3]))}`):'';}
+function pastNote(ds){return ds&&ds.n?`「過去同類」＝同一條規則過去 ${ds.n} 筆交易的出場價（相對進場價），換算到這檔今天的收盤。`:'';}
+function whyS(k,c,r){const L=[];
+  if(k==='s1'){const ia=r.ia5||[];if(ia.length)L.push(`5 日內 ${ia.length} 家投信加碼（${esc(ia.slice(0,3).join('、'))}${ia.length>3?'等':''}）`);if(r.a5v!=null)L.push(`主動 ETF 淨買 ${f(r.a5v,1)} 億`);}
+  if(k==='s4'){const nb=(r.hd||[]).filter(x=>(E[x[0]]||{}).is==='群益'&&x[3]===c.d).map(x=>x[0]);L.push(nb.length?`群益 ${esc(nb.join('、'))} 新建倉`:'群益主動 ETF 新建倉');}
+  return L.join('；');}
+function refS(r){const L=[];if(r.cost!=null&&r.dev!=null)L.push(`比新建倉成本${r.dev>=0?'高':'低'} ${f(Math.abs(r.dev),1)}%`);
+  if(r.t5!=null)L.push(`投信 5 日 ${pm(r.t5)} 張`);if(r.f5!=null)L.push(`外資 5 日 ${pm(r.f5)} 張`);return L.join('、');}
+function warnS(r){const W=[];if((r.sg||[]).some(x=>RISK.has(x)))W.push('同時有集體撤退訊號');
+  if(r.b20!=null&&r.b20>=15)W.push(`離 20 日線已 +${f(r.b20,0)}%`);if(r.liq!=null&&r.liq<1)W.push(`日均成交僅 ${f(r.liq,2)} 億`);return W.join('；');}
+function planS(s,c){const r=BY[c.c]||{},px=c.px,ds=s.dist||{};
+  let b=s.key==='s1'?pcRow('進場',`開盤<b>低於 ${fp(px)}</b>`):'';
+  if(c.stop!=null)b+=pcRow('停損',`<b>${fp(c.stop)}</b>（${pctT((c.stop/px-1)*100)}）`);
+  b+=pastRow(ds,px);
+  const w=whyS(s.key,c,r),rf=refS(r),wn=warnS(r);
+  return `<div class=pc>${pcHead(c,px)}${b}${w?`<div class=pcw><b>入選</b>${w}</div>`:''}${rf?`<div class=pcw><b>參考</b>${rf}</div>`:''}${wn?`<div class=pcx>注意：${wn}</div>`:''}</div>`;}
+function stCard(s,P,cand,ev,more){
+  let b=sq('在賭什麼',esc(s.bet||''))+sq('為什麼有效',`${esc(s.why||'')}${ev?`<div class=sqe>${ev}</div>`:''}`)+cand+sq('會失效',`<div class=fxs>${failRow(s.fail)}</div>`);
+  b+=`<details class=mr><summary>證據圖、完整規則與交易明細</summary>${more}</details>`;
+  return sec('st-'+s.key,s.nav||s.name.split(/[（・(]/)[0],`${esc(s.name)} ${stBadge(s,P)}`,esc(STYPE[s.key]||''),`<div class="card stc">${b}</div>`);}
+function moreS(s){const sc=s.scan,ins=(s.ins||[]).slice().reverse(),fw=(s.fwd||[]).slice().reverse();
+  let m='';if(sc)m+=`<h4 class=sh>持有 1～${sc.h} 天的平均超額（樣本內）</h4>${scanChart(sc,s.hold)}<div class=note>每根柱子＝在第 N 天收盤出場時，平均比大盤多賺（紅）或少賺（綠）多少——用來確認結論不是只在某個持有天數才成立。</div>`;
+  const ds=s.dist||{};if(ds.n)m+=`<h4 class=sh>照規則做的結果（樣本內，含停損、扣成本）</h4><div class=st>${stStat(s.ins_stats)}。${distTxt(ds)}</div><div class=st>${moTxt(ds)}</div>`;
+  if((s.more||[]).length)m+=`<div class=st style="margin-top:6px">${(s.more||[]).map(esc).join('<br>')}</div>`;
+  m+=`<h4 class=sh>完整規則 <span class=pill>v${s.ver}・${md(s.since)} 起算</span></h4><div class=rls>${ruleRows(s.rule||[])}</div>`;
+  if(fw.length)m+=`<h4 class=sh>紙上交易紀錄（${fw.length} 筆）</h4>${tradeTbl(fw,false)}`;
+  if(ins.length)m+=`<details class=mr><summary>樣本內交易 ${ins.length} 筆</summary>${tradeTbl(ins,false)}</details>`;
+  return m;}
+function candS(s){const cs=s.cands||[],lbl='明日候選',c0=cs[0];
+  if(!cs.length)return sq(lbl,`<span class=mu>今天沒有${s.key==='s4'?'（群益今天沒有新建倉）':'（今天沒有新亮燈的股票）'}</span>`);
+  const how=`${c0.ent?md(c0.ent)+' ':''}${s.key==='s1'?'開盤價低於今天收盤才買（8:59 看試撮），開平或開高就放棄':'開盤買'}；${c0.out?md(c0.out)+' ':'第 '+s.hold+' 個交易日'}收盤賣出，期間收盤跌破停損價就提早出。`;
+  return sq(lbl,`<div class=pcn>${how}</div><div class=pcs>${cs.map(c=>planS(s,c)).join('')}</div><div class=note>${pastNote(s.dist)}</div>`);}
+function s3Ev(s){const a=(s.sides||{}).add||{},d=(s.sides||{}).del||{},p5=s.post5||{};const L=[];
+  if(a.n)L.push(`納入股 ${a.n} 檔平均贏大盤 ${pctT(a.x)}（${a.w}% 贏）`);if(d.n)L.push(`刪除股 ${d.n} 檔平均贏大盤 ${pctT(d.x)}（${d.w}% 贏）`);
+  const rv=[...new Set((s.ins||[]).map(x=>x.review).filter(Boolean))].sort();
+  const ys={};rv.forEach(x=>{const m=x.match(/^(\d{4})-0?(\d+)$/);if(m)(ys[m[1]]=ys[m[1]]||[]).push(m[2]);});
+  const rvT=Object.entries(ys).map(([y,ms])=>`${y} 年 ${ms.join('／')} 月`).join('、');
+  let t=L.length?`過去 ${rv.length} 次（${rvT}）照規則做：${L.join('；')}。`:'';
+  if(p5.n)t+=`納入股生效後若續抱 5 天，平均 ${pctT(p5.r)}（只有 ${p5.w}% 賺）——所以生效日一定要出。`;return t;}
+function s3Cand(){const cal=((D.idx||{}).cal||[]).find(r=>r[0]==='tw50'),t=(D.idx||{}).tw50||{};
+  let v=cal?`${md(cal[5])} 公告、${md(cal[6])} 生效${cal[8]==='推算'?'（日期為推算）':''}。官方公告後才有候選。`:'等下一次官方公告。';
+  const ad=(t.adds||[]).map(x=>x[1]),dl=(t.dels||[]).map(x=>x[1]);
+  if(ad.length||dl.length)v+=` 目前預估：${ad.length?'納入 '+esc(ad.join('、')):''}${ad.length&&dl.length?'；':''}${dl.length?'刪除 '+esc(dl.join('、')):''}（預估名單還不能進場）。`;
+  return sq('下一次',`${v} <a data-go="idx">看指數頁 →</a>`);}
+function moreS3(s){const ins=(s.ins||[]).slice().reverse();
+  return `<h4 class=sh>完整規則 <span class=pill>v${s.ver}・${md(s.since)} 起算</span></h4><div class=rls>${ruleRows(s.rule||[])}</div>`+
+    (ins.length?`<h4 class=sh>過去三次的交易（樣本內 ${ins.length} 筆）</h4>${tradeTbl(ins,false)}`:'');}
 function vSt(){
   const X=D.strat||{};const P=X.pass||[30,30];const L=X.list||[];const G=D.grow||{};const S5=G.s5;
-  let h=`<div class=intro>每條策略的規則寫死、帶版本與起算日；起算日之後的訊號才記入紙上交易${gi('紙上交易')}（起算日前只當樣本內參考${gi('樣本內')}）。每天收盤後自動以「隔日開盤進場、到期或停損出場」記帳，扣來回成本 0.585%，超額對加權指數。驗證期滿${gi('驗證期滿')}：平均超額＞0 且勝率＞50% 才算達標。</div>`;
+  let h=`<div class=intro>每條策略＝一套寫死的買賣規則。每天收盤後自動列出明天的候選，附上進場條件、停損與出場日；起算日（${md((L[0]||{}).since)}）之後的訊號自動記入紙上交易${gi('紙上交易')}，滿 ${P[0]} 筆再看成績決定採不採用。「過去同類」是把歷史上同一條規則的交易結果換算成價位，只是統計參考、不是預測${gi('樣本內')}。</div>`;
   if(X.err)h+=`<div class=st>策略區塊錯誤：${esc(X.err)}</div>`;
-  const ov=[...L.map(s=>`<tr><td><a data-to="st-${s.key}">${esc(s.name)}</a></td><td class="l hm">${esc(STYPE[s.key]||'')}</td><td class=hm>${md(s.since)}</td><td>${stBadge(s,P)}</td><td class=l>${stShort(s.fwd_stats)}</td><td class=l>${stShort(s.ins_stats)}</td><td><b>${(s.cands||[]).length}</b></td></tr>`),
-    ...(S5?[`<tr><td><a data-to="st-s5">${esc(S5.name)}</a></td><td class="l hm">${STYPE.s5}</td><td class=hm>${md(S5.since)}</td><td><span class=pill style="background:rgba(37,99,201,.1);color:#1c4fa8">驗證中</span></td><td class=l>${stShort(S5.fwd_stats,1)}</td><td class=l>${stShort(S5.ins_stats,1)}</td><td><b>${(S5.fwd||[]).filter(t=>t.st==='cand').length}</b></td></tr>`]:[])];
-  h+=sec('st-all','總覽','策略總覽','前瞻成績才算數；樣本內只當參考',`<div class=tw><table><thead><tr><th>策略</th><th class="l hm">類型</th><th class=hm>起算</th><th>驗證進度</th><th class=l>前瞻成績${gi('前瞻')}</th><th class=l>樣本內參考</th><th>明日候選</th></tr></thead><tbody>${ov.join('')}</tbody></table></div>`);
+  const ov=[...L.map(s=>`<tr><td><a data-to="st-${s.key}">${esc(s.name)}</a></td><td class="l hm">${esc(STYPE[s.key]||'')}</td><td>${stBadge(s,P)}</td><td class=l>${stShort(s.ins_stats)}</td><td><b>${(s.cands||[]).length}</b></td></tr>`),
+    ...(S5?[`<tr><td><a data-to="st-s5">${esc(S5.name)}</a></td><td class="l hm">${STYPE.s5}</td><td><span class=pill style="background:rgba(37,99,201,.1);color:#1c4fa8">驗證中</span></td><td class=l>${stShort(S5.ins_stats,1)}</td><td><b>${(G.screen||[]).filter(x=>x.pass).length}</b></td></tr>`]:[])];
+  h+=sec('st-all','總覽','策略總覽','點策略名稱跳到該卡',`<div class=tw><table><thead><tr><th>策略</th><th class="l hm">類型</th><th>驗證進度</th><th class=l>樣本內（照規則）${gi('樣本內')}</th><th>候選</th></tr></thead><tbody>${ov.join('')}</tbody></table></div>`);
   for(const s of L){
-    const main=(s.rule||[]).filter(x=>!x.startsWith('依據')),basis=(s.rule||[]).filter(x=>x.startsWith('依據'));
-    const cs=s.cands||[],fw=(s.fwd||[]).slice().reverse();
-    let b=`<div class=rls>${ruleRows(main)}</div><div class=bdg><span><b>前瞻紙上交易</b>：${stStat(s.fwd_stats)}</span></div>`;
-    b+=`<h4 class=sh>明日開盤前候選（${cs.length}）</h4>`+(cs.length?candRows(cs.map(c=>({...c,st:s.name,cond:c.gap_max===0?`開盤低於 ${f(c.px,2)} 才進`:'隔日開盤價進場'}))):'<div class=st>無</div>');
-    if(fw.length)b+=`<h4 class=sh>紙上交易紀錄（${fw.length} 筆）</h4>${tradeTbl(fw.slice(0,5),false)}`+(fw.length>5?`<details class=mr><summary>全部 ${fw.length} 筆</summary>${tradeTbl(fw,false)}</details>`:'');
-    b+=`<details class=mr><summary>依據與樣本內成績</summary><div class=rls>${ruleRows(basis)}</div><div class=st>樣本內參考（起算日前、同規則）：${stStat(s.ins_stats)}</div></details>`;
-    h+=sec('st-'+s.key,s.name.split(/[（・(]/)[0],`${esc(s.name)} <span class=pill>v${s.ver}・${md(s.since)} 起</span> ${stBadge(s,P)}`,esc(STYPE[s.key]||''),`<div class=card>${b}</div>`);
+    if(s.key==='s3'){h+=stCard(s,P,s3Cand(),s3Ev(s),moreS3(s));continue;}
+    const ev=scanLine(s)+(s.ins_stats&&s.ins_stats.n?` 照規則做（含停損、扣成本）${s.ins_stats.n} 筆：平均每筆贏大盤 ${pctT(s.ins_stats.x)}、${f(s.ins_stats.w,0)}% 贏大盤。`:'');
+    h+=stCard(s,P,candS(s),ev,moreS(s));
   }
-  h+=vGrow();
-  const al=X.alerts||[];
-  h+=sec('st-obs','其他觀察','其他觀察','',`<div class=card><h4>跳空減碼提醒 <span class=pill>${al.length}</span></h4><div class=st>前一交易日「共識加碼」、今日開盤跳空 ≥3% 的股票。樣本內（7/27～10/13，約 19 筆）：之後持有 1～10 日的每一個持有期平均超額都為負（−1.9%～−3.6%），是目前最穩定的結果之一。給已持有者參考，不做放空。</div>`+
-    (al.length?`<div class=inl style="margin-top:6px">${al.map(a=>`<span class=it><a data-c="${esc(a.c)}">${esc(a.n)}</a> <span class=mu>${md(a.d)} 開盤</span> ${sgn(a.gap,1,'%')}</span>`).join('　')}</div>`:'<div class=st style="margin-top:4px">今日無</div>')+`</div>`+
-    `<div class=card><h4>臺灣50 下次審核</h4><div class=st>12 月時程：資料截止 11/23、公告 12/4、生效 12/18 收盤（推算）。截止日後「指數」頁的預估就是用截止日排名（三次回測 19／20 命中），公告後即依官方名單執行「臺灣50 換股」策略。</div></div>`+
+  h+=vGrow(P);
+  const al=X.alerts||[],ag=((X.alert_scan||{}).grp||[])[0];
+  const agT=ag?`樣本內 ${ag.n[0]} 筆：之後持有 1～${ag.x.length} 天，${ag.x.filter(v=>v!=null&&v<0).length} 個天數平均輸大盤（${pctT(Math.max(...ag.x.filter(v=>v!=null)))}～${pctT(Math.min(...ag.x.filter(v=>v!=null)))}）。`:'';
+  h+=sec('st-obs','其他觀察','其他觀察','',`<div class=card><h4>跳空減碼提醒 <span class=pill>${al.length}</span></h4><div class=st>前一交易日「共識加碼」、今天開盤跳空 ≥3% 的股票：好處已在開盤被搶走。${agT}給已持有的人參考，不做放空。</div>`+
+    (al.length?`<div class=inl style="margin-top:6px">${al.map(a=>`<span class=it><a data-c="${esc(a.c)}">${esc(a.n)}</a> <span class=mu>${md(a.d)} 開盤</span> ${sgn(a.gap,1,'%')}</span>`).join('　')}</div>`:'<div class=st style="margin-top:4px">今天沒有</div>')+`</div>`+
     `<div class=card><h4>0056／00919／00929 換股過渡期</h4><div class=st>12 月首次觀察：公告後被動資金分 5～8 個交易日買賣，「指數」頁的被動換股表會先反映。只考慮被動買盤 ≥1 日成交量的個股，先紙上觀察。</div></div>`);
   h+=`<div class=note>部位與風控（所有策略共用）：單筆虧損（停損距離×張數）≤ 總資金 0.5%、單筆 ≤ 5%；只做 20 日均成交值 ≥1 億、張數 ≤ 20 日均量 2%；同時 ≤8 檔、同產業 ≤3 檔；注意股／處置股不碰。持有少於 3 天時優勢容易被成本吃掉。</div>`;
   $('#main').innerHTML=h;
@@ -679,29 +766,37 @@ function vSt(){
 function gRow(lbl,g){if(!g||!g.n)return `<tr><td>${lbl}</td><td colspan=8 class=mu>無樣本</td></tr>`;
   const r=(x)=>x&&x[0]!=null?`${f(x[0],1)}%<span class=mu>（${x[1]}）</span>`:'—';
   return `<tr><td>${lbl}</td><td>${g.n}</td><td>${r(g.dbl6)}</td><td>${r(g.dbl12)}</td><td>${g.end6&&g.end6[0]!=null?sgn(g.end6[0],1,'%')+'／'+sgn(g.end6[1],1,'%'):'—'}</td><td>${g.rule?sgn(g.rule[0],1,'%')+'／'+sgn(g.rule[1],1,'%'):'—'}</td><td>${g.rule_w==null?'—':g.rule_w+'%'}</td><td>${g.rule_aw==null?'—':sgn(g.rule_aw,1,'%')+'／'+sgn(g.rule_al,1,'%')}</td><td>${g.rule_big==null?'—':f(g.rule_big,1)+'%'}</td></tr>`;}
-function vGrow(){
+function planS5(S5,x,scr){const ds=S5.dist||{},px=x.px;
+  let b=(px?pcRow('停損',`約 <b>${fp(px*0.8)}</b>（−20%）`):'')+pastRow(ds,px);
+  const w=[];if(x.trust!=null)w.push(`投信 20 日買超占股本 ${f(x.trust,2)}%${x.tdays!=null?`（買 ${x.tdays} 天）`:''}${x.etf2?'、主動 ETF 多家建倉':''}`);
+  if(x.yoy!=null)w.push(`營收年增 ${f(x.yoy,0)}%、累計 ${f(x.cyoy,0)}%`);if(x.rs!=null)w.push(`半年漲幅強於 ${x.rs}% 的股票`);
+  return `<div class=pc>${pcHead(x,px)}${b}${w.length?`<div class=pcw><b>入選</b>${w.join('；')}</div>`:''}</div>`;}
+function vGrow(P){
   const G=D.grow||{};if(G.err)return sec('st-s5','長線','長線：投信動能成長股','',`<div class=card><div class=st>錯誤：${esc(G.err)}</div></div>`);
-  const B=G.bt||{};const ms=B.months||[];const S5=G.s5;
-  let b='';
-  if(S5)b+=`<div class=rls>${ruleRows(S5.rule||[])}<div class=rl><span class=rlk>驗證</span><span>${esc(S5.pass)}</span></div></div>`+
-    `<div class=bdg><span><b>前瞻紙上交易</b>：${st5(S5.fwd_stats)}</span></div>`;
-  const sc=G.screen||[];const ok=sc.filter(x=>x.pass),near=sc.filter(x=>!x.pass);
+  const B=G.bt||{};const ms=B.months||[];const S5=G.s5;if(!S5)return '';
+  const sc=G.screen||[];const ok=sc.filter(x=>x.pass),near=sc.filter(x=>!x.pass);const scr=S5.screen_d;
+  const dd=k=>(B[k]||{}).dbl6,pc=x=>x&&x[0]!=null?`${f(x[0],0)}%`:'—';
+  const ym=d=>`${d.slice(0,4)}/${+d.slice(5,7)}`;
+  const ev=(dd('trust_mom')?`回測（${ms.length?`${ym(ms[0])}～${ym(ms[ms.length-1])} `:'近兩年'}每月篩一次）：投信＋動能篩出的股票，6 個月內曾翻倍 <b>${pc(dd('trust_mom'))}</b>（${(dd('trust_mom')||[])[1]} 檔次）；只看動能 ${pc(dd('mom'))}、全部股票 ${pc(dd('base'))}。`:'')+
+    (S5.ins_stats&&S5.ins_stats.n?`照規則做的 ${S5.ins_stats.n} 筆：平均 ${pctT(S5.ins_stats.avg)}、中位 ${pctT(S5.ins_stats.med)}、${S5.ins_stats.win}% 賺錢。`:'');
+  const how=`${scr?`${md(scr[0])}（本月最後一個交易日）收盤後仍四關全過才進場，${md(scr[1])} 開盤買`:'月底收盤後仍四關全過才進場，隔天開盤買'}（開高 ≥3% 不追）；跌破進場價 −20% 停損，之後從最高收盤回落 30% 出場。以下是今天的篩選結果：`;
+  const cand=sq('本月候選',`<div class=pcn>${how}</div>`+(ok.length?`<div class=pcs>${ok.map(x=>planS5(S5,x,scr)).join('')}</div><div class=note>${pastNote(S5.dist)}</div>`:'<span class=mu>今天沒有四關全過的股票</span>'));
   const ck=v=>v?'<span class=up>✓</span>':'<span class=mu>✗</span>';
   const scRow=x=>`<tr data-c="${esc(x.c)}" class="${x.pass?'':'grey'}"><td><span class=nm>${esc(x.n)}</span><span class=cd>${esc(x.c)}</span></td><td class=l>${ck(x.g_trust)} ${x.trust==null?'':f(x.trust,2)+'% 股本'}${x.tdays!=null?'・買 '+x.tdays+' 日':''}${x.etf2?' <span class=sg>主動 ETF 多家建倉</span>':''}</td><td class=l>${ck(x.g_grow)} ${x.yoy==null?'':'年增 '+f(x.yoy,0)+'%'}${x.cyoy==null?'':'・累計 '+f(x.cyoy,0)+'%'}</td><td class=l>${ck(x.g_mom)} ${x.rs==null?'':'強度前 '+(100-x.rs)+'%'}</td><td>${f(x.cap,0)}</td><td>${f(x.liq,1)}</td></tr>`;
   const scHead=`<thead><tr><th>股票</th><th class=l>投信關</th><th class=l>成長關</th><th class=l>動能關</th><th>市值(億)</th><th>日均成交(億)</th></tr></thead>`;
-  b+=`<h4 class=sh>今日篩選：四關全過 ${ok.length} 檔</h4><div class=note>月營收：${esc(G.rev_ym||'尚無')}；宇宙 ${G.n_uni||0} 檔。進場仍照短線研究的結論：不追開高 3% 以上，等突破隔日或回測 20 日線。</div>`+
-    (ok.length?`<div class=tw><table>${scHead}<tbody>${ok.map(scRow).join('')}</tbody></table></div>`:'<div class=st>今日無</div>')+
-    (near.length?`<details class=mr><summary>差一關 ${near.length} 檔</summary><div class=tw><table>${scHead}<tbody>${near.map(scRow).join('')}</tbody></table></div></details>`:'');
-  if(S5){const fw=(S5.fwd||[]).slice().reverse(),ins=(S5.ins||[]).slice().reverse().map(x=>({...x,ins:1}));
-    if(fw.length)b+=`<h4 class=sh>紙上交易紀錄（${fw.length} 筆）</h4>${tradeTbl(fw,true)}`;
-    if(ins.length)b+=`<details class=mr><summary>樣本內交易 ${ins.length} 筆：${st5(S5.ins_stats)}</summary><div class=note>成績集中在趨勢明確的月份（2025/10～2026/2），盤整月份多為 −20% 停損——這是動能策略的常態，不是例外。</div>${tradeTbl(ins,true)}</details>`;}
-  let bt=`<ul class=doc style="margin:4px 0">
+  let m=`<h4 class=sh>四關定義</h4><ul class=doc style="margin:4px 0">
 <li class=st><b>投信關</b>：投信 20 日買超 ≥ 股本 0.5%，且 20 天中 ≥12 天買超（今日篩選另認：主動 ETF 20 日內 ≥2 家投信新建倉、且投信整體 20 日未淨賣）</li>
 <li class=st><b>成長關</b>：最新月營收年增 ≥20%、累計年增 ≥15%</li>
 <li class=st><b>動能關</b>：收盤 > 60 日線 > 120 日線、60 日線上揚、距 120 日高點 20% 內、比低點高 30% 以上、120 日報酬全市場前 30%</li>
-<li class=st><b>空間關</b>：市值 50～1,500 億、20 日均成交值 ≥1 億</li>
-<li class=st><b>照規則操作</b>（下表「照規則」欄）：原規則——隔日開盤進；停損 −10%；曾漲 30% 後停損拉到成本；之後收盤跌破 60 日線出場。出場比較顯示它太緊，S5 已改用「−20% 停損・高點回落 30%」</li></ul>
-<div class=note>「曾翻倍」＝進場後 6／12 個月內最高價曾達進場價 2 倍（括號＝前瞻期完整的樣本數）；「照規則操作」＝照上面停損／移動出場做出來的報酬（已扣成本）。基準＝同期所有通過「空間關」的股票。宇宙只含現存上市櫃股，結果偏樂觀；兩年資料大致是多頭。</div>
+<li class=st><b>空間關</b>：市值 50～1,500 億、20 日均成交值 ≥1 億</li></ul>`;
+  const ds=S5.dist||{};if(ds.n)m+=`<h4 class=sh>照規則做的結果（樣本內 ${ds.n} 筆已出場）</h4><div class=st>${distTxt(ds,false)}</div><div class=st>${moTxt(ds)}</div>`;
+  if((S5.more||[]).length)m+=`<div class=st style="margin-top:6px">${S5.more.map(esc).join('<br>')}</div>`;
+  m+=`<h4 class=sh>完整規則 <span class=pill>v${S5.ver}・${md(S5.since)} 起算</span></h4><div class=rls>${ruleRows(S5.rule||[])}<div class=rl><span class=rlk>驗證</span><span>${esc(S5.pass)}</span></div></div>`;
+  if(near.length)m+=`<details class=mr><summary>今日篩選：差一關 ${near.length} 檔</summary><div class=tw><table>${scHead}<tbody>${near.map(scRow).join('')}</tbody></table></div></details>`;
+  const fw=(S5.fwd||[]).slice().reverse(),ins=(S5.ins||[]).slice().reverse();
+  if(fw.length)m+=`<h4 class=sh>紙上交易紀錄（${fw.length} 筆）</h4>${tradeTbl(fw,true)}`;
+  if(ins.length)m+=`<details class=mr><summary>樣本內交易 ${ins.length} 筆：${st5(S5.ins_stats)}</summary><div class=note>成績集中在趨勢明確的月份，盤整月份多為 −20% 停損——這是動能策略的常態。</div>${tradeTbl(ins,true)}</details>`;
+  let bt=`<div class=note>「曾翻倍」＝進場後 6／12 個月內最高價曾達進場價 2 倍（括號＝前瞻期完整的樣本數）；「照規則」＝照舊版停損／移動出場做出來的報酬（已扣成本）。基準＝同期所有通過「空間關」的股票。宇宙只含現存上市櫃股，結果偏樂觀；兩年資料大致是多頭。</div>
 <div class=tw><table><thead><tr><th>組別</th><th>篩出檔次</th><th>6 個月內曾翻倍</th><th>12 個月內曾翻倍</th><th>6 個月期末 平均／中位</th><th>照規則 平均／中位</th><th>勝率</th><th>平均賺／平均賠</th><th>照規則翻倍比例</th></tr></thead><tbody>`+
     gRow('基準（空間關）',B.base)+gRow('只看動能',B.mom)+gRow('只看投信',B.trust)+gRow('投信＋動能',B.trust_mom)+gRow('四關全過',B.all4)+`</tbody></table></div>`;
   const EX=B.exits||{},EL=B.exit_lbl||{};
@@ -710,9 +805,8 @@ function vGrow(){
       bt+=`<tr class="${gk==='trust_mom'?'':'grey'}"><td>${gk==='trust_mom'?esc(EL[ek]):''}</td><td>${gl}</td><td>${x.n}</td><td>${sgn(x.avg,1,'%')}</td><td>${sgn(x.med,1,'%')}</td><td>${x.win}%</td><td>${x.aw==null?'—':sgn(x.aw,1,'%')}／${x.al==null?'—':sgn(x.al,1,'%')}</td><td>${f(x.dbl,1)}%</td><td>${x.days} 日</td></tr>`;}}
     bt+=`</tbody></table></div>`;}
   if((B.top||[]).length)bt+=`<div class=st style="margin-top:6px">歷史篩出、漲最多的：`+B.top.slice(0,8).map(x=>`${esc(x[1])}（${md(x[2])} 篩出，最高 +${x[3]}%${x[4]!=null?'，照規則 '+(x[4]>0?'+':'')+x[4]+'%':''}）`).join('、')+`</div>`;
-  b+=`<details class=mr><summary>回測細節：四關定義、翻倍比較、出場方式${ms.length?`（${ms.length} 個月，${md(ms[0])}～${md(ms[ms.length-1])}）`:''}</summary>${bt}</details>`;
-  const ttl=S5?`${esc(S5.name)} <span class=pill>v${S5.ver}・${md(S5.since)} 起</span> <span class=pill style="background:rgba(37,99,201,.1);color:#1c4fa8">驗證中</span>`:'長線：投信動能成長股';
-  return sec('st-s5','長線',ttl,STYPE.s5,`<div class=card>${b}</div>`);
+  m+=`<details class=mr><summary>回測細節：翻倍比較、出場方式</summary>${bt}</details>`;
+  return stCard({...S5,nav:'長線',status:'驗證中',fwd_stats:S5.fwd_stats||{}},P||[30,30],cand,ev,m).replace(/驗證中 \d+／\d+ 筆/,'驗證中');
 }
 
 /* ---------- 個股走勢序列（x9s.json：開個股卡才載入，電腦閒置時預先抓） ---------- */
@@ -749,7 +843,7 @@ function sumLines(r){const tw=r.m!=='os',u=tw?'張':'股',L=[];const ia=r.ia5||[
   L.push(r.ne?`<b>${r.ne} 檔 ETF</b> 持有（主動 ${r.na}、被動 ${r.np}）${tw&&r.hp!=null?`，合計占發行股數 <b>${f(r.hp,2)}%</b>`:''}${tw&&r.dx!=null?`，約等於 ${f(r.dx,1)} 天成交量${gp('消化天數')}`:'。'}`:'目前沒有追蹤中的 ETF 持有。');
   L.push((r.a5||ia.length||ic.length?`主動 ETF 近 5 日<b class=${cls(r.a5)}>淨${(r.a5||0)>=0?'買':'賣'} ${f(Math.abs(r.a5||0),0)} ${u}</b>${gi('真加碼')}${r.a5v!=null?`（約 ${f(Math.abs(r.a5v),1)} 億）`:''}${ia.length?`：${esc(nameList(ia))}加碼`:''}${ic.length?`${ia.length?'；':'：'}${esc(nameList(ic))}減碼`:''}。`:'主動 ETF 近 5 日沒有真加減碼。')+
     (nb.length?`10 日內新建倉：<b>${esc(nb.join('、'))}</b>。`:''));
-  if(r.cost!=null&&r.dev!=null)L.push(`主動 ETF 估計成本 <b>${fp(r.cost)}</b>${gi('主動成本')}，現價${r.dev>=0?'高於':'低於'}成本 <b class=${cls(r.dev)}>${f(Math.abs(r.dev),1)}%</b>${r.cq==='B'?'（含觀測起點前部位，為近似值）':''}`+
+  if(r.cost!=null&&r.dev!=null)L.push(`近期新建倉的主動 ETF（${r.cn} 檔）平均買在 <b>${fp(r.cost)}</b>${gp('主動成本','，')}現價${r.dev>=0?'高':'低'} <b class=${cls(r.dev)}>${f(Math.abs(r.dev),1)}%</b>`+
     (tw&&r.ow!=null?`；平均權重比市值權重${r.ow>=0?'高':'低'} ${f(Math.abs(r.ow),2)} 個百分點${r.now!=null?`（${r.now}／${r.nact} 家投信超配）`:''}${gp('超配')}`:'。'));
   if(tw&&r.t5!==undefined)L.push(`法人：投信${r.ts?`連${r.ts>0?'買':'賣'} ${Math.abs(r.ts)} 日、`:''}5 日 ${sgn(r.t5,0)} 張；外資${r.fs?`連${r.fs>0?'買':'賣'} ${Math.abs(r.fs)} 日、`:''}5 日 ${sgn(r.f5,0)} 張${r.mb5!=null&&Math.abs(r.mb5)>=10?`；融資 5 日 ${sgn(r.mb5,1,'%')}`:''}。`);
   if(tw&&r.al)L.push(`技術面<b>${r.al}</b>${r.h60?'、創 60 日新高':r.h20?'、創 20 日新高':r.l20?'、跌破 20 日低點':''}${r.p52!=null?`；在一年區間的 ${f(r.p52,0)}% 位置`:''}${r.rs20!=null?`，近 20 日${r.rs20>=0?'強於':'弱於'}大盤 ${f(Math.abs(r.rs20),1)} 個百分點`:''}。`);
@@ -758,14 +852,14 @@ function kp(lbl,g,val,sub,c=''){return `<div class=kp><span>${lbl}${g?gi(g):''}<
 function kpis(r){const tw=r.m!=='os';const k=[
   kp('持有 ETF','持有 ETF',`${r.ne} 檔`,`主動 ${r.na}・被動 ${r.np}`),
   kp('主動 5 日淨買','主動 5 日淨買',tw&&r.a5v!=null?`${pm(r.a5v,1)} 億`:`${pm(r.a5)} ${tw?'張':'股'}`,`${(r.ia5||[]).length} 家加・${(r.ic5||[]).length} 家減`,cls(r.a5)),
-  kp('成本乖離','成本乖離',r.dev==null?'—':pm(r.dev,1)+'%',r.cost==null?'':`主動成本 ${fp(r.cost)}`,cls(r.dev))];
+  kp('成本乖離','成本乖離',r.dev==null?'—':pm(r.dev,1)+'%',r.cost==null?'無近期新建倉':`新建倉成本 ${fp(r.cost)}`,cls(r.dev))];
   if(tw&&r.t5!==undefined)k.push(kp('投信 5 日','投信 5 日',pm(r.t5)+' 張',r.ts?`連${r.ts>0?'買':'賣'} ${Math.abs(r.ts)} 日`:'',cls(r.t5)),
     kp('外資 5 日','外資 5 日',pm(r.f5)+' 張',r.fs?`連${r.fs>0?'買':'賣'} ${Math.abs(r.fs)} 日`:'',cls(r.f5)),
     kp('技術','趨勢',r.al||'—',r.rsi!=null?`RSI ${f(r.rsi,0)}`:'',r.al==='多頭'?'up':r.al==='空頭'?'dn':''));
   return k.join('');}
 function holdTbl(rows,tw){const u=tw?'張':'股';
-  return `<div class=tw><table class=hdt><thead><tr><th>ETF</th><th>權重</th><th>${u}數</th><th>建倉${gi('建倉日')}</th><th>成本・損益${gi('成本品質')}</th><th>5 日真加減${gi('真加碼')}</th><th class=l>最近動作</th></tr></thead><tbody>`+
-   rows.map(x=>{const m=E[x[0]]||{};return `<tr><td><span class=nm>${esc(x[0])}</span><span class=cd>${esc(m.is||'')}${m.k==='p'?' · 被動':''}${m.x?' · 擴充':''}</span></td><td>${f(x[1],2)}%</td><td>${f(x[2],tw?0:0)}</td><td>${x[3]?(x[4]?'':'≤')+md(x[3]):'—'}<br><span class=mu>${x[5]==null?'':x[5]+' 日'}</span></td><td>${x[6]==null?'—':fp(x[6])}${x[12]==='B'?'<sup class=mu>B</sup>':''}<br>${sgn(x[7],1,'%')}</td><td>${sgn(x[8],0)}</td><td class=l>${x[9]?`<span class="k-${x[9]}">${KN[x[9]]}</span> <span class=mu>${md(x[10])}</span>${Math.abs(x[11])>=2?` <span class=pill>連 ${Math.abs(x[11])}</span>`:''}`:'<span class=mu>—</span>'}</td></tr>`;}).join('')+`</tbody></table></div>`;}
+  return `<div class=tw><table class=hdt><thead><tr><th>ETF</th><th>權重</th><th>${u}數</th><th>建倉${gi('建倉日')}</th><th>成本・損益${gi('主動成本')}</th><th>5 日真加減${gi('真加碼')}</th><th class=l>最近動作</th></tr></thead><tbody>`+
+   rows.map(x=>{const m=E[x[0]]||{};return `<tr><td><span class=nm>${esc(x[0])}</span><span class=cd>${esc(m.is||'')}${m.k==='p'?' · 被動':''}${m.x?' · 擴充':''}</span></td><td>${f(x[1],2)}%</td><td>${f(x[2],tw?0:0)}</td><td>${x[3]?(x[4]?'':'≤')+md(x[3]):'—'}<br><span class=mu>${x[5]==null?'':x[5]+' 日'}</span></td><td>${x[6]==null?`<span class=mu>${x[12]==='B'?'舊部位':'—'}</span>`:fp(x[6])+'<br>'+sgn(x[7],1,'%')}</td><td>${sgn(x[8],0)}</td><td class=l>${x[9]?`<span class="k-${x[9]}">${KN[x[9]]}</span> <span class=mu>${md(x[10])}</span>${Math.abs(x[11])>=2?` <span class=pill>連 ${Math.abs(x[11])}</span>`:''}`:'<span class=mu>—</span>'}</td></tr>`;}).join('')+`</tbody></table></div>`;}
 function idxHits(c){
   const t=(D.idx||{}).tw50||{};const hits=[];
   const lab={adds:'預估納入臺灣50',dels:'預估自臺灣50 刪除',watch_in:'臺灣50 邊緣（可能升入）',watch_out:'臺灣50 邊緣（可能跌出）'};
@@ -790,7 +884,7 @@ function renderStock(c,keep){
   const lastD=(D.dates||[]).slice(-1)[0],serD=SERD.slice(-1)[0];
   if(!s)h+=`<section class=csec id=c-chart><h3>走勢</h3><div class=ld>${SERST==='err'?'走勢資料暫時無法載入　<a id=serr>重試</a>':'走勢載入中…'}</div></section>`;
   else if(s.c&&s.c.some(x=>x!=null))h+=`<section class=csec id=c-chart><h3>走勢<span class=sub>近 ${s.c.length} 個交易日・游標移到圖上看每日數字</span></h3>${serD&&lastD&&serD<lastD?`<div class=note>走勢資料到 ${md(serD)}（尚未更新到最新）</div>`:''}<div class=cw id=kc>${chart(s,r,W)}</div>`+
-   `<div class=lg><span><i style="background:#2563c9"></i>20 日線</span><span><i style="background:#f59e0b"></i>60 日線</span><span><i class=dsh></i>主動 ETF 成本</span><span><b class=up>▲</b> 主動 ETF 新建倉</span><span><b class=dn>▼</b> 出清</span>${s.qa?'<span>下方長條＝主動 ETF 每日真加減碼（已扣申贖）</span>':''}</div></section>`;
+   `<div class=lg><span><i style="background:#2563c9"></i>20 日線</span><span><i style="background:#f59e0b"></i>60 日線</span><span><i class=dsh></i>主動 ETF 新建倉成本</span><span><b class=up>▲</b> 主動 ETF 新建倉</span><span><b class=dn>▼</b> 出清</span>${s.qa?'<span>下方長條＝主動 ETF 每日真加減碼（已扣申贖）</span>':''}</div></section>`;
   const act=(r.hd||[]).filter(x=>(E[x[0]]||{}).k==='a').sort((a,b)=>(b[1]||0)-(a[1]||0));
   const pas=(r.hd||[]).filter(x=>(E[x[0]]||{}).k!=='a').sort((a,b)=>(b[1]||0)-(a[1]||0));
   h+=`<section class=csec id=c-hold><h3>ETF 持有<span class=sub>主動 ${act.length}・被動 ${pas.length}・合計 ${f(r.sh,0)} ${u}</span></h3>`+
@@ -886,7 +980,7 @@ function bindTip(code){const kc=document.getElementById('kc');if(!kc||!CH)return
   const mv=e=>{const rc=svg.getBoundingClientRect();const px=((e.touches?e.touches[0].clientX:e.clientX)-rc.left);const i=Math.max(0,Math.min(n-1,Math.floor((px-pl)/((W-pl-pr)/n))));
     if(s.c[i]==null){tip.hidden=true;return;}const m=M[i];
     xh.setAttribute('x1',x(i));xh.setAttribute('x2',x(i));xh.setAttribute('visibility','visible');
-    tip.innerHTML=`<b>${esc(ds[i]||'')}</b>　收 ${fp(s.c[i])}${s.o?`　開 ${fp(s.o[i])}　高 ${fp(s.h[i])}　低 ${fp(s.l[i])}`:''}${s.v?`<br>量 ${f(s.v[i],0)} 張`:''}${s.ac&&s.ac[i]?`　主動成本 ${fp(s.ac[i])}`:''}${qa&&qa[i]?`<br>主動 ETF 真${qa[i]>0?'加':'減'}碼 ${f(Math.abs(qa[i]),0)} ${s.o?'張':'股'}`:''}`+
+    tip.innerHTML=`<b>${esc(ds[i]||'')}</b>　收 ${fp(s.c[i])}${s.o?`　開 ${fp(s.o[i])}　高 ${fp(s.h[i])}　低 ${fp(s.l[i])}`:''}${s.v?`<br>量 ${f(s.v[i],0)} 張`:''}${s.ac&&s.ac[i]?`　新建倉成本 ${fp(s.ac[i])}`:''}${qa&&qa[i]?`<br>主動 ETF 真${qa[i]>0?'加':'減'}碼 ${f(Math.abs(qa[i]),0)} ${s.o?'張':'股'}`:''}`+
       (m&&m.n.length?`<br><span style="color:#fca5a5">▲ 新建倉：${m.n.map(e=>esc(e)+' '+esc((E[e]||{}).is||'')).join('、')}</span>`:'')+(m&&m.x.length?`<br><span style="color:#86efac">▼ 出清：${m.x.map(e=>esc(e)+' '+esc((E[e]||{}).is||'')).join('、')}</span>`:'');
     tip.hidden=false;const left=Math.min(rc.width-tip.offsetWidth-4,Math.max(0,px+12));tip.style.left=left+'px';tip.style.top='4px';};
   const out=()=>{tip.hidden=true;xh.setAttribute('visibility','hidden');};

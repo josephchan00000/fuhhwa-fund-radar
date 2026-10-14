@@ -19,7 +19,7 @@ SIG_DEF = {
     "new2": ("多家新建倉", "10 個交易日內 ≥2 家投信的主動 ETF 首次建倉，且當日有新建倉"),
     "strk": ("連續加碼", "同一檔主動 ETF 連續 ≥3 個揭露日真加碼"),
     "exit": ("集體撤退", "近 5 個交易日 ≥3 家投信主動 ETF 真減碼／出清，且主動合計淨賣（風險訊號）"),
-    "cost": ("成本線回測", "股價回到主動 ETF 估計成本 ±3%，近 20 日曾高於成本 5% 以上，且近 10 日主動 ETF 未淨賣"),
+    "cost": ("成本線回測", "股價回到主動 ETF 新建倉成本 ±3%（≥2 檔主動 ETF 觀測期內建倉），近 20 日曾高於成本 5% 以上，且近 10 日主動 ETF 未淨賣"),
     "reso": ("籌碼共振", "主動 ETF 5 日真加碼＞0、投信 5 日買超＞0、融資 5 日減少"),
     "brk": ("量價突破", "收盤創 20 日新高、量 ≥1.5 倍 20 日均量、站上 60 日線"),
     "trst": ("投信連買", "投信連續 ≥3 日買超"),
@@ -202,6 +202,21 @@ def _r(x, n=2):
     return None if x is None else round(x, n)
 
 
+def active_cost(held: list) -> tuple[float | None, int]:
+    """主動成本＝主動 ETF「觀測期內新建倉」部位（品質 A）的平均成本，與納入的檔數。
+    held＝[(ETF 屬性, Pos)]。舊部位（觀測起點前就持有）不知道真正買價——2026-10-14 查遍網路
+    （投信官網、證交所、公會、財報投資明細）都沒有公布經理人成本，使用者定案「只算 7/27 後新買的」。
+    缺價格的部位（成本 0）也不計，否則股數會把平均成本稀釋。"""
+    sh = cost = 0.0
+    n = 0
+    for m, P in held:
+        if m.get("k") == "a" and P.quality == "A" and P.shares > 0 and P.cost > 0:
+            sh += P.priced
+            cost += P.cost
+            n += 1
+    return (cost / sh if sh else None), n
+
+
 def _lots(x, tw=True):
     if x is None:
         return None
@@ -271,7 +286,8 @@ def run(data: Data | None = None) -> dict:
     tdcc_last = D.tdcc[-1][1].get("s", {}) if D.tdcc else {}
     tdcc_prev = D.tdcc[-2][1].get("s", {}) if len(D.tdcc) > 1 else {}
 
-    # 主動 ETF 每日成本線：逐 (etf, code) 前推
+    # 主動 ETF 每日成本線：逐 (etf, code) 前推。只算觀測期內新建倉的部位（品質 A）——
+    # 觀測起點前就持有的舊部位不知道真正買價（2026-10-14 使用者定案：舊部位不計）
     cost_line: dict[str, list] = {}
     state: dict[tuple, tuple] = {}
     act_set = {e for e, m in meta.items() if m["k"] == "a"}
@@ -283,13 +299,11 @@ def run(data: Data | None = None) -> dict:
         if not daily.get(d) and i > 0:
             continue
         agg: dict[str, list] = defaultdict(lambda: [0.0, 0.0])
-        for (e, c), (s, cst) in state.items():
-            if e in act_set and s > 0 and cst > 0:
+        cnt: dict[str, int] = defaultdict(int)
+        for (e, c), (s, cst, q) in state.items():
+            if e in act_set and q == "A" and s > 0 and cst > 0:
                 agg[c][0] += s
                 agg[c][1] += cst
-        cnt: dict[str, int] = defaultdict(int)
-        for (e, c), (s, cst) in state.items():
-            if e in act_set and s > 0:
                 cnt[c] += 1
         for c in set(agg) | set(cnt):
             s, cst = agg.get(c, (0.0, 0.0))
@@ -388,7 +402,7 @@ def run(data: Data | None = None) -> dict:
         # —— 持有明細
         hd = []
         tot_sh = 0.0
-        act_sh = act_cost_tot = 0.0
+        held_pos = []
         wts_act = []
         for etf in sorted(meta):
             P = L.pos.get((etf, code))
@@ -399,17 +413,17 @@ def run(data: Data | None = None) -> dict:
             if not P or P.shares <= 0:
                 continue
             tot_sh += P.shares
-            if m["k"] == "a":
-                act_sh += P.shares
-                act_cost_tot += P.cost
+            held_pos.append((m, P))
+            known = P.quality == "A"          # 舊部位（B）成本不明：不計也不顯示（見 active_cost）
             conv5 = sum(ev.conv for ev in evs if ev.etf == etf and D.ix[ev.date] >= T - 5)
             held = None
             if P.first and P.first in D.ix:
                 held = T - 1 - D.ix[P.first]
             px_now = ta.last(c)
-            pnl = (px_now / P.avg - 1) * 100 if px_now and P.avg else None
+            avg = P.avg if known else None
+            pnl = (px_now / avg - 1) * 100 if px_now and avg else None
             hd.append([etf, _r(w), _lots(P.shares, tw), P.first, int(P.exact), held,
-                       _r(P.avg), _r(pnl, 1), _lots(conv5, tw), P.last_kind, P.last_date,
+                       _r(avg), _r(pnl, 1), _lots(conv5, tw), P.last_kind, P.last_date,
                        (P.streak_add or -P.streak_cut), P.quality])
         exits = [[ev.etf, ev.date, _lots(ev.s0, tw)] for ev in evs
                  if ev.kind == LG.EXIT and ev.date in recent]
@@ -419,7 +433,7 @@ def run(data: Data | None = None) -> dict:
         prev_c = ta.last_at(c, ci - 1) if ci else None
         chg = (px_now / prev_c - 1) * 100 if px_now and prev_c else None
         avg_v20 = ta.last(v20)
-        act_cost = act_cost_tot / act_sh if act_sh and act_cost_tot else None
+        act_cost, act_n_ = active_cost(held_pos)
         dev = (px_now / act_cost - 1) * 100 if px_now and act_cost else None
         mw = cap.get(code, 0) / cap_tot * 100 if cap_tot and code in cap else None
         iss_w: dict[str, list] = defaultdict(list)
@@ -451,8 +465,7 @@ def run(data: Data | None = None) -> dict:
             "nb10": sorted({ev.etf for ev in evs if ev.kind == LG.NEW and D.ix[ev.date] in w10
                             and meta.get(ev.etf, {}).get("k") == "a"}),
             "ex": exits,
-            "cost": _r(act_cost), "dev": _r(dev, 1),
-            "cq": "A" if hd and all(r[12] == "A" for r in hd if meta[r[0]]["k"] == "a") else "B",
+            "cost": _r(act_cost), "dev": _r(dev, 1), "cn": act_n_,
             "mw": _r(mw, 3), "aw": _r(aw, 3), "ow": _r(aw - mw, 3) if aw is not None and mw is not None else None,
             "now": n_ow, "nact": len(iss_w),
             "sg": today_sigs, "hd": hd,

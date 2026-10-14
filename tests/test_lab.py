@@ -119,6 +119,50 @@ def test_capital_reduction_is_corporate_action_not_selling():
     assert abs(L.pos[("A", "2603")].avg - 100.0) < 1e-6   # 每股成本 50 → 100
 
 
+def test_unpriced_start_is_priced_on_first_day_with_a_price():
+    """首日缺價格的部位不以 0 元入帳：先記待補，第一個有價格的日子按當天均價補入。
+    2026-10-14 村田製作所：海外 ETF 缺首日揭露價，舊版當 0 元入帳 → 估計成本 2,078（實際約 7,900）。"""
+    filler = {f"{1300 + i}": 6000.0 for i in range(6)}
+    px = _px({("6981 JP", "2026-10-02"): (200.0, 200.0), ("6981 JP", "2026-10-03"): (210.0, 210.0)})
+    seq = [_pos("2026-10-01", "A", {**filler, "6981 JP": 1000.0}),       # 無價格
+           _pos("2026-10-02", "A", {**filler, "6981 JP": 1500.0}),       # 買 500 @200
+           _pos("2026-10-03", "A", {**filler, "6981 JP": 1000.0})]       # 賣 500 @210
+    P = ledger.build(seq[:1], px).pos[("A", "6981 JP")]
+    assert P.pend == 1000 and P.avg is None
+    P = ledger.build(seq, px).pos[("A", "6981 JP")]
+    assert P.pend == 0 and abs(P.avg - 200.0) < 1e-9 and P.shares == 1000
+    assert abs(P.realized - 500 * 10) < 1e-6
+    assert P.quality == "B"                         # 觀測起點就持有 → 頁面主動成本不計
+
+
+def test_active_cost_counts_only_positions_built_during_observation():
+    """主動成本只算觀測期內新建倉（品質 A）的主動 ETF 部位；舊部位、被動 ETF、缺價格部位都不計。"""
+    from arm.lab import analyze
+    act, pas = {"k": "a"}, {"k": "p"}
+    a1 = ledger.Pos(shares=1000, cost=100_000, quality="A")
+    a2 = ledger.Pos(shares=3000, cost=360_000, quality="A")
+    old = ledger.Pos(shares=50_000, cost=2_500_000, quality="B")      # 起點價 50：不是真實買價
+    unpriced = ledger.Pos(shares=9000, cost=0.0, quality="A", pend=9000)
+    passive = ledger.Pos(shares=8000, cost=400_000, quality="A")
+    cost, n = analyze.active_cost([(act, a1), (act, a2), (act, old), (act, unpriced), (pas, passive)])
+    assert n == 2 and abs(cost - 460_000 / 4000) < 1e-9
+    assert analyze.active_cost([(act, old)]) == (None, 0)
+
+
+def test_unpriced_add_does_not_dilute_average_cost():
+    """部位中途某天缺價格的加碼：先記待補，不拉低平均成本；隔天有價格再按當天均價補入。"""
+    filler = {f"{1400 + i}": 6000.0 for i in range(6)}
+    px = _px({("2330", "2026-10-01"): (100.0, 100.0), ("2330", "2026-10-03"): (130.0, 130.0)})
+    seq = [_pos("2026-10-01", "A", {**filler, "2330": 1000.0}),
+           _pos("2026-10-02", "A", {**filler, "2330": 2000.0}),          # 缺價格
+           _pos("2026-10-03", "A", {**filler, "2330": 2000.0})]
+    L = ledger.build(seq[:2], px)
+    P = L.pos[("A", "2330")]
+    assert P.pend == 1000 and abs(P.avg - 100.0) < 1e-9                # 舊版：100,000 ÷ 2,000 ＝ 50
+    P = ledger.build(seq, px).pos[("A", "2330")]
+    assert P.pend == 0 and abs(P.avg - (1000 * 100 + 1000 * 130) / 2000) < 1e-9
+
+
 # ── 技術指標 ─────────────────────────────────────────────────────────
 
 def test_indicators_basic_properties():
@@ -168,7 +212,10 @@ def test_page_has_no_banned_words():
     from arm.lab import analyze
     banned = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "建議買賣", "建議買",
               "建議賣", "目標價", "零風險", "無風險", "穩賺不賠")
-    text = page._HTML + page._JS + "".join(n + d for n, d in analyze.SIG_DEF.values())
+    from arm.lab import growth, strategy
+    st_txt = "".join(str(v) for x in strategy.STRATEGIES + [strategy.S3, growth.S5]
+                     for k, v in x.items() if k in ("name", "bet", "why", "more", "fail", "rule"))
+    text = page._HTML + page._JS + "".join(n + d for n, d in analyze.SIG_DEF.values()) + st_txt
     assert not [w for w in banned if w in text]
 
 
@@ -182,6 +229,15 @@ def test_page_layout_six_tabs_today_first_and_glossary():
     assert "go('today');" in page._JS
     js_views = re.search(r"const VIEWS=\{([^}]*)\}", page._JS).group(1)
     assert [k.split(":")[0] for k in js_views.split(",")] == [t for t, _ in tabs]
+
+
+def test_strategy_cards_use_four_parts_and_cost_section_is_gone():
+    """策略卡固定四小標（2026-10-14 使用者定案）；個股卡不再有成本拆解表（使用者：「版面變好亂、有看沒有懂」）。"""
+    js = page._JS
+    for k in ("sq('在賭什麼'", "sq('為什麼有效'", "'明日候選'", "sq('會失效'", "證據圖、完整規則與交易明細"):
+        assert k in js
+    assert "c-cost" not in js and "costSec" not in js
+    assert "'成本品質'" not in js                      # 舊部位成本不顯示，不再需要 A／B 品質說明
 
 
 def test_stock_table_views_stay_narrow():
@@ -329,6 +385,37 @@ def test_s1_stop_loss_and_pending_candidate():
     r = strategy._trade(st, "2330", 0, S, [2.0] * 6, idx, 6)   # 停損＝98−4＝94，第 2 天收 93
     assert r["st"] == "closed" and r["why"] == "停損" and r["held"] == 2
     assert strategy._trade(st, "2330", 5, S, [2.0] * 6, idx, 6) is None              # 隔日資料未到＝候選
+
+
+def test_strategy_dist_percentiles_and_stop_count():
+    from arm.lab import strategy
+    trs = [{"st": "closed", "entry": 100.0, "exit": 100.0 + g, "r": g - 0.585, "x": g - 1, "d": "2026-08-0%d" % (i + 1),
+            "held": 3, "why": "停損" if g < -5 else "到期"} for i, g in enumerate([-8, -2, 0, 2, 4, 6, 10])]
+    trs.append({"st": "skip", "why": "開高 +1.0%"})                     # 沒進場的不算
+    d = strategy.dist(trs)
+    assert d["n"] == 7 and d["p"][2] == 2.0 and d["stop"] == 1
+    assert d["p"][1] < d["p"][2] < d["p"][3]
+    assert d["mo"] == [["2026-08", 7, round(sum(g - 1 for g in [-8, -2, 0, 2, 4, 6, 10]) / 7, 2)]]
+    assert strategy.dist([]) == {"n": 0}
+
+
+def test_strategy_holding_scan_matches_scorecard_definition():
+    """持有天數掃描與成績單同口徑：t+1 開盤進、t+h 收盤出、扣成本、對大盤同一時窗。"""
+    from arm.lab import strategy
+    S = _st_series([100, 98, 99, 99, 99], [100, 99, 101, 102, 103])
+    idx = [1000.0, 1000, 1010, 1010, 1020]
+    out = strategy.scan([("s", "開低", [("2330", 0)], lambda g: g < 0),
+                         ("c", "開高", [("2330", 0)], lambda g: g >= 0)], lambda c: S, idx, None, 3)
+    a, c = out["grp"]
+    assert out["h"] == 3 and a["n"] == [1, 1, 1] and c["n"] == [0, 0, 0] and c["x"] == [None] * 3
+    assert a["x"][1] == round((101 / 98 - 1 - strategy.COST - (1010 / 1000 - 1)) * 100, 2)
+    assert a["w"][1] == 100
+
+
+def test_trading_days_after_skips_weekends_and_official_holidays():
+    from arm.lab import strategy
+    assert strategy.trading_days_after("2026-10-08", 3) == ["2026-10-12", "2026-10-13", "2026-10-14"]  # 10/9 國慶補假
+    assert strategy.trading_days_after("2026-10-14", 3) == ["2026-10-15", "2026-10-16", "2026-10-19"]
 
 
 # ── 長線成長股：出場模擬 ─────────────────────────────────────────────

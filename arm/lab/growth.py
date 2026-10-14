@@ -322,7 +322,7 @@ def screen_now(P: Panel, rev_now: dict, etf_new2: set[str]) -> list[dict]:
         n_pass = sum([g_trust, g_grow, f["g_mom"]])
         if n_pass < 2:
             continue
-        out.append({"c": c, "n": P.D.names.get(c, c), "pass": n_pass == 3,
+        out.append({"c": c, "n": P.D.names.get(c, c), "pass": n_pass == 3, "px": P.s[c]["c"][t],
                     "trust": None if f["trust"] is None else round(f["trust"] * 100, 2), "tdays": f["tdays"],
                     "etf2": c in etf_new2, "g_trust": g_trust,
                     "yoy": None if not rv else rv[0], "cyoy": None if not rv else rv[1], "g_grow": g_grow,
@@ -338,6 +338,13 @@ def screen_now(P: Panel, rev_now: dict, etf_new2: set[str]) -> list[dict]:
 # 且是唯一在下跌段有保護的版本。進場延用短線研究最穩的結論：開高 ≥3% 不追（最多等 5 日）。
 S5 = {"key": "s5", "ver": 1, "since": "2026-10-14", "name": "長線：投信動能成長（月選）",
       "init": 0.20, "trail": 0.30, "maxd": H12, "gap": 0.03, "wait": 5,
+      # 頁面四小標（見 strategy.py STRATEGIES 註解）
+      "bet": "投信持續買、營收高成長、股價已轉強的中型股，有機會走出好幾個月的大波段。",
+      "why": "投信買中小型股常連續買好幾週；營收年增 20% 以上代表基本面在加速；股價多頭排列代表市場開始認同。"
+             "三個條件同時成立，是在找法人、基本面、股價三方都指向同一邊的股票。",
+      "more": ["出場用「從最高收盤回落 30%」而不是固定價位：讓賺錢的部位一路抱，賠錢的在 −20% 截斷。"],
+      "fail": ["盤整或空頭時會連續停損 −20%", "回測只含現存公司、兩年大致是多頭，結果偏樂觀",
+               "平均靠少數大贏家撐起，多數交易小賺小賠"],
       "rule": ["每月最後一個交易日收盤後篩選：投信關＋成長關＋動能關＋空間關四關全過",
                "進場：隔日開盤買；開盤比前日收盤高 ≥3% 則不追，最多等 5 個交易日",
                "出場：跌破進場價 −20% 停損；之後收盤從最高收盤回落 30% 出場；最長持有 250 個交易日",
@@ -427,5 +434,16 @@ def s5_trades(P: Panel, rev_hist: dict, rev_shards: dict, idx: list, io: list) -
                 "x": round(statistics.mean(r["x"] for r in rs if r.get("x") is not None), 1)
                 if any(r.get("x") is not None for r in rs) else None,
                 "open": sum(1 for r in rs if r.get("st") == "open")}
-    return {**{k: S5[k] for k in ("key", "ver", "since", "name", "rule", "pass")},
-            "fwd": fwd[-40:], "ins": ins[-40:], "fwd_stats": agg(fwd), "ins_stats": agg(ins)}
+    from .strategy import dist
+    return {**{k: S5[k] for k in ("key", "ver", "since", "name", "rule", "pass", "bet", "why", "more", "fail")},
+            "fwd": fwd[-40:], "ins": ins[-40:], "fwd_stats": agg(fwd), "ins_stats": agg(ins), "dist": dist(ins),
+            "screen_d": next_screen(cal[-1]) if cal else None}
+
+
+def next_screen(last: str) -> list[str] | None:
+    """[篩選日, 進場日]：本月最後一個交易日收盤後篩選、隔一個交易日開盤進場（日曆＝證交所官方休市表）。"""
+    from .strategy import trading_days_after
+    days = [last] + trading_days_after(last, 30)
+    scr = max(d for d in days if d[:7] == last[:7])
+    i = days.index(scr)
+    return [scr, days[i + 1]] if i + 1 < len(days) else None
