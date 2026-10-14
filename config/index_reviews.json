@@ -1,0 +1,239 @@
+{
+ "as_of": "2026-10-14",
+ "note": "被動 ETF 追蹤指數的審核時程與實際結果（籌碼雷達「指數調整」分頁資料源）。status：官方＝已見官方公告；推算＝依往例推算、待公告。每筆結果兩來源一致才寫；週一 ETF 週掃在審核月前後查證更新（見 CLAUDE.md）。",
+ "indexes": {
+  "tw50": {
+   "name": "臺灣50指數",
+   "short": "臺灣50",
+   "etfs": [
+    "0050",
+    "006208"
+   ],
+   "provider": "富時羅素／證交所",
+   "n": 50,
+   "conf": "高",
+   "predict": "tw50",
+   "rule": "依總市值排名：非成分股升至第 40 名內納入、成分股跌至第 61 名後刪除（41～60 名緩衝）；固定 50 檔；上市普通股；資料截止＝生效日前 4 週的週一；生效日收盤由被動資金一次成交",
+   "next": {
+    "review": "2026-12",
+    "cutoff": "2026-11-23",
+    "announce": "2026-12-04",
+    "effective": "2026-12-18",
+    "transition": 0,
+    "status": "推算"
+   },
+   "history": [
+    {
+     "review": "2026-09",
+     "cutoff": "2026-08-24",
+     "announce": "2026-09-04",
+     "effective": "2026-09-18",
+     "adds": [
+      "6446"
+     ],
+     "dels": [
+      "3661"
+     ],
+     "reserve": [
+      "1301",
+      "3481",
+      "3189",
+      "2379",
+      "2615"
+     ],
+     "src": [
+      "https://money.udn.com/money/story/5607/9734823",
+      "https://uanalyze.com.tw/articles/1117754689"
+     ]
+    },
+    {
+     "review": "2026-06",
+     "cutoff": "2026-05-25",
+     "announce": "2026-06-05",
+     "effective": "2026-06-18",
+     "adds": [
+      "3665",
+      "3443",
+      "8046",
+      "4958"
+     ],
+     "dels": [
+      "6919",
+      "2002",
+      "1301",
+      "2207"
+     ],
+     "reserve": [
+      "2313",
+      "3481",
+      "3189",
+      "6515",
+      "3036"
+     ],
+     "src": [
+      "https://www.ctee.com.tw/news/20260608700506-430201",
+      "https://wantrich.chinatimes.com/news/20260608900065-420101"
+     ]
+    },
+    {
+     "review": "2026-03",
+     "cutoff": "2026-02-23",
+     "announce": "2026-03-06",
+     "effective": "2026-03-20",
+     "adds": [
+      "2368",
+      "7769",
+      "2449",
+      "3037",
+      "2344"
+     ],
+     "dels": [
+      "3665",
+      "3034",
+      "2912",
+      "2379",
+      "2615"
+     ],
+     "src": [
+      "https://wantrich.chinatimes.com/news/20260307900230-420101"
+     ]
+    }
+   ],
+   "src": [
+    "https://www.twse.com.tw/downloads/zh/products/indices/IndexS32.pdf"
+   ]
+  },
+  "tw_div": {
+   "name": "臺灣高股息指數",
+   "short": "臺灣高股息",
+   "etfs": [
+    "0056"
+   ],
+   "provider": "富時羅素／證交所",
+   "n": 50,
+   "conf": "中低",
+   "predict": null,
+   "rule": "母體＝臺灣50＋中型100；依 I/B/E/S 未來一年預測現金殖利率取 50 檔、殖利率加權；緩衝 35／66 名（摘要轉述、未見原文）；生效後 5 個交易日過渡",
+   "next": {
+    "review": "2026-12",
+    "announce": "2026-12-04",
+    "effective": "2026-12-18",
+    "transition": 5,
+    "status": "推算"
+   },
+   "history": [
+    {
+     "review": "2026-06",
+     "effective": "2026-06-18",
+     "adds_names": [
+      "中興電",
+      "遠傳",
+      "南亞",
+      "南亞科",
+      "華邦電"
+     ],
+     "dels_names": [
+      "聚陽",
+      "瑞儀",
+      "東陽",
+      "東和鋼鐵"
+     ],
+     "src": [
+      "https://news.cnyes.com/news/id/6486388"
+     ]
+    }
+   ],
+   "src": [
+    "https://www.twse.com.tw/downloads/zh/products/indices/IndexS33.pdf"
+   ]
+  },
+  "msci_esg30": {
+   "name": "MSCI臺灣ESG永續高股息精選30指數",
+   "short": "MSCI ESG 高息30",
+   "etfs": [
+    "00878"
+   ],
+   "provider": "MSCI",
+   "n": 30,
+   "conf": "低",
+   "predict": null,
+   "rule": "母體＝MSCI 臺灣指數；ESG 評級 BB 以上（付費資料）；股利分數＝0.25×近 12 月殖利率＋0.75×近 3 年平均殖利率取前 30；緩衝 21～40 名；單一上限 10%；投信常在生效日前分批建倉",
+   "next": {
+    "review": "2026-11",
+    "announce": "2026-11-11",
+    "effective": "2026-11-30",
+    "transition": 0,
+    "status": "推算"
+   },
+   "history": [
+    {
+     "review": "2026-05",
+     "effective": "2026-05-29",
+     "adds_names": [
+      "長榮",
+      "長榮航",
+      "華南金",
+      "台新新光金",
+      "統一超"
+     ],
+     "dels_names": [
+      "遠東新",
+      "仁寶",
+      "可成",
+      "京元電"
+     ],
+     "src": [
+      "https://money.udn.com/money/story/5607/9541037"
+     ]
+    }
+   ],
+   "src": [
+    "https://www.msci.com/eqb/pressreleases/archive/ir_dates.pdf"
+   ]
+  },
+  "tip_hd": {
+   "name": "特選臺灣上市上櫃精選高息指數",
+   "short": "精選高息",
+   "etfs": [
+    "00919"
+   ],
+   "provider": "臺灣指數公司",
+   "n": 40,
+   "conf": "中",
+   "predict": null,
+   "rule": "母體＝上市櫃市值前 300、日均成交 >8,000 萬、ROE>0；12 月依「近四季股利率×(1＋前三季 EPS 成長率)」排序（資料至 11 月最後交易日）；前 20 名直接納入、跌出 61 名刪除；12 月最多換 8 檔；至少 20 檔來自市值前 150（其中 7 檔前 50）；8 個交易日過渡",
+   "next": {
+    "review": "2026-12",
+    "cutoff": "2026-12-09",
+    "announce": "2026-12-16",
+    "effective": "2026-12-17",
+    "transition": 8,
+    "status": "推算"
+   },
+   "history": [],
+   "src": [
+    "https://taiwanindex.com.tw/en/indexes/IX0170"
+   ]
+  },
+  "tip_tech": {
+   "name": "特選臺灣上市上櫃科技優息指數",
+   "short": "科技優息",
+   "etfs": [
+    "00929"
+   ],
+   "provider": "臺灣指數公司",
+   "n": 50,
+   "conf": "中",
+   "predict": null,
+   "rule": "市值前 200 且 >50 億之科技相關（含生技、雲端、綠能）；流動性、剔除波動前 10%、近 3 年 ROE 正、剔除 3 年平均殖利率後 10%；殖利率＝最近年度現金股利÷截止日價、殖利率加權（上限 10%）；12 月優先近四季配息 ≥2 次、最多換 16 檔；8 個交易日過渡",
+   "next": {
+    "review": "2026-12",
+    "status": "未公布"
+   },
+   "history": [],
+   "src": [
+    "https://taiwanindex.com.tw/en/indexes/IX0179"
+   ]
+  }
+ }
+}
