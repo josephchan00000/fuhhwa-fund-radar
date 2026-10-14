@@ -45,6 +45,9 @@ UNCLASSIFIED = "未分類"
 _CODE_RE = re.compile(r"^\d{4}[A-Z]?$")
 _CODE_KEY = re.compile(r"代號|代碼|Code|code")
 _IND_KEY = re.compile(r"產業|Industry|industry")
+# 上市／上櫃日期（2026-10-14 起一併落檔：臺灣50 預測要排除「截止日時還沒上市」的股票——
+# 鴻勁 2025-11-27 才由興櫃轉上市，兩次審核被誤列預估納入）
+_LIST_KEY = re.compile(r"上市日期|上櫃日期|ListingDate|Listing_Date|DateOfListing", re.I)
 
 
 def _norm_industry(v) -> str | None:
@@ -76,6 +79,39 @@ def rows_to_map(rows) -> dict[str, str]:
     return out
 
 
+def _iso_date(v) -> str | None:
+    """'19620209'／'0510209'（民國）／'2025/11/27'／'114/11/27' → ISO；無法解析回 None。"""
+    s = re.sub(r"[^\d/.-]", "", str(v or "").strip())
+    m = re.match(r"^(\d{2,4})[/.-](\d{1,2})[/.-](\d{1,2})$", s)
+    if m:
+        y, mo, d = (int(x) for x in m.groups())
+    elif s.isdigit() and len(s) in (7, 8):
+        y, mo, d = int(s[:-4]), int(s[-4:-2]), int(s[-2:])
+    else:
+        return None
+    if y < 1911:
+        y += 1911
+    if not (1950 <= y <= 2100 and 1 <= mo <= 12 and 1 <= d <= 31):
+        return None
+    return f"{y:04d}-{mo:02d}-{d:02d}"
+
+
+def listing_map(rows) -> dict[str, str]:
+    """openapi 列 → {股票代號: 上市（櫃）日期 ISO}；找不到該欄的列略過。"""
+    out: dict[str, str] = {}
+    for r in rows or []:
+        if not isinstance(r, dict):
+            continue
+        code = next((str(v).strip() for k, v in r.items()
+                     if _CODE_KEY.search(str(k)) and _CODE_RE.match(str(v or "").strip())), None)
+        if not code:
+            continue
+        d = next((_iso_date(v) for k, v in r.items() if _LIST_KEY.search(str(k))), None)
+        if d:
+            out[code] = d
+    return out
+
+
 def sample_keys(rows) -> str:
     """抓到列但一個都解析不出時，印實際鍵名供 CI 一輪收斂。"""
     for r in rows or []:
@@ -97,14 +133,23 @@ def industry_map() -> dict[str, str]:
     return (load().get("industry") or {})
 
 
-def merge(fresh: dict[str, str]) -> dict:
-    """本次新值覆蓋同代號舊值；本次全空＝原封保留（絕不洗成空）。"""
+def listing_dates() -> dict[str, str]:
+    return (load().get("listed") or {})
+
+
+def merge(fresh: dict[str, str], listed: dict[str, str] | None = None) -> dict:
+    """本次新值覆蓋同代號舊值；本次全空＝原封保留（絕不洗成空）。上市日期同一套規則。"""
     doc = load()
     old = dict(doc.get("industry") or {})
     if fresh:
         old.update({k: v for k, v in fresh.items() if v})
-    return {"as_of": clock.stamp_tw() if fresh else doc.get("as_of"),
-            "industry": old}
+    lst = dict(doc.get("listed") or {})
+    if listed:
+        lst.update({k: v for k, v in listed.items() if v})
+    out = {"as_of": clock.stamp_tw() if fresh else doc.get("as_of"), "industry": old}
+    if lst:
+        out["listed"] = lst
+    return out
 
 
 def save(doc: dict) -> bool:

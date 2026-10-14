@@ -212,9 +212,10 @@ def test_page_has_no_banned_words():
     from arm.lab import analyze
     banned = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "建議買賣", "建議買",
               "建議賣", "目標價", "零風險", "無風險", "穩賺不賠")
-    from arm.lab import growth, strategy
-    st_txt = "".join(str(v) for x in strategy.STRATEGIES + [strategy.S3, growth.S5]
-                     for k, v in x.items() if k in ("name", "bet", "why", "more", "fail", "rule"))
+    from arm.lab import growth, hdflow, strategy
+    st_txt = "".join(str(v) for x in strategy.STRATEGIES + [strategy.S3, growth.S5] + strategy.TW50_VERS
+                     for k, v in x.items() if k in ("name", "bet", "why", "more", "fail", "rule", "buy", "sell"))
+    st_txt += hdflow.ALERT["name"] + "".join(hdflow.ALERT["rule"]) + "".join(t[2] for t in hdflow.TESTS)
     text = page._HTML + page._JS + "".join(n + d for n, d in analyze.SIG_DEF.values()) + st_txt
     assert not [w for w in banned if w in text]
 
@@ -296,6 +297,153 @@ def test_tw50_common_stock_filter():
     assert not indexes._common_tw("0050")       # ETF
     assert not indexes._common_tw("2881A")      # 特別股
     assert not indexes._common_tw("9105")       # TDR
+
+
+def test_tw50_top_half_rounds_up_and_ranks_by_momentum():
+    """選股定案（2026-10-14 使用者）：漲勢前一半、無條件進位；只有 1 檔就是它；沒有漲幅資料的排最後。"""
+    from arm.lab import indexes
+    mom = {"a": 0.10, "b": 0.50, "c": None, "d": 0.30}
+    assert indexes.top_half(["a", "b", "c", "d"], mom) == {"b", "d"}
+    assert indexes.top_half(["a", "b", "c"], mom) == {"b", "a"}
+    assert indexes.top_half(["c"], mom) == {"c"} and indexes.top_half([], mom) == set()
+
+
+def test_tw50_skips_stocks_not_yet_listed_at_cutoff():
+    """資料截止日時還沒上市（興櫃轉上市）的股票沒有資格，由下一順位遞補（鴻勁 2025-09／12 誤判的教訓）。"""
+    from arm.lab import indexes
+    ranked = [(f"{1000 + i}", 1e12 - i * 1e9, 100.0) for i in range(120)]
+    cons = {f"{1000 + i}" for i in range(50)} - {"1012"}
+    ranked.insert(5, ("7769", 1e12 - 4.5e9, 100.0))
+    cons -= {"1049"}
+    listed = {"7769": "2025-11-27"}
+    skip = indexes.not_listed(ranked, cons, listed, "2025-11-24")
+    assert skip == {"7769"}
+    adds, _ = indexes.tw50_select(ranked, cons, skip)
+    assert "7769" not in adds and "1012" in adds
+    assert indexes.not_listed(ranked, cons, listed, "2026-02-23") == set()      # 上市後下一次就有資格
+
+
+def _tw50_fake(cal, series, idx, io=None):
+    class _D:
+        pass
+    D = _D()
+    D.cal, D.T = cal, len(cal)
+    D.ix = {d: i for i, d in enumerate(cal)}
+    D.series = lambda c: series[c]
+    D.taiex = lambda: idx
+    D.taiex_open = lambda: io or [None] * len(cal)
+    return D
+
+
+def test_tw50_version_trade_windows_and_states():
+    """卡位版：截止日隔天開盤進、生效前一天收盤出；公告沒納入 → 公告後第一天開盤出；資料未到＝待進場／持有中。"""
+    from arm.lab import tw50study as TS
+    cal = ["2026-11-23", "2026-11-24", "2026-11-25", "2026-12-04", "2026-12-07", "2026-12-17", "2026-12-18"]
+    S = {"X": {"o": [None, 100, 101, 104, 103, 110, 111], "c": [99, 100, 102, 105, 104, 112, 113]}}
+    idx = [1000.0, 1000, 1010, 1020, 1015, 1030, 1040]
+    io = [None, 1000.0, 1005, 1018, 1016, 1028, 1035]
+    D = _tw50_fake(cal, S, idx, io)
+    P = TS._Px(D)
+    t = TS._trade(D, P, "X", 1, "2026-11-24", "2026-12-17", False, "生效前一天出", {"c": "X"})
+    assert t["st"] == "closed" and t["entry"] == 100 and t["exit"] == 112 and t["held"] == 5
+    assert abs(t["r"] - round((112 / 100 - 1 - TS.COST) * 100, 2)) < 1e-9
+    assert abs(t["x"] - round((112 / 100 - 1 - TS.COST - (1030 / 1000 - 1)) * 100, 2)) < 1e-9
+    t2 = TS._trade(D, P, "X", 1, "2026-11-24", "2026-12-07", True, "公告未納入・隔日開盤出", {"c": "X"})
+    assert t2["exit"] == 103 and t2["held"] == 3 and abs(t2["r"] - round((103 / 100 - 1 - TS.COST) * 100, 2)) < 1e-9
+    D2 = _tw50_fake(cal[:3], {"X": {k: v[:3] for k, v in S["X"].items()}}, idx[:3], io[:3])
+    t3 = TS._trade(D2, TS._Px(D2), "X", 1, "2026-11-24", "2026-12-17", False, "生效前一天出", {"c": "X"})
+    assert t3["st"] == "open" and t3["now"] == 102 and t3["out"] == "2026-12-17"
+    D3 = _tw50_fake(cal[:1], {"X": {k: v[:1] for k, v in S["X"].items()}}, idx[:1], io[:1])
+    t4 = TS._trade(D3, TS._Px(D3), "X", None, "2026-11-24", "2026-12-17", False, "生效前一天出", {"c": "X"})
+    assert t4["st"] == "cand" and t4["ent"] == "2026-11-24"
+
+
+def test_tw50_td_shift_follows_official_calendar():
+    from arm.lab import tw50study as TS
+    assert TS.td_shift("2026-11-23", 1) == "2026-11-24"
+    assert TS.td_shift("2026-12-18", -1) == "2026-12-17"
+    assert TS.td_shift("2026-10-12", -1) == "2026-10-08"            # 10/9 國慶補假＋週末
+    assert TS.td_shift("2026-12-04", 1) == "2026-12-07"             # 週五公告 → 下週一
+
+
+def test_tw50_spearman_basic():
+    from arm.lab import tw50study as TS
+    a = [1, 2, 3, 4, 5, 6]
+    assert TS._spearman(a, [10, 20, 30, 40, 50, 60]) == (1.0, 6)
+    assert TS._spearman(a, [6, 5, 4, 3, 2, 1]) == (-1.0, 6)
+    assert TS._spearman(a[:5], a[:5])[0] is None                      # 少於 6 檔不算
+    assert TS._spearman([1, 1, 2, 3, 4, 5], [1, 2, 3, 4, 5, None])[1] == 5
+
+
+def test_tw50_control_respects_stock_level_effective_date(monkeypatch):
+    """對照組（官方名單全部）：個股生效日延後以個股為準；資料還沒到生效日的刪除股＝待進場，不拿最新收盤冒充。"""
+    from arm.lab import indexes, strategy
+    cal = ["2026-03-05", "2026-03-06", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13"]
+    S = {c: {"o": [10.0] * 7, "c": [10.0, 10, 10, 10, 11, 12, 13]} for c in ("1111", "2222", "3333")}
+    D = _tw50_fake(cal, S, [1000.0] * 7, [1000.0] * 7)
+    cfg = {"indexes": {"tw50": {"history": [{"review": "2026-03", "announce": "2026-03-06", "effective": "2026-03-11",
+                                             "adds": ["1111", "2222"], "dels": ["3333"],
+                                             "eff_override": {"2222": "2026-03-13"}}]}}}
+    monkeypatch.setattr(indexes, "load_cfg", lambda: cfg)
+    trs = {t["c"]: t for t in strategy.tw50_trades(D, [1000.0] * 7, [1000.0] * 7, {}, cal[-1])}
+    assert trs["1111"]["exit"] == 11 and trs["1111"]["held"] == 3
+    assert trs["2222"]["exit"] == 13 and trs["2222"]["d"] == "2026-03-13"
+    assert trs["3333"]["st"] == "open" and trs["3333"]["entry"] == 11            # 生效日收盤承接，5 日後還沒到
+    D2 = _tw50_fake(cal[:4], {c: {k: v[:4] for k, v in x.items()} for c, x in S.items()}, [1000.0] * 4, [1000.0] * 4)
+    trs2 = {t["c"]: t for t in strategy.tw50_trades(D2, [1000.0] * 4, [1000.0] * 4, {}, cal[3])}
+    assert trs2["3333"]["st"] == "cand" and trs2["1111"]["st"] == "open"
+
+
+def test_tw50_by_review_drops_two_largest_gaps_between_versions():
+    """「成績集中在少數幾次」由資料算：扣掉兩版差距最大的 2 次後重算平均，並附公告後第一天開盤跳空。"""
+    from arm.lab import strategy
+    cal = ["2026-03-06", "2026-03-09", "2026-06-05", "2026-06-08"]
+    D = _tw50_fake(cal, {"A": {"o": [None, 90.0, None, 95.0], "c": [100.0, 100, 100, 100]}}, [1000.0] * 4)
+    pl = [{"review": r, "announce": a, "pick_b": ["A"] if a else []}
+          for r, a in (("2025-12", None), ("2026-03", "2026-03-06"), ("2026-06", "2026-06-05"), ("2025-09", None))]
+    tr = lambda r, v: {"review": r, "r": v, "st": "closed", "d": "2025-01-01"}
+    V = {"early": [tr("2025-12", 5.0), tr("2026-03", 10.0), tr("2026-06", 4.0), tr("2025-09", 3.0)],
+         "post": [tr("2025-12", 4.0), tr("2026-03", 30.0), tr("2026-06", 30.0), tr("2025-09", 1.0)]}
+    rows, sens = strategy._tw50_by_review(D, pl, V, [])
+    assert [r[0] for r in rows] == ["2025-12", "2026-03", "2026-06", "2025-09"]
+    assert rows[1][4] == -10.0 and rows[2][4] == -5.0 and rows[0][4] is None
+    assert sorted(sens["revs"]) == ["2026-03", "2026-06"] and sens["early"] == 4.0 and sens["post"] == 2.5
+    assert sens["n_left"] == 2 and sens["early_all"] == 5.5 and sens["post_all"] == 16.25
+
+
+def test_tw50_early_basket_cutoff_check_and_topup():
+    """提前卡位：早買的股票截止日名單沒有 → 截止日隔天開盤賣；名單上有的抱到生效前一天；沒買到的確定納入股補位。"""
+    from arm.lab import tw50study as TS
+    cal = ["2026-10-16", "2026-10-19", "2026-11-23", "2026-11-24", "2026-12-04", "2026-12-07", "2026-12-17", "2026-12-18"]
+    S = {"A": {"o": [None, 100.0, None, 120.0, None, None, None, None], "c": [99.0, 101, 118, 121, 125, 126, 130, 128]},
+         "C": {"o": [None, 50.0, None, 47.0, None, None, None, None], "c": [50.0, 50, 48, 47, 46, 46, 45, 45]},
+         "B": {"o": [None, 80.0, None, 90.0, None, None, None, None], "c": [80.0, 82, 88, 91, 95, 96, 99, 97]}}
+    D = _tw50_fake(cal, S, [1000.0] * 8, [1000.0] * 8)
+    p = {"review": "2026-12", "cutoff": "2026-11-23", "frozen": True, "official": True, "pred": ["A", "B"],
+         "act": ["A", "B"], "ic": 2, "a_in": "2026-11-24", "b_in": "2026-12-07", "out": "2026-12-17", "out_c": {},
+         "e_sig": "2026-10-16", "e_in": "2026-10-19", "e_t": 0, "pick_e": ["A", "C"], "pick_t": ["B"],
+         "mom": {}, "mom_e": {}}
+    trs = {t["c"]: t for t in TS.early_trades(D, TS._Px(D), p, {})}
+    assert trs["A"]["entry"] == 100 and trs["A"]["exit"] == 130 and trs["A"]["tag"] == "早"
+    assert trs["C"]["exit"] == 47 and trs["C"]["why"].startswith("截止日名單沒有")       # 截止日隔天開盤賣
+    assert trs["B"]["entry"] == 90 and trs["B"]["exit"] == 99 and trs["B"]["tag"] == "補"
+    p2 = dict(p, frozen=False, official=False, pred=None, act=None, pick_t=[])           # 截止前：持有中
+    D2 = _tw50_fake(cal[:2], {c: {k: v[:2] for k, v in x.items()} for c, x in S.items()}, [1000.0] * 2, [1000.0] * 2)
+    t2 = {t["c"]: t for t in TS.early_trades(D2, TS._Px(D2), p2, {})}
+    assert t2["A"]["st"] == "open" and t2["C"]["st"] == "open" and t2["A"]["now"] == 101
+
+
+def test_tw50_card_has_versions_plan_and_research_section():
+    """臺灣50 卡：三個版本並列（兩個新版本＋原官方名單對照）、下一次計畫；指數頁有換股研究段。"""
+    from arm.lab import strategy
+    from arm.lab import tw50study
+    assert [v["k"] for v in strategy.TW50_VERS] == ["early", "post"]
+    assert all(v["since"] == "2026-10-14" and v["ver"] == 1 and v["rule"] for v in strategy.TW50_VERS)
+    assert (tw50study.EARLY_K, tw50study.EARLY_N, tw50study.EARLY_W) == (25, 4, 45)   # 使用者：3～4 檔、越早越好
+    js = page._JS
+    for k in ("sq('三個版本'", "sq('下一次'", "function studySec(", "h+=studySec(X.study);", "'idx-study'",
+              "'漲勢前一半':", "'資料截止日':", "'估計權重':", "function earlyChart(", "提前幾天建倉"):
+        assert k in js, k
 
 
 def test_index_reviews_config_is_well_formed():
@@ -519,3 +667,173 @@ def test_workflows_commit_series_file_on_its_own_line():
         for i in page_lines:
             assert "x9s.json" not in lines[i], name
             assert lines[i + 1].strip().startswith("git add -f dashboard/x9s.json"), (name, i)
+
+
+# ── 高股息四檔（0056／00878／00919／00929）換股研究與預測（2026-10-14）────────────
+
+def _hd_fake(cal, mkt, yh=None):
+    class _D:
+        pass
+    D = _D()
+    D.cal, D.T, D.mkt, D.yh = cal, len(cal), mkt, yh or {}
+    D.ix = {d: i for i, d in enumerate(cal)}
+    D.names = {}
+
+    def quote(c, d):
+        doc = D.mkt.get(d) or {}
+        for part in ("q_tw", "q_tp"):
+            q = (doc.get(part) or {}).get(c)
+            if q and q[3]:
+                return q
+        y = (D.yh.get(c) or {}).get(d)
+        return [y[0], y[1], y[2], y[3], y[4], None] if y else None
+    D.quote = quote
+    return D
+
+
+def _hd_model(D, raw):
+    from arm.lab.hdmodel import HD
+    H = HD.__new__(HD)
+    H.D, H.raw, H.approx, H.eps = D, raw, set(), {}
+    H.iss_tw, H.iss_tp, H._ser, H._div = {}, {}, {}, {}
+    return H
+
+
+def test_hd_par_value_change_restates_prices_and_dividends():
+    """面額十比一（寶雅 2026-07-30 實例）：相鄰兩日價格比超過 1.8 倍＝口徑改變，更早的價格與股利全部換到最新口徑
+    （Yahoo 區段本來就是新口徑，接到官方舊價那天也會被接回來）。"""
+    cal = ["2026-06-01", "2026-06-02", "2026-07-29", "2026-07-30", "2026-07-31"]
+    q = lambda p: {"q_tw": {}, "q_tp": {"5904": [p, p, p, p, 1000, p * 1000]}}
+    mkt = {"2026-06-02": q(570.0), "2026-07-29": q(720.0), "2026-07-30": q(72.0), "2026-07-31": q(73.0)}
+    yh = {"5904": {"2026-06-01": [56.8, 56.8, 56.8, 56.8, 1000]}}
+    D = _hd_fake(cal, mkt, yh)
+    H = _hd_model(D, {"5904": [("2026-07-16", 25.5, None, False)]})
+    s = H.ser("5904")
+    assert [d for d, _ in s["jumps"]] == ["2026-06-02", "2026-07-30"]  # Yahoo→官方、面額變更各一次
+    assert [round(x, 2) for x in s["c"]] == [57.0, 57.0, 72.0, 72.0, 73.0]   # 全部換成最新口徑
+    assert abs(H.divs("5904")[0][1] - 2.55) < 1e-9                     # 舊股股利 25.5 → 新股 2.55
+    assert abs(H.yld("5904", "2026-07-31") - 2.55 / 73.0) < 1e-9
+    assert abs(H.mom("5904", 4, 3) - (73.0 / 57.0 - 1)) < 1e-9          # 動能跨過口徑改變也正確
+
+
+def test_hd_dividend_rescaled_by_pre_ex_close_on_yahoo_days():
+    """Yahoo 區段的價格已依日後面額變更還原，股利是「當時每股」→ 用證交所除權息前收盤價換算（可寧衛 8422 實例）。"""
+    cal = ["2025-06-09", "2025-06-10", "2025-06-11"]
+    yh = {"8422": {"2025-06-09": [19.1, 19.1, 19.1, 19.1, 100], "2025-06-10": [18.2, 18.2, 18.2, 18.2, 100],
+                   "2025-06-11": [18.3, 18.3, 18.3, 18.3, 100]}}
+    D = _hd_fake(cal, {}, yh)
+    H = _hd_model(D, {"8422": [("2025-06-10", 9.94, 191.0, False)]})
+    assert abs(H.divs("8422")[0][1] - 9.94 * 19.1 / 191.0) < 1e-9       # ≈ 0.994
+
+
+def test_hd_trade_window_inferred_from_trust_flows():
+    """被動買賣期間＝納入股投信買超（÷該檔區間最大）平均 ≥ 0.3 的連續交易日，容許中間 1 天低於門檻。"""
+    from arm.lab import hdstudy as HS
+    from datetime import date
+    cal = [f"2026-06-{d:02d}" for d in range(1, 29) if date(2026, 6, d).weekday() < 5]
+    buy = {"2026-06-10": 0.9, "2026-06-11": 1.0, "2026-06-12": 0.1, "2026-06-15": 0.8, "2026-06-16": 0.7}
+    mkt = {d: {"i_tw": {c: [0, int(buy.get(d, 0.02) * 1e6), 0] for c in ("1111", "2222")}} for d in cal}
+    D = _hd_fake(cal, mkt)
+    w = HS.trade_window(D, {"adds": ["1111", "2222"]}, D.ix["2026-06-11"])
+    assert (D.cal[w[0]], D.cal[w[1]]) == ("2026-06-10", "2026-06-16")
+    assert HS.trade_window(D, {"adds": ["9999"]}, 10) is None             # 沒有投信資料 → 交給慣例
+
+
+def test_hd_constituents_walk_back_from_current_holdings(monkeypatch):
+    from arm.lab import hdstudy as HS
+    monkeypatch.setattr(HS, "_cur_holdings", lambda etf: {"A", "B", "C"})
+    ix = {"etfs": ["X"], "n": 3, "history": [
+        {"review": "2026-06", "effective": "2026-06-18", "adds": ["C"], "dels": ["D"]},
+        {"review": "2026-03", "effective": "2026-03-20", "adds": [], "dels": ["E"], "kind": "季審"},
+        {"review": "2025-12", "effective": "2025-12-19", "adds": ["D"], "dels": ["F"]}]}
+    cons = HS.constituents(ix)
+    assert cons["2026-06"] == ({"A", "B", "D"}, {"A", "B", "C"})
+    assert cons["2026-03"] == ({"A", "B", "D", "E"}, {"A", "B", "D"})
+    assert cons["2025-12"] == ({"A", "B", "E", "F"}, {"A", "B", "D", "E"})
+    bad = {"etfs": ["X"], "history": [{"review": "2026-06", "effective": "2026-06-18", "adds": ["Z"], "dels": []}]}
+    assert HS.constituents(bad)["2026-06"] is None                       # 納入股不在目前持股 → 對不上，不用
+
+
+def test_hd_buffer_select_top_in_keep_rank_and_change_cap():
+    from arm.lab import hdpredict as HP
+    ranked = [f"S{i:02d}" for i in range(1, 13)]
+    pre = {"S03", "S07", "S09", "S12", "X1"}                              # X1 不合格（沒有名次）
+    sel, adds, dels = HP.buffer_select(ranked, pre, 5, 2, 8)
+    assert sel == ["S01", "S02", "S03", "S07", "S04"] and adds == ["S01", "S02", "S04"]
+    assert dels[0] == "X1" and set(dels) == {"X1", "S09", "S12"}
+    sel2, adds2, dels2 = HP.buffer_select(ranked, pre, 5, 2, 8, max_chg=1)
+    assert adds2 == ["S01"] and len(sel2) == 5 and "X1" in dels2 and len(dels2) == 1
+
+
+def test_hd_page_sections_and_glossary():
+    js = page._JS
+    for k in ("function hdPredSec(", "function hdStudySec(", "h+=hdPredSec(X.hd)+hdStudySec(X.hd)", "'idx-hd'", "'idx-hds'",
+              "'被動買賣期間':", "'對其他成分股':", "高股息預估納入"):
+        assert k in js, k
+
+
+# —— 高股息：被動買盤大小（hdflow）
+
+def test_hdflow_flow_subtracts_baseline_and_counts_days_of_volume():
+    """被動買賣＝期間投信買賣超扣掉平常水準（之前第 25～6 個交易日中位數），× 期間均價 ÷ 20 日均成交金額＝幾天的量。"""
+    from datetime import date, timedelta
+    from arm.lab import hdflow as HF
+    cal, d = [], date(2026, 3, 2)
+    while len(cal) < 40:
+        if d.weekday() < 5:
+            cal.append(d.isoformat())
+        d += timedelta(days=1)
+    T0, T1 = 30, 32
+    mkt = {x: {"q_tw": {"1111": [50.0, 50.0, 50.0, 50.0, 20000, 1_000_000]}, "q_tp": {},
+               "i_tw": {"1111": [0, 101_000 if T0 <= i <= T1 else 1_000, 0]}} for i, x in enumerate(cal)}
+    D = _hd_fake(cal, mkt)
+    H = _hd_model(D, {})
+    val, days = HF._flow(D, H, "1111", T0, T1)
+    assert val == 3 * 100_000 * 50.0                                       # 平常每天 1,000 股不算被動買盤
+    assert abs(days - 15.0) < 1e-9                                         # 1,500 萬 ÷ 每天 100 萬
+
+
+def test_hdflow_fk_median_and_leave_one_out():
+    """f_k＝各次審核「買進金額占市值」中位數的中位數；回測時用「其他次」的（不用到當次自己）。"""
+    from arm.lab import hdflow as HF
+    rows = [{"k": "tip_hd", "rev": r, "side": "add", "val": 1.0, "fm": fm}
+            for r, fms in (("A", (4, 6)), ("B", (2, 2)), ("C", (10, 10))) for fm in fms]
+    rows.append({"k": "tip_hd", "rev": "D", "side": "add", "val": 1.0, "fm": 50})       # 只有 1 檔的審核不算
+    rows.append({"k": "tip_hd", "rev": "A", "side": "del", "val": -9.0, "fm": -3})      # 刪除股不算
+    F = HF.fk(rows)
+    assert abs(F["tip_hd"]["f"] - 0.05) < 1e-12 and set(F["tip_hd"]["per"]) == {"A", "B", "C"}
+    assert abs(HF._f_loo(F, "tip_hd", "A") - 0.06) < 1e-12
+    assert HF._f_loo(F, "tw_div", "A") is None
+
+
+def test_hdflow_estimate_capped_by_single_stock_weight_limit():
+    """市值 × f 對權值股會爆掉（台積電 × 2.35% ≈ 1.5 兆）→ 以單檔權重上限 × 規模封頂。"""
+    from arm.lab import hdflow as HF
+    assert abs(HF.est_amt(0.0235, 645_000, 0.10 * 1611) - 161.1) < 1e-9
+    assert abs(HF.est_amt(0.045, 500, 0.15 * 6310) - 22.5) < 1e-9
+    assert HF.est_amt(None, 500) is None and HF.est_amt(0.03, None) is None
+
+
+def test_hdflow_phase_and_per_review_weighting():
+    from arm.lab import hdflow as HF
+    from arm.lab import tw50study as TS
+    t0, t1 = "2026-12-16", "2026-12-28"
+    until = TS.td_shift(t1, HF.AFTER)
+    assert HF._phase("2026-10-14", t0, t1) == ("pre", until)
+    assert HF._phase("2026-12-22", t0, t1)[0] == "in" and HF._phase(t1, t0, t1)[0] == "in"
+    assert HF._phase(TS.td_shift(t1, 1), t0, t1)[0] == "after" and HF._phase(until, t0, t1)[0] == "after"
+    assert HF._phase(TS.td_shift(t1, HF.AFTER + 1), t0, t1)[0] == "done"
+    assert HF._phase("2026-10-14", None, None) == ("pre", None)
+    rows = [{"k": "tip_hd", "rev": "R1", "x": -1.0}] * 3 + [{"k": "tip_hd", "rev": "R2", "x": 5.0}]
+    out = HF._per_rev(rows, lambda r: True, "x")                         # 每次審核等權：(−1＋5)／2
+    assert out["rev"] == {"n": 2, "avg": 2.0, "med": 2.0, "pos": 1}
+    assert out["tr"]["n"] == 4 and out["tr"]["avg"] == 0.5 and out["by"][0][:2] == ["00919", "R1"]
+
+
+def test_hd_flow_sections_alert_card_and_today_row():
+    js = page._JS
+    for k in ("function hdFlowSec(", "'idx-hdw'", "h+=hdPredSec(X.hd)+hdStudySec(X.hd)+hdFlowSec(X.hd);",
+              "function hdAlertCard(", "hdAlertCard());", "+hdRisk());", "function hdRisk(", "'被動買賣日量':", "'被動買賣提醒':",
+              "id=st-hd", "data-at=\"st-hd\""):
+        assert k in js, k
+    assert "12 月首次觀察" not in js                                    # 舊的佔位卡已換成提醒卡
