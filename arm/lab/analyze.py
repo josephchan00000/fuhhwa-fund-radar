@@ -62,8 +62,18 @@ class Data:
         self.tdcc = store.load("tdcc")
         self.names = {**(store.read_json("names_mkt.json", {}) or {}),
                       **(store.read_json("names.json", {}) or {})}
+        # Yahoo 歷史日線備援（只補官方分片沒有的日子；collect.backfill_yahoo 產）
+        self.yh: dict[str, dict] = {}
+        self.yh_m: dict[str, str] = {}
+        from .collect import yh_codes
+        for c in yh_codes():
+            doc = store.read("yh", c) or {}
+            if doc.get("q"):
+                self.yh[c] = doc["q"]
+                self.yh_m[c] = doc.get("m") or ""
         cal = set(d for d, doc in self.mkt.items() if doc.get("q_tw") or doc.get("q_tp"))
         cal |= {d for d, _ in self.pos}
+        cal |= set((self.yh.get("TWII") or {}))
         self.cal = sorted(cal)
         self.ix = {d: i for i, d in enumerate(self.cal)}
         self.T = len(self.cal)
@@ -83,6 +93,11 @@ class Data:
                 q = (doc.get(part) or {}).get(code)
                 if q and q[3]:
                     return q
+            if doc.get("q_tw") and doc.get("q_tp"):
+                return None                       # 官方當日兩市齊全卻沒有此檔＝當天沒交易，不用備援
+        y = (self.yh.get(code) or {}).get(d)
+        if y and y[3]:
+            return [y[0], y[1], y[2], y[3], y[4], None]     # Yahoo 無成交金額 → 均價退回收盤
         return None
 
     def price(self, code: str, d: str):
@@ -128,7 +143,9 @@ class Data:
         return {"f": f, "t": t, "d": dl, "mb": mb, "sb": sb, "lb": lb, "fp": fp}
 
     def taiex(self) -> list:
-        return [((self.mkt.get(d) or {}).get("idx") or {}).get("taiex") for d in self.cal]
+        yi = self.yh.get("TWII") or {}
+        return [((self.mkt.get(d) or {}).get("idx") or {}).get("taiex") or (yi.get(d) or [None] * 4)[3]
+                for d in self.cal]
 
     def latest(self, part: str) -> tuple[str | None, dict]:
         for d in reversed(sorted(self.mkt)):

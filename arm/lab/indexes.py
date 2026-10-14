@@ -47,7 +47,12 @@ def caps_at(D, d: str, issued: dict[str, int]) -> list[tuple[str, float, float]]
     """某日上市普通股總市值排名 [(code, 市值, 收盤)]（發行股數用最新值——審核日前後股本變動極少）。
     排除創新板（名稱以「-創」結尾；2026-10-14 回測 9 月審核時 6949 被誤列納入）。"""
     doc = D.mkt.get(d) or {}
-    q = doc.get("q_tw") or {}
+    q = dict(doc.get("q_tw") or {})
+    if not q:                                    # 官方缺這天 → Yahoo 備援（只取上市檔）
+        for c, ser in D.yh.items():
+            y = ser.get(d)
+            if y and D.yh_m.get(c) == "tw":
+                q[c] = [y[0], y[1], y[2], y[3], y[4], None]
     xt = doc.get("x_tw") or {}
     out = []
     for c, row in q.items():
@@ -64,7 +69,9 @@ def caps_at(D, d: str, issued: dict[str, int]) -> list[tuple[str, float, float]]
 
 def _nearest_mkt_on_or_before(D, d: str) -> str | None:
     ds = [x for x in sorted(D.mkt) if x <= d and (D.mkt[x] or {}).get("q_tw")]
-    return ds[-1] if ds else None
+    yi = [x for x in (D.yh.get("TWII") or {}) if x <= d]
+    best = max(ds[-1:] + sorted(yi)[-1:], default=None)
+    return best
 
 
 def tw50_select(ranked: list[tuple], cons: set[str]) -> tuple[list[str], list[str]]:
