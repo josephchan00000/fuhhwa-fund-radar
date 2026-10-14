@@ -184,6 +184,19 @@ def test_page_layout_six_tabs_today_first_and_glossary():
     assert [k.split(":")[0] for k in js_views.split(",")] == [t for t, _ in tabs]
 
 
+def test_stock_table_views_stay_narrow():
+    """個股表三個視角（ETF 動向／法人籌碼／技術面），每個視角連同股票、收盤兩欄 ≤9 欄、欄名都有 ⓘ。"""
+    import re
+    assert "const VW={etf:'ETF 動向',chip:'法人籌碼',ta:'技術面'}" in page._JS
+    block = page._JS.split("const CV={", 1)[1].split("};", 1)[0]
+    views = re.findall(r"(\w+):\[(.*?)\n \]", block, re.S)
+    assert [v for v, _ in views] == ["etf", "chip", "ta"]
+    for v, body in views:
+        cols = re.findall(r"\{k:'(\w+)'", body)
+        assert 2 + len(cols) <= 9, (v, cols)
+        assert body.count("g:'") >= len(cols) - 1, v     # 訊號欄以外都接名詞辭典
+
+
 def test_asof_line_merges_same_day_and_flags_lagging():
     data = {"asof": {"pos": "2026-10-13", "px": "2026-10-13", "chip": "2026-10-13",
                      "margin": "2026-10-12", "tdcc": "2026-10-08"},

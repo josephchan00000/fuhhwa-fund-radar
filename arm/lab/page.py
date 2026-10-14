@@ -166,6 +166,22 @@ main{padding:16px 16px 90px;max-width:1180px;margin:0 auto}
 .ch{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;background:var(--card2);color:var(--ink);font-size:13px;cursor:pointer;user-select:none;border:0}
 .ch.on{background:var(--acc);color:#fff}.ch.rk{background:var(--gainbg);color:var(--gain)}.ch.rk.on{background:var(--gain);color:#fff}
 .ch i{font-style:normal;opacity:.7;font-size:12px}
+.fbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
+.fbar input[type=search]{flex:1 1 220px;min-width:160px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--card2)}
+.fbar select{padding:7px 30px 7px 10px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:14px;color:var(--ink);background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23727e8c'/%3E%3C/svg%3E") no-repeat right 11px center;-webkit-appearance:none;appearance:none;max-width:100%}
+.tgl{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--ink2);cursor:pointer;user-select:none;white-space:nowrap}
+.tgl input{width:16px;height:16px;margin:0;accent-color:var(--acc)}
+.vbar{display:flex;align-items:center;gap:10px;margin:0 0 8px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--card2);border-radius:10px;padding:3px}
+.seg a{padding:5px 14px;border-radius:8px;color:var(--ink2);font-size:14px;font-weight:600;white-space:nowrap}
+.seg a.on{background:var(--bg);color:var(--accd);box-shadow:0 1px 3px rgba(15,23,42,.14)}
+.cnt{margin-left:auto;color:var(--mut);font-size:13px}
+th small{font-weight:400;margin-left:2px;font-size:11px}
+.db{display:block;position:relative;height:5px;margin:4px 0 1px;min-width:64px;background:linear-gradient(var(--line),var(--line)) center/1px 100% no-repeat}
+.db i{position:absolute;top:0;height:100%;border-radius:3px}.db .bu{left:50%;background:var(--gain)}.db .bd{right:50%;background:var(--loss)}
+.stk td:first-child{min-width:104px;max-width:170px;white-space:normal}
+.stk .nm,.stk .cd{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+a.sm{font-size:12.5px;font-weight:600;margin-left:6px}
 .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{border-collapse:collapse;width:100%;font-size:13.5px}
 th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:middle}
@@ -221,6 +237,9 @@ ul.doc{padding-left:18px}ul.doc li{margin:4px 0}
  .nb{grid-template-columns:minmax(0,1fr) minmax(0,1.6fr) 56px;gap:6px}
  .cr{grid-template-columns:minmax(0,1fr) 96px}.cr .crc{grid-column:1/-1;grid-row:2}.cr .crs{grid-column:2;grid-row:1}
  .rk2>.st{display:block;margin:2px 0 0}
+ .fbar input[type=search]{flex-basis:100%}.fbar select{flex:1 1 0;min-width:0}
+ .seg a{padding:5px 11px}
+ .stk td:first-child{min-width:92px;max-width:118px}.stk .nm,.stk .cd{max-width:108px}
 }
 """
 
@@ -234,13 +253,15 @@ function f(x,d=1){if(x===null||x===undefined||Number.isNaN(x))return '—';const
 function sgn(x,d=1,suf=''){if(x===null||x===undefined)return '<span class=mu>—</span>';const c=x>0?'up':x<0?'dn':'mu';return `<span class=${c}>${x>0?'+':''}${f(x,d)}${suf}</span>`;}
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function md(d){d=String(d||'');return d.length>=10?esc(`${+d.slice(5,7)}/${+d.slice(8,10)}`):(d?esc(d):'—');}
+function fp(x){return x==null?'—':f(x,x>=500?0:x>=50?1:2);}
 function sgChips(arr){return (arr||[]).map(k=>`<span class="sg${RISK.has(k)?' rk':''}">${esc((SD[k]||[k])[0])}</span>`).join('');}
 function issOf(etfs){return [...new Set((etfs||[]).map(e=>(E[e]||{}).is||e))];}
 function sec(id,nav,title,sub,body,rt=''){return `<section class=sec id="${id}" data-nav="${esc(nav)}"><h2>${title}${sub?`<span class=sub>${sub}</span>`:''}${rt?`<span class=rt>${rt}</span>`:''}</h2>${body}</section>`;}
 const MK={tw:'上市',tp:'上櫃',os:'海外'};const MKF={twall:'台股',tw:'上市',tp:'上櫃',os:'海外',all:'全部'};
-const S={tab:'today',q:'',mk:'twall',sig:'',liq:false,sort:'a5v',dir:-1,n:60};
-try{const z=JSON.parse(localStorage.getItem('lab.s')||'{}');for(const k of ['mk','sort','dir','liq'])if(k in z)S[k]=z[k];}catch(e){}
-function save(){try{localStorage.setItem('lab.s',JSON.stringify({mk:S.mk,sort:S.sort,dir:S.dir,liq:S.liq}));}catch(e){}}
+const S={tab:'today',q:'',mk:'twall',sig:'',liq:false,sort:'a5v',dir:-1,n:60,vw:'etf'};let STK=[];
+try{const z=JSON.parse(localStorage.getItem('lab.s')||'{}');for(const k of ['mk','sort','dir','liq','vw'])if(k in z)S[k]=z[k];}catch(e){}
+if(!({etf:1,chip:1,ta:1})[S.vw])S.vw='etf';
+function save(){try{localStorage.setItem('lab.s',JSON.stringify({mk:S.mk,sort:S.sort,dir:S.dir,liq:S.liq,vw:S.vw}));}catch(e){}}
 
 /* ---------- 名詞辭典（ⓘ 與「名詞」頁共用） ---------- */
 const GL={
@@ -347,16 +368,17 @@ function vToday(){
   const m=Math.max(1,...buys.slice(0,8).map(r=>r.a5v),...sells.slice(0,8).map(r=>-r.a5v));
   h+=sec('t-flow','買賣',`主動 ETF 買最多／賣最多${gi('主動 5 日淨買')}`,`近 5 個交易日（${win}）淨買金額・已扣申贖${gi('真加碼')}`,
     `<div class=g2><div><h3 class=up>淨買最多</h3>${flowRows(buys.slice(0,8),m,'buy')}</div><div><h3 class=dn>淨賣最多</h3>${flowRows(sells.slice(0,8),m,'sell')}</div></div>`,
-    `<a data-go="stk">看全部 →</a>`);
+    `<a data-go="stk" data-fsig="" data-sort="a5v">看全部 →</a>`);
   const nbTop=nbs.slice(0,10);
   h+=sec('t-new','新建倉',`新建倉${gi('新建倉')}`,`10 個交易日內主動 ETF 第一次買進的台股，依同時進場的投信家數排序；右側＝主動 5 日淨買（億）${nbOs?`。另有海外股 ${nbOs} 檔`:''}`,
     (nbTop.length?`<div class=nbs style="grid-template-rows:repeat(${Math.ceil(nbTop.length/2)},auto)">${nbTop.map(x=>`<div class=nb data-c="${esc(x.r.c)}"><span class=fn><b>${esc(x.r.n)}</b><i>${esc(x.r.c)}</i></span><span>${x.is.map(i=>`<span class="tg${x.is.length>=2?' hot':''}">${esc(i)}</span>`).join('')}</span><span class=fv>${x.r.a5v==null?'':sgn(x.r.a5v,1)}</span></div>`).join('')}</div>`:'<div class=st>10 日內無新建倉</div>')+
-    (nbs.length>10?`<details class=mr><summary>其餘 ${nbs.length-10} 檔</summary><div class=inl>${nbs.slice(10).map(x=>`<span class=it><a data-c="${esc(x.r.c)}">${esc(x.r.n)}</a><span class=mu>${x.is.map(esc).join(' ')}</span></span>`).join('　')}</div></details>`:''));
+    (nbs.length>10?`<details class=mr><summary>其餘 ${nbs.length-10} 檔</summary><div class=inl>${nbs.slice(10).map(x=>`<span class=it><a data-c="${esc(x.r.c)}">${esc(x.r.n)}</a><span class=mu>${x.is.map(esc).join(' ')}</span></span>`).join('　')}</div></details>`:''),
+    nbs.length?`<a data-go="stk" data-fsig="nb" data-sort="a5v">全部 ${nbs.length} 檔 →</a>`:'');
   h+=sec('t-cand','候選','明日開盤前候選','策略規則寫死、照規則自動記紙上交易',
     cands.length?candRows(cands):'<div class=st>今日沒有策略候選。</div>',`<a data-go="st">看策略 →</a>`);
   const al=(D.strat||{}).alerts||[];
   h+=sec('t-risk','風險',`風險提醒`,'',
-    `<div class=rk2><b>集體撤退 ${exits.length} 檔</b>${gi('exit')}<span class=st>近 5 日 3 家以上投信同時減碼、主動合計淨賣（億元）</span><div class=inl>`+
+    `<div class=rk2><b>集體撤退 ${exits.length} 檔</b>${gi('exit')}${exits.length?` <a class=sm data-go="stk" data-fsig="exit" data-sort="a5v" data-dir="1">看表格 →</a>`:''}<span class=st>近 5 日 3 家以上投信同時減碼、主動合計淨賣（億元）</span><div class=inl>`+
       (exits.length?exits.map(r=>`<span class=it><a data-c="${esc(r.c)}">${esc(r.n)}</a>${r.a5v!=null?`<span class=dn> ${f(r.a5v,1)}</span>`:''}</span>`).join('　'):'<span class=st>今日無</span>')+`</div></div>`+
     `<div class=rk2><b>跳空減碼提醒</b><span class=st>前一日「共識加碼」、今日開盤跳空 ≥3%：樣本內之後每個持有期平均都輸大盤</span><div class=inl>`+
       (al.length?al.map(a=>`<span class=it><a data-c="${esc(a.c)}">${esc(a.n)}</a> <span class=mu>開盤</span> ${sgn(a.gap,1,'%')}</span>`).join('　'):'<span class=st>今日無</span>')+`</div></div>`);
@@ -372,48 +394,85 @@ function vToday(){
   $$('#main [data-sg]').forEach(e=>e.onclick=()=>go('sig','sig-'+e.dataset.sg));
 }
 
-/* ---------- 個股（篩選表） ---------- */
-const COLS=[
- ['c','代號／名稱',r=>`<span class=nm>${esc(r.n)}</span><span class=cd>${esc(r.c)} · ${MK[r.m]||''}${r.ind?' · '+esc(r.ind):''}</span>`,r=>r.c],
- ['px','收盤',r=>`${f(r.px,2)}<br>${sgn(r.ch,2,'%')}`,r=>r.ch],
- ['ne','ETF 數<br>主／被',r=>`${r.ne}<br><span class=mu>${r.na}／${r.np}</span>`,r=>r.ne],
- ['hp','ETF<br>持股率',r=>r.hp==null?'—':f(r.hp,2)+'%',r=>r.hp],
- ['a5v','主動 5 日真加碼<br>金額(億)／張',r=>`${sgn(r.a5v,2)}<br><span class=mu>${r.a5==null?'—':(r.a5>0?'+':'')+f(r.a5,0)} 張</span>`,r=>r.a5v],
- ['ia5','加碼／減碼<br>投信家數',r=>`<span class=up>${(r.ia5||[]).length}</span>／<span class=dn>${(r.ic5||[]).length}</span>`,r=>(r.ia5||[]).length-(r.ic5||[]).length],
- ['ow','主動超配<br>(百分點)',r=>sgn(r.ow,2),r=>r.ow],
- ['dev','主動成本<br>乖離',r=>sgn(r.dev,1,'%'),r=>r.dev],
- ['t5','投信<br>5 日(張)',r=>sgn(r.t5,0),r=>r.t5],
- ['f5','外資<br>5 日(張)',r=>sgn(r.f5,0),r=>r.f5],
- ['al','技術',r=>(r.al?`<span class=${r.al==='多頭'?'up':r.al==='空頭'?'dn':'mu'}>${r.al}</span>`:'—')+(r.h20?' <span class=sg>創20日高</span>':''),r=>({多頭:2,整理:1,空頭:0}[r.al]??-1)],
- ['sg','訊號',r=>sgChips(r.sg),r=>(r.sg||[]).filter(k=>!RISK.has(k)).length-(r.sg||[]).filter(k=>RISK.has(k)).length],
+/* ---------- 個股（篩選表：三個視角） ---------- */
+const VW={etf:'ETF 動向',chip:'法人籌碼',ta:'技術面'},VW0={etf:'a5v',chip:'t5',ta:'rs20'};
+const MKF2={twall:'台股（上市＋上櫃）',tw:'上市',tp:'上櫃',os:'海外',all:'全部市場'};
+let AMX=1;const HASBD=ROWS.some(r=>r.bigd!=null);
+function dbar(v){if(v==null||!AMX)return '';const w=Math.min(50,Math.abs(v)/AMX*50);return `<span class=db><i class=${v>0?'bu':'bd'} style="width:${w.toFixed(1)}%"></i></span>`;}
+function streak(x){return !x?'<span class=mu>—</span>':x>0?`<span class=up>買 ${x}</span>`:`<span class=dn>賣 ${-x}</span>`;}
+function tcd(r){return r.tc&&r.px?(r.px/r.tc-1)*100:null;}
+function trend(r){const b=r.h60?'創 60 日高':r.h20?'創 20 日高':r.l20?'破 20 日低':'';
+  return (r.al?`<span class=${r.al==='多頭'?'up':r.al==='空頭'?'dn':'mu'}>${r.al}</span>`:'—')+(b?`<br><span class="sg${r.l20&&!r.h20&&!r.h60?' rk':''}">${b}</span>`:'');}
+function sigScore(r){const s=r.sg||[];return s.filter(k=>!RISK.has(k)).length-2*s.filter(k=>RISK.has(k)).length;}
+function sgShort(arr){const s=(arr||[]).slice().sort((a,b)=>RISK.has(b)-RISK.has(a));return s.slice(0,2).map(k=>`<span class="sg${RISK.has(k)?' rk':''}">${esc((SD[k]||[k])[0])}</span>`).join('')+(s.length>2?`<span class=mu> +${s.length-2}</span>`:'');}
+const C0=[
+ {k:'c',t:'股票',l:1,v:r=>r.c,h:r=>`<span class=nm>${esc(r.n)}</span><span class=cd>${esc(r.c)}${r.m==='tp'?' · 櫃':r.m==='os'?' · 海外':''}${r.ind?' · '+esc(r.ind):''}</span>`},
+ {k:'ch',t:'收盤',v:r=>r.ch,h:r=>`${fp(r.px)}<br>${sgn(r.ch,2,'%')}`},
 ];
+const CV={
+ etf:[
+  {k:'a5v',t:'主動 5 日淨買',u:'億',g:'主動 5 日淨買',v:r=>r.a5v,h:r=>r.a5v==null?'<span class=mu>—</span>':`${sgn(r.a5v,1)}${dbar(r.a5v)}`},
+  {k:'iac',t:'加／減家數',g:'加碼／減碼家數',v:r=>(r.ia5||[]).length-(r.ic5||[]).length,h:r=>`<span class=up>${(r.ia5||[]).length}</span><span class=mu>／</span><span class=dn>${(r.ic5||[]).length}</span>`},
+  {k:'ne',t:'持有 ETF',u:'檔',g:'持有 ETF',v:r=>r.ne,h:r=>`${r.ne}<br><span class=mu>主動 ${r.na}</span>`},
+  {k:'dev',t:'成本乖離',g:'成本乖離',v:r=>r.dev,h:r=>sgn(r.dev,1,'%')},
+  {k:'ow',t:'超配',u:'pp',g:'超配',v:r=>r.ow,h:r=>sgn(r.ow,2)},
+  {k:'hp',t:'ETF 持股率',g:'ETF 持股率',v:r=>r.hp,h:r=>r.hp==null?'<span class=mu>—</span>':f(r.hp,2)+'%'},
+  {k:'sg',t:'訊號',l:1,v:sigScore,h:r=>sgShort(r.sg)},
+ ],
+ chip:[
+  {k:'t5',t:'投信 5 日',u:'張',g:'投信 5 日',v:r=>r.t5,h:r=>sgn(r.t5,0)},
+  {k:'ts',t:'投信連續',u:'日',g:'連買',v:r=>r.ts,h:r=>streak(r.ts)},
+  {k:'f5',t:'外資 5 日',u:'張',g:'外資 5 日',v:r=>r.f5,h:r=>sgn(r.f5,0)},
+  {k:'fs',t:'外資連續',u:'日',g:'連買',v:r=>r.fs,h:r=>streak(r.fs)},
+  {k:'tcd',t:'現價 vs 投信成本',g:'60 日買超均價',v:tcd,h:r=>sgn(tcd(r),1,'%')},
+  {k:'mb5',t:'融資 5 日',g:'融資',v:r=>r.mb5,h:r=>sgn(r.mb5,1,'%')},
+  {k:'big',t:'千張大戶',g:'千張大戶',v:r=>HASBD?r.bigd:r.big,h:r=>r.big==null?'<span class=mu>—</span>':`${f(r.big,1)}%${r.bigd!=null?`<br>${sgn(r.bigd,2,'pp')}`:''}`},
+ ],
+ ta:[
+  {k:'al',t:'趨勢',l:1,g:'趨勢',v:r=>({多頭:2,整理:1,空頭:0}[r.al]??-1)+(r.h60?.2:r.h20?.1:0),h:trend},
+  {k:'b20',t:'20 日乖離',g:'乖離',v:r=>r.b20,h:r=>sgn(r.b20,1,'%')},
+  {k:'vr',t:'量比',u:'倍',g:'量比',v:r=>r.vr,h:r=>r.vr==null?'<span class=mu>—</span>':f(r.vr,2)},
+  {k:'rsi',t:'RSI',g:'RSI',v:r=>r.rsi,h:r=>r.rsi==null?'<span class=mu>—</span>':`<span class=${r.rsi>=70?'up':r.rsi<=30?'dn':''}>${f(r.rsi,0)}</span>`},
+  {k:'p52',t:'一年位置',g:'一年區間位置',v:r=>r.p52,h:r=>r.p52==null?'<span class=mu>—</span>':f(r.p52,0)+'%'},
+  {k:'rs20',t:'20 日相對大盤',u:'pp',g:'相對大盤',v:r=>r.rs20,h:r=>sgn(r.rs20,1)},
+  {k:'liq',t:'日均成交',u:'億',g:'日均成交',v:r=>r.liq,h:r=>r.liq==null?'<span class=mu>—</span>':f(r.liq,1)},
+ ]};
+function cols(){return [...C0,...CV[S.vw]];}
 function rowsFiltered(){
   const q=S.q.trim().toLowerCase();
-  let rs=ROWS.filter(r=>(S.mk==='all'||r.m===S.mk||(S.mk==='twall'&&r.m!=='os'))&&(!S.sig||(r.sg||[]).includes(S.sig))&&(!S.liq||(r.liq||0)>=1)
+  let rs=ROWS.filter(r=>(S.mk==='all'||r.m===S.mk||(S.mk==='twall'&&r.m!=='os'))&&(!S.sig||(S.sig==='nb'?(r.nb10||[]).length>0:(r.sg||[]).includes(S.sig)))&&(!S.liq||(r.liq||0)>=1)
     &&(!q||r.c.toLowerCase().includes(q)||String(r.n).toLowerCase().includes(q)||String(r.ind||'').includes(q)));
-  const col=COLS.find(c=>c[0]===S.sort)||COLS.find(c=>c[0]==='a5v');
-  rs.sort((a,b)=>{const x=col[3](a),y=col[3](b);if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return (x<y?-1:x>y?1:0)*S.dir;});
+  const col=cols().find(c=>c.k===S.sort)||cols().find(c=>c.k===VW0[S.vw]);
+  rs.sort((a,b)=>{const x=col.v(a),y=col.v(b);if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return (x<y?-1:x>y?1:0)*S.dir;});
   return rs;
 }
 function vStk(){
+  if(!cols().some(c=>c.k===S.sort)){S.sort=VW0[S.vw];S.dir=-1;}
   const cnt={};ROWS.forEach(r=>(r.sg||[]).forEach(k=>cnt[k]=(cnt[k]||0)+1));
-  const sigs=Object.keys(SD).filter(k=>cnt[k]);
-  const rs=rowsFiltered();
-  let h=`<div class=bar><input type=search id=q placeholder="代號、名稱或產業" value="${esc(S.q)}">`+
-   ['twall','tw','tp','os','all'].map(m=>`<span class="ch${S.mk===m?' on':''}" data-mk=${m}>${MKF[m]}</span>`).join('')+
-   `<span class="ch${S.liq?' on':''}" id=liq>日均成交 ≥1 億</span></div>`+
-   `<div class=bar>`+sigs.map(k=>`<span class="ch${RISK.has(k)?' rk':''}${S.sig===k?' on':''}" data-sig=${k}>${esc(SD[k][0])}<i>${cnt[k]}</i></span>`).join('')+`</div>`+
-   `<div class=note>共 ${rs.length} 檔 · 點欄位排序、點列看個股卡 · 「真加碼」已扣除申贖帶來的等比例增減</div>`+
-   `<div class=tw><table><thead><tr>`+COLS.map(c=>`<th data-k=${c[0]} class="${S.sort===c[0]?'on':''}">${c[1]}${S.sort===c[0]?(S.dir<0?' ↓':' ↑'):''}</th>`).join('')+`</tr></thead><tbody>`+
-   rs.slice(0,S.n).map(r=>`<tr data-c="${esc(r.c)}">`+COLS.map(c=>`<td>${c[2](r)}</td>`).join('')+`</tr>`).join('')+`</tbody></table></div>`+
+  const nbN=ROWS.filter(r=>(r.nb10||[]).length&&r.m!=='os').length;
+  $('#main').innerHTML=`<div class=fbar><input type=search id=q placeholder="搜尋代號、名稱或產業" value="${esc(S.q)}">`+
+   `<select id=mk aria-label="市場">${Object.entries(MKF2).map(([m,t])=>`<option value=${m}${S.mk===m?' selected':''}>${t}</option>`).join('')}</select>`+
+   `<select id=sgf aria-label="訊號"><option value="">全部訊號</option>${Object.keys(SD).filter(k=>cnt[k]).map(k=>`<option value=${k}${S.sig===k?' selected':''}>${RISK.has(k)?'⚠ ':''}${esc(SD[k][0])}（${cnt[k]}）</option>`).join('')}<option value=nb${S.sig==='nb'?' selected':''}>10 日內新建倉（台股 ${nbN}）</option></select>`+
+   `</div><div class=vbar><span class=seg>${Object.entries(VW).map(([k,t])=>`<a data-vw=${k} class="${S.vw===k?'on':''}">${t}</a>`).join('')}</span>`+
+   `<label class=tgl title="20 日平均成交金額 ≥ 1 億元"><input type=checkbox id=liq${S.liq?' checked':''}>成交 ≥1 億</label><span class=cnt id=cnt></span></div><div id=stkt></div>`;
+  $('#q').oninput=e=>{S.q=e.target.value;S.n=60;drawStk();};
+  $('#mk').onchange=e=>{S.mk=e.target.value;S.n=60;save();drawStk();};
+  $('#sgf').onchange=e=>{S.sig=e.target.value;S.n=60;drawStk();};
+  $('#liq').onchange=e=>{S.liq=e.target.checked;S.n=60;save();drawStk();};
+  $$('[data-vw]').forEach(a=>a.onclick=()=>{S.vw=a.dataset.vw;if(!cols().some(c=>c.k===S.sort)){S.sort=VW0[S.vw];S.dir=-1;}
+    $$('[data-vw]').forEach(x=>x.classList.toggle('on',x===a));save();drawStk();});
+  drawStk();
+}
+function drawStk(){
+  const rs=rowsFiltered(),cs=cols();STK=rs.map(r=>r.c);
+  AMX=Math.max(1,...rs.map(r=>Math.abs(r.a5v||0)));
+  $('#cnt').textContent=`共 ${rs.length} 檔`;
+  $('#stkt').innerHTML=(S.mk==='os'&&S.vw!=='etf'?'<div class=note>海外持股只有 ETF 面資料，法人籌碼與技術面無官方資料。</div>':'')+
+   `<div class="tw stk"><table><thead><tr>`+cs.map(c=>`<th data-k=${c.k} class="${S.sort===c.k?'on':''}${c.l?' l':''}">${c.t}${c.u?`<small>${c.u}</small>`:''}${c.g?gi(c.g):''}${S.sort===c.k?(S.dir<0?' ↓':' ↑'):''}</th>`).join('')+`</tr></thead><tbody>`+
+   (rs.slice(0,S.n).map(r=>`<tr data-c="${esc(r.c)}">`+cs.map(c=>`<td${c.l?' class=l':''}>${c.h(r)}</td>`).join('')+`</tr>`).join('')||`<tr><td colspan=${cs.length} class=l><span class=st>沒有符合條件的股票</span></td></tr>`)+`</tbody></table></div>`+
    (rs.length>S.n?`<button class=more id=more>再顯示 ${Math.min(60,rs.length-S.n)} 檔（剩 ${rs.length-S.n}）</button>`:'');
-  $('#main').innerHTML=h;
-  const qi=$('#q');qi.oninput=()=>{S.q=qi.value;S.n=60;const p=qi.selectionStart;vStk();const n=$('#q');n.focus();n.setSelectionRange(p,p);};
-  $$('[data-mk]').forEach(e=>e.onclick=()=>{S.mk=e.dataset.mk;S.n=60;save();vStk();});
-  $$('[data-sig]').forEach(e=>e.onclick=()=>{S.sig=S.sig===e.dataset.sig?'':e.dataset.sig;S.n=60;vStk();});
-  $('#liq').onclick=()=>{S.liq=!S.liq;save();vStk();};
-  $$('th[data-k]').forEach(e=>e.onclick=()=>{if(S.sort===e.dataset.k)S.dir*=-1;else{S.sort=e.dataset.k;S.dir=-1;}save();vStk();});
-  const m=$('#more');if(m)m.onclick=()=>{S.n+=60;vStk();};
+  $$('#stkt th[data-k]').forEach(e=>e.onclick=()=>{if(S.sort===e.dataset.k)S.dir*=-1;else{S.sort=e.dataset.k;S.dir=e.dataset.k==='c'?1:-1;}save();drawStk();});
+  const m=$('#more');if(m)m.onclick=()=>{S.n+=60;drawStk();};
 }
 
 /* ---------- 訊號 ---------- */
@@ -714,7 +773,8 @@ function spy(){const secs=$$('#main .sec[data-nav]');const nav=$('#snav');if(sec
     if(on){const l=a.offsetLeft-nav.offsetLeft;if(l<nav.scrollLeft||l+a.offsetWidth>nav.scrollLeft+nav.clientWidth)nav.scrollLeft=Math.max(0,l-24);}});}
 addEventListener('scroll',()=>{if(!spyRaf)spyRaf=requestAnimationFrame(()=>{spyRaf=0;spy();});},{passive:true});
 function go(t,anchor){S.tab=t;$$('#tabs a[data-t]').forEach(a=>a.classList.toggle('on',a.dataset.t===t));VIEWS[t]();buildNav();
-  $$('#main [data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();go(a.dataset.go);});
+  $$('#main [data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();const d=a.dataset;
+    if(d.fsig!==undefined){S.sig=d.fsig;S.q='';S.n=60;}if(d.sort){S.vw='etf';S.sort=d.sort;S.dir=+(d.dir||-1);}go(d.go);});
   window.scrollTo(0,0);if(anchor)requestAnimationFrame(()=>jump(anchor));}
 $$('#tabs a[data-t]').forEach(a=>a.onclick=()=>go(a.dataset.t));
 go('today');
