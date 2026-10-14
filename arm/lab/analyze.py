@@ -252,8 +252,11 @@ def run(data: Data | None = None) -> dict:
         if ev.date in D.ix:
             ev_by_code[ev.code].append(ev)
 
-    # 宇宙：目前任一 ETF 持有 ＋ 近 20 個交易日內被出清者
-    cur_codes = {c for h in last_h.values() for c in h}
+    # 宇宙：目前任一 ETF 持有 ＋ 近 20 個交易日內被出清者。
+    # 擴充的被動檔不擴宇宙（006204 這類全市場 ETF 持有近千檔，首輪把頁面撐到 6.2MB）——
+    # 它們只貢獻 ETF 面指標（合計持股、被動換股）；擴充的主動檔才帶入新個股。
+    cur_codes = {c for e, h in last_h.items() for c in h
+                 if not (meta.get(e) or {}).get("x") or (meta.get(e) or {}).get("k") == "a"}
     recent = set(D.cal[-20:])
     exited = {ev.code for ev in L.events if ev.kind == LG.EXIT and ev.date in recent}
     universe = sorted(cur_codes | exited)
