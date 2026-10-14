@@ -26,7 +26,7 @@ import time
 
 from ..http import get_bytes
 
-UA_SLEEP_TWSE = 2.4      # 證交所 www 端有頻率限制（約每 5 秒 3 次），保守間隔
+UA_SLEEP_TWSE = 3.0      # 證交所 www 端有頻率限制（約每 5 秒 3 次），保守間隔
 UA_SLEEP_TPEX = 1.6
 
 TWSE = {
@@ -333,7 +333,12 @@ def parse_tp_insti(doc) -> dict:
                 cf = col(fields, "外資", "買賣超", excl=("自營商",))
             ct = col(fields, "投信", "買賣超")
             cd = col(fields, "自營商", "買賣超", excl=("自行", "避險", "外資"))
-        else:                       # 舊站 aaData 欄序（2024 前格式）
+        else:
+            ci = cf = ct = cd = None
+        # 2026-10-14 CI 實測：新站表頭把分組前綴拿掉了（只剩 7 組重複的「買進/賣出/買賣超股數」）
+        # → 依已驗證欄序：外資(不含外資自營商) 4、投信 13、自營商合計 22、三大法人合計 23
+        #   （樣本 00411A：-2,009,900＋-6,522,904＝-8,532,804 自洽）
+        if cf is None and ((not fields) or sum("買賣超" in f for f in fields) >= 7):
             ci, cf, ct, cd = 0, 4, 13, 22
         if ci is None or cf is None or ct is None:
             _probe("TPEx 三大法人", fields, rows)

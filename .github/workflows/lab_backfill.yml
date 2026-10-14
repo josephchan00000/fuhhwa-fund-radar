@@ -67,7 +67,7 @@ jobs:
           if [ "$MODE" = "probe" ]; then
             python3 scripts/backfill_lab.py --probe
           else
-            python3 scripts/backfill_lab.py --pos-git --px-days "$PX" --flow-days "$FL" --budget-min 45
+            python3 scripts/backfill_lab.py --pos-git --px-days "$PX" --flow-days "$FL" --budget-min 50
           fi
 
       - name: commit 回補分片（回到被觸發的分支）
