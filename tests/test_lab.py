@@ -213,8 +213,8 @@ def test_page_has_no_banned_words():
     banned = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "建議買賣", "建議買",
               "建議賣", "目標價", "零風險", "無風險", "穩賺不賠")
     from arm.lab import growth, strategy
-    st_txt = "".join(str(v) for x in strategy.STRATEGIES + [strategy.S3, growth.S5]
-                     for k, v in x.items() if k in ("name", "bet", "why", "more", "fail", "rule"))
+    st_txt = "".join(str(v) for x in strategy.STRATEGIES + [strategy.S3, growth.S5] + strategy.TW50_VERS
+                     for k, v in x.items() if k in ("name", "bet", "why", "more", "fail", "rule", "buy", "sell"))
     text = page._HTML + page._JS + "".join(n + d for n, d in analyze.SIG_DEF.values()) + st_txt
     assert not [w for w in banned if w in text]
 
@@ -296,6 +296,129 @@ def test_tw50_common_stock_filter():
     assert not indexes._common_tw("0050")       # ETF
     assert not indexes._common_tw("2881A")      # 特別股
     assert not indexes._common_tw("9105")       # TDR
+
+
+def test_tw50_top_half_rounds_up_and_ranks_by_momentum():
+    """選股定案（2026-10-14 使用者）：漲勢前一半、無條件進位；只有 1 檔就是它；沒有漲幅資料的排最後。"""
+    from arm.lab import indexes
+    mom = {"a": 0.10, "b": 0.50, "c": None, "d": 0.30}
+    assert indexes.top_half(["a", "b", "c", "d"], mom) == {"b", "d"}
+    assert indexes.top_half(["a", "b", "c"], mom) == {"b", "a"}
+    assert indexes.top_half(["c"], mom) == {"c"} and indexes.top_half([], mom) == set()
+
+
+def test_tw50_skips_stocks_not_yet_listed_at_cutoff():
+    """資料截止日時還沒上市（興櫃轉上市）的股票沒有資格，由下一順位遞補（鴻勁 2025-09／12 誤判的教訓）。"""
+    from arm.lab import indexes
+    ranked = [(f"{1000 + i}", 1e12 - i * 1e9, 100.0) for i in range(120)]
+    cons = {f"{1000 + i}" for i in range(50)} - {"1012"}
+    ranked.insert(5, ("7769", 1e12 - 4.5e9, 100.0))
+    cons -= {"1049"}
+    listed = {"7769": "2025-11-27"}
+    skip = indexes.not_listed(ranked, cons, listed, "2025-11-24")
+    assert skip == {"7769"}
+    adds, _ = indexes.tw50_select(ranked, cons, skip)
+    assert "7769" not in adds and "1012" in adds
+    assert indexes.not_listed(ranked, cons, listed, "2026-02-23") == set()      # 上市後下一次就有資格
+
+
+def _tw50_fake(cal, series, idx, io=None):
+    class _D:
+        pass
+    D = _D()
+    D.cal, D.T = cal, len(cal)
+    D.ix = {d: i for i, d in enumerate(cal)}
+    D.series = lambda c: series[c]
+    D.taiex = lambda: idx
+    D.taiex_open = lambda: io or [None] * len(cal)
+    return D
+
+
+def test_tw50_version_trade_windows_and_states():
+    """卡位版：截止日隔天開盤進、生效前一天收盤出；公告沒納入 → 公告後第一天開盤出；資料未到＝待進場／持有中。"""
+    from arm.lab import tw50study as TS
+    cal = ["2026-11-23", "2026-11-24", "2026-11-25", "2026-12-04", "2026-12-07", "2026-12-17", "2026-12-18"]
+    S = {"X": {"o": [None, 100, 101, 104, 103, 110, 111], "c": [99, 100, 102, 105, 104, 112, 113]}}
+    idx = [1000.0, 1000, 1010, 1020, 1015, 1030, 1040]
+    io = [None, 1000.0, 1005, 1018, 1016, 1028, 1035]
+    D = _tw50_fake(cal, S, idx, io)
+    P = TS._Px(D)
+    t = TS._trade(D, P, "X", 1, "2026-11-24", "2026-12-17", False, "生效前一天出", {"c": "X"})
+    assert t["st"] == "closed" and t["entry"] == 100 and t["exit"] == 112 and t["held"] == 5
+    assert abs(t["r"] - round((112 / 100 - 1 - TS.COST) * 100, 2)) < 1e-9
+    assert abs(t["x"] - round((112 / 100 - 1 - TS.COST - (1030 / 1000 - 1)) * 100, 2)) < 1e-9
+    t2 = TS._trade(D, P, "X", 1, "2026-11-24", "2026-12-07", True, "公告未納入・隔日開盤出", {"c": "X"})
+    assert t2["exit"] == 103 and t2["held"] == 3 and abs(t2["r"] - round((103 / 100 - 1 - TS.COST) * 100, 2)) < 1e-9
+    D2 = _tw50_fake(cal[:3], {"X": {k: v[:3] for k, v in S["X"].items()}}, idx[:3], io[:3])
+    t3 = TS._trade(D2, TS._Px(D2), "X", 1, "2026-11-24", "2026-12-17", False, "生效前一天出", {"c": "X"})
+    assert t3["st"] == "open" and t3["now"] == 102 and t3["out"] == "2026-12-17"
+    D3 = _tw50_fake(cal[:1], {"X": {k: v[:1] for k, v in S["X"].items()}}, idx[:1], io[:1])
+    t4 = TS._trade(D3, TS._Px(D3), "X", None, "2026-11-24", "2026-12-17", False, "生效前一天出", {"c": "X"})
+    assert t4["st"] == "cand" and t4["ent"] == "2026-11-24"
+
+
+def test_tw50_td_shift_follows_official_calendar():
+    from arm.lab import tw50study as TS
+    assert TS.td_shift("2026-11-23", 1) == "2026-11-24"
+    assert TS.td_shift("2026-12-18", -1) == "2026-12-17"
+    assert TS.td_shift("2026-10-12", -1) == "2026-10-08"            # 10/9 國慶補假＋週末
+    assert TS.td_shift("2026-12-04", 1) == "2026-12-07"             # 週五公告 → 下週一
+
+
+def test_tw50_spearman_basic():
+    from arm.lab import tw50study as TS
+    a = [1, 2, 3, 4, 5, 6]
+    assert TS._spearman(a, [10, 20, 30, 40, 50, 60]) == (1.0, 6)
+    assert TS._spearman(a, [6, 5, 4, 3, 2, 1]) == (-1.0, 6)
+    assert TS._spearman(a[:5], a[:5])[0] is None                      # 少於 6 檔不算
+    assert TS._spearman([1, 1, 2, 3, 4, 5], [1, 2, 3, 4, 5, None])[1] == 5
+
+
+def test_tw50_control_respects_stock_level_effective_date(monkeypatch):
+    """對照組（官方名單全部）：個股生效日延後以個股為準；資料還沒到生效日的刪除股＝待進場，不拿最新收盤冒充。"""
+    from arm.lab import indexes, strategy
+    cal = ["2026-03-05", "2026-03-06", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13"]
+    S = {c: {"o": [10.0] * 7, "c": [10.0, 10, 10, 10, 11, 12, 13]} for c in ("1111", "2222", "3333")}
+    D = _tw50_fake(cal, S, [1000.0] * 7, [1000.0] * 7)
+    cfg = {"indexes": {"tw50": {"history": [{"review": "2026-03", "announce": "2026-03-06", "effective": "2026-03-11",
+                                             "adds": ["1111", "2222"], "dels": ["3333"],
+                                             "eff_override": {"2222": "2026-03-13"}}]}}}
+    monkeypatch.setattr(indexes, "load_cfg", lambda: cfg)
+    trs = {t["c"]: t for t in strategy.tw50_trades(D, [1000.0] * 7, [1000.0] * 7, {}, cal[-1])}
+    assert trs["1111"]["exit"] == 11 and trs["1111"]["held"] == 3
+    assert trs["2222"]["exit"] == 13 and trs["2222"]["d"] == "2026-03-13"
+    assert trs["3333"]["st"] == "open" and trs["3333"]["entry"] == 11            # 生效日收盤承接，5 日後還沒到
+    D2 = _tw50_fake(cal[:4], {c: {k: v[:4] for k, v in x.items()} for c, x in S.items()}, [1000.0] * 4, [1000.0] * 4)
+    trs2 = {t["c"]: t for t in strategy.tw50_trades(D2, [1000.0] * 4, [1000.0] * 4, {}, cal[3])}
+    assert trs2["3333"]["st"] == "cand" and trs2["1111"]["st"] == "open"
+
+
+def test_tw50_by_review_drops_two_largest_gaps_between_versions():
+    """「成績集中在少數幾次」由資料算：扣掉兩版差距最大的 2 次後重算平均，並附公告後第一天開盤跳空。"""
+    from arm.lab import strategy
+    cal = ["2026-03-06", "2026-03-09", "2026-06-05", "2026-06-08"]
+    D = _tw50_fake(cal, {"A": {"o": [None, 90.0, None, 95.0], "c": [100.0, 100, 100, 100]}}, [1000.0] * 4)
+    pl = [{"review": r, "announce": a, "pick_b": ["A"] if a else []}
+          for r, a in (("2025-12", None), ("2026-03", "2026-03-06"), ("2026-06", "2026-06-05"), ("2025-09", None))]
+    tr = lambda r, v: {"review": r, "r": v, "st": "closed", "d": "2025-01-01"}
+    V = {"pre": [tr("2025-12", 5.0), tr("2026-03", 10.0), tr("2026-06", 4.0), tr("2025-09", 3.0)],
+         "post": [tr("2025-12", 4.0), tr("2026-03", 30.0), tr("2026-06", 30.0), tr("2025-09", 1.0)]}
+    rows, sens = strategy._tw50_by_review(D, pl, V, [])
+    assert [r[0] for r in rows] == ["2025-12", "2026-03", "2026-06", "2025-09"]
+    assert rows[1][4] == -10.0 and rows[2][4] == -5.0 and rows[0][4] is None
+    assert sorted(sens["revs"]) == ["2026-03", "2026-06"] and sens["pre"] == 4.0 and sens["post"] == 2.5
+    assert sens["n_left"] == 2
+
+
+def test_tw50_card_has_versions_plan_and_research_section():
+    """臺灣50 卡：三個版本並列（兩個新版本＋原官方名單對照）、下一次計畫；指數頁有換股研究段。"""
+    from arm.lab import strategy
+    assert [v["k"] for v in strategy.TW50_VERS] == ["pre", "post"]
+    assert all(v["since"] == "2026-10-14" and v["ver"] == 1 and v["rule"] for v in strategy.TW50_VERS)
+    js = page._JS
+    for k in ("sq('三個版本'", "sq('下一次'", "function studySec(", "h+=studySec(X.study);", "'idx-study'",
+              "'漲勢前一半':", "'資料截止日':"):
+        assert k in js, k
 
 
 def test_index_reviews_config_is_well_formed():

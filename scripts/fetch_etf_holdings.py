@@ -350,10 +350,13 @@ def _industry() -> dict[str, str]:
     fresh = stockmeta.rows_to_map(rows)
     if rows and not fresh:                                # 鍵名改過 → 印出實際鍵名，一輪收斂
         print(f"  ⚠ 基本資料解析 0 筆：{stockmeta.sample_keys(rows)}")
-    doc = stockmeta.merge(fresh)
+    listed = stockmeta.listing_map(rows)
+    if rows and not listed:                               # 上市日期欄找不到 → 同樣印鍵名
+        print(f"  ⚠ 上市日期解析 0 筆：{stockmeta.sample_keys(rows)}")
+    doc = stockmeta.merge(fresh, listed)
     if stockmeta.save(doc):
         print(f"  ✓ 產業別落檔 {stockmeta.DATA_FP}（本次 {len(fresh)}／累計 "
-              f"{len(doc.get('industry') or {})} 檔）")
+              f"{len(doc.get('industry') or {})} 檔；上市日期 {len(doc.get('listed') or {})} 檔）")
     return doc.get("industry") or {}
 
 

@@ -57,3 +57,18 @@ def test_save_全空不建檔(monkeypatch, tmp_path):
     monkeypatch.setattr(sm, "DATA_FP", fp)
     assert sm.save({"industry": {}}) is False
     assert not fp.exists()
+
+
+def test_listing_map_西元與民國日期都收():
+    rows = [{"公司代號": "7769", "上市日期": "20251127", "產業別": "31"},
+            {"公司代號": "2330", "上市日期": "0810905"},                  # 民國 81/09/05
+            {"SecuritiesCompanyCode": "6488", "DateOfListing": "2015/09/25"},
+            {"公司代號": "1101", "上市日期": "abc"}]
+    assert sm.listing_map(rows) == {"7769": "2025-11-27", "2330": "1992-09-05", "6488": "2015-09-25"}
+
+
+def test_merge_上市日期不洗成空(monkeypatch, tmp_path):
+    monkeypatch.setattr(sm, "DATA_FP", tmp_path / "s.json")
+    sm.save(sm.merge({"2330": "半導體業"}, {"7769": "2025-11-27"}))
+    sm.save(sm.merge({"2330": "半導體業"}, {}))
+    assert sm.listing_dates() == {"7769": "2025-11-27"}
