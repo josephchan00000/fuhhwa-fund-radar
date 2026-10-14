@@ -57,6 +57,8 @@ jobs:
         run: |
           MODE="full"
           if [ "${{ github.event_name }}" = "push" ]; then
+            # 哨兵檔被刪（例如合併前清理）也會觸發 push → 沒有檔就什麼都不做
+            if [ ! -f .ping/lab ]; then echo "無 .ping/lab，略過"; exit 0; fi
             MODE=$(head -1 .ping/lab 2>/dev/null | tr -d '[:space:]')
           elif [ "${{ inputs.probe }}" = "true" ]; then
             MODE="probe"
