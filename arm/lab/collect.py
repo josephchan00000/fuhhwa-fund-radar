@@ -488,12 +488,13 @@ def _hd_cfg_codes() -> set[str]:
 
 def backfill_hd(*, budget_s: float = 2700, years: tuple = (2021, 2022, 2023, 2024, 2025, 2026), n: int = 460) -> dict:
     """高股息研究資料：① 證交所除權息（一年一請求）② FinMind 單季 EPS（市值前 n＋設定檔歷次異動股）
-    ③ 上櫃股 FinMind 股利政策。EPS／股利各自記抓取日（asof／div_asof），20 天內抓過的跳過；限流就停、下一輪續補。"""
+    ③ 上櫃股與有「權息」紀錄的上市股抓 FinMind 股利政策（現金部分）。EPS／股利各自記抓取日（asof／div_asof），20 天內抓過的跳過；限流就停、下一輪續補。"""
     t0 = time.time()
     st = {"twt49u": 0, "eps": 0, "div": 0, "skip": 0, "limit": False}
     this_year = clock.today_tw().year
     for y in years:                                       # ① 證交所除權息（過去年度有檔就不重抓；今年每輪重抓）
-        if store.read("divtw", str(y)) and y < this_year:
+        old_rows = (store.read("divtw", str(y)) or {}).get("rows") or []
+        if old_rows and y < this_year and len(old_rows[0]) >= 6:   # 舊格式（沒有前收盤價）→ 重抓
             continue
         rows = market.twse_exright_year(y)
         time.sleep(market.UA_SLEEP_TWSE)
@@ -504,6 +505,8 @@ def backfill_hd(*, budget_s: float = 2700, years: tuple = (2021, 2022, 2023, 202
     uni += sorted(_hd_cfg_codes() - set(uni))
     doc = store.read("mkt", store.dates("mkt")[-1]) if store.dates("mkt") else {}
     tp = set((doc or {}).get("q_tp") or {})
+    # 上市股有「權息」（配股＋現金）紀錄的，證交所表只有合計值 → 也抓 FinMind 股利政策拿現金部分
+    qx = {r[1] for y in store.dates("divtw") for r in (store.read("divtw", y) or {}).get("rows") or [] if r[3] == "權息"}
     today = clock.today_tw()
 
     def stale(d):
@@ -514,7 +517,7 @@ def backfill_hd(*, budget_s: float = 2700, years: tuple = (2021, 2022, 2023, 202
             break
         old = store.read("fin", c) or {}
         div_asof = old.get("div_asof") or (old.get("asof") if old.get("div") else None)
-        need_eps, need_div = stale(old.get("asof")), (c in tp and stale(div_asof))
+        need_eps, need_div = stale(old.get("asof")), ((c in tp or c in qx) and stale(div_asof))
         if not need_eps and not need_div:
             st["skip"] += 1
             continue
@@ -543,6 +546,6 @@ def backfill_hd(*, budget_s: float = 2700, years: tuple = (2021, 2022, 2023, 202
                 st["div"] += 1
         if new != old:
             store.write("fin", c, new)
-    market.log(f"高股息資料：證交所除權息 {st['twt49u']} 列、EPS {st['eps']} 檔、上櫃股利 {st['div']} 檔、"
+    market.log(f"高股息資料：證交所除權息 {st['twt49u']} 列、EPS {st['eps']} 檔、FinMind 股利 {st['div']} 檔、"
                f"跳過（20 天內抓過）{st['skip']}；母體 {len(uni)} 檔{'；FinMind 限流，下一輪續補' if st['limit'] else ''}")
     return st
