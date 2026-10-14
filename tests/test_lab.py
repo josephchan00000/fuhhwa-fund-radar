@@ -325,3 +325,11 @@ def test_rev_available_respects_publication_lag():
     assert abs(yoy - 0.30) < 1e-9
     yoy2, _ = growth._rev_avail(rev, "2026-10-12")
     assert abs(yoy2 - 0.50) < 1e-9
+
+
+def test_store_dates_handles_month_shards(tmp_path, monkeypatch):
+    monkeypatch.setattr(store, "LAB", tmp_path)
+    store.write("rev", "2026-09", {"s": {"2330": [1, 2, 3]}})
+    store.write("mkt", "2026-10-13", {"q_tw": {}})
+    assert store.dates("rev") == ["2026-09"] and store.load("rev")[0][0] == "2026-09"
+    assert store.dates("mkt") == ["2026-10-13"]

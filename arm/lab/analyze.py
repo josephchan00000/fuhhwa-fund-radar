@@ -539,8 +539,10 @@ def run(data: Data | None = None) -> dict:
             if ev.kind == LG.NEW and m.get("k") == "a" and ev.date in cut20:
                 new20[ev.code].add(m["is"])
         etf2 = {c for c, s_ in new20.items() if len(s_) >= 2}
+        rev_shards = {d: {c: x for c, x in (doc.get("s") or {}).items()} for d, doc in store.load("rev")}
         grow = {"bt": gbt, "screen": growth.screen_now(P, rev_now, etf2),
-                "rev_ym": rv[-1][0] if rv else None, "n_uni": len(P.codes)}
+                "rev_ym": rv[-1][0] if rv else None, "n_uni": len(P.codes),
+                "s5": growth.s5_trades(P, growth.load_rev_hist(), rev_shards, taiex, D.taiex_open())}
     except Exception as e:                                # noqa: BLE001
         grow = {"err": f"{type(e).__name__}: {e}"}
     iss_stats = backtest.issuer_stats(D, L, meta, taiex)
