@@ -492,3 +492,45 @@ def fetch_tdcc() -> tuple[str | None, dict]:
     if len(out) < 1000:
         log(f"TDCC 解析偏少：{len(out)} 檔（資料日 {iso}）")
     return iso, out
+
+
+# ── 第二階段資料源探針（00919／00929 預測需股利、EPS；2026-10-14） ──────────
+# 只印可達性與表頭，不落檔。結果用來決定第二階段要接哪幾支端點。
+PROBE2 = {
+    "TWSE 除權息計算結果（區間）": "https://www.twse.com.tw/rwd/zh/exRight/TWT49U?startDate={y0}&endDate={ymd}&response=json",
+    "TWSE 本益比殖利率（單日）": "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d?date={ymd}&selectType=ALL&response=json",
+    "TWSE openapi 本益比殖利率": "https://openapi.twse.com.tw/v1/exchangeReport/BWIBBU_ALL",
+    "TWSE openapi 綜合損益表(一般業)": "https://openapi.twse.com.tw/v1/opendata/t187ap06_L_ci",
+    "TWSE openapi 股利分派": "https://openapi.twse.com.tw/v1/opendata/t187ap45_L",
+    "TPEx openapi 本益比殖利率": "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_peratio_analysis",
+    "TPEx openapi 除權息": "https://www.tpex.org.tw/openapi/v1/tpex_exright_daily",
+    "TPEx openapi 綜合損益表(一般業)": "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap06_O_ci",
+}
+
+
+def probe2(d: str) -> None:
+    y0 = f"{int(d[:4]) - 1}{d[5:7]}{d[8:10]}"
+    for name, tmpl in PROBE2.items():
+        url = tmpl.format(ymd=ymd(d), y0=y0)
+        try:
+            b = get_bytes(url, retries=1, timeout=20, use_cache=False)
+        except Exception as e:                            # noqa: BLE001
+            print(f"[probe2] {name}: ✗ {str(e)[:120]}")
+            continue
+        time.sleep(UA_SLEEP_TWSE)
+        try:
+            doc = json.loads(b.decode("utf-8", "replace"))
+        except ValueError:
+            print(f"[probe2] {name}: 非 JSON {len(b)}B {b[:80]!r}")
+            continue
+        if isinstance(doc, list):
+            first = doc[0] if doc else {}
+            print(f"[probe2] {name}: list {len(doc)} 列；鍵名={list(first)[:20] if isinstance(first, dict) else type(first).__name__}；"
+                  f"首列={json.dumps(first, ensure_ascii=False)[:260]}")
+            continue
+        tb = tables(doc)
+        if not tb:
+            print(f"[probe2] {name}: stat={doc.get('stat') if isinstance(doc, dict) else '?'} 無表；鍵={list(doc)[:10] if isinstance(doc, dict) else ''}")
+            continue
+        f, rows = max(tb, key=lambda t: len(t[1]))
+        print(f"[probe2] {name}: {len(rows)} 列；表頭={'/'.join(f[:20])}；首列={json.dumps(rows[0], ensure_ascii=False)[:260]}")

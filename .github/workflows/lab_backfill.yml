@@ -66,6 +66,8 @@ jobs:
           echo "模式：$MODE（價量 $PX 天、籌碼 $FL 天）"
           if [ "$MODE" = "probe" ]; then
             python3 scripts/backfill_lab.py --probe
+          elif [ "$MODE" = "probe2" ]; then
+            python3 scripts/backfill_lab.py --probe2
           else
             python3 scripts/backfill_lab.py --pos-git --px-days "$PX" --flow-days "$FL" --budget-min 50
           fi
