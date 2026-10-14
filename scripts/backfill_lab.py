@@ -24,6 +24,8 @@ def main() -> None:
     ap.add_argument("--probe", action="store_true")
     ap.add_argument("--probe2", action="store_true", help="第二階段資料源探針（股利、EPS、殖利率）")
     ap.add_argument("--probe3", action="store_true")
+    ap.add_argument("--growth", action="store_true",
+                    help="長線成長股回測資料：Yahoo 擴大到市值 ≥30 億上市櫃股＋兩年投信買賣超（官方逐日）")
     ap.add_argument("--yahoo", action="store_true", help="以 Yahoo 逐檔補兩年歷史日線（官方逐日回補被限流時用）")
     a = ap.parse_args()
     today = clock.today_tw()
@@ -33,6 +35,15 @@ def main() -> None:
         return
     if a.yahoo:
         collect.backfill_yahoo()
+        return
+    if a.growth:
+        import time as _t
+        t0 = _t.time()
+        collect.backfill_yahoo(min_cap=30e8, budget_s=1200)
+        left = a.budget_min * 60 - (_t.time() - t0)
+        days = collect.candidate_days(today, 735)
+        st = collect.fill_market(days, lambda d: ["i_tp", "i_tw"], budget_s=max(left, 60), today=today)
+        print(f"[lab] 兩年投信買賣超回補：{st}")
         return
     if a.probe2:
         market.probe2(collect.candidate_days(today, 7)[1])
