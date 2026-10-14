@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/14 12:20",
+  "as_of": "2026/10/14 12:28",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -623,7 +623,7 @@
       "channel": "小童 x Happy Trading Life",
       "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
       "date": "2026-10-13",
-      "views": 1465,
+      "views": 1466,
       "short": true
     },
     {
@@ -643,7 +643,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/XFDp4rY4FsQ",
       "date": "2026-10-12",
-      "views": 143415,
+      "views": 143549,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -654,7 +654,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=REtGASDFkEM",
       "date": "2026-10-12",
-      "views": 135163,
+      "views": 135171,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -664,7 +664,7 @@
       "channel": "安聯投信 Allianz Global Investors Taiwan",
       "url": "https://www.youtube.com/shorts/b-T8DfBiuuk",
       "date": "2026-10-12",
-      "views": 103107,
+      "views": 114001,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -685,7 +685,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=YISny6TMPRY",
       "date": "2026-10-10",
-      "views": 84105,
+      "views": 84126,
       "peer": true,
       "cat": "綜合"
     },
@@ -695,7 +695,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=1iIDAJTm3bk",
       "date": "2026-10-12",
-      "views": 75108,
+      "views": 75147,
       "peer": true,
       "cat": "高股息"
     },
@@ -705,7 +705,7 @@
       "channel": "94要賺錢",
       "url": "https://www.youtube.com/watch?v=2bj5TUPrVto",
       "date": "2026-10-12",
-      "views": 64077,
+      "views": 64317,
       "peer": true,
       "cat": "綜合"
     },
@@ -715,7 +715,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/sgOyzfXKakU",
       "date": "2026-10-13",
-      "views": 42096,
+      "views": 42225,
       "peer": true,
       "short": true,
       "cat": "市值型"
