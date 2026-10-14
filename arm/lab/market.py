@@ -573,3 +573,46 @@ def yahoo_hist(sym: str, *, rng: str = "2y") -> dict[str, list]:
             v = g("volume")
             out[d.isoformat()] = [g("open"), g("high"), g("low"), c, None if v is None else int(v)]
     return out
+
+
+
+# 長線成長股所需資料源探針（2026-10-14：月營收、投信歷史、財報歷史）
+PROBE3 = {
+    "TWSE openapi 月營收": "https://openapi.twse.com.tw/v1/opendata/t187ap05_L",
+    "TPEx openapi 月營收": "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap05_O",
+    "TWSE T86 兩年前": "https://www.twse.com.tw/rwd/zh/fund/T86?date={y2}&selectType=ALLBUT0999&response=json",
+    "FinMind 法人買賣（2330 兩年）": "https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=2330&start_date={y2d}&end_date={dd}",
+    "FinMind 月營收（2330）": "https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMonthRevenue&data_id=2330&start_date=2023-01-01&end_date={dd}",
+    "FinMind 綜合損益（2330）": "https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockFinancialStatements&data_id=2330&start_date=2023-01-01&end_date={dd}",
+}
+
+
+def probe3(d: str) -> None:
+    y2 = f"{int(d[:4]) - 2}{d[5:7]}{d[8:10]}"
+    for name, tmpl in PROBE3.items():
+        url = tmpl.format(y2=y2, y2d=f"{int(d[:4]) - 2}{d[4:]}", dd=d)
+        try:
+            b = get_bytes(url, retries=1, timeout=30, use_cache=False)
+        except Exception as e:                            # noqa: BLE001
+            print(f"[probe3] {name}: ✗ {str(e)[:140]}")
+            continue
+        time.sleep(UA_SLEEP_TWSE)
+        try:
+            doc = json.loads(b.decode("utf-8", "replace"))
+        except ValueError:
+            print(f"[probe3] {name}: 非 JSON {len(b)}B {b[:80]!r}")
+            continue
+        if isinstance(doc, dict) and isinstance(doc.get("data"), list) and "msg" in doc:   # FinMind
+            rows = doc["data"]
+            print(f"[probe3] {name}: msg={doc.get('msg')} status={doc.get('status')} {len(rows)} 列；"
+                  f"首列={json.dumps(rows[0], ensure_ascii=False)[:220] if rows else '—'}；"
+                  f"末列={json.dumps(rows[-1], ensure_ascii=False)[:160] if rows else '—'}")
+            continue
+        if isinstance(doc, list):
+            first = doc[0] if doc else {}
+            print(f"[probe3] {name}: list {len(doc)} 列；鍵名={list(first)[:22] if isinstance(first, dict) else ''}；"
+                  f"首列={json.dumps(first, ensure_ascii=False)[:300]}")
+            continue
+        tb = tables(doc)
+        print(f"[probe3] {name}: stat={doc.get('stat') if isinstance(doc, dict) else '?'} "
+              f"{(len(max(tb, key=lambda t: len(t[1]))[1]) if tb else 0)} 列")

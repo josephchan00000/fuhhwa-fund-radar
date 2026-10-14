@@ -23,10 +23,14 @@ def main() -> None:
     ap.add_argument("--budget-min", type=float, default=40)
     ap.add_argument("--probe", action="store_true")
     ap.add_argument("--probe2", action="store_true", help="第二階段資料源探針（股利、EPS、殖利率）")
+    ap.add_argument("--probe3", action="store_true")
     ap.add_argument("--yahoo", action="store_true", help="以 Yahoo 逐檔補兩年歷史日線（官方逐日回補被限流時用）")
     a = ap.parse_args()
     today = clock.today_tw()
 
+    if "--probe3" in sys.argv[1:]:
+        market.probe3(collect.candidate_days(today, 7)[1])
+        return
     if a.yahoo:
         collect.backfill_yahoo()
         return
