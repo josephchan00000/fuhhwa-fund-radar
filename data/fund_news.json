@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/14 16:29",
+  "as_of": "2026/10/14 17:31",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -18,25 +18,11 @@
       "datetime": "2026-10-14T09:00:30+08:00"
     },
     {
-      "title": "00929連四配0.38元還能撐多久？年化配息率逾15％　阮慕驊揭「配息底氣」藏這裡",
-      "url": "https://finance.ettoday.net/news/3253670",
-      "source": "ETtoday財經雲",
-      "date": "2026-10-14 08:30",
-      "datetime": "2026-10-14T08:30:00+08:00"
-    },
-    {
       "title": "復華觀點｜從想像空間邁入獲利兌現：復華全方位基金動態配置抓住AI長紅趨勢",
       "url": "https://www.anuefund.com/investment-article/8df2870cbc66cf7U9Qe2ICBMC4fXHZrBlaGcX14q6Gu8T7HEFy",
       "source": "鉅亨買基金",
       "date": "2026-10-12 17:28",
       "datetime": "2026-10-12T17:28:29+08:00"
-    },
-    {
-      "title": "陸股ETF資金大洗牌！00877成十一長假後唯一吸金標的| 財經焦點",
-      "url": "https://www.taisounds.com/news/content/76/293540",
-      "source": "太報 TaiSounds",
-      "date": "2026-10-12 15:08",
-      "datetime": "2026-10-12T15:08:00+08:00"
     },
     {
       "title": "AI商機從大廠向外擴散復華投信解析下一批台股新星| 財經焦點| 產經",
@@ -61,13 +47,6 @@
           "source": "https://www.yesmedia.com.tw/",
           "date": "2026-10-14 08:00",
           "datetime": "2026-10-14T08:00:23+08:00"
-        },
-        {
-          "title": "靠存股出國玩！存股達人孫太傳授「股息旅遊法」 300萬買00929一年多45萬玩樂金",
-          "url": "https://n.yam.com/Article/20261013507727",
-          "source": "https://www.yesmedia.com.tw/",
-          "date": "2026-10-13 08:00",
-          "datetime": "2026-10-13T08:00:00+08:00"
         }
       ]
     },
@@ -80,7 +59,7 @@
       ],
       "items": [
         {
-          "title": "1303 南亞 - 南亞受惠00991A加持，今天強過台積&大盤 - 股市爆料同學會",
+          "title": "南亞 受惠00991A加持，今天強過台積 &大盤",
           "url": "https://www.cmoney.tw/forum/article/185587982",
           "source": "CMoney",
           "date": "2026-10-13 18:02",
@@ -153,7 +132,7 @@
         {
           "title": "沒道理！投資台股AI卻不往美國獲利源頭 00409A已佈局獲利源頭",
           "url": "https://www.watchmedia01.com/archives/559089",
-          "source": "觀傳媒",
+          "source": "Yahoo新聞",
           "date": "2026-10-14 15:05",
           "datetime": "2026-10-14T15:05:40+08:00"
         },
@@ -167,7 +146,7 @@
         {
           "title": "4個月狂買5.8兆！台灣資金瘋搶美股 00409A已擄獲全球AI獲利商機",
           "url": "https://n.yam.com/Article/20261014108451",
-          "source": "蕃新聞",
+          "source": "Yahoo新聞",
           "date": "2026-10-14 14:17",
           "datetime": "2026-10-14T14:17:00+08:00"
         },
@@ -391,7 +370,15 @@
       "short_names": [
         "數位經濟"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "主動復華全球50〈00409A.TW〉",
+          "url": "https://www.moneydj.com/ETF/X/Basic/Basic0009.xdjhtm?etfid=00409a.tw&topc",
+          "source": "MoneyDJ",
+          "date": "2026-10-08 15:00",
+          "datetime": "2026-10-08T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華中小精選基金",
@@ -599,7 +586,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
       "date": "2026-10-11",
-      "views": 16490,
+      "views": 16543,
       "short": true
     },
     {
@@ -608,7 +595,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
       "date": "2026-10-12",
-      "views": 5274
+      "views": 5321
     },
     {
       "platform": "youtube",
@@ -616,7 +603,7 @@
       "channel": "小童 x Happy Trading Life",
       "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
       "date": "2026-10-13",
-      "views": 1578,
+      "views": 1594,
       "short": true
     },
     {
@@ -625,7 +612,7 @@
       "channel": "基金小姐姐詹璇依",
       "url": "https://www.youtube.com/shorts/M1S5sZqkRDk",
       "date": "2026-10-09",
-      "views": 185292,
+      "views": 185299,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -636,7 +623,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/XFDp4rY4FsQ",
       "date": "2026-10-12",
-      "views": 148884,
+      "views": 150516,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -647,7 +634,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=REtGASDFkEM",
       "date": "2026-10-12",
-      "views": 135567,
+      "views": 135655,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -657,7 +644,7 @@
       "channel": "安聯投信 Allianz Global Investors Taiwan",
       "url": "https://www.youtube.com/shorts/b-T8DfBiuuk",
       "date": "2026-10-12",
-      "views": 130448,
+      "views": 134508,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -668,7 +655,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=o4KXRKrwlUs",
       "date": "2026-10-10",
-      "views": 91644,
+      "views": 91693,
       "peer": true,
       "cat": "高股息"
     },
@@ -678,7 +665,17 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=YISny6TMPRY",
       "date": "2026-10-10",
-      "views": 85054,
+      "views": 85256,
+      "peer": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "0053確定分割! 一張26萬&quot;降至3萬多&quot; 經理費砍逾6成&quot;海外ETF股王&quot;甜甜價來了! 12/3分割投票 1張拚降至2萬｜94要賺錢",
+      "channel": "94要賺錢",
+      "url": "https://www.youtube.com/watch?v=2bj5TUPrVto",
+      "date": "2026-10-12",
+      "views": 77956,
       "peer": true,
       "cat": "綜合"
     },
@@ -688,19 +685,9 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=1iIDAJTm3bk",
       "date": "2026-10-12",
-      "views": 76955,
+      "views": 77471,
       "peer": true,
       "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "0053確定分割! 一張26萬&quot;降至3萬多&quot; 經理費砍逾6成&quot;海外ETF股王&quot;甜甜價來了! 12/3分割投票 1張拚降至2萬｜94要賺錢",
-      "channel": "94要賺錢",
-      "url": "https://www.youtube.com/watch?v=2bj5TUPrVto",
-      "date": "2026-10-12",
-      "views": 75320,
-      "peer": true,
-      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -708,7 +695,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/sgOyzfXKakU",
       "date": "2026-10-13",
-      "views": 51560,
+      "views": 53827,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -719,15 +706,15 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=NUXLQRXjsOU",
       "date": "2026-10-11",
-      "views": 33708,
+      "views": 33713,
       "peer": true,
       "cat": "市值型"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全球物聯網科技 等 7 檔（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全球物聯網科技 等 8 檔（詳下方新聞標籤）",
     "品牌焦點：00418A 復華台灣新星主動式 ETF｜成分股？配息？優缺點？募集時間？（StockFeel 股感）",
     "社群聲量最高：00929今年賺近80％！兩次換股策略揭開績效關鍵（0 推）",
-    "YouTube 熱片：一分鐘看懂主動式ETF漲跌原因！！！ #基金小姐姐 #投資 #00991a #00981a（基金小姐姐詹璇依・185,292 次觀看）"
+    "YouTube 熱片：一分鐘看懂主動式ETF漲跌原因！！！ #基金小姐姐 #投資 #00991a #00981a（基金小姐姐詹璇依・185,299 次觀看）"
   ]
 }
