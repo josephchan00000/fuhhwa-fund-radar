@@ -172,6 +172,42 @@ def test_page_has_no_banned_words():
     assert not [w for w in banned if w in text]
 
 
+def test_page_layout_six_tabs_today_first_and_glossary():
+    """2026-10-14 改版定案：今日｜個股｜投信｜訊號｜策略｜指數，一打開是「今日」；「說明」改為 ⓘ 名詞。"""
+    import re
+    tabs = re.findall(r'<a data-t="(\w+)">([^<]+)</a>', page._HTML)
+    assert tabs == [("today", "今日"), ("stk", "個股"), ("iss", "投信"), ("sig", "訊號"),
+                    ("st", "策略"), ("idx", "指數")]
+    assert 'id="glb"' in page._HTML and "說明</a>" not in page._HTML
+    assert "go('today');" in page._JS
+    js_views = re.search(r"const VIEWS=\{([^}]*)\}", page._JS).group(1)
+    assert [k.split(":")[0] for k in js_views.split(",")] == [t for t, _ in tabs]
+
+
+def test_stock_table_views_stay_narrow():
+    """個股表三個視角（ETF 動向／法人籌碼／技術面），每個視角連同股票、收盤兩欄 ≤9 欄、欄名都有 ⓘ。"""
+    import re
+    assert "const VW={etf:'ETF 動向',chip:'法人籌碼',ta:'技術面'}" in page._JS
+    block = page._JS.split("const CV={", 1)[1].split("};", 1)[0]
+    views = re.findall(r"(\w+):\[(.*?)\n \]", block, re.S)
+    assert [v for v, _ in views] == ["etf", "chip", "ta"]
+    for v, body in views:
+        cols = re.findall(r"\{k:'(\w+)'", body)
+        assert 2 + len(cols) <= 9, (v, cols)
+        assert body.count("g:'") >= len(cols) - 1, v     # 訊號欄以外都接名詞辭典
+
+
+def test_asof_line_merges_same_day_and_flags_lagging():
+    data = {"asof": {"pos": "2026-10-13", "px": "2026-10-13", "chip": "2026-10-13",
+                     "margin": "2026-10-12", "tdcc": "2026-10-08"},
+            "etfs": {"A": {"d": "2026-10-13"}, "B": {"d": "2026-10-12"}}}
+    s = page.asof_line(data)
+    assert s.startswith("資料日 10/13")
+    assert "融資券 10/12" in s and "價量" not in s and "法人" not in s
+    assert "集保 10/8（每週）" in s and "ETF 揭露 1/2 檔到 10/13" in s
+    assert page.asof_line({}) == "尚無資料"
+
+
 def test_entrance_is_low_key_footer_link_only():
     """入口只在頁尾、不進導覽列（使用者：沒那麼好找到就好）。"""
     from pathlib import Path
@@ -349,3 +385,50 @@ def test_extra_etf_candidates_read_nested_latest_market_aum():
 def test_shard_retention_covers_long_term_backtest():
     """長線回測（月選、12 個月前瞻＋120 日均線暖身）至少要兩年分片，保留天數不可再縮回 400。"""
     assert store.KEEP_DAYS >= 730
+
+
+def test_series_out_exports_active_flow_not_etf_total():
+    """個股走勢圖下方改畫「主動 ETF 每日真加減碼」：ETF 陸續進資料集會讓合計持股憑空跳增，不再輸出 et。"""
+    from arm.lab import analyze
+    T = analyze.CHART_N + 5
+    S = {k: [100.0] * T for k in ("c", "o", "h", "l")}
+    S["v"] = [5000.0] * T
+    qa = [0.0] * T
+    out = analyze._series_out(None, S, None, [None] * T, qa, True)
+    assert "et" not in out and "qa" not in out                      # 全 0 不輸出
+    qa[-1], qa[-3] = 12_400.0, -3_000.0                             # 股 → 張
+    out = analyze._series_out(None, S, None, [None] * T, qa, True)
+    assert len(out["qa"]) == analyze.CHIP_N and out["qa"][-1] == 12 and out["qa"][-3] == -3
+
+
+def test_build_splits_series_into_side_file(tmp_path, monkeypatch):
+    """個股走勢序列另存 x9s.json（開個股卡才載入）：頁面不含序列、版本號＝序列檔雜湊、檔案自帶日期軸；同資料重建零變更。"""
+    import json as _json
+    from arm.lab import analyze
+    data = {"asof": {"pos": "2026-10-13"}, "etfs": {}, "dates": ["2026-10-08", "2026-10-13"],
+            "rows": [{"c": "2330", "n": "台積電", "m": "tw", "sg": [], "hd": []}],
+            "ser": {"2330": {"c": [2400.0, 2490.5], "qa": [0, 3]}}, "sigdef": {}, "risk": [],
+            "stats": {}, "iss": {}, "iev": {}, "iow": {}}
+    monkeypatch.setattr(analyze, "run", lambda: data)
+    html_p, ser_p = tmp_path / "x9.html", tmp_path / "x9s.json"
+    assert page.build(out=html_p, out_ser=ser_p) is True
+    blob = html_p.read_text("utf-8").split('id="labdata">', 1)[1].split("</script>", 1)[0]
+    main = _json.loads(blob.replace("<\\/", "</"))
+    assert "ser" not in main and main["dates"] == data["dates"]
+    sj = ser_p.read_text("utf-8")
+    assert main["serv"] == page._ver(sj)
+    assert _json.loads(sj) == {"dates": data["dates"], "ser": {"2330": {"c": [2400, 2490.5], "qa": [0, 3]}}}
+    assert page.build(out=html_p, out_ser=ser_p) is False
+
+
+def test_workflows_commit_series_file_on_its_own_line():
+    """三支會重建儀表板的 workflow 都要把 x9s.json 帶進 commit，且分開 add（缺檔時 git 會整行放棄，不可連累分片）。"""
+    from pathlib import Path
+    wf = Path(__file__).resolve().parents[1] / ".github" / "workflows"
+    for name in ("daily.yml", "afterhours_refresh.yml", "etf_holdings.yml"):
+        lines = (wf / name).read_text("utf-8").splitlines()
+        page_lines = [i for i, ln in enumerate(lines) if "dashboard/x9.html" in ln]
+        assert page_lines, name
+        for i in page_lines:
+            assert "x9s.json" not in lines[i], name
+            assert lines[i + 1].strip().startswith("git add -f dashboard/x9s.json"), (name, i)
