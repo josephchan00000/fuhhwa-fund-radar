@@ -22,9 +22,13 @@ def main() -> None:
     ap.add_argument("--flow-days", type=int, default=0, help="籌碼回補日曆天數")
     ap.add_argument("--budget-min", type=float, default=40)
     ap.add_argument("--probe", action="store_true")
+    ap.add_argument("--probe2", action="store_true", help="第二階段資料源探針（股利、EPS、殖利率）")
     a = ap.parse_args()
     today = clock.today_tw()
 
+    if a.probe2:
+        market.probe2(collect.candidate_days(today, 7)[1])
+        return
     if a.probe:
         for d in collect.candidate_days(today, 7)[:2]:
             for p in market.ALL_PARTS:
