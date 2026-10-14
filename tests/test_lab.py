@@ -344,3 +344,8 @@ def test_extra_etf_candidates_read_nested_latest_market_aum():
     out = collect.extra_candidates(items, tracked=set())
     assert [x["code"] for x in out] == ["009816", "00981A", "0051"]
     assert out[1]["style"] == "a"
+
+
+def test_shard_retention_covers_long_term_backtest():
+    """長線回測（月選、12 個月前瞻＋120 日均線暖身）至少要兩年分片，保留天數不可再縮回 400。"""
+    assert store.KEEP_DAYS >= 730

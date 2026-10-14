@@ -17,7 +17,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 LAB = ROOT / "data" / "lab"
 
-KEEP_DAYS = 400          # 分片保留天數（日曆天）；超過自動清
+# 分片保留天數（日曆天）；超過自動清。⚠ 長線回測要兩年以上的投信／價量史——
+# 2026-10-14 原設 400 天，上線第一班 daily 就把 2024-11～2025-09 的投信回補刪掉（從 git 史還原）
+KEEP_DAYS = 1100
 
 
 def path(kind: str, d: str) -> Path:
