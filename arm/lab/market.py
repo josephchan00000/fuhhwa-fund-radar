@@ -760,7 +760,7 @@ _FM_DIV_KEYS: set = set()
 
 
 def fm_div(rows) -> list[list]:
-    """FinMind 股利政策 → [[現金除息日, 現金股利, 配股除權日, 配股(元), 所屬年度]]；鍵名不確定，第一次印出供核對。"""
+    """FinMind 股利政策 → [[現金除息日, 現金股利, 配股除權日, 配股(元), 所屬年度, 公告日]]；鍵名第一次印出供核對。"""
     out = []
     for r in rows or []:
         if not _FM_DIV_KEYS:
@@ -770,6 +770,7 @@ def fm_div(rows) -> list[list]:
         stock = sum(float(r.get(k) or 0) for k in ("StockEarningsDistribution", "StockStatutorySurplus"))
         ex_c, ex_s = r.get("CashExDividendTradingDate") or None, r.get("StockExDividendTradingDate") or None
         if cash or stock:
-            out.append([ex_c, round(cash, 6), ex_s, round(stock, 6), str(r.get("year") or "")])
+            out.append([ex_c, round(cash, 6), ex_s, round(stock, 6), str(r.get("year") or ""),
+                        str(r.get("AnnouncementDate") or r.get("date") or "")[:10] or None])
     return out
 
