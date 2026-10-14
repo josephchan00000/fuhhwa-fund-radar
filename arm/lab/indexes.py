@@ -397,8 +397,13 @@ def hd(D, cfg: dict) -> dict:
         ind = json.loads((store.ROOT / "data" / "stock_industry.json").read_text(encoding="utf-8")).get("industry") or {}
     except Exception:                                     # noqa: BLE001
         ind = {}
+    from . import hdflow
     reps = hdpredict.replay(D, H, cfg, ind)
-    return {"study": hdstudy.page_data(D, cfg, H), "live": hdpredict.live(D, H, cfg, ind, reps),
+    rows = hdflow.realized(D, H, cfg)
+    F = hdflow.fk(rows)
+    live = hdpredict.live(D, H, cfg, ind, reps, F=F)
+    return {"study": hdstudy.page_data(D, cfg, H), "live": live,
+            "flow": hdflow.study(rows, F, reps, D, H, cfg), "alert": hdflow.alerts(D, H, cfg, F, live),
             "replay": [{"key": r["key"], "review": r["review"], "cutoff": r["cutoff"], "act_add": r["act_add"],
                         "act_del": r["act_del"], **({"pred_add": r["lead"][0]["pred_add"], "pred_del": r["lead"][0]["pred_del"],
                                                      "hit_add": r["lead"][0]["hit_add"], "hit_del": r["lead"][0]["hit_del"]}
