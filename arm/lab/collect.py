@@ -235,6 +235,7 @@ EXTRA_FP = "extra_etfs.json"
 EXTRA_TOP = 45          # 依規模取前 45 名候選（含已追蹤者），篩完通常剩 20～30 檔
 EXTRA_MAX = 30
 EXTRA_TW_SHARE = 0.7    # 台股權重 ≥70% 才算台股權益型（排除海外指數、債券、期貨型）
+STALE_DAYS = 10         # 擴充檔快照比已追蹤 ETF 最新揭露日舊超過 10 天 → 不收
 _BAD_SUFFIX = ("B", "L", "R", "U", "K", "D", "C")   # 債券／槓桿／反向／期貨／海外等字尾
 
 
@@ -263,7 +264,10 @@ def extra_candidates(items: list[dict], tracked: set[str]) -> list[dict]:
             continue
         if code[-1].isalpha() and code[-1] in _BAD_SUFFIX:
             continue
-        aum = _aum(_pick(it, "aum", "AUM", "fundSize", "size"))
+        # 2026-10-14 正式環境首輪：etfinfo 清單的規模在 latestMarket.aum（頂層沒有 aum）→ 全部讀成 0、
+        # 退化成依代碼排序，挑到 0051～0059 這批小型／已下市檔
+        lm = it.get("latestMarket") if isinstance(it.get("latestMarket"), dict) else {}
+        aum = _aum(_pick(it, "aum", "AUM", "fundSize", "size") or _pick(lm, "aum", "AUM"))
         style = str(_pick(it, "managementStyle", "style") or "").lower()
         out.append({"code": code, "aum": aum, "name": _pick(it, "name", "shortName") or code,
                     "style": "a" if style.startswith("act") or code.endswith("A") else "p",
@@ -317,11 +321,14 @@ def update_extra_etfs(ref_date: str | None) -> int:
         h = {r["stock_id"]: [r["shares"], r["weight"]] for r in rows if r.get("shares")}
         tot = sum(v[1] or 0 for v in h.values()) or 1
         tw = sum(v[1] or 0 for k, v in h.items() if k[:4].isdigit() and " " not in k) / tot
-        d = m.get("as_of")
+        d = str(m.get("as_of") or "")[:10]
         if len(h) < 10 or tw < EXTRA_TW_SHARE or not d:
             etfs[code] = {"n": c["name"], "skip": True, "why": f"{len(h)} 檔、台股權重 {tw:.0%}"}
             continue
-        d = str(d)[:10]
+        # 快照過舊＝停止揭露或已下市（首輪踩到 2019 年的快照被寫成分片）→ 不寫、下輪再看
+        if ref_date and (date.fromisoformat(ref_date) - date.fromisoformat(d)).days > STALE_DAYS:
+            market.log(f"擴充 {code} 快照 {d} 過舊，略過")
+            continue
         etfs[code] = {"n": m.get("name") or c["name"], "k": c["style"],
                       "is": m.get("issuer") or c.get("issuer"), "aum": c["aum"]}
         merge_names({r["stock_id"]: r["stock_name"] for r in rows if r.get("stock_name")})
