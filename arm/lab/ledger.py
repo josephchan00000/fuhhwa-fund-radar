@@ -10,7 +10,10 @@
    實際偏離預期的部分才是「真加減碼」（conv）。被動式的真加減碼＝指數機械調整。
 3. **平均成本法**：加碼按當日均價（成交金額÷成交股數；缺則收盤）入帳；減碼按平均成本
    沖銷、記已實現損益。**觀測起點前就持有的部位，成本以首次觀測日均價計**（品質 B），
-   觀測期內才建倉者為品質 A——頁面據此標註，不假裝知道更早的買價。
+   觀測期內才建倉者為品質 A。**頁面的「主動成本」只算品質 A**（2026-10-14 使用者：B 的起點價
+   不是真實買價、而查遍網路也沒有任何地方公布經理人成本 → 舊部位不計，不假裝知道更早的買價）。
+   缺價格那天增加的股數先記為「待補」（pend），下一個有價格的日子按當天均價補入；
+   平均成本＝成本÷已入成本股數，待補股數不稀釋它（海外持股常缺首日揭露價）。
 4. **公司行動**：減資／股票股利／面額變更會讓股數跳動但不是交易。兩條路徑：
    A. 分割／減資（股數與股價同日反向變動）：|r−1|≥4%、|價比×r−1|<3%，且（≥3 檔一致或 |r−1|≥12%）；
    B. **股票股利入帳（2026-10-14 補）**：配股在除權日後數週才撥入，入帳日股價不動——價格檢查必然落空，
@@ -49,10 +52,16 @@ class Pos:
     last_kind: str | None = None
     last_date: str | None = None
     unpriced: int = 0              # 有交易但缺價格的次數（成本不精確）
+    pend: float = 0.0              # 缺價格當天增加、還沒入成本的股數：下一個有價格的日子按當天均價補入
+
+    @property
+    def priced(self) -> float:
+        """已入成本的股數（扣掉缺價格待補的部分）——平均成本的分母。"""
+        return max(self.shares - self.pend, 0.0)
 
     @property
     def avg(self) -> float | None:
-        return self.cost / self.shares if self.shares > 0 and self.cost > 0 else None
+        return self.cost / self.priced if self.priced > 0 and self.cost > 0 else None
 
 
 @dataclass
@@ -79,7 +88,7 @@ class Ledger:
     first_obs: dict = field(default_factory=dict)  # etf -> 首次觀測日
     last_obs: dict = field(default_factory=dict)   # etf -> 最新揭露日
     snaps: dict = field(default_factory=dict)      # etf -> [(date, {code: shares})]
-    daily_cost: dict = field(default_factory=dict) # date -> {(etf, code): (shares, cost)}（揭露日當下狀態）
+    daily_cost: dict = field(default_factory=dict) # date -> {(etf, code): (已入成本股數, cost, 品質)}（揭露日當下狀態）
 
 
 def _flow_factor(prev: dict, cur: dict) -> float:
@@ -163,10 +172,10 @@ def build(pos_docs: list[tuple[str, dict]], price, *, skip_etfs: set[str] | None
             p = price(c, d0)
             px = (p[0] or p[1]) if p else None
             P = Pos(shares=s, cost=(s * px) if px else 0.0, first=d0, exact=False,
-                    quality="B", last_date=d0, unpriced=0 if px else 1)
+                    quality="B", last_date=d0, unpriced=0 if px else 1, pend=0.0 if px else s)
             L.pos[(etf, c)] = P
         L.daily_cost.setdefault(d0, {}).update(
-            {(etf, c): (L.pos[(etf, c)].shares, L.pos[(etf, c)].cost) for c in h0})
+            {(etf, c): (L.pos[(etf, c)].priced, L.pos[(etf, c)].cost, "B") for c in h0})
         for (a, ha), (b, hb) in zip(seq, seq[1:]):
             f = _flow_factor(ha, hb)
             L.flows[(etf, b)] = f
@@ -180,6 +189,7 @@ def build(pos_docs: list[tuple[str, dict]], price, *, skip_etfs: set[str] | None
                     if abs(r - 1) >= 0.003 and _is_ca(c, a, b, r):
                         L.ca.append((b, c, round(r, 4)))
                         P.shares *= r                        # 股數換算、總成本不變
+                        P.pend *= r
                         s0 = s0 * r
                 expected = s0 * f
                 conv = s1 - expected
@@ -187,26 +197,36 @@ def build(pos_docs: list[tuple[str, dict]], price, *, skip_etfs: set[str] | None
                 kind = _kind(s0, s1, conv, c)
                 p = price(c, b)
                 px = (p[0] or p[1]) if p else None
+                # —— 缺價格待補的股數：今天有價格就按今天均價補入成本
+                #    （2026-10-14 海外持股常缺首日揭露價，舊版把它們當 0 元入帳 → 平均成本被稀釋）
+                if px and P.pend > 0 and P.shares > 0:
+                    P.cost += P.pend * px
+                    P.pend = 0.0
                 # —— 記帳
                 if raw > 0:
                     if px:
                         P.cost += raw * px
                     else:
                         P.unpriced += 1
+                        P.pend += raw
                     P.shares += raw
                 elif raw < 0 and P.shares > 0:
                     sold = min(-raw, P.shares)
-                    avg = P.cost / P.shares if P.shares else 0.0
+                    frac = sold / P.shares                   # 依比例賣出：平均成本不變
+                    avg = P.avg
+                    out = P.cost * frac
                     if px and avg:
-                        P.realized += sold * (px - avg)
-                    P.cost -= sold * avg
+                        P.realized += sold * (1 - P.pend / P.shares) * (px - avg)
+                    P.cost -= out
+                    P.pend -= P.pend * frac
                     P.shares -= sold
                 if kind == NEW:
                     P.first, P.exact, P.quality = b, True, "A"
                     P.shares, P.cost = s1, (s1 * px if px else 0.0)
+                    P.pend = 0.0 if px else s1
                     P.streak_add, P.streak_cut = 1, 0
                 elif kind == EXIT:
-                    P.shares, P.cost = 0.0, 0.0
+                    P.shares, P.cost, P.pend = 0.0, 0.0, 0.0
                     P.streak_add, P.streak_cut = 0, 0
                 elif kind == ADD:
                     P.streak_add += 1
@@ -222,6 +242,6 @@ def build(pos_docs: list[tuple[str, dict]], price, *, skip_etfs: set[str] | None
                     L.events.append(Event(b, etf, c, kind, s0, s1, conv, raw, px, f,
                                           P.streak_add if P.streak_add else -P.streak_cut))
             L.daily_cost.setdefault(b, {}).update(
-                {(etf, c): (L.pos[(etf, c)].shares, L.pos[(etf, c)].cost)
+                {(etf, c): (L.pos[(etf, c)].priced, L.pos[(etf, c)].cost, L.pos[(etf, c)].quality)
                  for c in set(ha) | set(hb) if (etf, c) in L.pos})
     return L
