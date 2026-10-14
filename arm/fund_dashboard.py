@@ -2780,6 +2780,8 @@ a.tk{text-decoration:none} a.tk:hover{color:var(--acc)}
 .tk{font-size:11px;color:var(--accd)} .pill{display:inline-block;white-space:nowrap;font-size:11px;color:var(--mut);background:var(--card2);border:0;border-radius:5px;padding:1px 5px;margin-left:4px}
 .hintro{color:var(--mut);font-size:12.5px;margin-top:3px}
 .foot{color:var(--mut);font-size:12.5px;line-height:1.8;margin-top:22px;border-top:1px solid var(--line);padding-top:12px}
+/* 籌碼雷達入口（2026-10-14 使用者：放在不顯眼的角落、不用密語）——頁尾右下角淡色小點 */
+.fx{float:right;color:#d5dae2;text-decoration:none;font-size:16px;line-height:1;padding:8px 2px 8px 18px}
 .backtop{position:fixed;right:18px;bottom:18px;z-index:40;background:#fff;color:var(--accd);border:0;border-radius:22px;padding:9px 15px;font-size:13.5px;text-decoration:none;box-shadow:0 2px 10px rgba(30,50,90,.22)}
 .backtop:hover{color:var(--acc)}
 @media(max-width:720px){.wrap{padding:6px 14px 46px}.cols{grid-template-columns:1fr}.rets{grid-template-columns:repeat(3,1fr)}.navbox{text-align:left}
@@ -3477,7 +3479,7 @@ def render() -> str:
   基金投資有風險，申購前應詳閱公開說明書／投資人須知；過去績效不代表未來表現，淨值可能因市場變動而上下。
   境外基金涉及匯率與國際市場風險；使用衍生性商品者另涉及槓桿、流動性與對手風險。
   投資人申購本基金係持有基金受益憑證，非本文提及之投資資產或標的。
-  本版本不呈現「每天持股變化」（共同基金無逐日持股張數）。
+  本版本不呈現「每天持股變化」（共同基金無逐日持股張數）。<a class="fx" href="x9.html" aria-label="·">·</a>
 </div>
 </div>
 {sec_print}
