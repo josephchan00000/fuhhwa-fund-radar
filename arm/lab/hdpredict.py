@@ -405,3 +405,94 @@ if __name__ == "__main__":                  # 研究用：python3 -m arm.lab.hdp
         for L, x in sorted(r["lead"].items()):
             print(f"  提前 {L:2d} 日：預測納入 {x['n_pred_add']} 中 {x['hit_add']}｜預測刪除 {x['n_pred_del']} 中 {x['hit_del']}"
                   f"｜實際納入名次 {sorted(v for v in x['rank'].values() if v) } 無名次 {[c for c, v in x['rank'].items() if not v]}")
+
+
+# —— 下一次審核的即時預測（頁面用）
+
+KEYS = ("tip_hd", "tip_tech", "tw_div", "msci_esg30")
+CAP = {"tip_hd": 0.15, "tip_tech": 0.10, "tw_div": 0.10, "msci_esg30": 0.10}
+
+
+def _cur_holdings(etf: str) -> set[str]:
+    from . import hdstudy as HS
+    return {c for c in HS._cur_holdings(etf) if len(c) == 4 and c.isdigit()}
+
+
+def _msci_cutoff_est(nx: dict) -> str | None:
+    """MSCI 價格截止日估計：公布月的前一個月倒數第 5 個交易日。"""
+    ann = nx.get("announce")
+    if not ann:
+        return None
+    last = _d(ann).replace(day=1) - timedelta(days=1)
+    while last.weekday() >= 5:
+        last -= timedelta(days=1)
+    return TS.td_shift(TS.td_shift(last.isoformat(), 1), -5)
+
+
+def _acc(reps: list[dict], key: str) -> dict:
+    """回放命中：{提前天數: {hit, tot, fp, n_rev}}（納入股）。"""
+    out = {}
+    for L in (0, 10, 20):
+        rs = [r for r in reps if r["key"] == key and L in r["lead"]]
+        if not rs:
+            continue
+        hit = sum(r["lead"][L]["hit_add"] for r in rs)
+        tot = sum(len(r["act_add"]) for r in rs)
+        fp = sum(r["lead"][L]["n_pred_add"] - r["lead"][L]["hit_add"] for r in rs)
+        hd = sum(r["lead"][L]["hit_del"] for r in rs)
+        td = sum(len(r["act_del"]) for r in rs)
+        out[L] = {"hit": hit, "tot": tot, "fp": fp, "hit_del": hd, "tot_del": td, "n_rev": len(rs)}
+    return out
+
+
+def live(D, H, cfg: dict, industry: dict, reps: list[dict] | None = None, keys=KEYS) -> dict:
+    """各指數下一次審核：用最新資料（過了資料截止日就用截止日）重跑規則 → 預估納入／刪除＋估計被動買賣。"""
+    from . import hdstudy as HS
+    from .indexes import momentum
+    cx = Ctx(D, H, industry)
+    reps = reps if reps is not None else replay(D, H, cfg, industry)
+    last = D.cal[-1]
+    out = {}
+    for k in keys:
+        ix = (cfg.get("indexes") or {}).get(k) or {}
+        nx = dict(ix.get("next") or {})
+        etf = (ix.get("etfs") or [None])[0]
+        pre = _cur_holdings(etf) if etf else set()
+        if not nx or len(pre) < 10:
+            continue
+        cut = nx.get("cutoff") or (_msci_cutoff_est(nx) if k == "msci_esg30" else None)
+        d = min(cut, last) if cut else last
+        frozen = bool(cut and last >= cut)
+        try:
+            p = predict(cx, k, nx, pre, d)
+        except Exception as e:                            # noqa: BLE001
+            out[k] = {"err": f"{type(e).__name__}: {e}"}
+            continue
+        if not p:
+            continue
+        ia = cx.i(d)
+        _, aum = HS._cur_aum(etf)
+        sel = p["sel"]
+        ys = {c: max(H.yld(c, d) or 0.0, 0.0) for c in sel}
+        tot = sum(ys.values()) or 1.0
+        w = {c: min(y / tot, CAP.get(k, 0.1)) for c, y in ys.items()}
+        rk = {c: i + 1 for i, c in enumerate(p["ranked"])}
+
+        def row(c, side):
+            m = momentum(D, c, ia) if ia is not None else None
+            a20 = cx.adv(c, d, 20)
+            amt = aum * w.get(c, 0) if (aum and side == "add") else None
+            if side == "del" and aum:
+                amt = aum * (1 / max(len(pre), 1))                # 刪除股以等權估（實際持股權重見 ETF 持股）
+            return [c, D.names.get(c, c), rk.get(c), (p["info"].get(c) or {}).get("yld"),
+                    None if m is None else round(m * 100, 1),
+                    None if amt is None else round(amt, 1),
+                    round(amt * 1e8 / a20, 1) if (amt and a20) else None, cx.px(c, d)]
+        t0, t1 = HS._conv_window(D, k, nx)
+        out[k] = {"etf": etf, "review": nx.get("review"), "asof": d, "frozen": frozen, "cutoff": cut,
+                  "announce": nx.get("announce"), "reveal": nx.get("reveal"), "effective": nx.get("effective"),
+                  "trade": [t0, t1], "status": nx.get("status"), "aum": aum, "n_pre": len(pre),
+                  "max_chg": nx.get("max_changes"),
+                  "adds": [row(c, "add") for c in p["adds"]], "dels": [row(c, "del") for c in p["dels"]],
+                  "acc": _acc(reps, k)}
+    return out

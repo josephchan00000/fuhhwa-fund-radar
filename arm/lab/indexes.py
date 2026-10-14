@@ -382,4 +382,24 @@ def run(D, L, meta: dict, today: date) -> dict:
         out["study"] = tw50study.run(D, cfg)
     except Exception as e:                                # noqa: BLE001
         out["study"] = {"n": 0, "err": f"{type(e).__name__}: {e}"}
+    try:                                                  # 高股息四檔：換股研究＋下一次預估名單（2026-10-14）
+        out["hd"] = hd(D, cfg)
+    except Exception as e:                                # noqa: BLE001
+        out["hd"] = {"err": f"{type(e).__name__}: {e}"}
     return out
+
+
+def hd(D, cfg: dict) -> dict:
+    from . import hdpredict, hdstudy
+    from .hdmodel import HD
+    H = HD(D)
+    try:
+        ind = json.loads((store.ROOT / "data" / "stock_industry.json").read_text(encoding="utf-8")).get("industry") or {}
+    except Exception:                                     # noqa: BLE001
+        ind = {}
+    reps = hdpredict.replay(D, H, cfg, ind)
+    return {"study": hdstudy.page_data(D, cfg, H), "live": hdpredict.live(D, H, cfg, ind, reps),
+            "replay": [{"key": r["key"], "review": r["review"], "cutoff": r["cutoff"], "act_add": r["act_add"],
+                        "act_del": r["act_del"], **({"pred_add": r["lead"][0]["pred_add"], "pred_del": r["lead"][0]["pred_del"],
+                                                     "hit_add": r["lead"][0]["hit_add"], "hit_del": r["lead"][0]["hit_del"]}
+                                                    if 0 in r["lead"] else {})} for r in reps]}
