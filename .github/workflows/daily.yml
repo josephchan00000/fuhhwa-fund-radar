@@ -28,7 +28,7 @@ on:
     # 只推該檔也要能觸發併入 main 重建，週掃更新才不用等人工 merge。
     # config/holding_profiles.json＝持股簡介庫自動通道（2026-08-12）：換月缺簡介時
     # 每日會話補完只需 push，即自動併入 main 重建上線——不需開 PR、不需監看。
-    paths: ['reports/**', 'data/etf_upcoming.json', 'config/holding_profiles.json']
+    paths: ['reports/**', 'data/etf_upcoming.json', 'config/holding_profiles.json', 'config/index_reviews.json']
   workflow_dispatch:
     inputs:
       news_ref:
@@ -127,6 +127,21 @@ jobs:
               cp /tmp/hp_new.json "$HPF"; echo "  併入 $HPF（$NEW_N 筆簡介）"
             fi
           fi
+          # 指數審核時程／結果（2026-10-14 起；籌碼雷達「指數調整」資料源，週一 ETF 週掃維護）：
+          # 防呆同 etf_upcoming——JSON 驗證（indexes 非空、每筆有 name/etfs）＋ as_of 不舊於 main。
+          IRF=config/index_reviews.json
+          if git cat-file -e "$REF:$IRF" 2>/dev/null; then
+            git show "$REF:$IRF" > /tmp/idx_new.json
+            NEW_IR=$(python3 -c "import json; d=json.load(open('/tmp/idx_new.json')); ix=d.get('indexes'); assert isinstance(ix,dict) and ix; assert all(v.get('name') and v.get('etfs') for v in ix.values()); print(d.get('as_of') or '')" 2>/dev/null) || NEW_IR=""
+            CUR_IR=$(python3 -c "import json; print(json.load(open('$IRF')).get('as_of') or '')" 2>/dev/null || echo "")
+            if [ -z "$NEW_IR" ]; then
+              echo "  ⚠ $IRF 於來源分支驗證失敗——保留 main 現有版"
+            elif [ "$NEW_IR" \< "$CUR_IR" ]; then
+              echo "  · $IRF 分支版 as_of=$NEW_IR 舊於 main=$CUR_IR——不倒灌"
+            else
+              cp /tmp/idx_new.json "$IRF"; echo "  併入 $IRF（as_of=$NEW_IR）"
+            fi
+          fi
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -197,12 +212,14 @@ jobs:
           git add -f data/fund_nav_history.json 2>/dev/null || true  # NAV 序列持久層——漏 add 會斷史、1週/1月整片變 —（審查 #1）
           git add -f data/cnyes_fund_map.json 2>/dev/null || true    # 鉅亨 cnyesId 對映
           git add -f config/holding_profiles.json 2>/dev/null || true # 持股簡介庫（併檔段自動通道帶入）
+          git add -f config/index_reviews.json 2>/dev/null || true    # 指數審核時程（併檔段自動通道帶入）
           git add -f data/factcheck.json 2>/dev/null || true         # 數字核對結果（儀表板警示用）
           git add -f reports/usnews/*_v*.md 2>/dev/null || true
           git add -f reports/twnews/*.md reports/twnews/prompts/*.md reports/usnews/prompts/*.md 2>/dev/null || true
           git add -f reports/macronews/*.md reports/macronews/prompts/*.md 2>/dev/null || true
           git add -f reports/macrocal/*.md reports/macrocal/prompts/*.md 2>/dev/null || true
           git add dashboard/index.html 2>/dev/null || true         # 入庫的儀表板產物 → Vercel Git 部署會自動更新
+          git add -f data/lab dashboard/x9.html 2>/dev/null || true   # 籌碼雷達（分片＋隱藏頁，2026-10-14）
           git commit -m "chore: 每日持股介紹／新聞更新 $(date +%F)" || { echo "無變更，跳過 push"; exit 0; }
           # push 失敗（main 期間被推進）→ rebase 重試；rebase 衝突以本次新資料為準（-X theirs）。
           # 最終仍失敗就讓 job 真的 fail（不可吞錯綠燈——審查 #3），後面 deploy hook 自然不跑。
@@ -215,6 +232,7 @@ jobs:
             git pull --rebase -X theirs origin main || git rebase --abort || true
             TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py || true
             git add dashboard/index.html 2>/dev/null || true
+            git add -f data/lab dashboard/x9.html 2>/dev/null || true   # 籌碼雷達（分片＋隱藏頁，2026-10-14）
             git commit --amend --no-edit || true
             sleep 5
           done

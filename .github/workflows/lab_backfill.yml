@@ -1,0 +1,94 @@
+name: 籌碼雷達回補（一次性／手動）
+
+# 2026-10-14 建立：ETF 持股個股籌碼雷達（arm/lab/）的歷史回補。
+#   · 從 git 歷史回補 ETF 部位（需 fetch-depth: 0）
+#   · 官方全市場價量（約 1 年）＋個股籌碼（約 3 個月）——按日期一次一請求、可重跑續補
+# 每日增量由 afterhours_refresh.yml／etf_holdings.yml 的 fetch_lab.py 負責，本檔只做一次性回補。
+#
+# 觸發：
+#   · workflow_dispatch（main 上）
+#   · claude/** 分支 push 動到 .ping/lab（未 merge 前在分支上驗證用；內容寫 probe＝只跑探針）
+# 結果 commit 回「被觸發的那個分支」。
+
+on:
+  workflow_dispatch:
+    inputs:
+      probe:
+        description: "只跑探針（逐端點印診斷），不寫檔"
+        type: boolean
+        default: false
+      px_days:
+        description: "價量回補日曆天數"
+        default: "380"
+      flow_days:
+        description: "籌碼回補日曆天數"
+        default: "95"
+  push:
+    branches: ['claude/**']
+    paths: ['.ping/lab']
+
+concurrency:
+  group: lab-backfill
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0          # pos 回補要走 data/etf_holdings.json 的完整 git 歷史
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安裝相依（純標準庫 + certifi）
+        run: pip install --quiet certifi
+
+      - name: 回補
+        run: |
+          MODE="full"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # 哨兵檔被刪（例如合併前清理）也會觸發 push → 沒有檔就什麼都不做
+            if [ ! -f .ping/lab ]; then echo "無 .ping/lab，略過"; exit 0; fi
+            MODE=$(head -1 .ping/lab 2>/dev/null | tr -d '[:space:]')
+          elif [ "${{ inputs.probe }}" = "true" ]; then
+            MODE="probe"
+          fi
+          PX="${{ inputs.px_days || '380' }}"
+          FL="${{ inputs.flow_days || '95' }}"
+          echo "模式：$MODE（價量 $PX 天、籌碼 $FL 天）"
+          if [ "$MODE" = "probe" ]; then
+            python3 scripts/backfill_lab.py --probe
+          elif [ "$MODE" = "probe2" ]; then
+            python3 scripts/backfill_lab.py --probe2
+          elif [ "$MODE" = "probe3" ]; then
+            python3 scripts/backfill_lab.py --probe3
+          elif [ "$MODE" = "growth" ] || [ "${MODE#growth}" != "$MODE" ]; then
+            python3 scripts/backfill_lab.py --growth --budget-min 50
+          elif [ "$MODE" = "yahoo" ]; then
+            python3 scripts/backfill_lab.py --yahoo
+          else
+            python3 scripts/backfill_lab.py --pos-git --px-days "$PX" --flow-days "$FL" --budget-min 50
+          fi
+
+      - name: commit 回補分片（回到被觸發的分支）
+        run: |
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          git add -f data/lab 2>/dev/null || true
+          git commit -m "chore: 籌碼雷達回補 $(date '+%F %H:%M')" || { echo "無變更"; exit 0; }
+          for i in 1 2 3; do
+            git push origin HEAD:${{ github.ref_name }} && exit 0
+            git pull --rebase origin ${{ github.ref_name }} || git rebase --abort || true
+            sleep 5
+          done
+          echo "::error::push 失敗"; exit 1
