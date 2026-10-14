@@ -35,6 +35,9 @@ data/funds/*
 # 「即將登場」條目檔（etfwatch.UPCOMING 的唯一真實來源，2026-08-10 自程式碼搬出）：
 # 每週「ETF 募集週掃」Routine 只推此檔，daily.yml 併檔段自動帶進 main——必須入庫
 !data/etf_upcoming.json
+# ETF 持股個股籌碼雷達（arm/lab/，2026-10-14）：每日分片＋ETF 部位帳本歷史——**必須入庫**，
+# 帳本的「加入日／估計成本」與技術面全靠跨日累積，CI 從零開始就只剩今天
+!data/lab/
 # 盤後當日完整性警示（check_afterhours_fresh.py 產）：儀表板紅章資料源，隨盤後 commit 入板
 !data/afterhours_alert.json
 # 盤後觸發哨兵（Routine 無 MCP 時 push 此檔觸發 afterhours_refresh.yml）——只該存在於 claude/** 分支
