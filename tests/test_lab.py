@@ -293,3 +293,35 @@ def test_s1_stop_loss_and_pending_candidate():
     r = strategy._trade(st, "2330", 0, S, [2.0] * 6, idx, 6)   # 停損＝98−4＝94，第 2 天收 93
     assert r["st"] == "closed" and r["why"] == "停損" and r["held"] == 2
     assert strategy._trade(st, "2330", 5, S, [2.0] * 6, idx, 6) is None              # 隔日資料未到＝候選
+
+
+# ── 長線成長股：出場模擬 ─────────────────────────────────────────────
+
+class _FakePanel:
+    def __init__(self, o, c):
+        self.T = len(c)
+        self.s = {"X": {"o": o, "c": c, "h": c, "l": c}}
+        self.ma60 = {"X": [None] * len(c)}
+        self.ma120 = {"X": [None] * len(c)}
+
+
+def test_growth_trailing_exit_locks_gain_and_initial_stop_caps_loss():
+    from arm.lab import growth
+    up = [100, 100] + [100 + 10 * i for i in range(1, 16)] + [150] * 5     # 漲到 250 後回落到 150
+    P = _FakePanel(up, up)
+    r = growth.simulate(P, "X", 0, init=0.20, trail=0.30, maxd=40)
+    assert abs(r["r"] - (150 / 100 - 1 - 0.00585)) < 1e-9                 # 從 250 回落 >30% → 以 150 出
+    down = [100, 100, 95, 85, 79, 70, 60] + [60] * 10
+    P2 = _FakePanel(down, down)
+    r2 = growth.simulate(P2, "X", 0, init=0.20, trail=0.30, maxd=40)
+    assert r2["d"] == 4 and abs(r2["r"] - (79 / 100 - 1 - 0.00585)) < 1e-9  # 跌破 −20% 那天收盤出
+
+
+def test_rev_available_respects_publication_lag():
+    from arm.lab import growth
+    rev = {"2025-08": 100.0, "2026-08": 130.0, "2025-09": 100.0, "2026-09": 150.0,
+           **{f"2025-{m:02d}": 100.0 for m in range(1, 8)}, **{f"2026-{m:02d}": 120.0 for m in range(1, 8)}}
+    yoy, _ = growth._rev_avail(rev, "2026-10-09")       # 9 月營收 10/10 前未必公布 → 用 8 月
+    assert abs(yoy - 0.30) < 1e-9
+    yoy2, _ = growth._rev_avail(rev, "2026-10-12")
+    assert abs(yoy2 - 0.50) < 1e-9

@@ -202,6 +202,59 @@ def _summ(rows: list[dict]) -> dict:
             "rule_big": round(sum(1 for x in rule if x >= 1.0) / len(rule) * 100, 1) if rule else None}
 
 
+EXITS = {
+    # 2026-10-14 首輪回測：原規則（−10%、+30% 保本、破 60 日線）把 6 個月持有的 +80% 砍成 +33%、中位數 −4%
+    # ——動能股正常回檔就被洗出場。保留原規則當對照，其餘為放寬版本；頁面並列，不只報最好的那個。
+    "hold6": {"lbl": "持有 6 個月（−25% 停損）", "init": 0.25, "maxd": H6},
+    "trail30": {"lbl": "−20% 停損・高點回落 30% 出", "init": 0.20, "trail": 0.30},
+    "ma120": {"lbl": "−20% 停損・破 120 日線出", "init": 0.20, "ma": 120},
+    "orig": {"lbl": "原規則：−10%・+30% 保本・破 60 日線", "init": 0.10, "be": 0.30, "ma": 60},
+}
+
+
+def simulate(P: Panel, c: str, t: int, *, init=0.10, trail=None, ma=None, be=None, maxd=H12, lbl=None) -> dict | None:
+    S = P.s[c]
+    T = P.T
+    if t + 1 >= T or not S["o"][t + 1]:
+        return None
+    e = S["o"][t + 1]
+    stop = e * (1 - init) if init else 0.0
+    peak = e
+    xi = None
+    last = min(t + maxd, T - 1)
+    for i in range(t + 1, last + 1):
+        x = S["c"][i]
+        if not x:
+            continue
+        peak = max(peak, x)
+        if be and peak >= e * (1 + be):
+            stop = max(stop, e)
+        if trail:
+            stop = max(stop, peak * (1 - trail))
+        m = P.ma60[c][i] if ma == 60 else P.ma120[c][i] if ma == 120 else None
+        if x < stop or (m and x < m):
+            xi = i
+            break
+    if xi is None:
+        xi = max((i for i in range(t + 1, last + 1) if S["c"][i]), default=None)
+        if xi is None:
+            return None
+    return {"r": S["c"][xi] / e - 1 - 0.00585, "d": xi - t, "full": t + H6 < T}
+
+
+def _exit_stats(rs: list[dict]) -> dict:
+    r = [x["r"] for x in rs if x and x["full"]]
+    if not r:
+        return {"n": 0}
+    w = [x for x in r if x > 0]
+    lo = [x for x in r if x <= 0]
+    return {"n": len(r), "avg": round(statistics.mean(r) * 100, 1), "med": round(statistics.median(r) * 100, 1),
+            "win": round(len(w) / len(r) * 100), "aw": round(statistics.mean(w) * 100, 1) if w else None,
+            "al": round(statistics.mean(lo) * 100, 1) if lo else None,
+            "dbl": round(sum(1 for x in r if x >= 1) / len(r) * 100, 1),
+            "days": round(statistics.mean(x["d"] for x in rs if x and x["full"]))}
+
+
 def backtest(P: Panel, rev: dict) -> dict:
     """每月底篩選：基準（空間關）／動能／投信／投信＋動能／四關全過，各組結果。"""
     groups = {k: [] for k in ("base", "mom", "trust", "trust_mom", "all4")}
@@ -231,6 +284,20 @@ def backtest(P: Panel, rev: dict) -> dict:
                     groups["all4"].append(o)
     res = {k: _summ(v) for k, v in groups.items()}
     picks = sorted(groups["all4"] or groups["trust_mom"], key=lambda r: -(r.get("pk12") or r.get("pk6") or 0))
+    # 去重：同一檔前一筆進場 120 個交易日內又被篩出 → 不重複計（避免連續幾個月同一檔灌樣本）
+    dedup: dict[str, list] = {}
+    for k in ("base", "mom", "trust_mom", "all4"):
+        seen: dict[str, int] = {}
+        lst = []
+        for o in sorted(groups[k], key=lambda o: o["d"]):
+            t = P.D.ix[o["d"]]
+            if t - seen.get(o["c"], -999) > H6:
+                lst.append((o["c"], t))
+                seen[o["c"]] = t
+        dedup[k] = lst
+    res["exits"] = {k: {ek: _exit_stats([simulate(P, c, t, **ev) for c, t in lst])
+                        for ek, ev in EXITS.items()} for k, lst in dedup.items()}
+    res["exit_lbl"] = {k: v["lbl"] for k, v in EXITS.items()}
     res["months"] = months
     res["top"] = [[r["c"], P.D.names.get(r["c"], r["c"]), r["d"],
                    round((r.get("pk12") or r.get("pk6") or 0) * 100), None if r.get("rule") is None
