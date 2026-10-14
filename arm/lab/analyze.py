@@ -42,6 +42,14 @@ def etf_meta() -> dict[str, dict]:
         if "債" in (cat or ""):
             continue
         out[code] = {"n": name, "k": "a" if kind == "active" else "p", "is": _issuer(name)}
+    # 擴充 ETF（規模前段、只進籌碼雷達；collect.update_extra_etfs 維護）
+    ext = (store.read_json("extra_etfs.json", {}) or {}).get("etfs") or {}
+    for code, m in ext.items():
+        if code in out or m.get("skip"):
+            continue
+        out[code] = {"n": m.get("n") or code, "k": m.get("k") or "p",
+                     "is": _issuer(str(m.get("is") or "") + str(m.get("n") or "")) if not m.get("is")
+                     else _issuer(str(m["is"])), "x": 1}
     return out
 
 
@@ -52,7 +60,8 @@ class Data:
         self.mkt = dict(store.load("mkt"))
         self.pos = store.load("pos")
         self.tdcc = store.load("tdcc")
-        self.names = store.read_json("names.json", {}) or {}
+        self.names = {**(store.read_json("names_mkt.json", {}) or {}),
+                      **(store.read_json("names.json", {}) or {})}
         cal = set(d for d, doc in self.mkt.items() if doc.get("q_tw") or doc.get("q_tp"))
         cal |= {d for d, _ in self.pos}
         self.cal = sorted(cal)
@@ -480,7 +489,12 @@ def run(data: Data | None = None) -> dict:
         lst.sort(key=lambda x: -x[4])
         iss_ow[i_] = lst[:8]
 
-    from . import backtest
+    from . import backtest, indexes
+    from .. import clock
+    try:
+        idx_out = indexes.run(D, L, meta, clock.today_tw())
+    except Exception as e:                                # noqa: BLE001 —— 指數區塊失敗不拖垮整頁
+        idx_out = {"err": f"{type(e).__name__}: {e}"}
     stats = backtest.signal_stats(D, sig_hist, taiex)
     iss_stats = backtest.issuer_stats(D, L, meta, taiex)
     asof = {
@@ -496,6 +510,7 @@ def run(data: Data | None = None) -> dict:
     return {"asof": asof, "etfs": meta, "rows": rows, "ser": ser,
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
             "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow, "ca": L.ca[-30:],
+            "idx": idx_out,
             "dates": D.cal[-CHART_N:]}
 
 

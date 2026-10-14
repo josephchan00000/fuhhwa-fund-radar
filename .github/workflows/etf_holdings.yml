@@ -70,9 +70,9 @@ jobs:
             TZ=Asia/Taipei python3 scripts/fetch_etf_holdings.py
           fi
 
-      - name: 籌碼雷達 ETF 部位快照（零網路；寫 data/lab/pos 分片，失敗不擋）
+      - name: 籌碼雷達 ETF 部位快照＋規模前段擴充 ETF 持股（etfinfo；失敗不擋）
         if: inputs.probe != true
-        run: TZ=Asia/Taipei python3 scripts/fetch_lab.py --pos-only || true
+        run: TZ=Asia/Taipei timeout 240 python3 scripts/fetch_lab.py --extra || true
 
       - name: 重建儀表板（2026-07-30 使用者：持股更新排進每日循環——傍晚抓完直接上線，
               當日貢獻當晚可見，不等隔日早上 daily.yml）

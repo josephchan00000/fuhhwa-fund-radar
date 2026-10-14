@@ -50,7 +50,7 @@ _HTML = """<!doctype html>
   <div class="asof">{{SUB}}</div>
   <nav class="tabs" id="tabs">
     <a data-t="tbl" class="on">總表</a><a data-t="sig">訊號榜</a><a data-t="iss">投信動向</a>
-    <a data-t="bt">成績單</a><a data-t="doc">說明</a>
+    <a data-t="idx">指數調整</a><a data-t="bt">成績單</a><a data-t="doc">說明</a>
   </nav>
 </header>
 <main id="main"></main>
@@ -306,6 +306,7 @@ function renderStock(c){
      kv('ATR 波動',r.atrp==null?'—':f(r.atrp,2)+'%','14 日平均真實區間 ÷ 股價')+
      kv('日均成交值',r.liq==null?'—':f(r.liq,2)+' 億','20 日')+`</div>`;
   }
+  h+=idxCard(c);
   if((r.sg||[]).length){h+=`<h3>觸發訊號與歷史成績</h3>`+(r.sg||[]).map(k=>`<div class=card><h4>${RISK.has(k)?'⚠ ':''}${esc((SD[k]||[k])[0])}</h4><div class=st>${esc((SD[k]||['',''])[1])}</div>${statLine(k)}</div>`).join('');}
   $('#dvin').innerHTML=h;$('#dv').hidden=false;document.body.style.overflow='hidden';$('#dv').scrollTop=0;
   $('#x').onclick=closeStock;bindTip();
@@ -344,8 +345,51 @@ function bindTip(){const kc=document.getElementById('kc');if(!kc)return;const sv
     const left=Math.min(rc.width-tip.offsetWidth-4,Math.max(0,(px/W)*rc.width+8));tip.style.left=left+'px';tip.style.top='4px';};
   svg.onmousemove=mv;svg.ontouchmove=mv;svg.onmouseleave=()=>tip.hidden=true;}
 
+
+/* ---------- 指數調整 ---------- */
+function md(d){return d?esc(d.slice(5).replace('-','/')):'—';}
+function nmOf(c){const r=D.rows.find(x=>x.c===c);return r?r.n:(((D.idx||{}).names||{})[c]||c);}
+function idxTbl(title,rows,side){
+  if(!rows||!rows.length)return `<div class=st style="margin:6px 0">${esc(title)}：無</div>`;
+  return `<h4 style="margin:12px 0 4px">${esc(title)}</h4><div class=tw><table><thead><tr><th>代號／名稱</th><th>市值排名</th><th>市值(億)</th><th>${side==='add'?'距第 40 名':'距跌出 60 名'}</th><th>機率</th><th>被動${side==='add'?'買進':'賣出'}(張)</th><th>約幾日量</th><th>收盤</th></tr></thead><tbody>`+
+   rows.map(r=>`<tr data-c="${esc(r[0])}"><td><span class=nm>${esc(r[1])}</span><span class=cd>${esc(r[0])}</span></td><td>${r[2]??'—'}</td><td>${f(r[3],0)}</td><td>${r[4]==null?'—':(r[4]===0?'已跨線':sgn(r[4],1,'%'))}</td><td>${r[5]==null?'—':r[5]+'%'}</td><td>${sgn(r[6],0)}</td><td>${r[7]==null?'—':f(r[7],1)}</td><td>${f(r[8],2)}</td></tr>`).join('')+`</tbody></table></div>`;}
+function vIdx(){
+  const X=D.idx||{};
+  let h=`<div class=note>被動 ETF 追蹤的指數定期換股，生效日被動資金會集中買賣。<b>預測</b>只對規則可複製的指數做（目前：臺灣50）；其他指數先看每日持股揭露裡已經發生的換股。日期標「推算」者官方尚未公告。</div>`;
+  if(X.err)h+=`<div class=st>指數區塊錯誤：${esc(X.err)}</div>`;
+  h+=`<h3>審核行事曆</h3><div class=tw><table><thead><tr><th>指數</th><th>ETF</th><th>資料截止</th><th>公告</th><th>生效／被動交易</th><th>過渡</th><th>狀態</th><th>預測</th></tr></thead><tbody>`+
+   (X.cal||[]).map(r=>`<tr><td><span class=nm>${esc(r[1])}</span></td><td>${esc((r[2]||[]).join(' '))}</td><td>${md(r[4])}</td><td>${md(r[5])}</td><td>${md(r[6])}${r[10]!=null&&r[10]>=0?` <span class=pill>${r[10]} 天後</span>`:''}</td><td>${r[7]?r[7]+' 日':'一次'}</td><td>${esc(r[8]||'')}</td><td>${r[12]?'信心 '+esc(r[9]||''):'<span class=mu>未預測（信心 '+esc(r[9]||'')+'）</span>'}</td></tr>`).join('')+`</tbody></table></div>`;
+  const t=X.tw50||{};
+  h+=`<h3>臺灣50（0050／006208）換股預測</h3>`;
+  if(!t.ok)h+=`<div class=st>${esc(t.why||'尚無資料')}</div>`;
+  else{
+    h+=`<div class=note>排名基準 ${md(t.asof)}${t.frozen?'（＝資料截止日，指數公司用的就是這天，結果近乎確定）':`；距資料截止 ${md(t.cutoff)} 還有 ${t.n_days} 個交易日，機率依個股 60 日波動估計`}。被動部位：${Object.entries(t.eq||{}).map(([e,v])=>esc(e)+' '+f(v,0)+' 億').join('、')}。刪除股的賣出量＝兩檔 ETF 目前實際持股；納入股的買進量＝規模 × 預估權重（以現有成分股反推自由流通比例）。</div>`;
+    h+=idxTbl('預估納入',t.adds,'add')+idxTbl('預估刪除',t.dels,'del')+idxTbl('邊緣觀察：可能升入前 40 名',t.watch_in,'add')+idxTbl('邊緣觀察：可能跌出 60 名',t.watch_out,'del');
+    const rp=t.replay||[];
+    if(rp.length){h+=`<h4 style="margin:14px 0 4px">回測：用當次資料截止日的價量重跑規則</h4><div class=tw><table><thead><tr><th>審核</th><th>資料日</th><th>實際納入</th><th>預測納入</th><th>命中</th><th>實際刪除</th><th>預測刪除</th><th>命中</th></tr></thead><tbody>`+
+      rp.map(r=>`<tr><td>${esc(r.review)}</td><td>${md(r.data)}</td><td>${(r.act_add||[]).map(nmOf).map(esc).join('、')}</td><td>${r.pred_add?(r.pred_add.map(nmOf).map(esc).join('、')||'—'):'<span class=mu>資料不足</span>'}</td><td>${r.pred_add?`${r.hit_add}／${(r.act_add||[]).length}`:'—'}</td><td>${(r.act_del||[]).map(nmOf).map(esc).join('、')}</td><td>${r.pred_del?(r.pred_del.map(nmOf).map(esc).join('、')||'—'):'—'}</td><td>${r.pred_del?`${r.hit_del}／${(r.act_del||[]).length}`:'—'}</td></tr>`).join('')+`</tbody></table></div><div class=note>發行股數用最新值（股本變動會造成少量誤差）；臺灣50 實際依富時自由流通與流動性細則，邊界 ±2 名內可能不同。</div>`;}
+  }
+  for(const r of (X.cal||[])){if(r[12])continue;const hi=(r[13]||[])[0];
+    h+=`<div class=card><h4>${esc(r[1])} <span class=pill>${esc((r[2]||[]).join(' '))}</span> <span class=pill>信心 ${esc(r[9]||'')}</span></h4><div class=st>${esc(r[11]||'')}</div>`+
+     (hi?`<div class=st style="margin-top:4px">上次（${esc(hi.review||'')}）納入：${esc((hi.adds_names||(hi.adds||[]).map(nmOf)).join('、')||'—')}；刪除：${esc((hi.dels_names||(hi.dels||[]).map(nmOf)).join('、')||'—')}</div>`:'')+
+     `<div class=st style="margin-top:4px">公告前預測：${r[0]==='msci_esg30'?'ESG 評分為付費資料，不做；公告後看持股揭露追蹤提前建倉':r[0]==='tw_div'?'第三階段（以公開殖利率代理分析師預估，信心中低）':'第二階段（需股利、EPS 資料）'}</div></div>`;}
+  const pf=X.pflow||[];
+  h+=`<h3>被動 ETF 近 10 個交易日換股動作</h3><div class=note>所有被動 ETF（含規模前段擴充檔）持股揭露裡已發生的新進、出清與真加減碼（已扣申贖），依個股彙整。換股期間這裡會先反映。</div>`;
+  h+=pf.length?`<div class=tw><table><thead><tr><th>代號／名稱</th><th>被動淨買賣(張)</th><th>約幾日量</th><th>新進</th><th>出清</th><th>涉及 ETF</th></tr></thead><tbody>`+pf.map(r=>`<tr data-c="${esc(r[0])}"><td><span class=nm>${esc(r[1])}</span><span class=cd>${esc(r[0])}</span></td><td>${sgn(r[2],0)}</td><td>${r[3]==null?'—':sgn(r[3],2)}</td><td>${esc((r[4]||[]).join(' '))}</td><td>${esc((r[5]||[]).join(' '))}</td><td class=mu>${esc((r[6]||[]).join(' '))}</td></tr>`).join('')+`</tbody></table></div>`:'<div class=st>近 10 日無被動換股動作</div>';
+  $('#main').innerHTML=h;
+  document.querySelectorAll('tr[data-c]').forEach(e=>e.onclick=()=>{if(D.rows.find(x=>x.c===e.dataset.c))openStock(e.dataset.c);});
+}
+function idxCard(c){
+  const t=(D.idx||{}).tw50||{};const hits=[];
+  const lab={adds:'預估納入臺灣50',dels:'預估自臺灣50 刪除',watch_in:'臺灣50 邊緣（可能升入）',watch_out:'臺灣50 邊緣（可能跌出）'};
+  for(const k of Object.keys(lab)){const r=(t[k]||[]).find(x=>x[0]===c);if(r)hits.push(kv(lab[k],`第 ${r[2]} 名`,`${r[4]===0?'已跨線':'還差 '+f(r[4],1)+'%'}${r[5]!=null?' · 機率 '+r[5]+'%':''}${r[6]!=null?' · 被動 '+(r[6]>0?'+':'')+f(r[6],0)+' 張（約 '+f(r[7],1)+' 日量）':''}`));}
+  const pf=((D.idx||{}).pflow||[]).find(x=>x[0]===c);
+  if(pf)hits.push(kv('被動 ETF 近 10 日淨買賣',sgn(pf[2],0)+' 張',`${pf[3]!=null?'約 '+f(pf[3],2)+' 日量 · ':''}${(pf[4]||[]).length?'新進 '+pf[4].join(' '):''}${(pf[5]||[]).length?' 出清 '+pf[5].join(' '):''}`));
+  return hits.length?`<h3>指數調整</h3><div class=kv>${hits.join('')}</div>`:'';
+}
+
 /* ---------- 分頁 ---------- */
-const VIEWS={tbl:vTbl,sig:vSig,iss:vIss,bt:vBt,doc:vDoc};
+const VIEWS={tbl:vTbl,sig:vSig,iss:vIss,idx:vIdx,bt:vBt,doc:vDoc};
 function go(t){S.tab=t;save();document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on',a.dataset.t===t));VIEWS[t]();window.scrollTo(0,0);}
 document.querySelectorAll('#tabs a').forEach(a=>a.onclick=()=>go(a.dataset.t));
 go(VIEWS[S.tab]?S.tab:'tbl');
