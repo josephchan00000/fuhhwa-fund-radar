@@ -92,6 +92,7 @@ jobs:
           git add -f data/stock_industry.json 2>/dev/null || true
           git add dashboard/index.html 2>/dev/null || true
           git add -f data/lab dashboard/x9.html 2>/dev/null || true   # 籌碼雷達（分片＋隱藏頁，2026-10-14）
+          git add -f dashboard/x9s.json 2>/dev/null || true             # 籌碼雷達個股走勢序列（開個股卡才載入；分開 add：缺檔時不連累上一行的分片）
           git commit -m "chore: ETF 每日持股更新 $(date +%F)" || { echo "無變更，跳過 push"; exit 0; }
           # main 可能被其他 workflow 推進 → rebase 重試；rebase 後用合併結果重建再推
           #（同 daily.yml 慣例：-X theirs 會拼出新舊混雜的 index.html，必須重建）
@@ -102,6 +103,7 @@ jobs:
             TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py || true
             git add dashboard/index.html 2>/dev/null || true
             git add -f data/lab dashboard/x9.html 2>/dev/null || true   # 籌碼雷達（分片＋隱藏頁，2026-10-14）
+            git add -f dashboard/x9s.json 2>/dev/null || true             # 籌碼雷達個股走勢序列（開個股卡才載入；分開 add：缺檔時不連累上一行的分片）
             git commit --amend --no-edit || true
             sleep 5
           done

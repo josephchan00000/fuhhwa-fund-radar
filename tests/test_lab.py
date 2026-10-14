@@ -399,3 +399,36 @@ def test_series_out_exports_active_flow_not_etf_total():
     qa[-1], qa[-3] = 12_400.0, -3_000.0                             # 股 → 張
     out = analyze._series_out(None, S, None, [None] * T, qa, True)
     assert len(out["qa"]) == analyze.CHIP_N and out["qa"][-1] == 12 and out["qa"][-3] == -3
+
+
+def test_build_splits_series_into_side_file(tmp_path, monkeypatch):
+    """個股走勢序列另存 x9s.json（開個股卡才載入）：頁面不含序列、版本號＝序列檔雜湊、檔案自帶日期軸；同資料重建零變更。"""
+    import json as _json
+    from arm.lab import analyze
+    data = {"asof": {"pos": "2026-10-13"}, "etfs": {}, "dates": ["2026-10-08", "2026-10-13"],
+            "rows": [{"c": "2330", "n": "台積電", "m": "tw", "sg": [], "hd": []}],
+            "ser": {"2330": {"c": [2400.0, 2490.5], "qa": [0, 3]}}, "sigdef": {}, "risk": [],
+            "stats": {}, "iss": {}, "iev": {}, "iow": {}}
+    monkeypatch.setattr(analyze, "run", lambda: data)
+    html_p, ser_p = tmp_path / "x9.html", tmp_path / "x9s.json"
+    assert page.build(out=html_p, out_ser=ser_p) is True
+    blob = html_p.read_text("utf-8").split('id="labdata">', 1)[1].split("</script>", 1)[0]
+    main = _json.loads(blob.replace("<\\/", "</"))
+    assert "ser" not in main and main["dates"] == data["dates"]
+    sj = ser_p.read_text("utf-8")
+    assert main["serv"] == page._ver(sj)
+    assert _json.loads(sj) == {"dates": data["dates"], "ser": {"2330": {"c": [2400, 2490.5], "qa": [0, 3]}}}
+    assert page.build(out=html_p, out_ser=ser_p) is False
+
+
+def test_workflows_commit_series_file_on_its_own_line():
+    """三支會重建儀表板的 workflow 都要把 x9s.json 帶進 commit，且分開 add（缺檔時 git 會整行放棄，不可連累分片）。"""
+    from pathlib import Path
+    wf = Path(__file__).resolve().parents[1] / ".github" / "workflows"
+    for name in ("daily.yml", "afterhours_refresh.yml", "etf_holdings.yml"):
+        lines = (wf / name).read_text("utf-8").splitlines()
+        page_lines = [i for i, ln in enumerate(lines) if "dashboard/x9.html" in ln]
+        assert page_lines, name
+        for i in page_lines:
+            assert "x9s.json" not in lines[i], name
+            assert lines[i + 1].strip().startswith("git add -f dashboard/x9s.json"), (name, i)
