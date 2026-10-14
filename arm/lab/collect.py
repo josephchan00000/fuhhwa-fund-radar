@@ -332,3 +332,61 @@ def update_extra_etfs(ref_date: str | None) -> int:
     market.log(f"擴充 ETF：候選 {len(cands)}、納入 {sum(1 for v in etfs.values() if not v.get('skip'))}、"
                f"本輪更新分片 {n}")
     return n
+
+
+# ── 歷史價量備援（Yahoo，逐檔） ───────────────────────────────────────
+
+def yh_codes() -> list[str]:
+    d = store.LAB / "yh"
+    return sorted(p.name.split(".json")[0] for p in d.glob("*.json.gz")) if d.exists() else []
+
+
+def backfill_yahoo(*, top: int = 250, budget_s: float = 900) -> int:
+    """宇宙＝最新上市市值前 top＋所有 ETF 曾持有台股＋臺灣50 歷次異動股＋加權指數。已有者跳過。"""
+    import json as _json
+    t0 = time.time()
+    mk = dict(store.load("mkt", last=15))
+    q_tw, q_tp, iss = {}, {}, {}
+    for d in sorted(mk):
+        q_tw.update(mk[d].get("q_tw") or {})
+        q_tp.update(mk[d].get("q_tp") or {})
+        for c, x in (mk[d].get("x_tw") or {}).items():
+            if x and len(x) > 1 and x[1]:
+                iss[c] = x[1]
+    caps = sorted(((c, q[3] * iss[c]) for c, q in q_tw.items() if c in iss and q and q[3]
+                   and len(c) == 4 and c.isdigit() and not c.startswith("00")), key=lambda x: -x[1])
+    uni = {c for c, _ in caps[:top]}
+    for _, doc in store.load("pos"):
+        for ent in (doc.get("etf") or {}).values():
+            uni |= {c for c in (ent.get("h") or {}) if len(c) == 4 and c.isdigit()}
+    try:
+        cfg = _json.loads((store.ROOT / "config" / "index_reviews.json").read_text(encoding="utf-8"))
+        for ix in (cfg.get("indexes") or {}).values():
+            for h in ix.get("history") or []:
+                uni |= set(h.get("adds") or []) | set(h.get("dels") or []) | set(h.get("reserve") or [])
+    except Exception:                                     # noqa: BLE001
+        pass
+    have = set(yh_codes())
+    todo = ["TWII"] + sorted(uni)
+    n = 0
+    for c in todo:
+        if c in have:
+            continue
+        if time.time() - t0 > budget_s:
+            market.log(f"Yahoo 時間預算用完（已補 {n} 檔，下輪續補）")
+            break
+        if c == "TWII":
+            sufs = [("^TWII", "idx")]
+        elif c in q_tp and c not in q_tw:
+            sufs = [(c + ".TWO", "tp")]
+        else:
+            sufs = [(c + ".TW", "tw"), (c + ".TWO", "tp")]
+        for sym, mkt in sufs:
+            h = market.yahoo_hist(sym)
+            time.sleep(0.6)
+            if len(h) >= 20:
+                store.write("yh", c, {"m": mkt, "q": h})
+                n += 1
+                break
+    market.log(f"Yahoo 歷史日線：宇宙 {len(todo)} 檔、本輪新增 {n} 檔")
+    return n

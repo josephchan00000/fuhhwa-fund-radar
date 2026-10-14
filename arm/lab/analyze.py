@@ -497,6 +497,11 @@ def run(data: Data | None = None) -> dict:
     except Exception as e:                                # noqa: BLE001 —— 指數區塊失敗不拖垮整頁
         idx_out = {"err": f"{type(e).__name__}: {e}"}
     stats = backtest.signal_stats(D, sig_hist, taiex)
+    from . import strategy
+    try:
+        strat = strategy.run(D, sig_hist, L, meta, taiex, D.names)
+    except Exception as e:                                # noqa: BLE001
+        strat = {"err": f"{type(e).__name__}: {e}"}
     iss_stats = backtest.issuer_stats(D, L, meta, taiex)
     asof = {
         "pos": D.pos[-1][0] if D.pos else None,
@@ -511,7 +516,7 @@ def run(data: Data | None = None) -> dict:
     return {"asof": asof, "etfs": meta, "rows": rows, "ser": ser,
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
             "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow, "ca": L.ca[-30:],
-            "idx": idx_out,
+            "idx": idx_out, "strat": strat,
             "dates": D.cal[-CHART_N:]}
 
 

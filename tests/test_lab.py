@@ -256,3 +256,40 @@ def test_stock_dividend_credit_without_price_move_is_corporate_action():
     L = ledger.build(sorted(merged.items()), px)
     assert {(d, c) for d, c, _ in L.ca} == {("2026-08-18", "2885")}
     assert not [e for e in L.events if e.code == "2885" and e.kind == ledger.ADD]
+
+
+# ── 策略紙上交易 ─────────────────────────────────────────────────────
+
+def _st_series(o, c, h=None, l=None):
+    return {"o": o, "c": c, "h": h or [x and x * 1.01 for x in c], "l": l or [x and x * 0.99 for x in c]}
+
+
+def test_s1_skips_gap_up_and_flat_open():
+    from arm.lab import strategy
+    st = next(s for s in strategy.STRATEGIES if s["key"] == "s1")
+    idx = [1000.0] * 8
+    S = _st_series([100, 101, 100, 100, 100, 100, 100, 100], [100] * 8)
+    assert strategy._trade(st, "2330", 0, S, [2.0] * 8, idx, 8)["st"] == "skip"      # 開高
+    S2 = _st_series([100, 100, 100, 100, 100, 100, 100, 100], [100] * 8)
+    assert strategy._trade(st, "2330", 0, S2, [2.0] * 8, idx, 8)["st"] == "skip"     # 平盤也放棄
+
+
+def test_s1_enters_gap_down_exits_on_hold_day_with_costs():
+    from arm.lab import strategy
+    st = next(s for s in strategy.STRATEGIES if s["key"] == "s1")
+    idx = [1000.0, 1000, 1000, 1010, 1010, 1010]
+    S = _st_series([100, 98, 99, 99, 99, 99], [100, 99, 100, 102, 102, 102])
+    r = strategy._trade(st, "2330", 0, S, [2.0] * 6, idx, 6)
+    assert r["st"] == "closed" and r["held"] == 3 and r["why"] == "到期"
+    assert abs(r["r"] - round((102 / 98 - 1 - strategy.COST) * 100, 2)) < 1e-9
+    assert abs(r["x"] - round((102 / 98 - 1 - strategy.COST - 0.01) * 100, 2)) < 1e-9
+
+
+def test_s1_stop_loss_and_pending_candidate():
+    from arm.lab import strategy
+    st = next(s for s in strategy.STRATEGIES if s["key"] == "s1")
+    idx = [1000.0] * 6
+    S = _st_series([100, 98, 95, 95, 95, 95], [100, 96, 93, 95, 95, 95])
+    r = strategy._trade(st, "2330", 0, S, [2.0] * 6, idx, 6)   # 停損＝98−4＝94，第 2 天收 93
+    assert r["st"] == "closed" and r["why"] == "停損" and r["held"] == 2
+    assert strategy._trade(st, "2330", 5, S, [2.0] * 6, idx, 6) is None              # 隔日資料未到＝候選
