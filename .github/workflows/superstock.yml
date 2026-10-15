@@ -10,6 +10,7 @@ name: 台股飆股研究系統（tw-superstock-lab）實測
 #   smoke：pytest → check → download（3 檔）→ probe → build → replicate（P2 關卡）→ quality → reconcile → status
 #   probe：只跑 probe（不下載）
 #   diag：check（股票池大小）＋ scripts/diag_listing.py（日 K 是否混進興櫃交易，只印日誌）
+#   official：scripts/probe_official.py（證交所／櫃買處置公告、集保股權分散表的官方端點，只印日誌）
 # 有設 repository secret FINMIND_TOKEN 就用（每小時 600 次），沒有就是未登入額度（每小時 300 次）。
 
 on:
@@ -75,6 +76,8 @@ jobs:
           SS="python -m superstock --config $RUNNER_TEMP/ci.yaml"
           if [ "$MODE" = "probe" ]; then
             $SS probe
+          elif [ "$MODE" = "official" ]; then
+            python scripts/probe_official.py
           elif [ "$MODE" = "diag2" ]; then
             python scripts/diag_listing.py --detail 6901
           elif [ "$MODE" = "diag" ]; then
