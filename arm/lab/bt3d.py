@@ -124,11 +124,37 @@ class Panel(PT.Px):
         self._win: dict = {}
 
 
+QEND = {1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31"}
+
+
+def mops_quarterly() -> dict[str, dict]:
+    """綜合損益表彙總（當年累計 EPS）→ 單季 {代號: {季底: EPS}}：Q1＝累計、Qn＝累計(n) − 累計(n−1)；前一季缺就不算。"""
+    cum: dict[str, dict] = {}
+    for key, doc in store.load("v3isq"):
+        y, q = int(key[:4]), int(key[5])
+        for m in ("sii", "otc"):
+            for c, v in (doc.get(m) or {}).items():
+                cum.setdefault(c, {})[(y, q)] = v
+    out: dict[str, dict] = {}
+    for c, d in cum.items():
+        e = {}
+        for (y, q), v in d.items():
+            if q == 1:
+                e[f"{y}-{QEND[q]}"] = v
+            elif (y, q - 1) in d:
+                e[f"{y}-{QEND[q]}"] = round(v - d[(y, q - 1)], 4)
+        if e:
+            out[c] = e
+    return out
+
+
 def load_eps() -> dict[str, dict]:
-    """v3eps（2012 起單季 EPS）→ {代號: {季底: EPS}}。"""
-    out = {}
+    """單季 EPS {代號: {季底: EPS}}：公開資訊觀測站彙總表（官方，2013 起）為主，FinMind（v3eps，2012 起）補缺的季。"""
+    out: dict[str, dict] = {}
     for c in store.dates("v3eps"):
         e = (store.read("v3eps", c) or {}).get("eps") or {}
         if e:
-            out[c] = e
+            out[c] = dict(e)
+    for c, e in mops_quarterly().items():
+        out[c] = {**out.get(c, {}), **e}
     return out

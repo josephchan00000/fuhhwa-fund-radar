@@ -266,6 +266,48 @@ def line_finmind(R: _Run, cur: dict[str, float]) -> None:
         R.add("fm_eps")
 
 
+def _quarters_due() -> list[tuple[int, int]]:
+    """法定期限已過的 (年, 季)，2012 起（2012 年是 IFRS 前，抓得到才算）。"""
+    from .. import clock
+    from .packtest import deadline
+    today = clock.today_tw().isoformat()
+    out = []
+    for y in range(2012, clock.today_tw().year + 1):
+        for q, qe in ((1, "03-31"), (2, "06-30"), (3, "09-30"), (4, "12-31")):
+            if deadline(f"{y}-{qe}") < today:
+                out.append((y, q))
+    return out
+
+
+def line_mops_eps(R: _Run) -> None:
+    """公開資訊觀測站綜合損益表彙總：一季、一市場一請求 → v3isq/{年}Q{季} {"sii": {代號: 累計 EPS}, "otc": {...}}。
+    彙總表的基本每股盈餘是當年累計值（例：台積電 2014Q4＝10.18＝全年），單季在載入時相減。"""
+    from concurrent.futures import ThreadPoolExecutor
+    todo = []
+    for y, q in _quarters_due():
+        doc = store.read("v3isq", f"{y}Q{q}") or {}
+        if not (doc.get("sii") and doc.get("otc")):
+            todo.append((y, q, doc))
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        for k in range(0, len(todo), 2):
+            if not R.left():
+                return
+            grp = todo[k:k + 2]
+            jobs = {(y, q, m): ex.submit(market.mops_is, m, y, q) for y, q, _ in grp for m in ("sii", "otc")}
+            for y, q, doc in grp:
+                new = dict(doc)
+                for m in ("sii", "otc"):
+                    d = jobs[(y, q, m)].result()
+                    if d and len(d) >= 200:
+                        new[m] = d
+                if new != doc:
+                    store.write("v3isq", f"{y}Q{q}", new)
+                    R.add("is_q")
+                else:
+                    market.log(f"[v3] 綜合損益彙總 {y}Q{q}：抓不到")
+            time.sleep(1.0)
+
+
 def line_probe_is(R: _Run) -> None:
     """探針：公開資訊觀測站綜合損益表彙總能不能從 CI 抓（能的話，EPS 一季一市場一請求，取代 FinMind 逐檔）。"""
     for y, q in ((2014, 1), (2014, 4), (2024, 2)):
@@ -293,14 +335,14 @@ def run(budget_s: float = 2700) -> dict:
                f"月底市值已知 {len(mx)} 檔")
     lines = [threading.Thread(target=line_twse, args=(R, mes)), threading.Thread(target=line_tpex, args=(R, mes)),
              threading.Thread(target=line_yahoo, args=(R, todo)), threading.Thread(target=line_mops, args=(R,)),
-             threading.Thread(target=line_finmind, args=(R, cur)), threading.Thread(target=line_probe_is, args=(R,))]
+             threading.Thread(target=line_finmind, args=(R, cur)), threading.Thread(target=line_mops_eps, args=(R,))]
     for t in lines:
         t.start()
     for t in lines:
         t.join()
     summ = {"本輪": R.n, "v3px": len(store.dates("v3px")), "月底上市": len(store.dates("v3me_tw")),
             "月底上櫃": len(store.dates("v3me_tp")), "上櫃除權息年": len(store.dates("v3div")),
-            "EPS": len(store.dates("v3eps")), "月營收月": len(store.dates("rev")),
+            "EPS": len(store.dates("v3eps")), "綜合損益彙總季": len(store.dates("v3isq")), "月營收月": len(store.dates("rev")),
             "報酬指數月": len((store.read_json("v3_tr.json", {}) or {}).get("m") or []),
             "秒": round(time.time() - R.t0)}
     market.log(f"[v3] {summ}")
