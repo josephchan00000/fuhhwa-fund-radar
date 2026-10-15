@@ -1072,8 +1072,9 @@ def test_pack_main_specs_are_fixed():
     assert PT.P3 == {"top": 0.20, "nmin": 10, "hold": 60}
     assert PT.P4 == {"look": 126, "skip": 21, "top": 0.10, "nmin": 10, "ep_max": 0.25}
     assert PT.P5 == {"look": 5, "top": 0.10, "nmin": 10}
+    assert PT.P7 == {"win": 12, "min": 6, "top": 0.10, "nmin": 10}           # S26 月營收（第 6 節）
     assert (PT.CAP_L, PT.LIQ_L, PT.CAP_S) == (300e8, 2e8, 100e8)
-    assert [r["k"] for r in PT.PACK] == ["p1", "p2", "p3", "p4", "p5"]
+    assert [r["k"] for r in PT.PACK] == ["p1", "p2", "p3", "p4", "p5", "p7"]
 
 
 def test_advice_grade_robustness_rules():
@@ -1179,6 +1180,52 @@ def test_packtest_xsec_turnover_cost_and_limit_up():
     assert abs(u0["r"] - ((110 / 100 - 1) - PT.COST) * 100) < 1e-9
     assert u1["to"] == 0.0 and u1["cost"] == 0.0 and u1["lim"] == 0           # 續抱 A、B 不計成本也不檢查漲停
     assert r["now"]["picks"] == ["A", "B"] and r["now"]["d"] == "2026-01-05"
+
+
+def test_packtest_p7_revenue_surprise_and_formation_dates():
+    import statistics
+    from arm.lab import packtest as PT
+    assert PT.ym_shift("2026-01", -1) == "2025-12" and PT.ym_shift("2025-12", 13) == "2027-01"
+    assert PT.ym_shift("2026-03", -15) == "2024-12"
+    months = [PT.ym_shift("2024-01", i) for i in range(26)]                  # 2024-01 … 2026-02
+    base = {ym: 100.0 + (i % 5) for i, ym in enumerate(months)}
+    rev = {**base, "2026-01": base["2026-01"] + 30}
+    diffs = [rev[PT.ym_shift("2026-01", -k)] - rev[PT.ym_shift("2026-01", -k - 12)] for k in range(1, 13)]
+    want = (rev["2026-01"] - rev["2025-01"]) / statistics.stdev(diffs)
+    assert abs(PT.sur(rev, "2026-01") - want) < 1e-12
+    assert PT.sur(rev, "2025-06") is None and PT.sur(rev, "2025-07") is not None   # 前 12 個月有去年同月的不到 6 個 → 不算
+    assert PT.sur({**rev, "2025-01": None}, "2026-01") is None               # 去年同月沒公告
+    # 形成日＝10 日當天或之後的第一個交易日（2026-01-10 是週六 → 01-12；法定期限遇假日順延）
+    cal = ["2026-01-09", "2026-01-12", "2026-01-13", "2026-02-10", "2026-02-11", "2026-03-10", "2026-03-11"]
+    assert PT.rev_forms(cal) == [(1, "2025-12"), (3, "2026-01"), (5, "2026-02")]
+
+
+def test_packtest_p7_units_pick_highest_surprise():
+    from arm.lab import packtest as PT
+    cal = ["2026-01-09", "2026-01-12", "2026-01-13", "2026-02-10", "2026-02-11", "2026-03-10", "2026-03-11"]
+    T = len(cal)
+    cl = {"A": [100, 100, 100, 110, 110, 110, 110], "B": [100, 100, 100, 100, 100, 95, 95], "C": [100.0] * T}
+    P = PT.Px.__new__(PT.Px)
+    P.T, P.cal = T, cal
+    P.s = {c: {"o": [100.0] * T, "h": [x * 1.01 for x in v], "l": [x * 0.99 for x in v], "c": [float(x) for x in v],
+               "v": [1.0] * T} for c, v in cl.items()}
+    P.cap, P.liq = {c: [400e8] * T for c in cl}, {c: [5e8] * T for c in cl}
+    P.codes, P.lock_n, P._el, P._win = sorted(cl), 0, {}, {}
+    months = [PT.ym_shift("2024-01", i) for i in range(26)]
+    base = {ym: 100.0 + (i % 5) for i, ym in enumerate(months)}
+    rev = {"A": {**base, "2025-12": base["2025-12"] + 30}, "B": {**base, "2026-01": base["2026-01"] + 30}, "C": dict(base)}
+    r = PT.p7_units(P, ["A", "B", "C"], rev, [1000.0] * T, [1000.0] * T, {**PT.P7, "top": 0.3, "nmin": 1})
+    u0, u1 = r["units"]
+    assert u0["d"] == "2026-01-12" and abs(u0["r"] - (0.10 - PT.COST) * 100) < 1e-9   # 12 月營收 A 最出乎意料
+    assert u1["d"] == "2026-02-10" and abs(u1["r"] - (-0.05 - PT.COST) * 100) < 1e-9  # 1 月換成 B
+    assert r["now"]["d"] == "2026-03-10" and r["now"]["ym"] == "2026-02" and len(r["now"]["picks"]) == 1
+
+
+def test_packtest_p7_excludes_financials(monkeypatch):
+    from arm import stockmeta
+    from arm.lab import packtest as PT
+    monkeypatch.setattr(stockmeta, "industry_map", lambda: {"2330": "半導體業", "2881": "金融保險"})
+    assert PT.non_fin(["2330", "2881", "9999"]) == ["2330", "9999"]
 
 
 def test_packtest_grid_counts_positive_cells():
