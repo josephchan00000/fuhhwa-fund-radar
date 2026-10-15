@@ -1019,6 +1019,67 @@ def probe_v3b() -> None:
     log(f"[v3探針b] 完成 {today}")
 
 
+def post_bytes(url: str, form: dict, *, timeout: int = 60, retries: int = 2) -> bytes:
+    """表單 POST（公開資訊觀測站 ajax 查詢用）。"""
+    import ssl
+    import urllib.parse
+    import urllib.request
+
+    import certifi
+    ctx = ssl.create_default_context(cafile=certifi.where())
+    data = urllib.parse.urlencode(form).encode()
+    err = None
+    for k in range(retries):
+        try:
+            req = urllib.request.Request(url, data=data, headers={
+                "User-Agent": "Mozilla/5.0 (FH-ARM research bot; contact: marketing)",
+                "Content-Type": "application/x-www-form-urlencoded"})
+            with urllib.request.urlopen(req, timeout=timeout, context=ctx) as r:
+                return r.read()
+        except Exception as e:                            # noqa: BLE001
+            err = e
+            time.sleep(2 * (k + 1))
+    raise RuntimeError(f"POST 失敗 {url}: {err}")
+
+
+def parse_mops_is(html: str) -> dict[str, float]:
+    """公開資訊觀測站「綜合損益表彙總」（t163sb04）→ {代號: 基本每股盈餘（元）}（該季報表的累計值）。"""
+    out: dict[str, float] = {}
+    for tb in re.findall(r"<table[^>]*>(.*?)</table>", html, re.S | re.I):
+        rows = [[_TAG.sub("", c).replace("&nbsp;", "").strip() for c in _TD.findall(tr)] for tr in _TR.findall(tb)]
+        head = next((r for r in rows if any("公司代號" in c for c in r)), None)
+        if not head:
+            continue
+        ci = next((i for i, c in enumerate(head) if "公司代號" in c), None)
+        ce = next((i for i, c in enumerate(head) if "基本每股盈餘" in c), None)
+        if ci is None or ce is None:
+            continue
+        for r in rows:
+            if len(r) > max(ci, ce) and re.fullmatch(r"\d{4}", r[ci] or ""):
+                v = num(r[ce])
+                if v is not None:
+                    out[r[ci]] = v
+    return out
+
+
+def mops_is(mkt: str, y: int, q: int) -> dict[str, float] | None:
+    """一季、一個市場（sii 上市／otc 上櫃）的基本每股盈餘累計值；抓不到回 None。"""
+    for host in MOPS_HOSTS:
+        try:
+            b = post_bytes(f"https://{host}/mops/web/ajax_t163sb04",
+                           {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "isQuery": "Y",
+                            "TYPEK": mkt, "year": y - 1911, "season": f"{q:02d}"})
+        except Exception as e:                            # noqa: BLE001
+            log(f"MOPS 綜合損益 {y}Q{q} {mkt} {host} ✗ {str(e)[:120]}")
+            continue
+        h = _decode(b)
+        d = parse_mops_is(h)
+        if d:
+            return d
+        log(f"MOPS 綜合損益 {y}Q{q} {mkt} {host} 解析 0 檔（{len(b)}B）開頭 {h[:160]!r}")
+    return None
+
+
 FINMIND_LIMIT = "finmind_limit"
 
 

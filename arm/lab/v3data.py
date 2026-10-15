@@ -266,6 +266,18 @@ def line_finmind(R: _Run, cur: dict[str, float]) -> None:
         R.add("fm_eps")
 
 
+def line_probe_is(R: _Run) -> None:
+    """探針：公開資訊觀測站綜合損益表彙總能不能從 CI 抓（能的話，EPS 一季一市場一請求，取代 FinMind 逐檔）。"""
+    for y, q in ((2014, 1), (2014, 4), (2024, 2)):
+        for mkt in ("sii", "otc"):
+            if not R.left():
+                return
+            d = market.mops_is(mkt, y, q)
+            smp = {c: (d or {}).get(c) for c in ("2330", "1101", "5347", "8299")}
+            market.log(f"[v3探針] MOPS 綜合損益 {y}Q{q} {mkt}：{len(d or {})} 檔 {smp}")
+            time.sleep(2)
+
+
 def run(budget_s: float = 2700) -> dict:
     """一輪：五條線平行到時間預算用完。回傳各線本輪新增數。"""
     R = _Run(budget_s)
@@ -281,7 +293,7 @@ def run(budget_s: float = 2700) -> dict:
                f"月底市值已知 {len(mx)} 檔")
     lines = [threading.Thread(target=line_twse, args=(R, mes)), threading.Thread(target=line_tpex, args=(R, mes)),
              threading.Thread(target=line_yahoo, args=(R, todo)), threading.Thread(target=line_mops, args=(R,)),
-             threading.Thread(target=line_finmind, args=(R, cur))]
+             threading.Thread(target=line_finmind, args=(R, cur)), threading.Thread(target=line_probe_is, args=(R,))]
     for t in lines:
         t.start()
     for t in lines:
