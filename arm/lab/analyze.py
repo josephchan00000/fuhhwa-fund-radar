@@ -527,18 +527,34 @@ def run(data: Data | None = None) -> dict:
         idx_out = indexes.run(D, L, meta, clock.today_tw())
     except Exception as e:                                # noqa: BLE001 —— 指數區塊失敗不拖垮整頁
         idx_out = {"err": f"{type(e).__name__}: {e}"}
-    # 高股息「依編製規則提前卡位」回測（2026-10-15）：自己載入五年日線，約十幾秒；失敗不影響其他區塊
+    # 五年日線只載一次（約 6 秒）：高股息提前卡位研究、資料包策略回測、大盤年線分組共用；失敗不影響其他區塊
+    DL, reg, pack = None, None, {}
+    try:
+        from . import packtest
+        DL = Data(long=True)
+        reg = packtest.regime_map(DL)
+    except Exception as e:                                # noqa: BLE001
+        pack = {"err": f"{type(e).__name__}: {e}"}
+    # 高股息「依編製規則提前卡位」回測（2026-10-15）：約十幾秒
     try:
         from . import hdpre
         if isinstance(idx_out.get("hd"), dict):
-            idx_out["hd"]["pre"] = hdpre.page_data()
+            idx_out["hd"]["pre"] = hdpre.page_data(D=DL)
     except Exception as e:                                # noqa: BLE001
         if isinstance(idx_out.get("hd"), dict):
             idx_out["hd"]["pre"] = {"err": f"{type(e).__name__}: {e}"}
+    # 資料包策略回測（2026-10-15；docs/strategy_pack_plan.md）：相對強勢、趨勢樣板突破、財報驚喜、價值＋動能、短期反轉
+    if DL is not None:
+        try:
+            from . import packtest
+            pack = packtest.summary(packtest.run(DL), reg)
+        except Exception as e:                            # noqa: BLE001
+            pack = {"err": f"{type(e).__name__}: {e}"}
+    DL = None
     stats = backtest.signal_stats(D, sig_hist, taiex)
     from . import strategy
     try:
-        strat = strategy.run(D, sig_hist, L, meta, taiex, D.names)
+        strat = strategy.run(D, sig_hist, L, meta, taiex, D.names, reg=reg)
     except Exception as e:                                # noqa: BLE001
         strat = {"err": f"{type(e).__name__}: {e}"}
     # 長線：投信動能成長股（回測＋今日篩選）
@@ -559,7 +575,8 @@ def run(data: Data | None = None) -> dict:
         rev_shards = {d: {c: x for c, x in (doc.get("s") or {}).items()} for d, doc in store.load("rev")}
         grow = {"bt": gbt, "screen": growth.screen_now(P, rev_now, etf2),
                 "rev_ym": rv[-1][0] if rv else None, "n_uni": len(P.codes),
-                "s5": growth.s5_trades(P, growth.load_rev_hist(), rev_shards, taiex, D.taiex_open())}
+                "s5": growth.s5_trades(P, growth.load_rev_hist(), rev_shards, taiex, D.taiex_open(), reg=reg,
+                                       eps=_eps_safe())}
     except Exception as e:                                # noqa: BLE001
         grow = {"err": f"{type(e).__name__}: {e}"}
     iss_stats = backtest.issuer_stats(D, L, meta, taiex)
@@ -567,7 +584,7 @@ def run(data: Data | None = None) -> dict:
     try:
         from . import advice
         adv = advice.build({"rows": rows, "strat": strat, "grow": grow, "idx": idx_out, "stats": stats,
-                            "last": D.cal[-1] if D.cal else None})
+                            "pack": pack, "last": D.cal[-1] if D.cal else None})
     except Exception as e:                                # noqa: BLE001
         adv = {"err": f"{type(e).__name__}: {e}"}
     asof = {
@@ -583,8 +600,16 @@ def run(data: Data | None = None) -> dict:
     return {"asof": asof, "etfs": meta, "rows": rows, "ser": ser,
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
             "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow, "ca": L.ca[-30:],
-            "idx": idx_out, "strat": strat, "grow": grow, "adv": adv,
+            "idx": idx_out, "strat": strat, "grow": grow, "adv": adv, "pack": pack,
             "dates": D.cal[-CHART_N:]}
+
+
+def _eps_safe() -> dict:
+    try:
+        from .packtest import load_eps
+        return load_eps()
+    except Exception:                                     # noqa: BLE001
+        return {}
 
 
 CHART_N = 130

@@ -348,7 +348,9 @@ S5 = {"key": "s5", "ver": 1, "since": "2026-10-14", "name": "長線：投信動�
                "進場：次一交易日開盤買進；開盤高於前一日收盤 3% 以上不買，最多等 5 個交易日",
                "出場：跌破進場價 −20% 停損；之後收盤自最高收盤回落 30% 賣出；最長持有 250 個交易日",
                "同一檔持有中不重複買進"],
-      "pass": "滿 12 個月或 20 筆（先到者）：平均超額＞0 且中位數＞0"}
+      "pass": "滿 12 個月或 20 筆（先到者）：平均超額＞0 且中位數＞0",
+      "tried": ["選股組合：只看市值、只看動能、只看投信、投信＋動能、四關全過",
+                "出場 4 種：持有 6 個月、高點回落 30%、跌破 120 日線、原規則（−10%・保本・破 60 日線）"]}
 
 
 def _rev_shard_avail(rev_shards: dict, d: str):
@@ -361,11 +363,10 @@ def _rev_shard_avail(rev_shards: dict, d: str):
     return rev_shards.get(f"{y:04d}-{m:02d}") or {}
 
 
-def s5_trades(P: Panel, rev_hist: dict, rev_shards: dict, idx: list, io: list) -> dict:
+def _s5_cands(P: Panel, rev_hist: dict, rev_shards: dict) -> list[tuple[int, str]]:
+    """每個月底符合四關的 (篩選日索引, 代號)。與出場規則無關，參數鄰近與對照組共用這一份。"""
     cal = P.D.cal
-    T = P.T
-    names = P.D.names
-    recs, held_until = [], {}
+    out = []
     for t in _month_ends(cal):
         if t < 125 or P.trust_cov(t) < 15:
             continue
@@ -373,8 +374,6 @@ def s5_trades(P: Panel, rev_hist: dict, rev_shards: dict, idx: list, io: list) -
         rk = P.rs_rank(t)
         shard = _rev_shard_avail(rev_shards, d) if d >= S5["since"] else {}
         for c in P.codes:
-            if held_until.get(c, -1) >= t:
-                continue
             f = P.factors(c, t, rk)
             if not f or not (f["g_space"] and f["g_mom"] and f["g_trust"]):
                 continue
@@ -384,44 +383,138 @@ def s5_trades(P: Panel, rev_hist: dict, rev_shards: dict, idx: list, io: list) -
             else:
                 rv = _rev_avail(rev_hist.get(c) or {}, d)
                 ok = bool(rv and rv[0] >= 0.2 and (rv[1] or 0) >= 0.15)
-            if not ok:
+            if ok:
+                out.append((t, c))
+    return out
+
+
+def _s5_sim(P: Panel, cands: list[tuple[int, str]], idx: list, io: list, sp: dict, ew: tuple | None = None,
+            extra=None) -> list[dict]:
+    """依出場規則 sp（init／trail／maxd／gap／wait）模擬；同一檔持有中不重複買進。extra(c, t)→False 的候選略過（對照組用）。"""
+    cal, T, names = P.D.cal, P.T, P.D.names
+    recs, held_until = [], {}
+    for t, c in cands:
+        if held_until.get(c, -1) >= t or (extra and not extra(c, t)):
+            continue
+        d = cal[t]
+        S = P.s[c]
+        base = {"c": c, "n": names.get(c, c), "d": d}
+        j = None
+        for k in range(t + 1, min(t + 1 + sp["wait"], T)):
+            if S["o"][k] and S["c"][k - 1] and S["o"][k] < S["c"][k - 1] * (1 + sp["gap"]):
+                j = k
+                break
+        if j is None:
+            if t + sp["wait"] < T:
+                recs.append({**base, "st": "skip", "why": "連 5 日開高 ≥3%"})
+            else:
+                recs.append({**base, "st": "cand"})
+            continue
+        e = S["o"][j]
+        stop, peak, xi = e * (1 - sp["init"]), e, None
+        last = min(j + sp["maxd"], T - 1)
+        for i in range(j, last + 1):
+            cl = S["c"][i]
+            if not cl:
                 continue
+            peak = max(peak, cl)
+            stop = max(stop, peak * (1 - sp["trail"]))
+            if cl < stop:
+                xi = i
+                break
+        done = xi is not None or last == j + sp["maxd"]
+        xi = xi if xi is not None else max(i for i in range(j, last + 1) if S["c"][i])
+        lock = 0
+        if done:
+            from .backtest import exit_day
+            x2 = exit_day(S, xi, T)                      # 回測紀律 D1：整天鎖跌停賣不掉，順延到下一個交易日收盤
+            lock, xi = x2 - xi, x2
+        r = S["c"][xi] / e - 1 - 0.00585
+        i0 = io[j] or idx[j - 1]
+        b = idx[xi] / i0 - 1 if idx[xi] and i0 else None
+        xe = None
+        if ew and ew[0][xi] and ew[1][j]:
+            xe = round((r - (ew[0][xi] / ew[1][j] - 1)) * 100, 2)
+        held_until[c] = xi if done else T
+        recs.append({**base, "st": "closed" if done else "open", "entry": e, "exit" if done else "now": S["c"][xi],
+                     "held": xi - t, "why": ("停損／回落出場" if xi - j < sp["maxd"] else "滿 250 日") if done else None,
+                     "r": round(r * 100, 2), "x": None if b is None else round((r - b) * 100, 2), "xe": xe,
+                     **({"lock": lock} if lock else {})})
+    return recs
+
+
+def ew_index(P: Panel) -> tuple[list, list]:
+    """S5「空間關」宇宙（市值 50～1,500 億、20 日均成交值 ≥1 億）的等權指數：(收盤指數, 開盤指數)。
+    每天依前一日合格名單重新等權；單日漲跌超過 11% 視為資料錯誤不計。xe（對同宇宙平均）用。"""
+    from .packtest import _rmean
+    T = P.T
+    liq = {c: _rmean(P.val[c], 20, 10) for c in P.codes}
+    I, IO = [None] * T, [None] * T
+    lvl = 1.0
+    I[0] = lvl
+    for i in range(1, T):
+        rs, gs = [], []
+        for c in P.codes:
             S = P.s[c]
-            base = {"c": c, "n": names.get(c, c), "d": d}
-            j = None
-            for k in range(t + 1, min(t + 1 + S5["wait"], T)):
-                if S["o"][k] and S["c"][k - 1] and S["o"][k] < S["c"][k - 1] * (1 + S5["gap"]):
-                    j = k
-                    break
-            if j is None:
-                if t + S5["wait"] < T:
-                    recs.append({**base, "st": "skip", "why": "連 5 日開高 ≥3%"})
-                else:
-                    recs.append({**base, "st": "cand"})
+            c0, c1 = S["c"][i - 1], S["c"][i]
+            if not (c0 and c1) or not (CAP_MIN <= c0 * P.iss[c] <= CAP_MAX) or (liq[c][i - 1] or 0) < LIQ_MIN:
                 continue
-            e = S["o"][j]
-            stop, peak, xi = e * (1 - S5["init"]), e, None
-            last = min(j + S5["maxd"], T - 1)
-            for i in range(j, last + 1):
-                cl = S["c"][i]
-                if not cl:
-                    continue
-                peak = max(peak, cl)
-                stop = max(stop, peak * (1 - S5["trail"]))
-                if cl < stop:
-                    xi = i
-                    break
-            done = xi is not None or last == j + S5["maxd"]
-            xi = xi if xi is not None else max(i for i in range(j, last + 1) if S["c"][i])
-            r = S["c"][xi] / e - 1 - 0.00585
-            i0 = io[j] or idx[j - 1]
-            b = idx[xi] / i0 - 1 if idx[xi] and i0 else None
-            held_until[c] = xi if done else T
-            recs.append({**base, "st": "closed" if done else "open", "entry": e, "exit" if done else "now": S["c"][xi],
-                         "held": xi - t, "why": ("停損／回落出場" if xi - j < S5["maxd"] else "滿 250 日") if done else None,
-                         "r": round(r * 100, 2), "x": None if b is None else round((r - b) * 100, 2)})
+            r = c1 / c0
+            if abs(r - 1) > 0.11:
+                continue
+            rs.append(r)
+            o1 = S["o"][i]
+            if o1 and abs(o1 / c0 - 1) <= 0.11:
+                gs.append(o1 / c0)
+        if rs:
+            IO[i] = lvl * (statistics.mean(gs) if gs else 1.0)
+            lvl *= statistics.mean(rs)
+        I[i] = lvl
+    return I, IO
+
+
+def eps_growth_ok(eps: dict, d: str, th: float = 0.25) -> bool:
+    """CAN SLIM 的 C：d 日已過法定期限的最新一季 EPS，相對去年同季成長 ≥ th（去年同季 ≤0 而今年 >0 也算）。"""
+    from .packtest import deadline, _prev_year
+    qs = sorted(k for k in eps if deadline(k) <= d)
+    if not qs:
+        return False
+    q = qs[-1]
+    a, b = eps.get(q), eps.get(_prev_year(q))
+    if a is None or b is None or a <= 0:
+        return False
+    return b <= 0 or a / b - 1 >= th
+
+
+def s5_trades(P: Panel, rev_hist: dict, rev_shards: dict, idx: list, io: list, reg: dict | None = None,
+              eps: dict | None = None, with_grid: bool = True) -> dict:
+    cal = P.D.cal
+    cands = _s5_cands(P, rev_hist, rev_shards)
+    sp = {k: S5[k] for k in ("init", "trail", "maxd", "gap", "wait")}
+    try:
+        ew = ew_index(P)
+    except Exception:                                     # noqa: BLE001
+        ew = None
+    recs = _s5_sim(P, cands, idx, io, sp, ew)
     fwd = [r for r in recs if r["d"] >= S5["since"]]
     ins = [r for r in recs if r["d"] < S5["since"]]
+    ins_c = lambda t, c: cal[t] < S5["since"]
+    nb = None
+    if with_grid:
+        from .packtest import grid
+
+        def g(init, trail):
+            xs = [r["x"] for r in _s5_sim(P, [x for x in cands if ins_c(*x)], idx, io, {**sp, "init": init, "trail": trail})
+                  if r.get("st") == "closed" and r.get("x") is not None]
+            return statistics.mean(xs) if xs else None
+        nb = grid(g, (0.15, 0.20, 0.25), (0.25, 0.30, 0.35), ("初始停損", "高點回落出場"))
+    # CAN SLIM 的 C（季 EPS 年增 ≥25%）、M（大盤在年線上）加在 S5 上的對照（2026-10-15 資料包 P6；S5 規則不變）
+    alt = {}
+    for k, fn in (("c", (lambda c, t: eps_growth_ok((eps or {}).get(c) or {}, cal[t])) if eps else None),
+                  ("m", (lambda c, t: bool((reg or {}).get(cal[t]))) if reg else None)):
+        if fn:
+            ai = [r for r in _s5_sim(P, [x for x in cands if ins_c(*x)], idx, io, sp, ew, fn)]
+            alt[k] = advice_score(ai, reg)
 
     def agg(rs):
         xs = [r["r"] for r in rs if r.get("st") in ("closed", "open") and r.get("r") is not None]
@@ -435,10 +528,16 @@ def s5_trades(P: Panel, rev_hist: dict, rev_shards: dict, idx: list, io: list) -
                 "open": sum(1 for r in rs if r.get("st") == "open")}
     from . import advice
     from .strategy import dist
-    return {**{k: S5[k] for k in ("key", "ver", "since", "name", "kind", "basis", "risk", "rule", "pass")},
+    return {**{k: S5[k] for k in ("key", "ver", "since", "name", "kind", "basis", "risk", "rule", "pass", "tried")},
             "fwd": fwd[-40:], "ins": ins[-40:], "fwd_stats": agg(fwd), "ins_stats": agg(ins), "dist": dist(ins),
-            "score": advice.score(advice.closed(ins), fwd_units=advice.closed(fwd)),
+            "score": advice.score(advice.closed(ins), fwd_units=advice.closed(fwd), reg=reg, nb=nb, xe_rule=True),
+            "alt": alt, "fill": {"lim": 0, "lock": sum(1 for r in ins if r.get("lock"))},
             "screen_d": next_screen(cal[-1]) if cal else None}
+
+
+def advice_score(recs: list[dict], reg: dict | None) -> dict:
+    from . import advice
+    return advice.score(advice.closed(recs), reg=reg, xe_rule=True)
 
 
 def next_screen(last: str) -> list[str] | None:

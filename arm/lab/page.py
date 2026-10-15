@@ -225,6 +225,11 @@ details.mr>summary:before{content:"▸ "}details.mr[open]>summary:before{content
 .bdg{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;font-size:13px;color:var(--ink2);margin:0 0 10px}
 .rls{margin:2px 0 10px}.rl{display:grid;grid-template-columns:4.5em minmax(0,1fr);gap:8px;padding:3px 0;font-size:13.5px;line-height:1.7}
 .rl.nl{grid-template-columns:1fr}.rl .rlk{color:var(--mut);font-weight:600;white-space:nowrap}
+.rbl{max-width:860px;margin:0 0 6px}.rbr{display:grid;grid-template-columns:13em minmax(0,1fr);gap:4px 12px;padding:6px 0;border-top:1px solid var(--line);font-size:13.5px;line-height:1.6}
+.rbr:first-child{border-top:0}.rbk{color:var(--ink2)}.rbk .ck{display:inline-block;width:1.3em}
+table.nbg{width:auto;font-size:12.5px;margin:4px 0}table.nbg td,table.nbg th{padding:4px 10px}table.nbg th:first-child{white-space:normal;max-width:9em}
+.pkn{font-size:12px;color:var(--mut);white-space:normal;max-width:260px;line-height:1.5;margin-top:2px}
+table.skt td{white-space:normal;width:50%;min-width:0}
 h4.sh{font-size:14px;margin:14px 0 6px;color:var(--ink)}
 .ish{margin:0 0 8px}.tg.mu{color:var(--mut)}
 .isr{display:grid;grid-template-columns:96px minmax(0,1fr);gap:4px 12px;padding:7px 0;border-top:1px solid var(--line)}
@@ -326,7 +331,8 @@ ul.doc{padding-left:18px}ul.doc li{margin:4px 0}
  .fbar input[type=search]{flex-basis:100%}.fbar select{flex:1 1 0;min-width:0}
  .seg a{padding:5px 11px}
  .stk td:first-child{min-width:92px;max-width:118px}.stk .nm,.stk .cd{max-width:108px}
- .hm{display:none}
+ .hm{display:none}.pkr{display:none}
+ .rbr{grid-template-columns:1fr;gap:1px}
  .isr{grid-template-columns:1fr;gap:2px}.rl{grid-template-columns:4em minmax(0,1fr)}
  .sq{grid-template-columns:1fr;gap:3px}.stc{padding:4px 12px 8px}
  .kp>b{font-size:16px}.kps{grid-template-columns:repeat(2,minmax(0,1fr))}.kps.k3{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -391,7 +397,7 @@ const GL={
 '獲利比例':'扣除來回成本後報酬為正的交易比例。',
 '贏大盤':'報酬高於加權指數同期報酬（超額報酬為正）的交易比例。',
 '信賴區間':'把歷史交易重新抽樣 2,000 次，平均超額報酬有 95% 的機會落在這個範圍。下限大於 0，代表贏大盤不太可能只是運氣；區間含 0，代表樣本還不足以下結論。',
-'評級':'A 可執行：樣本足夠、超額報酬 95% 信賴區間下限大於 0、沒有集中在單一月份，且前瞻驗證也贏大盤，每檔 ≤ 總資金 5%。B 小部位試行：平均贏大盤但未達 A 的全部條件，每檔 ≤ 2%。C 不推薦：沒有贏大盤、樣本太少或集中在單一行情，只列觀察。',
+'評級':'A 可執行：樣本足夠、超額報酬 95% 信賴區間下限大於 0、沒有集中在單一月份、成本加倍後仍贏大盤、參數鄰近 9 組至少 6 組為正，且前瞻驗證也贏大盤，每檔 ≤ 總資金 5%。B 小部位試行：平均贏大盤但未達 A 的全部條件，每檔 ≤ 2%。C 不推薦：沒有贏大盤、樣本太少、集中在單一行情、參數稍微改動就失效，或沒贏同一批股票的平均，只列觀察。',
 '每 10 萬預估':'投入 10 萬元時，依同一規則過去已出場交易的中位報酬與最差一筆換算的損益（已扣成本）。是歷史統計，不是預測。',
 '隔夜跳空':'訊號出現後隔天的開盤價，相對訊號日收盤的漲跌。跟單的人多時，好處常在隔夜就被反映掉。',
 '樣本':'歷史上符合條件的次數。少於 30 次時結果容易受單一段行情左右，只能當參考。',
@@ -409,11 +415,23 @@ const GL={
 '被動買賣日量':'被動 ETF 換股要買（賣）的金額 ÷ 該股 20 日平均成交金額＝要用掉幾天的正常成交量。高股息 ETF 規模大，冷門中型股一次常是 10 天以上的量；台積電這類權值股不到 1 天。',
 '被動買賣提醒':'高股息換股的納入股估計被動買盤 ≥5 日量：被動買盤結束後 10 個交易日，過去多半輸大盤、也輸其他成分股 → 已持有的在最後一天收盤前出、沒持有的不追；刪除股被賣完後也沒有反彈。只是提醒，不做放空。',
 '等級相關':'兩組數字排序的一致程度，−1～+1：+1＝排序完全相同、0＝沒有關係、負＝方向相反。這裡樣本只有十幾檔，數值僅供參考。',
+'穩健度檢查':'同一份歷史成績換幾種角度再算一次：成本加倍、去掉最好的一筆、大盤多頭與空頭分開、參數稍微改動、買不到或賣不掉的情況。打 ✓ 的三項是 A 級的條件。',
+'成本加倍':'每筆交易再多扣一次來回成本 0.585%（手續費與證交稅）。實際滑價、零股或流動性差時成本會更高；成本加倍後還贏大盤，優勢才不只是成本算得太樂觀。',
+'參數鄰近':'把策略的兩個關鍵參數各往上、往下調一檔，共 9 組，看有幾組平均還贏大盤。只有剛好那一組賺錢的策略，多半是從歷史資料挑出來的巧合。',
+'同一批股票的平均':'回測用的股票清單是「目前還上市、市值夠大」的公司，曾經很大後來跌掉或下市的不在裡面（存活者偏誤），整批股票本身就偏強。策略要贏過這批股票的等權平均，才算選股有效。',
+'存活者偏誤':'只用現在還存在的公司做回測：失敗、下市、縮水的公司不在資料裡，歷史成績因此偏好看。',
+'大盤年線':'加權指數 200 個交易日均線。指數在年線之上大致是多頭、之下大致是空頭；兩組分開看，才知道策略是否只在多頭有效。',
+'成交檢查':'開盤就漲停時，開盤價通常買不到；整天鎖在跌停時，收盤賣不掉。回測遇到這兩種情況：買進順延或放棄、賣出順延到下一個交易日。',
+'相對強勢':'依過去一段期間的漲幅在全部股票中的排名選股（例：約 6 個月前到 1 個月前漲最多的前 10%）。學術上稱動能效應。',
+'趨勢樣板':'Mark Minervini 的選股條件：股價在 50／150／200 日線之上且均線依序向上、離一年低點 30% 以上、離一年高點 25% 以內、強度排名前 30%。這裡另要求整理後帶量突破才買。',
+'SUE':'標準化盈餘驚喜＝（當季 EPS − 去年同季 EPS）÷ 過去幾季這個差距的波動。數字越大代表這季成長越出乎意料。學術上發現驚喜大的股票，之後幾個月常繼續走強（財報後漂移）。',
+'CAN SLIM':'William O’Neil 的成長股選股法，七個字母代表當季盈餘成長、年度成長、新產品或新高、股數供需、領先股、法人認養、大盤方向。這裡測試其中的 C（當季 EPS 年增 ≥25%）與 M（大盤在年線上）。',
 };
 const GLG=[['ETF 面',['真加碼','申贖倍率','主動 5 日淨買','加碼／減碼家數','持有 ETF','新建倉','建倉日','主動成本','成本乖離','超配','ETF 持股率','消化天數']],
  ['法人籌碼',['投信 5 日','外資 5 日','連買','60 日買超均價','融資','借券賣出','千張大戶']],
  ['技術面',['趨勢','乖離','量比','RSI','KD','MACD','一年區間位置','相對大盤','ATR','日均成交']],
  ['成績與策略',['評級','信賴區間','超額','獲利比例','贏大盤','勝率','每 10 萬預估','隔夜跳空','樣本','紙上交易','樣本內','前瞻','前瞻驗證']],
+ ['穩健度與資料包策略',['穩健度檢查','成本加倍','參數鄰近','同一批股票的平均','存活者偏誤','大盤年線','成交檢查','相對強勢','趨勢樣板','SUE','CAN SLIM']],
  ['指數換股',['資料截止日','漲勢前一半','估計權重','被動買盤','週轉率','等級相關','被動買賣期間','對其他成分股','被動買賣日量','被動買賣提醒']]];
 function gi(k){return (GL[k]||SD[k])?`<i class=gi data-g="${esc(k)}" role=button tabindex=0 aria-label="說明">i</i>`:'';}
 const POP=$('#pop');let popFor=null,popPin=false;
@@ -1003,7 +1021,25 @@ function perfTbl(g){if(!g||!g.n)return '<span class=mu>尚無已出場交易。<
     kp('贏大盤','贏大盤',g.xwin==null?'—':`${g.xwin}%`,g.kx!=null?`${g.kx}／${g.nx||g.n} ${u}`:''),
     ...(g.conc?[kp('最集中月份','',esc(g.conc[0]),`占 ${g.conc[1]}%`)]:[]),
     kp('前瞻驗證','前瞻驗證',`${F.n||0}／${nf} ${u}`,F.n?`平均超額 ${pctT(F.x)}`:'起算後的交易')];
-  return `<div class=sgd>${T.join('')}</div><div class=note>報酬已扣來回成本 0.585%；超額＝減去加權指數同期報酬${g.event?'；每次＝同一次審核各檔等額平均':''}。</div>`;}
+  return `<div class=sgd>${T.join('')}</div><div class=note>報酬已扣來回成本 0.585%；超額＝減去加權指數同期報酬${g.event?'；每次＝同一次審核各檔等額平均':''}。</div>`+robTbl(g);}
+/* 穩健度檢查（資料包回測紀律 D1–D7，2026-10-15）：打 ✓／✗ 的三項是 A 級條件 */
+function nbGrid(N){if(!N||!N.cells)return '';const L=N.lbl||['',''],ad=N.ad||N.a||[],bd=N.bd||N.b||[],c=N.cells;
+  let h=`<table class=nbg><thead><tr><th>${esc(L[0])}＼${esc(L[1])}</th>${bd.map(b=>`<th>${esc(b)}</th>`).join('')}</tr></thead><tbody>`;
+  ad.forEach((a,i)=>{h+=`<tr><td>${esc(a)}</td>${bd.map((b,j)=>{const v=(c[i*bd.length+j]||[])[2];return `<td class="${v>0?'up':v<0?'dn':''}">${v==null?'—':pctT(v)}</td>`;}).join('')}</tr>`;});
+  return h+`</tbody></table>`;}
+function robTbl(g){const R=g&&g.rb;if(!R||R.x2==null)return '';const N=g.nb||{},F=g.fill,u=g.event?'次':'筆',cl=x=>x>0?'up':x<0?'dn':'',need=Math.ceil((N.n||9)*2/3);
+  const ck=ok=>ok==null?'<span class=ck></span>':ok?'<span class="ck up">✓</span>':'<span class="ck dn">✗</span>';
+  const row=(k,gk,v,c,ok)=>`<div class=rbr><div class=rbk>${ck(ok)}${k}${gk?gi(gk):''}</div><div class="${c||''}">${v}</div></div>`;
+  let h=row(`成本加倍（每${u}再扣 0.585%）`,'成本加倍',`平均超額 ${pctT(R.x2)}`,cl(R.x2),R.x2>0);
+  if(N.n)h+=row('參數鄰近','參數鄰近',`鄰近 ${N.n} 組參數中 ${N.pos} 組贏大盤（A 級需 ≥${need}）<details class=mr><summary>看 ${N.n} 組</summary>${nbGrid(N)}</details>`,'',N.pos>=need);
+  if(R.xe!=null)h+=row('對同一批股票的平均','同一批股票的平均',`平均${R.xe>=0?'贏':'輸'} ${f(Math.abs(R.xe),1)}%（${R.kxe}／${R.nxe} ${u}贏）`,cl(R.xe),R.xe>0);
+  if(R.drop1!=null)h+=row(`去掉最好的一${u}`,'',`平均超額 ${pctT(R.drop1)}`,cl(R.drop1),null);
+  if(R.up||R.dn){const U=R.up||[0,null],Dn=R.dn||[0,null];
+    h+=row('大盤在年線上／下','大盤年線',`年線上 ${U[0]} ${u}，平均超額 ${pctT(U[1])}；年線下 ${Dn[0]?`${Dn[0]} ${u}，平均超額 ${pctT(Dn[1])}`:'沒有樣本，空頭時的表現未經檢驗'}`,'',null);}
+  h+=row('最大累計回落','',`依時間順序累加每${u}超額，最多回落 ${f(R.mdd,1)} 個百分點；最長連續 ${R.streak} ${u}輸大盤`,'',null);
+  if(F)h+=row('成交檢查','成交檢查',`漲停開盤買不到 ${F.lim} ${u}、整天鎖跌停順延賣出 ${F.lock} ${u}`,'',null);
+  return `<h4 class=sh>穩健度檢查${gi('穩健度檢查')}</h4><div class=rbl>${h}</div>`+
+    ((g.tried||[]).length?`<div class=note>樣本內比較過的做法：${g.tried.map(esc).join('；')}。成績是從這些做法裡挑出來的，會偏樂觀。</div>`:'');}
 function listOf(k){const P=(ADV.picks||[]).filter(p=>p.k===k);
   return P.length?`${pickGroups(P).join('；')}。<div class=st>進出場日期、停損與部位見 <a data-to="st-now">本期操作清單</a>。</div>`:'<span class=mu>本期沒有。</span>';}
 
@@ -1059,7 +1095,7 @@ function hdSec(){const g=gOf('hd');if(!g)return '';const HA=((D.idx||{}).hd||{})
   const perf=`<div class=tw><table><thead><tr><th>情境</th><th>次數</th><th>平均超額${gi('信賴區間')}</th><th>輸大盤次數</th></tr></thead><tbody>`+
     pr('追買：名單公開後買、最後一天賣',T.ride5,g.ci)+pr(`納入股：被動買盤結束後 ${aft} 日`,T.post_big,ef.ci)+pr(`刪除股：被動賣盤結束後 ${aft} 日`,T.del10,dl.ci)+
     ((((D.idx||{}).hd||{}).pre||{}).vars||[]).filter(v=>v.k==='main'||v.k==='ann3').map(v=>v.n?`<tr><td>提前卡位：${esc(v.lbl)}、最後一天賣</td><td>${v.n} 次</td><td>${pctT(v.x)}<div class=sm2>${ciT(v.ci)}</div></td><td>${v.n-v.kx}／${v.n}</td></tr>`:'').join('')+
-    `</tbody></table></div><div class=note>每次＝同一檔 ETF 同一次換股的提醒股等額平均；期間 ${esc(g.d0||'')}～${esc(g.d1||'')}，四檔高股息 ETF 合計。提前卡位兩列只含名單算得出來的 00919、00929（${esc(((((D.idx||{}).hd||{}).pre||{}).d0)||'')} 起）。</div>`;
+    `</tbody></table></div><div class=note>每次＝同一檔 ETF 同一次換股的提醒股等額平均；期間 ${esc(g.d0||'')}～${esc(g.d1||'')}，四檔高股息 ETF 合計。提前卡位兩列只含名單算得出來的 00919、00929（${esc(((((D.idx||{}).hd||{}).pre||{}).d0)||'')} 起）。</div>`+robTbl(g);
   const by=(t,lbl)=>(t&&(t.by||[]).length)?`<h4 class=sh>${lbl}</h4><div class=tw><table><thead><tr><th>ETF</th><th>換股</th><th>檔數</th><th>平均超額</th></tr></thead><tbody>`+
     t.by.map(b=>`<tr><td>${esc(b[0])}</td><td>${esc(b[1])}</td><td>${b[3]}</td><td>${sgn(b[2],1,'%')}</td></tr>`).join('')+`</tbody></table></div>`:'';
   const fs=HA.fwd_stats||{};
@@ -1093,19 +1129,42 @@ function s5Sec(){const G=D.grow||{};if(G.err)return sec('st-s5','長線','長線
   m+=`<h4 class=sh>回測（${ms.length?`${ms[0].slice(0,7)}～${ms[ms.length-1].slice(0,7)}，`:''}每月篩一次）</h4>${bt}`+tradeLists(S5,true);
   return stSec('s5','長線',S5.name,S5.kind,[['結論',cclS(g,ex)],['操作規則',rules],['歷史績效',perfTbl(g)],['本期名單',now],['風險',riskList(S5.risk)]],['今日篩選、回測與交易明細',m]);}
 
+/* 資料包策略測試（2026-10-15 使用者：「副檔給你參考 把能用的拿來用就好」；主規格見 docs/strategy_pack_plan.md） */
+function packSec(){const P=ADV.pack||{};if(P.err)return sec('st-pack','資料包','資料包策略測試','',`<div class=card><div class=st>資料錯誤：${esc(P.err)}</div></div>`);
+  const R=P.rows||[];if(!R.length)return '';const M=P.meta||{},main=R.filter(r=>/^p\d$/.test(r.k)),alt=R.filter(r=>!/^p\d$/.test(r.k));
+  const row=r=>{const N=r.nb||{},rb=r.rb||{},u=r.unit;
+    const gk={p1:'相對強勢',p2:'趨勢樣板',p3:'SUE'}[r.k]||(/^p6[cm]$/.test(r.k)?'CAN SLIM':'');
+    return `<tr><td class=l><span class=nm>${esc(r.name)}${gk?gi(gk):''}</span><span class=cd>${esc(r.src)}</span><div class="pkn pkr">${esc(r.rule)}</div></td>`+
+      `<td>${r.n?`${r.n} ${u}`:'—'}<div class=sm2>${esc((r.d0||'').slice(0,7))}～${esc((r.d1||'').slice(0,7))}</div></td>`+
+      `<td>${pctT(r.x)}<div class=sm2>${ciT(r.ci)}</div></td><td>${r.xwin==null?'—':r.xwin+'%'}</td>`+
+      `<td class=hm>${pctT(rb.xe)}</td><td class=hm>${N.n?`${N.pos}／${N.n}`:'—'}</td><td class=hm>${pctT(rb.drop1)}</td>`+
+      `<td class=l>${gBadge(r.grade)}<div class="pkn pkr">${esc((r.why||[]).join('；'))}</div></td></tr>`;};
+  const head=`<thead><tr><th>策略（資料包編號）</th><th>樣本</th><th>平均超額${gi('信賴區間')}</th><th>贏大盤${gi('贏大盤')}</th><th class=hm>對同一批股票${gi('同一批股票的平均')}</th><th class=hm>參數鄰近${gi('參數鄰近')}</th><th class=hm>去掉最好一筆</th><th class=l>評級</th></tr></thead>`;
+  const AB=main.filter(r=>r.grade==='A'||r.grade==='B'),best=main.filter(r=>r.x!=null).sort((a,b)=>b.x-a.x)[0];
+  let cc=AB.length?`${AB.map(r=>esc(r.name)).join('、')} 達 ${AB.map(r=>r.grade).join('、')} 級。`:`這 ${main.length} 種做法依同一套評級都是 C，不列推薦。`;
+  if(best&&best.x>0)cc+=`平均超額最高的是「${esc(best.name)}」（${pctT(best.x)}），但${esc((best.why||[])[0]||'')}${best.rb&&best.rb.drop1!=null?`，去掉最好的一${best.unit}後為 ${pctT(best.rb.drop1)}`:''}。`;
+  const S=(P.skipped||[]).map(x=>`<tr><td class=l>${esc(x[0])}</td><td class=l>${esc(x[1])}</td></tr>`).join('');
+  return sec('st-pack','資料包','資料包策略測試','用現有資料能回測的部分',`<div class=card><div class=ccl><b>結論</b></div><div>${cc}</div>`+
+    `<div class=tw style="margin-top:8px"><table>${head}<tbody>${main.map(row).join('')}</tbody></table></div>`+
+    `<div class=note>超額＝對加權指數；「對同一批股票」＝對同一份股票清單的等權平均${gi('存活者偏誤')}。清單是 Yahoo 五年日線（目前市值前約 ${M.n_long||600} 名，${esc((M.d0||'').slice(0,7))} 起），形成日另要求市值 300 億以上；短期反轉用兩年日線（${M.n_all||''} 檔）。主規格在回測前寫定，鄰近 9 組只用來檢查結論是否穩定。</div>`+
+    (alt.length?`<h4 class=sh>CAN SLIM 的兩項條件加在長線策略上（對照，原規則不變）</h4><div class=tw><table>${head}<tbody>${alt.map(row).join('')}</tbody></table></div>`:'')+
+    (S?`<details class=mr><summary>沒有採用的項目與原因</summary><div class=tw><table class=skt><tbody>${S}</tbody></table></div></details>`:'')+`</div>`);}
+
 function riskSec(){const R=(ADV.rule||[]).filter(r=>r&&r.g);
   return sec('st-risk','風控','部位與風控','',`<div class=card><h4 class=sh style="margin-top:0">評級${gi('評級')}</h4>`+
     `<div class=tw><table><thead><tr><th>評級</th><th class=l>條件</th><th class=l>部位上限</th></tr></thead><tbody>${R.map(r=>`<tr><td>${gBadge(r.g)}</td><td class="l wr2">${esc(r.cond)}</td><td class=l>${esc(r.cap)}</td></tr>`).join('')}</tbody></table></div>`+
     `<div class=note>${esc(ADV.rule_stop||'')}</div>`+
-    `<h4 class=sh>部位與交易限制</h4><div class=rls>${ruleRows(['部位：A 級每檔 ≤ 總資金 5%、B 級 ≤ 2%、C 級不下單；有停損價時，部位另以「停損時虧損 ≤ 總資金 0.5%」計算，取較小者',
+    `<h4 class=sh>部位與交易限制</h4><div class=rls>${ruleRows([totPos(),'部位：A 級每檔 ≤ 總資金 5%、B 級 ≤ 2%、C 級不下單；有停損價時，部位另以「停損時虧損 ≤ 總資金 0.5%」計算，取較小者',
       '流動性：只做 20 日均成交值 ≥1 億元的股票，買進張數 ≤ 20 日均量 2%','分散：同時持有 ≤8 檔、同產業 ≤3 檔','排除：注意股、處置股不買進',
       '成本：報酬已扣來回成本 0.585%（手續費 0.1425% × 2＋證交稅 0.3%）','資料：歷史成績皆為規則訂定前的資料；規則起算後的交易另記前瞻成績，A 級須前瞻驗證達標'])}</div></div>`);}
+function totPos(){const P=(ADV.picks||[]).filter(p=>p.size&&p.size.pct);const t=P.reduce((a,p)=>a+p.size.pct,0);
+  return P.length?`總部位：本期操作清單全部照做 ${P.length} 檔，合計約占總資金 ${f(t,1)}%（持有中的部位另計）`:'總部位：本期操作清單沒有新的佈局';}
 function vSt(){
   const X=D.strat||{};
-  let h=`<div class=intro>每天收盤後依固定規則產生名單。評級依歷史超額報酬的 95% 信賴區間${gi('信賴區間')}、樣本數、單月集中度與前瞻驗證判定：A 可執行、B 小部位試行、C 不推薦${gi('評級')}。</div>`;
+  let h=`<div class=intro>每天收盤後依固定規則產生名單。評級依歷史超額報酬的 95% 信賴區間${gi('信賴區間')}、樣本數、單月集中度、穩健度檢查${gi('穩健度檢查')}與前瞻驗證判定：A 可執行、B 小部位試行、C 不推薦${gi('評級')}。</div>`;
   if(X.err)h+=`<div class=st>策略資料錯誤：${esc(X.err)}</div>`;
   if(ADV.err)h+=`<div class=st>評級資料錯誤：${esc(ADV.err)}</div>`;
-  h+=nowSec()+gradeSec()+s1Sec()+s3Sec()+hdSec()+s5Sec()+riskSec();
+  h+=nowSec()+gradeSec()+s1Sec()+s3Sec()+hdSec()+s5Sec()+packSec()+riskSec();
   $('#main').innerHTML=h;
   $$('#main [data-to]').forEach(a=>a.onclick=e=>{e.preventDefault();jump(a.dataset.to);});
 }
