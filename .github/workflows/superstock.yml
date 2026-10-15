@@ -58,7 +58,7 @@ jobs:
           MODE="${{ inputs.mode || 'smoke' }}"
           if [ "${{ github.event_name }}" = "push" ]; then
             if [ ! -f ../.ping/superstock ]; then echo "無 .ping/superstock，略過"; exit 0; fi
-            MODE=$(head -1 ../.ping/superstock | tr -d '[:space:]')
+            MODE=$(head -1 ../.ping/superstock | awk '{print $1}')   # 第一個字＝模式，後面可加註記讓檔案有變動
           fi
           echo "模式：$MODE"
           DATA="$RUNNER_TEMP/ss-data"
