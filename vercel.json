@@ -4,6 +4,7 @@
   "outputDirectory": "dashboard",
   "cleanUrls": true,
   "trailingSlash": false,
+  "git": { "deploymentEnabled": { "claude/**": false } },
   "headers": [
     {
       "source": "/(.*)",

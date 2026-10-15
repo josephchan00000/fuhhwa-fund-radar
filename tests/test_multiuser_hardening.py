@@ -25,6 +25,16 @@ def test_兩支_vercel_json_皆為_no_cache():
             assert "no-cache" in v and "no-store" not in v and "max-age=3" not in v, f"{p}: {v}"
 
 
+def test_兩支_vercel_json_停掉工作分支預覽部署_正式站照常():
+    # 2026-10-15：工作分支每推一次就多一次預覽部署，撞到 Vercel 免費方案每日上限、正式站停更一天。
+    # 使用者同意後停掉 claude/** 的自動部署；main（正式站）不得被關掉，否則只剩 Deploy Hook。
+    for p in ("vercel.json", "dashboard/vercel.json"):
+        dep = _load(p).get("git", {}).get("deploymentEnabled")
+        assert isinstance(dep, dict), f"{p} 缺 git.deploymentEnabled"
+        assert dep.get("claude/**") is False, f"{p}: {dep}"
+        assert dep.get("main", True) is True and all(v is False for v in dep.values()), f"{p}: {dep}"
+
+
 def test_對時哨兵可解析入庫的儀表板時戳():
     out = subprocess.run(
         [sys.executable, str(ROOT / "scripts/check_live_deploy.py"), "--parse-only", str(ROOT / "dashboard/index.html")],
