@@ -1,0 +1,65 @@
+{
+  "sample": [
+    {
+      "stock_id": "1101",
+      "stock_name": "台泥",
+      "market": "twse",
+      "is_delisted": false
+    },
+    {
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "market": "twse",
+      "is_delisted": false
+    },
+    {
+      "stock_id": "4938",
+      "stock_name": "和碩",
+      "market": "twse",
+      "is_delisted": false
+    }
+  ],
+  "auto": [
+    {
+      "stock_id": "1101",
+      "date": "2017-08-02",
+      "result": "一致",
+      "detail": ""
+    },
+    {
+      "stock_id": "1101",
+      "date": "2026-06-02",
+      "result": "一致",
+      "detail": ""
+    },
+    {
+      "stock_id": "2330",
+      "date": "2018-11-07",
+      "result": "一致",
+      "detail": ""
+    },
+    {
+      "stock_id": "2330",
+      "date": "2026-03-26",
+      "result": "一致",
+      "detail": ""
+    }
+  ],
+  "manual": [
+    {
+      "stock_id": "1101",
+      "item": "2012-09 月營收",
+      "note": "本機：1,998,495,000 元｜請到公開資訊觀測站核對（單位可能是千元）"
+    },
+    {
+      "stock_id": "2330",
+      "item": "2017-06 月營收",
+      "note": "本機：84,187,305,000 元｜請到公開資訊觀測站核對（單位可能是千元）"
+    },
+    {
+      "stock_id": "4938",
+      "item": "價格",
+      "note": "本機沒有價格資料"
+    }
+  ]
+}
