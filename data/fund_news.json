@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/15 22:32",
+  "as_of": "2026/10/16 06:43",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -120,13 +120,6 @@
           "source": "Yahoo新聞",
           "date": "2026-10-15 13:41",
           "datetime": "2026-10-15T13:41:30+08:00"
-        },
-        {
-          "title": "台積電法說揭AI新商機!00409A直搗美國AI獲利源頭",
-          "url": "https://tw.news.yahoo.com/%E5%8F%B0%E7%A9%8D%E9%9B%BB%E6%B3%95%E8%AA%AA%E6%8F%ADai%E6%96%B0%E5%95%86%E6%A9%9F-00409a%E7%9B%B4%E6%90%97%E7%BE%8E%E5%9C%8Bai%E7%8D%B2%E5%88%A9%E6%BA%90%E9%A0%AD-054426172.html",
-          "source": "觀傳媒",
-          "date": "2026-10-15 13:44",
-          "datetime": "2026-10-15T13:44:22+08:00"
         }
       ]
     },
@@ -179,7 +172,7 @@
           "source": "股感 StockFeel",
           "date": "2026-10-14 10:55",
           "datetime": "2026-10-14T10:55:04+08:00",
-          "summary": "全球 AI 產業的發展正經歷重大變革，AI 能力逐漸從初期的「生成內容與推論」，大步邁向能自主執行任務的「AI 代理人（Agent）」以及即時映射真實世界的數位孿生（Digital Twin）時代。在…"
+          "summary": "全球 AI 產業的發展正經歷重大變革，AI 能力逐漸從初期的「生成內容與推論」，大步邁向能自主執行任務的「AI [&#8230;]\nThe post 00418A 復華台灣新星主動式 ETF｜成分股？…"
         }
       ]
     },
@@ -549,7 +542,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
       "date": "2026-10-11",
-      "views": 17515,
+      "views": 17761,
       "short": true
     },
     {
@@ -558,7 +551,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
       "date": "2026-10-12",
-      "views": 6378
+      "views": 6721
     },
     {
       "platform": "youtube",
@@ -566,7 +559,7 @@
       "channel": "小童 x Happy Trading Life",
       "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
       "date": "2026-10-13",
-      "views": 1974,
+      "views": 2080,
       "short": true
     },
     {
@@ -575,7 +568,7 @@
       "channel": "安聯投信 Allianz Global Investors Taiwan",
       "url": "https://www.youtube.com/shorts/b-T8DfBiuuk",
       "date": "2026-10-12",
-      "views": 267910,
+      "views": 324676,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -586,7 +579,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/XFDp4rY4FsQ",
       "date": "2026-10-12",
-      "views": 186481,
+      "views": 195723,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -597,7 +590,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=REtGASDFkEM",
       "date": "2026-10-12",
-      "views": 137722,
+      "views": 138004,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -607,7 +600,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/sgOyzfXKakU",
       "date": "2026-10-13",
-      "views": 100759,
+      "views": 109683,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -618,7 +611,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=HF7hiHSeZpU",
       "date": "2026-10-12",
-      "views": 97978,
+      "views": 99862,
       "peer": true,
       "cat": "基金"
     },
@@ -628,9 +621,19 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=1iIDAJTm3bk",
       "date": "2026-10-12",
-      "views": 90676,
+      "views": 92146,
       "peer": true,
       "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股急殺 3檔大戶青睞拚逆轉？ Q4作帳行情南電先卡位 自配基金月加薪5萬元《鈔錢部署》盧燕俐 ft.杜金龍 陳顗全 20261015",
+      "channel": "鈔錢部署–華視優選",
+      "url": "https://www.youtube.com/watch?v=aBJQT2o2VfQ",
+      "date": "2026-10-15",
+      "views": 83470,
+      "peer": true,
+      "cat": "基金"
     },
     {
       "platform": "youtube",
@@ -638,7 +641,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=96vE3gSEGqo",
       "date": "2026-10-14",
-      "views": 72054,
+      "views": 76555,
       "peer": true,
       "cat": "綜合"
     },
@@ -648,36 +651,26 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/UN7UK9CmFZk",
       "date": "2026-10-11",
-      "views": 69407,
+      "views": 71634,
       "peer": true,
       "short": true,
       "cat": "綜合"
     },
     {
       "platform": "youtube",
-      "title": "4檔ETF配息率衝破20% 怎麼挑才不踩雷？｜#財經鈔能力 #趙慶翔 #超馬芭樂 20261012",
-      "channel": "TVBS財經",
-      "url": "https://www.youtube.com/watch?v=vzH0z2_WeEw",
-      "date": "2026-10-12",
-      "views": 43128,
+      "title": "00406A奪全台成交王！破發還能配超高息？天下真有那麼好的事？｜璇轉理財腦 基金小姐姐詹璇依",
+      "channel": "基金小姐姐詹璇依",
+      "url": "https://www.youtube.com/watch?v=HWdw9YRGwuo",
+      "date": "2026-10-14",
+      "views": 57974,
       "peer": true,
       "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "ETF資金大搬風！0050重新奪回人氣王　被動ETF為何跟不上大盤？台積電目標價衝4410元｜94要賺錢",
-      "channel": "94要賺錢",
-      "url": "https://www.youtube.com/watch?v=-azCvVWlRGo",
-      "date": "2026-10-11",
-      "views": 33999,
-      "peer": true,
-      "cat": "市值型"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A、全方位（詳下方新聞標籤）",
     "品牌焦點：00418A 復華台灣新星主動式 ETF｜成分股？配息？優缺點？募集時間？（StockFeel 股感）",
     "社群聲量最高：人生別只剩AI，持股也是；適時減碼，有益健康（0 推）",
-    "YouTube 熱片：00412A 速懂！10月13日盛大掛牌上市（安聯投信 Allianz Global Investors Taiwan・267,910 次觀看）"
+    "YouTube 熱片：00412A 速懂！10月13日盛大掛牌上市（安聯投信 Allianz Global Investors Taiwan・324,676 次觀看）"
   ]
 }
