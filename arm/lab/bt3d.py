@@ -17,20 +17,23 @@ from . import store
 from .v3data import stock
 
 
-def events() -> dict[str, list[tuple[str, float]]]:
-    """除權息事件 {代號: [(除權息日, 參考價 ÷ 前收)]}：上市 divtw、上櫃 v3div。"""
+def events() -> dict[str, list[tuple]]:
+    """除權息事件 {代號: [(除權息日, 參考價 ÷ 前收, 現金部分倍數或 None)]}。
+    上市 divtw：只有「息」知道現金部分（＝整體倍數），「權」「權息」的現金金額表上沒有 → None；
+    上櫃 v3div：現金股利與配股分列 → 現金部分＝1 − 現金股利 ÷ 前收。"""
     ev: dict[str, list] = {}
     for _, doc in store.load("divtw"):
         for r in doc.get("rows") or []:
-            d, c, before, ref = r[0], r[1], r[4], r[5]
+            d, c, typ, before, ref = r[0], r[1], r[3], r[4], r[5]
             if before and ref and 0 < ref < before:
-                ev.setdefault(c, []).append((d, ref / before))
+                ev.setdefault(c, []).append((d, ref / before, ref / before if typ == "息" else None))
     for _, doc in store.load("v3div"):
         for r in doc.get("rows") or []:
-            d, c, before, ref = r[0], r[1], r[2], r[3]
+            d, c, before, ref, cash = r[0], r[1], r[2], r[3], r[4]
             if before and ref and 0 < ref < before:
-                ev.setdefault(c, []).append((d, ref / before))
-    return {c: sorted(set(v)) for c, v in ev.items()}
+                fc = 1 - cash / before if cash and 0 < cash < before else 1.0
+                ev.setdefault(c, []).append((d, ref / before, fc))
+    return {c: sorted(set(v), key=lambda x: (x[0], x[1])) for c, v in ev.items()}
 
 
 def month_end_caps() -> list[tuple[str, dict]]:
@@ -44,16 +47,24 @@ def month_end_caps() -> list[tuple[str, dict]]:
     return sorted(by.values())
 
 
-def factor_yahoo(c: list, a: list) -> list[float]:
-    """還原收盤 ÷ 收盤（缺值用下一個有效值，因為兩次除息之間是常數；最後缺就 1）。"""
-    T = len(c)
-    F = [1.0] * T
-    nxt = 1.0
-    for i in range(T - 1, -1, -1):
-        if c[i] and a[i]:
-            nxt = a[i] / c[i]
-        F[i] = nxt
-    return F
+def factor_yahoo(cal: list[str], c: list, a: list, ev: list[tuple]) -> list[float]:
+    """Yahoo 價（已還原股票股利）的現金股利還原倍數：官方知道現金部分的用官方（純現金股利、上櫃全部），
+    上市「權」「權息」用 Yahoo 還原收盤在當天隱含的倍數。2026-10-15 比對 1.1 萬筆現金股利：Yahoo 與官方差 >1%
+    的約 2.5%（金額不同 119、沒扣 39、扣在別天 28），所以以官方為主。"""
+    T = len(cal)
+    ix = {d: i for i, d in enumerate(cal)}
+
+    def yf(i):
+        if 0 < i < T and c[i - 1] and a[i - 1] and c[i] and a[i]:
+            return (a[i - 1] / c[i - 1]) / (a[i] / c[i])
+        return 1.0
+    fs = []
+    for d, _, fc in ev:
+        i = ix.get(d)
+        if i is None:
+            continue
+        fs.append((d, fc if fc is not None else yf(i)))
+    return factor_events(cal, fs)
 
 
 def factor_events(cal: list[str], ev: list[tuple[str, float]]) -> list[float]:
@@ -105,10 +116,10 @@ class Panel(PT.Px):
             if sum(1 for y in cl if y) < min_days:
                 continue
             if doc.get("src") == "yahoo":
-                F = factor_yahoo(cl, x)
+                F = factor_yahoo(cal, cl, x, ev.get(c) or [])
                 val = [cc * vv if cc and vv else None for cc, vv in zip(cl, v)]
             else:
-                F = factor_events(cal, ev.get(c) or [])
+                F = factor_events(cal, [(d, f) for d, f, _ in ev.get(c) or []])
                 val = x
             tr = [None if y is None else y * F[i] for i, y in enumerate(cl)]
             B = PT._basis(tr)
