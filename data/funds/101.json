@@ -10,7 +10,7 @@
   "inception": "2019/09/04",
   "risk_level": "RR3",
   "mgmt_fee": "0.60%",
-  "size_twd": 29361450250.0,
+  "size_twd": 31627315121.0,
   "nav": 27.3,
   "nav_date": "2026/10/13",
   "nav_change": 0.14,
@@ -32,27 +32,27 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/101.pdf",
   "dist_date": "2026/09/30",
   "dist_rate": "—",
-  "as_of": "2026/08/31",
+  "as_of": "2026/09/30",
   "top_holdings": [
     {
       "sector": "資訊技術",
       "name": "NVIDIA CORP",
-      "weight": 7.39
+      "weight": 7.48
     },
     {
       "sector": "資訊技術",
       "name": "APPLE INC",
-      "weight": 6.55
+      "weight": 6.75
     },
     {
       "sector": "資訊技術",
       "name": "MICROSOFT CORP",
-      "weight": 5.4
+      "weight": 5.36
     },
     {
       "sector": "非核心消費品",
       "name": "AMAZON.COM INC",
-      "weight": 3.62
+      "weight": 3.46
     },
     {
       "sector": "通訊服務",
@@ -62,17 +62,17 @@
     {
       "sector": "資訊技術",
       "name": "BROADCOM INC",
-      "weight": 2.46
+      "weight": 2.31
     },
     {
       "sector": "通訊服務",
       "name": "ALPHABET INC-CL C",
-      "weight": 2.25
+      "weight": 2.28
     },
     {
       "sector": "通訊服務",
       "name": "META PLATFORMS INC-CLASS A",
-      "weight": 1.8
+      "weight": 2.24
     },
     {
       "sector": "非核心消費品",
@@ -82,80 +82,80 @@
     {
       "sector": "資訊技術",
       "name": "MICRON TECHNOLOGY INC",
-      "weight": 1.54
+      "weight": 1.69
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 83.61
+      "weight": 82.74
     },
     {
       "name": "日本",
-      "weight": 4.0
+      "weight": 3.97
     },
     {
       "name": "英國",
-      "weight": 3.42
+      "weight": 3.33
     },
     {
       "name": "法國",
-      "weight": 2.37
+      "weight": 2.2
     },
     {
       "name": "德國",
-      "weight": 2.09
+      "weight": 1.91
     },
     {
       "name": "流動資產",
-      "weight": 4.51
+      "weight": 5.84
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 35.6
+      "weight": 36.58
     },
     {
       "name": "金融",
-      "weight": 12.38
-    },
-    {
-      "name": "工業",
-      "weight": 9.74
+      "weight": 11.59
     },
     {
       "name": "通訊服務",
-      "weight": 9.15
+      "weight": 9.67
+    },
+    {
+      "name": "工業",
+      "weight": 8.88
     },
     {
       "name": "非核心消費品",
-      "weight": 9.11
+      "weight": 8.56
     },
     {
       "name": "醫療保健",
-      "weight": 8.35
+      "weight": 8.22
     },
     {
       "name": "核心消費品",
-      "weight": 4.04
+      "weight": 3.99
     },
     {
       "name": "能源",
-      "weight": 3.75
+      "weight": 3.74
     },
     {
       "name": "其他",
-      "weight": 3.36
+      "weight": 2.94
     },
     {
       "name": "流動資產",
-      "weight": 4.51
+      "weight": 5.84
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-10-15 09:29",
+  "fetched_at": "2026-10-15 10:29",
   "returns_daily": {
     "1m": 2.98001,
     "3m": 3.68401,

@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/15 09:28",
+  "as_of": "2026/10/15 10:28",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -44,7 +44,7 @@
         {
           "title": "00929配息底氣曝光！投資達人華倫算給你看 0.38元估可續航40個月",
           "url": "https://n.yam.com/Article/20261015968396",
-          "source": "蕃新聞",
+          "source": "https://www.yesmedia.com.tw/",
           "date": "2026-10-15 08:00",
           "datetime": "2026-10-15T08:00:00+08:00"
         }
@@ -161,6 +161,20 @@
       ],
       "items": [
         {
+          "title": "散戶難挑轉機股！00418A雙經理人主動操盤＋不配息機制 穩扣台股新星",
+          "url": "https://www.watchmedia01.com/archives/559395",
+          "source": "觀傳媒",
+          "date": "2026-10-15 10:23",
+          "datetime": "2026-10-15T10:23:13+08:00"
+        },
+        {
+          "title": "破解明星經理人迷思！國際變局加劇 00418A 靠「雙經理人＋近百人團隊」搶戰超額報酬",
+          "url": "https://www.watchmedia01.com/archives/559392",
+          "source": "觀傳媒",
+          "date": "2026-10-15 10:22",
+          "datetime": "2026-10-15T10:22:10+08:00"
+        },
+        {
           "title": "不只台積電！南亞、禾伸堂、高力轉型受關注 00418A主動挖掘AI轉型黑馬機會",
           "url": "https://n.yam.com/Article/20261014770271",
           "source": "蕃新聞",
@@ -173,13 +187,6 @@
           "source": "StockFeel 股感",
           "date": "2026-10-14 10:55",
           "datetime": "2026-10-14T10:55:04+08:00"
-        },
-        {
-          "title": "AI龍頭估值過高買不下手？00418A擴大300大選股池　搶先卡位「下一顆台股新星」 | 生活 | CTWANT",
-          "url": "https://www.ctwant.com/amp/article/502052/",
-          "source": "CTWANT",
-          "date": "2026-10-13 16:15",
-          "datetime": "2026-10-13T16:15:10+08:00"
         }
       ]
     },
@@ -506,9 +513,16 @@
     {
       "platform": "fundhot",
       "board": "ETF",
+      "title": "統一全球新科技10年賺948％！王牌操盤手領軍00411A",
+      "url": "https://fundhot.com/forum/ETF/%E7%B5%B1%E4%B8%80%E5%85%A8%E7%90%83%E6%96%B0%E7%A7%91%E6%8A%8010%E5%B9%B4%E8%B3%BA948%EF%BC%85%EF%BC%81%E7%8E%8B%E7%89%8C%E6%93%8D%E7%9B%A4%E6%89%8B%E9%A0%98%E8%BB%8D00411A/14005",
+      "date": "2026-10-15"
+    },
+    {
+      "platform": "fundhot",
+      "board": "ETF",
       "title": "00929今年賺近80％！兩次換股策略揭開績效關鍵",
       "url": "https://fundhot.com/forum/ETF/00929%E4%BB%8A%E5%B9%B4%E8%B3%BA%E8%BF%9180%EF%BC%85%EF%BC%81%E5%85%A9%E6%AC%A1%E6%8F%9B%E8%82%A1%E7%AD%96%E7%95%A5%E6%8F%AD%E9%96%8B%E7%B8%BE%E6%95%88%E9%97%9C%E9%8D%B5/14004",
-      "date": "2026-10-14"
+      "first_seen": "2026-10-15"
     },
     {
       "platform": "fundhot",
@@ -553,13 +567,6 @@
       "first_seen": "2026-10-12"
     },
     {
-      "platform": "fundhot",
-      "board": "股票",
-      "title": "台股賺贏美股，只有200萬該全押台股還是分散投資？",
-      "url": "https://fundhot.com/forum/%E8%82%A1%E7%A5%A8/%E5%8F%B0%E8%82%A1%E8%B3%BA%E8%B4%8F%E7%BE%8E%E8%82%A1%EF%BC%8C%E5%8F%AA%E6%9C%89200%E8%90%AC%E8%A9%B2%E5%85%A8%E6%8A%BC%E5%8F%B0%E8%82%A1%E9%82%84%E6%98%AF%E5%88%86%E6%95%A3%E6%8A%95%E8%B3%87%EF%BC%9F/13996",
-      "first_seen": "2026-10-12"
-    },
-    {
       "platform": "youtube",
       "title": "100萬買00929 一年爽住15晚五星飯店？ #財經雪倫",
       "channel": "投資嗨什麼",
@@ -589,7 +596,7 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、數位經濟 等 8 檔（詳下方新聞標籤）",
     "品牌焦點：00418A 復華台灣新星主動式 ETF｜成分股？配息？優缺點？募集時間？（StockFeel 股感）",
-    "社群聲量最高：00929今年賺近80％！兩次換股策略揭開績效關鍵（0 推）",
+    "社群聲量最高：統一全球新科技10年賺948％！王牌操盤手領軍00411A（0 推）",
     "YouTube 熱片：100萬買00929 一年爽住15晚五星飯店？ #財經雪倫（投資嗨什麼・17,110 次觀看）"
   ]
 }
