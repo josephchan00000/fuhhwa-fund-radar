@@ -59,18 +59,37 @@ def test_quiet_emerging_run_does_not_trigger_early():
     assert got == df["date"].iloc[60]
 
 
+def main_then_emerging(n_main=60, n_em=30, seed=1):
+    """主板 n_main 筆 → 下市後轉興櫃 n_em 筆（價差改對均價）。"""
+    rng = np.random.default_rng(seed)
+    rows, prev = [], 80.0
+    for _ in range(n_main):
+        close = round(prev * (1 + rng.normal(0, 0.02)), 2)
+        rows.append((close, round(close - prev, 2), 50_000))
+        prev = close
+    for _ in range(n_em):
+        close = round(prev * (1 + rng.normal(0, 0.04)), 2)
+        rows.append((close, round(close - prev * 0.98, 2), 3_000))
+        prev = close
+    df = pd.DataFrame(rows, columns=["close", "spread", "volume"])
+    df["date"] = pd.bdate_range("2016-01-04", periods=len(rows))
+    return df
+
+
 def test_trim_drops_pre_listing_and_post_delisting():
     a = emerging_then_listed().assign(stock_id="7000")
-    b = emerging_then_listed(seed=1).iloc[41:].assign(stock_id="2000")
-    uni = pd.DataFrame({"stock_id": ["7000", "2000"], "is_delisted": [False, True],
-                        "delist_date": [pd.NaT, b["date"].iloc[30]]})
+    b = main_then_emerging().assign(stock_id="2000")
+    # 股票池的下市日（例如清單停更日）只記錄、不拿來切：真的切點由資料判斷
+    uni = pd.DataFrame({"stock_id": ["7000", "2000"], "is_delisted": [True, True],
+                        "delist_date": [a["date"].iloc[60], b["date"].iloc[20]]})
     kept, info = trim(pd.concat([a, b]), uni)
     info = info.set_index("stock_id")
     assert info.loc["7000", "dropped_pre"] == 40 and info.loc["7000", "main_start"] == a["date"].iloc[40]
-    assert info.loc["2000", "dropped_post"] == 29 and pd.isna(info.loc["2000", "main_start"])
-    assert info.loc["2000", "head_match"] == 1.0
+    assert info.loc["7000", "dropped_post"] == 0 and pd.isna(info.loc["7000", "main_end"])
+    assert info.loc["2000", "main_end"] == b["date"].iloc[59] and info.loc["2000", "dropped_post"] == 30
+    assert pd.isna(info.loc["2000", "main_start"]) and info.loc["2000", "head_match"] == 1.0
     assert kept[kept.stock_id == "7000"]["date"].min() == a["date"].iloc[40]
-    assert kept[kept.stock_id == "2000"]["date"].max() == b["date"].iloc[30]
+    assert kept[kept.stock_id == "2000"]["date"].max() == b["date"].iloc[59]
 
 
 def test_official_parse_and_compare():

@@ -656,14 +656,17 @@ def replicate_index(level: pd.Series, capital: float = 10_000_000.0, costs: Cost
                        block_disposition=False, liquidate_at_end=False, costs=costs or Costs.zero())
     scores = pd.DataFrame({"TR": [1.0]}, index=dates[:1])
     res = run_portfolio(m, scores, cfg, top_n=1)
-    eq, lv = res.equity.iloc[1:], lv.iloc[1:]          # 第一天收盤下單、第二天開盤（＝當天指數）買進
+    eq = res.equity
+    entry = dates[1]                                   # 第一天收盤下單、第二天開盤（＝當天指數）買進
     rows = []
-    for y in sorted(set(eq.index.year)):
-        e, b = eq[eq.index.year == y], lv[lv.index.year == y]
-        pe, pb = eq[eq.index.year < y], lv[lv.index.year < y]
-        e0 = pe.iloc[-1] if len(pe) else e.iloc[0]
-        b0 = pb.iloc[-1] if len(pb) else b.iloc[0]
-        rows.append({"year": y, "engine": e.iloc[-1] / e0 - 1, "index": b.iloc[-1] / b0 - 1})
+    for y in sorted(set(dates[1:].year)):
+        e_end = eq[eq.index.year == y].iloc[-1]
+        b_end = lv[lv.index.year == y].iloc[-1]
+        if y == entry.year:                            # 第一年：引擎從下單前的本金算（含買進成本），指數從買進日算
+            e0, b0 = float(cfg.capital), float(lv.loc[entry])
+        else:
+            e0, b0 = eq[eq.index.year < y].iloc[-1], lv[lv.index.year < y].iloc[-1]
+        rows.append({"year": y, "engine": e_end / e0 - 1, "index": b_end / b0 - 1})
     out = pd.DataFrame(rows)
     out["diff"] = out["engine"] - out["index"]
     return out
