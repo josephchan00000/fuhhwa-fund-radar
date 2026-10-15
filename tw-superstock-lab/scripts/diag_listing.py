@@ -70,7 +70,8 @@ def main(argv: list[str]) -> None:
     st = universe_vs_official(client, cfg, off)
     # 停更股票的日 K 型態：整段主板規則符合率（主板 ~99%、興櫃 0–33%）
     today0 = pd.Timestamp.now().date().isoformat()
-    sample = list(st[st["year"] == 2024]["stock_id"].head(8)) + list(st[st["year"] == 2026]["stock_id"].head(8))
+    sample = (list(st[st["year"] == 2024]["stock_id"].head(8)) + list(st[st["year"] == 2026]["stock_id"].head(8))
+              + ["1469", "4712", "3559", "8420"])
     for code in sample:
         p = client.get("TaiwanStockPrice", code, "2008-01-01", today0)
         if p.empty:
@@ -81,7 +82,7 @@ def main(argv: list[str]) -> None:
         _, inf = trim(p.rename(columns={"Trading_Volume": "volume"}).assign(stock_id=code), None)
         r = inf.iloc[0]
         print(f"   [停更日 K] {code}: {p['date'].iloc[0]}～{p['date'].iloc[-1]}（{len(p)} 筆）整段符合率 {pd.Series(m).mean():.2f}"
-              f"、主板首日 {r.main_start}、主板末日 {r.main_end}")
+              f"、主板首日 {r.main_start}、主板末日 {r.main_end}、整檔不留 {r.never_main}")
     today = pd.Timestamp.now().date().isoformat()
     frames = []
     for code in codes:

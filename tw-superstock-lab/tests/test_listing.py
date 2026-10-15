@@ -125,3 +125,17 @@ def test_no_trade_rows_before_listing_are_not_evidence():
         df.loc[k, ["close", "spread", "volume"]] = [df.loc[46, "close"], 0.0, 0]
     got = main_board_start(df["date"], df["close"], df["spread"], df["volume"])
     assert got == df["date"].iloc[50]
+
+
+def test_mid_life_mismatch_run_on_old_stock_is_not_a_listing():
+    """1469 理隆型：老牌主板股中途一段「對不上」（停牌、變更交易方法）後恢復 → 不能把之前十年切掉。"""
+    df = emerging_then_listed(n_em=0, n_main=300, seed=7).iloc[1:].reset_index(drop=True)
+    df.loc[200:225, "spread"] = df.loc[200:225, "spread"] + 1.0     # 中途 26 筆對不上
+    df.loc[226, "volume"] = 900_000
+    assert main_board_start(df["date"], df["close"], df["spread"], df["volume"]) is None
+
+
+def test_pure_emerging_stock_is_dropped():
+    df = emerging_then_listed(n_em=80, n_main=0, seed=8).iloc[:80].assign(stock_id="9990")
+    kept, info = trim(df, None)
+    assert kept.empty and bool(info.iloc[0]["never_main"])

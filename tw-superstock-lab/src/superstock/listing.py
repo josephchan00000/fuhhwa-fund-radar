@@ -83,9 +83,11 @@ def main_board_start(dates, close, spread, volume) -> pd.Timestamp | None:
         post_rate = post_h / post_n
     med = vol.where(vol > 0).rolling(WIN, min_periods=1).median().shift(1).to_numpy(float)
     nxt = np.append(m[1:], np.nan)
+    nxt2 = np.append(m[2:], [np.nan, np.nan])
     v = vol.to_numpy(float)
     spike = np.isnan(med) | (v >= VOL_MULT * med)
-    cand = (pre_n >= MIN_PRE) & (pre_rate <= PRE_MAX) & (nxt == 1.0) & (post_rate >= POST_MIN) & spike
+    # 掛牌後連兩天都符合（6901：掛牌前 3 天剛好有一筆興櫃價差「碰巧對上」）
+    cand = (pre_n >= MIN_PRE) & (pre_rate <= PRE_MAX) & (nxt == 1.0) & (nxt2 == 1.0) & (post_rate >= POST_MIN) & spike
     idx = np.flatnonzero(cand)
     if not len(idx):
         return None
@@ -93,6 +95,10 @@ def main_board_start(dates, close, spread, volume) -> pd.Timestamp | None:
     # （3661 世芯 2012-12）會形成更早的一群。相鄰候選差距 ≤20 筆算同一群，取最後一群的第一天。
     breaks = np.flatnonzero(np.diff(idx) > WIN)
     first = idx[breaks[-1] + 1] if len(breaks) else idx[0]
+    # 整段前綴都要像興櫃才切：老牌股中途停牌、變更交易方法也會出現一小段「對不上」（1469 理隆 2018、
+    # 4712 南璋 2022 曾被誤判，會切掉十年的真實交易）
+    if not first or np.nanmean(m[:first]) > PRE_MAX:
+        return None
     return pd.Timestamp(pd.Series(dates).iloc[first])
 
 
@@ -118,6 +124,9 @@ def main_board_end(dates, close, spread, volume, after: pd.Timestamp | None = No
     # 和掛牌日相反：主板最後幾天的「後 20 筆」已混進興櫃，候選連成一群——取第一群的最後一天
     breaks = np.flatnonzero(np.diff(idx) > WIN)
     last = idx[breaks[0]] if len(breaks) else idx[-1]
+    # 整段後綴都要像興櫃才切（理由同掛牌日）
+    if last + 1 >= n or np.nanmean(m[last + 1:]) > PRE_MAX:
+        return None
     return pd.Timestamp(d[last])
 
 
@@ -127,7 +136,8 @@ def trim(prices: pd.DataFrame, universe: pd.DataFrame | None = None) -> tuple[pd
     delist_date 股票池的下市日（只記錄、不拿來切）、dropped_pre/dropped_post 切掉幾筆）。"""
     if prices.empty:
         return prices, pd.DataFrame(columns=["stock_id", "first_raw", "main_start", "main_end", "last_raw",
-                                             "delist_date", "dropped_pre", "dropped_post", "kept", "head_match"])
+                                             "delist_date", "dropped_pre", "dropped_post", "kept", "head_match",
+                                             "never_main"])
     p = prices.sort_values(["stock_id", "date"], kind="stable").reset_index(drop=True)
     p["date"] = pd.to_datetime(p["date"])
     delist = {}
@@ -149,13 +159,20 @@ def trim(prices: pd.DataFrame, universe: pd.DataFrame | None = None) -> tuple[pd
         pre = (d < np.datetime64(start)) if start is not None else np.zeros(len(g), dtype=bool)
         post = (d > np.datetime64(end)) if end is not None else np.zeros(len(g), dtype=bool)
         dd = delist.get(sid[s])
+        # 從頭到尾都不像主板（一直在興櫃、沒上市櫃過）→ 整檔不留
+        mm = match_series(g["close"].to_numpy(), g["spread"].to_numpy()) if "spread" in g.columns else np.array([1.0])
+        vv = pd.to_numeric(g[vol_col], errors="coerce").to_numpy(float)
+        mm[~(vv > 0)] = np.nan
+        never = start is None and end is None and np.isfinite(mm).sum() >= WIN and np.nanmean(mm) <= PRE_MAX
+        if never:
+            pre = np.ones(len(g), dtype=bool)
         keep[s:e] = ~(pre | post)
         head = match_series(g["close"].to_numpy(), g["spread"].to_numpy())[:WIN + 1] \
             if "spread" in g.columns else np.array([np.nan])
         rows.append({"stock_id": sid[s], "first_raw": pd.Timestamp(d[0]), "main_start": start, "main_end": end,
                      "last_raw": pd.Timestamp(d[-1]),
                      "delist_date": dd, "dropped_pre": int(pre.sum()), "dropped_post": int(post.sum()),
-                     "kept": int((~(pre | post)).sum()),
+                     "kept": int((~(pre | post)).sum()), "never_main": bool(never),
                      "head_match": float(np.nanmean(head)) if np.isfinite(head).any() else np.nan})
     info = pd.DataFrame(rows)
     info["main_start"] = pd.to_datetime(info["main_start"])
