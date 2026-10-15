@@ -26,6 +26,11 @@ SLUG = "x9.html"
 
 def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
     data = analyze.run()
+    try:                                     # 後台自我驗證紀錄（只有 CI 寫回 data/lab/val_log.json）
+        from . import valog
+        data["vlog"] = valog.update(data)
+    except Exception as e:                   # noqa: BLE001 —— 紀錄失敗不影響建頁
+        data["vlog"] = {"err": f"{type(e).__name__}: {e}"}
     sj = ser_json(data)
     changed = False
     for path, text in ((out_ser, sj), (out, render(data, ser_v=_ver(sj)))):
