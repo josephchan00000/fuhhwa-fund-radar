@@ -171,11 +171,12 @@ def test_bt3d_panel_total_return_prices_and_month_end_caps(tmp_path, monkeypatch
     # Yahoo：1/04 除息 0.5（還原收盤在除息前是 收盤 × 0.95）
     y = [10, 10] + [9.5] * (n - 2)
     store.write("v3px", "1101", {"m": "tw", "src": "yahoo", "t": t, **flat(y), "v": [1000] * n,
-                                 "a": [9.5] * n})
+                                 "a": [9.8] * 2 + [9.5] * (n - 2)})          # Yahoo 少扣（0.98），以官方 0.95 為準
     # FinMind 原始價（已下市）：1/04 除息，前收 20、參考價 19
     store.write("v3px", "2311", {"m": "?", "src": "finmind", "t": t, **flat([20, 20] + [19] * (n - 2)),
                                  "v": [5] * n, "val": [100.0] * n})
-    store.write("divtw", "2013", {"rows": [["2013-01-04", "2311", 1.0, "息", 20.0, 19.0]]})
+    store.write("divtw", "2013", {"rows": [["2013-01-04", "2311", 1.0, "息", 20.0, 19.0],
+                                          ["2013-01-04", "1101", 0.5, "息", 10.0, 9.5]]})
     store.write("v3me_tw", "2013-01", {"d": "2013-01-03", "s": {"1101": [10.0, 3e9], "2311": [20.0, 1e9]}})
     P = bt3d.Panel(min_days=3)
     assert P.codes == ["1101", "2311"] and P.T == n
