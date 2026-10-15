@@ -894,8 +894,9 @@ def probe_v3() -> None:
     log(f"[v3探針] TWT49U 2014：{len(rows)} 列 樣本 {rows[:2]}")
 
 
-def yahoo_hist_from(sym: str, start: str) -> dict[str, list]:
-    """Yahoo 日線（指定起日，period1／period2；range=max 會被降成月線）。格式同 yahoo_hist。"""
+def yahoo_hist_from(sym: str, start: str, *, adj: bool = False) -> dict[str, list]:
+    """Yahoo 日線（指定起日，period1／period2；range=max 會被降成月線）。格式同 yahoo_hist；
+    adj＝True 時每列多一欄還原收盤（adjclose：還原現金股利；Yahoo 的 o／h／l／c 已還原股票股利與分割）。"""
     import urllib.parse
     from datetime import datetime, timezone
 
@@ -914,6 +915,7 @@ def yahoo_hist_from(sym: str, start: str) -> dict[str, list]:
         return {}
     ts = res.get("timestamp") or []
     q = ((res.get("indicators") or {}).get("quote") or [{}])[0] or {}
+    aj = ((((res.get("indicators") or {}).get("adjclose") or [{}])[0]) or {}).get("adjclose") or []
     today = clock.today_tw().isoformat()
     out = {}
     for i, t in enumerate(ts):
@@ -928,8 +930,66 @@ def yahoo_hist_from(sym: str, start: str) -> dict[str, list]:
         c = g("close")
         if c:
             v = g("volume")
-            out[d.isoformat()] = [g("open"), g("high"), g("low"), c, None if v is None else int(v)]
+            row = [g("open"), g("high"), g("low"), c, None if v is None else int(v)]
+            if adj:
+                a = aj[i] if i < len(aj) else None
+                row.append(None if a is None else round(float(a), 6))
+            out[d.isoformat()] = row
     return out
+
+
+def parse_mfi94u(doc) -> dict[str, float]:
+    """證交所發行量加權股價報酬指數（月表）→ {日期: 指數}。"""
+    out = {}
+    for fields, rows in tables(doc):
+        for r in rows:
+            d = _roc_date(r[0]) if r else None
+            v = num(r[1]) if len(r) > 1 else None
+            if d and v:
+                out[d] = v
+    return out
+
+
+def twse_tr_month(y: int, m: int) -> dict[str, float] | None:
+    """一個月的加權報酬指數；抓不到回 None（呼叫端下一輪再試）。"""
+    doc, st = _get(f"https://www.twse.com.tw/rwd/zh/TAIEX/MFI94U?date={y:04d}{m:02d}01&response=json",
+                   sleep=UA_SLEEP_TWSE)
+    if st == "nodata":
+        return {}
+    return parse_mfi94u(doc) if st == "ok" else None
+
+
+def parse_tp_exright(doc) -> list[list]:
+    """櫃買除權息計算結果表 → [[除權息日 ISO, 代號, 除權息前收盤價, 除權息參考價, 現金股利, 每仟股無償配股]]。"""
+    out = []
+    for fields, rows in tables(doc):
+        cd, cc = col(fields, "除權息日期"), col(fields, "代號")
+        cp, cr = col(fields, "前收盤"), col(fields, "參考價", excl=("減除",))
+        cs, ck = col(fields, "現金股利"), col(fields, "無償配股")
+        if None in (cd, cc, cp, cr):
+            continue
+        for r in rows:
+            c = _TAG.sub("", str(r[cc])).strip()
+            d = _roc_date(r[cd])
+            if CODE_RE.match(c) and d:
+                out.append([d, c, num(r[cp]), num(r[cr]), num(r[cs]) if cs is not None else None,
+                            num(r[ck]) if ck is not None else None])
+    if not out:
+        tb = tables(doc)
+        if tb:
+            _probe("櫃買除權息", *max(tb, key=lambda t: len(t[1])))
+    return out
+
+
+def tpex_exright_year(y: int) -> list[list] | None:
+    r = y - 1911
+    url = (f"https://www.tpex.org.tw/web/stock/exright/dailyquo/exDailyQ_result.php?l=zh-tw"
+           f"&d={r}/01/01&ed={r}/12/31&o=json")
+    doc, st = _get(url, sleep=UA_SLEEP_TPEX, timeout=40)
+    if st != "ok":
+        log(f"櫃買除權息 {y} {st}")
+        return None
+    return parse_tp_exright(doc)
 
 
 def probe_v3b() -> None:

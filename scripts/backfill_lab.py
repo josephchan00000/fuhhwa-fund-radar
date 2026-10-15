@@ -34,6 +34,7 @@ def main() -> None:
     ap.add_argument("--rev-probe", action="store_true", help="月營收全市場歷史的來源探針（MOPS 彙總表、FinMind），只印不寫")
     ap.add_argument("--rev-mops", action="store_true", help="月營收全市場歷史（MOPS 彙總表，2020-01 起；可重跑續補）")
     ap.add_argument("--rev-fm", action="store_true", help="月營收全市場歷史備援：FinMind 逐檔（五年日線宇宙，2020-01 起）")
+    ap.add_argument("--v3", action="store_true", help="回測 v3 長歷史資料（2013 起、含下市、含息、月底市值；五條線平行，可重跑續補）")
     ap.add_argument("--probe-v3", action="store_true", help="回測 v3 資料源探針（報酬指數、櫃買除權息、2012 起月營收、"
                     "Yahoo 長歷史與下市股、FinMind EPS／發行股數），只印不寫")
     a = ap.parse_args()
@@ -41,6 +42,10 @@ def main() -> None:
 
     if a.rev_probe:
         market.probe_rev()
+        return
+    if a.v3:
+        from arm.lab import v3data
+        v3data.run(budget_s=a.budget_min * 60)
         return
     if a.probe_v3:
         market.probe_v3b() if "b" in (os.environ.get("LAB_MODE") or "") else market.probe_v3()
