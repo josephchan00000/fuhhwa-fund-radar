@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/15 21:21",
+  "as_of": "2026/10/15 21:20",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -556,7 +556,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
       "date": "2026-10-11",
-      "views": 17466,
+      "views": 17464,
       "short": true
     },
     {
@@ -565,7 +565,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
       "date": "2026-10-12",
-      "views": 6375
+      "views": 6339
     },
     {
       "platform": "youtube",
@@ -573,7 +573,7 @@
       "channel": "小童 x Happy Trading Life",
       "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
       "date": "2026-10-13",
-      "views": 1969,
+      "views": 1974,
       "short": true
     },
     {
@@ -582,7 +582,7 @@
       "channel": "安聯投信 Allianz Global Investors Taiwan",
       "url": "https://www.youtube.com/shorts/b-T8DfBiuuk",
       "date": "2026-10-12",
-      "views": 263673,
+      "views": 250627,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -593,7 +593,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/XFDp4rY4FsQ",
       "date": "2026-10-12",
-      "views": 184851,
+      "views": 184655,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -685,6 +685,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A、全方位（詳下方新聞標籤）",
     "品牌焦點：00418A 復華台灣新星主動式 ETF｜成分股？配息？優缺點？募集時間？（StockFeel 股感）",
     "社群聲量最高：人生別只剩AI，持股也是；適時減碼，有益健康（0 推）",
-    "YouTube 熱片：00412A 速懂！10月13日盛大掛牌上市（安聯投信 Allianz Global Investors Taiwan・263,673 次觀看）"
+    "YouTube 熱片：00412A 速懂！10月13日盛大掛牌上市（安聯投信 Allianz Global Investors Taiwan・250,627 次觀看）"
   ]
 }
