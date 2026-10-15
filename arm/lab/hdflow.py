@@ -146,6 +146,11 @@ def realized(D, H, cfg: dict, P=None) -> list[dict]:
                 rr, rx = P.ret(c, A + 1, True, T1, False) if A + 1 <= T1 < D.T else (None, None)
                 row["ride"] = None if rx is None else round(rx * 100, 2)
                 row["ride_r"] = None if rr is None else round(rr * 100, 2)
+                if rr is not None:                                # 逐筆交易表：實際買賣日與當時價格（原始價，未換口徑）
+                    sr = H.ser(c)
+                    o0 = sr["o"][A + 1]
+                    row.update({"bd": D.cal[A + 1], "bp": None if o0 is None else round(o0 * sr["F"][A + 1], 2),
+                                "sp": sr["raw"][T1], "held": T1 - A})
                 g = _gx(P, c, A + 1, True, T1, False)[1]          # 名單公開後 → 最後一天（不扣成本；刪除股＝先賣掉避開的部分）
                 row["ann"] = None if g is None else round(g, 2)
                 out.append(row)
@@ -216,6 +221,18 @@ def _units(rows: list[dict], sel, rf: str, xf: str) -> list[dict]:
     return out
 
 
+def _pack_tr(rows: list[dict]) -> dict:
+    """逐筆交易表（策略頁「名單公開後追買」；docs/lab_trades_plan.md）：估計被動買盤 ≥BIG 日量的納入股，
+    名單公開後第一個交易日開盤買、被動買盤最後一天收盤賣；依 ETF＋審核分組（同 _units 的每次審核等額平均）。
+    依據欄＝[ETF, 估計被動買盤（幾日量）, 實際（幾日量）]。"""
+    from . import trades
+    trs = [{"c": r["c"], "d": r["A"], "bd": r.get("bd"), "sd": r["t1"], "entry": r.get("bp"), "exit": r.get("sp"),
+            "r": r["ride_r"], "x": r.get("ride"), "st": "closed", "why": "被動買盤最後一天收盤賣", "held": r.get("held"),
+            "grp": f"{ETF[r['k']]} {r['rev']}", "etf": ETF[r["k"]], "est": r.get("est"), "days": r.get("days")}
+           for r in rows if r["side"] == "add" and _big(r) and r.get("ride_r") is not None]
+    return trades.pack_simple(trs, ALERT.get("since"), grp="grp", info=lambda t: [t["etf"], t.get("est"), t.get("days")])
+
+
 def _big(r) -> bool:
     return (r.get("est") or 0) >= BIG
 
@@ -276,6 +293,7 @@ def study(rows: list[dict], F: dict, reps: list[dict] | None = None, D=None, H=N
                   bk("del", ((None, -5), (-5, -2), (-2, None))),
             "tests": tests, "big": BIG, "after": AFTER,
             "units": {"ride5": _units(rows, lambda r: r["side"] == "add" and _big(r), "ride_r", "ride")},
+            "tr": _pack_tr(rows),
             "ex": [[r["c"], r["n"], ETF[r["k"]], r["rev"], r["days"], r["val"], r["fm"], r["in"], r["p10"]] for r in ex],
             "n_rev": len({(r["k"], r["rev"]) for r in rows}), "n_add": len(adds)}
 

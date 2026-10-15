@@ -463,9 +463,10 @@ def build(data: dict) -> dict:
     cal = calendar(picks, v3["live"], {g["k"]: g for g in grades3}, order, {b["k"]: b for b in bk}, s3, s5,
                    sum(1 for x in grow.get("screen") or [] if x.get("pass")), last)
     opp = opps(bk, cal, picks)
+    tbook, tnames = trade_book(data, v3["live"], {g["k"] for g in grades3})
     return {"rule": RULE3, "rule_old": RULE, "pay3": PAY3, "cost3": COST3, "rule_stop": RULE_STOP, "caps": CAP,
             "loss_cap": LOSS_CAP, "grades": grades, "grades3": grades3, "picks": picks, "watch": watch, "exits": exits,
-            "book": bk, "cal": cal, "nxt": nxt, "opp": opp,
+            "book": bk, "cal": cal, "nxt": nxt, "opp": opp, "trades": tbook, "tnames": tnames,
             "pack": pack, "v3": {"live": v3["live"], "basket": v3["basket"], "meta": v3["meta"]}, "last": last,
             "v3err": (data.get("v3") or {}).get("err") or (data.get("v3ex") or {}).get("err")}
 
@@ -753,6 +754,54 @@ def _ev(oos: dict | None, ins: dict) -> tuple:
     return (1, -(ti if ti is not None else -9), 0)
 
 
+# —— 逐筆交易（docs/lab_trades_plan.md；2026-10-15 使用者：「每個策略都要有像 0050 策略的逐筆歷史交易，我才能去驗證」）
+
+TR_KIND = {"s1": "trade", "s5": "trade", "s3": "rev", "hd": "rev"}   # 其餘（月營收、財報驚喜）＝per（每期換股）
+
+
+def trade_book(data: dict, live: dict, keys: set) -> tuple[dict, dict]:
+    """策略頁「逐筆交易」：每條策略一份 {kind, unit, since, res, fwd}（trades.pack 的緊湊陣列）＋代號 → 名稱。
+    既有策略的陣列由各自模組附在 strat／grow／idx 上，這裡取出來集中（pop：頁面不重複內嵌）。"""
+    from . import store
+    out: dict = {}
+    for k, v in (live or {}).items():
+        if k in keys:
+            out[k] = {"kind": "per", "unit": v.get("unit"), "since": v.get("since"), "src": v.get("src"), "b": v.get("b"),
+                      "res": v.pop("tr_res", None), "fwd": v.pop("tr", None)}
+    L = {x.get("key"): x for x in ((data.get("strat") or {}).get("list") or [])}
+    if L.get("s1"):
+        out["s1"] = {"kind": "trade", "unit": "檔", "since": L["s1"].get("since"), "res": L["s1"].pop("tr", None)}
+    if L.get("s3"):
+        for vv in L["s3"].get("vers") or []:
+            t = vv.pop("tr", None)
+            if vv.get("k") == "early" and t:
+                out["s3"] = {"kind": "rev", "unit": "次", "since": vv.get("since"), "res": t}
+    s5 = (data.get("grow") or {}).get("s5") or {}
+    if s5.get("tr"):
+        out["s5"] = {"kind": "trade", "unit": "檔", "since": s5.get("since"), "res": s5.pop("tr")}
+    flow = (((data.get("idx") or {}).get("hd") or {}).get("flow") or {})
+    if flow.get("tr"):
+        out["hd"] = {"kind": "rev", "unit": "次", "res": flow.pop("tr"),
+                     "since": ((((data.get("idx") or {}).get("hd") or {}).get("alert") or {}).get("since"))}
+    from . import trades
+    try:                                              # 既有策略：Yahoo 補的價格換回當時實際價（trades.reprice）
+        raw = trades.Raw()
+        for k in ("s1", "s3", "s5", "hd"):
+            if out.get(k):
+                out[k]["rp"] = trades.reprice(out[k].get("res"), raw)
+    except Exception as e:                            # noqa: BLE001 —— 換不回來就照原價顯示
+        for k in ("s1", "s3", "s5", "hd"):
+            if out.get(k):
+                out[k]["rp"] = {"err": f"{type(e).__name__}: {e}"}
+    codes = {r[0] for t in out.values() for part in ("res", "fwd") for r in ((t.get(part) or {}).get("tr") or [])}
+    nm = {**(store.read_json("names_hist.json", {}) or {}), **(store.read_json("names_mkt.json", {}) or {}),
+          **(store.read_json("names.json", {}) or {})}
+    for r in data.get("rows") or []:
+        if r.get("c") and r.get("n"):
+            nm.setdefault(r["c"], r["n"])
+    return {k: v for k, v in out.items() if k in keys or k in ("s1", "s3", "s5", "hd")}, {c: nm[c] for c in sorted(codes) if c in nm}
+
+
 def _exp3(d: dict, unit: str) -> dict:
     if not d or not d.get("n"):
         return {}
@@ -802,7 +851,8 @@ def build_v3(v3: dict, ex: dict, last: str | None) -> dict:
                         "size": size(g["grade"], px, None), "oos": True,
                         "oos_txt": _oos_txt(r["oos"], v["unit"])}
                 _put(item, picks, watch)
-            live[k] = {**{x: v.get(x) for x in ("k", "src", "b", "name", "unit", "since", "fwd", "now", "next", "due")},
+            live[k] = {**{x: v.get(x) for x in ("k", "src", "b", "name", "unit", "since", "fwd", "now", "next", "due", "tr")},
+                       "tr_res": r.get("trades"),
                        "grade": g["grade"], "why": g["why"], "rules": V3_RULES[v["src"]], "bucket": BUCKET_TXT[v["b"]],
                        "res": {x: r.get(x) for x in ("oos", "ins", "nb", "nb_oos", "sub", "fsub", "curve", "dist", "ver", "lowdd",
                                                      "all", "yearly", "acurve")}}

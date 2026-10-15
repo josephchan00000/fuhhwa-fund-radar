@@ -437,7 +437,8 @@ def _s5_sim(P: Panel, cands: list[tuple[int, str]], idx: list, io: list, sp: dic
             xe = round((r - (ew[0][xi] / ew[1][j] - 1)) * 100, 2)
         held_until[c] = xi if done else T
         recs.append({**base, "st": "closed" if done else "open", "entry": e, "exit" if done else "now": S["c"][xi],
-                     "held": xi - t, "why": ("停損／回落出場" if xi - j < sp["maxd"] else "滿 250 日") if done else None,
+                     "held": xi - t, "bd": cal[j], **({"sd": cal[xi]} if done else {}), "hd": xi - j + 1,
+                     "why": ("停損／回落出場" if xi - j < sp["maxd"] else "滿 250 日") if done else None,
                      "r": round(r * 100, 2), "x": None if b is None else round((r - b) * 100, 2), "xe": xe,
                      **({"lock": lock} if lock else {})})
     return recs
@@ -532,7 +533,14 @@ def s5_trades(P: Panel, rev_hist: dict, rev_shards: dict, idx: list, io: list, r
             "fwd": fwd[-40:], "ins": ins[-40:], "fwd_stats": agg(fwd), "ins_stats": agg(ins), "dist": dist(ins),
             "score": advice.score(advice.closed(ins), fwd_units=advice.closed(fwd), reg=reg, nb=nb, xe_rule=True),
             "alt": alt, "fill": {"lim": 0, "lock": sum(1 for r in ins if r.get("lock"))},
-            "screen_d": next_screen(cal[-1]) if cal else None}
+            "screen_d": next_screen(cal[-1]) if cal else None,
+            "tr": _pack_tr(recs)}
+
+
+def _pack_tr(recs: list[dict]) -> dict:
+    """逐筆交易表（全部，含沒進場的；docs/lab_trades_plan.md）。"""
+    from . import trades
+    return trades.pack_simple(recs, S5["since"])
 
 
 def advice_score(recs: list[dict], reg: dict | None) -> dict:

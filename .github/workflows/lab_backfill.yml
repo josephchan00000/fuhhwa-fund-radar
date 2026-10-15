@@ -80,6 +80,8 @@ jobs:
             python3 scripts/backfill_lab.py --yhl --budget-min 45
           elif [ "$MODE" = "hd" ] || [ "${MODE#hd}" != "$MODE" ]; then
             python3 scripts/backfill_lab.py --hd --budget-min 45
+          elif [ "$MODE" = "names" ]; then
+            python3 scripts/backfill_lab.py --names
           elif [ "$MODE" = "revprobe" ]; then
             python3 scripts/backfill_lab.py --rev-probe
           elif [ "${MODE#v3fill}" != "$MODE" ]; then
