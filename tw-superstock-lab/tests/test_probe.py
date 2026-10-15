@@ -63,8 +63,8 @@ def test_probe_report_from_store_and_extra_calls(cfg):
     assert ds["TaiwanStockPriceAdj"]["ok"] is True and ds["TaiwanStockPriceAdj"]["rows"] == 1
     assert ds["TaiwanStockMarginPurchaseShortSale"]["disabled"]  # 下載時連 3 檔失敗被停用
     assert result["semantics"]["revenue"]["date_is_first_of_next_month"] == 1.0
-    # 只對本機沒有資料的逐檔資料集各送一次（extended 群組 5 個）
-    assert client.calls - before == 5
+    # 只對本機沒有資料的逐檔資料集各送一次（extended 群組 3 個＋sponsor 群組 3 個；sponsor 預設不下載）
+    assert client.calls - before == 6
     path = write_probe_report(result, cfg.reports_dir, generated_at="2026-10-15 20:00")
     text = path.read_text(encoding="utf-8")
     assert "TaiwanStockPriceAdj" in text and (cfg.reports_dir / "live_probe.json").exists()
