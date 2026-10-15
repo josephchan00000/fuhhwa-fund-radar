@@ -527,6 +527,14 @@ def run(data: Data | None = None) -> dict:
         idx_out = indexes.run(D, L, meta, clock.today_tw())
     except Exception as e:                                # noqa: BLE001 —— 指數區塊失敗不拖垮整頁
         idx_out = {"err": f"{type(e).__name__}: {e}"}
+    # 高股息「依編製規則提前卡位」回測（2026-10-15）：自己載入五年日線，約十幾秒；失敗不影響其他區塊
+    try:
+        from . import hdpre
+        if isinstance(idx_out.get("hd"), dict):
+            idx_out["hd"]["pre"] = hdpre.page_data()
+    except Exception as e:                                # noqa: BLE001
+        if isinstance(idx_out.get("hd"), dict):
+            idx_out["hd"]["pre"] = {"err": f"{type(e).__name__}: {e}"}
     stats = backtest.signal_stats(D, sig_hist, taiex)
     from . import strategy
     try:

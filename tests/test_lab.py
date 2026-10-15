@@ -841,7 +841,7 @@ def test_hdflow_phase_and_per_review_weighting():
 
 def test_hd_flow_sections_alert_card_and_today_row():
     js = page._JS
-    for k in ("function hdFlowSec(", "'idx-hdw'", "h+=hdPredSec(X.hd)+hdStudySec(X.hd)+hdFlowSec(X.hd);",
+    for k in ("function hdFlowSec(", "'idx-hdw'", "h+=hdPredSec(X.hd)+hdStudySec(X.hd)+hdFlowSec(X.hd)+hdPreSec(X.hd);",
               "function hdGroups(", "stSec('hd'", "hdGroups(true)", "hdGroups(false)", "+hdRisk());", "function hdRisk(",
               "'被動買賣日量':", "'被動買賣提醒':", "data-at=\"st-hd\""):
         assert k in js, k
@@ -962,3 +962,97 @@ def test_strategy_s4_removed_and_tw50_single_strategy():
     assert not hasattr(strategy, "_other_new")
     txt = str(strategy.STRATEGIES) + str(strategy.S3)
     assert "群益" not in txt and "——" not in str(strategy.TW50_VERS)
+
+
+# —— 高股息「依編製規則提前卡位」回測（arm/lab/hdpre.py，2026-10-15）
+
+class _FakeD:
+    def __init__(self, n):
+        self.cal = [f"2026-01-{i + 1:02d}" for i in range(n)]
+        self.T = n
+
+
+class _FakeP:
+    """開盤＝收盤＝px[代號][i]；加權指數固定 100（超額＝報酬）。"""
+    def __init__(self, px, n):
+        self.D, self.p = _FakeD(n), px
+
+    def px(self, c, i, opn):
+        xs = self.p.get(c) or []
+        return xs[i] if 0 <= i < len(xs) else None
+
+    def bx(self, i, opn):
+        return 100.0
+
+    def ret(self, c, i0, o0, i1, o1):
+        p0, p1 = self.px(c, i0, o0), self.px(c, i1, o1)
+        if not p0 or not p1:
+            return None, None
+        r = p1 / p0 - 1 - 0.00585
+        return r, r
+
+
+def _hd_ev():
+    # 截止日 C＝5、公告 N＝8、被動買盤 T0＝8～T1＝11；官方納入 A、B（C 猜錯）
+    return {"key": "tip_hd", "review": "2026-05", "C": 5, "A": 8, "N": 8, "T0": 8, "T1": 11, "act": ["A", "B"],
+            "stays": [f"S{i}" for i in range(5)],
+            "preds": {0: {"adds": ["A", "C"], "est": {"A": [10.0, 8.0], "C": [5.0, 6.0]}},
+                      3: {"adds": ["A", "D"], "est": {"A": [10.0, 7.0], "D": [4.0, 9.0]}}},
+            "truth": {"A": [10.0, 8.0], "B": [9.0, 12.0]}}
+
+
+def _hd_px():
+    up = [100.0 + i for i in range(14)]
+    flat = [100.0] * 14
+    return {"A": up, "B": up, "C": flat, "D": flat, **{f"S{i}": flat for i in range(5)}}
+
+
+def test_hdpre_main_spec_is_fixed():
+    from arm.lab import hdpre
+    assert hdpre.MAIN == {"lead": 0, "th": 5.0, "exit": "T1"}          # 看結果前寫死的主規格，不得事後改
+    assert hdpre.capw("tip_hd", "2025-05") == 0.15 and hdpre.capw("tip_hd", "2024-12") == 0.10
+    assert hdpre.capw("tip_tech", "2026-06") == 0.10
+
+
+def test_hdpre_capped_weights_sum_to_one():
+    from arm.lab import hdpre
+    w = hdpre._capped({"a": 0.6, "b": 0.3, "c": 0.1}, 0.4)
+    assert abs(sum(w.values()) - 1) < 1e-9 and abs(w["a"] - 0.4) < 1e-9 and w["b"] > w["c"]
+
+
+def test_hdpre_simulate_cutoff_correction_and_official_miss():
+    from arm.lab import hdpre
+    P, ev = _FakeP(_hd_px(), 14), _hd_ev()
+    t0 = {t["c"]: t for t in hdpre.simulate(ev, P, 0, 5.0)}                # 截止日隔天（6）開盤買 A、C
+    assert set(t0) == {"A", "C"} and t0["A"]["i0"] == 6 and t0["A"]["i1"] == 11
+    assert t0["C"]["i1"] == 9 and t0["C"]["why"] == "官方沒有納入"            # 公告後第一個交易日開盤賣
+    t3 = {t["c"]: t for t in hdpre.simulate(ev, P, 3, 5.0)}                # 提前 3 日（3）買 A、D；截止日校正
+    assert t3["A"]["i0"] == 3 and t3["D"]["i1"] == 6 and t3["D"]["why"] == "截止日名單沒有"
+    assert t3["C"]["i0"] == 6                                              # 截止日名單新增的補進
+    tp = {t["c"]: t for t in hdpre.simulate(ev, P, 0, 5.0, perfect=True)}  # 完美預知：官方名單
+    assert set(tp) == {"A", "B"} and all(t["hit"] for t in tp.values())
+    assert hdpre.simulate(ev, P, 0, 10.0, perfect=True)[0]["c"] == "B"    # 門檻：只有 ≥10 日量的
+
+
+def test_hdpre_simulate_ann_and_per_review():
+    from arm.lab import hdpre
+    P, ev = _FakeP(_hd_px(), 14), _hd_ev()
+    tr = {t["c"]: t for t in hdpre.simulate_ann(ev, P, 2, 5.0)}            # 公告前 2 日（6）開盤買
+    assert tr["A"]["i0"] == 6 and tr["A"]["i1"] == 11 and tr["C"]["i1"] == 9
+    assert hdpre.simulate_ann(ev, P, 3, 5.0) == []                         # 進場日不晚於截止日 → 不做
+    u = hdpre.per_review(list(tr.values()))
+    assert len(u) == 1 and u[0]["n"] == 2 and u[0]["review"] == "tip_hd:2026-05"
+    assert abs(u[0]["r"] - (tr["A"]["r"] + tr["C"]["r"]) / 2) < 1e-9 and u[0]["hit"] == 1
+
+
+def test_hd_conv_window_single_day_rebalance():
+    """00929 2024-06 沒有過渡期（生效日收盤一次換完）：過渡期最後一天早於公告日時，期間＝公告日～最後一天。"""
+    from arm.lab import hdstudy as HS
+    h = {"announce": "2024-06-28", "effective": "2024-06-28", "trans_start": "2024-06-28", "trans_end": "2024-06-28"}
+    assert HS._conv_window(None, "tip_tech", h) == ("2024-06-28", "2024-06-28")
+
+
+def test_hdpre_page_sections():
+    js = page._JS
+    for k in ("function hdPreSec(", "sec('idx-hdpre'", "data-at=\"idx-hdpre\"", "v.k==='main'||v.k==='ann3'"):
+        assert k in js, k
