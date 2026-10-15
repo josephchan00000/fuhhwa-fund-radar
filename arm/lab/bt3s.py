@@ -127,15 +127,15 @@ def p5_rows(P, E, b, codes, start, look=5):
 
 
 def p3_rows(P, E, b, codes, eps, hold=60):
-    """每個法定期限一次：期限次一交易日開盤買、持有 hold 個交易日（期與期之間持有現金）。"""
+    """每個法定期限一次：期限當天（遇假日順延到下一個交易日）收盤決定、隔天開盤買、持有 hold 個交易日
+    （期與期之間持有現金）。"""
     cs = set(codes) & set(eps)
     out = []
     for q in sorted({q for e in eps.values() for q in e}):
-        dl = PT.deadline(q)
-        j = next((i for i, d in enumerate(P.cal) if d > dl), None)
-        if j is None:
+        t = PT.form_after_deadline(P.cal, PT.deadline(q))
+        if t is None:
             continue
-        t = j - 1
+        j = t + 1
         x = j + hold - 1
         sc = {}
         for c in E(t, b):

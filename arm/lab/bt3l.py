@@ -180,3 +180,78 @@ def top5(P=None, *, buckets=("M", "L"), with_grid: bool = True, n: int = 5) -> d
                            umin=20, event=True, grid=((40, 60, 80), NV, ("持有天數", "買進檔數")) if with_grid else None)
         out[b] = r
     return out
+
+
+# ── 研究結果檔（頁面讀；scripts/run_bt3.py 產生，資料或規則改了才重跑） ──────────────────
+
+V3 = [  # (鍵, 來源, 名稱, 範圍, 版本, 單位, 事件型) —— 前 5 檔版本是使用者選的「本期操作」版本（第 13 節）
+    ("v7m", "p7", "月營收驚喜", "M", "top5", "月", False), ("v3l", "p3", "財報驚喜", "L", "top5", "季", True),
+    ("v7l", "p7", "月營收驚喜", "L", "top5", "月", False), ("v3m", "p3", "財報驚喜", "M", "top5", "季", True)]
+BASKET = [("p7", "月營收驚喜", "月", False), ("p3", "財報驚喜", "季", True), ("p1", "相對強勢", "月", False),
+          ("p4", "價值＋動能", "月", False), ("p2", "趨勢突破", "筆", False), ("p5", "短期反轉", "週", False)]
+
+
+def _r(v, k=2):
+    return None if v is None or (isinstance(v, float) and v != v) else (round(v, k) if isinstance(v, float) else v)
+
+
+def _side(part: dict) -> dict:
+    s, p, f, a, e = part["sel"], part["pay"], part.get("fac") or {}, part.get("acc") or {}, part.get("ew") or {}
+    ratio = p.get("ratio")
+    return {"n": s.get("n"), "xe": _r(s.get("xe")), "t": _r(s.get("t")), "pos": _r(s.get("pos"), 0), "drop5": _r(s.get("drop5")),
+            "x2": _r(part.get("x2")), "win": _r(p.get("win"), 0), "m": _r(p.get("m")),
+            "ratio": None if ratio is None else (99.0 if ratio == float("inf") else _r(ratio, 1)), "pay_ok": bool(p.get("ok")),
+            "sp": _r(f.get("sp")), "sp_t": _r(f.get("t")), "mono": _r(f.get("mono")), "q": [_r(x) for x in f.get("q") or []],
+            "cagr": _r(a.get("cagr"), 1), "mdd": _r(a.get("mdd"), 0), "ew_cagr": _r(e.get("cagr"), 1), "ew_mdd": _r(e.get("mdd"), 0),
+            "d0": a.get("d0"), "d1": a.get("d1")}
+
+
+def _curve(units: list[dict]) -> dict:
+    s = e = 1.0
+    out = {"d": [], "s": [], "e": []}
+    for u in units:
+        if u.get("r") is None or u.get("ew") is None:
+            continue
+        s *= 1 + u["r"] / 100
+        e *= 1 + u["ew"] / 100
+        out["d"].append(u["d"])
+        out["s"].append(round(s, 4))
+        out["e"].append(round(e, 4))
+    return out
+
+
+def _dist(units: list[dict]) -> dict:
+    """每期（或每筆）扣成本後報酬的分布（樣本內＋樣本外）：給「本期操作」卡的預估報酬。"""
+    rs = sorted(u["r"] for u in units if u.get("r") is not None)
+    if not rs:
+        return {}
+    q = lambda p: rs[min(len(rs) - 1, max(0, round(p * (len(rs) - 1))))]
+    med = statistics.median(rs)
+    hd = [u["hd"] for u in units if u.get("hd")]
+    return {"n": len(rs), "med": round(med, 2), "p25": round(q(0.25), 2), "p75": round(q(0.75), 2),
+            "win": round(100 * sum(1 for x in rs if x > 0) / len(rs)), "kwin": sum(1 for x in rs if x > 0),
+            "lo": round(rs[0], 2), "hi": round(rs[-1], 2), "per10": round(med * 1000), "lo10": round(rs[0] * 1000),
+            "hd": round(statistics.mean(hd)) if hd else None}
+
+
+def _row(k, src, name, b, ver, unit, event, r) -> dict:
+    nb, no = r.get("nb") or {}, r.get("nb_oos") or {}
+    return {"k": k, "src": src, "name": name, "b": b, "ver": ver, "unit": unit, "event": event,
+            "grade": r["grade"]["grade"], "why": r["grade"]["why"],
+            "oos": _side(r["oos"]), "ins": _side(r["ins"]),
+            "nb": {"pos": nb.get("pos"), "n": nb.get("n"), "lbl": nb.get("lbl"), "ad": nb.get("ad"), "bd": nb.get("bd"),
+                   "cells": [[c[0], c[1], _r(c[2])] for c in nb.get("cells") or []]},
+            "nb_oos": {"pos": no.get("pos"), "n": no.get("n")},
+            "sub": [[x["from"], x["n"], _r(x["avg"])] for x in r.get("sel_sub") or []],
+            "fsub": [[x["from"], x["n"], _r(x["avg"])] for x in r.get("fac_sub") or []],
+            "curve": _curve([u for u in r.get("units") or [] if "ew" in u]) if src != "p2" else None,
+            "dist": _dist(r.get("units") or [])}
+
+
+def export(main: dict, t5: dict, P) -> dict:
+    rows = [_row(k, src, name, b, ver, unit, ev, t5[b][src]) for k, src, name, b, ver, unit, ev in V3]
+    for b in ("M", "L"):
+        for src, name, unit, ev in BASKET:
+            rows.append(_row(f"b{src[1]}{b.lower()}", src, name, b, "basket", unit, ev, main[b][src]))
+    return {"asof": P.cal[-1], "oos_end": OOS_END, "meta": main.get("meta"),
+            "list": [k for k, src, _, b, _, _, _ in V3 if t5[b][src]["grade"]["grade"] in ("A", "B")], "rows": rows}
