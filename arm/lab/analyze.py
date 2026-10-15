@@ -56,7 +56,7 @@ def etf_meta() -> dict[str, dict]:
 class Data:
     """把分片載入成「交易日曆對齊」的陣列。"""
 
-    def __init__(self):
+    def __init__(self, long: bool = False):
         self.mkt = dict(store.load("mkt"))
         self.pos = store.load("pos")
         self.tdcc = store.load("tdcc")
@@ -71,6 +71,13 @@ class Data:
             if doc.get("q"):
                 self.yh[c] = doc["q"]
                 self.yh_m[c] = doc.get("m") or ""
+        if long:    # 高股息提前卡位研究：Yahoo 五年日線（yhl）只補 yh 沒有的日子；其他策略不用 long，回測期間不變
+            from .collect import yhl_codes
+            for c in yhl_codes():
+                doc = store.read("yhl", c) or {}
+                if doc.get("q"):
+                    self.yh[c] = {**doc["q"], **(self.yh.get(c) or {})}
+                    self.yh_m.setdefault(c, doc.get("m") or "")
         cal = set(d for d, doc in self.mkt.items() if doc.get("q_tw") or doc.get("q_tp"))
         cal |= {d for d, _ in self.pos}
         cal |= set((self.yh.get("TWII") or {}))
