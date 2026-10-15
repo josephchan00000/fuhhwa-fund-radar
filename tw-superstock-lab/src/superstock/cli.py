@@ -8,6 +8,7 @@
   reconcile   抽樣與官方資料對帳 → reports/reconciliation.md
   status      看下載進度與失敗清單
   probe       實測 FinMind 各資料集欄位與語意（SPEC §3.7）→ reports/live_probe.md
+  replicate   P2 關卡：用回測引擎買進持有加權報酬指數，逐年與指數本身比較 → reports/replication_P2.md
 """
 
 from __future__ import annotations
@@ -146,6 +147,34 @@ def cmd_probe(cfg: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_replicate(cfg: Config, args: argparse.Namespace) -> int:
+    from .engine import Costs, replicate_index
+    path = cfg.processed_dir / "index.parquet"
+    if not path.exists():
+        print("找不到 index.parquet，請先 download（meta）與 build")
+        return 1
+    idx = pd.read_parquet(path)
+    tr = (idx[idx["index_id"].astype(str) == "TAIEX"].set_index("date")["total_return"]
+          .astype(float).dropna().sort_index())
+    rep = replicate_index(tr)
+    rep_cost = replicate_index(tr, costs=Costs())
+    worst = float(rep["diff"].abs().max())
+    ok = worst <= 0.005
+    lines = ["# P2 關卡：加權報酬指數買進持有複製", "",
+             f"資料：TAIEX 報酬指數 {tr.index.min().date()}～{tr.index.max().date()}，{len(tr):,} 個交易日。"
+             f"引擎第一天收盤下單、第二天開盤（＝當天指數）買進，零成本、可買小數股。",
+             f"結果：逐年最大差距 {worst:.6%}（門檻 0.5%）→ **{'通過' if ok else '未通過'}**。"
+             f"另以實際成本（只在第一年買進一次）試算，最大差距 {float(rep_cost['diff'].abs().max()):.4%}。", "",
+             "| 年 | 引擎 | 指數 | 差距 | 含成本引擎 |", "| --- | --- | --- | --- | --- |"]
+    for r, rc in zip(rep.itertuples(index=False), rep_cost.itertuples(index=False)):
+        lines.append(f"| {r.year} | {r.engine:.4%} | {r.index:.4%} | {r.diff:.6%} | {rc.engine:.4%} |")
+    out = cfg.reports_dir / "replication_P2.md"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"逐年最大差距 {worst:.6%} → {'通過' if ok else '未通過'}；報告：{out}")
+    return 0 if ok else 1
+
+
 def cmd_status(cfg: Config, args: argparse.Namespace) -> int:
     manifest = Manifest(cfg.manifest_path)
     try:
@@ -188,6 +217,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--n", type=int, default=20)
     p.add_argument("--no-fetch", action="store_true", help="不連證交所，只產生人工核對清單")
     sub.add_parser("status", help="下載進度")
+    sub.add_parser("replicate", help="P2 關卡：加權報酬指數買進持有複製")
     p = sub.add_parser("probe", help="實測 FinMind 各資料集欄位與語意（§3.7）")
     p.add_argument("--stock", default="2330", help="本機沒有資料的資料集用哪一檔試抓")
     p.add_argument("--offline", action="store_true", help="只摘要本機資料，不送請求")
@@ -212,6 +242,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_status(cfg, args)
         if args.cmd == "probe":
             return cmd_probe(cfg, args)
+        if args.cmd == "replicate":
+            return cmd_replicate(cfg, args)
     except FinMindError as exc:
         log.error("FinMind 錯誤：%s", exc)
         return 2
