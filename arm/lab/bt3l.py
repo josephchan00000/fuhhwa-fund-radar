@@ -116,7 +116,7 @@ def periodic(P, b: str, key: str, rows_fn, a0, *, top: float, nmin: int, asc: bo
     return {"b": b, "ins": ins, "oos": oos, "nb": nb_i, "nb_oos": nb_o, "grade": g, "lowdd": ld,
             "fac_sub": bt3.subperiods(per, EDGES3), "sel_sub": bt3.subperiods(U, EDGES3, "xe"),
             "lim": sum(u["lim"] for u in acc["units"]), "lock": sum(u["lock"] for u in acc["units"]), "now": now,
-            "units": U}
+            "units": U, "acc_curve": acc["curve"]}
 
 
 def p2(P, b: str, E, EWb, codes, with_grid=True) -> dict:
@@ -228,6 +228,73 @@ def _side(part: dict) -> dict:
             "d0": a.get("d0"), "d1": a.get("d1")}
 
 
+def _trv(P, i: int | None) -> float | None:
+    """加權報酬指數（含息）：第 i 個交易日或之前最近一個有值的日子。"""
+    if i is None:
+        return None
+    for k in range(i, max(i - 10, -1), -1):
+        if P.tr[k]:
+            return P.tr[k]
+    return None
+
+
+def _tr_side(P, side: dict) -> dict:
+    """同一段期間（與資金帳戶相同的起訖交易日）買進持有加權報酬指數的年化與最大回落：給頁面「同期大盤」。"""
+    i0, i1 = P.ix.get(side.get("d0")), P.ix.get(side.get("d1"))
+    if i0 is None or i1 is None or i1 <= i0:
+        return {}
+    st = bt3.curve_stats([(i, v) for i in range(i0, i1 + 1) if (v := _trv(P, i))], P.cal)
+    return {"tr_cagr": _r(st.get("cagr"), 1), "tr_mdd": _r(st.get("mdd"), 0)}
+
+
+def _yearly(P, cv: list) -> list:
+    """資金帳戶逐日淨值 → 各年報酬與同一段日子的加權報酬指數：[[年, 策略%, 大盤%, 該年最後一天], ...]（第一年從帳戶起點算）。"""
+    if not cv or len(cv) < 2:
+        return []
+    last: dict[str, tuple] = {}
+    for i, v in cv:
+        last[P.cal[i][:4]] = (i, v)
+    out, (i0, v0) = [], cv[0]
+    for y in sorted(last):
+        i1, v1 = last[y]
+        if i1 <= i0 or not v0:
+            continue
+        a, b = _trv(P, i0), _trv(P, i1)
+        out.append([y, _r((v1 / v0 - 1) * 100, 1), _r((b / a - 1) * 100, 1) if a and b else None, P.cal[i1]])
+        i0, v0 = i1, v1
+    return out
+
+
+def _all(P, cv: list) -> dict:
+    """整段（樣本外＋樣本內）資金帳戶的年化與最大回落，和同期買進持有加權報酬指數：頁面「全部資金照做」。"""
+    if not cv or len(cv) < 2:
+        return {}
+    a = bt3.curve_stats(cv, P.cal)
+    out = {"cagr": _r(a.get("cagr"), 1), "mdd": _r(a.get("mdd"), 0), "d0": a.get("d0"), "d1": a.get("d1")}
+    out.update(_tr_side(P, out))
+    return out
+
+
+def _acurve(P, cv: list) -> dict:
+    """資金帳戶（含持有現金的日子）與買進持有加權報酬指數，月底取樣、起點＝1：頁面「策略 vs 大盤」資金曲線。"""
+    if not cv or len(cv) < 2:
+        return {}
+    i0, v0 = cv[0]
+    t0 = _trv(P, i0)
+    if not v0 or not t0:
+        return {}
+    pts: dict[str, tuple] = {}
+    for i, v in cv:
+        pts[P.cal[i][:7]] = (i, v)
+    out = {"d": [], "s": [], "t": []}
+    for _, (i, v) in sorted(pts.items()):
+        t = _trv(P, i)
+        out["d"].append(P.cal[i])
+        out["s"].append(round(v / v0, 4))
+        out["t"].append(round(t / t0, 4) if t else None)
+    return out
+
+
 def _curve(units: list[dict]) -> dict:
     s = e = 1.0
     out = {"d": [], "s": [], "e": []}
@@ -242,32 +309,48 @@ def _curve(units: list[dict]) -> dict:
     return out
 
 
-def _dist(units: list[dict]) -> dict:
-    """每期（或每筆）扣成本後報酬的分布（樣本內＋樣本外）：給「本期操作」卡的預估報酬。"""
-    rs = sorted(u["r"] for u in units if u.get("r") is not None)
+def _dist(units: list[dict], P=None) -> dict:
+    """每期（或每筆）扣成本後報酬的分布（樣本內＋樣本外）：給「過去照做」。
+    mk＝同一段持有期間加權報酬指數的平均（前一天收盤起算，指數沒有開盤價）；d0／d1＝第一期與最後一期的決定日。"""
+    us = [u for u in units if u.get("r") is not None]
+    rs = sorted(u["r"] for u in us)
     if not rs:
         return {}
     q = lambda p: rs[min(len(rs) - 1, max(0, round(p * (len(rs) - 1))))]
     med = statistics.median(rs)
-    hd = [u["hd"] for u in units if u.get("hd")]
-    return {"n": len(rs), "med": round(med, 2), "p25": round(q(0.25), 2), "p75": round(q(0.75), 2),
-            "win": round(100 * sum(1 for x in rs if x > 0) / len(rs)), "kwin": sum(1 for x in rs if x > 0),
+    hd = [u["hd"] for u in us if u.get("hd")]
+    mk = []
+    if P is not None:
+        for u in us:
+            a, b = _trv(P, u.get("t")), _trv(P, u.get("x"))
+            if a and b:
+                mk.append((b / a - 1) * 100)
+    ds = sorted(u["d"] for u in us if u.get("d"))
+    return {"n": len(rs), "med": round(med, 2), "avg": round(statistics.mean(rs), 2), "p25": round(q(0.25), 2),
+            "p75": round(q(0.75), 2), "win": round(100 * sum(1 for x in rs if x > 0) / len(rs)), "kwin": sum(1 for x in rs if x > 0),
             "lo": round(rs[0], 2), "hi": round(rs[-1], 2), "per10": round(med * 1000), "lo10": round(rs[0] * 1000),
-            "hd": round(statistics.mean(hd)) if hd else None}
+            "hd": round(statistics.mean(hd)) if hd else None, "mk": round(statistics.mean(mk), 2) if mk else None,
+            "d0": ds[0] if ds else None, "d1": ds[-1] if ds else None}
 
 
-def _row(k, src, name, b, ver, unit, event, r) -> dict:
+def _row(k, src, name, b, ver, unit, event, r, P=None) -> dict:
     nb, no = r.get("nb") or {}, r.get("nb_oos") or {}
+    oos, ins = _side(r["oos"]), _side(r["ins"])
+    if P is not None:                                   # 同期大盤（買進持有加權報酬指數）：只給頁面看，不參與評級
+        oos.update(_tr_side(P, oos))
+        ins.update(_tr_side(P, ins))
+    cv = r.get("acc_curve") if ver == "top5" and P is not None else None
     return {"k": k, "src": src, "name": name, "b": b, "ver": ver, "unit": unit, "event": event,
             "grade": r["grade"]["grade"], "why": r["grade"]["why"],
-            "oos": _side(r["oos"]), "ins": _side(r["ins"]),
+            "oos": oos, "ins": ins, "all": _all(P, cv) if cv else None, "yearly": _yearly(P, cv) if cv else None,
+            "acurve": _acurve(P, cv) if cv else None,
             "nb": {"pos": nb.get("pos"), "n": nb.get("n"), "lbl": nb.get("lbl"), "ad": nb.get("ad"), "bd": nb.get("bd"),
                    "cells": [[c[0], c[1], _r(c[2])] for c in nb.get("cells") or []]},
             "nb_oos": {"pos": no.get("pos"), "n": no.get("n")},
             "sub": [[x["from"], x["n"], _r(x["avg"])] for x in r.get("sel_sub") or []],
             "fsub": [[x["from"], x["n"], _r(x["avg"])] for x in r.get("fac_sub") or []],
             "curve": _curve([u for u in r.get("units") or [] if "ew" in u]) if src != "p2" else None,
-            "dist": _dist(r.get("units") or []), "lowdd": _ld(r.get("lowdd"))}
+            "dist": _dist(r.get("units") or [], P), "lowdd": _ld(r.get("lowdd"))}
 
 
 def _ld(ld: dict | None) -> dict | None:
@@ -278,9 +361,9 @@ def _ld(ld: dict | None) -> dict | None:
 
 
 def export(main: dict, t5: dict, P) -> dict:
-    rows = [_row(k, src, name, b, ver, unit, ev, t5[b][src]) for k, src, name, b, ver, unit, ev in V3]
+    rows = [_row(k, src, name, b, ver, unit, ev, t5[b][src], P) for k, src, name, b, ver, unit, ev in V3]
     for b in ("M", "L"):
         for src, name, unit, ev in BASKET:
-            rows.append(_row(f"b{src[1]}{b.lower()}", src, name, b, "basket", unit, ev, main[b][src]))
+            rows.append(_row(f"b{src[1]}{b.lower()}", src, name, b, "basket", unit, ev, main[b][src], P))
     return {"asof": P.cal[-1], "oos_end": OOS_END, "meta": main.get("meta"),
             "list": [k for k, src, _, b, _, _, _ in V3 if t5[b][src]["grade"]["grade"] in ("A", "B")], "rows": rows}
