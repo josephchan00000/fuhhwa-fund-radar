@@ -99,7 +99,10 @@ def _conv_window(D, key: str, h: dict) -> tuple[str | None, str | None]:
     if key == "tw_div":
         return h.get("effective"), te1
     if key in ("tip_hd", "tip_tech"):
-        return h.get("announce"), te1
+        ann = h.get("announce")
+        if te1 and ann and te1 < ann:                       # 沒有過渡期（00929 2024-06：生效日收盤一次換完）
+            return ann, te or ann
+        return ann, te1
     return h.get("trans_start") or h.get("effective"), te or h.get("effective")
 
 
