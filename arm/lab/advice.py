@@ -347,7 +347,7 @@ def build(data: dict) -> dict:
         sc = s1["score"]
         hold = s1.get("hold") or 3
         grades.append({"k": "s1", "name": s1["name"], "kind": s1.get("kind"), **_g(sc), "fill": s1.get("fill"),
-                       "tried": s1.get("tried")})
+                       "tried": s1.get("tried"), "since": s1.get("since")})
         for c in (s1.get("cands") or [])[:PER_STRAT]:
             item = {"c": c["c"], "n": c["n"], "k": "s1", "sname": s1["name"], "grade": sc["grade"],
                     "act": "佈局", "d": c.get("d"), "ent": c.get("ent"), "cond": f"開盤價 < {c['px']:,g} 才買",
@@ -375,7 +375,7 @@ def build(data: dict) -> dict:
     if ver and ver.get("score"):
         sc = ver["score"]
         grades.append({"k": "s3", "name": s3["name"], "kind": s3.get("kind"), **_g(sc), "fill": ver.get("fill"),
-                       "tried": ver.get("tried")})
+                       "tried": ver.get("tried"), "since": ver.get("since") or s3.get("since")})
         p = s3.get("plan") or {}
         for it in p.get("items") or []:
             item = _tw50_item(it, p, sc, last)
@@ -410,7 +410,7 @@ def build(data: dict) -> dict:
     if s5 and s5.get("score"):
         sc = s5["score"]
         grades.append({"k": "s5", "name": s5["name"], "kind": s5.get("kind"), **_g(sc), "fill": s5.get("fill"),
-                       "tried": s5.get("tried")})
+                       "tried": s5.get("tried"), "since": s5.get("since")})
         scr = s5.get("screen_d") or [None, None]
         for x in [x for x in grow.get("screen") or [] if x.get("pass")][:PER_STRAT]:
             px = x.get("px")
@@ -448,6 +448,7 @@ def build(data: dict) -> dict:
         if g["k"] in old:
             g.setdefault("name", old[g["k"]].get("name"))
             g.setdefault("kind", old[g["k"]].get("kind"))
+            g.setdefault("since", old[g["k"]].get("since"))
     grades3 = sorted(v3["grades"], key=lambda g: ("ABC".index(g["grade"]) if g["grade"] in "ABC" else 3, g["ev"]))
     for g in grades3:
         g.pop("ev", None)
@@ -787,7 +788,7 @@ def build_v3(v3: dict, ex: dict, last: str | None) -> dict:
             name = v["name"]
             grades.append({"k": k, "name": name, "kind": f"{'月' if v['src'] == 'p7' else '季'}換股・前 5 檔", "grade": g["grade"],
                            "why": g["why"], "oos": r["oos"], "ins": r["ins"], "unit": v["unit"], "fwd": v.get("fwd"),
-                           "has_oos": True, "ev": _ev(r["oos"], r["ins"]), "lowdd": bool(g.get("lowdd"))})
+                           "has_oos": True, "ev": _ev(r["oos"], r["ins"]), "lowdd": bool(g.get("lowdd")), "since": v.get("since")})
             now = v.get("now") or {}
             for p in now.get("picks") or []:
                 px = p.get("now") or p.get("entry")
