@@ -894,6 +894,71 @@ def probe_v3() -> None:
     log(f"[v3探針] TWT49U 2014：{len(rows)} 列 樣本 {rows[:2]}")
 
 
+def yahoo_hist_from(sym: str, start: str) -> dict[str, list]:
+    """Yahoo 日線（指定起日，period1／period2；range=max 會被降成月線）。格式同 yahoo_hist。"""
+    import urllib.parse
+    from datetime import datetime, timezone
+
+    from .. import clock
+    p1 = int(datetime.fromisoformat(start).replace(tzinfo=timezone.utc).timestamp())
+    p2 = int(datetime.now(timezone.utc).timestamp())
+    url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(sym)}"
+           f"?period1={p1}&period2={p2}&interval=1d")
+    try:
+        doc = json.loads(get_bytes(url, retries=2, timeout=30, use_cache=False).decode("utf-8"))
+    except Exception as e:                                # noqa: BLE001
+        log(f"Yahoo {sym} ✗ {str(e)[:80]}")
+        return {}
+    res = (((doc or {}).get("chart") or {}).get("result") or [None])[0]
+    if not res:
+        return {}
+    ts = res.get("timestamp") or []
+    q = ((res.get("indicators") or {}).get("quote") or [{}])[0] or {}
+    today = clock.today_tw().isoformat()
+    out = {}
+    for i, t in enumerate(ts):
+        d = datetime.fromtimestamp(int(t), clock.TW_TZ).date()
+        if d.weekday() >= 5 or d.isoformat() >= today:
+            continue
+
+        def g(k):
+            arr = q.get(k) or []
+            v = arr[i] if i < len(arr) else None
+            return None if v is None else round(float(v), 4)
+        c = g("close")
+        if c:
+            v = g("volume")
+            out[d.isoformat()] = [g("open"), g("high"), g("low"), c, None if v is None else int(v)]
+    return out
+
+
+def probe_v3b() -> None:
+    """回測 v3 第二輪探針：櫃買歷史日收盤（含發行股數）、Yahoo 指定起日的日線、FinMind 不帶代號的整批查詢、
+    櫃買 2013 年除權息、FinMind 外資持股欄位。只印不寫。"""
+    from .. import clock
+    today = clock.today_tw().isoformat()
+    for d in ("2014-01-02", "2019-01-02", "2024-01-02"):
+        data, st, _ = fetch_part("q_tp", d)
+        smp = {k: (data or {}).get(k) for k in ("5347", "8299", "6488")}
+        log(f"[v3探針b] 櫃買日收盤 {d}：狀態 {st} 檔數 {len(data or {})} 樣本 {smp}")
+        time.sleep(2)
+    for sym in ("2330.TW", "5347.TWO", "^TWII"):
+        h = yahoo_hist_from(sym, "2013-01-01")
+        ks = sorted(h)
+        log(f"[v3探針b] Yahoo 日線 {sym} 2013 起：{len(ks)} 日 {ks[:2]}～{ks[-1:]} 首筆 {h.get(ks[0]) if ks else None}")
+        time.sleep(1)
+    fm = "https://api.finmindtrade.com/api/v4/data?dataset={ds}&start_date={a}&end_date={z}"
+    _peek("FinMind 綜合損益 不帶代號 2014Q1", fm.format(ds="TaiwanStockFinancialStatements", a="2014-03-31", z="2014-03-31"))
+    _peek("FinMind 股價 不帶代號 2014-01-02", fm.format(ds="TaiwanStockPrice", a="2014-01-02", z="2014-01-02"))
+    _peek("FinMind 股票清單", "https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInfo")
+    _peek("櫃買除權息（舊站）2013", "https://www.tpex.org.tw/web/stock/exright/dailyquo/exDailyQ_result.php?l=zh-tw&d=102/01/01&ed=102/12/31&o=json")
+    doc = _peek("FinMind 外資持股 6488（2014-01）", "https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockShareholding"
+                f"&data_id=6488&start_date=2014-01-01&end_date=2014-01-10")
+    if isinstance(doc, dict) and doc.get("data"):
+        log(f"[v3探針b]   外資持股欄位 {list(doc['data'][0])}")
+    log(f"[v3探針b] 完成 {today}")
+
+
 FINMIND_LIMIT = "finmind_limit"
 
 
