@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/15 06:46",
+  "as_of": "2026/10/15 08:09",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -66,18 +66,11 @@
           "datetime": "2026-10-13T18:02:22+08:00"
         },
         {
-          "title": "TWA00 加權指數- 00991A台塑化越買越多！大立光再加85張 - 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/article/185453791",
-          "source": "CMoney",
-          "date": "2026-10-12 19:22",
-          "datetime": "2026-10-12T19:22:00+08:00"
-        },
-        {
-          "title": "主動復華未來50 00991A",
-          "url": "https://www.pocket.tw/etf//tw/00991A/fundholding",
-          "source": "口袋證券",
-          "date": "2026-10-12 15:00",
-          "datetime": "2026-10-12T15:00:00+08:00"
+          "title": "00985A贏0050逾9個百分點！第三季勝00403A、00991A 阮慕驊：錢募得多未必賺愈多| 存股族愛ETF | 股市",
+          "url": "https://udn.com/news/story/123006/9807453",
+          "source": "UDN",
+          "date": "2026-10-11 12:25",
+          "datetime": "2026-10-11T12:25:02+08:00"
         }
       ]
     },
@@ -579,7 +572,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
       "date": "2026-10-11",
-      "views": 17078,
+      "views": 17110,
       "short": true
     },
     {
@@ -588,7 +581,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
       "date": "2026-10-12",
-      "views": 5963
+      "views": 6036
     },
     {
       "platform": "youtube",
@@ -605,7 +598,7 @@
       "channel": "安聯投信 Allianz Global Investors Taiwan",
       "url": "https://www.youtube.com/shorts/b-T8DfBiuuk",
       "date": "2026-10-12",
-      "views": 194412,
+      "views": 196999,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -616,7 +609,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/XFDp4rY4FsQ",
       "date": "2026-10-12",
-      "views": 169732,
+      "views": 170666,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -627,19 +620,9 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=REtGASDFkEM",
       "date": "2026-10-12",
-      "views": 137356,
+      "views": 137384,
       "peer": true,
       "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股5萬點不是終點？股海老牛點名「台股三本柱」！第4季還有一波行情？高股息ETF今年加速快跑，0056、00878、00919還能抱？｜峰哥ft. 股海老牛｜Smart智富．投資的一千零一夜254",
-      "channel": "Smart智富月刊",
-      "url": "https://www.youtube.com/watch?v=o4KXRKrwlUs",
-      "date": "2026-10-10",
-      "views": 92131,
-      "peer": true,
-      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -647,9 +630,19 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=HF7hiHSeZpU",
       "date": "2026-10-12",
-      "views": 91978,
+      "views": 92314,
       "peer": true,
       "cat": "基金"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股5萬點不是終點？股海老牛點名「台股三本柱」！第4季還有一波行情？高股息ETF今年加速快跑，0056、00878、00919還能抱？｜峰哥ft. 股海老牛｜Smart智富．投資的一千零一夜254",
+      "channel": "Smart智富月刊",
+      "url": "https://www.youtube.com/watch?v=o4KXRKrwlUs",
+      "date": "2026-10-10",
+      "views": 92141,
+      "peer": true,
+      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -667,7 +660,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=YISny6TMPRY",
       "date": "2026-10-10",
-      "views": 87582,
+      "views": 87690,
       "peer": true,
       "cat": "綜合"
     },
@@ -677,7 +670,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=1iIDAJTm3bk",
       "date": "2026-10-12",
-      "views": 87386,
+      "views": 87483,
       "peer": true,
       "cat": "高股息"
     },
@@ -687,7 +680,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/sgOyzfXKakU",
       "date": "2026-10-13",
-      "views": 86660,
+      "views": 87239,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -698,7 +691,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/UN7UK9CmFZk",
       "date": "2026-10-11",
-      "views": 66005,
+      "views": 66186,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -708,6 +701,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、數位經濟 等 8 檔（詳下方新聞標籤）",
     "品牌焦點：00418A 復華台灣新星主動式 ETF｜成分股？配息？優缺點？募集時間？（StockFeel 股感）",
     "社群聲量最高：00929今年賺近80％！兩次換股策略揭開績效關鍵（0 推）",
-    "YouTube 熱片：00412A 速懂！10月13日盛大掛牌上市（安聯投信 Allianz Global Investors Taiwan・194,412 次觀看）"
+    "YouTube 熱片：00412A 速懂！10月13日盛大掛牌上市（安聯投信 Allianz Global Investors Taiwan・196,999 次觀看）"
   ]
 }
