@@ -425,3 +425,71 @@ def update_isq() -> int:
             store.write("v3isq", f"{y}Q{q}", new)
             n += 1
     return n
+
+
+# ── 已下市公司名稱（逐筆交易顯示用；docs/lab_trades_plan.md 第 5 節） ─────────────
+
+NAMES_SRC = [  # (說明, 網址)；一個來源一個請求，依序試，抓到的併起來
+    ("FinMind 下市櫃表", "https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockDelisting"),
+    ("FinMind 台股總覽", "https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInfo"),
+    ("證交所終止上市", "https://www.twse.com.tw/rwd/zh/company/suspendListing?response=json"),
+    ("櫃買終止上櫃", "https://www.tpex.org.tw/www/zh-tw/company/suspendListing?response=json"),
+]
+
+
+def _name_pairs(doc) -> list[tuple[str, str]]:
+    """任意 JSON（FinMind data、證交所 rwd tables、櫃買 tables）→ [(代號, 名稱)]：同一列裡 4 碼數字＋含中文的欄位。"""
+    import re
+    rows = []
+    if isinstance(doc, dict):
+        if isinstance(doc.get("data"), list):
+            rows += doc["data"]
+        for t in doc.get("tables") or []:
+            if isinstance(t, dict):
+                rows += t.get("data") or []
+    out = []
+    for r in rows:
+        if isinstance(r, dict):
+            c, n = str(r.get("stock_id") or "").strip(), str(r.get("stock_name") or "").strip()
+            if c and n:
+                out.append((c, n))
+            continue
+        if not isinstance(r, (list, tuple)):
+            continue
+        cells = [re.sub(r"<[^>]+>", "", str(x)).strip() for x in r]
+        c = next((x for x in cells if re.fullmatch(r"\d{4}", x)), None)
+        n = next((x for x in cells if re.search(r"[一-鿿]", x) and not re.search(r"\d{2,3}/\d{1,2}/\d{1,2}", x)), None)
+        if c and n:
+            out.append((c, n))
+    return out
+
+
+def update_names_hist() -> dict:
+    """長歷史裡「目前名稱表沒有」的代號（多為已下市）→ data/lab/names_hist.json {代號: 名稱}。
+    名稱表＝names_mkt.json（官方價量順手收的）＋names.json（ETF 持股）。抓不到的印出代號，頁面顯示代號。容器內不跑。"""
+    import json
+    from ..http import get_bytes
+    have = {**(store.read_json("names_mkt.json", {}) or {}), **(store.read_json("names.json", {}) or {})}
+    old = store.read_json("names_hist.json", {}) or {}
+    want = {c for c in store.dates("v3px") if stock(c) and c not in have and c not in old}
+    got: dict[str, str] = {}
+    for lbl, url in NAMES_SRC:
+        if not want - set(got):
+            break
+        try:
+            doc = json.loads(get_bytes(url, retries=1, timeout=40, use_cache=False).decode("utf-8"))
+        except Exception as e:                            # noqa: BLE001 —— 記下原因，換下一個來源
+            market.log(f"[名稱] {lbl} ✗ {str(e)[:120]}")
+            continue
+        pairs = _name_pairs(doc)
+        hit = {c: n for c, n in pairs if c in want and c not in got}
+        st = doc.get("status") if isinstance(doc, dict) else None
+        smp = json.dumps((doc.get("data") or [None])[0] if isinstance(doc, dict) and doc.get("data") else
+                         (doc if not isinstance(doc, dict) else {k: doc[k] for k in list(doc)[:4]}), ensure_ascii=False)[:200]
+        market.log(f"[名稱] {lbl}：status={st} 解析 {len(pairs)} 對、補到 {len(hit)} 檔｜樣本={smp}")
+        got.update(hit)
+    if got:
+        store.write_json("names_hist.json", {**old, **got})
+    left = sorted(want - set(got))
+    market.log(f"[名稱] 需要 {len(want)} 檔，本輪補到 {len(got)} 檔；仍缺 {len(left)} 檔：{' '.join(left[:40])}")
+    return {"want": len(want), "got": len(got), "left": left}

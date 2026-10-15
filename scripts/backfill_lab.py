@@ -35,6 +35,7 @@ def main() -> None:
     ap.add_argument("--rev-mops", action="store_true", help="月營收全市場歷史（MOPS 彙總表，2020-01 起；可重跑續補）")
     ap.add_argument("--rev-fm", action="store_true", help="月營收全市場歷史備援：FinMind 逐檔（五年日線宇宙，2020-01 起）")
     ap.add_argument("--v3", action="store_true", help="回測 v3 長歷史資料（2013 起、含下市、含息、月底市值；五條線平行，可重跑續補）")
+    ap.add_argument("--names", action="store_true", help="已下市公司名稱（逐筆交易顯示用）→ data/lab/names_hist.json")
     ap.add_argument("--probe-v3", action="store_true", help="回測 v3 資料源探針（報酬指數、櫃買除權息、2012 起月營收、"
                     "Yahoo 長歷史與下市股、FinMind EPS／發行股數），只印不寫")
     a = ap.parse_args()
@@ -42,6 +43,10 @@ def main() -> None:
 
     if a.rev_probe:
         market.probe_rev()
+        return
+    if a.names:
+        from arm.lab import v3data
+        print(f"[lab] 已下市公司名稱：{v3data.update_names_hist()}")
         return
     if a.v3:
         from arm.lab import v3data
