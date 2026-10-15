@@ -141,4 +141,34 @@ def run(DL, names: dict | None = None) -> dict:
             nxt = {"d": nf, "ent": _td_after(nf, 1), "q": q}
         out[k] = {"k": k, "src": src, "b": b, "name": name, "unit": unit, "since": SINCE, "res": r, "fwd": fwd,
                   "now": now, "next": nxt}
+    out["_ctx"] = (P, E)                                  # 給 existing() 用，呼叫端取出後丟掉（不進頁面）
+    return out
+
+
+def _sel(s: dict) -> dict:
+    return {k: (round(v, 2) if isinstance(v, float) else v) for k, v in s.items() if k in ("n", "xe", "t", "pos", "drop5")}
+
+
+def _pay(p: dict) -> dict:
+    r = p.get("ratio")
+    return {"n": p.get("n"), "win": None if p.get("win") is None else round(p["win"]), "m": None if p.get("m") is None else round(p["m"], 2),
+            "ratio": None if r is None else (99.0 if r == float("inf") else round(r, 1)), "ok": bool(p.get("ok")), "path": p.get("path")}
+
+
+def existing(ctx, strat: dict, grow: dict) -> dict:
+    """既有策略（共識加碼、臺灣50 提前卡位、長線成長）用回測方法 v3 評級：新成本、對同一批股票、報酬型態。
+    這幾條的資料從 2024～2025 才有，沒有樣本外；參數鄰近沿用原本（對加權指數）的 9 格（頁面標示）。"""
+    P, E = ctx
+    EWb = {b: bt3.ew_index(P, E, b) for b in bt3.BUCKET}
+    ex = bt3s.existing_eval(P, EWb, {"strat": strat, "grow": grow})
+    out = {}
+    for k, r in ex.items():
+        nb = r.get("nb_old") or None
+        nb = nb if nb and nb.get("n") else None
+        g = bt3.grade3(r["sel"], r["pay"], r["x2"], nb, event=(k == "s3e"))
+        out["s3" if k == "s3e" else k] = {
+            "sel": _sel(r["sel"]), "pay": _pay(r["pay"]), "x2": None if r.get("x2") is None else round(r["x2"], 2),
+            "nb": {"n": nb.get("n"), "pos": nb.get("pos")} if nb else None, "grade": g["grade"],
+            "why": [w for w in g["why"] if w != "樣本外尚未驗證"] + ["沒有樣本外資料（資料從 2024～2025 開始）"],
+            "by_b": r.get("by_b"), "unit": "次" if k == "s3e" else "筆"}
     return out
