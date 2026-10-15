@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/15 08:09",
+  "as_of": "2026/10/15 08:43",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -42,11 +42,11 @@
       ],
       "items": [
         {
-          "title": "00929逼近歷史高檔該賣嗎？阮慕驊曝「這存糧」充足就別急著下車",
-          "url": "https://www.yesmedia.com.tw/00929%E9%80%BC%E8%BF%91%E6%AD%B7%E5%8F%B2%E9%AB%98%E6%AA%94%E8%A9%B2%E8%B3%A3%E5%97%8E%EF%BC%9F%E9%98%AE%E6%85%95%E9%A9%8A%E6%9B%9D%E3%80%8C%E9%80%99%E5%AD%98%E7%B3%A7%E3%80%8D%E5%85%85%E8%B6%B3/",
-          "source": "https://www.yesmedia.com.tw/",
-          "date": "2026-10-14 08:00",
-          "datetime": "2026-10-14T08:00:23+08:00"
+          "title": "00929配息底氣曝光！投資達人華倫算給你看 0.38元估可續航40個月",
+          "url": "https://n.yam.com/Article/20261015968396",
+          "source": "蕃新聞",
+          "date": "2026-10-15 08:00",
+          "datetime": "2026-10-15T08:00:00+08:00"
         }
       ]
     },
@@ -589,7 +589,7 @@
       "channel": "小童 x Happy Trading Life",
       "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
       "date": "2026-10-13",
-      "views": 1845,
+      "views": 1855,
       "short": true
     },
     {
@@ -598,41 +598,10 @@
       "channel": "安聯投信 Allianz Global Investors Taiwan",
       "url": "https://www.youtube.com/shorts/b-T8DfBiuuk",
       "date": "2026-10-12",
-      "views": 196999,
+      "views": 198295,
       "peer": true,
       "short": true,
       "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股五萬點站不穩? 注意這天轉折!【小宇宙大爆發】#shorts #理財",
-      "channel": "小宇宙大爆發",
-      "url": "https://www.youtube.com/shorts/XFDp4rY4FsQ",
-      "date": "2026-10-12",
-      "views": 170666,
-      "peer": true,
-      "short": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "【理財達人秀】337調查利空台股超勇？大立光噴出變友達.上詮法會？封測、PCB三招 抓低檔黑馬！重電.機器人底部耐震？｜李兆華、李永年、楊雲翔、林漢偉2026.10.12【電視完整版】",
-      "channel": "理財達人秀 EBCmoneyshow",
-      "url": "https://www.youtube.com/watch?v=REtGASDFkEM",
-      "date": "2026-10-12",
-      "views": 137384,
-      "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "看好的股票不漲，別人的一直漲！前基金經理人談：什麼時候該等、什麼訊號該減碼？｜ft.黃豐凱【理財資優生】EP96",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/watch?v=HF7hiHSeZpU",
-      "date": "2026-10-12",
-      "views": 92314,
-      "peer": true,
-      "cat": "基金"
     },
     {
       "platform": "youtube",
@@ -650,40 +619,9 @@
       "channel": "永豐金證券",
       "url": "https://www.youtube.com/watch?v=PXpvZEf2HpM",
       "date": "2026-10-10",
-      "views": 91954,
+      "views": 92012,
       "peer": true,
       "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "買 ETF 是無腦投資？讀上百本理財書的楊斯棓醫師：動作越少，反而越能賺到錢｜楊斯棓｜理財資優生 EP94精華",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/watch?v=YISny6TMPRY",
-      "date": "2026-10-10",
-      "views": 87690,
-      "peer": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "大升息！元大高股息（0056）配息&amp;績效「重返榮耀」　高股息大哥強在哪？（2026版）｜懶錢包LazyWallet",
-      "channel": "懶錢包 Lazy Wallet",
-      "url": "https://www.youtube.com/watch?v=1iIDAJTm3bk",
-      "date": "2026-10-12",
-      "views": 87483,
-      "peer": true,
-      "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "0050 ALL IN就對了？20年實測結果超意外🫨｜ft.清流君、葉芷娟 #0050 #ETF投資 #ETF錢滾錢",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/shorts/sgOyzfXKakU",
-      "date": "2026-10-13",
-      "views": 87239,
-      "peer": true,
-      "short": true,
-      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -691,16 +629,36 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/UN7UK9CmFZk",
       "date": "2026-10-11",
-      "views": 66186,
+      "views": 66332,
       "peer": true,
       "short": true,
       "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "988A、990A還沒解套該換嗎？蕭碧燕：別只看3個月績效！2招教你練仰天長笑，低檔加碼關鍵不是設幾%｜ft.蕭碧燕、葉芷娟【ETF錢滾錢】EP88",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/watch?v=96vE3gSEGqo",
+      "date": "2026-10-14",
+      "views": 49787,
+      "peer": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "【殖利率18%⬆】賺股息還能賺價差！｜3檔改良0050的主動式ETF，竟然只有1檔成功站回高點｜配息、績效完勝0056、00878、00919！｜10月份應該參加除息嗎？｜知美JiMMY",
+      "channel": "知美JiMMY",
+      "url": "https://www.youtube.com/watch?v=JHG5ILdZ_FA",
+      "date": "2026-10-10",
+      "views": 35371,
+      "peer": true,
+      "cat": "高股息"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、數位經濟 等 8 檔（詳下方新聞標籤）",
     "品牌焦點：00418A 復華台灣新星主動式 ETF｜成分股？配息？優缺點？募集時間？（StockFeel 股感）",
     "社群聲量最高：00929今年賺近80％！兩次換股策略揭開績效關鍵（0 推）",
-    "YouTube 熱片：00412A 速懂！10月13日盛大掛牌上市（安聯投信 Allianz Global Investors Taiwan・196,999 次觀看）"
+    "YouTube 熱片：00412A 速懂！10月13日盛大掛牌上市（安聯投信 Allianz Global Investors Taiwan・198,295 次觀看）"
   ]
 }
