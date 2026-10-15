@@ -325,14 +325,14 @@ def size_windows(evs: list[dict], P) -> list[list[dict]]:
     return out
 
 
-def page_data(th: float = MAIN["th"]) -> dict:
-    """自己載入五年日線（Data(long=True)）重算；約十幾秒。新的審核結果寫進設定檔後自動納入。"""
+def page_data(th: float = MAIN["th"], D=None) -> dict:
+    """五年日線（Data(long=True)；analyze.run 傳入共用的那份，沒傳就自己載）重算；約十幾秒。新的審核結果寫進設定檔後自動納入。"""
     import json
     from pathlib import Path
     from . import advice, analyze
     from .hdmodel import HD
     root = Path(__file__).resolve().parents[2]
-    D = analyze.Data(long=True)
+    D = D or analyze.Data(long=True)
     H = HD(D)
     cfg = json.loads((root / "config" / "index_reviews.json").read_text(encoding="utf-8"))
     try:

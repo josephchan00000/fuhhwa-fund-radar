@@ -20,6 +20,39 @@ COST = 0.00585
 HORIZONS = (5, 20)
 DEDUP = 5
 MIN_N = 30
+LIMIT_UP, LOCK_DN = 1.095, 0.905
+
+
+# ── 成交檢查（回測紀律 D1，docs/strategy_pack_plan.md）──────────────────────
+def _prev_close(S: dict, i: int) -> float | None:
+    for k in range(i - 1, max(i - 10, -1), -1):
+        if S["c"][k]:
+            return S["c"][k]
+    return None
+
+
+def limit_up_open(S: dict, i: int) -> bool:
+    """開盤 ≥ 前收 × 1.095＝漲停開盤，開盤價買不到。"""
+    o, c0 = S["o"][i], _prev_close(S, i)
+    return bool(o and c0 and o >= c0 * LIMIT_UP)
+
+
+def locked_down(S: dict, i: int) -> bool:
+    """開＝高＝低＝收且 ≤ 前收 × 0.905＝整天鎖跌停，收盤賣不掉。"""
+    if not S.get("h") or not S.get("l"):
+        return False
+    o, h, l, c = S["o"][i], S["h"][i], S["l"][i], S["c"][i]
+    c0 = _prev_close(S, i)
+    return bool(c and c0 and o and h and l and o == h == l == c and c <= c0 * LOCK_DN)
+
+
+def exit_day(S: dict, i: int, T: int, n_max: int = 5) -> int:
+    """收盤出場日遇整天鎖跌停 → 順延到下一個交易日收盤（最多 n_max 天）。"""
+    k = 0
+    while k < n_max and i + 1 < T and locked_down(S, i):
+        i += 1
+        k += 1
+    return i
 
 
 def _ret(S, idx, t, h, idx_open=None):

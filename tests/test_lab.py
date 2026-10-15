@@ -217,6 +217,9 @@ def test_page_has_no_banned_words():
     st_txt = "".join(str(v) for x in strategy.STRATEGIES + [strategy.S3, growth.S5, hdflow.ALERT] + strategy.TW50_VERS
                      for k, v in x.items() if k in ("name", "kind", "basis", "risk", "rule", "buy", "sell", "pass"))
     st_txt += "".join(t[2] for t in hdflow.TESTS) + str(advice.RULE) + advice.RULE_STOP + str(advice.LABEL)
+    from arm.lab import packtest                                     # 資料包策略（2026-10-15）：規則、未採用清單、試過的做法
+    st_txt += str(packtest.PACK) + str(packtest.SKIPPED) + "".join(
+        str(x.get("tried")) for x in strategy.STRATEGIES + strategy.TW50_VERS + [growth.S5, hdflow.ALERT])
     text = page._HTML + page._JS + "".join(n + d for n, d in analyze.SIG_DEF.values()) + st_txt
     assert not [w for w in banned if w in text]
 
@@ -238,7 +241,7 @@ def test_strategy_tab_v2_sections_and_cost_section_is_gone():
     本期操作清單 → 策略評級 → 各策略固定五段（結論／操作規則／歷史績效／本期名單／風險）→ 部位與風控。
     個股卡不再有成本拆解表（使用者：「版面變好亂、有看沒有懂」）。"""
     js = page._JS
-    assert "h+=nowSec()+gradeSec()+s1Sec()+s3Sec()+hdSec()+s5Sec()+riskSec();" in js
+    assert "h+=nowSec()+gradeSec()+s1Sec()+s3Sec()+hdSec()+s5Sec()+packSec()+riskSec();" in js
     for k in ("sec('st-now'", "sec('st-grade'", "stSec('s1'", "stSec('s3'", "stSec('hd'", "stSec('s5'", "sec('st-risk'",
               "['結論',", "['操作規則',", "['歷史績效',", "['本期名單',", "['風險',", "function pickBlocks(", "function pickCard("):
         assert k in js, k
@@ -850,8 +853,9 @@ def test_hd_flow_sections_alert_card_and_today_row():
 
 # —— 策略頁 v2：評級、信賴區間、部位、推薦清單（arm/lab/advice.py）
 
-def _st(n=30, x=2.0, xwin=60, ci=(0.5, 3.5), conc=None, event=False):
-    return {"n": n, "event": event, "x": x, "xwin": xwin, "ci": ci, "conc": conc}
+def _st(n=30, x=2.0, xwin=60, ci=(0.5, 3.5), conc=None, event=False, nb=None, rb=None, xe_rule=False):
+    return {"n": n, "event": event, "x": x, "xwin": xwin, "ci": ci, "conc": conc,
+            "nb": {"n": 9, "pos": 9} if nb is None else nb, "rb": {"x2": 1.0} if rb is None else rb, "xe_rule": xe_rule}
 
 
 def test_advice_grade_thresholds():
@@ -1056,3 +1060,151 @@ def test_hdpre_page_sections():
     js = page._JS
     for k in ("function hdPreSec(", "sec('idx-hdpre'", "data-at=\"idx-hdpre\"", "v.k==='main'||v.k==='ann3'"):
         assert k in js, k
+
+
+# ── 資料包策略回測與回測紀律（2026-10-15；docs/strategy_pack_plan.md） ─────────────────
+
+def test_pack_main_specs_are_fixed():
+    """主規格在回測前寫定並 commit（docs/strategy_pack_plan.md），不得事後調參數。"""
+    from arm.lab import packtest as PT
+    assert PT.P1 == {"look": 126, "skip": 21, "top": 0.10, "nmin": 10}
+    assert PT.P2 == {"stop": 0.08, "vol": 1.5, "base": 25, "depth": 0.25, "tight": 0.10, "maxd": 120}
+    assert PT.P3 == {"top": 0.20, "nmin": 10, "hold": 60}
+    assert PT.P4 == {"look": 126, "skip": 21, "top": 0.10, "nmin": 10, "ep_max": 0.25}
+    assert PT.P5 == {"look": 5, "top": 0.10, "nmin": 10}
+    assert (PT.CAP_L, PT.LIQ_L, PT.CAP_S) == (300e8, 2e8, 100e8)
+    assert [r["k"] for r in PT.PACK] == ["p1", "p2", "p3", "p4", "p5"]
+
+
+def test_advice_grade_robustness_rules():
+    from arm.lab import advice as A
+    ok_f = {"n": 10, "x": 1.0}
+    g, why = A.grade(_st(nb={"n": 9, "pos": 4}), ok_f)
+    assert g == "C" and "參數稍微改動就失效" in why[0]                        # 不到一半為正 → C
+    g, why = A.grade(_st(nb={"n": 9, "pos": 5}), ok_f)
+    assert g == "B" and why == ["參數鄰近 9 組中 5 組為正（A 級需 ≥6）"]
+    assert A.grade(_st(nb={"n": 9, "pos": 6}), ok_f)[0] == "A"
+    assert A.grade(_st(nb={}), ok_f) == ("B", ["尚未做參數鄰近檢查"])
+    g, why = A.grade(_st(rb={"x2": -0.2}), ok_f)
+    assert g == "B" and why == ["成本加倍後平均超額 −0.2%"]
+    g, why = A.grade(_st(rb={"x2": 1.0, "xe": -0.3}, xe_rule=True), ok_f)
+    assert g == "C" and "同一批股票" in why[0]                               # Yahoo 宇宙選股：沒贏同宇宙等權 → C
+    assert A.grade(_st(rb={"x2": 1.0, "xe": -0.3}), ok_f)[0] == "A"         # 非 Yahoo 宇宙策略不套這條
+
+
+def test_advice_robust_metrics():
+    from arm.lab import advice as A
+    us = [{"d": "2026-01-05", "x": 2.0, "xe": 1.0}, {"d": "2026-01-02", "x": -1.0, "cost": 0.2},
+          {"d": "2026-01-07", "x": -3.0}, {"d": "2026-01-09", "x": 5.0, "xe": -0.5}]
+    reg = {"2026-01-02": True, "2026-01-05": True, "2026-01-07": False}
+    rb = A.robust(us, reg)
+    assert abs(rb["x2"] - (0.75 - (0.2 + 0.585 * 3) / 4)) < 1e-9            # 帶 cost 的單位用自己的成本
+    assert abs(rb["drop1"] - (-1.0 + 2.0 - 3.0) / 3) < 1e-9
+    assert rb["mdd"] == 3.0 and rb["streak"] == 1                           # 依日期排序：−1,+2,−3,+5 → 累計 −1,1,−2,3
+    assert rb["up"] == [2, 0.5] and rb["dn"] == [1, -3.0]                  # 2026-01-09 沒有年線資料 → 不分組
+    assert rb["xe"] == 0.25 and rb["kxe"] == 1 and rb["nxe"] == 2
+    sc = A.score([{"d": f"2026-0{1 + i % 9}-01", "r": 3.0, "x": 2.0} for i in range(12)], reg={}, nb={"n": 9, "pos": 9})
+    assert sc["rb"]["x2"] == 1.4 and sc["nb"]["pos"] == 9 and sc["xe_rule"] is False
+
+
+def test_fill_checks_limit_up_open_and_locked_limit_down():
+    from arm.lab import backtest as B
+    S = {"o": [100, 109.6, 95, 85.5, 82, 92], "h": [101, 110, 96, 85.5, 82, 93],
+         "l": [99, 105, 94, 85.5, 82, 91], "c": [100, 106, 95, 85.5, 82, 92]}
+    assert B.limit_up_open(S, 1) and not B.limit_up_open(S, 2)               # 109.6 ≥ 100×1.095
+    assert B.locked_down(S, 3) and not B.locked_down(S, 4)                    # 一價到底但只跌 4.1%，不是鎖跌停
+    S2 = {"o": [100, 90, 81, 85], "h": [100, 90, 81, 86], "l": [100, 90, 81, 80], "c": [100, 90, 81, 84]}
+    assert B.exit_day(S2, 1, 4) == 3                                          # 連兩天鎖跌停 → 第三天收盤賣
+    assert B.exit_day(S2, 1, 4, n_max=1) == 2 and B.exit_day(S2, 3, 4) == 3
+    assert not B.locked_down({"o": [1, 1], "c": [1, 0.8]}, 1)                 # 沒有高低價的序列不判定
+
+
+def test_tw50_trade_delays_limit_up_entry():
+    from arm.lab import tw50study as TS
+    cal = ["2026-11-23", "2026-11-24", "2026-11-25", "2026-11-26", "2026-12-17"]
+    S = {"X": {"o": [None, 110, 112, 105, 120], "c": [100, 110, 111, 106, 121],
+               "h": [None, 110, 115, 108, 122], "l": [None, 109, 110, 104, 119]}}
+    D = _tw50_fake(cal, S, [1000.0] * 5, [1000.0] * 5)
+    t = TS._trade(D, TS._Px(D), "X", 1, "2026-11-24", "2026-12-17", False, "生效前一天出", {"c": "X"})
+    assert t["st"] == "closed" and t["entry"] == 112 and t["lim"] == 1        # 11/24 漲停開盤 → 11/25 開盤買
+
+
+def test_packtest_deadline_sue_and_ttm():
+    from arm.lab import packtest as PT
+    assert PT.deadline("2026-06-30") == "2026-08-14" and PT.deadline("2025-12-31") == "2026-03-31"
+    eps = {"2023-03-31": 1.0, "2023-06-30": 1.0, "2023-09-30": 1.0, "2023-12-31": 1.0,
+           "2024-03-31": 2.0, "2024-06-30": 1.5, "2024-09-30": 1.0, "2024-12-31": 1.5, "2025-03-31": 4.0}
+    s = PT.sue(eps, "2025-03-31")                                             # 前 4 季同季差：1, 0.5, 0, 0.5
+    import statistics
+    assert abs(s - 2.0 / statistics.stdev([1.0, 0.5, 0.0, 0.5])) < 1e-9
+    assert PT.sue(eps, "2024-12-31") is None                                  # 前面只有 3 季同季差
+    assert PT.ttm_eps(eps, "2025-03-30") == 1.0 + 2.0 + 1.5 + 1.0            # 2024 年報 3/31 才到期 → 還不能用
+    assert PT.ttm_eps(eps, "2025-05-15") == 1.5 + 1.0 + 1.5 + 4.0
+    assert PT.ttm_eps({"2023-03-31": 1, "2023-06-30": 1, "2023-09-30": 1, "2024-06-30": 1}, "2025-01-01") is None
+
+
+def test_packtest_basis_rolling_and_mean():
+    from arm.lab import packtest as PT
+    F = PT._basis([100.0, 102.0, None, 10.4, 10.5])
+    assert abs(F[0] - 102 / 10.4) < 1e-9 and F[2:] == [1.0, 1.0, 1.0]       # 十比一面額變更：更早的價格換到新口徑
+    assert PT._roll([3, None, 5, 1, 2], 2, max) == [3, 3, 5, 5, 2]
+    assert PT._roll([3, None, 5, 1, 2], 2, min) == [3, 3, 5, 1, 1]
+    assert PT._rmean([1.0, None, 3.0, 5.0], 2, 1) == [1.0, 1.0, 3.0, 4.0]
+
+
+def _fake_px(series: dict, T: int, cap: float = 400e8):
+    from arm.lab import packtest as PT
+    P = PT.Px.__new__(PT.Px)
+    P.T, P.cal = T, [f"2026-01-{i + 1:02d}" for i in range(T)]
+    P.s = {c: {"o": o, "h": [x * 1.01 for x in cl], "l": [x * 0.99 for x in cl], "c": cl, "v": [1.0] * T}
+           for c, (o, cl) in series.items()}
+    P.cap = {c: [cap] * T for c in series}
+    P.liq = {c: [5e8] * T for c in series}
+    P.codes, P.lock_n, P._el, P._win = sorted(series), 0, {}, {}
+    return P
+
+
+def test_packtest_xsec_turnover_cost_and_limit_up():
+    from arm.lab import packtest as PT
+    flat = [100.0] * 6
+    ser = {"A": (flat[:], [100, 110, 110, 120, 120, 130]), "B": (flat[:], [100, 105, 105, 106, 106, 107]),
+           "C": (flat[:], [100, 90, 90, 80, 80, 70])}
+    ser["A"][0][3] = 115.0                                                    # A 第 3 天開盤 115（對前收 110 未漲停）
+    ser["B"][0][1] = 110.0                                                    # B 第 1 天開盤漲停（對前收 100）
+    P = _fake_px({k: (o, [float(x) for x in c]) for k, (o, c) in ser.items()}, 6)
+    score = lambda c, t: P.s[c]["c"][t]
+    r = PT.xsec(P, ["A", "B", "C"], [0, 2, 4], score, top=0.5, nmin=2, cap_min=300e8, idx=[1000.0] * 6, io=[1000.0] * 6)
+    u0, u1 = r["units"]
+    assert u0["lim"] == 1 and u0["n"] == 1 and u0["to"] == 1.0                # B 漲停開盤買不到，只買到 A
+    assert abs(u0["r"] - ((110 / 100 - 1) - PT.COST) * 100) < 1e-9
+    assert u1["to"] == 0.0 and u1["cost"] == 0.0 and u1["lim"] == 0           # 續抱 A、B 不計成本也不檢查漲停
+    assert r["now"]["picks"] == ["A", "B"] and r["now"]["d"] == "2026-01-05"
+
+
+def test_packtest_grid_counts_positive_cells():
+    from arm.lab import packtest as PT
+    g = PT.grid(lambda a, b: a - b, (1, 2, 3), (0.5, 1.5, 2.5), ("甲", "乙"))
+    assert g["n"] == 9 and g["pos"] == 6 and g["lbl"] == ["甲", "乙"]
+    assert g["ad"] == ["1", "2", "3"] and g["bd"] == ["50%", "1.5", "2.5"]
+    assert PT.grid(lambda a, b: None, (1,), (2,))["n"] == 0
+
+
+def test_growth_eps_growth_gate_uses_published_quarters():
+    from arm.lab import growth
+    eps = {"2025-03-31": 1.0, "2025-06-30": 1.0, "2026-03-31": 1.3, "2026-06-30": 1.2}
+    assert growth.eps_growth_ok(eps, "2026-05-15")                            # 2026Q1 年增 30%
+    assert not growth.eps_growth_ok(eps, "2026-08-14")                        # 2026Q2 年增 20%
+    assert not growth.eps_growth_ok(eps, "2026-05-14")                        # 2026Q1 尚未到期 → 用 2025Q4（沒有）
+    assert growth.eps_growth_ok({"2025-03-31": -0.5, "2026-03-31": 0.2}, "2026-06-01")   # 由虧轉盈
+    assert not growth.eps_growth_ok({"2025-03-31": 1.0, "2026-03-31": -0.2}, "2026-06-01")
+
+
+def test_strategy_page_robustness_and_pack_sections():
+    js = page._JS
+    for k in ("function robTbl(", "function nbGrid(", "function packSec(", "sec('st-pack'", "function totPos(",
+              "+robTbl(g);", "看 ${N.n} 組", "沒有採用的項目與原因", "對同一批股票"):
+        assert k in js, k
+    for k in ("穩健度檢查", "成本加倍", "參數鄰近", "同一批股票的平均", "存活者偏誤", "大盤年線", "成交檢查",
+              "相對強勢", "趨勢樣板", "SUE", "CAN SLIM"):
+        assert f"'{k}':" in js, k                                            # 名詞辭典
+
