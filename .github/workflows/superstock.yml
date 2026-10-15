@@ -75,6 +75,8 @@ jobs:
           SS="python -m superstock --config $RUNNER_TEMP/ci.yaml"
           if [ "$MODE" = "probe" ]; then
             $SS probe
+          elif [ "$MODE" = "diag2" ]; then
+            python scripts/diag_listing.py --detail 6901
           elif [ "$MODE" = "diag" ]; then
             $SS check | tee "$OUT/check.txt"
             python scripts/diag_listing.py 6488 7769 4995 8176 8443 1598 6624 6789 4588 4772 7708 6982 7732 6597 2059 3661 6669 \
