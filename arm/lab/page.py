@@ -211,6 +211,7 @@ th[data-k]{cursor:pointer}th.on{color:var(--accd)}
 td:first-child,th:first-child{text-align:left;position:sticky;left:0;background:var(--bg);z-index:1}
 th:first-child{background:var(--card2);z-index:2}
 td.l,th.l{text-align:left}td.wr{white-space:normal;min-width:120px;max-width:220px}td.wr2{white-space:normal;min-width:180px}
+tr.v3r td{border-bottom:0;padding-bottom:2px}tr.v3w td{white-space:normal;text-align:left;font-size:12px;color:var(--mut);padding-top:0;line-height:1.55}
 tr[data-c]{cursor:pointer}tr[data-c]:hover td{background:#f8fafd}
 .nm{display:block;font-weight:600}.cd{color:var(--mut);font-size:12px}
 .up{color:var(--gain)}.dn{color:var(--loss)}.mu{color:var(--mut)}
@@ -332,6 +333,7 @@ ul.doc{padding-left:18px}ul.doc li{margin:4px 0}
  .seg a{padding:5px 11px}
  .stk td:first-child{min-width:92px;max-width:118px}.stk .nm,.stk .cd{max-width:108px}
  .hm{display:none}.pkr{display:none}
+ table.g3t td:first-child{white-space:normal;min-width:96px;max-width:118px}table.g3t .cd{white-space:normal}
  .rbr{grid-template-columns:1fr;gap:1px}
  .isr{grid-template-columns:1fr;gap:2px}.rl{grid-template-columns:4em minmax(0,1fr)}
  .sq{grid-template-columns:1fr;gap:3px}.stc{padding:4px 12px 8px}
@@ -392,17 +394,30 @@ const GL={
 '相對大盤':'近 20 日漲跌減去加權指數同期漲跌（百分點）。',
 'ATR':'平均真實區間（14 日）÷ 股價：每天正常的波動幅度。停損常設在 2～3 倍 ATR。',
 '日均成交':'近 20 日平均成交金額（億元）。',
-'超額':'報酬減去同期加權指數報酬；正＝贏大盤。成績已扣來回交易成本 0.585%。',
+'超額':'報酬減去比較基準同期的報酬；正＝贏。評級與月營收驚喜、財報驚喜用「同一批股票的平均」當基準；共識加碼、臺灣50、長線、高股息的舊表格對加權指數。成績已扣來回成本（大型股 0.48%、中型股 0.68%；舊表格 0.585%）。',
 '勝率':'超額報酬為正的次數比例。',
 '獲利比例':'扣除來回成本後報酬為正的交易比例。',
 '贏大盤':'報酬高於加權指數同期報酬（超額報酬為正）的交易比例。',
 '信賴區間':'把歷史交易重新抽樣 2,000 次，平均超額報酬有 95% 的機會落在這個範圍。下限大於 0，代表贏大盤不太可能只是運氣；區間含 0，代表樣本還不足以下結論。',
-'評級':'A 可執行：樣本足夠、超額報酬 95% 信賴區間下限大於 0、沒有集中在單一月份、成本加倍後仍贏大盤、參數鄰近 9 組至少 6 組為正，且前瞻驗證也贏大盤，每檔 ≤ 總資金 5%。B 小部位試行：平均贏大盤但未達 A 的全部條件，每檔 ≤ 2%。C 不推薦：沒有贏大盤、樣本太少、集中在單一行情、參數稍微改動就失效，或沒贏同一批股票的平均，只列觀察。',
+'評級':'看三件事（都扣成本後）：①選股：平均贏同一批股票；②報酬型態：賺錢機率 ≥60% 且每月平均 ≥+1%，或賺錢機率 ≥40%、賺賠比 ≥2.5、每月平均 ≥+2%；③穩健度：成本加倍、參數鄰近 9 組 ≥6 組為正、去掉最好 5% 後仍贏。A 可執行：三項全過、t 值樣本內 ≥2 且樣本外同方向 t ≥1、前瞻滿 10 期（事件型 2 次）也贏，每檔 ≤ 總資金 5%。B 小部位試行：選股與報酬型態過、樣本外沒有反向、穩健度最多一項未過，每檔 ≤ 2%。C 不推薦：其餘（參數鄰近不到一半為正、或樣本外反向，一律 C），只列觀察。',
 '每 10 萬預估':'投入 10 萬元時，依同一規則過去已出場交易的中位報酬與最差一筆換算的損益（已扣成本）。是歷史統計，不是預測。',
 '隔夜跳空':'訊號出現後隔天的開盤價，相對訊號日收盤的漲跌。跟單的人多時，好處常在隔夜就被反映掉。',
 '樣本':'歷史上符合條件的次數。少於 30 次時結果容易受單一段行情左右，只能當參考。',
 '紙上交易':'照寫死的規則自動記帳、不實際下單，用來驗證策略在「規則訂好之後」的真實表現。',
-'樣本內':'規則訂定前的歷史資料。規則本來就是看這段資料挑出來的，成績會偏好看，只能當參考。',
+'樣本內':'規則發想與調整時看過的資料（月營收驚喜、財報驚喜：2021-10 起；其餘策略：2024～2025 起的全部歷史）。規則本來就是看這段資料挑出來的，成績會偏好看。',
+'樣本外':'規則寫定之後才第一次拿來跑的歷史資料：2013～2021-09，含之後下市的公司。樣本外也贏，才不只是從資料裡挑出來的巧合。共識加碼、臺灣50、長線、高股息的資料從 2024～2025 才有，沒有樣本外。',
+'t 值':'平均超額 ÷ 它的標準誤差（Newey-West 法，處理相鄰期間的相關）。約 2 以上＝贏的幅度不太像運氣；1 左右＝方向對但證據弱；負的＝輸。',
+'賺錢機率':'扣成本後報酬大於 0 的期數（或筆數）比例；月營收驚喜、財報驚喜以「同一期 5 檔等額平均」為一期。',
+'每月平均':'平均報酬 ÷ 平均持有月數（一個月＝21 個交易日），讓持有 3 天和持有 3 個月的策略可以比。持有很短的策略數字會很大，不代表一個月真的能做那麼多次。',
+'賺賠比':'賺錢那幾期（筆）的平均報酬 ÷ 賠錢那幾期（筆）的平均虧損。',
+'報酬型態':'評級條件之一：賺錢機率 ≥60% 且每月平均 ≥+1%；或「上漲空間大」的例外：賺錢機率 ≥40%、賺賠比 ≥2.5、每月平均 ≥+2%。樣本內、樣本外都要過。',
+'前 5 檔':'每期只買訊號最強的 5 檔、等額。檔數少，波動與最大回落比買整組（最強 10%～20%）大。',
+'大型股':'月底市值 ≥300 億、20 日均成交值 ≥5,000 萬。',
+'中型股':'月底市值 50～300 億、20 日均成交值 ≥5,000 萬。',
+'因子檢定':'不看交易規則、只看訊號本身：每期依訊號把股票分 5 組，最強組減最弱組（選端−另端，未扣成本）。各組由弱到強依序遞增、t 值夠大，代表訊號有用；這和「只買最強 5 檔能不能賺」是兩個問題。',
+'資金帳戶':'把每期報酬依時間順序連乘：同一時間只有一組部位、換股時賣舊買新、扣成本、沒持股的期間放現金。年化報酬與最大回落用這條線算。',
+'最大回落':'資金曲線從前一個高點往下跌的最大幅度。',
+'去掉最好 5%':'把報酬最好的 5% 期數（或筆數）拿掉後，平均是否仍贏同一批股票；只靠一兩次大賺撐起來的策略過不了。',
 '前瞻':'規則起算日之後才發生的訊號；這部分的成績才算數。',
 '前瞻驗證':'規則起算日之後才發生的交易。短線策略滿 10 筆、事件型滿 2 次審核，且平均超額大於 0，才可能評為 A 級。',
 '資料截止日':'指數公司用來排名的那一天收盤資料（臺灣50：生效日前約 4 週的週一）。截止日之後股價再怎麼變，都不影響這一次的名單。',
@@ -415,23 +430,24 @@ const GL={
 '被動買賣日量':'被動 ETF 換股要買（賣）的金額 ÷ 該股 20 日平均成交金額＝要用掉幾天的正常成交量。高股息 ETF 規模大，冷門中型股一次常是 10 天以上的量；台積電這類權值股不到 1 天。',
 '被動買賣提醒':'高股息換股的納入股估計被動買盤 ≥5 日量：被動買盤結束後 10 個交易日，過去多半輸大盤、也輸其他成分股 → 已持有的在最後一天收盤前出、沒持有的不追；刪除股被賣完後也沒有反彈。只是提醒，不做放空。',
 '等級相關':'兩組數字排序的一致程度，−1～+1：+1＝排序完全相同、0＝沒有關係、負＝方向相反。這裡樣本只有十幾檔，數值僅供參考。',
-'穩健度檢查':'同一份歷史成績換幾種角度再算一次：成本加倍、去掉最好的一筆、大盤多頭與空頭分開、參數稍微改動、買不到或賣不掉的情況。打 ✓ 的三項是 A 級的條件。',
-'成本加倍':'每筆交易再多扣一次來回成本 0.585%（手續費與證交稅）。實際滑價、零股或流動性差時成本會更高；成本加倍後還贏大盤，優勢才不只是成本算得太樂觀。',
-'參數鄰近':'把策略的兩個關鍵參數各往上、往下調一檔，共 9 組，看有幾組平均還贏大盤。只有剛好那一組賺錢的策略，多半是從歷史資料挑出來的巧合。',
-'同一批股票的平均':'回測用的股票清單是「目前還上市、市值夠大」的公司，曾經很大後來跌掉或下市的不在裡面（存活者偏誤），整批股票本身就偏強。策略要贏過這批股票的等權平均，才算選股有效。',
+'穩健度檢查':'同一份歷史成績換幾種角度再算一次：成本加倍、參數稍微改動、去掉最好的 5%、大盤多頭與空頭分開、買不到或賣不掉的情況。打 ✓ 的三項（成本加倍、參數鄰近、去掉最好 5%）是 A 級的條件。',
+'成本加倍':'每筆交易再多扣一次來回成本（大型股 0.48%、中型股 0.68%；舊表格 0.585%）。實際滑價、零股或流動性差時成本會更高；成本加倍後還贏，優勢才不只是成本算得太樂觀。',
+'參數鄰近':'把策略的兩個關鍵參數各往上、往下調一檔，共 9 組，看有幾組平均還贏（月營收驚喜、財報驚喜對同一批股票；共識加碼、臺灣50、長線沿用原本對加權指數的 9 組）。只有剛好那一組賺錢的策略，多半是從歷史資料挑出來的巧合。',
+'同一批股票的平均':'同一段期間、同一個範圍（大型股或中型股）所有股票的等權平均報酬。策略要贏過它，才算選股有效。月營收驚喜、財報驚喜的清單含之後下市的公司；共識加碼、臺灣50、長線的清單（2024 起）只含目前還上市的公司，整批股票偏強（存活者偏誤）。',
 '存活者偏誤':'只用現在還存在的公司做回測：失敗、下市、縮水的公司不在資料裡，歷史成績因此偏好看。',
 '大盤年線':'加權指數 200 個交易日均線。指數在年線之上大致是多頭、之下大致是空頭；兩組分開看，才知道策略是否只在多頭有效。',
 '成交檢查':'開盤就漲停時，開盤價通常買不到；整天鎖在跌停時，收盤賣不掉。回測遇到這兩種情況：買進順延或放棄、賣出順延到下一個交易日。',
 '相對強勢':'依過去一段期間的漲幅在全部股票中的排名選股（例：約 6 個月前到 1 個月前漲最多的前 10%）。學術上稱動能效應。',
 '趨勢樣板':'Mark Minervini 的選股條件：股價在 50／150／200 日線之上且均線依序向上、離一年低點 30% 以上、離一年高點 25% 以內、強度排名前 30%。這裡另要求整理後帶量突破才買。',
 'SUE':'標準化盈餘驚喜＝（當季 EPS − 去年同季 EPS）÷ 過去幾季這個差距的波動。數字越大代表這季成長越出乎意料。學術上發現驚喜大的股票，之後幾個月常繼續走強（財報後漂移）。',
+'月營收驚喜':'（上個月營收 − 去年同月營收）÷ 過去 12 個月這個差距的標準差。數字越大代表這個月的成長越出乎意料，用法同 SUE，只是改用每月 10 日前公告的月營收。金融保險業不算（營收口徑不同，金控可延到 15 日申報）。',
 'CAN SLIM':'William O’Neil 的成長股選股法，七個字母代表當季盈餘成長、年度成長、新產品或新高、股數供需、領先股、法人認養、大盤方向。這裡測試其中的 C（當季 EPS 年增 ≥25%）與 M（大盤在年線上）。',
 };
 const GLG=[['ETF 面',['真加碼','申贖倍率','主動 5 日淨買','加碼／減碼家數','持有 ETF','新建倉','建倉日','主動成本','成本乖離','超配','ETF 持股率','消化天數']],
  ['法人籌碼',['投信 5 日','外資 5 日','連買','60 日買超均價','融資','借券賣出','千張大戶']],
  ['技術面',['趨勢','乖離','量比','RSI','KD','MACD','一年區間位置','相對大盤','ATR','日均成交']],
- ['成績與策略',['評級','信賴區間','超額','獲利比例','贏大盤','勝率','每 10 萬預估','隔夜跳空','樣本','紙上交易','樣本內','前瞻','前瞻驗證']],
- ['穩健度與資料包策略',['穩健度檢查','成本加倍','參數鄰近','同一批股票的平均','存活者偏誤','大盤年線','成交檢查','相對強勢','趨勢樣板','SUE','CAN SLIM']],
+ ['成績與策略',['評級','同一批股票的平均','t 值','賺錢機率','每月平均','賺賠比','報酬型態','樣本外','樣本內','前瞻','前瞻驗證','前 5 檔','大型股','中型股','超額','信賴區間','獲利比例','贏大盤','勝率','每 10 萬預估','隔夜跳空','樣本','紙上交易']],
+ ['回測方法與策略',['穩健度檢查','成本加倍','參數鄰近','去掉最好 5%','因子檢定','資金帳戶','最大回落','存活者偏誤','大盤年線','成交檢查','月營收驚喜','SUE','相對強勢','趨勢樣板','CAN SLIM']],
  ['指數換股',['資料截止日','漲勢前一半','估計權重','被動買盤','週轉率','等級相關','被動買賣期間','對其他成分股','被動買賣日量','被動買賣提醒']]];
 function gi(k){return (GL[k]||SD[k])?`<i class=gi data-g="${esc(k)}" role=button tabindex=0 aria-label="說明">i</i>`:'';}
 const POP=$('#pop');let popFor=null,popPin=false;
@@ -482,7 +498,8 @@ function vToday(){
   if(cons.length)L.push(`<b>${cons.length} 檔</b>有 3 家以上投信同時加碼${gi('cons')}，最多的是 ${cntGroup(cons.slice(0,3).map(r=>[nmL(r),(r.ia5||[]).length]))}。`);
   if(exits.length)L.push(`<b>${exits.length} 檔</b>被 3 家以上投信同時減碼${gi('exit')}，賣最多的是 ${exits.slice(0,3).map(r=>`${nmL(r)}（${f(r.a5v,1)} 億）`).join('、')}。`);
   if(nbs.length)L.push(`10 日內主動 ETF 新建倉的台股 <b>${nbs.length} 檔</b>${gi('新建倉')}，最多家同時進場的是 ${cntGroup(nbs.slice(0,3).map(x=>[nmL(x.r),x.is.length]))}。`);
-  L.push(PK.length?`本期操作 <b>${PK.length} 檔</b>：${pickGroups(PK).join('；')}。<a data-go="st" data-at="st-now">看操作清單 →</a>`:'本期沒有 A、B 級策略產生的標的。');
+  const PN=PK.filter(p=>p.act!=='持有中'),PH=PK.filter(p=>p.act==='持有中');
+  L.push(PK.length?`本期操作 <b>${PK.length} 檔</b>：${PN.length?`新佈局 ${pickGroups(PN).join('；')}`:'沒有新佈局'}${PH.length?`；持有中 ${PH.length} 檔（${[...new Set(PH.map(p=>esc(p.sname)))].join('、')}）`:''}。<a data-go="st" data-at="st-now">看操作清單 →</a>`:'本期沒有 A、B 級策略產生的標的。');
   if(evs.length){const e=evs[0];L.push(`最近的指數換股：<b>${esc(e.n)}</b>（${esc(e.etf)}）${md(e.eff)} 生效，還有 ${e.days} 天${e.stt==='推算'?'（日期為推算）':''}。`);}
   let h=sec('t-lead','重點','今日重點','',`<div class=lead><ul>${L.map(x=>`<li>${x}</li>`).join('')}</ul></div>`);
   const m=Math.max(1,...buys.slice(0,8).map(r=>r.a5v),...sells.slice(0,8).map(r=>-r.a5v));
@@ -495,7 +512,7 @@ function vToday(){
     (nbs.length>10?`<details class=mr><summary>其餘 ${nbs.length-10} 檔</summary><div class=inl>${nbs.slice(10).map(x=>`<span class=it><a data-c="${esc(x.r.c)}">${esc(x.r.n)}</a><span class=mu>${x.is.map(esc).join(' ')}</span></span>`).join('　')}</div></details>`:''),
     nbs.length?`<a data-go="stk" data-fsig="nb" data-sort="a5v">全部 ${nbs.length} 檔 →</a>`:'');
   h+=sec('t-cand','操作','本期操作','評級 A、B 的策略產生的標的；預估報酬與部位見策略頁',
-    PK.length?pickRows(PK):'<div class=st>本期沒有。</div>',`<a data-go="st" data-at="st-now">看策略 →</a>`);
+    (PN.length?pickRows(PN):'<div class=st>本期沒有新佈局。</div>')+(PH.length?`<div class=st style="margin-top:8px">${pickGroups(PH).join('；')}。</div>`:''),`<a data-go="st" data-at="st-now">看策略 →</a>`);
   const al=(D.strat||{}).alerts||[];
   h+=sec('t-risk','風險',`風險提醒`,'',
     `<div class=rk2><b>集體撤退 ${exits.length} 檔</b>${gi('exit')}${exits.length?` <a class=sm data-go="stk" data-fsig="exit" data-sort="a5v" data-dir="1">看表格 →</a>`:''}<span class=st>近 5 日 3 家以上投信同時減碼、主動合計淨賣（億元）</span><div class=inl>`+
@@ -901,6 +918,15 @@ function wd(d){if(!d||d.length<10)return '';const t=new Date(Date.UTC(+d.slice(0
 function mdw(d){return d?md(d)+wd(d):'—';}
 function ciT(ci){return ci?`${pctT(ci[0])}～${pctT(ci[1])}`:'—';}
 function gOf(k){return (ADV.grades||[]).find(g=>g.k===k);}
+/* 回測方法 v3（2026-10-15）：評級看「對同一批股票」、報酬型態、穩健度；月營收驚喜、財報驚喜另有 2013～2021 樣本外 */
+function g3Of(k){return (ADV.grades3||[]).find(g=>g.k===k);}
+const LV=(ADV.v3||{}).live||{},V3M=(ADV.v3||{}).meta||{};
+function tT(x){return x==null?'—':(x<0?'−':'')+f(Math.abs(x),2);}
+function p2(x){return x==null?'—':pctT(x,Math.abs(x)>=10?1:2);}
+function bw(x){return x==null?'—':`${x>=0?'贏':'輸'} ${f(Math.abs(x),Math.abs(x)>=10?1:2)}%`;}
+function hiLo(x){return x==null?'—':`${x>=0?'高':'低'} ${f(Math.abs(x),Math.abs(x)>=10?1:2)}%`;}
+function ym(d){return d?esc(String(d).slice(0,7)):'—';}
+function qTxt(q){return q?`${q.slice(0,4)} 年第 ${Math.round(+q.slice(5,7)/3)} 季`:'';}
 function wan(x){return x==null?'—':(x>0?'+':x<0?'−':'')+f(Math.abs(x),0)+' 元';}
 function stOf(k){return ((D.strat||{}).list||[]).find(s=>s.key===k);}
 function nmA(x){return BY[x.c]?`<a data-c="${esc(x.c)}">${esc(x.n)}</a>`:esc(x.n);}
@@ -945,23 +971,25 @@ function pickCard(p){const px=p.px,z=p.size,t=`<b>${esc(p.n)}</b> <span class=cd
   if(z)b+=pcRow('部位',`每 100 萬資金 ${f(z.amt/1e4,z.amt%1e4?1:0)} 萬元，約 ${z.sh>=1000?f(z.sh/1000,1)+' 張':f(z.sh,0)+' 股（零股）'}`);
   if((p.why||[]).length)b+=`<div class=pcw><b>依據</b>${p.why.map(esc).join('；')}</div>`;
   return `<div class=pc>${b}</div>`;}
-function expRows(e){if(!e||!e.n)return '';const ev=e.event;
-  return pcRow('預估報酬',`${ev?'每次（各檔平均）':'每筆'}中位 <b>${pctT(e.med)}</b>，一半落在 ${pctT(e.p25)}～${pctT(e.p75)}；${ev?`${e.n} 次中 ${e.kwin} 次獲利`:`${e.win}% 獲利`}，最差一${ev?'次':'筆'} ${pctT(e.lo)}（過去 ${e.n} ${ev?'次':'筆'}）`)+
+function expRows(e){if(!e||!e.n)return '';const ev=e.event,u=ev?(e.grp||'次'):'筆';
+  return pcRow('預估報酬',`${ev?`每${u}（各檔平均）`:'每筆'}中位 <b>${pctT(e.med)}</b>，一半落在 ${pctT(e.p25)}～${pctT(e.p75)}；${ev?`${e.n} ${u}中 ${e.kwin} ${u}獲利`:`${e.win}% 獲利`}，最差一${u} ${pctT(e.lo)}（過去 ${e.n} ${u}）`)+
     pcRow('每 10 萬',`${ev?'整組投入，':''}中位 <b>${wan(e.per10)}</b>；最差 ${wan(e.lo10)}`);}
 function pickBlocks(P){const G=new Map();for(const p of P){const k=[p.act,p.k,p.act==='持有中'?p.out:p.ent].join('|');if(!G.has(k))G.set(k,[]);G.get(k).push(p);}
-  return [...G.values()].map(xs=>{const p=xs[0],cap=(ADV.caps||{})[p.grade],hold=p.act==='持有中';
-    const when=hold?`持有中，<b>${mdw(p.out)} 收盤</b>出場`:`<b>${mdw(p.ent)} 開盤</b>進場 → ${p.out?`<b>${mdw(p.out)} 收盤</b>出場`:'依停損與回落出場'}`;
-    return `<div class=pgp><div class=pgh><a data-to="st-${esc(p.k)}">${esc(p.sname)}</a> ${gBadge(p.grade)} <span class=st>${xs.length} 檔</span></div><div class=pgb>`+
+  return [...G.values()].map(xs=>{const p=xs[0],cap=(ADV.caps||{})[p.grade],hold=p.act==='持有中',L=LV[p.k],nx=L&&L.next;
+    const when=hold?`持有中，<b>${mdw(p.out)} 收盤</b>${L&&L.src==='p7'?'換股':'出場'}`:`<b>${mdw(p.ent)} 開盤</b>進場 → ${p.out?`<b>${mdw(p.out)} 收盤</b>出場`:'依停損與回落出場'}`;
+    return `<div class=pgp><div class=pgh><a data-to="st-${esc(p.k)}">${esc(p.sname)}</a> ${gBadge(p.grade)} <span class=st>${xs.length} 檔</span>${p.oos?' <span class=sg>有樣本外驗證</span>':' <span class=pill>沒有樣本外驗證</span>'}</div><div class=pgb>`+
       pcRow('時間',`${when}${p.hold?`（${esc(p.hold)}）`:''}`)+(hold?'':pcRow('進場條件',esc(p.ent_how||'')))+pcRow('出場條件',esc(p.out_how||'—'))+
-      pcRow('停損',esc(p.stop_how||'—'))+expRows(p.exp)+(cap?pcRow('部位上限',`每檔 ≤ 總資金 ${f(cap*100,0)}%（每 100 萬 ${f(cap*100,0)} 萬元）；有停損時另限停損虧損 ≤ 總資金 0.5%`):'')+
+      pcRow('停損',esc(p.stop_how||'—'))+expRows(p.exp)+(p.oos_txt?pcRow('驗證',esc(p.oos_txt)):'')+
+      (cap?pcRow('部位上限',`每檔 ≤ 總資金 ${f(cap*100,0)}%（每 100 萬 ${f(cap*100,0)} 萬元）${p.stop!=null?'；有停損時另限停損虧損 ≤ 總資金 0.5%':''}`):'')+
       (p.tent?`<div class=pcx>名單以今天排名試算，${md(p.fix)} 收盤定案前可能變動。</div>`:'')+
+      (hold&&nx?`<div class=pcx>這一期 ${md(p.ent)} 開盤已買進。回測只計決定日隔天開盤進場，沒跟上的等下一期：${mdw(nx.d)} 收盤決定、${mdw(nx.ent)} 開盤買進。</div>`:'')+
       `</div><div class=pcs>${xs.map(pickCard).join('')}</div></div>`;}).join('');}
 function pickGroups(ps){const G=new Map();for(const p of ps){const k=[p.act,p.act==='持有中'?p.out:p.ent,p.sname,p.grade].join('|');if(!G.has(k))G.set(k,[]);G.get(k).push(p);}
   return [...G.values()].map(xs=>{const p=xs[0],nm=xs.map(nmA).join('、');
-    return p.act==='持有中'?`持有中 ${nm}（${esc(p.sname)}・${p.grade} 級，${md(p.out)} 收盤賣出）`:
+    return p.act==='持有中'?`持有中 ${nm}（${esc(p.sname)}・${p.grade} 級，${md(p.out)} 收盤${(LV[p.k]||{}).src==='p7'?'換股':'賣出'}）`:
       `${md(p.ent)} 開盤 ${nm}（${esc(p.sname)}・${p.grade} 級${p.tent?`；${md(p.fix)} 收盤定案`:''}）`;});}
 function pickRows(ps){return ps.map(p=>`<div class=cr data-c="${esc(p.c)}"><div class=fn><b>${esc(p.n)}</b><i>${esc(p.c)} · ${esc(p.sname)} · ${p.grade} 級</i></div>`+
-  `<div class=crc>${p.act==='持有中'?`持有中，${md(p.out)} 收盤賣出`:`${md(p.ent)} ${p.cond?esc(p.cond):'開盤買進'} → ${p.out?md(p.out)+' 收盤賣出':'依停損與回落出場'}`}${p.tent?'<span class=st>（名單試算中）</span>':''}</div>`+
+  `<div class=crc>${p.act==='持有中'?`持有中，${md(p.out)} 收盤${(LV[p.k]||{}).src==='p7'?'換股':'賣出'}`:`${md(p.ent)} ${p.cond?esc(p.cond):'開盤買進'} → ${p.out?md(p.out)+' 收盤賣出':'依停損與回落出場'}`}${p.tent?'<span class=st>（名單試算中）</span>':''}</div>`+
   `<div class=crs><span class=st>停損</span><b>${p.stop==null?'不設':fp(p.stop)}</b></div></div>`).join('');}
 
 /* 出場與避開：高股息換股、共識加碼後開高 */
@@ -983,36 +1011,54 @@ function gapList(){const al=(ADV.exits||[]).filter(x=>x.k==='gap'),ag=(((D.strat
     (al.length?al.map(a=>`<span class=it>${nmA(a)} <span class=mu>${md(a.d)} 訊號、開盤</span> ${sgn(a.gap,1,'%')}</span>`).join('　'):'<span class=st>今天沒有</span>')+`</div></div>`;}
 
 function nowSec(){const P=ADV.picks||[],W=ADV.watch||[];
-  let b=P.length?pickBlocks(P):'<div class=st>本期沒有 A、B 級策略產生的標的。</div>';
-  b+=`<div class=note>預估報酬＝同一規則過去已出場交易的分布，已扣來回成本 0.585%，不是對個股的預測。部位計算見「部位與風控」。</div>`;
+  let b=P.length?`<div class=st style="margin-bottom:8px">依證據強弱排序：有 2013～2021 樣本外驗證的策略在前，其次依 t 值${gi('t 值')}。</div>`+pickBlocks(P):'<div class=st>本期沒有 A、B 級策略產生的標的。</div>';
+  b+=`<div class=note>預估報酬＝同一規則過去的分布（月營收驚喜、財報驚喜以同一期 5 檔等額平均為一期），已扣成本，不是對個股的預測。部位計算見「部位與風控」。</div>`;
   if(W.length){const G=[...new Set(W.map(p=>p.k))];
-    b+=`<h4 class=sh>觀察名單（C 級，不下單）</h4>`+G.map(k=>{const ws=W.filter(p=>p.k===k),g=gOf(k)||{};
-      return `<div class=wgh><a data-to="st-${esc(k)}">${esc(ws[0].sname)}</a> ${gBadge(g.grade)} <span class=st>${esc((g.why||[]).join('；'))}</span></div>`+
-        `<div class=tw><table><thead><tr><th>股票</th><th>收盤</th><th class=l>入選依據</th><th class=l>最快進場</th></tr></thead><tbody>`+
-        ws.map(p=>`<tr data-c="${esc(p.c)}"><td><span class=nm>${esc(p.n)}</span><span class=cd>${esc(p.c)}</span></td><td>${fp(p.px)}</td><td class="l wr">${(p.why||[]).map(esc).join('；')}</td><td class=l>${mdw(p.ent)}</td></tr>`).join('')+`</tbody></table></div>`;}).join('');}
+    b+=`<h4 class=sh>觀察名單（C 級，不下單）</h4>`+G.map(k=>{const ws=W.filter(p=>p.k===k),g=g3Of(k)||gOf(k)||{},L=LV[k];
+      return `<div class=wgh><a data-to="st-${esc(k)}">${esc(ws[0].sname)}</a> ${gBadge(g.grade)} <span class=st>${esc((g.why||[]).slice(0,2).join('；'))}</span></div>`+
+        `<div class=tw><table><thead><tr><th>股票</th><th>${L?'現價':'收盤'}</th><th class=l>入選依據</th><th class=l>${L?'紙上記錄':'最快進場'}</th></tr></thead><tbody>`+
+        ws.map(p=>`<tr data-c="${esc(p.c)}"><td><span class=nm>${esc(p.n)}</span><span class=cd>${esc(p.c)}</span></td><td>${fp(p.px)}</td><td class="l wr">${(p.why||[]).map(esc).join('；')}</td><td class=l>${L?`${md(p.ent)} 進場${p.now_r!=null?`，目前 ${sgn(p.now_r,1,'%')}`:''}`:mdw(p.ent)}</td></tr>`).join('')+`</tbody></table></div>`;}).join('');}
   b+=`<h4 class=sh>出場與避開</h4><div class=st>持有中的股票遇到以下情況，依規則處理。</div>${hdGroups(false)}${gapList()}`;
   return sec('st-now','本期','本期操作清單',`${md(ADV.last)} 收盤後產生`,b);}
 
-function gradeSec(){const G=ADV.grades||[];if(!G.length)return '';
+function gradeSec(){const G=ADV.grades3||[];if(!G.length)return '';
   const cnt=k=>{const p=(ADV.picks||[]).filter(x=>x.k===k).length,w=(ADV.watch||[]).filter(x=>x.k===k).length,x=(ADV.exits||[]).filter(x=>x.k===k).length;
-    return p?`${p} 檔推薦`:w?`${w} 檔觀察`:x?`${x} 檔出場・避開`:'—';};
-  const row=g=>`<tr><td><a data-to="st-${esc(g.k)}"><span class=nm>${esc(g.name)}</span></a><span class=cd>${esc(g.kind||'')}</span></td>`+
-    `<td class=l>${g.k==='hd'?`${gBadge(g.grade,'追買 '+g.grade)}${g.exit&&g.exit.ok?'<div style="margin-top:3px">'+gBadge('A','出場規則有效')+'</div>':''}`:gBadge(g.grade)}</td>`+
-    `<td>${g.n?`${g.n} ${g.event?'次':'筆'}`:'—'}</td><td>${pctT(g.x)}<div class=sm2>${ciT(g.ci)}</div></td><td class=hm>${g.xwin==null?'—':g.xwin+'%'}</td><td class=hm>${cnt(g.k)}</td>`+
-    `<td class="l wr hm">${esc((g.why||[]).join('；'))}</td></tr>`;
-  return sec('st-grade','評級','策略評級','評級規則見「部位與風控」',`<div class=tw><table><thead><tr><th>策略</th><th class=l>評級${gi('評級')}</th><th>樣本</th><th>平均超額${gi('信賴區間')}</th><th class=hm>贏大盤${gi('贏大盤')}</th><th class=hm>本期</th><th class="l hm">評級理由</th></tr></thead><tbody>${G.map(row).join('')}</tbody></table></div>`+
-    `<div class=note>平均超額下方為 95% 信賴區間。樣本皆為規則訂定前的歷史資料，A 級另須前瞻驗證。</div>`);}
+    return p?`${p} 檔`:w?`${w} 檔觀察`:x?`${x} 檔出場・避開`:'—';};
+  const side=(x,u)=>x&&x.n?`${p2(x.xe)}<span class=mu>／${u}</span><div class=sm2>t ${tT(x.t)}・${x.n} ${u}</div>`:'<span class=mu>沒有</span>';
+  const row=g=>{const i=g.ins||{},o=g.oos||{},u=g.unit||'筆',old=gOf(g.k)||{};
+    const bd=g.k==='hd'?`${gBadge(g.grade,'追買 '+g.grade)}${old.exit&&old.exit.ok?'<div style="margin-top:3px">'+gBadge('A','出場有效')+'</div>':''}`:gBadge(g.grade,`${g.grade}<span class=hm>・${GDN[g.grade]}</span>`);
+    return `<tr><td><a data-to="st-${esc(g.k)}"><span class=nm>${esc(g.name||g.k)}</span></a><span class=cd>${esc(g.kind||'')}</span></td><td class=l>${bd}</td>`+
+      (g.k==='hd'?`<td colspan=4 class="l mu">追買沒有贏大盤；有效的是出場時點（見下方高股息換股）</td>`:
+      `<td>${side(o,u)}</td><td>${side(i,u)}</td><td>${i.win==null?'—':i.win+'%'}${o.n?`<div class=sm2>樣本外 ${o.win}%</div>`:''}</td><td>${p2(i.m)}${o.n?`<div class=sm2>樣本外 ${p2(o.m)}</div>`:''}</td>`)+
+      `<td class=hm>${cnt(g.k)}</td><td class="l wr hm">${esc((g.why||[]).slice(0,3).join('；'))}${(g.why||[]).length>3?'…':''}</td></tr>`;};
+  return sec('st-grade','評級','策略評級','評級規則見「部位與風控」',`<div class=tw><table class=g3t><thead><tr><th>策略</th><th class=l>評級${gi('評級')}</th><th>樣本外選股${gi('樣本外')}</th><th>樣本內選股${gi('樣本內')}</th><th>賺錢機率${gi('賺錢機率')}</th><th>每月平均${gi('每月平均')}</th><th class=hm>本期</th><th class="l hm">評級理由</th></tr></thead><tbody>${G.map(row).join('')}</tbody></table></div>`+
+    `<div class=note>選股＝扣成本後平均每期（或每筆）贏同一批股票${gi('同一批股票的平均')}多少，下方為 t 值${gi('t 值')}與樣本數。樣本外＝2013～2021-09，規則寫定後才第一次跑；樣本內＝月營收驚喜、財報驚喜 2021-10 起，其餘策略 2024～2025 起（沒有樣本外）。</div>`);}
 
 /* 各策略固定五段 */
-function stSec(k,nav,title,kind,parts,more,badge){const g=gOf(k)||{};
+function stSec(k,nav,title,kind,parts,more,badge){const g=g3Of(k)||gOf(k)||{};
   return sec('st-'+k,nav,`${esc(title)} ${badge||gBadge(g.grade)}`,esc(kind||''),`<div class="card stc">${parts.map(([a,b])=>sq(a,b)).join('')}${more&&more[1]?`<details class=mr><summary>${more[0]}</summary>${more[1]}</details>`:''}</div>`);}
 function keyLine(g){const u=g.event?'次':'筆';if(g.x==null)return `過去 ${g.n} ${u}，報酬中位 ${pctT(g.med)}。`;
   const xm=g.xmed!=null&&Math.sign(g.xmed)!==Math.sign(g.x)?`，但中位${g.xmed>=0?'贏':'輸'}大盤 ${f(Math.abs(g.xmed),1)}%`:'';
   return `過去 ${g.n} ${u}平均每${u}${g.x>=0?'贏':'輸'}大盤 ${f(Math.abs(g.x),1)}%（95% 信賴區間 ${ciT(g.ci)}）${xm}；報酬中位 ${pctT(g.med)}，${g.event?`${g.n} 次中 ${g.kwin} 次獲利`:`${g.win}% 獲利`}。`;}
-function cclS(g,extra){if(!g||!g.n)return '<span class=mu>尚無已出場交易。</span>';
+function cclS(g,extra,k){const g3=k?g3Of(k):null;
+  if(g3&&g3.ins&&g3.ins.n){const x=g3.ins,u=g3.unit||'筆';
+    return `<div class=ccl><b>${g3.grade}・${GDN[g3.grade]}</b>（${GCAP[g3.grade]}）</div>`+
+      `<div>過去 ${x.n} ${u}，每${u}平均報酬比同一批股票${gi('同一批股票的平均')}${hiLo(x.xe)}（t ${tT(x.t)}）；扣成本後賺錢機率 ${x.win}%、每月平均 ${p2(x.m)}${gi('每月平均')}。</div>`+
+      (g&&g.n?`<div class=sm2>對加權指數（成本 0.585%）：${keyLine(g)}</div>`:'')+
+      `<div class=sm2>${g3.grade==='A'?'A 級條件全部符合。':`${g3.grade==='B'?'未達 A 級':'評級原因'}：${esc((g3.why||[]).join('；'))}。`}</div>`+(extra||'');}
+  if(!g||!g.n)return '<span class=mu>尚無已出場交易。</span>';
   return `<div class=ccl><b>${g.grade}・${esc(g.label)}</b>（${GCAP[g.grade]}）</div><div>${keyLine(g)}</div>`+
     `<div class=sm2>${g.grade==='A'?'A 級條件全部符合。':`${g.grade==='B'?'未達 A 級':'評級原因'}：${esc((g.why||[]).join('；'))}。`}</div>`+(extra||'');}
-function perfTbl(g){if(!g||!g.n)return '<span class=mu>尚無已出場交易。</span>';const u=g.event?'次':'筆',F=g.fwd||{},nf=g.event?2:10,cl=x=>x>0?'up':x<0?'dn':'';
+/* 評級依據（新成本、對同一批股票）：共識加碼、臺灣50、長線沒有樣本外，只有樣本內 */
+function v3Grid(k){const g3=g3Of(k);if(!g3||!g3.ins||!g3.ins.n)return '';const x=g3.ins,u=g3.unit||'筆',N=g3.nb||{},need=Math.ceil((N.n||9)*2/3),cl=v=>v>0?'up':v<0?'dn':'';
+  const T=[kp('選股','同一批股票的平均',`${p2(x.xe)}／${u}`,`t ${tT(x.t)}・${x.n} ${u}`,cl(x.xe)),
+    kp('賺錢機率','賺錢機率',`${x.win}%`,x.ratio!=null?`賺賠比 ${f(x.ratio,1)}`:''),kp('每月平均','每月平均',p2(x.m),''),
+    kp(`${x.x2>0?'✓':'✗'} 成本加倍`,'成本加倍',p2(x.x2),'選股平均',cl(x.x2)),kp(`${x.drop5>0?'✓':'✗'} 去掉最好 5%`,'去掉最好 5%',p2(x.drop5),'選股平均',cl(x.drop5)),
+    ...(N.n?[kp(`${N.pos>=need?'✓':'✗'} 參數鄰近`,'參數鄰近',`${N.pos}／${N.n}`,`沿用對加權指數的 9 組；A 級需 ≥${need}`)]:[]),
+    kp('前瞻驗證','前瞻驗證',`${(g3.fwd||{}).n||0}／${u==='次'?2:10} ${u}`,(g3.fwd||{}).n?`平均${bw(g3.fwd.xe)}`:'沒有樣本外，前瞻達標後代替')];
+  return `<h4 class=sh style="margin-top:0">評級依據（扣新成本、對同一批股票）</h4><div class=sgd>${T.join('')}</div>`+
+    `<h4 class=sh>對加權指數（參考）</h4>`;}
+function perfTbl(g,v3){if(!g||!g.n)return '<span class=mu>尚無已出場交易。</span>';const u=g.event?'次':'筆',F=g.fwd||{},nf=g.event?2:10,cl=x=>x>0?'up':x<0?'dn':'';
   const T=[kp('樣本','',`${g.n} ${u}`,`${esc(g.d0||'')}～${esc(g.d1||'')}`),
     kp('獲利比例','獲利比例',`${g.win}%`,`${g.kwin}／${g.n} ${u}`),
     kp('平均／中位','',`${pctT(g.avg)}／${pctT(g.med)}`,`一半落在 ${pctT(g.p25)}～${pctT(g.p75)}`),
@@ -1021,24 +1067,25 @@ function perfTbl(g){if(!g||!g.n)return '<span class=mu>尚無已出場交易。<
     kp('贏大盤','贏大盤',g.xwin==null?'—':`${g.xwin}%`,g.kx!=null?`${g.kx}／${g.nx||g.n} ${u}`:''),
     ...(g.conc?[kp('最集中月份','',esc(g.conc[0]),`占 ${g.conc[1]}%`)]:[]),
     kp('前瞻驗證','前瞻驗證',`${F.n||0}／${nf} ${u}`,F.n?`平均超額 ${pctT(F.x)}`:'起算後的交易')];
-  return `<div class=sgd>${T.join('')}</div><div class=note>報酬已扣來回成本 0.585%；超額＝減去加權指數同期報酬${g.event?'；每次＝同一次審核各檔等額平均':''}。</div>`+robTbl(g);}
+  return `<div class=sgd>${T.join('')}</div><div class=note>報酬已扣來回成本 0.585%；超額＝減去加權指數同期報酬${g.event?'；每次＝同一次審核各檔等額平均':''}。</div>`+robTbl(g,v3);}
 /* 穩健度檢查（資料包回測紀律 D1–D7，2026-10-15）：打 ✓／✗ 的三項是 A 級條件 */
 function nbGrid(N){if(!N||!N.cells)return '';const L=N.lbl||['',''],ad=N.ad||N.a||[],bd=N.bd||N.b||[],c=N.cells;
   let h=`<table class=nbg><thead><tr><th>${esc(L[0])}＼${esc(L[1])}</th>${bd.map(b=>`<th>${esc(b)}</th>`).join('')}</tr></thead><tbody>`;
   ad.forEach((a,i)=>{h+=`<tr><td>${esc(a)}</td>${bd.map((b,j)=>{const v=(c[i*bd.length+j]||[])[2];return `<td class="${v>0?'up':v<0?'dn':''}">${v==null?'—':pctT(v)}</td>`;}).join('')}</tr>`;});
   return h+`</tbody></table>`;}
-function robTbl(g){const R=g&&g.rb;if(!R||R.x2==null)return '';const N=g.nb||{},F=g.fill,u=g.event?'次':'筆',cl=x=>x>0?'up':x<0?'dn':'',need=Math.ceil((N.n||9)*2/3);
+function robTbl(g,v3){const R=g&&g.rb;if(!R||R.x2==null)return '';const N=g.nb||{},F=g.fill,u=g.event?'次':'筆',cl=x=>x>0?'up':x<0?'dn':'',need=Math.ceil((N.n||9)*2/3);
   const ck=ok=>ok==null?'<span class=ck></span>':ok?'<span class="ck up">✓</span>':'<span class="ck dn">✗</span>';
   const row=(k,gk,v,c,ok)=>`<div class=rbr><div class=rbk>${ck(ok)}${k}${gk?gi(gk):''}</div><div class="${c||''}">${v}</div></div>`;
-  let h=row(`成本加倍（每${u}再扣 0.585%）`,'成本加倍',`平均超額 ${pctT(R.x2)}`,cl(R.x2),R.x2>0);
-  if(N.n)h+=row('參數鄰近','參數鄰近',`鄰近 ${N.n} 組參數中 ${N.pos} 組贏大盤（A 級需 ≥${need}）<details class=mr><summary>看 ${N.n} 組</summary>${nbGrid(N)}</details>`,'',N.pos>=need);
-  if(R.xe!=null)h+=row('對同一批股票的平均','同一批股票的平均',`平均${R.xe>=0?'贏':'輸'} ${f(Math.abs(R.xe),1)}%（${R.kxe}／${R.nxe} ${u}贏）`,cl(R.xe),R.xe>0);
+  /* v3＝評級改看上方「評級依據」：這裡只留對加權指數的參考，不打 ✓／✗ */
+  let h=v3?'':row(`成本加倍（每${u}再扣 0.585%）`,'成本加倍',`平均超額 ${pctT(R.x2)}`,cl(R.x2),R.x2>0);
+  if(N.n)h+=row(v3?'參數鄰近 9 組':'參數鄰近','參數鄰近',`鄰近 ${N.n} 組參數中 ${N.pos} 組贏大盤${v3?'':`（A 級需 ≥${need}）`}<details class=mr><summary>看 ${N.n} 組</summary>${nbGrid(N)}</details>`,'',v3?null:N.pos>=need);
+  if(R.xe!=null&&!v3)h+=row('對同一批股票的平均','同一批股票的平均',`平均${R.xe>=0?'贏':'輸'} ${f(Math.abs(R.xe),1)}%（${R.kxe}／${R.nxe} ${u}贏）`,cl(R.xe),R.xe>0);
   if(R.drop1!=null)h+=row(`去掉最好的一${u}`,'',`平均超額 ${pctT(R.drop1)}`,cl(R.drop1),null);
   if(R.up||R.dn){const U=R.up||[0,null],Dn=R.dn||[0,null];
     h+=row('大盤在年線上／下','大盤年線',`年線上 ${U[0]} ${u}，平均超額 ${pctT(U[1])}；年線下 ${Dn[0]?`${Dn[0]} ${u}，平均超額 ${pctT(Dn[1])}`:'沒有樣本，空頭時的表現未經檢驗'}`,'',null);}
   h+=row('最大累計回落','',`依時間順序累加每${u}超額，最多回落 ${f(R.mdd,1)} 個百分點；最長連續 ${R.streak} ${u}輸大盤`,'',null);
   if(F)h+=row('成交檢查','成交檢查',`漲停開盤買不到 ${F.lim} ${u}、整天鎖跌停順延賣出 ${F.lock} ${u}`,'',null);
-  return `<h4 class=sh>穩健度檢查${gi('穩健度檢查')}</h4><div class=rbl>${h}</div>`+
+  return `<h4 class=sh>${v3?'穩健度（對加權指數，參考）':'穩健度檢查'}${gi('穩健度檢查')}</h4><div class=rbl>${h}</div>`+
     ((g.tried||[]).length?`<div class=note>樣本內比較過的做法：${g.tried.map(esc).join('；')}。成績是從這些做法裡挑出來的，會偏樂觀。</div>`:'');}
 function listOf(k){const P=(ADV.picks||[]).filter(p=>p.k===k);
   return P.length?`${pickGroups(P).join('；')}。<div class=st>進出場日期、停損與部位見 <a data-to="st-now">本期操作清單</a>。</div>`:'<span class=mu>本期沒有。</span>';}
@@ -1047,8 +1094,8 @@ function s1Sec(){const s=stOf('s1');if(!s)return '';const g=gOf('s1'),sc=s.scan,
   let m='';if(sc)m+=`<h4 class=sh>持有天數比較（規則訂定前）</h4>${scanChart(sc,s.hold)}<div class=note>每根柱子＝第 N 個交易日收盤出場時的平均超額；灰＝平盤或開高時進場的對照組。</div>`;
   if(ds.n)m+=`<div class=st>${moTxt(ds)}</div>`;
   m+=tradeLists(s,false);
-  return stSec('s1','共識加碼',s.name,s.kind,[['結論',cclS(g,ev?`<div class=sqe>${ev}</div>`:'')],['操作規則',`<div class=rls>${ruleRows(s.rule||[])}</div>`],
-    ['歷史績效',perfTbl(g)],['本期名單',listOf('s1')],['風險',riskList(s.risk)]],['持有天數比較、逐月成績與交易明細',m]);}
+  return stSec('s1','共識加碼',s.name,s.kind,[['結論',cclS(g,ev?`<div class=sqe>${ev}</div>`:'','s1')],['操作規則',`<div class=rls>${ruleRows(s.rule||[])}</div>`],
+    ['歷史績效',v3Grid('s1')+perfTbl(g,!!g3Of('s1'))],['本期名單',listOf('s1')],['風險',riskList(s.risk)]],['持有天數比較、逐月成績與交易明細',m]);}
 
 /* 臺灣50：只列提前卡位一條策略；公告後進場、官方名單全部收在比較表 */
 function trTxt(t){if(!t)return '—';if(t.st==='cand')return `${md(t.ent)} 開盤買進`;
@@ -1079,7 +1126,7 @@ function s3More(s){const E=(s.vers||[]).find(v=>v.k==='early')||{},br=(s.by_rev|
   if(((D.idx||{}).study||{}).n)m+=`<div class=st>名單準度、提前幾天建倉、哪些納入股漲最多：<a data-go="idx" data-at="idx-study">指數頁「換股研究」→</a></div>`;
   return m+(E.k?tradeLists(E,false):'');}
 function s3Sec(){const s=stOf('s3');if(!s)return '';const g=gOf('s3'),E=(s.vers||[]).find(v=>v.k==='early')||{};
-  return stSec('s3','臺灣50',s.name,s.kind,[['結論',cclS(g)],['操作規則',`<div class=rls>${ruleRows(E.rule||s.rule||[])}</div>`],['歷史績效',perfTbl(g)],
+  return stSec('s3','臺灣50',s.name,s.kind,[['結論',cclS(g,'','s3')],['操作規則',`<div class=rls>${ruleRows(E.rule||s.rule||[])}</div>`],['歷史績效',v3Grid('s3')+perfTbl(g,!!g3Of('s3'))],
     ['本期名單',s3Now(s)],['風險',riskList(s.risk)]],['三種做法比較、逐次成績與交易明細',verCmp(s)+s3More(s)]);}
 
 /* 高股息換股：追買評級 C；有效的是出場時點 */
@@ -1127,44 +1174,128 @@ function s5Sec(){const G=D.grow||{};if(G.err)return sec('st-s5','長線','長線
       bt+=`<tr class="${gk==='trust_mom'?'':'grey'}"><td>${gk==='trust_mom'?esc(EL[ek]):''}</td><td>${gl}</td><td>${x.n}</td><td>${sgn(x.avg,1,'%')}</td><td>${sgn(x.med,1,'%')}</td><td>${x.win}%</td><td>${x.aw==null?'—':sgn(x.aw,1,'%')}／${x.al==null?'—':sgn(x.al,1,'%')}</td><td>${f(x.dbl,1)}%</td><td>${x.days} 日</td></tr>`;}}
     bt+=`</tbody></table></div>`;}
   m+=`<h4 class=sh>回測（${ms.length?`${ms[0].slice(0,7)}～${ms[ms.length-1].slice(0,7)}，`:''}每月篩一次）</h4>${bt}`+tradeLists(S5,true);
-  return stSec('s5','長線',S5.name,S5.kind,[['結論',cclS(g,ex)],['操作規則',rules],['歷史績效',perfTbl(g)],['本期名單',now],['風險',riskList(S5.risk)]],['今日篩選、回測與交易明細',m]);}
+  return stSec('s5','長線',S5.name,S5.kind,[['結論',cclS(g,ex,'s5')],['操作規則',rules],['歷史績效',v3Grid('s5')+perfTbl(g,!!g3Of('s5'))],['本期名單',now],['風險',riskList(S5.risk)]],['今日篩選、回測與交易明細',m]);}
 
-/* 資料包策略測試（2026-10-15 使用者：「副檔給你參考 把能用的拿來用就好」；主規格見 docs/strategy_pack_plan.md） */
-function packSec(){const P=ADV.pack||{};if(P.err)return sec('st-pack','資料包','資料包策略測試','',`<div class=card><div class=st>資料錯誤：${esc(P.err)}</div></div>`);
-  const R=P.rows||[];if(!R.length)return '';const M=P.meta||{},main=R.filter(r=>/^p\d$/.test(r.k)),alt=R.filter(r=>!/^p\d$/.test(r.k));
-  const row=r=>{const N=r.nb||{},rb=r.rb||{},u=r.unit;
-    const gk={p1:'相對強勢',p2:'趨勢樣板',p3:'SUE'}[r.k]||(/^p6[cm]$/.test(r.k)?'CAN SLIM':'');
-    return `<tr><td class=l><span class=nm>${esc(r.name)}${gk?gi(gk):''}</span><span class=cd>${esc(r.src)}</span><div class="pkn pkr">${esc(r.rule)}</div></td>`+
-      `<td>${r.n?`${r.n} ${u}`:'—'}<div class=sm2>${esc((r.d0||'').slice(0,7))}～${esc((r.d1||'').slice(0,7))}</div></td>`+
-      `<td>${pctT(r.x)}<div class=sm2>${ciT(r.ci)}</div></td><td>${r.xwin==null?'—':r.xwin+'%'}</td>`+
-      `<td class=hm>${pctT(rb.xe)}</td><td class=hm>${N.n?`${N.pos}／${N.n}`:'—'}</td><td class=hm>${pctT(rb.drop1)}</td>`+
-      `<td class=l>${gBadge(r.grade)}<div class="pkn pkr">${esc((r.why||[]).join('；'))}</div></td></tr>`;};
-  const head=`<thead><tr><th>策略（資料包編號）</th><th>樣本</th><th>平均超額${gi('信賴區間')}</th><th>贏大盤${gi('贏大盤')}</th><th class=hm>對同一批股票${gi('同一批股票的平均')}</th><th class=hm>參數鄰近${gi('參數鄰近')}</th><th class=hm>去掉最好一筆</th><th class=l>評級</th></tr></thead>`;
-  const AB=main.filter(r=>r.grade==='A'||r.grade==='B'),best=main.filter(r=>r.x!=null).sort((a,b)=>b.x-a.x)[0];
-  let cc=AB.length?`${AB.map(r=>esc(r.name)).join('、')} 達 ${AB.map(r=>r.grade).join('、')} 級。`:`這 ${main.length} 種做法依同一套評級都是 C，不列推薦。`;
-  if(best&&best.x>0)cc+=`平均超額最高的是「${esc(best.name)}」（${pctT(best.x)}），但${esc((best.why||[])[0]||'')}${best.rb&&best.rb.drop1!=null?`，去掉最好的一${best.unit}後為 ${pctT(best.rb.drop1)}`:''}。`;
+/* 月營收驚喜、財報驚喜（回測方法 v3，前 5 檔）：2013 起含已下市公司、價格含息；樣本外 2013～2021-09、樣本內 2021-10 起 */
+const V3NAV={v7m:'營收中型',v7l:'營收大型',v3l:'財報大型',v3m:'財報中型'};
+function subTxt(S,u){return (S||[]).map((x,i)=>{const nx=S[i+1];const lb=nx?`${x[0].slice(0,4)}～${(()=>{const y=+nx[0].slice(0,4),m=+nx[0].slice(5,7)-1;return m?`${y}-${String(m).padStart(2,'0')}`:`${y-1}`;})()}`:`${x[0].slice(0,7)} 起`;
+  return `${esc(lb)} ${pctT(x[2],2)}（${x[1]} ${u}）`;}).join('｜');}
+/* 資金曲線：本策略與同一批股票（同一段期間等權），對數刻度；虛線＝樣本外與樣本內分界 */
+function curveChart(C,oe){if(!C||!(C.d||[]).length)return '';const n=C.d.length,W=stW(),HH=180,pl=46,pr=8,pt=14,pb=22;
+  const vs=[...C.s,...C.e].filter(v=>v>0);if(!vs.length)return '';const lo=Math.log(Math.min(...vs)),hi=Math.log(Math.max(...vs)),rg=Math.max(.2,hi-lo);
+  const x=i=>pl+(W-pl-pr)*(n>1?i/(n-1):.5),y=v=>pt+(HH-pt-pb)*(1-(Math.log(v)-lo)/rg);let s='';
+  for(const t of [0.2,0.5,1,2,5,10,20,50,100,200,500]){const lt=Math.log(t);if(lt<lo-1e-9||lt>hi+1e-9)continue;const yy=y(t).toFixed(1);
+    s+=`<line x1=${pl} x2=${W-pr} y1=${yy} y2=${yy} stroke="#e3e7ec"/><text x=${pl-5} y=${(+yy+4).toFixed(0)} font-size=11 fill="#727e8c" text-anchor=end>${t} 倍</text>`;}
+  let ly='';C.d.forEach((d,i)=>{const yr=d.slice(0,4);if(yr!==ly){ly=yr;if(+yr%2===0)s+=`<text x=${x(i).toFixed(1)} y=${HH-6} font-size=11 fill="#727e8c" text-anchor=middle>${yr}</text>`;}});
+  const k=oe?C.d.findIndex(d=>d>=oe):-1;
+  if(k>0){const xx=x(k-.5).toFixed(1);s+=`<line x1=${xx} x2=${xx} y1=${pt-4} y2=${HH-pb} stroke="#9aa5b1" stroke-dasharray="3 3"/><text x=${(+xx-4).toFixed(0)} y=${pt+6} font-size=11 fill="#727e8c" text-anchor=end>樣本外</text><text x=${(+xx+4).toFixed(0)} y=${pt+6} font-size=11 fill="#727e8c">樣本內</text>`;}
+  const path=a=>a.map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+  s+=`<path d="${path(C.e)}" fill=none stroke="#9aa5b1" stroke-width=1.5 /><path d="${path(C.s)}" fill=none stroke="#2563c9" stroke-width=2 />`;
+  return `<svg width=${W} height=${HH} viewBox="0 0 ${W} ${HH}">${s}</svg><div class=lg><span><i style="background:#2563c9"></i>本策略（扣成本，期末 ${f(C.s[n-1],1)} 倍）</span><span><i style="background:#9aa5b1"></i>同一批股票（同一段期間等權，${f(C.e[n-1],1)} 倍）</span><span>縱軸為對數刻度</span></div>`;}
+function v3Ccl(L,g){const R=L.res||{},o=R.oos||{},i=R.ins||{},u=L.unit;
+  return `<div class=ccl><b>${g.grade}・${GDN[g.grade]}</b>（${GCAP[g.grade]}）</div>`+
+    `<div>樣本外（${ym(o.d0)}～${ym(o.d1)}，${o.n} ${u}）每${u}平均報酬比同一批股票${hiLo(o.xe)}（t ${tT(o.t)}）；樣本內（${ym(i.d0)} 起，${i.n} ${u}）${hiLo(i.xe)}（t ${tT(i.t)}）。`+
+    `扣成本後賺錢機率 ${o.win}%／${i.win}%、每月平均 ${p2(o.m)}／${p2(i.m)}（樣本外／樣本內）。</div>`+
+    `<div class=sm2>${g.grade==='A'?'A 級條件全部符合。':`${g.grade==='B'?'未達 A 級':'評級原因'}：${esc((g.why||[]).join('；'))}。`}</div>`;}
+function v3Perf(L){const R=L.res||{},o=R.oos||{},i=R.ins||{},u=L.unit,F=L.fwd||{},need=L.src==='p3'?2:10,cl=x=>x>0?'up':x<0?'dn':'';
+  const N=R.nb||{},No=R.nb_oos||{},nd=Math.ceil((N.n||9)*2/3),ok=v=>v?'✓':'✗';
+  const T=[kp('樣本外選股','樣本外',`${p2(o.xe)}／${u}`,`t ${tT(o.t)}・${o.n} ${u}・${ym(o.d0)}～${ym(o.d1)}`,cl(o.xe)),
+    kp('樣本內選股','樣本內',`${p2(i.xe)}／${u}`,`t ${tT(i.t)}・${i.n} ${u}・${ym(i.d0)} 起`,cl(i.xe)),
+    kp('賺錢機率','賺錢機率',`${o.win}%／${i.win}%`,'樣本外／樣本內'),
+    kp('每月平均','每月平均',`${p2(o.m)}／${p2(i.m)}`,`賺賠比 ${o.ratio==null?'—':f(o.ratio,1)}／${i.ratio==null?'—':f(i.ratio,1)}`),
+    kp('年化報酬','資金帳戶',`${pctT(o.cagr)}／${pctT(i.cagr)}`,`同一批股票 ${pctT(o.ew_cagr)}／${pctT(i.ew_cagr)}`),
+    kp('最大回落','最大回落',`${o.mdd}%／${i.mdd}%`,`同一批股票 ${o.ew_mdd}%／${i.ew_mdd}%`),
+    kp(`${ok(i.x2>0)} 成本加倍`,'成本加倍',`${p2(o.x2)}／${p2(i.x2)}`,'選股平均（外／內）',cl(i.x2)),
+    kp(`${ok(N.pos>=nd)} 參數鄰近`,'參數鄰近',`${No.pos}／${No.n}・${N.pos}／${N.n}`,`贏同一批股票的組數（外・內）；A 級需 ≥${nd}`),
+    kp(`${ok(i.drop5>0)} 去掉最好 5%`,'去掉最好 5%',`${p2(o.drop5)}／${p2(i.drop5)}`,'選股平均（外／內）',cl(i.drop5)),
+    kp('前瞻驗證','前瞻驗證',`${F.n||0}／${need} ${u}`,F.n?`平均${bw(F.xe)}`:`${md(L.since)} 起算`)];
+  return `<div class=sgd>${T.join('')}</div>`+
+    `<div class=note>年化報酬與最大回落用資金帳戶${gi('資金帳戶')}計算；選股與賺錢機率以「同一期 5 檔等額平均」為一期，已扣成本（${L.b==='L'?'大型股來回 0.48%':'中型股來回 0.68%'}）。打 ✓／✗ 的三項是 A 級條件（看樣本內）。</div>`+
+    `<div class=st style="margin-top:6px">分期（每${u}平均贏同一批股票）：${subTxt(R.sub,u)}。</div>`+
+    `<h4 class=sh>資金曲線</h4>${curveChart(R.curve,V3M.oos_end)}`;}
+function v3Now(L){const N=L.now,X=L.next,g=g3Of(L.k)||{};let h='';
+  if(N&&(N.picks||[]).length){const per=L.src==='p7'?(N.ym?`${+N.ym.slice(5,7)} 月營收`:''):(N.q?`${qTxt(N.q)}財報`:'');
+    h+=`<div class=tl><b>這一期${per?`（${esc(per)}）`:''}${g.grade==='C'?'：C 級，只做紙上記錄':''}</b><ol><li>${mdw(N.d)} 收盤決定：${N.n_uni} 檔有訊號，取最強 5 檔</li><li>${mdw(N.ent)} 開盤買進</li><li>${mdw(N.out)} 收盤${L.src==='p7'?'換股':'賣出'}</li></ol></div>`+
+      `<div class=tw><table><thead><tr><th>股票</th><th>訊號${gi(L.src==='p7'?'月營收驚喜':'SUE')}</th><th>進場價</th><th>現價</th><th>報酬</th><th class=hm>市值(億)</th></tr></thead><tbody>`+
+      N.picks.map(p=>`<tr class=v3r data-c="${esc(p.c)}"><td><span class=nm>${esc(p.n)}</span><span class=cd>${esc(p.c)}</span></td><td>${f(p.sc,1)}</td><td>${fp(p.entry)}</td><td>${fp(p.now)}</td><td>${p.now_r==null?'—':sgn(p.now_r,1,'%')}</td><td class=hm>${f(p.cap,0)}</td></tr>`+
+        `<tr class=v3w data-c="${esc(p.c)}"><td colspan=6>${(p.why||[]).map(esc).join('；')}</td></tr>`).join('')+
+      `</tbody></table></div><div class=note>報酬＝進場開盤價到最新收盤，未扣成本、不含息。</div>`;}
+  else h+='<div class=mu>目前沒有持股。</div>';
+  if(X){const per=L.src==='p7'?`${(+X.d.slice(5,7)+10)%12+1} 月營收`:(X.q?`${qTxt(X.q)}財報`:'');
+    h+=`<div class=st style="margin-top:6px">下一期${per?`（${esc(per)}）`:''}：${mdw(X.d)} 收盤決定、${mdw(X.ent)} 開盤買進。前瞻紀錄從 ${md(L.since)} 起算${(L.fwd||{}).n?`，已記 ${L.fwd.n} 期`:'，下一期是第一期'}。</div>`;}
+  return h;}
+function v3Risk(L){const R=L.res||{},o=R.oos||{},i=R.ins||{},S=R.sub||[],u=L.unit,ev=L.src==='p3';
+  const xs=[`只買 5 檔、等額：最大回落樣本外 ${o.mdd}%、樣本內 ${i.mdd}%（同一批股票 ${o.ew_mdd}%／${i.ew_mdd}%）`];
+  const a=S.map(x=>x[2]).filter(v=>v!=null);
+  if(a.length>1&&Math.max(...a)>0&&Math.min(...a)<Math.max(...a)/3)xs.push(`各期間差異大（每${u}贏同一批股票）：${subTxt(S,u)}`);
+  xs.push(ev?`一年只有 4 期：樣本外 ${o.n} 期、樣本內 ${i.n} 期；每期持有約 3 個月，期間不設停損`:'月營收是單月數字：大訂單、匯率、去年同月基期都會讓單月跳動；多數公司在 10 日前公布，決定日當天股價可能已反映一部分');
+  if(L.b==='M')xs.push('中型股成交量較小：買進張數 ≤ 20 日均量 2%；滑價以每邊 0.15% 估計');
+  xs.push('回測的已下市公司只補「曾經月底市值 ≥40 億」者；股票股利的還原用 Yahoo 的數字');
+  return xs;}
+function v3Sec(k){const L=LV[k];if(!L)return '';const g=g3Of(k)||{grade:L.grade,why:L.why},R=L.res||{},N=R.nb||{};
+  const rules=`<div class=rls>${ruleRows([`範圍：${L.bucket}`,...(L.rules||[]),ADV.cost3||''].filter(Boolean))}</div>`;
+  const more=`<h4 class=sh>參數鄰近（樣本內，每${L.unit}贏同一批股票）</h4>${nbGrid(N)}`+
+    (((R.ins||{}).q||[]).length?`<h4 class=sh>因子檢定${gi('因子檢定')}（依訊號分 5 組，各組每${L.unit}平均報酬、未扣成本，由弱到強）</h4><div class=st>樣本外：${(R.oos.q||[]).map(v=>pctT(v,2)).join('／')}（最強−最弱 ${pctT(R.oos.sp,2)}，t ${tT(R.oos.sp_t)}）<br>樣本內：${(R.ins.q||[]).map(v=>pctT(v,2)).join('／')}（最強−最弱 ${pctT(R.ins.sp,2)}，t ${tT(R.ins.sp_t)}）</div>`:'');
+  return stSec(k,V3NAV[k]||L.name,L.name,`${L.src==='p7'?'每月換股':'每季換股'}・每期最強 5 檔・${L.b==='L'?'大型股':'中型股'}`,[['結論',v3Ccl(L,g)],['操作規則',rules],['歷史績效',v3Perf(L)],['本期名單',v3Now(L)],['風險',riskList(v3Risk(L))]],
+    ['參數鄰近與因子檢定',more],gBadge(g.grade));}
+
+/* 回測方法 v3：全部策略總表（docs/backtest_v3_plan.md 第 12、13 節）。舊的「資料包策略測試」（5 年資料、對加權指數）已由此取代 */
+function bt3Sec(){const V=ADV.v3||{},B=V.basket||[],M=V.meta||{},P=ADV.pack||{};if(!B.length&&!Object.keys(LV).length)return '';
+  const GK={p7:'月營收驚喜',p3:'SUE',p1:'相對強勢',p2:'趨勢樣板'};
+  const side=(x,u)=>x&&x.n?`${p2(x.xe)}<span class=mu>／${u}</span><div class=sm2>t ${tT(x.t)}</div>`:'—';
+  const row=(r,lbl)=>{const o=r.oos||{},i=r.ins||{},u=r.unit,N=r.nb||{},No=r.nb_oos||{};
+    return `<tr><td class=l><span class=nm>${esc(lbl)}${GK[r.src]?gi(GK[r.src]):''}</span><span class=cd>${r.b==='L'?'大型股':'中型股'}・${r.ver==='top5'?'前 5 檔':'整組'}</span></td>`+
+      `<td>${side(o,u)}</td><td>${side(i,u)}</td><td>${o.win==null?'—':o.win+'%'}／${i.win==null?'—':i.win+'%'}</td><td>${p2(o.m)}／${p2(i.m)}</td>`+
+      `<td class=hm>${No.n?`${No.pos}／${No.n}・${N.pos}／${N.n}`:'—'}</td><td class=hm>${o.sp==null?'—':`${pctT(o.sp,2)}（t ${tT(o.sp_t)}）／${pctT(i.sp,2)}（t ${tT(i.sp_t)}）`}</td>`+
+      `<td class=l>${gBadge(r.grade)}</td></tr>`;};
+  const head=`<thead><tr><th class=l>策略</th><th>樣本外選股${gi('樣本外')}</th><th>樣本內選股${gi('樣本內')}</th><th>賺錢機率${gi('賺錢機率')}<div class=sm2>外／內</div></th><th>每月平均${gi('每月平均')}<div class=sm2>外／內</div></th><th class=hm>參數鄰近${gi('參數鄰近')}<div class=sm2>外・內</div></th><th class=hm>因子檢定${gi('因子檢定')}<div class=sm2>最強−最弱 外／內</div></th><th class=l>評級</th></tr></thead>`;
+  const T5=Object.values(LV).map(L=>({...L.res,k:L.k,src:L.src,b:L.b,unit:L.unit,grade:L.grade,why:L.why,ver:'top5',name:L.name.replace(/（.*?）/,'')}));
+  const only=r=>(r.why||[]).length===1&&/^前瞻/.test(r.why[0]);
+  const all=[...T5,...B],nAB=all.filter(r=>r.grade==='A'||r.grade==='B'),near=all.filter(only),SO=['p7','p3','p1','p4','p2','p5'];
+  const ord=all.slice().sort((a,b)=>(a.b===b.b?0:a.b==='M'?-1:1)||SO.indexOf(a.src)-SO.indexOf(b.src)||(a.ver==='top5'?-1:1)-(b.ver==='top5'?-1:1));
+  const lb=r=>`${r.name}（${r.b==='L'?'大型股':'中型股'}${r.ver==='top5'?'・前 5 檔':'・整組'}）`,nA=all.filter(r=>r.grade==='A').length,L0=Object.values(LV)[0];
+  let cc=nA?`${all.length} 個版本中 ${nA} 個 A 級、${nAB.length-nA} 個 B 級。`:`${all.length} 個版本中 ${nAB.length} 個達 B 級、沒有 A 級（A 級需要前瞻驗證${L0?`，從 ${md(L0.since)} 起算`:''}）。`;
+  if(near.length)cc+=`只差前瞻驗證的：${near.map(r=>esc(lb(r))).join('、')}。`;
+  const bad=B.filter(r=>(r.oos||{}).xe<0&&(r.ins||{}).xe<0);
+  if(bad.length)cc+=`樣本內外都輸同一批股票：${[...new Set(bad.map(r=>r.name))].map(esc).join('、')}。`;
+  const notes=[`資料：${ym(M.d0)}～${ym(M.d1)}，${f(M.n_codes,0)} 檔（含 ${f(M.n_finmind,0)} 檔之後下市），價格含息；市值用當時月底的官方收盤 × 發行股數；EPS 用公開資訊觀測站當時公布的數字；月營收 ${M.rev_m||'—'} 個月。`,
+    `樣本外＝${ym(M.oos_end)} 之前，規則寫定後才第一次跑；樣本內＝${ym(M.oos_end)} 起。主規格在回測前寫定，結果出來後沒有改規則。`,
+    `選股＝扣成本後對同一批股票（同一段期間、同一個範圍、含之後下市的公司）等權平均的超額，t 值用 Newey-West；${ADV.cost3||''}。`,
+    '整組＝每期買訊號最強的 10%（財報驚喜 20%）；前 5 檔＝每期只買最強 5 檔，是本期操作用的版本。',
+    '多重檢定：整組版本測了 12 組（6 種策略 × 2 個範圍）。只靠運氣時，12 組中至少一組 t ≥2.8 的機率約 6%。'];
+  const alt=(P.rows||[]).filter(r=>!/^p\d$/.test(r.k));
+  const altRow=r=>{const rb=r.rb||{},N=r.nb||{};return `<tr><td class=l><span class=nm>${esc(r.name)}${gi('CAN SLIM')}</span><div class="pkn pkr">${esc(r.rule)}</div></td><td>${r.n?`${r.n} ${r.unit}`:'—'}</td><td>${pctT(r.x)}<div class=sm2>${ciT(r.ci)}</div></td><td>${r.xwin==null?'—':r.xwin+'%'}</td><td class=hm>${pctT(rb.xe)}</td><td class=hm>${N.n?`${N.pos}／${N.n}`:'—'}</td><td class=l>${gBadge(r.grade)}</td></tr>`;};
   const S=(P.skipped||[]).map(x=>`<tr><td class=l>${esc(x[0])}</td><td class=l>${esc(x[1])}</td></tr>`).join('');
-  return sec('st-pack','資料包','資料包策略測試','用現有資料能回測的部分',`<div class=card><div class=ccl><b>結論</b></div><div>${cc}</div>`+
-    `<div class=tw style="margin-top:8px"><table>${head}<tbody>${main.map(row).join('')}</tbody></table></div>`+
-    `<div class=note>超額＝對加權指數；「對同一批股票」＝對同一份股票清單的等權平均${gi('存活者偏誤')}。清單是 Yahoo 五年日線（目前市值前約 ${M.n_long||600} 名，${esc((M.d0||'').slice(0,7))} 起），形成日另要求市值 300 億以上；短期反轉用兩年日線（${M.n_all||''} 檔）。主規格在回測前寫定，鄰近 9 組只用來檢查結論是否穩定。</div>`+
-    (alt.length?`<h4 class=sh>CAN SLIM 的兩項條件加在長線策略上（對照，原規則不變）</h4><div class=tw><table>${head}<tbody>${alt.map(row).join('')}</tbody></table></div>`:'')+
+  return sec('st-bt3','總表','全部策略總表','2013 起、含已下市公司、樣本外驗證',`<div class=card><div class=ccl><b>結論</b></div><div>${cc}</div>`+
+    `<div class=tw style="margin-top:8px"><table>${head}<tbody>${ord.map(r=>row(r,r.name)).join('')}</tbody></table></div>`+
+    `<ol class=rkl style="margin-top:8px">${notes.map(x=>`<li class=note>${esc(x)}</li>`).join('')}</ol>`+
+    (alt.length?`<details class=mr><summary>長線策略加上 CAN SLIM 兩項條件（對照，舊方法：對加權指數、2024 起）</summary><div class=tw><table><thead><tr><th class=l>做法</th><th>樣本</th><th>平均超額${gi('信賴區間')}</th><th>贏大盤</th><th class=hm>對同一批股票</th><th class=hm>參數鄰近</th><th class=l>評級</th></tr></thead><tbody>${alt.map(altRow).join('')}</tbody></table></div></details>`:'')+
     (S?`<details class=mr><summary>沒有採用的項目與原因</summary><div class=tw><table class=skt><tbody>${S}</tbody></table></div></details>`:'')+`</div>`);}
 
 function riskSec(){const R=(ADV.rule||[]).filter(r=>r&&r.g);
   return sec('st-risk','風控','部位與風控','',`<div class=card><h4 class=sh style="margin-top:0">評級${gi('評級')}</h4>`+
     `<div class=tw><table><thead><tr><th>評級</th><th class=l>條件</th><th class=l>部位上限</th></tr></thead><tbody>${R.map(r=>`<tr><td>${gBadge(r.g)}</td><td class="l wr2">${esc(r.cond)}</td><td class=l>${esc(r.cap)}</td></tr>`).join('')}</tbody></table></div>`+
-    `<div class=note>${esc(ADV.rule_stop||'')}</div>`+
+    `<div class=note>${esc(ADV.pay3||'')}${gi('報酬型態')}</div><div class=note>${esc(ADV.cost3||'')}</div><div class=note>選股＝平均贏同一批股票${gi('同一批股票的平均')}；t 值${gi('t 值')}樣本內看 2021-10 起，樣本外看 2013～2021-09。</div>`+
     `<h4 class=sh>部位與交易限制</h4><div class=rls>${ruleRows([totPos(),'部位：A 級每檔 ≤ 總資金 5%、B 級 ≤ 2%、C 級不下單；有停損價時，部位另以「停損時虧損 ≤ 總資金 0.5%」計算，取較小者',
-      '流動性：只做 20 日均成交值 ≥1 億元的股票，買進張數 ≤ 20 日均量 2%','分散：同時持有 ≤8 檔、同產業 ≤3 檔','排除：注意股、處置股不買進',
-      '成本：報酬已扣來回成本 0.585%（手續費 0.1425% × 2＋證交稅 0.3%）','資料：歷史成績皆為規則訂定前的資料；規則起算後的交易另記前瞻成績，A 級須前瞻驗證達標'])}</div></div>`);}
-function totPos(){const P=(ADV.picks||[]).filter(p=>p.size&&p.size.pct);const t=P.reduce((a,p)=>a+p.size.pct,0);
-  return P.length?`總部位：本期操作清單全部照做 ${P.length} 檔，合計約占總資金 ${f(t,1)}%（持有中的部位另計）`:'總部位：本期操作清單沒有新的佈局';}
+      '檔數：每條策略每期最多 5 檔（依各自規則的排序）；同一檔被兩條以上策略選到時不重複加碼',
+      '流動性：買進張數 ≤ 20 日均量 2%','排除：注意股、處置股不買進',
+      '資料：月營收驚喜、財報驚喜有 2013～2021 的樣本外驗證；共識加碼、臺灣50、長線、高股息只有 2024～2025 起的資料。規則起算後的交易另記前瞻成績，A 級須前瞻驗證達標'])}</div></div>`);}
+function totPos(){const P=(ADV.picks||[]).filter(p=>p.size&&p.size.pct);const t=P.reduce((a,p)=>a+p.size.pct,0),h=P.filter(p=>p.act==='持有中').length;
+  return P.length?`總部位：本期操作清單 ${P.length} 檔（新佈局 ${P.length-h} 檔、持有中 ${h} 檔），全部照做合計約占總資金 ${f(t,0)}%`:'總部位：本期操作清單沒有部位';}
+const SECF={s1:()=>s1Sec(),s3:()=>s3Sec(),s5:()=>s5Sec(),hd:()=>hdSec()};
+/* 各策略段落的順序＝評級總表的順序（評級、證據強弱） */
+function stSecs(){const done=new Set();let h='';
+  for(const g of (ADV.grades3||[])){const k=g.k;if(done.has(k))continue;done.add(k);h+=LV[k]?v3Sec(k):SECF[k]?SECF[k]():'';}
+  for(const k of Object.keys(LV))if(!done.has(k)){done.add(k);h+=v3Sec(k);}
+  for(const k of ['s1','s3','hd','s5'])if(!done.has(k))h+=SECF[k]();
+  return h;}
 function vSt(){
   const X=D.strat||{};
-  let h=`<div class=intro>每天收盤後依固定規則產生名單。評級依歷史超額報酬的 95% 信賴區間${gi('信賴區間')}、樣本數、單月集中度、穩健度檢查${gi('穩健度檢查')}與前瞻驗證判定：A 可執行、B 小部位試行、C 不推薦${gi('評級')}。</div>`;
+  let h=`<div class=intro>每天收盤後依固定規則產生名單。評級看三件事，都扣成本後算：平均有沒有贏同一批股票${gi('同一批股票的平均')}、賺錢機率與每月平均夠不夠${gi('報酬型態')}、成本加倍與參數稍微改動後還在不在${gi('穩健度檢查')}；有 2013～2021 樣本外資料${gi('樣本外')}的策略另看樣本外是否同方向。A 可執行、B 小部位試行、C 不推薦${gi('評級')}。</div>`;
   if(X.err)h+=`<div class=st>策略資料錯誤：${esc(X.err)}</div>`;
   if(ADV.err)h+=`<div class=st>評級資料錯誤：${esc(ADV.err)}</div>`;
-  h+=nowSec()+gradeSec()+s1Sec()+s3Sec()+hdSec()+s5Sec()+packSec()+riskSec();
+  if((D.adv||{}).v3err)h+=`<div class=st>月營收驚喜、財報驚喜資料錯誤：${esc(D.adv.v3err)}</div>`;
+  h+=nowSec()+gradeSec()+stSecs()+bt3Sec()+riskSec();
   $('#main').innerHTML=h;
   $$('#main [data-to]').forEach(a=>a.onclick=e=>{e.preventDefault();jump(a.dataset.to);});
 }

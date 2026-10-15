@@ -423,6 +423,88 @@ def update_revenue() -> bool:
     return True
 
 
+def _last_rev_month(today) -> tuple[int, int]:
+    """今天可得的最新月營收月份：11 日起才有上個月（法定公告期限 10 日）。"""
+    first = today.replace(day=1)
+    last = first - timedelta(days=1)
+    if today.day < 11:
+        last = last.replace(day=1) - timedelta(days=1)
+    return last.year, last.month
+
+
+def backfill_rev_mops(start: str = "2020-01", *, budget_s: float = 1500, workers: int = 4) -> int:
+    """全市場月營收歷史（S26，2026-10-15）：MOPS 營業收入彙總表，一個月四頁（上市／上櫃 × 國內／國外 KY），
+    寫進同一個 rev 分片（{ym, s: {代號: [營收(千元), 年增%, 累計年增%]}}）。已有 ≥1000 檔的月份跳過，可重跑續補。
+    彙總表一頁約 45 秒（伺服器傳得慢），同時抓 2 個月、4 個連線。"""
+    from concurrent.futures import ThreadPoolExecutor
+    t0 = time.time()
+    have = {}
+    for ym in store.dates("rev"):
+        have[ym] = len((store.read("rev", ym) or {}).get("s") or {})
+    ly, lm = _last_rev_month(clock.today_tw())
+    y, m = int(start[:4]), int(start[5:7])
+    todo = []
+    while (y, m) <= (ly, lm):
+        if have.get(f"{y:04d}-{m:02d}", 0) < 1000:
+            todo.append((y, m))
+        m += 1
+        if m > 12:
+            y, m = y + 1, 1
+    n = 0
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        for i in range(0, len(todo), 2):
+            if time.time() - t0 > budget_s:
+                market.log(f"月營收歷史：時間預算用完，停在 {todo[i][0]:04d}-{todo[i][1]:02d}（本輪補 {n} 個月）")
+                break
+            grp = todo[i:i + 2]
+            jobs = {(y, m, mkt, k): ex.submit(market.fetch_mops_rev, mkt, y, m, k)
+                    for y, m in grp for k in (0, 1) for mkt in ("sii", "otc")}
+            for y, m in grp:
+                ym = f"{y:04d}-{m:02d}"
+                data, ok = {}, True
+                for mkt in ("sii", "otc"):
+                    for k in (0, 1):
+                        d = jobs[(y, m, mkt, k)].result()
+                        if d is None and k == 0:
+                            ok = False
+                        data.update(d or {})
+                if ok and len(data) >= 1000:
+                    store.write("rev", ym, {"ym": ym, "s": data, "src": "mops"})
+                    n += 1
+                else:
+                    market.log(f"月營收歷史 {ym}：解析 {len(data)} 檔，不寫入")
+            time.sleep(1.0)
+    market.log(f"月營收歷史（MOPS）：本輪新增 {n} 個月、累計 {len(store.dates('rev'))} 個月、"
+               f"{time.time() - t0:.0f} 秒")
+    return n
+
+
+def backfill_rev_finmind(codes: list[str], *, start: str = "2020-01-01", budget_s: float = 2400) -> int:
+    """全市場月營收歷史的備援（MOPS 彙總表抓不到時）：FinMind 逐檔，存 revf/{代號}（{r: {YYYY-MM: 營收(元)}}）。
+    未登入每小時約 300 次，限流就停、下一輪續補；已有的跳過。"""
+    t0 = time.time()
+    d = store.LAB / "revf"
+    have = {p.name.split(".json")[0] for p in d.glob("*.json.gz")} if d.exists() else set()
+    n = 0
+    for c in codes:
+        if c in have:
+            continue
+        if time.time() - t0 > budget_s:
+            market.log(f"月營收歷史（FinMind）：時間預算用完，停在 {c}")
+            break
+        rows = market.finmind("TaiwanStockMonthRevenue", c, start)
+        time.sleep(1.2)
+        if rows == market.FINMIND_LIMIT:
+            market.log(f"月營收歷史（FinMind）：被限流，停在 {c}（本輪補 {n} 檔）")
+            break
+        r = {f"{int(x['revenue_year']):04d}-{int(x['revenue_month']):02d}": float(x["revenue"])
+             for x in rows or [] if x.get("revenue_year") and x.get("revenue_month") and x.get("revenue")}
+        store.write("revf", c, {"r": r})                 # 空的也寫：代表查過、沒有資料，下一輪不重打
+        n += 1
+    market.log(f"月營收歷史（FinMind）：候選 {len(codes)} 檔、本輪新增 {n}、累計 {len(have) + n}")
+    return n
+
+
 def backfill_rev_hist(codes: list[str], *, budget_s: float = 1200) -> int:
     t0 = time.time()
     have = set()
