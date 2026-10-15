@@ -42,6 +42,6 @@ def test_full_pipeline_runs(cfg):
 
     checks = run_quality(cfg)
     path = write_report(checks, cfg.reports_dir)
-    assert path.exists() and len(checks) == 11
+    assert path.exists() and len(checks) == 12
     rpath = reconcile(cfg, n=3, fetch=False)
     assert "人工核對清單" in rpath.read_text(encoding="utf-8")

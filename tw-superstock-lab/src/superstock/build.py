@@ -5,7 +5,8 @@
   calendar.parquet       交易日
   index.parquet          加權／櫃買指數與報酬指數
   events.parquet         還原事件（因子）
-  prices.parquet         日 K：原始價、還原價、還原日報酬、漲跌停鎖死旗標
+  prices.parquet         日 K：原始價、還原價、還原日報酬、漲跌停鎖死旗標（已切掉興櫃前段與下市後）
+  listing.parquet        每檔主板第一個交易日、下市日、切掉幾筆（listing.py）
   revenue.parquet        月營收＋可用日（point-in-time）
   financials.parquet     綜合損益表（長表）＋可用日
   institutional.parquet  三大法人買賣超（寬表，單位：股）
@@ -23,6 +24,7 @@ import pandas as pd
 from .adjust import EVENT_SOURCES, apply_adjustment, build_events, flag_limits
 from .config import Config
 from .datasets import get_spec
+from .listing import trim
 from .pit import add_financial_availability, add_revenue_availability
 from .storage import GLOBAL_KEY, Store
 from .universe import build_universe
@@ -51,14 +53,17 @@ def _write(df: pd.DataFrame, path: Path) -> int:
     return len(df)
 
 
-def build_prices(store: Store, universe: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+def build_prices(store: Store, universe: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """回傳（日 K, 還原事件, 每檔掛牌／下市切除紀錄）。"""
     raw = _read(store, "TaiwanStockPrice")
     if raw.empty:
-        return pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
     prices = raw.rename(columns=PRICE_RENAME)
     prices["stock_id"] = prices["stock_id"].astype(str)
     prices = prices[prices["stock_id"].isin(universe["stock_id"])].copy()
     prices["date"] = pd.to_datetime(prices["date"])
+    # 興櫃（掛牌前）與下市後的日 K 不屬於研究範圍（listing.py）
+    prices, listing_info = trim(prices, universe)
     for col in ("open", "high", "low", "close"):
         num = pd.to_numeric(prices[col], errors="coerce").astype(float)
         # 無成交日 FinMind 可能給 0 價；視為缺值，避免算出 -100% 報酬
@@ -73,7 +78,7 @@ def build_prices(store: Store, universe: pd.DataFrame) -> tuple[pd.DataFrame, pd
             "adj_factor", "adj_open", "adj_high", "adj_low", "adj_close", "ret",
             "locked_up", "locked_down"]
     adjusted = adjusted[[c for c in keep if c in adjusted.columns]]
-    return adjusted, events
+    return adjusted, events, listing_info
 
 
 def build_institutional(store: Store) -> pd.DataFrame:
@@ -150,7 +155,9 @@ def build_all(cfg: Config) -> dict[str, int]:
     if not index.empty:
         counts["index"] = _write(index, out_dir / "index.parquet")
 
-    prices, events = build_prices(store, universe)
+    prices, events, listing_info = build_prices(store, universe)
+    if not listing_info.empty:
+        counts["listing"] = _write(listing_info, out_dir / "listing.parquet")
     if not events.empty:
         counts["events"] = _write(events, out_dir / "events.parquet")
     if not prices.empty:
