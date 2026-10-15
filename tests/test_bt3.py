@@ -157,3 +157,32 @@ def test_market_v3_parsers():
                        "data": [["102/07/16", "5347", "世界", "35.90", "34.93", "0", "0.97", "0.97", "息", "", "", "",
                                  "", "0.97", "0"]]}]}
     assert market.parse_tp_exright(doc) == [["2013-07-16", "5347", 35.9, 34.93, 0.97, 0.0]]
+
+
+def test_bt3d_panel_total_return_prices_and_month_end_caps(tmp_path, monkeypatch):
+    from arm.lab import bt3d, store
+    monkeypatch.setattr(store, "LAB", tmp_path)
+    t = ["2013-01-02", "2013-01-03", "2013-01-04", "2013-01-07", "2013-01-08", "2013-01-09", "2013-01-10",
+         "2013-01-11", "2013-01-14", "2013-01-15", "2013-01-16", "2013-01-17"]
+    n = len(t)
+    flat = lambda xs: {"o": xs, "h": xs, "l": xs, "c": xs}
+    store.write("v3px", "TWII", {"m": "idx", "src": "yahoo", "t": t, **flat([100.0 + i for i in range(n)]),
+                                 "v": [1] * n, "a": [100.0 + i for i in range(n)]})
+    # Yahoo：1/04 除息 0.5（還原收盤在除息前是 收盤 × 0.95）
+    y = [10, 10] + [9.5] * (n - 2)
+    store.write("v3px", "1101", {"m": "tw", "src": "yahoo", "t": t, **flat(y), "v": [1000] * n,
+                                 "a": [9.5] * n})
+    # FinMind 原始價（已下市）：1/04 除息，前收 20、參考價 19
+    store.write("v3px", "2311", {"m": "?", "src": "finmind", "t": t, **flat([20, 20] + [19] * (n - 2)),
+                                 "v": [5] * n, "val": [100.0] * n})
+    store.write("divtw", "2013", {"rows": [["2013-01-04", "2311", 1.0, "息", 20.0, 19.0]]})
+    store.write("v3me_tw", "2013-01", {"d": "2013-01-03", "s": {"1101": [10.0, 3e9], "2311": [20.0, 1e9]}})
+    P = bt3d.Panel(min_days=3)
+    assert P.codes == ["1101", "2311"] and P.T == n
+    assert P.s["1101"]["c"] == pytest.approx([9.5] * n)                         # 除息日沒有跳空
+    assert P.s["2311"]["c"] == pytest.approx([19] * n)
+    assert P.s["1101"]["o"][2] / P.s["1101"]["c"][1] == pytest.approx(1.0)     # 除息日開盤對前收（以參考價為基準）
+    assert P.cap["1101"][:3] == [None, 3e10, 3e10]                             # 月底快照日之前沒有市值
+    assert P.liq["2311"][8] is None and P.liq["2311"][9] == pytest.approx(100.0)   # 20 日均要有 10 個值
+    assert P.liq["1101"][11] == pytest.approx((2 * 10 + 10 * 9.5) * 1000 / 12)
+    assert P.elig(10, 2.5e10, 0) == frozenset({"1101"})                       # packtest.Px 介面照用（2311 只有 200 億）
