@@ -54,7 +54,7 @@ class _Cache:
     def run(self, key, rows, top, nmin, asc=False, umin=None, mult=1.0):
         done = [r for r in rows if r[1] is not None]
         pk = bt3s.pick(done, top, nmin, asc, umin)
-        ek = (key, nmin, umin)
+        ek = (key, umin or nmin)                        # 對照組只看「哪幾期、哪些股票有分數」，與買幾檔無關
         if ek not in self.ew:
             self.ew[ek] = bt3s._ew(self.P, self.b, done, pk)
         return done, pk, bt3.account(self.P, pk, self.b, mult=mult), self.ew[ek]
@@ -73,15 +73,19 @@ def periodic(P, b: str, key: str, rows_fn, a0, *, top: float, nmin: int, asc: bo
     oos = _part(P, U, U2, per, acc["curve"], ew["curve"], None, OOS_END)
     nb_i = nb_o = None
     if grid:
-        avals, tvals, lbl = grid
+        avals, tvals, lbl = grid                        # tvals：買進比例，或 (比例, 最少檔數) ＝前 N 檔版本
         cells = {}
         for a in avals:
             rr = rows if a == a0 else rows_fn(a)
-            for tp in tvals:
-                _, _, ac, e = C.run((key, a), rr, tp, nmin, asc, umin)
+            for tv in tvals:
+                tp, nm = tv if isinstance(tv, tuple) else (tv, nmin)
+                _, _, ac, e = C.run((key, a), rr, tp, nm, asc, umin or nmin)
                 V = bt3.vs_ew(ac, e)
-                cells[(a, tp)] = (_mean(u["xe"] for u in _cut(V, OOS_END, None)), _mean(u["xe"] for u in _cut(V, None, OOS_END)))
+                cells[(a, tv)] = (_mean(u["xe"] for u in _cut(V, OOS_END, None)), _mean(u["xe"] for u in _cut(V, None, OOS_END)))
         nb_i, nb_o = _nb2(cells, avals, tvals, lbl)
+        if tvals and isinstance(tvals[0], tuple):       # 表頭顯示檔數
+            for nb in (nb_i, nb_o):
+                nb["bd"] = [str(t[1]) for t in tvals]
     now = None
     if rows and rows[-1][1] is None:
         cur = bt3s.pick([rows[-1]], top, nmin, asc, umin)
@@ -156,5 +160,23 @@ def run(P=None, *, buckets=("L", "M"), with_grid: bool = True) -> dict:
         r["p7"] = periodic(P, b, "p7", lambda win: bt3s.p7_rows(P, E, b, codes, rev, win), 12, top=0.10, nmin=10,
                            grid=((9, 12, 18), T3, ("標準差期間（月）", "買進比例")) if with_grid else None)
         r["p2"] = p2(P, b, E, EWb, codes, with_grid)
+        out[b] = r
+    return out
+
+def top5(P=None, *, buckets=("M", "L"), with_grid: bool = True, n: int = 5) -> dict:
+    """第 13 節：月營收驚喜、財報驚喜「每期只買分數最高的 n 檔」版本（有分數的股票數門檻同主規格）。"""
+    P = P or bt3d.Panel()
+    E = bt3.Elig(P)
+    codes = P.codes
+    eps = bt3d.load_eps()
+    rev = PT.load_rev()
+    NV = ((0.0, 3), (0.0, 5), (0.0, 8))
+    out: dict = {}
+    for b in buckets:
+        r = {}
+        r["p7"] = periodic(P, b, "p7", lambda win: bt3s.p7_rows(P, E, b, codes, rev, win), 12, top=0.0, nmin=n, umin=10,
+                           grid=((9, 12, 18), NV, ("標準差期間（月）", "買進檔數")) if with_grid else None)
+        r["p3"] = periodic(P, b, "p3", lambda hold: bt3s.p3_rows(P, E, b, codes, eps, hold), 60, top=0.0, nmin=n,
+                           umin=20, event=True, grid=((40, 60, 80), NV, ("持有天數", "買進檔數")) if with_grid else None)
         out[b] = r
     return out
