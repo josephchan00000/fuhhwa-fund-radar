@@ -165,10 +165,12 @@ def existing(ctx, strat: dict, grow: dict) -> dict:
     for k, r in ex.items():
         nb = r.get("nb_old") or None
         nb = nb if nb and nb.get("n") else None
-        g = bt3.grade3(r["sel"], r["pay"], r["x2"], nb, event=(k == "s3e"))
+        fw = r.get("fwd") or {"n": 0}
+        g = bt3.grade3(r["sel"], r["pay"], r["x2"], nb, event=(k == "s3e"), fwd=fw)
         out["s3" if k == "s3e" else k] = {
             "sel": _sel(r["sel"]), "pay": _pay(r["pay"]), "x2": None if r.get("x2") is None else round(r["x2"], 2),
             "nb": {"n": nb.get("n"), "pos": nb.get("pos")} if nb else None, "grade": g["grade"],
-            "why": [w for w in g["why"] if w != "樣本外尚未驗證"] + ["沒有樣本外資料（資料從 2024～2025 開始）"],
-            "by_b": r.get("by_b"), "unit": "次" if k == "s3e" else "筆"}
+            "why": [w for w in g["why"] if w != "樣本外尚未驗證"] +
+                   (["沒有樣本外資料（資料從 2024～2025 開始；前瞻達標後代替）"] if "樣本外尚未驗證" in g["why"] else []),
+            "fwd": _sel(fw), "by_b": r.get("by_b"), "unit": "次" if k == "s3e" else "筆"}
     return out

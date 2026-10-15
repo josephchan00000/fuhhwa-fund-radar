@@ -199,3 +199,19 @@ def test_bt3d_mops_cumulative_eps_to_quarterly(tmp_path, monkeypatch):
     e = bt3d.load_eps()
     assert e["2330"] == {"2013-12-31": 1.5, "2014-03-31": 1.85, "2014-06-30": 2.3}  # 官方彙總表優先
     assert e["5347"] == {"2014-03-31": 0.84}
+
+
+def test_grade3_forward_replaces_missing_oos():
+    """第 6c 節：沒有樣本外資料的策略，前瞻滿期數且平均 >0 可代替樣本外（可到 A）；滿期數而為負＝反向 → C。"""
+    sel = {"n": 40, "xe": 1.5, "t": 2.4, "drop5": 0.6}
+    pay = {"n": 40, "ok": True, "win": 65, "m": 2.0, "ratio": 1.5}
+    nb = {"n": 9, "pos": 9}
+    g = bt3.grade3(sel, pay, 0.8, nb, fwd={"n": 3, "xe": 1.0})
+    assert g["grade"] == "B" and "樣本外尚未驗證" in g["why"]                    # 前瞻未滿：最高 B
+    assert bt3.grade3(sel, pay, 0.8, nb, fwd={"n": 10, "xe": 0.9})["grade"] == "A"  # 前瞻滿且 >0：代替樣本外
+    g = bt3.grade3(sel, pay, 0.8, nb, fwd={"n": 10, "xe": -0.4})
+    assert g["grade"] == "C" and any("前瞻反向" in w for w in g["why"])
+    oos = {"n": 60, "xe": 0.5, "t": 0.6}                                           # 有樣本外：前瞻為負只是未達 A
+    g = bt3.grade3(sel, pay, 0.8, nb, oos=oos, fwd={"n": 10, "xe": -0.4})
+    assert g["grade"] == "B"
+

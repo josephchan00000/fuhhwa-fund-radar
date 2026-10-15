@@ -257,14 +257,17 @@ def run(DL, *, with_grid: bool = True, existing: dict | None = None) -> dict:
 
 
 def existing_eval(P, EWb, d: dict) -> dict:
-    """既有策略的樣本內交易 → 新成本、對同一批股票（依訊號日市值分大型／中型）。參數鄰近沿用舊口徑另列。"""
+    """既有策略的樣本內交易 → 新成本、對同一批股票（依訊號日市值分大型／中型）。參數鄰近沿用舊口徑另列。
+    前瞻（起算日之後已出場的交易）同一套換算，另列 fwd——這幾條沒有樣本外，前瞻代替樣本外（第 6c 節）。"""
     out = {}
     st = {s.get("key"): s for s in (d.get("strat") or {}).get("list") or []}
+    fwd = lambda U: bt3.sel_stats(U, trades=True) if U else {"n": 0}
     s1 = st.get("s1")
     if s1:
         U = bt3.trade_units(s1.get("ins") or [], P, EWb)
         U2 = bt3.trade_units(s1.get("ins") or [], P, EWb, mult=2)
-        out["s1"] = {**_mixed(P, U, U2, EWb), "nb_old": (s1.get("score") or {}).get("nb")}
+        out["s1"] = {**_mixed(P, U, U2, EWb), "nb_old": (s1.get("score") or {}).get("nb"),
+                     "fwd": fwd(bt3.trade_units(s1.get("fwd") or [], P, EWb))}
     s3 = st.get("s3")
     if s3:
         ver = next((v for v in s3.get("vers") or [] if (v.get("name") or "").startswith("提前卡位")), None)
@@ -274,11 +277,13 @@ def existing_eval(P, EWb, d: dict) -> dict:
             ev = _by_review(U)
             ev2 = _by_review(U2)
             out["s3e"] = {**trades_eval(P, ev, ev2, EWb, "L", event=True, slots=None), "trades": len(U),
-                          "nb_old": (ver.get("score") or {}).get("nb")}
+                          "nb_old": (ver.get("score") or {}).get("nb"),
+                          "fwd": fwd(_by_review(tw50_units(ver.get("fwd") or [], P, EWb)))}
     s5 = ((d.get("grow") or {}).get("s5") or {})
     if s5.get("ins"):
         U, U2 = s5_units(s5["ins"], P), s5_units(s5["ins"], P, mult=2)
-        out["s5"] = {**_mixed(P, U, U2, EWb), "nb_old": (s5.get("score") or {}).get("nb")}
+        out["s5"] = {**_mixed(P, U, U2, EWb), "nb_old": (s5.get("score") or {}).get("nb"),
+                     "fwd": fwd(s5_units(s5.get("fwd") or [], P))}
     return out
 
 

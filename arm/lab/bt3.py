@@ -442,9 +442,13 @@ def robust(sel: dict, x2: float | None, nb: dict | None) -> list[str]:
 def grade3(sel: dict, pay: dict, x2: float | None, nb: dict | None, *, event: bool = False,
            oos: dict | None = None, fwd: dict | None = None) -> dict:
     """→ {"grade", "why", "rob"}。sel＝sel_stats、pay＝payoff、x2＝成本加倍後的選股平均、nb＝參數鄰近
-    {n, pos}（以選股平均計）、oos＝樣本外 sel_stats、fwd＝前瞻 sel_stats。"""
+    {n, pos}（以選股平均計）、oos＝樣本外 sel_stats、fwd＝前瞻 sel_stats。
+    沒有樣本外資料的策略以前瞻代替樣本外（第 6c 節）：前瞻滿期數且平均 >0 ＝樣本外條件過；滿期數而為負 ＝反向 → C。"""
     rob = robust(sel, x2, nb)
     n_min = 4 if event else 10
+    need = 2 if event else 10
+    has_oos = bool(oos and oos.get("n"))
+    fwd_full = bool(fwd and fwd.get("n", 0) >= need and fwd.get("xe") is not None)
     why: list[str] = []
     c = []
     if sel.get("n", 0) < n_min:
@@ -455,8 +459,10 @@ def grade3(sel: dict, pay: dict, x2: float | None, nb: dict | None, *, event: bo
         c.append(f"平均沒有贏同一批股票（{sel['xe']:+.2f}%）")
     if not pay.get("ok"):
         c.append(_pay_why(pay))
-    if oos and oos.get("n") and oos["xe"] < 0:
+    if has_oos and oos["xe"] < 0:
         c.append(f"樣本外反向（{oos['xe']:+.2f}%）")
+    if not has_oos and fwd_full and fwd["xe"] < 0:
+        c.append(f"前瞻反向（{fwd['xe']:+.2f}%，沒有樣本外資料時以前瞻代替）")
     if len(rob) > 1:
         c.append("穩健度兩項以上未過：" + "；".join(rob))
     if c:
@@ -465,11 +471,11 @@ def grade3(sel: dict, pay: dict, x2: float | None, nb: dict | None, *, event: bo
         why += rob
     if sel.get("t") is None or sel["t"] < 2:
         why.append(f"選股超額 t 值 {sel.get('t') or 0:.2f}（A 級需 ≥2）")
-    if not oos or not oos.get("n"):
-        why.append("樣本外尚未驗證")
+    if not has_oos:
+        if not (fwd_full and fwd["xe"] > 0):
+            why.append("樣本外尚未驗證")
     elif oos["xe"] <= 0 or (oos.get("t") or 0) < 1:
         why.append(f"樣本外 {oos['xe']:+.2f}%、t {oos.get('t') or 0:.2f}（A 級需同號且 t ≥1）")
-    need = 2 if event else 10
     if not fwd or fwd.get("n", 0) < need:
         why.append(f"前瞻 {fwd.get('n', 0) if fwd else 0} {'次' if event else '筆'}（A 級需滿 {need}）")
     elif fwd["xe"] <= 0:
