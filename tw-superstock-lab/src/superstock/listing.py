@@ -212,11 +212,20 @@ def parse_official(rows, market: str) -> pd.DataFrame:
     return pd.DataFrame(out, columns=["stock_id", "listing_date", "market"])
 
 
-def fetch_official(session, timeout: int = 30) -> pd.DataFrame:
+def fetch_official(session, timeout: int = 30, retries: int = 3, sleep=None) -> pd.DataFrame:
+    """證交所、櫃買 openapi 公司基本資料（各一個請求；連線中斷時重試，2026-10-15 CI 遇過「Response ended prematurely」）。"""
+    import time
+    sleep = sleep or time.sleep
     frames = []
     for market, url in OFFICIAL_URLS.items():
-        resp = session.get(url, timeout=timeout)
-        frames.append(parse_official(resp.json(), market))
+        for attempt in range(1, retries + 1):
+            try:
+                frames.append(parse_official(session.get(url, timeout=timeout).json(), market))
+                break
+            except Exception:  # noqa: BLE001
+                if attempt == retries:
+                    raise
+                sleep(5 * attempt)
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
 
