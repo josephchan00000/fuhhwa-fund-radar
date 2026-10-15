@@ -319,7 +319,10 @@ def check_listing(listing: pd.DataFrame) -> Check:
     # 股票池說已下市、主板日 K 卻在下市日 30 天後還有：股票池的下市判斷可能錯（會讓每日更新停抓這檔）
     end = listing["main_end"].fillna(listing["last_raw"]) if "main_end" in listing else listing["last_raw"]
     late = listing[listing["delist_date"].notna() & (end > listing["delist_date"] + pd.Timedelta(days=30))]
-    c.metrics = {"stocks": int(len(listing)), "with_emerging_prefix": int(len(pre)),
+    never = listing[listing["never_main"].astype(bool)] if "never_main" in listing else listing.iloc[0:0]
+    pre = pre[~pre.index.isin(never.index)]
+    c.metrics = {"stocks": int(len(listing)), "never_main_board_dropped": int(len(never)),
+                 "with_emerging_prefix": int(len(pre)),
                  "rows_dropped_pre": int(listing["dropped_pre"].sum()),
                  "with_rows_after_delisting": int(len(post)), "rows_dropped_post": int(listing["dropped_post"].sum()),
                  "suspect_not_switched": int(len(suspect)), "delisted_but_still_trading": int(len(late)),
@@ -333,7 +336,8 @@ def check_listing(listing: pd.DataFrame) -> Check:
         c.worst("FAIL")
     elif len(suspect) or len(late):
         c.worst("WARN")
-    c.summary = (f"{len(pre)} 檔切掉興櫃前段共 {c.metrics['rows_dropped_pre']:,} 筆；{len(post)} 檔切掉下市後 "
+    c.summary = (f"{len(pre)} 檔切掉興櫃前段、{len(never)} 檔從沒上市櫃整檔不留，共 {c.metrics['rows_dropped_pre']:,} 筆；"
+                 f"{len(post)} 檔切掉下市後 "
                  f"{c.metrics['rows_dropped_post']:,} 筆；疑似漏判 {len(suspect)} 檔；判下市卻仍在交易 {len(late)} 檔")
     return c
 

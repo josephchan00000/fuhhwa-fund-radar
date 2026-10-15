@@ -48,11 +48,13 @@ def daily_prices(stock_id: str, start: str, end: str, base: float = 100.0) -> pd
     dates = pd.bdate_range(start, end)
     n = len(dates)
     close = [base + (i % 5) * 0.5 for i in range(n)]
+    # 漲跌價差＝對前一日收盤（主板規則；listing.py 靠它分辨興櫃）
+    spread = [0.0] + [round(close[i] - close[i - 1], 2) for i in range(1, n)]
     return pd.DataFrame({
         "date": dates.strftime("%Y-%m-%d"), "stock_id": stock_id,
         "Trading_Volume": [1_000_000] * n, "Trading_money": [100_000_000] * n,
         "open": close, "max": [c + 1 for c in close], "min": [c - 1 for c in close],
-        "close": close, "spread": [0.0] * n, "Trading_turnover": [500] * n,
+        "close": close, "spread": spread, "Trading_turnover": [500] * n,
     })
 
 

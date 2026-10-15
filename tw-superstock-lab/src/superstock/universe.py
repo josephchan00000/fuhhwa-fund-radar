@@ -1,9 +1,10 @@
 """股票池：上市＋上櫃普通股，含研究期間內下市櫃的股票。
 
 FinMind TaiwanStockInfo 的 date＝該列最後更新日（2026-10 實測：2020-06-03～今天）。仍掛牌的股票每天更新，
-已下市的股票停在下市前後——所以「現在掛牌」＝最後更新日接近整張表的最新日；更新日停在過去的是已下市，
-下市日優先用 TaiwanStockDelisting，沒有就用最後更新日（2026-10-15 實測：原本把這些都當成上市，
-股票池 2,225 檔裡只認得 81 檔下市，另有 238 檔被誤報成「代號重複使用」）。
+已下市的股票不再更新——所以「現在掛牌」＝最後更新日接近整張表的最新日；更新日停在過去的是已下市
+（2026-10-15 實測：原本把這些都當成上市，股票池 2,225 檔裡只認得 81 檔下市）。現在掛牌的 1,977 檔
+與證交所／櫃買官方名單逐檔比對全數在名單上（官方多的 4 檔是存託憑證）。
+下市日優先用 TaiwanStockDelisting：停更日期不可靠（FinMind 重抓清單會刷新早已下市股票的日期）。
 """
 
 from __future__ import annotations
@@ -76,11 +77,13 @@ def build_universe(info: pd.DataFrame, delisting: pd.DataFrame | None,
 
     d = _filter_delisting(delisting, cfg, start_date)
     d_date = dict(zip(d["stock_id"], d["delist_date"]))
-    # ① 清單裡已不再更新的：下市日用下市表（要在最後更新日附近或之後），否則用最後更新日
+    # ① 清單裡已不再更新的：下市日優先用下市表，沒有才用最後更新日。
+    #    （CI 實測：1469 理隆、3315 宣昶等 2017–2018 就沒有日 K，清單最後更新日卻是 2024-12、2026——
+    #    FinMind 重抓清單時刷新了日期，清單日期不能當下市日）
     rows = []
     for r in stale.itertuples(index=False):
         dd = d_date.get(r.stock_id)
-        if dd is None or pd.isna(dd) or dd < r.date - pd.Timedelta(days=60):
+        if dd is None or pd.isna(dd):
             dd = r.date
         if pd.isna(dd) or dd < pd.Timestamp(start_date):
             continue
