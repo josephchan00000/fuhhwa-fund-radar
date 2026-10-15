@@ -525,6 +525,10 @@ def grade_v3(r: dict, fwd: dict | None) -> dict:
                fwd={"n": fwd.get("n", 0), "xe": fwd.get("xe")} if fwd else None)
     if g["grade"] == "A" and not po.get("ok"):
         g = {**g, "grade": "B", "why": g["why"] + ["樣本外報酬型態未達門檻（A 級需樣本內外都過）"]}
+    ld = r.get("lowdd") or {}
+    if g["grade"] == "C" and ld.get("ok"):          # 低回落例外（第 15 節）：選股沒過但賺錢、跌得少很多 → 最高 B
+        from .bt3 import low_dd_why
+        g = {**g, "grade": "B", "why": [low_dd_why(ld)], "lowdd": True}
     return g
 
 
@@ -569,7 +573,7 @@ def build_v3(v3: dict, ex: dict, last: str | None) -> dict:
             name = v["name"]
             grades.append({"k": k, "name": name, "kind": f"{'月' if v['src'] == 'p7' else '季'}換股・前 5 檔", "grade": g["grade"],
                            "why": g["why"], "oos": r["oos"], "ins": r["ins"], "unit": v["unit"], "fwd": v.get("fwd"),
-                           "has_oos": True, "ev": _ev(r["oos"], r["ins"])})
+                           "has_oos": True, "ev": _ev(r["oos"], r["ins"]), "lowdd": bool(g.get("lowdd"))})
             now = v.get("now") or {}
             for p in now.get("picks") or []:
                 px = p.get("now") or p.get("entry")
@@ -585,7 +589,7 @@ def build_v3(v3: dict, ex: dict, last: str | None) -> dict:
                 _put(item, picks, watch)
             live[k] = {**{x: v.get(x) for x in ("k", "src", "b", "name", "unit", "since", "fwd", "now", "next")},
                        "grade": g["grade"], "why": g["why"], "rules": V3_RULES[v["src"]], "bucket": BUCKET_TXT[v["b"]],
-                       "res": {x: r.get(x) for x in ("oos", "ins", "nb", "nb_oos", "sub", "fsub", "curve", "dist", "ver")}}
+                       "res": {x: r.get(x) for x in ("oos", "ins", "nb", "nb_oos", "sub", "fsub", "curve", "dist", "ver", "lowdd")}}
     for k, e in (ex or {}).items():
         if k == "err" or not isinstance(e, dict):
             continue
@@ -593,7 +597,8 @@ def build_v3(v3: dict, ex: dict, last: str | None) -> dict:
                                                                         "pay_ok": e["pay"].get("ok"), "x2": e.get("x2")},
                        "oos": None, "unit": e.get("unit"), "has_oos": False, "ev": _ev(None, e["sel"]), "nb": e.get("nb"),
                        "fwd": e.get("fwd")})
-    basket = [{x: r.get(x) for x in ("k", "src", "name", "b", "ver", "unit", "grade", "why", "oos", "ins", "nb", "nb_oos", "sub")}
+    basket = [{x: r.get(x) for x in ("k", "src", "name", "b", "ver", "unit", "grade", "why", "oos", "ins", "nb", "nb_oos", "sub",
+                                     "lowdd")}
               for r in res.get("rows") or [] if r.get("ver") == "basket"]
     return {"grades": grades, "picks": picks, "watch": watch, "live": live, "basket": basket,
             "meta": {**(res.get("meta") or {}), "asof": res.get("asof"), "oos_end": res.get("oos_end")}}
