@@ -1,0 +1,31 @@
+下載進度（各狀態檔數）：
+                                    store  done  empty  failed
+                               IndexPrice     2      0       0
+TaiwanStockCapitalReductionReferencePrice     0      3       0
+                     TaiwanStockDelisting     1      0       0
+   TaiwanStockDispositionSecuritiesPeriod     0      0       3
+                TaiwanStockDividendResult     3      0       0
+           TaiwanStockFinancialStatements     3      0       0
+                          TaiwanStockInfo     1      0       0
+ TaiwanStockInstitutionalInvestorsBuySell     3      0       0
+       TaiwanStockMarginPurchaseShortSale     3      0       0
+                  TaiwanStockMonthRevenue     3      0       0
+                TaiwanStockParValueChange     6     13       0
+                         TaiwanStockPrice     3      0       0
+                    TaiwanStockSplitPrice     7     12       0
+              TaiwanStockTotalReturnIndex     2      0       0
+                   TaiwanStockTradingDate     1      0       0
+
+資料集設定：
+                                    store resolved_mode                                                                                                                                                                                     disabled_reason          updated_utc
+TaiwanStockCapitalReductionReferencePrice     per_stock                                                                                                                                                                                                 NaN 2026-10-15T12:14:42Z
+   TaiwanStockDispositionSecuritiesPeriod     per_stock 連續 3 檔失敗，可能需付費或參數不符：TaiwanStockDispositionSecuritiesPeriod 6488: HTTP 400 Your level is free. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor 2026-10-15T12:15:50Z
+                TaiwanStockDividendResult     per_stock                                                                                                                                                                                                 NaN 2026-10-15T12:14:42Z
+                TaiwanStockParValueChange        global                                                                                                                                                                                                 NaN 2026-10-15T12:15:03Z
+                    TaiwanStockSplitPrice        global                                                                                                                                                                                                 NaN 2026-10-15T12:14:43Z
+
+最近失敗：
+                                 store  key                                                                                                                                                                           error  attempts          updated_utc
+TaiwanStockDispositionSecuritiesPeriod 6488 TaiwanStockDispositionSecuritiesPeriod 6488: HTTP 400 Your level is free. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor         1 2026-10-15T12:15:50Z
+TaiwanStockDispositionSecuritiesPeriod 2330 TaiwanStockDispositionSecuritiesPeriod 2330: HTTP 400 Your level is free. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor         2 2026-10-15T12:15:43Z
+TaiwanStockDispositionSecuritiesPeriod 1101 TaiwanStockDispositionSecuritiesPeriod 1101: HTTP 400 Your level is free. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor         2 2026-10-15T12:15:42Z
