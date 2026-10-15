@@ -548,6 +548,13 @@ def run(data: Data | None = None) -> dict:
     except Exception as e:                                # noqa: BLE001
         grow = {"err": f"{type(e).__name__}: {e}"}
     iss_stats = backtest.issuer_stats(D, L, meta, taiex)
+    # 策略頁 v2：評級＋本期推薦／觀察／出場清單（2026-10-15）
+    try:
+        from . import advice
+        adv = advice.build({"rows": rows, "strat": strat, "grow": grow, "idx": idx_out, "stats": stats,
+                            "last": D.cal[-1] if D.cal else None})
+    except Exception as e:                                # noqa: BLE001
+        adv = {"err": f"{type(e).__name__}: {e}"}
     asof = {
         "pos": D.pos[-1][0] if D.pos else None,
         "px": pxd,
@@ -561,7 +568,7 @@ def run(data: Data | None = None) -> dict:
     return {"asof": asof, "etfs": meta, "rows": rows, "ser": ser,
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
             "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow, "ca": L.ca[-30:],
-            "idx": idx_out, "strat": strat, "grow": grow,
+            "idx": idx_out, "strat": strat, "grow": grow, "adv": adv,
             "dates": D.cal[-CHART_N:]}
 
 
