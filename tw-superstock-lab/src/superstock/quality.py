@@ -20,6 +20,7 @@ from .storage import GLOBAL_KEY, Manifest, Store
 from .universe import reused_codes
 
 CORE_STORES = {s.store_name for s in REGISTRY if s.group in ("meta", "core")}
+SPONSOR_STORES = {s.store_name for s in REGISTRY if s.group == "sponsor"}
 
 
 @dataclass
@@ -56,10 +57,13 @@ def check_downloads(manifest: Manifest) -> Check:
             c.worst("FAIL")
         elif failed:
             c.worst("WARN")
-    disabled = []
+    disabled, sponsor = [], []
     if not ds.empty:
         for rec in ds.to_dict("records"):
             if rec.get("disabled_reason"):
+                if rec["store"] in SPONSOR_STORES:   # 贊助會員才有、已改用官方資料：不算問題
+                    sponsor.append(rec["store"])
+                    continue
                 disabled.append({"dataset": rec["store"], "reason": rec["disabled_reason"]})
                 c.worst("FAIL" if rec["store"] in CORE_STORES else "WARN")
     if not rows:
@@ -67,7 +71,7 @@ def check_downloads(manifest: Manifest) -> Check:
         c.summary = "還沒有任何下載紀錄"
     else:
         c.summary = f"{len(rows)} 個資料集；停用 {len(disabled)} 個"
-    c.metrics = {"datasets": rows, "disabled": disabled}
+    c.metrics = {"datasets": rows, "disabled": disabled, "sponsor_only_skipped": sponsor}
     return c
 
 
@@ -342,6 +346,38 @@ def check_listing(listing: pd.DataFrame) -> Check:
     return c
 
 
+def check_official(disp: pd.DataFrame, tdcc: pd.DataFrame, universe: pd.DataFrame, start_date: str) -> Check:
+    """C13（2026-10-15 新增）：官方處置公告（證交所、櫃買）與集保股權分散表。
+    處置股會擋新倉、加滑價（engine）；哪一年、哪個市場整年 0 筆，多半是沒抓到而不是真的沒有處置。"""
+    c = Check("C13", "官方處置公告與集保股權分散表")
+    if disp.empty:
+        c.worst("WARN")
+        c.summary = "沒有處置股資料（執行 python -m superstock official 後再 build）；回測不會擋處置股"
+        return c
+    d = disp.copy()
+    if "market" not in d.columns:   # FinMind（贊助）格式沒有市場別
+        d["market"] = "unknown"
+    d["year"] = pd.to_datetime(d["date"]).dt.year
+    tab = d.groupby(["year", "market"]).size().unstack(fill_value=0)
+    years = range(max(pd.Timestamp(start_date).year, 2010), pd.Timestamp.now().year + 1)
+    zero = [f"{y} {m}" for y in years for m in ("twse", "tpex") if int(tab.get(m, pd.Series(dtype=int)).get(y, 0)) == 0]
+    in_uni = d["stock_id"].isin(set(universe["stock_id"])) if not universe.empty else pd.Series(True, index=d.index)
+    bad = d[pd.to_datetime(d["period_end"]) < pd.to_datetime(d["period_start"])]
+    c.metrics = {"rows": int(len(d)), "stocks": int(d["stock_id"].nunique()),
+                 "first": str(pd.to_datetime(d["date"]).min().date()), "last": str(pd.to_datetime(d["date"]).max().date()),
+                 "per_year": {int(y): {m: int(v) for m, v in r.items()} for y, r in tab.iterrows()},
+                 "zero_years": zero, "not_in_universe_pct": round(float(1 - in_uni.mean()), 4),
+                 "bad_period": int(len(bad)),
+                 "tdcc_weeks": int(tdcc["date"].nunique()) if not tdcc.empty else 0,
+                 "tdcc_last": str(pd.to_datetime(tdcc["date"]).max().date()) if not tdcc.empty else None}
+    if zero or len(bad):
+        c.worst("WARN")
+    c.summary = (f"處置 {len(d):,} 筆、{d['stock_id'].nunique()} 檔（{c.metrics['first']}～{c.metrics['last']}）；"
+                 f"整年 0 筆 {len(zero)} 個（{', '.join(zero[:6])}{'…' if len(zero) > 6 else ''}）；"
+                 f"集保已累積 {c.metrics['tdcc_weeks']} 週（大戶指標只能從這裡往後算）")
+    return c
+
+
 def run_quality(cfg: Config) -> list[Check]:
     store = Store(cfg.raw_dir)
     manifest = Manifest(cfg.manifest_path)
@@ -355,6 +391,8 @@ def run_quality(cfg: Config) -> list[Check]:
     inst = _load(proc / "institutional.parquet")
     margin = _load(proc / "margin.parquet")
     listing = _load(proc / "listing.parquet")
+    disp = _load(proc / "disposition.parquet")
+    tdcc = _load(proc / "tdcc.parquet")
     info = store.read(get_spec("TaiwanStockInfo"), GLOBAL_KEY)
     delisting = store.read(get_spec("TaiwanStockDelisting"), GLOBAL_KEY)
     dividend_raw = store.read_all(get_spec("TaiwanStockDividendResult"))
@@ -373,6 +411,7 @@ def run_quality(cfg: Config) -> list[Check]:
             check_financials(fin),
             check_chips(inst, margin, universe),
             check_listing(listing),
+            check_official(disp, tdcc, universe, cfg.start_date),
         ]
     finally:
         manifest.close()

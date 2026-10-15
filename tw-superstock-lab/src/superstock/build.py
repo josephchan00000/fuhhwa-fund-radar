@@ -11,7 +11,8 @@
   financials.parquet     綜合損益表（長表）＋可用日
   institutional.parquet  三大法人買賣超（寬表，單位：股）
   margin.parquet         融資融券餘額
-  disposition.parquet    處置股期間
+  disposition.parquet    處置股期間（證交所／櫃買官方處置公告；official.py）
+  tdcc.parquet           集保股權分散表（千張大戶%、400 張以上%、人數；每週累積）
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from .adjust import EVENT_SOURCES, apply_adjustment, build_events, flag_limits
 from .config import Config
 from .datasets import get_spec
 from .listing import trim
+from .official import build_disposition, build_tdcc
 from .pit import add_financial_availability, add_revenue_availability
 from .storage import GLOBAL_KEY, Store
 from .universe import build_universe
@@ -185,8 +187,16 @@ def build_all(cfg: Config) -> dict[str, int]:
     if not margin.empty:
         counts["margin"] = _write(margin, out_dir / "margin.parquet")
 
-    disp = _read(store, "TaiwanStockDispositionSecuritiesPeriod")
+    # 處置股：官方處置公告（official.py）優先；沒有才用 FinMind（贊助會員才有）
+    disp = build_disposition(cfg.raw_dir)
+    if disp.empty:
+        disp = _read(store, "TaiwanStockDispositionSecuritiesPeriod")
     if not disp.empty:
         counts["disposition"] = _write(disp, out_dir / "disposition.parquet")
+
+    # 集保股權分散表（每週累積；available_date＝資料日的下一個交易日）
+    tdcc = build_tdcc(cfg.raw_dir, cal["date"] if cal is not None and not cal.empty else None)
+    if not tdcc.empty:
+        counts["tdcc"] = _write(tdcc, out_dir / "tdcc.parquet")
 
     return counts

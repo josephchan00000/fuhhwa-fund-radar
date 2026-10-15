@@ -1,0 +1,64 @@
+2026-10-15 21:31:32 INFO superstock.official | 處置公告 twse 2008：27 筆（4 碼普通股）
+2026-10-15 21:31:36 INFO superstock.official | 處置公告 twse 2009：110 筆（4 碼普通股）
+2026-10-15 21:31:41 INFO superstock.official | 處置公告 twse 2010：54 筆（4 碼普通股）
+2026-10-15 21:31:45 INFO superstock.official | 處置公告 twse 2011：71 筆（4 碼普通股）
+2026-10-15 21:31:49 INFO superstock.official | 處置公告 twse 2012：64 筆（4 碼普通股）
+2026-10-15 21:31:53 INFO superstock.official | 處置公告 twse 2013：81 筆（4 碼普通股）
+2026-10-15 21:31:56 INFO superstock.official | 處置公告 twse 2014：60 筆（4 碼普通股）
+2026-10-15 21:32:02 INFO superstock.official | 處置公告 twse 2015：58 筆（4 碼普通股）
+2026-10-15 21:32:06 INFO superstock.official | 處置公告 twse 2016：44 筆（4 碼普通股）
+2026-10-15 21:32:09 INFO superstock.official | 處置公告 twse 2017：88 筆（4 碼普通股）
+2026-10-15 21:32:13 INFO superstock.official | 處置公告 twse 2018：112 筆（4 碼普通股）
+2026-10-15 21:32:17 INFO superstock.official | 處置公告 twse 2019：35 筆（4 碼普通股）
+2026-10-15 21:32:23 INFO superstock.official | 處置公告 twse 2020：228 筆（4 碼普通股）
+2026-10-15 21:32:27 INFO superstock.official | 處置公告 twse 2021：188 筆（4 碼普通股）
+2026-10-15 21:32:32 INFO superstock.official | 處置公告 twse 2022：100 筆（4 碼普通股）
+2026-10-15 21:32:40 INFO superstock.official | 處置公告 twse 2023：102 筆（4 碼普通股）
+2026-10-15 21:32:43 INFO superstock.official | 處置公告 twse 2024：163 筆（4 碼普通股）
+2026-10-15 21:32:47 INFO superstock.official | 處置公告 twse 2025：107 筆（4 碼普通股）
+2026-10-15 21:32:50 INFO superstock.official | 處置公告 twse 2026：404 筆（4 碼普通股）
+2026-10-15 21:32:55 INFO superstock.official | 處置公告 tpex 2008：28 筆（4 碼普通股）
+2026-10-15 21:33:01 INFO superstock.official | 處置公告 tpex 2009：149 筆（4 碼普通股）
+2026-10-15 21:33:05 INFO superstock.official | 處置公告 tpex 2010：70 筆（4 碼普通股）
+2026-10-15 21:33:09 INFO superstock.official | 處置公告 tpex 2011：50 筆（4 碼普通股）
+2026-10-15 21:33:12 INFO superstock.official | 處置公告 tpex 2012：67 筆（4 碼普通股）
+2026-10-15 21:33:16 INFO superstock.official | 處置公告 tpex 2013：88 筆（4 碼普通股）
+2026-10-15 21:33:21 INFO superstock.official | 處置公告 tpex 2014：129 筆（4 碼普通股）
+2026-10-15 21:33:24 INFO superstock.official | 處置公告 tpex 2015：153 筆（4 碼普通股）
+2026-10-15 21:33:29 INFO superstock.official | 處置公告 tpex 2016：108 筆（4 碼普通股）
+2026-10-15 21:33:33 INFO superstock.official | 處置公告 tpex 2017：150 筆（4 碼普通股）
+2026-10-15 21:33:37 INFO superstock.official | 處置公告 tpex 2018：153 筆（4 碼普通股）
+2026-10-15 21:33:40 INFO superstock.official | 處置公告 tpex 2019：91 筆（4 碼普通股）
+2026-10-15 21:33:44 INFO superstock.official | 處置公告 tpex 2020：343 筆（4 碼普通股）
+2026-10-15 21:33:47 INFO superstock.official | 處置公告 tpex 2021：299 筆（4 碼普通股）
+2026-10-15 21:33:51 INFO superstock.official | 處置公告 tpex 2022：110 筆（4 碼普通股）
+2026-10-15 21:33:54 INFO superstock.official | 處置公告 tpex 2023：182 筆（4 碼普通股）
+2026-10-15 21:33:59 INFO superstock.official | 處置公告 tpex 2024：264 筆（4 碼普通股）
+2026-10-15 21:34:03 INFO superstock.official | 處置公告 tpex 2025：227 筆（4 碼普通股）
+2026-10-15 21:34:09 INFO superstock.official | 處置公告 tpex 2026：462 筆（4 碼普通股）
+2026-10-15 21:34:12 INFO superstock.official | 集保股權分散表：資料日 2026-10-08（新的一週）、2963 檔、已累積 1 週
+
+處置公告（4 碼普通股，依公告日）：
+ year  twse  tpex
+ 2007     1     0
+ 2008    26    28
+ 2009   110   150
+ 2010    54    66
+ 2011    65    48
+ 2012    60    66
+ 2013    79    80
+ 2014    57   126
+ 2015    55   150
+ 2016    42   109
+ 2017    88   148
+ 2018   109   148
+ 2019    34    91
+ 2020   226   342
+ 2021   180   290
+ 2022    94   100
+ 2023    99   180
+ 2024   162   258
+ 2025   104   224
+ 2026   396   449
+
+集保股權分散表：{'date': '2026-10-08', 'new_week': True, 'stocks': 2963, 'weeks_stored': 1}
