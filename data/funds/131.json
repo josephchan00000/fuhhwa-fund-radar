@@ -10,7 +10,7 @@
   "inception": "2026/06/30",
   "risk_level": "RR4",
   "mgmt_fee": "最高為1.20%",
-  "size_twd": 1182109439.0,
+  "size_twd": 1142973301.0,
   "nav": 10.16,
   "nav_date": "2026/10/13",
   "nav_change": 0.06,
@@ -147,5 +147,5 @@
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-10-15 09:29"
+  "fetched_at": "2026-10-15 10:28"
 }

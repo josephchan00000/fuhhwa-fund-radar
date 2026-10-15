@@ -10,7 +10,7 @@
   "inception": "2018/01/31",
   "risk_level": "RR5",
   "mgmt_fee": "2.00%",
-  "size_twd": 16814099789.0,
+  "size_twd": 16206415301.0,
   "nav": 49.69,
   "nav_date": "2026/10/13",
   "nav_change": -1.35,
@@ -32,118 +32,102 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/82.pdf",
   "dist_date": "2026/09/30",
   "dist_rate": "—",
-  "as_of": "2026/08/31",
+  "as_of": "2026/09/30",
   "top_holdings": [
     {
       "sector": "資訊技術",
       "name": "SANDISK CORP",
-      "weight": 4.83
-    },
-    {
-      "sector": "資訊技術",
-      "name": "欣興",
-      "weight": 3.77
-    },
-    {
-      "sector": "資訊技術",
-      "name": "台光電",
-      "weight": 3.68
-    },
-    {
-      "sector": "資訊技術",
-      "name": "SK HYNIX INC",
-      "weight": 3.59
+      "weight": 5.54
     },
     {
       "sector": "資訊技術",
       "name": "KIOXIA HOLDINGS CORP",
-      "weight": 3.55
+      "weight": 4.05
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SK HYNIX INC",
+      "weight": 3.96
     },
     {
       "sector": "資訊技術",
       "name": "MICRON TECHNOLOGY INC",
-      "weight": 3.42
+      "weight": 3.93
     },
     {
       "sector": "資訊技術",
       "name": "IBIDEN CO LTD",
+      "weight": 3.81
+    },
+    {
+      "sector": "資訊技術",
+      "name": "聯發科",
       "weight": 3.37
     },
     {
       "sector": "資訊技術",
-      "name": "大立光",
-      "weight": 3.21
+      "name": "LUMENTUM HOLDINGS INC",
+      "weight": 3.35
     },
     {
       "sector": "資訊技術",
-      "name": "LUMENTUM HOLDINGS INC",
+      "name": "ADVANCED MICRO DEVICES",
+      "weight": 3.08
+    },
+    {
+      "sector": "工業",
+      "name": "BLOOM ENERGY CORP- A",
       "weight": 3.06
     },
     {
       "sector": "資訊技術",
       "name": "鴻勁",
-      "weight": 2.82
+      "weight": 2.72
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 48.97
+      "weight": 49.42
     },
     {
       "name": "臺灣",
-      "weight": 27.39
+      "weight": 26.9
     },
     {
       "name": "日本",
-      "weight": 13.93
+      "weight": 15.34
     },
     {
       "name": "韓國",
-      "weight": 6.21
+      "weight": 5.83
     },
     {
       "name": "流動資產",
-      "weight": 3.5
+      "weight": 2.51
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 82.02
+      "weight": 90.98
     },
     {
       "name": "工業",
-      "weight": 4.7
-    },
-    {
-      "name": "金融",
-      "weight": 3.65
+      "weight": 4.17
     },
     {
       "name": "通訊服務",
-      "weight": 2.15
-    },
-    {
-      "name": "原材料",
-      "weight": 1.72
-    },
-    {
-      "name": "醫療保健",
-      "weight": 1.45
-    },
-    {
-      "name": "能源",
-      "weight": 0.79
+      "weight": 2.34
     },
     {
       "name": "流動資產",
-      "weight": 3.5
+      "weight": 2.51
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-10-15 09:28",
+  "fetched_at": "2026-10-15 10:28",
   "returns_daily": {
     "1m": 2.51702,
     "3m": -9.81851,
