@@ -260,16 +260,56 @@ def size(g: str, px: float | None, stop: float | None, capital: float = 1_000_00
 
 
 def expect(s: dict) -> dict:
-    """推薦卡的預估報酬：中位、25%～75%、獲利比例、最差；每 10 萬的損益（中位、最差）。"""
+    """「過去照做」：中位、平均、25%～75%、賺錢比例、最差、最好；同期大盤平均（＝平均 − 平均超額）；期間；
+    每 10 萬的損益（中位、最差）。"""
     if not s.get("n"):
         return {}
-    return {"med": s["med"], "p25": s["p25"], "p75": s["p75"], "win": s["win"], "kwin": s["kwin"], "lo": s["lo"],
+    mk = round(s["avg"] - s["x"], 1) if s.get("x") is not None and s.get("avg") is not None else None
+    return {"med": s["med"], "avg": s.get("avg"), "p25": s["p25"], "p75": s["p75"], "win": s["win"], "kwin": s["kwin"],
+            "lo": s["lo"], "hi": s.get("hi"), "mk": mk, "d0": s.get("d0"), "d1": s.get("d1"),
             "n": s["n"], "event": s.get("event", False), "per10": round(s["med"] * 1000), "lo10": round(s["lo"] * 1000)}
 
 
 # —— 組裝：策略評級總表、本期推薦、觀察名單、出場／避開
 
 TW50_LEAD = 10        # 臺灣50 建倉日前幾個日曆天內，才把「以今天排名試算」的名單列進本期操作
+
+# 版面 v3（docs/lab_layout_v3_plan.md）：策略一覽與行事曆用的白話說明
+HOW = {
+    "v3l": "每季財報公布期限後，買進 EPS 成長最出乎意料的 5 檔大型股，持有 60 個交易日",
+    "v3m": "每季財報公布期限後，買進 EPS 成長最出乎意料的 5 檔中型股，持有 60 個交易日",
+    "v7m": "每月營收公布期限後，買進上個月營收成長最出乎意料的 5 檔中型股，持有到下個月換股",
+    "v7l": "每月營收公布期限後，買進上個月營收成長最出乎意料的 5 檔大型股，持有到下個月換股",
+    "s1": "3 家以上投信的主動 ETF 同時加碼的股票，隔天開盤價低於昨收才買，持有 3 個交易日",
+    "s3": "預估會被納入臺灣50 的股票，資料截止前 25 個交易日買進漲勢最強 4 檔，生效前一天賣出",
+    "s5": "投信連續買超、營收成長、股價走強的股票，跌 20% 停損，從最高收盤回落 30% 賣出",
+    "hd": "高股息 ETF 換股的納入股：名單公開後追買沒有贏大盤，這條只當出場與避開的規則",
+}
+HOLD = {"v3l": "約 3 個月", "v3m": "約 3 個月", "v7m": "約 1 個月", "v7l": "約 1 個月", "s1": "3 個交易日",
+        "s3": "約 2 個月", "s5": "平均約 4 個月", "hd": "約 1～2 週"}
+UNIT = {"s1": "檔", "s5": "檔"}        # 其餘＝次（同一次買進的各檔平均）
+SELL = {"s1": "收盤跌破停損價就提前賣出", "s5": "跌破進場價 20% 停損；之後從最高收盤回落 30% 賣出（平均持有約 4 個月，最長 250 個交易日）",
+        "p7": "下一次換股日收盤（約 1 個月後），仍在新名單的續抱", "p3": "持有 60 個交易日後收盤賣出（約 3 個月）"}
+
+
+def _ex_best(al: dict | None, yearly: list | None) -> dict | None:
+    """去掉最好的一年：全部資金照做的年化，和同期大盤（也去掉同一年）。看成績是不是集中在某一年。"""
+    from datetime import date
+    if not al or not yearly or len(yearly) < 3 or not al.get("d0"):
+        return None
+    segs, start = [], al["d0"]
+    for y, s, t, end in yearly:
+        segs.append((y, s, t, (date.fromisoformat(end) - date.fromisoformat(start)).days / 365.25))
+        start = end
+    if any(x[1] is None or x[2] is None for x in segs):
+        return None
+    b = max(segs, key=lambda x: x[1])
+    yy = sum(x[3] for x in segs) - b[3]
+    if yy <= 1:
+        return None
+    ms = math.prod(1 + x[1] / 100 for x in segs) / (1 + b[1] / 100)
+    mt = math.prod(1 + x[2] / 100 for x in segs) / (1 + b[2] / 100)
+    return {"y": b[0], "r": b[1], "cagr": round((ms ** (1 / yy) - 1) * 100, 1), "tr_cagr": round((mt ** (1 / yy) - 1) * 100, 1)}
 
 
 def _md(d: str | None) -> str:
@@ -411,8 +451,16 @@ def build(data: dict) -> dict:
     grades3 = sorted(v3["grades"], key=lambda g: ("ABC".index(g["grade"]) if g["grade"] in "ABC" else 3, g["ev"]))
     for g in grades3:
         g.pop("ev", None)
+    bk = book(grades3, v3["live"], old)
+    try:
+        nxt = trading_days_after(last, 1)[0] if last else None
+    except Exception:                                   # 休市表讀不到時不標「下一個交易日」
+        nxt = None
+    cal = calendar(picks, v3["live"], {g["k"]: g for g in grades3}, order, {b["k"]: b for b in bk}, s3, s5,
+                   sum(1 for x in grow.get("screen") or [] if x.get("pass")), last)
     return {"rule": RULE3, "rule_old": RULE, "pay3": PAY3, "cost3": COST3, "rule_stop": RULE_STOP, "caps": CAP,
             "loss_cap": LOSS_CAP, "grades": grades, "grades3": grades3, "picks": picks, "watch": watch, "exits": exits,
+            "book": bk, "cal": cal, "nxt": nxt,
             "pack": pack, "v3": {"live": v3["live"], "basket": v3["basket"], "meta": v3["meta"]}, "last": last,
             "v3err": (data.get("v3") or {}).get("err") or (data.get("v3ex") or {}).get("err")}
 
@@ -490,6 +538,89 @@ def _tw50_item(it: dict, p: dict, sc: dict, last: str | None = None) -> dict | N
                 "now_r": ta.get("r"), "now": ta.get("now"), "size": None}
     return None
 
+def book(grades3: list, live: dict, old: dict) -> list:
+    """策略一覽（使用者頁）：每條策略的做法、持有期、過去照做（實際報酬、同期大盤）、全部資金照做的年化與逐年報酬。
+    順序同評級總表；只呈現，不參與評級。"""
+    out = []
+    for g in grades3:
+        k = g["k"]
+        L = live.get(k)
+        if L:
+            R = L.get("res") or {}
+            e, extra = _exp3(R.get("dist") or {}, L.get("unit")), {"all": R.get("all"), "yearly": R.get("yearly"),
+                                                                 "acurve": R.get("acurve"),
+                                                                 "exb": _ex_best(R.get("all"), R.get("yearly"))}
+        else:
+            e, extra = expect(old.get(k) or {}), {}
+        out.append({"k": k, "name": g.get("name"), "how": HOW.get(k), "hold": HOLD.get(k), "grade": g["grade"],
+                    "unit": UNIT.get(k, "次"), "exp": e, **extra})
+    return out
+
+
+def _sell(k: str, live: dict, s3: dict | None) -> str:
+    """行事曆買進項目的「賣出」補充說明（固定日期之外的規則）。"""
+    if k == "s3":
+        p = (s3 or {}).get("plan") or {}
+        return f"{_md(p.get('cutoff'))} 資料截止日名單沒有的，{_md(p.get('a_in'))} 開盤先賣出" if p.get("cutoff") else ""
+    src = (live.get(k) or {}).get("src")
+    return SELL.get(src or k, "")
+
+
+def calendar(picks: list, live: dict, gmap: dict, order: dict, bk: dict, s3: dict | None, s5: dict | None,
+             s5_pass: int, last: str | None) -> list:
+    """行事曆：最新資料日之後的買進、賣出、換股、調整，依日期排（同一天開盤在前、收盤在後，同一時點依證據強弱）。
+    只放 A、B 級策略；名單還沒產生的（下一期）也列，附名單產生日。"""
+    ok = lambda k: (gmap.get(k) or {}).get("grade") in ("A", "B")
+    base = lambda k, nm: {"k": k, "sname": nm, "grade": (gmap.get(k) or {}).get("grade"), "hold": HOLD.get(k),
+                          "unit": UNIT.get(k, "次")}
+    ev = []
+    G, H = {}, {}
+    for p in picks:
+        if p["act"] == "佈局":
+            G.setdefault((p["k"], p.get("ent")), []).append(p)
+        elif p["act"] == "持有中" and p.get("out"):
+            H.setdefault((p["k"], p["out"]), []).append(p)
+    for (k, ent), ps in G.items():                      # ① 待買進（名單已產生）＋同一批的預定賣出
+        p0 = ps[0]
+        ev.append({**base(k, p0["sname"]), "d": ent, "at": "開盤", "act": "買進", "out": p0.get("out"),
+                   "items": [{x: p.get(x) for x in ("c", "n", "px", "stop", "cond", "size", "why")} for p in ps],
+                   "ent_how": p0.get("ent_how"), "sell": _sell(k, live, s3), "exp": p0.get("exp"),
+                   "tent": bool(p0.get("tent")), "fix": p0.get("fix")})
+        if p0.get("out"):
+            ev.append({**base(k, p0["sname"]), "d": p0["out"], "at": "收盤", "act": "賣出",
+                       "items": [{"c": p["c"], "n": p["n"]} for p in ps], "note": f"{_md(ent)} 有買到的"})
+    for (k, out), ps in H.items():                      # ② 持有中：到期賣出；月營收驚喜＝換股
+        p0 = ps[0]
+        swap = (live.get(k) or {}).get("src") == "p7"
+        ev.append({**base(k, p0["sname"]), "d": out, "at": "收盤", "act": "換股" if swap else "賣出", "ent": p0.get("ent"),
+                   "items": [{x: p.get(x) for x in ("c", "n", "entry", "now", "now_r")} for p in ps],
+                   "note": "不在新名單的賣出，仍在新名單的續抱" if swap else f"{_md(p0.get('ent'))} 買進的"})
+    for k, L in live.items():                           # ③ 下一期（名單還沒產生）
+        nx = L.get("next") or {}
+        if ok(k) and nx.get("ent") and not any(e["k"] == k and e["act"] == "買進" for e in ev):
+            ev.append({**base(k, L.get("name")), "d": nx["ent"], "at": "開盤", "act": "買進", "items": [], "pending": True,
+                       "fix": nx.get("d"), "sell": _sell(k, live, s3), "exp": (bk.get(k) or {}).get("exp")})
+    p = (s3 or {}).get("plan") or {}                    # ④ 臺灣50：名單還沒進操作清單時列下一次；有部位時列截止日調整
+    if ok("s3") and p:
+        has = any(e["k"] == "s3" for e in ev)
+        if not has and p.get("stage") == "watch" and p.get("e_in"):
+            ev.append({**base("s3", (s3 or {}).get("name")), "d": p["e_in"], "at": "開盤", "act": "買進", "items": [],
+                       "pending": True, "fix": p.get("e_sig"), "out": p.get("out"), "sell": _sell("s3", live, s3),
+                       "exp": (bk.get("s3") or {}).get("exp")})
+        if has and p.get("a_in"):
+            ev.append({**base("s3", (s3 or {}).get("name")), "d": p["a_in"], "at": "開盤", "act": "調整", "items": [],
+                       "note": f"依 {_md(p.get('cutoff'))} 資料截止日的名單：名單沒有的賣出，補進到 4 檔"})
+    if ok("s5") and s5 and not any(e["k"] == "s5" for e in ev):   # ⑤ 長線：今天沒有符合的股票時，列下一次篩選
+        scr = s5.get("screen_d") or [None, None]
+        if scr[1]:
+            ev.append({**base("s5", s5.get("name")), "d": scr[1], "at": "開盤", "act": "買進", "items": [], "pending": True,
+                       "fix": scr[0], "note": f"以今天資料 {s5_pass} 檔符合", "sell": _sell("s5", live, s3),
+                       "exp": (bk.get("s5") or {}).get("exp")})
+    ev = [e for e in ev if e.get("d") and (last is None or e["d"] > last)]
+    ev.sort(key=lambda e: (e["d"], e["at"] != "開盤", order.get(e["k"], 99)))
+    return ev
+
+
 # —— 回測方法 v3：月營收驚喜、財報驚喜（研究檔＋每日名單）與既有策略的新評級
 
 V3_HOLD = {"p7": "持有到下一次換股、約 1 個月", "p3": "持有 60 個交易日、約 3 個月"}
@@ -544,8 +675,11 @@ def _ev(oos: dict | None, ins: dict) -> tuple:
 def _exp3(d: dict, unit: str) -> dict:
     if not d or not d.get("n"):
         return {}
-    return {**{k: d.get(k) for k in ("med", "p25", "p75", "win", "kwin", "lo", "n", "per10", "lo10")}, "event": True,
-            "grp": "期", "unit": unit}                    # 每期＝同一期 5 檔等額平均
+    r = lambda v: None if v is None else round(v, 1)
+    return {**{k: r(d.get(k)) for k in ("med", "avg", "p25", "p75", "lo", "hi", "mk")},
+            **{k: d.get(k) for k in ("win", "kwin", "n", "per10", "lo10")},
+            "d0": (d.get("d0") or "")[:7] or None, "d1": (d.get("d1") or "")[:7] or None,
+            "event": True, "grp": "期", "unit": unit}     # 每期＝同一期 5 檔等額平均
 
 
 def _oos_txt(o: dict, unit: str) -> str:
@@ -589,7 +723,8 @@ def build_v3(v3: dict, ex: dict, last: str | None) -> dict:
                 _put(item, picks, watch)
             live[k] = {**{x: v.get(x) for x in ("k", "src", "b", "name", "unit", "since", "fwd", "now", "next")},
                        "grade": g["grade"], "why": g["why"], "rules": V3_RULES[v["src"]], "bucket": BUCKET_TXT[v["b"]],
-                       "res": {x: r.get(x) for x in ("oos", "ins", "nb", "nb_oos", "sub", "fsub", "curve", "dist", "ver", "lowdd")}}
+                       "res": {x: r.get(x) for x in ("oos", "ins", "nb", "nb_oos", "sub", "fsub", "curve", "dist", "ver", "lowdd",
+                                                     "all", "yearly", "acurve")}}
     for k, e in (ex or {}).items():
         if k == "err" or not isinstance(e, dict):
             continue

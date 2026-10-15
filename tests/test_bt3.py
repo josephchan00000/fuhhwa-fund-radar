@@ -235,3 +235,27 @@ def test_low_drawdown_exception():
     sd = bt3.low_dd_side({"cagr": 5.0, "mdd": 10.0}, {"cagr": 7.5, "mdd": 15.0})
     assert sd["ok"] and sd["calmar"] is True                                                             # 0.5 vs 0.5：相等算過
     assert bt3.low_dd_side({"cagr": 4.0, "mdd": 10.0}, {"cagr": 6.5, "mdd": 15.0})["calmar"] is False      # 0.40 < 0.43
+
+
+def test_research_export_market_yearly_and_curve():
+    """版面 v3（2026-10-15）：研究檔另給頁面「實際報酬」用的欄位——同一段持有期間的加權報酬指數（mk）、整段年化與
+    最大回落（含同期大盤）、逐年報酬、策略與大盤的資金曲線（月底取樣）。只呈現，不參與評級。"""
+    from arm.lab import bt3l
+
+    class P:
+        cal = ["2024-12-30", "2024-12-31", "2025-01-02", "2025-06-30", "2025-12-31", "2026-01-05", "2026-03-31"]
+        ix = {d: i for i, d in enumerate(cal)}
+        tr = [100.0, 100.0, None, 110.0, 120.0, 121.0, 132.0]          # 缺值取前一個有值的日子
+
+    assert bt3l._trv(P, 2) == 100.0 and bt3l._trv(P, None) is None
+    units = [{"d": "2024-12-31", "t": 1, "x": 3, "r": 5.0}, {"d": "2025-06-30", "t": 3, "x": 4, "r": -2.0}]
+    d = bt3l._dist(units, P)
+    assert d["avg"] == 1.5 and d["mk"] == round(((110 / 100 - 1) + (120 / 110 - 1)) / 2 * 100, 2)
+    assert (d["d0"], d["d1"]) == ("2024-12-31", "2025-06-30")
+    cv = [(1, 1.0), (3, 1.2), (4, 1.32), (5, 1.30), (6, 1.43)]
+    y = bt3l._yearly(P, cv)
+    assert [r[0] for r in y] == ["2025", "2026"] and y[0][1] == 32.0 and y[0][2] == 20.0 and y[1][3] == "2026-03-31"
+    a = bt3l._acurve(P, cv)
+    assert a["d"] == ["2024-12-31", "2025-06-30", "2025-12-31", "2026-01-05", "2026-03-31"] and a["t"][-1] == 1.32
+    al = bt3l._all(P, cv)
+    assert al["d0"] == "2024-12-31" and al["tr_cagr"] is not None and al["tr_mdd"] == 0.0

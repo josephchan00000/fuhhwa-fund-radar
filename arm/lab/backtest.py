@@ -71,11 +71,17 @@ def _ret(S, idx, t, h, idx_open=None):
 
 
 def _agg(rs: list[dict]) -> dict:
+    """r＝實際報酬平均（扣成本）、rm＝中位、rw＝賺錢比例；mk＝同一時窗加權指數平均；
+    x／xm＝超額平均／中位、w＝贏大盤比例；g＝隔夜跳空平均（皆 %）。"""
     if not rs:
         return {"n": 0}
     xs = [r["x"] for r in rs]
+    rr = [r["r"] for r in rs]
     return {"n": len(rs),
-            "r": round(statistics.mean(r["r"] for r in rs) * 100, 2),
+            "r": round(statistics.mean(rr) * 100, 2),
+            "rm": round(statistics.median(rr) * 100, 2),
+            "rw": round(sum(1 for v in rr if v > 0) / len(rr) * 100, 0),
+            "mk": round(statistics.mean(r["r"] - r["x"] for r in rs) * 100, 2),
             "x": round(statistics.mean(xs) * 100, 2),
             "xm": round(statistics.median(xs) * 100, 2),
             "w": round(sum(1 for x in xs if x > 0) / len(xs) * 100, 0),
