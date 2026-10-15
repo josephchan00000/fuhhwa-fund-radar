@@ -32,57 +32,57 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/06.pdf",
   "dist_date": "2026/09/30",
   "dist_rate": "—",
-  "as_of": "2026/08/31",
+  "as_of": "2026/09/30",
   "top_holdings": [
     {
       "sector": "半導體",
       "name": "台積電",
-      "weight": 8.2
-    },
-    {
-      "sector": "半導體",
-      "name": "南亞科",
-      "weight": 7.86
-    },
-    {
-      "sector": "電子零組件",
-      "name": "台光電",
-      "weight": 7.42
+      "weight": 8.29
     },
     {
       "sector": "半導體",
       "name": "日月光投控",
-      "weight": 6.24
+      "weight": 7.36
+    },
+    {
+      "sector": "半導體",
+      "name": "南亞科",
+      "weight": 7.36
+    },
+    {
+      "sector": "電子零組件",
+      "name": "台光電",
+      "weight": 6.54
     },
     {
       "sector": "電腦及週邊設備",
       "name": "奇鋐",
-      "weight": 5.54
-    },
-    {
-      "sector": "電子零組件",
-      "name": "欣興",
-      "weight": 5.16
-    },
-    {
-      "sector": "半導體",
-      "name": "旺矽",
-      "weight": 5.05
-    },
-    {
-      "sector": "光電",
-      "name": "大立光",
-      "weight": 4.84
-    },
-    {
-      "sector": "電子零組件",
-      "name": "南電",
-      "weight": 4.45
+      "weight": 5.44
     },
     {
       "sector": "半導體",
       "name": "聯發科",
-      "weight": 4.04
+      "weight": 4.96
+    },
+    {
+      "sector": "電子零組件",
+      "name": "健策",
+      "weight": 4.9
+    },
+    {
+      "sector": "電子零組件",
+      "name": "欣興",
+      "weight": 4.74
+    },
+    {
+      "sector": "電子零組件",
+      "name": "南電",
+      "weight": 4.4
+    },
+    {
+      "sector": "其他電子",
+      "name": "致茂",
+      "weight": 4.21
     }
   ],
   "asset_alloc": [],
@@ -90,39 +90,39 @@
   "sector_alloc": [
     {
       "name": "半導體",
-      "weight": 35.47
+      "weight": 34.08
     },
     {
       "name": "電子零組件",
-      "weight": 25.48
+      "weight": 28.24
     },
     {
       "name": "電腦及週邊設備",
-      "weight": 15.51
+      "weight": 15.45
     },
     {
       "name": "通信網路",
-      "weight": 5.83
-    },
-    {
-      "name": "光電",
-      "weight": 4.84
-    },
-    {
-      "name": "塑膠工業",
-      "weight": 4.02
+      "weight": 6.29
     },
     {
       "name": "其他電子",
-      "weight": 3.2
+      "weight": 4.21
+    },
+    {
+      "name": "塑膠工業",
+      "weight": 4.14
+    },
+    {
+      "name": "光電",
+      "weight": 3.68
     },
     {
       "name": "流動資產",
-      "weight": 5.66
+      "weight": 3.9
     }
   ],
   "group": "tw_equity",
-  "fetched_at": "2026-10-15 18:07",
+  "fetched_at": "2026-10-15 20:51",
   "returns_daily": {
     "1m": 6.20458,
     "3m": -0.38448,
@@ -130,5 +130,5 @@
     "1y": 66.16461,
     "ytd": 52.16231
   },
-  "returns_daily_asof": "2026/10/14"
+  "returns_daily_asof": "2026/10/15"
 }
