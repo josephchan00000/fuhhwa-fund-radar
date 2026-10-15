@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-15 20:15",
+  "generated_at": "2026-10-15 20:38",
   "today": "2026-10-15",
   "has_token": false,
   "limit_per_hour_used": 276,
@@ -784,6 +784,37 @@
     "dividend": {
       "checked": 53,
       "after_eq_before_minus_cash_share": 1.0
+    },
+    "universe": {
+      "total": 2225,
+      "listed": 1977,
+      "delisted": 248,
+      "listed_by_market": {
+        "twse": 1084,
+        "tpex": 893
+      },
+      "delisted_by_year": {
+        "2008": 11,
+        "2009": 6,
+        "2010": 1,
+        "2011": 1,
+        "2012": 5,
+        "2013": 6,
+        "2014": 2,
+        "2015": 3,
+        "2016": 13,
+        "2017": 9,
+        "2018": 9,
+        "2019": 8,
+        "2020": 11,
+        "2021": 4,
+        "2022": 5,
+        "2023": 6,
+        "2024": 78,
+        "2025": 9,
+        "2026": 61
+      },
+      "reused_codes": 0
     }
   },
   "calls": 5,

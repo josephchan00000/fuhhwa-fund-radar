@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-15 20:15",
+  "generated_at": "2026-10-15 20:38",
   "verdict": "有條件通過（請看 WARN）",
   "checks": [
     {
@@ -143,8 +143,8 @@
     {
       "id": "C2",
       "title": "股票池",
-      "status": "WARN",
-      "summary": "共 2225 檔（下市 81 檔）；疑似代號重複使用 238 個",
+      "status": "PASS",
+      "summary": "共 2225 檔（下市 248 檔）；疑似代號重複使用 0 個",
       "metrics": {
         "total": 2225,
         "by_market": {
@@ -152,59 +152,8 @@
           "tpex": 930,
           "unknown": 81
         },
-        "delisted": 81,
-        "reused_codes": [
-          "0054",
-          "0058",
-          "0059",
-          "0060",
-          "00649",
-          "00658L",
-          "00659R",
-          "00667",
-          "00672L",
-          "00677U",
-          "00691R",
-          "00698L",
-          "00699R",
-          "00704L",
-          "00705R",
-          "00716R",
-          "00718B",
-          "00721B",
-          "00729R",
-          "00732",
-          "00742",
-          "00743",
-          "00744B",
-          "00745B",
-          "00747B",
-          "00748B",
-          "00765B",
-          "00766L",
-          "00767",
-          "00774B",
-          "00774C",
-          "00776",
-          "00784B",
-          "00790B",
-          "00794B",
-          "00796B",
-          "00798B",
-          "0080",
-          "0081",
-          "008201",
-          "00831B",
-          "00832B",
-          "00833B",
-          "00835B",
-          "00837B",
-          "00838B",
-          "00839B",
-          "00843B",
-          "00854B",
-          "00855B"
-        ]
+        "delisted": 248,
+        "reused_codes": []
       },
       "examples": []
     },
@@ -212,9 +161,9 @@
       "id": "C3",
       "title": "價格完整性",
       "status": "PASS",
-      "summary": "12,140 列；重複 0、高<低 0、收盤超出高低範圍 0",
+      "summary": "11,916 列；重複 0、高<低 0、收盤超出高低範圍 0",
       "metrics": {
-        "rows": 12140,
+        "rows": 11916,
         "stocks": 3,
         "first_date": "2008-01-02",
         "last_date": "2026-10-15",
@@ -228,30 +177,14 @@
     {
       "id": "C4",
       "title": "未解釋的大漲跌（缺還原事件？）",
-      "status": "WARN",
-      "summary": "3 筆（占 0.0247%）",
+      "status": "PASS",
+      "summary": "0 筆（占 0.0000%）",
       "metrics": {
-        "count": 3,
-        "share": 0.000247,
-        "stocks": 1
+        "count": 0,
+        "share": 0.0,
+        "stocks": 0
       },
-      "examples": [
-        {
-          "stock_id": "6488",
-          "date": "2015-02-02",
-          "ret": 0.1086
-        },
-        {
-          "stock_id": "6488",
-          "date": "2014-11-24",
-          "ret": 0.0863
-        },
-        {
-          "stock_id": "6488",
-          "date": "2014-12-15",
-          "ret": 0.0823
-        }
-      ]
+      "examples": []
     },
     {
       "id": "C5",
@@ -361,6 +294,21 @@
         "institutional_coverage": 0.0013,
         "margin_coverage": 0.0013,
         "institutional_first": "2012-05-02"
+      },
+      "examples": []
+    },
+    {
+      "id": "C12",
+      "title": "掛牌前（興櫃）與下市後日 K",
+      "status": "PASS",
+      "summary": "1 檔切掉興櫃前段共 225 筆；0 檔切掉下市後 0 筆；疑似漏判 0 檔",
+      "metrics": {
+        "stocks": 3,
+        "with_emerging_prefix": 1,
+        "rows_dropped_pre": 225,
+        "with_rows_after_delisting": 0,
+        "rows_dropped_post": 0,
+        "suspect_not_switched": 0
       },
       "examples": []
     }
