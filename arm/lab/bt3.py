@@ -269,7 +269,7 @@ def vs_ew(acc: dict, ew: dict) -> list[dict]:
 
 # ── 因子檢定 ──────────────────────────────────────────────────────────
 
-def quint(P, rows: list, k: int = 5, asc: bool = False, min_per: int = 5) -> dict:
+def quint_per(P, rows: list, k: int = 5, asc: bool = False, min_per: int = 5) -> list[dict]:
     """rows＝[(t, x, {代號: 分數})]。各期依分數分 k 組（每組等權、開盤 t+1 → 收盤 x、未扣成本）。
     第 k 組＝策略選的那一端（asc＝分數低的那端）；sp＝第 k 組 − 第 1 組（%）。每組至少 min_per 檔才算該期。"""
     per = []
@@ -294,6 +294,10 @@ def quint(P, rows: list, k: int = 5, asc: bool = False, min_per: int = 5) -> dic
         ic = spearman([v for v, _ in rr], [r for _, r in rr])
         per.append({"d": P.cal[t], "q": grp, "sp": grp[-1] - grp[0], "ic": None if ic is None else (-ic if asc else ic),
                     "n": n})
+    return per
+
+
+def fac_summary(per: list[dict], k: int = 5) -> dict:
     if not per:
         return {"n": 0}
     sp = [p["sp"] for p in per]
@@ -301,7 +305,12 @@ def quint(P, rows: list, k: int = 5, asc: bool = False, min_per: int = 5) -> dic
     q = [statistics.mean(p["q"][g] for p in per) for g in range(k)]
     return {"n": len(per), "q": q, "sp": statistics.mean(sp), "t": nw_t(sp), "pos": 100 * sum(1 for v in sp if v > 0) / len(sp),
             "ic": statistics.mean(ics) if ics else None, "ic_t": nw_t(ics), "mono": spearman(list(range(k)), q),
-            "uni": statistics.mean(p["n"] for p in per), "d0": per[0]["d"], "d1": per[-1]["d"], "per": per}
+            "uni": statistics.mean(p["n"] for p in per), "d0": per[0]["d"], "d1": per[-1]["d"]}
+
+
+def quint(P, rows: list, k: int = 5, asc: bool = False, min_per: int = 5) -> dict:
+    per = quint_per(P, rows, k, asc, min_per)
+    return {**fac_summary(per, k), "per": per} if per else {"n": 0}
 
 
 def subperiods(per: list[dict], edges: list[str], key: str = "sp") -> list[dict]:
