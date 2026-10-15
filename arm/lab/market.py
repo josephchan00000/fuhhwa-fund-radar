@@ -656,6 +656,91 @@ def fetch_revenue() -> tuple[str | None, dict]:
     return ym, out
 
 
+# ── 月營收全市場歷史（S26，2026-10-15）：MOPS 營業收入彙總表（上市／上櫃 × 國內／國外 KY），一個月一個市場一請求 ─────
+MOPS_REV = "https://{host}/nas/t21/{mkt}/t21sc03_{roc}_{m}_{k}.html"
+MOPS_HOSTS = ("mopsov.twse.com.tw", "mops.twse.com.tw")
+_TR = re.compile(r"<tr[^>]*>(.*?)</tr>", re.S | re.I)
+_TD = re.compile(r"<t[dh][^>]*>(.*?)</t[dh]>", re.S | re.I)
+
+
+def _decode(b: bytes) -> str:
+    for enc in ("utf-8", "cp950", "big5"):
+        try:
+            return b.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return b.decode("utf-8", "replace")
+
+
+def parse_mops_rev(html: str) -> dict[str, list]:
+    """MOPS 營業收入彙總表 → {code: [當月營收(千元), 去年同月增減%, 累計增減%]}（同 parse_revenue 的格式）。
+    欄序：公司代號｜公司名稱｜當月營收｜上月營收｜去年當月營收｜上月比較%｜去年同月%｜當月累計｜去年累計｜前期比較%｜備註。"""
+    out = {}
+    for row in _TR.findall(html):
+        cells = [_TAG.sub("", c).replace("&nbsp;", "").strip() for c in _TD.findall(row)]
+        if len(cells) < 10 or not re.fullmatch(r"\d{4}", cells[0] or ""):
+            continue
+        rev = num(cells[2])
+        if rev is None:
+            continue
+        yoy, cy = num(cells[6]), num(cells[9])
+        out[cells[0]] = [rev, None if yoy is None else round(yoy, 2), None if cy is None else round(cy, 2)]
+    return out
+
+
+_MOPS_HOST_OK: list[str] = []
+
+
+def fetch_mops_rev(mkt: str, y: int, m: int, k: int = 0) -> dict[str, list] | None:
+    """MOPS 營業收入彙總表一頁（mkt＝sii 上市／otc 上櫃；k＝0 國內、1 國外）。抓不到回 None；能用的主機記下來先試。"""
+    hosts = list(dict.fromkeys(_MOPS_HOST_OK + list(MOPS_HOSTS)))
+    for host in hosts:
+        url = MOPS_REV.format(host=host, mkt=mkt, roc=y - 1911, m=m, k=k)
+        try:
+            b = get_bytes(url, retries=2, timeout=25, use_cache=False)
+        except Exception as e:                            # noqa: BLE001
+            log(f"MOPS 月營收 ✗ {url} {str(e)[:120]}")
+            continue
+        d = parse_mops_rev(_decode(b))
+        if d or k == 1:                                   # 國外（KY）頁可能本來就很少
+            if host not in _MOPS_HOST_OK:
+                _MOPS_HOST_OK.insert(0, host)
+            return d
+        log(f"MOPS 月營收 解析 0 檔 {url}（{len(b)}B）開頭 {_decode(b)[:120]!r}")
+    return None
+
+
+def probe_rev() -> None:
+    """探針：MOPS 彙總表（兩個主機 × 上市／上櫃、新舊兩個月份）與 FinMind（不帶代號一次拿全市場；單檔）。只印不寫。"""
+    for y, m in ((2024, 9), (2020, 1)):
+        for host in MOPS_HOSTS:
+            for mkt in ("sii", "otc"):
+                url = MOPS_REV.format(host=host, mkt=mkt, roc=y - 1911, m=m, k=0)
+                try:
+                    b = get_bytes(url, retries=1, timeout=20, use_cache=False)
+                    h = _decode(b)
+                    d = parse_mops_rev(h)
+                    smp = {k: d[k] for k in ("2330", "2454", "3105", "6488") if k in d}
+                    log(f"[revprobe] {url} → {len(b)}B、解析 {len(d)} 檔、樣本 {smp}、開頭 {h[:160]!r}")
+                except Exception as e:                    # noqa: BLE001
+                    log(f"[revprobe] {url} ✗ {str(e)[:200]}")
+                time.sleep(1.5)
+    for url in ("https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMonthRevenue&start_date=2024-10-01&end_date=2024-10-31",):
+        try:
+            doc = json.loads(get_bytes(url, retries=1, timeout=40, use_cache=False).decode("utf-8"))
+            rows = doc.get("data") or [] if isinstance(doc, dict) else []
+            log(f"[revprobe] FinMind 全市場 status={doc.get('status') if isinstance(doc, dict) else '?'} "
+                f"msg={str(doc.get('msg') if isinstance(doc, dict) else '')[:120]} 列數 {len(rows)} "
+                f"檔數 {len({r.get('stock_id') for r in rows})} 首列 {rows[:1]}")
+        except Exception as e:                            # noqa: BLE001
+            log(f"[revprobe] FinMind 全市場 ✗ {str(e)[:200]}")
+    rows = finmind("TaiwanStockMonthRevenue", "2330", "2020-01-01")
+    if isinstance(rows, list):
+        log(f"[revprobe] FinMind 2330 單檔 {len(rows)} 列 首 {rows[:1]} 末 {rows[-1:]}")
+    else:
+        log(f"[revprobe] FinMind 2330 單檔 → {rows}")
+
+
 def finmind_revenue(code: str, start: str = "2023-01-01") -> dict[str, float]:
     """FinMind 月營收歷史（第三方整理官方數字；只用在回測）→ {YYYY-MM: 營收(元)}。"""
     from .. import clock
@@ -723,6 +808,276 @@ def twse_exright_year(y: int) -> list[list]:
         log(f"TWT49U {y} ✗ {str(e)[:100]}")
         return []
     return parse_twt49u(doc)
+
+
+# ── 回測 v3 資料探針（docs/backtest_v3_plan.md 第 2、7 節；只印不寫） ──────────────────
+def _peek(name: str, url: str, *, timeout: int = 40) -> object:
+    """抓一次、印狀態與內容摘要；回傳解析後的 JSON（或原始文字）。"""
+    try:
+        b = get_bytes(url, retries=1, timeout=timeout, use_cache=False)
+    except Exception as e:                                # noqa: BLE001
+        log(f"[v3探針] {name} ✗ {str(e)[:160]}")
+        return None
+    txt = _decode(b).strip()
+    try:
+        doc = json.loads(txt)
+    except ValueError:
+        log(f"[v3探針] {name} 非 JSON {len(b)}B 開頭 {txt[:160]!r}")
+        return txt
+    if isinstance(doc, dict):
+        keys = list(doc)[:12]
+        info = {k: (doc[k] if isinstance(doc[k], (str, int, float)) else type(doc[k]).__name__) for k in keys}
+        rows = doc.get("data") or doc.get("aaData") or doc.get("tables") or []
+        n = len(rows) if isinstance(rows, list) else "?"
+        log(f"[v3探針] {name} OK {len(b)}B 鍵 {info} 列數 {n}")
+        if isinstance(rows, list) and rows:
+            log(f"[v3探針]   首列 {str(rows[0])[:300]}")
+            log(f"[v3探針]   末列 {str(rows[-1])[:300]}")
+        for k in ("fields", "title"):
+            if doc.get(k):
+                log(f"[v3探針]   {k} {str(doc[k])[:300]}")
+    else:
+        log(f"[v3探針] {name} OK {len(b)}B list {len(doc)} 首筆 {str(doc[:1])[:300]}")
+    return doc
+
+
+def probe_v3() -> None:
+    from .. import clock
+    today = clock.today_tw().isoformat()
+    fm = "https://api.finmindtrade.com/api/v4/data?dataset={ds}{cid}&start_date={a}&end_date=" + today
+    # 1) 加權報酬指數（含息）
+    for d in ("20140101", "20240101"):
+        _peek(f"證交所加權報酬指數 MFI94U {d}", f"https://www.twse.com.tw/rwd/zh/TAIEX/MFI94U?date={d}&response=json")
+        time.sleep(3)
+    # 2) 歷史發行股數：證交所外資持股表（全市場一日一請求）、櫃買日收盤
+    doc = _peek("證交所 MI_QFIIS 2014-01-02", "https://www.twse.com.tw/rwd/zh/fund/MI_QFIIS?date=20140102&selectType=ALLBUT0999&response=json")
+    if isinstance(doc, dict):
+        for f_, rows in tables(doc):
+            log(f"[v3探針]   MI_QFIIS 欄位 {f_[:12]}")
+            for r in rows:
+                if str(r[0]).strip() == "2330":
+                    log(f"[v3探針]   MI_QFIIS 2330 {r[:12]}")
+    time.sleep(3)
+    for d in ("2014-01-02", "2019-01-02"):
+        try:
+            res, st = fetch_part("q_tp", d)
+            log(f"[v3探針] 櫃買日收盤 {d} 狀態 {st} 檔數 {len(res or {})} 樣本 {str(list((res or {}).items())[:2])[:200]}")
+        except Exception as e:                            # noqa: BLE001
+            log(f"[v3探針] 櫃買日收盤 {d} ✗ {str(e)[:160]}")
+        time.sleep(2)
+    # 3) 上櫃除權息
+    _peek("櫃買除權息（舊站）2024", "https://www.tpex.org.tw/web/stock/exright/dailyquo/exDailyQ_result.php?l=zh-tw&d=113/01/01&ed=113/12/31&o=json")
+    _peek("櫃買除權息（新站）2024", "https://www.tpex.org.tw/www/zh-tw/bulletin/exDailyQ?startDate=2024/01/01&endDate=2024/12/31&response=json")
+    _peek("FinMind 除權息結果 5347", fm.format(ds="TaiwanStockDividendResult", cid="&data_id=5347", a="2013-01-01"))
+    # 4) 月營收彙總表 2012／2013
+    for y in (2012, 2013):
+        for mkt, smp in (("sii", "2330"), ("otc", "5347")):
+            d = fetch_mops_rev(mkt, y, 1, 0)
+            log(f"[v3探針] MOPS 月營收 {y}-01 {mkt}：{len(d or {})} 檔 {smp}={None if d is None else d.get(smp)}")
+            time.sleep(2)
+    # 5) Yahoo 長歷史與已下市股票
+    for sym in ("2330.TW", "2311.TW", "2325.TW", "3474.TW", "2448.TW", "5347.TWO"):
+        h = yahoo_hist(sym, rng="max")
+        ks = sorted(h)
+        log(f"[v3探針] Yahoo {sym}：{len(ks)} 日 {ks[:1]}～{ks[-1:]}")
+        time.sleep(1)
+    # 6) FinMind：已下市股價、下市清單、單季 EPS 起點、歷史發行股數
+    _peek("FinMind 股價 2311（已下市）", fm.format(ds="TaiwanStockPrice", cid="&data_id=2311", a="2014-01-01"))
+    _peek("FinMind 下市清單", fm.format(ds="TaiwanStockDelisting", cid="", a="2013-01-01"))
+    doc = _peek("FinMind 綜合損益 2330（2012 起）", fm.format(ds="TaiwanStockFinancialStatements", cid="&data_id=2330", a="2012-01-01"))
+    if isinstance(doc, dict) and doc.get("data"):
+        eps = [r for r in doc["data"] if r.get("type") == "EPS"]
+        log(f"[v3探針]   EPS {len(eps)} 季 首 {eps[:1]} 末 {eps[-1:]}")
+    doc = _peek("FinMind 外資持股（含發行股數）2330", fm.format(ds="TaiwanStockShareholding", cid="&data_id=2330", a="2014-01-01"))
+    # 7) 證交所除權息 2014
+    rows = twse_exright_year(2014)
+    log(f"[v3探針] TWT49U 2014：{len(rows)} 列 樣本 {rows[:2]}")
+
+
+def yahoo_hist_from(sym: str, start: str, *, adj: bool = False) -> dict[str, list]:
+    """Yahoo 日線（指定起日，period1／period2；range=max 會被降成月線）。格式同 yahoo_hist；
+    adj＝True 時每列多一欄還原收盤（adjclose：還原現金股利；Yahoo 的 o／h／l／c 已還原股票股利與分割）。"""
+    import urllib.parse
+    from datetime import datetime, timezone
+
+    from .. import clock
+    p1 = int(datetime.fromisoformat(start).replace(tzinfo=timezone.utc).timestamp())
+    p2 = int(datetime.now(timezone.utc).timestamp())
+    url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(sym)}"
+           f"?period1={p1}&period2={p2}&interval=1d")
+    try:
+        doc = json.loads(get_bytes(url, retries=2, timeout=30, use_cache=False).decode("utf-8"))
+    except Exception as e:                                # noqa: BLE001
+        log(f"Yahoo {sym} ✗ {str(e)[:80]}")
+        return {}
+    res = (((doc or {}).get("chart") or {}).get("result") or [None])[0]
+    if not res:
+        return {}
+    ts = res.get("timestamp") or []
+    q = ((res.get("indicators") or {}).get("quote") or [{}])[0] or {}
+    aj = ((((res.get("indicators") or {}).get("adjclose") or [{}])[0]) or {}).get("adjclose") or []
+    today = clock.today_tw().isoformat()
+    out = {}
+    for i, t in enumerate(ts):
+        d = datetime.fromtimestamp(int(t), clock.TW_TZ).date()
+        if d.weekday() >= 5 or d.isoformat() >= today:
+            continue
+
+        def g(k):
+            arr = q.get(k) or []
+            v = arr[i] if i < len(arr) else None
+            return None if v is None else round(float(v), 4)
+        c = g("close")
+        if c:
+            v = g("volume")
+            row = [g("open"), g("high"), g("low"), c, None if v is None else int(v)]
+            if adj:
+                a = aj[i] if i < len(aj) else None
+                row.append(None if a is None else round(float(a), 6))
+            out[d.isoformat()] = row
+    return out
+
+
+def parse_mfi94u(doc) -> dict[str, float]:
+    """證交所發行量加權股價報酬指數（月表）→ {日期: 指數}。"""
+    out = {}
+    for fields, rows in tables(doc):
+        for r in rows:
+            d = _roc_date(r[0]) if r else None
+            v = num(r[1]) if len(r) > 1 else None
+            if d and v:
+                out[d] = v
+    return out
+
+
+def twse_tr_month(y: int, m: int) -> dict[str, float] | None:
+    """一個月的加權報酬指數；抓不到回 None（呼叫端下一輪再試）。"""
+    doc, st = _get(f"https://www.twse.com.tw/rwd/zh/TAIEX/MFI94U?date={y:04d}{m:02d}01&response=json",
+                   sleep=UA_SLEEP_TWSE)
+    if st == "nodata":
+        return {}
+    return parse_mfi94u(doc) if st == "ok" else None
+
+
+def parse_tp_exright(doc) -> list[list]:
+    """櫃買除權息計算結果表 → [[除權息日 ISO, 代號, 除權息前收盤價, 除權息參考價, 現金股利, 每仟股無償配股]]。"""
+    out = []
+    for fields, rows in tables(doc):
+        cd, cc = col(fields, "除權息日期"), col(fields, "代號")
+        cp, cr = col(fields, "前收盤"), col(fields, "參考價", excl=("減除",))
+        cs, ck = col(fields, "現金股利"), col(fields, "無償配股")
+        if None in (cd, cc, cp, cr):
+            continue
+        for r in rows:
+            c = _TAG.sub("", str(r[cc])).strip()
+            d = _roc_date(r[cd])
+            if CODE_RE.match(c) and d:
+                out.append([d, c, num(r[cp]), num(r[cr]), num(r[cs]) if cs is not None else None,
+                            num(r[ck]) if ck is not None else None])
+    if not out:
+        tb = tables(doc)
+        if tb:
+            _probe("櫃買除權息", *max(tb, key=lambda t: len(t[1])))
+    return out
+
+
+def tpex_exright_year(y: int) -> list[list] | None:
+    r = y - 1911
+    url = (f"https://www.tpex.org.tw/web/stock/exright/dailyquo/exDailyQ_result.php?l=zh-tw"
+           f"&d={r}/01/01&ed={r}/12/31&o=json")
+    doc, st = _get(url, sleep=UA_SLEEP_TPEX, timeout=40)
+    if st != "ok":
+        log(f"櫃買除權息 {y} {st}")
+        return None
+    return parse_tp_exright(doc)
+
+
+def probe_v3b() -> None:
+    """回測 v3 第二輪探針：櫃買歷史日收盤（含發行股數）、Yahoo 指定起日的日線、FinMind 不帶代號的整批查詢、
+    櫃買 2013 年除權息、FinMind 外資持股欄位。只印不寫。"""
+    from .. import clock
+    today = clock.today_tw().isoformat()
+    for d in ("2014-01-02", "2019-01-02", "2024-01-02"):
+        data, st, _ = fetch_part("q_tp", d)
+        smp = {k: (data or {}).get(k) for k in ("5347", "8299", "6488")}
+        log(f"[v3探針b] 櫃買日收盤 {d}：狀態 {st} 檔數 {len(data or {})} 樣本 {smp}")
+        time.sleep(2)
+    for sym in ("2330.TW", "5347.TWO", "^TWII"):
+        h = yahoo_hist_from(sym, "2013-01-01")
+        ks = sorted(h)
+        log(f"[v3探針b] Yahoo 日線 {sym} 2013 起：{len(ks)} 日 {ks[:2]}～{ks[-1:]} 首筆 {h.get(ks[0]) if ks else None}")
+        time.sleep(1)
+    fm = "https://api.finmindtrade.com/api/v4/data?dataset={ds}&start_date={a}&end_date={z}"
+    _peek("FinMind 綜合損益 不帶代號 2014Q1", fm.format(ds="TaiwanStockFinancialStatements", a="2014-03-31", z="2014-03-31"))
+    _peek("FinMind 股價 不帶代號 2014-01-02", fm.format(ds="TaiwanStockPrice", a="2014-01-02", z="2014-01-02"))
+    _peek("FinMind 股票清單", "https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInfo")
+    _peek("櫃買除權息（舊站）2013", "https://www.tpex.org.tw/web/stock/exright/dailyquo/exDailyQ_result.php?l=zh-tw&d=102/01/01&ed=102/12/31&o=json")
+    doc = _peek("FinMind 外資持股 6488（2014-01）", "https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockShareholding"
+                f"&data_id=6488&start_date=2014-01-01&end_date=2014-01-10")
+    if isinstance(doc, dict) and doc.get("data"):
+        log(f"[v3探針b]   外資持股欄位 {list(doc['data'][0])}")
+    log(f"[v3探針b] 完成 {today}")
+
+
+def post_bytes(url: str, form: dict, *, timeout: int = 60, retries: int = 2) -> bytes:
+    """表單 POST（公開資訊觀測站 ajax 查詢用）。"""
+    import ssl
+    import urllib.parse
+    import urllib.request
+
+    import certifi
+    ctx = ssl.create_default_context(cafile=certifi.where())
+    data = urllib.parse.urlencode(form).encode()
+    err = None
+    for k in range(retries):
+        try:
+            req = urllib.request.Request(url, data=data, headers={
+                "User-Agent": "Mozilla/5.0 (FH-ARM research bot; contact: marketing)",
+                "Content-Type": "application/x-www-form-urlencoded"})
+            with urllib.request.urlopen(req, timeout=timeout, context=ctx) as r:
+                return r.read()
+        except Exception as e:                            # noqa: BLE001
+            err = e
+            time.sleep(2 * (k + 1))
+    raise RuntimeError(f"POST 失敗 {url}: {err}")
+
+
+def parse_mops_is(html: str) -> dict[str, float]:
+    """公開資訊觀測站「綜合損益表彙總」（t163sb04）→ {代號: 基本每股盈餘（元）}（該季報表的累計值）。"""
+    out: dict[str, float] = {}
+    for tb in re.findall(r"<table[^>]*>(.*?)</table>", html, re.S | re.I):
+        rows = [[_TAG.sub("", c).replace("&nbsp;", "").strip() for c in _TD.findall(tr)] for tr in _TR.findall(tb)]
+        head = next((r for r in rows if any("公司代號" in c for c in r)), None)
+        if not head:
+            continue
+        ci = next((i for i, c in enumerate(head) if "公司代號" in c), None)
+        ce = next((i for i, c in enumerate(head) if "基本每股盈餘" in c), None)
+        if ci is None or ce is None:
+            continue
+        for r in rows:
+            if len(r) > max(ci, ce) and re.fullmatch(r"\d{4}", r[ci] or ""):
+                v = num(r[ce])
+                if v is not None:
+                    out[r[ci]] = v
+    return out
+
+
+def mops_is(mkt: str, y: int, q: int) -> dict[str, float] | None:
+    """一季、一個市場（sii 上市／otc 上櫃）的基本每股盈餘累計值；抓不到回 None。"""
+    for host in MOPS_HOSTS:
+        try:
+            b = post_bytes(f"https://{host}/mops/web/ajax_t163sb04",
+                           {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "isQuery": "Y",
+                            "TYPEK": mkt, "year": y - 1911, "season": f"{q:02d}"})
+        except Exception as e:                            # noqa: BLE001
+            log(f"MOPS 綜合損益 {y}Q{q} {mkt} {host} ✗ {str(e)[:120]}")
+            continue
+        h = _decode(b)
+        d = parse_mops_is(h)
+        if d:
+            return d
+        log(f"MOPS 綜合損益 {y}Q{q} {mkt} {host} 解析 0 檔（{len(b)}B）開頭 {h[:160]!r}")
+    return None
 
 
 FINMIND_LIMIT = "finmind_limit"

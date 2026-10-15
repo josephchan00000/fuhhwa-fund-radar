@@ -217,6 +217,9 @@ def test_page_has_no_banned_words():
     st_txt = "".join(str(v) for x in strategy.STRATEGIES + [strategy.S3, growth.S5, hdflow.ALERT] + strategy.TW50_VERS
                      for k, v in x.items() if k in ("name", "kind", "basis", "risk", "rule", "buy", "sell", "pass"))
     st_txt += "".join(t[2] for t in hdflow.TESTS) + str(advice.RULE) + advice.RULE_STOP + str(advice.LABEL)
+    from arm.lab import v3live                                       # 回測方法 v3（2026-10-15）：評級、成本、規則、名稱
+    st_txt += str(advice.RULE3) + advice.PAY3 + advice.COST3 + str(advice.V3_RULES) + str(advice.BUCKET_TXT) + \
+        str(advice.V3_HOLD) + str(v3live.LIVE)
     from arm.lab import packtest                                     # 資料包策略（2026-10-15）：規則、未採用清單、試過的做法
     st_txt += str(packtest.PACK) + str(packtest.SKIPPED) + "".join(
         str(x.get("tried")) for x in strategy.STRATEGIES + strategy.TW50_VERS + [growth.S5, hdflow.ALERT])
@@ -241,8 +244,10 @@ def test_strategy_tab_v2_sections_and_cost_section_is_gone():
     本期操作清單 → 策略評級 → 各策略固定五段（結論／操作規則／歷史績效／本期名單／風險）→ 部位與風控。
     個股卡不再有成本拆解表（使用者：「版面變好亂、有看沒有懂」）。"""
     js = page._JS
-    assert "h+=nowSec()+gradeSec()+s1Sec()+s3Sec()+hdSec()+s5Sec()+packSec()+riskSec();" in js
+    # 回測方法 v3（2026-10-15）：各策略段落依評級總表的順序（證據強弱）排，月營收驚喜、財報驚喜四條用 v3Sec
+    assert "h+=nowSec()+gradeSec()+stSecs()+bt3Sec()+riskSec();" in js
     for k in ("sec('st-now'", "sec('st-grade'", "stSec('s1'", "stSec('s3'", "stSec('hd'", "stSec('s5'", "sec('st-risk'",
+              "stSec(k,V3NAV[k]||L.name", "function stSecs(", "ADV.grades3",
               "['結論',", "['操作規則',", "['歷史績效',", "['本期名單',", "['風險',", "function pickBlocks(", "function pickCard("):
         assert k in js, k
     for k in ("在賭什麼", "為什麼有效", "會失效", "s4", "群益新建倉"):           # 舊四小標與群益策略已移除
@@ -1072,8 +1077,9 @@ def test_pack_main_specs_are_fixed():
     assert PT.P3 == {"top": 0.20, "nmin": 10, "hold": 60}
     assert PT.P4 == {"look": 126, "skip": 21, "top": 0.10, "nmin": 10, "ep_max": 0.25}
     assert PT.P5 == {"look": 5, "top": 0.10, "nmin": 10}
+    assert PT.P7 == {"win": 12, "min": 6, "top": 0.10, "nmin": 10}           # S26 月營收（第 6 節）
     assert (PT.CAP_L, PT.LIQ_L, PT.CAP_S) == (300e8, 2e8, 100e8)
-    assert [r["k"] for r in PT.PACK] == ["p1", "p2", "p3", "p4", "p5"]
+    assert [r["k"] for r in PT.PACK] == ["p1", "p2", "p3", "p4", "p5", "p7"]
 
 
 def test_advice_grade_robustness_rules():
@@ -1181,6 +1187,74 @@ def test_packtest_xsec_turnover_cost_and_limit_up():
     assert r["now"]["picks"] == ["A", "B"] and r["now"]["d"] == "2026-01-05"
 
 
+def test_packtest_p7_revenue_surprise_and_formation_dates():
+    import statistics
+    from arm.lab import packtest as PT
+    assert PT.ym_shift("2026-01", -1) == "2025-12" and PT.ym_shift("2025-12", 13) == "2027-01"
+    assert PT.ym_shift("2026-03", -15) == "2024-12"
+    months = [PT.ym_shift("2024-01", i) for i in range(26)]                  # 2024-01 … 2026-02
+    base = {ym: 100.0 + (i % 5) for i, ym in enumerate(months)}
+    rev = {**base, "2026-01": base["2026-01"] + 30}
+    diffs = [rev[PT.ym_shift("2026-01", -k)] - rev[PT.ym_shift("2026-01", -k - 12)] for k in range(1, 13)]
+    want = (rev["2026-01"] - rev["2025-01"]) / statistics.stdev(diffs)
+    assert abs(PT.sur(rev, "2026-01") - want) < 1e-12
+    assert PT.sur(rev, "2025-06") is None and PT.sur(rev, "2025-07") is not None   # 前 12 個月有去年同月的不到 6 個 → 不算
+    assert PT.sur({**rev, "2025-01": None}, "2026-01") is None               # 去年同月沒公告
+    # 形成日＝10 日當天或之後的第一個交易日（2026-01-10 是週六 → 01-12；法定期限遇假日順延）
+    cal = ["2026-01-09", "2026-01-12", "2026-01-13", "2026-02-10", "2026-02-11", "2026-03-10", "2026-03-11"]
+    assert PT.rev_forms(cal) == [(1, "2025-12"), (3, "2026-01"), (5, "2026-02")]
+
+
+def test_packtest_p7_units_pick_highest_surprise():
+    from arm.lab import packtest as PT
+    cal = ["2026-01-09", "2026-01-12", "2026-01-13", "2026-02-10", "2026-02-11", "2026-03-10", "2026-03-11"]
+    T = len(cal)
+    cl = {"A": [100, 100, 100, 110, 110, 110, 110], "B": [100, 100, 100, 100, 100, 95, 95], "C": [100.0] * T}
+    P = PT.Px.__new__(PT.Px)
+    P.T, P.cal = T, cal
+    P.s = {c: {"o": [100.0] * T, "h": [x * 1.01 for x in v], "l": [x * 0.99 for x in v], "c": [float(x) for x in v],
+               "v": [1.0] * T} for c, v in cl.items()}
+    P.cap, P.liq = {c: [400e8] * T for c in cl}, {c: [5e8] * T for c in cl}
+    P.codes, P.lock_n, P._el, P._win = sorted(cl), 0, {}, {}
+    months = [PT.ym_shift("2024-01", i) for i in range(26)]
+    base = {ym: 100.0 + (i % 5) for i, ym in enumerate(months)}
+    rev = {"A": {**base, "2025-12": base["2025-12"] + 30}, "B": {**base, "2026-01": base["2026-01"] + 30}, "C": dict(base)}
+    r = PT.p7_units(P, ["A", "B", "C"], rev, [1000.0] * T, [1000.0] * T, {**PT.P7, "top": 0.3, "nmin": 1})
+    u0, u1 = r["units"]
+    assert u0["d"] == "2026-01-12" and abs(u0["r"] - (0.10 - PT.COST) * 100) < 1e-9   # 12 月營收 A 最出乎意料
+    assert u1["d"] == "2026-02-10" and abs(u1["r"] - (-0.05 - PT.COST) * 100) < 1e-9  # 1 月換成 B
+    assert r["now"]["d"] == "2026-03-10" and r["now"]["ym"] == "2026-02" and len(r["now"]["picks"]) == 1
+
+
+def test_packtest_p7_excludes_financials(monkeypatch):
+    from arm import stockmeta
+    from arm.lab import packtest as PT
+    monkeypatch.setattr(stockmeta, "industry_map", lambda: {"2330": "半導體業", "2881": "金融保險"})
+    assert PT.non_fin(["2330", "2881", "9999"]) == ["2330", "9999"]
+
+
+def test_backfill_rev_mops_writes_complete_months_only(tmp_path, monkeypatch):
+    from datetime import date
+    from arm import clock
+    from arm.lab import collect, market, store
+    monkeypatch.setattr(store, "LAB", tmp_path)
+    monkeypatch.setattr(clock, "today_tw", lambda: date(2020, 4, 15))         # 可得到 2020-03
+    calls = []
+
+    def fake(mkt, y, m, k=0):
+        calls.append((y, m, mkt, k))
+        if (y, m) == (2020, 2) and mkt == "otc" and k == 0:
+            return None                                                         # 上櫃國內頁抓不到 → 整月不寫
+        return {f"{mkt}{k}{i:04d}": [1.0, 2.0, 3.0] for i in range(300)}
+    monkeypatch.setattr(market, "fetch_mops_rev", fake)
+    monkeypatch.setattr(collect.time, "sleep", lambda s: None)
+    assert collect.backfill_rev_mops("2020-01") == 2
+    assert store.dates("rev") == ["2020-01", "2020-03"] and len(calls) == 12
+    assert len(store.read("rev", "2020-03")["s"]) == 1200
+    calls.clear()
+    assert collect.backfill_rev_mops("2020-01") == 0 and {c[:2] for c in calls} == {(2020, 2)}   # 已有的月份跳過
+
+
 def test_packtest_grid_counts_positive_cells():
     from arm.lab import packtest as PT
     g = PT.grid(lambda a, b: a - b, (1, 2, 3), (0.5, 1.5, 2.5), ("甲", "乙"))
@@ -1201,10 +1275,77 @@ def test_growth_eps_growth_gate_uses_published_quarters():
 
 def test_strategy_page_robustness_and_pack_sections():
     js = page._JS
-    for k in ("function robTbl(", "function nbGrid(", "function packSec(", "sec('st-pack'", "function totPos(",
-              "+robTbl(g);", "看 ${N.n} 組", "沒有採用的項目與原因", "對同一批股票"):
+    for k in ("function robTbl(", "function nbGrid(", "function bt3Sec(", "sec('st-bt3'", "function totPos(",
+              "+robTbl(g,v3);", "看 ${N.n} 組", "沒有採用的項目與原因", "同一批股票"):
         assert k in js, k
+    assert "function packSec(" not in js and "sec('st-pack'" not in js      # 舊資料包表（5 年、對加權指數）由 v3 總表取代
     for k in ("穩健度檢查", "成本加倍", "參數鄰近", "同一批股票的平均", "存活者偏誤", "大盤年線", "成交檢查",
-              "相對強勢", "趨勢樣板", "SUE", "CAN SLIM"):
+              "相對強勢", "趨勢樣板", "SUE", "月營收驚喜", "CAN SLIM",
+              "樣本外", "樣本內", "t 值", "賺錢機率", "每月平均", "賺賠比", "報酬型態", "前 5 檔", "大型股", "中型股",
+              "因子檢定", "資金帳戶", "最大回落", "去掉最好 5%"):
         assert f"'{k}':" in js, k                                            # 名詞辭典
 
+
+
+def test_v3_grading_order_and_texts(tmp_path, monkeypatch):
+    """回測方法 v3（2026-10-15 使用者：每條策略只取最強前 5 檔、全部 B 級依證據強弱排序）：
+    有樣本外的排前面、再依樣本內外 t 值較小者；A 級另需樣本外報酬型態；既有策略的 C 級移到觀察。"""
+    from arm.lab import advice
+    assert advice._ev({"t": 1.46}, {"t": 2.22}) < advice._ev({"t": 1.46}, {"t": 1.52})   # 同分看較大的那個
+    assert advice._ev({"t": 0.5}, {"t": 0.6}) < advice._ev(None, {"t": 3.0})           # 有樣本外的永遠在前
+    side = lambda xe, t, n=40, win=65, m=2.0, ok=True: {"n": n, "xe": xe, "t": t, "drop5": 0.5, "x2": 0.6, "win": win,
+                                                        "m": m, "ratio": 1.5, "pay_ok": ok, "d0": "2013-08-12",
+                                                        "d1": "2021-09-30"}
+    nb = {"n": 9, "pos": 9}
+    r = {"ins": side(1.5, 2.5), "oos": side(1.2, 1.8, ok=False), "nb": nb, "event": False}
+    g = advice.grade_v3(r, {"n": 12, "xe": 0.8})
+    assert g["grade"] == "B" and any("樣本外報酬型態" in w for w in g["why"])          # 只差樣本外報酬型態 → B
+    r["oos"]["pay_ok"] = True
+    assert advice.grade_v3(r, {"n": 12, "xe": 0.8})["grade"] == "A"
+    assert advice.grade_v3(r, {"n": 3, "xe": 0.8})["grade"] == "B"                     # 前瞻未滿 10 期
+    assert advice.grade_v3({**r, "oos": side(-0.3, -1.2)}, None)["grade"] == "C"         # 樣本外反向
+    t = advice._oos_txt(side(1.41, 1.46, n=98), "月")
+    assert t == "樣本外 2013-08～2021-09（98 月）：每月平均報酬比同一批股票高 1.41%（t 1.46）"
+    assert "低 0.20%" in advice._oos_txt(side(-0.2, None), "季") and "（t —）" in advice._oos_txt(side(-0.2, None), "季")
+    e = advice._exp3({"n": 158, "med": 1.26, "p25": -3.8, "p75": 8.0, "win": 59, "kwin": 94, "lo": -25.2, "per10": 1260,
+                      "lo10": -25200}, "月")
+    assert e["event"] and e["grp"] == "期" and e["n"] == 158                           # 每期＝同一期 5 檔等額平均
+
+
+def test_v3_build_puts_oos_first_and_c_into_watch(tmp_path, monkeypatch):
+    from arm.lab import advice, store
+    monkeypatch.setattr(store, "LAB", tmp_path)
+    side = lambda xe, t, ok=True: {"n": 60, "xe": xe, "t": t, "drop5": 0.4, "x2": 0.5, "win": 62, "m": 2.0, "ratio": 1.4,
+                                   "pay_ok": ok, "d0": "2013-08-12", "d1": "2021-09-30"}
+    row = lambda k, xi, ti, xo, to: {"k": k, "ver": "top5", "src": "p7", "event": False, "ins": side(xi, ti),
+                                     "oos": side(xo, to), "nb": {"n": 9, "pos": 9}, "nb_oos": {"n": 9, "pos": 9},
+                                     "dist": {"n": 100, "med": 1.0, "p25": -2, "p75": 4, "win": 60, "kwin": 60, "lo": -20,
+                                              "per10": 1000, "lo10": -20000}}
+    store.write_json("bt3_research.json", {"asof": "2026-10-14", "oos_end": "2021-10-01", "meta": {},
+                                           "rows": [row("v7m", 1.25, 1.5, 1.4, 1.46), row("v3m", -3.1, -2.7, 0.4, 0.2)]})
+    now = {"d": "2026-10-12", "ent": "2026-10-13", "out": "2026-11-10", "entered": True, "n_uni": 270,
+           "picks": [{"c": "2355", "n": "敬鵬", "entry": 49.0, "now": 51.9, "now_r": 5.9, "why": ["9 月營收年增 44%"]}]}
+    v3 = {k: {"k": k, "src": "p7", "b": "M", "name": k, "unit": "月", "since": "2026-10-15", "res": r, "fwd": {"n": 0},
+              "now": now, "next": {"d": "2026-11-10", "ent": "2026-11-11"}}
+          for k, r in (("v7m", row("v7m", 1.25, 1.5, 1.4, 1.46)), ("v3m", row("v3m", -3.1, -2.7, 0.4, 0.2)))}
+    ex = {"s1": {"grade": "B", "why": ["選股超額 t 值 -0.04（A 級需 ≥2）"], "sel": {"n": 39, "xe": 1.2, "t": -0.04},
+                 "pay": {"win": 64, "m": 19.7, "ratio": 1.7, "ok": True}, "x2": 0.7, "nb": {"n": 9, "pos": 9}, "unit": "筆"}}
+    out = advice.build_v3(v3, ex, "2026-10-14")
+    G = {g["k"]: g for g in out["grades"]}
+    assert G["v7m"]["grade"] == "B" and G["v3m"]["grade"] == "C" and G["s1"]["grade"] == "B"
+    assert sorted(out["grades"], key=lambda g: g["ev"])[0]["k"] == "v7m"                # 有樣本外的 B 排第一
+    assert [p["k"] for p in out["picks"]] == ["v7m"] and [p["k"] for p in out["watch"]] == ["v3m"]
+    p = out["picks"][0]
+    assert p["act"] == "持有中" and p["oos"] and p["out"] == "2026-11-10" and p["stop"] is None
+    assert p["oos_txt"].startswith("樣本外 2013-08～2021-09") and p["exp"]["grp"] == "期"
+    assert set(out["live"]["v7m"]) >= {"rules", "bucket", "res", "now", "next", "grade", "why"}
+
+
+def test_v3live_next_formation_dates():
+    """月營收：每月 10 日（遇假日順延）；財報：法定期限遇假日順延（2026-11-14 週六 → 11/16）。"""
+    from arm.lab import v3live
+    assert v3live.next_rev_form("2026-10-12") == "2026-11-10"
+    q, d = v3live.next_eps_form("2026-06-30")
+    assert q == "2026-09-30" and d == "2026-11-16"
+    q, d = v3live.next_eps_form("2026-09-30")
+    assert q == "2026-12-31" and d >= "2027-03-31"

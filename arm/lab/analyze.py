@@ -550,6 +550,15 @@ def run(data: Data | None = None) -> dict:
             pack = packtest.summary(packtest.run(DL), reg)
         except Exception as e:                            # noqa: BLE001
             pack = {"err": f"{type(e).__name__}: {e}"}
+    # 回測方法 v3（2026-10-15；docs/backtest_v3_plan.md）：月營收驚喜、財報驚喜的本期 5 檔與前瞻；研究成績讀 bt3_research.json
+    v3, v3ctx = {}, None
+    if DL is not None:
+        try:
+            from . import v3live
+            v3 = v3live.run(DL, D.names)
+            v3ctx = v3.pop("_ctx", None)
+        except Exception as e:                            # noqa: BLE001
+            v3 = {"err": f"{type(e).__name__}: {e}"}
     DL = None
     stats = backtest.signal_stats(D, sig_hist, taiex)
     from . import strategy
@@ -579,12 +588,20 @@ def run(data: Data | None = None) -> dict:
                                        eps=_eps_safe())}
     except Exception as e:                                # noqa: BLE001
         grow = {"err": f"{type(e).__name__}: {e}"}
+    v3ex = {}
+    if v3ctx is not None:                                 # 既有策略改用 v3 評級（要等 strat、grow 算完）
+        try:
+            from . import v3live
+            v3ex = v3live.existing(v3ctx, strat, grow)
+        except Exception as e:                            # noqa: BLE001
+            v3ex = {"err": f"{type(e).__name__}: {e}"}
+    v3ctx = None
     iss_stats = backtest.issuer_stats(D, L, meta, taiex)
     # 策略頁 v2：評級＋本期推薦／觀察／出場清單（2026-10-15）
     try:
         from . import advice
         adv = advice.build({"rows": rows, "strat": strat, "grow": grow, "idx": idx_out, "stats": stats,
-                            "pack": pack, "last": D.cal[-1] if D.cal else None})
+                            "pack": pack, "v3": v3, "v3ex": v3ex, "last": D.cal[-1] if D.cal else None})
     except Exception as e:                                # noqa: BLE001
         adv = {"err": f"{type(e).__name__}: {e}"}
     asof = {
