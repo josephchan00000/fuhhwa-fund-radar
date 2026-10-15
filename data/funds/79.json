@@ -10,7 +10,7 @@
   "inception": "2017/01/16",
   "risk_level": "RR4",
   "mgmt_fee": "1.20%",
-  "size_twd": 19277740084.0,
+  "size_twd": 19421792008.0,
   "nav": 48.61,
   "nav_date": "2026/10/14",
   "nav_change": 0.37,
@@ -32,64 +32,64 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/79.pdf",
   "dist_date": "2026/09/30",
   "dist_rate": "—",
-  "as_of": "2026/08/31",
+  "as_of": "2026/09/30",
   "top_holdings": [
     {
       "sector": null,
       "name": "元大台灣加權股價指數證券投資信託基金 A 類型 (新台幣)",
-      "weight": 11.12
+      "weight": 11.49
     },
     {
       "sector": null,
       "name": "復華股債指數傘型證券投資信託基金之復華5至10年期投資等級債券指數證券投資信託基金 (新臺幣)",
-      "weight": 10.46
+      "weight": 10.15
     },
     {
       "sector": null,
       "name": "元大台灣50",
-      "weight": 9.13
+      "weight": 9.56
     },
     {
       "sector": null,
       "name": "安聯台灣科技證券投資信託基金",
-      "weight": 9.04
+      "weight": 8.48
     },
     {
       "sector": null,
       "name": "國泰台灣高股息傘型證券投資信託基金之台灣高股息證券投資信託基金 A類型 (新臺幣)",
-      "weight": 7.04
+      "weight": 7.22
     },
     {
       "sector": null,
       "name": "統一黑馬證券投資信託基金",
-      "weight": 6.36
+      "weight": 6.43
     },
     {
       "sector": null,
       "name": "野村優質證券投資信託基金 S (新臺幣)",
-      "weight": 6.21
+      "weight": 6.17
     },
     {
       "sector": null,
       "name": "野村高科技證券投資信託基金 累積 (新臺幣)",
-      "weight": 5.81
+      "weight": 5.64
     },
     {
       "sector": null,
       "name": "富邦科技",
-      "weight": 5.2
+      "weight": 5.47
     },
     {
       "sector": null,
       "name": "復華復華證券投資信託基金",
-      "weight": 4.81
+      "weight": 4.7
     }
   ],
   "asset_alloc": [],
   "country_alloc": [],
   "sector_alloc": [],
   "group": "tw_fof",
-  "fetched_at": "2026-10-15 09:29",
+  "fetched_at": "2026-10-15 10:29",
   "returns_daily": {
     "1m": 6.29784,
     "3m": 9.26051,

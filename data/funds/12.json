@@ -10,7 +10,7 @@
   "inception": "2004/01/02",
   "risk_level": "RR3",
   "mgmt_fee": "1.50%",
-  "size_twd": 20258400030.0,
+  "size_twd": 19849793897.0,
   "nav": 55.06,
   "nav_date": "2026/10/13",
   "nav_change": -0.73,
@@ -34,146 +34,138 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/12.pdf",
   "dist_date": "2026/09/30",
   "dist_rate": "—",
-  "as_of": "2026/08/31",
+  "as_of": "2026/09/30",
   "top_holdings": [
     {
       "sector": "資訊技術",
-      "name": "台光電",
-      "weight": 6.59
-    },
-    {
-      "sector": "資訊技術",
       "name": "PALANTIR TECHNOLOGIES INC-A",
-      "weight": 4.95
-    },
-    {
-      "sector": "資訊技術",
-      "name": "南電",
-      "weight": 4.09
+      "weight": 4.54
     },
     {
       "sector": "資訊技術",
       "name": "奇鋐",
-      "weight": 3.42
+      "weight": 4.06
+    },
+    {
+      "sector": "工業",
+      "name": "BLOOM ENERGY CORP- A",
+      "weight": 3.91
     },
     {
       "sector": "資訊技術",
-      "name": "NVIDIA CORP",
-      "weight": 3.15
-    },
-    {
-      "sector": "ETF",
-      "name": "VanEck黃金礦業交易所交易基金",
-      "weight": 2.93
-    },
-    {
-      "sector": "資訊技術",
-      "name": "MICRON TECHNOLOGY INC",
-      "weight": 2.92
+      "name": "INTEL CORP",
+      "weight": 3.61
     },
     {
       "sector": "資訊技術",
       "name": "LUMENTUM HOLDINGS INC",
-      "weight": 2.88
+      "weight": 3.58
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MICRON TECHNOLOGY INC",
+      "weight": 3.33
+    },
+    {
+      "sector": "資訊技術",
+      "name": "南電",
+      "weight": 3.07
+    },
+    {
+      "sector": "資訊技術",
+      "name": "SANDISK CORP",
+      "weight": 3.03
     },
     {
       "sector": "金融",
       "name": "ROBINHOOD MARKETS INC - A",
-      "weight": 2.65
+      "weight": 2.54
     },
     {
-      "sector": "醫療保健",
-      "name": "ELI LILLY &amp; CO",
-      "weight": 2.58
+      "sector": "資訊技術",
+      "name": "聯發科",
+      "weight": 2.52
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 52.47
+      "weight": 55.43
     },
     {
       "name": "臺灣",
-      "weight": 24.25
+      "weight": 25.26
     },
     {
       "name": "日本",
-      "weight": 4.23
-    },
-    {
-      "name": "韓國",
-      "weight": 2.98
+      "weight": 3.15
     },
     {
       "name": "澳大利亞",
-      "weight": 2.73
+      "weight": 2.71
     },
     {
-      "name": "香港",
-      "weight": 1.8
+      "name": "韓國",
+      "weight": 2.54
     },
     {
       "name": "義大利",
-      "weight": 1.7
+      "weight": 1.66
     },
     {
       "name": "英國",
-      "weight": 0.66
+      "weight": 0.68
+    },
+    {
+      "name": "希臘",
+      "weight": 0.52
     },
     {
       "name": "其他",
-      "weight": 1.08
+      "weight": 0.55
     },
     {
       "name": "流動資產",
-      "weight": 8.09
+      "weight": 7.5
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 58.03
+      "weight": 71.32
     },
     {
       "name": "債券",
-      "weight": 8.7
-    },
-    {
-      "name": "金融",
-      "weight": 6.45
-    },
-    {
-      "name": "原材料",
-      "weight": 5.43
-    },
-    {
-      "name": "醫療保健",
-      "weight": 4.8
+      "weight": 8.63
     },
     {
       "name": "工業",
-      "weight": 2.74
+      "weight": 4.89
     },
     {
-      "name": "能源",
-      "weight": 0.48
+      "name": "金融",
+      "weight": 3.32
     },
     {
-      "name": "非核心消費品",
-      "weight": 0.26
+      "name": "醫療保健",
+      "weight": 2.15
+    },
+    {
+      "name": "通訊服務",
+      "weight": 1.1
     },
     {
       "name": "其他",
-      "weight": 5.02
+      "weight": 1.09
     },
     {
       "name": "流動資產",
-      "weight": 8.09
+      "weight": 7.5
     }
   ],
   "group": "global_balanced",
-  "fetched_at": "2026-10-15 09:28",
+  "fetched_at": "2026-10-15 10:28",
   "returns_daily": {
     "1m": 0.4378,
     "3m": -12.46423,

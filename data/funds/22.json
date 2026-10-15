@@ -10,7 +10,7 @@
   "inception": "2007/11/26",
   "risk_level": "RR3",
   "mgmt_fee": "1.00%",
-  "size_twd": 7266788717.0,
+  "size_twd": 7445940450.0,
   "nav": 27.12,
   "nav_date": "2026/10/13",
   "nav_change": -0.19,
@@ -32,64 +32,64 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/22.pdf",
   "dist_date": "2026/09/30",
   "dist_rate": "—",
-  "as_of": "2026/08/31",
+  "as_of": "2026/09/30",
   "top_holdings": [
     {
       "sector": null,
       "name": "元大台灣50",
-      "weight": 7.98
+      "weight": 8.21
     },
     {
       "sector": null,
       "name": "iShares ESG Aware MSCI USA E",
-      "weight": 6.66
+      "weight": 6.81
     },
     {
       "sector": null,
       "name": "iShares ESG Aware U.S. Aggre",
-      "weight": 6.47
-    },
-    {
-      "sector": null,
-      "name": "Vanguard ESG International S",
-      "weight": 5.44
+      "weight": 6.16
     },
     {
       "sector": null,
       "name": "群益台ESG低碳50",
-      "weight": 4.93
+      "weight": 5.58
+    },
+    {
+      "sector": null,
+      "name": "Vanguard ESG International S",
+      "weight": 5.2
     },
     {
       "sector": null,
       "name": "先鋒全世界股票ETF",
-      "weight": 4.45
-    },
-    {
-      "sector": null,
-      "name": "iShares ESG Aware USD Corpor",
-      "weight": 3.86
+      "weight": 4.3
     },
     {
       "sector": null,
       "name": "Vanguard ESG US Stock ETF",
-      "weight": 3.78
+      "weight": 4.22
+    },
+    {
+      "sector": null,
+      "name": "iShares ESG Aware USD Corpor",
+      "weight": 3.67
     },
     {
       "sector": null,
       "name": "iShares MSCI ACWI ETF",
-      "weight": 3.63
+      "weight": 3.52
     },
     {
       "sector": null,
       "name": "安本基金 - 前緣市場債券基金 I 累積 美元",
-      "weight": 3.03
+      "weight": 2.93
     }
   ],
   "asset_alloc": [],
   "country_alloc": [],
   "sector_alloc": [],
   "group": "global_fof",
-  "fetched_at": "2026-10-15 09:29",
+  "fetched_at": "2026-10-15 10:29",
   "returns_daily": {
     "1m": 1.30743,
     "3m": -0.73206,
