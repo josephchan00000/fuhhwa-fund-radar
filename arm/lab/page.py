@@ -425,13 +425,14 @@ const GL={
 '相對強勢':'依過去一段期間的漲幅在全部股票中的排名選股（例：約 6 個月前到 1 個月前漲最多的前 10%）。學術上稱動能效應。',
 '趨勢樣板':'Mark Minervini 的選股條件：股價在 50／150／200 日線之上且均線依序向上、離一年低點 30% 以上、離一年高點 25% 以內、強度排名前 30%。這裡另要求整理後帶量突破才買。',
 'SUE':'標準化盈餘驚喜＝（當季 EPS − 去年同季 EPS）÷ 過去幾季這個差距的波動。數字越大代表這季成長越出乎意料。學術上發現驚喜大的股票，之後幾個月常繼續走強（財報後漂移）。',
+'月營收驚喜':'（上個月營收 − 去年同月營收）÷ 過去 12 個月這個差距的標準差。數字越大代表這個月的成長越出乎意料，用法同 SUE，只是改用每月 10 日前公告的月營收。金融保險業不算（營收口徑不同，金控可延到 15 日申報）。',
 'CAN SLIM':'William O’Neil 的成長股選股法，七個字母代表當季盈餘成長、年度成長、新產品或新高、股數供需、領先股、法人認養、大盤方向。這裡測試其中的 C（當季 EPS 年增 ≥25%）與 M（大盤在年線上）。',
 };
 const GLG=[['ETF 面',['真加碼','申贖倍率','主動 5 日淨買','加碼／減碼家數','持有 ETF','新建倉','建倉日','主動成本','成本乖離','超配','ETF 持股率','消化天數']],
  ['法人籌碼',['投信 5 日','外資 5 日','連買','60 日買超均價','融資','借券賣出','千張大戶']],
  ['技術面',['趨勢','乖離','量比','RSI','KD','MACD','一年區間位置','相對大盤','ATR','日均成交']],
  ['成績與策略',['評級','信賴區間','超額','獲利比例','贏大盤','勝率','每 10 萬預估','隔夜跳空','樣本','紙上交易','樣本內','前瞻','前瞻驗證']],
- ['穩健度與資料包策略',['穩健度檢查','成本加倍','參數鄰近','同一批股票的平均','存活者偏誤','大盤年線','成交檢查','相對強勢','趨勢樣板','SUE','CAN SLIM']],
+ ['穩健度與資料包策略',['穩健度檢查','成本加倍','參數鄰近','同一批股票的平均','存活者偏誤','大盤年線','成交檢查','相對強勢','趨勢樣板','SUE','月營收驚喜','CAN SLIM']],
  ['指數換股',['資料截止日','漲勢前一半','估計權重','被動買盤','週轉率','等級相關','被動買賣期間','對其他成分股','被動買賣日量','被動買賣提醒']]];
 function gi(k){return (GL[k]||SD[k])?`<i class=gi data-g="${esc(k)}" role=button tabindex=0 aria-label="說明">i</i>`:'';}
 const POP=$('#pop');let popFor=null,popPin=false;
@@ -1133,7 +1134,7 @@ function s5Sec(){const G=D.grow||{};if(G.err)return sec('st-s5','長線','長線
 function packSec(){const P=ADV.pack||{};if(P.err)return sec('st-pack','資料包','資料包策略測試','',`<div class=card><div class=st>資料錯誤：${esc(P.err)}</div></div>`);
   const R=P.rows||[];if(!R.length)return '';const M=P.meta||{},main=R.filter(r=>/^p\d$/.test(r.k)),alt=R.filter(r=>!/^p\d$/.test(r.k));
   const row=r=>{const N=r.nb||{},rb=r.rb||{},u=r.unit;
-    const gk={p1:'相對強勢',p2:'趨勢樣板',p3:'SUE'}[r.k]||(/^p6[cm]$/.test(r.k)?'CAN SLIM':'');
+    const gk={p1:'相對強勢',p2:'趨勢樣板',p3:'SUE',p7:'月營收驚喜'}[r.k]||(/^p6[cm]$/.test(r.k)?'CAN SLIM':'');
     return `<tr><td class=l><span class=nm>${esc(r.name)}${gk?gi(gk):''}</span><span class=cd>${esc(r.src)}</span><div class="pkn pkr">${esc(r.rule)}</div></td>`+
       `<td>${r.n?`${r.n} ${u}`:'—'}<div class=sm2>${esc((r.d0||'').slice(0,7))}～${esc((r.d1||'').slice(0,7))}</div></td>`+
       `<td>${pctT(r.x)}<div class=sm2>${ciT(r.ci)}</div></td><td>${r.xwin==null?'—':r.xwin+'%'}</td>`+

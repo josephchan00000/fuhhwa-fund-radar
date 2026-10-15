@@ -1274,6 +1274,6 @@ def test_strategy_page_robustness_and_pack_sections():
               "+robTbl(g);", "看 ${N.n} 組", "沒有採用的項目與原因", "對同一批股票"):
         assert k in js, k
     for k in ("穩健度檢查", "成本加倍", "參數鄰近", "同一批股票的平均", "存活者偏誤", "大盤年線", "成交檢查",
-              "相對強勢", "趨勢樣板", "SUE", "CAN SLIM"):
+              "相對強勢", "趨勢樣板", "SUE", "月營收驚喜", "CAN SLIM"):
         assert f"'{k}':" in js, k                                            # 名詞辭典
 
