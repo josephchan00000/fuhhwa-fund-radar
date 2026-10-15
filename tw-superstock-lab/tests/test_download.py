@@ -127,3 +127,14 @@ def test_budget_stops_and_resumes(cfg):
     make(cfg, client).run(["meta", "core"])
     store = Store(cfg.raw_dir)
     assert store.read(get_spec("TaiwanStockPrice"), "1234") is not None
+
+
+def test_empty_global_probe_falls_back_to_per_stock(cfg):
+    """整批試抓回空的（免費帳號可能不給整批但也不報錯）→ 改逐檔，不能讓整個事件資料集默默變空。"""
+    client = FakeClient(handlers())
+    dl = make(cfg, client)
+    dl.run(["meta", "events"])
+    assert dl.manifest.get_mode("TaiwanStockSplitPrice") == "per_stock"
+    assert dl.manifest.get_mode("TaiwanStockDividendResult") == "global"
+    split_reqs = [r for r in client.requests if r[0] == "TaiwanStockSplitPrice" and r[1]]
+    assert {r[1] for r in split_reqs} == {"2330", "6488", "1234"}

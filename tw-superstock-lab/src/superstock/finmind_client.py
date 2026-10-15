@@ -98,6 +98,9 @@ def _is_quota_message(msg: Any) -> bool:
     return "upper limit" in text or "上限" in text
 
 
+NO_TOKEN_LIMIT = 300  # 不帶 token（未登入）每小時上限；設定檔的 600 是驗證信箱後的帳號額度
+
+
 class FinMindClient:
     def __init__(
         self,
@@ -113,9 +116,8 @@ class FinMindClient:
         if token:
             self.session.headers["Authorization"] = f"Bearer {token}"
         self.has_token = bool(token)
-        self.limiter = limiter or RateLimiter(
-            cfg.requests_per_hour, cfg.safety_margin, cfg.min_interval_sec
-        )
+        per_hour = cfg.requests_per_hour if token else min(cfg.requests_per_hour, NO_TOKEN_LIMIT)
+        self.limiter = limiter or RateLimiter(per_hour, cfg.safety_margin, cfg.min_interval_sec)
         self._sleep = sleep
         self.max_quota_waits = max_quota_waits
         self.calls = 0  # 實際送出的資料請求次數（含失敗）

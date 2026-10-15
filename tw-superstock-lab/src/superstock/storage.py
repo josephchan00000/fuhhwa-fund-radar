@@ -154,6 +154,11 @@ class Manifest:
         rows = prev["rows"] if prev else 0
         self._upsert(store, key, "failed", rows, start, end, error[:500])
 
+    def count(self, store: str) -> dict[str, int]:
+        """某資料集各狀態的紀錄數，例如 {"done": 3, "empty": 1}。"""
+        cur = self.conn.execute("SELECT status, COUNT(*) FROM tasks WHERE store=? GROUP BY status", (store,))
+        return {status: int(n) for status, n in cur.fetchall()}
+
     # ---- datasets ----
     def get_mode(self, store: str) -> str | None:
         row = self.conn.execute("SELECT resolved_mode FROM datasets WHERE store=?", (store,)).fetchone()
