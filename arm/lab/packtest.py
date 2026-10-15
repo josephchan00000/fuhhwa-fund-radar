@@ -40,6 +40,13 @@ P7 = {"win": 12, "min": 6, "top": 0.10, "nmin": 10}     # S26 月營收驚喜（
 DEADLINE = {"03-31": (0, 5, 15), "06-30": (0, 8, 14), "09-30": (0, 11, 14), "12-31": (1, 3, 31)}
 
 
+def form_after_deadline(cal: list[str], dl: str) -> int | None:
+    """法定期限遇假日順延到下一個上班日：取期限當天或之後的第一個交易日（收盤時全部公司都已公告）。
+    2026-10-15 修正：原本取「期限之前的最後一個交易日」，期限落在週末時（例：2026-11-14 週六）會用到
+    週一才公告的財報（前視偏誤）。"""
+    return next((i for i, d in enumerate(cal) if d >= dl), None)
+
+
 def deadline(period: str) -> str:
     """單季 EPS 的季底日 → 法定公告期限。"""
     y = int(period[:4])
@@ -339,11 +346,10 @@ def p3_events(P: Px, codes: list[str], eps: dict, idx: list, io: list, spec: dic
     quarters = sorted({q for e in eps.values() for q in e})
     units, now = [], None
     for q in quarters:
-        dl = deadline(q)
-        j = next((i for i, d in enumerate(cal) if d > dl), None)
-        if j is None:
+        t = form_after_deadline(cal, deadline(q))
+        if t is None or t + 1 >= T:
             continue
-        t = j - 1
+        j = t + 1
         sc = {}
         E = P.elig(t, CAP_L)
         for c in codes:

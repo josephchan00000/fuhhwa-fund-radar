@@ -347,3 +347,53 @@ def run(budget_s: float = 2700) -> dict:
             "秒": round(time.time() - R.t0)}
     market.log(f"[v3] {summ}")
     return summ
+
+# ── 每日維護（不必另外回補） ─────────────────────────────────────────
+
+def me_from_mkt() -> int:
+    """月底市值快照從每日官方分片補（上市 q_tw × x_tw 發行股數、上櫃 q_tp 內含發行股數），不發請求。
+    只補「已過完、還沒有快照」的月份；回測 v3 的市值口徑（最近一個月底）每天名單照用。"""
+    from .. import clock
+    cur = clock.today_tw().isoformat()[:7]
+    last: dict[str, str] = {}
+    for d in store.dates("mkt"):
+        last[d[:7]] = d
+    n = 0
+    have_tw, have_tp = set(store.dates("v3me_tw")), set(store.dates("v3me_tp"))
+    for ym, d in sorted(last.items()):
+        if ym >= cur or (ym in have_tw and ym in have_tp):
+            continue
+        doc = store.read("mkt", d) or {}
+        q_tw, x_tw, q_tp = doc.get("q_tw") or {}, doc.get("x_tw") or {}, doc.get("q_tp") or {}
+        if ym not in have_tw and q_tw and x_tw:
+            s = {c: [q[3], x_tw[c][1]] for c, q in q_tw.items() if stock(c) and q and q[3] and (x_tw.get(c) or [None, None])[1]}
+            if len(s) >= 500:
+                store.write("v3me_tw", ym, {"d": d, "s": s, "src": "mkt"})
+                n += 1
+        if ym not in have_tp and q_tp:
+            s = {c: [q[3], q[6]] for c, q in q_tp.items() if stock(c) and q and q[3] and len(q) > 6 and q[6]}
+            if len(s) >= 300:
+                store.write("v3me_tp", ym, {"d": d, "s": s, "src": "mkt"})
+                n += 1
+    return n
+
+
+def update_isq() -> int:
+    """每季法定期限過後補一次綜合損益表彙總（一季兩請求）；平常沒有缺就不發請求。"""
+    n = 0
+    for y, q in _quarters_due():
+        doc = store.read("v3isq", f"{y}Q{q}") or {}
+        if doc.get("sii") and doc.get("otc"):
+            continue
+        if y < 2013:
+            continue
+        new = dict(doc)
+        for m in ("sii", "otc"):
+            if not new.get(m):
+                d = market.mops_is(m, y, q)
+                if d and len(d) >= 200:
+                    new[m] = d
+        if new != doc:
+            store.write("v3isq", f"{y}Q{q}", new)
+            n += 1
+    return n
