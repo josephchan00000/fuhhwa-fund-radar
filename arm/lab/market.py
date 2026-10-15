@@ -810,6 +810,90 @@ def twse_exright_year(y: int) -> list[list]:
     return parse_twt49u(doc)
 
 
+# ── 回測 v3 資料探針（docs/backtest_v3_plan.md 第 2、7 節；只印不寫） ──────────────────
+def _peek(name: str, url: str, *, timeout: int = 40) -> object:
+    """抓一次、印狀態與內容摘要；回傳解析後的 JSON（或原始文字）。"""
+    try:
+        b = get_bytes(url, retries=1, timeout=timeout, use_cache=False)
+    except Exception as e:                                # noqa: BLE001
+        log(f"[v3探針] {name} ✗ {str(e)[:160]}")
+        return None
+    txt = _decode(b).strip()
+    try:
+        doc = json.loads(txt)
+    except ValueError:
+        log(f"[v3探針] {name} 非 JSON {len(b)}B 開頭 {txt[:160]!r}")
+        return txt
+    if isinstance(doc, dict):
+        keys = list(doc)[:12]
+        info = {k: (doc[k] if isinstance(doc[k], (str, int, float)) else type(doc[k]).__name__) for k in keys}
+        rows = doc.get("data") or doc.get("aaData") or doc.get("tables") or []
+        n = len(rows) if isinstance(rows, list) else "?"
+        log(f"[v3探針] {name} OK {len(b)}B 鍵 {info} 列數 {n}")
+        if isinstance(rows, list) and rows:
+            log(f"[v3探針]   首列 {str(rows[0])[:300]}")
+            log(f"[v3探針]   末列 {str(rows[-1])[:300]}")
+        for k in ("fields", "title"):
+            if doc.get(k):
+                log(f"[v3探針]   {k} {str(doc[k])[:300]}")
+    else:
+        log(f"[v3探針] {name} OK {len(b)}B list {len(doc)} 首筆 {str(doc[:1])[:300]}")
+    return doc
+
+
+def probe_v3() -> None:
+    from .. import clock
+    today = clock.today_tw().isoformat()
+    fm = "https://api.finmindtrade.com/api/v4/data?dataset={ds}{cid}&start_date={a}&end_date=" + today
+    # 1) 加權報酬指數（含息）
+    for d in ("20140101", "20240101"):
+        _peek(f"證交所加權報酬指數 MFI94U {d}", f"https://www.twse.com.tw/rwd/zh/TAIEX/MFI94U?date={d}&response=json")
+        time.sleep(3)
+    # 2) 歷史發行股數：證交所外資持股表（全市場一日一請求）、櫃買日收盤
+    doc = _peek("證交所 MI_QFIIS 2014-01-02", "https://www.twse.com.tw/rwd/zh/fund/MI_QFIIS?date=20140102&selectType=ALLBUT0999&response=json")
+    if isinstance(doc, dict):
+        for f_, rows in tables(doc):
+            log(f"[v3探針]   MI_QFIIS 欄位 {f_[:12]}")
+            for r in rows:
+                if str(r[0]).strip() == "2330":
+                    log(f"[v3探針]   MI_QFIIS 2330 {r[:12]}")
+    time.sleep(3)
+    for d in ("2014-01-02", "2019-01-02"):
+        try:
+            res, st = fetch_part("q_tp", d)
+            log(f"[v3探針] 櫃買日收盤 {d} 狀態 {st} 檔數 {len(res or {})} 樣本 {str(list((res or {}).items())[:2])[:200]}")
+        except Exception as e:                            # noqa: BLE001
+            log(f"[v3探針] 櫃買日收盤 {d} ✗ {str(e)[:160]}")
+        time.sleep(2)
+    # 3) 上櫃除權息
+    _peek("櫃買除權息（舊站）2024", "https://www.tpex.org.tw/web/stock/exright/dailyquo/exDailyQ_result.php?l=zh-tw&d=113/01/01&ed=113/12/31&o=json")
+    _peek("櫃買除權息（新站）2024", "https://www.tpex.org.tw/www/zh-tw/bulletin/exDailyQ?startDate=2024/01/01&endDate=2024/12/31&response=json")
+    _peek("FinMind 除權息結果 5347", fm.format(ds="TaiwanStockDividendResult", cid="&data_id=5347", a="2013-01-01"))
+    # 4) 月營收彙總表 2012／2013
+    for y in (2012, 2013):
+        for mkt, smp in (("sii", "2330"), ("otc", "5347")):
+            d = fetch_mops_rev(mkt, y, 1, 0)
+            log(f"[v3探針] MOPS 月營收 {y}-01 {mkt}：{len(d or {})} 檔 {smp}={None if d is None else d.get(smp)}")
+            time.sleep(2)
+    # 5) Yahoo 長歷史與已下市股票
+    for sym in ("2330.TW", "2311.TW", "2325.TW", "3474.TW", "2448.TW", "5347.TWO"):
+        h = yahoo_hist(sym, rng="max")
+        ks = sorted(h)
+        log(f"[v3探針] Yahoo {sym}：{len(ks)} 日 {ks[:1]}～{ks[-1:]}")
+        time.sleep(1)
+    # 6) FinMind：已下市股價、下市清單、單季 EPS 起點、歷史發行股數
+    _peek("FinMind 股價 2311（已下市）", fm.format(ds="TaiwanStockPrice", cid="&data_id=2311", a="2014-01-01"))
+    _peek("FinMind 下市清單", fm.format(ds="TaiwanStockDelisting", cid="", a="2013-01-01"))
+    doc = _peek("FinMind 綜合損益 2330（2012 起）", fm.format(ds="TaiwanStockFinancialStatements", cid="&data_id=2330", a="2012-01-01"))
+    if isinstance(doc, dict) and doc.get("data"):
+        eps = [r for r in doc["data"] if r.get("type") == "EPS"]
+        log(f"[v3探針]   EPS {len(eps)} 季 首 {eps[:1]} 末 {eps[-1:]}")
+    doc = _peek("FinMind 外資持股（含發行股數）2330", fm.format(ds="TaiwanStockShareholding", cid="&data_id=2330", a="2014-01-01"))
+    # 7) 證交所除權息 2014
+    rows = twse_exright_year(2014)
+    log(f"[v3探針] TWT49U 2014：{len(rows)} 列 樣本 {rows[:2]}")
+
+
 FINMIND_LIMIT = "finmind_limit"
 
 
