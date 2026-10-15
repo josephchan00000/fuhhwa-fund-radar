@@ -186,3 +186,15 @@ def test_bt3d_panel_total_return_prices_and_month_end_caps(tmp_path, monkeypatch
     assert P.liq["2311"][8] is None and P.liq["2311"][9] == pytest.approx(100.0)   # 20 日均要有 10 個值
     assert P.liq["1101"][11] == pytest.approx((2 * 10 + 10 * 9.5) * 1000 / 12)
     assert P.elig(10, 2.5e10, 0) == frozenset({"1101"})                       # packtest.Px 介面照用（2311 只有 200 億）
+
+
+def test_bt3d_mops_cumulative_eps_to_quarterly(tmp_path, monkeypatch):
+    from arm.lab import bt3d, store
+    monkeypatch.setattr(store, "LAB", tmp_path)
+    store.write("v3isq", "2014Q1", {"sii": {"2330": 1.85}, "otc": {"5347": 0.84}})
+    store.write("v3isq", "2014Q2", {"sii": {"2330": 4.15}, "otc": {}})
+    store.write("v3isq", "2014Q4", {"sii": {"2330": 10.18}, "otc": {"5347": 3.35}})   # 缺 Q3 → Q4 不算
+    store.write("v3eps", "2330", {"eps": {"2013-12-31": 1.5, "2014-03-31": 1.9}})
+    e = bt3d.load_eps()
+    assert e["2330"] == {"2013-12-31": 1.5, "2014-03-31": 1.85, "2014-06-30": 2.3}  # 官方彙總表優先
+    assert e["5347"] == {"2014-03-31": 0.84}
