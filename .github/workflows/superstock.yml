@@ -1,0 +1,103 @@
+name: 台股飆股研究系統（tw-superstock-lab）實測
+
+# 2026-10-15 建立：tw-superstock-lab/SPEC.md §3.7–3.8 的 FinMind 實測。
+#   雲端 Claude 容器的網路政策擋 api.finmindtrade.com，所以實測放在這裡跑。
+#   下載的資料只存在 runner 的暫存目錄（$RUNNER_TEMP），跑完即丟、絕不入庫；
+#   只把 tw-superstock-lab/reports/smoke/（欄位、筆數、檢查結果，不含原始資料）commit 回被觸發的分支。
+#   完整下載（約 2 萬次請求、20 小時以上）不在這裡跑——私有 repo 的 Actions 分鐘數不夠。
+#
+# 觸發：claude/** 分支 push 動到 .ping/superstock（第一行＝模式），或手動 workflow_dispatch。
+#   smoke：pytest → check → download（3 檔）→ probe → build → quality → reconcile → status
+#   probe：只跑 probe（不下載）
+# 有設 repository secret FINMIND_TOKEN 就用（每小時 600 次），沒有就是未登入額度（每小時 300 次）。
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "smoke 或 probe"
+        default: "smoke"
+  push:
+    branches: ['claude/**']
+    paths: ['.ping/superstock']
+
+concurrency:
+  group: superstock
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Taipei
+      FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+    defaults:
+      run:
+        working-directory: tw-superstock-lab
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安裝＋測試
+        run: |
+          pip install --quiet -e ".[dev]"
+          pytest
+
+      - name: 實測
+        run: |
+          MODE="${{ inputs.mode || 'smoke' }}"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            if [ ! -f ../.ping/superstock ]; then echo "無 .ping/superstock，略過"; exit 0; fi
+            MODE=$(head -1 ../.ping/superstock | tr -d '[:space:]')
+          fi
+          echo "模式：$MODE"
+          DATA="$RUNNER_TEMP/ss-data"
+          OUT="$GITHUB_WORKSPACE/tw-superstock-lab/reports/smoke"
+          mkdir -p "$OUT"
+          cat > "$RUNNER_TEMP/ci.yaml" <<EOF
+          start_date: "2008-01-01"
+          data_dir: "$DATA"
+          reports_dir: "$OUT"
+          finmind:
+            rate_limit_wait_sec: 60
+          download_groups: ["meta", "core", "events"]
+          EOF
+          SS="python -m superstock --config $RUNNER_TEMP/ci.yaml"
+          if [ "$MODE" = "probe" ]; then
+            $SS probe
+          else
+            $SS check | tee "$OUT/check.txt"
+            $SS download --stocks 2330 6488 1101 --max-calls 60
+            $SS download --stocks 2330 6488 1101 --max-calls 200
+            $SS probe
+            $SS build | tee "$OUT/build.txt"
+            $SS quality || true
+            $SS reconcile --n 3
+            $SS status | tee "$OUT/status.txt"
+          fi
+          # 只留 runner 上的資料；萬一有資料檔跑進報告資料夾就中止
+          if find "$OUT" -name '*.parquet' -o -name '*.sqlite' | grep -q .; then
+            echo "::error::報告資料夾出現資料檔"; exit 1
+          fi
+
+      - name: commit 實測報告（回到被觸發的分支）
+        run: |
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          git add reports/smoke
+          git commit -m "P1.8: FinMind 實測報告（CI）$(date '+%F %H:%M')" || { echo "無變更"; exit 0; }
+          for i in 1 2 3; do
+            git push origin HEAD:${{ github.ref_name }} && exit 0
+            git pull --rebase origin ${{ github.ref_name }} || git rebase --abort || true
+            sleep 5
+          done
+          echo "::error::push 失敗"; exit 1

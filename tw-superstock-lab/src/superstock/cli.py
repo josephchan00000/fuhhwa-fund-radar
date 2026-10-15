@@ -7,6 +7,7 @@
   quality     資料品質檢查 → reports/data_quality.md
   reconcile   抽樣與官方資料對帳 → reports/reconciliation.md
   status      看下載進度與失敗清單
+  probe       實測 FinMind 各資料集欄位與語意（SPEC §3.7）→ reports/live_probe.md
 """
 
 from __future__ import annotations
@@ -131,6 +132,20 @@ def cmd_reconcile(cfg: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_probe(cfg: Config, args: argparse.Namespace) -> int:
+    from .probe import run_probe, user_info_shape, write_probe_report
+    client = _client(cfg)
+    if client.has_token and not args.offline:
+        client.sync_limit()
+    result = run_probe(cfg, client, default_today().isoformat(), probe_stock=args.stock,
+                       extra_calls=not args.offline)
+    if not args.offline:
+        result["user_info"] = user_info_shape(cfg, client)
+    path = write_probe_report(result, cfg.reports_dir)
+    print(f"實測報告：{path}（本次請求 {result['calls']} 次）")
+    return 0
+
+
 def cmd_status(cfg: Config, args: argparse.Namespace) -> int:
     manifest = Manifest(cfg.manifest_path)
     try:
@@ -173,6 +188,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--n", type=int, default=20)
     p.add_argument("--no-fetch", action="store_true", help="不連證交所，只產生人工核對清單")
     sub.add_parser("status", help="下載進度")
+    p = sub.add_parser("probe", help="實測 FinMind 各資料集欄位與語意（§3.7）")
+    p.add_argument("--stock", default="2330", help="本機沒有資料的資料集用哪一檔試抓")
+    p.add_argument("--offline", action="store_true", help="只摘要本機資料，不送請求")
 
     args = parser.parse_args(argv)
     cfg = load_config(args.config)
@@ -192,6 +210,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_reconcile(cfg, args)
         if args.cmd == "status":
             return cmd_status(cfg, args)
+        if args.cmd == "probe":
+            return cmd_probe(cfg, args)
     except FinMindError as exc:
         log.error("FinMind 錯誤：%s", exc)
         return 2

@@ -29,8 +29,6 @@ from .universe import build_universe
 
 log = logging.getLogger(__name__)
 
-# 這兩個事件資料集每年一定有大量資料；整批試抓卻是空的 → 視為不支援整批，改逐檔
-FREQUENT_EVENTS = {"TaiwanStockDividendResult", "TaiwanStockDispositionSecuritiesPeriod"}
 BREAKER_THRESHOLD = 3
 
 
@@ -173,11 +171,9 @@ class Downloader:
         probe_start = (pd.Timestamp(self.today) - pd.Timedelta(days=3 * 365)).date().isoformat()
         try:
             df = self.client.get(spec.name, start_date=probe_start, end_date=self.today)
-            ok = True
-            if df.empty and spec.name in FREQUENT_EVENTS:
-                ok = False
-            if not df.empty and ("stock_id" not in df.columns or df["stock_id"].nunique() <= 1):
-                ok = False
+            # 全市場 3 年內減資、分割、面額變更、除權息、處置都一定有幾十到幾千件；
+            # 整批試抓卻是空的（或只有一檔）＝免費帳號不給整批，改逐檔，免得整個資料集默默變空
+            ok = not df.empty and "stock_id" in df.columns and df["stock_id"].nunique() > 1
         except QuotaExhausted:
             raise
         except (FinMindError, TransientError) as exc:
