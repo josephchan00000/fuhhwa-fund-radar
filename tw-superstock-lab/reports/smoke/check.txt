@@ -1,9 +1,9 @@
-2026-10-15 20:26:54 WARNING superstock | 沒有設定 FINMIND_TOKEN：免費未註冊額度只有每小時 300 次。請在 .env 填入 token。
+2026-10-15 20:34:39 WARNING superstock | 沒有設定 FINMIND_TOKEN：免費未註冊額度只有每小時 300 次。請在 .env 填入 token。
 尚未設定 token，下載速度會受限（每小時 300 次）。
-2026-10-15 20:26:55 INFO superstock.download | TaiwanStockInfo：4339 列
-2026-10-15 20:26:56 INFO superstock.download | TaiwanStockDelisting：726 列
-2026-10-15 20:26:57 INFO superstock.download | TaiwanStockTradingDate：4613 列
-2026-10-15 20:27:01 INFO superstock.download | 股票池：2225 檔（含下市 248 檔）
+2026-10-15 20:34:40 INFO superstock.download | TaiwanStockInfo：4339 列
+2026-10-15 20:34:41 INFO superstock.download | TaiwanStockDelisting：726 列
+2026-10-15 20:34:41 INFO superstock.download | TaiwanStockTradingDate：4613 列
+2026-10-15 20:34:46 INFO superstock.download | 股票池：2225 檔（含下市 248 檔）
 
 股票池：2225 檔（下市 248 檔）
 本機限流：每小時 276 次（已扣安全邊際）
