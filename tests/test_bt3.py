@@ -123,3 +123,37 @@ def test_grade3_rules():
     g = bt3.grade3(sel, pay, 1.0, {"n": 9, "pos": 5})
     assert g["grade"] == "B" and any("參數鄰近" in w for w in g["why"])
     assert bt3.grade3(sel, pay, 1.0, nb, oos={"n": 60, "xe": -0.3, "t": -1.0})["grade"] == "C"
+
+
+def test_v3data_columns_month_ends_and_caps(tmp_path, monkeypatch):
+    from datetime import date
+    from arm import clock
+    from arm.lab import store, v3data
+    monkeypatch.setattr(store, "LAB", tmp_path)
+    monkeypatch.setattr(clock, "today_tw", lambda: date(2013, 3, 15))
+    doc = v3data._cols({"2013-01-03": [1, 2, 0.5, 1.5, 100, 1.4], "2013-01-02": [1, 1, 1, 1, 10, 0.9]}, "a")
+    assert doc["t"] == ["2013-01-02", "2013-01-03"] and doc["c"] == [1, 1.5] and doc["a"] == [0.9, 1.4]
+    cal = ["2013-01-30", "2013-01-31", "2013-02-26", "2013-02-27", "2013-03-01"]
+    assert v3data.month_ends(cal, k=2) == [("2013-01", ["2013-01-31", "2013-01-30"]),
+                                            ("2013-02", ["2013-02-27", "2013-02-26"])]   # 本月不算
+    store.write("v3me_tw", "2013-01", {"d": "2013-01-31", "s": {"2330": [100.0, 2.5e10], "1101": [30.0, 3e9]}})
+    store.write("v3me_tp", "2013-01", {"d": "2013-01-31", "s": {"5347": [20.0, 1.6e9]}})
+    store.write("v3me_tw", "2013-02", {"d": "2013-02-27", "s": {"1101": [40.0, 3e9]}})
+    mx = v3data.me_caps()
+    assert mx == {"2330": 2.5e12, "1101": 1.2e11, "5347": 3.2e10}
+    store.write("mkt", "2013-03-14", {"q_tw": {"2330": [0, 0, 0, 101.0, 0, 0], "0050": [0, 0, 0, 50.0, 0, 0]},
+                                      "q_tp": {"5347": [0, 0, 0, 21.0, 0, 0, 1.6e9]},
+                                      "x_tw": {"2330": [70.0, 2.5e10]}})
+    assert [c for c, _, _ in v3data.current_list()] == ["2330", "5347"]               # ETF 排除、市值由大到小
+
+
+def test_market_v3_parsers():
+    from arm.lab import market
+    assert market.parse_mfi94u({"fields": ["日期", "指數"], "data": [["103/01/02", "12,724.76"], ["x", "1"]]}) == \
+        {"2014-01-02": 12724.76}
+    doc = {"tables": [{"fields": ["除權息日期", "代號", "名稱", "除權息前收盤價", "除權息參考價", "權值", "息值",
+                                  "權值+息值", "權/息", "漲停價", "跌停價", "開始交易基準價", "減除股利參考價", "現金股利",
+                                  "每仟股無償配股"],
+                       "data": [["102/07/16", "5347", "世界", "35.90", "34.93", "0", "0.97", "0.97", "息", "", "", "",
+                                 "", "0.97", "0"]]}]}
+    assert market.parse_tp_exright(doc) == [["2013-07-16", "5347", 35.9, 34.93, 0.97, 0.0]]
