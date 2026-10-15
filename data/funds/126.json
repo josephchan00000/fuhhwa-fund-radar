@@ -37,57 +37,57 @@
     {
       "sector": "半導體",
       "name": "台積電",
-      "weight": 39.05
+      "weight": 37.69
     },
     {
       "sector": "半導體",
       "name": "聯發科",
-      "weight": 10.13
+      "weight": 11.96
     },
     {
       "sector": "電子零組件",
       "name": "台達電",
-      "weight": 7.12
+      "weight": 6.89
     },
     {
       "sector": "電子零組件",
       "name": "台光電",
-      "weight": 3.54
+      "weight": 3.0
     },
     {
       "sector": "金融保險",
       "name": "富邦金",
-      "weight": 2.68
+      "weight": 2.58
     },
     {
       "sector": "金融保險",
       "name": "中信金",
-      "weight": 2.3
+      "weight": 2.26
+    },
+    {
+      "sector": "電子零組件",
+      "name": "川湖",
+      "weight": 2.09
     },
     {
       "sector": "電腦及週邊設備",
       "name": "奇鋐",
-      "weight": 2.21
+      "weight": 2.09
     },
     {
       "sector": "金融保險",
       "name": "國泰金",
-      "weight": 1.97
-    },
-    {
-      "sector": "通信網路",
-      "name": "智邦",
-      "weight": 1.97
+      "weight": 1.8
     },
     {
       "sector": "電腦及週邊設備",
       "name": "廣達",
-      "weight": 1.71
+      "weight": 1.59
     }
   ],
   "asset_alloc": [],
   "country_alloc": [],
   "sector_alloc": [],
   "group": "tw_equity",
-  "fetched_at": "2026-10-16 06:43"
+  "fetched_at": "2026-10-16 07:43"
 }

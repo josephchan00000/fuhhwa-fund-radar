@@ -32,116 +32,112 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/128.pdf",
   "dist_date": "—",
   "dist_rate": "—",
-  "as_of": "2026/08/31",
+  "as_of": "2026/09/30",
   "top_holdings": [
     {
       "sector": "資訊技術",
       "name": "MICROSOFT CORP",
-      "weight": 11.44
+      "weight": 9.46
     },
     {
       "sector": "資訊技術",
       "name": "APPLE INC",
-      "weight": 9.96
+      "weight": 9.39
     },
     {
       "sector": "資訊技術",
       "name": "NVIDIA CORP",
-      "weight": 9.38
-    },
-    {
-      "sector": "非核心消費品",
-      "name": "AMAZON.COM INC",
-      "weight": 9.31
+      "weight": 9.37
     },
     {
       "sector": "通訊服務",
       "name": "ALPHABET INC-CL A",
-      "weight": 8.29
+      "weight": 8.91
+    },
+    {
+      "sector": "非核心消費品",
+      "name": "AMAZON.COM INC",
+      "weight": 7.8
     },
     {
       "sector": "資訊技術",
       "name": "台積電",
-      "weight": 6.68
+      "weight": 5.95
     },
     {
       "sector": "資訊技術",
       "name": "BROADCOM INC",
-      "weight": 6.37
+      "weight": 5.22
     },
     {
       "sector": "通訊服務",
       "name": "META PLATFORMS INC-CLASS A",
-      "weight": 4.64
+      "weight": 5.05
+    },
+    {
+      "sector": "非核心消費品",
+      "name": "TESLA INC",
+      "weight": 3.98
     },
     {
       "sector": "資訊技術",
       "name": "MICRON TECHNOLOGY INC",
-      "weight": 4.0
-    },
-    {
-      "sector": "資訊技術",
-      "name": "SAMSUNG ELECTRONICS CO LTD",
-      "weight": 3.68
+      "weight": 3.83
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 80.13
+      "weight": 78.18
     },
     {
       "name": "臺灣",
-      "weight": 7.59
+      "weight": 6.52
     },
     {
       "name": "韓國",
-      "weight": 5.86
+      "weight": 5.36
     },
     {
       "name": "荷蘭",
-      "weight": 2.37
+      "weight": 2.19
     },
     {
       "name": "日本",
-      "weight": 1.29
+      "weight": 0.75
     },
     {
       "name": "德國",
-      "weight": 0.91
+      "weight": 0.65
     },
     {
       "name": "加拿大",
-      "weight": 0.67
+      "weight": 0.57
     },
     {
       "name": "流動資產",
-      "weight": 1.17
+      "weight": 5.78
     }
   ],
   "sector_alloc": [
     {
       "name": "資訊技術",
-      "weight": 73.87
+      "weight": 66.56
     },
     {
       "name": "通訊服務",
-      "weight": 14.85
+      "weight": 15.73
     },
     {
       "name": "非核心消費品",
-      "weight": 10.07
-    },
-    {
-      "name": "工業",
-      "weight": 0.04
+      "weight": 11.93
     },
     {
       "name": "流動資產",
-      "weight": 1.17
+      "weight": 5.78
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-10-16 06:43"
+  "fetched_at": "2026-10-16 07:43"
 }
