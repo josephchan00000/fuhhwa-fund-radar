@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/15 21:32",
+  "as_of": "2026/10/15 22:32",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -549,7 +549,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
       "date": "2026-10-11",
-      "views": 17469,
+      "views": 17515,
       "short": true
     },
     {
@@ -558,7 +558,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
       "date": "2026-10-12",
-      "views": 6339
+      "views": 6378
     },
     {
       "platform": "youtube",
@@ -586,7 +586,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/XFDp4rY4FsQ",
       "date": "2026-10-12",
-      "views": 185074,
+      "views": 186481,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -597,7 +597,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=REtGASDFkEM",
       "date": "2026-10-12",
-      "views": 137695,
+      "views": 137722,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -607,7 +607,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/sgOyzfXKakU",
       "date": "2026-10-13",
-      "views": 99312,
+      "views": 100759,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -618,7 +618,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=HF7hiHSeZpU",
       "date": "2026-10-12",
-      "views": 97666,
+      "views": 97978,
       "peer": true,
       "cat": "基金"
     },
@@ -628,7 +628,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=1iIDAJTm3bk",
       "date": "2026-10-12",
-      "views": 90421,
+      "views": 90676,
       "peer": true,
       "cat": "高股息"
     },
@@ -638,7 +638,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=96vE3gSEGqo",
       "date": "2026-10-14",
-      "views": 71198,
+      "views": 72054,
       "peer": true,
       "cat": "綜合"
     },
@@ -648,7 +648,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/UN7UK9CmFZk",
       "date": "2026-10-11",
-      "views": 69110,
+      "views": 69407,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -659,7 +659,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=vzH0z2_WeEw",
       "date": "2026-10-12",
-      "views": 43044,
+      "views": 43128,
       "peer": true,
       "cat": "高股息"
     },
@@ -669,7 +669,7 @@
       "channel": "94要賺錢",
       "url": "https://www.youtube.com/watch?v=-azCvVWlRGo",
       "date": "2026-10-11",
-      "views": 33950,
+      "views": 33999,
       "peer": true,
       "cat": "市值型"
     }
