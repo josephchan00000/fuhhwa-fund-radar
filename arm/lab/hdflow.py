@@ -35,14 +35,19 @@ AFTER = 10             # 被動買賣結束後避開幾個交易日
 BASE = (25, 5)         # 平常水準：買盤開始前第 25～6 個交易日的投信買賣超中位數
 CAPW = {"tip_hd": 0.15, "tip_tech": 0.10, "tw_div": 0.10, "msci_esg30": 0.10}   # 單檔權重上限（封頂用）
 ETF = {"tw_div": "0056", "msci_esg30": "00878", "tip_hd": "00919", "tip_tech": "00929"}
-ALERT = {"key": "hdend", "ver": 1, "since": "2026-10-14", "name": "高股息換股・被動買賣提醒",
-         "rule": [f"對象：0056、00878、00919、00929 換股的納入／刪除股，估計被動買賣 ≥ {BIG:g} 天成交量",
-                  "估計：納入股＝市值 × 該 ETF 過去各次「實際買進占市值」的中位數（單檔權重上限 × 規模封頂）；"
-                  "刪除股＝ETF 目前實際持股 × 收盤；÷ 20 日平均成交金額",
-                  "納入股已持有：被動買盤最後一天收盤前賣出（日期依慣例；過去多數次與官方投信買賣超推得的一致）",
-                  f"納入股沒持有：被動買盤結束後 {AFTER} 個交易日內不追",
-                  f"刪除股：被動賣完後 {AFTER} 個交易日內不急著撿",
-                  f"驗證：起算日之後滿 2 次審核，看提醒股結束後 {AFTER} 日對大盤是否多半下跌"]}
+ALERT = {"key": "hd", "ver": 1, "since": "2026-10-14", "name": "高股息換股", "kind": "事件型・出場規則（每年約 8 次換股）",
+         "basis": "0056、00878、00919、00929 換股時，被動 ETF 在數天內集中買進新成分股；規模大的 ETF 對成交量小的中型股，"
+                  "一次常要買進 10 天以上的成交量。被動買盤結束後，這類股票多半回落；名單公開後才追買則沒有優勢。",
+         "rule": [f"對象：四檔高股息 ETF 換股的納入股與刪除股，估計被動買賣 ≥ {BIG:g} 天成交量",
+                  "估計：納入股＝市值 × 該 ETF 過去各次「實際買進占市值」的中位數（以單檔權重上限 × 規模封頂）；"
+                  "刪除股＝ETF 目前實際持股 × 收盤；再除以 20 日平均成交金額",
+                  "已持有：納入股在被動買盤最後一天收盤前賣出（日期依各 ETF 慣例，與過去官方投信買賣超推得的期間多數一致）",
+                  f"未持有：納入股在被動買盤結束後 {AFTER} 個交易日內不買進",
+                  f"刪除股：被動賣盤結束後 {AFTER} 個交易日內不買進",
+                  "驗證：自 2026-10-14 起記錄，滿 2 次換股後檢視提醒股是否多半輸大盤"],
+         "risk": ["每檔 ETF 一年只換 2～4 次，樣本少",
+                  "被動買賣金額為估計值，誤差約 ±45%；實際名單以官方公告為準",
+                  "0056、00878 名單公告前無法預估，公告後才列入"]}
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -136,8 +141,9 @@ def realized(D, H, cfg: dict, P=None) -> list[dict]:
                     r, x = _gx(P, c, i0, o0, i1, o1)
                     row[w] = None if x is None else round(x, 2)
                     row[w + "c"] = round(r - ctrl[w], 2) if (r is not None and ctrl.get(w) is not None) else None
-                _, rx = P.ret(c, A + 1, True, T1, False) if A + 1 <= T1 < D.T else (None, None)
+                rr, rx = P.ret(c, A + 1, True, T1, False) if A + 1 <= T1 < D.T else (None, None)
                 row["ride"] = None if rx is None else round(rx * 100, 2)
+                row["ride_r"] = None if rr is None else round(rr * 100, 2)
                 g = _gx(P, c, A + 1, True, T1, False)[1]          # 名單公開後 → 最後一天（不扣成本；刪除股＝先賣掉避開的部分）
                 row["ann"] = None if g is None else round(g, 2)
                 out.append(row)
@@ -191,6 +197,21 @@ def _per_rev(rows: list[dict], sel, field: str) -> dict:
     per = {kk: statistics.mean(v) for kk, v in by.items()}
     return {"rev": _st(list(per.values())), "tr": _st([x for v in by.values() for x in v]),
             "by": [[ETF[k], rev, round(v, 2), len(by[(k, rev)])] for (k, rev), v in sorted(per.items())]}
+
+
+def _units(rows: list[dict], sel, rf: str, xf: str) -> list[dict]:
+    """事件型評級用：每次審核一個單位（同一次各檔等額平均）{etf, review, d, r, x, n}。"""
+    by: dict = {}
+    for r in rows:
+        if sel(r) and r.get(rf) is not None:
+            by.setdefault((r["k"], r["rev"]), []).append(r)
+    out = []
+    for (k, rev), rs in sorted(by.items()):
+        xs = [x[xf] for x in rs if x.get(xf) is not None]
+        out.append({"etf": ETF[k], "review": rev, "d": rs[0]["A"], "n": len(rs),
+                    "r": round(statistics.mean(x[rf] for x in rs), 2),
+                    "x": round(statistics.mean(xs), 2) if xs else None})
+    return out
 
 
 def _big(r) -> bool:
@@ -252,6 +273,7 @@ def study(rows: list[dict], F: dict, reps: list[dict] | None = None, D=None, H=N
                   bk("stay", ((None, -5), (-5, -2), (-2, 2), (2, 5), (5, None))) +
                   bk("del", ((None, -5), (-5, -2), (-2, None))),
             "tests": tests, "big": BIG, "after": AFTER,
+            "units": {"ride5": _units(rows, lambda r: r["side"] == "add" and _big(r), "ride_r", "ride")},
             "ex": [[r["c"], r["n"], ETF[r["k"]], r["rev"], r["days"], r["val"], r["fm"], r["in"], r["p10"]] for r in ex],
             "n_rev": len({(r["k"], r["rev"]) for r in rows}), "n_add": len(adds)}
 
@@ -359,7 +381,8 @@ def alerts(D, H, cfg: dict, F: dict, live: dict | None = None) -> dict:
                 out.append([r[0], r[1], ETF[k], lv.get("review"), side, r[5], r[6], t0, t1, until, ph, "預估"])
     fx = [x["x10"] for x in fwd if x.get("x10") is not None]
     return {"rows": out, "big": sum(1 for r in out if r[6] is not None and r[6] >= BIG), "fwd": fwd,
-            "since": ALERT["since"], "rule": ALERT["rule"], "name": ALERT["name"], "big_th": BIG, "after": AFTER,
+            "since": ALERT["since"], "rule": ALERT["rule"], "name": ALERT["name"], "kind": ALERT["kind"],
+            "basis": ALERT["basis"], "risk": ALERT["risk"], "big_th": BIG, "after": AFTER,
             "fwd_stats": {"n": len(fx), "rev": len({(x["etf"], x["review"]) for x in fwd if x.get("x10") is not None}),
                           "avg": round(statistics.mean(fx), 2) if fx else None, "neg": sum(1 for x in fx if x < 0)}}
 

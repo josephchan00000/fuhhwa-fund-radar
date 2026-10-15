@@ -486,6 +486,56 @@ def _hd_cfg_codes() -> set[str]:
     return out
 
 
+def yhl_codes() -> list[str]:
+    d = store.LAB / "yhl"
+    return sorted(p.name.split(".json")[0] for p in d.glob("*.json.gz")) if d.exists() else []
+
+
+def backfill_yahoo_long(*, n: int = 600, rng: str = "5y", budget_s: float = 2400) -> int:
+    """高股息「提前卡位」研究用的長歷史日線（2026-10-15）：另存 yhl、不併入 yh——併進去會讓其他策略
+    （長線成長股的篩選月份、各訊號成績單）的回測期間跟著變。宇宙＝上市櫃市值前 n＋高股息四檔指數歷次異動股＋加權指數。
+    已有者跳過（可重跑續補）。"""
+    t0 = time.time()
+    have = set(yhl_codes())
+    doc = store.read("mkt", store.dates("mkt")[-1]) if store.dates("mkt") else {}
+    tp = set((doc or {}).get("q_tp") or {})
+    todo = ["TWII"] + [c for c in hd_universe(n) + sorted(_hd_cfg_codes()) if c != "TWII"]
+    todo = list(dict.fromkeys(todo))
+    k = 0
+    for c in todo:
+        if c in have:
+            continue
+        if time.time() - t0 > budget_s:
+            market.log(f"Yahoo 長歷史時間預算用完（已補 {k} 檔，下輪續補）")
+            break
+        sufs = ([("^TWII", "idx")] if c == "TWII" else [(c + ".TWO", "tp")] if c in tp
+                else [(c + ".TW", "tw"), (c + ".TWO", "tp")])
+        for sym, mkt in sufs:
+            h = market.yahoo_hist(sym, rng=rng)
+            time.sleep(0.6)
+            if len(h) >= 20:
+                store.write("yhl", c, {"m": mkt, "q": h})
+                k += 1
+                break
+    market.log(f"Yahoo 長歷史（{rng}）：宇宙 {len(todo)} 檔、本輪新增 {k} 檔、累計 {len(yhl_codes())} 檔")
+    return k
+
+
+def backfill_divtw(years: tuple) -> int:
+    """證交所除權息計算結果表（一年一請求）；已有的年度不重抓。"""
+    n = 0
+    for y in years:
+        if (store.read("divtw", str(y)) or {}).get("rows"):
+            continue
+        rows = market.twse_exright_year(y)
+        time.sleep(market.UA_SLEEP_TWSE)
+        if rows:
+            store.write("divtw", str(y), {"rows": rows})
+            n += len(rows)
+    market.log(f"證交所除權息補年度 {years}：{n} 列")
+    return n
+
+
 def backfill_hd(*, budget_s: float = 2700, years: tuple = (2021, 2022, 2023, 2024, 2025, 2026), n: int = 460) -> dict:
     """高股息研究資料：① 證交所除權息（一年一請求）② FinMind 單季 EPS（市值前 n＋設定檔歷次異動股）
     ③ 上櫃股與有「權息」紀錄的上市股抓 FinMind 股利政策（現金部分）。EPS／股利各自記抓取日（asof／div_asof），20 天內抓過的跳過；限流就停、下一輪續補。"""

@@ -213,9 +213,10 @@ def test_page_has_no_banned_words():
     banned = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "建議買賣", "建議買",
               "建議賣", "目標價", "零風險", "無風險", "穩賺不賠")
     from arm.lab import growth, hdflow, strategy
-    st_txt = "".join(str(v) for x in strategy.STRATEGIES + [strategy.S3, growth.S5] + strategy.TW50_VERS
-                     for k, v in x.items() if k in ("name", "bet", "why", "more", "fail", "rule", "buy", "sell"))
-    st_txt += hdflow.ALERT["name"] + "".join(hdflow.ALERT["rule"]) + "".join(t[2] for t in hdflow.TESTS)
+    from arm.lab import advice
+    st_txt = "".join(str(v) for x in strategy.STRATEGIES + [strategy.S3, growth.S5, hdflow.ALERT] + strategy.TW50_VERS
+                     for k, v in x.items() if k in ("name", "kind", "basis", "risk", "rule", "buy", "sell", "pass"))
+    st_txt += "".join(t[2] for t in hdflow.TESTS) + str(advice.RULE) + advice.RULE_STOP + str(advice.LABEL)
     text = page._HTML + page._JS + "".join(n + d for n, d in analyze.SIG_DEF.values()) + st_txt
     assert not [w for w in banned if w in text]
 
@@ -232,11 +233,17 @@ def test_page_layout_six_tabs_today_first_and_glossary():
     assert [k.split(":")[0] for k in js_views.split(",")] == [t for t, _ in tabs]
 
 
-def test_strategy_cards_use_four_parts_and_cost_section_is_gone():
-    """策略卡固定四小標（2026-10-14 使用者定案）；個股卡不再有成本拆解表（使用者：「版面變好亂、有看沒有懂」）。"""
+def test_strategy_tab_v2_sections_and_cost_section_is_gone():
+    """策略頁 v2（2026-10-15 使用者：「好亂、用字很 AI、結論不明確…要看推薦哪檔、佈局時間、預估獲利」）：
+    本期操作清單 → 策略評級 → 各策略固定五段（結論／操作規則／歷史績效／本期名單／風險）→ 部位與風控。
+    個股卡不再有成本拆解表（使用者：「版面變好亂、有看沒有懂」）。"""
     js = page._JS
-    for k in ("sq('在賭什麼'", "sq('為什麼有效'", "'明日候選'", "sq('會失效'", "證據圖、完整規則與交易明細"):
-        assert k in js
+    assert "h+=nowSec()+gradeSec()+s1Sec()+s3Sec()+hdSec()+s5Sec()+riskSec();" in js
+    for k in ("sec('st-now'", "sec('st-grade'", "stSec('s1'", "stSec('s3'", "stSec('hd'", "stSec('s5'", "sec('st-risk'",
+              "['結論',", "['操作規則',", "['歷史績效',", "['本期名單',", "['風險',", "function pickBlocks(", "function pickCard("):
+        assert k in js, k
+    for k in ("在賭什麼", "為什麼有效", "會失效", "s4", "群益新建倉"):           # 舊四小標與群益策略已移除
+        assert k not in js, k
     assert "c-cost" not in js and "costSec" not in js
     assert "'成本品質'" not in js                      # 舊部位成本不顯示，不再需要 A／B 品質說明
 
@@ -440,10 +447,12 @@ def test_tw50_card_has_versions_plan_and_research_section():
     assert [v["k"] for v in strategy.TW50_VERS] == ["early", "post"]
     assert all(v["since"] == "2026-10-14" and v["ver"] == 1 and v["rule"] for v in strategy.TW50_VERS)
     assert (tw50study.EARLY_K, tw50study.EARLY_N, tw50study.EARLY_W) == (25, 4, 45)   # 使用者：3～4 檔、越早越好
+    assert strategy.S3["name"] == "臺灣50 提前卡位"                     # 頁面只列一條策略（使用者：三個看不出差在哪）
     js = page._JS
-    for k in ("sq('三個版本'", "sq('下一次'", "function studySec(", "h+=studySec(X.study);", "'idx-study'",
+    for k in ("function s3Now(", "function verCmp(", "三種做法比較", "function studySec(", "h+=studySec(X.study);", "'idx-study'",
               "'漲勢前一半':", "'資料截止日':", "'估計權重':", "function earlyChart(", "提前幾天建倉"):
         assert k in js, k
+    assert "sq('三個版本'" not in js
 
 
 def test_index_reviews_config_is_well_formed():
@@ -832,8 +841,218 @@ def test_hdflow_phase_and_per_review_weighting():
 
 def test_hd_flow_sections_alert_card_and_today_row():
     js = page._JS
-    for k in ("function hdFlowSec(", "'idx-hdw'", "h+=hdPredSec(X.hd)+hdStudySec(X.hd)+hdFlowSec(X.hd);",
-              "function hdAlertCard(", "hdAlertCard());", "+hdRisk());", "function hdRisk(", "'被動買賣日量':", "'被動買賣提醒':",
-              "id=st-hd", "data-at=\"st-hd\""):
+    for k in ("function hdFlowSec(", "'idx-hdw'", "h+=hdPredSec(X.hd)+hdStudySec(X.hd)+hdFlowSec(X.hd)+hdPreSec(X.hd);",
+              "function hdGroups(", "stSec('hd'", "hdGroups(true)", "hdGroups(false)", "+hdRisk());", "function hdRisk(",
+              "'被動買賣日量':", "'被動買賣提醒':", "data-at=\"st-hd\""):
         assert k in js, k
-    assert "12 月首次觀察" not in js                                    # 舊的佔位卡已換成提醒卡
+    assert "12 月首次觀察" not in js and "function hdAlertCard(" not in js
+
+
+# —— 策略頁 v2：評級、信賴區間、部位、推薦清單（arm/lab/advice.py）
+
+def _st(n=30, x=2.0, xwin=60, ci=(0.5, 3.5), conc=None, event=False):
+    return {"n": n, "event": event, "x": x, "xwin": xwin, "ci": ci, "conc": conc}
+
+
+def test_advice_grade_thresholds():
+    from arm.lab import advice as A
+    ok_f = {"n": 10, "x": 1.0}
+    assert A.grade(_st(), ok_f)[0] == "A"
+    assert A.grade(_st(n=9), ok_f) == ("C", ["樣本只有 9 筆"])
+    assert A.grade(_st(x=-0.1), ok_f)[0] == "C" and A.grade(_st(x=0.0), ok_f)[0] == "C"
+    assert A.grade(_st(xwin=49), ok_f)[0] == "C"
+    assert A.grade(_st(conc=["2026-08", 71]), ok_f)[0] == "C"
+    assert A.grade(_st(), {"n": 10, "x": -0.5})[0] == "C"               # 前瞻滿額但輸大盤 → C
+    g, why = A.grade(_st(ci=(-0.2, 3.0), conc=["2026-08", 46]), {"n": 3, "x": 1.0})
+    assert g == "B" and len(why) == 3 and "含 0" in why[0] and "46%" in why[1] and "3／10" in why[2]
+    assert A.grade(_st(n=29), ok_f)[0] == "B" and A.grade(_st(), {"n": 9, "x": 2.0})[0] == "B"
+    ev = _st(n=6, event=True)                                           # 事件型：≥6 次、前瞻 2 次
+    assert A.grade(ev, {"n": 2, "x": 1.0})[0] == "A" and A.grade(ev, {"n": 1, "x": 1.0})[0] == "B"
+    assert A.grade(_st(n=3, event=True), {})[0] == "C" and A.grade(_st(n=4, event=True), {})[0] == "B"
+    assert A.grade({"n": 0}, {})[0] == "C"
+
+
+def test_advice_boot_ci_is_deterministic_and_contains_mean():
+    import random
+    import statistics
+    from arm.lab import advice as A
+    rnd = random.Random(7)
+    xs = [rnd.gauss(1.0, 3.0) for _ in range(40)]
+    a, b = A.boot_ci(xs), A.boot_ci(list(xs))
+    assert a == b and a[0] < statistics.mean(xs) < a[1]
+    assert A.boot_ci([1.0, 2.0]) is None and A.boot_ci([None, 1.0, 2.0]) is None
+
+
+def test_advice_score_rounds_output_but_grades_on_raw_values():
+    from arm.lab import advice as A
+    units = [{"d": f"2026-0{1 + i % 9}-01", "r": r, "x": r - 0.95} for i, r in enumerate([1.0, 1.0, 1.0, 1.0] * 3)]
+    sc = A.score(units)                                                 # 原始平均超額 +0.05（>0），顯示為 +0.1
+    assert sc["x"] == 0.1 and sc["grade"] == "B" and sc["n"] == 12
+    assert all(isinstance(v, int) or round(v, 1) == v for k, v in sc.items() if isinstance(v, (int, float)))
+    assert isinstance(sc["ci"], list) and all(round(v, 1) == v for v in sc["ci"])
+
+
+def test_advice_position_size():
+    from arm.lab import advice as A
+    assert A.size("B", 100.0, 80.0) == {"pct": 2.0, "amt": 20000, "sh": 200}        # 停損 20% → 0.5%／20%＝2.5%，取 2%
+    assert A.size("A", 100.0, 80.0)["pct"] == 2.5                                     # A 上限 5%，被停損限制在 2.5%
+    assert A.size("A", 100.0, None)["pct"] == 5.0
+    assert A.size("C", 100.0, 80.0) is None and A.size("B", None, None) is None
+
+
+def test_advice_per_review_equal_weights_each_review():
+    from arm.lab import advice as A
+    trs = [{"st": "closed", "review": "R1", "d": "2026-01-05", "r": 10.0, "x": 4.0},
+           {"st": "closed", "review": "R1", "d": "2026-01-06", "r": -2.0, "x": -4.0},
+           {"st": "closed", "review": "R2", "d": "2026-04-05", "r": 3.0, "x": 1.0},
+           {"st": "open", "review": "R2", "d": "2026-04-06", "r": 50.0, "x": None}]
+    u = A.per_review(trs)
+    assert [(x["review"], x["n"], x["r"], x["x"]) for x in u] == [("R1", 2, 4.0, 0.0), ("R2", 1, 3.0, 1.0)]
+
+
+def _adv_data(e_sig="2026-10-16"):
+    from arm.lab import advice as A
+    s1 = A.score([{"d": "2026-08-01", "r": 3.0, "x": 2.0}] * 6 + [{"d": "2026-09-01", "r": 2.0, "x": 1.0}] * 6)
+    s3 = A.score([{"d": f"202{5 + i // 4}-0{1 + i % 4}-01", "r": 8.0, "x": 3.0} for i in range(6)], event=True)
+    s5 = A.score([{"d": "2026-01-01", "r": -5.0, "x": -6.0}] * 12)
+    return {"last": "2026-10-14",
+            "rows": [{"c": "2327", "ia5": ["中信", "兆豐", "國泰"], "a5v": 6.3}],
+            "strat": {"list": [
+                {"key": "s1", "name": "共識加碼・開低進場", "kind": "短線", "hold": 3, "stop_atr": 2.0, "score": s1,
+                 "cands": [{"c": "2327", "n": "國巨", "d": "2026-10-14", "px": 627.0, "stop": 555.0,
+                            "ent": "2026-10-15", "out": "2026-10-19"}], "fwd": []},
+                {"key": "s3", "name": "臺灣50 提前卡位", "kind": "事件型",
+                 "vers": [{"k": "early", "score": s3}],
+                 "plan": {"stage": "watch", "e_sig": e_sig, "e_in": "2026-10-19", "out": "2026-12-17",
+                          "effective": "2026-12-18", "cutoff": "2026-11-23", "a_in": "2026-11-24",
+                          "items": [{"c": "1301", "n": "台塑", "rank": 44, "px": 88.9, "mom": 48.2}]}}],
+                "alerts": [{"c": "2330", "n": "台積電", "d": "2026-10-14", "gap": 3.5}]},
+            "grow": {"s5": {"name": "長線：投信動能成長股", "kind": "長線", "score": s5, "screen_d": ["2026-10-30", "2026-11-02"]},
+                     "screen": [{"c": "3605", "n": "宏致", "px": 187.0, "pass": True, "trust": 4.18, "tdays": 8}]},
+            "idx": {}}
+
+
+def test_advice_build_picks_watch_and_exits():
+    from arm.lab import advice as A
+    out = A.build(_adv_data())
+    assert [g["k"] for g in out["grades"]] == ["s1", "s3", "s5"]
+    assert [(p["k"], p["c"], p["ent"]) for p in out["picks"]] == [("s1", "2327", "2026-10-15"), ("s3", "1301", "2026-10-19")]
+    p = out["picks"][0]
+    assert p["grade"] == "B" and p["cond"] == "開盤價 < 627 才買" and p["out"] == "2026-10-19"
+    assert p["exp"]["per10"] == round(p["exp"]["med"] * 1000) and p["size"]["pct"] == 2.0
+    assert "中信" in p["why"][0] and "6.3 億元" in p["why"][1]
+    tw = out["picks"][1]
+    assert tw["tent"] and tw["fix"] == "2026-10-16" and tw["stop"] is None and tw["exp"]["event"]
+    assert "11/24 開盤先賣出" in tw["out_how"]                          # 文字裡的日期一律 M/D
+    assert [(w["k"], w["c"], w["grade"]) for w in out["watch"]] == [("s5", "3605", "C")]
+    assert out["watch"][0]["size"] is None                              # C 級不下單
+    assert [(x["k"], x["c"]) for x in out["exits"]] == [("gap", "2330")]
+
+
+def test_advice_build_lists_tw50_trial_picks_only_near_build_day():
+    from arm.lab import advice as A
+    assert [p["k"] for p in A.build(_adv_data("2026-10-24"))["picks"]] == ["s1", "s3"]     # 10 天內
+    assert [p["k"] for p in A.build(_adv_data("2026-10-25"))["picks"]] == ["s1"]           # 太早：只是試算，不列
+
+
+def test_strategy_s4_removed_and_tw50_single_strategy():
+    """使用者 2026-10-15：「群益那個策略拿掉吧，不具可靠性」；臺灣50 只留提前卡位一條策略。"""
+    from arm.lab import strategy
+    assert [s["key"] for s in strategy.STRATEGIES] == ["s1"]
+    assert not hasattr(strategy, "_other_new")
+    txt = str(strategy.STRATEGIES) + str(strategy.S3)
+    assert "群益" not in txt and "——" not in str(strategy.TW50_VERS)
+
+
+# —— 高股息「依編製規則提前卡位」回測（arm/lab/hdpre.py，2026-10-15）
+
+class _FakeD:
+    def __init__(self, n):
+        self.cal = [f"2026-01-{i + 1:02d}" for i in range(n)]
+        self.T = n
+
+
+class _FakeP:
+    """開盤＝收盤＝px[代號][i]；加權指數固定 100（超額＝報酬）。"""
+    def __init__(self, px, n):
+        self.D, self.p = _FakeD(n), px
+
+    def px(self, c, i, opn):
+        xs = self.p.get(c) or []
+        return xs[i] if 0 <= i < len(xs) else None
+
+    def bx(self, i, opn):
+        return 100.0
+
+    def ret(self, c, i0, o0, i1, o1):
+        p0, p1 = self.px(c, i0, o0), self.px(c, i1, o1)
+        if not p0 or not p1:
+            return None, None
+        r = p1 / p0 - 1 - 0.00585
+        return r, r
+
+
+def _hd_ev():
+    # 截止日 C＝5、公告 N＝8、被動買盤 T0＝8～T1＝11；官方納入 A、B（C 猜錯）
+    return {"key": "tip_hd", "review": "2026-05", "C": 5, "A": 8, "N": 8, "T0": 8, "T1": 11, "act": ["A", "B"],
+            "stays": [f"S{i}" for i in range(5)],
+            "preds": {0: {"adds": ["A", "C"], "est": {"A": [10.0, 8.0], "C": [5.0, 6.0]}},
+                      3: {"adds": ["A", "D"], "est": {"A": [10.0, 7.0], "D": [4.0, 9.0]}}},
+            "truth": {"A": [10.0, 8.0], "B": [9.0, 12.0]}}
+
+
+def _hd_px():
+    up = [100.0 + i for i in range(14)]
+    flat = [100.0] * 14
+    return {"A": up, "B": up, "C": flat, "D": flat, **{f"S{i}": flat for i in range(5)}}
+
+
+def test_hdpre_main_spec_is_fixed():
+    from arm.lab import hdpre
+    assert hdpre.MAIN == {"lead": 0, "th": 5.0, "exit": "T1"}          # 看結果前寫死的主規格，不得事後改
+    assert hdpre.capw("tip_hd", "2025-05") == 0.15 and hdpre.capw("tip_hd", "2024-12") == 0.10
+    assert hdpre.capw("tip_tech", "2026-06") == 0.10
+
+
+def test_hdpre_capped_weights_sum_to_one():
+    from arm.lab import hdpre
+    w = hdpre._capped({"a": 0.6, "b": 0.3, "c": 0.1}, 0.4)
+    assert abs(sum(w.values()) - 1) < 1e-9 and abs(w["a"] - 0.4) < 1e-9 and w["b"] > w["c"]
+
+
+def test_hdpre_simulate_cutoff_correction_and_official_miss():
+    from arm.lab import hdpre
+    P, ev = _FakeP(_hd_px(), 14), _hd_ev()
+    t0 = {t["c"]: t for t in hdpre.simulate(ev, P, 0, 5.0)}                # 截止日隔天（6）開盤買 A、C
+    assert set(t0) == {"A", "C"} and t0["A"]["i0"] == 6 and t0["A"]["i1"] == 11
+    assert t0["C"]["i1"] == 9 and t0["C"]["why"] == "官方沒有納入"            # 公告後第一個交易日開盤賣
+    t3 = {t["c"]: t for t in hdpre.simulate(ev, P, 3, 5.0)}                # 提前 3 日（3）買 A、D；截止日校正
+    assert t3["A"]["i0"] == 3 and t3["D"]["i1"] == 6 and t3["D"]["why"] == "截止日名單沒有"
+    assert t3["C"]["i0"] == 6                                              # 截止日名單新增的補進
+    tp = {t["c"]: t for t in hdpre.simulate(ev, P, 0, 5.0, perfect=True)}  # 完美預知：官方名單
+    assert set(tp) == {"A", "B"} and all(t["hit"] for t in tp.values())
+    assert hdpre.simulate(ev, P, 0, 10.0, perfect=True)[0]["c"] == "B"    # 門檻：只有 ≥10 日量的
+
+
+def test_hdpre_simulate_ann_and_per_review():
+    from arm.lab import hdpre
+    P, ev = _FakeP(_hd_px(), 14), _hd_ev()
+    tr = {t["c"]: t for t in hdpre.simulate_ann(ev, P, 2, 5.0)}            # 公告前 2 日（6）開盤買
+    assert tr["A"]["i0"] == 6 and tr["A"]["i1"] == 11 and tr["C"]["i1"] == 9
+    assert hdpre.simulate_ann(ev, P, 3, 5.0) == []                         # 進場日不晚於截止日 → 不做
+    u = hdpre.per_review(list(tr.values()))
+    assert len(u) == 1 and u[0]["n"] == 2 and u[0]["review"] == "tip_hd:2026-05"
+    assert abs(u[0]["r"] - (tr["A"]["r"] + tr["C"]["r"]) / 2) < 1e-9 and u[0]["hit"] == 1
+
+
+def test_hd_conv_window_single_day_rebalance():
+    """00929 2024-06 沒有過渡期（生效日收盤一次換完）：過渡期最後一天早於公告日時，期間＝公告日～最後一天。"""
+    from arm.lab import hdstudy as HS
+    h = {"announce": "2024-06-28", "effective": "2024-06-28", "trans_start": "2024-06-28", "trans_end": "2024-06-28"}
+    assert HS._conv_window(None, "tip_tech", h) == ("2024-06-28", "2024-06-28")
+
+
+def test_hdpre_page_sections():
+    js = page._JS
+    for k in ("function hdPreSec(", "sec('idx-hdpre'", "data-at=\"idx-hdpre\"", "v.k==='main'||v.k==='ann3'"):
+        assert k in js, k
