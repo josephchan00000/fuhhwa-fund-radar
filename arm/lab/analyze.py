@@ -56,7 +56,7 @@ def etf_meta() -> dict[str, dict]:
 class Data:
     """把分片載入成「交易日曆對齊」的陣列。"""
 
-    def __init__(self):
+    def __init__(self, long: bool = False):
         self.mkt = dict(store.load("mkt"))
         self.pos = store.load("pos")
         self.tdcc = store.load("tdcc")
@@ -71,6 +71,13 @@ class Data:
             if doc.get("q"):
                 self.yh[c] = doc["q"]
                 self.yh_m[c] = doc.get("m") or ""
+        if long:    # 高股息提前卡位研究：Yahoo 五年日線（yhl）只補 yh 沒有的日子；其他策略不用 long，回測期間不變
+            from .collect import yhl_codes
+            for c in yhl_codes():
+                doc = store.read("yhl", c) or {}
+                if doc.get("q"):
+                    self.yh[c] = {**doc["q"], **(self.yh.get(c) or {})}
+                    self.yh_m.setdefault(c, doc.get("m") or "")
         cal = set(d for d, doc in self.mkt.items() if doc.get("q_tw") or doc.get("q_tp"))
         cal |= {d for d, _ in self.pos}
         cal |= set((self.yh.get("TWII") or {}))
@@ -520,6 +527,14 @@ def run(data: Data | None = None) -> dict:
         idx_out = indexes.run(D, L, meta, clock.today_tw())
     except Exception as e:                                # noqa: BLE001 —— 指數區塊失敗不拖垮整頁
         idx_out = {"err": f"{type(e).__name__}: {e}"}
+    # 高股息「依編製規則提前卡位」回測（2026-10-15）：自己載入五年日線，約十幾秒；失敗不影響其他區塊
+    try:
+        from . import hdpre
+        if isinstance(idx_out.get("hd"), dict):
+            idx_out["hd"]["pre"] = hdpre.page_data()
+    except Exception as e:                                # noqa: BLE001
+        if isinstance(idx_out.get("hd"), dict):
+            idx_out["hd"]["pre"] = {"err": f"{type(e).__name__}: {e}"}
     stats = backtest.signal_stats(D, sig_hist, taiex)
     from . import strategy
     try:
@@ -548,6 +563,13 @@ def run(data: Data | None = None) -> dict:
     except Exception as e:                                # noqa: BLE001
         grow = {"err": f"{type(e).__name__}: {e}"}
     iss_stats = backtest.issuer_stats(D, L, meta, taiex)
+    # 策略頁 v2：評級＋本期推薦／觀察／出場清單（2026-10-15）
+    try:
+        from . import advice
+        adv = advice.build({"rows": rows, "strat": strat, "grow": grow, "idx": idx_out, "stats": stats,
+                            "last": D.cal[-1] if D.cal else None})
+    except Exception as e:                                # noqa: BLE001
+        adv = {"err": f"{type(e).__name__}: {e}"}
     asof = {
         "pos": D.pos[-1][0] if D.pos else None,
         "px": pxd,
@@ -561,7 +583,7 @@ def run(data: Data | None = None) -> dict:
     return {"asof": asof, "etfs": meta, "rows": rows, "ser": ser,
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
             "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow, "ca": L.ca[-30:],
-            "idx": idx_out, "strat": strat, "grow": grow,
+            "idx": idx_out, "strat": strat, "grow": grow, "adv": adv,
             "dates": D.cal[-CHART_N:]}
 
 

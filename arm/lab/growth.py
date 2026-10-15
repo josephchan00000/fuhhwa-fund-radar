@@ -336,19 +336,18 @@ def screen_now(P: Panel, rev_now: dict, etf_new2: set[str]) -> list[dict]:
 # 出場選「−20% 停損・高點回落 30%・最長 250 日」而不是樣本內最高的「持有 6 個月」：
 # 樣本（2025-04～2026-09）全段多頭、沒有崩盤可測；移動出場在較大的群組（基準、只看動能）反而勝出，
 # 且是唯一在下跌段有保護的版本。進場延用短線研究最穩的結論：開高 ≥3% 不追（最多等 5 日）。
-S5 = {"key": "s5", "ver": 1, "since": "2026-10-14", "name": "長線：投信動能成長（月選）",
+S5 = {"key": "s5", "ver": 1, "since": "2026-10-14", "name": "長線：投信動能成長股", "kind": "長線・每月篩選、平均持有約 4 個月",
       "init": 0.20, "trail": 0.30, "maxd": H12, "gap": 0.03, "wait": 5,
-      # 頁面四小標（見 strategy.py STRATEGIES 註解）
-      "bet": "投信持續買、營收高成長、股價已轉強的中型股，有機會走出好幾個月的大波段。",
-      "why": "投信買中小型股常連續買好幾週；營收年增 20% 以上代表基本面在加速；股價多頭排列代表市場開始認同。"
-             "三個條件同時成立，是在找法人、基本面、股價三方都指向同一邊的股票。",
-      "more": ["出場用「從最高收盤回落 30%」而不是固定價位：讓賺錢的部位一路抱，賠錢的在 −20% 截斷。"],
-      "fail": ["盤整或空頭時會連續停損 −20%", "回測只含現存公司、兩年大致是多頭，結果偏樂觀",
-               "平均靠少數大贏家撐起，多數交易小賺小賠"],
-      "rule": ["每月最後一個交易日收盤後篩選：投信關＋成長關＋動能關＋空間關四關全過",
-               "進場：隔日開盤買；開盤比前日收盤高 ≥3% 則不追，最多等 5 個交易日",
-               "出場：跌破進場價 −20% 停損；之後收盤從最高收盤回落 30% 出場；最長持有 250 個交易日",
-               "同一檔已持有中不重複買；部位：每檔停損時虧損 ≤ 總資金 1%、最多 8 檔、同產業 ≤3 檔"],
+      # 策略頁 v2（2026-10-15）：結論與評級由 advice.py 依資料算出；這裡只放規則與不隨樣本改變的風險說明。
+      "basis": "同時符合投信連續買超、月營收高成長、股價多頭排列、市值 50～1,500 億四項條件的股票。"
+               "出場不設固定價位：跌破進場價 20% 停損，之後依最高收盤回落 30% 出場。",
+      "risk": ["回測期間大致是多頭行情，且只含目前仍上市的公司（倖存者偏差），結果偏樂觀",
+               "盤整或空頭期間常連續觸發 −20% 停損",
+               "平均報酬由少數大漲的交易撐起，多數交易小賺小賠"],
+      "rule": ["選股：每月最後一個交易日收盤後篩選，投信、成長、動能、市值四項條件全部符合",
+               "進場：次一交易日開盤買進；開盤高於前一日收盤 3% 以上不買，最多等 5 個交易日",
+               "出場：跌破進場價 −20% 停損；之後收盤自最高收盤回落 30% 賣出；最長持有 250 個交易日",
+               "同一檔持有中不重複買進"],
       "pass": "滿 12 個月或 20 筆（先到者）：平均超額＞0 且中位數＞0"}
 
 
@@ -434,9 +433,11 @@ def s5_trades(P: Panel, rev_hist: dict, rev_shards: dict, idx: list, io: list) -
                 "x": round(statistics.mean(r["x"] for r in rs if r.get("x") is not None), 1)
                 if any(r.get("x") is not None for r in rs) else None,
                 "open": sum(1 for r in rs if r.get("st") == "open")}
+    from . import advice
     from .strategy import dist
-    return {**{k: S5[k] for k in ("key", "ver", "since", "name", "rule", "pass", "bet", "why", "more", "fail")},
+    return {**{k: S5[k] for k in ("key", "ver", "since", "name", "kind", "basis", "risk", "rule", "pass")},
             "fwd": fwd[-40:], "ins": ins[-40:], "fwd_stats": agg(fwd), "ins_stats": agg(ins), "dist": dist(ins),
+            "score": advice.score(advice.closed(ins), fwd_units=advice.closed(fwd)),
             "screen_d": next_screen(cal[-1]) if cal else None}
 
 
