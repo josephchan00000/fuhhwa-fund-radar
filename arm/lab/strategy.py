@@ -38,7 +38,11 @@ STRATEGIES = [
               "持有天數短，來回成本 0.585% 占報酬比重高",
               "開盤後若大幅下跌，停損價可能在收盤才觸發"],
      "scan": [["s", "開盤低於前收（本策略）"], ["c", "平盤或開高（不進場）"]], "scan_h": 10,
-     "hold": 3, "stop_atr": 2.0, "gap_max": 0.0, "gap_strict": True},
+     "hold": 3, "stop_atr": 2.0, "gap_max": 0.0, "gap_strict": True,
+     # 回測紀律 D7（2026-10-15）：樣本內比較過的做法照實列出——成績是從這些裡挑出來的，會偏樂觀
+     "tried": ["8 種 ETF 籌碼訊號，各自照隔日開盤跟進",
+               "隔日開盤三種情況：低於前收、平盤或開高、開高 3% 以上",
+               "持有 1～10 個交易日逐日比較"]},
 ]
 
 
@@ -60,6 +64,9 @@ S3 = {"key": "s3", "ver": 1, "since": "2026-10-14", "name": "臺灣50 提前卡�
 TW50_VERS = [
     {"k": "early", "ver": 1, "since": "2026-10-14", "name": "提前卡位・漲勢前 4 檔",
      "buy": "截止前 25 個交易日的隔天開盤", "sell": "生效前一天收盤",
+     "tried": ["建倉時點：截止前 0～35 個交易日逐日比較",
+               "選股檔數：漲勢最強 1 檔、前 4 檔、前一半",
+               "進場方式：提前卡位、截止日隔天、公告後、官方名單全部"],
      "rule": ["建倉：資料截止日前第 25 個交易日收盤後選股，次一交易日開盤買進",
               "候選：當天市值排名的預估納入股（非成分股進入前 40 名；截止日尚未上市者除外），以及第 41～45 名的非成分股",
               "選股：候選中截止前 40 個交易日漲幅最大的 4 檔，不足 4 檔則全買，等額配置",
@@ -67,6 +74,8 @@ TW50_VERS = [
               "出場：生效日前一個交易日收盤全部賣出；官方公告名單沒有的，公告後第一個交易日開盤賣出"]},
     {"k": "post", "ver": 1, "since": "2026-10-14", "name": "公告後進場・漲勢前一半",
      "buy": "公告後第一個交易日開盤", "sell": "生效前一天收盤",
+     "tried": ["選股：官方名單全部、漲勢前一半",
+               "進場：公告後第一天開盤；出場：生效日、生效前一天"],
      "rule": ["名單：富時／證交所官方公告的納入股",
               "選股：依資料截止日前 40 個交易日漲幅排序，買進前一半（無條件進位；僅 1 檔時買進該檔）",
               "進場：公告後第一個交易日開盤買進",
@@ -227,6 +236,11 @@ def _trade(st: dict, code: str, t: int, S: dict, atr: list, idx: list, T: int,
         if i == t + st["hold"]:
             exit_i, why = i, "到期"
     rec = {"gap": round(gap * 100, 2), "entry": entry, "stop": None if stop is None else round(stop, 2)}
+    if exit_i is not None:
+        e2 = backtest.exit_day(S, exit_i, T)            # 回測紀律 D1：整天鎖跌停賣不掉，順延到下一個交易日收盤
+        if e2 != exit_i:
+            rec["lock"] = e2 - exit_i
+            exit_i = e2
     if exit_i is None:
         last_i = max((i for i in range(t + 1, T) if c[i] is not None), default=t + 1)
         r = c[last_i] / entry - 1 if c[last_i] else None
@@ -249,7 +263,24 @@ def _agg(trs: list[dict]) -> dict:
             "w": round(sum(1 for x in xs if x > 0) / len(xs) * 100), "sum": round(sum(xs), 2)}
 
 
-def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict) -> dict:
+def _grid_s1(st: dict, sigs: list, series, idx: list, io: list, T: int) -> dict:
+    """參數鄰近（D5）：持有天數 × 停損 ATR 倍數各 ±1 檔，樣本內已出場交易的平均超額。"""
+    from .packtest import grid
+
+    def f(hold, k):
+        st2 = {**st, "hold": hold, "stop_atr": k}
+        xs = []
+        for code, t in sigs:
+            S, atr = series(code)
+            rec = _trade(st2, code, t, S, atr, idx, T, io)
+            if rec and rec.get("st") == "closed" and rec.get("x") is not None:
+                xs.append(rec["x"])
+        return statistics.mean(xs) if xs else None
+    return grid(f, (st["hold"] - 1, st["hold"], st["hold"] + 1), (st["stop_atr"] - 0.5, st["stop_atr"], st["stop_atr"] + 0.5),
+                ("持有天數", "停損（ATR 倍數）"))
+
+
+def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict, reg: dict | None = None) -> dict:
     T = D.T
     io = D.taiex_open()
     cache: dict[str, tuple] = {}
@@ -290,13 +321,18 @@ def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict) -> dict:
         else:
             status = "驗證中"
         ins_sigs = [(c, t) for c, t in sigs if D.cal[t] < st["since"]]
+        try:
+            nb = _grid_s1(st, ins_sigs, series, idx, io, T)
+        except Exception:                                 # noqa: BLE001 —— 鄰近檢查失敗不影響本體
+            nb = None
         grps = [(st["scan"][0][0], st["scan"][0][1], ins_sigs, lambda gp: gp < 0),
                 (st["scan"][1][0], st["scan"][1][1], ins_sigs, lambda gp: gp >= 0)]
         out.append({"key": st["key"], "ver": st["ver"], "since": st["since"], "name": st["name"],
                     "kind": st["kind"], "basis": st["basis"], "risk": st["risk"], "hold": st["hold"],
                     "stop_atr": st["stop_atr"],
-                    "score": advice.score(advice.closed(ins), fwd_units=advice.closed(fwd)),
-                    "rule": st["rule"], "status": status, "days": days,
+                    "score": advice.score(advice.closed(ins), fwd_units=advice.closed(fwd), reg=reg, nb=nb),
+                    "tried": st.get("tried"), "rule": st["rule"], "status": status, "days": days,
+                    "fill": {"lim": 0, "lock": sum(1 for t in ins if t.get("lock"))},
                     "fwd": fwd[-60:], "fwd_stats": g, "ins_stats": _agg(ins),
                     "ins_n": len(ins), "cands": cands,
                     "scan": scan(grps, ser_only, idx, io, st["scan_h"]),
@@ -316,7 +352,7 @@ def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict) -> dict:
                     for sd in ("add", "del")},
           "post5": _post_effective(D, ins, idx), "ins": ins[-80:]}
     try:
-        s3.update(tw50_versions(D, names, s3, fwd, ins))
+        s3.update(tw50_versions(D, names, s3, fwd, ins, reg))
     except Exception as e:                                # noqa: BLE001 —— 新版本壞掉不連累整張卡
         s3["vers_err"] = f"{type(e).__name__}: {e}"
     out.insert(2, s3)
@@ -371,12 +407,17 @@ def _rev_stats(trs: list[dict]) -> dict:
             "x": round(statistics.mean(px), 2) if px else None, "xw": sum(1 for x in px if x > 0)}
 
 
-def tw50_versions(D, names: dict, s3: dict, fwd: list[dict], ins: list[dict]) -> dict:
+def tw50_versions(D, names: dict, s3: dict, fwd: list[dict], ins: list[dict], reg: dict | None = None) -> dict:
     """臺灣50 三個版本的成績＋「目前這一次」審核的計畫（日期、名單、漲勢、各版本部位）。"""
     from . import indexes, tw50study
     cfg = indexes.load_cfg()
-    pl = tw50study.plans(D, cfg)
+    ctx = tw50study._Ctx(D, cfg)
+    pl = tw50study.plans(D, cfg, ctx)
     V = tw50study.version_trades(D, cfg, names, pl)
+    try:
+        nb_early = tw50study.early_grid(D, cfg, ctx=ctx, pl=pl)
+    except Exception:                                     # noqa: BLE001
+        nb_early = None
     vers = []
     for vm in TW50_VERS:
         tv = V.get(vm["k"]) or []
@@ -386,8 +427,10 @@ def tw50_versions(D, names: dict, s3: dict, fwd: list[dict], ins: list[dict]) ->
         vers.append({**{k: vm[k] for k in ("k", "ver", "since", "name", "buy", "sell", "rule")},
                      "status": st, "days": nr, "ins_stats": _ev_stats(iv), "fwd_stats": _ev_stats(fv),
                      "rev_stats": _rev_stats(iv), "fwd_rev": _rev_stats(fv),
-                     "fwd": fv[-40:], "ins": iv[-80:], "dist": dist(iv),
-                     "score": advice.score(advice.per_review(iv), event=True, fwd_units=advice.per_review(fv))})
+                     "fwd": fv[-40:], "ins": iv[-80:], "dist": dist(iv), "tried": vm.get("tried"),
+                     "fill": {"lim": sum(1 for t in iv if t.get("lim")), "lock": sum(1 for t in iv if t.get("lock"))},
+                     "score": advice.score(advice.per_review(iv), event=True, fwd_units=advice.per_review(fv), reg=reg,
+                                           nb=nb_early if vm["k"] == "early" else None)})
     add_i = [t for t in ins if t.get("side") == "add"]
     vers.append({"k": "all", "ver": S3["ver"], "since": S3["since"], "name": "官方名單全部（對照）",
                  "buy": "公告後第一個交易日開盤", "sell": "生效日收盤", "rule": S3["rule"],
@@ -396,7 +439,7 @@ def tw50_versions(D, names: dict, s3: dict, fwd: list[dict], ins: list[dict]) ->
                  "rev_stats": _rev_stats(add_i), "fwd_rev": _rev_stats([t for t in fwd if t.get("side") == "add"]),
                  "del_stats": _ev_stats([t for t in ins if t.get("side") == "del"]),
                  "fwd": fwd[-40:], "ins": ins[-80:], "dist": dist(add_i),
-                 "score": advice.score(advice.per_review(add_i), event=True,
+                 "score": advice.score(advice.per_review(add_i), event=True, reg=reg,
                                        fwd_units=advice.per_review([t for t in fwd if t.get("side") == "add"]))})
     by_rev, sens = _tw50_by_review(D, pl, V, add_i)
     # 目前這一次：還沒走完（出場日 ≥ 最新資料日）的最早一次審核

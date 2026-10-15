@@ -9,11 +9,15 @@
     前瞻驗證滿 10 筆（事件型 2 次）且平均超額 > 0。
   · C 不推薦：樣本 <10 筆（事件型 <4 次）、平均超額 ≤0、贏大盤比例 <50%、單月占比 >70%，或前瞻驗證滿額但平均超額 ≤0。
   · B 小部位試行：其餘。
+  · 2026-10-15 依資料包回測紀律加嚴（docs/strategy_pack_plan.md，回測前寫定）：
+    A 級另需「成本加倍後平均超額 >0」與「參數鄰近 9 組中至少 6 組為正」；
+    參數鄰近不到一半為正 → C；以 Yahoo 宇宙選股的策略（xe_rule）平均沒贏同宇宙等權 → C。
 信賴區間＝bootstrap 2,000 次、固定亂數種子（同一份資料永遠算出同一個區間）。
 報酬一律扣來回成本 0.585%；超額＝減去加權指數同期報酬。
 """
 from __future__ import annotations
 
+import math
 import random
 import statistics
 from collections import Counter
@@ -24,10 +28,12 @@ CAP = {"A": 0.05, "B": 0.02, "C": 0.0}       # 每檔部位上限（占總資金
 LOSS_CAP = 0.005                              # 有停損價時：單筆停損虧損 ≤ 總資金 0.5%
 LABEL = {"A": "可執行", "B": "小部位試行", "C": "不推薦"}
 RULE = [
-    {"g": "A", "cond": "樣本 ≥30 筆（事件型 ≥6 次）、超額報酬 95% 信賴區間下限 >0、單月占比 ≤40%，且前瞻驗證滿 10 筆（事件型 2 次）平均超額 >0",
+    {"g": "A", "cond": "樣本 ≥30 筆（事件型 ≥6 次）、超額報酬 95% 信賴區間下限 >0、單月占比 ≤40%、成本加倍後仍贏大盤、"
+                       "參數鄰近 9 組中至少 6 組為正，且前瞻驗證滿 10 筆（事件型 2 次）平均超額 >0",
      "cap": "每檔 ≤ 總資金 5%"},
     {"g": "B", "cond": "平均超額 >0 且贏大盤比例 ≥50%，但未達 A 級全部條件", "cap": "每檔 ≤ 總資金 2%"},
-    {"g": "C", "cond": "樣本 <10 筆（事件型 <4 次）、平均超額 ≤0、贏大盤比例 <50%、單月占比 >70%，或前瞻驗證平均超額 ≤0",
+    {"g": "C", "cond": "樣本 <10 筆（事件型 <4 次）、平均超額 ≤0、贏大盤比例 <50%、單月占比 >70%、參數鄰近不到一半為正、"
+                       "沒贏同一批股票的平均（以 Yahoo 宇宙選股者），或前瞻驗證平均超額 ≤0",
      "cap": "不下單，只列觀察"},
 ]
 RULE_STOP = "有停損價時，部位另以「停損時虧損 ≤ 總資金 0.5%」計算，取兩者較小者。"
@@ -97,6 +103,42 @@ def stats(units: list[dict], event: bool = False) -> dict:
     return s
 
 
+COST_PCT = 0.585     # 來回成本（%）；單位沒帶 cost 時用它（逐筆、每次審核平均都是一次來回）
+
+
+def robust(units: list[dict], reg: dict | None = None) -> dict:
+    """回測紀律 D2–D6（docs/strategy_pack_plan.md）：成本加倍、去掉最好的一筆（次）、最大累計回落、最長連虧、
+    大盤年線上／下；有 xe（對同宇宙等權）的另算平均。units 依日期排序後計算；reg＝{日期: 加權在年線上？}。"""
+    us = sorted((u for u in units if u.get("x") is not None), key=lambda u: u.get("d") or "")
+    xs = [u["x"] for u in us]
+    if not xs:
+        return {}
+    out = {"x2": statistics.mean(u["x"] - (u.get("cost") if u.get("cost") is not None else COST_PCT) for u in us)}
+    if len(xs) >= 3:
+        out["drop1"] = statistics.mean(sorted(xs)[:-1])
+    cum = peak = mdd = 0.0
+    run = streak = 0
+    for x in xs:
+        cum += x
+        peak = max(peak, cum)
+        mdd = max(mdd, peak - cum)
+        run = run + 1 if x <= 0 else 0
+        streak = max(streak, run)
+    out["mdd"], out["streak"] = mdd, streak
+    if reg:
+        g: dict[str, list] = {"up": [], "dn": []}
+        for u in us:
+            k = reg.get((u.get("d") or "")[:10])
+            if k is not None:
+                g["up" if k else "dn"].append(u["x"])
+        for k, v in g.items():
+            out[k] = [len(v), statistics.mean(v) if v else None]
+    xe = [u["xe"] for u in us if u.get("xe") is not None]
+    if xe:
+        out.update({"xe": statistics.mean(xe), "kxe": sum(1 for v in xe if v > 0), "nxe": len(xe)})
+    return out
+
+
 def grade(s: dict, fwd: dict | None = None) -> tuple[str, list[str]]:
     """→ (A/B/C, 理由)。理由＝決定評級的條件（B 列出未達 A 的條件）。"""
     if not s.get("n"):
@@ -116,6 +158,12 @@ def grade(s: dict, fwd: dict | None = None) -> tuple[str, list[str]]:
         return "C", [f"只有 {s['xwin']}% 贏大盤"]
     if conc and conc[1] > 70:
         return "C", [f"{conc[1]}% 的交易集中在 {conc[0]}，只代表一段行情"]
+    nb = s.get("nb") or {}
+    if nb.get("n") and nb["pos"] * 2 < nb["n"]:
+        return "C", [f"參數稍微改動就失效：鄰近 {nb['n']} 組參數只有 {nb['pos']} 組贏大盤"]
+    rb = s.get("rb") or {}
+    if s.get("xe_rule") and rb.get("xe") is not None and rb["xe"] <= 0:
+        return "C", [f"沒有贏同一批股票的等權平均（{pct(rb['xe'])}），成績來自這批股票整體的漲幅"]
     miss = []
     ci = s.get("ci")
     if s["n"] < n_a:
@@ -124,6 +172,13 @@ def grade(s: dict, fwd: dict | None = None) -> tuple[str, list[str]]:
         miss.append(f"超額報酬 95% 信賴區間 {pct(ci[0]) if ci else '—'}～{pct(ci[1]) if ci else '—'} 含 0")
     if conc and conc[1] > 40:
         miss.append(f"{conc[1]}% 的交易集中在 {conc[0]}")
+    if rb.get("x2") is not None and rb["x2"] <= 0:
+        miss.append(f"成本加倍後平均超額 {pct(rb['x2'])}")
+    need = math.ceil((nb.get("n") or 9) * 2 / 3)
+    if not nb.get("n"):
+        miss.append("尚未做參數鄰近檢查")
+    elif nb["pos"] < need:
+        miss.append(f"參數鄰近 {nb['n']} 組中 {nb['pos']} 組為正（A 級需 ≥{need}）")
     if f.get("n", 0) < n_f:
         miss.append(f"前瞻驗證 {f.get('n', 0)}／{n_f} {unit}")
     return ("B", miss) if miss else ("A", ["全部條件符合"])
@@ -155,13 +210,24 @@ def r1(s: dict) -> dict:
             out[k] = round(v, 1)
         elif k == "ci" and v:
             out[k] = [round(v[0], 1), round(v[1], 1)]
+        elif k in ("up", "dn") and isinstance(v, list):
+            out[k] = [v[0], None if v[1] is None else round(v[1], 1)]
+        elif k == "rb" and isinstance(v, dict):
+            out[k] = r1(v)
         else:
             out[k] = v
     return out
 
 
-def score(units: list[dict], event: bool = False, fwd_units: list[dict] | None = None) -> dict:
+def score(units: list[dict], event: bool = False, fwd_units: list[dict] | None = None, *,
+          reg: dict | None = None, nb: dict | None = None, xe_rule: bool = False) -> dict:
+    """reg＝大盤年線（robust 分組用）、nb＝參數鄰近（packtest.grid 格式）、xe_rule＝以 Yahoo 宇宙選股、須贏同宇宙等權。"""
     s = stats(units, event)
+    if s.get("n"):
+        s["rb"] = robust(units, reg)
+        if nb:
+            s["nb"] = nb
+        s["xe_rule"] = xe_rule
     f = stats(fwd_units or [], event) if fwd_units else {"n": 0}
     g, why = grade(s, f)
     return {**r1(s), "grade": g, "label": LABEL[g], "why": why, "concl": concl(s),
@@ -227,7 +293,8 @@ def build(data: dict) -> dict:
     if s1 and s1.get("score"):
         sc = s1["score"]
         hold = s1.get("hold") or 3
-        grades.append({"k": "s1", "name": s1["name"], "kind": s1.get("kind"), **_g(sc)})
+        grades.append({"k": "s1", "name": s1["name"], "kind": s1.get("kind"), **_g(sc), "fill": s1.get("fill"),
+                       "tried": s1.get("tried")})
         for c in s1.get("cands") or []:
             item = {"c": c["c"], "n": c["n"], "k": "s1", "sname": s1["name"], "grade": sc["grade"],
                     "act": "佈局", "d": c.get("d"), "ent": c.get("ent"), "cond": f"開盤價 < {c['px']:,g} 才買",
@@ -254,7 +321,8 @@ def build(data: dict) -> dict:
     ver = next((v for v in (s3 or {}).get("vers") or [] if v.get("k") == "early"), None)
     if ver and ver.get("score"):
         sc = ver["score"]
-        grades.append({"k": "s3", "name": s3["name"], "kind": s3.get("kind"), **_g(sc)})
+        grades.append({"k": "s3", "name": s3["name"], "kind": s3.get("kind"), **_g(sc), "fill": ver.get("fill"),
+                       "tried": ver.get("tried")})
         p = s3.get("plan") or {}
         for it in p.get("items") or []:
             item = _tw50_item(it, p, sc, last)
@@ -273,7 +341,7 @@ def build(data: dict) -> dict:
                   "neg": sum(1 for x in post if x < 0), "ci": pc,
                   "ok": bool(pc and pc[1] < 0 and len(post) >= 6)})
         dl = [b[2] for b in (T.get("del10") or {}).get("by") or []]
-        grades.append({"k": "hd", "name": HDS["name"], "kind": HDS["kind"], **_g(ride), "exit": eff,
+        grades.append({"k": "hd", "name": HDS["name"], "kind": HDS["kind"], **_g(ride), "exit": eff, "tried": HDS.get("tried"),
                        "del": r1({"n": len(dl), "avg": statistics.mean(dl) if dl else None,
                                   "neg": sum(1 for x in dl if x < 0), "ci": boot_ci(dl)})})
         A = hd.get("alert") or {}
@@ -288,7 +356,8 @@ def build(data: dict) -> dict:
     s5 = grow.get("s5")
     if s5 and s5.get("score"):
         sc = s5["score"]
-        grades.append({"k": "s5", "name": s5["name"], "kind": s5.get("kind"), **_g(sc)})
+        grades.append({"k": "s5", "name": s5["name"], "kind": s5.get("kind"), **_g(sc), "fill": s5.get("fill"),
+                       "tried": s5.get("tried")})
         scr = s5.get("screen_d") or [None, None]
         for x in grow.get("screen") or []:
             if not x.get("pass"):
@@ -305,14 +374,42 @@ def build(data: dict) -> dict:
 
     for a in strat.get("alerts") or []:
         exits.append({"c": a["c"], "n": a["n"], "k": "gap", "d": a["d"], "gap": a["gap"]})
+    pack = _pack(data.get("pack") or {}, s5)
     picks.sort(key=lambda x: (x["act"] != "持有中", x.get("ent") or "9999", "ABC".index(x["grade"]), x["c"]))
     return {"rule": RULE, "rule_stop": RULE_STOP, "caps": CAP, "loss_cap": LOSS_CAP, "grades": grades, "picks": picks,
-            "watch": watch, "exits": exits, "last": last}
+            "watch": watch, "exits": exits, "pack": pack, "last": last}
+
+
+PACK_KEYS = ("n", "event", "d0", "d1", "avg", "med", "x", "xmed", "xwin", "kx", "nx", "ci", "lo", "hi", "win",
+             "grade", "label", "why", "rb", "nb")
+
+
+def _pack(pk: dict, s5: dict | None) -> dict:
+    """資料包策略測試表（2026-10-15）：P1–P5 主規格＋CAN SLIM 的 C、M 加在長線策略上的對照（P6，原規則不變）。"""
+    if pk.get("err"):
+        return {"err": pk["err"]}
+    rows = []
+    for r in pk.get("rows") or []:
+        sc = r.get("score") or {}
+        rows.append({k: r.get(k) for k in ("k", "src", "name", "unit", "event", "rule", "lim", "lock", "n_sig")}
+                    | {k: sc.get(k) for k in PACK_KEYS})
+    alt = (s5 or {}).get("alt") or {}
+    base = (s5 or {}).get("score") or {}
+    for k, lbl, rule in (("s5", "長線：投信動能成長股（現行規則）", "對照基準"),
+                         ("c", "長線＋CAN SLIM 的 C", "另要求最新一季 EPS 比去年同季成長 25% 以上"),
+                         ("m", "長線＋CAN SLIM 的 M", "另要求篩選日加權指數在 200 日均線之上")):
+        sc = base if k == "s5" else alt.get(k)
+        if sc and sc.get("n"):
+            row = {"k": "p6" + k, "src": "S08", "name": lbl, "unit": "筆", "event": False, "rule": rule} | {kk: sc.get(kk) for kk in PACK_KEYS}
+            if k == "m" and sc.get("n") == base.get("n") and sc.get("x") == base.get("x"):
+                row["why"] = ["樣本期間的篩選日都在年線之上，這項條件沒有排除任何交易，無從比較"]
+            rows.append(row)
+    return {"rows": rows, "skipped": pk.get("skipped") or [], "meta": pk.get("meta") or {}}
 
 
 def _g(sc: dict) -> dict:
     keys = ("n", "event", "d0", "d1", "avg", "med", "p25", "p75", "lo", "hi", "win", "kwin", "x", "xmed", "xwin",
-            "kx", "nx", "ci", "conc", "grade", "label", "why", "concl", "fwd")
+            "kx", "nx", "ci", "conc", "grade", "label", "why", "concl", "fwd", "rb", "nb", "xe_rule")
     return {k: sc.get(k) for k in keys}
 
 
