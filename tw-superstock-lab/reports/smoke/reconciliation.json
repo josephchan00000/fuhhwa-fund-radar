@@ -13,8 +13,8 @@
       "is_delisted": false
     },
     {
-      "stock_id": "4977",
-      "stock_name": "眾達-KY",
+      "stock_id": "4976",
+      "stock_name": "佳凌",
       "market": "twse",
       "is_delisted": false
     }
@@ -57,18 +57,12 @@
       "note": "本機：84,187,305,000 元｜請到公開資訊觀測站核對（單位可能是千元）"
     },
     {
-      "stock_id": "4977",
+      "stock_id": "4976",
       "item": "價格",
       "note": "本機沒有價格資料"
     }
   ],
   "listing": {
-    "compared": 1,
-    "within_1_day": 1,
-    "main_board_from_start": 0,
-    "missed": 0,
-    "earlier": 0,
-    "later": 0,
-    "examples": []
+    "error": "Response ended prematurely"
   }
 }
