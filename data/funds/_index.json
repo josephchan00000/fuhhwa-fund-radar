@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-10-15 14:48",
+  "as_of": "2026-10-15 15:36",
   "funds": [
     {
       "id": "47",
@@ -40,8 +40,8 @@
       "group": "global_equity",
       "category": "跨國投資股票型",
       "region": "大中華地區",
-      "nav": 70.74,
-      "nav_date": "2026/10/13",
+      "nav": 68.69,
+      "nav_date": "2026/10/14",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -62,8 +62,8 @@
       "group": "global_equity",
       "category": "跨國投資股票型",
       "region": "亞太地區",
-      "nav": 49.69,
-      "nav_date": "2026/10/13",
+      "nav": 48.17,
+      "nav_date": "2026/10/14",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -106,8 +106,8 @@
       "group": "global_balanced",
       "category": "跨國投資平衡型",
       "region": "全球",
-      "nav": 55.06,
-      "nav_date": "2026/10/13",
+      "nav": 53.57,
+      "nav_date": "2026/10/14",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -172,8 +172,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 171.0,
-      "nav_date": "2026/10/14",
+      "nav": 160.03,
+      "nav_date": "2026/10/15",
       "as_of": "2026/08/31",
       "n_top": 10
     },
@@ -194,8 +194,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 209.86,
-      "nav_date": "2026/10/14",
+      "nav": 195.54,
+      "nav_date": "2026/10/15",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -205,8 +205,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 24.96,
-      "nav_date": "2026/10/14",
+      "nav": 23.26,
+      "nav_date": "2026/10/15",
       "as_of": "2026/08/31",
       "n_top": 10
     },
