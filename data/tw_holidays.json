@@ -1,5 +1,5 @@
 {
- "as_of": "2026-10-15 09:10",
+ "as_of": "2026-10-15 09:18",
  "source": "https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule",
  "years": {
   "2026": {
