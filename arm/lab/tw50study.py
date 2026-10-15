@@ -457,6 +457,16 @@ def _trade(D, P: _Px, c: str, i0: int | None, ent_d: str, out_d: str, out_open: 
     p0 = s["o"][i0]
     if not p0:
         return {**base, "st": "skip", "why": "進場日無開盤價"}
+    from .backtest import exit_day, limit_up_open
+    k = 0
+    while limit_up_open(s, i0):                           # 回測紀律 D1：漲停開盤買不到，順延到下一個交易日開盤，最多 3 天
+        k += 1
+        if k > 3 or i0 + 1 >= D.T or not s["o"][i0 + 1]:
+            return {**base, "st": "skip", "why": "連續漲停開盤買不到"}
+        i0 += 1
+        p0 = s["o"][i0]
+    if k:
+        base = {**base, "lim": k}
     if last < out_d:
         li = max((i for i in range(i0, D.T) if s["c"][i]), default=None)
         r = s["c"][li] / p0 - 1 if li is not None else None
@@ -464,6 +474,11 @@ def _trade(D, P: _Px, c: str, i0: int | None, ent_d: str, out_d: str, out_open: 
                 "held": None if li is None else li - i0 + 1, "r": None if r is None else round(r * 100, 2),
                 "ent": ent_d, "out": out_d}
     i1 = _on_or_before(D, out_d)
+    if i1 is not None and not out_open and i1 >= i0:
+        i2 = exit_day(s, i1, D.T)                         # 整天鎖跌停賣不掉，順延到下一個交易日收盤
+        if i2 != i1:
+            base = {**base, "lock": i2 - i1}
+            i1 = i2
     r, x = P.ret(c, i0, True, i1, out_open)
     if r is None or i1 is None or i1 < i0:
         return {**base, "st": "skip", "why": "出場日無價格"}
@@ -543,3 +558,26 @@ def early_scan(D, cfg: dict, ks=range(35, -1, -1), ctx: _Ctx | None = None, pl: 
         res["win"].append(sum(1 for x in per if x > 0))
         res["lo"].append(round(min(per), 1) if per else None)
     return res
+
+
+def early_grid(D, cfg: dict, ks=(EARLY_K - 5, EARLY_K, EARLY_K + 5), ns=(EARLY_N - 1, EARLY_N, EARLY_N + 1),
+               ctx: _Ctx | None = None, pl: list[dict] | None = None) -> dict:
+    """參數鄰近（D5，docs/strategy_pack_plan.md）：建倉提前天數 × 檔數各 ±1 檔，各組「每次審核平均超額」的平均
+    （樣本內、已出場、同 early_scan 的排除規則：建倉日早於上一次審核生效日者不算）。"""
+    from .packtest import grid
+    ctx = ctx or _Ctx(D, cfg)
+    pl = [p for p in (pl or plans(D, cfg, ctx)) if p["official"]]
+    prev = {b["review"]: a["effective"] for a, b in zip(pl, pl[1:])}
+
+    def f(k, n):
+        per = []
+        for p in pl:
+            pre = ctx.pres.get(p["review"])
+            pk = early_picks(ctx, p, pre, k, n)
+            if pk["e_t"] is None or (prev.get(p["review"]) and pk["e_sig"] <= prev[p["review"]]):
+                continue
+            xs = [t["x"] for t in early_trades(D, ctx.P, p, {}, pk, {}) if t.get("st") == "closed" and t.get("x") is not None]
+            if xs:
+                per.append(statistics.mean(xs))
+        return statistics.mean(per) if per else None
+    return grid(f, ks, ns, ("截止前幾個交易日建倉", "買進檔數"))
