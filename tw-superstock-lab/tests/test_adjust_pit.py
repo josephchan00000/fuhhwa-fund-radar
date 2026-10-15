@@ -84,3 +84,24 @@ def test_universe_handles_reused_code_and_cutoff():
     assert set(uni.stock_id) == {"2330", "1234", "5555"}
     assert not bool(uni.loc[uni.stock_id == "1234", "is_delisted"].iloc[0])  # 仍掛牌（代號重用）
     assert bool(uni.loc[uni.stock_id == "5555", "is_delisted"].iloc[0])
+
+
+def test_universe_stale_info_rows_are_delisted():
+    """股票清單最後更新日停在過去＝已下市（FinMind 不刪下市股的列，只是不再更新）。"""
+    from superstock.universe import reused_codes
+    info = pd.DataFrame({
+        "stock_id": ["2330", "1111", "2222", "3333", "0050"],
+        "stock_name": ["a", "b", "c", "d", "etf"],
+        "type": ["twse", "tpex", "twse", "twse", "twse"],
+        "industry_category": ["半導體業", "其他", "其他", "其他", "ETF"],
+        "date": ["2026-10-15", "2023-05-01", "2023-05-02", "2026-10-14", "2026-10-15"],
+    })
+    delisting = pd.DataFrame({"date": ["2023-04-28", "2015-03-02"], "stock_id": ["2222", "3333"],
+                              "stock_name": ["c", "d"]})
+    uni = build_universe(info, delisting, UniverseConfig(), "2008-01-01").set_index("stock_id")
+    assert list(uni.index) == ["1111", "2222", "2330", "3333"]
+    assert not uni.loc["2330", "is_delisted"] and not uni.loc["3333", "is_delisted"]
+    assert uni.loc["1111", "is_delisted"] and uni.loc["1111", "delist_date"] == pd.Timestamp("2023-05-01")
+    assert uni.loc["2222", "delist_date"] == pd.Timestamp("2023-04-28")  # 有下市表就用下市表
+    assert uni.loc["1111", "market"] == "tpex"
+    assert reused_codes(info, delisting, "2008-01-01") == ["3333"]       # 只算現在掛牌的普通股
