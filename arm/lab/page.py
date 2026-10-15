@@ -418,6 +418,7 @@ const GL={
 '資金帳戶':'把每期報酬依時間順序連乘：同一時間只有一組部位、換股時賣舊買新、扣成本、沒持股的期間放現金。年化報酬與最大回落用這條線算。',
 '最大回落':'資金曲線從前一個高點往下跌的最大幅度。',
 '去掉最好 5%':'把報酬最好的 5% 期數（或筆數）拿掉後，平均是否仍贏同一批股票；只靠一兩次大賺撐起來的策略過不了。',
+'低回落例外':'選股沒贏同一批股票的策略原本一律 C。若扣成本後賺錢（報酬型態樣本內外都過）、年化只比同一批股票少不到 3 個百分點、最大回落 ≤ 同一批股票的 0.7 倍、年化÷回落不比同一批股票差、成本加倍與參數鄰近（9 組 ≥5 組）也成立，改評 B（最高 B）——少賺一點但跌得少很多。',
 '前瞻':'規則起算日之後才發生的訊號；這部分的成績才算數。',
 '前瞻驗證':'規則起算日之後才發生的交易。短線策略滿 10 筆、事件型滿 2 次審核，且平均超額大於 0，才可能評為 A 級。',
 '資料截止日':'指數公司用來排名的那一天收盤資料（臺灣50：生效日前約 4 週的週一）。截止日之後股價再怎麼變，都不影響這一次的名單。',
@@ -447,7 +448,7 @@ const GLG=[['ETF 面',['真加碼','申贖倍率','主動 5 日淨買','加碼�
  ['法人籌碼',['投信 5 日','外資 5 日','連買','60 日買超均價','融資','借券賣出','千張大戶']],
  ['技術面',['趨勢','乖離','量比','RSI','KD','MACD','一年區間位置','相對大盤','ATR','日均成交']],
  ['成績與策略',['評級','同一批股票的平均','t 值','賺錢機率','每月平均','賺賠比','報酬型態','樣本外','樣本內','前瞻','前瞻驗證','前 5 檔','大型股','中型股','超額','信賴區間','獲利比例','贏大盤','勝率','每 10 萬預估','隔夜跳空','樣本','紙上交易']],
- ['回測方法與策略',['穩健度檢查','成本加倍','參數鄰近','去掉最好 5%','因子檢定','資金帳戶','最大回落','存活者偏誤','大盤年線','成交檢查','月營收驚喜','SUE','相對強勢','趨勢樣板','CAN SLIM']],
+ ['回測方法與策略',['穩健度檢查','成本加倍','參數鄰近','去掉最好 5%','低回落例外','因子檢定','資金帳戶','最大回落','存活者偏誤','大盤年線','成交檢查','月營收驚喜','SUE','相對強勢','趨勢樣板','CAN SLIM']],
  ['指數換股',['資料截止日','漲勢前一半','估計權重','被動買盤','週轉率','等級相關','被動買賣期間','對其他成分股','被動買賣日量','被動買賣提醒']]];
 function gi(k){return (GL[k]||SD[k])?`<i class=gi data-g="${esc(k)}" role=button tabindex=0 aria-label="說明">i</i>`:'';}
 const POP=$('#pop');let popFor=null,popPin=false;
@@ -1026,7 +1027,7 @@ function gradeSec(){const G=ADV.grades3||[];if(!G.length)return '';
     return p?`${p} 檔`:w?`${w} 檔觀察`:x?`${x} 檔出場・避開`:'—';};
   const side=(x,u)=>x&&x.n?`${p2(x.xe)}<span class=mu>／${u}</span><div class=sm2>t ${tT(x.t)}・${x.n} ${u}</div>`:'<span class=mu>沒有</span>';
   const row=g=>{const i=g.ins||{},o=g.oos||{},u=g.unit||'筆',old=gOf(g.k)||{};
-    const bd=g.k==='hd'?`${gBadge(g.grade,'追買 '+g.grade)}${old.exit&&old.exit.ok?'<div style="margin-top:3px">'+gBadge('A','出場有效')+'</div>':''}`:gBadge(g.grade,`${g.grade}<span class=hm>・${GDN[g.grade]}</span>`);
+    const bd=g.k==='hd'?`${gBadge(g.grade,'追買 '+g.grade)}${old.exit&&old.exit.ok?'<div style="margin-top:3px">'+gBadge('A','出場有效')+'</div>':''}`:gBadge(g.grade,`${g.grade}<span class=hm>・${GDN[g.grade]}</span>`)+(g.lowdd?`<div class=sm2>低回落例外${gi('低回落例外')}</div>`:'');
     return `<tr><td><a data-to="st-${esc(g.k)}"><span class=nm>${esc(g.name||g.k)}</span></a><span class=cd>${esc(g.kind||'')}</span></td><td class=l>${bd}</td>`+
       (g.k==='hd'?`<td colspan=4 class="l mu">追買沒有贏大盤；有效的是出場時點（見下方高股息換股）</td>`:
       `<td>${side(o,u)}</td><td>${side(i,u)}</td><td>${i.win==null?'—':i.win+'%'}${o.n?`<div class=sm2>樣本外 ${o.win}%</div>`:''}</td><td>${p2(i.m)}${o.n?`<div class=sm2>樣本外 ${p2(o.m)}</div>`:''}</td>`)+
@@ -1263,12 +1264,18 @@ function bt3Sec(){const V=ADV.v3||{},B=V.basket||[],M=V.meta||{},P=ADV.pack||{};
     `選股＝扣成本後對同一批股票（同一段期間、同一個範圍、含之後下市的公司）等權平均的超額，t 值用 Newey-West；${ADV.cost3||''}。`,
     '整組＝每期買訊號最強的 10%（財報驚喜 20%）；前 5 檔＝每期只買最強 5 檔，是本期操作用的版本。',
     '多重檢定：整組版本測了 12 組（6 種策略 × 2 個範圍）。只靠運氣時，12 組中至少一組 t ≥2.8 的機率約 6%。'];
+  const LD=ord.filter(r=>r.lowdd),gp=g=>g==null?'—':`${g<0?'少':'多'} ${f(Math.abs(g),1)}`,dr=x=>x==null?'—':`${f(x,2)} 倍`;
+  const ldTbl=LD.length?`<h4 class=sh>低回落例外檢查${gi('低回落例外')}</h4><div class=st>選股沒贏同一批股票的版本，逐條檢查「扣成本後賺錢、年化少不到 3 個百分點、最大回落 ≤0.7 倍」等條件；全部符合才改評 B。</div>`+
+    `<div class=tw><table><thead><tr><th class=l>策略</th><th>年化差（百分點）<div class=sm2>外／內</div></th><th>最大回落倍數<div class=sm2>外／內</div></th><th class=hm>鄰近符合</th><th class=l>結果</th></tr></thead><tbody>`+
+    LD.map(r=>{const L=r.lowdd;return `<tr><td class=l><span class=nm>${esc(r.name)}</span><span class=cd>${r.b==='L'?'大型股':'中型股'}・${r.ver==='top5'?'前 5 檔':'整組'}</span></td>`+
+      `<td>${gp(L.gap_oos)}／${gp(L.gap)}</td><td>${dr(L.ddr_oos)}／${dr(L.ddr)}</td><td class=hm>${L.nb?`${L.nb[0]}／${L.nb[1]}`:'—'}</td>`+
+      `<td class="l wr">${L.ok?gBadge('B','改評 B'):esc((L.fails||[]).join('；'))}</td></tr>`;}).join('')+`</tbody></table></div>`:'';
   const alt=(P.rows||[]).filter(r=>!/^p\d$/.test(r.k));
   const altRow=r=>{const rb=r.rb||{},N=r.nb||{};return `<tr><td class=l><span class=nm>${esc(r.name)}${gi('CAN SLIM')}</span><div class="pkn pkr">${esc(r.rule)}</div></td><td>${r.n?`${r.n} ${r.unit}`:'—'}</td><td>${pctT(r.x)}<div class=sm2>${ciT(r.ci)}</div></td><td>${r.xwin==null?'—':r.xwin+'%'}</td><td class=hm>${pctT(rb.xe)}</td><td class=hm>${N.n?`${N.pos}／${N.n}`:'—'}</td><td class=l>${gBadge(r.grade)}</td></tr>`;};
   const S=(P.skipped||[]).map(x=>`<tr><td class=l>${esc(x[0])}</td><td class=l>${esc(x[1])}</td></tr>`).join('');
   return sec('st-bt3','總表','全部策略總表','2013 起、含已下市公司、樣本外驗證',`<div class=card><div class=ccl><b>結論</b></div><div>${cc}</div>`+
     `<div class=tw style="margin-top:8px"><table>${head}<tbody>${ord.map(r=>row(r,r.name)).join('')}</tbody></table></div>`+
-    `<ol class=rkl style="margin-top:8px">${notes.map(x=>`<li class=note>${esc(x)}</li>`).join('')}</ol>`+
+    `<ol class=rkl style="margin-top:8px">${notes.map(x=>`<li class=note>${esc(x)}</li>`).join('')}</ol>`+ldTbl+
     (alt.length?`<details class=mr><summary>長線策略加上 CAN SLIM 兩項條件（對照，舊方法：對加權指數、2024 起）</summary><div class=tw><table><thead><tr><th class=l>做法</th><th>樣本</th><th>平均超額${gi('信賴區間')}</th><th>贏大盤</th><th class=hm>對同一批股票</th><th class=hm>參數鄰近</th><th class=l>評級</th></tr></thead><tbody>${alt.map(altRow).join('')}</tbody></table></div></details>`:'')+
     (S?`<details class=mr><summary>沒有採用的項目與原因</summary><div class=tw><table class=skt><tbody>${S}</tbody></table></div></details>`:'')+`</div>`);}
 

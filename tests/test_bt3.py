@@ -215,3 +215,23 @@ def test_grade3_forward_replaces_missing_oos():
     g = bt3.grade3(sel, pay, 0.8, nb, oos=oos, fwd={"n": 10, "xe": -0.4})
     assert g["grade"] == "B"
 
+
+
+def test_low_drawdown_exception():
+    """第 15 節：選股沒過、但扣成本後賺錢、年化少不到 3 個百分點、最大回落 ≤0.7 倍、報酬÷回落較好、
+    成本加倍仍少不到 3 個百分點、鄰近 ≥5 組 → 最高 B；任一條不符就維持 C。"""
+    pay = {"ok": True}
+    side = lambda c, m, ec, em, ok=True: {"sel": {"n": 60}, "pay": {"ok": ok}, "acc": {"cagr": c, "mdd": m},
+                                          "ew": {"cagr": ec, "mdd": em}}
+    ins, oos = side(15.0, 20.0, 16.5, 35.0), side(12.0, 22.0, 13.0, 40.0)
+    ld = bt3.low_dd(ins, oos, cagr2=14.0, nb_ok=(6, 9), n_min=10)
+    assert ld["ok"] and round(ld["gap"], 1) == -1.5 and round(ld["ddr"], 2) == 0.57
+    assert "低回落例外" in bt3.low_dd_why(ld) and "最高 B" in bt3.low_dd_why(ld)
+    assert not bt3.low_dd(ins, side(12.0, 22.0, 13.0, 25.0), cagr2=14.0, nb_ok=(6, 9), n_min=10)["ok"]   # 樣本外回落 0.88 倍
+    assert not bt3.low_dd(side(12.0, 20.0, 16.5, 35.0), oos, cagr2=11.0, nb_ok=(6, 9), n_min=10)["ok"]   # 少 4.5 個百分點
+    assert not bt3.low_dd(ins, side(12.0, 22.0, 13.0, 40.0, ok=False), cagr2=14.0, nb_ok=(6, 9), n_min=10)["ok"]  # 樣本外沒賺
+    assert not bt3.low_dd(ins, oos, cagr2=13.4, nb_ok=(6, 9), n_min=10)["ok"]                            # 成本加倍少 3.1
+    assert not bt3.low_dd(ins, oos, cagr2=14.0, nb_ok=(4, 9), n_min=10)["ok"]                            # 鄰近只 4 組
+    sd = bt3.low_dd_side({"cagr": 5.0, "mdd": 10.0}, {"cagr": 7.5, "mdd": 15.0})
+    assert sd["ok"] and sd["calmar"] is True                                                             # 0.5 vs 0.5：相等算過
+    assert bt3.low_dd_side({"cagr": 4.0, "mdd": 10.0}, {"cagr": 6.5, "mdd": 15.0})["calmar"] is False      # 0.40 < 0.43

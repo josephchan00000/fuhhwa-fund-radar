@@ -1279,10 +1279,11 @@ def test_strategy_page_robustness_and_pack_sections():
               "+robTbl(g,v3);", "看 ${N.n} 組", "沒有採用的項目與原因", "同一批股票"):
         assert k in js, k
     assert "function packSec(" not in js and "sec('st-pack'" not in js      # 舊資料包表（5 年、對加權指數）由 v3 總表取代
+    assert "低回落例外檢查" in js and "g.lowdd?" in js                        # 第 15 節：例外檢查表與評級表標示
     for k in ("穩健度檢查", "成本加倍", "參數鄰近", "同一批股票的平均", "存活者偏誤", "大盤年線", "成交檢查",
               "相對強勢", "趨勢樣板", "SUE", "月營收驚喜", "CAN SLIM",
               "樣本外", "樣本內", "t 值", "賺錢機率", "每月平均", "賺賠比", "報酬型態", "前 5 檔", "大型股", "中型股",
-              "因子檢定", "資金帳戶", "最大回落", "去掉最好 5%"):
+              "因子檢定", "資金帳戶", "最大回落", "去掉最好 5%", "低回落例外"):
         assert f"'{k}':" in js, k                                            # 名詞辭典
 
 

@@ -32,6 +32,22 @@ def _part(P, U, U2, per, acc, ew, a, z, *, trades=False) -> dict:
             "acc": sub(acc), "ew": sub(ew)}
 
 
+def _sub(P, cv, a, z) -> dict:
+    """淨值曲線切一段 → curve_stats（年化、最大回落）。"""
+    return bt3.curve_stats([(i, v) for i, v in cv if (a is None or P.cal[i] >= a) and (z is None or P.cal[i] < z)],
+                           P.cal) if cv else {}
+
+
+def _lowdd_grade(g: dict, ins: dict, oos: dict, cagr2, nb_ok, event: bool) -> tuple[dict, dict | None]:
+    """選股沒過（C）時試低回落例外（第 15 節）：全部符合 → B（最高 B）。"""
+    if g["grade"] != "C":
+        return g, None
+    ld = bt3.low_dd(ins, oos, cagr2=cagr2, nb_ok=nb_ok, n_min=4 if event else 10)
+    if ld["ok"]:
+        g = {"grade": "B", "why": [bt3.low_dd_why(ld)], "rob": g.get("rob"), "lowdd": True}
+    return g, ld
+
+
 def _grade(ins: dict, oos: dict, nb: dict | None, event: bool) -> dict:
     g = bt3.grade3(ins["sel"], ins["pay"], ins["x2"], nb, event=event, oos=oos["sel"] if oos["sel"].get("n") else None)
     if g["grade"] == "A" and not oos["pay"].get("ok"):
@@ -67,14 +83,16 @@ def periodic(P, b: str, key: str, rows_fn, a0, *, top: float, nmin: int, asc: bo
     rows = rows_fn(a0)
     done, pk, acc, ew = C.run((key, a0), rows, top, nmin, asc, umin)
     U = bt3.vs_ew(acc, ew)
-    U2 = bt3.vs_ew(bt3.account(P, pk, b, mult=2), ew)
+    acc2 = bt3.account(P, pk, b, mult=2)
+    U2 = bt3.vs_ew(acc2, ew)
     per = bt3.quint_per(P, done, asc=asc)
     ins = _part(P, U, U2, per, acc["curve"], ew["curve"], OOS_END, None)
     oos = _part(P, U, U2, per, acc["curve"], ew["curve"], None, OOS_END)
-    nb_i = nb_o = None
+    cagr2 = _sub(P, acc2["curve"], OOS_END, None).get("cagr")      # 成本加倍後的樣本內年化（低回落例外第 5 條）
+    nb_i = nb_o = nb_ld = None
     if grid:
         avals, tvals, lbl = grid                        # tvals：買進比例，或 (比例, 最少檔數) ＝前 N 檔版本
-        cells = {}
+        cells, ld_ok = {}, 0
         for a in avals:
             rr = rows if a == a0 else rows_fn(a)
             for tv in tvals:
@@ -82,7 +100,10 @@ def periodic(P, b: str, key: str, rows_fn, a0, *, top: float, nmin: int, asc: bo
                 _, _, ac, e = C.run((key, a), rr, tp, nm, asc, umin or nmin)
                 V = bt3.vs_ew(ac, e)
                 cells[(a, tv)] = (_mean(u["xe"] for u in _cut(V, OOS_END, None)), _mean(u["xe"] for u in _cut(V, None, OOS_END)))
+                sd = bt3.low_dd_side(_sub(P, ac["curve"], OOS_END, None), _sub(P, e["curve"], OOS_END, None))
+                ld_ok += bool(sd["gap"] is not None and sd["gap"] > -bt3.LOWDD["gap"] and sd["ddr"] <= bt3.LOWDD["dd"])
         nb_i, nb_o = _nb2(cells, avals, tvals, lbl)
+        nb_ld = (ld_ok, len(avals) * len(tvals))
         if tvals and isinstance(tvals[0], tuple):       # 表頭顯示檔數
             for nb in (nb_i, nb_o):
                 nb["bd"] = [str(t[1]) for t in tvals]
@@ -91,7 +112,8 @@ def periodic(P, b: str, key: str, rows_fn, a0, *, top: float, nmin: int, asc: bo
         cur = bt3s.pick([rows[-1]], top, nmin, asc, umin)
         if cur:
             now = {"d": P.cal[rows[-1][0]], "picks": cur[0][2], "n_uni": len(rows[-1][2])}
-    return {"b": b, "ins": ins, "oos": oos, "nb": nb_i, "nb_oos": nb_o, "grade": _grade(ins, oos, nb_i, event),
+    g, ld = _lowdd_grade(_grade(ins, oos, nb_i, event), ins, oos, cagr2, nb_ld, event)
+    return {"b": b, "ins": ins, "oos": oos, "nb": nb_i, "nb_oos": nb_o, "grade": g, "lowdd": ld,
             "fac_sub": bt3.subperiods(per, EDGES3), "sel_sub": bt3.subperiods(U, EDGES3, "xe"),
             "lim": sum(u["lim"] for u in acc["units"]), "lock": sum(u["lock"] for u in acc["units"]), "now": now,
             "units": U}
@@ -245,7 +267,14 @@ def _row(k, src, name, b, ver, unit, event, r) -> dict:
             "sub": [[x["from"], x["n"], _r(x["avg"])] for x in r.get("sel_sub") or []],
             "fsub": [[x["from"], x["n"], _r(x["avg"])] for x in r.get("fac_sub") or []],
             "curve": _curve([u for u in r.get("units") or [] if "ew" in u]) if src != "p2" else None,
-            "dist": _dist(r.get("units") or [])}
+            "dist": _dist(r.get("units") or []), "lowdd": _ld(r.get("lowdd"))}
+
+
+def _ld(ld: dict | None) -> dict | None:
+    if not ld:
+        return None
+    return {"ok": ld["ok"], "fails": ld["fails"], "nb": ld.get("nb"),
+            **{k: _r(ld.get(k)) for k in ("gap", "ddr", "gap_oos", "ddr_oos")}}
 
 
 def export(main: dict, t5: dict, P) -> dict:
