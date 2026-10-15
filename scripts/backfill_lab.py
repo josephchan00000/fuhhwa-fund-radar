@@ -28,6 +28,8 @@ def main() -> None:
                     help="長線成長股回測資料：Yahoo 擴大到市值 ≥30 億上市櫃股＋兩年投信買賣超（官方逐日）")
     ap.add_argument("--yahoo", action="store_true", help="以 Yahoo 逐檔補兩年歷史日線（官方逐日回補被限流時用）")
     ap.add_argument("--hd", action="store_true", help="高股息研究資料：證交所除權息逐年＋FinMind 單季 EPS／上櫃股利（可重跑續補）")
+    ap.add_argument("--yhl", action="store_true",
+                    help="高股息提前卡位研究：Yahoo 五年日線另存 data/lab/yhl＋證交所除權息 2018–2020（可重跑續補）")
     a = ap.parse_args()
     today = clock.today_tw()
 
@@ -36,6 +38,10 @@ def main() -> None:
         return
     if a.yahoo:
         collect.backfill_yahoo()
+        return
+    if a.yhl:
+        collect.backfill_divtw((2018, 2019, 2020))
+        print(f"[lab] Yahoo 長歷史：本輪新增 {collect.backfill_yahoo_long(budget_s=a.budget_min * 60)} 檔")
         return
     if a.hd:
         print(f"[lab] 高股息資料：{collect.backfill_hd(budget_s=a.budget_min * 60)}")

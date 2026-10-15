@@ -76,6 +76,8 @@ jobs:
             python3 scripts/backfill_lab.py --growth --budget-min 50
           elif [ "$MODE" = "yahoo" ]; then
             python3 scripts/backfill_lab.py --yahoo
+          elif [ "$MODE" = "yhl" ] || [ "${MODE#yhl}" != "$MODE" ]; then
+            python3 scripts/backfill_lab.py --yhl --budget-min 45
           elif [ "$MODE" = "hd" ] || [ "${MODE#hd}" != "$MODE" ]; then
             python3 scripts/backfill_lab.py --hd --budget-min 45
           else
