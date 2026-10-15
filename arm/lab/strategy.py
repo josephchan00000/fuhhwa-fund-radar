@@ -18,6 +18,7 @@ from . import advice
 from . import backtest
 from . import ledger as LG
 from . import ta
+from . import trades
 
 COST = 0.00585
 PASS_N = 30
@@ -313,6 +314,10 @@ def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict, reg: dict | No
                               "ent": nxt[0] if t == T - 1 and nxt else None,
                               "out": nxt[st["hold"] - 1] if t == T - 1 and len(nxt) >= st["hold"] else None})
                 continue
+            if t + 1 < T:                                 # 實際買賣日（逐筆交易表；docs/lab_trades_plan.md）
+                rec = {**rec, "bd": D.cal[t + 1]}
+                if rec.get("st") == "closed" and rec.get("held") is not None and t + rec["held"] < T:
+                    rec["sd"] = D.cal[t + rec["held"]]
             (fwd if D.cal[t] >= st["since"] else ins).append({**base, **rec})
         days = sum(1 for d in D.cal if d >= st["since"])
         g = _agg(fwd)
@@ -336,7 +341,9 @@ def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict, reg: dict | No
                     "fwd": fwd[-60:], "fwd_stats": g, "ins_stats": _agg(ins),
                     "ins_n": len(ins), "cands": cands,
                     "scan": scan(grps, ser_only, idx, io, st["scan_h"]),
-                    "dist": dist(ins), "ins": [t for t in ins if t.get("st") in ("closed", "open")][-80:]})
+                    "dist": dist(ins), "ins": [t for t in ins if t.get("st") in ("closed", "open")][-80:],
+                    # 逐筆交易表（全部，含沒進場的；docs/lab_trades_plan.md）：依據欄＝隔天開盤跳空 %
+                    "tr": trades.pack_simple(ins + fwd, st["since"], info=lambda t: [t.get("gap")])})
     # S3 臺灣50 換股：事件型、驗證期滿判準用「兩次審核」（筆數少、每季一次）。
     # 卡片＝三個版本並列：公告前卡位／公告後進場（兩個新版本）＋官方名單全部（原 S3，對照）。
     trs = tw50_trades(D, idx, io, names, D.cal[-1] if D.cal else "")
@@ -425,6 +432,9 @@ def tw50_versions(D, names: dict, s3: dict, fwd: list[dict], ins: list[dict], re
         fv = [t for t in tv if t["d"] >= vm["since"]]
         st, nr = _ev_status(fv)
         vers.append({**{k: vm[k] for k in ("k", "ver", "since", "name", "buy", "sell", "rule")},
+                     # 逐筆交易表（全部；依審核分組，依據欄＝早買／補位、40 日漲幅）
+                     "tr": trades.pack_simple(tv, vm["since"], grp="review", info=lambda t: [t.get("tag"), t.get("mom")])
+                     if vm["k"] == "early" else None,
                      "status": st, "days": nr, "ins_stats": _ev_stats(iv), "fwd_stats": _ev_stats(fv),
                      "rev_stats": _rev_stats(iv), "fwd_rev": _rev_stats(fv),
                      "fwd": fv[-40:], "ins": iv[-80:], "dist": dist(iv), "tried": vm.get("tried"),
