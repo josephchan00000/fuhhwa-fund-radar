@@ -472,7 +472,7 @@ def _trade(D, P: _Px, c: str, i0: int | None, ent_d: str, out_d: str, out_open: 
         r = s["c"][li] / p0 - 1 if li is not None else None
         return {**base, "st": "open", "entry": p0, "now": None if li is None else s["c"][li],
                 "held": None if li is None else li - i0 + 1, "r": None if r is None else round(r * 100, 2),
-                "ent": ent_d, "out": out_d}
+                "ent": ent_d, "out": out_d, "bd": D.cal[i0]}
     i1 = _on_or_before(D, out_d)
     if i1 is not None and not out_open and i1 >= i0:
         i2 = exit_day(s, i1, D.T)                         # 整天鎖跌停賣不掉，順延到下一個交易日收盤
@@ -484,7 +484,8 @@ def _trade(D, P: _Px, c: str, i0: int | None, ent_d: str, out_d: str, out_open: 
         return {**base, "st": "skip", "why": "出場日無價格"}
     return {**base, "st": "closed", "entry": p0, "exit": P.px(c, i1, out_open), "why": why,
             "held": i1 - i0 + (0 if out_open else 1), "r": round(r * 100, 2),
-            "x": None if x is None else round(x * 100, 2), "ent": ent_d, "out": out_d}
+            "x": None if x is None else round(x * 100, 2), "ent": ent_d, "out": out_d,
+            "bd": D.cal[i0], "sd": D.cal[i1], "so": out_open}
 
 
 def _pct1(x):

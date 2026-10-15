@@ -1430,3 +1430,61 @@ def test_advice_calendar_orders_by_date_and_skips_c_and_past():
     assert cal[3]["pending"] and cal[3]["fix"] == "2026-11-10" and cal[3]["exp"] == {"n": 158}
     assert cal[0]["items"][0]["stop"] == 950.0 and cal[0]["sell"] and cal[1]["note"] == "10/15 有買到的"
     assert advice.calendar(picks, live, gm, {}, {}, None, None, 0, "2026-10-16")[0]["d"] == "2026-10-19"   # 已過的不列
+
+
+# ── 逐筆交易（2026-10-15 使用者：「我希望每個策略都會有像是 0050 策略的逐筆歷史交易，我才能去驗證」；docs/lab_trades_plan.md）
+
+def test_strategy_trades_section_and_columns_match_python():
+    """策略卡多一列「逐筆交易」（預設收起、展開才畫）；頁面解碼用的欄位順序要和 trades.py 一致；年份、搜尋、CSV 都在。"""
+    import re
+    from arm.lab import trades
+    js = page._JS
+    trc = re.search(r"TRC=\[([^\]]*)\]", js).group(1)
+    assert [x.strip("'") for x in trc.split(",")] == trades.TR_COLS
+    prc = re.search(r"PRC=\[([^\]]*)\]", js).group(1)
+    assert [x.strip("'") for x in prc.split(",")] == trades.PER_COLS
+    for k in ("parts.push(['逐筆交易',tb])", "function trCsv(", "function trData(", "function trCheck(", "trBind();",
+              "data-tcsv", "data-ty", "data-tq", "'\\ufeff'", "<details class=\"mr trb\""):
+        assert k in js, k
+    howt = re.search(r"const HOWT=\{([^}]*)\}", js).group(1)
+    for code in trades._HOW.values():                                       # 賣出原因代碼頁面都要認得
+        assert f"{code}:'" in howt, code
+    assert "bt:'" in howt
+    for k in ("function tradeTbl(", "function pastTrades(", "function revTbl(", "function tradeLists("):   # 舊的三種逐筆表已統一
+        assert k not in js, k
+
+
+def test_research_trades_reconcile_with_strategy_numbers():
+    """研究檔每條前 5 檔策略都有逐筆交易；每期表的期數、平均、正的比例＝策略頁「每月（季）平均」用的 dist。"""
+    import statistics
+    res = store.read_json("bt3_research.json", {}) or {}
+    rows = [r for r in res.get("rows") or [] if r.get("ver") == "top5"]
+    assert rows
+    for r in rows:
+        t = r.get("trades") or {}
+        per, d = t.get("per") or [], r.get("dist") or {}
+        assert len(per) == d.get("n"), r["k"]
+        rs = [p[3] for p in per]
+        assert abs(statistics.mean(rs) - d["avg"]) < 0.01, r["k"]
+        assert round(100 * sum(1 for x in rs if x > 0) / len(rs)) == d["win"], r["k"]
+        tr = [x for x in t.get("tr") or [] if x[8] == "c"]
+        assert len(tr) >= len(per), r["k"]                                  # 每期至少一筆
+        assert all(x[3] and x[5] for x in tr), r["k"]                       # 每筆都有實際買賣價
+
+
+def test_trade_book_collects_all_strategies_without_duplicates(monkeypatch):
+    from arm.lab import advice
+    monkeypatch.setattr(store, "read_json", lambda name, default=None: {"9999": "已下市公司"} if name == "names_hist.json" else {})
+    s1 = {"key": "s1", "since": "2026-10-14", "tr": {"per": [], "tr": [["2330", 1, 2]]}}
+    s3 = {"key": "s3", "vers": [{"k": "early", "since": "2026-10-14", "tr": {"per": [], "tr": [["2317", 1, 2]]}},
+                                {"k": "post", "tr": None}]}
+    data = {"strat": {"list": [s1, s3]}, "grow": {"s5": {"since": "2026-10-14", "tr": {"per": [], "tr": [["2454", 1, 2]]}}},
+            "idx": {"hd": {"flow": {"tr": {"per": [], "tr": [["2412", 1, 2]]}}, "alert": {"since": "2026-10-14"}}},
+            "rows": [{"c": "2330", "n": "台積電"}]}
+    live = {"v7m": {"unit": "月", "since": "2026-10-15", "src": "p7", "b": "M", "tr_res": {"per": [[1]], "tr": [["9999", 1, 2]]},
+                    "tr": {"per": [], "tr": []}}}
+    out, nm = advice.trade_book(data, live, {"v7m", "s1", "s3", "s5", "hd"})
+    assert {k: v["kind"] for k, v in out.items()} == {"v7m": "per", "s1": "trade", "s3": "rev", "s5": "trade", "hd": "rev"}
+    assert "tr" not in s1 and "tr" not in s3["vers"][0] and "tr" not in data["grow"]["s5"]   # 搬到 ADV.trades，頁面不重複內嵌
+    assert "tr_res" not in live["v7m"] and "tr" not in live["v7m"]
+    assert nm == {"2330": "台積電", "9999": "已下市公司"}

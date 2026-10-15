@@ -333,6 +333,20 @@ ul.doc{padding-left:18px}ul.doc li{margin:4px 0}
 .yrt{max-width:360px}.yrt td,.yrt th{padding:3px 8px}
 .pst{display:grid;grid-template-columns:1fr;gap:6px 24px;align-items:start}
 @media(min-width:980px){.pst{grid-template-columns:300px minmax(0,1fr)}}
+/* 逐筆交易（策略卡；docs/lab_trades_plan.md） */
+details.trb>summary{font-weight:600}
+.trn{font-size:13.5px;line-height:1.7;margin:8px 0 2px}.trf{margin:2px 0 6px}
+.trc{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 6px}
+.trc select{padding:5px 26px 5px 9px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13.5px;color:var(--ink);background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23727e8c'/%3E%3C/svg%3E") no-repeat right 9px center;-webkit-appearance:none;appearance:none}
+.trc input[type=search]{flex:1 1 150px;min-width:130px;max-width:240px;padding:5px 9px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13.5px;background:var(--card2)}
+.trc .seg a{padding:4px 12px;font-size:13.5px;cursor:pointer}.trcsv{cursor:pointer;font-size:13.5px}
+table.trt td,table.trt th{vertical-align:top}table.trt td .sm2{white-space:normal}table.trt tr.fw td{background:#fbfcf3}table.trt td.twy{min-width:236px}table.trt td.tsl{min-width:140px}table.trt td.tdv{white-space:normal;min-width:70px;max-width:150px}
+.tk{display:inline-block;margin:0 8px 2px 0;white-space:nowrap}.tk.nw{font-weight:700}.tk.sk{color:#a0a8b3;text-decoration:line-through}
+.tk i{font-style:normal;font-size:11px;color:var(--mut);margin-left:2px}
+.trm{display:inline-block;margin:8px 0 2px;cursor:pointer}
+.trl{border-bottom:1px solid var(--line);padding:8px 0;font-size:13.5px}.trl.grey{color:#a0a8b3}.trl.fw{background:#fbfcf3}
+.trh{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}.trh .trr{margin-left:auto;white-space:nowrap}
+.trp{margin-top:3px}.trp2{margin-top:2px}
 .vlk{margin-top:10px;font-size:13.5px;text-align:right}
 .sgr{font-size:13.5px;line-height:1.75;margin:0 0 8px;color:var(--ink2)}
 .sgt td.wr{min-width:170px;max-width:300px}.sgt tr.sgw{display:none}
@@ -982,13 +996,6 @@ function stOf(k){return ((D.strat||{}).list||[]).find(s=>s.key===k);}
 function nmA(x){return BY[x.c]?`<a data-c="${esc(x.c)}">${esc(x.n)}</a>`:esc(x.n);}
 function ruleRows(rules){return rules.map(x=>{const i=x.indexOf('：');const lab=i>0&&i<=8?x.slice(0,i):'';return `<div class="rl${lab?'':' nl'}">${lab?`<span class=rlk>${esc(lab)}</span>`:''}<span>${esc(lab?x.slice(i+1):x)}</span></div>`;}).join('');}
 function riskList(xs){return (xs||[]).length?`<ol class=rkl>${xs.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`:'—';}
-function tradeTbl(rows,monthly){const gp=!monthly&&rows.some(t=>t.gap!=null);
-  return `<div class=tw><table><thead><tr><th>股票</th><th>${monthly?'篩選月':'訊號日'}</th><th class=l>狀態</th>${gp?'<th>跳空</th>':''}<th>進場</th><th>出場／現價</th><th>持有</th><th>報酬</th><th>超額${gi('超額')}</th></tr></thead><tbody>`+
-  rows.map(t=>`<tr data-c="${esc(t.c)}" class="${t.st==='skip'?'grey':''}"><td><span class=nm>${esc(t.n)}</span><span class=cd>${esc(t.c)}</span></td><td>${monthly?esc((t.d||'').slice(0,7)):md(t.d)}</td><td class=l>${t.st==='skip'?'未進場：'+esc(t.why||''):t.st==='open'?'持有中':t.st==='cand'?'待進場':esc(t.why||'')}${t.side?` <span class=pill>${t.side==='add'?'納入':'刪除'}</span>`:''}</td>${gp?`<td>${t.gap==null?'—':sgn(t.gap,1,'%')}</td>`:''}<td>${t.entry==null?'—':fp(t.entry)}</td><td>${t.exit!=null?fp(t.exit):t.now!=null?fp(t.now):'—'}</td><td>${t.held==null?'—':t.held+' 日'}</td><td>${sgn(t.r,1,'%')}</td><td>${t.x==null?'—':sgn(t.x,1,'%')}</td></tr>`).join('')+`</tbody></table></div>`;}
-function tradeLists(s,monthly){const fw=(s.fwd||[]).slice().reverse(),ins=(s.ins||[]).slice().reverse();
-  let m=`<h4 class=sh>前瞻交易（${md(s.since)} 起算，${fw.length} 筆）</h4>`+(fw.length?tradeTbl(fw,monthly):'<div class=st>尚無。</div>');
-  if(ins.length)m+=`<details class=mr><summary>歷史交易 ${ins.length} 筆（規則訂定前）</summary>${tradeTbl(ins,monthly)}</details>`;
-  return m;}
 function pctT(x,d=1){return x==null?'—':(x>0?'+':x<0?'−':'')+f(Math.abs(x),d)+'%';}
 function sq(k,v){return `<div class=sq><span class=sqk>${k}</span><div>${v}</div></div>`;}
 function stW(){return Math.max(280,Math.min(760,($('#main').clientWidth||360)-34));}
@@ -1113,10 +1120,6 @@ function acurveChart(C){if(!C||!(C.d||[]).length)return '';const n=C.d.length,W=
   s+=`<path d="${path(C.t)}" fill=none stroke="#9aa5b1" stroke-width=1.5 /><path d="${path(C.s)}" fill=none stroke="#2563c9" stroke-width=2 />`;
   const lt=[...C.t].reverse().find(v=>v>0);
   return `<h4 class=sh style="margin-top:0">1 元變多少（對數刻度）</h4><svg width=${W} height=${HH} viewBox="0 0 ${W} ${HH}">${s}</svg><div class=lg><span><i style="background:#2563c9"></i>本策略（扣成本）${f(C.s[n-1],1)} 倍</span><span><i style="background:#9aa5b1"></i>大盤（加權報酬指數）${lt?f(lt,1)+' 倍':'—'}</span><span>${esc(C.d[0].slice(0,7))} 起</span></div>`;}
-function pastTrades(s,monthly){const T=[...(s.fwd||[]),...(s.ins||[])].filter(t=>t.st!=='skip').sort((a,b)=>(b.d||'').localeCompare(a.d||''));
-  return T.length?`<details class=mr><summary>逐筆交易 ${T.length} 筆</summary>${tradeTbl(T,monthly)}</details>`:'';}
-function revTbl(s){const R=(s.by_rev||[]).filter(r=>r[1]!=null).slice().reverse();if(!R.length)return '';
-  return `<div class=tw><table class=yrt><thead><tr><th>審核</th><th>每次報酬<div class=sm2>各檔平均</div></th></tr></thead><tbody>${R.map(r=>`<tr><td>${esc(r[0])}</td><td>${sgn(r[1],1,'%')}</td></tr>`).join('')}</tbody></table></div>`;}
 function hdPast(){const g=gOf('hd')||{},ef=g.exit||{},dl=g.del||{},HA=((D.idx||{}).hd||{}).alert||{},aft=HA.after||10,e=(BK.hd||{}).exp||{},L=[];
   if(e.n)L.push(`名單公開後追買（估計被動買盤 ≥${HA.big_th||5} 日量的納入股、買盤最後一天賣）：${e.n} 次，每次平均 ${pctT(e.avg)}、中位 ${pctT(e.med)}，同期大盤 ${pctT(e.mk)}`);
   if(ef.n)L.push(`被動買盤結束後 ${aft} 個交易日：納入股平均${ef.avg<0?'輸':'贏'}大盤 ${f(Math.abs(ef.avg),1)}%，${ef.n} 次中 ${ef.neg} 次輸`);
@@ -1124,11 +1127,8 @@ function hdPast(){const g=gOf('hd')||{},ef=g.exit||{},dl=g.del||{},HA=((D.idx||{
   return riskList(L);}
 function pastSec(b){const k=b.k;
   if((b.yearly||[]).length)return `<div class=pst><div>${yearTbl(b)}</div><div>${acurveChart(b.acurve)}</div></div>`;
-  if(k==='s1')return pastTrades(stOf('s1')||{},false)||'<span class=mu>—</span>';
-  if(k==='s3'){const s=stOf('s3')||{},E=(s.vers||[]).find(v=>v.k==='early')||{};return revTbl(s)+pastTrades(E,false);}
-  if(k==='s5')return pastTrades((D.grow||{}).s5||{},true)||'<span class=mu>—</span>';
   if(k==='hd')return hdPast();
-  return '';}
+  return '';}                                            // 共識加碼、臺灣50、長線：每筆、每次的成績在「逐筆交易」
 function rulesOf(k){const L=LV[k];if(L)return [`範圍：${L.bucket}`,...(L.rules||[]),ADV.cost3||''].filter(Boolean);
   if(k==='s1')return (stOf('s1')||{}).rule||[];
   if(k==='s3'){const s=stOf('s3')||{},E=(s.vers||[]).find(v=>v.k==='early')||{};return E.rule||s.rule||[];}
@@ -1144,7 +1144,148 @@ function riskOf(b){const k=b.k,e=b.exp||{},A=b.all||{},X=b.exb,L=LV[k];
   const s=k==='s1'?stOf('s1'):k==='s3'?stOf('s3'):k==='s5'?(D.grow||{}).s5:k==='hd'?((D.idx||{}).hd||{}).alert:null,xs=((s||{}).risk||[]).slice();
   if(k==='s5'&&e.avg!=null&&e.med!=null&&e.avg-e.med>=10)xs.unshift(`平均 ${pctT(e.avg)} 遠高於中位 ${pctT(e.med)}：成績靠少數大漲（最好一筆 ${pctT(e.hi)}），多數交易小賺小賠或停損出場`);
   return xs;}
-function stCard(b){const k=b.k,parts=[['結論',conclTxt(b)],['怎麼做',`<div class=rls>${ruleRows(rulesOf(k))}</div>`],['過去成績',pastSec(b)],['風險',riskList(riskOf(b))]];
+/* ---------- 逐筆交易（2026-10-15；docs/lab_trades_plan.md）
+   使用者：「我希望每個策略都會有像是 0050 策略的逐筆歷史交易，我才能去驗證」。每條策略同一個元件，放在策略卡裡、預設收起：
+   每期（或每次審核）表＋逐筆表、年份、搜尋股票、下載 CSV。資料＝ADV.trades（緊湊陣列，日期＝2013-01-01 起第幾天）。
+   表上「本期報酬」（或每次平均、逐筆報酬）的平均、中位、正的比例＝卡片上方的數字；價格是當時的實際成交價。 ---------- */
+const TRB=Date.UTC(2013,0,1),TRC=['c','d','bd','bp','sd','sp','r','mk','st','hd','how','so','np','rk','sc','info','dv','mul','kc','ap','why','g'],
+  PRC=['d','bd','ed','r','mk','pk','new','drop','skip','sc','end','nu'];
+const HOWT={d:'不在新名單・開盤賣',l:'鎖跌停・順延收盤賣',e:'期末收盤賣',el:'期末遇鎖跌停・順延賣',bt:'回測資料到此結算'},WHYT={lim:'漲停開盤，沒買到',noopen:'沒有開盤價，沒買到'};
+function tpx(x){if(x==null)return '—';const d=x>=500?0:x>=50?1:2;const s=f(x,d);return d?s.replace(/\.?0+$/,''):s;}   // 價格：照升降單位的位數，去掉尾端 0
+const TRS={};
+function tnD(n){return n==null?null:new Date(TRB+n*864e5).toISOString().slice(0,10);}
+function avgOf(xs){xs=xs.filter(v=>v!=null);return xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:null;}
+function medOf(xs){xs=xs.filter(v=>v!=null).sort((a,b)=>a-b);const n=xs.length;return n?(n%2?xs[(n-1)/2]:(xs[n/2-1]+xs[n/2])/2):null;}
+function winOf(xs){xs=xs.filter(v=>v!=null);return xs.length?Math.round(100*xs.filter(v=>v>0).length/xs.length):null;}
+function prevYm(d){let y=+d.slice(0,4),m=+d.slice(5,7)-1;if(m<1){m=12;y--;}return `${y}-${String(m).padStart(2,'0')}`;}
+function trData(k){const T=(ADV.trades||{})[k];if(!T)return null;if(T._n)return T._n;
+  const since=T.since||'9999',NM=ADV.tnames||{},two=!!T.fwd;
+  const dec=(a,cols)=>{const o={};cols.forEach((c,i)=>o[c]=a[i]===undefined?null:a[i]);return o;};
+  const tr=[],per=[];
+  for(const part of ['res','fwd']){const P=T[part];if(!P)continue;
+    const keep=(d,st)=>!two||(part==='res'?d<since:d>=since||st==='o');   // 研究檔只取起算日之前，前瞻只取之後（重跑研究也不會重複）；這一期持有中照列
+    for(const a of P.tr||[]){const o=dec(a,TRC);o.d=tnD(o.d);if(!keep(o.d,o.st))continue;o.bd=tnD(o.bd);o.sd=tnD(o.sd);
+      o.dv=(o.dv||[]).map(x=>[tnD(x[0]),x[1],x[2]]);o.fw=o.d>=since;o.n=NM[o.c]||(BY[o.c]||{}).n||o.c;tr.push(o);}
+    for(const a of P.per||[]){const o=dec(a,PRC);o.d=tnD(o.d);if(!keep(o.d))continue;o.bd=tnD(o.bd);o.ed=tnD(o.ed);o.fw=o.d>=since;per.push(o);}}
+  const nu={};per.forEach(p=>nu[p.d]=p.nu);const cu=(T.fwd||{}).cur;if(cu)nu[tnD(cu[0])]=cu[1];
+  let grp=[];
+  if(T.kind==='rev'){const by=new Map();
+    for(const t of tr){if(t.st!=='c'||!t.g)continue;const g=by.get(t.g)||{g:t.g,d:t.d,rs:[],ms:[],cs:[],fw:t.fw};
+      g.rs.push(t.r);if(t.mk!=null)g.ms.push(t.mk);g.cs.push(t.c);if(t.d<g.d)g.d=t.d;by.set(t.g,g);}
+    grp=[...by.values()].map(g=>({g:g.g,d:g.d,n:g.rs.length,r:avgOf(g.rs),mk:avgOf(g.ms),cs:g.cs,fw:g.fw}));}
+  tr.sort((a,b)=>(b.d||'').localeCompare(a.d||'')||(b.bd||'').localeCompare(a.bd||'')||(a.rk||99)-(b.rk||99)||a.c.localeCompare(b.c));
+  per.sort((a,b)=>b.d.localeCompare(a.d));grp.sort((a,b)=>b.d.localeCompare(a.d)||a.g.localeCompare(b.g));
+  return T._n={tr,per,grp,nu,since:T.since,kind:T.kind,src:T.src,unit:T.unit};}
+function trNm(c){const n=(ADV.tnames||{})[c]||(BY[c]||{}).n;return n||c;}
+function trWhy(k,t,X){const I=t.info||[],rk=t.rk?`・第 ${t.rk} 名／${X.nu[t.d]||'—'} 檔`:'';
+  if(X.src==='p7')return `${+prevYm(t.d).slice(5)} 月營收年增 ${I[0]==null?'—':f(I[0],0)+'%'}${rk}`;
+  if(X.src==='p3')return `${qTxt(I[0])} EPS ${I[1]==null?'—':f(I[1],2)}（去年同季 ${I[2]==null?'—':f(I[2],2)}）${rk}`;
+  if(k==='s1')return I[0]==null?'共識加碼':`共識加碼・隔天開盤 ${I[0]>0?'+':''}${f(I[0],1)}%`;
+  if(k==='s3')return `${I[0]==='早'?'截止前建倉':'截止日補位'}${I[1]!=null?`・40 日漲 ${I[1]>0?'+':''}${f(I[1],0)}%`:''}`;
+  if(k==='hd')return `${esc(I[0]||'')} 換股・估計被動買盤 ${I[1]==null?'—':f(I[1],1)} 日量`;
+  if(k==='s5')return `${ym(t.d)} 月底篩選`;
+  return '';}
+function trDiv(t){const D=t.dv||[];let s=D.length?D.map(x=>`${esc(x[1])} ${f(x[2],2)}`).join('、'):'';
+  if(t.mul!=null&&t.st==='c')s+=` <span class=mu>×${f(t.mul,3)}</span>`;
+  if(t.kc===1)s+=(s?'；':'')+'減資或分割';
+  if(t.kc===2)s+=(s?' ':'')+`<span class=mu title="回測價格在這段期間和官方資料有出入（Yahoo 補的價格已依之後的配股、減資換算），報酬照回測計算；還原倍數 ×${f(trMul(t),4)}">※</span>`;
+  return s||'<span class=mu>—</span>';}
+function trMul(t){return t.mul==null?1:t.mul;}
+function trSellWhy(t){return t.st==='o'?'':esc(HOWT[t.how]||t.how||'');}
+/* 核對說明：由資料算，和卡片上方的數字同一個來源 */
+function trCheck(k,X){const T=ADV.trades[k],h=X.tr.filter(t=>!t.fw),cl=h.filter(t=>t.st==='c').map(t=>t.r),
+    fw=X.tr.filter(t=>t.fw),fwc=fw.filter(t=>t.st==='c');
+  const st=(xs,u)=>`${xs.length} ${u}，平均 <b>${pctT(avgOf(xs))}</b>、中位 ${pctT(medOf(xs))}，${winOf(xs)}% 賺錢`;
+  let s='';
+  if(X.kind==='per'){const ps=X.per.filter(p=>!p.fw).map(p=>p.r),u=X.unit==='季'?'季':'月';
+    s=`每期報酬（下表「本期報酬」，同一期 5 檔等額）：${st(ps,'期')}，就是上方「每${u}平均」的來源。`+
+      (X.src==='p7'?`逐筆：${st(cl,'筆')}；續抱的股票不重複買賣，一筆可能跨好幾期，所以平均和每期不同。`:
+        `逐筆：${st(cl,'筆')}；期與期之間持有現金，每期報酬就是當期各筆的平均（漲停買不到的那一份放現金）。`);}
+  else if(X.kind==='rev'){const gs=X.grp.filter(g=>!g.fw).map(g=>g.r);
+    s=`每次報酬（同一次各檔平均）：${st(gs,'次')}，就是上方數字的來源。逐筆：${st(cl,'筆')}。`;}
+  else s=`已出場：${st(cl,'筆')}，就是上方數字的來源。`;
+  const op=X.tr.filter(t=>t.st==='o');
+  if(fwc.length)s+=`<br>前瞻（${md(X.since)} 起決定的）：已出場 ${fwc.length} 筆，平均 ${pctT(avgOf(fwc.map(t=>t.r)))}、${winOf(fwc.map(t=>t.r))}% 賺錢。`;
+  if(op.length)s+=`<br>持有中 ${op.length} 檔${op.every(t=>t.d===op[0].d)?`（${op[0].d} 決定）`:''}：還沒賣出，表上的報酬是到最新收盤，不算進上面的數字。${X.kind==='per'&&X.src==='p7'?'回測資料最後一期標「回測資料到此結算」，實際照規則會續抱或換股，見持有中的那一期。':''}`;
+  const lk=X.src?`報酬＝賣出價 ÷ 買進價 × 還原倍數 ×（1 − 賣出成本）÷（1 ＋ 買進成本）− 1。價格是當時的實際成交價；還原倍數＝持有期間的除權息（股利再投入）與減資、分割換算，寫在除權息欄的「×」後面，沒有除權息就是 1。成本：${esc(T.b==='M'?'中型股買進 0.19%、賣出 0.49%（含證交稅 0.3%）':'大型股買進 0.09%、賣出 0.39%（含證交稅 0.3%）')}。前瞻用每日價格，報酬未含股利。`:
+    `報酬＝賣出價 ÷ 買進價 − 1 − 來回成本 0.585%，未含股利（除權息欄只列出來對照）；價格是當時的實際成交價，標 ※ 的是回測價格和實際有出入，報酬照回測：報酬＝賣出價 ÷ 買進價 × 除權息欄的「×」數字 − 1 − 成本。`;
+  return `<div class=trn>${s}</div><div class="sm2 trf">${lk}${X.kind==='per'?'同期大盤＝加權報酬指數（含息），從買進前一天收盤算到賣出日收盤。':'同期大盤＝加權指數，同一段持有期間。'}</div>`;}
+/* 每期表（定期換股） */
+function trPerRows(X,rows,mob){const P=rows,roll=X.src==='p7';              // 月營收期期相連（續抱、換股）；財報驚喜期與期之間持有現金
+  const tk=(c,cls,tag,sc)=>`<span class="tk${cls}"${sc!=null?` title="${esc(c)}・分數 ${f(sc,1)}"`:''}>${BY[c]?`<a data-c="${esc(c)}">${esc(trNm(c))}</a>`:esc(trNm(c))}${tag?`<i>${tag}</i>`:''}</span>`;
+  const lst=p=>p.pk.map((c,i)=>{const sk=(p.skip||[]).includes(c),nw=(p.new||[]).includes(c);return tk(c,sk?' sk':roll&&nw?' nw':'',sk?'沒買到':roll?(nw?'買':'續'):'',p.sc[i]);}).join('');
+  const out=p=>(p.drop||[]).length?(p.drop.map(c=>tk(c,'','',null)).join('')+`<span class=sm2>${md(p.bd)} 開盤</span>`):'<span class=mu>—</span>';
+  const endT=p=>p.end===2?`${md(p.ed)} 回測資料到此結算`:p.end?`${md(p.ed)} 收盤全部賣`:'';
+  const buyT=p=>`${md(p.bd)} 開盤${roll?'換股':'買進'}`;
+  if(mob)return P.map(p=>`<div class="trl${p.fw?' fw':''}"><div class=trh><b>${p.d}</b><span class=sm2>決定・${buyT(p)}${p.end?`・${endT(p)}`:''}</span><span class=trr>${sgn(p.r,1,'%')}<span class=sm2> 大盤 ${pctT(p.mk)}</span></span></div>`+
+    `<div class=trp>${lst(p)}</div>${(p.drop||[]).length?`<div class=sm2>開盤賣出：${p.drop.map(c=>esc(trNm(c))).join('、')}</div>`:''}</div>`).join('');
+  return `<div class=tw><table class=trt><thead><tr><th class=l>決定日</th><th class=l>本期名單${roll?'（買＝新買、續＝續抱）':''}</th>${roll?'<th class=l>開盤賣出（不在新名單）</th>':''}<th>本期報酬</th><th>同期大盤</th></tr></thead><tbody>`+
+    P.map(p=>`<tr class="${p.fw?'fw':''}"><td class=l>${p.d}<div class=sm2>${buyT(p)}${p.end?`<br>${endT(p)}`:''}${p.fw?'<br><span class=pill>前瞻</span>':''}</div></td><td class="l wr2">${lst(p)}</td>${roll?`<td class="l wr2">${out(p)}</td>`:''}<td>${sgn(p.r,1,'%')}</td><td>${pctT(p.mk)}</td></tr>`).join('')+`</tbody></table></div>`;}
+/* 每次表（臺灣50、高股息：同一次審核各檔平均） */
+function trGrpRows(X,rows,mob){
+  if(mob)return rows.map(g=>`<div class="trl${g.fw?' fw':''}"><div class=trh><b>${esc(g.g)}</b><span class=sm2>${g.n} 檔</span><span class=trr>${sgn(g.r,1,'%')}<span class=sm2> 大盤 ${pctT(g.mk)}</span></span></div><div class=trp>${g.cs.map(c=>`<span class=tk>${esc(trNm(c))}</span>`).join('')}</div></div>`).join('');
+  return `<div class=tw><table class=trt><thead><tr><th class=l>審核</th><th class=l>股票</th><th>檔數</th><th>每次報酬<div class=sm2>各檔平均</div></th><th>同期大盤</th></tr></thead><tbody>`+
+    rows.map(g=>`<tr class="${g.fw?'fw':''}"><td class=l>${esc(g.g)}${g.fw?' <span class=pill>前瞻</span>':''}</td><td class="l wr2">${g.cs.map(c=>`<span class=tk>${BY[c]?`<a data-c="${esc(c)}">${esc(trNm(c))}</a>`:esc(trNm(c))}</span>`).join('')}</td><td>${g.n}</td><td>${sgn(g.r,1,'%')}</td><td>${pctT(g.mk)}</td></tr>`).join('')+`</tbody></table></div>`;}
+/* 逐筆表 */
+function trTrRows(k,X,rows,mob){
+  const nm=t=>`${BY[t.c]?`<a data-c="${esc(t.c)}">${esc(t.n)}</a>`:esc(t.n)} <span class=cd>${esc(t.c)}</span>${t.fw?' <span class=pill>前瞻</span>':''}`;
+  const ret=t=>t.st==='s'?`<span class=mu>${esc(WHYT[t.why]||t.why||'沒進場')}</span>`:`<span title="${t.st==='c'&&(X.src||t.mul!=null)?`還原倍數 ${f(trMul(t),4)}`:''}">${sgn(t.r,1,'%')}</span>`;
+  const hold=t=>t.hd==null?'—':`${t.hd} 日${t.np>1?`・${t.np} 期`:''}`;
+  if(mob)return rows.map(t=>`<div class="trl${t.st==='s'?' grey':''}${t.fw?' fw':''}"><div class=trh><span>${nm(t)}</span><span class=trr>${ret(t)}${t.st==='c'?`<span class=sm2> 大盤 ${pctT(t.mk)}</span>`:''}</span></div>`+
+    `<div class=sm2>${t.d} 決定｜${esc(trWhy(k,t,X))}</div>`+(t.st==='s'?'':`<div class=trp2>買 ${t.bd} 開盤 <b>${tpx(t.bp)}</b> → ${t.st==='o'?'持有中':'賣'} ${t.st==='o'?(t.sp!=null?`最新 <b>${tpx(t.sp)}</b>`:''):`${t.sd} ${t.so?'開盤':'收盤'} <b>${tpx(t.sp)}</b>`}</div>`+
+    `<div class=sm2>${t.st==='o'?`已持有 ${hold(t)}`:`持有 ${hold(t)}`}${(t.dv||[]).length||t.kc?`｜除權息 ${trDiv(t)}`:''}${t.st==='c'&&trSellWhy(t)?`｜${trSellWhy(t)}`:''}${t.ap?'｜價格為約略值':''}</div>`)+`</div>`).join('');
+  return `<div class=tw><table class=trt><thead><tr><th class=l>股票</th><th class=l>入選（決定日・依據）</th><th class=l>買進</th><th class=l>賣出</th><th>持有</th><th class=l>除權息</th><th>報酬</th><th>同期大盤</th></tr></thead><tbody>`+
+    rows.map(t=>`<tr class="${t.st==='s'?'grey':''}${t.fw?' fw':''}"><td class=l>${nm(t)}</td><td class="l wr2 twy">${t.d}<div class=sm2>${esc(trWhy(k,t,X))}</div></td>`+
+      `<td class=l>${t.st==='s'?'—':`${t.bd}<div class=sm2>開盤 ${tpx(t.bp)}${t.ap?' 約':''}</div>`}</td><td class="l tsl">${t.st==='s'?'—':t.st==='o'?`持有中<div class=sm2>${t.sp!=null?`最新 ${tpx(t.sp)}`:''}</div>`:`${t.sd}<div class=sm2>${t.so?'開盤':'收盤'} ${tpx(t.sp)}</div><div class=sm2>${trSellWhy(t)}</div>`}</td>`+
+      `<td>${hold(t)}</td><td class="l tdv">${t.st==='s'?'—':trDiv(t)}</td><td>${ret(t)}</td><td>${t.st==='c'?pctT(t.mk):'—'}</td></tr>`).join('')+`</tbody></table></div>`;}
+function trFilter(X,S){const q=(S.q||'').trim(),y=S.y||'';
+  const okc=c=>!q||c.includes(q)||trNm(c).includes(q);
+  if(S.v==='per')return X.per.filter(p=>(!y||p.d.startsWith(y))&&(!q||p.pk.some(okc)||(p.drop||[]).some(okc)));
+  if(S.v==='grp')return X.grp.filter(g=>(!y||g.d.startsWith(y))&&(!q||g.cs.some(okc)||g.g.includes(q)));
+  return X.tr.filter(t=>(!y||t.d.startsWith(y))&&okc(t.c));}
+function trRender(k){const box=document.querySelector(`details.trb[data-k="${k}"] .trin`);if(!box)return;const X=trData(k);
+  const S=TRS[k]=TRS[k]||{v:X.kind==='per'?'per':X.kind==='rev'?'grp':'tr',y:'',q:'',n:0};
+  const views=X.kind==='per'?[['per','每期'],['tr','逐筆']]:X.kind==='rev'?[['grp','每次'],['tr','逐筆']]:[];
+  const yrs=[...new Set(X.tr.map(t=>t.d.slice(0,4)))].sort().reverse(),mob=innerWidth<(S.v==='tr'?1100:640),step=S.v==='tr'?(mob?15:25):(mob?8:12);   // 逐筆表欄多：平板也用條列
+  const all=trFilter(X,S),n=S.n||step,rows=all.slice(0,n);
+  const body=S.v==='per'?trPerRows(X,rows,mob):S.v==='grp'?trGrpRows(X,rows,mob):trTrRows(k,X,rows,mob);
+  const nm=S.v==='per'?'期':S.v==='grp'?'次':'筆',sub=all.filter(x=>!x.fw&&(S.v==='tr'?x.st==='c':true)).map(x=>x.r);
+  box.innerHTML=trCheck(k,X)+`<div class=trc>${views.length?`<span class=seg>${views.map(([v,l])=>`<a data-tv="${v}" class="${S.v===v?'on':''}">${l}</a>`).join('')}</span>`:''}`+
+    `<select data-ty>${['',...yrs].map(y=>`<option value="${y}"${S.y===y?' selected':''}>${y?y+' 年':'全部年份'}</option>`).join('')}</select>`+
+    `<input type=search data-tq placeholder="搜尋股票代號或名稱" value="${esc(S.q)}"><a class=trcsv data-tcsv>下載 CSV</a></div>`+
+    ((S.y||S.q)?`<div class=sm2>篩選後 ${all.length} ${nm}${sub.length?`，平均 ${pctT(avgOf(sub))}、${winOf(sub)}% 賺錢`:''}</div>`:'')+
+    (all.length?body:'<div class=st>沒有符合的交易。</div>')+(all.length>n?`<a class=trm data-tm>再顯示 ${Math.min(step,all.length-n)} ${nm}（共 ${all.length}）</a>`:'');
+  const q=box.querySelector('[data-tq]');
+  box.querySelectorAll('[data-tv]').forEach(a=>a.onclick=()=>{S.v=a.dataset.tv;S.n=0;trRender(k);});
+  box.querySelector('[data-ty]').onchange=e=>{S.y=e.target.value;S.n=0;trRender(k);};
+  q.oninput=()=>{clearTimeout(S.t);S.t=setTimeout(()=>{S.q=q.value;S.n=0;trRender(k);const q2=box.querySelector('[data-tq]');q2.focus();q2.setSelectionRange(q2.value.length,q2.value.length);},250);};
+  const m=box.querySelector('[data-tm]');if(m)m.onclick=()=>{S.n=n+step;trRender(k);};
+  box.querySelector('[data-tcsv]').onclick=()=>trCsv(k,S.v);}
+function trBox(k){const X=trData(k);if(!X||!X.tr.length)return '';
+  const cl=X.tr.filter(t=>t.st==='c'),ds=X.tr.map(t=>t.d).sort(),u=X.kind==='per'?`${X.per.length} 期・`:X.kind==='rev'?`${X.grp.length} 次・`:'';
+  return `<details class="mr trb" data-k="${esc(k)}"><summary>${u}${cl.length} 筆（${ym(ds[0])}～${ym(ds[ds.length-1])}）</summary><div class=trin></div></details>`;}
+function trBind(){$$('#main details.trb').forEach(d=>d.addEventListener('toggle',()=>{if(d.open&&!d.dataset.done){d.dataset.done=1;trRender(d.dataset.k);}}));}
+/* CSV（Excel 直接開；全部資料，不受年份與搜尋影響） */
+function trCsv(k,v){const X=trData(k),name=(BK[k]||{}).name||k;let H,R;
+  const dv=t=>(t.dv||[]).map(x=>`${x[0]} ${x[1]} ${x[2]}`).join('；')+(t.kc===1?'；減資或分割':'');
+  if(v==='per'){H=['策略','決定日','買進日（開盤換股）','期末日','本期名單','新買','續抱','沒買到','開盤賣出（上一期留下）','本期報酬%','同期大盤%','可選股票數','前瞻'];
+    R=X.per.slice().reverse().map(p=>[name,p.d,p.bd,p.end===2?`${p.ed}（回測資料到此結算）`:p.ed,p.pk.map(c=>`${c} ${trNm(c)}`).join('、'),(p.new||[]).join('、'),p.pk.filter(c=>!(p.new||[]).includes(c)&&!(p.skip||[]).includes(c)).join('、'),
+      (p.skip||[]).join('、'),(p.drop||[]).join('、'),p.r,p.mk,p.nu,p.fw?'是':'']);}
+  else if(v==='grp'){H=['策略','審核','決定日','檔數','股票','每次報酬%（各檔平均）','同期大盤%','前瞻'];
+    R=X.grp.slice().reverse().map(g=>[name,g.g,g.d,g.n,g.cs.join('、'),g.r==null?'':g.r.toFixed(2),g.mk==null?'':g.mk.toFixed(2),g.fw?'是':'']);}
+  else{H=['策略','決定日','股票代號','股票名稱','入選依據','買進日','買進價（開盤）','賣出日','賣出價','賣出時點','賣出原因','持有交易日','連續入選期數','期間除權息','還原倍數','報酬%','同期大盤%','狀態','前瞻'];
+    R=X.tr.slice().reverse().map(t=>[name,t.d,t.c,t.n,trWhy(k,t,X).replace(/<[^>]+>/g,''),t.bd||'',t.bp??'',t.st==='o'?'':t.sd||'',t.sp??'',t.st==='c'?(t.so?'開盤':'收盤'):'',
+      t.st==='s'?(WHYT[t.why]||t.why||''):(HOWT[t.how]||t.how||''),t.hd??'',t.np??'',dv(t),t.st==='c'&&X.src?trMul(t):'',t.r??'',t.mk??'',
+      t.st==='c'?'已出場':t.st==='o'?'持有中':'沒進場',t.fw?'是':'']);}
+  const q=x=>{x=x==null?'':String(x);return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;};
+  const txt='\ufeff'+[H,...R].map(r=>r.map(q).join(',')).join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/csv;charset=utf-8'}));
+  a.download=`${name}_${v==='per'?'每期':v==='grp'?'每次':'逐筆'}_${(ADV.last||'').slice(0,10)}.csv`;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},800);}
+function stCard(b){const k=b.k,ps=pastSec(b),tb=trBox(k),parts=[['結論',conclTxt(b)],['怎麼做',`<div class=rls>${ruleRows(rulesOf(k))}</div>`]];
+  if(ps)parts.push(['過去成績',ps]);
+  if(tb)parts.push(['逐筆交易',tb]);
+  parts.push(['風險',riskList(riskOf(b))]);
   if(k==='s3')parts.splice(2,0,['這一次',s3Now(stOf('s3')||{})]);
   return sec('st-'+k,STN[k]||b.name,`${b.rank?`<span class=orank>${b.rank}</span>`:''}${esc(b.name)} ${k==='hd'?gBadge('C','不追買・出場規則'):gBadge(b.grade)}`,esc(b.how||''),
     `<div class="card stc">${parts.map(([a,c])=>sq(a,c)).join('')}<div class=vlk>${b.rank?`<a data-go="opp" data-at="o-${esc(k)}">這一期的股票 →</a>`:''}<a data-go="bo" data-at="val-${esc(k)}">後台：評級依據與驗證 →</a></div></div>`);}
@@ -1159,6 +1300,7 @@ function vSt(){const X=D.strat||{};
   h+=bookSec()+(ADV.book||[]).map(stCard).join('')+posSec();
   $('#main').innerHTML=h;
   $$('#main [data-to]').forEach(a=>a.onclick=e=>{e.preventDefault();jump(a.dataset.to);});
+  trBind();
 }
 
 /* ---------- 後台（頂欄小字；版面 v4，2026-10-15）：策略的自我驗證與研究，每天收盤後自動更新（valog.py 寫 data/lab/val_log.json）。
