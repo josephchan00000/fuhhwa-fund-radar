@@ -46,6 +46,18 @@ def universe_vs_official(client: FinMindClient, cfg, off: pd.DataFrame) -> None:
     st = stale.copy()
     st["year"] = pd.to_datetime(st["date"]).dt.year
     print("   清單停更各年檔數：", st.groupby("year").size().to_dict())
+    # 停更的是什麼：同代號在清單裡的所有列（含興櫃列）、是否在下市表
+    allinfo = info.copy()
+    allinfo["stock_id"] = allinfo["stock_id"].astype(str)
+    dlset = set(dl["stock_id"].astype(str))
+    for y in (2024, 2026, 2023):
+        sub = st[st["year"] == y].head(12)
+        print(f"   ── 清單停更 {y} 年（前 12 檔）")
+        for r in sub.itertuples(index=False):
+            rows = allinfo[allinfo["stock_id"] == r.stock_id][["type", "industry_category", "date"]]
+            print("     ", r.stock_id, r.stock_name, "| 下市表" if r.stock_id in dlset else "| 不在下市表",
+                  "|", rows.to_dict("records"))
+    return st
 
 
 def main(argv: list[str]) -> None:
@@ -55,7 +67,21 @@ def main(argv: list[str]) -> None:
     client = FinMindClient(get_token(cfg), cfg.finmind)
     off = fetch_official(requests.Session())
     print(f"[官方] {len(off)} 檔有上市櫃日（twse {int((off.market == 'twse').sum())}、tpex {int((off.market == 'tpex').sum())}）")
-    universe_vs_official(client, cfg, off)
+    st = universe_vs_official(client, cfg, off)
+    # 停更股票的日 K 型態：整段主板規則符合率（主板 ~99%、興櫃 0–33%）
+    today0 = pd.Timestamp.now().date().isoformat()
+    sample = list(st[st["year"] == 2024]["stock_id"].head(8)) + list(st[st["year"] == 2026]["stock_id"].head(8))
+    for code in sample:
+        p = client.get("TaiwanStockPrice", code, "2008-01-01", today0)
+        if p.empty:
+            print(f"   [停更日 K] {code}: 沒有日 K")
+            continue
+        p = p.sort_values("date")
+        m = match_series(p["close"], p["spread"])
+        _, inf = trim(p.rename(columns={"Trading_Volume": "volume"}).assign(stock_id=code), None)
+        r = inf.iloc[0]
+        print(f"   [停更日 K] {code}: {p['date'].iloc[0]}～{p['date'].iloc[-1]}（{len(p)} 筆）整段符合率 {pd.Series(m).mean():.2f}"
+              f"、主板首日 {r.main_start}、主板末日 {r.main_end}")
     today = pd.Timestamp.now().date().isoformat()
     frames = []
     for code in codes:

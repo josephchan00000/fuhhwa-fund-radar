@@ -17,4 +17,11 @@ python -m superstock status     # 看進度；中斷後重跑同一指令會續�
 python -m superstock build && python -m superstock quality && python -m superstock reconcile
 ```
 
+其他指令：`python -m superstock probe`（實測各資料集欄位與語意 → `reports/live_probe.md`）、
+`python -m superstock replicate`（P2 關卡：回測引擎複製加權報酬指數）。
+
+雲端 Claude 的工作環境連不到 FinMind，實測改在 GitHub Actions 跑：在 repo 根目錄寫 `.ping/superstock`
+（第一個字＝`smoke`／`probe`／`diag`）推上 `claude/**` 分支即觸發 `.github/workflows/superstock.yml`，
+資料只留在 runner 暫存，跑完回寫 `reports/smoke/`。
+
 資料只留在本機（`data/` 不進 git）；報告在 `reports/`。本系統是研究工具，不是投資建議。
