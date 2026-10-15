@@ -85,3 +85,24 @@ def test_official_parse_and_compare():
     _, info = trim(a, None)
     cmp = compare_official(info, official, a["date"])
     assert cmp["compared"] == 1 and cmp["within_1_day"] == 1 and cmp["missed"] == 0
+
+
+def test_false_switch_inside_emerging_period_is_skipped():
+    """3661 世芯型：興櫃中段一段價格不動、某天又爆量 → 看起來像轉換點；要取最後一個（真正的掛牌日）。"""
+    df = emerging_then_listed(n_em=80, seed=3)
+    df.loc[30:52, "spread"] = 0.0
+    df.loc[30:52, "close"] = df.loc[29, "close"]
+    df.loc[29, "volume"] = 200_000                  # 假轉換點：爆量、之後 20 筆都「符合」
+    df.loc[53, "spread"] = 2.0
+    got = main_board_start(df["date"], df["close"], df["spread"], df["volume"])
+    assert got == df["date"].iloc[80]
+
+
+def test_no_trade_rows_before_listing_are_not_evidence():
+    """6901 型：興櫃最後幾天沒成交（價格沿用、價差 0、量 0）→ 不能把最後一個興櫃日當掛牌日。"""
+    df = emerging_then_listed(n_em=50, seed=5)
+    df.loc[46, "volume"] = 300_000               # 最後一個有成交的興櫃日也爆量
+    for k in (47, 48, 49):
+        df.loc[k, ["close", "spread", "volume"]] = [df.loc[46, "close"], 0.0, 0]
+    got = main_board_start(df["date"], df["close"], df["spread"], df["volume"])
+    assert got == df["date"].iloc[50]
