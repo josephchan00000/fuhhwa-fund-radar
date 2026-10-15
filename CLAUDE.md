@@ -496,7 +496,7 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
   卻印 2xx 時，讀 PR 的 commit status（`pull_request_read` get_status，context＝Vercel），描述是
   「Deployment rate limited — retry in 24 hours」就是這個。**對策**：當天少推分支，等限制解除，下一班 CI 會自動部署；
   根治是在兩支 vercel.json 加 `"git": {"deploymentEnabled": {"claude/**": false}}`，停掉工作分支的預覽部署
-  （改部署設定要先問使用者；2026-10-15 已提、待同意）。
+  （2026-10-16 使用者同意、已改，`tests/test_multiuser_hardening.py` 守；main 不得關掉）。
 - **多人化硬化（2026-08-14；規劃全文 `docs/multi_user_plan.md`。實際規模＝**家人約 30 人分享、非商用**，
   Vercel Hobby 合規、無需升 Pro；**讀取端不隨人數產生成本**——CI 分鐘按排程固定、資料來源站只有 CI 會碰、
   使用者只從 CDN 抓單一自包 HTML，30 人約 0.4GB/月＝免費額 0.4%。硬化的價值主要在**省維護者自己的
