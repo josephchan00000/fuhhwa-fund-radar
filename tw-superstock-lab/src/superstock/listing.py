@@ -96,12 +96,38 @@ def main_board_start(dates, close, spread, volume) -> pd.Timestamp | None:
     return pd.Timestamp(pd.Series(dates).iloc[first])
 
 
+def main_board_end(dates, close, spread, volume, after: pd.Timestamp | None = None) -> pd.Timestamp | None:
+    """主板最後一個交易日（之後轉回興櫃型態：前 20 筆符合率 ≥90%、後 20 筆 ≤60%）；一路都是主板回 None。
+    下市後改在興櫃交易的公司，FinMind 會接著給興櫃日 K——用資料本身判斷，不靠下市日（股票清單的下市判斷可能有誤）。"""
+    n = len(close)
+    if n < 2 * MIN_PRE:
+        return None
+    m = match_series(close, spread)
+    vol = pd.to_numeric(pd.Series(volume), errors="coerce").astype(float).to_numpy(float)
+    m[~(vol > 0)] = np.nan
+    pre_n, pre_h = _window(m, forward=False)
+    post_n, post_h = _window(m, forward=True)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        pre_rate, post_rate = pre_h / pre_n, post_h / post_n
+    d = pd.to_datetime(pd.Series(dates)).to_numpy()
+    ok = np.ones(n, dtype=bool) if after is None else d >= np.datetime64(after)
+    cand = ok & (pre_n >= MIN_PRE) & (pre_rate >= POST_MIN) & (post_n >= MIN_PRE) & (post_rate <= PRE_MAX) & (m == 1.0)
+    idx = np.flatnonzero(cand)
+    if not len(idx):
+        return None
+    # 和掛牌日相反：主板最後幾天的「後 20 筆」已混進興櫃，候選連成一群——取第一群的最後一天
+    breaks = np.flatnonzero(np.diff(idx) > WIN)
+    last = idx[breaks[0]] if len(breaks) else idx[-1]
+    return pd.Timestamp(d[last])
+
+
 def trim(prices: pd.DataFrame, universe: pd.DataFrame | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     """prices＝原始日 K 長表（date, stock_id, close, spread, volume）。
-    回傳（切掉興櫃前段與下市後的日 K, 每檔紀錄 stock_id/first_raw/main_start/delist_date/dropped_pre/dropped_post）。"""
+    回傳（只留主板期間的日 K, 每檔紀錄：first_raw/last_raw 原始首末日、main_start/main_end 偵測到的主板首末日、
+    delist_date 股票池的下市日（只記錄、不拿來切）、dropped_pre/dropped_post 切掉幾筆）。"""
     if prices.empty:
-        return prices, pd.DataFrame(columns=["stock_id", "first_raw", "main_start", "delist_date",
-                                             "dropped_pre", "dropped_post", "kept", "head_match"])
+        return prices, pd.DataFrame(columns=["stock_id", "first_raw", "main_start", "main_end", "last_raw",
+                                             "delist_date", "dropped_pre", "dropped_post", "kept", "head_match"])
     p = prices.sort_values(["stock_id", "date"], kind="stable").reset_index(drop=True)
     p["date"] = pd.to_datetime(p["date"])
     delist = {}
@@ -118,18 +144,22 @@ def trim(prices: pd.DataFrame, universe: pd.DataFrame | None = None) -> tuple[pd
         start = main_board_start(g["date"].to_numpy(), g["close"].to_numpy(), g["spread"].to_numpy(),
                                  g[vol_col].to_numpy()) if "spread" in g.columns else None
         d = g["date"].to_numpy()
+        end = main_board_end(d, g["close"].to_numpy(), g["spread"].to_numpy(), g[vol_col].to_numpy(),
+                             after=start) if "spread" in g.columns else None
         pre = (d < np.datetime64(start)) if start is not None else np.zeros(len(g), dtype=bool)
+        post = (d > np.datetime64(end)) if end is not None else np.zeros(len(g), dtype=bool)
         dd = delist.get(sid[s])
-        post = (d > np.datetime64(dd)) if dd is not None and not pd.isna(dd) else np.zeros(len(g), dtype=bool)
         keep[s:e] = ~(pre | post)
         head = match_series(g["close"].to_numpy(), g["spread"].to_numpy())[:WIN + 1] \
             if "spread" in g.columns else np.array([np.nan])
-        rows.append({"stock_id": sid[s], "first_raw": pd.Timestamp(d[0]), "main_start": start,
+        rows.append({"stock_id": sid[s], "first_raw": pd.Timestamp(d[0]), "main_start": start, "main_end": end,
+                     "last_raw": pd.Timestamp(d[-1]),
                      "delist_date": dd, "dropped_pre": int(pre.sum()), "dropped_post": int(post.sum()),
                      "kept": int((~(pre | post)).sum()),
                      "head_match": float(np.nanmean(head)) if np.isfinite(head).any() else np.nan})
     info = pd.DataFrame(rows)
     info["main_start"] = pd.to_datetime(info["main_start"])
+    info["main_end"] = pd.to_datetime(info["main_end"])
     info["delist_date"] = pd.to_datetime(info["delist_date"])
     return p[keep].reset_index(drop=True), info
 

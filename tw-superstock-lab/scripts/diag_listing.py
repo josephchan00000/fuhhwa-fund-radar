@@ -17,6 +17,37 @@ from superstock.finmind_client import FinMindClient
 from superstock.listing import compare_official, fetch_official, match_series, trim
 
 
+def universe_vs_official(client: FinMindClient, cfg, off: pd.DataFrame) -> None:
+    """股票池（FinMind 清單＋下市表）vs 官方現在上市櫃名單：被判下市的有幾檔其實還在官方名單上。"""
+    from superstock.universe import build_universe, split_info
+    info = client.get("TaiwanStockInfo")
+    dl = client.get("TaiwanStockDelisting")
+    uni = build_universe(info, dl, cfg.universe, cfg.start_date)
+    current, stale = split_info(info, cfg.universe)
+    o = set(off["stock_id"])
+    listed = uni[~uni["is_delisted"]]
+    de = uni[uni["is_delisted"]].copy()
+    de["in_official"] = de["stock_id"].isin(o)
+    de["year"] = pd.to_datetime(de["delist_date"]).dt.year
+    de["src"] = de["stock_id"].isin(set(stale["stock_id"])).map({True: "清單停更", False: "只在下市表"})
+    print(f"\n[股票池] 上市櫃 {len(listed)}（其中不在官方名單 {int((~listed.stock_id.isin(o)).sum())}）、"
+          f"下市 {len(de)}（其中仍在官方名單 {int(de.in_official.sum())}）；官方名單 {len(o)} 檔"
+          f"（不在股票池 {len(o - set(uni.stock_id))}）")
+    print(de.groupby(["year", "src"])["in_official"].agg(["size", "sum"]).to_string())
+    print("   仍在官方名單、卻被判下市（前 25）：", de[de.in_official][["stock_id", "stock_name", "delist_date", "src"]]
+          .head(25).to_dict("records"))
+    print("   官方名單有、股票池沒有（前 25）：", sorted(o - set(uni.stock_id))[:25])
+    print("   上市櫃但不在官方名單（前 25）：", listed[~listed.stock_id.isin(o)][["stock_id", "stock_name", "market"]]
+          .head(25).to_dict("records"))
+    dl2 = dl.copy()
+    dl2["year"] = pd.to_datetime(dl2["date"], errors="coerce").dt.year
+    dl2["code4"] = dl2["stock_id"].astype(str).str.fullmatch(r"[1-9]\d{3}")
+    print("   下市表各年筆數（4 碼普通股）：", dl2[dl2.code4].groupby("year").size().to_dict())
+    st = stale.copy()
+    st["year"] = pd.to_datetime(st["date"]).dt.year
+    print("   清單停更各年檔數：", st.groupby("year").size().to_dict())
+
+
 def main(argv: list[str]) -> None:
     detail = "--detail" in argv
     codes = [a for a in argv if not a.startswith("--")]
@@ -24,6 +55,7 @@ def main(argv: list[str]) -> None:
     client = FinMindClient(get_token(cfg), cfg.finmind)
     off = fetch_official(requests.Session())
     print(f"[官方] {len(off)} 檔有上市櫃日（twse {int((off.market == 'twse').sum())}、tpex {int((off.market == 'tpex').sum())}）")
+    universe_vs_official(client, cfg, off)
     today = pd.Timestamp.now().date().isoformat()
     frames = []
     for code in codes:

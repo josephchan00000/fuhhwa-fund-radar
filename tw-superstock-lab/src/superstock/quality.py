@@ -316,18 +316,25 @@ def check_listing(listing: pd.DataFrame) -> Check:
     pre = listing[listing["dropped_pre"] > 0]
     post = listing[listing["dropped_post"] > 0]
     suspect = listing[listing["main_start"].isna() & (listing["head_match"] < PRE_MAX)]
+    # 股票池說已下市、主板日 K 卻在下市日 30 天後還有：股票池的下市判斷可能錯（會讓每日更新停抓這檔）
+    end = listing["main_end"].fillna(listing["last_raw"]) if "main_end" in listing else listing["last_raw"]
+    late = listing[listing["delist_date"].notna() & (end > listing["delist_date"] + pd.Timedelta(days=30))]
     c.metrics = {"stocks": int(len(listing)), "with_emerging_prefix": int(len(pre)),
                  "rows_dropped_pre": int(listing["dropped_pre"].sum()),
                  "with_rows_after_delisting": int(len(post)), "rows_dropped_post": int(listing["dropped_post"].sum()),
-                 "suspect_not_switched": int(len(suspect))}
+                 "suspect_not_switched": int(len(suspect)), "delisted_but_still_trading": int(len(late)),
+                 "delisted_but_still_trading_examples": [
+                     {"stock_id": r.stock_id, "delist_date": str(pd.Timestamp(r.delist_date).date()),
+                      "last_main_day": str(pd.Timestamp(e).date())}
+                     for r, e in zip(late.head(10).itertuples(index=False), end[late.index][:10])]}
     c.examples = [{"stock_id": r.stock_id, "first_raw": str(pd.Timestamp(r.first_raw).date()),
                    "head_match": round(float(r.head_match), 3)} for r in suspect.head(20).itertuples(index=False)]
     if len(suspect) / max(1, len(listing)) > 0.02:
         c.worst("FAIL")
-    elif len(suspect):
+    elif len(suspect) or len(late):
         c.worst("WARN")
     c.summary = (f"{len(pre)} 檔切掉興櫃前段共 {c.metrics['rows_dropped_pre']:,} 筆；{len(post)} 檔切掉下市後 "
-                 f"{c.metrics['rows_dropped_post']:,} 筆；疑似漏判 {len(suspect)} 檔")
+                 f"{c.metrics['rows_dropped_post']:,} 筆；疑似漏判 {len(suspect)} 檔；判下市卻仍在交易 {len(late)} 檔")
     return c
 
 
