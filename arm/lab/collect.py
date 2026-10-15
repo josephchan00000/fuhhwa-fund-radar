@@ -432,39 +432,50 @@ def _last_rev_month(today) -> tuple[int, int]:
     return last.year, last.month
 
 
-def backfill_rev_mops(start: str = "2020-01", *, budget_s: float = 1500) -> int:
-    """全市場月營收歷史（S26，2026-10-15）：MOPS 營業收入彙總表，一個月四請求（上市／上櫃 × 國內／國外 KY），
-    寫進同一個 rev 分片（{ym, s: {代號: [營收(千元), 年增%, 累計年增%]}}）。已有 ≥1000 檔的月份跳過，可重跑續補。"""
+def backfill_rev_mops(start: str = "2020-01", *, budget_s: float = 1500, workers: int = 4) -> int:
+    """全市場月營收歷史（S26，2026-10-15）：MOPS 營業收入彙總表，一個月四頁（上市／上櫃 × 國內／國外 KY），
+    寫進同一個 rev 分片（{ym, s: {代號: [營收(千元), 年增%, 累計年增%]}}）。已有 ≥1000 檔的月份跳過，可重跑續補。
+    彙總表一頁約 45 秒（伺服器傳得慢），同時抓 2 個月、4 個連線。"""
+    from concurrent.futures import ThreadPoolExecutor
     t0 = time.time()
     have = {}
     for ym in store.dates("rev"):
         have[ym] = len((store.read("rev", ym) or {}).get("s") or {})
     ly, lm = _last_rev_month(clock.today_tw())
     y, m = int(start[:4]), int(start[5:7])
-    n = 0
+    todo = []
     while (y, m) <= (ly, lm):
-        ym = f"{y:04d}-{m:02d}"
-        if have.get(ym, 0) < 1000:
-            if time.time() - t0 > budget_s:
-                market.log(f"月營收歷史：時間預算用完，停在 {ym}（本輪補 {n} 個月）")
-                break
-            data, ok = {}, True
-            for mkt in ("sii", "otc"):
-                for k in (0, 1):
-                    d = market.fetch_mops_rev(mkt, y, m, k)
-                    time.sleep(1.5)
-                    if d is None and k == 0:
-                        ok = False
-                    data.update(d or {})
-            if ok and len(data) >= 1000:
-                store.write("rev", ym, {"ym": ym, "s": data, "src": "mops"})
-                n += 1
-            else:
-                market.log(f"月營收歷史 {ym}：解析 {len(data)} 檔，不寫入")
+        if have.get(f"{y:04d}-{m:02d}", 0) < 1000:
+            todo.append((y, m))
         m += 1
         if m > 12:
             y, m = y + 1, 1
-    market.log(f"月營收歷史（MOPS）：本輪新增 {n} 個月、累計 {len(store.dates('rev'))} 個月")
+    n = 0
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        for i in range(0, len(todo), 2):
+            if time.time() - t0 > budget_s:
+                market.log(f"月營收歷史：時間預算用完，停在 {todo[i][0]:04d}-{todo[i][1]:02d}（本輪補 {n} 個月）")
+                break
+            grp = todo[i:i + 2]
+            jobs = {(y, m, mkt, k): ex.submit(market.fetch_mops_rev, mkt, y, m, k)
+                    for y, m in grp for k in (0, 1) for mkt in ("sii", "otc")}
+            for y, m in grp:
+                ym = f"{y:04d}-{m:02d}"
+                data, ok = {}, True
+                for mkt in ("sii", "otc"):
+                    for k in (0, 1):
+                        d = jobs[(y, m, mkt, k)].result()
+                        if d is None and k == 0:
+                            ok = False
+                        data.update(d or {})
+                if ok and len(data) >= 1000:
+                    store.write("rev", ym, {"ym": ym, "s": data, "src": "mops"})
+                    n += 1
+                else:
+                    market.log(f"月營收歷史 {ym}：解析 {len(data)} 檔，不寫入")
+            time.sleep(1.0)
+    market.log(f"月營收歷史（MOPS）：本輪新增 {n} 個月、累計 {len(store.dates('rev'))} 個月、"
+               f"{time.time() - t0:.0f} 秒")
     return n
 
 

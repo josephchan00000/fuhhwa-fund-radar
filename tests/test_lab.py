@@ -1228,6 +1228,28 @@ def test_packtest_p7_excludes_financials(monkeypatch):
     assert PT.non_fin(["2330", "2881", "9999"]) == ["2330", "9999"]
 
 
+def test_backfill_rev_mops_writes_complete_months_only(tmp_path, monkeypatch):
+    from datetime import date
+    from arm import clock
+    from arm.lab import collect, market, store
+    monkeypatch.setattr(store, "LAB", tmp_path)
+    monkeypatch.setattr(clock, "today_tw", lambda: date(2020, 4, 15))         # 可得到 2020-03
+    calls = []
+
+    def fake(mkt, y, m, k=0):
+        calls.append((y, m, mkt, k))
+        if (y, m) == (2020, 2) and mkt == "otc" and k == 0:
+            return None                                                         # 上櫃國內頁抓不到 → 整月不寫
+        return {f"{mkt}{k}{i:04d}": [1.0, 2.0, 3.0] for i in range(300)}
+    monkeypatch.setattr(market, "fetch_mops_rev", fake)
+    monkeypatch.setattr(collect.time, "sleep", lambda s: None)
+    assert collect.backfill_rev_mops("2020-01") == 2
+    assert store.dates("rev") == ["2020-01", "2020-03"] and len(calls) == 12
+    assert len(store.read("rev", "2020-03")["s"]) == 1200
+    calls.clear()
+    assert collect.backfill_rev_mops("2020-01") == 0 and {c[:2] for c in calls} == {(2020, 2)}   # 已有的月份跳過
+
+
 def test_packtest_grid_counts_positive_cells():
     from arm.lab import packtest as PT
     g = PT.grid(lambda a, b: a - b, (1, 2, 3), (0.5, 1.5, 2.5), ("甲", "乙"))
