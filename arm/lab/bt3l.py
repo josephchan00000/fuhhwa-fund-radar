@@ -67,21 +67,23 @@ class _Cache:
     def __init__(self, P, b):
         self.P, self.b, self.ew = P, b, {}
 
-    def run(self, key, rows, top, nmin, asc=False, umin=None, mult=1.0):
+    def run(self, key, rows, top, nmin, asc=False, umin=None, mult=1.0, log=None):
         done = [r for r in rows if r[1] is not None]
         pk = bt3s.pick(done, top, nmin, asc, umin)
         ek = (key, umin or nmin)                        # 對照組只看「哪幾期、哪些股票有分數」，與買幾檔無關
         if ek not in self.ew:
             self.ew[ek] = bt3s._ew(self.P, self.b, done, pk)
-        return done, pk, bt3.account(self.P, pk, self.b, mult=mult), self.ew[ek]
+        return done, pk, bt3.account(self.P, pk, self.b, mult=mult, log=log), self.ew[ek]
 
 
 def periodic(P, b: str, key: str, rows_fn, a0, *, top: float, nmin: int, asc: bool = False, umin: int | None = None,
-             event: bool = False, grid: tuple | None = None) -> dict:
-    """rows_fn(a)→rows（a＝第一個參數）；grid＝(第一參數各值, 買進比例各值, 標籤)。"""
+             event: bool = False, grid: tuple | None = None, keep_log: bool = False) -> dict:
+    """rows_fn(a)→rows（a＝第一個參數）；grid＝(第一參數各值, 買進比例各值, 標籤)。
+    keep_log＝留下主規格的逐筆買賣紀錄（頁面「逐筆交易」；docs/lab_trades_plan.md），不影響任何數字。"""
     C = _Cache(P, b)
     rows = rows_fn(a0)
-    done, pk, acc, ew = C.run((key, a0), rows, top, nmin, asc, umin)
+    lg = [] if keep_log else None
+    done, pk, acc, ew = C.run((key, a0), rows, top, nmin, asc, umin, log=lg)
     U = bt3.vs_ew(acc, ew)
     acc2 = bt3.account(P, pk, b, mult=2)
     U2 = bt3.vs_ew(acc2, ew)
@@ -116,7 +118,8 @@ def periodic(P, b: str, key: str, rows_fn, a0, *, top: float, nmin: int, asc: bo
     return {"b": b, "ins": ins, "oos": oos, "nb": nb_i, "nb_oos": nb_o, "grade": g, "lowdd": ld,
             "fac_sub": bt3.subperiods(per, EDGES3), "sel_sub": bt3.subperiods(U, EDGES3, "xe"),
             "lim": sum(u["lim"] for u in acc["units"]), "lock": sum(u["lock"] for u in acc["units"]), "now": now,
-            "units": U, "acc_curve": acc["curve"]}
+            "units": U, "acc_curve": acc["curve"],
+            "log": lg, "pk": pk if keep_log else None, "sc": {t: sc for t, _, sc in done} if keep_log else None}
 
 
 def p2(P, b: str, E, EWb, codes, with_grid=True) -> dict:
@@ -197,9 +200,10 @@ def top5(P=None, *, buckets=("M", "L"), with_grid: bool = True, n: int = 5) -> d
     for b in buckets:
         r = {}
         r["p7"] = periodic(P, b, "p7", lambda win: bt3s.p7_rows(P, E, b, codes, rev, win), 12, top=0.0, nmin=n, umin=10,
-                           grid=((9, 12, 18), NV, ("標準差期間（月）", "買進檔數")) if with_grid else None)
+                           grid=((9, 12, 18), NV, ("標準差期間（月）", "買進檔數")) if with_grid else None, keep_log=True)
         r["p3"] = periodic(P, b, "p3", lambda hold: bt3s.p3_rows(P, E, b, codes, eps, hold), 60, top=0.0, nmin=n,
-                           umin=20, event=True, grid=((40, 60, 80), NV, ("持有天數", "買進檔數")) if with_grid else None)
+                           umin=20, event=True, grid=((40, 60, 80), NV, ("持有天數", "買進檔數")) if with_grid else None,
+                           keep_log=True)
         out[b] = r
     return out
 
@@ -360,8 +364,21 @@ def _ld(ld: dict | None) -> dict | None:
             **{k: _r(ld.get(k)) for k in ("gap", "ddr", "gap_oos", "ddr_oos")}}
 
 
+def _trades(src: str, b: str, r: dict, P, raw, eps) -> dict | None:
+    """前 5 檔版本的逐筆交易（每期表＋逐筆表，緊湊陣列；trades.py）。"""
+    from . import trades
+    if r.get("log") is None:
+        return None
+    info = trades.info_p7(P.cal) if src == "p7" else trades.info_p3(P.cal, eps)
+    doc = trades.build(P.cal, r["pk"], r["units"], r["log"], b, P.tr, raw=raw, scores=r["sc"], info=info, roll=src == "p7")
+    return trades.pack(doc)
+
+
 def export(main: dict, t5: dict, P) -> dict:
-    rows = [_row(k, src, name, b, ver, unit, ev, t5[b][src], P) for k, src, name, b, ver, unit, ev in V3]
+    from . import trades
+    raw, eps = trades.Raw(), bt3d.load_eps()
+    rows = [{**_row(k, src, name, b, ver, unit, ev, t5[b][src], P), "trades": _trades(src, b, t5[b][src], P, raw, eps)}
+            for k, src, name, b, ver, unit, ev in V3]
     for b in ("M", "L"):
         for src, name, unit, ev in BASKET:
             rows.append(_row(f"b{src[1]}{b.lower()}", src, name, b, "basket", unit, ev, main[b][src], P))

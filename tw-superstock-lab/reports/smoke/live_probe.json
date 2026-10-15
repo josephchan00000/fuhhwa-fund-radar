@@ -1,0 +1,830 @@
+{
+  "generated_at": "2026-10-15 20:57",
+  "today": "2026-10-15",
+  "has_token": false,
+  "limit_per_hour_used": 276,
+  "datasets": {
+    "TaiwanStockInfo": {
+      "group": "meta",
+      "dataset": "TaiwanStockInfo",
+      "mode": "global",
+      "disabled": "",
+      "source": "本機 1 個檔",
+      "rows": 4339,
+      "columns": [
+        "industry_category",
+        "stock_id",
+        "stock_name",
+        "type",
+        "date"
+      ],
+      "dtypes": {
+        "industry_category": "str",
+        "stock_id": "str",
+        "stock_name": "str",
+        "type": "str",
+        "date": "str"
+      },
+      "first_date": "2020-06-03",
+      "last_date": "2026-10-15",
+      "ids": 3159,
+      "values": {
+        "type": {
+          "twse": 2403,
+          "tpex": 1379,
+          "emerging": 557
+        },
+        "industry_category": {
+          "電子工業": 545,
+          "生技醫療業": 303,
+          "半導體業": 296,
+          "ETF": 272,
+          "電子零組件業": 262,
+          "其他": 194,
+          "光電業": 178,
+          "電腦及週邊設備業": 148,
+          "電機機械": 141,
+          "上櫃ETF": 125,
+          "上櫃指數股票型基金(ETF)": 125,
+          "通信網路業": 119,
+          "化學生技醫療": 105,
+          "建材營造": 93,
+          "其他電子業": 81,
+          "觀光餐旅": 76,
+          "資訊服務業": 72,
+          "綠能環保": 71,
+          "金融保險": 70,
+          "紡織纖維": 62,
+          "其他電子類": 61,
+          "化學工業": 60,
+          "鋼鐵工業": 56,
+          "電子通路業": 51,
+          "食品工業": 50,
+          "汽車工業": 47,
+          "觀光事業": 45,
+          "航運業": 40,
+          "貿易百貨": 39,
+          "文化創意業": 39,
+          "數位雲端": 39,
+          "創新板股票": 36,
+          "所有證券": 36,
+          "存託憑證": 36,
+          "Index": 30,
+          "塑膠工業": 29,
+          "ETN": 28,
+          "數位雲端類": 27,
+          "居家生活類": 25,
+          "電器電纜": 23,
+          "運動休閒": 23,
+          "創新版股票": 21,
+          "指數投資證券(ETN)": 20,
+          "綠能環保類": 20,
+          "居家生活": 19,
+          "金融業": 16,
+          "油電燃氣業": 13,
+          "橡膠工業": 12,
+          "運動休閒類": 10,
+          "電子商務業": 10,
+          "受益證券": 8,
+          "水泥工業": 8,
+          "造紙工業": 8,
+          "玻璃陶瓷": 5,
+          "農業科技": 5,
+          "農業科技業": 4,
+          "大盤": 2
+        }
+      }
+    },
+    "TaiwanStockDelisting": {
+      "group": "meta",
+      "dataset": "TaiwanStockDelisting",
+      "mode": "global",
+      "disabled": "",
+      "source": "本機 1 個檔",
+      "rows": 726,
+      "columns": [
+        "date",
+        "stock_id",
+        "stock_name"
+      ],
+      "dtypes": {
+        "date": "str",
+        "stock_id": "str",
+        "stock_name": "str"
+      },
+      "first_date": "1995-09-23",
+      "last_date": "2026-10-01",
+      "ids": 726
+    },
+    "TaiwanStockTradingDate": {
+      "group": "meta",
+      "dataset": "TaiwanStockTradingDate",
+      "mode": "global",
+      "disabled": "",
+      "source": "本機 1 個檔",
+      "rows": 4613,
+      "columns": [
+        "date"
+      ],
+      "dtypes": {
+        "date": "str"
+      },
+      "first_date": "2008-01-02",
+      "last_date": "2026-10-15"
+    },
+    "IndexPrice": {
+      "group": "meta",
+      "dataset": "TaiwanStockPrice",
+      "mode": "per_index",
+      "disabled": "",
+      "source": "本機 2 個檔",
+      "rows": 9226,
+      "columns": [
+        "date",
+        "stock_id",
+        "Trading_Volume",
+        "Trading_money",
+        "open",
+        "max",
+        "min",
+        "close",
+        "spread",
+        "Trading_turnover"
+      ],
+      "dtypes": {
+        "date": "str",
+        "stock_id": "str",
+        "Trading_Volume": "int64",
+        "Trading_money": "int64",
+        "open": "float64",
+        "max": "float64",
+        "min": "float64",
+        "close": "float64",
+        "spread": "float64",
+        "Trading_turnover": "int64"
+      },
+      "first_date": "2008-01-02",
+      "last_date": "2026-10-15",
+      "ids": 2
+    },
+    "TaiwanStockTotalReturnIndex": {
+      "group": "meta",
+      "dataset": "TaiwanStockTotalReturnIndex",
+      "mode": "per_index",
+      "disabled": "",
+      "source": "本機 2 個檔",
+      "rows": 9226,
+      "columns": [
+        "price",
+        "stock_id",
+        "date"
+      ],
+      "dtypes": {
+        "price": "float64",
+        "stock_id": "str",
+        "date": "str"
+      },
+      "first_date": "2008-01-02",
+      "last_date": "2026-10-15",
+      "ids": 2
+    },
+    "TaiwanStockPrice": {
+      "group": "core",
+      "dataset": "TaiwanStockPrice",
+      "mode": "per_stock",
+      "disabled": "",
+      "source": "本機 3 個檔",
+      "rows": 12145,
+      "columns": [
+        "date",
+        "stock_id",
+        "Trading_Volume",
+        "Trading_money",
+        "open",
+        "max",
+        "min",
+        "close",
+        "spread",
+        "Trading_turnover"
+      ],
+      "dtypes": {
+        "date": "str",
+        "stock_id": "str",
+        "Trading_Volume": "int64",
+        "Trading_money": "int64",
+        "open": "float64",
+        "max": "float64",
+        "min": "float64",
+        "close": "float64",
+        "spread": "float64",
+        "Trading_turnover": "int64"
+      },
+      "first_date": "2008-01-02",
+      "last_date": "2026-10-15",
+      "ids": 3
+    },
+    "TaiwanStockMonthRevenue": {
+      "group": "core",
+      "dataset": "TaiwanStockMonthRevenue",
+      "mode": "per_stock",
+      "disabled": "",
+      "source": "本機 3 個檔",
+      "rows": 597,
+      "columns": [
+        "date",
+        "stock_id",
+        "country",
+        "revenue",
+        "revenue_month",
+        "revenue_year",
+        "create_time"
+      ],
+      "dtypes": {
+        "date": "str",
+        "stock_id": "str",
+        "country": "str",
+        "revenue": "int64",
+        "revenue_month": "int64",
+        "revenue_year": "int64",
+        "create_time": "str"
+      },
+      "first_date": "2008-01-01",
+      "last_date": "2026-10-01",
+      "ids": 3
+    },
+    "TaiwanStockFinancialStatements": {
+      "group": "core",
+      "dataset": "TaiwanStockFinancialStatements",
+      "mode": "per_stock",
+      "disabled": "",
+      "source": "本機 3 個檔",
+      "rows": 3452,
+      "columns": [
+        "date",
+        "stock_id",
+        "type",
+        "value",
+        "origin_name"
+      ],
+      "dtypes": {
+        "date": "str",
+        "stock_id": "str",
+        "type": "str",
+        "value": "float64",
+        "origin_name": "str"
+      },
+      "first_date": "2008-03-31",
+      "last_date": "2026-06-30",
+      "ids": 3,
+      "values": {
+        "type": {
+          "EPS": 196,
+          "TAX": 196,
+          "CostOfGoodsSold": 196,
+          "Revenue": 196,
+          "GrossProfit": 196,
+          "OperatingIncome": 196,
+          "OperatingExpenses": 196,
+          "IncomeFromContinuingOperations": 196,
+          "OtherComprehensiveIncome": 156,
+          "IncomeAfterTaxes": 156,
+          "TotalConsolidatedProfitForThePeriod": 156,
+          "EquityAttributableToOwnersOfParent": 156,
+          "TotalNonoperatingIncomeAndExpense": 156,
+          "PreTaxIncome": 156,
+          "NoncontrollingInterests": 145,
+          "ComprehensiveIncomeConsolidatedNetIncomeAttributedNonControllingInterest": 145,
+          "NetIncome": 118,
+          "IncomeBeforeIncomeTax": 78,
+          "OTHNOE": 54,
+          "IncomeLossFromDiscontinuedOperation": 48,
+          "-": 42,
+          "CumulativeEffectOfChangesInAccountingPrinciple": 40,
+          "TotalNonbusinessIncome": 40,
+          "TotalnonbusinessExpenditure": 40,
+          "IncomeBeforeTaxFromContinuingOperations": 40,
+          "RealizedGainFromInterAffiliateAccounts": 40,
+          "UnrealizedGainFromInterAffiliateAccounts": 40,
+          "ExtraordinaryItems": 40,
+          "RealizedGain": 26,
+          "UnrealizedGain": 12
+        }
+      }
+    },
+    "TaiwanStockInstitutionalInvestorsBuySell": {
+      "group": "core",
+      "dataset": "TaiwanStockInstitutionalInvestorsBuySell",
+      "mode": "per_stock",
+      "disabled": "",
+      "source": "本機 3 個檔",
+      "rows": 44706,
+      "columns": [
+        "date",
+        "stock_id",
+        "buy",
+        "name",
+        "sell"
+      ],
+      "dtypes": {
+        "date": "str",
+        "stock_id": "str",
+        "buy": "int64",
+        "name": "str",
+        "sell": "int64"
+      },
+      "first_date": "2012-05-02",
+      "last_date": "2026-10-15",
+      "ids": 3,
+      "values": {
+        "name": {
+          "Foreign_Investor": 9936,
+          "Investment_Trust": 9936,
+          "Dealer_self": 8477,
+          "Dealer_Hedging": 8477,
+          "Foreign_Dealer_Self": 6421,
+          "Dealer": 1459
+        }
+      }
+    },
+    "TaiwanStockMarginPurchaseShortSale": {
+      "group": "core",
+      "dataset": "TaiwanStockMarginPurchaseShortSale",
+      "mode": "per_stock",
+      "disabled": "",
+      "source": "本機 3 個檔",
+      "rows": 11797,
+      "columns": [
+        "date",
+        "stock_id",
+        "MarginPurchaseBuy",
+        "MarginPurchaseCashRepayment",
+        "MarginPurchaseLimit",
+        "MarginPurchaseSell",
+        "MarginPurchaseTodayBalance",
+        "MarginPurchaseYesterdayBalance",
+        "Note",
+        "OffsetLoanAndShort",
+        "ShortSaleBuy",
+        "ShortSaleCashRepayment",
+        "ShortSaleLimit",
+        "ShortSaleSell",
+        "ShortSaleTodayBalance",
+        "ShortSaleYesterdayBalance"
+      ],
+      "dtypes": {
+        "date": "str",
+        "stock_id": "str",
+        "MarginPurchaseBuy": "int64",
+        "MarginPurchaseCashRepayment": "int64",
+        "MarginPurchaseLimit": "int64",
+        "MarginPurchaseSell": "int64",
+        "MarginPurchaseTodayBalance": "int64",
+        "MarginPurchaseYesterdayBalance": "int64",
+        "Note": "str",
+        "OffsetLoanAndShort": "int64",
+        "ShortSaleBuy": "int64",
+        "ShortSaleCashRepayment": "int64",
+        "ShortSaleLimit": "int64",
+        "ShortSaleSell": "int64",
+        "ShortSaleTodayBalance": "int64",
+        "ShortSaleYesterdayBalance": "int64"
+      },
+      "first_date": "2008-01-02",
+      "last_date": "2026-10-14",
+      "ids": 3
+    },
+    "TaiwanStockDividendResult": {
+      "group": "events",
+      "dataset": "TaiwanStockDividendResult",
+      "mode": "per_stock",
+      "disabled": "",
+      "source": "本機 3 個檔",
+      "rows": 78,
+      "columns": [
+        "date",
+        "stock_id",
+        "before_price",
+        "after_price",
+        "stock_and_cache_dividend",
+        "stock_or_cache_dividend",
+        "max_price",
+        "min_price",
+        "open_price",
+        "reference_price"
+      ],
+      "dtypes": {
+        "date": "str",
+        "stock_id": "str",
+        "before_price": "float64",
+        "after_price": "float64",
+        "stock_and_cache_dividend": "float64",
+        "stock_or_cache_dividend": "str",
+        "max_price": "float64",
+        "min_price": "float64",
+        "open_price": "float64",
+        "reference_price": "float64"
+      },
+      "first_date": "2008-07-16",
+      "last_date": "2026-09-16",
+      "ids": 3,
+      "values": {
+        "stock_or_cache_dividend": {
+          "息": 53,
+          "除息": 17,
+          "權息": 7,
+          "權": 1
+        }
+      }
+    },
+    "TaiwanStockCapitalReductionReferencePrice": {
+      "group": "events",
+      "dataset": "TaiwanStockCapitalReductionReferencePrice",
+      "mode": "per_stock",
+      "disabled": "",
+      "source": "已下載、皆無資料",
+      "tasks": {
+        "empty": 3
+      }
+    },
+    "TaiwanStockSplitPrice": {
+      "group": "events",
+      "dataset": "TaiwanStockSplitPrice",
+      "mode": "global",
+      "disabled": "",
+      "source": "本機 1 個檔",
+      "rows": 35,
+      "columns": [
+        "date",
+        "stock_id",
+        "type",
+        "before_price",
+        "after_price",
+        "max_price",
+        "min_price",
+        "open_price"
+      ],
+      "dtypes": {
+        "date": "str",
+        "stock_id": "str",
+        "type": "str",
+        "before_price": "float64",
+        "after_price": "float64",
+        "max_price": "float64",
+        "min_price": "float64",
+        "open_price": "float64"
+      },
+      "first_date": "2019-09-09",
+      "last_date": "2026-09-07",
+      "ids": 33,
+      "values": {
+        "type": {
+          "面額變更": 24,
+          "反分割": 6,
+          "分割": 4,
+          "": 1
+        }
+      }
+    },
+    "TaiwanStockParValueChange": {
+      "group": "events",
+      "dataset": "TaiwanStockParValueChange",
+      "mode": "global",
+      "disabled": "",
+      "source": "本機 1 個檔",
+      "rows": 16,
+      "columns": [
+        "date",
+        "stock_id",
+        "stock_name",
+        "before_close",
+        "after_ref_close",
+        "after_ref_max",
+        "after_ref_min",
+        "after_ref_open"
+      ],
+      "dtypes": {
+        "date": "str",
+        "stock_id": "str",
+        "stock_name": "str",
+        "before_close": "float64",
+        "after_ref_close": "float64",
+        "after_ref_max": "float64",
+        "after_ref_min": "float64",
+        "after_ref_open": "float64"
+      },
+      "first_date": "2019-09-09",
+      "last_date": "2025-08-25",
+      "ids": 15
+    },
+    "TaiwanStockDispositionSecuritiesPeriod": {
+      "group": "events",
+      "dataset": "TaiwanStockDispositionSecuritiesPeriod",
+      "mode": "per_stock",
+      "disabled": "連續 3 檔失敗，可能需付費或參數不符：TaiwanStockDispositionSecuritiesPeriod 6488: HTTP 400 Your level is free. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor",
+      "source": "下載失敗",
+      "tasks": {
+        "failed": 3
+      }
+    },
+    "TaiwanStockHoldingSharesPer": {
+      "group": "extended",
+      "dataset": "TaiwanStockHoldingSharesPer",
+      "mode": "per_stock",
+      "disabled": "",
+      "source": "試抓 2330 2023-10-16～2026-10-15",
+      "ok": false,
+      "status": 400,
+      "error": "TaiwanStockHoldingSharesPer 2330: HTTP 400 Your level is free. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor"
+    },
+    "TaiwanStockBalanceSheet": {
+      "group": "extended",
+      "dataset": "TaiwanStockBalanceSheet",
+      "mode": "per_stock",
+      "disabled": "",
+      "source": "試抓 2330 2023-10-16～2026-10-15",
+      "ok": true,
+      "rows": 1109,
+      "columns": [
+        "date",
+        "stock_id",
+        "type",
+        "value",
+        "origin_name"
+      ],
+      "dtypes": {
+        "date": "str",
+        "stock_id": "str",
+        "type": "str",
+        "value": "float64",
+        "origin_name": "str"
+      },
+      "first_date": "2023-12-31",
+      "last_date": "2026-06-30",
+      "ids": 1,
+      "values": {
+        "type": {
+          "CashAndCashEquivalents": 11,
+          "CashAndCashEquivalents_per": 11,
+          "CurrentFinancialAssetsAtFairvalueThroughProfitOrLoss": 11,
+          "CurrentFinancialAssetsAtFairvalueThroughProfitOrLoss_per": 11,
+          "NonCurrentFinancialAssetsAtFairvalueThroughProfitOrLoss": 11,
+          "NonCurrentFinancialAssetsAtFairvalueThroughProfitOrLoss_per": 11,
+          "FinancialAssetsAtFairvalueThroughOtherComprehensiveIncome": 11,
+          "FinancialAssetsAtFairvalueThroughOtherComprehensiveIncome_per": 11,
+          "FinancialAssetsAtFairvalueThroughOtherComprehensiveIncomeNonCurrent": 11,
+          "FinancialAssetsAtFairvalueThroughOtherComprehensiveIncomeNonCurrent_per": 11,
+          "FinancialAssetsAtAmortizedCost": 11,
+          "FinancialAssetsAtAmortizedCost_per": 11,
+          "FinancialAssetsAtAmortizedCostNonCurrent": 11,
+          "FinancialAssetsAtAmortizedCostNonCurrent_per": 11,
+          "AccountsReceivableNet": 11,
+          "AccountsReceivableNet_per": 11,
+          "AccountsReceivableDuefromRelatedPartiesNet": 11,
+          "AccountsReceivableDuefromRelatedPartiesNet_per": 11,
+          "OtherReceivablesDueFromRelatedParties": 11,
+          "OtherReceivablesDueFromRelatedParties_per": 11,
+          "Inventories": 11,
+          "Inventories_per": 11,
+          "OtherCurrentAssets": 11,
+          "OtherCurrentAssets_per": 11,
+          "CurrentAssets": 11,
+          "CurrentAssets_per": 11,
+          "InvestmentAccountedForUsingEquityMethod": 11,
+          "InvestmentAccountedForUsingEquityMethod_per": 11,
+          "PropertyPlantAndEquipment": 11,
+          "PropertyPlantAndEquipment_per": 11,
+          "RightOfUseAsset": 11,
+          "RightOfUseAsset_per": 11,
+          "IntangibleAssets": 11,
+          "IntangibleAssets_per": 11,
+          "DeferredTaxAssets": 11,
+          "DeferredTaxAssets_per": 11,
+          "OtherNoncurrentAssets": 11,
+          "OtherNoncurrentAssets_per": 11,
+          "NoncurrentAssets": 11,
+          "NoncurrentAssets_per": 11,
+          "TotalAssets": 11,
+          "TotalAssets_per": 11,
+          "CurrentFinancialLiabilitiesAtFairValueThroughProfitOrLoss": 11,
+          "CurrentFinancialLiabilitiesAtFairValueThroughProfitOrLoss_per": 11,
+          "CurrentDerivativeFinancialLiabilitiesForHedging": 11,
+          "CurrentDerivativeFinancialLiabilitiesForHedging_per": 11,
+          "AccountsPayable": 11,
+          "AccountsPayable_per": 11,
+          "AccountsPayableToRelatedParties": 11,
+          "AccountsPayableToRelatedParties_per": 11,
+          "OtherPayables": 11,
+          "OtherPayables_per": 11,
+          "CurrentTaxLiabilities": 11,
+          "CurrentTaxLiabilities_per": 11,
+          "OtherCurrentLiabilities": 11,
+          "OtherCurrentLiabilities_per": 11,
+          "CurrentLiabilities": 11,
+          "CurrentLiabilities_per": 11,
+          "BondsPayable": 11,
+          "BondsPayable_per": 11
+        }
+      }
+    },
+    "TaiwanStockShareholding": {
+      "group": "extended",
+      "dataset": "TaiwanStockShareholding",
+      "mode": "per_stock",
+      "disabled": "",
+      "source": "試抓 2330 2023-10-16～2026-10-15",
+      "ok": true,
+      "rows": 728,
+      "columns": [
+        "date",
+        "stock_id",
+        "stock_name",
+        "InternationalCode",
+        "ForeignInvestmentRemainingShares",
+        "ForeignInvestmentShares",
+        "ForeignInvestmentRemainRatio",
+        "ForeignInvestmentSharesRatio",
+        "ForeignInvestmentUpperLimitRatio",
+        "ChineseInvestmentUpperLimitRatio",
+        "NumberOfSharesIssued",
+        "RecentlyDeclareDate",
+        "note"
+      ],
+      "dtypes": {
+        "date": "str",
+        "stock_id": "str",
+        "stock_name": "str",
+        "InternationalCode": "str",
+        "ForeignInvestmentRemainingShares": "int64",
+        "ForeignInvestmentShares": "int64",
+        "ForeignInvestmentRemainRatio": "float64",
+        "ForeignInvestmentSharesRatio": "float64",
+        "ForeignInvestmentUpperLimitRatio": "float64",
+        "ChineseInvestmentUpperLimitRatio": "float64",
+        "NumberOfSharesIssued": "int64",
+        "RecentlyDeclareDate": "str",
+        "note": "str"
+      },
+      "first_date": "2023-10-16",
+      "last_date": "2026-10-14",
+      "ids": 1
+    },
+    "TaiwanStockPriceAdj": {
+      "group": "extended",
+      "dataset": "TaiwanStockPriceAdj",
+      "mode": "per_stock",
+      "disabled": "",
+      "source": "試抓 2330 2023-10-16～2026-10-15",
+      "ok": false,
+      "status": 400,
+      "error": "TaiwanStockPriceAdj 2330: HTTP 400 Your level is free. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor"
+    },
+    "TaiwanStockSecuritiesLending": {
+      "group": "extended",
+      "dataset": "TaiwanStockSecuritiesLending",
+      "mode": "per_stock",
+      "disabled": "",
+      "source": "試抓 2330 2023-10-16～2026-10-15",
+      "ok": true,
+      "rows": 6763,
+      "columns": [
+        "date",
+        "stock_id",
+        "transaction_type",
+        "volume",
+        "fee_rate",
+        "close",
+        "original_return_date",
+        "original_lending_period"
+      ],
+      "dtypes": {
+        "date": "str",
+        "stock_id": "str",
+        "transaction_type": "str",
+        "volume": "int64",
+        "fee_rate": "float64",
+        "close": "float64",
+        "original_return_date": "str",
+        "original_lending_period": "int64"
+      },
+      "first_date": "2023-10-16",
+      "last_date": "2026-10-15",
+      "ids": 1
+    }
+  },
+  "semantics": {
+    "IndexPrice": {
+      "TAIEX": {
+        "rows": 4613,
+        "first_date": "2008-01-02",
+        "last_date": "2026-10-15"
+      },
+      "TPEx": {
+        "rows": 4613,
+        "first_date": "2008-01-02",
+        "last_date": "2026-10-15"
+      }
+    },
+    "TaiwanStockTotalReturnIndex": {
+      "TAIEX": {
+        "rows": 4613,
+        "first_date": "2008-01-02",
+        "last_date": "2026-10-15"
+      },
+      "TPEx": {
+        "rows": 4613,
+        "first_date": "2008-01-02",
+        "last_date": "2026-10-15"
+      }
+    },
+    "revenue": {
+      "checked": 597,
+      "date_is_first_of_next_month": 1.0,
+      "date_is_first_of_same_month": 0.0,
+      "date_day_values": {
+        "1": 597
+      }
+    },
+    "financials": {
+      "checked": 3452,
+      "quarter_end_share": 1.0,
+      "types": [
+        "-",
+        "ComprehensiveIncomeConsolidatedNetIncomeAttributedNonControllingInterest",
+        "CostOfGoodsSold",
+        "CumulativeEffectOfChangesInAccountingPrinciple",
+        "EPS",
+        "EquityAttributableToOwnersOfParent",
+        "ExtraordinaryItems",
+        "GrossProfit",
+        "IncomeAfterTaxes",
+        "IncomeBeforeIncomeTax",
+        "IncomeBeforeTaxFromContinuingOperations",
+        "IncomeFromContinuingOperations",
+        "IncomeLossFromDiscontinuedOperation",
+        "NetIncome",
+        "NoncontrollingInterests",
+        "OTHNOE",
+        "OperatingExpenses",
+        "OperatingIncome",
+        "OtherComprehensiveIncome",
+        "PreTaxIncome",
+        "RealizedGain",
+        "RealizedGainFromInterAffiliateAccounts",
+        "Revenue",
+        "TAX",
+        "TotalConsolidatedProfitForThePeriod",
+        "TotalNonbusinessIncome",
+        "TotalNonoperatingIncomeAndExpense",
+        "TotalnonbusinessExpenditure",
+        "UnrealizedGain",
+        "UnrealizedGainFromInterAffiliateAccounts"
+      ],
+      "n_types": 30
+    },
+    "dividend": {
+      "checked": 53,
+      "after_eq_before_minus_cash_share": 1.0
+    },
+    "universe": {
+      "total": 2225,
+      "listed": 1977,
+      "delisted": 248,
+      "listed_by_market": {
+        "twse": 1084,
+        "tpex": 893
+      },
+      "delisted_by_year": {
+        "2008": 21,
+        "2009": 9,
+        "2010": 13,
+        "2011": 8,
+        "2012": 8,
+        "2013": 10,
+        "2014": 7,
+        "2015": 7,
+        "2016": 20,
+        "2017": 15,
+        "2018": 19,
+        "2019": 13,
+        "2020": 17,
+        "2021": 12,
+        "2022": 17,
+        "2023": 8,
+        "2024": 26,
+        "2025": 8,
+        "2026": 10
+      },
+      "reused_codes": 0
+    }
+  },
+  "calls": 5,
+  "user_info": {
+    "without_token": {
+      "http": 200,
+      "keys": [
+        "msg",
+        "status"
+      ]
+    }
+  }
+}

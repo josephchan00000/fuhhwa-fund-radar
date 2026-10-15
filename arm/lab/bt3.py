@@ -173,10 +173,14 @@ def curve_stats(curve: list[tuple[int, float]], cal: list[str]) -> dict:
 
 # ── 資金帳戶：定期換股 ─────────────────────────────────────────────────
 
-def account(P, periods: list, b: str, *, mult: float = 1.0, limit: bool = True) -> dict:
+def account(P, periods: list, b: str, *, mult: float = 1.0, limit: bool = True, log: list | None = None) -> dict:
     """periods＝[(t, x, picks)] 依 t 排序：t 收盤決定名單、t+1 開盤換成等權、x 收盤為期末。
     下一期 t 等於本期 x 時續抱（下一期開盤再調權重），否則 x 收盤全部賣出、持有現金到下一期。
     mult＝成本倍數（0＝不扣成本）；limit＝檢查漲停開盤買不到、整天鎖跌停順延賣出。
+    log＝逐筆紀錄（給頁面「逐筆交易」；不影響任何數字）：每一筆整檔買進／整檔賣出／沒買到，
+      ("b", 期, 代號, 日索引, 價) 買進（開盤）；("s", 期, 代號, 日索引, 價, 開盤?, 原因) 賣出；("x", 期, 代號, 日索引, 原因)。
+      賣出原因：drop＝不在新名單、開盤賣；lock＝不在新名單但整天鎖跌停、順延收盤賣；end＝期末收盤賣（下一期不相連）；
+      endlock＝期末遇鎖跌停順延。沒買到：lim＝漲停開盤、noopen＝沒有開盤價。價＝面板價格（還原權息）；續抱時的調回等額不記。
     → {"units": 每期 {d, t, x, r(%), hd, to, cost(%), n, lim, lock}, "curve": [(日索引, 淨值)]}"""
     S, T, cal = P.s, P.T, P.cal
     cash = 1.0
@@ -214,6 +218,8 @@ def account(P, periods: list, b: str, *, mult: float = 1.0, limit: bool = True) 
             amt = hold.pop(c) * p
             cash += amt * (1 - side_cost(b, True, mult))
             cost += amt * side_cost(b, True, mult)
+            if log is not None:
+                log.append(("s", k, c, j, p, True, "drop"))
         Vo = cash + sum(sh * ((S[c]["o"][j] or px(c, t)) or 0.0) for c, sh in hold.items())
         tv = Vo * (1 - side_cost(b, False, mult)) / len(picks)
         buy = 0.0
@@ -221,13 +227,19 @@ def account(P, periods: list, b: str, *, mult: float = 1.0, limit: bool = True) 
             s = S[c]
             o = s["o"][j]
             if not o:
+                if log is not None and c not in hold:
+                    log.append(("x", k, c, j, "noopen"))
                 continue
             cur = hold.get(c, 0.0) * o
             diff = tv - cur
             if diff > 0:
                 if limit and o >= (s["c"][t] or px(c, t) or o) * LIMIT_UP:
                     lim += c not in hold
+                    if log is not None and c not in hold:
+                        log.append(("x", k, c, j, "lim"))
                     continue
+                if log is not None and c not in hold:
+                    log.append(("b", k, c, j, o))
                 cash -= diff * (1 + side_cost(b, False, mult))
                 cost += diff * side_cost(b, False, mult)
                 hold[c] = hold.get(c, 0.0) + diff / o
@@ -238,10 +250,13 @@ def account(P, periods: list, b: str, *, mult: float = 1.0, limit: bool = True) 
                 hold[c] = hold.get(c, 0.0) + diff / o
         for i in range(j, x + 1):
             for c in [c for c, d2 in pend.items() if d2 == i]:
-                amt = hold.pop(c) * (px(c, i) or 0.0)
+                p = px(c, i) or 0.0
+                amt = hold.pop(c) * p
                 cash += amt * (1 - side_cost(b, True, mult))
                 cost += amt * side_cost(b, True, mult)
                 del pend[c]
+                if log is not None:
+                    log.append(("s", k, c, i, p, False, "lock"))
             curve.append((i, value(i)))
         nxt = periods[k + 1][0] if k + 1 < len(periods) else None
         if nxt != x:                                      # 與下一期不相連 → 期末收盤全部賣出
@@ -249,9 +264,12 @@ def account(P, periods: list, b: str, *, mult: float = 1.0, limit: bool = True) 
                 s = S[c]
                 i2 = exit_day(s, x, T) if limit else x
                 lock += i2 != x
-                amt = hold.pop(c) * (px(c, i2) or px(c, x) or 0.0)
+                p = px(c, i2) or px(c, x) or 0.0
+                amt = hold.pop(c) * p
                 cash += amt * (1 - side_cost(b, True, mult))
                 cost += amt * side_cost(b, True, mult)
+                if log is not None:
+                    log.append(("s", k, c, i2, p, False, "end" if i2 == x else "endlock"))
             curve[-1] = (x, cash)
         V1 = curve[-1][1]
         units.append({"d": cal[t], "t": t, "x": x, "r": (V1 / V0 - 1) * 100 if V0 > 0 else None, "hd": x - t,

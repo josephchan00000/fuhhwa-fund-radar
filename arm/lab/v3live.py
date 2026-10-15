@@ -10,7 +10,7 @@ from __future__ import annotations
 import statistics
 from datetime import date, timedelta
 
-from . import bt3, bt3d, bt3s, store
+from . import bt3, bt3d, bt3s, store, trades
 from . import packtest as PT
 
 SINCE = "2026-10-15"
@@ -103,10 +103,15 @@ def run(DL, names: dict | None = None) -> dict:
             t = PT.form_after_deadline(cal, PT.deadline(q))
             if t is not None:
                 q_of[t] = q
-        # 前瞻：起算日之後形成、已到出場日的各期
+        # 前瞻：起算日之後形成、已到出場日的各期（逐筆紀錄給策略頁「逐筆交易」，每日資料的價格就是當時價）
         fwd_rows = [x for x in rows if x[1] is not None and cal[x[0]] >= SINCE]
         pk = bt3s.pick(fwd_rows, 0.0, N, False, UMIN[src])
-        fu = bt3.vs_ew(bt3.account(P, pk, b), bt3s._ew(P, b, fwd_rows, pk)) if pk else []
+        flog: list = []
+        inf = trades.info_p7(cal) if src == "p7" else trades.info_p3(cal, eps)
+        fu = bt3.vs_ew(bt3.account(P, pk, b, log=flog), bt3s._ew(P, b, fwd_rows, pk)) if pk else []
+        ftr = trades.build(cal, pk, fu, flog, b, [trq.get(d) for d in cal],
+                           px=lambda c, i, opn: P.s[c]["o" if opn else "c"][i], scores={t: sc for t, _, sc in fwd_rows},
+                           info=inf, fw_from=SINCE, roll=src == "p7") if pk else None
         fs = bt3.sel_stats(fu) if fu else {"n": 0}
         fwd = {"n": fs.get("n", 0), "xe": fs.get("xe"),
                "units": [{"d": u["d"], "out": cal[u["x"]] if u.get("x") is not None and u["x"] < T else None,
@@ -142,8 +147,17 @@ def run(DL, names: dict | None = None) -> dict:
         elif qs:
             q, nf = next_eps_form(qs[-1])
             nxt = {"d": nf, "ent": _td_after(nf, 1), "q": q}
+        if now and now["entered"]:                      # 這一期還沒到出場日：逐筆表列「持有中」
+            ftr = ftr or {"per": [], "tr": [], "chk": {}, "n_ap": 0}
+            ftr["cur"] = {"d": now["d"], "nu": now["n_uni"]}
+            for i, x in enumerate(now["picks"]):
+                if x.get("entry"):
+                    ftr["tr"].append({"c": x["c"], "d": now["d"], "bd": now["ent"], "bp": round(x["entry"], 2), "sd": cal[-1],
+                                      "sp": None if x.get("now") is None else round(x["now"], 2), "r": x.get("now_r"),
+                                      "hd": T - 1 - cur[0], "rk": i + 1, "st": "open", "fw": True, "sc": x.get("sc"),
+                                      "info": inf(x["c"], cur[0])})
         out[k] = {"k": k, "src": src, "b": b, "name": name, "unit": unit, "since": SINCE, "res": r, "fwd": fwd,
-                  "now": now, "next": nxt, "due": _due(src, cal, rows)}
+                  "now": now, "next": nxt, "due": _due(src, cal, rows), "tr": trades.pack(ftr) if ftr else None}
     out["_ctx"] = (P, E)                                  # 給 existing() 用，呼叫端取出後丟掉（不進頁面）
     return out
 

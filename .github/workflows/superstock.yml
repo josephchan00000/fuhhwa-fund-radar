@@ -1,0 +1,113 @@
+name: 台股飆股研究系統（tw-superstock-lab）實測
+
+# 2026-10-15 建立：tw-superstock-lab/SPEC.md §3.7–3.8 的 FinMind 實測。
+#   雲端 Claude 容器的網路政策擋 api.finmindtrade.com，所以實測放在這裡跑。
+#   下載的資料只存在 runner 的暫存目錄（$RUNNER_TEMP），跑完即丟、絕不入庫；
+#   只把 tw-superstock-lab/reports/smoke/（欄位、筆數、檢查結果，不含原始資料）commit 回被觸發的分支。
+#   完整下載（約 2 萬次請求、20 小時以上）不在這裡跑——私有 repo 的 Actions 分鐘數不夠。
+#
+# 觸發：claude/** 分支 push 動到 .ping/superstock（第一行＝模式），或手動 workflow_dispatch。
+#   smoke：pytest → check → download（3 檔）→ probe → build → replicate（P2 關卡）→ quality → reconcile → status
+#   probe：只跑 probe（不下載）
+#   diag：check（股票池大小）＋ scripts/diag_listing.py（日 K 是否混進興櫃交易，只印日誌）
+# 有設 repository secret FINMIND_TOKEN 就用（每小時 600 次），沒有就是未登入額度（每小時 300 次）。
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "smoke 或 probe"
+        default: "smoke"
+  push:
+    branches: ['claude/**']
+    paths: ['.ping/superstock']
+
+concurrency:
+  group: superstock
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Taipei
+      FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+    defaults:
+      run:
+        working-directory: tw-superstock-lab
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安裝＋測試
+        run: |
+          pip install --quiet -e ".[dev]"
+          pytest
+
+      - name: 實測
+        run: |
+          MODE="${{ inputs.mode || 'smoke' }}"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            if [ ! -f ../.ping/superstock ]; then echo "無 .ping/superstock，略過"; exit 0; fi
+            MODE=$(head -1 ../.ping/superstock | awk '{print $1}')   # 第一個字＝模式，後面可加註記讓檔案有變動
+          fi
+          echo "模式：$MODE"
+          DATA="$RUNNER_TEMP/ss-data"
+          OUT="$GITHUB_WORKSPACE/tw-superstock-lab/reports/smoke"
+          mkdir -p "$OUT"
+          cat > "$RUNNER_TEMP/ci.yaml" <<EOF
+          start_date: "2008-01-01"
+          data_dir: "$DATA"
+          reports_dir: "$OUT"
+          finmind:
+            rate_limit_wait_sec: 60
+          download_groups: ["meta", "core", "events"]
+          EOF
+          SS="python -m superstock --config $RUNNER_TEMP/ci.yaml"
+          if [ "$MODE" = "probe" ]; then
+            $SS probe
+          elif [ "$MODE" = "diag2" ]; then
+            python scripts/diag_listing.py --detail 6901
+          elif [ "$MODE" = "diag" ]; then
+            $SS check | tee "$OUT/check.txt"
+            python scripts/diag_listing.py 6488 7769 4995 8176 8443 1598 6624 6789 4588 4772 7708 6982 7732 6597 2059 3661 6669 \
+              3548 3546 3322 1813 8401 6803 6214 8404 3555 2719 8424 8147 4536 1786 8446 6414 1568 5878 2726 4968 \
+              6556 6593 5876 6662 6672 2233 6491 6716 6751 6733 2211 6792 6757 6901 8476 6534 3168 6988 6720 6498 \
+              7792 5547 7760 7819 7827
+          else
+            $SS check | tee "$OUT/check.txt"
+            $SS download --stocks 2330 6488 1101 --max-calls 60
+            $SS download --stocks 2330 6488 1101 --max-calls 200
+            $SS probe
+            $SS build | tee "$OUT/build.txt"
+            $SS replicate || true
+            $SS quality || true
+            $SS reconcile --n 3
+            $SS status | tee "$OUT/status.txt"
+          fi
+          # 只留 runner 上的資料；萬一有資料檔跑進報告資料夾就中止
+          if find "$OUT" -name '*.parquet' -o -name '*.sqlite' | grep -q .; then
+            echo "::error::報告資料夾出現資料檔"; exit 1
+          fi
+
+      - name: commit 實測報告（回到被觸發的分支）
+        run: |
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          git add reports/smoke
+          git commit -m "P1.8: FinMind 實測報告（CI）$(date '+%F %H:%M')" || { echo "無變更"; exit 0; }
+          for i in 1 2 3; do
+            git push origin HEAD:${{ github.ref_name }} && exit 0
+            git pull --rebase origin ${{ github.ref_name }} || git rebase --abort || true
+            sleep 5
+          done
+          echo "::error::push 失敗"; exit 1
