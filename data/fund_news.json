@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/15 08:43",
+  "as_of": "2026/10/15 09:08",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -488,15 +488,7 @@
       "short_names": [
         "全球AI動力成長指數新臺幣"
       ],
-      "items": [
-        {
-          "title": "復華全球AI動力成長指數基金-美元 的持股明細 | 鉅亨網",
-          "url": "https://invest.cnyes.com/funds/detail/%E5%BE%A9%E8%8F%AF%E5%85%A8%E7%90%83AI%E5%8B%95%E5%8A%9B%E6%88%90%E9%95%B7%E6%8C%87%E6%95%B8%E5%9F%BA%E9%87%91-%E7%BE%8E%E5%85%83/A23127/portfolio",
-          "source": "鉅亨網",
-          "date": "2026-10-11 15:00",
-          "datetime": "2026-10-11T15:00:00+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "復華台灣菁英50指數基金",
@@ -568,43 +560,6 @@
     },
     {
       "platform": "youtube",
-      "title": "100萬買00929 一年爽住15晚五星飯店？ #財經雪倫",
-      "channel": "投資嗨什麼",
-      "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
-      "date": "2026-10-11",
-      "views": 17110,
-      "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "都是月配息 ETF，00929 VS 00406A 該選誰？| 主動式真的能打敗被動科技高息嗎？",
-      "channel": "Lydia聊人生",
-      "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
-      "date": "2026-10-12",
-      "views": 6036
-    },
-    {
-      "platform": "youtube",
-      "title": "別被00929的15%殖利率騙了？想上車盯緊「這個價位」！#00929 #高股息ETF #存股 #理財",
-      "channel": "小童 x Happy Trading Life",
-      "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
-      "date": "2026-10-13",
-      "views": 1855,
-      "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "00412A 速懂！10月13日盛大掛牌上市",
-      "channel": "安聯投信 Allianz Global Investors Taiwan",
-      "url": "https://www.youtube.com/shorts/b-T8DfBiuuk",
-      "date": "2026-10-12",
-      "views": 198295,
-      "peer": true,
-      "short": true,
-      "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
       "title": "台股5萬點不是終點？股海老牛點名「台股三本柱」！第4季還有一波行情？高股息ETF今年加速快跑，0056、00878、00919還能抱？｜峰哥ft. 股海老牛｜Smart智富．投資的一千零一夜254",
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=o4KXRKrwlUs",
@@ -619,46 +574,96 @@
       "channel": "永豐金證券",
       "url": "https://www.youtube.com/watch?v=PXpvZEf2HpM",
       "date": "2026-10-10",
-      "views": 92012,
+      "views": 92030,
       "peer": true,
       "cat": "主動式"
     },
     {
       "platform": "youtube",
-      "title": "退休想靠ETF穩穩賺也要停損？多數人忽略這件事｜ft.走圖小天后 林穎 #ETF #退休 #理財資優生",
+      "title": "0050 ALL IN就對了？20年實測結果超意外🫨｜ft.清流君、葉芷娟 #0050 #ETF投資 #ETF錢滾錢",
       "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/shorts/UN7UK9CmFZk",
-      "date": "2026-10-11",
-      "views": 66332,
+      "url": "https://www.youtube.com/shorts/sgOyzfXKakU",
+      "date": "2026-10-13",
+      "views": 88083,
       "peer": true,
       "short": true,
-      "cat": "綜合"
+      "cat": "市值型"
     },
     {
       "platform": "youtube",
-      "title": "988A、990A還沒解套該換嗎？蕭碧燕：別只看3個月績效！2招教你練仰天長笑，低檔加碼關鍵不是設幾%｜ft.蕭碧燕、葉芷娟【ETF錢滾錢】EP88",
+      "title": "買 ETF 是無腦投資？讀上百本理財書的楊斯棓醫師：動作越少，反而越能賺到錢｜楊斯棓｜理財資優生 EP94精華",
       "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/watch?v=96vE3gSEGqo",
-      "date": "2026-10-14",
-      "views": 49787,
+      "url": "https://www.youtube.com/watch?v=YISny6TMPRY",
+      "date": "2026-10-10",
+      "views": 87836,
       "peer": true,
       "cat": "綜合"
     },
     {
       "platform": "youtube",
-      "title": "【殖利率18%⬆】賺股息還能賺價差！｜3檔改良0050的主動式ETF，竟然只有1檔成功站回高點｜配息、績效完勝0056、00878、00919！｜10月份應該參加除息嗎？｜知美JiMMY",
-      "channel": "知美JiMMY",
-      "url": "https://www.youtube.com/watch?v=JHG5ILdZ_FA",
-      "date": "2026-10-10",
-      "views": 35371,
+      "title": "大升息！元大高股息（0056）配息&amp;績效「重返榮耀」　高股息大哥強在哪？（2026版）｜懶錢包LazyWallet",
+      "channel": "懶錢包 Lazy Wallet",
+      "url": "https://www.youtube.com/watch?v=1iIDAJTm3bk",
+      "date": "2026-10-12",
+      "views": 87679,
       "peer": true,
       "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "愈破發愈出量!投資人鍾愛10元以下ETF 拚反彈賺更多?很多ETF自7月回檔後沒回來 怎麼回事?換到創高的ETF先摸清底細!【20261010只要錢長大(完整版)*鄭明娟(羅際夫×王仲麟)】",
+      "channel": "非凡 股市現場",
+      "url": "https://www.youtube.com/watch?v=wt58lJ8MihM",
+      "date": "2026-10-10",
+      "views": 60668,
+      "peer": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "【#本週精選】9月ETF大洗盤多空轉向！0050重回市場最愛 台股反彈被動ETF卻輸大盤？外資喊出台積電4410元天價！│陳斐娟 主持 │20261011│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=NUXLQRXjsOU",
+      "date": "2026-10-11",
+      "views": 33782,
+      "peer": true,
+      "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "00981A砍臻鼎.只留一張的真正原因!主動式ETF換股的秘密!這些股票跟著買能大賺?║郭恩典、陳昆仁、江國中║2026.10.13",
+      "channel": "瘋狂股市福利社Free Free Free!",
+      "url": "https://www.youtube.com/watch?v=Y-Ml82CgqGs",
+      "date": "2026-10-13",
+      "views": 23201,
+      "peer": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "巴倫周刊2026.10.12：股票代幣化降臨華爾街！美債殖利率居高不下，歷史揭示高利率恐將長期維持。拆解18%債券基金陷阱、Meta AI獲利瓶頸、歐洲債券風暴，以及營建股與花旗銀行的絕佳重估買點。",
+      "channel": "海格讀書會(每周更新)專注財經及經濟學人分享",
+      "url": "https://www.youtube.com/watch?v=c3qQ6os1dv8",
+      "date": "2026-10-10",
+      "views": 12838,
+      "peer": true,
+      "cat": "債券"
+    },
+    {
+      "platform": "youtube",
+      "title": "【財經這一卦#71】外資喊美債超跌=能抄底?太樂觀?法債暴雷+期貨壓力 美債還有一跌?亂撿美債ETF的要剁手? #美債 #美債etf  @yanting314",
+      "channel": "王嬿婷。週末饗嬿",
+      "url": "https://www.youtube.com/watch?v=SS3T5b3i-6k",
+      "date": "2026-10-10",
+      "views": 8095,
+      "peer": true,
+      "cat": "債券"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、數位經濟 等 8 檔（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、數位經濟 等 7 檔（詳下方新聞標籤）",
     "品牌焦點：00418A 復華台灣新星主動式 ETF｜成分股？配息？優缺點？募集時間？（StockFeel 股感）",
     "社群聲量最高：00929今年賺近80％！兩次換股策略揭開績效關鍵（0 推）",
-    "YouTube 熱片：00412A 速懂！10月13日盛大掛牌上市（安聯投信 Allianz Global Investors Taiwan・198,295 次觀看）"
+    "YouTube 熱片：台股5萬點不是終點？股海老牛點名「台股三本柱」！第4季還有一波行情？高股息ETF今年加速快跑，0056、00878、00919還能抱？｜峰哥ft. 股海老牛｜Smart智富．投資的一千零一夜254（Smart智富月刊・92,141 次觀看）"
   ]
 }
