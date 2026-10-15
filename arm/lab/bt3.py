@@ -507,13 +507,20 @@ def low_dd(ins: dict, oos: dict | None, *, cagr2: float | None, nb_ok: tuple | N
             continue
         if not (part.get("pay") or {}).get("ok"):
             fails.append(f"{nm}報酬型態沒過")
-        if not sd["ok"]:
-            fails.append(f"{nm}年化差或回落未達門檻")
+        if sd["gap"] is None:
+            fails.append(f"{nm}資金帳戶資料不足")
+            continue
+        if sd["gap"] <= -LOWDD["gap"]:
+            fails.append(f"{nm}年化少 {abs(sd['gap']):.1f} 個百分點")
+        if sd["ddr"] > LOWDD["dd"]:
+            fails.append(f"{nm}回落是 {sd['ddr']:.2f} 倍")
+        elif not sd["calmar"]:
+            fails.append(f"{nm}年化÷回落較差")
     ec = ((ins.get("ew") or {}).get("cagr"))
     if cagr2 is None or ec is None or cagr2 - ec <= -LOWDD["gap"]:
         fails.append("成本加倍後年化少 3 個百分點以上")
     if not nb_ok or nb_ok[0] < LOWDD["nb"]:
-        fails.append(f"參數鄰近只有 {nb_ok[0] if nb_ok else 0} 組符合（需 ≥{LOWDD['nb']}）")
+        fails.append(f"參數鄰近 {nb_ok[0] if nb_ok else 0}／{nb_ok[1] if nb_ok else 9} 組符合（需 ≥{LOWDD['nb']}）")
     return {"ok": not fails, "fails": fails, "gap": si.get("gap"), "ddr": si.get("ddr"),
             "gap_oos": so.get("gap") if so else None, "ddr_oos": so.get("ddr") if so else None,
             "nb": list(nb_ok) if nb_ok else None}
