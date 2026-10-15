@@ -378,6 +378,34 @@ def me_from_mkt() -> int:
     return n
 
 
+def update_tr_recent() -> int:
+    """每日維護：加權報酬指數（含息）補到官方分片的最新交易日——給前瞻紀錄的「同期大盤」（v4 後台驗證）。
+    只查上個月（還沒標完成時）與本月，一輪最多 2 請求；已經到最新交易日就零請求。→ 新增天數"""
+    from datetime import timedelta
+    from .. import clock
+    tr = store.read_json("v3_tr.json", {}) or {}
+    q, done = dict(tr.get("q") or {}), set(tr.get("m") or [])
+    ds = store.dates("mkt")
+    if not ds or (q and max(q) >= ds[-1]):
+        return 0
+    cur = clock.today_tw()
+    pm = cur.replace(day=1) - timedelta(days=1)
+    n0 = len(q)
+    for y, m in ((pm.year, pm.month), (cur.year, cur.month)):
+        ym = f"{y:04d}-{m:02d}"
+        if ym in done:
+            continue
+        rows = market.twse_tr_month(y, m)
+        if rows is None:
+            continue
+        q.update(rows)
+        if ym < cur.isoformat()[:7] and rows:
+            done.add(ym)
+    if len(q) > n0 or done != set(tr.get("m") or []):
+        store.write_json("v3_tr.json", {"q": q, "m": sorted(done)})
+    return len(q) - n0
+
+
 def update_isq() -> int:
     """每季法定期限過後補一次綜合損益表彙總（一季兩請求）；平常沒有缺就不發請求。"""
     n = 0

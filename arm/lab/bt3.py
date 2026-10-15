@@ -27,6 +27,7 @@ MONTH = 21                         # 一個月＝21 個交易日
 # 報酬型態門檻（第 6b 節「標準」）：賺錢機率 %、每月平均 %、賺賠比
 PAY = {"win": 60.0, "m": 1.0, "win2": 40.0, "ratio": 2.5, "m2": 2.0}
 DROP = 0.05                        # 穩健度：去掉最好的 5%
+LOWDD = {"gap": 3.0, "dd": 0.7, "nb": 5}   # 低回落例外（第 15 節）：年化少不到 3 個百分點、回落 ≤0.7 倍、鄰近 ≥5 組
 
 
 def side_cost(b: str, sell: bool, mult: float = 1.0) -> float:
@@ -481,6 +482,56 @@ def grade3(sel: dict, pay: dict, x2: float | None, nb: dict | None, *, event: bo
     elif fwd["xe"] <= 0:
         why.append(f"前瞻平均 {fwd['xe']:+.2f}%（A 級需 >0）")
     return {"grade": "B" if why else "A", "why": why, "rob": rob}
+
+
+def low_dd_side(acc: dict, ew: dict) -> dict:
+    """單一期間（樣本內或樣本外）的資金帳戶對同一批股票：年化差、回落倍數、報酬÷回落是否較好（第 15b 節第 2～4 條）。"""
+    c, m, ec, em = (acc or {}).get("cagr"), (acc or {}).get("mdd"), (ew or {}).get("cagr"), (ew or {}).get("mdd")
+    if None in (c, m, ec, em) or em <= 0:
+        return {"ok": False, "gap": None, "ddr": None}
+    gap, ddr = c - ec, m / em
+    calmar = (c / m if m > 0 else math.inf) >= ec / em
+    return {"ok": gap > -LOWDD["gap"] and ddr <= LOWDD["dd"] and calmar, "gap": gap, "ddr": ddr, "calmar": calmar}
+
+
+def low_dd(ins: dict, oos: dict | None, *, cagr2: float | None, nb_ok: tuple | None, n_min: int) -> dict:
+    """低回落例外（docs/backtest_v3_plan.md 第 15 節）。ins／oos＝{"sel", "pay", "acc", "ew"}；cagr2＝樣本內成本加倍後的
+    資金帳戶年化；nb_ok＝(參數鄰近中同時符合第 2、3 條的格數, 總格數)。只在選股沒過時用來把 C 改成 B。"""
+    fails = []
+    if (ins.get("sel") or {}).get("n", 0) < n_min:
+        fails.append("樣本不足")
+    si = low_dd_side(ins.get("acc"), ins.get("ew"))
+    so = low_dd_side(oos.get("acc"), oos.get("ew")) if oos and (oos.get("sel") or {}).get("n") else None
+    for nm, part, sd in (("樣本內", ins, si), ("樣本外", oos, so)):
+        if sd is None:
+            continue
+        if not (part.get("pay") or {}).get("ok"):
+            fails.append(f"{nm}報酬型態沒過")
+        if sd["gap"] is None:
+            fails.append(f"{nm}資金帳戶資料不足")
+            continue
+        if sd["gap"] <= -LOWDD["gap"]:
+            fails.append(f"{nm}年化少 {abs(sd['gap']):.1f} 個百分點")
+        if sd["ddr"] > LOWDD["dd"]:
+            fails.append(f"{nm}回落是 {sd['ddr']:.2f} 倍")
+        elif not sd["calmar"]:
+            fails.append(f"{nm}年化÷回落較差")
+    ec = ((ins.get("ew") or {}).get("cagr"))
+    if cagr2 is None or ec is None or cagr2 - ec <= -LOWDD["gap"]:
+        fails.append("成本加倍後年化少 3 個百分點以上")
+    if not nb_ok or nb_ok[0] < LOWDD["nb"]:
+        fails.append(f"參數鄰近 {nb_ok[0] if nb_ok else 0}／{nb_ok[1] if nb_ok else 9} 組符合（需 ≥{LOWDD['nb']}）")
+    return {"ok": not fails, "fails": fails, "gap": si.get("gap"), "ddr": si.get("ddr"),
+            "gap_oos": so.get("gap") if so else None, "ddr_oos": so.get("ddr") if so else None,
+            "nb": list(nb_ok) if nb_ok else None}
+
+
+def low_dd_why(ld: dict) -> str:
+    gp = lambda g: f"{'少' if g < 0 else '多'} {abs(g):.1f} 個百分點"
+    t = f"低回落例外：選股沒贏同一批股票，但扣成本後賺錢；年化比同一批股票{gp(ld['gap'])}、最大回落只有 {ld['ddr']:.2f} 倍（樣本內）"
+    if ld.get("gap_oos") is not None:
+        t += f"，樣本外{gp(ld['gap_oos'])}、{ld['ddr_oos']:.2f} 倍"
+    return t + "；最高 B"
 
 
 def _pay_why(p: dict) -> str:

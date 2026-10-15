@@ -45,7 +45,8 @@ def main() -> None:
         print(f"[lab] 月營收失敗：{e}")
     try:                                                  # 回測 v3：財報驚喜用的綜合損益表彙總（每季一次）、月底市值快照
         from arm.lab import v3data
-        print(f"[lab] 綜合損益彙總補 {v3data.update_isq()} 季、月底市值快照補 {v3data.me_from_mkt()} 筆")
+        print(f"[lab] 綜合損益彙總補 {v3data.update_isq()} 季、月底市值快照補 {v3data.me_from_mkt()} 筆、"
+              f"加權報酬指數補 {v3data.update_tr_recent()} 天")
     except Exception as e:                                # noqa: BLE001
         print(f"[lab] 回測 v3 每日維護失敗：{e}")
     collect.prune_all(today)
