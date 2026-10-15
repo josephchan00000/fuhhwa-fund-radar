@@ -139,3 +139,31 @@ def test_pure_emerging_stock_is_dropped():
     df = emerging_then_listed(n_em=80, n_main=0, seed=8).iloc[:80].assign(stock_id="9990")
     kept, info = trim(df, None)
     assert kept.empty and bool(info.iloc[0]["never_main"])
+
+
+def test_fetch_official_retries_broken_connection():
+    import requests
+
+    class Resp:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def json(self):
+            return self.rows
+
+    class Sess:
+        def __init__(self):
+            self.n = 0
+
+        def get(self, url, timeout=None):
+            self.n += 1
+            if self.n == 1:
+                raise requests.exceptions.ChunkedEncodingError("Response ended prematurely")
+            if "twse" in url:
+                return Resp([{"公司代號": "2330", "上市日期": "19940905"}])
+            return Resp([{"SecuritiesCompanyCode": "6488", "DateOfListing": "20150925"}])
+
+    s = Sess()
+    from superstock.listing import fetch_official
+    off = fetch_official(s, sleep=lambda _: None)
+    assert set(off.stock_id) == {"2330", "6488"} and s.n == 3
