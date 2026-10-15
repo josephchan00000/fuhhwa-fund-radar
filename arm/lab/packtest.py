@@ -443,9 +443,11 @@ def _ttm_cached(P: Px, eps: dict, c: str, d: str):
 class _Tpl:
     """趨勢樣板用的預先計算陣列。"""
 
-    def __init__(self, P: Px, codes: list[str]):
+    def __init__(self, P: Px, codes: list[str], elig=None, cap_floor: float = CAP_L):
+        """elig(t)→合格名單（預設市值 ≥300 億）；回測方法 v3 的中型股傳 bt3.Elig 的 "M"。"""
         self.P = P
-        self.codes = [c for c in codes if c in P.s and max((x or 0) for x in P.cap[c]) >= CAP_L]
+        self.E = elig or (lambda t: P.elig(t, CAP_L))
+        self.codes = [c for c in codes if c in P.s and max((x or 0) for x in P.cap[c]) >= cap_floor]
         self.a: dict[str, dict] = {}
         for c in self.codes:
             s = P.s[c]
@@ -461,7 +463,7 @@ class _Tpl:
     def rs_rank(self, t: int) -> dict:
         if t not in self.rs:
             rets = {}
-            E = self.P.elig(t, CAP_L)
+            E = self.E(t)
             for c in self.codes:
                 cs = self.P.s[c]["c"]
                 if t >= 250 and cs[t] and cs[t - 250] and c in E:
@@ -511,7 +513,7 @@ def _p2_scan(TP: _Tpl, spec: dict) -> list[tuple[str, int, float]]:
                 continue
             if not (cl > h25 and vt >= spec["vol"] * v50):
                 continue
-            if c not in P.elig(t, CAP_L):
+            if c not in TP.E(t):
                 continue
             rk = rk if rk is not None else TP.rs_rank(t)
             if (rk.get(c) or 0) < 0.70:
