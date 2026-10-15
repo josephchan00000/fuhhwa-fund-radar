@@ -6,8 +6,12 @@ FinMind TaiwanStockPrice 把同一代號在興櫃的交易也放進來：17 檔�
 
 判斷只用 FinMind 自己的欄位：主板的「漲跌價差」是對前一日收盤（除權息日對參考價），所以
 「收盤 − 漲跌價差 ＝ 前一日收盤」幾乎天天成立（實測掛牌後 97–99.8%）；興櫃的價差對的是前一日均價，
-只有 0–33% 成立。掛牌日＝符合率由低轉高、而且爆量的那一天：
-  前 20 筆符合率 ≤ 60%（至少 5 筆）、隔天符合、後 20 筆符合率 ≥ 90%、當天成交量 ≥ 前 20 筆中位數 3 倍。
+只有 0–33% 成立。掛牌日＝符合率由低轉高、而且爆量的轉換點（沒成交的列不算證據）：
+  前 20 筆符合率 ≤ 60%（至少 5 筆）、隔天符合、後 20 筆符合率 ≥ 90%、當天成交量 ≥ 前 20 筆中位數 3 倍；
+  候選連成一群時取最後一群的第一天（興櫃期間偶有假轉換）。
+CI 實測 62 檔（2008–2026 掛牌）第一版：59 檔需要切，52 檔與官方日相差 ≤1 個交易日、3 檔偵測到的是
+上櫃日（後來轉上市，正確）、2 檔偏早（3661 興櫃中段假轉換、6901 掛牌前幾天沒成交的列）、0 檔漏判——
+後兩條規則就是為這 2 檔加的。
 找不到轉換點＝資料一開始就在主板（2008 年以前掛牌，或從上櫃轉上市，例如 2059 川湖）。
 
 官方上市櫃日（證交所、櫃買 openapi）只拿來對帳（reconcile），不拿來切資料：上櫃轉上市的公司官方日期是
@@ -70,19 +74,26 @@ def main_board_start(dates, close, spread, volume) -> pd.Timestamp | None:
     if n < MIN_PRE + 2:
         return None
     m = match_series(close, spread)
+    vol = pd.to_numeric(pd.Series(volume), errors="coerce").astype(float)
+    m[~(vol.to_numpy(float) > 0)] = np.nan       # 沒成交的列（價格沿用前一天、價差 0）不算證據
     pre_n, pre_h = _window(m, forward=False)
     post_n, post_h = _window(m, forward=True)
     with np.errstate(invalid="ignore", divide="ignore"):
         pre_rate = pre_h / pre_n
         post_rate = post_h / post_n
-    vol = pd.to_numeric(pd.Series(volume), errors="coerce").astype(float)
     med = vol.where(vol > 0).rolling(WIN, min_periods=1).median().shift(1).to_numpy(float)
     nxt = np.append(m[1:], np.nan)
     v = vol.to_numpy(float)
     spike = np.isnan(med) | (v >= VOL_MULT * med)
     cand = (pre_n >= MIN_PRE) & (pre_rate <= PRE_MAX) & (nxt == 1.0) & (post_rate >= POST_MIN) & spike
     idx = np.flatnonzero(cand)
-    return pd.Timestamp(pd.Series(dates).iloc[idx[0]]) if len(idx) else None
+    if not len(idx):
+        return None
+    # 掛牌日之後幾天，前 20 筆仍以興櫃為主，所以候選會連成一群；興櫃期間偶有「價格不動＋爆量」的假轉換
+    # （3661 世芯 2012-12）會形成更早的一群。相鄰候選差距 ≤20 筆算同一群，取最後一群的第一天。
+    breaks = np.flatnonzero(np.diff(idx) > WIN)
+    first = idx[breaks[-1] + 1] if len(breaks) else idx[0]
+    return pd.Timestamp(pd.Series(dates).iloc[first])
 
 
 def trim(prices: pd.DataFrame, universe: pd.DataFrame | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:

@@ -617,6 +617,34 @@ def log_trial(path: str | Path, name: str, mode: str, params: dict, m: dict, ts:
         w.writerow(row)
 
 
+# ---------------------------------------------------------------------------------------------- 研究期間與評估
+# SPEC §1.3：IS 2010–2019（找特徵＋調參）· VAL 2020–2022（挑策略）· HOLDOUT 2023-01-01 起（P5 只開一次）
+PERIODS = {"IS": ("2010-01-01", "2019-12-31"), "VAL": ("2020-01-01", "2022-12-31"),
+           "HOLDOUT": ("2023-01-01", "2100-12-31")}
+
+
+class HoldoutLocked(RuntimeError):
+    """回測區間碰到保留期（2023 起）卻沒有明確打開——保留期只能在 P5 對最終 1–3 個設定開一次。"""
+
+
+def evaluate(name: str, mode: str, result: "Result", params: dict, m: Market | None = None,
+             labels: pd.DataFrame | None = None, reports_dir: str | Path = "reports",
+             allow_holdout: bool = False) -> dict:
+    """算指標、附加到 reports/trials.csv（DSR 需要全部試驗數）；碰到保留期要 allow_holdout=True 並記到 holdout_log.csv。"""
+    end = result.equity.index.max()
+    reports_dir = Path(reports_dir)
+    if end is not None and end >= pd.Timestamp(PERIODS["HOLDOUT"][0]):
+        if not allow_holdout:
+            raise HoldoutLocked(f"{name}：回測到 {end.date()}，碰到保留期（{PERIODS['HOLDOUT'][0]} 起）")
+        reports_dir.mkdir(parents=True, exist_ok=True)
+        with (reports_dir / "holdout_log.csv").open("a", encoding="utf-8") as fh:
+            fh.write(f"{pd.Timestamp.now(tz='Asia/Taipei'):%Y-%m-%d %H:%M},{name},"
+                     f"{json.dumps(params, ensure_ascii=False, sort_keys=True, default=str)}\n")
+    out = result.metrics(bench=m.index_tr if m is not None else None, labels=labels)
+    log_trial(reports_dir / "trials.csv", name, mode, params, out)
+    return out
+
+
 # ---------------------------------------------------------------------------------------------- 大盤複製（關卡）
 def replicate_index(level: pd.Series, capital: float = 10_000_000.0, costs: Costs | None = None) -> pd.DataFrame:
     """把報酬指數當成一檔股票，用引擎買進持有（預設零成本、可買小數股），逐年報酬與指數本身比較（GATE P2）。"""

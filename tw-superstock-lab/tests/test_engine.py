@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from superstock.engine import (Costs, EngineConfig, Market, label_hits, log_trial, market_filter, max_drawdown,
-                               metrics, replicate_index, run_portfolio, run_trades)
+from superstock.engine import (Costs, EngineConfig, HoldoutLocked, Market, evaluate, label_hits, log_trial,
+                               market_filter, max_drawdown, metrics, replicate_index, run_portfolio, run_trades)
 
 CAP = 1_000_000.0
 
@@ -272,3 +272,19 @@ def test_replicate_cli_writes_report(cfg):
     assert cmd_replicate(cfg, None) == 0
     text = (cfg.reports_dir / "replication_P2.md").read_text(encoding="utf-8")
     assert "通過" in text and "| 2020 |" in text
+
+
+def test_evaluate_logs_trial_and_locks_holdout(tmp_path):
+    m = market({"A": [100.0 + i for i in range(20)]}, start="2019-12-02")
+    res = run_portfolio(m, one_day(m, 0), cfg(), top_n=1, end="2019-12-31")
+    out = evaluate("B", "portfolio", res, {"top_n": 1}, m, reports_dir=tmp_path)
+    assert out["trades"] == 1 and (tmp_path / "trials.csv").exists()
+    res2 = run_portfolio(m, one_day(m, 0), cfg(), top_n=1)          # 跑到 2020 年，還沒到保留期
+    evaluate("B", "portfolio", res2, {"top_n": 1}, m, reports_dir=tmp_path)
+    m3 = market({"A": [100.0 + i for i in range(20)]}, start="2022-12-20")
+    res3 = run_portfolio(m3, one_day(m3, 0), cfg(), top_n=1)
+    with pytest.raises(HoldoutLocked):
+        evaluate("B", "portfolio", res3, {}, m3, reports_dir=tmp_path)
+    evaluate("B", "portfolio", res3, {}, m3, reports_dir=tmp_path, allow_holdout=True)
+    assert len((tmp_path / "holdout_log.csv").read_text(encoding="utf-8").splitlines()) == 1
+    assert len(pd.read_csv(tmp_path / "trials.csv")) == 3
