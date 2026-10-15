@@ -1054,7 +1054,8 @@ function v3Grid(k){const g3=g3Of(k);if(!g3||!g3.ins||!g3.ins.n)return '';const x
   const T=[kp('選股','同一批股票的平均',`${p2(x.xe)}／${u}`,`t ${tT(x.t)}・${x.n} ${u}`,cl(x.xe)),
     kp('賺錢機率','賺錢機率',`${x.win}%`,x.ratio!=null?`賺賠比 ${f(x.ratio,1)}`:''),kp('每月平均','每月平均',p2(x.m),''),
     kp(`${x.x2>0?'✓':'✗'} 成本加倍`,'成本加倍',p2(x.x2),'選股平均',cl(x.x2)),kp(`${x.drop5>0?'✓':'✗'} 去掉最好 5%`,'去掉最好 5%',p2(x.drop5),'選股平均',cl(x.drop5)),
-    ...(N.n?[kp(`${N.pos>=need?'✓':'✗'} 參數鄰近`,'參數鄰近',`${N.pos}／${N.n}`,`沿用對加權指數的 9 組；A 級需 ≥${need}`)]:[])];
+    ...(N.n?[kp(`${N.pos>=need?'✓':'✗'} 參數鄰近`,'參數鄰近',`${N.pos}／${N.n}`,`沿用對加權指數的 9 組；A 級需 ≥${need}`)]:[]),
+    kp('前瞻驗證','前瞻驗證',`${(g3.fwd||{}).n||0}／${u==='次'?2:10} ${u}`,(g3.fwd||{}).n?`平均${bw(g3.fwd.xe)}`:'沒有樣本外，前瞻達標後代替')];
   return `<h4 class=sh style="margin-top:0">評級依據（扣新成本、對同一批股票）</h4><div class=sgd>${T.join('')}</div>`+
     `<h4 class=sh>對加權指數（參考）</h4>`;}
 function perfTbl(g,v3){if(!g||!g.n)return '<span class=mu>尚無已出場交易。</span>';const u=g.event?'次':'筆',F=g.fwd||{},nf=g.event?2:10,cl=x=>x>0?'up':x<0?'dn':'';

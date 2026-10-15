@@ -591,7 +591,8 @@ def build_v3(v3: dict, ex: dict, last: str | None) -> dict:
             continue
         grades.append({"k": k, "grade": e["grade"], "why": e["why"], "ins": {**e["sel"], **{x: e["pay"].get(x) for x in ("win", "m", "ratio")},
                                                                         "pay_ok": e["pay"].get("ok"), "x2": e.get("x2")},
-                       "oos": None, "unit": e.get("unit"), "has_oos": False, "ev": _ev(None, e["sel"]), "nb": e.get("nb")})
+                       "oos": None, "unit": e.get("unit"), "has_oos": False, "ev": _ev(None, e["sel"]), "nb": e.get("nb"),
+                       "fwd": e.get("fwd")})
     basket = [{x: r.get(x) for x in ("k", "src", "name", "b", "ver", "unit", "grade", "why", "oos", "ins", "nb", "nb_oos", "sub")}
               for r in res.get("rows") or [] if r.get("ver") == "basket"]
     return {"grades": grades, "picks": picks, "watch": watch, "live": live, "basket": basket,
