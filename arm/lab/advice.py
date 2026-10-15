@@ -451,6 +451,9 @@ def build(data: dict) -> dict:
     grades3 = sorted(v3["grades"], key=lambda g: ("ABC".index(g["grade"]) if g["grade"] in "ABC" else 3, g["ev"]))
     for g in grades3:
         g.pop("ev", None)
+    rk = rank(grades3, last, v3["live"], old)
+    for g in grades3:
+        g["rank"], g["rank_why"] = rk.get(g["k"], (None, None))
     bk = book(grades3, v3["live"], old)
     try:
         nxt = trading_days_after(last, 1)[0] if last else None
@@ -458,9 +461,10 @@ def build(data: dict) -> dict:
         nxt = None
     cal = calendar(picks, v3["live"], {g["k"]: g for g in grades3}, order, {b["k"]: b for b in bk}, s3, s5,
                    sum(1 for x in grow.get("screen") or [] if x.get("pass")), last)
+    opp = opps(bk, cal, picks)
     return {"rule": RULE3, "rule_old": RULE, "pay3": PAY3, "cost3": COST3, "rule_stop": RULE_STOP, "caps": CAP,
             "loss_cap": LOSS_CAP, "grades": grades, "grades3": grades3, "picks": picks, "watch": watch, "exits": exits,
-            "book": bk, "cal": cal, "nxt": nxt,
+            "book": bk, "cal": cal, "nxt": nxt, "opp": opp,
             "pack": pack, "v3": {"live": v3["live"], "basket": v3["basket"], "meta": v3["meta"]}, "last": last,
             "v3err": (data.get("v3") or {}).get("err") or (data.get("v3ex") or {}).get("err")}
 
@@ -553,8 +557,84 @@ def book(grades3: list, live: dict, old: dict) -> list:
         else:
             e, extra = expect(old.get(k) or {}), {}
         out.append({"k": k, "name": g.get("name"), "how": HOW.get(k), "hold": HOLD.get(k), "grade": g["grade"],
-                    "unit": UNIT.get(k, "次"), "exp": e, **extra})
+                    "unit": UNIT.get(k, "次"), "exp": e, "rank": g.get("rank"), "rank_why": g.get("rank_why"), **extra})
     return out
+
+
+# —— 版面 v4（docs/lab_ia_v4_plan.md）：推薦順序與白話理由、機會頁卡片
+
+def _yrs(d0: str | None, last: str | None) -> int | None:
+    from datetime import date
+    try:
+        return round((date.fromisoformat(last[:10]) - date.fromisoformat(d0[:10])).days / 365.25)
+    except (TypeError, ValueError):
+        return None
+
+
+def _months(d0: str | None, last: str | None) -> int | None:
+    try:
+        return (int(last[:4]) - int(d0[:4])) * 12 + int(last[5:7]) - int(d0[5:7])
+    except (TypeError, ValueError):
+        return None
+
+
+def rank(grades3: list, last: str | None, live: dict, old: dict) -> dict:
+    """推薦順序＝評級總表的順序（A 在前；同級依證據強弱），只排 A、B 級（高股息換股只當出場規則，不排）。
+    理由只講資料多長、有沒有事後驗證（樣本外：規則用 2021-10 起的資料訂，再拿 2013～2021-09 重跑）；不出現 t 值。
+    事後驗證「也贏」＝樣本外平均贏同一批股票且 t ≥1，「偏弱」＝其餘。→ {鍵: (順序, 理由)}"""
+    out, n = {}, 0
+    for g in grades3:
+        k = g["k"]
+        if k == "hd" or g.get("grade") not in ("A", "B"):
+            continue
+        n += 1
+        o = g.get("oos") or {}
+        if g.get("has_oos") and o.get("n"):
+            al = ((live.get(k) or {}).get("res") or {}).get("all") or {}
+            y = _yrs(al.get("d0") or o.get("d0"), last)
+            ok = (o.get("xe") or 0) > 0 and (o.get("t") or 0) >= 1
+            why = f"{y} 年資料，事後驗證{'也贏' if ok else '偏弱'}" if y else f"事後驗證{'也贏' if ok else '偏弱'}"
+        else:
+            s = old.get(k) or {}
+            if s.get("event"):
+                why = f"資料只有 {s.get('n') or 0} 次（{str(s.get('d0') or '')[:4]} 年起），還沒有事後驗證"
+            else:
+                m = _months(s.get("d0"), last)
+                why = f"資料只有 {m} 個月，還沒有事後驗證" if m is not None else "還沒有事後驗證"
+        out[k] = (n, why)
+    return out
+
+
+NEXT_TXT = {"s1": "每天收盤後依當天的投信加碼名單產生，隔天開盤價低於昨收才買"}
+
+
+def opps(bk: list, cal: list, picks: list) -> dict:
+    """機會頁：推薦策略（有推薦順序的）每條一張卡——待買進（名單已產生）、持有中、下一批；上方摘要。
+    卡片內容都從行事曆與本期名單來，和策略頁同一份資料。"""
+    cards = []
+    for b in sorted((b for b in bk if b.get("rank")), key=lambda b: b["rank"]):
+        k = b["k"]
+        ev = [e for e in cal if e["k"] == k]
+        buy = [e for e in ev if e["act"] == "買進" and e.get("items")]
+        held = [e for e in ev if e.get("held")]
+        pend = [e for e in ev if e["act"] == "買進" and not e.get("items")]
+        cards.append({"k": k, "rank": b["rank"], "why": b.get("rank_why"), "name": b.get("name"), "grade": b["grade"],
+                      "how": b.get("how"), "hold": b.get("hold"), "unit": b.get("unit"), "exp": b.get("exp"),
+                      "all": {x: (b.get("all") or {}).get(x) for x in ("cagr", "tr_cagr", "mdd", "tr_mdd", "d0", "d1")}
+                      if b.get("all") else None,
+                      "buy": buy, "held": held, "next": pend[0] if pend else None,
+                      "adj": [e for e in ev if e["act"] == "調整"], "next_txt": NEXT_TXT.get(k),
+                      "state": "待買進" if buy else "持有中" if held else "等名單"})
+    ks = {c["k"] for c in cards}
+    pos: dict[str, float] = {}                 # 同一檔被兩條策略選到時不重複加碼：取較大的部位
+    for p in picks:
+        if p["k"] in ks:
+            pct = (p.get("size") or {}).get("pct") or CAP.get(p["grade"], 0) * 100
+            pos[p["c"]] = max(pos.get(p["c"], 0.0), pct)
+    nb = sum(len(e["items"]) for c in cards for e in c["buy"])
+    nh = sum(len(e["items"]) for c in cards for e in c["held"])
+    fb = min((e["d"] for c in cards for e in c["buy"]), default=None)
+    return {"cards": cards, "n": len(cards), "nb": nb, "nh": nh, "fb": fb, "cap": round(sum(pos.values()))}
 
 
 def _sell(k: str, live: dict, s3: dict | None) -> str:
@@ -587,12 +667,12 @@ def calendar(picks: list, live: dict, gmap: dict, order: dict, bk: dict, s3: dic
                    "ent_how": p0.get("ent_how"), "sell": _sell(k, live, s3), "exp": p0.get("exp"),
                    "tent": bool(p0.get("tent")), "fix": p0.get("fix")})
         if p0.get("out"):
-            ev.append({**base(k, p0["sname"]), "d": p0["out"], "at": "收盤", "act": "賣出",
+            ev.append({**base(k, p0["sname"]), "d": p0["out"], "at": "收盤", "act": "賣出", "plan": True,
                        "items": [{"c": p["c"], "n": p["n"]} for p in ps], "note": f"{_md(ent)} 有買到的"})
     for (k, out), ps in H.items():                      # ② 持有中：到期賣出；月營收驚喜＝換股
         p0 = ps[0]
         swap = (live.get(k) or {}).get("src") == "p7"
-        ev.append({**base(k, p0["sname"]), "d": out, "at": "收盤", "act": "換股" if swap else "賣出", "ent": p0.get("ent"),
+        ev.append({**base(k, p0["sname"]), "d": out, "at": "收盤", "act": "換股" if swap else "賣出", "ent": p0.get("ent"), "held": True,
                    "items": [{x: p.get(x) for x in ("c", "n", "entry", "now", "now_r")} for p in ps],
                    "note": "不在新名單的賣出，仍在新名單的續抱" if swap else f"{_md(p0.get('ent'))} 買進的"})
     for k, L in live.items():                           # ③ 下一期（名單還沒產生）
@@ -721,7 +801,7 @@ def build_v3(v3: dict, ex: dict, last: str | None) -> dict:
                         "size": size(g["grade"], px, None), "oos": True,
                         "oos_txt": _oos_txt(r["oos"], v["unit"])}
                 _put(item, picks, watch)
-            live[k] = {**{x: v.get(x) for x in ("k", "src", "b", "name", "unit", "since", "fwd", "now", "next")},
+            live[k] = {**{x: v.get(x) for x in ("k", "src", "b", "name", "unit", "since", "fwd", "now", "next", "due")},
                        "grade": g["grade"], "why": g["why"], "rules": V3_RULES[v["src"]], "bucket": BUCKET_TXT[v["b"]],
                        "res": {x: r.get(x) for x in ("oos", "ins", "nb", "nb_oos", "sub", "fsub", "curve", "dist", "ver", "lowdd",
                                                      "all", "yearly", "acurve")}}
