@@ -145,6 +145,17 @@ def reconcile(cfg, n: int = 20, sleep_sec: float = 3.0, session: requests.Sessio
                                     "item": f"{int(row['revenue_year'])}-{int(row['revenue_month']):02d} 月營收",
                                     "note": f"本機：{int(row['revenue']):,} 元｜請到公開資訊觀測站核對（單位可能是千元）"})
 
+    # 掛牌日對帳：偵測到的主板首日 vs 證交所／櫃買 openapi 的官方上市櫃日（只比現在掛牌的）
+    listing_cmp: dict = {}
+    if fetch and (proc / "listing.parquet").exists():
+        try:
+            from .listing import compare_official, fetch_official
+            cal = (pd.read_parquet(proc / "calendar.parquet")["date"] if (proc / "calendar.parquet").exists()
+                   else prices["date"].drop_duplicates())
+            listing_cmp = compare_official(pd.read_parquet(proc / "listing.parquet"), fetch_official(session), cal)
+        except Exception as exc:  # noqa: BLE001
+            listing_cmp = {"error": str(exc)[:200]}
+
     reports = Path(cfg.reports_dir)
     reports.mkdir(parents=True, exist_ok=True)
     n_auto = len(auto_rows)
@@ -157,9 +168,22 @@ def reconcile(cfg, n: int = 20, sleep_sec: float = 3.0, session: requests.Sessio
     lines += ["", "## 人工核對清單", "", "| 代號 | 項目 | 本機數值與說明 | 核對結果 |",
               "| --- | --- | --- | --- |"]
     lines += [f"| {r['stock_id']} | {r['item']} | {r['note']} | ☐ |" for r in manual_rows]
+    if listing_cmp:
+        lines += ["", "## 掛牌日對帳（偵測到的主板首日 vs 官方上市櫃日）", ""]
+        if "error" in listing_cmp:
+            lines.append(f"官方資料抓取失敗：{listing_cmp['error']}")
+        else:
+            lines.append(f"比對 {listing_cmp.get('compared', 0)} 檔（FinMind 日 K 早於官方日、需要切掉興櫃前段的）："
+                         f"差 1 個交易日內 {listing_cmp.get('within_1_day', 0)} 檔、一開始就在主板（上櫃轉上市等）"
+                         f"{listing_cmp.get('main_board_from_start', 0)} 檔、漏判 {listing_cmp.get('missed', 0)} 檔、"
+                         f"偵測偏早 {listing_cmp.get('earlier', 0)} 檔、偏晚 {listing_cmp.get('later', 0)} 檔。")
+            if listing_cmp.get("examples"):
+                lines += ["", "| 代號 | 官方日 | 市場 | 偵測 |", "| --- | --- | --- | --- |"]
+                lines += [f"| {e['stock_id']} | {e['official']} | {e['market']} | {e['detected'] or '—'} |"
+                          for e in listing_cmp["examples"]]
     path = reports / "reconciliation.md"
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     (reports / "reconciliation.json").write_text(json.dumps(
-        {"sample": sample.to_dict("records"), "auto": auto_rows, "manual": manual_rows},
+        {"sample": sample.to_dict("records"), "auto": auto_rows, "manual": manual_rows, "listing": listing_cmp},
         ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     return path

@@ -175,6 +175,20 @@ def run_probe(cfg: Config, client: FinMindClient, today: str, probe_stock: str =
             else:
                 entry["source"] = "本機沒有資料"
             result["datasets"][name] = entry
+        # 股票池：現在掛牌／已下市（含下市年份分布，檢查下市清單是否齊全）
+        from .universe import build_universe, reused_codes
+        info = store.read(next(sp for sp in REGISTRY if sp.store_name == "TaiwanStockInfo"), GLOBAL_KEY)
+        dl = store.read(next(sp for sp in REGISTRY if sp.store_name == "TaiwanStockDelisting"), GLOBAL_KEY)
+        if info is not None and not info.empty:
+            uni = build_universe(info, dl, cfg.universe, cfg.start_date)
+            de = uni[uni["is_delisted"]]
+            result["semantics"]["universe"] = {
+                "total": int(len(uni)), "listed": int((~uni["is_delisted"]).sum()), "delisted": int(len(de)),
+                "listed_by_market": {str(k): int(v) for k, v in uni[~uni["is_delisted"]]["market"].value_counts().items()},
+                "delisted_by_year": {str(k): int(v) for k, v in
+                                     pd.to_datetime(de["delist_date"]).dt.year.value_counts().sort_index().items()},
+                "reused_codes": len(reused_codes(info, dl, cfg.start_date, cfg.universe)),
+            }
         result["calls"] = client.calls
         return result
     finally:

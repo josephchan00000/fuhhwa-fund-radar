@@ -304,6 +304,33 @@ def check_chips(inst: pd.DataFrame, margin: pd.DataFrame, universe: pd.DataFrame
     return c
 
 
+def check_listing(listing: pd.DataFrame) -> Check:
+    """C12（2026-10-15 新增）：FinMind 日 K 混有興櫃（掛牌前）交易，build 已依 listing.py 切掉；
+    這裡看切了多少、以及「沒切到、但資料開頭不像主板」的可疑股票（可能漏判）。"""
+    from .listing import PRE_MAX
+    c = Check("C12", "掛牌前（興櫃）與下市後日 K")
+    if listing.empty:
+        c.worst("WARN")
+        c.summary = "沒有切除紀錄（請先 build）"
+        return c
+    pre = listing[listing["dropped_pre"] > 0]
+    post = listing[listing["dropped_post"] > 0]
+    suspect = listing[listing["main_start"].isna() & (listing["head_match"] < PRE_MAX)]
+    c.metrics = {"stocks": int(len(listing)), "with_emerging_prefix": int(len(pre)),
+                 "rows_dropped_pre": int(listing["dropped_pre"].sum()),
+                 "with_rows_after_delisting": int(len(post)), "rows_dropped_post": int(listing["dropped_post"].sum()),
+                 "suspect_not_switched": int(len(suspect))}
+    c.examples = [{"stock_id": r.stock_id, "first_raw": str(pd.Timestamp(r.first_raw).date()),
+                   "head_match": round(float(r.head_match), 3)} for r in suspect.head(20).itertuples(index=False)]
+    if len(suspect) / max(1, len(listing)) > 0.02:
+        c.worst("FAIL")
+    elif len(suspect):
+        c.worst("WARN")
+    c.summary = (f"{len(pre)} 檔切掉興櫃前段共 {c.metrics['rows_dropped_pre']:,} 筆；{len(post)} 檔切掉下市後 "
+                 f"{c.metrics['rows_dropped_post']:,} 筆；疑似漏判 {len(suspect)} 檔")
+    return c
+
+
 def run_quality(cfg: Config) -> list[Check]:
     store = Store(cfg.raw_dir)
     manifest = Manifest(cfg.manifest_path)
@@ -316,6 +343,7 @@ def run_quality(cfg: Config) -> list[Check]:
     fin = _load(proc / "financials.parquet")
     inst = _load(proc / "institutional.parquet")
     margin = _load(proc / "margin.parquet")
+    listing = _load(proc / "listing.parquet")
     info = store.read(get_spec("TaiwanStockInfo"), GLOBAL_KEY)
     delisting = store.read(get_spec("TaiwanStockDelisting"), GLOBAL_KEY)
     dividend_raw = store.read_all(get_spec("TaiwanStockDividendResult"))
@@ -333,6 +361,7 @@ def run_quality(cfg: Config) -> list[Check]:
             check_revenue(revenue, universe),
             check_financials(fin),
             check_chips(inst, margin, universe),
+            check_listing(listing),
         ]
     finally:
         manifest.close()
