@@ -11,10 +11,10 @@
   "risk_level": "RR4",
   "mgmt_fee": "2.00%",
   "size_twd": 800692831.0,
-  "nav": 13.64,
-  "nav_date": "2026/10/13",
-  "nav_change": -0.27,
-  "nav_change_pct": "-1.94%",
+  "nav": 13.2,
+  "nav_date": "2026/10/14",
+  "nav_change": -0.44,
+  "nav_change_pct": "-3.23%",
   "returns": {
     "ytd": "9.42%",
     "3m": "-28.06%",
@@ -32,122 +32,122 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/27.pdf",
   "dist_date": "2026/09/30",
   "dist_rate": "—",
-  "as_of": "2026/08/31",
+  "as_of": "2026/09/30",
   "top_holdings": [
     {
       "sector": "原材料",
       "name": "FREEPORT-MCMORAN INC",
-      "weight": 6.37
+      "weight": 6.67
     },
     {
-      "sector": "原材料",
-      "name": "LUNDIN MINING CORP",
-      "weight": 4.36
+      "sector": "工業",
+      "name": "BLOOM ENERGY CORP- A",
+      "weight": 5.12
     },
     {
       "sector": "原材料",
       "name": "ANTOFAGASTA PLC",
-      "weight": 3.85
-    },
-    {
-      "sector": "原材料",
-      "name": "AGNICO EAGLE MINES LTD",
-      "weight": 3.19
-    },
-    {
-      "sector": "原材料",
-      "name": "HECLA MINING CO",
-      "weight": 3.1
+      "weight": 3.97
     },
     {
       "sector": "資訊技術",
-      "name": "台光電",
-      "weight": 3.04
+      "name": "CORNING INC",
+      "weight": 3.94
     },
     {
       "sector": "原材料",
-      "name": "ABRASILVER RESOURCE CORP",
-      "weight": 3.03
-    },
-    {
-      "sector": "能源",
-      "name": "CAMECO CORP",
-      "weight": 2.93
+      "name": "LUNDIN MINING CORP",
+      "weight": 3.77
     },
     {
       "sector": "資訊技術",
       "name": "TAIYO YUDEN CO LTD",
-      "weight": 2.69
+      "weight": 3.61
+    },
+    {
+      "sector": "資訊技術",
+      "name": "MURATA MANUFACTURING CO LTD",
+      "weight": 3.08
+    },
+    {
+      "sector": "工業",
+      "name": "FURUKAWA ELECTRIC CO LTD",
+      "weight": 2.9
     },
     {
       "sector": "原材料",
-      "name": "ALBEMARLE CORP",
-      "weight": 2.63
+      "name": "HECLA MINING CO",
+      "weight": 2.88
+    },
+    {
+      "sector": "資訊技術",
+      "name": "南電",
+      "weight": 2.85
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 46.02
+      "weight": 49.21
     },
     {
       "name": "加拿大",
-      "weight": 20.09
+      "weight": 13.17
     },
     {
       "name": "日本",
-      "weight": 11.0
+      "weight": 12.67
     },
     {
       "name": "臺灣",
-      "weight": 10.68
+      "weight": 10.94
     },
     {
       "name": "韓國",
-      "weight": 4.48
+      "weight": 4.59
     },
     {
       "name": "英國",
-      "weight": 3.85
+      "weight": 3.97
     },
     {
-      "name": "香港",
-      "weight": 1.08
+      "name": "德國",
+      "weight": 1.4
     },
     {
       "name": "流動資產",
-      "weight": 2.8
+      "weight": 4.04
     }
   ],
   "sector_alloc": [
     {
-      "name": "原材料",
-      "weight": 51.22
-    },
-    {
       "name": "資訊技術",
-      "weight": 34.58
+      "weight": 47.02
     },
     {
-      "name": "能源",
-      "weight": 4.86
+      "name": "原材料",
+      "weight": 34.21
     },
     {
       "name": "工業",
-      "weight": 4.05
+      "weight": 8.8
+    },
+    {
+      "name": "能源",
+      "weight": 4.75
     },
     {
       "name": "其他",
-      "weight": 2.5
+      "weight": 1.18
     },
     {
       "name": "流動資產",
-      "weight": 2.8
+      "weight": 4.04
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-10-15 10:28",
+  "fetched_at": "2026-10-15 15:35",
   "returns_daily": {
     "1m": -1.8705,
     "3m": -12.78772,
