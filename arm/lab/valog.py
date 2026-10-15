@@ -98,7 +98,7 @@ def snapshot(adv: dict) -> dict:
                   "hn": len(held), "hr": _mean([i.get("now_r") for i in held]),
                   "bn": sum(len(e.get("items") or []) for e in c.get("buy") or []), "lo": lo, "deep": deep,
                   "miss": due["d"] if due.get("d") and not due.get("ok") and due["d"] < (last or "") else None,
-                  "why": (g.get("why") or [None])[0]}
+                  "why": (g.get("why") or [None])[0], "since": g.get("since")}
     return out
 
 

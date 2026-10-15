@@ -223,49 +223,60 @@ def test_page_has_no_banned_words():
     from arm.lab import packtest                                     # 資料包策略（2026-10-15）：規則、未採用清單、試過的做法
     st_txt += str(packtest.PACK) + str(packtest.SKIPPED) + "".join(
         str(x.get("tried")) for x in strategy.STRATEGIES + strategy.TW50_VERS + [growth.S5, hdflow.ALERT])
+    from pathlib import Path
+    from arm.lab import valog                                        # 版面 v4：下一批說明、驗證事件與推播文字
+    st_txt += str(advice.NEXT_TXT) + Path(valog.__file__).read_text("utf-8")
     text = page._HTML + page._JS + "".join(n + d for n, d in analyze.SIG_DEF.values()) + st_txt
     assert not [w for w in banned if w in text]
 
 
-def test_page_layout_six_tabs_today_first_and_glossary():
-    """2026-10-14 改版定案：今日｜個股｜投信｜訊號｜策略｜指數，一打開是「今日」；「說明」改為 ⓘ 名詞。
-    版面 v3（2026-10-15）：驗證另成一頁，入口在頂欄右側和「名詞」並列，不放主分頁列。"""
+def test_page_layout_v4_tabs_opp_first_and_backend():
+    """版面 v4（2026-10-15 使用者：「每個分頁想表達什麼沒辦法一眼看出…應該是要幫助瀏覽者知道各個不同的策略找出了哪些有機會的股票、
+    建議的策略、還有隱含的獲利如何」；docs/lab_ia_v4_plan.md）：機會｜策略｜個股｜籌碼｜指數，一打開是「機會」；
+    後台（自我驗證與研究）與名詞在頂欄右側小字；頁首一句話說明網頁目的。"""
     import re
     tabs = re.findall(r'<a data-t="(\w+)">([^<]+)</a>', page._HTML)
-    assert tabs == [("today", "今日"), ("stk", "個股"), ("iss", "投信"), ("sig", "訊號"),
-                    ("st", "策略"), ("idx", "指數")]
+    assert tabs == [("opp", "機會"), ("st", "策略"), ("stk", "個股"), ("chip", "籌碼"), ("idx", "指數")]
     assert 'id="glb"' in page._HTML and "說明</a>" not in page._HTML
-    assert '<a class="vlb" data-t="val">驗證</a><a class="glb" id="glb">' in page._HTML
-    assert "go('today');" in page._JS
+    assert '<a class="vlb" data-t="bo">後台</a><a class="glb" id="glb">' in page._HTML
+    assert '<p class="purp">用固定規則的選股策略，列出每條策略這一期選到的股票、哪天買賣，以及同樣做法過去實際賺多少。</p>' in page._HTML
+    assert "go('opp');" in page._JS and "const S={tab:'opp'," in page._JS
     js_views = re.search(r"const VIEWS=\{([^}]*)\}", page._JS).group(1)
-    assert [k.split(":")[0] for k in js_views.split(",")] == [t for t, _ in tabs] + ["val"]
+    assert [k.split(":")[0] for k in js_views.split(",")] == [t for t, _ in tabs] + ["bo"]
+    for k in ("today", "iss", "sig", "val"):                                 # 舊分頁已併入機會、籌碼、後台
+        assert f'data-t="{k}"' not in page._HTML and f'data-go="{k}"' not in page._JS, k
 
 
-def test_strategy_tab_v3_calendar_first_and_validation_split():
-    """版面 v3（2026-10-15 使用者：「我到底該在什麼時候買進什麼，預期持有多久報酬率多少…除了超額之外我也要知道實際報酬率…
-    你自己的驗證跟我沒關係應該切開來」；docs/lab_layout_v3_plan.md）：
-    策略頁＝行事曆 → 避開 → 策略一覽 → 各策略說明（結論／怎麼做／過去成績／風險）→ 部位；
-    驗證頁（頂欄）＝評級規則 → 評級總表 → 各策略評級依據 → 全部策略總表。
-    個股卡不再有成本拆解表（使用者：「版面變好亂、有看沒有懂」）。"""
+def test_opp_strategy_chip_backend_v4_structure():
+    """版面 v4：機會＝摘要（含時間表）→ 推薦策略卡（做法／隱含獲利／現在／下一批）→ 避開；
+    策略＝比較表（推薦順序）→ 各策略說明 → 部位；籌碼＝重點、買賣、新建倉、投信、今日訊號、風險；
+    後台＝今天的驗證、前瞻紀錄、事件紀錄 → 評級規則、評級總表、各策略依據、全部策略總表 → 訊號成績 → 換股研究 → 更新時程。"""
     js = page._JS
-    assert "h+=calSec()+avoidSec()+bookSec()+(ADV.book||[]).map(stCard).join('')+posSec();" in js
-    assert "h+=valRule()+gradeSec()+valSecs()+bt3Sec();" in js
-    for k in ("sec('st-cal'", "sec('st-avoid'", "sec('st-book'", "sec('st-pos'", "sec('val-rule'", "sec('val-grade'",
+    assert "h+=bookSec()+(ADV.book||[]).map(stCard).join('')+posSec();" in js
+    assert ("h+=boToday()+boFwd()+boHist()+valRule()+gradeSec()+valSecs()+bt3Sec()+sigAllSec()+studySec(I.study)+"
+            "hdStudySec(I.hd)+hdFlowSec(I.hd)+hdPreSec(I.hd)+boSched();") in js
+    for k in ("sec('o-sum'", "sec('o-'+c.k", "sec('o-avoid'", "sec('st-book'", "sec('st-pos'", "sec('val-rule'", "sec('val-grade'",
+              "sec('bo-today'", "sec('bo-fwd'", "sec('bo-hist'", "sec('bo-sig'", "sec('bo-sched'",
+              "sec('c-lead'", "sec('c-flow'", "sec('c-new'", "sec('c-iss'", "sec('c-sig'", "sec('c-risk'",
               "valSec('s1'", "valSec('s3'", "valSec('hd'", "valSec('s5'", "valSec(k,V3NAV[k]||L.name", "function valSecs(",
-              "ADV.grades3", "['結論',", "['怎麼做',", "['過去成績',", "['風險',", "['評級',", "['評級依據',",
-              "function calEv(", "function expTxt(", "function yearTbl(", "function acurveChart(", "function calLine(",
-              "data-go=\"val\" data-at=\"val-", "data-go=\"st\" data-at=\"st-"):
+              "ADV.grades3", "ADV.opp", "['做法',", "`隱含獲利${gi('隱含獲利')}`", "['現在',", "['下一批',",
+              "['結論',", "['怎麼做',", "['過去成績',", "['風險',", "['評級',", "['評級依據',",
+              "function yearTbl(", "function acurveChart(", "function oCard(", "function oTl(", "function stCardSec(",
+              "data-go=\"bo\" data-at=\"val-", "data-go=\"st\" data-at=\"st-", "data-go=\"opp\" data-at=\"o-",
+              "'推薦順序':", "'事後驗證':", "'隱含獲利':"):
         assert k in js, k
-    for k in ("function nowSec(", "function pickBlocks(", "function pickCard(", "function stSecs(", "function riskSec(",
-              "sec('st-now'", "sec('st-grade'", "sec('st-bt3'"):
+    for k in ("function calEv(", "function expTxt(", "function calLine(", "function vToday(", "function vSig(", "function vIss(",
+              "function vVal(", "sec('st-cal'", "sec('st-avoid'", "sec('t-", "function nowSec(", "function pickBlocks(",
+              "function pickCard(", "function stSecs(", "function riskSec(", "sec('st-now'", "sec('st-grade'", "sec('st-bt3'"):
         assert k not in js, k
-    # 操作頁不出現驗證用語（使用者：驗證跟我沒關係，切開來）
+    # 機會、策略兩頁不出現驗證用語（使用者：驗證跟我沒關係，切開來）
     import re
-    seg = js.split("/* ---------- 策略（版面 v3", 1)[1].split("*/", 1)[1].split("/* ---------- 驗證（頂欄", 1)[0]
+    seg = js.split("/* ---------- 機會（首頁，版面 v4", 1)[1].split("*/", 1)[1].split("/* ---------- 後台（頂欄小字", 1)[0]
     op = re.sub(r"/\*.*?\*/", "", seg, flags=re.S)
+    assert "function vOpp(" in op and "function vSt(" in op
     for w in ("t 值", "樣本外", "樣本內", "穩健度", "參數鄰近", "因子檢定", "同一批股票"):
         assert w not in op, w
-    assert not re.search(r"(?<![\w])tT\(", op)                             # t 值格式化只在驗證頁用
+    assert not re.search(r"(?<![\w])tT\(", op)                             # t 值格式化只在後台用
     for k in ("在賭什麼", "為什麼有效", "會失效", "s4", "群益新建倉"):           # 舊四小標與群益策略已移除
         assert k not in js, k
     assert "c-cost" not in js and "costSec" not in js
@@ -473,7 +484,7 @@ def test_tw50_card_has_versions_plan_and_research_section():
     assert (tw50study.EARLY_K, tw50study.EARLY_N, tw50study.EARLY_W) == (25, 4, 45)   # 使用者：3～4 檔、越早越好
     assert strategy.S3["name"] == "臺灣50 提前卡位"                     # 頁面只列一條策略（使用者：三個看不出差在哪）
     js = page._JS
-    for k in ("function s3Now(", "function verCmp(", "三種做法比較", "function studySec(", "h+=studySec(X.study);", "'idx-study'",
+    for k in ("function s3Now(", "function verCmp(", "三種做法比較", "function studySec(", "+studySec(I.study)+", "'idx-study'",
               "'漲勢前一半':", "'資料截止日':", "'估計權重':", "function earlyChart(", "提前幾天建倉"):
         assert k in js, k
     assert "sq('三個版本'" not in js
@@ -800,8 +811,8 @@ def test_hd_buffer_select_top_in_keep_rank_and_change_cap():
 
 def test_hd_page_sections_and_glossary():
     js = page._JS
-    for k in ("function hdPredSec(", "function hdStudySec(", "h+=hdPredSec(X.hd)+hdStudySec(X.hd)", "'idx-hd'", "'idx-hds'",
-              "'被動買賣期間':", "'對其他成分股':", "高股息預估納入"):
+    for k in ("function hdPredSec(", "function hdStudySec(", "h+=hdPredSec(X.hd);", "+hdStudySec(I.hd)+", "'idx-hd'", "'idx-hds'",
+              "'被動買賣期間':", "'對其他成分股':"):
         assert k in js, k
 
 
@@ -865,9 +876,9 @@ def test_hdflow_phase_and_per_review_weighting():
 
 def test_hd_flow_sections_alert_card_and_today_row():
     js = page._JS
-    for k in ("function hdFlowSec(", "'idx-hdw'", "h+=hdPredSec(X.hd)+hdStudySec(X.hd)+hdFlowSec(X.hd)+hdPreSec(X.hd);",
+    for k in ("function hdFlowSec(", "'idx-hdw'", "+hdStudySec(I.hd)+hdFlowSec(I.hd)+hdPreSec(I.hd)+",
               "function hdGroups(", "valSec('hd'", "hdGroups(false)", "+hdRisk());", "function hdRisk(",
-              "'被動買賣日量':", "'被動買賣提醒':", "data-at=\"st-avoid\""):
+              "'被動買賣日量':", "'被動買賣提醒':", "data-at=\"o-avoid\""):
         assert k in js, k
     assert "12 月首次觀察" not in js and "function hdAlertCard(" not in js
 
@@ -1377,9 +1388,10 @@ def test_signal_stats_report_actual_return_and_market():
     assert (a["r"], a["rm"], a["rw"]) == (1.67, 2.0, 67.0)
     assert a["mk"] == round(((0.01) + (0.02) + (0.04)) / 3 * 100, 2) and a["w"] == 33.0
     js = page._JS
-    for k in ("function sigVerdict(", "function sigConcl(", "const SIGST={cons:'s1'}", "照做的結果", "不是買點"):
+    for k in ("function sigVerdict(", "function sigConcl(", "const SIGST={cons:'s1'}", "訊號照做的成績", "不是買點", "function sigShort(",
+              "function sigTodaySec(", "function sigAllSec("):
         assert k in js, k
-    assert "勝率" not in js.split("function vSig(", 1)[1].split("/* ---------- 投信", 1)[0]
+    assert "勝率" not in js.split("/* ---------- 訊號（版面 v4", 1)[1].split("/* ---------- 投信動向", 1)[0]
 
 
 def test_advice_expect_book_and_ex_best_year():
