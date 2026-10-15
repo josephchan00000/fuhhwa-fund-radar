@@ -62,21 +62,24 @@ REGISTRY: tuple[DatasetSpec, ...] = (
                 overlap_days=60, try_global=True, note="分割後參考價（還原價）"),
     DatasetSpec("TaiwanStockParValueChange", "per_stock", "events", ("date",),
                 overlap_days=60, try_global=True, note="變更面額參考價（還原價）"),
-    DatasetSpec("TaiwanStockDispositionSecuritiesPeriod", "per_stock", "events",
-                ("date", "period_start", "period_end"), overlap_days=60, try_global=True,
-                note="處置股期間"),
     # ---- extended：之後的 Phase 會用到，第一輪可先不抓 ----
-    DatasetSpec("TaiwanStockHoldingSharesPer", "per_stock", "extended", ("date", "HoldingSharesLevel"),
-                note="集保股權分散表（千張大戶）"),
     DatasetSpec("TaiwanStockBalanceSheet", "per_stock", "extended", ("date", "type"),
                 overlap_days=500, note="資產負債表"),
     DatasetSpec("TaiwanStockShareholding", "per_stock", "extended", ("date",), note="外資持股、發行股數"),
-    DatasetSpec("TaiwanStockPriceAdj", "per_stock", "extended", ("date",),
-                note="FinMind 還原價（只用來交叉驗證自算還原價）"),
     DatasetSpec("TaiwanStockSecuritiesLending", "per_stock", "extended", (), note="借券成交明細"),
+    # ---- sponsor：FinMind 贊助會員才有（§3.7 實測，2026-10-15），預設不抓 ----
+    #   處置股、股權分散表改抓官方網站（official.py）；FinMind 還原價只用來交叉驗證（C8），沒有就略過。
+    #   哪天有贊助帳號：download --groups sponsor
+    DatasetSpec("TaiwanStockDispositionSecuritiesPeriod", "per_stock", "sponsor",
+                ("date", "period_start", "period_end"), overlap_days=60, try_global=True,
+                note="處置股期間（贊助；改用官方處置公告）"),
+    DatasetSpec("TaiwanStockHoldingSharesPer", "per_stock", "sponsor", ("date", "HoldingSharesLevel"),
+                note="集保股權分散表（贊助；改用集保開放資料）"),
+    DatasetSpec("TaiwanStockPriceAdj", "per_stock", "sponsor", ("date",),
+                note="FinMind 還原價（贊助；只用來交叉驗證自算還原價）"),
 )
 
-GROUP_ORDER = ("meta", "core", "events", "extended")
+GROUP_ORDER = ("meta", "core", "events", "extended", "sponsor")
 
 
 def specs_for_groups(groups: list[str] | tuple[str, ...]) -> list[DatasetSpec]:
