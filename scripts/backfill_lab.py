@@ -30,8 +30,13 @@ def main() -> None:
     ap.add_argument("--hd", action="store_true", help="高股息研究資料：證交所除權息逐年＋FinMind 單季 EPS／上櫃股利（可重跑續補）")
     ap.add_argument("--yhl", action="store_true",
                     help="高股息提前卡位研究：Yahoo 五年日線另存 data/lab/yhl＋證交所除權息 2018–2020（可重跑續補）")
+    ap.add_argument("--rev-probe", action="store_true", help="月營收全市場歷史的來源探針（MOPS 彙總表、FinMind），只印不寫")
     a = ap.parse_args()
     today = clock.today_tw()
+
+    if a.rev_probe:
+        market.probe_rev()
+        return
 
     if "--probe3" in sys.argv[1:]:
         market.probe3(collect.candidate_days(today, 7)[1])

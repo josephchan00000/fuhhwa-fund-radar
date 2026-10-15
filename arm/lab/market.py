@@ -656,6 +656,69 @@ def fetch_revenue() -> tuple[str | None, dict]:
     return ym, out
 
 
+# ── 月營收全市場歷史（S26，2026-10-15）：MOPS 營業收入彙總表（上市／上櫃 × 國內／國外 KY），一個月一個市場一請求 ─────
+MOPS_REV = "https://{host}/nas/t21/{mkt}/t21sc03_{roc}_{m}_{k}.html"
+MOPS_HOSTS = ("mopsov.twse.com.tw", "mops.twse.com.tw")
+_TR = re.compile(r"<tr[^>]*>(.*?)</tr>", re.S | re.I)
+_TD = re.compile(r"<t[dh][^>]*>(.*?)</t[dh]>", re.S | re.I)
+
+
+def _decode(b: bytes) -> str:
+    for enc in ("utf-8", "cp950", "big5"):
+        try:
+            return b.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return b.decode("utf-8", "replace")
+
+
+def parse_mops_rev(html: str) -> dict[str, list]:
+    """MOPS 營業收入彙總表 → {code: [當月營收(千元), 去年同月增減%, 累計增減%]}（同 parse_revenue 的格式）。
+    欄序：公司代號｜公司名稱｜當月營收｜上月營收｜去年當月營收｜上月比較%｜去年同月%｜當月累計｜去年累計｜前期比較%｜備註。"""
+    out = {}
+    for row in _TR.findall(html):
+        cells = [_TAG.sub("", c).replace("&nbsp;", "").strip() for c in _TD.findall(row)]
+        if len(cells) < 10 or not re.fullmatch(r"\d{4}", cells[0] or ""):
+            continue
+        rev = num(cells[2])
+        if rev is None:
+            continue
+        yoy, cy = num(cells[6]), num(cells[9])
+        out[cells[0]] = [rev, None if yoy is None else round(yoy, 2), None if cy is None else round(cy, 2)]
+    return out
+
+
+def probe_rev() -> None:
+    """探針：MOPS 彙總表（兩個主機 × 上市／上櫃、新舊兩個月份）與 FinMind（不帶代號一次拿全市場；單檔）。只印不寫。"""
+    for y, m in ((2024, 9), (2020, 1)):
+        for host in MOPS_HOSTS:
+            for mkt in ("sii", "otc"):
+                url = MOPS_REV.format(host=host, mkt=mkt, roc=y - 1911, m=m, k=0)
+                try:
+                    b = get_bytes(url, retries=1, timeout=20, use_cache=False)
+                    h = _decode(b)
+                    d = parse_mops_rev(h)
+                    smp = {k: d[k] for k in ("2330", "2454", "3105", "6488") if k in d}
+                    log(f"[revprobe] {url} → {len(b)}B、解析 {len(d)} 檔、樣本 {smp}、開頭 {h[:160]!r}")
+                except Exception as e:                    # noqa: BLE001
+                    log(f"[revprobe] {url} ✗ {str(e)[:200]}")
+                time.sleep(1.5)
+    for url in ("https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMonthRevenue&start_date=2024-10-01&end_date=2024-10-31",):
+        try:
+            doc = json.loads(get_bytes(url, retries=1, timeout=40, use_cache=False).decode("utf-8"))
+            rows = doc.get("data") or [] if isinstance(doc, dict) else []
+            log(f"[revprobe] FinMind 全市場 status={doc.get('status') if isinstance(doc, dict) else '?'} "
+                f"msg={str(doc.get('msg') if isinstance(doc, dict) else '')[:120]} 列數 {len(rows)} "
+                f"檔數 {len({r.get('stock_id') for r in rows})} 首列 {rows[:1]}")
+        except Exception as e:                            # noqa: BLE001
+            log(f"[revprobe] FinMind 全市場 ✗ {str(e)[:200]}")
+    rows = finmind("TaiwanStockMonthRevenue", "2330", "2020-01-01")
+    if isinstance(rows, list):
+        log(f"[revprobe] FinMind 2330 單檔 {len(rows)} 列 首 {rows[:1]} 末 {rows[-1:]}")
+    else:
+        log(f"[revprobe] FinMind 2330 單檔 → {rows}")
+
+
 def finmind_revenue(code: str, start: str = "2023-01-01") -> dict[str, float]:
     """FinMind 月營收歷史（第三方整理官方數字；只用在回測）→ {YYYY-MM: 營收(元)}。"""
     from .. import clock
