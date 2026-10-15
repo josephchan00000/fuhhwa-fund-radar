@@ -490,6 +490,13 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
   git push（曾卡 Initializing／漏接），偵測漏接就會出現「資料準時進 main、CI 全 success、線上卻停在舊版」
   ——原委與診斷順序見步驟 9 的「主動部署」與其下踩坑條。**如使用者回報線上沒更新，先讀該班 run 部署步驟的
   日誌**（印 `HTTP 2xx`＝真的打出去了；印「未設…跳過」＝secret 被刪或失效），再問 Vercel Deployments 對到哪個 commit。
+- **⚠ Vercel 免費方案每日部署上限（2026-10-15 踩坑：對時哨兵連三輪紅、線上停在 20:53）**：每推一次 `claude/**`
+  工作分支，Vercel 就多做一次預覽部署；main 每筆 CI commit 又部署兩次（自動偵測＋Deploy Hook）。當天工作分支推了
+  幾十次、超過上限後，Deploy Hook 照樣回 `HTTP 201`，但部署建不起來，線上停在舊版。**診斷**：哨兵紅、部署步驟
+  卻印 2xx 時，讀 PR 的 commit status（`pull_request_read` get_status，context＝Vercel），描述是
+  「Deployment rate limited — retry in 24 hours」就是這個。**對策**：當天少推分支，等限制解除，下一班 CI 會自動部署；
+  根治是在兩支 vercel.json 加 `"git": {"deploymentEnabled": {"claude/**": false}}`，停掉工作分支的預覽部署
+  （改部署設定要先問使用者；2026-10-15 已提、待同意）。
 - **多人化硬化（2026-08-14；規劃全文 `docs/multi_user_plan.md`。實際規模＝**家人約 30 人分享、非商用**，
   Vercel Hobby 合規、無需升 Pro；**讀取端不隨人數產生成本**——CI 分鐘按排程固定、資料來源站只有 CI 會碰、
   使用者只從 CDN 抓單一自包 HTML，30 人約 0.4GB/月＝免費額 0.4%。硬化的價值主要在**省維護者自己的
