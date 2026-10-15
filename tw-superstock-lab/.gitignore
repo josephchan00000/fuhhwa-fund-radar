@@ -1,0 +1,21 @@
+# 原始與處理後資料只留在本機，不進 repo（檔案大、且 FinMind 資料不宜再散布）
+data/
+*.parquet
+*.sqlite
+*.sqlite-journal
+
+# 密鑰
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+build/
+dist/
+
+# 系統
+.DS_Store

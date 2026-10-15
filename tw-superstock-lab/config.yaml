@@ -1,0 +1,29 @@
+# 台股飆股研究系統 — 設定檔
+# 研究期從 2010 年開始；多抓 2 年（2008–2009）給 200 日均線、52 週高低點暖機。
+start_date: "2008-01-01"
+
+data_dir: "data"        # 原始與處理後資料（gitignore，只留在本機）
+reports_dir: "reports"  # 品質報告、對帳結果（會提交到 repo，給雲端 Claude 讀）
+
+finmind:
+  api_url: "https://api.finmindtrade.com/api/v4/data"
+  user_info_url: "https://api.web.finmindtrade.com/v2/user_info"
+  token_env: "FINMIND_TOKEN"
+  requests_per_hour: 600   # 免費帳號驗證信箱後的上限；check 指令會讀 user_info 自動校正
+  safety_margin: 0.92      # 只用上限的 92%，留一點給你手動查詢
+  min_interval_sec: 1.0    # 兩次請求之間至少間隔幾秒
+  timeout_sec: 60
+  max_retries: 6           # 網路錯誤或 5xx 的重試次數
+  rate_limit_wait_sec: 600 # 撞到額度上限時，每次等待幾秒再查剩餘額度
+
+universe:
+  markets: ["twse", "tpex"]          # 上市、上櫃；興櫃不納入
+  include_delisted: true             # 必須含下市櫃股票，避免倖存者偏差
+  stock_id_pattern: "^[1-9][0-9]{3}$" # 4 碼普通股；00 開頭的 ETF、權證、特別股自動排除
+
+# 下載群組（依序執行）：
+#   meta     股票清單、下市清單、交易日、大盤指數（約 10 次請求）
+#   core     日 K、月營收、綜合損益表、三大法人、融資融券（每檔股票各 1 次）
+#   events   除權息、減資、分割、面額變更、處置股（先嘗試整批下載，不行才逐檔）
+#   extended 股權分散表、資產負債表、外資持股、FinMind 還原價（交叉驗證用）、借券
+download_groups: ["meta", "core", "events"]
