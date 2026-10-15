@@ -20,7 +20,9 @@ from .v3data import stock
 def events() -> dict[str, list[tuple]]:
     """除權息事件 {代號: [(除權息日, 參考價 ÷ 前收, 現金部分倍數或 None)]}。
     上市 divtw：只有「息」知道現金部分（＝整體倍數），「權」「權息」的現金金額表上沒有 → None；
-    上櫃 v3div：現金股利與配股分列 → 現金部分＝1 − 現金股利 ÷ 前收。"""
+    上櫃 v3div：現金股利與配股分列 → 現金部分＝1 − 現金股利 ÷ 前收；只有配股＝1；
+    兩欄都空白（2013～2026 共 505 筆，前收與參考價有差）→ None（現金部分不知道，用 Yahoo 還原收盤隱含的倍數）。
+    2026-10-15 修正（逐筆交易核對時發現，docs/lab_trades_plan.md 第 9 節）：原本兩欄空白當成「沒有現金股利」，股利沒算進報酬。"""
     ev: dict[str, list] = {}
     for _, doc in store.load("divtw"):
         for r in doc.get("rows") or []:
@@ -31,7 +33,8 @@ def events() -> dict[str, list[tuple]]:
         for r in doc.get("rows") or []:
             d, c, before, ref, cash = r[0], r[1], r[2], r[3], r[4]
             if before and ref and 0 < ref < before:
-                fc = 1 - cash / before if cash and 0 < cash < before else 1.0
+                stk = r[5] if len(r) > 5 else None
+                fc = 1 - cash / before if cash and 0 < cash < before else (1.0 if stk else None)
                 ev.setdefault(c, []).append((d, ref / before, fc))
     return {c: sorted(set(v), key=lambda x: (x[0], x[1])) for c, v in ev.items()}
 
@@ -50,9 +53,9 @@ def month_end_caps() -> list[tuple[str, dict]]:
 def factor_yahoo(cal: list[str], c: list, a: list, ev: list[tuple]) -> list[float]:
     """Yahoo 價（已還原股票股利）的現金股利還原倍數：官方知道現金部分的用官方（純現金股利、上櫃全部），
     上市「權」「權息」用 Yahoo 還原收盤在當天隱含的倍數。2026-10-15 比對 1.1 萬筆現金股利：Yahoo 與官方差 >1%
-    的約 2.5%（金額不同 119、沒扣 39、扣在別天 28），所以以官方為主。"""
+    的約 2.5%（金額不同 119、沒扣 39、扣在別天 28），所以以官方為主。
+    除權息日剛好休市（颱風假，例 2024-07-24／25；共 190 筆）→ 算在下一個交易日（2026-10-15 修正：原本整筆略過）。"""
     T = len(cal)
-    ix = {d: i for i, d in enumerate(cal)}
 
     def yf(i):
         if 0 < i < T and c[i - 1] and a[i - 1] and c[i] and a[i]:
@@ -60,11 +63,16 @@ def factor_yahoo(cal: list[str], c: list, a: list, ev: list[tuple]) -> list[floa
         return 1.0
     fs = []
     for d, _, fc in ev:
-        i = ix.get(d)
-        if i is None:
+        i = bisect.bisect_left(cal, d)                    # 除權息日或之後的第一個交易日
+        if i >= T or (i > 0 and cal[i] != d and _days(d, cal[i]) > 10):
             continue
-        fs.append((d, fc if fc is not None else yf(i)))
+        fs.append((cal[i], fc if fc is not None else yf(i)))
     return factor_events(cal, fs)
+
+
+def _days(a: str, b: str) -> int:
+    from datetime import date
+    return (date.fromisoformat(b) - date.fromisoformat(a)).days
 
 
 def factor_events(cal: list[str], ev: list[tuple[str, float]]) -> list[float]:
