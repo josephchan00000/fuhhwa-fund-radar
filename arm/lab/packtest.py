@@ -34,6 +34,7 @@ P2 = {"stop": 0.08, "vol": 1.5, "base": 25, "depth": 0.25, "tight": 0.10, "maxd"
 P3 = {"top": 0.20, "nmin": 10, "hold": 60}
 P4 = {"look": 126, "skip": 21, "top": 0.10, "nmin": 10, "ep_max": 0.25}
 P5 = {"look": 5, "top": 0.10, "nmin": 10}
+P7 = {"win": 12, "min": 6, "top": 0.10, "nmin": 10}     # S26 月營收驚喜（docs/strategy_pack_plan.md 第 6 節，回測前寫定）
 
 # 法定公告期限：季底 → (同年或次年, 月, 日)
 DEADLINE = {"03-31": (0, 5, 15), "06-30": (0, 8, 14), "09-30": (0, 11, 14), "12-31": (1, 3, 31)}
@@ -633,6 +634,80 @@ def grid(fn, a_vals, b_vals, lbl: tuple[str, str] | None = None) -> dict:
             "lbl": list(lbl or ("參數一", "參數二")), "cells": cells, "n": n, "pos": pos}
 
 
+# ── 月營收驚喜（P7，S26） ─────────────────────────────────────────────
+
+def load_rev() -> dict[str, dict[str, float]]:
+    """rev 分片（MOPS 營業收入彙總表回補＋官方 openapi 每月）→ {代號: {YYYY-MM: 當月營收(千元)}}。"""
+    from . import store
+    out: dict[str, dict] = {}
+    for ym, doc in store.load("rev"):
+        for c, v in (doc.get("s") or {}).items():
+            if v and v[0] is not None:
+                out.setdefault(c, {})[ym] = float(v[0])
+    return out
+
+
+def ym_shift(ym: str, k: int) -> str:
+    y, m = int(ym[:4]), int(ym[5:7]) + k
+    while m <= 0:
+        m += 12
+        y -= 1
+    while m > 12:
+        m -= 12
+        y += 1
+    return f"{y:04d}-{m:02d}"
+
+
+def sur(rev: dict, ym: str, win: int = 12, mn: int = 6) -> float | None:
+    """標準化營收驚喜＝（當月 − 去年同月）÷ 前 win 個月（至少 mn 個）「當月 − 去年同月」差額的標準差。"""
+    a, b = rev.get(ym), rev.get(ym_shift(ym, -12))
+    if a is None or b is None:
+        return None
+    diffs = []
+    for k in range(1, win + 1):
+        x, y = rev.get(ym_shift(ym, -k)), rev.get(ym_shift(ym, -k - 12))
+        if x is not None and y is not None:
+            diffs.append(x - y)
+    if len(diffs) < mn:
+        return None
+    sd = statistics.stdev(diffs)
+    return (a - b) / sd if sd > 0 else None
+
+
+def rev_forms(cal: list[str]) -> list[tuple[int, str]]:
+    """形成日＝月營收法定公告期限：每月 10 日，遇假日順延到下一個上班日 → 取 10 日當天或之後的第一個交易日
+    （收盤後全部公司都已公告，隔天開盤進場）→ (索引, 可得的最新營收月份＝上個月)。
+    回測前修正（docs 6b-1）：原寫「10 日當天或之前的最後一個交易日」，10 日遇假日時期限順延，會用到還沒公告的資料。"""
+    first: dict[str, int] = {}
+    for i, d in enumerate(cal):
+        if int(d[8:10]) >= 10 and d[:7] not in first:
+            first[d[:7]] = i
+    return [(t, ym_shift(ym, -1)) for ym, t in sorted(first.items())]
+
+
+def non_fin(codes: list[str]) -> list[str]:
+    """排除金融保險業（P7 宇宙）：2026 起金控可延到 15 日申報營收；銀行保險的營收含投資損益，與一般公司不可比。"""
+    from .. import stockmeta
+    ind = stockmeta.industry_map()
+    return [c for c in codes if "金融" not in (ind.get(c) or "")]
+
+
+def p7_units(P: Px, codes: list[str], rev: dict, idx: list, io: list, spec: dict = P7) -> dict:
+    fm = rev_forms(P.cal)
+    ym_of = dict(fm)
+    cache: dict[tuple, float | None] = {}
+
+    def f(c, t):
+        k = (c, ym_of[t], spec["win"], spec["min"])
+        if k not in cache:
+            cache[k] = sur(rev.get(c) or {}, ym_of[t], spec["win"], spec["min"])
+        return cache[k]
+    out = xsec(P, codes, [t for t, _ in fm], f, top=spec["top"], nmin=spec["nmin"], cap_min=CAP_L, idx=idx, io=io)
+    if out.get("now"):
+        out["now"]["ym"] = ym_of.get(out["now"]["t"])
+    return out
+
+
 def run(DL, names: dict | None = None, *, with_grid: bool = True) -> dict:
     """五個新策略（P1–P5）的樣本內成績、參數鄰近與最新一期名單。DL＝Data(long=True)。"""
     from .collect import yh_codes, yhl_codes
@@ -697,7 +772,20 @@ def run(DL, names: dict | None = None, *, with_grid: bool = True) -> dict:
         out["p5"]["nb"] = grid(lambda look, top: _avg(u["x"] for u in p5_units(
             P, allc, idx, io, start, {**P5, "look": look, "top": top})["units"]), (3, 5, 10), (0.05, 0.10, 0.20),
             ("排序天數", "買進比例"))
-    out["meta"] = {"n_long": len(longc), "n_all": len(P.codes), "n_eps": len(fc), "d0": DL.cal[0], "d1": DL.cal[-1]}
+    # P7 月營收驚喜（S26）：rev 分片要有 2020 起的全市場歷史（MOPS 彙總表回補）才算
+    rv = load_rev()
+    months = sorted({ym for r in rv.values() for ym in r})
+    if len(months) >= 30:
+        P.lock_n = 0
+        c7 = non_fin(longc)
+        r7 = p7_units(P, c7, rv, idx, io)
+        out["p7"] = {"units": r7["units"], "now": r7["now"], "lock": P.lock_n, "m0": months[0], "m1": months[-1]}
+        if with_grid:
+            out["p7"]["nb"] = grid(lambda win, top: _avg(u["x"] for u in p7_units(
+                P, c7, rv, idx, io, {**P7, "win": win, "top": top})["units"]), (9, 12, 18), (0.05, 0.10, 0.20),
+                ("標準差期間（月）", "買進比例"))
+    out["meta"] = {"n_long": len(longc), "n_all": len(P.codes), "n_eps": len(fc), "d0": DL.cal[0], "d1": DL.cal[-1],
+                   "rev_m": len(months)}
     return out
 
 
@@ -714,6 +802,8 @@ PACK = [
      "rule": "每月依盈餘殖利率與約 6 個月漲幅兩項排名的平均，買前 10%（至少 10 檔），持有一個月"},
     {"k": "p5", "src": "S13", "name": "短期反轉・週換股", "unit": "週", "event": False,
      "rule": "每週買進市值 100 億以上、過去 5 日跌最多的 10%（至少 10 檔），持有一週"},
+    {"k": "p7", "src": "S26", "name": "月營收驚喜・月換股", "unit": "月", "event": False,
+     "rule": "每月 10 日公告期限後，買上個月營收比去年同月成長最出乎意料（依過去一年的波動標準化）的前 10%，持有一個月"},
 ]
 
 SKIPPED = [
@@ -727,7 +817,6 @@ SKIPPED = [
     ["S22 網格與攤平加碼", "高勝率掩蓋少數大虧，原文也不建議當核心"],
     ["S23 風險配置", "部位規則已用評級上限與停損虧損上限控管；另加「本期全部照做的總部位」"],
     ["S25 事件驅動", "可取得的事件只有指數調整，已有臺灣50、高股息兩段"],
-    ["S26 月營收", "全市場月營收歷史目前只有 60 檔；長線策略已用月營收當條件。全市場回補列為下一步"],
     ["資料包 03（美股三檔）、04（宏致定價）", "單一公司的基本面估值與價格情境；本頁只放由資料算出、可回測的內容"],
 ]
 
@@ -744,6 +833,8 @@ def summary(res: dict, reg: dict | None) -> dict:
     from . import advice
     rows = []
     for m in PACK:
+        if m["k"] not in res:                            # P7 要等月營收歷史回補齊全才算
+            continue
         r = res.get(m["k"]) or {}
         u = _units(m["k"], r)
         sc = advice.score(u, event=m["event"], reg=reg, nb=r.get("nb"), xe_rule=True) if u else {"n": 0, "grade": "C"}
