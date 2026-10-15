@@ -688,6 +688,28 @@ def parse_mops_rev(html: str) -> dict[str, list]:
     return out
 
 
+_MOPS_HOST_OK: list[str] = []
+
+
+def fetch_mops_rev(mkt: str, y: int, m: int, k: int = 0) -> dict[str, list] | None:
+    """MOPS 營業收入彙總表一頁（mkt＝sii 上市／otc 上櫃；k＝0 國內、1 國外）。抓不到回 None；能用的主機記下來先試。"""
+    hosts = list(dict.fromkeys(_MOPS_HOST_OK + list(MOPS_HOSTS)))
+    for host in hosts:
+        url = MOPS_REV.format(host=host, mkt=mkt, roc=y - 1911, m=m, k=k)
+        try:
+            b = get_bytes(url, retries=2, timeout=25, use_cache=False)
+        except Exception as e:                            # noqa: BLE001
+            log(f"MOPS 月營收 ✗ {url} {str(e)[:120]}")
+            continue
+        d = parse_mops_rev(_decode(b))
+        if d or k == 1:                                   # 國外（KY）頁可能本來就很少
+            if host not in _MOPS_HOST_OK:
+                _MOPS_HOST_OK.insert(0, host)
+            return d
+        log(f"MOPS 月營收 解析 0 檔 {url}（{len(b)}B）開頭 {_decode(b)[:120]!r}")
+    return None
+
+
 def probe_rev() -> None:
     """探針：MOPS 彙總表（兩個主機 × 上市／上櫃、新舊兩個月份）與 FinMind（不帶代號一次拿全市場；單檔）。只印不寫。"""
     for y, m in ((2024, 9), (2020, 1)):

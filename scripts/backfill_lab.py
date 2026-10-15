@@ -31,11 +31,20 @@ def main() -> None:
     ap.add_argument("--yhl", action="store_true",
                     help="高股息提前卡位研究：Yahoo 五年日線另存 data/lab/yhl＋證交所除權息 2018–2020（可重跑續補）")
     ap.add_argument("--rev-probe", action="store_true", help="月營收全市場歷史的來源探針（MOPS 彙總表、FinMind），只印不寫")
+    ap.add_argument("--rev-mops", action="store_true", help="月營收全市場歷史（MOPS 彙總表，2020-01 起；可重跑續補）")
+    ap.add_argument("--rev-fm", action="store_true", help="月營收全市場歷史備援：FinMind 逐檔（五年日線宇宙，2020-01 起）")
     a = ap.parse_args()
     today = clock.today_tw()
 
     if a.rev_probe:
         market.probe_rev()
+        return
+    if a.rev_mops:
+        print(f"[lab] 月營收歷史：本輪新增 {collect.backfill_rev_mops(budget_s=a.budget_min * 60)} 個月")
+        return
+    if a.rev_fm:
+        codes = [c for c in collect.yhl_codes() if len(c) == 4 and c.isdigit() and not c.startswith("00")]
+        print(f"[lab] 月營收歷史（FinMind）：本輪新增 {collect.backfill_rev_finmind(codes, budget_s=a.budget_min * 60)} 檔")
         return
 
     if "--probe3" in sys.argv[1:]:
