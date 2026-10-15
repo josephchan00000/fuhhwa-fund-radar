@@ -32,120 +32,116 @@
   "monthly_report": "https://www.fhtrust.com.tw/docUpload/FundMonRPT/131.pdf",
   "dist_date": "—",
   "dist_rate": "—",
-  "as_of": "2026/08/31",
+  "as_of": "2026/09/30",
   "top_holdings": [
     {
-      "sector": "金融",
-      "name": "BANK OF AMERICA CORP",
-      "weight": 5.46
-    },
-    {
-      "sector": "金融",
-      "name": "MASTERCARD INC - A",
-      "weight": 5.34
-    },
-    {
-      "sector": "金融",
-      "name": "JPMORGAN CHASE &amp; CO",
-      "weight": 5.32
-    },
-    {
-      "sector": "金融",
-      "name": "VISA INC-CLASS A SHARES",
-      "weight": 5.18
-    },
-    {
-      "sector": "金融",
-      "name": "HSBC HOLDINGS PLC",
-      "weight": 5.12
+      "sector": "通訊服務",
+      "name": "META PLATFORMS INC-CLASS A",
+      "weight": 6.77
     },
     {
       "sector": "資訊技術",
       "name": "APPLE INC",
-      "weight": 4.73
+      "weight": 5.36
     },
     {
       "sector": "金融",
-      "name": "GOLDMAN SACHS GROUP INC",
-      "weight": 4.46
+      "name": "VISA INC-CLASS A SHARES",
+      "weight": 5.01
+    },
+    {
+      "sector": "金融",
+      "name": "HSBC HOLDINGS PLC",
+      "weight": 4.97
+    },
+    {
+      "sector": "金融",
+      "name": "MASTERCARD INC - A",
+      "weight": 4.9
     },
     {
       "sector": "非核心消費品",
       "name": "AMAZON.COM INC",
-      "weight": 4.43
-    },
-    {
-      "sector": "通訊服務",
-      "name": "META PLATFORMS INC-CLASS A",
-      "weight": 4.27
+      "weight": 4.78
     },
     {
       "sector": "金融",
-      "name": "WELLS FARGO &amp; CO",
-      "weight": 3.9
+      "name": "JPMORGAN CHASE &amp; CO",
+      "weight": 4.72
+    },
+    {
+      "sector": "核心消費品",
+      "name": "WALMART INC",
+      "weight": 4.64
+    },
+    {
+      "sector": "金融",
+      "name": "BANK OF AMERICA CORP",
+      "weight": 4.4
+    },
+    {
+      "sector": "金融",
+      "name": "GOLDMAN SACHS GROUP INC",
+      "weight": 3.92
     }
   ],
   "asset_alloc": [],
   "country_alloc": [
     {
       "name": "美國",
-      "weight": 81.61
-    },
-    {
-      "name": "英國",
-      "weight": 5.12
+      "weight": 78.21
     },
     {
       "name": "日本",
-      "weight": 4.14
+      "weight": 7.75
     },
     {
-      "name": "德國",
-      "weight": 2.94
+      "name": "英國",
+      "weight": 4.97
     },
     {
       "name": "荷蘭",
-      "weight": 2.85
+      "weight": 2.67
+    },
+    {
+      "name": "德國",
+      "weight": 2.66
     },
     {
       "name": "法國",
-      "weight": 1.81
+      "weight": 1.61
     },
     {
       "name": "流動資產",
-      "weight": 1.53
+      "weight": 2.13
     }
   ],
   "sector_alloc": [
     {
       "name": "金融",
-      "weight": 77.35
-    },
-    {
-      "name": "非核心消費品",
-      "weight": 6.67
-    },
-    {
-      "name": "資訊技術",
-      "weight": 6.48
+      "weight": 73.03
     },
     {
       "name": "通訊服務",
-      "weight": 4.27
+      "weight": 6.77
+    },
+    {
+      "name": "資訊技術",
+      "weight": 6.73
+    },
+    {
+      "name": "非核心消費品",
+      "weight": 6.69
     },
     {
       "name": "核心消費品",
-      "weight": 3.62
-    },
-    {
-      "name": "工業",
-      "weight": 0.08
+      "weight": 4.64
     },
     {
       "name": "流動資產",
-      "weight": 1.53
+      "weight": 2.13
     }
   ],
   "group": "global_equity",
-  "fetched_at": "2026-10-16 06:43"
+  "fetched_at": "2026-10-16 07:43"
 }
