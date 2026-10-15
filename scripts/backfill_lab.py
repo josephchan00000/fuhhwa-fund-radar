@@ -6,6 +6,7 @@
   python3 scripts/backfill_lab.py --probe                # 只抓最近一個交易日、逐部件印診斷、不寫檔
 """
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -42,7 +43,7 @@ def main() -> None:
         market.probe_rev()
         return
     if a.probe_v3:
-        market.probe_v3()
+        market.probe_v3b() if "b" in (os.environ.get("LAB_MODE") or "") else market.probe_v3()
         return
     if a.rev_mops:
         print(f"[lab] 月營收歷史：本輪新增 {collect.backfill_rev_mops(budget_s=a.budget_min * 60)} 個月")
