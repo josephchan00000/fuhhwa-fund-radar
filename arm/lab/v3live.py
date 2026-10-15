@@ -89,6 +89,7 @@ def run(DL, names: dict | None = None) -> dict:
     rev = PT.load_rev()
     eps = bt3d.load_eps()
     cal, T = P.cal, P.T
+    trq = (store.read_json("v3_tr.json", {}) or {}).get("q") or {}
     out = {}
     for k, src, b, name, unit in LIVE:
         r = R.get(k)
@@ -107,8 +108,10 @@ def run(DL, names: dict | None = None) -> dict:
         pk = bt3s.pick(fwd_rows, 0.0, N, False, UMIN[src])
         fu = bt3.vs_ew(bt3.account(P, pk, b), bt3s._ew(P, b, fwd_rows, pk)) if pk else []
         fs = bt3.sel_stats(fu) if fu else {"n": 0}
-        fwd = {"n": fs.get("n", 0), "xe": fs.get("xe"), "units": [{"d": u["d"], "r": round(u["r"], 2), "xe": round(u["xe"], 2)}
-                                                               for u in fu if u.get("xe") is not None]}
+        fwd = {"n": fs.get("n", 0), "xe": fs.get("xe"),
+               "units": [{"d": u["d"], "out": cal[u["x"]] if u.get("x") is not None and u["x"] < T else None,
+                          "r": round(u["r"], 2), "xe": round(u["xe"], 2), "mk": _tr_ret(trq, cal, u.get("t"), u.get("x"))}
+                         for u in fu if u.get("xe") is not None]}
         # 本期：最後一個還沒出場的形成日
         cur = next((x for x in reversed(rows) if x[1] is None), None)
         now = None
@@ -140,9 +143,41 @@ def run(DL, names: dict | None = None) -> dict:
             q, nf = next_eps_form(qs[-1])
             nxt = {"d": nf, "ent": _td_after(nf, 1), "q": q}
         out[k] = {"k": k, "src": src, "b": b, "name": name, "unit": unit, "since": SINCE, "res": r, "fwd": fwd,
-                  "now": now, "next": nxt}
+                  "now": now, "next": nxt, "due": _due(src, cal, rows)}
     out["_ctx"] = (P, E)                                  # 給 existing() 用，呼叫端取出後丟掉（不進頁面）
     return out
+
+
+def _due(src: str, cal: list, rows: list) -> dict | None:
+    """後台驗證「該出名單沒出」：最近一個「已過一個交易日以上」的形成日（月營收＝每月 10 日、財報＝季報期限，
+    遇假日順延），以及那天有沒有產生名單。名單要等資料（營收、EPS）到齊才產生，資料沒進來就會缺這一期。"""
+    T = len(cal)
+    if T < 2:
+        return None
+    if src == "p7":
+        fs = [t for t, _ in PT.rev_forms(cal) if t <= T - 2]
+    else:
+        y = int(cal[-1][:4])
+        qs = [f"{yy:04d}-{mm:02d}-{dd:02d}" for yy in (y - 1, y) for mm, dd in ((3, 31), (6, 30), (9, 30), (12, 31))]
+        fs = [t for q in qs if (t := PT.form_after_deadline(cal, PT.deadline(q))) is not None and t <= T - 2]
+    if not fs:
+        return None
+    f = max(fs)
+    return {"d": cal[f], "ok": any(x[0] == f for x in rows)}
+
+
+def _tr_ret(q: dict, cal: list, t: int | None, x: int | None) -> float | None:
+    """前瞻每期的同期大盤：加權報酬指數（含息）從決定日收盤到出場日收盤（%，同研究檔「過去照做」的口徑）；
+    缺值往前找 10 個交易日，找不到回 None。"""
+    def v(i):
+        for k in range(i, max(i - 10, -1), -1):
+            if k < len(cal) and q.get(cal[k]):
+                return q[cal[k]]
+        return None
+    if t is None or x is None:
+        return None
+    a, b = v(t), v(x)
+    return round((b / a - 1) * 100, 2) if a and b else None
 
 
 def _sel(s: dict) -> dict:

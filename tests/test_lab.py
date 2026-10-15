@@ -219,37 +219,64 @@ def test_page_has_no_banned_words():
     st_txt += "".join(t[2] for t in hdflow.TESTS) + str(advice.RULE) + advice.RULE_STOP + str(advice.LABEL)
     from arm.lab import v3live                                       # 回測方法 v3（2026-10-15）：評級、成本、規則、名稱
     st_txt += str(advice.RULE3) + advice.PAY3 + advice.COST3 + str(advice.V3_RULES) + str(advice.BUCKET_TXT) + \
-        str(advice.V3_HOLD) + str(v3live.LIVE)
+        str(advice.V3_HOLD) + str(v3live.LIVE) + str(advice.HOW) + str(advice.HOLD) + str(advice.SELL)
     from arm.lab import packtest                                     # 資料包策略（2026-10-15）：規則、未採用清單、試過的做法
     st_txt += str(packtest.PACK) + str(packtest.SKIPPED) + "".join(
         str(x.get("tried")) for x in strategy.STRATEGIES + strategy.TW50_VERS + [growth.S5, hdflow.ALERT])
+    from pathlib import Path
+    from arm.lab import valog                                        # 版面 v4：下一批說明、驗證事件與推播文字
+    st_txt += str(advice.NEXT_TXT) + Path(valog.__file__).read_text("utf-8")
     text = page._HTML + page._JS + "".join(n + d for n, d in analyze.SIG_DEF.values()) + st_txt
     assert not [w for w in banned if w in text]
 
 
-def test_page_layout_six_tabs_today_first_and_glossary():
-    """2026-10-14 改版定案：今日｜個股｜投信｜訊號｜策略｜指數，一打開是「今日」；「說明」改為 ⓘ 名詞。"""
+def test_page_layout_v4_tabs_opp_first_and_backend():
+    """版面 v4（2026-10-15 使用者：「每個分頁想表達什麼沒辦法一眼看出…應該是要幫助瀏覽者知道各個不同的策略找出了哪些有機會的股票、
+    建議的策略、還有隱含的獲利如何」；docs/lab_ia_v4_plan.md）：機會｜策略｜個股｜籌碼｜指數，一打開是「機會」；
+    後台（自我驗證與研究）與名詞在頂欄右側小字；頁首一句話說明網頁目的。"""
     import re
     tabs = re.findall(r'<a data-t="(\w+)">([^<]+)</a>', page._HTML)
-    assert tabs == [("today", "今日"), ("stk", "個股"), ("iss", "投信"), ("sig", "訊號"),
-                    ("st", "策略"), ("idx", "指數")]
+    assert tabs == [("opp", "機會"), ("st", "策略"), ("stk", "個股"), ("chip", "籌碼"), ("idx", "指數")]
     assert 'id="glb"' in page._HTML and "說明</a>" not in page._HTML
-    assert "go('today');" in page._JS
+    assert '<a class="vlb" data-t="bo">後台</a><a class="glb" id="glb">' in page._HTML
+    assert '<p class="purp">用固定規則的選股策略，列出每條策略這一期選到的股票、哪天買賣，以及同樣做法過去實際賺多少。</p>' in page._HTML
+    assert "go('opp');" in page._JS and "const S={tab:'opp'," in page._JS
     js_views = re.search(r"const VIEWS=\{([^}]*)\}", page._JS).group(1)
-    assert [k.split(":")[0] for k in js_views.split(",")] == [t for t, _ in tabs]
+    assert [k.split(":")[0] for k in js_views.split(",")] == [t for t, _ in tabs] + ["bo"]
+    for k in ("today", "iss", "sig", "val"):                                 # 舊分頁已併入機會、籌碼、後台
+        assert f'data-t="{k}"' not in page._HTML and f'data-go="{k}"' not in page._JS, k
 
 
-def test_strategy_tab_v2_sections_and_cost_section_is_gone():
-    """策略頁 v2（2026-10-15 使用者：「好亂、用字很 AI、結論不明確…要看推薦哪檔、佈局時間、預估獲利」）：
-    本期操作清單 → 策略評級 → 各策略固定五段（結論／操作規則／歷史績效／本期名單／風險）→ 部位與風控。
-    個股卡不再有成本拆解表（使用者：「版面變好亂、有看沒有懂」）。"""
+def test_opp_strategy_chip_backend_v4_structure():
+    """版面 v4：機會＝摘要（含時間表）→ 推薦策略卡（做法／隱含獲利／現在／下一批）→ 避開；
+    策略＝比較表（推薦順序）→ 各策略說明 → 部位；籌碼＝重點、買賣、新建倉、投信、今日訊號、風險；
+    後台＝今天的驗證、前瞻紀錄、事件紀錄 → 評級規則、評級總表、各策略依據、全部策略總表 → 訊號成績 → 換股研究 → 更新時程。"""
     js = page._JS
-    # 回測方法 v3（2026-10-15）：各策略段落依評級總表的順序（證據強弱）排，月營收驚喜、財報驚喜四條用 v3Sec
-    assert "h+=nowSec()+gradeSec()+stSecs()+bt3Sec()+riskSec();" in js
-    for k in ("sec('st-now'", "sec('st-grade'", "stSec('s1'", "stSec('s3'", "stSec('hd'", "stSec('s5'", "sec('st-risk'",
-              "stSec(k,V3NAV[k]||L.name", "function stSecs(", "ADV.grades3",
-              "['結論',", "['操作規則',", "['歷史績效',", "['本期名單',", "['風險',", "function pickBlocks(", "function pickCard("):
+    assert "h+=bookSec()+(ADV.book||[]).map(stCard).join('')+posSec();" in js
+    assert ("h+=boToday()+boFwd()+boHist()+valRule()+gradeSec()+valSecs()+bt3Sec()+sigAllSec()+studySec(I.study)+"
+            "hdStudySec(I.hd)+hdFlowSec(I.hd)+hdPreSec(I.hd)+boSched();") in js
+    for k in ("sec('o-sum'", "sec('o-'+c.k", "sec('o-avoid'", "sec('st-book'", "sec('st-pos'", "sec('val-rule'", "sec('val-grade'",
+              "sec('bo-today'", "sec('bo-fwd'", "sec('bo-hist'", "sec('bo-sig'", "sec('bo-sched'",
+              "sec('c-lead'", "sec('c-flow'", "sec('c-new'", "sec('c-iss'", "sec('c-sig'", "sec('c-risk'",
+              "valSec('s1'", "valSec('s3'", "valSec('hd'", "valSec('s5'", "valSec(k,V3NAV[k]||L.name", "function valSecs(",
+              "ADV.grades3", "ADV.opp", "['做法',", "`隱含獲利${gi('隱含獲利')}`", "['現在',", "['下一批',",
+              "['結論',", "['怎麼做',", "['過去成績',", "['風險',", "['評級',", "['評級依據',",
+              "function yearTbl(", "function acurveChart(", "function oCard(", "function oTl(", "function stCardSec(",
+              "data-go=\"bo\" data-at=\"val-", "data-go=\"st\" data-at=\"st-", "data-go=\"opp\" data-at=\"o-",
+              "'推薦順序':", "'事後驗證':", "'隱含獲利':"):
         assert k in js, k
+    for k in ("function calEv(", "function expTxt(", "function calLine(", "function vToday(", "function vSig(", "function vIss(",
+              "function vVal(", "sec('st-cal'", "sec('st-avoid'", "sec('t-", "function nowSec(", "function pickBlocks(",
+              "function pickCard(", "function stSecs(", "function riskSec(", "sec('st-now'", "sec('st-grade'", "sec('st-bt3'"):
+        assert k not in js, k
+    # 機會、策略兩頁不出現驗證用語（使用者：驗證跟我沒關係，切開來）
+    import re
+    seg = js.split("/* ---------- 機會（首頁，版面 v4", 1)[1].split("*/", 1)[1].split("/* ---------- 後台（頂欄小字", 1)[0]
+    op = re.sub(r"/\*.*?\*/", "", seg, flags=re.S)
+    assert "function vOpp(" in op and "function vSt(" in op
+    for w in ("t 值", "樣本外", "樣本內", "穩健度", "參數鄰近", "因子檢定", "同一批股票"):
+        assert w not in op, w
+    assert not re.search(r"(?<![\w])tT\(", op)                             # t 值格式化只在後台用
     for k in ("在賭什麼", "為什麼有效", "會失效", "s4", "群益新建倉"):           # 舊四小標與群益策略已移除
         assert k not in js, k
     assert "c-cost" not in js and "costSec" not in js
@@ -457,7 +484,7 @@ def test_tw50_card_has_versions_plan_and_research_section():
     assert (tw50study.EARLY_K, tw50study.EARLY_N, tw50study.EARLY_W) == (25, 4, 45)   # 使用者：3～4 檔、越早越好
     assert strategy.S3["name"] == "臺灣50 提前卡位"                     # 頁面只列一條策略（使用者：三個看不出差在哪）
     js = page._JS
-    for k in ("function s3Now(", "function verCmp(", "三種做法比較", "function studySec(", "h+=studySec(X.study);", "'idx-study'",
+    for k in ("function s3Now(", "function verCmp(", "三種做法比較", "function studySec(", "+studySec(I.study)+", "'idx-study'",
               "'漲勢前一半':", "'資料截止日':", "'估計權重':", "function earlyChart(", "提前幾天建倉"):
         assert k in js, k
     assert "sq('三個版本'" not in js
@@ -784,8 +811,8 @@ def test_hd_buffer_select_top_in_keep_rank_and_change_cap():
 
 def test_hd_page_sections_and_glossary():
     js = page._JS
-    for k in ("function hdPredSec(", "function hdStudySec(", "h+=hdPredSec(X.hd)+hdStudySec(X.hd)", "'idx-hd'", "'idx-hds'",
-              "'被動買賣期間':", "'對其他成分股':", "高股息預估納入"):
+    for k in ("function hdPredSec(", "function hdStudySec(", "h+=hdPredSec(X.hd);", "+hdStudySec(I.hd)+", "'idx-hd'", "'idx-hds'",
+              "'被動買賣期間':", "'對其他成分股':"):
         assert k in js, k
 
 
@@ -849,9 +876,9 @@ def test_hdflow_phase_and_per_review_weighting():
 
 def test_hd_flow_sections_alert_card_and_today_row():
     js = page._JS
-    for k in ("function hdFlowSec(", "'idx-hdw'", "h+=hdPredSec(X.hd)+hdStudySec(X.hd)+hdFlowSec(X.hd)+hdPreSec(X.hd);",
-              "function hdGroups(", "stSec('hd'", "hdGroups(true)", "hdGroups(false)", "+hdRisk());", "function hdRisk(",
-              "'被動買賣日量':", "'被動買賣提醒':", "data-at=\"st-hd\""):
+    for k in ("function hdFlowSec(", "'idx-hdw'", "+hdStudySec(I.hd)+hdFlowSec(I.hd)+hdPreSec(I.hd)+",
+              "function hdGroups(", "valSec('hd'", "hdGroups(false)", "+hdRisk());", "function hdRisk(",
+              "'被動買賣日量':", "'被動買賣提醒':", "data-at=\"o-avoid\""):
         assert k in js, k
     assert "12 月首次觀察" not in js and "function hdAlertCard(" not in js
 
@@ -1275,14 +1302,15 @@ def test_growth_eps_growth_gate_uses_published_quarters():
 
 def test_strategy_page_robustness_and_pack_sections():
     js = page._JS
-    for k in ("function robTbl(", "function nbGrid(", "function bt3Sec(", "sec('st-bt3'", "function totPos(",
+    for k in ("function robTbl(", "function nbGrid(", "function bt3Sec(", "sec('val-bt3'", "function totPos(",
               "+robTbl(g,v3);", "看 ${N.n} 組", "沒有採用的項目與原因", "同一批股票"):
         assert k in js, k
     assert "function packSec(" not in js and "sec('st-pack'" not in js      # 舊資料包表（5 年、對加權指數）由 v3 總表取代
+    assert "低回落例外檢查" in js and "g.lowdd?" in js                        # 第 15 節：例外檢查表與評級表標示
     for k in ("穩健度檢查", "成本加倍", "參數鄰近", "同一批股票的平均", "存活者偏誤", "大盤年線", "成交檢查",
               "相對強勢", "趨勢樣板", "SUE", "月營收驚喜", "CAN SLIM",
               "樣本外", "樣本內", "t 值", "賺錢機率", "每月平均", "賺賠比", "報酬型態", "前 5 檔", "大型股", "中型股",
-              "因子檢定", "資金帳戶", "最大回落", "去掉最好 5%"):
+              "因子檢定", "資金帳戶", "最大回落", "去掉最好 5%", "低回落例外"):
         assert f"'{k}':" in js, k                                            # 名詞辭典
 
 
@@ -1349,3 +1377,56 @@ def test_v3live_next_formation_dates():
     assert q == "2026-09-30" and d == "2026-11-16"
     q, d = v3live.next_eps_form("2026-09-30")
     assert q == "2026-12-31" and d >= "2027-03-31"
+
+
+# ── 版面 v3（2026-10-15；docs/lab_layout_v3_plan.md）：實際報酬、行事曆、策略一覽 ──────────────────
+
+def test_signal_stats_report_actual_return_and_market():
+    """訊號成績另給實際報酬：rm＝中位、rw＝賺錢比例、mk＝同一時窗大盤平均（＝實際 − 超額）。"""
+    from arm.lab import backtest
+    a = backtest._agg([{"r": 0.02, "x": 0.01, "g": 0.0}, {"r": -0.01, "x": -0.03, "g": 0.01}, {"r": 0.04, "x": 0.0, "g": 0.0}])
+    assert (a["r"], a["rm"], a["rw"]) == (1.67, 2.0, 67.0)
+    assert a["mk"] == round(((0.01) + (0.02) + (0.04)) / 3 * 100, 2) and a["w"] == 33.0
+    js = page._JS
+    for k in ("function sigVerdict(", "function sigConcl(", "const SIGST={cons:'s1'}", "訊號照做的成績", "不是買點", "function sigShort(",
+              "function sigTodaySec(", "function sigAllSec("):
+        assert k in js, k
+    assert "勝率" not in js.split("/* ---------- 訊號（版面 v4", 1)[1].split("/* ---------- 投信動向", 1)[0]
+
+
+def test_advice_expect_book_and_ex_best_year():
+    from arm.lab import advice
+    e = advice.expect({"n": 10, "avg": 2.7, "med": 1.5, "p25": -2.4, "p75": 7.1, "lo": -8.3, "hi": 16.1, "win": 64,
+                       "kwin": 25, "x": 2.0, "d0": "2026-07", "d1": "2026-10"})
+    assert e["mk"] == 0.7 and (e["d0"], e["d1"]) == ("2026-07", "2026-10") and e["avg"] == 2.7
+    yearly = [["2014", 10.0, 5.0, "2014-12-31"], ["2015", 100.0, 10.0, "2015-12-31"], ["2016", 10.0, 5.0, "2016-12-30"]]
+    x = advice._ex_best({"d0": "2014-01-02"}, yearly)
+    assert x["y"] == "2015" and x["r"] == 100.0 and 9.5 < x["cagr"] < 10.5 and 4.5 < x["tr_cagr"] < 5.5
+    assert advice._ex_best({"d0": "2014-01-02"}, yearly[:2]) is None                   # 至少 3 年才算
+    live = {"v7m": {"src": "p7", "res": {"dist": {"n": 3, "avg": 2.6, "med": 1.3, "mk": 1.6, "win": 59, "kwin": 2,
+                                                  "d0": "2013-08-12", "d1": "2026-09-10"}, "all": {"cagr": 29.1}}, "unit": "月"}}
+    bk = advice.book([{"k": "v7m", "name": "月營收驚喜（中型股）", "grade": "B"}, {"k": "s1", "name": "共識加碼", "grade": "B"}],
+                     live, {"s1": {"n": 5, "avg": 2.0, "med": 1.0, "p25": 0, "p75": 3, "lo": -1, "win": 60, "kwin": 3, "x": 1.0}})
+    assert [b["k"] for b in bk] == ["v7m", "s1"] and bk[0]["exp"]["d0"] == "2013-08" and bk[0]["all"]["cagr"] == 29.1
+    assert bk[1]["unit"] == "檔" and bk[1]["exp"]["mk"] == 1.0 and bk[0]["unit"] == "次"
+    assert advice._sell("v7m", live, None).startswith("下一次換股日") and "停損" in advice._sell("s1", live, None)
+
+
+def test_advice_calendar_orders_by_date_and_skips_c_and_past():
+    """行事曆：今天之後的買進、賣出、換股依日期排（同一天開盤在前）；C 級不列；名單還沒產生的列名單產生日。"""
+    from arm.lab import advice
+    gm = {"s1": {"grade": "B"}, "v7m": {"grade": "B"}, "v3m": {"grade": "C"}}
+    picks = [
+        {"k": "s1", "sname": "共識加碼", "act": "佈局", "c": "2330", "n": "台積電", "ent": "2026-10-15", "out": "2026-10-19",
+         "px": 1000.0, "stop": 950.0, "exp": {"n": 3}},
+        {"k": "v7m", "sname": "月營收驚喜（中型股）", "act": "持有中", "c": "2355", "n": "敬鵬", "ent": "2026-10-13",
+         "out": "2026-11-10", "entry": 49.0, "now": 51.9, "now_r": 5.9}]
+    live = {"v7m": {"src": "p7", "name": "月營收驚喜（中型股）", "next": {"d": "2026-11-10", "ent": "2026-11-11"}},
+            "v3m": {"src": "p3", "name": "財報驚喜（中型股）", "next": {"d": "2026-11-16", "ent": "2026-11-17"}}}
+    cal = advice.calendar(picks, live, gm, {"v7m": 0, "s1": 1}, {"v7m": {"exp": {"n": 158}}}, None, None, 0, "2026-10-14")
+    got = [(e["d"], e["at"], e["act"], e["k"]) for e in cal]
+    assert got == [("2026-10-15", "開盤", "買進", "s1"), ("2026-10-19", "收盤", "賣出", "s1"),
+                   ("2026-11-10", "收盤", "換股", "v7m"), ("2026-11-11", "開盤", "買進", "v7m")]
+    assert cal[3]["pending"] and cal[3]["fix"] == "2026-11-10" and cal[3]["exp"] == {"n": 158}
+    assert cal[0]["items"][0]["stop"] == 950.0 and cal[0]["sell"] and cal[1]["note"] == "10/15 有買到的"
+    assert advice.calendar(picks, live, gm, {}, {}, None, None, 0, "2026-10-16")[0]["d"] == "2026-10-19"   # 已過的不列
