@@ -1,0 +1,401 @@
+
+## 搜尋：ess keyword
+https://ess.api.cnyes.com/ess/api/v1/news/keyword?q=Factset%20%E6%9C%80%E6%96%B0%E8%AA%BF%E6%9F%A5&limit=30&page=1
+→ HTTP 200, 11258 bytes, json=是
+  結構： {statusCode: int(200), message: str('OK'), data: {items: [30× …], total: int(10000), perPage: int(30), currentPage: int(1), lastPage: int(34), from: int(1), to: int(30), prevPageUrl: NoneType, nextPageUrl: str('/ess/api/v1/news/keyword?q=Factset%20%E6')}}
+  清單 30 則，分頁 {'total': 10000, 'from': 1, 'to': 30}
+  第一則欄位： ['objectType', 'newsId', 'title', 'summary', 'category', 'publishAt', 'coverSrc', 'payment', 'keywordForTag']
+   · 6632430 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：Wipro Ltd. - ADRWIT-US的目標價調升至1.79元，幅度約3.87%
+   · 6632429 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：瓦爾坎材料(VMC-US)EPS預估下修至8.81元，預估目標價為317.00元
+   · 6632428 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：馬丁瑪麗埃塔材料(MLM-US)EPS預估下修至17.5元，預估目標價為640.00元
+   · 6632427 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：蒂斯-萊特CW-US的目標價調降至700元，幅度約10.83%
+   · 6632424 2026-10-16 22:11 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：景碩(3189-TW)EPS預估下修至11.81元，預估目標價為1280元
+   · 6632423 2026-10-16 22:10 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：台積電(2330-TW)目標價調升至3300元，幅度約3.13%
+  其中 FactSet 快訊 30 則
+   ★ 6632430 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：Wipro Ltd. - ADRWIT-US的目標價調升至1.79元，幅度約3.87%
+     summary： None
+   ★ 6632429 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：瓦爾坎材料(VMC-US)EPS預估下修至8.81元，預估目標價為317.00元
+     summary： None
+   ★ 6632428 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：馬丁瑪麗埃塔材料(MLM-US)EPS預估下修至17.5元，預估目標價為640.00元
+     summary： None
+
+## 搜尋：media search
+https://api.cnyes.com/media/api/v1/search?q=Factset%20%E6%9C%80%E6%96%B0%E8%AA%BF%E6%9F%A5&limit=30&page=1
+→ HTTP 200, 9913 bytes, json=是
+  結構： {items: {total: int(9102), per_page: int(20), current_page: int(1), last_page: int(456), next_page_url: str('/media/api/v1/search?q=Factset+%E6%9C%80'), prev_page_url: NoneType, from: int(1), to: int(20), data: [20× …]}, message: str('成功'), statusCode: int(200)}
+  清單 20 則，分頁 {'total': 9102, 'per_page': 20, 'current_page': 1, 'last_page': 456, 'from': 1, 'to': 20}
+  第一則欄位： ['keyword', 'title', 'content', 'payment', 'publishAt', 'newsId', 'titleWithKwd', 'contentWithKwd', 'hasCoverPhoto', 'coverSrc', 'categoryName']
+   · 6632430 2026-10-16 22:15 [美股預估] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：Wipro
+   · 6632429 2026-10-16 22:15 [美股預估] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：瓦爾坎材料(VMC-US)EPS預估下修至8
+   · 6632428 2026-10-16 22:15 [美股預估] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：馬丁瑪
+   · 6632427 2026-10-16 22:15 [美股預估] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：蒂斯-
+   · 6632424 2026-10-16 22:11 [台股預估] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：景碩(3189-TW)EPS預估下修至11
+   · 6632423 2026-10-16 22:10 [台股預估] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：台積電
+  其中 FactSet 快訊 20 則
+   ★ 6632430 2026-10-16 22:15 [美股預估] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：Wipro
+     content： 根據<mark>FactSet</mark>最新調查，共39位分析師，對Wipro
+     keyword： ['美股', 'WIT', '市場預估', '目標價']
+   ★ 6632429 2026-10-16 22:15 [美股預估] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：瓦爾坎材料(VMC-US)EPS預估下修至8
+     content： 根據<mark>FactSet</mark>最新調查，共24位分析
+     keyword： ['美股', '市場預估', 'EPS', 'VMC']
+   ★ 6632428 2026-10-16 22:15 [美股預估] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：馬丁瑪
+     content： 根據<mark>FactSet</mark>最新調查，共24位分析
+     keyword： ['美股', '市場預估', 'EPS', 'MLM']
+
+## 搜尋：media search news
+https://api.cnyes.com/media/api/v1/search/news?q=Factset%20%E6%9C%80%E6%96%B0%E8%AA%BF%E6%9F%A5&limit=30&page=1
+→ HTTP 200, 11719 bytes, json=是
+  結構： {items: {total: int(9102), per_page: int(20), current_page: int(1), last_page: int(456), next_page_url: str('/media/api/v1/search/news?q=Factset+%E6%'), prev_page_url: NoneType, from: int(1), to: int(20), data: [20× …]}, message: str('成功'), statusCode: int(200)}
+  清單 20 則，分頁 {'total': 9102, 'per_page': 20, 'current_page': 1, 'last_page': 456, 'from': 1, 'to': 20}
+  第一則欄位： ['keyword', 'signature', 'title', 'content', 'publishAt', 'newsId', 'category', 'titleWithKwd', 'contentWithKwd', 'hasCoverPhoto', 'coverSrc']
+   · 6632430 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：Wipro
+   · 6632429 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：瓦爾坎材料(VMC-US)EPS預估下修至8
+   · 6632428 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：馬丁瑪
+   · 6632427 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：蒂斯-
+   · 6632424 2026-10-16 22:11 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：景碩(3189-TW)EPS預估下修至11
+   · 6632423 2026-10-16 22:10 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：台積電
+  其中 FactSet 快訊 20 則
+   ★ 6632430 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：Wipro
+     content： 根據<mark>FactSet</mark>最新調查，共39位分析師，對Wipro
+     keyword： ['美股', 'WIT', '市場預估', '目標價']
+   ★ 6632429 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：瓦爾坎材料(VMC-US)EPS預估下修至8
+     content： 根據<mark>FactSet</mark>最新調查，共24位分析
+     keyword： ['美股', '市場預估', 'EPS', 'VMC']
+   ★ 6632428 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：馬丁瑪
+     content： 根據<mark>FactSet</mark>最新調查，共24位分析
+     keyword： ['美股', '市場預估', 'EPS', 'MLM']
+
+## 搜尋分頁：last_page=1、total=10000
+  第 1 頁：30 則，2026-10-16 22:15 ～ 2026-10-16 20:15｜鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：惠好WY-US的目標價調降至
+  第 2 頁：30 則，2026-10-16 20:15 ～ 2026-10-15 20:16｜鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：聯合航空控股(UAL-US)
+
+## 搜尋「Factset 最新調查 6274-TW」
+https://ess.api.cnyes.com/ess/api/v1/news/keyword?q=Factset%20%E6%9C%80%E6%96%B0%E8%AA%BF%E6%9F%A5%206274-TW&limit=30&page=1
+→ HTTP 200, 11268 bytes, json=是
+  結構： {statusCode: int(200), message: str('OK'), data: {items: [30× …], total: int(10000), perPage: int(30), currentPage: int(1), lastPage: int(34), from: int(1), to: int(30), prevPageUrl: NoneType, nextPageUrl: str('/ess/api/v1/news/keyword?q=Factset%20%E6')}}
+  清單 30 則，分頁 {'total': 10000, 'from': 1, 'to': 30}
+  第一則欄位： ['objectType', 'newsId', 'title', 'summary', 'category', 'publishAt', 'coverSrc', 'payment', 'keywordForTag']
+   · 6632430 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：Wipro Ltd. - ADRWIT-US的目標價調升至1.79元，幅度約3.87%
+   · 6632429 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：瓦爾坎材料(VMC-US)EPS預估下修至8.81元，預估目標價為317.00元
+   · 6632428 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：馬丁瑪麗埃塔材料(MLM-US)EPS預估下修至17.5元，預估目標價為640.00元
+   · 6632427 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：蒂斯-萊特CW-US的目標價調降至700元，幅度約10.83%
+   · 6632424 2026-10-16 22:11 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：景碩(3189-TW)EPS預估下修至11.81元，預估目標價為1280元
+   · 6632423 2026-10-16 22:10 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：台積電(2330-TW)目標價調升至3300元，幅度約3.13%
+   · 6632364 2026-10-16 20:16 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：美國銀行(BAC-US)EPS預估下修至4.39元，預估目標價為63.00元
+   · 6632363 2026-10-16 20:16 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：Skydance Corporation Class B(SKYD-US)EPS預估下修
+  其中 FactSet 快訊 30 則
+   ★ 6632430 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：Wipro Ltd. - ADRWIT-US的目標價調升至1.79元，幅度約3.87%
+     summary： None
+   ★ 6632429 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：瓦爾坎材料(VMC-US)EPS預估下修至8.81元，預估目標價為317.00元
+     summary： None
+   ★ 6632428 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> <mark>最新調查</mark>：馬丁瑪麗埃塔材料(MLM-US)EPS預估下修至17.5元，預估目標價為640.00元
+     summary： None
+
+## 搜尋「鉅亨速報 Factset 台燿」
+https://ess.api.cnyes.com/ess/api/v1/news/keyword?q=%E9%89%85%E4%BA%A8%E9%80%9F%E5%A0%B1%20Factset%20%E5%8F%B0%E7%87%BF&limit=30&page=1
+→ HTTP 200, 11279 bytes, json=是
+  結構： {statusCode: int(200), message: str('OK'), data: {items: [30× …], total: int(10000), perPage: int(30), currentPage: int(1), lastPage: int(34), from: int(1), to: int(30), prevPageUrl: NoneType, nextPageUrl: str('/ess/api/v1/news/keyword?q=%E9%89%85%E4%')}}
+  清單 30 則，分頁 {'total': 10000, 'from': 1, 'to': 30}
+  第一則欄位： ['objectType', 'newsId', 'title', 'summary', 'category', 'publishAt', 'coverSrc', 'payment', 'keywordForTag']
+   · 6632430 2026-10-16 22:15 [None] <mark>鉅亨速報</mark> - <mark>Factset</mark> 最新調查：Wipro Ltd. - ADRWIT-US的目標價調升至1.79元，幅度約3.87%
+   · 6632429 2026-10-16 22:15 [None] <mark>鉅亨速報</mark> - <mark>Factset</mark> 最新調查：瓦爾坎材料(VMC-US)EPS預估下修至8.81元，預估目標價為317.00元
+   · 6632428 2026-10-16 22:15 [None] <mark>鉅亨速報</mark> - <mark>Factset</mark> 最新調查：馬丁瑪麗埃塔材料(MLM-US)EPS預估下修至17.5元，預估目標價為640.00元
+   · 6632427 2026-10-16 22:15 [None] <mark>鉅亨速報</mark> - <mark>Factset</mark> 最新調查：蒂斯-萊特CW-US的目標價調降至700元，幅度約10.83%
+   · 6632424 2026-10-16 22:11 [None] <mark>鉅亨速報</mark> - <mark>Factset</mark> 最新調查：景碩(3189-TW)EPS預估下修至11.81元，預估目標價為1280元
+   · 6632423 2026-10-16 22:10 [None] <mark>鉅亨速報</mark> - <mark>Factset</mark> 最新調查：台積電(2330-TW)目標價調升至3300元，幅度約3.13%
+   · 6632364 2026-10-16 20:16 [None] <mark>鉅亨速報</mark> - <mark>Factset</mark> 最新調查：美國銀行(BAC-US)EPS預估下修至4.39元，預估目標價為63.00元
+   · 6632363 2026-10-16 20:16 [None] <mark>鉅亨速報</mark> - <mark>Factset</mark> 最新調查：Skydance Corporation Class B(SKYD-US)EPS預估下修
+  其中 FactSet 快訊 30 則
+   ★ 6632430 2026-10-16 22:15 [None] <mark>鉅亨速報</mark> - <mark>Factset</mark> 最新調查：Wipro Ltd. - ADRWIT-US的目標價調升至1.79元，幅度約3.87%
+     summary： None
+   ★ 6632429 2026-10-16 22:15 [None] <mark>鉅亨速報</mark> - <mark>Factset</mark> 最新調查：瓦爾坎材料(VMC-US)EPS預估下修至8.81元，預估目標價為317.00元
+     summary： None
+   ★ 6632428 2026-10-16 22:15 [None] <mark>鉅亨速報</mark> - <mark>Factset</mark> 最新調查：馬丁瑪麗埃塔材料(MLM-US)EPS預估下修至17.5元，預估目標價為640.00元
+     summary： None
+
+## 搜尋「目標價調升 Factset -TW」
+https://ess.api.cnyes.com/ess/api/v1/news/keyword?q=%E7%9B%AE%E6%A8%99%E5%83%B9%E8%AA%BF%E5%8D%87%20Factset%20-TW&limit=30&page=1
+→ HTTP 200, 10922 bytes, json=是
+  結構： {statusCode: int(200), message: str('OK'), data: {items: [30× …], total: int(10000), perPage: int(30), currentPage: int(1), lastPage: int(34), from: int(1), to: int(30), prevPageUrl: NoneType, nextPageUrl: str('/ess/api/v1/news/keyword?q=%E7%9B%AE%E6%')}}
+  清單 30 則，分頁 {'total': 10000, 'from': 1, 'to': 30}
+  第一則欄位： ['objectType', 'newsId', 'title', 'summary', 'category', 'publishAt', 'coverSrc', 'payment', 'keywordForTag']
+   · 6632430 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> 最新調查：Wipro Ltd. - ADRWIT-US的<mark>目標價調升</mark>至1.79元，幅度約3.87%
+   · 6632429 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> 最新調查：瓦爾坎材料(VMC-US)EPS預估下修至8.81元，預估目標價為317.00元
+   · 6632428 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> 最新調查：馬丁瑪麗埃塔材料(MLM-US)EPS預估下修至17.5元，預估目標價為640.00元
+   · 6632427 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> 最新調查：蒂斯-萊特CW-US的目標價調降至700元，幅度約10.83%
+   · 6632424 2026-10-16 22:11 [None] 鉅亨速報 - <mark>Factset</mark> 最新調查：景碩(3189-TW)EPS預估下修至11.81元，預估目標價為1280元
+   · 6632423 2026-10-16 22:10 [None] 鉅亨速報 - <mark>Factset</mark> 最新調查：台積電(2330-TW)<mark>目標價調升</mark>至3300元，幅度約3.13%
+   · 6632364 2026-10-16 20:16 [None] 鉅亨速報 - <mark>Factset</mark> 最新調查：美國銀行(BAC-US)EPS預估下修至4.39元，預估目標價為63.00元
+   · 6632363 2026-10-16 20:16 [None] 鉅亨速報 - <mark>Factset</mark> 最新調查：Skydance Corporation Class B(SKYD-US)EPS預估下修至0.47元，預估目標價為
+  其中 FactSet 快訊 30 則
+   ★ 6632430 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> 最新調查：Wipro Ltd. - ADRWIT-US的<mark>目標價調升</mark>至1.79元，幅度約3.87%
+     summary： None
+   ★ 6632429 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> 最新調查：瓦爾坎材料(VMC-US)EPS預估下修至8.81元，預估目標價為317.00元
+     summary： None
+   ★ 6632428 2026-10-16 22:15 [None] 鉅亨速報 - <mark>Factset</mark> 最新調查：馬丁瑪麗埃塔材料(MLM-US)EPS預估下修至17.5元，預估目標價為640.00元
+     summary： None
+
+## 分類 tw_stock
+https://api.cnyes.com/media/api/v1/newslist/category/tw_stock?limit=30&page=1
+→ HTTP 200, 237264 bytes, json=是
+  結構： {items: {total: int(1211), per_page: int(30), current_page: int(1), last_page: int(41), next_page_url: str('/media/api/v1/newslist/category/tw_stock'), prev_page_url: NoneType, from: int(1), to: int(30), data: [30× …]}, message: str('成功'), statusCode: int(200)}
+  清單 30 則，分頁 {'total': 1211, 'per_page': 30, 'current_page': 1, 'last_page': 41, 'from': 1, 'to': 30}
+  第一則欄位： ['content', 'feature', 'hasCoverPhoto', 'is24h', 'isCategoryHeadline', 'isIndex', 'isOutsource', 'keyword', 'newsId', 'otherProduct', 'payment', 'source', 'stock', 'summary', 'title', 'video', 'publishAt', 'coverSrc', 'abTesting', 'categoryId', 'categoryName', 'columnists', 'magazine', 'fundCategoryAbbr', 'fbShare', 'fbComment', 'fbCommentPluginCount', 'market']
+   · 6632424 2026-10-16 22:11 [台股] 鉅亨速報 - Factset 最新調查：景碩(3189-TW)EPS預估下修至11.81元，預估目標價為1280元
+   · 6632423 2026-10-16 22:10 [台股] 鉅亨速報 - Factset 最新調查：台積電(2330-TW)目標價調升至3300元，幅度約3.13%
+   · 6632368 2026-10-16 20:53 [台灣政經] 賴清德：台美關稅力保15％不疊加 301調查秉持台美貿易互惠
+   · 6632324 2026-10-16 20:52 [台灣政經] 賴清德：2035年前穩定供電無虞 將助百萬家中小微企業導入AI
+  其中 FactSet 快訊 5 則
+   ★ 6632424 2026-10-16 22:11 [台股] 鉅亨速報 - Factset 最新調查：景碩(3189-TW)EPS預估下修至11.81元，預估目標價為1280元
+     summary： None
+     content： &lt;p&gt;根據FactSet最新調查，共11位分析師，對景碩(3189-TW)做出2026年EPS預估：中位數由11.97元下修至11.81元，其中最高估值14.82元，最低估值9.78元，預估目標價為1280元。&lt;/p&gt;&lt;p&gt;&lt;em&gt;市場預估EPS&lt;/em&gt;&lt;/p&gt;&lt;table&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;預估值&lt;/td&gt;&lt;td&gt;&lt;em&gt;2026年(前值)&lt;/em&gt;&lt;/td&gt;&lt;td&gt;&lt;em&gt;2027年&lt;/em&gt;&lt;/td&gt;&lt;td&gt;&lt;em&gt;2028年&lt;/em&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td
+     keyword： ['台股', '市場預估', 'eps']
+     market： [{'code': '3189', 'name': '景碩', 'symbol': 'TWS:3189:STOCK'}]
+     stock： []
+   ★ 6632423 2026-10-16 22:10 [台股] 鉅亨速報 - Factset 最新調查：台積電(2330-TW)目標價調升至3300元，幅度約3.13%
+     summary： None
+     content： &lt;p&gt;根據FactSet最新調查，共33位分析師，對台積電(2330-TW)提出目標價估值：中位數由3200元上修至3300元，調升幅度3.13%。其中最高估值5000元，最低估值2700元。&lt;/p&gt;&lt;p&gt;綜合評級 - 共有33位分析師給予台積電(2330-TW)評價：積極樂觀39位、保持中立3位、保守悲觀0位。&lt;/p&gt;&lt;p&gt;台積電(2330-TW)今(16日)收盤價為2420元。近5日股價下跌5.1%，相關半導體業近5日下跌6.17%，集中市場加權指數下跌4.47%，股價波動與大盤表現同步。&lt;/p&gt;&lt;p&gt;資料來源：Factset，數據僅供參考，不作為投資建議。&lt;/p&gt;
+     keyword： ['台股', '市場預估', '目標價']
+     market： [{'code': '2330', 'name': '台積電', 'symbol': 'TWS:2330:STOCK'}]
+     stock： []
+   ★ 6632079 2026-10-16 16:11 [台股] 鉅亨速報 - Factset 最新調查：技嘉(2376-TW)EPS預估上修至35.54元，預估目標價為500元
+     summary： None
+     content： &lt;p&gt;根據FactSet最新調查，共10位分析師，對技嘉(2376-TW)做出2026年EPS預估：中位數由34.36元上修至35.54元，其中最高估值42.2元，最低估值26.14元，預估目標價為500元。&lt;/p&gt;&lt;p&gt;&lt;em&gt;市場預估EPS&lt;/em&gt;&lt;/p&gt;&lt;table&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;預估值&lt;/td&gt;&lt;td&gt;&lt;em&gt;2026年(前值)&lt;/em&gt;&lt;/td&gt;&lt;td&gt;&lt;em&gt;2027年&lt;/em&gt;&lt;/td&gt;&lt;td&gt;&lt;em&gt;2028年&lt;/em&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&
+     keyword： ['台股', '市場預估', 'eps']
+     market： [{'code': '2376', 'name': '技嘉', 'symbol': 'TWS:2376:STOCK'}]
+     stock： []
+
+## 分類 tw_quo
+https://api.cnyes.com/media/api/v1/newslist/category/tw_quo?limit=30&page=1
+→ HTTP 200, 135792 bytes, json=是
+  結構： {items: {total: int(14), per_page: int(30), current_page: int(1), last_page: int(1), next_page_url: NoneType, prev_page_url: NoneType, from: int(1), to: int(14), data: [14× …]}, message: str('成功'), statusCode: int(200)}
+  清單 14 則，分頁 {'total': 14, 'per_page': 30, 'current_page': 1, 'last_page': 1, 'from': 1, 'to': 14}
+  第一則欄位： ['content', 'feature', 'hasCoverPhoto', 'is24h', 'isCategoryHeadline', 'isIndex', 'isOutsource', 'keyword', 'newsId', 'otherProduct', 'payment', 'source', 'stock', 'summary', 'title', 'video', 'publishAt', 'coverSrc', 'abTesting', 'categoryId', 'categoryName', 'columnists', 'magazine', 'fundCategoryAbbr', 'fbShare', 'fbComment', 'fbCommentPluginCount']
+   · 6632118 2026-10-16 16:41 [台股盤勢] 【盤後贏指標】PCB、玻纖布題材強勁！台股反彈141點，贏指標尚未轉強
+   · 6631568 2026-10-16 05:10 [台股盤勢] 〈台股盤前要聞〉台積電全年美元營收再上修至44%、外資爆砍3025億元創紀錄
+   · 6631347 2026-10-15 18:40 [台股盤勢] 外資大逃殺爆砍3025億元破紀錄 狠砍台積電、主動式ETF
+   · 6631120 2026-10-15 14:36 [台股盤勢] 〈台股盤後〉狂瀉1655點創史上第六大跌點 收46969點摜破月線
+  其中 FactSet 快訊 0 則
+
+## 分類 tw_stock_news
+https://api.cnyes.com/media/api/v1/newslist/category/tw_stock_news?limit=30&page=1
+→ HTTP 200, 200270 bytes, json=是
+  結構： {items: {total: int(1021), per_page: int(30), current_page: int(1), last_page: int(35), next_page_url: str('/media/api/v1/newslist/category/tw_stock'), prev_page_url: NoneType, from: int(1), to: int(30), data: [30× …]}, message: str('成功'), statusCode: int(200)}
+  清單 30 則，分頁 {'total': 1021, 'per_page': 30, 'current_page': 1, 'last_page': 35, 'from': 1, 'to': 30}
+  第一則欄位： ['content', 'feature', 'hasCoverPhoto', 'is24h', 'isCategoryHeadline', 'isIndex', 'isOutsource', 'keyword', 'newsId', 'otherProduct', 'payment', 'source', 'stock', 'summary', 'title', 'video', 'publishAt', 'coverSrc', 'abTesting', 'categoryId', 'categoryName', 'columnists', 'magazine', 'fundCategoryAbbr', 'fbShare', 'fbComment', 'fbCommentPluginCount', 'market', 'etf']
+   · 6632287 2026-10-16 19:26 [台股新聞] 外資連8賣台股461億元 權王台積電遭倒貨2.2萬張最多、大砍0050
+   · 6632272 2026-10-16 19:23 [台股新聞] 鴻海擬斥236億元取得三菱電機移動50%股權 共同經營汽車設備事業
+   · 6632275 2026-10-16 19:14 [台股新聞] 經濟部擬赴德州設立AI產業園區 童子賢：可借鏡廣達Q-Bus模式
+   · 6632225 2026-10-16 19:04 [台股新聞] 華新焦佑倫談能源 風電與核電都是絕對必要選項
+  其中 FactSet 快訊 0 則
+
+## 分類 headline
+https://api.cnyes.com/media/api/v1/newslist/category/headline?limit=30&page=1
+→ HTTP 200, 206070 bytes, json=是
+  結構： {items: {total: int(1523), per_page: int(30), current_page: int(1), last_page: int(51), next_page_url: str('/media/api/v1/newslist/category/headline'), prev_page_url: NoneType, from: int(1), to: int(30), data: [30× …]}, message: str('成功'), statusCode: int(200)}
+  清單 30 則，分頁 {'total': 1523, 'per_page': 30, 'current_page': 1, 'last_page': 51, 'from': 1, 'to': 30}
+  第一則欄位： ['newsId', 'title', 'content', 'hasCoverPhoto', 'isIndex', 'summary', 'isCategoryHeadline', 'stock', 'video', 'payment', 'feature', 'otherProduct', 'source', 'isOutsource', 'keyword', 'is24h', 'publishAt', 'coverSrc', 'abTesting', 'categoryId', 'categoryName', 'columnists', 'fundCategoryAbbr', 'etf', 'fbShare', 'fbComment', 'fbCommentPluginCount']
+   · 6632411 2026-10-16 23:20 [美股雷達] 10月先停、12月最後一升？高盛預測Fed升息路徑
+   · 6632040 2026-10-16 23:10 [美股雷達] Anthropic信用評級首曝光！獲BB+垃圾級評等
+   · 6632283 2026-10-16 22:50 [美股雷達] 科技股回檔是年底前上車機會？Jefferies明星分析師看好美股11、12月強攻
+   · 6632379 2026-10-16 22:20 [歐亞股] 「不能容忍再升高！」植田和男緊盯通膨 日銀升息還沒完
+  其中 FactSet 快訊 0 則
+
+## 分類 us_stock
+https://api.cnyes.com/media/api/v1/newslist/category/us_stock?limit=30&page=1
+→ HTTP 200, 216602 bytes, json=是
+  結構： {items: {total: int(597), per_page: int(30), current_page: int(1), last_page: int(20), next_page_url: str('/media/api/v1/newslist/category/us_stock'), prev_page_url: NoneType, from: int(1), to: int(30), data: [30× …]}, message: str('成功'), statusCode: int(200)}
+  清單 30 則，分頁 {'total': 597, 'per_page': 30, 'current_page': 1, 'last_page': 20, 'from': 1, 'to': 30}
+  第一則欄位： ['content', 'feature', 'hasCoverPhoto', 'is24h', 'isCategoryHeadline', 'isIndex', 'isOutsource', 'keyword', 'newsId', 'otherProduct', 'payment', 'source', 'stock', 'summary', 'title', 'video', 'publishAt', 'coverSrc', 'abTesting', 'categoryId', 'categoryName', 'columnists', 'magazine', 'fundCategoryAbbr', 'fbShare', 'fbComment', 'fbCommentPluginCount']
+   · 6632411 2026-10-16 23:20 [美股雷達] 10月先停、12月最後一升？高盛預測Fed升息路徑
+   · 6632040 2026-10-16 23:10 [美股雷達] Anthropic信用評級首曝光！獲BB+垃圾級評等
+   · 6632283 2026-10-16 22:50 [美股雷達] 科技股回檔是年底前上車機會？Jefferies明星分析師看好美股11、12月強攻
+   · 6632403 2026-10-16 22:10 [美股雷達] 摩根士丹利發出最新警告：記憶體股低本益比恐為周期頂峰「估值陷阱」
+  其中 FactSet 快訊 0 則
+
+## 個股／其他清單
+https://api.cnyes.com/media/api/v1/newslist/TWS:6274:STOCK/symbolNews?limit=30&page=1
+→ HTTP 200, 46150 bytes, json=是
+  結構： {items: {total: int(44), per_page: int(30), current_page: int(1), last_page: int(2), next_page_url: str('/media/api/v1/newslist/TWS:6274:STOCK/sy'), prev_page_url: NoneType, from: int(1), to: int(30), data: [30× …]}, message: str('成功'), statusCode: int(200)}
+  清單 30 則，分頁 {'total': 44, 'per_page': 30, 'current_page': 1, 'last_page': 2, 'from': 1, 'to': 30}
+  第一則欄位： ['newsId', 'title', 'hasCoverPhoto', 'publishAt', 'payment', 'otherProduct', 'coverSrc', 'categoryName', 'categoryId', 'market']
+   · 6631764 2026-10-16 09:23 [台股新聞] PCB產業加速籌資擴廠 燿華將發行15億元無擔保CB籌資
+   · 6630187 2026-10-15 08:30 [專家觀點] 2026 OCP 峰會確立AI次世代四大新趨勢！解密『關鍵供應鏈名單』！
+   · 6630357 2026-10-14 18:00 [台股新聞] CCL三雄誰最會賺？台光電(2383)、台燿(6274)、聯茂(6213) 產品布局、漲價動能全解析
+   · 6630305 2026-10-14 17:00 [台股新聞] 台光電(2383)、聯茂(6213)、台燿(6274) 誰最會賺？高階CCL漲價與獲利動能一次看！
+   · 6630251 2026-10-14 16:00 [台股新聞] 台光電(2383)、聯茂(6213)、台燿(6274) 誰最會賺？高階CCL漲價潮、產品布局與獲利動能一次看！
+   · 6630093 2026-10-14 12:00 [台股新聞] 台光電(2383)、聯茂(6213)、台燿(6274)CCL三雄擴產盤點！AI高階銅箔基板誰能先放量？
+  其中 FactSet 快訊 3 則
+   ★ 6624693 2026-10-08 12:10 [台股預估] 鉅亨速報 - Factset 最新調查：台燿(6274-TW)EPS預估上修至37.64元，預估目標價為2170元
+     market： []
+   ★ 6621620 2026-10-05 12:10 [台股預估] 鉅亨速報 - Factset 最新調查：台燿(6274-TW)EPS預估上修至37.3元，預估目標價為2072.5元
+     market： []
+   ★ 6620280 2026-10-02 12:10 [台股預估] 鉅亨速報 - Factset 最新調查：台燿(6274-TW)EPS預估上修至36.96元，預估目標價為2115元
+     market： []
+
+## 個股／其他清單
+https://ess.api.cnyes.com/ess/api/v1/news/symbol/TWS:6274:STOCK?limit=30&page=1
+→ HTTP 404, 306 bytes, json=否
+  前 300 字： <html><body><h1>Whitelabel Error Page</h1><p>This application has no explicit mapping for /error, so you are seeing this as a fallback.</p><div id='created'>Fri Oct 16 15:34:29 UTC 2026</div><div>There was an unexpected error (type=Not Found, status=404).</div><div>No message available</div></body><
+
+## 個股／其他清單
+https://api.cnyes.com/media/api/v1/newslist/TWS:6274:STOCK?limit=30&page=1
+→ HTTP 404, 31 bytes, json=是
+  結構： {message: str(''), statusCode: int(404)}
+
+## 個股／其他清單
+https://news.cnyes.com/api/v3/news/category/tw_stock?limit=30
+→ HTTP 200, 248797 bytes, json=是
+  結構： {items: {total: int(637), per_page: int(30), current_page: int(1), last_page: int(22), next_page_url: str('/api/v3/news/category/tw_stock?page=2'), prev_page_url: NoneType, from: int(1), to: int(30), data: [30× …]}, message: str('成功'), statusCode: int(200)}
+  清單 30 則，分頁 {'total': 637, 'per_page': 30, 'current_page': 1, 'last_page': 22, 'from': 1, 'to': 30}
+  第一則欄位： ['content', 'feature', 'hasCoverPhoto', 'is24h', 'isCategoryHeadline', 'isIndex', 'isOutsource', 'keyword', 'newsId', 'otherProduct', 'payment', 'source', 'summary', 'title', 'video', 'publishAt', 'coverSrc', 'abTesting', 'categoryId', 'categoryName', 'columnists', 'magazine', 'fundCategoryAbbr', 'etf', 'fbShare', 'fbComment', 'fbCommentPluginCount', 'market']
+   · 6632368 2026-10-16 20:53 [台灣政經] 賴清德：台美關稅力保15％不疊加 301調查秉持台美貿易互惠
+   · 6632324 2026-10-16 20:52 [台灣政經] 賴清德：2035年前穩定供電無虞 將助百萬家中小微企業導入AI
+   · 6632287 2026-10-16 19:26 [台股新聞] 外資連8賣台股461億元 權王台積電遭倒貨2.2萬張最多、大砍0050
+   · 6632272 2026-10-16 19:23 [台股新聞] 鴻海擬斥236億元取得三菱電機移動50%股權 共同經營汽車設備事業
+   · 6632275 2026-10-16 19:14 [台股新聞] 經濟部擬赴德州設立AI產業園區 童子賢：可借鏡廣達Q-Bus模式
+   · 6632225 2026-10-16 19:04 [台股新聞] 華新焦佑倫談能源 風電與核電都是絕對必要選項
+  其中 FactSet 快訊 0 則
+
+## 內文 6313513
+https://api.cnyes.com/media/api/v1/news/6313513
+→ HTTP 200, 66 bytes, json=是
+  結構： {items: [0× ], message: str('參數無效'), statusCode: int(422)}
+
+## 內文 6313513
+https://news.cnyes.com/api/v1/news/6313513
+→ HTTP 404, 31 bytes, json=是
+  結構： {message: str(''), statusCode: int(404)}
+  標題： None ｜ None
+  content 0 字（原文前 3500）：
+
+
+## 內文 5139162
+https://api.cnyes.com/media/api/v1/news/5139162
+→ HTTP 200, 66 bytes, json=是
+  結構： {items: [0× ], message: str('參數無效'), statusCode: int(422)}
+
+## 內文 5139162
+https://news.cnyes.com/api/v1/news/5139162
+→ HTTP 404, 31 bytes, json=是
+  結構： {message: str(''), statusCode: int(404)}
+  標題： None ｜ None
+  content 0 字（原文前 3500）：
+
+
+## 內文 6537409
+https://api.cnyes.com/media/api/v1/news/6537409
+→ HTTP 200, 66 bytes, json=是
+  結構： {items: [0× ], message: str('參數無效'), statusCode: int(422)}
+
+## 內文 6537409
+https://news.cnyes.com/api/v1/news/6537409
+→ HTTP 404, 31 bytes, json=是
+  結構： {message: str(''), statusCode: int(404)}
+  標題： None ｜ None
+  content 0 字（原文前 3500）：
+
+
+## 新聞頁 HTML＋JS
+https://news.cnyes.com/news/id/6313513
+→ HTTP 200, 182679 bytes
+  頁面含「FactSet」：…'最新調查：Figure Technology Solutions, Inc. Class AFIGR-US的目標價調升至58元，幅度約3.57% | 鉅亨網</title><meta name="description" content="FactSet 最新調查：Figure Technology Solutions, Inc. Class AFIGR-US目標價調升，最高估值、最低估值、中位數、綜合評級、近5日股價、標普、即時新聞資訊"/><meta name="keywords" content="美股,FIGR,市場預估,目標價"/><meta '…
+  頁面含「預估」：…'ology Solutions, Inc. Class AFIGR-US目標價調升，最高估值、最低估值、中位數、綜合評級、近5日股價、標普、即時新聞資訊"/><meta name="keywords" content="美股,FIGR,市場預估,目標價"/><meta name="category" content="anue_live"/><meta name="version" content="4.181.0"/><meta name="google-play-app" content="app-id=com.cnyes.android"/><me'…
+  頁面含「分析師」：…':"CollectionPage","name":"anue_live","url":"https://news.cnyes.com/news/cat/anue_live"},"articleBody":"根據FactSet最新調查，共9位分析師，對FigureTechnologySolutions,Inc.ClassA(FIGR-US)提出目標價估值：中位數由56元上修至58元，調升幅度3.57%。其中最高估值75元，最低估值42元。綜合評級-共有9位分析師給予FigureTechnologySolutions,Inc.ClassA評價：積極樂觀6位、'…
+  頁面含「目標價」：…'<meta name="theme-color" content="#ffffff"/><title>鉅亨速報 - Factset 最新調查：Figure Technology Solutions, Inc. Class AFIGR-US的目標價調升至58元，幅度約3.57% | 鉅亨網</title><meta name="description" content="FactSet 最新調查：Figure Technology Solutions, Inc. Class AFIGR-US目標價調升，最高估值、最低估值、中位數、綜合評級、近5日股價、標普'…
+  script 35 支： ['9921241e-385fe7a0e456ac9f.js', '2382-73b57edb17e1d47a.js', 'main-app-0c16ea83c0bb4511.js', 'loading-dfa791707d874cab.js', 'error-1629bfd3fbb4714c.js', '925-d919bcdf496fa4b2.js', 'not-found-96e1675072e5d614.js', '3d1fff74-918d7672351bf692.js', '9025-698371daffb5de35.js', '5679-42adbc27baa2ac0f.js', '161-d79272cc9a2f04d7.js', '3651-28e8ffcd8cad7f0a.js', '5318-9a2a92e468474ca5.js', '4274-6efe69eb8be96d34.js', '9161-5f771d38090ed9d0.js', '8649-b93413bbd1de2e13.js', '1745-87787574fd6f0146.js', '5090-19d6ce3553bc08db.js', '2378-5a38043c6461b545.js', '2971-d8b552cada045605.js', '5614-d74726422803d6de.js', '5442-f21568f3f1df4e9e.js', '6051-458158f88c689ff4.js', '9788-a15856bd5d3d808d.js', 'layout-d0d8685e20e702f6.js', '3424-009fd522046da062.js', '4375-ba660973830e1269.js', '5900-fee9388abc00c937.js', 'layout-7df2821b2c0f33d1.js', '4888-8b0968f085bfcd09.js']
+  API 字樣 0 個：
+
+## 個股頁 HTML＋JS
+https://www.cnyes.com/twstock/6274
+→ HTTP 200, 207075 bytes
+  頁面含「estimate」：…'x-3590081612 title">績效</p></div><div class="jsx-3590081612 tab mobile"><img src="/static/icons/tw-stock-detail/icon-btn-estimate.svg" alt="Tab icon" class="jsx-3590081612"/><p style="color:;font-weight:400" class="jsx-3590081612 title">預估</p></div><div class="jsx-3590081612 tab m'…
+  頁面含「預估」：…'btn-estimate.svg" alt="Tab icon" class="jsx-3590081612"/><p style="color:;font-weight:400" class="jsx-3590081612 title">預估</p></div><div class="jsx-3590081612 tab mobile"><img src="/static/icons/tw-stock-detail/icon-btn-finance.svg" alt="Tab icon" class="jsx-3590081612"/><p style'…
+  頁面含「目標價」：…'herProduct":["TWS:6274:STOCK:COMMON","FX:USDTWD:FOREX:COMMON"],"title":"鉅亨速報 - Factset 最新調查：台燿(6274-TW)EPS預估上修至37.64元，預估目標價為2170元","payment":0,"publishAt":1791432632,"newsId":6624693,"hasCoverPhoto":0,"coverSrc":null,"categoryName":"台股預估","categoryId":911,"market":[]},{"newsId":6'…
+  script 29 支： ['unsupportBrowserRedirect.js', 'anueCommon.js', 'prod-global-552607.js', 'liad-pixel.js', 'DetailPage.js', '_app.js', '_error.js', '84.8c8e24163d9af7f50c58.js', '68.0427a07ff524925833ac.js', '68.0427a07ff524925833ac.js', '69.3457043cc9ed638bb0c3.js', '71.62f11a74930021f6c3de.js', '72.c149d7bc4837a41c7db8.js', '76.87a8a614c87486ed7dd2.js', '79.74d4e54aa49ab174d99e.js', '129.adb849e6564dd6c3b7fc.js', '132.0f4fa39c63095b0c57eb.js', '133.b3ce65ea28d6a0705bfb.js', '134.597355c654d3f5fb52fc.js', '135.74893857039ee2c9b6c5.js', '136.4bc43cf623e2470c0de0.js', '137.aad2ed41423ac9096360.js', '138.8d7f9a92386dff695555.js', '141.1b53f4292c044ae17110.js', '142.1a32d24b8d1a069e4a99.js', 'webpack-5a3d41aa61e2e4b9798d.js', 'commons.bfd2e500fddf71c47eb6.js', 'styles.5658c5ca02d67e8dcbf8.js', 'main-506685a2fd843df71888.js']
+  JS DetailPage.js 含「estimate」：…'MANCE,{component:_.a.createElement(G,null),title:"期間表現"})}],[l.RESEARCH,{type:l.RESEARCH,name:"預估",mobileName:"預估",icon:"/static/icons/tw-stock-detail/icon-btn-estimate.svg",content:T({},m.FINIRATING,{component:_.a.createElement(z,null),title:"市場預估"})}],[l.FINANCIALS,{type:l.FINANCIALS,name:"財報",mobileName:"財報",icon:"/'…
+  JS DetailPage.js 含「estimate」：…',!f&&!m&&o.a.createElement(Nn.a,{desktopProfile:u.a.twStockDetail.desktop.recentEvent}),f&&!m&&o.a.createElement(Nn.a,{desktopProfile:u.a.twStockDetail.desktop.estimateProfit}),!f&&e&&o.a.createElement(Bt.a,{placeholderWidth:"100%",placeholderHeight:"311.5px"},o.a.createElement(In,{isAside:!0})),o.a.createElement(Bt.a,'…
+  JS DetailPage.js 含「symbolNews」：…'"arrow",loading:"lazy",className:"jsx-".concat(M.__hash)+" "+"arrow-".concat(a)}),o.a.createElement(r.a,{styleId:M.__hash,css:M}))});!function(e){e.SymbolNews="symbolNews",e.SymbolAnnouncement="symbolAnnouncement",e.TwStock="twStock"}(I||(I={}));var F=[{id:I.SymbolNews,title:"個股新聞",fetchData:m.kb},{id:I.SymbolAnnouncem'…
+  JS DetailPage.js 含「symbolNews」：…'_EACH_PAGE_NUM",function(){return q}),n.d(t,"NEWS_EACH_PAGE_NUM",function(){return Y});var W=5,q=7,Y=25;t.default=function(){var e=Object(h.c)(),t=e.symbol,n=e.symbolNews,a=e.pageParams.page,s=U(Object(i.useState)(a===V.q.SUMMARY?F[0].id:I.SymbolNews),2),g=s[0],y=s[1],x=U(Object(i.useState)(1),2),w=x[0],k=x[1],S=U(Obje'…
+  JS DetailPage.js 含「keyword」：…'(r.I,"/static/anue-og-image.png"),x=(o(a={},i.a.MARKET_SUMMARY,{title:"市場總覽".concat(s),description:"即時追蹤美股市場總覽，包含道瓊、那斯達克、標普500等主要指數表現，以及各產業類股走勢。鉅亨網提供最完整的美股資訊。",keywords:"美股市場總覽, 美股指數, 道瓊指數, 那斯達克, 標普500, 產業表現, Anue鉅亨"}),o(a,i.a.MARKET_MOVERS,{title:"漲跌排行".concat(s),description:"查看今日美股漲跌幅排行，即時掌握紐約證交所(NYSE)、那斯達克(NASDAQ)的熱'…
+  JS DetailPage.js 含「keyword」：…'指數, 道瓊指數, 那斯達克, 標普500, 產業表現, Anue鉅亨"}),o(a,i.a.MARKET_MOVERS,{title:"漲跌排行".concat(s),description:"查看今日美股漲跌幅排行，即時掌握紐約證交所(NYSE)、那斯達克(NASDAQ)的熱門強勢股與弱勢股。投資決策領先一步。",keywords:"美股漲跌排行, 強勢股, 弱勢股, 漲幅排行, 跌幅排行, NYSE, NASDAQ, Anue鉅亨"}),o(a,i.a.SECTOR_PERFORMANCE,{title:"類股表現".concat(s),description:"掌握美股市場最完整的類股表現，追蹤科技、金融、能源、醫療保健等各'…
+  JS 84.8c8e24163d9af7f50c58.js 含「keyword」：…'dth:i,height:o},author:{"@id":r.a}}}).map(function(e,t){return{"@type":"ListItem",position:t+1,item:e}})},a=Object(l.a)([{"@type":"CollectionPage",url:X,name:q,keywords:"鉅亨網, 台股, 股市, 股價, 股利",description:J,inLanguage:"zh-TW",mainEntity:c},{"@type":"BreadcrumbList",itemListElement:[{"@type":"ListItem",position:1,name:"鉅亨'…
+  JS 84.8c8e24163d9af7f50c58.js 含「keyword」：…'(P.a,null,u.a.createElement(m.a,null,u.a.createElement("title",null,q),u.a.createElement("meta",{name:"description",content:J}),u.a.createElement("meta",{name:"keywords",content:"鉅亨網, 台股, 股市, 股價, 股利"}),u.a.createElement("meta",{property:"og:type",content:Object(l.b)(a)}),u.a.createElement("meta",{property:"og:url",cont'…
+  JS 68.0427a07ff524925833ac.js 含「estimate」：…',!h&&!m&&o.a.createElement(Tn.a,{desktopProfile:u.a.twStockDetail.desktop.recentEvent}),h&&!m&&o.a.createElement(Tn.a,{desktopProfile:u.a.twStockDetail.desktop.estimateProfit}),!h&&e&&o.a.createElement(Bt.a,{placeholderWidth:"100%",placeholderHeight:"311.5px"},o.a.createElement(Rn,{isAside:!0})),o.a.createElement(Bt.a,'…
+  JS 68.0427a07ff524925833ac.js 含「estimate」：…'t(Bt.a,{placeholderWidth:"100%",placeholderHeight:"292px"},o.a.createElement(mn,null)),!h&&!m&&o.a.createElement(Tn.a,{desktopProfile:u.a.twStockDetail.desktop.estimateProfit}),o.a.createElement(Bt.a,{placeholderWidth:"100%",placeholderHeight:"305px"},o.a.createElement(Cn,null)),o.a.createElement(Bt.a,{placeholderWidth'…
+  JS 68.0427a07ff524925833ac.js 含「symbolNews」：…'"arrow",loading:"lazy",className:"jsx-".concat(A.__hash)+" "+"arrow-".concat(a)}),o.a.createElement(r.a,{styleId:A.__hash,css:A}))});!function(e){e.SymbolNews="symbolNews",e.SymbolAnnouncement="symbolAnnouncement",e.TwStock="twStock"}(R||(R={}));var F=[{id:R.SymbolNews,title:"個股新聞",fetchData:m.kb},{id:R.SymbolAnnouncem'…
+  JS 68.0427a07ff524925833ac.js 含「symbolNews」：…'_EACH_PAGE_NUM",function(){return q}),n.d(t,"NEWS_EACH_PAGE_NUM",function(){return Q});var V=5,q=7,Q=25;t.default=function(){var e=Object(p.c)(),t=e.symbol,n=e.symbolNews,a=e.pageParams.page,c=U(Object(i.useState)(a===W.q.SUMMARY?F[0].id:R.SymbolNews),2),x=c[0],g=c[1],y=U(Object(i.useState)(1),2),w=y[0],j=y[1],k=U(Obje'…
+  JS 68.0427a07ff524925833ac.js 含「keyword」：…'e)(""),2),c=a[0],s=a[1],l=b()(function(e){s(e.target.value)},500),u=b()(function(e){13===e.keyCode&&c&&c.length>0&&y.a.Router.push("/search/".concat(t||"all","?keyword=").concat(c))},500);return o.a.createElement("div",{className:"jsx-".concat(w.__hash)+" search-bar"},o.a.createElement("input",{value:c,onChange:l,onKey'…
+  JS 68.0427a07ff524925833ac.js 含「keyword」：…'older:n||"輸入關鍵字",className:"jsx-".concat(w.__hash)}),o.a.createElement("button",{onClick:function(){c&&c.length>0&&y.a.Router.push("/search/".concat(t||"all","?keyword=").concat(c))},className:"jsx-".concat(w.__hash)},o.a.createElement("img",{src:"/static/icons/symbol-icon-icon-search.svg",alt:"search",className:"jsx-"'…
+  API 字樣 17 個：
+    /ess/api/v1/siteSearch/main
+    /media/api/v1/logowalls/
+    /media/api/v1/newslist/TWS:6274:STOCK/symbolNews
+    /ws/api/v1/ga/pageViewHot
+    https://api.cnyes.com
+    https://driver.api.cnyes.com
+    https://ess.api.cnyes.com
+    https://fund.api.cnyes.com
+    https://gateway.api.cnyes.com
+    https://marketinfo.api.cnyes.com
+    https://member-always-right.api.cnyes.com
+    https://member.api.cnyes.com
+    https://oauth.api.cnyes.com
+    https://sns.api.cnyes.com
+    https://subscribe.api.cnyes.com
+    https://video.api.cnyes.com
+    https://ws.api.cnyes.com
+
+## Yahoo quoteSummary（crumb）
+  fc.yahoo.com → HTTP 404；cookie 1 個：['A3']
+  query2 getcrumb → HTTP 200：b'.lOPk4/JeAI'
+
+  2330.TW → HTTP 200, 8593 bytes
+   financialData：分析師 35、預估股價 平均 3374.8 中位 3300.0 高 5000.0 低 2650.0、評等 strong_buy 1.31429、幣別 TWD
+   trend 0q 2026-12-31：EPS 平均 32.99928 低 31.9 高 33.81 家數 20 成長 0.6923｜營收 平均 1701533764570 家數 23｜30 天前 31.00474 90 天前 30.93889｜30 天上修 6 下修 3
+   trend +1q 2027-03-31：EPS 平均 33.40905 低 30.7 高 37.20206 家數 19 成長 0.5131｜營收 平均 1712215701040 家數 20｜30 天前 31.8836 90 天前 31.66933｜30 天上修 7 下修 1
+   trend 0y 2026-12-31：EPS 平均 110.74562 低 107.41 高 113.20986 家數 30 成長 0.67160004｜營收 平均 5580020261200 家數 33｜30 天前 107.68626 90 天前 107.27477｜30 天上修 9 下修 3
+   trend +1y 2027-12-31：EPS 平均 148.09088 低 126.5 高 167.12775 家數 36 成長 0.33720002｜營收 平均 7601280995060 家數 40｜30 天前 142.48549 90 天前 135.1194｜30 天上修 10 下修 1
+   recommendationTrend： [{'period': '0m', 'strongBuy': 9, 'buy': 25, 'hold': 1, 'sell': 0, 'strongSell': 0}]
+   upgradeDowngradeHistory 前 3： []
+
+  6274.TW → HTTP 404, 113 bytes
+    {'quoteSummary': {'result': None, 'error': {'code': 'Not Found', 'description': 'Quote not found for symbol: 6274.TW'}}}
+
+  6488.TWO → HTTP 200, 8376 bytes
+   financialData：分析師 14、預估股價 平均 1039.2858 中位 977.5 高 1800.0 低 473.0、評等 none None、幣別 TWD
+   trend 0q 2026-09-30：EPS 平均 3.66108 低 1.91 高 4.89 家數 8 成長 -0.1114｜營收 平均 15952788450 家數 9｜30 天前 4.32 90 天前 5.41902｜30 天上修 0 下修 0
+   trend +1q 2026-12-31：EPS 平均 4.57195 低 2.92 高 6.26 家數 8 成長 -0.0061000003｜營收 平均 17191743600 家數 9｜30 天前 5.255 90 天前 5.97168｜30 天上修 0 下修 0
+   trend 0y 2026-12-31：EPS 平均 20.31102 低 16.69 高 23.02 家數 12 成長 0.33099997｜營收 平均 63016162100 家數 14｜30 天前 21.07038 90 天前 21.87835｜30 天上修 0 下修 0
+   trend +1y 2027-12-31：EPS 平均 34.41236 低 20.23769 高 59.99 家數 14 成長 0.6943｜營收 平均 82768736700 家數 14｜30 天前 32.93993 90 天前 28.01917｜30 天上修 0 下修 1
+   recommendationTrend： [{'period': '0m', 'strongBuy': 3, 'buy': 5, 'hold': 3, 'sell': 2, 'strongSell': 1}]
+   upgradeDowngradeHistory 前 3： []
+
+  3017.TW → HTTP 200, 8496 bytes
+   financialData：分析師 17、預估股價 平均 4200.353 中位 4340.0 高 5200.0 低 3327.0、評等 strong_buy 1.35294、幣別 TWD
+   trend 0q 2026-09-30：EPS 平均 27.99762 低 25.86 高 29.43 家數 13 成長 1.0801｜營收 平均 57435870770 家數 12｜30 天前 27.95666 90 天前 25.51911｜30 天上修 2 下修 0
+   trend +1q 2026-12-31：EPS 平均 32.4985 低 29.77 高 35.12 家數 13 成長 0.946｜營收 平均 65939867800 家數 12｜30 天前 32.03202 90 天前 28.84091｜30 天上修 2 下修 0
+   trend 0y 2026-12-31：EPS 平均 103.52429 低 93.05 高 108.25 家數 16 成長 1.146｜營收 平均 221996054660 家數 16｜30 天前 102.19945 90 天前 94.52772｜30 天上修 8 下修 0
+   trend +1y 2027-12-31：EPS 平均 161.72552 低 133.09 高 186.82 家數 17 成長 0.5622｜營收 平均 314517264220 家數 16｜30 天前 154.71254 90 天前 136.1674｜30 天上修 9 下修 0
+   recommendationTrend： [{'period': '0m', 'strongBuy': 6, 'buy': 11, 'hold': 0, 'sell': 0, 'strongSell': 0}]
+   upgradeDowngradeHistory 前 3： []
+
+  8299.TWO → HTTP 200, 8561 bytes
+   financialData：分析師 13、預估股價 平均 2763.5386 中位 2900.0 高 4000.0 低 1440.0、評等 buy 1.76923、幣別 TWD
+   trend 0q 2026-09-30：EPS 平均 126.17017 低 103.20121 高 150.17 家數 7 成長 11.6044｜營收 平均 86387012160 家數 7｜30 天前 119.73446 90 天前 88.25378｜30 天上修 1 下修 0
+   trend +1q 2026-12-31：EPS 平均 107.47293 低 60.89 高 140.77 家數 7 成長 4.1056｜營收 平均 90569895140 家數 7｜30 天前 101.14864 90 天前 74.48002｜30 天上修 1 下修 0
+   trend 0y 2026-12-31：EPS 平均 412.3421 低 360.87967 高 478.35 家數 10 成長 9.375999｜營收 平均 283505268110 家數 10｜30 天前 359.01566 90 天前 301.2897｜30 天上修 1 下修 0
+   trend +1y 2027-12-31：EPS 平均 281.53503 低 95.37 高 414.28 家數 12 成長 -0.3172｜營收 平均 340828221520 家數 12｜30 天前 255.73962 90 天前 191.35262｜30 天上修 1 下修 0
+   recommendationTrend： [{'period': '0m', 'strongBuy': 4, 'buy': 7, 'hold': 1, 'sell': 1, 'strongSell': 0}]
+   upgradeDowngradeHistory 前 3： []
+
+  2002.TW → HTTP 200, 8297 bytes
+   financialData：分析師 9、預估股價 平均 20.6 中位 21.5 高 23.0 低 15.7、評等 none None、幣別 TWD
+   trend 0q 2026-09-30：EPS 平均 0.065 低 0.04 高 0.09 家數 4 成長 1.4063001｜營收 平均 86417666670 家數 3｜30 天前 0.11 90 天前 0.08333｜30 天上修 0 下修 2
+   trend +1q 2026-12-31：EPS 平均 0.1725 低 0.1 高 0.31 家數 4 成長 9.625｜營收 平均 89708666670 家數 3｜30 天前 0.128 90 天前 0.22｜30 天上修 1 下修 1
+   trend 0y 2026-12-31：EPS 平均 0.20064 低 0.14321 高 0.33 家數 5 成長 1.6919｜營收 平均 337835912410 家數 7｜30 天前 0.19054 90 天前 0.2333｜30 天上修 1 下修 1
+   trend +1y 2027-12-31：EPS 平均 0.41886 低 0.2584 高 0.66 家數 8 成長 1.0876｜營收 平均 342333583310 家數 10｜30 天前 0.35849 90 天前 0.40818｜30 天上修 1 下修 0
+   recommendationTrend： [{'period': '0m', 'strongBuy': 1, 'buy': 4, 'hold': 3, 'sell': 1, 'strongSell': 0}]
+   upgradeDowngradeHistory 前 3： []
+
+探針結束，21 秒
