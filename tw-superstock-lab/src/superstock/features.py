@@ -23,6 +23,10 @@ VCP = {"thr": 0.03, "win": 260, "base_min": 30, "n_min": 2, "n_max": 6, "grow": 
 # 88% 被切成超過 6 段，VCP 幾乎不成立（9 年 26 筆交易）。只改轉折門檻＝max(3%, 1.5 × ATR14 ÷ 收盤)，
 # 1.5 倍 ATR 取自 GitHub 最多人用的 VCP 篩選器（tradermonty/claude-trading-skills vcp-screener）；其餘條件不動。
 VCP_V2 = {**VCP, "atr_k": 1.5}
+# v3（reports/W5_plan.md 第 3 節，2026-10-16，跑結果之前寫定）：照書修正——每段嚴格比前一段小、低點逐段墊高、
+# 最後一段低點在基底上半部、成形只算還沒突破；V3s 另把基底下限改 15 日（3 週）。
+VCP_V3 = {**VCP_V2, "grow": 1.0, "rise": True, "upper": 0.5, "below": True}
+VCP_V3S = {**VCP_V3, "base_min": 15}
 
 
 # ---------------------------------------------------------------------------------------------- 合格
@@ -137,6 +141,8 @@ class ZigZag:
 
 
 def vcp_check(pairs, pivot: float, close: float, dry: float, spec: dict = VCP) -> bool:
+    """spec 選用鍵（W5_plan 第 3 節；沒有＝不檢查，V1／V2 結果不變）：rise＝低點逐段墊高；
+    upper＝最後一段低點 ≥ 基底最低 ＋ upper ×（基底高點 − 基底最低）；below＝收盤 ≤ 樞紐（還沒突破）。"""
     n = len(pairs)
     if not (spec["n_min"] <= n <= spec["n_max"]) or not (pivot == pivot) or not (close == close):
         return False
@@ -144,6 +150,14 @@ def vcp_check(pairs, pivot: float, close: float, dry: float, spec: dict = VCP) -
     if ds[0] > spec["d1_max"] or ds[-1] > spec["dn_max"]:
         return False
     if any(ds[k] >= spec["grow"] * ds[k - 1] for k in range(1, n)):
+        return False
+    if spec.get("rise") and any(pairs[k][1] <= pairs[k - 1][1] for k in range(1, n)):
+        return False
+    if spec.get("upper") is not None:
+        lo_min = min(p[1] for p in pairs)
+        if pairs[-1][1] < lo_min + spec["upper"] * (pairs[0][0] - lo_min):
+            return False
+    if spec.get("below") and close > pivot:
         return False
     return close >= spec["near"] * pivot and dry == dry and dry <= spec["dry"]
 
@@ -206,6 +220,33 @@ def vcp(m: Market, need: np.ndarray, dry: np.ndarray, spec: dict = VCP) -> dict[
 
 
 # ---------------------------------------------------------------------------------------------- 標籤
+def race(m: Market, up: float = 0.20, dn: float = 0.08, n: int = 120,
+         elig: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
+    """交易命中（W5_plan 第 4 節）：之後 n 個交易日內先碰到收盤 ×（1＋up）→ 1，先碰到 ×（1−dn）或同一天兩個都碰到 → 0；
+    n 日都沒碰到 → 0（另回傳這些格子）；n 日還沒走完又沒碰到 → NaN。"""
+    T, N = m.c.shape
+    c = m.c
+    tgt, stp = c * (1 + up), c * (1 - dn)
+    res = np.full((T, N), np.nan)
+    done = np.zeros((T, N), dtype=bool)
+    with np.errstate(invalid="ignore"):
+        for k in range(1, n + 1):
+            hk = np.full((T, N), np.nan)
+            lk = np.full((T, N), np.nan)
+            hk[:T - k], lk[:T - k] = m.h[k:], m.l[k:]
+            down, upx = (lk <= stp) & ~done, (hk >= tgt) & ~done
+            res[down] = 0.0
+            res[upx & ~down] = 1.0
+            done |= down | upx
+    tail = (np.arange(T)[:, None] + n) > T - 1
+    und = ~done & ~tail
+    res[und] = 0.0
+    res[np.isnan(c)] = np.nan
+    if elig is not None:
+        res[~elig] = np.nan
+    return res, und & ~np.isnan(res)
+
+
 def fwd_max(m: Market, n: int) -> np.ndarray:
     """t+1..t+n 的最高價（還原）；面板尾端未來還沒發生 → NaN；已下市股用到下市為止。"""
     H = pd.DataFrame(m.h)
