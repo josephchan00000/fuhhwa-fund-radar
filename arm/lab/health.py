@@ -332,3 +332,268 @@ def review_baskets(trs: list[dict]) -> list[dict]:
             out.append({"d": min(x["d"] for x in xs), "g": k, "t": min(x["t"] for x in xs), "p": p,
                         "fw": any(x.get("fw") for x in xs)})
     return sorted(out, key=lambda b: b["d"])
+
+
+# ── 回測參考：燈號抽樣用的單位報酬、持有路徑分位數表、拆解用的逐筆（第 3、4 節） ─────────────────
+
+_TRC = ("d", "r", "rk", "gap", "pre", "reg", "cap")   # 參考檔逐筆欄位（緊湊陣列）
+
+
+def _mean(xs):
+    xs = [x for x in xs if x is not None]
+    return statistics.mean(xs) if xs else None
+
+
+def per_review(trs: list[dict]) -> list[float]:
+    """臺灣50：同一次審核（g）已出場各筆的報酬平均＝一個單位；依決定日排序。"""
+    g: dict = {}
+    for x in trs:
+        if x.get("r") is not None:
+            g.setdefault(x.get("g"), []).append(x)
+    rows = sorted(((min(y["d"] for y in v), statistics.mean(y["r"] for y in v)) for v in g.values()))
+    return [round(r, 2) for _, r in rows]
+
+
+def ref_pack(units: list[float], paths: list[list], trs: list[dict], *, min_n: int = PATH_MIN_N) -> dict:
+    """一條策略的回測參考：u＝單位報酬（扣成本，%）、q＝持有路徑分位數表、cut＝前 20 日漲幅與市值的三等分切點、
+    tr＝逐筆 [決定日, 報酬, 名次, 跳空, 前 20 日漲幅, 大盤在均線上(1/0), 市值(億)]（只收已出場的）。"""
+    cl = [x for x in trs if x.get("r") is not None]
+    return {"u": [round(x, 2) for x in units if x is not None], "q": qtable(paths, min_n),
+            "cut": {"pre": cuts([x.get("pre") for x in cl]), "cap": cuts([x.get("cap") for x in cl])},
+            "tr": [[x["d"], x["r"], x.get("rk"), x.get("gap"), x.get("pre"),
+                    None if x.get("reg") is None else int(bool(x["reg"])), x.get("cap")] for x in cl]}
+
+
+def ref_periodic(P, E, k: str, src: str, b: str, *, since: str, umin: int, n: int = 5, eps=None, rev=None) -> dict:
+    """財報、月營收（v3 長歷史面板）：現行規則（前 n 檔）跑一次 → 起算日之前的每期報酬、每期一批的路徑、逐筆。"""
+    from . import bt3s
+    rows = bt3s.p3_rows(P, E, b, P.codes, eps, 60) if src == "p3" else bt3s.p7_rows(P, E, b, P.codes, rev)
+    done = [r for r in rows if r[1] is not None and P.cal[r[0]] < since]
+    pk = bt3s.pick(done, 0.0, n, False, umin)
+    log: list = []
+    acc = bt3.account(P, pk, b, log=log)
+    h = from_account(P, pk, log, b, scores={t: sc for t, _, sc in done})
+    units = [u["r"] for u in acc["units"] if u.get("r") is not None]
+    return ref_pack(units, [x["p"] for x in h["bk"]], h["tr"])
+
+
+def ref_trades(trs: list[dict], since: str, *, event: bool = False) -> dict:
+    """逐筆型策略：起算日之前已出場的交易（from_trades 的輸出）→ 回測參考。
+    事件型（臺灣50）的單位＝每次審核平均、路徑＝每次一批（至少 5 次）；其餘＝逐筆。"""
+    ins = [x for x in trs if x["d"] < since]
+    if event:
+        return ref_pack(per_review(ins), [b["p"] for b in review_baskets(ins)], ins, min_n=PATH_MIN_EV)
+    return ref_pack([x["r"] for x in ins if x.get("r") is not None],
+                    [x["path"] for x in ins if x.get("r") is not None and x.get("path")], ins)
+
+
+# ── 燈號（第 3c 節） ─────────────────────────────────────────────────────
+
+def boot(ref_u: list[float], fwd_u: list[float]) -> dict:
+    """前瞻平均在回測抽樣分布的百分位：從回測單位抽出和前瞻一樣多（放回抽樣）、重複 BOOT_N 次（固定種子）。
+    → {pct（前瞻平均高於幾 % 的抽樣平均）, lo, hi（抽樣平均的 5～95 百分位）, ref（回測平均）}"""
+    import random
+    from .optim import BOOT_N, SEED
+    if not ref_u or not fwd_u:
+        return {"pct": None, "lo": None, "hi": None, "ref": _r2(_mean(ref_u))}
+    rnd = random.Random(SEED)
+    n, m = len(fwd_u), statistics.mean(fwd_u)
+    ms = sorted(statistics.mean(rnd.choice(ref_u) for _ in range(n)) for _ in range(BOOT_N))
+    below = sum(1 for x in ms if x < m) + 0.5 * sum(1 for x in ms if x == m)
+    return {"pct": round(100 * below / len(ms), 1), "lo": _r2(pct(ms, 5)), "hi": _r2(pct(ms, 95)),
+            "ref": _r2(statistics.mean(ref_u))}
+
+
+def _r2(x):
+    return None if x is None else round(x, 2)
+
+
+# ── 依進場條件拆解（第 4 節） ─────────────────────────────────────────────
+
+def welch_t(a: list[float], b: list[float]) -> float | None:
+    if len(a) < 2 or len(b) < 2:
+        return None
+    va, vb = statistics.variance(a), statistics.variance(b)
+    s = (va / len(a) + vb / len(b)) ** 0.5
+    return (statistics.mean(a) - statistics.mean(b)) / s if s > 0 else None
+
+
+COND = (("rk", "名次"), ("gap", "開盤跳空"), ("reg", "大盤狀態"), ("pre", "進場前 20 日漲幅"), ("cap", "規模"))
+TER = ("低", "中", "高")
+
+
+def _labels(field: str, n_rank: int) -> list[str]:
+    from .optim import GAP_BINS
+    if field == "rk":
+        return [f"第 {i} 名" for i in range(1, n_rank + 1)]
+    if field == "gap":
+        return [g[2] for g in GAP_BINS]
+    if field == "reg":
+        return ["年線上", "年線下"]
+    return [f"{TER[i]}（三等分）" for i in range(3)]
+
+
+def group_of(field: str, x: dict, cut: dict) -> int | None:
+    """逐筆 → 第幾組（從 0 起；名次＝名次 − 1）。"""
+    v = x.get(field)
+    if v is None:
+        return None
+    if field == "rk":
+        return int(v) - 1
+    if field == "gap":
+        return gap_bin(v)
+    if field == "reg":
+        return 0 if v else 1
+    return tercile(v, (cut or {}).get(field))
+
+
+def split(trs: list[dict], cut: dict, halves, *, n_rank: int = 5) -> list[list]:
+    """各條件各組：[條件, 組名, 筆數, 平均報酬, 賺錢比例, 和其餘合併平均的差, Welch t, 差異明顯?]。
+    halves(x)→0／1（前一半、後一半；有複驗期間的用主要／複驗期間）；差異明顯＝該組 ≥10 筆、|t| ≥ 2、
+    兩半的差同方向（第 4 節）。只收已出場的。"""
+    from .optim import SPLIT_MIN_N, SPLIT_T
+    cl = [x for x in trs if x.get("r") is not None]
+    out = []
+    for field, name in COND:
+        labs = _labels(field, n_rank)
+        g = {}
+        for x in cl:
+            k = group_of(field, x, cut)
+            if k is not None and 0 <= k < len(labs):
+                g.setdefault(k, []).append(x)
+        if len(g) < 2:
+            continue
+        for k in range(len(labs)):
+            xs = g.get(k) or []
+            if not xs:
+                continue
+            rest = [y for kk, ys in g.items() if kk != k for y in ys]
+            a, b = [y["r"] for y in xs], [y["r"] for y in rest]
+            diff = statistics.mean(a) - statistics.mean(b) if a and b else None
+            t = welch_t(a, b)
+            same = None
+            if diff is not None:
+                hs = []
+                for h in (0, 1):
+                    ah = [y["r"] for y in xs if halves(y) == h]
+                    bh = [y["r"] for y in rest if halves(y) == h]
+                    hs.append(statistics.mean(ah) - statistics.mean(bh) if ah and bh else None)
+                same = all(v is not None and v * diff > 0 for v in hs)
+            sig = bool(len(a) >= SPLIT_MIN_N and t is not None and abs(t) >= SPLIT_T and same)
+            out.append([name, labs[k], len(a), _r2(statistics.mean(a)), round(100 * sum(1 for v in a if v > 0) / len(a)),
+                        _r2(diff), None if t is None else round(t, 2), sig])
+    return out
+
+
+def unpack_ref_tr(rows: list[list]) -> list[dict]:
+    return [dict(zip(_TRC, r)) | {"reg": None if r[5] is None else bool(r[5])} for r in rows]
+
+
+# ── 每日健檢（第 3 節） ──────────────────────────────────────────────────
+
+def check(k: str, ref: dict, fwd_u: list[float], *, open_items: list[dict], fwd_tr: list[dict], halves,
+          event: bool, n_rank: int = 5) -> dict:
+    """一條策略的當天健檢。ref＝回測參考（ref_pack）；fwd_u＝前瞻已完成單位的報酬；open_items＝持有中
+    [{n（名稱）, d（持有第幾天）, x（目前累積報酬 %）}]（逐檔策略每檔一項、其餘每批一項）；fwd_tr＝前瞻已出場逐筆。
+    → {n, avg, light, b（燈號抽樣）, hold（持有中百分位）, low（低於第 5 百分位的項目）, split（拆解）}"""
+    from .optim import HOLD_PCT_EV, light
+    b = boot(ref.get("u") or [], fwd_u)
+    hold = []
+    for it in open_items:
+        p = at_day(ref.get("q") or {}, it["d"], it.get("x"))
+        hold.append({**it, "pct": p})
+    trs = unpack_ref_tr(ref.get("tr") or []) + [x for x in fwd_tr if x.get("r") is not None]
+    return {"k": k, "n": len(fwd_u), "avg": _r2(_mean(fwd_u)), "light": light(b["pct"], len(fwd_u), event), "b": b,
+            "hold": hold, "low": [h["n"] for h in hold if h["pct"] is not None and h["pct"] < HOLD_PCT_EV],
+            "split": split(trs, ref.get("cut") or {}, halves, n_rank=n_rank),
+            "ref_n": len(ref.get("u") or []), "q_days": len((ref.get("q") or {}).get("q") or [])}
+
+
+SCOPE = ("v3l", "v7m", "v7l", "s3", "s5", "s1")       # 健檢範圍（docs 第 1 節；C 級與清單外的在頁面隱藏）
+REF_FILE = "opt_research.json"                         # 每週重跑的產出（v3 長歷史面板的回測參考＋改良候選）
+
+
+def _halves(k: str, ref_tr: list[dict]):
+    """拆解的前後兩半：有複驗期間的用複驗（0）／主要期間（1）；其餘依回測逐筆決定日的中位數分。"""
+    from .optim import HAS_REP, MAIN_FROM
+    if k in HAS_REP:
+        return lambda x: 0 if x["d"] < MAIN_FROM else 1
+    ds = sorted(x["d"] for x in ref_tr)
+    mid = ds[len(ds) // 2] if ds else "9999"
+    return lambda x: 0 if x["d"] < mid else 1
+
+
+def build_ref_file(P=None) -> dict:
+    """每週：v3 長歷史面板 → 財報（大型）、月營收（中型、大型）的回測參考（現行規則、起算日之前）。"""
+    from . import bt3d, packtest as PT, v3live
+    P = P or bt3d.Panel()
+    E = bt3.Elig(P)
+    eps, rev = bt3d.load_eps(), PT.load_rev()
+    ref = {}
+    for k, src, b, _, _ in v3live.LIVE:
+        if k in SCOPE:
+            ref[k] = ref_periodic(P, E, k, src, b, since=v3live.SINCE, umin=v3live.UMIN[src], n=v3live.N, eps=eps, rev=rev)
+    return {"asof": P.cal[-1], "ref": ref}
+
+
+def daily(full: dict, v3: dict, D, ctx, reg_map: dict | None, ref_file: dict | None = None) -> dict:
+    """每次建頁：六條策略的健檢（燈號、持有中百分位、拆解）。full＝analyze._take_full 的輸出；v3＝v3live.run 的輸出；
+    ctx＝v3live 的 (P, E)（市值用）；ref_file＝每週產出（沒有時 v3 三條只顯示前瞻、不打燈號）。"""
+    from . import growth, strategy, v3live
+    from .optim import EVENT
+    ref_file = ref_file if ref_file is not None else (store_read(REF_FILE) or {})
+    P = ctx[0] if ctx else None
+    pix = P.D.ix if P is not None else {}
+
+    def cap_of(c, t):
+        i = pix.get(D.cal[t])
+        return (P.cap.get(c) or [None] * P.T)[i] if P is not None and i is not None else None
+    names = D.names
+    out = {"asof_ref": ref_file.get("asof")}
+    for k in ("v3l", "v7m", "v7l"):
+        R = (ref_file.get("ref") or {}).get(k)
+        L = (v3 or {}).get(k) or {}
+        if not R or not L:
+            continue
+        hl = (full.get("hl") or {}).get(k) or {}
+        fu = [u["r"] for u in (L.get("fwd") or {}).get("units") or [] if u.get("r") is not None]
+        items = []
+        nw = hl.get("now")
+        if nw and nw.get("p"):
+            items.append({"n": f"{nw['d'][5:7].lstrip('0')}/{nw['d'][8:10].lstrip('0')} 那一批", "d": len(nw["p"]),
+                          "x": nw["p"][-1]})
+        out[k] = {**check(k, R, fu, open_items=items, fwd_tr=hl.get("tr") or [], halves=_halves(k, unpack_ref_tr(R["tr"])),
+                          event=k in EVENT), "since": v3live.SINCE}
+    sinces = {"s1": next(s["since"] for s in strategy.STRATEGIES if s["key"] == "s1"), "s5": growth.S5["since"],
+              "s3": strategy.TW50_VERS[0]["since"]}
+    for k in ("s1", "s5", "s3"):
+        trs = full.get(k)
+        if trs is None:
+            continue
+        ev = k == "s3"
+        h = from_trades(D, trs, cap_of=cap_of, fw_from=sinces[k], reg_map=reg_map,
+                        **({"rank_key": "mom", "group": "review", "b_fix": "L"} if ev else {}))["tr"]
+        R = ref_trades(h, sinces[k], event=ev)
+        fw = [x for x in h if x["fw"]]
+        fwc = [x for x in fw if x.get("r") is not None]
+        fu = per_review(fwc) if ev else [x["r"] for x in fwc]
+        items = []
+        if ev:
+            cur = [x for x in h if x.get("i") is None]
+            if cur:
+                g = max(x.get("g") or "" for x in cur)
+                bk = review_baskets([x for x in h if x.get("g") == g])
+                if bk:
+                    items.append({"n": f"{g} 這一次", "d": len(bk[0]["p"]), "x": bk[0]["p"][-1]})
+        else:
+            for x in h:
+                if x.get("i") is None and x.get("path"):
+                    items.append({"n": names.get(x["c"], x["c"]), "c": x["c"], "d": len(x["path"]), "x": x["path"][-1]})
+        out[k] = {**check(k, R, fu, open_items=items, fwd_tr=fwc, halves=_halves(k, [x for x in h if not x["fw"]]),
+                          event=ev, n_rank=4 if ev else 5), "since": sinces[k]}
+    return out
+
+
+def store_read(name: str):
+    from . import store
+    return store.read_json(name, {})

@@ -152,3 +152,59 @@ def test_take_full_strips_private_lists():
     assert strat["list"][0] == {"key": "s1"} and strat["list"][1] == {"key": "s3"}
     assert grow == {"s5": {"tr": {}}} and v3 == {"v3l": {"fwd": {}}, "err": "x"}
     assert analyze._take_full({"err": "x"}, {"err": "y"}) == {"hl": {}}
+
+
+def test_boot_percentile_deterministic():
+    ref = [0.0] * 50 + [10.0] * 50
+    a = H.boot(ref, [10.0] * 5)
+    assert a == H.boot(ref, [10.0] * 5)                                   # 固定種子：同資料同結果
+    assert a["pct"] > 90 and a["ref"] == 5.0 and a["lo"] < a["hi"]
+    assert H.boot(ref, [-5.0])["pct"] == 0.0 and H.boot(ref, [20.0])["pct"] == 100.0
+    assert H.boot([], [1.0])["pct"] is None and H.boot(ref, [])["pct"] is None
+
+
+def test_per_review_and_ref_trades():
+    trs = [{"d": "2026-01-05", "t": 1, "g": "A", "r": 10.0, "fw": False, "path": [1.0, 2.0], "j": 1, "ex": 3.0},
+           {"d": "2026-01-03", "t": 0, "g": "A", "r": 0.0, "fw": False, "path": [0.0], "j": 0, "ex": 0.0},
+           {"d": "2026-02-01", "t": 4, "g": "B", "r": -4.0, "fw": False, "path": [-1.0], "j": 5, "ex": -4.0},
+           {"d": "2026-03-01", "t": 8, "g": "C", "r": None, "fw": True, "path": [2.0], "j": 9, "ex": None}]
+    assert H.per_review(trs) == [5.0, -4.0]                                # 依決定日排序、只算已出場
+    R = H.ref_trades(trs, "2026-02-15", event=True)
+    assert R["u"] == [5.0, -4.0] and len(R["tr"]) == 3
+    R2 = H.ref_trades(trs, "2026-02-15")
+    assert R2["u"] == [10.0, 0.0, -4.0] and R2["q"] == {"q": [], "n": []}  # 逐筆：少於 20 筆不出分位數表
+    back = H.unpack_ref_tr(R2["tr"])
+    assert back[0]["d"] == "2026-01-05" and back[0]["r"] == 10.0 and back[0]["reg"] is None
+
+
+def _tr(d, r, gap):
+    return {"d": d, "r": r, "gap": gap, "rk": None, "pre": None, "cap": None, "reg": None}
+
+
+def test_split_flags_only_consistent_large_differences():
+    halves = lambda x: 0 if x["d"] < "2026-06-01" else 1
+    hi = [_tr("2026-0%d-01" % (1 + i % 2 * 6), 10.0 + (i % 3), 5.0) for i in range(12)]   # 高開 ≥3%：兩半都 +10 左右
+    lo = [_tr("2026-0%d-01" % (1 + i % 2 * 6), (i % 5) - 2.0, 0.0) for i in range(30)]      # 平開：平均 0
+    rows = {(r[0], r[1]): r for r in H.split(hi + lo, {}, halves)}
+    big = rows[("開盤跳空", "高開 ≥3%")]
+    assert big[2] == 12 and big[5] > 9 and big[6] >= 2 and big[7] is True
+    assert rows[("開盤跳空", "平開")][7] is True                           # 對稱：其餘那組明顯較差
+    one = [dict(x, r=(20.0 if x["d"] >= "2026-06-01" else -1.0)) for x in hi]                 # 只有後一半較好
+    rows2 = {(r[0], r[1]): r for r in H.split(one + lo, {}, halves)}
+    assert rows2[("開盤跳空", "高開 ≥3%")][7] is False
+    few = hi[:9] + lo
+    assert {(r[0], r[1]): r for r in H.split(few, {}, halves)}[("開盤跳空", "高開 ≥3%")][7] is False   # 不到 10 筆
+    assert H.welch_t([1.0], [2.0, 3.0]) is None
+
+
+def test_check_lights_holding_percentile_and_low_flag():
+    ref = {"u": [float(x) for x in range(-10, 11)], "q": {"q": [[float(v) for v in range(-10, 11)]], "n": [21]},
+           "cut": {}, "tr": []}
+    items = [{"n": "甲", "d": 1, "x": -9.5}, {"n": "乙", "d": 1, "x": 3.0}, {"n": "丙", "d": 5, "x": 1.0}]
+    c = H.check("s1", ref, [1.0, 2.0], open_items=items, fwd_tr=[], halves=lambda x: 0, event=False)
+    assert c["light"] == "樣本太少" and c["n"] == 2 and c["avg"] == 1.5      # 前瞻少於 3 筆不打燈號
+    assert [h["pct"] for h in c["hold"]] == [2.5, 65.0, None] and c["low"] == ["甲"]
+    c2 = H.check("s1", ref, [-10.0] * 5, open_items=[], fwd_tr=[], halves=lambda x: 0, event=False)
+    assert c2["light"] == "明顯低於回測" and c2["b"]["pct"] < 5
+    c3 = H.check("v3l", ref, [0.0, 0.5], open_items=[], fwd_tr=[], halves=lambda x: 0, event=True)
+    assert c3["light"] == "符合回測"                                        # 事件型 2 次就打燈號

@@ -598,6 +598,12 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
     if keep is not None:
         keep.update({"D": D, "sig_hist": sig_hist, "L": L, "meta": meta, "taiex": taiex, "reg": reg, "v3ctx": v3ctx,
                      "full": full, "v3": v3})
+    # 策略健檢（docs/lab_selfopt_plan.md 第 3、4 節）：燈號、持有中百分位、依進場條件拆解；失敗不影響其他區塊
+    try:
+        from . import health
+        hl = health.daily(full, v3, D, v3ctx, reg)
+    except Exception as e:                                # noqa: BLE001
+        hl = {"err": f"{type(e).__name__}: {e}"}
     v3ex = {}
     if v3ctx is not None:                                 # 既有策略改用 v3 評級（要等 strat、grow 算完）
         try:
@@ -627,7 +633,7 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
     return {"asof": asof, "etfs": meta, "rows": rows, "ser": ser,
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
             "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow, "ca": L.ca[-30:],
-            "idx": idx_out, "strat": strat, "grow": grow, "adv": adv, "pack": pack,
+            "idx": idx_out, "strat": strat, "grow": grow, "adv": adv, "pack": pack, "hl": hl,
             "dates": D.cal[-CHART_N:]}
 
 
