@@ -571,6 +571,7 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
             mtab = company.market_table(DL, rules=[c for _, c in SX.live_rules(res)])
             hits = mtab.pop("hits", {})
             watch = mtab.pop("watch", {})
+            lay_today = mtab.pop("layer", {})
             mcols, mrows = mtab.get("cols") or [], mtab.get("rows") or {}     # 別叫 rows：後面頁面列表用這個名字
             nm_all = {**company.names(), **(D.names or {})}
             sx = SX.page_data(res, hits, {c: dict(zip(mcols, mrows[c])) for c in hits if c in mrows}, nm_all)
@@ -580,6 +581,8 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
             wl = WL.page_data(WL.load_res(), watch, {c: dict(zip(mcols, mrows[c])) for c in watch if c in mrows}, nm_all)
             if wl:
                 wl["d"] = mtab.get("d")
+                from . import layer as LYR            # 第二層篩選（tw-superstock-lab W3）
+                wl["lay"] = LYR.page_data(LYR.load_res(), lay_today)
         except Exception as e:                            # noqa: BLE001
             mtab = {"err": f"{type(e).__name__}: {e}"}
     DL = None

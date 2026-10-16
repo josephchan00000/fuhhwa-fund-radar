@@ -86,3 +86,121 @@ def top_set(vals: dict, frac: float) -> set:
 def load_res() -> dict | None:
     res = store.read_json(RES_FILE, None)
     return res if res and res.get("v") == 1 else None
+
+
+def _ffill(xs: list) -> list:
+    out, last = [], None
+    for x in xs:
+        last = x if x else last
+        out.append(last)
+    return out
+
+
+def today(cal: list[str], i: int, P, pxs: dict, F: dict, hits: dict, watch: dict, idx: list,
+          brules: list | None = None) -> dict:
+    """今天合併名單（watch）上每檔：28 個條件、7 族分數（同研究的定義；橫斷面排名用今天的合格股票）。
+    價格用 Px 的日線（只還原配股減資），RS 線用加權指數（研究用含息價與加權報酬指數）。"""
+    import bisect
+    from . import bt3d
+    from . import packtest as PT
+    from . import sepa as SP
+    from . import vcp as VC
+    from .. import stockmeta
+    eps, rev, ind = bt3d.load_eps(), PT.load_rev(), stockmeta.industry_map()
+    el = sorted(c for c, f in F.items() if f.get("el") and c in pxs)
+    rf = PT.rev_forms(cal)
+    k = bisect.bisect_right([t for t, _ in rf], i) - 1
+    ym = rf[k][1] if k >= 0 else None
+    qf = sorted((t, q) for q in {q for e in eps.values() for q in e}
+                if (t := PT.form_after_deadline(cal, PT.deadline(q))) is not None)
+    k = bisect.bisect_right([t for t, _ in qf], i) - 1
+    q = qf[k][1] if k >= 0 else None
+    sur, sue, mom, ep = {}, {}, {}, {}
+    for c in el:
+        cc = pxs[c].c
+        if ym and "金融" not in (ind.get(c) or ""):
+            sur[c] = PT.sur(rev.get(c) or {}, ym)
+        if q and c in eps:
+            sue[c] = PT.sue(eps[c], q)
+        if i >= 126 and cc[i - 126] and cc[i - 21]:
+            mom[c] = cc[i - 21] / cc[i - 126] - 1
+        if c in eps and c in mom:
+            e, px = PT.ttm_eps(eps[c], cal[i]), P.s[c]["c"][i]
+            if e is not None and px and e / px <= 0.25:
+                ep[c] = e / px
+
+    def pr(d):
+        return {c: (n + 1) / len(d) for n, c in enumerate(sorted(d, key=lambda c: (d[c], c)))}
+
+    ra, rb = pr(ep), pr({c: mom[c] for c in ep})
+    tops = {"sur20": top_set(sur, TOP["sur20"]), "sue20": top_set(sue, TOP["sue20"]), "mom10": top_set(mom, TOP["mom10"]),
+            "vm20": top_set({c: (ra[c] + rb[c]) / 2 for c in ra}, TOP["vm20"])}
+    cnt: dict = {}
+    for c in watch:
+        g = ind.get(c)
+        if g:
+            cnt[g] = cnt.get(g, 0) + 1
+    ix = _ffill(idx)
+    out = {}
+    for c in sorted(watch):
+        px, f = pxs.get(c), F.get(c) or {}
+        if px is None:
+            continue
+        h, l, cc, v = px.h, px.l, px.c, px.v
+        hs = [x for x in h[max(0, i - 251):i + 1] if x is not None]
+        hi52 = max(hs) if len(hs) >= 200 else None
+        ma, prev, up = SP.ma200_info(cc)
+        bno = SP.base_counts(cc, ma, prev)[i]
+        v50 = [None] * len(v)
+        for t in range(max(0, i - 80), i + 1):
+            v50[t] = SP.mean_last(v, t, 50, 40)
+        dry = f.get("vdry")
+        vc = VC.check(h, l, cc, v, i)
+        rsl, _ = SP.rsl_at(cc, ix, i)
+        ud = SP.ud_at(P.s[c]["c"], v, i)
+        cond = {
+            "arule": c in (hits or {}), "brule": any(p(f) for p in (brules or [])),
+            "rnha": f.get("rnha") is True, "sur20": c in tops["sur20"],
+            "ry25": f.get("ry3") is not None and f["ry3"] >= 0.25, "racc": f.get("racc") is not None and f["racc"] > 0,
+            "sue20": c in tops["sue20"], "ey25": f.get("ey") is not None and f["ey"] >= 0.25,
+            "eacc": f.get("eacc") is not None and f["eacc"] > 0, "c33": f.get("c33") is True,
+            "gmd": f.get("gmd") is not None and f["gmd"] > 0, "roe15": f.get("roe") is not None and f["roe"] >= 0.15,
+            "rs90": (f.get("rs") or 0) >= SP.RS_HI, "rsl": rsl, "mom10": c in tops["mom10"],
+            "vcp": bool(vc and vc.get("ok")),
+            "tight": SP.tight_at(h, l, cc, hi52, i, *TIGHT) is not None,
+            "pp": SP.pp_at(h, l, cc, v, v50, P.s[c]["c"][i], dry, i) is not None,
+            "base12": bno in (1, 2), "ma200up": up[i] >= SP.MA200_UP, "ud12": ud is not None and ud >= SP.UD_MIN,
+            "h10": bool(hi52 and cc[i] and cc[i] / hi52 - 1 >= -0.10), "dry": dry is not None and dry <= SP.DRY,
+            "ind2": cnt.get(ind.get(c), 0) >= 2, **cap_bucket(f.get("cap")), "vm20": c in tops["vm20"],
+        }
+        fam = families(cond)
+        out[c] = {"x": [bool(cond[k]) for k in CKEYS], "fam": fam, "s": sum(fam), "base": bno}
+    return out
+
+
+def market_now(idx: list, i: int, cal: list[str]) -> dict:
+    """今天的大盤狀態（W4 的 M2）：加權指數 50 日線 > 200 日線。idx＝加權指數（價格），None 前值補齊。"""
+    ix = _ffill(idx)
+    w50, w200 = [x for x in ix[max(0, i - 49):i + 1] if x], [x for x in ix[max(0, i - 199):i + 1] if x]
+    if len(w50) < 50 or len(w200) < 200:
+        return {}
+    m50, m200 = sum(w50) / 50, sum(w200) / 200
+    return {"d": cal[i], "m2": m50 > m200, "ma50": round(m50, 1), "ma200": round(m200, 1), "idx": ix[i]}
+
+
+def page_data(res: dict | None, lay: dict | None) -> dict:
+    """頁面用：今天名單上每檔的分數、7 族、28 條件（位元）、書上的買點與停損＋今天的大盤狀態＋研究摘要
+    （價格強度子名單、大盤時機、交叉比對的判定、逐年表）。"""
+    lay = lay or {}
+    st = {}
+    for c, r in (lay.get("st") or {}).items():
+        st[c] = {"s": r["s"], "f": sum(1 << k for k, b in enumerate(r["fam"]) if b),
+                 "x": sum(1 << k for k, b in enumerate(r["x"]) if b), "b": r.get("base"), "p": r.get("plan")}
+    out = {"fam": [[n, d] for n, d, _ in FAMILY], "ck": [[k, n] for k, n in COND], "stocks": st,
+           "mnow": lay.get("mnow") or {}}
+    if res:
+        sp = {k: {"desc": v.get("desc"), "lift": (v.get("judge") or {}).get("lift"), "pass": (v.get("judge") or {}).get("pass")}
+              for k, v in (res.get("specs") or {}).items()}
+        out.update({"asof": res.get("asof"), "use": res.get("use"), "specs": sp, "ps": res.get("ps"),
+                    "mkt": res.get("mkt"), "years": res.get("years")})
+    return out

@@ -272,7 +272,35 @@ def market_table(DL, today_ix: int | None = None, rules: list | None = None) -> 
             tg = WL.tags_for(c, f, hits, pxs[c], i)
             if tg:
                 watch[c] = tg
-    return {"d": cal[i], "cols": list(TCOLS), "rows": rows, "q": q, "ym": ym, "hits": hits, "watch": watch}
+    layer = _layer(DL, cal, i, P, pxs, F, hits, watch)
+    return {"d": cal[i], "cols": list(TCOLS), "rows": rows, "q": q, "ym": ym, "hits": hits, "watch": watch,
+            "layer": layer}
+
+
+def _layer(DL, cal, i, P, pxs, F, hits, watch) -> dict:
+    """第二層篩選（tw-superstock-lab W3、W4）：名單上每檔的 28 個條件、7 族分數、書上的買點與停損；
+    今天的大盤狀態（50 日線 vs 200 日線）。失敗不影響其他區塊。"""
+    from . import layer as LY
+    from . import sepa as SP
+    from . import superx as SX
+    try:
+        res = SX.load_res() or {}
+        brules = [SX.rule_pred([tuple(x) for x in r["conds"]])
+                  for r in ((res.get("labels") or {}).get("B") or {}).get("rules") or []]
+        idx = DL.taiex()
+        out = LY.today(cal, i, P, pxs, F, hits, watch, idx, brules)
+        for c, r in out.items():
+            px, s = pxs[c], P.s[c]
+            pl = SP.plan_today(px.h, px.l, px.c, px.v, s["c"], i)
+            vc = pl.get("vcp") or {}
+            r["plan"] = {"st": pl["st"], "piv": pl.get("piv"), "stop": pl.get("stop"), "kind": pl.get("kind"),
+                         "dry": pl.get("dry"), "vn": vc.get("n") if vc.get("ok") else None,
+                         "vds": [round(x, 3) for x in vc.get("ds") or []] if vc.get("ok") else None,
+                         "tight": list(pl["tight"]) if pl.get("tight") else None}
+        return {"st": out, "mnow": LY.market_now(idx, i, cal)}
+    except Exception as e:  # noqa: BLE001
+        print(f"[layer] 第二層篩選失敗：{type(e).__name__}: {e}")
+        return {}
 
 
 def write_table(tab: dict, out: Path = OUT_T) -> bool:

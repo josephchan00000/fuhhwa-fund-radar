@@ -117,3 +117,47 @@ def test_layer_top_set_and_cap():
     assert LY.top_set(vals, 0.5) == {"b", "e"}
     assert LY.cap_bucket(50e8) == {"cap_s": True, "cap_m": False, "cap_l": False}
     assert LY.cap_bucket(None) == {"cap_s": False, "cap_m": False, "cap_l": False}
+
+
+def _breakout_series():
+    """280 日從 50 漲到 100、12 日緊密整理（98～100，量縮）、帶量突破到 103，之後 30 日慢慢漲到 112。"""
+    up = [50 + 50 * t / 279 for t in range(280)]
+    base = [(100.0, 98.0, 99.0)[k % 3] for k in range(12)]
+    post = [103 + 0.3 * k for k in range(31)]
+    c = up + base + post
+    v = [1e6] * 280 + [4e5] * 12 + [2e6] + [1e6] * 30
+    return c, v, 280 + 12                                            # 突破日
+
+
+def test_plan_today_breakout_and_memory():
+    c, v, b = _breakout_series()
+    r = SP.plan_today(c, c, c, v, c, b - 1)
+    assert r["st"] == 3 and r["kind"] == "tight" and r["piv"] == 100.0  # 突破前一天：準備好
+    r = SP.plan_today(c, c, c, v, c, b)
+    assert (r["st"], r["piv"], r["stop"], r["kind"]) == (1, 100.0, 98.0, "tight")
+    assert SP.plan_today(c, c, c, v, c, b + 3)["st"] == 2            # 突破後仍在買點
+    assert SP.plan_today(c, c, c, v, c, b + 30)["st"] == 5           # 一個月前突破、已漲過樞紐 5%：漲太遠
+    assert SP.plan_today(c, c, c, v, c, b + 30, look=20)["st"] == 0  # 看得太短會忘記那次突破（所以預設 65 日）
+
+
+def test_layer_market_now():
+    up = [100 + t for t in range(260)]
+    r = LY.market_now(up, 259, [f"d{t}" for t in range(260)])
+    assert r["m2"] is True and r["d"] == "d259" and r["ma50"] > r["ma200"]
+    down = [400.0 - t for t in range(260)]
+    down[100] = None                                                  # 缺值用前一天補
+    assert LY.market_now(down, 259, [str(t) for t in range(260)])["m2"] is False
+    assert LY.market_now(up[:150], 149, [str(t) for t in range(150)]) == {}
+
+
+def test_layer_page_data_bits():
+    x = [False] * len(LY.CKEYS)
+    x[LY.CKEYS.index("rs90")] = x[LY.CKEYS.index("vcp")] = True
+    fam = [True, False, True, False, False, False, True]
+    lay = {"st": {"1111": {"s": 3, "fam": fam, "x": x, "base": 2, "plan": {"st": 3, "piv": 10.0, "stop": 9.2}}},
+           "mnow": {"m2": True}}
+    d = LY.page_data(None, lay)
+    s = d["stocks"]["1111"]
+    assert s["f"] == 1 + 4 + 64 and s["s"] == 3 and s["b"] == 2 and s["p"]["piv"] == 10.0
+    assert s["x"] == (1 << LY.CKEYS.index("rs90")) | (1 << LY.CKEYS.index("vcp"))
+    assert d["mnow"] == {"m2": True} and "specs" not in d and len(d["ck"]) == 28 and len(d["fam"]) == 7

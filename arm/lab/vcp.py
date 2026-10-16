@@ -87,4 +87,4 @@ def check(h: list, l: list, c: list, v: list, i: int, spec: dict = SPEC) -> dict
           and all(ds[k] < spec["grow"] * ds[k - 1] for k in range(1, n)) and pivot is not None
           and c[i] >= spec["near"] * pivot and dry is not None and dry <= spec["dry"])
     return {"ok": bool(ok), "pivot": pivot, "n": n, "d1": ds[0] if ds else None, "dn": ds[-1] if ds else None,
-            "dry": dry, "base": i - s}
+            "dry": dry, "base": i - s, "low": pairs[-1][1] if pairs else None, "ds": ds}

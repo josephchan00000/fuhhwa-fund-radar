@@ -103,6 +103,28 @@ def test_research_file_committed_and_chosen_is_combined_list():
 
 
 def test_watchlist_section_on_opportunity_page():
+    """飆股候選與觀察名單合併成一段「飆股」（W2_plan 決定）：價格強度在前段的先列、其餘收起（W4）。"""
     from arm.lab import copage, page
-    assert "function wlSec" in copage.JS and "sxSec()+wlSec()" in page._JS
-    assert "o-wl" in copage.JS
+    assert "function wlSec" in copage.JS and "h+=wlSec();" in page._JS
+    assert "sxSec()+wlSec()" not in page._JS and "o-wl" not in copage.JS
+    assert "sec('o-sx','飆股','飆股'" in copage.JS                     # 段落 id 沿用 o-sx（個股卡的連結指向它）
+    assert "bit(c,'rs90')||bit(c,'mom10')" in copage.JS                   # 價格強度＝RS ≥ 90 或相對強勢前 10%
+    for k in ("rs90", "mom10"):
+        from arm.lab import layer as LY
+        assert k in LY.CKEYS
+    for g in ("書上的買點與停損", "交叉比對", "大盤 50 日線"):
+        assert f"'{g}'" in copage.JS and f"gi('{g}')" in copage.JS
+
+
+def test_layer_research_committed_and_no_tier():
+    """W3：兩個交叉比對規格 2020–2022 都沒過關 → 頁面不分層；W4：大盤 50 日線（M2）過關。"""
+    from arm.lab import layer as LY
+    res = LY.load_res()
+    assert res and res["use"] is None
+    assert set(res["specs"]) == {"v1", "v2"} and not any(v["judge"]["pass"] for v in res["specs"].values())
+    per = res["ps"]["per"]
+    for k in ("IS", "VAL", "HO"):                                         # 價格強度子名單三段都比名單其餘準
+        assert per[k]["t1"]["B"]["p"] > per[k]["t2"]["B"]["p"]
+    assert res["mkt"]["var"] == "M2" and res["mkt"]["pass"] is True
+    d = LY.page_data(res, {})
+    assert d["specs"]["v1"]["pass"] is False and d["mkt"]["var"] == "M2" and d["stocks"] == {}

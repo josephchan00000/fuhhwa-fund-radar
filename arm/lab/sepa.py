@@ -222,6 +222,36 @@ class Track:
         return st, piv, low, kind
 
 
+def plan_today(h: list, l: list, c: list, v: list, raw_c: list, i: int, look: int = EXT_DAYS + POST,
+               tight=TIGHT) -> dict:
+    """頁面用：近 look 個交易日逐日推 Track（假設這段期間都在名單上、都合格），回今天的狀態、樞紐、停損與型態。
+    look 至少要涵蓋「漲太遠」記得的 60 日加突破後 5 日，否則一個多月前突破、已經漲上去的股票會被標成打底中。
+    h／l／c＝前值補齊的日線（Px），v＝成交量，raw_c＝沒補齊的收盤（判斷低價股）。"""
+    from . import vcp as VC
+    ma50 = rolling_mean(c, 50)
+    v50 = [None] * len(v)
+    for t in range(max(0, i - look - 80), i + 1):
+        v50[t] = mean_last(v, t, 50, 40)
+    tr = Track()
+    out: dict = {"st": -1}
+    K, X = tight
+    for t in range(max(1, i - look), i + 1):
+        hs = [x for x in h[max(0, t - 251):t + 1] if x is not None]
+        hi52 = max(hs) if len(hs) >= 200 else None
+        v10 = mean_last(v, t, 10, 8)
+        dry = v10 / v50[t] if v10 and v50[t] else None
+        r = VC.check(h, l, c, v, t)
+        vc = (r["pivot"], r["low"]) if r and r.get("ok") else None
+        tg = tight_at(h, l, c, hi52, t, K, X)
+        pp = pp_at(h, l, c, v, v50, raw_c[t], dry, t)
+        ready = ready_at(True, True, c[t], dry, vc, tg, pp)
+        st, piv, low, kind = tr.step(t, c[t], v[t], v50[t - 1], ma50[t], True, ready)
+        if t == i:
+            out = {"st": st, "piv": piv, "stop": stop_px(piv, low) if piv else None, "kind": kind, "dry": dry,
+                   "vcp": r if r and "n" in r else None, "tight": tg, "pp": pp}
+    return out
+
+
 def score(rs, rsl_new: bool, base_no: int, ma_up: int, rnha: bool, a_rule: bool, ud, ind_n: int) -> list[bool]:
     """加分（每項 1 分、權重相同；W2_plan 第 4 節）。順序同 SCORE_ITEMS。"""
     return [rs is not None and rs >= RS_HI, bool(rsl_new), base_no in (1, 2), ma_up >= MA200_UP, bool(rnha),
