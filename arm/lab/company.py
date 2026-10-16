@@ -35,6 +35,7 @@ def _trim(row: list) -> list:
     return row
 
 
+@store.memo("v3me_tw", "v3me_tp")
 def listed_now() -> dict[str, str]:
     """最新月底快照裡的上市（tw）／上櫃（tp）普通股 → 市場。"""
     out: dict[str, str] = {}
@@ -68,6 +69,7 @@ def _fm_cash() -> dict[str, dict[str, float]]:
     return out
 
 
+@store.memo("divtw", "v3div", "fin")
 def dividends() -> dict[str, list]:
     """{代號: [[除權息日, 現金股利(元/股) 或 None, 類型]]}：上市＝證交所除權息計算結果表（息／權／權息；權息的
     金額含配股價值、現金部分表上沒有 → 用 FinMind 股利政策補，沒有就 None），上櫃＝櫃買除權息（現金欄）。"""

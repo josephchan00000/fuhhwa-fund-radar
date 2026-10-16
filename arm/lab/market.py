@@ -122,11 +122,6 @@ def col(fields: list[str], *keys: str, nth: int = 0, excl: tuple[str, ...] = (),
     return None
 
 
-def _code(row) -> str | None:
-    c = _TAG.sub("", str(row[0] if row else "")).strip()
-    return c if CODE_RE.match(c) else None
-
-
 def _probe(name: str, fields, rows) -> None:
     head = "/".join(fields[:18]) if fields else "（無表頭）"
     first = json.dumps(rows[0], ensure_ascii=False)[:260] if rows else "（無列）"

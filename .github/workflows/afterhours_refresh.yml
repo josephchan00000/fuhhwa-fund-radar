@@ -78,8 +78,8 @@ jobs:
         if: steps.pre.outputs.decision == 'RUN'
         run: |
           # 兩支互不相依，比照 daily_fund.sh 平行跑；各自失敗只沿用既有落檔、不擋另一支
-          ( python3 scripts/fetch_macro_chips.py \
-              || echo "  ⚠ 總經・籌碼抓取失敗，沿用既有落檔" ) &
+          ( timeout -k 10 300 python3 scripts/fetch_macro_chips.py \
+              || echo "  ⚠ 總經・籌碼抓取失敗或逾時，沿用既有落檔" ) &
           P_MACRO=$!
           # timeout：2026-09-24 兩班卡在本支 30 分鐘無輸出、整個 run 被 job timeout 砍掉，
           # 連已抓好的籌碼／NAV 都沒 commit。正常約 100 秒，逾 10 分鐘直接放棄（沿用既有落檔）。
@@ -91,7 +91,7 @@ jobs:
           # 晚間場次（22:05；手動 dispatch 依當下時間同規則）：境內基金淨值多在晚間公布
           if [ "$(date +%H)" -ge 18 ]; then
             echo "晚間場次：加抓基金 NAV／持股（抓不到沿用既有快照）…"
-            python3 scripts/fetch_holdings.py || echo "  ⚠ NAV 抓取失敗，沿用既有快照"
+            timeout -k 10 600 python3 scripts/fetch_holdings.py || echo "  ⚠ NAV 抓取失敗或逾時，沿用既有快照"
             # NAV 抓取可能帶回新持股 → 照三道防呆慣例更新簡介缺口檔（不擋發佈）
             python3 scripts/check_holdings_intro.py || true
           fi

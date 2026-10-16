@@ -95,28 +95,6 @@ def _date(v) -> str | None:
     return f"{m.group(1)}/{int(m.group(2)):02d}/{int(m.group(3)):02d}" if m else None
 
 
-def _items(payload) -> list[dict]:
-    """在常見包裝（items.data / items / data.data / data）裡找出第一個 dict 清單。
-    ⚠ 死碼備忘（2026-07-18）：此為舊「猜 JSON API」路線的解析器，production 已無呼叫端
-    （API 全 404、正式路線＝詳情頁 HTML 掃描）；僅供測試與未來 API 復活時參考。"""
-    def as_list(x):
-        if isinstance(x, list) and (not x or isinstance(x[0], dict)):
-            return x
-        return None
-    if not isinstance(payload, dict):
-        return as_list(payload) or []
-    for path in (("items", "data"), ("items",), ("data", "data"), ("data",)):
-        node = payload
-        for k in path:
-            node = node.get(k) if isinstance(node, dict) else None
-            if node is None:
-                break
-        got = as_list(node)
-        if got is not None:
-            return got
-    return []
-
-
 def norm_name(s: str | None) -> str:
     """基金名稱正規化：去空白、統一各式連字號為 '-'、全形轉半形括號。"""
     s = (s or "").strip()

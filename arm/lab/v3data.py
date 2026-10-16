@@ -308,18 +308,6 @@ def line_mops_eps(R: _Run) -> None:
             time.sleep(1.0)
 
 
-def line_probe_is(R: _Run) -> None:
-    """探針：公開資訊觀測站綜合損益表彙總能不能從 CI 抓（能的話，EPS 一季一市場一請求，取代 FinMind 逐檔）。"""
-    for y, q in ((2014, 1), (2014, 4), (2024, 2)):
-        for mkt in ("sii", "otc"):
-            if not R.left():
-                return
-            d = market.mops_is(mkt, y, q)
-            smp = {c: (d or {}).get(c) for c in ("2330", "1101", "5347", "8299")}
-            market.log(f"[v3探針] MOPS 綜合損益 {y}Q{q} {mkt}：{len(d or {})} 檔 {smp}")
-            time.sleep(2)
-
-
 def run(budget_s: float = 2700) -> dict:
     """一輪：五條線平行到時間預算用完。回傳各線本輪新增數。"""
     R = _Run(budget_s)
@@ -491,6 +479,7 @@ def update_fs(budget_s: float = 600, workers: int = 4, max_req: int | None = Non
     return st
 
 
+@store.memo("fsq")
 def load_fs() -> dict[str, dict[str, dict]]:
     """fsq → {代號: {季底: {欄位: 值}}}：損益與現金流量為單季（Q1＝累計、Qn＝累計(n) − 累計(n−1)，前一季缺就不算），
     資產負債與期末現金為季底值。金額單位仟元、EPS 元。"""

@@ -27,7 +27,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 from . import (clock, etfdiscover, etfholdings, etfwatch, fund_insights, fund_intro, fundnews, twholidays,
-               macrochips, macronews, stockmeta, treemap, twnews, usnews)
+               macrochips, macronews, treemap, twnews, usnews)
 
 
 def _esc(s) -> str:
@@ -1210,20 +1210,6 @@ def _ret_cell(i: dict, k: str) -> str:
     md = bd[5:].replace("-", "/") if len(bd) >= 10 else bd
     return (f'{span}<div class="rbase" title="{_esc(tip)}">起算 {_esc(md)} 收 {_esc(bp)}'
             f'{_esc(dv_note)}</div>')
-
-
-def _hold_num(v, digits: int = 0) -> str:
-    return f"{v:,.{digits}f}" if isinstance(v, (int, float)) else '<span class="na">—</span>'
-
-
-def _delta_shares(v) -> str:
-    """加減碼股數：正＝加碼（紅）、負＝減碼（綠）、0＝持平；None＝前一揭露日無此檔可比。"""
-    if v is None:
-        return '<span class="na">—</span>'
-    if v == 0:
-        return '<span class="flat">持平</span>'
-    cls, sign, word = ("gain", "+", "加碼") if v > 0 else ("loss", "", "減碼")
-    return f'<span class="{cls}">{word} {sign}{v:,.0f}</span>'
 
 
 # ── ETF 詳情（底部專屬區塊；2026-07-30 使用者需求，比照使用者提供的版面架構） ──

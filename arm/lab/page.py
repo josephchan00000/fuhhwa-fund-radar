@@ -40,9 +40,9 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
             changed |= company.write_table(mt, out.parent / "x9t.json")
             data["mtv"] = _ver(company._dump(mt))
         st = company.build_co(out.parent / "co")
-        data["co"] = {"n": st.get("n"), "err": st.get("err")} if st.get("err") else {"n": st.get("n")}
+        print(f"[籌碼雷達] 公司分析檔 {st.get('n')} 檔、改寫 {st.get('write')} 檔" + (f"（{st['err']}）" if st.get("err") else ""))
     except Exception as e:                   # noqa: BLE001 —— 公司分析失敗不影響建頁
-        data["co"] = {"err": f"{type(e).__name__}: {e}"}
+        print(f"[籌碼雷達] ⚠ 公司分析檔沒有更新：{type(e).__name__}: {e}")
     for path, text in ((out_ser, sj), (out, render(data, ser_v=_ver(sj)))):
         if path.exists() and path.read_text(encoding="utf-8") == text:
             continue
@@ -1015,7 +1015,6 @@ function bw(x){return x==null?'—':`${x>=0?'贏':'輸'} ${f(Math.abs(x),Math.ab
 function hiLo(x){return x==null?'—':`${x>=0?'高':'低'} ${f(Math.abs(x),Math.abs(x)>=10?1:2)}%`;}
 function ym(d){return d?esc(String(d).slice(0,7)):'—';}
 function qTxt(q){return q?`${q.slice(0,4)} 年第 ${Math.round(+q.slice(5,7)/3)} 季`:'';}
-function wan(x){return x==null?'—':(x>0?'+':x<0?'−':'')+f(Math.abs(x),0)+' 元';}
 function stOf(k){return ((D.strat||{}).list||[]).find(s=>s.key===k);}
 function nmA(x){return BY[x.c]?`<a data-c="${esc(x.c)}">${esc(x.n)}</a>`:esc(x.n);}
 function ruleRows(rules){return rules.map(x=>{const i=x.indexOf('：');const lab=i>0&&i<=8?x.slice(0,i):'';return `<div class="rl${lab?'':' nl'}">${lab?`<span class=rlk>${esc(lab)}</span>`:''}<span>${esc(lab?x.slice(i+1):x)}</span></div>`;}).join('');}

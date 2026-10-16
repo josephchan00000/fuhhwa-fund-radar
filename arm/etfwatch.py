@@ -1017,7 +1017,6 @@ def fetch() -> dict:
                 item["yield_pct"] = round(item["last_div"] / item["close_px"] * n * 100, 2)
 
         items.append(item)
-    got = got_mkt + got_ret
     # L1 備案用量進 CI 日誌：常態應為 0，持續非 0＝主序列的當日 bar 長期缺（該查來源端）
     if got_chg_off or got_chg_l1:
         print(f"  ℹ 當日漲跌走備案：官方當日表 {got_chg_off} 檔、etfinfo 前收自算 {got_chg_l1} 檔"

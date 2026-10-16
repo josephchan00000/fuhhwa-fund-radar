@@ -60,6 +60,7 @@ jobs:
         with:
           ref: main            # push 事件預設會 checkout 被推分支——一律固定 main，新聞另行併入
       - name: 併入今日新聞報告（NEWS_REF 或 cron 兜底自動偵測）——「新聞＋真實資料」一次 commit
+        id: merge
         run: |
           # Claude 容器只能產新聞（被 proxy 擋、抓不到市場資料）；由此步把來源分支的「今日」
           # reports/*.md 併入，後續再抓真實 NAV／持股／ETF＋重建儀表板，一次 commit 進 main。
@@ -142,19 +143,30 @@ jobs:
               cp /tmp/idx_new.json "$IRF"; echo "  併入 $IRF（as_of=$NEW_IR）"
             fi
           fi
+          # 推送觸發、但分支上沒有 main 還沒有的今日新聞或通道檔 → 整輪跳過（不抓資料、不重建、不部署）。
+          # 2026-10-16：開發分支合併 main 後再推送，推送範圍會含 main 的新聞檔而觸發本 workflow——
+          # 10 月約 20 輪、每輪 6 分鐘，全是重抓一遍同樣的資料；資料刷新另有 07:15 cron 與盤後各班負責。
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ -z "$(git status --porcelain -- reports data/etf_upcoming.json config/holding_profiles.json config/index_reviews.json)" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "分支 $NEWS_REF 沒有 main 還沒有的今日新聞或通道檔——本輪跳過（不抓資料、不重建、不部署）"
+          fi
       - uses: actions/setup-python@v5
+        if: steps.merge.outputs.skip != 'true'
         with:
           python-version: "3.12"
       - name: 安裝相依（純標準庫 + certifi）
+        if: steps.merge.outputs.skip != 'true'
         run: pip install certifi
 
       - name: 高風險數字事實核對（對證交所／期交所官方 API；🔴 不擋發佈、落檔警示）
+        if: steps.merge.outputs.skip != 'true'
         # 2026-07-20 使用者兩指示並行：「數字必須正確」＋「防線不可硬到什麼都沒更新」。
         # 策略：永不 fail——結果寫 data/factcheck.json 隨每日 commit 入板，儀表板顯示
         # 核對狀態（🔴 紅色警示），主會話驗證步驟看到 🔴 立即修正該數字重推。
         run: TZ=Asia/Taipei python3 scripts/check_numbers.py || true
 
       - name: 跑每日 routine（抓持股介紹 + 產新聞提示包 + 檢查簡介覆蓋 + 重建儀表板）
+        if: steps.merge.outputs.skip != 'true'
         env:
           # 社群段 YouTube 影片（fundnews.fetch_youtube）。此 secret 是 v0.12 ETF 產品線
           # 時代使用者已設過的同一把（f5488a6 改建時 workflow 沒再帶、金鑰仍在）；未設則誠實降級只剩 PTT。
@@ -162,6 +174,7 @@ jobs:
         run: bash scripts/daily_fund.sh
 
       - name: 儀表板煙霧測試（headless Chromium 真開頁面；多人化 Phase 1-②，2026-08-14）
+        if: steps.merge.outputs.skip != 'true'
         # 兩段式上線：SMOKE_ENFORCE=0 觀察期只告警不攔截，誤報率歸零（1~2 週）後改 '1'
         # ——屆時紅＝不 commit 不部署、線上維持前一版（靜態頁天然 last-known-good）。
         # 瀏覽器用 runner 內建 Chrome（channel=chrome，零下載）；pip/瀏覽器層 infra 故障
@@ -173,6 +186,7 @@ jobs:
           TZ=Asia/Taipei python3 scripts/smoke_dashboard.py dashboard/index.html
 
       - name: 列印版分頁驗證（headless Chromium 印成 A4 PDF；只告警不擋——2026-09-07）
+        if: steps.merge.outputs.skip != 'true'
         # 列印版（頂欄「列印／PDF」）五個區塊「不可切頁」只有真的印出來才知道，pytest 只守字串。
         # 紅＝::warning::，不影響 commit／部署；pip／瀏覽器 infra 故障腳本自回 ⚪（exit 2）同樣不擋。
         # 瀏覽器沿用上一步裝好的 playwright＋runner 內建 Chrome（channel=chrome，零下載）。
@@ -182,6 +196,7 @@ jobs:
             || echo "::warning::列印版分頁驗證未通過或未執行（見上方訊息）——不擋發佈；🔴 時請調 arm/printview.py 版面"
 
       - name: 上傳儀表板與持股快照為 artifact
+        if: steps.merge.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: fuhhwa-fund-radar
@@ -194,6 +209,7 @@ jobs:
           if-no-files-found: warn
 
       - name: 把當日持股快照／新聞／儀表板 commit 回 repo
+        if: steps.merge.outputs.skip != 'true'
         run: |
           # 以 repo 擁有者身分 commit，Vercel 才認得是團隊成員、會自動部署（bot 身分會被 Vercel 擋下）
           git config user.name "josephchan00000"
@@ -245,6 +261,7 @@ jobs:
           echo "::error::push 連續失敗——本日資料未入 main"; exit 1
 
       - name: 觸發 Vercel 部署（Deploy Hook — 確保線上吃到 CI 這筆真實資料版，不靠 Vercel 自動偵測）
+        if: steps.merge.outputs.skip != 'true'
         env:
           VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
         run: |
@@ -260,6 +277,7 @@ jobs:
           curl -sS -X POST "$VERCEL_DEPLOY_HOOK" -w "\nHTTP %{http_code}\n" || echo "deploy hook 呼叫失敗（不影響已入庫的 commit）"
 
       - name: 對時哨兵（驗線上頁已吃到 main 最新建表；多人化 Phase 1-①，2026-08-14）
+        if: steps.merge.outputs.skip != 'true'
         # Actions 的網路可達 vercel.app（被 proxy 擋的是 Claude 容器）。輪詢至多 4 分鐘等
         # 線上 data-gen 追上 main；沒追上→run ❌ 寄 failure 信＝「部署漏接」警報（08-13 型
         # 事故從隔天人工發現變分鐘級自動警報）。哨兵紅≠資料有問題（資料已入 main），

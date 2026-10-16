@@ -19,7 +19,7 @@ import statistics
 from collections import deque
 from datetime import date
 
-from . import ta
+from . import store, ta
 from .backtest import exit_day
 
 COST = 0.00585
@@ -644,9 +644,9 @@ def grid(fn, a_vals, b_vals, lbl: tuple[str, str] | None = None) -> dict:
 
 # ── 月營收驚喜（P7，S26） ─────────────────────────────────────────────
 
+@store.memo("rev")
 def load_rev() -> dict[str, dict[str, float]]:
     """rev 分片（MOPS 營業收入彙總表回補＋官方 openapi 每月）→ {代號: {YYYY-MM: 當月營收(千元)}}。"""
-    from . import store
     out: dict[str, dict] = {}
     for ym, doc in store.load("rev"):
         for c, v in (doc.get("s") or {}).items():

@@ -2,11 +2,6 @@
 from __future__ import annotations
 
 
-def _close_map(series: list[tuple[str, float, int]]) -> tuple[list[str], dict[str, float]]:
-    dates = [d for d, _, _ in series]
-    return dates, {d: c for d, c, _ in series}
-
-
 def period_return(series: list[tuple[str, float, int]], n: int) -> float | None:
     """近 n 個交易日報酬：close[-1]/close[-1-n] - 1。"""
     if len(series) <= n:

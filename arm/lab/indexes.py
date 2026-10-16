@@ -16,7 +16,7 @@ import statistics
 from datetime import date
 
 from . import ledger as LG
-from . import store, ta
+from . import store
 
 CFG = store.ROOT / "config" / "index_reviews.json"
 TW50_IN, TW50_OUT, TW50_N = 40, 61, 50
@@ -101,11 +101,12 @@ def tw50_select(ranked: list[tuple], cons: set[str], skip: set[str] | None = Non
         ranked = [r for r in ranked if r[0] not in skip]
     rank = {c: i + 1 for i, (c, _, _) in enumerate(ranked)}
     adds = [c for c, _, _ in ranked[:TW50_IN] if c not in cons]
-    dels = [c for c in cons if rank.get(c, 10 ** 6) >= TW50_OUT]
-    keep = [c for c in cons if c not in dels]
+    cons_l = sorted(cons)                                  # cons 是集合：先排序，每次建頁的順序與同名次取捨才一樣
+    dels = [c for c in cons_l if rank.get(c, 10 ** 6) >= TW50_OUT]
+    keep = [c for c in cons_l if c not in dels]
     n_after = len(keep) + len(adds)
     if n_after > TW50_N:
-        extra = sorted(keep, key=lambda c: -rank.get(c, 10 ** 6))[:n_after - TW50_N]
+        extra = sorted(keep, key=lambda c: (-rank.get(c, 10 ** 6), c))[:n_after - TW50_N]
         dels += extra
     elif n_after < TW50_N:
         pool = [c for c, _, _ in ranked if c not in cons and c not in adds]

@@ -8,6 +8,7 @@ git 看不到 diff、不產生空 commit。
 """
 from __future__ import annotations
 
+import functools
 import gzip
 import io
 import json
@@ -77,6 +78,40 @@ def load(kind: str, *, since: str | None = None, last: int | None = None) -> lis
         if doc is not None:
             out.append((x, doc))
     return out
+
+
+_MEMO: dict = {}
+
+
+def memo(*kinds: str):
+    """載入函式的結果在同一個行程裡沿用（2026-10-16：一次建頁裡財報分片讀 2 次、月營收 4 次、月底快照 6 次）。
+    以分片資料夾的檔名、大小、修改時間當簽章——中途有分片被寫入（例 v3data.me_from_mkt 補月底快照）就重讀。
+    回傳的是同一個物件：呼叫端只能讀、不可改。"""
+    def deco(fn):
+        key = f"{fn.__module__}.{fn.__qualname__}"
+
+        def sig() -> tuple:
+            out = [str(LAB)]
+            for k in kinds:
+                d = LAB / k
+                if d.exists():
+                    for p in sorted(d.glob("*.json.gz")):
+                        st = p.stat()
+                        out.append((k, p.name, st.st_size, st.st_mtime_ns))
+            return tuple(out)
+
+        @functools.wraps(fn)
+        def g():
+            s = sig()
+            hit = _MEMO.get(key)
+            if hit is not None and hit[0] == s:
+                return hit[1]
+            v = fn()
+            _MEMO[key] = (s, v)
+            return v
+        g.uncached = fn
+        return g
+    return deco
 
 
 def read_json(name: str, default=None):

@@ -4,7 +4,6 @@
   · movers()：今日 NAV 最強／最弱。
   · group_averages()：同組（全球股票型／全球平衡型）多期平均報酬。
   · news_fund_links()：昨夜新聞 × 持股 × 基金 三方連動（吃 config/holding_aliases.json）。
-  · talk_script()：連動話術（中性事實模板＋禁用詞掃描）。
   · upcoming_distributions()：近期配息基準日提醒。
 
 純函式、可單測；缺檔／缺欄位回空、不崩。
@@ -252,58 +251,6 @@ def news_fund_links(funds: list[dict], news_md: str) -> list[dict]:
         matched.sort(key=lambda m: m["funds"][0]["weight"], reverse=True)
         out.append({"title": card["title"], "oneline": card["oneline"], "matched": matched})
     return out
-
-
-def talk_script(card: dict, as_of: str | None) -> tuple[str, list[str]]:
-    """一張連動卡的可複製話術（中性事實模板）。回 (文字, 禁用詞命中)。命中≠可用。"""
-    lead = card.get("oneline") or card.get("title") or ""
-    parts = []
-    for m in card.get("matched") or []:
-        fs = "、".join(f"{f['short_name']} {f['weight']:.2f}%" for f in m["funds"])
-        parts.append(f"{m['display']}：{fs}")
-    body = "；".join(parts)
-    text = (f"{lead}。本公司基金前十大持股含 {body}（持股基準 {as_of or '—'}，月度揭露）。"
-            f"以上為公開資訊彙編，非投資建議；過去績效不代表未來表現。")
-    return text, usnews.compliance_scan(text)
-
-
-def fund_intro_copy(doc: dict) -> str:
-    """單檔基金介紹的可複製純文字（貼 LINE／mail 用），文末附免責一行。"""
-    ret = doc.get("returns") or {}
-    rets = "／".join(
-        f"{lab} {ret.get(k) if parse_period_pct(ret.get(k)) is not None else '—'}"
-        for k, lab in RET_KEYS + [("since", "成立以來")])
-    top3 = "、".join(f"{full_company_name(h.get('name'))} {h.get('weight') or 0:.2f}%"
-                     for h in (doc.get("top_holdings") or [])[:3]) or "—"
-    size = doc.get("size_twd")
-    lines = [
-        f"【{doc.get('name')}】{doc.get('category') or ''}",
-        f"NAV {doc.get('nav') if doc.get('nav') is not None else '—'}"
-        f"（{doc.get('nav_date') or '—'}，日變動 {doc.get('nav_change_pct') or '—'}）"
-        f"｜規模 {f'{size / 1e8:.1f} 億元' if size else '—'}｜風險 {doc.get('risk_level') or '—'}",
-        f"報酬：{rets}",
-        f"前三大持股（基準 {doc.get('as_of') or '—'}）：{top3}",
-    ]
-    if doc.get("monthly_report"):
-        lines.append(f"基金月報：{doc['monthly_report']}")
-    lines.append("資料來源：復華投信官網。本內容為公開資訊彙編，非投資建議或招攬；"
-                 "過去績效不代表未來表現，申購前應詳閱公開說明書／投資人須知。")
-    return "\n".join(lines)
-
-
-def futu_url(ticker: str | None, country: str | None) -> str | None:
-    """富途牛牛個股行情頁連結（點擊看即時行情）。
-
-    僅產格式確定的市場：美股（字母代號 → {T}-US）、陸股 A 股（6 碼數字 →
-    6/9 開頭滬市 -SH、其餘深市 -SZ）；日韓台等格式不確定者回 None、不亂連。"""
-    if not ticker:
-        return None
-    t = str(ticker).strip().upper()
-    if country == "美國" and re.fullmatch(r"[A-Z][A-Z.\-]*", t):
-        return f"https://www.futunn.com/stock/{t}-US"
-    if country == "中國" and re.fullmatch(r"\d{6}", t):
-        return f"https://www.futunn.com/stock/{t}-{'SH' if t[0] in '69' else 'SZ'}"
-    return None
 
 
 def stock_url(ticker: str | None, country: str | None,
