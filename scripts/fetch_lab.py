@@ -49,6 +49,11 @@ def main() -> None:
               f"加權報酬指數補 {v3data.update_tr_recent()} 天")
     except Exception as e:                                # noqa: BLE001
         print(f"[lab] 回測 v3 每日維護失敗：{e}")
+    try:                                                  # 公司財報分析：法定期限過後補綜合損益＋資產負債彙總（每輪最多 4 個請求）
+        from arm.lab import v3data
+        print(f"[lab] 財報彙總全部科目：{v3data.update_fs(budget_s=300, workers=4, max_req=4)}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[lab] 財報彙總失敗：{e}")
     collect.prune_all(today)
 
 

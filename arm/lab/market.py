@@ -1100,6 +1100,93 @@ def parse_mops_is(html: str) -> dict[str, float]:
     return out
 
 
+# 公司財報分析（docs/lab_company_plan.md 第 3.2 節）：彙總表全部科目 → 統一欄位。
+# 各產業格式（一般業、金融、證券、保險、金控、異業）欄名不同 → 依序比對，先中先贏；欄名先去空白、半形括號改全形。
+FS_MAP = {
+    "is": [("rev", ("營業收入", "淨收益", "收益", "收入")),
+           ("cogs", ("營業成本",)),
+           ("gp", ("營業毛利（毛損）淨額", "營業毛利（毛損）")),
+           ("opex", ("營業費用",)),
+           ("op", ("營業利益（損失）", "營業利益")),
+           ("nonop", ("營業外收入及支出", "營業外損益")),
+           ("pti", ("稅前淨利（淨損）", "繼續營業單位稅前淨利（淨損）", "繼續營業單位稅前損益", "繼續營業單位稅前純益（純損）")),
+           ("tax", ("所得稅費用（利益）", "所得稅（費用）利益")),
+           ("ni", ("本期淨利（淨損）", "本期稅後淨利（淨損）")),
+           ("nip", ("淨利（淨損）歸屬於母公司業主", "淨利（損）歸屬於母公司業主")),
+           ("eps", ("基本每股盈餘（元）", "基本每股盈餘"))],
+    "bs": [("ca", ("流動資產",)),
+           ("ta", ("資產總計", "資產總額")),
+           ("cl", ("流動負債",)),
+           ("tl", ("負債總計", "負債總額")),
+           ("cap", ("股本",)),
+           ("eqp", ("歸屬於母公司業主之權益合計", "歸屬於母公司業主權益合計", "歸屬於母公司業主之權益")),
+           ("eq", ("權益總計", "權益總額")),
+           ("bvps", ("每股參考淨值",))],
+}
+# 銀行格式沒有收入合計欄：營收＝利息淨收益＋利息以外淨損益（2026-10-16 探針：表頭只有這兩欄）
+FS_SUM = {"is": {"rev": ("利息淨收益", ("利息以外淨損益", "利息以外淨收益"))}}
+FS_EP = {"is": "t163sb04", "bs": "t163sb05"}
+
+
+def _norm_head(s: str) -> str:
+    return re.sub(r"\s+", "", s).replace("(", "（").replace(")", "）")
+
+
+def parse_mops_fs(html: str, kind: str) -> dict[str, dict[str, float]]:
+    """MOPS 綜合損益（is）／資產負債（bs）彙總表 → {代號: {統一欄位: 數值}}。金額單位仟元；損益是當年累計。"""
+    out: dict[str, dict] = {}
+    for tb in re.findall(r"<table[^>]*>(.*?)</table>", html, re.S | re.I):
+        rows = [[_TAG.sub("", c).replace("&nbsp;", "").strip() for c in _TD.findall(tr)] for tr in _TR.findall(tb)]
+        head = next((r for r in rows if any("公司代號" in c for c in r)), None)
+        if not head:
+            continue
+        hs = [_norm_head(h) for h in head]
+        ci = next(i for i, c in enumerate(hs) if "公司代號" in c)
+        col = {}
+        for key, names in FS_MAP[kind]:
+            for nm in names:
+                if nm in hs:
+                    col[key] = hs.index(nm)
+                    break
+        sums = []
+        for key, (a, bs) in (FS_SUM.get(kind) or {}).items():
+            if key in col or a not in hs:
+                continue
+            b = next((x for x in bs if x in hs), None)
+            if b:
+                sums.append((key, hs.index(a), hs.index(b)))
+        if not col and not sums:
+            continue
+        for r in rows:
+            if len(r) > ci and re.fullmatch(r"\d{4}", r[ci] or ""):
+                d = {k: num(r[i]) for k, i in col.items() if i < len(r)}
+                for key, i, j in sums:
+                    x, y = (num(r[i]) if i < len(r) else None), (num(r[j]) if j < len(r) else None)
+                    if x is not None and y is not None:
+                        d[key] = x + y
+                d = {k: v for k, v in d.items() if v is not None}
+                if d:
+                    out[r[ci]] = d
+    return out
+
+
+def mops_fs(kind: str, mkt: str, y: int, q: int, timeout: int = 60) -> dict[str, dict] | None:
+    """一季、一市場的綜合損益（is）或資產負債（bs）彙總；抓不到回 None。"""
+    for host in MOPS_HOSTS:
+        try:
+            b = post_bytes(f"https://{host}/mops/web/ajax_{FS_EP[kind]}",
+                           {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "isQuery": "Y",
+                            "TYPEK": mkt, "year": y - 1911, "season": f"{q:02d}"}, timeout=timeout, retries=1)
+        except Exception as e:                            # noqa: BLE001
+            log(f"MOPS {kind} {y}Q{q} {mkt} {host} ✗ {str(e)[:120]}")
+            continue
+        d = parse_mops_fs(_decode(b), kind)
+        if d:
+            return d
+        log(f"MOPS {kind} {y}Q{q} {mkt} {host} 解析 0 檔（{len(b)}B）")
+    return None
+
+
 def mops_is(mkt: str, y: int, q: int) -> dict[str, float] | None:
     """一季、一個市場（sii 上市／otc 上櫃）的基本每股盈餘累計值；抓不到回 None。"""
     for host in MOPS_HOSTS:

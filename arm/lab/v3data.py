@@ -406,6 +406,123 @@ def update_tr_recent() -> int:
     return len(q) - n0
 
 
+# ── 公司財報分析（docs/lab_company_plan.md 第 3.2 節）：綜合損益＋資產負債彙總的全部科目 ─────────────
+FS_PARTS = ("is_sii", "is_otc", "bs_sii", "bs_otc")
+FS_MIN = 200                       # 一市場一季至少幾家才算抓到（同 EPS）
+FS_RE = (14, 45)                   # 法定期限後第 14～45 天再抓一次（補晚報的公司），只抓一次
+FS_FLOW = ("rev", "cogs", "gp", "opex", "op", "nonop", "pti", "tax", "ni", "nip", "eps")   # 損益：當年累計 → 單季要相減
+QEND = {1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31"}
+
+
+def _fs_todo(today: str) -> list[tuple[int, int, str]]:
+    """要抓的 (年, 季, 部件)：法定期限已過而沒有的；期限後 14～45 天還沒補抓過的。新的季先抓。"""
+    from datetime import date, timedelta
+    from .packtest import deadline
+    out = []
+    for y, q in sorted(_quarters_due(), reverse=True):
+        if y < 2013:
+            continue
+        doc = store.read("fsq", f"{y}Q{q}") or {}
+        at = doc.get("at") or {}
+        dl = deadline(f"{y}-{QEND[q]}")
+        re_lo = (date.fromisoformat(dl) + timedelta(days=FS_RE[0])).isoformat()
+        re_hi = (date.fromisoformat(dl) + timedelta(days=FS_RE[1])).isoformat()
+        for p in FS_PARTS:
+            if not doc.get(p):
+                out.append((y, q, p))
+            elif re_lo <= today <= re_hi and (at.get(p) or "") < re_lo:
+                out.append((y, q, p))
+    return out
+
+
+def update_fs(budget_s: float = 600, workers: int = 4, max_req: int | None = None) -> dict:
+    """綜合損益＋資產負債彙總（一季、一市場、一張表一請求；MOPS 一個請求約 1～3 分鐘）→ fsq/{年}Q{季}
+    {"is_sii": {代號: {欄位: 值}}, "is_otc", "bs_sii", "bs_otc", "at": {部件: 抓取日}}。損益是當年累計（載入時相減）。
+    每日只在法定期限過後補缺（max_req 限制每輪請求數），回補用大預算多輪續跑。"""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    from .. import clock
+    today = clock.today_tw().isoformat()
+    todo = _fs_todo(today)
+    if max_req is not None:
+        todo = todo[:max_req]
+    st = {"req": 0, "ok": 0, "todo": len(todo)}
+    if not todo:
+        return st
+    t0 = time.time()
+    docs: dict[str, dict] = {}
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        futs, k = {}, 0
+
+        def submit_next():
+            nonlocal k
+            if k < len(todo) and time.time() - t0 < budget_s:
+                y, q, p = todo[k]
+                kind, mkt = p.split("_")
+                futs[ex.submit(market.mops_fs, kind, mkt, y, q)] = (y, q, p)
+                st["req"] += 1
+                k += 1
+                return True
+            return False
+        for _ in range(workers):
+            submit_next()
+        while futs:
+            for fut in as_completed(list(futs)):
+                y, q, p = futs.pop(fut)
+                try:
+                    d = fut.result()
+                except Exception as e:                    # noqa: BLE001
+                    market.log(f"[fs] {y}Q{q} {p} ✗ {type(e).__name__}: {e}")
+                    d = None
+                key = f"{y}Q{q}"
+                doc = docs.setdefault(key, store.read("fsq", key) or {})
+                if d and len(d) >= FS_MIN:
+                    old = doc.get(p) or {}
+                    doc[p] = {**old, **d}                 # 補抓只增不減（晚報公司加進來）
+                    doc.setdefault("at", {})[p] = today
+                    store.write("fsq", key, doc)
+                    st["ok"] += 1
+                else:
+                    market.log(f"[fs] {key} {p}：抓不到或太少（{len(d or {})} 家）")
+                submit_next()
+                break
+    market.log(f"[fs] 綜合損益／資產負債彙總：請求 {st['req']}、寫入 {st['ok']}、待抓 {st['todo']}、{time.time() - t0:.0f} 秒")
+    return st
+
+
+def load_fs() -> dict[str, dict[str, dict]]:
+    """fsq → {代號: {季底: {欄位: 值}}}：損益欄位為單季（Q1＝累計、Qn＝累計(n) − 累計(n−1)，前一季缺就不算），
+    資產負債為季底值。金額單位仟元、EPS 元。"""
+    cum: dict[str, dict] = {}
+    bal: dict[str, dict] = {}
+    for key, doc in store.load("fsq"):
+        y, q = int(key[:4]), int(key[5])
+        for m in ("sii", "otc"):
+            for c, d in (doc.get(f"is_{m}") or {}).items():
+                cum.setdefault(c, {})[(y, q)] = d
+            for c, d in (doc.get(f"bs_{m}") or {}).items():
+                bal.setdefault(c, {})[(y, q)] = d
+    out: dict[str, dict] = {}
+    for c in set(cum) | set(bal):
+        e: dict[str, dict] = {}
+        cc = cum.get(c) or {}
+        for (y, q), d in cc.items():
+            if q == 1:
+                one = {k: d[k] for k in FS_FLOW if k in d}
+            else:
+                p = cc.get((y, q - 1))
+                if not p:
+                    continue
+                one = {k: round(d[k] - p[k], 4) for k in FS_FLOW if k in d and k in p}
+            if one:
+                e.setdefault(f"{y}-{QEND[q]}", {}).update(one)
+        for (y, q), d in (bal.get(c) or {}).items():
+            e.setdefault(f"{y}-{QEND[q]}", {}).update(d)
+        if e:
+            out[c] = e
+    return out
+
+
 def update_isq() -> int:
     """每季法定期限過後補一次綜合損益表彙總（一季兩請求）；平常沒有缺就不發請求。"""
     n = 0
