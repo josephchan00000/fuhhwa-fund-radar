@@ -536,6 +536,10 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
     **這個環境的 git proxy 擋推標籤、刪分支、一次推多個分支（HTTP 403）**，一次只能推一個分支——批次整理舊分支要由擁有者在自己電腦上做，不要一個一個推來繞過。
   · 本地還是舊歷史的視窗（排程會話、舊對話）不可再推送舊分支或把 origin/main 合併進去（unrelated histories）；改寫後要「排程搬家」到新視窗。
   · GitHub 上的 PR 參照（`refs/pull/*`，使用者無法刪）還指向舊 commit，要請 GitHub 客服清除；**清除前不要把 repo 改成公開**。
+  · **現況（2026-10-16）**：擁有者已在 Mac 刪掉 90 個舊分支，GitHub 上只剩 `main`、`claude/etf-holdings-analysis-ui-0vkuak`、
+    `claude/archive-old-branches`、`claude/all-update-45bep4`（都是新歷史，4 個沒合併的舊 PR 隨之關閉）。
+    GitHub 客服申請與改公開＝使用者決定先不做，repo 維持私有。之後要公開，先請 GitHub 客服清除舊紀錄，申請要附：
+    first changed commit `67dffd35d05eb71f0f120c3b2c4b44cb2b78a819`（舊歷史的根 commit）、受影響的 PR＝#1～#267（全部）。
 
 - **時區**：本機/CI/雲端容器多為 UTC，台北清晨執行時 `date.today()` 會差一天。
   程式內一律用 `arm/clock.py` 的 `today_tw()/now_tw()/stamp_tw()`；跑腳本時帶 `TZ=Asia/Taipei` 雙保險。
