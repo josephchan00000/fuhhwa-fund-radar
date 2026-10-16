@@ -1,0 +1,56 @@
+name: 籌碼雷達 策略改良每週重跑
+
+# 2026-10-16 建立（docs/lab_selfopt_plan.md 第 7 節；使用者決定「每天體檢＋每週一重跑回測」）：
+#   · scripts/run_opt.py：v3 長歷史面板的回測參考＋optim v1 的 48 個改良候選全部重跑（配對比較、六項檢查、分級），
+#     再依分級與影子版本前瞻更新登記檔（誰進影子版本、誰淘汰）。
+#   · 產出 data/lab/opt_research.json（每日建頁讀）、data/lab/opt_shadow.json（影子版本登記）→ commit 進 main。
+#   · 不重建頁面、不部署：下一班建頁（afterhours／daily）自然帶入。每次約 3～5 分鐘（每月約多 15～20 分 CI）。
+# 影子版本達標只會在每日紀錄（val_log.json）產生事件、隨 06:35 推播第二行通知；你回「好」才換規則（不會自動改）。
+
+on:
+  schedule:
+    - cron: "30 0 * * 1"     # 台北週一 08:30
+  workflow_dispatch:
+
+concurrency:
+  group: lab-opt
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  opt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main            # 一律以 main 的資料與程式重跑
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安裝相依（純標準庫 + certifi）
+        run: pip install --quiet certifi
+
+      - name: 改良候選重跑
+        run: python3 scripts/run_opt.py
+
+      - name: commit 結果（進 main）
+        run: |
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          git add -f data/lab/opt_research.json 2>/dev/null || true
+          git add -f data/lab/opt_shadow.json 2>/dev/null || true     # 分開 add：缺檔時不連累上一行
+          git commit -m "chore: 籌碼雷達策略改良每週重跑 $(date +%F)" || { echo "無變更"; exit 0; }
+          for i in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            echo "push 被拒（第 $i 次），rebase 後重試…"
+            git pull --rebase -X theirs origin main || git rebase --abort || true
+            sleep 5
+          done
+          echo "::error::push 連續失敗——本週改良結果未入 main"; exit 1

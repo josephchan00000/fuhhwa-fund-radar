@@ -253,3 +253,102 @@ def test_opt_research_file_matches_menu():
             assert c["tier"] in (O.STRONG, O.WATCH, O.NONE, O.WORSE, O.SMALL)
             assert len(c["nb"]) == len(next(m[3] for m in O.MENU[k] if m[0] == c["k"]))
     assert set(doc["ref"]) == {"v3l", "v7m", "v7l"}
+
+
+# ── 影子版本（第 5 步） ──────────────────────────────────────────────────
+
+def _res(**tiers):
+    """{策略: {候選: (分級, t)}} → 每週重跑結果格式。"""
+    return {k: {"cands": [{"k": c, "tier": ti, "t": t} for c, (ti, t) in v.items()]} for k, v in tiers.items()}
+
+
+def test_update_reg_entry_limits_cooldown_and_retirement():
+    reg = {"ver": 1, "items": [], "cool": {"v7m.n3": "2026-12-01"}}
+    res = _res(v3l={"n3": (O.STRONG, 3.1), "hold80": (O.STRONG, 2.9), "delay5": (O.STRONG, 3.5)},
+               v7m={"n3": (O.STRONG, 4.0)})
+    ch = O.update_reg(reg, res, "2026-10-19")
+    live = [(it["k"], it["c"]) for it in reg["items"] if it["st"] == O.SH_LIVE]
+    assert live == [("v3l", "delay5"), ("v3l", "n3")]                      # 最多 2 個、依 t 值；v7m.n3 在冷卻期
+    assert all(it["since"] == "2026-10-19" and it["rv"] == O.rule_ver("v3l") for it in reg["items"])
+    assert [c["act"] for c in ch] == ["進影子版本", "進影子版本"]
+    # 下一週：delay5 變成沒有比較好 → 淘汰、冷卻 182 天；n3 前瞻滿門檻沒贏 → 淘汰；hold80 補進來
+    res2 = _res(v3l={"n3": (O.STRONG, 3.0), "hold80": (O.STRONG, 2.9), "delay5": (O.NONE, 0.5)})
+    ch2 = O.update_reg(reg, res2, "2026-10-26", {("v3l", "n3"): O.ST_OUT})
+    st = {(it["k"], it["c"]): it for it in reg["items"]}
+    assert st[("v3l", "delay5")]["st"] == O.SH_RET and "沒有比較好" in st[("v3l", "delay5")]["why"]
+    assert st[("v3l", "n3")]["st"] == O.SH_RET and st[("v3l", "n3")]["why"] == "前瞻滿門檻卻沒有贏過現行"
+    assert reg["cool"]["v3l.delay5"] == "2027-04-26" and st[("v3l", "hold80")]["st"] == O.SH_LIVE
+    assert {(c["c"], c["act"]) for c in ch2} == {("delay5", "淘汰"), ("n3", "淘汰"), ("hold80", "進影子版本")}
+    # 現行規則改版 → 全部淘汰；已換或不換的不受影響
+    reg["items"].append({"k": "s1", "c": "hold2", "st": O.SH_DEC, "since": "2026-09-01"})
+    reg["items"][-2]["rv"] = "1999-01-01"
+    O.update_reg(reg, res2, "2026-11-02")
+    assert st[("v3l", "hold80")]["st"] == O.SH_RET and st[("v3l", "hold80")]["why"] == "現行規則改版"
+    assert reg["items"][-1]["st"] == O.SH_DEC
+
+
+def test_shadow_status_rules():
+    fw = lambda n, m, a=10.0, b=10.0: {"n": n, "mean": m, "mdd": a, "mdd0": b}
+    assert O.status("v3l", fw(1, 5.0), O.STRONG) == O.ST_REC               # 財報 2 次才判斷
+    assert O.status("v3l", fw(2, 5.0), O.STRONG) == O.ST_OK
+    assert O.status("v3l", fw(2, 5.0), O.WATCH) == O.ST_WAIT               # 每週重跑暫時不是證據強
+    assert O.status("v3l", fw(2, -0.1), O.STRONG) == O.ST_OUT
+    assert O.status("v3l", fw(2, 5.0, 13.5, 10.0), O.STRONG) == O.ST_OUT   # 回落差 3.5 個百分點
+    assert O.status("v7m", fw(9, 5.0), O.STRONG) == O.ST_REC and O.status("s1", fw(10, 1.0), O.STRONG) == O.ST_OK
+
+
+class _FakeC:
+    """forward() 用的假回測環境：現行每單位 +1%，候選 +2%（決定日不同）。"""
+
+    def run(self, p, mult=1.0):
+        bump = 1.0 if p.get("n") == 3 else 0.0
+        return {"u": {i: (f"2026-1{i}-01", 1.0 + bump, True) for i in range(3)}, "curve": []}
+
+
+def test_forward_only_counts_units_since_shadow_start(monkeypatch):
+    monkeypatch.setattr(O, "mdd_of", lambda k, C, run, lo=None: 5.0)
+    fw = O.forward("v3l", _FakeC(), {"c": "n3", "since": "2026-11-01"})
+    assert fw["n"] == 2 and fw["mean"] == 1.0 and fw["mdd"] == 5.0 and fw["u"] == [["2026-11-01", 1.0], ["2026-12-01", 1.0]]
+
+
+def test_shadow_daily_reports_live_and_recent_retired(monkeypatch):
+    reg = {"items": [{"k": "v3l", "c": "n3", "what": "只買 3 檔", "since": "2026-10-01", "st": O.SH_LIVE},
+                     {"k": "v7m", "c": "gap3", "what": "開高 3% 以上不買", "since": "2026-08-01", "st": O.SH_RET,
+                      "end": "2026-10-10", "why": "現行規則改版"},
+                     {"k": "v7l", "c": "n8", "what": "買 8 檔", "since": "2026-01-01", "st": O.SH_RET, "end": "2026-03-01"}],
+           "cool": {}}
+    monkeypatch.setattr(O, "contexts", lambda keep, need, P_long=None: {"v3l": _FakeC()})
+    monkeypatch.setattr(O, "mdd_of", lambda k, C, run, lo=None: 5.0)
+    doc = {"opt": {"res": _res(v3l={"n3": (O.STRONG, 3.0)})}}
+    out = O.shadow_daily({}, reg=reg, res_doc=doc, today="2026-10-16")
+    assert out["n_live"] == 1
+    a, b = out["items"]
+    assert a["c"] == "n3" and a["n"] == 3 and a["st"] == O.ST_OK and a["tier"] == O.STRONG
+    assert b["c"] == "gap3" and b["st"] == O.ST_OUT and b["why"] == "現行規則改版"     # 14 天內淘汰的才列
+
+
+def test_valog_health_and_shadow_events():
+    from arm.lab import valog
+    base = {"name": "財報驚喜", "u": "次", "fn": 0, "need": 2, "g": "B"}
+    hl = {"v3l": {"light": "明顯低於回測", "avg": -8.0, "n": 2, "low": ["8/14 那一批"],
+                  "hold": [{"n": "8/14 那一批", "d": 41, "x": -12.0, "pct": 3.0}]}}
+    opt = {"shadow": {"items": [{"k": "v3l", "c": "n3", "st": "達標", "what": "只買 3 檔", "n": 2, "mean": 4.2},
+                                {"k": "v3l", "c": "gap3", "st": "淘汰", "what": "開高 3% 以上不買", "why": "現行規則改版"}]}}
+    cur = valog.merge_health({"v3l": dict(base)}, hl, opt)
+    ev = valog.events(cur, {"v3l": dict(base)}, "2026-10-16", 0)
+    tys = [e["ty"] for e in ev]
+    assert tys.count("dev") == 2 and "shok" in tys and "sout" in tys
+    txt = " ".join(e["txt"] for e in ev)
+    assert "回「好」才換" in txt and "8/14 那一批 第 41 天" in txt and "現行規則改版" in txt
+    again = valog.events(cur, cur, "2026-10-17", 0)                       # 狀態沒變：不重複記
+    assert not [e for e in again if e["ty"] in ("dev", "shok", "sout")]
+    assert set(valog.TYPES) >= {"dev", "shok", "sout"}
+
+
+def test_lab_opt_workflow_weekly_and_commits_results():
+    wf = (ROOT / ".github/workflows/lab_opt.yml").read_text(encoding="utf-8")
+    assert 'cron: "30 0 * * 1"' in wf and "workflow_dispatch" in wf             # 台北週一 08:30
+    assert "python3 scripts/run_opt.py" in wf and "ref: main" in wf
+    assert "git add -f data/lab/opt_research.json" in wf and "git add -f data/lab/opt_shadow.json" in wf
+    reg = __import__("json").loads((ROOT / "data/lab/opt_shadow.json").read_text(encoding="utf-8"))
+    assert set(reg) == {"ver", "items", "cool"} and reg["ver"] == O.OPT_VER
