@@ -239,3 +239,17 @@ def test_perctx_sleeves_two_groups():
     assert sorted(two["u"]) == [10, 20]                                   # 第 0 期只有一組在場、第 30 期第二組沒到期
     cv = dict(two["curve"])
     assert abs(two["u"][10][1] - (cv[20] / cv[10] - 1) * 100) < 1e-9
+
+
+def test_opt_research_file_matches_menu():
+    """入庫的每週重跑結果要對得上 optim v1 的清單（改清單沒重跑 → 紅）；分級只能是五級之一。"""
+    import json
+    doc = json.loads((ROOT / "data/lab/opt_research.json").read_text(encoding="utf-8"))
+    opt = doc["opt"]
+    assert opt["ver"] == O.OPT_VER and set(opt["res"]) == set(O.MENU)
+    for k, r in opt["res"].items():
+        assert [c["k"] for c in r["cands"]] == [c[0] for c in O.MENU[k]], k
+        for c in r["cands"]:
+            assert c["tier"] in (O.STRONG, O.WATCH, O.NONE, O.WORSE, O.SMALL)
+            assert len(c["nb"]) == len(next(m[3] for m in O.MENU[k] if m[0] == c["k"]))
+    assert set(doc["ref"]) == {"v3l", "v7m", "v7l"}
