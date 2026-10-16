@@ -534,7 +534,8 @@ def s5_trades(P: Panel, rev_hist: dict, rev_shards: dict, idx: list, io: list, r
             "score": advice.score(advice.closed(ins), fwd_units=advice.closed(fwd), reg=reg, nb=nb, xe_rule=True),
             "alt": alt, "fill": {"lim": 0, "lock": sum(1 for r in ins if r.get("lock"))},
             "screen_d": next_screen(cal[-1]) if cal else None,
-            "tr": _pack_tr(recs)}
+            "tr": _pack_tr(recs),
+            "_recs": recs}                                # 完整交易（策略健檢用；analyze.run 用完即移除，不進頁面）
 
 
 def _pack_tr(recs: list[dict]) -> dict:
