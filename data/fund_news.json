@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/16 10:51",
+  "as_of": "2026/10/16 11:26",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -23,6 +23,13 @@
       "source": "ETtoday財經雲",
       "date": "2026-10-14 08:30",
       "datetime": "2026-10-14T08:30:00+08:00"
+    },
+    {
+      "title": "除「瑤池金母」外 還有9倍女戰神！戎宜蘋00418A 10/21起募集",
+      "url": "https://tw.news.yahoo.com/%E9%99%A4-%E7%91%A4%E6%B1%A0%E9%87%91%E6%AF%8D-%E5%A4%96-%E9%82%84%E6%9C%899%E5%80%8D%E5%A5%B3%E6%88%B0%E7%A5%9E-%E6%88%8E%E5%AE%9C%E8%98%8B00418a-023156688.html",
+      "source": "Yahoo新聞",
+      "date": "2026-10-13 10:31",
+      "datetime": "2026-10-13T10:31:56+08:00"
     },
     {
       "title": "復華觀點｜從想像空間邁入獲利兌現：復華全方位基金動態配置抓住AI長紅趨勢",
@@ -77,16 +84,16 @@
         {
           "title": "股價震盪不必慌 年化配息率近10% 00998A給存股族多一層安心感",
           "url": "https://www.watchmedia01.com/archives/559743",
-          "source": "觀傳媒",
+          "source": "Yahoo新聞",
           "date": "2026-10-16 10:47",
           "datetime": "2026-10-16T10:47:47+08:00"
         },
         {
-          "title": "美日貨幣政策步調分道揚鑣 全球金融股恐現表現分化 00998A現主動選股價值",
-          "url": "https://mypeoplevol.com/2026/yahoo/116319/",
-          "source": "Yahoo新聞",
-          "date": "2026-10-14 12:42",
-          "datetime": "2026-10-14T12:42:15+08:00"
+          "title": "AI股跌、金融股扛！ 資金轉往00998A防禦型標的找避風港",
+          "url": "https://sunmedia.tw/news/finance/AI%E8%82%A1%E8%B7%8C%E3%80%81%E9%87%91%E8%9E%8D%E8%82%A1%E6%89%9B%EF%BC%81-%E8%B3%87%E9%87%91%E8%BD%89%E5%BE%8000998A%E9%98%B2%E7%A6%A6%E5%9E%8B%E6%A8%99%E7%9A%84%E6%89%BE%E9%81%BF%E9%A2%A8%E6%B8%AF-1792119415225",
+          "source": "商傳媒",
+          "date": "2026-10-16 10:58",
+          "datetime": "2026-10-16T10:58:21+08:00"
         }
       ]
     },
@@ -475,6 +482,13 @@
   "social": [
     {
       "platform": "fundhot",
+      "board": "ETF",
+      "title": "質押還是信貸？",
+      "url": "https://fundhot.com/forum/ETF/%E8%B3%AA%E6%8A%BC%E9%82%84%E6%98%AF%E4%BF%A1%E8%B2%B8%EF%BC%9F/14008",
+      "date": "2026-10-16"
+    },
+    {
+      "platform": "fundhot",
       "board": "天使",
       "title": "財報再好也漲不動！我減碼半導體，轉進這個被冷落的族群",
       "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/%E8%B2%A1%E5%A0%B1%E5%86%8D%E5%A5%BD%E4%B9%9F%E6%BC%B2%E4%B8%8D%E5%8B%95%EF%BC%81%E6%88%91%E6%B8%9B%E7%A2%BC%E5%8D%8A%E5%B0%8E%E9%AB%94%EF%BC%8C%E8%BD%89%E9%80%B2%E9%80%99%E5%80%8B%E8%A2%AB%E5%86%B7%E8%90%BD%E7%9A%84%E6%97%8F%E7%BE%A4/14007",
@@ -485,7 +499,7 @@
       "board": "總經觀點",
       "title": "人生別只剩AI，持股也是；適時減碼，有益健康",
       "url": "https://fundhot.com/forum/%E7%B8%BD%E7%B6%93%E8%A7%80%E9%BB%9E/%E4%BA%BA%E7%94%9F%E5%88%A5%E5%8F%AA%E5%89%A9AI%EF%BC%8C%E6%8C%81%E8%82%A1%E4%B9%9F%E6%98%AF%EF%BC%9B%E9%81%A9%E6%99%82%E6%B8%9B%E7%A2%BC%EF%BC%8C%E6%9C%89%E7%9B%8A%E5%81%A5%E5%BA%B7/14006",
-      "date": "2026-10-15"
+      "first_seen": "2026-10-16"
     },
     {
       "platform": "fundhot",
@@ -521,13 +535,6 @@
       "title": "統一奔騰基金與00981A是同一個經理人，選費用便宜的就好？",
       "url": "https://fundhot.com/forum/ETF/%E7%B5%B1%E4%B8%80%E5%A5%94%E9%A8%B0%E5%9F%BA%E9%87%91%E8%88%8700981A%E6%98%AF%E5%90%8C%E4%B8%80%E5%80%8B%E7%B6%93%E7%90%86%E4%BA%BA%EF%BC%8C%E9%81%B8%E8%B2%BB%E7%94%A8%E4%BE%BF%E5%AE%9C%E7%9A%84%E5%B0%B1%E5%A5%BD%EF%BC%9F/14001",
       "first_seen": "2026-10-14"
-    },
-    {
-      "platform": "fundhot",
-      "board": "資產配置",
-      "title": "資產再平衡：AI一直要我提高現金，轉入債券",
-      "url": "https://fundhot.com/forum/%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE/%E8%B3%87%E7%94%A2%E5%86%8D%E5%B9%B3%E8%A1%A1%EF%BC%9AAI%E4%B8%80%E7%9B%B4%E8%A6%81%E6%88%91%E6%8F%90%E9%AB%98%E7%8F%BE%E9%87%91%EF%BC%8C%E8%BD%89%E5%85%A5%E5%82%B5%E5%88%B8/14000",
-      "first_seen": "2026-10-13"
     },
     {
       "platform": "youtube",
@@ -649,7 +656,7 @@
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A、全方位（詳下方新聞標籤）",
     "品牌焦點：00418A 復華台灣新星主動式 ETF｜成分股？配息？優缺點？募集時間？（StockFeel 股感）",
-    "社群聲量最高：財報再好也漲不動！我減碼半導體，轉進這個被冷落的族群（0 推）",
+    "社群聲量最高：質押還是信貸？（0 推）",
     "YouTube 熱片：台股五萬點站不穩? 注意這天轉折!【小宇宙大爆發】#shorts #理財（小宇宙大爆發・197,721 次觀看）"
   ]
 }
