@@ -1,0 +1,46 @@
+name: 研究用網頁探針（暫時）
+
+# 2026-10-16 建立：容器 proxy 擋 finlab.finance 等外站，改在 CI 用 headless Chrome 打開公開頁面，
+# 存文字／截圖／JSON 回應摘要到 .probe/web/ 並 commit 回被推的分支，供分析版面架構。看完即刪，不進 main。
+# 觸發：claude/** 分支 push 動到 .ping/web（每行一個網址）。
+
+on:
+  push:
+    branches: ['claude/**']
+    paths: ['.ping/web']
+
+concurrency:
+  group: probe-web
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 開頁面
+        run: |
+          [ -f .ping/web ] || { echo "沒有 .ping/web，略過"; exit 0; }
+          pip install --quiet playwright
+          python3 -m playwright install chromium || true
+          python3 scripts/probe_web.py
+      - name: commit 回分支
+        run: |
+          [ -d .probe/web ] || exit 0
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          git add -f .probe/web
+          git commit -m "chore: 網頁探針結果 $(date '+%F %H:%M')" || { echo "無變更"; exit 0; }
+          for i in 1 2 3; do
+            git push origin HEAD:${{ github.ref_name }} && exit 0
+            git pull --rebase origin ${{ github.ref_name }} || git rebase --abort || true
+            sleep 3
+          done
+          echo "::error::push 失敗"; exit 1
