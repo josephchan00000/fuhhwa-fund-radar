@@ -184,3 +184,520 @@ def light(pct: float | None, n: int, event: bool) -> str:
         if pct < hi:
             return lbl
     return LIGHT_TOP
+
+
+# ═══ 改良引擎（第 5c 節；docs 第 11 節第 4 步） ═════════════════════════════════════
+# 候選和現行用同一套回測程式：財報、月營收＝bt3.account 的複本加上開高不追、停損；共識加碼＝strategy._trade；
+# 長線＝growth._s5_sim；臺灣50＝tw50study.early_picks／early_trades。參數設成現行時結果必須和現行完全相同（測試守）。
+# 每次回測輸出 {"u": {單位鍵: (決定日, 扣成本報酬 %, 有沒有買)}, "curve"／"seq": 最大回落用}。
+
+def account_v(P, periods: list, b: str, *, mult: float = 1.0, limit: bool = True, gap: float | None = None,
+              stop: float | None = None, log: list | None = None) -> dict:
+    """bt3.account 的複本＋兩個候選旋鈕（gap、stop 皆為 None 時逐行等同 bt3.account）：
+    gap＝不在原持股的新名單股票，開盤 ≥ 前一日收盤 ×（1＋gap）當期不買（資金留現金）；
+    stop＝當期第一天開盤為參考價（續抱股也是），收盤跌破參考價 ×（1 − stop）當天收盤賣出（鎖跌停順延）、持有現金到期末。"""
+    from .backtest import LIMIT_UP, exit_day, locked_down
+    from .bt3 import side_cost
+    S, T, cal = P.s, P.T, P.cal
+    cash = 1.0
+    hold: dict[str, float] = {}
+    last: dict[str, float] = {}
+    curve, units = [], []
+
+    def px(c: str, i: int) -> float | None:
+        v = S[c]["c"][i]
+        if v:
+            last[c] = v
+        return v or last.get(c)
+
+    def value(i: int) -> float:
+        return cash + sum(sh * (px(c, i) or 0.0) for c, sh in hold.items())
+
+    for k, (t, x, picks) in enumerate(periods):
+        j = t + 1
+        if j > x or j >= T or not picks:
+            continue
+        V0 = value(t)
+        if not curve:
+            curve.append((t, V0))
+        cost = 0.0
+        lim = lock = ngap = nstop = 0
+        pend: dict[str, int] = {}
+        tgt = set(picks)
+        for c in [c for c in hold if c not in tgt]:
+            s = S[c]
+            if limit and locked_down(s, j):
+                pend[c] = exit_day(s, j, T)
+                lock += 1
+                continue
+            p = s["o"][j] or px(c, t)
+            amt = hold.pop(c) * p
+            cash += amt * (1 - side_cost(b, True, mult))
+            cost += amt * side_cost(b, True, mult)
+            if log is not None:
+                log.append(("s", k, c, j, p, True, "drop"))
+        Vo = cash + sum(sh * ((S[c]["o"][j] or px(c, t)) or 0.0) for c, sh in hold.items())
+        tv = Vo * (1 - side_cost(b, False, mult)) / len(picks)
+        buy = 0.0
+        for c in picks:
+            s = S[c]
+            o = s["o"][j]
+            if not o:
+                if log is not None and c not in hold:
+                    log.append(("x", k, c, j, "noopen"))
+                continue
+            cur = hold.get(c, 0.0) * o
+            diff = tv - cur
+            if diff > 0:
+                if limit and o >= (s["c"][t] or px(c, t) or o) * LIMIT_UP:
+                    lim += c not in hold
+                    if log is not None and c not in hold:
+                        log.append(("x", k, c, j, "lim"))
+                    continue
+                if gap is not None and c not in hold and o >= (s["c"][t] or px(c, t) or o) * (1 + gap):
+                    ngap += 1
+                    if log is not None:
+                        log.append(("x", k, c, j, "gap"))
+                    continue
+                if log is not None and c not in hold:
+                    log.append(("b", k, c, j, o))
+                cash -= diff * (1 + side_cost(b, False, mult))
+                cost += diff * side_cost(b, False, mult)
+                hold[c] = hold.get(c, 0.0) + diff / o
+                buy += diff
+            elif diff < 0:
+                cash += -diff * (1 - side_cost(b, True, mult))
+                cost += -diff * side_cost(b, True, mult)
+                hold[c] = hold.get(c, 0.0) + diff / o
+        ref = {c: S[c]["o"][j] for c in hold if S[c]["o"][j]} if stop is not None else {}
+        for i in range(j, x + 1):
+            for c in [c for c, d2 in pend.items() if d2 == i]:
+                p = px(c, i) or 0.0
+                amt = hold.pop(c) * p
+                cash += amt * (1 - side_cost(b, True, mult))
+                cost += amt * side_cost(b, True, mult)
+                del pend[c]
+                if log is not None:
+                    log.append(("s", k, c, i, p, False, "lock"))
+            if stop is not None:
+                for c in [c for c in hold if c not in pend and ref.get(c)]:
+                    cl = S[c]["c"][i]
+                    if not cl or cl >= ref[c] * (1 - stop):
+                        continue
+                    nstop += 1
+                    i2 = exit_day(S[c], i, T)
+                    if i2 != i:
+                        pend[c] = i2                      # 鎖跌停賣不掉：順延（超過期末就留給期末處理）
+                        continue
+                    amt = hold.pop(c) * cl
+                    cash += amt * (1 - side_cost(b, True, mult))
+                    cost += amt * side_cost(b, True, mult)
+                    if log is not None:
+                        log.append(("s", k, c, i, cl, False, "stop"))
+            curve.append((i, value(i)))
+        nxt = periods[k + 1][0] if k + 1 < len(periods) else None
+        if nxt != x:
+            for c in list(hold):
+                s = S[c]
+                i2 = exit_day(s, x, T) if limit else x
+                lock += i2 != x
+                p = px(c, i2) or px(c, x) or 0.0
+                amt = hold.pop(c) * p
+                cash += amt * (1 - side_cost(b, True, mult))
+                cost += amt * side_cost(b, True, mult)
+                if log is not None:
+                    log.append(("s", k, c, i2, p, False, "end" if i2 == x else "endlock"))
+            curve[-1] = (x, cash)
+        V1 = curve[-1][1]
+        units.append({"d": cal[t], "t": t, "x": x, "r": (V1 / V0 - 1) * 100 if V0 > 0 else None, "hd": x - t,
+                      "to": buy / Vo if Vo > 0 else None, "cost": cost / V0 * 100 if V0 > 0 else None,
+                      "n": len(picks), "lim": lim, "lock": lock, "gap": ngap, "stop": nstop})
+    return {"units": units, "curve": curve}
+
+
+def _below(idx: list, ma: list, t: int) -> bool:
+    """決定日加權指數收盤低於均線（缺值往前找；不知道＝不算低於）。"""
+    from .health import regime
+    return regime(idx, ma, t) is False
+
+
+class PerCtx:
+    """財報、月營收（v3 長歷史面板）的變體回測環境：現行規則的已完成各期 rows 只算一次。"""
+
+    def __init__(self, P, E, k: str, *, eps=None, rev=None, until: str | None = None):
+        from . import bt3s, v3live
+        src, b = {x[0]: (x[1], x[2]) for x in v3live.LIVE}[k]
+        self.P, self.k, self.src, self.b = P, k, src, b
+        self.umin = v3live.UMIN[src]
+        rows = bt3s.p3_rows(P, E, b, P.codes, eps, v3live.HOLD3) if src == "p3" else bt3s.p7_rows(P, E, b, P.codes, rev)
+        self.rows = [r for r in rows if r[1] is not None and (until is None or P.cal[r[0]] < until)]
+        self._ma: dict[int, list] = {}
+
+    def ma(self, n: int) -> list:
+        if n not in self._ma:
+            from .ta import sma
+            self._ma[n] = sma(self.P.idx, n)
+        return self._ma[n]
+
+    def run(self, p: dict, mult: float = 1.0, log: list | None = None) -> dict:
+        from . import bt3s
+        P = self.P
+        pk = bt3s.pick(self.rows, 0.0, p["n"], False, self.umin)
+        if (p.get("sleeves") or 1) > 1:
+            return self._sleeves(pk, p, mult)
+        per, skip = [], []
+        d = p.get("delay") or 0
+        for t, x, picks in pk:
+            if p.get("reg") and _below(P.idx, self.ma(p["reg"]), t):
+                skip.append(t)
+                continue
+            t2, x2 = t + d, x + d
+            if p.get("hold") is not None:
+                x2 = t2 + p["hold"] if self.src == "p3" else min(t2 + p["hold"], x + d)
+            if x2 >= P.T:
+                continue
+            per.append((t2, x2, picks, t))
+        acc = account_v(P, [(a, z, c) for a, z, c, _ in per], self.b, mult=mult, gap=p.get("gap"), stop=p.get("stop"),
+                        log=log)
+        back = {a: t0 for a, _, _, t0 in per}
+        u = {back[x["t"]]: (P.cal[back[x["t"]]], x["r"], True) for x in acc["units"] if x.get("r") is not None}
+        for t in skip:
+            u[t] = (P.cal[t], 0.0, False)
+        return {"u": u, "curve": acc["curve"], "pk": pk}
+
+    def _sleeves(self, pk: list, p: dict, mult: float) -> dict:
+        """每月用 1/K 資金買當月名單、各持有 K 期（K 組輪流，每組自己期期相連）。第 k 期的報酬＝合併淨值
+        從第 k 個決定日收盤到第 k+1 個決定日收盤；K 組都在場的月份才算。"""
+        P, K = self.P, p["sleeves"]
+        ts = [t for t, _, _ in pk] + ([pk[-1][1]] if pk else [])
+        curves, span = [], []
+        for s in range(K):
+            ks = list(range(s, len(pk), K))
+            per = [(pk[k][0], ts[k + K], pk[k][2]) for k in ks if k + K < len(ts) and ts[k + K] < P.T]
+            acc = account_v(P, per, self.b, mult=mult, gap=p.get("gap"), stop=p.get("stop"))
+            cv = dict(acc["curve"])
+            curves.append(cv)
+            span.append((per[0][0], per[-1][1]) if per else (None, None))
+        if any(a is None for a, _ in span):
+            return {"u": {}, "curve": [], "pk": pk}
+        lo, hi = max(a for a, _ in span), min(z for _, z in span)
+        days = sorted(i for i in set().union(*curves) if lo <= i <= hi)
+        lastv = [None] * K
+
+        def comb(i):
+            for s in range(K):
+                if i in curves[s]:
+                    lastv[s] = curves[s][i]
+            return sum(v for v in lastv if v is not None) / K if all(v is not None for v in lastv) else None
+        cv = [(i, v) for i in days if (v := comb(i)) is not None]
+        val = dict(cv)
+        u = {}
+        for k in range(len(pk)):
+            a, z = ts[k], ts[k + 1] if k + 1 < len(ts) else None
+            if z is None or a < lo or z > hi or a not in val or z not in val:
+                continue
+            u[a] = (P.cal[a], (val[z] / val[a] - 1) * 100, True)
+        return {"u": u, "curve": cv, "pk": pk}
+
+
+def _reg_maps(cal: list[str], idx: list, ns=(150, 200, 250)) -> dict:
+    """{均線天數: {日期: 是否在均線（含）之上}}（五年加權指數）。"""
+    from .ta import sma
+    out = {}
+    for n in ns:
+        ma = sma(idx, n)
+        out[n] = {d: idx[i] >= ma[i] for i, d in enumerate(cal) if idx[i] and ma[i]}
+    return out
+
+
+def _v3_r(r: float, b: str, mult: float, cost: float = 0.585) -> float:
+    """策略原本扣舊成本 cost% 的報酬 → 回測方法 v3 成本（含成本倍數）。"""
+    from .bt3 import rt_cost
+    return r + cost - rt_cost(b, mult) * 100
+
+
+class S1Ctx:
+    """共識加碼：訊號、價格（含 ATR）、加權指數；大盤濾網用五年加權指數。"""
+
+    def __init__(self, keep: dict):
+        from . import strategy, ta
+        self.D = D = keep["D"]
+        self.sigs = strategy._signals("s1", D, keep["sig_hist"], keep["L"], keep["meta"])
+        self.st0 = next(s for s in strategy.STRATEGIES if s["key"] == "s1")
+        self.idx, self.io, self.T = keep["taiex"], D.taiex_open(), D.T
+        self.reg = _reg_maps(keep["DL_cal"], keep["DL_taiex"])
+        self.cap_of = _cap_of(keep)
+        self._s: dict = {}
+        self._ta = ta
+
+    def series(self, c):
+        if c not in self._s:
+            S = self.D.series(c)
+            self._s[c] = (S, self._ta.atr(S["h"], S["l"], S["c"]))
+        return self._s[c]
+
+    def run(self, p: dict, mult: float = 1.0, raw: bool = False) -> dict:
+        """raw＝回傳原始交易紀錄（不變式測試用）。"""
+        from . import strategy
+        from .health import bucket, reg_lookup
+        D = self.D
+        st = {**self.st0, "gap_max": p["gap_max"], "hold": p["hold"], "stop_atr": p["stop_atr"]}
+        u, recs = {}, []
+        for c, t in self.sigs:
+            key = (c, D.cal[t])
+            if p.get("reg") and reg_lookup(self.reg[p["reg"]], D.cal, t) is False:
+                u[key] = (D.cal[t], 0.0, False)
+                continue
+            S, atr = self.series(c)
+            rec = strategy._trade(st, c, t, S, atr, self.idx, self.T, self.io)
+            recs.append((c, t, rec))
+            if rec is None or rec.get("st") == "open":
+                continue                                  # 還沒出場：不配對
+            if rec.get("st") == "skip":
+                u[key] = (D.cal[t], 0.0, False)
+            else:
+                b = bucket(self.cap_of(c, t))
+                u[key] = (D.cal[t], _v3_r(rec["r"], b, mult), True, t, t + rec["held"], c)
+        return {"u": u, "recs": recs} if raw else {"u": u}
+
+
+class S5Ctx:
+    """長線：候選（每月四關）、價格面板、對同宇宙等權；大盤濾網用五年加權指數。"""
+
+    def __init__(self, keep: dict):
+        from . import growth
+        self.P = keep["gP"]
+        self.D = keep["D"]
+        self.cands = growth._s5_cands(self.P, growth.load_rev_hist(), keep["rev_shards"])
+        self.idx, self.io = keep["taiex"], self.D.taiex_open()
+        try:
+            self.ew = growth.ew_index(self.P)
+        except Exception:                                 # noqa: BLE001
+            self.ew = None
+        self.reg = _reg_maps(keep["DL_cal"], keep["DL_taiex"])
+        self.cap_of = _cap_of(keep)
+
+    def run(self, p: dict, mult: float = 1.0, raw: bool = False) -> dict:
+        from . import growth
+        from .health import bucket, reg_lookup
+        cal = self.D.cal
+        sp = {k: p[k] for k in ("init", "trail", "maxd", "gap", "wait")}
+        extra = (lambda c, t: reg_lookup(self.reg[p["reg"]], cal, t) is not False) if p.get("reg") else None
+        recs = growth._s5_sim(self.P, self.cands, self.idx, self.io, sp, self.ew, extra)
+        u = {(c, cal[t]): (cal[t], 0.0, False) for t, c in self.cands}       # 沒有買（濾掉、持有中不重複買）＝0
+        ix = self.D.ix
+        for r in recs:
+            key = (r["c"], r["d"])
+            if r["st"] in ("open", "cand"):
+                u.pop(key, None)                          # 還沒出場或還沒進場：不配對
+            elif r["st"] == "closed":
+                t = ix[r["d"]]
+                b = bucket(self.cap_of(r["c"], t))
+                j = ix[r["bd"]]
+                u[key] = (r["d"], _v3_r(r["r"], b, mult), True, j - 1, ix[r["sd"]], r["c"])
+        return {"u": u, "recs": recs} if raw else {"u": u}
+
+
+class S3Ctx:
+    """臺灣50 提前卡位：歷次審核計畫（plans）與排名快取；出場日、停損、檔數、提前天數為旋鈕。"""
+
+    def __init__(self, keep: dict):
+        from . import indexes, tw50study
+        self.D = D = keep["D"]
+        self.cfg = indexes.load_cfg()
+        self.ctx = tw50study._Ctx(D, self.cfg)
+        self.pl = tw50study.plans(D, self.cfg, self.ctx)
+
+    def trades(self, p: dict) -> list[dict]:
+        """所有審核（含下一次）的提前卡位交易，同 tw50study.version_trades 的 early（參數＝現行時完全相同）。"""
+        from . import tw50study as TW
+        D, out = self.D, []
+        for q in self.pl:
+            pk = TW.early_picks(self.ctx, q, self.ctx.pres.get(q["review"]) if q["official"] else
+                                TW._pre_next(D, q.get("effective")), p["k"], p["n"]) \
+                if (p["k"], p["n"]) != (TW.EARLY_K, TW.EARLY_N) else q
+            if p["out"] != -1:
+                eff_o = next((h.get("eff_override") or {} for h in (self.ctx.ix.get("history") or [])
+                              if h.get("review") == q["review"]), {})
+                q = {**q, "out": TW.td_shift(q["effective"], p["out"]) if p["out"] else q["effective"],
+                     "out_c": {c: (TW.td_shift(v, p["out"]) if p["out"] else v) for c, v in eff_o.items() if v}}
+            trs = TW.early_trades(D, self.ctx.P, q, {}, pk, None if pk is q else {})
+            if p.get("stop"):
+                trs = [_stop_trade(D, self.ctx.P, x, p["stop"]) for x in trs]
+            out += trs
+        return out
+
+    def run(self, p: dict, mult: float = 1.0, raw: bool = False) -> dict:
+        trs = self.trades(p)
+        g: dict = {}
+        for x in trs:
+            g.setdefault(x.get("review"), []).append(x)
+        u = {}
+        for rv, xs in g.items():
+            if any(x.get("st") in ("open", "cand") for x in xs):
+                continue                                  # 還沒走完的審核：不配對
+            cl = [x for x in xs if x.get("st") == "closed" and x.get("r") is not None]
+            if not cl:
+                continue
+            d = min(x["d"] for x in cl)
+            u[rv] = (d, sum(_v3_r(x["r"], "L", mult) for x in cl) / len(cl), True)
+        return {"u": u, "recs": trs} if raw else {"u": u}
+
+
+def _stop_trade(D, P, x: dict, s: float) -> dict:
+    """臺灣50 交易套停損：買進後收盤跌破買進價 ×（1 − s）→ 當天收盤賣（鎖跌停順延）；沒觸發＝原樣。"""
+    from .backtest import exit_day
+    if x.get("st") != "closed" or not x.get("bd") or not x.get("sd") or not x.get("entry"):
+        return x
+    S = P.s(x["c"])
+    i0, i1 = D.ix[x["bd"]], D.ix[x["sd"]]
+    end = i1 - 1 if x.get("so") else i1
+    for i in range(i0, end + 1):
+        cl = S["c"][i]
+        if cl and cl < x["entry"] * (1 - s):
+            i2 = min(exit_day(S, i, D.T), end)
+            r = S["c"][i2] / x["entry"] - 1 - 0.00585
+            return {**x, "exit": S["c"][i2], "sd": D.cal[i2], "so": False, "r": round(r * 100, 2),
+                    "held": i2 - i0 + 1, "why": "停損"}
+    return x
+
+
+def _cap_of(keep: dict):
+    """決定日市值（v3live 面板的月底市值；日期對到每日資料的日曆）。"""
+    ctx = keep.get("v3ctx")
+    P = ctx[0] if ctx else None
+    D = keep["D"]
+    pix = P.D.ix if P is not None else {}
+
+    def f(c, t):
+        i = pix.get(D.cal[t])
+        return (P.cap.get(c) or [None] * P.T)[i] if P is not None and i is not None else None
+    return f
+
+
+# ── 配對比較與分級 ─────────────────────────────────────────────────────
+
+def _main(k: str, d: str) -> bool:
+    return k not in HAS_REP or d >= MAIN_FROM
+
+
+def pairs(u0: dict, u1: dict) -> list[tuple]:
+    """現行 u0、候選 u1（{鍵: (決定日, 報酬 %, 有沒有買, …)}）→ 兩邊都有、至少一邊有買的單位：
+    [(決定日, 候選 − 現行, 鍵)]，依決定日排序。"""
+    out = []
+    for key in u0.keys() & u1.keys():
+        a, b = u0[key], u1[key]
+        if not a[2] and not b[2]:
+            continue
+        out.append((a[0], b[1] - a[1], key))
+    return sorted(out, key=lambda z: (z[0], str(z[2])))
+
+
+def _t(k: str, ds: list[tuple]) -> float | None:
+    """Newey-West t：逐訊號的策略先依訊號月份平均（同一個月的訊號彼此相關），其餘逐單位。"""
+    from .bt3 import nw_t
+    if k in PER_SIGNAL:
+        g: dict = {}
+        for d, v, _ in ds:
+            g.setdefault(d[:7], []).append(v)
+        return nw_t([sum(v) / len(v) for _, v in sorted(g.items())])
+    return nw_t([v for _, v, _ in ds])
+
+
+def _mean(xs):
+    xs = [x for x in xs if x is not None]
+    return sum(xs) / len(xs) if xs else None
+
+
+def drop_year(ds: list[tuple]) -> float | None:
+    """去掉配對差合計最大的一個年份（依決定日）後的平均；只有一個年份回 None。"""
+    by: dict = {}
+    for d, v, _ in ds:
+        by.setdefault(d[:4], []).append(v)
+    if len(by) < 2:
+        return None
+    worst = max(by, key=lambda y: (sum(by[y]), y))
+    return _mean([v for y, vs in by.items() if y != worst for v in vs])
+
+
+def mdd_seq(rs: list[float]) -> float | None:
+    """單位報酬（%）依序連乘的淨值最大回落（%）。"""
+    if not rs:
+        return None
+    v = pk = 1.0
+    m = 0.0
+    for r in rs:
+        v *= 1 + r / 100
+        pk = max(pk, v)
+        m = max(m, 1 - v / pk)
+    return m * 100
+
+
+class _SP:
+    """bt3.slots 用的價格介面：.s[代號]＝{o, c}。"""
+
+    def __init__(self, f):
+        self._f, self._c = f, {}
+
+    @property
+    def s(self):
+        return self
+
+    def __getitem__(self, c):
+        if c not in self._c:
+            self._c[c] = self._f(c)
+        return self._c[c]
+
+
+def mdd_of(k: str, C, run: dict) -> float | None:
+    """主要期間的最大回落（%）：定期換股＝資金帳戶逐日淨值；逐訊號＝8 格資金帳戶；臺灣50＝每次審核依序連乘。"""
+    from . import bt3
+    if isinstance(C, PerCtx):
+        cv = [(i, v) for i, v in run.get("curve") or [] if _main(k, C.P.cal[i])]
+        return bt3.curve_stats(cv, C.P.cal).get("mdd") if len(cv) > 1 else None
+    if isinstance(C, S3Ctx):
+        return mdd_seq([v[1] for _, v in sorted(run["u"].items(), key=lambda z: z[1][0])])
+    us = [{"t": v[3], "x": v[4], "c": v[5], "r": v[1]} for v in run["u"].values() if v[2] and len(v) > 5]
+    if not us:
+        return None
+    sp = _SP(lambda c: C.series(c)[0]) if isinstance(C, S1Ctx) else _SP(lambda c: C.P.s[c])
+    sl = bt3.slots(sp, us, n=8)
+    return bt3.curve_stats(sl["curve"], C.D.cal).get("mdd") if len(sl["curve"]) > 1 else None
+
+
+def _summ(k: str, ds: list[tuple]) -> dict:
+    main = [x for x in ds if _main(k, x[0])]
+    rep = [x for x in ds if not _main(k, x[0])]
+    return {"n": len(main), "months": len({d[:7] for d, _, _ in main}), "mean": _mean([v for _, v, _ in main]),
+            "t": _t(k, main), "rep": (_mean([v for _, v, _ in rep]), _t(k, rep)) if k in HAS_REP and rep else None,
+            "drop_year": drop_year(main)}
+
+
+def evaluate(k: str, C, *, log=print) -> dict:
+    """一條策略的全部候選（含相鄰檢查）→ 分級。C＝PerCtx／S1Ctx／S5Ctx／S3Ctx。門檻全部來自本檔常數（optim v1）。"""
+    import time
+    t0 = time.time()
+    p0 = params(k)
+    cur, cur2 = C.run(p0), C.run(p0, mult=COST_X)
+    mdd0 = mdd_of(k, C, cur)
+    main0 = [v[1] for v in cur["u"].values() if _main(k, v[0])]
+    rows = []
+    for key, what, st, nbs in MENU[k]:
+        r1, r2 = C.run(params(k, key)), C.run(params(k, key), mult=COST_X)
+        ds = pairs(cur["u"], r1["u"])
+        sm = _summ(k, ds)
+        nb = []
+        for i in range(len(nbs)):
+            dn = [x for x in pairs(cur["u"], C.run(params(k, key, i))["u"]) if _main(k, x[0])]
+            nb.append(_mean([v for _, v, _ in dn]))
+        x2 = [x for x in pairs(cur2["u"], r2["u"]) if _main(k, x[0])]
+        m1 = [v[1] for v in r1["u"].values() if _main(k, v[0])]
+        rows.append({"k": key, "what": what, **sm, "nb": nb, "x2": _mean([v for _, v, _ in x2]),
+                     "mdd": mdd_of(k, C, r1), "mdd0": mdd0, "avg0": _mean(main0), "avg1": _mean(m1)})
+    hs = holm([p_one(r["t"]) for r in rows])
+    for r, h in zip(rows, hs):
+        r["p"] = p_one(r["t"])
+        r["holm"] = h
+        r["tier"], r["fails"] = tier(k, r)
+    log(f"[opt] {k}：{len(rows)} 個候選、{time.time() - t0:.1f} 秒")
+    return {"k": k, "n0": len(main0), "avg0": _mean(main0), "mdd0": mdd0, "cands": rows}

@@ -150,3 +150,92 @@ def test_selfopt_plan_doc_records_decisions():
     for k, menu in O.MENU.items():
         for key, *_ in menu:
             assert f"`{key}`" in doc, (k, key)
+
+
+# ── 改良引擎（第 4 步）：不變式與旋鈕 ──────────────────────────────────────
+
+class _P:
+    def __init__(self, ser: dict, T: int):
+        self.T, self.cal = T, [f"2026-{1 + i // 28:02d}-{1 + i % 28:02d}" for i in range(T)]
+        self.s = {c: {"o": [None if x is None else float(x) for x in o], "c": [None if x is None else float(x) for x in cl],
+                      "h": [None if x is None else x * 1.02 for x in cl], "l": [None if x is None else x * 0.98 for x in cl],
+                      "v": [1.0] * T} for c, (o, cl) in ser.items()}
+        self.codes = sorted(ser)
+        self.idx = [100.0] * T
+
+
+def _rand_panel(seed: int, n: int = 6, T: int = 60):
+    import random
+    rnd = random.Random(seed)
+    ser = {}
+    for k in range(n):
+        c, o, cl = 100.0, [], []
+        for _ in range(T):
+            op = c * (1 + rnd.uniform(-0.04, 0.04))
+            c = op * (1 + rnd.uniform(-0.05, 0.05))
+            o.append(round(op, 2))
+            cl.append(round(c, 2))
+        ser[f"S{k}"] = (o, cl)
+    return _P(ser, T), sorted(ser)
+
+
+def test_account_v_equals_bt3_account_when_knobs_off():
+    """不變式：沒有開高不追、沒有停損時，逐期報酬、淨值曲線、逐筆紀錄都和 bt3.account 完全相同。"""
+    from arm.lab import bt3
+    for seed in range(5):
+        P, cs = _rand_panel(seed)
+        per = [(0, 10, cs[:3]), (10, 20, cs[1:4]), (25, 35, cs[2:5]), (35, 50, cs[:2] + cs[4:])]
+        for mult in (1.0, 2.0):
+            la, lb = [], []
+            a = bt3.account(P, per, "M", mult=mult, log=la)
+            b = O.account_v(P, per, "M", mult=mult, log=lb)
+            assert [u["r"] for u in a["units"]] == [u["r"] for u in b["units"]]
+            assert a["curve"] == b["curve"] and la == lb
+
+
+def test_account_v_gap_skips_only_new_names():
+    T = 12
+    up = ([10] * 6 + [10.6] + [10] * 5, [10] * 12)                         # 第 6 天開盤 +6%
+    P = _P({"A": up, "B": ([10] * T, [10] * T)}, T)
+    per = [(0, 5, ["B"]), (5, 10, ["A", "B"])]
+    log = []
+    a = O.account_v(P, per, "L", gap=0.03, log=log)
+    assert ("x", 1, "A", 6, "gap") in log and a["units"][1]["gap"] == 1    # 新名單 A 開高 6% 不買
+    P2 = _P({"A": ([10] * 6 + [10.6] + [10] * 5, [10] * 12)}, T)
+    b = O.account_v(P2, [(0, 5, ["A"]), (5, 10, ["A"])], "L", gap=0.03)
+    assert b["units"][1]["gap"] == 0                                       # 續抱的 A 不受影響
+
+
+def test_account_v_stop_sells_at_close_then_cash():
+    T = 10
+    A = ([100] * T, [100, 100, 95, 88, 80, 120, 120, 120, 120, 120])        # 第 3 天收盤 88 < 100 × 0.9
+    P = _P({"A": A}, T)
+    log = []
+    a = O.account_v(P, [(0, 8, ["A"])], "L", mult=0, stop=0.10, log=log)
+    assert ("s", 0, "A", 3, 88.0, False, "stop") in log and a["units"][0]["stop"] == 1
+    assert abs(a["units"][0]["r"] - (-12.0)) < 1e-9                       # 賣在 88、之後持有現金（沒吃到反彈）
+    assert abs(O.account_v(P, [(0, 8, ["A"])], "L", mult=0)["units"][0]["r"] - 20.0) < 1e-9
+
+
+def test_pairs_drop_year_and_mdd_seq():
+    u0 = {1: ("2024-01-10", 1.0, True), 2: ("2025-01-10", 2.0, True), 3: ("2025-06-10", 0.0, False), 4: ("2026-01-01", 1.0, True)}
+    u1 = {1: ("2024-01-10", 3.0, True), 2: ("2025-01-10", 1.0, True), 3: ("2025-06-10", 0.0, False), 5: ("2026-02-01", 9.0, True)}
+    ds = O.pairs(u0, u1)
+    assert [(d, v) for d, v, _ in ds] == [("2024-01-10", 2.0), ("2025-01-10", -1.0)]   # 兩邊都沒買、只有一邊有的不算
+    assert O.drop_year(ds) == -1.0 and O.drop_year(ds[:1]) is None
+    assert O.mdd_seq([10.0, -50.0, 20.0]) == 50.0 and O.mdd_seq([]) is None
+    assert O._t("s1", [("2026-01-01", 1.0, 0), ("2026-01-02", 3.0, 0)]) is None       # 逐訊號先按月平均：只有 1 個月
+
+
+def test_perctx_sleeves_two_groups():
+    """兩組輪流：第一個月（第二組還沒開始）不比；每期報酬＝合併淨值的比值。"""
+    P, cs = _rand_panel(7, n=6, T=50)
+    C = O.PerCtx.__new__(O.PerCtx)
+    C.P, C.k, C.src, C.b, C.umin, C._ma = P, "v7m", "p7", "M", 1, {}
+    C.rows = [(t, t + 10, {c: float(i) for i, c in enumerate(cs)}) for t in (0, 10, 20, 30)]
+    one = C.run({**O.params("v7m"), "n": 3})
+    assert sorted(one["u"]) == [0, 10, 20, 30]
+    two = C.run({**O.params("v7m"), "n": 3, "sleeves": 2})
+    assert sorted(two["u"]) == [10, 20]                                   # 第 0 期只有一組在場、第 30 期第二組沒到期
+    cv = dict(two["curve"])
+    assert abs(two["u"][10][1] - (cv[20] / cv[10] - 1) * 100) < 1e-9
