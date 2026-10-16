@@ -307,6 +307,30 @@ def greedy(T: Tab, a: str, b: str, subs: dict, exclude=()) -> list[dict]:
     return steps
 
 
+def pair_search(T: Tab, a: str, b: str, subs: dict, exclude=()) -> dict:
+    """3.4（v2）：可選條件兩兩組合；S9 ∧ 兩個都成立，兩個子期間提升倍數都 ≥ 1.2、命中 ≥ 50、每週 ≥ 1 檔
+    → 選命中率最高的一組；回傳試了幾組、符合幾組、前 10 名。"""
+    allm = np.ones(len(T.d), dtype=bool)
+    sub9 = {s: T.stat(allm, x, y) for s, (x, y) in subs.items()}
+    s9 = T.stat(allm, a, b)
+    keys = [k for k in T.keys if k not in exclude]
+    tried, ok = 0, []
+    for n, x in enumerate(keys):
+        for y in keys[n + 1:]:
+            tried += 1
+            m = T.col(x) & T.col(y)
+            st = T.stat(m, a, b)
+            if st["p"] is None or st["pos"] < GREEDY["pos"] or (st["per_week"] or 0) < GREEDY["per_week"]:
+                continue
+            sl = {s: lift(T.stat(m, u, v), sub9[s]) for s, (u, v) in subs.items()}
+            if any(v is None or v < GREEDY["sub_lift"] for v in sl.values()):
+                continue
+            ok.append({"pair": [x, y], **st, "lift": lift(st, s9), "subs": sl,
+                       "new_p": T.stat(T.new_entry(m), a, b)["p"]})
+    ok.sort(key=lambda r: (-r["p"], r["pair"]))
+    return {"tried": tried, "passed": len(ok), "best": ok[0] if ok else None, "top": ok[:10]}
+
+
 def pairs(T: Tab, single: list[dict], a: str, b: str) -> dict:
     top = [r["key"] for r in sorted((r for r in single if r["n"] >= PAIR_NMIN and r["lift"]), key=lambda r: -r["lift"])
            [:PAIR_TOP]]

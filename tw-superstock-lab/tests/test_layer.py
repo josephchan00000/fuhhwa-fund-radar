@@ -189,3 +189,27 @@ def test_capture_w():
     assert r == {"n": 1, "hit": 1, "early": 1, "p_early": 1.0}
     L2 = np.array([[False], [False], [False], [False], [True]])   # 第 20 日才列出、收盤 30 → 不算早
     assert LA.capture_w(eps, L2, W, Cw, 0.5)["early"] == 0
+
+
+def test_pair_search_needs_both_conditions():
+    LY, _, _ = LA.shared()
+    rows = []
+    rng = np.random.default_rng(2)
+    dates = [f"2015-{(k // 4) + 1:02d}-{(k % 4) * 7 + 1:02d}" for k in range(40)]
+    for k in range(40):
+        for j in range(6):
+            cond = {key: False for key in LY.CKEYS}
+            cond["mom10"], cond["eacc"] = j in (0, 1), j in (0, 2)
+            y = int(rng.random() < (0.7 if j == 0 else 0.15))      # 只有兩個都成立的那檔命中率高
+            rows.append({"k": k, "j": j, "c": str(j), "d": dates[k], "x": [cond[key] for key in LY.CKEYS],
+                         "fam": LY.families(cond), "y": {"A": y, "B": y, "C": 0}})
+    T = LA.Tab({"rows": rows, "dates": dates, "W": list(range(40)), "base": {}})
+    old = dict(LA.GREEDY)
+    LA.GREEDY.update({"pos": 5, "per_week": 0.5})
+    try:
+        r = LA.pair_search(T, dates[0], dates[-1], {"IS1": (dates[0], dates[19]), "IS2": (dates[20], dates[-1])},
+                           exclude=LY.LIST_ONLY)
+    finally:
+        LA.GREEDY.update(old)
+    assert r["tried"] == 26 * 25 // 2
+    assert r["best"]["pair"] == ["eacc", "mom10"]

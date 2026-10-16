@@ -158,36 +158,52 @@ def md_is(o: dict) -> str:
     return "\n".join(L) + "\n"
 
 
-# ---------------------------------------------------------------------------------------------- 2020–2022、2023 起
-def stage_val() -> None:
+def stage_is2() -> None:
+    """v2（W3_plan 3.4）：兩條件交叉搜尋，只用 2014–2019。"""
     with CACHE.open("rb") as fh:
         tb = pickle.load(fh)
-    isr = json.loads((REPORTS / "W3_is.json").read_text("utf-8"))
     LY, _, _ = LA.shared()
     T = LA.Tab(tb)
-    s_star = isr["s_star"]
+    a, b = LA.PER["IS"]
+    ps = LA.pair_search(T, a, b, LA.SUBS, exclude=LY.LIST_ONLY)
+    out = LA.to_json({"plan": "reports/W3_plan.md v2（3.4）", "asof": time.strftime("%Y-%m-%d"), "period": [a, b],
+                      "s9": T.stat(np.ones(len(T.d), dtype=bool), a, b), **ps})
+    (REPORTS / "W3_is2.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), "utf-8")
+    L = ["# W3 v2　兩條件交叉搜尋：2014–2019（2020–2022 還沒看）", "",
+         "方法：`reports/W3_plan.md` v2 第 3.4 節（看過 2014–2019 結果後、2020–2022 之前 commit）。"
+         "表格由 `scripts/run_w3.py --stage is2` 產生。", "",
+         f"- 26 個可選條件兩兩組合共 {out['tried']} 組，符合條件（兩個子期間都 ≥ 1.2 倍、命中 ≥ 50、每週 ≥ 1 檔）的 {out['passed']} 組。",
+         f"- S9 命中率 {_p(out['s9']['p'])}（2014–2019）。"]
+    if out["best"]:
+        x = out["best"]
+        L.append(f"- **選中：{LY.CNAME[x['pair'][0]]} ∧ {LY.CNAME[x['pair'][1]]}**：一年翻倍 {_p(x['p'])}（S9 的 {_x(x['lift'])} 倍），"
+                 f"每週 {_x(x['per_week'], 1)} 檔；新進名單口徑 {_p(x['new_p'])}。")
+    L += ["", "| 組合 | 每週檔數 | 一年翻倍 | 提升倍數 | 2014–16 | 2017–19 | 新進名單 |", "| --- | --- | --- | --- | --- | --- | --- |"]
+    for r in out["top"]:
+        L.append(f"| {LY.CNAME[r['pair'][0]]} ∧ {LY.CNAME[r['pair'][1]]} | {_x(r['per_week'], 1)} | {_p(r['p'])} | {_x(r['lift'])} | "
+                 f"{_x(r['subs'].get('IS1'))} | {_x(r['subs'].get('IS2'))} | {_p(r['new_p'])} |")
+    (REPORTS / "W3_is2.md").write_text("\n".join(L) + "\n", "utf-8")
+    log(f"[w3] v2 兩條件：試 {out['tried']} 組、符合 {out['passed']} 組；選中 {out['best']['pair'] if out['best'] else '無'}")
+
+
+# ---------------------------------------------------------------------------------------------- 2020–2022、2023 起
+def evaluate(T, tb, mask: np.ndarray) -> dict:
+    """一個第一層定義在三段期間的命中率、第二層（S9 其餘）、新進名單口徑、涵蓋率；2020–2022 逐年與判定。"""
     allm = np.ones(len(T.d), dtype=bool)
-    t1 = T.score >= s_star
-    gm = allm.copy()
-    for g in isr["greedy"]:
-        gm &= T.col(g["add"])
     W = np.array(tb["W"])
-    shape = tb["S9w"].shape
-    t1w = LA.mask_weeks(T, t1, shape)
+    mw = LA.mask_weeks(T, mask, tb["S9w"].shape)
     per = {}
     for p, (a, b) in LA.PER.items():
-        per[p] = {"s9": {L: T.stat(allm, a, b, L) for L in LA.LABS}, "t1": {L: T.stat(t1, a, b, L) for L in LA.LABS},
-                  "t2": {L: T.stat(~t1, a, b, L) for L in LA.LABS}, "greedy": {L: T.stat(gm, a, b, L) for L in LA.LABS},
-                  "base": {L: LA.base_rate(tb, L, a, b) for L in LA.LABS},
-                  "s9_new": T.stat(T.new_entry(allm), a, b), "t1_new": T.stat(T.new_entry(t1), a, b),
-                  "cover": {}}
+        per[p] = {"t1": {L: T.stat(mask, a, b, L) for L in LA.LABS}, "t2": {L: T.stat(~mask, a, b, L) for L in LA.LABS},
+                  "s9": {L: T.stat(allm, a, b, L) for L in LA.LABS}, "base": {L: LA.base_rate(tb, L, a, b) for L in LA.LABS},
+                  "t1_new": T.stat(T.new_entry(mask), a, b), "s9_new": T.stat(T.new_entry(allm), a, b), "cover": {}}
         for L in ("B", "C"):
             ep = [e for e in tb["eps"][L] if a <= tb["cal"][e[1]] <= b]
             per[p]["cover"][L] = {"s9": LA.capture_w(ep, tb["S9w"], W, tb["Cw"], LA.EARLY[L]),
-                                  "t1": LA.capture_w(ep, t1w, W, tb["Cw"], LA.EARLY[L])}
+                                  "t1": LA.capture_w(ep, mw, W, tb["Cw"], LA.EARLY[L])}
     cover_e = {"s9": LA.capture_w(tb["eps"]["E"], tb["S9w"], W, tb["Cw"], LA.EARLY["E"]),
-               "t1": LA.capture_w(tb["eps"]["E"], t1w, W, tb["Cw"], LA.EARLY["E"])}
-    yrs = {"s9": LA.per_year(T, allm), "t1": LA.per_year(T, t1)}
+               "t1": LA.capture_w(tb["eps"]["E"], mw, W, tb["Cw"], LA.EARLY["E"])}
+    yrs = {"s9": LA.per_year(T, allm), "t1": LA.per_year(T, mask)}
     v = per["VAL"]
     lift_v = LA.lift(v["t1"]["B"], v["s9"]["B"])
     years_ok = all(yrs["t1"][y]["p"] is not None and yrs["s9"][y]["p"] is not None and yrs["t1"][y]["p"] >= yrs["s9"][y]["p"]
@@ -195,56 +211,74 @@ def stage_val() -> None:
     new_ok = (v["t1_new"]["p"] or 0) > (v["s9_new"]["p"] or 0)
     judge = {"lift": lift_v, "lift_ok": lift_v is not None and lift_v >= LA.JUDGE["lift"], "years_ok": years_ok,
              "new_ok": new_ok}
-    judge["pass"] = judge["lift_ok"] and years_ok and new_ok
+    judge["pass"] = bool(judge["lift_ok"] and years_ok and new_ok)
+    return {"per": per, "years": yrs, "cover_e": cover_e, "judge": judge}
+
+
+def stage_val() -> None:
+    with CACHE.open("rb") as fh:
+        tb = pickle.load(fh)
+    isr = json.loads((REPORTS / "W3_is.json").read_text("utf-8"))
+    is2 = json.loads((REPORTS / "W3_is2.json").read_text("utf-8"))
+    LY, _, _ = LA.shared()
+    T = LA.Tab(tb)
+    s_star = isr["s_star"]
+    specs = {"v1": {"desc": f"7 族分數 ≥ {s_star}", "s": s_star, **evaluate(T, tb, T.score >= s_star)}}
+    if is2.get("best"):
+        x, y = is2["best"]["pair"]
+        specs["v2"] = {"desc": f"{LY.CNAME[x]} ∧ {LY.CNAME[y]}", "pair": [x, y], **evaluate(T, tb, T.col(x) & T.col(y))}
+    use = "v2" if specs.get("v2", {}).get("judge", {}).get("pass") else ("v1" if specs["v1"]["judge"]["pass"] else None)
     single_v = LA.single_table(T, *LA.PER["VAL"])
     single_h = LA.single_table(T, *LA.PER["HO"])
     single_i = {r["key"]: r for r in isr["single"]}
     rev = [r["key"] for r in single_v if (single_i[r["key"]]["lift"] or 0) > 1 and (r["lift"] or 0) < 1]
-    out = LA.to_json({"plan": "reports/W3_plan.md v1", "asof": time.strftime("%Y-%m-%d"), "s_star": s_star,
-                      "greedy": [g["add"] for g in isr["greedy"]], "per": per, "years": yrs, "cover_e": cover_e,
-                      "judge": judge, "single_val": single_v, "single_ho": single_h, "reversed": rev})
+    out = LA.to_json({"plan": "reports/W3_plan.md v2", "asof": time.strftime("%Y-%m-%d"), "use": use, "specs": specs,
+                      "single_val": single_v, "single_ho": single_h, "reversed": rev, "pair_tried": is2.get("tried"),
+                      "pair_passed": is2.get("passed")})
     (REPORTS / "W3_results.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), "utf-8")
     (REPORTS / "W3_results.md").write_text(md_val(out, isr), "utf-8")
-    export(out, isr)
-    log(f"[w3] 判定：{'過關' if judge['pass'] else '不過關'}（2020–2022 提升 {_x(lift_v)} 倍、三年都不反向 {years_ok}、"
-        f"新進名單同方向 {new_ok}）")
+    export(out)
+    for k, sp in specs.items():
+        j = sp["judge"]
+        log(f"[w3] {k}（{sp['desc']}）：{'過關' if j['pass'] else '不過關'}（2020–2022 {_x(j['lift'])} 倍、三年都不反向 "
+            f"{j['years_ok']}、新進名單同方向 {j['new_ok']}）")
+    log(f"[w3] 頁面第一層：{use or '不分層'}")
 
 
 def md_val(o: dict, isr: dict) -> str:
     LY, _, _ = LA.shared()
-    j = o["judge"]
+    use = o["use"]
     L = ["# W3　第二層篩選：結果", "",
-         "方法：`reports/W3_plan.md` v1（跑之前 commit）。第一層門檻與逐步加條件只用 2014–2019 定（`reports/W3_is.md`，"
-         "看 2020–2022 之前 commit）。表格由 `scripts/run_w3.py --stage val` 產生。2023 年起只列數字、不參與判定。", "",
-         f"**第一層＝7 族分數 ≥ {o['s_star']}。判定：{'過關' if j['pass'] else '不過關'}**"
-         f"（2020–2022 一年翻倍命中率是 S9 的 {_x(j['lift'])} 倍，門檻 {LA.JUDGE['lift']}；三年都不比 S9 差：{'是' if j['years_ok'] else '否'}；"
-         f"新進名單口徑同方向：{'是' if j['new_ok'] else '否'}）", "",
-         "## 命中率（一年內翻倍；括號＝每週檔數）", "",
-         "| 期間 | 第一層 | 第二層（S9 其餘） | S9 | 全部合格股票 | 逐步加條件（對照） | 第一層新進名單 | S9 新進名單 |",
-         "| --- | --- | --- | --- | --- | --- | --- | --- |"]
-    for p in LA.PER:
-        x = o["per"][p]
-        L.append(f"| {p} | {_p(x['t1']['B']['p'])}（{_x(x['t1']['B']['per_week'], 1)}） | {_p(x['t2']['B']['p'])}（{_x(x['t2']['B']['per_week'], 1)}） | "
-                 f"{_p(x['s9']['B']['p'])}（{_x(x['s9']['B']['per_week'], 1)}） | {_p(x['base']['B'])} | {_p(x['greedy']['B']['p'])}（{_x(x['greedy']['B']['per_week'], 1)}） | "
-                 f"{_p(x['t1_new']['p'])} | {_p(x['s9_new']['p'])} |")
-    L += ["", "## 2020–2022 逐年（一年內翻倍）", "", "| 年 | 第一層 | S9 |", "| --- | --- | --- |"]
-    for y in LA.YEARS_VAL:
-        L.append(f"| {y} | {_p(o['years']['t1'][y]['p'])}（{o['years']['t1'][y]['n']:,}） | {_p(o['years']['s9'][y]['p'])}（{o['years']['s9'][y]['n']:,}） |")
-    L += ["", "## 其他目標（第一層／S9／全部）", "", "| 期間 | 3 個月 +50% | 一年 3 倍 |", "| --- | --- | --- |"]
-    for p in LA.PER:
-        x = o["per"][p]
-        L.append(f"| {p} | {_p(x['t1']['A']['p'])}／{_p(x['s9']['A']['p'])}／{_p(x['base']['A'])} | "
-                 f"{_p(x['t1']['C']['p'])}／{_p(x['s9']['C']['p'])}／{_p(x['base']['C'])} |")
-    L += ["", "## 涵蓋率（抓得早的段落比例：第一層／S9）", "", "| 期間 | 翻倍段 | 3 倍段 |", "| --- | --- | --- |"]
-    for p in LA.PER:
-        c = o["per"][p]["cover"]
-        L.append(f"| {p} | {c['B']['t1']['early']}／{c['B']['s9']['early']}（共 {c['B']['s9']['n']}） | "
-                 f"{c['C']['t1']['early']}／{c['C']['s9']['early']}（共 {c['C']['s9']['n']}） |")
-    e = o["cover_e"]
-    L += ["", f"5 年 10 倍股（2014 起，每檔取漲最多的一段）：第一層抓得早 {e['t1']['early']}／{e['t1']['n']} 檔，S9 {e['s9']['early']}／{e['s9']['n']} 檔。", ""]
+         "方法：`reports/W3_plan.md` v2。v1（7 族分數）門檻只用 2014–2019 定（`reports/W3_is.md`）；v2（兩條件交叉）也只用 2014–2019 選"
+         f"（`reports/W3_is2.md`，{o['pair_tried']} 組裡 {o['pair_passed']} 組符合條件）；兩者都在看 2020–2022 之前 commit。"
+         "表格由 `scripts/run_w3.py --stage val` 產生。2023 年起只列數字、不參與判定。同一段 2020–2022 檢驗了兩個規格。", "",
+         f"**頁面第一層：{o['specs'][use]['desc'] if use else '不分層（兩個規格都沒過關）'}**", ""]
+    for k, sp in o["specs"].items():
+        j = sp["judge"]
+        L += [f"## {k}：{sp['desc']}（{'過關' if j['pass'] else '不過關'}）", "",
+              f"2020–2022 一年翻倍命中率是 S9 的 {_x(j['lift'])} 倍（門檻 {LA.JUDGE['lift']}）；三年都不比 S9 差：{'是' if j['years_ok'] else '否'}；"
+              f"新進名單口徑同方向：{'是' if j['new_ok'] else '否'}。", "",
+              "| 期間 | 第一層 | 第二層（S9 其餘） | S9 | 全部合格股票 | 第一層新進名單 | S9 新進名單 |", "| --- | --- | --- | --- | --- | --- | --- |"]
+        for p in LA.PER:
+            x = sp["per"][p]
+            L.append(f"| {p} | {_p(x['t1']['B']['p'])}（每週 {_x(x['t1']['B']['per_week'], 1)}） | {_p(x['t2']['B']['p'])} | "
+                     f"{_p(x['s9']['B']['p'])}（每週 {_x(x['s9']['B']['per_week'], 1)}） | {_p(x['base']['B'])} | {_p(x['t1_new']['p'])} | {_p(x['s9_new']['p'])} |")
+        L += ["", "| 年 | 第一層 | S9 |", "| --- | --- | --- |"]
+        for y in LA.YEARS_VAL:
+            L.append(f"| {y} | {_p(sp['years']['t1'][y]['p'])}（{sp['years']['t1'][y]['n']:,}） | {_p(sp['years']['s9'][y]['p'])}（{sp['years']['s9'][y]['n']:,}） |")
+        L += ["", "| 期間 | 3 個月 +50%（第一層／S9／全部） | 一年 3 倍（第一層／S9／全部） | 翻倍段抓得早（第一層／S9） | 3 倍段抓得早（第一層／S9） |",
+              "| --- | --- | --- | --- | --- |"]
+        for p in LA.PER:
+            x = sp["per"][p]
+            c = x["cover"]
+            L.append(f"| {p} | {_p(x['t1']['A']['p'])}／{_p(x['s9']['A']['p'])}／{_p(x['base']['A'])} | "
+                     f"{_p(x['t1']['C']['p'])}／{_p(x['s9']['C']['p'])}／{_p(x['base']['C'])} | "
+                     f"{c['B']['t1']['early']}／{c['B']['s9']['early']}（共 {c['B']['s9']['n']}） | {c['C']['t1']['early']}／{c['C']['s9']['early']}（共 {c['C']['s9']['n']}） |")
+        e = sp["cover_e"]
+        L += ["", f"5 年 10 倍股（2014 起）：第一層抓得早 {e['t1']['early']}／{e['t1']['n']} 檔，S9 {e['s9']['early']}／{e['s9']['n']} 檔。", ""]
     if o["reversed"]:
         L += ["2014–2019 提升倍數 > 1、2020–2022 卻 < 1 的條件：" + "、".join(LY.CNAME[k] for k in o["reversed"]) + "。", ""]
-    L += ["## 單一條件：2014–2019 與 2020–2022 的提升倍數", "", "| 條件 | 2014–2019 | 2020–2022 | 2023 起 |", "| --- | --- | --- | --- |"]
+    L += ["## 單一條件：各期間的提升倍數（÷ 同期間 S9）", "", "| 條件 | 2014–2019 | 2020–2022 | 2023 起 |", "| --- | --- | --- | --- |"]
     vi = {r["key"]: r for r in o["single_val"]}
     hi = {r["key"]: r for r in o["single_ho"]}
     for r in sorted(isr["single"], key=lambda r: -(r["lift"] or 0)):
@@ -253,28 +287,33 @@ def md_val(o: dict, isr: dict) -> str:
     return "\n".join(L) + "\n"
 
 
-def export(o: dict, isr: dict) -> None:
-    """頁面用的小檔：第一層門檻、各層過去命中率、涵蓋率、判定。"""
+def export(o: dict) -> None:
+    """頁面用的小檔：選用的第一層、各規格的判定與各層過去命中率、涵蓋率。"""
     LY, _, _ = LA.shared()
     keep = ("p", "per_week", "n")
 
     def sm(x):
         return {k: x.get(k) for k in keep}
 
-    per = {}
-    for p, x in o["per"].items():
-        per[p] = {"t1": {L: sm(x["t1"][L]) for L in LA.LABS}, "t2": {L: sm(x["t2"][L]) for L in LA.LABS},
-                  "s9": {L: sm(x["s9"][L]) for L in LA.LABS}, "base": x["base"],
-                  "cover": {L: {"t1": x["cover"][L]["t1"], "s9": x["cover"][L]["s9"]} for L in ("B", "C")}}
-    res = {"v": 1, "asof": o["asof"], "plan": o["plan"], "main": "B", "s": o["s_star"], "judge": o["judge"],
-           "fam": [[n, d] for n, d, _ in LY.FAMILY], "per": per, "years": o["years"], "cover_e": o["cover_e"],
-           "greedy": o["greedy"]}
+    specs = {}
+    for k, sp in o["specs"].items():
+        per = {}
+        for p, x in sp["per"].items():
+            per[p] = {"t1": {L: sm(x["t1"][L]) for L in LA.LABS}, "t2": {L: sm(x["t2"][L]) for L in LA.LABS},
+                      "s9": {L: sm(x["s9"][L]) for L in LA.LABS}, "base": x["base"],
+                      "cover": {L: {"t1": x["cover"][L]["t1"], "s9": x["cover"][L]["s9"]} for L in ("B", "C")}}
+        specs[k] = {"desc": sp["desc"], "s": sp.get("s"), "pair": sp.get("pair"), "judge": sp["judge"], "per": per,
+                    "years": sp["years"], "cover_e": sp["cover_e"]}
+    use = o["use"]
+    res = {"v": 1, "asof": o["asof"], "plan": o["plan"], "main": "B", "use": use, "specs": specs,
+           "s": specs["v1"]["s"], "pair": (specs.get("v2") or {}).get("pair"),
+           "judge": {"pass": use is not None}, "fam": [[n, d] for n, d, _ in LY.FAMILY]}
     OUT.write_text(json.dumps(LA.to_json(res), ensure_ascii=False, sort_keys=True, separators=(",", ":")), "utf-8")
     log(f"[w3] → {OUT}")
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--stage", choices=("is", "val"), required=True)
+    ap.add_argument("--stage", choices=("is", "is2", "val"), required=True)
     args = ap.parse_args()
-    stage_is() if args.stage == "is" else stage_val()
+    {"is": stage_is, "is2": stage_is2, "val": stage_val}[args.stage]()
