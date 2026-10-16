@@ -824,7 +824,6 @@ def _oos_txt(o: dict, unit: str) -> str:
 def build_v3(v3: dict, ex: dict, last: str | None) -> dict:
     """→ {"grades": 新策略與既有策略的 v3 評級（依證據強弱排序）, "picks"／"watch": 新策略本期 5 檔,
          "live": 頁面段落資料, "basket": 研究總表（整籃版本）, "meta"}"""
-    import math
     from . import store
     res = store.read_json("bt3_research.json", {}) or {}
     grades, picks, watch, live = [], [], [], {}

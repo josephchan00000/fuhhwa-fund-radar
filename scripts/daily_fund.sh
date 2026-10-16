@@ -12,17 +12,19 @@ cd "$(dirname "$0")/.."
 LOGD="$(mktemp -d)"
 
 echo "[1/4] 平行抓取四路資料（持股介紹＋NAV／基金新聞・社群／ETF 數據追蹤／總經・籌碼）…"
-( python3 scripts/fetch_holdings.py \
-    || echo "  ⚠ 持股抓取失敗，續跑（用既有 data/funds 快照）" ) >"$LOGD/holdings.log" 2>&1 &
+# 每支都有時間上限（2026-10-16）：卡住的那支會讓整輪等到 job 逾時、20 分鐘全浪費，連已抓好的也沒 commit。
+# 正常各約 1～4 分鐘；逾時＝沿用既有落檔（各腳本本來就是「抓不到就保留舊檔」）。
+( timeout -k 10 600 python3 scripts/fetch_holdings.py \
+    || echo "  ⚠ 持股抓取失敗或逾時，續跑（用既有 data/funds 快照）" ) >"$LOGD/holdings.log" 2>&1 &
 P_HOLD=$!
-( python3 scripts/fetch_fund_news.py \
-    || echo "  ⚠ 基金新聞擷取失敗，續跑（區塊沿用前次落檔或顯示提示）" ) >"$LOGD/fundnews.log" 2>&1 &
+( timeout -k 10 600 python3 scripts/fetch_fund_news.py \
+    || echo "  ⚠ 基金新聞擷取失敗或逾時，續跑（區塊沿用前次落檔或顯示提示）" ) >"$LOGD/fundnews.log" 2>&1 &
 P_NEWS=$!
 ( timeout -k 10 600 python3 -u scripts/fetch_etf_watch.py \
     || echo "  ⚠ ETF 追蹤擷取失敗或逾時，續跑（分頁沿用前次落檔）" ) >"$LOGD/etf.log" 2>&1 &
 P_ETF=$!
-( python3 scripts/fetch_macro_chips.py \
-    || echo "  ⚠ 總經・籌碼數據擷取失敗，續跑（市場溫度計沿用前次落檔）" ) >"$LOGD/macro.log" 2>&1 &
+( timeout -k 10 300 python3 scripts/fetch_macro_chips.py \
+    || echo "  ⚠ 總經・籌碼數據擷取失敗或逾時，續跑（市場溫度計沿用前次落檔）" ) >"$LOGD/macro.log" 2>&1 &
 P_MACRO=$!
 # 註：ETF 每日持股**不在此處抓**（2026-07-29 起）——投信官網幾乎都是 SPA、持股由 XHR
 # 動態載入，靜態 HTTP 抓不到（逐家逆向 6 輪的結論）。已改由獨立的

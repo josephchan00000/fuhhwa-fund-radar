@@ -33,6 +33,16 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         data["vlog"] = {"err": f"{type(e).__name__}: {e}"}
     sj = ser_json(data)
     changed = False
+    try:                                     # 公司分析（docs/lab_company_plan.md）：全市場小表與每檔資料檔另存，點進去才下載
+        from . import company
+        mt = data.pop("mtab", None) or {}
+        if mt.get("rows"):
+            changed |= company.write_table(mt, out.parent / "x9t.json")
+            data["mtv"] = _ver(company._dump(mt))
+        st = company.build_co(out.parent / "co")
+        print(f"[籌碼雷達] 公司分析檔 {st.get('n')} 檔、改寫 {st.get('write')} 檔" + (f"（{st['err']}）" if st.get("err") else ""))
+    except Exception as e:                   # noqa: BLE001 —— 公司分析失敗不影響建頁
+        print(f"[籌碼雷達] ⚠ 公司分析檔沒有更新：{type(e).__name__}: {e}")
     for path, text in ((out_ser, sj), (out, render(data, ser_v=_ver(sj)))):
         if path.exists() and path.read_text(encoding="utf-8") == text:
             continue
@@ -94,11 +104,14 @@ def asof_line(data: dict) -> str:
 
 
 def render(data: dict, ser_v: str | None = None) -> str:
-    main = {k: v for k, v in data.items() if k != "ser"}
+    main = {k: v for k, v in data.items() if k not in ("ser", "mtab")}
     main["serv"] = ser_v or _ver(ser_json(data))
     blob = _dump(main).replace("</", "<\\/")
-    return (_HTML.replace("{{SUB}}", asof_line(data)).replace("{{CSS}}", _CSS)
-            .replace("{{DATA}}", blob).replace("{{JS}}", _JS))
+    from . import copage                     # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
+                                             # （初始化會開分頁與 #s= 個股卡，這時公司分析的頂層 const 必須已經初始化）
+    return (_HTML.replace("{{SUB}}", asof_line(data)).replace("{{CSS}}", _CSS + copage.CSS)
+            .replace("{{SEARCH}}", copage.SEARCH_HTML)
+            .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", copage.JS)))
 
 
 _HTML = """<!doctype html>
@@ -108,7 +121,7 @@ _HTML = """<!doctype html>
 <title>籌碼雷達</title>
 <style>{{CSS}}</style></head>
 <body>
-<div class="top"><b>籌碼雷達</b><span class="asof">{{SUB}}</span><a class="back" href="./">返回主頁</a></div>
+<div class="top"><b>籌碼雷達</b><span class="asof">{{SUB}}</span>{{SEARCH}}<a class="back" href="./">返回主頁</a></div>
 <p class="purp">用固定規則的選股策略，列出每條策略這一期選到的股票、哪天買賣，以及同樣做法過去實際賺多少。</p>
 <header class="hd"><div class="hdi">
   <nav class="tabs" id="tabs">
@@ -1002,7 +1015,6 @@ function bw(x){return x==null?'—':`${x>=0?'贏':'輸'} ${f(Math.abs(x),Math.ab
 function hiLo(x){return x==null?'—':`${x>=0?'高':'低'} ${f(Math.abs(x),Math.abs(x)>=10?1:2)}%`;}
 function ym(d){return d?esc(String(d).slice(0,7)):'—';}
 function qTxt(q){return q?`${q.slice(0,4)} 年第 ${Math.round(+q.slice(5,7)/3)} 季`:'';}
-function wan(x){return x==null?'—':(x>0?'+':x<0?'−':'')+f(Math.abs(x),0)+' 元';}
 function stOf(k){return ((D.strat||{}).list||[]).find(s=>s.key===k);}
 function nmA(x){return BY[x.c]?`<a data-c="${esc(x.c)}">${esc(x.n)}</a>`:esc(x.n);}
 function ruleRows(rules){return rules.map(x=>{const i=x.indexOf('：');const lab=i>0&&i<=8?x.slice(0,i):'';return `<div class="rl${lab?'':' nl'}">${lab?`<span class=rlk>${esc(lab)}</span>`:''}<span>${esc(lab?x.slice(i+1):x)}</span></div>`;}).join('');}
@@ -1088,6 +1100,7 @@ function vOpp(){
   if((D.adv||{}).v3err)h+=`<div class=st>月營收驚喜、財報驚喜資料錯誤：${esc(D.adv.v3err)}</div>`;
   h+=sec('o-sum','摘要','這一期的機會',`${md(ADV.last)} 收盤後更新`,oSum()+`<h4 class=sh>時間表</h4>`+oTl(),
     Object.keys(PK).length?`<a data-go="stk" data-fstf="1">在個股表看這些股票 →</a>`:'');
+  h+=sxSec();                                         /* 飆股候選（copage.py；研究規則今天符合的股票） */
   h+=(OPP.cards||[]).map(oCard).join('');
   h+=sec('o-avoid','避開','避開清單','持有中的照規則處理；沒持有的這段期間不買',`${hdGroups(false)}${gapList()}`);
   const C=(ADV.grades3||[]).filter(g=>g.grade==='C'&&g.k!=='hd');
@@ -1758,13 +1771,14 @@ function renderStock(c,keep){
   dv.classList.toggle('pane',pane);document.body.classList.toggle('pane',pane);dv.hidden=false;lockBody(!pane);
   const W=Math.max(300,Math.floor($('#dvin').clientWidth-32));
   const i=CTX.indexOf(c),pv=i>0,nx=i>=0&&i<CTX.length-1;
-  const secs=[...(PK[c]?[['c-st','策略']]:[]),['c-sum','重點'],['c-chart','走勢'],['c-hold','ETF 持有'],...(tw&&r.t5!==undefined?[['c-chip','籌碼'],['c-ta','技術']]:[]),['c-sig','訊號']];
+  const secs=[...(PK[c]?[['c-st','策略']]:[]),['c-sum','重點'],['co-sum','公司'],['c-chart','走勢'],['c-hold','ETF 持有'],...(tw&&r.t5!==undefined?[['c-chip','籌碼'],['c-ta','技術']]:[]),['c-sig','訊號']];
   let h=`<div class=dvh><div class=dvt><a class="nv${pv?'':' off'}" id=pv title="上一檔（←）">‹</a>`+
    `<div class=ttl><b>${esc(r.n)}</b><span class=cd>${i>=0?`${i+1}／${CTX.length} · `:''}${esc(r.c)} · ${MK[r.m]||''}${r.ind?' · '+esc(r.ind):''}</span></div>`+
    `<div class=pxw><b>${fp(r.px)}</b>${sgn(r.ch,2,'%')}</div><a class="nv${nx?'':' off'}" id=nx title="下一檔（→）">›</a><a class=x id=x title="關閉（Esc）">×</a></div>`+
    `<nav class=cnav>${secs.map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
   h+=stCardSec(c);
   h+=`<section class=csec id=c-sum><div class=sgrow>${sgChips(r.sg)||'<span class=st>今日無觸發訊號</span>'}</div><ul class=sum>${sumLines(r).map(x=>`<li>${x}</li>`).join('')}</ul><div class=kpis>${kpis(r)}</div></section>`;
+  h+=coSec(c,W,()=>reStock(c));                     /* 公司分析（copage.py；點進去才下載 co/{代號}.json） */
   const lastD=(D.dates||[]).slice(-1)[0],serD=SERD.slice(-1)[0];
   if(!s)h+=`<section class=csec id=c-chart><h3>走勢</h3><div class=ld>${SERST==='err'?'走勢資料暫時無法載入　<a id=serr>重試</a>':'走勢載入中…'}</div></section>`;
   else if(s.c&&s.c.some(x=>x!=null))h+=`<section class=csec id=c-chart><h3>走勢<span class=sub>近 ${s.c.length} 個交易日・游標移到圖上看每日數字</span></h3>${serD&&lastD&&serD<lastD?`<div class=note>走勢資料到 ${md(serD)}（尚未更新到最新）</div>`:''}<div class=cw id=kc>${chart(s,r,W)}</div>`+
@@ -1812,7 +1826,7 @@ function renderStock(c,keep){
   $$('#dvin [data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();PUSHED=false;history.replaceState(null,'',location.pathname+location.search);hideStock();go(a.dataset.go,a.dataset.at);});
   const rb=$('#serr');if(rb)rb.onclick=()=>{SERST='idle';renderStock(c,true);};
   $$('#dvin [data-cto]').forEach(a=>a.onclick=()=>{const t=document.getElementById(a.dataset.cto);if(t)dv.scrollTo({top:dv.scrollTop+t.getBoundingClientRect().top-dv.getBoundingClientRect().top-$('#dvin .dvh').offsetHeight+2,behavior:'smooth'});});
-  cspy();bindTip(c);
+  cspy();bindTip(c);coAfterStock(c);
 }
 function cspy(){const dv=$('#dv');if(dv.hidden)return;const hh=$('#dvin .dvh');if(!hh)return;const y=hh.getBoundingClientRect().bottom+8;let cur=null;
   $$('#dvin .csec').forEach(s=>{if(s.getBoundingClientRect().top<=y)cur=s.id;});if(!cur){const f0=$('#dvin .csec');cur=f0&&f0.id;}
@@ -1910,6 +1924,7 @@ function go(t,anchor){S.tab=t;$$('#tabs a[data-t]').forEach(a=>a.classList.toggl
   $$('#main [data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();const d=a.dataset;
     if(d.fsig!==undefined){S.sig=d.fsig;S.q='';S.n=60;S.stf=false;}if(d.fstf!==undefined){S.stf=true;S.sig='';S.q='';S.n=60;}if(d.sort){S.vw='etf';S.sort=d.sort;S.dir=+(d.dir||-1);}go(d.go,d.at);});
   window.scrollTo(0,0);if(anchor)requestAnimationFrame(()=>jump(anchor));}
+/*@@COPAGE@@*/
 $$('#tabs a[data-t]').forEach(a=>a.onclick=()=>go(a.dataset.t));
 go('opp');
 if(isPane())setTimeout(()=>{loadSer().catch(()=>{});},1500);

@@ -211,26 +211,7 @@ class HD:
         p = self.px(c, d)
         return self.ttm(c, d, days) / p if p else None
 
-    def avg_yld(self, c: str, d: str, years: int = 3) -> float | None:
-        """近 years 年平均殖利率＝各年（以 d 往回每 365 天一段）現金股利 ÷ d 日價格 的平均（價格用同一天，近似）。"""
-        p = self.px(c, d)
-        if not p:
-            return None
-        ys = []
-        for k in range(years):
-            a = (_d(d) - timedelta(days=365 * (k + 1))).isoformat()
-            b = (_d(d) - timedelta(days=365 * k)).isoformat()
-            ys.append(self.cash_between(c, a, b) / p)
-        return sum(ys) / len(ys)
-
     # —— EPS
-    def eps_ytd(self, c: str, year: int, q: int) -> float | None:
-        """year 年第 1～q 季 EPS 合計；缺季回 None。"""
-        e = self.eps.get(c) or {}
-        ends = {1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31"}
-        vals = [e.get(f"{year}-{ends[k]}") for k in range(1, q + 1)]
-        return sum(vals) if all(v is not None for v in vals) else None
-
     def eps_ttm(self, c: str, d: str) -> float | None:
         """d 之前已到季底的最近四季 EPS 合計（不管財報公布時間——呼叫端自行確認可得性）。"""
         e = self.eps.get(c) or {}

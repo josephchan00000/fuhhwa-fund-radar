@@ -43,10 +43,6 @@ class ReportDoc:
     header: str = ""          # `>` 脈絡行（收盤/折溢價/AUM…）
     ideas: list = field(default_factory=list)
 
-    @property
-    def header_numbers_text(self) -> str:
-        return self.header
-
 
 def parse_text(md: str) -> ReportDoc:
     lines = md.splitlines()

@@ -17,7 +17,7 @@
 dashboard 會自動讀「最新一份」呈現、標合規燈、萃取加權/櫃買指數進今日重點。
 """
 import sys
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))

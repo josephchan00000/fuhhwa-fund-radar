@@ -7,7 +7,6 @@
 """
 from __future__ import annotations
 
-import statistics
 from datetime import date, timedelta
 
 from . import bt3, bt3d, bt3s, health, store, trades

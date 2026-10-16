@@ -39,6 +39,7 @@ def events() -> dict[str, list[tuple]]:
     return {c: sorted(set(v), key=lambda x: (x[0], x[1])) for c, v in ev.items()}
 
 
+@store.memo("v3me_tw", "v3me_tp")
 def month_end_caps() -> list[tuple[str, dict]]:
     """[(月底日, {代號: 市值})]，上市＋上櫃同月合併，依日期排序。"""
     by: dict[str, tuple[str, dict]] = {}
@@ -146,6 +147,7 @@ class Panel(PT.Px):
 QEND = {1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31"}
 
 
+@store.memo("v3isq")
 def mops_quarterly() -> dict[str, dict]:
     """綜合損益表彙總（當年累計 EPS）→ 單季 {代號: {季底: EPS}}：Q1＝累計、Qn＝累計(n) − 累計(n−1)；前一季缺就不算。"""
     cum: dict[str, dict] = {}

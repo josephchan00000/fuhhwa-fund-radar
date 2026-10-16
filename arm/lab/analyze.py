@@ -360,8 +360,8 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
             if ev.kind == LG.ADD and ev.streak >= 3:
                 strk[i] = max(strk[i], ev.streak)
 
-        c, h, l, o, v = S["c"], S["h"], S["l"], S["o"], S["v"]
-        ma20, ma60 = ta.sma(c, 20), ta.sma(c, 60)
+        c, h, v = S["c"], S["h"], S["v"]
+        ma60 = ta.sma(c, 60)
         v20 = ta.sma(v, 20)
         cl = cost_line.get(code, [None] * T)
         an = act_n.get(code, [0] * T)
@@ -505,7 +505,7 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
         iev[m["is"]].append([ev.date, ev.kind, ev.code, D.names.get(ev.code, ev.code), ev.etf,
                              _lots(ev.conv if ev.kind != LG.EXIT else -ev.s0, tw)])
     for k in iev:
-        iev[k].sort(key=lambda x: (x[0], abs(x[5] or 0)), reverse=True)
+        iev[k].sort(key=lambda x: (x[0], abs(x[5] or 0), x[2], x[4], x[1]), reverse=True)   # 同日同量依代號：每次建頁順序一樣
         iev[k] = iev[k][:300]       # 投信頁依股票彙整新建倉／加碼／減碼／出清檔數，截太短會少算（安聯 5 日就有 212 筆）
     mw_map = {r["c"]: r.get("mw") for r in rows}
     iss_w: dict[str, dict] = defaultdict(lambda: defaultdict(list))
@@ -530,10 +530,13 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
         idx_out = indexes.run(D, L, meta, clock.today_tw())
     except Exception as e:                                # noqa: BLE001 —— 指數區塊失敗不拖垮整頁
         idx_out = {"err": f"{type(e).__name__}: {e}"}
-    # 五年日線只載一次（約 6 秒）：高股息提前卡位研究、資料包策略回測、大盤年線分組共用；失敗不影響其他區塊
-    DL, reg, pack = None, None, {}
+    # 五年日線只載一次（約 6 秒）：高股息提前卡位研究、v3 策略、公司分析小表、大盤年線分組共用；失敗不影響其他區塊。
+    # 資料包策略 P1–P7（packtest.run）不再每次建頁重算（2026-10-16）：頁面只用到長線 P6 對照列與不採用清單，
+    # P1–P7 的成績在 docs/strategy_pack_plan.md，要重看就手動跑 packtest.summary(packtest.run(Data(long=True)), reg)
+    DL, reg = None, None
+    from . import packtest
+    pack: dict = {"rows": [], "skipped": packtest.SKIPPED, "meta": {}}
     try:
-        from . import packtest
         DL = Data(long=True)
         reg = packtest.regime_map(DL)
         ctxd.update({"DL_cal": list(DL.cal), "DL_taiex": DL.taiex(), "DL_taiex_open": DL.taiex_open()})
@@ -547,13 +550,6 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
     except Exception as e:                                # noqa: BLE001
         if isinstance(idx_out.get("hd"), dict):
             idx_out["hd"]["pre"] = {"err": f"{type(e).__name__}: {e}"}
-    # 資料包策略回測（2026-10-15；docs/strategy_pack_plan.md）：相對強勢、趨勢樣板突破、財報驚喜、價值＋動能、短期反轉
-    if DL is not None:
-        try:
-            from . import packtest
-            pack = packtest.summary(packtest.run(DL), reg)
-        except Exception as e:                            # noqa: BLE001
-            pack = {"err": f"{type(e).__name__}: {e}"}
     # 回測方法 v3（2026-10-15；docs/backtest_v3_plan.md）：月營收驚喜、財報驚喜的本期 5 檔與前瞻；研究成績讀 bt3_research.json
     v3, v3ctx = {}, None
     if DL is not None:
@@ -563,6 +559,23 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
             v3ctx = v3.pop("_ctx", None)
         except Exception as e:                            # noqa: BLE001
             v3 = {"err": f"{type(e).__name__}: {e}"}
+    # 公司分析（docs/lab_company_plan.md 第 3.4 節）：全市場每日小表（飆股特徵、估值、體質）→ page.build 另存 x9t.json
+    mtab: dict = {}
+    sx: dict = {}
+    if DL is not None:
+        try:
+            from . import company
+            from . import superx as SX
+            res = SX.load_res()                           # 飆股研究結果（scripts/run_super.py）；沒有就只有小表
+            mtab = company.market_table(DL, rules=[c for _, c in SX.live_rules(res)])
+            hits = mtab.pop("hits", {})
+            mcols, mrows = mtab.get("cols") or [], mtab.get("rows") or {}     # 別叫 rows：後面頁面列表用這個名字
+            sx = SX.page_data(res, hits, {c: dict(zip(mcols, mrows[c])) for c in hits if c in mrows},
+                              {**company.names(), **(D.names or {})})
+            if sx:
+                sx["d"] = mtab.get("d")
+        except Exception as e:                            # noqa: BLE001
+            mtab = {"err": f"{type(e).__name__}: {e}"}
     DL = None
     stats = backtest.signal_stats(D, sig_hist, taiex)
     from . import strategy
@@ -635,9 +648,9 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
     }
     return {"asof": asof, "etfs": meta, "rows": rows, "ser": ser,
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
-            "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow, "ca": L.ca[-30:],
-            "idx": idx_out, "strat": strat, "grow": grow, "adv": adv, "pack": pack, "hl": hl, "opt": opt,
-            "dates": D.cal[-CHART_N:]}
+            "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow,
+            "idx": idx_out, "strat": strat, "grow": grow, "adv": adv, "hl": hl, "opt": opt,
+            "mtab": mtab, "sx": sx, "dates": D.cal[-CHART_N:]}
 
 
 def _take_full(strat: dict, grow: dict, v3: dict | None = None) -> dict:

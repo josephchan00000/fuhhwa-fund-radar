@@ -301,37 +301,6 @@ def _twse_inst_all(d: date, diag: list | None = None) -> tuple[dict | None, str]
     return None, ""
 
 
-def _twse_inst_all_legacy(d: date) -> dict | None:
-    """（保留舊簽名供既有測試／呼叫端使用）"""
-    doc = factcheck._get_json(f"https://www.twse.com.tw/rwd/zh/fund/BFI82U"
-                              f"?type=day&dayDate={d:%Y%m%d}&response=json")
-    if not isinstance(doc, dict) or doc.get("stat") != "OK":
-        return None
-    out = {"foreign": None, "trust": 0.0, "dealer": 0.0, "total": None}
-    got_dealer = got_trust = False
-    try:
-        for row in doc.get("data") or []:
-            name = str(row[0])
-            diff = float(str(row[3]).replace(",", "")) / 1e8      # 官方單位元 → 億
-            # 外資列名為「外資及陸資(不含外資自營商)」——含「自營」字樣，故以獨有的「陸資」二字辨識，
-            # 不可用「自營 not in name」（會誤殺，factcheck 舊版同坑）。「外資自營商」不含「陸資」→ 不誤收。
-            if "陸資" in name:
-                out["foreign"] = round((out["foreign"] or 0.0) + diff, 2)
-            elif "投信" in name:
-                out["trust"] = round(out["trust"] + diff, 2); got_trust = True
-            elif "自營商" in name and "外資" not in name:          # 自行買賣＋避險兩列（不含外資自營商）
-                out["dealer"] = round(out["dealer"] + diff, 2); got_dealer = True
-            elif name.strip() == "合計":
-                out["total"] = round(diff, 2)
-    except Exception:
-        return None
-    if not got_trust:
-        out["trust"] = None
-    if not got_dealer:
-        out["dealer"] = None
-    return out if any(v is not None for v in out.values()) else None
-
-
 def _twse_margin(d: date) -> tuple[float, float] | None:
     """TWSE MI_MARGN（上市信用交易統計，selectType=MS）→ (融資餘額(億), 融券餘額(張))。
     官方融資金額單位＝仟元 → ÷1e5 轉億；融券單位＝交易單位（張）。"""

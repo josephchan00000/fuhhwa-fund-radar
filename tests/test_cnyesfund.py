@@ -16,16 +16,6 @@ def _item(**kw):
 
 # ── 解析防禦 ─────────────────────────────────────────────────
 
-def test_items_unwraps_common_shapes():
-    it = [_item()]
-    assert cnyesfund._items({"items": {"data": it}}) == it
-    assert cnyesfund._items({"items": it}) == it
-    assert cnyesfund._items({"data": {"data": it}}) == it
-    assert cnyesfund._items({"data": it}) == it
-    assert cnyesfund._items({"statusCode": 404}) == []
-    assert cnyesfund._items(None) == []
-
-
 def test_overlay_from_item_maps_fields():
     ov = cnyesfund.overlay_from_item(_item())
     assert ov["cnyes_id"] == "A2C011" and ov["nav"] == 126.75

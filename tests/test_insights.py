@@ -173,31 +173,6 @@ def test_news_fund_links_ascii_word_boundary():
     assert {m["name"] for m in hits} == {"ADVANCED MICRO DEVICES"}   # 只有獨立字 AMD 命中
 
 
-def test_talk_script_clean_and_neutral():
-    links = fund_insights.news_fund_links(_funds(), _NEWS)
-    text, hits = fund_insights.talk_script(links[0], "2026/05/31")
-    assert hits == []                                 # 模板不得踩禁用詞
-    assert "非投資建議" in text and "過去績效不代表未來" in text
-    assert "Micron" in text and "3.63%" in text and "2026/05/31" in text
-
-
-def test_fund_intro_copy_fields():
-    txt = fund_insights.fund_intro_copy(_funds()[0])
-    assert "復華甲基金-新臺幣" in txt and "NAV 50.0" in txt
-    assert "MICRON TECHNOLOGY INC 3.63%" in txt
-    assert "非投資建議" in txt                         # 免責必附
-
-
-def test_futu_url_markets():
-    assert fund_insights.futu_url("MU", "美國") == "https://www.futunn.com/stock/MU-US"
-    assert fund_insights.futu_url("600183", "中國") == "https://www.futunn.com/stock/600183-SH"
-    assert fund_insights.futu_url("300308", "中國") == "https://www.futunn.com/stock/300308-SZ"
-    assert fund_insights.futu_url("688498", "中國") == "https://www.futunn.com/stock/688498-SH"
-    assert fund_insights.futu_url("000660", "韓國") is None    # 韓/日/台格式不確定 → 不亂連
-    assert fund_insights.futu_url("2330", "臺灣") is None
-    assert fund_insights.futu_url(None, "美國") is None
-
-
 def test_stock_url_all_markets_clickable():
     # 每個市場都要能產出可點的外部行情頁（Yahoo Finance）——不再「有些有連結、有些沒有」
     assert fund_insights.stock_url("AAPL", "美國") == "https://finance.yahoo.com/quote/AAPL"

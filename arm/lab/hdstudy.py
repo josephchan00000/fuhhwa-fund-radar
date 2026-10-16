@@ -27,7 +27,6 @@
 from __future__ import annotations
 
 import json
-import math
 import statistics
 from datetime import date
 from pathlib import Path

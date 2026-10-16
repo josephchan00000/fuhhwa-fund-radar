@@ -5,8 +5,6 @@
 """
 from __future__ import annotations
 
-from datetime import date
-
 from ..http import _cache_path, get_json
 
 ALL_URL = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"

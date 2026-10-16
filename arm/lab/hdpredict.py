@@ -18,7 +18,6 @@
 """
 from __future__ import annotations
 
-import math
 import statistics
 from datetime import date, timedelta
 
@@ -134,7 +133,7 @@ def buffer_select(ranked: list[str], pre: set, n: int, top_in: int, keep_rank: i
         sel += rest[:n - len(sel)]
     sel = sel[:n]
     adds = sorted((c for c in sel if c not in pre), key=lambda c: rk[c])
-    dels = sorted((c for c in pre if c not in sel), key=lambda c: -rk.get(c, 10 ** 6))   # 不合格（無名次）最先刪
+    dels = sorted((c for c in pre if c not in sel), key=lambda c: (-rk.get(c, 10 ** 6), c))   # 不合格（無名次）最先刪；同名次依代號（pre 是集合，順序要固定）
     if max_chg is not None and len(adds) > max_chg:
         extra = len(adds) - max_chg
         adds = adds[:max_chg]
@@ -188,13 +187,13 @@ def tip_hd_select(cx: Ctx, d: str, pre: set, month: int, n: int = 40) -> dict:
     for grp, need in ((top50, 7), (top150, 20)):            # 市值配額：不足就把名次最差的非配額股換成配額股
         while sum(1 for c in sel if c in grp) < need:
             cand = [c for c in ranked if c in grp and c not in sel]
-            out = [c for c in sorted(sel, key=lambda c: -rk.get(c, 10 ** 6)) if c not in grp]
+            out = [c for c in sorted(sel, key=lambda c: (-rk.get(c, 10 ** 6), c)) if c not in grp]
             if not cand or not out:
                 break
             sel.remove(out[0])
             sel.append(cand[0])
-    adds = sorted((c for c in sel if c not in pre), key=lambda c: rk.get(c, 10 ** 6))
-    dels = sorted((c for c in pre if c not in sel), key=lambda c: -rk.get(c, 10 ** 6))
+    adds = sorted((c for c in sel if c not in pre), key=lambda c: (rk.get(c, 10 ** 6), c))
+    dels = sorted((c for c in pre if c not in sel), key=lambda c: (-rk.get(c, 10 ** 6), c))
     return {"ranked": ranked, "info": info, "sel": sel, "adds": adds, "dels": dels}
 
 
@@ -273,10 +272,10 @@ def tw_div_select(cx: Ctx, d: str, pre: set, n: int = 50, max_chg: int | None = 
     ranked = sorted(score, key=lambda c: -score[c])
     rk = {c: k + 1 for k, c in enumerate(ranked)}
     adds = [c for c in ranked if c not in pre and rk[c] <= 35]
-    dels = sorted((c for c in pre if rk.get(c, 10 ** 6) >= 66), key=lambda c: -rk.get(c, 10 ** 6))
+    dels = sorted((c for c in pre if rk.get(c, 10 ** 6) >= 66), key=lambda c: (-rk.get(c, 10 ** 6), c))
     if max_chg is not None:
         adds, dels = adds[:max_chg], dels[:max_chg]
-    sel = [c for c in pre if c not in dels] + adds
+    sel = [c for c in sorted(pre) if c not in dels] + adds
     while len(sel) < n:                                         # 不足 50 → 補名次最高的非成分股
         cand = [c for c in ranked if c not in sel]
         if not cand:

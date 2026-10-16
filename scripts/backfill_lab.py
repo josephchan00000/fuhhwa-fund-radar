@@ -36,6 +36,8 @@ def main() -> None:
     ap.add_argument("--rev-fm", action="store_true", help="月營收全市場歷史備援：FinMind 逐檔（五年日線宇宙，2020-01 起）")
     ap.add_argument("--v3", action="store_true", help="回測 v3 長歷史資料（2013 起、含下市、含息、月底市值；五條線平行，可重跑續補）")
     ap.add_argument("--names", action="store_true", help="已下市公司名稱（逐筆交易顯示用）→ data/lab/names_hist.json")
+    ap.add_argument("--fs", action="store_true", help="公司財報分析：MOPS 綜合損益＋資產負債彙總全部科目（2013 起，可重跑續補）")
+    ap.add_argument("--probe-fs", action="store_true", help="公司財報分析資料源探針（MOPS 彙總表、FinMind CORS），只印不寫")
     ap.add_argument("--probe-v3", action="store_true", help="回測 v3 資料源探針（報酬指數、櫃買除權息、2012 起月營收、"
                     "Yahoo 長歷史與下市股、FinMind EPS／發行股數），只印不寫")
     a = ap.parse_args()
@@ -51,6 +53,13 @@ def main() -> None:
     if a.v3:
         from arm.lab import v3data
         v3data.run(budget_s=a.budget_min * 60)
+        return
+    if a.probe_fs:
+        market.probe_fs()
+        return
+    if a.fs:
+        from arm.lab import v3data
+        print(f"[lab] 財報彙總全部科目：{v3data.update_fs(budget_s=a.budget_min * 60, workers=4)}")
         return
     if a.probe_v3:
         market.probe_v3b() if "b" in (os.environ.get("LAB_MODE") or "") else market.probe_v3()
