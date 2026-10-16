@@ -20,7 +20,7 @@ _SPEC.loader.exec_module(af)
 
 _MON = date(2026, 8, 3)                       # 週一（實際踩坑日）
 _CAL_OK = "> 更新：2026/08/03；市況：台股 正常交易｜美股 正常交易｜日股 正常交易；後市焦點…"
-_CAL_CLOSED = "> 更新：2026/10/10；市況：台股 10/10 因國慶日休市｜美股 正常交易；…"
+_CAL_CLOSED = "> 更新：2026/10/09；市況：台股 10/9 因國慶日補假休市｜美股 正常交易；…"
 
 
 def _tw(y, m, d, hh, mm):
@@ -45,6 +45,17 @@ def test_trading_day_平日且市況正常():
 
 def test_trading_day_市況寫休市就不是交易日():
     assert af.is_trading_day(date(2026, 10, 9), _CAL_CLOSED) is False
+
+
+def test_trading_day_預告明天休市不影響今天():
+    cal = "> 更新：2026/09/24；市況：台股 9/25 因中秋節休市｜美股 正常交易；…"
+    assert af.is_trading_day(date(2026, 9, 24), cal) is True
+    assert af.is_trading_day(date(2026, 9, 25), cal) is False
+
+
+def test_trading_day_休市未寫日期視為當日():
+    # 官方休市表涵蓋的年份以官方為準，故用未涵蓋的年份驗證市況段退回邏輯
+    assert af.is_trading_day(date(2030, 3, 4), "> 市況：台股 休市｜美股 正常交易；") is False
 
 
 def test_trading_day_週末一律非交易日():
