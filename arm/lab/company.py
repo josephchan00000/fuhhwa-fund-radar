@@ -176,11 +176,15 @@ def _pct(x, d=1):
     return None if x is None else round(x * 100, d)
 
 
-def market_table(DL, today_ix: int | None = None) -> dict:
-    """最新交易日全市場：飆股特徵（superx，與研究同一套）＋估值與體質 → {"d", "cols", "rows": {代號: [...]}}。"""
+def market_table(DL, today_ix: int | None = None, rules: list | None = None) -> dict:
+    """最新交易日全市場：飆股特徵（superx，與研究同一套）＋估值與體質 → {"d", "cols", "rows": {代號: [...]}}。
+    rules＝研究定案的規則（[(代號, [條件…])]）→ 另回 "hits"：{代號: [規則序號]}（只算研究樣本條件內的股票）。
+    市值：合格判斷用最近月底快照（同研究）；表上的市值欄用當天收盤 × 發行股數。
+    一年價格不夠算技術面的股票（多半是 40 億以下的小股票）只放基本面欄位。"""
+    import bisect
+    from . import bt3d, v3data
     from . import packtest as PT
     from . import superx as SX
-    from . import v3data
     lst = listed_now()
     iss = DL.issued()
     P = PT.Px(DL, [c for c in sorted(lst) if c in iss], iss)
@@ -188,15 +192,31 @@ def market_table(DL, today_ix: int | None = None) -> dict:
     i = len(cal) - 1 if today_ix is None else today_ix
     while i > 0 and not any((P.s[c]["c"][i] for c in P.codes[:200])):
         i -= 1                                           # 最後一天還沒有官方收盤 → 往前一天
+    snaps = bt3d.month_end_caps()
+    sd = [d for d, _ in snaps]
+    k_me = bisect.bisect_right(sd, cal[i]) - 1
+    for c in P.codes:                                    # 合格判斷的市值口徑同研究（最近月底快照）
+        P.cap[c] = [None] * len(cal)
+        P.cap[c][i] = snaps[k_me][1].get(c) if k_me >= 0 else None
     pxs = {c: SX.Px(P.s[c], cal) for c in P.codes}
     fs = v3data.load_fs()
-    from . import bt3d
     eps = bt3d.mops_quarterly()
     rev = PT.load_rev()
     funds = {c: SX.Fund(quarters(fs.get(c), eps.get(c)), rev.get(c) or {}) for c in P.codes}
     qs, rf = SX.avail_index(cal)
     qitems = sorted((t, q) for q, t in qs.items())
     F = SX.feats_on(i, P, pxs, funds, qitems, rf, all_rows=True)
+    q = SX.latest_q(qitems, i)
+    kr = bisect.bisect_right([t for t, _ in rf], i) - 1
+    ym = rf[kr][1] if kr >= 0 else None
+    for c in P.codes:                                    # 技術面算不出來的：只放基本面
+        if c in F:
+            continue
+        fd = funds[c]
+        f = {"cap": P.cap[c][i], "liq": P.liq[c][i], "el": False}
+        f.update(fd.m_feats(ym if ym in fd.rv else None))
+        f.update(fd.q_feats(q if q in fd.fq else None))
+        F[c] = f
     dv = dividends()
     from datetime import date, timedelta
     d0 = (date.fromisoformat(cal[i]) - timedelta(days=365)).isoformat()
@@ -205,15 +225,15 @@ def market_table(DL, today_ix: int | None = None) -> dict:
         s = P.s[c]
         px, p0 = s["c"][i], s["c"][i - 1] if i > 0 else None
         fq = funds[c].fq
-        q = SX.latest_q(qitems, i)
         qq = sorted(x for x in fq if q is None or x <= q)
         e4 = [fq[x].get("eps") for x in qq[-4:]] if len(qq) >= 4 else []
         ttm = sum(e4) if len(e4) == 4 and all(v is not None for v in e4) else None
         last = fq[qq[-1]] if qq else {}
         bv, ta, tl, ca, cl = (last.get(k) for k in ("bvps", "ta", "tl", "ca", "cl"))
         cash = sum(x[1] for x in dv.get(c, []) if x[0] >= d0 and x[0] <= cal[i] and x[1])
+        cap_now = px * iss[c] if px and iss.get(c) else None
         rows[c] = [round(px, 2) if px else None, _pct(px / p0 - 1, 2) if px and p0 else None,
-                   round(f["cap"] / 1e8, 1) if f.get("cap") else None, f.get("tt_n"), f.get("rs"),
+                   round(cap_now / 1e8, 1) if cap_now else None, f.get("tt_n"), f.get("rs"),
                    _pct(f.get("d52h")), _pct(f.get("r120")), _pct(f.get("ry")), _pct(f.get("ry3")),
                    _pct(f.get("racc")), f.get("rnh12"), _pct(f.get("ey")), _pct(f.get("eacc")), _pct(f.get("gm")),
                    _pct(f.get("gmd")), _pct(f.get("om")), _pct(f.get("omd")), f.get("c33"), _pct(f.get("roe")),
@@ -224,8 +244,13 @@ def market_table(DL, today_ix: int | None = None) -> dict:
                    round(ca / cl, 2) if ca is not None and cl else None,
                    round(f["liq"] / 1e8, 2) if f.get("liq") else None, f.get("el"),
                    "".join("1" if x else "0" for x in f.get("tt") or [])]
-    return {"d": cal[i], "cols": list(TCOLS), "rows": rows, "q": SX.latest_q(qitems, i),
-            "ym": (rf[max(0, __import__("bisect").bisect_right([t for t, _ in rf], i) - 1)][1] if rf else None)}
+    hits: dict = {}
+    for n, conds in enumerate(rules or []):
+        pr = SX.rule_pred([tuple(x) for x in conds])
+        for c, f in F.items():
+            if f.get("el") and pr(f):
+                hits.setdefault(c, []).append(n)
+    return {"d": cal[i], "cols": list(TCOLS), "rows": rows, "q": q, "ym": ym, "hits": hits}
 
 
 def write_table(tab: dict, out: Path = OUT_T) -> bool:

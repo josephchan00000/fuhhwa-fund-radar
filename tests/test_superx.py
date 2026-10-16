@@ -4,9 +4,9 @@ from arm.lab import superx as SX
 
 def test_spec_locked():
     """第 4 節的定義與門檻事前寫定；要改＝ VER＋1 並在文件寫日期與原因。"""
-    assert SX.VER == 1
+    assert SX.VER == 2                                  # v2：加市值下限與體質檢查（文件第 4.2、4.6 節）
     assert SX.LABELS == {"A": (60, 0.5), "B": (250, 1.0)}
-    assert (SX.LIQ_MIN, SX.AGE_MIN) == (1e7, 60)
+    assert (SX.LIQ_MIN, SX.AGE_MIN, SX.CAP_MIN) == (1e7, 60, 40e8)
     assert (SX.IS, SX.VAL, SX.HO) == (("2014-01-01", "2019-12-31"), ("2020-01-01", "2022-12-31"),
                                       ("2023-01-01", "9999-12-31"))
     assert SX.RULE == {"lift": 2.0, "n": 300, "pos": 50, "sub_lift": 1.5, "val_lift": 1.5, "max_k": 3,
@@ -95,3 +95,60 @@ def test_rs_pct_and_rules():
     assert ev["p"] == 1.0 and ev["lift"] > 2
     assert SX.cond_text(("ry", ">=", 0.25)) == "最新月營收年增 ≥ +25.0%"
     assert SX.cond_text(("tt_all", "=", True)) == "趨勢樣板 8 項全過"
+
+
+def _rows(n=2000):
+    """合成樣本：rs ≥ 80 且 ry ≥ 0.5 的有八成是飆股，其餘一成。"""
+    import random
+    rnd = random.Random(7)
+    rows = []
+    for k in range(n):
+        f = {"rs": rnd.randint(1, 99), "ry": rnd.random(), "tt_all": rnd.random() < 0.5, "ey": rnd.random() - 0.2}
+        hot = f["rs"] >= 80 and f["ry"] >= 0.5
+        y = rnd.random() < (0.8 if hot else 0.1)
+        d = f"{2014 + k % 6}-0{1 + k % 9}-1{k % 10}"
+        rows.append({"c": str(k % 300), "d": d, "f": f,
+                     "y": {"A": {"y": y, "mx": 0.6 if y else 0.1, "dd": -0.1, "fr": 0.2}, "B": None if k % 50 == 0 else
+                           {"y": y, "mx": 1.1 if y else 0.2, "dd": -0.2, "fr": 0.3}}})
+    return rows
+
+
+def test_bitsets_match_row_by_row():
+    """位元集合版本和逐列計算結果一樣。"""
+    rows = _rows()
+    conds = [("rs", ">=", 80), ("ry", ">=", 0.5)]
+    pr = SX.rule_pred(conds)
+    sel = [r for r in rows if r["y"]["B"] is not None and pr(r["f"])]
+    ev = SX.eval_rule(rows, "B", conds)
+    assert ev["n"] == len(sel) and ev["pos"] == sum(1 for r in sel if r["y"]["B"]["y"])
+    valid = [r for r in rows if r["y"]["B"] is not None]
+    assert abs(SX.base_rate(rows, "B") - sum(1 for r in valid if r["y"]["B"]["y"]) / len(valid)) < 1e-12
+    assert list(SX.ones(SX.pack([True, False, True, True]))) == [0, 2, 3]
+
+
+def test_mine_rules_finds_planted_rule_and_select_dedups():
+    rows = _rows(6000)
+    ft = SX.feature_table(rows, "A")
+    assert ft["feats"]["rs"]["groups"][-1]["lift"] > 1.5
+    conds = SX.candidate_conds(ft)
+    rules, tried = SX.mine_rules(rows, "A", conds)
+    assert tried > 0 and rules
+    best = max(rules, key=lambda r: r["is"]["lift"])
+    assert {c[0] for c in best["conds"]} >= {"rs", "ry"}
+    fin = SX.select_final(rules, rows, "A")
+    assert 1 <= len(fin) <= SX.KEEP_FINAL
+    assert "mx_med" in fin[0]["val"]
+
+
+def test_checks_match_page_and_stats():
+    """體質檢查 11 項：研究（CHECKS）與頁面（copage.SXCK）同一份；統計含每項與「符合幾項」。"""
+    import re
+    from arm.lab import copage
+    page = re.findall(r"\['(\w+)','([^']+)',r=>", copage.JS)
+    assert page == [(k, t) for k, t, *_ in SX.CHECKS]
+    rows = _rows(600)
+    for r in rows:
+        r["f"].update({"tt_all": True, "d52h": -0.1})
+    st = SX.check_stats(rows)
+    assert st["items"]["h25"]["A"]["n"] == len(rows) and st["items"]["tt8"]["B"]["n"] == len(rows) - 12
+    assert sum(x["n"] for x in st["count"]["A"]["rows"]) == len(rows)

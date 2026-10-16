@@ -17,10 +17,12 @@ import math
 from itertools import combinations
 
 # ── 事前寫定（docs/lab_company_plan.md 第 4 節；改任何一個數字＝新版本，日期與原因寫進文件） ──────────
-VER = 1
+VER = 2                                           # v2（2026-10-16，還沒看任何結果）：加 CAP_MIN 與 CHECKS，原因見文件第 4.2 節
 LABELS = {"A": (60, 0.5), "B": (250, 1.0)}        # 之後 N 個交易日內最高價（還原）≥ 收盤 × (1+g)
 LIQ_MIN = 1e7                                     # 近 20 日平均成交值（元）
 AGE_MIN = 60                                      # 上市滿幾個交易日
+CAP_MIN = 40e8                                    # 最近月底市值（元）：v3px 只收「曾經月底市值 ≥40 億」的股票，
+                                                  # 低於這個的小股票只有日後長大的才在資料裡（用未來挑樣本）
 IS = ("2014-01-01", "2019-12-31")
 VAL = ("2020-01-01", "2022-12-31")
 HO = ("2023-01-01", "9999-12-31")
@@ -54,6 +56,21 @@ FEATS = [
     ("roe", "近四季 ROE", "num"),
     ("cap", "市值", "num"),
     ("liq", "20 日平均成交值", "num"),
+]
+# 飆股體質檢查：《超級績效》的固定條件（不是從資料挑的），頁面 copage.SXCK 同一份（tests 守）。
+# 研究只算「過去符合時之後變飆股的比例」與「符合幾項」各組的比例，不拿來選規則。
+CHECKS = [
+    ("ey25", "最新季 EPS 年增 ≥ 25%", "ey", ">=", 0.25),
+    ("eacc", "EPS 年增比上一季高（加速）", "eacc", ">", 0),
+    ("ry25", "近 3 月營收年增 ≥ 25%", "ry3", ">=", 0.25),
+    ("racc", "營收年增加速", "racc", ">", 0),
+    ("rnh", "月營收創 12 個月新高", "rnh12", "=", True),
+    ("gmd", "毛利率比去年同季高", "gmd", ">", 0),
+    ("c33", "Code 33：EPS、營收、毛利率連三季加速", "c33", "=", True),
+    ("roe15", "近四季 ROE ≥ 15%", "roe", ">=", 0.15),
+    ("tt8", "趨勢樣板 8 項全過", "tt_all", "=", True),
+    ("rs80", "RS ≥ 80", "rs", ">=", 80),
+    ("h25", "股價在 52 週高點 25% 以內", "d52h", ">=", -0.25),
 ]
 FK = [k for k, _, _ in FEATS]
 FTYPE = {k: t for k, _, t in FEATS}
@@ -293,7 +310,7 @@ def rs_pct(scores: dict[str, float]) -> dict[str, int]:
 
 def feats_on(i: int, P, pxs: dict, funds: dict, qitems, rf_items, codes=None, all_rows: bool = False) -> dict[str, dict]:
     """第 i 天收盤時的特徵 {代號: {特徵}}（同一套給研究與每日候選用）。
-    合格（近 20 日均成交值 ≥ LIQ_MIN、上市滿 AGE_MIN 天）的股票互相排 RS；all_rows＝True 時不合格的也算，
+    合格（近 20 日均成交值 ≥ LIQ_MIN、最近月底市值 ≥ CAP_MIN、上市滿 AGE_MIN 天）的股票互相排 RS；all_rows＝True 時不合格的也算，
     RS 以合格股票的分布換算、特徵多一欄 el＝False（規則只看合格的）。"""
     raw, el = {}, set()
     for c in (codes or pxs):
@@ -302,7 +319,9 @@ def feats_on(i: int, P, pxs: dict, funds: dict, qitems, rf_items, codes=None, al
         if r is None:
             continue
         lq = (P.liq.get(c) or [None] * (i + 1))[i]
-        ok = lq is not None and lq >= LIQ_MIN and px.first is not None and i - px.first >= AGE_MIN
+        cp = (P.cap.get(c) or [None] * (i + 1))[i]
+        ok = (lq is not None and lq >= LIQ_MIN and cp is not None and cp >= CAP_MIN
+              and px.first is not None and i - px.first >= AGE_MIN)
         if not ok and not all_rows:
             continue
         raw[c] = r
@@ -347,6 +366,9 @@ def _last_q_le(fq: dict, q: str | None):
 
 
 # ── 研究：十等分、規則、驗證 ───────────────────────────────────────────────────
+# 樣本列＝{"c": 代號, "d": 日期, "f": {特徵}, "y": {標籤: {"y", "mx", "dd", "fr"} 或 None}}。
+# 條件、標籤、期間都換成「整數位元集合」（第 j 位＝第 j 列），組合用 AND、計數用 bit_count——
+# 六十萬列 × 數千個條件組合在純 Python 逐列算要好幾個小時，位元集合幾秒鐘。
 def in_rng(d: str, rng) -> bool:
     return rng[0] <= d <= rng[1]
 
@@ -362,29 +384,97 @@ def bucket(x, cuts):
     return bisect.bisect_right(cuts, x)
 
 
+def pack(flags) -> int:
+    """[真假…] → 位元集合（線性時間；逐位 |= 會是平方時間）。"""
+    ba = bytearray((len(flags) + 7) // 8)
+    for j, x in enumerate(flags):
+        if x:
+            ba[j >> 3] |= 1 << (j & 7)
+    return int.from_bytes(ba, "little")
+
+
+def ones(x: int):
+    """位元集合裡為 1 的位置（由小到大）。"""
+    b = x.to_bytes((x.bit_length() + 7) // 8, "little")
+    for bi, byte in enumerate(b):
+        if byte:
+            for k in range(8):
+                if byte >> k & 1:
+                    yield bi * 8 + k
+
+
+class Bits:
+    """一組樣本列對某個標籤的位元集合：有標籤的列（valid）、標籤為真的列（y）、條件與期間（快取）。"""
+
+    def __init__(self, rows: list, lab: str):
+        self.rows, self.lab = rows, lab
+        ys = [r["y"].get(lab) for r in rows]
+        self.valid = pack([t is not None for t in ys])
+        self.y = pack([t is not None and bool(t["y"]) for t in ys])
+        self._c: dict = {}
+
+    def cond(self, cond) -> int:
+        if cond not in self._c:
+            pr = cond_pred(cond)
+            self._c[cond] = pack([pr(r["f"]) for r in self.rows])
+        return self._c[cond]
+
+    def rule(self, conds) -> int:
+        m = self.valid
+        for c in conds:
+            m &= self.cond(tuple(c))
+        return m
+
+    def period(self, rng) -> int:
+        key = ("_p",) + tuple(rng)
+        if key not in self._c:
+            self._c[key] = pack([in_rng(r["d"], rng) for r in self.rows])
+        return self._c[key]
+
+    def year(self, y: str) -> int:
+        return self.period((f"{y}-01-01", f"{y}-12-31"))
+
+    def count(self, m: int) -> tuple[int, int]:
+        """(樣本數, 飆股數)。"""
+        m &= self.valid
+        return m.bit_count(), (m & self.y).bit_count()
+
+
+_BITS: dict = {}
+
+
+def bits(rows: list, lab: str) -> Bits:
+    """同一組列、同一個標籤只建一次（快取存列本身，確認是同一個物件）。"""
+    k = (id(rows), lab)
+    b = _BITS.get(k)
+    if b is None or b.rows is not rows or len(b.rows) != len(rows):
+        b = _BITS[k] = Bits(rows, lab)
+    return b
+
+
 def stats(rows: list, lab: str, pred) -> dict:
-    n = pos = 0
-    for r in rows:
-        y = r["y"].get(lab)
-        if y is None or not pred(r["f"]):
-            continue
-        n += 1
-        pos += 1 if y["y"] else 0
+    B = bits(rows, lab)
+    n, pos = B.count(pack([bool(pred(r["f"])) for r in rows]))
     return {"n": n, "pos": pos, "p": pos / n if n else None}
 
 
 def base_rate(rows: list, lab: str) -> float | None:
-    s = stats(rows, lab, lambda f: True)
-    return s["p"]
+    if not rows:
+        return None
+    B = bits(rows, lab)
+    n, pos = B.count(B.valid)
+    return pos / n if n else None
 
 
 def cond_pred(cond):
-    """cond＝(特徵, '>=', 門檻) 或 (特徵, '<=', 門檻) 或 (特徵, '=', True)。"""
+    """cond＝(特徵, '>=', 門檻) 或 (特徵, '<=', 門檻) 或 (特徵, '>', 門檻) 或 (特徵, '=', True)。"""
     k, op, v = cond
     if op == ">=":
         return lambda f: f.get(k) is not None and f[k] >= v
     if op == "<=":
         return lambda f: f.get(k) is not None and f[k] <= v
+    if op == ">":
+        return lambda f: f.get(k) is not None and f[k] > v
     return lambda f: f.get(k) is True
 
 
@@ -395,31 +485,41 @@ def rule_pred(conds):
 
 def feature_table(rows_is: list, lab: str) -> dict:
     """每個特徵：十等分（或是／否）的樣本數、命中率、提升倍數、逐年提升倍數。"""
-    br = base_rate(rows_is, lab) or 0
+    B = bits(rows_is, lab)
+    n_all, p_all = B.count(B.valid)
+    br = p_all / n_all if n_all else 0
     years = sorted({r["d"][:4] for r in rows_is})
-    br_y = {y: base_rate([r for r in rows_is if r["d"][:4] == y], lab) for y in years}
+    ym = {y: B.year(y) for y in years}
+    br_y = {}
+    for y in years:
+        n, pos = B.count(ym[y])
+        br_y[y] = pos / n if n else None
+    vd = list(ones(B.valid))
     out = {}
     for k, nm, typ in FEATS:
-        vals = [r["f"][k] for r in rows_is if r["f"].get(k) is not None and r["y"].get(lab) is not None]
+        vals = [rows_is[j]["f"][k] for j in vd if rows_is[j]["f"].get(k) is not None]
         if typ == "bool":
-            groups = [("否", lambda f, k=k: f.get(k) is False), ("是", lambda f, k=k: f.get(k) is True)]
+            names = ["否", "是"]
             cuts = None
+            idx = [None if r["f"].get(k) is None else (1 if r["f"][k] is True else 0) for r in rows_is]
         else:
             cuts = deciles(vals)
             if not cuts:
                 continue
-            groups = [(f"D{j + 1}", (lambda f, j=j, k=k, cuts=cuts: f.get(k) is not None and bucket(f[k], cuts) == j))
-                      for j in range(10)]
+            names = [f"D{j + 1}" for j in range(10)]
+            idx = [None if r["f"].get(k) is None else bucket(r["f"][k], cuts) for r in rows_is]
         g_out = []
-        for gn, pr in groups:
-            s = stats(rows_is, lab, pr)
+        for j, gn in enumerate(names):
+            m = pack([x == j for x in idx])
+            n, pos = B.count(m)
             ly = {}
             for y in years:
-                sy = stats([r for r in rows_is if r["d"][:4] == y], lab, pr)
-                if sy["n"] >= 30 and br_y[y]:
-                    ly[y] = round(sy["p"] / br_y[y], 2)
-            g_out.append({"g": gn, "n": s["n"], "pos": s["pos"], "p": _r(s["p"]),
-                          "lift": _r(s["p"] / br) if s["p"] is not None and br else None, "ly": ly})
+                ny, py = B.count(m & ym[y])
+                if ny >= 30 and br_y[y]:
+                    ly[y] = round(py / ny / br_y[y], 2)
+            p_ = pos / n if n else None
+            g_out.append({"g": gn, "n": n, "pos": pos, "p": _r(p_), "lift": _r(p_ / br) if p_ is not None and br else None,
+                          "ly": ly})
         out[k] = {"name": nm, "type": typ, "cuts": [_r(x, 4) for x in cuts] if cuts else None, "groups": g_out,
                   "n": len(vals)}
     return {"base": _r(br), "base_y": {y: _r(v) for y, v in br_y.items()}, "feats": out}
@@ -455,83 +555,114 @@ def candidate_conds(ftab: dict) -> list[tuple]:
     return conds
 
 
-def mine_rules(rows_is: list, lab: str, conds: list[tuple]) -> list[dict]:
-    """2～3 個條件的組合（同一特徵不重複）→ 樣本內門檻（RULE）。"""
-    br = base_rate(rows_is, lab) or 0
-    subs = [[r for r in rows_is if in_rng(r["d"], s)] for s in SUBS]
-    br_s = [base_rate(x, lab) or 0 for x in subs]
-    # 先把每個條件在每一列的結果算好（快很多）
-    rows = [r for r in rows_is if r["y"].get(lab) is not None]
-    ys = [1 if r["y"][lab]["y"] else 0 for r in rows]
-    sub_ix = [0 if in_rng(r["d"], SUBS[0]) else 1 if in_rng(r["d"], SUBS[1]) else -1 for r in rows]
-    hit = []
-    for c in conds:
-        p = cond_pred(c)
-        hit.append([p(r["f"]) for r in rows])
+def mine_rules(rows_is: list, lab: str, conds: list[tuple]) -> tuple[list[dict], int]:
+    """2～3 個條件的組合（同一特徵不重複）→ 樣本內門檻（RULE）。回傳（通過的規則, 試了幾個組合）。"""
+    B = bits(rows_is, lab)
+    n_all, p_all = B.count(B.valid)
+    br = p_all / n_all if n_all else 0
+    sm = [B.period(s) for s in SUBS]
+    br_s = []
+    for m in sm:
+        n, pos = B.count(m)
+        br_s.append(pos / n if n else 0)
+    cm = [B.cond(tuple(c)) & B.valid for c in conds]
     out, tried = [], 0
     for k in (2, 3):
         for combo in combinations(range(len(conds)), k):
-            ks = {conds[j][0] for j in combo}
-            if len(ks) < k:
+            if len({conds[j][0] for j in combo}) < k:
                 continue
             tried += 1
-            n = pos = 0
-            ns = [0, 0]
-            ps = [0, 0]
-            for i in range(len(rows)):
-                if all(hit[j][i] for j in combo):
-                    n += 1
-                    pos += ys[i]
-                    s = sub_ix[i]
-                    if s >= 0:
-                        ns[s] += 1
-                        ps[s] += ys[i]
+            m = cm[combo[0]]
+            for j in combo[1:]:
+                m &= cm[j]
+            n, pos = B.count(m)
             if n < RULE["n"] or pos < RULE["pos"] or not br:
                 continue
             lift = pos / n / br
-            sl = [(ps[s] / ns[s] / br_s[s]) if ns[s] and br_s[s] else 0 for s in (0, 1)]
+            sl = []
+            for s, m_s in enumerate(sm):
+                ns, ps = B.count(m & m_s)
+                sl.append(ps / ns / br_s[s] if ns and br_s[s] else 0)
             if lift >= RULE["lift"] and min(sl) >= RULE["sub_lift"]:
-                out.append({"conds": [conds[j] for j in combo], "is": {"n": n, "pos": pos, "p": _r(pos / n),
-                                                                       "lift": _r(lift), "sub": [_r(x) for x in sl]}})
+                out.append({"conds": [conds[j] for j in combo],
+                            "is": {"n": n, "pos": pos, "p": _r(pos / n), "lift": _r(lift), "sub": [_r(x) for x in sl]}})
     return out, tried
 
 
-def eval_rule(rows: list, lab: str, conds) -> dict:
-    """一段期間的命中率、提升倍數、符合後的平均最大漲幅／最大跌幅／期末報酬（中位）。"""
-    br = base_rate(rows, lab) or 0
-    pr = rule_pred(conds)
-    sel = [r for r in rows if r["y"].get(lab) is not None and pr(r["f"])]
-    n = len(sel)
-    pos = sum(1 for r in sel if r["y"][lab]["y"])
-    mx = sorted(r["y"][lab]["mx"] for r in sel)
-    dd = sorted(r["y"][lab]["dd"] for r in sel if r["y"][lab]["dd"] is not None)
-    fr = sorted(r["y"][lab]["fr"] for r in sel if r["y"][lab]["fr"] is not None)
-    med = lambda xs: xs[len(xs) // 2] if xs else None
-    return {"n": n, "pos": pos, "p": _r(pos / n) if n else None, "base": _r(br),
-            "lift": _r(pos / n / br) if n and br else None, "mx_med": _r(med(mx)), "dd_med": _r(med(dd)),
-            "fr_med": _r(med(fr)), "codes": len({r["c"] for r in sel})}
+def eval_rule(rows: list, lab: str, conds, full: bool = True) -> dict:
+    """一段期間的命中率、提升倍數；full＝True 另算符合後的最大漲幅／最大跌幅／期末報酬（中位）與股票數。"""
+    B = bits(rows, lab)
+    n_all, p_all = B.count(B.valid)
+    br = p_all / n_all if n_all else 0
+    m = B.rule(conds)
+    n, pos = B.count(m)
+    out = {"n": n, "pos": pos, "p": _r(pos / n) if n else None, "base": _r(br),
+           "lift": _r(pos / n / br) if n and br else None}
+    if full:
+        sel = [rows[j] for j in ones(m)]
+        mx = sorted(r["y"][lab]["mx"] for r in sel)
+        dd = sorted(r["y"][lab]["dd"] for r in sel if r["y"][lab]["dd"] is not None)
+        fr = sorted(r["y"][lab]["fr"] for r in sel if r["y"][lab]["fr"] is not None)
+        med = lambda xs: xs[len(xs) // 2] if xs else None
+        out.update({"mx_med": _r(med(mx)), "dd_med": _r(med(dd)), "fr_med": _r(med(fr)),
+                    "codes": len({r["c"] for r in sel})})
+    return out
 
 
 def select_final(rules: list, rows_val: list, lab: str) -> list[dict]:
     """驗證期提升倍數 ≥ RULE['val_lift'] 才留；依驗證期命中率排序，命中重疊超過 OVERLAP_MAX 的只留一條。"""
+    B = bits(rows_val, lab)
     keep = []
     for r in rules:
-        v = eval_rule(rows_val, lab, r["conds"])
+        v = eval_rule(rows_val, lab, r["conds"], full=False)
         r["val"] = v
         if v["lift"] is not None and v["lift"] >= RULE["val_lift"] and v["n"] >= 50:
             keep.append(r)
     keep.sort(key=lambda r: (-(r["val"]["p"] or 0), -(r["is"]["lift"] or 0)))
     final, sets = [], []
     for r in keep:
-        pr = rule_pred(r["conds"])
-        s = {(x["c"], x["d"]) for x in rows_val if pr(x["f"])}
-        if any(len(s & t) / max(1, min(len(s), len(t))) > OVERLAP_MAX for t in sets):
+        s = B.rule(r["conds"])
+        sc = s.bit_count()
+        if any((s & t).bit_count() / max(1, min(sc, t.bit_count())) > OVERLAP_MAX for t in sets):
             continue
+        r["val"] = eval_rule(rows_val, lab, r["conds"])
         final.append(r)
         sets.append(s)
         if len(final) >= KEEP_FINAL:
             break
     return final
+
+
+def check_pred(ck):
+    _, _, k, op, v = ck
+    return cond_pred((k, op, v))
+
+
+def check_stats(rows: list, labs=("A", "B")) -> dict:
+    """飆股體質檢查每一項：符合時之後變飆股的比例（p）、全體比例（base）；以及「符合幾項」各組的比例。"""
+    hit = {ck[0]: pack([check_pred(ck)(r["f"]) for r in rows]) for ck in CHECKS}
+    cnt = [0] * len(rows)
+    for m in hit.values():
+        for j in ones(m):
+            cnt[j] += 1
+    out: dict = {"items": {}, "count": {}}
+    for ck in CHECKS:
+        out["items"][ck[0]] = {"name": ck[1]}
+    for lab in labs:
+        B = bits(rows, lab)
+        n_all, p_all = B.count(B.valid)
+        base = p_all / n_all if n_all else None
+        for ck in CHECKS:
+            n, pos = B.count(hit[ck[0]])
+            out["items"][ck[0]][lab] = {"n": n, "pos": pos, "p": _r(pos / n) if n else None, "base": _r(base),
+                                        "lift": _r(pos / n / base) if n and base else None}
+        rowsc = []
+        for k in range(len(CHECKS) + 1):
+            n, pos = B.count(pack([x == k for x in cnt]))
+            rowsc.append({"k": k, "n": n, "pos": pos, "p": _r(pos / n) if n else None,
+                          "lift": _r(pos / n / base) if n and base else None})
+        out["count"][lab] = {"base": _r(base), "rows": rowsc}
+    return out
 
 
 def cond_text(cond) -> str:
@@ -548,4 +679,4 @@ def cond_text(cond) -> str:
         val = f"{v * 100:+.1f}%" if k in ("ry", "ry3", "racc", "ey", "eacc", "gmd", "omd", "d52h", "r120") else f"{v * 100:.1f}%"
     else:
         val = f"{v:g}"
-    return f"{nm} {'≥' if op == '>=' else '≤'} {val}"
+    return f"{nm} {'≥' if op == '>=' else '≤' if op == '<=' else '>'} {val}"
