@@ -1,0 +1,6 @@
+2026-10-16 19:34,P5h_F0_E1_X3_M0_HO,{"cfg": "F0_E1_X3_M0", "data": "lab-A8", "ma_exit": null, "market": false, "max_hold": 60, "period": "HO", "stop_pct": 0.08}
+2026-10-16 19:34,P5h_F0_E1_X3_M0_cost2_HO,{"cfg": "F0_E1_X3_M0", "data": "lab-A8", "ma_exit": null, "market": false, "max_hold": 60, "period": "HO", "robust": "cost2", "stop_pct": 0.08}
+2026-10-16 19:34,P5h_F5_E1_X3_M0_HO,{"cfg": "F5_E1_X3_M0", "data": "lab-A8", "ma_exit": null, "market": false, "max_hold": 60, "period": "HO", "stop_pct": 0.08}
+2026-10-16 19:35,P5h_F5_E1_X3_M0_cost2_HO,{"cfg": "F5_E1_X3_M0", "data": "lab-A8", "ma_exit": null, "market": false, "max_hold": 60, "period": "HO", "robust": "cost2", "stop_pct": 0.08}
+2026-10-16 19:35,P5ref_R1_page_HO,{"data": "lab-A8", "ma_exit": null, "market": false, "max_hold": 60, "period": "HO", "ref": "R1 現行飆股候選照頁面做", "stop_pct": 0.08}
+2026-10-16 19:35,P5ref_R2_s01v2_HO,{"data": "lab-A8", "ma_exit": 50, "market": true, "max_hold": null, "period": "HO", "ref": "R2 照書做 S01 v2 主規格", "stop_pct": 0.08}

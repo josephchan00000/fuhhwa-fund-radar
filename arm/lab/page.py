@@ -1100,7 +1100,7 @@ function vOpp(){
   if((D.adv||{}).v3err)h+=`<div class=st>月營收驚喜、財報驚喜資料錯誤：${esc(D.adv.v3err)}</div>`;
   h+=sec('o-sum','摘要','這一期的機會',`${md(ADV.last)} 收盤後更新`,oSum()+`<h4 class=sh>時間表</h4>`+oTl(),
     Object.keys(PK).length?`<a data-go="stk" data-fstf="1">在個股表看這些股票 →</a>`:'');
-  h+=sxSec();                                         /* 飆股候選（copage.py；研究規則今天符合的股票） */
+  h+=wlSec();                                         /* 飆股（名單、價格強度、大盤時機；copage.py） */
   h+=(OPP.cards||[]).map(oCard).join('');
   h+=sec('o-avoid','避開','避開清單','持有中的照規則處理；沒持有的這段期間不買',`${hdGroups(false)}${gapList()}`);
   const C=(ADV.grades3||[]).filter(g=>g.grade==='C'&&g.k!=='hd');

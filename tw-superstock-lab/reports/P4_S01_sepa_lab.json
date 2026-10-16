@@ -1,0 +1,5681 @@
+{
+ "plan": "reports/P4_S01_plan.md v2",
+ "panel": {
+  "stocks": 1649,
+  "start": "2013-01-02",
+  "end": "2026-10-14"
+ },
+ "periods": {
+  "IS": [
+   "2014-01-02",
+   "2019-12-31"
+  ],
+  "VAL": [
+   "2020-01-02",
+   "2022-12-30"
+  ]
+ },
+ "bench": {
+  "IS": {
+   "B0_taiex_tr": {
+    "cagr": 0.09873658437741661,
+    "maxdd": -0.23180467684073558
+   },
+   "B1_equal_weight": {
+    "cagr": 0.06617216995081598,
+    "maxdd": -0.30692153332849026
+   }
+  },
+  "VAL": {
+   "B0_taiex_tr": {
+    "cagr": 0.09229042597986559,
+    "maxdd": -0.28552528987590486
+   },
+   "B1_equal_weight": {
+    "cagr": 0.08627356706190614,
+    "maxdd": -0.3440753016262683
+   }
+  }
+ },
+ "runs": {
+  "S01": {
+   "IS": {
+    "metrics": {
+     "start": "2014-01-02",
+     "end": "2019-12-31",
+     "years": 5.993,
+     "cagr": -0.009690618176964927,
+     "vol": 0.0731402052899234,
+     "sharpe": -0.0965827783319732,
+     "sortino": -0.1361607718856823,
+     "maxdd": -0.14058344534217804,
+     "calmar": -0.06893143181530446,
+     "n_obs": 1462,
+     "skew": -0.041792968358975335,
+     "kurt": 9.328628575208734,
+     "exposure": 0.20952890904265598,
+     "turnover": 1.8166582471569321,
+     "trades": 92,
+     "win_rate": 0.31521739130434784,
+     "payoff": 1.895332651185527,
+     "expectancy": -0.004873087665932788,
+     "avg_hold": 26.945652173913043,
+     "bench_cagr": 0.09873658437741661,
+     "bench_maxdd": -0.23180467684073558,
+     "excess_cagr": -0.10842720255438154,
+     "y_A_precision": 0.021739130434782608,
+     "y_A_recall": 7.750135627373479e-05,
+     "y_A_lift": 0.6264636805057132,
+     "y_A_base": 0.03470134201113412,
+     "y_B_precision": 0.05434782608695652,
+     "y_B_recall": 0.00011577558061453678,
+     "y_B_lift": 0.9358442204326785,
+     "y_B_base": 0.05807358201328564
+    },
+    "signals": 130,
+    "trades": {
+     "n": 92,
+     "reasons": {
+      "rule": 69,
+      "stop": 20,
+      "end": 3
+     },
+     "win": 0.31521739130434784,
+     "avg": -0.004873087665932788,
+     "med": -0.042875104006538434,
+     "avg_win": 0.1057480893476577,
+     "avg_loss": -0.05579394692615698,
+     "ge50": 1,
+     "ge100": 0,
+     "top10_share": null,
+     "pnl": -566902.851133708,
+     "best": [
+      {
+       "stock_id": "4739",
+       "name": "康普",
+       "entry_date": "2017-07-19",
+       "exit_date": "2017-11-06",
+       "ret": 0.5429,
+       "hold_days": 75,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5469",
+       "name": "瀚宇博",
+       "entry_date": "2019-06-12",
+       "exit_date": "2019-10-09",
+       "ret": 0.3202,
+       "hold_days": 81,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6271",
+       "name": "同欣電",
+       "entry_date": "2016-06-03",
+       "exit_date": "2016-09-14",
+       "ret": 0.2354,
+       "hold_days": 71,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1521",
+       "name": "大億",
+       "entry_date": "2014-02-13",
+       "exit_date": "2014-06-24",
+       "ret": 0.2289,
+       "hold_days": 89,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2027",
+       "name": "大成鋼",
+       "entry_date": "2018-08-06",
+       "exit_date": "2018-10-12",
+       "ret": 0.2101,
+       "hold_days": 47,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2233",
+       "name": "宇隆",
+       "entry_date": "2016-12-02",
+       "exit_date": "2017-03-29",
+       "ret": 0.189,
+       "hold_days": 74,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1909",
+       "name": "榮成",
+       "entry_date": "2016-06-13",
+       "exit_date": "2016-08-30",
+       "ret": 0.158,
+       "hold_days": 56,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8110",
+       "name": "華東",
+       "entry_date": "2016-11-22",
+       "exit_date": "2017-05-03",
+       "ret": 0.1494,
+       "hold_days": 104,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6271",
+       "name": "同欣電",
+       "entry_date": "2019-12-06",
+       "exit_date": "2019-12-31",
+       "ret": 0.1253,
+       "hold_days": 17,
+       "reason": "end"
+      },
+      {
+       "stock_id": "4994",
+       "name": "傳奇",
+       "entry_date": "2014-06-04",
+       "exit_date": "2014-08-21",
+       "ret": 0.1181,
+       "hold_days": 56,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "3217",
+       "name": "優群",
+       "entry_date": "2019-07-02",
+       "exit_date": "2019-08-06",
+       "ret": -0.1107,
+       "hold_days": 25,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5305",
+       "name": "敦南",
+       "entry_date": "2018-01-17",
+       "exit_date": "2018-02-05",
+       "ret": -0.0909,
+       "hold_days": 13,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5263",
+       "name": "智崴",
+       "entry_date": "2019-07-10",
+       "exit_date": "2019-08-06",
+       "ret": -0.0871,
+       "hold_days": 19,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6158",
+       "name": "禾昌",
+       "entry_date": "2019-07-09",
+       "exit_date": "2019-07-10",
+       "ret": -0.0871,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8404",
+       "name": "百和興業-KY",
+       "entry_date": "2017-11-30",
+       "exit_date": "2017-12-01",
+       "ret": -0.0871,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8114",
+       "name": "振樺電",
+       "entry_date": "2014-09-22",
+       "exit_date": "2014-09-25",
+       "ret": -0.0871,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3016",
+       "name": "嘉晶",
+       "entry_date": "2018-01-23",
+       "exit_date": "2018-01-24",
+       "ret": -0.0857,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2405",
+       "name": "輔信",
+       "entry_date": "2018-01-18",
+       "exit_date": "2018-01-22",
+       "ret": -0.0857,
+       "hold_days": 2,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2439",
+       "name": "美律",
+       "entry_date": "2019-04-24",
+       "exit_date": "2019-04-29",
+       "ret": -0.0857,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2387",
+       "name": "精元",
+       "entry_date": "2019-12-13",
+       "exit_date": "2019-12-19",
+       "ret": -0.0857,
+       "hold_days": 4,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 18.0
+    },
+    "yearly": {
+     "2014": -0.04229195474967751,
+     "2015": -0.011139005801710233,
+     "2016": 0.024334660448046774,
+     "2017": 0.021432492894616795,
+     "2018": -0.039871435586667725,
+     "2019": -0.00847196713067111
+    }
+   },
+   "VAL": {
+    "metrics": {
+     "start": "2020-01-02",
+     "end": "2022-12-30",
+     "years": 2.992,
+     "cagr": 0.18304752718072526,
+     "vol": 0.1726451833943634,
+     "sharpe": 1.0601751526087975,
+     "sortino": 1.596184195961481,
+     "maxdd": -0.17809939102088568,
+     "calmar": 1.027783004374559,
+     "n_obs": 733,
+     "skew": -0.03429094852832996,
+     "kurt": 8.478977810289443,
+     "exposure": 0.2551616072703623,
+     "turnover": 2.2389714490100765,
+     "trades": 58,
+     "win_rate": 0.29310344827586204,
+     "payoff": 6.856605415126312,
+     "expectancy": 0.08468939040603256,
+     "avg_hold": 22.948275862068964,
+     "bench_cagr": 0.09229042597986559,
+     "bench_maxdd": -0.28552528987590486,
+     "excess_cagr": 0.09075710120085967,
+     "y_A_precision": 0.1724137931034483,
+     "y_A_recall": 0.0003063631628932937,
+     "y_A_lift": 1.872486369480313,
+     "y_A_base": 0.09207746230553322,
+     "y_B_precision": 0.15517241379310345,
+     "y_B_recall": 0.00019004582215934287,
+     "y_B_lift": 1.1615567883857973,
+     "y_B_base": 0.13359003653083965
+    },
+    "signals": 86,
+    "trades": {
+     "n": 58,
+     "reasons": {
+      "rule": 38,
+      "stop": 20
+     },
+     "win": 0.29310344827586204,
+     "avg": 0.08468939040603256,
+     "med": -0.04663284181929095,
+     "avg_win": 0.4457188842354042,
+     "avg_loss": -0.06500576557199962,
+     "ge50": 5,
+     "ge100": 1,
+     "top10_share": 1.369980705903642,
+     "pnl": 6537007.992377975,
+     "best": [
+      {
+       "stock_id": "2636",
+       "name": "台驊控股",
+       "entry_date": "2021-02-23",
+       "exit_date": "2021-07-29",
+       "ret": 3.4159,
+       "hold_days": 106,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6469",
+       "name": "大樹醫藥",
+       "entry_date": "2021-06-10",
+       "exit_date": "2021-09-23",
+       "ret": 0.7921,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2609",
+       "name": "陽明",
+       "entry_date": "2020-10-26",
+       "exit_date": "2021-02-01",
+       "ret": 0.755,
+       "hold_days": 69,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4755",
+       "name": "三福化",
+       "entry_date": "2021-11-05",
+       "exit_date": "2022-03-08",
+       "ret": 0.7272,
+       "hold_days": 78,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "9945",
+       "name": "潤泰新",
+       "entry_date": "2021-06-29",
+       "exit_date": "2021-12-07",
+       "ret": 0.5345,
+       "hold_days": 112,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2108",
+       "name": "南帝",
+       "entry_date": "2020-08-24",
+       "exit_date": "2020-12-04",
+       "ret": 0.4011,
+       "hold_days": 71,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1304",
+       "name": "台聚",
+       "entry_date": "2021-03-09",
+       "exit_date": "2021-05-18",
+       "ret": 0.2625,
+       "hold_days": 46,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2883",
+       "name": "凱基金",
+       "entry_date": "2021-11-12",
+       "exit_date": "2022-03-07",
+       "ret": 0.177,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8069",
+       "name": "元太",
+       "entry_date": "2021-06-16",
+       "exit_date": "2021-08-16",
+       "ret": 0.1496,
+       "hold_days": 43,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6271",
+       "name": "同欣電",
+       "entry_date": "2021-10-27",
+       "exit_date": "2022-01-07",
+       "ret": 0.1032,
+       "hold_days": 51,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "9946",
+       "name": "三發地產",
+       "entry_date": "2020-01-14",
+       "exit_date": "2020-01-30",
+       "ret": -0.1129,
+       "hold_days": 5,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2905",
+       "name": "三商",
+       "entry_date": "2020-01-20",
+       "exit_date": "2020-03-02",
+       "ret": -0.1004,
+       "hold_days": 22,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1525",
+       "name": "江申",
+       "entry_date": "2020-10-23",
+       "exit_date": "2020-10-29",
+       "ret": -0.0956,
+       "hold_days": 4,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6435",
+       "name": "大中積體電路",
+       "entry_date": "2022-01-05",
+       "exit_date": "2022-01-10",
+       "ret": -0.0941,
+       "hold_days": 3,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6208",
+       "name": "日揚",
+       "entry_date": "2022-04-07",
+       "exit_date": "2022-04-12",
+       "ret": -0.0874,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1315",
+       "name": "達新",
+       "entry_date": "2020-08-12",
+       "exit_date": "2020-08-20",
+       "ret": -0.0871,
+       "hold_days": 6,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "4536",
+       "name": "拓凱",
+       "entry_date": "2020-11-17",
+       "exit_date": "2020-12-11",
+       "ret": -0.0871,
+       "hold_days": 18,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2836",
+       "name": "高雄銀",
+       "entry_date": "2022-03-24",
+       "exit_date": "2022-04-27",
+       "ret": -0.0871,
+       "hold_days": 22,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5371",
+       "name": "中光電",
+       "entry_date": "2022-01-03",
+       "exit_date": "2022-01-04",
+       "ret": -0.0857,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6449",
+       "name": "鈺邦",
+       "entry_date": "2020-12-14",
+       "exit_date": "2020-12-15",
+       "ret": -0.0857,
+       "hold_days": 1,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 6.5
+    },
+    "yearly": {
+     "2020": 0.1534262556343855,
+     "2021": 0.6544872733736522,
+     "2022": -0.13342995541238922
+    }
+   }
+  },
+  "S01_v1": {
+   "IS": {
+    "metrics": {
+     "start": "2014-01-02",
+     "end": "2019-12-31",
+     "years": 5.993,
+     "cagr": -0.0011970495919009227,
+     "vol": 0.022550380009711834,
+     "sharpe": -0.041849414076963305,
+     "sortino": -0.05870839158317264,
+     "maxdd": -0.05556223069441357,
+     "calmar": -0.021544304052235945,
+     "n_obs": 1462,
+     "skew": 0.27750527006868597,
+     "kurt": 93.27055847969719,
+     "exposure": 0.04798789959211403,
+     "turnover": 0.38153017304044184,
+     "trades": 19,
+     "win_rate": 0.42105263157894735,
+     "payoff": 1.3349955478665678,
+     "expectancy": -0.0007266791829031332,
+     "avg_hold": 30.263157894736842,
+     "bench_cagr": 0.09873658437741661,
+     "bench_maxdd": -0.23180467684073558,
+     "excess_cagr": -0.09993363396931754,
+     "y_A_precision": 0.0,
+     "y_A_recall": 0.0,
+     "y_A_lift": 0.0,
+     "y_A_base": 0.03801069055913268,
+     "y_B_precision": 0.05263157894736842,
+     "y_B_recall": 2.735154946527721e-05,
+     "y_B_lift": 0.8583016991070438,
+     "y_B_base": 0.0613206044006729
+    },
+    "signals": 23,
+    "trades": {
+     "n": 19,
+     "reasons": {
+      "rule": 18,
+      "end": 1
+     },
+     "win": 0.42105263157894735,
+     "avg": -0.0007266791829031332,
+     "med": -0.026469905573765384,
+     "avg_win": 0.05759407710008671,
+     "avg_loss": -0.0431417746614412,
+     "ge50": 0,
+     "ge100": 0,
+     "top10_share": null,
+     "pnl": -71526.9831777371,
+     "best": [
+      {
+       "stock_id": "1909",
+       "name": "榮成",
+       "entry_date": "2016-06-13",
+       "exit_date": "2016-08-30",
+       "ret": 0.158,
+       "hold_days": 56,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2542",
+       "name": "興富發",
+       "entry_date": "2015-02-24",
+       "exit_date": "2015-05-18",
+       "ret": 0.0877,
+       "hold_days": 55,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1527",
+       "name": "鑽全",
+       "entry_date": "2015-02-26",
+       "exit_date": "2015-05-04",
+       "ret": 0.0553,
+       "hold_days": 43,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "9911",
+       "name": "櫻花",
+       "entry_date": "2019-06-03",
+       "exit_date": "2019-08-14",
+       "ret": 0.0532,
+       "hold_days": 50,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2884",
+       "name": "玉山金",
+       "entry_date": "2019-09-11",
+       "exit_date": "2019-12-31",
+       "ret": 0.0408,
+       "hold_days": 75,
+       "reason": "end"
+      },
+      {
+       "stock_id": "2548",
+       "name": "華固",
+       "entry_date": "2017-02-07",
+       "exit_date": "2017-04-18",
+       "ret": 0.0305,
+       "hold_days": 46,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6438",
+       "name": "迅得",
+       "entry_date": "2018-01-10",
+       "exit_date": "2018-02-07",
+       "ret": 0.0196,
+       "hold_days": 20,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5536",
+       "name": "聖暉*",
+       "entry_date": "2018-06-12",
+       "exit_date": "2018-06-27",
+       "ret": 0.0157,
+       "hold_days": 10,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2820",
+       "name": "華票",
+       "entry_date": "2017-06-27",
+       "exit_date": "2017-08-24",
+       "ret": -0.011,
+       "hold_days": 42,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2355",
+       "name": "敬鵬",
+       "entry_date": "2016-07-15",
+       "exit_date": "2016-08-10",
+       "ret": -0.0265,
+       "hold_days": 18,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "3044",
+       "name": "健鼎",
+       "entry_date": "2014-11-11",
+       "exit_date": "2014-11-19",
+       "ret": -0.0635,
+       "hold_days": 6,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1463",
+       "name": "強盛新",
+       "entry_date": "2017-05-26",
+       "exit_date": "2017-07-11",
+       "ret": -0.0584,
+       "hold_days": 30,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3211",
+       "name": "順達",
+       "entry_date": "2019-04-26",
+       "exit_date": "2019-04-30",
+       "ret": -0.0558,
+       "hold_days": 2,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2329",
+       "name": "華泰",
+       "entry_date": "2015-04-30",
+       "exit_date": "2015-05-08",
+       "ret": -0.0542,
+       "hold_days": 5,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3598",
+       "name": "奕力",
+       "entry_date": "2015-01-22",
+       "exit_date": "2015-02-05",
+       "ret": -0.0492,
+       "hold_days": 10,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2031",
+       "name": "新光鋼",
+       "entry_date": "2017-02-06",
+       "exit_date": "2017-04-17",
+       "ret": -0.0441,
+       "hold_days": 46,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2108",
+       "name": "南帝",
+       "entry_date": "2019-05-03",
+       "exit_date": "2019-05-07",
+       "ret": -0.0441,
+       "hold_days": 2,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1718",
+       "name": "中纖",
+       "entry_date": "2017-02-03",
+       "exit_date": "2017-03-02",
+       "ret": -0.0391,
+       "hold_days": 17,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2888",
+       "name": "新光金",
+       "entry_date": "2017-02-07",
+       "exit_date": "2017-04-12",
+       "ret": -0.0287,
+       "hold_days": 42,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2355",
+       "name": "敬鵬",
+       "entry_date": "2016-07-15",
+       "exit_date": "2016-08-10",
+       "ret": -0.0265,
+       "hold_days": 18,
+       "reason": "rule"
+      }
+     ],
+     "hold_med": 30.0
+    },
+    "yearly": {
+     "2014": -0.007877476928999871,
+     "2015": 0.004703274223166076,
+     "2016": 0.013493456075270416,
+     "2017": -0.018745924418143822,
+     "2018": 0.004288610076999433,
+     "2019": -0.0027170976084184284
+    }
+   },
+   "VAL": {
+    "metrics": {
+     "start": "2020-01-02",
+     "end": "2022-12-30",
+     "years": 2.992,
+     "cagr": 0.045549224569551905,
+     "vol": 0.054501530582708124,
+     "sharpe": 0.8445164041699614,
+     "sortino": 1.3111909815261142,
+     "maxdd": -0.05932343547778851,
+     "calmar": 0.7678116448027719,
+     "n_obs": 733,
+     "skew": 0.5836229135164016,
+     "kurt": 19.06376066122653,
+     "exposure": 0.05908034479401066,
+     "turnover": 0.28225107024989254,
+     "trades": 7,
+     "win_rate": 0.42857142857142855,
+     "payoff": 6.469752769218853,
+     "expectancy": 0.16317134457334062,
+     "avg_hold": 42.0,
+     "bench_cagr": 0.09229042597986559,
+     "bench_maxdd": -0.28552528987590486,
+     "excess_cagr": -0.04674120141031368,
+     "y_A_precision": 0.2857142857142857,
+     "y_A_recall": 6.166939039807591e-05,
+     "y_A_lift": 2.9958549359739575,
+     "y_A_base": 0.09536986663922013,
+     "y_B_precision": 0.14285714285714285,
+     "y_B_recall": 2.1306969509726633e-05,
+     "y_B_lift": 1.0350773595185843,
+     "y_B_base": 0.13801590919116025
+    },
+    "signals": 7,
+    "trades": {
+     "n": 7,
+     "reasons": {
+      "rule": 6,
+      "stop": 1
+     },
+     "win": 0.42857142857142855,
+     "avg": 0.16317134457334062,
+     "med": -0.030289643133578736,
+     "avg_win": 0.4795654444446504,
+     "avg_loss": -0.0741242303301417,
+     "ge50": 2,
+     "ge100": 0,
+     "top10_share": 0.6189811833734941,
+     "pnl": 1425831.2720004136,
+     "best": [
+      {
+       "stock_id": "4755",
+       "name": "三福化",
+       "entry_date": "2021-11-05",
+       "exit_date": "2022-03-08",
+       "ret": 0.7272,
+       "hold_days": 78,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "9945",
+       "name": "潤泰新",
+       "entry_date": "2021-06-29",
+       "exit_date": "2021-12-07",
+       "ret": 0.5345,
+       "hold_days": 112,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2883",
+       "name": "凱基金",
+       "entry_date": "2021-11-12",
+       "exit_date": "2022-03-07",
+       "ret": 0.177,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2114",
+       "name": "鑫永銓",
+       "entry_date": "2021-10-22",
+       "exit_date": "2021-10-28",
+       "ret": -0.0303,
+       "hold_days": 4,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6026",
+       "name": "福邦證",
+       "entry_date": "2022-03-07",
+       "exit_date": "2022-03-08",
+       "ret": -0.0529,
+       "hold_days": 1,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2905",
+       "name": "三商",
+       "entry_date": "2020-01-20",
+       "exit_date": "2020-03-02",
+       "ret": -0.1004,
+       "hold_days": 22,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "9946",
+       "name": "三發地產",
+       "entry_date": "2020-01-14",
+       "exit_date": "2020-01-30",
+       "ret": -0.1129,
+       "hold_days": 5,
+       "reason": "stop"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "9946",
+       "name": "三發地產",
+       "entry_date": "2020-01-14",
+       "exit_date": "2020-01-30",
+       "ret": -0.1129,
+       "hold_days": 5,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2905",
+       "name": "三商",
+       "entry_date": "2020-01-20",
+       "exit_date": "2020-03-02",
+       "ret": -0.1004,
+       "hold_days": 22,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6026",
+       "name": "福邦證",
+       "entry_date": "2022-03-07",
+       "exit_date": "2022-03-08",
+       "ret": -0.0529,
+       "hold_days": 1,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2114",
+       "name": "鑫永銓",
+       "entry_date": "2021-10-22",
+       "exit_date": "2021-10-28",
+       "ret": -0.0303,
+       "hold_days": 4,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2883",
+       "name": "凱基金",
+       "entry_date": "2021-11-12",
+       "exit_date": "2022-03-07",
+       "ret": 0.177,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "9945",
+       "name": "潤泰新",
+       "entry_date": "2021-06-29",
+       "exit_date": "2021-12-07",
+       "ret": 0.5345,
+       "hold_days": 112,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4755",
+       "name": "三福化",
+       "entry_date": "2021-11-05",
+       "exit_date": "2022-03-08",
+       "ret": 0.7272,
+       "hold_days": 78,
+       "reason": "rule"
+      }
+     ],
+     "hold_med": 22.0
+    },
+    "yearly": {
+     "2020": -0.02312547338417026,
+     "2021": 0.23342333108652258,
+     "2022": -0.05171940752438142
+    }
+   }
+  },
+  "S01_atr2": {
+   "IS": {
+    "metrics": {
+     "start": "2014-01-02",
+     "end": "2019-12-31",
+     "years": 5.993,
+     "cagr": 0.05943349115336671,
+     "vol": 0.11938369087771074,
+     "sharpe": 0.5432539235779923,
+     "sortino": 0.7958419033898614,
+     "maxdd": -0.1572099458553824,
+     "calmar": 0.3780517245902473,
+     "n_obs": 1462,
+     "skew": 0.20102509036252164,
+     "kurt": 11.83877507496043,
+     "exposure": 0.32052844313810974,
+     "turnover": 2.61346545003211,
+     "trades": 134,
+     "win_rate": 0.31343283582089554,
+     "payoff": 3.463990179764232,
+     "expectancy": 0.024388735431314406,
+     "avg_hold": 27.365671641791046,
+     "bench_cagr": 0.09873658437741661,
+     "bench_maxdd": -0.23180467684073558,
+     "excess_cagr": -0.0393030932240499,
+     "y_A_precision": 0.09701492537313433,
+     "y_A_recall": 0.0005037588157792761,
+     "y_A_lift": 2.7957110518090786,
+     "y_A_base": 0.03470134201113412,
+     "y_B_precision": 0.1044776119402985,
+     "y_B_recall": 0.000324171625720703,
+     "y_B_lift": 1.7990557551004327,
+     "y_B_base": 0.05807358201328564
+    },
+    "signals": 183,
+    "trades": {
+     "n": 134,
+     "reasons": {
+      "rule": 102,
+      "stop": 30,
+      "end": 2
+     },
+     "win": 0.31343283582089554,
+     "avg": 0.024388735431314406,
+     "med": -0.04847877527234501,
+     "avg_win": 0.21164973188485897,
+     "avg_loss": -0.061099980340955935,
+     "ge50": 5,
+     "ge100": 1,
+     "top10_share": 2.20253632414041,
+     "pnl": 4134178.351362766,
+     "best": [
+      {
+       "stock_id": "1515",
+       "name": "力山",
+       "entry_date": "2017-07-13",
+       "exit_date": "2017-12-04",
+       "ret": 1.334,
+       "hold_days": 99,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2421",
+       "name": "建準",
+       "entry_date": "2017-06-06",
+       "exit_date": "2017-12-04",
+       "ret": 0.6672,
+       "hold_days": 126,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2323",
+       "name": "中環",
+       "entry_date": "2018-04-12",
+       "exit_date": "2018-07-03",
+       "ret": 0.5674,
+       "hold_days": 56,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4739",
+       "name": "康普",
+       "entry_date": "2017-07-19",
+       "exit_date": "2017-11-06",
+       "ret": 0.5429,
+       "hold_days": 75,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1597",
+       "name": "直得",
+       "entry_date": "2018-01-15",
+       "exit_date": "2018-05-07",
+       "ret": 0.5191,
+       "hold_days": 69,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1909",
+       "name": "榮成",
+       "entry_date": "2017-06-06",
+       "exit_date": "2017-10-12",
+       "ret": 0.45,
+       "hold_days": 89,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8028",
+       "name": "昇陽半導體",
+       "entry_date": "2019-07-03",
+       "exit_date": "2019-09-18",
+       "ret": 0.4017,
+       "hold_days": 52,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6510",
+       "name": "精測",
+       "entry_date": "2016-07-18",
+       "exit_date": "2016-10-12",
+       "ret": 0.3812,
+       "hold_days": 57,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6116",
+       "name": "彩晶",
+       "entry_date": "2016-09-08",
+       "exit_date": "2016-12-14",
+       "ret": 0.3401,
+       "hold_days": 64,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2327",
+       "name": "國巨*",
+       "entry_date": "2014-04-24",
+       "exit_date": "2014-07-30",
+       "ret": 0.3361,
+       "hold_days": 67,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "8039",
+       "name": "台虹",
+       "entry_date": "2019-07-19",
+       "exit_date": "2019-08-06",
+       "ret": -0.1094,
+       "hold_days": 12,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3645",
+       "name": "達邁",
+       "entry_date": "2014-09-10",
+       "exit_date": "2014-10-16",
+       "ret": -0.1085,
+       "hold_days": 25,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2368",
+       "name": "金像電",
+       "entry_date": "2016-09-26",
+       "exit_date": "2016-10-11",
+       "ret": -0.0938,
+       "hold_days": 8,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5490",
+       "name": "同亨",
+       "entry_date": "2014-03-17",
+       "exit_date": "2014-03-20",
+       "ret": -0.093,
+       "hold_days": 3,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2467",
+       "name": "志聖",
+       "entry_date": "2018-04-11",
+       "exit_date": "2018-04-25",
+       "ret": -0.0908,
+       "hold_days": 10,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5469",
+       "name": "瀚宇博",
+       "entry_date": "2017-02-21",
+       "exit_date": "2017-03-10",
+       "ret": -0.0871,
+       "hold_days": 11,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2363",
+       "name": "矽統",
+       "entry_date": "2017-12-01",
+       "exit_date": "2017-12-05",
+       "ret": -0.0871,
+       "hold_days": 2,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6158",
+       "name": "禾昌",
+       "entry_date": "2019-07-09",
+       "exit_date": "2019-07-10",
+       "ret": -0.0871,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6024",
+       "name": "群益期",
+       "entry_date": "2018-06-05",
+       "exit_date": "2018-07-06",
+       "ret": -0.0871,
+       "hold_days": 22,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "9911",
+       "name": "櫻花",
+       "entry_date": "2016-10-11",
+       "exit_date": "2016-10-13",
+       "ret": -0.0871,
+       "hold_days": 2,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 17.5
+    },
+    "yearly": {
+     "2014": 0.01573765999333654,
+     "2015": -0.037042963529196005,
+     "2016": -0.01312561767092224,
+     "2017": 0.273474259450045,
+     "2018": 0.12298216300233422,
+     "2019": 0.023899183212247932
+    }
+   },
+   "VAL": {
+    "metrics": {
+     "start": "2020-01-02",
+     "end": "2022-12-30",
+     "years": 2.992,
+     "cagr": 0.13517789334924646,
+     "vol": 0.1451020530956698,
+     "sharpe": 0.9461428414793104,
+     "sortino": 1.513977145779196,
+     "maxdd": -0.1771773534801675,
+     "calmar": 0.7629524354780348,
+     "n_obs": 733,
+     "skew": 0.7231739419900659,
+     "kurt": 11.405451975803551,
+     "exposure": 0.1962792308181523,
+     "turnover": 1.830733792512413,
+     "trades": 46,
+     "win_rate": 0.21739130434782608,
+     "payoff": 9.931929573912159,
+     "expectancy": 0.08415285850706228,
+     "avg_hold": 21.934782608695652,
+     "bench_cagr": 0.09229042597986559,
+     "bench_maxdd": -0.28552528987590486,
+     "excess_cagr": 0.04288746736938087,
+     "y_A_precision": 0.08695652173913043,
+     "y_A_recall": 0.00012264295569523224,
+     "y_A_lift": 0.9393250638209946,
+     "y_A_base": 0.09257340732015384,
+     "y_B_precision": 0.2608695652173913,
+     "y_B_recall": 0.0002547067688323817,
+     "y_B_lift": 1.9508046795908818,
+     "y_B_base": 0.13372408214240097
+    },
+    "signals": 75,
+    "trades": {
+     "n": 46,
+     "reasons": {
+      "rule": 29,
+      "stop": 17
+     },
+     "win": 0.21739130434782608,
+     "avg": 0.08415285850706228,
+     "med": -0.05154503912523534,
+     "avg_win": 0.60718950995029,
+     "avg_loss": -0.061135100227167616,
+     "ge50": 3,
+     "ge100": 1,
+     "top10_share": 1.5237260368932835,
+     "pnl": 4614272.257100981,
+     "best": [
+      {
+       "stock_id": "2636",
+       "name": "台驊控股",
+       "entry_date": "2021-02-23",
+       "exit_date": "2021-07-29",
+       "ret": 3.4159,
+       "hold_days": 106,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6469",
+       "name": "大樹醫藥",
+       "entry_date": "2021-06-10",
+       "exit_date": "2021-09-23",
+       "ret": 0.7921,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4755",
+       "name": "三福化",
+       "entry_date": "2021-11-05",
+       "exit_date": "2022-03-08",
+       "ret": 0.7272,
+       "hold_days": 78,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2108",
+       "name": "南帝",
+       "entry_date": "2020-08-24",
+       "exit_date": "2020-12-04",
+       "ret": 0.4011,
+       "hold_days": 71,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2481",
+       "name": "強茂",
+       "entry_date": "2020-11-12",
+       "exit_date": "2021-02-02",
+       "ret": 0.2348,
+       "hold_days": 57,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8069",
+       "name": "元太",
+       "entry_date": "2021-06-16",
+       "exit_date": "2021-08-16",
+       "ret": 0.1496,
+       "hold_days": 43,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2855",
+       "name": "統一證",
+       "entry_date": "2021-03-25",
+       "exit_date": "2021-05-18",
+       "ret": 0.1415,
+       "hold_days": 34,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2348",
+       "name": "海悅",
+       "entry_date": "2020-07-29",
+       "exit_date": "2020-09-28",
+       "ret": 0.1054,
+       "hold_days": 43,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2881",
+       "name": "富邦金",
+       "entry_date": "2021-07-13",
+       "exit_date": "2021-10-06",
+       "ret": 0.0941,
+       "hold_days": 59,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2013",
+       "name": "中鋼構",
+       "entry_date": "2020-11-05",
+       "exit_date": "2021-01-12",
+       "ret": 0.0102,
+       "hold_days": 47,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "2905",
+       "name": "三商",
+       "entry_date": "2020-01-20",
+       "exit_date": "2020-03-02",
+       "ret": -0.1004,
+       "hold_days": 22,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6208",
+       "name": "日揚",
+       "entry_date": "2022-04-07",
+       "exit_date": "2022-04-12",
+       "ret": -0.0874,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1315",
+       "name": "達新",
+       "entry_date": "2020-08-12",
+       "exit_date": "2020-08-20",
+       "ret": -0.0871,
+       "hold_days": 6,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3031",
+       "name": "佰鴻",
+       "entry_date": "2021-12-28",
+       "exit_date": "2021-12-30",
+       "ret": -0.0871,
+       "hold_days": 2,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "4536",
+       "name": "拓凱",
+       "entry_date": "2020-11-17",
+       "exit_date": "2020-12-11",
+       "ret": -0.0871,
+       "hold_days": 18,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2836",
+       "name": "高雄銀",
+       "entry_date": "2022-03-24",
+       "exit_date": "2022-04-27",
+       "ret": -0.0871,
+       "hold_days": 22,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3545",
+       "name": "敦泰",
+       "entry_date": "2020-07-06",
+       "exit_date": "2020-08-20",
+       "ret": -0.0857,
+       "hold_days": 33,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5285",
+       "name": "界霖",
+       "entry_date": "2021-03-19",
+       "exit_date": "2021-03-23",
+       "ret": -0.0857,
+       "hold_days": 2,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3526",
+       "name": "凡甲",
+       "entry_date": "2021-12-23",
+       "exit_date": "2022-01-10",
+       "ret": -0.0857,
+       "hold_days": 11,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1708",
+       "name": "東鹼",
+       "entry_date": "2021-08-24",
+       "exit_date": "2021-08-27",
+       "ret": -0.0857,
+       "hold_days": 3,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 11.0
+    },
+    "yearly": {
+     "2020": 0.06648169908490975,
+     "2021": 0.5205458088388184,
+     "2022": -0.09879357771060415
+    }
+   }
+  },
+  "S01_stop_entry": {
+   "IS": {
+    "metrics": {
+     "start": "2014-01-02",
+     "end": "2019-12-31",
+     "years": 5.993,
+     "cagr": 0.04148813248174732,
+     "vol": 0.08246612487775704,
+     "sharpe": 0.5341403424428568,
+     "sortino": 0.7978866964441443,
+     "maxdd": -0.18717823510207288,
+     "calmar": 0.2216504096169238,
+     "n_obs": 1462,
+     "skew": 0.2772913969048074,
+     "kurt": 9.612362367293994,
+     "exposure": 0.2552234009652603,
+     "turnover": 2.4715479016410415,
+     "trades": 125,
+     "win_rate": 0.272,
+     "payoff": 4.3637455245522245,
+     "expectancy": 0.01958062484332045,
+     "avg_hold": 24.048,
+     "bench_cagr": 0.09873658437741661,
+     "bench_maxdd": -0.23180467684073558,
+     "excess_cagr": -0.057248451895669294,
+     "y_A_precision": 0.072,
+     "y_A_recall": 0.0003500719592360652,
+     "y_A_lift": 2.068068302928935,
+     "y_A_base": 0.03481509769190352,
+     "y_B_precision": 0.072,
+     "y_B_recall": 0.00021068402078749005,
+     "y_B_lift": 1.2446268083711782,
+     "y_B_base": 0.05784866557247401
+    },
+    "signals": 1088,
+    "trades": {
+     "n": 125,
+     "reasons": {
+      "rule": 113,
+      "stop": 10,
+      "end": 2
+     },
+     "win": 0.272,
+     "avg": 0.01958062484332045,
+     "med": -0.02963197462134204,
+     "avg_win": 0.186179218782404,
+     "avg_loss": -0.04266500366139209,
+     "ge50": 4,
+     "ge100": 0,
+     "top10_share": 2.242355526039072,
+     "pnl": 2758661.534122005,
+     "best": [
+      {
+       "stock_id": "4739",
+       "name": "康普",
+       "entry_date": "2017-07-14",
+       "exit_date": "2017-11-06",
+       "ret": 0.7269,
+       "hold_days": 78,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4733",
+       "name": "上緯",
+       "entry_date": "2015-01-22",
+       "exit_date": "2015-07-14",
+       "ret": 0.7122,
+       "hold_days": 111,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2377",
+       "name": "微星",
+       "entry_date": "2016-06-13",
+       "exit_date": "2016-11-10",
+       "ret": 0.6254,
+       "hold_days": 103,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1909",
+       "name": "榮成",
+       "entry_date": "2017-05-11",
+       "exit_date": "2017-10-12",
+       "ret": 0.6033,
+       "hold_days": 105,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "9802",
+       "name": "鈺齊-KY",
+       "entry_date": "2019-09-25",
+       "exit_date": "2019-12-20",
+       "ret": 0.3372,
+       "hold_days": 59,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1521",
+       "name": "大億",
+       "entry_date": "2014-02-12",
+       "exit_date": "2014-06-24",
+       "ret": 0.2809,
+       "hold_days": 90,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5469",
+       "name": "瀚宇博",
+       "entry_date": "2019-07-02",
+       "exit_date": "2019-10-09",
+       "ret": 0.265,
+       "hold_days": 67,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2489",
+       "name": "瑞軒",
+       "entry_date": "2016-06-07",
+       "exit_date": "2016-11-03",
+       "ret": 0.255,
+       "hold_days": 100,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2233",
+       "name": "宇隆",
+       "entry_date": "2016-12-01",
+       "exit_date": "2017-03-29",
+       "ret": 0.2266,
+       "hold_days": 75,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8110",
+       "name": "華東",
+       "entry_date": "2016-11-21",
+       "exit_date": "2017-05-03",
+       "ret": 0.2097,
+       "hold_days": 105,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "3016",
+       "name": "嘉晶",
+       "entry_date": "2018-01-22",
+       "exit_date": "2018-02-05",
+       "ret": -0.1365,
+       "hold_days": 10,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8163",
+       "name": "達方",
+       "entry_date": "2018-03-22",
+       "exit_date": "2018-03-23",
+       "ret": -0.1169,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8083",
+       "name": "瑞穎",
+       "entry_date": "2014-05-05",
+       "exit_date": "2014-05-14",
+       "ret": -0.0919,
+       "hold_days": 7,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3217",
+       "name": "優群",
+       "entry_date": "2019-07-01",
+       "exit_date": "2019-08-06",
+       "ret": -0.0914,
+       "hold_days": 26,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "9951",
+       "name": "皇田",
+       "entry_date": "2014-06-27",
+       "exit_date": "2014-07-07",
+       "ret": -0.0883,
+       "hold_days": 6,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3653",
+       "name": "健策",
+       "entry_date": "2014-06-04",
+       "exit_date": "2014-06-24",
+       "ret": -0.0857,
+       "hold_days": 14,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5305",
+       "name": "敦南",
+       "entry_date": "2018-01-16",
+       "exit_date": "2018-02-05",
+       "ret": -0.0857,
+       "hold_days": 14,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "4991",
+       "name": "環宇-KY",
+       "entry_date": "2018-01-30",
+       "exit_date": "2018-02-05",
+       "ret": -0.0857,
+       "hold_days": 4,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5349",
+       "name": "先豐",
+       "entry_date": "2016-06-21",
+       "exit_date": "2016-06-24",
+       "ret": -0.0857,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3443",
+       "name": "創意",
+       "entry_date": "2018-03-22",
+       "exit_date": "2018-03-23",
+       "ret": -0.0848,
+       "hold_days": 1,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 12.0
+    },
+    "yearly": {
+     "2014": 0.0044392500894592235,
+     "2015": 0.059224312701456894,
+     "2016": 0.09608075576781805,
+     "2017": 0.09831884699106497,
+     "2018": -0.09361554954602314,
+     "2019": 0.09903131084637451
+    }
+   },
+   "VAL": {
+    "metrics": {
+     "start": "2020-01-02",
+     "end": "2022-12-30",
+     "years": 2.992,
+     "cagr": 0.1463789145187009,
+     "vol": 0.1658847434275614,
+     "sharpe": 0.9063622445599369,
+     "sortino": 1.3907468832422334,
+     "maxdd": -0.1733280915628671,
+     "calmar": 0.8445192767013673,
+     "n_obs": 733,
+     "skew": 0.3442862039129041,
+     "kurt": 9.680950746264685,
+     "exposure": 0.247959650087318,
+     "turnover": 2.4189788050119687,
+     "trades": 67,
+     "win_rate": 0.2537313432835821,
+     "payoff": 7.32326834828285,
+     "expectancy": 0.06105430408268014,
+     "avg_hold": 19.850746268656717,
+     "bench_cagr": 0.09229042597986559,
+     "bench_maxdd": -0.28552528987590486,
+     "excess_cagr": 0.0540884885388353,
+     "y_A_precision": 0.13432835820895522,
+     "y_A_recall": 0.0002753556677374943,
+     "y_A_lift": 1.466885398615002,
+     "y_A_base": 0.09157386005463333,
+     "y_B_precision": 0.16417910447761194,
+     "y_B_recall": 0.0002304099201943822,
+     "y_B_lift": 1.227448668139998,
+     "y_B_base": 0.13375639139875323
+    },
+    "signals": 579,
+    "trades": {
+     "n": 67,
+     "reasons": {
+      "rule": 49,
+      "stop": 18
+     },
+     "win": 0.2537313432835821,
+     "avg": 0.06105430408268014,
+     "med": -0.038929612563071814,
+     "avg_win": 0.4021292242490741,
+     "avg_loss": -0.054911168773893806,
+     "ge50": 3,
+     "ge100": 1,
+     "top10_share": 1.5752078550148008,
+     "pnl": 5050047.861038363,
+     "best": [
+      {
+       "stock_id": "2636",
+       "name": "台驊控股",
+       "entry_date": "2021-02-22",
+       "exit_date": "2021-07-29",
+       "ret": 3.517,
+       "hold_days": 107,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6469",
+       "name": "大樹醫藥",
+       "entry_date": "2021-06-09",
+       "exit_date": "2021-09-23",
+       "ret": 0.8722,
+       "hold_days": 73,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2609",
+       "name": "陽明",
+       "entry_date": "2020-10-23",
+       "exit_date": "2021-02-01",
+       "ret": 0.8636,
+       "hold_days": 70,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1304",
+       "name": "台聚",
+       "entry_date": "2021-03-08",
+       "exit_date": "2021-05-18",
+       "ret": 0.2902,
+       "hold_days": 47,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2314",
+       "name": "台揚",
+       "entry_date": "2021-09-17",
+       "exit_date": "2021-12-03",
+       "ret": 0.2565,
+       "hold_days": 52,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2883",
+       "name": "凱基金",
+       "entry_date": "2021-11-04",
+       "exit_date": "2022-03-07",
+       "ret": 0.2059,
+       "hold_days": 78,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8069",
+       "name": "元太",
+       "entry_date": "2021-06-15",
+       "exit_date": "2021-08-16",
+       "ret": 0.1686,
+       "hold_days": 44,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6283",
+       "name": "淳安",
+       "entry_date": "2021-03-10",
+       "exit_date": "2021-05-04",
+       "ret": 0.1656,
+       "hold_days": 35,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2421",
+       "name": "建準",
+       "entry_date": "2020-07-21",
+       "exit_date": "2020-09-28",
+       "ret": 0.1552,
+       "hold_days": 49,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4952",
+       "name": "凌通",
+       "entry_date": "2021-06-23",
+       "exit_date": "2021-08-18",
+       "ret": 0.1467,
+       "hold_days": 40,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "9946",
+       "name": "三發地產",
+       "entry_date": "2020-01-10",
+       "exit_date": "2020-01-30",
+       "ret": -0.1082,
+       "hold_days": 7,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1525",
+       "name": "江申",
+       "entry_date": "2020-10-22",
+       "exit_date": "2020-10-29",
+       "ret": -0.0943,
+       "hold_days": 5,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1315",
+       "name": "達新",
+       "entry_date": "2020-08-11",
+       "exit_date": "2020-08-20",
+       "ret": -0.0871,
+       "hold_days": 7,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5531",
+       "name": "鄉林",
+       "entry_date": "2021-03-17",
+       "exit_date": "2021-03-22",
+       "ret": -0.0871,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1593",
+       "name": "祺驊",
+       "entry_date": "2021-04-08",
+       "exit_date": "2021-04-13",
+       "ret": -0.0871,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3217",
+       "name": "優群",
+       "entry_date": "2020-01-14",
+       "exit_date": "2020-01-30",
+       "ret": -0.0871,
+       "hold_days": 5,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2387",
+       "name": "精元",
+       "entry_date": "2020-10-21",
+       "exit_date": "2020-10-26",
+       "ret": -0.0857,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5371",
+       "name": "中光電",
+       "entry_date": "2021-12-30",
+       "exit_date": "2022-01-07",
+       "ret": -0.0857,
+       "hold_days": 5,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5285",
+       "name": "界霖",
+       "entry_date": "2021-03-12",
+       "exit_date": "2021-05-04",
+       "ret": -0.0857,
+       "hold_days": 33,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2355",
+       "name": "敬鵬",
+       "entry_date": "2022-03-03",
+       "exit_date": "2022-03-07",
+       "ret": -0.0857,
+       "hold_days": 2,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 7.0
+    },
+    "yearly": {
+     "2020": 0.10591833577920573,
+     "2021": 0.44790398642013085,
+     "2022": -0.06011426407742626
+    }
+   }
+  },
+  "S01_no_market": {
+   "IS": {
+    "metrics": {
+     "start": "2014-01-02",
+     "end": "2019-12-31",
+     "years": 5.993,
+     "cagr": -0.008054452265025658,
+     "vol": 0.07861294153347342,
+     "sharpe": -0.06359035083510586,
+     "sortino": -0.09030738325519903,
+     "maxdd": -0.14414551058550906,
+     "calmar": -0.055877232889939,
+     "n_obs": 1462,
+     "skew": 0.032493662836407144,
+     "kurt": 8.07298444957796,
+     "exposure": 0.24891402980495728,
+     "turnover": 2.1153711091149794,
+     "trades": 107,
+     "win_rate": 0.29906542056074764,
+     "payoff": 2.14831608953362,
+     "expectancy": -0.0033226469120382625,
+     "avg_hold": 27.149532710280372,
+     "bench_cagr": 0.09873658437741661,
+     "bench_maxdd": -0.23180467684073558,
+     "excess_cagr": -0.10679103664244227,
+     "y_A_precision": 0.028037383177570093,
+     "y_A_recall": 0.00011625203441060219,
+     "y_A_lift": 0.8079625038297984,
+     "y_A_base": 0.03470134201113412,
+     "y_B_precision": 0.04672897196261682,
+     "y_B_recall": 0.00011577558061453678,
+     "y_B_lift": 0.8046511054187516,
+     "y_B_base": 0.05807358201328564
+    },
+    "signals": 130,
+    "trades": {
+     "n": 107,
+     "reasons": {
+      "rule": 80,
+      "stop": 24,
+      "end": 3
+     },
+     "win": 0.29906542056074764,
+     "avg": -0.0033226469120382625,
+     "med": -0.044125929435128386,
+     "avg_win": 0.12212828287789738,
+     "avg_loss": -0.056848376955744136,
+     "ge50": 2,
+     "ge100": 0,
+     "top10_share": null,
+     "pnl": -473112.55503271753,
+     "best": [
+      {
+       "stock_id": "2377",
+       "name": "微星",
+       "entry_date": "2016-06-14",
+       "exit_date": "2016-11-10",
+       "ret": 0.6075,
+       "hold_days": 102,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4739",
+       "name": "康普",
+       "entry_date": "2017-07-19",
+       "exit_date": "2017-11-06",
+       "ret": 0.5429,
+       "hold_days": 75,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5469",
+       "name": "瀚宇博",
+       "entry_date": "2019-06-12",
+       "exit_date": "2019-10-09",
+       "ret": 0.3202,
+       "hold_days": 81,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6271",
+       "name": "同欣電",
+       "entry_date": "2016-06-03",
+       "exit_date": "2016-09-14",
+       "ret": 0.2354,
+       "hold_days": 71,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1521",
+       "name": "大億",
+       "entry_date": "2014-02-13",
+       "exit_date": "2014-06-24",
+       "ret": 0.2289,
+       "hold_days": 89,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2027",
+       "name": "大成鋼",
+       "entry_date": "2018-08-06",
+       "exit_date": "2018-10-12",
+       "ret": 0.2101,
+       "hold_days": 47,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2233",
+       "name": "宇隆",
+       "entry_date": "2016-12-02",
+       "exit_date": "2017-03-29",
+       "ret": 0.189,
+       "hold_days": 74,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1909",
+       "name": "榮成",
+       "entry_date": "2016-06-13",
+       "exit_date": "2016-08-30",
+       "ret": 0.158,
+       "hold_days": 56,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8110",
+       "name": "華東",
+       "entry_date": "2016-11-22",
+       "exit_date": "2017-05-03",
+       "ret": 0.1494,
+       "hold_days": 104,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3454",
+       "name": "晶睿",
+       "entry_date": "2019-01-17",
+       "exit_date": "2019-04-15",
+       "ret": 0.1293,
+       "hold_days": 51,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "3217",
+       "name": "優群",
+       "entry_date": "2019-07-02",
+       "exit_date": "2019-08-06",
+       "ret": -0.1107,
+       "hold_days": 25,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5305",
+       "name": "敦南",
+       "entry_date": "2018-01-17",
+       "exit_date": "2018-02-05",
+       "ret": -0.0909,
+       "hold_days": 13,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5263",
+       "name": "智崴",
+       "entry_date": "2019-07-10",
+       "exit_date": "2019-08-06",
+       "ret": -0.0871,
+       "hold_days": 19,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6158",
+       "name": "禾昌",
+       "entry_date": "2019-07-09",
+       "exit_date": "2019-07-10",
+       "ret": -0.0871,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8114",
+       "name": "振樺電",
+       "entry_date": "2014-09-22",
+       "exit_date": "2014-09-25",
+       "ret": -0.0871,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8404",
+       "name": "百和興業-KY",
+       "entry_date": "2017-11-30",
+       "exit_date": "2017-12-01",
+       "ret": -0.0871,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2404",
+       "name": "漢唐",
+       "entry_date": "2019-07-30",
+       "exit_date": "2019-08-06",
+       "ret": -0.0861,
+       "hold_days": 5,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2405",
+       "name": "輔信",
+       "entry_date": "2018-01-18",
+       "exit_date": "2018-01-22",
+       "ret": -0.0857,
+       "hold_days": 2,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3016",
+       "name": "嘉晶",
+       "entry_date": "2018-01-23",
+       "exit_date": "2018-01-24",
+       "ret": -0.0857,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1533",
+       "name": "車王電",
+       "entry_date": "2014-09-03",
+       "exit_date": "2014-09-16",
+       "ret": -0.0857,
+       "hold_days": 8,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 18.0
+    },
+    "yearly": {
+     "2014": -0.0499617659970466,
+     "2015": -0.02747178838585973,
+     "2016": 0.07022930826214124,
+     "2017": 0.013343070030995108,
+     "2018": -0.050901866564020626,
+     "2019": 0.0017590650275212116
+    }
+   },
+   "VAL": {
+    "metrics": {
+     "start": "2020-01-02",
+     "end": "2022-12-30",
+     "years": 2.992,
+     "cagr": 0.15971568403492098,
+     "vol": 0.1766722250527124,
+     "sharpe": 0.9271805522814318,
+     "sortino": 1.3836629623216221,
+     "maxdd": -0.19754700569149486,
+     "calmar": 0.8084945832302096,
+     "n_obs": 733,
+     "skew": -0.04716711358094246,
+     "kurt": 7.568262533389359,
+     "exposure": 0.30782157708740204,
+     "turnover": 2.9713269478130635,
+     "trades": 74,
+     "win_rate": 0.25675675675675674,
+     "payoff": 6.730320560610675,
+     "expectancy": 0.06134536904242569,
+     "avg_hold": 22.06756756756757,
+     "bench_cagr": 0.09229042597986559,
+     "bench_maxdd": -0.28552528987590486,
+     "excess_cagr": 0.06742525805505539,
+     "y_A_precision": 0.14864864864864866,
+     "y_A_recall": 0.00030508098513423563,
+     "y_A_lift": 1.8889542693347885,
+     "y_A_base": 0.07869361956602398,
+     "y_B_precision": 0.14864864864864866,
+     "y_B_recall": 0.00018305874521551006,
+     "y_B_lift": 1.1334354324369302,
+     "y_B_base": 0.1311487574806518
+    },
+    "signals": 86,
+    "trades": {
+     "n": 74,
+     "reasons": {
+      "rule": 48,
+      "stop": 26
+     },
+     "win": 0.25675675675675674,
+     "avg": 0.06134536904242569,
+     "med": -0.04663284181929117,
+     "avg_win": 0.4192414222633672,
+     "avg_loss": -0.06229144934299049,
+     "ge50": 5,
+     "ge100": 1,
+     "top10_share": 1.7597546264234423,
+     "pnl": 5580094.351988829,
+     "best": [
+      {
+       "stock_id": "2636",
+       "name": "台驊控股",
+       "entry_date": "2021-02-23",
+       "exit_date": "2021-07-29",
+       "ret": 3.4159,
+       "hold_days": 106,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6469",
+       "name": "大樹醫藥",
+       "entry_date": "2021-06-10",
+       "exit_date": "2021-09-23",
+       "ret": 0.7921,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2609",
+       "name": "陽明",
+       "entry_date": "2020-10-26",
+       "exit_date": "2021-02-01",
+       "ret": 0.755,
+       "hold_days": 69,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4755",
+       "name": "三福化",
+       "entry_date": "2021-11-05",
+       "exit_date": "2022-03-08",
+       "ret": 0.7272,
+       "hold_days": 78,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "9945",
+       "name": "潤泰新",
+       "entry_date": "2021-06-29",
+       "exit_date": "2021-12-07",
+       "ret": 0.5345,
+       "hold_days": 112,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2108",
+       "name": "南帝",
+       "entry_date": "2020-08-24",
+       "exit_date": "2020-12-04",
+       "ret": 0.4011,
+       "hold_days": 71,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3014",
+       "name": "聯陽",
+       "entry_date": "2020-05-07",
+       "exit_date": "2020-08-21",
+       "ret": 0.3405,
+       "hold_days": 74,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1304",
+       "name": "台聚",
+       "entry_date": "2021-03-09",
+       "exit_date": "2021-05-18",
+       "ret": 0.2625,
+       "hold_days": 46,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2883",
+       "name": "凱基金",
+       "entry_date": "2021-11-12",
+       "exit_date": "2022-03-07",
+       "ret": 0.177,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8069",
+       "name": "元太",
+       "entry_date": "2021-06-16",
+       "exit_date": "2021-08-16",
+       "ret": 0.1496,
+       "hold_days": 43,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "9946",
+       "name": "三發地產",
+       "entry_date": "2020-01-14",
+       "exit_date": "2020-01-30",
+       "ret": -0.1129,
+       "hold_days": 5,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2905",
+       "name": "三商",
+       "entry_date": "2020-01-20",
+       "exit_date": "2020-03-02",
+       "ret": -0.1004,
+       "hold_days": 22,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1525",
+       "name": "江申",
+       "entry_date": "2020-10-23",
+       "exit_date": "2020-10-29",
+       "ret": -0.0956,
+       "hold_days": 4,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6435",
+       "name": "大中積體電路",
+       "entry_date": "2022-01-05",
+       "exit_date": "2022-01-10",
+       "ret": -0.0941,
+       "hold_days": 3,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "9958",
+       "name": "世紀鋼",
+       "entry_date": "2020-05-06",
+       "exit_date": "2020-05-14",
+       "ret": -0.0898,
+       "hold_days": 6,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6208",
+       "name": "日揚",
+       "entry_date": "2022-04-07",
+       "exit_date": "2022-04-12",
+       "ret": -0.0874,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1315",
+       "name": "達新",
+       "entry_date": "2020-08-12",
+       "exit_date": "2020-08-20",
+       "ret": -0.0871,
+       "hold_days": 6,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "4536",
+       "name": "拓凱",
+       "entry_date": "2020-11-17",
+       "exit_date": "2020-12-11",
+       "ret": -0.0871,
+       "hold_days": 18,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2836",
+       "name": "高雄銀",
+       "entry_date": "2022-03-24",
+       "exit_date": "2022-04-27",
+       "ret": -0.0871,
+       "hold_days": 22,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5371",
+       "name": "中光電",
+       "entry_date": "2022-01-03",
+       "exit_date": "2022-01-04",
+       "ret": -0.0857,
+       "hold_days": 1,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 8.0
+    },
+    "yearly": {
+     "2020": 0.18378732608894377,
+     "2021": 0.6401244220641784,
+     "2022": -0.19754700569149486
+    }
+   }
+  },
+  "S01_fund": {
+   "IS": {
+    "metrics": {
+     "start": "2014-01-02",
+     "end": "2019-12-31",
+     "years": 5.993,
+     "cagr": -0.00303446593544876,
+     "vol": 0.03147268671801045,
+     "sharpe": -0.08082559879188828,
+     "sortino": -0.11196435566764264,
+     "maxdd": -0.07315376161505704,
+     "calmar": -0.0414806548351737,
+     "n_obs": 1462,
+     "skew": -0.4645332955806557,
+     "kurt": 22.1559031330333,
+     "exposure": 0.04764256120982313,
+     "turnover": 0.36876653570408624,
+     "trades": 18,
+     "win_rate": 0.3333333333333333,
+     "payoff": 1.5848482361348353,
+     "expectancy": -0.008330598706852889,
+     "avg_hold": 29.77777777777778,
+     "bench_cagr": 0.09873658437741661,
+     "bench_maxdd": -0.23180467684073558,
+     "excess_cagr": -0.10177105031286537,
+     "y_A_precision": 0.05555555555555555,
+     "y_A_recall": 4.411699827943707e-05,
+     "y_A_lift": 1.5814718411003759,
+     "y_A_base": 0.03512901975978303,
+     "y_B_precision": 0.05555555555555555,
+     "y_B_recall": 2.693892944694378e-05,
+     "y_B_lift": 0.9656857903133597,
+     "y_B_base": 0.05752963967454475
+    },
+    "signals": 25,
+    "trades": {
+     "n": 18,
+     "reasons": {
+      "rule": 12,
+      "stop": 6
+     },
+     "win": 0.3333333333333333,
+     "avg": -0.008330598706852889,
+     "med": -0.04400369526918929,
+     "avg_win": 0.09540656561529863,
+     "avg_loss": -0.060199180867928644,
+     "ge50": 0,
+     "ge100": 0,
+     "top10_share": null,
+     "pnl": -180488.07704359503,
+     "best": [
+      {
+       "stock_id": "2027",
+       "name": "大成鋼",
+       "entry_date": "2018-08-06",
+       "exit_date": "2018-10-12",
+       "ret": 0.2101,
+       "hold_days": 47,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4994",
+       "name": "傳奇",
+       "entry_date": "2014-06-04",
+       "exit_date": "2014-08-21",
+       "ret": 0.1181,
+       "hold_days": 56,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2542",
+       "name": "興富發",
+       "entry_date": "2015-02-24",
+       "exit_date": "2015-05-18",
+       "ret": 0.0877,
+       "hold_days": 55,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3004",
+       "name": "豐達科",
+       "entry_date": "2019-07-02",
+       "exit_date": "2019-10-24",
+       "ret": 0.0774,
+       "hold_days": 76,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1310",
+       "name": "台苯",
+       "entry_date": "2017-02-03",
+       "exit_date": "2017-04-17",
+       "ret": 0.0486,
+       "hold_days": 47,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2548",
+       "name": "華固",
+       "entry_date": "2017-02-07",
+       "exit_date": "2017-04-18",
+       "ret": 0.0305,
+       "hold_days": 46,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3032",
+       "name": "偉訓",
+       "entry_date": "2016-09-26",
+       "exit_date": "2016-10-14",
+       "ret": -0.0062,
+       "hold_days": 11,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2545",
+       "name": "皇翔",
+       "entry_date": "2016-08-12",
+       "exit_date": "2016-10-12",
+       "ret": -0.0107,
+       "hold_days": 38,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3059",
+       "name": "華晶科",
+       "entry_date": "2014-05-30",
+       "exit_date": "2014-06-06",
+       "ret": -0.0439,
+       "hold_days": 4,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2031",
+       "name": "新光鋼",
+       "entry_date": "2017-02-06",
+       "exit_date": "2017-04-17",
+       "ret": -0.0441,
+       "hold_days": 46,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "5263",
+       "name": "智崴",
+       "entry_date": "2019-07-10",
+       "exit_date": "2019-08-06",
+       "ret": -0.0871,
+       "hold_days": 19,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2404",
+       "name": "漢唐",
+       "entry_date": "2019-07-30",
+       "exit_date": "2019-08-06",
+       "ret": -0.0861,
+       "hold_days": 5,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8081",
+       "name": "致新",
+       "entry_date": "2019-07-12",
+       "exit_date": "2019-08-05",
+       "ret": -0.0857,
+       "hold_days": 16,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2439",
+       "name": "美律",
+       "entry_date": "2019-07-02",
+       "exit_date": "2019-07-08",
+       "ret": -0.0857,
+       "hold_days": 4,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3653",
+       "name": "健策",
+       "entry_date": "2014-06-05",
+       "exit_date": "2014-06-24",
+       "ret": -0.0857,
+       "hold_days": 13,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2610",
+       "name": "華航",
+       "entry_date": "2015-04-08",
+       "exit_date": "2015-05-05",
+       "ret": -0.0746,
+       "hold_days": 18,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1463",
+       "name": "強盛新",
+       "entry_date": "2017-05-26",
+       "exit_date": "2017-07-11",
+       "ret": -0.0584,
+       "hold_days": 30,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2329",
+       "name": "華泰",
+       "entry_date": "2015-04-30",
+       "exit_date": "2015-05-08",
+       "ret": -0.0542,
+       "hold_days": 5,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2031",
+       "name": "新光鋼",
+       "entry_date": "2017-02-06",
+       "exit_date": "2017-04-17",
+       "ret": -0.0441,
+       "hold_days": 46,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3059",
+       "name": "華晶科",
+       "entry_date": "2014-05-30",
+       "exit_date": "2014-06-06",
+       "ret": -0.0439,
+       "hold_days": 4,
+       "reason": "rule"
+      }
+     ],
+     "hold_med": 24.5
+    },
+    "yearly": {
+     "2014": -0.0013108539857350499,
+     "2015": -0.005556700393826164,
+     "2016": -0.0020748511300437977,
+     "2017": -0.002913798806982504,
+     "2018": 0.02625583640939233,
+     "2019": -0.03173723211010859
+    }
+   },
+   "VAL": {
+    "metrics": {
+     "start": "2020-01-02",
+     "end": "2022-12-30",
+     "years": 2.992,
+     "cagr": 0.11375089300424635,
+     "vol": 0.12823738035081841,
+     "sharpe": 0.9041657711893369,
+     "sortino": 1.4196572388361604,
+     "maxdd": -0.19499932445047174,
+     "calmar": 0.5833399337398123,
+     "n_obs": 733,
+     "skew": 0.4609993483131135,
+     "kurt": 14.922267578738179,
+     "exposure": 0.12314686209965578,
+     "turnover": 1.178573900931933,
+     "trades": 28,
+     "win_rate": 0.21428571428571427,
+     "payoff": 12.676834353123164,
+     "expectancy": 0.1112657948799669,
+     "avg_hold": 21.035714285714285,
+     "bench_cagr": 0.09229042597986559,
+     "bench_maxdd": -0.28552528987590486,
+     "excess_cagr": 0.021460467024380758,
+     "y_A_precision": 0.10714285714285714,
+     "y_A_recall": 9.220839096357768e-05,
+     "y_A_lift": 1.1375716261608377,
+     "y_A_base": 0.09418559207955186,
+     "y_B_precision": 0.03571428571428571,
+     "y_B_recall": 2.1316961906589073e-05,
+     "y_B_lift": 0.2629865977215213,
+     "y_B_base": 0.13580268357288636
+    },
+    "signals": 38,
+    "trades": {
+     "n": 28,
+     "reasons": {
+      "rule": 21,
+      "stop": 7
+     },
+     "win": 0.21428571428571427,
+     "avg": 0.1112657948799669,
+     "med": -0.04663284181929106,
+     "avg_win": 0.7305440327431142,
+     "avg_loss": -0.05762826999180057,
+     "ge50": 2,
+     "ge100": 1,
+     "top10_share": 1.4080383612533072,
+     "pnl": 3804221.6577312257,
+     "best": [
+      {
+       "stock_id": "2636",
+       "name": "台驊控股",
+       "entry_date": "2021-02-23",
+       "exit_date": "2021-07-29",
+       "ret": 3.4159,
+       "hold_days": 106,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "9945",
+       "name": "潤泰新",
+       "entry_date": "2021-06-29",
+       "exit_date": "2021-12-07",
+       "ret": 0.5345,
+       "hold_days": 112,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1304",
+       "name": "台聚",
+       "entry_date": "2021-03-09",
+       "exit_date": "2021-05-18",
+       "ret": 0.2625,
+       "hold_days": 46,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6271",
+       "name": "同欣電",
+       "entry_date": "2021-10-27",
+       "exit_date": "2022-01-07",
+       "ret": 0.1032,
+       "hold_days": 51,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2383",
+       "name": "台光電",
+       "entry_date": "2021-11-25",
+       "exit_date": "2022-01-13",
+       "ret": 0.0337,
+       "hold_days": 34,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1909",
+       "name": "榮成",
+       "entry_date": "2021-02-23",
+       "exit_date": "2021-05-05",
+       "ret": 0.0335,
+       "hold_days": 46,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3588",
+       "name": "通嘉",
+       "entry_date": "2022-02-18",
+       "exit_date": "2022-02-23",
+       "ret": -0.0042,
+       "hold_days": 3,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3583",
+       "name": "辛耘",
+       "entry_date": "2021-12-29",
+       "exit_date": "2022-01-24",
+       "ret": -0.0052,
+       "hold_days": 17,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2527",
+       "name": "宏璟",
+       "entry_date": "2021-10-18",
+       "exit_date": "2021-12-15",
+       "ret": -0.017,
+       "hold_days": 42,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2114",
+       "name": "鑫永銓",
+       "entry_date": "2021-10-22",
+       "exit_date": "2021-10-28",
+       "ret": -0.0303,
+       "hold_days": 4,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "2905",
+       "name": "三商",
+       "entry_date": "2020-01-20",
+       "exit_date": "2020-03-02",
+       "ret": -0.1004,
+       "hold_days": 22,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8415",
+       "name": "大國鋼",
+       "entry_date": "2021-06-30",
+       "exit_date": "2021-07-07",
+       "ret": -0.0857,
+       "hold_days": 5,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3380",
+       "name": "明泰",
+       "entry_date": "2021-04-01",
+       "exit_date": "2021-04-14",
+       "ret": -0.0857,
+       "hold_days": 6,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6153",
+       "name": "嘉聯益",
+       "entry_date": "2021-01-15",
+       "exit_date": "2021-01-15",
+       "ret": -0.0857,
+       "hold_days": 0,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3035",
+       "name": "智原",
+       "entry_date": "2021-12-20",
+       "exit_date": "2022-01-06",
+       "ret": -0.0848,
+       "hold_days": 12,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3014",
+       "name": "聯陽",
+       "entry_date": "2021-06-10",
+       "exit_date": "2021-06-17",
+       "ret": -0.0848,
+       "hold_days": 4,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5347",
+       "name": "世界",
+       "entry_date": "2021-11-03",
+       "exit_date": "2021-11-04",
+       "ret": -0.0848,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2351",
+       "name": "順德",
+       "entry_date": "2022-01-03",
+       "exit_date": "2022-01-07",
+       "ret": -0.074,
+       "hold_days": 4,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6438",
+       "name": "迅得",
+       "entry_date": "2022-03-22",
+       "exit_date": "2022-04-08",
+       "ret": -0.0704,
+       "hold_days": 11,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6279",
+       "name": "胡連",
+       "entry_date": "2021-03-30",
+       "exit_date": "2021-04-14",
+       "ret": -0.0679,
+       "hold_days": 8,
+       "reason": "rule"
+      }
+     ],
+     "hold_med": 7.5
+    },
+    "yearly": {
+     "2020": -0.014990081467422423,
+     "2021": 0.5148926317562024,
+     "2022": -0.07489832484566294
+    }
+   }
+  },
+  "S01_code33": {
+   "IS": {
+    "metrics": {
+     "start": "2014-01-02",
+     "end": "2019-12-31",
+     "years": 5.993,
+     "cagr": 0.0046392310128509084,
+     "vol": 0.01708139179031699,
+     "sharpe": 0.279498590078015,
+     "sortino": 0.4270827524763251,
+     "maxdd": -0.024040701368607476,
+     "calmar": 0.1929740294061824,
+     "n_obs": 1462,
+     "skew": 1.0324088675445708,
+     "kurt": 38.71529184069852,
+     "exposure": 0.019188055148951343,
+     "turnover": 0.10242210160724173,
+     "trades": 5,
+     "win_rate": 0.4,
+     "payoff": 8.801590100405873,
+     "expectancy": 0.045914013419687795,
+     "avg_hold": 43.0,
+     "bench_cagr": 0.09873658437741661,
+     "bench_maxdd": -0.23180467684073558,
+     "excess_cagr": -0.0940973533645657,
+     "y_A_precision": 0.0,
+     "y_A_recall": 0.0,
+     "y_A_lift": 0.0,
+     "y_A_base": 0.03945762766114932,
+     "y_B_precision": 0.0,
+     "y_B_recall": 0.0,
+     "y_B_lift": 0.0,
+     "y_B_base": 0.06257526836548118
+    },
+    "signals": 7,
+    "trades": {
+     "n": 5,
+     "reasons": {
+      "rule": 4,
+      "stop": 1
+     },
+     "win": 0.4,
+     "avg": 0.045914013419687795,
+     "med": -0.00619891742560108,
+     "avg_win": 0.13836586292421527,
+     "avg_loss": -0.015720552916663855,
+     "ge50": 0,
+     "ge100": 0,
+     "top10_share": 0.8253565275207122,
+     "pnl": 281276.54971072194,
+     "best": [
+      {
+       "stock_id": "2233",
+       "name": "宇隆",
+       "entry_date": "2016-12-02",
+       "exit_date": "2017-03-29",
+       "ret": 0.189,
+       "hold_days": 74,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2542",
+       "name": "興富發",
+       "entry_date": "2015-02-24",
+       "exit_date": "2015-05-18",
+       "ret": 0.0877,
+       "hold_days": 55,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2345",
+       "name": "智邦",
+       "entry_date": "2019-03-19",
+       "exit_date": "2019-05-14",
+       "ret": -0.0062,
+       "hold_days": 37,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2428",
+       "name": "興勤",
+       "entry_date": "2017-07-20",
+       "exit_date": "2017-09-26",
+       "ret": -0.0131,
+       "hold_days": 48,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "9802",
+       "name": "鈺齊-KY",
+       "entry_date": "2016-09-02",
+       "exit_date": "2016-09-05",
+       "ret": -0.0279,
+       "hold_days": 1,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "9802",
+       "name": "鈺齊-KY",
+       "entry_date": "2016-09-02",
+       "exit_date": "2016-09-05",
+       "ret": -0.0279,
+       "hold_days": 1,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2428",
+       "name": "興勤",
+       "entry_date": "2017-07-20",
+       "exit_date": "2017-09-26",
+       "ret": -0.0131,
+       "hold_days": 48,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2345",
+       "name": "智邦",
+       "entry_date": "2019-03-19",
+       "exit_date": "2019-05-14",
+       "ret": -0.0062,
+       "hold_days": 37,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2542",
+       "name": "興富發",
+       "entry_date": "2015-02-24",
+       "exit_date": "2015-05-18",
+       "ret": 0.0877,
+       "hold_days": 55,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2233",
+       "name": "宇隆",
+       "entry_date": "2016-12-02",
+       "exit_date": "2017-03-29",
+       "ret": 0.189,
+       "hold_days": 74,
+       "reason": "rule"
+      }
+     ],
+     "hold_med": 48.0
+    },
+    "yearly": {
+     "2014": 0.0,
+     "2015": 0.010706404508963985,
+     "2016": 0.00914204959414211,
+     "2017": 0.008746275600297837,
+     "2018": 0.0,
+     "2019": -0.0007186636262113133
+    }
+   },
+   "VAL": {
+    "metrics": {
+     "start": "2020-01-02",
+     "end": "2022-12-30",
+     "years": 2.992,
+     "cagr": -0.006997049357578389,
+     "vol": 0.008051056242333597,
+     "sharpe": -0.868088444923203,
+     "sortino": -0.9196717865130527,
+     "maxdd": -0.021373810068622268,
+     "calmar": -0.32736556257933525,
+     "n_obs": 733,
+     "skew": -13.224330273763497,
+     "kurt": 260.0704334683368,
+     "exposure": 0.002835229650377485,
+     "turnover": 0.07816897430702857,
+     "trades": 2,
+     "win_rate": 0.0,
+     "payoff": null,
+     "expectancy": -0.08638975690784367,
+     "avg_hold": 9.0,
+     "bench_cagr": 0.09229042597986559,
+     "bench_maxdd": -0.28552528987590486,
+     "excess_cagr": -0.09928747533744398,
+     "y_A_precision": 0.0,
+     "y_A_recall": 0.0,
+     "y_A_lift": 0.0,
+     "y_A_base": 0.10456307571931571,
+     "y_B_precision": 0.0,
+     "y_B_recall": 0.0,
+     "y_B_lift": 0.0,
+     "y_B_base": 0.19507771099334922
+    },
+    "signals": 2,
+    "trades": {
+     "n": 2,
+     "reasons": {
+      "stop": 2
+     },
+     "win": 0.0,
+     "avg": -0.08638975690784367,
+     "med": -0.08638975690784367,
+     "avg_win": null,
+     "avg_loss": -0.08638975690784367,
+     "ge50": 0,
+     "ge100": 0,
+     "top10_share": null,
+     "pnl": -207928.4857176263,
+     "best": [
+      {
+       "stock_id": "6153",
+       "name": "嘉聯益",
+       "entry_date": "2021-01-15",
+       "exit_date": "2021-01-15",
+       "ret": -0.0857,
+       "hold_days": 0,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "4536",
+       "name": "拓凱",
+       "entry_date": "2020-11-17",
+       "exit_date": "2020-12-11",
+       "ret": -0.0871,
+       "hold_days": 18,
+       "reason": "stop"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "4536",
+       "name": "拓凱",
+       "entry_date": "2020-11-17",
+       "exit_date": "2020-12-11",
+       "ret": -0.0871,
+       "hold_days": 18,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6153",
+       "name": "嘉聯益",
+       "entry_date": "2021-01-15",
+       "exit_date": "2021-01-15",
+       "ret": -0.0857,
+       "hold_days": 0,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 9.0
+    },
+    "yearly": {
+     "2020": -0.010340888467434972,
+     "2021": -0.010561172006128383,
+     "2022": 0.0
+    }
+   }
+  },
+  "S01_be3": {
+   "IS": {
+    "metrics": {
+     "start": "2014-01-02",
+     "end": "2019-12-31",
+     "years": 5.993,
+     "cagr": -0.010304206464251342,
+     "vol": 0.07332255230872664,
+     "sharpe": -0.10461442221597882,
+     "sortino": -0.1476360223293585,
+     "maxdd": -0.13949065147793271,
+     "calmar": -0.07387022968977572,
+     "n_obs": 1462,
+     "skew": -0.028766140674252507,
+     "kurt": 9.313635276916676,
+     "exposure": 0.21057454629881034,
+     "turnover": 1.8212974500218806,
+     "trades": 92,
+     "win_rate": 0.32608695652173914,
+     "payoff": 1.7890931076573346,
+     "expectancy": -0.005200858057017505,
+     "avg_hold": 27.01086956521739,
+     "bench_cagr": 0.09873658437741661,
+     "bench_maxdd": -0.23180467684073558,
+     "excess_cagr": -0.10904079084166796,
+     "y_A_precision": 0.021739130434782608,
+     "y_A_recall": 7.750135627373479e-05,
+     "y_A_lift": 0.6264636805057132,
+     "y_A_base": 0.03470134201113412,
+     "y_B_precision": 0.05434782608695652,
+     "y_B_recall": 0.00011577558061453678,
+     "y_B_lift": 0.9358442204326785,
+     "y_B_base": 0.05807358201328564
+    },
+    "signals": 130,
+    "trades": {
+     "n": 92,
+     "reasons": {
+      "rule": 71,
+      "stop": 18,
+      "end": 3
+     },
+     "win": 0.32608695652173914,
+     "avg": -0.005200858057017505,
+     "med": -0.04400215730730472,
+     "avg_win": 0.10280078297046072,
+     "avg_loss": -0.05745971661870052,
+     "ge50": 1,
+     "ge100": 0,
+     "top10_share": null,
+     "pnl": -601876.7663500196,
+     "best": [
+      {
+       "stock_id": "4739",
+       "name": "康普",
+       "entry_date": "2017-07-19",
+       "exit_date": "2017-11-06",
+       "ret": 0.5429,
+       "hold_days": 75,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5469",
+       "name": "瀚宇博",
+       "entry_date": "2019-06-12",
+       "exit_date": "2019-10-09",
+       "ret": 0.3202,
+       "hold_days": 81,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6271",
+       "name": "同欣電",
+       "entry_date": "2016-06-03",
+       "exit_date": "2016-09-14",
+       "ret": 0.2354,
+       "hold_days": 71,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1521",
+       "name": "大億",
+       "entry_date": "2014-02-13",
+       "exit_date": "2014-06-24",
+       "ret": 0.2289,
+       "hold_days": 89,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2027",
+       "name": "大成鋼",
+       "entry_date": "2018-08-06",
+       "exit_date": "2018-10-12",
+       "ret": 0.2101,
+       "hold_days": 47,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2233",
+       "name": "宇隆",
+       "entry_date": "2016-12-02",
+       "exit_date": "2017-03-29",
+       "ret": 0.189,
+       "hold_days": 74,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1909",
+       "name": "榮成",
+       "entry_date": "2016-06-13",
+       "exit_date": "2016-08-30",
+       "ret": 0.158,
+       "hold_days": 56,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8110",
+       "name": "華東",
+       "entry_date": "2016-11-22",
+       "exit_date": "2017-05-03",
+       "ret": 0.1494,
+       "hold_days": 104,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6271",
+       "name": "同欣電",
+       "entry_date": "2019-12-06",
+       "exit_date": "2019-12-31",
+       "ret": 0.1253,
+       "hold_days": 17,
+       "reason": "end"
+      },
+      {
+       "stock_id": "4994",
+       "name": "傳奇",
+       "entry_date": "2014-06-04",
+       "exit_date": "2014-08-21",
+       "ret": 0.1181,
+       "hold_days": 56,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "3217",
+       "name": "優群",
+       "entry_date": "2019-07-02",
+       "exit_date": "2019-08-06",
+       "ret": -0.1107,
+       "hold_days": 25,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5305",
+       "name": "敦南",
+       "entry_date": "2018-01-17",
+       "exit_date": "2018-02-05",
+       "ret": -0.0909,
+       "hold_days": 13,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5263",
+       "name": "智崴",
+       "entry_date": "2019-07-10",
+       "exit_date": "2019-08-06",
+       "ret": -0.0871,
+       "hold_days": 19,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6158",
+       "name": "禾昌",
+       "entry_date": "2019-07-09",
+       "exit_date": "2019-07-10",
+       "ret": -0.0871,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8404",
+       "name": "百和興業-KY",
+       "entry_date": "2017-11-30",
+       "exit_date": "2017-12-01",
+       "ret": -0.0871,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8114",
+       "name": "振樺電",
+       "entry_date": "2014-09-22",
+       "exit_date": "2014-09-25",
+       "ret": -0.0871,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3016",
+       "name": "嘉晶",
+       "entry_date": "2018-01-23",
+       "exit_date": "2018-01-24",
+       "ret": -0.0857,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2405",
+       "name": "輔信",
+       "entry_date": "2018-01-18",
+       "exit_date": "2018-01-22",
+       "ret": -0.0857,
+       "hold_days": 2,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2439",
+       "name": "美律",
+       "entry_date": "2019-04-24",
+       "exit_date": "2019-04-29",
+       "ret": -0.0857,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2387",
+       "name": "精元",
+       "entry_date": "2019-12-13",
+       "exit_date": "2019-12-19",
+       "ret": -0.0857,
+       "hold_days": 4,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 18.0
+    },
+    "yearly": {
+     "2014": -0.04229195474967751,
+     "2015": -0.017356569462400384,
+     "2016": 0.024790776815066584,
+     "2017": 0.02181824990383774,
+     "2018": -0.04070301306011026,
+     "2019": -0.005854156211064221
+    }
+   },
+   "VAL": {
+    "metrics": {
+     "start": "2020-01-02",
+     "end": "2022-12-30",
+     "years": 2.992,
+     "cagr": 0.17742031787219914,
+     "vol": 0.17208685035466104,
+     "sharpe": 1.0353583982045906,
+     "sortino": 1.550602884966654,
+     "maxdd": -0.17764276899382425,
+     "calmar": 0.9987477614603449,
+     "n_obs": 733,
+     "skew": -0.07561655146345575,
+     "kurt": 8.420075181847164,
+     "exposure": 0.2570592680712991,
+     "turnover": 2.2456194271094736,
+     "trades": 58,
+     "win_rate": 0.3103448275862069,
+     "payoff": 6.193354982481989,
+     "expectancy": 0.08381317799951324,
+     "avg_hold": 23.17241379310345,
+     "bench_cagr": 0.09229042597986559,
+     "bench_maxdd": -0.28552528987590486,
+     "excess_cagr": 0.08512989189233355,
+     "y_A_precision": 0.1724137931034483,
+     "y_A_recall": 0.0003063631628932937,
+     "y_A_lift": 1.872486369480313,
+     "y_A_base": 0.09207746230553322,
+     "y_B_precision": 0.15517241379310345,
+     "y_B_recall": 0.00019004582215934287,
+     "y_B_lift": 1.1615567883857973,
+     "y_B_base": 0.13359003653083965
+    },
+    "signals": 86,
+    "trades": {
+     "n": 58,
+     "reasons": {
+      "rule": 40,
+      "stop": 18
+     },
+     "win": 0.3103448275862069,
+     "avg": 0.08381317799951324,
+     "med": -0.04952131611039323,
+     "avg_win": 0.4211912724503327,
+     "avg_loss": -0.06800696450335553,
+     "ge50": 5,
+     "ge100": 1,
+     "top10_share": 1.3929113438351297,
+     "pnl": 6302737.196974428,
+     "best": [
+      {
+       "stock_id": "2636",
+       "name": "台驊控股",
+       "entry_date": "2021-02-23",
+       "exit_date": "2021-07-29",
+       "ret": 3.4159,
+       "hold_days": 106,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6469",
+       "name": "大樹醫藥",
+       "entry_date": "2021-06-10",
+       "exit_date": "2021-09-23",
+       "ret": 0.7921,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2609",
+       "name": "陽明",
+       "entry_date": "2020-10-26",
+       "exit_date": "2021-02-01",
+       "ret": 0.755,
+       "hold_days": 69,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4755",
+       "name": "三福化",
+       "entry_date": "2021-11-05",
+       "exit_date": "2022-03-08",
+       "ret": 0.7272,
+       "hold_days": 78,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "9945",
+       "name": "潤泰新",
+       "entry_date": "2021-06-29",
+       "exit_date": "2021-12-07",
+       "ret": 0.5345,
+       "hold_days": 112,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2108",
+       "name": "南帝",
+       "entry_date": "2020-08-24",
+       "exit_date": "2020-12-04",
+       "ret": 0.4011,
+       "hold_days": 71,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1304",
+       "name": "台聚",
+       "entry_date": "2021-03-09",
+       "exit_date": "2021-05-18",
+       "ret": 0.2625,
+       "hold_days": 46,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2883",
+       "name": "凱基金",
+       "entry_date": "2021-11-12",
+       "exit_date": "2022-03-07",
+       "ret": 0.177,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8069",
+       "name": "元太",
+       "entry_date": "2021-06-16",
+       "exit_date": "2021-08-16",
+       "ret": 0.1496,
+       "hold_days": 43,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6271",
+       "name": "同欣電",
+       "entry_date": "2021-10-27",
+       "exit_date": "2022-01-07",
+       "ret": 0.1032,
+       "hold_days": 51,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "9946",
+       "name": "三發地產",
+       "entry_date": "2020-01-14",
+       "exit_date": "2020-01-30",
+       "ret": -0.1129,
+       "hold_days": 5,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2905",
+       "name": "三商",
+       "entry_date": "2020-01-20",
+       "exit_date": "2020-03-02",
+       "ret": -0.1004,
+       "hold_days": 22,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1525",
+       "name": "江申",
+       "entry_date": "2020-10-23",
+       "exit_date": "2020-10-29",
+       "ret": -0.0956,
+       "hold_days": 4,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6435",
+       "name": "大中積體電路",
+       "entry_date": "2022-01-05",
+       "exit_date": "2022-01-10",
+       "ret": -0.0941,
+       "hold_days": 3,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6208",
+       "name": "日揚",
+       "entry_date": "2022-04-07",
+       "exit_date": "2022-04-12",
+       "ret": -0.0874,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1315",
+       "name": "達新",
+       "entry_date": "2020-08-12",
+       "exit_date": "2020-08-20",
+       "ret": -0.0871,
+       "hold_days": 6,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "4536",
+       "name": "拓凱",
+       "entry_date": "2020-11-17",
+       "exit_date": "2020-12-11",
+       "ret": -0.0871,
+       "hold_days": 18,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2836",
+       "name": "高雄銀",
+       "entry_date": "2022-03-24",
+       "exit_date": "2022-04-27",
+       "ret": -0.0871,
+       "hold_days": 22,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6449",
+       "name": "鈺邦",
+       "entry_date": "2020-12-14",
+       "exit_date": "2020-12-15",
+       "ret": -0.0857,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1708",
+       "name": "東鹼",
+       "entry_date": "2021-08-24",
+       "exit_date": "2021-08-27",
+       "ret": -0.0857,
+       "hold_days": 3,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 6.5
+    },
+    "yearly": {
+     "2020": 0.1534262556343855,
+     "2021": 0.6297864859252797,
+     "2022": -0.13275863914270336
+    }
+   }
+  },
+  "S01_no_be": {
+   "IS": {
+    "metrics": {
+     "start": "2014-01-02",
+     "end": "2019-12-31",
+     "years": 5.993,
+     "cagr": -0.010183672106304553,
+     "vol": 0.07327740118330675,
+     "sharpe": -0.10306240310343415,
+     "sortino": -0.14550405143355866,
+     "maxdd": -0.13940057413341278,
+     "calmar": -0.07305330103273684,
+     "n_obs": 1462,
+     "skew": -0.02692255288599775,
+     "kurt": 9.310160712159913,
+     "exposure": 0.21174359906203336,
+     "turnover": 1.8190546242661516,
+     "trades": 92,
+     "win_rate": 0.33695652173913043,
+     "payoff": 1.7089487001871695,
+     "expectancy": -0.00510722081649741,
+     "avg_hold": 27.184782608695652,
+     "bench_cagr": 0.09873658437741661,
+     "bench_maxdd": -0.23180467684073558,
+     "excess_cagr": -0.10892025648372117,
+     "y_A_precision": 0.021739130434782608,
+     "y_A_recall": 7.750135627373479e-05,
+     "y_A_lift": 0.6264636805057132,
+     "y_A_base": 0.03470134201113412,
+     "y_B_precision": 0.05434782608695652,
+     "y_B_recall": 0.00011577558061453678,
+     "y_B_lift": 0.9358442204326785,
+     "y_B_base": 0.05807358201328564
+    },
+    "signals": 130,
+    "trades": {
+     "n": 92,
+     "reasons": {
+      "rule": 73,
+      "stop": 16,
+      "end": 3
+     },
+     "win": 0.33695652173913043,
+     "avg": -0.00510722081649741,
+     "med": -0.04400215730730472,
+     "avg_win": 0.10008912098696811,
+     "avg_loss": -0.05856765681497989,
+     "ge50": 1,
+     "ge100": 0,
+     "top10_share": null,
+     "pnl": -595014.9694680927,
+     "best": [
+      {
+       "stock_id": "4739",
+       "name": "康普",
+       "entry_date": "2017-07-19",
+       "exit_date": "2017-11-06",
+       "ret": 0.5429,
+       "hold_days": 75,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5469",
+       "name": "瀚宇博",
+       "entry_date": "2019-06-12",
+       "exit_date": "2019-10-09",
+       "ret": 0.3202,
+       "hold_days": 81,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6271",
+       "name": "同欣電",
+       "entry_date": "2016-06-03",
+       "exit_date": "2016-09-14",
+       "ret": 0.2354,
+       "hold_days": 71,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1521",
+       "name": "大億",
+       "entry_date": "2014-02-13",
+       "exit_date": "2014-06-24",
+       "ret": 0.2289,
+       "hold_days": 89,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2027",
+       "name": "大成鋼",
+       "entry_date": "2018-08-06",
+       "exit_date": "2018-10-12",
+       "ret": 0.2101,
+       "hold_days": 47,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2233",
+       "name": "宇隆",
+       "entry_date": "2016-12-02",
+       "exit_date": "2017-03-29",
+       "ret": 0.189,
+       "hold_days": 74,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1909",
+       "name": "榮成",
+       "entry_date": "2016-06-13",
+       "exit_date": "2016-08-30",
+       "ret": 0.158,
+       "hold_days": 56,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8110",
+       "name": "華東",
+       "entry_date": "2016-11-22",
+       "exit_date": "2017-05-03",
+       "ret": 0.1494,
+       "hold_days": 104,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6271",
+       "name": "同欣電",
+       "entry_date": "2019-12-06",
+       "exit_date": "2019-12-31",
+       "ret": 0.1253,
+       "hold_days": 17,
+       "reason": "end"
+      },
+      {
+       "stock_id": "4994",
+       "name": "傳奇",
+       "entry_date": "2014-06-04",
+       "exit_date": "2014-08-21",
+       "ret": 0.1181,
+       "hold_days": 56,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "3217",
+       "name": "優群",
+       "entry_date": "2019-07-02",
+       "exit_date": "2019-08-06",
+       "ret": -0.1107,
+       "hold_days": 25,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5305",
+       "name": "敦南",
+       "entry_date": "2018-01-17",
+       "exit_date": "2018-02-05",
+       "ret": -0.0909,
+       "hold_days": 13,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5263",
+       "name": "智崴",
+       "entry_date": "2019-07-10",
+       "exit_date": "2019-08-06",
+       "ret": -0.0871,
+       "hold_days": 19,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6158",
+       "name": "禾昌",
+       "entry_date": "2019-07-09",
+       "exit_date": "2019-07-10",
+       "ret": -0.0871,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8404",
+       "name": "百和興業-KY",
+       "entry_date": "2017-11-30",
+       "exit_date": "2017-12-01",
+       "ret": -0.0871,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8114",
+       "name": "振樺電",
+       "entry_date": "2014-09-22",
+       "exit_date": "2014-09-25",
+       "ret": -0.0871,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3016",
+       "name": "嘉晶",
+       "entry_date": "2018-01-23",
+       "exit_date": "2018-01-24",
+       "ret": -0.0857,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2405",
+       "name": "輔信",
+       "entry_date": "2018-01-18",
+       "exit_date": "2018-01-22",
+       "ret": -0.0857,
+       "hold_days": 2,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2439",
+       "name": "美律",
+       "entry_date": "2019-04-24",
+       "exit_date": "2019-04-29",
+       "ret": -0.0857,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2387",
+       "name": "精元",
+       "entry_date": "2019-12-13",
+       "exit_date": "2019-12-19",
+       "ret": -0.0857,
+       "hold_days": 4,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 18.5
+    },
+    "yearly": {
+     "2014": -0.039181433090104356,
+     "2015": -0.01743310288376798,
+     "2016": 0.022312234216829374,
+     "2017": 0.021770069442909712,
+     "2018": -0.04067469104388821,
+     "2019": -0.005849910054410157
+    }
+   },
+   "VAL": {
+    "metrics": {
+     "start": "2020-01-02",
+     "end": "2022-12-30",
+     "years": 2.992,
+     "cagr": 0.17742031787219914,
+     "vol": 0.17208685035466104,
+     "sharpe": 1.0353583982045906,
+     "sortino": 1.550602884966654,
+     "maxdd": -0.17764276899382425,
+     "calmar": 0.9987477614603449,
+     "n_obs": 733,
+     "skew": -0.07561655146345575,
+     "kurt": 8.420075181847164,
+     "exposure": 0.2570592680712991,
+     "turnover": 2.2456194271094736,
+     "trades": 58,
+     "win_rate": 0.3103448275862069,
+     "payoff": 6.193354982481989,
+     "expectancy": 0.08381317799951324,
+     "avg_hold": 23.17241379310345,
+     "bench_cagr": 0.09229042597986559,
+     "bench_maxdd": -0.28552528987590486,
+     "excess_cagr": 0.08512989189233355,
+     "y_A_precision": 0.1724137931034483,
+     "y_A_recall": 0.0003063631628932937,
+     "y_A_lift": 1.872486369480313,
+     "y_A_base": 0.09207746230553322,
+     "y_B_precision": 0.15517241379310345,
+     "y_B_recall": 0.00019004582215934287,
+     "y_B_lift": 1.1615567883857973,
+     "y_B_base": 0.13359003653083965
+    },
+    "signals": 86,
+    "trades": {
+     "n": 58,
+     "reasons": {
+      "rule": 40,
+      "stop": 18
+     },
+     "win": 0.3103448275862069,
+     "avg": 0.08381317799951324,
+     "med": -0.04952131611039323,
+     "avg_win": 0.4211912724503327,
+     "avg_loss": -0.06800696450335553,
+     "ge50": 5,
+     "ge100": 1,
+     "top10_share": 1.3929113438351297,
+     "pnl": 6302737.196974428,
+     "best": [
+      {
+       "stock_id": "2636",
+       "name": "台驊控股",
+       "entry_date": "2021-02-23",
+       "exit_date": "2021-07-29",
+       "ret": 3.4159,
+       "hold_days": 106,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6469",
+       "name": "大樹醫藥",
+       "entry_date": "2021-06-10",
+       "exit_date": "2021-09-23",
+       "ret": 0.7921,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2609",
+       "name": "陽明",
+       "entry_date": "2020-10-26",
+       "exit_date": "2021-02-01",
+       "ret": 0.755,
+       "hold_days": 69,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4755",
+       "name": "三福化",
+       "entry_date": "2021-11-05",
+       "exit_date": "2022-03-08",
+       "ret": 0.7272,
+       "hold_days": 78,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "9945",
+       "name": "潤泰新",
+       "entry_date": "2021-06-29",
+       "exit_date": "2021-12-07",
+       "ret": 0.5345,
+       "hold_days": 112,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2108",
+       "name": "南帝",
+       "entry_date": "2020-08-24",
+       "exit_date": "2020-12-04",
+       "ret": 0.4011,
+       "hold_days": 71,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1304",
+       "name": "台聚",
+       "entry_date": "2021-03-09",
+       "exit_date": "2021-05-18",
+       "ret": 0.2625,
+       "hold_days": 46,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2883",
+       "name": "凱基金",
+       "entry_date": "2021-11-12",
+       "exit_date": "2022-03-07",
+       "ret": 0.177,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8069",
+       "name": "元太",
+       "entry_date": "2021-06-16",
+       "exit_date": "2021-08-16",
+       "ret": 0.1496,
+       "hold_days": 43,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6271",
+       "name": "同欣電",
+       "entry_date": "2021-10-27",
+       "exit_date": "2022-01-07",
+       "ret": 0.1032,
+       "hold_days": 51,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "9946",
+       "name": "三發地產",
+       "entry_date": "2020-01-14",
+       "exit_date": "2020-01-30",
+       "ret": -0.1129,
+       "hold_days": 5,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2905",
+       "name": "三商",
+       "entry_date": "2020-01-20",
+       "exit_date": "2020-03-02",
+       "ret": -0.1004,
+       "hold_days": 22,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1525",
+       "name": "江申",
+       "entry_date": "2020-10-23",
+       "exit_date": "2020-10-29",
+       "ret": -0.0956,
+       "hold_days": 4,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6435",
+       "name": "大中積體電路",
+       "entry_date": "2022-01-05",
+       "exit_date": "2022-01-10",
+       "ret": -0.0941,
+       "hold_days": 3,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6208",
+       "name": "日揚",
+       "entry_date": "2022-04-07",
+       "exit_date": "2022-04-12",
+       "ret": -0.0874,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1315",
+       "name": "達新",
+       "entry_date": "2020-08-12",
+       "exit_date": "2020-08-20",
+       "ret": -0.0871,
+       "hold_days": 6,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "4536",
+       "name": "拓凱",
+       "entry_date": "2020-11-17",
+       "exit_date": "2020-12-11",
+       "ret": -0.0871,
+       "hold_days": 18,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2836",
+       "name": "高雄銀",
+       "entry_date": "2022-03-24",
+       "exit_date": "2022-04-27",
+       "ret": -0.0871,
+       "hold_days": 22,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6449",
+       "name": "鈺邦",
+       "entry_date": "2020-12-14",
+       "exit_date": "2020-12-15",
+       "ret": -0.0857,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1708",
+       "name": "東鹼",
+       "entry_date": "2021-08-24",
+       "exit_date": "2021-08-27",
+       "ret": -0.0857,
+       "hold_days": 3,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 6.5
+    },
+    "yearly": {
+     "2020": 0.1534262556343855,
+     "2021": 0.6297864859252797,
+     "2022": -0.13275863914270336
+    }
+   }
+  },
+  "S01_no_vcp": {
+   "IS": {
+    "metrics": {
+     "start": "2014-01-02",
+     "end": "2019-12-31",
+     "years": 5.993,
+     "cagr": -0.0006161942006172039,
+     "vol": 0.20810042008691737,
+     "sharpe": 0.10128725491451139,
+     "sortino": 0.14023444743001762,
+     "maxdd": -0.4248029421884838,
+     "calmar": -0.0014505412731906182,
+     "n_obs": 1462,
+     "skew": -0.25525678519232653,
+     "kurt": 5.209834031717331,
+     "exposure": 0.7252827530345975,
+     "turnover": 6.166374326737416,
+     "trades": 578,
+     "win_rate": 0.28719723183391005,
+     "payoff": 2.966793616802286,
+     "expectancy": 0.010070630301756003,
+     "avg_hold": 27.325259515570934,
+     "bench_cagr": 0.09873658437741661,
+     "bench_maxdd": -0.23180467684073558,
+     "excess_cagr": -0.09935277857803382,
+     "y_A_precision": 0.0986159169550173,
+     "y_A_recall": 0.002173332824951386,
+     "y_A_lift": 2.8209371255987947,
+     "y_A_base": 0.03495856609497608,
+     "y_B_precision": 0.12110726643598616,
+     "y_B_recall": 0.0016115293413449363,
+     "y_B_lift": 2.0917288395961124,
+     "y_B_base": 0.05789816736445175
+    },
+    "signals": 8174,
+    "trades": {
+     "n": 578,
+     "reasons": {
+      "stop": 319,
+      "rule": 238,
+      "end": 20,
+      "delisted": 1
+     },
+     "win": 0.28719723183391005,
+     "avg": 0.010070630301756003,
+     "med": -0.08478733352983181,
+     "avg_win": 0.2145567056179337,
+     "avg_loss": -0.07231939033534474,
+     "ge50": 16,
+     "ge100": 3,
+     "top10_share": null,
+     "pnl": -36872.71097221854,
+     "best": [
+      {
+       "stock_id": "2337",
+       "name": "旺宏",
+       "entry_date": "2017-01-09",
+       "exit_date": "2017-07-18",
+       "ret": 1.8867,
+       "hold_days": 123,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3406",
+       "name": "玉晶光",
+       "entry_date": "2017-01-18",
+       "exit_date": "2017-05-31",
+       "ret": 1.2232,
+       "hold_days": 82,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3090",
+       "name": "日電貿",
+       "entry_date": "2018-03-07",
+       "exit_date": "2018-07-18",
+       "ret": 1.0202,
+       "hold_days": 90,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2349",
+       "name": "錸德",
+       "entry_date": "2018-05-11",
+       "exit_date": "2018-07-27",
+       "ret": 0.9977,
+       "hold_days": 54,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8086",
+       "name": "宏捷科",
+       "entry_date": "2015-03-11",
+       "exit_date": "2015-07-21",
+       "ret": 0.9104,
+       "hold_days": 89,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6456",
+       "name": "GIS-KY",
+       "entry_date": "2017-04-26",
+       "exit_date": "2017-09-25",
+       "ret": 0.8941,
+       "hold_days": 105,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1515",
+       "name": "力山",
+       "entry_date": "2017-08-01",
+       "exit_date": "2017-12-04",
+       "ret": 0.8071,
+       "hold_days": 86,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "9938",
+       "name": "百和",
+       "entry_date": "2015-01-22",
+       "exit_date": "2015-07-02",
+       "ret": 0.7833,
+       "hold_days": 104,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2027",
+       "name": "大成鋼",
+       "entry_date": "2018-03-02",
+       "exit_date": "2018-10-12",
+       "ret": 0.7525,
+       "hold_days": 153,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4935",
+       "name": "茂林-KY",
+       "entry_date": "2019-08-12",
+       "exit_date": "2019-12-31",
+       "ret": 0.7128,
+       "hold_days": 96,
+       "reason": "end"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "3443",
+       "name": "創意",
+       "entry_date": "2018-01-25",
+       "exit_date": "2018-02-06",
+       "ret": -0.1483,
+       "hold_days": 8,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "9945",
+       "name": "潤泰新",
+       "entry_date": "2018-09-17",
+       "exit_date": "2018-10-08",
+       "ret": -0.1439,
+       "hold_days": 14,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2477",
+       "name": "美隆電",
+       "entry_date": "2018-02-02",
+       "exit_date": "2018-02-05",
+       "ret": -0.1343,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6283",
+       "name": "淳安",
+       "entry_date": "2018-07-16",
+       "exit_date": "2018-07-19",
+       "ret": -0.1296,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3665",
+       "name": "貿聯-KY",
+       "entry_date": "2015-07-02",
+       "exit_date": "2015-07-09",
+       "ret": -0.1283,
+       "hold_days": 5,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2367",
+       "name": "燿華",
+       "entry_date": "2019-07-15",
+       "exit_date": "2019-08-06",
+       "ret": -0.1272,
+       "hold_days": 16,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8349",
+       "name": "恒耀",
+       "entry_date": "2014-01-16",
+       "exit_date": "2014-02-05",
+       "ret": -0.1199,
+       "hold_days": 8,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3708",
+       "name": "上緯投控",
+       "entry_date": "2018-03-30",
+       "exit_date": "2018-05-04",
+       "ret": -0.1188,
+       "hold_days": 21,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3105",
+       "name": "穩懋",
+       "entry_date": "2014-10-06",
+       "exit_date": "2014-10-13",
+       "ret": -0.1079,
+       "hold_days": 4,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3051",
+       "name": "力特",
+       "entry_date": "2015-02-10",
+       "exit_date": "2015-02-11",
+       "ret": -0.107,
+       "hold_days": 1,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 18.5
+    },
+    "yearly": {
+     "2014": -0.09771609399303416,
+     "2015": 0.0037036409829094286,
+     "2016": 0.02213035651863282,
+     "2017": 0.35573921974326206,
+     "2018": -0.32951936461341313,
+     "2019": 0.18407246699160784
+    }
+   },
+   "VAL": {
+    "metrics": {
+     "start": "2020-01-02",
+     "end": "2022-12-30",
+     "years": 2.992,
+     "cagr": -0.1274306007005649,
+     "vol": 0.2708269214599631,
+     "sharpe": -0.36731703100418656,
+     "sortino": -0.49255148850431035,
+     "maxdd": -0.4298911684198554,
+     "calmar": -0.2964252584414787,
+     "n_obs": 733,
+     "skew": -0.3066627750034517,
+     "kurt": 5.584643237102979,
+     "exposure": 0.6268954946113247,
+     "turnover": 7.67154650245588,
+     "trades": 335,
+     "win_rate": 0.21791044776119403,
+     "payoff": 3.3842169537438918,
+     "expectancy": -0.0034152899387829834,
+     "avg_hold": 19.797014925373134,
+     "bench_cagr": 0.09229042597986559,
+     "bench_maxdd": -0.28552528987590486,
+     "excess_cagr": -0.21972102668043048,
+     "y_A_precision": 0.19701492537313434,
+     "y_A_recall": 0.0020182251850039755,
+     "y_A_lift": 2.1586032895883864,
+     "y_A_base": 0.09126963084110845,
+     "y_B_precision": 0.1880597014925373,
+     "y_B_recall": 0.001318460540359542,
+     "y_B_lift": 1.410166358421983,
+     "y_B_base": 0.13335994038531848
+    },
+    "signals": 4784,
+    "trades": {
+     "n": 335,
+     "reasons": {
+      "stop": 227,
+      "rule": 108
+     },
+     "win": 0.21791044776119403,
+     "avg": -0.0034152899387829834,
+     "med": -0.08478733352983192,
+     "avg_win": 0.2589563576313317,
+     "avg_loss": -0.07651884059763173,
+     "ge50": 8,
+     "ge100": 4,
+     "top10_share": null,
+     "pnl": -3349632.3125991253,
+     "best": [
+      {
+       "stock_id": "2615",
+       "name": "萬海",
+       "entry_date": "2021-04-14",
+       "exit_date": "2021-07-28",
+       "ret": 2.1547,
+       "hold_days": 73,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3228",
+       "name": "金麗科",
+       "entry_date": "2020-11-26",
+       "exit_date": "2021-04-20",
+       "ret": 1.2754,
+       "hold_days": 91,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2603",
+       "name": "長榮",
+       "entry_date": "2021-04-14",
+       "exit_date": "2021-07-27",
+       "ret": 1.2652,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5608",
+       "name": "四維航",
+       "entry_date": "2021-04-15",
+       "exit_date": "2021-07-28",
+       "ret": 1.1067,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2303",
+       "name": "聯電",
+       "entry_date": "2020-09-29",
+       "exit_date": "2021-03-05",
+       "ret": 0.6385,
+       "hold_days": 101,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6531",
+       "name": "愛普*",
+       "entry_date": "2021-01-07",
+       "exit_date": "2021-04-14",
+       "ret": 0.5551,
+       "hold_days": 58,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2636",
+       "name": "台驊控股",
+       "entry_date": "2021-06-02",
+       "exit_date": "2021-07-29",
+       "ret": 0.514,
+       "hold_days": 40,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2615",
+       "name": "萬海",
+       "entry_date": "2020-11-04",
+       "exit_date": "2021-01-21",
+       "ret": 0.5013,
+       "hold_days": 55,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3035",
+       "name": "智原",
+       "entry_date": "2021-10-12",
+       "exit_date": "2022-01-10",
+       "ret": 0.4896,
+       "hold_days": 63,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2375",
+       "name": "凱美",
+       "entry_date": "2020-12-23",
+       "exit_date": "2021-03-26",
+       "ret": 0.4782,
+       "hold_days": 58,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "4743",
+       "name": "合一",
+       "entry_date": "2020-07-08",
+       "exit_date": "2020-07-16",
+       "ret": -0.3036,
+       "hold_days": 6,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5269",
+       "name": "祥碩",
+       "entry_date": "2020-02-07",
+       "exit_date": "2020-02-25",
+       "ret": -0.2133,
+       "hold_days": 12,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6472",
+       "name": "保瑞",
+       "entry_date": "2021-05-20",
+       "exit_date": "2021-05-27",
+       "ret": -0.1585,
+       "hold_days": 5,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3526",
+       "name": "凡甲",
+       "entry_date": "2020-01-03",
+       "exit_date": "2020-01-30",
+       "ret": -0.1505,
+       "hold_days": 12,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5475",
+       "name": "德宏",
+       "entry_date": "2021-07-22",
+       "exit_date": "2021-07-23",
+       "ret": -0.1447,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2022",
+       "name": "聚亨",
+       "entry_date": "2021-05-10",
+       "exit_date": "2021-05-13",
+       "ret": -0.1377,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6669",
+       "name": "緯穎",
+       "entry_date": "2020-01-10",
+       "exit_date": "2020-02-04",
+       "ret": -0.1324,
+       "hold_days": 10,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1339",
+       "name": "昭輝",
+       "entry_date": "2020-01-03",
+       "exit_date": "2020-01-30",
+       "ret": -0.1204,
+       "hold_days": 12,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2545",
+       "name": "皇翔",
+       "entry_date": "2020-01-03",
+       "exit_date": "2020-01-30",
+       "ret": -0.1124,
+       "hold_days": 12,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8926",
+       "name": "台汽電",
+       "entry_date": "2020-02-07",
+       "exit_date": "2020-03-13",
+       "ret": -0.1097,
+       "hold_days": 24,
+       "reason": "rule"
+      }
+     ],
+     "hold_med": 9.0
+    },
+    "yearly": {
+     "2020": -0.1132601965161607,
+     "2021": 0.027693738200621265,
+     "2022": -0.270230440782824
+    }
+   }
+  },
+  "S01_no_tt": {
+   "IS": {
+    "metrics": {
+     "start": "2014-01-02",
+     "end": "2019-12-31",
+     "years": 5.993,
+     "cagr": -0.03365371892734781,
+     "vol": 0.09112151403486148,
+     "sharpe": -0.33006322711147407,
+     "sortino": -0.44918903047558706,
+     "maxdd": -0.22608322398467307,
+     "calmar": -0.14885544506225418,
+     "n_obs": 1462,
+     "skew": -0.3136462444228214,
+     "kurt": 7.352517456279798,
+     "exposure": 0.3165882238965899,
+     "turnover": 3.2390761542893247,
+     "trades": 166,
+     "win_rate": 0.25903614457831325,
+     "payoff": 2.0925807628986033,
+     "expectancy": -0.009797558851108916,
+     "avg_hold": 22.867469879518072,
+     "bench_cagr": 0.09873658437741661,
+     "bench_maxdd": -0.23180467684073558,
+     "excess_cagr": -0.13239030330476442,
+     "y_A_precision": 0.024096385542168676,
+     "y_A_recall": 0.00015103458692040478,
+     "y_A_lift": 0.6881326847944566,
+     "y_A_base": 0.035017062951117055,
+     "y_B_precision": 0.05421686746987952,
+     "y_B_recall": 0.00020557801685739738,
+     "y_B_lift": 0.9366394516598567,
+     "y_B_base": 0.0578844585008667
+    },
+    "signals": 231,
+    "trades": {
+     "n": 166,
+     "reasons": {
+      "rule": 133,
+      "stop": 28,
+      "end": 5
+     },
+     "win": 0.25903614457831325,
+     "avg": -0.009797558851108916,
+     "med": -0.03257055863556785,
+     "avg_win": 0.10307276428667865,
+     "avg_loss": -0.0492562897041566,
+     "ge50": 1,
+     "ge100": 0,
+     "top10_share": null,
+     "pnl": -1854862.1575872009,
+     "best": [
+      {
+       "stock_id": "4739",
+       "name": "康普",
+       "entry_date": "2017-07-19",
+       "exit_date": "2017-11-06",
+       "ret": 0.5429,
+       "hold_days": 75,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5469",
+       "name": "瀚宇博",
+       "entry_date": "2019-06-12",
+       "exit_date": "2019-10-09",
+       "ret": 0.3202,
+       "hold_days": 81,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2633",
+       "name": "台灣高鐵",
+       "entry_date": "2017-01-10",
+       "exit_date": "2017-08-11",
+       "ret": 0.2961,
+       "hold_days": 140,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6271",
+       "name": "同欣電",
+       "entry_date": "2016-06-03",
+       "exit_date": "2016-09-14",
+       "ret": 0.2354,
+       "hold_days": 71,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1521",
+       "name": "大億",
+       "entry_date": "2014-02-13",
+       "exit_date": "2014-06-24",
+       "ret": 0.2289,
+       "hold_days": 89,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2027",
+       "name": "大成鋼",
+       "entry_date": "2018-08-06",
+       "exit_date": "2018-10-12",
+       "ret": 0.2101,
+       "hold_days": 47,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2233",
+       "name": "宇隆",
+       "entry_date": "2016-12-02",
+       "exit_date": "2017-03-29",
+       "ret": 0.189,
+       "hold_days": 74,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1909",
+       "name": "榮成",
+       "entry_date": "2016-06-13",
+       "exit_date": "2016-08-30",
+       "ret": 0.158,
+       "hold_days": 56,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3059",
+       "name": "華晶科",
+       "entry_date": "2017-07-14",
+       "exit_date": "2017-09-26",
+       "ret": 0.1533,
+       "hold_days": 52,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "8110",
+       "name": "華東",
+       "entry_date": "2016-11-22",
+       "exit_date": "2017-05-03",
+       "ret": 0.1494,
+       "hold_days": 104,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "3217",
+       "name": "優群",
+       "entry_date": "2019-07-02",
+       "exit_date": "2019-08-06",
+       "ret": -0.1107,
+       "hold_days": 25,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2332",
+       "name": "友訊",
+       "entry_date": "2019-07-08",
+       "exit_date": "2019-08-06",
+       "ret": -0.109,
+       "hold_days": 21,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6182",
+       "name": "合晶",
+       "entry_date": "2014-03-07",
+       "exit_date": "2014-03-24",
+       "ret": -0.0918,
+       "hold_days": 11,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5305",
+       "name": "敦南",
+       "entry_date": "2018-01-17",
+       "exit_date": "2018-02-05",
+       "ret": -0.0909,
+       "hold_days": 13,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2376",
+       "name": "技嘉",
+       "entry_date": "2016-03-07",
+       "exit_date": "2016-04-07",
+       "ret": -0.0882,
+       "hold_days": 21,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5907",
+       "name": "大洋-KY",
+       "entry_date": "2014-07-31",
+       "exit_date": "2014-08-06",
+       "ret": -0.0871,
+       "hold_days": 4,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8404",
+       "name": "百和興業-KY",
+       "entry_date": "2017-11-30",
+       "exit_date": "2017-12-01",
+       "ret": -0.0871,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "8114",
+       "name": "振樺電",
+       "entry_date": "2014-09-22",
+       "exit_date": "2014-09-25",
+       "ret": -0.0871,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6158",
+       "name": "禾昌",
+       "entry_date": "2019-07-09",
+       "exit_date": "2019-07-10",
+       "ret": -0.0871,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2362",
+       "name": "藍天",
+       "entry_date": "2017-11-10",
+       "exit_date": "2017-11-13",
+       "ret": -0.0871,
+       "hold_days": 1,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 12.5
+    },
+    "yearly": {
+     "2014": -0.14022673325880697,
+     "2015": 0.0010143018301214113,
+     "2016": -0.003496855524886655,
+     "2017": 0.056107557883123604,
+     "2018": -0.06535551867453693,
+     "2019": -0.037854066635475414
+    }
+   },
+   "VAL": {
+    "metrics": {
+     "start": "2020-01-02",
+     "end": "2022-12-30",
+     "years": 2.992,
+     "cagr": 0.16817366482391694,
+     "vol": 0.19289161789972425,
+     "sharpe": 0.9026845693878368,
+     "sortino": 1.3321386493987368,
+     "maxdd": -0.21737745272151754,
+     "calmar": 0.7736481531015288,
+     "n_obs": 733,
+     "skew": -0.3180056482195868,
+     "kurt": 11.68914608046757,
+     "exposure": 0.3179774914069347,
+     "turnover": 3.1597064494763085,
+     "trades": 90,
+     "win_rate": 0.26666666666666666,
+     "payoff": 6.2542926985953615,
+     "expectancy": 0.05584297510826831,
+     "avg_hold": 22.11111111111111,
+     "bench_cagr": 0.09229042597986559,
+     "bench_maxdd": -0.28552528987590486,
+     "excess_cagr": 0.07588323884405135,
+     "y_A_precision": 0.1111111111111111,
+     "y_A_recall": 0.00030587587556969384,
+     "y_A_lift": 1.2159007874604486,
+     "y_A_base": 0.09138172477310398,
+     "y_B_precision": 0.12222222222222222,
+     "y_B_recall": 0.00023045819278875364,
+     "y_B_lift": 0.9161046047409207,
+     "y_B_base": 0.1334151379544559
+    },
+    "signals": 188,
+    "trades": {
+     "n": 90,
+     "reasons": {
+      "rule": 68,
+      "stop": 22
+     },
+     "win": 0.26666666666666666,
+     "avg": 0.05584297510826831,
+     "med": -0.04639206117165978,
+     "avg_win": 0.3737469386056272,
+     "avg_loss": -0.05975846616349859,
+     "ge50": 5,
+     "ge100": 2,
+     "top10_share": 1.692156048810375,
+     "pnl": 5922599.249494008,
+     "best": [
+      {
+       "stock_id": "2636",
+       "name": "台驊控股",
+       "entry_date": "2021-02-23",
+       "exit_date": "2021-07-29",
+       "ret": 3.4159,
+       "hold_days": 106,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1905",
+       "name": "華紙",
+       "entry_date": "2021-03-02",
+       "exit_date": "2021-07-22",
+       "ret": 1.1611,
+       "hold_days": 97,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6469",
+       "name": "大樹醫藥",
+       "entry_date": "2021-06-10",
+       "exit_date": "2021-09-23",
+       "ret": 0.7921,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2609",
+       "name": "陽明",
+       "entry_date": "2020-10-26",
+       "exit_date": "2021-02-01",
+       "ret": 0.755,
+       "hold_days": 69,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4755",
+       "name": "三福化",
+       "entry_date": "2021-11-05",
+       "exit_date": "2022-03-08",
+       "ret": 0.7272,
+       "hold_days": 78,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2108",
+       "name": "南帝",
+       "entry_date": "2020-08-24",
+       "exit_date": "2020-12-04",
+       "ret": 0.4011,
+       "hold_days": 71,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1304",
+       "name": "台聚",
+       "entry_date": "2021-03-09",
+       "exit_date": "2021-05-18",
+       "ret": 0.2625,
+       "hold_days": 46,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1409",
+       "name": "新纖",
+       "entry_date": "2021-03-02",
+       "exit_date": "2021-05-18",
+       "ret": 0.2586,
+       "hold_days": 51,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3010",
+       "name": "華立",
+       "entry_date": "2020-10-23",
+       "exit_date": "2021-01-19",
+       "ret": 0.2255,
+       "hold_days": 61,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2883",
+       "name": "凱基金",
+       "entry_date": "2021-11-12",
+       "exit_date": "2022-03-07",
+       "ret": 0.177,
+       "hold_days": 72,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "9946",
+       "name": "三發地產",
+       "entry_date": "2020-01-14",
+       "exit_date": "2020-01-30",
+       "ret": -0.1129,
+       "hold_days": 5,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2905",
+       "name": "三商",
+       "entry_date": "2020-01-20",
+       "exit_date": "2020-03-02",
+       "ret": -0.1004,
+       "hold_days": 22,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1710",
+       "name": "東聯",
+       "entry_date": "2021-09-17",
+       "exit_date": "2021-09-22",
+       "ret": -0.0992,
+       "hold_days": 1,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1525",
+       "name": "江申",
+       "entry_date": "2020-10-23",
+       "exit_date": "2020-10-29",
+       "ret": -0.0956,
+       "hold_days": 4,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1464",
+       "name": "得力",
+       "entry_date": "2020-01-17",
+       "exit_date": "2020-01-30",
+       "ret": -0.0942,
+       "hold_days": 2,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6435",
+       "name": "大中積體電路",
+       "entry_date": "2022-01-05",
+       "exit_date": "2022-01-10",
+       "ret": -0.0941,
+       "hold_days": 3,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6208",
+       "name": "日揚",
+       "entry_date": "2022-04-07",
+       "exit_date": "2022-04-12",
+       "ret": -0.0874,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1315",
+       "name": "達新",
+       "entry_date": "2020-08-12",
+       "exit_date": "2020-08-20",
+       "ret": -0.0871,
+       "hold_days": 6,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "4763",
+       "name": "材料*-KY",
+       "entry_date": "2020-12-02",
+       "exit_date": "2020-12-03",
+       "ret": -0.0871,
+       "hold_days": 1,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "2467",
+       "name": "志聖",
+       "entry_date": "2020-07-21",
+       "exit_date": "2020-07-27",
+       "ret": -0.0871,
+       "hold_days": 4,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 7.0
+    },
+    "yearly": {
+     "2020": 0.11495814110751157,
+     "2021": 0.6513057644325719,
+     "2022": -0.13517565876549165
+    }
+   }
+  },
+  "S20_sepa_exit": {
+   "IS": {
+    "metrics": {
+     "start": "2014-01-02",
+     "end": "2019-12-31",
+     "years": 5.993,
+     "cagr": -0.06101318823216095,
+     "vol": 0.1450866485251563,
+     "sharpe": -0.361080354646962,
+     "sortino": -0.48365835669156165,
+     "maxdd": -0.4131040730762202,
+     "calmar": -0.14769447267324243,
+     "n_obs": 1462,
+     "skew": -0.5114735373593345,
+     "kurt": 10.04110983076198,
+     "exposure": 0.3797809869763993,
+     "turnover": 6.183245492505263,
+     "trades": 363,
+     "win_rate": 0.1928374655647383,
+     "payoff": 3.296725938040577,
+     "expectancy": -0.007750169021041348,
+     "avg_hold": 13.804407713498623,
+     "bench_cagr": 0.09873658437741661,
+     "bench_maxdd": -0.23180467684073558,
+     "excess_cagr": -0.15974977260957757,
+     "y_A_precision": 0.10344827586206896,
+     "y_A_recall": 0.0014853323431117712,
+     "y_A_lift": 3.005535850715563,
+     "y_A_base": 0.03441924535268472,
+     "y_B_precision": 0.11206896551724138,
+     "y_B_recall": 0.0009322337755467909,
+     "y_B_lift": 1.8863536141574246,
+     "y_B_base": 0.05941036965505489
+    },
+    "signals": 1375,
+    "trades": {
+     "n": 363,
+     "reasons": {
+      "rule": 285,
+      "stop": 75,
+      "end": 3
+     },
+     "win": 0.1928374655647383,
+     "avg": -0.007750169021041348,
+     "med": -0.026796570102828765,
+     "avg_win": 0.14904126758866865,
+     "avg_loss": -0.04520887401312223,
+     "ge50": 5,
+     "ge100": 0,
+     "top10_share": null,
+     "pnl": -3142843.0333348718,
+     "best": [
+      {
+       "stock_id": "3016",
+       "name": "嘉晶",
+       "entry_date": "2018-03-12",
+       "exit_date": "2018-07-23",
+       "ret": 0.8851,
+       "hold_days": 90,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2367",
+       "name": "燿華",
+       "entry_date": "2017-10-11",
+       "exit_date": "2018-02-07",
+       "ret": 0.8721,
+       "hold_days": 84,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4943",
+       "name": "康控-KY",
+       "entry_date": "2017-10-02",
+       "exit_date": "2017-12-19",
+       "ret": 0.6996,
+       "hold_days": 53,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5490",
+       "name": "同亨",
+       "entry_date": "2015-02-24",
+       "exit_date": "2015-07-17",
+       "ret": 0.6112,
+       "hold_days": 97,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "5483",
+       "name": "中美晶",
+       "entry_date": "2017-07-17",
+       "exit_date": "2017-12-04",
+       "ret": 0.5924,
+       "hold_days": 97,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6426",
+       "name": "統新",
+       "entry_date": "2019-09-10",
+       "exit_date": "2019-12-31",
+       "ret": 0.4504,
+       "hold_days": 76,
+       "reason": "end"
+      },
+      {
+       "stock_id": "9944",
+       "name": "新麗",
+       "entry_date": "2014-06-03",
+       "exit_date": "2014-08-21",
+       "ret": 0.3967,
+       "hold_days": 57,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6177",
+       "name": "達麗",
+       "entry_date": "2017-07-17",
+       "exit_date": "2017-10-30",
+       "ret": 0.3935,
+       "hold_days": 72,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2478",
+       "name": "大毅",
+       "entry_date": "2018-05-21",
+       "exit_date": "2018-07-18",
+       "ret": 0.3741,
+       "hold_days": 41,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1515",
+       "name": "力山",
+       "entry_date": "2017-09-18",
+       "exit_date": "2017-12-04",
+       "ret": 0.3423,
+       "hold_days": 52,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "2390",
+       "name": "云辰",
+       "entry_date": "2014-06-09",
+       "exit_date": "2014-08-07",
+       "ret": -0.369,
+       "hold_days": 43,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "4174",
+       "name": "浩鼎",
+       "entry_date": "2016-05-30",
+       "exit_date": "2016-06-08",
+       "ret": -0.1352,
+       "hold_days": 7,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6284",
+       "name": "佳邦",
+       "entry_date": "2014-07-14",
+       "exit_date": "2014-07-18",
+       "ret": -0.1144,
+       "hold_days": 4,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "4147",
+       "name": "中裕",
+       "entry_date": "2017-10-30",
+       "exit_date": "2017-11-14",
+       "ret": -0.1119,
+       "hold_days": 11,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6533",
+       "name": "晶心科",
+       "entry_date": "2019-07-15",
+       "exit_date": "2019-08-06",
+       "ret": -0.1077,
+       "hold_days": 16,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "5213",
+       "name": "亞昕",
+       "entry_date": "2018-01-15",
+       "exit_date": "2018-02-05",
+       "ret": -0.1055,
+       "hold_days": 15,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "4147",
+       "name": "中裕",
+       "entry_date": "2016-05-30",
+       "exit_date": "2016-06-06",
+       "ret": -0.1048,
+       "hold_days": 5,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3645",
+       "name": "達邁",
+       "entry_date": "2014-09-09",
+       "exit_date": "2014-10-16",
+       "ret": -0.1044,
+       "hold_days": 26,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1795",
+       "name": "美時",
+       "entry_date": "2019-04-08",
+       "exit_date": "2019-04-11",
+       "ret": -0.1006,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3707",
+       "name": "漢磊",
+       "entry_date": "2018-03-12",
+       "exit_date": "2018-03-23",
+       "ret": -0.0992,
+       "hold_days": 9,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 5.0
+    },
+    "yearly": {
+     "2014": -0.10583753412886598,
+     "2015": 0.025064354253710563,
+     "2016": -0.19629888801984463,
+     "2017": 0.21966803940511137,
+     "2018": -0.18025026180661052,
+     "2019": -0.06897997020581226
+    }
+   },
+   "VAL": {
+    "metrics": {
+     "start": "2020-01-02",
+     "end": "2022-12-30",
+     "years": 2.992,
+     "cagr": 0.45797267653695495,
+     "vol": 0.28414441311231015,
+     "sharpe": 1.4693051073794197,
+     "sortino": 2.311274769169048,
+     "maxdd": -0.3463394018157159,
+     "calmar": 1.3223233456430064,
+     "n_obs": 733,
+     "skew": 0.2533840496346003,
+     "kurt": 5.890648851822742,
+     "exposure": 0.4199812782425236,
+     "turnover": 6.08110989800368,
+     "trades": 202,
+     "win_rate": 0.33663366336633666,
+     "payoff": 6.022854033641403,
+     "expectancy": 0.06809901827026335,
+     "avg_hold": 14.049504950495049,
+     "bench_cagr": 0.09229042597986559,
+     "bench_maxdd": -0.28552528987590486,
+     "excess_cagr": 0.36568225055708936,
+     "y_A_precision": 0.2663316582914573,
+     "y_A_recall": 0.0016235755422129641,
+     "y_A_lift": 2.885232435920566,
+     "y_A_base": 0.09230856237982128,
+     "y_B_precision": 0.2663316582914573,
+     "y_B_recall": 0.0011133050455824896,
+     "y_B_lift": 1.9784381724612643,
+     "y_B_base": 0.13461712475964258
+    },
+    "signals": 802,
+    "trades": {
+     "n": 202,
+     "reasons": {
+      "rule": 148,
+      "stop": 54
+     },
+     "win": 0.33663366336633666,
+     "avg": 0.06809901827026335,
+     "med": -0.01683364316797742,
+     "avg_win": 0.30066835514284707,
+     "avg_loss": -0.04992124223224179,
+     "ge50": 12,
+     "ge100": 3,
+     "top10_share": 1.5332331308702496,
+     "pnl": 20904041.00592146,
+     "best": [
+      {
+       "stock_id": "2609",
+       "name": "陽明",
+       "entry_date": "2021-02-17",
+       "exit_date": "2021-07-27",
+       "ret": 4.8713,
+       "hold_days": 108,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "4961",
+       "name": "天鈺",
+       "entry_date": "2020-12-28",
+       "exit_date": "2021-05-07",
+       "ret": 1.715,
+       "hold_days": 81,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2417",
+       "name": "圓剛",
+       "entry_date": "2020-07-06",
+       "exit_date": "2020-10-23",
+       "ret": 1.1035,
+       "hold_days": 76,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6547",
+       "name": "高端疫苗",
+       "entry_date": "2020-12-14",
+       "exit_date": "2021-06-08",
+       "ret": 0.965,
+       "hold_days": 113,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3669",
+       "name": "圓展",
+       "entry_date": "2020-08-03",
+       "exit_date": "2020-10-14",
+       "ret": 0.9502,
+       "hold_days": 49,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2603",
+       "name": "長榮",
+       "entry_date": "2020-10-05",
+       "exit_date": "2021-02-01",
+       "ret": 0.9265,
+       "hold_days": 83,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2344",
+       "name": "華邦電",
+       "entry_date": "2020-10-19",
+       "exit_date": "2021-03-08",
+       "ret": 0.9053,
+       "hold_days": 91,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1598",
+       "name": "岱宇",
+       "entry_date": "2020-07-06",
+       "exit_date": "2020-11-18",
+       "ret": 0.836,
+       "hold_days": 94,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "3545",
+       "name": "敦泰",
+       "entry_date": "2021-02-17",
+       "exit_date": "2021-05-12",
+       "ret": 0.7724,
+       "hold_days": 55,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "6533",
+       "name": "晶心科",
+       "entry_date": "2020-12-21",
+       "exit_date": "2021-04-26",
+       "ret": 0.7441,
+       "hold_days": 78,
+       "reason": "rule"
+      }
+     ],
+     "worst": [
+      {
+       "stock_id": "6547",
+       "name": "高端疫苗",
+       "entry_date": "2020-07-20",
+       "exit_date": "2020-07-28",
+       "ret": -0.1126,
+       "hold_days": 6,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "1460",
+       "name": "宏遠",
+       "entry_date": "2021-09-13",
+       "exit_date": "2021-09-23",
+       "ret": -0.106,
+       "hold_days": 6,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2387",
+       "name": "精元",
+       "entry_date": "2020-06-08",
+       "exit_date": "2020-06-12",
+       "ret": -0.0995,
+       "hold_days": 4,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3707",
+       "name": "漢磊",
+       "entry_date": "2021-08-02",
+       "exit_date": "2021-08-10",
+       "ret": -0.097,
+       "hold_days": 6,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3362",
+       "name": "先進光",
+       "entry_date": "2020-06-08",
+       "exit_date": "2020-06-12",
+       "ret": -0.0946,
+       "hold_days": 4,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "3707",
+       "name": "漢磊",
+       "entry_date": "2022-03-07",
+       "exit_date": "2022-03-08",
+       "ret": -0.0918,
+       "hold_days": 1,
+       "reason": "rule"
+      },
+      {
+       "stock_id": "2906",
+       "name": "高林",
+       "entry_date": "2022-03-01",
+       "exit_date": "2022-03-09",
+       "ret": -0.0918,
+       "hold_days": 6,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "4566",
+       "name": "時碩工業",
+       "entry_date": "2021-02-22",
+       "exit_date": "2021-02-26",
+       "ret": -0.0901,
+       "hold_days": 4,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "1802",
+       "name": "台玻",
+       "entry_date": "2021-05-10",
+       "exit_date": "2021-05-13",
+       "ret": -0.09,
+       "hold_days": 3,
+       "reason": "stop"
+      },
+      {
+       "stock_id": "6108",
+       "name": "競國",
+       "entry_date": "2021-09-06",
+       "exit_date": "2021-09-09",
+       "ret": -0.0883,
+       "hold_days": 3,
+       "reason": "stop"
+      }
+     ],
+     "hold_med": 2.0
+    },
+    "yearly": {
+     "2020": 0.7252274221243489,
+     "2021": 1.0930040072358524,
+     "2022": -0.14414762729578634
+    }
+   }
+  }
+ },
+ "grid": {
+  "stop6_vol1.25": {
+   "IS": -0.1254436037399571,
+   "VAL": 0.10609785172190067
+  },
+  "stop6_vol1.5": {
+   "IS": -0.11462466805732197,
+   "VAL": 0.12799745724197908
+  },
+  "stop6_vol2": {
+   "IS": -0.12888306595862375,
+   "VAL": 0.04946173634108342
+  },
+  "stop8_vol1.25": {
+   "IS": -0.09714163624830463,
+   "VAL": 0.07624415876454793
+  },
+  "stop8_vol1.5": {
+   "IS": -0.10842720255438154,
+   "VAL": 0.09075710120085967
+  },
+  "stop8_vol2": {
+   "IS": -0.11593559656607366,
+   "VAL": 0.017679273962943887
+  },
+  "stop10_vol1.25": {
+   "IS": -0.10385423145854344,
+   "VAL": 0.04961757099513764
+  },
+  "stop10_vol1.5": {
+   "IS": -0.11171488875237179,
+   "VAL": 0.046730686531560206
+  },
+  "stop10_vol2": {
+   "IS": -0.1143908322586259,
+   "VAL": -0.0042135554228017735
+  }
+ },
+ "s20": {
+  "signals": 3443,
+  "hold60_IS": {
+   "n": 1374,
+   "avg": 0.020909402495960506,
+   "med": -0.041132616237653345,
+   "win": 0.40465793304221254
+  },
+  "hold60_VAL": {
+   "n": 797,
+   "avg": 0.20553504225480929,
+   "med": 0.04057534246575357,
+   "win": 0.5570890840652447
+  }
+ },
+ "vcp_days": {
+  "v1": 8491,
+  "v2": 25833,
+  "atr2": 36761
+ },
+ "bench_yearly": {
+  "2014": 0.11376560343770725,
+  "2015": -0.068711721373938,
+  "2016": 0.1558977133163466,
+  "2017": 0.1952338128317499,
+  "2018": -0.048270472586682045,
+  "2019": 0.2891927477232197,
+  "2020": 0.2712154097551731,
+  "2021": 0.27063086997246266,
+  "2022": -0.18677243391875753,
+  "2023": 0.3148274172473866,
+  "2024": 0.3173304659275593,
+  "2025": 0.2947308058840272,
+  "2026": 0.7060829684954235
+ },
+ "elapsed_s": 285
+}

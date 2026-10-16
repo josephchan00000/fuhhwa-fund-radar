@@ -562,6 +562,7 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
     # 公司分析（docs/lab_company_plan.md 第 3.4 節）：全市場每日小表（飆股特徵、估值、體質）→ page.build 另存 x9t.json
     mtab: dict = {}
     sx: dict = {}
+    wl: dict = {}
     if DL is not None:
         try:
             from . import company
@@ -569,11 +570,19 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
             res = SX.load_res()                           # 飆股研究結果（scripts/run_super.py）；沒有就只有小表
             mtab = company.market_table(DL, rules=[c for _, c in SX.live_rules(res)])
             hits = mtab.pop("hits", {})
+            watch = mtab.pop("watch", {})
+            lay_today = mtab.pop("layer", {})
             mcols, mrows = mtab.get("cols") or [], mtab.get("rows") or {}     # 別叫 rows：後面頁面列表用這個名字
-            sx = SX.page_data(res, hits, {c: dict(zip(mcols, mrows[c])) for c in hits if c in mrows},
-                              {**company.names(), **(D.names or {})})
+            nm_all = {**company.names(), **(D.names or {})}
+            sx = SX.page_data(res, hits, {c: dict(zip(mcols, mrows[c])) for c in hits if c in mrows}, nm_all)
             if sx:
                 sx["d"] = mtab.get("d")
+            from . import watchlist as WL                 # 超級飆股觀察名單（tw-superstock-lab W1；只列名單與過去統計）
+            wl = WL.page_data(WL.load_res(), watch, {c: dict(zip(mcols, mrows[c])) for c in watch if c in mrows}, nm_all)
+            if wl:
+                wl["d"] = mtab.get("d")
+                from . import layer as LYR            # 第二層篩選（tw-superstock-lab W3）
+                wl["lay"] = LYR.page_data(LYR.load_res(), lay_today)
         except Exception as e:                            # noqa: BLE001
             mtab = {"err": f"{type(e).__name__}: {e}"}
     DL = None
@@ -650,7 +659,7 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
             "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow,
             "idx": idx_out, "strat": strat, "grow": grow, "adv": adv, "hl": hl, "opt": opt,
-            "mtab": mtab, "sx": sx, "dates": D.cal[-CHART_N:]}
+            "mtab": mtab, "sx": sx, "wl": wl, "dates": D.cal[-CHART_N:]}
 
 
 def _take_full(strat: dict, grow: dict, v3: dict | None = None) -> dict:
