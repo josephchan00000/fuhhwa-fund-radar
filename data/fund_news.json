@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/16 22:56",
+  "as_of": "2026/10/16 23:32",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -187,7 +187,7 @@
           "source": "股感 StockFeel",
           "date": "2026-10-14 10:55",
           "datetime": "2026-10-14T10:55:04+08:00",
-          "summary": "全球 AI 產業的發展正經歷重大變革，AI 能力逐漸從初期的「生成內容與推論」，大步邁向能自主執行任務的「AI [&#8230;]\nThe post 00418A 復華台灣新星主動式 ETF｜成分股？…"
+          "summary": "全球 AI 產業的發展正經歷重大變革，AI 能力逐漸從初期的「生成內容與推論」，大步邁向能自主執行任務的「AI 代理人（Agent）」以及即時映射真實世界的數位孿生（Digital Twin）時代。在…"
         }
       ]
     },
@@ -557,7 +557,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
       "date": "2026-10-11",
-      "views": 18272,
+      "views": 18301,
       "short": true
     },
     {
@@ -566,7 +566,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
       "date": "2026-10-12",
-      "views": 7100
+      "views": 7097
     },
     {
       "platform": "youtube",
@@ -574,7 +574,7 @@
       "channel": "小童 x Happy Trading Life",
       "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
       "date": "2026-10-13",
-      "views": 2229,
+      "views": 2230,
       "short": true
     },
     {
@@ -583,7 +583,7 @@
       "channel": "安聯投信 Allianz Global Investors Taiwan",
       "url": "https://www.youtube.com/shorts/b-T8DfBiuuk",
       "date": "2026-10-12",
-      "views": 386433,
+      "views": 389997,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -594,7 +594,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/XFDp4rY4FsQ",
       "date": "2026-10-12",
-      "views": 208709,
+      "views": 209363,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -615,7 +615,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=QmBZNnOcDBE",
       "date": "2026-10-12",
-      "views": 131028,
+      "views": 131158,
       "peer": true,
       "cat": "主動式"
     },
@@ -625,7 +625,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/sgOyzfXKakU",
       "date": "2026-10-13",
-      "views": 123441,
+      "views": 124549,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -636,7 +636,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=aBJQT2o2VfQ",
       "date": "2026-10-15",
-      "views": 123391,
+      "views": 124491,
       "peer": true,
       "cat": "基金"
     },
@@ -646,7 +646,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=HF7hiHSeZpU",
       "date": "2026-10-12",
-      "views": 102640,
+      "views": 102729,
       "peer": true,
       "cat": "基金"
     },
@@ -656,7 +656,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=1iIDAJTm3bk",
       "date": "2026-10-12",
-      "views": 93605,
+      "views": 93726,
       "peer": true,
       "cat": "高股息"
     },
@@ -666,19 +666,18 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=96vE3gSEGqo",
       "date": "2026-10-14",
-      "views": 86177,
+      "views": 86663,
       "peer": true,
       "cat": "綜合"
     },
     {
       "platform": "youtube",
-      "title": "兩檔ETF今年績效翻倍還高配息？#00947 #00904 #阿格力 #AI #台股",
-      "channel": "阿格力博識",
-      "url": "https://www.youtube.com/shorts/SaOsMmke7vQ",
-      "date": "2026-10-12",
-      "views": 81346,
+      "title": "00406A奪全台成交王！破發還能配超高息？天下真有那麼好的事？｜璇轉理財腦 基金小姐姐詹璇依",
+      "channel": "基金小姐姐詹璇依",
+      "url": "https://www.youtube.com/watch?v=HWdw9YRGwuo",
+      "date": "2026-10-14",
+      "views": 82377,
       "peer": true,
-      "short": true,
       "cat": "高股息"
     }
   ],
@@ -686,6 +685,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全方位（詳下方新聞標籤）",
     "品牌焦點：群益證×復華投信剖析算力基建與光通訊新商機- 財經新聞（PChome Online 新聞）",
     "社群聲量最高：比較0050ETF和0050連結基金的績效（0 推）",
-    "YouTube 熱片：00412A 速懂！10月13日盛大掛牌上市（安聯投信 Allianz Global Investors Taiwan・386,433 次觀看）"
+    "YouTube 熱片：00412A 速懂！10月13日盛大掛牌上市（安聯投信 Allianz Global Investors Taiwan・389,997 次觀看）"
   ]
 }

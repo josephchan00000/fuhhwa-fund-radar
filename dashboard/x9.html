@@ -302,7 +302,7 @@ table.trt td,table.trt th{vertical-align:top}table.trt td .sm2{white-space:norma
 .vband .now{position:absolute;top:2px;width:2px;height:24px;background:var(--ink)}
 .vlab{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
 .qt td,.qt th{padding:5px 7px;font-size:13px}.qt td:first-child,.qt th:first-child{text-align:left}
-.sxt td,.sxt th{padding:6px 8px;font-size:13.5px;vertical-align:top}.sxt td.l,.sxt th.l{text-align:left}
+.sxt td,.sxt th{padding:6px 8px;font-size:13.5px;vertical-align:top}.chkt{width:100%}.chkt td,.chkt th{padding:6px 8px;font-size:13.5px;vertical-align:top;white-space:normal}.chkt td.l,.chkt th.l{text-align:left}.chkt .ok{color:var(--gain);font-weight:700}.chkt .no{color:var(--mut)}.chkt .na{color:var(--mut)}.chkt td:not(.l),.chkt th:not(.l){white-space:nowrap;width:1%}.sxt td.l,.sxt th.l{text-align:left}
 .sxt .sm2{font-size:12px;color:var(--mut)}.wlst{display:inline-block;padding:0 6px;border-radius:8px;font-size:12px;background:var(--card2);color:var(--ink2);white-space:nowrap}.wlst.s1,.wlst.s2{background:var(--gainbg);color:var(--gain);font-weight:700}.wlst.s3{background:var(--hlbg);color:var(--accd);font-weight:700}.wlst.s4,.wlst.s5{color:var(--mut)}.sxt td.l{white-space:normal;min-width:150px}.sxt .wlp{text-align:left;white-space:normal;min-width:86px}.sxt .wlb{text-align:left;white-space:normal;min-width:118px}.sxt .mo{display:none}.sxt .wlp .mo{margin-top:3px;font-size:12.5px}.sxall{display:inline-block;margin-top:6px;cursor:pointer}.sxi{display:inline-block;padding:0 6px;border-radius:8px;background:var(--hlbg);font-size:12px;margin:1px 2px 1px 0}
 @media (max-width:640px){.cgrid{grid-template-columns:minmax(0,1fr)}.co5 .r{grid-template-columns:2.6em 2.8em 54px minmax(0,1fr)}.cos{flex-basis:100%;order:4}
   .chk li{grid-template-columns:1.4em minmax(0,1fr)}.chk .hr{grid-column:2;text-align:left;white-space:normal}
@@ -1938,12 +1938,13 @@ function coDims(r,fin){return CODIM.map(([nm,ms])=>{const ps=[],txt=[];
 function dimLead(ds){const good=ds.filter(d=>d.lv>=4).map(d=>d.nm+(d.nm==='估值'?LVV[d.lv]:LVN[d.lv])),bad=ds.filter(d=>d.lv&&d.lv<=2).map(d=>d.nm+(d.nm==='估值'?LVV[d.lv]:LVN[d.lv]));
   return (good.length?good.join('、'):'')+(good.length&&bad.length?'；':'')+(bad.length?bad.join('、'):'')+(good.length||bad.length?'。':'各面向都在中間。');}
 const TTN=['股價在 150 日與 200 日線之上','150 日線高於 200 日線','200 日線上揚（比 20 日前高）','50 日線高於 150、200 日線','股價在 50 日線之上','股價比 52 週低點高 30% 以上','股價在 52 週高點 25% 以內','RS ≥ 70'];
-const SXCK=[['ey25','最新季 EPS 年增 ≥ 25%',r=>r.ey==null?null:r.ey>=25],['eacc','EPS 年增比上一季高（加速）',r=>r.eacc==null?null:r.eacc>0],
-  ['ry25','近 3 月營收年增 ≥ 25%',r=>r.ry3==null?null:r.ry3>=25],['racc','營收年增加速',r=>r.racc==null?null:r.racc>0],
+const SXCK=[['ey25','最新一季 EPS 比去年同季多 25% 以上',r=>r.ey==null?null:r.ey>=25],['eacc','EPS 成長在加速（這一季的成長率比上一季高）',r=>r.eacc==null?null:r.eacc>0],
+  ['ry25','近 3 個月營收比去年同期多 25% 以上',r=>r.ry3==null?null:r.ry3>=25],['racc','營收成長在加速（近 3 個月的成長率比前 3 個月高）',r=>r.racc==null?null:r.racc>0],
   ['rnh','月營收創 12 個月新高',r=>r.rnh==null?null:r.rnh===true],['gmd','毛利率比去年同季高',r=>r.gmd==null?null:r.gmd>0],
-  ['c33','Code 33：EPS、營收、毛利率連三季加速',r=>r.c33==null?null:r.c33===true],['roe15','近四季 ROE ≥ 15%',r=>r.roe==null?null:r.roe>=15],
-  ['tt8','趨勢樣板 8 項全過',r=>r.tt==null?null:r.tt===8],['rs80','RS ≥ 80',r=>r.rs==null?null:r.rs>=80],['h25','股價在 52 週高點 25% 以內',r=>r.d52h==null?null:r.d52h>=-25]];
-function ckHit(k){const x=(((D.sx||{}).ck)||{})[k];if(!x||!x.A||x.A.p==null)return '';return `過去符合時 <b>${f(x.A.p*100,0)}%</b>（全體 ${f(x.A.base*100,0)}%）`;}
+  ['c33','連三季變好：EPS 成長率、營收成長率、毛利率都一季比一季高',r=>r.c33==null?null:r.c33===true],['roe15','近四季 ROE（股東權益報酬率）15% 以上',r=>r.roe==null?null:r.roe>=15],
+  ['tt8','股價趨勢 8 項全過（長期上升趨勢）',r=>r.tt==null?null:r.tt===8],['rs80','股價強度 RS 80 以上（近一年漲幅勝過八成股票）',r=>r.rs==null?null:r.rs>=80],['h25','股價離 52 週高點 25% 以內',r=>r.d52h==null?null:r.d52h>=-25]];
+function ckHit(k){const x=(((D.sx||{}).ck)||{})[k];if(!x||!x.A||x.A.p==null)return '—';const P=Math.round(x.A.p*100),B=Math.round((x.A.base||0)*100);return P>B?`<b>${P}%</b>`:`${P}%`;}
+function ckBase(){const xs=Object.values(((D.sx||{}).ck)||{}).map(x=>x&&x.A&&x.A.base).filter(x=>x!=null);return xs.length?xs[0]:null;}
 
 /* ---- 主體 ---- */
 function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;const w=Math.max(260,W);const w2=isPane()||w>700?Math.floor((w-12)/2):w;
@@ -1965,13 +1966,16 @@ function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;
   h+=`</section>`;
   /* 2 飆股體質檢查 */
   if(r){const it=SXCK.map(([k,t,fn])=>{const v=fn(r);return {k,t,v};});const ok=it.filter(x=>x.v===true).length,av=it.filter(x=>x.v!=null).length;
-    h+=`<section class=csec id=co-sx><h3>飆股體質檢查<span class=sub>符合 ${ok}／${av} 項${gi('飆股體質檢查')}${D.sx&&D.sx.ck?'・比例＝過去符合時 3 個月內漲 50% 的機率':''}</span></h3><ul class=chk>`+
-      it.map(x=>`<li><span class=${x.v===true?'ok':x.v===false?'no':'na'}>${x.v===true?'✓':x.v===false?'✗':'—'}</span><span>${esc(x.t)}</span><span class=hr>${ckHit(x.k)}</span></li>`).join('')+`</ul>`;
+    const kb=ckBase();
+    h+=`<section class=csec id=co-sx><h3>飆股體質檢查<span class=sub>符合 ${ok}／${av} 項${gi('飆股體質檢查')}</span></h3>`+
+      (kb!=null?`<div class=st>右欄＝過去符合這一條的股票，3 個月內漲到五成的比例；一般股票是 ${f(kb*100,0)}%，比它高的標粗體。</div>`:'')+
+      `<div class=tw><table class=chkt><thead><tr><th class=l>條件</th><th>這檔</th>${kb!=null?'<th>3 個月內漲五成</th>':''}</tr></thead><tbody>`+
+      it.map(x=>`<tr><td class=l>${esc(x.t)}</td><td><span class=${x.v===true?'ok':x.v===false?'no':'na'}>${x.v===true?'✓ 符合':x.v===false?'✗':'—'}</span></td>${kb!=null?`<td>${ckHit(x.k)}</td>`:''}</tr>`).join('')+`</tbody></table></div>`;
     if(r.ttb)h+=`<details class=mr><summary>趨勢樣板 8 項明細（${r.tt}／8）${gi('趨勢樣板')}</summary><ul class=chk>${TTN.map((t,i)=>`<li><span class=${r.ttb[i]==='1'?'ok':'no'}>${r.ttb[i]==='1'?'✓':'✗'}</span><span>${esc(t)}</span><span></span></li>`).join('')}</ul></details>`;
     const cb=((((D.sx||{}).cnt)||{}).A)||{},cr=(cb.rows||[])[ok];
-    if(cr&&cr.p!=null&&cr.n>=30)h+=`<div class=note style="margin-top:8px">2014 年起同樣符合 ${ok} 項的股票，之後 3 個月內最高漲 50% 的比例 <b>${f(cr.p*100,0)}%</b>（全體 ${f((cb.base||0)*100,0)}%，${f(cr.n,0)} 個股票週）。</div>`;
+    if(cr&&cr.p!=null&&cr.n>=30)h+=`<div class=note style="margin-top:8px">過去同樣符合 ${ok} 項的股票，3 個月內漲到五成的比例是 <b>${f(cr.p*100,0)}%</b>（一般股票 ${f((cb.base||0)*100,0)}%）。</div>`;
     const hit=(((D.sx||{}).hits)||{})[c];if(hit&&hit.length)h+=`<div class=note style="margin-top:8px">今天符合飆股研究的規則 ${hit.map(i=>{const u=(D.sx.rules||[])[i]||{};return `<span class=sxi title="${esc(u.txt||'')}">${esc(u.lab||'')}${i+1}</span>`;}).join('')}（${hit.length===1?esc(((D.sx.rules||[])[hit[0]]||{}).txt||''):'共 '+hit.length+' 條'}；<a data-go="opp" data-at="o-sx">看規則與過去成績 →</a>）</div>`;
-    h+=`<div class=st style="margin-top:6px">條件取自《超級績效》的基本面與趨勢樣板；「過去符合時」是 2014 年起月底市值 40 億以上、這個條件成立的股票，之後 60 個交易日（約 3 個月）內最高價曾漲 50% 的比例。</div></section>`;}
+    h+=`<div class=st style="margin-top:6px">條件來自《超級績效》。比例用 2014 年起、月底市值 40 億以上的股票每週計算：符合的那一週之後 60 個交易日內，最高價曾經漲到五成就算。過去的比例不代表之後也一樣。</div></section>`;}
   /* 3 成長 */
   const m24=M.filter(o=>o.rev!=null).slice(-24);
   const q12=Q.filter(o=>o.rev!=null||o.eps!=null).slice(-12);
@@ -2147,10 +2151,10 @@ function wlSec(){const W=D.wl||{};if(!W.v)return sxSec();const Y=W.lay||{},ST=Y.
 document.addEventListener('click',e=>{if(e.defaultPrevented)return;const a=e.target.closest&&e.target.closest('[data-co]');if(a){e.preventDefault();openCo(a.dataset.co);return;}
   const m=e.target.closest&&e.target.closest('.sxall');if(m){e.preventDefault();$$('#sxc tr.sxmore').forEach(t=>t.hidden=false);m.remove();}});
 Object.assign(GL,{'五面向':'成長（近 3 月營收年增、最新季 EPS 年增）、獲利（近四季 ROE、營益率）、體質（負債比、流動比）、估值（本益比、淨值比，越便宜分數越高）、動能（RS、距 52 週高點）。每項先算在全市場的百分位，兩項平均後分 5 格：80 以上頂尖、60 以上良好、40 以上中性、20 以上偏弱、其餘落後。',
-  '飆股體質檢查':'《超級績效》（Minervini）找飆股看的條件：盈餘與營收高成長而且加速、毛利率擴張、股價在上升趨勢（趨勢樣板 8 項）、相對強度高。旁邊的比例是 2014 年起這個條件成立的股票，之後 3 個月內最高價曾漲 50% 的比例，和全體相比。',
+  '飆股體質檢查':'《超級績效》（Minervini）找飆股看的條件：獲利與營收高成長而且在加速、毛利率變好、股價在長期上升趨勢、股價強度高。右欄是過去符合這一條的股票，之後 3 個月內漲到五成的比例；拿一般股票的比例當對照。',
   '趨勢樣板':'Minervini 的 8 項：股價在 150 與 200 日線之上、150 日線高於 200 日線、200 日線上揚、50 日線高於 150 與 200 日線、股價在 50 日線之上、比 52 週低點高 30% 以上、在 52 週高點 25% 以內、RS ≥ 70。',
   'RS 百分位':'相對強度：0.4×近 3 個月＋0.2×近 6 個月＋0.2×近 9 個月＋0.2×近 12 個月報酬，在全市場排名（1～99，越高越強）。',
-  '營收加速':'近 3 個月營收年增率比再前 3 個月的年增率高。Code 33＝EPS 年增、營收年增、毛利率連續三季一起變好。',
+  '營收加速':'近 3 個月營收年增率比再前 3 個月的年增率高。連三季變好（Code 33）＝EPS 成長率、營收成長率、毛利率連續三季都一季比一季高。',
   'ROE 拆解':'ROE＝淨利率 × 資產週轉 × 權益乘數：賺錢的效率、資產用得多勤、用了多少槓桿。三者都用近四季。',
   '自由現金流':'營業活動現金流＋投資活動現金流（近四季）。投資活動含資本支出與買賣金融資產，所以是粗略的自由現金流。',
   '現金流 ÷ 淨利':'近四季營業現金流 ÷ 近四季淨利。長期低於 100% 代表帳上獲利沒有變成現金（應收帳款或存貨堆高）。',
