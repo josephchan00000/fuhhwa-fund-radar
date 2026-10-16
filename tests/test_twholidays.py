@@ -78,7 +78,9 @@ def test_watchdog_trading_day_follows_official_table():
     assert fresh.is_trading_day(date(2026, 10, 26), normal) is False   # 漏寫休市 → 仍判休市（不誤報）
     assert fresh.is_trading_day(date(2026, 10, 13), wrong) is True     # 誤寫休市 → 仍判交易（不靜默）
     assert fresh.is_trading_day(date(2026, 10, 13), None) is True
-    assert fresh.is_trading_day(date(2030, 3, 5), wrong) is False      # 官方表未涵蓋的年份才退回文字
+    # 官方表未涵蓋的年份才退回文字（市況寫了日期就只認那一天）
+    assert fresh.is_trading_day(date(2030, 3, 5), "> 市況：台股 3/5 因颱風休市｜美股 正常交易") is False
+    assert fresh.is_trading_day(date(2030, 3, 5), wrong) is True       # 預告別天休市 → 今天照常交易
 
 
 def test_dashboard_closed_days_use_official_table():
