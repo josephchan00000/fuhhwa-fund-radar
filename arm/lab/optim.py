@@ -331,12 +331,13 @@ class PerCtx:
         self.umin = v3live.UMIN[src]
         rows = bt3s.p3_rows(P, E, b, P.codes, eps, v3live.HOLD3) if src == "p3" else bt3s.p7_rows(P, E, b, P.codes, rev)
         self.rows = [r for r in rows if r[1] is not None and (until is None or P.cal[r[0]] < until)]
+        self.idx = P.idx if hasattr(P, "idx") else P.D.taiex()      # 長歷史面板有 idx；每日面板用 D.taiex()
         self._ma: dict[int, list] = {}
 
     def ma(self, n: int) -> list:
         if n not in self._ma:
             from .ta import sma
-            self._ma[n] = sma(self.P.idx, n)
+            self._ma[n] = sma(self.idx, n)
         return self._ma[n]
 
     def run(self, p: dict, mult: float = 1.0, log: list | None = None) -> dict:
@@ -348,7 +349,7 @@ class PerCtx:
         per, skip = [], []
         d = p.get("delay") or 0
         for t, x, picks in pk:
-            if p.get("reg") and _below(P.idx, self.ma(p["reg"]), t):
+            if p.get("reg") and _below(self.idx, self.ma(p["reg"]), t):
                 skip.append(t)
                 continue
             t2, x2 = t + d, x + d
@@ -649,15 +650,17 @@ class _SP:
         return self._c[c]
 
 
-def mdd_of(k: str, C, run: dict) -> float | None:
-    """主要期間的最大回落（%）：定期換股＝資金帳戶逐日淨值；逐訊號＝8 格資金帳戶；臺灣50＝每次審核依序連乘。"""
+def mdd_of(k: str, C, run: dict, lo: str | None = None) -> float | None:
+    """主要期間的最大回落（%）：定期換股＝資金帳戶逐日淨值；逐訊號＝8 格資金帳戶；臺灣50＝每次審核依序連乘。
+    lo＝只算決定日（淨值日）在這一天以後的（影子版本前瞻用）。"""
     from . import bt3
+    ok = lambda d: _main(k, d) and (lo is None or d >= lo)
     if isinstance(C, PerCtx):
-        cv = [(i, v) for i, v in run.get("curve") or [] if _main(k, C.P.cal[i])]
+        cv = [(i, v) for i, v in run.get("curve") or [] if ok(C.P.cal[i])]
         return bt3.curve_stats(cv, C.P.cal).get("mdd") if len(cv) > 1 else None
     if isinstance(C, S3Ctx):
-        return mdd_seq([v[1] for _, v in sorted(run["u"].items(), key=lambda z: z[1][0])])
-    us = [{"t": v[3], "x": v[4], "c": v[5], "r": v[1]} for v in run["u"].values() if v[2] and len(v) > 5]
+        return mdd_seq([v[1] for _, v in sorted(run["u"].items(), key=lambda z: z[1][0]) if ok(v[0])])
+    us = [{"t": v[3], "x": v[4], "c": v[5], "r": v[1]} for v in run["u"].values() if v[2] and len(v) > 5 and ok(v[0])]
     if not us:
         return None
     sp = _SP(lambda c: C.series(c)[0]) if isinstance(C, S1Ctx) else _SP(lambda c: C.P.s[c])
@@ -734,3 +737,181 @@ def run_all(P=None, keep: dict | None = None, *, log=print) -> dict:
             except Exception as e:                        # noqa: BLE001 —— 一條失敗不連累其他
                 res[k] = {"k": k, "err": f"{type(e).__name__}: {e}"}
     return {"ver": OPT_VER, "since": OPT_SINCE, "res": _rd(res)}
+
+
+# ═══ 影子版本（第 6 節） ══════════════════════════════════════════════════════
+# 登記檔 data/lab/opt_shadow.json：每週重跑（CI）決定誰進出；你回「好」或「不換」時由 Claude 改這個檔。
+#   items＝[{k, c, what, since, st: active|retired|declined|switched, rv（進影子時現行規則的起算日）, end, why}]
+#   cool＝{"策略.候選": 冷卻到哪一天}（淘汰或不換之後 182 天內不再進影子）
+# 每天建頁時算每個影子版本的前瞻（決定日 ≥ since 的單位，和現行逐單位配對），狀態：
+#   記錄中（前瞻還沒滿門檻）／達標（滿門檻、平均贏、回落沒有差 3 個百分點以上、最近一次每週重跑仍是證據強）／
+#   待重跑（前瞻已贏，但每週重跑暫時不是證據強）／淘汰（滿門檻卻沒有贏，或回落變差）。
+
+SHADOW_FILE = "opt_shadow.json"
+SH_LIVE, SH_RET, SH_DEC, SH_SW = "active", "retired", "declined", "switched"
+ST_REC, ST_OK, ST_WAIT, ST_OUT = "記錄中", "達標", "待重跑", "淘汰"
+
+
+def rule_ver(k: str) -> str | None:
+    """現行規則的起算日（改規則＝新版本、新起算日）：影子版本進來時記下，日後不同＝現行規則改版。"""
+    from . import growth, strategy, v3live
+    if k in ("v3l", "v7m", "v7l"):
+        return v3live.SINCE
+    if k == "s1":
+        return next(s["since"] for s in strategy.STRATEGIES if s["key"] == "s1")
+    if k == "s5":
+        return growth.S5["since"]
+    if k == "s3":
+        return strategy.TW50_VERS[0]["since"]
+    return None
+
+
+def load_reg() -> dict:
+    from . import store
+    doc = store.read_json(SHADOW_FILE, {}) or {}
+    return {"ver": OPT_VER, "items": list(doc.get("items") or []), "cool": dict(doc.get("cool") or {})}
+
+
+def save_reg(reg: dict) -> None:
+    from . import store
+    store.write_json(SHADOW_FILE, reg)
+
+
+def _add_days(d: str, n: int) -> str:
+    from datetime import date, timedelta
+    return (date.fromisoformat(d) + timedelta(days=n)).isoformat()
+
+
+def forward(k: str, C, it: dict) -> dict:
+    """影子版本 it 的前瞻：決定日 ≥ it["since"]、兩個版本都已出場的單位，逐單位配對。"""
+    p0, p1 = params(k), params(k, it["c"])
+    r0, r1 = C.run(p0), C.run(p1)
+    ds = [x for x in pairs(r0["u"], r1["u"]) if x[0] >= it["since"]]
+    return {"n": len(ds), "mean": _mean([v for _, v, _ in ds]), "mdd": mdd_of(k, C, r1, lo=it["since"]),
+            "mdd0": mdd_of(k, C, r0, lo=it["since"]),
+            "u": [[d, round(v, 2)] for d, v, _ in ds][-40:]}
+
+
+def status(k: str, fw: dict, tier_now: str | None) -> str:
+    """前瞻結果 → 影子版本狀態（第 6 節的達標與淘汰條件）。"""
+    if fw["n"] < NEED[k]:
+        return ST_REC
+    win = fw["mean"] is not None and fw["mean"] > 0
+    dd = fw["mdd"] is None or fw["mdd0"] is None or fw["mdd"] <= fw["mdd0"] + MDD_PP
+    if not (win and dd):
+        return ST_OUT
+    return ST_OK if tier_now == STRONG else ST_WAIT
+
+
+def tiers(res: dict) -> dict:
+    """每週重跑結果 → {(策略, 候選): (分級, 校正前 t)}。"""
+    return {(k, c["k"]): (c.get("tier"), c.get("t")) for k, r in (res or {}).items() for c in r.get("cands") or []}
+
+
+def update_reg(reg: dict, res: dict, today: str, fw_st: dict | None = None) -> list[dict]:
+    """每週重跑後更新登記檔（就地修改）。fw_st＝{(策略, 候選): 前瞻狀態}。→ 這次的異動（頁面與紀錄用）。
+    退出：現行規則改版、每週重跑變成「沒有比較好／比較差」、前瞻滿門檻卻沒有贏 → 淘汰並冷卻 182 天。
+    進入：每週重跑「證據強」、不在冷卻期、該策略影子未滿 2 個；名額不夠時依校正前 t 值高到低。"""
+    tr, fw_st = tiers(res), fw_st or {}
+    ch = []
+    for it in reg["items"]:
+        if it.get("st") != SH_LIVE:
+            continue
+        k, c = it["k"], it["c"]
+        tier_now = (tr.get((k, c)) or (None, None))[0]
+        why = None
+        if it.get("rv") != rule_ver(k):
+            why = "現行規則改版"
+        elif tier_now in (NONE, WORSE):
+            why = f"每週重跑變成「{tier_now}」"
+        elif fw_st.get((k, c)) == ST_OUT:
+            why = "前瞻滿門檻卻沒有贏過現行"
+        if why:
+            it.update({"st": SH_RET, "end": today, "why": why})
+            reg["cool"][f"{k}.{c}"] = _add_days(today, COOLDOWN_DAYS)
+            ch.append({"k": k, "c": c, "act": "淘汰", "why": why})
+    for k in MENU:
+        live = {it["c"] for it in reg["items"] if it["k"] == k and it.get("st") == SH_LIVE}
+        strong = sorted(((c, t) for (kk, c), (ti, t) in tr.items() if kk == k and ti == STRONG),
+                        key=lambda z: (-(z[1] or 0), z[0]))
+        for c, t in strong:
+            if len(live) >= SHADOW_MAX:
+                break
+            if c in live or (reg["cool"].get(f"{k}.{c}") or "") > today:
+                continue
+            what = next(m[1] for m in MENU[k] if m[0] == c)
+            reg["items"].append({"k": k, "c": c, "what": what, "since": today, "st": SH_LIVE, "rv": rule_ver(k),
+                                 "t": None if t is None else round(t, 2)})
+            live.add(c)
+            ch.append({"k": k, "c": c, "act": "進影子版本"})
+    return ch
+
+
+def contexts(keep: dict, need: set, P_long=None) -> dict:
+    """影子版本要用的回測環境（只建有影子版本的策略）。財報、月營收：P_long＝長歷史面板（每週）或 None＝每日面板。"""
+    out = {}
+    if need & {"v3l", "v7m", "v7l"}:
+        from . import bt3, bt3d
+        from . import packtest as PT
+        P = P_long if P_long is not None else (keep.get("v3ctx") or (None,))[0]
+        if P is not None:
+            E = bt3.Elig(P)
+            eps, rev = bt3d.load_eps(), PT.load_rev()
+            for k in need & {"v3l", "v7m", "v7l"}:
+                out[k] = PerCtx(P, E, k, eps=eps, rev=rev)
+    for k, cls in (("s1", S1Ctx), ("s5", S5Ctx), ("s3", S3Ctx)):
+        if k in need:
+            out[k] = cls(keep)
+    return out
+
+
+def shadow_daily(keep: dict, reg: dict | None = None, res_doc: dict | None = None, today: str | None = None) -> dict:
+    """每次建頁：登記中的影子版本（active）前瞻與狀態；另列最近 14 天淘汰的（事件用）。"""
+    from . import store
+    reg = reg if reg is not None else load_reg()
+    res_doc = res_doc if res_doc is not None else (store.read_json("opt_research.json", {}) or {})
+    tr = tiers((res_doc.get("opt") or {}).get("res"))
+    live = [it for it in reg["items"] if it.get("st") == SH_LIVE]
+    C = contexts(keep, {it["k"] for it in live}) if live else {}
+    out = []
+    for it in live:
+        row = {**{x: it.get(x) for x in ("k", "c", "what", "since")}, "need": NEED[it["k"]]}
+        if it["k"] not in C:
+            out.append({**row, "st": ST_REC, "err": "沒有回測環境"})
+            continue
+        try:
+            fw = forward(it["k"], C[it["k"]], it)
+        except Exception as e:                            # noqa: BLE001
+            out.append({**row, "st": ST_REC, "err": f"{type(e).__name__}: {e}"})
+            continue
+        tier_now = (tr.get((it["k"], it["c"])) or (None, None))[0]
+        out.append({**row, **_rd({x: fw[x] for x in ("n", "mean", "mdd", "mdd0", "u")}), "tier": tier_now,
+                    "st": status(it["k"], fw, tier_now)})
+    lo = _add_days(today, -14) if today else None
+    for it in reg["items"]:
+        if it.get("st") in (SH_RET, SH_DEC) and (lo is None or (it.get("end") or "") >= lo):
+            out.append({**{x: it.get(x) for x in ("k", "c", "what", "since", "end", "why")}, "st": ST_OUT
+                        if it["st"] == SH_RET else "不換"})
+    return {"items": out, "n_live": len(live)}
+
+
+_PAGE_C = ("k", "what", "n", "months", "mean", "t", "rep", "nb", "drop_year", "x2", "mdd", "mdd0", "tier", "fails",
+           "nt1", "avgt1", "holm")
+
+
+def page_data(keep: dict) -> dict:
+    """頁面用：每週改良結果（精簡）＋影子版本前瞻。"""
+    from . import store
+    doc = store.read_json("opt_research.json", {}) or {}
+    opt = doc.get("opt") or {}
+    res = {}
+    for k, r in (opt.get("res") or {}).items():
+        if r.get("err"):
+            res[k] = {"err": r["err"]}
+            continue
+        res[k] = {**{x: r.get(x) for x in ("n0", "avg0", "nt0", "avgt0", "mdd0")},
+                  "cands": [[c.get(x) for x in _PAGE_C] for c in r.get("cands") or []]}
+    D = keep.get("D")
+    sh = shadow_daily(keep, today=D.cal[-1] if D is not None and D.cal else None)
+    return {"ver": opt.get("ver"), "asof": doc.get("asof"), "run": opt.get("run"), "cols": list(_PAGE_C), "res": res,
+            "shadow": sh, "menu": {k: len(v) for k, v in MENU.items()}}

@@ -13,6 +13,10 @@
   deep   持有中虧損超過歷史最差：逐檔計的策略看每一檔、其餘看同一批的平均，跌得比過去最差的一次還多（第一次出現時記）。
   miss   該出名單沒出：月營收、財報驚喜的形成日已過一個交易日以上，那一期沒有產生名單（第一次出現時記）。
   stale  資料過期：最新資料日之後已有 2 個以上交易日收盤卻沒有資料（每天都記，直到恢復）。
+  dev    表現偏離回測（策略健檢，docs/lab_selfopt_plan.md 第 3 節）：燈號第一次變成「明顯低於回測」，或持有中的部位
+         （逐檔策略每檔、其餘每批）第一次低於回測同一持有天數的第 5 百分位。
+  shok   影子版本達標（第 6 節）：前瞻滿門檻、贏過現行、回落沒有變差、每週重跑仍是證據強——你回「好」才換。
+  sout   影子版本淘汰（第 6 節）：前瞻滿門檻卻沒有贏、回落變差、每週重跑不再是證據強，或現行規則改版。
 """
 from __future__ import annotations
 
@@ -29,7 +33,8 @@ STALE_TD = 2               # 落後幾個交易日算過期
 CLOSE_HM = (14, 30)        # 這個時間之後，今天算已收盤
 EVENT = {"s3"}             # 事件型（以「次」計、A 級門檻 2 次）；財報驚喜另由 src＝p3 判斷
 TYPES = {"grade": "評級變動", "full": "前瞻滿額", "lag": "前瞻落後", "deep": "虧損超過歷史最差",
-         "miss": "該出名單沒出", "stale": "資料過期"}
+         "miss": "該出名單沒出", "stale": "資料過期", "dev": "表現偏離回測", "shok": "影子版本達標", "sout": "影子版本淘汰"}
+LOW_LIGHT = "明顯低於回測"
 
 
 def _md(d: str | None) -> str:
@@ -102,6 +107,23 @@ def snapshot(adv: dict) -> dict:
     return out
 
 
+def merge_health(st: dict, hl: dict | None, opt: dict | None) -> dict:
+    """把策略健檢（燈號、低於第 5 百分位的部位）與影子版本狀態併進當天每條策略的紀錄（事件比對用）。"""
+    hl = hl if isinstance(hl, dict) else {}
+    items = (((opt or {}).get("shadow") or {}).get("items") or []) if isinstance(opt, dict) else []
+    for k, s in st.items():
+        h = hl.get(k)
+        if isinstance(h, dict):
+            s["hl"] = h.get("light")
+            s["hla"], s["hln"] = h.get("avg"), h.get("n")
+            s["low"] = [[x["n"], x.get("d"), x.get("x")] for x in h.get("hold") or []
+                        if x.get("pct") is not None and x["n"] in (h.get("low") or [])]
+        sh = [[x["c"], x["st"], x.get("what"), x.get("n"), x.get("mean"), x.get("why")] for x in items if x.get("k") == k]
+        if sh:
+            s["sh"] = sh
+    return st
+
+
 def lag_days(last: str | None, now: datetime) -> int | None:
     """最新資料日之後、到最新收盤日（今天 14:30 後算今天）為止，有幾個交易日。"""
     if not last:
@@ -156,6 +178,21 @@ def events(cur: dict, prev: dict | None, last: str | None, lag: int | None) -> l
                         f"，跌得比過去最差的一{u}（{_pct(s['lo'])}）還多"})
         if s.get("miss") and s["miss"] != p.get("miss"):
             out.append({"k": k, "ty": "miss", "txt": f"{nm}：{_md(s['miss'])} 應產生名單，到 {_md(last)} 仍沒有（營收或財報資料可能沒進來）"})
+        if s.get("hl") == LOW_LIGHT and p.get("hl") != LOW_LIGHT:
+            out.append({"k": k, "ty": "dev", "txt": f"{nm}：規則起算後 {s.get('hln')} {u}平均 {_pct(s.get('hla'))}，"
+                        "低於回測同樣筆數抽樣的 95%（表現偏離回測）"})
+        seen_low = {x[0] for x in p.get("low") or []}
+        new_low = [x for x in s.get("low") or [] if x[0] not in seen_low]
+        if new_low:
+            out.append({"k": k, "ty": "dev", "txt": f"{nm}：持有中 " + "、".join(f"{x[0]} 第 {x[1]} 天 {_pct(x[2])}" for x in new_low)
+                        + "，低於回測同一持有天數的第 5 百分位"})
+        pst = {x[0]: x[1] for x in p.get("sh") or []}
+        for c, stt, what, n, mean, why in s.get("sh") or []:
+            if stt == "達標" and pst.get(c) != "達標":
+                out.append({"k": k, "ty": "shok", "txt": f"{nm}：影子版本「{what}」達標（前瞻 {n} {u}，"
+                            f"平均每{u}比現行多 {_pct(mean, 2)}），回「好」才換"})
+            if stt == "淘汰" and pst.get(c) != "淘汰":
+                out.append({"k": k, "ty": "sout", "txt": f"{nm}：影子版本「{what}」淘汰" + (f"（{why}）" if why else "")})
     if lag is not None and lag >= STALE_TD:
         out.append({"k": None, "ty": "stale", "txt": f"資料過期：最新資料 {_md(last)}，之後已有 {lag} 個交易日收盤沒有資料"})
     return out
@@ -226,7 +263,7 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
     days = log["days"]
     prev_d = max((d for d in days if d < last), default=None)
     prev = (days.get(prev_d) or {}).get("st") if prev_d else None
-    st = snapshot(adv)
+    st = merge_health(snapshot(adv), data.get("hl"), data.get("opt"))
     try:
         lag = lag_days(last, now)
     except Exception:                                     # noqa: BLE001 —— 休市表讀不到：不判過期
