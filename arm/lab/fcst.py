@@ -36,7 +36,7 @@ TZ = timezone(timedelta(hours=8))
 FS_FILE = "fcst/factset.json"
 YH_FILE = "fcst/yahoo.json"
 YH_ARCH = "fcst_y"                     # 每週封存（gz 分片）
-FS_KEEP_DAYS = 800                     # FactSet 事件保留約兩年
+FS_KEEP_DAYS = 3650                    # FactSet 事件全留（鉅亨「台股預估」大約 2023 年才開始，量不大）
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 CNYES_LIST = "https://api.cnyes.com/media/api/v1/newslist/category/tw_forecast?startAt={a}&endAt={b}&limit=30&page={p}"
@@ -182,6 +182,22 @@ def _fs_window(H: _Http, a: int, b: int, log: list) -> list[dict] | None:
     return out
 
 
+def _write_lines(name: str, doc: dict, key: str) -> bool:
+    """JSON 一檔股票一行（git 差異只在變動的那幾行）；內容沒變不改寫。"""
+    head = {k: v for k, v in doc.items() if k != key}
+    body = doc.get(key) or {}
+    lines = [json.dumps(c, ensure_ascii=False) + ":" + json.dumps(body[c], ensure_ascii=False, separators=(",", ":"))
+             for c in sorted(body)]
+    txt = (json.dumps(head, ensure_ascii=False, sort_keys=True, separators=(",", ":"))[:-1]
+           + (',' if head else '') + json.dumps(key) + ":{\n" + ",\n".join(lines) + "\n}}\n")
+    p = store.LAB / name
+    if p.exists() and p.read_text(encoding="utf-8") == txt:
+        return False
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(txt, encoding="utf-8")
+    return True
+
+
 def load_fs() -> dict:
     return store.read_json(FS_FILE, None) or {"v": 1, "upto": 0, "from": None, "floor": False, "ev": {}}
 
@@ -203,6 +219,10 @@ def _merge_fs(doc: dict, items: list[dict], stat: dict) -> None:
         stat["new"] = stat.get("new", 0) + 1
     for c in ev:
         ev[c].sort(key=lambda r: (r[0], r[2]))
+        es = [r for r in ev[c] if r[1] == "e"]
+        for r in es[:-1]:
+            if len(r) > 10:
+                del r[10:]                               # 舊的 EPS 快訊不留三年表格
 
 
 def _prune_fs(doc: dict, today: date) -> None:
@@ -248,7 +268,7 @@ def update_factset(*, backfill_weeks: int = 0, budget_s: float = 120, now: datet
             doc["floor"] = True
         wk += 1
     _prune_fs(doc, now.date())
-    store.write_json(FS_FILE, doc)
+    _write_lines(FS_FILE, doc, "ev")
     stat.update({"codes": len(doc.get("ev", {})), "from": doc.get("from"), "floor": doc.get("floor"),
                  "weeks": wk, "s": round(time.time() - t0)})
     if log:
@@ -309,10 +329,18 @@ def parse_yahoo(o: dict) -> dict | None:
              "rv": [_raw(er.get(k)) for k in ("upLast7days", "upLast30days", "downLast7Days", "downLast30days")]}
         if y["rv"][2] is None:
             y["rv"][2] = _raw(er.get("downLast7days"))
-        if any(v is not None for v in y["e"][:3]) or any(v is not None for v in y["r"][:3]):
+        en, rn = y["e"][3] or 0, y["r"][3] or 0
+        if rn <= 0 or not y["r"][0]:
+            y["r"] = None                                # 沒有營收預估（Yahoo 回 0）
+            y["rg"] = None
+        if en > 0 or y["r"]:
+            if en <= 0:
+                y["e"] = None
             rec[key] = y
-    if not rec.get("n") and "y0" not in rec and "y1" not in rec and not any(rec["tp"]):
+    if not rec.get("n") and "y0" not in rec and "y1" not in rec:
         return None
+    if not any(v is not None for v in rec["tp"]):
+        rec["tp"] = None
     return rec
 
 
@@ -411,9 +439,100 @@ def update_yahoo(listed: dict[str, str], *, full: bool = False, budget_s: float 
                 "part": bool(stat["skip"] or stat["429"] >= 20)})   # 沒抓完 → 同一天下一輪再補
     if full and stat["skip"] == 0 and stat["429"] < 20:
         doc["full"] = today.isoformat()
-    store.write_json(YH_FILE, doc)
+    _write_lines(YH_FILE, doc, "s")
     wk = today.isocalendar()[:2]
     if s and not any(date.fromisoformat(x).isocalendar()[:2] == wk for x in store.dates(YH_ARCH)):
         store.write(YH_ARCH, today.isoformat(), {"d": today.isoformat(), "s": s})
     stat.update({"codes": len(codes), "cover": len(s), "full": full, "s": round(time.time() - t0)})
     return stat
+
+
+# ── 頁面用（docs/lab_forward_plan.md 第 3 節）────────────────────────────────
+def view(fs_rows: list | None, yh: dict | None) -> dict | None:
+    """一檔 → x9f.json：最新 EPS 快訊（三年 EPS／營收）、最新預估股價快訊、最近 8 則調整（新到舊）、Yahoo 紀錄。
+    ev：EPS ["日期","e",前值,新值,年度]；預估股價 ["日期","t",前值,新值,幅度%]。"""
+    out: dict = {}
+    if fs_rows:
+        E = [r for r in fs_rows if r[1] == "e"]
+        T = [r for r in fs_rows if r[1] == "t"]
+        if E:
+            r = E[-1]
+            out["e"] = {"d": r[0], "n": r[3], "y": r[4], "tp": r[9], "eps": r[10], "rev": r[11]}
+        if T:
+            r = T[-1]
+            out["t"] = {"d": r[0], "n": r[3], "v": r[5], "hi": r[7], "lo": r[8], "rt": r[9]}
+        out["ev"] = [[r[0], "e", r[5], r[6], r[4]] if r[1] == "e" else [r[0], "t", r[4], r[5], r[6]]
+                     for r in fs_rows[-8:][::-1]]
+    if yh:
+        out["y"] = yh
+    return out or None
+
+
+def page_doc(listed: dict | None = None, today: date | None = None) -> dict:
+    """dashboard/x9f.json：每檔的法人預估（公司卡點進去才下載）。"""
+    fs, yh = load_fs(), load_yahoo()
+    ev, ys = fs.get("ev") or {}, yh.get("s") or {}
+    codes = sorted(set(ev) | set(ys))
+    if listed is not None:
+        codes = [c for c in codes if c in listed]
+    s = {}
+    for c in codes:
+        v = view(ev.get(c), ys.get(c))
+        if v:
+            s[c] = v
+    return {"d": (today or datetime.now(TZ).date()).isoformat(), "fs_from": fs.get("from"), "yd": yh.get("d"), "s": s}
+
+
+def target_price(v: dict) -> tuple[float | None, str | None]:
+    """最新的法人預估股價中位數與日期：預估股價快訊與 EPS 快訊（內文也寫當時的預估股價）取較新者，沒有再用 Yahoo 中位數。"""
+    e, t = v.get("e") or {}, v.get("t") or {}
+    cand = [(t.get("d"), t.get("v")), (e.get("d"), e.get("tp"))]
+    cand = [x for x in cand if x[0] and x[1]]
+    if cand:
+        d, p = max(cand)
+        return p, d
+    y = v.get("y") or {}
+    tp = y.get("tp") or [None, None]
+    p = tp[1] if tp[1] is not None else tp[0]
+    return p, (None if p is None else "Yahoo")
+
+
+def brief(v: dict | None, px: float | None, ye: dict | None, today: date) -> list | None:
+    """機會頁飆股段每檔一行小字：[分析師家數, 今年 EPS 年增%, 近 30 天方向(1 上修/-1 下修/0), 預估股價比現價%]。"""
+    if not v:
+        return None
+    e, y = v.get("e") or {}, v.get("y") or {}
+    yr = today.year
+    n = e.get("n") or y.get("n")
+    est = next((r[4] if r[4] is not None else r[3] for r in e.get("eps") or [] if r[0] == yr), None)
+    y0 = y.get("y0") or {}
+    if est is None and str(y0.get("end") or "")[:4] == str(yr):
+        est = (y0.get("e") or [None])[0]
+    last = (ye or {}).get(str(yr - 1))
+    eg = round((est / last - 1) * 100, 1) if est is not None and last and last > 0.05 else None
+    # 近 30 天方向：FactSet 今年 EPS 的調整（30 天內第一則的前值 → 最新值）；沒有再看 Yahoo 30 天前的平均
+    cut = (today - timedelta(days=30)).isoformat()
+    rec = [x for x in (v.get("ev") or []) if x[1] == "e" and x[4] == yr and x[0] >= cut]
+    dr = None
+    if rec and rec[-1][2] and rec[0][3] is not None:
+        ch = rec[0][3] / rec[-1][2] - 1
+        dr = 1 if ch > 0.005 else -1 if ch < -0.005 else 0
+    elif y0.get("t") and y0["t"][0] and y0["t"][2]:
+        ch = y0["t"][0] / y0["t"][2] - 1
+        dr = 1 if ch > 0.005 else -1 if ch < -0.005 else 0
+    tp, _ = target_price(v)
+    up = round((tp / px - 1) * 100, 0) if tp and px else None
+    if n is None and eg is None and up is None:
+        return None
+    return [n, eg, dr, up]
+
+
+def briefs(codes, px: dict, ye: dict, today: date | None = None) -> dict:
+    today = today or datetime.now(TZ).date()
+    fs, yh = load_fs(), load_yahoo()
+    out = {}
+    for c in codes:
+        b = brief(view((fs.get("ev") or {}).get(c), (yh.get("s") or {}).get(c)), px.get(c), ye.get(c), today)
+        if b:
+            out[c] = b
+    return out

@@ -50,7 +50,16 @@ def test_merge_dedupes_and_sorts(tmp_path, monkeypatch):
     assert dict(zip(fcst.EV_COLS["t"], doc["ev"]["2455"][0]))["rt"] == [9, 1, 0]
     fcst._merge_fs(doc, [_item("e")], st)                              # 同一則再進來不重複
     assert len(doc["ev"]["4958"]) == 1
-    doc["ev"]["4958"][0][0] = "2024-01-02"
+    newer = _item("e")
+    newer["newsId"], newer["publishAt"] = 6631999, 1792160000
+    fcst._merge_fs(doc, [newer], st)                                   # 舊的 EPS 快訊不留三年表格，最新的留
+    assert len(doc["ev"]["4958"][0]) == 10 and len(doc["ev"]["4958"][1]) == 12
+    fcst._write_lines(fcst.FS_FILE, doc, "ev")
+    assert fcst.load_fs()["ev"] == doc["ev"]                           # 一檔一行的寫法仍是合法 JSON
+    assert not fcst._write_lines(fcst.FS_FILE, doc, "ev")              # 內容沒變不改寫
+    fcst._merge_fs(doc, [_item("e")], st)
+    doc["ev"]["4958"] = doc["ev"]["4958"][:1]
+    doc["ev"]["4958"][0][0] = "2015-01-02"
     fcst._prune_fs(doc, date(2026, 10, 16))                            # 超過保留天數的刪掉
     assert "4958" not in doc["ev"]
 
@@ -92,6 +101,14 @@ def test_parse_yahoo():
 
 def test_parse_yahoo_no_coverage():
     assert fcst.parse_yahoo({"quoteSummary": {"result": [{"financialData": {}, "earningsTrend": {"trend": []}}]}}) is None
+    z = {"raw": 0, "fmt": "0"}                                         # 沒有分析師時 Yahoo 回 0 值（1240 實例）
+    none_y = {"period": "0y", "endDate": "2021-12-31", "earningsEstimate": {"avg": {}, "numberOfAnalysts": {}},
+              "revenueEstimate": {"avg": z, "low": z, "high": z, "numberOfAnalysts": z}}
+    assert fcst.parse_yahoo({"quoteSummary": {"result": [{"financialData": {}, "earningsTrend": {"trend": [none_y]}}]}}) is None
+    one = _yh(n=1)                                                     # 只有營收預估、沒有 EPS 預估也算
+    one["quoteSummary"]["result"][0]["earningsTrend"]["trend"][1]["earningsEstimate"]["numberOfAnalysts"] = {"raw": 0}
+    r = fcst.parse_yahoo(one)
+    assert r["y0"]["e"] is None and r["y0"]["r"][0] == 55800.2
     assert fcst.parse_yahoo({"quoteSummary": {"result": None, "error": {"code": "Not Found"}}}) is None
     assert fcst.yahoo_sym("2330", "tw") == "2330.TW" and fcst.yahoo_sym("6274", "tp") == "6274.TWO"
 

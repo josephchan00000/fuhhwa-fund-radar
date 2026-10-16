@@ -89,7 +89,7 @@ jobs:
           elif [ "$MODE" = "probefc2" ]; then
             python3 scripts/probe_fcst2.py
           elif [ "${MODE#fcfill}" != "$MODE" ]; then
-            python3 scripts/fetch_fcst.py --backfill 150 --full --budget 2400
+            python3 scripts/fetch_fcst.py --backfill 260 --full --budget 2400
           elif [ "$MODE" = "probefs" ]; then
             python3 scripts/backfill_lab.py --probe-fs
           elif [ "$MODE" = "revprobe" ]; then
