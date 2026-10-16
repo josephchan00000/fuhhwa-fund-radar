@@ -5,11 +5,15 @@
   · 基底起點＝近 260 日最高點（同價取最早），且至少 30 日前；收縮＝每個已確認高點配它之後的低點（最後一段可用目前最低）；
   · 成立＝2～6 段、每段 < 前一段 × 1.1、第一段 ≤ 35%、最後一段 ≤ 10%、收盤 ≥ 樞紐（最後一個已確認高點）× 0.9、
     10 日 ÷ 50 日均量 ≤ 0.7。
+  · SPEC_V3（照書修正，reports/W5_plan.md）：另要求每段嚴格變小、低點逐段墊高、最後一段在基底上半部、收盤 ≤ 樞紐。
 價格用 superx.Px 的日線（已前值補齊）；研究用的是含息還原價，除息日附近的段落深度可能有一點差別。"""
 from __future__ import annotations
 
 SPEC = {"thr": 0.03, "atr_k": 1.5, "win": 260, "base_min": 30, "n_min": 2, "n_max": 6, "grow": 1.1, "d1_max": 0.35,
         "dn_max": 0.10, "near": 0.9, "dry": 0.7}
+# 照書修正（tw-superstock-lab features.VCP_V3、reports/W5_plan.md 第 3 節）：每段嚴格比前一段小、低點逐段墊高、
+# 最後一段低點在基底上半部、收盤還沒突破樞紐。「位置」欄的買點用這個（2026-10-16 使用者同意）；名單成員仍用 SPEC。
+SPEC_V3 = {**SPEC, "grow": 1.0, "rise": True, "upper": 0.5, "below": True}
 
 
 def _mean(xs: list, k_min: int):
@@ -77,7 +81,7 @@ def check(h: list, l: list, c: list, v: list, i: int, spec: dict = SPEC) -> dict
     top = max(x for x, _ in hs)
     s = next(k for x, k in hs if x == top)
     if i - s < spec["base_min"]:
-        return {"ok": False, "why": "基底不到 30 日"}
+        return {"ok": False, "why": f"基底不到 {spec['base_min']} 日"}
     pairs, pivot = contractions(h, l, s, i, thresholds(h, l, c, s, i, spec))
     n = len(pairs)
     ds = [1 - lo / hi for hi, lo, _, _ in pairs]
@@ -86,5 +90,12 @@ def check(h: list, l: list, c: list, v: list, i: int, spec: dict = SPEC) -> dict
     ok = (spec["n_min"] <= n <= spec["n_max"] and ds[0] <= spec["d1_max"] and ds[-1] <= spec["dn_max"]
           and all(ds[k] < spec["grow"] * ds[k - 1] for k in range(1, n)) and pivot is not None
           and c[i] >= spec["near"] * pivot and dry is not None and dry <= spec["dry"])
+    if ok and spec.get("rise") and any(pairs[k][1] <= pairs[k - 1][1] for k in range(1, n)):
+        ok = False
+    if ok and spec.get("upper") is not None:
+        lo_min = min(x[1] for x in pairs)
+        ok = pairs[-1][1] >= lo_min + spec["upper"] * (pairs[0][0] - lo_min)
+    if ok and spec.get("below") and c[i] > pivot:
+        ok = False
     return {"ok": bool(ok), "pivot": pivot, "n": n, "d1": ds[0] if ds else None, "dn": ds[-1] if ds else None,
             "dry": dry, "base": i - s, "low": pairs[-1][1] if pairs else None, "ds": ds}

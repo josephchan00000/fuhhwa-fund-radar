@@ -32,8 +32,19 @@ def test_vcp_textbook_pattern():
     r = VC.check(c, c, c, v, len(c) - 1)
     assert r["ok"] and r["n"] == 3 and r["pivot"] == 194.0
     assert round(r["d1"], 3) == 0.24 and round(r["dn"], 3) == 0.05
+    assert VC.check(c, c, c, v, len(c) - 1, VC.SPEC_V3)["ok"]      # 低點墊高、最後一段在上半部：照書版也成立
     v2 = [1e6] * len(c)                                             # 量沒縮 → 不成立
     assert not VC.check(c, c, c, v2, len(c) - 1)["ok"]
+
+
+def test_vcp_v3_rejects_lower_lows():
+    """高點 200 → −24% → 196 → −25%（低點更低）→ 160 → −5%：V2 容許（每段 < 前一段 × 1.1），照書版不算。"""
+    c = _interp([(0, 100), (250, 200), (275, 152), (300, 196), (320, 147), (340, 160), (352, 152), (365, 157)])
+    v = [1e6] * len(c)
+    for k in range(356, len(c)):
+        v[k] = 4e5
+    r2, r3 = VC.check(c, c, c, v, len(c) - 1), VC.check(c, c, c, v, len(c) - 1, VC.SPEC_V3)
+    assert r2["n"] == 3 and r2["ok"] and not r3["ok"]
 
 
 def test_vcp_matches_research_version():
@@ -51,20 +62,20 @@ def test_vcp_matches_research_version():
     m = EN.Market(pd.bdate_range("2015-01-01", periods=T), ["1234"], c[:, None], h[:, None], l[:, None], c[:, None],
                   value=(c * v)[:, None], volume=v[:, None])
     dry = FT.volume(m)["dry"]
-    res = FT.vcp(m, np.ones((T, 1), dtype=bool), dry, FT.VCP_V2)
     H, L, C, V = h.tolist(), l.tolist(), c.tolist(), v.tolist()
-    n_ok = n_cmp = 0
-    for t in range(300, T):
-        r = VC.check(H, L, C, V, t)
-        if r is None or "n" not in r:
-            continue
-        n_cmp += 1
-        assert r["n"] == res["n"][t, 0], t
-        assert r["ok"] == bool(res["ok"][t, 0]), t
-        if r["pivot"] is not None:
-            assert abs(r["pivot"] - res["pivot"][t, 0]) < 1e-9, t
-        n_ok += r["ok"]
-    assert n_cmp >= 50                                             # 有基底的日子都逐日比到
+    for spec, fspec in ((VC.SPEC, FT.VCP_V2), (VC.SPEC_V3, FT.VCP_V3)):   # 現行與照書修正兩版都逐日一致
+        res = FT.vcp(m, np.ones((T, 1), dtype=bool), dry, fspec)
+        n_cmp = 0
+        for t in range(300, T):
+            r = VC.check(H, L, C, V, t, spec)
+            if r is None or "n" not in r:
+                continue
+            n_cmp += 1
+            assert r["n"] == res["n"][t, 0], t
+            assert r["ok"] == bool(res["ok"][t, 0]), t
+            if r["pivot"] is not None:
+                assert abs(r["pivot"] - res["pivot"][t, 0]) < 1e-9, t
+        assert n_cmp >= 50                                         # 有基底的日子都逐日比到
 
 
 class _Px:
@@ -108,12 +119,15 @@ def test_watchlist_section_on_opportunity_page():
     assert "function wlSec" in copage.JS and "h+=wlSec();" in page._JS
     assert "sxSec()+wlSec()" not in page._JS and "o-wl" not in copage.JS
     assert "sec('o-sx','飆股','飆股'" in copage.JS                     # 段落 id 沿用 o-sx（個股卡的連結指向它）
-    assert "bit(c,'rs90')||bit(c,'mom10')" in copage.JS                   # 價格強度＝RS ≥ 90 或相對強勢前 10%
-    for k in ("rs90", "mom10"):
-        from arm.lab import layer as LY
-        assert k in LY.CKEYS
-    for g in ("書上的買點與停損", "交叉比對", "大盤 50 日線"):
+    assert "bit(c,'rs90')||bit(c,'mom10')" in copage.JS                   # 強勢＝RS ≥ 90 或相對強勢前 10%
+    from arm.lab import layer as LY
+    assert {"rs90", "mom10"} <= set(LY.CKEYS)
+    for g in ("書上的買點與停損", "大盤 50 日線"):
         assert f"'{g}'" in copage.JS and f"gi('{g}')" in copage.JS
+    # 2026-10-16 使用者：「不想要太多雜訊…給標的也要加進去建議的點」→ 到買點／強勢等買點兩層，每檔附參考價位
+    assert "function wlBuy" in copage.JS and "到買點（" in copage.JS and "快到買點（" in copage.JS
+    assert "其他強勢 ${B2.length} 檔" in copage.JS and "其他 ${Rr.length} 檔" in copage.JS   # 其餘收起來、一檔都不少
+    assert "交叉比對${gi(" not in copage.JS and "'交叉比對':" not in copage.JS   # 研究沒有比較準 → 表上不列分數
 
 
 def test_layer_research_committed_and_no_tier():

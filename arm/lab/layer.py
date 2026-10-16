@@ -190,7 +190,7 @@ def market_now(idx: list, i: int, cal: list[str]) -> dict:
 
 def page_data(res: dict | None, lay: dict | None) -> dict:
     """頁面用：今天名單上每檔的分數、7 族、28 條件（位元）、書上的買點與停損＋今天的大盤狀態＋研究摘要
-    （價格強度子名單、大盤時機、交叉比對的判定、逐年表）。"""
+    （價格強度子名單、大盤時機、交叉比對的判定、逐年表、照書 VCP 的查核 w5）。"""
     lay = lay or {}
     st = {}
     for c, r in (lay.get("st") or {}).items():
@@ -202,5 +202,5 @@ def page_data(res: dict | None, lay: dict | None) -> dict:
         sp = {k: {"desc": v.get("desc"), "lift": (v.get("judge") or {}).get("lift"), "pass": (v.get("judge") or {}).get("pass")}
               for k, v in (res.get("specs") or {}).items()}
         out.update({"asof": res.get("asof"), "use": res.get("use"), "specs": sp, "ps": res.get("ps"),
-                    "mkt": res.get("mkt"), "years": res.get("years")})
+                    "mkt": res.get("mkt"), "years": res.get("years"), "w5": res.get("w5")})
     return out

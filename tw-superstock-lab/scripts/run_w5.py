@@ -1,7 +1,8 @@
 """W5：《超級績效》VCP 參數查核——命中率低是不是參數設錯（reports/W5_plan.md，跑之前寫定）。
 
-    .venv/bin/python -u scripts/run_w5.py   讀 W3 快取（週末交易日、名單 S9）＋ lab 面板
-                                            → reports/W5_results.{md,json}
+    .venv/bin/python -u scripts/run_w5.py            讀 W3 快取（週末交易日、名單 S9）＋ lab 面板
+                                                     → reports/W5_results.{md,json}＋匯出頁面摘要
+    .venv/bin/python -u scripts/run_w5.py --export   只把 W5_results.json 的摘要併進 ../data/lab/layer_research.json
 """
 
 from __future__ import annotations
@@ -228,5 +229,24 @@ def md(res: dict) -> str:
     return "\n".join(o)
 
 
+def export() -> None:
+    """頁面用的摘要（照書 VCP 的案例數與命中率、樣板股對照）併進 layer_research.json 的 w5 鍵。"""
+    res = json.loads((REPORTS / "W5_results.json").read_text("utf-8"))
+    S, E = res["state"], res["event"]
+
+    def pick(x: dict) -> dict:
+        return {k: {"n": x[k]["n"], "stocks": x[k]["stocks"], "B": x[k]["B"]["p"], "H": x[k]["H"]["p"]} for k in ("IS", "VAL")}
+
+    out = {"plan": res["plan"], "v3": pick(S["V3"]), "v2": pick(S["V2"]), "tt": pick(S["TT"]),
+           "v3_brk": {k: E["V3"][k]["n"] for k in ("IS", "VAL")}, "judge": res["judge"]["V3"]}
+    path = LP.REPO / "data" / "lab" / "layer_research.json"
+    lay = json.loads(path.read_text("utf-8"))
+    lay["w5"] = out
+    path.write_text(json.dumps(lay, ensure_ascii=False, sort_keys=True, separators=(",", ":")), "utf-8")
+    log(f"[w5] 匯出 {path}")
+
+
 if __name__ == "__main__":
-    main()
+    if "--export" not in sys.argv:
+        main()
+    export()

@@ -10,7 +10,7 @@ from . import store
 from . import vcp as VC
 
 RES_FILE = "watch_research.json"
-TAGS = {"A": "飆股候選", "VCP": "VCP＋樣板", "REV": "營收創新高＋樣板"}
+TAGS = {"A": "飆股候選", "VCP": "收斂整理＋樣板", "REV": "營收創新高＋樣板"}   # VCP＝較寬的 VCP 判斷（vcp.SPEC）
 
 
 def tags_for(c: str, f: dict, hits: dict, px, i: int) -> list[str]:
