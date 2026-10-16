@@ -58,14 +58,27 @@ def month_px() -> dict[str, dict[str, tuple]]:
     return out
 
 
+def _fm_cash() -> dict[str, dict[str, float]]:
+    """FinMind 股利政策（data/lab/fin，高股息研究抓過的約 470 檔）→ {代號: {現金除息日: 現金股利}}。"""
+    out: dict[str, dict] = {}
+    for c, doc in store.load("fin"):
+        for r in (doc or {}).get("div") or []:
+            if len(r) >= 2 and r[0] and r[1]:
+                out.setdefault(c, {})[r[0]] = r[1]
+    return out
+
+
 def dividends() -> dict[str, list]:
     """{代號: [[除權息日, 現金股利(元/股) 或 None, 類型]]}：上市＝證交所除權息計算結果表（息／權／權息；權息的
-    金額含配股價值、現金部分不明 → None），上櫃＝櫃買除權息（現金欄）。"""
+    金額含配股價值、現金部分表上沒有 → 用 FinMind 股利政策補，沒有就 None），上櫃＝櫃買除權息（現金欄）。"""
     out: dict[str, list] = {}
+    fm = _fm_cash()
     for y, doc in store.load("divtw"):
         for r in doc.get("rows") or []:
             if len(r) >= 4 and is_stock(r[1]):
-                out.setdefault(r[1], []).append([r[0], round(r[2], 4) if r[3] == "息" and r[2] is not None else (0 if r[3] == "權" else None), r[3]])
+                cash = (round(r[2], 4) if r[3] == "息" and r[2] is not None else 0 if r[3] == "權"
+                        else (fm.get(r[1]) or {}).get(r[0]))
+                out.setdefault(r[1], []).append([r[0], cash, r[3]])
     for y, doc in store.load("v3div"):
         for r in doc.get("rows") or []:
             if len(r) >= 6 and is_stock(r[1]):

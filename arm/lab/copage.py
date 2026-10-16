@@ -88,15 +88,16 @@ function lastQ(C,k){for(let i=C.Q.length-1;i>=0;i--)if(C.Q[i][k]!=null)return C.
 function annualEps(C){const ye=C.doc.ye||{};const y={};for(const o of C.Q){const yr=o.q.slice(0,4);(y[yr]=y[yr]||[]).push(o.eps);}
   const out={};for(const [yr,a] of Object.entries(y))if(a.length===4&&a.every(x=>x!=null))out[yr]=a.reduce((s,x)=>s+x,0);
   for(const [yr,v] of Object.entries(ye))out[yr]=v;return Object.entries(out).sort((p,q)=>p[0]<q[0]?-1:1);}
-function divYears(C){const y={};for(const [d,cash,t] of C.DV){const yr=d.slice(0,4);y[yr]=y[yr]||{c:0,n:0,unk:0};if(cash!=null)y[yr].c+=cash;if(t!=='息')y[yr].unk++;y[yr].n++;}return y;}
+function divYears(C){const y={};for(const [d,cash,t] of C.DV){const yr=d.slice(0,4);y[yr]=y[yr]||{c:0,n:0,unk:0,nn:0};if(cash!=null)y[yr].c+=cash;else y[yr].nn++;if(t!=='息')y[yr].unk++;y[yr].n++;}return y;}
 function quantile(a,p){if(!a.length)return null;const s=[...a].sort((x,y)=>x-y);const i=(s.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);return s[lo]+(s[hi]-s[lo])*(i-lo);}
 const yi=x=>x==null?'—':f(x/100,x>=1e5?0:1);   /* 百萬元 → 億 */
 const pc=(x,d=1)=>x==null?'—':f(x*100,d)+'%';
 const psg=(x,d=1)=>x==null?'<span class=mu>—</span>':x==='轉盈'?'<span class=up>轉盈</span>':sgn(x*100,d,'%');
 
 /* ---- 小圖（SVG） ---- */
-function svgBars(vals,labs,o={}){const W=o.W||520,H=o.H||140,pt=16,pb=18,pl=4,pr=4,n=vals.length;if(!n)return '';
-  const xs=vals.filter(v=>v!=null);const mx=Math.max(0,...xs),mn=Math.min(0,...xs);const rg=(mx-mn)||1;const y=v=>pt+(mx-v)/rg*(H-pt-pb);
+function svgBars(vals,labs,o={}){const W=o.W||520,H=o.H||140,pt=16,pl=4,pr=4,n=vals.length;if(!n)return '';
+  const xs=vals.filter(v=>v!=null);const mx=Math.max(0,...xs),mn=Math.min(0,...xs);
+  const pb=mn<0&&n<=12&&o.vt!==false?30:18;          /* 負值的數字標在柱子下方，留位置給它，不壓到 X 軸標籤 */const rg=(mx-mn)||1;const y=v=>pt+(mx-v)/rg*(H-pt-pb);
   const bw=(W-pl-pr)/n,z=y(0);let s=`<svg viewBox="0 0 ${W} ${H}" role=img aria-label="${esc(o.al||'')}">`;
   s+=`<line x1=${pl} x2=${W-pr} y1=${z} y2=${z} stroke="#c9d0db" stroke-width=1 />`;
   vals.forEach((v,i)=>{if(v==null)return;const x=pl+i*bw+bw*.15,h=Math.abs(y(v)-z),yy=v>=0?y(v):z;const col=o.col?o.col(v,i):(v>=0?'#d33a34':'#1f9d57');
@@ -109,7 +110,7 @@ function axisLab(labs,xf,W,H){const n=labs.length;if(!n)return [];
   const wd=t=>String(t).length*6.2,k=Math.max(2,Math.floor(W/56)),step=Math.max(1,Math.ceil(n/k));
   const pos=i=>{const x=xf(i),w=wd(labs[i]);const an=x<w/2+2?'start':x>W-w/2-2?'end':'middle';const l=an==='start'?x:an==='end'?x-w:x-w/2;return {i,x,an,l,r:l+w};};
   const last=pos(n-1),out=[];let pr=-1e9;
-  for(let i=0;i<n-1;i+=step){const p=pos(i);if(p.l<pr+4||p.r>last.l-4)continue;out.push(p);pr=p.r;}
+  for(let i=0;i<n-1;i+=step){const p=pos(i);if(p.l<pr+10||p.r>last.l-10)continue;out.push(p);pr=p.r;}
   out.push(last);
   return out.map(p=>`<text x=${p.x.toFixed(1)} y=${H-4} font-size=10 text-anchor=${p.an} fill="#727e8c">${esc(labs[p.i])}</text>`);}
 function svgLines(ser,labs,o={}){const W=o.W||520,H=o.H||140,pt=10,pb=18,pl=4,pr=34,n=labs.length;if(!n)return '';
@@ -133,7 +134,8 @@ const CODIM=[['成長',[['ry3',1,'近 3 月營收年增','%'],['ey',1,'最新季
   ['動能',[['rs',1,'RS 百分位',''],['d52h',1,'距 52 週高點','%']]]];
 function dimFmt(k,v,u){return k==='cr'?f(v*100,0)+'%':u==='%'?f(v,1)+'%':u==='倍'?f(v,v>=10?1:2)+' 倍':f(v,0);}
 const LVN=['','落後','偏弱','中性','良好','頂尖'],LVV=['','昂貴','偏貴','中性','合理','便宜'];
-function coDims(r){return CODIM.map(([nm,ms])=>{const ps=[],txt=[];
+function coDims(r,fin){return CODIM.map(([nm,ms])=>{const ps=[],txt=[];
+  if(fin&&nm==='體質')return {nm,lv:0,t:'金融業的負債主要是存款與保單，負債比天生高，不和一般公司比'};
   for(const [k,dir,lab,u] of ms){const v=r?r[k]:null;const p=mtPct(k,v);if(p==null)continue;const q=dir>0?p:100-p;ps.push(q);
     txt.push(`${lab} ${dimFmt(k,v,u)}，${dir>0?'高':'低'}於全市場 ${dir>0?p:100-p}%`);}
   if(!ps.length)return {nm,lv:0,t:'資料不足'};const a=ps.reduce((x,y)=>x+y,0)/ps.length;const lv=a>=80?5:a>=60?4:a>=40?3:a>=20?2:1;return {nm,lv,t:txt.join('；')};});}
@@ -155,7 +157,7 @@ function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;
   const sh=lp&&lp.sh?lp.sh:null;const cap=r&&r.cap!=null?r.cap:(px&&sh?px*sh*1000/1e8:null);
   let h='';
   /* 1 摘要 */
-  const ds=r?coDims(r):[];
+  const fin=/金融/.test(C.doc.ind||''),ds=r?coDims(r,fin):[];
   h+=`<section class=csec id=co-sum><h3>公司分析<span class=sub>財報至 ${lq?qLab(lq.q):'—'}・營收至 ${lm?lm.ym:'—'}${MT?'・市場資料 '+md(MT.d):''}</span></h3>`;
   h+=`<div class="kpis kps">`+kp('股價','',fp(px),r&&r.ch!=null?pctT(r.ch,2):'',r?cls(r.ch):'')+kp('市值','',cap==null?'—':f(cap,cap>=1000?0:1)+' 億','')+
     kp('本益比','本益比',pe==null?'—':f(pe,1)+' 倍',ttm?`近四季 EPS ${f(ttm.ttm,2)}`:'')+kp('淨值比','淨值比',pb==null?'—':f(pb,2)+' 倍',bvq?`每股淨值 ${f(bvq.bvps,1)}`:'')+
@@ -189,11 +191,13 @@ function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;
   /* 4 獲利能力 */
   const qp=Q.filter(o=>o.gm!=null||o.nm!=null).slice(-12);const lr=lastQ(C,'roe');
   h+=`<section class=csec id=co-pf><h3>獲利能力<span class=sub>三率與 ROE${gi('ROE 拆解')}</span></h3>`;
-  if(qp.length){h+=`<div class=cgrid><div class=cbox><h4>毛利率・營益率・淨利率（單季）</h4>${svgLines([{v:qp.map(o=>o.gm==null?null:o.gm*100),c:'#a16207',n:'毛利率'},{v:qp.map(o=>o.om==null?null:o.om*100),c:'#2563c9',n:'營益率'},{v:qp.map(o=>o.nm==null?null:o.nm*100),c:'#d33a34',n:'淨利率'}],qp.map(o=>qLab(o.q)),{W:w2,H:140,fmt:v=>f(v,0)+'%'})}`+
-      lg([['#a16207','毛利率'],['#2563c9','營益率'],['#d33a34','淨利率（歸屬母公司）']])+`</div>`;
+  if(qp.length){const ms=[['gm','#a16207','毛利率','毛利率'],['om','#2563c9','營益率','營益率'],['nm','#d33a34','淨利率','淨利率（歸屬母公司）']]
+      .filter(([k])=>qp.some(o=>o[k]!=null));          /* 金融業沒有毛利、營業利益：沒資料的線和圖例都不畫 */
+    h+=`<div class=cgrid><div class=cbox><h4>${ms.map(m=>m[2]).join('・')}（單季）</h4>${svgLines(ms.map(([k,c,n])=>({v:qp.map(o=>o[k]==null?null:o[k]*100),c,n})),qp.map(o=>qLab(o.q)),{W:w2,H:140,fmt:v=>f(v,0)+'%'})}`+
+      lg(ms.map(([,c,,t])=>[c,t]))+`</div>`;
     const qr=Q.filter(o=>o.roe!=null).slice(-12);
     h+=`<div class=cbox><h4>近四季 ROE・ROA</h4>${svgLines([{v:qr.map(o=>o.roe*100),c:'#d33a34',n:'ROE'},{v:qr.map(o=>o.roa==null?null:o.roa*100),c:'#727e8c',n:'ROA'}],qr.map(o=>qLab(o.q)),{W:w2,H:140,zero:1,fmt:v=>f(v,0)+'%'})}`+lg([['#d33a34','ROE'],['#727e8c','ROA']])+`</div></div>`;
-    if(lr&&lr.dpm!=null)h+=`<div class=note style="margin-top:8px">ROE 拆解（近四季）：淨利率 <b>${pc(lr.dpm)}</b> × 資產週轉 <b>${f(lr.dat,2)}</b> 次 × 權益乘數 <b>${f(lr.dem,2)}</b> 倍 ＝ ROE <b>${pc(lr.roe)}</b></div>`;}
+    if(lr&&lr.dpm!=null)h+=`<div class=note style="margin-top:8px">ROE 拆解（近四季）：淨利率 <b>${pc(lr.dpm)}</b> × 資產週轉 <b>${f(lr.dat,lr.dat<0.1?3:2)}</b> 次 × 權益乘數 <b>${f(lr.dem,lr.dem>=10?1:2)}</b> 倍 ＝ ROE <b>${pc(lr.roe)}</b></div>`;}
   else h+=`<div class=st>這檔的完整損益表資料還沒補齊（目前只有 EPS）。</div>`;
   h+=`</section>`;
   /* 5 財務體質 */
@@ -226,7 +230,7 @@ function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;
   const dy=divYears(C),ys=Object.keys(dy).sort().slice(-8);const aeM={};annualEps(C).forEach(([y,e])=>aeM[y]=e);
   h+=`<section class=csec id=co-dv><h3>股利<span class=sub>依除權息日歸年度</span></h3>`;
   if(ys.length){h+=`<div class=tw><table class=qt><thead><tr><th>年度</th><th>現金股利</th><th>前一年 EPS</th><th>配發率</th></tr></thead><tbody>`+
-      ys.slice().reverse().map(y=>{const d=dy[y],e=aeM[String(+y-1)];return `<tr><td>${y}</td><td>${f(d.c,2)}${d.unk?` <span class=mu>＋配股${d.unk>1?' '+d.unk+' 次':''}</span>`:''}</td><td>${e==null?'—':f(e,2)}</td><td>${e>0&&d.c?f(d.c/e*100,0)+'%':'—'}</td></tr>`;}).join('')+`</tbody></table></div>`;}
+      ys.slice().reverse().map(y=>{const d=dy[y],e=aeM[String(+y-1)],cc=d.nn&&!d.c?'<span class=mu>現金部分未知</span>':f(d.c,2)+(d.nn?' <span class=mu>＋未知</span>':'');return `<tr><td>${y}</td><td>${cc}${d.unk?` <span class=mu>＋配股${d.unk>1?' '+d.unk+' 次':''}</span>`:''}</td><td>${e==null?'—':f(e,2)}</td><td>${e>0&&d.c&&!d.nn?f(d.c/e*100,0)+'%':'—'}</td></tr>`;}).join('')+`</tbody></table></div>`;}
   else h+=`<div class=st>2013 年以來沒有除權息紀錄。</div>`;
   h+=`</section>`;
   /* 8 季報明細 */
