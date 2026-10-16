@@ -82,6 +82,8 @@ jobs:
             python3 scripts/backfill_lab.py --hd --budget-min 45
           elif [ "$MODE" = "names" ]; then
             python3 scripts/backfill_lab.py --names
+          elif [ "$MODE" = "probefs" ]; then
+            python3 scripts/backfill_lab.py --probe-fs
           elif [ "$MODE" = "revprobe" ]; then
             python3 scripts/backfill_lab.py --rev-probe
           elif [ "${MODE#v3fill}" != "$MODE" ]; then

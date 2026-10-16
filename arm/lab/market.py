@@ -992,6 +992,71 @@ def tpex_exright_year(y: int) -> list[list] | None:
     return parse_tp_exright(doc)
 
 
+def probe_fs() -> None:
+    """公司財報分析（docs/lab_company_plan.md）資料源探針：MOPS 彙總表（綜合損益、資產負債、營益分析、現金流量候選）
+    每張表的欄名、列數、樣本列；FinMind 是否允許瀏覽器跨網域讀取（CORS）。只印不寫。"""
+    import urllib.request
+    eps = [("t163sb04", "綜合損益"), ("t163sb05", "資產負債"), ("t163sb06", "營益分析"),
+           ("t163sb20", "候選：現金流量"), ("t163sb21", "候選"), ("t163sb19", "候選")]
+    for ep, nm in eps:
+        for mkt in ("sii", "otc"):
+            b = None
+            for host in MOPS_HOSTS:
+                try:
+                    b = post_bytes(f"https://{host}/mops/web/ajax_{ep}",
+                                   {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "isQuery": "Y",
+                                    "TYPEK": mkt, "year": 115, "season": "02"}, retries=1)
+                    break
+                except Exception as e:                    # noqa: BLE001
+                    print(f"[probe-fs] {ep} {mkt} {host} ✗ {str(e)[:120]}")
+            time.sleep(4)
+            if not b:
+                continue
+            h = _decode(b)
+            tbs = re.findall(r"<table[^>]*>(.*?)</table>", h, re.S | re.I)
+            print(f"[probe-fs] {ep}（{nm}）{mkt}：{len(b)}B、表 {len(tbs)} 張、開頭 {_TAG.sub(' ', h[:300]).split()[:12]}")
+            for k, tb in enumerate(tbs):
+                rows = [[_TAG.sub("", c).replace("&nbsp;", "").strip() for c in _TD.findall(tr)] for tr in _TR.findall(tb)]
+                head = next((r for r in rows if any("公司代號" in c for c in r)), None)
+                if not head:
+                    continue
+                data = [r for r in rows if r and re.fullmatch(r"\d{4}", r[0] or "")]
+                smp = next((r for r in data if r[0] in ("2330", "1301", "2881", "6488", "2882")), data[0] if data else None)
+                print(f"  表{k}：{len(data)} 列｜欄 {len(head)}：{' | '.join(head)}")
+                if smp:
+                    print(f"     樣本：{' | '.join(smp)}")
+    # 單一公司現金流量（XBRL 版，備用）
+    try:
+        b = post_bytes("https://mopsov.twse.com.tw/mops/web/ajax_t164sb05",
+                       {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "queryName": "co_id",
+                        "inpuType": "co_id", "TYPEK": "all", "isnew": "false", "co_id": "1301", "year": 115, "season": "02"},
+                       retries=1)
+        h = _decode(b)
+        print(f"[probe-fs] t164sb05 1301 現金流量（單一公司）：{len(b)}B、"
+              f"含『營業活動之淨現金流入』={'營業活動之淨現金流入' in h}、片段 {_TAG.sub(' ', h)[:400].split()[:40]}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[probe-fs] t164sb05 ✗ {str(e)[:120]}")
+    # FinMind 是否允許瀏覽器直接讀（點進去才抓的備案）
+    for ds in ("TaiwanStockCashFlowsStatement", "TaiwanStockBalanceSheet"):
+        url = (f"https://api.finmindtrade.com/api/v4/data?dataset={ds}&data_id=1301"
+               f"&start_date=2025-01-01&end_date=2026-10-16")
+        try:
+            req = urllib.request.Request(url, headers={"Origin": "https://fuhhwa-fund-radar.vercel.app",
+                                                       "User-Agent": "Mozilla/5.0"})
+            import ssl
+
+            import certifi
+            with urllib.request.urlopen(req, timeout=30, context=ssl.create_default_context(cafile=certifi.where())) as r:
+                body = r.read()
+                acao = r.headers.get("Access-Control-Allow-Origin")
+            doc = json.loads(body.decode("utf-8"))
+            rows = doc.get("data") or []
+            types = sorted({x.get("type") for x in rows})[:60]
+            print(f"[probe-fs] FinMind {ds}：CORS={acao!r}、{len(rows)} 列、科目 {len(types)} 種：{types}")
+        except Exception as e:                            # noqa: BLE001
+            print(f"[probe-fs] FinMind {ds} ✗ {str(e)[:160]}")
+
+
 def probe_v3b() -> None:
     """回測 v3 第二輪探針：櫃買歷史日收盤（含發行股數）、Yahoo 指定起日的日線、FinMind 不帶代號的整批查詢、
     櫃買 2013 年除權息、FinMind 外資持股欄位。只印不寫。"""
