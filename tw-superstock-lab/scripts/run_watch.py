@@ -46,24 +46,34 @@ def main() -> None:
     W = np.array(ctx.week_ends)
     L = WT.week_lists(ctx, F, b_rows)
     Y = WT.labels(m, F["elig"])
-    eps = {k: WT.episodes(m, Y[k]) for k in ("B", "C")}
-    LOG(f"[w1] 名單與段落 {time.time() - t0:.0f} 秒；翻倍段落 {len(eps['B']):,}、超級飆股段落 {len(eps['C']):,}")
+    eps = {k: WT.episodes(m, Y[k], n=WT.LABELS[k][0]) for k in WT.SHORT + WT.LONG}
+    LOG(f"[w1] 名單與段落 {time.time() - t0:.0f} 秒；段落數 " + "、".join(f"{WT.LNAME[k]} {len(v):,}" for k, v in eps.items()))
     el_w = F["elig"][W]
     wd = m.dates[W]
     rng = np.random.default_rng(20261016)
     stats: dict = {s: {} for s in L}
-    for p, (a, b) in PER.items():
+    for p, (a, b) in {**PER, "ALL": ("2014-01-02", "2100-12-31")}.items():
         rows_p = np.asarray((wd >= pd.Timestamp(a)) & (wd <= pd.Timestamp(b)))
-        ep_p = {k: [e for e in eps[k] if pd.Timestamp(a) <= m.dates[e[1]] <= pd.Timestamp(b)] for k in eps}
+        labs, prec = (WT.LONG, WT.LONG) if p == "ALL" else (WT.SHORT, ("A",) + WT.SHORT)
+        ep_p = {k: [e for e in eps[k] if pd.Timestamp(a) <= m.dates[e[1]] <= pd.Timestamp(b)] for k in labs}
         for s in L:
-            stats[s][p] = WT.screen_stats(L[s], Y, W, el_w, rows_p, ep_p, m, rng)
+            stats[s][p] = WT.screen_stats(L[s], Y, W, el_w, rows_p, ep_p, m, rng, labs=labs, prec=prec)
         LOG(f"[w1] {p} 完成 {time.time() - t0:.0f} 秒")
-    chosen = WT.choose(stats)
-    out = {"plan": "reports/W1_plan.md v1", "chosen": chosen, "stats": stats,
+    e10 = [e for e in eps["E"] if m.dates[e[1]] >= pd.Timestamp("2014-01-02")]
+    case = WT.cases(e10, L, W, m, WT.EARLY["E"])
+    chosen, miss = WT.choose(stats)
+    try:
+        from arm.lab import company  # noqa: WPS433
+        names = company.names()
+    except Exception:  # noqa: BLE001
+        names = {}
+    for r in case:
+        r["name"] = names.get(r["c"], r["c"])
+    out = {"plan": "reports/W1_plan.md v2", "chosen": chosen, "missing": miss, "stats": stats, "cases_10x": case,
            "n_ep": {k: len(v) for k, v in eps.items()}, "asof": time.strftime("%Y-%m-%d")}
     (REPORTS / "W1_watch.json").write_text(json.dumps(out, ensure_ascii=False, indent=1, default=str), "utf-8")
     (REPORTS / "W1_watch.md").write_text(md(out), "utf-8")
-    LOG(f"[w1] 選中 {chosen}（{WT.SCREENS.get(chosen)}）；{time.time() - t0:.0f} 秒")
+    LOG(f"[w1] 選中 {chosen}（{WT.SCREENS.get(chosen)}）{'；未達：' + '、'.join(miss) if miss else ''}；{time.time() - t0:.0f} 秒")
 
 
 def _p(x, d=0):
@@ -76,13 +86,27 @@ def _f(x, d=1):
 
 def md(out: dict) -> str:
     st = out["stats"]
+    ch = out["chosen"]
     L = ["# W1　超級飆股觀察名單：評估結果", "",
-         "方法：`reports/W1_plan.md` v1（跑之前 commit）。資料：lab 面板（PROGRESS A8）。表格由 `scripts/run_watch.py` 產生。",
+         "方法：`reports/W1_plan.md` v2（跑之前 commit）。資料：lab 面板（PROGRESS A8）。表格由 `scripts/run_watch.py` 產生。",
          "保留期（2023 起）之前已用過，只拿來核對、不拿來挑。", "",
-         f"**選中：{out['chosen']}　{WT.SCREENS.get(out['chosen'], '（沒有名單符合條件）')}**", ""]
+         f"**選中：{ch}　{WT.SCREENS.get(ch, '（沒有名單）')}**" + (f"（沒有名單完全符合資格；它未達：{'、'.join(out['missing'])}）"
+                                                              if out.get("missing") else ""), ""]
+    L += ["## 多年大飆股（全期：起漲點 2014 年起、期限走完）", "",
+          "| 名單 | 每週檔數 | 3 年 5 倍：抓得早（隨機） | 5 年 10 倍：抓得早（隨機） | 5 年 20 倍：抓得早（隨機） | 10 倍段出現時還剩（中位數） | 5 倍股比例（全體） | 10 倍股比例（全體） |",
+          "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+    for s, name in WT.SCREENS.items():
+        x = st[s]["ALL"]
+        L.append(f"| {s} {name} | {_f(x['size'])} | {_p(x.get('early_D'))}（{_p(x.get('rand_early_D'))}） | "
+                 f"{_p(x.get('early_E'))}（{_p(x.get('rand_early_E'))}） | {_p(x.get('early_F'))}（{_p(x.get('rand_early_F'))}） | "
+                 f"{_f((x.get('rem_E') or -1) + 1) + ' 倍' if x.get('rem_E') is not None else '—'} | "
+                 f"{_p(x.get('prec_D'), 1)}（{_p(x.get('base_D'), 1)}） | {_p(x.get('prec_E'), 2)}（{_p(x.get('base_E'), 2)}） |")
+    x = st["S1"]["ALL"]
+    L += ["", f"段落數：3 年 5 倍 {x['n_ep_D']}、5 年 10 倍 {x['n_ep_E']}、5 年 20 倍 {x['n_ep_F']}。"
+              f"抓得早＝名單列出時離高點還剩 ≥ √k 倍（5 倍段 2.24 倍、10 倍段 3.16 倍、20 倍段 4.47 倍）。", ""]
     for p in PER:
-        L += [f"## {p}", "",
-              "| 名單 | 每週檔數 | 每週含翻倍股（隨機） | 翻倍股抓得早（隨機） | 超級飆股抓得早（隨機） | 出現時還剩（翻倍段，中位數） | 翻倍股比例（全體） | 超級飆股比例（全體） | 60 日 +50%（全體） |",
+        L += [f"## 一年內翻倍、3 倍（{p}）", "",
+              "| 名單 | 每週檔數 | 每週含翻倍股（隨機） | 翻倍抓得早（隨機） | 3 倍抓得早（隨機） | 出現時還剩（翻倍段，中位數） | 翻倍股比例（全體） | 3 倍股比例（全體） | 3 個月 +50%（全體） |",
               "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
         for s, name in WT.SCREENS.items():
             x = st[s][p]
@@ -91,7 +115,16 @@ def md(out: dict) -> str:
                      f"{_p(x.get('rem_B'))} | {_p(x.get('prec_B'), 1)}（{_p(x.get('base_B'), 1)}） | "
                      f"{_p(x.get('prec_C'), 1)}（{_p(x.get('base_C'), 1)}） | {_p(x.get('prec_A'), 1)}（{_p(x.get('base_A'), 1)}） |")
         x = st["S1"][p]
-        L += ["", f"翻倍段落 {x['n_ep_B']} 段、超級飆股段落 {x['n_ep_C']} 段（T0 在這段期間、起漲時是合格股票）。", ""]
+        L += ["", f"翻倍段落 {x['n_ep_B']} 段、3 倍段落 {x['n_ep_C']} 段（起漲點在這段期間、起漲時是合格股票）。", ""]
+    L += ["## 5 年 10 倍以上的股票：各名單什麼時候抓到", "",
+          "格子＝第一次列出的日期／當時已漲幾倍（從起漲點算）→ 離高點還剩幾倍；★＝抓得早。空白＝這份名單在 T0 前 60 日到高點之間沒有列出過。", "",
+          "| 股票 | 起漲 | 高點 | 倍數 | " + " | ".join(WT.SCREENS) + " |", "| --- | --- | --- | --- | " + " | ".join("---" for _ in WT.SCREENS) + " |"]
+    for r in out["cases_10x"]:
+        cells = []
+        for s in WT.SCREENS:
+            b = r["by"].get(s)
+            cells.append("" if not b else f"{b['d']}／{_f(b['up'], 1)}→{_f(b['rem'], 1)}{'★' if b['early'] else ''}")
+        L.append(f"| {r['c']} {r['name']} | {r['t0']} | {r['pk']} | {r['x']:g} | " + " | ".join(cells) + " |")
     return "\n".join(L) + "\n"
 
 
