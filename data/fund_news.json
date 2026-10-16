@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/16 09:48",
+  "as_of": "2026/10/16 10:50",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -148,7 +148,7 @@
         {
           "title": "台積電法說會釋AI成長訊號！AI訂單向外擴散 00418A卡位下一批爆發新星",
           "url": "https://www.watchmedia01.com/archives/559732",
-          "source": "蕃新聞",
+          "source": "Yahoo新聞",
           "date": "2026-10-16 09:34",
           "datetime": "2026-10-16T09:34:00+08:00"
         },
@@ -162,7 +162,7 @@
         {
           "title": "被動ETF高檔卡關換股慢半拍？00418A 靠主動「動態調整」搶卡位與獲利入袋",
           "url": "https://www.watchmedia01.com/archives/559726",
-          "source": "Yahoo新聞",
+          "source": "觀傳媒",
           "date": "2026-10-16 09:30",
           "datetime": "2026-10-16T09:30:45+08:00"
         },
@@ -506,7 +506,7 @@
       "board": "ETF",
       "title": "統一全球新科技10年賺948％！王牌操盤手領軍00411A",
       "url": "https://fundhot.com/forum/ETF/%E7%B5%B1%E4%B8%80%E5%85%A8%E7%90%83%E6%96%B0%E7%A7%91%E6%8A%8010%E5%B9%B4%E8%B3%BA948%EF%BC%85%EF%BC%81%E7%8E%8B%E7%89%8C%E6%93%8D%E7%9B%A4%E6%89%8B%E9%A0%98%E8%BB%8D00411A/14005",
-      "date": "2026-10-15"
+      "first_seen": "2026-10-16"
     },
     {
       "platform": "fundhot",
