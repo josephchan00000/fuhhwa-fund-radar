@@ -301,6 +301,8 @@ h3{font-size:14.5px;margin:18px 0 6px;color:var(--accd)}
 .ld{padding:44px 12px;text-align:center;color:var(--mut);font-size:13.5px;background:var(--card2);border-radius:10px}
 .tip{position:absolute;pointer-events:none;background:rgba(31,39,51,.94);color:#fff;font-size:12px;line-height:1.6;padding:6px 9px;border-radius:8px;max-width:min(380px,94%);z-index:2}
 .note{color:var(--mut);font-size:12px;margin:4px 0}
+table.hlt td:first-child{min-width:150px;white-space:normal}table.hlt .cd{white-space:normal}
+table.hlc td:first-child{min-width:150px;white-space:normal}td.ck6{letter-spacing:2px;white-space:nowrap;font-weight:700}
 svg{display:block;width:100%;height:auto}
 .lg{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--mut)}.lg i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:4px}
 ul.doc{padding-left:18px}ul.doc li{margin:4px 0}
@@ -395,6 +397,7 @@ table.trt td,table.trt th{vertical-align:top}table.trt td .sm2{white-space:norma
  .otl .kline{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px}.otl .kline>.mu{flex-basis:100%}
  .bkt td:first-child{min-width:100px;white-space:normal}.bkt .cd{white-space:normal}.bkt td,.bkt th{padding:7px 5px}
  .tabs a{padding:9px 7px 7px}.tabs .vlb,.tabs .glb{padding:9px 6px 7px}.tabs .glb .gi{display:none}
+ table.hlt td:first-child,table.hlc td:first-child{min-width:104px;max-width:124px}
  .sgt tr.sgw{display:table-row}.sgt tr.sgr1 td{border-bottom:0;padding-bottom:2px}.sgt tr.sgw td{text-align:left;font-size:12.5px;color:var(--ink2);padding-top:0;white-space:normal}
 }
 """
@@ -508,13 +511,21 @@ const GL={
 'SUE':'標準化盈餘驚喜＝（當季 EPS − 去年同季 EPS）÷ 過去幾季這個差距的波動。數字越大代表這季成長越出乎意料。學術上發現驚喜大的股票，之後幾個月常繼續走強（財報後漂移）。',
 '月營收驚喜':'（上個月營收 − 去年同月營收）÷ 過去 12 個月這個差距的標準差。數字越大代表這個月的成長越出乎意料，用法同 SUE，只是改用每月 10 日前公告的月營收。金融保險業不算（營收口徑不同，金控可延到 15 日申報）。',
 'CAN SLIM':'William O’Neil 的成長股選股法，七個字母代表當季盈餘成長、年度成長、新產品或新高、股數供需、領先股、法人認養、大盤方向。這裡測試其中的 C（當季 EPS 年增 ≥25%）與 M（大盤在年線上）。',
+'健檢燈號':'規則訂好之後的前瞻平均，和回測裡「隨機抽同樣筆數」的平均比（抽 2,000 次）：低於第 5 百分位＝明顯低於回測，5～20＝偏弱，20～80＝符合回測，80 以上＝偏強。前瞻不到 3 筆（財報、臺灣50 不到 2 次）不打燈號。',
+'百分位':'在一群數字裡排第幾：第 20 百分位＝比 20% 的數字高、比 80% 低。持有中的部位和回測裡同一策略、同一持有天數的報酬比，低於第 5 百分位會記成事件。',
+'改良候選':'事前寫好的 48 種執行細節改法（延後進場、持有天數、停損、檔數、大盤濾網等），每週一用全部歷史重跑一次。選股的分數與門檻不在清單上。清單與門檻在 2026-10-16 看任何結果之前就寫定，要改就是新版本。',
+'配對比較':'同一期（同一次審核、同一個訊號）把候選和現行的報酬相減，看這串差值的平均與 t 值。同一期的大盤漲跌會互相抵掉，比兩個平均各算各的準。',
+'多重檢定校正':'同一條策略一次測好幾個候選時，總會有幾個剛好看起來比較好。這裡用 Holm 校正：p 值由小到大排，第 i 個要小於 5% ÷（還沒檢查的候選數），有一個沒過，後面全部不過。',
+'改良分級':'證據強＝六項檢查全過：①校正後仍顯著 ②複驗期間（2021-10 之前）同方向且 t ≥ 1（沒有複驗期間的策略改成校正前 t ≥ 2.5）③相鄰數字也不比現行差 ④去掉差距最大的一年後仍較好 ⑤成本加倍後仍較好 ⑥最大回落沒有變差超過 3 個百分點。待觀察＝校正前 t ≥ 1.645 但沒有全過；比較差＝明顯比現行差；樣本不足＝期數或筆數不夠。',
+'影子版本':'通過「證據強」的改法，只在紙上和現行規則一起記錄（不上機會頁、不推播買賣）。前瞻滿門檻（月營收 10 期、財報與臺灣50 2 次、共識加碼與長線 10 筆）、平均贏過現行、回落沒有變差，而且每週重跑仍是證據強，才會通知你；你回「好」才換成新版本。沒有贏就淘汰，182 天內不再試同一個改法。',
 };
 const GLG=[['ETF 面',['真加碼','申贖倍率','主動 5 日淨買','加碼／減碼家數','持有 ETF','新建倉','建倉日','主動成本','成本乖離','超配','ETF 持股率','消化天數']],
  ['法人籌碼',['投信 5 日','外資 5 日','連買','60 日買超均價','融資','借券賣出','千張大戶']],
  ['技術面',['趨勢','乖離','量比','RSI','KD','MACD','一年區間位置','相對大盤','ATR','日均成交']],
  ['成績與策略',['推薦順序','事後驗證','隱含獲利','過去照做','同期大盤','年化','賺錢比例','贏大盤比例','評級','同一批股票的平均','t 值','賺錢機率','每月平均','賺賠比','報酬型態','樣本外','樣本內','前瞻','前瞻驗證','前 5 檔','大型股','中型股','超額','信賴區間','獲利比例','贏大盤','勝率','每 10 萬預估','隔夜跳空','樣本','紙上交易']],
  ['回測方法與策略',['穩健度檢查','成本加倍','參數鄰近','去掉最好 5%','低回落例外','因子檢定','資金帳戶','最大回落','存活者偏誤','大盤年線','成交檢查','月營收驚喜','SUE','相對強勢','趨勢樣板','CAN SLIM']],
- ['指數換股',['資料截止日','漲勢前一半','估計權重','被動買盤','週轉率','等級相關','被動買賣期間','對其他成分股','被動買賣日量','被動買賣提醒']]];
+ ['指數換股',['資料截止日','漲勢前一半','估計權重','被動買盤','週轉率','等級相關','被動買賣期間','對其他成分股','被動買賣日量','被動買賣提醒']],
+ ['策略健檢與改良',['健檢燈號','百分位','改良候選','配對比較','多重檢定校正','改良分級','影子版本']]];
 function gi(k){return (GL[k]||SD[k])?`<i class=gi data-g="${esc(k)}" role=button tabindex=0 aria-label="說明">i</i>`:'';}
 const POP=$('#pop');let popFor=null,popPin=false;
 function showPop(el,pin){const k=el.dataset.g;const t=GL[k]||(SD[k]||[])[1];if(!t)return;
@@ -1305,7 +1316,8 @@ function vSt(){const X=D.strat||{};
 
 /* ---------- 後台（頂欄小字；版面 v4，2026-10-15）：策略的自我驗證與研究，每天收盤後自動更新（valog.py 寫 data/lab/val_log.json）。
    今天的驗證 → 前瞻紀錄 → 事件紀錄 → 評級規則、評級總表、各策略評級依據、全部策略總表 → 訊號成績 → 指數換股研究 → 每日更新時程。 ---------- */
-const VL=D.vlog||{},VTY={grade:'評級變動',full:'前瞻滿額',lag:'前瞻落後',deep:'虧損超過歷史最差',miss:'該出名單沒出',stale:'資料過期'};
+const VL=D.vlog||{},VTY={grade:'評級變動',full:'前瞻滿額',lag:'前瞻落後',deep:'虧損超過歷史最差',miss:'該出名單沒出',stale:'資料過期',
+  dev:'表現偏離回測',shok:'影子版本達標',sout:'影子版本淘汰'};
 function boToday(){if(VL.err)return sec('bo-today','今日驗證','今天的驗證','',`<div class=st>驗證紀錄錯誤：${esc(VL.err)}</div>`);
   const T=VL.today||{},E=T.ev||[],S=T.st||{},ks=Object.keys(S);
   const fn=ks.reduce((a,k)=>a+(S[k].fn||0),0),full=ks.filter(k=>S[k].fn>=S[k].need).length;
@@ -1333,12 +1345,65 @@ function boSched(){const R=[['06:35','每日全部更新','補官方價量、籌
     ['週一 08:05','ETF 週掃','指數審核時程與官方換股名單（臺灣50、高股息）']];
   return sec('bo-sched','更新時程','每日更新時程','台北時間',`<div class=tw><table><thead><tr><th class=l>時間</th><th class=l>班次</th><th class=l>這頁更新什麼</th></tr></thead><tbody>${R.map(r=>`<tr><td class=l>${r[0]}</td><td class=l>${r[1]}</td><td class="l wr2">${r[2]}</td></tr>`).join('')}</tbody></table></div>`+
     `<div class=note>每一班重建頁面時都會重算策略與評級、重寫當天的驗證紀錄。排程有時會晚 1～3 小時；06:35、15:33、18:58 由排程主動觸發，比較準時。</div>`);}
+/* 策略健檢與改良（docs/lab_selfopt_plan.md）：前瞻對回測的燈號、持有中百分位、依進場條件拆解、改良候選、影子版本 */
+const HL=D.hl||{},OPT=D.opt||{};
+const HLN={v3l:'財報驚喜（大型股）',v7m:'月營收驚喜（中型股）',v7l:'月營收驚喜（大型股）',s3:'臺灣50 提前卡位',s5:'長線：投信動能成長股',s1:'共識加碼・開低進場'};
+const HLU={v3l:'期',v7m:'期',v7l:'期',s3:'次',s5:'筆',s1:'筆'},HLNEED={v3l:2,v7m:10,v7l:10,s3:2,s5:10,s1:10};
+const TIERC={'證據強':'gA','待觀察':'gB'},LTC={'明顯低於回測':'dn','偏弱':'dn','偏強':'up','樣本太少':'mu'};
+const CHK=['校正後顯著','複驗','相鄰數字','去掉最好一年','成本加倍','最大回落'];
+function hlKeys(){const rk=k=>(g3Of(k)||{}).rank||99;
+  return Object.keys(HLN).filter(k=>HL[k]||(OPT.res||{})[k]).sort((a,b)=>rk(a)-rk(b)||a.localeCompare(b));}
+function hlCands(k){const R=(OPT.res||{})[k]||{},C=OPT.cols||[];return (R.cands||[]).map(a=>Object.fromEntries(C.map((c,i)=>[c,a[i]])));}
+function hlLow(h){const xs=(h.hold||[]).filter(x=>x.pct!=null);return xs.length?xs.reduce((a,b)=>a.pct<=b.pct?a:b):null;}
+function hlPct(p){return p==null?'—':`第 ${f(p,0)} 百分位`;}
+function tierB(t){return `<span class="gd ${TIERC[t]||'gC'}">${esc(t||'—')}</span>`;}
+function hlSec(){const ks=hlKeys();if(!ks.length)return '';
+  const SH=(OPT.shadow||{}).items||[],all=ks.flatMap(hlCands),nS=all.filter(c=>c.tier==='證據強').length,nW=all.filter(c=>c.tier==='待觀察').length;
+  const row=k=>{const h=HL[k]||{},b=h.b||{},u=HLU[k],g=g3Of(k)||{},C=hlCands(k),lw=hlLow(h),sh=SH.filter(x=>x.k===k&&x.st!=='淘汰'&&x.st!=='不換');
+    const cs=C.filter(c=>c.tier==='證據強').length,cw=C.filter(c=>c.tier==='待觀察').length;
+    return `<tr class="${g.rank?'':'grey'}"><td class=l><a data-to="hl-${k}"><span class=nm>${esc(HLN[k])}</span></a><span class=cd>${g.rank?`推薦順序 ${g.rank}`:'目前不在推薦清單'}・起算 ${md(h.since)}</span></td>`+
+      `<td>${h.n||0}／${HLNEED[k]} ${u}${h.n?`<div class=sm2>平均 ${p2(h.avg)}</div>`:''}</td>`+
+      `<td class=hm>${b.ref==null?'—':`每${u} ${p2(b.ref)}`}${b.lo!=null?`<div class=sm2>同樣 ${h.n} ${u}：90% 落在 ${p2(b.lo)}～${p2(b.hi)}</div>`:''}</td>`+
+      `<td><span class="${LTC[h.light]||''}">${esc(h.light||'—')}</span>${b.pct!=null?`<div class=sm2>${hlPct(b.pct)}</div>`:''}</td>`+
+      `<td class="l wr">${lw?`<span class="${lw.pct<5?'dn':''}">${hlPct(lw.pct)}</span><div class=sm2>${esc(lw.n)} 第 ${lw.d} 天 ${pctT(lw.x,1)}</div>`:'<span class=mu>—</span>'}</td>`+
+      `<td class=hm>${C.length?`證據強 ${cs}・待觀察 ${cw}<div class=sm2>共 ${C.length} 個</div>`:'—'}</td>`+
+      `<td class=l>${sh.length?sh.map(x=>`<div>${esc(x.what)}：${esc(x.st)}${x.n!=null?`<span class=sm2>（${x.n}／${x.need}${x.mean!=null?`，每${u}${x.mean>=0?'多':'少'} ${f(Math.abs(x.mean),2)}%`:''}）</span>`:''}</div>`).join(''):'<span class=mu>沒有</span>'}</td></tr>`;};
+  const run=OPT.run?`改良候選最近一次重跑：${md(OPT.run)}（optim v${OPT.ver||1}）；證據強 ${nS} 個、待觀察 ${nW} 個；影子版本 ${(OPT.shadow||{}).n_live||0} 個。`:'改良候選還沒有重跑結果。';
+  return sec('bo-hl','策略健檢','策略健檢與改良','每天和回測比；每週一重跑改良候選，證據夠強才進影子版本，達標後通知你、回「好」才換',
+    `<div class=st>${run}</div><div class=tw><table class=hlt><thead><tr><th class=l>策略</th><th>前瞻／門檻</th><th class=hm>回測預期</th><th>燈號${gi('健檢燈號')}</th>`+
+    `<th class=l>持有中最弱${gi('百分位')}</th><th class=hm>改良候選${gi('改良候選')}</th><th class=l>影子版本${gi('影子版本')}</th></tr></thead><tbody>${ks.map(row).join('')}</tbody></table></div>`+
+    `<div class=note>前瞻＝規則起算之後才決定、已經出場的期數（逐筆的策略為筆數）；平均扣成本（大型股來回 0.48%、中型股 0.68%）。回測預期＝回測裡每期（每筆）的平均；有前瞻之後，另列回測抽出同樣筆數時平均的 90% 範圍。</div>`+
+    ks.map(hlDet).join(''));}
+function hlDet(k){const h=HL[k]||{},u=HLU[k],C=hlCands(k),R=(OPT.res||{})[k]||{},SH=((OPT.shadow||{}).items||[]).filter(x=>x.k===k);
+  const fw=h.fw||[],hd=h.hold||[];let s=`<h4 class=sh>進場績效（規則起算 ${md(h.since)} 之後）</h4>`;
+  if(fw.length||hd.length)s+=`<div class=tw><table><thead><tr><th class=l>決定日</th><th class=l>交易</th><th>狀態</th><th>報酬</th><th>在回測的位置${gi('百分位')}</th></tr></thead><tbody>`+
+    fw.slice().reverse().map(x=>`<tr><td class=l>${md(x[0])}</td><td class=l>${esc(x[1])}</td><td>已出場</td><td>${sgn(x[2],2,'%')}</td><td>${hlPct(x[3])}</td></tr>`).join('')+
+    hd.map(x=>`<tr><td class=l>持有中</td><td class=l>${esc(x.n)}</td><td>第 ${x.d} 天</td><td>${sgn(x.x,2,'%')}</td><td class="${x.pct!=null&&x.pct<5?'dn':''}">${x.pct==null?'回測沒有持有這麼久的樣本':hlPct(x.pct)}</td></tr>`).join('')+`</tbody></table></div>`+
+    `<div class=note>已出場的和回測全部${u==='筆'?'交易':u}的報酬比（扣成本）；持有中的和回測同一持有天數的報酬比（未扣成本）。低於第 5 百分位會記成事件「表現偏離回測」。</div>`;
+  else s+=`<div class=st>規則起算後還沒有已出場或持有中的交易。</div>`;
+  const sp=h.split||[];
+  if(sp.length)s+=`<h4 class=sh>依進場條件拆解（回測與前瞻已出場的每一筆）</h4><div class=tw><table><thead><tr><th class=l>條件</th><th class=l>分組</th><th>筆數</th><th>平均報酬</th><th class=hm>賺錢比例</th><th>和其餘的差</th><th class=hm>t</th></tr></thead><tbody>`+
+    sp.map(r=>`<tr class="${r[7]?'':'grey'}"><td class=l>${esc(r[0])}</td><td class=l>${esc(r[1])}${r[7]?' <span class=pill>差異明顯</span>':''}</td><td>${r[2]}</td><td>${sgn(r[3],2,'%')}</td><td class=hm>${r[4]}%</td><td>${sgn(r[5],2,'%')}</td><td class=hm>${tT(r[6])}</td></tr>`).join('')+`</tbody></table></div>`+
+    `<div class=note>每一筆從買進到賣出、扣成本。差異明顯＝該組至少 10 筆、和其餘的差 t ≥ 2，而且前後兩段期間方向相同；其餘一律當作差異不明顯（組數一多，總會有幾組剛好特別好）。只有差異明顯的條件會拿去當之後改良候選的依據。</div>`;
+  if(C.length){const ck=c=>c.tier==='樣本不足'?'<span class=mu>—</span>':CHK.map((n,i)=>(c.fails||[]).includes(i+1)?`<span class=dn title="${n}">✗</span>`:`<span class=up title="${n}">✓</span>`).join('');
+    s+=`<h4 class=sh>改良候選（現行：每${u} ${p2(R.avgt0)}、最大回落 ${f(R.mdd0,0)}%）</h4><div class=tw><table class=hlc><thead><tr><th class=l>改什麼</th><th>配對差${gi('配對比較')}<div class=sm2>主要期間</div></th><th>複驗期間</th><th>六項檢查${gi('改良分級')}</th><th class=hm>最大回落<div class=sm2>候選／現行</div></th><th>分級</th></tr></thead><tbody>`+
+      C.map(c=>`<tr><td class=l><span class=nm>${esc(c.what)}</span><span class=cd>${esc(c.k)}</span></td><td>${sgn(c.mean,2,'%')}<div class=sm2>t ${tT(c.t)}・${c.n} ${u}</div></td>`+
+        `<td>${c.rep?`${sgn(c.rep[0],2,'%')}<div class=sm2>t ${tT(c.rep[1])}</div>`:'<span class=mu>沒有</span>'}</td><td class=ck6>${ck(c)}</td>`+
+        `<td class=hm>${c.mdd==null?'—':f(c.mdd,0)+'%'}／${c.mdd0==null?'—':f(c.mdd0,0)+'%'}</td><td>${tierB(c.tier)}</td></tr>`).join('')+`</tbody></table></div>`+
+      `<div class=note>配對差＝同一${u==='筆'?'個訊號':u}候選減現行的報酬（扣成本）；主要期間＝${['v3l','v7m','v7l'].includes(k)?'2021-10 起，複驗期間＝2021-10 之前':'全部資料（沒有複驗期間）'}。六項檢查依序：${CHK.map((n,i)=>`${'①②③④⑤⑥'[i]}${n}`).join('、')}；多重檢定校正${gi('多重檢定校正')}以同一條策略的全部候選一起算。證據強才會進影子版本。</div>`;}
+  s+=`<h4 class=sh>影子版本</h4>`+(SH.length?`<div class=klines>${SH.map(x=>`<div class=kline><b>${esc(x.what)}</b><span>${esc(x.st)}${x.since?`・起算 ${md(x.since)}`:''}${x.n!=null?`・前瞻 ${x.n}／${x.need} ${u}`:''}${x.mean!=null?`・每${u}${x.mean>=0?'多':'少'} ${f(Math.abs(x.mean),2)}%`:''}${x.why?`（${esc(x.why)}）`:''}</span></div>`).join('')}</div>`:
+    `<div class=st>目前沒有。改良候選要在每週重跑成為「證據強」才會進來。</div>`);
+  const ev=(VL.hist||[]).flatMap(([d,es])=>(es||[]).filter(e=>e.k===k).map(e=>[d,e])).slice(0,30);
+  s+=`<h4 class=sh>最近的紀錄</h4>`+(ev.length?`<div class=klines>${ev.map(([d,e])=>`<div class=kline><b>${mdw(d)}</b><span><span class=pill>${esc(VTY[e.ty]||e.ty)}</span> ${esc(e.txt)}</span></div>`).join('')}</div>`:'<div class=st>最近沒有這條策略的事件。</div>');
+  return `<details class=mr id="hl-${k}"><summary>${esc(HLN[k])}：明細</summary>${s}</details>`;}
 function vBo(){const X=D.strat||{},I=D.idx||{};
   let h=`<div class=intro>策略的自我驗證與研究，每天收盤後自動更新：規則訂好之後的實際成績、評級有沒有變、有沒有異常；評級怎麼訂、每條策略為什麼是這個評級；全部策略的回測總表、訊號成績與指數換股研究。這一期要買什麼，看「<a data-go="opp">機會</a>」。</div>`;
   if(X.err)h+=`<div class=st>策略資料錯誤：${esc(X.err)}</div>`;
   if(ADV.err)h+=`<div class=st>評級資料錯誤：${esc(ADV.err)}</div>`;
   if((D.adv||{}).v3err)h+=`<div class=st>月營收驚喜、財報驚喜資料錯誤：${esc(D.adv.v3err)}</div>`;
-  h+=boToday()+boFwd()+boHist()+valRule()+gradeSec()+valSecs()+bt3Sec()+sigAllSec()+studySec(I.study)+hdStudySec(I.hd)+hdFlowSec(I.hd)+hdPreSec(I.hd)+boSched();
+  if(HL.err)h+=`<div class=st>策略健檢資料錯誤：${esc(HL.err)}</div>`;
+  if(OPT.err)h+=`<div class=st>改良候選資料錯誤：${esc(OPT.err)}</div>`;
+  h+=boToday()+boFwd()+hlSec()+boHist()+valRule()+gradeSec()+valSecs()+bt3Sec()+sigAllSec()+studySec(I.study)+hdStudySec(I.hd)+hdFlowSec(I.hd)+hdPreSec(I.hd)+boSched();
   $('#main').innerHTML=h;
   $$('#main [data-to]').forEach(a=>a.onclick=e=>{e.preventDefault();jump(a.dataset.to);});
 }
@@ -1830,7 +1895,7 @@ $('#gl').addEventListener('click',e=>{if(e.target.id==='gl')closeGl();});
 /* ---------- 分頁＋跳段目錄 ---------- */
 const VIEWS={opp:vOpp,st:vSt,stk:vStk,chip:vChip,idx:vIdx,bo:vBo};
 function hdh(){return $('.hd').offsetHeight;}
-function jump(id){const t=document.getElementById(id);if(t)window.scrollTo({top:t.getBoundingClientRect().top+scrollY-hdh()-8,behavior:'smooth'});}
+function jump(id){const t=document.getElementById(id);if(t&&t.tagName==='DETAILS')t.open=true;if(t)window.scrollTo({top:t.getBoundingClientRect().top+scrollY-hdh()-8,behavior:'smooth'});}
 function buildNav(){const secs=$$('#main .sec[data-nav]');
   $('#snav').innerHTML=secs.length>1?secs.map(s=>`<a data-to="${s.id}">${esc(s.dataset.nav)}</a>`).join(''):'';
   $$('#snav a').forEach(a=>a.onclick=()=>jump(a.dataset.to));spy();}

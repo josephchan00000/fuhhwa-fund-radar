@@ -208,3 +208,11 @@ def test_check_lights_holding_percentile_and_low_flag():
     assert c2["light"] == "明顯低於回測" and c2["b"]["pct"] < 5
     c3 = H.check("v3l", ref, [0.0, 0.5], open_items=[], fwd_tr=[], halves=lambda x: 0, event=True)
     assert c3["light"] == "符合回測"                                        # 事件型 2 次就打燈號
+
+
+def test_cdf_pct_and_forward_rows():
+    assert H.cdf_pct([1.0, 2.0, 3.0, 4.0], 3.0) == 62.5 and H.cdf_pct([], 1.0) is None and H.cdf_pct([1.0], None) is None
+    ref = {"u": [0.0, 1.0, 2.0, 3.0], "q": {}, "cut": {}, "tr": []}
+    c = H.check("s1", ref, [2.0], open_items=[], fwd_tr=[], halves=lambda x: 0, event=False,
+                fwd_rows=[{"d": "2026-10-20", "n": "台積電", "r": 2.0}, {"d": "2026-10-21", "n": "聯發科", "r": None}])
+    assert c["fw"] == [["2026-10-20", "台積電", 2.0, 62.5]]
