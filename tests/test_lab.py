@@ -250,11 +250,13 @@ def test_page_layout_v4_tabs_opp_first_and_backend():
 def test_opp_strategy_chip_backend_v4_structure():
     """版面 v4：機會＝摘要（含時間表）→ 推薦策略卡（做法／隱含獲利／現在／下一批）→ 避開；
     策略＝比較表（推薦順序）→ 各策略說明 → 部位；籌碼＝重點、買賣、新建倉、投信、今日訊號、風險；
-    後台＝今天的驗證、前瞻紀錄、事件紀錄 → 評級規則、評級總表、各策略依據、全部策略總表 → 訊號成績 → 換股研究 → 更新時程。"""
+    後台＝今天的驗證、前瞻紀錄、策略健檢與改良（2026-10-16）、事件紀錄 → 評級規則、評級總表、各策略依據、全部策略總表
+    → 訊號成績 → 換股研究 → 更新時程。"""
     js = page._JS
     assert "h+=bookSec()+(ADV.book||[]).map(stCard).join('')+posSec();" in js
-    assert ("h+=boToday()+boFwd()+boHist()+valRule()+gradeSec()+valSecs()+bt3Sec()+sigAllSec()+studySec(I.study)+"
+    assert ("h+=boToday()+boFwd()+hlSec()+boHist()+valRule()+gradeSec()+valSecs()+bt3Sec()+sigAllSec()+studySec(I.study)+"
             "hdStudySec(I.hd)+hdFlowSec(I.hd)+hdPreSec(I.hd)+boSched();") in js
+    assert "sec('bo-hl'" in js and "function hlDet(" in js
     for k in ("sec('o-sum'", "sec('o-'+c.k", "sec('o-avoid'", "sec('st-book'", "sec('st-pos'", "sec('val-rule'", "sec('val-grade'",
               "sec('bo-today'", "sec('bo-fwd'", "sec('bo-hist'", "sec('bo-sig'", "sec('bo-sched'",
               "sec('c-lead'", "sec('c-flow'", "sec('c-new'", "sec('c-iss'", "sec('c-sig'", "sec('c-risk'",

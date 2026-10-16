@@ -232,8 +232,11 @@ def _lots(x, tw=True):
 
 # ── 主流程 ─────────────────────────────────────────────────────────
 
-def run(data: Data | None = None) -> dict:
+def run(data: Data | None = None, keep: dict | None = None) -> dict:
+    """keep＝空 dict 時把中間物件留給呼叫端（每週改良回測 scripts/run_opt.py 用）：每日資料、訊號歷史、
+    各策略完整交易、長線面板、v3 面板、五年加權指數。頁面輸出不受影響（完整交易一律在回傳前移除）。"""
     D = data or Data()
+    ctxd = keep if keep is not None else {}                # 中間物件（策略健檢、影子版本、每週改良回測共用）
     meta = etf_meta()
     skip = {e for d, doc in D.pos for e in (doc.get("etf") or {}) if e not in meta}
     L = LG.build(D.pos, D.price, skip_etfs=skip, cal=D.ix)
@@ -533,6 +536,7 @@ def run(data: Data | None = None) -> dict:
         from . import packtest
         DL = Data(long=True)
         reg = packtest.regime_map(DL)
+        ctxd.update({"DL_cal": list(DL.cal), "DL_taiex": DL.taiex(), "DL_taiex_open": DL.taiex_open()})
     except Exception as e:                                # noqa: BLE001
         pack = {"err": f"{type(e).__name__}: {e}"}
     # 高股息「依編製規則提前卡位」回測（2026-10-15）：約十幾秒
@@ -586,8 +590,23 @@ def run(data: Data | None = None) -> dict:
                 "rev_ym": rv[-1][0] if rv else None, "n_uni": len(P.codes),
                 "s5": growth.s5_trades(P, growth.load_rev_hist(), rev_shards, taiex, D.taiex_open(), reg=reg,
                                        eps=_eps_safe())}
+        ctxd.update({"gP": P, "rev_shards": rev_shards})
     except Exception as e:                                # noqa: BLE001
         grow = {"err": f"{type(e).__name__}: {e}"}
+    full = _take_full(strat, grow, v3)                     # 各策略完整交易（不進頁面）
+    ctxd.update({"D": D, "sig_hist": sig_hist, "L": L, "meta": meta, "taiex": taiex, "reg": reg, "v3ctx": v3ctx,
+                 "full": full, "v3": v3})
+    # 策略健檢與改良（docs/lab_selfopt_plan.md）：燈號、持有中百分位、拆解；每週改良結果與影子版本前瞻。失敗不影響其他區塊
+    try:
+        from . import health
+        hl = health.daily(full, v3, D, v3ctx, reg)
+    except Exception as e:                                # noqa: BLE001
+        hl = {"err": f"{type(e).__name__}: {e}"}
+    try:
+        from . import optim
+        opt = optim.page_data(ctxd)
+    except Exception as e:                                # noqa: BLE001
+        opt = {"err": f"{type(e).__name__}: {e}"}
     v3ex = {}
     if v3ctx is not None:                                 # 既有策略改用 v3 評級（要等 strat、grow 算完）
         try:
@@ -617,8 +636,32 @@ def run(data: Data | None = None) -> dict:
     return {"asof": asof, "etfs": meta, "rows": rows, "ser": ser,
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
             "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow, "ca": L.ca[-30:],
-            "idx": idx_out, "strat": strat, "grow": grow, "adv": adv, "pack": pack,
+            "idx": idx_out, "strat": strat, "grow": grow, "adv": adv, "pack": pack, "hl": hl, "opt": opt,
             "dates": D.cal[-CHART_N:]}
+
+
+def _take_full(strat: dict, grow: dict, v3: dict | None = None) -> dict:
+    """從策略結果取出完整交易並移除（strategy.run 的 _all、臺灣50 的 _V、長線的 _recs、v3 策略的 _hl）：
+    頁面只放截短的清單。→ {"s1": [...], "s3": [...]（提前卡位版）, "s5": [...], "hl": {v3 鍵: 前瞻逐筆與每期一批}}"""
+    out: dict = {"hl": {}}
+    for k, x in (v3 or {}).items():
+        if isinstance(x, dict) and "_hl" in x:
+            out["hl"][k] = x.pop("_hl")
+    for s in (strat or {}).get("list") or []:
+        if not isinstance(s, dict):
+            continue
+        a = s.pop("_all", None)
+        if a is not None:
+            out[s.get("key")] = a
+        V = s.pop("_V", None)
+        if V is not None:
+            out["s3"] = V.get("early") or []
+    s5 = (grow or {}).get("s5") if isinstance(grow, dict) else None
+    if isinstance(s5, dict):
+        r = s5.pop("_recs", None)
+        if r is not None:
+            out["s5"] = r
+    return out
 
 
 def _eps_safe() -> dict:

@@ -10,7 +10,7 @@ from __future__ import annotations
 import statistics
 from datetime import date, timedelta
 
-from . import bt3, bt3d, bt3s, store, trades
+from . import bt3, bt3d, bt3s, health, store, trades
 from . import packtest as PT
 
 SINCE = "2026-10-15"
@@ -112,6 +112,9 @@ def run(DL, names: dict | None = None) -> dict:
         ftr = trades.build(cal, pk, fu, flog, b, [trq.get(d) for d in cal],
                            px=lambda c, i, opn: P.s[c]["o" if opn else "c"][i], scores={t: sc for t, _, sc in fwd_rows},
                            info=inf, fw_from=SINCE, roll=src == "p7") if pk else None
+        # 策略健檢（docs/lab_selfopt_plan.md）：前瞻逐筆（含進場特徵）與每期一批的持有路徑；analyze.run 取走、不進頁面
+        hl = health.from_account(P, pk, flog, b, scores={t: sc for t, _, sc in fwd_rows}, fw_from=SINCE) if pk \
+            else {"tr": [], "bk": []}
         fs = bt3.sel_stats(fu) if fu else {"n": 0}
         fwd = {"n": fs.get("n", 0), "xe": fs.get("xe"),
                "units": [{"d": u["d"], "out": cal[u["x"]] if u.get("x") is not None and u["x"] < T else None,
@@ -147,6 +150,9 @@ def run(DL, names: dict | None = None) -> dict:
         elif qs:
             q, nf = next_eps_form(qs[-1])
             nxt = {"d": nf, "ent": _td_after(nf, 1), "q": q}
+        if now and now["entered"]:                      # 這一期的一批：當期第一天開盤起算的路徑（同後台「持有中」）
+            hl["now"] = {"d": now["d"], "j": cur[0] + 1,
+                         "p": health.basket(lambda c: P.s[c], [x["c"] for x in now["picks"]], cur[0] + 1, T - 1)}
         if now and now["entered"]:                      # 這一期還沒到出場日：逐筆表列「持有中」
             ftr = ftr or {"per": [], "tr": [], "chk": {}, "n_ap": 0}
             ftr["cur"] = {"d": now["d"], "nu": now["n_uni"]}
@@ -157,7 +163,8 @@ def run(DL, names: dict | None = None) -> dict:
                                       "hd": T - 1 - cur[0], "rk": i + 1, "st": "open", "fw": True, "sc": x.get("sc"),
                                       "info": inf(x["c"], cur[0])})
         out[k] = {"k": k, "src": src, "b": b, "name": name, "unit": unit, "since": SINCE, "res": r, "fwd": fwd,
-                  "now": now, "next": nxt, "due": _due(src, cal, rows), "tr": trades.pack(ftr) if ftr else None}
+                  "now": now, "next": nxt, "due": _due(src, cal, rows), "tr": trades.pack(ftr) if ftr else None,
+                  "_hl": hl}
     out["_ctx"] = (P, E)                                  # 給 existing() 用，呼叫端取出後丟掉（不進頁面）
     return out
 

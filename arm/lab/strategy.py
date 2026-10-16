@@ -343,7 +343,8 @@ def run(D, sig_hist: dict, L, meta: dict, idx: list, names: dict, reg: dict | No
                     "scan": scan(grps, ser_only, idx, io, st["scan_h"]),
                     "dist": dist(ins), "ins": [t for t in ins if t.get("st") in ("closed", "open")][-80:],
                     # 逐筆交易表（全部，含沒進場的；docs/lab_trades_plan.md）：依據欄＝隔天開盤跳空 %
-                    "tr": trades.pack_simple(ins + fwd, st["since"], info=lambda t: [t.get("gap")])})
+                    "tr": trades.pack_simple(ins + fwd, st["since"], info=lambda t: [t.get("gap")]),
+                    "_all": ins + fwd})                   # 完整交易（策略健檢用；analyze.run 用完即移除，不進頁面）
     # S3 臺灣50 換股：事件型、驗證期滿判準用「兩次審核」（筆數少、每季一次）。
     # 卡片＝三個版本並列：公告前卡位／公告後進場（兩個新版本）＋官方名單全部（原 S3，對照）。
     trs = tw50_trades(D, idx, io, names, D.cal[-1] if D.cal else "")
@@ -485,7 +486,8 @@ def tw50_versions(D, names: dict, s3: dict, fwd: list[dict], ins: list[dict], re
         plan.update({"stage": stage, "items": items, "out_c": cur.get("out_c") or {},
                      "K": tw50study.EARLY_K, "N": tw50study.EARLY_N,
                      "dels": [[c, names.get(c, c)] for c in ((cur.get("act_del") if cur["official"] else cur.get("pred_del")) or [])]})
-    return {"vers": vers, "plan": plan, "by_rev": by_rev, "sens": sens}
+    return {"vers": vers, "plan": plan, "by_rev": by_rev, "sens": sens,
+            "_V": V}                                      # 完整交易（策略健檢用；analyze.run 用完即移除，不進頁面）
 
 
 def _tw50_by_review(D, pl: list[dict], V: dict, add_i: list[dict]) -> tuple[list, dict | None]:
