@@ -3351,6 +3351,12 @@
    "ticker": "ACGB 3¾ 05/34",
    "country": "澳洲",
    "verified": true
+  },
+  "WALMART INC": {
+   "intro": "美國零售龍頭沃爾瑪，經營量販店、會員制倉儲（Sam's Club）與電商通路，業務遍及全球 19 個國家；普通股 2025 年 12 月由紐約證交所轉至 Nasdaq 掛牌。",
+   "ticker": "WMT",
+   "country": "美國",
+   "verified": true
   }
  }
 }
