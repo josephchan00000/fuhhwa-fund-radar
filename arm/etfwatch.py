@@ -843,6 +843,13 @@ def fetch() -> dict:
         try:
             m = _fetch_market(code)
             aum = _norm_aum_e8(m.get("aum_raw"), item["aum_e8"])
+            # 上櫃檔不收 etfinfo 市價與資料日（2026-09-23）：etfinfo 對上櫃慢一個交易日卻標成當日
+            # （見 ①-b 註）。①-b 原以官方表覆蓋，但**官方表當日尚未更新時**（實測 15:35 班 TWSE／
+            # TPEx 仍是前一日）就擋不住——00998A 把 9/22 的 17.16 標成 9/23、當日漲跌算成 0.00%。
+            # 上櫃收盤價只認官方表（或序列回填），etfinfo 只取規模／配息等非價格欄位。
+            otc = "上櫃" in (cat or "")
+            if otc:
+                m = dict(m, close_px=None, mkt_date=None)
             for k, v in (("aum_e8", aum), ("close_px", m.get("close_px")),
                          ("yield_pct", m.get("yield_pct")), ("freq", m.get("freq")),
                          ("last_div", m.get("last_div")), ("last_div_date", m.get("last_div_date"))):
@@ -887,7 +894,11 @@ def fetch() -> dict:
 
         # ② 過去一週／一月報酬 ← Yahoo 還原收盤／FinMind／TWSE（依序取密序列）自算
         try:
-            r = _fetch_returns(code, anchor=q0 if qc0 and qd0 else None)
+            # 錨點＝本列最終採用的收盤價與資料日（官方表優先；上市檔官方表未更新時為 etfinfo——
+            # 上市 etfinfo 實測逐日與官方同值），確保週／月報酬與收盤價永遠同一天。
+            anchor = ({"date": item["as_of"], "close": item["close_px"]}
+                      if item.get("as_of") and item.get("close_px") else None)
+            r = _fetch_returns(code, anchor=anchor)
             if r.get("ret_1w") is not None:
                 item["ret_1w"] = r["ret_1w"]
             if r.get("ret_1m") is not None:

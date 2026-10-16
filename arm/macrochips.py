@@ -202,6 +202,26 @@ def _inst_from_openapi(d: date, diag: list) -> dict | None:
     return _inst_rows_to_flows(rows) if rows else None
 
 
+def _inst_flows_valid(flows: dict) -> bool:
+    """法人資料可寫入的條件：有合計，且不是各項全為 0（休市日來源回的空表）。"""
+    if flows.get("total") is None:
+        return False
+    vals = [v for v in flows.values() if v is not None]
+    return any(v != 0 for v in vals)
+
+
+def _drop_orphan_inst(series: dict) -> None:
+    """分項（外資／投信／自營商）只在合計也有的日期才保留。
+    清掉先前誤收的孤兒值（例：2026-09-25 休市日的投信／自營商 0.0）。"""
+    have = set(series.get("inst_total") or {})
+    for k in ("inst_foreign", "inst_trust", "inst_dealer"):
+        orphan = [d for d in (series.get(k) or {}) if d not in have]
+        for d in orphan:
+            series[k].pop(d, None)
+        if orphan:
+            print(f"  ⚠ {k}: 剔除無合計對應的日期 {orphan}")
+
+
 def _inst_from_thirdparty(d: date, diag: list) -> dict | None:
     """第三方備援（2026-08-03 使用者指示「官方抓不到就抓其他來源」）：
     Yahoo 股市法人買賣超頁 → 玩股網。**僅在官方兩個端點都失敗時才用**，
@@ -580,6 +600,11 @@ def fetch() -> dict:
             inst_days.append(_last)
     for d in inst_days:
         flows, used = _twse_inst_all(d, inst_diag)
+        if flows and not _inst_flows_valid(flows):
+            # 2026-09-25（中秋休市）第三方頁只給出投信／自營商 0.0、無合計 → 兩個假值入檔。
+            # 沒有合計、或各項全為 0＝無資料哨兵（同 TAIFEX 濾 0 的慣例），不寫入。
+            inst_diag.append(f"{d} 法人資料無合計或全為 0（{used}）→ 視為無資料、不寫入")
+            flows = None
         if flows:
             iso = d.isoformat()
             for key, fk in (("inst_total", "total"), ("inst_foreign", "foreign"),
@@ -588,6 +613,7 @@ def fetch() -> dict:
                     series[key] = _merge(series[key], {iso: round(flows[fk], 1)})
             n_flow += 1
             inst_src = used          # 記實際生效的來源（官方／第三方）供 src 標記
+    _drop_orphan_inst(series)
     _note("inst_total", n_flow, inst_src)
     for line in inst_diag[:10]:      # 官方不可得時把各候選的 HTTP 狀態印進 CI 日誌
         print(f"      · {line}")
