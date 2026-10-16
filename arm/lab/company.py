@@ -265,7 +265,14 @@ def market_table(DL, today_ix: int | None = None, rules: list | None = None) -> 
         for c, f in F.items():
             if f.get("el") and pr(f):
                 hits.setdefault(c, []).append(n)
-    return {"d": cal[i], "cols": list(TCOLS), "rows": rows, "q": q, "ym": ym, "hits": hits}
+    from . import watchlist as WL                        # 超級飆股觀察名單（合併名單；tw-superstock-lab W1）
+    watch = {}
+    for c, f in F.items():
+        if c in pxs:
+            tg = WL.tags_for(c, f, hits, pxs[c], i)
+            if tg:
+                watch[c] = tg
+    return {"d": cal[i], "cols": list(TCOLS), "rows": rows, "q": q, "ym": ym, "hits": hits, "watch": watch}
 
 
 def write_table(tab: dict, out: Path = OUT_T) -> bool:

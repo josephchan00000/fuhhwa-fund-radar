@@ -298,8 +298,34 @@ function sxSec(){const S=D.sx||{};if(!S.v)return '';const R=S.rules||[],C=S.cand
   if(Bl.n_rules&&!Bl.use&&ub.p!=null)b+=`<div class=note>另有 ${Bl.n_rules} 條「${SXLB.B}」的規則，2023 年起轉弱：命中 ${p0(ub.p)}、全體 ${p0((Bl.base||{}).ho)}（只有 ${f(ub.p/(Bl.base||{}).ho,1)} 倍），一年後報酬中位數 ${pctT(ub.fr_med*100,0)}（全體 ${pctT(bb.fr_med*100,0)}），只有 ${p0(ub.fr_win)} 賺錢——不列入候選。</div>`;
   b+=`<div class=note>規則用 2014–2019 年的資料找、2020–2022 年挑選；2023 年起的成績是規則定案之後才算的，沒有參與挑選。「符合時」＝符合那一週之後，最高價曾漲到目標的比例，期間也可能先跌；不代表之後一定漲。只看月底市值 40 億以上、日均成交值 1,000 萬以上的股票，不含大盤與總經。</div>`;
   return sec('o-sx','飆股','飆股候選',`${S.d?md(S.d)+' 收盤':''}`,b);}
+/* 超級飆股觀察名單（tw-superstock-lab W1；watchlist.py）：只列名單與過去統計，買哪一檔由使用者自己判斷 */
+function wlSec(){const W=D.wl||{};if(!W.v)return '';const L=W.lists||{},S=L[W.chosen]||{},A=S.ALL||{},H=S.HO||{},K=S.stock10||{},
+    C=W.cand||[],T=W.tags||{},S1=(L.S1||{}).stock10||{},S3=L.S3||{},S3k=S3.stock10||{};let b='';
+  const p0=x=>x==null?'—':f(x*100,0)+'%',p1=x=>x==null?'—':f(x*100,1)+'%',xx=x=>x==null?'—':f(x,1)+' 倍';
+  b+=`<div class=colead style="font-weight:400">每週約 <b>${f(A.size,0)} 檔</b>，由三份名單合併：${Object.values(T).map(esc).join('、')}。`+
+    `2014 年以來 5 年內漲到 10 倍的 ${K.n} 檔股票，名單列出過 ${K.hit} 檔，其中 <b>${K.early} 檔</b>列得夠早：當時的股價之後最高還漲到 ${f(Math.sqrt(10),2)} 倍以上。`+
+    `第一次列出時的中位數：股價是起漲點的 ${xx(K.up_med)}，之後最高到列出價的 ${xx(K.rem_med)}。漲到 20 倍以上的 ${K.n20} 檔，有 ${K.early20} 檔列得夠早。</div>`;
+  const R=[['一年內翻倍','B',H],['一年內 3 倍','C',H],['3 年內 5 倍','D',A],['5 年內 10 倍','E',A],['5 年內 20 倍','F',A]];
+  b+=`<div class=tw><table class="sxt wlx"><thead><tr><th class=l>目標</th><th>名單裡後來達標的比例${gi('觀察名單命中')}</th><th>全體</th><th>達標的股票早期就在名單上${gi('觀察名單抓得早')}</th></tr></thead><tbody>`+
+    R.map(([t,k,P])=>`<tr><td class=l>${t}<div class=sm2>${P===H?'2023 年起':'2014 年起（期限走完的）'}</div></td><td>${P['prec_'+k]==null?'—':p1(P['prec_'+k])}</td><td>${P['base_'+k]==null?'—':p1(P['base_'+k])}</td><td>${P['early_'+k]==null?'—':p0(P['early_'+k])}</td></tr>`).join('')+
+    `</tbody></table></div>`;
+  if(C.length){const N=30,row=(x,k)=>`<tr class="${k>=N?'wlmore':''}"${k>=N?' hidden':''}><td class=l><a data-co="${esc(x[0])}"><b>${esc(x[1])}</b></a> <span class=cd>${esc(x[0])}</span></td><td>${x[2].map(t=>`<span class=sxi>${esc(T[t]||t)}</span>`).join('')}</td><td>${fp(x[3])}</td><td>${x[4]==null?'—':x[4]}</td><td class=hm>${sgn(x[5],0,'%')}</td><td class=hm>${x[6]==null?'—':f(x[6],0)+'%'}</td><td class=hm>${x[7]==null?'—':f(x[7],0)+' 億'}</td></tr>`;
+    b+=`<h4 class=sh>今天的名單（${C.length} 檔，同時在多份名單的在前）</h4><div class=tw><table class="sxt wlx" id=wlc><thead><tr><th class=l>股票</th><th>入選原因</th><th>收盤</th><th>RS${gi('RS 百分位')}</th><th class=hm>近 3 月營收年增</th><th class=hm>距 52 週高點</th><th class=hm>市值</th></tr></thead><tbody>`+
+      C.map(row).join('')+`</tbody></table></div>`+(C.length>N?`<a class=wlall>顯示全部 ${C.length} 檔</a>`:'');}
+  else b+=`<div class=st style="margin-top:8px">今天沒有股票在名單上。</div>`;
+  const E=K.examples||[];
+  if(E.length)b+=`<h4 class=sh>過去的 10 倍股：名單什麼時候列出它</h4><div class=tw><table class=sxt><thead><tr><th class=l>股票</th><th>起漲（最低點）</th><th>名單第一次列出</th><th>列出時股價</th><th>之後最高</th><th class=hm>起漲到高點</th></tr></thead><tbody>`+
+    E.map(e=>`<tr><td class=l><a data-co="${esc(e.c)}"><b>${esc(e.name)}</b></a> <span class=cd>${esc(e.c)}</span></td><td>${esc(e.t0)}</td><td>${esc(e.d)}${e.d<e.t0?'<div class=sm2>起漲前列出，之後先跌到最低點</div>':''}</td><td>起漲點的 ${xx(e.up)}</td><td>再漲 ${xx(e.rem)}（${esc(e.pk)}）</td><td class=hm>${xx(e.x)}</td></tr>`).join('')+`</tbody></table></div>`;
+  const M=K.missed||[];
+  b+=`<div class=note>名單裡大多數股票不會變成大飆股：之後 5 年內漲到 10 倍的只有 ${p1(A.prec_E)}（全體 ${p1(A.base_E)}）。這份名單的用處是讓大飆股「通常會在裡面」，要從裡面挑哪一檔、什麼時候買，要靠你自己的判斷。`+
+    (M.length?`沒抓到的例子：${M.slice(0,5).map(m=>esc(m.name)+' '+xx(m.x)).join('、')}。`:'')+`</div>`;
+  b+=`<div class=note>名單更大的版本「趨勢樣板＋強勢前 10%」每週約 ${f((S3.ALL||{}).size,0)} 檔，10 倍股有 ${S3k.early}／${S3k.n} 檔早期在裡面；只看現行飆股候選（每週約 ${f(((L.S1||{}).ALL||{}).size,0)} 檔）則是 ${S1.early}／${S1.n} 檔。`+
+    `「達標的股票早期就在名單上」是名單第一次列出時離高點還剩至少一半漲幅（以倍數算：翻倍與 3 倍股還剩 50%、5 倍股 2.24 倍、10 倍股 3.16 倍、20 倍股 4.47 倍）。`+
+    `只看月底市值 40 億以上的股票，起漲時比這小的大飆股不在範圍內。過去的比例不代表之後也一樣。</div>`;
+  return sec('o-wl','大飆股','超級飆股觀察名單',`${W.d?md(W.d)+' 收盤':''}`,b);}
 document.addEventListener('click',e=>{if(e.defaultPrevented)return;const a=e.target.closest&&e.target.closest('[data-co]');if(a){e.preventDefault();openCo(a.dataset.co);return;}
-  const m=e.target.closest&&e.target.closest('.sxall');if(m){e.preventDefault();$$('#sxc tr.sxmore').forEach(t=>t.hidden=false);m.remove();}});
+  const m=e.target.closest&&e.target.closest('.sxall');if(m){e.preventDefault();$$('#sxc tr.sxmore').forEach(t=>t.hidden=false);m.remove();}
+  const w=e.target.closest&&e.target.closest('.wlall');if(w){e.preventDefault();$$('#wlc tr.wlmore').forEach(t=>t.hidden=false);w.remove();}});
 Object.assign(GL,{'五面向':'成長（近 3 月營收年增、最新季 EPS 年增）、獲利（近四季 ROE、營益率）、體質（負債比、流動比）、估值（本益比、淨值比，越便宜分數越高）、動能（RS、距 52 週高點）。每項先算在全市場的百分位，兩項平均後分 5 格：80 以上頂尖、60 以上良好、40 以上中性、20 以上偏弱、其餘落後。',
   '飆股體質檢查':'《超級績效》（Minervini）找飆股看的條件：盈餘與營收高成長而且加速、毛利率擴張、股價在上升趨勢（趨勢樣板 8 項）、相對強度高。旁邊的比例是 2014 年起這個條件成立的股票，之後 3 個月內最高價曾漲 50% 的比例，和全體相比。',
   '趨勢樣板':'Minervini 的 8 項：股價在 150 與 200 日線之上、150 日線高於 200 日線、200 日線上揚、50 日線高於 150 與 200 日線、股價在 50 日線之上、比 52 週低點高 30% 以上、在 52 週高點 25% 以內、RS ≥ 70。',
@@ -309,8 +335,10 @@ Object.assign(GL,{'五面向':'成長（近 3 月營收年增、最新季 EPS �
   '自由現金流':'營業活動現金流＋投資活動現金流（近四季）。投資活動含資本支出與買賣金融資產，所以是粗略的自由現金流。',
   '現金流 ÷ 淨利':'近四季營業現金流 ÷ 近四季淨利。長期低於 100% 代表帳上獲利沒有變成現金（應收帳款或存貨堆高）。',
   '飆股命中率':'符合規則的那一週之後，60 個交易日（約 3 個月）內最高價曾漲到 50% 的比例。「全體」＝同一段期間所有合格股票（月底市值 40 億以上、日均成交值 1,000 萬以上）的比例。2023 年起的數字是規則定案之後才算的。',
+  '觀察名單命中':'名單上的股票（每週算一次）後來在期限內最高價曾達到目標的比例；「全體」＝同一段期間所有合格股票的比例。一年期看 2023 年起，多年期看 2014 年起、期限已經走完的。',
+  '觀察名單抓得早':'過去真的達到目標的股票，從起漲點前 60 個交易日到高點之間，名單曾經列出它、而且列出時離高點還剩至少一半漲幅（以倍數算）的比例。',
   '本益比位置':'每個月底的股價 ÷ 當時已公告的近四季 EPS，和這檔自己過去的本益比比。百分位越高代表以自己的歷史來看越貴；換算價位只是估值位置，不是價格預測。'});
-GLG.push(['公司分析',['五面向','飆股體質檢查','飆股命中率','趨勢樣板','RS 百分位','營收加速','ROE 拆解','自由現金流','現金流 ÷ 淨利','本益比位置']]);
+GLG.push(['公司分析',['五面向','飆股體質檢查','飆股命中率','觀察名單命中','觀察名單抓得早','趨勢樣板','RS 百分位','營收加速','ROE 拆解','自由現金流','現金流 ÷ 淨利','本益比位置']]);
 """
 
 SEARCH_HTML = ('<div class="cos"><input type="search" id="coq" placeholder="查公司：代號或名稱" autocomplete="off" '
