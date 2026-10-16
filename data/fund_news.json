@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/16 07:52",
+  "as_of": "2026/10/16 09:20",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -49,11 +49,11 @@
       ],
       "items": [
         {
-          "title": "00929 復華台灣科技優息 - 借券賣出配額 0張，額度賣光了 - 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/article/185823028",
-          "source": "CMoney",
-          "date": "2026-10-15 10:47",
-          "datetime": "2026-10-15T10:47:12+08:00"
+          "title": "00929今年報酬飆79%奪冠！0056、00878也贏大盤 股魚曝高股息ETF戰績",
+          "url": "https://n.yam.com/Article/20261016893142",
+          "source": "蕃新聞",
+          "date": "2026-10-16 08:00",
+          "datetime": "2026-10-16T08:00:00+08:00"
         }
       ]
     },
@@ -113,20 +113,6 @@
           "source": "Yahoo股市",
           "date": "2026-10-15 14:17",
           "datetime": "2026-10-15T14:17:59+08:00"
-        },
-        {
-          "title": "台股震盪 直取獲利源頭！00409A從AI晶片、光通訊到供電鎖定美國巨頭",
-          "url": "https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E9%9C%87%E7%9B%AA-%E7%9B%B4%E5%8F%96%E7%8D%B2%E5%88%A9%E6%BA%90%E9%A0%AD-00409a%E5%BE%9Eai%E6%99%B6%E7%89%87-%E5%85%89%E9%80%9A%E8%A8%8A%E5%88%B0%E4%BE%9B%E9%9B%BB%E9%8E%96%E5%AE%9A%E7%BE%8E%E5%9C%8B%E5%B7%A8%E9%A0%AD-054130607.html",
-          "source": "Yahoo新聞",
-          "date": "2026-10-15 13:41",
-          "datetime": "2026-10-15T13:41:30+08:00"
-        },
-        {
-          "title": "台積電法說揭AI新商機!00409A直搗美國AI獲利源頭",
-          "url": "https://tw.news.yahoo.com/%E5%8F%B0%E7%A9%8D%E9%9B%BB%E6%B3%95%E8%AA%AA%E6%8F%ADai%E6%96%B0%E5%95%86%E6%A9%9F-00409a%E7%9B%B4%E6%90%97%E7%BE%8E%E5%9C%8Bai%E7%8D%B2%E5%88%A9%E6%BA%90%E9%A0%AD-054426172.html",
-          "source": "觀傳媒",
-          "date": "2026-10-15 13:44",
-          "datetime": "2026-10-15T13:44:22+08:00"
         }
       ]
     },
@@ -153,6 +139,13 @@
           "datetime": "2026-10-15T16:51:20+08:00"
         },
         {
+          "title": "從台積電法說會看台股下一步！CoWoS先進封裝爆發 00418A深入前300大卡位受惠供應鏈",
+          "url": "https://tw.news.yahoo.com/%E5%BE%9E%E5%8F%B0%E7%A9%8D%E9%9B%BB%E6%B3%95%E8%AA%AA%E6%9C%83%E7%9C%8B%E5%8F%B0%E8%82%A1%E4%B8%8B-%E6%AD%A5-cowos%E5%85%88%E9%80%B2%E5%B0%81%E8%A3%9D%E7%88%86%E7%99%BC-00418a%E6%B7%B1%E5%85%A5%E5%89%8D300%E5%A4%A7%E5%8D%A1%E4%BD%8D%E5%8F%97%E6%83%A0%E4%BE%9B%E6%87%89%E9%8F%88-022635818.html",
+          "source": "Yahoo新聞",
+          "date": "2026-10-15 10:26",
+          "datetime": "2026-10-15T10:26:35+08:00"
+        },
+        {
           "title": "散戶難挑轉機股！00418A雙經理人主動操盤＋不配息機制 穩扣台股新星",
           "url": "https://www.watchmedia01.com/archives/559395",
           "source": "Yahoo新聞",
@@ -172,7 +165,7 @@
           "source": "股感 StockFeel",
           "date": "2026-10-14 10:55",
           "datetime": "2026-10-14T10:55:04+08:00",
-          "summary": "全球 AI 產業的發展正經歷重大變革，AI 能力逐漸從初期的「生成內容與推論」，大步邁向能自主執行任務的「AI [&#8230;]\nThe post 00418A 復華台灣新星主動式 ETF｜成分股？…"
+          "summary": "全球 AI 產業的發展正經歷重大變革，AI 能力逐漸從初期的「生成內容與推論」，大步邁向能自主執行任務的「AI 代理人（Agent）」以及即時映射真實世界的數位孿生（Digital Twin）時代。在…"
         }
       ]
     },
@@ -482,6 +475,13 @@
   "social": [
     {
       "platform": "fundhot",
+      "board": "天使",
+      "title": "財報再好也漲不動！我減碼半導體，轉進這個被冷落的族群",
+      "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/%E8%B2%A1%E5%A0%B1%E5%86%8D%E5%A5%BD%E4%B9%9F%E6%BC%B2%E4%B8%8D%E5%8B%95%EF%BC%81%E6%88%91%E6%B8%9B%E7%A2%BC%E5%8D%8A%E5%B0%8E%E9%AB%94%EF%BC%8C%E8%BD%89%E9%80%B2%E9%80%99%E5%80%8B%E8%A2%AB%E5%86%B7%E8%90%BD%E7%9A%84%E6%97%8F%E7%BE%A4/14007",
+      "date": "2026-10-16"
+    },
+    {
+      "platform": "fundhot",
       "board": "總經觀點",
       "title": "人生別只剩AI，持股也是；適時減碼，有益健康",
       "url": "https://fundhot.com/forum/%E7%B8%BD%E7%B6%93%E8%A7%80%E9%BB%9E/%E4%BA%BA%E7%94%9F%E5%88%A5%E5%8F%AA%E5%89%A9AI%EF%BC%8C%E6%8C%81%E8%82%A1%E4%B9%9F%E6%98%AF%EF%BC%9B%E9%81%A9%E6%99%82%E6%B8%9B%E7%A2%BC%EF%BC%8C%E6%9C%89%E7%9B%8A%E5%81%A5%E5%BA%B7/14006",
@@ -530,37 +530,28 @@
       "first_seen": "2026-10-13"
     },
     {
-      "platform": "fundhot",
-      "board": "ETF",
-      "title": "00985A真金白銀實戰！成立後賺144％，0050升級成功",
-      "url": "https://fundhot.com/forum/ETF/00985A%E7%9C%9F%E9%87%91%E7%99%BD%E9%8A%80%E5%AF%A6%E6%88%B0%EF%BC%81%E6%88%90%E7%AB%8B%E5%BE%8C%E8%B3%BA144%EF%BC%85%EF%BC%8C0050%E5%8D%87%E7%B4%9A%E6%88%90%E5%8A%9F/13999",
-      "first_seen": "2026-10-13"
+      "platform": "youtube",
+      "title": "00991A主動復華未來50：存錯股越存越窮？拆解「復華未來50」大趨勢：散戶擺脫韭菜命運的關鍵翻身指南！#避坑 #解盤 #翻身",
+      "channel": "脈動簡語",
+      "url": "https://www.youtube.com/watch?v=cfoc4NEAei0",
+      "date": "2026-10-10",
+      "views": 618
     },
     {
       "platform": "youtube",
-      "title": "100萬買00929 一年爽住15晚五星飯店？ #財經雪倫",
-      "channel": "投資嗨什麼",
-      "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
-      "date": "2026-10-11",
-      "views": 17801,
-      "short": true
+      "title": "00418A 復華台灣新星ETF｜下一顆台股成長新星，值得提早發現！",
+      "channel": "營業猿的Ai自修室",
+      "url": "https://www.youtube.com/watch?v=C6ze7wx0Gd8",
+      "date": "2026-10-10",
+      "views": 467
     },
     {
       "platform": "youtube",
-      "title": "都是月配息 ETF，00929 VS 00406A 該選誰？| 主動式真的能打敗被動科技高息嗎？",
-      "channel": "Lydia聊人生",
-      "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
-      "date": "2026-10-12",
-      "views": 6762
-    },
-    {
-      "platform": "youtube",
-      "title": "別被00929的15%殖利率騙了？想上車盯緊「這個價位」！#00929 #高股息ETF #存股 #理財",
-      "channel": "小童 x Happy Trading Life",
-      "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
-      "date": "2026-10-13",
-      "views": 2083,
-      "short": true
+      "title": "00409A 掛牌一個月對帳，持股表裡藏了什麼？",
+      "channel": "老來存股",
+      "url": "https://www.youtube.com/watch?v=kESbbuvFf0U",
+      "date": "2026-10-10",
+      "views": 295
     },
     {
       "platform": "youtube",
@@ -568,31 +559,10 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/XFDp4rY4FsQ",
       "date": "2026-10-12",
-      "views": 196161,
+      "views": 197721,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "【理財達人秀】337調查利空台股超勇？大立光噴出變友達.上詮法會？封測、PCB三招 抓低檔黑馬！重電.機器人底部耐震？｜李兆華、李永年、楊雲翔、林漢偉2026.10.12【電視完整版】",
-      "channel": "理財達人秀 EBCmoneyshow",
-      "url": "https://www.youtube.com/watch?v=REtGASDFkEM",
-      "date": "2026-10-12",
-      "views": 138080,
-      "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "0050 ALL IN就對了？20年實測結果超意外🫨｜ft.清流君、葉芷娟 #0050 #ETF投資 #ETF錢滾錢",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/shorts/sgOyzfXKakU",
-      "date": "2026-10-13",
-      "views": 109932,
-      "peer": true,
-      "short": true,
-      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -600,9 +570,19 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=1iIDAJTm3bk",
       "date": "2026-10-12",
-      "views": 92146,
+      "views": 92233,
       "peer": true,
       "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "988A、990A還沒解套該換嗎？蕭碧燕：別只看3個月績效！2招教你練仰天長笑，低檔加碼關鍵不是設幾%｜ft.蕭碧燕、葉芷娟【ETF錢滾錢】EP88",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/watch?v=96vE3gSEGqo",
+      "date": "2026-10-14",
+      "views": 77781,
+      "peer": true,
+      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -610,20 +590,30 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/UN7UK9CmFZk",
       "date": "2026-10-11",
-      "views": 71634,
+      "views": 72027,
       "peer": true,
       "short": true,
       "cat": "綜合"
     },
     {
       "platform": "youtube",
-      "title": "每月穩穩領3萬現金流，還不用扣2代健保費! 存多少張00878 00919 0056可以安心退休 ?",
-      "channel": "杉本來了",
-      "url": "https://www.youtube.com/watch?v=om1cnn5o53k",
-      "date": "2026-10-14",
-      "views": 63482,
+      "title": "誰把台股買到世界第一?多頭盡頭在哪裡？還有機會上車?",
+      "channel": "股添樂 股市新觀點",
+      "url": "https://www.youtube.com/watch?v=KrWlVzZ0Evs",
+      "date": "2026-10-11",
+      "views": 53550,
       "peer": true,
-      "cat": "綜合"
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "4檔ETF配息率衝破20% 怎麼挑才不踩雷？｜#財經鈔能力 #趙慶翔 #超馬芭樂 20261012",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=vzH0z2_WeEw",
+      "date": "2026-10-12",
+      "views": 43756,
+      "peer": true,
+      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -631,19 +621,19 @@
       "channel": "94要賺錢",
       "url": "https://www.youtube.com/watch?v=-azCvVWlRGo",
       "date": "2026-10-11",
-      "views": 34256,
+      "views": 34321,
       "peer": true,
       "cat": "市值型"
     },
     {
       "platform": "youtube",
-      "title": "【精華】高股息別賣！超馬芭樂教「股息轉投術」免費吃價差! 台股創高恐現黑天鵝？台積電、友達、信昌電「保命買點」這樣抓！ft.超馬芭樂.俞璘",
-      "channel": "投資優我罩—優分析",
-      "url": "https://www.youtube.com/watch?v=BhTCasHfgDQ",
+      "title": "【#本週精選】9月ETF大洗盤多空轉向！0050重回市場最愛 台股反彈被動ETF卻輸大盤？外資喊出台積電4410元天價！│陳斐娟 主持 │20261011│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=NUXLQRXjsOU",
       "date": "2026-10-11",
-      "views": 25088,
+      "views": 33804,
       "peer": true,
-      "cat": "高股息"
+      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -654,22 +644,12 @@
       "views": 23993,
       "peer": true,
       "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "美債利率盤中創 24 年新高，抱 00679B 的債蛙帳上剩多少？100 萬高點買剩 58 萬、喊降息時進場也賠一成、利率再升 1% 淨值跌 15%",
-      "channel": "財金小書僮",
-      "url": "https://www.youtube.com/watch?v=RAE6ZVOtF0I",
-      "date": "2026-10-11",
-      "views": 6136,
-      "peer": true,
-      "cat": "債券"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A、全方位（詳下方新聞標籤）",
     "品牌焦點：00418A 復華台灣新星主動式 ETF｜成分股？配息？優缺點？募集時間？（StockFeel 股感）",
-    "社群聲量最高：人生別只剩AI，持股也是；適時減碼，有益健康（0 推）",
-    "YouTube 熱片：台股五萬點站不穩? 注意這天轉折!【小宇宙大爆發】#shorts #理財（小宇宙大爆發・196,161 次觀看）"
+    "社群聲量最高：財報再好也漲不動！我減碼半導體，轉進這個被冷落的族群（0 推）",
+    "YouTube 熱片：台股五萬點站不穩? 注意這天轉折!【小宇宙大爆發】#shorts #理財（小宇宙大爆發・197,721 次觀看）"
   ]
 }
