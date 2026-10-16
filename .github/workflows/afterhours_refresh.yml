@@ -99,6 +99,9 @@ jobs:
       - name: 籌碼雷達官方個股價量／籌碼（只補缺部件、資料齊時零請求；失敗不擋）
         run: timeout 300 python3 scripts/fetch_lab.py || echo "  ⚠ 籌碼雷達抓取失敗，沿用既有分片"
 
+      - name: 法人預估（鉅亨 FactSet 快訊補到現在＋Yahoo 分析師一天一次；docs/lab_forward_plan.md，失敗不擋）
+        run: timeout 420 python3 scripts/fetch_fcst.py || echo "  ⚠ 法人預估抓取失敗，沿用既有落檔"
+
       - name: 當日完整性看門狗（寫/清 data/afterhours_alert.json——儀表板紅章資料源）
         run: python3 scripts/check_afterhours_fresh.py --write
 
