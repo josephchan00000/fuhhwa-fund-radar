@@ -207,7 +207,7 @@ function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;
       kp('每股淨值','',f(lb.bvps,2)+' 元',`股東權益 ${yi(lb.eqp)} 億`)+`</div>`;
     h+=`<div class=cbox style="margin-top:10px"><h4>負債比與每股淨值</h4>${svgLines([{v:qb.map(o=>o.dr==null?null:o.dr*100),c:'#b45309',n:'負債比'}],qb.map(o=>qLab(o.q)),{W:w,H:110,fmt:v=>f(v,0)+'%'})}${svgBars(qb.map(o=>o.bvps),qb.map(o=>qLab(o.q)),{W:w,H:100,fmt:v=>f(v,1),col:()=>'#8fa6c8',al:'每股淨值'})}<div class=st>上：負債比；下：每股淨值（元）</div></div>`;}
   else h+=`<div class=st>這檔的資產負債資料還沒補齊。</div>`;
-  const lc=lastQ(C,'ocf4');
+  const lc=fin?null:lastQ(C,'ocf4');                   /* 金融業的營業現金流主要是存放款進出，不看 */
   if(lc){const qc=Q.filter(o=>o.ocf4!=null).slice(-12);
     h+=`<div class="kpis kps" style="margin-top:10px">`+kp('營業現金流','',yi(lc.ocf4)+' 億','近四季')+kp('自由現金流','自由現金流',lc.fcf4==null?'—':yi(lc.fcf4)+' 億','營業＋投資現金流，近四季',cls(lc.fcf4))+
       kp('現金流 ÷ 淨利','現金流 ÷ 淨利',lc.ni4>0?f(lc.ocf4/lc.ni4*100,0)+'%':'—','100% 以上＝獲利有收到現金')+`</div>`+
