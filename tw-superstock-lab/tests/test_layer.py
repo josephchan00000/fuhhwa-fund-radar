@@ -213,3 +213,30 @@ def test_pair_search_needs_both_conditions():
         LA.GREEDY.update(old)
     assert r["tried"] == 26 * 25 // 2
     assert r["best"]["pair"] == ["eacc", "mom10"]
+
+
+# ---------------------------------------------------------------------------------------------- W4 大盤時機
+def test_regime_spread_and_stable():
+    from superstock import regime as RG
+    full = {0: {"weeks": 100, "p": 0.10}, 1: {"weeks": 80, "p": 0.20}, 2: {"weeks": 10, "p": 0.50}}
+    assert RG.spread(full, 26) == (1, 0, 2.0)                       # 週數不夠的狀態不比
+    h1 = {0: {"weeks": 50, "p": 0.10}, 1: {"weeks": 40, "p": 0.15}}
+    h2 = {0: {"weeks": 50, "p": 0.12}, 1: {"weeks": 40, "p": 0.18}}
+    assert RG.stable(full, [h1, h2])[0] is True
+    h2b = {0: {"weeks": 50, "p": 0.12}, 1: {"weeks": 40, "p": 0.13}}   # 差距 < 1.3
+    assert RG.stable(full, [h1, h2b])[0] is False
+    h2c = {0: {"weeks": 50, "p": 0.12}, 1: {"weeks": 5, "p": 0.30}}     # 週數不夠
+    assert RG.stable(full, [h1, h2c])[0] is False
+
+
+def test_regime_runs_and_weekly():
+    from superstock import regime as RG
+    st = np.array([1, 1, 0, 1, np.nan, 1, 0])
+    sel = np.ones(7, dtype=bool)
+    assert RG.runs(st, sel, 1.0) == 3 and RG.runs(st, sel, 0.0) == 2
+    D = {k: np.arange(80, dtype=float) % 2 for k in ("M1", "M2", "M3", "M4", "M6", "M8", "M9")}
+    D["tts"] = np.linspace(0.1, 0.9, 80)
+    W = np.arange(0, 80)
+    ws = RG.weekly_states(D, W, np.arange(80))
+    assert np.isnan(ws["M5"][3]) and ws["M5"][10] == 1.0          # 比例一路上升 → 比 4 週前高
+    assert np.isnan(ws["M7"][51]) and ws["M7"][60] == 1.0         # 名單檔數一路增加 → 比過去 52 週中位數多
