@@ -64,10 +64,11 @@ def summarize(mt: dict) -> dict:
 
 def run_one(S: dict, name: str, sig: pd.DataFrame, rng: tuple, *, market: bool, ma_exit, max_hold, stop_pct=0.08,
             base: EN.EngineConfig | None = None, log_trial: bool = True, allow_holdout: bool = False,
-            params: dict | None = None) -> tuple[dict, EN.Result]:
+            params: dict | None = None, weight: float | None = None,
+            breakeven_r: float | None = 2.0) -> tuple[dict, EN.Result]:
     s, e = rng
     res = CB.run(S["ctx"], sig, market=market, mf=S["mf"], ma_exit=ma_exit, max_hold=max_hold, stop_pct=stop_pct,
-                 start=s, end=e, base=base)
+                 start=s, end=e, base=base, weight=weight, breakeven_r=breakeven_r)
     lab = S["labels"][(S["labels"]["date"] >= pd.Timestamp(s)) & (S["labels"]["date"] <= pd.Timestamp(e))]
     pr = {**(params or {}), "market": market, "ma_exit": ma_exit, "max_hold": max_hold, "stop_pct": stop_pct,
           "data": "lab-A8"}
@@ -288,6 +289,17 @@ def holdout(S: dict) -> None:
                          "best": best}
         LOG(f"[p5] 保留期 {n}：年化 {_p(h['cagr'])}、超額 {_p(h['excess_cagr'])}、回落 {_p(h['maxdd'])}、{h['trades']} 筆、"
             f"勝率 {_p(h['win_rate'], 0)}；GATE {'通過' if all(gate.values()) else '未通過'} {gate}")
+    # 參考組（P5 計畫 v2，打開保留期之前寫定）：不參與挑選，只用來對照
+    ref = {}
+    a_sig = CB.signals_from(S["ctx"], S["ctx"].asig & S["F"]["elig"], 0.08, "R1")
+    ref["R1"], _ = run_one(S, "P5ref_R1_page_HO", a_sig, HO, market=False, ma_exit=None, max_hold=60, weight=0.125,
+                           breakeven_r=None, allow_holdout=True, params={"ref": "R1 現行飆股候選照頁面做", "period": "HO"})
+    ref["R2"], _ = run_one(S, "P5ref_R2_s01v2_HO", CB.build_signals(S["ctx"], "F0", "E1"), HO, market=True, ma_exit=50,
+                           max_hold=None, allow_holdout=True, params={"ref": "R2 照書做 S01 v2 主規格", "period": "HO"})
+    for k, a in PER.items():
+        ref[f"R1_{k}"], _ = run_one(S, f"P5ref_R1_page_{k}", a_sig, a, market=False, ma_exit=None, max_hold=60,
+                                    weight=0.125, breakeven_r=None, params={"ref": "R1", "period": k})
+    out["ref"] = ref
     (REPORTS / "P5_holdout.json").write_text(json.dumps(out, ensure_ascii=False, indent=1, default=str), "utf-8")
     L = ["# GATE P5（lab 面板先跑）：綜合策略的保留期檢驗", "",
          "規則：`reports/P5_plan.md` v1。入圍者在保留期（2023-01-02 起）各跑一次，之後不再調參數。表格由 `scripts/run_p5.py --holdout` 產生。", "",
@@ -299,6 +311,14 @@ def holdout(S: dict) -> None:
                  f"{_p(h['cagr'])}／{_p(h['excess_cagr'])} | {_p(h['maxdd'])}（{_p(h['bench_maxdd'])}） | {h['trades']} | "
                  f"{_p(h['win_rate'], 0)} | {_f(h['payoff'])} | {_p(h['y_A_precision'])}（{_p(h['y_A_base'])}） | "
                  f"{'通過' if out['res'][n]['pass'] else '未通過'} |")
+    rn = {"R1": "參考：現行飆股候選照頁面做（週末符合就買、持有 60 日、不停損）", "R2": "參考：照書做（S01 v2 主規格）"}
+    for k in ("R1", "R2"):
+        h = ref[k]
+        a = ref.get(f"{k}_IS") or {}
+        v = ref.get(f"{k}_VAL") or {}
+        L.append(f"| {rn[k]} | {_p(a.get('cagr'))}／{_p(a.get('excess_cagr'))} | {_p(v.get('cagr'))}／{_p(v.get('excess_cagr'))} | "
+                 f"{_p(h['cagr'])}／{_p(h['excess_cagr'])} | {_p(h['maxdd'])}（{_p(h['bench_maxdd'])}） | {h['trades']} | "
+                 f"{_p(h['win_rate'], 0)} | {_f(h['payoff'])} | {_p(h['y_A_precision'])}（{_p(h['y_A_base'])}） | 不參與 |")
     L += ["", "各項關卡：保留期超額 > 0／DSR ≥ 0.95／參數鄰近／隨機 ≥ 95 百分位／成本 ×2 仍贏大盤", ""]
     for n in fin:
         g = out["res"][n]["gate"]

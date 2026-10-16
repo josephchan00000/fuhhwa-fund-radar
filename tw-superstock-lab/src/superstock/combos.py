@@ -156,7 +156,8 @@ def exit_flags(ctx: Ctx, ma_exit: int | None) -> np.ndarray | None:
 
 def run(ctx: Ctx, sig: pd.DataFrame, *, market: bool, mf: np.ndarray, ma_exit: int | None, max_hold: int | None,
         stop_pct: float = 0.08, breakeven_r: float | None = 2.0, start=None, end=None,
-        base: EN.EngineConfig | None = None) -> EN.Result:
+        base: EN.EngineConfig | None = None, weight: float | None = None) -> EN.Result:
+    """weight＝固定權重、不設停損（P5 計畫 v2 的參考組「照頁面做」用）；None＝每筆風險 1%、停損 stop_pct。"""
     m = ctx.m
     cfg = replace(base or EN.EngineConfig(costs=EN.Costs()), breakeven_r=breakeven_r, market_filter=market,
                   block_disposition=False, max_hold_days=max_hold)
@@ -167,12 +168,14 @@ def run(ctx: Ctx, sig: pd.DataFrame, *, market: bool, mf: np.ndarray, ma_exit: i
         i, s = ix.get(pd.Timestamp(d)), m.col.get(str(c))
         if i is None or s is None:
             continue
-        by_day.setdefault(i, []).append(EN.Order(s, "open", stop_pct=stop_pct, score=float(sc)))
+        o = EN.Order(s, "open", weight=weight, score=float(sc)) if weight else \
+            EN.Order(s, "open", stop_pct=stop_pct, score=float(sc))
+        by_day.setdefault(i, []).append(o)
 
     def decide(i: int, sim: EN.Simulator) -> list[EN.Order]:
         if not mfu[i]:
             return []
-        return [EN.Order(o.s, o.kind, stop_pct=o.stop_pct, score=o.score) for o in by_day.get(i, [])]
+        return [EN.Order(o.s, o.kind, stop_pct=o.stop_pct, weight=o.weight, score=o.score) for o in by_day.get(i, [])]
 
     sim = EN.Simulator(m, cfg, exit_flags=exit_flags(ctx, ma_exit), mf=mfu)
     return sim.run(decide, start, end)

@@ -110,3 +110,17 @@ def test_configs_are_the_preregistered_84():
                        "pull_days": 20, "pull_tol": 0.01}
     assert CB.EXITS == {"X1": {"ma_exit": 50, "max_hold": None}, "X2": {"ma_exit": 20, "max_hold": None},
                         "X3": {"ma_exit": None, "max_hold": 60}}
+
+
+def test_weight_orders_have_no_stop_and_fixed_size():
+    """參考組 R1（照頁面做）：固定權重、不停損、持有 N 日。"""
+    m = _market(N=6)
+    ctx = _ctx(m)
+    sig = pd.DataFrame({"date": m.dates[[200, 210]], "stock_id": [m.stocks[0], m.stocks[1]], "entry": "open",
+                        "stop_pct": 0.08, "score": [2.0, 1.0], "tag": "t"})
+    res = CB.run(ctx, sig, market=False, mf=np.ones(m.n, dtype=bool), ma_exit=None, max_hold=20, weight=0.125,
+                 breakeven_r=None)
+    assert len(res.trades) == 2
+    assert set(res.trades["reason"]) <= {"time", "end"}
+    first_cost = res.trades.sort_values("entry_date")["cost_in"].iloc[0]
+    assert 0.10 * 1e7 < first_cost <= 0.126 * 1e7
