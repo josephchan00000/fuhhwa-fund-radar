@@ -70,8 +70,8 @@ def run_one(S: dict, name: str, sig: pd.DataFrame, rng: tuple, *, market: bool, 
     res = CB.run(S["ctx"], sig, market=market, mf=S["mf"], ma_exit=ma_exit, max_hold=max_hold, stop_pct=stop_pct,
                  start=s, end=e, base=base, weight=weight, breakeven_r=breakeven_r)
     lab = S["labels"][(S["labels"]["date"] >= pd.Timestamp(s)) & (S["labels"]["date"] <= pd.Timestamp(e))]
-    pr = {**(params or {}), "market": market, "ma_exit": ma_exit, "max_hold": max_hold, "stop_pct": stop_pct,
-          "data": "lab-A8"}
+    pr = {**(params or {}), "market": market, "ma_exit": ma_exit, "max_hold": max_hold,
+          "stop_pct": None if weight else stop_pct, "weight": weight, "breakeven_r": breakeven_r, "data": "lab-A8"}
     if log_trial:
         mt = EN.evaluate(name, "trade", res, pr, S["m"], labels=lab, reports_dir=REPORTS, allow_holdout=allow_holdout)
     else:
