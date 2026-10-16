@@ -131,7 +131,8 @@ def _f(x, d: int = 2) -> str:
     return "—" if x is None or (isinstance(x, float) and x != x) else f"{x:.{d}f}"
 
 
-VNAME = {"S01": "主規格（SPEC S01）", "S01_stop_entry": "盤中漲過樞紐就買", "S01_no_market": "拿掉大盤濾網",
+VNAME = {"S01": "主規格 v2（SPEC S01，轉折門檻隨波動）", "S01_v1": "v1：SPEC 原文（固定 3% 轉折）",
+         "S01_atr2": "轉折門檻改 2 倍 ATR", "S01_stop_entry": "盤中漲過樞紐就買", "S01_no_market": "拿掉大盤濾網",
          "S01_fund": "＋EPS 年增≥25%、營收年增≥20%", "S01_code33": "＋Code 33", "S01_be3": "保本改 3R",
          "S01_no_be": "不移到保本", "S01_no_vcp": "不看 VCP（樣板＋創 50 日新高）", "S01_no_tt": "不看趨勢樣板",
          "S20_sepa_exit": "現行飆股規則＋同一套出場"}
@@ -142,6 +143,7 @@ def write_md(out: dict) -> str:
     L = ["# P4.0　S01 SEPA（《超級績效》）lab 面板回測結果", "",
          f"規則與細節：`reports/P4_S01_plan.md`（v1，跑結果前 commit）。資料：fuhhwa data/lab（{out['panel']['start']}～"
          f"{out['panel']['end']}，{out['panel']['stocks']} 檔，含已下市）。保留期（2023 起）上鎖、沒有打開。"
+         f"VCP 成立的股票日：v1 {out['vcp_days']['v1']:,}、v2 {out['vcp_days']['v2']:,}、2 倍 ATR {out['vcp_days']['atr2']:,}。"
          "表格全部由 `scripts/run_s01.py` 產生。", ""]
     m0 = out["runs"]["S01"]
     L += ["## 1. 主規格 vs 大盤", "",
@@ -153,6 +155,9 @@ def write_md(out: dict) -> str:
                  f"{_p(b['B1_equal_weight']['cagr'])}／{_p(b['B1_equal_weight']['maxdd'])} | {x['trades']} | {_p(x['win_rate'], 0)} | "
                  f"{_f(x['payoff'])} | {_p(x['expectancy'])} | {_f(x['avg_hold'], 0)} | {_p(x['exposure'], 0)} | "
                  f"{_p(x.get('y_A_precision'))}（{_p(x.get('y_A_base'))}） |")
+    few = [p for p in PER if (m0[p]["metrics"]["trades"] or 0) < (100 if p == "IS" else 50)]
+    if few:
+        L += ["", f"**樣本不足**：{'、'.join(few)} 交易數低於事前寫定的下限（IS 100 筆、VAL 50 筆），結論只能參考。"]
     gate = m0["VAL"]["metrics"]
     ok = (gate.get("excess_cagr") or -1) > 0 and gate["maxdd"] >= (gate.get("bench_maxdd") or 0)
     L += ["", f"GATE P4 標準（VAL 扣成本後年化超額 > 0，且 VAL 最大回落不比加權報酬指數深）："
@@ -219,12 +224,14 @@ def main() -> None:
     t0 = time.time()
     m, extra = LP.load()
     LOG(f"[s01] 面板 {len(m.stocks)} 檔、{m.n} 個交易日（{m.dates[0].date()}～{m.dates[-1].date()}），{time.time() - t0:.0f} 秒")
-    F = FT.compute(m, extra["cap"])
-    LOG(f"[s01] 特徵 {time.time() - t0:.0f} 秒；合格股票日 {int(F['elig'].sum()):,}、樣板全過 {int(F['tt_pass'].sum()):,}、"
-        f"VCP 成立 {int(F['vcp_ok'].sum()):,}")
-    yA = FT.label(m, 60, 0.5, F["elig"])
-    yB = FT.label(m, 250, 1.0, F["elig"])
-    ii, jj = np.nonzero(F["elig"])
+    F1 = FT.compute(m, extra["cap"], FT.VCP)                       # v1：SPEC 原文（固定 3% 轉折）
+    F = {**F1, **{f"vcp_{k}": v for k, v in FT.vcp(m, F1["elig"], F1["dry"], FT.VCP_V2).items()}}   # v2（主規格）
+    F3 = {**F1, **{f"vcp_{k}": v for k, v in FT.vcp(m, F1["elig"], F1["dry"], {**FT.VCP_V2, "atr_k": 2.0}).items()}}
+    LOG(f"[s01] 特徵 {time.time() - t0:.0f} 秒；合格股票日 {int(F1['elig'].sum()):,}、樣板全過 {int(F1['tt_pass'].sum()):,}、"
+        f"VCP 成立 v1 {int(F1['vcp_ok'].sum()):,}／v2 {int(F['vcp_ok'].sum()):,}／ATR×2 {int(F3['vcp_ok'].sum()):,}")
+    yA = FT.label(m, 60, 0.5, F1["elig"])
+    yB = FT.label(m, 250, 1.0, F1["elig"])
+    ii, jj = np.nonzero(F1["elig"])
     labels = pd.DataFrame({"date": m.dates[ii], "stock_id": np.array(m.stocks)[jj], "y_A": yA[ii, jj], "y_B": yB[ii, jj]})
     fund = LP.fundamentals(extra["cal"], m.stocks)
     names = {}
@@ -233,16 +240,18 @@ def main() -> None:
         names = company.names()
     except Exception as e:  # noqa: BLE001
         LOG(f"[s01] 名稱讀不到：{e}")
-    ew = ew_level(m, F["elig"])
-    out = {"plan": "reports/P4_S01_plan.md v1", "panel": {"stocks": len(m.stocks), "start": str(m.dates[0].date()),
-           "end": str(m.dates[-1].date())}, "periods": PER, "bench": {}, "runs": {}, "grid": {}, "s20": {}}
+    ew = ew_level(m, F1["elig"])
+    out = {"plan": "reports/P4_S01_plan.md v2", "panel": {"stocks": len(m.stocks), "start": str(m.dates[0].date()),
+           "end": str(m.dates[-1].date())}, "periods": PER, "bench": {}, "runs": {}, "grid": {}, "s20": {},
+           "vcp_days": {"v1": int(F1["vcp_ok"].sum()), "v2": int(F["vcp_ok"].sum()), "atr2": int(F3["vcp_ok"].sum())}}
     for p, (s, e) in PER.items():
         out["bench"][p] = {"B0_taiex_tr": seg_stats(m.index_tr, s, e), "B1_equal_weight": seg_stats(ew, s, e)}
 
-    def go(name: str, spec: dict, sig=None, log_trial: bool = True) -> dict:
+    def go(name: str, spec: dict, sig=None, log_trial: bool = True, FF: dict | None = None) -> dict:
         r = {}
+        FF = F if FF is None else FF
         for p, (s, e) in PER.items():
-            res, sg = ST.run(m, F, spec, s, e, fund=fund, sig=sig)
+            res, sg = ST.run(m, FF, spec, s, e, fund=fund, sig=sig)
             lab = labels[(labels["date"] >= pd.Timestamp(s)) & (labels["date"] <= pd.Timestamp(e))]
             params = {**{k: v for k, v in spec.items()}, "period": p, "data": "lab-A8"}
             if log_trial and not a.quick:
@@ -258,16 +267,18 @@ def main() -> None:
             for p in PER) + f"（{time.time() - t0:.0f} 秒）")
         return r
 
-    out["runs"]["S01"] = go("S01", ST.spec_of("S01"))
+    out["runs"]["S01"] = go("S01v2", ST.spec_of("S01"))
     if a.quick:
         return
+    out["runs"]["S01_v1"] = go("S01v1", ST.spec_of("S01"), FF=F1)
+    out["runs"]["S01_atr2"] = go("S01v2_atr2", ST.spec_of("S01"), FF=F3)
     for name in ST.VARIANTS:
         if name != "S01":
-            out["runs"][name] = go(name, ST.spec_of(name))
+            out["runs"][name] = go(f"{name}v2", ST.spec_of(name))
     for sp in ST.GRID["stop_pct"]:
         for vol in ST.GRID["vol"]:
             k = f"stop{int(sp * 100)}_vol{vol:g}"
-            r = out["runs"]["S01"] if (sp, vol) == (0.08, 1.5) else go(f"S01_grid_{k}", ST.spec_of("S01", stop_pct=sp, vol=vol))
+            r = out["runs"]["S01"] if (sp, vol) == (0.08, 1.5) else go(f"S01v2_grid_{k}", ST.spec_of("S01", stop_pct=sp, vol=vol))
             out["grid"][k] = {p: r[p]["metrics"].get("excess_cagr") for p in PER}
     sig20 = s20_signals()
     out["s20"]["signals"] = int(len(sig20))

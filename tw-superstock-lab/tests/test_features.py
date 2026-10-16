@@ -132,4 +132,21 @@ def test_variants_only_touch_declared_keys():
     assert ST.S01 == {"entry": "open", "vol": 1.5, "stop_pct": 0.08, "breakeven_r": 2.0, "ma_exit": 50,
                       "market": True, "tt": True, "vcp": True, "fund": None, "max_hold": None}
     assert FT.VCP == {"thr": 0.03, "win": 260, "base_min": 30, "n_min": 2, "n_max": 6, "grow": 1.1,
-                      "d1_max": 0.35, "dn_max": 0.10, "near": 0.9, "dry": 0.7}
+                      "d1_max": 0.35, "dn_max": 0.10, "near": 0.9, "dry": 0.7, "atr_k": None}
+    assert FT.VCP_V2 == {**FT.VCP, "atr_k": 1.5}                    # v2 只改轉折門檻（reports/P4_S01_plan.md 第 9 節）
+
+
+def test_atr_threshold_merges_noise_swings():
+    """波動大的股票：3% 轉折把雜訊切成很多段；門檻改成 1.5 倍 ATR 後只剩真正的收縮。"""
+    base = _vcp_closes()
+    rng = np.random.default_rng(7)
+    noise = 1 + 0.025 * np.sin(np.arange(len(base)) * 1.7) + rng.normal(0, 0.004, len(base))
+    c = base * noise
+    m = _market(c, wiggle=0.012)
+    zz3 = FT.ZigZag(m.h[:, 0], m.l[:, 0], int(np.argmax(m.h[200:300, 0])) + 200, 0.03)
+    zz3.advance(len(c) - 1)
+    th = FT.atr_thr(m, 1.5, 0.03)[:, 0]
+    zzk = FT.ZigZag(m.h[:, 0], m.l[:, 0], zz3.s, 0.03, th)
+    zzk.advance(len(c) - 1)
+    assert len(zzk.contractions()[0]) < len(zz3.contractions()[0])
+    assert (th >= 0.03).all()

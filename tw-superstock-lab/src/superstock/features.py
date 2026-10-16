@@ -18,7 +18,11 @@ NAN = float("nan")
 # SPEC §5.3 VCP（使用者核定）：轉折門檻 3%、基底起點＝近 260 日最高點且至少 30 日前、2～6 段、
 # 每段 < 前一段 × 1.1、第一段 ≤ 35%、最後一段 ≤ 10%、收盤 ≥ 樞紐 × 0.9、量縮（10 日 ÷ 50 日均量）≤ 0.7
 VCP = {"thr": 0.03, "win": 260, "base_min": 30, "n_min": 2, "n_max": 6, "grow": 1.1, "d1_max": 0.35,
-       "dn_max": 0.10, "near": 0.9, "dry": 0.7}
+       "dn_max": 0.10, "near": 0.9, "dry": 0.7, "atr_k": None}
+# v2（reports/P4_S01_plan.md 第 9 節，2026-10-16）：v1 的固定 3% 轉折對台股太細——樣板全過、基底 ≥30 日的日子裡
+# 88% 被切成超過 6 段，VCP 幾乎不成立（9 年 26 筆交易）。只改轉折門檻＝max(3%, 1.5 × ATR14 ÷ 收盤)，
+# 1.5 倍 ATR 取自 GitHub 最多人用的 VCP 篩選器（tradermonty/claude-trading-skills vcp-screener）；其餘條件不動。
+VCP_V2 = {**VCP, "atr_k": 1.5}
 
 
 # ---------------------------------------------------------------------------------------------- 合格
@@ -82,21 +86,23 @@ class ZigZag:
     往上段：創新高就更新候選高點；最低跌破候選高點 × (1−門檻) → 確認高點、改找低點（反之亦然）。
     確認的那一天就是轉折被「看見」的那一天，所以任何一天的狀態都沒有用到未來。"""
 
-    __slots__ = ("h", "l", "thr", "s", "t", "sw", "up", "cv", "ci")
+    __slots__ = ("h", "l", "thr", "th", "s", "t", "sw", "up", "cv", "ci")
 
-    def __init__(self, h: np.ndarray, l: np.ndarray, s: int, thr: float):
-        self.h, self.l, self.thr, self.s, self.t = h, l, thr, s, s
+    def __init__(self, h: np.ndarray, l: np.ndarray, s: int, thr: float, th: np.ndarray | None = None):
+        """th＝每天的轉折門檻（v2：max(3%, k × ATR14 ÷ 收盤)，用當天以前的資料算）；None＝固定 thr。"""
+        self.h, self.l, self.thr, self.th, self.s, self.t = h, l, thr, th, s, s
         self.sw: list[tuple[str, int, float]] = []
         self.up = True
         self.cv, self.ci = float(h[s]), s
 
     def advance(self, t: int) -> None:
-        h, l, thr = self.h, self.l, self.thr
+        h, l, th0, th = self.h, self.l, self.thr, self.th
         up, cv, ci, sw = self.up, self.cv, self.ci, self.sw
         for i in range(self.t + 1, t + 1):
             hi, lo = h[i], l[i]
             if hi != hi or lo != lo:
                 continue
+            thr = th0 if th is None else th[i]
             if up:
                 if hi > cv:
                     cv, ci = hi, i
@@ -142,6 +148,17 @@ def vcp_check(pairs, pivot: float, close: float, dry: float, spec: dict = VCP) -
     return close >= spec["near"] * pivot and dry == dry and dry <= spec["dry"]
 
 
+def atr_thr(m: Market, k: float, floor: float) -> np.ndarray:
+    """每天的轉折門檻＝max(floor, k × ATR14 ÷ 收盤)；ATR14＝真實波幅（還原價）14 日平均，只用當天以前的資料。"""
+    prev = pd.DataFrame(m.c).ffill().shift(1).to_numpy()
+    with np.errstate(invalid="ignore"):
+        tr = np.fmax(m.h, prev) - np.fmin(m.l, prev)
+    atr = pd.DataFrame(tr).rolling(14, min_periods=10).mean().to_numpy()
+    with np.errstate(invalid="ignore", divide="ignore"):
+        th = k * atr / pd.DataFrame(m.c).ffill().to_numpy()
+    return np.fmax(np.nan_to_num(th, nan=floor), floor)
+
+
 def vcp(m: Market, need: np.ndarray, dry: np.ndarray, spec: dict = VCP) -> dict[str, np.ndarray]:
     """每檔股票、need 為真的日子：VCP 是否成立與它的樞紐、段數、第一段／最後一段深度、基底天數、最後一段低點。"""
     T, N = m.c.shape
@@ -150,10 +167,12 @@ def vcp(m: Market, need: np.ndarray, dry: np.ndarray, spec: dict = VCP) -> dict[
     nseg = np.zeros((T, N), dtype=np.int8)
     base = np.zeros((T, N), dtype=np.int16)
     win, bmin, thr = spec["win"], spec["base_min"], spec["thr"]
+    TH = atr_thr(m, spec["atr_k"], thr) if spec.get("atr_k") else None
     for j in range(N):
         if not need[:, j].any():
             continue
         h, l, c = m.h[:, j], m.l[:, j], m.c[:, j]
+        th = None if TH is None else TH[:, j]
         dq: deque = deque()
         zz = None
         nd = need[:, j]
@@ -169,7 +188,7 @@ def vcp(m: Market, need: np.ndarray, dry: np.ndarray, spec: dict = VCP) -> dict[
                 continue
             s = dq[0]
             if zz is None or zz.s != s:
-                zz = ZigZag(h, l, s, thr)
+                zz = ZigZag(h, l, s, thr, th)
             if not nd[t] or t - s < bmin:
                 continue
             zz.advance(t)
