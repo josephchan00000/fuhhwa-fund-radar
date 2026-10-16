@@ -565,10 +565,19 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
             v3 = {"err": f"{type(e).__name__}: {e}"}
     # 公司分析（docs/lab_company_plan.md 第 3.4 節）：全市場每日小表（飆股特徵、估值、體質）→ page.build 另存 x9t.json
     mtab: dict = {}
+    sx: dict = {}
     if DL is not None:
         try:
             from . import company
-            mtab = company.market_table(DL)
+            from . import superx as SX
+            res = SX.load_res()                           # 飆股研究結果（scripts/run_super.py）；沒有就只有小表
+            mtab = company.market_table(DL, rules=[c for _, c in SX.live_rules(res)])
+            hits = mtab.pop("hits", {})
+            mcols, mrows = mtab.get("cols") or [], mtab.get("rows") or {}     # 別叫 rows：後面頁面列表用這個名字
+            sx = SX.page_data(res, hits, {c: dict(zip(mcols, mrows[c])) for c in hits if c in mrows},
+                              {**company.names(), **(D.names or {})})
+            if sx:
+                sx["d"] = mtab.get("d")
         except Exception as e:                            # noqa: BLE001
             mtab = {"err": f"{type(e).__name__}: {e}"}
     DL = None
@@ -645,7 +654,7 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
             "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow, "ca": L.ca[-30:],
             "idx": idx_out, "strat": strat, "grow": grow, "adv": adv, "pack": pack, "hl": hl, "opt": opt,
-            "mtab": mtab, "dates": D.cal[-CHART_N:]}
+            "mtab": mtab, "sx": sx, "dates": D.cal[-CHART_N:]}
 
 
 def _take_full(strat: dict, grow: dict, v3: dict | None = None) -> dict:

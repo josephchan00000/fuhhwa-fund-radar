@@ -79,3 +79,18 @@ def test_company_text_has_no_banned_words():
               "建議賣", "目標價", "零風險", "無風險", "穩賺不賠")
     text = copage.JS + copage.CSS + copage.SEARCH_HTML
     assert not [w for w in banned if w in text]
+
+
+def test_analyze_does_not_shadow_page_rows():
+    """2026-10-16 踩到：小表那段把區域變數取名 rows，蓋掉後面頁面用的個股列表（頁面整個壞掉）。"""
+    src = (ROOT / "arm/lab/analyze.py").read_text("utf-8")
+    assert len(re.findall(r"^\s*(?:\w+\s*,\s*)*rows\s*(?:,\s*\w+\s*)*=", src, re.M)) == 1
+
+
+def test_company_js_runs_before_page_init():
+    """頁面初始化（go('opp')、#s= 個股卡）會呼叫公司分析的函式；公司分析的頂層 const 要先初始化（2026-10-16 踩到 TDZ）。"""
+    html = page.render({"rows": [], "asof": {}})
+    js = html[html.rindex("<script>"):]
+    init = "{const m=location.hash.match(/^#s=(.+)$/);if(m)renderStock(decodeURIComponent(m[1]));}"
+    assert js.index("const CO={},COP={}") < js.index("go('opp');") < js.index(init)
+    assert "/*@@COPAGE@@*/" not in html

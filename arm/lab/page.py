@@ -107,10 +107,11 @@ def render(data: dict, ser_v: str | None = None) -> str:
     main = {k: v for k, v in data.items() if k not in ("ser", "mtab")}
     main["serv"] = ser_v or _ver(ser_json(data))
     blob = _dump(main).replace("</", "<\\/")
-    from . import copage                     # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS／JS 接在後面
+    from . import copage                     # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
+                                             # （初始化會開分頁與 #s= 個股卡，這時公司分析的頂層 const 必須已經初始化）
     return (_HTML.replace("{{SUB}}", asof_line(data)).replace("{{CSS}}", _CSS + copage.CSS)
             .replace("{{SEARCH}}", copage.SEARCH_HTML)
-            .replace("{{DATA}}", blob).replace("{{JS}}", _JS + copage.JS))
+            .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", copage.JS)))
 
 
 _HTML = """<!doctype html>
@@ -1100,6 +1101,7 @@ function vOpp(){
   if((D.adv||{}).v3err)h+=`<div class=st>月營收驚喜、財報驚喜資料錯誤：${esc(D.adv.v3err)}</div>`;
   h+=sec('o-sum','摘要','這一期的機會',`${md(ADV.last)} 收盤後更新`,oSum()+`<h4 class=sh>時間表</h4>`+oTl(),
     Object.keys(PK).length?`<a data-go="stk" data-fstf="1">在個股表看這些股票 →</a>`:'');
+  h+=sxSec();                                         /* 飆股候選（copage.py；研究規則今天符合的股票） */
   h+=(OPP.cards||[]).map(oCard).join('');
   h+=sec('o-avoid','避開','避開清單','持有中的照規則處理；沒持有的這段期間不買',`${hdGroups(false)}${gapList()}`);
   const C=(ADV.grades3||[]).filter(g=>g.grade==='C'&&g.k!=='hd');
@@ -1923,6 +1925,7 @@ function go(t,anchor){S.tab=t;$$('#tabs a[data-t]').forEach(a=>a.classList.toggl
   $$('#main [data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();const d=a.dataset;
     if(d.fsig!==undefined){S.sig=d.fsig;S.q='';S.n=60;S.stf=false;}if(d.fstf!==undefined){S.stf=true;S.sig='';S.q='';S.n=60;}if(d.sort){S.vw='etf';S.sort=d.sort;S.dir=+(d.dir||-1);}go(d.go,d.at);});
   window.scrollTo(0,0);if(anchor)requestAnimationFrame(()=>jump(anchor));}
+/*@@COPAGE@@*/
 $$('#tabs a[data-t]').forEach(a=>a.onclick=()=>go(a.dataset.t));
 go('opp');
 if(isPane())setTimeout(()=>{loadSer().catch(()=>{});},1500);

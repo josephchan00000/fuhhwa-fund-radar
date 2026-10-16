@@ -665,18 +665,81 @@ def check_stats(rows: list, labs=("A", "B")) -> dict:
     return out
 
 
+# 頁面上的條件寫法（只影響顯示，不影響規則）
+SHORT = {"tt_n": "趨勢樣板通過項數", "tt_all": "趨勢樣板 8 項全過", "rs": "RS", "d52h": "距 52 週高點", "r120": "近 120 日漲幅",
+         "lu20": "近 20 日漲停次數", "vdry": "10 日均量 ÷ 50 日均量", "ry": "月營收年增", "ry3": "近 3 月營收年增",
+         "racc": "營收年增加速", "rnh12": "月營收創 12 個月新高", "rnha": "月營收創歷史新高", "ey": "最新季 EPS 年增",
+         "eacc": "EPS 年增加速", "gm": "毛利率", "gmd": "毛利率比去年同季", "om": "營益率", "omd": "營益率比去年同季",
+         "c33": "Code 33", "roe": "近四季 ROE", "cap": "市值", "liq": "20 日均成交值"}
+PCT_PT = ("racc", "eacc", "gmd", "omd")             # 百分點
+
+
 def cond_text(cond) -> str:
     k, op, v = cond
-    nm = FNAME.get(k, k)
+    nm = SHORT.get(k, FNAME.get(k, k))
     if op == "=":
         return nm
-    pct = k in ("ry", "ry3", "racc", "ey", "eacc", "gm", "gmd", "om", "omd", "roe", "d52h", "r120")
     if k == "cap":
         val = f"{v / 1e8:,.0f} 億"
     elif k == "liq":
         val = f"{v / 1e8:,.1f} 億"
-    elif pct:
-        val = f"{v * 100:+.1f}%" if k in ("ry", "ry3", "racc", "ey", "eacc", "gmd", "omd", "d52h", "r120") else f"{v * 100:.1f}%"
+    elif k in PCT_PT:
+        val = f"{v * 100:+.0f} 個百分點" if abs(v) >= 0.01 else f"{v * 100:+.1f} 個百分點"
+    elif k in ("ry", "ry3", "ey", "d52h", "r120"):
+        val = f"{v * 100:+.0f}%"
+    elif k in ("gm", "om", "roe"):
+        val = f"{v * 100:.0f}%"
+    elif k == "vdry":
+        val = f"{v:.2f} 倍"
+    elif k in ("rs", "tt_n", "lu20"):
+        val = f"{v:g}"
     else:
         val = f"{v:g}"
     return f"{nm} {'≥' if op == '>=' else '≤' if op == '<=' else '>'} {val}"
+
+
+# ── 頁面：研究結果檔 → 頁面資料 ────────────────────────────────────────────────
+RES_FILE = "super_research.json"
+
+
+def load_res() -> dict | None:
+    from . import store
+    res = store.read_json(RES_FILE, None)
+    return res if res and res.get("ver") == VER else None
+
+
+def live_rules(res: dict | None) -> list[tuple[str, list]]:
+    """研究定案的規則 → [(標籤, 條件)]（A 在前；頁面的規則序號照這個順序）。"""
+    out = []
+    for L in LABELS:
+        for r in (((res or {}).get("labels") or {}).get(L) or {}).get("rules") or []:
+            out.append((L, [tuple(c) for c in r["conds"]]))
+    return out
+
+
+def page_data(res: dict | None, hits: dict | None, feats: dict | None = None, names: dict | None = None) -> dict:
+    """頁面用：體質檢查各項與「符合幾項」的過去比例、規則（文字與三段期間成績）、今天符合規則的股票。
+    feats＝{代號: x9t 列（dict）} 給候選清單帶幾個數字。"""
+    if not res:
+        return {}
+    ch = (res.get("checks") or {}).get("all") or {}
+    ck = {k: {L: {x: v[L].get(x) for x in ("p", "base", "n", "lift")} for L in LABELS if v.get(L)}
+          for k, v in (ch.get("items") or {}).items()}
+    rules = []
+    for L in LABELS:
+        lab = (res.get("labels") or {}).get(L) or {}
+        for r in lab.get("rules") or []:
+            rules.append({"lab": L, "txt": r.get("txt"), "is": r.get("is"), "val": r.get("val"), "ho": r.get("ho"),
+                          "ex": r.get("ex")})
+    labs = {L: {k: ((res.get("labels") or {}).get(L) or {}).get(k) for k in ("base", "tried", "is_pass", "val_pass", "union")}
+            for L in LABELS}
+    cand = []
+    for c, ix in sorted((hits or {}).items()):
+        r = (feats or {}).get(c) or {}
+        cand.append([c, (names or {}).get(c, c), ix, r.get("px"), r.get("rs"), r.get("ry3"), r.get("ey"), r.get("d52h"),
+                     r.get("cap")])
+    cand.sort(key=lambda x: (-len(x[2]), -(x[4] or 0)))
+    return {"v": res.get("ver"), "asof": res.get("asof"), "last": res.get("last"), "n": res.get("n"),
+            "codes": res.get("codes"), "ck": ck, "cnt": ch.get("count"), "rules": rules, "labs": labs,
+            "hits": {c: ix for c, ix in (hits or {}).items()}, "cand": cand,
+            "spec": {"labels": LABELS, "cap_min": CAP_MIN, "is": IS, "val": VAL, "ho": HO}}

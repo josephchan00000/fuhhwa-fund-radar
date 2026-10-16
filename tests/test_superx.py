@@ -93,7 +93,9 @@ def test_rs_pct_and_rules():
                      "y": {"A": {"y": y, "mx": 0.6 if y else 0.1, "dd": -0.1, "fr": 0.2}}})
     ev = SX.eval_rule(rows, "A", [("rs", ">=", 80), ("ry", ">=", 0.5)])
     assert ev["p"] == 1.0 and ev["lift"] > 2
-    assert SX.cond_text(("ry", ">=", 0.25)) == "最新月營收年增 ≥ +25.0%"
+    assert SX.cond_text(("ry", ">=", 0.25)) == "月營收年增 ≥ +25%"
+    assert SX.cond_text(("vdry", ">=", 1.6374)) == "10 日均量 ÷ 50 日均量 ≥ 1.64 倍"
+    assert SX.cond_text(("racc", ">=", 0.046)) == "營收年增加速 ≥ +5 個百分點"
     assert SX.cond_text(("tt_all", "=", True)) == "趨勢樣板 8 項全過"
 
 
