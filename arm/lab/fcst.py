@@ -480,7 +480,8 @@ def page_doc(listed: dict | None = None, today: date | None = None) -> dict:
         v = view(ev.get(c), ys.get(c))
         if v:
             s[c] = v
-    return {"d": (today or datetime.now(TZ).date()).isoformat(), "fs_from": fs.get("from"), "yd": yh.get("d"), "s": s}
+    first = min((r[0] for rows in ev.values() for r in rows), default=None)   # 最早一則快訊的日期
+    return {"d": (today or datetime.now(TZ).date()).isoformat(), "fs_from": first, "yd": yh.get("d"), "s": s}
 
 
 def target_price(v: dict) -> tuple[float | None, str | None]:

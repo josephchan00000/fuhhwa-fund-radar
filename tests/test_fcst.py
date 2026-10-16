@@ -127,3 +127,39 @@ def test_update_yahoo_keeps_old_on_failure(tmp_path, monkeypatch):
     assert st["ok"] == 1 and st["none"] == 1 and st["err"] == 1 and not st["full"]
     assert fcst.update_yahoo({"1111": "tw"}, today=date(2026, 10, 16)) == {"skip": "今天已抓過"}
     assert fcst.store.dates(fcst.YH_ARCH) == ["2026-10-16"]          # 每週封存一份
+
+
+BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "建議買賣", "建議買", "建議賣", "目標價", "零風險",
+          "無風險", "穩賺不賠")
+
+
+def test_page_doc_and_brief(tmp_path, monkeypatch):
+    """x9f.json 不帶快訊標題（標題有「目標價」三個字）；飆股段小字＝[家數, 今年 EPS 年增%, 30 天方向, 預估股價比現價%]。"""
+    monkeypatch.setattr(fcst.store, "LAB", tmp_path)
+    doc = fcst.load_fs()
+    fcst._merge_fs(doc, [_item("e"), _item("t")], {})
+    fcst._write_lines(fcst.FS_FILE, doc, "ev")
+    pd = fcst.page_doc()
+    assert set(pd["s"]) == {"4958", "2455"}
+    assert not [w for w in BANNED if w in json.dumps(pd, ensure_ascii=False)]
+    v = pd["s"]["4958"]
+    assert v["e"]["eps"][0][0] == 2026 and v["ev"][0] == ["2026-10-15", "e", 14.05, 14.23, 2026]
+    assert fcst.target_price(pd["s"]["2455"]) == (710.0, "2026-10-15")
+    assert fcst.brief(v, 500.0, {"2025": 7.0}, date(2026, 10, 16)) == [8, 103.3, 1, 34.0]
+    assert fcst.brief(v, None, {}, date(2026, 12, 20)) == [8, None, None, None]   # 30 天外不算方向
+
+
+def test_company_card_and_wl_wiring():
+    from pathlib import Path
+    from arm.lab import copage
+    js = copage.JS
+    for s in ("id=co-fc", "id=co-ind", "'x9f.json?v='", "['co-fc','法人預估']", "['co-ind','產業']", "function fcLine",
+              "產業熱度", "'法人預估':", "'產業比較':"):
+        assert s in js, s
+    assert not [w for w in BANNED if w in js + copage.CSS]
+    root = Path(__file__).resolve().parents[1]
+    for wf in ("daily.yml", "afterhours_refresh.yml", "etf_holdings.yml"):
+        t = (root / ".github/workflows" / wf).read_text("utf-8")
+        assert t.count("git add -f dashboard/x9f.json 2>/dev/null || true") == 2, wf   # 一般與重試迴圈各一
+    t = (root / ".github/workflows/afterhours_refresh.yml").read_text("utf-8")
+    assert "timeout 420 python3 scripts/fetch_fcst.py" in t                         # 每班補快訊、Yahoo 一天一次

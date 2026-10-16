@@ -39,6 +39,13 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         if mt.get("rows"):
             changed |= company.write_table(mt, out.parent / "x9t.json")
             data["mtv"] = _ver(company._dump(mt))
+        try:                                 # 法人預估（docs/lab_forward_plan.md）：公司卡點進去才下載
+            from . import fcst
+            fdoc = fcst.page_doc(company.listed_now())
+            changed |= company._write_if_changed(out.parent / "x9f.json", company._dump(fdoc))
+            data["fcv"] = _ver(company._dump(fdoc))
+        except Exception as e:               # noqa: BLE001
+            print(f"[籌碼雷達] ⚠ 法人預估檔沒有更新：{type(e).__name__}: {e}")
         st = company.build_co(out.parent / "co")
         print(f"[籌碼雷達] 公司分析檔 {st.get('n')} 檔、改寫 {st.get('write')} 檔" + (f"（{st['err']}）" if st.get("err") else ""))
     except Exception as e:                   # noqa: BLE001 —— 公司分析失敗不影響建頁
