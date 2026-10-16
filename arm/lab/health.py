@@ -491,8 +491,17 @@ def unpack_ref_tr(rows: list[list]) -> list[dict]:
 
 # ── 每日健檢（第 3 節） ──────────────────────────────────────────────────
 
+def cdf_pct(vs: list[float], x: float | None) -> float | None:
+    """x 在數列裡的百分位（比它小的占幾 %，相等的算一半）。"""
+    if x is None or not vs:
+        return None
+    lo = sum(1 for v in vs if v < x)
+    eq = sum(1 for v in vs if v == x)
+    return round(100 * (lo + 0.5 * eq) / len(vs), 1)
+
+
 def check(k: str, ref: dict, fwd_u: list[float], *, open_items: list[dict], fwd_tr: list[dict], halves,
-          event: bool, n_rank: int = 5) -> dict:
+          event: bool, n_rank: int = 5, fwd_rows: list[dict] | None = None) -> dict:
     """一條策略的當天健檢。ref＝回測參考（ref_pack）；fwd_u＝前瞻已完成單位的報酬；open_items＝持有中
     [{n（名稱）, d（持有第幾天）, x（目前累積報酬 %）}]（逐檔策略每檔一項、其餘每批一項）；fwd_tr＝前瞻已出場逐筆。
     → {n, avg, light, b（燈號抽樣）, hold（持有中百分位）, low（低於第 5 百分位的項目）, split（拆解）}"""
@@ -503,7 +512,10 @@ def check(k: str, ref: dict, fwd_u: list[float], *, open_items: list[dict], fwd_
         p = at_day(ref.get("q") or {}, it["d"], it.get("x"))
         hold.append({**it, "pct": p})
     trs = unpack_ref_tr(ref.get("tr") or []) + [x for x in fwd_tr if x.get("r") is not None]
+    ru = ref.get("u") or []
+    fw = [[x["d"], x.get("n"), x["r"], cdf_pct(ru, x["r"])] for x in (fwd_rows or []) if x.get("r") is not None][-40:]
     return {"k": k, "n": len(fwd_u), "avg": _r2(_mean(fwd_u)), "light": light(b["pct"], len(fwd_u), event), "b": b,
+            "fw": fw,
             "hold": hold, "low": [h["n"] for h in hold if h["pct"] is not None and h["pct"] < HOLD_PCT_EV],
             "split": split(trs, ref.get("cut") or {}, halves, n_rank=n_rank),
             "ref_n": len(ref.get("u") or []), "q_days": len((ref.get("q") or {}).get("q") or [])}
@@ -560,10 +572,12 @@ def daily(full: dict, v3: dict, D, ctx, reg_map: dict | None, ref_file: dict | N
         items = []
         nw = hl.get("now")
         if nw and nw.get("p"):
-            items.append({"n": f"{nw['d'][5:7].lstrip('0')}/{nw['d'][8:10].lstrip('0')} 那一批", "d": len(nw["p"]),
+            items.append({"n": f"{_md(nw['d'])} 那一批", "d": len(nw["p"]),
                           "x": nw["p"][-1]})
+        rows = [{"d": u["d"], "n": f"{_md(u['d'])} 那一期", "r": u["r"]}
+                for u in (L.get("fwd") or {}).get("units") or [] if u.get("r") is not None]
         out[k] = {**check(k, R, fu, open_items=items, fwd_tr=hl.get("tr") or [], halves=_halves(k, unpack_ref_tr(R["tr"])),
-                          event=k in EVENT), "since": v3live.SINCE}
+                          event=k in EVENT, fwd_rows=rows), "since": v3live.SINCE}
     sinces = {"s1": next(s["since"] for s in strategy.STRATEGIES if s["key"] == "s1"), "s5": growth.S5["since"],
               "s3": strategy.TW50_VERS[0]["since"]}
     for k in ("s1", "s5", "s3"):
@@ -589,9 +603,21 @@ def daily(full: dict, v3: dict, D, ctx, reg_map: dict | None, ref_file: dict | N
             for x in h:
                 if x.get("i") is None and x.get("path"):
                     items.append({"n": names.get(x["c"], x["c"]), "c": x["c"], "d": len(x["path"]), "x": x["path"][-1]})
+        if ev:
+            g2: dict = {}
+            for x in fwc:
+                g2.setdefault(x.get("g"), []).append(x)
+            rows = sorted(({"d": min(y["d"] for y in v), "n": f"{g} 這一次", "r": round(statistics.mean(y["r"] for y in v), 2)}
+                           for g, v in g2.items()), key=lambda z: z["d"])
+        else:
+            rows = [{"d": x["d"], "n": names.get(x["c"], x["c"]), "r": x["r"]} for x in fwc]
         out[k] = {**check(k, R, fu, open_items=items, fwd_tr=fwc, halves=_halves(k, [x for x in h if not x["fw"]]),
-                          event=ev, n_rank=4 if ev else 5), "since": sinces[k]}
+                          event=ev, n_rank=4 if ev else 5, fwd_rows=rows), "since": sinces[k]}
     return out
+
+
+def _md(d: str) -> str:
+    return f"{int(d[5:7])}/{int(d[8:10])}" if d and len(d) >= 10 else (d or "—")
 
 
 def store_read(name: str):

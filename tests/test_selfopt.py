@@ -352,3 +352,17 @@ def test_lab_opt_workflow_weekly_and_commits_results():
     assert "git add -f data/lab/opt_research.json" in wf and "git add -f data/lab/opt_shadow.json" in wf
     reg = __import__("json").loads((ROOT / "data/lab/opt_shadow.json").read_text(encoding="utf-8"))
     assert set(reg) == {"ver", "items", "cool"} and reg["ver"] == O.OPT_VER
+
+
+def test_backend_page_health_section():
+    """後台「策略健檢與改良」：名詞、事件標籤、區塊順序（在前瞻紀錄之後）。"""
+    from arm.lab import page
+    js = page._JS
+    for k in ("健檢燈號", "百分位", "改良候選", "配對比較", "多重檢定校正", "改良分級", "影子版本"):
+        assert f"'{k}':" in js, k
+    assert "['策略健檢與改良',['健檢燈號'" in js
+    assert "dev:'表現偏離回測'" in js and "shok:'影子版本達標'" in js and "sout:'影子版本淘汰'" in js
+    assert "boFwd()+hlSec()+boHist()" in js and "t.tagName==='DETAILS'" in js
+    seg = js.split("/* 策略健檢與改良", 1)[1].split("function vBo(", 1)[0]
+    for w in ("建議", "目標價", "保證", "穩賺", "必漲", "一定會"):
+        assert w not in seg, w
