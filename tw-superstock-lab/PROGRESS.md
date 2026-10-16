@@ -10,6 +10,7 @@ Done (2026-10-15, cloud session; live API via GitHub Actions `superstock.yml`, r
 Next:
 0. P4.0 ran (reports/P4_S01_summary.md): v1 literal VCP = 26 trades/9y (unusable) → v2 (zigzag max(3%,1.5×ATR14), pre-registered 85425c538). v2 IS 2014–19 CAGR −1.0% vs TAIEX-TR 9.9%, VAL 2020–22 +18.3% vs 9.2%; win ~30%; 9-cell grid IS 0/9, VAL 8/9 positive excess. Owner then said 「綜合找到最優解」 → P5 on lab data.
 0b. P5 (lab) DONE (reports/P5_summary.md): 84 configs → finalists F0_E1_X3_M0, F5_E1_X3_M0 (+ refs R1 page-style, R2 S01v2 added in plan v2 before HOLDOUT). DSR 0.04 / 0.26 (122 VAL trials). HOLDOUT OPENED ONCE (2023-01-02→2026-10-14, holdout_log.csv): TAIEX-TR 42.4%/yr, EW universe 23.6%; F0 −3.2%, F5 4.4%, R1 22.4% (MDD −48%), R2 2.5% → GATE P5 FAIL for both. Holdout is now used; further validation = forward paper trades or FinMind full universe (small caps).
+0c. W1 (owner: keep low-probability lists that reliably contain super-winners; owner applies own judgment): plan reports/W1_plan.md v1 committed BEFORE results; watch.py (9 weekly lists, doubling/tripling episodes, early capture vs size-matched random) + scripts/run_watch.py.
 1. Owner (Mac): `git pull` → `.env` FINMIND_TOKEN → `check` → `download` in background (≈28 h with token) — steps given in chat 2026-10-15.
 2. After download: `official` (auto at end of download) → build → quality → reconcile (20 stocks) → GATE P1 → P3. Data lives only on the Mac, so P3+ run there (Claude Code in this folder: 「照 PROGRESS.md 繼續」).
 Running jobs: none
