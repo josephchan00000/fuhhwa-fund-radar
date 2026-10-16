@@ -681,6 +681,7 @@ def evaluate(k: str, C, *, log=print) -> dict:
     cur, cur2 = C.run(p0), C.run(p0, mult=COST_X)
     mdd0 = mdd_of(k, C, cur)
     main0 = [v[1] for v in cur["u"].values() if _main(k, v[0])]
+    took0 = [v[1] for v in cur["u"].values() if _main(k, v[0]) and v[2]]
     rows = []
     for key, what, st, nbs in MENU[k]:
         r1, r2 = C.run(params(k, key)), C.run(params(k, key), mult=COST_X)
@@ -692,12 +693,44 @@ def evaluate(k: str, C, *, log=print) -> dict:
             nb.append(_mean([v for _, v, _ in dn]))
         x2 = [x for x in pairs(cur2["u"], r2["u"]) if _main(k, x[0])]
         m1 = [v[1] for v in r1["u"].values() if _main(k, v[0])]
+        t1 = [v[1] for v in r1["u"].values() if _main(k, v[0]) and v[2]]
         rows.append({"k": key, "what": what, **sm, "nb": nb, "x2": _mean([v for _, v, _ in x2]),
-                     "mdd": mdd_of(k, C, r1), "mdd0": mdd0, "avg0": _mean(main0), "avg1": _mean(m1)})
+                     "mdd": mdd_of(k, C, r1), "mdd0": mdd0, "avg0": _mean(main0), "avg1": _mean(m1),
+                     "nt1": len(t1), "avgt1": _mean(t1)})
     hs = holm([p_one(r["t"]) for r in rows])
     for r, h in zip(rows, hs):
         r["p"] = p_one(r["t"])
         r["holm"] = h
         r["tier"], r["fails"] = tier(k, r)
     log(f"[opt] {k}：{len(rows)} 個候選、{time.time() - t0:.1f} 秒")
-    return {"k": k, "n0": len(main0), "avg0": _mean(main0), "mdd0": mdd0, "cands": rows}
+    return {"k": k, "n0": len(main0), "avg0": _mean(main0), "nt0": len(took0), "avgt0": _mean(took0), "mdd0": mdd0,
+            "cands": rows}
+
+
+def _rd(x, k: int = 3):
+    if isinstance(x, float):
+        return None if x != x else round(x, k)
+    if isinstance(x, (list, tuple)):
+        return [_rd(v, k) for v in x]
+    if isinstance(x, dict):
+        return {a: _rd(b, k) for a, b in x.items()}
+    return x
+
+
+def run_all(P=None, keep: dict | None = None, *, log=print) -> dict:
+    """每週重跑：六條策略的全部候選。P＝v3 長歷史面板；keep＝analyze.run(keep=…) 的中間物件。"""
+    from . import bt3, bt3d
+    from . import packtest as PT
+    res = {}
+    if P is not None:
+        E = bt3.Elig(P)
+        eps, rev = bt3d.load_eps(), PT.load_rev()
+        for k in ("v3l", "v7m", "v7l"):
+            res[k] = evaluate(k, PerCtx(P, E, k, eps=eps, rev=rev), log=log)
+    if keep is not None:
+        for k, cls in (("s1", S1Ctx), ("s5", S5Ctx), ("s3", S3Ctx)):
+            try:
+                res[k] = evaluate(k, cls(keep), log=log)
+            except Exception as e:                        # noqa: BLE001 —— 一條失敗不連累其他
+                res[k] = {"k": k, "err": f"{type(e).__name__}: {e}"}
+    return {"ver": OPT_VER, "since": OPT_SINCE, "res": _rd(res)}
