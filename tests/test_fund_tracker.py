@@ -302,6 +302,9 @@ def test_cal_spec_tw_data_and_slim_rules():
     assert "台：" in s and "台灣區" in s and "至多 4 列" in s and "台：本週無台灣重點經濟數據" in s
     assert "總列數 ≤ 30" in s and "併一列" in s and "事先排定" in s and "本週焦點" in s
     assert "昨夜重點不寫" in s
+    # 2026-10-16：Fed 主席沃許曼谷談話漏列——央行首長排定談話必列，底稿不是清單上限
+    assert "央行首長排定談話必列" in s and "Fed 主席" in s and "日銀總裁" in s
+    assert "底稿只是起點" in macronews.CAL_CARRY_RULE
     rows = macronews._parse_cal_rows("| 07/08 | 台：6月出口（年增） | — | — | +38.6% | 未公布 |\n"
                                      "| 07/16 | 台股：台積電（2330）Q2法說會 | — | — | — | 未公布 |\n")
     assert [r["region"] for r in rows] == ["台", "台股"]       # 「台股」不被「台」吃掉前兩字
