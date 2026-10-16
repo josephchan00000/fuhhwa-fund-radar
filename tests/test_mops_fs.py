@@ -84,14 +84,17 @@ def test_update_fs_and_load_single_quarter(monkeypatch, tmp_path):
             base = {f"{1000 + k}": dict(cum[(y, q)]) for k in range(250)}
         if kind == "bs":
             base["1000"] = {"ta": 900.0 + q, "eqp": 400.0 + q}
+        if kind == "cf":
+            base = {f"{1000 + k}": {"ocf": 20.0 * q, "cash": 50.0 + q} for k in range(250)}
         return base
     monkeypatch.setattr(v3data.market, "mops_fs", fake)
     st = v3data.update_fs(budget_s=60, workers=2)
-    assert st["req"] == 8 and st["ok"] == 8 and len(calls) == 8
+    assert st["req"] == 12 and st["ok"] == 12 and len(calls) == 12     # 兩季 × 三張表 × 兩市場
     assert v3data.update_fs(budget_s=60)["req"] == 0          # 都有了就不再請求
     fs = v3data.load_fs()["1000"]
     assert fs["2025-03-31"]["rev"] == 100 and fs["2025-06-30"]["rev"] == 150    # 單季＝累計相減
     assert fs["2025-06-30"]["eps"] == 1.5 and fs["2025-06-30"]["eqp"] == 402.0
+    assert fs["2025-06-30"]["ocf"] == 20.0 and fs["2025-06-30"]["cash"] == 52.0   # 現金流量相減、期末現金取季底
 
 
 def test_fs_todo_refetch_window(monkeypatch, tmp_path):
@@ -102,7 +105,15 @@ def test_fs_todo_refetch_window(monkeypatch, tmp_path):
     full = {p: {"1": {}} for p in v3data.FS_PARTS}
     store.write("fsq", "2026Q2", {**full, "at": {p: "2026-08-15" for p in v3data.FS_PARTS}})
     assert v3data._fs_todo("2026-08-20") == []                 # 期限（8/14）後 6 天：不補抓
-    assert len(v3data._fs_todo("2026-09-01")) == 4             # 第 18 天：補抓一次
+    assert len(v3data._fs_todo("2026-09-01")) == 6             # 第 18 天：補抓一次
     store.write("fsq", "2026Q2", {**full, "at": {p: "2026-09-01" for p in v3data.FS_PARTS}})
     assert v3data._fs_todo("2026-09-10") == []                 # 補抓過了
     assert v3data._fs_todo("2026-10-10") == []                 # 過了 45 天
+
+
+def test_cash_flow_summary():
+    head = ("公司代號 | 公司名稱 | 營業活動之淨現金流入（流出） | 投資活動之淨現金流入（流出） | 籌資活動之淨現金流入（流出） | "
+            "匯率變動對現金及約當現金之影響 | 本期現金及約當現金增加（減少）數 | 期初現金及約當現金餘額 | 期末現金及約當現金餘額")
+    row = "1301 | 台塑 | -4,083,686 | -3,263,156 | 7,246,374 | 459,179 | 358,711 | 10,631,822 | 10,990,533"
+    d = market.parse_mops_fs(_tbl(head, row), "cf")["1301"]
+    assert d == {"ocf": -4083686, "icf": -3263156, "ffc": 7246374, "cash": 10990533}

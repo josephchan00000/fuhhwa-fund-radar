@@ -1122,10 +1122,15 @@ FS_MAP = {
            ("eqp", ("歸屬於母公司業主之權益合計", "歸屬於母公司業主權益合計", "歸屬於母公司業主之權益")),
            ("eq", ("權益總計", "權益總額")),
            ("bvps", ("每股參考淨值",))],
+    # 現金流量彙總（t163sb20，2026-10-16 探針：六種產業格式欄名一致；當年累計）
+    "cf": [("ocf", ("營業活動之淨現金流入（流出）",)),
+           ("icf", ("投資活動之淨現金流入（流出）",)),
+           ("ffc", ("籌資活動之淨現金流入（流出）",)),
+           ("cash", ("期末現金及約當現金餘額",))],
 }
 # 銀行格式沒有收入合計欄：營收＝利息淨收益＋利息以外淨損益（2026-10-16 探針：表頭只有這兩欄）
 FS_SUM = {"is": {"rev": ("利息淨收益", ("利息以外淨損益", "利息以外淨收益"))}}
-FS_EP = {"is": "t163sb04", "bs": "t163sb05"}
+FS_EP = {"is": "t163sb04", "bs": "t163sb05", "cf": "t163sb20"}
 
 
 def _norm_head(s: str) -> str:
@@ -1133,7 +1138,8 @@ def _norm_head(s: str) -> str:
 
 
 def parse_mops_fs(html: str, kind: str) -> dict[str, dict[str, float]]:
-    """MOPS 綜合損益（is）／資產負債（bs）彙總表 → {代號: {統一欄位: 數值}}。金額單位仟元；損益是當年累計。"""
+    """MOPS 綜合損益（is）／資產負債（bs）／現金流量（cf）彙總表 → {代號: {統一欄位: 數值}}。金額單位仟元；
+    損益與現金流量是當年累計。"""
     out: dict[str, dict] = {}
     for tb in re.findall(r"<table[^>]*>(.*?)</table>", html, re.S | re.I):
         rows = [[_TAG.sub("", c).replace("&nbsp;", "").strip() for c in _TD.findall(tr)] for tr in _TR.findall(tb)]

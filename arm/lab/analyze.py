@@ -563,6 +563,14 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
             v3ctx = v3.pop("_ctx", None)
         except Exception as e:                            # noqa: BLE001
             v3 = {"err": f"{type(e).__name__}: {e}"}
+    # 公司分析（docs/lab_company_plan.md 第 3.4 節）：全市場每日小表（飆股特徵、估值、體質）→ page.build 另存 x9t.json
+    mtab: dict = {}
+    if DL is not None:
+        try:
+            from . import company
+            mtab = company.market_table(DL)
+        except Exception as e:                            # noqa: BLE001
+            mtab = {"err": f"{type(e).__name__}: {e}"}
     DL = None
     stats = backtest.signal_stats(D, sig_hist, taiex)
     from . import strategy
@@ -637,7 +645,7 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
             "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow, "ca": L.ca[-30:],
             "idx": idx_out, "strat": strat, "grow": grow, "adv": adv, "pack": pack, "hl": hl, "opt": opt,
-            "dates": D.cal[-CHART_N:]}
+            "mtab": mtab, "dates": D.cal[-CHART_N:]}
 
 
 def _take_full(strat: dict, grow: dict, v3: dict | None = None) -> dict:

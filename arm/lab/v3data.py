@@ -407,10 +407,11 @@ def update_tr_recent() -> int:
 
 
 # ── 公司財報分析（docs/lab_company_plan.md 第 3.2 節）：綜合損益＋資產負債彙總的全部科目 ─────────────
-FS_PARTS = ("is_sii", "is_otc", "bs_sii", "bs_otc")
+FS_PARTS = ("is_sii", "is_otc", "bs_sii", "bs_otc", "cf_sii", "cf_otc")
 FS_MIN = 200                       # 一市場一季至少幾家才算抓到（同 EPS）
 FS_RE = (14, 45)                   # 法定期限後第 14～45 天再抓一次（補晚報的公司），只抓一次
-FS_FLOW = ("rev", "cogs", "gp", "opex", "op", "nonop", "pti", "tax", "ni", "nip", "eps")   # 損益：當年累計 → 單季要相減
+FS_FLOW = ("rev", "cogs", "gp", "opex", "op", "nonop", "pti", "tax", "ni", "nip", "eps",
+           "ocf", "icf", "ffc")      # 損益、現金流量：當年累計 → 單季要相減
 QEND = {1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31"}
 
 
@@ -491,17 +492,21 @@ def update_fs(budget_s: float = 600, workers: int = 4, max_req: int | None = Non
 
 
 def load_fs() -> dict[str, dict[str, dict]]:
-    """fsq → {代號: {季底: {欄位: 值}}}：損益欄位為單季（Q1＝累計、Qn＝累計(n) − 累計(n−1)，前一季缺就不算），
-    資產負債為季底值。金額單位仟元、EPS 元。"""
+    """fsq → {代號: {季底: {欄位: 值}}}：損益與現金流量為單季（Q1＝累計、Qn＝累計(n) − 累計(n−1)，前一季缺就不算），
+    資產負債與期末現金為季底值。金額單位仟元、EPS 元。"""
     cum: dict[str, dict] = {}
     bal: dict[str, dict] = {}
     for key, doc in store.load("fsq"):
         y, q = int(key[:4]), int(key[5])
         for m in ("sii", "otc"):
             for c, d in (doc.get(f"is_{m}") or {}).items():
-                cum.setdefault(c, {})[(y, q)] = d
+                cum.setdefault(c, {}).setdefault((y, q), {}).update(d)
+            for c, d in (doc.get(f"cf_{m}") or {}).items():
+                cum.setdefault(c, {}).setdefault((y, q), {}).update({k: v for k, v in d.items() if k != "cash"})
+                if d.get("cash") is not None:
+                    bal.setdefault(c, {}).setdefault((y, q), {})["cash"] = d["cash"]
             for c, d in (doc.get(f"bs_{m}") or {}).items():
-                bal.setdefault(c, {})[(y, q)] = d
+                bal.setdefault(c, {}).setdefault((y, q), {}).update(d)
     out: dict[str, dict] = {}
     for c in set(cum) | set(bal):
         e: dict[str, dict] = {}

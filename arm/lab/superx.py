@@ -291,30 +291,44 @@ def rs_pct(scores: dict[str, float]) -> dict[str, int]:
     return {c: max(1, min(99, int(round(100 * (j + 1) / (n + 1))))) for j, c in enumerate(ks)}
 
 
-def feats_on(i: int, P, pxs: dict, funds: dict, qitems, rf_items, codes=None) -> dict[str, dict]:
-    """第 i 天收盤時、合格股票的特徵 {代號: {特徵}}（同一套給研究與每日候選用）。"""
-    raw, ok = {}, []
+def feats_on(i: int, P, pxs: dict, funds: dict, qitems, rf_items, codes=None, all_rows: bool = False) -> dict[str, dict]:
+    """第 i 天收盤時的特徵 {代號: {特徵}}（同一套給研究與每日候選用）。
+    合格（近 20 日均成交值 ≥ LIQ_MIN、上市滿 AGE_MIN 天）的股票互相排 RS；all_rows＝True 時不合格的也算，
+    RS 以合格股票的分布換算、特徵多一欄 el＝False（規則只看合格的）。"""
+    raw, el = {}, set()
     for c in (codes or pxs):
         px = pxs[c]
-        lq = (P.liq.get(c) or [None] * (i + 1))[i]
-        if lq is None or lq < LIQ_MIN or px.first is None or i - px.first < AGE_MIN:
-            continue
         r = px.raw(i)
         if r is None:
             continue
+        lq = (P.liq.get(c) or [None] * (i + 1))[i]
+        ok = lq is not None and lq >= LIQ_MIN and px.first is not None and i - px.first >= AGE_MIN
+        if not ok and not all_rows:
+            continue
         raw[c] = r
-        ok.append(c)
-    rs = rs_pct({c: raw[c]["score"] for c in ok})
+        if ok:
+            el.add(c)
+    rs = rs_pct({c: raw[c]["score"] for c in el})
+    if all_rows and el:
+        sc = sorted(raw[c]["score"] for c in el)
+        n = len(sc)
+        for c in raw:
+            if c not in el:
+                rs[c] = max(1, min(99, int(round(100 * (bisect.bisect_left(sc, raw[c]["score"]) + 1) / (n + 1)))))
     q = latest_q(qitems, i)
     k = bisect.bisect_right([t for t, _ in rf_items], i) - 1
     ym = rf_items[k][1] if k >= 0 else None
     out = {}
-    for c in ok:
-        r = raw[c]
+    for c, r in raw.items():
+        if c not in rs:
+            continue
         tt = r["tt7"] + [rs[c] >= 70]
         f = {"tt_n": sum(1 for x in tt if x), "tt_all": all(tt), "rs": rs[c], "d52h": r["d52h"], "r120": r["r120"],
              "lu20": r["lu20"], "vdry": r["vdry"], "cap": (P.cap.get(c) or [None] * (i + 1))[i],
-             "liq": P.liq[c][i]}
+             "liq": (P.liq.get(c) or [None] * (i + 1))[i]}
+        if all_rows:
+            f["el"] = c in el
+            f["tt"] = [bool(x) for x in tt]
         fd = funds.get(c)
         if fd is not None:
             f.update(fd.m_feats(ym if ym and ym in fd.rv else _last_le(fd.rv, ym)))

@@ -33,6 +33,16 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         data["vlog"] = {"err": f"{type(e).__name__}: {e}"}
     sj = ser_json(data)
     changed = False
+    try:                                     # 公司分析（docs/lab_company_plan.md）：全市場小表與每檔資料檔另存，點進去才下載
+        from . import company
+        mt = data.pop("mtab", None) or {}
+        if mt.get("rows"):
+            changed |= company.write_table(mt, out.parent / "x9t.json")
+            data["mtv"] = _ver(company._dump(mt))
+        st = company.build_co(out.parent / "co")
+        data["co"] = {"n": st.get("n"), "err": st.get("err")} if st.get("err") else {"n": st.get("n")}
+    except Exception as e:                   # noqa: BLE001 —— 公司分析失敗不影響建頁
+        data["co"] = {"err": f"{type(e).__name__}: {e}"}
     for path, text in ((out_ser, sj), (out, render(data, ser_v=_ver(sj)))):
         if path.exists() and path.read_text(encoding="utf-8") == text:
             continue
@@ -94,11 +104,13 @@ def asof_line(data: dict) -> str:
 
 
 def render(data: dict, ser_v: str | None = None) -> str:
-    main = {k: v for k, v in data.items() if k != "ser"}
+    main = {k: v for k, v in data.items() if k not in ("ser", "mtab")}
     main["serv"] = ser_v or _ver(ser_json(data))
     blob = _dump(main).replace("</", "<\\/")
-    return (_HTML.replace("{{SUB}}", asof_line(data)).replace("{{CSS}}", _CSS)
-            .replace("{{DATA}}", blob).replace("{{JS}}", _JS))
+    from . import copage                     # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS／JS 接在後面
+    return (_HTML.replace("{{SUB}}", asof_line(data)).replace("{{CSS}}", _CSS + copage.CSS)
+            .replace("{{SEARCH}}", copage.SEARCH_HTML)
+            .replace("{{DATA}}", blob).replace("{{JS}}", _JS + copage.JS))
 
 
 _HTML = """<!doctype html>
@@ -108,7 +120,7 @@ _HTML = """<!doctype html>
 <title>籌碼雷達</title>
 <style>{{CSS}}</style></head>
 <body>
-<div class="top"><b>籌碼雷達</b><span class="asof">{{SUB}}</span><a class="back" href="./">返回主頁</a></div>
+<div class="top"><b>籌碼雷達</b><span class="asof">{{SUB}}</span>{{SEARCH}}<a class="back" href="./">返回主頁</a></div>
 <p class="purp">用固定規則的選股策略，列出每條策略這一期選到的股票、哪天買賣，以及同樣做法過去實際賺多少。</p>
 <header class="hd"><div class="hdi">
   <nav class="tabs" id="tabs">
@@ -1758,13 +1770,14 @@ function renderStock(c,keep){
   dv.classList.toggle('pane',pane);document.body.classList.toggle('pane',pane);dv.hidden=false;lockBody(!pane);
   const W=Math.max(300,Math.floor($('#dvin').clientWidth-32));
   const i=CTX.indexOf(c),pv=i>0,nx=i>=0&&i<CTX.length-1;
-  const secs=[...(PK[c]?[['c-st','策略']]:[]),['c-sum','重點'],['c-chart','走勢'],['c-hold','ETF 持有'],...(tw&&r.t5!==undefined?[['c-chip','籌碼'],['c-ta','技術']]:[]),['c-sig','訊號']];
+  const secs=[...(PK[c]?[['c-st','策略']]:[]),['c-sum','重點'],['co-sum','公司'],['c-chart','走勢'],['c-hold','ETF 持有'],...(tw&&r.t5!==undefined?[['c-chip','籌碼'],['c-ta','技術']]:[]),['c-sig','訊號']];
   let h=`<div class=dvh><div class=dvt><a class="nv${pv?'':' off'}" id=pv title="上一檔（←）">‹</a>`+
    `<div class=ttl><b>${esc(r.n)}</b><span class=cd>${i>=0?`${i+1}／${CTX.length} · `:''}${esc(r.c)} · ${MK[r.m]||''}${r.ind?' · '+esc(r.ind):''}</span></div>`+
    `<div class=pxw><b>${fp(r.px)}</b>${sgn(r.ch,2,'%')}</div><a class="nv${nx?'':' off'}" id=nx title="下一檔（→）">›</a><a class=x id=x title="關閉（Esc）">×</a></div>`+
    `<nav class=cnav>${secs.map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
   h+=stCardSec(c);
   h+=`<section class=csec id=c-sum><div class=sgrow>${sgChips(r.sg)||'<span class=st>今日無觸發訊號</span>'}</div><ul class=sum>${sumLines(r).map(x=>`<li>${x}</li>`).join('')}</ul><div class=kpis>${kpis(r)}</div></section>`;
+  h+=coSec(c,W,()=>reStock(c));                     /* 公司分析（copage.py；點進去才下載 co/{代號}.json） */
   const lastD=(D.dates||[]).slice(-1)[0],serD=SERD.slice(-1)[0];
   if(!s)h+=`<section class=csec id=c-chart><h3>走勢</h3><div class=ld>${SERST==='err'?'走勢資料暫時無法載入　<a id=serr>重試</a>':'走勢載入中…'}</div></section>`;
   else if(s.c&&s.c.some(x=>x!=null))h+=`<section class=csec id=c-chart><h3>走勢<span class=sub>近 ${s.c.length} 個交易日・游標移到圖上看每日數字</span></h3>${serD&&lastD&&serD<lastD?`<div class=note>走勢資料到 ${md(serD)}（尚未更新到最新）</div>`:''}<div class=cw id=kc>${chart(s,r,W)}</div>`+
@@ -1812,7 +1825,7 @@ function renderStock(c,keep){
   $$('#dvin [data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();PUSHED=false;history.replaceState(null,'',location.pathname+location.search);hideStock();go(a.dataset.go,a.dataset.at);});
   const rb=$('#serr');if(rb)rb.onclick=()=>{SERST='idle';renderStock(c,true);};
   $$('#dvin [data-cto]').forEach(a=>a.onclick=()=>{const t=document.getElementById(a.dataset.cto);if(t)dv.scrollTo({top:dv.scrollTop+t.getBoundingClientRect().top-dv.getBoundingClientRect().top-$('#dvin .dvh').offsetHeight+2,behavior:'smooth'});});
-  cspy();bindTip(c);
+  cspy();bindTip(c);coAfterStock(c);
 }
 function cspy(){const dv=$('#dv');if(dv.hidden)return;const hh=$('#dvin .dvh');if(!hh)return;const y=hh.getBoundingClientRect().bottom+8;let cur=null;
   $$('#dvin .csec').forEach(s=>{if(s.getBoundingClientRect().top<=y)cur=s.id;});if(!cur){const f0=$('#dvin .csec');cur=f0&&f0.id;}
