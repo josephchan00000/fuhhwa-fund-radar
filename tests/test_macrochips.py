@@ -390,3 +390,37 @@ def test_fetch_purges_previously_stored_intraday_value(monkeypatch):
         "sox": {"2026-09-21": 12433.17, "2026-09-22": 12538.74}}})
     doc = mc.fetch()
     assert doc["series"]["sox"] == {"2026-09-21": 12433.17}
+
+
+def test_inst_holiday_zero_flows_not_written_and_orphans_purged(monkeypatch):
+    """2026-09-25 中秋休市：來源只回投信／自營商 0.0、無合計 → 不得寫入；
+    先前已誤收的孤兒值（合計沒有的日期）也要剔除。"""
+    from datetime import date, datetime
+    from arm import macrochips as mc
+
+    def fake_inst(d, diag=None):
+        if d == date(2026, 9, 25):
+            return {"foreign": None, "trust": 0.0, "dealer": 0.0, "total": None}, "第三方(非官方)"
+        return None, "x"
+    monkeypatch.setattr(mc, "_yahoo_series", lambda *a, **k: {})
+    monkeypatch.setattr(mc, "_twse_inst_all", fake_inst)
+    monkeypatch.setattr(mc, "_twse_margin", lambda d: None)
+    monkeypatch.setattr(mc, "_taifex_tx_foreign", lambda *a, **k: {})
+    monkeypatch.setattr(mc, "_taifex_pc_ratio", lambda *a, **k: {})
+    monkeypatch.setattr(mc.clock, "today_tw", lambda: date(2026, 9, 25))
+    monkeypatch.setattr(mc.clock, "now_tw", lambda: datetime(2026, 9, 25, 16, 0))
+    monkeypatch.setattr(mc, "load", lambda: {"series": {
+        "inst_total": {"2026-09-24": -444.5},
+        "inst_trust": {"2026-09-24": -128.2, "2026-09-25": 0.0},
+        "inst_dealer": {"2026-09-24": 13.4, "2026-09-25": 0.0}}})
+    s = mc.fetch()["series"]
+    assert s["inst_trust"] == {"2026-09-24": -128.2}
+    assert s["inst_dealer"] == {"2026-09-24": 13.4}
+    assert "2026-09-25" not in s["inst_total"]
+
+
+def test_inst_flows_valid():
+    from arm import macrochips as mc
+    assert mc._inst_flows_valid({"total": -444.5, "foreign": -329.6, "trust": -128.2, "dealer": 13.4})
+    assert not mc._inst_flows_valid({"total": None, "trust": 0.0, "dealer": 0.0})
+    assert not mc._inst_flows_valid({"total": 0.0, "foreign": 0.0, "trust": 0.0, "dealer": 0.0})
