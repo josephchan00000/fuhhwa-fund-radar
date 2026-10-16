@@ -599,14 +599,19 @@ def eval_rule(rows: list, lab: str, conds, full: bool = True) -> dict:
     out = {"n": n, "pos": pos, "p": _r(pos / n) if n else None, "base": _r(br),
            "lift": _r(pos / n / br) if n and br else None}
     if full:
-        sel = [rows[j] for j in ones(m)]
-        mx = sorted(r["y"][lab]["mx"] for r in sel)
-        dd = sorted(r["y"][lab]["dd"] for r in sel if r["y"][lab]["dd"] is not None)
-        fr = sorted(r["y"][lab]["fr"] for r in sel if r["y"][lab]["fr"] is not None)
-        med = lambda xs: xs[len(xs) // 2] if xs else None
-        out.update({"mx_med": _r(med(mx)), "dd_med": _r(med(dd)), "fr_med": _r(med(fr)),
-                    "codes": len({r["c"] for r in sel})})
+        out.update(dist([rows[j] for j in ones(m & B.valid)], lab))
     return out
+
+
+def dist(sel: list, lab: str) -> dict:
+    """一組樣本列之後的路徑：最高漲幅、最大跌幅、到期報酬的中位數與平均、股票數（只描述，不參與選規則）。"""
+    mx = sorted(r["y"][lab]["mx"] for r in sel)
+    dd = sorted(r["y"][lab]["dd"] for r in sel if r["y"][lab]["dd"] is not None)
+    fr = sorted(r["y"][lab]["fr"] for r in sel if r["y"][lab]["fr"] is not None)
+    med = lambda xs: xs[len(xs) // 2] if xs else None
+    avg = lambda xs: sum(xs) / len(xs) if xs else None
+    return {"mx_med": _r(med(mx)), "dd_med": _r(med(dd)), "fr_med": _r(med(fr)), "fr_avg": _r(avg(fr)),
+            "fr_win": _r(sum(1 for x in fr if x > 0) / len(fr)) if fr else None, "codes": len({r["c"] for r in sel})}
 
 
 def select_final(rules: list, rows_val: list, lab: str) -> list[dict]:
@@ -679,6 +684,12 @@ def cond_text(cond) -> str:
     nm = SHORT.get(k, FNAME.get(k, k))
     if op == "=":
         return nm
+    if k == "tt_n" and op == ">=":
+        return "趨勢樣板 8 項全過" if v >= 8 else f"趨勢樣板至少 {v:g} 項"
+    if k == "lu20" and op == ">=":
+        return "近 20 日有漲停" if v <= 1 else f"近 20 日漲停至少 {v:g} 次"
+    if k == "roe" and op == "<=" and v <= 0:
+        return "近四季 ROE ≤ 0%（近一年沒賺錢）"
     if k == "cap":
         val = f"{v / 1e8:,.0f} 億"
     elif k == "liq":
@@ -708,10 +719,15 @@ def load_res() -> dict | None:
     return res if res and res.get("ver") == VER else None
 
 
+# 2026-10-16 保留期結果出來之後決定（docs/lab_company_plan.md 第 7 節）：「一年翻倍」（B）的 5 條規則 2023 年起轉弱
+# （命中只有全體 1.4 倍、一年後中位數 −16%、只有三分之一賺錢）→ 不放進候選，頁面只列出成績。規則本身不改。
+USE_LABELS = ("A",)
+
+
 def live_rules(res: dict | None) -> list[tuple[str, list]]:
-    """研究定案的規則 → [(標籤, 條件)]（A 在前；頁面的規則序號照這個順序）。"""
+    """研究定案、而且保留期仍有效的規則 → [(標籤, 條件)]（頁面的規則序號照這個順序）。"""
     out = []
-    for L in LABELS:
+    for L in USE_LABELS:
         for r in (((res or {}).get("labels") or {}).get(L) or {}).get("rules") or []:
             out.append((L, [tuple(c) for c in r["conds"]]))
     return out
@@ -726,12 +742,14 @@ def page_data(res: dict | None, hits: dict | None, feats: dict | None = None, na
     ck = {k: {L: {x: v[L].get(x) for x in ("p", "base", "n", "lift")} for L in LABELS if v.get(L)}
           for k, v in (ch.get("items") or {}).items()}
     rules = []
-    for L in LABELS:
+    for L in USE_LABELS:
         lab = (res.get("labels") or {}).get(L) or {}
         for r in lab.get("rules") or []:
-            rules.append({"lab": L, "txt": r.get("txt"), "is": r.get("is"), "val": r.get("val"), "ho": r.get("ho"),
-                          "ex": r.get("ex")})
-    labs = {L: {k: ((res.get("labels") or {}).get(L) or {}).get(k) for k in ("base", "tried", "is_pass", "val_pass", "union")}
+            rules.append({"lab": L, "txt": "、".join(cond_text(tuple(c)) for c in r["conds"]), "is": r.get("is"),
+                          "val": r.get("val"), "ho": r.get("ho"), "ex": r.get("ex")})
+    labs = {L: {**{k: ((res.get("labels") or {}).get(L) or {}).get(k)
+                   for k in ("base", "base_dist", "tried", "is_pass", "val_pass", "union", "yearly")},
+                "n_rules": len((((res.get("labels") or {}).get(L)) or {}).get("rules") or []), "use": L in USE_LABELS}
             for L in LABELS}
     cand = []
     for c, ix in sorted((hits or {}).items()):
@@ -742,4 +760,4 @@ def page_data(res: dict | None, hits: dict | None, feats: dict | None = None, na
     return {"v": res.get("ver"), "asof": res.get("asof"), "last": res.get("last"), "n": res.get("n"),
             "codes": res.get("codes"), "ck": ck, "cnt": ch.get("count"), "rules": rules, "labs": labs,
             "hits": {c: ix for c, ix in (hits or {}).items()}, "cand": cand,
-            "spec": {"labels": LABELS, "cap_min": CAP_MIN, "is": IS, "val": VAL, "ho": HO}}
+            "spec": {"labels": LABELS, "cap_min": CAP_MIN, "is": IS, "val": VAL, "ho": HO, "use": list(USE_LABELS)}}

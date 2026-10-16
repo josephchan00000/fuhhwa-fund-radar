@@ -33,6 +33,7 @@ CSS = r"""
 .sxt td,.sxt th{padding:6px 8px;font-size:13.5px;vertical-align:top}.sxt td.l,.sxt th.l{text-align:left}
 .sxt .sm2{font-size:12px;color:var(--mut)}.sxt td.l{white-space:normal;min-width:150px}.sxall{display:inline-block;margin-top:6px;cursor:pointer}.sxi{display:inline-block;padding:0 6px;border-radius:8px;background:var(--hlbg);font-size:12px;margin:1px 2px 1px 0}
 @media (max-width:640px){.cgrid{grid-template-columns:minmax(0,1fr)}.co5 .r{grid-template-columns:2.6em 2.8em 54px minmax(0,1fr)}.cos{flex-basis:100%;order:4}
+  .chk li{grid-template-columns:1.4em minmax(0,1fr)}.chk .hr{grid-column:2;text-align:left;white-space:normal}
   .sxt .hm{display:none}}
 """
 
@@ -147,7 +148,7 @@ const SXCK=[['ey25','最新季 EPS 年增 ≥ 25%',r=>r.ey==null?null:r.ey>=25],
   ['rnh','月營收創 12 個月新高',r=>r.rnh==null?null:r.rnh===true],['gmd','毛利率比去年同季高',r=>r.gmd==null?null:r.gmd>0],
   ['c33','Code 33：EPS、營收、毛利率連三季加速',r=>r.c33==null?null:r.c33===true],['roe15','近四季 ROE ≥ 15%',r=>r.roe==null?null:r.roe>=15],
   ['tt8','趨勢樣板 8 項全過',r=>r.tt==null?null:r.tt===8],['rs80','RS ≥ 80',r=>r.rs==null?null:r.rs>=80],['h25','股價在 52 週高點 25% 以內',r=>r.d52h==null?null:r.d52h>=-25]];
-function ckHit(k){const x=(((D.sx||{}).ck)||{})[k];if(!x||!x.B||x.B.p==null)return '';return `過去符合時 <b>${f(x.B.p*100,0)}%</b> 一年內翻倍（平常 ${f(x.B.base*100,0)}%）`;}
+function ckHit(k){const x=(((D.sx||{}).ck)||{})[k];if(!x||!x.A||x.A.p==null)return '';return `過去符合時 <b>${f(x.A.p*100,0)}%</b>（全體 ${f(x.A.base*100,0)}%）`;}
 
 /* ---- 主體 ---- */
 function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;const w=Math.max(260,W);const w2=isPane()||w>700?Math.floor((w-12)/2):w;
@@ -169,13 +170,13 @@ function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;
   h+=`</section>`;
   /* 2 飆股體質檢查 */
   if(r){const it=SXCK.map(([k,t,fn])=>{const v=fn(r);return {k,t,v};});const ok=it.filter(x=>x.v===true).length,av=it.filter(x=>x.v!=null).length;
-    h+=`<section class=csec id=co-sx><h3>飆股體質檢查<span class=sub>符合 ${ok}／${av} 項${gi('飆股體質檢查')}</span></h3><ul class=chk>`+
+    h+=`<section class=csec id=co-sx><h3>飆股體質檢查<span class=sub>符合 ${ok}／${av} 項${gi('飆股體質檢查')}${D.sx&&D.sx.ck?'・比例＝過去符合時 3 個月內漲 50% 的機率':''}</span></h3><ul class=chk>`+
       it.map(x=>`<li><span class=${x.v===true?'ok':x.v===false?'no':'na'}>${x.v===true?'✓':x.v===false?'✗':'—'}</span><span>${esc(x.t)}</span><span class=hr>${ckHit(x.k)}</span></li>`).join('')+`</ul>`;
     if(r.ttb)h+=`<details class=mr><summary>趨勢樣板 8 項明細（${r.tt}／8）${gi('趨勢樣板')}</summary><ul class=chk>${TTN.map((t,i)=>`<li><span class=${r.ttb[i]==='1'?'ok':'no'}>${r.ttb[i]==='1'?'✓':'✗'}</span><span>${esc(t)}</span><span></span></li>`).join('')}</ul></details>`;
-    const cb=((((D.sx||{}).cnt)||{}).B)||{},cr=(cb.rows||[])[ok];
-    if(cr&&cr.p!=null&&cr.n>=30)h+=`<div class=note style="margin-top:8px">2014 年起同樣符合 ${ok} 項的股票，之後一年內最高價曾翻倍的比例 <b>${f(cr.p*100,0)}%</b>（全體 ${f((cb.base||0)*100,0)}%，${f(cr.n,0)} 個股票週）。</div>`;
-    const hit=(((D.sx||{}).hits)||{})[c];if(hit&&hit.length)h+=`<div class=note style="margin-top:8px">今天符合飆股研究的規則：${hit.map(i=>{const u=(D.sx.rules||[])[i]||{};return `<b>${esc(u.lab||'')}${i+1}</b> ${esc(u.txt||'')}`;}).join('；')}（<a data-go="opp" data-at="o-sx">看規則的過去成績 →</a>）</div>`;
-    h+=`<div class=st style="margin-top:6px">條件取自《超級績效》的基本面與趨勢樣板；「過去符合時」是 2014 年起月底市值 40 億以上、這個條件成立的股票，之後 250 個交易日內最高價曾達兩倍的比例。</div></section>`;}
+    const cb=((((D.sx||{}).cnt)||{}).A)||{},cr=(cb.rows||[])[ok];
+    if(cr&&cr.p!=null&&cr.n>=30)h+=`<div class=note style="margin-top:8px">2014 年起同樣符合 ${ok} 項的股票，之後 3 個月內最高漲 50% 的比例 <b>${f(cr.p*100,0)}%</b>（全體 ${f((cb.base||0)*100,0)}%，${f(cr.n,0)} 個股票週）。</div>`;
+    const hit=(((D.sx||{}).hits)||{})[c];if(hit&&hit.length)h+=`<div class=note style="margin-top:8px">今天符合飆股研究的規則 ${hit.map(i=>{const u=(D.sx.rules||[])[i]||{};return `<span class=sxi title="${esc(u.txt||'')}">${esc(u.lab||'')}${i+1}</span>`;}).join('')}（${hit.length===1?esc(((D.sx.rules||[])[hit[0]]||{}).txt||''):'共 '+hit.length+' 條'}；<a data-go="opp" data-at="o-sx">看規則與過去成績 →</a>）</div>`;
+    h+=`<div class=st style="margin-top:6px">條件取自《超級績效》的基本面與趨勢樣板；「過去符合時」是 2014 年起月底市值 40 億以上、這個條件成立的股票，之後 60 個交易日（約 3 個月）內最高價曾漲 50% 的比例。</div></section>`;}
   /* 3 成長 */
   const m24=M.filter(o=>o.rev!=null).slice(-24);
   const q12=Q.filter(o=>o.rev!=null||o.eps!=null).slice(-12);
@@ -277,32 +278,37 @@ function coAfterStock(c){if(COJ!==c)return;const t=document.getElementById('co-s
 /* ---- 機會頁「飆股候選」（superx 研究規則；docs/lab_company_plan.md 第 4.6 節） ---- */
 /* 注意：機會頁一打開就會呼叫 sxSec，這段 JS 接在頁面主程式後面——頂層 const 那時還沒初始化，常數一律放函式裡 */
 function sxRate(x){return x&&x.p!=null?`<b>${f(x.p*100,0)}%</b><div class=sm2>全體 ${f((x.base||0)*100,0)}%・${f(x.n,0)} 次</div>`:'<span class=mu>—</span>';}
-function sxSec(){const S=D.sx||{};if(!S.v)return '';const R=S.rules||[],C=S.cand||[],SXLB={A:'60 個交易日內最高漲 50%',B:'250 個交易日內最高漲一倍'};let b='';
-  if(!R.length){const L=S.labs||{},sum=k=>['A','B'].reduce((t,l)=>t+(((L[l]||{})[k])||0),0);
+function sxSec(){const S=D.sx||{};if(!S.v)return '';const R=S.rules||[],C=S.cand||[],L=S.labs||{},A=L.A||{},Bl=L.B||{};let b='';
+  const SXLB={A:'60 個交易日（約 3 個月）內最高漲 50%',B:'250 個交易日（約 1 年）內最高漲一倍'};
+  const p0=x=>x==null?'—':f(x*100,0)+'%';
+  if(!R.length){const sum=k=>['A','B'].reduce((t,l)=>t+(((L[l]||{})[k])||0),0);
     b+=`<div class=st>研究沒有找到夠穩的規則：試了 ${f(sum('tried'),0)} 個條件組合，樣本內通過 ${f(sum('is_pass'),0)} 個、驗證期通過 ${f(sum('val_pass'),0)} 個。改看各公司的「飆股體質檢查」。</div>`;}
-  else{const L=S.labs||{},un=l=>((L[l]||{}).union||{}).ho,ut=l=>{const x=un(l);return x&&x.p!=null?`符合任一條 ${l} 規則的股票週，<b>${f(x.p*100,0)}%</b> 之後${l==='A'?' 60 個交易日內最高漲 50%':'一年內最高漲一倍'}（全體 ${f((((L[l]||{}).base||{}).ho||0)*100,0)}%，${f(x.n,0)} 個股票週）`:'';};
-    const ul=['A','B'].map(ut).filter(Boolean);if(ul.length)b+=`<div class=colead style="font-weight:400">2023 年起：${ul.join('；')}。</div>`;
-    const mv=x=>x&&x.mx_med!=null?`<div class=sm2>符合後中位數：最高 ${pctT(x.mx_med*100,0)}、最低 ${pctT(x.dd_med*100,0)}、到期 ${pctT(x.fr_med*100,0)}</div>`:'';
-    b+=`<div class=tw><table class=sxt><thead><tr><th class=l>規則</th><th>2023 年起符合時${gi('飆股命中率')}</th><th class=hm>2020–2022</th><th class=hm>2014–2019</th><th>今天</th></tr></thead><tbody>`+
-      R.map((u,i)=>`<tr><td class=l><span class=sxi>${u.lab}${i+1}</span>${esc(u.txt)}<div class=sm2>目標：${SXLB[u.lab]||''}</div>${mv(u.ho)}</td><td>${sxRate(u.ho)}</td><td class=hm>${sxRate(u.val)}</td><td class=hm>${sxRate(u.is)}</td><td>${C.filter(x=>x[2].includes(i)).length} 檔</td></tr>`).join('')+`</tbody></table></div>`;
-    if(C.length){const N=20,row=(x,k)=>{const by={};x[2].forEach(i=>{const l=(R[i]||{}).lab;if(l)(by[l]=by[l]||[]).push(l+(i+1));});
-        return `<tr class="${k>=N?'sxmore':''}"${k>=N?' hidden':''}><td class=l><a data-co="${esc(x[0])}"><b>${esc(x[1])}</b></a> <span class=cd>${esc(x[0])}</span></td><td>${Object.keys(by).sort().map(l=>`<span class=sxi title="${esc(by[l].join('、'))}">${l} ${by[l].length} 條</span>`).join('')}</td><td>${fp(x[3])}</td><td>${x[4]==null?'—':x[4]}</td><td class=hm>${sgn(x[5],0,'%')}</td><td class=hm>${sgn(x[6],0,'%')}</td><td class=hm>${x[7]==null?'—':f(x[7],0)+'%'}</td><td class=hm>${x[8]==null?'—':f(x[8],0)+' 億'}</td></tr>`;};
+  else{const u=(A.union||{}).ho||{},bd=(A.base_dist||{}).ho||{},bp=(A.base||{}).ho;
+    if(u.p!=null)b+=`<div class=colead style="font-weight:400">2023 年起（規則定案之後才算）：符合任一條規則的股票，<b>${p0(u.p)}</b> 在 3 個月內最高漲到 50%，全體只有 ${p0(bp)}（${f(u.p/bp,1)} 倍）。`+
+      `3 個月後平均報酬 <b>${pctT(u.fr_avg*100,1)}</b>（全體 ${pctT(bd.fr_avg*100,1)}），但只有 ${p0(u.fr_win)} 到期是賺的、中途最大跌幅中位數 ${pctT(u.dd_med*100,0)}——平均好看是靠少數大漲的股票。</div>`;
+    b+=`<div class=tw><table class=sxt><thead><tr><th class=l>規則（目標：${SXLB.A}）</th><th>2023 年起符合時${gi('飆股命中率')}</th><th class=hm>2020–2022</th><th class=hm>2014–2019</th><th>今天</th></tr></thead><tbody>`+
+      R.map((rr,i)=>{const h=rr.ho||{};return `<tr><td class=l><span class=sxi>${rr.lab}${i+1}</span>${esc(rr.txt)}${h.fr_avg!=null?`<div class=sm2>2023 年起符合後 3 個月：平均 ${pctT(h.fr_avg*100,0)}、${p0(h.fr_win)} 賺錢、最大跌幅中位數 ${pctT(h.dd_med*100,0)}</div>`:''}</td><td>${sxRate(rr.ho)}</td><td class=hm>${sxRate(rr.val)}</td><td class=hm>${sxRate(rr.is)}</td><td>${C.filter(x=>x[2].includes(i)).length} 檔</td></tr>`;}).join('')+`</tbody></table></div>`;
+    if(C.length){const N=20,row=(x,k)=>`<tr class="${k>=N?'sxmore':''}"${k>=N?' hidden':''}><td class=l><a data-co="${esc(x[0])}"><b>${esc(x[1])}</b></a> <span class=cd>${esc(x[0])}</span></td><td>${x[2].map(i=>`<span class=sxi title="${esc((R[i]||{}).txt||'')}">${R[i]?R[i].lab+(i+1):''}</span>`).join('')}</td><td>${fp(x[3])}</td><td>${x[4]==null?'—':x[4]}</td><td class=hm>${sgn(x[5],0,'%')}</td><td class=hm>${sgn(x[6],0,'%')}</td><td class=hm>${x[7]==null?'—':f(x[7],0)+'%'}</td><td class=hm>${x[8]==null?'—':f(x[8],0)+' 億'}</td></tr>`;
       b+=`<h4 class=sh>今天符合的股票（${C.length} 檔，符合條數多的在前）</h4><div class=tw><table class=sxt id=sxc><thead><tr><th class=l>股票</th><th>符合</th><th>收盤</th><th>RS${gi('RS 百分位')}</th><th class=hm>近 3 月營收年增</th><th class=hm>最新季 EPS 年增</th><th class=hm>距 52 週高點</th><th class=hm>市值</th></tr></thead><tbody>`+
-        C.map(row).join('')+`</tbody></table></div>`+(C.length>N?`<a class=sxall data-n="${C.length}">顯示全部 ${C.length} 檔</a>`:'');}
-    else b+=`<div class=st style="margin-top:8px">今天沒有股票符合。</div>`;}
+        C.map(row).join('')+`</tbody></table></div>`+(C.length>N?`<a class=sxall>顯示全部 ${C.length} 檔</a>`:'');}
+    else b+=`<div class=st style="margin-top:8px">今天沒有股票符合。</div>`;
+    b+=`<div class=note>這 ${R.length} 條規則都要求「近四季 ROE 偏低」：過去一年賺得少或虧損，但月營收創歷史新高、股價已經轉強——獲利剛要翻轉的轉機股。研究裡 ROE 15% 以上的績優股，之後 3 個月漲 50% 的比例反而比全體低。</div>`;
+    const Y=A.yearly||[];if(Y.length)b+=`<details class=mr><summary>逐年看（任一條規則 vs 全體）</summary><div class=tw><table class=sxt><thead><tr><th class=l>年</th><th>符合（股票週）</th><th>3 個月內漲 50%</th><th>全體</th></tr></thead><tbody>${Y.map(y=>`<tr><td class=l>${esc(y[0])}${y[0]>='2023'?' <span class=mu>保留期</span>':''}</td><td>${f(y[1],0)}</td><td>${y[3]==null?'—':p0(y[3])}</td><td>${p0(y[4])}</td></tr>`).join('')}</tbody></table></div></details>`;}
+  const ub=(Bl.union||{}).ho||{},bb=(Bl.base_dist||{}).ho||{};
+  if(Bl.n_rules&&!Bl.use&&ub.p!=null)b+=`<div class=note>另有 ${Bl.n_rules} 條「${SXLB.B}」的規則，2023 年起轉弱：命中 ${p0(ub.p)}、全體 ${p0((Bl.base||{}).ho)}（只有 ${f(ub.p/(Bl.base||{}).ho,1)} 倍），一年後報酬中位數 ${pctT(ub.fr_med*100,0)}（全體 ${pctT(bb.fr_med*100,0)}），只有 ${p0(ub.fr_win)} 賺錢——不列入候選。</div>`;
   b+=`<div class=note>規則用 2014–2019 年的資料找、2020–2022 年挑選；2023 年起的成績是規則定案之後才算的，沒有參與挑選。「符合時」＝符合那一週之後，最高價曾漲到目標的比例，期間也可能先跌；不代表之後一定漲。只看月底市值 40 億以上、日均成交值 1,000 萬以上的股票，不含大盤與總經。</div>`;
   return sec('o-sx','飆股','飆股候選',`${S.d?md(S.d)+' 收盤':''}`,b);}
 document.addEventListener('click',e=>{if(e.defaultPrevented)return;const a=e.target.closest&&e.target.closest('[data-co]');if(a){e.preventDefault();openCo(a.dataset.co);return;}
   const m=e.target.closest&&e.target.closest('.sxall');if(m){e.preventDefault();$$('#sxc tr.sxmore').forEach(t=>t.hidden=false);m.remove();}});
 Object.assign(GL,{'五面向':'成長（近 3 月營收年增、最新季 EPS 年增）、獲利（近四季 ROE、營益率）、體質（負債比、流動比）、估值（本益比、淨值比，越便宜分數越高）、動能（RS、距 52 週高點）。每項先算在全市場的百分位，兩項平均後分 5 格：80 以上頂尖、60 以上良好、40 以上中性、20 以上偏弱、其餘落後。',
-  '飆股體質檢查':'《超級績效》（Minervini）找飆股看的條件：盈餘與營收高成長而且加速、毛利率擴張、股價在上升趨勢（趨勢樣板 8 項）、相對強度高。旁邊的比例是 2014 年起這個條件成立的股票，之後一年內最高價曾達兩倍的比例，和平常相比。',
+  '飆股體質檢查':'《超級績效》（Minervini）找飆股看的條件：盈餘與營收高成長而且加速、毛利率擴張、股價在上升趨勢（趨勢樣板 8 項）、相對強度高。旁邊的比例是 2014 年起這個條件成立的股票，之後 3 個月內最高價曾漲 50% 的比例，和全體相比。',
   '趨勢樣板':'Minervini 的 8 項：股價在 150 與 200 日線之上、150 日線高於 200 日線、200 日線上揚、50 日線高於 150 與 200 日線、股價在 50 日線之上、比 52 週低點高 30% 以上、在 52 週高點 25% 以內、RS ≥ 70。',
   'RS 百分位':'相對強度：0.4×近 3 個月＋0.2×近 6 個月＋0.2×近 9 個月＋0.2×近 12 個月報酬，在全市場排名（1～99，越高越強）。',
   '營收加速':'近 3 個月營收年增率比再前 3 個月的年增率高。Code 33＝EPS 年增、營收年增、毛利率連續三季一起變好。',
   'ROE 拆解':'ROE＝淨利率 × 資產週轉 × 權益乘數：賺錢的效率、資產用得多勤、用了多少槓桿。三者都用近四季。',
   '自由現金流':'營業活動現金流＋投資活動現金流（近四季）。投資活動含資本支出與買賣金融資產，所以是粗略的自由現金流。',
   '現金流 ÷ 淨利':'近四季營業現金流 ÷ 近四季淨利。長期低於 100% 代表帳上獲利沒有變成現金（應收帳款或存貨堆高）。',
-  '飆股命中率':'符合規則的那一週之後，最高價曾漲到目標的比例（規則 A：之後 60 個交易日內最高漲 50%；規則 B：之後 250 個交易日內最高漲一倍）。「全體」＝同一段期間所有合格股票的比例。2023 年起的數字是規則定案之後才算的。',
+  '飆股命中率':'符合規則的那一週之後，60 個交易日（約 3 個月）內最高價曾漲到 50% 的比例。「全體」＝同一段期間所有合格股票（月底市值 40 億以上、日均成交值 1,000 萬以上）的比例。2023 年起的數字是規則定案之後才算的。',
   '本益比位置':'每個月底的股價 ÷ 當時已公告的近四季 EPS，和這檔自己過去的本益比比。百分位越高代表以自己的歷史來看越貴；換算價位只是估值位置，不是價格預測。'});
 GLG.push(['公司分析',['五面向','飆股體質檢查','飆股命中率','趨勢樣板','RS 百分位','營收加速','ROE 拆解','自由現金流','現金流 ÷ 淨利','本益比位置']]);
 """

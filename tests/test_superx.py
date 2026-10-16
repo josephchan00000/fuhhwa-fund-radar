@@ -154,3 +154,27 @@ def test_checks_match_page_and_stats():
     st = SX.check_stats(rows)
     assert st["items"]["h25"]["A"]["n"] == len(rows) and st["items"]["tt8"]["B"]["n"] == len(rows) - 12
     assert sum(x["n"] for x in st["count"]["A"]["rows"]) == len(rows)
+
+
+def test_cond_text_special_cases():
+    assert SX.cond_text(("tt_n", ">=", 8)) == "趨勢樣板 8 項全過"
+    assert SX.cond_text(("tt_n", ">=", 7)) == "趨勢樣板至少 7 項"
+    assert SX.cond_text(("lu20", ">=", 1)) == "近 20 日有漲停"
+    assert SX.cond_text(("roe", "<=", 0.0)) == "近四季 ROE ≤ 0%（近一年沒賺錢）"
+    assert SX.cond_text(("roe", "<=", 0.07)) == "近四季 ROE ≤ 7%"
+
+
+def test_page_data_uses_only_validated_labels():
+    """B（一年翻倍）規則保留期轉弱：只列成績、不放進候選；規則文字由條件重算（顯示用）。"""
+    res = {"ver": SX.VER, "asof": "2026-10-16", "last": "2026-10-14", "n": {}, "codes": {},
+           "checks": {"all": {"items": {}, "count": {}}},
+           "labels": {"A": {"rules": [{"conds": [["tt_n", ">=", 8]], "txt": "舊", "is": {}, "val": {}, "ho": {}}],
+                            "base": {"ho": 0.1}},
+                      "B": {"rules": [{"conds": [["rs", ">=", 90]], "txt": "x", "is": {}, "val": {}, "ho": {}}],
+                            "base": {"ho": 0.15}}}}
+    assert SX.USE_LABELS == ("A",)
+    assert SX.live_rules(res) == [("A", [("tt_n", ">=", 8)])]
+    pd = SX.page_data(res, {"1312": [0]}, {"1312": {"px": 17.05, "rs": 75}}, {"1312": "國喬"})
+    assert [r["lab"] for r in pd["rules"]] == ["A"] and pd["rules"][0]["txt"] == "趨勢樣板 8 項全過"
+    assert pd["labs"]["B"]["use"] is False and pd["labs"]["B"]["n_rules"] == 1
+    assert pd["cand"][0][:3] == ["1312", "國喬", [0]]

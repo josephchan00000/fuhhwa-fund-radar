@@ -81,7 +81,7 @@ def run(rows: list, log=print) -> dict:
             r["ho"] = SX.eval_rule(per["ho"], L, r["conds"])          # 保留期：只在這裡算這一次
             r["txt"] = "、".join(SX.cond_text(c) for c in r["conds"])
             r["ex"] = _examples(per["ho"], L, r["conds"])
-        union = {}
+        union, base_d = {}, {}
         for k in ("is", "val", "ho"):
             B = SX.bits(per[k], L)
             m = 0
@@ -90,10 +90,23 @@ def run(rows: list, log=print) -> dict:
             n, pos = B.count(m)
             br = SX.base_rate(per[k], L)
             union[k] = {"n": n, "pos": pos, "p": SX._r(pos / n) if n else None,
-                        "lift": SX._r(pos / n / br) if n and br else None}
-        out["labels"][L] = {"base": {k: SX._r(SX.base_rate(v, L)) for k, v in per.items()},
+                        "lift": SX._r(pos / n / br) if n and br else None,
+                        **SX.dist([per[k][j] for j in SX.ones(m & B.valid)], L)}
+            base_d[k] = SX.dist([per[k][j] for j in SX.ones(B.valid)], L)     # 全體（同一段期間所有合格股票週）
+        yearly = []                                                            # 逐年：任一條規則 vs 全體（看穩不穩）
+        B = SX.bits(rows, L)
+        m = 0
+        for r in fin:
+            m |= B.rule(r["conds"])
+        for y in sorted({r["d"][:4] for r in rows}):
+            ym = B.year(y)
+            n, pos = B.count(m & ym)
+            n0, p0 = B.count(ym)
+            if n0:
+                yearly.append([y, n, pos, SX._r(pos / n) if n else None, SX._r(p0 / n0)])
+        out["labels"][L] = {"base": {k: SX._r(SX.base_rate(v, L)) for k, v in per.items()}, "base_dist": base_d,
                             "ftab": ft, "conds": conds, "tried": tried, "is_pass": len(rules), "val_pass": val_pass,
-                            "rules": fin, "union": union}
+                            "rules": fin, "union": union, "yearly": yearly}
         log(f"[super] 標籤 {L}：候選條件 {len(conds)}、試了 {tried} 個組合、樣本內通過 {len(rules)}、"
             f"驗證期通過 {val_pass}、定案 {len(fin)}，{time.time() - t0:.0f} 秒")
     out["checks"] = {k: SX.check_stats(v) for k, v in (("all", rows), *per.items())}
