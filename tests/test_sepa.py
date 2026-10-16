@@ -135,6 +135,7 @@ def test_plan_today_breakout_and_memory():
     assert r["st"] == 3 and r["kind"] == "tight" and r["piv"] == 100.0  # 突破前一天：準備好
     r = SP.plan_today(c, c, c, v, c, b)
     assert (r["st"], r["piv"], r["stop"], r["kind"]) == (1, 100.0, 98.0, "tight")
+    assert r["hi52"] == 103.0 and 95 < r["ma50"] < 103                # 還沒到買點的股票用來標觀察價、拉回參考
     assert SP.plan_today(c, c, c, v, c, b + 3)["st"] == 2            # 突破後仍在買點
     assert SP.plan_today(c, c, c, v, c, b + 30)["st"] == 5           # 一個月前突破、已漲過樞紐 5%：漲太遠
     assert SP.plan_today(c, c, c, v, c, b + 30, look=20)["st"] == 0  # 看得太短會忘記那次突破（所以預設 65 日）

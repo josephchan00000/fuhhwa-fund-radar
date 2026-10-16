@@ -223,11 +223,14 @@ class Track:
 
 
 def plan_today(h: list, l: list, c: list, v: list, raw_c: list, i: int, look: int = EXT_DAYS + POST,
-               tight=TIGHT) -> dict:
-    """頁面用：近 look 個交易日逐日推 Track（假設這段期間都在名單上、都合格），回今天的狀態、樞紐、停損與型態。
+               tight=TIGHT, vcp_spec: dict | None = None) -> dict:
+    """頁面用：近 look 個交易日逐日推 Track（假設這段期間都在名單上、都合格），回今天的狀態、樞紐、停損與型態，
+    另附 52 週高點與 50 日線（還沒到買點的股票用來標觀察價、拉回參考）。
     look 至少要涵蓋「漲太遠」記得的 60 日加突破後 5 日，否則一個多月前突破、已經漲上去的股票會被標成打底中。
+    VCP 預設用照書修正的 vcp.SPEC_V3（2026-10-16 使用者同意）。
     h／l／c＝前值補齊的日線（Px），v＝成交量，raw_c＝沒補齊的收盤（判斷低價股）。"""
     from . import vcp as VC
+    spec = VC.SPEC_V3 if vcp_spec is None else vcp_spec
     ma50 = rolling_mean(c, 50)
     v50 = [None] * len(v)
     for t in range(max(0, i - look - 80), i + 1):
@@ -240,7 +243,7 @@ def plan_today(h: list, l: list, c: list, v: list, raw_c: list, i: int, look: in
         hi52 = max(hs) if len(hs) >= 200 else None
         v10 = mean_last(v, t, 10, 8)
         dry = v10 / v50[t] if v10 and v50[t] else None
-        r = VC.check(h, l, c, v, t)
+        r = VC.check(h, l, c, v, t, spec)
         vc = (r["pivot"], r["low"]) if r and r.get("ok") else None
         tg = tight_at(h, l, c, hi52, t, K, X)
         pp = pp_at(h, l, c, v, v50, raw_c[t], dry, t)
@@ -248,7 +251,7 @@ def plan_today(h: list, l: list, c: list, v: list, raw_c: list, i: int, look: in
         st, piv, low, kind = tr.step(t, c[t], v[t], v50[t - 1], ma50[t], True, ready)
         if t == i:
             out = {"st": st, "piv": piv, "stop": stop_px(piv, low) if piv else None, "kind": kind, "dry": dry,
-                   "vcp": r if r and "n" in r else None, "tight": tg, "pp": pp}
+                   "vcp": r if r and "n" in r else None, "tight": tg, "pp": pp, "hi52": hi52, "ma50": ma50[t]}
     return out
 
 

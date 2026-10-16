@@ -31,10 +31,10 @@ CSS = r"""
 .vlab{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
 .qt td,.qt th{padding:5px 7px;font-size:13px}.qt td:first-child,.qt th:first-child{text-align:left}
 .sxt td,.sxt th{padding:6px 8px;font-size:13.5px;vertical-align:top}.sxt td.l,.sxt th.l{text-align:left}
-.sxt .sm2{font-size:12px;color:var(--mut)}.wlst{display:inline-block;padding:0 6px;border-radius:8px;font-size:12px;background:var(--card2);color:var(--ink2);white-space:nowrap}.wlst.s1,.wlst.s2{background:var(--gainbg);color:var(--gain);font-weight:700}.wlst.s3{background:var(--hlbg);color:var(--accd);font-weight:700}.wlst.s4,.wlst.s5{color:var(--mut)}.sxt td.l{white-space:normal;min-width:150px}.sxt .wlp{text-align:left;white-space:normal;min-width:86px}.sxall{display:inline-block;margin-top:6px;cursor:pointer}.sxi{display:inline-block;padding:0 6px;border-radius:8px;background:var(--hlbg);font-size:12px;margin:1px 2px 1px 0}
+.sxt .sm2{font-size:12px;color:var(--mut)}.wlst{display:inline-block;padding:0 6px;border-radius:8px;font-size:12px;background:var(--card2);color:var(--ink2);white-space:nowrap}.wlst.s1,.wlst.s2{background:var(--gainbg);color:var(--gain);font-weight:700}.wlst.s3{background:var(--hlbg);color:var(--accd);font-weight:700}.wlst.s4,.wlst.s5{color:var(--mut)}.sxt td.l{white-space:normal;min-width:150px}.sxt .wlp{text-align:left;white-space:normal;min-width:86px}.sxt .wlb{text-align:left;white-space:normal;min-width:118px}.sxt .mo{display:none}.sxt .wlp .mo{margin-top:3px;font-size:12.5px}.sxall{display:inline-block;margin-top:6px;cursor:pointer}.sxi{display:inline-block;padding:0 6px;border-radius:8px;background:var(--hlbg);font-size:12px;margin:1px 2px 1px 0}
 @media (max-width:640px){.cgrid{grid-template-columns:minmax(0,1fr)}.co5 .r{grid-template-columns:2.6em 2.8em 54px minmax(0,1fr)}.cos{flex-basis:100%;order:4}
   .chk li{grid-template-columns:1.4em minmax(0,1fr)}.chk .hr{grid-column:2;text-align:left;white-space:normal}
-  .sxt .hm{display:none}}
+  .sxt .hm{display:none}.sxt .mo{display:block}}
 """
 
 JS = r"""
@@ -301,37 +301,51 @@ function sxBody(full=true){const S=D.sx||{};if(!S.v)return '';const R=S.rules||[
 function sxSec(){const S=D.sx||{};if(!S.v)return '';return sec('o-sx','飆股','飆股候選',`${S.d?md(S.d)+' 收盤':''}`,sxBody());}
 /* 飆股（tw-superstock-lab W1 名單、W3 交叉比對、W4 價格強度與大盤時機）：只列名單與過去統計，買哪一檔由使用者自己判斷 */
 const WLST={'-1':'—',0:'打底中',1:'今天突破',2:'突破後仍在買點',3:'準備好',4:'突破失敗',5:'漲太遠'};
-function wlRows(L,ST,T,bit){return L.map(x=>{const s=ST[x[0]]||{},p=s.p||{},st=p.st==null?-1:p.st,on=st>=1&&st<=3&&p.piv;
-  const fam=(((D.wl||{}).lay||{}).fam||[]).filter((_,k)=>((s.f||0)>>>k)&1).map(f=>f[0]);
+/* 每檔的參考價位：到買點的寫買點～追價上限與停損；還沒到的寫突破哪裡才算（52 週高點）或拉回參考（50 日線） */
+function wlBuy(s,cl){const p=(s||{}).p||{},st=p.st==null?-1:p.st,K={vcp:'標準 VCP',tight:'緊密整理',pp:'爆發型'};
+  if(st>=1&&st<=3&&p.piv)return `${st===3?'突破 ':''}<b>${fp(p.piv)}</b>～${fp(p.piv*1.05)}<div class=sm2>停損 ${fp(p.stop)}（${pctT((p.stop/p.piv-1)*100,1)}）・${K[p.kind]||''}</div>`;
+  if(st===0&&p.hi&&cl)return `突破 ${fp(p.hi)} 才算<div class=sm2>52 週高點，還差 ${pctT((p.hi/cl-1)*100,1)}</div>`;
+  if(st===5&&p.m50&&cl)return `等拉回 ${fp(p.m50)}<div class=sm2>50 日線，現價高 ${pctT((cl/p.m50-1)*100,0)}</div>`;
+  if(st===4)return `等重新整理<div class=sm2>跌回樞紐下</div>`;
+  return '—';}
+function wlRows(L,ST,T){return L.map(x=>{const s=ST[x[0]]||{},p=s.p||{},st=p.st==null?-1:p.st;
   return `<tr><td class=l><a data-co="${esc(x[0])}"><b>${esc(x[1])}</b></a> <span class=cd>${esc(x[0])}</span>`+
     `<div class=sm2>${x[2].map(t=>esc(T[t]||t)).join('・')}</div>${PK[x[0]]?`<span class=stgs>${stTags(x[0])}</span>`:''}</td>`+
-    `<td class=wlp><span class="wlst s${st}">${WLST[st]}</span>${on?`<div class=sm2>樞紐 ${fp(p.piv)}・停損 ${fp(p.stop)}（${pctT((p.stop/p.piv-1)*100,1)}）</div>`:''}</td><td>${fp(x[3])}</td>`+
-    `<td>${x[4]==null?'—':x[4]}</td><td class=hm>${sgn(x[5],0,'%')}</td>`+
-    `<td class=hm title="${esc(fam.join('、'))}">${s.s==null?'—':s.s+'／7'}</td></tr>`;}).join('');}
-function wlTable(L,ST,T,bit,id){return `<div class=tw><table class=sxt${id?` id=${id}`:''}><thead><tr><th class=l>股票</th><th class=wlp>位置${gi('書上的買點與停損')}</th><th>收盤</th><th>RS${gi('RS 百分位')}</th><th class=hm>近 3 月營收年增</th><th class=hm>交叉比對${gi('交叉比對')}</th></tr></thead><tbody>${wlRows(L,ST,T,bit)}</tbody></table></div>`;}
-function wlSec(){const W=D.wl||{};if(!W.v)return sxSec();const Y=W.lay||{},ST=Y.stocks||{},C=W.cand||[],T=W.tags||{},R=Y.ps||{},MK=Y.mkt||{},MS=Y.mnow||{},YR=Y.years||[];
+    `<td class=wlp><span class="wlst s${st}">${WLST[st]}</span><div class=mo>${wlBuy(s,x[3])}</div></td>`+
+    `<td>${fp(x[3])}<div class="sm2 mo">RS ${x[4]==null?'—':x[4]}</div></td><td class="wlb hm">${wlBuy(s,x[3])}</td>`+
+    `<td class=hm>${x[4]==null?'—':x[4]}</td><td class=hm>${sgn(x[5],0,'%')}</td></tr>`;}).join('');}
+function wlTable(L,ST,T,id,h){return `<div class=tw><table class=sxt${id?` id=${id}`:''}><thead><tr><th class=l>股票</th><th class=wlp>位置${gi('書上的買點與停損')}</th><th>收盤</th><th class="wlb hm">${h}</th><th class=hm>RS${gi('RS 百分位')}</th><th class=hm>近 3 月營收年增</th></tr></thead><tbody>${wlRows(L,ST,T)}</tbody></table></div>`;}
+function wlSec(){const W=D.wl||{};if(!W.v)return sxSec();const Y=W.lay||{},ST=Y.stocks||{},C=W.cand||[],T=W.tags||{},R=Y.ps||{},MK=Y.mkt||{},MS=Y.mnow||{},YR=Y.years||[],W5=Y.w5||{};
   const CK=(Y.ck||[]).map(x=>x[0]),bit=(c,k)=>{const s=ST[c],i=CK.indexOf(k);return !!(s&&i>=0&&((s.x>>>i)&1));};
-  const strong=c=>bit(c,'rs90')||bit(c,'mom10'),byRs=(a,b)=>(b[4]||0)-(a[4]||0);
-  const A=C.filter(x=>strong(x[0])).sort(byRs),B=C.filter(x=>!strong(x[0])).sort(byRs);
+  const stOf=c=>{const p=(ST[c]||{}).p||{};return p.st==null?-1:p.st;},hiGap=x=>{const p=(ST[x[0]]||{}).p||{};return p.hi&&x[3]?p.hi/x[3]-1:9;};
+  const strong=c=>bit(c,'rs90')||bit(c,'mom10'),byRs=(a,b)=>(b[4]||0)-(a[4]||0),ORD={0:0,5:1,4:2},NEAR=0.10;
+  const A=C.filter(x=>{const t=stOf(x[0]);return t>=1&&t<=3;}).sort((a,b)=>stOf(a[0])-stOf(b[0])||byRs(a,b));
+  const inA=new Set(A.map(x=>x[0])),wait=(a,b)=>((ORD[stOf(a[0])]??3)-(ORD[stOf(b[0])]??3))||(stOf(a[0])===0?hiGap(a)-hiGap(b):byRs(a,b));
+  const S2=C.filter(x=>!inA.has(x[0])&&strong(x[0])),B=S2.filter(x=>stOf(x[0])===0&&hiGap(x)<=NEAR).sort(wait);
+  const inB=new Set(B.map(x=>x[0])),B2=S2.filter(x=>!inB.has(x[0])).sort(wait),Rr=C.filter(x=>!inA.has(x[0])&&!strong(x[0])).sort(wait);
   const p0=x=>x==null?'—':f(x*100,0)+'%',per=R.per||{},P=(k,t)=>((per[k]||{})[t]||{}).B||{};
   const yr=YR.filter(y=>y.ps!=null&&y.s9!=null),win=yr.filter(y=>y.ps>y.s9).length;
   const rg=t=>{const xs=['IS','VAL','HO'].map(k=>P(k,t).p).filter(x=>x!=null);return xs.length?p0(Math.min(...xs))+'～'+p0(Math.max(...xs)):'—';};
-  let b=`<div class=colead style="font-weight:400">今天名單 <b>${C.length} 檔</b>：價格強度在前段的 <b>${A.length} 檔</b>先列，其餘 ${B.length} 檔收起來。`+
-    (per.IS?`2014 年起三段期間，這一段一年內翻倍的比例 ${rg('t1')}，名單其餘 ${rg('t2')}`+
-      (yr.length?`；${yr[0].y}–${yr[yr.length-1].y} 年有 ${win} 年比較準`:'')+`。`:'')+`</div>`;
+  let b=`<div class=colead style="font-weight:400">今天名單 ${C.length} 檔：<b>到買點 ${A.length} 檔</b>、<b>快到買點 ${B.length} 檔</b>；其他強勢 ${B2.length} 檔、其餘 ${Rr.length} 檔收起來。`+
+    (per.IS?`強勢的這一段過去一年內翻倍 ${rg('t1')}，名單其餘 ${rg('t2')}。`:'')+`</div>`;
   if(MK.pass&&MS.m2!=null){const a=(MK.all||{}).s9||{},bs=(MK.all||{}).base||{},on=a[1]||{},off=a[0]||{};
     b+=`<div class=note>目前大盤：加權指數 50 日線<b>在 200 日線之${MS.m2?'上':'下'}</b>${gi('大盤 50 日線')}。2014–2022 年，50 日線在上時名單一年內翻倍 ${p0(on.p)}，在下時 ${p0(off.p)}（全部股票 ${p0(bs[1])} 對 ${p0(bs[0])}）：大盤轉弱之後一年反而比較容易翻倍，主要是大跌後全部股票一起反彈；50 日線在下的時候 9 年只出現過 ${off.runs||'—'} 段。</div>`;}
-  b+=wlTable(A,ST,T,bit,'wlc');
-  if(B.length)b+=`<details class=mr><summary>其他 ${B.length} 檔（價格強度沒到前段）</summary>${wlTable(B,ST,T,bit)}</details>`;
+  b+=`<h4 class=sh>到買點（${A.length} 檔）</h4>`+(A.length?wlTable(A,ST,T,'wla','買點～追價上限'):`<div class=st>今天沒有股票在書上的買點。</div>`);
+  b+=`<h4 class=sh>快到買點（${B.length} 檔，強勢、離 52 週高點 ${f(NEAR*100,0)}% 內）</h4>`+(B.length?wlTable(B,ST,T,'wlc','等什麼'):`<div class=st>今天沒有。</div>`);
+  if(B2.length)b+=`<details class=mr><summary>其他強勢 ${B2.length} 檔（離高點較遠或已漲太遠）</summary>${wlTable(B2,ST,T,'wlb2','等什麼')}</details>`;
+  if(Rr.length)b+=`<details class=mr><summary>其他 ${Rr.length} 檔（價格強度沒到前段）</summary>${wlTable(Rr,ST,T,'','等什麼')}</details>`;
   const sp=Y.specs||{},v1=sp.v1||{},v2=sp.v2||{};
   let d=`<div class=note>名單＝三份名單合併：${Object.values(T).map(esc).join('、')}（每週約 ${f(((W.lists||{})[W.chosen]||{}).ALL?.size,0)} 檔）。`+
-    `價格強度＝RS ≥ 90 或相對強勢前 10%；這個條件是看過 2020–2022 年的結果後才選的，能看的是每一段、每一年是不是都比較準。</div>`;
-  if(per.IS)d+=`<div class=tw><table class=sxt><thead><tr><th class=l>一年內翻倍的比例</th><th>價格強度在前段</th><th>名單其餘</th><th>全部股票</th></tr></thead><tbody>`+
+    `強勢＝RS ≥ 90 或相對強勢前 10%；這個條件是看過 2020–2022 年的結果後才選的，能看的是每一段、每一年是不是都比較準。</div>`;
+  if(per.IS)d+=`<div class=tw><table class=sxt><thead><tr><th class=l>一年內翻倍的比例</th><th>強勢</th><th>名單其餘</th><th>全部股票</th></tr></thead><tbody>`+
     [['IS','2014–2019'],['VAL','2020–2022'],['HO','2023 起']].map(([k,t])=>`<tr><td class=l>${t}</td><td>${p0(P(k,'t1').p)}<div class=sm2>每週 ${f(P(k,'t1').per_week,1)} 檔</div></td><td>${p0(P(k,'t2').p)}</td><td>${p0(((per[k]||{}).base||{}).B)}</td></tr>`).join('')+`</tbody></table></div>`;
-  if(YR.length)d+=`<div class=tw><table class=sxt><thead><tr><th class=l>年</th><th>價格強度在前段</th><th>整份名單</th><th>全部股票</th><th>加權指數</th></tr></thead><tbody>${YR.map(y=>`<tr><td class=l>${esc(y.y)}</td><td>${p0(y.ps)}</td><td>${p0(y.s9)}</td><td>${p0(y.base)}</td><td>${y.taiex==null?'—':pctT(y.taiex*100,0)}</td></tr>`).join('')}</tbody></table></div>`+
+  if(YR.length)d+=`<div class=tw><table class=sxt><thead><tr><th class=l>年</th><th>強勢</th><th>整份名單</th><th>全部股票</th><th>加權指數</th></tr></thead><tbody>${YR.map(y=>`<tr><td class=l>${esc(y.y)}</td><td>${p0(y.ps)}</td><td>${p0(y.s9)}</td><td>${p0(y.base)}</td><td>${y.taiex==null?'—':pctT(y.taiex*100,0)}</td></tr>`).join('')}</tbody></table></div>`+
     `<div class=note>一年內翻倍要等一年才知道：最近一年只算已經滿一年的週，今年還沒有結果。加權指數＝當年漲跌。</div>`;
   if(v1.lift!=null)d+=`<div class=note>交叉比對（月營收、獲利、價格強度、技術線型、階段、量價、族群 7 類，各 1 分）：分數最高的一層，2020–2022 年命中率是名單的 ${f(v1.lift,2)} 倍；`+
-    `最好的兩條件組合（${esc(v2.desc||'—')}）是 ${v2.lift==null?'—':f(v2.lift,2)} 倍——都沒有比名單準，所以分數只當參考。《超級績效》的 VCP、緊密整理在三段期間都比名單低，適合拿來找買點與停損，不適合拿來挑股票。</div>`;
+    `最好的兩條件組合（${esc(v2.desc||'—')}）是 ${v2.lift==null?'—':f(v2.lift,2)} 倍——都沒有比名單準，所以表上不列分數。</div>`;
+  const w3=W5.v3||{},wt=W5.tt||{};
+  if(w3.IS&&w3.VAL)d+=`<div class=note>《超級績效》的 VCP：照書的型態（每段回檔變小、低點逐段墊高、最後一段在整理區上半部）在台股很少見，2014–2019 年 ${w3.IS.stocks} 檔、2020–2022 年 ${w3.VAL.stocks} 檔。`+
+    `一年內翻倍 ${p0(w3.IS.B)}、${p0(w3.VAL.B)}，樣板股 ${p0((wt.IS||{}).B)}、${p0((wt.VAL||{}).B)}——兩段方向相反，案例太少，無法證明比較容易翻倍。位置欄的買點用照書的判斷。</div>`;
   d+=`<div class=note>只看月底市值 40 億以上的股票；過去的比例不代表之後也一樣。</div>`;
   b+=`<details class=mr><summary>過去成績與研究結論</summary>${d}${D.sx&&D.sx.v?`<details class=mr><summary>飆股候選規則</summary>${sxBody(false)}</details>`:''}</details>`;
   return sec('o-sx','飆股','飆股',`${W.d?md(W.d)+' 收盤':''}`,b);}
@@ -346,11 +360,10 @@ Object.assign(GL,{'五面向':'成長（近 3 月營收年增、最新季 EPS �
   '自由現金流':'營業活動現金流＋投資活動現金流（近四季）。投資活動含資本支出與買賣金融資產，所以是粗略的自由現金流。',
   '現金流 ÷ 淨利':'近四季營業現金流 ÷ 近四季淨利。長期低於 100% 代表帳上獲利沒有變成現金（應收帳款或存貨堆高）。',
   '飆股命中率':'符合規則的那一週之後，60 個交易日（約 3 個月）內最高價曾漲到 50% 的比例。「全體」＝同一段期間所有合格股票（月底市值 40 億以上、日均成交值 1,000 萬以上）的比例。2023 年起的數字是規則定案之後才算的。',
-  '書上的買點與停損':'《超級績效》的算法。樞紐＝整理區的高點（VCP 收縮、10 日高低 8% 以內，或急漲一倍後橫盤）。準備好＝收在樞紐下方 5% 內；今天突破＝昨天準備好、今天收盤站上樞紐（不超過 5%）、成交量是 50 日均量 1.5 倍以上；突破後仍在買點＝突破後 5 天內還在樞紐到樞紐 × 1.05 之間；突破失敗＝突破後 5 天內跌回樞紐 × 0.97 以下；漲太遠＝收盤高於 50 日線 25% 以上，或 60 天內突破過、已漲超過樞紐 5%；其餘＝打底中。停損＝樞紐下 8% 與整理期間最低價取較高者。只標位置，不是買賣訊號。',
-  '交叉比對':'月營收、獲利、價格強度、技術線型、階段、量價、族群 7 類條件，符合幾類（各 1 分）。研究結果：分數高的股票，2020–2022 年並沒有比名單其他股票更常翻倍，所以只當參考。',
+  '書上的買點與停損':'《超級績效》的算法。樞紐＝整理區的高點：標準 VCP（照書：每段回檔比前一段小、低點逐段墊高、最後一段在整理區上半部、量縮）、10 日高低 8% 以內的緊密整理，或急漲一倍後的橫盤。準備好＝收在樞紐下方 5% 內；今天突破＝昨天準備好、今天收盤站上樞紐（不超過 5%）、成交量是 50 日均量 1.5 倍以上；突破後仍在買點＝突破後 5 天內還在樞紐到樞紐 × 1.05 之間；突破失敗＝突破後 5 天內跌回樞紐 × 0.97 以下；漲太遠＝收盤高於 50 日線 25% 以上，或 60 天內突破過、已漲超過樞紐 5%；其餘＝打底中。停損＝樞紐下 8% 與整理期間最低價取較高者。還沒到買點的：打底中看突破 52 週高點，漲太遠看拉回 50 日線。只標位置與書上的算法，不是買賣訊號。',
   '大盤 50 日線':'加權指數 50 日均線在不在 200 日均線之上。2014–2019 年選出、2020–2022 年驗證：在下的時候之後一年名單比較容易翻倍，但全部股票也一樣（大跌後的反彈），而且這種狀態出現的次數很少。',
   '本益比位置':'每個月底的股價 ÷ 當時已公告的近四季 EPS，和這檔自己過去的本益比比。百分位越高代表以自己的歷史來看越貴；換算價位只是估值位置，不是價格預測。'});
-GLG.push(['公司分析',['五面向','飆股體質檢查','飆股命中率','書上的買點與停損','交叉比對','大盤 50 日線','趨勢樣板','RS 百分位','營收加速','ROE 拆解','自由現金流','現金流 ÷ 淨利','本益比位置']]);
+GLG.push(['公司分析',['五面向','飆股體質檢查','飆股命中率','書上的買點與停損','大盤 50 日線','趨勢樣板','RS 百分位','營收加速','ROE 拆解','自由現金流','現金流 ÷ 淨利','本益比位置']]);
 """
 
 SEARCH_HTML = ('<div class="cos"><input type="search" id="coq" placeholder="查公司：代號或名稱" autocomplete="off" '

@@ -296,7 +296,9 @@ def _layer(DL, cal, i, P, pxs, F, hits, watch) -> dict:
             r["plan"] = {"st": pl["st"], "piv": pl.get("piv"), "stop": pl.get("stop"), "kind": pl.get("kind"),
                          "dry": pl.get("dry"), "vn": vc.get("n") if vc.get("ok") else None,
                          "vds": [round(x, 3) for x in vc.get("ds") or []] if vc.get("ok") else None,
-                         "tight": list(pl["tight"]) if pl.get("tight") else None}
+                         "tight": list(pl["tight"]) if pl.get("tight") else None,
+                         "hi": round(pl["hi52"], 2) if pl.get("hi52") else None,
+                         "m50": round(pl["ma50"], 2) if pl.get("ma50") else None}
         return {"st": out, "mnow": LY.market_now(idx, i, cal)}
     except Exception as e:  # noqa: BLE001
         print(f"[layer] 第二層篩選失敗：{type(e).__name__}: {e}")
