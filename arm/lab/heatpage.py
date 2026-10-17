@@ -144,14 +144,15 @@ def _e(x) -> str:
 def _pct(x, dec=1, sign=True) -> str:
     if x is None:
         return "—"
-    s = f"{abs(x):.{dec}f}%"
-    return ("−" if x < 0 else ("+" if sign and x > 0 else "")) + s
+    r = round(x, dec)                              # 先取位數再判正負，不寫「−0.0」
+    return ("−" if r < 0 else ("+" if sign and r > 0 else "")) + f"{abs(r):.{dec}f}%"
 
 
 def _sgn(x, dec=1) -> str:
     if x is None:
         return "—"
-    return ("+" if x > 0 else ("−" if x < 0 else "")) + f"{abs(x):.{dec}f}"
+    r = round(x, dec)
+    return ("+" if r > 0 else ("−" if r < 0 else "")) + f"{abs(r):.{dec}f}"
 
 
 def _bar(h: float | None) -> str:
@@ -524,5 +525,6 @@ h3{font-size:15px;margin:18px 0 6px;color:var(--accd)}h4{font-size:13.5px;margin
  .it .ish{grid-column:3/4;grid-row:1}.it .iwk{grid-column:3/4;grid-row:2}
  .it .ish::before{content:"佔比 "}.it .iwk::before{content:"本週 "}
  .sc{font-size:30px}.tile .sc{font-size:26px}
+ .ch h2 .sub{display:block;margin-left:0}
 }
 """
