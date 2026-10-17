@@ -194,25 +194,25 @@ def _yrs(ys: list | None) -> str:
 
 
 def _past(L: dict) -> str:
-    """過去面向分數落在現在這一區時，之後加權指數的表現（全期間，兩個持有期間）。"""
+    """過去面向分數落在現在這一區時，之後加權指數的表現（全期間，兩個持有期間各自的樣本數）。"""
     band = L["band"]
     if band is None:
         return ""
-    parts, allp, first = [], [], None
+    parts, allp, yrs, start = [], [], set(), None
     for h in L["fwd"]:
         e = _ev(L["cev"], h)
         b, al = _band_of(e, band), _band_of(e, "全部")
         if not b or not b.get("n") or not al or not al.get("n"):
             continue
-        first = first or (e, b)
-        parts.append(f"之後 {h} 日加權指數平均 {_pct(b['avg'])}、上漲機率 {b['up']:.0f}%、期間最大跌幅中位數 {_pct(b['dd'])}")
+        start = start or (e.get("a") or "")[:4]
+        yrs |= set(b.get("yrs") or [])
+        parts.append(f"之後 {h} 日（{b['n']:,} {_unit(L['freq'])}）加權指數平均 {_pct(b['avg'])}、上漲機率 {b['up']:.0f}%、"
+                     f"期間最大跌幅中位數 {_pct(b['dd'])}")
         allp.append(f"{h} 日 {_pct(al['avg'])}")
     if not parts:
         return ""
-    e, b = first
-    yrs = _yrs(b.get("yrs"))
-    when = f"{b['n']:,} {_unit(L['freq'])}" + (f"，出現在 {_e(yrs)} 年" if yrs else "")
-    return (f"過去分數在「{_e(band)}」時（{_e((e.get('a') or '')[:4])} 年起的資料裡共 {when}）："
+    where = f"，出現在 {_e(_yrs(sorted(yrs)))} 年" if yrs else ""
+    return (f"過去分數在「{_e(band)}」時（{_e(start)} 年起的資料{where}）："
             + "；".join(parts) + "。所有日子：" + "、".join(allp) + "。")
 
 
