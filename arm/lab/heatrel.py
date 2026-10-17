@@ -458,11 +458,13 @@ def _round_ev(r: dict) -> dict:
     return out
 
 
-def group_stats(ret: list, flag: list, dates: list[str], L: int) -> dict:
+def group_stats(ret: list, flag: list, dates: list[str], L: int, wi: list[int] | None = None) -> dict:
     """每週樣本（ret＝之後漲跌，已排除沒有值的週）：flag 為真的週 vs 全部週。
-    週數、段數（相鄰的週算一段）、平均、上漲機率、差、信賴區間（移動區塊、2,000 次）、前後兩半（依日期切在全部週的中間）、判定。"""
+    週數、段數（相鄰的週算一段；wi＝每筆的週序號，中間缺週就斷開）、平均、上漲機率、差、信賴區間（移動區塊、2,000 次）、
+    前後兩半（依日期切在全部週的中間）、判定。"""
     n = sum(flag)
-    runs = sum(1 for i, f in enumerate(flag) if f and (i == 0 or not flag[i - 1]))
+    wi = wi if wi is not None else list(range(len(flag)))
+    runs = sum(1 for i, f in enumerate(flag) if f and (i == 0 or not flag[i - 1] or wi[i] != wi[i - 1] + 1))
     sel = [r for r, f in zip(ret, flag) if f]
     mean = lambda xs: statistics.mean(xs) if xs else None          # noqa: E731
     out = {"n": n, "runs": runs, "avg": mean(sel), "up": (sum(1 for v in sel if v > 0) / n) if n else None,
@@ -548,17 +550,18 @@ def deriv_all(B: dict) -> dict:
         res = {"first": next((cal[i] for i, v in enumerate(D["state"]) if v is not None), None), "h": {}}
         for h in hs:
             rows = []
-            for i in we:
+            for j, i in enumerate(we):
                 r = H.fwd(px, i, h)[0]
                 if r is None or D["state"][i] is None:
                     continue
-                rows.append((cal[i], D["state"][i], D["acc"][i], lvl[i], r))
+                rows.append((cal[i], D["state"][i], D["acc"][i], lvl[i], r, j))
             ret = [x[4] for x in rows]
             dates = [x[0] for x in rows]
+            wi = [x[5] for x in rows]
             L = wk_block(h)
             states = {}
             for st in (1, 2, 3, 4, 0):
-                states[str(st)] = _round_g(group_stats(ret, [x[1] == st for x in rows], dates, L))
+                states[str(st)] = _round_g(group_stats(ret, [x[1] == st for x in rows], dates, L, wi))
             # (b) 二階熱度 vs 之後漲跌
             pr = [(x[2], x[4]) for x in rows if x[2] is not None]
             acc = {"n": len(pr), "rho": None, "lo": None, "hi": None, "h1": None, "h2": None, "verdict": "few"}

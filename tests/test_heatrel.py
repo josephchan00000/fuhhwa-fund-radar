@@ -144,6 +144,9 @@ def test_group_stats_runs_halves_and_verdict():
     assert g["n"] == 36 and g["runs"] == 6 and g["verdict"] == "strong" and g["lo"] > 0
     few = R.group_stats(ret, [i < 30 for i in range(400)], [f"2020-{i:04d}" for i in range(400)], 4)
     assert few["runs"] == 1 and few["verdict"] == "few"
+    wi = list(range(15)) + list(range(16, 401))                 # 第 15 週缺 → 第 10～20 筆被切成兩段
+    split = R.group_stats(ret, [10 <= i < 20 for i in range(400)], [f"2020-{i:04d}" for i in range(400)], 4, wi)
+    assert split["runs"] == 2
 
 
 def test_leadlag_follow_and_lead_rules():
