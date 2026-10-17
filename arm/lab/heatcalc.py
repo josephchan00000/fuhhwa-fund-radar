@@ -442,7 +442,8 @@ def research(B: dict | None = None) -> dict:
         cf = next((cal[i] for i, v in enumerate(comp[dim]) if v is not None), None)
         dims[dim] = {"items": items, "first": first, "comp": evaluate(comp[dim], px, cal, dim), "comp_first": cf}
     ev = TT.all_events(px)
-    events = {k: {str(h): _round_ev(TT.event_study(px, cal, ev[k], h)) for h in S.EV_FWD} for k in S.EVENTS}
+    fw = {h: TT.fwd_all(px, h) for h in S.EV_FWD}
+    events = {k: {str(h): _round_ev(TT.event_study(px, cal, ev[k], h, f=fw[h])) for h in S.EV_FWD} for k in S.EVENTS}
     data = {}
     for n in FILES + ["rev"]:
         ks = sorted(D.get(n) or {})

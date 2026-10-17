@@ -176,10 +176,15 @@ def _mean(xs):
     return statistics.mean(xs) if xs else None
 
 
-def event_study(px: list, cal: list[str], idx: list[int], h: int, start: int = S.EV_START) -> dict:
+def fwd_all(px: list, h: int) -> list:
+    return [H.fwd(px, i, h)[0] for i in range(len(px))]
+
+
+def event_study(px: list, cal: list[str], idx: list[int], h: int, start: int = S.EV_START, f: list | None = None) -> dict:
     """事件之後 h 個交易日的漲跌 vs 同期所有交易日（索引 ≥ start、之後漲跌算得出來的日子）。
-    差＝事件平均 − 所有日子平均；信賴區間＝移動區塊重抽（區塊長 h、固定種子）；前後兩半依事件數切在中間那一筆。"""
-    f = [H.fwd(px, i, h)[0] for i in range(len(px))]
+    差＝事件平均 − 所有日子平均；信賴區間＝移動區塊重抽（區塊長 h、固定種子）；前後兩半依事件數切在中間那一筆。
+    f＝fwd_all(px, h)（同一個 h 算過就傳進來，省時間）。"""
+    f = f if f is not None else fwd_all(px, h)
     base = [i for i in range(start, len(px)) if f[i] is not None]
     evs = [i for i in idx if i >= start and f[i] is not None]
     allr = [f[i] for i in base]
@@ -188,30 +193,8 @@ def event_study(px: list, cal: list[str], idx: list[int], h: int, start: int = S
            "all_avg": _mean(allr), "all_up": (sum(1 for v in allr if v > 0) / len(allr)) if allr else None,
            "a": cal[evs[0]] if evs else None, "z": cal[evs[-1]] if evs else None, "yrs": sorted({cal[i][:4] for i in evs})}
     out["diff"] = None if out["avg"] is None or out["all_avg"] is None else out["avg"] - out["all_avg"]
-    lo = hi = None
-    if len(evs) >= 2 and len(base) >= 2 * h:
-        ise = set(evs)
-        flag = [i in ise for i in base]
-        rnd = random.Random(S.BOOT_SEED)
-        L, nb = max(1, h), len(base)
-        reps = []
-        for _ in range(S.BOOT_N):
-            se = sa = 0.0
-            ne = na = 0
-            while na < nb:
-                s = rnd.randrange(nb - L + 1)
-                for k in range(s, s + L):
-                    sa += allr[k]
-                    na += 1
-                    if flag[k]:
-                        se += allr[k]
-                        ne += 1
-            if ne:
-                reps.append(se / ne - sa / na)
-        if len(reps) >= S.BOOT_N // 2:
-            reps.sort()
-            q = (1 - S.CI) / 2
-            lo, hi = reps[int(q * len(reps))], reps[min(len(reps) - 1, int((1 - q) * len(reps)))]
+    ise = set(evs)
+    lo, hi = boot_diff(allr, [i in ise for i in base], h)
     out["lo"], out["hi"] = lo, hi
     halves = []
     if len(evs) >= 2:
@@ -225,6 +208,39 @@ def event_study(px: list, cal: list[str], idx: list[int], h: int, start: int = S
     out["h1"], out["h2"] = (halves + [None, None])[:2]
     out["verdict"] = ev_verdict(out)
     return out
+
+
+def boot_diff(r: list, flag: list, L: int, n_boot: int = S.BOOT_N, seed: int = S.BOOT_SEED) -> tuple:
+    """移動區塊重抽：每次抽區塊（長 L）湊滿 len(r) 天，算「事件日平均 − 所有日子平均」，取 95% 區間。
+    用前綴和，一個區塊 O(1)。事件少於 2 天或天數不到 2L 回 (None, None)。"""
+    n = len(r)
+    if sum(flag) < 2 or n < 2 * L:
+        return None, None
+    P, PE, PF = [0.0], [0.0], [0]
+    for x, f in zip(r, flag):
+        P.append(P[-1] + x)
+        PE.append(PE[-1] + (x if f else 0.0))
+        PF.append(PF[-1] + (1 if f else 0))
+    rnd = random.Random(seed)
+    L = max(1, L)
+    starts = n - L + 1
+    reps = []
+    for _ in range(n_boot):
+        sa = se = 0.0
+        na = ne = 0
+        while na < n:
+            st = rnd.randrange(starts)
+            sa += P[st + L] - P[st]
+            se += PE[st + L] - PE[st]
+            ne += PF[st + L] - PF[st]
+            na += L
+        if ne:
+            reps.append(se / ne - sa / na)
+    if len(reps) < n_boot // 2:
+        return None, None
+    reps.sort()
+    q = (1 - S.CI) / 2
+    return reps[int(q * len(reps))], reps[min(len(reps) - 1, int((1 - q) * len(reps)))]
 
 
 def ev_verdict(r: dict) -> str:

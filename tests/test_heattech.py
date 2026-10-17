@@ -103,3 +103,33 @@ def test_levels_deduct_support_resistance():
     assert L["sup"]["v"] < px[t] < L["res"]["v"]
     assert L["ma"][60]["v"] is not None and L["ma"][240]["v"] is not None
     assert L["hi"]["p"] == 140
+
+
+def test_boot_diff_prefix_sums_match_direct_resampling():
+    rnd = random.Random(9)
+    r = [rnd.gauss(0.001, 0.02) for _ in range(500)]
+    flag = [rnd.random() < 0.08 for _ in range(500)]
+
+    def direct(L, n_boot=300, seed=11):                  # 逐天加總的寫法（舊版），同一組亂數
+        g = random.Random(seed)
+        reps = []
+        for _ in range(n_boot):
+            sa = se = 0.0
+            na = ne = 0
+            while na < len(r):
+                st = g.randrange(len(r) - L + 1)
+                for k in range(st, st + L):
+                    sa += r[k]
+                    na += 1
+                    if flag[k]:
+                        se += r[k]
+                        ne += 1
+            if ne:
+                reps.append(se / ne - sa / na)
+        reps.sort()
+        return reps[int(0.025 * len(reps))], reps[min(len(reps) - 1, int(0.975 * len(reps)))]
+    for L in (10, 60):
+        lo, hi = T.boot_diff(r, flag, L, n_boot=300, seed=11)
+        a, b = direct(L)
+        assert abs(lo - a) < 1e-12 and abs(hi - b) < 1e-12
+    assert T.boot_diff(r, [False] * 499 + [True], 10) == (None, None)
