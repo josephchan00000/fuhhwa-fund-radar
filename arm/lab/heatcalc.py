@@ -132,41 +132,52 @@ def f3_foreign_opt(opti: dict) -> dict:
 
 # ── 各指標原始值 ─────────────────────────────────────────────────────
 
-def raw_daily(D: dict, cal: list[str], px: list) -> dict[str, list]:
-    R: dict[str, list] = {}
+US = {"S5", "M7", "M8"}                     # 美國資料：台灣 t 日只能用美國 t 日以前的收盤
+
+
+def native_daily(D: dict, cal: list[str], px: list) -> dict[str, dict]:
+    """各日資料指標在「來源自己的日期」上的值 {指標: {日期: 值}}（買賣超比、加權指數類直接在台灣交易日上算）。"""
+    N: dict[str, dict] = {}
+    on_cal = lambda xs: {d: v for d, v in zip(cal, xs) if v is not None}   # noqa: E731
     mg = {d: v[0] for d, v in (D.get("margin") or {}).items() if v and v[0]}
-    R["S1"] = H.asof_daily(cal, native(mg, lambda v: H.chg(v, 5)))
-    R["M4"] = H.asof_daily(cal, native(mg, lambda v: H.chg(v, 60)))
+    N["S1"] = native(mg, lambda v: H.chg(v, 5))
+    N["M4"] = native(mg, lambda v: H.chg(v, 60))
     inst = D.get("inst") or {}
     tot = {d: v["total"] for d, v in inst.items() if v.get("total") is not None}
     fx = {d: sum(x for n, x in v.items() if n.startswith("Foreign")) for d, v in inst.items()
           if any(n.startswith("Foreign") for n in v)}
     to = {d: v[0] for d, v in (D.get("turnover") or {}).items() if v and v[0]}
-    R["S3"] = ratio_sum(cal, tot, to, 5)
-    R["M5"] = ratio_sum(cal, fx, to, 60)
+    N["S3"] = on_cal(ratio_sum(cal, tot, to, 5))
+    N["M5"] = on_cal(ratio_sum(cal, fx, to, 60))
     br = D.get("breadth") or {}
     bk = sorted(br)
     bi = HD.breadth_ind({"cal": bk, **{f: [br[d][j] for d in bk]
                                        for j, f in enumerate(("adv", "dec", "above", "n60", "hi", "lo", "n250"))}})
     for k in ("S2", "M2", "M3"):
-        R[k] = H.asof_daily(cal, bi[k], stale=4)
-    R["S4"] = H.roll_std_ret(px, 20)
-    R["S6"] = rel_ma(px, 20)
-    R["M1"] = rel_ma(px, 120)
+        N[k] = bi[k]
+    N["S4"] = on_cal(H.roll_std_ret(px, 20))
+    N["S6"] = on_cal(rel_ma(px, 20))
+    N["M1"] = on_cal(rel_ma(px, 120))
     vix = D.get("vix") or {}
-    R["S5"] = H.asof_daily(cal, native(vix, lambda v: rel_ma(v, 50)), after=True)
-    R["M8"] = H.asof_daily(cal, vix, after=True)
+    N["S5"] = native(vix, lambda v: rel_ma(v, 50))
+    N["M8"] = dict(vix)
     pc = {d: v[2] for d, v in (D.get("pcr") or {}).items() if v and v[2] is not None}
-    R["S7"] = H.asof_daily(cal, native(pc, lambda v: H.roll_mean(v, 5)))
-    R["F1"] = H.asof_daily(cal, f1_foreign_fut(D.get("futi") or {}))
-    R["F2"] = H.asof_daily(cal, f2_retail_mtx(D.get("futi") or {}, D.get("mtxoi") or {}))
-    R["F3"] = H.asof_daily(cal, f3_foreign_opt(D.get("opti") or {}))
-    R["F4"] = H.asof_daily(cal, D.get("vixtw") or {})
-    R["M6"] = H.asof_daily(cal, native(D.get("usdtwd") or {}, lambda v: H.chg(v, 60)))
+    N["S7"] = native(pc, lambda v: H.roll_mean(v, 5))
+    N["F1"] = f1_foreign_fut(D.get("futi") or {})
+    N["F2"] = f2_retail_mtx(D.get("futi") or {}, D.get("mtxoi") or {})
+    N["F3"] = f3_foreign_opt(D.get("opti") or {})
+    N["F4"] = dict(D.get("vixtw") or {})
+    N["M6"] = native(D.get("usdtwd") or {}, lambda v: H.chg(v, 60))
     hy, ie = D.get("hyg") or {}, D.get("ief") or {}
     rat = {d: hy[d] / ie[d] for d in hy if ie.get(d)}
-    R["M7"] = H.asof_daily(cal, native(rat, lambda v: H.chg(v, 60)), after=True)
-    return R
+    N["M7"] = native(rat, lambda v: H.chg(v, 60))
+    return N
+
+
+def raw_daily(D: dict, cal: list[str], px: list, N: dict | None = None) -> dict[str, list]:
+    """對齊台灣交易日：沿用最近一筆（超過 7 個日曆天算缺；廣度 4 天）；美國資料晚一天才用。"""
+    N = N if N is not None else native_daily(D, cal, px)
+    return {k: H.asof_daily(cal, N[k], after=k in US, stale=4 if k in ("S2", "M2", "M3") else 7) for k in N}
 
 
 def raw_monthly(D: dict) -> dict[str, dict]:
@@ -206,10 +217,12 @@ def raw_monthly(D: dict) -> dict[str, dict]:
 # ── 熱度 ─────────────────────────────────────────────────────────────
 
 def build(D: dict | None = None) -> dict:
-    """→ {"cal", "px", "cal_info", "raw": {k: 逐日值}, "heat": {k: 逐日 0～100}, "ym": {k: 逐日用到的月份}, "mraw": {k: 月序列}}"""
+    """→ {"cal", "px", "cal_info", "raw": {k: 逐日值}, "heat": {k: 逐日 0～100}, "ym": {k: 逐日用到的月份},
+    "mraw": {k: 月序列}, "nat": {k: 來源日期上的值}}"""
     D = D if D is not None else load()
     cal, px, info = calendar(D)
-    raw = raw_daily(D, cal, px)
+    N = native_daily(D, cal, px)
+    raw = raw_daily(D, cal, px, N)
     heat = {k: [H.to_heat(p, S.HOT[k]) for p in H.pct_series(raw[k], S.PCT_WIN["d"], S.PCT_MIN["d"])] for k in DAILY}
     M = raw_monthly(D)
     ymu: dict[str, list] = {}
@@ -220,7 +233,7 @@ def build(D: dict | None = None) -> dict:
         heat[k] = H.asof_monthly(cal, hm, S.RELEASE[k])
         raw[k] = H.asof_monthly(cal, M[k], S.RELEASE[k])
         ymu[k] = H.asof_monthly(cal, {ym: ym for ym in M[k]}, S.RELEASE[k])
-    return {"cal": cal, "px": px, "cal_info": info, "raw": raw, "heat": heat, "ym": ymu, "mraw": M, "D": D}
+    return {"cal": cal, "px": px, "cal_info": info, "raw": raw, "heat": heat, "ym": ymu, "mraw": M, "nat": N, "D": D}
 
 
 def composite_series(heat: dict, inc: list[str], n: int) -> list:
