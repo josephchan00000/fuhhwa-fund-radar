@@ -1,14 +1,14 @@
 {
-  "as_of": "2026/10/16 22:56",
+  "as_of": "2026/10/17 06:45",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
     {
-      "title": "群益證×復華投信剖析算力基建與光通訊新商機- 財經新聞",
-      "url": "https://news.pchome.com.tw/finance/idn/20261017/index-79218030096547224003.html",
-      "source": "PChome Online 新聞",
-      "date": "2026-10-16 22:15",
-      "datetime": "2026-10-16T22:15:41+08:00"
+      "title": "群益證×復華投信 剖析算力基建與光通訊新商機",
+      "url": "https://tw.news.yahoo.com/%E7%BE%A4%E7%9B%8A%E8%AD%89-%E5%BE%A9%E8%8F%AF%E6%8A%95%E4%BF%A1-%E5%89%96%E6%9E%90%E7%AE%97%E5%8A%9B%E5%9F%BA%E5%BB%BA%E8%88%87%E5%85%89%E9%80%9A%E8%A8%8A%E6%96%B0%E5%95%86%E6%A9%9F-195140775.html",
+      "source": "Yahoo新聞",
+      "date": "2026-10-17 03:51",
+      "datetime": "2026-10-17T03:51:40+08:00"
     },
     {
       "title": "00418A 復華台灣新星主動式 ETF｜成分股？配息？優缺點？募集時間？",
@@ -99,7 +99,7 @@
         {
           "title": "AI股跌、金融股扛！ 資金轉往00998A防禦型標的找避風港",
           "url": "https://sunmedia.tw/news/finance/AI%E8%82%A1%E8%B7%8C%E3%80%81%E9%87%91%E8%9E%8D%E8%82%A1%E6%89%9B%EF%BC%81-%E8%B3%87%E9%87%91%E8%BD%89%E5%BE%8000998A%E9%98%B2%E7%A6%A6%E5%9E%8B%E6%A8%99%E7%9A%84%E6%89%BE%E9%81%BF%E9%A2%A8%E6%B8%AF-1792119415225",
-          "source": "商傳媒",
+          "source": "ENN台灣電報",
           "date": "2026-10-16 10:58",
           "datetime": "2026-10-16T10:58:21+08:00"
         },
@@ -557,7 +557,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
       "date": "2026-10-11",
-      "views": 18272,
+      "views": 18561,
       "short": true
     },
     {
@@ -566,7 +566,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
       "date": "2026-10-12",
-      "views": 7100
+      "views": 7333
     },
     {
       "platform": "youtube",
@@ -574,7 +574,7 @@
       "channel": "小童 x Happy Trading Life",
       "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
       "date": "2026-10-13",
-      "views": 2229,
+      "views": 2279,
       "short": true
     },
     {
@@ -583,7 +583,7 @@
       "channel": "安聯投信 Allianz Global Investors Taiwan",
       "url": "https://www.youtube.com/shorts/b-T8DfBiuuk",
       "date": "2026-10-12",
-      "views": 386433,
+      "views": 421569,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -594,7 +594,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/shorts/XFDp4rY4FsQ",
       "date": "2026-10-12",
-      "views": 208709,
+      "views": 214350,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -605,7 +605,7 @@
       "channel": "理財達人秀 EBCmoneyshow",
       "url": "https://www.youtube.com/watch?v=REtGASDFkEM",
       "date": "2026-10-12",
-      "views": 138413,
+      "views": 139304,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -615,7 +615,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=QmBZNnOcDBE",
       "date": "2026-10-12",
-      "views": 131028,
+      "views": 131781,
       "peer": true,
       "cat": "主動式"
     },
@@ -625,7 +625,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/sgOyzfXKakU",
       "date": "2026-10-13",
-      "views": 123441,
+      "views": 131715,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -636,7 +636,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=aBJQT2o2VfQ",
       "date": "2026-10-15",
-      "views": 123391,
+      "views": 129638,
       "peer": true,
       "cat": "基金"
     },
@@ -646,7 +646,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=HF7hiHSeZpU",
       "date": "2026-10-12",
-      "views": 102640,
+      "views": 103675,
       "peer": true,
       "cat": "基金"
     },
@@ -656,7 +656,17 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=1iIDAJTm3bk",
       "date": "2026-10-12",
-      "views": 93605,
+      "views": 94338,
+      "peer": true,
+      "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "00406A奪全台成交王！破發還能配超高息？天下真有那麼好的事？｜璇轉理財腦 基金小姐姐詹璇依",
+      "channel": "基金小姐姐詹璇依",
+      "url": "https://www.youtube.com/watch?v=HWdw9YRGwuo",
+      "date": "2026-10-14",
+      "views": 91120,
       "peer": true,
       "cat": "高股息"
     },
@@ -666,26 +676,15 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=96vE3gSEGqo",
       "date": "2026-10-14",
-      "views": 86177,
+      "views": 88953,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "兩檔ETF今年績效翻倍還高配息？#00947 #00904 #阿格力 #AI #台股",
-      "channel": "阿格力博識",
-      "url": "https://www.youtube.com/shorts/SaOsMmke7vQ",
-      "date": "2026-10-12",
-      "views": 81346,
-      "peer": true,
-      "short": true,
-      "cat": "高股息"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全方位（詳下方新聞標籤）",
-    "品牌焦點：群益證×復華投信剖析算力基建與光通訊新商機- 財經新聞（PChome Online 新聞）",
+    "品牌焦點：群益證×復華投信 剖析算力基建與光通訊新商機（Yahoo新聞）",
     "社群聲量最高：比較0050ETF和0050連結基金的績效（0 推）",
-    "YouTube 熱片：00412A 速懂！10月13日盛大掛牌上市（安聯投信 Allianz Global Investors Taiwan・386,433 次觀看）"
+    "YouTube 熱片：00412A 速懂！10月13日盛大掛牌上市（安聯投信 Allianz Global Investors Taiwan・421,569 次觀看）"
   ]
 }
