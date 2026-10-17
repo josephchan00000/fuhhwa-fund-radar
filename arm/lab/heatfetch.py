@@ -315,8 +315,28 @@ def _num(x):
         return None
 
 
+def parse_ndc_exports(txt: str) -> dict:
+    """國發會「同時指標構成項目.csv」表頭含「海關出口值」那一欄（十億元）→ {年-月: 值}（第三版 B5）。"""
+    rows = txt.splitlines()
+    head = [x.strip().strip('"') for x in (rows[0] if rows else "").split(",")]
+    j = next((i for i, h in enumerate(head) if "海關出口值" in h), None)
+    if j is None:
+        raise ValueError(f"同時指標構成項目.csv 找不到海關出口值欄：{head}")
+    out = {}
+    for ln in rows[1:]:
+        c = [x.strip().strip('"') for x in ln.split(",")]
+        if len(c) > j and re.match(r"^\d{6}$", c[0]) and _num(c[j]) is not None and c[j] != "":
+            out[f"{c[0][:4]}-{c[0][4:]}"] = _num(c[j])
+    return out
+
+
 def ndc() -> int:
     zf = zipfile.ZipFile(io.BytesIO(_get(NDC_ZIP, timeout=90)))
+    try:                                                        # 出口另存；失敗不影響景氣燈號
+        ex = parse_ndc_exports(zf.read("同時指標構成項目.csv").decode("utf-8-sig"))
+        print(f"[heat] 出口（國發會同時指標構成項目）：{_merge('exports', 'ndc', ex)} 筆新增或改動，共 {len(ex)} 個月", flush=True)
+    except Exception as e:                                      # noqa: BLE001
+        print(f"[heat] 出口 ✗ {type(e).__name__}: {str(e)[:200]}", flush=True)
     fn = next(n for n in zf.namelist() if n == "景氣指標與燈號.csv")
     txt = zf.read(fn).decode("utf-8-sig")
     out: dict = {}

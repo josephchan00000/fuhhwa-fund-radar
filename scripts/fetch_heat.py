@@ -6,6 +6,7 @@
       官方分片有新的交易日才重算廣度。
   回補（`.ping/lab` 第一行寫 heatfill）：python3 scripts/fetch_heat.py --backfill --budget-min 45
       各來源從頭抓；期交所 P/C、證交所成交金額每月一請求，時間到就停、下一輪續補（已有整月的跳過）。
+      只抓某幾個：第一行寫 heatfill:ndc,pmi（冒號後面＝--only，用回補清單的鍵名；ndc 會連出口一起抓）。
 
 每個來源各自失敗、各自降級（抓不到保留既有的檔）；最後印每個檔的筆數與日期範圍。
 """
@@ -25,7 +26,8 @@ from arm.lab import heatdata as HD  # noqa: E402
 from arm.lab import heatfetch as F  # noqa: E402
 
 NAMES = ["margin", "inst", "futi", "opti", "mtxoi", "pcr", "vixtw", "taiex", "vix", "hyg", "ief", "turnover",
-         "usdtwd", "money", "ndc", "ndc_first", "pmi", "orders", "twcpi", "effr", "fedtgt", "uscpi", "ust", "breadth"]
+         "usdtwd", "money", "ndc", "ndc_first", "exports", "pmi", "orders", "twcpi", "effr", "fedtgt", "uscpi", "ust",
+         "breadth"]
 # 月資料「新的一個月該出來了」的最早日子（第 m＋1 個月的第幾天）：只用來決定要不要抓，不影響驗證（驗證用 heatspec.RELEASE）
 DUE = {"twcpi": (1, 5)}
 

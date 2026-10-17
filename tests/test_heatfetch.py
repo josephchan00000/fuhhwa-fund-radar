@@ -75,6 +75,14 @@ def test_ndc_pmi_orders_usdtwd(lab, monkeypatch):
                    "\"同時指標不含趨勢指數\",\"落後指標綜合指數\",\"落後指標不含趨勢指數\",\"景氣對策信號綜合分數\",\"景氣對策信號\"\n"
                    "198201,12.28,100.34,13.11,107.10,13.08,106.92,-,-\n"
                    "202608,140.58,104.40,143.36,106.47,142.33,105.70,41,紅\n")
+        # 第三版 B5：同時指標構成項目的海關出口值（CI 探針實際拿到的表頭與資料列）
+        z.writestr("同時指標構成項目.csv", "﻿\"Date\",\"工業生產指數(Index2021=100)\",\"電力(企業)總用電量(十億度)\","
+                   "\"製造業銷售量指數(Index2021=100)\",\"批發、零售及餐飲業營業額(十億元)\",\"工業及服務業加班工時(小時)\","
+                   "\"海關出口值(十億元)\",\"機械及電機設備進口值(十億元)\"\n"
+                   "198201,,2.22,12.32,,9.9,65.56,\n"
+                   "202607,143.32,15.87,126.08,2266.591161,8.9,2409.368,1240.669\n"
+                   "202608,145.97,,,2361.956097,,2655.817,1266.488\n"
+                   "202609,,,,,,,\n")
     pmi = "Date,PMI,NMI\n201207,47.1,-\n202609,63.4,56.9\n".encode()
     orders = ("統計項目,地區代碼,地區別,資料期(民國年),統計值(金額),計量單位\n"
               "外銷訂單金額_美元,00,地區別總計,07301,2627,百萬美元\n"
@@ -94,6 +102,7 @@ def test_ndc_pmi_orders_usdtwd(lab, monkeypatch):
     assert HD.load("ndc")["2026-08"] == [140.58, 104.40, 143.36, 106.47, 142.33, 105.70, 41.0, "紅"]
     assert HD.load("ndc")["1982-01"][6] is None
     assert HD.load("ndc_first")["2026-08"] == [None, "回補"]                # 第一次抓不算「第一次公布」
+    assert HD.load("exports") == {"1982-01": 65.56, "2026-07": 2409.368, "2026-08": 2655.817}   # 空白月份不收
     assert F.ndc_pmi() == 2 and HD.load("pmi") == {"2012-07": 47.1, "2026-09": 63.4}
     assert F.moea_orders() == 1 and HD.load("orders") == {"1984-01": 2627.0}   # 只取地區別總計
     assert F.cbc_usdtwd() == 2 and HD.load("usdtwd")["2026-10-16"] == 32.428
@@ -178,3 +187,10 @@ def test_yahoo_adjclose_replaces_whole_history_but_not_on_partial(lab, monkeypat
     monkeypatch.setattr(market, "yahoo_hist_from", lambda sym, start, adj=False: part)
     F.yahoo_adj("hyg", "HYG", "2007-01-01")
     assert len(HD.load("hyg")) == 20
+
+
+def test_ndc_exports_header_by_name_and_missing_column_raises():
+    t = "Date,海關出口值(十億元),其他\n198201,65.56,1\n198202,-,2\n"
+    assert F.parse_ndc_exports(t) == {"1982-01": 65.56}
+    with pytest.raises(ValueError):
+        F.parse_ndc_exports("Date,工業生產指數\n198201,1\n")
