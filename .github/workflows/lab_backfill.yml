@@ -102,6 +102,8 @@ jobs:
             timeout 1500 python3 scripts/probe_heat.py
           elif [ "$MODE" = "probeheat2" ]; then
             timeout 1500 python3 scripts/probe_heat2.py
+          elif [ "$MODE" = "probeheat3" ]; then
+            timeout 1500 python3 scripts/probe_heat3.py
           else
             python3 scripts/backfill_lab.py --pos-git --px-days "$PX" --flow-days "$FL" --budget-min 50
           fi
