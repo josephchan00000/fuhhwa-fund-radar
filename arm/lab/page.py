@@ -50,6 +50,11 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         print(f"[籌碼雷達] 公司分析檔 {st.get('n')} 檔、改寫 {st.get('write')} 檔" + (f"（{st['err']}）" if st.get("err") else ""))
     except Exception as e:                   # noqa: BLE001 —— 公司分析失敗不影響建頁
         print(f"[籌碼雷達] ⚠ 公司分析檔沒有更新：{type(e).__name__}: {e}")
+    try:                                     # 景氣溫度頁（docs/lab_heat_plan.md）：另一頁，資料分開；失敗不影響籌碼雷達
+        from . import heatpage
+        changed |= heatpage.build(out.parent / "x9m.html")
+    except Exception as e:                   # noqa: BLE001
+        print(f"[籌碼雷達] ⚠ 景氣溫度頁沒有更新：{type(e).__name__}: {e}")
     for path, text in ((out_ser, sj), (out, render(data, ser_v=_ver(sj)))):
         if path.exists() and path.read_text(encoding="utf-8") == text:
             continue
@@ -128,7 +133,7 @@ _HTML = """<!doctype html>
 <title>籌碼雷達</title>
 <style>{{CSS}}</style></head>
 <body>
-<div class="top"><b>籌碼雷達</b><span class="asof">{{SUB}}</span>{{SEARCH}}<a class="back" href="./">返回主頁</a></div>
+<div class="top"><b>籌碼雷達</b><span class="asof">{{SUB}}</span>{{SEARCH}}<a class="back" href="x9m.html">景氣</a><a class="back" href="./">返回主頁</a></div>
 <p class="purp">用固定規則的選股策略，列出每條策略這一期選到的股票、哪天買賣，以及同樣做法過去實際賺多少。</p>
 <header class="hd"><div class="hdi">
   <nav class="tabs" id="tabs">

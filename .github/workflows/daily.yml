@@ -239,6 +239,7 @@ jobs:
           git add -f dashboard/x9s.json 2>/dev/null || true             # 籌碼雷達個股走勢序列（開個股卡才載入；分開 add：缺檔時不連累上一行的分片）
           git add -f dashboard/x9t.json 2>/dev/null || true             # 公司分析：全市場每日小表（docs/lab_company_plan.md；分開 add）
           git add -f dashboard/x9f.json 2>/dev/null || true             # 法人預估：每檔資料（docs/lab_forward_plan.md；分開 add）
+          git add -f dashboard/x9m.html 2>/dev/null || true            # 景氣溫度頁（docs/lab_heat_plan.md；分開 add）
           git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
           git commit -m "chore: 每日持股介紹／新聞更新 $(date +%F)" || { echo "無變更，跳過 push"; exit 0; }
           # push 失敗（main 期間被推進）→ rebase 重試；rebase 衝突以本次新資料為準（-X theirs）。
@@ -256,6 +257,7 @@ jobs:
             git add -f dashboard/x9s.json 2>/dev/null || true             # 籌碼雷達個股走勢序列（開個股卡才載入；分開 add：缺檔時不連累上一行的分片）
             git add -f dashboard/x9t.json 2>/dev/null || true             # 公司分析：全市場每日小表（docs/lab_company_plan.md；分開 add）
             git add -f dashboard/x9f.json 2>/dev/null || true             # 法人預估：每檔資料（docs/lab_forward_plan.md；分開 add）
+            git add -f dashboard/x9m.html 2>/dev/null || true            # 景氣溫度頁（docs/lab_heat_plan.md；分開 add）
             git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
             git commit --amend --no-edit || true
             sleep 5
