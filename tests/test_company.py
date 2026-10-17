@@ -75,10 +75,12 @@ def test_page_wires_company_analysis_on_demand():
 
 
 def test_company_text_has_no_banned_words():
+    """「目標價」只准出現在法人預估那幾支（2026-10-17 使用者：「直接說目標價」；位置由 tests/test_fcst.py 守）。"""
     banned = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "建議買賣", "建議買",
               "建議賣", "目標價", "零風險", "無風險", "穩賺不賠")
     text = copage.JS + copage.CSS + copage.SEARCH_HTML
-    assert not [w for w in banned if w in text]
+    assert not [w for w in banned if w != "目標價" and w in text]
+    assert "目標價" not in copage.CSS + copage.SEARCH_HTML
 
 
 def test_analyze_does_not_shadow_page_rows():

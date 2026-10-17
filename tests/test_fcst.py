@@ -131,22 +131,60 @@ def test_update_yahoo_keeps_old_on_failure(tmp_path, monkeypatch):
 
 BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "建議買賣", "建議買", "建議賣", "目標價", "零風險",
           "無風險", "穩賺不賠")
+FC_FUNCS = ("fcGr", "fcVs", "fcSrc", "fcWho", "fcSec", "fcLine")      # 「目標價」只准出現在法人預估這幾支（2026-10-17 使用者）
+
+
+def _js_func(js: str, name: str) -> str:
+    i = js.index(f"function {name}(")
+    j = js.find("\nfunction ", i + 1)
+    return js[i:j if j > 0 else len(js)]
 
 
 def test_page_doc_and_brief(tmp_path, monkeypatch):
-    """x9f.json 不帶快訊標題（標題有「目標價」三個字）；飆股段小字＝[家數, 今年 EPS 年增%, 30 天方向, 預估股價比現價%]。"""
+    """x9f.json 不帶快訊標題；pe／pt 是頁面直接用的來源；飆股段小字＝[人數, 今年 EPS 比去年%, 30 天方向, 目標價比現價%, 目標價]。"""
     monkeypatch.setattr(fcst.store, "LAB", tmp_path)
     doc = fcst.load_fs()
     fcst._merge_fs(doc, [_item("e"), _item("t")], {})
     fcst._write_lines(fcst.FS_FILE, doc, "ev")
-    pd = fcst.page_doc()
-    assert set(pd["s"]) == {"4958", "2455"}
-    assert not [w for w in BANNED if w in json.dumps(pd, ensure_ascii=False)]
+    pd = fcst.page_doc(today=date(2026, 10, 16))
+    assert set(pd["s"]) == {"4958", "2455"} and pd["fs_from"] == "2026-10-15"
+    assert not [w for w in BANNED if w in json.dumps(pd, ensure_ascii=False)]       # 快訊標題沒有轉載
     v = pd["s"]["4958"]
-    assert v["e"]["eps"][0][0] == 2026 and v["ev"][0] == ["2026-10-15", "e", 14.05, 14.23, 2026]
-    assert fcst.target_price(pd["s"]["2455"]) == (710.0, "2026-10-15")
-    assert fcst.brief(v, 500.0, {"2025": 7.0}, date(2026, 10, 16)) == [8, 103.3, 1, 34.0]
-    assert fcst.brief(v, None, {}, date(2026, 12, 20)) == [8, None, None, None]   # 30 天外不算方向
+    assert v["pe"]["src"] == "fs" and v["pe"]["id"] == 6631542 and v["pe"]["n"] == 8
+    assert v["pe"]["rows"][0] == [2026, 14.23, 12.65, 16.18, 2276.5]                # [年, EPS 中位數, 最低, 最高, 營收億]
+    assert v["pt"] == {"src": "fs", "d": "2026-10-15", "v": 671.5, "n": 8, "id": 6631542}
+    assert v["ev"][0] == ["2026-10-15", "e", 14.05, 14.23, 2026, 6631542]          # 每次調整帶 newsId（可點原文）
+    t = pd["s"]["2455"]["pt"]
+    assert (t["v"], t["hi"], t["lo"], t["n"], t["id"]) == (710.0, 846.0, 268.0, 10, 6631034)
+    assert pd["s"]["2455"]["t"]["rt"] == [9, 1, 0]
+    assert fcst.brief(v, 500.0, {"2025": 7.0}, date(2026, 10, 16)) == [8, 103.3, 1, 34.0, 671.5]
+    assert fcst.brief(v, None, {}, date(2026, 12, 20)) == [8, None, None, None, 671.5]   # 30 天外不算方向
+
+
+def test_view_prefers_fresh_source():
+    """FactSet 超過 120 天沒有新快訊 → 改用 Yahoo（2377 實例：EPS 快訊停在 2025-08，「今年 EPS +94%」其實是一年多前的預估）；
+    過去的年度不列；Yahoo 30 天前的 0 值＝沒有資料，不算上修。"""
+    e_old = ["2025-08-09", "e", 1, 7, 2025, 10.0, 10.4, 14.17, 7.32, 165.0,
+             [[2025, 14.17, 7.32, 10.28, 10.4], [2026, 14.46, 10.82, 12.63, 13.17], [2027, 13.92, 12.37, 13.14, 13.14]],
+             [[2025, 1.0, 1.0, 1.0, 2404.2], [2026, 1.0, 1.0, 1.0, 2530.4], [2027, 1.0, 1.0, 1.0, 2550.9]]]
+    t_new = ["2026-08-21", "t", 2, 6, 150.0, 155.0, 3.33, 190.0, 118.0, [4, 2, 0]]
+    y = fcst.parse_yahoo(_yh(n=9))
+    today = date(2026, 10, 17)
+    v = fcst.view([e_old, t_new], y, today)
+    assert v["pe"]["src"] == "y" and [r[0] for r in v["pe"]["rows"]] == [2026, 2027]
+    assert v["pe"]["n"] == 30 and v["pe"]["rows"][0][1] == 110.746
+    assert v["pt"]["src"] == "fs" and v["pt"]["v"] == 155.0                         # 目標價快訊 57 天前，還算新
+    v2 = fcst.view([e_old], None, today)                                           # 沒有 Yahoo：用舊的、標 old
+    assert v2["pe"]["old"] == 1 and [r[0] for r in v2["pe"]["rows"]] == [2026, 2027] and v2["pt"]["old"] == 1
+    assert fcst.brief(v2, 160.0, {"2025": 6.79}, today) is None                    # 舊資料不進小字
+    y["y0"]["t"] = [10.45, 0.0, 0.0, 0.0, 0.0]
+    b = fcst.brief(fcst.view(None, y, today), 197.5, {"2025": 7.9}, today)
+    assert b[2] is None and b[4] == 3300.0 and b[3] == round((3300 / 197.5 - 1) * 100, 0)
+    assert "avg" not in fcst.view(None, y, today)["pt"]                             # 有中位數就用中位數
+    y["tp"] = [3374.8, None, 5000.0, 2650.0]
+    assert fcst.view(None, y, today)["pt"]["avg"] == 1 and fcst.view(None, y, today)["pt"]["v"] == 3374.8   # 沒有中位數才用平均、標 avg
+    y["y0"]["t"] = [-0.5, 0.0, -1.0, 0.0, 0.0]                                       # 虧損縮小＝上修（不是相除後的 −50%）
+    assert fcst.brief(fcst.view(None, y, today), 197.5, {}, today)[2] == 1
 
 
 def test_company_card_and_wl_wiring():
@@ -154,9 +192,15 @@ def test_company_card_and_wl_wiring():
     from arm.lab import copage
     js = copage.JS
     for s in ("id=co-fc", "id=co-ind", "'x9f.json?v='", "['co-fc','法人預估']", "['co-ind','產業']", "function fcLine",
-              "產業熱度", "'法人預估':", "'產業比較':"):
+              "產業熱度", "'法人預估':", "'產業比較':", 'data-cs="co-fc"', "openCo(a.dataset.co,a.dataset.cs)",
+              "https://news.cnyes.com/news/id/", "/analysis/", "news.google.com/search"):
         assert s in js, s
-    assert not [w for w in BANNED if w in js + copage.CSS]
+    rest = js
+    for fn in FC_FUNCS:
+        rest = rest.replace(_js_func(js, fn), "")
+    rest = rest.replace(js[js.index("'法人預估':"):js.index("'產業比較':")], "")
+    assert "目標價" not in rest                                                     # 只在法人預估那幾支
+    assert not [w for w in BANNED if w != "目標價" and w in js + copage.CSS]
     root = Path(__file__).resolve().parents[1]
     for wf in ("daily.yml", "afterhours_refresh.yml", "etf_holdings.yml"):
         t = (root / ".github/workflows" / wf).read_text("utf-8")
