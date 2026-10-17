@@ -205,3 +205,89 @@ def select(dirs: dict[str, int]) -> tuple[int, list[str]]:
     if len(neg) > len(pos):
         return -1, neg
     return S.TIE_DIR, (neg if S.TIE_DIR < 0 else pos)
+
+
+# ── 日期對齊（第 4 節第 7 點） ─────────────────────────────────────────
+
+def asof_daily(cal: list[str], ser: dict, *, after: bool = False, stale: int = 7) -> list:
+    """日資料 → 對齊交易日曆：每個交易日取「當天（after=True 時：當天以前）」最近一筆，超過 stale 個日曆天沒更新就算缺。
+    after＝True 用在美國資料：美國 d 日收盤在台灣 d＋1 日早上才看得到，所以台灣 d 日只能用 d 日以前的。"""
+    from datetime import date as _d
+    ks = sorted(k for k, v in ser.items() if v is not None)
+    out: list = [None] * len(cal)
+    j = -1
+    for i, t in enumerate(cal):
+        while j + 1 < len(ks) and (ks[j + 1] < t if after else ks[j + 1] <= t):
+            j += 1
+        if j >= 0 and (_d.fromisoformat(t) - _d.fromisoformat(ks[j])).days <= stale:
+            out[i] = ser[ks[j]]
+    return out
+
+
+def avail_date(ym: str, rel: tuple[int, int]) -> str:
+    """月資料 ym（YYYY-MM）在第 ym＋rel[0] 個月的第 rel[1] 天起才算拿得到。"""
+    y, m = int(ym[:4]), int(ym[5:7]) + rel[0]
+    y += (m - 1) // 12
+    m = (m - 1) % 12 + 1
+    return f"{y:04d}-{m:02d}-{rel[1]:02d}"
+
+
+def asof_monthly(dates: list[str], ser: dict, rel: tuple[int, int]) -> list:
+    """月資料 {YYYY-MM: 值} → 每個日期當下拿得到的最新一個月的值（依公布時間差）。"""
+    av = sorted((avail_date(ym, rel), ym) for ym, v in ser.items() if v is not None)
+    out: list = [None] * len(dates)
+    j = -1
+    for i, t in enumerate(dates):
+        while j + 1 < len(av) and av[j + 1][0] <= t:
+            j += 1
+        if j >= 0:
+            out[i] = ser[av[j][1]]
+    return out
+
+
+def chg(xs: list, k: int, pct: bool = True) -> list:
+    """和 k 期前比：變化率（%）或差。"""
+    out: list = [None] * len(xs)
+    for i in range(k, len(xs)):
+        a, b = xs[i], xs[i - k]
+        if a is None or b is None:
+            continue
+        if pct:
+            out[i] = 100.0 * (a / b - 1.0) if b else None
+        else:
+            out[i] = a - b
+    return out
+
+
+def roll_sum(xs: list, k: int, min_n: int | None = None) -> list:
+    out: list = [None] * len(xs)
+    min_n = k if min_n is None else min_n
+    for i in range(k - 1, len(xs)):
+        w = [v for v in xs[i - k + 1:i + 1] if v is not None]
+        if len(w) >= min_n:
+            out[i] = sum(w)
+    return out
+
+
+def roll_mean(xs: list, k: int, min_n: int | None = None) -> list:
+    out: list = [None] * len(xs)
+    min_n = k if min_n is None else min_n
+    for i in range(k - 1, len(xs)):
+        w = [v for v in xs[i - k + 1:i + 1] if v is not None]
+        if len(w) >= min_n:
+            out[i] = sum(w) / len(w)
+    return out
+
+
+def roll_std_ret(px: list, k: int) -> list:
+    """日報酬 k 日標準差（年化，%）。"""
+    r: list = [None] * len(px)
+    for i in range(1, len(px)):
+        if px[i] and px[i - 1]:
+            r[i] = px[i] / px[i - 1] - 1.0
+    out: list = [None] * len(px)
+    for i in range(k, len(px)):
+        w = [v for v in r[i - k + 1:i + 1] if v is not None]
+        if len(w) >= k - 2:
+            out[i] = 100.0 * statistics.pstdev(w) * math.sqrt(250)
+    return out
