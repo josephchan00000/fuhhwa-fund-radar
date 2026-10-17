@@ -162,14 +162,16 @@
 
 ## 7. 資料與每日更新
 
-- 新資料夾 `data/lab/heat/`：每個來源一個檔，存長歷史，只在 CI 抓。
-- 回補：`.ping/lab` 第一行寫 `heatfill`；先跑探針 `probeheat`。
-- 每天：`afterhours_refresh.yml` 每班補新資料，月資料每天檢查一次有沒有新公布。各來源的公布時間：
-  - 期交所：15:00 後；
-  - 證交所融資：21:30 後；
-  - 央行匯率：16～17 時。
-- 建頁：重建籌碼雷達時一起產 `x9m.html`；三支 workflow 補 `git add`。
-- 研究檔 `data/lab/heat_research.json`：規格或資料改了才重跑。
+- 新資料夾 `data/lab/heat/`：每個來源一個檔，存長歷史，只在 CI 抓（`arm/lab/heatfetch.py`、`scripts/fetch_heat.py`）。
+- 回補：`.ping/lab` 第一行寫 `heatfill`（`lab_backfill.yml` → `fetch_heat.py --backfill --budget-min 45`；
+  期交所 P/C、證交所成交金額每月一請求，時間到就停、下一輪續補，已有整月的跳過）。
+- 每天：`afterhours_refresh.yml` 每班＋`daily_fund.sh`（06:35）跑 `fetch_heat.py`：
+  - 台灣日資料已有今天的就不再打來源站（一天好幾班）；美國資料（Yahoo）每班補；
+  - 月資料每個來源一天成功抓一次；主計總處 15MB 的 XML 只在新月份該出來時才抓；
+  - 官方分片有新交易日才重算廣度（v3px 面板＋分片接續，約 40 秒）。
+  - 各來源的公布時間：期交所 15:00 後、央行匯率 16～17 時、證交所融資 21:30 後、美國收盤台北清晨。
+- 建頁：`gen_fund_dashboard.py` 在籌碼雷達之後另外建 `x9m.html`（分開失敗）；三支 workflow 各兩行 `git add -f dashboard/x9m.html`。
+- 研究檔 `data/lab/heat_research.json`（`scripts/run_heat.py`）：規格或資料改了才重跑；每天建頁只讀它。
 
 ## 8. 步驟
 
