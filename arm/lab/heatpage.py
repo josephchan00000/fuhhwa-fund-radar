@@ -180,6 +180,19 @@ def _unit(freq: str) -> str:
     return "個月" if freq == "m" else "天"
 
 
+def _yrs(ys: list | None) -> str:
+    """["2004","2010","2021","2022"] → 「2004、2010、2021–2022」：讓人看出樣本是不是集中在一兩段。"""
+    v = sorted({int(y) for y in ys or []})
+    out, i = [], 0
+    while i < len(v):
+        j = i
+        while j + 1 < len(v) and v[j + 1] == v[j] + 1:
+            j += 1
+        out.append(str(v[i]) if i == j else f"{v[i]}–{v[j]}")
+        i = j + 1
+    return "、".join(out)
+
+
 def _past(L: dict) -> str:
     """過去面向分數落在現在這一區時，之後加權指數的表現（全期間，兩個持有期間）。"""
     band = L["band"]
@@ -197,7 +210,9 @@ def _past(L: dict) -> str:
     if not parts:
         return ""
     e, b = first
-    return (f"過去分數在「{_e(band)}」時（{_e((e.get('a') or '')[:4])} 起，{b['n']:,} {_unit(L['freq'])}）："
+    yrs = _yrs(b.get("yrs"))
+    when = f"{b['n']:,} {_unit(L['freq'])}" + (f"，出現在 {_e(yrs)} 年" if yrs else "")
+    return (f"過去分數在「{_e(band)}」時（{_e((e.get('a') or '')[:4])} 年起的資料裡共 {when}）："
             + "；".join(parts) + "。所有日子：" + "、".join(allp) + "。")
 
 
@@ -319,9 +334,10 @@ def _band_table(ev: dict, h: int, freq: str) -> str:
     def up(b):
         return "—" if b.get("up") is None else f'{b["up"]:.0f}%'
     rows = "".join(f'<tr><td>{_e(b["band"])}</td><td>{b["n"]:,}</td><td>{_pct(b["avg"], 2)}</td><td>{_pct(b["med"], 2)}</td>'
-                   f'<td>{up(b)}</td><td>{_pct(b["dd"], 2)}</td></tr>' for b in bs)
+                   f'<td>{up(b)}</td><td>{_pct(b["dd"], 2)}</td><td class="l">{_e(_yrs(b.get("yrs")) or "—")}</td></tr>'
+                   for b in bs)
     return (f'<div class="tw"><table><tr><th>分數區間</th><th>樣本（{_unit(freq)}）</th><th>之後 {h} 日平均</th><th>中位數</th>'
-            f'<th>上漲機率</th><th>期間最大跌幅中位數</th></tr>{rows}</table></div>')
+            f'<th>上漲機率</th><th>期間最大跌幅中位數</th><th class="l">出現在哪幾年</th></tr>{rows}</table></div>')
 
 
 def _rho(e: dict) -> str:
@@ -335,13 +351,20 @@ def _r(x) -> str:
     return "—" if x is None else f"{x:+.2f}"
 
 
-def _vrow(name: str, first: str | None, e: dict) -> str:
+def _refc(r: dict | None, freq: str) -> str:
+    r = r or {}
+    if not r.get("n"):
+        return "—"
+    return f'{_r(r.get("rho"))}<span class="hw">{r["n"]:,} {_unit(freq)}</span>'      # 樣本太少的對照數字要看得出來
+
+
+def _vrow(name: str, first: str | None, e: dict, freq: str) -> str:
     h1, h2 = e.get("h1") or {}, e.get("h2") or {}
-    ref = e.get("ref") or [{}, {}]
+    ref = (e.get("ref") or []) + [{}, {}]
     return (f'<tr><td class="l">{_e(name)}</td><td>{_e(_ymd(first))}</td><td>{e.get("n", 0):,}</td><td>{_rho(e)}</td>'
             f'<td>{_r(h1.get("rho"))}</td><td>{_r(h2.get("rho"))}</td>'
             f'<td class="l">{_e(S.VERDICT.get(e.get("verdict"), "—"))}</td>'
-            f'<td>{_r((ref[0] or {}).get("rho"))}</td><td>{_r((ref[1] or {}).get("rho") if len(ref) > 1 else None)}</td></tr>')
+            f'<td>{_refc(ref[0], freq)}</td><td>{_refc(ref[1], freq)}</td></tr>')
 
 
 def _valid(dim: str, L: dict) -> str:
@@ -351,7 +374,8 @@ def _valid(dim: str, L: dict) -> str:
     out = [f'<div class="vsec"><h3>{_e(L["name"])}<span class="sub">{"每月最後一個交易日一個樣本" if L["freq"] == "m" else "每天一個樣本"}</span></h3>']
     for h in L["fwd"]:
         ce = _ev(L["cev"], h)
-        rows = [_vrow("面向分數", L["first"], ce)] + [_vrow(it["name"], it["first"], _ev(it["ev"], h)) for it in L["items"]]
+        rows = ([_vrow("面向分數", L["first"], ce, L["freq"])]
+                + [_vrow(it["name"], it["first"], _ev(it["ev"], h), L["freq"]) for it in L["items"]])
         out.append(f'<h4>之後 {h} 個交易日：面向分數各區</h4>{_band_table(ce, h, L["freq"])}'
                    f'<h4>之後 {h} 個交易日：各項</h4><div class="tw"><table><tr><th class="l">項目</th><th>有分數起</th><th>樣本</th>'
                    f'<th>等級相關［95% 信賴區間］</th><th>前一半</th><th>後一半</th><th class="l">判定</th>'

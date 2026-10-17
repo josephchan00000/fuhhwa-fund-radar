@@ -348,6 +348,9 @@ def evaluate(x: list, px: list, cal: list[str], dim: str) -> dict:
         m = len(rows) // 2
         r1 = H.spearman(xs[:m], ys[:m])
         r2 = H.spearman(xs[m:], ys[m:])
+        bands = H.bands(xs, ys, ds)
+        for b, (lo_, hi_, _) in zip(bands, S.BANDS):          # 這一區出現在哪幾年（只當資訊：樣本是不是集中在一段）
+            b["yrs"] = sorted({d[:4] for d, v, _, _ in rows if lo_ <= v < hi_})
         ref = []
         for rng in S.SPLIT_REF[freq]:
             sub = [(b, c) for d, b, c, _ in rows if _in(d, rng)]
@@ -357,7 +360,7 @@ def evaluate(x: list, px: list, cal: list[str], dim: str) -> dict:
                   "h1": {"n": m, "rho": _r(r1), "z": rows[m - 1][0] if m else None},
                   "h2": {"n": len(rows) - m, "rho": _r(r2), "a": rows[m][0] if len(rows) > m else None},
                   "verdict": H.verdict(rho, lo, hi, r1, r2, len(rows), S.MIN_N[freq]),
-                  "bands": H.bands(xs, ys, ds), "ref": ref, "block": block}
+                  "bands": bands, "ref": ref, "block": block}
     return out
 
 

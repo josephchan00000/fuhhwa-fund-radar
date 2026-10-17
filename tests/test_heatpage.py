@@ -71,8 +71,8 @@ def synthetic_D(n=1300, seed=5):
 
 def research_stub(B):
     R = {"ver": S.VER, "dims": {}, "data": {"margin": [10, "2021-06-01", "2026-07-01"]}}
-    bands = [{"band": b, "n": 100, "avg": 0.5, "med": 0.4, "up": 55.0, "dd": -2.0}
-             for b in ("過冷", "偏冷", "中性", "偏熱", "過熱", "全部")]
+    bands = [{"band": b, "n": 100, "avg": 0.5, "med": 0.4, "up": 55.0, "dd": -2.0, "yrs": ["2004", "2010", "2021", "2022"]}
+             for b in ("過冷", "偏冷", "中性", "偏熱", "過熱")] + [{"band": "全部", "n": 500, "avg": 0.5, "med": 0.4, "up": 55.0, "dd": -2.0}]
 
     def ev():
         return {"n": 1200, "rho": -0.1, "lo": -0.2, "hi": -0.01, "a": "2014-01-02", "z": "2026-01-02",
@@ -120,6 +120,8 @@ def test_render_structure_and_wording(built):
     assert page.count('class="it"') >= 25 and "拉動分數" in page and "佔比" in page and "本週" in page
     assert "用美國 VIX 的排名代替，不算進分數" in page and "前一半" in page and "後一半" in page
     assert "熱＝散戶擁擠、槓桿高、外資站在對面" in page
+    assert "出現在 2004、2010、2021–2022 年" in page                            # 樣本集中在哪幾段要看得出來
+    assert P._yrs(["2021", "2022", "2024", "2025", "2026"]) == "2021–2022、2024–2026" and P._yrs(None) == ""
     assert 'href="x9.html"' in page and "<script" not in page                 # 純靜態頁
     for w in BANNED:
         assert w not in page, w
