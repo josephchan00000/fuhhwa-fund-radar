@@ -1,4 +1,4 @@
-"""景氣溫度頁 x9m.html（arm/lab/heatpage.py；第三版四個面向）：用合成資料跑完整條管線（heatcalc → view → render）。"""
+"""景氣溫度頁 x9m.html（arm/lab/heatpage.py；第四版五個面向＋關鍵價位與事件）：用合成資料跑完整條管線（heatcalc → view → render）。"""
 import random
 from datetime import date, timedelta
 
@@ -26,6 +26,7 @@ def synthetic_D(n=1300, seed=5):
     rnd = random.Random(seed)
     cal = _days(date(2021, 6, 1), n)
     D = {k: {} for k in C.FILES + ["rev"]}
+    D["sfbflow"] = {"2026-09": [178.7, 4285.53], "2026-08": [None, 4106.83]}
     p, mg, fx, h, i_, v, u10 = 15000.0, 2.5e11, 28.0, 80.0, 100.0, 18.0, 4.0
     for d in cal:
         p *= 1 + rnd.gauss(0.0004, 0.011)
@@ -41,7 +42,11 @@ def synthetic_D(n=1300, seed=5):
         D["pcr"][d] = [1, 1, 80 + rnd.gauss(0, 15), 1, 1, 1]
         D["vix"][d] = v
         D["hyg"][d], D["ief"][d], D["usdtwd"][d] = h, i_, fx
-        D["ust"][d] = [4.0, 4.2, u10]
+        D["ust"][d] = [4.0, 4.2 + rnd.gauss(0, 0.05), u10]
+        D["spx"][d] = 4000 * (1 + rnd.gauss(0, 0.01))
+        D["qfii"][d] = [3e9 * (1 + rnd.gauss(0, 0.002)), 1e10]
+        if date.fromisoformat(d).weekday() == 4:
+            D["sitca"][d] = 90 + rnd.random() * 8
         D["breadth"][d] = [rnd.randint(200, 800), rnd.randint(200, 800), rnd.randint(300, 900), 1000, rnd.randint(0, 60),
                            rnd.randint(0, 60), 1000]
         D["futi"][d] = {"TX": {"外資": [rnd.randint(5000, 30000), rnd.randint(5000, 60000)]},
@@ -61,16 +66,23 @@ def synthetic_D(n=1300, seed=5):
         D["uscpi"][ym] = 150 * (1.002 ** k) * (1 + rnd.gauss(0, 0.002))
         if k > 230:
             D["pmi"][ym] = 50 + rnd.gauss(0, 4)
+        D["cbcbank"][ym] = [3e5 * (1 + rnd.random()), rnd.gauss(5, 2), rnd.gauss(6, 2), 1 + rnd.random()]
+        if ym >= "2010-11":
+            D["mmf"][ym] = 3e12 * (1 + rnd.random())
         if ym >= "2012-01":
             a = 1e9 * (1 + rnd.random())
             D["rev"][ym] = [a, a / (1 + rnd.gauss(0.08, 0.1)), 1500]
-    for d in _days(date(1993, 1, 4), 8600):                  # 聯邦基金利率：每天一筆，取當月平均
+    for d in _days(date(1993, 1, 4), 8800):                  # 聯邦基金利率：每天一筆（G1 每天算，要涵蓋到日曆最後一天）
         D["effr"][d] = 3.0 + (int(d[:4]) * 12 + int(d[5:7])) % 40 / 20
     return D
 
 
 def research_stub(B):
-    R = {"ver": S.VER, "dims": {}, "data": {"margin": [10, "2021-06-01", "2026-07-01"]}}
+    R = {"ver": S.VER, "dims": {}, "data": {"margin": [10, "2021-06-01", "2026-07-01"]},
+         "events": {k: {str(h): {"n": 40, "avg": 0.01, "up": 0.55, "all_avg": 0.008, "all_up": 0.54, "diff": 0.002,
+                                 "lo": -0.004, "hi": 0.008, "a": "1998-07-01", "verdict": "none",
+                                 "h1": {"n": 20, "diff": 0.001}, "h2": {"n": 20, "diff": 0.003}} for h in S.EV_FWD}
+                    for k in S.EVENTS}}
     bands = [{"band": b, "n": 100, "avg": 0.5, "med": 0.4, "up": 55.0, "dd": -2.0, "yrs": ["2004", "2010", "2021", "2022"]}
              for b in ("過冷", "偏冷", "中性", "偏熱", "過熱")] + [{"band": "全部", "n": 500, "avg": 0.5, "med": 0.4, "up": 55.0, "dd": -2.0}]
 
@@ -95,7 +107,7 @@ def built():
 
 def test_each_item_has_own_heat_and_pulls_sum_to_score(built):
     _, _, V, _ = built
-    assert list(V["dims"]) == ["fund", "chip", "liq", "tech"]
+    assert list(V["dims"]) == ["fund", "chip", "gliq", "tliq", "tech"]
     for dim, L in V["dims"].items():
         assert L["score"] is not None, dim
         pulls = [it["pull"] for it in L["items"] if it["pull"] is not None]
@@ -113,11 +125,15 @@ def test_each_item_has_own_heat_and_pulls_sum_to_score(built):
 
 def test_render_structure_and_wording(built):
     _, _, V, page = built
-    for sec in ('id="c-fund"', 'id="c-chip"', 'id="c-liq"', 'id="c-tech"', 'id="trend"', 'id="detail"', 'id="valid"',
-                'id="src"'):
+    for sec in ('id="c-fund"', 'id="c-chip"', 'id="c-gliq"', 'id="c-tliq"', 'id="c-tech"', 'id="ta"', 'id="trend"',
+                'id="detail"', 'id="valid"', 'id="src"'):
         assert sec in page
-    assert page.count('class="tile"') == 4 and S.HORIZON_NOTE in page
-    assert page.count('class="it"') >= 25 and "拉動分數" in page and "佔比" in page and "本週" in page
+    assert page.count('class="tile"') == 5 and S.HORIZON_NOTE in page
+    assert page.count('class="it"') >= 35 and "拉動分數" in page and "佔比" in page and "本週" in page
+    assert page.count('<tr><td class="l">', page.index('class="evt"')) >= len(S.EVENTS)      # 16 種事件各一列
+    for nm in ("月線（20 日）", "季線（60 日）", "年線（240 日）", "扣抵值", "前波高點", "近 60 個交易日的事件"):
+        assert nm in page, nm
+    assert "證期局只公開最新一期新聞稿" in page                                  # 外資淨匯入沒有 0～100 的原因
     assert "用美國 VIX 的排名代替，不算進分數" in page and "前一半" in page and "後一半" in page
     assert "熱＝散戶擁擠、槓桿高、外資站在對面" in page
     assert "出現在 2004、2010、2021–2022 年" in page                            # 樣本集中在哪幾段要看得出來

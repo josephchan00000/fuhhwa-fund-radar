@@ -1,26 +1,29 @@
 """景氣溫度頁：把 data/lab/heat 的原始資料組成各項、0～100、面向總分與驗證
-（docs/lab_heat_plan.md 第 12 節；規格 heatspec VER 3、實作細節第 12.7 節）。
+（docs/lab_heat_plan.md 第 12、13 節；規格 heatspec VER 4、實作細節第 12.7、13.9 節）。
 
 研究（scripts/run_heat.py → data/lab/heat_research.json）和每天建頁共用這一支，同一套算法：
   · 交易日曆與加權指數：證交所 FMTQIK（官方收盤）為主，官方沒有的月份用 Yahoo ^TWII；
   · 日資料先在「來源自己的日期」上算（例如 60 個交易日前），再對齊台灣交易日（美國資料晚一天才用）；
   · 月資料在月序列上算百分位（和過去 120 個月比），到公布日才算拿得到；
   · 面向總分＝該面向全部項目等權平均（有值的項數 ≥ 2/3；台指 VIX 用美國 VIX 代替的日子不算進去）；
-  · 驗證：全期間等級相關＋信賴區間、前後兩半、五段統計；基本面每月最後一個交易日一個樣本，其他每天一個。
+  · 驗證：全期間等級相關＋信賴區間、前後兩半、五段統計；基本面每月最後一個交易日一個樣本，其他每天一個；
+  · 關鍵價位與事件（heattech）：事件研究也在 research() 裡算，現在的價位在頁面當天算。
 """
 from __future__ import annotations
 
 import json
 import math
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from . import heat as H
 from . import heatdata as HD
 from . import heatspec as S
+from . import heattech as TT
 from . import store
 
 FILES = ["margin", "inst", "futi", "opti", "mtxoi", "pcr", "vixtw", "taiex", "vix", "hyg", "ief", "turnover",
-         "usdtwd", "money", "ndc", "exports", "pmi", "orders", "twcpi", "effr", "uscpi", "ust", "breadth"]
+         "usdtwd", "money", "ndc", "exports", "pmi", "orders", "twcpi", "effr", "uscpi", "ust", "breadth",
+         "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow"]
 DAILY = [k for k in S.KEYS if S.FREQ_OF[k] == "d"]
 MONTHLY = [k for k in S.KEYS if S.FREQ_OF[k] == "m"]
 BREADTH = ("T5", "T6", "T7")
@@ -118,6 +121,16 @@ def ratio_sum(cal: list[str], a: dict, b: dict, k: int) -> list:
     return out
 
 
+def roll_max(xs: list, k: int) -> list:
+    """近 k 天（含今天）最高；k 天都要有值。"""
+    out: list = [None] * len(xs)
+    for i in range(k - 1, len(xs)):
+        w = xs[i - k + 1:i + 1]
+        if all(v is not None for v in w):
+            out[i] = max(w)
+    return out
+
+
 def ym_add(ym: str, k: int) -> str:
     y, m = int(ym[:4]), int(ym[5:7]) + k
     y += (m - 1) // 12
@@ -203,6 +216,22 @@ def native_daily(D: dict, cal: list[str], px: list) -> dict[str, dict]:
     N["C6"] = f3_foreign_opt(D.get("opti") or {})
     pc = {d: v[2] for d, v in (D.get("pcr") or {}).items() if v and v[2] is not None}
     N["C7"] = native(pc, lambda v: H.roll_mean(v, 5))
+    sw = {}
+    for d, v in (D.get("sitca") or {}).items():           # 週資料：週末日期 + 7 天才算拿得到
+        sw[(date.fromisoformat(d) + timedelta(days=S.AVAIL_DAYS["C8"])).isoformat()] = v
+    N["C8"] = sw
+    # 全球資金（美國資料，在來源自己的日期上算）
+    ff = D.get("effr") or {}
+    N["G1"] = native(ff, lambda v: H.chg(H.roll_mean(v, 5), 126, pct=False))
+    ust = D.get("ust") or {}
+    u2 = {d: v[1] for d, v in ust.items() if v and len(v) > 1 and v[1] is not None}
+    u10 = {d: v[2] for d, v in ust.items() if v and len(v) > 2 and v[2] is not None}
+    N["G2"] = native(u2, lambda v: H.chg(v, 60, pct=False))
+    N["G3"] = native(u10, lambda v: H.chg(v, 60, pct=False))
+    hy, ie = D.get("hyg") or {}, D.get("ief") or {}
+    rat = {d: hy[d] / ie[d] for d in hy if ie.get(d)}
+    N["G4"] = native(rat, lambda v: H.chg(v, 60))
+    # 台灣資金
     inst = D.get("inst") or {}
     fx = {d: sum(x for n, x in v.items() if n.startswith("Foreign")) for d, v in inst.items()
           if any(n.startswith("Foreign") for n in v)}
@@ -210,11 +239,8 @@ def native_daily(D: dict, cal: list[str], px: list) -> dict[str, dict]:
     N["L3"] = on_cal(ratio_sum(cal, fx, to, 60))
     N["L4"] = native(D.get("usdtwd") or {}, lambda v: H.chg(v, 60))
     N["L5"] = native(to, lambda v: ma_ratio(v, 20, 250))
-    u10 = {d: v[2] for d, v in (D.get("ust") or {}).items() if v and len(v) > 2 and v[2] is not None}
-    N["L7"] = native(u10, lambda v: H.chg(v, 60, pct=False))
-    hy, ie = D.get("hyg") or {}, D.get("ief") or {}
-    rat = {d: hy[d] / ie[d] for d in hy if ie.get(d)}
-    N["L8"] = native(rat, lambda v: H.chg(v, 60))
+    qf = {d: 100.0 * v[0] / v[1] for d, v in (D.get("qfii") or {}).items() if v and v[1]}
+    N["L7"] = on_cal(H.chg(H.asof_daily(cal, qf, stale=S.STALE["L7"]), 60, pct=False))
     N["T1"] = on_cal(rel_ma(px, 20))
     N["T2"] = on_cal(rel_ma(px, 60))
     N["T3"] = on_cal(rel_ma(px, 240))
@@ -228,13 +254,19 @@ def native_daily(D: dict, cal: list[str], px: list) -> dict[str, dict]:
     N["T8"] = on_cal(H.roll_std_ret(px, 20))
     N["T9"] = dict(D.get("vix") or {})
     N["T10"] = dict(D.get("vixtw") or {})
+    M = TT.mas(px)
+    conds = [(px, M[5]), (M[5], M[10]), (M[10], M[20]), (M[20], M[60]), (M[60], M[120]), (M[120], M[240])]
+    N["T11"] = on_cal([None if M[240][i] is None else sum(1 for a, b in conds if a[i] > b[i]) for i in range(len(cal))])
+    N["T12"] = on_cal(H.chg(M[60], 20))
+    hi = roll_max(px, 120)
+    N["T13"] = on_cal([None if p is None or h is None else 100.0 * (p / h - 1.0) for p, h in zip(px, hi)])
     return N
 
 
 def raw_daily(D: dict, cal: list[str], px: list, N: dict | None = None) -> dict[str, list]:
-    """對齊台灣交易日：沿用最近一筆（超過 7 個日曆天算缺；廣度 4 天）；美國資料晚一天才用。"""
+    """對齊台灣交易日：沿用最近一筆（超過 7 個日曆天算缺；廣度 4 天；週資料見 heatspec.STALE）；美國資料晚一天才用。"""
     N = N if N is not None else native_daily(D, cal, px)
-    return {k: H.asof_daily(cal, N[k], after=k in S.US, stale=4 if k in BREADTH else 7) for k in N}
+    return {k: H.asof_daily(cal, N[k], after=k in S.US, stale=4 if k in BREADTH else S.STALE.get(k, 7)) for k in N}
 
 
 def raw_monthly(D: dict) -> dict[str, dict]:
@@ -268,8 +300,26 @@ def raw_monthly(D: dict) -> dict[str, dict]:
         return yoy({k: x[j] for k, x in mo.items() if x[j]}, ym)
     M["L1"] = {ym: myoy(ym, 0) - myoy(ym, 2) for ym in mo if myoy(ym, 0) is not None and myoy(ym, 2) is not None}
     M["L2"] = {ym: myoy(ym, 0) for ym in mo if myoy(ym, 0) is not None}
-    ff = month_avg(D.get("effr") or {})
-    M["L6"] = {ym: v - ff[ym_add(ym, -12)] for ym, v in ff.items() if ym_add(ym, -12) in ff}
+    spx: dict[str, float] = {}
+    for d, v in sorted((D.get("spx") or {}).items()):        # 月底收盤＝當月最後一筆
+        if v:
+            spx[d[:7]] = v
+    M["G5"] = {ym: (v / 1e12) / (spx[ym] / 1000.0) for ym, v in (D.get("mmf") or {}).items() if v and spx.get(ym)}
+    sf = D.get("sfbflow") or {}
+
+    def flow(ym):                                         # 單月淨匯入；沒有就用前後兩個月底累計相減
+        v = sf.get(ym) or [None, None]
+        if v[0] is not None:
+            return v[0]
+        p = sf.get(ym_add(ym, -1)) or [None, None]
+        return v[1] - p[1] if v[1] is not None and p[1] is not None else None
+    M["L6"] = {ym: flow(ym) for ym in sf if flow(ym) is not None}
+    cb = D.get("cbcbank") or {}
+    M["L8"] = {ym: 100.0 * v[0] / mo[ym][2] for ym, v in cb.items()
+               if v and v[0] is not None and (mo.get(ym) or [None] * 3)[2]}
+    M["L9"] = {ym: v[3] - cb[ym_add(ym, -3)][3] for ym, v in cb.items()
+               if v and v[3] is not None and (cb.get(ym_add(ym, -3)) or [None] * 4)[3] is not None}
+    M["L10"] = {ym: v[1] - v[2] for ym, v in cb.items() if v and v[1] is not None and v[2] is not None}
     return M
 
 
@@ -283,7 +333,8 @@ def build(D: dict | None = None) -> dict:
     cal, px, info = calendar(D)
     N = native_daily(D, cal, px)
     raw = raw_daily(D, cal, px, N)
-    heat = {k: [H.to_heat(p, S.HOT[k]) for p in H.pct_series(raw[k], S.PCT_WIN["d"], S.PCT_MIN["d"])] for k in DAILY}
+    heat = {k: ([None if v is None else 100.0 * v / S.DIRECT[k] for v in raw[k]] if k in S.DIRECT else
+                [H.to_heat(p, S.HOT[k]) for p in H.pct_series(raw[k], S.PCT_WIN["d"], S.PCT_MIN["d"])]) for k in DAILY}
     M = raw_monthly(D)
     ymu: dict[str, list] = {}
     for k in MONTHLY:
@@ -364,6 +415,19 @@ def evaluate(x: list, px: list, cal: list[str], dim: str) -> dict:
     return out
 
 
+def _round_ev(r: dict) -> dict:
+    """事件研究輸出取位數（判定已經用沒有四捨五入的數字算好）。"""
+    out = dict(r)
+    for k in ("avg", "all_avg", "diff", "lo", "hi"):
+        out[k] = _r(out.get(k), 6)
+    for k in ("up", "all_up"):
+        out[k] = _r(out.get(k), 4)
+    for k in ("h1", "h2"):
+        if out.get(k):
+            out[k] = {"n": out[k]["n"], "diff": _r(out[k]["diff"], 6)}
+    return out
+
+
 def research(B: dict | None = None) -> dict:
     """每一項、每個面向總分的驗證（只當資訊，不拿來刪項目）。"""
     B = B if B is not None else build()
@@ -377,9 +441,11 @@ def research(B: dict | None = None) -> dict:
         first = {k: next((cal[i] for i, v in enumerate(B["hc"][k]) if v is not None), None) for k in keys}
         cf = next((cal[i] for i, v in enumerate(comp[dim]) if v is not None), None)
         dims[dim] = {"items": items, "first": first, "comp": evaluate(comp[dim], px, cal, dim), "comp_first": cf}
+    ev = TT.all_events(px)
+    events = {k: {str(h): _round_ev(TT.event_study(px, cal, ev[k], h)) for h in S.EV_FWD} for k in S.EVENTS}
     data = {}
     for n in FILES + ["rev"]:
         ks = sorted(D.get(n) or {})
         data[n] = [len(ks), ks[0] if ks else None, ks[-1] if ks else None]
     return {"ver": S.VER, "spec_date": S.SPEC_DATE, "run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "cal": B["cal_info"], "data": data, "dims": dims}
+            "cal": B["cal_info"], "data": data, "dims": dims, "events": events}

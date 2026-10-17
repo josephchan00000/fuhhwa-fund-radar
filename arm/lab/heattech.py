@@ -271,12 +271,12 @@ def levels(px: list, cal: list[str], t: int | None = None) -> dict:
     pv = confirmed(pivots(px[:t + 1]), t)
     lastH = next((x for x in reversed(pv) if x["k"] == "H"), None)
     lastL = next((x for x in reversed(pv) if x["k"] == "L"), None)
-    cands = [(M[n][t], S.MA_NAME[n]) for n in S.MA_LEVELS if M[n][t] is not None]
-    cands += [(x["p"], ("前波高點" if x["k"] == "H" else "前波低點") + f" {cal[x['i']]}") for x in pv[-S.LEVEL_PIVOTS:]]
+    cands = [(M[n][t], S.MA_NAME[n], None) for n in S.MA_LEVELS if M[n][t] is not None]
+    cands += [(x["p"], "前波高點" if x["k"] == "H" else "前波低點", cal[x["i"]]) for x in pv[-S.LEVEL_PIVOTS:]]
     below = [c for c in cands if c[0] < p]
     above = [c for c in cands if c[0] > p]
-    sup = max(below) if below else None
-    res = min(above) if above else None
+    sup = max(below, key=lambda c: c[0]) if below else None
+    res = min(above, key=lambda c: c[0]) if above else None
     m60 = M[60]
     states = {f"ma{n}": [_side(a, b) for a, b in zip(px[:t + 1], M[n][:t + 1])] for n in (20, 60, 240)}
     states["x"] = [_side(a, b) for a, b in zip(M[20][:t + 1], M[60][:t + 1])]
@@ -284,5 +284,5 @@ def levels(px: list, cal: list[str], t: int | None = None) -> dict:
     return {"t": cal[t], "close": p, "ma": ma, "deduct": ded, "st": {k: streak(v) for k, v in states.items()},
             "hi": None if lastH is None else {"d": cal[lastH["i"]], "p": lastH["p"]},
             "lo": None if lastL is None else {"d": cal[lastL["i"]], "p": lastL["p"]},
-            "sup": None if sup is None else {"v": sup[0], "what": sup[1], "dist": 100.0 * (sup[0] / p - 1.0)},
-            "res": None if res is None else {"v": res[0], "what": res[1], "dist": 100.0 * (res[0] / p - 1.0)}}
+            "sup": None if sup is None else {"v": sup[0], "what": sup[1], "d": sup[2], "dist": 100.0 * (sup[0] / p - 1.0)},
+            "res": None if res is None else {"v": res[0], "what": res[1], "d": res[2], "dist": 100.0 * (res[0] / p - 1.0)}}

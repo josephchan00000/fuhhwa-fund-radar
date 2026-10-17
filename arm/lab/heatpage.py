@@ -1,9 +1,11 @@
-"""景氣溫度頁 → dashboard/x9m.html（docs/lab_heat_plan.md 第 12 節；入口＝籌碼雷達頂欄「景氣」小字，主頁不加入口）。
+"""景氣溫度頁 → dashboard/x9m.html（docs/lab_heat_plan.md 第 12、13 節；入口＝籌碼雷達頂欄「景氣」小字，主頁不加入口）。
 
-四個面向各一張卡（基本面熱度、籌碼熱度、資金寬裕度、技術面熱度；使用者 2026-10-17：「要把短線籌碼熱度跟基本面區隔開來看」）：
+五個面向各一張卡（基本面、籌碼、全球資金、台灣資金、技術；使用者 2026-10-17：「要把短線籌碼熱度跟基本面區隔開來看」，
+第四版再把資金拆成全球與台灣）：
 分數、五段色條、和上週比、過去同一區之後的表現、判定；細項一律展開：每一項自己的 0～100、拉動分數幾分、佔比、本週增減
 （使用者：「我要可以看到裡面的細項影響佔比，各項都有一個 0～100 讓我參考，不然這種綜合指標很容易只有象徵性」）。
 當天的分數用 heatcalc 同一套算法重算；過去的分區統計與判定讀研究檔 data/lab/heat_research.json（只當資訊）。
+技術卡後面是「關鍵價位與事件」（heattech）：均線、扣抵值、前波高低點、支撐壓力、近期事件與事件研究（不進分數）。
 輸出決定性：不寫牆鐘時間，資料沒變時位元組相同。用字照專案禁用詞，不寫買賣指示。
 """
 from __future__ import annotations
@@ -17,28 +19,37 @@ from pathlib import Path
 from . import heat as H
 from . import heatcalc as C
 from . import heatspec as S
+from . import heattech as TT
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "dashboard" / "x9m.html"
 RES = ROOT / "data" / "lab" / "heat_research.json"
 TREND_DAYS = 500
+TA_RECENT = 60                      # 「近期事件」列最近幾個交易日
 WEEK = S.CHG_DAYS
-NAV = {"fund": "基本面", "chip": "籌碼", "liq": "資金", "tech": "技術"}
-LINE_CLS = {"fund": "l1", "chip": "l2", "liq": "l3", "tech": "l4"}
-SIGNED = {"B2", "B4", "B5", "B6", "B7", "B8", "C2", "C4", "C5", "C6", "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8",
-          "T1", "T2", "T3", "T7"}
-DEC = {"B1": 0, "B3": 1, "B4": 1, "B5": 1, "B6": 1, "C1": 0, "C2": 1, "C4": 1, "C5": 0, "C6": 1, "C7": 1, "L5": 1,
-       "T1": 1, "T2": 1, "T3": 1, "T4": 1, "T5": 1, "T6": 1, "T7": 1, "T8": 1}
+NAV = {"fund": "基本面", "chip": "籌碼", "gliq": "全球資金", "tliq": "台灣資金", "tech": "技術"}
+LINE_CLS = {"fund": "l1", "chip": "l2", "gliq": "l3", "tliq": "l5", "tech": "l4"}
+SIGNED = {"B2", "B4", "B5", "B6", "B7", "B8", "C2", "C4", "C5", "C6", "G1", "G2", "G3", "G4",
+          "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L9", "L10", "T1", "T2", "T3", "T7", "T12", "T13"}
+DEC = {"B1": 0, "B3": 1, "B4": 1, "B5": 1, "B6": 1, "C1": 0, "C2": 1, "C4": 1, "C5": 0, "C6": 1, "C7": 1, "C8": 2,
+       "L5": 1, "L6": 1, "L9": 3, "T1": 1, "T2": 1, "T3": 1, "T4": 1, "T5": 1, "T6": 1, "T7": 1, "T8": 1, "T11": 0,
+       "T12": 2, "T13": 1}
+# 沒有 0～100 的固定原因（其他項目沒有分數時寫「沒有最新資料」或「歷史還不夠」）
+WHY = {"L6": "證期局只公開最新一期新聞稿，從 2026 年 9 月開始累積，滿 60 個月才有 0～100"}
 SRC = {
     "B1": "國發會", "B2": "國發會", "B3": "國發會", "B4": "經濟部", "B5": "國發會（海關出口值）",
     "B6": "自算（公開資訊觀測站月營收）", "B7": "主計總處", "B8": "勞工統計局",
     "C1": "FinMind（證交所融資融券）", "C2": "FinMind（證交所融資融券）", "C3": "FinMind（證交所融資融券）",
     "C4": "FinMind（期交所）", "C5": "FinMind（期交所法人未平倉）", "C6": "FinMind（期交所）", "C7": "期交所",
+    "C8": "投信投顧公會（國內股票型基金持股比重，週）",
+    "G1": "聯準會 H.15、紐約聯準銀行", "G2": "美國財政部", "G3": "美國財政部", "G4": "Yahoo HYG、IEF",
+    "G5": "OFR 貨幣基金監測、Yahoo ^GSPC",
     "L1": "央行", "L2": "央行", "L3": "FinMind＋證交所成交金額", "L4": "央行", "L5": "證交所",
-    "L6": "聯準會 H.15、紐約聯準銀行", "L7": "美國財政部", "L8": "Yahoo HYG、IEF",
+    "L6": "證期局外資新聞稿", "L7": "證交所（外資及陸資投資類股持股比率表）", "L8": "央行（定存單、M2）",
+    "L9": "央行（金融業拆款利率）", "L10": "央行（存款、放款）",
     "T1": "證交所加權指數", "T2": "證交所加權指數", "T3": "證交所加權指數", "T4": "證交所加權指數",
     "T5": "自算（上市櫃日線）", "T6": "自算（上市櫃日線）", "T7": "自算（上市櫃日線）", "T8": "證交所加權指數",
-    "T9": "Yahoo ^VIX", "T10": "期交所",
+    "T9": "Yahoo ^VIX", "T10": "期交所", "T11": "證交所加權指數", "T12": "證交所加權指數", "T13": "證交所加權指數",
 }
 BAND_CLS = {"過冷": "b0", "偏冷": "b1", "中性": "b2", "偏熱": "b3", "過熱": "b4"}
 WD = "一二三四五六日"
@@ -116,7 +127,7 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
             heat = B["heat"][k][t]
             why = None
             if heat is None:
-                why = "沒有最新資料" if B["raw"][k][t] is None else "歷史還不夠"
+                why = WHY.get(k) or ("沒有最新資料" if B["raw"][k][t] is None else "歷史還不夠")
             items.append({
                 "k": k, "name": ind[2], "how": ind[6], "hot": ind[4], "freq": ind[5],
                 "val": _fmt(k, B["raw"][k][t]), "src": _src_date(B, k, t), "heat": heat, "ago": B["heat"][k][t0],
@@ -131,8 +142,28 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
                      "score": sc, "ago": comp[t0] if T else None, "band": S.band(sc), "items": items, "n_have": len(cn),
                      "cev": rd.get("comp") or {}, "first": next((cal[i] for i, v in enumerate(comp) if v is not None), None),
                      "trend": [None if v is None else round(v, 1) for v in comp[a:]]}
+    ta = None
+    if T > S.EV_START:
+        ev = TT.all_events(px)
+        lo = max(0, t - TA_RECENT + 1)
+        recent = sorted(((i, k) for k, ix in ev.items() for i in ix if i >= lo), reverse=True)
+        ta = {"lv": TT.levels(px, cal), "recent": [(cal[i], k) for i, k in recent],
+              "last": {k: (cal[ix[-1]] if ix else None) for k, ix in ev.items()}, "study": R.get("events") or {},
+              "next": next_days(cal[t], S.DEDUCT_N)}
     return {"asof": cal[t] if cal else None, "dims": dims, "tdates": cal[a:], "tpx": px[a:], "R": R,
-            "data": R.get("data") or {}, "cal_info": B.get("cal_info"), "vixcorr": B.get("vixcorr") or {}}
+            "data": R.get("data") or {}, "cal_info": B.get("cal_info"), "vixcorr": B.get("vixcorr") or {}, "ta": ta}
+
+
+def next_days(d: str, n: int) -> list[str]:
+    """d 之後 n 個交易日（跳過週末與證交所休市日；官方表沒涵蓋的年份只跳週末）。"""
+    from datetime import timedelta
+    from .. import twholidays
+    out, x = [], date.fromisoformat(d)
+    while len(out) < n:
+        x += timedelta(days=1)
+        if x.weekday() < 5 and not twholidays.is_closed(x):
+            out.append(x.isoformat())
+    return out
 
 
 # ── HTML ─────────────────────────────────────────────────────────────
@@ -296,7 +327,7 @@ def _chart(V: dict) -> str:
         return ""
     xs = lambda i: P + (W - 2 * P) * i / (n - 1)          # noqa: E731
     ys = lambda v: 10 + (Hh - 30) * (1 - v / 100)         # noqa: E731
-    out = [f'<svg viewBox="0 0 {W} {Hh}" role="img" aria-label="四個面向的走勢">']
+    out = [f'<svg viewBox="0 0 {W} {Hh}" role="img" aria-label="五個面向的走勢">']
     for v in (20, 40, 60, 80):
         out.append(f'<line x1="{P}" x2="{W - P}" y1="{ys(v):.1f}" y2="{ys(v):.1f}" class="gl"/>'
                    f'<text x="{W - P + 4}" y="{ys(v) + 4:.1f}" class="gt">{v}</text>')
@@ -415,6 +446,109 @@ def _detail(L: dict) -> str:
             f'<th class="l">來源</th></tr>{"".join(rows)}</table></div>')
 
 
+def _num0(v) -> str:
+    return "—" if v is None else f"{v:,.0f}"
+
+
+DIRW = {1: "上揚", -1: "下彎", 0: "持平", None: "—"}
+_ST = {   # 狀態：（+1 的說法, −1 的說法, 變成 +1 叫什麼, 變成 −1 叫什麼）
+    "ma20": ("收在月線上", "收在月線下", "站回月線", "跌破月線"),
+    "ma60": ("收在季線上", "收在季線下", "站回季線", "跌破季線"),
+    "ma240": ("收在年線上", "收在年線下", "站回年線", "跌破年線"),
+    "x": ("月線在季線上方", "月線在季線下方", "黃金交叉", "死亡交叉"),
+    "s60": ("季線上揚", "季線下彎", "季線轉上揚", "季線轉下彎"),
+}
+
+
+def _st_text(key: str, st: dict) -> str:
+    if not st or st.get("side") not in (1, -1):
+        return "—"
+    up, dn, to_up, to_dn = _ST[key]
+    s = st["side"]
+    txt = f'{up if s > 0 else dn}第 {st["n"]} 天'
+    if st.get("pending"):
+        k = S.EV_CONF - st["n"]
+        txt += f'（前 {st["prev"]} 個交易日{dn if s > 0 else up}；再 {k} 天就算<b>{to_up if s > 0 else to_dn}</b>）'
+    return txt
+
+
+def _evc(r: dict | None, h: int) -> str:
+    r = r or {}
+    if not r.get("n"):
+        return "<td>—</td><td>—</td><td class=\"l\">—</td>"
+    avg = f'{_pct(100 * r["avg"], 2)}<span class="hw">上漲 {100 * r["up"]:.0f}%</span>'
+    ci = ""
+    if r.get("lo") is not None:
+        ci = f'<span class="hw">［{_pct(100 * r["lo"], 2)}, {_pct(100 * r["hi"], 2)}］</span>'
+    d = f'{_pct(100 * r["diff"], 2)}{ci}' if r.get("diff") is not None else "—"
+    return f'<td>{avg}</td><td>{d}</td><td class="l">{_e(S.EV_VERDICT.get(r.get("verdict"), "—"))}</td>'
+
+
+def _ta(V: dict) -> str:
+    ta = V.get("ta")
+    if not ta:
+        return ""
+    lv = ta["lv"]
+    rows = []
+    for n, key in ((20, "ma20"), (60, "ma60"), (120, None), (240, "ma240")):
+        m = lv["ma"][n]
+        rows.append(f'<tr><td class="l">{_e(S.MA_NAME[n])}（{n} 日）</td><td>{_num0(m["v"])}</td>'
+                    f'<td>{_pct(m["dist"])}</td>'
+                    f'<td>{DIRW.get(m["dir"], "—")}</td><td class="l">{_st_text(key, lv["st"].get(key)) if key else ""}</td></tr>')
+    ded = "、".join(f'{_e(_md(d)[:-3])} {_num0(x["v"])}' for d, x in zip(ta["next"], lv["deduct"]))
+    hi, lo = lv.get("hi"), lv.get("lo")
+    piv = []
+    if hi:
+        piv.append(f'前波高點 {_num0(hi["p"])}（{_e(_ymd(hi["d"]))}）')
+    if lo:
+        piv.append(f'前波低點 {_num0(lo["p"])}（{_e(_ymd(lo["d"]))}）')
+    sr = []
+    for key, nm in (("sup", "下方最近的支撐"), ("res", "上方最近的壓力")):
+        x = lv.get(key)
+        if x:
+            when = f'（{_e(_ymd(x["d"]))}）' if x.get("d") else ""
+            sr.append(f'{nm}：{_e(x["what"])}{when} {_num0(x["v"])}（距離 {_pct(x["dist"])}）')
+    lis = [f'<li>月線季線：{_st_text("x", lv["st"].get("x"))}。</li>',
+           f'<li>季線方向：{_st_text("s60", lv["st"].get("s60"))}。之後 {S.DEDUCT_N} 個交易日的扣抵值：{ded}'
+           f'（收盤高於扣抵值，季線就往上）。</li>']
+    if piv:
+        lis.append(f'<li>{"、".join(piv)}（收盤回落／反彈 5% 才確認是高點／低點）。</li>')
+    if sr:
+        lis.append(f'<li>{"；".join(sr)}。</li>')
+    rec = "、".join(f'{_e(_md(d))} {_e(S.EVENTS[k])}' for d, k in ta["recent"]) or "沒有"
+    st = ta.get("study") or {}
+    allr = ""
+    any_ev = next((v for v in st.values() if v), None)
+    if any_ev:
+        a10, a60 = any_ev.get("10") or {}, any_ev.get("60") or {}
+        if a10.get("all_avg") is not None and a60.get("all_avg") is not None:
+            allr = (f'所有交易日（{_e((a10.get("a") or "1998")[:4])} 年起）：之後 10 日平均 {_pct(100 * a10["all_avg"], 2)}'
+                    f'（上漲 {100 * a10["all_up"]:.0f}%）、60 日 {_pct(100 * a60["all_avg"], 2)}（上漲 {100 * a60["all_up"]:.0f}%）。')
+    trs = []
+    for k, nm in S.EVENTS.items():
+        e = st.get(k) or {}
+        e10, e60 = e.get("10") or {}, e.get("60") or {}
+        n = e10.get("n") or e60.get("n") or 0
+        last = ta["last"].get(k)
+        trs.append(f'<tr><td class="l">{_e(nm)}</td><td>{n:,}</td><td>{_e(_ymd(last))}</td>{_evc(e10, 10)}{_evc(e60, 60)}</tr>')
+    table = (f'<div class="tw"><table class="evt"><tr><th class="l">事件</th><th>次數</th><th>最近一次</th>'
+             f'<th>之後 10 日平均</th><th>和所有日子差［95% 信賴區間］</th><th class="l">判定</th>'
+             f'<th>之後 60 日平均</th><th>和所有日子差［95% 信賴區間］</th><th class="l">判定</th></tr>{"".join(trs)}</table></div>'
+             if st else '<p class="warn">事件研究還沒產生（data/lab/heat_research.json）。</p>')
+    return (f'<section class="cd" id="ta"><div class="ch"><h2>關鍵價位與事件<span class="sub">加權指數 {_e(_md(lv["t"]))}收盤 '
+            f'{_num0(lv["close"])}；不進分數，只描述位置</span></h2></div>'
+            f'<p class="hot">均線是收盤的簡單平均。跌破、站回、交叉、季線轉向一律要「之前 {S.EV_PRIOR} 個交易日是原來的狀態、'
+            f'連 {S.EV_CONF} 個交易日是新狀態」才算，第 {S.EV_CONF} 天是事件日。</p>'
+            f'<div class="tw"><table class="lvt"><tr><th class="l">均線</th>'
+            f'<th>數值</th><th>距離</th><th>方向</th><th class="l">現在的狀態</th></tr>{"".join(rows)}</table></div>'
+            f'<ul class="tal">{"".join(lis)}</ul>'
+            f'<h3>近 {TA_RECENT} 個交易日的事件</h3><p class="rec">{rec}</p>'
+            f'<h3>事件之後加權指數的表現<span class="sub">只當參考，不當買賣訊號</span></h3>'
+            f'<p class="note">{allr}型態（M 頭、W 底、頭肩）用收盤轉折點認，收盤跌破／突破頸線那天才算成立。'
+            f'16 種事件 × 2 個期間＝32 個比較，就算全是運氣也會有一兩個看起來「顯著」；判定要信賴區間不含 0、'
+            f'前後兩半方向一樣才寫，事件少於 {S.EV_MIN} 次寫「樣本不足」。</p>{table}</section>')
+
+
 def render(V: dict) -> str:
     Ds = V["dims"]
     asof = V["asof"]
@@ -425,8 +559,8 @@ def render(V: dict) -> str:
     firsts = "、".join(f'{NAV[d]} {_ymd(L["first"])}' for d, L in Ds.items() if L["first"])
     body = (
         _tiles(V) + f'<p class="hz">{_e(S.HORIZON_NOTE)}。<span class="mu">（資料到 {_e(_md(asof))}）</span></p>{nores}'
-        + "".join(_card(d, Ds[d], V) for d in Ds)
-        + f'<section class="sec" id="trend"><h2>四個面向的走勢<span class="sub">近 {TREND_DAYS} 個交易日</span></h2>{_chart(V)}</section>'
+        + "".join(_card(d, Ds[d], V) for d in Ds) + _ta(V)
+        + f'<section class="sec" id="trend"><h2>五個面向的走勢<span class="sub">近 {TREND_DAYS} 個交易日</span></h2>{_chart(V)}</section>'
         + '<section class="sec" id="detail"><h2>各項明細</h2>' + "".join(_detail(Ds[d]) for d in Ds) + "</section>"
         + '<section class="sec" id="valid"><h2>驗證</h2>' + _METHOD
         + (f'<p class="note">面向分數最早從哪天有：{_e(firsts)}。</p>' if firsts else "")
@@ -434,7 +568,7 @@ def render(V: dict) -> str:
         + f'<section class="sec" id="src"><h2>資料來源與筆數</h2><div class="tw"><table><tr><th class="l">檔</th><th>筆數</th>'
           f'<th>起</th><th>到</th></tr>{data_rows}</table></div><p class="note">{_e(_SRC_NOTE)}</p></section>'
     )
-    nav = "".join(f'<a href="#c-{d}">{_e(NAV[d])}</a>' for d in Ds)
+    nav = "".join(f'<a href="#c-{d}">{_e(NAV[d])}</a>' for d in Ds) + ('<a href="#ta">價位事件</a>' if V.get("ta") else "")
     return (_HTML.replace("{{CSS}}", _CSS).replace("{{ASOF}}", _e(_md(asof))).replace("{{NAV}}", nav)
             .replace("{{BODY}}", body))
 
@@ -451,7 +585,9 @@ def build(out: Path = OUT) -> bool:
 _SRC_NOTE = ("融資融券、法人、期貨選擇權法人：FinMind（轉載證交所、期交所）；成交金額與加權指數：證交所；P/C 比、台指 VIX：期交所；"
              "新台幣、M1B／M2：央行；景氣燈號、領先指標、PMI、海關出口值：國發會；外銷訂單：經濟部；台灣 CPI：主計總處；"
              "上市櫃營收：公開資訊觀測站月營收（自算合計）；美國 CPI：勞工統計局；公債殖利率：美國財政部；"
-             "聯邦基金利率：聯準會 H.15（DBnomics 轉載）與紐約聯準銀行；VIX、HYG、IEF：Yahoo。"
+             "聯邦基金利率：聯準會 H.15（DBnomics 轉載）與紐約聯準銀行；VIX、HYG、IEF、S&P 500：Yahoo；美國貨幣基金：OFR；"
+             "外資持股比率：證交所；外資淨匯入：證期局新聞稿；央行定存單、存放款、拆款利率：央行統計資料庫；"
+             "投信基金持股比重：投信投顧公會。"
              "廣度用上市櫃日線自算（當天最近一個月底市值 40 億以上的股票）。")
 
 _METHOD = (
@@ -462,7 +598,9 @@ _METHOD = (
     '「對照」兩欄是第一階段的切分，只列數字。</p>'
     '<p><b>等級相關</b>：負數＝分數越高，之後漲幅越小；正數相反。數字都很小是正常的，這頁是參考讀數。</p>'
     '<p><b>限制</b>：國發會資料用修正後的數字（兩個月後才算拿得到）；PMI、月營收從 2012 年、期貨選擇權法人從 2018 年、'
-    '台指 VIX 從 2026 年 7 月才有資料，歷史不夠的照樣列出，但要等排名有 3 年（月資料 5 年）的歷史才有 0～100。</p></div>')
+    '投信基金持股比重從 2021 年 10 月、美國貨幣基金從 2010 年 11 月、台指 VIX 從 2026 年 7 月、外資淨匯入從 2026 年 9 月才有資料，'
+    '歷史不夠的照樣列出，但要等排名有 3 年（月資料 5 年）的歷史才有 0～100。'
+    '美國 ICI 的基金現金比率在 CI 連不上、央行沒有公開超額準備的序列，改用央行定存單餘額 ÷ M2。</p></div>')
 
 _HTML = """<!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8">
@@ -472,7 +610,7 @@ _HTML = """<!doctype html>
 <style>{{CSS}}</style></head>
 <body>
 <div class="top"><b>景氣溫度</b><span class="asof">台股，資料到 {{ASOF}}</span><a class="back" href="x9.html">籌碼雷達</a><a class="back" href="./">返回主頁</a></div>
-<p class="purp">四個面向分開看，各一個 0～100（100 最熱）：基本面、籌碼、資金、技術。每一項都和自己的過去比，面向分數＝該面向全部項目的平均。頁面只描述現在熱不熱、過去同樣熱度之後大盤的表現，怎麼操作由你判斷。</p>
+<p class="purp">五個面向分開看，各一個 0～100（100 最熱）：基本面、籌碼、全球資金、台灣資金、技術。每一項都和自己的過去比，面向分數＝該面向全部項目的平均；技術面另附關鍵價位與破線、型態事件。頁面只描述現在熱不熱、過去同樣情況之後大盤的表現，怎麼操作由你判斷。</p>
 <nav class="snav">{{NAV}}<a href="#trend">走勢</a><a href="#detail">明細</a><a href="#valid">驗證</a><a href="#src">來源</a></nav>
 <main>{{BODY}}</main>
 </body></html>
@@ -494,7 +632,7 @@ table,.num{font-variant-numeric:tabular-nums}
 .snav a{padding:2px 10px;border-radius:12px;color:var(--ink2);font-size:13px;white-space:nowrap;background:var(--card2)}
 main{padding:14px 16px 80px;max-width:1080px;margin:0 auto}
 .mu{color:var(--mut)}.warn{color:var(--warn);font-size:13.5px}
-.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:2px 0 8px}
+.tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:2px 0 8px}
 .tile{display:flex;flex-direction:column;gap:2px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--ink)}
 .tl-n{font-size:13.5px;font-weight:700}.tl-v{display:flex;align-items:baseline;gap:6px}
 .tl-w{font-size:12px;color:var(--mut)}.tl-s{font-size:11.5px;color:var(--mut)}
@@ -527,10 +665,13 @@ main{padding:14px 16px 80px;max-width:1080px;margin:0 auto}
 .sec{margin:28px 0 0;scroll-margin-top:48px}.sec>h2{font-size:17px;margin:0 0 10px}
 svg{display:block;width:100%;height:auto}
 svg .gl{stroke:var(--line);stroke-width:1}svg .gt{font-size:11px;fill:var(--mut)}
-svg polyline{fill:none;stroke-width:2}svg .l1{stroke:#2f6fb5}svg .l2{stroke:#d33a34}svg .l3{stroke:#2a9d6f}svg .l4{stroke:#c26a16}
+svg polyline{fill:none;stroke-width:2}svg .l1{stroke:#2f6fb5}svg .l2{stroke:#d33a34}svg .l3{stroke:#2a9d6f}svg .l4{stroke:#c26a16}svg .l5{stroke:#7b5ea7}
 svg .lpx{stroke:#9aa3ae;stroke-width:1.2;stroke-dasharray:3 3}
 .lg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--mut);margin-top:4px}.lg i{display:inline-block;width:16px;height:3px;vertical-align:middle;margin-right:4px}
-.lg .l1{background:#2f6fb5}.lg .l2{background:#d33a34}.lg .l3{background:#2a9d6f}.lg .l4{background:#c26a16}.lg .lpx{background:#9aa3ae}
+.lg .l1{background:#2f6fb5}.lg .l2{background:#d33a34}.lg .l3{background:#2a9d6f}.lg .l4{background:#c26a16}.lg .l5{background:#7b5ea7}.lg .lpx{background:#9aa3ae}
+.lvt td:last-child{white-space:normal;min-width:220px}.tal{margin:8px 0 4px;padding-left:20px;font-size:13.5px;line-height:1.8;color:var(--ink2)}
+.rec{font-size:13.5px;color:var(--ink2);margin:2px 0 8px;line-height:1.8}
+.evt td:first-child{white-space:nowrap}
 .tw{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 0 14px}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:top}
@@ -550,5 +691,11 @@ h3{font-size:15px;margin:18px 0 6px;color:var(--accd)}h4{font-size:13.5px;margin
  .it .ish::before{content:"佔比 "}.it .iwk::before{content:"本週 "}
  .sc{font-size:30px}.tile .sc{font-size:26px}
  .ch h2 .sub{display:block;margin-left:0}
+ .lvt,.lvt tbody{display:block}.lvt tr:first-child{display:none}
+ .lvt tr{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:2px 12px;padding:7px 2px;border-bottom:1px solid var(--line)}
+ .lvt td{border:0;padding:0}
+ .lvt td:last-child{grid-column:1/-1;min-width:0;white-space:normal;color:var(--ink2);font-size:12.5px;text-align:left}
+ .lvt td:last-child:empty{display:none}
+ .evt th:first-child,.evt td:first-child{position:sticky;left:0;background:var(--bg);z-index:1}
 }
 """

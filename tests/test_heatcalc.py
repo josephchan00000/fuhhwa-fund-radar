@@ -1,4 +1,4 @@
-"""景氣溫度頁：各項的組法（arm/lab/heatcalc.py；規格 heatspec VER 3，實作細節見規劃文件第 12.7 節）。"""
+"""景氣溫度頁：各項的組法（arm/lab/heatcalc.py；規格 heatspec VER 4，實作細節見規劃文件第 12.7、13.9 節）。"""
 import random
 from datetime import date, timedelta
 
@@ -86,19 +86,50 @@ def test_native_daily_chip_liq_tech_items():
     assert abs(N["C2"][d] - 100 * ((1 + 299 / 100) / (1 + 279 / 100) - 1)) < 1e-9
     assert abs(N["C3"][d] - 100 * 50 / 1299) < 1e-9                     # 融券 ÷ 融資張數
     assert abs(N["L5"][d] - 100 * (2.0 / ((230 * 1 + 20 * 2) / 250) - 1)) < 1e-9
-    assert abs(N["L7"][d] - 0.6) < 1e-9                                 # 60 個交易日前的差（百分點）
+    assert abs(N["G3"][d] - 0.6) < 1e-9                                 # 10 年債：60 個交易日前的差（百分點）
     assert abs(N["T2"][d] - 100 * (px[-1] / (sum(px[-60:]) / 60) - 1)) < 1e-9
     assert cal[238] not in N["T3"] and cal[239] in N["T3"]                 # 240 日平均要滿 240 天
     assert N["T4"][d] == 100.0                                         # 一路上漲
     assert set(C.BREADTH) <= set(N) and N["T10"] == {}
+    assert N["T11"][d] == 6 and cal[238] not in N["T11"]                # 一路上漲＝6 個條件全符合；年線要滿 240 天
+    assert abs(N["T12"][d] - 100 * ((sum(px[-60:]) / 60) / (sum(px[-80:-20]) / 60) - 1)) < 1e-9
+    assert N["T13"][d] == 0.0                                           # 收在 120 日新高
+
+
+def test_native_daily_new_v4_items():
+    cal = _days(300)
+    px = [100.0] * 300
+    effr = {d: (1.0 if i < 150 else 1.5) for i, d in enumerate(cal)}
+    qfii = {d: [30.0 + i / 100, 100.0] for i, d in enumerate(cal) if i % 5 == 4}      # 每週一天
+    D = {"turnover": {d: [1e11, 100.0] for d in cal}, "effr": effr,
+         "ust": {d: [1.0, 2.0 + i / 200, 3.0] for i, d in enumerate(cal)}, "qfii": qfii,
+         "sitca": {"2006-12-02": 95.0, "2006-12-09": 96.5}}
+    N = C.native_daily(D, cal, px)
+    d = cal[-1]
+    assert N["G1"][cal[200]] == 0.5 and N["G1"][cal[275]] == 0.5 and N["G1"][d] == 0.0   # 5 日平均和 126 日前比
+    assert cal[129] not in N["G1"] and cal[130] in N["G1"]
+    assert abs(N["G2"][d] - 0.3) < 1e-9                                 # 2 年債 60 日差
+    assert N["C8"] == {"2006-12-09": 95.0, "2006-12-16": 96.5}            # 週末日期 + 7 天才算拿得到
+    raw = C.raw_daily(D, cal, px, N)
+    j = cal.index("2006-12-28") if "2006-12-28" in cal else None
+    assert j is not None and raw["C8"][j] == 96.5                         # 14 天內沿用
+    assert raw["L7"][-1] is not None and abs(raw["L7"][-1] - 0.6) < 1e-9  # 每週一天的持股比率，60 個交易日前的差
 
 
 def test_monthly_items_and_release_alignment():
     ndc = {C.ym_add("2000-01", i): [None, 100.0 + i, None, None, None, None, 20.0 + (i % 20), "綠"] for i in range(200)}
     rev = {C.ym_add("2013-01", i): [110.0, 100.0, 5] for i in range(5)}
+    cb = {"2001-01": [3.0, 6.0, 4.0, 1.0], "2001-04": [3.3, 5.0, 5.5, 0.9]}
     M = C.raw_monthly({"ndc": ndc, "orders": {C.ym_add("2000-01", i): 100.0 + i for i in range(30)},
                        "exports": {C.ym_add("1982-01", i): 50.0 + i for i in range(20)}, "rev": rev,
-                       "money": {"2001-01": [10.0, 6.5, 30.0, 4.0]}, "twcpi": {}, "effr": {}, "uscpi": {}, "pmi": {}})
+                       "money": {"2001-01": [10.0, 6.5, 30.0, 4.0]}, "twcpi": {}, "effr": {}, "uscpi": {}, "pmi": {},
+                       "mmf": {"2010-11": 3.0e12}, "spx": {"2010-11-29": 1180.0, "2010-11-30": 1200.0},
+                       "sfbflow": {"2026-09": [178.7, 4285.53], "2026-08": [None, 4106.83], "2026-10": [None, 4300.0]},
+                       "cbcbank": cb})
+    assert M["G5"] == {"2010-11": 3.0 / 1.2}                              # 兆美元 ÷ 千點，月底收盤
+    assert M["L6"] == {"2026-09": 178.7, "2026-10": 4300.0 - 4285.53}      # 沒有單月值就用累計相減
+    assert M["L8"] == {"2001-01": 10.0} and M["L10"] == {"2001-01": 2.0, "2001-04": -0.5}
+    assert abs(M["L9"]["2001-04"] - (-0.1)) < 1e-9 and "2001-01" not in M["L9"]
     assert M["B2"]["2000-07"] == 6.0 and "2000-06" not in M["B2"]          # 和 6 個月前的差
     s_now = 100 + 14 + 100 + 13 + 100 + 12                                 # 2001-03＋02＋01
     s_ago = 100 + 2 + 100 + 1 + 100 + 0
@@ -130,12 +161,14 @@ def test_build_proxy_for_tw_vix_and_composite_needs_two_thirds():
     assert B["proxy"]["T10"][i] and B["heat"]["T10"][i] == B["heat"]["T9"][i]     # 歷史不夠：用美國 VIX 的 0～100
     assert B["hc"]["T10"][i] is None                                              # 不算進總分
     have = [k for k in S.ITEMS["tech"] if B["hc"][k][i] is not None]
-    assert have == ["T1", "T2", "T3", "T4", "T8", "T9"]
-    assert B["comp"]["tech"][i] is None                                           # 6 項 < 10 項的 2/3
+    assert have == ["T1", "T2", "T3", "T4", "T8", "T9", "T11", "T12", "T13"]
+    assert abs(B["comp"]["tech"][i] - sum(B["hc"][k][i] for k in have) / 9) < 1e-9   # 9 項＝13 項的 2/3
+    assert B["heat"]["T11"][i] == 100.0 * B["raw"]["T11"][i] / 6                   # 均線排列不經百分位
     assert not B["proxy"]["T10"][i - 25] and B["heat"]["T10"][i - 25] is None     # 沒有台指 VIX 的日子不代替
     assert B["vixcorr"]["n"] == 20 and B["vixcorr"]["a"] == cal[-20]
-    four = {k: B["hc"][k][i] for k in ("T1", "T2", "T3", "T4")}
-    assert H.composite(four | {"T8": 50.0, "T9": 50.0, "T5": 50.0}, S.ITEMS["tech"]) is not None   # 7 項就給分
+    eight = {k: B["hc"][k][i] for k in ("T1", "T2", "T3", "T4", "T8", "T9", "T11", "T12")}
+    assert H.composite(eight, S.ITEMS["tech"]) is None                             # 8 項不夠
+    assert H.composite(eight | {"T5": 50.0}, S.ITEMS["tech"]) is not None          # 9 項就給分
 
 
 def test_evaluate_on_synthetic_market(monkeypatch):
