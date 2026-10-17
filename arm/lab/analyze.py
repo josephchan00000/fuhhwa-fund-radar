@@ -563,6 +563,7 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
     mtab: dict = {}
     sx: dict = {}
     wl: dict = {}
+    ind_tab: dict = {}
     if DL is not None:
         try:
             from . import company
@@ -572,6 +573,7 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
             hits = mtab.pop("hits", {})
             watch = mtab.pop("watch", {})
             lay_today = mtab.pop("layer", {})
+            ind_tab = mtab.pop("ind", {})                 # 產業比較（docs/lab_forward_plan.md）→ 頁面 D.ind
             mcols, mrows = mtab.get("cols") or [], mtab.get("rows") or {}     # 別叫 rows：後面頁面列表用這個名字
             nm_all = {**company.names(), **(D.names or {})}
             sx = SX.page_data(res, hits, {c: dict(zip(mcols, mrows[c])) for c in hits if c in mrows}, nm_all)
@@ -583,6 +585,11 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
                 wl["d"] = mtab.get("d")
                 from . import layer as LYR            # 第二層篩選（tw-superstock-lab W3）
                 wl["lay"] = LYR.page_data(LYR.load_res(), lay_today)
+                try:                                  # 法人預估一行小字（docs/lab_forward_plan.md；只顯示當參考）
+                    from . import fcst
+                    wl["fc"] = fcst.briefs(list(watch), {c: mrows[c][0] for c in watch if c in mrows}, company.fy_eps())
+                except Exception as e:                # noqa: BLE001
+                    print(f"[fcst] 飆股段法人預估失敗：{type(e).__name__}: {e}")
         except Exception as e:                            # noqa: BLE001
             mtab = {"err": f"{type(e).__name__}: {e}"}
     DL = None
@@ -659,7 +666,7 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
             "sigdef": {k: list(v) for k, v in SIG_DEF.items()}, "risk": sorted(RISK_SIGS),
             "stats": stats, "iss": iss_stats, "iev": dict(iev), "iow": iss_ow,
             "idx": idx_out, "strat": strat, "grow": grow, "adv": adv, "hl": hl, "opt": opt,
-            "mtab": mtab, "sx": sx, "wl": wl, "dates": D.cal[-CHART_N:]}
+            "mtab": mtab, "sx": sx, "wl": wl, "ind": ind_tab, "dates": D.cal[-CHART_N:]}
 
 
 def _take_full(strat: dict, grow: dict, v3: dict | None = None) -> dict:

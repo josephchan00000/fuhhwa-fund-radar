@@ -51,7 +51,7 @@ jobs:
           python-version: "3.12"
 
       - name: 安裝相依（純標準庫 + certifi）
-        run: pip install --quiet certifi
+        run: pip install --quiet certifi pypdf
 
       - name: 回補
         run: |
@@ -84,6 +84,8 @@ jobs:
             python3 scripts/backfill_lab.py --names
           elif [ "${MODE#fsfill}" != "$MODE" ]; then
             python3 scripts/backfill_lab.py --fs --budget-min 48
+          elif [ "${MODE#fcfill}" != "$MODE" ]; then
+            python3 scripts/fetch_fcst.py --backfill 260 --full --budget 2400
           elif [ "$MODE" = "probefs" ]; then
             python3 scripts/backfill_lab.py --probe-fs
           elif [ "$MODE" = "revprobe" ]; then
@@ -96,6 +98,12 @@ jobs:
             python3 scripts/backfill_lab.py --rev-mops --budget-min 45
           elif [ "$MODE" = "revfm" ] || [ "${MODE#revfm}" != "$MODE" ]; then
             python3 scripts/backfill_lab.py --rev-fm --budget-min 50
+          elif [ "$MODE" = "heatfill" ] || [ "${MODE#heatfill}" != "$MODE" ]; then
+            # heatfill:ndc,pmi＝只回補這幾個（冒號後面）；其他寫法＝全部回補
+            REST="${MODE#heatfill}"
+            ONLY=""
+            case "$REST" in :*) ONLY="--only ${REST#:}";; esac
+            timeout 3000 python3 scripts/fetch_heat.py --backfill --budget-min 45 $ONLY
           else
             python3 scripts/backfill_lab.py --pos-git --px-days "$PX" --flow-days "$FL" --budget-min 50
           fi
