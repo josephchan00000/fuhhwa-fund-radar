@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""景氣溫度頁第三階段的資料來源探針（docs/lab_heat_plan.md 第 13.2 節）。只在 CI 跑一次、印格式與歷史起點，不寫檔。
-合併前刪掉（同第二階段的探針）。`.ping/lab` 第一行寫 heatprobe 觸發。"""
+"""景氣溫度頁第三階段的資料來源探針（docs/lab_heat_plan.md 第 13.2 節）第二輪：只在 CI 跑、印格式與歷史起點，不寫檔。
+第一輪結果：OFR、證交所 MI_QFIIS_cat、央行 DataAPI 可用；ICI 403；證期局新聞稿 PDF 與投信公會 IN2615／IN2616 要再看格式。
+合併前刪掉。`.ping/lab` 第一行寫 heatprobe 觸發。"""
 from __future__ import annotations
 
 import html as _html
@@ -22,8 +23,12 @@ from arm.lab.heatfetch import BROWSER, _twca_ctx  # noqa: E402
 CTX = _twca_ctx()
 
 
+def q(url: str) -> str:
+    return urllib.parse.quote(url, safe=":/?&=%#,+;~")
+
+
 def get(url: str, timeout: int = 40, data: bytes | None = None, headers: dict | None = None) -> bytes:
-    req = urllib.request.Request(url, data=data, headers={**BROWSER, **(headers or {})})
+    req = urllib.request.Request(q(url), data=data, headers={**BROWSER, **(headers or {})})
     with urllib.request.urlopen(req, timeout=timeout, context=CTX) as r:
         return r.read()
 
@@ -62,60 +67,11 @@ def anchors(h: str) -> list[tuple[str, str]]:
     return out
 
 
-def try_get(label: str, url: str, timeout: int = 40, n: int = 300) -> str | None:
-    try:
-        t = txt(url, timeout=timeout)
-        say(label, len(t), short(plain(t), n))
-        return t
-    except Exception as e:                                    # noqa: BLE001
-        say(label, "✗", type(e).__name__, str(e)[:160])
-        return None
+def attrs(tag: str) -> dict:
+    return {k.lower(): _html.unescape(v) for k, v in re.findall(r'([\w:$.-]+)\s*=\s*"([^"]*)"', tag)}
 
 
-# ── 美國貨幣基金：OFR、ICI ─────────────────────────────────────────────
-
-def ofr() -> None:
-    base = "https://data.financialresearch.gov/v1"
-    m = json.loads(get(f"{base}/metadata/mnemonics?dataset=mmf", timeout=60))
-    items = m if isinstance(m, list) else (m.get("data") if isinstance(m, dict) else []) or []
-    say("型態", type(m).__name__, "筆數", len(items), "前幾筆", short(items[:3], 400))
-
-    def nm(x):
-        return (x.get("mnemonic"), x.get("series_name") or "") if isinstance(x, dict) else (str(x), "")
-    tot = [nm(x) for x in items if re.search(r"TOT|total", " ".join(map(str, nm(x))), re.I)]
-    for mn, sn in tot[:25]:
-        say("  ", mn, "｜", short(sn, 110))
-    for mn in [a for a, _ in tot[:5]] or ["MMF-MMF_TOT-M"]:
-        try:
-            d = json.loads(get(f"{base}/series/timeseries?mnemonic={mn}", timeout=60))
-            rows = d if isinstance(d, list) else (d.get("data") if isinstance(d, dict) else None) or []
-            say(mn, "筆數", len(rows), "前", short(rows[:2], 120), "後", short(rows[-2:], 120))
-        except Exception as e:                                # noqa: BLE001
-            say(mn, "✗", type(e).__name__, str(e)[:160])
-
-
-def ici() -> None:
-    u0 = "https://www.ici.org/research/stats/mmf"
-    h = txt(u0)
-    say("mmf 頁", len(h), re.findall(r"[^.<>]{0,80}\$\s?[0-9.,]+\s*trillion[^<]{0,160}", plain(h))[:2])
-    for u, t in anchors(h):
-        if re.search(r"\.(xlsx?|csv)(\?|$)|summary|historical", u, re.I):
-            say("  連結", t[:60], "→", urllib.parse.urljoin(u0, u)[:200])
-    for pg in ("trends_07_26", "trends_12_25", "trends_06_25", "trends_12_24", "trends_06_24", "trends_05_24",
-               "trends_12_20", "trends_12_15", "trends_12_10"):
-        try:
-            t = txt(f"https://www.ici.org/research/stats/{pg}")
-            m = re.findall(r"[^.]{0,160}liquidity ratio[^.]{0,200}\.", plain(t), re.I)
-            xl = [u for u, _ in anchors(t) if re.search(r"\.(xlsx?|pdf)(\?|$)", u, re.I)]
-            say(pg, len(t), m[:1], "附件", xl[:3])
-        except Exception as e:                                # noqa: BLE001
-            say(pg, "✗", type(e).__name__, str(e)[:120])
-        time.sleep(1)
-
-
-# ── 證期局／金管會外資匯入、證交所外資持股 ──────────────────────────────
-
-def _pdf_text(raw: bytes) -> str:
+def pdf_text(raw: bytes) -> str:
     try:
         import pypdf
     except ImportError:
@@ -124,191 +80,142 @@ def _pdf_text(raw: bytes) -> str:
     return "".join(pg.extract_text() or "" for pg in pypdf.PdfReader(io.BytesIO(raw)).pages)
 
 
+# ── OFR、ICI ─────────────────────────────────────────────────────────
+
+def ofr() -> None:
+    d = json.loads(get("https://data.financialresearch.gov/v1/series/timeseries?mnemonic=MMF-MMF_TOT-M", timeout=60))
+    say("MMF-MMF_TOT-M 筆數", len(d), "前", short(d[:2], 120), "後", short(d[-3:], 200))
+
+
+def ici() -> None:
+    for ua in ({"User-Agent": "Mozilla/5.0"}, {"User-Agent": "curl/8.5.0", "Accept": "*/*"}):
+        try:
+            t = txt("https://www.ici.org/research/stats/trends_07_26", headers=ua)
+            say("ICI", ua["User-Agent"], len(t), re.findall(r"[^.]{0,120}liquidity ratio[^.]{0,160}\.", plain(t), re.I)[:1])
+        except Exception as e:                                # noqa: BLE001
+            say("ICI", ua["User-Agent"], "✗", type(e).__name__, str(e)[:120])
+
+
+# ── 證期局 ────────────────────────────────────────────────────────────
+
 def sfb() -> None:
-    lists = ["https://www.sfb.gov.tw/ch/home.jsp?id=95&parentpath=0,2",
-             "https://www.fsc.gov.tw/ch/home.jsp?id=96&parentpath=0,2",
-             "https://www.sfb.gov.tw/ch/index.jsp"]
-    hits, menu = [], []
-    for p in lists:
-        try:
-            h = txt(p)
-        except Exception as e:                                # noqa: BLE001
-            say(p, "✗", type(e).__name__, str(e)[:160])
-            continue
-        al = anchors(h)
-        say(p, len(h), "連結數", len(al), "表單欄位", sorted(set(re.findall(r'name="([^"]+)"', h)))[:15])
-        for u, t in al:
-            fu = urllib.parse.urljoin(p, u)
-            if "外資" in t:
-                hits.append((fu, t))
-            elif re.search(r"統計|指標|新聞稿", t) and "home.jsp" in fu:
-                menu.append((fu, t))
-    for fu, t in hits[:8]:
-        say("  外資連結", t[:90], "→", fu[:200])
-    for fu, t in menu[:12]:
-        say("  選單", t[:40], "→", fu[:200])
-    for fu, t in menu[:6]:                                    # 第二層：統計／新聞稿頁裡的外資連結
-        try:
-            h = txt(fu)
-            for u, tt in anchors(h):
-                if "外資" in tt:
-                    hits.append((urllib.parse.urljoin(fu, u), tt))
-                    say("  第二層", t[:20], "｜", tt[:80], "→", urllib.parse.urljoin(fu, u)[:200])
-        except Exception as e:                                # noqa: BLE001
-            say("  第二層", t[:20], "✗", type(e).__name__)
-        time.sleep(0.5)
-    pick = next(((u, t) for u, t in hits if re.search(r"匯入|投資國內證券", t)), None)
-    if not pick:
-        say("沒有找到外資匯入新聞稿連結")
-        return
-    u, t = pick
-    d = txt(u)
-    say("內容頁", t[:80], len(d))
-    say("淨匯入句子", re.findall(r"[^。]{0,80}淨匯[入出][^。]{0,120}。", plain(d))[:3])
-    att = [urllib.parse.urljoin(u, x) for x, _ in anchors(d) if re.search(r"uploaddowndoc|\.pdf|\.odt|\.docx?", x, re.I)]
-    say("附件", [a[:200] for a in att[:4]])
-    for a in att[:2]:
-        try:
-            raw = get(a, timeout=60)
-            say("附件 bytes", len(raw), raw[:8])
-            if raw[:4] == b"%PDF":
-                s = _pdf_text(raw)
-                i = s.find("匯入")
-                say("pdf 文字", len(s), short(s[max(0, i - 300):i + 600], 900))
-        except Exception as e:                                # noqa: BLE001
-            say("附件 ✗", type(e).__name__, str(e)[:160])
-
-
-def twse_qfiis() -> None:
-    for d in ("20040102", "20050103", "20100104", "20150105", "20200102", "20261016"):
-        try:
-            j = json.loads(get(f"https://www.twse.com.tw/rwd/zh/fund/MI_QFIIS_cat?date={d}&response=json"))
-            data = j.get("data") or []
-            say(d, j.get("stat"), "欄", j.get("fields"), "列數", len(data), "末列", short(data[-1] if data else None, 200))
-        except Exception as e:                                # noqa: BLE001
-            say(d, "✗", type(e).__name__, str(e)[:160])
-        time.sleep(3.5)
+    u = "https://www.sfb.gov.tw/uploaddowndoc?file=news/202610051620190.pdf&filedisplay=115年10月-外資新聞稿-中文.pdf&flag=doc"
+    raw = get(u, timeout=60)
+    say("新聞稿 PDF bytes", len(raw), raw[:8])
+    if raw[:4] == b"%PDF":
+        s = pdf_text(raw)
+        say("pdf 文字", len(s))
+        say(short(re.sub(r"\s+", " ", s), 2500))
+    for p in ("https://www.sfb.gov.tw/ch/home.jsp?id=1024&parentpath=0,4,109",):
+        h = txt(p)
+        say("概況表頁", len(h))
+        for x, t in anchors(h):
+            if re.search(r"downdoc|\.ods|\.xls|\.pdf|\.csv", x, re.I):
+                say("  下載", t[:80], "→", urllib.parse.urljoin(p, x)[:220])
+        tb = re.findall(r"<table\b.*?</table>", h, re.S | re.I)
+        say("  表格數", len(tb))
+        for t in tb[:3]:
+            say("  表格", short(plain(t), 1500))
+    h = txt("https://www.sfb.gov.tw/ch/home.jsp?id=95&parentpath=0,2")
+    pg = [(x, t) for x, t in anchors(h) if re.search(r"page=|pagesize|下一頁|最後|末頁", x + t, re.I)]
+    say("新聞稿列表分頁連結", [(t[:10], x[:160]) for x, t in pg[:8]])
+    news = [(x, t) for x, t in anchors(h) if "外資" in t and "新聞稿" in t]
+    say("外資新聞稿連結", [(t[:30], x[:200]) for x, t in news[:5]])
+    say("表單", sorted(set(re.findall(r'name="([^"]+)"', h)))[:40])
 
 
 # ── 央行 ─────────────────────────────────────────────────────────────
 
-def cbc_oas() -> None:
-    """data.gov.tw 上央行資料集的 OAS 說明：6023 拆款、6533 準備貨幣、16900 準備金提存、6541／6535 存放款、7242 公開市場。"""
-    for sid in (6023, 6533, 16900, 6541, 6535, 7242):
+def cbc() -> None:
+    for sid in (6023, 16900, 7242):
+        for ix in (0, 1, 2):
+            try:
+                raw = get(f"https://cpx.cbc.gov.tw/api/OpenData/DataSet?set_id={sid}&index={ix}", timeout=90)
+                say(sid, ix, len(raw), short(raw[:400].decode("utf-8", "replace"), 400))
+                say("   末段", short(raw[-300:].decode("utf-8", "replace"), 300))
+            except Exception as e:                            # noqa: BLE001
+                say(sid, ix, "✗", type(e).__name__, str(e)[:120])
+            time.sleep(0.5)
+    for code in ("EF25M01", "EF13M01", "EF11M01", "EF03M01", "EG05M01", "EG37D01", "EG37M01", "EF27M01", "EF35M01", "EF39M01"):
         try:
-            o = json.loads(get(f"https://cpx.cbc.gov.tw/api/OpenData/OAS?set_id={sid}", timeout=60))
+            doc = json.loads(get(f"https://cpx.cbc.gov.tw/API/DataAPI/Get?FileName={code}", timeout=90))
         except Exception as e:                                # noqa: BLE001
-            say(sid, "OAS ✗", type(e).__name__, str(e)[:160])
+            say(code, "✗", type(e).__name__, str(e)[:120])
             continue
-        info = o.get("info") or {}
-        servers = [s.get("url") for s in (o.get("servers") or []) if isinstance(s, dict)]
-        host = o.get("host")
-        base = (servers[0] if servers else (f"https://{host}{o.get('basePath') or ''}" if host else "https://cpx.cbc.gov.tw"))
-        say(sid, short(info.get("title"), 80), "｜", short(info.get("description"), 160), "｜base", base)
-        calls = []
-        for path, ops in (o.get("paths") or {}).items():
-            for meth, op in (ops or {}).items():
-                if not isinstance(op, dict):
-                    continue
-                ps = [(p.get("name"), p.get("in"), p.get("required"), (p.get("schema") or {}).get("default") or p.get("default"))
-                      for p in (op.get("parameters") or []) if isinstance(p, dict)]
-                say("   ", meth.upper(), path, "參數", ps, short(op.get("summary") or op.get("description"), 80))
-                if meth.lower() == "get":
-                    calls.append(base.rstrip("/") + path)
-        for u in calls[:2]:
-            for q in ("", "?format=json"):
-                try:
-                    raw = get(u + q, timeout=90)
-                    say("    GET", (u + q)[:160], len(raw), short(raw[:500].decode("utf-8", "replace"), 500))
-                    try:
-                        d = json.loads(raw)
-                        rows = d if isinstance(d, list) else next((v for v in d.values() if isinstance(v, list)), [])
-                        say("    列數", len(rows), "首", short(rows[0] if rows else None, 260), "末", short(rows[-1] if rows else None, 260))
-                    except ValueError:
-                        pass
-                    break
-                except Exception as e:                        # noqa: BLE001
-                    say("    GET", (u + q)[:160], "✗", type(e).__name__, str(e)[:120])
-        time.sleep(1)
-
-
-def cbc_dataapi() -> None:
-    """央行統計資料庫 DataAPI（EF15M01＝貨幣總計數已在用）：列舉代碼找準備金、拆款、存放款。"""
-    t0 = time.time()
-    first = True
-    for pre, kinds in (("EF", ("M01",)), ("EG", ("M01", "D01")), ("EF", ("D01",))):
-        for n in range(1, 41):
-            for k in kinds:
-                if time.time() - t0 > 600:
-                    say("（時間到，停止列舉）")
-                    return
-                code = f"{pre}{n:02d}{k}"
-                try:
-                    raw = get(f"https://cpx.cbc.gov.tw/API/DataAPI/Get?FileName={code}", timeout=25)
-                except Exception as e:                        # noqa: BLE001
-                    say(code, "✗", type(e).__name__, str(e)[:60])
-                    continue
-                try:
-                    doc = json.loads(raw)
-                except ValueError:
-                    say(code, len(raw), "非 JSON", short(raw[:80].decode("utf-8", "replace"), 80))
-                    continue
-                data = doc.get("data") if isinstance(doc, dict) else None
-                if not isinstance(data, dict):
-                    say(code, len(raw), "無 data", short(doc, 120))
-                    continue
-                if first:
-                    say("頂層鍵", list(doc), "data 鍵", list(data), "structure 鍵", list((data.get("structure") or {})))
-                    say("非 dataSets 內容", short({k: v for k, v in data.items() if k != "dataSets"}, 600))
-                    first = False
-                names = [str((x or {}).get("data") or "").replace(" ", "") for x in ((data.get("structure") or {}).get("Table1") or [])]
-                ds = data.get("dataSets") or []
-                ttl = data.get("title") or doc.get("title") or (data.get("structure") or {}).get("title") or ""
-                say(code, len(raw), short(ttl, 40), "｜", "、".join(names[:6])[:150], "｜", len(ds), "列",
-                    (ds[0][0] if ds and ds[0] else None), "～", (ds[-1][0] if ds and ds[-1] else None))
-                time.sleep(0.3)
+        data = doc.get("data") or {}
+        st = data.get("structure") or {}
+        names = [str((x or {}).get("data") or "") for x in (st.get("Table1") or [])]
+        t2 = [str((x or {}).get("data") or "") for x in (st.get("Table2") or [])]
+        t3 = [str((x or {}).get("data") or "") for x in (st.get("Table3") or [])]
+        ds = data.get("dataSets") or []
+        say(code, "meta", short(doc.get("meta"), 300))
+        say("   Table1", len(names), "、".join(names)[:900])
+        say("   Table2", t2, "Table3", t3, "列數", len(ds), "欄數", len(ds[-1]) if ds else 0)
+        say("   末列", short(ds[-1] if ds else None, 400))
+        time.sleep(0.5)
 
 
 # ── 投信投顧公會 ──────────────────────────────────────────────────────
 
+def _form(h: str) -> tuple[dict, list, list]:
+    inputs = [attrs(m) for m in re.findall(r"<input\b[^>]*>", h, re.I)]
+    form = {i["name"]: i.get("value", "") for i in inputs if i.get("name") and (i.get("type") or "").lower() == "hidden"}
+    sels = []
+    for sa, body in re.findall(r"<select\b([^>]*)>(.*?)</select>", h, re.S | re.I):
+        a = attrs(sa)
+        opts = [(attrs(oa).get("value", plain(ot).strip()), plain(ot).strip(), "selected" in oa.lower())
+                for oa, ot in re.findall(r"<option\b([^>]*)>(.*?)</option>", body, re.S | re.I)]
+        sels.append((a.get("name"), a.get("onchange", "")[:60], opts))
+    subs = [i for i in inputs if (i.get("type") or "").lower() in ("submit", "button", "image")]
+    return form, sels, subs
+
+
 def sitca() -> None:
-    seeds = ["https://www.sitca.org.tw/ROC/Industry/IN2001.aspx", "https://www.sitca.org.tw/index_pc.aspx",
-             "https://www.sitca.org.tw/ROC/Industry/IN2002.aspx?PGMID=IN0202", "https://www.sitca.org.tw/"]
-    seen: dict[str, str] = {}
-    for s in seeds:
-        try:
-            h = txt(s)
-        except Exception as e:                                # noqa: BLE001
-            say(s, "✗", type(e).__name__, str(e)[:160])
-            continue
-        al = anchors(h)
-        say(s, len(h), "連結", len(al))
-        for u, t in al:
-            fu = urllib.parse.urljoin(s, u)
-            if "sitca.org.tw" in fu and t:
-                seen.setdefault(fu, t)
-        time.sleep(0.5)
-    hits = [(u, t) for u, t in seen.items() if re.search(r"持股|比率|類股|資產分|投資標的", t)]
-    for u, t in hits[:25]:
-        say("  ", t[:60], "→", u[:180])
-    ind = [(u, t) for u, t in seen.items() if "/Industry/" in u]
-    say("Industry 連結數", len(ind), "前 30", [f"{t[:14]}={u.rsplit('/', 1)[-1][:40]}" for u, t in ind[:30]])
-    for u, t in hits[:4]:
-        try:
-            h = txt(u)
-        except Exception as e:                                # noqa: BLE001
-            say(t[:30], "✗", type(e).__name__, str(e)[:120])
-            continue
+    for pid, page in (("IN22605_01", "IN2615"), ("IN22605_02", "IN2616")):
+        u = f"https://www.sitca.org.tw/ROC/Industry/{page}.aspx?pid={pid}"
+        h = txt(u)
+        form, sels, subs = _form(h)
+        say(page, len(h), "hidden", list(form)[:8], "按鈕", [(s.get("name"), s.get("value")) for s in subs][:6])
+        for name, oc, opts in sels:
+            say("  select", name, "onchange", oc, "選項數", len(opts), "前", opts[:4], "後", opts[-3:])
         p = plain(h)
         i = p.find("持股")
-        say(t[:30], len(h), "select", re.findall(r'<select[^>]*name="([^"]+)"', h)[:8], "table", h.count("<table"),
-            "片段", p[max(0, i - 120): i + 420])
-        time.sleep(0.5)
+        say("  預設頁片段", p[max(0, i - 200): i + 1500])
+        tb = re.findall(r"<table\b.*?</table>", h, re.S | re.I)
+        say("  表格數", len(tb), [len(t) for t in tb])
+        big = max(tb, key=len) if tb else ""
+        rows = re.findall(r"<tr\b.*?</tr>", big, re.S | re.I)
+        say("  最大表格列數", len(rows))
+        for r in rows[:6] + rows[-3:]:
+            say("   列", short(plain(r), 300))
+        # 選最早的年月 POST 一次
+        ym = next((s for s in sels if s[0] and re.search(r"YM|_Y$|Date|Week", s[0], re.I)), None)
+        if ym and ym[2] and subs:
+            val = ym[2][-1][0]
+            f = dict(form)
+            for name, _, opts in sels:
+                if name and opts:
+                    f[name] = next((o[0] for o in opts if o[2]), opts[0][0])
+            f[ym[0]] = val
+            b = subs[0]
+            if b.get("name"):
+                f[b["name"]] = b.get("value", "")
+            try:
+                r = txt(u, data=urllib.parse.urlencode(f).encode(), headers={"Content-Type": "application/x-www-form-urlencoded",
+                                                                             "Referer": u})
+                tb = re.findall(r"<table\b.*?</table>", r, re.S | re.I)
+                big = max(tb, key=len) if tb else ""
+                rows = re.findall(r"<tr\b.*?</tr>", big, re.S | re.I)
+                say("  POST", ym[0], "=", val, "回應", len(r), "列數", len(rows))
+                for rr in rows[:5] + rows[-3:]:
+                    say("   列", short(plain(rr), 300))
+            except Exception as e:                            # noqa: BLE001
+                say("  POST ✗", type(e).__name__, str(e)[:160])
+        time.sleep(1)
 
 
 def main() -> None:
-    for name, fn in (("OFR 貨幣基金", ofr), ("ICI", ici), ("證期局／金管會外資匯入", sfb), ("證交所外資持股", twse_qfiis),
-                     ("央行 OAS", cbc_oas), ("央行 DataAPI 列舉", cbc_dataapi), ("投信投顧公會", sitca)):
+    for name, fn in (("OFR", ofr), ("ICI", ici), ("證期局", sfb), ("央行", cbc), ("投信投顧公會", sitca)):
         sec(name, fn)
 
 
