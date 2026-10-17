@@ -98,8 +98,6 @@ jobs:
             python3 scripts/backfill_lab.py --rev-mops --budget-min 45
           elif [ "$MODE" = "revfm" ] || [ "${MODE#revfm}" != "$MODE" ]; then
             python3 scripts/backfill_lab.py --rev-fm --budget-min 50
-          elif [ "$MODE" = "heatprobe" ]; then
-            timeout 1500 python3 scripts/probe_heat3.py
           elif [ "$MODE" = "heatfill" ] || [ "${MODE#heatfill}" != "$MODE" ]; then
             # heatfill:ndc,pmi＝只回補這幾個（冒號後面）；其他寫法＝全部回補
             REST="${MODE#heatfill}"

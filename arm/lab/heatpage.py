@@ -149,7 +149,7 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
         recent = sorted(((i, k) for k, ix in ev.items() for i in ix if i >= lo), reverse=True)
         ta = {"lv": TT.levels(px, cal), "recent": [(cal[i], k) for i, k in recent],
               "last": {k: (cal[ix[-1]] if ix else None) for k, ix in ev.items()}, "study": R.get("events") or {},
-              "next": next_days(cal[t], S.DEDUCT_N)}
+              "next": next_days(cal[t], S.DEDUCT_N), "base_a": cal[S.EV_START]}
     return {"asof": cal[t] if cal else None, "dims": dims, "tdates": cal[a:], "tpx": px[a:], "R": R,
             "data": R.get("data") or {}, "cal_info": B.get("cal_info"), "vixcorr": B.get("vixcorr") or {}, "ta": ta}
 
@@ -518,11 +518,11 @@ def _ta(V: dict) -> str:
     rec = "、".join(f'{_e(_md(d))} {_e(S.EVENTS[k])}' for d, k in ta["recent"]) or "沒有"
     st = ta.get("study") or {}
     allr = ""
-    any_ev = next((v for v in st.values() if v), None)
+    any_ev = next((st[k] for k in S.EVENTS if st.get(k)), None)
     if any_ev:
         a10, a60 = any_ev.get("10") or {}, any_ev.get("60") or {}
         if a10.get("all_avg") is not None and a60.get("all_avg") is not None:
-            allr = (f'所有交易日（{_e((a10.get("a") or "1998")[:4])} 年起）：之後 10 日平均 {_pct(100 * a10["all_avg"], 2)}'
+            allr = (f'所有交易日（{_e(_ymd(ta.get("base_a")))} 起）：之後 10 日平均 {_pct(100 * a10["all_avg"], 2)}'
                     f'（上漲 {100 * a10["all_up"]:.0f}%）、60 日 {_pct(100 * a60["all_avg"], 2)}（上漲 {100 * a60["all_up"]:.0f}%）。')
     trs = []
     for k, nm in S.EVENTS.items():
