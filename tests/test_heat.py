@@ -1,27 +1,29 @@
 """景氣溫度頁（docs/lab_heat_plan.md）：規格鎖定＋計算核心。
 
-規格是看驗證結果之前寫定的（heatspec.VER 1，2026-10-17）。要改就 VER＋1、寫進規劃文件第 10 節，不在舊版本上改——
-這支測試鎖住 VER 1 的內容。"""
+規格是看驗證結果之前寫定的（heatspec.VER 1 → VER 2，2026-10-17，第 10 節記錄改了什麼）。要改就 VER＋1、
+寫進規劃文件第 10 節，不在舊版本上改——這支測試鎖住 VER 2 的內容。"""
 import random
 
 from arm.lab import heat as H
 from arm.lab import heatspec as S
 
 
-def test_spec_v1_is_locked():
-    assert S.VER == 1 and S.SPEC_DATE == "2026-10-17"
-    assert S.KEYS == ["S1", "S2", "S3", "S4", "S5", "S6", "F1", "F2", "F3", "F4", "F5",
+def test_spec_v2_is_locked():
+    assert S.VER == 2 and S.SPEC_DATE == "2026-10-17"
+    assert S.KEYS == ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "F1", "F2", "F3", "F4",
                       "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8",
-                      "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10"]
-    assert S.HOT == {"S1": 1, "S2": 1, "S3": 1, "S4": -1, "S5": -1, "S6": 1,
-                     "F1": 1, "F2": 1, "F3": -1, "F4": 1, "F5": -1,
-                     "M1": 1, "M2": 1, "M3": 1, "M4": 1, "M5": 1, "M6": -1, "M7": -1, "M8": -1,
-                     "L1": 1, "L2": 1, "L3": 1, "L4": 1, "L5": 1, "L6": 1, "L7": 1, "L8": 1, "L9": -1, "L10": 1}
+                      "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9"]
+    assert S.HOT == {"S1": 1, "S2": 1, "S3": 1, "S4": -1, "S5": -1, "S6": 1, "S7": -1,
+                     "F1": 1, "F2": 1, "F3": 1, "F4": -1,
+                     "M1": 1, "M2": 1, "M3": 1, "M4": 1, "M5": 1, "M6": -1, "M7": 1, "M8": -1,
+                     "L1": 1, "L2": 1, "L3": 1, "L4": 1, "L5": 1, "L6": 1, "L7": 1, "L8": 1, "L9": -1}
+    assert {k: S.LINE_OF[k] for k in ("S7", "F3", "F4", "M7")} == {"S7": "short", "F3": "fo", "F4": "fo", "M7": "mid"}
     assert {k: (v["fwd"], v["main"], v["freq"]) for k, v in S.LINES.items()} == {
         "short": ((5, 10), 10, "d"), "mid": ((20, 60), 60, "d"), "long": ((120, 250), 250, "m"), "fo": ((5, 10), 10, "d")}
     assert S.PCT_WIN == {"d": 750, "m": 120} and S.PCT_MIN == {"d": 375, "m": 60}
     assert S.RELEASE == {"L1": (2, 28), "L2": (2, 28), "L3": (1, 6), "L4": (1, 21), "L5": (1, 27),
-                         "L6": (1, 10), "L8": (1, 16), "L10": (1, 15)}
+                         "L6": (1, 10), "L7": (1, 1), "L8": (1, 16), "L9": (1, 1)}
+    assert set(S.RELEASE) == {k for k in S.KEYS if S.LINE_OF[k] == "long"}     # 每個月資料都有公布時間差
     assert S.DAILY_LAG == 1
     assert S.SPLIT == {"d": {"is": ("2014-01-01", "2019-12-31"), "oos": ("2020-01-01", None)},
                        "m": {"is": ("1999-01-01", "2012-12-31"), "oos": ("2013-01-01", None)},
