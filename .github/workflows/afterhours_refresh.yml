@@ -102,6 +102,9 @@ jobs:
       - name: 法人預估（鉅亨 FactSet 快訊補到現在＋Yahoo 分析師一天一次；docs/lab_forward_plan.md，失敗不擋）
         run: timeout 420 python3 scripts/fetch_fcst.py || echo "  ⚠ 法人預估抓取失敗，沿用既有落檔"
 
+      - name: 景氣溫度頁資料（融資、法人、期權、匯率、美國利率物價、國發會、廣度；docs/lab_heat_plan.md，失敗不擋）
+        run: timeout 420 python3 scripts/fetch_heat.py || echo "  ⚠ 景氣溫度資料抓取失敗，沿用既有落檔"
+
       - name: 當日完整性看門狗（寫/清 data/afterhours_alert.json——儀表板紅章資料源）
         run: python3 scripts/check_afterhours_fresh.py --write
 

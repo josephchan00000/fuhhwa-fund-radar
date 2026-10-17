@@ -97,3 +97,84 @@ def test_ndc_pmi_orders_usdtwd(lab, monkeypatch):
     assert F.ndc_pmi() == 2 and HD.load("pmi") == {"2012-07": 47.1, "2026-09": 63.4}
     assert F.moea_orders() == 1 and HD.load("orders") == {"1984-01": 2627.0}   # 只取地區別總計
     assert F.cbc_usdtwd() == 2 and HD.load("usdtwd")["2026-10-16"] == 32.428
+
+
+def test_cbc_money_finds_m1b_m2_by_name(lab, monkeypatch):
+    names = ["貨幣機構以外各部門持有通貨"] + [f"項目{i}" for i in range(11)] + ["貨幣總計數 -Ｍ１Ａ", "貨幣總計數 -Ｍ１Ｂ", "貨幣總計數 -Ｍ２"]
+    row = ["2026M08"] + ["1", "-"] * 12 + ["12827146", "8.86", "30750789", "6.65", "70677981", "6.79"]
+    old = ["1987M05"] + ["1", "-"] * 12 + ["724916", "-", "1255199", "-", "3432119", "-"]
+    doc = {"meta": {}, "data": {"structure": {"Table1": [{"data": n} for n in names],
+                                              "Table2": [{"data": "原始值"}, {"data": "年增率"}]},
+                                "dataSets": [old, row]}}
+    monkeypatch.setattr(F, "_get", lambda url, **kw: json.dumps(doc).encode())
+    assert F.cbc_money() == 2
+    assert HD.load("money") == {"1987-05": [1255199.0, None, 3432119.0, None],
+                                "2026-08": [30750789.0, 6.65, 70677981.0, 6.79]}
+
+
+def test_dgbas_cpi_xml_takes_headline_index_and_yoy():
+    xml = ("<root><Obs><Item>總指數(指數基期：民國110年=100)</Item><TIME_PERIOD>1981M01</TIME_PERIOD><FREQ>M</FREQ>"
+           "<TYPE>原始值</TYPE><Item_VALUE>52.95</Item_VALUE></Obs>"
+           "<Obs><Item>總指數(指數基期：民國110年=100)</Item><TIME_PERIOD>2026M09</TIME_PERIOD><FREQ>M</FREQ>"
+           "<TYPE>年增率(%)</TYPE><Item_VALUE>2.31</Item_VALUE></Obs>"
+           "<Obs><Item>總指數(指數基期：民國110年=100)</Item><TIME_PERIOD>2026M09</TIME_PERIOD><FREQ>M</FREQ>"
+           "<TYPE>原始值</TYPE><Item_VALUE>110.5</Item_VALUE></Obs>"
+           "<Obs><Item>總指數不含蔬菜水果</Item><TIME_PERIOD>2026M09</TIME_PERIOD><FREQ>M</FREQ>"
+           "<TYPE>年增率(%)</TYPE><Item_VALUE>9.9</Item_VALUE></Obs>"
+           "<Obs><Item>食物類</Item><TIME_PERIOD>2026M09</TIME_PERIOD><FREQ>M</FREQ>"
+           "<TYPE>年增率(%)</TYPE><Item_VALUE>8.8</Item_VALUE></Obs></root>")
+    assert F.parse_dgbas_cpi(xml) == {"1981-01": [52.95, None], "2026-09": [110.5, 2.31]}
+
+
+def test_treasury_csv_columns_by_header():
+    t1990 = ('Date,"3 Mo","6 Mo","1 Yr","2 Yr","3 Yr","5 Yr","7 Yr","10 Yr","30 Yr"\n'
+             "12/31/1990,6.63,6.73,6.82,7.15,7.40,7.68,8.00,8.08,8.26\n")
+    t2026 = ('Date,"1 Mo","1.5 Month","2 Mo","3 Mo","4 Mo","6 Mo","1 Yr","2 Yr","3 Yr","5 Yr","7 Yr","10 Yr","20 Yr","30 Yr"\n'
+             "10/16/2026,4.12,4.14,4.17,4.26,4.32,4.34,4.46,4.74,4.82,4.89,4.98,5.09,5.47,5.43\n"
+             "10/15/2026,4.17,,4.19,,4.35,4.35,4.49,4.77,4.85,4.91,5.00,5.10,5.48,5.43\n")
+    assert F.parse_treasury(t1990) == {"1990-12-31": [6.63, 7.15, 8.08]}
+    assert F.parse_treasury(t2026) == {"2026-10-16": [4.26, 4.74, 5.09], "2026-10-15": [None, 4.77, 5.10]}
+
+
+def test_bls_post_chunks_of_ten_years(lab, monkeypatch):
+    calls = []
+
+    def fake(url, body, timeout=60):
+        calls.append((body["startyear"], body["endyear"]))
+        y = body["startyear"]
+        return {"status": "REQUEST_SUCCEEDED", "Results": {"series": [{"seriesID": "CUUR0000SA0", "data": [
+            {"year": y, "period": "M12", "value": "168.3"}, {"year": y, "period": "M13", "value": "167.0"},
+            {"year": y, "period": "M01", "value": "127.4"}]}]}}
+    monkeypatch.setattr(F, "_post_json", fake)
+    monkeypatch.setattr(F.time, "sleep", lambda s: None)
+    assert F.bls_cpi(1990, 2012) == 6
+    assert calls == [("1990", "1999"), ("2000", "2009"), ("2010", "2012")]
+    assert HD.load("uscpi")["1990-12"] == 168.3 and "1990-13" not in HD.load("uscpi")   # 年平均（M13）不收
+
+
+def test_effr_dbnomics_before_2016_then_nyfed(lab, monkeypatch):
+    dbn = {"series": {"docs": [{"period": ["1954-07-01", "2016-02-29", "2016-03-01", "2016-03-02"],
+                                "value": [1.13, 0.37, 0.36, "NA"]}]}}
+    ny = {"refRates": [{"effectiveDate": "2026-10-15", "type": "EFFR", "percentRate": 3.88,
+                        "targetRateFrom": 3.75, "targetRateTo": 4.00}]}
+    monkeypatch.setattr(F, "_get", lambda url, **kw: json.dumps(dbn if "db.nomics" in url else ny).encode())
+    assert F.dbn_effr() == 2                                             # 2016-03 起留給紐約聯準銀行
+    assert F.nyfed_effr() == 1
+    assert HD.load("effr") == {"1954-07-01": 1.13, "2016-02-29": 0.37, "2026-10-15": 3.88}
+    assert HD.load("fedtgt") == {"2026-10-15": [3.75, 4.0]}
+
+
+def test_yahoo_adjclose_replaces_whole_history_but_not_on_partial(lab, monkeypatch):
+    from arm.lab import market
+    full = {f"2020-01-{d:02d}": [1, 1, 1, 100.0 + d, 10, 90.0 + d] for d in range(1, 21)}
+    monkeypatch.setattr(market, "yahoo_hist_from", lambda sym, start, adj=False: full)
+    assert F.yahoo_adj("hyg", "HYG", "2007-01-01") == 20
+    assert HD.load("hyg")["2020-01-05"] == 95.0                          # 用還原收盤
+    shifted = {d: [1, 1, 1, r[3], 10, r[5] * 0.99] for d, r in full.items()}   # 新配息：整段歷史改寫
+    monkeypatch.setattr(market, "yahoo_hist_from", lambda sym, start, adj=False: shifted)
+    F.yahoo_adj("hyg", "HYG", "2007-01-01")
+    assert abs(HD.load("hyg")["2020-01-05"] - 95.0 * 0.99) < 1e-9
+    part = dict(list(shifted.items())[:5])                               # 只拿到一小段：只補不換
+    monkeypatch.setattr(market, "yahoo_hist_from", lambda sym, start, adj=False: part)
+    F.yahoo_adj("hyg", "HYG", "2007-01-01")
+    assert len(HD.load("hyg")) == 20

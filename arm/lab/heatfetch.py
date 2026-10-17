@@ -18,20 +18,33 @@
   ndc_first 國發會 景氣分數「第一次看到」的值    {YYYY-MM: [分數, 看到的日期]}（從開始抓那天起累積，日後可驗證修正幅度）
   pmi       國發會 製造業 PMI                   {YYYY-MM: PMI}                                       2012-07 起
   orders    經濟部 外銷訂單金額（百萬美元）       {YYYY-MM: 金額}                                      1984 起
+  money     央行 貨幣總計數（日平均）            {YYYY-MM: [M1B, M1B 年增率, M2, M2 年增率]}            1987-05 起
+  twcpi     主計總處 消費者物價總指數            {YYYY-MM: [指數, 年增率]}                               1981 起
+  hyg、ief  Yahoo 含息還原收盤                   {日期: 還原收盤}（新配息會改寫整段歷史，每次整段換掉）    2007-04／2002 起
+  effr      有效聯邦基金利率                     {日期: 利率}：2016-02 以前 DBnomics 轉載聯準會 H.15，之後紐約聯準銀行  1954 起
+  fedtgt    聯邦基金利率目標區間                 {日期: [下限, 上限]}（紐約聯準銀行）                     2016-03 起
+  uscpi     勞工統計局 CPI-U（未季調）           {YYYY-MM: 指數}                                       1985 起
+  ust       美國財政部 每日公債殖利率            {日期: [3 個月, 2 年, 10 年]}                           1990 起
+  breadth   自算廣度（heatdata.breadth）          {日期: [上漲, 下跌, 站上 60 日線, 有 60 日線, 創新高, 創新低, 有 250 日]}  2013 起
 """
 from __future__ import annotations
 
 import io
 import json
 import re
+import ssl
 import time
 import urllib.parse
+import urllib.request
 import zipfile
 from datetime import date, timedelta
+from pathlib import Path
 
-from ..http import get_bytes
+from ..http import _CTX, get_bytes
 from . import heatdata as HD
 from .market import log, post_bytes
+
+ROOT = Path(__file__).resolve().parents[2]
 
 BROWSER = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                          "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"}
@@ -52,6 +65,28 @@ def _merge(name: str, src: str, new: dict) -> int:
     if n:
         HD.save(name, src, {**old, **new})
     return n
+
+
+def _replace(name: str, src: str, new: dict) -> int:
+    """整段換掉（給會改寫歷史的資料，例如含息還原收盤）；這次拿到的筆數少於原有 9 成就只補不換，免得半份回應洗掉歷史。"""
+    new = {k: v for k, v in new.items() if v is not None}
+    if not new:
+        return 0
+    old = HD.load(name)
+    if len(new) < 0.9 * len(old):
+        log(f"[heat] {name} 這次只拿到 {len(new)} 筆（原有 {len(old)} 筆），只補不換")
+        return _merge(name, src, new)
+    n = sum(1 for k, v in new.items() if old.get(k) != v) + sum(1 for k in old if k not in new)
+    if n:
+        HD.save(name, src, new)
+    return n
+
+
+def _post_json(url: str, body: dict, timeout: int = 60) -> dict:
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={
+        **BROWSER, "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout, context=_CTX) as r:
+        return json.loads(r.read().decode("utf-8"))
 
 
 def _finmind(ds: str, did: str, a: str, z: str | None = None) -> list[dict]:
@@ -128,14 +163,31 @@ def _months(a: date, z: date):
         y, m = (y + 1, 1) if m == 12 else (y, m + 1)
 
 
+def _have_months(name: str) -> dict[str, int]:
+    have: dict[str, int] = {}
+    for k in HD.load(name):
+        have[k[:7]] = have.get(k[:7], 0) + 1
+    return have
+
+
+def _skip_month(have: dict, y: int, m: int, z: date) -> bool:
+    """整月已有（≥ 15 個交易日）就跳過；本月與上月每次重抓（月中還在增加、月初可能補登）。"""
+    cur = (z.year, z.month)
+    prev = (z.year - (z.month == 1), (z.month - 2) % 12 + 1)
+    return (y, m) not in (cur, prev) and have.get(f"{y:04d}-{m:02d}", 0) >= 15
+
+
 def taifex_pcr(a: date, z: date | None = None, budget_s: float = 600) -> int:
     z = z or date.today()
     out: dict = {}
     t0 = time.time()
+    have = _have_months("pcr")
     for y, m in _months(a, z):
         if time.time() - t0 > budget_s:
             log("[heat] P/C 回補時間到，下一輪續補")
             break
+        if _skip_month(have, y, m, z):
+            continue
         s = date(y, m, 1)
         e = (date(y + (m == 12), m % 12 + 1, 1) - timedelta(days=1))
         try:
@@ -194,6 +246,14 @@ def yahoo(name: str, sym: str, start: str) -> int:
     return _merge(name, "yahoo", {d: row[3] for d, row in h.items() if row and row[3]})
 
 
+def yahoo_adj(name: str, sym: str, start: str) -> int:
+    """含息還原收盤（adjclose；沒有就用收盤）。新的配息會把整段歷史重算一次，所以每次抓整段、整段換掉。"""
+    from .market import yahoo_hist_from
+    h = yahoo_hist_from(sym, start, adj=True)
+    return _replace(name, "yahoo", {d: (row[5] if len(row) > 5 and row[5] else row[3])
+                                    for d, row in h.items() if row and row[3]})
+
+
 # ── 證交所 ───────────────────────────────────────────────────────────
 
 def twse_turnover(a: date, z: date | None = None, budget_s: float = 1500) -> int:
@@ -201,17 +261,13 @@ def twse_turnover(a: date, z: date | None = None, budget_s: float = 1500) -> int
     z = z or date.today()
     out: dict = {}
     t0 = time.time()
-    have: dict[str, int] = {}
-    for k in HD.load("turnover"):
-        have[k[:7]] = have.get(k[:7], 0) + 1
-    cur = (z.year, z.month)
-    prev = (z.year - (z.month == 1), (z.month - 2) % 12 + 1)
+    have = _have_months("turnover")
     for y, m in _months(a, z):
         if time.time() - t0 > budget_s:
             log("[heat] 成交金額回補時間到，下一輪續補")
             break
-        if (y, m) not in (cur, prev) and have.get(f"{y:04d}-{m:02d}", 0) >= 15:
-            continue                                      # 已有整月（本月與上月每次重抓）
+        if _skip_month(have, y, m, z):
+            continue
         url = f"https://www.twse.com.tw/rwd/zh/afterTrading/FMTQIK?date={y}{m:02d}01&response=json"
         try:
             doc = json.loads(_get(url, timeout=40).decode("utf-8"))
@@ -303,3 +359,170 @@ def moea_orders() -> int:
         if v is not None:
             out[f"{y:04d}-{m:02d}"] = v
     return _merge("orders", "moea", out)
+
+
+def cbc_money() -> int:
+    """央行 EF15M01（貨幣總計數，日平均）：每個月一列，每項兩欄（原始值、年增率）；M1B、M2 依欄名找位置。"""
+    doc = json.loads(_get("https://cpx.cbc.gov.tw/API/DataAPI/Get?FileName=EF15M01", timeout=90).decode("utf-8"))
+    data = doc.get("data") or {}
+    names = [str((x or {}).get("data") or "").replace(" ", "") for x in ((data.get("structure") or {}).get("Table1") or [])]
+    i1 = next(i for i, n in enumerate(names) if n.endswith("Ｍ１Ｂ"))
+    i2 = next(i for i, n in enumerate(names) if n.endswith("Ｍ２"))
+    out = {}
+    for row in data.get("dataSets") or []:
+        mm = re.match(r"^(\d{4})M(\d{2})$", str(row[0]))
+        if not mm:
+            continue
+
+        def at(j):
+            return _num(row[j]) if j < len(row) else None
+        out[f"{mm.group(1)}-{mm.group(2)}"] = [at(1 + 2 * i1), at(2 + 2 * i1), at(1 + 2 * i2), at(2 + 2 * i2)]
+    return _merge("money", "cbc", {k: v for k, v in out.items() if v[0] is not None and v[2] is not None})
+
+
+# ── 主計總處（伺服器沒送中繼憑證：信任清單加 TWCA 中繼憑證，照常完整驗證） ───────────────
+
+DGBAS_CPI = "https://ws.dgbas.gov.tw/001/Upload/461/relfile/11525/230555/pr0101a1m.xml"
+TWCA_PEM = ROOT / "config" / "certs" / "twca_ssl_ca.pem"
+
+
+def _twca_ctx() -> ssl.SSLContext:
+    import certifi
+    ctx = ssl.create_default_context(cafile=certifi.where())
+    ctx.load_verify_locations(cafile=str(TWCA_PEM))
+    return ctx
+
+
+def parse_dgbas_cpi(txt: str) -> dict:
+    """XML 的每個 <Obs>：Item（總指數…）、TIME_PERIOD（1981M01）、TYPE（原始值／年增率(%)）、Item_VALUE。"""
+    out: dict = {}
+    for blk in re.findall(r"<Obs>(.*?)</Obs>", txt, re.S):
+        it = re.search(r"<Item>(.*?)</Item>", blk)
+        if not it or not re.match(r"^總指數(\(|（|$)", it.group(1)) or "不含" in it.group(1):
+            continue
+        tp = re.search(r"<TIME_PERIOD>(\d{4})M(\d{2})</TIME_PERIOD>", blk)
+        ty = re.search(r"<TYPE>(.*?)</TYPE>", blk)
+        v = re.search(r"<Item_VALUE>(.*?)</Item_VALUE>", blk)
+        if not (tp and ty and v):
+            continue
+        k = 0 if ty.group(1).startswith("原始值") else 1 if ty.group(1).startswith("年增率") else None
+        x = _num(v.group(1))
+        if k is not None and x is not None:
+            out.setdefault(f"{tp.group(1)}-{tp.group(2)}", [None, None])[k] = x
+    return out
+
+
+def dgbas_cpi() -> int:
+    req = urllib.request.Request(DGBAS_CPI, headers=BROWSER)
+    with urllib.request.urlopen(req, timeout=180, context=_twca_ctx()) as r:
+        txt = r.read().decode("utf-8", "replace")
+    return _merge("twcpi", "dgbas", parse_dgbas_cpi(txt))
+
+
+# ── 美國：利率、物價、殖利率 ─────────────────────────────────────────
+
+NYFED = "https://markets.newyorkfed.org/api/rates/unsecured/effr/search.json?startDate={a}&endDate={z}"
+DBN = "https://api.db.nomics.world/v22/series/{p}?observations=1&format=json"
+BLS = "https://api.bls.gov/publicAPI/v1/timeseries/data/"
+UST = ("https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/{y}/all"
+       "?type=daily_treasury_yield_curve&field_tdr_date_value={y}&page&_format=csv")
+EFFR_SRC = "fed_h15+nyfed"
+NYFED_START = "2016-03-01"
+
+
+def nyfed_effr(a: str = NYFED_START) -> int:
+    doc = json.loads(_get(NYFED.format(a=a, z=date.today().isoformat()), timeout=90).decode("utf-8"))
+    eff, tgt = {}, {}
+    for r in doc.get("refRates") or []:
+        d = str(r.get("effectiveDate") or "")[:10]
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", d):
+            continue
+        if r.get("percentRate") is not None:
+            eff[d] = float(r["percentRate"])
+        if r.get("targetRateFrom") is not None and r.get("targetRateTo") is not None:
+            tgt[d] = [float(r["targetRateFrom"]), float(r["targetRateTo"])]
+    _merge("fedtgt", "nyfed", tgt)
+    return _merge("effr", EFFR_SRC, eff)
+
+
+def parse_dbnomics(doc: dict) -> dict:
+    docs = ((doc.get("series") or {}).get("docs")) or []
+    if not docs:
+        raise RuntimeError("DBnomics 沒有資料")
+    s = docs[0]
+    return {str(p): float(v) for p, v in zip(s.get("period") or [], s.get("value") or [])
+            if isinstance(v, (int, float)) and not isinstance(v, bool)}
+
+
+def dbn_effr(before: str = NYFED_START) -> int:
+    """聯準會 H.15 有效聯邦基金利率（DBnomics 轉載，1954 起）：只取紐約聯準銀行沒有的 2016-03 以前。"""
+    d = parse_dbnomics(json.loads(_get(DBN.format(p="FED/H15/RIFSPFF_N.B"), timeout=120).decode("utf-8")))
+    return _merge("effr", EFFR_SRC, {k: v for k, v in d.items() if re.match(r"^\d{4}-\d{2}-\d{2}$", k) and k < before})
+
+
+def bls_cpi(y0: int, y1: int | None = None) -> int:
+    """勞工統計局 API v1（不用金鑰）：POST 一次最多 10 年；GET 不吃年份參數。"""
+    y1 = y1 or date.today().year
+    out: dict = {}
+    a = y0
+    while a <= y1:
+        z = min(a + 9, y1)
+        doc = _post_json(BLS, {"seriesid": ["CUUR0000SA0"], "startyear": str(a), "endyear": str(z)})
+        if doc.get("status") != "REQUEST_SUCCEEDED":
+            raise RuntimeError(f"BLS {a}–{z} {doc.get('status')} {str(doc.get('message'))[:120]}")
+        for r in ((((doc.get("Results") or {}).get("series") or [{}])[0]) or {}).get("data") or []:
+            p, v = str(r.get("period") or ""), _num(r.get("value"))
+            if re.match(r"^M(0[1-9]|1[0-2])$", p) and v is not None:
+                out[f"{r.get('year')}-{p[1:]}"] = v
+        a = z + 1
+        time.sleep(1)
+    return _merge("uscpi", "bls", out)
+
+
+def parse_treasury(txt: str) -> dict:
+    lines = [ln for ln in txt.lstrip("\ufeff").splitlines() if ln.strip()]
+    if not lines:
+        return {}
+    hdr = [h.strip().strip('"') for h in lines[0].split(",")]
+    cols = [hdr.index(k) if k in hdr else None for k in ("3 Mo", "2 Yr", "10 Yr")]
+    out = {}
+    for ln in lines[1:]:
+        c = ln.split(",")
+        mm = re.match(r"^(\d{2})/(\d{2})/(\d{4})$", c[0].strip())
+        if not mm:
+            continue
+        row = [_num(c[j]) if j is not None and j < len(c) and c[j].strip() else None for j in cols]
+        if any(v is not None for v in row):
+            out[f"{mm.group(3)}-{mm.group(1)}-{mm.group(2)}"] = row
+    return out
+
+
+def treasury(y0: int, y1: int | None = None) -> int:
+    y1 = y1 or date.today().year
+    out: dict = {}
+    for y in range(y0, y1 + 1):
+        try:
+            out.update(parse_treasury(_get(UST.format(y=y), timeout=60).decode("utf-8", "replace")))
+        except Exception as ex:                           # noqa: BLE001
+            log(f"[heat] 美國公債殖利率 {y} ✗ {str(ex)[:80]}")
+        time.sleep(0.5)
+    return _merge("ust", "treasury", out)
+
+
+# ── 廣度：上市櫃日線自算（heatdata.breadth） ─────────────────────────────
+
+def breadth_update(force: bool = False) -> int:
+    """官方分片有比現存廣度更新的交易日才重算（v3px 面板＋分片接續，約 1 分鐘）；force＝整段重算。"""
+    from . import bt3d, store
+    old = HD.load("breadth")
+    if not force and old and max(old) >= max(store.dates("mkt") or [""]):
+        return 0                                          # 最新的分片已算過（一天好幾班，不必每班重讀分片）
+    SP = HD.ShardPanel()
+    if not force and old and SP.cal and max(old) >= SP.cal[-1]:
+        return 0
+    P = bt3d.Panel()
+    HD.extend(P, SP)
+    b = HD.breadth(P)
+    new = {d: [b[k][i] for k in ("adv", "dec", "above", "n60", "hi", "lo", "n250")] for i, d in enumerate(b["cal"])}
+    new = {d: v for d, v in new.items() if v[0] + v[1] > 0}
+    return _replace("breadth", "v3px+mkt", new)
