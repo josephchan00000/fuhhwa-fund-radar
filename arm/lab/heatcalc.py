@@ -1,29 +1,66 @@
-"""景氣溫度頁：把 data/lab/heat 的原始資料組成各指標、熱度、總分與驗證（docs/lab_heat_plan.md 第 3～5、10 節；規格 heatspec）。
+"""景氣溫度頁：把 data/lab/heat 的原始資料組成各項、0～100、面向總分與驗證
+（docs/lab_heat_plan.md 第 12 節；規格 heatspec VER 3、實作細節第 12.7 節）。
 
 研究（scripts/run_heat.py → data/lab/heat_research.json）和每天建頁共用這一支，同一套算法：
   · 交易日曆與加權指數：證交所 FMTQIK（官方收盤）為主，官方沒有的月份用 Yahoo ^TWII；
-  · 日資料指標先在「來源自己的日期」上算（例如 60 個交易日前），再對齊台灣交易日（美國資料晚一天才用）；
-  · 月資料指標在月序列上算百分位（和過去 120 個月比），到公布日才算拿得到；
-  · 驗證：日資料每天一個樣本；長線每月最後一個交易日一個樣本（區塊長度＝持有期間換算成月數）。
+  · 日資料先在「來源自己的日期」上算（例如 60 個交易日前），再對齊台灣交易日（美國資料晚一天才用）；
+  · 月資料在月序列上算百分位（和過去 120 個月比），到公布日才算拿得到；
+  · 面向總分＝該面向全部項目等權平均（有值的項數 ≥ 2/3；台指 VIX 用美國 VIX 代替的日子不算進去）；
+  · 驗證：全期間等級相關＋信賴區間、前後兩半、五段統計；基本面每月最後一個交易日一個樣本，其他每天一個。
 """
 from __future__ import annotations
 
+import json
 import math
 from datetime import datetime, timezone
 
 from . import heat as H
 from . import heatdata as HD
 from . import heatspec as S
+from . import store
 
 FILES = ["margin", "inst", "futi", "opti", "mtxoi", "pcr", "vixtw", "taiex", "vix", "hyg", "ief", "turnover",
-         "usdtwd", "money", "ndc", "pmi", "orders", "twcpi", "effr", "uscpi", "ust", "breadth"]
-DAILY = [k for k in S.KEYS if S.LINES[S.LINE_OF[k]]["freq"] == "d"]
-MONTHLY = [k for k in S.KEYS if S.LINES[S.LINE_OF[k]]["freq"] == "m"]
+         "usdtwd", "money", "ndc", "exports", "pmi", "orders", "twcpi", "effr", "uscpi", "ust", "breadth"]
+DAILY = [k for k in S.KEYS if S.FREQ_OF[k] == "d"]
+MONTHLY = [k for k in S.KEYS if S.FREQ_OF[k] == "m"]
+BREADTH = ("T5", "T6", "T7")
 MONTH_AVG_MIN = 10          # 日資料取當月平均：當月至少 10 天有值
+FIN = "金融保險"             # B6 不算的產業（月營收含投資損益）
+
+
+def fin_codes() -> set[str]:
+    try:
+        ind = json.loads((store.ROOT / "data" / "stock_industry.json").read_text(encoding="utf-8")).get("industry") or {}
+    except (OSError, ValueError):
+        return set()
+    return {c for c, v in ind.items() if v == FIN}
+
+
+def rev_sums(shards, fin: set[str]) -> dict:
+    """月營收分片 → {年-月: [營收合計, 去年同期合計, 家數]}（千元）。每家公司：營收 > 0、自己公布的年增率有值且 > −100%；
+    去年同期＝營收 ÷（1＋年增率），所以 2012（個體）→ 2013（合併）的口徑改變不會算錯。金融保險不算。"""
+    out = {}
+    for ym, doc in shards:
+        a = b = 0.0
+        n = 0
+        for c, v in ((doc or {}).get("s") or {}).items():
+            if c in fin or not v or len(v) < 2:
+                continue
+            r, y = v[0], v[1]
+            if r is None or y is None or r <= 0 or y <= -100:
+                continue
+            a += r
+            b += r / (1.0 + y / 100.0)
+            n += 1
+        if n:
+            out[ym[:7]] = [a, b, n]
+    return out
 
 
 def load() -> dict:
-    return {n: HD.load(n) for n in FILES}
+    D = {n: HD.load(n) for n in FILES}
+    D["rev"] = rev_sums(store.load("rev"), fin_codes())
+    return D
 
 
 # ── 交易日曆與加權指數 ───────────────────────────────────────────────
@@ -54,6 +91,12 @@ def native(ser: dict, fn) -> dict:
 def rel_ma(xs: list, k: int) -> list:
     m = H.roll_mean(xs, k)
     return [100.0 * (x / a - 1.0) if x is not None and a else None for x, a in zip(xs, m)]
+
+
+def ma_ratio(xs: list, a: int, b: int) -> list:
+    """a 日平均 ÷ b 日平均 − 1（%），兩個平均都要滿天數。"""
+    ma, mb = H.roll_mean(xs, a), H.roll_mean(xs, b)
+    return [100.0 * (x / y - 1.0) if x is not None and y else None for x, y in zip(ma, mb)]
 
 
 def ratio_sum(cal: list[str], a: dict, b: dict, k: int) -> list:
@@ -95,6 +138,19 @@ def yoy(ser: dict, ym: str) -> float | None:
     return 100.0 * (a / b - 1.0) if a is not None and b else None
 
 
+def yoy3(ser: dict) -> dict:
+    """近 3 個月合計 ÷ 去年同期 3 個月合計 − 1（%），6 個月都要有值。"""
+    def s3(ym):
+        xs = [ser.get(ym_add(ym, -j)) for j in range(3)]
+        return sum(xs) if all(x is not None for x in xs) else None
+    out = {}
+    for ym in ser:
+        a, b = s3(ym), s3(ym_add(ym, -12))
+        if a is not None and b:
+            out[ym] = 100.0 * (a / b - 1.0)
+    return out
+
+
 # ── 期貨選擇權（FinMind 法人未平倉） ────────────────────────────────────
 
 FOREIGN = "外資"
@@ -130,69 +186,79 @@ def f3_foreign_opt(opti: dict) -> dict:
     return out
 
 
-# ── 各指標原始值 ─────────────────────────────────────────────────────
-
-US = {"S5", "M7", "M8"}                     # 美國資料：台灣 t 日只能用美國 t 日以前的收盤
-
+# ── 各項原始值 ───────────────────────────────────────────────────────
 
 def native_daily(D: dict, cal: list[str], px: list) -> dict[str, dict]:
-    """各日資料指標在「來源自己的日期」上的值 {指標: {日期: 值}}（買賣超比、加權指數類直接在台灣交易日上算）。"""
+    """各日資料項目在「來源自己的日期」上的值 {項目: {日期: 值}}（買賣超比、加權指數類直接在台灣交易日上算）。"""
     N: dict[str, dict] = {}
     on_cal = lambda xs: {d: v for d, v in zip(cal, xs) if v is not None}   # noqa: E731
-    mg = {d: v[0] for d, v in (D.get("margin") or {}).items() if v and v[0]}
-    N["S1"] = native(mg, lambda v: H.chg(v, 5))
-    N["M4"] = native(mg, lambda v: H.chg(v, 60))
+    mgr = D.get("margin") or {}
+    mg = {d: v[0] for d, v in mgr.items() if v and v[0]}
+    N["C1"] = {d: v / 1e8 for d, v in mg.items()}
+    N["C2"] = native(mg, lambda v: H.chg(v, 20))
+    N["C3"] = {d: 100.0 * v[2] / v[1] for d, v in mgr.items() if v and len(v) > 2 and v[1] and v[2] is not None}
+    futi = D.get("futi") or {}
+    N["C4"] = f2_retail_mtx(futi, D.get("mtxoi") or {})
+    N["C5"] = f1_foreign_fut(futi)
+    N["C6"] = f3_foreign_opt(D.get("opti") or {})
+    pc = {d: v[2] for d, v in (D.get("pcr") or {}).items() if v and v[2] is not None}
+    N["C7"] = native(pc, lambda v: H.roll_mean(v, 5))
     inst = D.get("inst") or {}
-    tot = {d: v["total"] for d, v in inst.items() if v.get("total") is not None}
     fx = {d: sum(x for n, x in v.items() if n.startswith("Foreign")) for d, v in inst.items()
           if any(n.startswith("Foreign") for n in v)}
     to = {d: v[0] for d, v in (D.get("turnover") or {}).items() if v and v[0]}
-    N["S3"] = on_cal(ratio_sum(cal, tot, to, 5))
-    N["M5"] = on_cal(ratio_sum(cal, fx, to, 60))
+    N["L3"] = on_cal(ratio_sum(cal, fx, to, 60))
+    N["L4"] = native(D.get("usdtwd") or {}, lambda v: H.chg(v, 60))
+    N["L5"] = native(to, lambda v: ma_ratio(v, 20, 250))
+    u10 = {d: v[2] for d, v in (D.get("ust") or {}).items() if v and len(v) > 2 and v[2] is not None}
+    N["L7"] = native(u10, lambda v: H.chg(v, 60, pct=False))
+    hy, ie = D.get("hyg") or {}, D.get("ief") or {}
+    rat = {d: hy[d] / ie[d] for d in hy if ie.get(d)}
+    N["L8"] = native(rat, lambda v: H.chg(v, 60))
+    N["T1"] = on_cal(rel_ma(px, 20))
+    N["T2"] = on_cal(rel_ma(px, 60))
+    N["T3"] = on_cal(rel_ma(px, 240))
+    N["T4"] = on_cal(H.rsi(px, 14))
     br = D.get("breadth") or {}
     bk = sorted(br)
     bi = HD.breadth_ind({"cal": bk, **{f: [br[d][j] for d in bk]
                                        for j, f in enumerate(("adv", "dec", "above", "n60", "hi", "lo", "n250"))}})
-    for k in ("S2", "M2", "M3"):
+    for k in BREADTH:
         N[k] = bi[k]
-    N["S4"] = on_cal(H.roll_std_ret(px, 20))
-    N["S6"] = on_cal(rel_ma(px, 20))
-    N["M1"] = on_cal(rel_ma(px, 120))
-    vix = D.get("vix") or {}
-    N["S5"] = native(vix, lambda v: rel_ma(v, 50))
-    N["M8"] = dict(vix)
-    pc = {d: v[2] for d, v in (D.get("pcr") or {}).items() if v and v[2] is not None}
-    N["S7"] = native(pc, lambda v: H.roll_mean(v, 5))
-    N["F1"] = f1_foreign_fut(D.get("futi") or {})
-    N["F2"] = f2_retail_mtx(D.get("futi") or {}, D.get("mtxoi") or {})
-    N["F3"] = f3_foreign_opt(D.get("opti") or {})
-    N["F4"] = dict(D.get("vixtw") or {})
-    N["M6"] = native(D.get("usdtwd") or {}, lambda v: H.chg(v, 60))
-    hy, ie = D.get("hyg") or {}, D.get("ief") or {}
-    rat = {d: hy[d] / ie[d] for d in hy if ie.get(d)}
-    N["M7"] = native(rat, lambda v: H.chg(v, 60))
+    N["T8"] = on_cal(H.roll_std_ret(px, 20))
+    N["T9"] = dict(D.get("vix") or {})
+    N["T10"] = dict(D.get("vixtw") or {})
     return N
 
 
 def raw_daily(D: dict, cal: list[str], px: list, N: dict | None = None) -> dict[str, list]:
     """對齊台灣交易日：沿用最近一筆（超過 7 個日曆天算缺；廣度 4 天）；美國資料晚一天才用。"""
     N = N if N is not None else native_daily(D, cal, px)
-    return {k: H.asof_daily(cal, N[k], after=k in US, stale=4 if k in ("S2", "M2", "M3") else 7) for k in N}
+    return {k: H.asof_daily(cal, N[k], after=k in S.US, stale=4 if k in BREADTH else 7) for k in N}
 
 
 def raw_monthly(D: dict) -> dict[str, dict]:
     M: dict[str, dict] = {}
     ndc = D.get("ndc") or {}
-    M["L1"] = {ym: v[6] for ym, v in ndc.items() if v[6] is not None}
-    M["L2"] = {ym: v[1] - ndc[ym_add(ym, -6)][1] for ym, v in ndc.items()
+    M["B1"] = {ym: v[6] for ym, v in ndc.items() if v[6] is not None}
+    M["B2"] = {ym: v[1] - ndc[ym_add(ym, -6)][1] for ym, v in ndc.items()
                if v[1] is not None and (ndc.get(ym_add(ym, -6)) or [None, None])[1] is not None}
-    M["L3"] = dict(D.get("pmi") or {})
-    od = D.get("orders") or {}
-
-    def s3(ym):
-        xs = [od.get(ym_add(ym, -j)) for j in range(3)]
-        return sum(xs) if all(x is not None for x in xs) else None
-    M["L4"] = {ym: 100.0 * (s3(ym) / s3(ym_add(ym, -12)) - 1.0) for ym in od if s3(ym) and s3(ym_add(ym, -12))}
+    M["B3"] = dict(D.get("pmi") or {})
+    M["B4"] = yoy3(D.get("orders") or {})
+    M["B5"] = yoy3(D.get("exports") or {})
+    rv = D.get("rev") or {}
+    b6 = {}
+    for ym in rv:
+        ms = [rv.get(ym_add(ym, -j)) for j in range(3)]
+        if all(ms) and sum(m[1] for m in ms):
+            b6[ym] = 100.0 * (sum(m[0] for m in ms) / sum(m[1] for m in ms) - 1.0)
+    M["B6"] = b6
+    tc = D.get("twcpi") or {}
+    idx = {k: v[0] for k, v in tc.items() if v[0]}
+    M["B7"] = {ym: (v[1] if v[1] is not None else yoy(idx, ym)) for ym, v in tc.items()
+               if v[1] is not None or yoy(idx, ym) is not None}
+    cpi = D.get("uscpi") or {}
+    M["B8"] = {ym: yoy(cpi, ym) for ym in cpi if yoy(cpi, ym) is not None}
     mo = D.get("money") or {}
 
     def myoy(ym, j):                       # 央行公布的年增率；沒有（最早 12 個月）就自己算
@@ -200,25 +266,19 @@ def raw_monthly(D: dict) -> dict[str, dict]:
         if v and v[j + 1] is not None:
             return v[j + 1]
         return yoy({k: x[j] for k, x in mo.items() if x[j]}, ym)
-    M["L5"] = {ym: myoy(ym, 0) - myoy(ym, 2) for ym in mo if myoy(ym, 0) is not None and myoy(ym, 2) is not None}
-    tc = D.get("twcpi") or {}
-    idx = {k: v[0] for k, v in tc.items() if v[0]}
-    M["L6"] = {ym: (v[1] if v[1] is not None else yoy(idx, ym)) for ym, v in tc.items()
-               if v[1] is not None or yoy(idx, ym) is not None}
+    M["L1"] = {ym: myoy(ym, 0) - myoy(ym, 2) for ym in mo if myoy(ym, 0) is not None and myoy(ym, 2) is not None}
+    M["L2"] = {ym: myoy(ym, 0) for ym in mo if myoy(ym, 0) is not None}
     ff = month_avg(D.get("effr") or {})
-    M["L7"] = {ym: v - ff[ym_add(ym, -12)] for ym, v in ff.items() if ym_add(ym, -12) in ff}
-    cpi = D.get("uscpi") or {}
-    M["L8"] = {ym: yoy(cpi, ym) for ym in cpi if yoy(cpi, ym) is not None}
-    sp = {d: v[2] - v[1] for d, v in (D.get("ust") or {}).items() if v and v[1] is not None and v[2] is not None}
-    M["L9"] = month_avg(sp)
+    M["L6"] = {ym: v - ff[ym_add(ym, -12)] for ym, v in ff.items() if ym_add(ym, -12) in ff}
     return M
 
 
-# ── 熱度 ─────────────────────────────────────────────────────────────
+# ── 0～100 與面向總分 ─────────────────────────────────────────────────
 
 def build(D: dict | None = None) -> dict:
-    """→ {"cal", "px", "cal_info", "raw": {k: 逐日值}, "heat": {k: 逐日 0～100}, "ym": {k: 逐日用到的月份},
-    "mraw": {k: 月序列}, "nat": {k: 來源日期上的值}}"""
+    """→ {"cal", "px", "cal_info", "raw": {k: 逐日值}, "heat": {k: 逐日 0～100（頁面顯示，含代替）},
+    "hc": {k: 逐日 0～100（算進總分的）}, "proxy": {k: 逐日是否用代替}, "ym": {k: 逐日用到的月份},
+    "mraw": {k: 月序列}, "nat": {k: 來源日期上的值}, "comp": {面向: 逐日總分}, "vixcorr": {...}}"""
     D = D if D is not None else load()
     cal, px, info = calendar(D)
     N = native_daily(D, cal, px)
@@ -233,24 +293,29 @@ def build(D: dict | None = None) -> dict:
         heat[k] = H.asof_monthly(cal, hm, S.RELEASE[k])
         raw[k] = H.asof_monthly(cal, M[k], S.RELEASE[k])
         ymu[k] = H.asof_monthly(cal, {ym: ym for ym in M[k]}, S.RELEASE[k])
-    return {"cal": cal, "px": px, "cal_info": info, "raw": raw, "heat": heat, "ym": ymu, "mraw": M, "nat": N, "D": D}
+    hc = dict(heat)
+    proxy: dict[str, list] = {}
+    for k, src in S.PROXY.items():
+        own = heat[k]
+        proxy[k] = [own[i] is None and raw[k][i] is not None and heat[src][i] is not None for i in range(len(cal))]
+        heat[k] = [heat[src][i] if proxy[k][i] else own[i] for i in range(len(cal))]
+        hc[k] = own
+    comp = {d: [H.composite({k: hc[k][i] for k in S.ITEMS[d]}, S.ITEMS[d]) for i in range(len(cal))] for d in S.DIMS}
+    pairs = [(raw["T10"][i], raw["T9"][i]) for i in range(len(cal))
+             if raw["T10"][i] is not None and raw["T9"][i] is not None]
+    vc = {"n": len(pairs), "r": H._pearson([a for a, _ in pairs], [b for _, b in pairs]) if len(pairs) >= 3 else None,
+          "a": next((cal[i] for i in range(len(cal)) if raw["T10"][i] is not None), None)}
+    return {"cal": cal, "px": px, "cal_info": info, "raw": raw, "heat": heat, "hc": hc, "proxy": proxy, "ym": ymu,
+            "mraw": M, "nat": N, "comp": comp, "vixcorr": vc, "D": D}
 
 
-def composite_series(heat: dict, inc: list[str], n: int) -> list:
-    return [H.composite({k: heat[k][i] for k in inc}, inc) for i in range(n)]
+# ── 驗證（第 12.7 節） ─────────────────────────────────────────────────
 
-
-# ── 驗證（第 5 節） ───────────────────────────────────────────────────
-
-def sample_idx(cal: list[str], line: str) -> list[int]:
-    """日資料：每個交易日；長線（月）：每月最後一個交易日。"""
-    if S.LINES[line]["freq"] != "m":
+def sample_idx(cal: list[str], freq: str) -> list[int]:
+    """每天一個；m＝每月最後一個交易日一個。"""
+    if freq != "m":
         return list(range(len(cal)))
     return [i for i in range(len(cal)) if i == len(cal) - 1 or cal[i + 1][:7] != cal[i][:7]]
-
-
-def split_key(line: str) -> str:
-    return "fo" if line == "fo" else S.LINES[line]["freq"]
 
 
 def _in(d: str, rng: tuple) -> bool:
@@ -262,60 +327,56 @@ def _r(x, k=3):
     return None if x is None else round(x, k)
 
 
-def evaluate(x: list, px: list, cal: list[str], line: str) -> dict:
-    """x＝逐日熱度（某指標或總分）→ {持有天數: {"is", "oos": {n, rho, lo, hi, a, z, bands}, "verdict", "dir"}}。
-    判定與方向用沒有四捨五入的數字；輸出才取位數。"""
-    L = S.LINES[line]
-    sp = S.SPLIT[split_key(line)]
-    min_is, min_oos = S.MIN_SAMPLE[split_key(line)]
-    idx = sample_idx(cal, line)
+def evaluate(x: list, px: list, cal: list[str], dim: str) -> dict:
+    """x＝逐日 0～100（某項或面向總分）→ {持有天數: {n, rho, lo, hi, a, z, h1, h2, verdict, bands, ref, block}}。
+    判定用沒有四捨五入的數字；輸出才取位數。"""
+    L = S.DIMS[dim]
+    freq = L["freq"]
+    idx = sample_idx(cal, freq)
     out = {}
     for h in L["fwd"]:
-        block = h if L["freq"] == "d" else max(1, round(h / 21))
-        rows: dict[str, list] = {"is": [], "oos": []}
+        block = h if freq == "d" else max(1, round(h / 21))
+        rows = []
         for i in idx:
             if x[i] is None:
                 continue
             r, dd = H.fwd(px, i, h)
-            if r is None:
-                continue
-            for part in ("is", "oos"):
-                if _in(cal[i], sp[part]):
-                    rows[part].append((x[i], r, dd, cal[i]))
-        res: dict = {}
-        raw: dict = {}
-        for part, rr in rows.items():
-            xs, ys, ds = [a for a, *_ in rr], [b for _, b, *_ in rr], [c for _, _, c, _ in rr]
-            rho, lo, hi = H.spearman_ci(xs, ys, block)
-            raw[part] = (rho, lo, hi, len(rr))
-            res[part] = {"n": len(rr), "rho": _r(rho), "lo": _r(lo), "hi": _r(hi),
-                         "a": rr[0][3] if rr else None, "z": rr[-1][3] if rr else None,
-                         "bands": H.bands(xs, ys, ds)}
-        (ir, il, ih, inn), (orh, _, _, onn) = raw["is"], raw["oos"]
-        res["verdict"] = H.verdict(ir, il, ih, orh, inn, onn, min_is, min_oos)
-        res["dir"] = H.is_dir(il, ih) if inn >= min_is else 0
-        res["block"] = block
-        out[h] = res
+            if r is not None:
+                rows.append((cal[i], x[i], r, dd))
+        xs, ys, ds = [b for _, b, _, _ in rows], [c for _, _, c, _ in rows], [d for *_, d in rows]
+        rho, lo, hi = H.spearman_ci(xs, ys, block)
+        m = len(rows) // 2
+        r1 = H.spearman(xs[:m], ys[:m])
+        r2 = H.spearman(xs[m:], ys[m:])
+        ref = []
+        for rng in S.SPLIT_REF[freq]:
+            sub = [(b, c) for d, b, c, _ in rows if _in(d, rng)]
+            ref.append({"n": len(sub), "rho": _r(H.spearman([a for a, _ in sub], [b for _, b in sub]))})
+        out[h] = {"n": len(rows), "rho": _r(rho), "lo": _r(lo), "hi": _r(hi),
+                  "a": rows[0][0] if rows else None, "z": rows[-1][0] if rows else None,
+                  "h1": {"n": m, "rho": _r(r1), "z": rows[m - 1][0] if m else None},
+                  "h2": {"n": len(rows) - m, "rho": _r(r2), "a": rows[m][0] if len(rows) > m else None},
+                  "verdict": H.verdict(rho, lo, hi, r1, r2, len(rows), S.MIN_N[freq]),
+                  "bands": H.bands(xs, ys, ds), "ref": ref, "block": block}
     return out
 
 
 def research(B: dict | None = None) -> dict:
-    """全部指標與各線總分的驗證＋納入規則（第 4 節第 3 點，只看樣本內、主要持有期間）。"""
+    """每一項、每個面向總分的驗證（只當資訊，不拿來刪項目）。"""
     B = B if B is not None else build()
-    cal, px, heat = B["cal"], B["px"], B["heat"]
+    cal, px, comp = B["cal"], B["px"], B["comp"]
     D = B["D"]
-    lines = {}
-    for ln, L in S.LINES.items():
-        keys = [k for k in S.KEYS if S.LINE_OF[k] == ln]
-        items = {k: evaluate(heat[k], px, cal, ln) for k in keys}
-        first = {k: next((cal[i] for i, v in enumerate(heat[k]) if v is not None), None) for k in keys}
-        dirs = {k: items[k][L["main"]]["dir"] for k in keys}
-        d, inc = H.select(dirs)
-        comp = evaluate(composite_series(heat, inc, len(cal)), px, cal, ln) if inc else None
-        lines[ln] = {"dir": d, "inc": inc, "items": items, "first": first, "comp": comp}
+    dims = {}
+    for dim in S.DIMS:
+        keys = S.ITEMS[dim]
+        # 台指 VIX 只驗它自己的 0～100（代替的日子就是美國 VIX，不重複驗）
+        items = {k: evaluate(B["hc"][k], px, cal, dim) for k in keys}
+        first = {k: next((cal[i] for i, v in enumerate(B["hc"][k]) if v is not None), None) for k in keys}
+        cf = next((cal[i] for i, v in enumerate(comp[dim]) if v is not None), None)
+        dims[dim] = {"items": items, "first": first, "comp": evaluate(comp[dim], px, cal, dim), "comp_first": cf}
     data = {}
-    for n in FILES:
+    for n in FILES + ["rev"]:
         ks = sorted(D.get(n) or {})
         data[n] = [len(ks), ks[0] if ks else None, ks[-1] if ks else None]
     return {"ver": S.VER, "spec_date": S.SPEC_DATE, "run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "cal": B["cal_info"], "data": data, "lines": lines}
+            "cal": B["cal_info"], "data": data, "dims": dims}

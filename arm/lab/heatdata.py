@@ -3,7 +3,7 @@
 存檔：data/lab/heat/{名稱}.json.gz，{"src": 來源, "d": {日期或 YYYY-MM: 值}}（store.write，內容沒變不改寫）。
 抓取只在 CI（本容器的 proxy 擋這些站）；這支檔先放「用 repo 既有資料就能算」的部分：
 
-廣度（S2、M2、M3）：每檔日線用 bt3d.Panel（2013 起、含已下市、含息還原），範圍＝當天最近一個月底市值 ≥ 40 億
+廣度（第三版 T5、T6、T7）：每檔日線用 bt3d.Panel（2013 起、含已下市、含息還原），範圍＝當天最近一個月底市值 ≥ 40 億
 （月底快照，事前看得到的名單；不用「現在夠大」挑股票，免得把日後長大的股票放進過去的名單）。
 """
 from __future__ import annotations
@@ -85,21 +85,21 @@ def breadth(P, cap_min: float = CAP_MIN) -> dict[str, list]:
 
 
 def breadth_ind(b: dict) -> dict[str, dict]:
-    """廣度 → 三個指標的原始值 {指標: {日期: 值（%）}}：S2 上漲家數占比（10 日）、M2 站上 60 日線比例、M3 新高減新低（20 日平均）。"""
+    """廣度 → 三個指標的原始值 {指標: {日期: 值（%）}}：T5 上漲家數占比（10 日）、T6 站上 60 日線比例、T7 新高減新低（20 日平均）。"""
     cal, adv, dec = b["cal"], b["adv"], b["dec"]
-    out: dict[str, dict] = {"S2": {}, "M2": {}, "M3": {}}
+    out: dict[str, dict] = {"T5": {}, "T6": {}, "T7": {}}
     for i, d in enumerate(cal):
         if i >= 9:
             a = sum(adv[i - 9:i + 1])
             z = a + sum(dec[i - 9:i + 1])
             if z >= 100:
-                out["S2"][d] = round(100.0 * a / z, 3)
+                out["T5"][d] = round(100.0 * a / z, 3)
         if b["n60"][i] >= 100:
-            out["M2"][d] = round(100.0 * b["above"][i] / b["n60"][i], 3)
+            out["T6"][d] = round(100.0 * b["above"][i] / b["n60"][i], 3)
         if i >= 19:
             xs = [(b["hi"][k] - b["lo"][k]) / b["n250"][k] for k in range(i - 19, i + 1) if b["n250"][k] >= 100]
             if len(xs) == 20:
-                out["M3"][d] = round(100.0 * sum(xs) / 20, 3)
+                out["T7"][d] = round(100.0 * sum(xs) / 20, 3)
     return out
 
 

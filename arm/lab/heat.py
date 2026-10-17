@@ -1,10 +1,10 @@
-"""景氣溫度頁的計算核心（docs/lab_heat_plan.md 第 4、5 節；規格在 heatspec.py）。
+"""景氣溫度頁的計算核心（docs/lab_heat_plan.md 第 4、12 節；規格在 heatspec.py）。
 
 純函式、不碰網路：
   · 百分位：今天的值在「今天以前」的視窗裡的位置（同值算一半），只用過去的資料。
   · 熱度：依熱的方向轉成 0～100。
-  · 總分與細項影響：算進總分的指標等權平均；每項影響＝（熱度 − 50）÷ 有值的項數，加起來＋50＝總分。
-  · 驗證：之後漲跌（t＋1 收盤起算）、期間最大跌幅、五段統計、等級相關＋移動區塊重抽信賴區間、判定、納入規則。
+  · 面向總分與細項影響：該面向的項目等權平均；每項影響＝（熱度 − 50）÷ 有值的項數，加起來＋50＝總分。
+  · 驗證：之後漲跌（t＋1 收盤起算）、期間最大跌幅、五段統計、等級相關＋移動區塊重抽信賴區間、前後兩半、判定。
 """
 from __future__ import annotations
 
@@ -170,41 +170,24 @@ def bands(scores: list, rets: list, dds: list) -> list[dict]:
     return out
 
 
-def verdict(is_rho: float | None, is_lo: float | None, is_hi: float | None, oos_rho: float | None,
-            n_is: int, n_oos: int, min_is: int, min_oos: int) -> str:
-    """判定（第 5 節）：weak＝熱了之後較弱、strong＝較強、flip＝方向不穩、none＝看不出關係、few＝樣本不足。"""
-    if n_is < min_is or n_oos < min_oos or is_rho is None or is_lo is None or is_hi is None:
+def spearman(x: list, y: list) -> float | None:
+    """等級相關（不算信賴區間；前後兩半用）。"""
+    if len(x) < 3:
+        return None
+    return _pearson(_rank(x), _rank(y))
+
+
+def verdict(rho: float | None, lo: float | None, hi: float | None, r1: float | None, r2: float | None,
+            n: int, min_n: int) -> str:
+    """判定（規劃文件第 12.7 節）：few＝樣本不足；weak＝全期間信賴區間上緣 < 0 而且前後兩半的相關都 < 0；
+    strong＝下緣 > 0 而且兩半都 > 0；其他 none＝看不出穩定關係。"""
+    if n < min_n or None in (rho, lo, hi, r1, r2):
         return "few"
-    if is_hi < 0:
-        return "weak" if (oos_rho is not None and oos_rho < 0) else "flip"
-    if is_lo > 0:
-        return "strong" if (oos_rho is not None and oos_rho > 0) else "flip"
+    if hi < 0 and r1 < 0 and r2 < 0:
+        return "weak"
+    if lo > 0 and r1 > 0 and r2 > 0:
+        return "strong"
     return "none"
-
-
-def is_dir(is_lo: float | None, is_hi: float | None) -> int:
-    """樣本內有沒有關係、方向（−1＝熱了之後較弱、＋1＝較強、0＝看不出或樣本不足）。"""
-    if is_lo is None or is_hi is None:
-        return 0
-    if is_hi < 0:
-        return -1
-    if is_lo > 0:
-        return 1
-    return 0
-
-
-def select(dirs: dict[str, int]) -> tuple[int, list[str]]:
-    """納入總分（第 4 節第 3 點，只看樣本內）：有關係的指標以多數方向為準（一樣多取「熱了之後較弱」），同方向的才算。
-    → (該線方向, 算進去的指標)。一個都沒有 → (0, [])。"""
-    pos = sorted(k for k, d in dirs.items() if d > 0)
-    neg = sorted(k for k, d in dirs.items() if d < 0)
-    if not pos and not neg:
-        return 0, []
-    if len(pos) > len(neg):
-        return 1, pos
-    if len(neg) > len(pos):
-        return -1, neg
-    return S.TIE_DIR, (neg if S.TIE_DIR < 0 else pos)
 
 
 # ── 日期對齊（第 4 節第 7 點） ─────────────────────────────────────────
@@ -276,6 +259,30 @@ def roll_mean(xs: list, k: int, min_n: int | None = None) -> list:
         w = [v for v in xs[i - k + 1:i + 1] if v is not None]
         if len(w) >= min_n:
             out[i] = sum(w) / len(w)
+    return out
+
+
+def rsi(px: list, k: int = 14) -> list:
+    """Wilder RSI：第一個值用前 k 天漲跌的簡單平均，之後「前值 ×（k − 1）＋今天」÷ k；平均跌＝0 時 100。
+    某天或前一天沒有價格 → 那天 None、平均不更新。"""
+    out: list = [None] * len(px)
+    ag = al = None
+    first: list = []
+    for i in range(1, len(px)):
+        if px[i] is None or px[i - 1] is None:
+            continue
+        d = px[i] - px[i - 1]
+        g, l_ = max(d, 0.0), max(-d, 0.0)
+        if ag is None:
+            first.append((g, l_))
+            if len(first) < k:
+                continue
+            ag = sum(a for a, _ in first) / k
+            al = sum(b for _, b in first) / k
+        else:
+            ag = (ag * (k - 1) + g) / k
+            al = (al * (k - 1) + l_) / k
+        out[i] = 100.0 if al == 0 else 100.0 - 100.0 / (1.0 + ag / al)
     return out
 
 

@@ -1,4 +1,4 @@
-"""景氣溫度頁 x9m.html（arm/lab/heatpage.py）：用合成資料跑完整條管線（heatcalc → view → render）。"""
+"""景氣溫度頁 x9m.html（arm/lab/heatpage.py；第三版四個面向）：用合成資料跑完整條管線（heatcalc → view → render）。"""
 import random
 from datetime import date, timedelta
 
@@ -25,8 +25,8 @@ def _days(a: date, n: int):
 def synthetic_D(n=1300, seed=5):
     rnd = random.Random(seed)
     cal = _days(date(2021, 6, 1), n)
-    D = {k: {} for k in C.FILES}
-    p, mg, fx, h, i_, v = 15000.0, 2.5e11, 28.0, 80.0, 100.0, 18.0
+    D = {k: {} for k in C.FILES + ["rev"]}
+    p, mg, fx, h, i_, v, u10 = 15000.0, 2.5e11, 28.0, 80.0, 100.0, 18.0, 4.0
     for d in cal:
         p *= 1 + rnd.gauss(0.0004, 0.011)
         mg *= 1 + rnd.gauss(0, 0.004)
@@ -34,12 +34,14 @@ def synthetic_D(n=1300, seed=5):
         h *= 1 + rnd.gauss(0.0001, 0.004)
         i_ *= 1 + rnd.gauss(0, 0.003)
         v = max(9.0, v * (1 + rnd.gauss(0, 0.05)))
+        u10 = max(0.5, u10 + rnd.gauss(0, 0.05))
         D["turnover"][d] = [3e11 * (1 + rnd.random()), round(p, 2)]
-        D["margin"][d] = [mg, 1, 1]
+        D["margin"][d] = [mg, 4e6 * (1 + rnd.random() / 10), 1e5 * (1 + rnd.random())]
         D["inst"][d] = {"total": rnd.gauss(0, 1e10), "Foreign_Investor": rnd.gauss(0, 8e9)}
         D["pcr"][d] = [1, 1, 80 + rnd.gauss(0, 15), 1, 1, 1]
         D["vix"][d] = v
         D["hyg"][d], D["ief"][d], D["usdtwd"][d] = h, i_, fx
+        D["ust"][d] = [4.0, 4.2, u10]
         D["breadth"][d] = [rnd.randint(200, 800), rnd.randint(200, 800), rnd.randint(300, 900), 1000, rnd.randint(0, 60),
                            rnd.randint(0, 60), 1000]
         D["futi"][d] = {"TX": {"外資": [rnd.randint(5000, 30000), rnd.randint(5000, 60000)]},
@@ -47,70 +49,77 @@ def synthetic_D(n=1300, seed=5):
         D["mtxoi"][d] = 40000 + rnd.randint(-5000, 5000)
         D["opti"][d] = {"買權": {"外資": [rnd.randint(1, 9) * 1e5, rnd.randint(1, 9) * 1e5]},
                         "賣權": {"外資": [rnd.randint(1, 9) * 1e5, rnd.randint(1, 9) * 1e5]}}
-        D["effr"][d] = 2.0 + rnd.random()
-        D["ust"][d] = [4.0, 4.2 + rnd.random() / 5, 4.4 + rnd.random() / 5]
     for d in cal[-60:]:
         D["vixtw"][d] = 20 + rnd.random()
     for k in range(400):
         ym = C.ym_add("1993-01", k)
         D["ndc"][ym] = [100.0, 100 + rnd.gauss(0, 2), 100.0, 100.0, 100.0, 100.0, float(rnd.randint(12, 40)), "綠"]
         D["orders"][ym] = 1000 + 10 * k + rnd.gauss(0, 50)
+        D["exports"][ym] = 800 + 8 * k + rnd.gauss(0, 40)
         D["money"][ym] = [1e6, rnd.gauss(5, 3), 2e6, rnd.gauss(5, 1)]
         D["twcpi"][ym] = [100.0, rnd.gauss(1.5, 1)]
         D["uscpi"][ym] = 150 * (1.002 ** k) * (1 + rnd.gauss(0, 0.002))
         if k > 230:
             D["pmi"][ym] = 50 + rnd.gauss(0, 4)
-    for k in range(400):                                    # 長線的利率、利差要有 10 年以上
-        ym = C.ym_add("1993-01", k)
-        for dd in (5, 12, 19, 26, 27, 28, 29, 30, 2, 3, 4):
-            D["effr"].setdefault(f"{ym}-{dd:02d}", 3.0 + (k % 40) / 20)
-            D["ust"].setdefault(f"{ym}-{dd:02d}", [4.0, 4.0 + (k % 30) / 30, 4.5])
+        if ym >= "2012-01":
+            a = 1e9 * (1 + rnd.random())
+            D["rev"][ym] = [a, a / (1 + rnd.gauss(0.08, 0.1)), 1500]
+    for d in _days(date(1993, 1, 4), 8600):                  # 聯邦基金利率：每天一筆，取當月平均
+        D["effr"][d] = 3.0 + (int(d[:4]) * 12 + int(d[5:7])) % 40 / 20
     return D
+
+
+def research_stub(B):
+    R = {"ver": S.VER, "dims": {}, "data": {"margin": [10, "2021-06-01", "2026-07-01"]}}
+    bands = [{"band": b, "n": 100, "avg": 0.5, "med": 0.4, "up": 55.0, "dd": -2.0}
+             for b in ("過冷", "偏冷", "中性", "偏熱", "過熱", "全部")]
+
+    def ev():
+        return {"n": 1200, "rho": -0.1, "lo": -0.2, "hi": -0.01, "a": "2014-01-02", "z": "2026-01-02",
+                "h1": {"n": 600, "rho": -0.12, "z": "2019-06-28"}, "h2": {"n": 600, "rho": -0.05, "a": "2019-07-01"},
+                "verdict": "weak", "bands": bands, "ref": [{"n": 500, "rho": -0.1}, {"n": 600, "rho": 0.02}], "block": 10}
+    for dim, L in S.DIMS.items():
+        R["dims"][dim] = {"items": {k: {str(h): ev() for h in L["fwd"]} for k in S.ITEMS[dim]},
+                          "first": {k: B["cal"][0] for k in S.ITEMS[dim]},
+                          "comp": {str(h): ev() for h in L["fwd"]}, "comp_first": B["cal"][0]}
+    return R
 
 
 @pytest.fixture(scope="module")
 def built():
     B = C.build(synthetic_D())
-    R = {"lines": {}, "data": {"margin": [10, "2021-06-01", "2026-07-01"]}}
-    for ln, L in S.LINES.items():
-        keys = [k for k in S.KEYS if S.LINE_OF[k] == ln]
-        inc = keys[:3] if ln != "fo" else []
-        R["lines"][ln] = {"dir": -1, "inc": inc, "first": {k: B["cal"][0] for k in keys},
-                          "items": {k: {str(h): {"verdict": "weak" if k in inc else "none", "dir": -1 if k in inc else 0,
-                                                 "is": {"n": 900, "rho": -0.1, "lo": -0.2, "hi": -0.01, "a": "2014-01-02",
-                                                        "bands": []},
-                                                 "oos": {"n": 600, "rho": -0.05, "lo": -0.15, "hi": 0.05, "a": "2020-01-02",
-                                                         "bands": []}} for h in L["fwd"]} for k in keys},
-                          "comp": {str(h): {"verdict": "weak", "dir": -1, "is": {"n": 900, "bands": []},
-                                            "oos": {"n": 600, "a": "2020-01-02",
-                                                    "bands": [{"band": b, "n": 100, "avg": 0.5, "med": 0.4, "up": 55.0, "dd": -2.0}
-                                                              for b in ("過冷", "偏冷", "中性", "偏熱", "過熱", "全部")]}}
-                                   for h in L["fwd"]} if inc else None}
+    R = research_stub(B)
     V = P.view(B, R)
     return B, R, V, P.render(V)
 
 
 def test_each_item_has_own_heat_and_pulls_sum_to_score(built):
-    B, R, V, _ = built
-    for ln in ("short", "mid", "long"):
-        L = V["lines"][ln]
-        assert L["score"] is not None and L["inc"]
-        pulls = [it["pull"] for it in L["items"] if it["inc"] and it["pull"] is not None]
-        assert abs(50 + sum(pulls) - L["score"]) < 1e-9                   # 拉動加起來＋50＝總分
-        shares = [it["share"] for it in L["items"] if it["inc"] and it["share"] is not None]
+    _, _, V, _ = built
+    assert list(V["dims"]) == ["fund", "chip", "liq", "tech"]
+    for dim, L in V["dims"].items():
+        assert L["score"] is not None, dim
+        pulls = [it["pull"] for it in L["items"] if it["pull"] is not None]
+        assert len(pulls) == L["n_have"] >= H.need(len(S.ITEMS[dim]))
+        assert abs(50 + sum(pulls) - L["score"]) < 1e-9                   # 拉動加起來＋50＝分數
+        shares = [it["share"] for it in L["items"] if it["share"] is not None]
         assert abs(sum(shares) - 100) < 1e-6
         for it in L["items"]:
             assert it["heat"] is None or 0 <= it["heat"] <= 100            # 每一項都有自己的 0～100
-            assert it["inc"] or it["why"]                                   # 沒算進的寫原因
-    assert V["lines"]["fo"]["score"] is None                               # 沒有指標通過 → 不給總分
+            assert it["pull"] is not None or it["proxy"] or it["why"]       # 沒算進分數的寫原因
+    t10 = next(it for it in V["dims"]["tech"]["items"] if it["k"] == "T10")
+    t9 = next(it for it in V["dims"]["tech"]["items"] if it["k"] == "T9")
+    assert t10["proxy"] and t10["pull"] is None and t10["heat"] == t9["heat"]   # 台指 VIX 用美國 VIX 代替、不算進分數
 
 
 def test_render_structure_and_wording(built):
     _, _, V, page = built
-    for sec in ('id="c-short"', 'id="c-mid"', 'id="c-long"', 'id="c-fo"', 'id="trend"', 'id="detail"', 'id="valid"', 'id="src"'):
+    for sec in ('id="c-fund"', 'id="c-chip"', 'id="c-liq"', 'id="c-tech"', 'id="trend"', 'id="detail"', 'id="valid"',
+                'id="src"'):
         assert sec in page
-    assert page.count('class="it"') >= 9 and "拉動總分" in page and "佔比" in page and "本週" in page
-    assert "沒算進總分" in page and "不給總分" in page
+    assert page.count('class="tile"') == 4 and S.HORIZON_NOTE in page
+    assert page.count('class="it"') >= 25 and "拉動分數" in page and "佔比" in page and "本週" in page
+    assert "用美國 VIX 的排名代替，不算進分數" in page and "前一半" in page and "後一半" in page
+    assert "熱＝散戶擁擠、槓桿高、外資站在對面" in page
     assert 'href="x9.html"' in page and "<script" not in page                 # 純靜態頁
     for w in BANNED:
         assert w not in page, w
@@ -119,17 +128,22 @@ def test_render_structure_and_wording(built):
 
 def test_week_change_and_source_dates(built):
     B, _, V, _ = built
-    L = V["lines"]["short"]
     t, t0 = len(B["cal"]) - 1, len(B["cal"]) - 1 - P.WEEK
-    k = L["inc"][0]
-    hn = {x: B["heat"][x][t] for x in L["inc"]}
-    ha = {x: B["heat"][x][t0] for x in L["inc"]}
-    it = next(i for i in L["items"] if i["k"] == k)
-    assert abs(it["dpull"] - (H.contrib(hn, L["inc"])[k]["pull"] - H.contrib(ha, L["inc"])[k]["pull"])) < 1e-9
-    s5 = next(i for i in L["items"] if i["k"] == "S5")
-    assert s5["src"] < B["cal"][t]                                            # 美國資料晚一天才用
-    l1 = next(i for i in V["lines"]["long"]["items"] if i["k"] == "L1")
-    assert len(l1["src"]) == 7                                                # 月資料標月份
+    keys = S.ITEMS["chip"]
+    hn = {x: B["hc"][x][t] for x in keys}
+    ha = {x: B["hc"][x][t0] for x in keys}
+    it = next(i for i in V["dims"]["chip"]["items"] if i["k"] == "C1")
+    assert abs(it["dpull"] - (H.contrib(hn, keys)["C1"]["pull"] - H.contrib(ha, keys)["C1"]["pull"])) < 1e-9
+    t9 = next(i for i in V["dims"]["tech"]["items"] if i["k"] == "T9")
+    assert t9["src"] < B["cal"][t]                                            # 美國資料晚一天才用
+    b1 = next(i for i in V["dims"]["fund"]["items"] if i["k"] == "B1")
+    assert len(b1["src"]) == 7                                                # 月資料標月份
+
+
+def test_old_research_file_is_ignored(built):
+    B, _, _, _ = built
+    V = P.view(B, {"ver": 2, "lines": {}})
+    assert V["R"] == {} and "驗證結果還沒產生" in P.render(V)
 
 
 def test_entry_link_and_workflow_add_lines():
