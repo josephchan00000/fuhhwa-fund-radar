@@ -98,12 +98,6 @@ jobs:
             python3 scripts/backfill_lab.py --rev-mops --budget-min 45
           elif [ "$MODE" = "revfm" ] || [ "${MODE#revfm}" != "$MODE" ]; then
             python3 scripts/backfill_lab.py --rev-fm --budget-min 50
-          elif [ "$MODE" = "probeheat" ]; then
-            timeout 1500 python3 scripts/probe_heat.py
-          elif [ "$MODE" = "probeheat2" ]; then
-            timeout 1500 python3 scripts/probe_heat2.py
-          elif [ "$MODE" = "probeheat3" ]; then
-            timeout 1500 python3 scripts/probe_heat3.py
           elif [ "$MODE" = "heatfill" ] || [ "${MODE#heatfill}" != "$MODE" ]; then
             timeout 3000 python3 scripts/fetch_heat.py --backfill --budget-min 45
           else
