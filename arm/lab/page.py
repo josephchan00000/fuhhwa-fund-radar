@@ -50,11 +50,6 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         print(f"[籌碼雷達] 公司分析檔 {st.get('n')} 檔、改寫 {st.get('write')} 檔" + (f"（{st['err']}）" if st.get("err") else ""))
     except Exception as e:                   # noqa: BLE001 —— 公司分析失敗不影響建頁
         print(f"[籌碼雷達] ⚠ 公司分析檔沒有更新：{type(e).__name__}: {e}")
-    try:                                     # 景氣溫度頁（docs/lab_heat_plan.md）：另一頁，資料分開；失敗不影響籌碼雷達
-        from . import heatpage
-        changed |= heatpage.build(out.parent / "x9m.html")
-    except Exception as e:                   # noqa: BLE001
-        print(f"[籌碼雷達] ⚠ 景氣溫度頁沒有更新：{type(e).__name__}: {e}")
     for path, text in ((out_ser, sj), (out, render(data, ser_v=_ver(sj)))):
         if path.exists() and path.read_text(encoding="utf-8") == text:
             continue
