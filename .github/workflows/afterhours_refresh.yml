@@ -65,7 +65,7 @@ jobs:
           python-version: "3.12"
 
       - name: 安裝相依（純標準庫 + certifi）
-        run: pip install --quiet certifi
+        run: pip install --quiet certifi pypdf
 
       - name: 抓取守門（目標數據已到位／30 分內剛抓過 → 零請求早退，多班次不放大來源站請求）
         id: pre

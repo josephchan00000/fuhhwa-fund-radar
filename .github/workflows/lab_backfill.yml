@@ -51,7 +51,7 @@ jobs:
           python-version: "3.12"
 
       - name: 安裝相依（純標準庫 + certifi）
-        run: pip install --quiet certifi
+        run: pip install --quiet certifi pypdf
 
       - name: 回補
         run: |

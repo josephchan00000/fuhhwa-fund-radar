@@ -258,3 +258,19 @@ def test_sitca_week_total_row_and_form():
     assert f["__VIEWSTATE"] == "abc" and f["ctl00$ContentPlaceHolder1$ddlQ_YM"] == "202110"
     assert f["ctl00$ContentPlaceHolder1$ddlQ_Class"] == "" and f["ctl00$ContentPlaceHolder1$BtnQuery"] == "查詢"
     assert F.months_from("2021-10", F.date(2022, 1, 5)) == ["2021-10", "2021-11", "2021-12", "2022-01"]
+
+
+SFB_TXT = ("三、 外資及陸資投資國內資金匯出入情況： （一）外資及陸資 115 年 9 月份淨匯(出)入情形： 金額單位：美元/億元 "
+           "115 年 9 月份 115 年累計至 9 月底 境 外 外 國 機 構 投 資 人 、 華僑及外國自然人 累積淨匯(出)入 178.46 1,081.77 "
+           "陸資累積淨匯(出)入 0.24 2.13 合計 178.70 1,083.90 （二）外資及陸資累計淨匯(出)入情形： 金額單位：美元/億元 "
+           "截至 115 年 9 月底止 截至 115 年 8 月底止 增(減) 金額 境 外 外 國 機 構 投 資 人 、 華僑及外國自然人 累積淨匯(出)入 "
+           "4,282.66 4,104.20 178.46 陸資累積淨匯(出)入 2.87 2.63 0.24 合計 4,285.53 4,106.83 178.70 聯絡單位")
+
+
+def test_sfb_flow_pdf_text_month_and_cumulative():
+    assert F.parse_sfb_flow(SFB_TXT) == {"2026-09": [178.70, 4285.53], "2026-08": [None, 4106.83]}
+    neg = SFB_TXT.replace("合計 178.70 1,083.90", "合計 (29.26) 738.55").replace("（一）外資及陸資 115 年 9 月份",
+                                                                               "（一）外資及陸資 116 年 1 月份")
+    r = F.parse_sfb_flow(neg)
+    assert r["2027-01"][0] == -29.26 and r["2026-12"] == [None, 4106.83]       # 括號＝匯出；一月的前一個月是去年 12 月
+    assert F.parse_sfb_flow("沒有表") == {}

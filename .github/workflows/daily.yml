@@ -156,7 +156,7 @@ jobs:
           python-version: "3.12"
       - name: 安裝相依（純標準庫 + certifi）
         if: steps.merge.outputs.skip != 'true'
-        run: pip install certifi
+        run: pip install certifi pypdf
 
       - name: 高風險數字事實核對（對證交所／期交所官方 API；🔴 不擋發佈、落檔警示）
         if: steps.merge.outputs.skip != 'true'

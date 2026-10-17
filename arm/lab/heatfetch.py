@@ -697,6 +697,68 @@ def sitca_week(yms: list[str]) -> int:
     return _merge("sitca", "sitca", out)
 
 
+SFB_NEWS = "https://www.sfb.gov.tw/ch/home.jsp?id=95&parentpath=0,2"
+
+
+def _neg(x: str) -> float | None:
+    """新聞稿數字：括號＝負數，千分位逗號。"""
+    s = x.strip()
+    v = _num(s.strip("()（）"))
+    return None if v is None else (-v if s.startswith(("(", "（")) else v)
+
+
+def parse_sfb_flow(txt: str) -> dict:
+    """證期局「外資及陸資投資國內證券情形」新聞稿 PDF 文字 → {YYYY-MM: [單月淨匯入, 月底累計淨匯入]}（億美元，外資及陸資合計）；
+    累計表另給前一個月底的累計（單月那欄留 None）。"""
+    s = re.sub(r"\s+", " ", txt)
+    m = re.search(r"(\d{2,3})\s*年\s*(\d{1,2})\s*月份淨匯\(出\)入情形", s)
+    if not m:
+        return {}
+    y, mo = int(m.group(1)) + 1911, int(m.group(2))
+    ym = f"{y:04d}-{mo:02d}"
+    py, pm = (y, mo - 1) if mo > 1 else (y - 1, 12)
+    num = r"\(?-?[\d,]+\.\d+\)?"
+    out: dict = {}
+    seg = s[m.end():]
+    a = re.search(rf"合計\s*({num})\s*({num})", seg)                         # （一）單月、今年累計
+    b = re.search(rf"累計淨匯\(出\)入情形.*?合計\s*({num})\s*({num})\s*({num})", seg)   # （二）月底累計、前月底累計、增減
+    if a:
+        out[ym] = [_neg(a.group(1)), None]
+    if b:
+        out.setdefault(ym, [None, None])[1] = _neg(b.group(1))
+        out[f"{py:04d}-{pm:02d}"] = [None, _neg(b.group(2))]
+    return out
+
+
+def sfb_flow() -> int:
+    """新聞稿列表找「外資新聞稿」連結（只連到最新一期）→ PDF（pypdf 取文字）→ sfbflow；已有那個月的單月值就不抓 PDF。"""
+    import html as _h
+    h = _get(SFB_NEWS, timeout=60).decode("utf-8", "replace")
+    links = [(_h.unescape(u), _plain(t)) for u, t in re.findall(r'<a\b[^>]*?href="([^"]+)"[^>]*>(.*?)</a>', h, re.S | re.I)]
+    hit = next(((u, t) for u, t in links if "外資新聞稿" in t), None)
+    if not hit:
+        raise RuntimeError("新聞稿列表沒有「外資新聞稿」連結")
+    u, t = hit
+    mm = re.search(r"(\d{2,3})年(\d{1,2})月", t)
+    old = HD.load("sfbflow")
+    if mm and (old.get(f"{int(mm.group(1)) + 1911:04d}-{int(mm.group(2)):02d}") or [None])[0] is not None:
+        return 0
+    url = urllib.parse.quote(urllib.parse.urljoin(SFB_NEWS, u), safe=":/?&=%")
+    import pypdf
+    raw = _get(url, timeout=90)
+    txt = "".join(p.extract_text() or "" for p in pypdf.PdfReader(io.BytesIO(raw)).pages)
+    new = parse_sfb_flow(txt)
+    if not new:
+        raise RuntimeError(f"新聞稿 PDF 解析不到淨匯入（{len(txt)} 字）")
+    out = {k: list(v) for k, v in old.items()}
+    for k, v in new.items():                                    # 逐欄合併：前一個月只補累計、不蓋單月
+        cur = out.setdefault(k, [None, None])
+        for j, x in enumerate(v):
+            if x is not None:
+                cur[j] = x
+    return _merge("sfbflow", "sfb", out)
+
+
 def months_from(a: str, z: date | None = None) -> list[str]:
     z = z or date.today()
     y, m = int(a[:4]), int(a[5:7])

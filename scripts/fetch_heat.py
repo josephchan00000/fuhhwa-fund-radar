@@ -7,6 +7,7 @@
   回補（`.ping/lab` 第一行寫 heatfill）：python3 scripts/fetch_heat.py --backfill --budget-min 45
       各來源從頭抓；期交所 P/C、證交所成交金額每月一請求，時間到就停、下一輪續補（已有整月的跳過）。
       只抓某幾個：第一行寫 heatfill:ndc,pmi（冒號後面＝--only，用回補清單的鍵名；ndc 會連出口一起抓）。
+      第四版新來源（第 13.8 節）：mmf、spx、cbcbank、sitca、sfbflow 幾分鐘內抓完；qfii（證交所外資持股，每週一天）約 70 分鐘、分兩輪。
 
 每個來源各自失敗、各自降級（抓不到保留既有的檔）；最後印每個檔的筆數與日期範圍。
 """
@@ -27,7 +28,7 @@ from arm.lab import heatfetch as F  # noqa: E402
 
 NAMES = ["margin", "inst", "futi", "opti", "mtxoi", "pcr", "vixtw", "taiex", "vix", "hyg", "ief", "turnover",
          "usdtwd", "money", "ndc", "ndc_first", "exports", "pmi", "orders", "twcpi", "effr", "fedtgt", "uscpi", "ust",
-         "breadth"]
+         "breadth", "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow"]
 # 月資料「新的一個月該出來了」的最早日子（第 m＋1 個月的第幾天）：只用來決定要不要抓，不影響驗證（驗證用 heatspec.RELEASE）
 DUE = {"twcpi": (1, 5)}
 
@@ -105,13 +106,21 @@ def daily() -> None:
     run("IEF", F.yahoo_adj, "ief", "IEF", "2002-01-01")
     tw_run("成交金額", "turnover", F.twse_turnover, first)
     tw_run("新台幣", "usdtwd", F.cbc_usdtwd)
+    cal = sorted(HD.load("turnover"))
+    qf = HD.load("qfii")
+    tw_run("外資持股", "qfii", F.twse_qfiis, [d for d in cal[-15:] if d not in qf], 120)
     run("有效聯邦基金利率", F.nyfed_effr, since("effr", 15, F.NYFED_START))
     run("美國公債殖利率", F.treasury, today.year - (today.month == 1))
+    run("S&P 500", F.yahoo, "spx", "^GSPC", since("spx", 10, "2010-01-01"))
     monthly("ndc", F.ndc)
     monthly("pmi", F.ndc_pmi)
     monthly("orders", F.moea_orders)
     monthly("money", F.cbc_money)
     monthly("uscpi", F.bls_cpi, today.year - 1)
+    monthly("mmf", F.ofr_mmf)
+    monthly("cbcbank", F.cbc_bank)
+    monthly("sfbflow", F.sfb_flow)
+    monthly("sitca", F.sitca_week, F.months_from(f"{first.year:04d}-{first.month:02d}"))
     if due_month("twcpi", today):
         monthly("twcpi", F.dgbas_cpi)
     run("廣度", F.breadth_update)
@@ -147,6 +156,11 @@ def backfill(budget_min: float, only: set[str] | None) -> None:
         ("effr", "聯邦基金利率（紐約聯準銀行）", F.nyfed_effr, (F.NYFED_START,)),
         ("vixtw", "台指 VIX", F.taifex_vix, (4,)),
         ("breadth", "廣度", F.breadth_update, (True,)),
+        ("mmf", "美國貨幣基金", F.ofr_mmf, ()),
+        ("spx", "S&P 500", F.yahoo, ("spx", "^GSPC", "2010-01-01")),
+        ("cbcbank", "央行銀行資金", F.cbc_bank, ()),
+        ("sitca", "投信持股比重", F.sitca_week, (F.months_from(F.SITCA_START),)),
+        ("sfbflow", "外資淨匯入", F.sfb_flow, ()),
     ]
     for key, name, fn, a in jobs:
         if want(key):
@@ -155,6 +169,9 @@ def backfill(budget_min: float, only: set[str] | None) -> None:
         run("P/C 比", F.taifex_pcr, date(2002, 1, 1), None, max(60.0, min(900.0, t_end - time.time() - 60)))
     if want("turnover"):
         run("成交金額", F.twse_turnover, date(1999, 1, 1), None, max(60.0, t_end - time.time() - 60))
+    if want("qfii"):                                          # 每週一天（2004 起）＋最近 15 天；每請求 3.5 秒，分兩輪
+        days = F.qfii_days(sorted(HD.load("turnover")), HD.load("qfii"))
+        run("外資持股", F.twse_qfiis, days, max(60.0, t_end - time.time() - 60))
 
 
 def summary() -> None:
