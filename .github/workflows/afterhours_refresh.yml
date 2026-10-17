@@ -65,7 +65,7 @@ jobs:
           python-version: "3.12"
 
       - name: 安裝相依（純標準庫 + certifi）
-        run: pip install --quiet certifi
+        run: pip install --quiet certifi pypdf
 
       - name: 抓取守門（目標數據已到位／30 分內剛抓過 → 零請求早退，多班次不放大來源站請求）
         id: pre
@@ -101,6 +101,9 @@ jobs:
 
       - name: 法人預估（鉅亨 FactSet 快訊補到現在＋Yahoo 分析師一天一次；docs/lab_forward_plan.md，失敗不擋）
         run: timeout 420 python3 scripts/fetch_fcst.py || echo "  ⚠ 法人預估抓取失敗，沿用既有落檔"
+
+      - name: 景氣溫度頁資料（融資、法人、期權、匯率、美國利率物價、國發會、廣度；docs/lab_heat_plan.md，失敗不擋）
+        run: timeout 420 python3 scripts/fetch_heat.py || echo "  ⚠ 景氣溫度資料抓取失敗，沿用既有落檔"
 
       - name: 當日完整性看門狗（寫/清 data/afterhours_alert.json——儀表板紅章資料源）
         run: python3 scripts/check_afterhours_fresh.py --write
@@ -148,6 +151,7 @@ jobs:
           git add -f dashboard/x9s.json 2>/dev/null || true             # 籌碼雷達個股走勢序列（開個股卡才載入；分開 add：缺檔時不連累上一行的分片）
           git add -f dashboard/x9t.json 2>/dev/null || true             # 公司分析：全市場每日小表（docs/lab_company_plan.md；分開 add）
           git add -f dashboard/x9f.json 2>/dev/null || true             # 法人預估：每檔資料（docs/lab_forward_plan.md；分開 add）
+          git add -f dashboard/x9m.html 2>/dev/null || true            # 景氣溫度頁（docs/lab_heat_plan.md；分開 add）
           git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
           git commit -m "chore: 盤後數據刷新 $(date '+%F %H:%M')" || { echo "無變更，跳過 push"; exit 0; }
           # main 可能被其他 workflow 推進 → rebase 重試；rebase 後必須用合併結果重建再推
@@ -162,6 +166,7 @@ jobs:
             git add -f dashboard/x9s.json 2>/dev/null || true             # 籌碼雷達個股走勢序列（開個股卡才載入；分開 add：缺檔時不連累上一行的分片）
             git add -f dashboard/x9t.json 2>/dev/null || true             # 公司分析：全市場每日小表（docs/lab_company_plan.md；分開 add）
             git add -f dashboard/x9f.json 2>/dev/null || true             # 法人預估：每檔資料（docs/lab_forward_plan.md；分開 add）
+            git add -f dashboard/x9m.html 2>/dev/null || true            # 景氣溫度頁（docs/lab_heat_plan.md；分開 add）
             git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
             git commit --amend --no-edit || true
             sleep 5

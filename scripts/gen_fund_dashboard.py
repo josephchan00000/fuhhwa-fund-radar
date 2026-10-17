@@ -32,6 +32,13 @@ def main() -> None:
         print(f"[籌碼雷達] {'已更新' if changed else '無變更'} {lab_page.OUT}（＋{lab_page.OUT_SER.name}）")
     except Exception as e:                                # noqa: BLE001
         print(f"[籌碼雷達] 建頁失敗（不影響主頁）：{type(e).__name__}: {e}")
+    # 景氣溫度頁（dashboard/x9m.html；籌碼雷達頂欄「景氣」進入，docs/lab_heat_plan.md）。和籌碼雷達分開建、分開失敗。
+    try:
+        from arm.lab import heatpage
+        changed = heatpage.build()
+        print(f"[景氣溫度] {'已更新' if changed else '無變更'} {heatpage.OUT}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[景氣溫度] 建頁失敗（不影響主頁與籌碼雷達）：{type(e).__name__}: {e}")
     if "--open" in sys.argv[1:]:
         webbrowser.open(OUT.as_uri())
 
