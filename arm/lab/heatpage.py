@@ -197,7 +197,7 @@ def _verdict_line(ln: str, L: dict) -> str:
 
 def _items(L: dict) -> str:
     inc = [it for it in L["items"] if it["inc"]]
-    out = ['<div class="ith"><span>細項</span><span>熱度（0～100）</span><span>拉動總分</span><span>佔比</span><span>本週</span></div>']
+    out = ['<div class="ith"><span>算進總分</span><span>熱度（0～100）</span><span>拉動總分</span><span>佔比</span><span>本週</span></div>'] if inc else []
     for it in sorted(inc, key=lambda x: -abs(x["pull"] or 0)):
         pull = "—" if it["pull"] is None else f'{"+" if it["pull"] > 0 else ("−" if it["pull"] < 0 else "")}{abs(it["pull"]):.1f} 分'
         sh = "—" if it["share"] is None else f'{it["share"]:.0f}%'
@@ -268,9 +268,11 @@ def _chart(V: dict) -> str:
     for i in range(0, n, max(1, n // 6)):
         out.append(f'<text x="{xs(i):.1f}" y="{Hh - 4}" class="gt" text-anchor="middle">{_e(ds[i][:7])}</text>')
     out.append("</svg>")
-    lg = ('<div class="lg"><span><i class="l1"></i>短線</span><span><i class="l2"></i>中線</span>'
-          '<span><i class="l3"></i>長線</span><span><i class="lpx"></i>加權指數（右軸換算成同一高度）</span></div>')
-    return "".join(out) + lg
+    lg = "".join(f'<span><i class="{cls}"></i>{nm}</span>' for ln, cls, nm in (("short", "l1", "短線"), ("mid", "l2", "中線"),
+                                                                                ("long", "l3", "長線"))
+                 if V["lines"][ln].get("trend"))
+    return "".join(out) + f'<div class="lg">{lg}<span><i class="lpx"></i>加權指數（換算成同一高度）</span></div>'
+
 
 
 def _band_table(ev: dict, part: str, main: int) -> str:
@@ -313,6 +315,19 @@ def _valid(ln: str, L: dict) -> str:
             f'{"".join(rows)}</table></div></div>')
 
 
+def _hist(it: dict, main: int) -> str:
+    """這一項自己的分區統計：目前所在的區，過去之後 main 日加權指數平均（樣本外在前，樣本內小字）。"""
+    band = S.band(it["heat"])
+    out = []
+    for part, lab in (("oos", "樣本外"), ("is", "樣本內")):
+        b, allb = _band_of(it["ev"], part, band), _band_of(it["ev"], part, "全部")
+        if b and b.get("n") and allb and allb.get("n"):
+            out.append(f'{lab} {_pct(b["avg"])}（全部 {_pct(allb["avg"])}，{b["n"]:,} 個）')
+    if not out:
+        return "—"
+    return f'<b>{_e(band)}</b>：' + out[0] + (f'<span class="hw">{out[1]}</span>' if len(out) > 1 else "")
+
+
 def _detail(ln: str, L: dict) -> str:
     rows = []
     for it in L["items"]:
@@ -321,10 +336,12 @@ def _detail(ln: str, L: dict) -> str:
         hv = "—" if it["heat"] is None else f'{it["heat"]:.0f}'
         rows.append(f'<tr><td class="l"><b>{_e(it["name"])}</b><span class="hw">{_e(it["how"])}</span></td>'
                     f'<td>{_e(it["val"])}</td><td>{hv}</td>'
-                    f'<td>{dd}</td><td>{"高＝熱" if it["hot"] > 0 else "低＝熱"}</td><td>{_e(_md(it["src"]))}</td>'
+                    f'<td>{dd}</td><td>{"高＝熱" if it["hot"] > 0 else "低＝熱"}</td>'
+                    f'<td class="l">{_hist(it, L["main"])}</td><td>{_e(_md(it["src"]))}</td>'
                     f'<td class="l">{_e(SRC.get(it["k"], ""))}</td></tr>')
     return (f'<div class="tw"><table class="dt"><tr><th class="l">{_e(L["name"])}</th><th>現值</th><th>熱度</th><th>5 日變化</th>'
-            f'<th>熱的方向</th><th>資料日</th><th class="l">來源</th></tr>{"".join(rows)}</table></div>')
+            f'<th>熱的方向</th><th class="l">目前這一區，過去之後 {L["main"]} 個交易日加權指數平均</th><th>資料日</th>'
+            f'<th class="l">來源</th></tr>{"".join(rows)}</table></div>')
 
 
 def render(V: dict) -> str:
