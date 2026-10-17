@@ -184,7 +184,7 @@ def _write_if_changed(path: Path, text: str) -> bool:
 # ── 全市場每日小表 x9t.json ──────────────────────────────────────────────────
 # 頁面依 cols 的名稱取值；頁面用到的欄位都要在這裡（tests/test_company.py 守）
 TCOLS = ("px", "ch", "cap", "tt", "rs", "d52h", "r120", "ry", "ry3", "racc", "rnh", "ey", "eacc", "gm", "gmd",
-         "om", "omd", "c33", "roe", "pe", "pb", "yld", "dr", "cr", "liq", "el", "ttb")
+         "om", "omd", "c33", "roe", "pe", "pb", "yld", "dr", "cr", "liq", "el", "ttb", "ii")     # ii＝產業代號（inds 的位置）
 
 
 def _pct(x, d=1):
@@ -273,8 +273,19 @@ def market_table(DL, today_ix: int | None = None, rules: list | None = None) -> 
             if tg:
                 watch[c] = tg
     layer = _layer(DL, cal, i, P, pxs, F, hits, watch)
+    from .. import stockmeta                             # 產業比較（docs/lab_forward_plan.md；只顯示當參考）
+    from . import industry as IND
+    imap = stockmeta.industry_map()
+    inds, ii = IND.index_codes(list(rows), imap)
+    for c in rows:
+        rows[c].append(ii.get(c))
+    try:
+        ind_tab = IND.table(P.codes, imap, rev, ym, pxs, i, watch)
+    except Exception as e:  # noqa: BLE001
+        print(f"[industry] 產業比較失敗：{type(e).__name__}: {e}")
+        ind_tab = {}
     return {"d": cal[i], "cols": list(TCOLS), "rows": rows, "q": q, "ym": ym, "hits": hits, "watch": watch,
-            "layer": layer}
+            "layer": layer, "inds": inds, "ind": ind_tab}
 
 
 def _layer(DL, cal, i, P, pxs, F, hits, watch) -> dict:

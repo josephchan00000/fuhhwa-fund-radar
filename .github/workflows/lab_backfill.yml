@@ -84,6 +84,8 @@ jobs:
             python3 scripts/backfill_lab.py --names
           elif [ "${MODE#fsfill}" != "$MODE" ]; then
             python3 scripts/backfill_lab.py --fs --budget-min 48
+          elif [ "${MODE#fcfill}" != "$MODE" ]; then
+            python3 scripts/fetch_fcst.py --backfill 260 --full --budget 2400
           elif [ "$MODE" = "probefs" ]; then
             python3 scripts/backfill_lab.py --probe-fs
           elif [ "$MODE" = "revprobe" ]; then
