@@ -529,6 +529,184 @@ def treasury(y0: int, y1: int | None = None) -> int:
     return _merge("ust", "treasury", out)
 
 
+# ── 第三階段（規劃文件第 13 節）：場邊資金、外資持股、銀行資金、投信持股比重 ─────────────
+
+OFR_MMF = "https://data.financialresearch.gov/v1/series/timeseries?mnemonic=MMF-MMF_TOT-M"
+QFIIS = "https://www.twse.com.tw/rwd/zh/fund/MI_QFIIS_cat?date={d}&response=json"
+CBC_API = "https://cpx.cbc.gov.tw/API/DataAPI/Get?FileName={f}"
+SITCA_W = "https://www.sitca.org.tw/ROC/Industry/IN2616.aspx?pid=IN22605_02"
+SITCA_START = "2021-10"                                         # 週持股比重表最早的月份
+
+
+def ofr_mmf() -> int:
+    """OFR 美國貨幣市場基金總資產（月底，美元）：[[YYYY-MM-DD, 值], ...] → {YYYY-MM: 值}。"""
+    rows = json.loads(_get(OFR_MMF, timeout=90).decode("utf-8"))
+    out = {}
+    for r in rows or []:
+        if isinstance(r, list) and len(r) >= 2 and re.match(r"^\d{4}-\d{2}-\d{2}$", str(r[0])) and r[1] is not None:
+            out[str(r[0])[:7]] = float(r[1])
+    return _merge("mmf", "ofr", out)
+
+
+def parse_qfiis(doc: dict) -> list | None:
+    """證交所類股持股比率表 → [外資及陸資持有股數合計, 總發行股數合計]（所有類股加總；有「合計」列就只用它）。"""
+    if str(doc.get("stat")) != "OK":
+        return None
+    f = [str(x) for x in doc.get("fields") or []]
+    ia = next((i for i, x in enumerate(f) if "發行股數" in x), None)
+    ib = next((i for i, x in enumerate(f) if "持有" in x and "股數" in x), None)
+    if ia is None or ib is None:
+        return None
+    rows = doc.get("data") or []
+    use = [r for r in rows if str(r[0]).strip() in ("合計", "總計")][:1] or rows
+    a = b = 0.0
+    for r in use:
+        x, y = (_num(r[ib]), _num(r[ia])) if len(r) > max(ia, ib) else (None, None)
+        if x is not None and y is not None:
+            a, b = a + x, b + y
+    return [a, b] if b else None
+
+
+def twse_qfiis(days: list[str], budget_s: float = 1500) -> int:
+    """逐日一請求（間隔 3.5 秒）；時間到就停、下一輪續補。days＝要抓的交易日（YYYY-MM-DD）。"""
+    out, t0 = {}, time.time()
+    for d in days:
+        if time.time() - t0 > budget_s:
+            log(f"[heat] 外資持股 時間到，抓了 {len(out)} 天，下一輪續補")
+            break
+        try:
+            v = parse_qfiis(json.loads(_get(QFIIS.format(d=d.replace("-", "")), timeout=40).decode("utf-8")))
+            if v:
+                out[d] = v
+        except Exception as ex:                                 # noqa: BLE001
+            log(f"[heat] 外資持股 {d} ✗ {str(ex)[:80]}")
+        time.sleep(3.5)
+    return _merge("qfii", "twse", out)
+
+
+def qfii_days(cal: list[str], have: dict, start: str = "2004-01-01", recent: int = 15) -> list[str]:
+    """回補：每週最後一個交易日（2004 起）；最近 recent 個交易日每天都要。已有的跳過。"""
+    out = []
+    for i, d in enumerate(cal):
+        if d < start or d in have:
+            continue
+        week_end = i == len(cal) - 1 or date.fromisoformat(cal[i + 1]).isocalendar()[:2] != \
+            date.fromisoformat(d).isocalendar()[:2]
+        if week_end or i >= len(cal) - recent:
+            out.append(d)
+    return out
+
+
+def _cbc_table(code: str) -> tuple[list[str], int, list]:
+    doc = json.loads(_get(CBC_API.format(f=code), timeout=90).decode("utf-8"))
+    data = doc.get("data") or {}
+    st = data.get("structure") or {}
+    names = [str((x or {}).get("data") or "").replace(" ", "") for x in (st.get("Table1") or [])]
+    return names, max(1, len(st.get("Table2") or [])), data.get("dataSets") or []
+
+
+CBC_BANK = (("EF25M01", "央行發行單券-定期存單", 0),         # 百萬元（月底）
+            ("EF03M01", "貨幣機構存款-合計", 1),               # 年增率（%）
+            ("EF35M01", "放款-計", 1),                         # 年增率（%）：全體貨幣機構
+            ("EG37M01", "隔夜-加權平均", 0))                   # 月平均（%）
+
+
+def parse_cbc(names: list[str], width: int, rows: list, name: str, sub: int) -> dict:
+    """央行 DataAPI 表 → {YYYY-MM: 值}：欄名完全相同優先、再找結尾相同；每項 width 欄（原始值、年增率…），取第 sub 欄。"""
+    i = next((k for k, n in enumerate(names) if n == name), None)
+    if i is None:
+        i = next(k for k, n in enumerate(names) if n.endswith(name))
+    c = 1 + i * width + sub
+    out = {}
+    for r in rows:
+        mm = re.match(r"^(\d{4})M(\d{2})$", str(r[0]))
+        if mm and c < len(r) and _num(r[c]) is not None:
+            out[f"{mm.group(1)}-{mm.group(2)}"] = _num(r[c])
+    return out
+
+
+def cbc_bank() -> int:
+    """→ cbcbank {YYYY-MM: [定存單餘額, 存款年增率, 放款年增率, 隔夜拆款利率]}。各表各自失敗：抓不到的那一欄保留舊值。"""
+    old = HD.load("cbcbank")
+    out = {k: list(v) for k, v in old.items()}
+    got = 0
+    for j, (code, name, sub) in enumerate(CBC_BANK):
+        try:
+            for ym, v in parse_cbc(*_cbc_table(code), name, sub).items():
+                out.setdefault(ym, [None] * len(CBC_BANK))[j] = v
+            got += 1
+        except Exception as ex:                                 # noqa: BLE001
+            log(f"[heat] 央行 {code} ✗ {type(ex).__name__}: {str(ex)[:100]}")
+        time.sleep(0.5)
+    return _merge("cbcbank", "cbc", out) if got else 0
+
+
+def _attrs(tag: str) -> dict:
+    return {k.lower(): v for k, v in re.findall(r'([\w:$.-]+)\s*=\s*"([^"]*)"', tag)}
+
+
+def _plain(h: str) -> str:
+    import html as _h
+    return re.sub(r"\s+", " ", _h.unescape(re.sub(r"<[^>]+>", " ", h))).strip()
+
+
+def parse_sitca_week(h: str) -> dict:
+    """投信公會「國內股票型基金持股比重(週)」：表頭「第1週 2026/10/3 …」＋「合計」列 → {週日期: 持股比重%}（0 或 - 是還沒公布）。"""
+    dates, out = None, {}
+    for r in re.findall(r"<tr\b.*?</tr>", h, re.S | re.I):
+        cells = [_plain(c) for c in re.findall(r"<t[dh]\b[^>]*>(.*?)</t[dh]>", r, re.S | re.I)]
+        ds = re.findall(r"(\d{4})/(\d{1,2})/(\d{1,2})", " ".join(cells))
+        if ds and "週" in " ".join(cells):
+            dates = [f"{int(y):04d}-{int(m):02d}-{int(d):02d}" for y, m, d in ds]
+        elif dates and cells and cells[0] in ("合計", "總計"):
+            for d, v in zip(dates, (_num(c) for c in cells[1:])):
+                if v:
+                    out[d] = v
+    return out
+
+
+def _sitca_form(h: str, ym: str) -> dict:
+    inputs = [_attrs(m) for m in re.findall(r"<input\b[^>]*>", h, re.I)]
+    form = {i["name"]: i.get("value", "") for i in inputs if i.get("name") and (i.get("type") or "").lower() == "hidden"}
+    for sa, _ in re.findall(r"<select\b([^>]*)>(.*?)</select>", h, re.S | re.I):
+        nm = _attrs(sa).get("name") or ""
+        if nm:
+            form[nm] = ym if nm.endswith("ddlQ_YM") else ""                # 所有國內股票型、所有公司
+    btn = next((i for i in inputs if (i.get("type") or "").lower() == "submit" and i.get("name")), None)
+    if btn:
+        form[btn["name"]] = btn.get("value", "")
+    return form
+
+
+def sitca_week(yms: list[str]) -> int:
+    """每個月份一次 GET（拿 ViewState）＋一次 POST；yms＝YYYY-MM。"""
+    ctx = _twca_ctx()
+    out = {}
+    for ym in yms:
+        try:
+            with urllib.request.urlopen(urllib.request.Request(SITCA_W, headers=BROWSER), timeout=60, context=ctx) as r:
+                h = r.read().decode("utf-8", "replace")
+            data = urllib.parse.urlencode(_sitca_form(h, ym.replace("-", ""))).encode()
+            req = urllib.request.Request(SITCA_W, data=data, headers={
+                **BROWSER, "Content-Type": "application/x-www-form-urlencoded", "Referer": SITCA_W})
+            with urllib.request.urlopen(req, timeout=60, context=ctx) as r:
+                out.update(parse_sitca_week(r.read().decode("utf-8", "replace")))
+        except Exception as ex:                                 # noqa: BLE001
+            log(f"[heat] 投信持股比重 {ym} ✗ {type(ex).__name__}: {str(ex)[:100]}")
+        time.sleep(1.0)
+    return _merge("sitca", "sitca", out)
+
+
+def months_from(a: str, z: date | None = None) -> list[str]:
+    z = z or date.today()
+    y, m = int(a[:4]), int(a[5:7])
+    out = []
+    while (y, m) <= (z.year, z.month):
+        out.append(f"{y:04d}-{m:02d}")
+        y, m = (y + (m == 12), m % 12 + 1)
+    return out
+
+
 # ── 廣度：上市櫃日線自算（heatdata.breadth） ─────────────────────────────
 
 def breadth_update(force: bool = False) -> int:

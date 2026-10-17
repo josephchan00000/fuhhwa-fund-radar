@@ -194,3 +194,67 @@ def test_ndc_exports_header_by_name_and_missing_column_raises():
     assert F.parse_ndc_exports(t) == {"1982-01": 65.56}
     with pytest.raises(ValueError):
         F.parse_ndc_exports("Date,工業生產指數\n198201,1\n")
+
+
+# ── 第三階段（規劃文件第 13 節）：樣本是 CI 探針實際拿到的格式 ─────────────────
+
+def test_ofr_mmf_month_end_to_month(lab, monkeypatch):
+    body = json.dumps([["2010-11-30", 3076353570850.39], ["2026-09-30", 8396822287018.74], ["bad", 1]]).encode()
+    monkeypatch.setattr(F, "_get", lambda url, **kw: body)
+    assert F.ofr_mmf() == 2
+    assert HD.load("mmf") == {"2010-11": 3076353570850.39, "2026-09": 8396822287018.74}
+
+
+def test_qfiis_sums_all_industries_or_uses_total_row():
+    fields = ["產業別", "家數", "總發行股數", "僑外資及陸資持有總股數", "僑外資及陸資持股比率"]
+    doc = {"stat": "OK", "fields": fields, "data": [["水泥工業", 7, "1,000", "100", "10.00"],
+                                                    ["其他", 34, "10,939,540,635", "935,024,162", "8.55"]]}
+    assert F.parse_qfiis(doc) == [935024262.0, 10939541635.0]
+    doc["data"].append(["合計", 41, "20,000,000,000", "8,000,000,000", "40.00"])
+    assert F.parse_qfiis(doc) == [8e9, 2e10]
+    assert F.parse_qfiis({"stat": "很抱歉，沒有符合條件的資料!"}) is None
+    cal = ["2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16", "2026-10-19"]
+    assert F.qfii_days(cal, {}, recent=1) == ["2026-10-16", "2026-10-19"]          # 每週最後一天＋最近 1 天
+    assert F.qfii_days(cal, {"2026-10-16": [1, 2]}, recent=1) == ["2026-10-19"]
+
+
+def test_cbc_bank_columns_by_name_and_keeps_old_when_one_table_fails(lab, monkeypatch):
+    tables = {
+        "EF25M01": (["國外負債", "央行發行單券-國庫券", "央行發行單券-定期存單"], 2,
+                    [["2026M08", "-", "-", "1", "2", "6573670", "-12.09"]]),
+        "EF03M01": (["貨幣機構存款-合計", "貨幣機構存款-活期性存款"], 2, [["2026M08", "700723", "7.67", "1", "2"]]),
+        "EF35M01": (["資產淨額=負債權益淨額", "國外資產", "放款-計", "放款-政府機關"], 2,
+                    [["2026M08", "1", "9.34", "2", "8.24", "47737620", "10.49", "3", "2.76"]]),
+        "EG37M01": (["隔夜-加權平均", "隔夜-最高"], 1, [["2026M08", "0.822", "0.830"], ["2026M07", "-", "1"]]),
+    }
+    monkeypatch.setattr(F, "_cbc_table", lambda code: tables[code])
+    monkeypatch.setattr(F.time, "sleep", lambda s: None)
+    assert F.cbc_bank() == 1
+    assert HD.load("cbcbank")["2026-08"] == [6573670.0, 7.67, 10.49, 0.822]
+
+    def boom(code):
+        if code == "EF03M01":
+            raise RuntimeError("timeout")
+        return tables[code]
+    tables["EG37M01"] = (["隔夜-加權平均"], 1, [["2026M08", "0.9"]])
+    monkeypatch.setattr(F, "_cbc_table", boom)
+    F.cbc_bank()
+    assert HD.load("cbcbank")["2026-08"] == [6573670.0, 7.67, 10.49, 0.9]       # 存款那欄保留舊值
+
+
+SITCA_HTML = """<table><tr><td>類型</td><td>代號</td><td>基金名稱</td><td>投資國內股市比例小計(%)</td></tr>
+<tr><td>第1週<br>2026/10/3</td><td>第2週<br>2026/10/10</td><td>第3週<br>2026/10/17</td></tr>
+<tr><td>AA1</td><td>兆豐第一基金</td><td>95.70</td><td>96.35</td><td>-</td></tr>
+<tr><td colspan="3">合計</td><td>96.46</td><td>96.26</td><td>0.00</td></tr></table>"""
+
+
+def test_sitca_week_total_row_and_form():
+    assert F.parse_sitca_week(SITCA_HTML) == {"2026-10-03": 96.46, "2026-10-10": 96.26}
+    page = ('<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="abc" />'
+            '<select name="ctl00$ContentPlaceHolder1$ddlQ_YM"><option value="202609">x</option></select>'
+            '<select name="ctl00$ContentPlaceHolder1$ddlQ_Class"><option value="">所有</option></select>'
+            '<input type="submit" name="ctl00$ContentPlaceHolder1$BtnQuery" value="查詢" />')
+    f = F._sitca_form(page, "202110")
+    assert f["__VIEWSTATE"] == "abc" and f["ctl00$ContentPlaceHolder1$ddlQ_YM"] == "202110"
+    assert f["ctl00$ContentPlaceHolder1$ddlQ_Class"] == "" and f["ctl00$ContentPlaceHolder1$BtnQuery"] == "查詢"
+    assert F.months_from("2021-10", F.date(2022, 1, 5)) == ["2021-10", "2021-11", "2021-12", "2022-01"]

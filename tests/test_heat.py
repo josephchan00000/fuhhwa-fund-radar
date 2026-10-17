@@ -8,32 +8,46 @@ from arm.lab import heat as H
 from arm.lab import heatspec as S
 
 
-def test_spec_v3_is_locked():
-    assert S.VER == 3 and S.SPEC_DATE == "2026-10-17"
-    assert list(S.DIMS) == ["fund", "chip", "liq", "tech"]
+def test_spec_v4_is_locked():
+    assert S.VER == 4 and S.SPEC_DATE == "2026-10-17"
+    assert list(S.DIMS) == ["fund", "chip", "gliq", "tliq", "tech"]
     assert {d: (v["fwd"], v["freq"]) for d, v in S.DIMS.items()} == {
-        "fund": ((120, 250), "m"), "chip": ((10, 60), "d"), "liq": ((60, 250), "d"), "tech": ((10, 60), "d")}
+        "fund": ((120, 250), "m"), "chip": ((10, 60), "d"), "gliq": ((60, 250), "d"), "tliq": ((60, 250), "d"),
+        "tech": ((10, 60), "d")}
     assert S.ITEMS == {"fund": ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"],
-                       "chip": ["C1", "C2", "C3", "C4", "C5", "C6", "C7"],
-                       "liq": ["L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8"],
-                       "tech": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10"]}
+                       "chip": ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"],
+                       "gliq": ["G1", "G2", "G3", "G4", "G5"],
+                       "tliq": ["L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10"],
+                       "tech": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12", "T13"]}
     assert S.HOT == {"B1": 1, "B2": 1, "B3": 1, "B4": 1, "B5": 1, "B6": 1, "B7": 1, "B8": 1,
-                     "C1": 1, "C2": 1, "C3": -1, "C4": 1, "C5": -1, "C6": -1, "C7": -1,
-                     "L1": 1, "L2": 1, "L3": 1, "L4": -1, "L5": 1, "L6": -1, "L7": -1, "L8": 1,
-                     "T1": 1, "T2": 1, "T3": 1, "T4": 1, "T5": 1, "T6": 1, "T7": 1, "T8": -1, "T9": -1, "T10": -1}
-    assert [k for k in S.KEYS if S.FREQ_OF[k] == "m"] == ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "L1", "L2", "L6"]
+                     "C1": 1, "C2": 1, "C3": -1, "C4": 1, "C5": -1, "C6": -1, "C7": -1, "C8": 1,
+                     "G1": -1, "G2": -1, "G3": -1, "G4": 1, "G5": 1,
+                     "L1": 1, "L2": 1, "L3": 1, "L4": -1, "L5": 1, "L6": 1, "L7": 1, "L8": 1, "L9": -1, "L10": 1,
+                     "T1": 1, "T2": 1, "T3": 1, "T4": 1, "T5": 1, "T6": 1, "T7": 1, "T8": -1, "T9": -1, "T10": -1,
+                     "T11": 1, "T12": 1, "T13": 1}
+    assert [k for k in S.KEYS if S.FREQ_OF[k] == "m"] == ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "G5",
+                                                           "L1", "L2", "L6", "L8", "L9", "L10"]
     assert S.RELEASE == {"B1": (2, 28), "B2": (2, 28), "B5": (2, 28), "B3": (1, 6), "B4": (1, 21), "B6": (1, 11),
-                         "B7": (1, 10), "B8": (1, 16), "L1": (1, 27), "L2": (1, 27), "L6": (1, 1)}
+                         "B7": (1, 10), "B8": (1, 16), "L1": (1, 27), "L2": (1, 27), "L8": (1, 27), "L9": (1, 27),
+                         "L10": (1, 27), "L6": (1, 6), "G5": (1, 15)}
     assert set(S.RELEASE) == {k for k in S.KEYS if S.FREQ_OF[k] == "m"}     # 每個月資料都有公布時間差
     assert S.PCT_WIN == {"d": 750, "m": 120} and S.PCT_MIN == {"d": 375, "m": 60}
-    assert S.DAILY_LAG == 1 and S.US == ("L7", "L8", "T9") and S.PROXY == {"T10": "T9"}
+    assert S.DAILY_LAG == 1 and S.US == ("G1", "G2", "G3", "G4", "T9") and S.PROXY == {"T10": "T9"}
+    assert S.DIRECT == {"T11": 6} and S.STALE == {"C8": 14, "L7": 10} and S.AVAIL_DAYS == {"C8": 7}
     assert (S.MIN_AVAIL, S.CHG_DAYS, S.MIN_N) == (2 / 3, 5, {"d": 750, "m": 96})
-    assert [H.need(len(v)) for v in S.ITEMS.values()] == [6, 5, 6, 7]     # 基本面 8 要 6、籌碼 7 要 5、資金 8 要 6、技術 10 要 7
+    assert [H.need(len(v)) for v in S.ITEMS.values()] == [6, 6, 4, 7, 9]  # 8 要 6、8 要 6、5 要 4、10 要 7、13 要 9
     assert (S.BOOT_N, S.BOOT_SEED, S.CI) == (2000, 20261017, 0.95)
     assert S.SPLIT_REF == {"d": (("2014-01-01", "2019-12-31"), ("2020-01-01", None)),
                            "m": (("1999-01-01", "2012-12-31"), ("2013-01-01", None))}
     assert [b[2] for b in S.BANDS] == ["過冷", "偏冷", "中性", "偏熱", "過熱"]
     assert set(S.VERDICT) == {"weak", "strong", "none", "few"}
+    # 關鍵價位與事件（第 13.3、13.9 節）
+    assert S.MA_NS == (5, 10, 20, 60, 120, 240) and S.MA_LEVELS == (20, 60, 120, 240)
+    assert (S.PIVOT_THR, S.EV_PRIOR, S.EV_CONF, S.DT_TOL, S.DT_GAP, S.HS_RATIO) == (0.05, 10, 3, 0.015, 22, 2.5)
+    assert (S.EV_FWD, S.EV_MIN, S.EV_START, S.DEDUCT_N, S.LEVEL_PIVOTS) == ((10, 60), 20, 250, 5, 6)
+    assert list(S.EVENTS) == ["ma20_dn", "ma20_up", "ma60_dn", "ma60_up", "ma240_dn", "ma240_up", "x_dead", "x_gold",
+                              "s60_dn", "s60_up", "pv_dn", "pv_up", "dtop", "dbot", "hstop", "hsbot"]
+    assert set(S.EV_VERDICT) == {"weak", "strong", "none", "few"}
 
 
 def test_percentile_uses_only_the_past():
