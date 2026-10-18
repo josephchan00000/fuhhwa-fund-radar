@@ -2393,3 +2393,35 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   ②X2、X3 的 10 年百分位要在**指數自己的交易日**上算再對齊（直接在台股頁日曆上算，覆蓋只到 2002-06 起）；③分數四捨五入會跨區（79.6 寫成「80 偏熱」）
   → `heatpage.n0()`／頁面 JS `sc0()`：跨到下一區時改成無條件捨去到一位小數；④本機建台股頁到暫存目錄要 `HP.build(out, data_out)` 兩個路徑都給，
   只給 out 會把 `dashboard/x9mh.json`（有入庫）改掉——改到就 `git checkout -- dashboard/x9mh.json`。
+
+## 「視覺化改版」三頁（2026-10-18；規劃、示意圖評估、使用者決定 `docs/lab_visual_plan.md`）
+
+使用者原話：「我想要更視覺化的設計…我希望我可以透過跟網頁的互動找到市場現在的關鍵狀態去做我交易的判斷」
+「你要用動畫或是3D式互動都沒有不行」「以上都不要動到本來的復華雷達都僅限於台股景氣、美股景氣、個股這三個頁面」。
+決定（AskUserQuestion）：景氣頁主畫面＝雷達＋關鍵狀態，可切換 雷達｜羅盤｜地形 3D｜研究；個股頁三張圖都採用；配色跟系統深淺。
+**只改呈現**：heatspec VER 7、heatspec_us VER 1、各研究檔都不動，不必重跑；主頁 `index.html`／`fund_dashboard.py` 不碰。
+
+- **景氣頁（台股 x9m、美股 x9mu 共用 `arm/lab/heatviz.py`）**
+  · `pack(B, V)`＝主畫面的小份資料，嵌在頁面 `<script type="application/json" class="hviz">`（美股每個指數一份、跟著切換）；
+    每週長序列照舊從 x9mh／x9muh-*.json 下載。視角記在網址 `#v=`（美股另有 `#ix=`，兩個並存，`hget`／`hset`）。
+  · 雷達（疊加比較日期、時間拉桿、播放、每季小圖、點軸看項目）＋關鍵狀態（`key_states`：研究判定「熱了之後較弱／較強」
+    而且現在 ≥ 80 或 < 20）＋這週變化；往下是全部項目分布（`imapDraw`）。研究畫面＝原本的驗證段原封搬過去。
+  · 比較日期與地形的大跌期間都用 `episodes()`（指數從高點跌 20% 以上）：雷達取每週收盤最近兩段，地形用每天收盤全部段。只描述位置，不是訊號。
+  · 右側面板（手機全螢幕）：內容由 Python 產生 `<template id="dt-面向">`／`<template id="it-項目">`，瀏覽器只負責打開與畫走勢。
+  · 羅盤＝水準 × 近 4 週變化，可播放；系統設定「減少動態效果」時直接跳到結果。
+  · 3D 熱度地形＝Canvas 2D 自己算投影，**沒有用 three.js**（規劃第 6 節原本寫要載入，實作不需要）。使用者兩輪回饋：
+    「好醜、看不清楚」→ 山脊不逐週上色，只塗過熱山頂（紅）與過冷谷底（藍）、地面灰帶＝大跌期間、最前面一排＝同時過熱幾個面向、右側讀數；
+    「五條線放在一起不知道哪條是哪條」→ 選 **A 每條一個身分色＋B 點一下只看一條**（`heatviz.DCOL` → CSS `--dfund…--dbubl`，
+    相鄰兩條色弱 ΔE ≥ 9，數字在規劃第 9 節）。山頂與谷底畫成「門檻線到山脊之間」的多邊形，不用 clip——只看一條時其他條半透明，clip 會露出整片藍。
+  · 配色：`heatpage._CSS` 淺色 `:root`＋`@media (prefers-color-scheme:dark)` 深色；SVG 用 class 上色，**不把 `var()` 寫進 SVG 屬性**（Safari 不支援）。
+- **個股頁（x9；`arm/lab/stockviz.py`＋page／copage 配色）**
+  · 深淺配色同上做法；page／copage 圖表 JS 裡寫死在 SVG 屬性的顏色不改程式，由 `page.THEME_HEX`＋`theme_css()` 用屬性選擇器
+    （`svg [fill="#d33a34"]{fill:var(--gain)}`）換成變數——SVG 屬性是優先順序最低的樣式，各瀏覽器都蓋得過。**新寫死的顏色要補進表**（tests 守）。
+  · 機會頁摘要＝下一個交易日要做的事（`tlNext`）＋行動時間軸（`tlDraw`：每條推薦策略一列，持有中／排定買進／下一批／調整，
+    「全部｜接下來 5 週」）；原本的文字時間表收在「逐筆時間表（文字）」。籌碼頁首＝主動 ETF 資金地圖（`mmDraw`，產業分區樹狀圖，
+    點格子開個股卡）。飆股段＝位置圖（`spotDraw`，離 52 週高點 × RS，淺色帶＝還差 10% 內到高點，顏色＝位置分類，點泡泡開公司卡）。
+  · **page、stockviz、copage 三支 JS 串成同一個 `<script>`：不得有同名函式或頂層 const／let**——位置圖第一版叫 `sxSec`，
+    和飆股段原本的 `sxSec` 撞名，後面的定義直接蓋掉前面的（`tests/test_stockviz.py::test_three_scripts_have_no_name_collisions` 守）。
+- **驗版**：本機 `python3 -m http.server` 起頁（`file://` 會擋 x9mh／x9s 的 fetch），Playwright 截電腦 1280、手機 390 × 淺深四種；
+  手機每個分頁 `scrollWidth` 不得大於 `clientWidth`（籌碼頁曾因資金地圖的按鈕列不換行溢出 23px）。
+  測試：`tests/test_heatviz.py`、`tests/test_stockviz.py`（後者用 node 實際跑樹狀圖切格、字色、數字格式、位置分類）。
