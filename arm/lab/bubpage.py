@@ -68,7 +68,12 @@ def view() -> dict:
             M[mk] = BU.last(mk)
     R = BU.load_research() or {}
     asof = max((m["now"]["d"] for m in M.values()), default=None)
-    return {"asof": asof, "M": M, "R": R}
+    from . import bubind
+    try:
+        I = bubind.compute()
+    except Exception as e:                                    # noqa: BLE001 —— 產業段失敗不影響市場層級
+        I = {"tw_err": f"{type(e).__name__}: {e}"}
+    return {"asof": asof, "M": M, "R": R, "I": I, "IR": bubind.load_research() or {}}
 
 
 # ── 文字小工具 ───────────────────────────────────────────────────────────────
@@ -527,7 +532,7 @@ def market_card(mk: str, m: dict, R: dict) -> str:
             f'<div class="sv"><b class="sc bl{n["L"]}">{n["L"]}</b><span class="bn bl{n["L"]}">{_e(BS.LEVELS[n["L"]])}</span></div></div>'
             f'<p class="bsum">{_e(summary(mk, m))}</p>'
             f'<div class="seg brg" role="group" aria-label="期間">{rg}</div>'
-            f'<div class="bh" id="h-{mk}"><p class="note">歷史等級載入中…</p></div><div class="tip" id="t-{mk}" hidden></div>'
+            f'<div class="bhw"><div class="bh" id="h-{mk}"><p class="note">歷史等級載入中…</p></div><div class="tip" id="t-{mk}" hidden></div></div>'
             + _legend(bool(ext and (ext.get("hist") or {}).get("d"))) + _now_table(mk, m) + _ref_line(mk, m) + _epi_table(m, ext) + _valid(mk, R) + '</section>')
 
 
@@ -604,8 +609,8 @@ METHOD = (
     '</details></section>')
 
 
-def page_json(V: dict) -> str:
-    out = {}
+def page_json(V: dict, extra: dict | None = None) -> str:
+    out = dict(extra or {})
     for mk, m in V["M"].items():
         h = dict(m["hist"])
         if mk == "tw":
@@ -625,15 +630,20 @@ def page_json(V: dict) -> str:
 
 def render(V: dict) -> str:
     from . import appnav
+    from . import bubindpage as IP
     from .heatpage import _CSS as HCSS
+    I = V.get("I") or {}
+    idata, ikeys = IP.hist_data(I)
     nav = "".join(f'<a href="#{mk}">{_e(BS.NAMES[mk])}</a>' for mk in BS.MARKETS if mk in V["M"])
-    body = (tiles(V) + f'<nav class="snav bnav" aria-label="段落">{nav}<a href="#types">條件說明</a><a href="#mth">方法</a></nav>'
-            + "".join(market_card(mk, V["M"][mk], V["R"]) for mk in BS.MARKETS if mk in V["M"]) + types_sec(V) + METHOD)
+    body = (tiles(V) + f'<nav class="snav bnav" aria-label="段落">{nav}<a href="#ind">產業</a><a href="#types">條件說明</a><a href="#mth">方法</a></nav>'
+            + "".join(market_card(mk, V["M"][mk], V["R"]) for mk in BS.MARKETS if mk in V["M"])
+            + IP.section(I, V.get("IR") or {}, ikeys) + types_sec(V) + METHOD)
     if not V["M"]:
         body = '<p class="warn">泡沫等級還算不出來（缺 PSY 臨界值表：scripts/run_bub.py --cv）。</p>'
-    return (_HTML.replace("{{APPTAB}}", appnav.bar("bub")).replace("{{CSS}}", HCSS + appnav.CSS + CSS)
-            .replace("{{ASOF}}", _e(_md(V["asof"]))).replace("{{BODY}}", body).replace("{{DATA}}", page_json(V) if V["M"] else "{}")
-            .replace("{{JS}}", JS))
+    return (_HTML.replace("{{APPTAB}}", appnav.bar("bub")).replace("{{CSS}}", HCSS + appnav.CSS + CSS + IP.CSS)
+            .replace("{{ASOF}}", _e(_md(V["asof"]))).replace("{{BODY}}", body)
+            .replace("{{DATA}}", page_json(V, idata) if V["M"] else "{}")
+            .replace("{{JS}}", JS + IP.JS))
 
 
 def build(out: Path = OUT) -> bool:
@@ -684,7 +694,7 @@ CSS = """
 .bvh{display:block;font-size:12.5px;color:var(--ink2);margin:2px 0 0 14px}
 .bsum{font-size:14px;line-height:1.75;margin:6px 0 8px}
 .brg{margin:0 0 6px}
-.bh{position:relative;min-height:120px}.bh svg{touch-action:pan-y}
+.bhw{position:relative}.bh{position:relative;min-height:120px}.bh svg{touch-action:pan-y}
 .bh .gd{stroke:var(--ink2);stroke-width:1;stroke-dasharray:3 3}.bh .px{fill:none;stroke:var(--ink);stroke-width:1.5}
 .bh .pxx{fill:none;stroke:var(--ink2);stroke-width:1.4;stroke-dasharray:4 3}.hint{border-bottom:1px dotted var(--line2);cursor:help}
 .rat{display:block}.rat+.rat{margin-top:8px}.dec{display:block;color:var(--ink2);font-size:12.5px;margin-top:2px}.note.cyc{color:var(--ink);font-weight:600}
@@ -709,7 +719,7 @@ JS = r"""
 (function(){
 const D = JSON.parse(document.getElementById('bubd').textContent || '{}');
 const LV = ['沒有泡沫跡象','偏貴（不是泡沫）','漲勢過熱','泡沫警戒','嚴重泡沫'];
-const CN = {'1':'價格爆發','2':'兩年翻倍','3':'偏離趨勢','e':'漲得比基本面快','v':'估值','g':'未來獲利跟不上','f':'槓桿'};
+const CN = {'1':'價格爆發','2':'兩年翻倍','3':'偏離趨勢','e':'漲得比基本面快','v':'估值','g':'未來獲利跟不上','f':'槓桿','h':'換手率'};
 const RG = {}, LW = {};
 const NS = 'http://www.w3.org/2000/svg';
 function el(t, a){ const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); return e; }
@@ -769,7 +779,7 @@ function draw(mk){
     const i = at(e), r = R[i];
     const cs = r.c.split('').map(c => CN[c]).filter(Boolean);
     gd.setAttribute('x1', X(i) + dx / 2); gd.setAttribute('x2', X(i) + dx / 2); gd.setAttribute('visibility', 'visible');
-    tip.innerHTML = `<b>${ym(r.d)}${r.x ? '（月平均）' : ''}</b>等級 ${r.L} ${LV[r.L]}` + (cs.length ? `<br>成立：${cs.join('、')}` : '') + (r.p ? `<br>${r.x ? '月平均' : '月底收盤'} ${fmt(r.p)}` : '');
+    tip.innerHTML = `<b>${ym(r.d)}${r.x ? '（月平均）' : ''}</b>等級 ${r.L} ${LV[r.L]}` + (cs.length ? `<br>成立：${cs.join('、')}` : '') + (r.p ? `<br>${mk[0] === '@' ? '產業指數' : (r.x ? '月平均' : '月底收盤')} ${fmt(r.p)}` : '');
     tip.hidden = false;
     const bw = box.clientWidth, px = (X(i) + dx / 2) * bw / W;
     tip.style.left = Math.min(bw - 170, Math.max(0, px + 10)) + 'px'; tip.style.top = (BH + 4) + 'px';
@@ -779,7 +789,8 @@ function draw(mk){
   svg.addEventListener('pointerleave', () => { tip.hidden = true; gd.setAttribute('visibility', 'hidden'); });
   box.innerHTML = ''; box.appendChild(svg);
 }
-function all(){ Object.keys(D).forEach(draw); }
+function all(){ Object.keys(D).filter(k => k[0] !== '@').forEach(draw); }
+window.bubDraw = draw;
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-br]');
   if (!b) return;
@@ -788,7 +799,7 @@ document.addEventListener('click', e => {
   draw(mk);
 });
 let rz = 0;
-addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { Object.keys(D).forEach(mk => { const box = document.getElementById('h-' + mk); if (box && Math.abs((box.clientWidth || 0) - (LW[mk] || 0)) >= 40) draw(mk); }); }, 150); });
+addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { Object.keys(D).forEach(mk => { const box = document.getElementById('h-' + mk); if (box && box.offsetParent !== null && Math.abs((box.clientWidth || 0) - (LW[mk] || 0)) >= 40) draw(mk); }); }, 150); });
 all();
 })();
 """
