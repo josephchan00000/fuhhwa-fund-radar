@@ -231,3 +231,32 @@ def test_analyze_marks_small_samples_and_keeps_strata():
     r2 = K.analyze(cal, x2, A["A2"], vol, dv, 20, True, with_oos=False)
     assert "v" not in r2 and r2["ep"] >= S.MIN_EPISODES and len(r2["strata"]) == 3 and len(r2["zones"]) == 5
     assert r2["lo"] is not None and r2["rob"]["z"] is not None
+
+
+def test_vol_state_matches_direct_computation():
+    """每天建頁的「先看波動」：今天的 20 日波動在全部日子裡的百分位、三分位組別、同一組波動的日子之後的比例（逐筆直接算）。"""
+    px = _px(n=700, seed=11)
+    cal = [f"d{i:04d}" for i in range(len(px))]
+    out = K.vol_state("tw", {"cal": cal, "px": px})
+    lr = [math.log(px[i] / px[i - 1]) for i in range(1, len(px))]
+
+    def sd(xs):
+        m = sum(xs) / len(xs)
+        return math.sqrt(sum((x - m) ** 2 for x in xs) / (len(xs) - 1))
+    vol = [None] * 20 + [sd(lr[i - 20:i]) for i in range(20, len(px))]   # 第 t 天＝t−19～t 這 20 個日報酬
+    have = [v for v in vol if v is not None]
+    vt = vol[-1]
+    assert out["vol"] == pytest.approx(vt) and out["a"] == cal[20]
+    assert out["pct"] == pytest.approx(sum(v < vt for v in have) / len(have))
+    c0, c1 = np.quantile(np.array(have), [1 / 3, 2 / 3])
+    g = int(vt >= c0) + int(vt >= c1)
+    assert out["g"] == g
+    A = K.outcomes(px, S.TH["tw"])
+    for o in S.OUTCOMES:
+        ys = [(A[o][i], int(vol[i] >= c0) + int(vol[i] >= c1)) for i in range(len(px))
+              if vol[i] is not None and not math.isnan(A[o][i])]
+        same = [y for y, gg in ys if gg == g]
+        r = out["rows"][o]
+        assert r["ng"] == len(same) and r["n"] == len(ys)
+        assert r["g"] == pytest.approx(sum(same) / len(same)) and r["all"] == pytest.approx(sum(y for y, _ in ys) / len(ys))
+    assert K.vol_state("tw", {"cal": cal[:10], "px": px[:10]})["g"] is None   # 波動還算不出來

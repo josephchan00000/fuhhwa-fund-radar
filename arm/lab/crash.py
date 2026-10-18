@@ -6,6 +6,7 @@
   analyze()         一個市場 × 預測變數 × 結果：分區表、扣掉波動的差、重抽區間、前後兩半、樣本不足、穩健度、樣本外
   research()        五個市場全部算完＋BH＋主要假說（Holm）→ data/lab/crash_research.json
   now()             每天建頁：今天每個預測變數的 0～100、今天落在哪一組波動（研究檔的分組界線）
+  vol_state()       每天建頁：今天的 20 日波動在全部日子裡的位置，同一組波動的日子之後的比例（描述）
 
 研究檔只在資料或規格改了才重跑：TZ=Asia/Taipei python3 scripts/run_crash.py（numpy）。
 """
@@ -714,6 +715,30 @@ def load_research() -> dict | None:
 
 
 # ── 每天建頁：今天的狀態 ──────────────────────────────────────────────────
+
+def vol_state(mk: str, I: dict) -> dict:
+    """今天的 20 日波動（描述，不是檢定）：在全部日子裡的百分位、落在哪一組（全部日子的三分位），
+    以及同一組波動的日子之後五種大跌的比例（A5 是平均）和全部日子比。"""
+    px = I["px"]
+    vol = vol20(px)
+    t = len(px) - 1
+    vt = None if t < 0 or math.isnan(vol[t]) else float(vol[t])
+    out: dict = {"vol": vt, "pct": None, "g": None, "rows": {}}
+    ok = ~np.isnan(vol)
+    if vt is None or ok.sum() < S.VOL_GROUPS:
+        return out
+    cuts = terciles(vol[ok])
+    g = np.where(ok, groups(vol, cuts), -1)
+    out.update({"pct": float((vol[ok] < vt).mean()), "g": int((vt >= cuts[0]) + (vt >= cuts[1])),
+                "cuts": [cuts[0], cuts[1]], "a": I["cal"][int(np.argmax(ok))]})
+    A = outcomes(px, S.TH[mk])
+    for o in S.OUTCOMES:
+        m = ok & ~np.isnan(A[o])
+        mg = m & (g == out["g"])
+        if m.any() and mg.any():
+            out["rows"][o] = {"g": float(A[o][mg].mean()), "ng": int(mg.sum()), "all": float(A[o][m].mean()), "n": int(m.sum())}
+    return out
+
 
 def now(mk: str, I: dict, R: dict | None) -> dict:
     """今天（日曆最後一天）每個預測變數的 0～100、熱不熱、今天的波動落在研究檔哪一組。"""
