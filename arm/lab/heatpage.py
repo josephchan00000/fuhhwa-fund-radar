@@ -223,11 +223,16 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
               "next": next_days(cal[t], S.DEDUCT_N), "base_a": cal[S.EV_START]}
     we = HP.week_ends(cal) if T else []
     strips = {d: HP.strip(B, d, we=we) for d in S.DIMS} if T else {}
-    return {"asof": cal[t] if cal else None, "dims": dims, "R": R,
+    out = {"asof": cal[t] if cal else None, "dims": dims, "R": R,
             "data": R.get("data") or {}, "cal_info": B.get("cal_info"), "vixcorr": B.get("vixcorr") or {}, "ta": ta,
             "strips": strips, "summary": HP.summary(strips) if strips else "", "dvn": dvn,
             "dvr": R.get("deriv") or {}, "rel": R.get("rel") or {}, "m6": R.get("m6") or {}, "meta": meta(),
             "bub": _bub_main(R), "bub_ext": (R.get("bub") or {}).get("ext") or {}, "ref": ref_now(B)}
+    if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
+        from . import heatviz as VZ
+        out["viz"] = VZ.pack(B, out)
+        out["ks"] = VZ.key_states(B, out, we)
+    return out
 
 
 def _bub_main(R: dict) -> dict:
@@ -723,7 +728,7 @@ def _rng_txt(a: str | None, z: str | None) -> str:
 def _valid(dim: str, L: dict) -> str:
     ref = S.SPLIT_REF[L["freq"]]
     r0, r1 = (_rng_txt(a, z) for a, z in ref)
-    out = [f'<div class="vsec"><h3>{_e(L["name"])}<span class="sub">{"每月最後一個交易日一個樣本" if L["freq"] == "m" else "每天一個樣本"}</span></h3>']
+    out = [f'<div class="vsec" id="v-{dim}"><h3>{_e(L["name"])}<span class="sub">{"每月最後一個交易日一個樣本" if L["freq"] == "m" else "每天一個樣本"}</span></h3>']
     for h in L["fwd"]:
         ce = _ev(L["cev"], h)
         rows = ([_vrow("面向分數", L["first"], ce, L["freq"])]
@@ -824,10 +829,10 @@ def _evc(r: dict | None, h: int) -> str:
     return f'<td>{avg}</td><td>{d}</td><td class="l">{_e(S.EV_VERDICT.get(r.get("verdict"), "—"))}</td>'
 
 
-def _ta(V: dict) -> str:
+def _ta_parts(V: dict) -> tuple[str, str]:
     ta = V.get("ta")
     if not ta:
-        return ""
+        return "", ""
     lv = ta["lv"]
     rows = []
     for n, key in ((20, "ma20"), (60, "ma60"), (120, None), (240, "ma240")):
@@ -875,7 +880,7 @@ def _ta(V: dict) -> str:
              f'<th>之後 10 日平均</th><th>和所有日子差［95% 信賴區間］</th><th class="l">判定</th>'
              f'<th>之後 60 日平均</th><th>和所有日子差［95% 信賴區間］</th><th class="l">判定</th></tr>{"".join(trs)}</table></div>'
              if st else '<p class="warn">事件研究還沒產生（data/lab/heat_research.json）。</p>')
-    return (f'<section class="cd" id="ta"><div class="ch"><h2>關鍵價位與事件<span class="sub">{_e(MK["px"])} {_e(_md(lv["t"]))}收盤 '
+    main = (f'<section class="cd" id="ta"><div class="ch"><h2>關鍵價位與事件<span class="sub">{_e(MK["px"])} {_e(_md(lv["t"]))}收盤 '
             f'{_num0(lv["close"])}；不進分數，只描述位置</span></h2></div>'
             f'<p class="hot">均線是收盤的簡單平均。跌破、站回、交叉、季線轉向一律要「之前 {S.EV_PRIOR} 個交易日是原來的狀態、'
             f'連 {S.EV_CONF} 個交易日是新狀態」才算，第 {S.EV_CONF} 天是事件日。</p>'
@@ -883,10 +888,23 @@ def _ta(V: dict) -> str:
             f'<th>數值</th><th>距離</th><th>方向</th><th class="l">現在的狀態</th></tr>{"".join(rows)}</table></div>'
             f'<ul class="tal">{"".join(lis)}</ul>'
             f'<h3>近 {TA_RECENT} 個交易日的事件</h3><p class="rec">{rec}</p>'
-            f'<h3>事件之後{_e(MK["px"])}的表現<span class="sub">只當參考，不當買賣訊號</span></h3>'
-            f'<p class="note">{allr}型態（M 頭、W 底、頭肩）用收盤轉折點認，收盤跌破／突破頸線那天才算成立。'
-            f'16 種事件 × 2 個期間＝32 個比較，就算全是運氣也會有一兩個看起來「顯著」；判定要信賴區間不含 0、'
-            f'前後兩半方向一樣才寫，事件少於 {S.EV_MIN} 次寫「樣本不足」。</p>{table}</section>')
+            '<p class="note">16 種事件之後的表現（次數、平均、判定）在研究畫面。'
+            '<button type="button" class="tb" data-goview="research" data-anchor="tas">看事件研究 →</button></p></section>')
+    study = (f'<section class="sec" id="tas"><h2>事件之後{_e(MK["px"])}的表現<span class="sub">只當參考，不當買賣訊號</span></h2>'
+             f'<p class="note">{allr}型態（M 頭、W 底、頭肩）用收盤轉折點認，收盤跌破／突破頸線那天才算成立。'
+             f'16 種事件 × 2 個期間＝32 個比較，就算全是運氣也會有一兩個看起來「顯著」；判定要信賴區間不含 0、'
+             f'前後兩半方向一樣才寫，事件少於 {S.EV_MIN} 次寫「樣本不足」。</p>{table}</section>')
+    return main, study
+
+
+def _ta_main(V: dict) -> str:
+    """主畫面：均線、扣抵、前波高低點、支撐壓力、近期事件。"""
+    return _ta_parts(V)[0]
+
+
+def _ta_study(V: dict) -> str:
+    """研究畫面：16 種事件之後的表現。"""
+    return _ta_parts(V)[1]
 
 
 CPLV = {"strong": "之後較強", "weak": "之後較弱", "none": "看不出差別", "few": "樣本不足"}
@@ -1283,38 +1301,36 @@ def _meta_json(V: dict) -> str:
 
 
 def parts(V: dict) -> dict:
-    """頁面的三塊（美股頁每個指數各一份）：nav＝段落目錄、body＝主體、asof＝資料日。"""
+    """頁面的主體（美股頁每個指數各一份）：四個視角（雷達、羅盤、地形、研究）＋右側面板的內容＋雷達的資料；asof＝資料日。
+    研究畫面＝原本的邊際變化、驗證、事件研究、資料來源，內容原封搬過去（docs/lab_visual_plan.md 第 5 節）。"""
+    from . import heatviz as VZ
     Ds = V["dims"]
     asof = V["asof"]
-    R = V.get("R") or {}
-    nores = "" if R.get("dims") else f'<p class="warn">驗證結果還沒產生（{_e(MK["res"])}），先只列各項的 0～100。</p>'
     data_rows = "".join(f'<tr><td class="l">{_e(k)}</td><td>{v[0]:,}</td><td>{_e(v[1] or "—")}</td><td>{_e(v[2] or "—")}</td></tr>'
                         for k, v in sorted((V.get("data") or {}).items()))
     firsts = "、".join(f'{S.DSHORT[d]} {_ymd(L["first"])}' for d, L in Ds.items() if L["first"])
-    body = (
-        _strips(V) + f'<p class="hz">{_e(S.HORIZON_NOTE)}。<span class="mu">（資料到 {_e(_md(asof))}）</span></p>{nores}'
-        + _cmp_section()
-        + "".join(_card(d, Ds[d], V) for d in Ds) + _dv_section(V) + _ta(V)
+    research = (
+        _dv_section(V)
         + '<section class="sec" id="valid"><h2>驗證</h2>' + _METHOD + _METHOD5
         + (f'<p class="note">面向分數最早從哪天有：{_e(firsts)}。</p>' if firsts else "")
         + _rel_overview(V) + _m6_valid(V)
-        + "".join(_valid(d, Ds[d]) for d in Ds) + _bub_valid(V) + "</section>"
+        + "".join(_valid(d, Ds[d]) for d in Ds) + _bub_valid(V) + "</section>" + _ta_study(V)
         + f'<section class="sec" id="src"><h2>資料來源與筆數</h2><div class="tw"><table><tr><th class="l">檔</th><th>筆數</th>'
           f'<th>起</th><th>到</th></tr>{data_rows}</table></div><p class="note">{_e(_SRC_NOTE)}</p></section>'
     )
-    nav = (f'<a href="#top">頁首</a><a href="#cmp">{_e(MK["cmp"])}</a>' + "".join(f'<a href="#c-{d}">{_e(S.DSHORT[d])}</a>' for d in Ds)
-           + '<a href="#dv">邊際變化</a>' + ('<a href="#ta">價位事件</a>' if V.get("ta") else "")
-           + '<a href="#valid">驗證</a><a href="#src">來源</a>')
-    return {"nav": nav, "body": body, "asof": asof}
+    body = (VZ.main_view(V, V.get("ks") or []) + VZ.compass_view() + VZ.terrain_view() + VZ.research_view(V, research)
+            + VZ.templates(V) + VZ.viz_json(V))
+    return {"nav": "", "body": body, "asof": asof}
 
 
 def render(V: dict) -> str:
     from . import appnav
+    from . import heatviz as VZ
     P = parts(V)
-    return (_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS)
+    return (_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS)
             .replace("{{TITLE}}", _e(MK["title"])).replace("{{PURP}}", _e(MK["purp"])).replace("{{PRE}}", MK["pre"])
-            .replace("{{ASOF}}", _e(_md(P["asof"]))).replace("{{NAV}}", P["nav"])
-            .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", _JS))
+            .replace("{{ASOF}}", _e(_md(P["asof"]))).replace("{{VSW}}", VZ.switch_html()).replace("{{DRAWER}}", VZ.DRAWER)
+            .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS))
 
 
 def _write(out: Path, text: str) -> bool:
@@ -1374,17 +1390,28 @@ _HTML = """<!doctype html>
 <style>{{CSS}}</style></head>
 <body>
 <div class="top">{{APPTAB}}<span class="asof">資料到 {{ASOF}}</span><a class="back" href="./">返回主頁</a></div>
-<p class="purp">{{PURP}}</p>{{PRE}}
-<nav class="snav">{{NAV}}</nav>
+<div class="vbar">{{VSW}}<details class="purp"><summary>這頁怎麼看</summary><p>{{PURP}}</p></details></div>{{PRE}}
 <main>{{BODY}}</main>
+{{DRAWER}}
 <script>window.HEAT_META={{META}};</script>
 <script>{{JS}}</script>
 </body></html>
 """
 
 _CSS = """
-:root{--bg:#fff;--card2:#f4f6fa;--ink:#1f2733;--ink2:#44505f;--mut:#727e8c;--line:#e8ebf1;--acc:#2563c9;--accd:#1c4fa8;
---c0:#2f6fb5;--c1:#7fb0de;--c2:#b8c0cc;--c3:#f0a35a;--c4:#d33a34;--warn:#b45309}
+:root{color-scheme:light dark;--bg:#fff;--panel:#fff;--card2:#f4f6fa;--ink:#1f2733;--ink2:#44505f;--mut:#67727f;--line:#e8ebf1;--line2:#d3dae4;
+--acc:#2563c9;--accd:#1c4fa8;--accbg:rgba(37,99,201,.10);--warn:#b45309;--ring:#fff;--tipbg:#fff;--shadow:0 4px 14px rgba(20,30,50,.14);
+--c0:#2f6fb5;--c1:#7fb0de;--c2:#b8c0cc;--c3:#f0a35a;--c4:#d33a34;--t0:#2a65a8;--t1:#3572b2;--t2:#44505f;--t3:#b25f10;--t4:#c8322c;
+--sbg:#fdecea;--wbg:#e6f4ec;--curbg:#fff7e6;--bp:#c2c8d0;--zh:rgba(211,58,52,.07);--zc:rgba(47,111,181,.08);
+--p0:#7b5ea7;--p1:#199e70;--p2:#c98500;--p3:#d55181;--p4:#4d7c0f;
+--dfund:#199e70;--dchip:#7b5ea7;--dgliq:#a88a00;--dtliq:#d55181;--dtech:#0f8fa8;--dbubl:#a0522d}
+@media (prefers-color-scheme:dark){:root{--bg:#0b111c;--panel:#121a28;--card2:#182234;--ink:#e8eef8;--ink2:#aab6c9;--mut:#8392a8;
+--line:#223049;--line2:#30425f;--acc:#6aa8ff;--accd:#8fbcff;--accbg:rgba(106,168,255,.14);--warn:#f0a24a;--ring:#0b111c;--tipbg:#182234;
+--shadow:0 8px 26px rgba(0,0,0,.5);--c0:#3d82e0;--c1:#7cb3ec;--c2:#8b96a8;--c3:#f3a35c;--c4:#f15b50;
+--t0:#6ea6f0;--t1:#93c0ef;--t2:#aab6c9;--t3:#f2a65e;--t4:#ff7d72;--sbg:rgba(241,91,80,.16);--wbg:rgba(47,191,113,.15);
+--curbg:rgba(243,163,92,.14);--bp:#4a5a74;--zh:rgba(241,91,80,.10);--zc:rgba(61,130,224,.12);
+--p0:#997ac9;--p1:#24a476;--p2:#bf7c00;--p3:#db5786;--p4:#6c9d3a;
+--dfund:#24a476;--dchip:#997ac9;--dgliq:#a68900;--dtliq:#db5786;--dtech:#22a5c0;--dbubl:#c87a4f}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif;-webkit-text-size-adjust:100%}
@@ -1393,7 +1420,8 @@ table,.num{font-variant-numeric:tabular-nums}
 .top{display:flex;align-items:baseline;gap:4px 12px;flex-wrap:wrap;padding:10px 16px 4px;max-width:1080px;margin:0 auto}
 .top b{font-size:18px}.asof{color:var(--mut);font-size:12.5px;flex:1;min-width:0}
 .back{font-size:13px;color:var(--mut);white-space:nowrap}
-.purp{max-width:1080px;margin:0 auto;padding:0 16px 6px;color:var(--ink2);font-size:13.5px;line-height:1.75}
+.purp{color:var(--ink2);font-size:13px;line-height:1.75}.purp>summary{cursor:pointer;color:var(--mut);font-size:12.5px;list-style:none}
+.purp>summary::-webkit-details-marker{display:none}.purp>summary::before{content:"ⓘ ";}.purp p{margin:4px 0 2px;max-width:860px}
 .snav{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:6px 16px 7px;border-bottom:1px solid var(--line);max-width:1080px;margin:0 auto}
 .snav::-webkit-scrollbar{display:none}
 .snav a{padding:2px 10px;border-radius:12px;color:var(--ink2);font-size:13px;white-space:nowrap;background:var(--card2)}
@@ -1404,12 +1432,12 @@ main{padding:14px 16px 80px;max-width:1080px;margin:0 auto}
 .ch{display:flex;align-items:flex-start;flex-wrap:wrap;gap:4px 12px}
 .ch h2{margin:0;font-size:17px;flex:1;min-width:0}.ch h2 .sub,.sec h2 .sub,h3 .sub{font-size:12.5px;font-weight:400;color:var(--mut);margin-left:8px}
 .sv{display:flex;align-items:baseline;gap:8px}.sc{font-size:34px;line-height:1;font-weight:800}.bn{font-weight:700}
-.sc.b0,.bn.b0{color:var(--c0)}.sc.b1,.bn.b1{color:#3f7fc0}.sc.b2,.bn.b2{color:var(--ink2)}.sc.b3,.bn.b3{color:#c26a16}.sc.b4,.bn.b4{color:var(--c4)}
+.sc.b0,.bn.b0{color:var(--t0)}.sc.b1,.bn.b1{color:var(--t1)}.sc.b2,.bn.b2{color:var(--t2)}.sc.b3,.bn.b3{color:var(--t3)}.sc.b4,.bn.b4{color:var(--t4)}
 .wk{font-size:12.5px;color:var(--mut)}
 .hot{font-size:12.5px;color:var(--mut);margin:4px 0 0}
 .mt{position:relative;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;height:10px;margin:10px 0 2px}
 .mt i{display:block;border-radius:3px}.mt .b0{background:var(--c0)}.mt .b1{background:var(--c1)}.mt .b2{background:var(--c2)}.mt .b3{background:var(--c3)}.mt .b4{background:var(--c4)}
-.mt .mk{position:absolute;top:-5px;width:4px;height:20px;margin-left:-2px;background:var(--ink);border-radius:2px;box-shadow:0 0 0 2px #fff}
+.mt .mk{position:absolute;top:-5px;width:4px;height:20px;margin-left:-2px;background:var(--ink);border-radius:2px;box-shadow:0 0 0 2px var(--ring)}
 .mtl{display:grid;grid-template-columns:repeat(5,1fr);font-size:11px;color:var(--mut);text-align:center}
 .past{font-size:13.5px;color:var(--ink2);margin:8px 0 2px;line-height:1.75}
 .vd{font-size:13.5px;margin:2px 0}.eq{font-size:12px;color:var(--mut);margin:2px 0 8px}
@@ -1460,11 +1488,11 @@ h3{font-size:15px;margin:18px 0 6px;color:var(--accd)}h4{font-size:13.5px;margin
 .inm .ipos{color:var(--ink2);font-size:11.5px}.inm .idv{color:var(--accd);font-size:11.5px}
 .cbar{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:0 0 6px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.ck{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:14px;padding:3px 10px;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}
+.ck{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:3px 10px;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}
 .ck i{display:inline-block;width:14px;height:3px;border-radius:2px;background:var(--line)}
-.ck.on{border-color:var(--ink2);color:var(--ink);font-weight:600}.ck.on i{background:var(--c,#555)}
-.tb{border:1px solid var(--line);background:#fff;border-radius:8px;padding:3px 10px;font:inherit;font-size:12.5px;color:var(--ink2);cursor:pointer}
-.tb.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.ck.on{border-color:var(--ink2);color:var(--ink);font-weight:600}.ck.on i{background:var(--c,var(--ink2))}
+.tb{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:3px 10px;font:inherit;font-size:12.5px;color:var(--ink2);cursor:pointer}
+.tb.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .seg{display:inline-flex;gap:4px;flex-wrap:wrap}
 .pick{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:0 0 8px;display:flex;flex-direction:column;gap:8px}
 .pg{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.pg b{font-size:12.5px;color:var(--mut);min-width:4.5em}
@@ -1473,26 +1501,26 @@ h3{font-size:15px;margin:18px 0 6px;color:var(--accd)}h4{font-size:13.5px;margin
 .cw .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
 .cw .lpx{fill:none;stroke:var(--ink2);stroke-width:1.5}
 .cw .el{font-size:11.5px;fill:var(--ink2)}.cw .pt{font-size:11.5px;fill:var(--mut)}
-.cw .shh{fill:var(--c4);opacity:.12}.cw .shc{fill:var(--c0);opacity:.12}
-.cw .zh{fill:var(--c4);opacity:.05}.cw .zc{fill:var(--c0);opacity:.05}
+.cw .shh{fill:var(--c4);opacity:.14}.cw .shc{fill:var(--c0);opacity:.14}
+.cw .zh{fill:var(--zh)}.cw .zc{fill:var(--zc)}
 .cw .cx{stroke:var(--ink);stroke-width:1;opacity:.5}
-.tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.12);padding:6px 9px;font-size:12px;min-width:150px;z-index:3}
+.tip{position:absolute;pointer-events:none;background:var(--tipbg);color:var(--ink);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:6px 9px;font-size:12px;min-width:150px;z-index:3}
 .tip b{display:block;font-size:12px;margin-bottom:2px}.tip div{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .tip i{display:inline-block;width:12px;height:3px;border-radius:2px}.tip strong{font-size:13px;min-width:2.4em}
 .tip .tpx{color:var(--mut);margin-top:2px}
 #cmp-an h3{margin-top:14px}#cmp-an h4{margin:14px 0 4px}#cmp-an p{font-size:13.5px;line-height:1.75;margin:4px 0;color:var(--ink2)}
 .an svg{display:block;width:auto;max-width:100%;height:auto}
 .an .mob{display:none}
-.an .bp{fill:#c2c8d0}.an .bf{fill:var(--ink2)}.an .ci{stroke:var(--ink);stroke-width:1.5}.an .zl{stroke:var(--ink2);stroke-width:1}
+.an .bp{fill:var(--bp)}.an .bf{fill:var(--ink2)}.an .ci{stroke:var(--ink);stroke-width:1.5}.an .zl{stroke:var(--ink2);stroke-width:1}
 .an .lr{fill:none;stroke:var(--ink2);stroke-width:2}
 table.g3 td.c3{white-space:normal;min-width:118px;text-align:left;vertical-align:top}
 table.g3 th{white-space:normal}
 table.ct td:first-child{white-space:normal;min-width:6em}
 .an th{white-space:normal}
 .c3 b{display:block;font-size:15px}.c3 span{display:block;font-size:11.5px;color:var(--ink2)}.c3 em{display:block;font-style:normal;font-size:12px;font-weight:600;margin-top:2px}
-.c3.cs{background:#fdecea}.c3.cw{background:#e6f4ec}.c3.cf{color:var(--mut)}.c3.cf b{color:var(--mut)}
+.c3.cs{background:var(--sbg)}.c3.cw{background:var(--wbg)}.c3.cf{color:var(--mut)}.c3.cf b{color:var(--mut)}
 .c3.cur{box-shadow:inset 0 0 0 2px var(--ink)}
-tr.cur td{background:#fff7e6}.ovl{font-size:13px}
+tr.cur td{background:var(--curbg)}.ovl{font-size:13px}
 .ovw{margin:14px 0}.ovw>summary{cursor:pointer;font-size:14px;line-height:1.7;color:var(--accd)}.ovw>summary .sub{display:block;font-size:12px;color:var(--mut);font-weight:400}
 table.dvt td:nth-child(2),table.dvt td:nth-child(4),table.dvt td:nth-child(5){white-space:normal;min-width:180px}
 table.rlt td{white-space:normal;min-width:120px}table.rlt td:first-child{min-width:150px}
@@ -1504,7 +1532,7 @@ table.m6t th:first-child{background:var(--card2)}table.m6t td b{color:var(--accd
 table.m6p td:nth-child(2){white-space:normal;min-width:220px}
 .rsp{display:flex;flex-wrap:wrap;gap:12px}
 .m6s{margin:6px 0;border-top:1px solid var(--line);padding-top:6px}.m6s>summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--ink)}
-.m6s>summary .sub{display:block;margin:1px 0 0;font-weight:400;font-size:12px;color:var(--mut)}.an .rp{fill:var(--acc)}.an .ri{fill:var(--ink)}.an .rn{fill:#fff;stroke:var(--mut);stroke-width:1.5}
+.m6s>summary .sub{display:block;margin:1px 0 0;font-weight:400;font-size:12px;color:var(--mut)}.an .rp{fill:var(--acc)}.an .ri{fill:var(--ink)}.an .rn{fill:var(--bg);stroke:var(--mut);stroke-width:1.5}
 @media (max-width:640px){
  .sr{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"n v" "c c" "t t";padding:9px 10px}
  .sr-n{grid-area:n}.sr-v{grid-area:v}.sr-c{grid-area:c;height:16px}.sr-t{grid-area:t;font-size:12px}
@@ -1580,6 +1608,7 @@ function ymd(d) { return d ? (+d.slice(0, 4)) + '/' + (+d.slice(5, 7)) + (d.leng
 function val(t, i) { if (!t) return null; const j = i - t.o; return j >= 0 && j < t.v.length ? t.v[j] : null; }
 function trunc(s, n) { return s.length > n ? s.slice(0, n) + '…' : s; }
 function bandName(x) { for (const b of M.bands) if (x >= b[0] && (x < b[1] || b[1] >= 100)) return b[2]; return null; }
+function pal(slot) { return 'var(--p' + slot + ')'; }                     // 線色跟著深淺色（CSS 變數 --p0～--p4）
 
 // ── 選線
 function slotOf(id) { const s = st.sel.find(x => x.id === id); return s ? s.slot : -1; }
@@ -1599,6 +1628,7 @@ function toggle(id) {
   render();
 }
 function only(id) {
+  if (window.heatView) window.heatView('radar', 'cmp');       // 對照圖在雷達畫面
   st.sel = [{id: id, slot: 0}];
   st.mode = 'h';
   msg('');
@@ -1616,7 +1646,7 @@ function chip(id, label) {
   const b = document.createElement('button');
   b.type = 'button'; b.className = 'ck';
   const s = slotOf(id);
-  if (s >= 0) { b.classList.add('on'); b.style.setProperty('--c', M.pal[s]); }
+  if (s >= 0) { b.classList.add('on'); b.style.setProperty('--c', pal(s)); }
   b.setAttribute('aria-pressed', s >= 0 ? 'true' : 'false');
   b.appendChild(document.createElement('i'));
   b.appendChild(document.createTextNode(label));
@@ -1755,16 +1785,16 @@ function draw() {
     const y = Y(t).toFixed(1);
     s += '<line class="gl" x1="' + PL + '" x2="' + (W - PR) + '" y1="' + y + '" y2="' + y + '"/><text class="gt" x="' + (PL - 5) + '" y="' + (+y + 3.5).toFixed(1) + '" text-anchor="end">' + esc(raw ? fmtRaw(lines[0].id, t) : t) + '</text>';
   });
-  lines.forEach(L => { const d = path(L.v, X, Y, w.i0); if (d) s += '<path class="ln" d="' + d + '" stroke="' + M.pal[L.slot] + '"/>'; });
+  lines.forEach(L => { const d = path(L.v, X, Y, w.i0); if (d) s += '<path class="ln" d="' + d + '" style="stroke:' + pal(L.slot) + '"/>'; });
   if (!narrow) {
     const labs = [];
     lines.forEach(L => {
-      for (let j = L.v.length - 1; j >= 0; j--) if (L.v[j] != null) { labs.push({y: Y(L.v[j]), x: X(w.i0 + j), t: SHORT[L.id], c: M.pal[L.slot]}); break; }
+      for (let j = L.v.length - 1; j >= 0; j--) if (L.v[j] != null) { labs.push({y: Y(L.v[j]), x: X(w.i0 + j), t: SHORT[L.id], c: pal(L.slot)}); break; }
     });
     labs.sort((a, b) => a.y - b.y);
     let last = -1e9;
     labs.forEach(l => {
-      s += '<circle cx="' + l.x.toFixed(1) + '" cy="' + l.y.toFixed(1) + '" r="4" fill="' + l.c + '" stroke="#fff" stroke-width="2"/>';
+      s += '<circle cx="' + l.x.toFixed(1) + '" cy="' + l.y.toFixed(1) + '" r="4" style="fill:' + l.c + ';stroke:var(--ring)" stroke-width="2"/>';
       if (l.y - last < 13) return;
       last = l.y;
       s += '<text class="el" x="' + (W - PR + 8) + '" y="' + (l.y + 4).toFixed(1) + '">' + esc(trunc(l.t, 7)) + '</text>';
@@ -1814,7 +1844,7 @@ function draw() {
     const h = document.createElement('b'); h.textContent = ymd(w.ds[i]); tip.appendChild(h);
     lines.forEach(L => {
       const row = document.createElement('div');
-      const k = document.createElement('i'); k.style.background = M.pal[L.slot]; row.appendChild(k);
+      const k = document.createElement('i'); k.style.background = pal(L.slot); row.appendChild(k);
       const vv = document.createElement('strong');
       const v = L.v[j];
       vv.textContent = v == null ? '—' : (raw ? fmtRaw(L.id, v) : sc0(v));
@@ -2127,20 +2157,34 @@ function analysis() {
 }
 
 function render() { controls(); draw(); aw = $('#cmp-an').clientWidth; analysis(); }
+function getP() {                                           // 同一個檔只下載一次（雷達、羅盤、3D、面板共用）
+  const C = window.__heatP = window.__heatP || {};
+  if (!C[M.data]) C[M.data] = fetch(M.data || 'x9mh.json', {cache: 'no-cache'}).then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+    .catch(e => { delete C[M.data]; throw e; });
+  return C[M.data];
+}
+window.heatGet = getP;
 function load() {
   failed = false;
   draw();
-  fetch(M.data || 'x9mh.json', {cache: 'no-cache'}).then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
-    .then(d => { if (AC.signal.aborted) return; D = d; render(); })
+  getP().then(d => { if (AC.signal.aborted) return; D = d; render(); })
     .catch(() => { if (AC.signal.aborted) return; failed = true; draw(); });
 }
 $('#cmp-more').addEventListener('click', () => { st.pick = !st.pick; msg(''); controls(); });
-document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('.nmb'); if (b && b.dataset.k) { e.preventDefault(); only(b.dataset.k); } }, SIG);
+document.addEventListener('click', e => {                  // 點項目名稱：打開右側面板（沒有面板的組線直接放進對照圖）；面板裡的按鈕放進對照圖
+  const b = e.target.closest && e.target.closest('.nmb, .cmpk');
+  if (!b || !b.dataset.k) return;
+  e.preventDefault();
+  if (b.classList.contains('nmb') && window.heatOpen && window.heatOpen(b.dataset.k)) return;
+  if (window.heatClose) window.heatClose();
+  only(b.dataset.k);
+}, SIG);
 let rt = null;
 let aw = 0;
 window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (!D) return; draw(); const w = $('#cmp-an').clientWidth; if (Math.abs(w - aw) > 40) { aw = w; analysis(); } }, 150); }, SIG);
 controls();
 load();
+if (window.heatViz) window.heatViz();
 };
 window.heatInit();
 """

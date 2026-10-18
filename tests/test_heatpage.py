@@ -196,11 +196,12 @@ def test_render_structure_and_wording(built):
         assert sec in page, sec
     for gone in ('id="trend"', 'id="detail"', 'class="tile"'):              # 第五版拿掉靜態走勢圖、各項明細、頁首數字卡
         assert gone not in page, gone
-    assert page.count('<a class="sr" href="#c-') == len(S.DIMS) == 6 and S.HORIZON_NOTE in page    # 六個面向的近 52 週色帶
+    assert '<a class="sr" href="#c-' not in page                                # 視覺化版面拿掉 52 週色帶，改成雷達（docs/lab_visual_plan.md）
+    assert page.count('<template id="dt-') == len(S.DIMS) == 6 and S.HORIZON_NOTE in page   # 每個面向一個右側面板
     for d in S.DIMS:
         st = V["strips"][d]
         assert len(st["cells"]) == min(S.STRIP_WEEKS, len(P.HP.week_ends(built[0]["cal"])))
-        assert P.strip_text(st) in page
+        assert P.strip_text(st) in page                                       # 色帶旁的說明搬到面向面板
     assert V["summary"] and V["summary"] in page
     assert page.count('class="it"') >= 35 and "拉動分數" in page and "佔比" in page and "本週" in page
     assert page.count('<tr><td class="l">', page.index('class="evt"')) >= len(S.EVENTS)      # 16 種事件各一列
@@ -227,7 +228,7 @@ def test_items_show_history_position_and_marginal_change(built):
     for k in have_dv:
         assert f'>邊際變化 {P.acc_label(k, V["dvn"][k])}</i>' in page
     assert '<i class="idv">邊際變化：' not in page                             # 第五版的長句不再出現在每一項下面
-    dv = page[page.index('id="dv"'):page.index('id="ta"')]
+    dv = page[page.index('id="dv"'):page.index('id="valid"')]                   # 視覺化版面：邊際變化搬到研究畫面
     assert sum(dv.count(f'class="nmb" data-k="{k}"') for k in S.DERIV) == len(S.DERIV) == 13   # 核心 13 項（規劃時數錯寫成 14）
     for k in have_dv:
         assert html.escape(P.dv_line(k, V["dvn"][k])) in dv                   # 數字還在（滑過的說明）
@@ -292,7 +293,7 @@ def test_acc_label_and_counts():
 
 def test_dv_section_v6_headline_conclusion_and_table(built):
     _, R, V, page = built
-    dv = page[page.index('id="dv"'):page.index('id="ta"')]
+    dv = page[page.index('id="dv"'):page.index('id="valid"')]
     a, b = P.acc_counts(V["dvn"])["all"]
     assert f"{len(S.DERIV)} 項裡 {a} 項在加速" in dv
     for g in S.M6_GROUPS:                                                     # 三組都可以點到對照圖

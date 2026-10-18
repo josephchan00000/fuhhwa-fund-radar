@@ -169,7 +169,9 @@ function show(ix, scroll) {
 }
 document.querySelectorAll('.ixsw button').forEach(b => b.addEventListener('click', () => {
   show(b.dataset.ix, true);
-  try { history.replaceState(null, '', '#ix=' + b.dataset.ix); } catch (e) { /* file:// */ }
+  const ps = (location.hash || '').replace(/^#/, '').split('&').filter(x => x && x.split('=')[0] !== 'ix');   // 保留 #v=…（視角）
+  ps.unshift('ix=' + b.dataset.ix);
+  try { history.replaceState(history.state, '', '#' + ps.join('&')); } catch (e) { /* file:// */ }
 }));
 const m = /ix=(\w+)/.exec(location.hash || '');
 window.HEAT_META = METAS[cur];
@@ -177,11 +179,11 @@ if (m && m[1] !== cur && tpl[m[1]]) show(m[1], false); else mark();
 })();
 """
 
-CSS = (".ixsw{display:flex;flex-wrap:wrap;gap:6px;max-width:1080px;margin:2px auto 8px;padding:0 16px}"
+CSS = (".ixsw{display:flex;flex-wrap:wrap;gap:6px}"
        ".ixsw button{border:1px solid var(--line);background:var(--bg);color:var(--ink2);border-radius:999px;"
-       "padding:6px 14px;font-size:14px;font-weight:600;cursor:pointer}"
-       ".ixsw button.on{background:var(--acc);border-color:var(--acc);color:#fff}"
-       "@media (max-width:640px){.ixsw button{padding:6px 11px;font-size:13.5px}}")
+       "padding:5px 13px;font-size:13.5px;font-weight:600;cursor:pointer}"
+       ".ixsw button.on{background:var(--acc);border-color:var(--acc);color:var(--bg)}"
+       "@media (max-width:640px){.ixsw button{padding:5px 10px;font-size:13px}}")
 
 _HTML = """<!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8">
@@ -192,10 +194,10 @@ _HTML = """<!doctype html>
 <style>{{CSS}}</style></head>
 <body>
 <div class="top">{{APPTAB}}<span class="asof" id="ix-asof">資料到 {{ASOF}}</span><a class="back" href="./">返回主頁</a></div>
-<p class="purp">{{PURP}}</p>
-{{SWITCH}}
+<div class="vbar">{{SWITCH}}{{VSW}}<details class="purp"><summary>這頁怎麼看</summary><p>{{PURP}}</p></details></div>
 <div id="ixc" data-ix="{{IX}}">{{LIVE}}</div>
 {{TEMPLATES}}
+{{DRAWER}}
 <script>window.HEAT_METAS={{METAS}};window.HEAT_ASOF={{ASOFS}};</script>
 <script>{{SWITCH_JS}}</script>
 <script>{{JS}}</script>
@@ -204,22 +206,24 @@ _HTML = """<!doctype html>
 
 
 def _content(P: dict) -> str:
-    return f'<nav class="snav">{P["nav"]}</nav><main>{P["body"]}</main>'
+    return f'<main>{P["body"]}</main>'
 
 
 def render(pages: dict, default: str = DEFAULT) -> str:
     """pages＝{指數: index_page(...)} → 整頁。"""
     from . import appnav
+    from . import heatviz as VZ
     j = lambda x: json.dumps(x, ensure_ascii=False, separators=(",", ":"), sort_keys=True).replace("</", "<\\/")  # noqa: E731
     tpls = "".join(f'<template data-ix="{k}">{_content(pages[k])}</template>' for k in U.INDEX_ORDER if k != default and k in pages)
     with HP.use_market(market(default)):
         asofs = {k: HP._md(P["asof"]) for k, P in pages.items()}
         purp = HP._e(PURP)
-    return (_HTML.replace("{{CSS}}", HP._CSS + appnav.CSS + CSS).replace("{{APPTAB}}", appnav.bar("us"))
+    return (_HTML.replace("{{CSS}}", HP._CSS + appnav.CSS + VZ.CSS + CSS).replace("{{APPTAB}}", appnav.bar("us"))
+            .replace("{{VSW}}", VZ.switch_html()).replace("{{DRAWER}}", VZ.DRAWER)
             .replace("{{ASOF}}", HP._e(asofs.get(default, "—"))).replace("{{PURP}}", purp)
             .replace("{{SWITCH}}", SWITCH).replace("{{IX}}", default).replace("{{LIVE}}", _content(pages[default]))
             .replace("{{TEMPLATES}}", tpls).replace("{{METAS}}", j({k: P["meta"] for k, P in pages.items()}))
-            .replace("{{ASOFS}}", j(asofs)).replace("{{SWITCH_JS}}", SWITCH_JS).replace("{{JS}}", HP._JS))
+            .replace("{{ASOFS}}", j(asofs)).replace("{{SWITCH_JS}}", SWITCH_JS).replace("{{JS}}", VZ.JS + HP._JS))
 
 
 def build(out: Path = OUT, data_dir: Path | None = None) -> bool:

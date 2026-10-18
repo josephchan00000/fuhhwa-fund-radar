@@ -110,16 +110,35 @@ def asof_line(data: dict) -> str:
     return " · ".join(html.escape(p) for p in parts)
 
 
+# 圖表程式裡寫死的顏色 → 主題變數（淺色時與原值相同或幾乎相同；深色時換成深色版）。
+# 做法：SVG 的 fill／stroke 屬性是最低優先的樣式，用 [fill="#…"] 規則就能蓋過（各瀏覽器都支援，不必把 var() 寫進屬性）；
+# 圖例色塊是行內 style，用 !important 蓋過。新加顏色要補進這張表（tests/test_lab_theme.py 會檢查）。
+THEME_HEX = {"#d33a34": "gain", "#1f9d57": "loss", "#727e8c": "mut", "#44505f": "ink2", "#1f2733": "ink", "#2563c9": "acc",
+             "#1c4fa8": "accd", "#9aa5b1": "mut2", "#9aa5b4": "mut2", "#94a3b8": "mut2", "#c9d0da": "grid2", "#c9d0db": "grid2",
+             "#dfe4ec": "grid2", "#b6bfcb": "line2", "#e3e7ec": "line", "#e8ebf1": "line", "#eef1f5": "line", "#e8effb": "hlcol",
+             "#f7f9fc": "inset2", "#a16207": "gold", "#f59e0b": "amber", "#8fa6c8": "bar2", "#b45309": "warn"}
+THEME_KEEP = ("#fca5a5", "#86efac")      # 提示框（深色底）裡的紅綠字，深淺都用同一組
+
+
+def theme_css() -> str:
+    out = []
+    for h, t in THEME_HEX.items():
+        out.append(f'svg [fill="{h}"]{{fill:var(--{t})}}svg [stroke="{h}"]{{stroke:var(--{t})}}'
+                   f'.lg i[style*="{h}"],.colg i[style*="{h}"]{{background:var(--{t})!important;border-color:var(--{t})!important}}')
+    return "\n".join(out)
+
+
 def render(data: dict, ser_v: str | None = None) -> str:
     main = {k: v for k, v in data.items() if k not in ("ser", "mtab")}
     main["serv"] = ser_v or _ver(ser_json(data))
     blob = _dump(main).replace("</", "<\\/")
-    from . import appnav, copage             # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
+    from . import appnav, copage, stockviz   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
                                              # （初始化會開分頁與 #s= 個股卡，這時公司分析的頂層 const 必須已經初始化）
+                                             # stockviz＝機會、籌碼頁的三張圖（docs/lab_visual_plan.md 第 10 節），同樣放在初始化之前
     return (_HTML.replace("{{APPTAB}}", appnav.bar("stk")).replace("{{SUB}}", asof_line(data))
-            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS)
+            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS + stockviz.CSS + theme_css())
             .replace("{{SEARCH}}", copage.SEARCH_HTML)
-            .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", copage.JS)))
+            .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", stockviz.JS + copage.JS)))
 
 
 _HTML = """<!doctype html>
@@ -148,9 +167,16 @@ _HTML = """<!doctype html>
 """
 
 _CSS = """
-:root{--bg:#fff;--card2:#f4f6fa;--ink:#1f2733;--ink2:#44505f;--mut:#727e8c;--line:#e8ebf1;--acc:#2563c9;
+:root{color-scheme:light dark;--bg:#fff;--card2:#f4f6fa;--ink:#1f2733;--ink2:#44505f;--mut:#727e8c;--line:#e8ebf1;--acc:#2563c9;
 --accd:#1c4fa8;--gain:#d33a34;--loss:#1f9d57;--gold:#a16207;--inset:#eef2f8;--warn:#b45309;--hlbg:#dce7fa;
---gainbg:#fdecea;--lossbg:#e6f5ec}
+--gainbg:#fdecea;--lossbg:#e6f5ec;--line2:#b6bfcb;--mut2:#9aa5b1;--grid2:#c9d0da;--hover:#f8fafd;--onacc:#fff;
+--popbg:#1f2733;--popink:#fff;--tipbg:rgba(31,39,51,.94);--fwbg:#fbfcf3;--gbbg:#fdf1dc;--accbg:rgba(37,99,201,.1);
+--amber:#f59e0b;--bar2:#8fa6c8;--band:#b8c7e0;--hlcol:#e8effb;--inset2:#f7f9fc;--shadow:rgba(15,23,42,.14);--vio:#7b5ea7}
+@media (prefers-color-scheme:dark){:root{--bg:#0b111c;--card2:#182234;--ink:#e8eef8;--ink2:#aab6c9;--mut:#8392a8;--line:#223049;
+--acc:#6aa8ff;--accd:#8fbcff;--gain:#f2665c;--loss:#3fbf7a;--gold:#e0a64a;--inset:#1c2840;--warn:#f0a24a;--hlbg:rgba(106,168,255,.18);
+--gainbg:rgba(242,102,92,.16);--lossbg:rgba(63,191,122,.15);--line2:#3a4d6b;--mut2:#5f6f86;--grid2:#30425f;--hover:#141d2d;--onacc:#0b111c;
+--popbg:#24324a;--popink:#e8eef8;--tipbg:rgba(36,50,74,.96);--fwbg:#1d2618;--gbbg:rgba(240,162,74,.16);--accbg:rgba(106,168,255,.14);
+--amber:#f5b041;--bar2:#5a7aa8;--band:#3a5584;--hlcol:rgba(106,168,255,.12);--inset2:#141d2d;--shadow:rgba(0,0,0,.45);--vio:#997ac9}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif;-webkit-text-size-adjust:100%}
 a{color:var(--acc);text-decoration:none;cursor:pointer}
@@ -184,7 +210,7 @@ main{padding:16px 16px 90px;max-width:1180px;margin:0 auto}
 .g2 h3{font-size:14px;margin:0 0 2px;padding-bottom:4px;border-bottom:2px solid var(--line)}
 .fl,.nb{display:grid;grid-template-columns:minmax(0,1.15fr) 64px minmax(36px,1fr) 74px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--line);cursor:pointer}
 .nb{grid-template-columns:minmax(0,1fr) minmax(0,2.2fr) 70px}
-.fl:hover,.nb:hover{background:#f8fafd}
+.fl:hover,.nb:hover{background:var(--hover)}
 .fn{min-width:0;display:flex;flex-direction:column;line-height:1.3}
 .fn b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fn i{font-style:normal;color:var(--mut);font-size:12px}
@@ -205,14 +231,14 @@ main{padding:16px 16px 90px;max-width:1180px;margin:0 auto}
 .sgs{display:flex;flex-wrap:wrap;gap:8px}
 .sgc{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:10px;background:var(--card2);color:var(--ink);font-size:14px}
 .sgc b{color:var(--accd)}.sgc.rk{background:var(--gainbg)}.sgc.rk b{color:var(--gain)}.sgc.z{opacity:.55}
-.gi{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid #b6bfcb;color:var(--mut);font:italic 700 10px/1 Georgia,"Times New Roman",serif;margin:0 2px 0 4px;cursor:help;vertical-align:1px;user-select:none;flex:0 0 auto}
+.gi{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--line2);color:var(--mut);font:italic 700 10px/1 Georgia,"Times New Roman",serif;margin:0 2px 0 4px;cursor:help;vertical-align:1px;user-select:none;flex:0 0 auto}
 .gi:hover{border-color:var(--acc);color:var(--acc)}
-.pop{position:fixed;z-index:80;background:#1f2733;color:#fff;font-size:13px;line-height:1.7;padding:9px 12px;border-radius:10px;box-shadow:0 6px 24px rgba(15,23,42,.25)}
+.pop{position:fixed;z-index:80;background:var(--popbg);color:var(--popink);font-size:13px;line-height:1.7;padding:9px 12px;border-radius:10px;box-shadow:0 6px 24px rgba(15,23,42,.25)}
 .pop b{display:block;margin-bottom:2px;font-size:13.5px}
 .bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 10px}
 .bar input[type=search]{flex:1 1 180px;min-width:150px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--card2)}
 .ch{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;background:var(--card2);color:var(--ink);font-size:13px;cursor:pointer;user-select:none;border:0}
-.ch.on{background:var(--acc);color:#fff}.ch.rk{background:var(--gainbg);color:var(--gain)}.ch.rk.on{background:var(--gain);color:#fff}
+.ch.on{background:var(--acc);color:var(--onacc)}.ch.rk{background:var(--gainbg);color:var(--gain)}.ch.rk.on{background:var(--gain);color:var(--onacc)}
 .ch i{font-style:normal;opacity:.7;font-size:12px}
 .fbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
 .fbar input[type=search]{flex:1 1 220px;min-width:160px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--card2)}
@@ -222,7 +248,7 @@ main{padding:16px 16px 90px;max-width:1180px;margin:0 auto}
 .vbar{display:flex;align-items:center;gap:10px;margin:0 0 8px;flex-wrap:wrap}
 .seg{display:inline-flex;background:var(--card2);border-radius:10px;padding:3px}
 .seg a{padding:5px 14px;border-radius:8px;color:var(--ink2);font-size:14px;font-weight:600;white-space:nowrap}
-.seg a.on{background:var(--bg);color:var(--accd);box-shadow:0 1px 3px rgba(15,23,42,.14)}
+.seg a.on{background:var(--bg);color:var(--accd);box-shadow:0 1px 3px var(--shadow)}
 .cnt{margin-left:auto;color:var(--mut);font-size:13px}
 th small{font-weight:400;margin-left:2px;font-size:11px}
 .db{display:block;position:relative;height:5px;margin:4px 0 1px;min-width:64px;background:linear-gradient(var(--line),var(--line)) center/1px 100% no-repeat}
@@ -239,10 +265,10 @@ td:first-child,th:first-child{text-align:left;position:sticky;left:0;background:
 th:first-child{background:var(--card2);z-index:2}
 td.l,th.l{text-align:left}td.wr{white-space:normal;min-width:120px;max-width:220px}td.wr2{white-space:normal;min-width:180px}
 tr.v3r td{border-bottom:0;padding-bottom:2px}tr.v3w td{white-space:normal;text-align:left;font-size:12px;color:var(--mut);padding-top:0;line-height:1.55}
-tr[data-c]{cursor:pointer}tr[data-c]:hover td{background:#f8fafd}
+tr[data-c]{cursor:pointer}tr[data-c]:hover td{background:var(--hover)}
 .nm{display:block;font-weight:600}.cd{color:var(--mut);font-size:12px}
 .up{color:var(--gain)}.dn{color:var(--loss)}.mu{color:var(--mut)}
-.sg{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:9px;background:rgba(37,99,201,.1);color:var(--accd);margin:1px 2px 1px 0}
+.sg{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:9px;background:var(--accbg);color:var(--accd);margin:1px 2px 1px 0}
 .sg.rk{background:var(--gainbg);color:var(--gain)}
 .more{display:block;margin:12px auto;padding:8px 18px;border:0;border-radius:8px;background:var(--card2);font:inherit;cursor:pointer}
 details.mr{margin:8px 0 0}
@@ -268,7 +294,7 @@ h4.sh{font-size:14px;margin:14px 0 6px;color:var(--ink)}
 .st{font-size:12.5px;color:var(--mut)}
 .pill{display:inline-block;font-size:11.5px;padding:0 6px;border-radius:7px;background:var(--card2);color:var(--mut);font-weight:600}
 .k-new{color:var(--gain);font-weight:700}.k-add{color:var(--gain)}.k-cut{color:var(--loss)}.k-exit{color:var(--loss);font-weight:700}
-.grey td{color:#a0a8b3}
+.grey td{color:var(--mut2)}
 .stc{padding:6px 14px 10px}
 .sq{display:grid;grid-template-columns:5.6em minmax(0,1fr);gap:4px 12px;padding:10px 0;border-top:1px solid var(--line)}
 .sq:first-child{border-top:0}
@@ -277,7 +303,7 @@ h4.sh{font-size:14px;margin:14px 0 6px;color:var(--ink)}
 .sqe{margin-top:5px;font-size:13px;color:var(--ink2);background:var(--card2);border-radius:8px;padding:6px 10px}
 .sm2{font-size:12px;color:var(--mut);line-height:1.5}
 .gd{display:inline-block;font-size:12px;font-weight:700;padding:0 8px;border-radius:7px;white-space:nowrap;line-height:1.75;vertical-align:1px}
-.gA{background:var(--hlbg);color:var(--accd)}.gB{background:#fdf1dc;color:var(--warn)}.gC{background:var(--card2);color:var(--mut)}
+.gA{background:var(--hlbg);color:var(--accd)}.gB{background:var(--gbbg);color:var(--warn)}.gC{background:var(--card2);color:var(--mut)}
 h2 .gd{margin-left:2px}
 .ccl{font-size:14.5px}
 .kvt{max-width:560px}.kvt td{white-space:normal;text-align:left;padding:5px 8px}.kvt td:first-child{color:var(--mut);width:7.5em;white-space:nowrap;position:static}
@@ -288,7 +314,7 @@ h2 .gd{margin-left:2px}
 .sgd{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;max-width:860px}
 .sgd .kp>b{font-size:15px}.sgd .kp>em{white-space:normal}
 .crb{display:inline-block;position:relative;width:64px;height:8px;background:var(--card2);border-radius:4px;vertical-align:middle;margin-right:8px}
-.crb::after{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;border-left:1px solid #b6bfcb}
+.crb::after{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;border-left:1px solid var(--line2)}
 .crb i{position:absolute;top:0;bottom:0;background:var(--acc);border-radius:4px}
 .dv{position:fixed;inset:0;z-index:50;background:rgba(15,23,42,.35);overflow-y:auto;overscroll-behavior:contain}
 h3{font-size:14.5px;margin:18px 0 6px;color:var(--accd)}
@@ -318,9 +344,9 @@ h3{font-size:14.5px;margin:18px 0 6px;color:var(--accd)}
 
 .pasl{margin:10px 0 0;font-size:13.5px;line-height:1.8}.nw{white-space:nowrap}
 .sgi{padding:8px 0;border-bottom:1px solid var(--line)}
-.lg{margin-top:6px}.lg .dsh{width:16px;height:0;border-top:2px dashed #a16207;background:none}.lg b{font-size:11px;margin-right:3px}
+.lg{margin-top:6px}.lg .dsh{width:16px;height:0;border-top:2px dashed var(--gold);background:none}.lg b{font-size:11px;margin-right:3px}
 .ld{padding:44px 12px;text-align:center;color:var(--mut);font-size:13.5px;background:var(--card2);border-radius:10px}
-.tip{position:absolute;pointer-events:none;background:rgba(31,39,51,.94);color:#fff;font-size:12px;line-height:1.6;padding:6px 9px;border-radius:8px;max-width:min(380px,94%);z-index:2}
+.tip{position:absolute;pointer-events:none;background:var(--tipbg);color:var(--popink);font-size:12px;line-height:1.6;padding:6px 9px;border-radius:8px;max-width:min(380px,94%);z-index:2}
 .note{color:var(--mut);font-size:12px;margin:4px 0}
 table.hlt td:first-child{min-width:150px;white-space:normal}table.hlt .cd{white-space:normal}
 table.hlc td:first-child{min-width:150px;white-space:normal}td.ck6{letter-spacing:2px;white-space:nowrap;font-weight:700}
@@ -363,11 +389,11 @@ details.trb>summary{font-weight:600}
 .trc select{padding:5px 26px 5px 9px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13.5px;color:var(--ink);background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23727e8c'/%3E%3C/svg%3E") no-repeat right 9px center;-webkit-appearance:none;appearance:none}
 .trc input[type=search]{flex:1 1 150px;min-width:130px;max-width:240px;padding:5px 9px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13.5px;background:var(--card2)}
 .trc .seg a{padding:4px 12px;font-size:13.5px;cursor:pointer}.trcsv{cursor:pointer;font-size:13.5px}
-table.trt td,table.trt th{vertical-align:top}table.trt td .sm2{white-space:normal}table.trt tr.fw td{background:#fbfcf3}table.trt td.twy{min-width:236px}table.trt td.tsl{min-width:140px}table.trt td.tdv{white-space:normal;min-width:70px;max-width:150px}
-.tk{display:inline-block;margin:0 8px 2px 0;white-space:nowrap}.tk.nw{font-weight:700}.tk.sk{color:#a0a8b3;text-decoration:line-through}
+table.trt td,table.trt th{vertical-align:top}table.trt td .sm2{white-space:normal}table.trt tr.fw td{background:var(--fwbg)}table.trt td.twy{min-width:236px}table.trt td.tsl{min-width:140px}table.trt td.tdv{white-space:normal;min-width:70px;max-width:150px}
+.tk{display:inline-block;margin:0 8px 2px 0;white-space:nowrap}.tk.nw{font-weight:700}.tk.sk{color:var(--mut2);text-decoration:line-through}
 .tk i{font-style:normal;font-size:11px;color:var(--mut);margin-left:2px}
 .trm{display:inline-block;margin:8px 0 2px;cursor:pointer}
-.trl{border-bottom:1px solid var(--line);padding:8px 0;font-size:13.5px}.trl.grey{color:#a0a8b3}.trl.fw{background:#fbfcf3}
+.trl{border-bottom:1px solid var(--line);padding:8px 0;font-size:13.5px}.trl.grey{color:var(--mut2)}.trl.fw{background:var(--fwbg)}
 .trh{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}.trh .trr{margin-left:auto;white-space:nowrap}
 .trp{margin-top:3px}.trp2{margin-top:2px}
 .vlk{margin-top:10px;font-size:13.5px;text-align:right}
@@ -376,7 +402,7 @@ table.trt td,table.trt th{vertical-align:top}table.trt td .sm2{white-space:norma
 /* 版面 v4：頁首目的句、機會頁（摘要、推薦順序圓標、卡片內買賣區塊）、個股的策略標籤、後台推播預覽 */
 .purp{max-width:1180px;margin:0 auto;padding:0 16px 8px;color:var(--ink2);font-size:13px;line-height:1.6}
 .osum{grid-template-columns:repeat(4,minmax(0,1fr));margin:0 0 4px}
-.orank{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:var(--acc);color:#fff;font-size:13px;font-weight:800;margin-right:6px;vertical-align:1px;line-height:1}
+.orank{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:var(--acc);color:var(--onacc);font-size:13px;font-weight:800;margin-right:6px;vertical-align:1px;line-height:1}
 .orank.sm{min-width:20px;height:20px;font-size:12px;margin-right:5px;vertical-align:0}
 .onb{padding:2px 0 8px}.onb+.onb{border-top:1px dashed var(--line);padding-top:8px}
 .onh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;font-size:14px}
@@ -594,6 +620,7 @@ function vChip(){
   if(exits.length)L.push(`<b>${exits.length} 檔</b>被 3 家以上投信同時減碼${gi('exit')}，賣最多的是 ${exits.slice(0,3).map(r=>`${nmL(r)}（${f(r.a5v,1)} 億）`).join('、')}。`);
   if(nbs.length)L.push(`10 日內主動 ETF 新建倉的台股 <b>${nbs.length} 檔</b>${gi('新建倉')}，最多家同時進場的是 ${cntGroup(nbs.slice(0,3).map(x=>[nmL(x.r),x.is.length]))}。`);
   let h=`<div class=intro>主動 ETF、投信最近在買賣什麼，出現哪些訊號。這頁是策略的原料，不是買進清單；要買什麼、哪天買，看「<a data-go="opp">機會</a>」。</div>`;
+  h+=mmSec();                                         /* 主動 ETF 資金地圖（stockviz.py） */
   h+=sec('c-lead','重點','籌碼重點',`近 5 個交易日（${win}）`,`<div class=lead><ul>${L.map(x=>`<li>${x}</li>`).join('')||'<li>近 5 日沒有主動 ETF 資料</li>'}</ul></div>`);
   const m=Math.max(1,...buys.slice(0,8).map(r=>r.a5v),...sells.slice(0,8).map(r=>-r.a5v));
   h+=sec('c-flow','買賣',`主動 ETF 買最多／賣最多${gi('主動 5 日淨買')}`,`近 5 個交易日（${win}）淨買金額・已扣申贖${gi('真加碼')}`,
@@ -612,7 +639,7 @@ function vChip(){
       (exits.length?exits.map(r=>`<span class=it><a data-c="${esc(r.c)}">${esc(r.n)}</a>${r.a5v!=null?`<span class=dn> ${f(r.a5v,1)}</span>`:''}</span>`).join('　'):'<span class=st>今日無</span>')+`</div></div>`+
     `<div class=rk2><b>跳空減碼提醒</b><span class=st>前一日「共識加碼」、今日開盤跳空 ≥3%：過去這類股票之後 1～10 個交易日平均都輸大盤</span><div class=inl>`+
       (al.length?al.map(a=>`<span class=it><a data-c="${esc(a.c)}">${esc(a.n)}</a> <span class=mu>開盤</span> ${sgn(a.gap,1,'%')}</span>`).join('　'):'<span class=st>今日無</span>')+`</div></div>`+hdRisk());
-  $('#main').innerHTML=h;
+  $('#main').innerHTML=h;mmDraw();
   $$('#main [data-to]').forEach(a=>a.onclick=e=>{e.preventDefault();jump(a.dataset.to);});
   $$('#main [data-sg]').forEach(e=>e.onclick=()=>jump('sig-'+e.dataset.sg));
   $$('#main .xm').forEach(a=>a.onclick=()=>{a.parentNode.classList.add('open');a.remove();});
@@ -1106,14 +1133,14 @@ function vOpp(){
   let h=`<div class=intro>各策略這一期選到的股票、哪天買賣，以及同樣做法過去照做的實際報酬（扣成本），旁邊是同一段期間的大盤。只列推薦的策略（A、B 級），依推薦順序${gi('推薦順序')}；報酬是歷史統計，不是預測。</div>`;
   if(ADV.err)h+=`<div class=st>評級資料錯誤：${esc(ADV.err)}</div>`;
   if((D.adv||{}).v3err)h+=`<div class=st>月營收驚喜、財報驚喜資料錯誤：${esc(D.adv.v3err)}</div>`;
-  h+=sec('o-sum','摘要','這一期的機會',`${md(ADV.last)} 收盤後更新`,oSum()+`<h4 class=sh>時間表</h4>`+oTl(),
+  h+=sec('o-sum','摘要','這一期的機會',`${md(ADV.last)} 收盤後更新`,oSum()+tlNext()+tlSec()+`<details class=mr><summary>逐筆時間表（文字）</summary>${oTl()}</details>`,
     Object.keys(PK).length?`<a data-go="stk" data-fstf="1">在個股表看這些股票 →</a>`:'');
   h+=wlSec();                                         /* 飆股（名單、價格強度、大盤時機；copage.py） */
   h+=(OPP.cards||[]).map(oCard).join('');
   h+=sec('o-avoid','避開','避開清單','持有中的照規則處理；沒持有的這段期間不買',`${hdGroups(false)}${gapList()}`);
   const C=(ADV.grades3||[]).filter(g=>g.grade==='C'&&g.k!=='hd');
   if(C.length)h+=`<div class=note>不推薦（C 級）的策略不列在這頁：${C.map(g=>`<a data-go="st" data-at="st-${esc(g.k)}">${esc(g.name||g.k)}</a>`).join('、')}，在「策略」分頁灰字列出。</div>`;
-  $('#main').innerHTML=h;
+  $('#main').innerHTML=h;tlDraw();spotDraw();
   $$('#main [data-to]').forEach(a=>a.onclick=e=>{e.preventDefault();jump(a.dataset.to);});
 }
 
