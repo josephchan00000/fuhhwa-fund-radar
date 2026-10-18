@@ -476,11 +476,138 @@ def terrain_view() -> str:
             '</div></section></div>')
 
 
+# 研究畫面＝證據地圖（2026-10-18 使用者選 B，docs/lab_visual_plan.md 第 11 節）：每個面向一張卡，每一項一列，
+# 點＝和之後漲跌的等級相關、橫線＝95% 信賴區間、顏色＝判定；原本的表格與方法收在下面（內容不刪）
+EV_LO, EV_HI = -0.8, 0.8
+EV_TICKS = (-0.6, -0.3, 0.0, 0.3, 0.6)
+EV_STABLE = ("weak", "strong")
+
+
+def _epos(v: float) -> float:
+    return round(100 * (min(EV_HI, max(EV_LO, v)) - EV_LO) / (EV_HI - EV_LO), 2)
+
+
+def _rho(x) -> str:
+    return "—" if x is None else HP._sgn(x, 2)
+
+
+def _etrack(e: dict | None, cls: str) -> str:
+    if not e or e.get("rho") is None:
+        return f'<span class="etk {cls} ev-x"><em>—</em></span>'
+    vd = e.get("verdict") or "none"
+    ci = ""
+    if e.get("lo") is not None and e.get("hi") is not None:
+        a, b = _epos(e["lo"]), _epos(e["hi"])
+        ci = f'<i class="eci" style="left:{a}%;width:{max(0.6, b - a):.2f}%"></i>'
+    return f'<span class="etk {cls} ev-{vd}">{ci}<i class="edot" style="left:{_epos(e["rho"])}%"></i></span>'
+
+
+def _ehs(e: dict | None, h: int) -> str:
+    if not e or not e.get("verdict"):
+        return f"之後 {h} 個交易日：沒有結果"
+    ci = f"（95% 區間 {_rho(e.get('lo'))}～{_rho(e.get('hi'))}）" if e.get("lo") is not None else ""
+    return f"之後 {h} 個交易日：{S.VERDICT.get(e['verdict'], e['verdict'])}，相關 {_rho(e.get('rho'))}{ci}"
+
+
+def _erow(kind: str, k: str, name: str, ev: dict, hs: tuple, now) -> str:
+    es, el = ev.get(str(hs[0])), ev.get(str(hs[1]))
+    st = lambda e: "1" if e and e.get("verdict") in EV_STABLE else "0"            # noqa: E731
+    vc = lambda e: (e or {}).get("verdict") or "x"                                # noqa: E731
+    lab = f"{name}。{_ehs(es, hs[0])}；{_ehs(el, hs[1])}。現在 {HP.n0(now) if now is not None else '沒有分數'}"
+    return (f'<button type="button" class="erow{" ecomp" if kind == "dim" else ""}" data-open="{kind}:{_e(k)}" data-ss="{st(es)}" data-sl="{st(el)}"'
+            f' title="{_e(lab)}" aria-label="{_e(lab)}：點開看細節"><span class="en">{_e(name)}</span>'
+            f'{_etrack(es, "eh-s")}{_etrack(el, "eh-l")}'
+            f'<span class="er eh-s ev-{vc(es)}">{_rho((es or {}).get("rho"))}</span><span class="er eh-l ev-{vc(el)}">{_rho((el or {}).get("rho"))}</span>'
+            f'<span class="enow zt{_zc(now)}">{HP.n0(now) if now is not None else "—"}</span></button>')
+
+
+def _ecard(d: str, L: dict) -> str:
+    hs = tuple(L["fwd"])
+    rows = [_erow("dim", d, f"{S.DSHORT[d]}（面向分數）", L.get("cev") or {}, hs, L["score"])]
+    rows += [_erow("item", it["k"], it["name"], it.get("ev") or {}, hs, it["heat"]) for it in L["items"]]
+    ax = "".join(f'<b style="left:{_epos(v)}%">{"0" if v == 0 else HP._sgn(v, 1)}</b>' for v in EV_TICKS)
+    return (f'<div class="card ecard" id="e-{d}" data-dim="{d}"><div class="ehd"><h3>{_e(S.DSHORT[d])}</h3>'
+            f'<span class="kn"><span class="eh-s">看之後 {hs[0]} 個交易日</span><span class="eh-l">看之後 {hs[1]} 個交易日</span></span></div>'
+            f'<div class="ehead" aria-hidden="true"><span>項目</span><span class="eaxis">{ax}</span><span class="er">相關</span><span class="enow">現在</span></div>'
+            + "".join(rows) + '<p class="note enone" hidden>這個期間沒有穩定的項目。</p></div>')
+
+
+def evidence_summary(V: dict) -> list[str]:
+    """研究重點（全部由研究檔的判定算出，不寫死數字）。"""
+    Ds = V["dims"]
+    n_items = sum(len(L["items"]) for L in Ds.values())
+    cnt = {"weak": 0, "strong": 0, "none": 0, "few": 0}
+    for L in Ds.values():
+        for it in L["items"]:
+            for e in (it.get("ev") or {}).values():
+                if e and e.get("verdict") in cnt:
+                    cnt[e["verdict"]] += 1
+    tot = sum(cnt.values())
+    out = [f"{n_items} 項，每項看兩個期間，共 {tot} 個檢驗：<b>{cnt['weak'] + cnt['strong']} 個有穩定關係</b>"
+           f"（{cnt['weak']} 個熱了之後較弱、{cnt['strong']} 個較強），其餘看不出或樣本不足。"]
+    good, bad = [], []
+    for d, L in Ds.items():
+        st = [(h, (L.get("cev") or {}).get(str(h)) or {}) for h in L["fwd"]]
+        st = [(h, e) for h, e in st if e.get("verdict") in EV_STABLE]
+        (good if st else bad).append((d, L, st))
+    if good:
+        g = []
+        for d, L, st in good:
+            ws = {e["verdict"] for _, e in st}
+            word = "較弱" if ws == {"weak"} else ("較強" if ws == {"strong"} else "方向不一")
+            best = max(st, key=lambda he: abs(he[1].get("rho") or 0))
+            g.append(f"<b>{_e(S.DSHORT[d])}</b>（熱了之後 {'、'.join(str(h) for h, _ in st)} 日{word}，相關 {_rho(best[1].get('rho'))}）")
+        out.append("面向分數本身有穩定關係的：" + "、".join(g) + "。")
+        now = [f"{_e(S.DSHORT[d])} {HP.n0(L['score'])}（{_e(L['band'])}）" for d, L, _ in good if L["score"] is not None]
+        if now:
+            out.append("現在" + "、".join(now) + "。")
+    if bad:
+        out.append("、".join(_e(S.DSHORT[d]) for d, _, _ in bad) + "的面向分數本身看不出穩定關係（個別項目可能有，看下面紅、藍點）。")
+    extra = []
+    pr = (V.get("m6") or {}).get("primary") or {}
+    if pr:
+        npass = sum(1 for x in pr.values() if x.get("pass"))
+        extra.append(f"加速減速：{len(pr)} 個主要假說{f'有 {npass} 個通過' if npass else '都沒有通過'}")
+    ta = (V.get("ta") or {}).get("study") or {}
+    if ta:
+        nst = sum(1 for hv in ta.values() if any((e or {}).get("verdict") in EV_STABLE for e in hv.values()))
+        extra.append(f"均線、型態事件：{len(ta)} 種{f'有 {nst} 種有穩定差別' if nst else '都看不出穩定差別'}")
+    if extra:
+        out.append("；".join(extra) + "（細節在最下面「完整數字與方法」）。")
+    return out
+
+
+def evidence_html(V: dict) -> str:
+    Ds = V["dims"]
+    n = {"s": [0, 0], "l": [0, 0]}
+    for L in Ds.values():
+        hs = tuple(L["fwd"])
+        evs = [L.get("cev") or {}] + [it.get("ev") or {} for it in L["items"]]
+        for key, h in (("s", hs[0]), ("l", hs[1])):
+            for ev in evs:
+                n[key][0] += 1
+                n[key][1] += int(((ev.get(str(h)) or {}).get("verdict")) in EV_STABLE)
+    chips = (f'<button type="button" class="rch on" data-ef="all" aria-pressed="true">全部<em data-cs="{n["s"][0]}" data-cl="{n["l"][0]}">{n["l"][0]}</em></button>'
+             f'<button type="button" class="rch" data-ef="st" aria-pressed="false">只看穩定的<em data-cs="{n["s"][1]}" data-cl="{n["l"][1]}">{n["l"][1]}</em></button>'
+             + "".join(f'<button type="button" class="rch" data-ed="{d}" aria-pressed="false">{_e(S.DSHORT[d])}</button>' for d in Ds))
+    lg = ('<div class="elg"><span><i class="ev-weak"></i>熱了之後較弱（穩定）</span><span><i class="ev-strong"></i>熱了之後較強（穩定）</span>'
+          '<span><i class="ev-none"></i>看不出穩定關係</span><span><i class="ev-few"></i>樣本不足</span>'
+          '<span>點＝等級相關、橫線＝95% 信賴區間；在 0 左邊＝熱了之後較弱；「現在」＝今天的 0～100</span></div>')
+    summ = "".join(f"<li>{x}</li>" for x in evidence_summary(V))
+    return (f'<section class="sec emap" id="emap" data-h="l"><div class="card esum"><h2>研究重點</h2><ul>{summ}</ul></div>'
+            '<div class="ectl"><div class="seg" role="group" aria-label="看多久之後">'
+            '<button type="button" class="tb" data-eh="s" aria-pressed="false">短期</button><button type="button" class="tb on" data-eh="l" aria-pressed="true">長期</button></div>'
+            f'<div class="rchips" role="group" aria-label="篩選">{chips}</div></div>{lg}'
+            '<p class="note">短期、長期是每個面向自己的兩個期間（卡片上寫幾日）；穩定＝全期間 95% 信賴區間不含 0，而且前後兩半方向一樣。點一列，右邊打開那一項的細節。</p>'
+            f'<div class="egrid">{"".join(_ecard(d, L) for d, L in Ds.items())}</div></section>')
+
+
 def research_view(V: dict, body: str) -> str:
     nav = ('<nav class="snav"><button type="button" class="snv" data-goview="radar">← 回到雷達</button>'
-           '<a href="#dv">邊際變化</a><a href="#valid">驗證</a>' + ('<a href="#tas">事件研究</a>' if V.get("ta") else "")
-           + '<a href="#src">資料來源</a></nav>')
-    return f'<div class="hview" data-view="research" hidden>{nav}{body}</div>'
+           '<a href="#emap" data-jump="emap">證據地圖</a><a href="#more" data-jump="more">完整數字與方法</a></nav>')
+    more = ('<details class="card emore" id="more"><summary><b>完整數字與方法</b><span class="kn">原本的表格：邊際變化、各面向各區之後的表現、'
+            '各項和指數的關係、多層回歸、泡沫事件、事件研究、資料來源</span></summary>' + body + '</details>')
+    return f'<div class="hview" data-view="research" hidden>{nav}{evidence_html(V)}{more}</div>'
 
 
 def switch_html() -> str:
@@ -594,7 +721,7 @@ def item_tpl(it: dict, d: str, L: dict, V: dict) -> str:
             past = (f'<h4>過去在各區之後的{_e(HP.MK["px"].rstrip())}<span>現在在「{_e(band)}」；只當參考</span></h4>'
                     f'<div class="dzs">{"".join(parts)}</div>')
     btn = (f'<p class="dbtn"><button type="button" class="tb cmpk" data-k="{_e(k)}">在「{_e(HP.MK["cmp"])}」圖看這一項 →</button>'
-           f'<button type="button" class="tb" data-goview="research" data-anchor="v-{_e(d)}">研究畫面的數字 →</button></p>')
+           f'<button type="button" class="tb" data-goview="research" data-anchor="e-{_e(d)}">研究的證據地圖 →</button></p>')
     return (f'<template id="it-{k}" data-kick="{_e(dname)}・{"月資料" if it["freq"] == "m" else "日資料"}" data-title="{_e(it["name"])}">'
             f'{_dnum(cells)}{why}{how}<div class="dchart" data-k="{_e(k)}"></div>{trk}{dv}{past}{_rel_bits(k, V)}{btn}</template>')
 
@@ -750,6 +877,34 @@ CSS = """
 .tlg .tlx{background:linear-gradient(90deg,var(--zh),var(--c4))}
 .rch .tfd{width:10px;height:10px;border:0;border-radius:50%;flex:none}.tfoc{margin:0 0 8px}
 .tlg .tlz0{background:var(--c0)}.tlg .tlz1{background:var(--c1)}.tlg .tlz2{background:var(--c2)}.tlg .tlz3{background:var(--c3)}.tlg .tlz4{background:var(--c4)}
+.esum{padding:12px 16px}.esum h2{font-size:16px;margin:0 0 4px}.esum ul{margin:4px 0 2px;padding-left:20px;font-size:14px;line-height:1.85}.esum b{font-weight:700}
+.ectl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:12px 0 4px}.ectl .rchips{margin:0}.rch em{margin-left:4px}
+.elg{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;font-size:12px;color:var(--ink2);margin:4px 0 2px}.elg span{display:inline-flex;align-items:center;gap:6px}
+.elg i{display:inline-block;width:10px;height:10px;border-radius:50%;box-sizing:border-box;border:1.6px solid var(--mut);background:var(--panel)}
+.elg i.ev-weak{background:var(--c4);border-color:var(--c4)}.elg i.ev-strong{background:var(--c0);border-color:var(--c0)}.elg i.ev-few{border-style:dashed}
+.egrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px}
+.ecard{padding:10px 12px;min-width:0;scroll-margin-top:56px}.ehd{display:flex;align-items:baseline;gap:8px;margin:0 0 2px}.ehd h3{margin:0;font-size:15px}
+.erow,.ehead{display:grid;grid-template-columns:minmax(0,10em) minmax(0,1fr) 3.3em 2.4em;gap:8px;align-items:center}
+.ehead{padding:2px 4px 3px;font-size:10.5px;color:var(--mut)}.ehead .er,.ehead .enow{font-weight:400;color:var(--mut)}
+.erow{width:100%;border:0;border-top:1px solid var(--line);background:none;padding:5px 4px;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:6px}
+.erow:hover{background:var(--card2)}.erow:focus-visible{outline:2px solid var(--acc);outline-offset:1px}.erow.ecomp .en{font-weight:700}
+.en{font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+.etk,.eaxis{position:relative;height:16px}
+.etk{background:linear-gradient(var(--line),var(--line)) 12.5% 0/1px 100% no-repeat,linear-gradient(var(--line),var(--line)) 31.25% 0/1px 100% no-repeat,linear-gradient(var(--ink2),var(--ink2)) 50% 0/1px 100% no-repeat,linear-gradient(var(--line),var(--line)) 68.75% 0/1px 100% no-repeat,linear-gradient(var(--line),var(--line)) 87.5% 0/1px 100% no-repeat}
+.etk em{position:absolute;left:50%;top:0;transform:translateX(-50%);font-style:normal;font-size:11px;color:var(--mut);background:var(--panel);padding:0 3px;line-height:16px}
+.eaxis b{position:absolute;top:1px;transform:translateX(-50%);font-weight:400;white-space:nowrap}
+.eci{position:absolute;top:7px;height:2px;border-radius:1px;background:var(--bp)}
+.edot{position:absolute;top:3px;width:10px;height:10px;margin-left:-5px;border-radius:50%;box-sizing:border-box;background:var(--panel);border:1.6px solid var(--mut)}
+.etk.ev-weak .eci{background:var(--c4);height:3px;top:6.5px}.etk.ev-weak .edot{background:var(--c4);border-color:var(--ring)}
+.etk.ev-strong .eci{background:var(--c0);height:3px;top:6.5px}.etk.ev-strong .edot{background:var(--c0);border-color:var(--ring)}
+.etk.ev-few .edot{border-style:dashed}
+.er{font-size:12px;text-align:right;color:var(--ink2);font-variant-numeric:tabular-nums}.er.ev-weak{color:var(--t4);font-weight:700}.er.ev-strong{color:var(--t0);font-weight:700}
+.enow{font-size:12.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.emap[data-h="s"] .eh-l,.emap[data-h="l"] .eh-s{display:none}
+.emore{margin-top:18px;padding:10px 14px}.emore>summary{cursor:pointer;font-size:14px;line-height:1.7}.emore>summary .kn{display:block}
+.emore[open]>summary{margin-bottom:8px}
+@media (max-width:900px){.egrid{grid-template-columns:1fr}}
+@media (max-width:640px){.erow,.ehead{grid-template-columns:minmax(0,8.6em) minmax(0,1fr) 2.6em;gap:6px}.er{display:none}.ehead .er{display:none}}
 @media (max-width:820px){.vgrid{grid-template-columns:1fr}.vbar{gap:6px 10px}}
 @media (max-width:640px){
  .vsw button{padding:5px 9px;font-size:13px}.rsm{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.rsm .pxn{display:none}
@@ -817,11 +972,39 @@ function setView(v, o) {
   if (v !== 'radar') stopPlay();
   if (v === 'phase') phShow();
   if (v === 'terrain') tShow();
+  if (v === 'research') eApply();
   if (v === 'radar') { radarDraw(); trackDraw(); imapDraw(); window.dispatchEvent(new Event('resize')); }
-  if (o.anchor) { const a = document.getElementById(o.anchor); if (a) setTimeout(() => a.scrollIntoView({block: 'start'}), 0); }
+  if (o.anchor) jump(o.anchor);
   else if (!o.quiet) window.scrollTo(0, 0);
 }
 window.heatView = (v, a) => setView(v, {anchor: a});
+function jump(id) {                                                  // 目標在收起來的段落裡：先打開再捲過去
+  const a = document.getElementById(id);
+  if (!a) return;
+  for (let d = a.closest('details'); d; d = d.parentElement && d.parentElement.closest('details')) d.open = true;
+  if (a.tagName === 'DETAILS') a.open = true;
+  setTimeout(() => a.scrollIntoView({block: 'start'}), 0);
+}
+
+// ── 研究畫面：證據地圖（短期／長期、全部／只看穩定的、各面向）
+const ES = {h: 'l', f: 'all', d: null};
+function eApply() {
+  const box = $('#emap');
+  if (!box) return;
+  box.dataset.h = ES.h;
+  $$('.ecard', box).forEach(c => {
+    const okd = !ES.d || c.dataset.dim === ES.d;
+    let n = 0;
+    $$('.erow', c).forEach(r => { const v = okd && (ES.f === 'all' || r.dataset[ES.h === 's' ? 'ss' : 'sl'] === '1'); r.hidden = !v; if (v) n++; });
+    c.hidden = !okd;
+    const nn = $('.enone', c); if (nn) nn.hidden = n > 0;
+  });
+  const set = (sel, on) => $$(sel, box).forEach(b => { const o = on(b); b.classList.toggle('on', o); b.setAttribute('aria-pressed', o ? 'true' : 'false'); });
+  set('[data-eh]', b => b.dataset.eh === ES.h);
+  set('[data-ef]', b => b.dataset.ef === ES.f);
+  set('[data-ed]', b => b.dataset.ed === ES.d);
+  $$('[data-cs]', box).forEach(el => { el.textContent = ES.h === 's' ? el.dataset.cs : el.dataset.cl; });
+}
 
 // ── 右側面板（內容在 id＝dt-面向、it-項目 的 template；手機全螢幕，返回鍵關閉）
 const DRW = document.getElementById('drw'), DC = document.getElementById('drw-c');
@@ -1639,6 +1822,10 @@ document.addEventListener('click', e => {
   if (ov) { e.preventDefault(); toggleOv(ov.dataset.ov); return; }
   const go = t.closest('[data-go]');
   if (go) { e.preventDefault(); goDate(go.dataset.go); return; }
+  const eh = t.closest('[data-eh]'), ef = t.closest('[data-ef]'), ed = t.closest('[data-ed]');
+  if (eh || ef || ed) { e.preventDefault(); if (eh) ES.h = eh.dataset.eh; if (ef) ES.f = ef.dataset.ef; if (ed) ES.d = ES.d === ed.dataset.ed ? null : ed.dataset.ed; eApply(); return; }
+  const jp = t.closest('[data-jump]');
+  if (jp) { e.preventDefault(); jump(jp.dataset.jump); return; }
   const pr = t.closest('[data-phr]');
   if (pr) { e.preventDefault(); PS.rg = +pr.dataset.phr; phDraw(); return; }
   const pg = t.closest('[data-phgo]');

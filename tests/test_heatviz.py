@@ -287,3 +287,62 @@ def test_phase_view_replaces_compass(built):
         assert old not in VZ.JS and old not in VZ.CSS, old                   # 羅盤的程式與樣式都拿掉了
     assert "if (v === 'compass') v = 'phase';" in VZ.JS                      # 舊網址 #v=compass 轉到階段
     assert "升溫、降溫沒有驗證過" in ph                                       # 只描述位置
+
+
+# ── 研究畫面＝證據地圖（2026-10-18 使用者選 B；docs/lab_visual_plan.md 第 11 節）
+
+def test_evidence_map_rows_counts_and_old_content_folded(built):
+    _, _, V, page = built
+    res = page[page.index('<div class="hview" data-view="research"'):page.index('<div class="dtpl"')]
+    emap = res[res.index('id="emap"'):res.index('<details class="card emore" id="more">')]
+    for d, L in V["dims"].items():                                          # 每個面向一張卡：面向分數＋每一項各一列
+        card = emap[emap.index(f'id="e-{d}"'):]
+        card = card[:card.index('class="note enone"')]
+        assert card.count('class="erow') == 1 + len(L["items"])
+        assert f'data-open="dim:{d}"' in card and all(f'data-open="item:{it["k"]}"' in card for it in L["items"])
+        assert all(f'<template id="it-{it["k"]}"' in page for it in L["items"]) and f'<template id="dt-{d}"' in page
+    n = {"s": [0, 0], "l": [0, 0]}                                           # 篩選鈕上的數字＝列數／穩定的列數
+    for L in V["dims"].values():
+        hs = tuple(L["fwd"])
+        for ev in [L.get("cev") or {}] + [it.get("ev") or {} for it in L["items"]]:
+            for key, h in (("s", hs[0]), ("l", hs[1])):
+                n[key][0] += 1
+                n[key][1] += int((ev.get(str(h)) or {}).get("verdict") in ("weak", "strong"))
+    assert f'data-cs="{n["s"][0]}" data-cl="{n["l"][0]}"' in emap and f'data-cs="{n["s"][1]}" data-cl="{n["l"][1]}"' in emap
+    rows = re.findall(r'<button type="button" class="erow[^"]*" data-open="[^"]+" data-ss="(\d)" data-sl="(\d)"', emap)
+    assert sum(int(a) for a, _ in rows) == n["s"][1] and sum(int(b) for _, b in rows) == n["l"][1]
+    more = res[res.index('<details class="card emore" id="more">'):]
+    for part in (P._dv_section(V), P._rel_overview(V), P._m6_valid(V), P._ta_study(V)):
+        assert part in more                                                   # 原本的內容收在「完整數字與方法」，沒有刪
+    assert 'data-anchor="e-' in page and 'data-anchor="v-' not in page        # 面板的連結改到證據地圖那張卡
+    assert "function eApply(" in VZ.JS and "function jump(" in VZ.JS and "if (o.anchor) jump(o.anchor);" in VZ.JS
+
+
+def test_evidence_summary_is_computed_from_verdicts(built):
+    _, _, V, _ = built
+    lines = VZ.evidence_summary(V)
+    cnt = {"weak": 0, "strong": 0, "none": 0, "few": 0}
+    for L in V["dims"].values():
+        for it in L["items"]:
+            for e in (it.get("ev") or {}).values():
+                if e and e.get("verdict") in cnt:
+                    cnt[e["verdict"]] += 1
+    head = re.sub(r"<[^>]+>", "", lines[0])
+    assert f"共 {sum(cnt.values())} 個檢驗" in head and f"{cnt['weak'] + cnt['strong']} 個有穩定關係" in head
+    assert f"{cnt['weak']} 個熱了之後較弱、{cnt['strong']} 個較強" in head
+    good = [d for d, L in V["dims"].items() if any(((L.get("cev") or {}).get(str(h)) or {}).get("verdict") in ("weak", "strong") for h in L["fwd"])]
+    text = re.sub(r"<[^>]+>", "", "".join(lines))
+    for d in V["dims"]:
+        assert S.DSHORT[d] in text
+    if len(good) < len(V["dims"]):
+        assert "的面向分數本身看不出穩定關係" in text
+    for w in BANNED:
+        assert w not in text
+
+
+def test_evidence_track_positions():
+    assert VZ._epos(0) == 50 and VZ._epos(-0.8) == 0 and VZ._epos(0.8) == 100 and VZ._epos(-2) == 0 and VZ._epos(5) == 100
+    t = VZ._etrack({"rho": -0.3, "lo": -0.5, "hi": -0.1, "verdict": "weak"}, "eh-l")
+    assert 'class="etk eh-l ev-weak"' in t and "left:31.25%" in t and 'left:18.75%;width:25.00%' in t
+    assert "<em>—</em>" in VZ._etrack(None, "eh-s") and "<em>—</em>" in VZ._etrack({"verdict": "few"}, "eh-s")
+    assert VZ._rho(-0.234) == "−0.23" and VZ._rho(0.65) == "+0.65" and VZ._rho(None) == "—"
