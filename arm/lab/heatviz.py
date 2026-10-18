@@ -175,7 +175,8 @@ def pack(B: dict, V: dict) -> dict:
         if j >= j0:
             pre.append({"key": "w4" if lab == "4 週前" else "y1", "lab": lab, "sub": "", **snap(j)})
     a0 = cal.index(wd[j0])                       # 跌幅用每天收盤認（週收盤會漏掉週中急跌又反彈的段），日期換成那一週
-    eps = episodes(cal[a0:], px[a0:])[-N_EPI:]
+    eps_all = episodes(cal[a0:], px[a0:])
+    eps = eps_all[-N_EPI:]
     wk = lambda d: next(j for j, x in enumerate(wd) if x >= d)          # noqa: E731
     for e in reversed(eps):
         jp, jt = wk(e["peak"]), wk(e["trough"])
@@ -199,7 +200,8 @@ def pack(B: dict, V: dict) -> dict:
                           "pull": _r1(it["pull"]), "px": bool(it["proxy"]), "val": it["val"]})
     ordr = {d: [it["k"] for it in _item_order(L)] for d, L in V["dims"].items()}
     return {"asof": cal[t], "start": wd[j0], "dims": out_d, "items": items, "ord": ordr, "pre": pre, "qs": qs,
-            "mkt": HP.MK["mkt"].strip(), "px": HP.MK["px"].strip(), "t0": cal[t0]}
+            "mkt": HP.MK["mkt"].strip(), "px": HP.MK["px"].strip(), "t0": cal[t0],
+            "eps": [{"p": e["peak"], "t": e["trough"], "dd": _r1(100 * e["dd"]), "o": e["open"]} for e in eps_all]}
 
 
 def _item_order(L: dict) -> list[dict]:
@@ -409,15 +411,20 @@ def compass_view() -> str:
 
 
 def terrain_view() -> str:
+    px = _e(HP.MK["px"].strip())
     return ('<div class="hview" data-view="terrain" hidden><section class="sec"><div class="tcard card">'
-            '<div class="khd"><h2>熱度地形</h2><span class="kn">每條山脊是一個面向，高出紅色平面＝過熱，最右邊是現在</span></div>'
+            '<div class="khd"><h2>熱度地形</h2><span class="kn">每條山脊是一個面向，越高越熱，最右邊是現在</span></div>'
             '<div class="seg tctl"><button type="button" class="tb on" data-tr="10" aria-pressed="true">近 10 年</button>'
             '<button type="button" class="tb" data-tr="0" aria-pressed="false">全部</button>'
-            '<button type="button" class="tb" id="tflat" aria-pressed="false">平面熱圖</button>'
+            '<button type="button" class="tb" id="tflat" aria-pressed="false">平面</button>'
             '<button type="button" class="tb" id="treset">轉回原角度</button></div>'
             '<div class="ter" id="ter"><canvas id="tcv" aria-label="熱度地形" role="img"></canvas><div class="tip" id="ttip" hidden></div>'
             '<p class="note tld" id="tld">走勢載入中…</p></div>'
-            '<p class="note">拖曳旋轉；滑過山脊看那一週的分數；點一下跳到雷達看那一週。3D 只適合看「哪些時期同時過熱」，讀數字請用雷達或對照圖。</p>'
+            '<div class="tlg" data-m="3d"><span><i class="tlh"></i>紅色山頂＝過熱（80 以上）</span><span><i class="tlc"></i>藍色谷底＝過冷（20 以下）</span>'
+            f'<span><i class="tld2"></i>灰色地面＝{px}從高點跌 20% 以上的期間</span><span><i class="tlx"></i>最前面一排＝同一週有幾個面向過熱</span></div>'
+            '<div class="tlg" data-m="flat" hidden>' + "".join(f'<span><i class="tlz{k}"></i>{nm}</span>' for k, (_, _, nm) in enumerate(S.BANDS))
+            + f'<span><i class="tld2"></i>灰底＝{px}從高點跌 20% 以上的期間</span><span><i class="tlx"></i>最下面一列＝同一週有幾個面向過熱</span></div>'
+            '<p class="note">山脊是近 4 週平均（全部期間用 8 週）；分數是現在的，滑過圖會換成那一週；點一下跳到雷達看那一週。3D 可以拖曳旋轉。</p>'
             '</div></section></div>')
 
 
@@ -685,16 +692,21 @@ CSS = """
 .cit circle{stroke:var(--ring);stroke-width:1.2;cursor:pointer}.cit text{font-size:11.5px;fill:var(--ink);paint-order:stroke;stroke:var(--panel);stroke-width:3px;pointer-events:none}
 .cquad h3{margin:0 0 6px;font-size:15px;color:var(--ink)}.cquad dl{margin:0}.cquad dt{font-size:12.5px;font-weight:700;margin:10px 0 2px;color:var(--ink)}
 .cquad dt i{font-style:normal;font-weight:400;color:var(--mut);margin-left:6px}.cquad dd{margin:0;font-size:13px;color:var(--ink2);line-height:1.7}
-.ter{position:relative;height:min(68vh,620px);min-height:360px;background:var(--card2);border-radius:12px;overflow:hidden;touch-action:none}
-.ter canvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab}.ter canvas.drag{cursor:grabbing}
+.ter{position:relative;height:min(64vh,600px);min-height:360px;background:var(--card2);border-radius:12px;overflow:hidden}
+.ter canvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:pan-y}.ter canvas.drag{cursor:grabbing}
 .tld{position:absolute;left:14px;top:10px;margin:0}.tctl{margin:6px 0 8px}
-.ter .tip{min-width:170px}
+.ter .tip{min-width:0;white-space:nowrap}.ter .tip .tgo{display:block;margin-top:3px;font-weight:600}
+.tlg{display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 2px 0;font-size:12.5px;color:var(--ink2)}
+.tlg i{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.tlg .tlh{background:var(--c4)}.tlg .tlc{background:var(--c0)}.tlg .tld2{background:var(--line2)}
+.tlg .tlx{background:linear-gradient(90deg,var(--zh),var(--c4))}
+.tlg .tlz0{background:var(--c0)}.tlg .tlz1{background:var(--c1)}.tlg .tlz2{background:var(--c2)}.tlg .tlz3{background:var(--c3)}.tlg .tlz4{background:var(--c4)}
 @media (max-width:820px){.vgrid{grid-template-columns:1fr}.vbar{gap:6px 10px}}
 @media (max-width:640px){
  .vsw button{padding:5px 9px;font-size:13px}.rsm{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.rsm .pxn{display:none}
  .rchips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:2px -16px 4px;padding:0 16px}.rchips::-webkit-scrollbar{display:none}.rch{flex:none}
  .rnow{min-width:4.8em;font-size:12.5px}.dnum b{font-size:17px}.drw{width:100vw;border-left:0}
- .ter{height:62vh;min-height:320px}
+ .ter{height:58vh;min-height:320px}
 }
 body.drw-on{overflow:hidden}
 @media (min-width:1100px){body.drw-on{overflow:auto}}
@@ -1198,175 +1210,296 @@ function drill(id) {
   CS.raf = requestAnimationFrame(fr);
 }
 
-// ── 3D 熱度地形（canvas 自己投影，不載入外部套件）：每條山脊一個面向、高出紅色平面＝過熱；拖曳旋轉、點一下跳到雷達
-const TS = {yaw: -0.55, pitch: 0.55, rg: 10, flat: false, inited: false, pts: [], drag: null};
-function tShow() { if (!D) { withData(tShow); return; } if (!TS.inited) tInit(); tDraw(); }
+// ── 3D 熱度地形（canvas 自己投影，不載入外部套件）：每條山脊一個面向，越高越熱，最右邊是現在。
+//    山脊只用一個顏色；高出 80 的山頂塗紅（過熱）、低於 20 的谷底積藍（過冷）；地面灰帶＝指數從高點跌 20% 以上的期間；
+//    最前面一排＝同一週有幾個面向過熱。右側一欄是讀數（平常是現在，滑過時換成那一週）。拖曳旋轉，點一下跳到雷達看那一週
+const TDEF = {yaw: -0.34, pitch: 0.6}, TDEFM = {yaw: -0.1, pitch: 0.92};       // 手機：往下看多一點，山脊上下分開
+const TS = {yaw: TDEF.yaw, pitch: TDEF.pitch, rg: 10, flat: false, inited: false, pts: [], drag: null, hi: null, hiRow: null, raf: 0, T: null, geo: null};
+const clampY = v => Math.max(-0.95, Math.min(0.2, v)), clampP = v => Math.max(0.28, Math.min(1.12, v));
+function tMob() { const b = $('#ter'); return !!b && b.clientWidth < 560; }
+function tShow() { if (!D) { withData(tShow); return; } if (!TS.inited) { tInit(); const d = tMob() ? TDEFM : TDEF; TS.yaw = d.yaw; TS.pitch = d.pitch; } TS.T = null; tDraw(); }
+function tReq() { if (!TS.raf) TS.raf = requestAnimationFrame(() => { TS.raf = 0; tDraw(); }); }
+function tGo(j) { if (j == null || !TS.T) return; setView('radar'); setT(TS.T.i0 + j); const r = $('#top'); if (r) r.scrollIntoView({block: 'start'}); }
 function tInit() {
   TS.inited = true;
-  const cv = $('#tcv'), ld = $('#tld');
+  const cv = $('#tcv'), ld = $('#tld'), tip = $('#ttip');
   if (ld) ld.hidden = true;
   if (!cv) return;
   cv.tabIndex = 0;
-  cv.addEventListener('pointerdown', e => { TS.drag = {x: e.clientX, y: e.clientY, yaw: TS.yaw, pitch: TS.pitch, moved: false}; cv.setPointerCapture(e.pointerId); cv.classList.add('drag'); });
+  cv.addEventListener('pointerdown', e => { TS.drag = {x: e.clientX, y: e.clientY, yaw: TS.yaw, pitch: TS.pitch, moved: false, touch: e.pointerType === 'touch'}; cv.setPointerCapture(e.pointerId); cv.classList.add('drag'); });
   cv.addEventListener('pointermove', e => {
     if (TS.drag) {
       const dx = e.clientX - TS.drag.x, dy = e.clientY - TS.drag.y;
-      if (Math.abs(dx) + Math.abs(dy) > 4) TS.drag.moved = true;
-      if (TS.drag.moved && !TS.flat) { TS.yaw = TS.drag.yaw + dx * 0.008; TS.pitch = Math.max(0.12, Math.min(1.25, TS.drag.pitch + dy * 0.006)); tDraw(); }
+      if (Math.abs(dx) + Math.abs(dy) > 5) TS.drag.moved = true;
+      if (TS.drag.moved && !TS.flat) {
+        TS.yaw = clampY(TS.drag.yaw + dx * 0.005);
+        if (!TS.drag.touch) TS.pitch = clampP(TS.drag.pitch + dy * 0.005);       // 手機上下滑是捲頁面，只轉水平
+        TS.hi = null; tTip(null); tReq();
+      }
       return;
     }
     tHover(e);
   });
-  cv.addEventListener('pointerup', e => {
+  const end = e => {
     const d = TS.drag; TS.drag = null; cv.classList.remove('drag');
-    if (d && !d.moved) { const h = tHit(e); if (h) { setView('radar'); setT(h.i); const r = $('#top'); if (r) r.scrollIntoView({block: 'start'}); } }
-  });
-  cv.addEventListener('pointerleave', () => { const t = $('#ttip'); if (t) t.hidden = true; });
+    if (!d || d.moved || e.type === 'pointercancel') return;
+    const h = tHit(e);
+    if (!h) { TS.hi = null; tTip(null); tReq(); return; }
+    if (d.touch) { TS.hi = h.j; tTip(h, e, true); tReq(); }            // 手機：先顯示那一週，按提示框裡的連結才跳
+    else tGo(h.j);
+  };
+  cv.addEventListener('pointerup', end);
+  cv.addEventListener('pointercancel', end);
+  cv.addEventListener('pointerleave', e => { if (!TS.drag && e.pointerType !== 'touch') { TS.hi = null; tTip(null); tReq(); } });
   cv.addEventListener('keydown', e => {
     const k = e.key;
-    if (k === 'ArrowLeft' || k === 'ArrowRight') { TS.yaw += (k === 'ArrowLeft' ? -0.08 : 0.08); tDraw(); e.preventDefault(); }
-    if (k === 'ArrowUp' || k === 'ArrowDown') { TS.pitch = Math.max(0.12, Math.min(1.25, TS.pitch + (k === 'ArrowUp' ? 0.06 : -0.06))); tDraw(); e.preventDefault(); }
+    if (k === 'ArrowLeft' || k === 'ArrowRight') { TS.yaw = clampY(TS.yaw + (k === 'ArrowLeft' ? -0.08 : 0.08)); tReq(); e.preventDefault(); }
+    if (k === 'ArrowUp' || k === 'ArrowDown') { TS.pitch = clampP(TS.pitch + (k === 'ArrowUp' ? 0.06 : -0.06)); tReq(); e.preventDefault(); }
   });
-  $$('[data-tr]').forEach(b => b.addEventListener('click', () => { TS.rg = +b.dataset.tr; $$('[data-tr]').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); }); tDraw(); }, SG));
+  if (tip) tip.addEventListener('click', e => { const a = e.target.closest && e.target.closest('[data-tgo]'); if (a) { e.preventDefault(); tGo(+a.dataset.tgo); } }, SG);
+  $$('[data-tr]').forEach(b => b.addEventListener('click', () => { TS.rg = +b.dataset.tr; TS.T = null; TS.hi = null; tTip(null); $$('[data-tr]').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); }); tDraw(); }, SG));
   const fl = $('#tflat');
-  if (fl) fl.addEventListener('click', () => { TS.flat = !TS.flat; fl.classList.toggle('on', TS.flat); fl.setAttribute('aria-pressed', TS.flat ? 'true' : 'false'); tDraw(); }, SG);
+  if (fl) fl.addEventListener('click', () => {
+    TS.flat = !TS.flat; TS.hi = null; tTip(null); fl.classList.toggle('on', TS.flat); fl.setAttribute('aria-pressed', TS.flat ? 'true' : 'false');
+    const rs = $('#treset'); if (rs) rs.hidden = TS.flat;
+    $$('.tlg').forEach(g => { g.hidden = (g.dataset.m === 'flat') !== TS.flat; });
+    tDraw();
+  }, SG);
   const rs = $('#treset');
-  if (rs) rs.addEventListener('click', () => { TS.yaw = -0.55; TS.pitch = 0.55; tDraw(); }, SG);
+  if (rs) rs.addEventListener('click', () => { const d = tMob() ? TDEFM : TDEF; TS.yaw = d.yaw; TS.pitch = d.pitch; tDraw(); }, SG);
   if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (document.documentElement.dataset.hv === 'terrain') tDraw(); }, SG);
 }
+function wkIdx(d) { const ds = D.w.d; let lo = 0, hi = ds.length - 1; if (d > ds[hi]) return hi; while (lo < hi) { const m = (lo + hi) >> 1; if (ds[m] >= d) hi = m; else lo = m + 1; } return lo; }
 function tData() {
   const ds = D.w.d, i1 = ds.length - 1;
   let i0 = iStart();
   if (TS.rg) { const cut = (+ds[i1].slice(0, 4) - TS.rg) + ds[i1].slice(4); const j = ds.findIndex(d => d > cut); i0 = Math.max(i0, j < 0 ? 0 : j); }
+  const K = TS.rg ? 4 : 8, N = i1 - i0 + 1;                           // 山脊畫最近 K 週平均（只用當週以前）；讀數用原始分數
   const rows = DIM.map(id => {
     const t = D.s[id] && D.s[id].h, raw = [], sm = [];
     for (let i = i0; i <= i1; i++) raw.push(val(t, i));
-    raw.forEach((v, j) => { const xs = raw.slice(Math.max(0, j - 3), j + 1).filter(x => x != null); sm.push(v == null || !xs.length ? null : xs.reduce((a, b) => a + b, 0) / xs.length); });
-    const have = raw.filter(x => x != null);
-    return {id: id, raw: raw, sm: sm, avg: have.length ? have.reduce((a, b) => a + b, 0) / have.length : 0};
+    let s = 0, q = [];
+    raw.forEach(v => { if (v == null) { sm.push(null); s = 0; q = []; return; } q.push(v); s += v; if (q.length > K) s -= q.shift(); sm.push(s / q.length); });
+    let last = -1;
+    for (let j = N - 1; j >= 0; j--) if (sm[j] != null) { last = j; break; }
+    return {id: id, raw: raw, sm: sm, last: last};
   });
-  return {i0: i0, i1: i1, rows: rows};
+  const hot = [];
+  for (let j = 0; j < N; j++) { let h = 0, any = false; rows.forEach(r => { if (r.raw[j] != null) { any = true; if (r.raw[j] >= 80) h++; } }); hot.push(any ? h : null); }
+  const eps = (P.eps || []).map(e => ({a: wkIdx(e.p) - i0, b: wkIdx(e.t) - i0, dd: e.dd, o: e.o, p: e.p, t: e.t})).filter(e => e.b >= 0 && e.a < N);
+  return {i0: i0, i1: i1, N: N, rows: rows, hot: hot, eps: eps};
 }
-function tColors() { return [0, 1, 2, 3, 4].map(k => css('--c' + k) || '#888'); }
 function hexA(c, a) { const m = /^#?([0-9a-f]{6})$/i.exec(c); if (!m) return c; const n = parseInt(m[1], 16); return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
-function tDraw() {
+function mixC(a, b, t) {
+  const p = x => { const m = /^#?([0-9a-f]{6})$/i.exec(x); const n = m ? parseInt(m[1], 16) : 0x888888; return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+  const A = p(a), B = p(b);
+  return 'rgb(' + A.map((v, k) => Math.round(v + (B[k] - v) * t)).join(',') + ')';
+}
+function tColors() {
+  return {bg: css('--card2'), ink: css('--ink'), ink2: css('--ink2'), mut: css('--mut'), line: css('--line2'), hot: css('--c4'), cold: css('--c0'),
+          acc: css('--acc'), panel: css('--panel'), t: [0, 1, 2, 3, 4].map(k => css('--t' + k)), c: [0, 1, 2, 3, 4].map(k => css('--c' + k))};
+}
+function tCanvas() {
   const cv = $('#tcv'), box = $('#ter');
-  if (!cv || !box || !D || !box.clientWidth) return;
+  if (!cv || !box || !D || !box.clientWidth) return null;
   const W = box.clientWidth, H = box.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
-  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
   const c = cv.getContext('2d');
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
   c.clearRect(0, 0, W, H);
-  const T = tData(), N = T.i1 - T.i0 + 1, COL = tColors(), ink = css('--ink'), mut = css('--mut'), line = css('--line2'), panel = css('--panel');
-  const zcol = v => COL[+zc(v)] || COL[2];
+  return {c: c, W: W, H: H};
+}
+function tDraw() {
+  const cx = tCanvas();
+  if (!cx) return;
+  const T = TS.T || (TS.T = tData());
+  const K = tColors();
   TS.pts = [];
-  if (TS.flat) {                                                          // 平面熱圖：列＝面向、欄＝週
-    const L = 76, R = 10, top = 18, rh = Math.min(46, (H - top - 30) / T.rows.length), cw = (W - L - R) / N;
-    T.rows.forEach((r, k) => {
-      const y = top + k * rh;
-      c.fillStyle = ink; c.font = '600 13px sans-serif'; c.textBaseline = 'middle'; c.fillText(NM[r.id], 8, y + rh / 2);
-      r.raw.forEach((v, j) => { if (v == null) return; c.fillStyle = zcol(v); c.fillRect(L + j * cw, y + 2, Math.ceil(cw + 0.5), rh - 4); });
-      TS.pts.push({row: k, y0: y, y1: y + rh, L: L, cw: cw, id: r.id, raw: r.raw});
-    });
-    tYears(c, T, i => L + (i - T.i0 + 0.5) * cw, top + T.rows.length * rh + 14, mut, W);
-    return;
+  if (TS.flat) { tFlat(cx, T, K); return; }
+  const c = cx.c, W = cx.W, n = T.rows.length, N = T.N, mob = W < 560;
+  if (!mob) { const box = $('#ter'); if (box && box.style.height && !TS.fit) { box.style.height = ''; box.style.minHeight = ''; TS.fit = true; tDraw(); TS.fit = false; return; } }
+  const LW = mob ? 92 : 132, pad = mob ? 8 : 18, BOT = 34, TOP = mob ? 30 : 34;      // 右側讀數欄、下方年份與跌幅、上方日期
+  if (mob) {                                                                // 手機：畫布高度照內容（用預設角度算，拖曳時不會跳）
+    const f = tCam(TDEFM.yaw, TDEFM.pitch, n, W - LW - 2 * pad, 1e9), want = Math.round(Math.max(270, Math.min(560, TOP + f.h + BOT + pad + 4)));
+    const box = $('#ter');
+    if (box && Math.abs(box.clientHeight - want) > 4 && !TS.fit) { box.style.minHeight = '0'; box.style.height = want + 'px'; TS.fit = true; tDraw(); TS.fit = false; return; }
   }
-  const rows = T.rows.slice().sort((a, b) => a.avg - b.avg), n = rows.length;   // 前面放比較冷的，擋得比較少
-  const XW = 120, YH = 24, ZS = 14, cx0 = XW / 2, cy0 = YH / 2, cz0 = (n - 1) * ZS / 2, DIST = 300;
-  const cyw = Math.cos(TS.yaw), syw = Math.sin(TS.yaw), cp = Math.cos(TS.pitch), sp = Math.sin(TS.pitch);
-  const raw = (x, y, z) => { const X0 = x - cx0, Y0 = y - cy0, Z0 = z - cz0, x1 = X0 * cyw - Z0 * syw, z1 = X0 * syw + Z0 * cyw, y1 = Y0 * cp + z1 * sp, z2 = z1 * cp - Y0 * sp, f = DIST / (DIST + z2); return [x1 * f, y1 * f, z2]; };   // 鏡頭往下看：越遠越靠近地平線
-  const za0 = -ZS / 2, za1 = cz0 * 2 + ZS / 2;                       // 整個場景（含地面與名稱的位置）先投影一次，再縮放到畫面裡
-  let mnx = Infinity, mxx = -Infinity, mny = Infinity, mxy = -Infinity;
-  [[-14, 0], [XW, 0], [-14, YH], [XW, YH + 4]].forEach(xy => [za0, za1].forEach(z => { const q = raw(xy[0], xy[1], z); mnx = Math.min(mnx, q[0]); mxx = Math.max(mxx, q[0]); mny = Math.min(mny, q[1]); mxy = Math.max(mxy, q[1]); }));
-  const pad = W < 520 ? 12 : 26, sc = Math.min((W - 2 * pad) / ((mxx - mnx) || 1), (H - 2 * pad - 14) / ((mxy - mny) || 1));
-  const ox = (W - (mxx - mnx) * sc) / 2 - mnx * sc, oy = (H - 14 - (mxy - mny) * sc) / 2 + mxy * sc;
+  const H = cx.H, CAM = tCam(TS.yaw, TS.pitch, n, W - LW - 2 * pad, H - TOP - BOT - pad);
+  const XW = CAM.XW, YH = CAM.YH, ZS = CAM.ZS, FR = CAM.FR, z0 = CAM.z0, z1 = CAM.z1, cx0 = CAM.cx0, sc = CAM.sc, raw = CAM.raw;
+  const ox = pad + (W - LW - 2 * pad - CAM.w) / 2 - CAM.mnx * sc, oy = TOP + (H - TOP - BOT - pad - CAM.h) / 2 + CAM.mxy * sc;
   const pr = (x, y, z) => { const q = raw(x, y, z); return [ox + q[0] * sc, oy - q[1] * sc, q[2]]; };
   const xi = j => j / Math.max(1, N - 1) * XW, yv = v => v / 100 * YH;
-  const poly = (pts, fill) => { c.beginPath(); pts.forEach((p, k) => (k ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath(); c.fillStyle = fill; c.fill(); };
-  poly([pr(0, 0, za0), pr(XW, 0, za0), pr(XW, 0, za1), pr(0, 0, za1)], hexA(panel, 0.55));      // 地面
-  c.strokeStyle = line; c.lineWidth = 1;
-  for (let j = 1; j < N; j++) if (D.w.d[T.i0 + j].slice(0, 4) !== D.w.d[T.i0 + j - 1].slice(0, 4)) { const a = pr(xi(j), 0, za0), b = pr(xi(j), 0, za1); c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); }
-  const order = rows.map((r, k) => ({r: r, k: k, z: pr(cx0, cy0, k * ZS)[2]})).sort((a, b) => b.z - a.z);   // 由遠到近
-  const farDir = pr(cx0, cy0, ZS)[2] > pr(cx0, cy0, 0)[2] ? 1 : -1;   // 深度往哪邊增加
-  const hot = hexA(COL[4], 0.09);
-  const plane = (zA, zB) => poly([pr(0, yv(80), zA), pr(XW, yv(80), zA), pr(XW, yv(80), zB), pr(0, yv(80), zB)], hot);
-  const labs = [];
+  const poly = pts => { c.beginPath(); pts.forEach((p, k) => (k ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath(); };
+  const zOf = k => (n - 1 - k) * ZS;                                         // 第一個面向在最後面
+  // 地面、年份格線、大跌期間
+  poly([pr(0, 0, z0), pr(XW, 0, z0), pr(XW, 0, z1), pr(0, 0, z1)]); c.fillStyle = mixC(K.bg, K.ink, 0.045); c.fill();
+  T.eps.forEach(e => { const a = Math.max(0, e.a), b = Math.min(N - 1, Math.max(e.b, a + 1)); poly([pr(xi(a), 0, z0), pr(xi(b), 0, z0), pr(xi(b), 0, z1), pr(xi(a), 0, z1)]); c.fillStyle = hexA(K.ink, 0.13); c.fill(); });
+  c.strokeStyle = hexA(K.ink, 0.10); c.lineWidth = 1;
+  const yrs = [];
+  for (let j = 1; j < N; j++) if (D.w.d[T.i0 + j].slice(0, 4) !== D.w.d[T.i0 + j - 1].slice(0, 4)) yrs.push(j);
+  yrs.forEach(j => { const a = pr(xi(j), 0, z0), b = pr(xi(j), 0, z1); c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); });
+  // 同時過熱（最前面一排）
+  const hz0 = z0 + FR * 0.22, hz1 = z0 + FR * 0.72;
+  let j = 0;
+  while (j < N) {
+    const h = T.hot[j]; let k = j;
+    while (k + 1 < N && T.hot[k + 1] === h) k++;
+    if (h) { poly([pr(xi(j), 0, hz0), pr(xi(k + 1 < N ? k + 1 : k), 0, hz0), pr(xi(k + 1 < N ? k + 1 : k), 0, hz1), pr(xi(j), 0, hz1)]); c.fillStyle = hexA(K.hot, Math.min(0.9, 0.18 + 0.2 * h)); c.fill(); }
+    j = k + 1;
+  }
+  // 山脊（由遠到近）：顏色一種；過冷的谷底先填藍再被山體蓋住；山頂超過 80 的部分塗紅
+  const order = T.rows.map((r, k) => ({r: r, k: k, z: zOf(k), d: pr(cx0, 0, zOf(k))[2]})).sort((a, b) => b.d - a.d);
+  const segs = sm => { const out = []; let s = null; sm.forEach((v, t) => { if (v == null) { if (s) out.push(s); s = null; } else (s = s || []).push(t); }); if (s) out.push(s); return out; };
   order.forEach((o, q) => {
-    const z = o.k * ZS;
-    plane(q ? order[q - 1].k * ZS : z + farDir * ZS / 2, z);                      // 這條山脊後面那一段紅色平面
-    const sm = o.r.sm, b0 = pr(0, 0, z), b1 = pr(XW, 0, z), dx = b1[0] - b0[0], dy = b1[1] - b0[1], dd = dx * dx + dy * dy || 1;
-    const gr = c.createLinearGradient(b0[0], b0[1], b1[0], b1[1]);
-    let lastPos = -1;
-    for (let t = 0; t < N; t++) {
-      if (sm[t] == null) continue;
-      const pp = pr(xi(t), 0, z), pos = Math.max(0, Math.min(1, ((pp[0] - b0[0]) * dx + (pp[1] - b0[1]) * dy) / dd));
-      if (pos - lastPos < 0.002 && t < N - 1) continue;
-      gr.addColorStop(pos, hexA(zcol(sm[t]), 0.92)); lastPos = pos;
+    const z = o.z, sm = o.r.sm, rank = q / Math.max(1, n - 1);              // rank：0＝最遠、1＝最近
+    const wall = mixC(K.bg, K.ink, 0.07 + 0.09 * rank), wallT = mixC(K.bg, K.ink, 0.12 + 0.1 * rank);
+    const top = pr(cx0, YH, z), base = pr(cx0, 0, z), gr = c.createLinearGradient(top[0], top[1], base[0], base[1]);
+    gr.addColorStop(0, wallT); gr.addColorStop(1, wall);
+    const hiRow = TS.hiRow === o.r.id;
+    segs(sm).forEach(sg => {
+      const a = xi(sg[0]), b = xi(sg[sg.length - 1]);
+      if (sg.some(t => sm[t] < 20)) { poly([pr(a, 0, z), pr(b, 0, z), pr(b, yv(20), z), pr(a, yv(20), z)]); c.fillStyle = hexA(K.cold, 0.8); c.fill(); }
+      const tp = sg.map(t => pr(xi(t), yv(sm[t]), z)), body = tp.concat([pr(b, 0, z), pr(a, 0, z)]);
+      poly(body); c.fillStyle = gr; c.fill();
+      if (sg.some(t => sm[t] >= 80)) {
+        c.save(); poly([pr(a - 1, yv(80), z), pr(b + 1, yv(80), z), pr(b + 1, YH * 1.6, z), pr(a - 1, YH * 1.6, z)]); c.clip();
+        poly(body); c.fillStyle = hexA(K.hot, 0.92); c.fill(); c.restore();
+      }
+      c.beginPath(); tp.forEach((p, k) => (k ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])));
+      c.strokeStyle = hexA(K.ink, hiRow ? 0.95 : 0.6); c.lineWidth = hiRow ? 2 : 1.2; c.lineJoin = 'round'; c.stroke();
+      const b0 = pr(a, 0, z), b1 = pr(b, 0, z); c.beginPath(); c.moveTo(b0[0], b0[1]); c.lineTo(b1[0], b1[1]); c.strokeStyle = hexA(K.ink, 0.22); c.lineWidth = 1; c.stroke();
+      sg.forEach(t => { const p = tp[t - sg[0]]; TS.pts.push({x: p[0], y: p[1], z: p[2], id: o.r.id, j: t}); });
+    });
+    if (TS.hi != null && sm[TS.hi] != null) {                              // 滑過的那一週：每條山脊一條直線＋一個點（照遠近順序畫，會被前面的山擋住）
+      const t = TS.hi, p = pr(xi(t), yv(sm[t]), z), b0 = pr(xi(t), 0, z);
+      c.beginPath(); c.moveTo(b0[0], b0[1]); c.lineTo(p[0], p[1]); c.strokeStyle = hexA(K.ink, 0.7); c.lineWidth = 1.2; c.stroke();
+      c.beginPath(); c.arc(p[0], p[1], 3.6, 0, 6.3); c.fillStyle = K.c[+zc(o.r.raw[t] == null ? sm[t] : o.r.raw[t])] || K.ink; c.fill(); c.strokeStyle = K.panel; c.lineWidth = 1.4; c.stroke();
     }
-    let seg = [];
-    const flush = () => { if (seg.length >= 2) { const top = seg.map(t => pr(xi(t), yv(sm[t]), z)), base = seg.map(t => pr(xi(t), 0, z)).reverse(); poly(top.concat(base), gr); } seg = []; };
-    for (let t = 0; t < N; t++) { if (sm[t] == null) flush(); else seg.push(t); }
-    flush();
-    c.beginPath(); let pen = false;
-    for (let t = 0; t < N; t++) {
-      if (sm[t] == null) { pen = false; continue; }
-      const p = pr(xi(t), yv(sm[t]), z);
-      if (pen) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]);
-      pen = true;
-      if (t % 2 === 0 || t === N - 1) TS.pts.push({x: p[0], y: p[1], z: p[2], id: o.r.id, i: T.i0 + t, v: o.r.raw[t]});
-    }
-    c.strokeStyle = hexA(ink, 0.5); c.lineWidth = 1.1; c.stroke();
-    const f = sm.findIndex(v => v != null);
-    if (f >= 0) labs.push({p: pr(-1.5, yv(8), z), id: o.r.id});
   });
-  const zf = order.length ? order[order.length - 1].k * ZS : 0;
-  plane(zf, zf - farDir * ZS / 2);
-  c.textBaseline = 'middle';
-  labs.forEach(l => {                                                         // 名稱最後畫，不會被山脊擋住
-    const sc0 = P.dims.find(d => d.id === l.id).sc, lb = NM[l.id] + ' ' + n0(sc0);
-    c.font = '700 12.5px sans-serif'; c.textAlign = 'right';
-    const tw = c.measureText(lb).width;
-    c.fillStyle = hexA(panel, 0.82); c.fillRect(l.p[0] - tw - 8, l.p[1] - 10, tw + 10, 20);
-    c.fillStyle = css('--t' + zc(sc0)) || ink; c.fillText(lb, l.p[0] - 3, l.p[1]);
-  });
-  const pl = pr(-1.5, yv(80), za0);
-  c.font = '600 11.5px sans-serif'; c.textAlign = 'right'; c.fillStyle = css('--t4'); c.fillText('過熱（80）', pl[0] - 4, pl[1]);
-  const nw = pr(XW, YH + 3, za1);
-  c.textAlign = 'center'; c.fillStyle = css('--acc'); c.fillText('現在', nw[0], nw[1] - 6);
-  c.fillStyle = mut; c.font = '11px sans-serif';
+  if (TS.hi != null) { const a = pr(xi(TS.hi), 0, z0), b = pr(xi(TS.hi), 0, hz1); c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.strokeStyle = hexA(K.ink, 0.7); c.lineWidth = 1.4; c.stroke(); }
+  // 下方：年份、跌幅
+  c.textBaseline = 'alphabetic'; c.font = '11px sans-serif'; c.fillStyle = K.mut; c.textAlign = 'center';
   let last = -1e9;
-  for (let j = 1; j < N; j++) if (D.w.d[T.i0 + j].slice(0, 4) !== D.w.d[T.i0 + j - 1].slice(0, 4)) { const p = pr(xi(j), 0, za0 - 3); if (Math.abs(p[0] - last) > 34) { c.fillText(D.w.d[T.i0 + j].slice(0, 4), p[0], p[1] + 9); last = p[0]; } }
+  const yf = p => p[1] + 14;
+  yrs.forEach(j => { const p = pr(xi(j), 0, z0); if (p[0] - last > (mob ? 30 : 34) && p[0] < W - LW - 6) { c.fillText(D.w.d[T.i0 + j].slice(0, 4), p[0], yf(p)); last = p[0]; } });
+  last = -1e9;
+  c.font = '600 10.5px sans-serif';
+  T.eps.forEach(e => {
+    const a = Math.max(0, e.a), b = Math.min(N - 1, e.b), p = pr(xi((a + b) / 2), 0, z0), lb = '跌 ' + Math.round(Math.abs(e.dd)) + '%';
+    const w = c.measureText(lb).width;
+    if (p[0] - w / 2 < last + 6 || p[0] + w / 2 > W - LW) return;
+    c.fillStyle = K.ink2; c.fillText(lb, p[0], yf(p) + 14); last = p[0] + w / 2;
+  });
+  tReadout(c, T, K, W, H, LW, pad, mob, order.map(o => ({id: o.r.id, p: o.r.last >= 0 ? pr(xi(o.r.last), yv(o.r.sm[o.r.last]), o.z) : null})),
+    pr(xi(N - 1), 0, (hz0 + hz1) / 2));
+  TS.geo = {W: W, LW: LW};
 }
-function tYears(c, T, X, y, col, W) {
-  c.fillStyle = col; c.font = '11px sans-serif'; c.textAlign = 'center';
+// 投影：時間長 120、滿分高 22、山脊間距 15；最前面一排留給「同時過熱」。回傳縮放後的寬高（放進 aw × ah）
+function tCam(yaw, pitch, n, aw, ah) {
+  const XW = 120, YH = 22, ZS = 15, FR = ZS * 1.05, z0 = -FR, z1 = (n - 1) * ZS + ZS * 0.45;
+  const cx0 = XW / 2, cy0 = YH / 3, cz0 = (z0 + z1) / 2, DIST = 340;
+  const cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const raw = (x, y, z) => { const X0 = x - cx0, Y0 = y - cy0, Z0 = z - cz0, x1 = X0 * cyw - Z0 * syw, z1 = X0 * syw + Z0 * cyw, y1 = Y0 * cp + z1 * sp, z2 = z1 * cp - Y0 * sp, f = DIST / (DIST + z2); return [x1 * f, y1 * f, z2]; };
+  let mnx = Infinity, mxx = -Infinity, mny = Infinity, mxy = -Infinity;
+  [0, XW].forEach(x => [0, YH].forEach(y => [z0, z1].forEach(z => { const q = raw(x, y, z); mnx = Math.min(mnx, q[0]); mxx = Math.max(mxx, q[0]); mny = Math.min(mny, q[1]); mxy = Math.max(mxy, q[1]); })));
+  const sc = Math.min(aw / ((mxx - mnx) || 1), ah / ((mxy - mny) || 1));
+  return {XW: XW, YH: YH, ZS: ZS, FR: FR, z0: z0, z1: z1, cx0: cx0, raw: raw, sc: sc, mnx: mnx, mxy: mxy, w: (mxx - mnx) * sc, h: (mxy - mny) * sc};
+}
+// 右側讀數欄：每個面向一列（照畫面上下排、用細線連到山脊），最下面是同時過熱的數目；平常是現在，滑過時換成那一週
+function md2(d) { return d ? (+d.slice(5, 7)) + '/' + (+d.slice(8, 10)) : '—'; }
+function tReadout(c, T, K, W, H, LW, pad, mob, ends, hotP) {
+  const j = TS.hi != null ? TS.hi : T.N - 1, x0 = W - LW + (mob ? 4 : 10), gap = mob ? 18 : 21, fs = mob ? 11.5 : 12.5;
+  c.textBaseline = 'middle'; c.textAlign = 'left';
+  const dd = D.w.d[T.i0 + j];
+  c.font = '700 ' + (mob ? 12 : 13) + 'px sans-serif'; c.fillStyle = TS.hi != null ? K.acc : K.ink;
+  c.fillText(TS.hi != null ? ymd(dd) : '現在 ' + (mob ? md2(dd) : ymd(dd)), x0, pad + 6);
+  c.font = (mob ? 10.5 : 11.5) + 'px sans-serif'; c.fillStyle = K.mut;
+  c.fillText((mob ? '指數' : PXN) + ' ' + fpx(D.w.px[T.i0 + j]), x0, pad + (mob ? 23 : 25));
+  const L = ends.filter(e => e.p).map(e => ({id: e.id, p: e.p, y: e.p[1]})).sort((a, b) => a.y - b.y);
+  const y0 = pad + (mob ? 46 : 50), y1 = H - 34 - gap;                       // 標籤中心可以放的範圍（上面留給日期、下面留給同時過熱）
+  for (let k = 0; k < L.length; k++) L[k].y = Math.max(L[k].y, k ? L[k - 1].y + gap : y0);
+  for (let k = L.length - 1; k >= 0; k--) L[k].y = Math.min(L[k].y, k < L.length - 1 ? L[k + 1].y - gap : y1);
+  for (let k = 0; k < L.length; k++) L[k].y = Math.max(L[k].y, k ? L[k - 1].y + gap : y0);
+  L.forEach(l => {
+    const r = T.rows.find(x => x.id === l.id), v = r.raw[j] != null ? r.raw[j] : null, z = zc(v);
+    c.beginPath(); c.moveTo(l.p[0] + 3, l.p[1]); c.lineTo(x0 - 4, l.y); c.strokeStyle = hexA(K.ink, 0.28); c.lineWidth = 1; c.stroke();
+    c.beginPath(); c.arc(l.p[0], l.p[1], 2.6, 0, 6.3); c.fillStyle = hexA(K.ink, 0.75); c.fill();
+    c.font = '600 ' + fs + 'px sans-serif'; c.fillStyle = K.ink; c.fillText(NM[l.id], x0, l.y);
+    const w = c.measureText(NM[l.id]).width;
+    c.font = '800 ' + (fs + 1) + 'px sans-serif'; c.fillStyle = z === 'x' ? K.mut : K.t[+z]; c.fillText(n0(v), x0 + w + 6, l.y);
+  });
+  const h = T.hot[j], hy = Math.max(H - 30, (L.length ? L[L.length - 1].y : 0) + gap);
+  c.beginPath(); c.moveTo(hotP[0] + 3, hotP[1]); c.lineTo(x0 - 4, hy); c.strokeStyle = hexA(K.hot, 0.45); c.lineWidth = 1; c.stroke();
+  c.font = '600 ' + (fs - 0.5) + 'px sans-serif'; c.fillStyle = K.ink2; c.fillText('同時過熱', x0, hy);
+  const w = c.measureText('同時過熱').width;
+  c.font = '800 ' + fs + 'px sans-serif'; c.fillStyle = h ? K.t[4] : K.mut; c.fillText((h == null ? '—' : h) + ' 個', x0 + w + 6, hy);
+}
+// 平面：列＝面向（左邊名稱與讀數）、欄＝週；最下面一列同時過熱；灰底＝大跌期間
+function tFlat(cx, T, K) {
+  const c = cx.c, W = cx.W, H = cx.H, N = T.N, n = T.rows.length, mob = W < 560;
+  const L = mob ? 86 : 118, R = 8, top = 34, rh = mob ? 30 : 40, cw = (W - L - R) / N, want = Math.round(top + (n + 1) * rh + 50);
+  const box = $('#ter');
+  if (box && Math.abs(box.clientHeight - want) > 4 && !TS.fit) { box.style.minHeight = '0'; box.style.height = want + 'px'; TS.fit = true; tDraw(); TS.fit = false; return; }
+  const j = TS.hi != null ? TS.hi : N - 1;
+  T.eps.forEach(e => { const a = Math.max(0, e.a), b = Math.min(N - 1, e.b); c.fillStyle = hexA(K.ink, 0.08); c.fillRect(L + a * cw, top - 4, Math.max(1, (b - a + 1) * cw), (n + 1) * rh + 8); });
+  c.textBaseline = 'middle'; c.textAlign = 'left';
+  c.font = '700 ' + (mob ? 12 : 13) + 'px sans-serif'; c.fillStyle = TS.hi != null ? K.acc : K.ink;
+  c.fillText((TS.hi != null ? '' : '現在 ') + ymd(D.w.d[T.i0 + j]), 8, 14);
+  c.font = (mob ? 10.5 : 11.5) + 'px sans-serif'; c.fillStyle = K.mut; c.textAlign = 'right';
+  c.fillText(PXN + ' ' + fpx(D.w.px[T.i0 + j]), W - R, 14);
+  T.rows.forEach((r, k) => {
+    const y = top + k * rh;
+    let s = 0;
+    while (s < N) { const v = r.raw[s]; let e = s; const z = zc(v); while (e + 1 < N && zc(r.raw[e + 1]) === z) e++; if (z !== 'x') { c.fillStyle = K.c[+z]; c.fillRect(L + s * cw, y + 2, (e - s + 1) * cw + 0.5, rh - 4); } s = e + 1; }
+    const v = r.raw[j], z = zc(v);
+    c.textAlign = 'left'; c.font = '600 ' + (mob ? 11.5 : 12.5) + 'px sans-serif'; c.fillStyle = K.ink; c.fillText(NM[r.id], 6, y + rh / 2);
+    c.textAlign = 'right'; c.font = '800 ' + (mob ? 12 : 13) + 'px sans-serif'; c.fillStyle = z === 'x' ? K.mut : K.t[+z]; c.fillText(n0(v), L - 6, y + rh / 2);
+  });
+  const hy = top + n * rh;
+  for (let s = 0; s < N; s++) { const h = T.hot[s]; if (h) { c.fillStyle = hexA(K.hot, Math.min(0.9, 0.18 + 0.2 * h)); c.fillRect(L + s * cw, hy + 2, cw + 0.5, rh - 4); } }
+  c.textAlign = 'left'; c.font = '600 ' + (mob ? 11 : 12) + 'px sans-serif'; c.fillStyle = K.ink2; c.fillText('同時過熱', 6, hy + rh / 2);
+  c.textAlign = 'right'; c.font = '800 ' + (mob ? 12 : 13) + 'px sans-serif'; c.fillStyle = T.hot[j] ? K.t[4] : K.mut; c.fillText((T.hot[j] == null ? '—' : T.hot[j]) + ' 個', L - 6, hy + rh / 2);
+  if (TS.hi != null) { c.fillStyle = hexA(K.ink, 0.85); c.fillRect(L + TS.hi * cw + cw / 2 - 0.75, top - 6, 1.5, (n + 1) * rh + 10); }
+  c.textBaseline = 'alphabetic'; c.textAlign = 'center'; c.fillStyle = K.mut; c.font = '11px sans-serif';
   let last = -1e9;
-  for (let i = T.i0 + 1; i <= T.i1; i++) if (D.w.d[i].slice(0, 4) !== D.w.d[i - 1].slice(0, 4)) { const x = X(i); if (x - last > 36 && x < W - 10) { c.fillText(D.w.d[i].slice(0, 4), x, y); last = x; } }
+  const yb = top + (n + 1) * rh + 16;
+  for (let s = 1; s < N; s++) if (D.w.d[T.i0 + s].slice(0, 4) !== D.w.d[T.i0 + s - 1].slice(0, 4)) { const x = L + s * cw; if (x - last > 34 && x < W - 14) { c.fillText(D.w.d[T.i0 + s].slice(0, 4), x, yb); last = x; } }
+  last = -1e9; c.font = '600 10.5px sans-serif'; c.fillStyle = K.ink2;
+  T.eps.forEach(e => { const a = Math.max(0, e.a), b = Math.min(N - 1, e.b), x = L + (a + b + 1) / 2 * cw, lb = '跌 ' + Math.round(Math.abs(e.dd)) + '%', w = c.measureText(lb).width; if (x - w / 2 < last + 6) return; c.fillText(lb, x, yb + 14); last = x + w / 2; });
+  TS.pts = {flat: true, L: L, cw: cw, top: top, bot: top + (n + 1) * rh, N: N};
 }
 function tHit(e) {
   const cv = $('#tcv'), r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
   if (TS.flat) {
-    const row = TS.pts.find(p => y >= p.y0 && y < p.y1);
-    if (!row) return null;
-    const j = Math.floor((x - row.L) / row.cw);
-    if (j < 0 || j >= row.raw.length) return null;
-    const T0 = iLast() - row.raw.length + 1;
-    return {id: row.id, i: T0 + j, v: row.raw[j]};
+    const F = TS.pts;
+    if (!F || !F.flat || y < F.top - 6 || y > F.bot + 6) return null;
+    const j = Math.floor((x - F.L) / F.cw);
+    return j < 0 || j >= F.N ? null : {j: j};
   }
-  let best = null, bd = 16;
-  TS.pts.forEach(p => { const d = Math.hypot(p.x - x, p.y - y) + p.z * 0.02; if (d < bd) { bd = d; best = p; } });
-  return best;
+  if (TS.geo && x > TS.geo.W - TS.geo.LW) return null;
+  let best = null, bd = 44;
+  TS.pts.forEach(p => { const d = Math.abs(p.x - x) + Math.max(0, Math.abs(p.y - y) - 8) * 0.35; if (d < bd) { bd = d; best = p; } });
+  return best ? {j: best.j, id: best.id} : null;
+}
+function tTip(h, e, touch) {
+  const t = $('#ttip'), box = $('#ter');
+  if (!t) return;
+  if (!h || !TS.T) { t.hidden = true; return; }
+  const T = TS.T, i = T.i0 + h.j;
+  t.innerHTML = '<b>' + esc(ymd(D.w.d[i])) + '</b>' + (touch ? '<a href="#" class="tgo" data-tgo="' + h.j + '">看那一週的雷達 →</a>' : '<div class="tpx">點一下看那一週的雷達</div>');
+  t.style.pointerEvents = touch ? 'auto' : 'none';
+  t.hidden = false;
+  const bx = box.getBoundingClientRect(), tw = t.offsetWidth, th = t.offsetHeight;
+  let left = e.clientX - bx.left + 14;
+  if (left + tw > bx.width - (TS.geo && !TS.flat ? TS.geo.LW : 0)) left = e.clientX - bx.left - tw - 14;
+  t.style.left = Math.max(4, left) + 'px';
+  t.style.top = Math.max(4, Math.min(bx.height - th - 4, e.clientY - bx.top - th - 12)) + 'px';
 }
 function tHover(e) {
-  const t = $('#ttip'), h = tHit(e), box = $('#ter');
-  if (!t) return;
-  if (!h) { t.hidden = true; return; }
-  t.innerHTML = '<b>' + esc(NM[h.id]) + '・' + esc(ymd(D.w.d[h.i])) + '</b><div><strong>' + n0(h.v) + '</strong> ' + esc(h.v == null ? '' : bn(h.v)) + '</div><div class="tpx">' + esc(PXN) + ' ' + fpx(D.w.px[h.i]) + '</div><div class="tpx">點一下看那一週的雷達</div>';
-  t.hidden = false;
-  const bx = box.getBoundingClientRect(), tw = t.offsetWidth;
-  let left = e.clientX - bx.left + 14;
-  if (left + tw > bx.width) left = e.clientX - bx.left - tw - 14;
-  t.style.left = Math.max(0, left) + 'px';
-  t.style.top = Math.max(0, e.clientY - bx.top - 70) + 'px';
+  const h = tHit(e);
+  const nj = h ? h.j : null, nr = h ? h.id || null : null;
+  if (nj !== TS.hi || nr !== TS.hiRow) { TS.hi = nj; TS.hiRow = nr; tReq(); }
+  tTip(h, e, false);
 }
 
 // ── 事件與啟動

@@ -67,6 +67,21 @@ def test_pack_radar_data(built):
     assert viz["t0"] == cal[len(cal) - 1 - P.WEEK]
 
 
+def test_terrain_layers_and_wording(built):
+    """地形圖（2026-10-18 使用者：「地形圖好醜喔 看起來很不清楚」）：山脊一個顏色，只塗過熱與過冷；地面灰帶是大跌期間（全部列出）。"""
+    B, _, V, page = built
+    cal, px = B["cal"], B["px"]
+    a0 = cal.index(V["viz"]["start"])
+    want = VZ.episodes(cal[a0:], px[a0:])
+    assert [(e["p"], e["t"], e["o"]) for e in V["viz"]["eps"]] == [(e["peak"], e["trough"], e["open"]) for e in want]
+    assert all(e["dd"] == VZ._r1(100 * x["dd"]) for e, x in zip(V["viz"]["eps"], want))
+    tv = page[page.index('<div class="hview" data-view="terrain"'):page.index('<div class="hview" data-view="research"')]
+    assert "紅色山頂＝過熱（80 以上）" in tv and "藍色谷底＝過冷（20 以下）" in tv and "同一週有幾個面向過熱" in tv
+    assert f"灰色地面＝{P.MK['px'].strip()}從高點跌 20% 以上的期間" in tv
+    assert all(f"{nm}</span>" in tv for _, _, nm in S.BANDS)                   # 平面那一組圖例：五個區
+    assert "紅色平面" not in tv and "addColorStop(pos" not in VZ.JS           # 舊版：半透明紅色平面、逐週依分區上色（條紋）
+
+
 def test_key_states_definition(built):
     """關鍵狀態＝研究判定較弱／較強，而且現在在過熱或過冷；面向在前。"""
     B, R, V, page = built
