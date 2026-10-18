@@ -142,7 +142,8 @@ def m2() -> int:
 
 # 美國企業稅後獲利（BEA NIPA，季資料、年率、十億美元；泡沫頁 VER 2 那斯達克兩檔的基本面近似，docs/lab_risk_plan.md 第 9 節）
 # 第一順位＝不含存貨評價與資本消耗調整（A055RC，最接近公司財報的盈餘）；DBnomics 沒有才用含調整的（A551RC）
-CP_CANDS = ("BEA/NIPA-T61900D/A055RC-Q", "BEA/NIPA-T11200/A055RC-Q", "BEA/NIPA-T11200/A551RC-Q", "BEA/NIPA-T61600D/A551RC-Q")
+# 2026-10-18 CI 探針：表 1.12 第 45 行 A055RC-Q 有季資料（1947 起）；表 6.19D 的 A055RC 只有年資料
+CP_CANDS = ("BEA/NIPA-T11200/A055RC-Q", "BEA/NIPA-T11200/A551RC-Q")
 DBN_SEARCH = "https://api.db.nomics.world/v22/series/{p}?q={q}&observations=false&limit=60&format=json"
 
 
