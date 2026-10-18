@@ -231,3 +231,29 @@ def probe2() -> None:
     big = ",".join(["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "AVGO", "TSLA", "BRK-B", "JPM"] * 15)
     st, b = Y.get(f"https://query2.finance.yahoo.com/v7/finance/quote?symbols={big}&crumb={crumb}")
     _p("Yahoo 批次 150", f"{st} {len(b)} bytes")
+
+
+def probe3() -> None:
+    """第三輪：科技業獲利新舊分類有沒有重疊年（年資料）、6.16C 的通訊業代碼。"""
+    probe_bea_series(["BEA/NIPA-T61600D/N501RC-A", "BEA/NIPA-T61600D/N502RC-A",
+                      "BEA/NIPA-T61600C/A409RC-A", "BEA/NIPA-T61600C/A410RC-A", "BEA/NIPA-T61600C/A418RC-A",
+                      "BEA/NIPA-T61600C/A418RC-Q", "BEA/NIPA-T61600B/A418RBC-Q", "BEA/NIPA-T61600B/A409RBC-Q",
+                      "BEA/NIPA-T61600C/A409RC-Q"])
+    for ds in ("BEA/NIPA-T61600C",):
+        for q in ("communications", "transportation", "utilities"):
+            try:
+                doc = json.loads(_get(DBN_SEARCH.format(p=ds, q=q), timeout=120).decode("utf-8"))
+                docs = ((doc.get("series") or {}).get("docs")) or []
+                _p("BEA", f"{ds} q={q}：{len(docs)} 條")
+                for x in docs[:12]:
+                    _p("BEA", f"   {x.get('series_code')}｜{str(x.get('series_name'))[:140]}")
+            except Exception as e:                            # noqa: BLE001
+                _p("BEA", f"{ds} q={q} ✗ {type(e).__name__} {str(e)[:160]}")
+    try:
+        doc = json.loads(_get("https://api.db.nomics.world/v22/series/BEA/NIPA-T61600C?observations=false&limit=80&format=json",
+                              timeout=120).decode("utf-8"))
+        docs = ((doc.get("series") or {}).get("docs")) or []
+        _p("BEA", f"6.16C 全部 {len(docs)} 條：" + "；".join(f"{x.get('series_code')} {str(x.get('series_name'))[:50]}"
+                                                         for x in docs if str(x.get('series_code', '')).endswith('-Q')))
+    except Exception as e:                                    # noqa: BLE001
+        _p("BEA", f"6.16C 全部 ✗ {type(e).__name__} {str(e)[:160]}")

@@ -120,6 +120,9 @@ def backfill(only: set | None = None) -> None:
         if "fwd_probe2" in only:
             from arm.lab import fwdfetch as F
             F.probe2()
+        if "fwd_probe3" in only:
+            from arm.lab import fwdfetch as F
+            F.probe3()
         for k in sorted(only & set(jobs)):
             run(k, jobs[k])
         return
