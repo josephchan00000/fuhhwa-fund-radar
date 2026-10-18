@@ -124,8 +124,15 @@ def daily() -> None:
     if due_month("twcpi", today):
         monthly("twcpi", F.dgbas_cpi)
     run("廣度", F.breadth_update)
+    from arm.lab import bubind as BD                            # 泡沫頁產業泡沫：台股產業指數（docs/lab_risk_plan.md 第 12 節）
+    run("台股產業指數", BD.indtw_update)
     if ok != st:
         HD.save("_state", "fetch_heat", ok)
+
+
+def _indtw(force: bool = False) -> int:
+    from arm.lab import bubind as BD
+    return BD.indtw_update(force)
 
 
 def backfill(budget_min: float, only: set[str] | None) -> None:
@@ -156,6 +163,7 @@ def backfill(budget_min: float, only: set[str] | None) -> None:
         ("effr", "聯邦基金利率（紐約聯準銀行）", F.nyfed_effr, (F.NYFED_START,)),
         ("vixtw", "台指 VIX", F.taifex_vix, (4,)),
         ("breadth", "廣度", F.breadth_update, (True,)),
+        ("indtw", "台股產業指數", _indtw, (True,)),
         ("mmf", "美國貨幣基金", F.ofr_mmf, ()),
         ("spx", "S&P 500", F.yahoo, ("spx", "^GSPC", "2010-01-01")),
         ("cbcbank", "央行銀行資金", F.cbc_bank, ()),
