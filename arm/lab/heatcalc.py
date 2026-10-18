@@ -333,11 +333,15 @@ def build(D: dict | None = None) -> dict:
     cal, px, info = calendar(D)
     N = native_daily(D, cal, px)
     raw = raw_daily(D, cal, px, N)
+    for k in DAILY:                                    # 規格有、但還沒有資料的項目＝整條沒有值
+        raw.setdefault(k, [None] * len(cal))
+        N.setdefault(k, {})
     heat = {k: ([None if v is None else 100.0 * v / S.DIRECT[k] for v in raw[k]] if k in S.DIRECT else
                 [H.to_heat(p, S.HOT[k]) for p in H.pct_series(raw[k], S.PCT_WIN["d"], S.PCT_MIN["d"])]) for k in DAILY}
     M = raw_monthly(D)
     ymu: dict[str, list] = {}
     for k in MONTHLY:
+        M.setdefault(k, {})
         ks = sorted(M[k])
         p = H.pct_series([M[k][x] for x in ks], S.PCT_WIN["m"], S.PCT_MIN["m"])
         hm = {ym: H.to_heat(x, S.HOT[k]) for ym, x in zip(ks, p) if x is not None}

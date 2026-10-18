@@ -16,7 +16,6 @@ from . import heatcalc as C
 from . import heatspec as S
 
 UNIT = {k: u for k, _, _, u, *_ in S.IND}
-DNAME = {"fund": "基本面", "chip": "籌碼", "gliq": "全球資金", "tliq": "台灣資金", "tech": "技術"}
 
 
 # ── 小工具 ───────────────────────────────────────────────────────────
@@ -210,7 +209,7 @@ def summary(strips: dict) -> str:
         for dim, st in strips.items():
             if st["band"] != bd:
                 continue
-            nm = DNAME[dim]
+            nm = S.DSHORT[dim]
             if bd in ("過熱", "過冷") and st["weeks"] >= S.STRIP_RUN_NOTE:
                 nm += f"（{st['weeks']} 週）"
             names.append(nm)

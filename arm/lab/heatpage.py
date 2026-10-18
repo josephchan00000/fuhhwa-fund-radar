@@ -35,7 +35,6 @@ OUT_DATA = HC.OUT
 RES = ROOT / "data" / "lab" / "heat_research.json"
 TA_RECENT = 60                      # 「近期事件」列最近幾個交易日
 WEEK = S.CHG_DAYS
-NAV = {"fund": "基本面", "chip": "籌碼", "gliq": "全球資金", "tliq": "台灣資金", "tech": "技術"}
 SIGNED = {"B2", "B4", "B5", "B6", "B7", "B8", "C2", "C4", "C5", "C6", "G1", "G2", "G3", "G4",
           "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L9", "L10", "T1", "T2", "T3", "T7", "T12", "T13"}
 DEC = {"B1": 0, "B3": 1, "B4": 1, "B5": 1, "B6": 1, "C1": 0, "C2": 1, "C4": 1, "C5": 0, "C6": 1, "C7": 1, "C8": 2,
@@ -194,7 +193,7 @@ def meta() -> dict:
     """給前端的設定（名稱、單位、顏色、門檻），嵌在頁面裡；序列資料另外放 x9mh.json。"""
     return {
         "ver": S.VER,
-        "dims": [{"id": d, "name": L["name"], "short": NAV[d]} for d, L in S.DIMS.items()],
+        "dims": [{"id": d, "name": L["name"], "short": S.DSHORT[d]} for d, L in S.DIMS.items()],
         "items": {k: {"name": nm, "unit": u, "hot": hot, "dim": dim, "dec": DEC.get(k, 2), "signed": k in SIGNED}
                   for k, dim, nm, u, hot, *_ in S.IND},
         "order": {d: S.ITEMS[d] for d in S.DIMS},
@@ -544,8 +543,8 @@ def _strips(V: dict) -> str:
         cls = BAND_CLS.get(st.get("band"), "b2")
         num = (f'<b class="sc {cls}">{sc:.0f}</b><em class="bn {cls}">{_e(st["band"])}</em>' if sc is not None else
                '<b class="sc mu">—</b><em class="bn mu">沒有分數</em>')
-        rows.append(f'<a class="sr" href="#c-{dim}"><span class="sr-n"><b>{_e(NAV[dim])}</b><i>{_e(L["span"])}</i></span>'
-                    f'<span class="sr-c" role="img" aria-label="{_e(NAV[dim])}近 {S.STRIP_WEEKS} 週的熱度">{cells}</span>'
+        rows.append(f'<a class="sr" href="#c-{dim}"><span class="sr-n"><b>{_e(S.DSHORT[dim])}</b><i>{_e(L["span"])}</i></span>'
+                    f'<span class="sr-c" role="img" aria-label="{_e(S.DSHORT[dim])}近 {S.STRIP_WEEKS} 週的熱度">{cells}</span>'
                     f'<span class="sr-v">{num}</span><span class="sr-t">{_e(strip_text(st))}</span></a>')
     lg = "".join(f'<span><i class="{BAND_CLS[nm]}"></i>{_e(nm)}</span>' for _, _, nm in S.BANDS)
     return (f'<section class="hd" id="top"><p class="sum">{_e(V.get("summary") or "")}</p>'
@@ -1111,7 +1110,7 @@ def render(V: dict) -> str:
     nores = "" if R.get("dims") else '<p class="warn">驗證結果還沒產生（data/lab/heat_research.json），先只列各項的 0～100。</p>'
     data_rows = "".join(f'<tr><td class="l">{_e(k)}</td><td>{v[0]:,}</td><td>{_e(v[1] or "—")}</td><td>{_e(v[2] or "—")}</td></tr>'
                         for k, v in sorted((V.get("data") or {}).items()))
-    firsts = "、".join(f'{NAV[d]} {_ymd(L["first"])}' for d, L in Ds.items() if L["first"])
+    firsts = "、".join(f'{S.DSHORT[d]} {_ymd(L["first"])}' for d, L in Ds.items() if L["first"])
     body = (
         _strips(V) + f'<p class="hz">{_e(S.HORIZON_NOTE)}。<span class="mu">（資料到 {_e(_md(asof))}）</span></p>{nores}'
         + _cmp_section()
@@ -1123,7 +1122,7 @@ def render(V: dict) -> str:
         + f'<section class="sec" id="src"><h2>資料來源與筆數</h2><div class="tw"><table><tr><th class="l">檔</th><th>筆數</th>'
           f'<th>起</th><th>到</th></tr>{data_rows}</table></div><p class="note">{_e(_SRC_NOTE)}</p></section>'
     )
-    nav = ('<a href="#top">頁首</a><a href="#cmp">對照台股</a>' + "".join(f'<a href="#c-{d}">{_e(NAV[d])}</a>' for d in Ds)
+    nav = ('<a href="#top">頁首</a><a href="#cmp">對照台股</a>' + "".join(f'<a href="#c-{d}">{_e(S.DSHORT[d])}</a>' for d in Ds)
            + '<a href="#dv">邊際變化</a>' + ('<a href="#ta">價位事件</a>' if V.get("ta") else ""))
     from . import appnav
     return (_HTML.replace("{{APPTAB}}", appnav.bar("tw")).replace("{{CSS}}", _CSS + appnav.CSS)

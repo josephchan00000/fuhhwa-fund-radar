@@ -171,8 +171,10 @@ def built():
 
 def test_each_item_has_own_heat_and_pulls_sum_to_score(built):
     _, _, V, _ = built
-    assert list(V["dims"]) == ["fund", "chip", "gliq", "tliq", "tech"]
+    assert list(V["dims"]) == ["fund", "chip", "gliq", "tliq", "tech", "bubl"]
     for dim, L in V["dims"].items():
+        if dim == "bubl" and L["score"] is None:                       # 測試資料還沒有泡沫面向的原始資料（U6 補上）
+            continue
         assert L["score"] is not None, dim
         pulls = [it["pull"] for it in L["items"] if it["pull"] is not None]
         assert len(pulls) == L["n_have"] >= H.need(len(S.ITEMS[dim]))
@@ -194,7 +196,7 @@ def test_render_structure_and_wording(built):
         assert sec in page, sec
     for gone in ('id="trend"', 'id="detail"', 'class="tile"'):              # 第五版拿掉靜態走勢圖、各項明細、頁首數字卡
         assert gone not in page, gone
-    assert page.count('<a class="sr" href="#c-') == 5 and S.HORIZON_NOTE in page    # 五個面向的近 52 週色帶
+    assert page.count('<a class="sr" href="#c-') == len(S.DIMS) == 6 and S.HORIZON_NOTE in page    # 六個面向的近 52 週色帶
     for d in S.DIMS:
         st = V["strips"][d]
         assert len(st["cells"]) == min(S.STRIP_WEEKS, len(P.HP.week_ends(built[0]["cal"])))
