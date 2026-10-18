@@ -26,6 +26,7 @@ from . import heattech as TT
 ITEMS = list(S.DERIV)
 GROUPS = list(S.M6_GROUPS)
 GVARS = [f"GA_{g}" for g in GROUPS] + ["DI"]                 # 跨訊號：三組加速度、加速擴散
+SVARS = [f"SH_{g}" for g in GROUPS]                          # 對照圖的三條組線：組內幾成在加速（只當描述）
 DELAY = [(k, S.M6_WIN) for k in S.M6_DELAY]
 CUM = [(0, m) for m in S.M6_CUM]
 PATH_H = tuple(range(1, S.M6_EVENT_PATH + 1))
@@ -401,6 +402,12 @@ def item_panel(B: dict, k: str, me: list, dates: list, nat: dict | None = None) 
     return out
 
 
+def share_up(ss: list, mn: int):
+    """有值的原始二階正負號裡 > 0 的比例，換成 −1～1（(比例 × 100 − 50) ÷ 50）；有值的不到 mn 個回 None。"""
+    v = [x for x in ss if x is not None]
+    return None if len(v) < mn else 2.0 * sum(1 for x in v if x > 0) / len(v) - 1.0
+
+
 def groups_of(it: dict, T: int, variants=S.M6_VARIANTS) -> tuple[dict, dict, dict]:
     """→ (GA[v][組], LV[組], DI[v])：組加速度＝組內有值的 X2 平均；組水準＝XL 平均；
     加速擴散＝13 項裡原始二階 > 0 的比例，換成 −1～1（(比例 × 100 − 50) ÷ 50）。"""
@@ -411,14 +418,15 @@ def groups_of(it: dict, T: int, variants=S.M6_VARIANTS) -> tuple[dict, dict, dic
         for v in variants:
             GA[v][g] = [_gmean([it[k]["X2"][v][t] if it.get(k) else None for k in keys], mn) for t in range(T)]
         LV[g] = [_gmean([it[k]["XL"][t] if it.get(k) and "XL" in it[k] else None for k in keys], mn) for t in range(T)]
-    DI = {}
-    for v in variants:
-        col = []
-        for t in range(T):
-            ss = [it[k]["S2"][v][t] for k in ITEMS if it.get(k) and it[k]["S2"][v][t] is not None]
-            col.append(None if len(ss) < S.M6_DI_MIN else 2.0 * sum(1 for s in ss if s > 0) / len(ss) - 1.0)
-        DI[v] = col
+    DI = {v: [share_up([it[k]["S2"][v][t] for k in ITEMS if it.get(k)], S.M6_DI_MIN) for t in range(T)]
+          for v in variants}
     return GA, LV, DI
+
+
+def shares_of(it: dict, T: int, v: str = S.M6_MAIN_VARIANT) -> dict:
+    """對照圖的組線：組內原始二階 > 0 的比例（−1～1；至少 M6_GROUP_MIN 項有值）。"""
+    return {g: [share_up([it[k]["S2"][v][t] for k in keys if it.get(k)], S.M6_GROUP_MIN[g]) for t in range(T)]
+            for g, keys in S.M6_GROUPS.items()}
 
 
 def panel(B: dict) -> dict:
@@ -455,7 +463,7 @@ def panel(B: dict) -> dict:
     it = {k: item_panel(B, k, me, dates, nat[k]) for k in ITEMS}
     GA, LV, DI = groups_of(it, T)
     return {"T": T, "ym": ym, "dates": dates, "me": me, "R": R, "r1": ctrl[S.M6_CTRL[0]], "r12": ctrl[S.M6_CTRL[1]],
-            "BULL": bull, "HIKE": hike, "it": it, "nat": nat, "GA": GA, "LV": LV, "DI": DI}
+            "BULL": bull, "HIKE": hike, "it": it, "nat": nat, "GA": GA, "LV": LV, "DI": DI, "SH": shares_of(it, T)}
 
 
 # ── 狀態表、轉折事件 ─────────────────────────────────────────────────
@@ -1153,7 +1161,8 @@ def run(B: dict, A: dict | None = None) -> dict:
     Pn = panel(B)
     ym, T, R, r1, r12 = Pn["ym"], Pn["T"], Pn["R"], Pn["r1"], Pn["r12"]
     v0 = S.M6_MAIN_VARIANT
-    fam: dict[str, list] = {f: [] for f in ("l1d", "l1c", "l2", "l3a", "l3c_bull", "l3c_hike", "l4d", "l4c", "l4i_d", "l4i_c")}
+    fam: dict[str, list] = {f: [] for f in ("l1d", "l1c", "l2", "l3a", "l3c_bull", "l3c_hike", "l4d", "l4c", "l4i_d", "l4i_c",
+                                            "l4s_d", "l4s_c")}
     items = {}
     for k in ITEMS:
         it = Pn["it"][k]
@@ -1193,6 +1202,12 @@ def run(B: dict, A: dict | None = None) -> dict:
         e["rob"] = {v: brief(l1_of(ym, R, Pn["DI"][v] if nm == "DI" else Pn["GA"][v][nm[3:]], r1, r12, boot=False))
                     for v in S.M6_VARIANTS if v != v0}
         groups[nm] = e
+    for g in GROUPS:                                          # 對照圖的組線（幾成在加速）：只當描述，自成一個家族、沒有樣本外
+        x = Pn["SH"][g]
+        e = {"first": next((ym[t] for t in range(T) if x[t] is not None), None), "l1": l1_of(ym, R, x, r1, r12)}
+        fam["l4s_d"] += e["l1"]["d"].values()
+        fam["l4s_c"] += e["l1"]["c"].values()
+        groups[f"SH_{g}"] = e
     GAg, GAr = Pn["GA"][v0]["grow"], Pn["GA"][v0]["rate"]
     gxr = [None if a is None or b is None else a * b for a, b in zip(GAg, GAr)]
     l4 = {"inter": {"d": {wkey(w): reg(ym, R[w], [GAg, GAr, gxr, r1, r12], w[1], focus=3) for w in DELAY},
@@ -1213,7 +1228,7 @@ def run(B: dict, A: dict | None = None) -> dict:
         for zn in ("bull", "hike"):
             _judge(res["l3c"][zn], oos, "m2>m1", True)
         res["sum"] = summary_of(res["l1"])
-    for nm, e in groups.items():
+    for nm, e in groups.items():                             # GA_lev、DI、SH_* 沒有樣本外模型
         oos = goos if nm in ("GA_grow", "GA_rate") else {}
         _judge(e["l1"]["d"], oos, "m2>m1", True)
         _judge(e["l1"]["c"], oos, "m2>m1", False)
@@ -1235,4 +1250,5 @@ def now_of(Pn: dict) -> dict:
     t = Pn["T"] - 1
     v0 = S.M6_MAIN_VARIANT
     acc = {k: Pn["it"][k]["S2"][v0][t] for k in ITEMS}
-    return {"ym": Pn["ym"][t], "s2": acc, "GA": {g: Pn["GA"][v0][g][t] for g in GROUPS}, "DI": Pn["DI"][v0][t]}
+    return {"ym": Pn["ym"][t], "s2": acc, "GA": {g: Pn["GA"][v0][g][t] for g in GROUPS},
+            "SH": {g: Pn["SH"][g][t] for g in GROUPS}, "DI": Pn["DI"][v0][t]}

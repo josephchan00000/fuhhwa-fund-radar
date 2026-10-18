@@ -242,6 +242,10 @@ def test_groups_and_diffusion():
     assert DI["v0"] == [1.0, None, -1.0]                                   # 全部加速＝+1、全部不是＝−1
     it["B1"]["S2"]["v0"][0] = 0                                            # 0 不算加速
     assert G.groups_of(it, T, ("v0",))[2]["v0"][0] == 2.0 * 12 / 13 - 1.0
+    sh = G.shares_of(it, T)
+    assert sh["grow"][0] == 2.0 * 6 / 7 - 1.0 and sh["lev"] == [1.0, None, -1.0]   # 組內幾成在加速
+    it["C1"]["S2"]["v0"][1] = 1                                            # 籌碼組只要 1 項有值
+    assert G.shares_of(it, T)["lev"][1] == 1.0 and G.shares_of(it, T)["grow"][1] is None
 
 
 # ── 狀態表與轉折事件 ─────────────────────────────────────────────────
@@ -485,7 +489,8 @@ def test_run_smoke(monkeypatch):
         assert set(e["l3b"]) == {str(h) for h in S.M6_STATE_H} and set(e["l6"]["kinds"]) == {"1", "2", "3", "4"}
         assert e["sum"]["oos"] in ("pred", "fail", "untested", "few", "none")
     assert codes <= set(G.VERDICT)
-    assert set(out["groups"]) == set(G.GVARS) and set(out["primary"]) == set(S.M6_PRIMARY)
+    assert set(out["groups"]) == set(G.GVARS) | set(G.SVARS) and set(out["primary"]) == set(S.M6_PRIMARY)
+    assert all(r["v"] in ("in_untested", "none", "few") for r in out["groups"]["SH_grow"]["l1"]["d"].values())
     assert all("holm" in out["primary"][h] and "pass" in out["primary"][h] for h in S.M6_PRIMARY)
     g = out["goos"][G.wkey((0, 3))]
     assert g["n"] > 0 and set(g["models"]) == {"m0", "m1", "m2", "m3", "ridge", "tree"} and g["tree"]
