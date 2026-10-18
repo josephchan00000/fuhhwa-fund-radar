@@ -346,3 +346,6 @@ def test_evidence_track_positions():
     assert 'class="etk eh-l ev-weak"' in t and "left:31.25%" in t and 'left:18.75%;width:25.00%' in t
     assert "<em>—</em>" in VZ._etrack(None, "eh-s") and "<em>—</em>" in VZ._etrack({"verdict": "few"}, "eh-s")
     assert VZ._rho(-0.234) == "−0.23" and VZ._rho(0.65) == "+0.65" and VZ._rho(None) == "—"
+    # 標題列（字比較小）和資料列要同一套欄寬，座標軸的 0 才會對齊零線：欄寬不可用 em
+    grids = re.findall(r"\.erow,\.ehead\{[^}]*grid-template-columns:([^;}]+)", VZ.CSS)
+    assert len(grids) == 2 and not any("em" in g for g in grids), grids

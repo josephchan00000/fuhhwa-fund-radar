@@ -884,7 +884,7 @@ CSS = """
 .elg i.ev-weak{background:var(--c4);border-color:var(--c4)}.elg i.ev-strong{background:var(--c0);border-color:var(--c0)}.elg i.ev-few{border-style:dashed}
 .egrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px}
 .ecard{padding:10px 12px;min-width:0;scroll-margin-top:56px}.ehd{display:flex;align-items:baseline;gap:8px;margin:0 0 2px}.ehd h3{margin:0;font-size:15px}
-.erow,.ehead{display:grid;grid-template-columns:minmax(0,10em) minmax(0,1fr) 3.3em 2.4em;gap:8px;align-items:center}
+.erow,.ehead{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) 48px 36px;gap:8px;align-items:center}
 .ehead{padding:2px 4px 3px;font-size:10.5px;color:var(--mut)}.ehead .er,.ehead .enow{font-weight:400;color:var(--mut)}
 .erow{width:100%;border:0;border-top:1px solid var(--line);background:none;padding:5px 4px;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:6px}
 .erow:hover{background:var(--card2)}.erow:focus-visible{outline:2px solid var(--acc);outline-offset:1px}.erow.ecomp .en{font-weight:700}
@@ -904,7 +904,7 @@ CSS = """
 .emore{margin-top:18px;padding:10px 14px}.emore>summary{cursor:pointer;font-size:14px;line-height:1.7}.emore>summary .kn{display:block}
 .emore[open]>summary{margin-bottom:8px}
 @media (max-width:900px){.egrid{grid-template-columns:1fr}}
-@media (max-width:640px){.erow,.ehead{grid-template-columns:minmax(0,8.6em) minmax(0,1fr) 2.6em;gap:6px}.er{display:none}.ehead .er{display:none}}
+@media (max-width:640px){.erow,.ehead{grid-template-columns:minmax(0,126px) minmax(0,1fr) 36px;gap:6px}.er{display:none}.ehead .er{display:none}}
 @media (max-width:820px){.vgrid{grid-template-columns:1fr}.vbar{gap:6px 10px}}
 @media (max-width:640px){
  .vsw button{padding:5px 9px;font-size:13px}.rsm{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.rsm .pxn{display:none}
