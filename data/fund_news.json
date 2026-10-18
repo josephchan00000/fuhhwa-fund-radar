@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/18 06:45",
+  "as_of": "2026/10/18 11:22",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -9,13 +9,6 @@
       "source": "Yahoo新聞",
       "date": "2026-10-17 03:51",
       "datetime": "2026-10-17T03:51:40+08:00"
-    },
-    {
-      "title": "00929配息0.38元！最後買進日、配息時間、成分股一次看",
-      "url": "https://www.businessweekly.com.tw/business/blog/3014838",
-      "source": "商業周刊",
-      "date": "2026-10-14 12:00",
-      "datetime": "2026-10-14T12:00:00+08:00"
     },
     {
       "title": "00418A 復華台灣新星主動式 ETF｜成分股？配息？優缺點？募集時間？",
@@ -170,7 +163,7 @@
         {
           "title": "資產剛起步該怎麼買？00418A 發行價僅 10 元 萬元輕鬆打包 AI 強勢黑馬",
           "url": "https://www.watchmedia01.com/archives/559729",
-          "source": "警政時報",
+          "source": "觀傳媒",
           "date": "2026-10-16 09:32",
           "datetime": "2026-10-16T09:32:26+08:00"
         },
@@ -478,7 +471,15 @@
       "short_names": [
         "全球創新金融指數新臺幣"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華全球創新金融指數基金-美元 的持股明細 | 鉅亨網",
+          "url": "https://invest.cnyes.com/funds/detail/%E5%BE%A9%E8%8F%AF%E5%85%A8%E7%90%83%E5%89%B5%E6%96%B0%E9%87%91%E8%9E%8D%E6%8C%87%E6%95%B8%E5%9F%BA%E9%87%91-%E7%BE%8E%E5%85%83/A23125/portfolio",
+          "source": "鉅亨網",
+          "date": "2026-10-14 15:00",
+          "datetime": "2026-10-14T15:00:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華全球AI動力成長指數基金",
@@ -564,7 +565,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
       "date": "2026-10-11",
-      "views": 20746,
+      "views": 21189,
       "short": true
     },
     {
@@ -573,7 +574,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
       "date": "2026-10-12",
-      "views": 7946
+      "views": 7974
     },
     {
       "platform": "youtube",
@@ -581,7 +582,7 @@
       "channel": "小童 x Happy Trading Life",
       "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
       "date": "2026-10-13",
-      "views": 2403,
+      "views": 2422,
       "short": true
     },
     {
@@ -590,7 +591,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/sgOyzfXKakU",
       "date": "2026-10-13",
-      "views": 151751,
+      "views": 153376,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -601,7 +602,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=aBJQT2o2VfQ",
       "date": "2026-10-15",
-      "views": 147577,
+      "views": 149015,
       "peer": true,
       "cat": "基金"
     },
@@ -611,7 +612,7 @@
       "channel": "A Nomad Life自由旅居",
       "url": "https://www.youtube.com/watch?v=vKi0VTLqzFw",
       "date": "2026-10-14",
-      "views": 133334,
+      "views": 135315,
       "peer": true,
       "cat": "綜合"
     },
@@ -621,7 +622,7 @@
       "channel": "寶傑點兵／寶傑怎麼說",
       "url": "https://www.youtube.com/watch?v=sWtVhEHFKoI",
       "date": "2026-10-16",
-      "views": 122751,
+      "views": 129708,
       "peer": true,
       "cat": "主動式"
     },
@@ -631,7 +632,7 @@
       "channel": "基金小姐姐詹璇依",
       "url": "https://www.youtube.com/watch?v=HWdw9YRGwuo",
       "date": "2026-10-14",
-      "views": 114701,
+      "views": 116285,
       "peer": true,
       "cat": "高股息"
     },
@@ -641,7 +642,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=96vE3gSEGqo",
       "date": "2026-10-14",
-      "views": 98004,
+      "views": 99071,
       "peer": true,
       "cat": "綜合"
     },
@@ -651,7 +652,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
       "date": "2026-10-17",
-      "views": 77195,
+      "views": 83211,
       "peer": true,
       "cat": "高股息"
     },
@@ -661,17 +662,17 @@
       "channel": "吳淡如人生實用商學院（Official官方唯一頻道）",
       "url": "https://www.youtube.com/watch?v=MjDKs_Few4E",
       "date": "2026-10-15",
-      "views": 65678,
+      "views": 70018,
       "peer": true,
       "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
-      "title": "00981A砍臻鼎.只留一張的真正原因!主動式ETF換股的秘密!這些股票跟著買能大賺?║郭恩典、陳昆仁、江國中║2026.10.13",
-      "channel": "瘋狂股市福利社Free Free Free!",
-      "url": "https://www.youtube.com/watch?v=Y-Ml82CgqGs",
-      "date": "2026-10-13",
-      "views": 24564,
+      "title": "上半年股神、下半年賠光？主動ETF狂掃「這檔千元PCB」！沈萬鈞：Q4唯一翻倍買點曝光，拉回最好賺！《股民想知道》ft.沈萬鈞.俞璘",
+      "channel": "投資優我罩—優分析",
+      "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
+      "date": "2026-10-17",
+      "views": 41536,
       "peer": true,
       "cat": "主動式"
     },
@@ -681,16 +682,16 @@
       "channel": "USTV 非凡電視",
       "url": "https://www.youtube.com/shorts/jn6gwCq_RXg",
       "date": "2026-10-13",
-      "views": 6136,
+      "views": 6137,
       "peer": true,
       "short": true,
       "cat": "基金"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全方位（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全方位 等 7 檔（詳下方新聞標籤）",
     "品牌焦點：群益證×復華投信 剖析算力基建與光通訊新商機（Yahoo新聞）",
     "社群聲量最高：呼應20260916AAII信號，1016收漲1．4％，故10次歷史勝率仍為100％（0 推）",
-    "YouTube 熱片：0050 ALL IN就對了？20年實測結果超意外🫨｜ft.清流君、葉芷娟 #0050 #ETF投資 #ETF錢滾錢（【CMoney理財寶】官方頻道・151,751 次觀看）"
+    "YouTube 熱片：0050 ALL IN就對了？20年實測結果超意外🫨｜ft.清流君、葉芷娟 #0050 #ETF投資 #ETF錢滾錢（【CMoney理財寶】官方頻道・153,376 次觀看）"
   ]
 }
