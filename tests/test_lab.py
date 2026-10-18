@@ -310,12 +310,12 @@ def test_asof_line_merges_same_day_and_flags_lagging():
 
 
 def test_entrance_is_low_key_footer_link_only():
-    """入口只在頁尾、不進導覽列（使用者：沒那麼好找到就好）。"""
+    """入口只在頁尾、不進導覽列（使用者：沒那麼好找到就好）；點了先到景氣頁（2026-10-18 使用者：個股頁放旁邊）。"""
     from pathlib import Path
     src = Path(__file__).resolve().parents[1].joinpath("arm", "fund_dashboard.py").read_text("utf-8")
-    assert src.count('href="x9.html"') == 1
+    assert src.count('href="x9m.html"') == 1 and 'href="x9.html"' not in src
     foot = src.split('<div class="foot">', 1)[1].split("</div>", 1)[0]
-    assert 'href="x9.html"' in foot
+    assert 'href="x9m.html"' in foot
 
 
 # ── 指數調整（臺灣50）與擴充 ETF ─────────────────────────────────────

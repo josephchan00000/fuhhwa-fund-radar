@@ -1125,7 +1125,9 @@ def render(V: dict) -> str:
     )
     nav = ('<a href="#top">頁首</a><a href="#cmp">對照台股</a>' + "".join(f'<a href="#c-{d}">{_e(NAV[d])}</a>' for d in Ds)
            + '<a href="#dv">邊際變化</a>' + ('<a href="#ta">價位事件</a>' if V.get("ta") else ""))
-    return (_HTML.replace("{{CSS}}", _CSS).replace("{{ASOF}}", _e(_md(asof))).replace("{{NAV}}", nav)
+    from . import appnav
+    return (_HTML.replace("{{APPTAB}}", appnav.bar("tw")).replace("{{CSS}}", _CSS + appnav.CSS)
+            .replace("{{ASOF}}", _e(_md(asof))).replace("{{NAV}}", nav)
             .replace("{{BODY}}", body).replace("{{META}}", _meta_json(V)).replace("{{JS}}", _JS))
 
 
@@ -1185,7 +1187,7 @@ _HTML = """<!doctype html>
 <title>景氣溫度</title>
 <style>{{CSS}}</style></head>
 <body>
-<div class="top"><b>景氣溫度</b><span class="asof">台股，資料到 {{ASOF}}</span><a class="back" href="x9.html">籌碼雷達</a><a class="back" href="./">返回主頁</a></div>
+<div class="top">{{APPTAB}}<span class="asof">資料到 {{ASOF}}</span><a class="back" href="./">返回主頁</a></div>
 <p class="purp">五個面向分開看，各一個 0～100（100 最熱）：基本面、籌碼、全球資金、台灣資金、技術。每一項都和自己的過去比，面向分數＝該面向全部項目的平均。最上面的色帶看每個面向這一年怎麼變過來；「對照台股」可以點選任何一項和加權指數放在一起看，也可以同時選幾條，看它們一起出現時台股之後的表現。頁面只描述位置與過去的統計，怎麼操作由你判斷。</p>
 <nav class="snav">{{NAV}}<a href="#valid">驗證</a><a href="#src">來源</a></nav>
 <main>{{BODY}}</main>

@@ -467,9 +467,9 @@ def test_old_research_file_is_ignored(built):
 def test_entry_link_and_workflow_add_lines():
     from pathlib import Path
     from arm.lab import page
-    assert '<a class="back" href="x9m.html">景氣</a>' in page._HTML           # 入口只在籌碼雷達頂欄
+    assert "{{APPTAB}}" in page._HTML and "{{APPTAB}}" in P._HTML              # 兩頁共用頂欄（arm/lab/appnav.py）
     root = Path(__file__).resolve().parents[1]
-    assert "x9m" not in (root / "arm" / "fund_dashboard.py").read_text(encoding="utf-8")   # 主頁不加入口
+    assert (root / "arm" / "fund_dashboard.py").read_text(encoding="utf-8").count('href="x9m.html"') == 1   # 主頁只有頁尾的「·」
     for wf in ("afterhours_refresh.yml", "daily.yml", "etf_holdings.yml"):
         t = (root / ".github" / "workflows" / wf).read_text(encoding="utf-8")
         assert t.count("git add -f dashboard/x9m.html 2>/dev/null || true") == 2, wf   # 一般與重試迴圈各一、分開 add
