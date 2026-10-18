@@ -142,3 +142,41 @@ def test_dir_up_needs_both_months_and_a_rise():
     assert BB.dir_up(S, "2021-01") is True
     assert BB.dir_up(S, "2021-02") is False                              # 2020-02 沒資料
     assert BB.dir_up({"2020-01": 1.0, "2021-01": 0.8}, "2021-01") is False
+
+
+# ── VER 4：未來獲利跟不上（G） ─────────────────────────────────────────────
+
+def test_g_flags_need_both_halves():
+    assert BB.g_flags(True, True, True) == (True, True, True)
+    assert BB.g_flags(True, True, False) == (True, False, False)       # 預估下修但股價沒漲：G2 不成立
+    assert BB.g_flags(False, True, True) == (False, True, False)
+    assert BB.g_flags(None, True, True) == (None, True, None)          # 任一半算不出來：不判定
+    assert BB.g_flags(True, None, True) == (True, None, None)
+
+
+def test_est_at_weekend_snapshot_and_staleness():
+    EH = [("2026-09-28", {"G1": True}), ("2026-10-18", {"G1": False})]
+    assert BB.est_at(EH, "2026-10-16", "2026-10-31")[0] == "2026-10-18"   # 週末抓的也算那個月
+    assert BB.est_at(EH, "2026-10-16") == (None, None)                   # 9/28 離 10/16 超過 7 天
+    assert BB.est_at(EH, "2026-09-30", "2026-09-30")[0] == "2026-09-28"
+    assert BB.est_at(EH, "2026-10-16", "9999-12-31")[0] == "2026-10-18"
+    assert BB.est_at(EH, "2026-11-30", "2026-11-30") == (None, None)     # 最近一份是 6 週前
+
+
+def test_proxy_asof_uses_availability_month():
+    GP = {"src": "spf", "T": [{"k": "2026-Q2", "avail": "2026-05-31", "G1": True, "R": False},
+                              {"k": "2026-Q3", "avail": "2026-08-31", "G1": False, "R": True}]}
+    P = BB.proxy_asof(GP, ["2026-07", "2026-08", "2026-09"])
+    assert P["2026-07"][0] == "2026-Q2" and P["2026-08"][0] == "2026-Q3" and P["2026-09"][0] == "2026-Q3"
+    assert BB.proxy_now(GP, "2026-08-30")[0] == "2026-Q2" and BB.proxy_now(GP, "2026-08-31")[0] == "2026-Q3"
+    GQ = {"src": "tech", "rel": (3, 1), "P": {"2026-03": {"G1": True, "R": True}, "2026-06": {"G1": False, "R": False}}}
+    Q = BB.proxy_asof(GQ, ["2026-08", "2026-09"])                       # 6 月那季 9 月 1 日才拿得到
+    assert Q["2026-08"][0] == "2026-03" and Q["2026-09"][0] == "2026-06"
+
+
+def test_up_days_uses_last_close_on_or_before():
+    cal = ["2026-07-16", "2026-07-17", "2026-10-15", "2026-10-16"]
+    px = [100.0, 101.0, 99.0, 102.0]
+    assert BB.up_days(cal, px, "2026-10-18", 91) is True                 # 10/16 收盤 102 vs 7/19 之前最後一天 101
+    assert BB.up_days(cal, px, "2026-10-15", 91) is False                # 99 vs 7/16 的 100
+    assert BB.px_on(cal, px, "2026-07-01") is None and BB.up_days(cal, px, "2026-07-20", 91) is None

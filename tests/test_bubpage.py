@@ -1,4 +1,4 @@
-"""泡沫頁（arm/lab/bubpage.py；docs/lab_risk_plan.md 第 7、8 節）：版面結構、用字、資料嵌入、JS 語法。假資料，不碰網路。"""
+"""泡沫頁（arm/lab/bubpage.py；docs/lab_risk_plan.md 第 7～11 節）：版面結構、用字、資料嵌入、JS 語法。假資料，不碰網路。"""
 import json
 import re
 import shutil
@@ -17,17 +17,28 @@ BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會
 def _e(k, run, dec=True, cyc=None):
     e = {"ym": "2026-09", "s": 1.5 if run else -0.7, "q95": 0.8, "g": 0.03, "run": run, "r": 26.7,
          "dec": {"a": "2024-09", "p": 119.2, "f": 82.6, "r": 20.0, "fa": "2024-09", "fz": "2026-09"} if dec else None,
-         "cyc": cyc}
+         "cyc": cyc, "on": run >= BS.E_RUN}
     return e
 
 
-def _market(name, idx, L, cond, val=False, e=None):
+def _g(G1=True, rev=0.061, G2=False, src="est"):
+    est = {"d": "2026-10-18", "n": 494, "cov": 0.9945, "g0": 0.3262, "g1": 0.1531, "rev": rev, "px3": 2.7, "G1": G1, "G2": G2,
+           "G": bool(G1 and G2), "top": [["NVDA", 0.0215, 0.247], ["MU", 0.0139, 0.267], ["MPC", 0.0024, 1.213]]}
+    proxy = {"src": "spf", "per": "2026-Q3", "G1": True, "G2": False, "G": False, "g0": 0.1127, "g1": 0.0599, "rev": 0.0067}
+    g = {"est": est, "proxy": proxy, "src": src} if src == "est" else {"proxy": proxy, "src": "proxy"}
+    g["G"] = g[g["src"]]["G"]
+    return g
+
+
+def _market(name, idx, L, cond, val=False, e=None, g=None):
     now = {"d": "2026-10-16", "L": L, "P1": "P1" in cond, "P2": "P2" in cond, "P3": "P3" in cond,
            "E": "E" in cond, "e": e if e is not None else {"pe_tw": _e("pe_tw", 4 if "E" in cond else 0)},
            "V": ("V" in cond) if val else None, "F": "F" in cond,
            "p1": {"ym": "2026-09", "s": 2.69, "q95": 1.23, "x": 100.0, "g": 0.012, "run": 9},
            "p2": {"ru": 115.6, "dist": -1.2}, "p3": {"ym": "2026-09", "z": 1.5},
            "f": {"ym": "2026-09", "pct": 12.0, "raw": 0.37}}
+    now["g"] = g if g is not None else _g()
+    now["G"] = now["g"]["G"]
     if val:
         now["v"] = {"X6": {"ym": "2026-09", "pct": 99.0, "raw": 38.6}, "X8": {"ym": "2026-09", "pct": 98.0, "raw": 72.0}}
     months = [f"{1990 + j // 12}-{j % 12 + 1:02d}" for j in range(240)]
@@ -41,13 +52,13 @@ def _market(name, idx, L, cond, val=False, e=None):
 def _research():
     cell = {"n": 200, "n_hot": 30, "p_hot": 0.6, "p_all": 0.2, "verdict": "crash", "n_epi": 5, "ret_hot": -8.0, "ret_all": 9.0}
     main = {"a": "1992-01", "z": "2026-09", "n": 417, "dist": {str(k): 20.0 for k in BS.LEVELS}}
-    for t in BS.TESTS2:
+    for t in BS.TESTS4_SPX:
         main[t] = {"252": dict(cell), "504": dict(cell, verdict="none"), "share": 7.0}
     main["L4"] = {"n_hot": 0}
     ext = {"a": "1987-01", "z": "2026-08", "n": 476, "epi": [{"a": "1987-04", "z": "1990-04", "n": 37, "max": 3, "cond": ["P1", "P2"],
            "peak": {"d": "1990-02", "px": 11000.0}, "low": {"d": "1990-10", "px": 3000.0}, "dd": -72.7, "open": False}],
            "hist": {"d": ["1987-01", "1987-02"], "L": [0, 3], "c": ["", "12"], "p": [1113.6, 1216.0]}}
-    for t in ("P1", "P2", "P3", "E", "PF", "PN", "L2", "L3", "L3v1"):
+    for t in BP.EXT_TESTS:
         ext[t] = {"252": dict(cell), "504": dict(cell), "share": 8.0}
     return {"ver": BS.VER, "tw": {"main": main, "ext": ext}, "spx": {"main": main, "robust": main}}
 
@@ -68,14 +79,14 @@ def test_structure_tiles_cards_types_method(page):
     for mk in ("tw", "spx"):
         assert f'<section class="sec cd bm" id="{mk}">' in html and f'id="h-{mk}"' in html and f'id="t-{mk}"' in html
     assert 'id="types"' in html and 'id="mth"' in html and 'id="lv"' in html
-    assert html.count('<div class="bty">') == len(BP.TYPES) == 6
+    assert html.count('<div class="bty">') == len(BP.TYPES) == 7
     assert "台股現在是等級 3「泡沫警戒」：價格爆發、兩年翻倍成立，而且價格漲得比基本面快（本益比爆發）" in html
     assert "S&amp;P 500 現在是等級 3「泡沫警戒」：偏離趨勢成立，而且估值在歷史前 5%" in html
     assert "S&amp;P 500 盈餘比長期趨勢高 2.4 個標準差，基本面本身可能在景氣高峰" in html          # 景氣高峰提醒進一句話
     assert '<p class="note cyc">景氣高峰參考（不進等級）：S&amp;P 500 盈餘比長期趨勢高 2.4 個標準差（2026/3）' in html
     assert "本益比 26.7 倍：BSADF 1.50，95% 臨界值 0.80" in html and "2026/9 為止連續 4 個月超過" in html
     assert "兩年（2024/9→2026/9）：有盈餘公司的市值 +119%、近四季淨利 +83% → 比值 +20%" in html
-    assert "現在的六個條件" in html and "六種條件代表什麼" in html
+    assert "現在的七個條件" in html and "七種條件代表什麼" in html
     assert "估值不判定（台股本益比只有 2013 年起，歷史太短）" in html
     assert "不判定：台股本益比只有 2013 年起，歷史太短（現在本益比 26.7 倍）" in html
     assert "兩年已經漲 116%，但收盤離最高點 1.2%" not in html                  # 離最高 5% 以內：兩年翻倍成立，不用解釋
@@ -87,7 +98,8 @@ def test_structure_tiles_cards_types_method(page):
     assert "1950 年起另算一次" in html                                          # S&P 500 穩健度
     assert '<span class="na">不判定</span>' in html                              # 台股估值不判定
     assert "S&amp;P 500 現在是等級 3" in html                                    # 英數結尾的名字後面補空格
-    assert "價格過熱時，漲得比基本面快 60%（30 個月）、基本面有跟上 60%（30 個月）" in html      # PF／PN 摘要
+    assert ("價格過熱時，漲得比基本面快 60%（30 個月）、基本面有跟上 60%（30 個月）；"
+            "未來獲利跟不上 60%（30 個月）、還跟得上 60%（30 個月）") in html              # PF／PN、PG／PnG 摘要
     assert html.count("1990 年以前：國發會月平均") == 1                            # 延伸樣本圖例只在台股卡
     m = _market("S&P 500", "S&P 500", 2, ["P3"], val=True, e={"pe": _e("pe", 0)})
     m["now"]["V"], m["now"]["v"]["X8"]["pct"] = False, 92.0
@@ -146,3 +158,23 @@ def test_build_is_wired_into_dashboard_and_workflows():
     for wf in ("daily.yml", "afterhours_refresh.yml", "etf_holdings.yml"):
         t = (root / ".github" / "workflows" / wf).read_text(encoding="utf-8")
         assert t.count("git add -f dashboard/x9b.html 2>/dev/null || true") == 2, wf
+
+
+def test_future_earnings_row_and_sentence(page):
+    """VER 4：未來獲利一列（分析師預估＋替代資料並列）、一句話說哪一半成立、驗證表多 G 幾列。"""
+    V, html = page
+    assert "分析師預估（S&amp;P 500 成分股 494 家、涵蓋 99% 市值，10/18）：今年 +32.6%、明年 +15.3% → 成長減速" in html
+    assert "明年預估近 3 個月上修 6.1%，股價近 3 個月 +2.7% → 沒有「下修而股價漲」" in html
+    assert "→ 成長減速：成立；預估下修而股價漲：沒有" in html
+    assert "修正影響最大：NVDA +25%、MU +27%、MPC +121%" in html
+    assert "過去驗證用：專業預測者調查（美國企業稅後獲利預測中位數）（2026 年第 3 季調查）：今年 +11.3%、明年 +6.0%" in html
+    assert "未來獲利跟不上（兩個都成立）" in html and "價格過熱，未來獲利還跟得上" in html and "對照：VER 3（沒有未來獲利）等級 ≥ 3" in html
+    assert "對照：用實際獲利算的未來獲利跟不上" in html                          # S&P 500 才有的 Gr
+    m = _market("S&P 500", "S&P 500", 2, ["P3"], e={"pe": _e("pe", 0)})
+    assert "未來獲利也還跟得上（明年預估成長 +15%，比今年 +33% 低，但明年預估近 3 個月上修 6.1%）" in BP.summary("spx", m)
+    m = _market("S&P 500", "S&P 500", 3, ["P3"], e={"pe": _e("pe", 0)}, g=_g(rev=-0.02, G2=True))
+    assert "偏離趨勢成立，而且未來獲利跟不上（明年預估成長 +15%，比今年 +33% 低，明年預估近 3 個月下修 2.0%、股價還在漲）" in BP.summary("spx", m)
+    m = _market("那斯達克", "那斯達克綜合指數", 2, ["P1"], e={"tech": _e("tech", 0)}, g=_g(src="proxy"))
+    assert "明年專業預測者預估成長 +6%，比今年 +11% 低，但明年預估近 3 個月上修 0.7%" in BP.summary("ixic", m)
+    t = BP._g_text("ixic", m["now"])
+    assert t.startswith('<span class="rat">替代資料（等級用，分析師預估還沒有）') and "分析師預估（" not in t

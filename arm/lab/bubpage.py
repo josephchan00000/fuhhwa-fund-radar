@@ -25,10 +25,20 @@ TEST_NAMES = {"P1": "價格爆發（PSY）", "P2": "兩年翻倍而且在高點"
               "E": "價格漲得比基本面快（比值爆發）", "V": "估值歷史前 5%", "F": "槓桿歷史前 10%",
               "PF": "價格過熱，而且漲得比基本面快", "PN": "價格過熱，但基本面有跟上",
               "L2": "等級 ≥ 2（漲勢過熱以上）", "L3": "等級 ≥ 3（泡沫警戒以上）", "L4": "等級 4（嚴重泡沫）",
-              "L3v1": "對照：舊版（只看價格）等級 ≥ 3"}
+              "L3v1": "對照：VER 1（只看價格）等級 ≥ 3",
+              "G1": "成長減速（明年預估成長比今年低）", "G2": "預估下修，股價還在漲",
+              "G": "未來獲利跟不上（兩個都成立）", "PG": "價格過熱，而且未來獲利跟不上", "PnG": "價格過熱，未來獲利還跟得上",
+              "L3v3": "對照：VER 3（沒有未來獲利）等級 ≥ 3", "L3v2": "對照：VER 2 等級 ≥ 3",
+              "Gr": "對照：用實際獲利算的未來獲利跟不上", "PGr": "對照：價格過熱，而且實際獲利跟不上"}
+VALID_TESTS = ("P1", "P2", "P3", "E", "V", "G1", "G2", "G", "F", "PF", "PN", "PG", "PnG", "L2", "L3", "L4", "L3v3", "L3v1")
+VALID_SPX = VALID_TESTS + ("Gr", "PGr")
+EXT_TESTS = ("P1", "P2", "P3", "E", "G1", "G2", "G", "PF", "PN", "PG", "PnG", "L2", "L3", "L3v3", "L3v1")
 DEC_NAMES = {"pe": ("股價", "近 12 個月盈餘"), "pe_tw": ("有盈餘公司的市值", "近四季淨利"), "ex": ("實質加權指數", "實質出口"),
-             "wsts": ("費半", "全球半導體銷售額"), "cp": ("指數", "美國企業稅後獲利")}
-CYC_NAMES = {"pe": "S&P 500 盈餘", "ex": "台灣實質出口", "wsts": "全球半導體銷售額", "cp": "美國企業稅後獲利"}
+             "wsts": ("費半", "全球半導體銷售額"), "cp": ("指數", "美國企業稅後獲利"), "tech": ("指數", "美國科技業獲利")}
+CYC_NAMES = {"pe": "S&P 500 盈餘", "ex": "台灣實質出口", "wsts": "全球半導體銷售額", "cp": "美國企業稅後獲利",
+             "tech": "美國科技業獲利"}
+EST_NAMES = {"tw": "台股有分析師預估的上市櫃公司", "spx": "S&P 500 成分股", "ixic": "那斯達克市值前 300 大",
+             "ndx": "那斯達克 100 成分股", "sox": "費半成分股"}
 CYC_HI = 2.0                                       # 景氣高峰參考：比長期趨勢高 2 個標準差以上就在一句話裡提醒
 VERDICT = {"crash": "成立後較容易大跌", "calm": "成立後反而較少大跌", "none": "看不出差別", "few": "樣本不足"}
 VAL_NAMES = {"X6": "CAPE", "X8": "巴菲特指標", "X9": "Tobin's Q"}
@@ -93,16 +103,24 @@ def summary(mk: str, m: dict) -> str:
     s = f'{_sp(m["name"])}現在是等級 {lv}「{BS.LEVELS[lv]}」'
     if pc:
         s += f'：{"、".join(pc)}成立'
+        hits = []
         if n.get("E"):
-            hit = [BS.FUND_NAMES[k] for k, e in (n.get("e") or {}).items() if e["run"] >= BS.E_RUN]
-            s += f'，而且價格漲得比基本面快（{"、".join(hit)}爆發）'
-        elif n.get("V"):
-            s += "，而且估值在歷史前 5%"
+            hit = [BS.FUND_NAMES4[k] for k, e in (n.get("e") or {}).items() if e.get("on")]
+            hits.append(f'價格漲得比基本面快（{"、".join(hit)}爆發）')
+        if n.get("V"):
+            hits.append("估值在歷史前 5%")
+        if n.get("G"):
+            hits.append(f'未來獲利跟不上（{_g_short(n)}）')
+        if hits:
+            s += "，而且" + "、".join(hits)
         else:
             s += "，但價格沒有漲得比基本面快" if n.get("E") is False else "，基本面無法判定"
             d = _dec_short(n)
             if d:
                 s += f"（{d}）"
+            g = _g_short(n)
+            if n.get("G") is False and g:
+                s += f"，未來獲利也還跟得上（{g}）"
     elif n.get("V"):
         s += "：估值在歷史前 5%，但價格沒有過熱"
     tail = []
@@ -129,6 +147,97 @@ def summary(mk: str, m: dict) -> str:
     return s + "。" + ("；".join(tail) + "。" if tail else "")
 
 
+def _g_src(n: dict) -> dict:
+    g = n.get("g") or {}
+    return g.get(g.get("src") or "") or {}
+
+
+def _g_short(n: dict) -> str:
+    """一句話裡的未來獲利：哪一半成立、哪一半沒有（分析師預估；沒有就用專業預測者調查）。"""
+    g = n.get("g") or {}
+    e = g.get("est") or {}
+    src = "預估"
+    if e.get("g0") is None or e.get("g1") is None:
+        p = g.get("proxy") or {}
+        if p.get("src") != "spf" or p.get("g0") is None or p.get("g1") is None:
+            return ""
+        e, src = p, "專業預測者預估"
+    a, b = _pct(100 * e["g1"], 0, True), _pct(100 * e["g0"], 0, True)
+    x = f"明年{src}成長 {a}，{'比' if e.get('G1') else '不比'}今年 {b} 低"
+    r = e.get("rev")
+    if e.get("G1") and r is not None:
+        if e.get("G2"):
+            x += f"，明年預估近 3 個月下修 {abs(100 * r):.1f}%、股價還在漲"
+        elif r < 0:
+            x += f"，明年預估近 3 個月下修 {abs(100 * r):.1f}%，但股價沒有漲"
+        else:
+            x += f"，但明年預估近 3 個月上修 {100 * r:.1f}%"
+    return x
+
+
+def _top(n: dict, mk: str) -> str:
+    e = (n.get("g") or {}).get("est") or {}
+    top = [t for t in (e.get("top") or []) if t[2] is not None][:3]
+    if not top:
+        return ""
+    nm = _tw_names() if mk == "tw" else {}
+    xs = [f'{t[0]}{" " + nm[t[0]] if nm.get(t[0]) else ""} {_pct(100 * t[2], 0, True)}' for t in top]
+    return "修正影響最大：" + "、".join(xs)
+
+
+_NAMES: dict = {}
+
+
+def _tw_names() -> dict:
+    if not _NAMES:
+        try:
+            from .company import names
+            _NAMES.update(names())
+        except Exception:                                 # noqa: BLE001 —— 名稱只是顯示用
+            _NAMES["_"] = ""
+    return _NAMES
+
+
+def _g_text(mk: str, n: dict) -> str:
+    """未來獲利：分析師預估（等級用）＋過去驗證用的替代資料（並列當對照）。"""
+    g = n.get("g") or {}
+    out = []
+    e = g.get("est")
+    if e:
+        cov = "" if e.get("cov") is None else f'、涵蓋 {100 * e["cov"]:.0f}% 市值'
+        hd = f'分析師預估（{_e(EST_NAMES.get(mk, ""))} {e.get("n") or 0} 家{cov}，{int(e["d"][5:7])}/{int(e["d"][8:10])}）'
+        if e.get("g0") is None or e.get("g1") is None:
+            out.append(f'<span class="rat">{hd}：算不出成長率</span>')
+        else:
+            x = (f'{hd}：今年 {_pct(100 * e["g0"], 1, True)}、明年 {_pct(100 * e["g1"], 1, True)}'
+                 f' → {"成長減速" if e.get("G1") else "成長沒有減速"}')
+            if e.get("rev") is not None:
+                px = "" if e.get("px3") is None else f'，股價近 3 個月 {_pct(e["px3"], 1, True)}'
+                x += (f'；明年預估近 3 個月{"上修" if e["rev"] >= 0 else "下修"} {abs(100 * e["rev"]):.1f}%{px}'
+                      f' → {"預估下修、股價還在漲" if e.get("G2") else "沒有「下修而股價漲」"}')
+            t = _top(n, mk)
+            if t:
+                x += f'<span class="dec">{_e(t)}</span>'
+            out.append(f'<span class="rat">{x}</span>')
+    p = g.get("proxy")
+    if p:
+        nm = BS.PROXY_NAMES.get(p["src"], p["src"])
+        if p["src"] == "spf":
+            body = (f'今年 {_pct(None if p.get("g0") is None else 100 * p["g0"], 1, True)}、'
+                    f'明年 {_pct(None if p.get("g1") is None else 100 * p["g1"], 1, True)}、'
+                    f'明年預估比上一季調查 {_pct(None if p.get("rev") is None else 100 * p["rev"], 1, True)}')
+            per = p["per"].replace("-Q", " 年第 ") + " 季調查"
+        else:
+            body = f'近 {4 if p["src"] == "tech" else 12} {"季" if p["src"] == "tech" else "個月"}年增率 {_pct(None if p.get("g") is None else 100 * p["g"], 1, True)}'
+            per = _ymd(p["per"])
+        lab = "過去驗證用" if e else "替代資料（等級用，分析師預估還沒有）"
+        yn = lambda v: "不判定" if v is None else ("成立" if v else "沒有")  # noqa: E731
+        x = (f'{lab}：{_e(nm)}（{_e(per)}）：{body} → 成長減速：{yn(p.get("G1"))}；'
+             f'{"預估下修" if p["src"] == "spf" else "實際下滑"}而股價漲：{yn(p.get("G2"))}')
+        out.append(f'<span class="rat">{x}</span>')
+    return "".join(out) if out else "沒有預估資料"
+
+
 def _dec_short(n: dict) -> str:
     """一句話裡的兩年拆解：第一條算得出來的比值。"""
     for k, e in (n.get("e") or {}).items():
@@ -143,7 +252,7 @@ def _e_text(n: dict) -> str:
     """每條比值一段：讀數、PSY、兩年拆解。"""
     out = []
     for k, e in (n.get("e") or {}).items():
-        nm = BS.FUND_NAMES[k]
+        nm = BS.FUND_NAMES4[k]
         if k in ("pe", "pe_tw"):
             nm += f' {e["r"]:.1f} 倍'
         ym = _e(_ymd(e["ym"]))
@@ -241,8 +350,8 @@ def tiles(V: dict) -> str:
                    f'<span class="bcs">{chips}</span><span class="btk">{_e("・".join(key))}</span></a>')
     return ('<section class="sec" id="lv"><h2>五個市場的泡沫等級<span class="sub">0 沒有跡象・1 偏貴・2 漲勢過熱・3 泡沫警戒・4 嚴重泡沫</span></h2>'
             f'<div class="btg">{"".join(out)}</div>'
-            '<p class="note">價格過熱，而且價格漲得比基本面快（或估值在歷史前 5%），才到「泡沫警戒」；只有價格過熱最多到「漲勢過熱」。'
-            '紅色＝成立，虛線＝這個市場沒有資料判定。</p></section>')
+            '<p class="note">價格過熱，而且「漲得比基本面快」「估值在歷史前 5%」「未來獲利跟不上」至少一個成立，才到「泡沫警戒」；'
+            '只有價格過熱最多到「漲勢過熱」。紅色＝成立，虛線＝這個市場沒有資料判定。</p></section>')
 
 
 def _now_table(mk: str, m: dict) -> str:
@@ -252,10 +361,11 @@ def _now_table(mk: str, m: dict) -> str:
             ("P3", "偏離長期趨勢", _p3_text(n), f"≥ {BS.TREND_Z:.0f} 個標準差"),
             ("E", "價格漲得比基本面快", _e_text(n), f"比值超過 95% 臨界值，連續 {BS.E_RUN} 個月"),
             ("V", "估值", _v_text(mk, n, ref), f"至少 {BS.VAL_NEED} 項 ≥ 第 {BS.VAL_PCT:.0f} 百分位"),
+            ("G", "未來獲利跟不上", _g_text(mk, n), "明年預估成長低於今年，而且明年預估比 3 個月前低、股價比 3 個月前高"),
             ("F", "槓桿", _f_text(mk, n), f"≥ 第 {BS.FUEL_PCT:.0f} 百分位")]
     tr = "".join(f'<tr><td class="l" data-h="條件">{_e(nm)}</td><td class="l" data-h="現在">{txt}</td>'
                  f'<td class="l" data-h="門檻">{_e(th)}</td><td data-h="成立">{_mark(n.get(c))}</td></tr>' for c, nm, txt, th in rows)
-    return ('<h3>現在的六個條件</h3><div class="tw"><table class="stk bnow"><tr><th class="l">條件</th><th class="l">現在</th>'
+    return ('<h3>現在的七個條件</h3><div class="tw"><table class="stk bnow"><tr><th class="l">條件</th><th class="l">現在</th>'
             f'<th class="l">門檻</th><th>成立</th></tr>{tr}</table></div>')
 
 
@@ -321,11 +431,13 @@ def _cell(e: dict | None) -> str:
     return f'{ph} ／ {pa}<em>{_e(VERDICT.get(e.get("verdict"), "—"))}</em>'
 
 
-def _valid_table(R: dict, tests=BS.TESTS2) -> str:
+def _valid_table(R: dict, tests=VALID_TESTS) -> str:
     if not R:
         return '<p class="warn">驗證結果還沒產生。</p>'
     tr = []
     for t in tests:
+        if t not in R:
+            continue
         r = R.get(t) or {}
         e1, e2 = r.get("252") or {}, r.get("504") or {}
         if not e1.get("n_hot"):
@@ -353,6 +465,17 @@ def _valid_head(R: dict) -> str:
     return s + _pfpn(R)
 
 
+def _pgpn(R: dict) -> str:
+    """價格過熱時：未來獲利跟不上（PG）vs 還跟得上（PnG），之後一年內跌 20% 的比例。"""
+    a, b = (R.get("PG") or {}).get("252") or {}, (R.get("PnG") or {}).get("252") or {}
+    if not a.get("n_hot") and not b.get("n_hot"):
+        return ""
+
+    def f(e):
+        return "—" if not e.get("n_hot") else f'{100 * e["p_hot"]:.0f}%（{e["n_hot"]} 個月）'
+    return f"；未來獲利跟不上 {f(a)}、還跟得上 {f(b)}"
+
+
 def _pfpn(R: dict) -> str:
     """價格過熱時：漲得比基本面快（PF）vs 基本面有跟上（PN），之後一年內跌 20% 的比例。"""
     a, b = (R.get("PF") or {}).get("252") or {}, (R.get("PN") or {}).get("252") or {}
@@ -361,7 +484,7 @@ def _pfpn(R: dict) -> str:
 
     def f(e):
         return "—" if not e.get("n_hot") else f'{100 * e["p_hot"]:.0f}%（{e["n_hot"]} 個月）'
-    return f"；價格過熱時，漲得比基本面快 {f(a)}、基本面有跟上 {f(b)}"
+    return f"；價格過熱時，漲得比基本面快 {f(a)}、基本面有跟上 {f(b)}" + _pgpn(R)
 
 
 
@@ -374,7 +497,7 @@ def _valid(mk: str, R: dict) -> str:
     head = _valid_head(main) + (f'；延伸樣本（含 1987–1990）：{_valid_head(ext)}' if ext else "")
     out = [f'<details class="bvd"><summary><b>驗證：成立之後比較容易大跌嗎？</b><span class="bvh">{_e(head)}</span></summary>',
            f'<p class="note">樣本 {_e(_ymd(main["a"]))}～{_e(_ymd(main["z"]))}，每月一個樣本，共 {main["n"]:,} 個月。</p>',
-           _valid_table(main)]
+           _valid_table(main, VALID_SPX if mk == "spx" else VALID_TESTS)]
     rb = rr.get("robust") or {}
     if rb.get("L3"):
         e1, e2 = (rb["L3"].get("252") or {}), (rb["L3"].get("504") or {})
@@ -383,10 +506,13 @@ def _valid(mk: str, R: dict) -> str:
                        f'兩年內跌 40% {_cell(e2).replace("<em>", "（").replace("</em>", "）")}。</p>')
     if ext:
         out.append(f'<h4>延伸樣本：國發會月平均 {_e(_ymd(ext["a"]))}～{_e(_ymd(ext["z"]))}（含 1987–1990）</h4>'
-                   + _valid_table(ext, ("P1", "P2", "P3", "E", "PF", "PN", "L2", "L3", "L3v1"))
+                   + _valid_table(ext, EXT_TESTS)
                    + '<p class="note">只當穩健度：訊號用當月讀數，跌幅用之後 12、24 個月的月平均；兩年翻倍改用 24 個月月平均漲幅；'
-                     '比值只有加權指數 ÷ 出口（本益比 2013 年起）。</p>')
-    out.append('<p class="note">「價格過熱，而且漲得比基本面快」和「價格過熱，但基本面有跟上」兩列的差別，就是基本面有沒有跟上。'
+                     '比值只有加權指數 ÷ 出口（本益比 2013 年起）；未來獲利用外銷訂單。</p>')
+    gp = BS.PROXY_NAMES.get(BS.PROXY.get(mk, ""), "")
+    out.append('<p class="note">「價格過熱，而且漲得比基本面快」和「價格過熱，但基本面有跟上」兩列的差別，就是基本面有沒有跟上；'
+               '「未來獲利跟不上」幾列的過去用' + _e(gp) + '算'
+               + ('（專業預測者的預估，1981 年起）' if mk == "spx" else '（實際值，不是預估）') + '。'
                '判定：成立月份 ≥ 12 個月、≥ 4 段，差的 95% 區間（12 個月一塊重抽）不含 0、而且前後兩半同方向，'
                '才寫「較容易大跌」或「反而較少大跌」。平均報酬只描述，不判定。</p></details>')
     return "".join(out)
@@ -415,7 +541,8 @@ def _legend(ext: bool) -> str:
 TYPES = (
     ("P1", "價格爆發（PSY 檢定，Phillips、Shi、Yu 2015）",
      "看價格是不是在「越漲越快」：用統計檢定判斷漲勢有沒有超過一般隨機波動能解釋的範圍。臨界值依各指數本來的長期漲勢模擬"
-     "（美股長期漲得快，沒考慮的話很容易誤報）。它只說明漲勢不正常，不告訴你什麼時候結束。"),
+     "（美股長期漲得快，沒考慮的話很容易誤報）。急跌也可能超過臨界值，所以另外要求近 12 個月實質價格是上漲的。"
+     "它只說明漲勢不正常，不告訴你什麼時候結束。"),
     ("P2", "兩年翻倍而且在高點（Greenwood、Shleifer、You 2019）",
      "美國與國際的產業資料：兩年漲一倍以上之後，兩年內跌 40% 的機率明顯變高，但之後的平均報酬不一定變差。"
      "大跌之後的反彈（還沒回到前高）不算，所以要求收盤離歷史最高 5% 以內。"),
@@ -423,12 +550,19 @@ TYPES = (
      "實質股價離長期趨勢線多遠；GMO 把 2 個標準差定為泡沫門檻。長期趨勢本身也會改變，所以只當其中一個條件。"),
     ("E", "價格漲得比基本面快（價格 ÷ 基本面的比值爆發）",
      "把指數除以它的基本面，看這個比值是不是也在爆發（同一套 PSY）：S&P 500 用盈餘，台股用盈餘與出口，費半用全球半導體銷售額，"
-     "那斯達克兩檔用美國企業整體獲利（近似，科技股的獲利占比幾十年來變很多）。提出 PSY 的論文檢定的就是 S&P 500 的股價 ÷ 股利。"
-     "基本面跟著漲、比值沒有爆發，就不算泡沫，最多到「漲勢過熱」。基本面本身在景氣高峰時（半導體、出口），比值會看起來偏低，"
-     "所以另列「景氣高峰參考」。"),
+     "那斯達克兩檔用美國科技業獲利（BEA；2001 年以前用舊產業分類的一般機械、電子電機、通訊接上，是近似）。"
+     "提出 PSY 的論文檢定的就是 S&P 500 的股價 ÷ 股利。比值在盈餘崩落時也會爆發，所以另外要求近 12 個月價格上漲、"
+     "而且比值上升。基本面本身在景氣高峰時（半導體、出口），比值會看起來偏低，所以另列「景氣高峰參考」。"),
     ("V", "估值歷史前 5%（只有 S&P 500）",
      "CAPE、巴菲特指標、Tobin's Q 和全部歷史比。估值高可以維持很多年，主要影響的是之後 10 年的報酬，不是短期會不會崩，"
      "所以只有估值高只算「偏貴」。台股本益比只有 2013 年起、其他三個美股指數沒有自己的長歷史估值，不判定。"),
+    ("G", "未來獲利跟不上",
+     "股價反應的是未來獲利。明年的預估成長比今年低（成長減速），而且明年的預估比 3 個月前低、股價卻比 3 個月前高"
+     "（估值靠股價撐上去），兩個都成立才算。現在用分析師預估：台股是 Yahoo 有預估的上市櫃公司，美股是各指數的成分股，"
+     "依股數加總成整個市場的今年、明年獲利。過去沒有免費的指數預估歷史，驗證用替代資料：S&P 500 用費城聯準銀行的專業預測者調查"
+     "（美國企業獲利預測，1981 年起，真的預估）；那斯達克用美國科技業實際獲利、費半用全球半導體銷售額、台股用外銷訂單"
+     "（這三個是實際值：年增率比半年前低＝成長減速，近 12 個月合計比 3 個月前低＝下滑）。實際值下滑比預估下修少見，"
+     "所以現在的條件比過去的驗證容易成立。"),
     ("F", "槓桿歷史前 10%",
      "推升漲勢的錢是不是借來的。美股＝家計部門證券融資年增率（四個指數共用）；台股＝融資 ÷ 市值（融資金額會跟著市值長大，"
      "要看比例；2013 年起，滿 10 年才判定）。"),
@@ -441,26 +575,32 @@ def types_sec(V: dict) -> str:
         on = [V["M"][mk]["name"] for mk in BS.MARKETS if mk in V["M"] and V["M"][mk]["now"].get(c)]
         st = f'現在成立：{"、".join(on)}' if on else "現在沒有市場成立"
         out.append(f'<div class="bty"><h3>{_e(nm)}</h3><p>{_e(txt)}</p><p class="note">{_e(st)}</p></div>')
-    return ('<section class="sec" id="types"><h2>六種條件代表什麼</h2>' + "".join(out)
+    return ('<section class="sec" id="types"><h2>七種條件代表什麼</h2>' + "".join(out)
             + '<p class="note">參考讀數（LPPLS、上漲加速度、集中度、本益比、超額 CAPE 殖利率）只列數字，不進等級：'
               '我們的 LPPLS 是網格近似，歷史上很少亮燈；其他項目沒有公認的泡沫門檻。</p></section>')
 
 
 METHOD = (
     '<section class="sec" id="mth"><details class="cd"><summary><b>方法與資料</b></summary>'
-    '<p>等級（VER 2）：價格過熱＝價格爆發、兩年翻倍、偏離長期趨勢任一成立。0＝價格沒過熱、估值也沒在歷史前 5%；'
-    '1＝只有估值在歷史前 5%；2＝價格過熱，但價格沒有漲得比基本面快（或基本面無法判定）；'
-    '3＝價格過熱，而且「漲得比基本面快」或「估值在歷史前 5%」其中一個成立；4＝價格過熱，而且「漲得比基本面快」「估值」「槓桿」至少兩個成立。'
-    '資料不夠長、算不出來的條件當作不成立。舊版（VER 1，只看價格）的等級留在驗證表當對照。</p>'
+    '<p>等級（VER 4）：價格過熱＝價格爆發、兩年翻倍、偏離長期趨勢任一成立。0＝價格沒過熱、估值也沒在歷史前 5%；'
+    '1＝只有估值在歷史前 5%；2＝價格過熱，但「漲得比基本面快」「估值」「未來獲利跟不上」都沒成立（或無法判定）；'
+    '3＝價格過熱，而且這三個至少一個成立；4＝價格過熱，而且這三個加上「槓桿」至少兩個成立。'
+    '資料不夠長、算不出來的條件當作不成立。VER 3（沒有未來獲利）、VER 1（只看價格）的等級留在驗證表當對照。</p>'
+    '<p>方向條件（VER 3 起）：價格爆發要近 12 個月實質價格上漲；漲得比基本面快要近 12 個月價格上漲、而且比值上升。</p>'
     '<p>價格 ÷ 基本面：每個月的月平均價格 ÷ 那個月月底拿得到的最新基本面（S&P 500 盈餘晚 6 個月、出口晚 2 個月、'
-    '全球半導體銷售額晚 2 個月、美國企業獲利季底後 3 個月），基本面停更超過 12 個月就不算。</p>'
+    '全球半導體銷售額晚 2 個月、美國科技業獲利季底後 3 個月），基本面停更超過 12 個月就不算。</p>'
+    '<p>未來獲利：分析師預估每天加總（每家公司的今年、明年預估與 90 天前的明年預估乘股數；外幣預估換成美元；'
+    '加總用到的公司要占市值 50% 以上、資料在 7 天內）。有預估的月份用預估，之前用替代資料；'
+    '專業預測者調查第 q 季在第 3q−1 個月月底才算拿得到。</p>'
     '<p>價格爆發：實質股價（月平均 ÷ 前一個月 CPI）取對數，算 BSADF（視窗至少 60 個月）。臨界值用「有長期漲勢的隨機漫步」模擬，'
     '漲勢＝到當月為止每月變化的平均 ÷ 標準差，8 檔各 2,000 次、相鄰兩檔內插。CPI 缺月（2025-10 美國政府停擺）用前後兩個月的幾何平均補上。</p>'
     '<p>每個條件只用當時拿得到的資料：月資料下個月 1 日起才用，家計證券融資季資料晚 3 個月半。驗證用每個月最後一個交易日，'
     '看之後一年內跌 20%、兩年內跌 40%（期間內收盤高點到之後低點）的比例，和所有月份比。</p>'
     '<p>資料：加權指數（證交所、國發會月平均）、S&P 500（Yahoo、Shiller）、那斯達克、那斯達克 100、費半（Yahoo）、'
-    'CPI（主計總處、勞工統計局、Shiller）、Z.1 家計證券融資與股票市值（聯準會）、GDP（BEA）、融資金額（FinMind 轉載證交所）、上市櫃市值（自算）。</p>'
-    '<p class="note">門檻都取自文獻，不用結果去調；規格寫在 arm/lab/bubspec.py（VER 1），改規格要升版本。只描述位置，不是買賣訊號。</p>'
+    'CPI（主計總處、勞工統計局、Shiller）、Z.1 家計證券融資與股票市值（聯準會）、GDP 與產業別企業獲利（BEA，經 DBnomics）、'
+    '專業預測者調查（費城聯準銀行）、全球半導體銷售額（WSTS）、外銷訂單（經濟部）、分析師預估（Yahoo；成分股來自維基百科、那斯達克）、'
+    '融資金額（FinMind 轉載證交所）、上市櫃市值（自算）。</p>'
+    '<p class="note">門檻都取自文獻，不用結果去調；規格寫在 arm/lab/bubspec.py（VER 4），改規格要升版本。只描述位置，不是買賣訊號。</p>'
     '</details></section>')
 
 
@@ -569,7 +709,7 @@ JS = r"""
 (function(){
 const D = JSON.parse(document.getElementById('bubd').textContent || '{}');
 const LV = ['沒有泡沫跡象','偏貴（不是泡沫）','漲勢過熱','泡沫警戒','嚴重泡沫'];
-const CN = {'1':'價格爆發','2':'兩年翻倍','3':'偏離趨勢','e':'漲得比基本面快','v':'估值','f':'槓桿'};
+const CN = {'1':'價格爆發','2':'兩年翻倍','3':'偏離趨勢','e':'漲得比基本面快','v':'估值','g':'未來獲利跟不上','f':'槓桿'};
 const RG = {}, LW = {};
 const NS = 'http://www.w3.org/2000/svg';
 function el(t, a){ const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); return e; }
