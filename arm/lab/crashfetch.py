@@ -6,18 +6,16 @@
 
 央行兩張表的代碼、欄名是 2026-10-17 景氣頁第四版探針列舉 EG01～40 時看到的（CI 日誌；當時只印前 6 個欄名）。
 單位以原始值存（央行表的單位另由探針核對，計算時再換算），抓不到保留既有的檔。
-probe() 只印不寫：央行表完整欄名、單位核對、報酬指數、台積電市值、下市公司產業別的候選來源（docs/lab_crash_plan.md Q3、Q9）。
+探針（2026-10-19 兩輪，結果在 docs/lab_crash_plan.md 第 10.1 節）已刪掉：央行融資表是上市＋上櫃、上市總市值和自算差 1% 以內。
 """
 from __future__ import annotations
 
 import json
 import re
-import statistics
 import time
 import urllib.parse
 from datetime import datetime, timezone
 
-from . import heatdata as HD
 from .heatfetch import _get, _merge, _num
 from .market import log
 
@@ -135,70 +133,3 @@ def us_volume_all() -> int:
             log(f"[crash] 成交量 {k}（{sym}）✗ {type(e).__name__}: {str(e)[:160]}")
         time.sleep(1)
     return n
-
-
-# ── 探針（只印不寫；合併前刪掉呼叫處） ─────────────────────────────────────
-
-def _say(*a) -> None:
-    print("[crash探針]", *a, flush=True)
-
-
-def _sec(name: str, fn) -> None:
-    _say(f"===== {name} =====")
-    t0 = time.time()
-    try:
-        fn()
-    except Exception as e:                                    # noqa: BLE001
-        _say(f"✗ {type(e).__name__}: {str(e)[:300]}")
-    _say(f"（{time.time() - t0:.0f}s）")
-
-
-def _margin_check() -> None:
-    """央行融資餘額 vs FinMind（證交所上市）月底：比值穩定在 1＝只有上市；比值隨時間變大＝含上櫃。"""
-    n1, n2, rows, st = _cbc_struct(CBC_MARGIN[0])
-    _say("EG25M01 structure 鍵", list(st), "｜Table1", n1, "｜Table2", n2,
-         "｜其他表", {k: [str((x or {}).get('data'))[:12] for x in (v or [])][:8] for k, v in st.items()
-                       if k not in ("Table1", "Table2") and isinstance(v, list)})
-    cb, fm = HD.load("twmgn"), HD.load("margin")
-    for ym in [f"{y}-12" for y in range(1990, 2026)] + ["2026-07", "2026-08"]:
-        c = cb.get(ym) or [None] * 4
-        last = max((d for d in fm if d[:7] == ym), default=None)
-        f = fm.get(last) if last else None
-        fa = f[0] / 1e6 if f and f[0] else None                # 元 → 百萬元
-        fs = f[1] / 1e3 if f and f[1] else None                # 張 → 百萬股
-        _say(f"{ym} 央行 融資金額 {c[0]} 股數 {c[1]}｜FinMind {fa and round(fa)} {fs and round(fs)}"
-             + (f"｜比 金額 {c[0] / fa:.3f} 股數 {c[1] / fs:.3f}" if c[0] and fa and c[1] and fs else ""))
-
-
-def _tpex_margin() -> None:
-    from .market import TPEX
-    for d in ("2026-08-31", "2024-12-31", "2014-12-31", "2005-12-30"):
-        y, m, dd = d.split("-")
-        roc, ad = f"{int(y) - 1911}/{m}/{dd}", f"{y}/{m}/{dd}"
-        for tmpl in TPEX["margin"]:
-            u = tmpl.format(roc=roc, ad=ad)
-            try:
-                doc = json.loads(_get(u, timeout=40).decode("utf-8"))
-            except Exception as e:                            # noqa: BLE001
-                _say("櫃買融資", d, u[-50:], "✗", str(e)[:100])
-                continue
-            tabs = doc.get("tables") or []
-            _say("櫃買融資", d, u[-50:], "｜鍵", list(doc)[:12], "｜日期", doc.get("date"), "｜表", len(tabs))
-            for t in tabs[:3]:
-                data = t.get("data") or []
-                _say("   表", str(t.get("title"))[:40], "｜欄", t.get("fields"), "｜列", len(data))
-                for r in data[-3:]:
-                    _say("     末列", r)
-                for k in ("summary", "notes", "total"):
-                    if t.get(k):
-                        _say(f"     {k}", str(t.get(k))[:600])
-            if doc.get("aaData") or doc.get("tfootData_one"):
-                _say("   舊版 tfoot", doc.get("tfootData_one"), doc.get("tfootData_two"), "｜列", len(doc.get("aaData") or []))
-            break
-        time.sleep(1.6)
-
-
-def probe() -> int:
-    for name, fn in (("融資：央行 vs 證交所上市", _margin_check), ("櫃買融資餘額合計", _tpex_margin)):
-        _sec(name, fn)
-    return 0

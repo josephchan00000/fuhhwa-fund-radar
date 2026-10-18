@@ -175,7 +175,6 @@ def backfill(budget_min: float, only: set[str] | None) -> None:
         ("twcap", "上市股票總市值（央行）", CF.cbc_stock, ()),           # 大跌風險研究（docs/lab_crash_plan.md）
         ("twmgn", "融資融券（央行）", CF.cbc_margin, ()),
         ("usvol", "美股指數成交量", CF.us_volume_all, ()),
-        ("crash_probe", "大跌風險資料探針（只印不寫）", CF.probe, ()),
     ]
     for key, name, fn, a in jobs:
         if want(key):
