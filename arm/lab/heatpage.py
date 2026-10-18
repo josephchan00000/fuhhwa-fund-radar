@@ -306,11 +306,20 @@ def _sgn(x, dec=1) -> str:
     return ("+" if r > 0 else ("−" if r < 0 else "")) + f"{abs(r):.{dec}f}"
 
 
+def n0(x: float) -> str:
+    """分數取整數；四捨五入會跨到下一區時（例如 79.6 → 80，五區的界線是 20／40／60／80）改成無條件捨去到一位小數，
+    免得畫面寫「80 偏熱」。頁面 JS 的 sc0() 同一套規則。"""
+    s = f"{x:.0f}"
+    if int(s) in (20, 40, 60, 80) and x < int(s):
+        return f"{math.floor(x * 10) / 10:.1f}"
+    return s
+
+
 def _bar(h: float | None) -> str:
     if h is None:
         return '<span class="hb"><i class="na"></i></span><b class="hn mu">—</b>'
     cls = BAND_CLS.get(S.band(h), "b2")
-    return f'<span class="hb"><i class="{cls}" style="width:{h:.0f}%"></i></span><b class="hn">{h:.0f}</b>'
+    return f'<span class="hb"><i class="{cls}" style="width:{h:.0f}%"></i></span><b class="hn">{n0(h)}</b>'
 
 
 def _meter(score: float | None) -> str:
@@ -551,7 +560,7 @@ def m6_conclusion(m6: dict) -> str:
 
 def _card(dim: str, L: dict, V: dict) -> str:
     sc = L["score"]
-    head = (f'<b class="sc {BAND_CLS.get(L["band"], "b2")}">{sc:.0f}</b><span class="bn {BAND_CLS.get(L["band"], "b2")}">{_e(L["band"])}</span>'
+    head = (f'<b class="sc {BAND_CLS.get(L["band"], "b2")}">{n0(sc)}</b><span class="bn {BAND_CLS.get(L["band"], "b2")}">{_e(L["band"])}</span>'
             if sc is not None else '<b class="sc mu">—</b><span class="bn mu">還沒有分數</span>')
     wk = ""
     if sc is not None and L["ago"] is not None:
@@ -613,7 +622,8 @@ def _refs(V: dict) -> str:
     for r in V.get("ref") or []:
         if r["val"] is None:
             continue
-        v = f'{r["val"]:,.1f}' + (r["unit"] if r["unit"] in ("%",) else (f' {r["unit"]}' if r["unit"] else ""))
+        num = f'{r["val"]:,.0f}' if r["unit"] == "個" else f'{r["val"]:,.1f}'          # 條件數是整數
+        v = num + (r["unit"] if r["unit"] in ("%",) else (f' {r["unit"]}' if r["unit"] else ""))
         rows.append(f'<li><b>{_e(r["name"])}</b> {_e(v)}<span class="mu">（{_e(_ymd(r["date"]))}）</span>'
                     f'<i>{_e(r["how"])}</i></li>')
     if not rows:
@@ -646,11 +656,11 @@ def _strips(V: dict) -> str:
     rows = []
     for dim, L in V["dims"].items():
         st = (V.get("strips") or {}).get(dim) or {}
-        cells = "".join(f'<i class="{BAND_CLS.get(b, "na") if b else "na"}" title="{_e(_ymd(d))}　{"—" if v is None else f"{v:.0f}"}"></i>'
+        cells = "".join(f'<i class="{BAND_CLS.get(b, "na") if b else "na"}" title="{_e(_ymd(d))}　{"—" if v is None else n0(v)}"></i>'
                         for d, v, b in st.get("cells") or [])
         sc = st.get("score")
         cls = BAND_CLS.get(st.get("band"), "b2")
-        num = (f'<b class="sc {cls}">{sc:.0f}</b><em class="bn {cls}">{_e(st["band"])}</em>' if sc is not None else
+        num = (f'<b class="sc {cls}">{n0(sc)}</b><em class="bn {cls}">{_e(st["band"])}</em>' if sc is not None else
                '<b class="sc mu">—</b><em class="bn mu">沒有分數</em>')
         rows.append(f'<a class="sr" href="#c-{dim}"><span class="sr-n"><b>{_e(S.DSHORT[dim])}</b><i>{_e(L["span"])}</i></span>'
                     f'<span class="sr-c" role="img" aria-label="{_e(S.DSHORT[dim])}近 {S.STRIP_WEEKS} 週的熱度">{cells}</span>'
@@ -1557,6 +1567,7 @@ function pct(x, d) { if (x == null) return '—'; d = d == null ? 1 : d; const r
 function rho(x) { if (x == null) return '—'; const r = Number(x.toFixed(2)); return sgn(r) + Math.abs(r).toFixed(2); }
 function pf(p) { return p == null ? '—' : (p < 0.001 ? '< 0.001' : p.toFixed(3)); }
 function pq(lab, p) { return p != null && p < 0.001 ? lab + ' < 0.001' : lab + '＝' + pf(p); }
+function sc0(v) { const r = Math.round(v); return (r === 20 || r === 40 || r === 60 || r === 80) && v < r ? (Math.floor(v * 10) / 10).toFixed(1) : String(r); }  // 同 Python n0()
 function grp(v, dec) { return Math.abs(v).toLocaleString('en-US', {minimumFractionDigits: dec, maximumFractionDigits: dec}); }
 function fmtRaw(id, v) {
   if (v == null) return '—';
@@ -1806,7 +1817,7 @@ function draw() {
       const k = document.createElement('i'); k.style.background = M.pal[L.slot]; row.appendChild(k);
       const vv = document.createElement('strong');
       const v = L.v[j];
-      vv.textContent = v == null ? '—' : (raw ? fmtRaw(L.id, v) : String(Math.round(v)));
+      vv.textContent = v == null ? '—' : (raw ? fmtRaw(L.id, v) : sc0(v));
       row.appendChild(vv);
       row.appendChild(document.createTextNode(' ' + SHORT[L.id]));
       tip.appendChild(row);

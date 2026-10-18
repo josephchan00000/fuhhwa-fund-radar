@@ -88,3 +88,12 @@ def test_workflows_add_us_page_files_and_fetch():
     assert "python3 scripts/fetch_heat_us.py" in ah and "numpy xlrd openpyxl" in ah
     assert "python3 scripts/fetch_heat_us.py" in (ROOT / "scripts" / "daily_fund.sh").read_text(encoding="utf-8")
     assert "heatpage_us.build()" in (ROOT / "scripts" / "gen_fund_dashboard.py").read_text(encoding="utf-8")
+
+
+def test_score_rounding_never_crosses_band():
+    """79.6 不寫成 80（五區界線 20／40／60／80）；其他照四捨五入。頁面 JS 的 sc0() 同一套規則。"""
+    assert HP.n0(79.6) == "79.6" and HP.n0(79.96) == "79.9" and HP.n0(19.5) == "19.5"
+    assert HP.n0(74.8) == "75" and HP.n0(80.0) == "80" and HP.n0(99.6) == "100" and HP.n0(0.2) == "0"
+    for x in (19.5, 39.7, 59.9, 79.6, 74.8, 80.4, 12.3):
+        assert S.band(float(HP.n0(x))) == S.band(x)
+    assert "function sc0(v)" in HP._JS and ": sc0(v));" in HP._JS
