@@ -18,14 +18,13 @@ import urllib.parse
 from datetime import datetime, timezone
 
 from . import heatdata as HD
-from .heatfetch import _cbc_table, _get, _merge, _num
+from .heatfetch import _get, _merge, _num
 from .market import log
 
-CBC_STOCK = ("EG27M01", ("上市股票-公司家數", "上市股票-總面額", "上市股票-總市值", "上市股票-總成交值",
-                         "上市股票-日平均成交值", "加權平均股價指數"))
-CBC_MARGIN = ("EG25M01", ("融資", "融券"))
-US_VOL = {"spx": ("^GSPC", "1950-01-01"), "ixic": ("^IXIC", "1971-01-01"), "ndx": ("^NDX", "1985-01-01"),
-          "sox": ("^SOX", "1994-01-01")}
+CBC_STOCK = ("EG27M01", tuple((n, None) for n in ("上市股票-公司家數", "上市股票-總面額", "上市股票-總市值", "上市股票-總成交值",
+                                                  "上市股票-日平均成交值", "加權平均股價指數")))
+CBC_MARGIN = ("EG25M01", (("融資", "餘額-金額"), ("融資", "餘額-股數"), ("融券", "餘額-股數"), ("融券", "餘額-金額")))
+US_VOL = {"spx": ("^GSPC", "1950-01-01"), "ixic": ("^IXIC", "1971-01-01"), "ndx": ("^NDX", "1985-01-01")}
 
 
 def _col_index(names: list[str], want: str) -> int | None:
@@ -35,31 +34,47 @@ def _col_index(names: list[str], want: str) -> int | None:
     return i
 
 
-def parse_cbc_cols(names: list[str], width: int, rows: list, want: tuple) -> dict:
-    """央行 DataAPI 表 → {YYYY-MM: [want 各欄的原始值]}；每項 width 欄（原始值、年增率…），取第 0 欄。
-    欄名找不到的那一欄是 None；整列都沒有值的月份不收。"""
-    idx = [_col_index(names, w) for w in want]
+def parse_cbc_cube(names1: list[str], names2: list[str], rows: list, want: tuple) -> dict:
+    """央行 DataAPI 表 → {YYYY-MM: [want 各格的原始值]}。
+    每列＝期別＋（Table1 項目 × Table2 名稱 × 最內層 [原始值, 年增率…]）展平；每個 Table1 項目佔 ncol ÷ len(Table1) 欄，
+    再平均分給 Table2 的每個名稱（EG27M01 的 Table2 就是 [原始值, 年增率]，EG25M01 的 Table2 是新增／償還／餘額六欄、
+    每欄再各有原始值與年增率）。want＝[(Table1 名稱, Table2 名稱或 None)]，None＝該項目的第一欄；取最內層第一個（原始值）。
+    名稱找不到的那一格是 None；整列都沒有值的月份不收。"""
+    ncol = max((len(r) for r in rows), default=1) - 1
+    block = ncol // max(1, len(names1))
+    stride = max(1, block // max(1, len(names2)))
+    cols = []
+    for a, b in want:
+        i = _col_index(names1, a)
+        m = 0 if b is None else _col_index(names2, b)
+        cols.append(None if i is None or m is None else 1 + i * block + m * stride)
     out = {}
     for r in rows:
         mm = re.match(r"^(\d{4})M(\d{2})$", str(r[0] if r else ""))
         if not mm:
             continue
-        vals = []
-        for i in idx:
-            c = None if i is None else 1 + i * width
-            vals.append(_num(r[c]) if c is not None and c < len(r) else None)
+        vals = [_num(r[c]) if c is not None and c < len(r) else None for c in cols]
         if any(v is not None for v in vals):
             out[f"{mm.group(1)}-{mm.group(2)}"] = vals
     return out
 
 
+def _cbc_struct(code: str) -> tuple[list[str], list[str], list, dict]:
+    from .heatfetch import CBC_API
+    doc = json.loads(_get(CBC_API.format(f=code), timeout=90).decode("utf-8"))
+    data = doc.get("data") or {}
+    st = data.get("structure") or {}
+    nm = lambda t: [str((x or {}).get("data") or "").replace(" ", "") for x in (st.get(t) or [])]  # noqa: E731
+    return nm("Table1"), nm("Table2"), data.get("dataSets") or [], st
+
+
 def _cbc(name: str, spec: tuple) -> int:
     code, want = spec
-    names, width, rows = _cbc_table(code)
-    miss = [w for w in want if _col_index(names, w) is None]
+    n1, n2, rows, _ = _cbc_struct(code)
+    miss = [w for w in want if _col_index(n1, w[0]) is None or (w[1] is not None and _col_index(n2, w[1]) is None)]
     if miss:
-        log(f"[crash] 央行 {code} 找不到欄位 {miss}（全部欄名：{'、'.join(names)}）")
-    return _merge(name, "cbc", parse_cbc_cols(names, width, rows, want))
+        log(f"[crash] 央行 {code} 找不到欄位 {miss}（Table1：{'、'.join(n1)}；Table2：{'、'.join(n2)}）")
+    return _merge(name, "cbc", parse_cbc_cube(n1, n2, rows, want))
 
 
 def cbc_stock() -> int:
@@ -67,7 +82,11 @@ def cbc_stock() -> int:
 
 
 def cbc_margin() -> int:
-    return _cbc("twmgn", CBC_MARGIN)
+    """融資餘額金額（百萬元）、融資餘額股數（百萬股）、融券餘額股數、融券餘額金額。第一版誤取「新增-股數」，這一版整檔重寫。"""
+    from .heatfetch import _replace
+    code, want = CBC_MARGIN
+    n1, n2, rows, _ = _cbc_struct(code)
+    return _replace("twmgn", "cbc", parse_cbc_cube(n1, n2, rows, want))
 
 
 def parse_yahoo_volume(doc: dict, now: float) -> dict:
@@ -134,154 +153,52 @@ def _sec(name: str, fn) -> None:
     _say(f"（{time.time() - t0:.0f}s）")
 
 
-def _plain(h: str) -> str:
-    import html as _h
-    return re.sub(r"\s+", " ", _h.unescape(re.sub(r"<[^>]+>", " ", h))).strip()
-
-
-def _cbc_full() -> None:
-    import json as _j
-    from .heatfetch import CBC_API
-    for code in ("EG27M01", "EG25M01", "EG27D01", "EG25D01", "EG27M02", "EG25M02", "EG27Q01", "EG27Y01"):
-        try:
-            doc = _j.loads(_get(CBC_API.format(f=code), timeout=60).decode("utf-8"))
-        except Exception as e:                                # noqa: BLE001
-            _say(code, "✗", str(e)[:80])
-            continue
-        data = doc.get("data") or {}
-        st = data.get("structure") or {}
-        names = [str((x or {}).get("data") or "") for x in (st.get("Table1") or [])]
-        t2 = [str((x or {}).get("data") or "") for x in (st.get("Table2") or [])]
-        ds = data.get("dataSets") or []
-        meta = doc.get("meta") or {}
-        _say(code, str(meta.get("title"))[:60], "｜單位", str(meta.get("unit") or meta.get("units") or "")[:60],
-             "｜meta 鍵", list(meta)[:12])
-        _say("   欄名", "、".join(names))
-        _say("   Table2", "、".join(t2), "｜列數", len(ds))
-        for r in (ds[:2] + ds[-2:]):
-            _say("   ", r[:16])
-        time.sleep(0.5)
-
-
-def _units() -> None:
-    from . import store
-    cap, mgn = HD.load("twcap"), HD.load("twmgn")
-    fm = HD.load("margin")
-    v3 = {}
-    for _, doc in store.load("v3me_tw"):
-        d, s = (doc or {}).get("d"), (doc or {}).get("s") or {}
-        if d:
-            v3[d[:7]] = sum(float(v[0]) * float(v[1]) for v in s.values() if v and len(v) >= 2 and v[0] and v[1])
-    for ym in ("2013-06", "2016-12", "2020-12", "2024-12", "2026-06", "2026-08"):
-        c = (cap.get(ym) or [None] * 6)[2]
-        _say(f"市值 {ym}：央行 {c}｜自算上市月底 {v3.get(ym):.4g}" if v3.get(ym) else f"市值 {ym}：央行 {c}｜自算 —",
-             f"｜比 {v3[ym] / c:.4g}" if c and v3.get(ym) else "")
-    for ym in ("2001-12", "2008-12", "2015-12", "2020-12", "2024-12", "2026-08"):
+def _margin_check() -> None:
+    """央行融資餘額 vs FinMind（證交所上市）月底：比值穩定在 1＝只有上市；比值隨時間變大＝含上櫃。"""
+    n1, n2, rows, st = _cbc_struct(CBC_MARGIN[0])
+    _say("EG25M01 structure 鍵", list(st), "｜Table1", n1, "｜Table2", n2,
+         "｜其他表", {k: [str((x or {}).get('data'))[:12] for x in (v or [])][:8] for k, v in st.items()
+                       if k not in ("Table1", "Table2") and isinstance(v, list)})
+    cb, fm = HD.load("twmgn"), HD.load("margin")
+    for ym in [f"{y}-12" for y in range(1990, 2026)] + ["2026-07", "2026-08"]:
+        c = cb.get(ym) or [None] * 4
         last = max((d for d in fm if d[:7] == ym), default=None)
-        m = (mgn.get(ym) or [None, None])[0]
-        f = (fm.get(last) or [None])[0] if last else None
-        _say(f"融資 {ym}：央行 {m}｜FinMind 月底 {last} {f}", f"｜比 {f / m:.4g}" if f and m else "")
-    ks = sorted(cap)
-    _say("央行市值月份", len(ks), ks[:1], ks[-1:], "｜融資月份", len(mgn), sorted(mgn)[:1], sorted(mgn)[-1:])
-    for ym in ("1987-05", "1990-02", "1995-12", "2000-12"):
-        _say(f"  {ym} 市值列 {cap.get(ym)}｜融資列 {mgn.get(ym)}")
+        f = fm.get(last) if last else None
+        fa = f[0] / 1e6 if f and f[0] else None                # 元 → 百萬元
+        fs = f[1] / 1e3 if f and f[1] else None                # 張 → 百萬股
+        _say(f"{ym} 央行 融資金額 {c[0]} 股數 {c[1]}｜FinMind {fa and round(fa)} {fs and round(fs)}"
+             + (f"｜比 金額 {c[0] / fa:.3f} 股數 {c[1] / fs:.3f}" if c[0] and fa and c[1] and fs else ""))
 
 
-def _fm(ds: str, did: str, a: str, z: str | None = None) -> list:
-    from .heatfetch import _finmind
-    return _finmind(ds, did, a, z)
-
-
-def _finmind_probe() -> None:
-    for ds, did, a in (("TaiwanStockTotalReturnIndex", "TAIEX", "1990-01-01"),
-                       ("TaiwanStockTotalReturnIndex", "TPEx", "1990-01-01"),
-                       ("TaiwanStockMarketValue", "2330", "1990-01-01")):
-        try:
-            rows = _fm(ds, did, a)
-            _say(ds, did, "筆數", len(rows), "｜首", rows[:1], "｜末", rows[-1:])
-        except Exception as e:                                # noqa: BLE001
-            _say(ds, did, "✗", str(e)[:160])
-        time.sleep(1)
-    try:
-        rows = _fm("TaiwanStockInfo", "", "1990-01-01")
-        want = {"2311", "2325", "2448", "2888", "3474", "3658", "5820", "8406", "2823", "1704"}
-        hit = [r for r in rows if str(r.get("stock_id")) in want]
-        _say("TaiwanStockInfo 筆數", len(rows), "欄位", list(rows[0]) if rows else None, "｜樣本命中", len(hit))
-        for r in hit[:12]:
-            _say("   ", r)
-    except Exception as e:                                    # noqa: BLE001
-        _say("TaiwanStockInfo ✗", str(e)[:160])
-
-
-def _delisted_probe() -> None:
-    from .market import post_bytes
-    for code in ("2325", "3474", "2888", "3658", "5820"):
-        u = f"https://isin.twse.com.tw/isin/single_main.jsp?owncode={code}&stockname="
-        try:
-            b = _get(u, timeout=40)
-            t = _plain(b.decode("big5", "replace") if b[:200].count(b"\x00") == 0 else b.decode("utf-8", "replace"))
-            i = t.find(code)
-            _say("ISIN", code, len(b), "B｜", t[max(0, i - 60):i + 260] if i >= 0 else t[:300])
-        except Exception as e:                                # noqa: BLE001
-            _say("ISIN", code, "✗", str(e)[:120])
-        time.sleep(1.5)
-    for typ, code in (("24", "2325"), ("17", "2888"), ("24", "3474")):
-        u = f"https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX?date=20140102&type={typ}&response=json"
-        try:
-            doc = json.loads(_get(u, timeout=40).decode("utf-8"))
+def _tpex_margin() -> None:
+    from .market import TPEX
+    for d in ("2026-08-31", "2024-12-31", "2014-12-31", "2005-12-30"):
+        y, m, dd = d.split("-")
+        roc, ad = f"{int(y) - 1911}/{m}/{dd}", f"{y}/{m}/{dd}"
+        for tmpl in TPEX["margin"]:
+            u = tmpl.format(roc=roc, ad=ad)
+            try:
+                doc = json.loads(_get(u, timeout=40).decode("utf-8"))
+            except Exception as e:                            # noqa: BLE001
+                _say("櫃買融資", d, u[-50:], "✗", str(e)[:100])
+                continue
             tabs = doc.get("tables") or []
-            titles = [str(t.get("title"))[:40] for t in tabs]
-            hit = [r[:3] for t in tabs for r in (t.get("data") or []) if r and str(r[0]).strip() == code]
-            n = sum(len(t.get("data") or []) for t in tabs)
-            _say(f"MI_INDEX 2014-01-02 type={typ}：stat {doc.get('stat')}｜表 {titles}｜列 {n}｜{code} {hit}")
-        except Exception as e:                                # noqa: BLE001
-            _say(f"MI_INDEX type={typ} ✗", str(e)[:120])
-        time.sleep(3.5)
-    for u in ("https://www.tpex.org.tw/web/stock/aftertrading/otc_quotes_no1430/stk_wn1430_result.php"
-              "?l=zh-tw&o=json&d=103/01/02&se=24",
-              "https://www.tpex.org.tw/www/zh-tw/afterTrading/otc?date=2014%2F01%2F02&type=24&response=json"):
-        try:
-            b = _get(u, timeout=40)
-            t = b.decode("utf-8", "replace")
-            i = t.find("3658")
-            _say("櫃買 2014-01-02 半導體", u[-60:], len(b), "B｜3658", t[max(0, i - 40):i + 120] if i >= 0 else "沒有",
-                 "｜開頭", t[:160])
-        except Exception as e:                                # noqa: BLE001
-            _say("櫃買", u[-60:], "✗", str(e)[:120])
+            _say("櫃買融資", d, u[-50:], "｜鍵", list(doc)[:12], "｜日期", doc.get("date"), "｜表", len(tabs))
+            for t in tabs[:3]:
+                data = t.get("data") or []
+                _say("   表", str(t.get("title"))[:40], "｜欄", t.get("fields"), "｜列", len(data))
+                for r in data[-3:]:
+                    _say("     末列", r)
+                for k in ("summary", "notes", "total"):
+                    if t.get(k):
+                        _say(f"     {k}", str(t.get(k))[:600])
+            if doc.get("aaData") or doc.get("tfootData_one"):
+                _say("   舊版 tfoot", doc.get("tfootData_one"), doc.get("tfootData_two"), "｜列", len(doc.get("aaData") or []))
+            break
         time.sleep(1.6)
-    for code in ("2325", "3658"):
-        try:
-            b = post_bytes("https://mopsov.twse.com.tw/mops/web/ajax_t05st03",
-                           {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "queryName": "co_id",
-                            "inpuType": "co_id", "TYPEK": "all", "co_id": code}, retries=1, timeout=40)
-            t = _plain(b.decode("utf-8", "replace"))
-            i = t.find("產業")
-            _say("公開資訊觀測站 t05st03", code, len(b), "B｜", t[max(0, i - 80):i + 200] if i >= 0 else t[:300])
-        except Exception as e:                                # noqa: BLE001
-            _say("公開資訊觀測站 t05st03", code, "✗", str(e)[:120])
-        time.sleep(3)
-
-
-def _volume_check() -> None:
-    for k in US_VOL:
-        d = HD.load(f"us_vol_{k}")
-        ks = sorted(d)
-        if not ks:
-            _say("成交量", k, "沒有資料")
-            continue
-        by: dict[str, list] = {}
-        for x in ks:
-            by.setdefault(x[:4], []).append(d[x])
-        med = {y: statistics.median(v) for y, v in by.items()}
-        ys = sorted(med)
-        jumps = [(a, b, round(med[b] / med[a], 2)) for a, b in zip(ys, ys[1:]) if med[a] and med[b] / med[a] > 2.5]
-        _say("成交量", k, len(ks), "天", ks[0], "～", ks[-1], "｜每 10 年中位數",
-             {y: f"{med[y]:.3g}" for y in ys if int(y) % 10 == 0}, "｜年中位數跳 2.5 倍以上", jumps)
 
 
 def probe() -> int:
-    for name, fn in (("央行兩張表的完整欄名", _cbc_full), ("單位核對（自算市值、FinMind 融資）", _units),
-                     ("FinMind 報酬指數、台積電市值、股票清單", _finmind_probe),
-                     ("下市公司產業別候選來源", _delisted_probe), ("美股成交量", _volume_check)):
+    for name, fn in (("融資：央行 vs 證交所上市", _margin_check), ("櫃買融資餘額合計", _tpex_margin)):
         _sec(name, fn)
     return 0
