@@ -1,4 +1,4 @@
-"""泡沫頁規格（docs/lab_risk_plan.md 第 8～10 節；VER 1～3 都在 2026-10-18 寫定）。
+"""泡沫頁規格（docs/lab_risk_plan.md 第 8～11 節；VER 1～4 都在 2026-10-18 寫定）。
 
 **事前寫定**：條件、門檻、分級、驗證方法都在看任何新結果之前寫進這裡並 commit；tests/test_bubspec.py 鎖住。
 要改＝VER＋1，日期與原因寫進規劃文件，不在看過結果之後改舊版本（同 heatspec 的紀律）。
@@ -21,13 +21,20 @@ VER 3（使用者 2026-10-18 選「加方向條件，做完一起上線」）：
 比值在盈餘崩落時也會爆發，VER 2 因此在 S&P 500 1974/11～1975/2、費半 2009/1～4 這兩段大跌之後給了等級 3。
 加方向條件（第 10 節）：P1 要近 12 個月實質價格上漲；E 要近 12 個月價格上漲、而且比值上升（價格漲得比基本面多）。
 這是看過結果才加的，文件寫明；VER 2 的等級留著當對照（L3v2）。
+
+VER 4（使用者 2026-10-18：「股價是反應未來企業獲利，直接去看本益比意義不大……要去抓未來企業獲利的成長，邊際成長放緩也會是一個警訊」、
+「那斯達克真的找不到你也可以用科技業企業獲利」；選「兩個警訊都要」「等級用預估、回測用替代」「本益比類留在等級裡」）：
+  · 新條件 G＝未來獲利跟不上：G1 明年預估成長比今年低，而且 G2 明年預估比 3 個月前低、股價比 3 個月前高（第 11 節）；
+  · 現在用分析師預估（台股 Yahoo、美股成分股 Yahoo），過去用替代資料（S&P 500 專業預測者調查、那斯達克科技業獲利、
+    費半全球半導體銷售、台股外銷訂單）；
+  · 那斯達克兩檔的 E 改用科技業獲利；VER 3 的等級留著當對照（L3v3）。
 """
 from __future__ import annotations
 
 from .heatspec import BUB_BLOCK, BUB_BOOT, BUB_DD, BUB_EPI_GAP, BUB_EPI_MIN, BUB_MIN_HOT, BUB_SEED, DAILY_LAG  # noqa: F401
 from .heatspec import PSY, TREND, RUNUP_DAYS  # noqa: F401
 
-VER = 3
+VER = 4
 SPEC_DATE = "2026-10-18"
 
 MARKETS = ("tw", "spx", "ixic", "ndx", "sox")
@@ -180,3 +187,68 @@ DIR_MONTHS = 12
 # ── 10.2 驗證 ──────────────────────────────────────────────────────────────
 # 同 VER 2；多一列 L3v2＝VER 2（沒有方向條件）的等級 ≥ 3 當對照。
 TESTS3 = TESTS2 + ("L3v2",)
+
+
+# ══ VER 4（docs/lab_risk_plan.md 第 11 節；2026-10-18 寫定，算任何 VER 4 結果之前 commit） ══════════════
+
+# ── 11.1 G 未來獲利跟不上 ─────────────────────────────────────────────────────
+# G1：明年預估成長 < 今年預估成長；G2：明年預估比 3 個月前低（< 0）而且股價比 3 個月前高（> 0）；G＝G1 而且 G2。
+G_PRICE_MONTHS = 3                                  # 月樣本：月底收盤比 3 個月前的月底收盤
+G_PRICE_DAYS = 91                                   # 現在：收盤比 91 天前（那天或之前最後一個交易日）
+
+# ── 11.2 現在：分析師預估 ─────────────────────────────────────────────────────
+EST_SRC = {"tw": "Yahoo 台股有分析師預估的上市櫃公司（新台幣）", "spx": "維基百科 S&P 500 成分股",
+           "ixic": "那斯達克篩選器市值前 300 大", "ndx": "那斯達克 100 官方成分股", "sox": "費半官方成分股"}
+EST_NQ_TOP = 300                                    # 那斯達克綜合指數用市值前幾大
+EST_COVER_MIN = 0.50                                # 加總用到的公司市值 ÷ 全部成分股市值
+EST_STALE_DAYS = 7                                  # 預估資料比當天舊超過幾天就不判定
+EST_PE_RANGE = (3.0, 300.0)                         # 幣別判斷：股價 ÷（今年預估 × 匯率）落在這個範圍就換匯
+EST_TREND_DAYS = 90                                 # Yahoo epsTrend 90daysAgo
+
+# ── 11.3 過去：替代資料 ──────────────────────────────────────────────────────
+# 每個市場 G 的替代資料；S&P 500 另算 Gr（美國企業整體實際獲利，E 用的 us_cp）只當對照。
+PROXY = {"spx": "spf", "ixic": "tech", "ndx": "tech", "sox": "wsts", "tw": "orders"}
+PROXY_NAMES = {"spf": "專業預測者調查（美國企業稅後獲利預測中位數）", "tech": "美國科技業獲利（BEA）",
+               "wsts": "全球半導體銷售額（WSTS）", "orders": "外銷訂單（經濟部）", "cp": "美國企業稅後獲利（BEA）"}
+PROXY_SUM = {"tech": 4, "cp": 4, "wsts": 12, "orders": 12}          # 季資料：近幾季平均；月資料：近幾個月合計
+PROXY_G1_BACK = {"q": 2, "m": 6}                    # G1：年增率比幾季／幾個月前低
+PROXY_G2_BACK = {"q": 1, "m": 3}                    # G2：合計（平均）比幾季／幾個月前低
+PROXY_REL = {"tech": (3, 1), "cp": (3, 1), "wsts": (2, 10), "orders": (1, 21)}
+# 專業預測者調查：中位數水準檔；年度預測（CPROFA 今年、CPROFB 明年）1981 年第 3 季起；調查第 q 季在第 3q−1 個月月底才算拿得到；
+# 去年＝同一年各季調查的 CPROF1（上一季實際值）：當年第 1 季、去年第 4、3、2 季調查，四季平均；
+# 2006 年第 1 季起口徑改成含存貨評價與資本消耗調整 → 2006 年四季調查的 G1、2006 年第 1 季的 G2 不判定。
+SPF_FILE = "Median_CPROF_Level"
+SPF_FIRST_ANNUAL = (1981, 3)
+SPF_BREAK = (2006, 1)
+# 科技業獲利（DBnomics 上 BEA 表 6.16D／6.16C／6.16B，季資料年率、百萬美元，稅前含存貨評價調整）：
+TECH_NAICS_Q = ("BEA/NIPA-T61600D/N501RC-Q", "BEA/NIPA-T61600D/N502RC-Q")    # 電腦電子產品、資訊業（2001 起）
+TECH_NAICS_A = ("BEA/NIPA-T61600D/N501RC-A", "BEA/NIPA-T61600D/N502RC-A")    # 年資料 1998 起
+TECH_SIC_C_Q = ("BEA/NIPA-T61600C/A409RC-Q", "BEA/NIPA-T61600C/A410RC-Q", "BEA/NIPA-T61600C/A418RC-Q")   # 1987～2000
+TECH_SIC_C_A = ("BEA/NIPA-T61600C/A409RC-A", "BEA/NIPA-T61600C/A410RC-A", "BEA/NIPA-T61600C/A418RC-A")
+TECH_SIC_B_Q = ("BEA/NIPA-T61600B/A409RBC-Q", "BEA/NIPA-T61600B/A410RBC-Q", "BEA/NIPA-T61600B/A418RBC-Q")  # 1948～1987
+TECH_K1_YEARS = (1998, 1999, 2000)                  # NAICS ÷ SIC（表 6.16C）的重疊年
+TECH_K2_YEAR = 1987                                 # 表 6.16C ÷ 表 6.16B 的重疊年（四季）
+
+# ── 11.4 那斯達克的 E 改用科技業獲利（其他市場不變；VER 2／3 的對照等級照舊用 FUND） ────────────────
+FUND4 = {**FUND, "ixic": ("tech",), "ndx": ("tech",)}
+FUND_NAMES4 = {**FUND_NAMES, "tech": "指數 ÷ 美國科技業獲利"}
+FUND_REL4 = {**FUND_REL, "tech": (3, 1)}
+FUND_SUM4 = {**FUND_SUM, "tech": 4}
+
+
+# ── 11.5 分級（VER 4） ──────────────────────────────────────────────────────
+def level4(price: bool, e: bool, v: bool, g: bool, f: bool) -> int:
+    """VER 4 分級：price＝任一價格條件成立；e＝比值爆發；v＝估值水準（只有 S&P 500）；g＝未來獲利跟不上；f＝槓桿。"""
+    n = int(bool(e)) + int(bool(v)) + int(bool(g)) + int(bool(f))
+    if not price:
+        return 1 if v else 0
+    if not (e or v or g):
+        return 2
+    return 4 if n >= 2 else 3
+
+
+# ── 11.6 驗證 ──────────────────────────────────────────────────────────────
+# 同 VER 3；多加 G1、G2、G、PG（價格過熱而且 G）、PnG（價格過熱而 G 不成立；G 算不出來的月份兩個都不算）、L3v3（VER 3 等級 ≥ 3）。
+# S&P 500 另加 Gr、PGr（美國企業整體實際獲利）。
+TESTS4 = TESTS3 + ("G1", "G2", "G", "PG", "PnG", "L3v3")
+TESTS4_SPX = TESTS4 + ("Gr", "PGr")
