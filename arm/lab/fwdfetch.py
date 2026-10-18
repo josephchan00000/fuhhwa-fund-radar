@@ -176,3 +176,58 @@ def probe() -> None:
             fn()
         except Exception as e:                                # noqa: BLE001
             _p(fn.__name__, f"✗ {type(e).__name__} {str(e)[:200]}")
+
+
+def probe2() -> None:
+    """第二輪：BEA 序列期間、SIC 舊分類的機械與通訊、SPF 年度預測從哪一季開始、ADR 與外幣公司的 Yahoo 欄位。"""
+    probe_bea_series(["BEA/NIPA-T61600D/N501RC-Q", "BEA/NIPA-T61600D/N502RC-Q",
+                      "BEA/NIPA-T61600C/A410RC-Q", "BEA/NIPA-T61600B/A410RBC-Q"])
+    for ds in ("BEA/NIPA-T61600C", "BEA/NIPA-T61600B"):
+        for q in ("machinery", "communication", "telephone", "services"):
+            try:
+                doc = json.loads(_get(DBN_SEARCH.format(p=ds, q=q), timeout=120).decode("utf-8"))
+                docs = ((doc.get("series") or {}).get("docs")) or []
+                _p("BEA", f"{ds} q={q}：{len(docs)} 條")
+                for x in docs[:12]:
+                    _p("BEA", f"   {x.get('series_code')}｜{str(x.get('series_name'))[:140]}")
+            except Exception as e:                            # noqa: BLE001
+                _p("BEA", f"{ds} q={q} ✗ {type(e).__name__} {str(e)[:160]}")
+    try:
+        import openpyxl
+        page = _get(SPF_PAGES[2], timeout=60).decode("utf-8", "replace")
+        href = next(h for h in re.findall(r'href="([^"]+\.xlsx[^"]*)"', page, re.I) if "median_cprof_level" in h.lower())
+        b = _get(urllib.parse.urljoin("https://www.philadelphiafed.org/", href.replace("&amp;", "&")), timeout=120)
+        rows = [list(r) for r in openpyxl.load_workbook(io.BytesIO(b), read_only=True, data_only=True).worksheets[0]
+                .iter_rows(values_only=True)]
+        hdr = rows[0]
+        ia, ib = hdr.index("CPROFA"), hdr.index("CPROFB")
+        first_a = next((r[:2] for r in rows[1:] if isinstance(r[ia], (int, float))), None)
+        first_b = next((r[:2] for r in rows[1:] if isinstance(r[ib], (int, float))), None)
+        gaps = [r[:2] for r in rows[1:] if not isinstance(r[3], (int, float))]
+        _p("SPF", f"CPROFA 從 {first_a}、CPROFB 從 {first_b}；CPROF2 缺值的季 {gaps[:20]}")
+        for r in rows[1:]:
+            if r[0] in (2005.0, 2006.0) or (r[0] == 1981.0):
+                _p("SPF", f"  {r}")
+    except Exception as e:                                    # noqa: BLE001
+        _p("SPF", f"✗ {type(e).__name__} {str(e)[:200]}")
+    from . import fcst
+    Y = fcst._Yahoo()
+    if not Y.login():
+        _p("Yahoo", "拿不到 crumb")
+        return
+    for sym in ("TSM", "ASML", "PDD", "ARM", "AZN"):
+        st, rec = Y.one(sym)
+        _p("Yahoo", f"{sym} {st}：{json.dumps(rec, ensure_ascii=False)[:600] if rec else None}")
+    crumb = urllib.parse.quote(Y.crumb or "")
+    st, b = Y.get(f"https://query2.finance.yahoo.com/v7/finance/quote?symbols=TSM,ASML,PDD,ARM,AZN,AAPL&crumb={crumb}")
+    try:
+        res = json.loads(b.decode("utf-8"))["quoteResponse"]["result"]
+        keys = ("symbol", "currency", "financialCurrency", "marketCap", "sharesOutstanding", "regularMarketPrice",
+                "epsTrailingTwelveMonths", "trailingPE", "epsCurrentYear", "priceEpsCurrentYear", "epsForward", "forwardPE")
+        for q in res:
+            _p("Yahoo 批次", str({k: q.get(k) for k in keys}))
+    except Exception as e:                                    # noqa: BLE001
+        _p("Yahoo 批次", f"{st} ✗ {type(e).__name__} {str(e)[:120]} {b[:300]!r}")
+    big = ",".join(["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "AVGO", "TSLA", "BRK-B", "JPM"] * 15)
+    st, b = Y.get(f"https://query2.finance.yahoo.com/v7/finance/quote?symbols={big}&crumb={crumb}")
+    _p("Yahoo 批次 150", f"{st} {len(b)} bytes")

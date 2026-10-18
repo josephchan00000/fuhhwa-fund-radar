@@ -117,6 +117,9 @@ def backfill(only: set | None = None) -> None:
         if "fwd_probe" in only:                               # 泡沫頁 VER 4 未來獲利的來源探針
             from arm.lab import fwdfetch as F
             F.probe()
+        if "fwd_probe2" in only:
+            from arm.lab import fwdfetch as F
+            F.probe2()
         for k in sorted(only & set(jobs)):
             run(k, jobs[k])
         return
