@@ -6,7 +6,7 @@ from arm.lab import heatspec as S
 
 
 def test_bubble_spec_v1_is_locked():
-    assert B.VER == 2 and B.SPEC_DATE == "2026-10-18"
+    assert B.VER == 3 and B.SPEC_DATE == "2026-10-18"
     assert B.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
     assert B.DRIFT_GRID == (0.0, 0.025, 0.05, 0.075, 0.10, 0.125, 0.15, 0.20)
     assert (B.CV_REPS, B.CV_SEED, B.CV_NMAX, B.DRIFT_MIN_N, B.PSY_RUN, B.CPI_GAP_MAX) == (2000, 20261020, 2100, 60, 3, 2)
@@ -74,3 +74,8 @@ def test_level2_table():
                     assert B.level2(price, e, v, f) == want, (price, e, v, f)
     assert B.level2(True, False, False, True) == 2         # 價格過熱＋槓桿高，但基本面有跟上：不算泡沫
     assert B.level2(False, True, False, True) == 0         # 比值爆發但價格沒過熱（例如盈餘崩掉）：不算
+
+
+def test_bubble_spec_v3_is_locked():
+    """VER 3：P1、E 加方向條件（近 12 個月價格上漲；E 另要比值上升）；VER 2 等級留著對照。"""
+    assert B.DIR_MONTHS == 12 and B.TESTS3 == B.TESTS2 + ("L3v2",)
