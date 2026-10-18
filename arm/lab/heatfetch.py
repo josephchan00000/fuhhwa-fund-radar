@@ -317,11 +317,16 @@ def _num(x):
 
 def parse_ndc_exports(txt: str) -> dict:
     """國發會「同時指標構成項目.csv」表頭含「海關出口值」那一欄（十億元）→ {年-月: 值}（第三版 B5）。"""
+    return parse_ndc_col(txt, "海關出口值", "同時指標構成項目.csv")
+
+
+def parse_ndc_col(txt: str, needle: str, fname: str = "") -> dict:
+    """國發會構成項目 CSV：表頭含 needle 的那一欄 → {年-月: 值}。"""
     rows = txt.splitlines()
     head = [x.strip().strip('"') for x in (rows[0] if rows else "").split(",")]
-    j = next((i for i, h in enumerate(head) if "海關出口值" in h), None)
+    j = next((i for i, h in enumerate(head) if needle in h), None)
     if j is None:
-        raise ValueError(f"同時指標構成項目.csv 找不到海關出口值欄：{head}")
+        raise ValueError(f"{fname} 找不到{needle}欄：{head}")
     out = {}
     for ln in rows[1:]:
         c = [x.strip().strip('"') for x in ln.split(",")]
@@ -337,6 +342,15 @@ def ndc() -> int:
         print(f"[heat] 出口（國發會同時指標構成項目）：{_merge('exports', 'ndc', ex)} 筆新增或改動，共 {len(ex)} 個月", flush=True)
     except Exception as e:                                      # noqa: BLE001
         print(f"[heat] 出口 ✗ {type(e).__name__}: {str(e)[:200]}", flush=True)
+    try:                                                        # 股價指數（月平均）：第六版延伸樣本、只當穩健度（第 15.3 節）
+        lf = next(n for n in zf.namelist() if n == "領先指標構成項目.csv")    # 另有 schema-領先指標構成項目.csv（欄位說明）
+        lt = zf.read(lf).decode("utf-8-sig")
+        print(f"[heat] 領先指標構成項目表頭：{lt.splitlines()[0][:300]}", flush=True)
+        st = parse_ndc_col(lt, "股價指數", lf)
+        print(f"[heat] 股價指數（國發會領先指標構成項目，月平均）：{_merge('taiexm', 'ndc', st)} 筆新增或改動，"
+              f"共 {len(st)} 個月（{min(st) if st else '—'}～{max(st) if st else '—'}）", flush=True)
+    except Exception as e:                                      # noqa: BLE001
+        print(f"[heat] 股價指數 ✗ {type(e).__name__}: {str(e)[:200]}；壓縮檔：{zf.namelist()}", flush=True)
     fn = next(n for n in zf.namelist() if n == "景氣指標與燈號.csv")
     txt = zf.read(fn).decode("utf-8-sig")
     out: dict = {}

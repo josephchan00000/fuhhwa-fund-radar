@@ -8,8 +8,9 @@ from arm.lab import heat as H
 from arm.lab import heatspec as S
 
 
-def test_spec_v4_is_locked():
-    assert S.VER == 4 and S.SPEC_DATE == "2026-10-17"
+def test_spec_v6_is_locked():
+    assert S.VER == 6 and S.SPEC_DATE == "2026-10-18"
+    # 第四版的計分規格（第五版沒有改分數）
     assert list(S.DIMS) == ["fund", "chip", "gliq", "tliq", "tech"]
     assert {d: (v["fwd"], v["freq"]) for d, v in S.DIMS.items()} == {
         "fund": ((120, 250), "m"), "chip": ((10, 60), "d"), "gliq": ((60, 250), "d"), "tliq": ((60, 250), "d"),
@@ -48,6 +49,49 @@ def test_spec_v4_is_locked():
     assert list(S.EVENTS) == ["ma20_dn", "ma20_up", "ma60_dn", "ma60_up", "ma240_dn", "ma240_up", "x_dead", "x_gold",
                               "s60_dn", "s60_up", "pv_dn", "pv_up", "dtop", "dbot", "hstop", "hsbot"]
     assert set(S.EV_VERDICT) == {"weak", "strong", "none", "few"}
+    # 第五版（第 14.14 節）：只描述與驗證
+    assert S.POS_WIN == {"d": (750, 2500), "m": (36, 120)} and S.POS_COVER == 0.8
+    assert S.POS_ALL_MIN == {"d": 375, "m": 60} and S.POS_WIN["d"][0] == S.PCT_WIN["d"] and S.POS_WIN["m"][1] == S.PCT_WIN["m"]
+    assert (S.REC_DAYS, S.REC_MONTHS, S.RANGE_YEARS, S.PP_UNITS) == ((91, 365), (3, 12), 10, ("%", "百分點"))
+    assert (S.STRIP_WEEKS, S.STRIP_MID, S.STRIP_RUN_NOTE) == (52, (40, 60), 4)
+    assert (S.CH_DAILY, S.CH_MAX, S.CH_RANGES, S.CH_DEFAULT_RANGE, S.CH_SHADE) == (260, 5, (1, 3, 10, None), 3, (80, 20))
+    assert S.REL_H == (20, 60, 120, 250)
+    assert (S.LL_H, S.LL_FOLLOW, S.WK_BLOCK_MIN) == ((5, 20, 60, 120, 250), (0.3, 2.0), 4)
+    assert (S.GR_LAGS, S.GR_MAIN, S.GR_MIN, S.BH_Q) == ((1, 3, 6), 3, 96, 0.10)
+    assert (S.ROLL_WEEKS, S.ROLL_STEP, S.ROLL_H, S.ROLL_MIN) == (260, 4, 60, 200)
+    assert S.EVT == {"hot": (80, 20), "cold": (20, 20)} and S.EVT_FWD == (20, 60)
+    assert (S.CPL_HOT, S.CPL_COLD, S.CPL_MIN_WEEKS, S.CPL_MIN_RUNS, S.CPL_BOOT, S.CPL_OVERLAP, S.CPL_DEFAULT_H) == \
+        (60, 40, 26, 4, 1000, 0.7, 60)
+    assert list(S.DERIV) == ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "L2", "C1", "C5", "G1", "G2"]   # 13 項
+    assert S.DERIV["B1"] == {"kind": "level", "d1": "chg", "L1": 3, "L2": 3}
+    assert S.DERIV["B3"] == {"kind": "pmi", "d1": "minus50", "L2": 3}
+    assert all(S.DERIV[k] == {"kind": "growth", "d1": "self", "L2": 3} for k in ("B2", "B4", "B5", "B6", "L2"))
+    assert all(S.DERIV[k] == {"kind": "cpi", "d1": "self", "L2": 3} for k in ("B7", "B8"))
+    assert S.DERIV["C1"] == {"kind": "stock", "d1": "pct", "L1": 20, "L2": 20, "smooth": 5}
+    assert S.DERIV["C5"] == {"kind": "level", "d1": "chg", "L1": 20, "L2": 20, "smooth": 5}
+    assert S.DERIV["G1"] == {"kind": "rate", "d1": "self", "L2": 63} and S.DERIV["G2"] == {"kind": "rate", "d1": "self", "L2": 20}
+    assert {v["kind"] for v in S.DERIV.values()} <= set(S.DERIV_WORDS) and all(len(w) == 4 for w in S.DERIV_WORDS.values())
+    assert (S.DERIV_FLAT, S.DERIV_NOTE, S.DERIV_PCT_WIN, S.DERIV_PCT_MIN) == (
+        "持平", {"C5": "下降＝淨空增加"}, {"d": 2500, "m": 120}, {"d": 1250, "m": 60})
+    assert all(S.FREQ_OF[k] == ("m" if k[0] in "BL" else "d") for k in S.DERIV)
+    # 第六版（第 15.11 節）：邊際變化的多層回歸，事前寫定
+    assert (S.M6_LAG, S.M6_DELAY, S.M6_WIN, S.M6_CUM, S.M6_CTRL) == (1, (0, 3, 6, 9, 12, 15, 18, 21), 3, (1, 3, 6, 12, 18, 24), (1, 12))
+    assert max(S.M6_DELAY) + S.M6_WIN == 24 == max(S.M6_CUM)                     # 最長 24 個月（使用者決定）
+    assert (S.M6_VARIANTS, S.M6_MAIN_VARIANT) == (("v0", "v1", "v2"), "v0")
+    assert S.M6_GROUPS == {"grow": ("B1", "B2", "B3", "B4", "B5", "B6", "L2"), "rate": ("B7", "B8", "G1", "G2"), "lev": ("C1", "C5")}
+    assert sorted(k for g in S.M6_GROUPS.values() for k in g) == sorted(S.DERIV)  # 三組剛好是核心 13 項
+    assert (S.M6_GROUP_MIN, S.M6_DI_MIN, S.M6_MA_MONTHS, S.M6_LEVEL_SPLIT, S.M6_INTER_AT) == \
+        ({"grow": 4, "rate": 2, "lev": 1}, 7, 10, 50, (20, 50, 80))
+    assert (S.M6_NW, S.M6_BLOCK_MIN, S.M6_BOOT, S.M6_SEED, S.M6_MIN_N, S.M6_STATE_MIN, S.M6_STATE_H) == \
+        ((1.5, 6), 12, 2000, 20261018, 96, (24, 4), (6, 12, 24))
+    assert S.M6_OOS_START == "2008-01" and S.M6_OOS_WINDOWS == ((0, 3), (3, 3), (6, 3), (9, 3), (12, 3), (0, 12), (6, 6), (0, 24))
+    assert (S.M6_RIDGE_LAMBDA, S.M6_CV_FOLDS, S.M6_CW_ALPHA, S.M6_OOS_MIN_PRED) == ((0.1, 0.3, 1, 3, 10, 30, 100), 5, 0.05, 36)
+    assert S.M6_RIDGE_X == ("GA_grow", "GA_rate", "LV_grow", "LV_rate", "DI", "BULL", "HIKE", "GA_grow*GA_rate",
+                            "GA_grow*LV_grow", "GA_rate*LV_rate", "GA_grow*BULL", "GA_grow*HIKE")
+    assert S.M6_TREE == {"depth": 2, "min_leaf": 36, "cuts": (10, 20, 30, 40, 50, 60, 70, 80, 90)}
+    assert S.M6_TREE_X == ("GA_grow", "GA_rate", "LV_grow", "LV_rate", "DI", "BULL", "HIKE")
+    assert (S.M6_EVENT_CONFIRM, S.M6_EVENT_PATH, S.M6_EVENT_MIN, S.M6_ALPHA, S.M6_EXT_SHIFT) == (2, 24, 20, 0.05, 1)
+    assert {k: v[1] for k, v in S.M6_PRIMARY.items()} == {"H1": (6, 6), "H2": (0, 12), "H3": (0, 12), "H4": (6, 6)}
 
 
 def test_percentile_uses_only_the_past():

@@ -448,5 +448,9 @@ def research(B: dict | None = None) -> dict:
     for n in FILES + ["rev"]:
         ks = sorted(D.get(n) or {})
         data[n] = [len(ks), ks[0] if ks else None, ks[-1] if ks else None]
+    from . import heatreg, heatrel            # 第五、六版（第 14.14、15.11 節）；放這裡避免循環匯入
+    rel = heatrel.run(B)
     return {"ver": S.VER, "spec_date": S.SPEC_DATE, "run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "cal": B["cal_info"], "data": data, "dims": dims, "events": events}
+            "cal": B["cal_info"], "data": data, "dims": dims, "events": events,
+            "wk": rel["wk"], "rel": rel["rel"], "deriv": heatrel.deriv_all(B),
+            "m6": heatreg.run(B, HD.load("taiexm"))}
