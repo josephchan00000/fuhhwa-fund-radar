@@ -27,7 +27,8 @@ from arm.lab import heatdata as HD  # noqa: E402
 from arm.lab import heatfetch_us as U  # noqa: E402
 
 NAMES = ["us_px_spx", "us_px_ixic", "us_px_ndx", "us_px_sox", "us_vxn", "us_vix3m", "us_dxy", "us_rsp", "us_spy",
-         "us_h15", "us_h41", "us_m2", "us_z1", "us_gdp", "us_cp", "us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini",
+         "us_h15", "us_h41", "us_m2", "us_z1", "us_gdp", "us_cp", "us_spf", "us_tech_q", "us_tech_a", "fwd_agg",
+         "us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini",
          "us_philly", "us_ads", "us_cli", "us_claims", "us_bls", "us_umich", "us_ebp", "us_shiller", "us_wsts",
          "taiex90", "twgdp"] + [f"us_lppls_{k}" for k in U.US_INDEX_SYM] + ["tw_lppls"]
 YAHOO = [("us_px_spx", "^GSPC", "1927-01-01"), ("us_px_ixic", "^IXIC", "1971-01-01"),
@@ -94,12 +95,23 @@ def daily() -> None:
                     ("us_shiller", U.shiller), ("us_wsts", U.wsts)):
         once(key, fn)
     once("us_bls", U.bls, date.today().year - 1)
+    fwd_daily(once)
     g = HD.load("twgdp")
     if not g or H.avail_date(next_quarter(max(g)), (1, 28)) <= today:
         once("twgdp", U.twgdp)
     lppls_update()
     if ok != st:
         HD.save("_state_us", "fetch_heat_us", ok)
+
+
+def fwd_daily(once) -> None:
+    """泡沫頁 VER 4 的未來獲利（docs/lab_risk_plan.md 第 11 節）：專業預測者調查、科技業獲利一天一次；
+    美股成分股預估一天一次（沒抓完下一輪續抓）；台股預估加總每輪都算（不連網、內容沒變不改檔）。"""
+    from arm.lab import fwdfetch as F
+    once("us_spf", F.spf)
+    once("us_tech", F.tech)
+    once("fwd_us", F.update_us)
+    run("fwd_tw", F.update_tw_agg)
 
 
 def next_quarter(ym: str) -> str:
@@ -112,6 +124,10 @@ def next_quarter(ym: str) -> str:
 def backfill(only: set | None = None) -> None:
     if only:                                                  # --only：只回補這幾個（例：us_cp）
         jobs = {"us_cp": U.cp, "us_z1": U.z1, "us_gdp": U.gdp, "us_wsts": U.wsts, "us_shiller": U.shiller}
+        if only & {"us_spf", "us_tech", "fwd_us", "fwd_tw"}:              # 泡沫頁 VER 4 的未來獲利
+            from arm.lab import fwdfetch as F
+            jobs.update({"us_spf": F.spf, "us_tech": F.tech, "fwd_us": lambda: F.update_us(budget_s=900),
+                         "fwd_tw": F.update_tw_agg})
         if "cp_probe" in only:
             U.probe_cp()
         if "fwd_probe" in only:                               # 泡沫頁 VER 4 未來獲利的來源探針
@@ -144,6 +160,11 @@ def backfill(only: set | None = None) -> None:
         run(key, fn)
     run("us_bls", U.bls, 1947)
     run("taiex90", U.taiex90)
+    from arm.lab import fwdfetch as F
+    run("us_spf", F.spf)
+    run("us_tech", F.tech)
+    run("fwd_us", F.update_us, budget_s=900)
+    run("fwd_tw", F.update_tw_agg)
 
 
 def summary() -> None:

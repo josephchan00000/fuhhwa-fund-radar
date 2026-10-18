@@ -3,19 +3,44 @@
 使用者 2026-10-18：股價反應的是未來獲利，要看未來獲利的成長，邊際成長放緩是警訊；那斯達克要有自己的基本面。
 現在的等級用分析師預估，過去的驗證用替代資料（S&P 500 用專業預測者調查，真的預估）。
 
-這一版只有探針 probe()：確認來源抓得到、格式長怎樣，再寫規格（同 U1 探針 → U2 規格的順序）。
+存檔（data/lab/heat/ 走 heatdata；美股預估另存 data/lab/fwd/）：
+  us_spf       專業預測者調查 美國企業稅後獲利預測中位數  {"YYYY-Qq": [CPROF1～6, CPROFA, CPROFB]}  1968Q4 起（年度 1981Q3 起）
+  us_tech_q    BEA 產業別企業獲利（季、年率、百萬美元）    {季底 YYYY-MM: {DBnomics 代碼: 值}}       1948 起（表 6.16B／C／D）
+  us_tech_a    同上年資料（1998～2000 新舊分類重疊年用）   {"YYYY": {代碼: 值}}
+  fwd_agg      每天的分析師預估加總（台股＋美股四個指數）  {日期: {市場: fwd.aggregate 的結果＋"ok"}}
+  fwd/us       美股最新一份預估（每家公司各自的抓取日）    {"const", "q", "fx", "s": {代號: {"d", "y0", "y1"}}}
+  fwd_w/{日期} fwd/us 每週封存一份
+
+probe()／probe2()／probe3() 是寫規格前的探針（2026-10-18 跑過三輪，結果在規劃文件第 11.8 節）。
 """
 from __future__ import annotations
 
 import io
 import json
 import re
+import time
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date, datetime, timedelta, timezone
 
 from ..http import _CTX
-from .heatfetch import BROWSER, _get
+from . import bubspec as BS
+from . import fwd as FW
+from . import heatdata as HD
+from . import store
+from .heatfetch import BROWSER, _get, _merge, parse_dbnomics
 from .market import log
+
+TZ = timezone(timedelta(hours=8))
+SPF_CPROF_PAGE = "https://www.philadelphiafed.org/surveys-and-data/cprof"
+DBN = "https://api.db.nomics.world/v22/series/{p}?observations=1&format=json"
+WIKI_SP = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+NQ_NDX = "https://api.nasdaq.com/api/quote/list-type/nasdaq100"
+NQ_SCREEN = "https://api.nasdaq.com/api/screener/stocks?tableonly=true&limit=6000&exchange=NASDAQ&download=true"
+SOX_W = "https://indexes.nasdaqomx.com/Index/WeightingData"
+US_FILE = "us"                                       # store.write("fwd", "us", …)
+US_KIND, US_ARCH = "fwd", "fwd_w"
 
 SPF_PAGES = ("https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/median-forecasts",
              "https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/mean-forecasts",
@@ -257,3 +282,319 @@ def probe3() -> None:
                                                          for x in docs if str(x.get('series_code', '')).endswith('-Q')))
     except Exception as e:                                    # noqa: BLE001
         _p("BEA", f"6.16C 全部 ✗ {type(e).__name__} {str(e)[:160]}")
+
+
+
+# ══ 正式抓取 ════════════════════════════════════════════════════════════════
+
+# ── 專業預測者調查 ──────────────────────────────────────────────────────────
+
+def spf() -> int:
+    import openpyxl
+    page = _get(SPF_CPROF_PAGE, timeout=90).decode("utf-8", "replace")
+    href = next((h for h in re.findall(r'href="([^"]+\.xlsx[^"]*)"', page, re.I)
+                 if BS.SPF_FILE.lower() in h.lower()), None)
+    if not href:
+        raise RuntimeError(f"找不到 {BS.SPF_FILE}.xlsx 的連結")
+    b = _get(urllib.parse.urljoin("https://www.philadelphiafed.org/", href.replace("&amp;", "&")), timeout=120)
+    rows = [list(r) for r in openpyxl.load_workbook(io.BytesIO(b), read_only=True, data_only=True).worksheets[0]
+            .iter_rows(values_only=True)]
+    d = FW.spf_parse(rows)
+    if len(d) < 200:
+        raise RuntimeError(f"專業預測者調查只解析到 {len(d)} 季")
+    return _merge("us_spf", "philly_spf:" + BS.SPF_FILE, d)
+
+
+# ── BEA 科技業獲利 ─────────────────────────────────────────────────────────
+
+def _qkey(p: str) -> str | None:
+    m = re.match(r"^(\d{4})-Q([1-4])$", p)
+    return f"{m.group(1)}-{int(m.group(2)) * 3:02d}" if m else None
+
+
+def tech() -> int:
+    q: dict = {}
+    a: dict = {}
+    errs = []
+    for code in BS.TECH_NAICS_Q + BS.TECH_SIC_C_Q + BS.TECH_SIC_B_Q:
+        try:
+            for p, v in parse_dbnomics(json.loads(_get(DBN.format(p=code), timeout=120).decode("utf-8"))).items():
+                k = _qkey(p)
+                if k:
+                    q.setdefault(k, {})[code] = v
+        except Exception as e:                                # noqa: BLE001 —— 一條失敗不影響其他條
+            errs.append(f"{code}：{type(e).__name__} {str(e)[:80]}")
+    for code in BS.TECH_NAICS_A + BS.TECH_SIC_C_A:
+        try:
+            for p, v in parse_dbnomics(json.loads(_get(DBN.format(p=code), timeout=120).decode("utf-8"))).items():
+                if re.match(r"^\d{4}", p):
+                    a.setdefault(p[:4], {})[code] = v
+        except Exception as e:                                # noqa: BLE001
+            errs.append(f"{code}：{type(e).__name__} {str(e)[:80]}")
+    if errs:
+        log(f"[fwd] 科技業獲利部分序列失敗：{'；'.join(errs)}")
+    if not q:
+        raise RuntimeError("科技業獲利都抓不到")
+    old_q, old_a = HD.load("us_tech_q"), HD.load("us_tech_a")
+    q = {k: {**(old_q.get(k) or {}), **v} for k, v in q.items()}    # 某一條這次失敗：保留舊值
+    a = {k: {**(old_a.get(k) or {}), **v} for k, v in a.items()}
+    n = _merge("us_tech_q", "bea_dbnomics_t616", q) + _merge("us_tech_a", "bea_dbnomics_t616", a)
+    ts = FW.tech_series(HD.load("us_tech_q"), HD.load("us_tech_a"))
+    log(f"[fwd] 科技業獲利接好 {len(ts)} 季：{min(ts) if ts else '—'}～{max(ts) if ts else '—'}")
+    return n
+
+
+# ── 美股成分股與分析師預估 ─────────────────────────────────────────────────
+
+def _ysym(s: str) -> str:
+    return s.strip().upper().replace(".", "-").replace("/", "-")
+
+
+def parse_wiki_sp(html: str) -> list[str]:
+    m = re.search(r'<table[^>]*id="constituents".*?</table>', html, re.S)
+    if not m:
+        return []
+    out = []
+    for r in re.findall(r"<tr[^>]*>(.*?)</tr>", m.group(0), re.S):
+        cells = re.findall(r"<td[^>]*>(.*?)</td>", r, re.S)
+        if cells:
+            sym = re.sub(r"<[^>]+>", "", cells[0]).strip()
+            if re.match(r"^[A-Z][A-Z.\-]{0,6}$", sym):
+                out.append(_ysym(sym))
+    return out
+
+
+def parse_nq_rows(doc: dict) -> list[tuple[str, float | None]]:
+    d = doc.get("data") or {}
+    rows = (d.get("data") or {}).get("rows") if isinstance(d.get("data"), dict) else None
+    rows = rows if rows is not None else d.get("rows") or []
+    out = []
+    for r in rows:
+        sym = str(r.get("symbol") or "").strip()
+        if not re.match(r"^[A-Z][A-Z.\-/]{0,6}$", sym):
+            continue
+        cap = re.sub(r"[^0-9.]", "", str(r.get("marketCap") or ""))
+        out.append((_ysym(sym), float(cap) if cap else None))
+    return out
+
+
+def parse_sox(doc: dict) -> list[str]:
+    return [_ysym(x["Symbol"]) for x in (doc.get("aaData") or []) if x.get("Symbol")]
+
+
+def constituents(day: str) -> dict:
+    """{"spx", "ixic", "ndx", "sox"}：代號清單（Yahoo 格式）；ixic＝那斯達克篩選器市值前 EST_NQ_TOP 大，另附 "nq_cap"＝篩選器全部市值合計。"""
+    out: dict = {}
+    try:
+        out["spx"] = parse_wiki_sp(_get(WIKI_SP, timeout=90).decode("utf-8", "replace"))
+    except Exception as e:                                    # noqa: BLE001
+        log(f"[fwd] S&P 500 成分股 ✗ {type(e).__name__} {str(e)[:120]}")
+    try:
+        out["ndx"] = [s for s, _ in parse_nq_rows(json.loads(_get(NQ_NDX, headers=NASDAQ_HDR, timeout=90).decode("utf-8")))]
+    except Exception as e:                                    # noqa: BLE001
+        log(f"[fwd] 那斯達克 100 成分股 ✗ {type(e).__name__} {str(e)[:120]}")
+    try:
+        rows = parse_nq_rows(json.loads(_get(NQ_SCREEN, headers=NASDAQ_HDR, timeout=150).decode("utf-8")))
+        rows = [r for r in rows if r[1]]
+        rows.sort(key=lambda r: -r[1])
+        out["ixic"] = [s for s, _ in rows[:BS.EST_NQ_TOP]]
+        out["nq_cap"] = sum(c for _, c in rows)
+    except Exception as e:                                    # noqa: BLE001
+        log(f"[fwd] 那斯達克篩選器 ✗ {type(e).__name__} {str(e)[:120]}")
+    d = date.fromisoformat(day)
+    for k in range(8):                                        # 權重表要給交易日：從最近一個美股收盤日往前試
+        t = (d - timedelta(days=k))
+        if t.weekday() >= 5:
+            continue
+        try:
+            req = urllib.request.Request(SOX_W, data=urllib.parse.urlencode(
+                {"id": "SOX", "tradeDate": f"{t.isoformat()}T00:00:00.000", "timeOfDay": "SOD"}).encode(),
+                headers={**BROWSER, "Content-Type": "application/x-www-form-urlencoded"})
+            with urllib.request.urlopen(req, timeout=60, context=_CTX) as r:
+                syms = parse_sox(json.loads(r.read().decode("utf-8")))
+            if len(syms) >= 20:
+                out["sox"] = syms
+                break
+        except Exception as e:                                # noqa: BLE001
+            log(f"[fwd] 費半成分股 {t} ✗ {type(e).__name__} {str(e)[:100]}")
+    return out
+
+
+def parse_v7(doc: dict) -> dict:
+    """v7 報價 → {代號: [市值, 股數, 股價, 財報幣別]}；匯率代號（XXXUSD=X）→ {代號: [None, None, 價格, None]}。"""
+    out = {}
+    for q in ((doc.get("quoteResponse") or {}).get("result") or []):
+        s = q.get("symbol")
+        if s:
+            out[s] = [q.get("marketCap"), q.get("sharesOutstanding"), q.get("regularMarketPrice"), q.get("financialCurrency")]
+    return out
+
+
+def _v7(Y, syms: list[str]) -> dict:
+    crumb = urllib.parse.quote(Y.crumb or "")
+    out = {}
+    for i in range(0, len(syms), 150):
+        chunk = ",".join(urllib.parse.quote(s) for s in syms[i:i + 150])
+        st, b = Y.get(f"https://query2.finance.yahoo.com/v7/finance/quote?symbols={chunk}&crumb={crumb}", timeout=60)
+        if st == 200:
+            try:
+                out.update(parse_v7(json.loads(b.decode("utf-8"))))
+            except Exception:                                 # noqa: BLE001
+                pass
+        else:
+            log(f"[fwd] v7 報價 {i}～{i + 150} 狀態 {st}")
+    return out
+
+
+def _compact(rec: dict | None) -> dict | None:
+    if not rec:
+        return None
+    out = {k: {"end": rec[k].get("end"), "e": rec[k].get("e"), "t": rec[k].get("t")} for k in ("y0", "y1") if rec.get(k)}
+    return out or None
+
+
+def load_us() -> dict:
+    return store.read(US_KIND, US_FILE) or {"s": {}, "q": {}, "fx": {}, "const": {}}
+
+
+def update_us(*, budget_s: float = 240, workers: int = 4, today: date | None = None) -> dict:
+    """美股成分股的分析師預估：成分股＋報價＋匯率每次重抓；quoteSummary 先抓沒有的、再抓最舊的，到 budget_s 為止
+    （沒抓完下一輪續抓）。每家公司記自己的抓取日；加總時超過 EST_STALE_DAYS 的不算。抓完算當天四個指數的加總寫進 fwd_agg。"""
+    from . import fcst
+    t0 = time.time()
+    today = today or datetime.now(TZ).date()
+    doc = load_us()
+    const = constituents(today.isoformat())
+    for k in ("spx", "ixic", "ndx", "sox"):
+        if not const.get(k):
+            const[k] = (doc.get("const") or {}).get(k) or []          # 這次抓不到：沿用上一份
+            log(f"[fwd] {k} 成分股沿用上一份（{len(const[k])} 檔）")
+    if not const.get("nq_cap"):
+        const["nq_cap"] = (doc.get("const") or {}).get("nq_cap")
+    syms = sorted({s for k in ("spx", "ixic", "ndx", "sox") for s in const[k]})
+    Y = fcst._Yahoo()
+    if not Y.login():
+        return {"err": "拿不到 crumb"}
+    q = _v7(Y, syms)
+    if len(q) < 0.8 * len(syms):
+        log(f"[fwd] v7 報價只拿到 {len(q)}／{len(syms)}，缺的沿用上一份")
+        q = {**(doc.get("q") or {}), **q}
+    curs = sorted({v[3] for v in q.values() if v and v[3] and v[3] != "USD"})
+    fxq = _v7(Y, [f"{c}USD=X" for c in curs]) if curs else {}
+    fx = {c: (fxq.get(f"{c}USD=X") or [None] * 3)[2] for c in curs}
+    fx = {c: v for c, v in fx.items() if v} or {}
+    fx = {**(doc.get("fx") or {}), **fx}
+    s = dict(doc.get("s") or {})
+    order = sorted(syms, key=lambda x: ((s.get(x) or {}).get("d") or "0000"))
+    state = {"stop": False}
+
+    def work(sym):
+        if state["stop"] or time.time() - t0 > budget_s:
+            return sym, "skip", None
+        for k in range(3):
+            st, rec = Y.one(sym)
+            if st == "429":
+                time.sleep(4 * (k + 1))
+                continue
+            if st == "401" and k == 0:
+                Y.login()
+                continue
+            return sym, st, rec
+        return sym, "429", None
+
+    stat = {"ok": 0, "none": 0, "err": 0, "429": 0, "401": 0, "skip": 0}
+    n429 = 0
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        for sym, st, rec in ex.map(work, order):
+            n429 = n429 + 1 if st == "429" else 0
+            if n429 >= 20:
+                state["stop"] = True
+            c = _compact(rec) if st == "ok" else None
+            if c:
+                s[sym] = {"d": today.isoformat(), **c}
+                stat["ok"] += 1
+            elif st in ("ok", "none"):
+                s[sym] = {"d": today.isoformat()}                    # 查到沒有預估：記日期，免得每輪重抓
+                stat["none"] += 1
+            else:
+                stat[st] = stat.get(st, 0) + 1
+    keep = set(syms)
+    s = {k: s[k] for k in sorted(s) if k in keep}
+    out = {"d": today.isoformat(), "const": const, "q": {k: q[k] for k in sorted(q) if k in keep}, "fx": fx, "s": s}
+    store.write(US_KIND, US_FILE, out)
+    wk = today.isocalendar()[:2]
+    if not any(date.fromisoformat(x).isocalendar()[:2] == wk for x in store.dates(US_ARCH)):
+        store.write(US_ARCH, today.isoformat(), out)
+    agg = us_aggregates(out, today)
+    save_agg(today.isoformat(), agg)
+    stat.update({"syms": len(syms), "s": round(time.time() - t0),
+                 "agg": {k: (v.get("n"), None if v.get("cov") is None else round(v["cov"], 3)) for k, v in agg.items()}})
+    log(f"[fwd] 美股預估：{stat}")
+    return stat
+
+
+def us_aggregates(doc: dict, today: date) -> dict:
+    """fwd/us 一份 → {"spx", "ixic", "ndx", "sox": fwd.aggregate＋"d"}；每家公司的抓取日要在 EST_STALE_DAYS 天內。"""
+    lim = (today - timedelta(days=BS.EST_STALE_DAYS)).isoformat()
+    recs = {k: v for k, v in (doc.get("s") or {}).items() if v.get("d", "") >= lim and v.get("y0")}
+    q, fx, const = doc.get("q") or {}, doc.get("fx") or {}, doc.get("const") or {}
+    out = {}
+    for mk in ("spx", "ixic", "ndx", "sox"):
+        syms = const.get(mk) or []
+        rows = FW.est_rows_us(recs, q, fx, syms)
+        cap_all = const.get("nq_cap") if mk == "ixic" else sum((q.get(x) or [0])[0] or 0 for x in syms)
+        a = FW.aggregate(rows, cap_all)
+        a["d"] = today.isoformat()
+        a["top"] = FW.top_contrib(rows)
+        out[mk] = a
+    return out
+
+
+def save_agg(day: str, agg: dict) -> None:
+    old = HD.load("fwd_agg")
+    cur = dict(old.get(day) or {})
+    cur.update(agg)
+    old[day] = cur
+    HD.save("fwd_agg", "fwdfetch", old)
+
+
+# ── 台股：Yahoo 預估加總（每天一次，不連網） ─────────────────────────────────
+
+def tw_shares_close() -> tuple[dict, dict, float]:
+    """最新官方分片的發行股數、收盤、全部上市櫃普通股市值合計。"""
+    sh, px = {}, {}
+    for d in reversed(store.dates("mkt")[-15:]):
+        doc = store.read("mkt", d) or {}
+        tw, xt, tp = doc.get("q_tw") or {}, doc.get("x_tw") or {}, doc.get("q_tp") or {}
+        if not (tw and xt and tp):
+            continue
+        for c, r in tw.items():
+            if c not in px and r and len(r) > 3 and r[3]:
+                px[c] = r[3]
+        for c, r in xt.items():
+            if c not in sh and r and len(r) > 1 and r[1]:
+                sh[c] = r[1]
+        for c, r in tp.items():
+            if r and len(r) > 6 and r[6] and c not in sh:
+                sh[c] = r[6]
+            if c not in px and r and len(r) > 3 and r[3]:
+                px[c] = r[3]
+        break
+    common = [c for c in sh if re.match(r"^[1-9]\d{3}$", c) and px.get(c)]
+    return sh, px, sum(sh[c] * px[c] for c in common)
+
+
+def update_tw_agg() -> dict | None:
+    from . import fcst
+    yh = fcst.load_yahoo()
+    d = yh.get("d")
+    if not d or not yh.get("s"):
+        return None
+    sh, px, cap_all = tw_shares_close()
+    rows = FW.est_rows_tw(yh["s"], sh, px)
+    a = FW.aggregate(rows, cap_all)
+    a["d"] = d
+    a["top"] = FW.top_contrib(rows)
+    save_agg(d, {"tw": a})
+    log(f"[fwd] 台股預估加總 {d}：{a['n']} 家，涵蓋 {None if a['cov'] is None else round(a['cov'], 3)}")
+    return a
