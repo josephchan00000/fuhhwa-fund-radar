@@ -307,6 +307,7 @@ M6_RIDGE_X = ("GA_grow", "GA_rate", "LV_grow", "LV_rate", "DI", "BULL", "HIKE",
 M6_TREE = {"depth": 2, "min_leaf": 36, "cuts": (10, 20, 30, 40, 50, 60, 70, 80, 90)}
 M6_TREE_X = ("GA_grow", "GA_rate", "LV_grow", "LV_rate", "DI", "BULL", "HIKE")
 M6_CW_ALPHA = 0.05                                  # Clark–West 單尾
+M6_OOS_MIN_PRED = 36                                # 樣本外預測少於 36 個月＝樣本外樣本不足（每次預測的訓練資料至少 M6_MIN_N 個月；寫程式時補上，第 15.11 節第 11 點）
 # 5. 轉折事件（v1 二階）
 M6_EVENT_CONFIRM = 2                                # 正負號改變、新方向連 2 個月；事件日＝第 2 個月
 M6_EVENT_PATH = 24

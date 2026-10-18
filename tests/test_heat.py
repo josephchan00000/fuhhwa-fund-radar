@@ -85,7 +85,7 @@ def test_spec_v6_is_locked():
     assert (S.M6_NW, S.M6_BLOCK_MIN, S.M6_BOOT, S.M6_SEED, S.M6_MIN_N, S.M6_STATE_MIN, S.M6_STATE_H) == \
         ((1.5, 6), 12, 2000, 20261018, 96, (24, 4), (6, 12, 24))
     assert S.M6_OOS_START == "2008-01" and S.M6_OOS_WINDOWS == ((0, 3), (3, 3), (6, 3), (9, 3), (12, 3), (0, 12), (6, 6), (0, 24))
-    assert (S.M6_RIDGE_LAMBDA, S.M6_CV_FOLDS, S.M6_CW_ALPHA) == ((0.1, 0.3, 1, 3, 10, 30, 100), 5, 0.05)
+    assert (S.M6_RIDGE_LAMBDA, S.M6_CV_FOLDS, S.M6_CW_ALPHA, S.M6_OOS_MIN_PRED) == ((0.1, 0.3, 1, 3, 10, 30, 100), 5, 0.05, 36)
     assert S.M6_RIDGE_X == ("GA_grow", "GA_rate", "LV_grow", "LV_rate", "DI", "BULL", "HIKE", "GA_grow*GA_rate",
                             "GA_grow*LV_grow", "GA_rate*LV_rate", "GA_grow*BULL", "GA_grow*HIKE")
     assert S.M6_TREE == {"depth": 2, "min_leaf": 36, "cuts": (10, 20, 30, 40, 50, 60, 70, 80, 90)}
