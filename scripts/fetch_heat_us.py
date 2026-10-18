@@ -114,6 +114,9 @@ def backfill(only: set | None = None) -> None:
         jobs = {"us_cp": U.cp, "us_z1": U.z1, "us_gdp": U.gdp, "us_wsts": U.wsts, "us_shiller": U.shiller}
         if "cp_probe" in only:
             U.probe_cp()
+        if "fwd_probe" in only:                               # 泡沫頁 VER 4 未來獲利的來源探針
+            from arm.lab import fwdfetch as F
+            F.probe()
         for k in sorted(only & set(jobs)):
             run(k, jobs[k])
         return
