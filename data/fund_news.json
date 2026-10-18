@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/18 19:34",
+  "as_of": "2026/10/18 21:20",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -505,6 +505,13 @@
     {
       "platform": "fundhot",
       "board": "天使",
+      "title": "呼應2023年12月統計，2028年SPX目標8XXX已越發靠近！",
+      "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/%E5%91%BC%E6%87%892023%E5%B9%B412%E6%9C%88%E7%B5%B1%E8%A8%88%EF%BC%8C2028%E5%B9%B4SPX%E7%9B%AE%E6%A8%998XXX%E5%B7%B2%E8%B6%8A%E7%99%BC%E9%9D%A0%E8%BF%91%EF%BC%81/14013",
+      "date": "2026-10-18"
+    },
+    {
+      "platform": "fundhot",
+      "board": "天使",
       "title": "20261015韓國總統呼籲散戶珍惜生命，但諷刺的是同一天股市出現罕見信號．．．",
       "url": "https://fundhot.com/forum/%E5%A4%A9%E4%BD%BF/20261015%E9%9F%93%E5%9C%8B%E7%B8%BD%E7%B5%B1%E5%91%BC%E7%B1%B2%E6%95%A3%E6%88%B6%E7%8F%8D%E6%83%9C%E7%94%9F%E5%91%BD%EF%BC%8C%E4%BD%86%E8%AB%B7%E5%88%BA%E7%9A%84%E6%98%AF%E5%90%8C%E4%B8%80%E5%A4%A9%E8%82%A1%E5%B8%82%E5%87%BA%E7%8F%BE%E7%BD%95%E8%A6%8B%E4%BF%A1%E8%99%9F%EF%BC%8E%EF%BC%8E%EF%BC%8E/14012",
       "date": "2026-10-18"
@@ -552,28 +559,12 @@
       "first_seen": "2026-10-16"
     },
     {
-      "platform": "fundhot",
-      "board": "ETF",
-      "title": "00929今年賺近80％！兩次換股策略揭開績效關鍵",
-      "url": "https://fundhot.com/forum/ETF/00929%E4%BB%8A%E5%B9%B4%E8%B3%BA%E8%BF%9180%EF%BC%85%EF%BC%81%E5%85%A9%E6%AC%A1%E6%8F%9B%E8%82%A1%E7%AD%96%E7%95%A5%E6%8F%AD%E9%96%8B%E7%B8%BE%E6%95%88%E9%97%9C%E9%8D%B5/14004",
-      "first_seen": "2026-10-15"
-    },
-    {
-      "platform": "youtube",
-      "title": "100萬買00929 一年爽住15晚五星飯店？ #財經雪倫",
-      "channel": "投資嗨什麼",
-      "url": "https://www.youtube.com/shorts/o0C8vqSB_AA",
-      "date": "2026-10-11",
-      "views": 21703,
-      "short": true
-    },
-    {
       "platform": "youtube",
       "title": "都是月配息 ETF，00929 VS 00406A 該選誰？| 主動式真的能打敗被動科技高息嗎？",
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
       "date": "2026-10-12",
-      "views": 8315
+      "views": 8384
     },
     {
       "platform": "youtube",
@@ -581,19 +572,16 @@
       "channel": "小童 x Happy Trading Life",
       "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
       "date": "2026-10-13",
-      "views": 2502,
+      "views": 2523,
       "short": true
     },
     {
       "platform": "youtube",
-      "title": "0050 ALL IN就對了？20年實測結果超意外🫨｜ft.清流君、葉芷娟 #0050 #ETF投資 #ETF錢滾錢",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/shorts/sgOyzfXKakU",
-      "date": "2026-10-13",
-      "views": 157789,
-      "peer": true,
-      "short": true,
-      "cat": "市值型"
+      "title": "00929科技月配息ETF！今年漲79%奪冠，配息率15.8%。#財富自由 #被動收入",
+      "channel": "財富閒叔跡",
+      "url": "https://www.youtube.com/watch?v=0Fqy5W9z8JM",
+      "date": "2026-10-15",
+      "views": 852
     },
     {
       "platform": "youtube",
@@ -601,7 +589,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=aBJQT2o2VfQ",
       "date": "2026-10-15",
-      "views": 154028,
+      "views": 154991,
       "peer": true,
       "cat": "基金"
     },
@@ -611,7 +599,7 @@
       "channel": "寶傑點兵／寶傑怎麼說",
       "url": "https://www.youtube.com/watch?v=sWtVhEHFKoI",
       "date": "2026-10-16",
-      "views": 143221,
+      "views": 146498,
       "peer": true,
       "cat": "主動式"
     },
@@ -621,7 +609,7 @@
       "channel": "A Nomad Life自由旅居",
       "url": "https://www.youtube.com/watch?v=vKi0VTLqzFw",
       "date": "2026-10-14",
-      "views": 141561,
+      "views": 142926,
       "peer": true,
       "cat": "綜合"
     },
@@ -631,7 +619,17 @@
       "channel": "基金小姐姐詹璇依",
       "url": "https://www.youtube.com/watch?v=HWdw9YRGwuo",
       "date": "2026-10-14",
-      "views": 122134,
+      "views": 123167,
+      "peer": true,
+      "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "年化配息上看20%！高股息ETF亂象又回來了嗎？0056、00878年化配息率竟擠不進前十名？ETF的高配息從哪來？｜峰哥｜Smart智富．投資的一千零一夜255",
+      "channel": "Smart智富月刊",
+      "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
+      "date": "2026-10-17",
+      "views": 104656,
       "peer": true,
       "cat": "高股息"
     },
@@ -641,19 +639,9 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=96vE3gSEGqo",
       "date": "2026-10-14",
-      "views": 102186,
+      "views": 102754,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "年化配息上看20%！高股息ETF亂象又回來了嗎？0056、00878年化配息率竟擠不進前十名？ETF的高配息從哪來？｜峰哥｜Smart智富．投資的一千零一夜255",
-      "channel": "Smart智富月刊",
-      "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
-      "date": "2026-10-17",
-      "views": 101186,
-      "peer": true,
-      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -661,7 +649,7 @@
       "channel": "吳淡如人生實用商學院（Official官方唯一頻道）",
       "url": "https://www.youtube.com/watch?v=MjDKs_Few4E",
       "date": "2026-10-15",
-      "views": 79429,
+      "views": 81138,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -671,7 +659,7 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
       "date": "2026-10-17",
-      "views": 52720,
+      "views": 54141,
       "peer": true,
       "cat": "主動式"
     },
@@ -681,15 +669,26 @@
       "channel": "鉅亨Fund大鏡",
       "url": "https://www.youtube.com/watch?v=kF3rr8WtJhU",
       "date": "2026-10-14",
-      "views": 18746,
+      "views": 19370,
       "peer": true,
       "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "#基金小姐姐 #投資 #投資 #投資理財",
+      "channel": "基金小姐姐詹璇依",
+      "url": "https://www.youtube.com/shorts/WrQcQ3D8uSg",
+      "date": "2026-10-15",
+      "views": 5607,
+      "peer": true,
+      "short": true,
+      "cat": "基金"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A、全方位、全球創新金融指數（詳下方新聞標籤）",
     "品牌焦點：群益證×復華投信剖析算力基建與光通訊新商機 | 金融脈動 | 金融（經濟日報）",
-    "社群聲量最高：20261015韓國總統呼籲散戶珍惜生命，但諷刺的是同一天股市出現罕見信號．．．（0 推）",
-    "YouTube 熱片：0050 ALL IN就對了？20年實測結果超意外🫨｜ft.清流君、葉芷娟 #0050 #ETF投資 #ETF錢滾錢（【CMoney理財寶】官方頻道・157,789 次觀看）"
+    "社群聲量最高：呼應2023年12月統計，2028年SPX目標8XXX已越發靠近！（0 推）",
+    "YouTube 熱片：台股急殺 3檔大戶青睞拚逆轉？ Q4作帳行情南電先卡位 自配基金月加薪5萬元《鈔錢部署》盧燕俐 ft.杜金龍 陳顗全 20261015（鈔錢部署–華視優選・154,991 次觀看）"
   ]
 }
