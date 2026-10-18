@@ -364,6 +364,22 @@ def parse_wiki_sp(html: str) -> list[str]:
     return out
 
 
+def parse_wiki_gics(html: str) -> dict[str, str]:
+    """維基百科 S&P 500 表格 → {代號（Yahoo 格式）: GICS 類別}（第三欄；產業泡沫的美股類股用，docs/lab_risk_plan.md 第 12 節）。"""
+    m = re.search(r'<table[^>]*id="constituents".*?</table>', html, re.S)
+    if not m:
+        return {}
+    out = {}
+    for r in re.findall(r"<tr[^>]*>(.*?)</tr>", m.group(0), re.S):
+        cells = re.findall(r"<td[^>]*>(.*?)</td>", r, re.S)
+        if len(cells) >= 3:
+            sym = re.sub(r"<[^>]+>", "", cells[0]).strip()
+            sec = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", cells[2])).strip().replace("&amp;", "&")
+            if re.match(r"^[A-Z][A-Z.\-]{0,6}$", sym) and sec:
+                out[_ysym(sym)] = sec
+    return out
+
+
 def parse_nq_rows(doc: dict) -> list[tuple[str, float | None]]:
     d = doc.get("data") or {}
     rows = (d.get("data") or {}).get("rows") if isinstance(d.get("data"), dict) else None
@@ -386,7 +402,11 @@ def constituents(day: str) -> dict:
     """{"spx", "ixic", "ndx", "sox"}：代號清單（Yahoo 格式）；ixic＝那斯達克篩選器市值前 EST_NQ_TOP 大，另附 "nq_cap"＝篩選器全部市值合計。"""
     out: dict = {}
     try:
-        out["spx"] = parse_wiki_sp(_get(WIKI_SP, timeout=90).decode("utf-8", "replace"))
+        html = _get(WIKI_SP, timeout=90).decode("utf-8", "replace")
+        out["spx"] = parse_wiki_sp(html)
+        gics = parse_wiki_gics(html)
+        if len(gics) >= 400:
+            out["gics"] = gics
     except Exception as e:                                    # noqa: BLE001
         log(f"[fwd] S&P 500 成分股 ✗ {type(e).__name__} {str(e)[:120]}")
     try:
@@ -469,8 +489,9 @@ def update_us(*, budget_s: float = 240, workers: int = 4, today: date | None = N
         if not const.get(k):
             const[k] = (doc.get("const") or {}).get(k) or []          # 這次抓不到：沿用上一份
             log(f"[fwd] {k} 成分股沿用上一份（{len(const[k])} 檔）")
-    if not const.get("nq_cap"):
-        const["nq_cap"] = (doc.get("const") or {}).get("nq_cap")
+    for k in ("nq_cap", "gics"):
+        if not const.get(k):
+            const[k] = (doc.get("const") or {}).get(k)
     syms = sorted({s for k in ("spx", "ixic", "ndx", "sox") for s in const[k]})
     Y = fcst._Yahoo()
     if not Y.login():
@@ -531,6 +552,21 @@ def update_us(*, budget_s: float = 240, workers: int = 4, today: date | None = N
                  "agg": {k: (v.get("n"), None if v.get("cov") is None else round(v["cov"], 3)) for k, v in agg.items()}})
     log(f"[fwd] 美股預估：{stat}")
     return stat
+
+
+def update_gics() -> int:
+    """只更新 S&P 500 的 GICS 類別（不重抓預估；回補用）。"""
+    gics = parse_wiki_gics(_get(WIKI_SP, timeout=90).decode("utf-8", "replace"))
+    if len(gics) < 400:
+        raise ValueError(f"GICS 類別只解析到 {len(gics)} 檔")
+    doc = load_us()
+    const = dict(doc.get("const") or {})
+    if const.get("gics") == gics:
+        return 0
+    const["gics"] = gics
+    store.write(US_KIND, US_FILE, {**doc, "const": const})
+    log(f"[fwd] GICS 類別 {len(gics)} 檔：{sorted(set(gics.values()))}")
+    return len(gics)
 
 
 def us_aggregates(doc: dict, today: date) -> dict:

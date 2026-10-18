@@ -25,12 +25,14 @@ sys.path.insert(0, str(ROOT))
 from arm.lab import heat as H  # noqa: E402
 from arm.lab import heatdata as HD  # noqa: E402
 from arm.lab import heatfetch_us as U  # noqa: E402
+from arm.lab import bubindfetch as BF  # noqa: E402
 
 NAMES = ["us_px_spx", "us_px_ixic", "us_px_ndx", "us_px_sox", "us_vxn", "us_vix3m", "us_dxy", "us_rsp", "us_spy",
          "us_h15", "us_h41", "us_m2", "us_z1", "us_gdp", "us_cp", "us_spf", "us_tech_q", "us_tech_a", "fwd_agg",
          "us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini",
          "us_philly", "us_ads", "us_cli", "us_claims", "us_bls", "us_umich", "us_ebp", "us_shiller", "us_wsts",
-         "taiex90", "twgdp"] + [f"us_lppls_{k}" for k in U.US_INDEX_SYM] + ["tw_lppls"]
+         "taiex90", "twgdp"] + [f"us_lppls_{k}" for k in U.US_INDEX_SYM] + ["tw_lppls"] \
+    + ["us_ff49x", "us_ff49n", "us_ff49s"] + [f"us_etf_{s}" for s in BF.etf_names()]
 YAHOO = [("us_px_spx", "^GSPC", "1927-01-01"), ("us_px_ixic", "^IXIC", "1971-01-01"),
          ("us_px_ndx", "^NDX", "1985-01-01"), ("us_px_sox", "^SOX", "1994-01-01"),
          ("us_vxn", "^VXN", "2001-01-01"), ("us_vix3m", "^VIX3M", "2006-01-01"), ("us_dxy", "DX-Y.NYB", "1971-01-01")]
@@ -85,6 +87,14 @@ def daily() -> None:
         run(name, U.yahoo_us, name, sym, a)
     for name, sym, start in ADJ:
         once(name, U.yahoo_us, name, sym, start, True)
+    for sym in BF.etf_names():                               # 產業泡沫：類股 ETF 與 SPY 收盤（docs/lab_risk_plan.md 第 12 節）
+        name = f"us_etf_{sym}"
+        have = HD.load(name)
+        if have and max(have) >= last:
+            continue
+        a = BF.BI.US_START if not have else (date.fromisoformat(max(have)) - timedelta(days=10)).isoformat()
+        run(name, U.yahoo_us, name, sym, a)
+    once("us_ff49", BF.ff49)
     once("us_h15", U.h15)
     once("us_h41", U.h41)
     for name in U.CFTC_JOBS:
@@ -128,6 +138,10 @@ def backfill(only: set | None = None) -> None:
             from arm.lab import fwdfetch as F
             jobs.update({"us_spf": F.spf, "us_tech": F.tech, "fwd_us": lambda: F.update_us(budget_s=900),
                          "fwd_tw": F.update_tw_agg})
+        jobs.update({"ind_ff": BF.ff49, "ind_etf": BF.etf})            # 產業泡沫
+        if "gics" in only:
+            from arm.lab import fwdfetch as F
+            jobs["gics"] = F.update_gics
         if "cp_probe" in only:
             U.probe_cp()
         if "fwd_probe" in only:                               # 泡沫頁 VER 4 未來獲利的來源探針
@@ -165,6 +179,8 @@ def backfill(only: set | None = None) -> None:
     run("us_tech", F.tech)
     run("fwd_us", F.update_us, budget_s=900)
     run("fwd_tw", F.update_tw_agg)
+    run("ind_ff", BF.ff49)
+    run("ind_etf", BF.etf)
 
 
 def summary() -> None:
