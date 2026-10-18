@@ -98,9 +98,19 @@ def load_tw_val() -> dict:
     return out
 
 
+def tw_month_avg(D: dict, E: dict | None = None) -> dict:
+    """加權指數月平均 {YYYY-MM: 值}：國發會（1982 起）為主，國發會還沒有的完整月份用每日收盤平均。"""
+    from .heatcalc import calendar
+    E = E if E is not None else BB.taiex_daily(D)
+    cal, _, _ = calendar(D)
+    pm = month_avg_px(E, cal[-1]) if cal else {}
+    pm.update({ym: v for ym, v in (D.get("taiexm") or {}).items() if v and (not cal or ym < cal[-1][:7])})
+    return pm
+
+
 def tw_bubble(D: dict, N: dict, M: dict, PRE: dict, REF: dict) -> None:
     """把台股泡沫七項（與參考讀數）放進 N、M、PRE、REF。資料缺的項目留空（測試資料沒有泡沫資料時整段跳過）。"""
-    from .heatcalc import calendar, ym_add
+    from .heatcalc import ym_add
     if not (D.get("turnover") or D.get("taiex")):
         return
     E = BB.taiex_daily(D)
@@ -109,11 +119,8 @@ def tw_bubble(D: dict, N: dict, M: dict, PRE: dict, REF: dict) -> None:
         return
     daily_runups(ds, [E[d] for d in ds], N, "X2", "X3")
     lppls_item(D.get("tw_lppls") or {}, N, PRE, "X5")
-    cal, _, _ = calendar(D)
-    pm = month_avg_px(E, cal[-1]) if cal else {}
-    pm.update({ym: v for ym, v in (D.get("taiexm") or {}).items() if v and (not cal or ym < cal[-1][:7])})
     cpi = {k: v[0] for k, v in (D.get("twcpi") or {}).items() if v and v[0]}
-    psy_trend(real_log(pm, cpi, S.PSY["cpi_lag"]), M, PRE, "X1", "X4")
+    psy_trend(real_log(tw_month_avg(D, E), cpi, S.PSY["cpi_lag"]), M, PRE, "X1", "X4")
     val = D.get("twval") or {}
     gdp = D.get("twgdp") or {}
     x6, x7, q1 = {}, {}, {}

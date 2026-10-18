@@ -244,6 +244,12 @@ class LPPLSGrid:
     """網格與正規方程式左邊的反矩陣（和日期無關）。τ＝t2 − t（0＝最後一天）。"""
     COND_MAX = 1e8
 
+    @staticmethod
+    def n_needed(spec: dict | None = None) -> int:
+        """一次擬合要幾個交易日（最長視窗＋1）。"""
+        L = spec or S.LPPLS
+        return int(L["dt"][1]) + 1
+
     def __init__(self, spec: dict | None = None):
         import numpy as np
         L = spec or S.LPPLS
@@ -339,24 +345,36 @@ def week_last_days(ds: list[str]) -> list[str]:
     return out
 
 
+def lppls_points(px: dict) -> tuple[list[str], list[float], list[str]]:
+    """{日期: 收盤} →（交易日, 對數收盤, 要算的日子＝每週最後一個交易日，含還沒結束的最後一週）。"""
+    ds = sorted(d for d, v in px.items() if v and v > 0)
+    return ds, [math.log(px[d]) for d in ds], week_last_days(ds)
+
+
+def lppls_at(grid: "LPPLSGrid", lnp: list[float], i: int) -> list | None:
+    """第 i 個交易日（含）以前的資料 → [正泡沫 %, 負泡沫 %]（取 2 位）；筆數不夠回 None。"""
+    r = grid.fit(lnp[:i + 1])
+    return None if r is None else [round(100.0 * r[0], 2), round(100.0 * r[1], 2)]
+
+
 def lppls_series(px: dict, have: dict | None = None, grid: LPPLSGrid | None = None, last_only: bool = False) -> dict:
     """{日期: 收盤} → {週末交易日: [正泡沫 %, 負泡沫 %]}（已有的週不重算；最後一週若還沒結束也先算，下次再覆蓋）。"""
-    ds = sorted(d for d, v in px.items() if v and v > 0)
-    lnp = [math.log(px[d]) for d in ds]
+    ds, lnp, want = lppls_points(px)
     pos = {d: i for i, d in enumerate(ds)}
-    want = week_last_days(ds)
     have = have or {}
     if last_only:
         want = want[-1:]
-    grid = grid or LPPLSGrid()
     out = {}
+    need = grid.N if grid is not None else LPPLSGrid.n_needed()
     for d in want:
         if d in have and d != ds[-1]:
             continue
-        i = pos[d]
-        r = grid.fit(lnp[:i + 1])
+        if pos[d] + 1 < need:
+            continue
+        grid = grid or LPPLSGrid()
+        r = lppls_at(grid, lnp, pos[d])
         if r is not None:
-            out[d] = [round(100.0 * r[0], 2), round(100.0 * r[1], 2)]
+            out[d] = r
     return out
 
 
@@ -398,3 +416,140 @@ def taiex_daily(D: dict | None = None) -> dict:
         if v and d < "1999-01-01":
             out[d] = v
     return out
+
+
+# ── 泡沫事件驗證（規格第 15.7 節；heatspec.BUB_*） ───────────────────────────
+# 文獻說泡沫訊號預測的是「之後大跌的機率」，不是平均報酬（Greenwood、Shleifer、You 2019：兩年內從任何一點起跌 40%）。
+# 大跌＝t＋1 收盤起 h 個交易日內（含 t＋1）的最大回落：期間內任一天收盤高點到之後收盤低點的跌幅，取最大（2026-10-18 寫程式時補上，看結果之前）。
+
+def max_drawdown(px: list, a: int, b: int) -> float | None:
+    """px[a..b]（含兩端）的最大回落（0～1）；b 超出資料回 None。"""
+    if a < 0 or b >= len(px):
+        return None
+    peak, m, n = None, 0.0, 0
+    for j in range(a, b + 1):
+        p = px[j]
+        if p is None or p <= 0:
+            continue
+        n += 1
+        if peak is None or p > peak:
+            peak = p
+        else:
+            m = max(m, 1.0 - p / peak)
+    return m if n >= 2 else None
+
+
+def _diff(rows: list) -> float | None:
+    """rows＝[(熱, 大跌)] → P(大跌｜熱) − P(大跌｜全部)；沒有熱的月份回 None。"""
+    hot = [c for h, c in rows if h]
+    if not hot or not rows:
+        return None
+    return sum(hot) / len(hot) - sum(c for _, c in rows) / len(rows)
+
+
+def episodes(months: list[int], flags: list[bool]) -> list[tuple[int, int]]:
+    """熱的月份 → 段 [(第一個月的位置, 最後一個月的位置)]：中間隔 ≥ BUB_EPI_GAP 個月才算新的一段。
+    months＝每個樣本的月序號（年 × 12 ＋ 月），flags＝是否 ≥ 門檻。"""
+    out: list[list[int]] = []
+    last = None
+    for j, (mo, f) in enumerate(zip(months, flags)):
+        if not f:
+            continue
+        if last is None or mo - months[last] - 1 >= S.BUB_EPI_GAP:
+            out.append([j, j])
+        else:
+            out[-1][1] = j
+        last = j
+    return [(a, b) for a, b in out]
+
+
+def _mno(d: str) -> int:
+    return int(d[:4]) * 12 + int(d[5:7])
+
+
+def crash_test(dates: list[str], x: list, dd: dict) -> dict:
+    """dates＝月樣本日期、x＝讀數（0～100）、dd＝{h: 每個樣本之後 h 個交易日（或月）的最大回落（None＝資料不夠）}。
+    → {"252"／"504": {n, n_hot, p_hot, p_all, diff, lo, hi, h1, h2, n_epi, verdict}, "epi": [段]}（判定用沒有四捨五入的數字）。"""
+    from . import heattech as TT
+    out: dict = {}
+    for h, thr in S.BUB_DD:
+        rows = [(dates[j], x[j] >= S.BUB_HOT, 1.0 if dd[h][j] >= thr else 0.0)
+                for j in range(len(dates)) if x[j] is not None and dd[h][j] is not None]
+        hot = [r for r in rows if r[1]]
+        flag = [r[1] for r in rows]
+        crash = [r[2] for r in rows]
+        lo, hi = TT.boot_diff(crash, flag, S.BUB_BLOCK, S.BUB_BOOT, S.BUB_SEED)
+        m = len(rows) // 2
+        d1, d2 = _diff([(f, c) for _, f, c in rows[:m]]), _diff([(f, c) for _, f, c in rows[m:]])
+        ne = len(episodes([_mno(d) for d, _, _ in rows], flag))
+        if len(hot) < S.BUB_MIN_HOT or ne < S.BUB_EPI_MIN or lo is None:
+            vd = "few"
+        elif lo > 0 and d1 is not None and d2 is not None and d1 > 0 and d2 > 0:
+            vd = "crash"
+        elif hi < 0 and d1 is not None and d2 is not None and d1 < 0 and d2 < 0:
+            vd = "calm"
+        else:
+            vd = "none"
+        out[str(h)] = {"n": len(rows), "n_hot": len(hot), "thr": thr,
+                  "p_hot": sum(c for *_, c in hot) / len(hot) if hot else None,
+                  "p_all": sum(crash) / len(crash) if crash else None, "diff": _diff([(f, c) for _, f, c in rows]),
+                  "lo": lo, "hi": hi, "h1": {"n": m, "diff": d1, "z": rows[m - 1][0] if m else None},
+                  "h2": {"n": len(rows) - m, "diff": d2, "a": rows[m][0] if len(rows) > m else None},
+                  "a": rows[0][0] if rows else None, "z": rows[-1][0] if rows else None, "n_epi": ne, "verdict": vd}
+    fl = [v is not None and v >= S.BUB_HOT for v in x]
+    epi = []
+    for a, b in episodes([_mno(d) for d in dates], fl):
+        seg = [x[j] for j in range(a, b + 1) if x[j] is not None]
+        epi.append({"a": dates[a], "z": dates[b], "n": sum(1 for j in range(a, b + 1) if fl[j]), "peak": max(seg),
+                    "dd": {str(h): dd[h][a] for h, _ in S.BUB_DD}})
+    out["epi"] = epi
+    return out
+
+
+def bubble_research(B: dict) -> dict:
+    """每一項泡沫項目（算進分數的 0～100）與泡沫面向分數：每月最後一個交易日一個樣本，之後 h 個交易日內最大回落。"""
+    from . import heatrel as RL
+    cal, px = B["cal"], B["px"]
+    me = RL.month_ends(cal)
+    dates = [cal[i] for i in me]
+    lag = S.DAILY_LAG
+    dd = {h: [max_drawdown(px, i + lag, i + lag + h) for i in me] for h, _ in S.BUB_DD}
+    ser = {k: B["hc"][k] for k in S.ITEMS["bubl"]}
+    ser["comp"] = B["comp"]["bubl"]
+    out = {k: crash_test(dates, [x[i] for i in me], dd) for k, x in ser.items()}
+    return _rnd(out)
+
+
+def bubble_ext(pre: dict, A: dict) -> dict:
+    """台股延伸樣本（只當穩健度）：PSY、趨勢偏離（國發會月平均 1982 起）的月讀數 → 之後第 M6_EXT_SHIFT 個月起，
+    12、24 個月內月平均的最大回落（對應 252、504 個交易日）。A＝{YYYY-MM: 月平均}。"""
+    from .heatcalc import ym_add
+    yms = sorted(x for x, v in A.items() if v)
+    if not yms:
+        return {}
+    months = [yms[0]]
+    while months[-1] < yms[-1]:
+        months.append(ym_add(months[-1], 1))
+    pa = [A.get(m) for m in months]
+    sh = S.M6_EXT_SHIFT
+    hm = {252: 12, 504: 24}
+    pos = {m: i for i, m in enumerate(months)}
+    out = {}
+    for k in S.BUB_EXT:
+        ser = pre.get(k) or {}
+        ks = [m for m in months if m in ser]
+        if not ks:
+            continue
+        dd = {h: [max_drawdown(pa, pos[m] + sh, pos[m] + sh + hm[h]) for m in ks] for h, _ in S.BUB_DD}
+        out[k] = crash_test([f"{m}-28" for m in ks], [ser[m] for m in ks], dd)
+    return _rnd(out)
+
+
+def _rnd(x):
+    if isinstance(x, float):
+        return round(x, 6)
+    if isinstance(x, dict):
+        return {k: _rnd(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [_rnd(v) for v in x]
+    return x

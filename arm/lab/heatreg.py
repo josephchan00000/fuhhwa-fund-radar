@@ -23,10 +23,6 @@ from . import heatrel as RL
 from . import heatspec as S
 from . import heattech as TT
 
-ITEMS = list(S.DERIV)
-GROUPS = list(S.M6_GROUPS)
-GVARS = [f"GA_{g}" for g in GROUPS] + ["DI"]                 # 跨訊號：三組加速度、加速擴散
-SVARS = [f"SH_{g}" for g in GROUPS]                          # 對照圖的三條組線：組內幾成在加速（只當描述）
 DELAY = [(k, S.M6_WIN) for k in S.M6_DELAY]
 CUM = [(0, m) for m in S.M6_CUM]
 PATH_H = tuple(range(1, S.M6_EVENT_PATH + 1))
@@ -34,12 +30,39 @@ WINDOWS = sorted(set(DELAY) | set(CUM) | {(0, h) for h in PATH_H} | set(S.M6_OOS
                  | {w for _, w in S.M6_PRIMARY.values()} | {(0, h) for h in S.M6_STATE_H})
 STATES = ("hi_acc", "hi_dec", "lo_acc", "lo_dec")             # 水準 ≥ 50／< 50 × 加速（原始二階 > 0）／其他
 GSTATES = ("gA_rA", "gA_rD", "gD_rA", "gD_rD")               # 景氣動能 × 通膨利率：加速（組加速度 > 0）／減速（≤ 0）
-X1_ITEMS = [k for k in ITEMS if S.DERIV[k]["d1"] in ("chg", "pct")]   # 一階就是項目本身（年增率、PMI−50）的不放 X1
 M1_G = ("LV_grow", "LV_rate")                                 # 組的樣本外模型（沒有控制變數）
 M2_G = M1_G + ("GA_grow", "GA_rate")
 M3_G = M2_G + ("GA_grow*GA_rate", "GA_grow*LV_grow", "GA_rate*LV_rate")
 VERDICT = {"pred": "有預測性", "in_only": "樣本內看得到、樣本外沒有", "in_untested": "樣本內看得到（這個期間沒有做樣本外）",
            "none": "看不出", "few": "樣本不足"}
+
+
+# 依當下規格取的名單（heatspec.use 換上美股規格時跟著換）；外部用 heatreg.ITEMS 等名稱也拿得到當下的值
+def _items() -> list[str]:
+    return list(S.DERIV)
+
+
+def _groups() -> list[str]:
+    return list(S.M6_GROUPS)
+
+
+def _x1_items() -> list[str]:
+    """一階就是項目本身（年增率、PMI−50）的不放 X1。"""
+    return [k for k in S.DERIV if S.DERIV[k]["d1"] in ("chg", "pct")]
+
+
+def __getattr__(name: str):
+    if name == "ITEMS":
+        return _items()
+    if name == "GROUPS":
+        return _groups()
+    if name == "GVARS":                                      # 跨訊號：三組加速度、加速擴散
+        return [f"GA_{g}" for g in _groups()] + ["DI"]
+    if name == "SVARS":                                      # 對照圖的三條組線：組內幾成在加速（只當描述）
+        return [f"SH_{g}" for g in _groups()]
+    if name == "X1_ITEMS":
+        return _x1_items()
+    raise AttributeError(name)
 
 
 # ── 小工具 ───────────────────────────────────────────────────────────
@@ -418,7 +441,7 @@ def groups_of(it: dict, T: int, variants=S.M6_VARIANTS) -> tuple[dict, dict, dic
         for v in variants:
             GA[v][g] = [_gmean([it[k]["X2"][v][t] if it.get(k) else None for k in keys], mn) for t in range(T)]
         LV[g] = [_gmean([it[k]["XL"][t] if it.get(k) and "XL" in it[k] else None for k in keys], mn) for t in range(T)]
-    DI = {v: [share_up([it[k]["S2"][v][t] for k in ITEMS if it.get(k)], S.M6_DI_MIN) for t in range(T)]
+    DI = {v: [share_up([it[k]["S2"][v][t] for k in _items() if it.get(k)], S.M6_DI_MIN) for t in range(T)]
           for v in variants}
     return GA, LV, DI
 
@@ -457,10 +480,10 @@ def panel(B: dict) -> dict:
     for t in range(T):
         w = pme[t - n_ma + 1:t + 1] if t >= n_ma - 1 else []
         bull.append(None if len(w) < n_ma or any(p is None for p in w) else (1.0 if pme[t] > sum(w) / n_ma else 0.0))
-    g1 = B["raw"].get("G1") or [None] * len(cal)
+    g1 = B["raw"].get(S.M6_HIKE) or [None] * len(cal)        # 升息＝政策利率 6 個月變化 > 0（台股 G1、美股 R1）
     hike = [None if g1[i] is None else (1.0 if g1[i] > 0 else 0.0) for i in me]
-    nat = {k: item_native(B, k) for k in ITEMS}
-    it = {k: item_panel(B, k, me, dates, nat[k]) for k in ITEMS}
+    nat = {k: item_native(B, k) for k in _items()}
+    it = {k: item_panel(B, k, me, dates, nat[k]) for k in _items()}
     GA, LV, DI = groups_of(it, T)
     return {"T": T, "ym": ym, "dates": dates, "me": me, "R": R, "r1": ctrl[S.M6_CTRL[0]], "r12": ctrl[S.M6_CTRL[1]],
             "BULL": bull, "HIKE": hike, "it": it, "nat": nat, "GA": GA, "LV": LV, "DI": DI, "SH": shares_of(it, T)}
@@ -1061,7 +1084,7 @@ def ext_panel(B: dict, Pn: dict, A: dict) -> dict | None:
             for c in S.M6_CTRL}
     v0 = S.M6_MAIN_VARIANT
     it = {}
-    for k in ITEMS:
+    for k in _items():
         nat = Pn["nat"][k]
         if S.FREQ_OF[k] == "m":
             rel = S.RELEASE[k]
@@ -1079,7 +1102,7 @@ def ext_panel(B: dict, Pn: dict, A: dict) -> dict | None:
 
 def ext_run(E: dict) -> dict:
     ym, r1, r12 = E["ym"], E["r1"], E["r12"]
-    ser = {k: E["it"][k]["X2"][S.M6_MAIN_VARIANT] for k in ITEMS if S.FREQ_OF[k] == "m"}
+    ser = {k: E["it"][k]["X2"][S.M6_MAIN_VARIANT] for k in _items() if S.FREQ_OF[k] == "m"}
     ser.update({"GA_grow": E["GA"]["grow"], "GA_rate": E["GA"]["rate"], "DI": E["DI"]})
     out = {"a": ym[0], "z": ym[-1], "T": E["T"], "l1": {}}
     for nm, x in ser.items():
@@ -1183,15 +1206,16 @@ def run(B: dict, A: dict | None = None) -> dict:
     fam: dict[str, list] = {f: [] for f in ("l1d", "l1c", "l2", "l3a", "l3c_bull", "l3c_hike", "l4d", "l4c", "l4i_d", "l4i_c",
                                             "l4s_d", "l4s_c")}
     items = {}
-    for k in ITEMS:
+    x1_items = _x1_items()
+    for k in _items():
         it = Pn["it"][k]
         X2, XL = it["X2"][v0], it["XL"]
-        res = {"first": next((ym[t] for t in range(T) if X2[t] is not None), None), "x1": k in X1_ITEMS}
+        res = {"first": next((ym[t] for t in range(T) if X2[t] is not None), None), "x1": k in x1_items}
         res["l1"] = l1_of(ym, R, X2, r1, r12)
         fam["l1d"] += res["l1"]["d"].values()
         fam["l1c"] += res["l1"]["c"].values()
         res["rob"] = {v: brief(l1_of(ym, R, it["X2"][v], r1, r12, boot=False)) for v in S.M6_VARIANTS if v != v0}
-        l2x = [X2, XL] + ([it["X1"]] if k in X1_ITEMS else []) + [r1, r12]
+        l2x = [X2, XL] + ([it["X1"]] if k in x1_items else []) + [r1, r12]
         res["l2"] = {wkey(w): reg(ym, R[w], l2x, w[1]) for w in DELAY}
         fam["l2"] += res["l2"].values()
         xlx2 = [None if a is None or b is None else a * b for a, b in zip(XL, X2)]
@@ -1210,7 +1234,7 @@ def run(B: dict, A: dict | None = None) -> dict:
         res["oos"] = {wkey(w): oos_item(Pn, k, w) for w in S.M6_OOS_WINDOWS}
         res["l6"] = l6_item(Pn, k)
         items[k] = res
-    gser = {f"GA_{g}": Pn["GA"][v0][g] for g in GROUPS}
+    gser = {f"GA_{g}": Pn["GA"][v0][g] for g in _groups()}
     gser["DI"] = Pn["DI"][v0]
     groups = {}
     for nm, x in gser.items():
@@ -1221,7 +1245,7 @@ def run(B: dict, A: dict | None = None) -> dict:
         e["rob"] = {v: brief(l1_of(ym, R, Pn["DI"][v] if nm == "DI" else Pn["GA"][v][nm[3:]], r1, r12, boot=False))
                     for v in S.M6_VARIANTS if v != v0}
         groups[nm] = e
-    for g in GROUPS:                                          # 對照圖的組線（幾成在加速）：只當描述，自成一個家族、沒有樣本外
+    for g in _groups():                                       # 對照圖的組線（幾成在加速）：只當描述，自成一個家族、沒有樣本外
         x = Pn["SH"][g]
         e = {"first": next((ym[t] for t in range(T) if x[t] is not None), None), "l1": l1_of(ym, R, x, r1, r12)}
         fam["l4s_d"] += e["l1"]["d"].values()
@@ -1257,7 +1281,7 @@ def run(B: dict, A: dict | None = None) -> dict:
     out = {"ver": S.VER, "sample": {"a": ym[0], "z": ym[-1], "T": T, "oos_start": S.M6_OOS_START},
            "items": items, "groups": groups, "l4": l4, "goos": goos, "primary": primary(Pn), "ext": None,
            "now": now_of(Pn)}
-    if A:
+    if A and S.M6_EXT:                                       # 延伸樣本（只有台股；美股主樣本夠長）
         E = ext_panel(B, Pn, A)
         if E:
             out["ext"] = ext_run(E)
@@ -1268,6 +1292,6 @@ def now_of(Pn: dict) -> dict:
     """最後一個月底（最新的交易日）各項與三組的二階狀態：加速幾項、組加速度、加速擴散（給頁面一句話用，研究檔只記錄當時的值）。"""
     t = Pn["T"] - 1
     v0 = S.M6_MAIN_VARIANT
-    acc = {k: Pn["it"][k]["S2"][v0][t] for k in ITEMS}
-    return {"ym": Pn["ym"][t], "s2": acc, "GA": {g: Pn["GA"][v0][g][t] for g in GROUPS},
-            "SH": {g: Pn["SH"][g][t] for g in GROUPS}, "DI": Pn["DI"][v0][t]}
+    acc = {k: Pn["it"][k]["S2"][v0][t] for k in _items()}
+    return {"ym": Pn["ym"][t], "s2": acc, "GA": {g: Pn["GA"][v0][g][t] for g in _groups()},
+            "SH": {g: Pn["SH"][g][t] for g in _groups()}, "DI": Pn["DI"][v0][t]}

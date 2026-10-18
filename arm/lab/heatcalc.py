@@ -357,7 +357,8 @@ def score(D: dict, cal: list[str], px: list, info: dict, N: dict, M: dict, PRE: 
     REF＝參考讀數（不進分數）。
     → {"cal", "px", "cal_info", "raw": {k: 逐日值}, "heat": {k: 逐日 0～100（頁面顯示，含代替）},
     "hc": {k: 逐日 0～100（算進總分的）}, "proxy": {k: 逐日是否用代替}, "ym": {k: 逐日用到的月份},
-    "mraw": {k: 月序列}, "nat": {k: 來源日期上的值}, "comp": {面向: 逐日總分}, "vixcorr": {...}, "ref": REF, "D": D}"""
+    "mraw": {k: 月序列}, "nat": {k: 來源日期上的值}, "comp": {面向: 逐日總分}, "vixcorr": {...}, "ref": REF,
+    "pre": PRE, "D": D}"""
     PRE = PRE or {}
     T = len(cal)
     raw = align_daily(cal, N)
@@ -404,7 +405,7 @@ def score(D: dict, cal: list[str], px: list, info: dict, N: dict, M: dict, PRE: 
         vc = {"n": len(pairs), "r": H._pearson([a for a, _ in pairs], [b for _, b in pairs]) if len(pairs) >= 3 else None,
               "a": next((cal[i] for i in range(T) if raw[k][i] is not None), None)}
     return {"cal": cal, "px": px, "cal_info": info, "raw": raw, "heat": heat, "hc": hc, "proxy": proxy, "ym": ymu,
-            "mraw": M, "nat": N, "comp": comp, "vixcorr": vc, "ref": REF or {}, "D": D}
+            "mraw": M, "nat": N, "comp": comp, "vixcorr": vc, "ref": REF or {}, "pre": PRE, "D": D}
 
 
 # ── 驗證（第 12.7 節） ─────────────────────────────────────────────────
@@ -495,9 +496,12 @@ def research(B: dict | None = None) -> dict:
     for n in FILES + ["rev"]:
         ks = sorted(D.get(n) or {})
         data[n] = [len(ks), ks[0] if ks else None, ks[-1] if ks else None]
-    from . import heatreg, heatrel            # 第五、六版（第 14.14、15.11 節）；放這裡避免循環匯入
+    from . import heatbubble, heatreg, heatrel            # 第五、六、七版；放這裡避免循環匯入
+    from .heatcalc_bub import tw_month_avg
     rel = heatrel.run(B)
     return {"ver": S.VER, "spec_date": S.SPEC_DATE, "run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "cal": B["cal_info"], "data": data, "dims": dims, "events": events,
             "wk": rel["wk"], "rel": rel["rel"], "deriv": heatrel.deriv_all(B),
-            "m6": heatreg.run(B, HD.load("taiexm"))}
+            "m6": heatreg.run(B, HD.load("taiexm")),
+            "bub": {"main": heatbubble.bubble_research(B), "ext": heatbubble.bubble_ext(B.get("pre") or {}, tw_month_avg(D))}}
+

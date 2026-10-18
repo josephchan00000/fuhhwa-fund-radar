@@ -15,7 +15,15 @@ from . import heat as H
 from . import heatcalc as C
 from . import heatspec as S
 
-UNIT = {k: u for k, _, _, u, *_ in S.IND}
+def unit_of(k: str) -> str:
+    """項目的單位（依當下規格：台股或美股）。"""
+    return next((u for kk, _, _, u, *_ in S.IND if kk == k), "")
+
+
+def __getattr__(name: str):
+    if name == "UNIT":                                       # 舊名稱（外部讀 heatpos.UNIT 也拿得到當下規格的值）
+        return {k: u for k, _, _, u, *_ in S.IND}
+    raise AttributeError(name)
 
 
 # ── 小工具 ───────────────────────────────────────────────────────────
@@ -149,7 +157,7 @@ def value_range(ks: list[str], vs: list[float], k: str, hi: bool) -> dict | None
     ld = max(d for d, v in pts if v == lv)
     x = vs[-1]
     ext = hv if hi else lv
-    unit = UNIT[k]
+    unit = unit_of(k)
     if unit in S.PP_UNITS:
         dist, how = x - ext, "pp"
     elif all(v > 0 for _, v in pts):
