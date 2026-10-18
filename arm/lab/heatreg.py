@@ -1137,10 +1137,10 @@ def _judge(d: dict, oos: dict, pair: str, delay: bool) -> None:
 
 
 def summary_of(l1: dict) -> dict:
-    """頁面精簡表：有證據的期間（延遲、累積）與樣本外結論。"""
-    react = [[int(x) for x in ws.split(",")] + [1 if e["b"] > 0 else -1, e["v"]]
+    """頁面精簡表：有證據的期間 [段（d＝延遲、c＝累積）, k, m, 正負, 判定] 與樣本外結論。"""
+    react = [[part] + [int(x) for x in ws.split(",")] + [1 if e["b"] > 0 else -1, e["v"]]
              for part in ("d", "c") for ws, e in l1[part].items() if e.get("v") in ("pred", "in_only", "in_untested")]
-    vs = [r[3] for r in react]
+    vs = [r[4] for r in react]
     if "pred" in vs:
         oos = "pred"
     elif "in_only" in vs:
@@ -1152,6 +1152,25 @@ def summary_of(l1: dict) -> dict:
     else:
         oos = "none"
     return {"react": react, "oos": oos}
+
+
+def react_text(react: list) -> str:
+    """[[段, k, m, 正負, 判定], ...] → 「6～12 個月後較弱、累積 12 個月較弱」（連續的延遲期間、同方向的併成一段）。"""
+    step = S.M6_DELAY[1] - S.M6_DELAY[0]
+    out, runs = [], []
+    for r in sorted((r for r in react if r[0] == "d"), key=lambda r: r[1]):
+        if runs and runs[-1][-1][3] == r[3] and r[1] - runs[-1][-1][1] == step:
+            runs[-1].append(r)
+        else:
+            runs.append([r])
+    for run in runs:
+        out.append(f'{run[0][1]}～{run[-1][1] + run[-1][2]} 個月後{"較強" if run[0][3] > 0 else "較弱"}')
+    cs = sorted((r for r in react if r[0] == "c"), key=lambda r: r[2])
+    for sg in (1, -1):
+        ms = [str(r[2]) for r in cs if r[3] == sg]
+        if ms:
+            out.append(f'累積 {"、".join(ms)} 個月{"較強" if sg > 0 else "較弱"}')
+    return "、".join(out)
 
 
 # ── 全部 ─────────────────────────────────────────────────────────────
