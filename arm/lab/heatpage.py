@@ -25,6 +25,7 @@ from . import heat as H
 from . import heatcalc as C
 from . import heatchart as HC
 from . import heatpos as HP
+from . import heatreg as RG
 from . import heatspec as S
 from . import heattech as TT
 
@@ -75,6 +76,14 @@ DLABEL = {
 }
 DVDEC = {"B1": 0, "B2": 2, "B3": 1, "C5": 0, "G1": 2, "G2": 2}
 WD = "一二三四五六日"
+# 第六版（第 15.7、15.11 節）：對照圖的三條組線、判定的寫法
+ACC_IDS = {g: f"A_{g}" for g in S.M6_GROUPS}
+ACC_NAME = {g: f"{nm}加速度" for g, nm in S.M6_GROUP_NAME.items()}
+V6 = {"pred": "有預測性", "in_only": "樣本內看得到、樣本外沒有", "in_untested": "樣本內看得到（這個期間沒有做樣本外）",
+      "none": "看不出", "few": "樣本不足"}
+V6MARK = {"pred": "★", "in_only": "●", "in_untested": "○"}
+GORDER = ["GA_grow", "GA_rate", "GA_lev", "DI", "SH_grow", "SH_rate", "SH_lev"]
+OOS_TXT = {"pred": "成立", "fail": "不成立", "untested": "沒有做", "few": "樣本不足", "none": "—"}
 
 
 def load_research(path: Path = RES) -> dict | None:
@@ -178,7 +187,7 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
     return {"asof": cal[t] if cal else None, "dims": dims, "R": R,
             "data": R.get("data") or {}, "cal_info": B.get("cal_info"), "vixcorr": B.get("vixcorr") or {}, "ta": ta,
             "strips": strips, "summary": HP.summary(strips) if strips else "", "dvn": dvn,
-            "dvr": R.get("deriv") or {}, "rel": R.get("rel") or {}, "meta": meta()}
+            "dvr": R.get("deriv") or {}, "rel": R.get("rel") or {}, "m6": R.get("m6") or {}, "meta": meta()}
 
 
 def meta() -> dict:
@@ -196,6 +205,8 @@ def meta() -> dict:
         "bands": [[lo, min(hi, 100), nm] for lo, hi, nm in S.BANDS], "evtfwd": list(S.EVT_FWD),
         "roll": [S.ROLL_WEEKS, S.ROLL_H], "grmain": S.GR_MAIN, "grlags": list(S.GR_LAGS), "bhq": S.BH_Q,
         "evt": {k: list(v) for k, v in S.EVT.items()},
+        "acc": [{"id": ACC_IDS[g], "name": ACC_NAME[g], "n": len(S.M6_GROUPS[g])} for g in S.M6_GROUPS],
+        "m6": {"delay": list(S.M6_DELAY), "win": S.M6_WIN, "cum": list(S.M6_CUM), "minn": S.M6_MIN_N},
     }
 
 
@@ -318,8 +329,9 @@ def _items(L: dict) -> str:
             tag = f'<em class="px">{_e(it["why"])}</em>'
         cls = "it" if it["pull"] is not None else "it it0"
         pl = pos_line(it["k"], it.get("pos"))
-        dl = dv_line(it["k"], it.get("dv"))
-        extra = (f'<i class="ipos">{_e(pl)}</i>' if pl else "") + (f'<i class="idv">邊際變化：{_e(dl)}</i>' if dl else "")
+        al = acc_label(it["k"], it.get("dv"))
+        extra = (f'<i class="ipos">{_e(pl)}</i>' if pl else "") + \
+            (f'<i class="idv" title="{_e(dv_line(it["k"], it.get("dv")))}">邊際變化 {_e(al)}</i>' if al else "")
         out.append(f'<div class="{cls}"><span class="inm"><button type="button" class="nmb" data-k="{_e(it["k"])}" '
                    f'title="在上面的對照圖只看這一項">{_e(it["name"])}</button><i>{_e(it["val"])}・{_e(_md(it["src"]))}</i>'
                    f'{extra}{tag}</span>'
@@ -420,6 +432,57 @@ def dv_line(k: str, dv: dict | None) -> str:
     note = f'（{dv["note"]}）' if dv.get("note") else ""
     return f'{l1} {_dvnum(k, dv["d1"], 0)}，{mid}：{dv["word"]}{note}{tail}'
 
+
+
+def acc_label(k: str, dv: dict | None) -> str:
+    """二階的正負與連續幾期：「▲ 加速 3 個月」「▼ 減速 2 個月」「持平」（和研究的「原始二階 > 0」同一個判斷）。"""
+    if not dv:
+        return ""
+    d2 = dv["d2"]
+    if d2 == 0:
+        return "持平"
+    unit = "個月" if S.FREQ_OF[k] == "m" else "天"
+    n = dv.get("streak") or 0
+    return ("▲ 加速" if d2 > 0 else "▼ 減速") + (f" {n} {unit}" if n else "")
+
+
+def acc_counts(dvn: dict) -> dict:
+    """幾項在加速（原始二階 > 0）：{"all": (加速, 有值), 組: (...)}。"""
+    out = {}
+    for g, keys in list(S.M6_GROUPS.items()) + [("all", tuple(S.DERIV))]:
+        have = [k for k in keys if dvn.get(k)]
+        out[g] = (sum(1 for k in have if dvn[k]["d2"] > 0), len(have))
+    return out
+
+
+def _iname(k: str) -> str:
+    return S.IND[S.KEYS.index(k)][2]
+
+
+def m6_conclusion(m6: dict) -> str:
+    """研究結論一句（照判定規則；先講結論，看不出就照寫）。"""
+    P = m6.get("primary") or {}
+    passed = [h for h in S.M6_PRIMARY if (P.get(h) or {}).get("pass")]
+    hp = [P[h]["holm"] for h in S.M6_PRIMARY if (P.get(h) or {}).get("holm") is not None]
+    by: dict[str, list] = {"pred": [], "fail": [], "untested": []}
+    for k in S.DERIV:
+        sm = (((m6.get("items") or {}).get(k) or {}).get("sum")) or {}
+        if sm.get("oos") in by:
+            by[sm["oos"]].append(f'{_iname(k)}（{RG.react_text(sm.get("react") or [])}）')
+    parts = []
+    if passed or by["pred"]:
+        head = "有預測性：" + "；".join([P[h]["what"] for h in passed] + by["pred"])
+        if by["fail"]:
+            parts.append("樣本內看得到、樣本外沒有：" + "、".join(by["fail"]))
+    else:
+        head = f"二階（加速度）在 1～{max(S.M6_CUM)} 個月看不出穩定的預測性"
+        parts.append(f"{len(S.M6_PRIMARY)} 個主要假說都沒有通過" + (f"（Holm 校正後 p 最小 {min(hp):.2f}）" if hp else ""))
+        if by["fail"]:
+            near = "、".join(by["fail"])
+            parts.append("比較接近的是" + (" " if near[:1].isascii() else "") + near + "，但樣本外沒有成立")
+    if by["untested"]:
+        parts.append("只在樣本內看到、那段期間沒有做樣本外：" + "、".join(by["untested"]))
+    return head + ("：" + "；".join(parts) if parts else "") + "。"
 
 
 def _card(dim: str, L: dict, V: dict) -> str:
@@ -718,27 +781,260 @@ def dv_more(rr: dict, hs) -> str:
 
 
 def _dv_section(V: dict) -> str:
+    """邊際變化區（第 15.7 節）：一句話、研究結論一句、4 欄精簡表；詳細數字在驗證段（預設收起）。"""
+    dvn = V.get("dvn") or {}
+    m6 = V.get("m6") or {}
+    cnt = acc_counts(dvn)
+    a, b = cnt["all"]
+    grp = "、".join(f'<button type="button" class="nmb" data-k="{ACC_IDS[g]}" title="在上面的對照圖看這一組幾成在加速">'
+                    f'{_e(S.M6_GROUP_NAME[g])}</button> {cnt[g][0]}/{cnt[g][1]}' for g in S.M6_GROUPS)
+    have = "" if b == len(S.DERIV) else f"（有最新值的 {b} 項）"
+    head = f'<p class="sum">{len(S.DERIV)} 項裡 {a} 項在加速{have}：{grp}</p>'
+    concl = (f'<p class="vd"><b>研究：</b>{_e(m6_conclusion(m6))}</p>' if m6.get("items") else
+             '<p class="warn">多層回歸的結果還沒產生（研究檔不是第六版）。</p>')
     rows = []
     for k in S.DERIV:
-        dv = (V.get("dvn") or {}).get(k)
-        rr = (V.get("dvr") or {}).get(k) or {}
-        name = S.IND[S.KEYS.index(k)][2]
-        hs = S.DIMS[S.DIM_OF[k]]["fwd"]
-        acc = "—" if not dv or dv.get("p10") is None else f'{dv["p10"]:.0f}'
-        rows.append(f'<tr><td class="l"><button type="button" class="nmb" data-k="{_e(k)}">{_e(name)}</button>'
+        dv = dvn.get(k)
+        sm = (((m6.get("items") or {}).get(k) or {}).get("sum")) or {}
+        rt = RG.react_text(sm.get("react") or []) or ("樣本不足" if sm.get("oos") == "few" else ("看不出" if sm else "—"))
+        tip = dv_line(k, dv)
+        rows.append(f'<tr><td class="l"><button type="button" class="nmb" data-k="{_e(k)}">{_e(_iname(k))}</button>'
                     f'<span class="hw">{_e(_when((dv or {}).get("asof")))}</span></td>'
-                    f'<td class="l" data-h="現在">{_e(dv_line(k, dv) or "—")}</td><td data-h="二階近 10 年">{acc}</td>'
-                    f'<td class="l" data-h="過去這個狀態之後">{_e(dv_past(rr, (dv or {}).get("state"), hs))}</td>'
-                    f'<td class="l" data-h="加速減速有沒有多出資訊">{_e(dv_more(rr, hs))}</td></tr>')
-    nores = "" if V.get("dvr") else '<p class="warn">邊際變化的驗證還沒產生（研究檔不是第五版）。</p>'
+                    f'<td class="l" data-h="現在"><span class="acl" title="{_e(tip)}">{_e(acc_label(k, dv) or "—")}</span></td>'
+                    f'<td class="l" data-h="幾個月後有反應">{_e(rt)}</td>'
+                    f'<td class="l" data-h="樣本外">{_e(OOS_TXT.get(sm.get("oos"), "—"))}</td></tr>')
+    for g in S.M6_GROUPS:
+        e = ((m6.get("groups") or {}).get(f"SH_{g}")) or {}
+        sm = e.get("sum") or {}
+        rt = RG.react_text(sm.get("react") or []) or ("樣本不足" if sm.get("oos") == "few" else ("看不出" if sm else "—"))
+        rows.append(f'<tr class="grow"><td class="l"><button type="button" class="nmb" data-k="{ACC_IDS[g]}">{_e(ACC_NAME[g])}</button>'
+                    f'<span class="hw">{len(S.M6_GROUPS[g])} 項幾成在加速</span></td>'
+                    f'<td class="l" data-h="現在">{cnt[g][0]}/{cnt[g][1]} 在加速</td>'
+                    f'<td class="l" data-h="幾個月後有反應">{_e(rt)}</td>'
+                    f'<td class="l" data-h="樣本外">{_e(OOS_TXT.get(sm.get("oos"), "—")) if sm.get("oos") != "untested" else "沒有樣本外模型"}</td></tr>')
     return (f'<section class="sec" id="dv"><h2>邊際變化（二次微分）<span class="sub">核心 {len(S.DERIV)} 項；不進分數</span></h2>'
-            '<p class="note">一階＝成長率或變化（例如年增率、20 日增減）；二階＝一階的變化（例如年增率比 3 個月前高還是低）。'
-            '兩個都看正負：成長而且加快＝「成長加速」，成長但變慢＝「成長趨緩」，衰退而且變快＝「衰退加劇」，衰退但變慢＝「衰退收斂」。'
-            '「二階近 10 年」＝二階在近 10 年的百分位：100＝一階增加得最快，0＝一階減少得最快。'
-            '驗證用每週的樣本：這個狀態之後台股的表現（和所有週比），以及「扣掉水準（0～100）之後，二階還有沒有多出預測資訊」'
-            f'（偏等級相關，{len(S.DERIV)} 項 × 2 個期間一起做多重比較校正，q ≤ {S.BH_Q}、前後兩半方向一樣才算）。</p>'
-            f'{nores}<div class="tw"><table class="dvt stk"><tr><th class="l">訊號</th><th class="l">現在</th><th>二階近 10 年</th>'
-            f'<th class="l">過去這個狀態之後</th><th class="l">加速減速有沒有多出資訊</th></tr>{"".join(rows)}</table></div></section>')
+            f'{head}{concl}<div class="tw"><table class="dvs stk"><tr><th class="l">項目</th><th class="l">現在</th>'
+            f'<th class="l">幾個月後有反應（加速時）</th><th class="l">樣本外</th></tr>{"".join(rows)}</table></div>'
+            '<p class="note">「▲ 加速」＝一階（例如年增率）比之前高，「▼ 減速」＝比之前低；後面是連續幾個月（日資料是幾天），滑過看數字。'
+            '「幾個月後有反應」只寫多重比較校正後成立、前後兩半與相鄰期間方向都一樣的期間（每個月一個樣本，1997 年 7 月起，'
+            '控制台股過去 1、12 個月的漲跌）；「較弱」＝加速得越快，那段期間台股報酬越低。樣本外＝2008 年起每個月只用當時拿得到的資料重新估計、'
+            '往後預測，和不看二階的模型比。點名稱，上面的對照圖只看那一條，下面會出現延遲反應圖。詳細數字在「驗證」最下面。</p></section>')
+
+
+def _pp(x, dec: int = 2) -> str:
+    """係數（對數報酬）→ 百分點，帶正負號。"""
+    return "—" if x is None else _sgn(100 * x, dec)
+
+
+def _rtip(e: dict) -> str:
+    """回歸一格的滑過說明：係數、信賴區間、t、q、前後兩半、月數、判定。"""
+    if not e or e.get("b") is None:
+        return f'{e.get("n", 0) if e else 0} 個月，不到 {S.M6_MIN_N} 個月'
+    q = e.get("q")
+    t = e.get("t")
+    return (f'{_pp(e["b"])} 個百分點［{_pp(e.get("lo"))}, {_pp(e.get("hi"))}］，Newey–West t {"—" if t is None else f"{t:+.2f}"}，'
+            f'q {"—" if q is None else f"{q:.3f}"}，前後兩半 {_pp(e.get("h1"))}／{_pp(e.get("h2"))}，{e["n"]} 個月（{e.get("a")}～{e.get("z")}）；'
+            f'{V6.get(e.get("v"), "—")}')
+
+
+def _rcell(e: dict | None) -> str:
+    if not e or e.get("b") is None:
+        return '<td class="mu">—</td>'
+    mk = V6MARK.get(e.get("v"), "")
+    return f'<td title="{_e(_rtip(e))}">{_e(_pp(e["b"]))}{f"<b>{mk}</b>" if mk else ""}</td>'
+
+
+def _part(title: str, tally: str, body: str) -> str:
+    """驗證段裡的一層：預設收起，標題列直接寫數一數的結果。"""
+    return (f'<details class="m6s"><summary>{_e(title)}<span class="sub">{_e(tally)}</span></summary>{body}</details>')
+
+
+def _tally(results: list) -> str:
+    """★●○ 各幾個（★＝有預測性、●＝樣本內看得到樣本外沒有、○＝樣本內看得到沒有做樣本外）。"""
+    vs = [(r or {}).get("v") for r in results]
+    n = sum(1 for v in vs if v not in (None, "few"))
+    marks = [f"{V6MARK[k]} {vs.count(k)}" for k in ("pred", "in_only", "in_untested") if vs.count(k)]
+    return f'{n} 個有結果' + ("：" + "、".join(marks) if marks else "：都看不出")
+
+
+def _rmat(title: str, rows: list, cols: list, note: str = "", tally: str | None = None) -> str:
+    """rows＝[(名稱, {視窗: 結果})]；cols＝[(視窗, 欄名)]；tally＝標題列的數一數（沒給就數 ★●○）。"""
+    head = "".join(f"<th>{_e(h)}</th>" for _, h in cols)
+    body = "".join(f'<tr><td class="l">{_e(nm)}</td>' + "".join(_rcell((d or {}).get(w)) for w, _ in cols) + "</tr>"
+                   for nm, d in rows)
+    tally = tally if tally is not None else _tally([(d or {}).get(w) for _, d in rows for w, _ in cols])
+    return _part(title, tally, f'<div class="tw"><table class="m6t"><tr><th class="l">項目</th>{head}</tr>{body}</table></div>'
+                 + (f'<p class="note">{_e(note)}</p>' if note else ""))
+
+
+DCOLS = [(f"{k},{S.M6_WIN}", f"{k}～{k + S.M6_WIN} 月後") for k in S.M6_DELAY]
+CCOLS = [(f"0,{m}", f"累積 {m} 月") for m in S.M6_CUM]
+OCOLS = [(f"{k},{m}", (f"{k}～{k + m} 月後" if k else f"累積 {m} 月")) for k, m in S.M6_OOS_WINDOWS]
+GNAME = {**{f"GA_{g}": f"{nm}（組加速度）" for g, nm in S.M6_GROUP_NAME.items()},
+         **{f"SH_{g}": f"{nm}（幾成在加速）" for g, nm in S.M6_GROUP_NAME.items()}, "DI": "加速擴散（13 項）"}
+STNAME = {"hi_acc": "水準高、加速", "hi_dec": "水準高、減速", "lo_acc": "水準低、加速", "lo_dec": "水準低、減速",
+          "gA_rA": "景氣加速、通膨利率加速", "gA_rD": "景氣加速、通膨利率減速", "gD_rA": "景氣減速、通膨利率加速",
+          "gD_rD": "景氣減速、通膨利率減速"}
+EVKIND = {"1": "一階 > 0 時轉加速", "2": "一階 > 0 時轉減速", "3": "一階 < 0 時轉減速", "4": "一階 < 0 時轉加速"}
+
+
+def _stcell(e: dict | None) -> str:
+    if not e or not e.get("n"):
+        return '<td class="mu">—</td>'
+    mk = {"strong": "▲", "weak": "▼"}.get(e.get("verdict"), "")
+    tip = (f'{e["n"]} 個月、{e.get("runs", "—")} 段；平均 {_pp(e.get("avg"), 1)}%，所有月份 {_pp(e.get("all"), 1)}%；'
+           f'差 {_pp(e.get("diff"), 1)}［{_pp(e.get("lo"), 1)}, {_pp(e.get("hi"), 1)}］；前後兩半 {_pp(e.get("d1"), 1)}／{_pp(e.get("d2"), 1)}；'
+           f'{CPLV.get(e.get("verdict"), "—")}')
+    return f'<td title="{_e(tip)}">{_e(_pp(e.get("diff"), 1))}<span class="hw">{e["n"]} 月</span>{f"<b>{mk}</b>" if mk else ""}</td>'
+
+
+def _oook(o: dict | None, pair: str = "m2>m1") -> bool:
+    c = ((o or {}).get("cw") or {}).get(pair) or {}
+    r2, p = c.get("r2"), c.get("p")
+    return bool(o) and not o.get("few") and r2 is not None and p is not None and r2 > 0 and p < S.M6_CW_ALPHA
+
+
+def _r2txt(o: dict | None, mo: str) -> str:
+    r2 = ((((o or {}).get("models") or {}).get(mo)) or {}).get("r2_0")
+    return "—" if r2 is None else f"{_sgn(100 * r2, 1)}%"
+
+
+def _oocell(o: dict | None, pair: str = "m2>m1") -> str:
+    if not o or not o.get("n"):
+        return '<td class="mu">—</td>'
+    c = (o.get("cw") or {}).get(pair) or {}
+    r2, p = c.get("r2"), c.get("p")
+    ok = _oook(o, pair)
+    tip = (f'{o["n"]} 個月（{o.get("a")}～{o.get("z")}）；R² {"—" if r2 is None else f"{100 * r2:+.2f}%"}，'
+           f'Clark–West p {"—" if p is None else f"{p:.3f}"}' + ("；樣本外不到 36 個月" if o.get("few") else ""))
+    return (f'<td title="{_e(tip)}">{"—" if r2 is None else _e(_sgn(100 * r2, 1)) + "%"}'
+            f'<span class="hw">p {"—" if p is None else f"{p:.2f}"}</span>{"<b>●</b>" if ok else ""}</td>')
+
+
+def _m6_valid(V: dict) -> str:
+    """驗證段：第六版多層回歸的詳細數字（預設收起）。"""
+    m6 = V.get("m6") or {}
+    if not m6.get("items"):
+        return '<p class="warn">第六版的多層回歸還沒產生（研究檔不是第六版）。</p>'
+    it, gr = m6["items"], m6.get("groups") or {}
+    names = [(k, _iname(k)) for k in S.DERIV]
+    out = []
+    P = m6.get("primary") or {}
+    prow = []
+    for h in S.M6_PRIMARY:
+        e = P.get(h) or {}
+        if h == "H2":
+            stat = "—" if e.get("w") is None else f'Wald {e["w"]:.2f}'
+        else:
+            stat = _pp(e.get("b")) + (f'［{_pp(e.get("lo"))}, {_pp(e.get("hi"))}］' if e.get("lo") is not None else "")
+        if h == "H3" and e.get("n_dec") is not None:
+            stat += f'<span class="hw">減速 {e["n_dec"]} 月、加速 {e["n_acc"]} 月</span>'
+        pv = "—" if e.get("p") is None else f'{e["p"]:.3f}'
+        hv = "—" if e.get("holm") is None else f'{e["holm"]:.3f}'
+        prow.append(f'<tr><td class="l">{h}</td><td class="l" data-h="內容">{_e(S.M6_PRIMARY[h][0])}</td><td data-h="月數">{e.get("n", 0)}</td>'
+                    f'<td data-h="係數或統計量">{stat}</td><td data-h="重抽 p">{pv}</td><td data-h="Holm 校正後 p">{hv}</td>'
+                    f'<td class="l" data-h="結果">{"通過" if e.get("pass") else "沒有通過"}</td></tr>')
+    out.append('<h4>主要假說（事前寫定，Holm 校正，α 0.05）</h4><div class="tw"><table class="m6p stk"><tr><th class="l">假說</th>'
+               '<th class="l">內容</th><th>月數</th><th>係數（百分點）或統計量</th><th>重抽 p</th><th>Holm 校正後 p</th>'
+               '<th class="l">結果</th></tr>' + "".join(prow) + "</table></div>")
+    leg = "★＝有預測性（樣本外也成立）、●＝樣本內看得到、樣本外沒有、○＝樣本內看得到（那段期間沒有做樣本外）；滑過看信賴區間、q、前後兩半。"
+    gks = [g for g in GORDER if g in gr]
+    rows_d = [(nm, it[k]["l1"]["d"]) for k, nm in names] + [(GNAME[g], gr[g]["l1"]["d"]) for g in gks]
+    rows_c = [(nm, it[k]["l1"]["c"]) for k, nm in names] + [(GNAME[g], gr[g]["l1"]["c"]) for g in gks]
+    out.append(_rmat("L1 延遲反應：二階（近 10 年百分位，中位數＝0、最高＝1）每多 1，那段期間台股的報酬多幾個百分點",
+                     rows_d, DCOLS, leg))
+    out.append(_rmat("L1 累積期間", rows_c, CCOLS, leg))
+    out.append(_rmat("L2 扣掉水準（0～100）與一階之後的二階", [(nm, it[k]["l2"]) for k, nm in names], DCOLS,
+                     "一階就是項目本身的（年增率、PMI）只扣水準；B1、C1、C5 另外扣一階。"))
+    out.append(_rmat("L3a 水準 × 二階的交互係數", [(nm, it[k]["l3a"]) for k, nm in names], DCOLS,
+                     "正數＝水準越高，加速之後越強；負數＝水準越高，加速之後越弱。"))
+    for zn, znm in (("bull", "台股在 10 個月均線之上"), ("hike", "聯準會 6 個月內升息")):
+        out.append(_rmat(f"L3c 二階 × 環境（{znm}）的交互係數", [(nm, it[k]["l3c"][zn]) for k, nm in names], DCOLS))
+    L4 = m6.get("l4") or {}
+    out.append(_rmat("L4 景氣動能加速度 × 通膨利率加速度的交互係數",
+                     [("延遲", (L4.get("inter") or {}).get("d")), ("累積", (L4.get("inter") or {}).get("c"))],
+                     DCOLS + CCOLS))
+    sth = "".join(f"<th>{_e(STNAME[x])}</th>" for x in ("hi_acc", "hi_dec", "lo_acc", "lo_dec"))
+    srows = "".join(f'<tr><td class="l">{_e(nm)}</td>' + "".join(_stcell(((it[k].get("l3b") or {}).get("12") or {}).get(x))
+                                                             for x in ("hi_acc", "hi_dec", "lo_acc", "lo_dec")) + "</tr>"
+                    for k, nm in names)
+    vs = [(((it[k].get("l3b") or {}).get("12") or {}).get(x) or {}).get("verdict") for k, _ in names
+          for x in ("hi_acc", "hi_dec", "lo_acc", "lo_dec")]
+    out.append(_part("L3b 四個狀態之後 12 個月（和所有月份比的差，百分點）", f'較強 {vs.count("strong")}、較弱 {vs.count("weak")}',
+                     '<div class="tw"><table class="m6t"><tr><th class="l">項目</th>' + sth + "</tr>" + srows
+                     + '</table></div><p class="note">▲▼＝信賴區間不含 0、前後兩半同號（月數 ≥ 24、段數 ≥ 4 才判定）。'
+                       '同一列比「水準高、加速」和「水準高、減速」，看得出差別的才是加速度的作用。</p>'))
+    gth = "".join(f"<th>{_e(STNAME[x])}</th>" for x in ("gA_rA", "gA_rD", "gD_rA", "gD_rD"))
+    grows = "".join(f'<tr><td class="l">之後 {h} 個月</td>' + "".join(_stcell(((L4.get("states") or {}).get(str(h)) or {}).get(x))
+                                                                for x in ("gA_rA", "gA_rD", "gD_rA", "gD_rD")) + "</tr>"
+                    for h in S.M6_STATE_H)
+    vs = [((((L4.get("states") or {}).get(str(h)) or {}).get(x)) or {}).get("verdict") for h in S.M6_STATE_H
+          for x in ("gA_rA", "gA_rD", "gD_rA", "gD_rD")]
+    out.append(_part("L4 景氣動能 × 通膨利率四個狀態（和所有月份比的差，百分點）", f'較強 {vs.count("strong")}、較弱 {vs.count("weak")}',
+                     '<div class="tw"><table class="m6t"><tr><th class="l">期間</th>' + gth + "</tr>" + grows
+                     + '</table></div><p class="note">四個狀態合起來的檢定是主要假說 H2。</p>'))
+    orow = "".join(f'<tr><td class="l">{_e(nm)}</td>' + "".join(_oocell((it[k].get("oos") or {}).get(w)) for w, _ in OCOLS) + "</tr>"
+                   for k, nm in names)
+    ok = sum(1 for k, _ in names for w, _ in OCOLS if _oook((it[k].get("oos") or {}).get(w)))
+    tot = sum(1 for k, _ in names for w, _ in OCOLS if ((it[k].get("oos") or {}).get(w) or {}).get("n")
+              and not ((it[k].get("oos") or {}).get(w) or {}).get("few"))
+    out.append(_part("樣本外：單項（有二階的模型對沒有二階的模型，R²；小字＝Clark–West p）", f"{tot} 個比較裡 {ok} 個 ●",
+                     '<div class="tw"><table class="m6t"><tr><th class="l">項目</th>' + "".join(f"<th>{_e(h)}</th>" for _, h in OCOLS)
+                     + "</tr>" + orow + '</table></div><p class="note">2008 年起每個月重新估計，只用報酬已經結束的月份；'
+                     'R² > 0 而且 p < 0.05 標 ●（樣本內沒有成立的期間，這一格亮了也不算有預測性）。</p>'))
+    G = m6.get("goos") or {}
+    mods = [("m2", "m2>m1", "加組加速度"), ("m3", "m3>m1", "再加三個交互"), ("ridge", "m1>ridge", "脊回歸"), ("tree", "m0>tree", "決策樹")]
+    grow_ = []
+    for mo, pair, nm in mods:
+        cells = []
+        for w, _ in OCOLS:
+            o = G.get(w) or {}
+            pr = pair if mo != "ridge" else "ridge>m1"
+            pr = pr if mo != "tree" else "tree>m0"
+            cells.append(_oocell(o, pr))
+        grow_.append(f'<tr><td class="l">{_e(nm)}</td>{"".join(cells)}</tr>')
+    out.append(_part("樣本外：組與綜合模型", "對只看組水準的模型比，決策樹對過去平均報酬比",
+                     '<div class="tw"><table class="m6t"><tr><th class="l">模型</th>' + "".join(f"<th>{_e(h)}</th>" for _, h in OCOLS)
+                     + "</tr>" + "".join(grow_) + '</table></div><p class="note">只看組水準的模型本身在累積 24 個月對過去平均的 R²：'
+                     + _e(_r2txt(G.get(f"0,{max(S.M6_CUM)}"), "m1")) + '。</p>'))
+    erow = []
+    for k, nm in names:
+        l6 = it[k].get("l6") or {}
+        cells = "".join(_stcell(((l6.get("kinds") or {}).get(kd) or {}).get("h", {}).get("12")) for kd in ("1", "2", "3", "4"))
+        erow.append(f'<tr><td class="l">{_e(nm)}<span class="hw">{l6.get("n", 0)} 次</span></td>{cells}</tr>')
+    vs = [((((it[k].get("l6") or {}).get("kinds") or {}).get(kd) or {}).get("h", {}).get(str(h)) or {}).get("verdict")
+          for k, _ in names for kd in ("1", "2", "3", "4") for h in S.M6_STATE_H]
+    out.append(_part("L6 轉折事件（平滑版二階翻正、翻負，新方向連 2 個月）之後 12 個月，和所有月份比的差",
+                     f'6、12、24 個月共 {len(vs)} 個比較：較強 {vs.count("strong")}、較弱 {vs.count("weak")}、樣本不足 {vs.count("few")}',
+                     '<div class="tw"><table class="m6t"><tr><th class="l">項目</th>'
+                     + "".join(f"<th>{_e(EVKIND[x])}</th>" for x in ("1", "2", "3", "4"))
+                     + "</tr>" + "".join(erow) + '</table></div><p class="note">少於 20 次＝樣本不足；▲▼＝信賴區間不含 0、前後兩半同號。</p>'))
+    ext = m6.get("ext") or {}
+    if ext:
+        xl = ext.get("l1") or {}
+        xr = [(_iname(k) if k in S.DERIV else GNAME.get(k, k), xl[k].get("d")) for k in list(S.DERIV) + GORDER if k in xl]
+        hs = "；".join(f'{h} {_pp((ext.get(h) or {}).get("b"))}（p {(ext.get(h) or {}).get("p", 0) or 0:.2f}）' for h in ("H1", "H4"))
+        rs = [(d or {}).get(w) or {} for _, d in xr for w, _ in DCOLS]
+        nb = sum(1 for r in rs if r.get("b") is not None)
+        n5 = sum(1 for r in rs if r.get("p") is not None and r["p"] < 0.05)
+        out.append(_rmat(f'延伸樣本（國發會股價指數月平均，{ext.get("a")}～{ext.get("z")}；只當穩健度）', xr, DCOLS,
+                         "報酬用月平均、晚一個月起算；沒有做多重比較校正，只看方向是不是和主樣本一樣。",
+                         tally=f"{nb} 個有結果，重抽 p < 0.05 的 {n5} 個；{hs}"))
+    # 第五版的每週驗證（狀態、偏相關）也留著
+    rows5 = []
+    for k in S.DERIV:
+        rr = (V.get("dvr") or {}).get(k) or {}
+        hs = S.DIMS[S.DIM_OF[k]]["fwd"]
+        st = ((V.get("dvn") or {}).get(k) or {}).get("state")
+        rows5.append(f'<tr><td class="l">{_e(_iname(k))}</td><td class="l">{_e(dv_past(rr, st, hs))}</td>'
+                     f'<td class="l">{_e(dv_more(rr, hs))}</td></tr>')
+    out.append(_part("第五版：每週樣本", "現在這個狀態之後的表現；扣掉水準之後的偏等級相關",
+                     '<div class="tw"><table class="dvt"><tr><th class="l">項目</th><th class="l">過去這個狀態之後</th>'
+                     '<th class="l">加速減速有沒有多出資訊</th></tr>' + "".join(rows5) + "</table></div>"))
+    sm = m6.get("sample") or {}
+    head = (f'邊際變化的多層回歸（第六版；每月樣本 {sm.get("a")}～{sm.get("z")}、{sm.get("T")} 個月；樣本外 {sm.get("oos_start")} 起）')
+    return (f'<details class="ovw" id="m6"><summary><b>{_e(head)}</b><span class="sub">點開看每一層的數字；規格在看結果之前寫定（規劃文件第 15.11 節）</span>'
+            f'</summary>{"".join(out)}</details>')
 
 
 def _ll_text(ll: dict | None) -> str:
@@ -822,7 +1118,7 @@ def render(V: dict) -> str:
         + "".join(_card(d, Ds[d], V) for d in Ds) + _dv_section(V) + _ta(V)
         + '<section class="sec" id="valid"><h2>驗證</h2>' + _METHOD + _METHOD5
         + (f'<p class="note">面向分數最早從哪天有：{_e(firsts)}。</p>' if firsts else "")
-        + _rel_overview(V)
+        + _rel_overview(V) + _m6_valid(V)
         + "".join(_valid(d, Ds[d]) for d in Ds) + "</section>"
         + f'<section class="sec" id="src"><h2>資料來源與筆數</h2><div class="tw"><table><tr><th class="l">檔</th><th>筆數</th>'
           f'<th>起</th><th>到</th></tr>{data_rows}</table></div><p class="note">{_e(_SRC_NOTE)}</p></section>'
@@ -1008,6 +1304,15 @@ tr.cur td{background:#fff7e6}.ovl{font-size:13px}
 .ovw{margin:14px 0}.ovw>summary{cursor:pointer;font-size:14px;line-height:1.7;color:var(--accd)}.ovw>summary .sub{display:block;font-size:12px;color:var(--mut);font-weight:400}
 table.dvt td:nth-child(2),table.dvt td:nth-child(4),table.dvt td:nth-child(5){white-space:normal;min-width:180px}
 table.rlt td{white-space:normal;min-width:120px}table.rlt td:first-child{min-width:150px}
+table.dvs td:nth-child(3){white-space:normal;min-width:180px}table.dvs tr.grow td{background:var(--card2)}
+.acl{font-weight:600;cursor:help;border-bottom:1px dotted var(--mut)}
+table.m6t{font-size:12px}table.m6t th{white-space:normal;font-size:11px}table.m6t td{padding:5px 6px}
+table.m6t td:first-child,table.m6t th:first-child{position:sticky;left:0;background:var(--bg);z-index:1;white-space:normal;min-width:7.5em}
+table.m6t th:first-child{background:var(--card2)}table.m6t td b{color:var(--accd);margin-left:2px}
+table.m6p td:nth-child(2){white-space:normal;min-width:220px}
+.rsp{display:flex;flex-wrap:wrap;gap:12px}
+.m6s{margin:6px 0;border-top:1px solid var(--line);padding-top:6px}.m6s>summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--ink)}
+.m6s>summary .sub{display:block;margin:1px 0 0;font-weight:400;font-size:12px;color:var(--mut)}.an .rp{fill:var(--acc)}.an .ri{fill:var(--ink)}.an .rn{fill:#fff;stroke:var(--mut);stroke-width:1.5}
 @media (max-width:640px){
  .sr{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"n v" "c c" "t t";padding:9px 10px}
  .sr-n{grid-area:n}.sr-v{grid-area:v}.sr-c{grid-area:c;height:16px}.sr-t{grid-area:t;font-size:12px}
@@ -1052,7 +1357,11 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&': '&amp
 const NAME = {}, SHORT = {};
 M.dims.forEach(d => { NAME[d.id] = d.name; SHORT[d.id] = d.short; });
 Object.keys(M.items).forEach(k => { NAME[k] = M.items[k].name; SHORT[k] = M.items[k].name; });
+const ACC = {};
+(M.acc || []).forEach(a => { NAME[a.id] = a.name; SHORT[a.id] = a.name; ACC[a.id] = a; });
 const isDim = id => Object.prototype.hasOwnProperty.call(M.order, id);
+const isAcc = id => Object.prototype.hasOwnProperty.call(ACC, id);
+const noRaw = id => isDim(id) || isAcc(id);
 const VERD = {strong: '之後較強', weak: '之後較弱', none: '看不出差別', few: '樣本不足'};
 let D = null, failed = false;
 const st = {sel: M.dims.map((d, i) => ({id: d.id, slot: i})), range: M.rdef, mode: 'h', hz: M.hdef, pick: false};
@@ -1090,7 +1399,7 @@ function toggle(id) {
     st.sel.push({id: id, slot: s});
   }
   msg('');
-  if (st.sel.length !== 1 || isDim(st.sel[0].id)) st.mode = 'h';
+  if (st.sel.length !== 1 || noRaw(st.sel[0].id)) st.mode = 'h';
   render();
 }
 function only(id) {
@@ -1130,6 +1439,12 @@ function controls() {
   pk.hidden = !st.pick;
   pk.textContent = '';
   if (st.pick) {
+    if (M.acc && M.acc.length) {
+      const g = document.createElement('div'); g.className = 'pg';
+      const h = document.createElement('b'); h.textContent = '加速度'; g.appendChild(h);
+      M.acc.forEach(a => g.appendChild(chip(a.id, a.name)));
+      pk.appendChild(g);
+    }
     M.dims.forEach(d => {
       const g = document.createElement('div'); g.className = 'pg';
       const h = document.createElement('b'); h.textContent = d.short; g.appendChild(h);
@@ -1142,7 +1457,7 @@ function controls() {
   M.ranges.forEach(r => rg.appendChild(btn(r ? r + ' 年' : '全部', st.range === r, () => { st.range = r; msg(''); render(); })));
   const md = $('#cmp-mode');
   md.textContent = '';
-  const can = st.sel.length === 1 && !isDim(st.sel[0].id);
+  const can = st.sel.length === 1 && !noRaw(st.sel[0].id);
   md.hidden = !can;
   if (can) {
     md.appendChild(btn('0～100', st.mode === 'h', () => { st.mode = 'h'; render(); }));
@@ -1166,7 +1481,7 @@ function win() {
 }
 function seriesOf(id, w, raw) {
   const s = D.s[id];
-  const key = (raw && !isDim(id) ? 'r' : 'h') + (w.daily ? 'd' : '');
+  const key = (raw && !noRaw(id) ? 'r' : 'h') + (w.daily ? 'd' : '');
   const t = s ? s[key] : null;
   const out = [];
   for (let i = w.i0; i <= w.i1; i++) out.push(val(t, i));
@@ -1223,7 +1538,7 @@ function draw() {
   const PL = narrow ? 46 : 52, PR = narrow ? 8 : 108, T1 = 8, H1 = narrow ? 180 : 230, G = 28, H2 = narrow ? 110 : 140, PB = 22;
   const w = win(), n = w.i1 - w.i0 + 1;
   const X = i => PL + (W - PL - PR) * (n <= 1 ? 0 : (i - w.i0) / (n - 1));
-  const raw = st.mode === 'r' && st.sel.length === 1 && !isDim(st.sel[0].id);
+  const raw = st.mode === 'r' && st.sel.length === 1 && !noRaw(st.sel[0].id);
   const lines = st.sel.map(x => ({id: x.id, slot: x.slot, v: seriesOf(x.id, w, raw)}));
   let y0 = 0, y1 = 100;
   if (raw) {
@@ -1325,7 +1640,8 @@ function draw() {
   svg.addEventListener('pointerdown', move);
   svg.addEventListener('pointerleave', () => { cx.setAttribute('visibility', 'hidden'); tip.hidden = true; });
   let cap = raw ? '上圖：' + NAME[st.sel[0].id] + '的原始值。' : '上圖：0～100（100 最熱；淡紅底＝80 以上、淡藍底＝20 以下）。';
-  if (st.sel.length === 1) cap += '下圖淡紅＝這一項 ≥ 80（過熱）的期間，淡藍＝< 20（過冷）。';
+  if (st.sel.some(x => isAcc(x.id))) cap += '加速度線＝組內幾成在加速（100＝全部在加速）。';
+  if (st.sel.length === 1) cap += isAcc(st.sel[0].id) ? '下圖淡紅＝八成以上在加速的期間，淡藍＝兩成以下。' : '下圖淡紅＝這一項 ≥ 80（過熱）的期間，淡藍＝< 20（過冷）。';
   cap += w.daily ? '近 1 年用每天的值。' : '用每週最後一個交易日的值。';
   $('#cmp-cap').textContent = cap;
 }
@@ -1425,13 +1741,65 @@ function evtBlock(evt) {
   return '<h4>回測：剛進入過熱、過冷的那一天之後</h4><div class="tw"><table class="ct"><tr><th class="l">事件</th><th class="dsk">次數</th>' + M.evtfwd.map(h => '<th>之後 ' + h + ' 日平均</th>').join('') + '</tr>' + rows + '</table></div>' + lists
     + '<p class="note">前 ' + M.evt.hot[1] + ' 個交易日都還沒到那一區，今天第一天到，才算一次。和這一項有 0～100 的所有日子比；少於 20 次寫樣本不足。</p>';
 }
+const VER6 = {pred: '有預測性', in_only: '樣本內看得到、樣本外沒有', in_untested: '樣本內看得到（這個期間沒有做樣本外）', none: '看不出', few: '樣本不足'};
+const OOS6 = {pred: '樣本外也成立', fail: '樣本外沒有成立', untested: '那段期間沒有做樣本外', few: '樣本不足'};
+function rspPanel(rows, labs, W, y0, y1, title) {
+  const Hh = 168, PL = 40, PR = 6, top = 20, PB = 34, n = rows.length, bw = (W - PL - PR) / Math.max(1, n);
+  const Y = v => top + (Hh - top - PB) * (1 - (v - y0) / (y1 - y0));
+  let s = '<text class="gt" x="' + PL + '" y="12">' + esc(title) + '</text>';
+  nice(y0, y1, 4).forEach(t => {
+    s += '<line class="' + (t === 0 ? 'zl' : 'gl') + '" x1="' + PL + '" x2="' + (W - PR) + '" y1="' + Y(t).toFixed(1) + '" y2="' + Y(t).toFixed(1) + '"/><text class="gt" x="' + (PL - 4) + '" y="' + (Y(t) + 3.5).toFixed(1) + '" text-anchor="end">' + (t > 0 ? '+' : '') + t + '</text>';
+  });
+  rows.forEach((r, k) => {
+    const cx = PL + bw * (k + 0.5);
+    if (r[1] != null) {
+      if (r[2] != null && r[3] != null) s += '<line class="ci" x1="' + cx.toFixed(1) + '" x2="' + cx.toFixed(1) + '" y1="' + Y(r[2]).toFixed(1) + '" y2="' + Y(r[3]).toFixed(1) + '"/>';
+      const cls = r[4] === 'pred' ? 'rp' : (r[4] === 'in_only' || r[4] === 'in_untested' ? 'ri' : 'rn');
+      s += '<circle class="' + cls + '" cx="' + cx.toFixed(1) + '" cy="' + Y(r[1]).toFixed(1) + '" r="4.5"><title>' + esc(labs[k] + '：' + pct(r[1], 2).replace('%', ' 個百分點') + (r[2] != null ? '［' + pct(r[2], 2).replace('%', '') + ', ' + pct(r[3], 2).replace('%', '') + '］' : '') + '，' + (VER6[r[4]] || '')) + '</title></circle>';
+    }
+    s += '<text class="gt" x="' + cx.toFixed(1) + '" y="' + (Hh - PB + 14) + '" text-anchor="middle">' + esc(labs[k]) + '</text>';
+  });
+  s += '<text class="gt" x="' + ((PL + W - PR) / 2).toFixed(1) + '" y="' + (Hh - 4) + '" text-anchor="middle">個月</text>';
+  return '<svg viewBox="0 0 ' + W + ' ' + Hh + '" width="' + W + '" height="' + Hh + '" role="img" aria-label="' + esc(title) + '">' + s + '</svg>';
+}
+function respBlock(id, W) {
+  const r = D.m6 ? D.m6[id] : null;
+  let h = '<h4>' + (isAcc(id) ? '多數項目加速之後，幾個月有反應？' : '這一項加速之後，幾個月有反應？') + '</h4>';
+  const d = r ? (r.d || []) : [], c = r ? (r.c || []) : [];
+  if (!d.concat(c).some(x => x[1] != null)) return h + '<p class="note">每月樣本不到 ' + M.m6.minn + ' 個月，或研究檔還沒有第六版的結果。</p>';
+  const oo = OOS6[(r.sum || {}).oos];
+  h += '<p><b>' + esc(r.txt ? '加速時，' + r.txt + (oo ? '（' + oo + '）' : '') + '。' : '看不出：0～24 個月的反應，多重比較校正後都不成立，或前後兩半、相鄰期間的方向不一致。') + '</b></p>';
+  let lo = 0, hi = 0;
+  d.concat(c).forEach(x => { [x[1], x[2], x[3]].forEach(v => { if (v != null) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }); });
+  const pad = (hi - lo) * 0.08 || 1;
+  lo -= pad; hi += pad;
+  const wide = W >= 560, w1 = wide ? Math.floor((W - 12) * 8 / 14) : W, w2 = wide ? W - 12 - w1 : W;
+  const dl = d.map(x => x[0] + '～' + (x[0] + M.m6.win)), cl = c.map(x => String(x[0]));
+  h += '<div class="rsp">' + rspPanel(d, dl, w1, lo, hi, '之後第幾個月的 ' + M.m6.win + ' 個月報酬（百分點）') + rspPanel(c, cl, w2, lo, hi, '從現在起累積幾個月的報酬（百分點）') + '</div>';
+  const unit = isAcc(id) ? '全部在加速（相對一半在加速）' : '二階在近 10 年最高（相對中位數）';
+  const row = (lab, x, key) => '<tr><td class="l">' + esc(lab) + '</td><td data-h="係數（百分點）">' + (x[1] == null ? '—' : pct(x[1], 2).replace('%', '') + (x[2] != null ? '<span class="hw">［' + pct(x[2], 2).replace('%', '') + ', ' + pct(x[3], 2).replace('%', '') + '］</span>' : '')) + '</td><td data-h="月數">' + (x[5] || '—') + '</td><td class="l" data-h="判定">' + esc(VER6[x[4]] || '—') + '</td><td data-h="樣本外">' + oosCell(r.oos, key) + '</td></tr>';
+  const rows = d.map((x, k) => row(dl[k] + ' 個月後', x, x[0] + ',' + M.m6.win)).join('') + c.map((x, k) => row('累積 ' + cl[k] + ' 個月', x, '0,' + x[0])).join('');
+  h += '<details><summary class="note">看數字</summary><div class="tw"><table class="stk"><tr><th class="l">期間</th><th>係數（百分點）</th><th>月數</th><th class="l">判定</th><th>樣本外</th></tr>' + rows + '</table></div></details>';
+  return h + '<p class="note">點＝' + esc(unit) + '時，那段期間台股的報酬多（少）幾個百分點，已扣掉台股過去 1、12 個月的漲跌；直線＝95% 信賴區間（區塊重抽）。'
+    + '深色實心＝多重比較校正後成立、前後兩半與相鄰期間方向一致（藍色＝樣本外也成立），空心＝看不出。每個月一個樣本，1997 年 7 月起；樣本外＝2008 年起每月只用當時的資料重新估計。</p>';
+}
+function oosCell(oos, key) {
+  const o = oos ? oos[key] : null;
+  if (!o || !o[0]) return '—';
+  if (o[3]) return '樣本不足';
+  return o[1] == null ? '—' : 'R² ' + pct(o[1], 2) + '<span class="hw">p ' + (o[2] == null ? '—' : o[2].toFixed(3)) + '</span>';
+}
 function single(box, id) {
   const a = D.an ? D.an[id] : null;
   let h = '<h3>' + esc(NAME[id]) + '和台股的關係<span class="sub">只當參考；研究檔的結果，資料或規格改了才重算</span></h3>';
-  if (!a || !a.first) { box.innerHTML = h + '<p class="note">這一項歷史還不夠，或研究檔還沒有這一項的結果。</p>'; return; }
-  h += '<p class="note">' + esc(NAME[id]) + '從 ' + ymd(a.first) + ' 起有 0～100；以下用每週最後一個交易日的值（Granger 用每月最後一個交易日）。</p>';
   const W = Math.max(280, Math.min(620, Math.floor(box.clientWidth || 600)));
-  box.innerHTML = '<div class="an">' + h + llBlock(a.ll, W) + grBlock(id, a.gr) + rollBlock(a.roll, W) + bandBlock(id, a.bands) + evtBlock(a.evt) + '</div>';
+  if (isAcc(id)) {
+    box.innerHTML = '<div class="an">' + h + '<p class="note">這條線＝' + ACC[id].n + ' 項裡有幾成在加速（一階比之前高）；研究用每個月底的值。</p>' + respBlock(id, W) + '</div>';
+    return;
+  }
+  if (!a || !a.first) { box.innerHTML = '<div class="an">' + h + '<p class="note">這一項歷史還不夠，或研究檔還沒有這一項的結果。</p>' + (D.m6 && D.m6[id] ? respBlock(id, W) : '') + '</div>'; return; }
+  h += '<p class="note">' + esc(NAME[id]) + '從 ' + ymd(a.first) + ' 起有 0～100；以下用每週最後一個交易日的值（Granger 用每月最後一個交易日）。</p>';
+  box.innerHTML = '<div class="an">' + h + llBlock(a.ll, W) + (D.m6 && D.m6[id] ? respBlock(id, W) : '') + grBlock(id, a.gr) + rollBlock(a.roll, W) + bandBlock(id, a.bands) + evtBlock(a.evt) + '</div>';
 }
 
 // ── 交互分析（瀏覽器算；規則同 heatrel.group_stats）

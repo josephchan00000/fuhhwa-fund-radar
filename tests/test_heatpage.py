@@ -1,5 +1,6 @@
 """景氣溫度頁 x9m.html（arm/lab/heatpage.py；第五版：熱度色帶頁首、對照台股互動圖、五個面向卡、邊際變化、關鍵價位與事件）：
 用合成資料跑完整條管線（heatcalc → view → render）；瀏覽器端的交互分析用 node 和 Python 的 heatrel.group_stats 比對。"""
+import html
 import json
 import random
 import shutil
@@ -101,10 +102,69 @@ def research_stub(B):
     return R
 
 
+def m6_stub() -> dict:
+    """第六版研究結果的合成樣本：大多看不出，M1B 累積 3 個月樣本內有、樣本外沒有；美國 CPI 15～18 個月後樣本內有（沒有做樣本外）；
+    外資台指期樣本不足。"""
+    def res(b=0.01, v="none", n=300):
+        if b is None:
+            return {"n": n, "a": "2023-09", "z": "2024-06", "b": None, "t": None, "lo": None, "hi": None, "p": None,
+                    "h1": None, "h2": None, "q": None, "v": "few"}
+        return {"n": n, "a": "1997-08", "z": "2024-01", "b": b, "t": 1.0, "lo": b - 0.02, "hi": b + 0.02, "p": 0.3,
+                "h1": b, "h2": b, "q": 0.5, "v": v}
+
+    def l1(b=0.01):
+        return {"d": {f"{k},{S.M6_WIN}": res(b) for k in S.M6_DELAY}, "c": {f"0,{m}": res(b) for m in S.M6_CUM}}
+
+    def oos(r2=-0.01, p=0.4, few=False):
+        mm = {"m0": {"hit": 0.6}, "m1": {"hit": 0.55, "r2_0": -0.02, "terc": []}, "m2": {"hit": 0.56, "r2_0": -0.03, "r2_1": r2, "terc": []}}
+        return {"n": 20 if few else 200, "a": "2008-01", "z": "2024-06", "few": few, "models": mm,
+                "cw": {"m2>m1": {"t": 0.3, "p": p, "r2": r2}}}
+
+    st = {s_: {"n": 80, "runs": 30, "avg": 0.05, "all": 0.06, "diff": -0.01, "lo": -0.05, "hi": 0.03, "d1": -0.01, "d2": 0.0,
+               "verdict": "none", "yrs": ["2001"]} for s_ in ("hi_acc", "hi_dec", "lo_acc", "lo_dec")}
+    ev = {"n": 10, "dates": [], "path": [0.01] * 24, "h": {str(h): {"n": 10, "diff": 0.01, "lo": -0.02, "hi": 0.03, "verdict": "few"}
+                                                         for h in S.M6_STATE_H}}
+    items = {}
+    for k in S.DERIV:
+        e = {"first": "1997-07", "x1": k in ("B1", "C1", "C5"), "l1": l1(), "l2": l1()["d"], "l3a": l1()["d"],
+             "l3c": {"bull": l1()["d"], "hike": l1()["d"]}, "l3b": {str(h): st for h in S.M6_STATE_H},
+             "oos": {f"{a},{b}": oos() for a, b in S.M6_OOS_WINDOWS},
+             "l6": {"n": 40, "flat": 0, "base": [0.01] * 24, "kinds": {str(x): ev for x in (1, 2, 3, 4)}},
+             "sum": {"react": [], "oos": "none"}}
+        items[k] = e
+    items["L2"]["l1"]["c"]["0,3"] = res(0.0529, "in_only")
+    items["L2"]["sum"] = {"react": [["c", 0, 3, 1, "in_only"]], "oos": "fail"}
+    items["L2"]["oos"]["0,3"] = oos(0.0017, 0.083)
+    items["B8"]["l1"]["d"]["15,3"] = res(-0.0439, "in_untested")
+    items["B8"]["sum"] = {"react": [["d", 15, 3, -1, "in_untested"]], "oos": "untested"}
+    items["C5"]["l1"] = {"d": {w: res(None, n=40) for w in items["C5"]["l1"]["d"]}, "c": {w: res(None, n=40) for w in items["C5"]["l1"]["c"]}}
+    items["C5"]["sum"] = {"react": [], "oos": "few"}
+    groups = {g: {"first": "1997-07", "l1": l1(), "sum": {"react": [], "oos": "none"}}
+              for g in ("GA_grow", "GA_rate", "GA_lev", "DI", "SH_grow", "SH_rate", "SH_lev")}
+    groups["SH_rate"]["l1"]["d"]["15,3"] = res(-0.0333, "in_untested")
+    groups["SH_rate"]["sum"] = {"react": [["d", 15, 3, -1, "in_untested"]], "oos": "untested"}
+    prim = {h: {"n": 327, "b": -0.02, "lo": -0.1, "hi": 0.05, "p": 0.3, "holm": 0.6, "pass": False, "what": S.M6_PRIMARY[h][0]}
+            for h in S.M6_PRIMARY}
+    prim["H2"] = {"n": 327, "b": [-0.02, 0.0, -0.1], "w": 7.06, "p": 0.076, "holm": 0.306, "nw_p": 0.08, "pass": False,
+                  "what": S.M6_PRIMARY["H2"][0], "states": {}}
+    prim["H3"].update(n_dec=90, n_acc=77)
+    g = {"n": 200, "a": "2008-01", "z": "2024-06", "few": False, "tree": None,
+         "models": {"m0": {"hit": 0.6}, **{m: {"hit": 0.6, "r2_0": -0.01, "r2_1": -0.02, "terc": []} for m in ("m1", "m2", "m3", "ridge", "tree")}},
+         "cw": {c: {"t": 0.1, "p": 0.5, "r2": -0.01} for c in ("m2>m1", "m3>m1", "m3>m2", "ridge>m1", "tree>m0")}}
+    return {"ver": S.VER, "sample": {"a": "1997-07", "z": "2026-10", "T": 352, "oos_start": S.M6_OOS_START},
+            "items": items, "groups": groups,
+            "l4": {"inter": l1(), "states": {str(h): {s_: dict(st["hi_acc"]) for s_ in ("gA_rA", "gA_rD", "gD_rA", "gD_rD")}
+                                             for h in S.M6_STATE_H}},
+            "goos": {f"{a},{b}": g for a, b in S.M6_OOS_WINDOWS}, "primary": prim,
+            "ext": {"a": "1982-01", "z": "2026-08", "T": 536, "l1": {"L2": l1()}, "H1": res(-0.0452), "H4": res(-0.0382)},
+            "now": {}}
+
+
 @pytest.fixture(scope="module")
 def built():
     B = C.build(synthetic_D())
     R = research_stub(B)
+    R["m6"] = m6_stub()
     V = P.view(B, R)
     return B, R, V, P.render(V)
 
@@ -161,11 +221,14 @@ def test_items_show_history_position_and_marginal_change(built):
     assert n_pos >= 35 and page.count('<i class="ipos">') == n_pos             # 每一項名稱下面有歷史位置
     assert "的日子高" in page or "的日子低" in page
     have_dv = [k for k in S.DERIV if V["dvn"].get(k)]
-    assert len(have_dv) >= 10 and page.count('<i class="idv">邊際變化：') == len(have_dv)
-    dv = page[page.index('id="dv"'):page.index('id="ta"')]
-    assert dv.count('<button type="button" class="nmb" data-k="') == len(S.DERIV) == 13   # 核心 13 項（規劃時數錯寫成 14）
+    assert len(have_dv) >= 10 and page.count('<i class="idv" title="') == len(have_dv)   # 第六版：只留短標籤，數字放滑過的說明
     for k in have_dv:
-        assert P.dv_line(k, V["dvn"][k]) in dv
+        assert f'>邊際變化 {P.acc_label(k, V["dvn"][k])}</i>' in page
+    assert '<i class="idv">邊際變化：' not in page                             # 第五版的長句不再出現在每一項下面
+    dv = page[page.index('id="dv"'):page.index('id="ta"')]
+    assert sum(dv.count(f'class="nmb" data-k="{k}"') for k in S.DERIV) == len(S.DERIV) == 13   # 核心 13 項（規劃時數錯寫成 14）
+    for k in have_dv:
+        assert html.escape(P.dv_line(k, V["dvn"][k])) in dv                   # 數字還在（滑過的說明）
     for it in (i for L in V["dims"].values() for i in L["items"]):             # 點項目名稱 → 對照圖只看這一項
         assert f'class="nmb" data-k="{it["k"]}"' in page
 
@@ -214,6 +277,110 @@ def test_dv_past_and_more_texts():
     assert P.dv_past(rr, None, (120, 250)) == "—" and P.dv_past({}, 1, (120,)) == "—" and P.dv_more({}, (120,)) == "—"
 
 
+def test_acc_label_and_counts():
+    assert P.acc_label("B5", {"d2": 12.7, "streak": 3}) == "▲ 加速 3 個月"
+    assert P.acc_label("C5", {"d2": -11317.0, "streak": 11}) == "▼ 減速 11 天"              # 日資料寫天
+    assert P.acc_label("B1", {"d2": 0, "streak": 0}) == "持平" and P.acc_label("B1", None) == ""
+    dvn = {k: {"d2": 1.0} for k in S.DERIV}
+    dvn["C5"] = {"d2": -1.0}
+    dvn["G2"] = None
+    c = P.acc_counts(dvn)
+    assert c["all"] == (11, 12) and c["lev"] == (1, 2) and c["rate"] == (3, 3) and c["grow"] == (7, 7)
+
+
+def test_dv_section_v6_headline_conclusion_and_table(built):
+    _, R, V, page = built
+    dv = page[page.index('id="dv"'):page.index('id="ta"')]
+    a, b = P.acc_counts(V["dvn"])["all"]
+    assert f"{len(S.DERIV)} 項裡 {a} 項在加速" in dv
+    for g in S.M6_GROUPS:                                                     # 三組都可以點到對照圖
+        assert dv.count(f'class="nmb" data-k="A_{g}"') == 2                    # 一句話裡一次、表格裡一次
+    assert '<table class="dvs stk">' in dv and "幾個月後有反應（加速時）" in dv and ">樣本外</th>" in dv
+    assert dv.count('<tr><td class="l">') == len(S.DERIV) and dv.count('<tr class="grow">') == len(S.M6_GROUPS)
+    assert "研究：</b>二階（加速度）在 1～24 個月看不出穩定的預測性：4 個主要假說都沒有通過（Holm 校正後 p 最小 0.31）" in dv
+    assert f"比較接近的是 {P._iname('L2')}（累積 3 個月較強），但樣本外沒有成立" in dv   # 中英之間空一格
+    assert f"只在樣本內看到、那段期間沒有做樣本外：{P._iname('B8')}（15～18 個月後較弱）" in dv
+    m6 = json.loads(json.dumps(R["m6"]))                                      # 有預測性的時候先講有預測性
+    m6["items"]["L2"]["sum"]["oos"] = "pred"
+    m6["primary"]["H4"]["pass"] = True
+    txt = P.m6_conclusion(m6)
+    assert txt.startswith(f"有預測性：{S.M6_PRIMARY['H4'][0]}；{P._iname('L2')}（累積 3 個月較強）") and "看不出" not in txt
+    row = lambda k: dv[dv.index(f'data-k="{k}"'):].split("</tr>")[0]          # noqa: E731
+    assert "累積 3 個月較強" in row("L2") and ">不成立<" in row("L2")
+    assert "15～18 個月後較弱" in row("B8") and ">沒有做<" in row("B8")
+    assert "樣本不足" in row("C5") and "看不出" in row("B1")
+    assert 'data-h="現在"' in dv and 'data-h="樣本外"' in dv                   # 手機上一項一塊
+    V0 = P.view(built[0], {k: v for k, v in R.items() if k != "m6"})
+    assert "多層回歸的結果還沒產生" in P._dv_section(V0)
+
+
+def test_m6_validation_is_collapsed_with_all_layers(built):
+    _, _, V, page = built
+    val = page[page.index('id="valid"'):page.index('id="src"')]
+    m6 = val[val.index('<details class="ovw" id="m6">'):]
+    depth, i = 0, 0
+    while True:                                                               # 對到外層的 </details>（裡面還有一層一層的 details）
+        a, b = m6.find("<details", i), m6.find("</details>", i)
+        if a != -1 and a < b:
+            depth, i = depth + 1, a + 8
+        else:
+            depth, i = depth - 1, b + 10
+            if depth == 0:
+                break
+    m6 = m6[:i]
+    for t in ("主要假說", "L1 延遲反應", "L1 累積期間", "L2 扣掉水準", "L3a 水準 × 二階", "L3c 二階 × 環境（台股在 10 個月均線之上）",
+              "L3c 二階 × 環境（聯準會 6 個月內升息）", "L4 景氣動能加速度 × 通膨利率加速度", "L3b 四個狀態", "L4 景氣動能 × 通膨利率四個狀態",
+              "樣本外：單項", "樣本外：組與綜合模型", "L6 轉折事件", "延伸樣本", "第五版：每週樣本"):
+        assert t in m6, t
+    assert m6.count('<tr><td class="l">H') == len(S.M6_PRIMARY) and "沒有通過" in m6
+    assert "<b>●</b>" in m6 and "<b>○</b>" in m6                             # M1B 樣本內有樣本外沒有、美國 CPI 沒有做樣本外
+    assert m6.count('<details class="m6s">') >= 12                             # 每一層各自收起，標題列寫數一數的結果
+    assert "個有結果：○ 2</span>" in m6 and "個有結果：● 1</span>" in m6      # 延遲：美國 CPI、通膨利率組；累積：M1B
+    grp = m6[m6.index("L1 延遲反應"):]
+    assert grp.index("景氣動能（組加速度）") < grp.index("通膨利率（組加速度）") < grp.index("籌碼（組加速度）") < grp.index("加速擴散")
+    assert '<table class="m6t">' in m6 and "position:sticky" in page          # 寬表的第一欄固定
+    assert "個有結果，重抽 p &lt; 0.05 的 0 個；H1 −4.52（p 0.30）；H4 −3.82（p 0.30）" in m6   # 延伸樣本沒有判定：標題列數 p 值
+    assert '<table class="m6p stk">' in m6                                    # 主要假說表手機一項一塊
+    assert P._m6_valid({"m6": {}}).startswith('<p class="warn">')
+
+
+def test_chart_acc_lines_match_research_shares(built):
+    from arm.lab import heatchart as HC
+    from arm.lab import heatreg as G
+    B, R, _, _ = built
+    data = HC.build_data(B, R)
+    for g in S.M6_GROUPS:
+        sid = f"A_{g}"
+        assert set(data["s"][sid]) == {"h", "hd"}                            # 只有 0～100，沒有原始值
+        assert all(v is None or 0 <= v <= 100 for v in data["s"][sid]["h"]["v"])
+    lines = HC.acc_lines(B)
+    Pn = G.panel(B)
+    n = 0
+    for t, i in enumerate(Pn["me"]):
+        for g in S.M6_GROUPS:
+            sh = Pn["SH"][g][t]
+            v = lines[f"A_{g}"][i]
+            assert (sh is None) == (v is None)
+            if sh is not None:
+                assert abs(v - 50 * (sh + 1)) < 1e-9                         # 對照圖的組線＝研究的「幾成在加速」
+                n += 1
+    assert n > 50
+    m6 = data["m6"]
+    assert set(m6) == set(S.DERIV) | {f"A_{g}" for g in S.M6_GROUPS}
+    assert m6["L2"]["txt"] == "累積 3 個月較強" and m6["B1"]["txt"] == ""
+    assert [x[0] for x in m6["B1"]["d"]] == list(S.M6_DELAY) and [x[0] for x in m6["B1"]["c"]] == list(S.M6_CUM)
+    assert m6["L2"]["c"][1][1] == 5.29 and m6["L2"]["oos"]["0,3"] == [200, 0.17, 0.083, False]
+    assert HC.build_data(B, {**R, "ver": 5})["m6"] == {}                      # 舊版研究檔不用
+
+
+def test_page_js_has_acc_lines_and_response_block():
+    js = P._JS
+    assert "const isAcc" in js and "const noRaw" in js and "function respBlock(" in js and "function rspPanel(" in js
+    assert "h.textContent = '加速度'" in js                                  # 對照圖「＋ 細項」多一組三條線
+    assert "!noRaw(st.sel[0].id)" in js and "isDim(st.sel[0].id)" not in js   # 組線沒有原始值
+    assert "respBlock(id, W)" in js
+
+
 def test_meta_matches_spec_and_is_embedded(built):
     _, _, V, page = built
     m = P.meta()
@@ -225,6 +392,8 @@ def test_meta_matches_spec_and_is_embedded(built):
     assert m["cpl"]["minw"] == S.CPL_MIN_WEEKS and m["cpl"]["minr"] == S.CPL_MIN_RUNS and m["cpl"]["seed"] == S.BOOT_SEED
     assert m["max"] == S.CH_MAX == 5 and len(m["pal"]) == S.CH_MAX and m["rdef"] in m["ranges"]
     assert set(m["items"]) == set(S.KEYS) and [d["id"] for d in m["dims"]] == list(S.DIMS)
+    assert [a["id"] for a in m["acc"]] == [f"A_{g}" for g in S.M6_GROUPS] and m["acc"][0]["name"] == "景氣動能加速度"
+    assert m["m6"] == {"delay": list(S.M6_DELAY), "win": S.M6_WIN, "cum": list(S.M6_CUM), "minn": S.M6_MIN_N}
     assert page.count("<script>") == 2 and "x9mh.json" in page                 # 序列資料另外下載
 
 

@@ -5,6 +5,9 @@
   · d：近 260 個交易日每天一點的日期與加權指數；
   · s：5 個面向分數與 44 項的 0～100（取到小數一位）、原始值（4 位有效數字），每週與每天各一份；開頭沒有值的部分不存；
   · an：研究檔的單項分析（滾動相關的週序號換成日期）；dv：邊際變化的驗證結果。
+第六版（第 15.11 節）再加：
+  · s 的 A_grow、A_rate、A_lev：三組「幾成在加速」（0～100，組內原始二階 > 0 的比例）；
+  · m6：13 項與三條組線的延遲反應（L1 係數與重抽區間、判定）與樣本外摘要。
 輸出決定性：資料沒變時位元組相同。
 """
 from __future__ import annotations
@@ -15,6 +18,7 @@ from pathlib import Path
 
 from . import heat as H
 from . import heatpos as P
+from . import heatreg as RG
 from . import heatspec as S
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -44,6 +48,54 @@ def trim(vals: list) -> dict:
     return {"o": o, "v": vals[o:]}
 
 
+def acc_lines(B: dict, d2: dict | None = None) -> dict:
+    """三組「幾成在加速」（逐日 0～100）：組內原始二階（第五版 v0，當天拿得到的）> 0 的比例，
+    至少 M6_GROUP_MIN 項有值（第 15.11 節第 11 點；和研究的 SH_* 同一個量）。"""
+    T = len(B["cal"])
+    d2 = d2 if d2 is not None else {k: P.deriv(B, k)["d2"] for k in S.DERIV}
+    out = {}
+    for g, keys in S.M6_GROUPS.items():
+        col = []
+        for i in range(T):
+            v = [d2[k][i] for k in keys if d2[k][i] is not None]
+            col.append(None if len(v) < S.M6_GROUP_MIN[g] else 100.0 * sum(1 for x in v if x > 0) / len(v))
+        out[f"A_{g}"] = col
+    return out
+
+
+def _m6_curve(l1: dict) -> dict:
+    """L1 → {"d": [[k, b, lo, hi, 判定], ...], "c": [[m, ...], ...]}（係數換成百分點，取到小數兩位）。"""
+    pp = lambda x: None if x is None else round(100 * x, 2)                       # noqa: E731
+    out = {}
+    for part, idx in (("d", 0), ("c", 1)):
+        rows = []
+        for ws, e in (l1.get(part) or {}).items():
+            k = int(ws.split(",")[idx])
+            rows.append([k, pp(e.get("b")), pp(e.get("lo")), pp(e.get("hi")), e.get("v"), e.get("n")])
+        out[part] = sorted(rows)
+    return out
+
+
+def m6_data(R: dict) -> dict:
+    """研究檔的第六版結果 → 對照圖單項分析用的精簡格式。"""
+    m6 = R.get("m6") or {}
+    out = {}
+    for k, e in (m6.get("items") or {}).items():
+        oo = {}
+        for ws, o in (e.get("oos") or {}).items():
+            c = (o.get("cw") or {}).get("m2>m1") or {}
+            oo[ws] = [o.get("n"), None if c.get("r2") is None else round(100 * c["r2"], 2),
+                      None if c.get("p") is None else round(c["p"], 4), bool(o.get("few"))]
+        out[k] = {"first": e.get("first"), "sum": e.get("sum"), "oos": oo, **_m6_curve(e.get("l1") or {})}
+    for g in S.M6_GROUPS:
+        e = (m6.get("groups") or {}).get(f"SH_{g}")
+        if e:
+            out[f"A_{g}"] = {"first": e.get("first"), "sum": e.get("sum"), "oos": {}, **_m6_curve(e.get("l1") or {})}
+    for v in out.values():
+        v["txt"] = RG.react_text(((v.get("sum") or {}).get("react")) or [])
+    return out
+
+
 def build_data(B: dict, R: dict | None = None) -> dict:
     R = R or {}
     if R.get("ver") != S.VER:
@@ -63,6 +115,8 @@ def build_data(B: dict, R: dict | None = None) -> dict:
         h, raw = B["heat"][k], B["raw"][k]
         s[k] = {"h": trim([r1(h[i]) for i in we]), "r": trim([sig(raw[i]) for i in we]),
                 "hd": trim([r1(h[i]) for i in dl]), "rd": trim([sig(raw[i]) for i in dl])}
+    for sid, col in acc_lines(B).items():
+        s[sid] = {"h": trim([r1(col[i]) for i in we]), "hd": trim([r1(col[i]) for i in dl])}
     an = {}
     wk = R.get("wk") or []
     for sid, a in ((R.get("rel") or {}).items()):
@@ -70,7 +124,7 @@ def build_data(B: dict, R: dict | None = None) -> dict:
         a["roll"] = [[wk[j], v] for j, v in a.get("roll") or [] if j < len(wk)]
         an[sid] = a
     return {"ver": S.VER, "asof": cal[-1] if cal else None, "w": w, "d": d, "s": s, "an": an,
-            "dv": R.get("deriv") or {}}
+            "dv": R.get("deriv") or {}, "m6": m6_data(R)}
 
 
 def dumps(data: dict) -> str:
