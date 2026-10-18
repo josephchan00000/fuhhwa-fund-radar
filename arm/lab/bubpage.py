@@ -1,7 +1,8 @@
-"""泡沫頁（dashboard/x9b.html；docs/lab_risk_plan.md 第 7、8 節；規格 bubspec VER 1）。
+"""泡沫頁（dashboard/x9b.html；docs/lab_risk_plan.md 第 7～9 節；規格 bubspec VER 2）。
 
 五個市場（台股、S&P 500、那斯達克、那斯達克 100、費半）的泡沫等級 0～4：
-  頁首等級磚 → 各市場一張卡（歷史等級圖、現在的五個條件、等級 ≥ 3 的泡沫段、驗證）→ 條件說明 → 方法與資料。
+  頁首等級磚 → 各市場一張卡（歷史等級圖、現在的六個條件與兩年拆解、等級 ≥ 3 的泡沫段、驗證）→ 條件說明 → 方法與資料。
+VER 2：價格過熱而且價格漲得比基本面快（E）才到等級 3；只有價格過熱最多到 2。
 現在的狀態每天重算（bubble.market_for；同一個程序裡景氣頁先算、這裡沿用），驗證讀研究檔 data/lab/bub_research.json
 （scripts/run_bub.py，資料或規格改了才重跑）。只描述位置，不是買賣訊號。
 """
@@ -17,10 +18,18 @@ from .heatpage import _e, _md, _ymd
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "dashboard" / "x9b.html"
 
-COND_ORDER = ("P1", "P2", "P3", "V", "F")
+COND_ORDER = BU.CONDS
+P_ORDER = ("P1", "P2", "P3")
 SHORT = BU.SHORT
-TEST_NAMES = {"P1": "價格爆發（PSY）", "P2": "兩年翻倍而且在高點", "P3": "偏離長期趨勢 2 個標準差", "V": "估值歷史前 5%",
-              "F": "槓桿歷史前 10%", "L2": "等級 ≥ 2（漲勢過熱以上）", "L3": "等級 ≥ 3（泡沫警戒以上）", "L4": "等級 4（嚴重泡沫）"}
+TEST_NAMES = {"P1": "價格爆發（PSY）", "P2": "兩年翻倍而且在高點", "P3": "偏離長期趨勢 2 個標準差",
+              "E": "價格漲得比基本面快（比值爆發）", "V": "估值歷史前 5%", "F": "槓桿歷史前 10%",
+              "PF": "價格過熱，而且漲得比基本面快", "PN": "價格過熱，但基本面有跟上",
+              "L2": "等級 ≥ 2（漲勢過熱以上）", "L3": "等級 ≥ 3（泡沫警戒以上）", "L4": "等級 4（嚴重泡沫）",
+              "L3v1": "對照：舊版（只看價格）等級 ≥ 3"}
+DEC_NAMES = {"pe": ("股價", "近 12 個月盈餘"), "pe_tw": ("有盈餘公司的市值", "近四季淨利"), "ex": ("實質加權指數", "實質出口"),
+             "wsts": ("費半", "全球半導體銷售額"), "cp": ("指數", "美國企業稅後獲利")}
+CYC_NAMES = {"pe": "S&P 500 盈餘", "ex": "台灣實質出口", "wsts": "全球半導體銷售額", "cp": "美國企業稅後獲利"}
+CYC_HI = 2.0                                       # 景氣高峰參考：比長期趨勢高 2 個標準差以上就在一句話裡提醒
 VERDICT = {"crash": "成立後較容易大跌", "calm": "成立後反而較少大跌", "none": "看不出差別", "few": "樣本不足"}
 VAL_NAMES = {"X6": "CAPE", "X8": "巴菲特指標", "X9": "Tobin's Q"}
 NO_VAL = {"tw": "台股本益比只有 2013 年起，歷史太短", "ixic": "沒有自己的長歷史估值", "ndx": "沒有自己的長歷史估值",
@@ -80,9 +89,22 @@ def summary(mk: str, m: dict) -> str:
     """一句話：等級、哪些條件同時成立；估值、槓桿的狀況。"""
     n = m["now"]
     lv = n["L"]
-    conds = [SHORT[c] for c in COND_ORDER if n.get(c)]
+    pc = [SHORT[c] for c in P_ORDER if n.get(c)]
     s = f'{_sp(m["name"])}現在是等級 {lv}「{BS.LEVELS[lv]}」'
-    s += f'：{"、".join(conds)}同時成立' if len(conds) >= 2 else (f"：只有{conds[0]}成立" if conds else "")
+    if pc:
+        s += f'：{"、".join(pc)}成立'
+        if n.get("E"):
+            hit = [BS.FUND_NAMES[k] for k, e in (n.get("e") or {}).items() if e["run"] >= BS.E_RUN]
+            s += f'，而且價格漲得比基本面快（{"、".join(hit)}爆發）'
+        elif n.get("V"):
+            s += "，而且估值在歷史前 5%"
+        else:
+            s += "，但價格沒有漲得比基本面快" if n.get("E") is False else "，基本面無法判定"
+            d = _dec_short(n)
+            if d:
+                s += f"（{d}）"
+    elif n.get("V"):
+        s += "：估值在歷史前 5%，但價格沒有過熱"
     tail = []
     p2 = n.get("p2") or {}
     if (not n.get("P2") and (p2.get("ru") or 0) >= BS.RUN2_PCT and p2.get("dist") is not None
@@ -100,7 +122,42 @@ def summary(mk: str, m: dict) -> str:
     f = n.get("f") or {}
     if f.get("pct") is not None and not n.get("F"):
         tail.append(f'槓桿不在歷史高檔（第 {f["pct"]:.0f} 百分位）')
+    for k, e in (n.get("e") or {}).items():
+        c = e.get("cyc") or {}
+        if c.get("z") is not None and c["z"] >= CYC_HI:
+            tail.append(f'{CYC_NAMES[k]}比長期趨勢高 {c["z"]:.1f} 個標準差，基本面本身可能在景氣高峰')
     return s + "。" + ("；".join(tail) + "。" if tail else "")
+
+
+def _dec_short(n: dict) -> str:
+    """一句話裡的兩年拆解：第一條算得出來的比值。"""
+    for k, e in (n.get("e") or {}).items():
+        d = e.get("dec")
+        if d:
+            a, b = DEC_NAMES[k]
+            return f'兩年{a} {_pct(d["p"], 0, True)}、{b} {_pct(d["f"], 0, True)}'
+    return ""
+
+
+def _e_text(n: dict) -> str:
+    """每條比值一段：讀數、PSY、兩年拆解。"""
+    out = []
+    for k, e in (n.get("e") or {}).items():
+        nm = BS.FUND_NAMES[k]
+        if k in ("pe", "pe_tw"):
+            nm += f' {e["r"]:.1f} 倍'
+        ym = _e(_ymd(e["ym"]))
+        run = f'{ym} 為止連續 {e["run"]} 個月超過' if e["run"] else f"{ym} 沒有超過"
+        tip = f'長期漲勢（每月變化的平均 ÷ 標準差）{e["g"]:.3f}'
+        x = (f'{_e(nm)}：BSADF {e["s"]:.2f}，95% 臨界值 {e["q95"]:.2f}'
+             f'<span class="hint" title="{_e(tip)}">（已依長期漲勢調整）</span>；{run}')
+        d = e.get("dec")
+        if d:
+            a, b = DEC_NAMES[k]
+            x += (f'<span class="dec">兩年（{_e(_ymd(d["a"]))}→{ym}）：{_e(a)} {_pct(d["p"], 0, True)}、'
+                  f'{_e(b)} {_pct(d["f"], 0, True)} → 比值 {_pct(d["r"], 1 if abs(d["r"]) < 1 else 0, True)}</span>')
+        out.append(f'<span class="rat">{x}</span>')
+    return "".join(out) if out else "沒有基本面資料"
 
 
 def _p1_text(n: dict) -> str:
@@ -184,7 +241,8 @@ def tiles(V: dict) -> str:
                    f'<span class="bcs">{chips}</span><span class="btk">{_e("・".join(key))}</span></a>')
     return ('<section class="sec" id="lv"><h2>五個市場的泡沫等級<span class="sub">0 沒有跡象・1 偏貴・2 漲勢過熱・3 泡沫警戒・4 嚴重泡沫</span></h2>'
             f'<div class="btg">{"".join(out)}</div>'
-            '<p class="note">至少兩種不同類型的條件同時成立才到「泡沫警戒」。紅色＝成立，虛線＝這個市場沒有資料判定。</p></section>')
+            '<p class="note">價格過熱，而且價格漲得比基本面快（或估值在歷史前 5%），才到「泡沫警戒」；只有價格過熱最多到「漲勢過熱」。'
+            '紅色＝成立，虛線＝這個市場沒有資料判定。</p></section>')
 
 
 def _now_table(mk: str, m: dict) -> str:
@@ -192,11 +250,12 @@ def _now_table(mk: str, m: dict) -> str:
     rows = [("P1", "價格爆發（PSY）", _p1_text(n), f"超過 95% 臨界值，連續 {BS.PSY_RUN} 個月"),
             ("P2", "兩年翻倍而且在高點", _p2_text(n), f"兩年漲 ≥ {BS.RUN2_PCT:.0f}%，離最高 {100 * BS.RUN2_ATH:.0f}% 以內"),
             ("P3", "偏離長期趨勢", _p3_text(n), f"≥ {BS.TREND_Z:.0f} 個標準差"),
+            ("E", "價格漲得比基本面快", _e_text(n), f"比值超過 95% 臨界值，連續 {BS.E_RUN} 個月"),
             ("V", "估值", _v_text(mk, n, ref), f"至少 {BS.VAL_NEED} 項 ≥ 第 {BS.VAL_PCT:.0f} 百分位"),
             ("F", "槓桿", _f_text(mk, n), f"≥ 第 {BS.FUEL_PCT:.0f} 百分位")]
     tr = "".join(f'<tr><td class="l" data-h="條件">{_e(nm)}</td><td class="l" data-h="現在">{txt}</td>'
                  f'<td class="l" data-h="門檻">{_e(th)}</td><td data-h="成立">{_mark(n.get(c))}</td></tr>' for c, nm, txt, th in rows)
-    return ('<h3>現在的五個條件</h3><div class="tw"><table class="stk bnow"><tr><th class="l">條件</th><th class="l">現在</th>'
+    return ('<h3>現在的六個條件</h3><div class="tw"><table class="stk bnow"><tr><th class="l">條件</th><th class="l">現在</th>'
             f'<th class="l">門檻</th><th>成立</th></tr>{tr}</table></div>')
 
 
@@ -213,7 +272,18 @@ def _ref_line(mk: str, m: dict) -> str:
         xs.append(f'超額 CAPE 殖利率 {r["ecy"]["v"]:.2f} 個百分點')
     if r.get("rsp"):
         xs.append(f'等權 ÷ 市值加權一年變化 {r["rsp"]["v"]:+.1f}%')
-    return f'<p class="note">參考讀數（不進等級）：{_e("；".join(xs))}。</p>' if xs else ""
+    cy = []
+    hi = False
+    for k, e in (((m.get("now") or {}).get("e")) or {}).items():
+        c = e.get("cyc") or {}
+        if c.get("z") is not None:
+            cy.append(f'{CYC_NAMES[k]}比長期趨勢高 {c["z"]:.1f} 個標準差（{_ymd(c["per"])}）')
+            hi = hi or c["z"] >= CYC_HI
+    out = f'<p class="note">參考讀數（不進等級）：{_e("；".join(xs))}。</p>' if xs else ""
+    if cy:
+        out += (f'<p class="note{" cyc" if hi else ""}">景氣高峰參考（不進等級）：{_e("；".join(cy))}。'
+                '循環性的基本面在高峰時，比值會看起來偏低。</p>')
+    return out
 
 
 def _epi_table(m: dict, ext: dict | None = None) -> str:
@@ -251,7 +321,7 @@ def _cell(e: dict | None) -> str:
     return f'{ph} ／ {pa}<em>{_e(VERDICT.get(e.get("verdict"), "—"))}</em>'
 
 
-def _valid_table(R: dict, tests=BS.TESTS) -> str:
+def _valid_table(R: dict, tests=BS.TESTS2) -> str:
     if not R:
         return '<p class="warn">驗證結果還沒產生。</p>'
     tr = []
@@ -276,9 +346,23 @@ def _valid_head(R: dict) -> str:
     """驗證收起來時的一句話：等級 ≥ 3 之後一年內跌 20% 的比例（成立 ／ 全部）與判定。"""
     e = (R.get("L3") or {}).get("252") or {}
     if not e.get("n_hot"):
-        return "等級 ≥ 3 還沒有走完一年的歷史樣本"
-    return (f'等級 ≥ 3 之後一年內跌 20%：{100 * e["p_hot"]:.0f}%，全部月份 {100 * e["p_all"]:.0f}%'
-            f'（{e["n_hot"]} 個月、{e["n_epi"]} 段，{VERDICT.get(e.get("verdict"), "—")}）')
+        never = "share" not in (R.get("L3") or {})
+        return ("沒有出現過等級 ≥ 3" if never else "等級 ≥ 3 還沒有走完一年的歷史樣本") + _pfpn(R)
+    s = (f'等級 ≥ 3 之後一年內跌 20%：{100 * e["p_hot"]:.0f}%，全部月份 {100 * e["p_all"]:.0f}%'
+         f'（{e["n_hot"]} 個月、{e["n_epi"]} 段，{VERDICT.get(e.get("verdict"), "—")}）')
+    return s + _pfpn(R)
+
+
+def _pfpn(R: dict) -> str:
+    """價格過熱時：漲得比基本面快（PF）vs 基本面有跟上（PN），之後一年內跌 20% 的比例。"""
+    a, b = (R.get("PF") or {}).get("252") or {}, (R.get("PN") or {}).get("252") or {}
+    if not a.get("n_hot") and not b.get("n_hot"):
+        return ""
+
+    def f(e):
+        return "—" if not e.get("n_hot") else f'{100 * e["p_hot"]:.0f}%（{e["n_hot"]} 個月）'
+    return f"；價格過熱時，漲得比基本面快 {f(a)}、基本面有跟上 {f(b)}"
+
 
 
 def _valid(mk: str, R: dict) -> str:
@@ -299,9 +383,11 @@ def _valid(mk: str, R: dict) -> str:
                        f'兩年內跌 40% {_cell(e2).replace("<em>", "（").replace("</em>", "）")}。</p>')
     if ext:
         out.append(f'<h4>延伸樣本：國發會月平均 {_e(_ymd(ext["a"]))}～{_e(_ymd(ext["z"]))}（含 1987–1990）</h4>'
-                   + _valid_table(ext, ("P1", "P2", "P3", "L2", "L3"))
-                   + '<p class="note">只當穩健度：訊號用當月讀數，跌幅用之後 12、24 個月的月平均；兩年翻倍改用 24 個月月平均漲幅。</p>')
-    out.append('<p class="note">判定：成立月份 ≥ 12 個月、≥ 4 段，差的 95% 區間（12 個月一塊重抽）不含 0、而且前後兩半同方向，'
+                   + _valid_table(ext, ("P1", "P2", "P3", "E", "PF", "PN", "L2", "L3", "L3v1"))
+                   + '<p class="note">只當穩健度：訊號用當月讀數，跌幅用之後 12、24 個月的月平均；兩年翻倍改用 24 個月月平均漲幅；'
+                     '比值只有加權指數 ÷ 出口（本益比 2013 年起）。</p>')
+    out.append('<p class="note">「價格過熱，而且漲得比基本面快」和「價格過熱，但基本面有跟上」兩列的差別，就是基本面有沒有跟上。'
+               '判定：成立月份 ≥ 12 個月、≥ 4 段，差的 95% 區間（12 個月一塊重抽）不含 0、而且前後兩半同方向，'
                '才寫「較容易大跌」或「反而較少大跌」。平均報酬只描述，不判定。</p></details>')
     return "".join(out)
 
@@ -335,6 +421,11 @@ TYPES = (
      "大跌之後的反彈（還沒回到前高）不算，所以要求收盤離歷史最高 5% 以內。"),
     ("P3", "偏離長期趨勢 2 個標準差（GMO）",
      "實質股價離長期趨勢線多遠；GMO 把 2 個標準差定為泡沫門檻。長期趨勢本身也會改變，所以只當其中一個條件。"),
+    ("E", "價格漲得比基本面快（價格 ÷ 基本面的比值爆發）",
+     "把指數除以它的基本面，看這個比值是不是也在爆發（同一套 PSY）：S&P 500 用盈餘，台股用盈餘與出口，費半用全球半導體銷售額，"
+     "那斯達克兩檔用美國企業整體獲利（近似，科技股的獲利占比幾十年來變很多）。提出 PSY 的論文檢定的就是 S&P 500 的股價 ÷ 股利。"
+     "基本面跟著漲、比值沒有爆發，就不算泡沫，最多到「漲勢過熱」。基本面本身在景氣高峰時（半導體、出口），比值會看起來偏低，"
+     "所以另列「景氣高峰參考」。"),
     ("V", "估值歷史前 5%（只有 S&P 500）",
      "CAPE、巴菲特指標、Tobin's Q 和全部歷史比。估值高可以維持很多年，主要影響的是之後 10 年的報酬，不是短期會不會崩，"
      "所以只有估值高只算「偏貴」。台股本益比只有 2013 年起、其他三個美股指數沒有自己的長歷史估值，不判定。"),
@@ -350,15 +441,19 @@ def types_sec(V: dict) -> str:
         on = [V["M"][mk]["name"] for mk in BS.MARKETS if mk in V["M"] and V["M"][mk]["now"].get(c)]
         st = f'現在成立：{"、".join(on)}' if on else "現在沒有市場成立"
         out.append(f'<div class="bty"><h3>{_e(nm)}</h3><p>{_e(txt)}</p><p class="note">{_e(st)}</p></div>')
-    return ('<section class="sec" id="types"><h2>五種條件代表什麼</h2>' + "".join(out)
+    return ('<section class="sec" id="types"><h2>六種條件代表什麼</h2>' + "".join(out)
             + '<p class="note">參考讀數（LPPLS、上漲加速度、集中度、本益比、超額 CAPE 殖利率）只列數字，不進等級：'
               '我們的 LPPLS 是網格近似，歷史上很少亮燈；其他項目沒有公認的泡沫門檻。</p></section>')
 
 
 METHOD = (
     '<section class="sec" id="mth"><details class="cd"><summary><b>方法與資料</b></summary>'
-    '<p>等級只看「幾種不同類型的條件同時成立」：0＝沒有價格條件也不是偏貴；1＝只有估值；2＝1 個價格條件；'
-    '3＝2～3 個價格條件，或 1 個價格條件＋估值或槓桿；4＝2～3 個價格條件＋估值或槓桿。資料不夠長、算不出來的條件當作不成立。</p>'
+    '<p>等級（VER 2）：價格過熱＝價格爆發、兩年翻倍、偏離長期趨勢任一成立。0＝價格沒過熱、估值也沒在歷史前 5%；'
+    '1＝只有估值在歷史前 5%；2＝價格過熱，但價格沒有漲得比基本面快（或基本面無法判定）；'
+    '3＝價格過熱，而且「漲得比基本面快」或「估值在歷史前 5%」其中一個成立；4＝價格過熱，而且「漲得比基本面快」「估值」「槓桿」至少兩個成立。'
+    '資料不夠長、算不出來的條件當作不成立。舊版（VER 1，只看價格）的等級留在驗證表當對照。</p>'
+    '<p>價格 ÷ 基本面：每個月的月平均價格 ÷ 那個月月底拿得到的最新基本面（S&P 500 盈餘晚 6 個月、出口晚 2 個月、'
+    '全球半導體銷售額晚 2 個月、美國企業獲利季底後 3 個月），基本面停更超過 12 個月就不算。</p>'
     '<p>價格爆發：實質股價（月平均 ÷ 前一個月 CPI）取對數，算 BSADF（視窗至少 60 個月）。臨界值用「有長期漲勢的隨機漫步」模擬，'
     '漲勢＝到當月為止每月變化的平均 ÷ 標準差，8 檔各 2,000 次、相鄰兩檔內插。CPI 缺月（2025-10 美國政府停擺）用前後兩個月的幾何平均補上。</p>'
     '<p>每個條件只用當時拿得到的資料：月資料下個月 1 日起才用，家計證券融資季資料晚 3 個月半。驗證用每個月最後一個交易日，'
@@ -419,9 +514,10 @@ _HTML = """<!doctype html>
 <style>{{CSS}}</style></head>
 <body>
 <div class="top">{{APPTAB}}<span class="asof">資料到 {{ASOF}}</span><a class="back" href="./">返回主頁</a></div>
-<div class="vbar"><details class="purp"><summary>這頁怎麼看</summary><p>泡沫等級 0～4：五個條件（價格爆發、兩年翻倍、偏離長期趨勢、估值、槓桿）裡，
-至少兩種不同類型同時成立才到「泡沫警戒」。門檻取自文獻，不用結果去調。每個市場下面有歷史等級、現在的讀數、過去的泡沫段，
-以及「成立之後比較容易大跌嗎」的驗證。只描述位置，不是買賣訊號。</p></details></div>
+<div class="vbar"><details class="purp"><summary>這頁怎麼看</summary><p>泡沫等級 0～4：價格過熱（價格爆發、兩年翻倍、偏離長期趨勢），
+而且價格漲得比基本面快（價格 ÷ 盈餘、出口、銷售額的比值也在爆發），才到「泡沫警戒」；只有價格過熱、基本面有跟上，最多到「漲勢過熱」。
+門檻取自文獻，不用結果去調。每個市場下面有歷史等級、現在的讀數與兩年拆解、過去的泡沫段，以及「成立之後比較容易大跌嗎」的驗證。
+只描述位置，不是買賣訊號。</p></details></div>
 <main>{{BODY}}</main>
 <script type="application/json" id="bubd">{{DATA}}</script>
 <script>{{JS}}</script>
@@ -451,6 +547,7 @@ CSS = """
 .bh{position:relative;min-height:120px}.bh svg{touch-action:pan-y}
 .bh .gd{stroke:var(--ink2);stroke-width:1;stroke-dasharray:3 3}.bh .px{fill:none;stroke:var(--ink);stroke-width:1.5}
 .bh .pxx{fill:none;stroke:var(--ink2);stroke-width:1.4;stroke-dasharray:4 3}.hint{border-bottom:1px dotted var(--line2);cursor:help}
+.rat{display:block}.rat+.rat{margin-top:8px}.dec{display:block;color:var(--ink2);font-size:12.5px;margin-top:2px}.note.cyc{color:var(--ink);font-weight:600}
 .bh .ax{font-size:11px;fill:var(--mut)}.bh .gl{stroke:var(--line);stroke-width:1}
 .lv0{fill:var(--lv0)}.lv1{fill:var(--lv1)}.lv2{fill:var(--lv2)}.lv3{fill:var(--lv3)}.lv4{fill:var(--lv4)}.lvx{opacity:.55}
 .blg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--mut);margin:4px 0 10px}
@@ -472,7 +569,7 @@ JS = r"""
 (function(){
 const D = JSON.parse(document.getElementById('bubd').textContent || '{}');
 const LV = ['沒有泡沫跡象','偏貴（不是泡沫）','漲勢過熱','泡沫警戒','嚴重泡沫'];
-const CN = {'1':'價格爆發','2':'兩年翻倍','3':'偏離趨勢','v':'估值','f':'槓桿'};
+const CN = {'1':'價格爆發','2':'兩年翻倍','3':'偏離趨勢','e':'漲得比基本面快','v':'估值','f':'槓桿'};
 const RG = {}, LW = {};
 const NS = 'http://www.w3.org/2000/svg';
 function el(t, a){ const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); return e; }

@@ -14,8 +14,16 @@ BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會
           "零風險", "無風險", "穩賺不賠")
 
 
-def _market(name, idx, L, cond, val=False):
+def _e(k, run, dec=True, cyc=None):
+    e = {"ym": "2026-09", "s": 1.5 if run else -0.7, "q95": 0.8, "g": 0.03, "run": run, "r": 26.7,
+         "dec": {"a": "2024-09", "p": 119.2, "f": 82.6, "r": 20.0, "fa": "2024-09", "fz": "2026-09"} if dec else None,
+         "cyc": cyc}
+    return e
+
+
+def _market(name, idx, L, cond, val=False, e=None):
     now = {"d": "2026-10-16", "L": L, "P1": "P1" in cond, "P2": "P2" in cond, "P3": "P3" in cond,
+           "E": "E" in cond, "e": e if e is not None else {"pe_tw": _e("pe_tw", 4 if "E" in cond else 0)},
            "V": ("V" in cond) if val else None, "F": "F" in cond,
            "p1": {"ym": "2026-09", "s": 2.69, "q95": 1.23, "x": 100.0, "g": 0.012, "run": 9},
            "p2": {"ru": 115.6, "dist": -1.2}, "p3": {"ym": "2026-09", "z": 1.5},
@@ -33,21 +41,23 @@ def _market(name, idx, L, cond, val=False):
 def _research():
     cell = {"n": 200, "n_hot": 30, "p_hot": 0.6, "p_all": 0.2, "verdict": "crash", "n_epi": 5, "ret_hot": -8.0, "ret_all": 9.0}
     main = {"a": "1992-01", "z": "2026-09", "n": 417, "dist": {str(k): 20.0 for k in BS.LEVELS}}
-    for t in BS.TESTS:
+    for t in BS.TESTS2:
         main[t] = {"252": dict(cell), "504": dict(cell, verdict="none"), "share": 7.0}
     main["L4"] = {"n_hot": 0}
     ext = {"a": "1987-01", "z": "2026-08", "n": 476, "epi": [{"a": "1987-04", "z": "1990-04", "n": 37, "max": 3, "cond": ["P1", "P2"],
            "peak": {"d": "1990-02", "px": 11000.0}, "low": {"d": "1990-10", "px": 3000.0}, "dd": -72.7, "open": False}],
            "hist": {"d": ["1987-01", "1987-02"], "L": [0, 3], "c": ["", "12"], "p": [1113.6, 1216.0]}}
-    for t in ("P1", "P2", "P3", "L2", "L3"):
+    for t in ("P1", "P2", "P3", "E", "PF", "PN", "L2", "L3", "L3v1"):
         ext[t] = {"252": dict(cell), "504": dict(cell), "share": 8.0}
     return {"ver": BS.VER, "tw": {"main": main, "ext": ext}, "spx": {"main": main, "robust": main}}
 
 
 @pytest.fixture(scope="module")
 def page():
-    V = {"asof": "2026-10-16", "M": {"tw": _market("台股", "加權指數", 3, ["P1", "P2"]),
-                                     "spx": _market("S&P 500", "S&P 500", 3, ["P3", "V"], val=True)}, "R": _research()}
+    V = {"asof": "2026-10-16", "M": {"tw": _market("台股", "加權指數", 3, ["P1", "P2", "E"]),
+                                     "spx": _market("S&P 500", "S&P 500", 3, ["P3", "V"], val=True,
+                                                    e={"pe": _e("pe", 0, cyc={"per": "2026-03", "z": 2.4})})},
+         "R": _research()}
     return V, BP.render(V)
 
 
@@ -58,8 +68,14 @@ def test_structure_tiles_cards_types_method(page):
     for mk in ("tw", "spx"):
         assert f'<section class="sec cd bm" id="{mk}">' in html and f'id="h-{mk}"' in html and f'id="t-{mk}"' in html
     assert 'id="types"' in html and 'id="mth"' in html and 'id="lv"' in html
-    assert html.count('<div class="bty">') == len(BP.TYPES) == 5
-    assert "台股現在是等級 3「泡沫警戒」：價格爆發、兩年翻倍同時成立" in html
+    assert html.count('<div class="bty">') == len(BP.TYPES) == 6
+    assert "台股現在是等級 3「泡沫警戒」：價格爆發、兩年翻倍成立，而且價格漲得比基本面快（本益比爆發）" in html
+    assert "S&amp;P 500 現在是等級 3「泡沫警戒」：偏離趨勢成立，而且估值在歷史前 5%" in html
+    assert "S&amp;P 500 盈餘比長期趨勢高 2.4 個標準差，基本面本身可能在景氣高峰" in html          # 景氣高峰提醒進一句話
+    assert '<p class="note cyc">景氣高峰參考（不進等級）：S&amp;P 500 盈餘比長期趨勢高 2.4 個標準差（2026/3）' in html
+    assert "本益比 26.7 倍：BSADF 1.50，95% 臨界值 0.80" in html and "2026/9 為止連續 4 個月超過" in html
+    assert "兩年（2024/9→2026/9）：有盈餘公司的市值 +119%、近四季淨利 +83% → 比值 +20%" in html
+    assert "現在的六個條件" in html and "六種條件代表什麼" in html
     assert "估值不判定（台股本益比只有 2013 年起，歷史太短）" in html
     assert "不判定：台股本益比只有 2013 年起，歷史太短（現在本益比 26.7 倍）" in html
     assert "兩年已經漲 116%，但收盤離最高點 1.2%" not in html                  # 離最高 5% 以內：兩年翻倍成立，不用解釋
@@ -71,10 +87,15 @@ def test_structure_tiles_cards_types_method(page):
     assert "1950 年起另算一次" in html                                          # S&P 500 穩健度
     assert '<span class="na">不判定</span>' in html                              # 台股估值不判定
     assert "S&amp;P 500 現在是等級 3" in html                                    # 英數結尾的名字後面補空格
+    assert "價格過熱時，漲得比基本面快 60%（30 個月）、基本面有跟上 60%（30 個月）" in html      # PF／PN 摘要
     assert html.count("1990 年以前：國發會月平均") == 1                            # 延伸樣本圖例只在台股卡
-    m = _market("S&P 500", "S&P 500", 2, ["P3"], val=True)
+    m = _market("S&P 500", "S&P 500", 2, ["P3"], val=True, e={"pe": _e("pe", 0)})
     m["now"]["V"], m["now"]["v"]["X8"]["pct"] = False, 92.0
-    assert "估值只有 CAPE 在歷史前 5%（要 2 項才算）" in BP.summary("spx", m)
+    s = BP.summary("spx", m)
+    assert "估值只有 CAPE 在歷史前 5%（要 2 項才算）" in s
+    assert "偏離趨勢成立，但價格沒有漲得比基本面快（兩年股價 +119%、近 12 個月盈餘 +83%）" in s      # 基本面有跟上：最多到 2
+    m0 = _market("那斯達克", "那斯達克綜合指數", 0, [], e={"cp": _e("cp", 0)})
+    assert BP.summary("ixic", m0).startswith("那斯達克現在是等級 0「沒有泡沫跡象」。")
     assert "（已依長期漲勢調整）" in html and "2026/9 為止連續 9 個月超過" in html
 
 

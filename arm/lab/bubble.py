@@ -242,7 +242,7 @@ def fund_ratios(mk: str, I: dict, D: dict) -> dict:
         if k == "pe":
             L = I["L"]
             fa = fund_asof(L["e"], L["p"].keys(), BS.FUND_REL["pe"])
-            out[k] = {"lr": ratio_log(L["p"], fa), "f": fa, "p": L["p"]}
+            out[k] = {"lr": ratio_log(L["p"], fa), "f": fa, "p": L["p"], "raw": L["e"]}
         elif k == "pe_tw":
             val = D.get("twval") or {}
             pc = {ym: v[0] for ym, v in val.items() if v[0] and v[1] and v[1] > 0}
@@ -253,16 +253,16 @@ def fund_ratios(mk: str, I: dict, D: dict) -> dict:
             lr = I["lr"]
             fa = fund_asof(ex, lr.keys(), BS.FUND_REL["ex"])
             out[k] = {"lr": {m: lr[m] - math.log(fa[m][1]) for m in lr if m in fa and fa[m][1] > 0}, "f": fa,
-                      "p": {m: math.exp(v) for m, v in lr.items()}}
+                      "p": {m: math.exp(v) for m, v in lr.items()}, "raw": ex}
         elif k == "wsts":
             ws = roll_sum({ym: v for ym, v in (D.get("us_wsts") or {}).items() if v}, BS.FUND_SUM["wsts"])
             fa = fund_asof(ws, I["pm"].keys(), BS.FUND_REL["wsts"])
-            out[k] = {"lr": ratio_log(I["pm"], fa), "f": fa, "p": I["pm"]}
+            out[k] = {"lr": ratio_log(I["pm"], fa), "f": fa, "p": I["pm"], "raw": ws}
         elif k == "cp":
             cp = D.get("us_cp") or HD.load("us_cp")
             c4 = roll_q_avg({ym: v for ym, v in cp.items() if v}, BS.FUND_SUM["cp"])
             fa = fund_asof(c4, I["pm"].keys(), BS.FUND_REL["cp"])
-            out[k] = {"lr": ratio_log(I["pm"], fa), "f": fa, "p": I["pm"]}
+            out[k] = {"lr": ratio_log(I["pm"], fa), "f": fa, "p": I["pm"], "raw": c4}
     return out
 
 
@@ -462,18 +462,15 @@ def decomp(fr: dict, ym: str) -> dict | None:
 
 
 def cyc_z(I: dict, k: str, ym: str) -> dict | None:
-    """景氣高峰參考（只描述）：基本面原始期別（取對數）比長期趨勢高幾個標準差（擴張視窗 OLS、至少 TREND["min"] 個月）。
-    台股本益比的淨利只有 2013 起，不算。"""
+    """景氣高峰參考（只描述）：基本面（平滑後、取對數）從有資料起到 ym 那個月用的那一期，比長期趨勢高幾個標準差
+    （擴張視窗 OLS、至少 TREND["min"] 個月；企業獲利是季資料，至少 80 季）。台股本益比的淨利只有 2013 起，不算。"""
     from . import heatbubble as HB
-    if k == "pe_tw":
-        return None
     fr = I["fund"][k]
+    raw = fr.get("raw")
     last = (fr["f"].get(ym) or (None, None))[0]
-    if not last:
+    if not raw or not last:
         return None
-    seen = sorted({per for per, _ in fr["f"].values() if per <= last})
-    raw = {per: v for per, v in fr["f"].values()}
-    M = {per: math.log(raw[per]) for per in seen if raw.get(per) and raw[per] > 0}
+    M = {per: math.log(v) for per, v in raw.items() if per <= last and v and v > 0}
     z, _ = HB.trend_z(M, BS.TREND["min"] if k != "cp" else BS.TREND["min"] // 3)
     return {"per": last, "z": z[last]} if last in z else None
 
