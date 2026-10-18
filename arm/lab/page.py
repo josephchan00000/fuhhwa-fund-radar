@@ -114,9 +114,10 @@ def render(data: dict, ser_v: str | None = None) -> str:
     main = {k: v for k, v in data.items() if k not in ("ser", "mtab")}
     main["serv"] = ser_v or _ver(ser_json(data))
     blob = _dump(main).replace("</", "<\\/")
-    from . import copage                     # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
+    from . import appnav, copage             # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
                                              # （初始化會開分頁與 #s= 個股卡，這時公司分析的頂層 const 必須已經初始化）
-    return (_HTML.replace("{{SUB}}", asof_line(data)).replace("{{CSS}}", _CSS + copage.CSS)
+    return (_HTML.replace("{{APPTAB}}", appnav.bar("stk")).replace("{{SUB}}", asof_line(data))
+            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS)
             .replace("{{SEARCH}}", copage.SEARCH_HTML)
             .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", copage.JS)))
 
@@ -128,7 +129,7 @@ _HTML = """<!doctype html>
 <title>籌碼雷達</title>
 <style>{{CSS}}</style></head>
 <body>
-<div class="top"><b>籌碼雷達</b><span class="asof">{{SUB}}</span>{{SEARCH}}<a class="back" href="x9m.html">景氣</a><a class="back" href="./">返回主頁</a></div>
+<div class="top">{{APPTAB}}<span class="asof">{{SUB}}</span>{{SEARCH}}<a class="back" href="./">返回主頁</a></div>
 <p class="purp">用固定規則的選股策略，列出每條策略這一期選到的股票、哪天買賣，以及同樣做法過去實際賺多少。</p>
 <header class="hd"><div class="hdi">
   <nav class="tabs" id="tabs">

@@ -1,42 +1,43 @@
 """景氣溫度頁（docs/lab_heat_plan.md）：規格鎖定＋計算核心。
 
 規格是看任何結果之前寫定的（第三版＝四個面向，2026-10-17，規劃文件第 12.6、12.7 節）。要改就 VER＋1、
-寫進規劃文件，不在舊版本上改——這支測試鎖住 VER 3 的內容。"""
+寫進規劃文件，不在舊版本上改——這支測試鎖住現行版本（VER 7：第六版的五個面向不變，加上泡沫面向）。"""
 import random
 
 from arm.lab import heat as H
 from arm.lab import heatspec as S
 
 
-def test_spec_v6_is_locked():
-    assert S.VER == 6 and S.SPEC_DATE == "2026-10-18"
-    # 第四版的計分規格（第五版沒有改分數）
-    assert list(S.DIMS) == ["fund", "chip", "gliq", "tliq", "tech"]
+def test_spec_v7_is_locked():
+    assert S.VER == 7 and S.SPEC_DATE == "2026-10-18" and S.MARKET == "tw"
+    # 第四版的計分規格（第五、六版沒有改分數；第七版只加泡沫面向）
+    assert list(S.DIMS) == ["fund", "chip", "gliq", "tliq", "tech", "bubl"]
     assert {d: (v["fwd"], v["freq"]) for d, v in S.DIMS.items()} == {
         "fund": ((120, 250), "m"), "chip": ((10, 60), "d"), "gliq": ((60, 250), "d"), "tliq": ((60, 250), "d"),
-        "tech": ((10, 60), "d")}
+        "tech": ((10, 60), "d"), "bubl": ((120, 250), "m")}
     assert S.ITEMS == {"fund": ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"],
                        "chip": ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"],
                        "gliq": ["G1", "G2", "G3", "G4", "G5"],
                        "tliq": ["L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10"],
-                       "tech": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12", "T13"]}
+                       "tech": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12", "T13"],
+                       "bubl": ["X1", "X2", "X3", "X4", "X5", "X6", "X7"]}
     assert S.HOT == {"B1": 1, "B2": 1, "B3": 1, "B4": 1, "B5": 1, "B6": 1, "B7": 1, "B8": 1,
                      "C1": 1, "C2": 1, "C3": -1, "C4": 1, "C5": -1, "C6": -1, "C7": -1, "C8": 1,
                      "G1": -1, "G2": -1, "G3": -1, "G4": 1, "G5": 1,
                      "L1": 1, "L2": 1, "L3": 1, "L4": -1, "L5": 1, "L6": 1, "L7": 1, "L8": 1, "L9": -1, "L10": 1,
                      "T1": 1, "T2": 1, "T3": 1, "T4": 1, "T5": 1, "T6": 1, "T7": 1, "T8": -1, "T9": -1, "T10": -1,
-                     "T11": 1, "T12": 1, "T13": 1}
+                     "T11": 1, "T12": 1, "T13": 1, "X1": 1, "X2": 1, "X3": 1, "X4": 1, "X5": 1, "X6": 1, "X7": 1}
     assert [k for k in S.KEYS if S.FREQ_OF[k] == "m"] == ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "G5",
-                                                           "L1", "L2", "L6", "L8", "L9", "L10"]
+                                                           "L1", "L2", "L6", "L8", "L9", "L10", "X1", "X4", "X6", "X7"]
     assert S.RELEASE == {"B1": (2, 28), "B2": (2, 28), "B5": (2, 28), "B3": (1, 6), "B4": (1, 21), "B6": (1, 11),
                          "B7": (1, 10), "B8": (1, 16), "L1": (1, 27), "L2": (1, 27), "L8": (1, 27), "L9": (1, 27),
-                         "L10": (1, 27), "L6": (1, 6), "G5": (1, 15)}
+                         "L10": (1, 27), "L6": (1, 6), "G5": (1, 15), "X1": (1, 1), "X4": (1, 1), "X6": (1, 1), "X7": (1, 1)}
     assert set(S.RELEASE) == {k for k in S.KEYS if S.FREQ_OF[k] == "m"}     # 每個月資料都有公布時間差
     assert S.PCT_WIN == {"d": 750, "m": 120} and S.PCT_MIN == {"d": 375, "m": 60}
     assert S.DAILY_LAG == 1 and S.US == ("G1", "G2", "G3", "G4", "T9") and S.PROXY == {"T10": "T9"}
-    assert S.DIRECT == {"T11": 6} and S.STALE == {"C8": 14, "L7": 10} and S.AVAIL_DAYS == {"C8": 7}
+    assert S.DIRECT == {"T11": 6} and S.STALE == {"C8": 14, "L7": 10, "X5": 14} and S.AVAIL_DAYS == {"C8": 7}
     assert (S.MIN_AVAIL, S.CHG_DAYS, S.MIN_N) == (2 / 3, 5, {"d": 750, "m": 96})
-    assert [H.need(len(v)) for v in S.ITEMS.values()] == [6, 6, 4, 7, 9]  # 8 要 6、8 要 6、5 要 4、10 要 7、13 要 9
+    assert [H.need(len(v)) for v in S.ITEMS.values()] == [6, 6, 4, 7, 9, 5]  # 8 要 6、8 要 6、5 要 4、10 要 7、13 要 9、7 要 5
     assert (S.BOOT_N, S.BOOT_SEED, S.CI) == (2000, 20261017, 0.95)
     assert S.SPLIT_REF == {"d": (("2014-01-01", "2019-12-31"), ("2020-01-01", None)),
                            "m": (("1999-01-01", "2012-12-31"), ("2013-01-01", None))}
@@ -92,6 +93,23 @@ def test_spec_v6_is_locked():
     assert S.M6_TREE_X == ("GA_grow", "GA_rate", "LV_grow", "LV_rate", "DI", "BULL", "HIKE")
     assert (S.M6_EVENT_CONFIRM, S.M6_EVENT_PATH, S.M6_EVENT_MIN, S.M6_ALPHA, S.M6_EXT_SHIFT) == (2, 24, 20, 0.05, 1)
     assert {k: v[1] for k, v in S.M6_PRIMARY.items()} == {"H1": (6, 6), "H2": (0, 12), "H3": (0, 12), "H4": (6, 6)}
+    assert (S.M6_HIKE, S.M6_EXT) == ("G1", True)
+    # 第七版（docs/lab_heat_us_plan.md 第 15 節）：泡沫面向；美股規格匯入同一份
+    assert S.DSHORT == {"fund": "基本面", "chip": "籌碼", "gliq": "全球資金", "tliq": "台灣資金", "tech": "技術", "bubl": "泡沫"}
+    assert S.PRESCORED == ("X1", "X4", "X5") and S.PCT_WIN_ITEM == {"X2": (2500, 1250), "X3": (2500, 1250)}
+    assert S.PSY == {"w0": 60, "lag": 0, "reps": 2000, "seed": 20261019, "nmax": 2100, "q": (0.5, 0.95), "map": (50, 80),
+                     "cpi_lag": 1, "div_lag": 6}
+    assert S.TREND == {"min": 240, "map": (50, 15)}
+    L = S.LPPLS
+    assert L["dt"] == (30, 650, 5) and len(range(L["dt"][1], L["dt"][0] - 1, -L["dt"][2])) == 125
+    assert (len(L["m"]), len(L["w"]), len(L["tc"])) == (11, 30, 12)
+    assert (L["m_ok"], L["w_ok"], L["tc_ok"], L["osc"], L["damp"], L["err"], L["map"]) == \
+        ((0.1, 0.9), (2, 25), 0.2, 2.5, 1.0, 0.2, (50, 100))
+    assert (S.RUNUP_DAYS, S.ACC_DAYS) == (504, 126)
+    assert (S.BUB_HOT, S.BUB_DD, S.BUB_MIN_HOT, S.BUB_EPI_GAP, S.BUB_EPI_MIN, S.BUB_BLOCK, S.BUB_BOOT, S.BUB_SEED) == \
+        (80, ((252, 0.20), (504, 0.40)), 12, 6, 4, 12, 2000, 20261019)
+    assert set(S.BUB_VERDICT) == {"crash", "calm", "none", "few"} and S.BUB_EXT == ("X1", "X4") and S.VAL_START == {}
+    assert [r[0] for r in S.REF] == ["Q1"]
 
 
 def test_percentile_uses_only_the_past():

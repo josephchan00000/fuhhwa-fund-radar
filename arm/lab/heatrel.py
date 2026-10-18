@@ -501,6 +501,14 @@ def series_all(B: dict) -> dict[str, list]:
     return out
 
 
+def gr_families() -> dict[str, list]:
+    """Granger 多重比較校正的家族（依當下規格）：item＝泡沫面向以外的項目（台股原本 44 項）、bubl＝泡沫面向的項目
+    （第七版另成一家族，原本 44 項的校正結果和第六版相同；docs/lab_heat_us_plan.md 第 15.9 節）、dim＝面向分數。"""
+    out = {"item": [k for k in S.KEYS if S.DIM_OF[k] != "bubl"], "bubl": [k for k in S.KEYS if S.DIM_OF[k] == "bubl"],
+           "dim": list(S.DIMS)}
+    return {k: v for k, v in out.items() if v}
+
+
 def run(B: dict) -> dict:
     """→ {"wk": 週日期, "rel": {id: {...}}, "gr_q": {...}}；只當參考，不拿來刪項目。"""
     cal, px = B["cal"], B["px"]
@@ -522,8 +530,8 @@ def run(B: dict) -> dict:
         first = next((cal[i] for i, v in enumerate(x) if v is not None), None)
         rel[sid] = {"first": first, "ll": leadlag(xw, we, px), "roll": rolling(xw, we, px, cal),
                     "bands": bands_w(xw, we, px, cal), "evt": evt}
-    # Granger：44 項一家族、5 個面向一家族，模型 A、B 各自做 BH（主要落後期數）
-    for fam in (list(S.KEYS), list(S.DIMS)):
+    # Granger：泡沫以外的項目一家族、泡沫面向的項目一家族、面向一家族，模型 A、B 各自做 BH（主要落後期數）
+    for fam in gr_families().values():
         for key in ("A", "B"):
             ps = [gr_raw[s][S.GR_MAIN][key]["p"] for s in fam]
             qs = bh(ps)

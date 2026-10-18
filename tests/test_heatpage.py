@@ -171,8 +171,10 @@ def built():
 
 def test_each_item_has_own_heat_and_pulls_sum_to_score(built):
     _, _, V, _ = built
-    assert list(V["dims"]) == ["fund", "chip", "gliq", "tliq", "tech"]
+    assert list(V["dims"]) == ["fund", "chip", "gliq", "tliq", "tech", "bubl"]
     for dim, L in V["dims"].items():
+        if dim == "bubl" and L["score"] is None:                       # 測試資料還沒有泡沫面向的原始資料（U6 補上）
+            continue
         assert L["score"] is not None, dim
         pulls = [it["pull"] for it in L["items"] if it["pull"] is not None]
         assert len(pulls) == L["n_have"] >= H.need(len(S.ITEMS[dim]))
@@ -194,7 +196,7 @@ def test_render_structure_and_wording(built):
         assert sec in page, sec
     for gone in ('id="trend"', 'id="detail"', 'class="tile"'):              # 第五版拿掉靜態走勢圖、各項明細、頁首數字卡
         assert gone not in page, gone
-    assert page.count('<a class="sr" href="#c-') == 5 and S.HORIZON_NOTE in page    # 五個面向的近 52 週色帶
+    assert page.count('<a class="sr" href="#c-') == len(S.DIMS) == 6 and S.HORIZON_NOTE in page    # 六個面向的近 52 週色帶
     for d in S.DIMS:
         st = V["strips"][d]
         assert len(st["cells"]) == min(S.STRIP_WEEKS, len(P.HP.week_ends(built[0]["cal"])))
@@ -467,9 +469,9 @@ def test_old_research_file_is_ignored(built):
 def test_entry_link_and_workflow_add_lines():
     from pathlib import Path
     from arm.lab import page
-    assert '<a class="back" href="x9m.html">景氣</a>' in page._HTML           # 入口只在籌碼雷達頂欄
+    assert "{{APPTAB}}" in page._HTML and "{{APPTAB}}" in P._HTML              # 兩頁共用頂欄（arm/lab/appnav.py）
     root = Path(__file__).resolve().parents[1]
-    assert "x9m" not in (root / "arm" / "fund_dashboard.py").read_text(encoding="utf-8")   # 主頁不加入口
+    assert (root / "arm" / "fund_dashboard.py").read_text(encoding="utf-8").count('href="x9m.html"') == 1   # 主頁只有頁尾的「·」
     for wf in ("afterhours_refresh.yml", "daily.yml", "etf_holdings.yml"):
         t = (root / ".github" / "workflows" / wf).read_text(encoding="utf-8")
         assert t.count("git add -f dashboard/x9m.html 2>/dev/null || true") == 2, wf   # 一般與重試迴圈各一、分開 add
@@ -477,3 +479,34 @@ def test_entry_link_and_workflow_add_lines():
     assert "fetch_heat.py" in (root / ".github" / "workflows" / "afterhours_refresh.yml").read_text(encoding="utf-8")
     assert "fetch_heat.py" in (root / "scripts" / "daily_fund.sh").read_text(encoding="utf-8")
     assert "heatpage.build()" in (root / "scripts" / "gen_fund_dashboard.py").read_text(encoding="utf-8")   # 和籌碼雷達分開建
+
+
+def test_bubble_card_crash_tables_and_refs(built):
+    """第七版：泡沫卡的大跌比例一句、驗證段的泡沫事件表（兩個期間、延伸樣本、段）、參考讀數。"""
+    import random
+    from arm.lab import heatbubble as BB
+    _, _, V, _ = built
+    rnd = random.Random(3)
+    n = 360
+    dates = [f"{1990 + j // 12}-{j % 12 + 1:02d}-28" for j in range(n)]
+    hot = [(j // 30) % 3 == 0 for j in range(n)]
+    x = [90.0 if h else 40.0 for h in hot]
+    dd = {h: [(0.5 if hot[j] else 0.05) if rnd.random() < 0.95 else 0.0 for j in range(n)] for h, _ in S.BUB_DD}
+    res = BB._rnd(BB.crash_test(dates, x, dd))
+    V2 = dict(V)
+    V2["bub"] = {k: res for k in ["comp"] + S.ITEMS["bubl"]}
+    V2["bub_ext"] = {k: res for k in S.BUB_EXT}
+    V2["ref"] = [{"k": "Q1", "name": "台積電市值占比", "unit": "%", "how": "只當參考", "val": 38.43, "date": "2026-09"}]
+    card = P._card("bubl", V2["dims"]["bubl"], V2)
+    assert "之後一年內最大跌幅 ≥ 20%：分數 ≥ 80 的 120 個月（4 段）裡" in card and "熱了之後較容易大跌" in card
+    assert "上一段 ≥ 80：2012/7～2014/12（30 個月，最高 90）" in card
+    assert '<div class="refs">' in card and "台積電市值占比" in card and "38.4%" in card
+    bv = P._bub_valid(V2)
+    assert bv.count('class="bbt stk"') == 3                                   # 一年、兩年、延伸樣本
+    assert bv.count("<tr><td") == 2 * (1 + len(S.ITEMS["bubl"])) + 2 * len(S.BUB_EXT)
+    assert "延伸樣本（國發會加權指數月平均，1982 起；只當穩健度）" in bv and "1990/1～1992/6：30 個月" in bv
+    assert P._bub_valid({**V2, "bub": {}}) == "" and P._bub_card({**V2, "bub": {}}) == ""
+    page = P.render(V2)
+    assert 'id="bubv"' in page and page.index('id="bubv"') > page.index('id="valid"')
+    for w in BANNED:
+        assert w not in page, w
