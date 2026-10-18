@@ -15,7 +15,7 @@ CSS = r"""
 .co5{margin:4px 0 6px}.co5 .r{display:grid;grid-template-columns:2.6em 2.8em 66px minmax(0,1fr);gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:13.5px}
 .co5 .r b{font-size:13.5px}.co5 .lv{font-weight:700;font-size:13px}.co5 .lv.s5,.co5 .lv.s4{color:var(--gain)}.co5 .lv.s1,.co5 .lv.s2{color:var(--loss)}
 .seg{display:flex;gap:2px}.seg i{display:block;height:7px;flex:1;border-radius:2px;background:var(--line)}
-.seg.s5 i,.seg.s4 i:nth-child(-n+4){background:var(--gain)}.seg.s3 i:nth-child(-n+3){background:#94a3b8}
+.seg.s5 i,.seg.s4 i:nth-child(-n+4){background:var(--gain)}.seg.s3 i:nth-child(-n+3){background:var(--mut2)}
 .seg.s2 i:nth-child(-n+2),.seg.s1 i:nth-child(1){background:var(--loss)}
 .colead{font-size:15px;margin:2px 0 8px;font-weight:600}
 .chk{list-style:none;margin:4px 0 0;padding:0}.chk li{display:grid;grid-template-columns:1.4em minmax(0,1fr) auto;gap:6px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13.5px;align-items:baseline}
@@ -26,7 +26,7 @@ CSS = r"""
 .cbox svg{display:block;width:100%;height:auto}
 .colg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--mut);margin-top:2px}.colg i{display:inline-block;width:10px;height:3px;margin-right:4px;vertical-align:middle}
 .vband{position:relative;height:30px;margin:8px 4px 2px}.vband .bg{position:absolute;top:10px;left:0;right:0;height:8px;background:var(--line);border-radius:4px}
-.vband .bd{position:absolute;top:10px;height:8px;background:#b8c7e0;border-radius:4px}.vband .md{position:absolute;top:6px;width:2px;height:16px;background:var(--accd)}
+.vband .bd{position:absolute;top:10px;height:8px;background:var(--band);border-radius:4px}.vband .md{position:absolute;top:6px;width:2px;height:16px;background:var(--accd)}
 .vband .now{position:absolute;top:2px;width:2px;height:24px;background:var(--ink)}
 .vlab{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
 .qt td,.qt th{padding:5px 7px;font-size:13px}.qt td:first-child,.qt th:first-child{text-align:left}
@@ -408,6 +408,7 @@ function wlSec(){const W=D.wl||{};if(!W.v)return sxSec();const Y=W.lay||{},ST=Y.
   const rg=t=>{const xs=['IS','VAL','HO'].map(k=>P(k,t).p).filter(x=>x!=null);return xs.length?p0(Math.min(...xs))+'～'+p0(Math.max(...xs)):'—';};
   let b=`<div class=colead style="font-weight:400">今天名單 ${C.length} 檔：<b>到買點 ${A.length} 檔</b>、<b>快到買點 ${B.length} 檔</b>；其他強勢 ${B2.length} 檔、其餘 ${Rr.length} 檔收起來。`+
     (per.IS?`強勢的這一段過去一年內翻倍 ${rg('t1')}，名單其餘 ${rg('t2')}。`:'')+`</div>`;
+  b+=spotSec();                                       /* 位置圖（stockviz.py） */
   if(MK.pass&&MS.m2!=null){const a=(MK.all||{}).s9||{},bs=(MK.all||{}).base||{},on=a[1]||{},off=a[0]||{};
     b+=`<div class=note>目前大盤：加權指數 50 日線<b>在 200 日線之${MS.m2?'上':'下'}</b>${gi('大盤 50 日線')}。2014–2022 年，50 日線在上時名單一年內翻倍 ${p0(on.p)}，在下時 ${p0(off.p)}（全部股票 ${p0(bs[1])} 對 ${p0(bs[0])}）：大盤轉弱之後一年反而比較容易翻倍，主要是大跌後全部股票一起反彈；50 日線在下的時候 9 年只出現過 ${off.runs||'—'} 段。</div>`;}
   b+=`<h4 class=sh>到買點（${A.length} 檔）</h4>`+(A.length?wlTable(A,ST,T,'wla','買點～追價上限'):`<div class=st>今天沒有股票在書上的買點。</div>`);

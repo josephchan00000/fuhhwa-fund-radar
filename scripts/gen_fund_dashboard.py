@@ -39,6 +39,20 @@ def main() -> None:
         print(f"[景氣溫度] {'已更新' if changed else '無變更'} {heatpage.OUT}")
     except Exception as e:                                # noqa: BLE001
         print(f"[景氣溫度] 建頁失敗（不影響主頁與籌碼雷達）：{type(e).__name__}: {e}")
+    # 美股景氣頁（dashboard/x9mu.html＋各指數對照圖資料 x9muh-*.json；docs/lab_heat_us_plan.md）。分開建、分開失敗。
+    try:
+        from arm.lab import heatpage_us
+        changed = heatpage_us.build()
+        print(f"[美股景氣] {'已更新' if changed else '無變更'} {heatpage_us.OUT}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[美股景氣] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
+    # 泡沫頁（dashboard/x9b.html；docs/lab_risk_plan.md 第 7、8 節）。沿用上面兩頁算好的泡沫等級；分開建、分開失敗。
+    try:
+        from arm.lab import bubpage
+        changed = bubpage.build()
+        print(f"[泡沫] {'已更新' if changed else '無變更'} {bubpage.OUT}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[泡沫] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
     if "--open" in sys.argv[1:]:
         webbrowser.open(OUT.as_uri())
 

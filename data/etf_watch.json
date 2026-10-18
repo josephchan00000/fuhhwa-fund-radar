@@ -1,7 +1,7 @@
 {
   "as_of": "2026-10-16",
   "perf_asof": "2026-10-16",
-  "fetched_at": "2026/10/18 02:38",
+  "fetched_at": "2026/10/19 01:05",
   "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算。正式對外前以各投信官網核對",
   "items": [
     {
@@ -338,10 +338,10 @@
       "close_px": 16.0,
       "ret_1w": -1.23,
       "ret_1m": 4.99,
-      "last_div": 0.415,
-      "last_div_date": "2026-07-16",
-      "est_div": 0.473,
-      "est_div_date": "2026-10-19",
+      "last_div": 0.473,
+      "last_div_date": "2026-10-19",
+      "est_div": null,
+      "est_div_date": null,
       "yield_pct": 11.82,
       "freq": "季配",
       "chg_pct": 0.95,
@@ -362,7 +362,7 @@
       "ret_1m_base": "2026-09-16=15.24",
       "ret_1w_div": null,
       "ret_1m_div": null,
-      "yield_is_est": true
+      "yield_is_est": false
     },
     {
       "code": "00985A",
@@ -374,10 +374,10 @@
       "close_px": 23.14,
       "ret_1w": -4.85,
       "ret_1m": 2.66,
-      "last_div": null,
-      "last_div_date": null,
-      "est_div": 2.15,
-      "est_div_date": "2026-10-19",
+      "last_div": 2.15,
+      "last_div_date": "2026-10-19",
+      "est_div": null,
+      "est_div_date": null,
       "yield_pct": 18.58,
       "freq": "半年配",
       "chg_pct": 0.43,
@@ -398,7 +398,7 @@
       "ret_1m_base": "2026-09-16=22.54",
       "ret_1w_div": null,
       "ret_1m_div": null,
-      "yield_is_est": true
+      "yield_is_est": false
     },
     {
       "code": "00991A",
@@ -446,10 +446,10 @@
       "close_px": 18.42,
       "ret_1w": -7.95,
       "ret_1m": 5.14,
-      "last_div": 0.47,
-      "last_div_date": "2026-07-16",
-      "est_div": 0.85,
-      "est_div_date": "2026-10-19",
+      "last_div": 0.85,
+      "last_div_date": "2026-10-19",
+      "est_div": null,
+      "est_div_date": null,
       "yield_pct": 18.46,
       "freq": "季配",
       "chg_pct": 0.77,
@@ -470,7 +470,7 @@
       "ret_1m_base": "2026-09-16=17.52",
       "ret_1w_div": null,
       "ret_1m_div": null,
-      "yield_is_est": true
+      "yield_is_est": false
     },
     {
       "code": "00987A",
@@ -554,10 +554,10 @@
       "close_px": 17.02,
       "ret_1w": -8.59,
       "ret_1m": 2.04,
-      "last_div": null,
-      "last_div_date": null,
-      "est_div": 0.5,
-      "est_div_date": "2026-10-19",
+      "last_div": 0.5,
+      "last_div_date": "2026-10-19",
+      "est_div": null,
+      "est_div_date": null,
       "yield_pct": 11.75,
       "freq": "季配",
       "chg_pct": 0.71,
@@ -578,7 +578,7 @@
       "ret_1m_base": "2026-09-16=16.68",
       "ret_1w_div": null,
       "ret_1m_div": null,
-      "yield_is_est": true
+      "yield_is_est": false
     },
     {
       "code": "00993A",
@@ -842,10 +842,10 @@
       "close_px": 14.3,
       "ret_1w": -6.96,
       "ret_1m": 4.61,
-      "last_div": null,
-      "last_div_date": null,
-      "est_div": 0.73,
-      "est_div_date": "2026-10-19",
+      "last_div": 0.73,
+      "last_div_date": "2026-10-19",
+      "est_div": null,
+      "est_div_date": null,
       "yield_pct": 20.42,
       "freq": "季配",
       "chg_pct": 0.78,
@@ -866,7 +866,7 @@
       "ret_1m_base": "2026-09-16=13.67",
       "ret_1w_div": null,
       "ret_1m_div": null,
-      "yield_is_est": true
+      "yield_is_est": false
     },
     {
       "code": "00410A",

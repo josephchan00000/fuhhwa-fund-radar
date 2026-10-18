@@ -65,7 +65,7 @@ jobs:
           python-version: "3.12"
 
       - name: 安裝相依（純標準庫 + certifi）
-        run: pip install --quiet certifi pypdf
+        run: pip install --quiet certifi pypdf && (pip install --quiet numpy xlrd openpyxl || echo "::warning::numpy／xlrd／openpyxl 安裝失敗——美股景氣的 LPPLS 與 xls 來源跳過")
 
       - name: 抓取守門（目標數據已到位／30 分內剛抓過 → 零請求早退，多班次不放大來源站請求）
         id: pre
@@ -104,6 +104,9 @@ jobs:
 
       - name: 景氣溫度頁資料（融資、法人、期權、匯率、美國利率物價、國發會、廣度；docs/lab_heat_plan.md，失敗不擋）
         run: timeout 420 python3 scripts/fetch_heat.py || echo "  ⚠ 景氣溫度資料抓取失敗，沿用既有落檔"
+
+      - name: 美股景氣頁資料（指數、聯準會、CFTC、BLS、Shiller、LPPLS 每週；docs/lab_heat_us_plan.md，失敗不擋）
+        run: timeout 420 python3 scripts/fetch_heat_us.py || echo "  ⚠ 美股景氣資料抓取失敗，沿用既有落檔"
 
       - name: 當日完整性看門狗（寫/清 data/afterhours_alert.json——儀表板紅章資料源）
         run: python3 scripts/check_afterhours_fresh.py --write
@@ -152,6 +155,10 @@ jobs:
           git add -f dashboard/x9t.json 2>/dev/null || true             # 公司分析：全市場每日小表（docs/lab_company_plan.md；分開 add）
           git add -f dashboard/x9f.json 2>/dev/null || true             # 法人預估：每檔資料（docs/lab_forward_plan.md；分開 add）
           git add -f dashboard/x9m.html 2>/dev/null || true            # 景氣溫度頁（docs/lab_heat_plan.md；分開 add）
+          git add -f dashboard/x9mh.json 2>/dev/null || true           # 景氣溫度頁對照圖資料（第五版；分開 add）
+          git add -f dashboard/x9mu.html 2>/dev/null || true           # 美股景氣頁（docs/lab_heat_us_plan.md；分開 add）
+          git add -f dashboard/x9b.html 2>/dev/null || true            # 泡沫頁（docs/lab_risk_plan.md；分開 add）
+          git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
           git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
           git commit -m "chore: 盤後數據刷新 $(date '+%F %H:%M')" || { echo "無變更，跳過 push"; exit 0; }
           # main 可能被其他 workflow 推進 → rebase 重試；rebase 後必須用合併結果重建再推
@@ -167,6 +174,10 @@ jobs:
             git add -f dashboard/x9t.json 2>/dev/null || true             # 公司分析：全市場每日小表（docs/lab_company_plan.md；分開 add）
             git add -f dashboard/x9f.json 2>/dev/null || true             # 法人預估：每檔資料（docs/lab_forward_plan.md；分開 add）
             git add -f dashboard/x9m.html 2>/dev/null || true            # 景氣溫度頁（docs/lab_heat_plan.md；分開 add）
+            git add -f dashboard/x9mh.json 2>/dev/null || true           # 景氣溫度頁對照圖資料（第五版；分開 add）
+            git add -f dashboard/x9mu.html 2>/dev/null || true           # 美股景氣頁（docs/lab_heat_us_plan.md；分開 add）
+            git add -f dashboard/x9b.html 2>/dev/null || true            # 泡沫頁（docs/lab_risk_plan.md；分開 add）
+            git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
             git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
             git commit --amend --no-edit || true
             sleep 5

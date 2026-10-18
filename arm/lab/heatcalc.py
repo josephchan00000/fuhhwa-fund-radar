@@ -23,9 +23,7 @@ from . import store
 
 FILES = ["margin", "inst", "futi", "opti", "mtxoi", "pcr", "vixtw", "taiex", "vix", "hyg", "ief", "turnover",
          "usdtwd", "money", "ndc", "exports", "pmi", "orders", "twcpi", "effr", "uscpi", "ust", "breadth",
-         "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow"]
-DAILY = [k for k in S.KEYS if S.FREQ_OF[k] == "d"]
-MONTHLY = [k for k in S.KEYS if S.FREQ_OF[k] == "m"]
+         "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow", "taiexm", "taiex90", "twgdp", "tw_lppls"]
 BREADTH = ("T5", "T6", "T7")
 MONTH_AVG_MIN = 10          # 日資料取當月平均：當月至少 10 天有值
 FIN = "金融保險"             # B6 不算的產業（月營收含投資損益）
@@ -63,6 +61,8 @@ def rev_sums(shards, fin: set[str]) -> dict:
 def load() -> dict:
     D = {n: HD.load(n) for n in FILES}
     D["rev"] = rev_sums(store.load("rev"), fin_codes())
+    from .heatcalc_bub import load_tw_val            # 第七版：上市櫃市值與近四季淨利（本益比、市值 ÷ GDP）
+    D["twval"] = load_tw_val()
     return D
 
 
@@ -264,9 +264,8 @@ def native_daily(D: dict, cal: list[str], px: list) -> dict[str, dict]:
 
 
 def raw_daily(D: dict, cal: list[str], px: list, N: dict | None = None) -> dict[str, list]:
-    """對齊台灣交易日：沿用最近一筆（超過 7 個日曆天算缺；廣度 4 天；週資料見 heatspec.STALE）；美國資料晚一天才用。"""
-    N = N if N is not None else native_daily(D, cal, px)
-    return {k: H.asof_daily(cal, N[k], after=k in S.US, stale=4 if k in BREADTH else S.STALE.get(k, 7)) for k in N}
+    """對齊台灣交易日（同 align_daily）；美國資料晚一天才用。"""
+    return align_daily(cal, N if N is not None else native_daily(D, cal, px))
 
 
 def raw_monthly(D: dict) -> dict[str, dict]:
@@ -325,22 +324,70 @@ def raw_monthly(D: dict) -> dict[str, dict]:
 
 # ── 0～100 與面向總分 ─────────────────────────────────────────────────
 
+def daily_keys() -> list[str]:
+    return [k for k in S.KEYS if S.FREQ_OF[k] == "d"]
+
+
+def monthly_keys() -> list[str]:
+    return [k for k in S.KEYS if S.FREQ_OF[k] == "m"]
+
+
+def align_daily(cal: list[str], N: dict) -> dict[str, list]:
+    """日資料對齊交易日：沿用最近一筆（超過 7 個日曆天算缺；廣度 4 天；週資料見 heatspec.STALE）；S.US 的項目晚一天才用。"""
+    return {k: H.asof_daily(cal, N[k], after=k in S.US, stale=4 if k in BREADTH else S.STALE.get(k, 7)) for k in N}
+
+
 def build(D: dict | None = None) -> dict:
-    """→ {"cal", "px", "cal_info", "raw": {k: 逐日值}, "heat": {k: 逐日 0～100（頁面顯示，含代替）},
-    "hc": {k: 逐日 0～100（算進總分的）}, "proxy": {k: 逐日是否用代替}, "ym": {k: 逐日用到的月份},
-    "mraw": {k: 月序列}, "nat": {k: 來源日期上的值}, "comp": {面向: 逐日總分}, "vixcorr": {...}}"""
+    """台股：→ score() 的結果（見 score 的說明）。"""
     D = D if D is not None else load()
     cal, px, info = calendar(D)
     N = native_daily(D, cal, px)
-    raw = raw_daily(D, cal, px, N)
-    heat = {k: ([None if v is None else 100.0 * v / S.DIRECT[k] for v in raw[k]] if k in S.DIRECT else
-                [H.to_heat(p, S.HOT[k]) for p in H.pct_series(raw[k], S.PCT_WIN["d"], S.PCT_MIN["d"])]) for k in DAILY}
     M = raw_monthly(D)
+    PRE: dict[str, dict] = {}
+    REF: dict[str, dict] = {}
+    from . import heatcalc_bub                          # 第七版泡沫面向（放另一支檔，避免這支太長）
+    heatcalc_bub.tw_bubble(D, N, M, PRE, REF)
+    return score(D, cal, px, info, N, M, PRE, REF)
+
+
+def score(D: dict, cal: list[str], px: list, info: dict, N: dict, M: dict, PRE: dict | None = None,
+          REF: dict | None = None) -> dict:
+    """台股、美股共用的計分（規格用當下的 heatspec）：
+    N＝日資料在來源日期上的值、M＝月資料 {YYYY-MM: 值}、PRE＝組資料時就算好 0～100 的項目（heatspec.PRESCORED）、
+    REF＝參考讀數（不進分數）。
+    → {"cal", "px", "cal_info", "raw": {k: 逐日值}, "heat": {k: 逐日 0～100（頁面顯示，含代替）},
+    "hc": {k: 逐日 0～100（算進總分的）}, "proxy": {k: 逐日是否用代替}, "ym": {k: 逐日用到的月份},
+    "mraw": {k: 月序列}, "nat": {k: 來源日期上的值}, "comp": {面向: 逐日總分}, "vixcorr": {...}, "ref": REF,
+    "pre": PRE, "D": D}"""
+    PRE = PRE or {}
+    T = len(cal)
+    raw = align_daily(cal, N)
+    heat: dict[str, list] = {}
+    for k in daily_keys():                             # 規格有、但還沒有資料的項目＝整條沒有值
+        raw.setdefault(k, [None] * T)
+        N.setdefault(k, {})
+        if k in S.PRESCORED:
+            heat[k] = H.asof_daily(cal, PRE.get(k) or {}, after=k in S.US, stale=S.STALE.get(k, 7))
+        elif k in S.DIRECT:
+            heat[k] = [None if v is None else 100.0 * v / S.DIRECT[k] for v in raw[k]]
+        elif k in S.PCT_WIN_ITEM:                       # 泡沫的日資料項目：在指數自己的交易日上和過去 10 年比，再對齊
+            win, mn = S.PCT_WIN_ITEM[k]
+            ks = sorted(N[k])
+            p = H.pct_series([N[k][d] for d in ks], win, mn)
+            hd = {d: H.to_heat(x, S.HOT[k]) for d, x in zip(ks, p) if x is not None}
+            heat[k] = H.asof_daily(cal, hd, after=k in S.US, stale=S.STALE.get(k, 7))
+        else:
+            heat[k] = [H.to_heat(p, S.HOT[k]) for p in H.pct_series(raw[k], S.PCT_WIN["d"], S.PCT_MIN["d"])]
     ymu: dict[str, list] = {}
-    for k in MONTHLY:
-        ks = sorted(M[k])
-        p = H.pct_series([M[k][x] for x in ks], S.PCT_WIN["m"], S.PCT_MIN["m"])
-        hm = {ym: H.to_heat(x, S.HOT[k]) for ym, x in zip(ks, p) if x is not None}
+    for k in monthly_keys():
+        M.setdefault(k, {})
+        if k in S.PRESCORED:
+            hm = dict(PRE.get(k) or {})
+        else:
+            ks = sorted(M[k])
+            win, mn = S.PCT_WIN_ITEM.get(k, (S.PCT_WIN["m"], S.PCT_MIN["m"]))
+            p = H.pct_series([M[k][x] for x in ks], win, mn)
+            hm = {ym: H.to_heat(x, S.HOT[k]) for ym, x in zip(ks, p) if x is not None}
         heat[k] = H.asof_monthly(cal, hm, S.RELEASE[k])
         raw[k] = H.asof_monthly(cal, M[k], S.RELEASE[k])
         ymu[k] = H.asof_monthly(cal, {ym: ym for ym in M[k]}, S.RELEASE[k])
@@ -348,16 +395,17 @@ def build(D: dict | None = None) -> dict:
     proxy: dict[str, list] = {}
     for k, src in S.PROXY.items():
         own = heat[k]
-        proxy[k] = [own[i] is None and raw[k][i] is not None and heat[src][i] is not None for i in range(len(cal))]
-        heat[k] = [heat[src][i] if proxy[k][i] else own[i] for i in range(len(cal))]
+        proxy[k] = [own[i] is None and raw[k][i] is not None and heat[src][i] is not None for i in range(T)]
+        heat[k] = [heat[src][i] if proxy[k][i] else own[i] for i in range(T)]
         hc[k] = own
-    comp = {d: [H.composite({k: hc[k][i] for k in S.ITEMS[d]}, S.ITEMS[d]) for i in range(len(cal))] for d in S.DIMS}
-    pairs = [(raw["T10"][i], raw["T9"][i]) for i in range(len(cal))
-             if raw["T10"][i] is not None and raw["T9"][i] is not None]
-    vc = {"n": len(pairs), "r": H._pearson([a for a, _ in pairs], [b for _, b in pairs]) if len(pairs) >= 3 else None,
-          "a": next((cal[i] for i in range(len(cal)) if raw["T10"][i] is not None), None)}
+    comp = {d: [H.composite({k: hc[k][i] for k in S.ITEMS[d]}, S.ITEMS[d]) for i in range(T)] for d in S.DIMS}
+    vc = {"n": 0, "r": None, "a": None}
+    for k, src in S.PROXY.items():                     # 代替項目和來源的相關（台股：台指 VIX 對美國 VIX）
+        pairs = [(raw[k][i], raw[src][i]) for i in range(T) if raw[k][i] is not None and raw[src][i] is not None]
+        vc = {"n": len(pairs), "r": H._pearson([a for a, _ in pairs], [b for _, b in pairs]) if len(pairs) >= 3 else None,
+              "a": next((cal[i] for i in range(T) if raw[k][i] is not None), None)}
     return {"cal": cal, "px": px, "cal_info": info, "raw": raw, "heat": heat, "hc": hc, "proxy": proxy, "ym": ymu,
-            "mraw": M, "nat": N, "comp": comp, "vixcorr": vc, "D": D}
+            "mraw": M, "nat": N, "comp": comp, "vixcorr": vc, "ref": REF or {}, "pre": PRE, "D": D}
 
 
 # ── 驗證（第 12.7 節） ─────────────────────────────────────────────────
@@ -448,5 +496,12 @@ def research(B: dict | None = None) -> dict:
     for n in FILES + ["rev"]:
         ks = sorted(D.get(n) or {})
         data[n] = [len(ks), ks[0] if ks else None, ks[-1] if ks else None]
+    from . import heatbubble, heatreg, heatrel            # 第五、六、七版；放這裡避免循環匯入
+    from .heatcalc_bub import tw_month_avg
+    rel = heatrel.run(B)
     return {"ver": S.VER, "spec_date": S.SPEC_DATE, "run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "cal": B["cal_info"], "data": data, "dims": dims, "events": events}
+            "cal": B["cal_info"], "data": data, "dims": dims, "events": events,
+            "wk": rel["wk"], "rel": rel["rel"], "deriv": heatrel.deriv_all(B),
+            "m6": heatreg.run(B, HD.load("taiexm")),
+            "bub": {"main": heatbubble.bubble_research(B), "ext": heatbubble.bubble_ext(B.get("pre") or {}, tw_month_avg(D))}}
+
