@@ -47,7 +47,7 @@ def test_one_page_switches_four_indices(page):
     assert '<a class="on" aria-current="page" href="x9mu.html">美股景氣</a>' in html
     assert html.index("window.HEAT_METAS") < html.index("window.heatInit = function")   # 切換程式在對照圖程式之前
     for k, P in pages.items():
-        assert P["meta"]["dims"][-1]["id"] == "bubl" and len(P["meta"]["dims"]) == 5
+        assert P["meta"]["dims"][-1]["id"] == "tech" and len(P["meta"]["dims"]) == 4      # 泡沫另放泡沫頁
         assert ("T14" in P["meta"]["items"]) == (k != "spx") and ("F11" in P["meta"]["items"]) == (k == "sox")
     assert S.MARKET == "tw" and HP.MK["mkt"] == "台股"
 

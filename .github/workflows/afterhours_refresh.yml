@@ -157,6 +157,7 @@ jobs:
           git add -f dashboard/x9m.html 2>/dev/null || true            # 景氣溫度頁（docs/lab_heat_plan.md；分開 add）
           git add -f dashboard/x9mh.json 2>/dev/null || true           # 景氣溫度頁對照圖資料（第五版；分開 add）
           git add -f dashboard/x9mu.html 2>/dev/null || true           # 美股景氣頁（docs/lab_heat_us_plan.md；分開 add）
+          git add -f dashboard/x9b.html 2>/dev/null || true            # 泡沫頁（docs/lab_risk_plan.md；分開 add）
           git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
           git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
           git commit -m "chore: 盤後數據刷新 $(date '+%F %H:%M')" || { echo "無變更，跳過 push"; exit 0; }
@@ -175,6 +176,7 @@ jobs:
             git add -f dashboard/x9m.html 2>/dev/null || true            # 景氣溫度頁（docs/lab_heat_plan.md；分開 add）
             git add -f dashboard/x9mh.json 2>/dev/null || true           # 景氣溫度頁對照圖資料（第五版；分開 add）
             git add -f dashboard/x9mu.html 2>/dev/null || true           # 美股景氣頁（docs/lab_heat_us_plan.md；分開 add）
+            git add -f dashboard/x9b.html 2>/dev/null || true            # 泡沫頁（docs/lab_risk_plan.md；分開 add）
             git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
             git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
             git commit --amend --no-edit || true

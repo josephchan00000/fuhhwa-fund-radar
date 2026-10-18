@@ -168,7 +168,7 @@ def pack(B: dict, V: dict) -> dict:
     if not cal:
         return {}
     we = PO.week_ends(cal)
-    dims = list(S.DIMS)
+    dims = list(V["dims"])                      # 景氣頁顯示的面向（泡沫另放泡沫頁，heatpage.shown_dims）
     need = math.ceil(2 * len(dims) / 3)
     comp = B["comp"]
     j0 = next((j for j, i in enumerate(we) if sum(comp[d][i] is not None for d in dims) >= need), len(we) - 1)
@@ -458,7 +458,7 @@ def terrain_view() -> str:
     px = _e(HP.MK["px"].strip())
     chips = ('<button type="button" class="rch on" data-tf="" aria-pressed="true">全部</button>'
              + "".join(f'<button type="button" class="rch" data-tf="{d}" aria-pressed="false"><i class="tfd" style="background:var(--{DCOL[d]})"></i>'
-                       f'{_e(S.DSHORT[d])}</button>' for d in S.DIMS))
+                       f'{_e(S.DSHORT[d])}</button>' for d in HP.shown_dims()))
     return ('<div class="hview" data-view="terrain" hidden><section class="sec"><div class="tcard card">'
             '<div class="khd"><h2>熱度地形</h2><span class="kn">每條山脊是一個面向，越高越熱，最右邊是現在</span></div>'
             '<div class="seg tctl"><button type="button" class="tb on" data-tr="10" aria-pressed="true">近 10 年</button>'

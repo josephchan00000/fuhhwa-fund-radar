@@ -171,10 +171,8 @@ def built():
 
 def test_each_item_has_own_heat_and_pulls_sum_to_score(built):
     _, _, V, _ = built
-    assert list(V["dims"]) == ["fund", "chip", "gliq", "tliq", "tech", "bubl"]
+    assert list(V["dims"]) == ["fund", "chip", "gliq", "tliq", "tech"]          # 泡沫面向另放泡沫頁（不在景氣頁顯示）
     for dim, L in V["dims"].items():
-        if dim == "bubl" and L["score"] is None:                       # 測試資料還沒有泡沫面向的原始資料（U6 補上）
-            continue
         assert L["score"] is not None, dim
         pulls = [it["pull"] for it in L["items"] if it["pull"] is not None]
         assert len(pulls) == L["n_have"] >= H.need(len(S.ITEMS[dim]))
@@ -197,8 +195,8 @@ def test_render_structure_and_wording(built):
     for gone in ('id="trend"', 'id="detail"', 'class="tile"'):              # 第五版拿掉靜態走勢圖、各項明細、頁首數字卡
         assert gone not in page, gone
     assert '<a class="sr" href="#c-' not in page                                # 視覺化版面拿掉 52 週色帶，改成雷達（docs/lab_visual_plan.md）
-    assert page.count('<template id="dt-') == len(S.DIMS) == 6 and S.HORIZON_NOTE in page   # 每個面向一個右側面板
-    for d in S.DIMS:
+    assert page.count('<template id="dt-') == len(P.shown_dims()) == 5 and S.HORIZON_NOTE in page   # 每個面向一個右側面板（泡沫另放泡沫頁）
+    for d in P.shown_dims():
         st = V["strips"][d]
         assert len(st["cells"]) == min(S.STRIP_WEEKS, len(P.HP.week_ends(built[0]["cal"])))
         assert P.strip_text(st) in page                                       # 色帶旁的說明搬到面向面板
@@ -394,7 +392,7 @@ def test_meta_matches_spec_and_is_embedded(built):
     assert m["cpl"]["hot"] == S.CPL_HOT and m["cpl"]["cold"] == S.CPL_COLD and m["cpl"]["boot"] == S.CPL_BOOT
     assert m["cpl"]["minw"] == S.CPL_MIN_WEEKS and m["cpl"]["minr"] == S.CPL_MIN_RUNS and m["cpl"]["seed"] == S.BOOT_SEED
     assert m["max"] == S.CH_MAX == 5 and len(m["pal"]) == S.CH_MAX and m["rdef"] in m["ranges"]
-    assert set(m["items"]) == set(S.KEYS) and [d["id"] for d in m["dims"]] == list(S.DIMS)
+    assert set(m["items"]) == set(S.KEYS) and [d["id"] for d in m["dims"]] == list(P.shown_dims())   # 泡沫另放泡沫頁
     assert [a["id"] for a in m["acc"]] == [f"A_{g}" for g in S.M6_GROUPS] and m["acc"][0]["name"] == "景氣動能加速度"
     assert m["m6"] == {"delay": list(S.M6_DELAY), "win": S.M6_WIN, "cum": list(S.M6_CUM), "minn": S.M6_MIN_N}
     assert page.count("<script>") == 2 and "x9mh.json" in page                 # 序列資料另外下載
@@ -482,32 +480,25 @@ def test_entry_link_and_workflow_add_lines():
     assert "heatpage.build()" in (root / "scripts" / "gen_fund_dashboard.py").read_text(encoding="utf-8")   # 和籌碼雷達分開建
 
 
-def test_bubble_card_crash_tables_and_refs(built):
-    """第七版：泡沫卡的大跌比例一句、驗證段的泡沫事件表（兩個期間、延伸樣本、段）、參考讀數。"""
-    import random
-    from arm.lab import heatbubble as BB
-    _, _, V, _ = built
-    rnd = random.Random(3)
-    n = 360
-    dates = [f"{1990 + j // 12}-{j % 12 + 1:02d}-28" for j in range(n)]
-    hot = [(j // 30) % 3 == 0 for j in range(n)]
-    x = [90.0 if h else 40.0 for h in hot]
-    dd = {h: [(0.5 if hot[j] else 0.05) if rnd.random() < 0.95 else 0.0 for j in range(n)] for h, _ in S.BUB_DD}
-    res = BB._rnd(BB.crash_test(dates, x, dd))
-    V2 = dict(V)
-    V2["bub"] = {k: res for k in ["comp"] + S.ITEMS["bubl"]}
-    V2["bub_ext"] = {k: res for k in S.BUB_EXT}
-    V2["ref"] = [{"k": "Q1", "name": "台積電市值占比", "unit": "%", "how": "只當參考", "val": 38.43, "date": "2026-09"}]
-    card = P._card("bubl", V2["dims"]["bubl"], V2)
-    assert "之後一年內最大跌幅 ≥ 20%：分數 ≥ 80 的 120 個月（4 段）裡" in card and "熱了之後較容易大跌" in card
-    assert "上一段 ≥ 80：2012/7～2014/12（30 個月，最高 90）" in card
-    assert '<div class="refs">' in card and "台積電市值占比" in card and "38.4%" in card
-    bv = P._bub_valid(V2)
-    assert bv.count('class="bbt stk"') == 3                                   # 一年、兩年、延伸樣本
-    assert bv.count("<tr><td") == 2 * (1 + len(S.ITEMS["bubl"])) + 2 * len(S.BUB_EXT)
-    assert "延伸樣本（國發會加權指數月平均，1982 起；只當穩健度）" in bv and "1990/1～1992/6：30 個月" in bv
-    assert P._bub_valid({**V2, "bub": {}}) == "" and P._bub_card({**V2, "bub": {}}) == ""
-    page = P.render(V2)
-    assert 'id="bubv"' in page and page.index('id="bubv"') > page.index('id="valid"')
+def test_bubble_dimension_moved_to_bubble_page(built):
+    """泡沫面向從景氣頁拿掉（docs/lab_risk_plan.md 第 7 節）：卡片、色帶、雷達、地形、對照圖、證據地圖、驗證都不再有；
+    頁面只留一行泡沫等級，連到泡沫頁。規格與研究檔照舊（heatspec VER 7）。"""
+    B, R, V, page = built
+    assert "bubl" in S.DIMS and "bubl" not in V["dims"] and "bubl" not in P.shown_dims()
+    assert [d["id"] for d in V["meta"]["dims"]] == list(P.shown_dims()) and "bubl" not in V["meta"]["order"]
+    assert set(V["strips"]) == set(P.shown_dims())
+    for bad in ('id="c-bubl"', 'id="bubv"', 'data-tf="bubl"', 'id="e-bubl"', 'id="dt-bubl"', 'class="bubx"', 'class="refs"'):
+        assert bad not in page, bad
+    for k in S.ITEMS["bubl"]:
+        assert f'<template id="it-{k}">' not in page
+    from arm.lab import heatchart as HC
+    data = HC.build_data(B, R)
+    assert "bubl" not in data["s"] and not any(k in data["s"] for k in S.ITEMS["bubl"])
+    V2 = dict(V, bubnow={"mk": "tw", "L": 3, "cond": ["P1", "P2"], "d": "2026-10-16"})
+    line = P.bubble_line(V2)
+    assert "泡沫等級" in line and "泡沫警戒" in line and "（價格爆發、兩年翻倍）" in line
+    assert 'href="x9b.html#tw"' in line and P.bubble_line(dict(V, bubnow=None)) == ""
+    page2 = P.render(V2)
+    assert line in page2 and page2.index(line) < page2.index('<div class="hview" data-view="radar"')
     for w in BANNED:
-        assert w not in page, w
+        assert w not in page2, w
