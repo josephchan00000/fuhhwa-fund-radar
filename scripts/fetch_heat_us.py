@@ -32,7 +32,8 @@ NAMES = ["us_px_spx", "us_px_ixic", "us_px_ndx", "us_px_sox", "us_vxn", "us_vix3
          "us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini",
          "us_philly", "us_ads", "us_cli", "us_claims", "us_bls", "us_umich", "us_ebp", "us_shiller", "us_wsts",
          "taiex90", "twgdp"] + [f"us_lppls_{k}" for k in U.US_INDEX_SYM] + ["tw_lppls"] \
-    + ["us_ff49x", "us_ff49n", "us_ff49s"] + [f"us_etf_{s}" for s in BF.etf_names()]
+    + ["us_ff49x", "us_ff49n", "us_ff49s"] + [f"us_etf_{s}" for s in BF.etf_names()] \
+    + [f"us_vol_{k}" for k in U.US_INDEX_SYM]
 YAHOO = [("us_px_spx", "^GSPC", "1927-01-01"), ("us_px_ixic", "^IXIC", "1971-01-01"),
          ("us_px_ndx", "^NDX", "1985-01-01"), ("us_px_sox", "^SOX", "1994-01-01"),
          ("us_vxn", "^VXN", "2001-01-01"), ("us_vix3m", "^VIX3M", "2006-01-01"), ("us_dxy", "DX-Y.NYB", "1971-01-01")]
@@ -87,6 +88,14 @@ def daily() -> None:
         run(name, U.yahoo_us, name, sym, a)
     for name, sym, start in ADJ:
         once(name, U.yahoo_us, name, sym, start, True)
+    from arm.lab import crashfetch as CF                     # 大跌風險研究：指數成交量（docs/lab_crash_plan.md）
+    for k, (sym, start) in CF.US_VOL.items():
+        name = f"us_vol_{k}"
+        have = HD.load(name)
+        if have and max(have) >= last:
+            continue
+        a = start if not have else max(start, (date.fromisoformat(max(have)) - timedelta(days=10)).isoformat())
+        run(name, CF.yahoo_volume, name, sym, a)
     for sym in BF.etf_names():                               # 產業泡沫：類股 ETF 與 SPY 收盤（docs/lab_risk_plan.md 第 12 節）
         name = f"us_etf_{sym}"
         have = HD.load(name)

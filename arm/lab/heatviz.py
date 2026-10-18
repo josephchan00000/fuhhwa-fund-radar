@@ -390,8 +390,11 @@ def _radar_card() -> str:
 
 
 def main_view(V: dict, ks: list[dict]) -> str:
+    from . import crashpage as CP
     asof = V["asof"]
-    nav = ('<nav class="snav"><a href="#top">雷達</a><a href="#key">關鍵狀態</a><a href="#items">全部項目</a>'
+    crash = CP.card(V.get("crash"))                 # 短線大跌風險（docs/lab_crash_plan.md 第 3.6 節）：雷達與關鍵狀態下面
+    nav = ('<nav class="snav"><a href="#top">雷達</a><a href="#key">關鍵狀態</a>' + ('<a href="#crash">大跌風險</a>' if crash else "")
+           + '<a href="#items">全部項目</a>'
            f'<a href="#cmp">{_e(HP.MK["cmp"])}</a>' + ('<a href="#ta">價位事件</a>' if V.get("ta") else "")
            + '<button type="button" class="snv" data-goview="research">研究與驗證 →</button></nav>')
     nores = "" if (V.get("R") or {}).get("dims") else f'<p class="warn">驗證結果還沒產生（{_e(HP.MK["res"])}），先只列各項的 0～100。</p>'
@@ -403,7 +406,7 @@ def main_view(V: dict, ks: list[dict]) -> str:
              '<div class="imap" id="imap"></div>'
              '<p class="note">每一點是一項：位置＝現在的 0～100；短線＝和上週比從哪裡移過來；點越大＝拉動面向分數越多。點一下打開右邊的面板。</p>'
              f'{items_table(V)}</section>')
-    return (f'<div class="hview" data-view="radar">{nav}{top}{items}{HP._cmp_section()}{HP._ta_main(V)}'
+    return (f'<div class="hview" data-view="radar">{nav}{top}{crash}{items}{HP._cmp_section()}{HP._ta_main(V)}'
             '<p class="vmore"><button type="button" class="tb" data-goview="research">研究與驗證（各項和指數的關係、多層回歸、事件研究、資料來源）→</button></p></div>')
 
 
