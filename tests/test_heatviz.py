@@ -46,24 +46,26 @@ def test_pack_radar_data(built):
     cal = B["cal"]
     we = P.HP.week_ends(cal)
     wd = [cal[i] for i in we]
-    assert [d["id"] for d in viz["dims"]] == list(S.DIMS)
+    assert [d["id"] for d in viz["dims"]] == list(P.shown_dims())          # 泡沫另放泡沫頁
     for d in viz["dims"]:
         L = V["dims"][d["id"]]
         assert d["sc"] == VZ._r1(L["score"]) and d["ago"] == VZ._r1(L["ago"])
-    need = -(-2 * len(S.DIMS) // 3)
+    shown = list(P.shown_dims())                                               # 泡沫另放泡沫頁
+    need = -(-2 * len(shown) // 3)
     j0 = wd.index(viz["start"])
-    assert sum(B["comp"][d][we[j0]] is not None for d in S.DIMS) >= need       # 時間軸從 2/3 的面向有分數那週開始
-    assert j0 == 0 or sum(B["comp"][d][we[j0 - 1]] is not None for d in S.DIMS) < need
+    assert sum(B["comp"][d][we[j0]] is not None for d in shown) >= need        # 時間軸從 2/3 的面向有分數那週開始
+    assert j0 == 0 or sum(B["comp"][d][we[j0 - 1]] is not None for d in shown) < need
     for p in viz["pre"]:                                                      # 比較日期都是每週最後一個交易日，值和那一週一樣
         assert p["d"] in wd and p["d"] >= viz["start"]
         i = cal.index(p["d"])
-        assert p["v"] == [VZ._r1(B["comp"][d][i]) for d in S.DIMS]
+        assert p["v"] == [VZ._r1(B["comp"][d][i]) for d in shown]
     assert viz["pre"][0]["key"] == "w4" and viz["pre"][0]["d"] == wd[-5]
     assert 1 <= len(viz["qs"]) <= VZ.NQ and viz["qs"][-1]["d"] == cal[-1]
     assert all(q["d"] in wd for q in viz["qs"]) and [q["d"] for q in viz["qs"]] == sorted(q["d"] for q in viz["qs"])
-    assert {it["k"] for it in viz["items"]} == set(S.KEYS)
-    for d in S.DIMS:
+    assert {it["k"] for it in viz["items"]} == {k for d in shown for k in S.ITEMS[d]}
+    for d in shown:
         assert sorted(viz["ord"][d]) == sorted(S.ITEMS[d])
+    assert "bubl" not in viz["ord"]
     assert viz["t0"] == cal[len(cal) - 1 - P.WEEK]
 
 
@@ -96,11 +98,12 @@ def test_terrain_identity_colors_and_focus(built):
     dark = css[css.index("@media (prefers-color-scheme:dark)"):]
     for tok in set(VZ.DCOL.values()):
         assert f"--{tok}:" in light and f"--{tok}:" in dark, tok
-    assert [d["col"] for d in V["viz"]["dims"]] == [VZ.DCOL[d] for d in dims_tw]
+    shown = list(P.shown_dims())                                               # 泡沫另放泡沫頁，地形只畫景氣頁的面向
+    assert [d["col"] for d in V["viz"]["dims"]] == [VZ.DCOL[d] for d in shown]
     tv = page[page.index('<div class="hview" data-view="terrain"'):page.index('<div class="hview" data-view="research"')]
     chips = re.findall(r'<button type="button" class="rch(?: on)?" data-tf="(\w*)"', tv)
-    assert chips == [""] + dims_tw                                             # 「全部」＋每個面向一顆
-    for d in dims_tw:
+    assert chips == [""] + shown                                               # 「全部」＋每個面向一顆
+    for d in shown:
         assert f'data-tf="{d}" aria-pressed="false"><i class="tfd" style="background:var(--{VZ.DCOL[d]})"></i>{S.DSHORT[d]}</button>' in tv
     assert "__ter" not in VZ.JS and "O.lab" not in VZ.JS                       # 沒選的示意（名字寫在起點、拉開不重疊）已拿掉
     assert "function tFocus(" in VZ.JS and "TS.focus && p.id !== TS.focus" in VZ.JS
@@ -131,14 +134,14 @@ def test_key_states_definition(built):
 
 def test_every_item_and_dimension_has_a_panel(built):
     _, _, V, page = built
-    for d in S.DIMS:
+    for d in P.shown_dims():
         assert page.count(f'<template id="dt-{d}"') == 1
         assert f'<section class="cd" id="c-{d}">' in page                    # 原本的面向卡片在面板裡
-    for k in S.KEYS:
+    for k in [k for d in P.shown_dims() for k in S.ITEMS[d]]:
         t = page[page.index(f'<template id="it-{k}"'):]
         t = t[:t.index("</template>")]
         assert f'<div class="dchart" data-k="{k}"></div>' in t and f'class="tb cmpk" data-k="{k}"' in t
-    assert page.count('<template id="it-') == len(S.KEYS)
+    assert page.count('<template id="it-') == sum(len(S.ITEMS[d]) for d in P.shown_dims())   # 泡沫的項目不在景氣頁
     assert '<aside class="drw" id="drw" hidden' in page                      # 一個共用的右側面板
 
 
@@ -149,7 +152,6 @@ def test_views_and_research_moved_intact(built):
     res = page[page.index('<div class="hview" data-view="research"'):page.index('<div class="dtpl"')]
     for part in (P._dv_section(V), P._rel_overview(V), P._m6_valid(V), P._ta_study(V)):
         assert part and part in res                                           # 研究內容原封搬到研究畫面
-    assert P._bub_valid(V) in res                                             # 合成資料沒有泡沫事件（空字串）
     for d, L in V["dims"].items():
         assert P._valid(d, L) in res and f'id="v-{d}"' in res
     assert 'id="src"' in res and P._METHOD in res

@@ -68,15 +68,18 @@ def bsadf(y: list[float], w0: int, start: int = 0) -> list[float | None]:
     return out
 
 
-def psy_cv(w0: int, reps: int, nmax: int, seed: int, qs: tuple = (0.5, 0.95), chunk: int = 250) -> dict:
-    """「沒有泡沫」（隨機漫步、常態增量）的 BSADF 分位數：第 n 個點（n＝t＋1）的 qs 分位數。numpy，研究時算一次。"""
+def psy_cv(w0: int, reps: int, nmax: int, seed: int, qs: tuple = (0.5, 0.95), chunk: int = 250,
+           drift: float = 0.0) -> dict:
+    """「沒有泡沫」（隨機漫步、常態增量）的 BSADF 分位數：第 n 個點（n＝t＋1）的 qs 分位數。numpy，研究時算一次。
+    drift＝每期漂移 ÷ 標準差（泡沫頁 bubspec：有長期漲勢的虛無假設；0＝景氣頁原本的版本，亂數與結果完全不變）。"""
     import numpy as np
     rng = np.random.default_rng(seed)
     out = {f"q{int(round(q * 100))}": [None] * nmax for q in qs}
     stats = np.full((reps, nmax), np.nan)
     for a in range(0, reps, chunk):
         b = min(reps, a + chunk)
-        y = np.cumsum(rng.standard_normal((b - a, nmax)), axis=1)
+        e = rng.standard_normal((b - a, nmax))
+        y = np.cumsum(e + drift if drift else e, axis=1)
         x, z = y[:, :-1], np.diff(y, axis=1)
         zero = np.zeros((b - a, 1))
         px = np.hstack([zero, np.cumsum(x, axis=1)])

@@ -97,6 +97,7 @@ def m6_data(R: dict) -> dict:
 
 
 def build_data(B: dict, R: dict | None = None) -> dict:
+    from . import heatpage as HPG                 # 頁面模組也匯入這支；放在函式裡避免循環匯入
     R = R or {}
     if R.get("ver") != S.VER:
         R = {}
@@ -108,10 +109,11 @@ def build_data(B: dict, R: dict | None = None) -> dict:
          "fw": {str(h): [None if (r := H.fwd(px, i, h)[0]) is None else round(100 * r, 2) for i in we] for h in S.REL_H}}
     d = {"d": [cal[i] for i in dl], "px": [r1(px[i]) for i in dl]}
     s = {}
-    for dim in S.DIMS:
+    shown = HPG.shown_dims()                      # 泡沫面向不在景氣頁（另放泡沫頁）
+    for dim in shown:
         c = B["comp"][dim]
         s[dim] = {"h": trim([r1(c[i]) for i in we]), "hd": trim([r1(c[i]) for i in dl])}
-    for k in S.KEYS:
+    for k in [k for d in shown for k in S.ITEMS[d]]:
         h, raw = B["heat"][k], B["raw"][k]
         s[k] = {"h": trim([r1(h[i]) for i in we]), "r": trim([sig(raw[i]) for i in we]),
                 "hd": trim([r1(h[i]) for i in dl]), "rd": trim([sig(raw[i]) for i in dl])}
@@ -120,6 +122,8 @@ def build_data(B: dict, R: dict | None = None) -> dict:
     an = {}
     wk = R.get("wk") or []
     for sid, a in ((R.get("rel") or {}).items()):
+        if sid not in s:                          # 不在景氣頁的線（泡沫面向與它的項目）不帶分析
+            continue
         a = dict(a)
         a["roll"] = [[wk[j], v] for j, v in a.get("roll") or [] if j < len(wk)]
         an[sid] = a

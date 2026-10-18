@@ -46,6 +46,13 @@ def main() -> None:
         print(f"[美股景氣] {'已更新' if changed else '無變更'} {heatpage_us.OUT}")
     except Exception as e:                                # noqa: BLE001
         print(f"[美股景氣] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
+    # 泡沫頁（dashboard/x9b.html；docs/lab_risk_plan.md 第 7、8 節）。沿用上面兩頁算好的泡沫等級；分開建、分開失敗。
+    try:
+        from arm.lab import bubpage
+        changed = bubpage.build()
+        print(f"[泡沫] {'已更新' if changed else '無變更'} {bubpage.OUT}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[泡沫] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
     if "--open" in sys.argv[1:]:
         webbrowser.open(OUT.as_uri())
 

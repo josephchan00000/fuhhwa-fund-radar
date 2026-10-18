@@ -173,6 +173,26 @@ def _ev(d: dict | None, h: int) -> dict:
     return d.get(str(h)) or d.get(h) or {}
 
 
+# 泡沫面向另外放到泡沫頁（docs/lab_risk_plan.md 第 7 節；使用者 2026-10-18 選「拿掉，只留一行等級」）。
+# 規格（heatspec VER 7）與研究檔照舊算，只是景氣頁不顯示：雷達、階段、地形、色帶、對照圖、證據地圖都只用 shown_dims()。
+HIDE_DIMS = ("bubl",)
+
+
+def shown_dims() -> dict:
+    return {d: L for d, L in S.DIMS.items() if d not in HIDE_DIMS}
+
+
+def bubble_now(B: dict) -> dict | None:
+    """泡沫頁的現在等級（bubble.now_for；同一個程序裡泡沫頁直接沿用）；算不出來就不顯示那一行。"""
+    try:
+        from . import bubble as BU
+        mk = "tw" if MK["tab"] == "tw" else B.get("idx")
+        return BU.now_for(mk, B["D"]) if mk and B.get("D") else None
+    except Exception as e:                          # noqa: BLE001  泡沫頁的問題不擋景氣頁
+        print(f"[景氣溫度] 泡沫等級算不出來：{type(e).__name__}: {e}")
+        return None
+
+
 def view(B: dict | None = None, R: dict | None = None) -> dict:
     B = B if B is not None else C.build()
     R = R if R is not None else (load_research() or {})
@@ -184,7 +204,7 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
     t0 = max(0, t - WEEK)
     dvn = {k: HP.deriv_now(B, k) for k in S.DERIV} if T else {}
     dims = {}
-    for dim, L in S.DIMS.items():
+    for dim, L in shown_dims().items():
         rd = (R.get("dims") or {}).get(dim) or {}
         keys = S.ITEMS[dim]
         hn = {k: B["hc"][k][t] for k in keys}
@@ -222,33 +242,16 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
               "last": {k: (cal[ix[-1]] if ix else None) for k, ix in ev.items()}, "study": R.get("events") or {},
               "next": next_days(cal[t], S.DEDUCT_N), "base_a": cal[S.EV_START]}
     we = HP.week_ends(cal) if T else []
-    strips = {d: HP.strip(B, d, we=we) for d in S.DIMS} if T else {}
+    strips = {d: HP.strip(B, d, we=we) for d in shown_dims()} if T else {}
     out = {"asof": cal[t] if cal else None, "dims": dims, "R": R,
             "data": R.get("data") or {}, "cal_info": B.get("cal_info"), "vixcorr": B.get("vixcorr") or {}, "ta": ta,
             "strips": strips, "summary": HP.summary(strips) if strips else "", "dvn": dvn,
             "dvr": R.get("deriv") or {}, "rel": R.get("rel") or {}, "m6": R.get("m6") or {}, "meta": meta(),
-            "bub": _bub_main(R), "bub_ext": (R.get("bub") or {}).get("ext") or {}, "ref": ref_now(B)}
+            "bubnow": bubble_now(B) if T else None}
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
         out["viz"] = VZ.pack(B, out)
         out["ks"] = VZ.key_states(B, out, we)
-    return out
-
-
-def _bub_main(R: dict) -> dict:
-    """研究檔的泡沫事件：台股 {"main", "ext"}、美股直接是 {項目: 結果}。"""
-    b = R.get("bub") or {}
-    return b.get("main") or {} if "main" in b else b
-
-
-def ref_now(B: dict) -> list[dict]:
-    """參考讀數（不進分數）的最新值：[{k, name, unit, how, val, date}]。"""
-    out = []
-    for k, nm, unit, how in S.REF:
-        ser = (B.get("ref") or {}).get(k) or {}
-        ks = sorted(d for d, v in ser.items() if v is not None)
-        out.append({"k": k, "name": nm, "unit": unit, "how": how, "val": ser[ks[-1]] if ks else None,
-                    "date": ks[-1] if ks else None})
     return out
 
 
@@ -257,10 +260,10 @@ def meta() -> dict:
     return {
         "ver": S.VER, "mkt": MK["mkt"], "px": MK["px"], "data": MK["data"],
         "famn": {k: len(v) for k, v in _gr_fams().items()},
-        "dims": [{"id": d, "name": L["name"], "short": S.DSHORT[d]} for d, L in S.DIMS.items()],
+        "dims": [{"id": d, "name": L["name"], "short": S.DSHORT[d]} for d, L in shown_dims().items()],
         "items": {k: {"name": nm, "unit": u, "hot": hot, "dim": dim, "dec": DEC.get(k, 2), "signed": k in SIGNED}
                   for k, dim, nm, u, hot, *_ in S.IND},
-        "order": {d: S.ITEMS[d] for d in S.DIMS},
+        "order": {d: S.ITEMS[d] for d in shown_dims()},
         "pal": list(PALETTE), "max": S.CH_MAX, "ranges": list(S.CH_RANGES), "rdef": S.CH_DEFAULT_RANGE,
         "shade": list(S.CH_SHADE), "relh": list(S.REL_H), "hdef": S.CPL_DEFAULT_H, "llh": list(S.LL_H),
         "cpl": {"hot": S.CPL_HOT, "cold": S.CPL_COLD, "minw": S.CPL_MIN_WEEKS, "minr": S.CPL_MIN_RUNS,
@@ -585,55 +588,10 @@ def _card(dim: str, L: dict, V: dict) -> str:
         r = "—" if vc.get("r") is None else f'{vc["r"]:.2f}'
         vx = (f'<p class="note">台指 VIX 從 {_e(_ymd(vc.get("a")))} 起才有資料（{vc["n"]} 天），和美國 VIX 的相關係數 {r}；'
               f'自己的歷史滿 {S.PCT_MIN["d"]} 個交易日後改用自己的排名並算進分數。</p>')
-    bx = _bub_card(V) if dim == "bubl" else ""
     return (f'<section class="cd" id="c-{dim}"><div class="ch"><h2>{_e(L["name"])}<span class="sub">{_e(L["span"])}</span></h2>'
             f'<div class="sv">{head}{wk}</div></div><p class="hot">熱＝{_e(L["hot"])}</p>{_meter(sc)}'
-            f'<p class="past">{_past(L) if sc is not None else ""}</p>{_verdict_line(L)}{bx}{eq}'
-            f'<div class="its">{_items(L)}</div>{vx}{_refs(V) if dim == "bubl" else ""}</section>')
-
-
-BUBV = {"crash": "熱了之後較容易大跌", "calm": "熱了之後反而較少大跌", "none": "看不出差別", "few": "樣本不足"}
-
-
-def _ddtxt(h: str) -> str:
-    thr = dict((str(a), b) for a, b in S.BUB_DD).get(h)
-    yrs = {"252": "一年", "504": "兩年"}.get(h, f"{h} 個交易日")
-    return f"之後{yrs}內最大跌幅 ≥ {100 * thr:.0f}%" if thr is not None else ""
-
-
-def _bub_card(V: dict) -> str:
-    """泡沫卡：泡沫面向分數 ≥ 80 的月份之後大跌的比例（研究檔；只當參考）。"""
-    c = (V.get("bub") or {}).get("comp") or {}
-    parts = []
-    for h, _ in S.BUB_DD:
-        e = c.get(str(h)) or {}
-        if not e.get("n"):
-            continue
-        ph = "—" if e.get("p_hot") is None else f'{100 * e["p_hot"]:.0f}%'
-        parts.append(f'{_ddtxt(str(h))}：分數 ≥ {S.BUB_HOT} 的 {e["n_hot"]} 個月（{e["n_epi"]} 段）裡 {ph}，'
-                     f'所有 {e["n"]:,} 個月 {100 * e["p_all"]:.0f}%（{BUBV.get(e.get("verdict"), "—")}）')
-    if not parts:
-        return ""
-    epi = c.get("epi") or []
-    last = ""
-    if epi:
-        x = epi[-1]
-        last = f'上一段 ≥ {S.BUB_HOT}：{_ymd(x["a"][:7])}～{_ymd(x["z"][:7])}（{x["n"]} 個月，最高 {x["peak"]:.0f}）。'
-    return f'<p class="bubx">{_e("；".join(parts))}。{_e(last)}<span class="mu">樣本與判定見「驗證」的泡沫事件。</span></p>'
-
-
-def _refs(V: dict) -> str:
-    rows = []
-    for r in V.get("ref") or []:
-        if r["val"] is None:
-            continue
-        num = f'{r["val"]:,.0f}' if r["unit"] == "個" else f'{r["val"]:,.1f}'          # 條件數是整數
-        v = num + (r["unit"] if r["unit"] in ("%",) else (f' {r["unit"]}' if r["unit"] else ""))
-        rows.append(f'<li><b>{_e(r["name"])}</b> {_e(v)}<span class="mu">（{_e(_ymd(r["date"]))}）</span>'
-                    f'<i>{_e(r["how"])}</i></li>')
-    if not rows:
-        return ""
-    return f'<div class="refs"><h3>參考讀數<span class="sub">不進分數</span></h3><ul>{"".join(rows)}</ul></div>'
+            f'<p class="past">{_past(L) if sc is not None else ""}</p>{_verdict_line(L)}{eq}'
+            f'<div class="its">{_items(L)}</div>{vx}</section>')
 
 
 def strip_text(st: dict) -> str:
@@ -737,56 +695,6 @@ def _valid(dim: str, L: dict) -> str:
                    f'<h4>之後 {h} 個交易日：各項</h4><div class="tw"><table><tr><th class="l">項目</th><th>有分數起</th><th>樣本</th>'
                    f'<th>等級相關［95% 信賴區間］</th><th>前一半</th><th>後一半</th><th class="l">判定</th>'
                    f'<th>對照 {_e(r0)}</th><th>對照 {_e(r1)}</th></tr>{"".join(rows)}</table></div>')
-    out.append("</div>")
-    return "".join(out)
-
-
-def _bub_row(name: str, e: dict) -> str:
-    if not e.get("n"):
-        return f'<tr><td class="l">{_e(name)}</td><td colspan="7" class="mu">沒有樣本</td></tr>'
-    pct = lambda x: "—" if x is None else f"{100 * x:.0f}%"                     # noqa: E731
-    pp = lambda x: "—" if x is None else f"{_sgn(100 * x, 0)}"                   # noqa: E731
-    ci = f'［{pp(e.get("lo"))}, {pp(e.get("hi"))}］' if e.get("lo") is not None else ""
-    return (f'<tr><td class="l">{_e(name)}</td><td data-h="熱的月份">{e["n_hot"]}（{e["n_epi"]} 段）</td>'
-            f'<td data-h="熱了之後大跌">{pct(e.get("p_hot"))}</td><td data-h="所有月份">{pct(e.get("p_all"))}</td>'
-            f'<td data-h="差（百分點）">{pp(e.get("diff"))} {ci}</td>'
-            f'<td data-h="前一半">{pp((e.get("h1") or {}).get("diff"))}</td><td data-h="後一半">{pp((e.get("h2") or {}).get("diff"))}</td>'
-            f'<td class="l" data-h="判定">{_e(BUBV.get(e.get("verdict"), "—"))}</td></tr>')
-
-
-def _bub_valid(V: dict) -> str:
-    """泡沫事件驗證（規劃文件 docs/lab_heat_us_plan.md 第 15.7 節）：每一項與泡沫面向分數，熱（≥ 80）的月份之後大跌的比例。"""
-    bub = V.get("bub") or {}
-    if not bub or "bubl" not in S.DIMS:
-        return ""
-    names = [("泡沫面向分數", "comp")] + [(S.IND[S.KEYS.index(k)][2], k) for k in S.ITEMS["bubl"]]
-    out = ['<div class="vsec" id="bubv"><h3>泡沫事件：熱了之後是不是比較容易大跌<span class="sub">每月最後一個交易日一個樣本；只當參考</span></h3>'
-           f'<p class="note">文獻說泡沫訊號預測的是「之後大跌的機率」，不是平均報酬。大跌＝t＋1 收盤起、期間內任一天高點到之後低點的跌幅'
-           f'（Greenwood 等人：兩年內跌 40%）。差的區間用 {S.BUB_BLOCK} 個月一段的區塊重抽；熱的月份少於 {S.BUB_MIN_HOT} 個月或段數少於 '
-           f'{S.BUB_EPI_MIN} 段＝樣本不足；區間不含 0、前後兩半方向一樣才判定。同一段泡沫會連續很多個月都熱，月數不等於獨立的次數。</p>']
-    for h, _ in S.BUB_DD:
-        rows = "".join(_bub_row(nm, (bub.get(k) or {}).get(str(h)) or {}) for nm, k in names)
-        out.append(f'<h4>{_e(_ddtxt(str(h)))}</h4><div class="tw"><table class="bbt stk"><tr><th class="l">項目</th><th>熱（≥ {S.BUB_HOT}）的月份</th>'
-                   f'<th>熱了之後大跌</th><th>所有月份</th><th>差（百分點）［95% 區間］</th><th>前一半</th><th>後一半</th>'
-                   f'<th class="l">判定</th></tr>{rows}</table></div>')
-    ext = V.get("bub_ext") or {}
-    if ext:
-        rows = []
-        for k in S.BUB_EXT:
-            for h, _ in S.BUB_DD:
-                e = (ext.get(k) or {}).get(str(h)) or {}
-                rows.append(_bub_row(f'{S.IND[S.KEYS.index(k)][2]}・{_ddtxt(str(h))}', e))
-        out.append('<h4>延伸樣本（國發會加權指數月平均，1982 起；只當穩健度）</h4>'
-                   '<p class="note">月平均會把跌幅抹平一些；之後一年、兩年用 12、24 個月的月平均算最大跌幅。</p>'
-                   f'<div class="tw"><table class="bbt stk"><tr><th class="l">項目</th><th>熱的月份</th><th>熱了之後大跌</th><th>所有月份</th>'
-                   f'<th>差（百分點）［95% 區間］</th><th>前一半</th><th>後一半</th><th class="l">判定</th></tr>{"".join(rows)}</table></div>')
-    epi = (bub.get("comp") or {}).get("epi") or []
-    if epi:
-        yr = {"252": "一年", "504": "兩年"}
-        li = "".join(f'<li>{_e(_ymd(x["a"][:7]))}～{_e(_ymd(x["z"][:7]))}：{x["n"]} 個月，最高 {x["peak"]:.0f}；之後'
-                     + "、".join(f'{yr.get(h, h)}內最大跌幅 ' + ("還不到期" if v is None else f'{100 * v:.0f}%')
-                                for h, v in sorted((x.get("dd") or {}).items(), key=lambda t: int(t[0]))) + '</li>' for x in epi)
-        out.append(f'<h4>泡沫面向分數 ≥ {S.BUB_HOT} 的段<span class="sub">每段第一個月之後的最大跌幅</span></h4><ul class="epi">{li}</ul>')
     out.append("</div>")
     return "".join(out)
 
@@ -1300,6 +1208,19 @@ def _meta_json(V: dict) -> str:
     return json.dumps(V.get("meta") or meta(), ensure_ascii=False, separators=(",", ":"), sort_keys=True).replace("</", "<\\/")
 
 
+def bubble_line(V: dict) -> str:
+    """泡沫只留一行：等級＋哪些條件成立，連到泡沫頁（該市場那一段）。"""
+    b = V.get("bubnow")
+    if not b:
+        return ""
+    from . import bubble as BU
+    from . import bubspec as BS
+    cs = "、".join(BU.SHORT[c] for c in b["cond"])
+    tail = f'（{_e(cs)}）' if cs else ""
+    return (f'<p class="bubln">泡沫等級 <b class="bl{b["L"]}">{b["L"]}</b> {_e(BS.LEVELS[b["L"]])}{tail}'
+            f'<a href="x9b.html#{_e(b["mk"])}">泡沫頁 →</a></p>')
+
+
 def parts(V: dict) -> dict:
     """頁面的主體（美股頁每個指數各一份）：四個視角（雷達、階段、地形、研究）＋右側面板的內容＋雷達的資料；asof＝資料日。
     研究畫面＝原本的邊際變化、驗證、事件研究、資料來源，內容原封搬過去（docs/lab_visual_plan.md 第 5 節）。"""
@@ -1314,11 +1235,11 @@ def parts(V: dict) -> dict:
         + '<section class="sec" id="valid"><h2>驗證</h2>' + _METHOD + _METHOD5
         + (f'<p class="note">面向分數最早從哪天有：{_e(firsts)}。</p>' if firsts else "")
         + _rel_overview(V) + _m6_valid(V)
-        + "".join(_valid(d, Ds[d]) for d in Ds) + _bub_valid(V) + "</section>" + _ta_study(V)
+        + "".join(_valid(d, Ds[d]) for d in Ds) + "</section>" + _ta_study(V)
         + f'<section class="sec" id="src"><h2>資料來源與筆數</h2><div class="tw"><table><tr><th class="l">檔</th><th>筆數</th>'
           f'<th>起</th><th>到</th></tr>{data_rows}</table></div><p class="note">{_e(_SRC_NOTE)}</p></section>'
     )
-    body = (VZ.main_view(V, V.get("ks") or []) + VZ.phase_view() + VZ.terrain_view() + VZ.research_view(V, research)
+    body = (bubble_line(V) + VZ.main_view(V, V.get("ks") or []) + VZ.phase_view() + VZ.terrain_view() + VZ.research_view(V, research)
             + VZ.templates(V) + VZ.viz_json(V))
     return {"nav": "", "body": body, "asof": asof}
 
@@ -1443,10 +1364,9 @@ main{padding:14px 16px 80px;max-width:1080px;margin:0 auto}
 .mtl{display:grid;grid-template-columns:repeat(5,1fr);font-size:11px;color:var(--mut);text-align:center}
 .past{font-size:13.5px;color:var(--ink2);margin:8px 0 2px;line-height:1.75}
 .vd{font-size:13.5px;margin:2px 0}.eq{font-size:12px;color:var(--mut);margin:2px 0 8px}
-.bubx{font-size:13px;color:var(--ink2);margin:6px 0 4px;line-height:1.75}.bubx .mu{margin-left:4px}
-.refs{margin-top:14px;border-top:1px solid var(--line);padding-top:8px}.refs h3{font-size:14px;margin:0 0 6px}
-.refs ul{margin:0;padding-left:18px;font-size:13px;line-height:1.7}.refs li i{display:block;font-style:normal;color:var(--mut);font-size:12px}
-.refs li .mu{margin-left:4px}.epi{font-size:12.5px;line-height:1.75;color:var(--ink2);padding-left:18px}
+.bubln{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;max-width:1080px;margin:6px auto 0;padding:7px 12px;font-size:13.5px;
+color:var(--ink2);border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.bubln b{font-size:16px}.bubln a{margin-left:auto;white-space:nowrap}.bl0,.bl1{color:var(--ink2)}.bl2{color:var(--t3)}.bl3,.bl4{color:var(--t4)}
 .its{margin-top:6px}
 .ith,.it{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(120px,1.3fr) 72px 48px 48px;gap:8px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--line)}
 .ith{font-size:11.5px;color:var(--mut);border-bottom:2px solid var(--line);padding-top:8px}
