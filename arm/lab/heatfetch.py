@@ -343,7 +343,7 @@ def ndc() -> int:
     except Exception as e:                                      # noqa: BLE001
         print(f"[heat] 出口 ✗ {type(e).__name__}: {str(e)[:200]}", flush=True)
     try:                                                        # 股價指數（月平均）：第六版延伸樣本、只當穩健度（第 15.3 節）
-        lf = next(n for n in zf.namelist() if "領先指標構成項目" in n)
+        lf = next(n for n in zf.namelist() if n == "領先指標構成項目.csv")    # 另有 schema-領先指標構成項目.csv（欄位說明）
         lt = zf.read(lf).decode("utf-8-sig")
         print(f"[heat] 領先指標構成項目表頭：{lt.splitlines()[0][:300]}", flush=True)
         st = parse_ndc_col(lt, "股價指數", lf)
