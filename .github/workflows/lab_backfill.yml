@@ -98,6 +98,10 @@ jobs:
             python3 scripts/backfill_lab.py --rev-mops --budget-min 45
           elif [ "$MODE" = "revfm" ] || [ "${MODE#revfm}" != "$MODE" ]; then
             python3 scripts/backfill_lab.py --rev-fm --budget-min 50
+          elif [ "$MODE" = "usfill" ]; then
+            # 美股景氣與台股泡沫面向的資料回補（docs/lab_heat_us_plan.md U3）：全部來源從頭抓、加權指數 1990～1998
+            pip install --quiet xlrd openpyxl || true
+            timeout 3000 python3 scripts/fetch_heat_us.py --backfill
           elif [ "$MODE" = "usprobe" ]; then
             # 美股景氣與泡沫模型的資料來源探針（docs/lab_heat_us_plan.md U1）：只印診斷、不寫檔
             pip install --quiet xlrd openpyxl || true
