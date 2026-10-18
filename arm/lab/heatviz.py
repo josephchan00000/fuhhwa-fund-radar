@@ -1,10 +1,10 @@
 """景氣頁的視覺化版面（docs/lab_visual_plan.md 第 5～8 節；2026-10-18 使用者選定：雷達＋關鍵狀態為主畫面，
-羅盤、3D 地形、研究可以切換，配色跟著系統深淺）。
+階段時間軸、3D 地形、研究可以切換，配色跟著系統深淺）。
 
 只改呈現：分數、0～100、研究的算法與規格都不動（heatspec、研究檔照舊）。
   · pack(B, V)：主畫面要的小份資料（每個面向、每一項的現在、上週、4 週前、1 年前，雷達的比較日期與每季小圖），
     嵌在頁面的 <script type="application/json" class="hviz">（美股頁每個指數各一份，跟著內容切換）；
-    每週的長序列照舊從 x9mh.json 下載（時間拉桿、羅盤、3D、面板裡的大張走勢）。
+    每週的長序列照舊從 x9mh.json 下載（時間拉桿、階段、3D、面板裡的大張走勢）。
   · 關鍵狀態＝研究檔的判定是「熱了之後較弱／較強」（全期間信賴區間不含 0、前後兩半同號），而且現在在過熱（≥ 80）或過冷（< 20）。
   · 右側面板的內容在這裡產生（<template id="dt-面向">、<template id="it-項目">），瀏覽器只負責打開、畫走勢。
   · 比較日期：指數從高點跌 20% 以上（每週收盤）的最近兩段，高點與低點各一個，只描述位置，不是訊號。
@@ -32,7 +32,13 @@ HOT, COLD = 80, 20
 # 地形圖每條山脊的身分色（CSS 變數，深淺兩套在 heatpage._CSS）。不用紅、藍（紅＝過熱、藍＝過冷）；
 # 依山脊由後到前的順序，相鄰兩條在色弱模擬下也分得開（2026-10-18 用 dataviz 驗色工具檢查，數字見 docs/lab_visual_plan.md 第 9 節）
 DCOL = {"fund": "dfund", "chip": "dchip", "sent": "dchip", "gliq": "dgliq", "liq": "dgliq", "tliq": "dtliq", "tech": "dtech", "bubl": "dbubl"}
-VIEWS = (("radar", "雷達"), ("compass", "羅盤"), ("terrain", "地形 3D"), ("research", "研究"))
+VIEWS = (("radar", "雷達"), ("phase", "階段"), ("terrain", "地形 3D"), ("research", "研究"))
+# 階段時間軸（2026-10-18 取代羅盤，docs/lab_visual_plan.md 第 11 節）：8 週平均熱度、近 13 週變化；跨過 50 要多 hl 分、
+# 變化要超過 hm 分才換階段（不然沿用原本的），一個階段通常維持 2～6 個月。只描述位置，升溫降溫沒有驗證過能預測漲跌
+PH = {"ma": 8, "chg": 13, "hl": 5, "hm": 3}
+PHN = ("熱、還在升溫", "熱、開始降溫", "冷、還在降溫", "冷、開始回溫")
+PHS = ("最熱的階段", "高檔轉弱", "低檔轉弱", "低檔轉強")
+PH_ORDER = (3, 0, 1, 2)       # 圖例順序＝常見的順序（冷回溫 → 熱升溫 → 熱降溫 → 冷降溫）
 BC = HP.BAND_CLS
 
 
@@ -204,6 +210,7 @@ def pack(B: dict, V: dict) -> dict:
     ordr = {d: [it["k"] for it in _item_order(L)] for d, L in V["dims"].items()}
     return {"asof": cal[t], "start": wd[j0], "dims": out_d, "items": items, "ord": ordr, "pre": pre, "qs": qs,
             "mkt": HP.MK["mkt"].strip(), "px": HP.MK["px"].strip(), "t0": cal[t0],
+            "ph": {**PH, "n": list(PHN), "s": list(PHS)},
             "eps": [{"p": e["peak"], "t": e["trough"], "dd": _r1(100 * e["dd"]), "o": e["open"]} for e in eps_all]}
 
 
@@ -400,17 +407,51 @@ def main_view(V: dict, ks: list[dict]) -> str:
             '<p class="vmore"><button type="button" class="tb" data-goview="research">研究與驗證（各項和指數的關係、多層回歸、事件研究、資料來源）→</button></p></div>')
 
 
-def compass_view() -> str:
-    return ('<div class="hview" data-view="compass" hidden><section class="sec" id="cps-sec"><div class="vgrid">'
-            '<div class="ccard card"><div class="khd"><h2>熱度羅盤</h2><span class="kn" id="cdate"></span>'
-            '<button type="button" class="tb cback" id="cback" hidden>← 回到面向</button></div>'
-            '<p class="ksub" id="csub">橫軸＝現在多熱（0～100）；縱軸＝近 4 週升溫（上）或降溫（下）；尾巴＝過去 8 週走過的路。點泡泡展開那個面向的項目。</p>'
-            '<div class="cps" id="cps"><p class="note">走勢載入中…</p></div>'
-            '<div class="rtl"><button type="button" class="rplay" id="cplay" aria-label="播放近兩年">▶</button>'
-            '<div class="rtrk"><svg id="ctsvg" viewBox="0 0 600 44" preserveAspectRatio="none" aria-hidden="true"></svg>'
-            '<input type="range" id="ctin" min="0" max="0" value="0" aria-label="選一週" disabled></div>'
-            '<span class="rnow" id="cnow"></span></div><div class="rchips" id="cchips"></div></div>'
-            '<div class="vside"><section class="card cquad" id="cquad"></section></div></div></section></div>')
+def phase_track(x: list) -> tuple[list, list, list]:
+    """每週分數 → （8 週平均、近 13 週變化、階段 0～3 或 None）。和頁面 JS phTrack() 同一套（tests/test_heatviz.py 逐週比對）。"""
+    w, c, hl, hm = PH["ma"], PH["chg"], PH["hl"], PH["hm"]
+    n = len(x)
+    L = [None] * n
+    for i in range(w - 1, n):
+        seg = x[i - w + 1:i + 1]
+        if all(v is not None for v in seg):
+            t = 0
+            for v in seg:                                     # 由左往右加，和 JS 同一個順序（浮點數結果才會一樣）
+                t += v
+            L[i] = t / w
+    M = [L[i] - L[i - c] if i >= c and L[i] is not None and L[i - c] is not None else None for i in range(n)]
+    P, prev = [], None
+    for lv, m in zip(L, M):
+        if lv is None or m is None:
+            P.append(None)
+            prev = None
+            continue
+        if prev is None:
+            hot, up = lv >= 50, m >= 0
+        else:
+            hot = prev[0] if abs(lv - 50) < hl else lv >= 50
+            up = prev[1] if abs(m) < hm else m >= 0
+        prev = (hot, up)
+        P.append((0 if up else 1) if hot else (3 if up else 2))
+    return L, M, P
+
+
+def phase_view() -> str:
+    px = _e(HP.MK["px"].strip())
+    rg = "".join(f'<button type="button" class="tb" data-phr="{y}" aria-pressed="false">{nm}</button>'
+                 for y, nm in ((2, "2 年"), (5, "5 年"), (10, "10 年"), (0, "全部")))
+    lg = "".join(f'<span><i class="pq{q}"></i>{PHN[q]}<em>{PHS[q]}</em></span>' for q in PH_ORDER)
+    return ('<div class="hview" data-view="phase" hidden><section class="sec"><div class="card phcard">'
+            '<div class="khd"><h2>階段時間軸</h2><span class="kn" id="phdate"></span></div>'
+            '<p class="phlead" id="phlead"></p>'
+            f'<p class="ksub">每一條是一個面向，顏色＝那一週在哪個階段：看 8 週平均熱度（50 以上算熱）和近 {PH["chg"]} 週的變化（升溫或降溫）；'
+            f'跨過 50 要多 {PH["hl"]} 分、變化要超過 {PH["hm"]} 分才算換階段，所以一個階段通常維持 2～6 個月。'
+            '只描述位置，升溫、降溫沒有驗證過能預測漲跌。</p>'
+            f'<div class="seg phrg" role="group" aria-label="期間">{rg}</div>'
+            '<div class="phw" id="phw"><div class="phx" id="phx"><p class="note">走勢載入中…</p></div><div class="tip" id="phtip" hidden></div></div>'
+            f'<div class="plg">{lg}</div>'
+            f'<p class="note">上面是{px}，灰底＝從高點跌 20% 以上的期間（每天收盤，和雷達、地形同一套）。滑過看那一週各面向的階段；點一下到雷達看那一週。</p>'
+            '</div></section></div>')
 
 
 def terrain_view() -> str:
@@ -435,11 +476,138 @@ def terrain_view() -> str:
             '</div></section></div>')
 
 
+# 研究畫面＝證據地圖（2026-10-18 使用者選 B，docs/lab_visual_plan.md 第 11 節）：每個面向一張卡，每一項一列，
+# 點＝和之後漲跌的等級相關、橫線＝95% 信賴區間、顏色＝判定；原本的表格與方法收在下面（內容不刪）
+EV_LO, EV_HI = -0.8, 0.8
+EV_TICKS = (-0.6, -0.3, 0.0, 0.3, 0.6)
+EV_STABLE = ("weak", "strong")
+
+
+def _epos(v: float) -> float:
+    return round(100 * (min(EV_HI, max(EV_LO, v)) - EV_LO) / (EV_HI - EV_LO), 2)
+
+
+def _rho(x) -> str:
+    return "—" if x is None else HP._sgn(x, 2)
+
+
+def _etrack(e: dict | None, cls: str) -> str:
+    if not e or e.get("rho") is None:
+        return f'<span class="etk {cls} ev-x"><em>—</em></span>'
+    vd = e.get("verdict") or "none"
+    ci = ""
+    if e.get("lo") is not None and e.get("hi") is not None:
+        a, b = _epos(e["lo"]), _epos(e["hi"])
+        ci = f'<i class="eci" style="left:{a}%;width:{max(0.6, b - a):.2f}%"></i>'
+    return f'<span class="etk {cls} ev-{vd}">{ci}<i class="edot" style="left:{_epos(e["rho"])}%"></i></span>'
+
+
+def _ehs(e: dict | None, h: int) -> str:
+    if not e or not e.get("verdict"):
+        return f"之後 {h} 個交易日：沒有結果"
+    ci = f"（95% 區間 {_rho(e.get('lo'))}～{_rho(e.get('hi'))}）" if e.get("lo") is not None else ""
+    return f"之後 {h} 個交易日：{S.VERDICT.get(e['verdict'], e['verdict'])}，相關 {_rho(e.get('rho'))}{ci}"
+
+
+def _erow(kind: str, k: str, name: str, ev: dict, hs: tuple, now) -> str:
+    es, el = ev.get(str(hs[0])), ev.get(str(hs[1]))
+    st = lambda e: "1" if e and e.get("verdict") in EV_STABLE else "0"            # noqa: E731
+    vc = lambda e: (e or {}).get("verdict") or "x"                                # noqa: E731
+    lab = f"{name}。{_ehs(es, hs[0])}；{_ehs(el, hs[1])}。現在 {HP.n0(now) if now is not None else '沒有分數'}"
+    return (f'<button type="button" class="erow{" ecomp" if kind == "dim" else ""}" data-open="{kind}:{_e(k)}" data-ss="{st(es)}" data-sl="{st(el)}"'
+            f' title="{_e(lab)}" aria-label="{_e(lab)}：點開看細節"><span class="en">{_e(name)}</span>'
+            f'{_etrack(es, "eh-s")}{_etrack(el, "eh-l")}'
+            f'<span class="er eh-s ev-{vc(es)}">{_rho((es or {}).get("rho"))}</span><span class="er eh-l ev-{vc(el)}">{_rho((el or {}).get("rho"))}</span>'
+            f'<span class="enow zt{_zc(now)}">{HP.n0(now) if now is not None else "—"}</span></button>')
+
+
+def _ecard(d: str, L: dict) -> str:
+    hs = tuple(L["fwd"])
+    rows = [_erow("dim", d, f"{S.DSHORT[d]}（面向分數）", L.get("cev") or {}, hs, L["score"])]
+    rows += [_erow("item", it["k"], it["name"], it.get("ev") or {}, hs, it["heat"]) for it in L["items"]]
+    ax = "".join(f'<b style="left:{_epos(v)}%">{"0" if v == 0 else HP._sgn(v, 1)}</b>' for v in EV_TICKS)
+    return (f'<div class="card ecard" id="e-{d}" data-dim="{d}"><div class="ehd"><h3>{_e(S.DSHORT[d])}</h3>'
+            f'<span class="kn"><span class="eh-s">看之後 {hs[0]} 個交易日</span><span class="eh-l">看之後 {hs[1]} 個交易日</span></span></div>'
+            f'<div class="ehead" aria-hidden="true"><span>項目</span><span class="eaxis">{ax}</span><span class="er">相關</span><span class="enow">現在</span></div>'
+            + "".join(rows) + '<p class="note enone" hidden>這個期間沒有穩定的項目。</p></div>')
+
+
+def evidence_summary(V: dict) -> list[str]:
+    """研究重點（全部由研究檔的判定算出，不寫死數字）。"""
+    Ds = V["dims"]
+    n_items = sum(len(L["items"]) for L in Ds.values())
+    cnt = {"weak": 0, "strong": 0, "none": 0, "few": 0}
+    for L in Ds.values():
+        for it in L["items"]:
+            for e in (it.get("ev") or {}).values():
+                if e and e.get("verdict") in cnt:
+                    cnt[e["verdict"]] += 1
+    tot = sum(cnt.values())
+    out = [f"{n_items} 項，每項看兩個期間，共 {tot} 個檢驗：<b>{cnt['weak'] + cnt['strong']} 個有穩定關係</b>"
+           f"（{cnt['weak']} 個熱了之後較弱、{cnt['strong']} 個較強），其餘看不出或樣本不足。"]
+    good, bad = [], []
+    for d, L in Ds.items():
+        st = [(h, (L.get("cev") or {}).get(str(h)) or {}) for h in L["fwd"]]
+        st = [(h, e) for h, e in st if e.get("verdict") in EV_STABLE]
+        (good if st else bad).append((d, L, st))
+    if good:
+        g = []
+        for d, L, st in good:
+            ws = {e["verdict"] for _, e in st}
+            word = "較弱" if ws == {"weak"} else ("較強" if ws == {"strong"} else "方向不一")
+            best = max(st, key=lambda he: abs(he[1].get("rho") or 0))
+            g.append(f"<b>{_e(S.DSHORT[d])}</b>（熱了之後 {'、'.join(str(h) for h, _ in st)} 日{word}，相關 {_rho(best[1].get('rho'))}）")
+        out.append("面向分數本身有穩定關係的：" + "、".join(g) + "。")
+        now = [f"{_e(S.DSHORT[d])} {HP.n0(L['score'])}（{_e(L['band'])}）" for d, L, _ in good if L["score"] is not None]
+        if now:
+            out.append("現在" + "、".join(now) + "。")
+    if bad:
+        out.append("、".join(_e(S.DSHORT[d]) for d, _, _ in bad) + "的面向分數本身看不出穩定關係（個別項目可能有，看下面紅、藍點）。")
+    extra = []
+    pr = (V.get("m6") or {}).get("primary") or {}
+    if pr:
+        npass = sum(1 for x in pr.values() if x.get("pass"))
+        extra.append(f"加速減速：{len(pr)} 個主要假說{f'有 {npass} 個通過' if npass else '都沒有通過'}")
+    ta = (V.get("ta") or {}).get("study") or {}
+    if ta:
+        nst = sum(1 for hv in ta.values() if any((e or {}).get("verdict") in EV_STABLE for e in hv.values()))
+        extra.append(f"均線、型態事件：{len(ta)} 種{f'有 {nst} 種有穩定差別' if nst else '都看不出穩定差別'}")
+    if extra:
+        out.append("；".join(extra) + "（細節在最下面「完整數字與方法」）。")
+    return out
+
+
+def evidence_html(V: dict) -> str:
+    Ds = V["dims"]
+    n = {"s": [0, 0], "l": [0, 0]}
+    for L in Ds.values():
+        hs = tuple(L["fwd"])
+        evs = [L.get("cev") or {}] + [it.get("ev") or {} for it in L["items"]]
+        for key, h in (("s", hs[0]), ("l", hs[1])):
+            for ev in evs:
+                n[key][0] += 1
+                n[key][1] += int(((ev.get(str(h)) or {}).get("verdict")) in EV_STABLE)
+    chips = (f'<button type="button" class="rch on" data-ef="all" aria-pressed="true">全部<em data-cs="{n["s"][0]}" data-cl="{n["l"][0]}">{n["l"][0]}</em></button>'
+             f'<button type="button" class="rch" data-ef="st" aria-pressed="false">只看穩定的<em data-cs="{n["s"][1]}" data-cl="{n["l"][1]}">{n["l"][1]}</em></button>'
+             + "".join(f'<button type="button" class="rch" data-ed="{d}" aria-pressed="false">{_e(S.DSHORT[d])}</button>' for d in Ds))
+    lg = ('<div class="elg"><span><i class="ev-weak"></i>熱了之後較弱（穩定）</span><span><i class="ev-strong"></i>熱了之後較強（穩定）</span>'
+          '<span><i class="ev-none"></i>看不出穩定關係</span><span><i class="ev-few"></i>樣本不足</span>'
+          '<span>點＝等級相關、橫線＝95% 信賴區間；在 0 左邊＝熱了之後較弱；「現在」＝今天的 0～100</span></div>')
+    summ = "".join(f"<li>{x}</li>" for x in evidence_summary(V))
+    return (f'<section class="sec emap" id="emap" data-h="l"><div class="card esum"><h2>研究重點</h2><ul>{summ}</ul></div>'
+            '<div class="ectl"><div class="seg" role="group" aria-label="看多久之後">'
+            '<button type="button" class="tb" data-eh="s" aria-pressed="false">短期</button><button type="button" class="tb on" data-eh="l" aria-pressed="true">長期</button></div>'
+            f'<div class="rchips" role="group" aria-label="篩選">{chips}</div></div>{lg}'
+            '<p class="note">短期、長期是每個面向自己的兩個期間（卡片上寫幾日）；穩定＝全期間 95% 信賴區間不含 0，而且前後兩半方向一樣。點一列，右邊打開那一項的細節。</p>'
+            f'<div class="egrid">{"".join(_ecard(d, L) for d, L in Ds.items())}</div></section>')
+
+
 def research_view(V: dict, body: str) -> str:
     nav = ('<nav class="snav"><button type="button" class="snv" data-goview="radar">← 回到雷達</button>'
-           '<a href="#dv">邊際變化</a><a href="#valid">驗證</a>' + ('<a href="#tas">事件研究</a>' if V.get("ta") else "")
-           + '<a href="#src">資料來源</a></nav>')
-    return f'<div class="hview" data-view="research" hidden>{nav}{body}</div>'
+           '<a href="#emap" data-jump="emap">證據地圖</a><a href="#more" data-jump="more">完整數字與方法</a></nav>')
+    more = ('<details class="card emore" id="more"><summary><b>完整數字與方法</b><span class="kn">原本的表格：邊際變化、各面向各區之後的表現、'
+            '各項和指數的關係、多層回歸、泡沫事件、事件研究、資料來源</span></summary>' + body + '</details>')
+    return f'<div class="hview" data-view="research" hidden>{nav}{evidence_html(V)}{more}</div>'
 
 
 def switch_html() -> str:
@@ -553,7 +721,7 @@ def item_tpl(it: dict, d: str, L: dict, V: dict) -> str:
             past = (f'<h4>過去在各區之後的{_e(HP.MK["px"].rstrip())}<span>現在在「{_e(band)}」；只當參考</span></h4>'
                     f'<div class="dzs">{"".join(parts)}</div>')
     btn = (f'<p class="dbtn"><button type="button" class="tb cmpk" data-k="{_e(k)}">在「{_e(HP.MK["cmp"])}」圖看這一項 →</button>'
-           f'<button type="button" class="tb" data-goview="research" data-anchor="v-{_e(d)}">研究畫面的數字 →</button></p>')
+           f'<button type="button" class="tb" data-goview="research" data-anchor="e-{_e(d)}">研究的證據地圖 →</button></p>')
     return (f'<template id="it-{k}" data-kick="{_e(dname)}・{"月資料" if it["freq"] == "m" else "日資料"}" data-title="{_e(it["name"])}">'
             f'{_dnum(cells)}{why}{how}<div class="dchart" data-k="{_e(k)}"></div>{trk}{dv}{past}{_rel_bits(k, V)}{btn}</template>')
 
@@ -689,16 +857,16 @@ CSS = """
  .its .it .ish{grid-column:3/4;grid-row:1}.its .it .iwk{grid-column:3/4;grid-row:2}
  .its .it .ish::before{content:"佔比 "}.its .it .iwk::before{content:"本週 "}
 }
-.cps{position:relative;min-height:240px}.cps svg{display:block;width:100%;height:auto}
-.czn{opacity:.09}.czl{font-size:11.5px;text-anchor:middle;font-weight:600}.cax{stroke:var(--line2)}.cat{font-size:10.5px;fill:var(--mut)}
-.czero{stroke:var(--line2);stroke-dasharray:4 4}.cql{font-size:12.5px;font-weight:700;fill:var(--mut)}
-.ctl{fill:none;stroke-linecap:round;stroke-linejoin:round}.ctl.zt0{stroke:var(--c0)}.ctl.zt1{stroke:var(--c1)}.ctl.zt2{stroke:var(--c2)}.ctl.zt3{stroke:var(--c3)}.ctl.zt4{stroke:var(--c4)}
-.cbub{cursor:pointer}.cbub circle{stroke:var(--ring);stroke-width:1.6}.cbub text{text-anchor:middle;font-weight:800;fill:#fff;pointer-events:none;paint-order:stroke;stroke:rgba(0,0,0,.35);stroke-width:2px}
-.cbub .cn{font-size:12px}.cbub .cs{font-size:15px}.cbub.zb1 text,.cbub.zb2 text,.cbub.zb3 text{fill:#0b1220;stroke:rgba(255,255,255,.45)}
-#cps-sec{margin-top:6px}
-.cit circle{stroke:var(--ring);stroke-width:1.2;cursor:pointer}.cit text{font-size:11.5px;fill:var(--ink);paint-order:stroke;stroke:var(--panel);stroke-width:3px;pointer-events:none}
-.cquad h3{margin:0 0 6px;font-size:15px;color:var(--ink)}.cquad dl{margin:0}.cquad dt{font-size:12.5px;font-weight:700;margin:10px 0 2px;color:var(--ink)}
-.cquad dt i{font-style:normal;font-weight:400;color:var(--mut);margin-left:6px}.cquad dd{margin:0;font-size:13px;color:var(--ink2);line-height:1.7}
+.phcard{padding:12px 14px;min-width:0}.phlead{font-size:14.5px;line-height:1.75;margin:6px 0 2px}.phlead b{font-weight:700}
+.phrg{margin:4px 0 6px}.phw{position:relative}.phx{min-height:160px}.phx svg{display:block;width:100%;height:auto}
+.phg{stroke:var(--line);stroke-width:1}.pht{font-size:10.5px;fill:var(--mut)}.phpx{fill:none;stroke:var(--ink2);stroke-width:1.5;stroke-linejoin:round}
+.phdd{fill:var(--line2);opacity:.55}.phddl{font-size:10.5px;fill:var(--mut);text-anchor:middle}.phbg{fill:var(--card2)}
+.phn{font-size:12.5px;font-weight:700;fill:var(--ink)}.phs{font-size:12px;font-weight:700;fill:var(--ink)}.phw2{font-size:12px;fill:var(--ink2);font-weight:400}
+.phgd{stroke:var(--ink);stroke-width:1.2;pointer-events:none}.phhit{fill:transparent;cursor:pointer}
+.pq0{fill:var(--q0);background:var(--q0)}.pq1{fill:var(--q1);background:var(--q1)}.pq2{fill:var(--q2);background:var(--q2)}.pq3{fill:var(--q3);background:var(--q3)}
+.plg{display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 2px 0;font-size:12.5px;color:var(--ink2)}.plg span{display:inline-flex;align-items:center;gap:6px}
+.plg i{display:inline-block;width:12px;height:12px;border-radius:3px}.plg em{font-style:normal;color:var(--mut);margin-left:2px}
+#phtip{min-width:180px}#phtip div{gap:8px}#phtip .phq{display:inline-block;width:10px;height:10px;border-radius:3px;flex:none}#phtip .tgo{display:block;margin-top:3px;font-weight:600}
 .ter{position:relative;height:min(64vh,600px);min-height:360px;background:var(--card2);border-radius:12px;overflow:hidden}
 .ter canvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:pan-y}.ter canvas.drag{cursor:grabbing}
 .tld{position:absolute;left:14px;top:10px;margin:0}.tctl{margin:6px 0 8px}
@@ -709,6 +877,34 @@ CSS = """
 .tlg .tlx{background:linear-gradient(90deg,var(--zh),var(--c4))}
 .rch .tfd{width:10px;height:10px;border:0;border-radius:50%;flex:none}.tfoc{margin:0 0 8px}
 .tlg .tlz0{background:var(--c0)}.tlg .tlz1{background:var(--c1)}.tlg .tlz2{background:var(--c2)}.tlg .tlz3{background:var(--c3)}.tlg .tlz4{background:var(--c4)}
+.esum{padding:12px 16px}.esum h2{font-size:16px;margin:0 0 4px}.esum ul{margin:4px 0 2px;padding-left:20px;font-size:14px;line-height:1.85}.esum b{font-weight:700}
+.ectl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:12px 0 4px}.ectl .rchips{margin:0}.rch em{margin-left:4px}
+.elg{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;font-size:12px;color:var(--ink2);margin:4px 0 2px}.elg span{display:inline-flex;align-items:center;gap:6px}
+.elg i{display:inline-block;width:10px;height:10px;border-radius:50%;box-sizing:border-box;border:1.6px solid var(--mut);background:var(--panel)}
+.elg i.ev-weak{background:var(--c4);border-color:var(--c4)}.elg i.ev-strong{background:var(--c0);border-color:var(--c0)}.elg i.ev-few{border-style:dashed}
+.egrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px}
+.ecard{padding:10px 12px;min-width:0;scroll-margin-top:56px}.ehd{display:flex;align-items:baseline;gap:8px;margin:0 0 2px}.ehd h3{margin:0;font-size:15px}
+.erow,.ehead{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) 48px 36px;gap:8px;align-items:center}
+.ehead{padding:2px 4px 3px;font-size:10.5px;color:var(--mut)}.ehead .er,.ehead .enow{font-weight:400;color:var(--mut)}
+.erow{width:100%;border:0;border-top:1px solid var(--line);background:none;padding:5px 4px;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:6px}
+.erow:hover{background:var(--card2)}.erow:focus-visible{outline:2px solid var(--acc);outline-offset:1px}.erow.ecomp .en{font-weight:700}
+.en{font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+.etk,.eaxis{position:relative;height:16px}
+.etk{background:linear-gradient(var(--line),var(--line)) 12.5% 0/1px 100% no-repeat,linear-gradient(var(--line),var(--line)) 31.25% 0/1px 100% no-repeat,linear-gradient(var(--ink2),var(--ink2)) 50% 0/1px 100% no-repeat,linear-gradient(var(--line),var(--line)) 68.75% 0/1px 100% no-repeat,linear-gradient(var(--line),var(--line)) 87.5% 0/1px 100% no-repeat}
+.etk em{position:absolute;left:50%;top:0;transform:translateX(-50%);font-style:normal;font-size:11px;color:var(--mut);background:var(--panel);padding:0 3px;line-height:16px}
+.eaxis b{position:absolute;top:1px;transform:translateX(-50%);font-weight:400;white-space:nowrap}
+.eci{position:absolute;top:7px;height:2px;border-radius:1px;background:var(--bp)}
+.edot{position:absolute;top:3px;width:10px;height:10px;margin-left:-5px;border-radius:50%;box-sizing:border-box;background:var(--panel);border:1.6px solid var(--mut)}
+.etk.ev-weak .eci{background:var(--c4);height:3px;top:6.5px}.etk.ev-weak .edot{background:var(--c4);border-color:var(--ring)}
+.etk.ev-strong .eci{background:var(--c0);height:3px;top:6.5px}.etk.ev-strong .edot{background:var(--c0);border-color:var(--ring)}
+.etk.ev-few .edot{border-style:dashed}
+.er{font-size:12px;text-align:right;color:var(--ink2);font-variant-numeric:tabular-nums}.er.ev-weak{color:var(--t4);font-weight:700}.er.ev-strong{color:var(--t0);font-weight:700}
+.enow{font-size:12.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.emap[data-h="s"] .eh-l,.emap[data-h="l"] .eh-s{display:none}
+.emore{margin-top:18px;padding:10px 14px}.emore>summary{cursor:pointer;font-size:14px;line-height:1.7}.emore>summary .kn{display:block}
+.emore[open]>summary{margin-bottom:8px}
+@media (max-width:900px){.egrid{grid-template-columns:1fr}}
+@media (max-width:640px){.erow,.ehead{grid-template-columns:minmax(0,126px) minmax(0,1fr) 36px;gap:6px}.er{display:none}.ehead .er{display:none}}
 @media (max-width:820px){.vgrid{grid-template-columns:1fr}.vbar{gap:6px 10px}}
 @media (max-width:640px){
  .vsw button{padding:5px 9px;font-size:13px}.rsm{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.rsm .pxn{display:none}
@@ -722,7 +918,7 @@ body.drw-on{overflow:hidden}
 """
 
 
-# ── 瀏覽器端（雷達、項目分布、右側面板、羅盤、3D 地形、視角切換）。資料：頁面裡的 script.hviz（小份）＋ x9mh.json
+# ── 瀏覽器端（雷達、項目分布、右側面板、階段時間軸、3D 地形、視角切換）。資料：頁面裡的 script.hviz（小份）＋ x9mh.json
 #    （heatInit 下載、window.heatGet() 共用）。heatInit 每次（換指數時）最後呼叫 heatViz：先拿掉上一次掛的事件再重建。
 JS = r"""
 window.heatViz = function () {
@@ -757,8 +953,8 @@ let D = null;
 const hooks = [];
 function withData(fn) { if (D) fn(); else hooks.push(fn); }
 
-// ── 視角切換（雷達｜羅盤｜地形 3D｜研究）：網址記在 #v=…（美股頁另有 #ix=…，兩個並存）
-const VIEWS = ['radar', 'compass', 'terrain', 'research'];
+// ── 視角切換（雷達｜階段｜地形 3D｜研究）：網址記在 #v=…（美股頁另有 #ix=…，兩個並存）；舊網址 #v=compass 轉到階段
+const VIEWS = ['radar', 'phase', 'terrain', 'research'];
 function hget(k) { const m = new RegExp('(?:^#|&)' + k + '=([\\w-]+)').exec(location.hash || ''); return m ? m[1] : null; }
 function hset(k, v) {
   const ps = (location.hash || '').replace(/^#/, '').split('&').filter(x => x && x.split('=')[0] !== k);
@@ -767,19 +963,48 @@ function hset(k, v) {
 }
 function setView(v, o) {
   o = o || {};
+  if (v === 'compass') v = 'phase';
   if (VIEWS.indexOf(v) < 0) v = 'radar';
   document.documentElement.dataset.hv = v;
   $$('.hview').forEach(el => { el.hidden = el.dataset.view !== v; });
   document.querySelectorAll('.vsw [data-view]').forEach(b => { const on = b.dataset.view === v; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
   if (!o.quiet) hset('v', v === 'radar' ? null : v);
   if (v !== 'radar') stopPlay();
-  if (v === 'compass') cShow();
+  if (v === 'phase') phShow();
   if (v === 'terrain') tShow();
+  if (v === 'research') eApply();
   if (v === 'radar') { radarDraw(); trackDraw(); imapDraw(); window.dispatchEvent(new Event('resize')); }
-  if (o.anchor) { const a = document.getElementById(o.anchor); if (a) setTimeout(() => a.scrollIntoView({block: 'start'}), 0); }
+  if (o.anchor) jump(o.anchor);
   else if (!o.quiet) window.scrollTo(0, 0);
 }
 window.heatView = (v, a) => setView(v, {anchor: a});
+function jump(id) {                                                  // 目標在收起來的段落裡：先打開再捲過去
+  const a = document.getElementById(id);
+  if (!a) return;
+  for (let d = a.closest('details'); d; d = d.parentElement && d.parentElement.closest('details')) d.open = true;
+  if (a.tagName === 'DETAILS') a.open = true;
+  setTimeout(() => a.scrollIntoView({block: 'start'}), 0);
+}
+
+// ── 研究畫面：證據地圖（短期／長期、全部／只看穩定的、各面向）
+const ES = {h: 'l', f: 'all', d: null};
+function eApply() {
+  const box = $('#emap');
+  if (!box) return;
+  box.dataset.h = ES.h;
+  $$('.ecard', box).forEach(c => {
+    const okd = !ES.d || c.dataset.dim === ES.d;
+    let n = 0;
+    $$('.erow', c).forEach(r => { const v = okd && (ES.f === 'all' || r.dataset[ES.h === 's' ? 'ss' : 'sl'] === '1'); r.hidden = !v; if (v) n++; });
+    c.hidden = !okd;
+    const nn = $('.enone', c); if (nn) nn.hidden = n > 0;
+  });
+  const set = (sel, on) => $$(sel, box).forEach(b => { const o = on(b); b.classList.toggle('on', o); b.setAttribute('aria-pressed', o ? 'true' : 'false'); });
+  set('[data-eh]', b => b.dataset.eh === ES.h);
+  set('[data-ef]', b => b.dataset.ef === ES.f);
+  set('[data-ed]', b => b.dataset.ed === ES.d);
+  $$('[data-cs]', box).forEach(el => { el.textContent = ES.h === 's' ? el.dataset.cs : el.dataset.cl; });
+}
 
 // ── 右側面板（內容在 id＝dt-面向、it-項目 的 template；手機全螢幕，返回鍵關閉）
 const DRW = document.getElementById('drw'), DC = document.getElementById('drw-c');
@@ -906,7 +1131,7 @@ function bigChart(el, id) {
   svg.addEventListener('pointerleave', () => { cx.setAttribute('visibility', 'hidden'); tip.hidden = true; });
 }
 
-// ── 雷達：時間（RS.i＝x9mh.json 的第幾週；null＝現在）雷達和羅盤共用
+// ── 雷達：時間（RS.i＝x9mh.json 的第幾週；null＝現在）
 const RS = {i: null, ov: [], cur: null, tgt: null, raf: 0, play: 0};
 const PRE = {};
 (P.pre || []).forEach(p => { PRE[p.key] = p; });
@@ -966,11 +1191,10 @@ function setT(i, now) {
   RS.i = i >= last ? null : i;
   const tg = tgtV(), from = RS.cur || tg;
   RS.tgt = tg;
-  ['#rtin', '#ctin'].forEach(sel => { const inp = $(sel); if (inp && +inp.value !== i) inp.value = i; });
+  const rin = $('#rtin'); if (rin && +rin.value !== i) rin.value = i;
   nowLab();
   smMark();
   cancelAnimationFrame(RS.raf);
-  if (document.documentElement.dataset.hv === 'compass') cDraw();
   if (now || RM) { RS.cur = tg.slice(); radarDraw(); return; }
   const t0 = performance.now(), dur = 260;
   const fr = t => {
@@ -984,12 +1208,12 @@ function setT(i, now) {
 function nowLab() {
   const i = isNow() ? iLast() : RS.i, d = isNow() ? P.asof : D.w.d[i];
   const h = esc(ymd(d)) + '<i>' + esc(isNow() ? '現在' : PXN + ' ' + fpx(D.w.px[i])) + '</i>';
-  ['#rnow', '#cnow'].forEach(sel => { const el = $(sel); if (el) el.innerHTML = h; });
+  const rn = $('#rnow'); if (rn) rn.innerHTML = h;
   const rd = $('#rdate');
   if (rd) rd.textContent = isNow() ? '現在（' + ymd(P.asof) + '）' : ymd(d) + ' 那一週';
 }
 function trackDraw() {
-  [['#rtsvg', '#rtin'], ['#ctsvg', '#ctin']].forEach(p => {
+  [['#rtsvg', '#rtin']].forEach(p => {
     const svg = $(p[0]), inp = $(p[1]);
     if (!svg || !inp || !D || !svg.getBoundingClientRect().width) return;
     const i0 = iStart(), i1 = iLast(), w = Math.max(100, Math.round(svg.getBoundingClientRect().width)), h = 44;
@@ -1007,7 +1231,7 @@ function trackDraw() {
     svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
     svg.innerHTML = s;
   });
-  ['#rplay', '#cplay'].forEach(sel => { const b = $(sel); if (b) b.disabled = !D; });
+  const rpb = $('#rplay'); if (rpb) rpb.disabled = !D;
 }
 function play() {
   if (!D) return;
@@ -1015,13 +1239,13 @@ function play() {
   if (RM) { setT(last, true); return; }
   let i = isNow() ? Math.max(iStart(), last - 104) : RS.i;
   setT(i, true);
-  ['#rplay', '#cplay'].forEach(sel => { const b = $(sel); if (b) { b.textContent = '❚❚'; b.setAttribute('aria-label', '暫停'); } });
+  const pb = $('#rplay'); if (pb) { pb.textContent = '❚❚'; pb.setAttribute('aria-label', '暫停'); }
   RS.play = setInterval(() => { i += 1; setT(i, true); if (i >= last) stopPlay(); }, 90);
 }
 function stopPlay() {
   if (!RS.play) return;
   clearInterval(RS.play); RS.play = 0;
-  ['#rplay', '#cplay'].forEach(sel => { const b = $(sel); if (b) { b.textContent = '▶'; b.setAttribute('aria-label', '播放近兩年'); } });
+  const pb = $('#rplay'); if (pb) { pb.textContent = '▶'; pb.setAttribute('aria-label', '播放近兩年'); }
 }
 function chips() {
   const el = $('#rchips');
@@ -1137,86 +1361,137 @@ function imapDraw() {
   if (sub) sub.textContent = P.items.length + ' 項；' + nx + ' 項在過熱或過冷、' + nb + ' 項這週移動 20 分以上';
 }
 
-// ── 羅盤：橫軸＝0～100、縱軸＝近 4 週變化、尾巴＝過去 8 週；點泡泡展開項目（動畫從泡泡飛出去）
-const CS = {drill: null, prog: 1, raf: 0, inited: false};
-const YM = 45, TL = 9;
-function mom(t, i) { const a = val(t, i), b = val(t, i - 4); return a == null || b == null ? null : a - b; }
-function cgeo() { const b = $('#cps'), w = b ? b.clientWidth : 0; return w && w < 640 ? {W: 400, H: 440, l: 34, r: 10, t: 26, b: 30, m: 1} : {W: 860, H: 540, l: 46, r: 18, t: 30, b: 36, m: 0}; }
-function cShow() { if (!D) { const b = $('#cps'); if (b) b.innerHTML = '<p class="note">走勢載入中…</p>'; withData(cShow); return; } if (!CS.inited) { CS.inited = true; trackDraw(); } cDraw(); }
-function chaikin(p) {
-  if (p.length < 3) return p;
-  const o = [p[0]];
-  for (let k = 0; k < p.length - 1; k++) { const a = p[k], b = p[k + 1]; o.push([0.75 * a[0] + 0.25 * b[0], 0.75 * a[1] + 0.25 * b[1], a[2]], [0.25 * a[0] + 0.75 * b[0], 0.25 * a[1] + 0.75 * b[1], b[2]]); }
-  o.push(p[p.length - 1]);
-  return o;
-}
-function quad(h, m) { return h >= 50 ? (m >= 0 ? 0 : 1) : (m >= 0 ? 3 : 2); }
-const QN = ['熱、還在升溫', '熱、開始降溫', '冷、還在降溫', '冷、開始回溫'], QS = ['最熱的階段', '高檔轉弱', '低檔轉弱', '低檔轉強'];
-function cDraw() {
-  const box = $('#cps');
-  if (!box || !D || !box.clientWidth) return;
-  const g = cgeo(), i = isNow() ? iLast() : RS.i;
-  const X = v => g.l + (g.W - g.l - g.r) * v / 100, Y = m => g.t + (g.H - g.t - g.b) * (1 - (Math.max(-YM, Math.min(YM, m)) + YM) / (2 * YM));
-  let s = '';
-  BD.forEach((b, k) => { const xa = X(b[0]), xb = X(Math.min(100, b[1])); s += '<rect class="czn zf' + k + '" x="' + xa.toFixed(1) + '" y="' + g.t + '" width="' + (xb - xa).toFixed(1) + '" height="' + (g.H - g.t - g.b) + '"/><text class="czl zt' + k + '" x="' + ((xa + xb) / 2).toFixed(1) + '" y="' + (g.t - 9) + '">' + esc(b[2]) + '</text>'; });
-  s += '<line class="czero" x1="' + g.l + '" x2="' + (g.W - g.r) + '" y1="' + Y(0).toFixed(1) + '" y2="' + Y(0).toFixed(1) + '"/>';
-  [0, 20, 40, 60, 80, 100].forEach(v => { s += '<text class="cat" x="' + X(v).toFixed(1) + '" y="' + (g.H - g.b + 15) + '" text-anchor="middle">' + v + '</text>'; });
-  [-40, -20, 0, 20, 40].forEach(v => { s += '<text class="cat" x="' + (g.l - 6) + '" y="' + (Y(v) + 3.5).toFixed(1) + '" text-anchor="end">' + (v > 0 ? '+' + v : v) + '</text>'; });
-  const qp = [[g.W - g.r - 8, g.t + 18, 'end'], [g.W - g.r - 8, g.H - g.b - 10, 'end'], [g.l + 8, g.H - g.b - 10, 'start'], [g.l + 8, g.t + 18, 'start']];
-  qp.forEach((q, k) => { s += '<text class="cql" x="' + q[0] + '" y="' + q[1] + '" text-anchor="' + q[2] + '" style="' + (g.m ? 'font-size:11px;' : '') + (CS.drill ? 'opacity:.35' : '') + '">' + QN[k] + '</text>'; });
-  const dims = DIM.map(id => { const t = D.s[id] && D.s[id].h; return {id: id, t: t, h: val(t, i), m: mom(t, i)}; }).filter(d => d.h != null && d.m != null);
-  dims.forEach(d => {
-    let pts = [];
-    for (let j = i - TL + 1; j <= i; j++) { const h = val(d.t, j), m = mom(d.t, j); if (h != null && m != null) pts.push([X(h), Y(m), h]); }
-    pts = chaikin(chaikin(pts));                                               // 尾巴磨圓（只是畫法；終點不動）
-    const op = CS.drill && CS.drill !== d.id ? 0.12 : 1;
-    for (let k = 1; k < pts.length; k++) s += '<path class="ctl zt' + zc(pts[k][2]) + '" style="opacity:' + (op * (0.12 + 0.8 * k / pts.length)).toFixed(2) + '" stroke-width="' + (0.8 + 2.6 * k / pts.length).toFixed(1) + '" d="M' + pts[k - 1][0].toFixed(1) + ' ' + pts[k - 1][1].toFixed(1) + 'L' + pts[k][0].toFixed(1) + ' ' + pts[k][1].toFixed(1) + '"/>';
-  });
-  let par = null;
-  dims.forEach(d => {
-    const on = CS.drill === d.id, r = on ? 13 : (g.m ? 21 : 27), z = zc(d.h), x = X(d.h), y = Y(d.m);
-    if (on) par = [x, y];
-    s += '<g class="cbub zb' + z + '" data-cd="' + d.id + '" tabindex="0" role="button" aria-label="' + esc(NM[d.id] + ' ' + n0(d.h) + '，近 4 週 ' + sg(d.m) + '：展開項目') + '" transform="translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')" style="opacity:' + (CS.drill && !on ? 0.18 : 1) + '">'
-      + '<circle class="zf' + z + '" r="' + r + '" style="fill-opacity:' + (on ? 0.4 : 0.93) + '"/>' + (on ? '' : '<text class="cn" dy="-3"' + (g.m ? ' style="font-size:10.5px"' : '') + '>' + esc(NM[d.id]) + '</text><text class="cs" dy="14"' + (g.m ? ' style="font-size:13px"' : '') + '>' + n0(d.h) + '</text>') + '</g>';
-  });
-  if (CS.drill && par) {
-    const keys = (P.ord[CS.drill] || []).filter(k => D.s[k] && D.s[k].h);
-    const its = keys.map(k => ({k: k, h: val(D.s[k].h, i), m: mom(D.s[k].h, i)})).filter(x => x.h != null && x.m != null);
-    const mx = Math.max(1, ...its.map(x => Math.abs(x.h - 50)));
-    const lab = new Set(its.slice().sort((a, b) => Math.abs(b.h - 50) - Math.abs(a.h - 50)).slice(0, g.m ? 4 : 7).map(x => x.k));
-    const e = 1 - Math.pow(1 - CS.prog, 3);
-    its.forEach(x => {
-      const tx = X(x.h), ty = Y(x.m), px = par[0] + (tx - par[0]) * e, py = par[1] + (ty - par[1]) * e, r = 5 + 8 * Math.abs(x.h - 50) / mx;
-      s += '<g class="cit" transform="translate(' + px.toFixed(1) + ',' + py.toFixed(1) + ')"><circle class="zf' + zc(x.h) + '" r="' + r.toFixed(1) + '" data-open="item:' + esc(x.k) + '" tabindex="0" role="button" aria-label="' + esc(NM[x.k] + ' ' + n0(x.h)) + '"/>' + (lab.has(x.k) && CS.prog > 0.8 ? '<text x="' + (r + 4).toFixed(1) + '" dy="4">' + esc(NM[x.k]) + '</text>' : '') + '</g>';
-    });
+// ── 階段時間軸（取代羅盤）：每個面向一條色帶，顏色＝那一週的階段（8 週平均熱度 × 近 13 週變化，含門檻；和 Python phase_track() 同一套）
+const PHC = P.ph || {ma: 8, chg: 13, hl: 5, hm: 3, n: [], s: []};
+const PS = {tr: null, rg: null, g: null, pin: null};
+// @@PH 下面兩支用 node 和 Python phase_track() 逐週比對（tests/test_heatviz.py），只用 PHC 與 val
+function phTrack(t, n) {
+  const w = PHC.ma, c = PHC.chg, L = new Array(n).fill(null), M = new Array(n).fill(null), Q = new Array(n).fill(null);
+  for (let i = w - 1; i < n; i++) {
+    let s = 0, ok = true;
+    for (let k = i - w + 1; k <= i; k++) { const v = val(t, k); if (v == null) { ok = false; break; } s += v; }
+    if (ok) L[i] = s / w;
   }
-  box.innerHTML = '<svg viewBox="0 0 ' + g.W + ' ' + g.H + '" role="img" aria-label="熱度羅盤">' + s + '</svg>';
-  const cd = $('#cdate');
-  if (cd) cd.textContent = isNow() ? '現在（' + ymd(P.asof) + '）' : ymd(D.w.d[i]) + ' 那一週';
-  const cb = $('#cback');
-  if (cb) cb.hidden = !CS.drill;
-  const csub = $('#csub');
-  if (csub) csub.textContent = CS.drill ? NM[CS.drill] + '的項目：位置同一套座標，點越大＝離 50 越遠；點一項打開細節。' : '橫軸＝現在多熱（0～100）；縱軸＝近 4 週升溫（上）或降溫（下）；尾巴＝過去 8 週走過的路。點泡泡展開那個面向的項目。';
-  quadPanel(dims, i);
+  for (let i = c; i < n; i++) if (L[i] != null && L[i - c] != null) M[i] = L[i] - L[i - c];
+  let prev = null;
+  for (let i = 0; i < n; i++) {
+    const l = L[i], m = M[i];
+    if (l == null || m == null) { prev = null; continue; }
+    const hot = prev && Math.abs(l - 50) < PHC.hl ? prev[0] : l >= 50;
+    const up = prev && Math.abs(m) < PHC.hm ? prev[1] : m >= 0;
+    prev = [hot, up];
+    Q[i] = hot ? (up ? 0 : 1) : (up ? 3 : 2);
+  }
+  return {L: L, M: M, Q: Q};
 }
-function quadPanel(dims, i) {
-  const el = $('#cquad');
-  if (!el) return;
-  let rows = dims.map(d => ({id: d.id, nm: NM[d.id], h: d.h, m: d.m}));
-  if (CS.drill) rows = (P.ord[CS.drill] || []).map(k => { const t = D.s[k] && D.s[k].h; return {id: k, nm: NM[k], h: val(t, i), m: mom(t, i)}; }).filter(x => x.h != null && x.m != null);
-  const by = [[], [], [], []];
-  rows.forEach(r => by[quad(r.h, r.m)].push(r));
-  el.innerHTML = '<h3>' + esc(CS.drill ? NM[CS.drill] + '的項目' : '各面向在哪一格') + '</h3><dl>' + QN.map((q, k) => '<dt>' + q + '<i>' + QS[k] + '</i></dt><dd>' + (by[k].length ? by[k].sort((a, b) => b.h - a.h).map(r => '<button type="button" class="nmb" data-k="' + esc(r.id) + '">' + esc(r.nm) + '</button> <span class="zt' + zc(r.h) + '">' + n0(r.h) + '</span>（' + sg(r.m) + '）').join('、') : '—') + '</dd>').join('') + '</dl>'
-    + '<p class="note">括號裡＝近 4 週 0～100 的變化。50 以上算「熱」那一半；這只是描述位置與方向，不是訊號。</p>';
+function phSince(Q, i) { let j = i; while (j > 0 && Q[j - 1] === Q[i]) j--; return j; }
+// @@ENDPH
+function phShow() {
+  if (!D) { const b = $('#phx'); if (b) b.innerHTML = '<p class="note">走勢載入中…</p>'; withData(phShow); return; }
+  if (!PS.tr) { const n = D.w.d.length; PS.tr = {}; DIM.forEach(id => { PS.tr[id] = phTrack(D.s[id] && D.s[id].h, n); }); }
+  phDraw();
 }
-function drill(id) {
-  CS.drill = id; CS.prog = RM ? 1 : 0;
-  cancelAnimationFrame(CS.raf);
-  if (RM) { cDraw(); return; }
-  const t0 = performance.now();
-  const fr = t => { CS.prog = Math.min(1, (t - t0) / 420); cDraw(); if (CS.prog < 1) CS.raf = requestAnimationFrame(fr); };
-  CS.raf = requestAnimationFrame(fr);
+function phLead() {
+  const i = D.w.d.length - 1, by = [[], [], [], []];
+  DIM.forEach(id => { const q = PS.tr[id].Q[i]; if (q != null) by[q].push(id); });
+  const parts = [0, 1, 2, 3].filter(q => by[q].length).map(q => '<b>' + by[q].map(id => esc(NM[id])).join('、') + '</b>在「' + esc(PHC.n[q]) + '」');
+  const el = $('#phlead');
+  if (el) el.innerHTML = parts.length ? '現在：' + parts.join('；') + '。' : '';
+  const dt = $('#phdate');
+  if (dt) dt.textContent = '資料到 ' + ymd(D.w.d[i]) + '（每週一格）';
 }
+function phDraw() {
+  const box = $('#phx');
+  if (!box || !D || !PS.tr || !box.clientWidth) return;
+  const W = Math.round(box.clientWidth), mob = W < 560, ds = D.w.d, i1 = ds.length - 1;
+  let first = i1;                                                // 「全部」和地形一樣從雷達的起點開始（大跌期間也從那裡算）
+  DIM.forEach(id => { const j = PS.tr[id].Q.findIndex(q => q != null); if (j >= 0 && j < first) first = j; });
+  first = Math.max(first, iStart());
+  const rg = PS.rg == null ? (mob ? 2 : 5) : PS.rg;
+  let i0 = first;
+  if (rg) { const cut = (+ds[i1].slice(0, 4) - rg) + ds[i1].slice(4), j = ds.findIndex(d => d > cut); i0 = Math.max(first, j < 0 ? 0 : j); }
+  $$('[data-phr]').forEach(b => { const on = +b.dataset.phr === rg; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+  const lw = mob ? 0 : 76, rw = mob ? 0 : 168, top = mob ? 92 : 124, rh = mob ? 14 : 22, gap = mob ? 8 : 9, cap = mob ? 17 : 0;
+  const x0 = lw + 4, x1 = W - rw - 4, N = i1 - i0 + 1, cw = (x1 - x0) / N, X = i => x0 + (i - i0) * cw;
+  let lo = Infinity, hi = -Infinity;
+  for (let i = i0; i <= i1; i++) { const v = D.w.px[i]; if (v > 0) { lo = Math.min(lo, Math.log(v)); hi = Math.max(hi, Math.log(v)); } }
+  const yt = 18, yb = top - 22, Yp = v => yt + (yb - yt) * (1 - (Math.log(v) - lo) / ((hi - lo) || 1));
+  const H = top + DIM.length * (rh + gap + cap) + 2;
+  let s = '', lastL = -1e9;
+  (P.eps || []).forEach(e => {
+    const a = wkIdx(e.p), b = wkIdx(e.t);
+    if (b < i0 || a > i1) return;
+    const xa = X(Math.max(a, i0)), xb = X(Math.min(b, i1)) + cw;
+    s += '<rect class="phdd" x="' + xa.toFixed(1) + '" y="' + (yt - 4) + '" width="' + Math.max(1, xb - xa).toFixed(1) + '" height="' + (yb - yt + 8) + '"/>';
+    const lb = '跌 ' + Math.round(Math.abs(e.dd)) + '%', xm = (xa + xb) / 2;
+    if (xb - xa > 24 && xm - 18 > lastL) { s += '<text class="phddl" x="' + xm.toFixed(1) + '" y="' + (yb + 15) + '">' + lb + '</text>'; lastL = xm + 18; }
+  });
+  const yrs = [];
+  for (let i = i0 + 1; i <= i1; i++) if (ds[i].slice(0, 4) !== ds[i - 1].slice(0, 4)) yrs.push(i);
+  const st = Math.max(1, Math.ceil(yrs.length / (mob ? 4 : 10)));
+  yrs.forEach((i, k) => {
+    s += '<line class="phg" x1="' + X(i).toFixed(1) + '" x2="' + X(i).toFixed(1) + '" y1="4" y2="' + (H - 2) + '"/>';
+    if (k % st === 0) s += '<text class="pht" x="' + (X(i) + 3).toFixed(1) + '" y="12">' + ds[i].slice(0, 4) + '</text>';
+  });
+  let d = '', pen = false;
+  for (let i = i0; i <= i1; i++) { const v = D.w.px[i]; if (!(v > 0)) { pen = false; continue; } d += (pen ? 'L' : 'M') + (X(i) + cw / 2).toFixed(1) + ' ' + Yp(v).toFixed(1); pen = true; }
+  s += '<path class="phpx" d="' + d + '"/>';
+  let y = top;
+  DIM.forEach(id => {
+    const Q = PS.tr[id].Q, q1 = Q[i1], j1 = q1 == null ? null : phSince(Q, i1);
+    const lab = q1 == null ? '沒有資料' : PHC.n[q1], wk = q1 == null ? '' : '已 ' + (i1 - j1 + 1) + ' 週';
+    if (mob) { s += '<text class="phn" x="' + x0 + '" y="' + (y + 12) + '">' + esc(NM[id]) + '<tspan class="phw2" dx="7">' + esc(lab) + (wk ? '・' + wk : '') + '</tspan></text>'; y += cap; }
+    else s += '<text class="phn" x="' + (lw - 6) + '" y="' + (y + rh / 2 + 4.5).toFixed(1) + '" text-anchor="end">' + esc(NM[id]) + '</text>';
+    s += '<rect class="phbg" x="' + x0 + '" y="' + y + '" width="' + (x1 - x0).toFixed(1) + '" height="' + rh + '"/>';
+    let i = i0;
+    while (i <= i1) {
+      const q = Q[i];
+      let j = i;
+      while (j + 1 <= i1 && Q[j + 1] === q) j++;
+      if (q != null) s += '<rect class="pq' + q + '" x="' + X(i).toFixed(2) + '" y="' + y + '" width="' + (X(j) - X(i) + cw + 0.4).toFixed(2) + '" height="' + rh + '"/>';
+      i = j + 1;
+    }
+    if (!mob) s += '<text class="phs" x="' + (x1 + 8).toFixed(1) + '" y="' + (y + rh / 2 + 4.5).toFixed(1) + '">' + esc(lab) + '<tspan class="phw2" dx="6">' + esc(wk) + '</tspan></text>';
+    y += rh + gap;
+  });
+  s += '<line class="phgd" id="phgd" x1="0" x2="0" y1="4" y2="' + (H - gap) + '" style="display:none"/>';
+  s += '<rect class="phhit" id="phhit" x="' + x0 + '" y="0" width="' + (x1 - x0).toFixed(1) + '" height="' + H + '"/>';
+  box.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="各面向的階段時間軸">' + s + '</svg>';
+  PS.g = {x0: x0, x1: x1, cw: cw, i0: i0, i1: i1, H: H, gap: gap};
+  phLead();
+  phTip(null);
+}
+function phAt(e) {
+  const g = PS.g, svg = $('#phx svg');
+  if (!g || !svg) return null;
+  const r = svg.getBoundingClientRect(), x = (e.clientX - r.left) * (svg.viewBox.baseVal.width / r.width);
+  if (x < g.x0 || x > g.x1) return null;
+  return Math.max(g.i0, Math.min(g.i1, g.i0 + Math.floor((x - g.x0) / g.cw)));
+}
+function phTip(i, e, touch) {
+  const t = $('#phtip'), gd = $('#phgd'), w = $('#phw');
+  if (!t || !gd || !w) return;
+  if (i == null) { t.hidden = true; gd.style.display = 'none'; return; }
+  const g = PS.g, gx = g.x0 + (i - g.i0 + 0.5) * g.cw;
+  gd.setAttribute('x1', gx.toFixed(1)); gd.setAttribute('x2', gx.toFixed(1)); gd.style.display = '';
+  let h = '<b>' + esc(ymd(D.w.d[i])) + (D.w.px[i] ? '・' + esc(PXN) + ' ' + fpx(D.w.px[i]) : '') + '</b>';
+  DIM.forEach(id => {
+    const tr = PS.tr[id], q = tr.Q[i];
+    h += '<div><i class="phq' + (q == null ? '' : ' pq' + q) + '"' + (q == null ? ' style="background:var(--line2)"' : '') + '></i>' + esc(NM[id]) + '：' + (q == null ? '沒有資料' : esc(PHC.n[q]) + '（' + n0(tr.L[i]) + '）') + '</div>';
+  });
+  h += touch ? '<a href="#" class="tgo" data-phgo="' + i + '">看那一週的雷達 →</a>' : '<div class="tpx">括號＝8 週平均熱度；點一下看那一週的雷達</div>';
+  t.innerHTML = h;
+  t.style.pointerEvents = touch ? 'auto' : 'none';
+  t.hidden = false;
+  const bx = w.getBoundingClientRect(), svg = $('#phx svg'), sc = svg ? svg.getBoundingClientRect().width / svg.viewBox.baseVal.width : 1;
+  const tw = t.offsetWidth, th = t.offsetHeight, px = gx * sc;
+  let left = px + 12;
+  if (left + tw > bx.width - 4) left = px - tw - 12;
+  t.style.left = Math.max(4, left) + 'px';
+  const ey = e ? e.clientY - bx.top : 24;
+  t.style.top = Math.max(4, Math.min(bx.height - th - 4, ey - th / 2)) + 'px';
+}
+function phGo(i) { setView('radar'); setT(i); const r = $('#top'); if (r) r.scrollIntoView({block: 'start'}); }
 
 // ── 3D 熱度地形（canvas 自己投影，不載入外部套件）：每條山脊一個面向，越高越熱，最右邊是現在。
 //    山脊只用一個顏色；高出 80 的山頂塗紅（過熱）、低於 20 的谷底積藍（過冷）；地面灰帶＝指數從高點跌 20% 以上的期間；
@@ -1547,9 +1822,14 @@ document.addEventListener('click', e => {
   if (ov) { e.preventDefault(); toggleOv(ov.dataset.ov); return; }
   const go = t.closest('[data-go]');
   if (go) { e.preventDefault(); goDate(go.dataset.go); return; }
-  const cb = t.closest('[data-cd]');
-  if (cb) { e.preventDefault(); drill(cb.dataset.cd); return; }
-  if (t.closest('#cback')) { e.preventDefault(); drill(null); return; }
+  const eh = t.closest('[data-eh]'), ef = t.closest('[data-ef]'), ed = t.closest('[data-ed]');
+  if (eh || ef || ed) { e.preventDefault(); if (eh) ES.h = eh.dataset.eh; if (ef) ES.f = ef.dataset.ef; if (ed) ES.d = ES.d === ed.dataset.ed ? null : ed.dataset.ed; eApply(); return; }
+  const jp = t.closest('[data-jump]');
+  if (jp) { e.preventDefault(); jump(jp.dataset.jump); return; }
+  const pr = t.closest('[data-phr]');
+  if (pr) { e.preventDefault(); PS.rg = +pr.dataset.phr; phDraw(); return; }
+  const pg = t.closest('[data-phgo]');
+  if (pg) { e.preventDefault(); phGo(+pg.dataset.phgo); return; }
   const op = t.closest('[data-open]');
   if (op) { e.preventDefault(); const p = op.dataset.open.split(':'); openD(p[0], p[1]); return; }
   if (t.closest('#itabb')) { const tb = $('#itab'), im = $('#imap'), b = $('#itabb'), on = tb.hidden; tb.hidden = !on; im.hidden = on; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); if (!on) imapDraw(); }
@@ -1557,17 +1837,30 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && DRW && !DRW.hidden) { closeD(); return; }
   const t = e.target;
-  if ((e.key === 'Enter' || e.key === ' ') && t && t.matches && t.matches('.kcard, .rax, .idot, .cbub, .cit circle')) { e.preventDefault(); t.dispatchEvent(new MouseEvent('click', {bubbles: true})); }
+  if ((e.key === 'Enter' || e.key === ' ') && t && t.matches && t.matches('.kcard, .rax, .idot')) { e.preventDefault(); t.dispatchEvent(new MouseEvent('click', {bubbles: true})); }
 }, SG);
-['#rtin', '#ctin'].forEach(sel => { const inp = $(sel); if (inp) inp.addEventListener('input', () => { stopPlay(); setT(+inp.value, true); }, SG); });
-['#rplay', '#cplay'].forEach(sel => { const b = $(sel); if (b) { b.disabled = true; b.addEventListener('click', () => (RS.play ? stopPlay() : play()), SG); } });
+const rtin = $('#rtin'); if (rtin) rtin.addEventListener('input', () => { stopPlay(); setT(+rtin.value, true); }, SG);
+const rplay = $('#rplay'); if (rplay) { rplay.disabled = true; rplay.addEventListener('click', () => (RS.play ? stopPlay() : play()), SG); }
+const phw = $('#phw');
+if (phw) {
+  phw.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' && e.target.id === 'phhit') phTip(phAt(e), e, false); else if (e.pointerType === 'mouse' && !e.target.closest('#phtip')) phTip(null); }, SG);
+  phw.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') phTip(null); }, SG);
+  phw.addEventListener('click', e => {
+    if (e.target.id !== 'phhit') return;
+    const i = phAt(e);
+    if (i == null) return;
+    const touch = e.pointerType ? e.pointerType !== 'mouse' : !matchMedia('(hover: hover)').matches;
+    if (touch && PS.pin !== i) { PS.pin = i; phTip(i, e, true); return; }
+    PS.pin = null; phGo(i);
+  }, SG);
+}
 let rt = null, lastW = window.innerWidth;
 window.addEventListener('resize', () => {
   clearTimeout(rt);
   rt = setTimeout(() => {
     const v = document.documentElement.dataset.hv || 'radar';
     if (v === 'radar') { radarDraw(); trackDraw(); if (Math.abs(window.innerWidth - lastW) > 30 || !$('#imap svg')) imapDraw(); }
-    if (v === 'compass') { cDraw(); trackDraw(); }
+    if (v === 'phase') phDraw();
     if (v === 'terrain') tDraw();
     if (cur && Math.abs(window.innerWidth - lastW) > 30) $$('.dchart', DC).forEach(el => bigChart(el, el.dataset.k));
     lastW = window.innerWidth;
@@ -1584,7 +1877,7 @@ if (window.heatGet) window.heatGet().then(d => {
   if (cur) $$('.dchart[data-wait]', DC).forEach(el => bigChart(el, el.dataset.k));
 }).catch(() => {
   if (AC.signal.aborted) return;
-  ['#cps', '#tld'].forEach(sel => { const el = $(sel); if (el) el.innerHTML = '走勢資料載入失敗，重新整理頁面再試一次。'; });
+  ['#phx', '#tld'].forEach(sel => { const el = $(sel); if (el) el.innerHTML = '走勢資料載入失敗，重新整理頁面再試一次。'; });
 });
 };
 """
