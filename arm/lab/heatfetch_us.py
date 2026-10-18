@@ -12,6 +12,7 @@
   us_m2                     聯準會 H.6 M2（季調，DBnomics）         {YYYY-MM: 十億美元}    1959 起
   us_z1                     聯準會 Z.1（DBnomics）                  {季底 YYYY-MM: [非金融企業股票市值, 非金融企業淨值, 家計證券融資]}（百萬美元）
   us_gdp                    BEA 名目 GDP（季調年率，DBnomics）      {季底 YYYY-MM: 百萬美元}
+  us_cp                     BEA 企業稅後獲利（季、年率，DBnomics）  {季底 YYYY-MM: 十億美元}  泡沫頁 VER 2
   us_cftc_am、us_cftc_vix   CFTC 交易者分類：資產管理人 E-mini S&P、槓桿基金 VIX 期貨  {週二: [多單, 空單, 未平倉]}
   us_cftc_big、us_cftc_mini CFTC 傳統：非商業 S&P 大型、E-mini S&P {週二: [多單, 空單, 未平倉]}
   us_philly                 費城聯準製造業 目前一般活動             {YYYY-MM: 擴散指數}    1968-05 起
@@ -137,6 +138,41 @@ def h41() -> int:
 
 def m2() -> int:
     return _merge("us_m2", "fed_h6_dbnomics", {month_key(p): v for p, v in dbn_series(M2).items() if month_key(p)})
+
+
+# 美國企業稅後獲利（BEA NIPA，季資料、年率、十億美元；泡沫頁 VER 2 那斯達克兩檔的基本面近似，docs/lab_risk_plan.md 第 9 節）
+# 第一順位＝不含存貨評價與資本消耗調整（A055RC，最接近公司財報的盈餘）；DBnomics 沒有才用含調整的（A551RC）
+CP_CANDS = ("BEA/NIPA-T61900D/A055RC-Q", "BEA/NIPA-T11200/A055RC-Q", "BEA/NIPA-T11200/A551RC-Q", "BEA/NIPA-T61600D/A551RC-Q")
+DBN_SEARCH = "https://api.db.nomics.world/v22/series/{p}?q={q}&observations=false&limit=60&format=json"
+
+
+def cp() -> int:
+    """依 CP_CANDS 順序取第一條有資料的；用了哪一條記在來源標籤（us_cp 的 src）。"""
+    errs = []
+    for sid in CP_CANDS:
+        try:
+            d = {month_key(p): v for p, v in dbn_series(sid).items() if month_key(p) and v is not None}
+        except Exception as e:                                # noqa: BLE001 —— 換下一條
+            errs.append(f"{sid}：{type(e).__name__} {str(e)[:80]}")
+            continue
+        if len(d) >= 200:
+            log(f"[heat-us] 美國企業獲利用 {sid}（{min(d)}～{max(d)}，{len(d)} 季）")
+            return _merge("us_cp", "bea_dbnomics:" + sid, d)
+        errs.append(f"{sid}：只有 {len(d)} 筆")
+    raise RuntimeError("美國企業獲利都抓不到：" + "；".join(errs))
+
+
+def probe_cp() -> None:
+    """探針：列出 BEA 幾張表裡名稱有 profits 的序列（代碼＋名稱），決定 CP_CANDS 用哪一條。"""
+    for ds in ("BEA/NIPA-T11200", "BEA/NIPA-T61900D", "BEA/NIPA-T61600D", "BEA/NIPA-T11400"):
+        try:
+            doc = json.loads(_get(DBN_SEARCH.format(p=ds, q=urllib.parse.quote("profits after tax")), timeout=120).decode("utf-8"))
+            docs = ((doc.get("series") or {}).get("docs")) or []
+            log(f"[cp-probe] {ds}：{len(docs)} 條")
+            for x in docs[:40]:
+                log(f"[cp-probe]   {x.get('series_code')}｜{str(x.get('series_name'))[:120]}")
+        except Exception as e:                                # noqa: BLE001
+            log(f"[cp-probe] {ds} ✗ {type(e).__name__} {str(e)[:160]}")
 
 
 def z1() -> int:

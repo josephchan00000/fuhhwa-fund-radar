@@ -27,7 +27,7 @@ from arm.lab import heatdata as HD  # noqa: E402
 from arm.lab import heatfetch_us as U  # noqa: E402
 
 NAMES = ["us_px_spx", "us_px_ixic", "us_px_ndx", "us_px_sox", "us_vxn", "us_vix3m", "us_dxy", "us_rsp", "us_spy",
-         "us_h15", "us_h41", "us_m2", "us_z1", "us_gdp", "us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini",
+         "us_h15", "us_h41", "us_m2", "us_z1", "us_gdp", "us_cp", "us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini",
          "us_philly", "us_ads", "us_cli", "us_claims", "us_bls", "us_umich", "us_ebp", "us_shiller", "us_wsts",
          "taiex90", "twgdp"] + [f"us_lppls_{k}" for k in U.US_INDEX_SYM] + ["tw_lppls"]
 YAHOO = [("us_px_spx", "^GSPC", "1927-01-01"), ("us_px_ixic", "^IXIC", "1971-01-01"),
@@ -90,7 +90,7 @@ def daily() -> None:
         have = HD.load(name)
         once(name, U.cftc, name, (max(have) if have else "1986-01-01")[:4] + "-01-01")
     for key, fn in (("us_philly", U.philly), ("us_ads", U.ads), ("us_cli", U.oecd_cli), ("us_claims", U.claims),
-                    ("us_umich", U.umich), ("us_ebp", U.ebp), ("us_m2", U.m2), ("us_z1", U.z1), ("us_gdp", U.gdp),
+                    ("us_umich", U.umich), ("us_ebp", U.ebp), ("us_m2", U.m2), ("us_z1", U.z1), ("us_gdp", U.gdp), ("us_cp", U.cp),
                     ("us_shiller", U.shiller), ("us_wsts", U.wsts)):
         once(key, fn)
     once("us_bls", U.bls, date.today().year - 1)
@@ -109,7 +109,14 @@ def next_quarter(ym: str) -> str:
     return f"{y:04d}-{m:02d}"
 
 
-def backfill() -> None:
+def backfill(only: set | None = None) -> None:
+    if only:                                                  # --only：只回補這幾個（例：us_cp）
+        jobs = {"us_cp": U.cp, "us_z1": U.z1, "us_gdp": U.gdp, "us_wsts": U.wsts, "us_shiller": U.shiller}
+        if "cp_probe" in only:
+            U.probe_cp()
+        for k in sorted(only & set(jobs)):
+            run(k, jobs[k])
+        return
     for name, sym, start in YAHOO:
         run(name, U.yahoo_us, name, sym, start)
     for name, sym, start in ADJ:
@@ -119,6 +126,7 @@ def backfill() -> None:
     run("us_m2", U.m2)
     run("us_z1", U.z1)
     run("us_gdp", U.gdp)
+    run("us_cp", U.cp)
     for name in U.CFTC_JOBS:
         run(name, U.cftc, name)
     for key, fn in (("us_philly", U.philly), ("us_ads", U.ads), ("us_cli", U.oecd_cli), ("us_claims", U.claims),
@@ -139,10 +147,11 @@ def summary() -> None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--backfill", action="store_true")
+    ap.add_argument("--only", default="", help="回補只跑這幾個（逗號分隔，例：us_cp,cp_probe）")
     a = ap.parse_args()
     t0 = time.time()
     if a.backfill:
-        backfill()
+        backfill({x.strip() for x in a.only.split(",") if x.strip()} or None)
     else:
         daily()
     summary()
