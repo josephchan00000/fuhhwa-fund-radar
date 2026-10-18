@@ -1,7 +1,8 @@
-"""泡沫頁的計算（規格 bubspec VER 2；docs/lab_risk_plan.md 第 8、9 節）。
+"""泡沫頁的計算（規格 bubspec VER 3；docs/lab_risk_plan.md 第 8～10 節）。
 
 每個市場每月一個樣本（月底最後一個交易日），算六個條件（P1 價格爆發、P2 兩年翻倍在高點、P3 偏離長期趨勢、
-E 價格漲得比基本面快、V 估值、F 槓桿）與 0～4 級（VER 2；VER 1 的等級另存 L1 當對照）；
+E 價格漲得比基本面快、V 估值、F 槓桿）與 0～4 級（VER 3；VER 2、VER 1 的等級另存 L2v、L1 當對照）；
+VER 3 的方向條件：P1 要近 12 個月實質價格上漲，E 要近 12 個月價格上漲而且比值上升（dir_up、e_flags）；
 每個條件都只用該日以前「拿得到」的資料（公布時間差照景氣頁的規則）。
   · E：每個市場的「價格 ÷ 基本面」比值（fund_ratios）取對數，做和 P1 同一套 PSY，連續 E_RUN 個月超過臨界值；
   · P1 的臨界值表（不同長期漲勢各模擬一次）用 numpy 算一次存 data/lab/heat/psy_cv_drift（cv_table），
@@ -144,6 +145,12 @@ def psy_drift(M: dict, T: dict) -> dict:
     return out
 
 
+def dir_up(S: dict, m: str, n: int | None = None) -> bool:
+    """方向條件（VER 3）：{月: log 值} 在 m 比 n 個月前高（兩個月都要有）。"""
+    a = _ym_add(m, -(n or BS.DIR_MONTHS))
+    return m in S and a in S and S[m] is not None and S[a] is not None and S[m] - S[a] > 0
+
+
 def p1_flags(R: dict) -> dict:
     """{月: 當月與前 PSY_RUN − 1 個月都超過 95% 臨界值}（有 PSY 讀數的月份才有值）。"""
     return {k: all((R.get(_ym_add(k, -j)) or {}).get("hit") for j in range(BS.PSY_RUN)) for k in R}
@@ -267,11 +274,14 @@ def fund_ratios(mk: str, I: dict, D: dict) -> dict:
 
 
 def e_flags(FR: dict, T: dict) -> dict:
-    """每條比值做 PSY → {名稱: {"R": psy_drift 結果, "f": {月: 連續 E_RUN 個月超過}}}。"""
+    """每條比值做 PSY → {名稱: {"R": psy_drift 結果, "f0": {月: 連續 E_RUN 個月超過（VER 2）},
+    "f": {月: f0 而且近 DIR_MONTHS 個月價格上漲、比值上升（VER 3）}}}。"""
     out = {}
     for k, v in FR.items():
         R = psy_drift(v["lr"], T)
-        out[k] = {"R": R, "f": {m: all((R.get(_ym_add(m, -j)) or {}).get("hit") for j in range(BS.E_RUN)) for m in R}}
+        f0 = {m: all((R.get(_ym_add(m, -j)) or {}).get("hit") for j in range(BS.E_RUN)) for m in R}
+        lp = {m: math.log(x) for m, x in v["p"].items() if x and x > 0}
+        out[k] = {"R": R, "f0": f0, "f": {m: bool(x and dir_up(lp, m) and dir_up(v["lr"], m)) for m, x in f0.items()}}
     return out
 
 
@@ -352,15 +362,18 @@ def conditions(I: dict, T: dict) -> dict:
     me = month_end_idx(cal)
     dates = [cal[i] for i in me]
     R = psy_drift(I["lr"], T)
-    p1m = p1_flags(R)
+    p1r = p1_flags(R)
+    p1m = {m: bool(v and dir_up(I["lr"], m)) for m, v in p1r.items()}
     z, _ = HB.trend_z(I["lr"], BS.TREND["min"])
     ru, dist, f2 = p2_daily(px)
     p1 = H.asof_monthly(dates, p1m, REL)
+    p1o = H.asof_monthly(dates, p1r, REL)
     p3z = H.asof_monthly(dates, z, REL)
     fu = H.asof_monthly(dates, I["fuel"], I["fuel_rel"]) if I["fuel"] else [None] * len(dates)
     va = {k: H.asof_monthly(dates, v, REL) for k, v in (I["val"] or {}).items()}
     EF = e_flags(I.get("fund") or {}, T)
     ea = [H.asof_monthly(dates, v["f"], REL) for v in EF.values()]
+    eo = [H.asof_monthly(dates, v["f0"], REL) for v in EF.values()]
     rows = []
     for j, i in enumerate(me):
         P1 = p1[j]
@@ -375,9 +388,14 @@ def conditions(I: dict, T: dict) -> dict:
         F = None if fu[j] is None else fu[j] >= BS.FUEL_PCT
         es = [e[j] for e in ea if e[j] is not None]
         E = (any(es)) if es else None
+        e0 = [e[j] for e in eo if e[j] is not None]
+        E0 = (any(e0)) if e0 else None
+        P1o = p1o[j]
         p = sum(1 for x in (P1, P2, P3) if x)
+        po = sum(1 for x in (P1o, P2, P3) if x)
         rows.append({"d": dates[j], "P1": P1, "P2": P2, "P3": P3, "E": E, "V": V, "F": F,
-                     "L": BS.level2(p > 0, bool(E), bool(V), bool(F)), "L1": BS.level(p, bool(V), bool(F))})
+                     "L": BS.level2(p > 0, bool(E), bool(V), bool(F)),
+                     "L2v": BS.level2(po > 0, bool(E0), bool(V), bool(F)), "L1": BS.level(po, bool(V), bool(F))})
     return {"rows": rows, "me": me, "R": R, "z": z, "ru": ru, "dist": dist, "f2": f2, "EF": EF}
 
 
@@ -404,12 +422,19 @@ def status(I: dict, C: dict) -> dict:
     if ym1:
         while (C["R"].get(_ym_add(ym1, -run)) or {}).get("hit"):
             run += 1
-    P1 = None if not ym1 else run >= BS.PSY_RUN
+    up1 = None
+    if ym1:
+        a = _ym_add(ym1, -BS.DIR_MONTHS)
+        if a in I["lr"] and ym1 in I["lr"]:
+            up1 = 100.0 * (math.exp(I["lr"][ym1] - I["lr"][a]) - 1.0)
+    P1o = None if not ym1 else run >= BS.PSY_RUN
+    P1 = None if not ym1 else (run >= BS.PSY_RUN and dir_up(I["lr"], ym1))
     ym3, z = _latest(C["z"], day, REL)
     P3 = None if z is None else z >= BS.TREND_Z
     P2 = C["f2"][-1]
     out = {"d": day, "P1": P1, "P2": P2, "P3": P3,
-           "p1": None if not ym1 else {"ym": ym1, "s": r1["s"], "q95": r1["q95"], "x": r1["x"], "g": r1["g"], "run": run},
+           "p1": None if not ym1 else {"ym": ym1, "s": r1["s"], "q95": r1["q95"], "x": r1["x"], "g": r1["g"], "run": run,
+                                       "up": up1},
            "p2": {"ru": C["ru"][-1], "dist": C["dist"][-1]}, "p3": {"ym": ym3, "z": z}}
     V = None
     if I["val"]:
@@ -432,7 +457,7 @@ def status(I: dict, C: dict) -> dict:
         ymr, raw = _latest(I["fuel_raw"], day, I["fuel_rel"])
         out.setdefault("f", {"ym": ymr, "pct": None, "raw": raw})
     out["V"], out["F"] = V, F
-    E, ei = None, {}
+    E, E0, ei = None, None, {}
     for k, ef in (C.get("EF") or {}).items():
         ym, r = _latest(ef["R"], day, REL)
         if not ym:
@@ -441,13 +466,21 @@ def status(I: dict, C: dict) -> dict:
         while (ef["R"].get(_ym_add(ym, -run)) or {}).get("hit"):
             run += 1
         fr = I["fund"][k]
+        a = _ym_add(ym, -BS.DIR_MONTHS)
+        up = None
+        if fr["p"].get(ym) and fr["p"].get(a) and ym in fr["lr"] and a in fr["lr"]:
+            up = {"p": 100.0 * (fr["p"][ym] / fr["p"][a] - 1.0), "r": 100.0 * (math.exp(fr["lr"][ym] - fr["lr"][a]) - 1.0)}
+        ok = bool(up) and up["p"] > 0 and up["r"] > 0
         ei[k] = {"ym": ym, "s": r["s"], "q95": r["q95"], "g": r["g"], "run": run, "r": math.exp(fr["lr"][ym]),
-                 "dec": decomp(fr, ym), "cyc": cyc_z(I, k, ym)}
-        E = (E or False) or run >= BS.E_RUN
+                 "up": up, "on": run >= BS.E_RUN and ok, "dec": decomp(fr, ym), "cyc": cyc_z(I, k, ym)}
+        E = (E or False) or ei[k]["on"]
+        E0 = (E0 or False) or run >= BS.E_RUN
     out["e"], out["E"] = ei, E
     p = sum(1 for x in (P1, P2, P3) if x)
+    po = sum(1 for x in (P1o, P2, P3) if x)
     out["L"] = BS.level2(p > 0, bool(E), bool(V), bool(F))
-    out["L1"] = BS.level(p, bool(V), bool(F))
+    out["L2v"] = BS.level2(po > 0, bool(E0), bool(V), bool(F))
+    out["L1"] = BS.level(po, bool(V), bool(F))
     return out
 
 
@@ -571,6 +604,8 @@ def _flag_x(rows: list, J: range, t: str) -> list:
         return [100.0 if rows[j]["L"] == 4 else 0.0 for j in J]
     if t == "L3v1":
         return [100.0 if rows[j]["L1"] >= 3 else 0.0 for j in J]
+    if t == "L3v2":
+        return [100.0 if rows[j]["L2v"] >= 3 else 0.0 for j in J]
     if t in ("PF", "PN"):                               # 價格過熱而且（PF）／但沒有（PN）漲得比基本面快
         out = []
         for j in J:
@@ -587,7 +622,7 @@ def _mean(xs: list) -> float | None:
     return sum(xs) / len(xs) if xs else None
 
 
-def validate(rows: list, dates: list[str], dd: dict, fwd: dict, tests: tuple = BS.TESTS2) -> dict:
+def validate(rows: list, dates: list[str], dd: dict, fwd: dict, tests: tuple = BS.TESTS3) -> dict:
     """rows／dates／dd／fwd 是同一批月樣本；每個條件與等級跑 heatbubble.crash_test，另加平均報酬（只描述）。"""
     from . import heatbubble as HB
     J = range(len(rows))
@@ -604,8 +639,9 @@ def validate(rows: list, dates: list[str], dd: dict, fwd: dict, tests: tuple = B
         r["share"] = 100.0 * sum(1 for v in x if v) / sum(1 for v in x if v is not None)
         out[t] = r
     out["dist"] = {str(lv): 100.0 * sum(1 for r in rows if r["L"] == lv) / len(rows) for lv in BS.LEVELS}
-    if all("L1" in r for r in rows):
-        out["dist1"] = {str(lv): 100.0 * sum(1 for r in rows if r["L1"] == lv) / len(rows) for lv in BS.LEVELS}
+    for key, name in (("L1", "dist1"), ("L2v", "dist2")):
+        if all(key in r for r in rows):
+            out[name] = {str(lv): 100.0 * sum(1 for r in rows if r[key] == lv) / len(rows) for lv in BS.LEVELS}
     return out
 
 
@@ -641,10 +677,12 @@ def tw_ext(I: dict, T: dict) -> dict:
         months.append(_ym_add(months[-1], 1))
     pa = [pm.get(m) for m in months]
     R = psy_drift(I["lr"], T)
-    p1m = p1_flags(R)
+    p1r = p1_flags(R)
+    p1m = {m: bool(v and dir_up(I["lr"], m)) for m, v in p1r.items()}
     z, _ = HB.trend_z(I["lr"], BS.TREND["min"])
     ex = (I.get("fund") or {}).get("ex")
-    em = e_flags({"ex": ex}, T)["ex"]["f"] if ex else {}
+    ef = e_flags({"ex": ex}, T)["ex"] if ex else {"f": {}, "f0": {}}
+    em, em0 = ef["f"], ef["f0"]
     rows, ath = [], None
     for i, m in enumerate(months):
         v = pa[i]
@@ -654,11 +692,14 @@ def tw_ext(I: dict, T: dict) -> dict:
         if i >= BS.EXT_RUN_MONTHS and v and pa[i - BS.EXT_RUN_MONTHS]:
             P2 = v / pa[i - BS.EXT_RUN_MONTHS] - 1.0 >= BS.RUN2_PCT / 100.0 and v >= ath * (1.0 - BS.RUN2_ATH)
         P1 = p1m.get(m)
+        P1o = p1r.get(m)
         P3 = None if m not in z else z[m] >= BS.TREND_Z
         E = em.get(m)
         p = sum(1 for x in (P1, P2, P3) if x)
+        po = sum(1 for x in (P1o, P2, P3) if x)
         rows.append({"d": f"{m}-28", "P1": P1, "P2": P2, "P3": P3, "E": E, "V": None, "F": None,
-                     "L": BS.level2(p > 0, bool(E), False, False), "L1": BS.level(p, False, False)})
+                     "L": BS.level2(p > 0, bool(E), False, False),
+                     "L2v": BS.level2(po > 0, bool(em0.get(m)), False, False), "L1": BS.level(po, False, False)})
     J = [j for j, r in enumerate(rows) if r["P1"] is not None and r["P2"] is not None]
     if not J:
         return {}
@@ -669,7 +710,7 @@ def tw_ext(I: dict, T: dict) -> dict:
     fwd = {h: [100.0 * (pa[j + sh + hm[h]] / pa[j + sh] - 1.0) if j + sh + hm[h] < len(pa) and pa[j + sh]
                and pa[j + sh + hm[h]] else None for j in J] for h, _ in BS.BUB_DD}
     sub = [rows[j] for j in J]
-    out = validate(sub, [r["d"] for r in sub], dd, fwd, tests=("P1", "P2", "P3", "E", "PF", "PN", "L2", "L3", "L3v1"))
+    out = validate(sub, [r["d"] for r in sub], dd, fwd, tests=("P1", "P2", "P3", "E", "PF", "PN", "L2", "L3", "L3v1", "L3v2"))
     # 泡沫段（月平均）
     epi = []
     for a, b in HB.episodes([_mno(r["d"]) for r in sub], [r["L"] >= 3 for r in sub]):

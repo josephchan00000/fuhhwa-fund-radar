@@ -82,7 +82,7 @@ def test_validate_counts_hot_months_and_returns():
         hot = 30 <= j < 45 or 80 <= j < 95
         rows.append({"d": f"{ym}-28", "P1": hot, "P2": hot, "P3": None, "E": (30 <= j < 45) if j >= 20 else None,
                      "V": None, "F": None, "L": BS.level2(hot, 30 <= j < 45, False, False),
-                     "L1": BS.level(2 if hot else 0, False, False)})
+                     "L2v": BS.level2(hot, 30 <= j < 45, False, False), "L1": BS.level(2 if hot else 0, False, False)})
         dates.append(f"{ym}-28")
         ym = BB._ym_add(ym, 1)
     dd = {252: [0.5 if r["P1"] else 0.05 for r in rows], 504: [0.6 if r["P1"] else 0.1 for r in rows]}
@@ -92,6 +92,7 @@ def test_validate_counts_hot_months_and_returns():
     assert abs(out["P1"]["252"]["ret_hot"] + 10.0) < 1e-9
     assert out["P3"] == {"n_hot": 0} and out["L4"] == {"n_hot": 0}       # 算不出來／從沒出現的條件
     assert out["L3v1"]["252"]["n_hot"] == 30                              # VER 1：兩個價格條件就到 3
+    assert out["L3v2"]["252"]["n_hot"] == 15 and abs(sum(out["dist2"].values()) - 100.0) < 1e-9
     assert out["L3"]["252"]["n_hot"] == 15 and out["PF"]["252"]["n_hot"] == 15 and out["PN"]["252"]["n_hot"] == 15
     assert out["E"]["share"] == 15 / 100 * 100                            # E 前 20 個月算不出來，不算進分母
     assert abs(sum(out["dist"].values()) - 100.0) < 1e-9 and abs(sum(out["dist1"].values()) - 100.0) < 1e-9
@@ -126,7 +127,18 @@ def test_e_flags_need_three_months_in_a_row():
         ym = BB._ym_add(ym, 1)
     cv = HB.psy_cv(60, 200, len(y), 11)
     T = {"grid": [0.0, 0.2], "q50": [cv["q50"], cv["q50"]], "q95": [cv["q95"], cv["q95"]]}
-    EF = BB.e_flags({"x": {"lr": dict(zip(months, y))}}, T)["x"]
-    assert EF["f"][months[-1]] is True
+    up = {m: 100.0 * (1.01 ** i) for i, m in enumerate(months)}         # 價格一路上漲
+    EF = BB.e_flags({"x": {"lr": dict(zip(months, y)), "p": up}}, T)["x"]
+    assert EF["f"][months[-1]] is True and EF["f0"][months[-1]] is True
     first = next(m for m in months if (EF["R"].get(m) or {}).get("hit"))
     assert EF["f"][first] is False
+    down = {m: 100.0 * (0.99 ** i) for i, m in enumerate(months)}       # 比值爆發但價格在跌（盈餘崩落）：VER 3 不算
+    EF2 = BB.e_flags({"x": {"lr": dict(zip(months, y)), "p": down}}, T)["x"]
+    assert EF2["f0"][months[-1]] is True and EF2["f"][months[-1]] is False
+
+
+def test_dir_up_needs_both_months_and_a_rise():
+    S = {"2020-01": 1.0, "2021-01": 1.2, "2021-02": 0.9}
+    assert BB.dir_up(S, "2021-01") is True
+    assert BB.dir_up(S, "2021-02") is False                              # 2020-02 沒資料
+    assert BB.dir_up({"2020-01": 1.0, "2021-01": 0.8}, "2021-01") is False
