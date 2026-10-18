@@ -28,7 +28,7 @@ from arm.lab import heatfetch as F  # noqa: E402
 
 NAMES = ["margin", "inst", "futi", "opti", "mtxoi", "pcr", "vixtw", "taiex", "vix", "hyg", "ief", "turnover",
          "usdtwd", "money", "ndc", "ndc_first", "exports", "pmi", "orders", "twcpi", "effr", "fedtgt", "uscpi", "ust",
-         "breadth", "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow"]
+         "breadth", "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow", "taiexm"]
 # 月資料「新的一個月該出來了」的最早日子（第 m＋1 個月的第幾天）：只用來決定要不要抓，不影響驗證（驗證用 heatspec.RELEASE）
 DUE = {"twcpi": (1, 5)}
 
