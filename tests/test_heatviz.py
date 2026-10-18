@@ -144,7 +144,7 @@ def test_every_item_and_dimension_has_a_panel(built):
 
 def test_views_and_research_moved_intact(built):
     _, _, V, page = built
-    assert re.findall(r'<div class="hview" data-view="(\w+)"', page) == ["radar", "compass", "terrain", "research"]
+    assert re.findall(r'<div class="hview" data-view="(\w+)"', page) == ["radar", "phase", "terrain", "research"]
     assert re.findall(r'<button type="button" data-view="(\w+)"', page) == [k for k, _ in VZ.VIEWS]
     res = page[page.index('<div class="hview" data-view="research"'):page.index('<div class="dtpl"')]
     for part in (P._dv_section(V), P._rel_overview(V), P._m6_valid(V), P._ta_study(V)):
@@ -153,7 +153,7 @@ def test_views_and_research_moved_intact(built):
     for d, L in V["dims"].items():
         assert P._valid(d, L) in res and f'id="v-{d}"' in res
     assert 'id="src"' in res and P._METHOD in res
-    main = page[page.index('<div class="hview" data-view="radar"'):page.index('<div class="hview" data-view="compass"')]
+    main = page[page.index('<div class="hview" data-view="radar"'):page.index('<div class="hview" data-view="phase"')]
     assert P._ta_main(V) in main and P._cmp_section() in main and 'id="key"' in main and 'id="imap"' in main
     assert "看事件研究" in P._ta_main(V) and 'class="evt"' not in P._ta_main(V)
 
@@ -173,7 +173,7 @@ def test_theme_tokens_for_light_and_dark():
     dark = dark[:dark.index("}}") + 2]
     light = css[css.index(":root{"):css.index("@media (prefers-color-scheme:dark)")]
     for tok in ("--bg", "--panel", "--card2", "--ink", "--ink2", "--mut", "--line", "--acc", "--c0", "--c4", "--t0", "--t4",
-                "--p0", "--p4", "--zh", "--zc", "--ring", "--tipbg", "--dfund", "--dbubl"):
+                "--p0", "--p4", "--zh", "--zc", "--ring", "--tipbg", "--dfund", "--dbubl", "--q0", "--q1", "--q2", "--q3"):
         assert tok + ":" in light and tok + ":" in dark, tok                  # 深淺兩套都有定義
     for s in (VZ.CSS, VZ.JS, P._JS):                                          # 新加的樣式與程式不寫死白底
         assert "background:#fff" not in s and 'stroke="#fff"' not in s
@@ -218,3 +218,72 @@ def test_us_page_items_use_us_wording():
     assert page.count('<script type="application/json" class="hviz">') == len(U.INDEX_ORDER)   # 每個指數一份雷達資料
     assert "來源：證交所" not in page                                         # 台股項目的來源表不用在美股頁
     assert S.MARKET == "tw" and P.MK["mkt"] == "台股"
+
+
+# ── 階段時間軸（2026-10-18 取代羅盤；docs/lab_visual_plan.md 第 11 節）
+
+def _walk(n, seed, gaps=()):
+    """可重現的隨機走勢（0～100），中間挖幾段空白。"""
+    import random
+    rnd, v, out = random.Random(seed), 50.0, []
+    for i in range(n):
+        v = min(100.0, max(0.0, v + rnd.gauss(0, 6)))
+        out.append(None if any(a <= i < b for a, b in gaps) else round(v, 4))
+    return out
+
+
+def test_phase_track_cycles_in_order_and_holds_inside_the_band():
+    import math
+    x = [50 + 40 * math.sin(2 * math.pi * i / 104) for i in range(520)]   # 兩年一個循環的平滑波
+    L, M, Q = VZ.phase_track(x)
+    w, c = VZ.PH["ma"], VZ.PH["chg"]
+    assert all(v is None for v in Q[:w - 1 + c]) and Q[w - 1 + c] is not None
+    runs = [q for k, q in enumerate(Q) if q is not None and (k == 0 or Q[k - 1] != q)]
+    nxt = {3: 0, 0: 1, 1: 2, 2: 3}                                           # 冷回溫 → 熱升溫 → 熱降溫 → 冷降溫 → …
+    assert len(runs) >= 16 and all(nxt[a] == b for a, b in zip(runs, runs[1:]))
+    for i, q in enumerate(Q):                                               # 階段和位置一致；跨線前沿用原本的
+        if q is None:
+            continue
+        hot, up = q in (0, 1), q in (0, 3)
+        if abs(L[i] - 50) >= VZ.PH["hl"]:
+            assert hot == (L[i] >= 50)
+        if abs(M[i]) >= VZ.PH["hm"]:
+            assert up == (M[i] >= 0)
+    flat = VZ.phase_track([60.0] * 40)[2]                                   # 完全不動＝熱、還在升溫（變化 0 算升溫），之後一直沿用
+    assert set(q for q in flat if q is not None) == {0}
+    _, _, Qg = VZ.phase_track(_walk(200, 3, gaps=((80, 83),)))
+    assert all(q is None for q in Qg[80:83 + VZ.PH["ma"] - 1])               # 缺資料：8 週平均要湊滿才有，之後重新判斷
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="沒有 node")
+def test_phase_track_js_matches_python():
+    src = VZ.JS[VZ.JS.index("// @@PH"):VZ.JS.index("// @@ENDPH")]
+    cases = [_walk(700, 1), _walk(700, 2, gaps=((100, 104), (300, 340))), _walk(60, 9), [None] * 30 + _walk(300, 4)]
+    prog = ("const PHC=" + json.dumps(VZ.PH) + ";function val(t,i){if(!t)return null;const j=i-t.o;return j>=0&&j<t.v.length?t.v[j]:null;}"
+            + src + "const C=" + json.dumps(cases) + ";process.stdout.write(JSON.stringify(C.map(x=>{const r=phTrack({o:0,v:x},x.length);"
+            "return {L:r.L,M:r.M,Q:r.Q,S:x.map((_,i)=>r.Q[i]==null?null:phSince(r.Q,i))};})));")
+    r = subprocess.run(["node", "-e", prog], capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stderr[:800]
+    for x, got in zip(cases, json.loads(r.stdout)):
+        L, M, Q = VZ.phase_track(x)
+        assert got["Q"] == Q
+        assert all((a is None and b is None) or abs(a - b) < 1e-9 for a, b in zip(got["L"], L))
+        assert all((a is None and b is None) or abs(a - b) < 1e-9 for a, b in zip(got["M"], M))
+        for i, j in enumerate(got["S"]):                                    # 「已幾週」：往回找同一階段的起點
+            if j is not None:
+                assert Q[j] == Q[i] and all(Q[k] == Q[i] for k in range(j, i + 1)) and (j == 0 or Q[j - 1] != Q[i])
+
+
+def test_phase_view_replaces_compass(built):
+    _, _, V, page = built
+    assert [k for k, _ in VZ.VIEWS] == ["radar", "phase", "terrain", "research"] and dict(VZ.VIEWS)["phase"] == "階段"
+    ph = page[page.index('<div class="hview" data-view="phase"'):page.index('<div class="hview" data-view="terrain"')]
+    for tag in ('id="phx"', 'id="phtip"', 'id="phlead"', 'data-phr="2"', 'data-phr="5"', 'data-phr="10"', 'data-phr="0"'):
+        assert tag in ph, tag
+    for q in VZ.PH_ORDER:
+        assert f'class="pq{q}"' in ph and VZ.PHN[q] in ph and VZ.PHS[q] in ph
+    assert V["viz"]["ph"] == {**VZ.PH, "n": list(VZ.PHN), "s": list(VZ.PHS)}
+    for old in ("cDraw", "cShow", "chaikin", "quadPanel", "data-cd", "#cps", "cplay", "ctin", ".cbub", ".cit "):
+        assert old not in VZ.JS and old not in VZ.CSS, old                   # 羅盤的程式與樣式都拿掉了
+    assert "if (v === 'compass') v = 'phase';" in VZ.JS                      # 舊網址 #v=compass 轉到階段
+    assert "升溫、降溫沒有驗證過" in ph                                       # 只描述位置

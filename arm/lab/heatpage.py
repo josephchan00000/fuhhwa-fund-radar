@@ -1301,7 +1301,7 @@ def _meta_json(V: dict) -> str:
 
 
 def parts(V: dict) -> dict:
-    """頁面的主體（美股頁每個指數各一份）：四個視角（雷達、羅盤、地形、研究）＋右側面板的內容＋雷達的資料；asof＝資料日。
+    """頁面的主體（美股頁每個指數各一份）：四個視角（雷達、階段、地形、研究）＋右側面板的內容＋雷達的資料；asof＝資料日。
     研究畫面＝原本的邊際變化、驗證、事件研究、資料來源，內容原封搬過去（docs/lab_visual_plan.md 第 5 節）。"""
     from . import heatviz as VZ
     Ds = V["dims"]
@@ -1318,7 +1318,7 @@ def parts(V: dict) -> dict:
         + f'<section class="sec" id="src"><h2>資料來源與筆數</h2><div class="tw"><table><tr><th class="l">檔</th><th>筆數</th>'
           f'<th>起</th><th>到</th></tr>{data_rows}</table></div><p class="note">{_e(_SRC_NOTE)}</p></section>'
     )
-    body = (VZ.main_view(V, V.get("ks") or []) + VZ.compass_view() + VZ.terrain_view() + VZ.research_view(V, research)
+    body = (VZ.main_view(V, V.get("ks") or []) + VZ.phase_view() + VZ.terrain_view() + VZ.research_view(V, research)
             + VZ.templates(V) + VZ.viz_json(V))
     return {"nav": "", "body": body, "asof": asof}
 
@@ -1404,14 +1404,16 @@ _CSS = """
 --c0:#2f6fb5;--c1:#7fb0de;--c2:#b8c0cc;--c3:#f0a35a;--c4:#d33a34;--t0:#2a65a8;--t1:#3572b2;--t2:#44505f;--t3:#b25f10;--t4:#c8322c;
 --sbg:#fdecea;--wbg:#e6f4ec;--curbg:#fff7e6;--bp:#c2c8d0;--zh:rgba(211,58,52,.07);--zc:rgba(47,111,181,.08);
 --p0:#7b5ea7;--p1:#199e70;--p2:#c98500;--p3:#d55181;--p4:#4d7c0f;
---dfund:#199e70;--dchip:#7b5ea7;--dgliq:#a88a00;--dtliq:#d55181;--dtech:#0f8fa8;--dbubl:#a0522d}
+--dfund:#199e70;--dchip:#7b5ea7;--dgliq:#a88a00;--dtliq:#d55181;--dtech:#0f8fa8;--dbubl:#a0522d;
+--q0:#c8322c;--q1:#f0948d;--q2:#245fa6;--q3:#5a9fe8}
 @media (prefers-color-scheme:dark){:root{--bg:#0b111c;--panel:#121a28;--card2:#182234;--ink:#e8eef8;--ink2:#aab6c9;--mut:#8392a8;
 --line:#223049;--line2:#30425f;--acc:#6aa8ff;--accd:#8fbcff;--accbg:rgba(106,168,255,.14);--warn:#f0a24a;--ring:#0b111c;--tipbg:#182234;
 --shadow:0 8px 26px rgba(0,0,0,.5);--c0:#3d82e0;--c1:#7cb3ec;--c2:#8b96a8;--c3:#f3a35c;--c4:#f15b50;
 --t0:#6ea6f0;--t1:#93c0ef;--t2:#aab6c9;--t3:#f2a65e;--t4:#ff7d72;--sbg:rgba(241,91,80,.16);--wbg:rgba(47,191,113,.15);
 --curbg:rgba(243,163,92,.14);--bp:#4a5a74;--zh:rgba(241,91,80,.10);--zc:rgba(61,130,224,.12);
 --p0:#997ac9;--p1:#24a476;--p2:#bf7c00;--p3:#db5786;--p4:#6c9d3a;
---dfund:#24a476;--dchip:#997ac9;--dgliq:#a68900;--dtliq:#db5786;--dtech:#22a5c0;--dbubl:#c87a4f}}
+--dfund:#24a476;--dchip:#997ac9;--dgliq:#a68900;--dtliq:#db5786;--dtech:#22a5c0;--dbubl:#c87a4f;
+--q0:#f0584b;--q1:#a04038;--q2:#5294e6;--q3:#3260a3}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif;-webkit-text-size-adjust:100%}
@@ -2157,7 +2159,7 @@ function analysis() {
 }
 
 function render() { controls(); draw(); aw = $('#cmp-an').clientWidth; analysis(); }
-function getP() {                                           // 同一個檔只下載一次（雷達、羅盤、3D、面板共用）
+function getP() {                                           // 同一個檔只下載一次（雷達、階段、3D、面板共用）
   const C = window.__heatP = window.__heatP || {};
   if (!C[M.data]) C[M.data] = fetch(M.data || 'x9mh.json', {cache: 'no-cache'}).then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
     .catch(e => { delete C[M.data]; throw e; });
