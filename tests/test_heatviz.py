@@ -82,6 +82,30 @@ def test_terrain_layers_and_wording(built):
     assert "紅色平面" not in tv and "addColorStop(pos" not in VZ.JS           # 舊版：半透明紅色平面、逐週依分區上色（條紋）
 
 
+def test_terrain_identity_colors_and_focus(built):
+    """地形圖辨認（2026-10-18 使用者選 A＋B）：每個面向一個顏色（深淺兩套），上方按鈕或右側名字點一下只看那一條。"""
+    from arm.lab import heatspec_us as U
+    _, _, V, page = built
+    dims_tw = list(S.DIMS)
+    with S.use(U.spec_for("spx")):
+        dims_us = list(S.DIMS)
+    assert set(dims_tw) | set(dims_us) <= set(VZ.DCOL)                         # 台股、美股每個面向都有顏色
+    assert len({VZ.DCOL[d] for d in dims_tw}) == len(dims_tw)                  # 同一頁裡不重複
+    css = P._CSS
+    light = css[css.index(":root{"):css.index("@media (prefers-color-scheme:dark)")]
+    dark = css[css.index("@media (prefers-color-scheme:dark)"):]
+    for tok in set(VZ.DCOL.values()):
+        assert f"--{tok}:" in light and f"--{tok}:" in dark, tok
+    assert [d["col"] for d in V["viz"]["dims"]] == [VZ.DCOL[d] for d in dims_tw]
+    tv = page[page.index('<div class="hview" data-view="terrain"'):page.index('<div class="hview" data-view="research"')]
+    chips = re.findall(r'<button type="button" class="rch(?: on)?" data-tf="(\w*)"', tv)
+    assert chips == [""] + dims_tw                                             # 「全部」＋每個面向一顆
+    for d in dims_tw:
+        assert f'data-tf="{d}" aria-pressed="false"><i class="tfd" style="background:var(--{VZ.DCOL[d]})"></i>{S.DSHORT[d]}</button>' in tv
+    assert "__ter" not in VZ.JS and "O.lab" not in VZ.JS                       # 沒選的示意（名字寫在起點、拉開不重疊）已拿掉
+    assert "function tFocus(" in VZ.JS and "TS.focus && p.id !== TS.focus" in VZ.JS
+
+
 def test_key_states_definition(built):
     """關鍵狀態＝研究判定較弱／較強，而且現在在過熱或過冷；面向在前。"""
     B, R, V, page = built
@@ -149,7 +173,7 @@ def test_theme_tokens_for_light_and_dark():
     dark = dark[:dark.index("}}") + 2]
     light = css[css.index(":root{"):css.index("@media (prefers-color-scheme:dark)")]
     for tok in ("--bg", "--panel", "--card2", "--ink", "--ink2", "--mut", "--line", "--acc", "--c0", "--c4", "--t0", "--t4",
-                "--p0", "--p4", "--zh", "--zc", "--ring", "--tipbg"):
+                "--p0", "--p4", "--zh", "--zc", "--ring", "--tipbg", "--dfund", "--dbubl"):
         assert tok + ":" in light and tok + ":" in dark, tok                  # 深淺兩套都有定義
     for s in (VZ.CSS, VZ.JS, P._JS):                                          # 新加的樣式與程式不寫死白底
         assert "background:#fff" not in s and 'stroke="#fff"' not in s
