@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""美股景氣與泡沫模型的資料來源探針（docs/lab_heat_us_plan.md 第 10 節 U1；第二輪：芝加哥聯準銀行新位置、序列代碼、檔案欄位、台灣季 GDP）：只印診斷，不寫任何檔。
+"""美股景氣與泡沫模型的資料來源探針（docs/lab_heat_us_plan.md 第 10 節 U1；第三輪：聯準會總資產代碼、M2、Shiller、芝加哥聯準銀行 xlsx、VIX 期貨部位、台灣季 GDP 欄位）：只印診斷，不寫任何檔。
 
 在 lab_backfill.yml 用 .ping/lab 第一行 `usprobe` 觸發；本容器擋這些站，結果只看 CI 日誌。
 每一項印：成功與否、筆數、起訖日期或檔案大小、必要時印一小段原文，讓下一步一輪就能寫抓取程式。
@@ -187,6 +187,7 @@ def dbn_list(dataset: str, q: str, n: int = 30, w: int = 110) -> str:
 def shiller() -> str:
     html = get("https://shillerdata.com/", timeout=90).decode("utf-8", "replace")
     url = re.findall(r'href="([^"]+\.xls[^"]*)"', html, re.I)[0]
+    url = ("https:" + url) if url.startswith("//") else url
     import xlrd
     wb = xlrd.open_workbook(file_contents=get(url, timeout=120))
     sh = wb.sheet_by_name("Data")
@@ -239,58 +240,68 @@ def fmtqik(ymd: str) -> str:
     return f"stat={doc.get('stat')}｜{len(d)} 列｜{d[:2]}"
 
 
+def xlsx_tail(page: str, pat: str) -> str:
+    html = get(page, timeout=90).decode("utf-8", "replace")
+    hrefs = re.findall(pat, html, re.I)
+    if not hrefs:
+        return "找不到連結"
+    url = urllib.parse.urljoin("https://www.chicagofed.org/", hrefs[0].replace("&amp;", "&"))
+    import openpyxl
+    wb = openpyxl.load_workbook(io.BytesIO(get(url, timeout=120)), read_only=True, data_only=True)
+    out = [url, f"工作表 {wb.sheetnames}"]
+    for ws in wb.worksheets[:2]:
+        rows = [list(r)[:9] for r in ws.iter_rows(values_only=True)]
+        rows = [r for r in rows if any(c not in (None, "") for c in r)]
+        out.append(f"[{ws.title}] {len(rows)} 列｜前 3 列 {rows[:3]}｜最後 3 列 {rows[-3:]}")
+    return "｜".join(out)
+
+
+def grep_page(page: str, pat: str, n: int = 20) -> str:
+    html = get(page, timeout=90).decode("utf-8", "replace")
+    hits = []
+    for m in re.finditer(pat, html, re.I):
+        a, b = max(0, m.start() - 120), min(len(html), m.end() + 120)
+        hits.append(html[a:b].replace("\n", " "))
+        if len(hits) >= n:
+            break
+    srcs = re.findall(r'src="([^"]+)"', html, re.I)
+    return f"{len(html)} 字｜命中 {len(hits)}｜{hits}｜script src {srcs[:20]}"
+
+
+def dgbas_gdp() -> str:
+    import urllib.request
+    url = "https://ws.dgbas.gov.tw/001/Upload/461/relfile/11525/230912/na8103a1q.xml"
+    req = urllib.request.Request(url, headers=F.BROWSER)
+    with urllib.request.urlopen(req, timeout=120, context=F._twca_ctx()) as r:
+        txt = r.read().decode("utf-8", "replace")
+    obs = re.findall(r"<Obs>(.*?)</Obs>", txt, re.S)
+    items = sorted({m for b in obs for m in re.findall(r"<Item>(.*?)</Item>", b) if "GDP" in m or "國內生產毛額_當期" in m})
+    keep = []
+    for b in obs:
+        it = re.search(r"<Item>(.*?)</Item>", b).group(1)
+        if it.endswith("、GDP") and "當期價格" in it and "<TYPE>原始值" in b:
+            keep.append((re.search(r"<TIME_PERIOD>(.*?)</TIME_PERIOD>", b).group(1),
+                         re.search(r"<Item_VALUE>(.*?)</Item_VALUE>", b).group(1)))
+    keep.sort()
+    return f"含 GDP 的項目 {items[:12]}｜當期價格 GDP {len(keep)} 季 {keep[:2]} … {keep[-3:]}"
+
+
 def main() -> None:
-    print("== 第二輪：芝加哥聯準銀行新下載位置 ==", flush=True)
-    for pg in ("https://www.chicagofed.org/research/data/nfci/current-data-aws",
-               "https://www.chicagofed.org/research/data/nfci/current-data",
-               "https://www.chicagofed.org/research/data/cfnai/current-data",
-               "https://www.chicagofed.org/research/data/cfnai/current-data-preview",
-               "https://www.chicagofed.org/research/data/cfnai/cfnai-historical-data-preview",
-               "https://www.chicagofed.org/research/data/index-live"):
-        show(f"頁面 {pg.split('chicagofed.org')[1]}", lambda u=pg: links(u))
-    for u in ("https://www.chicagofed.org/-/media/publications/nfci/nfci-data-series-csv.csv",
-              "https://www.chicagofed.org/-/media/publications/cfnai/cfnai-data-series-csv.csv",
-              "https://www.chicagofed.org/-/media/publications/cfnai/cfnai-realtime-3-csv.csv"):
-        show(f"舊 CSV 末列 {u.rsplit('/', 1)[1]}", lambda x=u: tail_csv(x))
-
-    print("== OECD CLI 欄位 ==", flush=True)
-    show("OECD CLI", oecd_cli)
-
-    print("== DBnomics 序列代碼 ==", flush=True)
-    show("H6 M2 資料集", lambda: dbn_list("FED/H6_H6_M2", "", 40, 90))
-    show("H41 total assets", lambda: dbn_list("FED/H41", "Total assets", 30))
-    show("H41 general account", lambda: dbn_list("FED/H41", "General Account", 20))
-    show("H41 reverse repurchase", lambda: dbn_list("FED/H41", "Reverse repurchase agreements Wednesday level", 20))
-    for p in ("FED/H15/RIFLGFCY02_N.B", "FED/H15/RIFSGFSM03_N.B", "FED/H15/RIFLGFCM03_N.B", "FED/Z1/LM793164105.Q",
-              "FED/Z1/FL153067005.Q"):
+    print("== 第三輪 ==", flush=True)
+    for p in ("FED/H41/RESPPMA_N.WW", "FED/H41/RESPPLLDT_N.WW", "FED/H41/RESPPLLR_N.WW", "FED/H41/RESPPLLRD_N.WW",
+              "FED/H6_H6_M2/M2.M", "FED/H6_H6_M2/M2_N.M"):
         show(f"DBnomics {p}", lambda q=p: dbn(q))
-    show("Z1 security credit", lambda: dbn_list("FED/Z1", "security credit", 30))
-    show("Z1 margin", lambda: dbn_list("FED/Z1", "margin", 20))
-
-    print("== Shiller 與 WSTS 檔案內容 ==", flush=True)
     show("Shiller", shiller)
-    show("WSTS", wsts)
-
-    print("== BLS 年份 ==", flush=True)
-    show("BLS 2017–2026", lambda: bls2(["LNS14000000", "CUUR0000SA0L1E", "CUUR0000SA0"], 2017, 2026))
-    show("BLS 1947–1956", lambda: bls2(["CUUR0000SA0", "LNS14000000", "CUUR0000SA0L1E"], 1947, 1956))
-
-    print("== FINRA 直接檔案 ==", flush=True)
-    for u in ("https://www.finra.org/sites/default/files/2021-03/margin-statistics.xlsx",
-              "https://www.finra.org/sites/default/files/Industry_Margin_Statistics.xlsx"):
-        show(f"FINRA {u.rsplit('/', 1)[1]}", lambda x=u: f"{len(get(x, timeout=40))} bytes")
-
-    print("== 台灣季 GDP（主計總處 XML） ==", flush=True)
-    for nm in ("na8101a1q.xml", "na8101a2q.xml", "na8102a1q.xml", "na8104a1q.xml", "na8105a1q.xml",
-               "na8101a8q.xml", "na8103a1q.xml"):
-        show(f"DGBAS {nm}", lambda x=nm: dgbas(x))
-    for did in range(6682, 6691):
-        show(f"data.gov.tw {did}", lambda d=did: datagov(d))
-
-    print("== 證交所 FMTQIK 最早 ==", flush=True)
-    for ymd in ("19900101", "19950101", "19870101"):
-        show(f"FMTQIK {ymd}", lambda x=ymd: fmtqik(x))
-        time.sleep(3.5)
+    show("CFNAI xlsx", lambda: xlsx_tail("https://www.chicagofed.org/research/data/cfnai/current-data-preview",
+                                         r'href="([^"]*cfnai-data-series-xlsx\.xlsx[^"]*)"'))
+    for pg in ("https://www.chicagofed.org/research/data/nfci/current-data",
+               "https://www.chicagofed.org/research/data/nfci/current-data-aws"):
+        show(f"NFCI 頁面 {pg.rsplit('/', 1)[1]}", lambda u=pg: grep_page(u, r"(nfci[^\"' <>]*\.(xlsx?|csv|json)|amazonaws|cloudfront|api/[^\"' <>]+)"))
+    for u in ("https://www.chicagofed.org/-/media/publications/nfci/nfci-data-series-xlsx.xlsx",
+              "https://www.chicagofed.org/-/media/publications/nfci/nfci-indexes-xlsx.xlsx"):
+        show(f"NFCI 候選 {u.rsplit('/', 1)[1]}", lambda x=u: f"{len(get(x, timeout=40))} bytes")
+    show("CFTC TFF VIX 期貨", lambda: cftc("gpe5-46if", "1170E1"))
+    show("台灣季 GDP（當期價格）", dgbas_gdp)
 
 
 if __name__ == "__main__":
