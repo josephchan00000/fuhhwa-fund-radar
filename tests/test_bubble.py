@@ -80,8 +80,9 @@ def test_validate_counts_hot_months_and_returns():
     ym = "1990-01"
     for j in range(120):
         hot = 30 <= j < 45 or 80 <= j < 95
-        rows.append({"d": f"{ym}-28", "P1": hot, "P2": hot, "P3": None, "V": None, "F": None,
-                     "L": BS.level(2 if hot else 0, False, False)})
+        rows.append({"d": f"{ym}-28", "P1": hot, "P2": hot, "P3": None, "E": (30 <= j < 45) if j >= 20 else None,
+                     "V": None, "F": None, "L": BS.level2(hot, 30 <= j < 45, False, False),
+                     "L1": BS.level(2 if hot else 0, False, False)})
         dates.append(f"{ym}-28")
         ym = BB._ym_add(ym, 1)
     dd = {252: [0.5 if r["P1"] else 0.05 for r in rows], 504: [0.6 if r["P1"] else 0.1 for r in rows]}
@@ -90,4 +91,42 @@ def test_validate_counts_hot_months_and_returns():
     assert out["P1"]["252"]["n_hot"] == 30 and out["P1"]["252"]["p_hot"] == 1.0
     assert abs(out["P1"]["252"]["ret_hot"] + 10.0) < 1e-9
     assert out["P3"] == {"n_hot": 0} and out["L4"] == {"n_hot": 0}       # 算不出來／從沒出現的條件
-    assert out["L3"]["252"]["n_hot"] == 30 and abs(sum(out["dist"].values()) - 100.0) < 1e-9
+    assert out["L3v1"]["252"]["n_hot"] == 30                              # VER 1：兩個價格條件就到 3
+    assert out["L3"]["252"]["n_hot"] == 15 and out["PF"]["252"]["n_hot"] == 15 and out["PN"]["252"]["n_hot"] == 15
+    assert out["E"]["share"] == 15 / 100 * 100                            # E 前 20 個月算不出來，不算進分母
+    assert abs(sum(out["dist"].values()) - 100.0) < 1e-9 and abs(sum(out["dist1"].values()) - 100.0) < 1e-9
+
+
+def test_roll_and_asof_helpers():
+    m = {f"2020-{k:02d}": float(k) for k in range(1, 13)}
+    assert BB.roll_sum(m, 12) == {"2020-12": 78.0} and BB.roll_sum(m, 3)["2020-03"] == 6.0 and "2020-02" not in BB.roll_sum(m, 3)
+    q = {"2020-03": 4.0, "2020-06": 8.0, "2020-09": 12.0, "2020-12": 16.0, "2021-06": 20.0}
+    assert BB.roll_q_avg(q, 4) == {"2020-12": 10.0}                       # 2021-06 少了 2021-03：不算
+    months = ["2021-01", "2021-02", "2021-03", "2021-04", "2022-05"]
+    fa = BB.fund_asof({"2020-12": 1.0, "2021-01": 2.0}, months, (2, 10))  # 2021-01 那期 2021-03-10 才拿得到
+    assert fa["2021-02"] == ("2020-12", 1.0) and fa["2021-03"] == ("2021-01", 2.0)
+    assert "2021-01" not in fa                                            # 2020-12 那期 2021-02-10 才拿得到
+    assert "2022-05" not in fa                                            # 最新一期比當月舊超過 12 個月：不算
+    lr = BB.ratio_log({"2021-03": 10.0, "2021-04": 0.0}, {"2021-03": ("2021-01", 2.0), "2021-04": ("2021-01", 2.0)})
+    assert abs(lr["2021-03"] - math.log(5.0)) < 1e-12 and "2021-04" not in lr
+
+
+def test_e_flags_need_three_months_in_a_row():
+    rnd = random.Random(5)
+    y, v = [], 0.0
+    for t in range(200):
+        v += rnd.gauss(0, 0.03)
+        y.append(v)
+    for t in range(25):                                                   # 比值最後 25 個月爆發
+        v += 0.06 + 0.01 * t
+        y.append(v)
+    months, ym = [], "1990-01"
+    for _ in y:
+        months.append(ym)
+        ym = BB._ym_add(ym, 1)
+    cv = HB.psy_cv(60, 200, len(y), 11)
+    T = {"grid": [0.0, 0.2], "q50": [cv["q50"], cv["q50"]], "q95": [cv["q95"], cv["q95"]]}
+    EF = BB.e_flags({"x": {"lr": dict(zip(months, y))}}, T)["x"]
+    assert EF["f"][months[-1]] is True
+    first = next(m for m in months if (EF["R"].get(m) or {}).get("hit"))
+    assert EF["f"][first] is False
