@@ -57,6 +57,7 @@ TZ=Asia/Taipei python3 scripts/check_new_etfs.py || true         # 同上：缺�
 echo "[3.7/4] 籌碼雷達落檔（ETF 部位＋官方個股價量／籌碼，只補缺）…"
 TZ=Asia/Taipei timeout 300 python3 scripts/fetch_lab.py || true   # 不擋發佈：抓不到沿用既有分片
 TZ=Asia/Taipei timeout 420 python3 scripts/fetch_heat.py || true  # 景氣溫度頁（docs/lab_heat_plan.md）：抓不到沿用既有落檔
+TZ=Asia/Taipei timeout 420 python3 scripts/fetch_heat_us.py || true  # 美股景氣頁（docs/lab_heat_us_plan.md）：一天抓一次、抓不到沿用
 
 echo "[4/4] 產儀表板（今日重點 + 新聞 + 總經政策 + 總覽 + 持股介紹）→ dashboard/index.html …"
 python3 scripts/gen_fund_dashboard.py || echo "  ⚠ 儀表板產製失敗"

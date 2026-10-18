@@ -479,3 +479,34 @@ def test_entry_link_and_workflow_add_lines():
     assert "fetch_heat.py" in (root / ".github" / "workflows" / "afterhours_refresh.yml").read_text(encoding="utf-8")
     assert "fetch_heat.py" in (root / "scripts" / "daily_fund.sh").read_text(encoding="utf-8")
     assert "heatpage.build()" in (root / "scripts" / "gen_fund_dashboard.py").read_text(encoding="utf-8")   # 和籌碼雷達分開建
+
+
+def test_bubble_card_crash_tables_and_refs(built):
+    """第七版：泡沫卡的大跌比例一句、驗證段的泡沫事件表（兩個期間、延伸樣本、段）、參考讀數。"""
+    import random
+    from arm.lab import heatbubble as BB
+    _, _, V, _ = built
+    rnd = random.Random(3)
+    n = 360
+    dates = [f"{1990 + j // 12}-{j % 12 + 1:02d}-28" for j in range(n)]
+    hot = [(j // 30) % 3 == 0 for j in range(n)]
+    x = [90.0 if h else 40.0 for h in hot]
+    dd = {h: [(0.5 if hot[j] else 0.05) if rnd.random() < 0.95 else 0.0 for j in range(n)] for h, _ in S.BUB_DD}
+    res = BB._rnd(BB.crash_test(dates, x, dd))
+    V2 = dict(V)
+    V2["bub"] = {k: res for k in ["comp"] + S.ITEMS["bubl"]}
+    V2["bub_ext"] = {k: res for k in S.BUB_EXT}
+    V2["ref"] = [{"k": "Q1", "name": "台積電市值占比", "unit": "%", "how": "只當參考", "val": 38.43, "date": "2026-09"}]
+    card = P._card("bubl", V2["dims"]["bubl"], V2)
+    assert "之後一年內最大跌幅 ≥ 20%：分數 ≥ 80 的 120 個月（4 段）裡" in card and "熱了之後較容易大跌" in card
+    assert "上一段 ≥ 80：2012/7～2014/12（30 個月，最高 90）" in card
+    assert '<div class="refs">' in card and "台積電市值占比" in card and "38.4%" in card
+    bv = P._bub_valid(V2)
+    assert bv.count('class="bbt stk"') == 3                                   # 一年、兩年、延伸樣本
+    assert bv.count("<tr><td") == 2 * (1 + len(S.ITEMS["bubl"])) + 2 * len(S.BUB_EXT)
+    assert "延伸樣本（國發會加權指數月平均，1982 起；只當穩健度）" in bv and "1990/1～1992/6：30 個月" in bv
+    assert P._bub_valid({**V2, "bub": {}}) == "" and P._bub_card({**V2, "bub": {}}) == ""
+    page = P.render(V2)
+    assert 'id="bubv"' in page and page.index('id="bubv"') > page.index('id="valid"')
+    for w in BANNED:
+        assert w not in page, w
