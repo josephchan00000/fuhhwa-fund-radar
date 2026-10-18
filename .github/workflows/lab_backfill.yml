@@ -98,6 +98,10 @@ jobs:
             python3 scripts/backfill_lab.py --rev-mops --budget-min 45
           elif [ "$MODE" = "revfm" ] || [ "${MODE#revfm}" != "$MODE" ]; then
             python3 scripts/backfill_lab.py --rev-fm --budget-min 50
+          elif [ "$MODE" = "usprobe" ]; then
+            # 美股景氣與泡沫模型的資料來源探針（docs/lab_heat_us_plan.md U1）：只印診斷、不寫檔
+            pip install --quiet xlrd || true
+            timeout 1200 python3 scripts/probe_us.py
           elif [ "$MODE" = "heatfill" ] || [ "${MODE#heatfill}" != "$MODE" ]; then
             # heatfill:ndc,pmi＝只回補這幾個（冒號後面）；其他寫法＝全部回補
             REST="${MODE#heatfill}"
