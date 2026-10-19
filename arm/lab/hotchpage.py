@@ -7,7 +7,8 @@
   技術面表      12 種轉空事件＋3 種空頭狀態＋技術面進入過熱（對照）
   大跌時        跌 20% 以上的大跌：各種轉空訊號在低點前出現的次數、高點後幾天、那時已跌、之後還跌
   收起          每一段大跌的細項、怎麼算、主要假說
-每天建頁只讀研究檔（hotch.load_research）；現在的狀態每天重算（hotch.now）。只描述過去，不寫買賣指示；用字照專案禁用詞。
+每天建頁只讀研究檔（hotch.load_research）；現在的狀態與「每一段」每天重算（hotch.now、hotch.runs_now——研究檔不常重跑，
+段的狀態要以今天為準）。只描述過去，不寫買賣指示；用字照專案禁用詞。
 """
 from __future__ import annotations
 
@@ -56,10 +57,18 @@ def state(B: dict) -> dict | None:
     else:
         I = X.inputs_us(mk, B)
     N = X.now(I)
+    order = ORDER["tw" if mk == "tw" else "us"]
+    N["runs"] = X.runs_now(I, run_keys(order, R["markets"][mk].get("A") or {}, N["chip"]))
     names = {r[0]: r[2] for r in HS.IND}
     names.update(S.VAR_NAMES)
     return {"mk": mk, "px": (HP.MK.get("px") or "").strip(), "R": R["markets"][mk], "now": N,
-            "primary": R.get("primary") or {}, "names": names, "order": ORDER["tw" if mk == "tw" else "us"]}
+            "primary": R.get("primary") or {}, "names": names, "order": order}
+
+
+def run_keys(order, A: dict, chip: dict) -> list[str]:
+    """「每一段」列出哪些項目：研究檔有段的項目裡排最前面的 RUN_VARS 項，另加現在已連續過熱 4 週以上的項目。"""
+    top = [k for k in order if (A.get(k) or {}).get("runs")][:RUN_VARS]
+    return top + [k for k in order if k not in top and ((chip.get(k) or {}).get("w") or 0) >= S.RUN_MIN]
 
 
 def _A(C: dict, k: str, key: str) -> dict:
@@ -231,17 +240,30 @@ def _chip_rows(C: dict, keys: list[str]) -> list[str]:
     return rows
 
 
+def run_tag(r: dict, cur: dict | None) -> str:
+    """這一段今天的狀態：還在過熱／結束未滿 3 個月／（已滿 3 個月＝空字串）。
+    每天算的段（hotch.runs_now）帶 hot；只有研究檔的段沒有 hot，用今天正在進行的那一段（now 的 run）認。"""
+    if not r.get("open"):
+        return ""
+    hot = r.get("hot")
+    if hot is None:
+        hot = bool(cur) and cur.get("s4") == r["s4"]
+    return "還在過熱" if hot else "結束未滿 3 個月"
+
+
 def runs_html(C: dict) -> str:
-    """每一段連續過熱（≥ 4 週）：排在最前面的 RUN_VARS 項＋現在連續過熱 4 週以上的項目。"""
+    """每一段連續過熱（≥ 4 週）：排在最前面的 RUN_VARS 項＋現在連續過熱 4 週以上的項目。
+    段用每天算的（state() 帶進 now["runs"]）；沒有的話（例如測試）用研究檔的段，正在進行的那一段換成 now 的 run。"""
     A = C["R"].get("A") or {}
     N = C["now"]["chip"]
-    ks = [k for k in C["order"] if (A.get(k) or {}).get("runs")]
-    pick = ks[:RUN_VARS] + [k for k in ks[RUN_VARS:] if ((N.get(k) or {}).get("w") or 0) >= S.RUN_MIN]
+    RN = C["now"].get("runs")
+    pick = [k for k in run_keys(C["order"], A, N) if (RN or {}).get(k) or (A.get(k) or {}).get("runs")]
     if not pick:
         return ""
     blocks = []
     for k in pick:
-        runs = A[k]["runs"]
+        daily = bool((RN or {}).get(k))
+        runs = RN[k] if daily else A[k]["runs"]
         ps = [r["pct"] for r in runs if r.get("pct") is not None and not r.get("open")]
         n_hi = sum(1 for p in ps if p >= 0.5)
         n10 = sum(1 for r in runs if (r.get("mdd") or 0) >= 0.10 and not r.get("open"))
@@ -249,23 +271,24 @@ def runs_html(C: dict) -> str:
         cur = (N.get(k) or {}).get("run")
         for r in sorted(runs, key=lambda r: r["a"], reverse=True):
             op = r.get("open")
-            if op and cur and cur.get("s4") == r["s4"]:
-                mdd, pk, tr, days = cur.get("mdd"), cur.get("pk"), cur.get("tr"), cur.get("days")
+            if not daily and op and cur and cur.get("s4") == r["s4"]:
+                mdd, pk, tr = cur.get("mdd"), cur.get("pk"), cur.get("tr")
             else:
-                mdd, pk, tr, days = r.get("mdd"), r.get("pk"), r.get("tr"), r.get("days")
-            tag = "<small>還在過熱</small>" if op else ""
+                mdd, pk, tr = r.get("mdd"), r.get("pk"), r.get("tr")
+            tg = run_tag(r, cur)
+            tag = f"<small>{tg}</small>" if tg else ""
             rows.append(f'<tr{" class=\"xqcur\"" if op else ""}><td>{_e(_d(r["a"]))} → {_e(_d(r["z"]))}{tag}</td>'
                         f'<td>{r["wk"]}</td><td>{pct(mdd)}<small>{_e(_d(pk))} → {_e(_d(tr))}</small></td>'
                         f'<td>{"—" if op else pct(r.get("pct"), 0)}</td></tr>')
         cap = (f'{C["names"].get(k, k)}：{len(runs)} 段'
-               + (f'，已結束的 {len(ps)} 段裡 {n_hi} 段比同樣長度的期間跌得多、{n10} 段跌超過 10%' if ps else ""))
+               + (f'；結束後已滿 3 個月的 {len(ps)} 段裡，{n_hi} 段比同樣長度的期間跌得多、{n10} 段跌超過 10%' if ps else ""))
         blocks.append(f'<details class="xqrun"><summary>{_e(cap)}</summary><div class="tw"><table class="xqrt">'
                       '<tr><th>第一個 → 最後一個過熱週末</th><th>週數</th><th>滿 4 週之後到結束後 3 個月最多跌</th>'
                       '<th>同樣長度的期間，比它少的比例</th></tr>' + "".join(rows) + "</table></div></details>")
     return ('<h3 class="xqh3">每一段連續過熱，最後有沒有大跌？<span class="sub">連續過熱 4 週以上的每一段</span></h3>'
             '<p class="xqmh">從滿 4 週那個週末的隔天起，到最後一個過熱週末之後 60 個交易日，指數最多從高點跌多少；'
             '右欄＝同樣長度、任挑起點的期間裡，跌得比它少的比例（越接近 100%＝這一段跌得越多；50% 上下＝和平常差不多）。'
-            '還在過熱的這一段算到今天。</p>' + "".join(blocks))
+            '還在過熱、或結束還沒滿 3 個月的段算到今天，不算右欄。</p>' + "".join(blocks))
 
 
 def tech_table(C: dict) -> str:
@@ -494,5 +517,7 @@ CSS = (
     "table.xqbt td,table.xqdt td{display:block;border:0;padding:0;text-align:left;font-size:12px;min-width:0!important}"
     "table.xqbt td.l,table.xqdt td.l{grid-column:1/-1}"
     "table.xqbt td[data-h]::before,table.xqdt td[data-h]::before{content:attr(data-h);display:block;color:var(--mut);font-size:10.5px}"
+    "table.xqrt th,table.xqrt td{white-space:normal;padding:4px 2px}"     # 每一段、每一次大跌：日期換行，手機不用左右滑
+    "table.xqrt{font-size:11.5px}table.xqrt th{font-size:11px;font-weight:600}"
     "}"
 )

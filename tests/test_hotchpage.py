@@ -112,9 +112,46 @@ def test_runs_list_includes_current_run_and_counts():
     t = _text(h)
     runs = C["R"]["A"]["C1"]["runs"]
     assert f"融資餘額水位：{len(runs)} 段" in t and "還在過熱" in t and "16.4%" in t
-    done = [r for r in runs if not r.get("open")]
-    n_hi = sum(1 for r in done if r.get("pct") is not None and r["pct"] >= 0.5)
-    assert f"{n_hi} 段比同樣長度的期間跌得多" in t
+    ps = [r["pct"] for r in runs if not r.get("open") and r.get("pct") is not None]
+    n_hi = sum(1 for p in ps if p >= 0.5)
+    assert f"結束後已滿 3 個月的 {len(ps)} 段裡，{n_hi} 段比同樣長度的期間跌得多" in t
+
+
+def _row(a, s4, z, wk, op, hot=None, mdd=0.1, pct_=0.5):
+    r = {"a": a, "s4": s4, "z": z, "wk": wk, "open": op, "mdd": mdd, "pk": a, "tr": z, "days": 80}
+    if hot is not None:
+        r["hot"] = hot
+    if not op:
+        r["pct"] = pct_
+    return r
+
+
+def test_runs_tags_follow_today_not_the_research_file():
+    """研究檔不常重跑：段的狀態以每天算的為準。結束了但還沒滿 3 個月的段不可寫「還在過熱」（2026-10-19 券資比 6/12→8/7）。"""
+    C = _C("tw", w={"C1": 46})
+    C["now"]["runs"] = {
+        "C1": [_row("2025-11-28", "2025-12-19", "2026-10-16", 46, True, hot=True, mdd=0.164),
+               _row("2024-03-15", "2024-04-05", "2025-03-28", 54, False, hot=False, mdd=0.287, pct_=0.86)],
+        "C3": [_row("2026-06-12", "2026-07-03", "2026-08-07", 9, True, hot=False, mdd=0.142),
+               _row("2026-03-06", "2026-03-27", "2026-05-29", 13, False, hot=False, mdd=0.164, pct_=0.8)]}
+    t = _text(QP.runs_html(C))
+    c1, c3 = t[t.index("融資餘額水位："):t.index("券資比：")], t[t.index("券資比："):]
+    assert "還在過熱" in c1 and "結束未滿 3 個月" not in c1
+    assert "結束未滿 3 個月" in c3 and "還在過熱" not in c3
+    assert "融資餘額水位：2 段；結束後已滿 3 個月的 1 段裡，1 段比同樣長度的期間跌得多、1 段跌超過 10%" in t
+    # 只有研究檔的段（沒有 hot）：今天正在進行的那一段才算還在過熱，其他 open 的段＝結束未滿 3 個月
+    cur = {"s4": "2025-12-19"}
+    assert QP.run_tag({"open": True, "s4": "2025-12-19"}, cur) == "還在過熱"
+    assert QP.run_tag({"open": True, "s4": "2026-07-03"}, cur) == "結束未滿 3 個月"
+    assert QP.run_tag({"open": True, "s4": "2026-07-03"}, None) == "結束未滿 3 個月"
+    assert QP.run_tag({"open": False, "s4": "2024-04-05"}, cur) == ""
+
+
+def test_run_keys_top_items_plus_items_hot_four_weeks():
+    A = {"C1": {"runs": [1]}, "C3": {"runs": [1]}, "W1": {"runs": [1]}, "C2": {}}
+    chip = {"C2": {"w": 5}, "W1": {"w": 3}, "C3": {"w": 9}}
+    assert QP.run_keys(("C1", "C3", "W1", "W2", "C2"), A, chip) == ["C1", "C3", "C2"]
+    assert QP.run_keys(("C1", "C3"), {}, {}) == []
 
 
 def test_hotdd_note_names_chip_items_with_bigger_drawdowns():
