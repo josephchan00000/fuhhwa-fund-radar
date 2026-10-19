@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-10-19 13:55",
+  "as_of": "2026-10-19 15:21",
   "funds": [
     {
       "id": "47",
@@ -7,8 +7,8 @@
       "group": "global_equity",
       "category": "跨國投資股票型",
       "region": "美國",
-      "nav": 35.47,
-      "nav_date": "2026/10/15",
+      "nav": 34.21,
+      "nav_date": "2026/10/16",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -29,8 +29,8 @@
       "group": "global_equity",
       "category": "跨國投資股票型",
       "region": "全球",
-      "nav": 77.27,
-      "nav_date": "2026/10/15",
+      "nav": 75.02,
+      "nav_date": "2026/10/16",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -40,8 +40,8 @@
       "group": "global_equity",
       "category": "跨國投資股票型",
       "region": "大中華地區",
-      "nav": 66.14,
-      "nav_date": "2026/10/15",
+      "nav": 64.95,
+      "nav_date": "2026/10/16",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -62,8 +62,8 @@
       "group": "global_equity",
       "category": "跨國投資股票型",
       "region": "亞太地區",
-      "nav": 45.8,
-      "nav_date": "2026/10/15",
+      "nav": 44.81,
+      "nav_date": "2026/10/16",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -84,8 +84,8 @@
       "group": "global_equity",
       "category": "跨國投資股票型",
       "region": "大中華地區",
-      "nav": 20.0,
-      "nav_date": "2026/10/15",
+      "nav": 20.1,
+      "nav_date": "2026/10/16",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -95,8 +95,8 @@
       "group": "global_equity",
       "category": "跨國投資股票型",
       "region": "全球",
-      "nav": 12.89,
-      "nav_date": "2026/10/15",
+      "nav": 12.74,
+      "nav_date": "2026/10/16",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -161,8 +161,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 442.67,
-      "nav_date": "2026/10/16",
+      "nav": 438.2,
+      "nav_date": "2026/10/19",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -304,8 +304,8 @@
       "group": "global_equity",
       "category": "跨國投資指數型",
       "region": "全球",
-      "nav": 27.2,
-      "nav_date": "2026/10/15",
+      "nav": 27.01,
+      "nav_date": "2026/10/16",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -315,8 +315,8 @@
       "group": "global_equity",
       "category": "跨國投資指數型",
       "region": "全球",
-      "nav": 10.19,
-      "nav_date": "2026/10/15",
+      "nav": 10.21,
+      "nav_date": "2026/10/16",
       "as_of": "2026/09/30",
       "n_top": 10
     },
