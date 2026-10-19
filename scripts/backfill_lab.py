@@ -48,7 +48,7 @@ def main() -> None:
         market.probe_rev()
         return
     if a.ind_probe:
-        market.probe_ind()
+        market.probe_ind2() if "2" in (os.environ.get("LAB_MODE") or "") else market.probe_ind()
         return
     if a.names:
         from arm.lab import v3data

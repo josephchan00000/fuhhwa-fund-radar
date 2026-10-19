@@ -793,6 +793,84 @@ def probe_ind() -> None:
             log(f"[indprobe]   片段 {h[max(0, at - 300):at + 300]!r}")
         time.sleep(1.5)
 
+
+IND_PROBE_DELISTED = tuple("3599 8008 2315 3697 8078 2837 3638 5326 2384 5280 3061 3582 5261 5505 5466 4703 2833 2847 3584 6286 3598 3573 4733 8266 3658 3662 3474 6702 1729 2437 6022 6105 1715 6107 2311 2325 6554 3068 4965 2856 3428 3514 3561 6145 6298 4103 3299 1704 5480 3519 2475 4180 5317 1262 3452 8913 2499 8287 4947 1902 6238 6452 6497 4144 5349 5305 2448 3698 5264 4725 1592 4152 2928 3144 4803 2823 2456 8427 2841 1507 8406 4141 6251 3383 5820 8480 3089 5281 4944 6404 3682 1701 8420 6457 6287 2888 6288 2809 6747 3454 6806 9103 9105".split())          # 曾經月底市值 ≥ 40 億、現在產業表沒有的 103 檔（2026-10-19 算）
+
+
+def probe_ind2() -> None:
+    """第二輪探針（docs/lab_crash_plan.md 第 21 節）：MOPS 月營收彙總表不含已下市公司，改試其他來源。只印不寫。"""
+    import urllib.parse
+    import urllib.request
+    want = set(IND_PROBE_DELISTED)
+    for ds in ("TaiwanStockInfo", "TaiwanStockDelisting"):
+        url = f"https://api.finmindtrade.com/api/v4/data?dataset={ds}"
+        try:
+            doc = json.loads(get_bytes(url, retries=1, timeout=60, use_cache=False).decode("utf-8"))
+            rows = doc.get("data") or []
+            hit = {r.get("stock_id"): r for r in rows if r.get("stock_id") in want}
+            withind = {k: v.get("industry_category") for k, v in hit.items() if v.get("industry_category")}
+            log(f"[indprobe2] FinMind {ds}：{len(rows)} 列、鍵 {list(rows[0]) if rows else []}、103 檔中 {len(hit)} 檔、"
+                f"有產業別 {len(withind)} 檔、樣本 {dict(list(withind.items())[:12])}")
+            for c in ("2311", "2448", "3474", "6286"):
+                if c in hit:
+                    log(f"[indprobe2]   {c} {hit[c]}")
+        except Exception as e:                            # noqa: BLE001
+            log(f"[indprobe2] FinMind {ds} ✗ {str(e)[:160]}")
+    for d, typ in (("20140102", "24"), ("20140102", "26"), ("20180102", "24")):
+        url = f"https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX?date={d}&type={typ}&response=json"
+        try:
+            doc = json.loads(get_bytes(url, retries=1, timeout=30, use_cache=False).decode("utf-8"))
+            tabs = doc.get("tables") or []
+            got = set()
+            for t in tabs:
+                for r in t.get("data") or []:
+                    if r and isinstance(r[0], str):
+                        got.add(r[0].strip())
+            log(f"[indprobe2] MI_INDEX {d} type={typ} stat={doc.get('stat')} 表 {[t.get('title') for t in tabs][:6]} "
+                f"代號 {len(got)}、103 檔中 {sorted(got & want)}")
+        except Exception as e:                            # noqa: BLE001
+            log(f"[indprobe2] MI_INDEX {d} {typ} ✗ {str(e)[:160]}")
+        time.sleep(3)
+    for d, se in (("103/01/02", "24"), ("103/01/02", "26"), ("103/01/02", "28")):
+        url = ("https://www.tpex.org.tw/web/stock/aftertrading/otc_quotes_no1430/stk_wn1430_result.php"
+               f"?l=zh-tw&d={d}&se={se}")
+        try:
+            raw = get_bytes(url, retries=1, timeout=30, use_cache=False)
+            doc = json.loads(raw.decode("utf-8"))
+            rows = doc.get("aaData") or [r for t in (doc.get("tables") or []) for r in (t.get("data") or [])]
+            got = {str(r[0]).strip() for r in rows if r}
+            log(f"[indprobe2] TPEx {d} se={se} 鍵 {list(doc)[:8]} 列 {len(rows)}、103 檔中 {sorted(got & want)}、首列 {rows[:1]}")
+        except Exception as e:                            # noqa: BLE001
+            log(f"[indprobe2] TPEx {d} {se} ✗ {str(e)[:160]}")
+        time.sleep(1.6)
+    for c in ("2448", "2311", "6286"):
+        for host in MOPS_HOSTS:
+            url = f"https://{host}/mops/web/ajax_t05st03"
+            body = urllib.parse.urlencode({"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1,
+                                           "queryName": "co_id", "inpuType": "co_id", "TYPEK": "all",
+                                           "co_id": c}).encode()
+            try:
+                req = urllib.request.Request(url, data=body, headers={"User-Agent": "Mozilla/5.0"})
+                h = _decode(urllib.request.urlopen(req, timeout=30).read())
+                at = h.find("產業類別")
+                log(f"[indprobe2] MOPS t05st03 {host} {c}：{len(h)} 字、產業類別 at {at}、"
+                    f"片段 {h[max(0, at - 80):at + 200]!r}" if at >= 0 else
+                    f"[indprobe2] MOPS t05st03 {host} {c}：{len(h)} 字、無產業類別、開頭 {_TAG.sub(' ', h)[:240]!r}")
+            except Exception as e:                        # noqa: BLE001
+                log(f"[indprobe2] MOPS t05st03 {host} {c} ✗ {str(e)[:160]}")
+            time.sleep(1.5)
+    for ic in ("L000", "J000", "F000", "D000"):
+        url = f"https://ic.tpex.org.tw/introduce.php?ic={ic}"
+        try:
+            h = _decode(get_bytes(url, retries=1, timeout=25, use_cache=False))
+            nodes = re.findall(r">\s*([^<>]{1,40}?)\s*\((\d+)家\)", h)
+            log(f"[indprobe2] 產業鏈 {ic}：節點 {len(nodes)} 個 {[(a.strip(), int(n)) for a, n in nodes][:60]}")
+            at = h.find("家)")
+            log(f"[indprobe2]   片段 {h[max(0, at - 600):at + 120]!r}")
+        except Exception as e:                            # noqa: BLE001
+            log(f"[indprobe2] 產業鏈 {ic} ✗ {str(e)[:160]}")
+        time.sleep(1.5)
+
 def finmind_revenue(code: str, start: str = "2023-01-01") -> dict[str, float]:
     """FinMind 月營收歷史（第三方整理官方數字；只用在回測）→ {YYYY-MM: 營收(元)}。"""
     from .. import clock
