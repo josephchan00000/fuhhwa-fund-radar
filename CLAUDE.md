@@ -2470,6 +2470,13 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
     CI 回補 `.ping/lab` 第一行 `indfill`），現在產業表沒有的代號用最後一次出現的分類；證交所 07、13 是彙總類（`IND_HIST_AGG`）不算。
     103 檔找到 101 檔（另 2 檔是存託憑證）。`bubind.tw_ind_map()`＝現在的產業表優先＋已下市公司。結果：光電、生技過去的報酬變低（3.11→2.82、1.42→1.29 倍），
     研究判定與現在的狀態都沒變。現在的公司以後下市會留在 `stockmeta`（只增不刪），快照不必每天抓。
+  · **台股細分族群（bubindspec VER 3，2026-10-19；`docs/lab_crash_plan.md` 第 21.5～21.6 節）**：使用者選「精選約 15 個電子族群、用現在的成員往回算＋標明、
+    CPO 用光通訊代替」。名單＝櫃買中心產業鏈平台（`arm/lab/icchain.py` → `data/lab/icchain.json`；本容器擋 ic.tpex.org.tw，CI 抓：`.ping/lab` 第一行 `icfill`，
+    每天 `fetch_heat.py` 30 天內抓過就跳過）。17 個族群在 `bubindspec.TG_GROUPS`（產業鏈代碼、節點名稱、IC 設計分頁），成員只留現在上市櫃、≥ 5 家；
+    指數與條件同台股產業（`bubind.tw_build(groups=…)`，一家公司可以在好幾個族群）→ `data/lab/indtg`（每檔帶名單日期 `src`，名單換了整段重算）。
+    頁面＝產業段台股產業表下面一張表（class `bgrp`，點一列看成員）；研究檔 `tg` 只描述、不判定、不進訊號總覽。
+    ⚠ IC 設計的分頁標題是純文字「LED驅動IC (12家)」不是 `<b>`——解析以「文字(N家)」切段、分頁依序對段落並核對家數；
+    ⚠ 泡沫頁的等級磚已經用 `.btg`，第一版表格 class 撞名變成 grid（新 class 先 grep `bubpage.CSS`，`tests/test_bubind_tg.py` 守）。
 - **踩過的坑**：①Playwright 全頁截圖在裝置像素超過 8192 會重複頁首（swiftshader 限制，不是頁面問題）→ 長頁改用元素截圖；
   ②手機圖右側數字標籤要留 46px，38px 會把「47,940」切掉；③條件短名稱在 `bubble.SHORT`（泡沫頁與景氣頁那一行共用），全名在 `bubspec.COND_NAMES`；
   ④圖的提示框 `.tip` 是 `position:absolute`，原本外層沒有定位元素，滑過圖時提示框跑到整頁最上面（市場卡上線時就有，2026-10-19 才發現）→

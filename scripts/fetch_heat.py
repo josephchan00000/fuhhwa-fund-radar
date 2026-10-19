@@ -128,6 +128,8 @@ def daily() -> None:
         monthly("twcpi", F.dgbas_cpi)
     run("廣度", F.breadth_update)
     from arm.lab import bubind as BD                            # 泡沫頁產業泡沫：台股產業指數（docs/lab_risk_plan.md 第 12 節）
+    from arm.lab import icchain                                 # 細分族群名單（櫃買產業鏈平台；落檔超過 30 天才重抓，docs/lab_crash_plan.md 第 21.5 節）
+    run("產業鏈平台名單", icchain.fetch)
     run("台股產業指數", BD.indtw_update)
     if ok != st:
         HD.save("_state", "fetch_heat", ok)
