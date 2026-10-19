@@ -621,7 +621,6 @@ def today(rows: list[dict], on: dict, mk: str) -> dict:
 # ── 每天建頁：景氣頁的 B → 這個市場現在有沒有效（存在程序裡給訊號總覽沿用） ──────────
 
 NOW: dict = {}                                       # {市場: {"d": 資料最後一天, "on": now_market(...)}}
-FR: dict = {}                                        # {市場: {"cal", "px"}}：同一個 frame 的日曆與收盤（部位參考用，pospage.state_now）
 
 
 def frame_from_B(B: dict) -> dict | None:
@@ -660,7 +659,6 @@ def now_for_B(B: dict) -> dict | None:
         if F is None:
             return None
         NOW[F["mk"]] = {"mk": F["mk"], "d": F["cal"][-1], "on": now_market(F)}
-        FR[F["mk"]] = {"cal": F["cal"], "px": F["px"]}
         return NOW[F["mk"]]
     except Exception as e:                            # noqa: BLE001
         print(f"[訊號總覽] 現在的狀態算不出來：{type(e).__name__}: {e}")
