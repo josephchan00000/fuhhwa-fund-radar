@@ -523,6 +523,28 @@ def _valid(mk: str, R: dict) -> str:
     return "".join(out)
 
 
+def sig_line(mk: str, n: dict) -> str:
+    """市場卡的實務判定一行（docs/lab_signal_plan.md 第 6.2 節）：現在的等級（≥ 3 看「3 以上」，其餘看「2 以上」）過去之後
+    12 個月內跌 20% 以上的比例／平常，判定同訊號總覽；研究檔沒有就不顯示。"""
+    try:
+        from . import sigcat as G
+        from . import sigspec as SS
+        rows = {r["id"]: r for r in G.research_rows()}
+    except Exception:                                         # noqa: BLE001 —— 訊號總覽的問題不擋泡沫頁
+        return ""
+    lv = 3 if n["L"] >= 3 else 2
+    r = rows.get(f"{mk}:bub:L{lv}")
+    st = (r or {}).get("warn")
+    if not st:
+        return ""
+    pc = lambda x: "—" if x is None else f"{100 * x:.0f}%"
+    body = (f'過去 {st["n"]} 段，之後 12 個月內跌 20% 以上 <b>{pc(st["hit"])}</b>（平常 {pc(st["base"])}）' if st["n"]
+            else "過去沒有出現過")
+    now = "" if n["L"] >= lv else f'（現在等級 {n["L"]}）'
+    return (f'<p class="bsig">泡沫等級 {lv} 以上的時候{now}：{body}・<b>{SS.TIER_MARK[st["tier"]]} {_e(SS.TIER_NAMES[st["tier"]])}</b>'
+            f'<a href="x9o.html#s={_e(r["id"])}">訊號總覽 →</a></p>')
+
+
 def market_card(mk: str, m: dict, R: dict) -> str:
     n = m["now"]
     ext = ((R or {}).get("tw") or {}).get("ext") if mk == "tw" else None
@@ -530,7 +552,7 @@ def market_card(mk: str, m: dict, R: dict) -> str:
                  f'aria-pressed="{"true" if y == 0 else "false"}">{"全部" if y == 0 else f"近 {y} 年"}</button>' for y in (0, 30, 10))
     return (f'<section class="sec cd bm" id="{mk}"><div class="ch"><h2>{_e(m["name"])}<span class="sub">{_e(m["index"])}</span></h2>'
             f'<div class="sv"><b class="sc bl{n["L"]}">{n["L"]}</b><span class="bn bl{n["L"]}">{_e(BS.LEVELS[n["L"]])}</span></div></div>'
-            f'<p class="bsum">{_e(summary(mk, m))}</p>'
+            f'<p class="bsum">{_e(summary(mk, m))}</p>{sig_line(mk, n)}'
             f'<div class="seg brg" role="group" aria-label="期間">{rg}</div>'
             f'<div class="bhw"><div class="bh" id="h-{mk}"><p class="note">歷史等級載入中…</p></div><div class="tip" id="t-{mk}" hidden></div></div>'
             + _legend(bool(ext and (ext.get("hist") or {}).get("d"))) + _now_table(mk, m) + _ref_line(mk, m) + _epi_table(m, ext) + _valid(mk, R) + '</section>')
@@ -693,6 +715,7 @@ CSS = """
 .bvd>summary::-webkit-details-marker{display:none}.bvd>summary::before{content:"▸ ";color:var(--mut)}.bvd[open]>summary::before{content:"▾ "}
 .bvh{display:block;font-size:12.5px;color:var(--ink2);margin:2px 0 0 14px}
 .bsum{font-size:14px;line-height:1.75;margin:6px 0 8px}
+.bsig{font-size:13px;line-height:1.7;color:var(--ink2);margin:-2px 0 10px}.bsig a{margin-left:8px;white-space:nowrap}
 .brg{margin:0 0 6px}
 .bhw{position:relative}.bh{position:relative;min-height:120px}.bh svg{touch-action:pan-y}
 .bh .gd{stroke:var(--ink2);stroke-width:1;stroke-dasharray:3 3}.bh .px{fill:none;stroke:var(--ink);stroke-width:1.5}

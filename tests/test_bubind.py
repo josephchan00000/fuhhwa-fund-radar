@@ -260,7 +260,7 @@ def test_number_formatting():
 
 def test_hist_data_renames_fuel_and_keys_are_stable(sec):
     I, data, keys, _ = sec
-    assert keys == {"tw": {"塑膠工業": "@t0", "金融保險": "@t1", "電子零組件業": "@t2"}, "us": {"XLP": "@u0"}}
+    assert keys == {"tw": {"塑膠工業": "@t0", "金融保險": "@t1", "電子零組件業": "@t2"}, "us": {"XLP": "@u0"}, "tg": {}}
     assert data["@t2"]["c"][-1] == "1eh" and "f" not in "".join(data["@t2"]["c"])          # 燃料改 h，不和市場層級的槓桿混
 
 

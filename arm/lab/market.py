@@ -736,6 +736,7 @@ def probe_rev() -> None:
         log(f"[revprobe] FinMind 2330 單檔 → {rows}")
 
 
+
 def finmind_revenue(code: str, start: str = "2023-01-01") -> dict[str, float]:
     """FinMind 月營收歷史（第三方整理官方數字；只用在回測）→ {YYYY-MM: 營收(元)}。"""
     from .. import clock

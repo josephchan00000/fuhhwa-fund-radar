@@ -389,24 +389,63 @@ def _radar_card() -> str:
             '<div class="rsm" id="rsm"></div></div>')
 
 
-def main_view(V: dict, ks: list[dict]) -> str:
+def today_html(V: dict) -> str:
+    """今天的重點（docs/lab_signal_plan.md 第 6.1 節）：這個市場現在有效的 ★ 好訊號（訊號總覽的實務判定），沒有就列 ● 可參考。
+    取代原本的「關鍵狀態」（依學術判定），點一列到訊號總覽看細節。"""
+    from . import sigpage as SPG
+    from . import sigspec as SS
+    T = V.get("sigtoday")
+    if not T:
+        return ('<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div>'
+                '<p class="note">訊號總覽的研究結果還沒產生（scripts/run_sig.py）。</p></section>')
+    items = T["good"] or T["ref"]
+    sub = ("過去出現之後，「中了」的比例明顯比平常高、近 10 年也成立的訊號（★ 好訊號）；同一個項目只列一種。"
+           if T["good"] else "今天沒有好訊號出現，以下是比平常好一些的（● 可參考）。")
+    lis = []
+    for r in items:
+        lis.append(f'<li><a class="tzi" href="x9o.html#s={_e(r["id"])}"><span class="tzh">'
+                   f'<span class="tzk tzk-{r["tier"]}">{SS.TIER_MARK[r["tier"]]}</span><b>{_e(r["name"])}</b>'
+                   f'<span class="tzd tzd-{r["d"]}">{_e(SS.DIR_NAMES[r["d"]])}</span></span>'
+                   f'<span class="tzl">{SPG._line(r)}・{_e(SPG._since(r["now"], T.get("d")))}</span></a></li>')
+    body = ('<ul class="tzu">' + "".join(lis) + "</ul>") if lis else '<p class="note">今天沒有好訊號，也沒有可參考的訊號出現。</p>'
+    kn = f'<span class="kn">{len(T["good"])} 個好訊號</span>' if T["good"] else ""
+    return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2>{kn}</div><p class="ksub">{_e(sub)}</p>'
+            f'{body}<p class="tzm"><a href="x9o.html">全部訊號、研究細節（訊號總覽）→</a></p></section>')
+
+
+def stash_cards(V: dict) -> None:
+    """四張研究卡（短線大跌風險、大跌後檢查、過熱之後 3 個月的最大回撤、反向檢查）2026-10-19 起搬到訊號總覽
+    （docs/lab_signal_plan.md 第 10 節 Q3）：這裡照樣算好 HTML，存進 sigpage.CARDS，訊號總覽建頁時寫成各市場的檔。"""
+    from . import bottompage as BP
     from . import crashpage as CP
+    from . import hotchpage as QP
+    from . import hotddpage as XP
+    from . import sigpage as SPG
+    mk = V.get("mk") or (V.get("signow") or {}).get("mk")
+    if not mk:
+        return
+    hotch = QP.card(V.get("hotch"))
+    SPG.CARDS[mk] = {"d": V["asof"], "crash": CP.card(V.get("crash")), "bottom": BP.card(V.get("bottom")),
+                     "hotdd": XP.card(V.get("hotdd"), note=QP.hotdd_note(V.get("hotch")) if hotch else None), "hotch": hotch}
+
+
+def main_view(V: dict, ks: list[dict]) -> str:
     asof = V["asof"]
-    crash = CP.card(V.get("crash"))                 # 短線大跌風險（docs/lab_crash_plan.md 第 3.6 節）：雷達與關鍵狀態下面
-    nav = ('<nav class="snav"><a href="#top">雷達</a><a href="#key">關鍵狀態</a>' + ('<a href="#crash">大跌風險</a>' if crash else "")
-           + '<a href="#items">全部項目</a>'
+    stash_cards(V)
+    nav = ('<nav class="snav"><a href="#top">雷達</a><a href="#today">今天的重點</a><a href="#items">全部項目</a>'
            f'<a href="#cmp">{_e(HP.MK["cmp"])}</a>' + ('<a href="#ta">價位事件</a>' if V.get("ta") else "")
+           + '<a href="x9o.html">訊號總覽</a>'
            + '<button type="button" class="snv" data-goview="research">研究與驗證 →</button></nav>')
     nores = "" if (V.get("R") or {}).get("dims") else f'<p class="warn">驗證結果還沒產生（{_e(HP.MK["res"])}），先只列各項的 0～100。</p>'
     top = (f'<section class="vtop" id="top"><p class="sum">{_e(V.get("summary") or "")}</p>{nores}'
-           f'<div class="vgrid">{_radar_card()}<div class="vside">{key_html(ks)}{moves_html(V)}</div></div>'
+           f'<div class="vgrid">{_radar_card()}<div class="vside">{today_html(V)}{moves_html(V)}</div></div>'
            f'<p class="hz">{_e(S.HORIZON_NOTE)}。<span class="mu">（資料到 {_e(HP._md(asof))}）</span></p></section>')
     items = ('<section class="sec" id="items"><div class="ish2"><h2>全部項目<span class="sub" id="isub"></span></h2>'
              '<div class="seg"><button type="button" class="tb" id="itabb" aria-pressed="false">表格</button></div></div>'
              '<div class="imap" id="imap"></div>'
              '<p class="note">每一點是一項：位置＝現在的 0～100；短線＝和上週比從哪裡移過來；點越大＝拉動面向分數越多。點一下打開右邊的面板。</p>'
              f'{items_table(V)}</section>')
-    return (f'<div class="hview" data-view="radar">{nav}{top}{crash}{items}{HP._cmp_section()}{HP._ta_main(V)}'
+    return (f'<div class="hview" data-view="radar">{nav}{top}{items}{HP._cmp_section()}{HP._ta_main(V)}'
             '<p class="vmore"><button type="button" class="tb" data-goview="research">研究與驗證（各項和指數的關係、多層回歸、事件研究、資料來源）→</button></p></div>')
 
 
@@ -918,6 +957,24 @@ CSS = """
 body.drw-on{overflow:hidden}
 @media (min-width:1100px){body.drw-on{overflow:auto}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+/* 今天的重點（訊號總覽的實務判定）與頁首的市場狀態一行 */
+.tzc{padding:12px 14px;min-width:0}
+.tzu{list-style:none;margin:0;padding:0}.tzu li+li{border-top:1px solid var(--line)}
+.tzi{display:block;padding:7px 2px;color:var(--ink);text-decoration:none;border-radius:8px}.tzi:hover{background:var(--card2)}
+.tzh{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}.tzh b{font-weight:600;font-size:14px}
+.tzk{width:14px;text-align:center;font-weight:700}.tzk-good{color:var(--acc)}.tzk-ref{color:var(--ink2)}
+.tzd{font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--line2);white-space:nowrap}
+.tzd-up{color:var(--t4);border-color:var(--t4)}.tzd-warn{color:var(--t3);border-color:var(--t3)}.tzd-buy{color:var(--p0);border-color:var(--p0)}
+.tzl{display:block;font-size:12.5px;color:var(--ink2);padding-left:20px;line-height:1.55}.tzl b{color:var(--ink)}
+.tzm{margin:6px 0 0;font-size:13px}
+.stl{max-width:1080px;margin:4px auto 0;padding:0 16px;display:flex;flex-wrap:wrap;gap:6px}
+.stc{display:inline-flex;align-items:baseline;gap:5px;padding:2px 10px;border-radius:999px;border:1px solid var(--line2);
+font-size:13px;color:var(--ink2);background:var(--panel);text-decoration:none;white-space:nowrap}
+.stc b{color:var(--ink);font-weight:600}a.stc:hover{border-color:var(--acc)}
+.stz0{border-color:var(--c0)}.stz1{border-color:var(--c1)}.stz3{border-color:var(--c3)}.stz4{border-color:var(--c4);background:var(--sbg)}
+.stz0 i,.stz1 i{color:var(--t0)}.stz3 i{color:var(--t3)}.stz4 i{color:var(--t4)}.stc i{font-style:normal;font-weight:600}
+.stx{border-color:var(--c4);color:var(--t4)}
+@media (max-width:820px){.vgrid>.vside{order:-1}}
 """
 
 

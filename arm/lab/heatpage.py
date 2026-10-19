@@ -203,6 +203,56 @@ def crash_now(B: dict) -> dict | None:
         return None
 
 
+def hotdd_now(B: dict) -> dict | None:
+    """「過熱之後 3 個月的最大回撤」卡的資料（hotddpage.state；研究檔 data/lab/hotdd_research.json）；算不出來就不顯示那張卡。"""
+    try:
+        from . import hotddpage as XP
+        return XP.state(B)
+    except Exception as e:                          # noqa: BLE001  過熱後回撤的問題不擋景氣頁
+        print(f"[景氣溫度] 過熱後回撤算不出來：{type(e).__name__}: {e}")
+        return None
+
+
+def hotch_now(B: dict) -> dict | None:
+    """「反向檢查：籌碼連續過熱、技術面轉空」卡的資料（hotchpage.state；研究檔 data/lab/hotch_research.json）；算不出來就不顯示那張卡。"""
+    try:
+        from . import hotchpage as QP
+        return QP.state(B)
+    except Exception as e:                          # noqa: BLE001  反向檢查的問題不擋景氣頁
+        print(f"[景氣溫度] 反向檢查算不出來：{type(e).__name__}: {e}")
+        return None
+
+
+def bottom_now(B: dict) -> dict | None:
+    """「大跌後檢查」卡的資料（bottompage.state；研究檔 data/lab/bottom_research.json）；算不出來就不顯示那張卡。"""
+    try:
+        from . import bottompage as BP
+        return BP.state(B)
+    except Exception as e:                          # noqa: BLE001  大跌後檢查的問題不擋景氣頁
+        print(f"[景氣溫度] 大跌後檢查算不出來：{type(e).__name__}: {e}")
+        return None
+
+
+def sig_now(B: dict) -> dict | None:
+    """訊號總覽：這個市場現在有效的訊號（sigcat.now_for_B，存進程序裡給訊號總覽沿用）；算不出來回 None。"""
+    try:
+        from . import sigcat
+        return sigcat.now_for_B(B)
+    except Exception as e:                          # noqa: BLE001  訊號總覽的問題不擋景氣頁
+        print(f"[景氣溫度] 訊號總覽的狀態算不出來：{type(e).__name__}: {e}")
+        return None
+
+
+def sig_today(now: dict | None) -> dict | None:
+    """「今天的重點」：這個市場現在有效的好訊號（sigcat.today_for）；研究檔沒有或算不出來回 None。"""
+    try:
+        from . import sigcat
+        return sigcat.today_for(now)
+    except Exception as e:                          # noqa: BLE001
+        print(f"[景氣溫度] 今天的重點算不出來：{type(e).__name__}: {e}")
+        return None
+
+
 def view(B: dict | None = None, R: dict | None = None) -> dict:
     B = B if B is not None else C.build()
     R = R if R is not None else (load_research() or {})
@@ -253,11 +303,14 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
               "next": next_days(cal[t], S.DEDUCT_N), "base_a": cal[S.EV_START]}
     we = HP.week_ends(cal) if T else []
     strips = {d: HP.strip(B, d, we=we) for d in shown_dims()} if T else {}
-    out = {"asof": cal[t] if cal else None, "dims": dims, "R": R,
+    out = {"asof": cal[t] if cal else None, "mk": "tw" if MK["tab"] == "tw" else B.get("idx"), "dims": dims, "R": R,
             "data": R.get("data") or {}, "cal_info": B.get("cal_info"), "vixcorr": B.get("vixcorr") or {}, "ta": ta,
             "strips": strips, "summary": HP.summary(strips) if strips else "", "dvn": dvn,
             "dvr": R.get("deriv") or {}, "rel": R.get("rel") or {}, "m6": R.get("m6") or {}, "meta": meta(),
-            "bubnow": bubble_now(B) if T else None, "crash": crash_now(B) if T else None}
+            "bubnow": bubble_now(B) if T else None, "crash": crash_now(B) if T else None,
+            "hotdd": hotdd_now(B) if T else None, "hotch": hotch_now(B) if T else None,
+            "bottom": bottom_now(B) if T else None, "signow": sig_now(B) if T else None}
+    out["sigtoday"] = sig_today(out["signow"])
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
         out["viz"] = VZ.pack(B, out)
@@ -1218,17 +1271,35 @@ def _meta_json(V: dict) -> str:
     return json.dumps(V.get("meta") or meta(), ensure_ascii=False, separators=(",", ":"), sort_keys=True).replace("</", "<\\/")
 
 
-def bubble_line(V: dict) -> str:
-    """泡沫只留一行：等級＋哪些條件成立，連到泡沫頁（該市場那一段）。"""
+def state_line(V: dict) -> str:
+    """頁首的市場狀態一行（docs/lab_signal_plan.md 第 6.1 節）：各面向熱度、泡沫等級、是否在一段大跌中。"""
+    names = [nm for _, _, nm in S.BANDS]
+    chips = []
+    for d, L in V["dims"].items():
+        sc = L["score"]
+        if sc is None:
+            chips.append(f'<span class="stc"><b>{_e(S.DSHORT[d])}</b>—</span>')
+            continue
+        z = names.index(L["band"]) if L["band"] in names else 2
+        chips.append(f'<span class="stc stz{z}"><b>{_e(S.DSHORT[d])}</b>{n0(sc)}<i>{_e(L["band"])}</i></span>')
     b = V.get("bubnow")
-    if not b:
-        return ""
-    from . import bubble as BU
-    from . import bubspec as BS
-    cs = "、".join(BU.SHORT[c] for c in b["cond"])
-    tail = f'（{_e(cs)}）' if cs else ""
-    return (f'<p class="bubln">泡沫等級 <b class="bl{b["L"]}">{b["L"]}</b> {_e(BS.LEVELS[b["L"]])}{tail}'
-            f'<a href="x9b.html#{_e(b["mk"])}">泡沫頁 →</a></p>')
+    if b:
+        from . import bubble as BU
+        from . import bubspec as BS
+        cs = "、".join(BU.SHORT[c] for c in b["cond"])
+        tip = f'泡沫等級 {b["L"]} {BS.LEVELS[b["L"]]}' + (f'（{cs}）' if cs else "") + "，點了看泡沫頁"
+        chips.append(f'<a class="stc" href="x9b.html#{_e(b["mk"])}" title="{_e(tip)}"><b>泡沫</b>{b["L"]}'
+                     f'<i>{_e(BS.LEVELS[b["L"]])}</i></a>')
+    nw = (V.get("bottom") or {}).get("now") or {}
+    mk = V.get("mk") or (V.get("signow") or {}).get("mk") or ""
+    if nw.get("active"):
+        a = nw["active"][0]
+        pd = a["p"]
+        chips.append(f'<a class="stc stx" href="x9o.html#r={_e(mk)}:bottom"><b>一段大跌中</b>比 {int(pd[5:7])}/{int(pd[8:10])} 高點'
+                     f' {_e(_sgn(100 * a["nowdd"], 1))}%</a>')
+    elif nw.get("dd60") is not None:
+        chips.append(f'<span class="stc"><b>離 60 日高點</b>{_e(_sgn(100 * nw["dd60"], 1))}%</span>')
+    return f'<div class="stl" aria-label="市場狀態">{"".join(chips)}</div>'
 
 
 def parts(V: dict) -> dict:
@@ -1249,7 +1320,7 @@ def parts(V: dict) -> dict:
         + f'<section class="sec" id="src"><h2>資料來源與筆數</h2><div class="tw"><table><tr><th class="l">檔</th><th>筆數</th>'
           f'<th>起</th><th>到</th></tr>{data_rows}</table></div><p class="note">{_e(_SRC_NOTE)}</p></section>'
     )
-    body = (bubble_line(V) + VZ.main_view(V, V.get("ks") or []) + VZ.phase_view() + VZ.terrain_view() + VZ.research_view(V, research)
+    body = (state_line(V) + VZ.main_view(V, V.get("ks") or []) + VZ.phase_view() + VZ.terrain_view() + VZ.research_view(V, research)
             + VZ.templates(V) + VZ.viz_json(V))
     return {"nav": "", "body": body, "asof": asof}
 
@@ -1258,8 +1329,7 @@ def render(V: dict) -> str:
     from . import appnav
     from . import heatviz as VZ
     P = parts(V)
-    from . import crashpage as CP
-    return (_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS + CP.CSS)
+    return (_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS)
             .replace("{{TITLE}}", _e(MK["title"])).replace("{{PURP}}", _e(MK["purp"])).replace("{{PRE}}", MK["pre"])
             .replace("{{ASOF}}", _e(_md(P["asof"]))).replace("{{VSW}}", VZ.switch_html()).replace("{{DRAWER}}", VZ.DRAWER)
             .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS))
@@ -1375,9 +1445,6 @@ main{padding:14px 16px 80px;max-width:1080px;margin:0 auto}
 .mtl{display:grid;grid-template-columns:repeat(5,1fr);font-size:11px;color:var(--mut);text-align:center}
 .past{font-size:13.5px;color:var(--ink2);margin:8px 0 2px;line-height:1.75}
 .vd{font-size:13.5px;margin:2px 0}.eq{font-size:12px;color:var(--mut);margin:2px 0 8px}
-.bubln{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;max-width:1080px;margin:6px auto 0;padding:7px 12px;font-size:13.5px;
-color:var(--ink2);border:1px solid var(--line);border-radius:10px;background:var(--panel)}
-.bubln b{font-size:16px}.bubln a{margin-left:auto;white-space:nowrap}.bl0,.bl1{color:var(--ink2)}.bl2{color:var(--t3)}.bl3,.bl4{color:var(--t4)}
 .its{margin-top:6px}
 .ith,.it{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(120px,1.3fr) 72px 48px 48px;gap:8px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--line)}
 .ith{font-size:11.5px;color:var(--mut);border-bottom:2px solid var(--line);padding-top:8px}

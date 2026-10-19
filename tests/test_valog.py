@@ -12,15 +12,23 @@ def _g(k, grade, oos=None, ev=None):
 
 
 def test_rank_order_reason_and_skip_c_and_hd():
-    """推薦順序＝評級總表順序，只排 A、B（高股息不排）；理由只講資料多長、有沒有事後驗證，不出現 t 值。"""
-    G = [_g("v3l", "B", {"n": 30, "xe": 8.7, "t": 1.46, "d0": "2014-05-15"}),
-         _g("v7l", "B", {"n": 98, "xe": 0.3, "t": 0.67, "d0": "2013-08-12"}),
-         _g("s3", "B"), _g("s1", "B"), _g("v3m", "C", {"n": 30, "xe": 0.4, "t": 0.2}), _g("hd", "C")]
-    live = {"v3l": {"res": {"all": {"d0": "2014-05-15"}}}, "v7l": {"res": {"all": {"d0": "2013-08-12"}}}}
-    old = {"s3": {"event": True, "n": 8, "d0": "2024-10"}, "s1": {"event": False, "n": 42, "d0": "2026-07"}}
-    r = advice.rank(G, "2026-10-15", live, old)
-    assert r == {"v3l": (1, "12 年資料，事後驗證也贏"), "v7l": (2, "13 年資料，事後驗證偏弱"),
-                 "s3": (3, "資料只有 8 次（2024 年起），還沒有事後驗證"), "s1": (4, "資料只有 3 個月，還沒有事後驗證")}
+    """推薦順序（docs/lab_signal_plan.md 第 15 節）：只排 ★ 與 ●（高股息不排），★ 在前、同級依逐筆賺錢比例；
+    理由只講逐筆成績（賺錢比例、每月平均、筆數），不出現 t 值。"""
+    G = [_g(k, "B") for k in ("v3l", "v7l", "s3", "s1", "v3m", "hd", "v7m")]
+    J = {"v3l": {"tier": "good", "n": 244, "win": 60.25, "m": 4.54, "avg": 13.0, "path": "一般"},
+         "s3": {"tier": "good", "n": 24, "win": 66.67, "m": 10.82, "avg": 15.7, "path": "一般"},
+         "s5": {"tier": "good", "n": 30, "win": 53.3, "m": 6.76, "avg": 26.3, "path": "上漲空間大", "ratio": 3.61},
+         "s1": {"tier": "ref", "n": 47, "win": 59.57, "m": 11.22, "avg": 1.6},
+         "v7l": {"tier": "ref", "n": 471, "win": 52.65, "m": 2.14, "avg": 3.46},
+         "v3m": {"tier": "none", "n": 40, "win": 40.0, "m": -0.5, "avg": -1.0},
+         "hd": {"tier": "ref", "n": 63, "win": 54.0, "m": 6.2, "avg": 2.7}}
+    r = advice.rank(G + [_g("s5", "B")], J)
+    assert [k for k, _ in sorted(r.items(), key=lambda x: x[1][0])] == ["s3", "v3l", "s5", "s1", "v7l"]
+    assert r["s3"] == (1, "逐筆賺錢 67%，每月平均 +10.8%（24 筆，次數少）")
+    assert r["v3l"][1] == "逐筆賺錢 60%，每月平均 +4.5%（244 筆）"
+    assert r["s5"][1] == "逐筆賺錢 53%，賺的時候平均是賠的 3.6 倍；每月平均 +6.8%（30 筆）"
+    assert r["s1"][1] == "逐筆賺錢 60%、每月平均 +11.2%，平均每筆 +1.6%，還沒到好策略的門檻（47 筆）"
+    assert "v7m" not in r and "hd" not in r and "v3m" not in r          # 沒有判定、高股息、○ 都不排
     assert not any("t" in w.replace("st", "") and "值" in w for _, w in r.values())
 
 
@@ -34,15 +42,17 @@ def test_opps_cards_states_and_capital_dedup():
            {"k": "v3l", "d": "2026-11-12", "at": "收盤", "act": "賣出", "held": True, "ent": "2026-08-17",
             "items": [{"c": "2330", "n": "台積電", "now_r": 1.2}]},
            {"k": "v3l", "d": "2026-11-17", "at": "開盤", "act": "買進", "items": [], "pending": True, "fix": "2026-11-16"}]
-    picks = [{"k": "s3", "c": "1301", "grade": "B", "size": {"pct": 2.0}}, {"k": "s3", "c": "2330", "grade": "B", "size": {"pct": 1.5}},
-             {"k": "v3l", "c": "2330", "grade": "B", "size": None}, {"k": "v3m", "c": "2392", "grade": "C", "size": None}]
+    picks = [{"k": "s3", "c": "1301", "grade": "B", "tier": "ref", "size": {"pct": 2.0}},
+             {"k": "s3", "c": "2330", "grade": "B", "tier": "ref", "size": {"pct": 1.5}},
+             {"k": "v3l", "c": "2330", "grade": "B", "tier": "ref", "size": None},
+             {"k": "v3m", "c": "2392", "grade": "C", "tier": "none", "size": None}]
     o = advice.opps(bk, cal, picks)
     assert [c["k"] for c in o["cards"]] == ["v3l", "s3"]
     v, s = o["cards"]
     assert v["state"] == "持有中" and v["next"]["fix"] == "2026-11-16" and v["all"]["cagr"] == 49.5
     assert s["state"] == "待買進" and s["next"] is None and s["all"] is None
     assert (o["n"], o["nb"], o["nh"], o["fb"]) == (2, 2, 1, "2026-10-19")
-    assert o["cap"] == 4          # 台塑 2%＋台積電取大者 2%（s3 1.5%、v3l 沒有部位資料→B 級上限 2%）
+    assert o["cap"] == 4          # 台塑 2%＋台積電取大者 2%（s3 1.5%、v3l 沒有部位資料→● 上限 2%）
 
 
 def _adv(**kw):

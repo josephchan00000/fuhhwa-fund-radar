@@ -1,6 +1,8 @@
 """籌碼雷達（arm/lab/）——解析、帳本口徑、指標、頁面安全性。全部離線、不打網路。"""
 from __future__ import annotations
 
+from pathlib import Path
+
 from arm.lab import backtest, ledger, market, page, store, ta
 
 
@@ -690,7 +692,7 @@ def test_build_splits_series_into_side_file(tmp_path, monkeypatch):
             "rows": [{"c": "2330", "n": "台積電", "m": "tw", "sg": [], "hd": []}],
             "ser": {"2330": {"c": [2400.0, 2490.5], "qa": [0, 3]}}, "sigdef": {}, "risk": [],
             "stats": {}, "iss": {}, "iev": {}, "iow": {}}
-    monkeypatch.setattr(analyze, "run", lambda: data)
+    monkeypatch.setattr(analyze, "run", lambda **kw: data)
     html_p, ser_p = tmp_path / "x9.html", tmp_path / "x9s.json"
     assert page.build(out=html_p, out_ser=ser_p) is True
     blob = html_p.read_text("utf-8").split('id="labdata">', 1)[1].split("</script>", 1)[0]
@@ -967,29 +969,63 @@ def _adv_data(e_sig="2026-10-16"):
                 "alerts": [{"c": "2330", "n": "台積電", "d": "2026-10-14", "gap": 3.5}]},
             "grow": {"s5": {"name": "長線：投信動能成長股", "kind": "長線", "score": s5, "screen_d": ["2026-10-30", "2026-11-02"]},
                      "screen": [{"c": "3605", "n": "宏致", "px": 187.0, "pass": True, "trust": 4.18, "tdays": 8}]},
-            "idx": {}}
+            "idx": {},
+            "v3ex": {k: {"grade": g, "why": [], "sel": {"n": 20, "xe": 0.5, "t": 1.2}, "pay": {"ok": True, "win": 60.0, "m": 1.5},
+                         "unit": u} for k, g, u in (("s1", "B", "檔"), ("s3", "B", "次"), ("s5", "C", "檔"))}}
 
 
-def test_advice_build_picks_watch_and_exits():
+def _judge(tier, win, m, avg, n, path=None, ratio=None):
+    return {"tier": tier, "win": win, "m": m, "avg": avg, "n": n, "path": path, "ratio": ratio, "few": 0 < n < 30}
+
+
+JUDGE = {"s1": _judge("ref", 59.6, 11.2, 1.6, 47), "s3": _judge("good", 66.7, 10.8, 15.7, 24, "一般", 2.9),
+         "s5": _judge("none", 40.0, -1.0, -5.0, 12)}
+
+
+def test_advice_build_picks_watch_and_exits(monkeypatch):
+    """機會頁推薦用報酬型態判定（docs/lab_signal_plan.md 第 15 節）：★ 在前、● 其次，○／— 不列；部位上限 ★ 5%、● 2%。"""
     from arm.lab import advice as A
+    from arm.lab import sigcat
+    monkeypatch.setattr(sigcat, "strat_judge", lambda tb: JUDGE)
     out = A.build(_adv_data())
     assert [g["k"] for g in out["grades"]] == ["s1", "s3", "s5"]
-    assert [(p["k"], p["c"], p["ent"]) for p in out["picks"]] == [("s1", "2327", "2026-10-15"), ("s3", "1301", "2026-10-19")]
-    p = out["picks"][0]
-    assert p["grade"] == "B" and p["cond"] == "開盤價 < 627 才買" and p["out"] == "2026-10-19"
+    assert [(p["k"], p["c"], p["ent"]) for p in out["picks"]] == [("s3", "1301", "2026-10-19"), ("s1", "2327", "2026-10-15")]
+    p = out["picks"][1]
+    assert p["grade"] == "B" and p["tier"] == "ref" and p["cond"] == "開盤價 < 627 才買" and p["out"] == "2026-10-19"
     assert p["exp"]["per10"] == round(p["exp"]["med"] * 1000) and p["size"]["pct"] == 2.0
     assert "中信" in p["why"][0] and "6.3 億元" in p["why"][1]
-    tw = out["picks"][1]
-    assert tw["tent"] and tw["fix"] == "2026-10-16" and tw["stop"] is None and tw["exp"]["event"]
+    tw = out["picks"][0]
+    assert tw["tier"] == "good" and tw["tent"] and tw["fix"] == "2026-10-16" and tw["stop"] is None and tw["exp"]["event"]
+    assert tw["size"]["pct"] == 5.0
     assert "11/24 開盤先賣出" in tw["out_how"]                          # 文字裡的日期一律 M/D
-    assert [(w["k"], w["c"], w["grade"]) for w in out["watch"]] == [("s5", "3605", "C")]
-    assert out["watch"][0]["size"] is None                              # C 級不下單
+    assert [(w["k"], w["c"], w["tier"]) for w in out["watch"]] == [("s5", "3605", "none")]
+    assert out["watch"][0]["size"] is None                              # ○ 不下單
     assert [(x["k"], x["c"]) for x in out["exits"]] == [("gap", "2330")]
+    G = {g["k"]: g for g in out["grades3"]}
+    assert (G["s3"]["rank"], G["s1"]["rank"], G["s5"]["rank"]) == (1, 2, None)     # ★ 在前；○ 不排
+    assert G["s3"]["rank_why"] == "逐筆賺錢 67%，每月平均 +10.8%（24 筆，次數少）"
+    assert "還沒到好策略的門檻（47 筆）" in G["s1"]["rank_why"]
+    assert [b["k"] for b in out["book"]][:2] == ["s3", "s1"] and out["opp"]["n"] == 2
+    assert out["caps"]["good"] == 0.05 and out["caps"]["ref"] == 0.02 and out["caps"]["A"] == 0.05
 
 
-def test_advice_build_lists_tw50_trial_picks_only_near_build_day():
+def test_advice_build_without_judgement_lists_nothing(monkeypatch):
+    """判定算不出來（例如逐筆交易壞掉）：全部當次數不夠，機會頁不列推薦，不會拿舊評級頂上。"""
     from arm.lab import advice as A
-    assert [p["k"] for p in A.build(_adv_data("2026-10-24"))["picks"]] == ["s1", "s3"]     # 10 天內
+    from arm.lab import sigcat
+
+    def boom(tb):
+        raise ValueError("x")
+    monkeypatch.setattr(sigcat, "strat_judge", boom)
+    out = A.build(_adv_data())
+    assert out["picks"] == [] and out["opp"]["n"] == 0 and all(g["tier"] == "few" for g in out["grades3"])
+
+
+def test_advice_build_lists_tw50_trial_picks_only_near_build_day(monkeypatch):
+    from arm.lab import advice as A
+    from arm.lab import sigcat
+    monkeypatch.setattr(sigcat, "strat_judge", lambda tb: JUDGE)
+    assert [p["k"] for p in A.build(_adv_data("2026-10-24"))["picks"]] == ["s3", "s1"]     # 10 天內
     assert [p["k"] for p in A.build(_adv_data("2026-10-25"))["picks"]] == ["s1"]           # 太早：只是試算，不列
 
 
@@ -1390,8 +1426,8 @@ def test_signal_stats_report_actual_return_and_market():
     assert (a["r"], a["rm"], a["rw"]) == (1.67, 2.0, 67.0)
     assert a["mk"] == round(((0.01) + (0.02) + (0.04)) / 3 * 100, 2) and a["w"] == 33.0
     js = page._JS
-    for k in ("function sigVerdict(", "function sigConcl(", "const SIGST={cons:'s1'}", "訊號照做的成績", "不是買點", "function sigShort(",
-              "function sigTodaySec(", "function sigAllSec("):
+    for k in ("function sigVerdict(", "function sigConcl(", "const SIGST={cons:'s1'}", "照做的實際報酬（持有 5／20 天、同期大盤）",
+              "不是買點", "function sigShort(", "function sigTodaySec(", "function sigAllSec("):
         assert k in js, k
     assert "勝率" not in js.split("/* ---------- 訊號（版面 v4", 1)[1].split("/* ---------- 投信動向", 1)[0]
 
@@ -1415,9 +1451,9 @@ def test_advice_expect_book_and_ex_best_year():
 
 
 def test_advice_calendar_orders_by_date_and_skips_c_and_past():
-    """行事曆：今天之後的買進、賣出、換股依日期排（同一天開盤在前）；C 級不列；名單還沒產生的列名單產生日。"""
+    """行事曆：今天之後的買進、賣出、換股依日期排（同一天開盤在前）；○／— 不列（sigspec VER 2）；名單還沒產生的列名單產生日。"""
     from arm.lab import advice
-    gm = {"s1": {"grade": "B"}, "v7m": {"grade": "B"}, "v3m": {"grade": "C"}}
+    gm = {"s1": {"grade": "B", "tier": "ref"}, "v7m": {"grade": "B", "tier": "good"}, "v3m": {"grade": "B", "tier": "none"}}
     picks = [
         {"k": "s1", "sname": "共識加碼", "act": "佈局", "c": "2330", "n": "台積電", "ent": "2026-10-15", "out": "2026-10-19",
          "px": 1000.0, "stop": 950.0, "exp": {"n": 3}},
@@ -1431,6 +1467,7 @@ def test_advice_calendar_orders_by_date_and_skips_c_and_past():
                    ("2026-11-10", "收盤", "換股", "v7m"), ("2026-11-11", "開盤", "買進", "v7m")]
     assert cal[3]["pending"] and cal[3]["fix"] == "2026-11-10" and cal[3]["exp"] == {"n": 158}
     assert cal[0]["items"][0]["stop"] == 950.0 and cal[0]["sell"] and cal[1]["note"] == "10/15 有買到的"
+    assert cal[0]["tier"] == "ref" and cal[2]["tier"] == "good"
     assert advice.calendar(picks, live, gm, {}, {}, None, None, 0, "2026-10-16")[0]["d"] == "2026-10-19"   # 已過的不列
 
 
@@ -1490,3 +1527,32 @@ def test_trade_book_collects_all_strategies_without_duplicates(monkeypatch):
     assert "tr" not in s1 and "tr" not in s3["vers"][0] and "tr" not in data["grow"]["s5"]   # 搬到 ADV.trades，頁面不重複內嵌
     assert "tr_res" not in live["v7m"] and "tr" not in live["v7m"]
     assert nm == {"2330": "台積電", "9999": "已下市公司"}
+
+
+
+def test_signal_sections_use_overview_judgement():
+    """籌碼頁「今日訊號」與後台「訊號成績」：命中率／平常（訊號總覽同一套，docs/lab_signal_plan.md 第 6.3 節），
+    每個訊號連到訊號總覽那一列；照做的實際報酬收在展開。"""
+    from arm.lab import sigcat
+    js = page._JS
+    for k in ("const SJ=D.sigj||{}", "function sjTxt(", "x9o.html#s=stk:sig:", "<th>命中率</th><th>平常</th>"):
+        assert k in js, k
+    rows = [{"cat": "stock", "var": "cons", "dir": ["up"], "up": {"tier": "none", "n": 103, "hit": 0.5926, "base": 1.0}},
+            {"cat": "stock", "var": "exit", "dir": ["warn"], "warn": {"tier": "ref", "n": 90, "hit": 0.3556, "base": 0.0111}},
+            {"cat": "strat", "var": "s1", "dir": ["up"], "up": {"tier": "ref", "n": 47, "hit": 0.6, "base": 0.5}}]
+    assert sigcat.stock_brief(rows) == {"cons": ["none", "up", 103, 59.3, 100.0], "exit": ["ref", "warn", 90, 35.6, 1.1]}
+    assert sigcat.stock_brief(None) == {}
+    pg = (Path(__file__).resolve().parents[1] / "arm" / "lab" / "page.py").read_text(encoding="utf-8")
+    assert 'data["sigj"] = sigcat.stock_brief(srows)' in pg and "sigcat.write_stock(data, ctx, rows=srows)" in pg
+
+
+def test_opportunity_and_strategy_views_show_judgement_not_letter_grades():
+    """機會頁、策略頁、個股卡用 ★／●（sigspec VER 2）；A／B／C 只留在後台。"""
+    js = page._JS
+    assert "function tBadge(" in js and "const TN={good:'好策略',ref:'可參考',none:'不推薦',few:'次數不夠'}" in js
+    for fn in ("function oCard(", "function bookSec(", "function stCard(", "function stCardSec("):
+        body = js.split(fn, 1)[1].split("\nfunction ", 1)[0]
+        assert "tBadge(" in body and "gBadge(" not in body, fn
+    opp = js.split("function vOpp(", 1)[1].split("\nfunction ", 1)[0]
+    assert "A、B 級" not in opp and "★ 好策略、● 可參考" in opp
+    assert "'判定':" in js and "capTxt(e.tier)" in js

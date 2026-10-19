@@ -1,4 +1,4 @@
-"""產業泡沫的計算（規格 bubindspec VER 1；docs/lab_risk_plan.md 第 12 節）。
+"""產業泡沫的計算（規格 bubindspec VER 2；docs/lab_risk_plan.md 第 12 節、docs/lab_crash_plan.md 第 21.2 節）。
 
 三組產業，每個產業每月一個樣本（月底），算條件（P1 價格爆發、P2 兩年翻倍比大盤多漲而且在高點、P3 偏離長期趨勢、
 E 價格漲得比營收快、G 未來獲利跟不上、F 燃料）與 0～4 級（bubspec.level4，V 一律不判定）：
@@ -66,6 +66,7 @@ def pct_span(ser: dict, min_months: int) -> dict:
 # ── 台股產業指數（bt3d.Panel＋官方分片接續；CI 抓資料時算好，按月存 data/lab/indtw） ─────────────
 
 IND_KIND = "indtw"
+TG_KIND = "indtg"
 MKT = "__mkt__"
 
 
@@ -93,19 +94,79 @@ def _liq_at(P, c: str, i: int, sv: dict) -> float | None:
     return sum(w) / len(w) if len(w) >= 10 else None
 
 
-def tw_build(P=None, ind_map: dict | None = None) -> dict:
-    """→ {"cal", "me"（每月最後一個交易日的位置）, "grp": {名稱: {"px": 每天指數, "n": {月: 成分數}, "turn": {月: 換手率}}}}；
-    MKT＝大盤。每月以前月底為基準重算權重；成分 < TW_MIN_N 那個月整月 None，之後重新起算（第 12.1 節）。"""
+def tw_ind_map() -> dict[str, str]:
+    """台股產業別（bubindspec 第 1b 節）：現在的產業表＋已下市公司在官方歷史分類行情裡最後一次出現的產業別（現在的優先）。"""
     from arm import stockmeta
+    from . import indhist
+    cur = stockmeta.industry_map()
+    return {**indhist.delisted_map(cur), **cur}
+
+
+def tg_members(doc: dict | None = None, cur: dict | None = None) -> dict:
+    """細分族群的成員（bubindspec 第 1c 節）→ {"groups": {族群: 代號集合}, "n": {族群: 家數}, "d": 名單日期,
+    "skip": {族群: 原因}}。節點或分頁找不到＝整個族群不算（不讓族群悄悄變小）；成員 < TG_MIN_MEMBERS＝不算。"""
+    import re
+    from arm import stockmeta
+    from . import icchain
+    doc = doc if doc is not None else icchain.load()
+    chains = (doc or {}).get("chains") or {}
+    out: dict = {"groups": {}, "n": {}, "d": (doc or {}).get("d"), "skip": {}}
+    if not chains:
+        return out
+    cur = cur if cur is not None else stockmeta.industry_map()
+    for key, _, src in BI.TG_GROUPS:
+        cs: set = set()
+        why = None
+        for ic, title, tab in src:
+            nodes = [nd for nd in ((chains.get(ic) or {}).get("nodes") or []) if title == "*" or nd[1] == title]
+            if not nodes:
+                why = f"找不到 {ic}「{title}」"
+                break
+            for nd in nodes:
+                if tab is None:
+                    cs |= icchain.node_codes(nd)
+                    continue
+                t = icchain.tabs(nd)
+                if not t or tab not in t:
+                    why = f"找不到 {ic}「{title}」的分頁「{tab}」"
+                    break
+                cs |= t[tab]
+            if why:
+                break
+        if why:
+            out["skip"][key] = why
+            continue
+        cs = {c for c in cs if c in cur and re.match(r"^[1-9]\d{3}$", c)}
+        if len(cs) < BI.TG_MIN_MEMBERS:
+            out["skip"][key] = f"現在上市櫃只有 {len(cs)} 家"
+            continue
+        out["groups"][key] = cs
+        out["n"][key] = len(cs)
+    return out
+
+
+def tw_build(P=None, ind_map: dict | None = None, groups: dict | None = None) -> dict:
+    """→ {"cal", "me"（每月最後一個交易日的位置）, "grp": {名稱: {"px": 每天指數, "n": {月: 成分數}, "turn": {月: 換手率}}}}；
+    MKT＝大盤。每月以前月底為基準重算權重；成分 < TW_MIN_N 那個月整月 None，之後重新起算（第 12.1 節）。
+    groups＝{族群: 代號集合}（細分族群，第 1c 節；一家公司可以在好幾個族群）→ 改算這些族群，不算產業別。"""
     from . import bt3d
     P = P or bt3d.Panel(start=BI.TW_START)
-    im = ind_map if ind_map is not None else stockmeta.industry_map()
     cal, T = P.cal, P.T
     me = BU.month_end_idx(cal)
     n0 = min((len(v) for v in P.liq.values()), default=T)
     sv = _shard_values(cal[max(0, n0 - 40)]) if n0 < T else {}
-    groups = sorted({v for v in im.values() if v and v not in BI.TW_SKIP})
-    G = {g: {"px": [None] * T, "n": {}, "turn": {}} for g in groups + [MKT]}
+    gof: dict[str, list] = {}
+    if groups is not None:
+        names = sorted(groups)
+        for g in names:
+            for c in groups[g]:
+                gof.setdefault(c, []).append(g)
+    else:
+        im = ind_map if ind_map is not None else tw_ind_map()
+        names = sorted({v for v in im.values() if v and v not in BI.TW_SKIP})
+        ok = set(names)
+        gof = {c: [g] for c, g in im.items() if g in ok}
+    G = {g: {"px": [None] * T, "n": {}, "turn": {}} for g in names + [MKT]}
     lvl = {g: None for g in G}
     for k in range(1, len(me)):
         b, e = me[k - 1], me[k]
@@ -117,8 +178,7 @@ def tw_build(P=None, ind_map: dict | None = None) -> dict:
             if not cap or cap < BI.TW_CAP_MIN or not p0:
                 continue
             mem[MKT].append(c)
-            g = im.get(c)
-            if g in mem:
+            for g in gof.get(c, ()):
                 mem[g].append(c)
         for g, cs in mem.items():
             if len(cs) < BI.TW_MIN_N:
@@ -150,11 +210,12 @@ def tw_build(P=None, ind_map: dict | None = None) -> dict:
     return {"cal": cal, "me": me, "grp": G}
 
 
-def indtw_save(P) -> int:
+def indtw_save(P, kind: str = IND_KIND, groups: dict | None = None, extra: dict | None = None) -> int:
     """tw_build 的結果按月存（store kind indtw，鍵 YYYY-MM）：{"cal": [那個月的交易日], "px": {產業: [每天]}, "n", "turn"}。
-    store.write 內容沒變不改寫，所以每天只會改寫當月那一檔。回傳改寫的月數。"""
+    store.write 內容沒變不改寫，所以每天只會改寫當月那一檔。回傳改寫的月數。
+    細分族群：kind＝TG_KIND、groups＝tg_members()，extra＝{"src": 名單日期}（每一檔都帶，名單換了整段重寫）。"""
     from . import store
-    TB = tw_build(P)
+    TB = tw_build(P, groups=groups)
     cal, G = TB["cal"], TB["grp"]
     by: dict[str, list[int]] = {}
     for i, d in enumerate(cal):
@@ -167,41 +228,59 @@ def indtw_save(P) -> int:
             continue
         doc = {"cal": [cal[i] for i in ix], "px": px,
                "n": {g: G[g]["n"][ym] for g in sorted(G) if ym in G[g]["n"]},
-               "turn": {g: round(G[g]["turn"][ym], 8) for g in sorted(G) if ym in G[g]["turn"]}}
-        if store.write(IND_KIND, ym, doc):
+               "turn": {g: round(G[g]["turn"][ym], 8) for g in sorted(G) if ym in G[g]["turn"]}, **(extra or {})}
+        if store.write(kind, ym, doc):
             n += 1
     return n
 
 
-def indtw_last() -> str:
+def indtw_last(kind: str = IND_KIND) -> str:
     """indtw 最後一天（沒有檔＝空字串）。"""
     from . import store
-    ks = store.dates(IND_KIND)
+    ks = store.dates(kind)
     if not ks:
         return ""
-    return ((store.read(IND_KIND, ks[-1]) or {}).get("cal") or [""])[-1]
+    return ((store.read(kind, ks[-1]) or {}).get("cal") or [""])[-1]
+
+
+def _tg_src() -> str:
+    """indtg 用的名單日期（最後一檔的 src；沒有＝空字串）。"""
+    from . import store
+    ks = store.dates(TG_KIND)
+    return str((store.read(TG_KIND, ks[-1]) or {}).get("src") or "") if ks else ""
 
 
 def indtw_update(force: bool = False) -> int:
-    """CI 每天（scripts/fetch_heat.py）：官方分片有比 indtw 更新的交易日才重算（Panel＋分片接續，約 30 秒）。"""
-    from . import bt3d, store
+    """CI 每天（scripts/fetch_heat.py）：官方分片有比 indtw 更新的交易日才重算（Panel＋分片接續，約 30 秒）。
+    細分族群（indtg）一起算；族群名單（icchain.json）換了也重算。"""
+    from . import bt3d, icchain, store
+    T = tg_members()
+    src = (icchain.load() or {}).get("d") or ""
+    tg_need = bool(T["groups"]) and (force or _tg_src() != src)
     last = indtw_last()
-    if not force and last and last >= max(store.dates("mkt") or [""]):
+    tg_last = indtw_last(TG_KIND)
+    newest = max(store.dates("mkt") or [""])
+    if not force and not tg_need and last and last >= newest and (not T["groups"] or tg_last >= newest):
         return 0
     SP = HD.ShardPanel()
-    if not force and last and SP.cal and last >= SP.cal[-1]:
+    if not force and not tg_need and last and SP.cal and last >= SP.cal[-1] and (not T["groups"] or tg_last >= SP.cal[-1]):
         return 0
     P = bt3d.Panel(start=BI.TW_START)
     HD.extend(P, SP)
-    return indtw_save(P)
+    n = indtw_save(P)
+    if T["groups"]:
+        n += indtw_save(P, TG_KIND, T["groups"], {"src": src})
+    return n
 
 
-def load_indtw() -> dict:
-    """indtw 按月檔 → {"cal": [每天], "grp": {產業: {"px": [每天], "n": {月: 成分數}, "turn": {月: 換手率}}}}。"""
+def load_indtw(kind: str = IND_KIND) -> dict:
+    """indtw 按月檔 → {"cal": [每天], "grp": {產業: {"px": [每天], "n": {月: 成分數}, "turn": {月: 換手率}}}}（indtg 另帶 "src"）。"""
     from . import store
     cal: list = []
     G: dict = {}
-    for ym, doc in store.load(IND_KIND):
+    src = ""
+    for ym, doc in store.load(kind):
+        src = doc.get("src") or src
         c = doc.get("cal") or []
         n0 = len(cal)
         cal += c
@@ -214,7 +293,7 @@ def load_indtw() -> dict:
                 Gd["n"][ym] = doc["n"][g]
             if g in (doc.get("turn") or {}):
                 Gd["turn"][ym] = doc["turn"][g]
-    return {"cal": cal, "grp": G}
+    return {"cal": cal, "grp": G, "src": src}
 
 
 def monthly_from_daily(cal: list, px: list, last_day: str | None = None) -> tuple[dict, dict]:
@@ -236,16 +315,17 @@ def load_rev() -> dict:
     return out
 
 
-def tw_ps(grp: str, im: dict, caps: list, rev: dict) -> dict:
+def tw_ps(grp: str, im: dict, caps: list, rev: dict, mem: set | None = None) -> dict:
     """產業 P/S（取對數）{月: log(成員月底市值合計 ÷ 它們近 12 個月營收合計)}；成員＝月底市值 ≥ TW_CAP_MIN、
-    營收月 m−12～m−1 都有的公司（第 m−1 個月營收第 m 個月 10 日公布，月底 m 拿得到）。caps＝bt3d.month_end_caps()。"""
+    營收月 m−12～m−1 都有的公司（第 m−1 個月營收第 m 個月 10 日公布，月底 m 拿得到）。caps＝bt3d.month_end_caps()。
+    mem＝族群成員集合（細分族群；給了就不看 im）。"""
     out: dict = {}
     for d, cp in caps:
         ym = d[:7]
         ms = [_ym_add(ym, -j) for j in range(1, BI.E_SUM + 1)]
         num = den = 0.0
         for c, cap in cp.items():
-            if im.get(c) != grp or not cap or cap < BI.TW_CAP_MIN:
+            if (c not in mem if mem is not None else im.get(c) != grp) or not cap or cap < BI.TW_CAP_MIN:
                 continue
             r = rev.get(c)
             if not r:
@@ -285,7 +365,7 @@ def rev_s12(rev: dict) -> dict:
     return out
 
 
-def tw_rev_proxy(grp: str, im: dict, caps: list, rev: dict, s12: dict | None = None) -> dict:
+def tw_rev_proxy(grp: str, im: dict, caps: list, rev: dict, s12: dict | None = None, mem: set | None = None) -> dict:
     """台股產業 G 的替代資料：{營收月: {"G1", "R", "y12", "y12b"}}（同一批公司，第 12.2 節）。
     成員＝那個營收月月底市值 ≥ TW_CAP_MIN 的產業公司（月底快照；沒有那個月的快照用之前最近的）。"""
     s12 = s12 if s12 is not None else rev_s12(rev)
@@ -297,7 +377,8 @@ def tw_rev_proxy(grp: str, im: dict, caps: list, rev: dict, s12: dict | None = N
         if i < 0:
             return []
         cp = snap[keys[i]]
-        return [c for c, cap in cp.items() if im.get(c) == grp and cap and cap >= BI.TW_CAP_MIN and c in s12]
+        return [c for c, cap in cp.items() if (c in mem if mem is not None else im.get(c) == grp)
+                and cap and cap >= BI.TW_CAP_MIN and c in s12]
 
     def pair(cs, a_m, b_m):
         a = b = 0.0
@@ -611,8 +692,9 @@ def now_status(S: dict, C: dict, day: str, p2: dict, gnow: dict | None) -> dict:
 
 # ── 現在的分析師預估（台股產業、美股類股） ──────────────────────────────────
 
-def tw_est_now(im: dict) -> dict:
-    """{產業: fwd.aggregate＋"d"}（Yahoo 預估依產業加總；涵蓋＝用到的公司市值 ÷ 產業全部普通股市值）。"""
+def tw_est_now(im: dict, groups: dict | None = None) -> dict:
+    """{產業: fwd.aggregate＋"d"}（Yahoo 預估依產業加總；涵蓋＝用到的公司市值 ÷ 產業全部普通股市值）。
+    groups＝{族群: 代號集合}（細分族群）→ 依族群加總。"""
     import re
     from . import fcst
     from . import fwd as FW
@@ -623,9 +705,12 @@ def tw_est_now(im: dict) -> dict:
     sh, px, _ = tw_shares_close()
     rows = FW.est_rows_tw(yh["s"], sh, px)
     out = {}
-    groups = sorted({v for v in im.values() if v and v not in BI.TW_SKIP})
-    for g in groups:
-        cs = [c for c, x in im.items() if x == g and re.match(r"^[1-9]\d{3}$", c)]
+    if groups is not None:
+        mem = {g: sorted(groups[g]) for g in sorted(groups)}
+    else:
+        mem = {g: [c for c, x in im.items() if x == g] for g in sorted({v for v in im.values() if v and v not in BI.TW_SKIP})}
+    for g, cs0 in mem.items():
+        cs = [c for c in cs0 if re.match(r"^[1-9]\d{3}$", c)]
         cap_all = sum((sh.get(c) or 0) * (px.get(c) or 0) for c in cs)
         rs = {c: rows[c] for c in cs if c in rows}
         if not rs or cap_all <= 0:
@@ -685,9 +770,8 @@ def g_now_est(a: dict | None, cal: list, px: list) -> dict | None:
 
 def tw_inputs(TB: dict | None = None) -> dict:
     """台股產業：{"cal", "mkt": (cal, px), "S": {產業: 條件輸入}}；TB＝load_indtw()（或 tw_build 的結果）。"""
-    from arm import stockmeta
     from . import bt3d
-    im = stockmeta.industry_map()
+    im = tw_ind_map()
     TB = TB if TB is not None else load_indtw()
     cal = TB.get("cal") or []
     if not cal or MKT not in TB["grp"]:
@@ -712,6 +796,38 @@ def tw_inputs(TB: dict | None = None) -> dict:
             S["gp"] = tw_rev_proxy(g, im, caps, rev, s12)
         out[g] = S
     return {"cal": cal, "mkt": (cal, mk["px"]), "mme": mme, "S": out, "im": im}
+
+
+def tg_inputs(TB: dict | None = None, TM: dict | None = None) -> dict:
+    """台股細分族群：同 tw_inputs，成員＝tg_members()；指數讀 indtg（名單日期和現在的名單不同＝不用，等 CI 重算）。"""
+    from . import bt3d
+    TM = TM if TM is not None else tg_members()
+    if not TM["groups"]:
+        return {}
+    TB = TB if TB is not None else load_indtw(TG_KIND)
+    cal = TB.get("cal") or []
+    if not cal or MKT not in TB["grp"] or (TB.get("src") and TB["src"] != TM["d"]):
+        return {}
+    mk = TB["grp"][MKT]
+    mme, _ = monthly_from_daily(cal, mk["px"])
+    cpi = BU.fill_cpi({k: v[0] for k, v in HD.load("twcpi").items() if v and v[0]})
+    caps = bt3d.month_end_caps()
+    rev = load_rev()
+    s12 = rev_s12(rev)
+    out = {}
+    for g, mem in TM["groups"].items():
+        Gd = TB["grp"].get(g)
+        if not Gd:
+            continue
+        me, pm = monthly_from_daily(cal, Gd["px"])
+        if not me:
+            continue
+        out[g] = {"me": me, "pm": pm, "mkt": mme, "cpi": cpi, "cal": cal, "px": Gd["px"], "trend": True,
+                  "n": Gd["n"], "f": Gd["turn"], "fmin": BI.F_MIN_MONTHS["tw"],
+                  "ps": tw_ps(g, {}, caps, rev, mem), "gp": tw_rev_proxy(g, {}, caps, rev, s12, mem)}
+    last = caps[-1][1] if caps else {}
+    order = {g: sorted(mem, key=lambda c: (-(last.get(c) or 0), c)) for g, mem in TM["groups"].items()}
+    return {"cal": cal, "mkt": (cal, mk["px"]), "mme": mme, "S": out, "TM": TM, "order": order}
 
 
 def us_inputs(L: dict | None = None) -> dict:
@@ -916,6 +1032,10 @@ def research(T: dict | None = None) -> dict:
     if US:
         out["us"] = group_research("us", US, T)
     out["tw"] = group_research("tw", tw_inputs(), T)
+    TG = tg_inputs()
+    if TG:
+        out["tg"] = group_research("tg", TG, T)
+        out["tg"]["src"] = TG["TM"]["d"]
     return _rnd(out)
 
 
@@ -951,8 +1071,27 @@ def _hist(C: dict, me: dict) -> dict:
             "p": [round(me[r["d"]], 4) for r in rows]}
 
 
-def compute(T: dict | None = None, TB: dict | None = None) -> dict:
-    """三組產業的現在狀態與歷史等級（每天建頁用；不跑驗證）。"""
+def _tw_now(I: dict, T: dict, est: dict) -> dict:
+    """台股產業／細分族群：每一組的現在狀態與歷史等級。"""
+    mcal, mpx = I["mkt"]
+    grp = {}
+    for g, S in I["S"].items():
+        C = conditions(S, T)
+        cal, px = S["cal"], S["px"]
+        ix = [i for i, v in enumerate(px) if v]
+        if not ix:
+            continue
+        cal2, px2 = [cal[i] for i in ix], [px[i] for i in ix]
+        S2 = dict(S, cal=cal2, px=px2)
+        p2 = now_p2(cal2, px2, [mcal[i] for i, v in enumerate(mpx) if v], [v for v in mpx if v], S["me"])
+        n = now_status(S2, C, cal2[-1], p2, g_now_est(est.get(g), cal2, px2))
+        n["mem"] = S["n"].get(max(S["n"])) if S["n"] else None
+        grp[g] = {"now": n, "hist": _hist(C, S["me"])}
+    return grp
+
+
+def compute(T: dict | None = None, TB: dict | None = None, TGB: dict | None = None) -> dict:
+    """四組產業的現在狀態與歷史等級（每天建頁用；不跑驗證）。"""
     T = T or BU.load_cv_table()
     if not T:
         return {}
@@ -962,24 +1101,18 @@ def compute(T: dict | None = None, TB: dict | None = None) -> dict:
         TW = tw_inputs(TB)
         if not TW:
             raise ValueError("沒有 indtw（scripts/fetch_heat.py 會在 CI 算）")
-        est = tw_est_now(TW["im"])
-        mcal, mpx = TW["mkt"]
-        grp = {}
-        for g, S in TW["S"].items():
-            C = conditions(S, T)
-            cal, px = S["cal"], S["px"]
-            ix = [i for i, v in enumerate(px) if v]
-            if not ix:
-                continue
-            cal2, px2 = [cal[i] for i in ix], [px[i] for i in ix]
-            S2 = dict(S, cal=cal2, px=px2)
-            p2 = now_p2(cal2, px2, [mcal[i] for i, v in enumerate(mpx) if v], [v for v in mpx if v], S["me"])
-            n = now_status(S2, C, cal2[-1], p2, g_now_est(est.get(g), cal2, px2))
-            n["mem"] = S["n"].get(max(S["n"])) if S["n"] else None
-            grp[g] = {"now": n, "hist": _hist(C, S["me"])}
-        out["tw"] = grp
+        out["tw"] = _tw_now(TW, T, tw_est_now(TW["im"]))
     except Exception as e:                                        # noqa: BLE001 —— 台股產業失敗不影響美股
         out["tw_err"] = f"{type(e).__name__}: {e}"
+    try:
+        TM = tg_members()
+        TG = tg_inputs(TGB, TM)
+        if not TG:
+            raise ValueError("沒有細分族群指數（data/lab/indtg 由 CI 算；名單換了要等下一次重算）")
+        out["tg"] = _tw_now(TG, T, tw_est_now({}, TM["groups"]))
+        out["tg_d"], out["tg_n"], out["tg_skip"], out["tg_list"] = TM["d"], TM["n"], TM["skip"], TG["order"]
+    except Exception as e:                                        # noqa: BLE001 —— 細分族群失敗不影響其他組
+        out["tg_err"] = f"{type(e).__name__}: {e}"
     US = us_inputs(L)
     if US:
         est = us_est_now()

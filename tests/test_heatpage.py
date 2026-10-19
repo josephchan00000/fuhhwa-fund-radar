@@ -495,9 +495,9 @@ def test_bubble_dimension_moved_to_bubble_page(built):
     data = HC.build_data(B, R)
     assert "bubl" not in data["s"] and not any(k in data["s"] for k in S.ITEMS["bubl"])
     V2 = dict(V, bubnow={"mk": "tw", "L": 3, "cond": ["P1", "P2"], "d": "2026-10-16"})
-    line = P.bubble_line(V2)
-    assert "泡沫等級" in line and "泡沫警戒" in line and "（價格爆發、兩年翻倍）" in line
-    assert 'href="x9b.html#tw"' in line and P.bubble_line(dict(V, bubnow=None)) == ""
+    line = P.state_line(V2)                     # 泡沫只剩頁首狀態列的一格（docs/lab_signal_plan.md 第 6.1 節）
+    assert 'href="x9b.html#tw"' in line and "<b>泡沫</b>3<i>泡沫警戒</i>" in line and "（價格爆發、兩年翻倍）" in line
+    assert 'x9b.html' not in P.state_line(dict(V, bubnow=None))
     page2 = P.render(V2)
     assert line in page2 and page2.index(line) < page2.index('<div class="hview" data-view="radar"')
     for w in BANNED:
