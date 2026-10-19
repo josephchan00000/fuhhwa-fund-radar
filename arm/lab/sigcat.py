@@ -536,6 +536,24 @@ def load_research() -> dict | None:
     return R if R.get("ver") == S.VER else None
 
 
+_RCACHE: dict = {}
+
+
+def research_rows() -> list[dict]:
+    """研究檔的列（同一個程序裡只讀一次：五個景氣頁與訊號總覽共用）。"""
+    if "rows" not in _RCACHE:
+        _RCACHE["rows"] = (load_research() or {}).get("rows") or []
+    return _RCACHE["rows"]
+
+
+def today_for(now: dict | None) -> dict | None:
+    """景氣頁「今天的重點」：now＝now_for_B 的結果；研究檔沒有就回 None。"""
+    rows = research_rows()
+    if not now or not rows:
+        return None
+    return {"mk": now["mk"], "d": now["d"], **today(rows, now["on"], now["mk"])}
+
+
 # ── 現在有沒有效（每天建頁） ───────────────────────────────────────────────────
 
 def now_market(F: dict) -> dict:
@@ -640,7 +658,7 @@ def now_for_B(B: dict) -> dict | None:
         F = frame_from_B(B)
         if F is None:
             return None
-        NOW[F["mk"]] = {"d": F["cal"][-1], "on": now_market(F)}
+        NOW[F["mk"]] = {"mk": F["mk"], "d": F["cal"][-1], "on": now_market(F)}
         return NOW[F["mk"]]
     except Exception as e:                            # noqa: BLE001
         print(f"[訊號總覽] 現在的狀態算不出來：{type(e).__name__}: {e}")

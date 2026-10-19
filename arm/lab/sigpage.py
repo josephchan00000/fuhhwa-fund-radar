@@ -17,6 +17,9 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "dashboard" / "x9o.html"
 OUT_DATA = ROOT / "dashboard" / "x9oh.json"
 
+CARDS: dict = {}                                   # 景氣頁建頁時放進來的四張研究卡（heatviz.stash_cards）：{市場: {"d", "crash", …}}
+CARD_ORDER = ("crash", "bottom", "hotdd", "hotch")
+CARD_NAMES = {"crash": "短線大跌風險", "bottom": "大跌後檢查", "hotdd": "過熱之後 3 個月的最大回撤", "hotch": "反向檢查"}
 MK_NAMES = {**S.NAMES, "us": "美股產業", "stk": "個股"}
 MK_ORDER = ("tw", "spx", "ixic", "ndx", "sox", "us", "stk")
 TODAY_MK = ("tw", "spx", "ixic", "ndx", "sox")
@@ -68,8 +71,9 @@ def view() -> dict:
            and ((r["cat"] == "strat" and "ins" not in (r.get("pay") or {})) or r["id"] in on)]   # 整組研究版本只列在表裡
     if ST.get("d"):
         asof["stk"] = ST["d"]
+    rmk = [mk for mk in TODAY_MK if mk in CARDS or (OUT_DATA.parent / f"x9or-{mk}.json").exists()]
     return {"rows": rows, "on": on, "today": today, "stk": stk, "asof": asof, "run": R.get("run"),
-            "last": R.get("last") or {}}
+            "last": R.get("last") or {}, "rmk": rmk}
 
 
 def _pct(v) -> float | None:
@@ -109,7 +113,7 @@ def page_json(V: dict) -> str:
             on[k] = {kk: v[kk] for kk in ("since", "n", "left", "event") if kk in v}
     out = {"rows": [_row(r) for r in V["rows"]], "on": on, "mk": MK_NAMES, "cat": G.CAT_NAMES,
            "asof": V["asof"], "tiers": {t: [S.TIER_MARK[t], S.TIER_NAMES[t]] for t in S.TIERS},
-           "dirs": S.DIR_NAMES, "words": S.VARIANT_NAMES}
+           "dirs": S.DIR_NAMES, "words": S.VARIANT_NAMES, "rmk": V.get("rmk") or [], "cards": CARD_NAMES}
     return json.dumps(out, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
 
@@ -162,12 +166,19 @@ def _th(th: float) -> str:
     return f"{v:.0f}" if abs(v - round(v)) < 1e-9 else f"{v:.1f}"
 
 
-def _since(n: dict) -> str:
+def _dy(d: str | None, ref: str | None) -> str:
+    """M/D；和參考日不同年就加年份（2025/10/22）。"""
+    if not d:
+        return ""
+    return _d(d) if ref and d[:4] == ref[:4] else f"{d[:4]}/{_d(d)}"
+
+
+def _since(n: dict, ref: str | None = None) -> str:
     if n.get("left") is not None:
-        return f'{_d(n["since"])} 出現，還看 {n["left"]} 天'
+        return f'{_dy(n["since"], ref)} 出現，還看 {n["left"]} 天'
     if n.get("event"):
-        return f'{_d(n["since"])} 出現'
-    return f'{_d(n["since"])} 起'
+        return f'{_dy(n["since"], ref)} 出現'
+    return f'{_dy(n["since"], ref)} 起'
 
 
 def today_html(V: dict) -> str:
@@ -187,7 +198,7 @@ def today_html(V: dict) -> str:
                 mark = S.TIER_MARK[r["tier"]]
                 lis.append(f'<li><a class="sgi" href="#s={_e(r["id"])}"><span class="sgtk sgtk-{r["tier"]}">{mark}</span>'
                            f'<span class="sgnm">{_e(r["name"])}</span><span class="sgd sgd-{r["d"]}">{_e(S.DIR_NAMES[r["d"]])}</span>'
-                           f'<span class="sgln">{_line(r)}<span class="sgs">{_e(_since(r["now"]))}</span></span></a></li>')
+                           f'<span class="sgln">{_line(r)}<span class="sgs">{_e(_since(r["now"], V["asof"].get(mk)))}</span></span></a></li>')
             body = pre + '<ul class="sgl">' + "".join(lis) + "</ul>"
         cards.append(f'<div class="sgk">{head}{body}</div>')
     lis = []
@@ -262,18 +273,42 @@ TABLE = ('<section class="sec" id="all"><h2>全部訊號與策略<span class="su
          '<p class="sgmore"><button type="button" id="sgmore" hidden></button></p></section>')
 
 
+def research_html(V: dict) -> str:
+    """研究細節：原本在景氣頁的四張研究卡（2026-10-19 起搬到這裡，docs/lab_signal_plan.md 第 10 節 Q3），每個市場一個檔、點了才載入。"""
+    rmk = V.get("rmk") or []
+    if not rmk:
+        return ""
+    chips = "".join(f'<button type="button" class="sgch" data-r="{mk}">{_e(MK_NAMES[mk])}</button>' for mk in rmk)
+    names = "、".join(CARD_NAMES[c] for c in CARD_ORDER)
+    return ('<section class="sec" id="research"><h2>研究細節<span class="sub">原本在景氣頁的研究卡：' + _e(names) + '</span></h2>'
+            f'<div class="sgchips" id="rmk">{chips}</div>'
+            '<div id="rbox"><p class="note">選一個市場，載入那個市場的四張研究卡。訊號點開之後的「相關研究」也會連到這裡。</p></div></section>')
+
+
+def card_json(mk: str, c: dict) -> str:
+    """一個市場的四張卡，各自收在一個 <details>（點開才展開；#r=市場:卡 會打開那一張）。"""
+    html = "".join(f'<details class="sgrc" id="rc-{k}"><summary>{_e(CARD_NAMES[k])}</summary>{c[k]}</details>'
+                   for k in CARD_ORDER if c.get(k))
+    return json.dumps({"mk": mk, "d": c.get("d"), "html": html}, ensure_ascii=False, separators=(",", ":"))
+
+
 def render(V: dict) -> str:
     from . import appnav
+    from . import bottompage as BP
+    from . import crashpage as CP
+    from . import heatviz as VZ
+    from . import hotchpage as QP
+    from . import hotddpage as XP
     from .heatpage import _CSS as HCSS
     grp: dict = {}
     for mk, d in V["asof"].items():
         if d:
             grp.setdefault("台股" if mk == "tw" else ("個股" if mk == "stk" else "美股"), set()).add(d)
     asof = "、".join(f'{k} {"／".join(_d(x) for x in sorted(v))}' for k, v in grp.items())
-    body = today_html(V) + TABLE + METHOD
+    body = today_html(V) + TABLE + research_html(V) + METHOD
     if not V["rows"]:
         body = '<p class="warn">還沒有研究結果（scripts/run_sig.py）。</p>'
-    return (_HTML.replace("{{APPTAB}}", appnav.bar("sig")).replace("{{CSS}}", HCSS + appnav.CSS + CSS)
+    return (_HTML.replace("{{APPTAB}}", appnav.bar("sig")).replace("{{CSS}}", HCSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS + QP.CSS + BP.CSS + CSS)
             .replace("{{ASOF}}", _e(("資料到 " + asof) if asof else "")).replace("{{BODY}}", body)
             .replace("{{DATA}}", page_json(V)).replace("{{JS}}", JS))
 
@@ -281,7 +316,8 @@ def render(V: dict) -> str:
 def build(out: Path = OUT, data_out: Path = OUT_DATA) -> bool:
     V = view()
     changed = False
-    for path, text in ((data_out, detail_json(V)), (out, render(V))):
+    files = [(data_out.parent / f"x9or-{mk}.json", card_json(mk, c)) for mk, c in sorted(CARDS.items())]
+    for path, text in files + [(data_out, detail_json(V)), (out, render(V))]:
         if path.exists() and path.read_text(encoding="utf-8") == text:
             continue
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -331,6 +367,11 @@ CSS = """
 .sgol li{padding:1px 6px;border-radius:6px;background:var(--card2);white-space:nowrap}
 .sgol li.y{background:var(--accbg)}.sgol li .x{color:var(--mut)}
 .sgmore{text-align:center}
+.sgrc{border:1px solid var(--line);border-radius:12px;margin:8px 0;background:var(--panel)}
+.sgrc>summary{cursor:pointer;padding:10px 14px;font-weight:600;font-size:15px;list-style:none}
+.sgrc>summary::-webkit-details-marker{display:none}.sgrc>summary::before{content:"▸ ";color:var(--mut)}.sgrc[open]>summary::before{content:"▾ "}
+.sgrc>section{margin:0;padding:0 4px 4px}
+#rmk{margin:4px 0 8px}
 .sgmth p{font-size:13.5px;line-height:1.75}
 @media (max-width:900px){.sgt{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){.sgt{grid-template-columns:minmax(0,1fr)}.sgtb .dsk{display:none}.sgln{padding-left:0}
@@ -351,6 +392,8 @@ let OCC = null, OCCP = null;
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pc = v => v == null ? '—' : Math.round(v) + '%';
 const md = d => d ? (+d.slice(5,7)) + '/' + (+d.slice(8,10)) : '';
+const YR = Object.values(SG.asof || {}).filter(Boolean).sort().pop() || '';
+const mdy = d => d ? (d.slice(0,4) === YR.slice(0,4) ? md(d) : d.slice(0,4) + '/' + md(d)) : '';
 const ymd = d => d ? d.slice(0,4) + '/' + (+d.slice(5,7)) + '/' + (+d.slice(8,10)) : '';
 function sd(r){ const d = r[I.dir][0]; return [d, r[d === 'up' ? I.up : d === 'warn' ? I.warn : I.buy]]; }
 function edge(r){ const s = sd(r)[1]; return s && s[1] != null && s[2] != null ? s[1] - s[2] : null; }
@@ -358,9 +401,9 @@ function hz(r){ const c = r[I.cat]; if (c === 'buy') return '這一波'; if (c =
   if (c === 'strat') return '照規則'; return HT[r[I.H]] || (r[I.H] + ' 個交易日'); }
 function nowTxt(r){ const n = ON[r[I.id]]; if (!n) return '';
   if (n.live != null) return '今天 ' + n.live + ' 檔';
-  if (n.left != null) return md(n.since) + ' 出現・還看 ' + n.left + ' 天';
-  if (n.event) return md(n.since) + ' 出現';
-  return '有效・' + md(n.since) + ' 起'; }
+  if (n.left != null) return mdy(n.since) + ' 出現・還看 ' + n.left + ' 天';
+  if (n.event) return mdy(n.since) + ' 出現';
+  return '有效・' + mdy(n.since) + ' 起'; }
 function dirName(r){ return r[I.dir].map(d => r[I.cat] === 'strat' ? '策略' : SG.dirs[d]).join('、'); }
 function hay(r){ const x = r[I.x] || {}; return (r[I.name] + ' ' + r[I.id] + ' ' + (x.vn || '') + ' ' + (x.var || '') + ' ' +
   SG.mk[r[I.mk]] + ' ' + SG.cat[r[I.cat]]).toLowerCase(); }
@@ -389,7 +432,7 @@ function sorted(list){
 function chips(){
   const defs = {mk: MKO.map(k => [k, SG.mk[k]]), cat: Object.entries(SG.cat), tier: Object.entries(SG.tiers).map(([k, v]) => [k, v[0] + ' ' + v[1]]),
     dir: [['up','偏多'],['warn','警示'],['buy','買點']]};
-  document.querySelectorAll('.sgchips').forEach(box => {
+  document.querySelectorAll('.sgchips[data-k]').forEach(box => {
     const k = box.dataset.k;
     const cnt = {}; ROWS.forEach((r, i) => { if (!pass(r, i, k)) return;
       const vs = k === 'dir' ? r[I.dir] : [r[I[k]]]; vs.forEach(v => { cnt[v] = (cnt[v] || 0) + 1; }); });
@@ -476,6 +519,7 @@ function detHtml(r){
   if (x.pay) h += '<p class="sgdl">' + esc(payTxt(x)) + (x.old ? '（機會頁目前評級 ' + esc(x.old) + '）' : '') + '</p>';
   if (x.up60 != null) h += '<p class="sgdl">另列：之後 60 日收盤比買價高的比例 ' + pc(x.up60) + '。</p>';
   if (r[I.a]) h += '<p class="sgdl note">資料期間 ' + ymd(r[I.a]) + '～' + ymd(r[I.z]) + '。</p>';
+  const rl = rel(r); if (rl) h += '<p class="sgdl"><b>相關研究</b>：' + rl + '</p>';
   h += '<div class="sgocw">' + (OCC ? occHtml(r, OCC.occ[r[I.id]]) : '<p class="note">每一次的清單載入中…</p>') + '</div>';
   return h; }
 function loadOcc(){ if (OCCP) return OCCP;
@@ -505,7 +549,29 @@ document.getElementById('sgcsv').addEventListener('click', () => {
       e == null ? '' : e.toFixed(1), s ? (s[3] ?? '') : '', s ? (s[4] ?? '') : '', s ? (s[5] ?? '') : '', nowTxt(r), r[I.id]]; }));
   const csv = '﻿' + lines.map(l => l.map(v => { const t = String(v == null ? '' : v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); a.download = '訊號總覽.csv'; a.click(); });
-function fromHash(){ const m = location.hash.match(/^#s=(.+)$/); if (!m) return;
+const RMK = SG.rmk || [], RCACHE = {};
+function loadR(mk, card){
+  const box = document.getElementById('rbox'); if (!box || !RMK.includes(mk)) return;
+  document.querySelectorAll('#rmk .sgch').forEach(b => b.classList.toggle('on', b.dataset.r === mk));
+  const show = h => { box.innerHTML = h; if (card) { const el = document.getElementById('rc-' + card); if (el) { el.open = true; el.scrollIntoView({block: 'start'}); } } };
+  if (RCACHE[mk]) { show(RCACHE[mk]); return; }
+  box.innerHTML = '<p class="note">' + esc(SG.mk[mk]) + ' 的研究卡載入中…</p>';
+  fetch('x9or-' + mk + '.json').then(x => x.json()).then(j => { RCACHE[mk] = j.html || '<p class="note">這個市場沒有研究卡。</p>'; show(RCACHE[mk]); })
+    .catch(() => { box.innerHTML = '<p class="note">載入失敗，請重新整理。</p>'; }); }
+const rm = document.getElementById('rmk');
+if (rm) rm.addEventListener('click', e => { const b = e.target.closest('.sgch'); if (b) loadR(b.dataset.r); });
+function rel(r){ const c = r[I.cat], x = r[I.x] || {}, mk = r[I.mk], out = [];
+  if (c === 'bub') return '<a href="x9b.html#' + mk + '">泡沫頁（' + esc(SG.mk[mk]) + '）</a>';
+  if (c === 'ind') return '<a href="x9b.html#ind">泡沫頁・產業</a>';
+  if (!RMK.includes(mk)) return '';
+  if (c === 'crash') out.push('crash'); else if (c === 'buy') out.push('bottom'); else if (c === 'multi') out.push('hotdd');
+  else if (c === 'tech') out.push('hotch');
+  else if (c === 'heat') { if (['hot_in', 'hot_out', 'hot13'].includes(x.sig)) out.push('hotdd');
+    if (x.sig === 'hot13' && ['chip', 'sent'].includes(r[I.grp])) out.push('hotch'); }
+  return out.map(k => '<a href="#r=' + mk + ':' + k + '">' + esc(SG.cards[k]) + '（' + esc(SG.mk[mk]) + '）</a>').join('、'); }
+function fromHash(){ const rr = location.hash.match(/^#r=(\w+)(?::(\w+))?$/);
+  if (rr) { loadR(rr[1], rr[2]); const sec = document.getElementById('research'); if (sec && !rr[2]) sec.scrollIntoView({block: 'start'}); return; }
+  const m = location.hash.match(/^#s=(.+)$/); if (!m) return;
   const id = decodeURIComponent(m[1]); const r = ROWS.find(x => x[I.id] === id); if (!r) return;
   st.q = ''; document.getElementById('sgq').value = ''; st.mk = r[I.mk]; st.cat = r[I.cat]; st.tier = ''; st.dir = ''; st.now = false;
   document.getElementById('sgnow').checked = false; OPEN = id; st.limit = 100;

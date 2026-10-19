@@ -165,10 +165,11 @@ def test_hotdd_note_names_chip_items_with_bigger_drawdowns():
 
 def test_card_is_wired_into_both_heat_pages_and_classes_are_prefixed():
     viz = (ROOT / "arm/lab/heatviz.py").read_text(encoding="utf-8")
-    assert "{top}{crash}{bottom}{hotdd}{hotch}{items}" in viz and '<a href="#hotch">反向檢查</a>' in viz
-    assert "XP.card(V.get(\"hotdd\"), note=QP.hotdd_note(V.get(\"hotch\")) if hotch else None)" in viz
-    for f in ("arm/lab/heatpage.py", "arm/lab/heatpage_us.py"):
-        assert "QP.CSS" in (ROOT / f).read_text(encoding="utf-8"), f
+    # 2026-10-19 起四張研究卡搬到訊號總覽（docs/lab_signal_plan.md 第 10 節 Q3）：景氣頁照樣算、不放進頁面，存給訊號總覽
+    assert "stash_cards(V)" in viz and "{top}{items}" in viz and 'href="#hotch"' not in viz
+    sp = (ROOT / "arm/lab/sigpage.py").read_text(encoding="utf-8")
+    assert "QP.CSS" in sp and '"hotch"' in sp
+    assert "note=QP.hotdd_note(V.get(\"hotch\")) if hotch else None" in viz
     hp = (ROOT / "arm/lab/heatpage.py").read_text(encoding="utf-8")
     assert '"hotch": hotch_now(B) if T else None' in hp
     css = set(re.findall(r"\.([a-zA-Z][\w-]*)", QP.CSS))
