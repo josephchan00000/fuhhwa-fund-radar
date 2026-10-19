@@ -10,6 +10,7 @@
   decline_signals()     大跌時轉空訊號出現的位置
   market()              一個市場；research()：五個市場＋主要假說 → data/lab/hotch_research.json
   now()                 每天建頁：今天的連續過熱週數、最近的轉空事件、空頭狀態
+  runs_now()            每天建頁：頁面列出的項目的每一段連續過熱（算到今天）
 
 研究檔只在資料或規格改了才重跑：TZ=Asia/Taipei python3 scripts/run_hotch.py（numpy）。
 """
@@ -112,7 +113,9 @@ def pct_rank(v: float, pool: np.ndarray) -> float | None:
 
 def run_rows(x: list, we: list[int], cal: list[str], px: np.ndarray, i0: int) -> list[dict]:
     """每一段連續過熱（≥ 4 週）：從第 4 個過熱週末的下一個交易日收盤起，到最後一個過熱週末之後第 60 個交易日的最大回撤，
-    和同樣長度、起點在這個變數第一個有值的日子以後的所有窗口比的百分位。"""
+    和同樣長度、起點在這個變數第一個有值的日子以後的所有窗口比的百分位。
+    open＝結束後還沒滿 60 個交易日（最大回撤算到日曆最後一天，百分位不能比、頁面不顯示也不計數）；
+    hot＝最後一個週末還在過熱（一定也是 open）。"""
     T = len(cal)
     first = next((i for i in range(i0, T) if _has(x[i])), None)
     if first is None:
@@ -125,7 +128,7 @@ def run_rows(x: list, we: list[int], cal: list[str], px: np.ndarray, i0: int) ->
         a = s4 + S.LAG
         b = min(we[j1] + S.H, T - 1)
         row = {"a": cal[we[j0]], "s4": cal[s4], "z": cal[we[j1]], "wk": j1 - j0 + 1,
-               "open": we[j1] + S.H > T - 1, "mdd": None}
+               "open": we[j1] + S.H > T - 1, "hot": j1 == len(we) - 1, "mdd": None}
         r = K.run_mdd(px, a, b) if a <= b else None
         if r:
             L = b - a
@@ -592,6 +595,14 @@ def now(I: dict) -> dict:
                 st[k] = {"on": False} if TS["ok"][k][t] else None
     return {"d": cal[t] if T else None, "chip": chip, "recent": recent, "states": st,
             "tech": tech[t] if T else None}
+
+
+def runs_now(I: dict, keys) -> dict:
+    """每天建頁：指定項目的每一段連續過熱，算到今天（和研究檔同一支 run_rows）。研究檔不常重跑，
+    段的狀態（還在過熱、結束還沒滿 3 個月、已滿 3 個月）與最大回撤要以今天為準。"""
+    from . import heatpos as P
+    we = P.week_ends(I["cal"])
+    return {k: run_rows(I["x"][k], we, I["cal"], I["px"], I["i0"]) for k in keys if k in I["x"]}
 
 
 # ── 研究檔 ────────────────────────────────────────────────────────────────

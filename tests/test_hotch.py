@@ -123,6 +123,15 @@ def test_run_rows_window_and_percentile():
     pool = [K.mdd_direct(list(px), s, s + b - a)[0] for s in range(50, n - (b - a))]
     assert abs(r["pct"] - (sum(p < m for p in pool) + 0.5 * sum(p == m for p in pool)) / len(pool)) < 1e-12
     assert rows[1]["open"] and rows[1]["wk"] == 5 and rows[1]["days"] == n - 1 - (we[-2] + 1)
+    assert (r["hot"], rows[1]["hot"]) == (False, True)                    # 最後一個週末還在過熱＝hot
+    # 結束了但還沒滿 60 個交易日：open、不是 hot（頁面標「結束未滿 3 個月」）
+    y = list(x)
+    for t in range(we[-2] + 1, n):                                        # 最後一週退燒
+        y[t] = 50.0
+    rr = X.run_rows(y, we, cal, px, 0)
+    assert rr[1]["open"] and not rr[1]["hot"] and rr[1]["wk"] == 4 and rr[1]["days"] == n - 1 - (we[-2] + 1)
+    I = {"cal": cal, "px": px, "x": {"a": x, "b": y}, "i0": 0}
+    assert X.runs_now(I, ["b", "a", "zz"]) == {"b": rr, "a": rows}
 
 
 def test_td1_matches_direct():
