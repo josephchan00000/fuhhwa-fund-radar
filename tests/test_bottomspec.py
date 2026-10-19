@@ -1,11 +1,19 @@
 """大跌後的買點與落底訊號規格（docs/lab_crash_plan.md 第 13 節）：規格鎖定。
 
-規格是在算任何「事件或訊號 → 之後漲跌」的關係之前寫定的（VER 1，2026-10-19）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
+規格是在算任何「事件或訊號 → 之後漲跌」的關係之前寫定的（VER 1，2026-10-19）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。
+VER 2（同日，看過 VER 1 的結果之後；規劃第 16 節）只改落底訊號的判定：對照從事件隔天買換成固定等 10 天，其他照 VER 1。"""
 from arm.lab import bottomspec as S
 
 
-def test_bottom_spec_v1_is_locked():
-    assert S.VER == 1 and S.SPEC_DATE == "2026-10-19"
+def test_bottom_spec_v2_is_locked():
+    assert S.VER == 2 and S.VER2_DATE == "2026-10-19"
+    assert S.SIG_BASE == "W10" and S.SIG_BASE in S.RULES and S.SIG_BASE not in S.SIGNALS
+    assert S.VERDICT_SIG == {"better": "有用", "trade": "比較少再創新低，但報酬也比較少", "worse": "比固定等 10 天差",
+                             "none": "看不出差別", "few": "樣本不足"}
+
+
+def test_bottom_spec_v1_parts_are_unchanged():
+    assert S.SPEC_DATE == "2026-10-19"
     assert S.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
     assert S.EVENTS == ("E5", "E10")
     assert S.E5_DAYS == 5 and S.E5_GAP == 60
@@ -27,7 +35,8 @@ def test_bottom_spec_v1_is_locked():
     assert S.RULES == ("W10",) + S.SIGNALS
     assert (S.BOOT_N, S.BOOT_SEED, S.BLOCK, S.CI) == (2000, 20261019, 250, 0.95)
     assert (S.MIN_N, S.MIN_EP, S.EP_GAP, S.BH_Q) == (10, 6, 120, 0.10)
-    assert set(S.VERDICT) == {"better", "trade", "worse", "none", "few"}
+    assert S.VERDICT == {"better": "有用", "trade": "比較少再創新低，但報酬也比較少", "worse": "比事件隔天就買差",
+                         "none": "看不出差別", "few": "樣本不足"}
     assert set(S.GVERDICT) == {"up", "down", "none", "few"}
     assert {k: (v["group"], v["ev"], v["out"]) for k, v in S.PRIMARY.items()} == {
         "HB1": ("fund", "E5", "R60"), "HB2": ("chip", "E5", "R60")}
