@@ -89,7 +89,7 @@ def _stat(st: dict | None):
 
 def _row(r: dict) -> list:
     x = {"vn": r.get("vn"), "sig": r.get("sig"), "var": r.get("var")}
-    for k in ("desc", "base_name", "old", "unit", "monthly"):
+    for k in ("desc", "base_name", "old", "unit", "monthly", "few"):
         if r.get(k) is not None:
             x[k] = r[k]
     if r.get("pay"):
@@ -209,7 +209,7 @@ def today_html(V: dict) -> str:
             ln = f'賺錢比例 <b>{st["hit"] * 100:.0f}%</b>'
             if p.get("path") == "上漲空間大" and p.get("ratio") is not None and p["ratio"] != float("inf"):
                 ln += f'・賺賠比 {p["ratio"]:.1f}'
-            ln += f'・每月平均 {p.get("m") or 0:+.1f}%・{st["n"]} 筆'
+            ln += f'・每月平均 {p.get("m") or 0:+.1f}%・{st["n"]} 筆' + ("（次數少）" if r.get("few") else "")
         else:
             ln = f'持有 20 個交易日賺錢 <b>{st["hit"] * 100:.0f}%</b>・{st["n"]} 次'
         lis.append(f'<li><a class="sgi" href="#s={_e(r["id"])}"><span class="sgtk sgtk-good">★</span>'
@@ -236,9 +236,9 @@ METHOD = ('<section class="sec" id="mth"><details class="sgmth"><summary>判定�
           '狀態中的每一天都算，但同一段連續狀態只算 1 次，命中率是每一段先算、再平均。</p>'
           '<p><b>個股訊號</b>：同一檔 5 個交易日內重複只算一次，隔天開盤買、持有 20 個交易日，扣來回成本後賺錢算中；'
           '平常＝同一段期間加權指數上漲的比例（資料從 2026 年 7 月起，大多是上漲行情）。'
-          f'<b>個股策略</b>：至少 {S.STRAT_N_MIN} 筆，報酬型態過（賺錢比例 ≥ 60% 而且每月平均 ≥ 1%，或賺錢比例 ≥ 40%、賺賠比 ≥ 2.5、'
-          '每月平均 ≥ 2%）＝★；平均每筆賺錢但沒過＝●。</p>'
-          '<p class="note">規格寫在 arm/lab/sigspec.py（VER 1），在算命中率之前寫定；改規格要升版本。只描述過去發生的比例。</p>'
+          f'<b>個股策略</b>：至少 {S.STRAT_N_MIN} 筆（不到 {S.STRAT_FEW} 筆標「次數少」，照樣判定），報酬型態過（賺錢比例 ≥ 60% 而且每月平均 ≥ 1%，'
+          '或賺錢比例 ≥ 40%、賺賠比 ≥ 2.5、每月平均 ≥ 2%）＝★；平均每筆賺錢但沒過＝●。個股頁「機會」的推薦用這個判定。</p>'
+          f'<p class="note">規格寫在 arm/lab/sigspec.py（VER {S.VER}），在算命中率之前寫定；改規格要升版本。只描述過去發生的比例。</p>'
           '</details></section>')
 
 _HTML = """<!doctype html>
@@ -494,7 +494,7 @@ function payTxt(x){ const p = x.pay; if (!p) return '';
     return [f('樣本內', p.ins), f('樣本外', p.oos)].filter(Boolean).join('；'); }
   const r1 = v => v == null ? '—' : (+v).toFixed(1);
   return '賺錢比例 ' + r1(p.win) + '%、賺賠比 ' + (p.ratio == null ? '—' : r1(p.ratio)) + '、平均每筆 ' + r1(p.avg) + '%、每月平均 ' + r1(p.m) + '%、平均持有 ' + r1(p.hm) + ' 個月' +
-    (p.ok ? '（報酬型態過，' + (p.path || '') + '）' : '（報酬型態沒過）'); }
+    (p.ok ? '（報酬型態過，' + (p.path || '') + '）' : '（報酬型態沒過）') + (x.few ? '；次數少（不到 30 筆，照樣判定）' : ''); }
 function occHtml(r, oc){
   if (!oc || !oc.length) return '<p class="note">沒有每一次的清單。</p>';
   const c = r[I.cat], d = r[I.dir][0];
@@ -516,7 +516,7 @@ function detHtml(r){
   const ds = r[I.cat] === 'buy' ? ['buy'] : (r[I.cat] === 'stock' || r[I.cat] === 'strat') ? [d] : ['up', 'warn'];
   h += ds.map(dd => '<p class="sgdl"><b>' + (r[I.cat] === 'strat' ? '怎樣算中了' : SG.dirs[dd] + '：怎樣算中了') + '</b>：' + esc(succ(r, dd)) + '</p>').join('');
   h += '<ul class="sgst">' + statRows(r) + '</ul>';
-  if (x.pay) h += '<p class="sgdl">' + esc(payTxt(x)) + (x.old ? '（機會頁目前評級 ' + esc(x.old) + '）' : '') + '</p>';
+  if (x.pay) h += '<p class="sgdl">' + esc(payTxt(x)) + (x.old ? '（後台的 A／B／C 評級：' + esc(x.old) + '；機會頁的推薦用這裡的判定）' : '') + '</p>';
   if (x.up60 != null) h += '<p class="sgdl">另列：之後 60 日收盤比買價高的比例 ' + pc(x.up60) + '。</p>';
   if (r[I.a]) h += '<p class="sgdl note">資料期間 ' + ymd(r[I.a]) + '～' + ymd(r[I.z]) + '。</p>';
   const rl = rel(r); if (rl) h += '<p class="sgdl"><b>相關研究</b>：' + rl + '</p>';

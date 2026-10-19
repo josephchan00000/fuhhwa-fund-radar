@@ -22,10 +22,14 @@ import random
 import statistics
 from collections import Counter
 
+from .sigspec import STRAT_CAP
+
 BOOT_N = 2000
 SEED = 20261015
 CAP = {"A": 0.05, "B": 0.02, "C": 0.0}       # 每檔部位上限（占總資金）
 LOSS_CAP = 0.005                              # 有停損價時：單筆停損虧損 ≤ 總資金 0.5%
+REC = ("good", "ref")                         # 機會頁推薦的判定（★ 好策略、● 可參考；sigspec VER 2）
+TIER_ORDER = ("good", "ref", "none", "few")
 LABEL = {"A": "可執行", "B": "小部位試行", "C": "不推薦"}
 RULE = [
     {"g": "A", "cond": "樣本 ≥30 筆（事件型 ≥6 次）、超額報酬 95% 信賴區間下限 >0、單月占比 ≤40%、成本加倍後仍贏大盤、"
@@ -248,8 +252,9 @@ def score(units: list[dict], event: bool = False, fwd_units: list[dict] | None =
 
 
 def size(g: str, px: float | None, stop: float | None, capital: float = 1_000_000) -> dict | None:
-    """每 100 萬資金的部位：評級上限，有停損時再以「停損虧損 ≤ 0.5%」限制。"""
-    cap = CAP.get(g, 0)
+    """每 100 萬資金的部位：評級（A／B／C）或判定（good／ref…，sigspec.STRAT_CAP）上限，有停損時再以「停損虧損 ≤ 0.5%」限制。"""
+    from .sigspec import STRAT_CAP
+    cap = CAP[g] if g in CAP else STRAT_CAP.get(g, 0)
     if not cap or not px:
         return None
     p = cap
@@ -429,17 +434,25 @@ def build(data: dict) -> dict:
     # 回測方法 v3：新策略＋既有策略改新評級；本期操作依證據強弱排序（有樣本外的在前）
     v3 = build_v3(data.get("v3") or {}, data.get("v3ex") or {}, last)
     g3 = {g["k"]: g for g in v3["grades"]}
-    for it in picks + watch:                       # 既有策略的卡片改掛新評級；C 級移到觀察名單
+    old = {g["k"]: g for g in grades}
+    # 機會頁的推薦改用報酬型態判定（docs/lab_signal_plan.md 第 15 節，sigspec VER 2）：先集中逐筆交易，再逐條判定 ★／●／○／—。
+    # 原本的 A／B／C（回測方法 v3）照算、留在後台。
+    tbook, tnames = trade_book(data, v3["live"], set(g3) | set(old))
+    try:
+        from .sigcat import strat_judge
+        judge = strat_judge(tbook)
+    except Exception as e:                             # noqa: BLE001 —— 判定算不出來：全部當次數不夠，不列推薦
+        print(f"[策略] 報酬型態判定算不出來：{type(e).__name__}: {e}")
+        judge = {}
+    tier = lambda k: (judge.get(k) or {}).get("tier") or "few"
+    allp = picks + watch + v3["picks"] + v3["watch"]
+    for it in allp:                                # 卡片掛判定與部位；評級（後台用）照舊
         if it["k"] in g3:
             it["grade"] = g3[it["k"]]["grade"]
-            it["size"] = size(it["grade"], it.get("px"), it.get("stop"))
-    allp = picks + watch + v3["picks"] + v3["watch"]
-    picks = [x for x in allp if x["grade"] in ("A", "B")]
-    watch = [x for x in allp if x["grade"] not in ("A", "B")]
-    order = {g["k"]: i for i, g in enumerate(sorted(v3["grades"], key=lambda g: g["ev"]))}
-    picks.sort(key=lambda x: (order.get(x["k"], 99), x["act"] != "持有中", x.get("ent") or "9999", x["c"]))
-    watch.sort(key=lambda x: (order.get(x["k"], 99), x["c"]))
-    old = {g["k"]: g for g in grades}
+        it["tier"] = tier(it["k"])
+        it["size"] = size(it["tier"], it.get("px"), it.get("stop"))
+    picks = [x for x in allp if x["tier"] in REC]
+    watch = [x for x in allp if x["tier"] not in REC]
     if "hd" in old:                                  # 高股息換股：追買評級沿用（平均超額為負，任何規則都是 C）
         h = old["hd"]
         v3["grades"].append({"k": "hd", "grade": h.get("grade") or "C", "why": h.get("why") or [], "ins": None, "oos": None,
@@ -452,10 +465,15 @@ def build(data: dict) -> dict:
     grades3 = sorted(v3["grades"], key=lambda g: ("ABC".index(g["grade"]) if g["grade"] in "ABC" else 3, g["ev"]))
     for g in grades3:
         g.pop("ev", None)
-    rk = rank(grades3, last, v3["live"], old)
+        g["tier"], g["j"] = tier(g["k"]), judge.get(g["k"])
+    rk = rank(grades3, judge)
     for g in grades3:
         g["rank"], g["rank_why"] = rk.get(g["k"], (None, None))
+    order = {k: v[0] for k, v in rk.items()}
+    picks.sort(key=lambda x: (order.get(x["k"], 99), x["act"] != "持有中", x.get("ent") or "9999", x["c"]))
+    watch.sort(key=lambda x: (order.get(x["k"], 99), x["c"]))
     bk = book(grades3, v3["live"], old)
+    bk.sort(key=lambda b: (b["rank"] is None, b["rank"] or 0, TIER_ORDER.index(b["tier"])))
     try:
         nxt = trading_days_after(last, 1)[0] if last else None
     except Exception:                                   # 休市表讀不到時不標「下一個交易日」
@@ -463,8 +481,7 @@ def build(data: dict) -> dict:
     cal = calendar(picks, v3["live"], {g["k"]: g for g in grades3}, order, {b["k"]: b for b in bk}, s3, s5,
                    sum(1 for x in grow.get("screen") or [] if x.get("pass")), last)
     opp = opps(bk, cal, picks)
-    tbook, tnames = trade_book(data, v3["live"], {g["k"] for g in grades3})
-    return {"rule": RULE3, "rule_old": RULE, "pay3": PAY3, "cost3": COST3, "rule_stop": RULE_STOP, "caps": CAP,
+    return {"rule": RULE3, "rule_old": RULE, "pay3": PAY3, "cost3": COST3, "rule_stop": RULE_STOP, "caps": {**CAP, **STRAT_CAP},
             "loss_cap": LOSS_CAP, "grades": grades, "grades3": grades3, "picks": picks, "watch": watch, "exits": exits,
             "book": bk, "cal": cal, "nxt": nxt, "opp": opp, "trades": tbook, "tnames": tnames,
             "pack": pack, "v3": {"live": v3["live"], "basket": v3["basket"], "meta": v3["meta"]}, "last": last,
@@ -559,52 +576,35 @@ def book(grades3: list, live: dict, old: dict) -> list:
         else:
             e, extra = expect(old.get(k) or {}), {}
         out.append({"k": k, "name": g.get("name"), "how": HOW.get(k), "hold": HOLD.get(k), "grade": g["grade"],
+                    "tier": g.get("tier") or "few", "j": g.get("j"),
                     "unit": UNIT.get(k, "次"), "exp": e, "rank": g.get("rank"), "rank_why": g.get("rank_why"), **extra})
     return out
 
 
 # —— 版面 v4（docs/lab_ia_v4_plan.md）：推薦順序與白話理由、機會頁卡片
 
-def _yrs(d0: str | None, last: str | None) -> int | None:
-    from datetime import date
-    try:
-        return round((date.fromisoformat(last[:10]) - date.fromisoformat(d0[:10])).days / 365.25)
-    except (TypeError, ValueError):
-        return None
+def rank_why(j: dict) -> str:
+    """推薦順序旁的一句（白話、只講逐筆成績）：賺錢比例、每月平均、筆數；不到 STRAT_FEW 筆加「次數少」。"""
+    from .sigspec import STRAT_FEW
+    n, win, m, avg = j.get("n") or 0, j.get("win"), j.get("m"), j.get("avg")
+    if not n or win is None:
+        return "還沒有已出場的交易"
+    sg = lambda x, d=1: "—" if x is None else f"{'+' if x > 0 else '−' if x < 0 else ''}{abs(x):.{d}f}%"
+    if j.get("tier") == "good" and j.get("path") == "上漲空間大":
+        t = f"逐筆賺錢 {win:.0f}%，賺的時候平均是賠的 {j['ratio']:.1f} 倍；每月平均 {sg(m)}"
+    elif j.get("tier") == "good":
+        t = f"逐筆賺錢 {win:.0f}%，每月平均 {sg(m)}"
+    else:
+        t = f"逐筆賺錢 {win:.0f}%、每月平均 {sg(m)}，平均每筆 {sg(avg)}，還沒到好策略的門檻"
+    return t + f"（{n} 筆{'，次數少' if n < STRAT_FEW else ''}）"
 
 
-def _months(d0: str | None, last: str | None) -> int | None:
-    try:
-        return (int(last[:4]) - int(d0[:4])) * 12 + int(last[5:7]) - int(d0[5:7])
-    except (TypeError, ValueError):
-        return None
-
-
-def rank(grades3: list, last: str | None, live: dict, old: dict) -> dict:
-    """推薦順序＝評級總表的順序（A 在前；同級依證據強弱），只排 A、B 級（高股息換股只當出場規則，不排）。
-    理由只講資料多長、有沒有事後驗證（樣本外：規則用 2021-10 起的資料訂，再拿 2013～2021-09 重跑）；不出現 t 值。
-    事後驗證「也贏」＝樣本外平均贏同一批股票且 t ≥1，「偏弱」＝其餘。→ {鍵: (順序, 理由)}"""
-    out, n = {}, 0
-    for g in grades3:
-        k = g["k"]
-        if k == "hd" or g.get("grade") not in ("A", "B"):
-            continue
-        n += 1
-        o = g.get("oos") or {}
-        if g.get("has_oos") and o.get("n"):
-            al = ((live.get(k) or {}).get("res") or {}).get("all") or {}
-            y = _yrs(al.get("d0") or o.get("d0"), last)
-            ok = (o.get("xe") or 0) > 0 and (o.get("t") or 0) >= 1
-            why = f"{y} 年資料，事後驗證{'也贏' if ok else '偏弱'}" if y else f"事後驗證{'也贏' if ok else '偏弱'}"
-        else:
-            s = old.get(k) or {}
-            if s.get("event"):
-                why = f"資料只有 {s.get('n') or 0} 次（{str(s.get('d0') or '')[:4]} 年起），還沒有事後驗證"
-            else:
-                m = _months(s.get("d0"), last)
-                why = f"資料只有 {m} 個月，還沒有事後驗證" if m is not None else "還沒有事後驗證"
-        out[k] = (n, why)
-    return out
+def rank(grades3: list, judge: dict) -> dict:
+    """推薦順序（docs/lab_signal_plan.md 第 15 節，sigspec VER 2）：只排 ★ 好策略與 ● 可參考，★ 在前，
+    同級依逐筆賺錢比例由高到低（同分看每月平均）；高股息換股只當出場與避開規則，不排。→ {鍵: (順序, 理由)}"""
+    ks = [g["k"] for g in grades3 if g["k"] != "hd" and (judge.get(g["k"]) or {}).get("tier") in REC]
+    ks.sort(key=lambda k: (TIER_ORDER.index(judge[k]["tier"]), -(judge[k].get("win") or 0), -(judge[k].get("m") or 0)))
+    return {k: (i + 1, rank_why(judge[k])) for i, k in enumerate(ks)}
 
 
 NEXT_TXT = {"s1": "每天收盤後依當天的投信加碼名單產生，隔天開盤價低於昨收才買"}
@@ -621,6 +621,7 @@ def opps(bk: list, cal: list, picks: list) -> dict:
         held = [e for e in ev if e.get("held")]
         pend = [e for e in ev if e["act"] == "買進" and not e.get("items")]
         cards.append({"k": k, "rank": b["rank"], "why": b.get("rank_why"), "name": b.get("name"), "grade": b["grade"],
+                      "tier": b.get("tier"), "j": b.get("j"),
                       "how": b.get("how"), "hold": b.get("hold"), "unit": b.get("unit"), "exp": b.get("exp"),
                       "all": {x: (b.get("all") or {}).get(x) for x in ("cagr", "tr_cagr", "mdd", "tr_mdd", "d0", "d1")}
                       if b.get("all") else None,
@@ -631,7 +632,7 @@ def opps(bk: list, cal: list, picks: list) -> dict:
     pos: dict[str, float] = {}                 # 同一檔被兩條策略選到時不重複加碼：取較大的部位
     for p in picks:
         if p["k"] in ks:
-            pct = (p.get("size") or {}).get("pct") or CAP.get(p["grade"], 0) * 100
+            pct = (p.get("size") or {}).get("pct") or STRAT_CAP.get(p.get("tier"), 0) * 100
             pos[p["c"]] = max(pos.get(p["c"], 0.0), pct)
     nb = sum(len(e["items"]) for c in cards for e in c["buy"])
     nh = sum(len(e["items"]) for c in cards for e in c["held"])
@@ -650,11 +651,11 @@ def _sell(k: str, live: dict, s3: dict | None) -> str:
 
 def calendar(picks: list, live: dict, gmap: dict, order: dict, bk: dict, s3: dict | None, s5: dict | None,
              s5_pass: int, last: str | None) -> list:
-    """行事曆：最新資料日之後的買進、賣出、換股、調整，依日期排（同一天開盤在前、收盤在後，同一時點依證據強弱）。
-    只放 A、B 級策略；名單還沒產生的（下一期）也列，附名單產生日。"""
-    ok = lambda k: (gmap.get(k) or {}).get("grade") in ("A", "B")
-    base = lambda k, nm: {"k": k, "sname": nm, "grade": (gmap.get(k) or {}).get("grade"), "hold": HOLD.get(k),
-                          "unit": UNIT.get(k, "次")}
+    """行事曆：最新資料日之後的買進、賣出、換股、調整，依日期排（同一天開盤在前、收盤在後，同一時點依推薦順序）。
+    只放 ★ 好策略與 ● 可參考（sigspec VER 2）；名單還沒產生的（下一期）也列，附名單產生日。"""
+    ok = lambda k: (gmap.get(k) or {}).get("tier") in REC
+    base = lambda k, nm: {"k": k, "sname": nm, "grade": (gmap.get(k) or {}).get("grade"),
+                          "tier": (gmap.get(k) or {}).get("tier"), "hold": HOLD.get(k), "unit": UNIT.get(k, "次")}
     ev = []
     G, H = {}, {}
     for p in picks:
