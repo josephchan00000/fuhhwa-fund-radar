@@ -243,6 +243,16 @@ def sig_now(B: dict) -> dict | None:
         return None
 
 
+def pos_now(signow: dict | None) -> dict | None:
+    """部位參考（docs/lab_crash_plan.md 第 18～19 節；pospage.state_now）：研究檔或資料缺就回 None，不擋景氣頁。"""
+    try:
+        from . import pospage
+        return pospage.state_now(signow)
+    except Exception as e:                          # noqa: BLE001
+        print(f"[景氣溫度] 部位參考算不出來：{type(e).__name__}: {e}")
+        return None
+
+
 def sig_today(now: dict | None) -> dict | None:
     """「今天的重點」：這個市場現在有效的好訊號（sigcat.today_for）；研究檔沒有或算不出來回 None。"""
     try:
@@ -311,6 +321,7 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
             "hotdd": hotdd_now(B) if T else None, "hotch": hotch_now(B) if T else None,
             "bottom": bottom_now(B) if T else None, "signow": sig_now(B) if T else None}
     out["sigtoday"] = sig_today(out["signow"])
+    out["pos"] = pos_now(out["signow"])
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
         out["viz"] = VZ.pack(B, out)
@@ -1290,6 +1301,8 @@ def state_line(V: dict) -> str:
         tip = f'泡沫等級 {b["L"]} {BS.LEVELS[b["L"]]}' + (f'（{cs}）' if cs else "") + "，點了看泡沫頁"
         chips.append(f'<a class="stc" href="x9b.html#{_e(b["mk"])}" title="{_e(tip)}"><b>泡沫</b>{b["L"]}'
                      f'<i>{_e(BS.LEVELS[b["L"]])}</i></a>')
+    from . import pospage
+    chips.append(pospage.chip(V.get("pos")))
     nw = (V.get("bottom") or {}).get("now") or {}
     mk = V.get("mk") or (V.get("signow") or {}).get("mk") or ""
     if nw.get("active"):
