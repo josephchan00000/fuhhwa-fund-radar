@@ -25,10 +25,11 @@ sys.path.insert(0, str(ROOT))
 from arm.lab import heat as H  # noqa: E402
 from arm.lab import heatdata as HD  # noqa: E402
 from arm.lab import heatfetch as F  # noqa: E402
+from arm.lab import crashfetch as CF  # noqa: E402
 
 NAMES = ["margin", "inst", "futi", "opti", "mtxoi", "pcr", "vixtw", "taiex", "vix", "hyg", "ief", "turnover",
          "usdtwd", "money", "ndc", "ndc_first", "exports", "pmi", "orders", "twcpi", "effr", "fedtgt", "uscpi", "ust",
-         "breadth", "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow", "taiexm"]
+         "breadth", "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow", "taiexm", "twcap", "twmgn"]
 # 月資料「新的一個月該出來了」的最早日子（第 m＋1 個月的第幾天）：只用來決定要不要抓，不影響驗證（驗證用 heatspec.RELEASE）
 DUE = {"twcpi": (1, 5)}
 
@@ -119,6 +120,8 @@ def daily() -> None:
     monthly("uscpi", F.bls_cpi, today.year - 1)
     monthly("mmf", F.ofr_mmf)
     monthly("cbcbank", F.cbc_bank)
+    monthly("twcap", CF.cbc_stock)                            # 大跌風險研究：上市總市值、融資（央行月資料，docs/lab_crash_plan.md）
+    monthly("twmgn", CF.cbc_margin)
     monthly("sfbflow", F.sfb_flow)
     monthly("sitca", F.sitca_week, F.months_from(f"{first.year:04d}-{first.month:02d}"))
     if due_month("twcpi", today):
@@ -169,6 +172,9 @@ def backfill(budget_min: float, only: set[str] | None) -> None:
         ("cbcbank", "央行銀行資金", F.cbc_bank, ()),
         ("sitca", "投信持股比重", F.sitca_week, (F.months_from(F.SITCA_START),)),
         ("sfbflow", "外資淨匯入", F.sfb_flow, ()),
+        ("twcap", "上市股票總市值（央行）", CF.cbc_stock, ()),           # 大跌風險研究（docs/lab_crash_plan.md）
+        ("twmgn", "融資融券（央行）", CF.cbc_margin, ()),
+        ("usvol", "美股指數成交量", CF.us_volume_all, ()),
     ]
     for key, name, fn, a in jobs:
         if want(key):
