@@ -1,4 +1,4 @@
-"""產業泡沫的計算（規格 bubindspec VER 1；docs/lab_risk_plan.md 第 12 節）。
+"""產業泡沫的計算（規格 bubindspec VER 2；docs/lab_risk_plan.md 第 12 節、docs/lab_crash_plan.md 第 21.2 節）。
 
 三組產業，每個產業每月一個樣本（月底），算條件（P1 價格爆發、P2 兩年翻倍比大盤多漲而且在高點、P3 偏離長期趨勢、
 E 價格漲得比營收快、G 未來獲利跟不上、F 燃料）與 0～4 級（bubspec.level4，V 一律不判定）：
@@ -93,13 +93,20 @@ def _liq_at(P, c: str, i: int, sv: dict) -> float | None:
     return sum(w) / len(w) if len(w) >= 10 else None
 
 
+def tw_ind_map() -> dict[str, str]:
+    """台股產業別（bubindspec 第 1b 節）：現在的產業表＋已下市公司在官方歷史分類行情裡最後一次出現的產業別（現在的優先）。"""
+    from arm import stockmeta
+    from . import indhist
+    cur = stockmeta.industry_map()
+    return {**indhist.delisted_map(cur), **cur}
+
+
 def tw_build(P=None, ind_map: dict | None = None) -> dict:
     """→ {"cal", "me"（每月最後一個交易日的位置）, "grp": {名稱: {"px": 每天指數, "n": {月: 成分數}, "turn": {月: 換手率}}}}；
     MKT＝大盤。每月以前月底為基準重算權重；成分 < TW_MIN_N 那個月整月 None，之後重新起算（第 12.1 節）。"""
-    from arm import stockmeta
     from . import bt3d
     P = P or bt3d.Panel(start=BI.TW_START)
-    im = ind_map if ind_map is not None else stockmeta.industry_map()
+    im = ind_map if ind_map is not None else tw_ind_map()
     cal, T = P.cal, P.T
     me = BU.month_end_idx(cal)
     n0 = min((len(v) for v in P.liq.values()), default=T)
@@ -685,9 +692,8 @@ def g_now_est(a: dict | None, cal: list, px: list) -> dict | None:
 
 def tw_inputs(TB: dict | None = None) -> dict:
     """台股產業：{"cal", "mkt": (cal, px), "S": {產業: 條件輸入}}；TB＝load_indtw()（或 tw_build 的結果）。"""
-    from arm import stockmeta
     from . import bt3d
-    im = stockmeta.industry_map()
+    im = tw_ind_map()
     TB = TB if TB is not None else load_indtw()
     cal = TB.get("cal") or []
     if not cal or MKT not in TB["grp"]:

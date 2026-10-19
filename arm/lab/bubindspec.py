@@ -1,4 +1,4 @@
-"""產業泡沫規格（docs/lab_risk_plan.md 第 12 節；VER 1，2026-10-19 寫定）。
+"""產業泡沫規格（docs/lab_risk_plan.md 第 12 節；VER 1，2026-10-19 寫定；VER 2 同日，docs/lab_crash_plan.md 第 21.2 節）。
 
 **事前寫定**：範圍、條件、門檻、分級、驗證方法都在算任何產業結果之前寫進這裡並 commit；tests/test_bubindspec.py 鎖住。
 要改＝VER＋1，日期與原因寫進規劃文件，不在看過結果之後改舊版本（同 bubspec、heatspec 的紀律）。
@@ -21,7 +21,7 @@ from .bubspec import (BUB_BLOCK, BUB_BOOT, BUB_DD, BUB_EPI_GAP, BUB_EPI_MIN, BUB
                       E_RUN, EST_COVER_MIN, EST_STALE_DAYS, FUEL_PCT, G_PRICE_DAYS, G_PRICE_MONTHS, LEVELS, PSY, PSY_RUN,
                       RUN2_ATH, RUN2_PCT, TREND, TREND_Z, level4)
 
-VER = 1
+VER = 2
 SPEC_DATE = "2026-10-19"
 GROUPS = ("tw", "us", "ff")
 GROUP_NAMES = {"tw": "台股產業", "us": "美股類股", "ff": "美股 49 細產業"}
@@ -64,6 +64,23 @@ FF_NAMES = {"Agric": "農業", "Food": "食品", "Soda": "飲料", "Beer": "酒�
             "RlEst": "不動產", "Fin": "其他金融", "Other": "其他"}
 FF_SKIP = ("Other",)
 FF_MISSING = -99.99
+
+# ── 1b. 已下市公司的產業別（VER 2；看任何 VER 2 結果之前寫定，docs/lab_crash_plan.md 第 21.2 節） ──────────
+# VER 1：現在的產業表（stockmeta）沒有的代號（已下市或改代號）只算進大盤 → 台股產業指數只含現在還在的公司（存活者偏誤）。
+# VER 2：這些代號改用「官方歷史分類行情」裡最後一次出現的產業別：
+#   快照＝每年第一個交易日（IND_HIST_START 年起到今年；日曆＝data/lab/v3_tr.json 的交易日），
+#   證交所 MI_INDEX（type＝產業代碼）＋櫃買中心 stk_wn1430（se＝產業代碼），產業代碼對照 stockmeta.IND_CODE。
+#   年度快照裡都找不到的（兩次快照之間上市又下市）→ 補一次快照：它最後一個交易日之前那個月的最後一個交易日；還是找不到＝照舊只算進大盤。
+#   分類＝最後一次出現的那一個，套用到它全部的歷史（和現在的公司一樣，歷史上的分類變動不追）。現在還在的公司照舊用現在的分類。
+#   快照存 data/lab/indsnap.json（{"twse"|"tpex": {日期: {代號: 產業代碼}}}）；只要有快照，產業別就固定，不會因為重抓而改。
+# E、G 的替代資料（月營收）：MOPS 月營收彙總表已重新產製、不含已下市公司（2026-10-19 探針）→「同一批公司」的規則自動排除，不另外處理。
+# 台股產業只描述、不判定（JUDGE 不變）；主要假說（美股 49 細產業）不受影響。
+IND_HIST_START = 2013
+IND_HIST_FILE = "indsnap.json"
+IND_HIST_TYPES = tuple(f"{i:02d}" for i in range(1, 40))
+# 彙總類（看快照資料時發現、還沒算任何產業指數）：證交所的 07 化學生技醫療＝21＋22、13 電子工業＝24～31，
+#   同一家公司會同時出現在彙總類與細分類 → 彙總類不當成產業別（2026-01-02 快照：13 有 452 檔、全部也在 24～31 裡）。
+IND_HIST_AGG = ("07", "13")
 
 # ── 2. 條件 ─────────────────────────────────────────────────────────────────
 # P1 價格爆發：同市場層級（bubspec 第 1 節＋VER 3 方向條件）。實質價格＝月平均（tw、us；ff 沒有日資料用月底指數）÷ CPI
