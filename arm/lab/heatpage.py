@@ -233,6 +233,16 @@ def bottom_now(B: dict) -> dict | None:
         return None
 
 
+def sig_now(B: dict) -> dict | None:
+    """訊號總覽：這個市場現在有效的訊號（sigcat.now_for_B，存進程序裡給訊號總覽沿用）；算不出來回 None。"""
+    try:
+        from . import sigcat
+        return sigcat.now_for_B(B)
+    except Exception as e:                          # noqa: BLE001  訊號總覽的問題不擋景氣頁
+        print(f"[景氣溫度] 訊號總覽的狀態算不出來：{type(e).__name__}: {e}")
+        return None
+
+
 def view(B: dict | None = None, R: dict | None = None) -> dict:
     B = B if B is not None else C.build()
     R = R if R is not None else (load_research() or {})
@@ -289,7 +299,7 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
             "dvr": R.get("deriv") or {}, "rel": R.get("rel") or {}, "m6": R.get("m6") or {}, "meta": meta(),
             "bubnow": bubble_now(B) if T else None, "crash": crash_now(B) if T else None,
             "hotdd": hotdd_now(B) if T else None, "hotch": hotch_now(B) if T else None,
-            "bottom": bottom_now(B) if T else None}
+            "bottom": bottom_now(B) if T else None, "signow": sig_now(B) if T else None}
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
         out["viz"] = VZ.pack(B, out)

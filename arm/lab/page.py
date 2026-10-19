@@ -25,7 +25,13 @@ SLUG = "x9.html"
 
 
 def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
-    data = analyze.run()
+    ctx: dict = {}
+    data = analyze.run(keep=ctx)
+    try:                                     # 訊號總覽的個股訊號與策略（docs/lab_signal_plan.md）→ data/lab/sig_stock.json
+        from . import sigcat
+        sigcat.write_stock(data, ctx)
+    except Exception as e:                   # noqa: BLE001 —— 失敗不影響建頁
+        print(f"[籌碼雷達] ⚠ 訊號總覽的個股資料沒有更新：{type(e).__name__}: {e}")
     try:                                     # 後台自我驗證紀錄（只有 CI 寫回 data/lab/val_log.json）
         from . import valog
         data["vlog"] = valog.update(data)
