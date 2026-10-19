@@ -182,3 +182,13 @@ def test_committed_research_file_matches_spec():
             assert all(st["v"] in S.VERDICT for st in E["rules"].values())
             assert all(st["v"] in S.GVERDICT for st in E["groups"].values())
             assert len(E["list"]) == E["n"]
+
+
+def test_group_verdict_names_the_group():
+    assert BP.gv_text("fund", "up") == "底子好之後較好" and BP.gv_text("chip", "down") == "籌碼過熱後的急跌之後較差"
+    assert BP.gv_text("bub", "none") == "看不出差別" and BP.gv_text("fund", "few") == "次數太少，不能判定"
+    C = _C("ndx")
+    t = _text(BP.study_table(C, "E5"))
+    assert "第一組" not in t
+    if C["R"]["ev"]["E5"]["groups"]["fund"]["v"] == "up":
+        assert "底子好之後較好" in t
