@@ -17,9 +17,10 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "dashboard" / "x9o.html"
 OUT_DATA = ROOT / "dashboard" / "x9oh.json"
 
-CARDS: dict = {}                                   # 景氣頁建頁時放進來的四張研究卡（heatviz.stash_cards）：{市場: {"d", "crash", …}}
-CARD_ORDER = ("crash", "bottom", "hotdd", "hotch")
-CARD_NAMES = {"crash": "短線大跌風險", "bottom": "大跌後檢查", "hotdd": "過熱之後 3 個月的最大回撤", "hotch": "反向檢查"}
+CARDS: dict = {}                                   # 景氣頁建頁時放進來的研究卡（heatviz.stash_cards）：{市場: {"d", "pos", "crash", …}}
+CARD_ORDER = ("pos", "crash", "bottom", "hotdd", "hotch")
+CARD_NAMES = {"pos": "部位參考", "crash": "短線大跌風險", "bottom": "大跌後檢查", "hotdd": "過熱之後 3 個月的最大回撤",
+              "hotch": "反向檢查"}
 MK_NAMES = {**S.NAMES, "us": "美股產業", "stk": "個股"}
 MK_ORDER = ("tw", "spx", "ixic", "ndx", "sox", "us", "stk")
 TODAY_MK = ("tw", "spx", "ixic", "ndx", "sox")
@@ -274,19 +275,19 @@ TABLE = ('<section class="sec" id="all"><h2>全部訊號與策略<span class="su
 
 
 def research_html(V: dict) -> str:
-    """研究細節：原本在景氣頁的四張研究卡（2026-10-19 起搬到這裡，docs/lab_signal_plan.md 第 10 節 Q3），每個市場一個檔、點了才載入。"""
+    """研究細節：部位參考＋原本在景氣頁的四張研究卡（2026-10-19 起搬到這裡，docs/lab_signal_plan.md 第 10 節 Q3），每個市場一個檔、點了才載入。"""
     rmk = V.get("rmk") or []
     if not rmk:
         return ""
     chips = "".join(f'<button type="button" class="sgch" data-r="{mk}">{_e(MK_NAMES[mk])}</button>' for mk in rmk)
     names = "、".join(CARD_NAMES[c] for c in CARD_ORDER)
-    return ('<section class="sec" id="research"><h2>研究細節<span class="sub">原本在景氣頁的研究卡：' + _e(names) + '</span></h2>'
+    return ('<section class="sec" id="research"><h2>研究細節<span class="sub">' + _e(names) + '</span></h2>'
             f'<div class="sgchips" id="rmk">{chips}</div>'
-            '<div id="rbox"><p class="note">選一個市場，載入那個市場的四張研究卡。訊號點開之後的「相關研究」也會連到這裡。</p></div></section>')
+            '<div id="rbox"><p class="note">選一個市場，載入那個市場的研究卡。訊號點開之後的「相關研究」也會連到這裡。</p></div></section>')
 
 
 def card_json(mk: str, c: dict) -> str:
-    """一個市場的四張卡，各自收在一個 <details>（點開才展開；#r=市場:卡 會打開那一張）。"""
+    """一個市場的研究卡，各自收在一個 <details>（點開才展開；#r=市場:卡 會打開那一張）。"""
     html = "".join(f'<details class="sgrc" id="rc-{k}"><summary>{_e(CARD_NAMES[k])}</summary>{c[k]}</details>'
                    for k in CARD_ORDER if c.get(k))
     return json.dumps({"mk": mk, "d": c.get("d"), "html": html}, ensure_ascii=False, separators=(",", ":"))
@@ -299,6 +300,7 @@ def render(V: dict) -> str:
     from . import heatviz as VZ
     from . import hotchpage as QP
     from . import hotddpage as XP
+    from . import pospage as PSP
     from .heatpage import _CSS as HCSS
     grp: dict = {}
     for mk, d in V["asof"].items():
@@ -308,7 +310,7 @@ def render(V: dict) -> str:
     body = today_html(V) + TABLE + research_html(V) + METHOD
     if not V["rows"]:
         body = '<p class="warn">還沒有研究結果（scripts/run_sig.py）。</p>'
-    return (_HTML.replace("{{APPTAB}}", appnav.bar("sig")).replace("{{CSS}}", HCSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS + QP.CSS + BP.CSS + CSS)
+    return (_HTML.replace("{{APPTAB}}", appnav.bar("sig")).replace("{{CSS}}", HCSS + appnav.CSS + VZ.CSS + PSP.CSS + CP.CSS + XP.CSS + QP.CSS + BP.CSS + CSS)
             .replace("{{ASOF}}", _e(("資料到 " + asof) if asof else "")).replace("{{BODY}}", body)
             .replace("{{DATA}}", page_json(V)).replace("{{JS}}", JS))
 
@@ -564,6 +566,7 @@ function rel(r){ const c = r[I.cat], x = r[I.x] || {}, mk = r[I.mk], out = [];
   if (c === 'bub') return '<a href="x9b.html#' + mk + '">泡沫頁（' + esc(SG.mk[mk]) + '）</a>';
   if (c === 'ind') return '<a href="x9b.html#ind">泡沫頁・產業</a>';
   if (!RMK.includes(mk)) return '';
+  if (r[I.tier] === 'good' && (r[I.dir].includes('warn') || r[I.dir].includes('buy'))) out.push('pos');
   if (c === 'crash') out.push('crash'); else if (c === 'buy') out.push('bottom'); else if (c === 'multi') out.push('hotdd');
   else if (c === 'tech') out.push('hotch');
   else if (c === 'heat') { if (['hot_in', 'hot_out', 'hot13'].includes(x.sig)) out.push('hotdd');
