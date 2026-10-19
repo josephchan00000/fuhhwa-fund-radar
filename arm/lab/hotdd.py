@@ -240,9 +240,9 @@ def _q(a, q) -> float | None:
 
 
 def dist(m: np.ndarray) -> dict:
-    """最大回撤的分布：平均、中位數、第 75／90 百分位、≥ 10%、≥ 20% 的比例。"""
+    """最大回撤的分布：平均、中位數、第 25／75／90 百分位、≥ 10%、≥ 20% 的比例。"""
     t1, t2 = S.DD_TH
-    return {"mean": _mean(m), "med": _q(m, 0.5), "p75": _q(m, 0.75), "p90": _q(m, 0.9),
+    return {"mean": _mean(m), "med": _q(m, 0.5), "p25": _q(m, 0.25), "p75": _q(m, 0.75), "p90": _q(m, 0.9),
             "q10": float(np.mean(m >= t1)) if len(m) else None, "q20": float(np.mean(m >= t2)) if len(m) else None}
 
 
