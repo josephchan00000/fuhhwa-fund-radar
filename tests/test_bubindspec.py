@@ -1,12 +1,15 @@
 """產業泡沫規格（docs/lab_risk_plan.md 第 12 節）：規格鎖定。
 
-規格是看任何產業結果之前寫定的（VER 1，2026-10-19）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
+規格是看任何產業結果之前寫定的（VER 1，2026-10-19）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。
+VER 2（同日，docs/lab_crash_plan.md 第 21.2 節）只加「已下市公司的產業別」，VER 1 的數字都不動。"""
 from arm.lab import bubindspec as I
 from arm.lab import bubspec as B
 
 
-def test_industry_spec_v1_is_locked():
-    assert I.VER == 1 and I.SPEC_DATE == "2026-10-19"
+def test_industry_spec_v2_is_locked():
+    assert I.VER == 2 and I.SPEC_DATE == "2026-10-19"
+    assert (I.IND_HIST_START, I.IND_HIST_FILE) == (2013, "indsnap.json")
+    assert I.IND_HIST_TYPES[0] == "01" and I.IND_HIST_TYPES[-1] == "39" and len(I.IND_HIST_TYPES) == 39
     assert I.GROUPS == ("tw", "us", "ff")
     assert (I.TW_CAP_MIN, I.TW_MIN_N, I.TW_START, I.TW_SKIP) == (40e8, 3, "2013-01-01", ("其他",))
     assert sorted(I.US_ETF) == ["XLB", "XLC", "XLE", "XLF", "XLI", "XLK", "XLP", "XLRE", "XLU", "XLV", "XLY"]
