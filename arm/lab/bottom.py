@@ -1,4 +1,4 @@
-"""大跌後的買點與落底訊號（docs/lab_crash_plan.md 第 4、13 節；規格 bottomspec VER 1）。
+"""大跌後的買點與落底訊號（docs/lab_crash_plan.md 第 4、13、16 節；規格 bottomspec VER 2）。
 
   events_e5()／e10_segments()   兩種事件（只用到當天以前的收盤）
   peak_of()                     事件前高點（第 t−59～t 天最高收盤那天）
@@ -7,8 +7,9 @@
   first_signal()                八個落底訊號：事件之後第 1～60 個交易日內第一次出現的那天
   groups_at()                   事件當天的分組（底子、籌碼、泡沫）
   cboot_counts()                環狀移動區塊重抽：每次每個事件被抽到幾次
-  paired()／two_group()         規則 vs 事件隔天買、第一組 vs 第二組
+  paired()／two_group()         同一事件兩種買法的差、第一組 vs 第二組
   market()                      一個市場：事件、分組、規則比較、描述、BH、判定
+                                （VER 2：訊號和固定等 10 天比；固定等 10 天和事件隔天買比；訊號 vs 隔天買留作 v1）
   primary()                     HB1、HB2（台股＋S&P 500 合併，Holm）
   research()                    → data/lab/bottom_research.json
   now()                         每天建頁：進行中的事件、分組、訊號
@@ -315,7 +316,7 @@ def _halves(pos: np.ndarray, fn) -> tuple:
 
 
 def paired(pos: np.ndarray, d: np.ndarray) -> dict:
-    """同一事件兩種買法的差（d＝規則 − 事件隔天）：平均、區間、p、前後兩半。"""
+    """同一事件兩種買法的差（d＝規則 − 對照）：平均、區間、p、前後兩半。"""
     out = {"d": float(d.mean()) if len(d) else None}
     if len(d) == 0:
         return out
@@ -554,7 +555,7 @@ def event_recs(I: dict, ev: str) -> list[dict]:
 
 
 def _pair_rows(recs: list[dict], k: str, base: str = "b1") -> list[tuple]:
-    """規則 k 和事件隔天買（或 W10）都有 NL20 與 R60 的事件 → [(t, 規則結果, 對照結果)]。"""
+    """規則 k 和對照（事件隔天買 b1，或固定等 10 天 W10）都有 NL20 與 R60 的事件 → [(t, 規則結果, 對照結果)]。"""
     rows = []
     for r in recs:
         rr = r["rules"].get(k) or {}
@@ -568,8 +569,32 @@ def _pair_rows(recs: list[dict], k: str, base: str = "b1") -> list[tuple]:
     return rows
 
 
+def _cmp(rows: list[tuple], tag: str) -> dict:
+    """同一事件兩種買法（rows＝[(t, 規則結果, 對照結果)]，tag＝對照的名字 b1／w10）→ 次數、段數、兩邊的 NL20 比例與 R60、
+    差（規則 − 對照）的平均、區間、p、前後兩半、樣本不足。"""
+    n = len(rows)
+    pos = np.array([t for t, _, _ in rows], dtype=np.int64)
+    out: dict = {"n": n, "ep": episodes(pos)}
+    if n:
+        nl_r = np.array([o["nl"] for _, o, _ in rows], dtype=float)
+        nl_b = np.array([ob["nl"] for _, _, ob in rows], dtype=float)
+        r_r = np.array([o["r60"] for _, o, _ in rows])
+        r_b = np.array([ob["r60"] for _, _, ob in rows])
+        mae_r = np.array([o["mae"] for _, o, _ in rows if o.get("mae") is not None])
+        mae_b = np.array([ob["mae"] for _, _, ob in rows if ob.get("mae") is not None])
+        out.update({"nl_rule": float(nl_r.mean()), f"nl_{tag}": float(nl_b.mean()), "r_rule": float(r_r.mean()),
+                    f"r_{tag}": float(r_b.mean()), "r_rule_med": _q(r_r, 0.5), f"r_{tag}_med": _q(r_b, 0.5),
+                    "mae_rule": _q(mae_r, 0.5), f"mae_{tag}": _q(mae_b, 0.5)})
+        for pre, d in (("nl", nl_r - nl_b), ("r", r_r - r_b)):
+            for a, b in paired(pos, d).items():
+                out[f"{pre}_{a}"] = b
+    out["few"] = bool(n < S.MIN_N or out["ep"] < S.MIN_EP or out.get("nl_lo") is None or out.get("r_lo") is None)
+    return out
+
+
 def rule_stats(recs: list[dict], k: str) -> dict:
-    """規則 k vs 事件隔天買：出現比例、事件到訊號幾天、買進價差、NL20 與 R60 的差（區間、兩半、p）、vs 固定等 10 天（只列）。"""
+    """規則 k：出現比例、事件到訊號幾天、和事件隔天買比（NL20 與 R60 的差、區間、兩半、p；VER 1 的比較，平鋪在最上層）；
+    訊號另和固定等 10 天比（VER 2 的判定依據，放在 w10）。"""
     out: dict = {}
     el = [r for r in recs if not (r["rules"].get(k) or {}).get("na")]
     seen = [r for r in el if (r["rules"].get(k) or {}).get("full")]
@@ -580,36 +605,9 @@ def rule_stats(recs: list[dict], k: str) -> dict:
         dl = [r["rules"][k]["s"] - r["t"] for r in fired if r["rules"][k].get("s") is not None]
         out["delay"] = float(np.median(dl)) if dl else None
         out["delay_q"] = [_q(np.array(dl), 0.25), _q(np.array(dl), 0.75)] if dl else None
-    rows = _pair_rows(recs, k)
-    n = len(rows)
-    out["n"] = n
-    pos = np.array([t for t, _, _ in rows], dtype=np.int64)
-    out["ep"] = episodes(pos)
-    if n:
-        nl_r = np.array([o["nl"] for _, o, _ in rows], dtype=float)
-        nl_b = np.array([ob["nl"] for _, _, ob in rows], dtype=float)
-        r_r = np.array([o["r60"] for _, o, _ in rows])
-        r_b = np.array([ob["r60"] for _, _, ob in rows])
-        mae_r = np.array([o["mae"] for _, o, _ in rows if o.get("mae") is not None])
-        mae_b = np.array([ob["mae"] for _, _, ob in rows if ob.get("mae") is not None])
-        out.update({"nl_rule": float(nl_r.mean()), "nl_b1": float(nl_b.mean()), "r_rule": float(r_r.mean()),
-                    "r_b1": float(r_b.mean()), "r_rule_med": _q(r_r, 0.5), "r_b1_med": _q(r_b, 0.5),
-                    "mae_rule": _q(mae_r, 0.5), "mae_b1": _q(mae_b, 0.5)})
-        for pre, d in (("nl", nl_r - nl_b), ("r", r_r - r_b)):
-            st = paired(pos, d)
-            for a, b in st.items():
-                out[f"{pre}_{a}"] = b
-    few = n < S.MIN_N or out["ep"] < S.MIN_EP or out.get("nl_lo") is None or out.get("r_lo") is None
-    out["few"] = bool(few)
-    if k != "W10":
-        rw = _pair_rows(recs, k, base="W10")
-        if rw:
-            pw = np.array([t for t, _, _ in rw], dtype=np.int64)
-            dn = np.array([o["nl"] - ob["nl"] for _, o, ob in rw], dtype=float)
-            dr = np.array([o["r60"] - ob["r60"] for _, o, ob in rw])
-            sn, sr = paired(pw, dn), paired(pw, dr)
-            out["w10"] = {"n": len(rw), "nl_d": sn["d"], "nl_lo": sn.get("lo"), "nl_hi": sn.get("hi"),
-                          "r_d": sr["d"], "r_lo": sr.get("lo"), "r_hi": sr.get("hi")}
+    out.update(_cmp(_pair_rows(recs, k), "b1"))
+    if k != S.SIG_BASE:
+        out["w10"] = _cmp(_pair_rows(recs, k, base=S.SIG_BASE), "w10")
     return out
 
 
@@ -656,13 +654,26 @@ def market(I: dict) -> dict:
             vals = [r["rules"][k]["o"].get("px_vs_b1") for r in recs
                     if (r["rules"].get(k) or {}).get("o") and r["rules"][k]["o"].get("px_vs_b1") is not None]
             st["px_med"] = float(np.median(vals)) if vals else None
-        # BH：規則（NL20、R60 各一個家族）、分組（R60）
+        # BH：規則和事件隔天買比（VER 1：固定等 10 天＋全部訊號）、訊號和固定等 10 天比（VER 2：只有訊號），
+        # NL20、R60 各一個家族；分組（R60）
         for pre in ("nl", "r"):
             ks = [k for k, st in E["rules"].items() if not st["few"] and st.get(f"{pre}_p") is not None]
             for k, q in zip(ks, bh([E["rules"][k][f"{pre}_p"] for k in ks])):
                 E["rules"][k][f"{pre}_q"] = q
+            ks = [k for k, st in E["rules"].items()
+                  if k != S.SIG_BASE and not st["w10"]["few"] and st["w10"].get(f"{pre}_p") is not None]
+            for k, q in zip(ks, bh([E["rules"][k]["w10"][f"{pre}_p"] for k in ks])):
+                E["rules"][k]["w10"][f"{pre}_q"] = q
         for k, st in E["rules"].items():
-            st["v"] = rule_verdict(st)
+            st["nl_dir"], st["r_dir"] = sdir(st, "nl"), sdir(st, "r")
+            st["v1"] = rule_verdict(st)                        # 和事件隔天買比（VER 1）
+            if k == S.SIG_BASE:
+                st["v"] = st["v1"]                             # 固定等 10 天：照 VER 1
+            else:
+                w = st["w10"]                                  # 訊號：和固定等 10 天比（VER 2）
+                w["nl_dir"], w["r_dir"] = sdir(w, "nl"), sdir(w, "r")
+                w["v"] = rule_verdict(w)
+                st["v"] = w["v"]
         gs = [g for g, st in E["groups"].items() if not st["few"] and st.get("p") is not None]
         for g, q in zip(gs, bh([E["groups"][g]["p"] for g in gs])):
             E["groups"][g]["q"] = q
