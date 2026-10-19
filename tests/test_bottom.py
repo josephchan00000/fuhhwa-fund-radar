@@ -1,4 +1,4 @@
-"""大跌後的買點與落底訊號（docs/lab_crash_plan.md 第 13、16 節）：和逐筆直接算的版本比對。"""
+"""大跌後的買點與落底訊號（docs/lab_crash_plan.md 第 13、16、17 節）：和逐筆直接算的版本比對。"""
 import math
 import random
 from datetime import date, timedelta
@@ -330,7 +330,7 @@ def test_ver2_signals_are_judged_against_w10():
     for ev in S.EVENTS:
         recs = X.event_recs(I, ev)
         rs = M["ev"][ev]["rules"]
-        assert "w10" not in rs["W10"] and rs["W10"]["v"] == rs["W10"]["v1"] == X.rule_verdict(rs["W10"])
+        assert "w10" not in rs["W10"] and rs["W10"]["v2"] == rs["W10"]["v1"] == X.rule_verdict(rs["W10"])
         for k in S.SIG_MK["tw"]:
             st, w = rs[k], rs[k]["w10"]
             rows = []
@@ -350,7 +350,7 @@ def test_ver2_signals_are_judged_against_w10():
                     assert math.isclose(w["nl_h1"], a[:h, 0].mean(), abs_tol=1e-12)
                     assert math.isclose(w["r_h2"], a[h:, 1].mean(), abs_tol=1e-12)
             assert w["few"] == (w["n"] < S.MIN_N or w["ep"] < S.MIN_EP or w.get("nl_lo") is None or w.get("r_lo") is None)
-            assert st["v"] == w["v"] == X.rule_verdict(w) and st["v1"] == X.rule_verdict(st)
+            assert st["v2"] == w["v"] == X.rule_verdict(w) and st["v1"] == X.rule_verdict(st)
             assert (w["nl_dir"], w["r_dir"], st["nl_dir"], st["r_dir"]) == (
                 X.sdir(w, "nl"), X.sdir(w, "r"), X.sdir(st, "nl"), X.sdir(st, "r"))
         for pre in ("nl", "r"):                               # BH：只有訊號一起校正（固定等 10 天是對照）
@@ -359,6 +359,117 @@ def test_ver2_signals_are_judged_against_w10():
                 assert rs[k]["w10"][f"{pre}_q"] == q
             for k in set(S.SIG_MK["tw"]) - set(ks):
                 assert f"{pre}_q" not in rs[k]["w10"]
+
+
+def _direct_wave(px, t, p):
+    T, P = len(px), px[p]
+    r = next((u for u in range(t + 1, T) if px[u] >= P), None)
+    if r is not None and r <= t + S.WAVE_H:
+        end = r
+    elif t + S.WAVE_H <= T - 1:
+        end = t + S.WAVE_H
+    else:
+        return None
+    return min(px[p:end + 1]), end
+
+
+def test_wave_position_lp_match_direct():
+    for seed in (4, 5, 6):
+        I = _inputs(2600, seed)
+        I["px"] = _walk(2600, seed, vol=0.021)
+        px = I["px"]
+        for ev in S.EVENTS:
+            for r in X.event_recs(I, ev):
+                t, p = r["t"], r["p"]
+                w = _direct_wave(px, t, p)
+                assert (X.wave(px, t, p) is None) == (w is None)
+                for k, b in [("b1", t + S.LAG)] + [(k, (rr.get("o") or {}).get("b")) for k, rr in r["rules"].items()]:
+                    o = r["b1"] if k == "b1" else (r["rules"][k].get("o") or {})
+                    if b is None or not o:
+                        continue
+                    if w is None or b >= len(px):
+                        assert o.get("pos") is None and o.get("lp") is None
+                        continue
+                    lo, end = w
+                    pos = (px[b] - lo) / (px[p] - lo)
+                    assert math.isclose(o["pos"], pos, abs_tol=1e-12)
+                    assert o["lp"] == int(b <= end and pos <= 1 / 3)
+                    assert math.isclose(o["reb"], px[b] / min(px[p:b + 1]) - 1, abs_tol=1e-12)
+    # 手算：100 跌到 80 買在 86 → 下三分之一；之後又跌到 70 → 不算；回到前高之後才買 → 不算；這一波還沒結束 → 沒有值
+    base = [100.0] * 60 + [95.0, 90.0, 85.0, 82.0, 80.0, 84.0, 86.0, 87.0, 88.0, 90.0]
+    px = np.array(base + [91.0] * 130)
+    w = X.wave(px, 64, 59)
+    assert w == (80.0, 64 + S.WAVE_H)
+    assert X.position(px, 59, 66, w) == (0.3, 1) and X.position(px, 59, 69, w) == (0.5, 0)
+    px2 = np.array(base[:67] + [75.0, 70.0] + [91.0] * 130)
+    w2 = X.wave(px2, 64, 59)
+    assert w2[0] == 70.0 and X.position(px2, 59, 66, w2)[1] == 0          # 86 之後跌到 70：位置 0.53
+    px3 = np.array(base[:66] + [101.0, 85.0] + [91.0] * 130)
+    w3 = X.wave(px3, 64, 59)
+    assert w3 == (80.0, 66) and X.position(px3, 59, 67, w3) == (0.25, 0)   # 回到前高之後才買：不算
+    assert X.wave(np.array(base + [91.0] * 50), 64, 59) is None            # 還沒到第 120 天、也沒回到前高
+
+
+def test_rule_verdict3():
+    up = {"few": False, "lp_lo": 0.05, "lp_hi": 0.3, "lp_h1": 0.1, "lp_h2": 0.2, "lp_q": 0.05,
+          "r_d": -0.01, "r_lo": -0.03, "r_hi": 0.01, "r_h1": -0.02, "r_h2": 0.01, "r_q": 0.5}
+    assert X.rule_verdict3(up) == "better"                                 # 報酬差一點但不顯著：仍有用
+    rdown = {"r_lo": -0.06, "r_hi": -0.01, "r_h1": -0.02, "r_h2": -0.04, "r_q": 0.02}
+    assert X.rule_verdict3({**up, **rdown}) == "trade"
+    assert X.rule_verdict3({**up, "lp_q": 0.2}) == "none"
+    assert X.rule_verdict3({**up, "lp_h2": -0.01}) == "none"
+    assert X.rule_verdict3({**up, "lp_lo": -0.3, "lp_hi": -0.05, "lp_h1": -0.1, "lp_h2": -0.2}) == "worse"
+    assert X.rule_verdict3({**up, "lp_q": 0.5, **rdown}) == "worse"
+    assert X.rule_verdict3({**up, "few": True}) == "few"
+
+
+def test_ver3_lp_comparisons_match_direct():
+    """VER 3：落底訊號 vs 固定等 10 天、固定等 10 天 vs 事件隔天買；樣本＝兩邊 LP 與 R60 都有值；BH 兩個家族；判定與 v1、v2 並存。"""
+    I = _inputs(3000, 21)
+    I["px"] = _walk(3000, 21, vol=0.022)
+    M = X.market(I)
+    for ev in S.EVENTS:
+        recs = X.event_recs(I, ev)
+        rs = M["ev"][ev]["rules"]
+        for k in ("W10",) + tuple(S.SIG_MK["tw"]):
+            c = rs[k]["lp"]
+            base = "b1" if k == "W10" else "W10"
+            assert c["base"] == base
+            rows = []
+            for r in recs:
+                o = r["rules"][k].get("o") or {}
+                ob = r["b1"] if base == "b1" else (r["rules"]["W10"].get("o") or {})
+                if None not in (o.get("lp"), o.get("r60"), ob.get("lp"), ob.get("r60")):
+                    rows.append((o["lp"], ob["lp"], o["r60"], ob["r60"], r["b1"]["lp"]))
+            assert c["n"] == len(rows)
+            if rows:
+                a = np.array(rows, dtype=float)
+                assert math.isclose(c["lp_rule"], a[:, 0].mean()) and math.isclose(c["lp_base"], a[:, 1].mean())
+                assert math.isclose(c["lp_d"], (a[:, 0] - a[:, 1]).mean(), abs_tol=1e-12)
+                assert math.isclose(c["r_d"], (a[:, 2] - a[:, 3]).mean(), abs_tol=1e-12)
+                assert math.isclose(c["lp_b1"], a[:, 4].mean())
+                rb = [(o["reb"]) for r in recs for o in [r["rules"][k].get("o") or {}]
+                      if None not in (o.get("lp"), o.get("r60"))
+                      and None not in ((r["b1"] if base == "b1" else (r["rules"]["W10"].get("o") or {})).get(x) for x in ("lp", "r60"))]
+                assert math.isclose(c["reb_rule"], float(np.median(rb)))
+                h = len(rows) // 2
+                if h:
+                    assert math.isclose(c["lp_h1"], (a[:h, 0] - a[:h, 1]).mean(), abs_tol=1e-12)
+            assert c["few"] == (c["n"] < S.MIN_N or c["ep"] < S.MIN_EP or c.get("lp_lo") is None or c.get("r_lo") is None)
+            assert rs[k]["v"] == c["v"] == X.rule_verdict3(c)
+            assert (c["lp_dir"], c["r_dir"]) == (X.sdir(c, "lp"), X.sdir(c, "r"))
+            assert rs[k]["v1"] in S.VERDICT and rs[k]["v2"] in S.VERDICT
+        for pre in ("lp", "r"):
+            sig = [k for k in S.SIG_MK["tw"] if not rs[k]["lp"]["few"] and rs[k]["lp"].get(f"{pre}_p") is not None]
+            for k, q in zip(sig, X.bh([rs[k]["lp"][f"{pre}_p"] for k in sig])):
+                assert rs[k]["lp"][f"{pre}_q"] == q
+            w = rs["W10"]["lp"]                                       # 固定等 10 天 vs 事件隔天買自成一個家族：q＝p
+            if not w["few"] and w.get(f"{pre}_p") is not None:
+                assert w[f"{pre}_q"] == w[f"{pre}_p"]
+        A = M["ev"][ev]["all"]
+        lp = [r["b1"]["lp"] for r in recs if r["b1"].get("lp") is not None]
+        assert A["lp"]["n"] == len(lp) and (not lp or math.isclose(A["lp"]["rate"], float(np.mean(lp))))
+        assert [x.get("lp") for x in M["ev"][ev]["list"]] == [r["b1"].get("lp") for r in recs]
 
 
 def test_now_active_events():
@@ -370,6 +481,7 @@ def test_now_active_events():
     assert "E10" in kinds and N["dd60"] < -0.10
     a = next(x for x in N["active"] if x["ev"] == "E10")
     assert a["p"] == I["cal"][699] and a["nowdd"] < -0.2
+    assert a["pos_now"] == 0.0                                  # 一路跌：今天就是這一波到今天的最低收盤
     assert set(a["sig"]) == set(S.SIG_MK["tw"])
     I["px"] = np.array([100.0 * (1.0002 ** i) for i in range(800)])
     N = X.now(I)

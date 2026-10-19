@@ -1,5 +1,5 @@
 """景氣頁「大跌後檢查」卡（arm/lab/bottompage.py；docs/lab_crash_plan.md 第 13～16 節）：
-一句話、進行中的事件、急跌之後的表現、等訊號再買（VER 2：和固定等 10 天比）、五個市場、每一次、主要假說、用字、class 前綴。
+一句話、進行中的事件、急跌之後的表現、等訊號再買（VER 3：買在相對低點的比例，和固定等 10 天比）、五個市場、每一次、主要假說、用字、class 前綴。
 研究數字只讀研究檔，不在頁面重算。"""
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def _active(mk: str, ev: str = "E5", also: bool = True, fired: str | None = "C1"
     if fired and fired in sig:
         sig[fired] = {"st": "on", "d": "2026-10-20", "after": 4}
     a = {"ev": ev, "t": "2026-10-14", "p": "2026-10-06", "ppx": 13217.8, "days": 4, "depth": -0.106 if ev == "E5" else -0.11,
-         "low": "2026-10-16", "lowdd": -0.157, "nowdd": -0.12, "g": {"fund": 1, "chip": 0, "bub": 1},
+         "low": "2026-10-16", "lowdd": -0.157, "nowdd": -0.12, "pos_now": 0.2, "g": {"fund": 1, "chip": 0, "bub": 1},
          "gv": {"fund": 70.4, "fund0": 59.5, "chip": 75.0, "bub": 2}, "sig": sig, "w10": {"st": "wait", "left": 6}}
     if also and ev == "E5":
         a["also"] = "E10"
@@ -54,25 +54,30 @@ def test_lead_inactive_uses_research_numbers():
         assert ls[0].startswith("現在沒有大跌：") and f"5 日跌 {S.E5_TH[mk] * 100:g}% 以上" in ls[0]
         E = C["R"]["ev"]["E5"]
         A = E["all"]
-        assert f'{E["n"]} 次 5 日急跌' in ls[1] and f'{BP.pct(A["nl"]["rate"], 0)}' in ls[1]
-        assert BP.spct(A["r60"]["mean"]) in ls[1]
-        w = E["rules"]["W10"]
-        assert f'固定等 10 天就從 {BP.pct(w["nl_b1"], 0)} 降到 {BP.pct(w["nl_rule"], 0)}' in ls[2]
+        assert f'{E["n"]} 次 5 日急跌' in ls[1] and f'相對低點（跌幅的下三分之一）的有 {BP.pct(A["lp"]["rate"], 0)}' in ls[1]
+        assert BP.spct(A["r60"]["mean"]) in ls[1] and "再跌破" not in ls[1]
         rs = E["rules"]
+        w = rs["W10"]["lp"]
+        assert f'固定等 10 天有 {BP.pct(w["lp_rule"], 0)}（事件隔天買 {BP.pct(w["lp_base"], 0)}）' in ls[2]
         good = [k for k in S.SIG_MK[mk] if rs[k]["v"] == "better"]
         if good:
             assert "、".join(BP.SHORT[k] for k in good) + "符合" in ls[2]
         else:
             assert "沒有一個訊號符合" in ls[2]
-        nl = [k for k in S.SIG_MK[mk] if k not in good and rs[k]["w10"].get("nl_dir") == "down"]
-        ru = [k for k in S.SIG_MK[mk] if k not in good and k not in nl and rs[k]["w10"].get("r_dir") == "up"]
-        if nl:
-            assert "、".join(BP.SHORT[k] for k in nl) + "再跌破低點少 " in ls[2]
-        if ru:
-            assert "、".join(BP.SHORT[k] for k in ru) + "的 60 日報酬多 " in ls[2]
-        if not (good or nl or ru):
-            assert "也沒有一個訊號明顯比固定等 10 天少再跌破低點" in ls[2]
-        assert "比隔天買" not in ls[2]                                   # 第二版：訊號只和固定等 10 天比
+        trade = [k for k in S.SIG_MK[mk] if rs[k]["v"] == "trade"]
+        lean = [k for k in S.SIG_MK[mk] if rs[k]["v"] not in ("better", "trade") and not rs[k]["lp"]["few"]
+                and (rs[k]["lp"].get("lp_lo") or 0) > 0]
+        low = [k for k in S.SIG_MK[mk] if rs[k]["lp"].get("lp_dir") == "down"]
+        for k in lean:
+            c = rs[k]["lp"]
+            assert f'{BP.SHORT[k]}有 {BP.pct(c["lp_rule"], 0)} 買在相對低點（同一批事件固定等 10 天 {BP.pct(c["lp_base"], 0)}）' in ls[2]
+        for k in low:
+            c = rs[k]["lp"]
+            assert f'{BP.SHORT[k]}只有 {BP.pct(c["lp_rule"], 0)} 買在相對低點（同一批事件固定等 10 天 {BP.pct(c["lp_base"], 0)}）' in ls[2]
+            assert f'已經比當時的最低收盤高 {BP.pct(c["reb_rule"])}' in ls[2]
+        if not (good or trade or lean or low):
+            assert "其他訊號和固定等 10 天沒有明顯差別" in ls[2]
+        assert "再跌破低點" not in ls[2]                                 # 第三版：看相對低點，不看再跌破低點
     us = BP.lead(_C("spx"))[0]
     assert "S&P 500 離 60 日高點" in us                           # 英文名後面要有空白
 
@@ -110,6 +115,9 @@ def test_card_structure_and_banned_words():
                 assert st.count("<tr") == 1 + n_rules
                 assert ("已出現 2026/10/20（第 4 天）" in t) == ("C1" in S.SIG_MK[mk])
                 assert "還沒（還有 6 個交易日）" in t       # 固定等 10 天
+                assert "目前這一波的位置 20%（下三分之一內）" in t and "買在相對低點 隔天買" in t
+                assert "隔天買在相對低點" in t
+                assert t.count("再跌破低點") == t.count("第一版看「20 天內再跌破低點」")   # 只剩方法裡講版本沿革那一句
             else:
                 assert 'class="xjmore xjres"' in h and "這一次：" not in t
             for w in BANNED:
@@ -120,17 +128,33 @@ def test_rule_numbers_come_from_research():
     C = _C("tw")
     h = BP.rule_table(C, "E5")
     r = C["R"]["ev"]["E5"]["rules"]["C7"]
-    w = r["w10"]                                                        # 判定依據：和固定等 10 天比
-    assert f'{BP.pct(w["nl_w10"], 0)} → <b>{BP.pct(w["nl_rule"], 0)}</b>' in h
-    assert f'{BP.spct(w["r_w10"])} → <b>{BP.spct(w["r_rule"])}</b>' in h
-    assert f'前後兩半 {BP._sp(w["nl_h1"], 0)}／{BP._sp(w["nl_h2"], 0)}' in h
-    assert f'前後兩半 {BP._sp(w["r_h1"])}／{BP._sp(w["r_h2"])}' in h
-    assert BP.VSHORT[r["v"]] in _text(h) and r["v"] == w["v"]
-    assert f'{BP.VSHORT[r["v1"]]}<small>再跌破低點 {BP.pct(r["nl_b1"], 0)} → {BP.pct(r["nl_rule"], 0)}</small>' in h   # 舊判定，參考
-    b = C["R"]["ev"]["E5"]["rules"]["W10"]                              # 對照那一行：固定等 10 天 vs 事件隔天買
-    assert f'{BP.pct(b["nl_b1"], 0)} → <b>{BP.pct(b["nl_rule"], 0)}</b>' in h and BP.VSHORT[b["v"]] in _text(BP.base_line(C, "E5"))
-    assert BP.vlong("W10", "worse") == "比事件隔天就買差" and BP.vlong("C7", "worse") == "比固定等 10 天差"
-    assert BP.vlong("C7", "better") == "有用：比固定等 10 天少再跌破低點，60 日報酬也不輸"
+    c = r["lp"]                                                         # 判定依據：買在相對低點，和固定等 10 天比
+    assert c["base"] == "W10"
+    assert f'{BP.pct(c["lp_base"], 0)} → <b>{BP.pct(c["lp_rule"], 0)}</b>' in h
+    assert f'{BP.spct(c["r_base"])} → <b>{BP.spct(c["r_rule"])}</b>' in h
+    assert f'前後兩半 {BP._sp(c["lp_h1"], 0)}／{BP._sp(c["lp_h2"], 0)}' in h
+    assert f'前後兩半 {BP._sp(c["r_h1"])}／{BP._sp(c["r_h2"])}' in h
+    assert f'{BP.pct(c["reb_base"])} → <b>{BP.pct(c["reb_rule"])}</b>' in h
+    assert f'隔天買 {BP.pct(c["lp_b1"], 0)}' in h
+    assert BP.VSHORT[r["v"]] in _text(h) and r["v"] == c["v"]
+    assert "再跌破低點" not in _text(h)
+    b = C["R"]["ev"]["E5"]["rules"]["W10"]["lp"]                        # 對照那一行：固定等 10 天 vs 事件隔天買
+    bl = BP.base_line(C, "E5")
+    assert b["base"] == "b1" and f'{BP.pct(b["lp_base"], 0)} → <b>{BP.pct(b["lp_rule"], 0)}</b>' in bl
+    assert BP.VSHORT[C["R"]["ev"]["E5"]["rules"]["W10"]["v"]] in _text(bl)
+    assert BP.vlong("W10", "worse").startswith("比事件隔天就買差") and BP.vlong("C7", "worse").startswith("比固定等 10 天差")
+    assert BP.vlong("C7", "better") == "有用：比固定等 10 天更常買在相對低點，60 日報酬沒有明顯比較少"
+
+
+def test_position_cells():
+    assert BP._pos_now(None) == "" and "已回到事件前高點" in BP._pos_now(1.02)
+    assert "目前這一波的位置 45%<" in BP._pos_now(0.45) and "下三分之一內" in BP._pos_now(0.33)
+    assert BP._lpcell({"pos": 0.2, "lp": 1}) == "20%<small>相對低點</small>"
+    assert BP._lpcell({"pos": 0.6, "lp": 0}) == "60%" and BP._lpcell({}) == "—"
+    L = _R()["markets"]["tw"]["ev"]["E5"]["list"]
+    h = BP.list_html(_C("tw"), "E5")
+    if any(x.get("lp") for x in L[-BP.LIST_MAX:]):
+        assert "<small>相對低點</small>" in h
 
 
 def test_five_markets_and_lists():
@@ -192,10 +216,13 @@ def test_committed_research_file_matches_spec():
         for ev in S.EVENTS:
             E = M["ev"][ev]
             assert set(E["rules"]) == {"W10", *S.SIG_MK[mk]} and set(E["groups"]) == set(S.GROUPS)
-            assert all(st["v"] in S.VERDICT and st["v1"] in S.VERDICT for st in E["rules"].values())
-            assert "w10" not in E["rules"]["W10"] and E["rules"]["W10"]["v"] == E["rules"]["W10"]["v1"]
-            for k in S.SIG_MK[mk]:                                      # 訊號的判定＝和固定等 10 天比（VER 2）
-                assert E["rules"][k]["v"] == E["rules"][k]["w10"]["v"]
+            assert all(st[v] in S.VERDICT for st in E["rules"].values() for v in ("v", "v1", "v2"))
+            assert all(st["v"] == st["lp"]["v"] for st in E["rules"].values())        # 現行判定＝VER 3（買在相對低點）
+            assert "w10" not in E["rules"]["W10"] and E["rules"]["W10"]["v2"] == E["rules"]["W10"]["v1"]
+            assert E["rules"]["W10"]["lp"]["base"] == "b1"
+            for k in S.SIG_MK[mk]:                                      # 訊號：VER 2 的判定留在 v2，VER 3 和固定等 10 天比
+                assert E["rules"][k]["v2"] == E["rules"][k]["w10"]["v"] and E["rules"][k]["lp"]["base"] == "W10"
+            assert E["all"]["lp"]["n"] > 0 and 0 <= E["all"]["lp"]["rate"] <= 1
             assert all(st["v"] in S.GVERDICT for st in E["groups"].values())
             assert len(E["list"]) == E["n"]
 
