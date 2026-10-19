@@ -223,6 +223,16 @@ def hotch_now(B: dict) -> dict | None:
         return None
 
 
+def bottom_now(B: dict) -> dict | None:
+    """「大跌後檢查」卡的資料（bottompage.state；研究檔 data/lab/bottom_research.json）；算不出來就不顯示那張卡。"""
+    try:
+        from . import bottompage as BP
+        return BP.state(B)
+    except Exception as e:                          # noqa: BLE001  大跌後檢查的問題不擋景氣頁
+        print(f"[景氣溫度] 大跌後檢查算不出來：{type(e).__name__}: {e}")
+        return None
+
+
 def view(B: dict | None = None, R: dict | None = None) -> dict:
     B = B if B is not None else C.build()
     R = R if R is not None else (load_research() or {})
@@ -278,7 +288,8 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
             "strips": strips, "summary": HP.summary(strips) if strips else "", "dvn": dvn,
             "dvr": R.get("deriv") or {}, "rel": R.get("rel") or {}, "m6": R.get("m6") or {}, "meta": meta(),
             "bubnow": bubble_now(B) if T else None, "crash": crash_now(B) if T else None,
-            "hotdd": hotdd_now(B) if T else None, "hotch": hotch_now(B) if T else None}
+            "hotdd": hotdd_now(B) if T else None, "hotch": hotch_now(B) if T else None,
+            "bottom": bottom_now(B) if T else None}
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
         out["viz"] = VZ.pack(B, out)
@@ -1279,10 +1290,12 @@ def render(V: dict) -> str:
     from . import appnav
     from . import heatviz as VZ
     P = parts(V)
+    from . import bottompage as BP
     from . import crashpage as CP
     from . import hotchpage as QP
     from . import hotddpage as XP
-    return (_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS + QP.CSS)
+    return (_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS + QP.CSS
+                                                                         + BP.CSS)
             .replace("{{TITLE}}", _e(MK["title"])).replace("{{PURP}}", _e(MK["purp"])).replace("{{PRE}}", MK["pre"])
             .replace("{{ASOF}}", _e(_md(P["asof"]))).replace("{{VSW}}", VZ.switch_html()).replace("{{DRAWER}}", VZ.DRAWER)
             .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS))

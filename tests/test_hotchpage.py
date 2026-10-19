@@ -165,7 +165,7 @@ def test_hotdd_note_names_chip_items_with_bigger_drawdowns():
 
 def test_card_is_wired_into_both_heat_pages_and_classes_are_prefixed():
     viz = (ROOT / "arm/lab/heatviz.py").read_text(encoding="utf-8")
-    assert "{top}{crash}{hotdd}{hotch}{items}" in viz and '<a href="#hotch">反向檢查</a>' in viz
+    assert "{top}{crash}{bottom}{hotdd}{hotch}{items}" in viz and '<a href="#hotch">反向檢查</a>' in viz
     assert "XP.card(V.get(\"hotdd\"), note=QP.hotdd_note(V.get(\"hotch\")) if hotch else None)" in viz
     for f in ("arm/lab/heatpage.py", "arm/lab/heatpage_us.py"):
         assert "QP.CSS" in (ROOT / f).read_text(encoding="utf-8"), f
