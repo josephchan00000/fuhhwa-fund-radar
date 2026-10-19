@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/19 13:09",
+  "as_of": "2026/10/19 13:54",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -40,13 +40,6 @@
           "source": "https://www.yesmedia.com.tw/",
           "date": "2026-10-19 08:00",
           "datetime": "2026-10-19T08:00:00+08:00"
-        },
-        {
-          "title": "00929今年報酬飆79%奪冠！0056、00878也贏大盤 股魚曝高股息ETF戰績",
-          "url": "https://n.yam.com/Article/20261016893142",
-          "source": "https://www.yesmedia.com.tw/",
-          "date": "2026-10-16 08:00",
-          "datetime": "2026-10-16T08:00:00+08:00"
         }
       ]
     },
