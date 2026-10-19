@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/19 08:10",
+  "as_of": "2026/10/19 08:25",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -40,6 +40,13 @@
           "source": "蕃新聞",
           "date": "2026-10-19 08:00",
           "datetime": "2026-10-19T08:00:00+08:00"
+        },
+        {
+          "title": "00929今年報酬飆79%奪冠！0056、00878也贏大盤 股魚曝高股息ETF戰績",
+          "url": "https://n.yam.com/Article/20261016893142",
+          "source": "https://www.yesmedia.com.tw/",
+          "date": "2026-10-16 08:00",
+          "datetime": "2026-10-16T08:00:00+08:00"
         }
       ]
     },
@@ -526,48 +533,28 @@
     },
     {
       "platform": "youtube",
-      "title": "都是月配息 ETF，00929 VS 00406A 該選誰？| 主動式真的能打敗被動科技高息嗎？",
-      "channel": "Lydia聊人生",
-      "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
-      "date": "2026-10-12",
-      "views": 8668
-    },
-    {
-      "platform": "youtube",
-      "title": "別被00929的15%殖利率騙了？想上車盯緊「這個價位」！#00929 #高股息ETF #存股 #理財",
-      "channel": "小童 x Happy Trading Life",
-      "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
-      "date": "2026-10-13",
-      "views": 2580,
+      "title": "0050 vs 00991A｜主動選股更賺？2026前九月含息績效比一比！ #被動收入 #理財觀念 #財務自由 #財商教育 #上班族理財 #金錢觀 #富人思維 #擺脫窮忙 #現金流 #人生滾雪球",
+      "channel": "人生滾雪球",
+      "url": "https://www.youtube.com/shorts/1dRmWvkVPY4",
+      "date": "2026-10-16",
+      "views": 827,
       "short": true
     },
     {
       "platform": "youtube",
-      "title": "00929科技月配息ETF！今年漲79%奪冠，配息率15.8%。#財富自由 #被動收入",
-      "channel": "財富閒叔跡",
-      "url": "https://www.youtube.com/watch?v=0Fqy5W9z8JM",
+      "title": "【台股高檔必看】操盤手曾創 73 個月 920% 績效！主動式 ETF 00418A 值得買嗎？",
+      "channel": "下班後的投資所",
+      "url": "https://www.youtube.com/watch?v=Hlp_-pEy3EE",
       "date": "2026-10-15",
-      "views": 890
+      "views": 595
     },
     {
       "platform": "youtube",
-      "title": "台股急殺 3檔大戶青睞拚逆轉？ Q4作帳行情南電先卡位 自配基金月加薪5萬元《鈔錢部署》盧燕俐 ft.杜金龍 陳顗全 20261015",
-      "channel": "鈔錢部署–華視優選",
-      "url": "https://www.youtube.com/watch?v=aBJQT2o2VfQ",
-      "date": "2026-10-15",
-      "views": 159378,
-      "peer": true,
-      "cat": "基金"
-    },
-    {
-      "platform": "youtube",
-      "title": "一缸子全是台積電！主動式ETF遭外資提款引爆共伴效應...神山慘挨刀！11月前最難熬該怎麼避險？ - 黃世聰 林友銘 蘇威元 劉寶傑《寶傑點兵》20261016-1",
-      "channel": "寶傑點兵／寶傑怎麼說",
-      "url": "https://www.youtube.com/watch?v=sWtVhEHFKoI",
-      "date": "2026-10-16",
-      "views": 156068,
-      "peer": true,
-      "cat": "主動式"
+      "title": "想用 00929 股息領月薪 3 萬，要存 237 萬還是 387 萬？過去一年實領只有一半、配息八成是賣股價差、2024 進場曾賠三成",
+      "channel": "財金小書僮",
+      "url": "https://www.youtube.com/watch?v=rRsy8F1qcbI",
+      "date": "2026-10-12",
+      "views": 356
     },
     {
       "platform": "youtube",
@@ -575,19 +562,9 @@
       "channel": "A Nomad Life自由旅居",
       "url": "https://www.youtube.com/watch?v=vKi0VTLqzFw",
       "date": "2026-10-14",
-      "views": 148804,
+      "views": 148903,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "00406A奪全台成交王！破發還能配超高息？天下真有那麼好的事？｜璇轉理財腦 基金小姐姐詹璇依",
-      "channel": "基金小姐姐詹璇依",
-      "url": "https://www.youtube.com/watch?v=HWdw9YRGwuo",
-      "date": "2026-10-14",
-      "views": 128303,
-      "peer": true,
-      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -595,29 +572,19 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
       "date": "2026-10-17",
-      "views": 115160,
+      "views": 115470,
       "peer": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "每月穩穩領3萬現金流，還不用扣2代健保費! 存多少張00878 00919 0056可以安心退休 ?",
-      "channel": "杉本來了",
-      "url": "https://www.youtube.com/watch?v=om1cnn5o53k",
+      "title": "988A、990A還沒解套該換嗎？蕭碧燕：別只看3個月績效！2招教你練仰天長笑，低檔加碼關鍵不是設幾%｜ft.蕭碧燕、葉芷娟【ETF錢滾錢】EP88",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/watch?v=96vE3gSEGqo",
       "date": "2026-10-14",
-      "views": 106764,
+      "views": 104778,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "🚩【吳淡如】EP29-看盤越久的人虧越多錢？台股獲利這麼好，為什麼還要投資美股？今天教你美股可以高獲利的秘密 ft. 美股航海王 @StockNavi007",
-      "channel": "吳淡如人生實用商學院（Official官方唯一頻道）",
-      "url": "https://www.youtube.com/watch?v=MjDKs_Few4E",
-      "date": "2026-10-15",
-      "views": 87935,
-      "peer": true,
-      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -625,36 +592,26 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
       "date": "2026-10-17",
-      "views": 59680,
+      "views": 59789,
       "peer": true,
       "cat": "主動式"
     },
     {
       "platform": "youtube",
-      "title": "「配置常勝軍」是什麼？適合哪些投資人？一鍵調整資產配置 | 鉅亨Fund大鏡",
-      "channel": "鉅亨Fund大鏡",
-      "url": "https://www.youtube.com/watch?v=kF3rr8WtJhU",
-      "date": "2026-10-14",
-      "views": 21396,
-      "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "#基金小姐姐 #投資 #投資 #投資理財",
-      "channel": "基金小姐姐詹璇依",
-      "url": "https://www.youtube.com/shorts/WrQcQ3D8uSg",
-      "date": "2026-10-15",
-      "views": 5907,
+      "title": "00406A別急著當退休金存｜楚狂人｜玩股網20261011",
+      "channel": "玩股網楚狂人",
+      "url": "https://www.youtube.com/shorts/0JNtpgrbRhM",
+      "date": "2026-10-17",
+      "views": 37935,
       "peer": true,
       "short": true,
-      "cat": "基金"
+      "cat": "主動式"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全方位 等 7 檔（詳下方新聞標籤）",
     "品牌焦點：群益證×復華投信剖析算力基建與光通訊新商機 | 金融脈動 | 金融（經濟日報）",
     "社群聲量最高：呼應2023年12月統計，2028年SPX目標8XXX已越發靠近！（0 推）",
-    "YouTube 熱片：台股急殺 3檔大戶青睞拚逆轉？ Q4作帳行情南電先卡位 自配基金月加薪5萬元《鈔錢部署》盧燕俐 ft.杜金龍 陳顗全 20261015（鈔錢部署–華視優選・159,378 次觀看）"
+    "YouTube 熱片：不想上班了？这5只ETF，帮你打造每月被动收入（A Nomad Life自由旅居・148,903 次觀看）"
   ]
 }
