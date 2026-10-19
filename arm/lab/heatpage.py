@@ -203,6 +203,16 @@ def crash_now(B: dict) -> dict | None:
         return None
 
 
+def hotdd_now(B: dict) -> dict | None:
+    """「過熱之後 3 個月的最大回撤」卡的資料（hotddpage.state；研究檔 data/lab/hotdd_research.json）；算不出來就不顯示那張卡。"""
+    try:
+        from . import hotddpage as XP
+        return XP.state(B)
+    except Exception as e:                          # noqa: BLE001  過熱後回撤的問題不擋景氣頁
+        print(f"[景氣溫度] 過熱後回撤算不出來：{type(e).__name__}: {e}")
+        return None
+
+
 def view(B: dict | None = None, R: dict | None = None) -> dict:
     B = B if B is not None else C.build()
     R = R if R is not None else (load_research() or {})
@@ -257,7 +267,8 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
             "data": R.get("data") or {}, "cal_info": B.get("cal_info"), "vixcorr": B.get("vixcorr") or {}, "ta": ta,
             "strips": strips, "summary": HP.summary(strips) if strips else "", "dvn": dvn,
             "dvr": R.get("deriv") or {}, "rel": R.get("rel") or {}, "m6": R.get("m6") or {}, "meta": meta(),
-            "bubnow": bubble_now(B) if T else None, "crash": crash_now(B) if T else None}
+            "bubnow": bubble_now(B) if T else None, "crash": crash_now(B) if T else None,
+            "hotdd": hotdd_now(B) if T else None}
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
         out["viz"] = VZ.pack(B, out)
@@ -1259,7 +1270,8 @@ def render(V: dict) -> str:
     from . import heatviz as VZ
     P = parts(V)
     from . import crashpage as CP
-    return (_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS + CP.CSS)
+    from . import hotddpage as XP
+    return (_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS)
             .replace("{{TITLE}}", _e(MK["title"])).replace("{{PURP}}", _e(MK["purp"])).replace("{{PRE}}", MK["pre"])
             .replace("{{ASOF}}", _e(_md(P["asof"]))).replace("{{VSW}}", VZ.switch_html()).replace("{{DRAWER}}", VZ.DRAWER)
             .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS))

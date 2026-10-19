@@ -219,7 +219,8 @@ def render(pages: dict, default: str = DEFAULT) -> str:
         asofs = {k: HP._md(P["asof"]) for k, P in pages.items()}
         purp = HP._e(PURP)
     from . import crashpage as CP
-    return (_HTML.replace("{{CSS}}", HP._CSS + appnav.CSS + VZ.CSS + CP.CSS + CSS).replace("{{APPTAB}}", appnav.bar("us"))
+    from . import hotddpage as XP
+    return (_HTML.replace("{{CSS}}", HP._CSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS + CSS).replace("{{APPTAB}}", appnav.bar("us"))
             .replace("{{VSW}}", VZ.switch_html()).replace("{{DRAWER}}", VZ.DRAWER)
             .replace("{{ASOF}}", HP._e(asofs.get(default, "—"))).replace("{{PURP}}", purp)
             .replace("{{SWITCH}}", SWITCH).replace("{{IX}}", default).replace("{{LIVE}}", _content(pages[default]))
