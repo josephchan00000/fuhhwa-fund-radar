@@ -1,15 +1,17 @@
-"""大跌後的買點與落底訊號（docs/lab_crash_plan.md 第 4、13、16 節；規格 bottomspec VER 2）。
+"""大跌後的買點與落底訊號（docs/lab_crash_plan.md 第 4、13、16、17 節；規格 bottomspec VER 3）。
 
   events_e5()／e10_segments()   兩種事件（只用到當天以前的收盤）
   peak_of()                     事件前高點（第 t−59～t 天最高收盤那天）
   buy_out()                     一個買進日的結果（R20／R60／R120、再創新低、之後最大不利跌幅）
   recovery()                    事件後幾個交易日回到事件前高點
+  wave()／position()            （VER 3）這一波的最低收盤、買進價在這一波的位置、買在相對低點（下三分之一）
   first_signal()                八個落底訊號：事件之後第 1～60 個交易日內第一次出現的那天
   groups_at()                   事件當天的分組（底子、籌碼、泡沫）
   cboot_counts()                環狀移動區塊重抽：每次每個事件被抽到幾次
   paired()／two_group()         同一事件兩種買法的差、第一組 vs 第二組
   market()                      一個市場：事件、分組、規則比較、描述、BH、判定
-                                （VER 2：訊號和固定等 10 天比；固定等 10 天和事件隔天買比；訊號 vs 隔天買留作 v1）
+                                （VER 3：看買在相對低點的比例；訊號和固定等 10 天比、固定等 10 天和事件隔天買比；
+                                 VER 1、VER 2 的判定（再跌破低點）留作 v1、v2）
   primary()                     HB1、HB2（台股＋S&P 500 合併，Holm）
   research()                    → data/lab/bottom_research.json
   now()                         每天建頁：進行中的事件、分組、訊號
@@ -106,6 +108,7 @@ def buy_out(px: np.ndarray, p: int, b: int) -> dict:
     out: dict = {"b": b}
     if b >= T or not _ok(px[b]):
         return out
+    out["reb"] = float(px[b] / np.nanmin(px[p:b + 1]) - 1.0)   # 買進時比事件前高點到那天的最低收盤高多少（只描述）
     for h in S.HS:
         out[f"r{h}"] = float(px[b + h] / px[b] - 1.0) if b + h < T and _ok(px[b + h]) else None
     if b + S.NL_H < T:
@@ -124,6 +127,32 @@ def recovery(px: np.ndarray, t: int, p: int) -> tuple[int | None, int]:
         if _ok(px[u]) and px[u] >= tgt:
             return u - t, T - 1 - t
     return None, T - 1 - t
+
+
+def wave(px: np.ndarray, t: int, p: int) -> tuple[float, int] | None:
+    """（VER 3）這一波：事件前高點 p 到 end＝min(第 t＋WAVE_H 天, 第一個收盤回到事件前高點的日子)
+    →（這一波的最低收盤 L, end）。資料還沒到第 t＋WAVE_H 天、而且還沒回到前高＝這一波還沒結束 → None。"""
+    T = len(px)
+    end = None
+    for u in range(t + 1, min(T, t + S.WAVE_H + 1)):
+        if _ok(px[u]) and px[u] >= px[p]:
+            end = u
+            break
+    if end is None:
+        if t + S.WAVE_H > T - 1:
+            return None
+        end = t + S.WAVE_H
+    return float(np.nanmin(px[p:end + 1])), end
+
+
+def position(px: np.ndarray, p: int, b: int, w: tuple | None) -> tuple[float | None, int | None]:
+    """（VER 3）第 b 天收盤在這一波的位置（0＝這一波最低收盤、1＝事件前高點）與 LP 買在相對低點
+    （位置 ≤ LP_CUT 而且買進日不在這一波結束之後）。這一波還沒結束或沒有第 b 天收盤＝(None, None)。"""
+    if w is None or b >= len(px) or not _ok(px[b]):
+        return None, None
+    lo, end = w
+    pos = float((px[b] - lo) / (px[p] - lo))
+    return pos, int(b <= end and pos <= S.LP_CUT)
 
 
 # ── 落底訊號 ──────────────────────────────────────────────────────────────
@@ -384,6 +413,18 @@ def rule_verdict(r: dict) -> str:
     return "none"
 
 
+def rule_verdict3(r: dict) -> str:
+    """（VER 3，規格 6.1c）有用＝買在相對低點的比例比較高、60 日報酬沒有比較少；比較高但報酬比較少＝有取捨。"""
+    if r.get("few"):
+        return "few"
+    lp, rr = sdir(r, "lp"), sdir(r, "r")
+    if lp == "up":
+        return "trade" if rr == "down" else "better"
+    if lp == "down" or rr == "down":
+        return "worse"
+    return "none"
+
+
 def group_verdict(r: dict) -> str:
     if r.get("few"):
         return "few"
@@ -413,6 +454,12 @@ def desc(recs: list[dict], key: str = "b1") -> dict:
                         "p25": _q(a, 0.25), "p75": _q(a, 0.75), "up": float(np.mean(a > 0)) if len(a) else None}
     nl = [r[key]["nl"] for r in recs if r.get(key) and r[key].get("nl") is not None]
     out["nl"] = {"n": len(nl), "rate": float(np.mean(nl)) if nl else None}
+    lp = [r[key]["lp"] for r in recs if r.get(key) and r[key].get("lp") is not None]
+    out["lp"] = {"n": len(lp), "rate": float(np.mean(lp)) if lp else None}
+    ps = np.array([r[key]["pos"] for r in recs if r.get(key) and r[key].get("pos") is not None])
+    out["pos"] = {"n": int(len(ps)), "med": _q(ps, 0.5)}
+    rb = np.array([r[key]["reb"] for r in recs if r.get(key) and r[key].get("reb") is not None])
+    out["reb"] = {"n": int(len(rb)), "med": _q(rb, 0.5)}
     mae = np.array([r[key]["mae"] for r in recs if r.get(key) and r[key].get("mae") is not None])
     out["mae"] = {"n": int(len(mae)), "med": _q(mae, 0.5), "p75": _q(mae, 0.75), "max": float(mae.max()) if len(mae) else None}
     rec = {}
@@ -540,15 +587,20 @@ def event_recs(I: dict, ev: str) -> list[dict]:
         p = peak_of(px, t)
         g, gv = groups_at(I, t)
         rec, fu = recovery(px, t, p)
+        w = wave(px, t, p)
         depth = float(px[t] / px[t - S.E5_DAYS] - 1.0) if ev == "E5" else float(px[t] / px[p] - 1.0)
+        b1 = buy_out(px, p, t + S.LAG)
+        b1["pos"], b1["lp"] = position(px, p, t + S.LAG, w)
         r = {"t": t, "d": cal[t], "p": p, "pd": cal[p], "depth": depth, "dd": float(px[t] / px[p] - 1.0),
-             "g": g, "gv": gv, "rec": rec, "fu": fu, "b1": buy_out(px, p, t + S.LAG), "rules": {}}
+             "g": g, "gv": gv, "rec": rec, "fu": fu, "b1": b1, "rules": {},
+             "wl": None if w is None else float(w[0] / px[p] - 1.0)}
         full = t + S.SIG_WIN <= T - 1                           # 60 天的窗口已經走完（才知道訊號有沒有出現）
         for k in ("W10",) + tuple(S.SIG_MK[mk]):
             s, b = rule_buy(k, I["sig"], px, t)
             rr = {"s": s if s != "na" else None, "na": s == "na", "full": full or (s not in (None, "na"))}
             if b is not None:
                 rr["o"] = buy_out(px, p, b)
+                rr["o"]["pos"], rr["o"]["lp"] = position(px, p, b, w)
             r["rules"][k] = rr
         out.append(r)
     return out
@@ -592,6 +644,45 @@ def _cmp(rows: list[tuple], tag: str) -> dict:
     return out
 
 
+def _lp_rows(recs: list[dict], k: str, base: str) -> list[tuple]:
+    """（VER 3）規則 k 和對照（b1 或 W10）的 LP 與 R60 都有值的事件 → [(t, 規則結果, 對照結果, 事件隔天買結果)]。"""
+    rows = []
+    for r in recs:
+        o = ((r["rules"].get(k) or {}).get("o")) or {}
+        ob = r["b1"] if base == "b1" else ((((r["rules"].get(base) or {}).get("o")) or {}))
+        if None not in (o.get("lp"), o.get("r60"), ob.get("lp"), ob.get("r60")):
+            rows.append((r["t"], o, ob, r["b1"]))
+    return rows
+
+
+def _cmp3(rows: list[tuple], base: str) -> dict:
+    """（VER 3）規則 − 對照：LP（買在相對低點的比例差）與 R60 的平均、區間、p、前後兩半、樣本不足；
+    另列兩邊與事件隔天買的 LP 比例、位置中位數、之後 60 日最多再跌的中位數（不判定）。"""
+    n = len(rows)
+    pos = np.array([t for t, *_ in rows], dtype=np.int64)
+    out: dict = {"base": base, "n": n, "ep": episodes(pos)}
+    if n:
+        lp_r = np.array([o["lp"] for _, o, _, _ in rows], dtype=float)
+        lp_b = np.array([ob["lp"] for _, _, ob, _ in rows], dtype=float)
+        r_r = np.array([o["r60"] for _, o, _, _ in rows])
+        r_b = np.array([ob["r60"] for _, _, ob, _ in rows])
+        b1 = [x["lp"] for *_, x in rows if x.get("lp") is not None]
+        out.update({"lp_rule": float(lp_r.mean()), "lp_base": float(lp_b.mean()),
+                    "lp_b1": float(np.mean(b1)) if b1 else None,
+                    "r_rule": float(r_r.mean()), "r_base": float(r_b.mean()),
+                    "pos_rule": _q(np.array([o["pos"] for _, o, _, _ in rows]), 0.5),
+                    "pos_base": _q(np.array([ob["pos"] for _, _, ob, _ in rows]), 0.5),
+                    "mae_rule": _q(np.array([o["mae"] for _, o, _, _ in rows if o.get("mae") is not None]), 0.5),
+                    "mae_base": _q(np.array([ob["mae"] for _, _, ob, _ in rows if ob.get("mae") is not None]), 0.5),
+                    "reb_rule": _q(np.array([o["reb"] for _, o, _, _ in rows]), 0.5),
+                    "reb_base": _q(np.array([ob["reb"] for _, _, ob, _ in rows]), 0.5)})
+        for pre, d in (("lp", lp_r - lp_b), ("r", r_r - r_b)):
+            for a, b in paired(pos, d).items():
+                out[f"{pre}_{a}"] = b
+    out["few"] = bool(n < S.MIN_N or out["ep"] < S.MIN_EP or out.get("lp_lo") is None or out.get("r_lo") is None)
+    return out
+
+
 def rule_stats(recs: list[dict], k: str) -> dict:
     """規則 k：出現比例、事件到訊號幾天、和事件隔天買比（NL20 與 R60 的差、區間、兩半、p；VER 1 的比較，平鋪在最上層）；
     訊號另和固定等 10 天比（VER 2 的判定依據，放在 w10）。"""
@@ -608,6 +699,8 @@ def rule_stats(recs: list[dict], k: str) -> dict:
     out.update(_cmp(_pair_rows(recs, k), "b1"))
     if k != S.SIG_BASE:
         out["w10"] = _cmp(_pair_rows(recs, k, base=S.SIG_BASE), "w10")
+    base = "b1" if k == S.SIG_BASE else S.SIG_BASE
+    out["lp"] = _cmp3(_lp_rows(recs, k, base), base)                # VER 3 的判定依據
     return out
 
 
@@ -664,16 +757,27 @@ def market(I: dict) -> dict:
                   if k != S.SIG_BASE and not st["w10"]["few"] and st["w10"].get(f"{pre}_p") is not None]
             for k, q in zip(ks, bh([E["rules"][k]["w10"][f"{pre}_p"] for k in ks])):
                 E["rules"][k]["w10"][f"{pre}_q"] = q
+        # VER 3（6.1c）：落底訊號 vs 固定等 10 天一個家族；固定等 10 天 vs 事件隔天買自成一個（LP、R60 各一個）
+        sig = [k for k in E["rules"] if k != S.SIG_BASE]
+        for pre in ("lp", "r"):
+            for fam in (sig, [S.SIG_BASE]):
+                ks = [k for k in fam if not E["rules"][k]["lp"]["few"] and E["rules"][k]["lp"].get(f"{pre}_p") is not None]
+                for k, q in zip(ks, bh([E["rules"][k]["lp"][f"{pre}_p"] for k in ks])):
+                    E["rules"][k]["lp"][f"{pre}_q"] = q
         for k, st in E["rules"].items():
             st["nl_dir"], st["r_dir"] = sdir(st, "nl"), sdir(st, "r")
-            st["v1"] = rule_verdict(st)                        # 和事件隔天買比（VER 1）
+            st["v1"] = rule_verdict(st)                        # VER 1：和事件隔天買比再跌破低點
             if k == S.SIG_BASE:
-                st["v"] = st["v1"]                             # 固定等 10 天：照 VER 1
+                st["v2"] = st["v1"]
             else:
-                w = st["w10"]                                  # 訊號：和固定等 10 天比（VER 2）
+                w = st["w10"]                                  # VER 2：訊號和固定等 10 天比再跌破低點
                 w["nl_dir"], w["r_dir"] = sdir(w, "nl"), sdir(w, "r")
                 w["v"] = rule_verdict(w)
-                st["v"] = w["v"]
+                st["v2"] = w["v"]
+            c = st["lp"]                                       # VER 3：買在相對低點（現行判定）
+            c["lp_dir"], c["r_dir"] = sdir(c, "lp"), sdir(c, "r")
+            c["v"] = rule_verdict3(c)
+            st["v"] = c["v"]
         gs = [g for g, st in E["groups"].items() if not st["few"] and st.get("p") is not None]
         for g, q in zip(gs, bh([E["groups"][g]["p"] for g in gs])):
             E["groups"][g]["q"] = q
@@ -696,6 +800,7 @@ def _list_row(r: dict, mk: str) -> dict:
             sig[k] = "open"
     return {"d": r["d"], "pd": r["pd"], "depth": r["depth"], "dd": r["dd"], "g": r["g"], "gv": r["gv"],
             "r20": b1.get("r20"), "r60": b1.get("r60"), "r120": b1.get("r120"), "nl": b1.get("nl"), "mae": b1.get("mae"),
+            "pos": b1.get("pos"), "lp": b1.get("lp"), "wl": r.get("wl"),
             "rec": r["rec"], "fu": r["fu"], "sig": sig}
 
 
@@ -857,6 +962,7 @@ def now(I: dict) -> dict:
         row = {"ev": ev, "t": cal[te], "p": cal[p], "ppx": float(px[p]), "days": t - te,
                "depth": float(px[te] / px[te - S.E5_DAYS] - 1.0) if ev == "E5" else float(px[te] / px[p] - 1.0),
                "low": cal[lp], "lowdd": float(px[lp] / px[p] - 1.0), "nowdd": float(px[t] / px[p] - 1.0),
+               "pos_now": float((px[t] - px[lp]) / (px[p] - px[lp])) if px[p] > px[lp] else None,
                "g": g, "gv": gv, "sig": {}}
         for k in S.SIG_MK[mk]:
             s = first_signal(k, I["sig"], px, te, te + S.SIG_WIN)
