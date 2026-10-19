@@ -1,12 +1,20 @@
 """大跌後的買點與落底訊號規格（docs/lab_crash_plan.md 第 13 節）：規格鎖定。
 
 規格是在算任何「事件或訊號 → 之後漲跌」的關係之前寫定的（VER 1，2026-10-19）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。
-VER 2（同日，看過 VER 1 的結果之後；規劃第 16 節）只改落底訊號的判定：對照從事件隔天買換成固定等 10 天，其他照 VER 1。"""
+VER 2（同日，看過 VER 1 的結果之後；規劃第 16 節）只改落底訊號的判定：對照從事件隔天買換成固定等 10 天，其他照 VER 1。
+VER 3（同日，看過 VER 2 的結果之後；規劃第 17 節）判定改看「買在這一波的相對低點」（下三分之一），其他照 VER 2。"""
 from arm.lab import bottomspec as S
 
 
-def test_bottom_spec_v2_is_locked():
-    assert S.VER == 2 and S.VER2_DATE == "2026-10-19"
+def test_bottom_spec_v3_is_locked():
+    assert S.VER == 3 and S.VER3_DATE == "2026-10-19"
+    assert S.WAVE_H == 120 and S.LP_CUT == 1 / 3
+    assert S.VERDICT3 == {"better": "有用", "trade": "比較常買在相對低點，但報酬也比較少", "worse": "比對照差",
+                          "none": "看不出差別", "few": "樣本不足"}
+
+
+def test_bottom_spec_v2_parts_are_unchanged():
+    assert S.VER2_DATE == "2026-10-19"
     assert S.SIG_BASE == "W10" and S.SIG_BASE in S.RULES and S.SIG_BASE not in S.SIGNALS
     assert S.VERDICT_SIG == {"better": "有用", "trade": "比較少再創新低，但報酬也比較少", "worse": "比固定等 10 天差",
                              "none": "看不出差別", "few": "樣本不足"}
