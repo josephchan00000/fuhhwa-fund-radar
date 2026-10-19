@@ -25,8 +25,7 @@ _TAG = re.compile(r"<[^>]+>")
 _CHAIN = re.compile(r'href="introduce\.php\?ic=(\w+)"[^>]*>(.*?)</a>', re.S)
 _NODE = re.compile(r'<div id="companyList_(\w+)" title="([^"]*)"')
 _STK = re.compile(r"stk_code=(\d{4})(?!\d)")
-_CNT = re.compile(r"[（(]\s*(\d+)\s*家\s*[)）]\s*$")
-_B = re.compile(r"<b(?:\s[^>]*)?>")
+_LAB = re.compile(r">([^<>]{1,80}?)[（(]\s*(\d+)\s*家\s*[)）]\s*<")
 MKT = ("本國上市公司", "本國上櫃公司", "外國上市公司", "外國上櫃公司", "本國興櫃公司", "外國興櫃公司", "創櫃公司", "知名外國企業")
 
 
@@ -47,42 +46,59 @@ def parse_home(h: str) -> list[tuple[str, str]]:
     return out
 
 
-def _label(seg: str) -> tuple[str, int | None]:
-    """<b> 之後的片段 → (標籤去掉「(N家)」, N)。"""
-    k = seg.find("</b>")
-    lab = _clean(seg[:k] if k >= 0 else seg[:60])
-    m = _CNT.search(lab)
-    n = int(m.group(1)) if m else None
-    return (_CNT.sub("", lab).strip() if m else lab), n
+def _segments(part: str) -> list[list]:
+    """一個節點的 HTML → [[標籤, 標示家數, [代號…]], …]：每個「文字(N家)」標籤（市場別在 <b> 裡、IC 類別分頁是純文字）
+    到下一個標籤之前的代號（依出現順序去重）。"""
+    ms = list(_LAB.finditer(part))
+    out = []
+    for i, m in enumerate(ms):
+        body = part[m.end():ms[i + 1].start() if i + 1 < len(ms) else len(part)]
+        codes: list[str] = []
+        for c in _STK.findall(body):
+            if c not in codes:
+                codes.append(c)
+        out.append([_clean(m.group(1)), int(m.group(2)), codes])
+    return out
+
+
+def _dangling(segs: list) -> int:
+    """結尾連續幾段是「不是市場別、沒有代號」的分頁標題（標題排在下一個節點的 div 之前時會落在這裡）。"""
+    k = 0
+    for lab, _, cs in reversed(segs):
+        if lab in MKT or cs:
+            break
+        k += 1
+    return k if k < len(segs) else 0
 
 
 def parse_chain(h: str) -> list[list]:
     """產業鏈頁 → [[節點代碼, 節點名稱, [[標籤, 標示家數, [代號…]], …]], …]。
     節點在頁面裡出現兩次（圖與清單），同一個節點代碼只留第一次；段落裡的代號依出現順序去重。
-    <b> 帶屬性的也算（半導體 IC 設計節點的 IC 類別分頁標題是 <b class=…>）。"""
+    半導體 IC 設計節點的 IC 類別分頁標題是純文字「LED驅動IC (12家)」；如果標題排在 IC 設計的 div 之前
+    （落在上一個節點的結尾），移到 IC 設計節點的開頭。"""
     parts = re.split(r'(?=<div id="companyList_)', h)
     out: list[list] = []
     seen: set[str] = set()
+    carry: list = []
     for part in parts[1:]:
         m = _NODE.match(part)
-        if not m or m.group(1) in seen:
+        if not m:
+            continue
+        segs = carry + _segments(part)
+        k = _dangling(segs)
+        carry = segs[len(segs) - k:] if k else []
+        if k:
+            segs = segs[:len(segs) - k]
+        if m.group(1) in seen:
             continue
         seen.add(m.group(1))
-        segs = []
-        for seg in _B.split(part)[1:]:
-            lab, n = _label(seg)
-            codes: list[str] = []
-            for c in _STK.findall(seg):
-                if c not in codes:
-                    codes.append(c)
-            segs.append([lab, n, codes])
         out.append([m.group(1), _clean(m.group(2)), segs])
     return out
 
 
 def tabs(node: list) -> dict[str, set[str]] | None:
     """有分頁的節點（IC 設計）→ {分頁名稱: 代號}；沒有分頁＝None。
-    版式：先列全部分頁標題（不是市場別、沒有代號，標示 N 家），之後依序是各分頁的市場別段落；
+    版式（2026-10-19 探針）：先列全部分頁標題（不是市場別、沒有代號，標示 N 家），之後依序是各分頁的市場別段落；
     每個分頁依序取段落，直到段落標示家數加起來等於分頁的 N 家。對不上（版式變了）＝None，並印日誌。"""
     segs = node[2]
     heads = [(lab, n) for lab, n, cs in segs if lab not in MKT and not cs]
@@ -159,6 +175,9 @@ def fetch(force: bool = False) -> dict:
         n_codes = len({c for nd in nodes for c in node_codes(nd)})
         _log(f"{ic} {name}：節點 {len(nodes)}、代號 {n_codes}")
         _debug_tabs(ic, h, nodes)
+        if ic == "D000" and not any(tabs(nd) for nd in nodes if nd[1] == "IC設計"):
+            k = h.find("LED")
+            _log(f"D000 IC設計沒有解析到分頁；「LED」附近 {h[max(0, k - 800):k + 1200]!r}")
         time.sleep(SLEEP)
     doc = {"d": clock.today_tw().isoformat(), "chains": out}
     changed = store.write_json(FILE, doc)

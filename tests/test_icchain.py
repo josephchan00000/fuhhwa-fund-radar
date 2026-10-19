@@ -11,9 +11,9 @@ NODE = ('<div id="companyList_{nid}" title="{t}" class="x-hidden"><div class="co
         '&nbsp;<a href="company_basic.php?stk_code=2330">2330 台積電</a></td></tr>'
         "<tr><td><b>本國上櫃公司(1家)</b></td><td><a href=\"company_basic.php?stk_code=6488\">6488</a></td></tr>"
         "<tr><td><b>知名外國企業(1家)</b></td><td>Intel</td></tr></table></div></div>")
-# IC 設計：先列分頁標題（<b class=…>），之後依序是各分頁的市場別段落（家數加起來＝分頁標示的 N 家）
-TAB = ('<div id="companyList_D200" title="IC設計" class="x-hidden">'
-       '<a href="#t1"><b class="tab">&nbsp;LED驅動IC&nbsp;(3家)</b></a><a href="#t2"><b class="tab">&nbsp;光通訊IC&nbsp;（2家）</b></a>'
+# IC 設計：先列分頁標題（純文字「&nbsp;LED驅動IC&nbsp;(N家)」），之後依序是各分頁的市場別段落（家數加起來＝分頁標示的 N 家）
+HEADS = '<ul><li><a href="#t1">&nbsp;LED驅動IC&nbsp;(3家)</a></li><li><a href="#t2">&nbsp;光通訊IC&nbsp;（2家）</a></li></ul>'
+TAB = ('<div id="companyList_D200" title="IC設計" class="x-hidden">' + HEADS +
        '<div id="t1"><b>本國上市公司(1家)</b><a href="company_basic.php?stk_code=3438">x</a>'
        '<a href="company_basic.php?stk_code=34380">y</a><b>知名外國企業(2家)</b>A B</div>'
        '<div id="t2"><b>本國上櫃公司(1家)</b><a href="company_basic.php?stk_code=3081">z</a>'
@@ -33,11 +33,23 @@ def test_parse_chain_nodes_segments_and_duplicates():
     assert segs[1] == ["本國上櫃公司", 1, ["6488"]]
     assert segs[2] == ["知名外國企業", 1, []]
     tab = nodes[1][2]
-    assert tab[0] == ["LED驅動IC", 3, []]                 # 帶屬性的 <b> 也切段
+    assert tab[0] == ["LED驅動IC", 3, []]                 # 純文字標籤也切段
     assert tab[1] == ["光通訊IC", 2, []]
     assert tab[2] == ["本國上市公司", 1, ["3438"]]         # 5 碼不算代號
     assert IC.tabs(nodes[1]) == {"LED驅動IC": {"3438"}, "光通訊IC": {"3081", "7415"}}
     assert IC.tabs(nodes[0]) is None
+
+
+def test_tab_heads_before_the_node_div_move_to_it():
+    """分頁標題排在 IC 設計 div 之前（落在上一個節點的結尾）→ 移到 IC 設計節點開頭。"""
+    body = TAB.replace(HEADS, "")
+    h = NODE.format(nid="D100", t="IP設計").replace("</div></div>", "</div>" + HEADS + "</div>") + body
+    nodes = IC.parse_chain(h)
+    assert [s[0] for s in nodes[0][2]] == ["本國上市公司", "本國上櫃公司", "知名外國企業"]
+    assert IC.tabs(nodes[1]) == {"LED驅動IC": {"3438"}, "光通訊IC": {"3081", "7415"}}
+    h2 = NODE.format(nid="D100", t="IP設計").replace("</div></div>", "</div>" + HEADS + "</div>") + body + \
+        NODE.format(nid="D100", t="IP設計")                       # 重複的節點不影響
+    assert IC.tabs(IC.parse_chain(h2)[1]) == {"LED驅動IC": {"3438"}, "光通訊IC": {"3081", "7415"}}
 
 
 def test_tabs_mismatch_returns_none():
