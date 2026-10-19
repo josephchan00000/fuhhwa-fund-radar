@@ -90,6 +90,8 @@ jobs:
             python3 scripts/backfill_lab.py --probe-fs
           elif [ "${MODE#indfill}" != "$MODE" ]; then
             python3 scripts/backfill_lab.py --ind-hist --budget-min 50
+          elif [ "$MODE" = "icfill" ]; then
+            timeout 900 python3 scripts/backfill_lab.py --ic-chain
           elif [ "$MODE" = "revprobe" ]; then
             python3 scripts/backfill_lab.py --rev-probe
           elif [ "${MODE#v3fill}" != "$MODE" ]; then
