@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/19 07:31",
+  "as_of": "2026/10/19 08:10",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -35,11 +35,11 @@
       ],
       "items": [
         {
-          "title": "00929今年報酬飆79%奪冠！0056、00878也贏大盤 股魚曝高股息ETF戰績",
-          "url": "https://n.yam.com/Article/20261016893142",
-          "source": "https://www.yesmedia.com.tw/",
-          "date": "2026-10-16 08:00",
-          "datetime": "2026-10-16T08:00:00+08:00"
+          "title": "高股息ETF也能賺贏大盤！00929今年報酬近8成 績效超車半數台股ETF",
+          "url": "https://n.yam.com/Article/20261019381580",
+          "source": "蕃新聞",
+          "date": "2026-10-19 08:00",
+          "datetime": "2026-10-19T08:00:00+08:00"
         }
       ]
     },
@@ -530,7 +530,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=9duwoQB12_M",
       "date": "2026-10-12",
-      "views": 8647
+      "views": 8668
     },
     {
       "platform": "youtube",
@@ -538,7 +538,7 @@
       "channel": "小童 x Happy Trading Life",
       "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
       "date": "2026-10-13",
-      "views": 2579,
+      "views": 2580,
       "short": true
     },
     {
@@ -555,7 +555,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=aBJQT2o2VfQ",
       "date": "2026-10-15",
-      "views": 159188,
+      "views": 159378,
       "peer": true,
       "cat": "基金"
     },
@@ -565,7 +565,7 @@
       "channel": "寶傑點兵／寶傑怎麼說",
       "url": "https://www.youtube.com/watch?v=sWtVhEHFKoI",
       "date": "2026-10-16",
-      "views": 155654,
+      "views": 156068,
       "peer": true,
       "cat": "主動式"
     },
@@ -575,7 +575,7 @@
       "channel": "A Nomad Life自由旅居",
       "url": "https://www.youtube.com/watch?v=vKi0VTLqzFw",
       "date": "2026-10-14",
-      "views": 148544,
+      "views": 148804,
       "peer": true,
       "cat": "綜合"
     },
@@ -585,7 +585,7 @@
       "channel": "基金小姐姐詹璇依",
       "url": "https://www.youtube.com/watch?v=HWdw9YRGwuo",
       "date": "2026-10-14",
-      "views": 128186,
+      "views": 128303,
       "peer": true,
       "cat": "高股息"
     },
@@ -595,7 +595,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
       "date": "2026-10-17",
-      "views": 114559,
+      "views": 115160,
       "peer": true,
       "cat": "高股息"
     },
@@ -605,7 +605,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=om1cnn5o53k",
       "date": "2026-10-14",
-      "views": 106681,
+      "views": 106764,
       "peer": true,
       "cat": "綜合"
     },
@@ -615,7 +615,7 @@
       "channel": "吳淡如人生實用商學院（Official官方唯一頻道）",
       "url": "https://www.youtube.com/watch?v=MjDKs_Few4E",
       "date": "2026-10-15",
-      "views": 87639,
+      "views": 87935,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -625,7 +625,7 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
       "date": "2026-10-17",
-      "views": 59459,
+      "views": 59680,
       "peer": true,
       "cat": "主動式"
     },
@@ -635,7 +635,7 @@
       "channel": "鉅亨Fund大鏡",
       "url": "https://www.youtube.com/watch?v=kF3rr8WtJhU",
       "date": "2026-10-14",
-      "views": 21328,
+      "views": 21396,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -645,7 +645,7 @@
       "channel": "基金小姐姐詹璇依",
       "url": "https://www.youtube.com/shorts/WrQcQ3D8uSg",
       "date": "2026-10-15",
-      "views": 5896,
+      "views": 5907,
       "peer": true,
       "short": true,
       "cat": "基金"
@@ -655,6 +655,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全方位 等 7 檔（詳下方新聞標籤）",
     "品牌焦點：群益證×復華投信剖析算力基建與光通訊新商機 | 金融脈動 | 金融（經濟日報）",
     "社群聲量最高：呼應2023年12月統計，2028年SPX目標8XXX已越發靠近！（0 推）",
-    "YouTube 熱片：台股急殺 3檔大戶青睞拚逆轉？ Q4作帳行情南電先卡位 自配基金月加薪5萬元《鈔錢部署》盧燕俐 ft.杜金龍 陳顗全 20261015（鈔錢部署–華視優選・159,188 次觀看）"
+    "YouTube 熱片：台股急殺 3檔大戶青睞拚逆轉？ Q4作帳行情南電先卡位 自配基金月加薪5萬元《鈔錢部署》盧燕俐 ft.杜金龍 陳顗全 20261015（鈔錢部署–華視優選・159,378 次觀看）"
   ]
 }
