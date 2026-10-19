@@ -690,7 +690,7 @@ def test_build_splits_series_into_side_file(tmp_path, monkeypatch):
             "rows": [{"c": "2330", "n": "台積電", "m": "tw", "sg": [], "hd": []}],
             "ser": {"2330": {"c": [2400.0, 2490.5], "qa": [0, 3]}}, "sigdef": {}, "risk": [],
             "stats": {}, "iss": {}, "iev": {}, "iow": {}}
-    monkeypatch.setattr(analyze, "run", lambda: data)
+    monkeypatch.setattr(analyze, "run", lambda **kw: data)
     html_p, ser_p = tmp_path / "x9.html", tmp_path / "x9s.json"
     assert page.build(out=html_p, out_ser=ser_p) is True
     blob = html_p.read_text("utf-8").split('id="labdata">', 1)[1].split("</script>", 1)[0]

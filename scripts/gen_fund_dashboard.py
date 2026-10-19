@@ -53,6 +53,13 @@ def main() -> None:
         print(f"[泡沫] {'已更新' if changed else '無變更'} {bubpage.OUT}")
     except Exception as e:                                # noqa: BLE001
         print(f"[泡沫] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
+    # 訊號總覽（dashboard/x9o.html＋每一次的清單 x9oh.json；docs/lab_signal_plan.md）。沿用上面景氣頁算好的「現在有沒有效」；分開建、分開失敗。
+    try:
+        from arm.lab import sigpage
+        changed = sigpage.build()
+        print(f"[訊號總覽] {'已更新' if changed else '無變更'} {sigpage.OUT}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[訊號總覽] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
     if "--open" in sys.argv[1:]:
         webbrowser.open(OUT.as_uri())
 

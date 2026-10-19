@@ -9,7 +9,8 @@ def test_bar_marks_the_current_page():
     assert '<a href="x9.html">個股</a>' in tw
     stk = appnav.bar("stk")
     assert '<a class="on" aria-current="page" href="x9.html">個股</a>' in stk and '<a href="x9m.html">台股景氣</a>' in stk
-    assert [k for k, _, _ in appnav.TABS] == ["tw", "us", "bub", "stk"]        # 景氣排第一個（點「·」先到景氣頁）；泡沫獨立一頁
+    assert [k for k, _, _ in appnav.TABS] == ["tw", "us", "bub", "stk", "sig"]   # 景氣排第一個（點「·」先到景氣頁）；泡沫獨立一頁；訊號總覽最後
+    assert '<a class="on" aria-current="page" href="x9o.html">訊號總覽</a>' in appnav.bar("sig")
     bub = appnav.bar("bub")
     assert '<a class="on" aria-current="page" href="x9b.html">泡沫</a>' in bub and '<a href="x9.html">個股</a>' in bub
     us = appnav.bar("us")
@@ -20,8 +21,8 @@ def test_both_pages_use_the_shared_bar_and_back_link():
     lab = page.render({"etfs": {}, "asof": {}})
     assert appnav.bar("stk") in lab and appnav.CSS in lab
     assert '<a class="back" href="./">返回主頁</a>' in lab and "<b>籌碼雷達</b>" not in lab
-    from arm.lab import bubpage
-    for tpl in (page._HTML, heatpage._HTML, heatpage_us._HTML, bubpage._HTML):
+    from arm.lab import bubpage, sigpage
+    for tpl in (page._HTML, heatpage._HTML, heatpage_us._HTML, bubpage._HTML, sigpage._HTML):
         top = tpl.split('<div class="top">', 1)[1].split("</div>", 1)[0]
         assert top.startswith("{{APPTAB}}") and 'href="./">返回主頁' in top
         assert 'class="back" href="x9' not in top                              # 舊的小字互連拿掉，改由主分頁切換
