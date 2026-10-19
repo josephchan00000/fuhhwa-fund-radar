@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/19 16:18",
+  "as_of": "2026/10/19 16:50",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -552,7 +552,7 @@
       "channel": "小童 x Happy Trading Life",
       "url": "https://www.youtube.com/shorts/bCZbbTkGSfU",
       "date": "2026-10-13",
-      "views": 2649,
+      "views": 2623,
       "short": true
     },
     {
@@ -569,7 +569,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=aBJQT2o2VfQ",
       "date": "2026-10-15",
-      "views": 161941,
+      "views": 162244,
       "peer": true,
       "cat": "基金"
     },
@@ -579,7 +579,7 @@
       "channel": "寶傑點兵／寶傑怎麼說",
       "url": "https://www.youtube.com/watch?v=sWtVhEHFKoI",
       "date": "2026-10-16",
-      "views": 159083,
+      "views": 159205,
       "peer": true,
       "cat": "主動式"
     },
@@ -589,7 +589,7 @@
       "channel": "SHIN LI",
       "url": "https://www.youtube.com/shorts/Nwvuhh2ig5Q",
       "date": "2026-10-14",
-      "views": 138180,
+      "views": 138407,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -600,7 +600,7 @@
       "channel": "基金小姐姐詹璇依",
       "url": "https://www.youtube.com/watch?v=HWdw9YRGwuo",
       "date": "2026-10-14",
-      "views": 130219,
+      "views": 130531,
       "peer": true,
       "cat": "高股息"
     },
@@ -610,7 +610,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
       "date": "2026-10-17",
-      "views": 122851,
+      "views": 123945,
       "peer": true,
       "cat": "高股息"
     },
@@ -620,7 +620,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=0U1OMDn2AAQ",
       "date": "2026-10-18",
-      "views": 115163,
+      "views": 115419,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -630,7 +630,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=om1cnn5o53k",
       "date": "2026-10-14",
-      "views": 109898,
+      "views": 110768,
       "peer": true,
       "cat": "綜合"
     },
@@ -640,7 +640,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=96vE3gSEGqo",
       "date": "2026-10-14",
-      "views": 105948,
+      "views": 106072,
       "peer": true,
       "cat": "綜合"
     },
@@ -650,7 +650,7 @@
       "channel": "何基鼎分析師-摩爾證券投顧",
       "url": "https://www.youtube.com/watch?v=qpnAoAHQco4",
       "date": "2026-10-14",
-      "views": 96381,
+      "views": 96386,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -660,7 +660,7 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
       "date": "2026-10-17",
-      "views": 62367,
+      "views": 62582,
       "peer": true,
       "cat": "主動式"
     }
@@ -669,6 +669,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全方位 等 7 檔（詳下方新聞標籤）",
     "品牌焦點：群益證×復華投信剖析算力基建與光通訊新商機 | 金融脈動 | 金融（經濟日報）",
     "社群聲量最高：現在買進施羅德環球收益成長（神十）的三大理由（0 推）",
-    "YouTube 熱片：台股急殺 3檔大戶青睞拚逆轉？ Q4作帳行情南電先卡位 自配基金月加薪5萬元《鈔錢部署》盧燕俐 ft.杜金龍 陳顗全 20261015（鈔錢部署–華視優選・161,941 次觀看）"
+    "YouTube 熱片：台股急殺 3檔大戶青睞拚逆轉？ Q4作帳行情南電先卡位 自配基金月加薪5萬元《鈔錢部署》盧燕俐 ft.杜金龍 陳顗全 20261015（鈔錢部署–華視優選・162,244 次觀看）"
   ]
 }
