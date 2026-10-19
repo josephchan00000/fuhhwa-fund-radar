@@ -1,6 +1,6 @@
-"""泡沫頁的「產業」段（docs/lab_risk_plan.md 第 12.5 節；規格 bubindspec VER 1）。
+"""泡沫頁的「產業」段（docs/lab_risk_plan.md 第 12.5 節；規格 bubindspec VER 1；細分族群 VER 3，docs/lab_crash_plan.md 第 21.5 節）。
 
-台股產業表、美股類股表（點一列看歷史等級與指數）、美股 49 細產業表（收起來）、驗證（收起來）。
+台股產業表、台股細分族群表（櫃買產業鏈平台、現在的成員往回算）、美股類股表（點一列看歷史等級與指數）、美股 49 細產業表（收起來）、驗證（收起來）。
 現在的狀態每天重算（bubind.compute，約 5 秒），驗證讀 data/lab/bubind_research.json（scripts/run_bubind.py）。
 只描述位置，不是買賣訊號。
 """
@@ -12,8 +12,10 @@ from .heatpage import _e, _ymd
 COND = ("P1", "P2", "P3", "E", "G", "F")
 SHORT = {"P1": "價格爆發", "P2": "兩年翻倍", "P3": "偏離趨勢", "E": "漲得比營收快", "G": "未來獲利跟不上", "F": "換手率"}
 SHORT_FF = {**SHORT, "F": "新公司"}
-GRP_COND = {"tw": ("P1", "P2", "P3", "E", "G", "F"), "us": ("P1", "P2", "P3", "G"), "ff": ("P1", "P2", "P3", "F")}
-MAX_LV = {"tw": 4, "us": 3, "ff": 2}
+GRP_COND = {"tw": ("P1", "P2", "P3", "E", "G", "F"), "us": ("P1", "P2", "P3", "G"), "ff": ("P1", "P2", "P3", "F"),
+            "tg": ("P1", "P2", "P3", "E", "G", "F")}
+MAX_LV = {"tw": 4, "us": 3, "ff": 2, "tg": 4}
+TWISH = ("tw", "tg")
 TEST_NAMES = {"P1": "價格爆發（PSY）", "P2": "兩年翻倍、比大盤多漲而且在高點", "P3": "偏離長期趨勢 2 個標準差",
               "E": "價格漲得比營收快（市值 ÷ 營收的比值爆發）", "G": "未來獲利跟不上（營收替代）", "F": "燃料（換手率／新公司）",
               "PX": "價格過熱（任一價格條件）", "P2F": "兩年翻倍，而且新公司大量進來", "L3": "等級 ≥ 3"}
@@ -26,6 +28,8 @@ def name_of(grp: str, k: str) -> str:
         return f"{BI.US_ETF.get(k, k)}（{k}）"
     if grp == "ff":
         return f"{BI.FF_NAMES.get(k, k)}（{k}）"
+    if grp == "tg":
+        return BI.TG_NAMES.get(k, k)
     return k
 
 
@@ -99,7 +103,7 @@ def sentence(grp: str, name: str, n: dict) -> str:
     if p1.get("run"):
         xs.append(f'價格爆發讀數連 {p1["run"]} 個月超過臨界值')
     g = n.get("g") or {}
-    if grp in ("tw", "us"):
+    if grp in ("tw", "us", "tg"):
         if n.get("gsrc") == "est" and g.get("g0") is not None and g.get("g1") is not None:
             t = (f'分析師預估（{g.get("n")} 家、涵蓋 {100 * (g.get("cov") or 0):.0f}% 市值）：今年 {_pct(100 * g["g0"])}、明年 {_pct(100 * g["g1"])}'
                  f'，{"成長減速" if g["g1"] < g["g0"] else "成長沒有減速"}')
@@ -113,14 +117,20 @@ def sentence(grp: str, name: str, n: dict) -> str:
                       + ("" if g.get("y12b") is None else f'，半年前 {_pct(100 * g["y12b"])}'))
         elif grp == "tw" and name in BI.E_SKIP:
             xs.append("營收含投資損益，營收比值與未來獲利不判定")
-    if grp == "tw" and n.get("f") is not None:
+    if grp in TWISH and n.get("f") is not None:
         xs.append(f'換手率第 {n["f"]:.0f} 百分位')
     if grp == "ff" and n.get("f") is not None:
         xs.append(f'家數 12 個月增加率第 {n["f"]:.0f} 百分位')
     return s + "。" + ("；".join(xs) + "。" if xs else "")
 
 
-def _row(grp: str, k: str, n: dict, key: str | None, mem: int | None = None) -> str:
+def _members(codes: list, names: dict) -> str:
+    """細分族群展開列的成員清單（市值大的在前）。"""
+    xs = [f'{c} {names[c]}' if names.get(c) else c for c in codes]
+    return (f'<p class="note bmem">成員 {len(codes)} 家（平台現在的名單，依市值排列）：{_e("、".join(xs))}</p>') if xs else ""
+
+
+def _row(grp: str, k: str, n: dict, key: str | None, mem: int | None = None, extra: str = "") -> str:
     p2 = n.get("p2") or {}
     gtxt, gv = _g_cell(n)
     nm = name_of(grp, k)
@@ -134,7 +144,7 @@ def _row(grp: str, k: str, n: dict, key: str | None, mem: int | None = None) -> 
              f'<td class="l bcc dsk"><span class="bcs">{chips}</span></td>',
              f'<td data-v="{"" if p2.get("ru") is None else round(p2["ru"], 2)}">{_pct(p2.get("ru"))}<em>{nt}</em></td>',
              f'<td class="dsk" data-v="{"" if p2.get("dist") is None else round(p2["dist"], 2)}">{_dist(p2.get("dist"))}</td>']
-    if grp in ("tw", "us"):
+    if grp in ("tw", "us", "tg"):
         cells.append(f'<td class="l dsk" data-v="{"" if gv is None else round(gv, 2)}">{_e(gtxt)}</td>')
     if grp == "ff":
         fv = n.get("f")
@@ -146,13 +156,13 @@ def _row(grp: str, k: str, n: dict, key: str | None, mem: int | None = None) -> 
     return (f'<tr class="bir" data-k="{key}" tabindex="0">{"".join(cells)}</tr>'
             f'<tr class="bid" hidden><td colspan="{span}" class="l"><p class="bsum">{_e(sentence(grp, name_of(grp, k), n))}</p>'
             f'<div class="bhw"><div class="bh" id="h-{key}"><p class="note">歷史等級載入中…</p></div><div class="tip" id="t-{key}" hidden></div></div>'
-            '<p class="note">上面色塊＝每個月的等級，線＝產業指數（月底，對數座標）。</p></td></tr>')
+            '<p class="note">上面色塊＝每個月的等級，線＝產業指數（月底，對數座標）。</p>' + extra + '</td></tr>')
 
 
 def _head(grp: str) -> str:
-    ths = ['<th class="l" data-si="0">產業</th>', '<th data-si="1">等級</th>', '<th class="l dsk">成立的條件</th>',
+    ths = [f'<th class="l" data-si="0">{"族群" if grp == "tg" else "產業"}</th>', '<th data-si="1">等級</th>', '<th class="l dsk">成立的條件</th>',
            '<th data-si="3">兩年漲幅</th>', '<th class="dsk" data-si="4">離最高點</th>']
-    if grp in ("tw", "us"):
+    if grp in ("tw", "us", "tg"):
         ths.append('<th class="l dsk" data-si="5">未來獲利：今年→明年｜明年預估近 3 個月</th>')
     if grp == "ff":
         ths.append('<th class="dsk" data-si="5">家數增加（百分位）</th>')
@@ -164,13 +174,15 @@ def _order(G: dict) -> list:
     return sorted(G, key=lambda k: (-G[k]["now"]["L"], -((G[k]["now"].get("p2") or {}).get("ru") or -1e9), k))
 
 
-def table(grp: str, G: dict, keys: dict | None) -> str:
+def table(grp: str, G: dict, keys: dict | None, lists: dict | None = None, names: dict | None = None) -> str:
     rows = []
     for k in _order(G):
         n = G[k]["now"]
-        mem = n.get("mem") if grp == "tw" else None
-        rows.append(_row(grp, k, n, (keys or {}).get(k), mem))
-    return f'<div class="tw"><table class="bind bsort">{_head(grp)}<tbody>{"".join(rows)}</tbody></table></div>'
+        mem = n.get("mem") if grp in TWISH else None
+        extra = _members((lists or {}).get(k) or [], names or {}) if grp == "tg" else ""
+        rows.append(_row(grp, k, n, (keys or {}).get(k), mem, extra))
+    cls = "bind bsort bgrp" if grp == "tg" else "bind bsort"
+    return f'<div class="tw"><table class="{cls}">{_head(grp)}<tbody>{"".join(rows)}</tbody></table></div>'
 
 
 def _count(G: dict) -> dict:
@@ -182,12 +194,12 @@ def _count(G: dict) -> dict:
 
 def headline(I: dict) -> str:
     parts = []
-    for grp, label in (("tw", "台股"), ("us", "美股"), ("ff", "美股")):
+    for grp, label in (("tw", "台股"), ("tg", "台股"), ("us", "美股"), ("ff", "美股")):
         G = I.get(grp) or {}
         if not G:
             continue
         c = _count(G)
-        unit = {"tw": "個產業", "us": "個類股", "ff": "個細產業"}[grp]
+        unit = {"tw": "個產業", "tg": "個細分族群", "us": "個類股", "ff": "個細產業"}[grp]
         lab = f'{label} {len(G)} {unit}'
         if grp == "ff" and I.get("ff_last"):
             lab += f'（月資料到 {_ymd(I["ff_last"])}）'
@@ -247,7 +259,7 @@ def valid_sec(R: dict) -> str:
     if not R:
         return ('<details class="bvd"><summary><b>驗證：產業條件成立之後比較容易大跌嗎？</b></summary>'
                 '<p class="warn">驗證結果還沒產生（scripts/run_bubind.py）。</p></details>')
-    ff, tw, us = R.get("ff") or {}, R.get("tw") or {}, R.get("us") or {}
+    ff, tw, us, tg = R.get("ff") or {}, R.get("tw") or {}, R.get("us") or {}, R.get("tg") or {}
     out = [f'<details class="bvd" id="indv"><summary><b>驗證：產業條件成立之後比較容易大跌嗎？</b><span class="bvh">{_e(h1_line(R))}</span></summary>']
     if ff:
         out.append(f'<h4>美股 49 細產業（Ken French，{_e(_ymd(ff["a"]))}～{_e(_ymd(ff["z"]))}，{ff.get("n_ind")} 個產業；判定）</h4>'
@@ -255,6 +267,9 @@ def valid_sec(R: dict) -> str:
     if tw:
         out.append(f'<h4>台股產業（{_e(_ymd(tw["a"]))}～{_e(_ymd(tw["z"]))}，{tw.get("n_ind")} 個產業；樣本太短，只描述）</h4>'
                    + vtable("tw", R, False))
+    if tg:
+        out.append(f'<h4>台股細分族群（{_e(_ymd(tg["a"]))}～{_e(_ymd(tg["z"]))}，{tg.get("n_ind")} 個族群；用現在的成員往回算、有存活者偏誤，只描述）</h4>'
+                   + vtable("tg", R, False))
     if us:
         out.append(f'<h4>美股類股 ETF（{_e(_ymd(us["a"]))}～{_e(_ymd(us["z"]))}，{us.get("n_ind")} 檔；樣本太短，只描述）</h4>'
                    + vtable("us", R, False))
@@ -271,10 +286,11 @@ NOTE = ('產業泡沫看的是「這個產業比整個市場熱」：兩年翻�
 
 def section(I: dict, R: dict | None, keys: dict) -> str:
     """keys＝{"tw": {產業: 圖的鍵}, "us": {ETF: 鍵}}。"""
-    if not I or not (I.get("tw") or I.get("us") or I.get("ff")):
+    if not I or not (I.get("tw") or I.get("us") or I.get("ff") or I.get("tg")):
         return ('<section class="sec" id="ind"><h2>產業泡沫</h2><p class="warn">產業泡沫還算不出來'
                 + (f'（{_e(I.get("tw_err"))}）' if I and I.get("tw_err") else "") + '。</p></section>')
     sub = "・".join(x for x in (f'台股 {len(I["tw"])} 個產業' if I.get("tw") else "",
+                                 f'{len(I["tg"])} 個細分族群' if I.get("tg") else "",
                                  f'美股 {len(I["us"])} 個類股' if I.get("us") else "",
                                  f'美股 {len(I["ff"])} 個細產業' if I.get("ff") else "") if x)
     out = [f'<section class="sec cd" id="ind"><div class="ch"><h2>產業泡沫<span class="sub">{_e(sub)}</span></h2></div>',
@@ -286,6 +302,7 @@ def section(I: dict, R: dict | None, keys: dict) -> str:
                    '沒有的用產業營收（替代資料）；換手率要 2023 年起才有 10 年歷史可比。</p>')
     elif I.get("tw_err"):
         out.append(f'<p class="warn">台股產業還算不出來（{_e(I["tw_err"])}）。</p>')
+    out.append(tg_block(I, keys))
     if I.get("us"):
         out.append('<h3>美股類股</h3>' + table("us", I["us"], keys.get("us")))
         out.append('<p class="note">SPDR 類股 ETF 收盤（不含股利）、比大盤用 SPY；未來獲利＝S&amp;P 500 成分股依 GICS 類別加總分析師預估。'
@@ -300,10 +317,34 @@ def section(I: dict, R: dict | None, keys: dict) -> str:
     return "".join(out)
 
 
+TG_NOTE = ('族群名單來自櫃買中心產業鏈平台（{d} 的名單）：平台只有現在的名單，過去也用現在的成員算——已下市或移出的公司不在裡面、'
+           '後來才加入的公司提早算進來，所以族群過去的漲幅偏高、「兩年翻倍」之類的條件比較容易成立；只描述，不判定。'
+           '一家公司可以在好幾個族群。指數與條件的算法同台股產業（市值 40 億以上、前月底市值加權、含息）。'
+           '光通訊（含 CPO 相關）＝通信網路的光通訊設備＋半導體的光通訊 IC（平台沒有 CPO 這一類）。點一列看成員。')
+
+
+def tg_block(I: dict, keys: dict) -> str:
+    """台股細分族群（bubindspec 第 1c 節）：表＋存活者偏誤的說明。"""
+    if not I.get("tg"):
+        return (f'<h3>台股細分族群</h3><p class="warn">細分族群還算不出來（{_e(I["tg_err"])}）。</p>'
+                if I.get("tg_err") else "")
+    names = {}
+    try:
+        from .company import names as _names
+        names = _names()
+    except Exception:                                     # noqa: BLE001 —— 名稱只是顯示用
+        pass
+    skip = I.get("tg_skip") or {}
+    sk = ("；這次沒算：" + "、".join(f'{BI.TG_NAMES.get(k, k)}（{v}）' for k, v in skip.items()) + "。") if skip else ""
+    return ('<h3>台股細分族群<span class="sub">用現在的成員往回算・只描述</span></h3>'
+            + table("tg", I["tg"], keys.get("tg"), I.get("tg_list"), names)
+            + f'<p class="note">{_e(TG_NOTE.format(d=_ymd(I.get("tg_d") or "")))}{_e(sk)}</p>')
+
+
 def hist_data(I: dict) -> tuple[dict, dict]:
-    """→ (圖的資料 {鍵: {d, L, c, p}}, keys {"tw": {產業: 鍵}, "us": {...}})。燃料的條件碼改成 h（換手率），不和市場層級的槓桿混。"""
-    data, keys = {}, {"tw": {}, "us": {}}
-    for grp, pre in (("tw", "@t"), ("us", "@u")):
+    """→ (圖的資料 {鍵: {d, L, c, p}}, keys {"tw": {產業: 鍵}, "us": {...}, "tg": {...}})。燃料的條件碼改成 h（換手率），不和市場層級的槓桿混。"""
+    data, keys = {}, {"tw": {}, "us": {}, "tg": {}}
+    for grp, pre in (("tw", "@t"), ("us", "@u"), ("tg", "@g")):
         for j, k in enumerate(sorted(I.get(grp) or {})):
             h = (I[grp][k] or {}).get("hist")
             if not h or not h.get("d"):
@@ -323,7 +364,8 @@ table.bind tr.bid td{background:var(--panel);white-space:normal}table.bind tr.bi
 table.bind th[data-si]{cursor:pointer}
 table.bind th[data-si].asc::after{content:" ▲";font-size:10px}table.bind th[data-si].desc::after{content:" ▼";font-size:10px}
 table.bind .bcs i{white-space:nowrap}table.bind .bcs i.nil{border:0;padding:0}
-table.bind .nw{white-space:nowrap}table.bind .bcs.mob{display:none}table.bind td.bcc .bcs{flex-wrap:nowrap}
+table.bind .nw{white-space:nowrap}table.bind .bmem{margin:6px 0 0;line-height:1.6}table.bind .bcs.mob{display:none}table.bind td.bcc .bcs{flex-wrap:nowrap}
+table.bgrp td.bnm{white-space:normal;min-width:8em}table.bgrp td.bcc .bcs{flex-wrap:wrap}
 @media (max-width:640px){
  table.bind .dsk{display:none}
  table.bind th,table.bind td{padding:6px 5px}

@@ -32,6 +32,7 @@ def main() -> None:
     ap.add_argument("--yhl", action="store_true",
                     help="高股息提前卡位研究：Yahoo 五年日線另存 data/lab/yhl＋證交所除權息 2018–2020（可重跑續補）")
     ap.add_argument("--ind-hist", action="store_true", help="已下市公司的產業別：官方歷史分類行情年度快照（bubindspec VER 2；可重跑續補）")
+    ap.add_argument("--ic-chain", action="store_true", help="櫃買產業鏈平台的節點與公司名單（細分族群；data/lab/icchain.json）")
     ap.add_argument("--rev-probe", action="store_true", help="月營收全市場歷史的來源探針（MOPS 彙總表、FinMind），只印不寫")
     ap.add_argument("--rev-mops", action="store_true", help="月營收全市場歷史（MOPS 彙總表，2020-01 起；可重跑續補）")
     ap.add_argument("--rev-fm", action="store_true", help="月營收全市場歷史備援：FinMind 逐檔（五年日線宇宙，2020-01 起）")
@@ -46,6 +47,10 @@ def main() -> None:
 
     if a.rev_probe:
         market.probe_rev()
+        return
+    if a.ic_chain:
+        from arm.lab import icchain
+        print(f"[lab] 產業鏈平台：{icchain.fetch(force=True)}")
         return
     if a.ind_hist:
         from arm.lab import indhist
