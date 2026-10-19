@@ -10,6 +10,7 @@ def test_industry_spec_v2_is_locked():
     assert I.VER == 2 and I.SPEC_DATE == "2026-10-19"
     assert (I.IND_HIST_START, I.IND_HIST_FILE) == (2013, "indsnap.json")
     assert I.IND_HIST_TYPES[0] == "01" and I.IND_HIST_TYPES[-1] == "39" and len(I.IND_HIST_TYPES) == 39
+    assert I.IND_HIST_AGG == ("07", "13")
     assert I.GROUPS == ("tw", "us", "ff")
     assert (I.TW_CAP_MIN, I.TW_MIN_N, I.TW_START, I.TW_SKIP) == (40e8, 3, "2013-01-01", ("其他",))
     assert sorted(I.US_ETF) == ["XLB", "XLC", "XLE", "XLF", "XLI", "XLK", "XLP", "XLRE", "XLU", "XLV", "XLY"]

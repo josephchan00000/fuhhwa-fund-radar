@@ -33,9 +33,17 @@ def test_delisted_map_uses_last_snapshot_and_keeps_current(monkeypatch, tmp_path
 
 def test_last_appearance_wins(monkeypatch, tmp_path):
     monkeypatch.setattr(store, "LAB", tmp_path)
-    store.write_json("indsnap.json", {"twse": {"2013-01-02": {"13": ["1234"]}, "2016-01-04": {"28": ["1234"]}},
+    store.write_json("indsnap.json", {"twse": {"2013-01-02": {"24": ["1234"]}, "2016-01-04": {"28": ["1234"]}},
                                       "tpex": {"2015-01-05": {"24": ["1234"]}}})
     assert indhist.delisted_map({}) == {"1234": "電子零組件業"}
+
+
+def test_aggregate_codes_skipped(monkeypatch, tmp_path):
+    """證交所 07 化學生技醫療、13 電子工業是彙總類：同一天同一家公司也在細分類裡，彙總類不算產業別。"""
+    monkeypatch.setattr(store, "LAB", tmp_path)
+    store.write_json("indsnap.json", {"twse": {"2014-01-02": {"07": ["4100"], "13": ["2311"], "22": ["4100"], "24": ["2311"]}},
+                                      "tpex": {}})
+    assert indhist.delisted_map({}) == {"2311": "半導體業", "4100": "生技醫療業"}
 
 
 def test_tw_ind_map_current_first(monkeypatch):

@@ -281,7 +281,7 @@ def section(I: dict, R: dict | None, keys: dict) -> str:
            f'<p class="bsum">{_e(headline(I))}</p><p class="note">{_e(NOTE)}</p>']
     if I.get("tw"):
         out.append('<h3>台股產業</h3>' + table("tw", I["tw"], keys.get("tw")))
-        out.append('<p class="note">產業指數＝前一個月底市值 40 億以上的股票、依前月底市值加權、含息；產業別用證交所／櫃買中心現在的分類（「其他」不算）。'
+        out.append('<p class="note">產業指數＝前一個月底市值 40 億以上的股票、依前月底市值加權、含息；產業別用證交所／櫃買中心現在的分類（「其他」不算）；已下市公司用它下市前最後一次的官方分類（2013 年起每年第一個交易日的分類行情）。'
                    '價格漲得比營收快＝產業市值 ÷ 近 12 個月營收的比值也在爆發；未來獲利有分析師預估的用預估（Yahoo），'
                    '沒有的用產業營收（替代資料）；換手率要 2023 年起才有 10 年歷史可比。</p>')
     elif I.get("tw_err"):

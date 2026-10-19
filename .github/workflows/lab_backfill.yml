@@ -90,8 +90,6 @@ jobs:
             python3 scripts/backfill_lab.py --probe-fs
           elif [ "${MODE#indfill}" != "$MODE" ]; then
             python3 scripts/backfill_lab.py --ind-hist --budget-min 50
-          elif [ "$MODE" = "indprobe" ] || [ "$MODE" = "indprobe2" ] || [ "$MODE" = "indprobe3" ]; then
-            LAB_MODE="$MODE" python3 scripts/backfill_lab.py --ind-probe
           elif [ "$MODE" = "revprobe" ]; then
             python3 scripts/backfill_lab.py --rev-probe
           elif [ "${MODE#v3fill}" != "$MODE" ]; then

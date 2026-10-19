@@ -77,7 +77,7 @@ def delisted_map(cur: dict) -> dict[str, str]:
         for d, types in S[mk].items():
             for t, codes in types.items():
                 name = stockmeta.IND_CODE.get(t)
-                if not name:
+                if not name or t in BI.IND_HIST_AGG:
                     continue
                 for c in codes:
                     if c in cur:
