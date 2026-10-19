@@ -160,6 +160,7 @@ jobs:
           git add -f dashboard/x9b.html 2>/dev/null || true            # 泡沫頁（docs/lab_risk_plan.md；分開 add）
           git add -f dashboard/x9o.html 2>/dev/null || true            # 訊號總覽（docs/lab_signal_plan.md；分開 add）
           git add -f dashboard/x9oh.json 2>/dev/null || true           # 訊號總覽每一次的清單（點開才下載；分開 add）
+          git add -f dashboard/x9or-*.json 2>/dev/null || true         # 訊號總覽各市場的研究卡（點了才載入；分開 add）
           git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
           git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
           git commit -m "chore: 盤後數據刷新 $(date '+%F %H:%M')" || { echo "無變更，跳過 push"; exit 0; }
@@ -181,6 +182,7 @@ jobs:
             git add -f dashboard/x9b.html 2>/dev/null || true            # 泡沫頁（docs/lab_risk_plan.md；分開 add）
             git add -f dashboard/x9o.html 2>/dev/null || true            # 訊號總覽（docs/lab_signal_plan.md；分開 add）
             git add -f dashboard/x9oh.json 2>/dev/null || true           # 訊號總覽每一次的清單（點開才下載；分開 add）
+            git add -f dashboard/x9or-*.json 2>/dev/null || true         # 訊號總覽各市場的研究卡（點了才載入；分開 add）
             git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
             git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
             git commit --amend --no-edit || true

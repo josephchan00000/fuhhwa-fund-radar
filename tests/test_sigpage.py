@@ -88,6 +88,7 @@ def test_workflows_add_overview_files_and_build_order():
         t = (ROOT / ".github" / "workflows" / wf).read_text(encoding="utf-8")
         assert t.count("git add -f dashboard/x9o.html 2>/dev/null || true") == 2, wf
         assert t.count("git add -f dashboard/x9oh.json 2>/dev/null || true") == 2, wf
+        assert t.count("git add -f dashboard/x9or-*.json 2>/dev/null || true") == 2, wf
     g = (ROOT / "scripts" / "gen_fund_dashboard.py").read_text(encoding="utf-8")
     assert g.index("heatpage.build()") < g.index("heatpage_us.build()") < g.index("bubpage.build()") < g.index("sigpage.build()")
 
@@ -101,3 +102,41 @@ def test_research_file_matches_spec_version():
         assert r["tier"] in sigspec.TIERS
         for d in r["dir"]:
             assert d in sigspec.DIRS and r[d]["tier"] == r["tier"]
+
+
+def test_research_cards_move_to_overview(tmp_path, monkeypatch):
+    """景氣頁的四張研究卡 2026-10-19 起搬到這裡（docs/lab_signal_plan.md 第 10 節 Q3）：每個市場一個檔、點了才載入，空的卡不放。"""
+    c = {"d": "2026-10-16", "crash": "<section>A</section>", "bottom": "", "hotdd": "<section>C</section>", "hotch": "<section>D</section>"}
+    j = json.loads(sigpage.card_json("tw", c))
+    assert j["mk"] == "tw" and j["d"] == "2026-10-16"
+    assert re.findall(r'<details class="sgrc" id="rc-(\w+)">', j["html"]) == ["crash", "hotdd", "hotch"]
+    assert "<summary>短線大跌風險</summary><section>A</section>" in j["html"]
+    r = sigpage.research_html(dict(_view(), rmk=["tw", "spx"]))
+    assert 'id="research"' in r and 'data-r="tw"' in r and 'data-r="spx"' in r and 'id="rbox"' in r
+    assert sigpage.research_html(_view()) == ""
+    monkeypatch.setattr(sigpage, "CARDS", {"tw": c})
+    monkeypatch.setattr(sigpage, "view", lambda: dict(_view(), rmk=["tw"]))
+    out, data_out = tmp_path / "x9o.html", tmp_path / "x9oh.json"
+    assert sigpage.build(out, data_out) is True
+    assert (tmp_path / "x9or-tw.json").read_text(encoding="utf-8") == sigpage.card_json("tw", c)
+    assert 'id="research"' in out.read_text(encoding="utf-8")
+    assert sigpage.build(out, data_out) is False                           # 內容沒變不改寫
+
+
+def test_heat_pages_stash_cards_and_list_today(monkeypatch):
+    """景氣頁照樣算四張卡、存給訊號總覽；頁面只列「今天的重點」（訊號總覽的實務判定）。"""
+    from arm.lab import heatviz as VZ
+    monkeypatch.setattr(sigpage, "CARDS", {})
+    VZ.stash_cards({"mk": "spx", "asof": "2026-10-16"})
+    assert sigpage.CARDS == {"spx": {"d": "2026-10-16", "crash": "", "bottom": "", "hotdd": "", "hotch": ""}}
+    VZ.stash_cards({"mk": None, "asof": "2026-10-16"})                     # 不知道哪個市場就不存
+    assert list(sigpage.CARDS) == ["spx"]
+    assert "還沒產生" in VZ.today_html({"sigtoday": None})
+    V = _view()
+    T = dict(V["today"]["tw"], d="2026-10-16")
+    T["good"] = [dict(r, now=V["on"][r["id"]]) for r in T["good"]]
+    h = VZ.today_html({"sigtoday": T})
+    assert 'href="x9o.html#s=tw:heat:C1:hot"' in h and "融資餘額水位・過熱中" in h and "1 個好訊號" in h
+    assert "12/1 起" in h and 'href="x9o.html"' in h
+    h0 = VZ.today_html({"sigtoday": {"good": [], "ref": [], "d": "2026-10-16"}})
+    assert "沒有好訊號" in h0

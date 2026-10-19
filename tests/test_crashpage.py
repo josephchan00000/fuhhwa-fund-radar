@@ -168,9 +168,10 @@ def test_card_reads_the_committed_research_file():
 def test_card_is_wired_into_both_heat_pages():
     """雷達下面、全部項目上面；頁首導覽多一個「大跌風險」；兩頁都載入卡片的樣式。"""
     viz = (ROOT / "arm/lab/heatviz.py").read_text(encoding="utf-8")
-    assert "{top}{crash}{bottom}{hotdd}{hotch}{items}" in viz and '<a href="#crash">大跌風險</a>' in viz
-    for f in ("arm/lab/heatpage.py", "arm/lab/heatpage_us.py"):
-        assert "CP.CSS" in (ROOT / f).read_text(encoding="utf-8"), f
+    # 2026-10-19 起四張研究卡搬到訊號總覽（docs/lab_signal_plan.md 第 10 節 Q3）：景氣頁照樣算、不放進頁面，存給訊號總覽
+    assert "stash_cards(V)" in viz and "{top}{items}" in viz and 'href="#crash"' not in viz
+    sp = (ROOT / "arm/lab/sigpage.py").read_text(encoding="utf-8")
+    assert "CP.CSS" in sp and '"crash"' in sp
     hp = (ROOT / "arm/lab/heatpage.py").read_text(encoding="utf-8")
     assert '"crash": crash_now(B) if T else None' in hp
     css = set(re.findall(r"\.([a-zA-Z][\w-]*)", CP.CSS))

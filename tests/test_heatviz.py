@@ -127,9 +127,8 @@ def test_key_states_definition(built):
     for a in ks:
         assert a["band"] in ("過熱", "過冷") and a["h"] == max(a["hs"])
         assert all(a["verdict"][h] in ("weak", "strong") for h in a["hs"])
-    assert page.count('<article class="kcard"') == min(VZ.KEY_SHOW, len(ks))
-    assert page.count('class="kmini"') == max(0, len(ks) - VZ.KEY_SHOW)
-    assert f'<span class="kn">{len(ks)} 個</span>' in page
+    # 2026-10-19 起頁面不再列「關鍵狀態」（依學術判定），改列「今天的重點」（訊號總覽的實務判定，docs/lab_signal_plan.md 第 6.1 節）
+    assert '<article class="kcard"' not in page and 'id="key"' not in page and 'id="today"' in page
 
 
 def test_every_item_and_dimension_has_a_panel(built):
@@ -156,7 +155,7 @@ def test_views_and_research_moved_intact(built):
         assert P._valid(d, L) in res and f'id="v-{d}"' in res
     assert 'id="src"' in res and P._METHOD in res
     main = page[page.index('<div class="hview" data-view="radar"'):page.index('<div class="hview" data-view="phase"')]
-    assert P._ta_main(V) in main and P._cmp_section() in main and 'id="key"' in main and 'id="imap"' in main
+    assert P._ta_main(V) in main and P._cmp_section() in main and 'id="today"' in main and 'id="imap"' in main
     assert "看事件研究" in P._ta_main(V) and 'class="evt"' not in P._ta_main(V)
 
 
@@ -187,7 +186,7 @@ def test_wording_and_banned_words(built):
     text = re.sub(r"<script>.*?</script>", "", page, flags=re.S)
     for w in BANNED:
         assert w not in page, w
-    assert "只當參考" in text and "研究顯示有穩定關係" in text
+    assert "只當參考" in text and "今天的重點" in text and "研究顯示有穩定關係" not in text
     assert P.render(V) == page
 
 
