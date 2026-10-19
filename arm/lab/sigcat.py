@@ -725,29 +725,45 @@ def _strat_tier(pay: dict, n: int) -> str:
     return "ref" if (pay.get("avg") or 0) > 0 else "none"
 
 
+def strat_pay(v: dict) -> tuple[dict, dict]:
+    """逐筆交易（advice.trade_book 的一條）→ (報酬型態 bt3.payoff, 命中率統計 st)。只算已出場、有報酬與持有天數的。"""
+    from . import bt3
+    from . import trades as TR
+    I = {c: i for i, c in enumerate(TR.TR_COLS)}
+    tr = ((v.get("res") or {}).get("tr")) or []
+    rows = [r for r in tr if len(r) > I["hd"] and r[I["st"]] == "c" and r[I["r"]] is not None and r[I["hd"]]]
+    pay = bt3.payoff([{"r": r[I["r"]], "hd": r[I["hd"]]} for r in rows])
+    mk = [r[I["mk"]] for r in rows if r[I["mk"]] is not None]
+    st = {"n": pay.get("n", 0), "hit": None if not pay.get("n") else pay["win"] / 100.0,
+          "base": _mean([1.0 if m > 0 else 0.0 for m in mk]), "n10": None, "hit10": None, "base10": None}
+    st["tier"] = _strat_tier(pay, st["n"])
+    return pay, st
+
+
+def strat_judge(tbook: dict) -> dict:
+    """機會頁的推薦判定（sigspec 第 4.9 節，VER 2）：{策略鍵: {tier, n, win, m, avg, ratio, path, few}}。
+    tbook＝advice.trade_book 的結果；和訊號總覽的個股策略列同一套算法（strat_pay）。"""
+    out = {}
+    for k, v in (tbook or {}).items():
+        pay, st = strat_pay(v)
+        out[k] = {"tier": st["tier"], "n": st["n"], "few": 0 < st["n"] < S.STRAT_FEW,
+                  **{x: pay.get(x) for x in ("win", "m", "avg", "ratio", "path")}}
+    return out
+
+
 def strat_rows(adv: dict, bt3r: dict | None = None) -> list[dict]:
     """個股策略（sigspec 第 4.9 節）：有逐筆紀錄的（機會頁那幾條）用全部已出場交易算報酬型態；
     回測方法 v3 其他版本（整組）沒有逐筆紀錄，用研究檔的樣本內、樣本外報酬型態（兩段都過才 ★）。"""
-    from . import bt3
-    from . import trades as TR
     out = []
     names = {g["k"]: g for g in (adv.get("grades3") or [])}
-    I = {c: i for i, c in enumerate(TR.TR_COLS)}
     for k, v in (adv.get("trades") or {}).items():
-        tr = ((v.get("res") or {}).get("tr")) or []
-        rows = [r for r in tr if len(r) > I["hd"] and r[I["st"]] == "c" and r[I["r"]] is not None and r[I["hd"]]]
-        units = [{"r": r[I["r"]], "hd": r[I["hd"]]} for r in rows]
-        pay = bt3.payoff(units)
-        mk = [r[I["mk"]] for r in rows if r[I["mk"]] is not None]
+        pay, st = strat_pay(v)
         g = names.get(k) or {}
-        st = {"n": pay.get("n", 0), "hit": None if not pay.get("n") else pay["win"] / 100.0,
-              "base": _mean([1.0 if m > 0 else 0.0 for m in mk]), "n10": None, "hit10": None, "base10": None}
-        tr_ = _strat_tier(pay, st["n"])
-        st["tier"] = tr_
+        tr_ = st["tier"]
         out.append({"id": f"stk:strat:{k}", "mk": "stk", "cat": "strat", "grp": "strat", "var": k,
                     "vn": g.get("name") or k, "sig": k, "name": g.get("name") or k, "desc": g.get("kind"),
                     "kind": "trade", "H": None, "up": st, "tier": tr_, "dir": ["up"], "pay": pay, "old": g.get("grade"),
-                    "unit": v.get("unit"), "a": None, "z": None, "occ": []})
+                    "unit": v.get("unit"), "few": 0 < st["n"] < S.STRAT_FEW, "a": None, "z": None, "occ": []})
     for row in ((bt3r or {}).get("rows") or []):
         k = row.get("k")
         if not k or k in names:
@@ -771,18 +787,16 @@ def strat_rows(adv: dict, bt3r: dict | None = None) -> list[dict]:
     return out
 
 
-def write_stock(data: dict, ctx: dict, path: Path | None = None) -> bool:
-    """籌碼雷達建頁後呼叫（page.build）：個股訊號＋策略 → data/lab/sig_stock.json（內容沒變不改寫）。
-    個股訊號或機會頁的策略任一個算不出來就不寫（不拿殘缺的資料蓋掉前一版）。"""
-    path = path or STOCK
+def stock_rows(data: dict, ctx: dict) -> list[dict] | None:
+    """個股訊號＋策略的列；任一個算不出來回 None（不拿殘缺的資料蓋掉前一版）。"""
     if ctx.get("D") is None or not ((data.get("adv") or {}).get("trades")):
-        return False
+        return None
     rows = []
     try:
         rows += stock_signal_rows(ctx["D"], ctx["sig_hist"], ctx["taiex"], ctx["D"].taiex_open())
     except Exception as e:                            # noqa: BLE001
         print(f"[訊號總覽] 個股訊號算不出來：{type(e).__name__}: {e}")
-        return False
+        return None
     try:
         bt3r = json.loads((ROOT / "data" / "lab" / "bt3_research.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -791,6 +805,16 @@ def write_stock(data: dict, ctx: dict, path: Path | None = None) -> bool:
         rows += strat_rows(data.get("adv") or {}, bt3r)
     except Exception as e:                            # noqa: BLE001
         print(f"[訊號總覽] 個股策略算不出來：{type(e).__name__}: {e}")
+        return None
+    return rows
+
+
+def write_stock(data: dict, ctx: dict, path: Path | None = None, rows: list[dict] | None = None) -> bool:
+    """籌碼雷達建頁後呼叫（page.build）：個股訊號＋策略 → data/lab/sig_stock.json（內容沒變不改寫）。
+    個股訊號或機會頁的策略任一個算不出來就不寫（不拿殘缺的資料蓋掉前一版）。rows＝已經算好的 stock_rows。"""
+    path = path or STOCK
+    rows = rows if rows is not None else stock_rows(data, ctx)
+    if not rows:
         return False
     txt = json.dumps({"ver": S.VER, "d": list(ctx["D"].cal)[-1] if ctx.get("D") is not None else None,
                       "rows": _r(rows)}, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
@@ -798,6 +822,19 @@ def write_stock(data: dict, ctx: dict, path: Path | None = None) -> bool:
         return False
     path.write_text(txt, encoding="utf-8")
     return True
+
+
+def stock_brief(rows: list[dict] | None) -> dict:
+    """籌碼頁「今日訊號」、後台「訊號成績」用（docs/lab_signal_plan.md 第 6.3 節）：{訊號鍵: [判定, 方向, 次數, 命中率%, 平常%]}。"""
+    out = {}
+    for r in rows or []:
+        if r.get("cat") != "stock":
+            continue
+        d = r["dir"][0]
+        st = r[d]
+        pc = lambda x: None if x is None else round(100 * x, 1)
+        out[r["var"]] = [st["tier"], d, st["n"], pc(st["hit"]), pc(st["base"])]
+    return out
 
 
 def load_stock() -> dict | None:

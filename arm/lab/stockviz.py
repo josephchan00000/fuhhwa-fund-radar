@@ -121,7 +121,7 @@ function tlDraw(){const box=$('#tlbox');if(!box)return;const C=(OPP.cards||[]).s
     return Math.max(1,ends.length);});
   let y=T;const Y=rows.map(n=>{const y0=y,h=Math.max(mob?0:48,HD+8+n*RH);y+=h+6;return [y0,h];}),H=y+16;
   VZS.tle=V;let s='',m='';
-  let ln='';C.forEach((c,i)=>{const [y0,h]=Y[i],nm=`${c.rank?c.rank+'. ':''}${STN[c.k]||c.name}`,hd=c.hold||'',sub=`${c.grade||''} 級・持有${/^\d/.test(hd)?' ':''}${hd}`,al=i%2?' alt':'';
+  let ln='';C.forEach((c,i)=>{const [y0,h]=Y[i],nm=`${c.rank?c.rank+'. ':''}${STN[c.k]||c.name}`,hd=c.hold||'',sub=`${TMK[c.tier]||''} ${TN[c.tier]||''}・持有${/^\d/.test(hd)?' ':''}${hd}`,al=i%2?' alt':'';
     s+=`<rect class="tl-lane${al}" x=0 y=${y0} width=${W} height=${h} rx=8 />`;
     ln+=mob?`<text class="tl-ln${al}" x=10 y=${y0+16}>${esc(nm)}<tspan class=tl-lg dx=8>${esc(vzFit(sub,R-24-tw(nm,12.5),11))}</tspan></text>`
       :`<text class="tl-ln${al}" x=10 y=${y0+20}>${esc(vzFit(nm,LB-18,12.5))}</text><text class=tl-lg x=10 y=${y0+37}>${esc(vzFit(sub,LB-18,11))}</text>`;});

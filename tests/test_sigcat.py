@@ -96,3 +96,23 @@ def test_write_stock_never_writes_partial_data(tmp_path):
     p = tmp_path / "s.json"
     assert G.write_stock({}, {}, p) is False and not p.exists()                    # 沒有個股資料
     assert G.write_stock({"adv": {"trades": {}}}, {"D": object()}, p) is False and not p.exists()
+
+
+def _tr(r, hd, mk=1.0, st="c"):
+    from arm.lab import trades as TR
+    row = [None] * len(TR.TR_COLS)
+    I = {c: i for i, c in enumerate(TR.TR_COLS)}
+    row[I["c"]], row[I["r"]], row[I["hd"]], row[I["mk"]], row[I["st"]] = "2330", r, hd, mk, st
+    return row
+
+
+def test_strat_judge_uses_closed_trades_and_count_floor_10():
+    """sigspec VER 2（使用者 2026-10-19：「次數不夠沒關係」）：10 筆以上就判定，不到 30 筆只加註次數少。"""
+    good = [_tr(5.0, 20)] * 8 + [_tr(-2.0, 20)] * 4 + [_tr(99.0, 20, st="o")]        # 持有中不算
+    J = G.strat_judge({"a": {"res": {"tr": good}}, "b": {"res": {"tr": good[:9]}},
+                       "c": {"res": {"tr": [_tr(1.0, 20)] * 5 + [_tr(-1.5, 20)] * 7}}, "d": {"res": {}}})
+    assert J["a"]["tier"] == "good" and J["a"]["n"] == 12 and J["a"]["few"] and abs(J["a"]["win"] - 200 / 3) < 1e-9
+    assert J["b"]["tier"] == "few" and J["b"]["n"] == 9                       # 不到 10 筆
+    assert J["c"]["tier"] == "none" and J["d"]["tier"] == "few" and not J["d"]["few"]
+    pay, st = G.strat_pay({"res": {"tr": good}})
+    assert st["tier"] == J["a"]["tier"] and st["base"] == 1.0 and pay["path"] == "一般"
