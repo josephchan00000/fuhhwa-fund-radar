@@ -1,6 +1,6 @@
 """訊號總覽實務判定的規格（docs/lab_signal_plan.md）：規格鎖定。
 
-規格是在算任何訊號的命中率之前寫定的（VER 1，2026-10-19）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
+規格是在算任何訊號的命中率之前寫定的（VER 1，2026-10-19；VER 2 同日只改個股策略的次數下限，規劃第 15 節）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import analyze as AN
 from arm.lab import backtest as BT
 from arm.lab import bottomspec as BS
@@ -12,7 +12,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 1 and X.SPEC_DATE == "2026-10-19"
+    assert X.VER == 2 and X.SPEC_DATE == "2026-10-19"
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
     assert X.LAG == 1 and X.DIRS == ("up", "warn", "buy") and X.WARN_LONG == 0.20
     assert X.WARN_TH_IDX == {20: 1, 60: 2}
@@ -35,7 +35,8 @@ def test_sig_spec_v1_is_locked():
     assert X.IND_GROUPS == ("ff", "us", "tw") and X.IND_SIGNALS == ("L2", "L3")
     assert (X.H_BUB, X.H_IND_M) == (250, 12)
     assert X.H_STOCK == 20 and X.STOCK_WARN == ("exit",)
-    assert X.STRAT_N_MIN == 30
+    assert X.STRAT_N_MIN == X.N_MIN == 10 and X.STRAT_FEW == 30          # VER 2：次數不夠沒關係（使用者 2026-10-19）
+    assert X.STRAT_CAP == {"good": 0.05, "ref": 0.02, "none": 0.0, "few": 0.0}
     assert (X.TODAY_MAX, X.TODAY_REF) == (8, 3)
 
 
