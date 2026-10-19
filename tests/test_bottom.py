@@ -1,4 +1,4 @@
-"""大跌後的買點與落底訊號（docs/lab_crash_plan.md 第 13 節）：和逐筆直接算的版本比對。"""
+"""大跌後的買點與落底訊號（docs/lab_crash_plan.md 第 13、16 節）：和逐筆直接算的版本比對。"""
 import math
 import random
 from datetime import date, timedelta
@@ -319,6 +319,46 @@ def test_market_runs_and_is_consistent():
     lst = M["ev"]["E5"]["list"]
     r60 = [r["r60"] for r in lst if r["r60"] is not None]
     assert math.isclose(M["ev"]["E5"]["all"]["r60"]["mean"], float(np.mean(r60)))
+
+
+def test_ver2_signals_are_judged_against_w10():
+    """VER 2：訊號的判定和固定等 10 天比（同一個事件、兩個買進日的 NL20 與 R60 都有）；BH 家族只有訊號；
+    固定等 10 天照 VER 1（和事件隔天買比）；訊號和事件隔天買比的判定留作 v1。"""
+    I = _inputs(3000, 21)
+    I["px"] = _walk(3000, 21, vol=0.022)
+    M = X.market(I)
+    for ev in S.EVENTS:
+        recs = X.event_recs(I, ev)
+        rs = M["ev"][ev]["rules"]
+        assert "w10" not in rs["W10"] and rs["W10"]["v"] == rs["W10"]["v1"] == X.rule_verdict(rs["W10"])
+        for k in S.SIG_MK["tw"]:
+            st, w = rs[k], rs[k]["w10"]
+            rows = []
+            for r in recs:
+                o, ob = r["rules"][k].get("o") or {}, r["rules"]["W10"].get("o") or {}
+                if None not in (o.get("nl"), o.get("r60"), ob.get("nl"), ob.get("r60")):
+                    rows.append((o["nl"] - ob["nl"], o["r60"] - ob["r60"], o["nl"], ob["nl"], o["r60"], ob["r60"]))
+            assert w["n"] == len(rows)
+            if rows:
+                a = np.array(rows, dtype=float)
+                assert math.isclose(w["nl_d"], a[:, 0].mean(), abs_tol=1e-12)
+                assert math.isclose(w["r_d"], a[:, 1].mean(), abs_tol=1e-12)
+                assert math.isclose(w["nl_rule"], a[:, 2].mean()) and math.isclose(w["nl_w10"], a[:, 3].mean())
+                assert math.isclose(w["r_rule"], a[:, 4].mean()) and math.isclose(w["r_w10"], a[:, 5].mean())
+                h = len(rows) // 2
+                if h:
+                    assert math.isclose(w["nl_h1"], a[:h, 0].mean(), abs_tol=1e-12)
+                    assert math.isclose(w["r_h2"], a[h:, 1].mean(), abs_tol=1e-12)
+            assert w["few"] == (w["n"] < S.MIN_N or w["ep"] < S.MIN_EP or w.get("nl_lo") is None or w.get("r_lo") is None)
+            assert st["v"] == w["v"] == X.rule_verdict(w) and st["v1"] == X.rule_verdict(st)
+            assert (w["nl_dir"], w["r_dir"], st["nl_dir"], st["r_dir"]) == (
+                X.sdir(w, "nl"), X.sdir(w, "r"), X.sdir(st, "nl"), X.sdir(st, "r"))
+        for pre in ("nl", "r"):                               # BH：只有訊號一起校正（固定等 10 天是對照）
+            ks = [k for k in S.SIG_MK["tw"] if not rs[k]["w10"]["few"] and rs[k]["w10"].get(f"{pre}_p") is not None]
+            for k, q in zip(ks, X.bh([rs[k]["w10"][f"{pre}_p"] for k in ks])):
+                assert rs[k]["w10"][f"{pre}_q"] == q
+            for k in set(S.SIG_MK["tw"]) - set(ks):
+                assert f"{pre}_q" not in rs[k]["w10"]
 
 
 def test_now_active_events():

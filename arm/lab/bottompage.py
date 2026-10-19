@@ -1,12 +1,12 @@
-"""景氣頁「大跌後檢查」卡（docs/lab_crash_plan.md 第 4、13、14、15 節；規格 bottomspec VER 1）。
+"""景氣頁「大跌後檢查」卡（docs/lab_crash_plan.md 第 4、13～16 節；規格 bottomspec VER 2）。
 
 台股景氣頁、美股景氣頁（四個指數各一份）各一張卡，放在「短線大跌風險」卡下面：
   一句話          現在有沒有進行中的大跌（最近 60 個交易日內的 5 日急跌、還沒結束的「從 60 日高點跌 10%」）；
-                  過去急跌隔天收盤買之後的表現；落底訊號的研究結論（判定，以及和固定等 10 天比）
+                  過去急跌隔天收盤買之後的表現；落底訊號的研究結論（VER 2：和固定等 10 天比的判定）
   這一次          進行中的事件：事件前高點、到今天最多跌多少、三個分組＋同組事件之後的表現、落底訊號出現了沒有
   急跌之後        全部事件與各組：60 日後的漲跌、20 天內再跌破低點、中間最多再跌、回到前高；分組比較的判定
-  等訊號再買      每個規則（固定等 10 天、各訊號）：多久出現、再跌破低點的比例與 60 日報酬（和隔天買、和固定等 10 天比）、判定；
-                  五個市場的判定
+  等訊號再買      固定等 10 天（對照，和事件隔天買比）；各訊號：多久出現、再跌破低點的比例與 60 日報酬（和固定等 10 天比）、
+                  判定、和事件隔天買比的舊判定（VER 1，參考）；五個市場的判定
   收起            另一種事件、每一次的清單、怎麼算、主要假說
 每天建頁只讀研究檔（bottom.load_research）；進行中的事件與訊號每天重算（bottom.now）。只描述過去，不寫買賣指示；用字照專案禁用詞。
 """
@@ -18,8 +18,13 @@ from .hotddpage import _d, _e, _nan, ci, pct, ppt, spct
 EVN = {"E5": "5 日急跌", "E10": "從 60 日高點跌 10%"}
 VCLS = {"better": "strong", "trade": "none", "worse": "weak", "none": "none", "few": "few"}
 VSHORT = {"better": "有用", "trade": "有取捨", "worse": "比較差", "none": "看不出", "few": "樣本不足"}
-VLONG = {"better": "有用：比較少再跌破低點，60 日報酬也不輸", "trade": "比較少再跌破低點，但 60 日報酬也比較少",
-         "worse": "比事件隔天就買差", "none": "看不出差別", "few": "次數太少，不能判定"}
+VLONG = {"better": "有用：比{b}少再跌破低點，60 日報酬也不輸", "trade": "比{b}少再跌破低點，但 60 日報酬也比較少",
+         "worse": "比{b}差", "none": "看不出差別", "few": "次數太少，不能判定"}
+
+
+def vlong(k: str, v: str) -> str:
+    """判定的完整說法：固定等 10 天和事件隔天買比，訊號和固定等 10 天比（VER 2）。"""
+    return VLONG.get(v, VLONG["few"]).format(b="事件隔天就買" if k == S.SIG_BASE else "固定等 10 天")
 VMARK = {"better": "✓", "trade": "△", "worse": "✗", "none": "·", "few": "—"}
 GV = {"up": "第一組之後較好", "down": "第一組之後較差", "none": "看不出差別", "few": "次數太少，不能判定"}
 
@@ -143,22 +148,28 @@ def lead(C: dict) -> list[str]:
                    f'{pct((A.get("nl") or {}).get("rate"), 0)}；60 個交易日後平均 {spct((A.get("r60") or {}).get("mean"))}'
                    f'（中位數 {spct((A.get("r60") or {}).get("med"))}），{pct((A.get("r60") or {}).get("up"), 0)} 上漲。')
     rs = _rules(C, ev)
-    w = rs.get("W10") or {}
+    w = rs.get(S.SIG_BASE) or {}
     if w.get("n"):
-        good = [k for k in S.SIG_MK[mk] if (rs.get(k) or {}).get("v") == "better"]
-        sig = [k for k in S.SIG_MK[mk] if (rs.get(k) or {}).get("n")]
-        lower = [k for k in sig if (rs[k].get("nl_d") or 0) < 0]
-        cnt = "都" if len(lower) == len(sig) else f"裡 {len(lower)} 個"
-        t = (f'等落底訊號再買：{len(sig)} 個訊號{cnt}比隔天就買少再跌破低點；'
-             f'不過不看訊號、固定等 10 天也從 {pct(w.get("nl_b1"), 0)} 降到 {pct(w.get("nl_rule"), 0)}，大部分是晚買的效果。')
-        beat = [k for k in sig if not rs[k].get("few") and ((rs[k].get("w10") or {}).get("nl_hi") or 1) < 0]
-        if beat:
-            t += ("比固定等 10 天還少的（次數夠、區間不含 0）：" + "、".join(
-                f'{SHORT[k]} {_sp(rs[k]["w10"]["nl_d"], 0)}' for k in beat) + " 個百分點。")
-        else:
-            t += "沒有一個訊號比固定等 10 天明顯更少（只算次數夠的）。"
-        t += ("事前寫定的判定：" + ("、".join(SHORT[k] for k in good) + "有用（比隔天買少再跌破低點，60 日報酬也不輸）。" if good
-              else "沒有一個訊號有用（比隔天買少再跌破低點，而且 60 日報酬也不輸）。"))
+        sig = [k for k in S.SIG_MK[mk] if ((rs.get(k) or {}).get("w10") or {}).get("n")]
+        good = [k for k in sig if rs[k].get("v") == "better"]
+        t = (f'等落底訊號再買，改和固定等 10 天比（不看訊號、固定等 10 天就從 {pct(w.get("nl_b1"), 0)} 降到 '
+             f'{pct(w.get("nl_rule"), 0)}）。有用的條件：比固定等 10 天少再跌破低點，而且 60 日報酬全部與前後兩半都不輸；'
+             + ("、".join(SHORT[k] for k in good) + "符合。" if good else "沒有一個訊號符合。"))
+        nl = [k for k in sig if k not in good and rs[k]["w10"].get("nl_dir") == "down"]
+        ru = [k for k in sig if k not in good and k not in nl and rs[k]["w10"].get("r_dir") == "up"]
+        parts = []
+        if nl:
+            tr = [k for k in nl if rs[k].get("v") == "trade"]
+            parts.append("、".join(SHORT[k] for k in nl) + "再跌破低點少 "
+                         + "、".join(f'{abs(rs[k]["w10"]["nl_d"]) * 100:.0f}' for k in nl) + " 個百分點，但 60 日報酬那一條沒過"
+                         + ("（" + "、".join(SHORT[k] for k in tr) + "的 60 日報酬還顯著比較少）" if tr else ""))
+        if ru:
+            parts.append("、".join(SHORT[k] for k in ru) + "的 60 日報酬多 "
+                         + "、".join(f'{rs[k]["w10"]["r_d"] * 100:.1f}' for k in ru) + " 個百分點，但再跌破低點沒有比較少")
+        if parts:
+            t += "；".join(parts) + "。"
+        elif not good:
+            t += "也沒有一個訊號明顯比固定等 10 天少再跌破低點。"
         out.append(t)
     return out
 
@@ -232,14 +243,16 @@ def now_html(C: dict) -> str:
                 st_txt, cls = "沒有資料", "xjno"
             r = rs.get(k) or {}
             vt = r.get("v") or "few"
-            hist = ("—" if not r.get("n") else
-                    f'過去 {r["n"]} 次：再跌破低點 {pct(r.get("nl_b1"), 0)} → {pct(r.get("nl_rule"), 0)}，'
-                    f'60 日後 {spct(r.get("r_b1"))} → {spct(r.get("r_rule"))}')
+            c, bk, bn = (r, "b1", "隔天買") if k == S.SIG_BASE else (r.get("w10") or {}, "w10", "等 10 天")
+            hist = ("—" if not c.get("n") else
+                    f'過去 {c["n"]} 次：再跌破低點 {bn} {pct(c.get(f"nl_{bk}"), 0)} → 這樣買 {pct(c.get("nl_rule"), 0)}，'
+                    f'60 日後 {spct(c.get(f"r_{bk}"))} → {spct(c.get("r_rule"))}')
             srows.append(f'<tr class="{cls}"><td class="l"><b>{_e(SHORT[k])}</b><span class="xjsub">{_e(sig_def(mk, k, C["px"]))}</span></td>'
-                         f'<td class="l" data-h="這一次">{_e(st_txt)}</td><td class="l" data-h="過去（隔天買 → 這樣買）">{_e(hist)}</td>'
-                         f'<td data-h="判定"><span class="vt {VCLS[vt]}">{_e(VSHORT[vt])}</span></td></tr>')
+                         f'<td class="l" data-h="這一次">{_e(st_txt)}</td><td class="l" data-h="過去（對照 → 這樣買）">{_e(hist)}</td>'
+                         f'<td data-h="判定" title="{_e(vlong(k, vt))}"><span class="vt {VCLS[vt]}">{_e(VSHORT[vt])}</span></td></tr>')
         stab = ('<div class="tw"><table class="xjst"><tr><th class="l">落底訊號</th><th class="l">這一次</th>'
-                f'<th class="l">過去（隔天買 → 這樣買）</th><th>判定</th></tr>{"".join(srows)}</table></div>')
+                f'<th class="l">過去（對照 → 這樣買）</th><th>判定</th></tr>{"".join(srows)}</table></div>'
+                '<p class="note">對照：固定等 10 天和事件隔天買比；落底訊號都和固定等 10 天比。</p>')
         blocks.append(f'<div class="xjnow"><h3 class="xjh3">這一次：{_e(title)}</h3>{grid}'
                       f'<h4 class="xjh4">屬於哪一組</h4>{gtab}<h4 class="xjh4">落底訊號出現了沒有</h4>{stab}</div>')
     return "".join(blocks)
@@ -285,51 +298,62 @@ def study_table(C: dict, ev: str) -> str:
             f'兩組比的區間用 {S.BLOCK} 個交易日一塊重抽 {S.BOOT_N:,} 次；任一組不到 {S.MIN_N} 次不判定。</p>')
 
 
+def base_line(C: dict, ev: str) -> str:
+    """對照：固定等 10 天和事件隔天買比（判定照 VER 1）。"""
+    w = _rules(C, ev).get(S.SIG_BASE) or {}
+    if not w.get("n"):
+        return ""
+    vt = w.get("v") or "few"
+    return (f'<p class="xjbase"><b>對照：固定等 10 天</b>（{_e(sig_def(C["mk"], S.SIG_BASE))}），和事件隔天買比（{w["n"]} 次）：'
+            f'20 天內再跌破低點 {pct(w.get("nl_b1"), 0)} → <b>{pct(w.get("nl_rule"), 0)}</b>'
+            f'（差 {_sp(w.get("nl_d"), 0)} 個百分點，95% 區間 {_sp(w.get("nl_lo"), 0)}～{_sp(w.get("nl_hi"), 0)}）；'
+            f'60 日後 {spct(w.get("r_b1"))} → <b>{spct(w.get("r_rule"))}</b>；'
+            f'<span class="vt {VCLS[vt]}" title="{_e(vlong(S.SIG_BASE, vt))}">{_e(VSHORT[vt])}</span></p>')
+
+
 def rule_table(C: dict, ev: str) -> str:
-    """每個規則：多久出現、再跌破低點的比例與 60 日報酬（和隔天買、和固定等 10 天比）、判定。"""
+    """各訊號和固定等 10 天比：多久出現、再跌破低點的比例與 60 日報酬（差、區間、前後兩半）、判定；和事件隔天買比（VER 1，參考）。"""
     mk = C["mk"]
     rs = _rules(C, ev)
     rows = []
-    for k in ("W10",) + tuple(S.SIG_MK[mk]):
+    for k in S.SIG_MK[mk]:
         r = rs.get(k) or {}
-        vt = r.get("v") or "few"
-        if k == "W10":
-            when = "第 10 天"
-        elif r.get("seen"):
+        c = r.get("w10") or {}
+        vt, v1 = r.get("v") or "few", r.get("v1") or "few"
+        if r.get("seen"):
             dl = r.get("delay")
             when = f'{pct(r.get("cov"), 0)} 的事件有出現' + (f'<small>中位數第 {dl:.0f} 天</small>' if dl is not None else "")
         else:
             when = "—"
-        w = r.get("w10") or {}
-        if k == "W10":
-            vs10 = "—"
-        elif w.get("n"):
-            vs10 = (f'再跌破低點 <b>{_sp(w.get("nl_d"), 0)}</b><small>區間 {_sp(w.get("nl_lo"), 0)}～{_sp(w.get("nl_hi"), 0)}</small>'
-                    f'<small>60 日後 {_sp(w.get("r_d"))}</small>')
-        else:
-            vs10 = "—"
-        if r.get("n"):
-            nl = (f'{pct(r.get("nl_b1"), 0)} → <b>{pct(r.get("nl_rule"), 0)}</b>'
-                  f'<small>差 {_sp(r.get("nl_d"), 0)}（{_sp(r.get("nl_lo"), 0)}～{_sp(r.get("nl_hi"), 0)}）</small>')
-            rr = (f'{spct(r.get("r_b1"))} → <b>{spct(r.get("r_rule"))}</b>'
-                  f'<small>差 {_sp(r.get("r_d"))}（{_sp(r.get("r_lo"))}～{_sp(r.get("r_hi"))}）</small>')
+        if c.get("n"):
+            nl = (f'{pct(c.get("nl_w10"), 0)} → <b>{pct(c.get("nl_rule"), 0)}</b>'
+                  f'<small>差 {_sp(c.get("nl_d"), 0)}（{_sp(c.get("nl_lo"), 0)}～{_sp(c.get("nl_hi"), 0)}）</small>'
+                  f'<small>前後兩半 {_sp(c.get("nl_h1"), 0)}／{_sp(c.get("nl_h2"), 0)}</small>')
+            rr = (f'{spct(c.get("r_w10"))} → <b>{spct(c.get("r_rule"))}</b>'
+                  f'<small>差 {_sp(c.get("r_d"))}（{_sp(c.get("r_lo"))}～{_sp(c.get("r_hi"))}）</small>'
+                  f'<small>前後兩半 {_sp(c.get("r_h1"))}／{_sp(c.get("r_h2"))}</small>')
         else:
             nl = rr = "—"
-        tip = f'{r.get("n") or 0} 次（{r.get("ep") or 0} 段）'
-        rows.append(f'<tr title="{_e(tip)}"><td class="l"><b>{_e(SHORT[k])}</b><span class="xjcn">{r.get("n") or 0} 次</span>'
+        old = (f'{_e(VSHORT[v1])}<small>再跌破低點 {pct(r.get("nl_b1"), 0)} → {pct(r.get("nl_rule"), 0)}</small>'
+               if r.get("n") else "—")
+        tip = f'{c.get("n") or 0} 次（{c.get("ep") or 0} 段）'
+        rows.append(f'<tr title="{_e(tip)}"><td class="l"><b>{_e(SHORT[k])}</b><span class="xjcn">{c.get("n") or 0} 次</span>'
                     f'<span class="xjsub">{_e(sig_def(mk, k, C["px"]))}</span></td>'
-                    f'<td data-h="多久出現">{when}</td><td data-h="20 天內再跌破低點（隔天買 → 這樣買）">{nl}</td>'
-                    f'<td data-h="和固定等 10 天比（個百分點）">{vs10}</td>'
-                    f'<td data-h="60 日後（隔天買 → 這樣買）">{rr}</td>'
-                    f'<td data-h="判定"><span class="vt {VCLS[vt]}">{_e(VSHORT[vt])}</span></td></tr>')
-    head = ('<tr><th class="l">怎麼買</th><th>多久出現</th><th>20 天內再跌破低點<br>隔天買 → 這樣買</th><th>和固定等 10 天比<br>（個百分點）</th>'
-            '<th>60 日後<br>隔天買 → 這樣買</th><th>判定</th></tr>')
-    return (f'<div class="tw"><table class="xjrt">{head}{"".join(rows)}</table></div>'
-            '<p class="note">每一列只比「這個訊號有出現的事件」：同一個事件，隔天收盤買和等這個訊號（出現的隔天收盤買）各算一次，所以每一列的「隔天買」不一樣。'
-            '訊號要在事件後 60 個交易日內出現才算。判定（事前寫定）：再跌破低點的比例比隔天買少（區間不含 0、前後兩半都少、多重比較校正後 q ≤ 0.10），'
-            '而且 60 日報酬不比隔天買少（全部與前後兩半）＝有用；再跌破低點比較少但 60 日報酬也顯著比較少＝有取捨；'
+                    f'<td data-h="多久出現">{when}</td><td data-h="20 天內再跌破低點（等 10 天 → 這樣買）">{nl}</td>'
+                    f'<td data-h="60 日後（等 10 天 → 這樣買）">{rr}</td>'
+                    f'<td data-h="判定" title="{_e(vlong(k, vt))}"><span class="vt {VCLS[vt]}">{_e(VSHORT[vt])}</span></td>'
+                    f'<td data-h="和隔天買比（舊判定）" class="xjv1">{old}</td></tr>')
+    head = ('<tr><th class="l">落底訊號</th><th>多久出現</th><th>20 天內再跌破低點<br>等 10 天 → 這樣買</th>'
+            '<th>60 日後<br>等 10 天 → 這樣買</th><th>判定</th><th>和隔天買比<br>（舊判定）</th></tr>')
+    return (base_line(C, ev)
+            + f'<div class="tw"><table class="xjrt">{head}{"".join(rows)}</table></div>'
+            '<p class="note">每一列只比「這個訊號有出現的事件」：同一個事件，固定等 10 天（第 10 個交易日收盤買）和等這個訊號（出現的隔天收盤買）'
+            '各算一次，所以每一列的「等 10 天」不一樣。訊號要在事件後 60 個交易日內出現才算。'
+            '判定（事前寫定）：再跌破低點的比例比固定等 10 天少（區間不含 0、前後兩半都少、多重比較校正後 q ≤ 0.10），'
+            '而且 60 日報酬不比固定等 10 天少（全部與前後兩半）＝有用；再跌破低點比較少但 60 日報酬顯著比較少＝有取捨；'
             f'不到 {S.MIN_N} 次或不到 {S.MIN_EP} 段（相隔 {S.EP_GAP} 個交易日以上算不同段）不判定。'
-            '「和固定等 10 天比」只列數字、沒有判定：晚買本身就比較不容易再跌破低點，訊號要比固定等 10 天還少，才代表訊號本身有資訊。</p>')
+            '訊號比第 10 天晚出現時（看「多久出現」），再跌破低點比較少仍有一部分是晚買的效果。'
+            '「和隔天買比」是第一版的比較：晚買本身就比較不容易再跌破低點，和隔天買比對訊號偏寬，只當參考。</p>')
 
 
 def five_html(C: dict, ev: str) -> str:
@@ -346,7 +370,7 @@ def five_html(C: dict, ev: str) -> str:
             r = ((((A.get(m) or {}).get("ev") or {}).get(ev) or {}).get("rules") or {}).get(k) or {}
             v = r.get("v") or "few"
             vs.append(v)
-            cells.append(f'<td class="xjv{v}" title="{_e(VLONG[v])}">{VMARK[v]}<small>{_e(VSHORT[v])}</small></td>')
+            cells.append(f'<td class="xjv{v}" title="{_e(vlong(k, v))}">{VMARK[v]}<small>{_e(VSHORT[v])}</small></td>')
         nf = [v for v in vs if v != "few"]
         agree = "一致" if len(nf) >= 2 and len(set(nf)) == 1 else ("—" if len(nf) < 2 else "不一致")
         rows.append(f'<tr><td class="l">{_e(SHORT[k])}</td>' + "".join(cells) + f'<td class="xjag">{agree}</td></tr>')
@@ -354,6 +378,7 @@ def five_html(C: dict, ev: str) -> str:
     na = "美股沒有融資、寬度、新低家數、P/C；費半沒有成交量" if C["mk"] == "tw" else "費半沒有成交量"
     return (f'<div class="tw"><table class="xjft">{head}{"".join(rows)}</table></div>'
             f'<p class="note">{"、".join(f"{VMARK[v]} {VSHORT[v]}" for v in ("better", "trade", "worse", "none", "few"))}；'
+            f'固定等 10 天這一列和事件隔天買比，落底訊號都和固定等 10 天比；'
             f'方向一致＝不是樣本不足的市場至少 2 個、判定都一樣。不算＝那個市場沒有這種資料（{na}）。</p>')
 
 
@@ -433,9 +458,12 @@ def method_html(C: dict) -> str:
             + ("融資 ÷ 上市市值" if mk == "tw" else "家計部門證券融資年增率")
             + ' 有一天 ≥ 80；漲勢過熱＝泡沫頁的泡沫等級 ≥ 2。</p>'
             '<p><b>怎麼比</b>：事件、訊號都要收盤後才確定，所以一律「隔一個交易日收盤買」（事件隔天、訊號隔天；固定等 10 天＝第 10 天收盤）。'
-            f'同一個事件比兩種買法，差的 95% 區間用 {S.BLOCK} 個交易日一塊環狀重抽 {S.BOOT_N:,} 次。</p>'
-            f'<p><b>限制</b>：{_e(lim)}；事件少（5 日急跌 {n5} 次），多數比較只能描述；「和固定等 10 天比」只列不判定。'
-            '規格在看結果之前寫定（bottomspec VER 1），規劃文件 docs/lab_crash_plan.md 第 13、14 節。</p></div>')
+            '同一個事件比兩種買法：固定等 10 天和事件隔天買比，落底訊號和固定等 10 天比；'
+            f'差的 95% 區間用 {S.BLOCK} 個交易日一塊環狀重抽 {S.BOOT_N:,} 次。</p>'
+            f'<p><b>限制</b>：{_e(lim)}；事件少（5 日急跌 {n5} 次），多數比較只能描述。'
+            '規格在看結果之前寫定（bottomspec VER 1）；第二版（VER 2）是看過第一版結果之後改的：第一版訊號和事件隔天買比，'
+            '但晚買本身就比較不容易再跌破低點，判定對訊號偏寬，所以改和固定等 10 天比，其他照舊。'
+            '訊號比第 10 天晚出現時，仍有一部分是晚買的效果。規劃文件 docs/lab_crash_plan.md 第 13、14、16 節。</p></div>')
 
 
 def card(C: dict | None) -> str:
@@ -450,7 +478,7 @@ def card(C: dict | None) -> str:
     act = bool(C["now"].get("active"))
     body = (now_html(C)
             + f'<h3 class="xjh3">{_e(EVN[ev])}之後<span class="sub">事件隔天收盤買，全部與各組</span></h3>{study_table(C, ev)}'
-            + f'<h3 class="xjh3">等落底訊號再買<span class="sub">{_e(EVN[ev])}；和事件隔天買、固定等 10 天比</span></h3>'
+            + f'<h3 class="xjh3">等落底訊號再買<span class="sub">{_e(EVN[ev])}；和固定等 10 天比</span></h3>'
             + rule_table(C, ev)
             + f'<details class="xjmore"><summary>{"五個市場" if C["mk"] == "tw" else "四個美股指數"}的判定（{_e(EVN[ev])}）</summary>'
             + f'{five_html(C, ev)}</details>'
@@ -503,6 +531,9 @@ CSS = (
     ".xjres>summary{font-size:13.5px;font-weight:600}"
     ".xjpl{font-size:12.5px;color:var(--ink2);line-height:1.7;padding-left:1.2em;margin:4px 0}"
     ".xjcn{display:none;font-size:10.5px;font-weight:400;color:var(--mut);margin-left:6px}"
+    ".xjbase{font-size:12.5px;color:var(--ink2);line-height:1.7;margin:6px 0 8px}.xjbase .vt{margin-left:4px}"
+    "table.xjrt td.xjv1{color:var(--mut)}table.xjrt td.l{width:30%}"
+    "table.xjrt td small,table.xjrt .vt{white-space:nowrap}"
     "@media (max-width:640px){"
     ".xjg{grid-template-columns:repeat(2,minmax(0,1fr))}"
     "table.xjgt,table.xjgt tbody,table.xjst,table.xjst tbody,table.xjdt,table.xjdt tbody,table.xjrt,table.xjrt tbody,"
@@ -521,6 +552,7 @@ CSS = (
     "table.xjgt td[data-h]::before,table.xjst td[data-h]::before,table.xjdt td[data-h]::before,table.xjrt td[data-h]::before,"
     "table.xjlt td[data-h]::before{content:attr(data-h);display:block;color:var(--mut);font-size:10.5px}"
     "table.xjdt td.xjhm{display:none}table.xjdt .xjcn,table.xjrt .xjcn{display:inline}"
+    "table.xjrt td.l{width:auto}table.xjrt td small{white-space:normal}"
     "table.xjft{font-size:11px}table.xjft th,table.xjft td{padding:4px 2px}table.xjft td small{display:none}"
     "}"
 )
