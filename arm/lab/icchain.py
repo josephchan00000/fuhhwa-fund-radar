@@ -26,6 +26,8 @@ _CHAIN = re.compile(r'href="introduce\.php\?ic=(\w+)"[^>]*>(.*?)</a>', re.S)
 _NODE = re.compile(r'<div id="companyList_(\w+)" title="([^"]*)"')
 _STK = re.compile(r"stk_code=(\d{4})(?!\d)")
 _CNT = re.compile(r"[（(]\s*(\d+)\s*家\s*[)）]\s*$")
+_B = re.compile(r"<b(?:\s[^>]*)?>")
+MKT = ("本國上市公司", "本國上櫃公司", "外國上市公司", "外國上櫃公司", "本國興櫃公司", "外國興櫃公司", "創櫃公司", "知名外國企業")
 
 
 def _log(msg: str) -> None:
@@ -56,7 +58,8 @@ def _label(seg: str) -> tuple[str, int | None]:
 
 def parse_chain(h: str) -> list[list]:
     """產業鏈頁 → [[節點代碼, 節點名稱, [[標籤, 標示家數, [代號…]], …]], …]。
-    節點在頁面裡出現兩次（圖與清單），同一個節點代碼只留第一次；段落裡的代號依出現順序去重。"""
+    節點在頁面裡出現兩次（圖與清單），同一個節點代碼只留第一次；段落裡的代號依出現順序去重。
+    <b> 帶屬性的也算（半導體 IC 設計節點的 IC 類別分頁標題是 <b class=…>）。"""
     parts = re.split(r'(?=<div id="companyList_)', h)
     out: list[list] = []
     seen: set[str] = set()
@@ -66,7 +69,7 @@ def parse_chain(h: str) -> list[list]:
             continue
         seen.add(m.group(1))
         segs = []
-        for seg in part.split("<b>")[1:]:
+        for seg in _B.split(part)[1:]:
             lab, n = _label(seg)
             codes: list[str] = []
             for c in _STK.findall(seg):
@@ -74,6 +77,33 @@ def parse_chain(h: str) -> list[list]:
                     codes.append(c)
             segs.append([lab, n, codes])
         out.append([m.group(1), _clean(m.group(2)), segs])
+    return out
+
+
+def tabs(node: list) -> dict[str, set[str]] | None:
+    """有分頁的節點（IC 設計）→ {分頁名稱: 代號}；沒有分頁＝None。
+    版式：先列全部分頁標題（不是市場別、沒有代號，標示 N 家），之後依序是各分頁的市場別段落；
+    每個分頁依序取段落，直到段落標示家數加起來等於分頁的 N 家。對不上（版式變了）＝None，並印日誌。"""
+    segs = node[2]
+    heads = [(lab, n) for lab, n, cs in segs if lab not in MKT and not cs]
+    if not heads:
+        return None
+    body = [x for x in segs if x[0] in MKT]
+    out: dict[str, set[str]] = {}
+    k = 0
+    for lab, n in heads:
+        got, cs = 0, set()
+        while k < len(body) and n is not None and got < n:
+            got += body[k][1] or 0
+            cs |= set(body[k][2])
+            k += 1
+        if n is None or got != n:
+            _log(f"{node[0]} {node[1]} 分頁「{lab}」家數對不上（標示 {n}、段落合計 {got}），不用分頁")
+            return None
+        out[lab] = cs
+    if k != len(body):
+        _log(f"{node[0]} {node[1]} 分頁之後還有 {len(body) - k} 個段落，不用分頁")
+        return None
     return out
 
 
@@ -136,19 +166,16 @@ def fetch(force: bool = False) -> dict:
     return {"d": doc["d"], "n": len(out), "changed": changed}
 
 
-_MKT = ("本國上市公司", "本國上櫃公司", "外國上市公司", "外國上櫃公司", "本國興櫃公司", "外國興櫃公司", "創櫃公司", "知名外國企業")
-
-
 def _debug_tabs(ic: str, h: str, nodes: list) -> None:
-    """節點裡有不是市場別的段落標籤（IC 設計的 IC 類別分頁）→ 印段落家數與頁面片段，供確認分頁內容在不在這一頁。"""
+    """節點裡有不是市場別的段落標籤（IC 設計的 IC 類別分頁）→ 印各分頁的代號數；分頁對不上才印頁面片段。"""
     for nid, title, segs in nodes:
-        odd = [(lab, n, len(cs)) for lab, n, cs in segs if lab not in _MKT]
+        odd = [(lab, n, len(cs)) for lab, n, cs in segs if lab not in MKT]
         if not odd:
             continue
-        _log(f"{ic} {nid} {title}：非市場別段落 {odd}")
-        k = h.find(f'id="companyList_{nid}"')
-        _log(f"  片段 {h[k:k + 2500]!r}")
-        for pat in (r"\.php\?[^\"' ]{0,80}", r"ajax[^;]{0,120}", r"\.load\([^)]{0,120}\)"):
-            hits = sorted(set(re.findall(pat, h)))[:12]
-            if hits:
-                _log(f"  {pat}：{hits}")
+        t = tabs([nid, title, segs])
+        if t is None:
+            _log(f"{ic} {nid} {title}：非市場別段落 {odd}，分頁對不上")
+            k = h.find(f'id="companyList_{nid}"')
+            _log(f"  片段 {h[k:k + 2500]!r}")
+        else:
+            _log(f"{ic} {nid} {title}：分頁 " + "；".join(f"{a}({len(b)})" for a, b in t.items()))
