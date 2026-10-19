@@ -22,6 +22,12 @@ VLONG = {"better": "有用：比較少再跌破低點，60 日報酬也不輸", 
          "worse": "比事件隔天就買差", "none": "看不出差別", "few": "次數太少，不能判定"}
 VMARK = {"better": "✓", "trade": "△", "worse": "✗", "none": "·", "few": "—"}
 GV = {"up": "第一組之後較好", "down": "第一組之後較差", "none": "看不出差別", "few": "次數太少，不能判定"}
+
+
+def gv_text(g: str, v: str) -> str:
+    """分組比較的判定，用第一組的名字寫（「底子好之後較好」），不寫「第一組」。"""
+    a = S.GROUP_NAMES[g][0]
+    return {"up": f"{a}之後較好", "down": f"{a}之後較差"}.get(v, GV.get(v, GV["few"]))
 GVCLS = {"up": "strong", "down": "weak", "none": "none", "few": "few"}
 GTITLE = {"fund": "底子", "chip": "籌碼", "bub": "泡沫"}
 SHORT = {"W10": "固定等 10 天", "C1": "VIX 回落", "C2": "融資減少", "C3": "寬度衝刺", "C4": "新低家數減半",
@@ -208,7 +214,7 @@ def now_html(C: dict) -> str:
             grows.append(f'<tr><td class="l"><b>{_e(GTITLE[g])}</b><span class="xjsub">{_e(_gtext(g, v, a.get("gv") or {}))}</span></td>'
                          f'<td class="l" data-h="過去同一組">{_e(_gstat(same)) if same else "—"}</td>'
                          f'<td class="l" data-h="另一組">{_e(_gstat(other)) if other else "—"}</td>'
-                         f'<td data-h="兩組比"><span class="vt {GVCLS[vt]}">{_e(GV[vt])}</span></td></tr>')
+                         f'<td data-h="兩組比"><span class="vt {GVCLS[vt]}">{_e(gv_text(g, vt))}</span></td></tr>')
         gtab = ('<div class="tw"><table class="xjgt"><tr><th class="l">分組</th><th class="l">過去同一組</th>'
                 f'<th class="l">另一組</th><th>兩組比（60 日後）</th></tr>{"".join(grows)}</table></div>')
         rs = (E.get("rules") or {})
@@ -268,7 +274,7 @@ def study_table(C: dict, ev: str) -> str:
         vt = st.get("v") or "few"
         dd = (f'60 日後平均差 {ppt(st.get("d"))}（95% 區間 {ci(st.get("lo"), st.get("hi"))}；前後兩半 {_sp(st.get("h1"))}／{_sp(st.get("h2"))}）'
               if st.get("d") is not None else "")
-        notes.append(f'<li><b>{_e(a)} vs {_e(b)}</b>：<span class="vt {GVCLS[vt]}">{_e(GV[vt])}</span>{_e(dd)}</li>')
+        notes.append(f'<li><b>{_e(a)} vs {_e(b)}</b>：<span class="vt {GVCLS[vt]}">{_e(gv_text(g, vt))}</span>{_e(dd)}</li>')
     head = ('<tr><th class="l">事件</th><th>次數</th><th>60 日後<br>平均（中位數）</th><th>上漲比例</th><th>20 天內<br>再跌破低點</th>'
             '<th>中間最多再跌<br>（中位數）</th><th>120 天內<br>回到前高</th></tr>')
     return (f'<div class="tw"><table class="xjdt">{head}{"".join(rows)}</table></div>'
