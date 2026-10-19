@@ -53,7 +53,8 @@ def main() -> None:
         print(f"[lab] 歷史分類行情快照：{indhist.backfill(budget_s=a.budget_min * 60)}")
         return
     if a.ind_probe:
-        market.probe_ind2() if "2" in (os.environ.get("LAB_MODE") or "") else market.probe_ind()
+        lm = os.environ.get("LAB_MODE") or ""
+        market.probe_ind3() if "3" in lm else (market.probe_ind2() if "2" in lm else market.probe_ind())
         return
     if a.names:
         from arm.lab import v3data

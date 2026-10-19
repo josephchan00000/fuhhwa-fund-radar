@@ -871,6 +871,51 @@ def probe_ind2() -> None:
             log(f"[indprobe2] 產業鏈 {ic} ✗ {str(e)[:160]}")
         time.sleep(1.5)
 
+
+def probe_ind3() -> None:
+    """第三輪探針（Q10 細分族群）：櫃買產業鏈平台每條產業鏈的節點、各節點上市＋上櫃公司數；找「散熱」「CPO／矽光子」在哪。只印不寫。"""
+    try:
+        h = _decode(get_bytes("https://ic.tpex.org.tw/", retries=1, timeout=25, use_cache=False))
+    except Exception as e:                                # noqa: BLE001
+        log(f"[indprobe3] 首頁 ✗ {str(e)[:160]}")
+        return
+    chains = []
+    for a, t in re.findall(r'href="introduce\.php\?ic=(\w+)"[^>]*>(.*?)</a>', h, re.S):
+        if a not in [c for c, _ in chains]:
+            chains.append((a, _TAG.sub("", t).strip()))
+    allc: dict[str, set] = {}
+    for ic, name in chains:
+        try:
+            h = _decode(get_bytes(f"https://ic.tpex.org.tw/introduce.php?ic={ic}", retries=1, timeout=25, use_cache=False))
+        except Exception as e:                            # noqa: BLE001
+            log(f"[indprobe3] {ic} {name} ✗ {str(e)[:120]}")
+            continue
+        parts = re.split(r'<div id="companyList_', h)
+        nodes, codes = [], set()
+        for part in parts[1:]:
+            m = re.match(r'(\w+)" title="([^"]*)"', part)
+            if not m:
+                continue
+            body = part[:part.find("</table>") + 8] if "</table>" in part else part[:20000]
+            got = set()
+            for seg in re.split(r"<b>", body)[1:]:
+                lab = seg[:12]
+                if lab.startswith("本國上市") or lab.startswith("本國上櫃") or lab.startswith("外國上市") or lab.startswith("外國上櫃"):
+                    got |= set(re.findall(r"stk_code=(\d{4})", seg))
+            nodes.append((m.group(1), m.group(2), len(got)))
+            codes |= got
+        allc[ic] = codes
+        log(f"[indprobe3] {ic} {name}：節點 {len(nodes)}、上市櫃公司 {len(codes)}：" +
+            "；".join(f"{t}({n})" for _, t, n in nodes))
+        for kw in ("散熱", "CPO", "矽光子", "共同封裝", "伺服器", "機殼", "光通訊"):
+            hit = [t for _, t, _ in nodes if kw in t]
+            if hit:
+                log(f"[indprobe3]   「{kw}」在 {ic}：{hit}")
+        time.sleep(1.5)
+    tot = set().union(*allc.values()) if allc else set()
+    multi = sum(1 for c in tot if sum(c in v for v in allc.values()) > 1)
+    log(f"[indprobe3] 產業鏈 {len(allc)} 條、上市櫃公司合計 {len(tot)}、出現在兩條以上 {multi}")
+
 def finmind_revenue(code: str, start: str = "2023-01-01") -> dict[str, float]:
     """FinMind 月營收歷史（第三方整理官方數字；只用在回測）→ {YYYY-MM: 營收(元)}。"""
     from .. import clock
