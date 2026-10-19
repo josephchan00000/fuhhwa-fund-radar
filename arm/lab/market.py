@@ -736,6 +736,63 @@ def probe_rev() -> None:
         log(f"[revprobe] FinMind 2330 單檔 → {rows}")
 
 
+
+def probe_ind() -> None:
+    """探針（docs/lab_crash_plan.md 第 21 節，產業泡沫補強 Q9／Q10）：只印不寫。
+    ① MOPS 營業收入彙總表有沒有按產業分段（已下市公司當時的產業別）；② 櫃買中心產業鏈平台的分類與公司清單長什麼樣。"""
+    delisted = ("1701", "1704", "1902", "2311", "2325", "2448", "3008", "8299")
+    for y, m in ((2013, 1), (2018, 6), (2024, 9)):
+        for mkt in ("sii", "otc"):
+            for host in MOPS_HOSTS:
+                url = MOPS_REV.format(host=host, mkt=mkt, roc=y - 1911, m=m, k=0)
+                try:
+                    h = _decode(get_bytes(url, retries=1, timeout=25, use_cache=False))
+                except Exception as e:                    # noqa: BLE001
+                    log(f"[indprobe] {url} ✗ {str(e)[:160]}")
+                    continue
+                hits = [mm.start() for mm in re.finditer("產業別", h)]
+                log(f"[indprobe] {url} {len(h)} 字、「產業別」{len(hits)} 處、代號 {len(parse_mops_rev(h))} 檔")
+                for at in hits[:2]:
+                    log(f"[indprobe]   片段 {h[max(0, at - 160):at + 220]!r}")
+                secs = re.split(r"產業別", h)
+                found = {}
+                for sec in secs[1:]:
+                    name = _TAG.sub("", sec[:200]).replace("&nbsp;", " ").strip(" ：:\n\t")[:24]
+                    for c in delisted:
+                        if re.search(r">\s*" + c + r"\s*<", sec) and c not in found:
+                            found[c] = name
+                log(f"[indprobe]   已下市樣本所在段 {found}")
+                break
+            time.sleep(1.5)
+    for url in ("https://ic.tpex.org.tw/", "https://ic.tpex.org.tw/index.php"):
+        try:
+            h = _decode(get_bytes(url, retries=1, timeout=25, use_cache=False))
+        except Exception as e:                            # noqa: BLE001
+            log(f"[indprobe] {url} ✗ {str(e)[:160]}")
+            continue
+        links = re.findall(r'href="([^"]*ic=[^"]*)"[^>]*>(.*?)</a>', h, re.S)
+        log(f"[indprobe] {url} {len(h)} 字、ic= 連結 {len(links)} 個：" +
+            "；".join(f"{a}｜{_TAG.sub('', t).strip()[:16]}" for a, t in links[:60]))
+        log(f"[indprobe]   開頭 {h[:300]!r}")
+        if links:
+            break
+    for path in ("introduce.php?ic=D000", "introduce.php?ic=K000", "company_chain.php?stk_code=2330",
+                 "company_chain.php?stk_code=3037"):
+        url = "https://ic.tpex.org.tw/" + path
+        try:
+            h = _decode(get_bytes(url, retries=1, timeout=25, use_cache=False))
+        except Exception as e:                            # noqa: BLE001
+            log(f"[indprobe] {url} ✗ {str(e)[:160]}")
+            continue
+        codes = sorted(set(re.findall(r"(?<![\d.])([1-9]\d{3})(?![\d.])", h)))
+        apis = sorted(set(re.findall(r"""['"]([^'"]*\.php\?[^'"]{0,80})['"]""", h)))[:30]
+        log(f"[indprobe] {url} {len(h)} 字、4 碼數字 {len(codes)} 個（前 20：{codes[:20]}）")
+        log(f"[indprobe]   php 端點 {apis}")
+        at = h.find("3037") if "3037" in h else h.find("2330")
+        if at >= 0:
+            log(f"[indprobe]   片段 {h[max(0, at - 300):at + 300]!r}")
+        time.sleep(1.5)
+
 def finmind_revenue(code: str, start: str = "2023-01-01") -> dict[str, float]:
     """FinMind 月營收歷史（第三方整理官方數字；只用在回測）→ {YYYY-MM: 營收(元)}。"""
     from .. import clock

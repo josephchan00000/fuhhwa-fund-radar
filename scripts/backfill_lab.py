@@ -31,6 +31,7 @@ def main() -> None:
     ap.add_argument("--hd", action="store_true", help="高股息研究資料：證交所除權息逐年＋FinMind 單季 EPS／上櫃股利（可重跑續補）")
     ap.add_argument("--yhl", action="store_true",
                     help="高股息提前卡位研究：Yahoo 五年日線另存 data/lab/yhl＋證交所除權息 2018–2020（可重跑續補）")
+    ap.add_argument("--ind-probe", action="store_true", help="產業泡沫補強的來源探針（MOPS 月營收彙總表的產業分段、櫃買產業鏈平台），只印不寫")
     ap.add_argument("--rev-probe", action="store_true", help="月營收全市場歷史的來源探針（MOPS 彙總表、FinMind），只印不寫")
     ap.add_argument("--rev-mops", action="store_true", help="月營收全市場歷史（MOPS 彙總表，2020-01 起；可重跑續補）")
     ap.add_argument("--rev-fm", action="store_true", help="月營收全市場歷史備援：FinMind 逐檔（五年日線宇宙，2020-01 起）")
@@ -45,6 +46,9 @@ def main() -> None:
 
     if a.rev_probe:
         market.probe_rev()
+        return
+    if a.ind_probe:
+        market.probe_ind()
         return
     if a.names:
         from arm.lab import v3data
