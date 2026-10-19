@@ -414,8 +414,8 @@ def method_html(C: dict) -> str:
             '規格在看結果之前寫定（VER 1；VER 2 只改大跌段的定義，同日），規劃文件 docs/lab_hotdd_plan.md 第 4、5 節。</p></div>')
 
 
-def card(C: dict | None) -> str:
-    """整張卡；C＝state() 的結果（None＝研究檔沒有，不顯示）。"""
+def card(C: dict | None, note: str | None = None) -> str:
+    """整張卡；C＝state() 的結果（None＝研究檔沒有，不顯示）；note＝研究重點最後加一句（下一張「反向檢查」卡的提示）。"""
     if not C:
         return ""
     from .heatpage import _md
@@ -423,7 +423,7 @@ def card(C: dict | None) -> str:
     xmax = xmax_of(C)
     ls = lead(C)
     lead_html = f'<p class="xol">{_e(ls[0])}</p>' + "".join(f'<p class="xol2">{_e(s)}</p>' for s in ls[1:])
-    kk = "".join(f"<li>{_e(s)}</li>" for s in keys(C))
+    kk = "".join(f"<li>{_e(s)}</li>" for s in keys(C) + ([note] if note else []))
     hot = "".join(hot_row(C, r, xmax) for r in N["hot"])
     ex = "".join(exit_row(C, r, xmax) for r in N["exit"])
     sec_hot = ""
