@@ -1,5 +1,5 @@
 {
- "as_of": "2026-10-14",
+ "as_of": "2026-10-19",
  "note": "被動 ETF 追蹤指數的審核時程與實際結果（籌碼雷達「指數調整」分頁資料源）。status：官方＝已見官方公告；推算＝依往例推算、待公告。每筆結果兩來源一致才寫；週一 ETF 週掃在審核月前後查證更新（見 CLAUDE.md）。",
  "indexes": {
   "tw50": {
@@ -488,7 +488,11 @@
     "trans_start": "2026-11-20",
     "trans_end": "2026-12-04",
     "transition": 0,
-    "status": "推算",
+    "status": "官方",
+    "src": [
+      "https://www.msci.com/eqb/pressreleases/archive/ir_dates.pdf",
+      "https://en.antaranews.com/news/426943/idx-to-maintain-communication-with-msci-after-august-review"
+    ],
     "note": "announce＝MSCI 公布日（台灣時間，不含本指數名單）；reveal＝預估 00878 開始換股、每日持股揭露看得到名單的日子；MSCI 價格截止日為 10 月最後 10 個營業日之一（事前不公布）；審核前 29 檔"
    },
    "history": [
