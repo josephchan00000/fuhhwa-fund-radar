@@ -1,12 +1,13 @@
 """過熱之後 3 個月最大回撤的規格（docs/lab_hotdd_plan.md 第 4 節）：規格鎖定。
 
-規格是在算任何「過熱事件 → 之後回撤」的關係之前寫定的（VER 1，2026-10-19）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
+規格是在算任何「過熱事件 → 之後回撤」的關係之前寫定的（VER 1，2026-10-19）；VER 2 只改大跌段的定義（規劃第 4.11 節）。
+要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import heatspec as HS
 from arm.lab import hotddspec as D
 
 
-def test_hotdd_spec_v1_is_locked():
-    assert D.VER == 1 and D.SPEC_DATE == "2026-10-19"
+def test_hotdd_spec_v2_is_locked():
+    assert D.VER == 2 and D.SPEC_DATE == D.VER2_DATE == "2026-10-19"
     assert D.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
     assert (D.H, D.LAG, D.DD_TH, D.HOT) == (60, 1, (0.10, 0.20), 80)
     assert D.STREAK_N == (4, 8, 13, 26) and D.EXIT_MIN == 4
@@ -22,7 +23,7 @@ def test_hotdd_spec_v1_is_locked():
         "HD3": ("tw", "C1", "S4"),
         "HD4": ("spx", "tech", "S4"),
     }
-    assert (D.DECL_TH, D.LOOKBACK, D.RECALL_N) == ((0.10, 0.20), 60, 4)
+    assert (D.DECL_TH, D.DECL_RULE, D.LOOKBACK, D.RECALL_N) == ((0.10, 0.20), "swing", 60, 4)
     assert set(D.VERDICT) == {"up", "down", "none", "few"}
 
 
