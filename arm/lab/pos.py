@@ -1,7 +1,7 @@
 """部位參考（docs/lab_crash_plan.md 第 18 節；規格 arm/lab/posspec.py）。
 
 研究：TZ=Asia/Taipei python3 scripts/run_pos.py → data/lab/pos_research.json（資料或規格改了才重跑）。
-每天：景氣頁建頁時 pos.now(...) 算今天的部位參考（訊號用訊號總覽算好的「現在有效」）。
+頁面 2026-10-19 拿掉（docs/lab_crash_plan.md 第 20 節）；研究程式留著供之後重做，now() 目前沒有頁面在用。
 """
 from __future__ import annotations
 

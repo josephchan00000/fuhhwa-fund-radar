@@ -128,7 +128,7 @@ def test_heat_pages_stash_cards_and_list_today(monkeypatch):
     from arm.lab import heatviz as VZ
     monkeypatch.setattr(sigpage, "CARDS", {})
     VZ.stash_cards({"mk": "spx", "asof": "2026-10-16"})
-    assert sigpage.CARDS == {"spx": {"d": "2026-10-16", "pos": "", "crash": "", "bottom": "", "hotdd": "", "hotch": ""}}
+    assert sigpage.CARDS == {"spx": {"d": "2026-10-16", "crash": "", "bottom": "", "hotdd": "", "hotch": ""}}
     VZ.stash_cards({"mk": None, "asof": "2026-10-16"})                     # 不知道哪個市場就不存
     assert list(sigpage.CARDS) == ["spx"]
     assert "還沒產生" in VZ.today_html({"sigtoday": None})
@@ -140,3 +140,13 @@ def test_heat_pages_stash_cards_and_list_today(monkeypatch):
     assert "12/1 起" in h and 'href="x9o.html"' in h
     h0 = VZ.today_html({"sigtoday": {"good": [], "ref": [], "d": "2026-10-16"}})
     assert "沒有好訊號" in h0
+
+
+def test_position_card_removed():
+    """部位參考 2026-10-19 拿掉（docs/lab_crash_plan.md 第 20 節）：研究卡、景氣頁狀態列、相關研究連結都不得接回來。"""
+    from pathlib import Path
+    assert "pos" not in sigpage.CARD_ORDER and "pos" not in sigpage.CARD_NAMES
+    assert not Path(sigpage.__file__).with_name("pospage.py").exists()
+    for f in ("sigpage.py", "heatpage.py", "heatviz.py", "sigcat.py"):
+        src = Path(sigpage.__file__).with_name(f).read_text()
+        assert "pospage" not in src and "部位參考" not in src, f

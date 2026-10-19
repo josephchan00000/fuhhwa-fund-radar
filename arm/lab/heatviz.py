@@ -420,13 +420,12 @@ def stash_cards(V: dict) -> None:
     from . import crashpage as CP
     from . import hotchpage as QP
     from . import hotddpage as XP
-    from . import pospage as PSP
     from . import sigpage as SPG
     mk = V.get("mk") or (V.get("signow") or {}).get("mk")
     if not mk:
         return
     hotch = QP.card(V.get("hotch"))
-    SPG.CARDS[mk] = {"d": V["asof"], "pos": PSP.card(V.get("pos")), "crash": CP.card(V.get("crash")), "bottom": BP.card(V.get("bottom")),
+    SPG.CARDS[mk] = {"d": V["asof"], "crash": CP.card(V.get("crash")), "bottom": BP.card(V.get("bottom")),
                      "hotdd": XP.card(V.get("hotdd"), note=QP.hotdd_note(V.get("hotch")) if hotch else None), "hotch": hotch}
 
 
