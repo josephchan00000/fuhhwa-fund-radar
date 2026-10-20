@@ -1,7 +1,7 @@
 """訊號總覽實務判定的規格（docs/lab_signal_plan.md）：規格鎖定。
 
 規格是在算任何訊號的命中率之前寫定的（VER 1，2026-10-19；VER 2 同日只改個股策略的次數下限，規劃第 15 節；
-VER 3，2026-10-20，警示改看最大回撤，docs/lab_warn_mdd_plan.md）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
+VER 3，2026-10-20，警示改看最大回撤，docs/lab_warn_mdd_plan.md；VER 4 同日加情境）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import analyze as AN
 from arm.lab import backtest as BT
 from arm.lab import bottomspec as BS
@@ -13,7 +13,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 3 and X.SPEC_DATE == "2026-10-20"
+    assert X.VER == 4 and X.SPEC_DATE == "2026-10-20"
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
     assert X.LAG == 1 and X.DIRS == ("up", "warn", "buy") and X.WARN_LONG == 0.20
     assert X.WARN_TH_IDX == {20: 1, 60: 2}
@@ -42,6 +42,29 @@ def test_sig_spec_v1_is_locked():
     # 景氣頁「今天的重點」2026-10-20 起：只改呈現、不改判定（VER 不變）
     assert X.TODAY_SIDE == 6 and X.THERMO_W == {"good": 2, "ref": 1} and X.THERMO_LEAN == 0.6
     assert [k for k, *_ in X.THERMO_HZ] == ["short", "mid", "long"]
+
+
+def test_sig_spec_v4_scenarios_are_locked():
+    """VER 4（2026-10-20）：情境＝事前定義的面向組合（docs/lab_heatviz_v2_plan.md 第 11 節）。"""
+    assert (X.H_SCEN, X.SCEN_HI, X.SCEN_LO, X.SCEN_MIN_DIMS, X.SCEN_MANY) == (60, 60, 40, 3, 3)
+    assert X.SCEN_DIMS == ("fund", "chip", "liq", "tech") and set(X.SCEN_DIM_NAMES) == set(X.SCEN_DIMS)
+    assert X.SCEN_SRC == {"tw": {"fund": ("fund",), "chip": ("chip",), "liq": ("gliq", "tliq"), "tech": ("tech",)},
+                          "us": {"fund": ("fund",), "chip": ("sent",), "liq": ("liq",), "tech": ("tech",)}}
+    conds = {k: c for k, _, c, _ in X.SCENARIOS}
+    assert conds == {
+        "SC1": (("fund", "hi"), ("tech", "hi")), "SC2": (("fund", "hi"), ("tech", "lo")),
+        "SC3": (("fund", "lo"), ("tech", "hi")), "SC4": (("fund", "lo"), ("tech", "lo")),
+        "SC5": (("chip", "hi"), ("tech", "lo")), "SC6": (("liq", "hi"), ("tech", "lo")),
+        "SC7": (("liq", "lo"), ("chip", "hi")), "SC8": "many_hi", "SC9": "many_lo"}
+    assert [n for _, n, _, _ in X.SCENARIOS] == ["景氣好、價格強", "景氣好、價格回檔", "景氣差、價格反彈", "景氣差、價格弱",
+                                                 "籌碼熱、價格轉弱", "資金寬鬆、價格弱", "資金緊、籌碼熱", "多數面向偏熱", "多數面向偏冷"]
+    for _, _, c, _ in X.SCENARIOS:                       # 條件只用四個共通面向
+        assert c in ("many_hi", "many_lo") or all(d in X.SCEN_DIMS and o in ("hi", "lo") for d, o in c)
+    # 對照的面向都是景氣頁顯示的面向
+    assert {d for v in X.SCEN_SRC["tw"].values() for d in v} == set(HS.DIMS) - {"bubl"}
+    for idx in U.INDEX_ORDER:
+        with HS.use(U.spec_for(idx)):
+            assert {d for v in X.SCEN_SRC["us"].values() for d in v} == set(HS.DIMS) - {"bubl"}
 
 
 def test_sig_spec_refers_to_existing_definitions():
