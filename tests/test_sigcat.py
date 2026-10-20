@@ -201,3 +201,110 @@ def test_scenarios_us_use_sentiment_and_liquidity():
     on = {s["var"]: bool(s["state"].all()) for s in G.scen_signals(F)}
     assert on == {"SC1": False, "SC2": True, "SC3": False, "SC4": False, "SC5": True, "SC6": False, "SC7": True,
                   "SC8": False, "SC9": False}
+
+
+# ── 訊號觸發後的報酬（sigspec 第 4.11 節，VER 5） ────────────────────────────────
+
+def _wq_direct(v, w, q):
+    """直接算：由小到大排，累計權重第一次 ≥ q × 總權重的那一個值。"""
+    pairs = sorted(zip(v, w), key=lambda x: x[0])
+    tot, acc = sum(w), 0.0
+    for x, ww in pairs:
+        acc += ww
+        if acc >= q * tot - 1e-12:
+            return x
+    return pairs[-1][0]
+
+
+def test_weighted_quantile_matches_direct_and_ceil_rule():
+    rng = np.random.default_rng(3)
+    for _ in range(50):
+        n = int(rng.integers(1, 40))
+        v, w = rng.normal(size=n), rng.uniform(0.1, 2.0, n)
+        for q in (0.1, 0.25, 0.5, 0.75):
+            assert G.wquant(v, w, q) == _wq_direct(list(v), list(w), q)
+    v = np.array([5.0, 1.0, 3.0, 2.0, 4.0, 6.0])                  # 等權：第 ⌈q·n⌉ 個（不內插）
+    assert G.wquant(v, np.ones(6), 0.5) == 3.0 and G.wquant(v, np.ones(6), 0.25) == 2.0 and G.wquant(v, np.ones(6), 0.1) == 1.0
+
+
+def test_fwd_mae_matches_direct_loop():
+    px = _px(300, seed=4)
+    px[37] = np.nan
+    for H in (1, 5, 20, 60):
+        a = G.fwd_mae(px, H)
+        r = G.fwd_ret(px, H)
+        for t in range(len(px)):
+            e = t + S.LAG
+            if e + H > len(px) - 1:
+                assert np.isnan(a[t])
+                continue
+            xs = [x for x in px[e + 1:e + H + 1] if not np.isnan(x)]
+            if np.isnan(px[e]) or not xs:
+                assert np.isnan(a[t])
+                continue
+            m = min(xs)
+            assert abs(a[t] - min(0.0, m / px[e] - 1)) < 1e-12
+            if not np.isnan(px[e + H]):
+                assert abs(r[t] - (px[e + H] / px[e] - 1)) < 1e-12
+
+
+def test_ret_stats_state_weights_each_segment_equally():
+    """狀態型：每一段一樣重（段內窗口完整的日子平分）；等權的 _ret_flat 和一天一組的 ret_stats 相同。"""
+    px = _px(500, seed=5)
+    RA = G.ret_arrays(px)
+    segs = [list(range(10, 13)), list(range(100, 160)), [300]]
+    R = G.ret_stats(segs, RA)
+    for i, h in enumerate(S.RET_H):
+        r, a, w = [], [], []
+        n = 0
+        for g in segs:
+            ok = [t for t in g if np.isfinite(RA["R"][h][t]) and np.isfinite(RA["A"][h][t])]
+            if not ok:
+                continue
+            n += 1
+            r += [RA["R"][h][t] for t in ok]
+            a += [RA["A"][h][t] for t in ok]
+            w += [1 / len(ok)] * len(ok)
+        c = R["s"][i]
+        assert c[0] == n
+        assert abs(c[1] - sum(x * y for x, y in zip(r, w)) / sum(w)) < 1e-12
+        assert c[3] == _wq_direct(r, w, 0.5) and c[7] == _wq_direct(a, w, S.MAE_Q) and c[8] == min(a)
+        assert abs(c[5] - sum(y for x, y in zip(r, w) if x > 0) / sum(w)) < 1e-12
+        per = [[RA["R"][h][t] > 0 for t in g if np.isfinite(RA["R"][h][t])] for g in segs]
+        assert abs(c[5] - np.mean([np.mean(x) for x in per if x])) < 1e-12           # ＝每一段的比例再平均（同命中率）
+    idx = np.array([3, 50, 51, 200, 480])
+    F1, F2 = G._ret_flat(idx, RA), G.ret_stats([[int(t)] for t in idx], RA)
+    assert F1 == F2
+
+
+def test_research_returns_agree_with_hit_rates():
+    """研究檔：在訊號自己看多久那一期，次數與上漲比例＝原本的次數與命中率，平常＝原本的平常（判定不變的檢查）。"""
+    R = G.load_research()
+    assert R and R.get("bases")
+    n = 0
+    for r in R["rows"]:
+        if r["cat"] in ("buy", "ind") or r.get("H") not in S.RET_H:
+            continue
+        i = S.RET_H.index(r["H"])
+        c, b = r["ret"]["s"][i], R["bases"][r["ret"]["bk"]]["s"][i]
+        u = r["up"]
+        if not u["n"]:
+            continue
+        assert c[0] == u["n"] and abs(c[5] - u["hit"]) < 1e-3, r["id"]
+        assert abs(b[5] - u["base"]) < 1e-3, r["id"]
+        n += 1
+    assert n > 1500
+
+
+def test_stock_and_industry_returns():
+    c = [10.0, 10.5, 9.5, 11.0, 9.0, None, 12.0, 12.0, 12.0, 12.0, 13.0, 12.5]
+    Sx = {"o": [None, 10.0] + [None] * 10, "c": c}
+    r = G._stock_ret(Sx, 0)                                             # 第 1 天開盤 10 進場、第 h 天收盤
+    assert set(r) == {1, 10}                                            # 第 5 天停牌沒有收盤；20 天超過資料
+    assert abs(r[1][0] - 0.05) < 1e-12 and r[1][1] == 0.0
+    assert abs(r[10][0] - 0.30) < 1e-12 and abs(r[10][1] - (9.0 / 10 - 1)) < 1e-12
+    Sx2 = {"o": [None] * 12, "c": c}                                    # 沒有開盤價就用收盤
+    assert abs(G._stock_ret(Sx2, 0)[1][0]) < 1e-12
+    me = {"2026-01": 100.0, "2026-02": 90.0, "2026-03": 110.0, "2026-04": 120.0}
+    x = G._me_ret(me, "2026-01")
+    assert set(x) == {1, 3} and abs(x[1][0] + 0.10) < 1e-12 and abs(x[3][0] - 0.20) < 1e-12 and abs(x[3][1] + 0.10) < 1e-12

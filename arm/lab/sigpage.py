@@ -165,7 +165,7 @@ def view() -> dict:
     if ST.get("d"):
         asof["stk"] = ST["d"]
     rmk = [mk for mk in TODAY_MK if mk in CARDS or (OUT_DATA.parent / f"x9or-{mk}.json").exists()]
-    return {"rows": rows, "on": on, "today": today, "stk": stk, "asof": asof, "run": R.get("run"),
+    return {"rows": rows, "on": on, "today": today, "stk": stk, "asof": asof, "run": R.get("run"), "bases": R.get("bases") or {},
             "last": R.get("last") or {}, "rmk": rmk, "items": {mk: ITEMS[mk] for mk in TODAY_MK if mk in ITEMS}}
 
 
@@ -214,14 +214,49 @@ def page_json(V: dict) -> str:
            "chart": CHART, "pxn": PX_NAMES, "inm": ind_names(), "scen": scen_meta(),
            "scnv": scen_values(V.get("items") or {}), "scdn": S.SCEN_DIM_NAMES,
            "hit": {d: round(100 * v) for d, v in S.HIT_MIN.items()}, "eg": round(100 * S.EDGE_GOOD), "er": round(100 * S.EDGE_REF),
-           "n10": S.RECENT_N}
+           "n10": S.RECENT_N, "rh": list(S.RET_H), "pd": list(S.PATH_D), "rhm": list(S.RET_H_M), "rmin": S.RET_N_MIN}
     return json.dumps(out, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
 
+def _rcell(c):
+    """報酬一格 → [次數, 平均, 25%, 中位數, 75%, 上漲比例, 中途最多跌中位數, 最差 10%, 最差一次]（後面都是 %，一位小數）。"""
+    return None if c is None else [c[0]] + [None if v is None else round(100.0 * v, 1) for v in c[1:]]
+
+
+def ret_pack(q: dict) -> dict:
+    out = {"s": [_rcell(c) for c in q.get("s") or []],
+           "p": [None if p is None else [round(100.0 * v, 1) for v in p] for p in q.get("p") or []]}
+    if q.get("hm"):
+        out["hm"] = 1
+    return out
+
+
+def ret_json(V: dict) -> tuple[dict, dict]:
+    """訊號觸發後的報酬（sigspec 第 4.11 節）：{訊號: {s, p, b＝平常的鍵}}、{平常的鍵: {s, p}}。"""
+    bases = V.get("bases") or {}
+    ret, rb = {}, {}
+    for r in V["rows"]:
+        q = r.get("ret")
+        if not q:
+            continue
+        o = ret_pack(q)
+        bk = q.get("bk")
+        if bk and bk in bases:
+            rb.setdefault(bk, ret_pack(bases[bk]))
+            o["b"] = bk
+        elif q.get("base"):
+            bk = r["id"] + ":b"
+            rb[bk] = ret_pack(q["base"])
+            o["b"] = bk
+        ret[r["id"]] = o
+    return ret, rb
+
+
 def detail_json(V: dict) -> str:
-    """每一次的清單（點開才下載）＋個股代號的名稱。"""
+    """每一次的清單（點開才下載）＋個股代號的名稱＋訊號觸發後的報酬（VER 5）。"""
     from . import store
     occ = {r["id"]: r.get("occ") or [] for r in V["rows"]}
+    ret, rb = ret_json(V)
     codes = {o[1] for r in V["rows"] if r["cat"] == "stock" for o in (r.get("occ") or [])}
     for r in V["rows"]:
         if r.get("live"):
@@ -229,7 +264,7 @@ def detail_json(V: dict) -> str:
     nm = {**(store.read_json("names_hist.json", {}) or {}), **(store.read_json("names_mkt.json", {}) or {}),
           **(store.read_json("names.json", {}) or {})}
     live = {r["id"]: r["live"] for r in V["rows"] if r.get("live")}
-    return json.dumps({"occ": occ, "names": {c: nm[c] for c in sorted(codes) if c in nm}, "live": live},
+    return json.dumps({"occ": occ, "names": {c: nm[c] for c in sorted(codes) if c in nm}, "live": live, "ret": ret, "rb": rb},
                       ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
@@ -546,6 +581,17 @@ CSS = """
 .sgsb.sel td{background:var(--accbg)}.sgon{color:var(--acc);font-weight:600}
 .sgst2 td.r10{text-align:center}
 .sgrt td.up{color:var(--t4)}.sgrt td.dn{color:var(--t0)}
+/* 進場之後的報酬（VER 5） */
+.sgrr{width:100%;border-collapse:collapse;font-size:12.5px}
+.sgrr th{font-weight:600;color:var(--ink2);text-align:right;padding:4px 5px;border-bottom:1px solid var(--line2);font-size:12px;line-height:1.3;vertical-align:bottom;white-space:nowrap}
+.sgrr td{padding:4px 5px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:middle}
+.sgrr th.l,.sgrr td.l{text-align:left}.sgrr td small{display:block;font-size:11px;color:var(--mut);font-weight:400}
+.sgrr tr.own td{background:var(--accbg)}.sgrr tr.own td.l small{color:var(--acc)}.sgrr tr[data-few] td{color:var(--ink2)}
+.sgrr td.up b{color:var(--t4)}.sgrr td.dn b{color:var(--t0)}.sgrr tr.na td{color:var(--mut)}
+.sgrcv{min-height:60px;margin-top:6px}
+.sgrch .z0{stroke:var(--line2)}.sgrch .rb1{fill:var(--acc);fill-opacity:.18}.sgrch .rm1{fill:none;stroke:var(--acc);stroke-width:2}
+.sgrch .rb0{fill:var(--ink2);fill-opacity:.09}.sgrch .rm0{fill:none;stroke:var(--ink2);stroke-width:1.3;stroke-dasharray:4 3}
+.sgrch .rp{fill:var(--acc)}
 .sghow{margin-top:12px}.sghow summary{cursor:pointer;color:var(--acc);font-size:13px}
 .sgdl2{margin:6px 0;font-size:13.5px;line-height:1.7}.sgdl2 dt{font-weight:600;margin-top:6px}.sgdl2 dd{margin:0 0 2px 0;color:var(--ink2)}
 body.sgopen{overflow:hidden}
@@ -565,7 +611,14 @@ body.sgopen{overflow:hidden}
  .sgst2 td.nm{grid-column:1/-1;text-align:left;padding:4px 2px 0}.sgst2 td.nm small{display:inline;margin-left:6px}
  .sgst2 td.wt{text-align:left}.sgst2 td[data-h]::before{content:attr(data-h);display:block;font-size:10px;color:var(--mut);line-height:1.2}
  .sgst2 td.r10 small{font-size:10px}.sgst2 .sgd{white-space:normal;max-width:100%}.sgst2 .sgd small{font-size:10px}
- .sgchips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}.sgch{flex:0 0 auto}}
+ .sgchips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}.sgch{flex:0 0 auto}
+ .sgpc .sgwrap{overflow-x:auto}.sgpc .sgwrap.sgrw{overflow-x:visible}.sgrr,.sgrr tbody{display:block}.sgrr thead{display:none}
+ .sgrr tr.own{background:var(--accbg)}.sgrr tr.own td{background:transparent}
+ .sgrr tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:4px;border-bottom:1px solid var(--line2);padding:3px 0}
+ .sgrr td{border-bottom:0;padding:2px 2px;text-align:center;white-space:normal}
+ .sgrr td.l{grid-column:1/-1;text-align:left;font-weight:600}.sgrr td.l small{display:inline;margin-left:6px}
+ .sgrr td[data-h]::before{content:attr(data-h);display:block;font-size:10px;color:var(--mut);line-height:1.2}
+ .sgrr tr.na td.mu{grid-column:1/-1;text-align:left}}
 """
 
 JS = r"""
@@ -713,7 +766,12 @@ const TIP = {
   edge: '機率減掉隨便挑一天，單位是百分點。',
   r10: '只看最近 10 年：✓ 也達到好訊號的門檻；△ 比隨便挑一天多 ' + SG.er + ' 個百分點以上，但沒到好訊號的門檻；✗ 沒有；— 近 10 年不到 ' + SG.n10 + ' 次，不看。',
   n: '事件型（例：跌破季線）出現那天算一次，看多久的期間內再出現不算新的一次；狀態型（例：過熱中）連續的一段算一次。',
-  dd: '期間最高收盤到之後最低收盤的跌幅（先漲再跌也算）。狀態型是這一段每一天的平均。'};
+  dd: '期間最高收盤到之後最低收盤的跌幅（先漲再跌也算）。狀態型是這一段每一天的平均。',
+  rup: '持有到這一天收盤，比進場價高的比例。',
+  rmed: '持有到這一天收盤的報酬，由小到大排在正中間的那一個（一半比它好、一半比它差）。',
+  rhalf: '報酬由小到大排，中間一半落在這個範圍（25%～75%）。',
+  rmae: '進場之後到這一天之間，最低收盤比進場價低多少（比進場價低才算，沒跌過＝0）。中位數＝一半的時候跌得比這少。',
+  rmae10: '中途最多跌由差到好排，最差的一成跌超過這個數字。'};
 function ii(k){ return '<span class="sgq" tabindex="0" role="button" aria-label="說明" data-tip="' + k + '">ⓘ</span>'; }
 const TB = document.getElementById('sgtip');
 function showTip(el){ TB.textContent = TIP[el.dataset.tip] || ''; TB.hidden = false;
@@ -826,6 +884,7 @@ function panelHtml(x){
     (x.cat === 'heat' ? '<div class="sgseg" data-g="raw"><button type="button" data-v="0">0～100</button><button type="button" data-v="1">原始值</button></div>' : '') +
     '</div><div class="sgcv" id="sgcv"><p class="note">走勢載入中…</p></div><p class="sgread" id="sgread"></p><p class="note" id="sgleg"></p>';
   h += '<h4>這個指標的訊號</h4><p class="note">每一種訊號都分偏多、警示兩個方向各算一次。點一列，' + (ck ? '走勢圖的打點和' : '') + '下面的「最近幾次」換成那個訊號。</p>' + sigTable(x);
+  h += '<h4>進場之後：<span id="sgrsel"></span></h4><div id="sgret"></div>';
   h += '<h4>最近幾次：<span id="sgsel"></span></h4><div id="sgrec"></div>';
   h += '<details class="sghow"><summary>怎樣算出現、怎樣算中了</summary><div id="sghow"></div></details>';
   return h + '</div>'; }
@@ -892,11 +951,88 @@ function recHtml(r, oc){
     (ck ? '「當時 0～100」是' + (ev ? '出現' : '開始') + '那一天的值（一年以前的用那一週）。' : '') + '</p>'; }
 function fillSel(){ const r = SEL, box = document.getElementById('sgrec'); if (!r || !box) return;
   document.getElementById('sgsel').textContent = label(r);
+  document.getElementById('sgrsel').textContent = label(r);
   document.getElementById('sghow').innerHTML = howHtml(r);
   PB.querySelectorAll('.sgsb').forEach(b => b.classList.toggle('sel', b.dataset.id === r[I.id]));
-  if (OCC) { box.innerHTML = recHtml(r, OCC.occ[r[I.id]]); return; }
-  box.innerHTML = '<p class="note">載入中…</p>';
-  loadOcc().then(j => { if (SEL !== r) return; box.innerHTML = j ? recHtml(r, j.occ[r[I.id]]) : '<p class="note">載入失敗，請重新整理。</p>'; drawChart(); }); }
+  const rt = document.getElementById('sgret');
+  if (OCC) { box.innerHTML = recHtml(r, OCC.occ[r[I.id]]); rt.innerHTML = retHtml(r, OCC); drawRet(r, OCC); return; }
+  box.innerHTML = rt.innerHTML = '<p class="note">載入中…</p>';
+  loadOcc().then(j => { if (SEL !== r) return;
+    box.innerHTML = j ? recHtml(r, j.occ[r[I.id]]) : '<p class="note">載入失敗，請重新整理。</p>';
+    rt.innerHTML = j ? retHtml(r, j) : ''; if (j) drawRet(r, j); drawChart(); }); }
+
+// ── 進場之後的報酬（sigspec 第 4.11 節，VER 5；只呈現，判定不變）
+const RHN = {1:'1 天', 5:'1 週', 10:'2 週', 20:'1 個月', 60:'3 個月', 120:'6 個月', 250:'12 個月'};
+const sr1 = v => v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1) + '%';
+const dn1 = v => v == null ? '—' : (v < 0 ? '−' : '') + Math.abs(v).toFixed(1) + '%';
+function retSpec(r, j){ const q = j && j.ret ? j.ret[r[I.id]] : null; if (!q) return null;
+  const mo = !!q.hm, c = r[I.cat];
+  return {q, b: q.b && j.rb ? j.rb[q.b] || null : null, mo, hs: mo ? SG.rhm : SG.rh, ps: mo ? SG.rhm : SG.pd,
+    bn: c === 'buy' ? ((r[I.x] || {}).base_name || '對照') : '隨便挑一天',
+    own: c === 'buy' ? 60 : c === 'ind' ? 12 : c === 'stock' ? 20 : r[I.H],
+    entry: c === 'buy' ? '照規則的買進日收盤進場' : c === 'stock' ? '訊號隔天開盤進場' : c === 'ind' ? '那個月底進場' : '訊號出現隔一個交易日收盤進場',
+    hn: h => mo ? h + ' 個月' : RHN[h] || h + ' 天'}; }
+function retHtml(r, j){
+  if (r[I.cat] === 'strat') return '<p class="note">策略照自己的規則買賣，每一筆的報酬在<a href="x9.html">個股頁</a>的策略說明卡；逐筆沒有每天的價格，不算中途最多跌。</p>';
+  const R = retSpec(r, j); if (!R) return '<p class="note">沒有進場之後的報酬資料。</p>';
+  const {q, b, hs, bn} = R, oi = hs.indexOf(R.own), os = oi >= 0 ? q.s[oi] : null, ob = oi >= 0 && b ? b.s[oi] : null;
+  let h = '';
+  if (os) h += '<p class="sgdl">' + esc(R.entry) + '，持有 <b>' + esc(R.hn(R.own)) + '</b>：報酬中位數 <b>' + sr1(os[3]) + '</b>' +
+    (ob ? '（' + esc(bn) + ' ' + sr1(ob[3]) + '）' : '') + '，一半落在 ' + sr1(os[2]) + '～' + sr1(os[4]) + '；上漲的機率 ' + Math.round(os[5]) + '%' +
+    (ob ? '（' + Math.round(ob[5]) + '%）' : '') + '。<br>進場之後中途最多跌：一半的時候在 <b>' + dn1(os[6]) + '</b> 以內、最差的一成跌超過 <b>' + dn1(os[7]) + '</b>' +
+    (ob ? '（' + esc(bn) + ' ' + dn1(ob[6]) + '、' + dn1(ob[7]) + '）' : '') + '，最差一次 ' + dn1(os[8]) + '。' +
+    (os[0] < SG.rmin ? '<span class="mu">（只有 ' + os[0] + ' 次，只當參考）</span>' : '') + '</p>';
+  const sub = (v, f) => b && v != null ? '<small>' + f(v) + '</small>' : '';
+  const head = '<thead><tr><th class="l">持有</th><th>上漲的機率 ' + ii('rup') + '</th><th>報酬中位數 ' + ii('rmed') + '</th><th>一半落在 ' + ii('rhalf') + '</th>' +
+    '<th>中途最多跌<br>中位數 ' + ii('rmae') + '</th><th>中途最多跌<br>最差 10% ' + ii('rmae10') + '</th><th>次數</th></tr></thead>';
+  const body = hs.map((hh, i) => { const s = q.s[i], z = b ? b.s[i] : null;
+    if (!s) return '<tr class="na"><td class="l">' + esc(R.hn(hh)) + '</td><td colspan="6" class="mu">資料不夠（窗口還沒走完）</td></tr>';
+    return '<tr' + (hh === R.own ? ' class="own"' : '') + (s[0] < SG.rmin ? ' data-few="1"' : '') + '><td class="l">' + esc(R.hn(hh)) +
+      (hh === R.own && r[I.cat] !== 'buy' ? '<small>判定看這一期</small>' : R.mo ? '' : '<small>' + hh + ' 個交易日</small>') + '</td>' +
+      '<td data-h="上漲的機率"><b>' + Math.round(s[5]) + '%</b>' + sub(z && z[5], v => Math.round(v) + '%') + '</td>' +
+      '<td data-h="報酬中位數" class="' + (s[3] > 0 ? 'up' : s[3] < 0 ? 'dn' : '') + '"><b>' + sr1(s[3]) + '</b>' + sub(z && z[3], sr1) + '</td>' +
+      '<td data-h="一半落在">' + sr1(s[2]) + '～' + sr1(s[4]) + (z ? '<small>' + sr1(z[2]) + '～' + sr1(z[4]) + '</small>' : '') + '</td>' +
+      '<td data-h="中途最多跌・中位數">' + dn1(s[6]) + sub(z && z[6], dn1) + '</td>' +
+      '<td data-h="中途最多跌・最差 10%">' + dn1(s[7]) + sub(z && z[7], dn1) + '</td>' +
+      '<td data-h="次數">' + s[0] + (s[0] < SG.rmin ? '<small>次數少</small>' : '') + '</td></tr>'; }).join('');
+  return h + '<div class="sgwrap sgrw"><table class="sgrr">' + head + '<tbody>' + body + '</tbody></table></div>' +
+    '<p class="note">' + (b ? '每格下面的小字＝' + esc(bn) + '（同一段期間、同樣算法）。' : '') +
+    (r[I.kind] === 'state' ? '狀態型：狀態中的每一天都算進場一次，每一段一樣重。' : '') +
+    '價格是指數本身、不含股息。這張表只呈現，判定（★／●）照上表。</p><div class="sgrcv" id="sgrcv"></div><p class="sgread" id="sgrrd"></p>' +
+    '<p class="note">實線＝進場之後的報酬中位數、色帶＝一半落在的範圍' + (b ? '；虛線與灰色帶＝' + esc(bn) : '') + '。橫軸＝進場之後經過' + (R.mo ? '幾個月' : '幾個交易日') + '。</p>'; }
+function drawRet(r, j){
+  const box = document.getElementById('sgrcv'), R = retSpec(r, j); if (!box || !R) return;
+  const {q, b, ps} = R, mo = R.mo;
+  const pts = (src) => [[0, [0, 0, 0]]].concat(ps.map((d, i) => [d, src && src.p ? src.p[i] : null]));
+  const P1 = pts(q), P0 = b ? pts(b) : null;
+  const all = P1.concat(P0 || []).filter(p => p[1]).flatMap(p => p[1]);
+  if (all.length < 6) { box.innerHTML = ''; return; }
+  const W = Math.max(280, Math.round(box.clientWidth || 520)), L = 44, Rr = 10, T = 10, H = 170, BH = 18;
+  const dmax = ps[ps.length - 1], X = d => L + Math.sqrt(d / dmax) * (W - L - Rr);
+  let lo = Math.min(0, ...all), hi = Math.max(0, ...all); const pd = (hi - lo) * 0.08 || 1; lo -= pd; hi += pd;
+  const Y = v => T + (1 - (v - lo) / (hi - lo)) * H;
+  const line = (P, k) => { let d = '', pen = false; P.forEach(p => { if (!p[1]) { pen = false; return; } d += (pen ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1][k]).toFixed(1); pen = true; }); return d; };
+  const band = P => { const a = P.filter(p => p[1]); if (a.length < 2) return '';
+    return 'M' + a.map(p => X(p[0]).toFixed(1) + ' ' + Y(p[1][2]).toFixed(1)).join('L') + 'L' + a.slice().reverse().map(p => X(p[0]).toFixed(1) + ' ' + Y(p[1][0]).toFixed(1)).join('L') + 'Z'; };
+  let g = '<line class="z0" x1="' + L + '" x2="' + (W - Rr) + '" y1="' + Y(0).toFixed(1) + '" y2="' + Y(0).toFixed(1) + '"/>';
+  const step = (hi - lo) > 40 ? 20 : (hi - lo) > 16 ? 10 : (hi - lo) > 8 ? 5 : 2;
+  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) g += '<text class="ax" x="' + (L - 4) + '" y="' + (Y(v) + 4).toFixed(1) + '" text-anchor="end">' + (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + '%</text>';
+  if (P0) g += '<path class="rb0" d="' + band(P0) + '"/><path class="rm0" d="' + line(P0, 1) + '"/>';
+  g += '<path class="rb1" d="' + band(P1) + '"/><path class="rm1" d="' + line(P1, 1) + '"/>';
+  P1.forEach(p => { if (p[1] && p[0]) g += '<circle class="rp" cx="' + X(p[0]).toFixed(1) + '" cy="' + Y(p[1][1]).toFixed(1) + '" r="2.4"/>'; });
+  const tk = mo ? [[1, '1月'], [3, '3月'], [6, '6月'], [12, '12月']] : [[5, '1週'], [20, '1月'], [60, '3月'], [120, '6月'], [250, '12月']];
+  tk.forEach(([d, t], k) => { g += '<text class="ax" x="' + X(d).toFixed(1) + '" y="' + (T + H + BH - 4) + '" text-anchor="' + (k === tk.length - 1 ? 'end' : 'middle') + '">' + t + '</text>'; });
+  g += '<line class="hv" id="sgrhv" x1="0" x2="0" y1="' + T + '" y2="' + (T + H) + '" style="display:none"/><rect class="hit" x="' + L + '" y="0" width="' + (W - L - Rr) + '" height="' + (T + H + BH) + '"/>';
+  box.innerHTML = '<svg class="sgchart sgrch" viewBox="0 0 ' + W + ' ' + (T + H + BH) + '" width="' + W + '" height="' + (T + H + BH) + '" role="img" aria-label="進場之後的報酬">' + g + '</svg>';
+  const svg = box.querySelector('svg'), hv = svg.querySelector('#sgrhv'), rd = document.getElementById('sgrrd');
+  const show = i => { const p = P1[i], z = P0 ? P0[i] : null; if (!p || !p[0]) { hv.style.display = 'none'; rd.textContent = ''; return; }
+    const xx = X(p[0]).toFixed(1); hv.setAttribute('x1', xx); hv.setAttribute('x2', xx); hv.style.display = '';
+    rd.innerHTML = '<b>持有 ' + esc(R.hn(p[0])) + '</b>　' + (p[1] ? '中位數 ' + sr1(p[1][1]) + '（一半落在 ' + sr1(p[1][0]) + '～' + sr1(p[1][2]) + '）' : '—') +
+      (z && z[1] ? '　' + esc(R.bn) + ' ' + sr1(z[1][1]) : ''); };
+  const mv = e => { const bb = svg.getBoundingClientRect(), cx = ((e.touches ? e.touches[0].clientX : e.clientX) - bb.left) * W / bb.width;
+    let k = 1, dm = 1e9; P1.forEach((p, i) => { if (!i) return; const dd = Math.abs(X(p[0]) - cx); if (dd < dm) { dm = dd; k = i; } }); show(k); };
+  svg.addEventListener('mousemove', mv); svg.addEventListener('touchmove', mv, {passive: true}); svg.addEventListener('touchstart', mv, {passive: true});
+  svg.addEventListener('mouseleave', () => { hv.style.display = 'none'; rd.textContent = ''; }); }
 
 // ── 走勢圖（景氣頁對照圖的資料：近一年每天、1997 起每週）
 const CJ = {}, CPR = {};
@@ -988,7 +1124,7 @@ function drawChart(){
         : '色帶＝「' + lab + '」的期間，越深＝那一段之後' + hitw + '的比例越高' + (on ? '；虛線框＝現在這一段（還在觀察）' : '') + '。') : '') +
       (OCC ? '' : '（訊號的日子載入中）')); }); }
 let rzT = null;
-window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (CUR) drawChart(); }, 200); });
+window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (CUR) { drawChart(); if (OCC && SEL) drawRet(SEL, OCC); } }, 200); });
 PB.addEventListener('click', e => {
   if (e.target.closest('#sgx')) { closeP(); return; }
   const mb = e.target.closest('.sgmore2');

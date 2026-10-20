@@ -269,3 +269,28 @@ def test_scenarios_are_their_own_indicators():
     js = sigpage._JS if hasattr(sigpage, "_JS") else sigpage.render(_view())
     assert "const PXC = ['tech', 'crash', 'dim', 'scen', 'bub', 'buy'];" in js and "function scenNow(x)" in js
     assert "if (c === 'scen')" in js and "x9m.html#scen" in js
+
+
+def test_entry_returns_go_to_detail_file_and_panel():
+    """VER 5：訊號觸發後的報酬只放訊號總覽指標頁（使用者選定）；資料在 x9oh.json（點開才下載），平常存一份共用。"""
+    V = _view()
+    cell = [17, 0.1049, 0.0342, 0.0794, 0.1627, 0.8231, -0.0166, -0.1791, -0.2614]
+    V["rows"][0]["ret"] = {"s": [cell] + [None] * (len(sigspec.RET_H) - 1), "p": [[0.01, 0.02, 0.03]] * len(sigspec.PATH_D),
+                           "bk": "tw:abc"}
+    V["rows"][1]["ret"] = {"s": [cell] * len(sigspec.RET_H), "p": [None] * len(sigspec.PATH_D), "bk": "tw:abc"}
+    V["bases"] = {"tw:abc": {"s": [cell] * len(sigspec.RET_H), "p": [[0.0, 0.01, 0.02]] * len(sigspec.PATH_D)},
+                  "tw:unused": {"s": [], "p": []}}
+    det = json.loads(sigpage.detail_json(V))
+    a = det["ret"]["tw:heat:C1:hot"]
+    assert a["b"] == "tw:abc" and a["s"][0] == [17, 10.5, 3.4, 7.9, 16.3, 82.3, -1.7, -17.9, -26.1] and a["s"][1] is None
+    assert set(det["rb"]) == {"tw:abc"} and det["ret"]["tw:heat:C1:hot_in"]["b"] == "tw:abc"
+    assert "tw:tech:ma60_dn" not in det["ret"]                           # 沒有報酬資料的列不放
+    j = json.loads(sigpage.page_json(V))
+    assert j["rh"] == list(sigspec.RET_H) and j["pd"] == list(sigspec.PATH_D) and j["rhm"] == list(sigspec.RET_H_M)
+    js = sigpage.JS
+    for w in ("進場之後：", "function retHtml", "function drawRet", "中途最多跌", "判定看這一期", "id=\"sgret\""):
+        assert w in js.replace("\\'", "'") or w.replace('"', "'") in js, w
+    for w in BANNED:
+        assert w not in js, w
+    for c in ("sgrr", "sgrw", "sgrcv", "sgrch"):
+        assert "." + c in sigpage.CSS

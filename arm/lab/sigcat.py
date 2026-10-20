@@ -98,6 +98,104 @@ def fwd_ret(px, H: int) -> np.ndarray:
     return out
 
 
+def fwd_mae(px, H: int) -> np.ndarray:
+    """第 t 天的訊號 → 中途最多跌＝min(0, 第 e＋1～e＋H 天最低收盤 ÷ 第 e 天收盤 − 1)（e＝t＋LAG；sigspec 第 4.11 節，只呈現）。"""
+    px = np.asarray(px, dtype=float)
+    T = len(px)
+    out = np.full(T, np.nan)
+    n = T - S.LAG - H
+    if n > 0:
+        win = np.lib.stride_tricks.sliding_window_view(px[S.LAG:], H + 1)[:n]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            out[:n] = np.minimum(0.0, np.nanmin(win[:, 1:], axis=1) / win[:, 0] - 1.0)
+    return out
+
+
+def ret_arrays(px, hs=None, ps=None) -> dict:
+    """報酬（PATH_D 每一天）與中途最多跌（RET_H 每一期）的逐日陣列；第 t 格＝第 t 天訊號、隔一個交易日收盤進場。"""
+    hs = S.RET_H if hs is None else hs
+    ps = S.PATH_D if ps is None else ps
+    return {"R": {d: fwd_ret(px, d) for d in sorted(set(ps) | set(hs))}, "A": {h: fwd_mae(px, h) for h in hs},
+            "hs": tuple(hs), "ps": tuple(ps)}
+
+
+def wquant(v: np.ndarray, w: np.ndarray, q: float) -> float:
+    """加權百分位（sigspec 第 4.11 節）：由小到大排，累計權重第一次 ≥ q × 總權重的那一個值（不內插）。"""
+    o = np.argsort(v, kind="stable")
+    cw = np.cumsum(w[o])
+    k = int(np.searchsorted(cw, q * cw[-1] * (1 - 1e-12), side="left"))
+    return float(v[o][min(k, len(v) - 1)])
+
+
+def ret_cell(r: np.ndarray, a: np.ndarray, w: np.ndarray, n: int) -> list | None:
+    """→ [次數, 平均, 25%, 中位數, 75%, 上漲比例, 中途最多跌中位數, 中途最多跌最差 10%, 最差一次]。"""
+    if n <= 0 or not len(r):
+        return None
+    W = float(w.sum())
+    return [int(n), float((r * w).sum() / W), *(wquant(r, w, q) for q in S.RET_Q), float(w[r > 0].sum() / W),
+            wquant(a, w, 0.5), wquant(a, w, S.MAE_Q), float(a.min())]
+
+
+def ret_stats(groups: list, RA: dict) -> dict:
+    """groups＝每一次在 RA 陣列裡的索引（事件：一天；狀態：一段的樣本日）；每一段一樣重（段內窗口完整的日子平分）。
+    → {"s": RET_H 每一期一格（ret_cell）, "p": PATH_D 每一天 [25%, 中位數, 75%]}。"""
+    gs = [np.asarray(g, dtype=np.int64) for g in groups]
+    gs = [g for g in gs if len(g)]
+
+    def pick(Y, Z=None):
+        rs, zs, ws, n = [], [], [], 0
+        for g in gs:
+            m = np.isfinite(Y[g]) if Z is None else (np.isfinite(Y[g]) & np.isfinite(Z[g]))
+            k = g[m]
+            if not len(k):
+                continue
+            n += 1
+            rs.append(Y[k])
+            ws.append(np.full(len(k), 1.0 / len(k)))
+            if Z is not None:
+                zs.append(Z[k])
+        if not n:
+            return None
+        return (np.concatenate(rs), np.concatenate(zs) if Z is not None else None, np.concatenate(ws), n)
+
+    out_s = []
+    for h in RA["hs"]:
+        P = pick(RA["R"][h], RA["A"][h])
+        out_s.append(None if P is None else ret_cell(P[0], P[1], P[2], P[3]))
+    out_p = []
+    for d in RA["ps"]:
+        P = pick(RA["R"][d])
+        out_p.append(None if P is None else [wquant(P[0], P[2], q) for q in S.RET_Q])
+    return {"s": out_s, "p": out_p}
+
+
+def ret_base(samp: np.ndarray, RA: dict, cache: dict, tag: str) -> str:
+    """平常＝樣本日每一天等權；同一批樣本日的結果只算一次、存一份（→ 研究檔 bases[key]）。"""
+    import hashlib
+    samp = np.asarray(samp, dtype=np.int64)
+    key = tag + ":" + hashlib.md5(samp.tobytes()).hexdigest()[:12]
+    if key not in cache:
+        cache[key] = _ret_flat(samp, RA)
+    return key
+
+
+def _ret_flat(idx: np.ndarray, RA: dict) -> dict:
+    """每一天等權（平常、事件）：和 ret_stats 每一天各自一組的結果相同，比較快。"""
+    idx = np.asarray(idx, dtype=np.int64)
+    out_s = []
+    for h in RA["hs"]:
+        R, A = RA["R"][h][idx], RA["A"][h][idx]
+        m = np.isfinite(R) & np.isfinite(A)
+        out_s.append(ret_cell(R[m], A[m], np.ones(int(m.sum())), int(m.sum())))
+    out_p = []
+    for d in RA["ps"]:
+        R = RA["R"][d][idx]
+        R = R[np.isfinite(R)]
+        out_p.append([wquant(R, np.ones(len(R)), q) for q in S.RET_Q] if len(R) else None)
+    return {"s": out_s, "p": out_p}
+
+
 # ── 次數、命中率、判定 ─────────────────────────────────────────────────────────
 
 def recent_from(cal: list[str]) -> str:
@@ -446,13 +544,21 @@ def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
     Yr = Ycache[("r", H)]
     r0 = bisect.bisect_left(cal, F["r0"])
     samp = np.asarray(sd["samp"], dtype=np.int64)
+    if "ra" not in Ycache:
+        Ycache["ra"] = ret_arrays(F["px"])
+    RA = Ycache["ra"]
     if sd["kind"] == "event":
         R = ev_stat(sd["days"], Yu, Yw, samp, H, r0, Yd, Yr)
         occ = [[cal[t], int(u), int(w), d, r] for t, u, w, d, r in R["occ"]]
+        ok = set(int(i) for i in samp)
+        ret = _ret_flat(np.asarray(dedupe([t for t in sd["days"] if t in ok], H), dtype=np.int64), RA)
     else:
         gap = 1 if sd.get("monthly") else S.EP_GAP
-        R = st_stat(np.asarray(sd["state"], dtype=bool), samp, Yu, Yw, gap, r0, Yd, Yr)
+        state = np.asarray(sd["state"], dtype=bool)
+        R = st_stat(state, samp, Yu, Yw, gap, r0, Yd, Yr)
         occ = [[cal[a], cal[z], n, u, w, d, r] for a, z, n, u, w, d, r in R["occ"]]
+        ret = ret_stats([samp[ep] for ep in episodes([i for i in range(len(samp)) if state[i]], gap)], RA)
+    ret["bk"] = ret_base(samp, RA, Ycache.setdefault("bases", {}), mk)
     dirs = {}
     for d in ("up", "warn"):
         st = R[d]
@@ -462,7 +568,7 @@ def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
     row = {k: sd[k] for k in ("id", "cat", "grp", "var", "vn", "sig", "name", "kind", "H")}
     row.update({"mk": mk, "th": warn_th(mk, H), "a": cal[int(samp[0])] if len(samp) else None,
                 "z": cal[int(samp[-1])] if len(samp) else None, "up": dirs["up"], "warn": dirs["warn"],
-                "tier": tr, "dir": ds, "occ": occ})
+                "tier": tr, "dir": ds, "occ": occ, "ret": ret})
     if sd.get("monthly"):
         row["monthly"] = True
     return row
@@ -470,14 +576,17 @@ def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
 
 # ── 大跌後買點（bottomspec VER 3） ─────────────────────────────────────────────
 
-def buy_rows(F: dict) -> list[dict]:
-    """兩種大跌 × 規則：命中＝買在這一波的相對低點；平常＝同一批事件固定等 10 天（固定等 10 天＝事件隔天買）。"""
+def buy_rows(F: dict, bases: dict | None = None) -> list[dict]:
+    """兩種大跌 × 規則：命中＝買在這一波的相對低點；平常＝同一批事件固定等 10 天（固定等 10 天＝事件隔天買）。
+    報酬（VER 5）：買進日收盤進場（RA 第 b−LAG 格＝第 b 天收盤進場）；平常＝同一批事件的對照規則。"""
     from . import bottom as BO
     from . import bottomspec as BS
     I = F["IB"]
     if not I:
         return []
     mk, cal = F["mk"], F["cal"]
+    RA = ret_arrays(I["px"])
+    bases = {} if bases is None else bases
     out = []
     for ev in BS.EVENTS:
         recs = BO.event_recs(I, ev)
@@ -490,13 +599,17 @@ def buy_rows(F: dict) -> list[dict]:
                   "n10": len(r10), "hit10": _mean([o[1] for o in r10]), "base10": _mean([o[2] for o in r10])}
             st["tier"] = tier(st, "buy")
             r60 = [o.get("r60") for t, o, _, _ in rows]
+            ret = _ret_flat(np.asarray([o["b"] - S.LAG for _, o, _, _ in rows], dtype=np.int64), RA)
+            bk = f"{mk}:buy:{ev}:{k}:base"
+            bases[bk] = _ret_flat(np.asarray([ob["b"] - S.LAG for _, _, ob, _ in rows], dtype=np.int64), RA)
+            ret["bk"] = bk
             out.append({"id": f"{mk}:buy:{ev}:{k}", "mk": mk, "cat": "buy", "grp": ev, "var": k,
                         "vn": BS.RULE_NAMES[k], "sig": ev, "kind": "event", "H": None,
                         "name": f"{BS.EVENT_NAMES[ev]}・{BS.RULE_NAMES[k]}",
                         "base_name": "事件隔天就買" if k == "W10" else "固定等 10 天",
                         "a": occ[0][0] if occ else None, "z": occ[-1][0] if occ else None,
                         "buy": st, "tier": st["tier"], "dir": ["buy"], "occ": occ,
-                        "up60": _mean([1.0 if (r or 0) > 0 else 0.0 for r in r60 if r is not None])})
+                        "up60": _mean([1.0 if (r or 0) > 0 else 0.0 for r in r60 if r is not None]), "ret": ret})
     return out
 
 
@@ -507,8 +620,71 @@ def _months_add(m: str, k: int) -> str:
     return f"{y + mm // 12:04d}-{mm % 12 + 1:02d}"
 
 
-def ind_rows(group: str, I: dict, T: dict, last: str | None = None) -> list[dict]:
-    """一組產業（bubind 的輸入）：每個產業各自分段、全部合併。"""
+def _ret_groups(groups: list[list[dict]], hs: tuple, ps: tuple | None = None) -> dict:
+    """每一次＝一組樣本（每個樣本 {期間: (報酬, 中途最多跌)}），每一組一樣重 → 同 ret_stats 的格式（路徑 ps 預設＝同一批期間）。"""
+    def pool(h):
+        rs, as_, ws, n = [], [], [], 0
+        for g in groups:
+            v = [x[h] for x in g if x.get(h) is not None]
+            if not v:
+                continue
+            n += 1
+            rs += [a for a, _ in v]
+            as_ += [b for _, b in v]
+            ws += [1.0 / len(v)] * len(v)
+        return n, np.asarray(rs, dtype=float), np.asarray(as_, dtype=float), np.asarray(ws, dtype=float)
+
+    out_s, out_p = [], []
+    for h in hs:
+        n, r, a, w = pool(h)
+        out_s.append(ret_cell(r, a, w, n) if n else None)
+    for d in (hs if ps is None else ps):
+        n, r, _, w = pool(d)
+        out_p.append([wquant(r, w, q) for q in S.RET_Q] if n else None)
+    return {"s": out_s, "p": out_p}
+
+
+def _stock_ret(Sx: dict, t: int) -> dict:
+    """個股：第 t＋1 天開盤（沒有就用收盤）進場 → {期間: (第 t＋h 天收盤報酬, 第 t＋1～t＋h 天收盤的中途最多跌)}（VER 5）。"""
+    c, o = Sx["c"], Sx["o"]
+    T = len(c)
+    if t + 1 >= T:
+        return {}
+    p0 = o[t + 1] or c[t + 1]
+    if not p0:
+        return {}
+    want = set(S.RET_H) | set(S.PATH_D)
+    out, lo = {}, None
+    for h in range(1, max(want) + 1):
+        if t + h >= T:
+            break
+        ch = c[t + h]
+        if ch:
+            lo = ch if lo is None else min(lo, ch)
+            if h in want:
+                out[h] = (ch / p0 - 1.0, min(0.0, lo / p0 - 1.0))
+    return out
+
+
+def _me_ret(me: dict, m: str) -> dict:
+    """產業月底值 → {RET_H_M 每一期: (報酬, 中途最多跌)}（第 m 個月底進場；走完的期間才有）。"""
+    v0 = me.get(m)
+    out = {}
+    if not v0:
+        return out
+    fut = []
+    for j in range(1, max(S.RET_H_M) + 1):
+        v = me.get(_months_add(m, j))
+        if v is None:
+            break
+        fut.append(v)
+        if j in S.RET_H_M:
+            out[j] = (fut[-1] / v0 - 1.0, min(0.0, min(fut) / v0 - 1.0))
+    return out
+
+
+def ind_rows(group: str, I: dict, T: dict, last: str | None = None, bases: dict | None = None) -> list[dict]:
+    """一組產業（bubind 的輸入）：每個產業各自分段、全部合併。報酬（VER 5）＝月底進場、RET_H_M 個月。"""
     from . import bubind as BI
     from . import bubindspec as BIS
     pan = []
@@ -525,9 +701,14 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None) -> list[dict
     zl = last or months_all[-1]
     r0m = _months_add(zl, -12 * S.RECENT_YEARS)
     out = []
+    bk = f"ind:{group}:base"
+    if bases is not None and bk not in bases:
+        bases[bk] = _ret_groups([[_me_ret(me, r["d"])] for _, me, rows in pan for r in rows
+                                 if r.get("L") is not None and r["d"] in me], S.RET_H_M)
     for k in S.IND_SIGNALS:
         lv = int(k[1])
         occ, base_u, base_w, b10u, b10w, base_d = [], [], [], [], [], []
+        rgroups = []
         for code, me, rows in pan:
             seq = []
             for r in rows:
@@ -560,6 +741,7 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None) -> list[dict
                 if us:
                     occ.append([seq[ep[0]][0], seq[ep[-1]][0], len(ep), float(np.mean(us)), float(np.mean(ws)), code,
                                 float(np.mean(ds)), float(np.mean(rs))])
+                rgroups.append([_me_ret(me, seq[i][0]) for i in ep])
         occ.sort(key=lambda o: (o[0], o[5]))
         dirs = {}
         for j, (d, bs, b10) in enumerate((("up", base_u, b10u), ("warn", base_w, b10w))):
@@ -575,11 +757,12 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None) -> list[dict
         out.append({"id": f"ind:{group}:{k}", "mk": "us" if group in ("ff", "us") else "tw", "cat": "ind", "grp": group,
                     "var": k, "vn": gname, "sig": k, "name": f"{gname}・{S.BUB_NAMES[k]}", "kind": "state",
                     "H": S.H_IND_M, "monthly": True, "th": S.WARN_LONG, "a": occ[0][0] if occ else None, "z": zl,
-                    "up": dirs["up"], "warn": dirs["warn"], "tier": tr, "dir": ds, "occ": occ})
+                    "up": dirs["up"], "warn": dirs["warn"], "tier": tr, "dir": ds, "occ": occ,
+                    "ret": {**_ret_groups(rgroups, S.RET_H_M), "bk": bk, "hm": True}})
     return out
 
 
-def ind_all() -> list[dict]:
+def ind_all(bases: dict | None = None) -> list[dict]:
     from . import bubble as BU
     from . import bubind as BI
     T = BU.load_cv_table()
@@ -590,16 +773,16 @@ def ind_all() -> list[dict]:
     for g, fn in (("ff", lambda: BI.ff_inputs(L)), ("us", lambda: BI.us_inputs(L)), ("tw", BI.tw_inputs)):
         I = fn()
         if I:
-            out += ind_rows(g, I, T)
+            out += ind_rows(g, I, T, bases=bases)
     return out
 
 
 # ── 研究 ─────────────────────────────────────────────────────────────────────
 
-def market(F: dict) -> list[dict]:
-    Yc: dict = {}
+def market(F: dict, bases: dict | None = None) -> list[dict]:
+    Yc: dict = {"bases": {} if bases is None else bases}
     rows = [evaluate(F, sd, Yc) for sd in signals(F)]
-    return rows + buy_rows(F)
+    return rows + buy_rows(F, Yc["bases"])
 
 
 def _r(x):
@@ -620,14 +803,14 @@ def _r(x):
 
 def research(F: dict | None = None, with_ind: bool = True) -> dict:
     F = F if F is not None else frames()
-    rows = []
+    rows, bases = [], {}
     for mk in S.MARKETS:
         if mk in F:
-            rows += market(F[mk])
+            rows += market(F[mk], bases)
     if with_ind:
-        rows += ind_all()
+        rows += ind_all(bases)
     return {"ver": S.VER, "spec_date": S.SPEC_DATE, "run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "last": {mk: F[mk]["cal"][-1] for mk in F}, "rows": _r(rows)}
+            "last": {mk: F[mk]["cal"][-1] for mk in F}, "rows": _r(rows), "bases": _r(bases)}
 
 
 def save_research(R: dict) -> None:
@@ -877,10 +1060,12 @@ def stock_signal_rows(D, sig_hist: dict, idx: list, io: list) -> list[dict]:
         return cache[code]
 
     out = []
+    rbase: dict = {}
     for k, (nm, desc) in AN.SIG_DEF.items():
         d = "warn" if k in S.STOCK_WARN else "up"
         occ = []
         live = []
+        rg = []
         for code, hist in sig_hist.items():
             fired = [i for i, day in enumerate(hist) if k in day]
             if not fired:
@@ -894,6 +1079,7 @@ def stock_signal_rows(D, sig_hist: dict, idx: list, io: list) -> list[dict]:
                 last = t
                 if t == T - 1:
                     live.append(code)
+                rg.append([_stock_ret(Sx, t)])
                 r = BT._ret(Sx, idx, t, H, io)
                 if not r:
                     continue
@@ -916,11 +1102,19 @@ def stock_signal_rows(D, sig_hist: dict, idx: list, io: list) -> list[dict]:
         if d == "warn":
             st.update(mdd=_median([None if o[5] is None else o[5] / 100 for o in occ]), mdd_base=bmed)
         st["tier"] = tier(st, d, recent=False)
+        t0 = min((min(i for i, day in enumerate(h) if k in day) for h in sig_hist.values() if any(k in day for day in h)),
+                 default=None)
+        ret = _ret_groups(rg, S.RET_H, S.PATH_D)
+        if t0 is not None:
+            if t0 not in rbase:
+                rbase[t0] = _ret_groups([[_stock_ret(ser(c), t)] for c in sig_hist for t in range(t0, T - 1)],
+                                        S.RET_H, S.PATH_D)
+            ret["base"] = rbase[t0]
         out.append({"id": f"stk:sig:{k}", "mk": "stk", "cat": "stock", "grp": "stock", "var": k, "vn": nm, "sig": k,
                     "name": nm, "desc": desc, "kind": "event", "H": H, "th": S.STOCK_MDD if d == "warn" else None,
                     d: st, "tier": st["tier"], "dir": [d],
                     "a": occ[0][0] if occ else None, "z": cal[-1], "occ": occ, "live": sorted(set(live)),
-                    "avg": _mean([o[4] for o in occ])})
+                    "avg": _mean([o[4] for o in occ]), "ret": ret})
     return out
 
 
