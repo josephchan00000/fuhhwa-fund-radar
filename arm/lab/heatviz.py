@@ -538,19 +538,23 @@ def today_html(V: dict) -> str:
     if not T:
         return ('<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div>'
                 '<p class="note">訊號總覽的研究結果還沒產生（scripts/run_sig.py）。</p></section>')
+    from . import xstratpage as XSP
     cols = []
     for s in ("up", "warn"):
         xs = T[s]
+        sx = [it for it in (V.get("xsb") or []) if it["side"] == s]          # ★ 大神策略（現在有動作的），排最前面
         nf = sum(len(r.get("fam") or []) for r in xs)
         head = (f'<h3><span class="tzcl tzcl-{s}">{_e(TZ_SIDE[s])}</span><span class="sub">{len(xs)} 類'
-                + (f'（共 {len(xs) + nf} 個訊號）' if nf else "") + "</span></h3>")
+                + (f'（共 {len(xs) + nf} 個訊號）' if nf else "") + (f'・{len(sx)} 個策略' if sx else "") + "</span></h3>")
+        strat = "".join(XSP.board_li(it) for it in sx)
         if not xs:
-            cols.append(f'<div class="tzcol">{head}<p class="note">現在沒有可靠的{_e(TZ_SIDE[s])}訊號。</p></div>')
+            body = f'<ul class="tzu">{strat}</ul>' if strat else ""
+            cols.append(f'<div class="tzcol">{head}{body}<p class="note">現在沒有可靠的{_e(TZ_SIDE[s])}訊號。</p></div>')
             continue
         top, rest = xs[:SS.TODAY_SIDE], xs[SS.TODAY_SIDE:]
         more = (f'<details class="tzmore"><summary>還有 {len(rest)} 個</summary><ul class="tzu">'
                 + "".join(_tz_item(r, T.get("d")) for r in rest) + "</ul></details>") if rest else ""
-        cols.append(f'<div class="tzcol">{head}<ul class="tzu">' + "".join(_tz_item(r, T.get("d")) for r in top)
+        cols.append(f'<div class="tzcol">{head}<ul class="tzu">' + strat + "".join(_tz_item(r, T.get("d")) for r in top)
                     + f"</ul>{more}</div>")
     sub = "現在成立的好訊號（★）：過去出現之後「中了」的比例比平常高，而且不是運氣。依看多久分三支溫度計。"
     how = (f"★ 好訊號＝至少出現 {SS.N_MIN} 次、機率 ≥ {SS.HIT_MIN['up'] * 100:.0f}%（警示 ≥ {SS.HIT_MIN['warn'] * 100:.0f}%）、"
@@ -560,7 +564,8 @@ def today_html(V: dict) -> str:
            "過去常一起出現的訊號算同一件事，併成一列（「同時成立」）；溫度計一類算一次。"
            "溫度計只是數一數現在成立的好訊號，溫度計本身沒有驗證過能預測漲跌。"
            "偏多＝之後收盤比現在高；警示＝之後出現一段大回撤（期間最高到之後最低，先漲再跌也算）；"
-           "警示類過去的事後驗證比偏多弱，只當提醒。同一個項目兩邊都成立的標「震盪」。")
+           "警示類過去的事後驗證比偏多弱，只當提醒。同一個項目兩邊都成立的標「震盪」。"
+           "標「策略」的是大神策略（照原作者的規則交易、成績判定為 ★ 好策略），現在照規則有動作才列；溫度計不算策略。")
     return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div><p class="ksub">{_e(sub)}</p>'
             f'<details class="tzx"><summary>怎麼看</summary><p>{_e(how)}</p></details>'
             f'{thermo_html(T)}<div class="tzcols">{"".join(cols)}</div>'
@@ -1549,6 +1554,7 @@ body.drw-on{overflow:hidden}
 .tzk{width:14px;text-align:center;font-weight:700}.tzk-good{color:var(--acc)}.tzk-ref{color:var(--ink2)}
 .tzd{font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--line2);white-space:nowrap}
 .tzo{font-size:11.5px;padding:0 7px;border-radius:999px;white-space:nowrap;color:var(--ink);background:var(--line);cursor:help}
+.tzd.tzs{border-color:var(--acc);color:var(--acc);font-weight:600}
 .tzl{display:block;font-size:12.5px;color:var(--ink2);padding-left:20px;line-height:1.55}.tzl b{color:var(--ink)}
 .tzf{display:block;font-size:12px;color:var(--mut);padding-left:20px;line-height:1.5;margin-top:2px}
 .tzm{margin:6px 0 0;font-size:13px}

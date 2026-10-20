@@ -253,6 +253,26 @@ def sig_today(now: dict | None) -> dict | None:
         return None
 
 
+def xs_board(mk: str | None) -> list:
+    """今天的重點：現在有動作的 ★ 大神策略（xstratpage.board）；算不出來回空的、不擋景氣頁。"""
+    try:
+        from . import xstratpage as XSP
+        return XSP.board(mk) if mk else []
+    except Exception as e:                          # noqa: BLE001
+        print(f"[景氣溫度] 大神策略算不出來：{type(e).__name__}: {e}")
+        return []
+
+
+def xs_chip(mk: str | None) -> str:
+    """最上面那一行的「10 個月均線」（xstratpage.chip）。"""
+    try:
+        from . import xstratpage as XSP
+        return XSP.chip(mk) if mk else ""
+    except Exception as e:                          # noqa: BLE001
+        print(f"[景氣溫度] 10 個月均線算不出來：{type(e).__name__}: {e}")
+        return ""
+
+
 def view(B: dict | None = None, R: dict | None = None) -> dict:
     B = B if B is not None else C.build()
     R = R if R is not None else (load_research() or {})
@@ -311,6 +331,8 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
             "hotdd": hotdd_now(B) if T else None, "hotch": hotch_now(B) if T else None,
             "bottom": bottom_now(B) if T else None, "signow": sig_now(B) if T else None}
     out["sigtoday"] = sig_today(out["signow"])
+    out["xsb"] = xs_board(out["mk"]) if T else []   # 大神策略（xstratspec）：今天的重點要列的 ★ 策略
+    out["xschip"] = xs_chip(out["mk"]) if T else ""
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
         out["viz"] = VZ.pack(B, out)
@@ -1308,6 +1330,8 @@ def state_line(V: dict) -> str:
         tip = f'泡沫等級 {b["L"]} {BS.LEVELS[b["L"]]}' + (f'（{cs}）' if cs else "") + "，點了看泡沫頁"
         chips.append(f'<a class="stc" href="x9b.html#{_e(b["mk"])}" title="{_e(tip)}"><b>泡沫</b>{b["L"]}'
                      f'<i>{_e(BS.LEVELS[b["L"]])}</i></a>')
+    if V.get("xschip"):                                      # 10 個月均線（大神策略，xstratspec；每個市場都列）
+        chips.append(V["xschip"])
     nw = (V.get("bottom") or {}).get("now") or {}
     mk = V.get("mk") or (V.get("signow") or {}).get("mk") or ""
     if nw.get("active"):

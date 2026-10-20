@@ -11,6 +11,7 @@ from pathlib import Path
 
 from . import sigcat as G
 from . import sigspec as S
+from . import xstratspec as XS
 from .heatpage import _e
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -28,7 +29,7 @@ TODAY_MK = ("tw", "spx", "ixic", "ndx", "sox")
 H_TXT = {20: "1 個月", 60: "3 個月", 250: "12 個月"}
 # 依指標整理（docs/lab_sigview_plan.md）：指標的類別、走勢圖的資料檔（景氣頁對照圖同一份）、指數名稱
 IND_CATS = {"heat": "景氣項目", "dim": "景氣面向", "scen": "情境", "inst": "法人買賣超", "crash": "大跌風險", "tech": "技術事件", "bub": "泡沫", "ind": "產業泡沫",
-            "buy": "大跌後買點", "stock": "個股訊號", "strat": "個股策略"}
+            "buy": "大跌後買點", "xs": "大神策略", "stock": "個股訊號", "strat": "個股策略"}
 CHART = {"tw": "x9mh.json", "spx": "x9muh-spx.json", "ixic": "x9muh-ixic.json", "ndx": "x9muh-ndx.json", "sox": "x9muh-sox.json"}
 PX_NAMES = {"tw": "加權指數", "spx": "S&P 500", "ixic": "那斯達克", "ndx": "那斯達克 100", "sox": "費半"}
 
@@ -167,9 +168,10 @@ def view() -> dict:
     if ST.get("d"):
         asof["stk"] = ST["d"]
     rmk = [mk for mk in TODAY_MK if mk in CARDS or (OUT_DATA.parent / f"x9or-{mk}.json").exists()]
+    from . import xstratpage as XSP
     return {"rows": rows, "on": on, "today": today, "stk": stk, "asof": asof, "run": R.get("run"), "bases": R.get("bases") or {},
             "last": R.get("last") or {}, "rmk": rmk, "items": {mk: ITEMS[mk] for mk in TODAY_MK if mk in ITEMS},
-            "luck": R.get("luck")}
+            "luck": R.get("luck"), "xs": XSP.results()}
 
 
 def _pct(v) -> float | None:
@@ -223,6 +225,8 @@ def page_json(V: dict) -> str:
            "scnv": scen_values(V.get("items") or {}), "scdn": S.SCEN_DIM_NAMES,
            "hit": {d: round(100 * v) for d, v in S.HIT_MIN.items()}, "eg": round(100 * S.EDGE_GOOD), "er": round(100 * S.EDGE_REF),
            "n10": S.RECENT_N, "nmin": S.N_MIN, "lp": round(100 * S.LUCK_P), "ld": S.LUCK_DRAWS, "rh": list(S.RET_H), "pd": list(S.PATH_D), "rhm": list(S.RET_H_M), "rmin": S.RET_N_MIN}
+    from . import xstratpage as XSP
+    out["xs"] = XSP.payload(V.get("xs") or {})          # 大神策略（xstratspec；點開的淨值與每一筆在 x9oh.json）
     return json.dumps(out, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
 
@@ -272,7 +276,9 @@ def detail_json(V: dict) -> str:
     nm = {**(store.read_json("names_hist.json", {}) or {}), **(store.read_json("names_mkt.json", {}) or {}),
           **(store.read_json("names.json", {}) or {})}
     live = {r["id"]: r["live"] for r in V["rows"] if r.get("live")}
-    return json.dumps({"occ": occ, "names": {c: nm[c] for c in sorted(codes) if c in nm}, "live": live, "ret": ret, "rb": rb},
+    from . import xstratpage as XSP
+    return json.dumps({"occ": occ, "names": {c: nm[c] for c in sorted(codes) if c in nm}, "live": live, "ret": ret, "rb": rb,
+                       "xs": XSP.detail(V.get("xs") or {})},
                       ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
@@ -329,18 +335,28 @@ def _since(n: dict, ref: str | None = None) -> str:
     return f'{_dy(n["since"], ref)} 起'
 
 
+def _xs_li(it: dict) -> str:
+    """今天有效的好訊號：★ 大神策略（現在有動作的），標「策略」。"""
+    from . import xstratpage as XSP
+    return (f'<li><a class="sgi" href="#i={_e(it["id"])}"><span class="sgtk sgtk-good">★</span><span class="sgnm">{_e(it["name"])}</span>'
+            f'<span class="sgd sgd-{it["side"]}">策略・{_e(XSP.TAG[it["st"]])}</span>'
+            f'<span class="sgln">{_e(it["now"])}<span class="sgs">{_e(it["line"])}</span></span></a></li>')
+
+
 def today_html(V: dict) -> str:
+    from . import xstratpage as XSP
     cards = []
     for mk in TODAY_MK:
         T = V["today"].get(mk)
         if T is None:
             continue
         items = T["good"]
+        sx = XSP.board(mk, V.get("xs") or {}) if V.get("xs") else []
         head = f'<h3>{_e(MK_NAMES[mk])}<span class="sub">資料到 {_e(_d(V["asof"].get(mk)))}</span></h3>'
-        if not items:
+        if not items and not sx:
             body = '<p class="sgnone">今天沒有好訊號出現。</p>'
         else:
-            lis = []
+            lis = [_xs_li(it) for it in sx]
             for r in items:
                 mark = S.TIER_MARK[r["tier"]]
                 lis.append(f'<li><a class="sgi" href="#s={_e(r["id"])}"><span class="sgtk sgtk-{r["tier"]}">{mark}</span>'
@@ -366,7 +382,8 @@ def today_html(V: dict) -> str:
     stk_body = ('<ul class="sgl">' + "".join(lis) + "</ul>") if lis else '<p class="sgnone">目前沒有判定為好策略的個股策略。</p>'
     cards.append(f'<div class="sgk"><h3>個股<span class="sub">資料到 {_e(_d(V["asof"].get("stk")))}</span></h3>{stk_body}'
                  '<p class="note">策略現在持有什麼、下一批什麼時候買，看<a href="x9.html">個股頁</a>機會分頁。</p></div>')
-    return ('<section class="sec" id="today"><h2>今天有效的好訊號<span class="sub">同一個項目只列一種；依「比隨便挑一天多幾個百分點」排序；點一列看那個指標</span></h2>'
+    return ('<section class="sec" id="today"><h2>今天有效的好訊號<span class="sub">同一個項目只列一種；依「比隨便挑一天多幾個百分點」排序；'
+            '★ 大神策略照規則現在有動作的排最前面（標「策略」）；點一列看那個指標</span></h2>'
             f'<div class="sgt">{"".join(cards)}</div></section>')
 
 
@@ -400,7 +417,14 @@ def method_html(luck: dict | None = None) -> str:
             f'<b>● 可能是運氣</b>：上面的門檻都過了，但亂排也常做得到（{S.LUCK_P * 100:.0f}% 以上）；只列在這裡，景氣頁今天的重點不列。'
             f'<b>○</b>：沒有過門檻。<b>—</b>：不到 {S.N_MIN} 次，照列數字但不判定。'
             '警示類過去的事後驗證比偏多弱（用 2016 年以前選出來的警示，2016 年以後多數沒有比平常準），只當提醒。</dd>'
-            '<dt>看多久</dt><dd>技術面與技術事件 1 個月；籌碼、資金、大跌風險、面向事件、邊際變化 3 個月；基本面與泡沫 12 個月。</dd></dl>'
+            '<dt>看多久</dt><dd>技術面與技術事件 1 個月；籌碼、資金、大跌風險、面向事件、邊際變化 3 個月；基本面與泡沫 12 個月。</dd>'
+            f'<dt>大神策略</dt><dd>照原作者的規則與參數（RSI(2)、VIX 衝刺、月底月初、Halloween、10 個月均線、200 日均線、12 個月動能）'
+            f'在指數上做一遍，看交易成績（使用者 2026-10-20 選定：成績過關就算，打亂測試只標示）。交易型＝至少 {XS.TR_N_MIN} 筆、'
+            f'勝率 ≥ {XS.TR_WIN * 100:.0f}%、比「隨便挑一天、抱一樣多天」高 {XS.TR_EDGE * 100:.0f} 個百分點以上、扣成本後平均每筆賺錢；'
+            '進出型＝最大回撤比買進持有少三分之一以上，而且年化 ÷ 最大回撤不輸買進持有。'
+            '★ 好策略＝全期間、近 10 年、參數鄰近（換附近的參數，三分之二以上也過）都過；● 可參考＝全期間過、後兩項沒過。'
+            '看收盤才知道的訊號一律隔天收盤買賣（看網頁做得到的最早時點），原作者的當天收盤另列參考。'
+            f'規格 arm/lab/xstratspec.py（VER {XS.VER}），在算正式成績之前寫定。</dd></dl>'
             '<p><b>個股訊號</b>：同一檔 5 個交易日內重複只算一次，隔天開盤買、持有 20 個交易日，扣來回成本後賺錢算中；'
             '隨便挑一天＝同一段期間加權指數上漲的比例（資料從 2026 年 7 月起，大多是上漲行情）。'
             f'集體撤退是警示：之後 20 個交易日內最大回撤 {S.STOCK_MDD * 100:.0f}% 以上算中，隨便挑一天＝同一段期間所有 ETF 持股的同樣比例。'
@@ -422,6 +446,7 @@ _HTML = """<!doctype html>
 <div class="vbar"><details class="purp"><summary>這頁怎麼看</summary><p>上面是今天有效的好訊號；下面依指標列出全部
 （例：RSI、融資餘額水位），點一個指標看它現在的數值、走勢，和它每一種訊號過去出現之後「上漲（或大跌）的機率」，
 跟同一段期間「隨便挑一天」比。★ 好訊號＝機率夠高、比隨便挑一天多 10 個百分點以上、近 10 年也成立，而且不是運氣（打亂日子測試）。
+「大神策略」一類是照原作者的規則交易的成績（勝率、少跌多少），★ 好策略＝交易成績過關、近 10 年與附近的參數也成立。
 名詞滑過 ⓘ 或看最下面「名詞與判定方式」。</p></details></div>
 <main>{{BODY}}</main>{{PANEL}}
 <script type="application/json" id="sgd">{{DATA}}</script>
@@ -616,11 +641,28 @@ CSS = """
 .sgrch .rp{fill:var(--acc)}
 .sghow{margin-top:12px}.sghow summary{cursor:pointer;color:var(--acc);font-size:13px}
 .sgdl2{margin:6px 0;font-size:13.5px;line-height:1.7}.sgdl2 dt{font-weight:600;margin-top:6px}.sgdl2 dd{margin:0 0 2px 0;color:var(--ink2)}
+/* 大神策略（xstratspec） */
+.xsv{font-size:14px;line-height:1.6;margin:10px 0 0;padding:8px 10px;border-radius:10px;background:var(--card2)}
+.xsr{margin:4px 0 6px;padding-left:20px;font-size:13px;line-height:1.7}
+.xsw{list-style:none;margin:4px 0;padding:0;font-size:13px;line-height:1.65}.xsw li{display:flex;gap:6px}.xsw li+li{margin-top:3px}
+.xsw li span{flex:none;width:14px;text-align:center;font-weight:700}.xsw li.y span{color:var(--acc)}.xsw li.n span{color:var(--t3)}.xsw li.m{color:var(--ink2)}
+.xsg{border-collapse:collapse;font-size:12.5px;margin:2px 0}.xsg caption{caption-side:top;text-align:left;font-size:12px;color:var(--ink2);padding:0 0 4px}
+.xsg th{font-weight:600;color:var(--ink2);padding:4px 6px;border-bottom:1px solid var(--line2);text-align:center;white-space:nowrap;font-size:12px}
+.xsg th.l{text-align:left}.xsg td{padding:4px 6px;border:1px solid var(--line);text-align:center;white-space:nowrap}
+.xsg td i{font-style:normal;font-weight:700;margin-right:3px}.xsg td.y i{color:var(--acc)}.xsg td.n{color:var(--ink2)}.xsg td.n i{color:var(--t3)}
+.xsg td small{display:block;font-size:10.5px;color:var(--mut)}.xsg td.mn{outline:2px solid var(--ink);outline-offset:-2px}
+.xsseg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden}
+.xsseg button{font:inherit;font-size:12.5px;padding:3px 10px;border:0;background:var(--bg);color:var(--ink2);cursor:pointer}
+.xsseg button+button{border-left:1px solid var(--line2)}.xsseg button.on{background:var(--accbg);color:var(--ink);font-weight:600}
+.xseq .xss{fill:none;stroke:var(--acc);stroke-width:2}.xseq .xsb{fill:none;stroke:var(--ink2);stroke-width:1.3;stroke-dasharray:4 3}
+.xst td.up b{color:var(--t4)}.xst td.dn,.xst td.dn b{color:var(--t0)}.xstr td small{display:block;font-size:11px;color:var(--mut)}
+.xstr td.up b{color:var(--t4)}.xstr td.dn b{color:var(--t0)}
+.sgd-none{color:var(--ink2)}
 body.sgopen{overflow:hidden}
 .sgtb tr.sgr.open td{background:var(--accbg)}
 @media (min-width:1100px){.sgpb{background:transparent;pointer-events:none}body.sgopen{overflow:auto}}
 @media (max-width:900px){.sgt{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:640px){.sgt{grid-template-columns:minmax(0,1fr)}.sgtb .dsk{display:none}.sgln{padding-left:0}
+@media (max-width:640px){.xsg td,.xsg th{padding:3px 4px}.xsg td small{font-size:10px}.sgt{grid-template-columns:minmax(0,1fr)}.sgtb .dsk{display:none}.sgln{padding-left:0}
  .sgtb td.l{min-width:150px}.sgwrap{overflow-x:visible}.sgtb td.l .sgm{display:block}
  .sgsw{overflow-x:auto}
  .sgmob{display:block;margin-top:4px}.sgmn{display:flex;align-items:center;gap:10px}.sgmn .sgnv,.sgmn .sgnz{display:inline;white-space:nowrap}
@@ -669,6 +711,7 @@ function dirsOf(r){ const c = r[I.cat]; return c === 'buy' ? ['buy'] : (c === 's
 function hz(r){ const c = r[I.cat]; if (c === 'buy') return '這一波'; if (c === 'ind') return '12 個月';
   if (c === 'strat') return '照規則'; if (c === 'stock') return '20 個交易日'; return HT[r[I.H]] || (r[I.H] + ' 個交易日'); }
 function nowTxt(r){ const n = ON[r[I.id]]; if (!n) return '';
+  if (n.xs != null) return n.xs;
   if (n.live != null) return '今天 ' + n.live + ' 檔';
   if (n.left != null) return mdy(n.since) + ' 出現・還看 ' + n.left + ' 天';
   if (n.event) return mdy(n.since) + ' 出現';
@@ -681,14 +724,15 @@ function what(r, d){ const c = r[I.cat];
   if (d === 'buy') return '買在相對低點';
   if (d === 'up') return c === 'stock' ? '持有 20 天賺錢' : '之後上漲';
   return '之後大跌'; }
-function phr(r, d){ const s = stat(r, d); if (!s) return ''; const c = r[I.cat], h = hz(r);
+function phr(r, d){ if (r[I.cat] === 'xs') { const x = SIG2[r[I.id]]; return x ? esc(x.xs.line) : ''; }
+  const s = stat(r, d); if (!s) return ''; const c = r[I.cat], h = hz(r);
   let w;
   if (c === 'strat') w = '每筆賺錢的比例';
   else if (d === 'buy') w = '買在這一波相對低點的機率';
   else if (d === 'up') w = c === 'stock' ? '持有 20 天賺錢的機率' : '之後 ' + h + '上漲的機率';
   else w = '之後 ' + h + '內大跌（最大回撤 ' + r[I.th] + '% 以上）的機率';
   return w + ' <b>' + pc(s[1]) + '</b>' + (s[2] != null ? '（隨便挑一天 ' + pc(s[2]) + '）' : ''); }
-function mark(t, r){ const x = ((r && r[I.cat] === 'strat') ? SG.stiers : SG.tiers)[t] || ['', ''];
+function mark(t, r){ const x = ((r && (r[I.cat] === 'strat' || r[I.cat] === 'xs')) ? SG.stiers : SG.tiers)[t] || ['', ''];
   return '<span class="sgtk sgtk-' + t + '" title="' + esc(x[1]) + '">' + x[0] + '</span>'; }
 function sent(r){ const [d, s] = sd(r); return mark(s ? s[6] : r[I.tier], r) + ' <b>' + esc(label(r)) + '</b>：' + phr(r, d); }
 function zi(h){ return h == null ? 'x' : h >= 80 ? '4' : h >= 60 ? '3' : h >= 40 ? '2' : h >= 20 ? '1' : '0'; }
@@ -704,8 +748,20 @@ const INDS = SG.inds.map(x => { const sig = x[5].map(i => ROWS[i]);
     hay: (x[3] + ' ' + x[0] + ' ' + (SG.mk[x[1]] || '') + ' ' + SG.icat[x[2]] + ' ' + sig.map(r => r[I.name]).join(' ')).toLowerCase()}; });
 const BYK = {}, SIG2 = {};
 INDS.forEach(x => { BYK[x.k] = x; x.sig.forEach(r => { SIG2[r[I.id]] = x; }); });
+// 大神策略（xstratspec；文字由 arm/lab/xstratpage.py 產生）：每個市場每個策略一列，判定照交易成績
+const XS = SG.xs || {spec: {}, m: {}, grp: {}, sn: {}};
+const XSV = {span: 'all', all: false};
+Object.entries(XS.m || {}).forEach(([mk, M]) => Object.entries(M).forEach(([k, r]) => {
+  const sp = XS.spec[k], id = 'xs:' + mk + ':' + k, d = sp.kind === 'trade' ? 'up' : 'warn';
+  const row = [id, mk, 'xs', sp.grp, sp.name, sp.kind, null, null, r.t, [d], null, null, null, r.a, r.z, {xs: 1}];
+  if (r.side) ON[id] = {xs: XS.sn[r.st] || ''};
+  const x = {k: id, mk, cat: 'xs', name: sp.name, grp: sp.grp, sig: [row], on: r.side ? [row] : [], best: row,
+    ds: new Set(r.t === 'good' || r.t === 'ref' ? [d] : []), it: null, ik: null, xs: r, sp, xk: k,
+    hay: (sp.name + ' ' + id + ' ' + (SG.mk[mk] || '') + ' 大神策略 ' + (XS.grp[sp.grp] || '') + ' ' + sp.who + ' ' + sp.src).toLowerCase()};
+  INDS.push(x); BYK[id] = x; SIG2[id] = x; }));
 function grpName(x){ return x.grp && SG.dimn[x.mk] ? SG.dimn[x.mk][x.grp] || '' : ''; }
-function meta(x){ return [SG.mk[x.mk], x.cat === 'heat' ? grpName(x) : SG.icat[x.cat]].filter(Boolean).join('・'); }
+function meta(x){ if (x.cat === 'xs') return [SG.mk[x.mk], SG.icat.xs, XS.grp[x.grp]].filter(Boolean).join('・');
+  return [SG.mk[x.mk], x.cat === 'heat' ? grpName(x) : SG.icat[x.cat]].filter(Boolean).join('・'); }
 function pass(x, skip){
   if (st.q && !st.q.split(/\s+/).every(w => x.hay.includes(w))) return false;
   if (skip !== 'mk' && st.mk && x.mk !== st.mk) return false;
@@ -751,16 +807,18 @@ function scenNow(x){ const q = SG.scen[x.k.split(':').pop()], v = SG.scnv[x.mk];
   if (!q || !v) return '';
   return q[3].map(g => esc(SG.scdn[g]) + ' ' + (v[g] == null ? '—' : '<span class="zt' + zi(v[g]) + '">' + Math.round(v[g]) + '</span>')).join('・'); }
 function nowCell(x){ const it = x.it;
+  if (x.cat === 'xs') return '<span class="sgnv">' + esc(x.xs.nv) + '</span><span class="sgnz">' + esc(XS.sn[x.xs.st] || '') + '</span>';
   if (x.cat === 'scen') { const t = scenNow(x); return t ? '<span class="sgnv">' + t + '</span>' : '<span class="mu">—</span>'; }
   if (it && (it.v || it.h != null)) return (it.v ? '<span class="sgnv">' + esc(it.v) + '</span>' : '') +
     (it.h != null ? '<span class="sgnz zt' + zi(it.h) + '">' + Math.round(it.h) + ' ' + esc(it.band || '') + '</span>' : '');
   const o = x.on[0]; return o ? '<span class="sgnv">' + esc(nowTxt(o)) + '</span>' : '<span class="mu">—</span>'; }
 function sigCell(x){
+  if (x.cat === 'xs') return mark(x.xs.t, x.best) + ' ' + esc(x.xs.line) + '<span class="sgs">' + esc(x.xs.now) + '</span>';
   if (x.on.length) { const o = x.on[0];
     return sent(o) + '<span class="sgs">' + esc(nowTxt(o)) + (x.on.length > 1 ? '・另 ' + (x.on.length - 1) + ' 個也成立' : '') + '</span>'; }
   const b = x.best, t = b[I.tier];
   return '<span class="mu">現在沒有成立的訊號' + ((t === 'good' || t === 'ref') ? '；最好的是「' + esc(label(b)) + '」' + SG.tiers[t][0] : '') + '</span>'; }
-function rowHtml(x){ const t = x.on.length ? x.on[0][I.tier] : null, sp = x.it && x.it.sp;
+function rowHtml(x){ const t = x.cat === 'xs' ? x.xs.t : x.on.length ? x.on[0][I.tier] : null, sp = x.it && x.it.sp;
   return '<tr class="sgr" data-k="' + esc(x.k) + '"><td class="tk">' + (t ? mark(t, x.on[0]) : '<span class="sgtk mu">·</span>') + '</td>' +
     '<td class="l"><b class="sgin">' + esc(x.name) + '</b><span class="sgm">' + esc(meta(x)) + '</span>' +
     '<div class="sgmob"><div class="sgmn">' + nowCell(x) + spark(sp, 76, 20) + '</div><div class="sgms">' + sigCell(x) + '</div></div></td>' +
@@ -928,6 +986,7 @@ function panelHtml(x){
 function segSync(){ PB.querySelectorAll('.sgseg').forEach(g => g.querySelectorAll('button').forEach(b =>
   b.classList.toggle('on', g.dataset.g === 'span' ? b.dataset.v === VIEW.span : b.dataset.v === (VIEW.raw ? '1' : '0')))); }
 function openInd(x, sid, push){
+  if (x.cat === 'xs') { xsOpen(x, push); return; }
   const first = PV.hidden;
   CUR = x; SEL = (sid && x.sig.find(r => r[I.id] === sid)) || x.on[0] || x.best;
   if (push) { const u = '#i=' + encodeURIComponent(x.k);
@@ -1161,9 +1220,11 @@ function drawChart(){
         : '色帶＝「' + lab + '」的期間，越深＝那一段之後' + hitw + '的比例越高' + (on ? '；虛線框＝現在這一段（還在觀察）' : '') + '。') : '') +
       (OCC ? '' : '（訊號的日子載入中）')); }); }
 let rzT = null;
-window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (CUR) { drawChart(); if (OCC && SEL) drawRet(SEL, OCC); } }, 200); });
+window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (!CUR) return;
+  if (CUR.cat === 'xs') { xsEq(CUR); return; } drawChart(); if (OCC && SEL) drawRet(SEL, OCC); }, 200); });
 PB.addEventListener('click', e => {
   if (e.target.closest('#sgx')) { closeP(); return; }
+  if (CUR && CUR.cat === 'xs') { xsClick(e); return; }
   const mb = e.target.closest('.sgmore2');
   if (mb) { VIEW.span = mb.dataset.span; segSync(); drawChart(); fillSel(); return; }
   const sb = e.target.closest('.sgseg button');
@@ -1186,12 +1247,142 @@ document.getElementById('sgcsv').addEventListener('click', () => {
   const head = ['指標','市場','類別','訊號','看多久','現在成立','方向','看什麼','機率%','隨便挑一天%','多幾個百分點','近10年次數','近10年機率%','近10年隨便挑一天%',
     '出現過幾次','判定','亂排也做得到%','最大回撤中位數%','隨便挑一天最大回撤中位數%','大跌門檻%','代號'];
   const lines = [head];
-  list.forEach(x => x.sig.forEach(r => dirsOf(r).forEach(d => { const s = stat(r, d), e = dEdge(s);
+  list.forEach(x => x.cat !== 'xs' && x.sig.forEach(r => dirsOf(r).forEach(d => { const s = stat(r, d), e = dEdge(s);
     lines.push([x.name, SG.mk[x.mk], SG.icat[x.cat], label(r), hz(r), nowTxt(r), SG.dirs[d] || d, what(r, d), s ? s[1] : '', s ? s[2] : '', e == null ? '' : e.toFixed(1),
       s ? (s[3] ?? '') : '', s ? (s[4] ?? '') : '', s ? (s[5] ?? '') : '', s ? s[0] : '', s ? (SG.tiers[s[6]] || ['', ''])[1] : '',
       s ? (s[9] ?? '') : '', d === 'warn' && s ? (s[7] ?? '') : '', d === 'warn' && s ? (s[8] ?? '') : '', d === 'warn' ? (r[I.th] ?? '') : '', r[I.id]]); })));
   const csv = '﻿' + lines.map(l => l.map(v => { const t = String(v == null ? '' : v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); a.download = '訊號總覽.csv'; a.click(); });
+
+
+// ── 大神策略的面板（出處、規則、現在、成績、判定依據、參數鄰近、照做的淨值、每一筆）
+const f1 = v => v == null ? '—' : (+v).toFixed(1);
+const sg = (v, k) => v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(k) + '%';
+const cl = v => v == null ? '' : v > 0 ? 'up' : v < 0 ? 'dn' : '';
+const nfmt = v => v == null ? '—' : (+v).toLocaleString('en-US', {maximumFractionDigits: 2});
+function xsPv(sp, i, v){ const k = sp.pk[i]; return k === 'stretch' ? Math.round(v * 100) + '%' : k === 'start' ? v + ' 月' : String(v); }
+function xsStats(x){ const r = x.xs, sp = x.sp;
+  if (sp.kind === 'trade') {
+    const head = '<thead><tr><th class="l">期間</th><th>筆數</th><th>勝率</th><th>隨便挑<br>同樣天數</th><th>平均每筆<br>（扣成本）</th><th>獲利因子</th><th>平均抱<br>幾天</th><th>最差一筆</th><th>在場上的<br>時間</th></tr></thead>';
+    const row = (lab, sub, s, own) => !s || !s.n ? '<tr><td class="l">' + lab + '<small>' + sub + '</small></td><td class="mu" colspan="8">沒有交易</td></tr>' :
+      '<tr' + (own ? ' class="own"' : '') + '><td class="l">' + lab + '<small>' + sub + '</small></td><td data-h="筆數">' + s.n + '</td>' +
+      '<td data-h="勝率"><b>' + f1(s.win) + '%</b></td><td data-h="隨便挑同樣天數">' + f1(s.base) + '%</td>' +
+      '<td data-h="平均每筆" class="' + cl(s.avg) + '"><b>' + sg(s.avg, 2) + '</b></td><td data-h="獲利因子">' + (s.pf == null ? '—' : s.pf.toFixed(2)) + '</td>' +
+      '<td data-h="平均抱幾天">' + f1(s.hold) + '</td><td data-h="最差一筆" class="dn">' + sg(s.worst, 1) + '</td><td data-h="在場上">' + (s.expo == null ? '—' : s.expo + '%') + '</td></tr>';
+    return '<div class="sgwrap sgrw"><table class="sgrr xst">' + head + '<tbody>' + row('全期間', ymd(r.a) + ' 起', r.f, true) + row('近 10 年', ymd(r.r0) + ' 起', r.r) +
+      (r.o ? row('原作者時點', '訊號當天收盤買賣，參考', r.o) : '') + '</tbody></table></div>' +
+      '<p class="note">「隨便挑同樣天數」＝同一段期間每一天都當買進日、抱一樣多天（同樣扣成本）賺錢的比例。「在場上的時間」＝持有的日子占全部日子的比例，其他時間空手。</p>'; }
+  const head = '<thead><tr><th class="l">期間</th><th>年化</th><th>最大回撤</th><th>年化 ÷<br>最大回撤</th><th>最差一年</th><th>每年<br>換邊幾次</th><th>持有的<br>時間</th></tr></thead>';
+  const row = (lab, sub, s, own) => !s ? '' : '<tr' + (own ? ' class="own"' : '') + '><td class="l">' + lab + '<small>' + sub + '</small></td>' +
+    '<td data-h="年化" class="' + cl(s.cagr) + '"><b>' + sg(s.cagr, 1) + '</b></td><td data-h="最大回撤"><b>' + f1(s.mdd) + '%</b></td>' +
+    '<td data-h="年化÷回撤">' + (s.mar == null ? '—' : s.mar.toFixed(2)) + '</td><td data-h="最差一年" class="' + cl(s.worst) + '">' + sg(s.worst, 0) + '</td>' +
+    '<td data-h="每年換邊">' + (s.sw == null ? '—' : f1(s.sw)) + '</td><td data-h="持有的時間">' + (s.expo == null ? '100%' : s.expo + '%') + '</td></tr>';
+  const bh = s => s && Object.assign({}, s, {mar: s.mdd ? s.cagr / s.mdd : null, sw: null, expo: null});
+  return '<div class="sgwrap sgrw"><table class="sgrr xst">' + head + '<tbody>' + row('照規則', '全期間，' + ymd(r.a) + ' 起', r.f, true) + row('買進持有', '全期間', bh(r.b)) +
+    row('照規則', '近 10 年，' + ymd(r.r0) + ' 起', r.r, true) + row('買進持有', '近 10 年', bh(r.br)) +
+    (r.o ? row('原作者時點', '當天收盤買賣，全期間，參考', r.o) : '') + '</tbody></table></div>' +
+    '<p class="note">最大回撤＝淨值從最高到之後最低跌了多少；最差一年只算完整的日曆年。買進持有不扣成本。</p>'; }
+function xsWhy(x){ return '<ul class="xsw">' + x.xs.why.map(([ok, t]) => '<li class="' + (ok === 1 ? 'y' : ok === 0 ? 'n' : 'm') + '"><span>' +
+  (ok === 1 ? '✓' : ok === 0 ? '✗' : '·') + '</span>' + esc(t) + '</li>').join('') + '</ul>'; }
+function xsGrid(x){ const r = x.xs, sp = x.sp, g = r.g, tr = sp.kind === 'trade';
+  const val = c => tr ? '<b>' + c[3] + '%</b><small>' + sg(c[5], 2) + '・' + c[2] + ' 筆</small>' : '<b>' + sg(c[2], 1) + '</b><small>回撤 ' + c[3] + '%</small>';
+  const td = (c, main) => !c ? '<td>—</td>' : '<td class="' + (c[1] ? 'y' : 'n') + (main ? ' mn' : '') + '"><i>' + (c[1] ? '✓' : '✗') + '</i>' + val(c) + '</td>';
+  let h;
+  if (sp.pk.length === 2) {
+    const a = [...new Set(g.map(c => c[0][0]))], b = [...new Set(g.map(c => c[0][1]))];
+    h = '<caption>列：' + esc(sp.pn[0]) + '；欄：' + esc(sp.pn[1]) + '</caption><thead><tr><th></th>' + b.map(v => '<th>' + esc(xsPv(sp, 1, v)) + '</th>').join('') + '</tr></thead><tbody>' +
+      a.map(u => '<tr><th class="l">' + esc(xsPv(sp, 0, u)) + '</th>' + b.map(v => td(g.find(c => c[0][0] === u && c[0][1] === v), u === sp.main[0] && v === sp.main[1])).join('') + '</tr>').join('') + '</tbody>';
+  } else {
+    h = '<thead><tr><th class="l">' + esc(sp.pn[0]) + '</th>' + g.map(c => '<th>' + esc(xsPv(sp, 0, c[0][0])) + '</th>').join('') + '</tr></thead><tbody><tr><th class="l">全期間</th>' +
+      g.map(c => td(c, c[0][0] === sp.main[0])).join('') + '</tr></tbody>'; }
+  return '<div class="sgwrap"><table class="xsg">' + h + '</table></div><p class="note">粗框＝原作者的參數。' +
+    (tr ? '每格＝勝率、平均每筆、筆數' : '每格＝年化、最大回撤') + '；✓＝這組參數全期間也過關。換附近的參數成績差不多，才不是剛好挑到的參數。</p>'; }
+function xsSeason(x){ const s = x.xs.s; if (!s || !s.n) return '';
+  return '<p class="sgdl">' + s.y0 + '～' + s.y1 + ' 年（' + s.n + ' 年）：每年 11～4 月平均 <b>' + sg(s.w, 1) + '</b>（上漲的年份 ' + Math.round(s.wu) + '%），' +
+    '5～10 月平均 <b>' + sg(s.o, 1) + '</b>（' + Math.round(s.ou) + '%）；' + Math.round(s.better) + '% 的年份 11～4 月比較好。' +
+    (s.w10 != null ? '最近 10 年：11～4 月 ' + sg(s.w10, 1) + '、5～10 月 ' + sg(s.o10, 1) + '（' + Math.round(s.b10) + '% 的年份 11～4 月比較好）。' : '') + '</p>'; }
+function xsPanel(x){ const r = x.xs, sp = x.sp, tn = (SG.stiers[r.t] || ['', ''])[1], tr = sp.kind === 'trade';
+  let h = '<div class="sgph"><div><p class="sgkick">' + esc(meta(x)) + '</p><h3 id="sgpt">' + esc(x.name) + '</h3></div>' +
+    '<button type="button" class="sgx" id="sgx" aria-label="關閉">×</button></div><div class="sgpc">';
+  h += '<p class="xsv">' + mark(r.t, x.best) + ' <b>' + esc(tn) + '</b>　' + esc(r.line) + '</p>';
+  h += '<h4>現在</h4><p class="sgdl"><span class="sgd sgd-' + (r.side || 'none') + '">' + esc(XS.sn[r.st] || '') + '</span> ' + esc(r.now) + '</p>';
+  h += '<h4>怎麼做</h4><p class="sgdl">' + esc(sp.logic) + '</p><ul class="xsr">' + r.rules.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
+    '<p class="note">出處：' + esc(sp.who) + '《' + esc(sp.src) + '》。參數照原作者，沒有調。</p>';
+  h += '<h4>過去照規則做的成績</h4>' + xsStats(x) + (x.xk === 'hal' ? xsSeason(x) : '');
+  h += '<h4>判定依據</h4>' + xsWhy(x);
+  h += '<h4>參數鄰近</h4>' + xsGrid(x);
+  h += '<h4>照做的淨值</h4><div class="sgcb"><div class="xsseg"><button type="button" data-v="all">全部</button><button type="button" data-v="10y">近 10 年</button></div></div>' +
+    '<div class="sgcv" id="xscv"><p class="note">載入中…</p></div><p class="sgread" id="xsread"></p>' +
+    '<p class="note">實線＝照規則做（' + (tr ? '只在持有時跟著指數動，空手不動' : '持有時跟著指數動，空手不動') + '，扣成本）；虛線＝一直持有（買進持有）。縱軸是倍數（對數）。</p>';
+  h += '<h4>' + (tr ? '每一筆' : '每一段持有') + '</h4><div id="xstr"><p class="note">載入中…</p></div>';
+  h += '<p class="note">指數不含股息、空手不算利息：買進持有少算了股息（台股每年約 3～4%、美股約 1.5～2%），照規則空手時少算了利息。' +
+    '這些是照規則在歷史上做一遍的結果，只描述過去。</p>';
+  return h + '</div>'; }
+function xsSeg(){ PB.querySelectorAll('.xsseg button').forEach(b => b.classList.toggle('on', b.dataset.v === XSV.span)); }
+function xsOpen(x, push){
+  const first = PV.hidden;
+  CUR = x; SEL = x.best; XSV.all = false;
+  if (push) { const u = '#i=' + encodeURIComponent(x.k);
+    if (first && !PUSHED) { history.pushState({sg: 1}, '', u); PUSHED = true; } else history.replaceState(history.state, '', u); }
+  PB.innerHTML = xsPanel(x); xsSeg();
+  PV.hidden = false; document.body.classList.add('sgopen');
+  PB.scrollTop = 0; if (first) PB.focus({preventScroll: true});
+  document.querySelectorAll('tr.sgr.open').forEach(e => e.classList.remove('open'));
+  const tr = document.querySelector('tr.sgr[data-k="' + CSS.escape(x.k) + '"]'); if (tr) tr.classList.add('open');
+  if (OCC) { xsEq(x); xsTr(x); return; }
+  loadOcc().then(j => { if (CUR !== x) return; if (!j) { ['xscv', 'xstr'].forEach(i => { const b = document.getElementById(i); if (b) b.innerHTML = '<p class="note">載入失敗，請重新整理。</p>'; }); return; }
+    xsEq(x); xsTr(x); }); }
+function xsEq(x){ const box = document.getElementById('xscv'), rd = document.getElementById('xsread'); if (!box) return;
+  const j = OCC && OCC.xs ? OCC.xs[x.k] : null; if (!j) { box.innerHTML = '<p class="note">' + (OCC ? '沒有淨值資料。' : '載入中…') + '</p>'; return; }
+  let d = j.eq.d, s = j.eq.s, b = j.eq.b;
+  if (XSV.span === '10y') { const i0 = d.findIndex(t => t >= x.xs.r0); if (i0 > 0) { const s0 = s[i0], b0 = b[i0];
+    d = d.slice(i0); s = s.slice(i0).map(v => v / s0); b = b.slice(i0).map(v => v / b0); } }
+  const n = d.length; if (n < 2) { box.innerHTML = ''; return; }
+  const W = Math.max(280, Math.round(box.clientWidth || 520)), L = 44, R = 10, T = 8, H = 190, BH = 18;
+  const lg = v => Math.log(Math.max(v, 1e-6)), all = s.concat(b).filter(v => v > 0);
+  let lo = Math.min(...all.map(lg)), hi = Math.max(...all.map(lg)); const pd = (hi - lo) * 0.05 || 0.1; lo -= pd; hi += pd;
+  const X = i => L + i / (n - 1) * (W - L - R), Y = v => T + (1 - (lg(v) - lo) / (hi - lo)) * H;
+  const path = a => a.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join('');
+  let g = '';
+  [0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128].forEach(v => { const y = lg(v); if (y < lo || y > hi) return;
+    g += '<line class="tl" x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '"/>' +
+      '<text class="ax" x="' + (L - 4) + '" y="' + (Y(v) + 4).toFixed(1) + '" text-anchor="end">' + v + ' 倍</text>'; });
+  const y0 = +d[0].slice(0, 4), y1 = +d[n - 1].slice(0, 4), st = Math.max(1, Math.ceil((y1 - y0 + 1) / 7));
+  let last = -99;
+  d.forEach((t, i) => { const y = +t.slice(0, 4); if (t.slice(5, 7) === '01' && (y - y0) % st === 0 && X(i) - last > 34) { last = X(i);
+    g += '<text class="ax" x="' + X(i).toFixed(1) + '" y="' + (T + H + BH - 4) + '" text-anchor="middle">' + y + '</text>'; } });
+  g += '<path class="xsb" d="' + path(b) + '"/><path class="xss" d="' + path(s) + '"/>';
+  g += '<line class="hv" id="xshv" x1="0" x2="0" y1="' + T + '" y2="' + (T + H) + '" style="display:none"/><rect class="hit" x="' + L + '" y="0" width="' + (W - L - R) + '" height="' + (T + H + BH) + '"/>';
+  box.innerHTML = '<svg class="sgchart xseq" viewBox="0 0 ' + W + ' ' + (T + H + BH) + '" width="' + W + '" height="' + (T + H + BH) + '" role="img" aria-label="照做的淨值">' + g + '</svg>';
+  const svg = box.querySelector('svg'), hv = svg.querySelector('#xshv');
+  const show = i => { const xx = X(i).toFixed(1); hv.setAttribute('x1', xx); hv.setAttribute('x2', xx); hv.style.display = '';
+    rd.innerHTML = '<b>' + ymd(d[i]) + '</b>　照規則 ' + s[i].toFixed(2) + ' 倍（' + sg((s[i] - 1) * 100, 0) + '）　買進持有 ' + b[i].toFixed(2) + ' 倍（' + sg((b[i] - 1) * 100, 0) + '）'; };
+  const mv = e => { const bb = svg.getBoundingClientRect(), cx = ((e.touches ? e.touches[0].clientX : e.clientX) - bb.left) * W / bb.width;
+    show(Math.max(0, Math.min(n - 1, Math.round((cx - L) / (W - L - R) * (n - 1))))); };
+  svg.addEventListener('mousemove', mv); svg.addEventListener('touchmove', mv, {passive: true}); svg.addEventListener('touchstart', mv, {passive: true});
+  svg.addEventListener('mouseleave', () => { show(n - 1); hv.style.display = 'none'; });
+  show(n - 1); hv.style.display = 'none'; }
+function xsTr(x){ const box = document.getElementById('xstr'); if (!box) return;
+  const j = OCC && OCC.xs ? OCC.xs[x.k] : null; if (!j) { box.innerHTML = '<p class="note">沒有資料。</p>'; return; }
+  const tr = j.tr || [], trd = x.sp.kind === 'trade', list = XSV.all ? tr.slice().reverse() : tr.slice(-20).reverse();
+  const head = '<thead><tr><th class="l">買進</th><th class="l">賣出</th><th>' + (trd ? '抱幾天' : '交易日數') + '</th><th>' + (trd ? '淨報酬' : '這一段') + '</th></tr></thead>';
+  const body = list.map(t => '<tr><td class="l">' + ymd(t[0]) + '<small>' + nfmt(t[1]) + '</small></td><td class="l">' + (t[2] ? ymd(t[2]) : '<b>持有中</b>') +
+    '<small>' + nfmt(t[3]) + (t[2] ? '' : '（最新）') + '</small></td><td>' + t[4] + '</td><td class="' + cl(t[5]) + '"><b>' + sg(t[5] * 100, 1) + '</b></td></tr>').join('');
+  const wins = tr.filter(t => t[2] && t[5] > 0).length, done = tr.filter(t => t[2]).length;
+  box.innerHTML = '<p class="note">共 ' + tr.length + (trd ? ' 筆' : ' 段') + (done ? '，賺錢 ' + wins + (trd ? ' 筆' : ' 段') + '（' + Math.round(wins / done * 100) + '%）' : '') +
+    (XSV.all || tr.length <= 20 ? '' : '，列最近 20 ' + (trd ? '筆' : '段')) + '。' + (trd ? '淨報酬扣來回成本。' : '這一段的報酬扣進出成本；持有中的算到最新收盤、不扣成本。') + '</p>' +
+    '<div class="sgwrap"><table class="sgrt xstr">' + head + '<tbody>' + body + '</tbody></table></div>' +
+    '<p class="sgmore">' + (tr.length > 20 ? '<button type="button" id="xsall">' + (XSV.all ? '只看最近 20 ' + (trd ? '筆' : '段') : '全部 ' + tr.length + (trd ? ' 筆' : ' 段')) + '</button> ' : '') +
+    '<button type="button" id="xscsv">下載 CSV</button></p>'; }
+function xsCsv(x){ const j = OCC && OCC.xs ? OCC.xs[x.k] : null; if (!j) return;
+  const lines = [['買進日', '買進收盤', '賣出日', '賣出收盤', '交易日數', '報酬%']].concat(j.tr.map(t => [t[0], t[1], t[2] || '持有中', t[3], t[4], (t[5] * 100).toFixed(2)]));
+  const csv = '﻿' + lines.map(l => l.join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
+  a.download = '大神策略_' + (SG.mk[x.mk] || x.mk) + '_' + x.name + '.csv'; a.click(); }
+function xsClick(e){
+  const sb = e.target.closest('.xsseg button'); if (sb) { XSV.span = sb.dataset.v; xsSeg(); xsEq(CUR); return; }
+  if (e.target.closest('#xsall')) { XSV.all = !XSV.all; xsTr(CUR); return; }
+  if (e.target.closest('#xscsv')) xsCsv(CUR); }
 
 // ── 研究細節（研究卡，點了才載入）
 const RMK = SG.rmk || [], RCACHE = {};
