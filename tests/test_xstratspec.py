@@ -1,0 +1,75 @@
+"""大神策略的規格（docs/lab_expert_plan.md 第 4.1、6 節；arm/lab/xstratspec.py）：規格鎖定。
+
+VER 1（2026-10-20）在算正式成績之前寫定；要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
+from datetime import date
+
+from arm.lab import sigspec as SS
+from arm.lab import xstratspec as X
+
+BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "唯一", "建議買賣", "建議買", "建議賣", "目標價",
+          "零風險", "無風險", "穩賺不賠")
+
+
+def test_xstrat_spec_v1_is_locked():
+    assert X.VER == 1 and X.SPEC_DATE == "2026-10-20"
+    assert X.MARKETS == SS.MARKETS and X.NAMES == SS.NAMES
+    assert X.EVAL_START == {"tw": "1991-07-01", "spx": "1990-01-01", "ixic": "1990-01-01", "ndx": "1990-01-01",
+                            "sox": "1995-10-01"}
+    assert X.WARMUP_MONTHS == 17 and X.RECENT_YEARS == SS.RECENT_YEARS == 10
+    assert X.COST == {"tw": 0.001, "spx": 0.00025, "ixic": 0.00025, "ndx": 0.00025, "sox": 0.00025}
+    assert (X.LAG, X.LAG_REF) == (1, 0)
+    assert X.GROUP_ORDER == ("short", "season", "risk") and set(X.GROUPS) == set(X.GROUP_ORDER)
+    assert X.KINDS == {"trade": "交易型", "alloc": "進出型"}
+    assert X.KEYS == ("rsi2", "vixs", "tom", "hal", "faber", "ma200", "mom12")
+    assert (X.TR_N_MIN, X.TR_N10, X.TR_WIN, X.TR_EDGE) == (30, 10, 0.60, 0.05)
+    assert (X.AL_MDD, X.AL_YEARS_MIN, X.GRID_OK) == (2 / 3, 5, 2 / 3)
+    assert X.TIERS == ("good", "ref", "none", "few") and set(X.TIER_NAMES) == set(X.TIER_MARK) == set(X.TIERS)
+    assert X.TIER_NAMES == SS.STRAT_TIER_NAMES                         # 和個股策略同一套說法
+    assert (X.LUCK_DRAWS, X.LUCK_SEED, X.LUCK_SHIFT) == (400, 20261020, (0.15, 0.85))
+    assert X.BOARD_UP == ("buy", "hold", "sell", "turn_in") and X.BOARD_WARN == ("out", "turn_out")
+    assert set(X.STATE_NAMES) == {"buy", "hold", "sell", "wait", "in", "out", "turn_in", "turn_out"}
+
+
+def test_strategy_params_are_the_original_authors():
+    P = {s["k"]: s["p"] for s in X.STRATS}
+    assert P["rsi2"] == {"ma": 200, "rsi_n": 2, "rsi_max": 10, "exit_ma": 5}                 # Connors
+    assert P["vixs"] == {"ma": 200, "vix_ma": 10, "stretch": 0.05, "days": 3, "exit_rsi": 65}
+    assert P["tom"] == {"before": 1, "after": 3}                                             # Lakonishok & Smidt
+    assert P["hal"] == {"start": 11, "months": 6}                                            # Bouman & Jacobsen
+    assert P["faber"] == {"n": 10} and P["ma200"] == {"n": 200} and P["mom12"] == {"n": 12}
+    G = {s["k"]: s["grid"] for s in X.STRATS}
+    assert G["rsi2"] == {"rsi_max": (5, 10, 15, 20), "exit_ma": (3, 5, 10)}
+    assert G["vixs"] == {"stretch": (0.03, 0.05, 0.10), "exit_rsi": (55, 65, 75)}
+    assert G["tom"] == {"before": (0, 1, 2), "after": (2, 3, 4)}
+    assert G["hal"] == {"start": (10, 11, 12)} and G["faber"] == {"n": (8, 10, 12)}
+    assert G["ma200"] == {"n": (150, 200, 250)} and G["mom12"] == {"n": (9, 12, 15)}
+    for s in X.STRATS:                                   # 參數鄰近一定包含主參數
+        for k, vs in s["grid"].items():
+            assert s["p"][k] in vs
+        assert s["grp"] in X.GROUPS and s["kind"] in X.KINDS
+        assert set(s["mk"]) <= set(X.MARKETS) and s["name"] and s["who"] and s["src"] and s["logic"]
+    assert {s["k"] for s in X.STRATS if s["kind"] == "trade"} == {"rsi2", "vixs", "tom"}
+    assert X.BY_KEY["vixs"]["mk"] == ("spx", "ixic", "ndx", "sox")                          # VIX 衝刺只有美股
+    assert all(X.BY_KEY[k]["mk"] == X.MARKETS for k in X.KEYS if k != "vixs")
+
+
+def test_no_banned_words_in_strategy_text():
+    for s in X.STRATS:
+        for f in ("name", "logic", "src", "who"):
+            assert not any(w in s[f] for w in BANNED), (s["k"], f)
+    for v in list(X.STATE_NAMES.values()) + list(X.TIER_NAMES.values()) + list(X.GROUPS.values()):
+        assert not any(w in v for w in BANNED)
+
+
+def test_eval_start_leaves_warmup_in_real_data():
+    """評估起點之前至少 WARMUP_MONTHS 個月的資料（最長的參數鄰近是 15 個月動能、250 日均線；月底決定、隔天才買賣，再多 2 個月）。"""
+    from arm.lab import heatbubble as BB
+    from arm.lab import heatdata as HD
+    first = {"tw": min(d for d, v in BB.taiex_daily().items() if v)}
+    for mk in X.MARKETS[1:]:
+        first[mk] = min(d for d, v in HD.load(f"us_px_{mk}").items() if v)
+    for mk, d0 in first.items():
+        a, b = date.fromisoformat(d0), date.fromisoformat(X.EVAL_START[mk])
+        assert (b.year - a.year) * 12 + (b.month - a.month) >= X.WARMUP_MONTHS, mk
+    vix0 = min(d for d, v in HD.load("vix").items() if v)
+    assert vix0 <= "1990-01-02" and all(X.EVAL_START[mk] >= "1990-01-01" for mk in X.BY_KEY["vixs"]["mk"])
