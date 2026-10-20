@@ -308,3 +308,60 @@ def test_stock_and_industry_returns():
     me = {"2026-01": 100.0, "2026-02": 90.0, "2026-03": 110.0, "2026-04": 120.0}
     x = G._me_ret(me, "2026-01")
     assert set(x) == {1, 3} and abs(x[1][0] + 0.10) < 1e-12 and abs(x[3][0] - 0.20) < 1e-12 and abs(x[3][1] + 0.10) < 1e-12
+
+
+# ── 法人買賣超（sigspec VER 6 第 4.13 節；heatspec VER 8） ──────────────────────────
+
+def test_inst_amounts_and_ratio():
+    from arm.lab import heatcalc as HC
+    inst = {"2014-11-28": {"Dealer": -5, "Foreign_Investor": 10, "Investment_Trust": 2, "total": 7},
+            "2014-12-01": {"Dealer_Hedging": -3, "Dealer_self": 4, "Foreign_Investor": 6, "Investment_Trust": -1, "total": 6},
+            "2018-01-02": {"Dealer_Hedging": 1, "Dealer_self": -2, "Foreign_Dealer_Self": 5, "Foreign_Investor": -8,
+                           "Investment_Trust": 3, "total": -1}}
+    A = HC.inst_amounts(inst)
+    assert A["tot"] == {"2014-11-28": 7, "2014-12-01": 6, "2018-01-02": -1}
+    assert A["fi"] == {"2014-11-28": 10, "2014-12-01": 6, "2018-01-02": -3}          # 外資＝外資＋外資自營商（同 L3）
+    assert A["it"]["2018-01-02"] == 3 and A["dl"] == {"2014-12-01": 4, "2018-01-02": -2}   # 自營商自行買賣 2014-12 起
+    cal = ["2014-11-28", "2014-12-01", "2018-01-02"]
+    D = {"inst": inst, "turnover": {d: [100.0, 0] for d in cal}}
+    assert HC.inst_ratio(cal, D, "fi", 1) == {"2014-11-28": 10.0, "2014-12-01": 6.0, "2018-01-02": -3.0}
+    r2 = HC.inst_ratio(cal, D, "tot", 2)
+    assert r2 == {"2014-12-01": 6.5, "2018-01-02": 2.5}                            # 2 日合計 ÷ 2 日成交金額（%）
+
+
+def test_run_days_and_cold_exits_direct():
+    amt = np.array([1, 2, 3, 4, 5, 6, np.nan, 1, 1, 1, 1, 1, -1, -2, 0, -1, -1, -1, -1, -1], dtype=float)
+    assert G.run_days(amt, 1, 5) == [4, 11] and G.run_days(amt, -1, 5) == [19] and G.run_days(amt, -1, 2) == [13, 16]
+    rng = np.random.default_rng(7)
+    x = [None if rng.random() < 0.05 else float(rng.choice([5, 15, 30, 50]) if rng.random() < 0.7 else rng.uniform(0, 100))
+         for _ in range(600)]
+    we = list(range(4, 600, 5))
+    got = G.cold_exits(x, we, 4)
+    out, run = [], 0                                                    # 直接算：連續 ≥ 4 個週末 < 20，之後第一個 ≥ 20
+    for i in we:
+        if x[i] is not None and x[i] < 20:
+            run += 1
+            continue
+        if x[i] is not None and run >= 4:
+            out.append(i)
+        run = 0
+    assert got == out
+    from arm.lab import hotdd as HDD                                    # 鏡像：把 0～100 反過來，就是大賣超結束的規則
+    flip = [None if v is None else 100 - v for v in x]                 # （沒有剛好等於 20 的值，兩條界線一致）
+    assert HDD.exits(flip, we, 4) == got
+
+
+def test_research_has_inst_rows_and_no_duplicate_heat_rows():
+    R = G.load_research()
+    rows = [r for r in R["rows"] if r["cat"] == "inst"]
+    assert len(rows) == 90 and len({r["id"] for r in rows}) == 90
+    assert not [r for r in R["rows"] if r["cat"] == "heat" and r["var"] in set(S.INST_HEAT.values())]
+    for r in rows:
+        assert r["mk"] == "tw" and r["grp"] in S.INST_WHO
+        sig = r["sig"]
+        if sig.endswith(("run5", "run10")):
+            assert r["H"] == S.INST_H["run"] and r["var"].endswith("1")
+        else:
+            w = int(r["var"][len(r["grp"]):])
+            assert r["H"] == S.INST_H[w] and (r["grp"], w) not in S.INST_SKIP
+    assert G.inst_code("fi5") == "C9" and G.inst_code("dl20") == "C14" and G.inst_code("tot5") is None

@@ -1,7 +1,8 @@
 """景氣溫度頁（docs/lab_heat_plan.md）：規格鎖定＋計算核心。
 
 規格是看任何結果之前寫定的（第三版＝四個面向，2026-10-17，規劃文件第 12.6、12.7 節）。要改就 VER＋1、
-寫進規劃文件，不在舊版本上改——這支測試鎖住現行版本（VER 7：第六版的五個面向不變，加上泡沫面向）。"""
+寫進規劃文件，不在舊版本上改——這支測試鎖住現行版本（VER 7：第六版的五個面向不變，加上泡沫面向；
+VER 8：籌碼面向加法人 5、20 日買賣超 6 項，docs/lab_inst_plan.md）。"""
 import random
 
 from arm.lab import heat as H
@@ -9,20 +10,21 @@ from arm.lab import heatspec as S
 
 
 def test_spec_v7_is_locked():
-    assert S.VER == 7 and S.SPEC_DATE == "2026-10-18" and S.MARKET == "tw"
+    assert S.VER == 8 and S.SPEC_DATE == "2026-10-20" and S.MARKET == "tw"
     # 第四版的計分規格（第五、六版沒有改分數；第七版只加泡沫面向）
     assert list(S.DIMS) == ["fund", "chip", "gliq", "tliq", "tech", "bubl"]
     assert {d: (v["fwd"], v["freq"]) for d, v in S.DIMS.items()} == {
         "fund": ((120, 250), "m"), "chip": ((10, 60), "d"), "gliq": ((60, 250), "d"), "tliq": ((60, 250), "d"),
         "tech": ((10, 60), "d"), "bubl": ((120, 250), "m")}
     assert S.ITEMS == {"fund": ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"],
-                       "chip": ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"],
+                       "chip": ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11", "C12", "C13", "C14"],
                        "gliq": ["G1", "G2", "G3", "G4", "G5"],
                        "tliq": ["L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10"],
                        "tech": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12", "T13"],
                        "bubl": ["X1", "X2", "X3", "X4", "X5", "X6", "X7"]}
     assert S.HOT == {"B1": 1, "B2": 1, "B3": 1, "B4": 1, "B5": 1, "B6": 1, "B7": 1, "B8": 1,
                      "C1": 1, "C2": 1, "C3": -1, "C4": 1, "C5": -1, "C6": -1, "C7": -1, "C8": 1,
+                     "C9": -1, "C10": -1, "C11": -1, "C12": -1, "C13": -1, "C14": -1,
                      "G1": -1, "G2": -1, "G3": -1, "G4": 1, "G5": 1,
                      "L1": 1, "L2": 1, "L3": 1, "L4": -1, "L5": 1, "L6": 1, "L7": 1, "L8": 1, "L9": -1, "L10": 1,
                      "T1": 1, "T2": 1, "T3": 1, "T4": 1, "T5": 1, "T6": 1, "T7": 1, "T8": -1, "T9": -1, "T10": -1,
@@ -37,7 +39,7 @@ def test_spec_v7_is_locked():
     assert S.DAILY_LAG == 1 and S.US == ("G1", "G2", "G3", "G4", "T9") and S.PROXY == {"T10": "T9"}
     assert S.DIRECT == {"T11": 6} and S.STALE == {"C8": 14, "L7": 10, "X5": 14} and S.AVAIL_DAYS == {"C8": 7}
     assert (S.MIN_AVAIL, S.CHG_DAYS, S.MIN_N) == (2 / 3, 5, {"d": 750, "m": 96})
-    assert [H.need(len(v)) for v in S.ITEMS.values()] == [6, 6, 4, 7, 9, 5]  # 8 要 6、8 要 6、5 要 4、10 要 7、13 要 9、7 要 5
+    assert [H.need(len(v)) for v in S.ITEMS.values()] == [6, 10, 4, 7, 9, 5]  # 8 要 6、14 要 10（VER 8）、5 要 4、10 要 7、13 要 9、7 要 5
     assert (S.BOOT_N, S.BOOT_SEED, S.CI) == (2000, 20261017, 0.95)
     assert S.SPLIT_REF == {"d": (("2014-01-01", "2019-12-31"), ("2020-01-01", None)),
                            "m": (("1999-01-01", "2012-12-31"), ("2013-01-01", None))}
