@@ -1,6 +1,7 @@
 """大神策略的規格（docs/lab_expert_plan.md 第 4.1、6 節；arm/lab/xstratspec.py）：規格鎖定。
 
-VER 1（2026-10-20）在算正式成績之前寫定；要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
+VER 1（2026-10-20）在算正式成績之前寫定；VER 2（2026-10-21，台股短線改台指期＋當天收盤）也在重算成績之前寫定。
+要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from datetime import date
 
 from arm.lab import sigspec as SS
@@ -10,8 +11,8 @@ BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會
           "零風險", "無風險", "穩賺不賠")
 
 
-def test_xstrat_spec_v1_is_locked():
-    assert X.VER == 1 and X.SPEC_DATE == "2026-10-20"
+def test_xstrat_spec_v2_is_locked():
+    assert X.VER == 2 and X.SPEC_DATE == "2026-10-21" and X.SPEC_DATE_V1 == "2026-10-20"
     assert X.MARKETS == SS.MARKETS and X.NAMES == SS.NAMES
     assert X.EVAL_START == {"tw": "1991-07-01", "spx": "1990-01-01", "ixic": "1990-01-01", "ndx": "1990-01-01",
                             "sox": "1995-10-01"}
@@ -26,8 +27,23 @@ def test_xstrat_spec_v1_is_locked():
     assert X.TIERS == ("good", "ref", "none", "few") and set(X.TIER_NAMES) == set(X.TIER_MARK) == set(X.TIERS)
     assert X.TIER_NAMES == SS.STRAT_TIER_NAMES                         # 和個股策略同一套說法
     assert (X.LUCK_DRAWS, X.LUCK_SEED, X.LUCK_SHIFT) == (400, 20261020, (0.15, 0.85))
-    assert X.BOARD_UP == ("buy", "hold", "sell", "turn_in") and X.BOARD_WARN == ("out", "turn_out")
-    assert set(X.STATE_NAMES) == {"buy", "hold", "sell", "wait", "in", "out", "turn_in", "turn_out"}
+    assert X.BOARD_UP == ("buy", "hold", "sell", "turn_in", "near") and X.BOARD_WARN == ("out", "turn_out")
+    assert set(X.STATE_NAMES) == {"buy", "hold", "sell", "wait", "near", "in", "out", "turn_in", "turn_out"}
+    assert X.NEAR == 0.015
+
+
+def test_v2_taiwan_short_term_uses_futures_and_same_day_close():
+    """VER 2（使用者選「台指期＋收盤前下單」）：只改台股 RSI(2)、月底月初；美股與台股進出型照 VER 1。"""
+    assert X.COST_FUT == 0.00005
+    assert X.FUT == (("tw", "rsi2"), ("tw", "tom")) and X.SAME_DAY == (("tw", "rsi2"),)
+    for s in X.STRATS:
+        for mk in s["mk"]:
+            fut = (mk, s["k"]) in X.FUT
+            assert X.cost(mk, s["k"]) == (X.COST_FUT if fut else X.COST[mk])
+            same = (mk, s["k"]) in X.SAME_DAY
+            assert X.lag(mk, s["k"]) == (0 if same else X.LAG)
+            assert X.ref_lag(mk, s["k"]) == (X.LAG if same else X.LAG_REF)
+            assert X.lag(mk, s["k"]) != X.ref_lag(mk, s["k"])          # 參考列一定是另一種時點
 
 
 def test_strategy_params_are_the_original_authors():
