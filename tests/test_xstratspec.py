@@ -96,8 +96,8 @@ def test_strategy_params_are_the_original_authors():
 
 def test_no_banned_words_in_strategy_text():
     for s in X.STRATS:
-        for f in ("name", "logic", "src", "who"):
-            assert not any(w in s[f] for w in BANNED), (s["k"], f)
+        for f in ("name", "logic", "src", "who", "pnote"):
+            assert not any(w in s.get(f, "") for w in BANNED), (s["k"], f)
     for v in list(X.STATE_NAMES.values()) + list(X.TIER_NAMES.values()) + list(X.GROUPS.values()):
         assert not any(w in v for w in BANNED)
 

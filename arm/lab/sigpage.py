@@ -1343,7 +1343,7 @@ function xsPanel(x){ const r = x.xs, sp = x.sp, tn = (SG.stiers[r.t] || ['', '']
   h += '<p class="xsv">' + mark(r.t, x.best) + ' <b>' + esc(tn) + '</b>　' + esc(r.line) + '</p>';
   h += '<h4>現在</h4><p class="sgdl"><span class="sgd sgd-' + (r.side || 'none') + '">' + esc(XS.sn[r.st] || '') + '</span> ' + esc(r.now) + '</p>';
   h += '<h4>怎麼做</h4><p class="sgdl">' + esc(sp.logic) + '</p><ul class="xsr">' + r.rules.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
-    '<p class="note">出處：' + esc(sp.who) + '《' + esc(sp.src) + '》。參數照原作者，沒有調。</p>';
+    '<p class="note">出處：' + esc(sp.who) + '《' + esc(sp.src) + '》。' + (sp.pnote ? esc(sp.pnote) : '參數照原作者，沒有調。') + '</p>';
   h += '<h4>過去照規則做的成績</h4>' + xsStats(x) + (x.xk === 'hal' ? xsSeason(x) : '');
   h += '<h4>判定依據</h4>' + xsWhy(x);
   h += '<h4>參數鄰近</h4>' + xsGrid(x);

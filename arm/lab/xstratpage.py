@@ -527,7 +527,8 @@ def payload(R: dict) -> dict:
     spec = {}
     for s in S.STRATS:
         spec[s["k"]] = {"name": s["name"], "grp": s["grp"], "kind": s["kind"], "who": s["who"], "src": s["src"],
-                        "logic": s["logic"], "pk": list(s["grid"]), "pn": [PARAM_NAMES[s["k"]][x] for x in s["grid"]],
+                        "logic": s["logic"], "pnote": s.get("pnote") or "",
+                        "pk": list(s["grid"]), "pn": [PARAM_NAMES[s["k"]][x] for x in s["grid"]],
                         "main": [s["p"][x] for x in s["grid"]]}
     m: dict = {}
     for mk in S.MARKETS:
