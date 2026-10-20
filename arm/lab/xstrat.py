@@ -20,7 +20,9 @@ from . import xstratspec as S
 # ── 資料 ───────────────────────────────────────────────────────────────────
 
 def data(mk: str) -> dict:
-    """{"mk", "cal": [日期], "px": 收盤, "vix": VIX 收盤（美股，對到同一個日曆；沒有＝nan）}。"""
+    """{"mk", "cal": [日期], "px": 收盤, "vix": VIX 收盤（美股，對到同一個日曆；沒有＝nan）,
+    "vixa": 收盤時已經知道的 VIX（美股＝當天；台股＝前一個美股交易日，同景氣頁）, "vol": 成交量（台股成交金額；費半沒有）,
+    "adv"／"dec": 台股上漲、下跌家數（景氣頁同一份，2013 起）}。"""
     from . import heatdata as HD
     if mk == "tw":
         from . import heatbubble as BB
@@ -29,9 +31,21 @@ def data(mk: str) -> dict:
         ser = HD.load(f"us_px_{mk}")
     cal = sorted(d for d, v in ser.items() if v)
     out = {"mk": mk, "cal": cal, "px": np.array([float(ser[d]) for d in cal])}
+    vx = HD.load("vix") or {}
     if mk != "tw":
-        vx = HD.load("vix") or {}
         out["vix"] = np.array([float(vx[d]) if vx.get(d) else np.nan for d in cal])
+        out["vixa"] = out["vix"]
+        vol = HD.load(f"us_vol_{mk}") if mk != "sox" else None
+        if vol:
+            out["vol"] = np.array([float(vol[d]) if vol.get(d) else np.nan for d in cal])
+    else:
+        from . import heat as H
+        out["vixa"] = np.array([np.nan if v is None else float(v) for v in H.asof_daily(cal, vx, after=True, stale=7)])
+        tv = HD.load("turnover") or {}
+        out["vol"] = np.array([float(tv[d][0]) if tv.get(d) and tv[d][0] else np.nan for d in cal])
+        br = HD.load("breadth") or {}
+        out["adv"] = np.array([float(br[d][0]) if br.get(d) else np.nan for d in cal])
+        out["dec"] = np.array([float(br[d][1]) if br.get(d) else np.nan for d in cal])
     return out
 
 
@@ -344,6 +358,202 @@ def bh_stats(px: np.ndarray, cal: list[str], lo: int) -> dict:
     return curve_stats(px[lo:] / px[lo], cal, lo)
 
 
+# ── 落底型（規格第 9 節，VER 3） ─────────────────────────────────────────────────
+
+def wma(x: np.ndarray, n: int) -> np.ndarray:
+    """加權移動平均（權重 1…n，最近的最重；窗內有 nan＝nan）。"""
+    x = np.asarray(x, dtype=float)
+    out = np.full(len(x), np.nan)
+    w = np.arange(1, n + 1, dtype=float)
+    for i in range(n - 1, len(x)):
+        seg = x[i - n + 1:i + 1]
+        if not np.isnan(seg).any():
+            out[i] = float((seg * w).sum() / w.sum())
+    return out
+
+
+def ema_skip(x: np.ndarray, n: int) -> np.ndarray:
+    """指數平均（α＝2 ÷（n＋1），第一個有值的那天＝當天的值；沒有值的日子＝nan，下一個有值的日子接著前一個平均算）。"""
+    a = 2.0 / (n + 1.0)
+    out = np.full(len(x), np.nan)
+    v = None
+    for i, z in enumerate(np.asarray(x, dtype=float)):
+        if z != z:
+            continue
+        v = z if v is None else a * z + (1.0 - a) * v
+        out[i] = v
+    return out
+
+
+def coppock_curve(mc: np.ndarray, r1: int, r2: int, n: int) -> np.ndarray:
+    """月底收盤 → Coppock 曲線（第 q 個月底：r1、r2 個月漲跌幅〔%〕相加，再取 n 個月加權平均）。"""
+    Q = len(mc)
+    s = np.full(Q, np.nan)
+    for q in range(max(r1, r2), Q):
+        s[q] = 100.0 * (mc[q] / mc[q - r1] - 1.0) + 100.0 * (mc[q] / mc[q - r2] - 1.0)
+    return wma(s, n)
+
+
+def coppock_days(px: np.ndarray, ends: list[int], p: dict) -> tuple[list[int], int]:
+    """在 0 以下轉上的月底（交易日位置）；第一個可能出現訊號的交易日。"""
+    c = coppock_curve(px[ends], p["r1"], p["r2"], p["wma"])
+    out = [ends[q] for q in range(2, len(c)) if c[q - 1] < 0 and c[q] > c[q - 1] and c[q - 1] <= c[q - 2]]
+    ok = [ends[q] for q in range(2, len(c)) if c[q - 2] == c[q - 2]]
+    return out, (ok[0] if ok else len(px))
+
+
+def vix_days(v: np.ndarray, level: float, reset: int) -> tuple[list[int], int]:
+    """VIX ≥ level、之前 reset 天都 ＜ level（窗內有 nan 不算）。"""
+    T = len(v)
+    ok = ~np.isnan(v)
+    hi = np.where(ok, v >= level, False)
+    out, first = [], T
+    for t in range(reset, T):
+        if not ok[t - reset:t + 1].all():
+            continue
+        first = min(first, t)
+        if hi[t] and not hi[t - reset:t].any():
+            out.append(t)
+    return out, first
+
+
+def breadth_ratio(adv: np.ndarray, dec: np.ndarray) -> np.ndarray:
+    n = adv + dec
+    return np.where((n >= S.BREADTH_MIN) & ~np.isnan(n), adv / np.where(n > 0, n, np.nan), np.nan)
+
+
+def zweig_days(adv: np.ndarray, dec: np.ndarray, p: dict) -> tuple[list[int], int]:
+    """上漲家數占比的 ema 日指數平均：E[t] ≥ hi、E[t−1] ＜ hi，第 t−days～t−1 天有一天 E ≤ lo。"""
+    E = ema_skip(breadth_ratio(adv, dec), p["ema"])
+    T, k = len(E), p["days"]
+    out = [t for t in range(k, T) if E[t] >= p["hi"] and E[t - 1] < p["hi"] and (E[t - k:t] <= p["lo"]).any()]
+    idx = np.nonzero(~np.isnan(E))[0]
+    return out, (int(idx[0]) + k if len(idx) else T)
+
+
+def ftd_scan(px: np.ndarray, vol: np.ndarray, p: dict, upto: int | None = None) -> tuple[list[int], dict]:
+    """跟進日（規格第 9 節）→ (跟進日, 資料最後的修正狀態 {"in", "low", "day1", "done"})。"""
+    T = len(px) if upto is None else upto
+    W = S.FTD_HIGH
+    out = []
+    st = {"in": False, "low": None, "day1": None, "done": False, "hi": None}
+    for i in range(W - 1, T):
+        hi = float(px[i - W + 1:i + 1].max())
+        if st["in"] and px[i] >= S.FTD_RESET * hi:
+            st = {"in": False, "low": None, "day1": None, "done": False, "hi": None}
+        if not st["in"] and px[i] <= (1.0 - p["corr"]) * hi:
+            st = {"in": True, "low": i, "day1": None, "done": False, "hi": hi}
+            continue
+        if not st["in"]:
+            continue
+        if px[i] < px[st["low"]]:
+            st.update({"low": i, "day1": None})
+            continue
+        if st["done"]:
+            continue
+        if st["day1"] is None:
+            if i > st["low"] and px[i] > px[i - 1]:
+                st["day1"] = i
+            continue
+        if i - st["day1"] + 1 >= p["day"] and px[i] / px[i - 1] - 1.0 >= p["up"] and vol[i] == vol[i] and vol[i - 1] == vol[i - 1] \
+                and vol[i] > vol[i - 1]:
+            out.append(i)
+            st["done"] = True
+    return out, st
+
+
+def ftd_days(px: np.ndarray, vol: np.ndarray, p: dict) -> tuple[list[int], int]:
+    out, _ = ftd_scan(px, vol, p)
+    ok = np.nonzero(~np.isnan(vol[1:]) & ~np.isnan(vol[:-1]))[0]
+    first = max(S.FTD_HIGH - 1, int(ok[0]) + 1) if len(ok) else len(px)
+    return out, first
+
+
+def dev_days(px: np.ndarray, p: dict) -> tuple[list[int], int]:
+    m = sma(px, p["ma"])
+    dv = px / m - 1.0
+    out = [t for t in range(1, len(px)) if dv[t] <= p["th"] and dv[t - 1] > p["th"]]
+    idx = np.nonzero(~np.isnan(dv))[0]
+    return out, (int(idx[0]) + 1 if len(idx) else len(px))
+
+
+def dedupe(days, H: int) -> list[int]:
+    """一次訊號之後 H 個交易日內再出現不算新的一次（同 sigcat.dedupe）。"""
+    out, last = [], None
+    for t in sorted(days):
+        if last is not None and t - last <= H:
+            continue
+        out.append(int(t))
+        last = t
+    return out
+
+
+def dip_net(px: np.ndarray, h: int, c: float) -> np.ndarray:
+    """第 b 天收盤買、第 b＋h 天收盤賣的淨報酬（超過資料＝nan）。"""
+    out = np.full(len(px), np.nan)
+    if len(px) > h:
+        out[:len(px) - h] = px[h:] / px[:len(px) - h] * (1.0 - c) / (1.0 + c) - 1.0
+    return out
+
+
+def dip_mae(px: np.ndarray, b: int, h: int) -> float:
+    return float(max(0.0, 1.0 - px[b + 1:b + h + 1].min() / px[b]))
+
+
+def dip_stats(px: np.ndarray, days: list[int], H: int, c: float, lo: int, hs: tuple = ()) -> dict:
+    """落底型一組訊號日（已去重、≥ lo）→ 次數、賺錢比例、中位數、平均、中途最多跌、隨便挑一天；hs＝另列的天數。"""
+    T = len(px)
+    net = dip_net(px, H, c)
+    bs = [t + S.LAG for t in days if t + S.LAG + H < T]
+    out: dict = {"n": len(bs)}
+    b0 = lo + S.LAG
+    base = net[b0:T - H] if T - H > b0 else np.array([])
+    out["base"] = float((base > 0).mean()) if len(base) else None
+    if bs:
+        r = net[bs]
+        out.update({"win": float((r > 0).mean()), "med": float(np.median(r)), "avg": float(r.mean()),
+                    "worst": float(r.min()), "best": float(r.max()),
+                    "mae": float(np.median([dip_mae(px, b, H) for b in bs]))})
+    hx = {}
+    for h in hs:
+        nh = dip_net(px, h, c)
+        bb = [t + S.LAG for t in days if t + S.LAG + h < T]
+        bh = nh[b0:T - h] if T - h > b0 else np.array([])
+        hx[h] = {"n": len(bb), "win": float((nh[bb] > 0).mean()) if bb else None, "med": float(np.median(nh[bb])) if bb else None,
+                 "base": float((bh > 0).mean()) if len(bh) else None}
+    if hs:
+        out["hs"] = hx
+    return out
+
+
+def dip_pass(s: dict) -> bool:
+    return bool(s.get("n", 0) >= S.DIP_N_MIN and s.get("win") is not None and s.get("base") is not None
+                and s["win"] >= S.DIP_WIN and s["win"] - s["base"] >= S.DIP_EDGE and s["med"] > 0)
+
+
+def dip_pass_recent(s: dict) -> bool | None:
+    if s.get("n", 0) < S.DIP_N10:
+        return None
+    return bool(s.get("base") is not None and s["win"] >= S.DIP_WIN and s["win"] - s["base"] >= S.DIP_EDGE and s["med"] > 0)
+
+
+def luck_dip(px: np.ndarray, raw: list[int], lo: int, H: int, c: float, key: str, win: float | None) -> float | None:
+    """打亂測試（只標示）：訊號日（去重前）在 lo…T−1 裡整段挪動、去重後算賺錢比例。"""
+    if win is None or not raw:
+        return None
+    T = len(px)
+    L = T - lo
+    net = dip_net(px, H, c)
+    r0 = np.asarray(raw, dtype=np.int64) - lo
+    ge = 0
+    for o in _offsets(key, L).tolist():
+        d = dedupe((lo + (r0 + o) % L).tolist(), H)
+        bs = [t + S.LAG for t in d if t + S.LAG + H < T]
+        if bs and float((net[bs] > 0).mean()) >= win - 1e-12:
+            ge += 1
+    return (1 + ge) / (1 + S.LUCK_DRAWS)
+
+
 # ── 判定（規格第 6 節） ──────────────────────────────────────────────────────
 
 def trade_pass(s: dict) -> bool:
@@ -460,6 +670,7 @@ class Ctx:
     def __init__(self, D: dict):
         self.mk, self.cal, self.px = D["mk"], list(D["cal"]), np.asarray(D["px"], dtype=float)
         self.vix = D.get("vix")
+        self.D = D
         self.T = len(self.cal)
         self.c = S.COST[self.mk]                         # 進出型（ETF）；交易型用 S.cost(市場, 策略)
         self.s0 = _idx_from(self.cal, S.EVAL_START[self.mk])
@@ -516,6 +727,21 @@ class Ctx:
             return pos_hal(self.cal, p["start"], p["months"], self.fut[0] if (now and self.fut) else None)
         raise KeyError(k)
 
+    # 落底型：去重前的訊號日、第一個可能出現訊號的日子
+    def dip_raw(self, k: str, p: dict, now: bool = False) -> tuple[list[int], int]:
+        D = self.D
+        if k == "coppock":
+            return coppock_days(self.px, self.ends_now if now else self.ends, p)
+        if k == "vix40":
+            return vix_days(D["vixa"], p["level"], p["reset"])
+        if k == "zweig":
+            return zweig_days(D["adv"], D["dec"], p)
+        if k == "ftd":
+            return ftd_days(self.px, D["vol"], p)
+        if k == "dev60":
+            return dev_days(self.px, p)
+        raise KeyError(k)
+
 
 def _trade_eval(C: Ctx, k: str, p: dict, lag: int) -> dict:
     c = S.cost(C.mk, k)
@@ -526,6 +752,25 @@ def _trade_eval(C: Ctx, k: str, p: dict, lag: int) -> dict:
     full.update({kk: v for kk, v in curve_stats(eq, C.cal, C.s0).items() if kk in ("cagr", "mdd")})
     full["expo"] = float(trade_held(C.T, [t for t in tr if t[1] >= C.s0])[C.s0 + 1:].mean()) if C.T > C.s0 + 1 else None
     return {"tr": tr, "full": full, "eq": eq}
+
+
+def _dip_eval(C: Ctx, k: str, p: dict, H: int, hs: tuple = ()) -> dict:
+    raw, first = C.dip_raw(k, p)
+    lo = max(C.s0, first)
+    raw = [t for t in raw if t >= lo]
+    days = dedupe(raw, H)
+    c = S.cost(C.mk, k)
+    full = dip_stats(C.px, days, H, c, lo, hs)
+    full["ok"] = dip_pass(full)
+    return {"raw": raw, "days": days, "lo": lo, "full": full}
+
+
+def _b1_ref(C: Ctx, H: int, c: float, lo: int) -> dict:
+    """同一個市場 5 日急跌（bottomspec E5）隔天收盤買、抱 H 天（只列，不判定）。"""
+    from . import bottom as BO
+    from . import bottomspec as BS
+    ev = [t for t in BO.events_e5(C.px, BS.E5_TH[C.mk]) if t >= lo]
+    return dip_stats(C.px, ev, H, c, lo)
 
 
 def _alloc_eval(C: Ctx, k: str, p: dict, lag: int, lo: int | None = None) -> dict:
@@ -579,6 +824,32 @@ def strategy(C: Ctx, spec: dict) -> dict:
         out["eq"] = _sample(C, M["eq"], C.s0)
         out["tr"] = [[C.cal[e], _r(C.px[e], 2), C.cal[q], _r(C.px[q], 2), q - e, _r(net(C.px[e], C.px[q], c), 5)]
                      for _, e, _, q in M["tr"] if e >= C.s0]
+    elif kind == "dip":
+        H = spec["H"]
+        c = S.cost(C.mk, k)
+        out.update({"cost": c, "lag": S.LAG, "H": H})
+        M = _dip_eval(C, k, p, H, S.DIP_HS)
+        lo = M["lo"]
+        rlo = max(lo, C.r0)
+        rec = dip_stats(C.px, [t for t in M["days"] if t >= rlo], H, c, rlo)
+        rec_ok = dip_pass_recent(rec)
+        grid = []
+        for q in _combos(spec["grid"]):
+            pp = {**p, **q}
+            g = M if pp == p else _dip_eval(C, k, pp, H)
+            f = g["full"]
+            grid.append({"p": q, "ok": f["ok"], "n": f["n"], "win": f.get("win"), "base": f.get("base"), "med": f.get("med")})
+        share = sum(g["ok"] for g in grid) / len(grid)
+        few = M["full"]["n"] < S.DIP_N_MIN
+        full = M["full"]
+        out.update({"full": full, "rec": rec, "rec_ok": rec_ok, "grid": grid, "grid_ok": share, "a": C.cal[lo],
+                    "tier": tier(kind, full["ok"], rec_ok, share, few),
+                    "p": luck_dip(C.px, M["raw"], lo, H, c, key, full.get("win")),
+                    "b1": _b1_ref(C, H, c, lo)})
+        tr = [(t, t + S.LAG, t + S.LAG + H, t + S.LAG + H) for t in M["days"] if t + S.LAG + H < C.T]
+        out["eq"] = _sample(C, trade_equity(C.px, tr, lo, c), lo)
+        out["tr"] = [[C.cal[e], _r(C.px[e], 2), C.cal[q], _r(C.px[q], 2), q - e, _r(net(C.px[e], C.px[q], c), 5),
+                      _r(dip_mae(C.px, e, H), 5), C.cal[t]] for t, e, _, q in tr]
     else:
         out.update({"cost": C.c, "lag": S.LAG})
         M = _alloc_eval(C, k, p, S.LAG)
@@ -682,11 +953,78 @@ def same_day_levels(C: Ctx, p: dict, st: str) -> dict:
     return out
 
 
+def _last_valid(x: np.ndarray, t: int) -> tuple[float | None, int | None]:
+    for j in range(t, -1, -1):
+        if x[j] == x[j]:
+            return float(x[j]), j
+    return None, None
+
+
+def dip_now(C: Ctx, spec: dict) -> dict:
+    """落底型的現在（規格第 9 節）：buy（最後一天收盤出現訊號）、hold（還在抱的期間）、wait；附各指標現在的數值。"""
+    k, p, H = spec["k"], spec["p"], spec["H"]
+    t, px, D = C.T - 1, C.px, C.D
+    out: dict = {"st": "wait", "d": C.cal[t], "nx": C.fut[0] if C.fut else None, "H": H, "px": _r(px[t], 2)}
+    raw, first = C.dip_raw(k, p, now=True)
+    lo = max(C.s0, first)
+    days = dedupe([d for d in raw if d >= lo], H)
+    if days:
+        sd = days[-1]
+        e = sd + S.LAG
+        out["sd"] = C.cal[sd]
+        if e > t:
+            out["st"] = "buy"
+        elif e + H > t:
+            fut = future_days(C.mk, C.cal[-1], e + H - t)
+            out.update({"st": "hold", "ed": C.cal[e], "ep": _r(px[e], 2), "ret": _r(px[t] / px[e] - 1.0, 5), "held": t - e,
+                        "qd": fut[-1] if fut else None, "left": e + H - t})
+        else:
+            q = e + H
+            out.update({"ld": C.cal[sd], "lret": _r(net(px[e], px[q], S.cost(C.mk, k)), 5)})
+    if k == "coppock":
+        mc = px[C.ends]
+        cv = coppock_curve(mc, p["r1"], p["r2"], p["wma"])
+        if len(cv) >= 2:
+            out.update({"cm": C.cal[C.ends[-1]][:7], "cv": _r(cv[-1], 2), "cp": _r(cv[-2], 2)})
+        if not C.last_end:
+            cn = coppock_curve(np.append(mc, px[t]), p["r1"], p["r2"], p["wma"])
+            out["cnow"] = _r(cn[-1], 2)
+        md = [x for x in [C.cal[t]] + C.fut if x[:7] == C.cal[t][:7]]
+        out["chk"] = md[-1] if md else None
+    elif k == "vix40":
+        v = D["vixa"]
+        val, j = _last_valid(v, t)
+        out["vix"] = _r(val, 2)
+        w = v[max(0, t - p["reset"]):t + 1]
+        out["vmax"] = _r(float(np.nanmax(w)), 2) if np.isfinite(w).any() else None
+    elif k == "zweig":
+        E = ema_skip(breadth_ratio(D["adv"], D["dec"]), p["ema"])
+        val, j = _last_valid(E, t)
+        out["e"] = _r(val, 4)
+        out["ed_"] = C.cal[j] if j is not None else None
+        w = E[max(0, t - p["days"] + 1):t + 1]
+        out["emin"] = _r(float(np.nanmin(w)), 4) if np.isfinite(w).any() else None
+    elif k == "ftd":
+        _, st = ftd_scan(px, D["vol"], p)
+        hi = float(px[max(0, t - S.FTD_HIGH + 1):t + 1].max())
+        out.update({"dd": _r(px[t] / hi - 1.0, 4), "in": bool(st["in"]), "done": bool(st["done"])})
+        if st["in"] and st["low"] is not None:
+            out["low_d"], out["low_px"] = C.cal[st["low"]], _r(px[st["low"]], 2)
+            if st["day1"] is not None:
+                out["rday"] = t - st["day1"] + 1
+    elif k == "dev60":
+        m = sma(px, p["ma"])[t]
+        out["dev"] = _r(px[t] / m - 1.0, 4) if m == m else None
+    return out
+
+
 def now_state(C: Ctx, spec: dict) -> dict:
     k, p = spec["k"], spec["p"]
     t = C.T - 1
     px = C.px
     nx = C.fut[0] if C.fut else None                   # 下一個交易日（照休市表）
+    if spec["kind"] == "dip":
+        return dip_now(C, spec)
     if spec["kind"] == "trade":
         lag = S.lag(C.mk, k)
         _, st = C.trades(k, p, lag, now=True)

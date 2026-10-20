@@ -32,7 +32,10 @@ def main() -> None:
         for k, r in (R.get(mk) or {}).items():
             f, rc = r["full"], r["rec"]
             mark = S.TIER_MARK[r["tier"]]
-            if r["kind"] == "trade":
+            if r["kind"] == "dip":
+                print(f"  {mark} {S.BY_KEY[k]['name']}：{f['n']} 次 抱 {r['H']} 天賺錢 {_p(f.get('win'))}（隨便挑 {_p(f.get('base'))}）"
+                      f"中位 {_p(f.get('med'), 1, True)}｜近 10 年 {rc.get('n', 0)} 次｜鄰近 {r['grid_ok']:.2f}｜現在 {r['now']['st']}")
+            elif r["kind"] == "trade":
                 print(f"  {mark} {S.BY_KEY[k]['name']}：{f['n']} 筆 勝率 {_p(f['win'])}（隨便挑 {_p(f['base'])}）平均 {_p(f['avg'], 2, True)}｜"
                       f"近 10 年 {rc.get('n', 0)} 筆 {_p(rc.get('win'))}（{_p(rc.get('base'))}）｜鄰近 {r['grid_ok']:.2f}｜現在 {r['now']['st']}")
             else:

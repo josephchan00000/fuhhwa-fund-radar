@@ -71,6 +71,22 @@ def test_now_text_every_state_has_dates_and_no_banned_words():
     assert "45,800" in P.now_text(same[2]) and "41,000" in P.now_text(same[2]) and P.side(same[2]) == "up"
     assert "不會出現買進訊號" in P.now_text(same[4]) and P.side(same[3]) is None
     assert "低於 45,800 就買" in P.now_short(same[2])
+    dips = [  # 落底型（VER 3）
+        _fake("coppock", "dip", "wait", H=250, cm="2026-09", cv=-12.3, cp=-15.0, cnow=-11.0, chk="2026-10-30", ld="2023-03-31", lret=0.25),
+        _fake("coppock", "dip", "buy", H=250, cm="2026-10", cv=-12.3, cp=-15.0),
+        _fake("vix40", "dip", "hold", H=60, sd="2026-10-01", ed="2026-10-02", ep=100.0, ret=0.03, held=12, qd="2026-12-29", left=48),
+        _fake("vix40", "dip", "wait", H=60, vix=18.4, vmax=20.7),
+        _fake("zweig", "dip", "wait", H=120, e=0.45, ed_="2026-10-19", emin=0.41),
+        _fake("ftd", "dip", "wait", H=60, dd=-0.12, **{"in": True}, low_d="2026-10-10", low_px=100.0, rday=3, done=False),
+        _fake("ftd", "dip", "wait", H=60, dd=-0.03, **{"in": False}, done=False),
+        _fake("dev60", "dip", "wait", H=20, dev=-0.08),
+    ]
+    for r in dips:
+        t = P.now_text(r)
+        assert t and not any(w in t for w in BANNED) and "今天" not in t and "明天" not in t, t
+        assert P.now_short(r)
+    assert "10/20 收盤買" in P.now_text(dips[1]) and "12/29 收盤賣" in P.now_text(dips[2])
+    assert "反彈第 3 天" in P.now_text(dips[5]) and "要低 15% 以上" in P.now_text(dips[7])
     assert "低 2.0 個百分點" in P._trade_why({"n": 40, "win": 0.6, "base": 0.62, "avg": 0.001})
     assert "多跌" in P._alloc_why({"cagr": 0.05, "mdd": 0.4, "mar": 0.125}, {"cagr": 0.08, "mdd": 0.3})
 
@@ -92,9 +108,10 @@ def test_payload_and_detail_from_real_results():
     assert not [t for t in text if any(w in t for w in BANNED)]
     dt = P.detail(R)
     assert len(dt) == sum(len(v) for v in R.values())
-    for v in dt.values():
+    for key, v in dt.items():
         assert len(v["eq"]["d"]) == len(v["eq"]["s"]) == len(v["eq"]["b"])
-        assert all(len(t) == 6 for t in v["tr"])
+        dip = S.BY_KEY[key.split(":")[2]]["kind"] == "dip"
+        assert all(len(t) == (8 if dip else 6) for t in v["tr"])           # 落底型多中途最多跌、訊號日
     json.dumps(pl, ensure_ascii=False)
     json.dumps(dt, ensure_ascii=False)
 
