@@ -423,7 +423,9 @@ def method_html(luck: dict | None = None) -> str:
             f'勝率 ≥ {XS.TR_WIN * 100:.0f}%、比「隨便挑一天、抱一樣多天」高 {XS.TR_EDGE * 100:.0f} 個百分點以上、扣成本後平均每筆賺錢；'
             '進出型＝最大回撤比買進持有少三分之一以上，而且年化 ÷ 最大回撤不輸買進持有。'
             '★ 好策略＝全期間、近 10 年、參數鄰近（換附近的參數，三分之二以上也過）都過；● 可參考＝全期間過、後兩項沒過。'
-            '看收盤才知道的訊號一律隔天收盤買賣（看網頁做得到的最早時點），原作者的當天收盤另列參考。'
+            '看收盤才知道的訊號一律隔天收盤買賣（看網頁做得到的最早時點），原作者的當天收盤另列參考；'
+            '台股 RSI(2) 例外：用台指期在訊號當天收盤前買賣（現貨 13:30 收盤、台指期 13:45 收盤），頁面每天寫下一個交易日的買進、出場價位，'
+            '隔天收盤另列參考。台股 RSI(2)、月底月初用台指期的成本（使用者 2026-10-21 選定）。'
             f'規格 arm/lab/xstratspec.py（VER {XS.VER}），在算正式成績之前寫定。</dd></dl>'
             '<p><b>個股訊號</b>：同一檔 5 個交易日內重複只算一次，隔天開盤買、持有 20 個交易日，扣來回成本後賺錢算中；'
             '隨便挑一天＝同一段期間加權指數上漲的比例（資料從 2026 年 7 月起，大多是上漲行情）。'
@@ -1270,7 +1272,7 @@ function xsStats(x){ const r = x.xs, sp = x.sp;
       '<td data-h="平均每筆" class="' + cl(s.avg) + '"><b>' + sg(s.avg, 2) + '</b></td><td data-h="獲利因子">' + (s.pf == null ? '—' : s.pf.toFixed(2)) + '</td>' +
       '<td data-h="平均抱幾天">' + f1(s.hold) + '</td><td data-h="最差一筆" class="dn">' + sg(s.worst, 1) + '</td><td data-h="在場上">' + (s.expo == null ? '—' : s.expo + '%') + '</td></tr>';
     return '<div class="sgwrap sgrw"><table class="sgrr xst">' + head + '<tbody>' + row('全期間', ymd(r.a) + ' 起', r.f, true) + row('近 10 年', ymd(r.r0) + ' 起', r.r) +
-      (r.o ? row('原作者時點', '訊號當天收盤買賣，參考', r.o) : '') + '</tbody></table></div>' +
+      (r.o ? row(r.ol || '原作者時點', r.os || '訊號當天收盤買賣，參考', r.o) : '') + '</tbody></table></div>' +
       '<p class="note">「隨便挑同樣天數」＝同一段期間每一天都當買進日、抱一樣多天（同樣扣成本）賺錢的比例。「在場上的時間」＝持有的日子占全部日子的比例，其他時間空手。</p>'; }
   const head = '<thead><tr><th class="l">期間</th><th>年化</th><th>最大回撤</th><th>年化 ÷<br>最大回撤</th><th>最差一年</th><th>每年<br>換邊幾次</th><th>持有的<br>時間</th></tr></thead>';
   const row = (lab, sub, s, own) => !s ? '' : '<tr' + (own ? ' class="own"' : '') + '><td class="l">' + lab + '<small>' + sub + '</small></td>' +
@@ -1280,7 +1282,7 @@ function xsStats(x){ const r = x.xs, sp = x.sp;
   const bh = s => s && Object.assign({}, s, {mar: s.mdd ? s.cagr / s.mdd : null, sw: null, expo: null});
   return '<div class="sgwrap sgrw"><table class="sgrr xst">' + head + '<tbody>' + row('照規則', '全期間，' + ymd(r.a) + ' 起', r.f, true) + row('買進持有', '全期間', bh(r.b)) +
     row('照規則', '近 10 年，' + ymd(r.r0) + ' 起', r.r, true) + row('買進持有', '近 10 年', bh(r.br)) +
-    (r.o ? row('原作者時點', '當天收盤買賣，全期間，參考', r.o) : '') + '</tbody></table></div>' +
+    (r.o ? row(r.ol || '原作者時點', r.os || '當天收盤買賣，全期間，參考', r.o) : '') + '</tbody></table></div>' +
     '<p class="note">最大回撤＝淨值從最高到之後最低跌了多少；最差一年只算完整的日曆年。買進持有不扣成本。</p>'; }
 function xsWhy(x){ return '<ul class="xsw">' + x.xs.why.map(([ok, t]) => '<li class="' + (ok === 1 ? 'y' : ok === 0 ? 'n' : 'm') + '"><span>' +
   (ok === 1 ? '✓' : ok === 0 ? '✗' : '·') + '</span>' + esc(t) + '</li>').join('') + '</ul>'; }
