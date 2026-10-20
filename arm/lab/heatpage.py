@@ -1270,6 +1270,25 @@ def _meta_json(V: dict) -> str:
     return json.dumps(V.get("meta") or meta(), ensure_ascii=False, separators=(",", ":"), sort_keys=True).replace("</", "<\\/")
 
 
+def bottom_chip(a: dict, mk: str) -> str:
+    """一段大跌進行中：這一次的落底訊號出現了沒（不論判定；docs/lab_noise_plan.md 第 10.7 節）。點了到訊號總覽的大跌後檢查卡。"""
+    from . import bottomspec as BS
+    rules = {"W10": a.get("w10") or {}, **(a.get("sig") or {})}
+    parts, on = [], 0
+    for k, v in rules.items():
+        st = v.get("st")
+        nm = BS.RULE_NAMES.get(k, k)
+        if st == "on":
+            on += 1
+            parts.append(f'{nm}：{int(v["d"][5:7])}/{int(v["d"][8:10])} 出現')
+        elif st == "wait":
+            parts.append(f'{nm}：還沒' + (f'（再 {v["left"]} 個交易日）' if k == "W10" else ""))
+        elif st == "none":
+            parts.append(f'{nm}：這一次沒有出現')
+    tip = "；".join(parts) + "。點了看每個落底訊號過去的成績（大跌後檢查）。"
+    return (f'<a class="stc stx" href="x9o.html#r={_e(mk)}:bottom" title="{_e(tip)}"><b>落底訊號</b>{on}／{len(parts)} 出現</a>')
+
+
 def state_line(V: dict) -> str:
     """頁首的市場狀態一行（docs/lab_signal_plan.md 第 6.1 節）：各面向熱度、泡沫等級、是否在一段大跌中。"""
     names = [nm for _, _, nm in S.BANDS]
@@ -1296,6 +1315,7 @@ def state_line(V: dict) -> str:
         pd = a["p"]
         chips.append(f'<a class="stc stx" href="x9o.html#r={_e(mk)}:bottom"><b>一段大跌中</b>比 {int(pd[5:7])}/{int(pd[8:10])} 高點'
                      f' {_e(_sgn(100 * a["nowdd"], 1))}%</a>')
+        chips.append(bottom_chip(a, mk))
     elif nw.get("dd60") is not None:
         chips.append(f'<span class="stc"><b>離 60 日高點</b>{_e(_sgn(100 * nw["dd60"], 1))}%</span>')
     on = (V.get("signow") or {}).get("on") or {}

@@ -1,7 +1,8 @@
 """訊號總覽實務判定的規格（docs/lab_signal_plan.md）：規格鎖定。
 
 規格是在算任何訊號的命中率之前寫定的（VER 1，2026-10-19；VER 2 同日只改個股策略的次數下限，規劃第 15 節；
-VER 3，2026-10-20，警示改看最大回撤，docs/lab_warn_mdd_plan.md；VER 4 同日加情境；VER 5 同日加報酬與相似的日子；VER 6 同日加法人買賣超；VER 7 同日法人只當訊號）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
+VER 3，2026-10-20，警示改看最大回撤，docs/lab_warn_mdd_plan.md；VER 4 同日加情境；VER 5 同日加報酬與相似的日子；VER 6 同日加法人買賣超；VER 7 同日法人只當訊號；
+VER 8 同日判定改用打折後的機率、運氣檢查、同類合併，docs/lab_noise_plan.md（沒有上線）；VER 9 同日改用打亂日子測試，同文件第 10 節）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import analyze as AN
 from arm.lab import backtest as BT
 from arm.lab import bottomspec as BS
@@ -13,13 +14,14 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 7 and X.SPEC_DATE == "2026-10-20"
+    assert X.VER == 9 and X.SPEC_DATE == "2026-10-20"
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
     assert X.LAG == 1 and X.DIRS == ("up", "warn", "buy") and X.WARN_LONG == 0.20
     assert X.WARN_TH_IDX == {20: 1, 60: 2}
     assert X.HIT_MIN == {"up": 0.60, "warn": 0.50, "buy": 0.60}
-    assert (X.EDGE_GOOD, X.EDGE_REF, X.N_MIN, X.RECENT_YEARS, X.RECENT_N) == (0.10, 0.05, 10, 10, 5)
+    assert (X.EDGE_GOOD, X.EDGE_REF, X.N_MIN, X.RECENT_YEARS, X.RECENT_N) == (0.10, 0.05, 5, 10, 5)   # VER 9：次數下限 10 → 5
     assert X.TIERS == ("good", "ref", "none", "few") and set(X.TIER_NAMES) == set(X.TIERS) == set(X.TIER_MARK)
+    assert X.TIER_NAMES["ref"] == "可能是運氣"                                  # VER 9：● 的意思
     assert X.KINDS == ("event", "state") and X.EP_GAP == 20
     assert (X.HOT, X.COLD, X.HOT_WEEKS, X.EXIT_MIN) == (80, 20, 13, 4)
     assert X.VARIANTS == ("hot", "hot13", "hot_in", "hot_out", "cold", "cold_in")
@@ -36,11 +38,11 @@ def test_sig_spec_v1_is_locked():
     assert X.IND_GROUPS == ("ff", "us", "tw") and X.IND_SIGNALS == ("L2", "L3")
     assert (X.H_BUB, X.H_IND_M) == (250, 12)
     assert X.H_STOCK == 20 and X.STOCK_WARN == ("exit",) and X.STOCK_MDD == 0.10   # VER 3：集體撤退看 20 日最大回撤
-    assert X.STRAT_N_MIN == X.N_MIN == 10 and X.STRAT_FEW == 30          # VER 2：次數不夠沒關係（使用者 2026-10-19）
+    assert X.STRAT_N_MIN == 10 and X.STRAT_FEW == 30                      # VER 2：次數不夠沒關係（使用者 2026-10-19）；VER 9 不動
     assert X.STRAT_CAP == {"good": 0.05, "ref": 0.02, "none": 0.0, "few": 0.0}
-    assert (X.TODAY_MAX, X.TODAY_REF) == (8, 3)
+    assert X.TODAY_MAX == 8 and not hasattr(X, "TODAY_REF")          # VER 9：沒有 ★ 就寫沒有
     # 景氣頁「今天的重點」2026-10-20 起：只改呈現、不改判定（VER 不變）
-    assert X.TODAY_SIDE == 6 and X.THERMO_W == {"good": 2, "ref": 1} and X.THERMO_LEAN == 0.6
+    assert X.TODAY_SIDE == 6 and X.THERMO_W == {"good": 1} and X.THERMO_LEAN == 0.6   # VER 9：溫度計只數 ★
     assert [k for k, *_ in X.THERMO_HZ] == ["short", "mid", "long"]
 
 
@@ -71,7 +73,7 @@ def test_sig_spec_v5_returns_and_similar_days_are_locked():
     """VER 5（2026-10-20）：訊號觸發後的報酬與相似的日子（docs/lab_outlook_plan.md）；只呈現，判定不變。"""
     assert X.RET_H == (1, 5, 10, 20, 60, 120, 250)                     # 使用者選「更細」
     assert X.RET_H_M == (1, 3, 6, 12) and X.PATH_D == (1, 5, 10, 20, 40, 60, 90, 120, 180, 250)
-    assert X.RET_Q == (0.25, 0.5, 0.75) and X.MAE_Q == 0.10 and X.RET_N_MIN == X.N_MIN == 10
+    assert X.RET_Q == (0.25, 0.5, 0.75) and X.MAE_Q == 0.10 and X.RET_N_MIN == 10
     assert X.NB_DIMS == ("fund", "liq", "tech") and X.NB_DIMS_X == ("fund", "chip", "liq", "tech")
     assert set(X.NB_DIMS_X) == set(X.SCEN_DIMS) and set(X.NB_DIMS) < set(X.NB_DIMS_X)
     assert (X.NB_H_X, X.NB_K, X.NB_GAP, X.NB_FAR, X.NB_LIST_H, X.NB_LIST_EXTRA) == ((60,), 20, 60, 15, 60, (20, 60, 250))
@@ -93,6 +95,18 @@ def test_sig_spec_v6_institutional_flows_are_locked():
     assert X.INST_DAY == (95, 5) and X.INST_RUN == (5, 10) and X.INST_H == {1: 20, 5: 20, 20: 60, 60: 60, "run": 20}
     assert not [k for k in HS.KEYS if k in ("C9", "C10", "C11", "C12", "C13", "C14")]
     assert HS.DIM_OF["L3"] == "tliq" and HS.HOT["L3"] == 1
+
+
+def test_sig_spec_v9_luck_test_and_families_are_locked():
+    """VER 9（2026-10-20）：打亂日子測試 1%（使用者選定）、次數下限 5、同類合併（VER 8 寫定）照用；VER 8 的打折沒有上線
+    （docs/lab_noise_plan.md 第 10 節）。門檻與近 10 年規則照 VER 7。"""
+    assert X.LUCK_P == 0.01 and (X.LUCK_DRAWS, X.LUCK_SEED, X.LUCK_SHIFT) == (400, 20261021, (0.15, 0.85))
+    assert X.HIT_MIN == {"up": 0.60, "warn": 0.50, "buy": 0.60} and X.EDGE_GOOD == 0.10 and X.N_MIN == 5
+    assert (X.RECENT_YEARS, X.RECENT_N) == (10, 5)
+    assert not any(hasattr(X, k) for k in ("K_GOOD", "K_REF", "NOISE_DRAWS", "NOISE_SEED", "NOISE_SHIFT"))
+    assert X.FAMILY_J == 0.40
+    # p 的解析度：1% 要能被 LUCK_DRAWS 次平移分辨（至少要有 3 次以上「做得到」的空間）
+    assert (1 + 3) / (1 + X.LUCK_DRAWS) <= X.LUCK_P
 
 
 def test_sig_spec_refers_to_existing_definitions():

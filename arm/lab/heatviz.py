@@ -484,7 +484,7 @@ def _tz_counts(n: dict) -> str:
 
 
 def thermo_html(T: dict) -> str:
-    """三支溫度計（sigspec 第 5 節）：一條 100% 的長條，左＝偏多（★ 深、● 淺）、右＝警示；中線＝一半。"""
+    """三支溫度計（sigspec 第 5 節）：一條 100% 的長條，左＝偏多、右＝警示（VER 9 只數 ★，一類算 1）；中線＝一半。"""
     from . import sigspec as SS
     rows = []
     for th in T["thermo"]:
@@ -492,8 +492,8 @@ def thermo_html(T: dict) -> str:
         tot = w["up"] + w["warn"]
         if tot:
             segs = []
-            for s, order in (("up", ("good", "ref")), ("warn", ("ref", "good"))):
-                for t in order:
+            for s in ("up", "warn"):
+                for t in SS.THERMO_W:
                     pct = SS.THERMO_W[t] * n[s][t] / tot * 100
                     if pct:
                         segs.append(f'<i class="tzs tzs-{s} tzs-{t}" style="width:{pct:.1f}%"></i>')
@@ -511,20 +511,28 @@ def thermo_html(T: dict) -> str:
     return '<div class="tzt">' + "".join(rows) + "</div>"
 
 
+def _tz_name(r: dict) -> str:
+    return ("情境・" if r.get("cat") == "scen" else "") + r["name"]
+
+
 def _tz_item(r: dict, d: str | None) -> str:
+    """一列＝一類（同類合併）：領頭的機率與成立多久，「同時成立」列同一類的其他訊號（過去常一起出現，算同一件事）。"""
     from . import sigpage as SPG
     from . import sigspec as SS
     both = ('<span class="tzo" title="同一個項目偏多、警示兩邊都成立：之後上漲的機率比平常高，'
             '中間出現一段大回撤的機率也比平常高">震盪</span>') if r.get("both") else ""
+    fam = r.get("fam") or []
+    also = (f'<span class="tzf">同時成立：{_e("、".join(_tz_name(x) for x in fam))}（過去常一起出現，算同一件事）</span>'
+            if fam else "")
     return (f'<li><a class="tzi" href="x9o.html#s={_e(r["id"])}"><span class="tzh">'
-            f'<span class="tzk tzk-{r["tier"]}">{SS.TIER_MARK[r["tier"]]}</span><b>{_e(("情境・" if r.get("cat") == "scen" else "") + r["name"])}</b>'
+            f'<span class="tzk tzk-{r["tier"]}">{SS.TIER_MARK[r["tier"]]}</span><b>{_e(_tz_name(r))}</b>'
             f'<span class="tzd">{_e(SPG._hz(r))}</span>{both}</span>'
-            f'<span class="tzl">{SPG._line(r)}・{_e(SPG._since(r["now"], d))}</span></a></li>')
+            f'<span class="tzl">{SPG._line(r)}・{_e(SPG._since(r["now"], d))}</span>{also}</a></li>')
 
 
 def today_html(V: dict) -> str:
     """今天的重點（docs/lab_heatviz_v2_plan.md 第 3 節；sigspec 第 5 節）：三支溫度計＋偏多、警示兩欄
-    （這個市場現在有效的 ★ 與 ●，同一個項目只算一次）。點一列到訊號總覽看細節。"""
+    （這個市場現在有效的 ★，VER 9 起 ● 不列；同一類只算一次）。點一列到訊號總覽看細節。"""
     from . import sigspec as SS
     T = V.get("sigtoday")
     if not T:
@@ -532,25 +540,27 @@ def today_html(V: dict) -> str:
                 '<p class="note">訊號總覽的研究結果還沒產生（scripts/run_sig.py）。</p></section>')
     cols = []
     for s in ("up", "warn"):
-        xs = [r for r in T[s] if r.get("show", True)]
-        low = len(T[s]) - len(xs)
-        pct = f'{SS.HIT_MIN[s] * 100:.0f}%'
-        head = (f'<h3><span class="tzcl tzcl-{s}">{_e(TZ_SIDE[s])}</span><span class="sub">{len(xs)} 個'
-                + (f'・另 {low} 個機率較低，只算進溫度計' if low else "") + "</span></h3>")
+        xs = T[s]
+        nf = sum(len(r.get("fam") or []) for r in xs)
+        head = (f'<h3><span class="tzcl tzcl-{s}">{_e(TZ_SIDE[s])}</span><span class="sub">{len(xs)} 類'
+                + (f'（共 {len(xs) + nf} 個訊號）' if nf else "") + "</span></h3>")
         if not xs:
-            cols.append(f'<div class="tzcol">{head}<p class="note">現在沒有機率夠高（{pct} 以上）的{_e(TZ_SIDE[s])}訊號。</p></div>')
+            cols.append(f'<div class="tzcol">{head}<p class="note">現在沒有可靠的{_e(TZ_SIDE[s])}訊號。</p></div>')
             continue
         top, rest = xs[:SS.TODAY_SIDE], xs[SS.TODAY_SIDE:]
         more = (f'<details class="tzmore"><summary>還有 {len(rest)} 個</summary><ul class="tzu">'
                 + "".join(_tz_item(r, T.get("d")) for r in rest) + "</ul></details>") if rest else ""
         cols.append(f'<div class="tzcol">{head}<ul class="tzu">' + "".join(_tz_item(r, T.get("d")) for r in top)
                     + f"</ul>{more}</div>")
-    sub = "現在成立、過去出現之後「中了」的比例比平常高的訊號，依看多久分三支溫度計。"
-    how = ("★ 好訊號、● 可參考；★ 算 "
-           f"{SS.THERMO_W['good']}、● 算 {SS.THERMO_W['ref']}，同一個項目在同一支、同一邊只算一次；只是數一數，溫度計本身沒有驗證過能預測漲跌。"
-           "偏多＝之後收盤比現在高；警示＝之後出現一段大回撤（期間最高到之後最低，先漲再跌也算）。"
-           "同一個項目兩邊都成立的標「震盪」。"
-           f"下面的清單只列機率夠高的（偏多 {SS.HIT_MIN['up'] * 100:.0f}% 以上、警示 {SS.HIT_MIN['warn'] * 100:.0f}% 以上）。")
+    sub = "現在成立的好訊號（★）：過去出現之後「中了」的比例比平常高，而且不是運氣。依看多久分三支溫度計。"
+    how = (f"★ 好訊號＝至少出現 {SS.N_MIN} 次、機率 ≥ {SS.HIT_MIN['up'] * 100:.0f}%（警示 ≥ {SS.HIT_MIN['warn'] * 100:.0f}%）、"
+           f"比隨便挑一天高 {SS.EDGE_GOOD * 100:.0f} 個百分點以上、近 10 年也成立，"
+           f"而且把它出現的日子隨便亂排 {SS.LUCK_DRAWS} 次，做得到一樣準的不到 {SS.LUCK_P * 100:.0f}%（不是運氣）。"
+           "過了門檻但亂排也常做得到的（可能是運氣）只在訊號總覽列出，這裡不列、不算。"
+           "過去常一起出現的訊號算同一件事，併成一列（「同時成立」）；溫度計一類算一次。"
+           "溫度計只是數一數現在成立的好訊號，溫度計本身沒有驗證過能預測漲跌。"
+           "偏多＝之後收盤比現在高；警示＝之後出現一段大回撤（期間最高到之後最低，先漲再跌也算）；"
+           "警示類過去的事後驗證比偏多弱，只當提醒。同一個項目兩邊都成立的標「震盪」。")
     return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div><p class="ksub">{_e(sub)}</p>'
             f'<details class="tzx"><summary>怎麼看</summary><p>{_e(how)}</p></details>'
             f'{thermo_html(T)}<div class="tzcols">{"".join(cols)}</div>'
@@ -729,7 +739,7 @@ def scen_html(V: dict) -> str:
           f'<span>中途最多跌（中位）</span><span>3 個月內大跌{f"（回撤 {th}% 以上）" if th else ""}</span><span>判定</span><span>過去</span></div>')
     return (f'<section class="sec sqc" id="scen">{head}'
             f'<p class="note">現在成立的 {act} 個排在最上面（框起來）。偏熱以上＝{SS.SCEN_HI} 以上、偏冷以下＝未滿 {SS.SCEN_LO}。'
-            '上漲的橫條：實心＝這個情境、細線＝隨便挑一天。★ 好訊號、● 可參考、○ 沒有比隨便挑一天好、— 次數不夠（判定同訊號總覽）。'
+            '上漲的橫條：實心＝這個情境、細線＝隨便挑一天。★ 好訊號、● 過門檻但可能是運氣、○ 沒有過門檻、— 次數不夠（判定同訊號總覽）。'
             '點一列看過去出現的時候。</p>'
             f'<div class="sqtab">{hd}{"".join(x[2] for x in items)}</div>'
             f'<p class="note">一段＝連續在這個情境裡的日子。情境之間可以同時成立。9 個情境 × 5 個市場 × 偏多、警示兩個方向＝90 個比較，'
@@ -1540,6 +1550,7 @@ body.drw-on{overflow:hidden}
 .tzd{font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--line2);white-space:nowrap}
 .tzo{font-size:11.5px;padding:0 7px;border-radius:999px;white-space:nowrap;color:var(--ink);background:var(--line);cursor:help}
 .tzl{display:block;font-size:12.5px;color:var(--ink2);padding-left:20px;line-height:1.55}.tzl b{color:var(--ink)}
+.tzf{display:block;font-size:12px;color:var(--mut);padding-left:20px;line-height:1.5;margin-top:2px}
 .tzm{margin:6px 0 0;font-size:13px}
 .stl{max-width:1080px;margin:4px auto 0;padding:0 16px;display:flex;flex-wrap:wrap;gap:6px}
 .stc{display:inline-flex;align-items:baseline;gap:5px;padding:2px 10px;border-radius:999px;border:1px solid var(--line2);
