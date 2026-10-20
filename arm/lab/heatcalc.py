@@ -199,7 +199,7 @@ def f3_foreign_opt(opti: dict) -> dict:
     return out
 
 
-# ── 法人買賣超（heatspec VER 8、sigspec VER 6 第 4.13 節） ───────────────────────
+# ── 法人買賣超（sigspec 第 4.13 節；只當訊號，heatspec VER 9 起不算進面向） ─────────────
 
 def inst_amounts(inst: dict) -> dict[str, dict]:
     """FinMind 三大法人買賣金額 → {法人: {日期: 買賣超(元)}}：tot＝官方合計（含自營商避險）、fi＝外資（含外資自營商，同 L3）、
@@ -263,12 +263,6 @@ def native_daily(D: dict, cal: list[str], px: list) -> dict[str, dict]:
           if any(n.startswith("Foreign") for n in v)}
     to = {d: v[0] for d, v in (D.get("turnover") or {}).items() if v and v[0]}
     N["L3"] = on_cal(ratio_sum(cal, fx, to, 60))
-    if S.MARKET == "tw":                                   # VER 8：籌碼面向的法人 5、20 日買賣超（C9～C14）
-        from . import sigspec as SG
-        A = inst_amounts(inst)
-        for (who, k), code in SG.INST_HEAT.items():
-            if code in S.KEYS:
-                N[code] = inst_ratio(cal, D, who, k, A)
     N["L4"] = native(D.get("usdtwd") or {}, lambda v: H.chg(v, 60))
     N["L5"] = native(to, lambda v: ma_ratio(v, 20, 250))
     qf = {d: 100.0 * v[0] / v[1] for d, v in (D.get("qfii") or {}).items() if v and v[1]}

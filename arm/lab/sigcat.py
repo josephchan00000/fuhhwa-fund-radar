@@ -346,13 +346,10 @@ def frame(mk: str, B: dict, I: dict, IB: dict | None = None, BX: dict | None = N
     nm = _names(HS)
     dims = list(HP.shown_dims())
     V = []
-    icodes = set(S.INST_HEAT.values()) if mk == "tw" else set()
     for d in dims:
         V.append({"key": "D" + d, "name": HS.DIMS[d]["name"], "grp": d, "H": S.H_DIM[d],
                   "x": CR.align(cal, B["cal"], B["comp"][d])})
         for k in HS.ITEMS[d]:
-            if k in icodes:                                   # C9～C14 的訊號列在法人買賣超（sigspec 第 4.13 節）
-                continue
             V.append({"key": k, "name": nm[k], "grp": d, "H": S.H_DIM[d],
                       "x": CR.align(cal, B["cal"], B["hc"].get(k) or [None] * len(B["cal"]))})
     CV = []
@@ -433,17 +430,9 @@ def _var_signals(F: dict, v: dict, cat: str) -> list[dict]:
 
 # ── 法人買賣超（sigspec VER 6 第 4.13 節） ─────────────────────────────────────
 
-def inst_code(var: str) -> str | None:
-    """法人變數（例 fi5）→ 景氣頁的項目代號（C9～C14），沒有就 None。"""
-    for (who, w), code in S.INST_HEAT.items():
-        if var == f"{who}{w}":
-            return code
-    return None
-
-
 def inst_vars(cal: list, B: dict) -> list[dict]:
     """15 個法人變數在這個日曆上的 0～100（賣超＝熱；和景氣項目同一套：交易日對齊、和過去 750 天比、至少 375 天）
-    與單日買賣超金額（元，連續買賣超用；沒有資料＝NaN）。C9～C14 直接用景氣頁算好的 0～100。"""
+    與單日買賣超金額（元，連續買賣超用；沒有資料＝NaN）。只當訊號（sigspec VER 7），不算進任何面向。"""
     from . import crash as CR
     from . import heat as H
     from . import heatcalc as HC
@@ -458,14 +447,10 @@ def inst_vars(cal: list, B: dict) -> list[dict]:
         for w in S.INST_WIN:
             if (who, w) in S.INST_SKIP:
                 continue
-            code = S.INST_HEAT.get((who, w))
-            if code and code in (B.get("hc") or {}):
-                hb = B["hc"][code]
-            else:
-                raw = H.asof_daily(B["cal"], HC.inst_ratio(B["cal"], D, who, w, A), stale=7)
-                hb = [H.to_heat(p, -1) for p in H.pct_series(raw, HS.PCT_WIN["d"], HS.PCT_MIN["d"])]
+            raw = H.asof_daily(B["cal"], HC.inst_ratio(B["cal"], D, who, w, A), stale=7)
+            hb = [H.to_heat(p, -1) for p in H.pct_series(raw, HS.PCT_WIN["d"], HS.PCT_MIN["d"])]
             name = f"{S.INST_NAMES[who]}{'單日' if w == 1 else f' {w} 日'}買賣超"
-            out.append({"key": f"{who}{w}", "who": who, "w": w, "code": code, "name": name, "H": S.INST_H[w],
+            out.append({"key": f"{who}{w}", "who": who, "w": w, "name": name, "H": S.INST_H[w],
                         "x": CR.align(cal, B["cal"], hb), "amt": amt})
     return out
 
@@ -946,8 +931,16 @@ _RCACHE: dict = {}
 def research_rows() -> list[dict]:
     """研究檔的列（同一個程序裡只讀一次：五個景氣頁與訊號總覽共用）。"""
     if "rows" not in _RCACHE:
-        _RCACHE["rows"] = (load_research() or {}).get("rows") or []
+        R = load_research() or {}
+        _RCACHE["rows"] = R.get("rows") or []
+        _RCACHE["bases"] = R.get("bases") or {}
     return _RCACHE["rows"]
+
+
+def research_bases() -> dict:
+    """研究檔的「平常」報酬（ret_base 的鍵 → ret_stats），景氣頁情境表用。"""
+    research_rows()
+    return _RCACHE.get("bases") or {}
 
 
 def today_for(now: dict | None) -> dict | None:
@@ -1129,9 +1122,7 @@ def crash_now(F: dict) -> dict:
         i = int(ok[-1])
         out[v["key"]] = {"h": round(float(x[i]), 1), "band": HS.band(float(x[i])), "d": F["cal"][i],
                          "sp": [None if np.isnan(x[j]) else int(math.floor(x[j] + 0.5)) for j in we]}
-    for v in F.get("ivars") or []:                     # 法人買賣超（景氣頁沒有的那幾個；C9～C14 在景氣頁的項目裡）
-        if v.get("code"):
-            continue
+    for v in F.get("ivars") or []:                     # 法人買賣超（景氣頁沒有這幾項）
         x = np.asarray(v["x"], dtype=float)
         ok = np.nonzero(~np.isnan(x))[0]
         if not len(ok):
@@ -1144,13 +1135,23 @@ def crash_now(F: dict) -> dict:
     return out
 
 
+def _sim_now(F: dict) -> dict | None:
+    """景氣頁「現在的情境」：相似的日子（simdays.estimate，sigspec 第 4.12 節）；算不出來回 None、不擋其他部分。"""
+    try:
+        from . import simdays
+        return simdays.estimate(F)
+    except Exception as e:                            # noqa: BLE001
+        print(f"[訊號總覽] 相似的日子算不出來：{type(e).__name__}: {e}")
+        return None
+
+
 def now_for_B(B: dict) -> dict | None:
     """景氣頁建頁時呼叫：算這個市場現在有效的訊號，存進 NOW（訊號總覽沿用）。失敗回 None、不擋景氣頁。"""
     try:
         F = frame_from_B(B)
         if F is None:
             return None
-        NOW[F["mk"]] = {"mk": F["mk"], "d": F["cal"][-1], "on": now_market(F), "cv": crash_now(F)}
+        NOW[F["mk"]] = {"mk": F["mk"], "d": F["cal"][-1], "on": now_market(F), "cv": crash_now(F), "sim": _sim_now(F)}
         return NOW[F["mk"]]
     except Exception as e:                            # noqa: BLE001
         print(f"[訊號總覽] 現在的狀態算不出來：{type(e).__name__}: {e}")

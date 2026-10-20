@@ -48,7 +48,7 @@ def ind_of(r: dict) -> tuple[str, str, str, str | None]:
     if cat == "crash":
         return f"{mk}:{var}", "crash", r["vn"], var
     if cat == "inst":                                     # 法人買賣超：一個期間一個指標（單日極端與連續同一個）
-        return f"{mk}:inst:{var}", "inst", r["vn"], G.inst_code(var) or var
+        return f"{mk}:inst:{var}", "inst", r["vn"], var
     if cat == "tech":
         return f"{mk}:tech:{var}", "tech", r["vn"], None
     if cat == "bub":

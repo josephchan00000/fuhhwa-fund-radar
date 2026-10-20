@@ -297,14 +297,14 @@ def test_entry_returns_go_to_detail_file_and_panel():
 
 
 def test_inst_indicators_and_trigger_text():
-    """VER 6 法人買賣超：一個期間一個指標（單日極端與連續同一個）；5、20 日接景氣頁的 C9～C14（走勢圖、現在的值）。"""
+    """VER 6 法人買賣超：一個期間一個指標（單日極端與連續同一個）；VER 7 起只當訊號，現在的值都由 sigcat.crash_now 算。"""
     base = {"mk": "tw", "cat": "inst", "kind": "event", "H": 20}
     r1 = dict(base, id="tw:inst:fi1:day_sell", grp="fi", var="fi1", vn="外資單日買賣超", name="外資單日買賣超・單日大賣")
     r2 = dict(base, id="tw:inst:fi1:sell_run5", grp="fi", var="fi1", vn="外資單日買賣超", name="外資單日買賣超・外資連續 5 天賣超")
     r3 = dict(base, id="tw:inst:fi5:hot", grp="fi", var="fi5", vn="外資 5 日買賣超", name="外資 5 日買賣超・大賣超中", kind="state")
     r4 = dict(base, id="tw:inst:tot60:cold", grp="tot", var="tot60", vn="三大法人合計 60 日買賣超", name="x", kind="state", H=60)
     assert sigpage.ind_of(r1) == ("tw:inst:fi1", "inst", "外資單日買賣超", "fi1")
-    assert sigpage.ind_of(r2)[0] == "tw:inst:fi1" and sigpage.ind_of(r3) == ("tw:inst:fi5", "inst", "外資 5 日買賣超", "C9")
+    assert sigpage.ind_of(r2)[0] == "tw:inst:fi1" and sigpage.ind_of(r3) == ("tw:inst:fi5", "inst", "外資 5 日買賣超", "fi5")
     assert sigpage.ind_of(r4)[3] == "tot60" and sigpage.IND_CATS["inst"] == sigcat.CAT_NAMES["inst"] == "法人買賣超"
     js = sigpage.JS
     assert "const ITRIG = {" in js and "if (c === 'inst') return x.vn + '：' + itrig(x);" in js
