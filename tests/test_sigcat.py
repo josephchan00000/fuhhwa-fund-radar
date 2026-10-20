@@ -310,7 +310,7 @@ def test_stock_and_industry_returns():
     assert set(x) == {1, 3} and abs(x[1][0] + 0.10) < 1e-12 and abs(x[3][0] - 0.20) < 1e-12 and abs(x[3][1] + 0.10) < 1e-12
 
 
-# ── 法人買賣超（sigspec VER 6 第 4.13 節；heatspec VER 8） ──────────────────────────
+# ── 法人買賣超（sigspec 第 4.13 節；VER 7 起只當訊號） ──────────────────────────
 
 def test_inst_amounts_and_ratio():
     from arm.lab import heatcalc as HC
@@ -355,7 +355,7 @@ def test_research_has_inst_rows_and_no_duplicate_heat_rows():
     R = G.load_research()
     rows = [r for r in R["rows"] if r["cat"] == "inst"]
     assert len(rows) == 90 and len({r["id"] for r in rows}) == 90
-    assert not [r for r in R["rows"] if r["cat"] == "heat" and r["var"] in set(S.INST_HEAT.values())]
+    assert not [r for r in R["rows"] if r["cat"] == "heat" and r["var"] in ("C9", "C10", "C11", "C12", "C13", "C14")]
     for r in rows:
         assert r["mk"] == "tw" and r["grp"] in S.INST_WHO
         sig = r["sig"]
@@ -364,4 +364,3 @@ def test_research_has_inst_rows_and_no_duplicate_heat_rows():
         else:
             w = int(r["var"][len(r["grp"]):])
             assert r["H"] == S.INST_H[w] and (r["grp"], w) not in S.INST_SKIP
-    assert G.inst_code("fi5") == "C9" and G.inst_code("dl20") == "C14" and G.inst_code("tot5") is None

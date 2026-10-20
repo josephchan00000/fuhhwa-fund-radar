@@ -35,12 +35,10 @@ OUT_DATA = HC.OUT
 RES = ROOT / "data" / "lab" / "heat_research.json"
 TA_RECENT = 60                      # 「近期事件」列最近幾個交易日
 WEEK = S.CHG_DAYS
-SIGNED = {"B2", "B4", "B5", "B6", "B7", "B8", "C2", "C4", "C5", "C6", "C9", "C10", "C11", "C12", "C13", "C14",
-          "G1", "G2", "G3", "G4",
+SIGNED = {"B2", "B4", "B5", "B6", "B7", "B8", "C2", "C4", "C5", "C6", "G1", "G2", "G3", "G4",
           "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L9", "L10", "T1", "T2", "T3", "T7", "T12", "T13",
           "X1", "X2", "X3", "X4", "X5"}
 DEC = {"B1": 0, "B3": 1, "B4": 1, "B5": 1, "B6": 1, "C1": 0, "C2": 1, "C4": 1, "C5": 0, "C6": 1, "C7": 1, "C8": 2,
-       "C9": 2, "C10": 2, "C11": 2, "C12": 2, "C13": 2, "C14": 2,
        "L5": 1, "L6": 1, "L9": 3, "T1": 1, "T2": 1, "T3": 1, "T4": 1, "T5": 1, "T6": 1, "T7": 1, "T8": 1, "T11": 0,
        "T12": 2, "T13": 1, "X2": 1, "X3": 1, "X5": 1, "X6": 1, "X7": 0}
 # 沒有 0～100 的固定原因（其他項目沒有分數時寫「沒有最新資料」或「歷史還不夠」）
@@ -51,9 +49,6 @@ SRC = {
     "C1": "FinMind（證交所融資融券）", "C2": "FinMind（證交所融資融券）", "C3": "FinMind（證交所融資融券）",
     "C4": "FinMind（期交所）", "C5": "FinMind（期交所法人未平倉）", "C6": "FinMind（期交所）", "C7": "期交所",
     "C8": "投信投顧公會（國內股票型基金持股比重，週）",
-    "C9": "FinMind（三大法人）＋證交所成交金額", "C10": "FinMind（三大法人）＋證交所成交金額",
-    "C11": "FinMind（三大法人）＋證交所成交金額", "C12": "FinMind（三大法人）＋證交所成交金額",
-    "C13": "FinMind（三大法人）＋證交所成交金額", "C14": "FinMind（三大法人）＋證交所成交金額",
     "G1": "聯準會 H.15、紐約聯準銀行", "G2": "美國財政部", "G3": "美國財政部", "G4": "Yahoo HYG、IEF",
     "G5": "OFR 貨幣基金監測、Yahoo ^GSPC",
     "L1": "央行", "L2": "央行", "L3": "FinMind＋證交所成交金額", "L4": "央行", "L5": "證交所",
@@ -1307,7 +1302,7 @@ def state_line(V: dict) -> str:
     from . import sigspec as SS
     act = [nm for key, nm, *_ in SS.SCENARIOS if f"{mk}:scen:{key}" in on]
     if act:                                                  # 現在落在哪幾個情境（sigspec 第 4.10 節；景氣頁情境卡）
-        chips.append(f'<a class="stc stw" href="#scen" title="點了看情境卡"><b>情境</b>{_e("、".join(act))}</a>')
+        chips.append(f'<a class="stc stw" href="#scen" title="點了看所有情境"><b>情境</b>{_e("、".join(act))}</a>')
     return f'<div class="stl" aria-label="市場狀態">{"".join(chips)}</div>'
 
 
@@ -2039,23 +2034,23 @@ function single(box, id) {
 }
 
 // ── 多條線一起看：框出下面「情境」裡用到這幾個面向的（2026-10-20 起取代交互分析；docs/lab_heatviz_v2_plan.md 第 5、11 節）
-function scenHint(box, ids) {                              // 卡片的 data-dims＝情境用到的面向（以空白分組；台股資金一組兩個，選到任一個就算）
+function scenHint(box, ids) {                              // 每一列的 data-dims＝情境用到的面向（以空白分組；台股資金一組兩個，選到任一個就算）
   const dims = new Set(ids.map(id => (M.items[id] && M.items[id].dim) || id));
   const def = M.dims.slice(0, M.max).map(d => d.id), dflt = ids.length === def.length && def.every(d => ids.includes(d));   // 預設的幾條＝不框
   let n = 0;
-  document.querySelectorAll('#scen .sqi').forEach(c => {
+  document.querySelectorAll('#scen .sqr').forEach(c => {
     const on = !dflt && (c.dataset.dims || '').split(' ').every(g => g.split(',').some(d => dims.has(d)));
     c.classList.toggle('hl', on);
     if (on) n++;
   });
-  box.innerHTML = '<div class="an"><h3>多條線一起看</h3><p class="note">幾個面向一起看，請看下面的<a href="#scen">情境</a>：事先定義好的面向組合，'
+  box.innerHTML = '<div class="an"><h3>多條線一起看</h3><p class="note">幾個面向一起看，請看上面的<a href="#scen">所有情境</a>：事先定義好的面向組合，'
     + '過去出現之後 3 個月上漲、大跌的機率（判定同訊號總覽）。' + (dflt ? '' : n ? '只用到這幾條線的 ' + n + ' 個情境已用虛線框起來。' : '沒有情境只用到這幾條線。') + '</p></div>';
 }
 function analysis() {
   const box = $('#cmp-an');
   box.textContent = '';
   if (!D || !st.sel.length) return;
-  if (st.sel.length === 1) { document.querySelectorAll('#scen .sqi.hl').forEach(c => c.classList.remove('hl')); single(box, st.sel[0].id); }
+  if (st.sel.length === 1) { document.querySelectorAll('#scen .sqr.hl').forEach(c => c.classList.remove('hl')); single(box, st.sel[0].id); }
   else scenHint(box, st.sel.map(x => x.id));
 }
 

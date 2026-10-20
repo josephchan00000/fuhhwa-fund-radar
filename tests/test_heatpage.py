@@ -397,11 +397,11 @@ def test_meta_matches_spec_and_is_embedded(built):
 
 
 def test_coupling_replaced_by_scenarios():
-    """對照圖選多條線：原本瀏覽器算的交互分析拿掉（2026-10-20 使用者：「交互分析那邊超沒意義」），改成框出下面情境卡裡用到這幾個面向的。"""
+    """對照圖選多條線：原本瀏覽器算的交互分析拿掉（2026-10-20 使用者：「交互分析那邊超沒意義」），改成框出「所有情境」表裡用到這幾個面向的列（2026-10-20 起情境卡改成一張表）。"""
     js = P._JS
     for old in ("@@CALC", "function couple(", "function gstats(", "function consensus(", "function grid(", "M.cpl"):
         assert old not in js
-    assert "function scenHint(box, ids)" in js and "#scen .sqi" in js and "else scenHint(box, st.sel.map(x => x.id));" in js
+    assert "function scenHint(box, ids)" in js and "#scen .sqr" in js and "#scen .sqi" not in js and "else scenHint(box, st.sel.map(x => x.id));" in js
     src = Path(P.__file__).read_text(encoding="utf-8")
     assert "<b>交互分析</b>" not in src and "<b>情境</b>" in src                 # 研究畫面的方法說明一起改
 
