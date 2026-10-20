@@ -1,4 +1,4 @@
-"""大神策略的計算（arm/lab/xstrat.py；規格 xstratspec VER 1）——和逐筆直接算的版本比對。"""
+"""大神策略的計算（arm/lab/xstrat.py；規格 xstratspec）——和逐筆直接算的版本比對。"""
 from datetime import date, timedelta
 
 import numpy as np
@@ -43,6 +43,39 @@ def test_sma_and_rsi_match_direct_computation():
         au = (au + max(d[i - 1], 0)) / 2
         ad = (ad + max(-d[i - 1], 0)) / 2
         assert abs(r[i] - (100.0 if ad == 0 else 100 - 100 / (1 + au / ad))) < 1e-9
+
+
+def test_wilder_avgs_give_the_same_rsi():
+    px = _px(400, seed=29)
+    for n in (2, 3, 14):
+        AU, AD = X.wilder_avgs(px, n)
+        r = X.rsi(px, n)
+        assert np.isnan(AU[:n]).all() and np.isnan(r[:n]).all()
+        for i in range(n, len(px)):
+            exp = 100.0 if AD[i] == 0 else 100 - 100 / (1 + AU[i] / AD[i])
+            assert abs(exp - r[i]) < 1e-9
+
+
+def test_rsi_below_price_is_the_exact_boundary():
+    """下一個交易日收盤剛好低於 P* → RSI ＜ r；剛好高於 → RSI ≥ r；等於 P* → RSI＝r（不算）。直接把那個收盤接上去重算 RSI。"""
+    rng = np.random.default_rng(31)
+    hit = 0
+    for trial in range(300):
+        px = _px(int(rng.integers(30, 120)), seed=int(rng.integers(1, 10**6)), vol=float(rng.choice([0.004, 0.012, 0.03])))
+        n, r = int(rng.choice([2, 3])), float(rng.choice([5, 10, 25, 50]))
+        AU, AD = X.wilder_avgs(px, n)
+        P = X.rsi_below_price(float(px[-1]), float(AU[-1]), float(AD[-1]), n, r)
+        eps = 1e-6 * px[-1]
+        lo = X.rsi(np.append(px, P - eps), n)[-1]
+        hi = X.rsi(np.append(px, P + eps), n)[-1]
+        assert lo < r <= hi + 1e-6, (trial, P, lo, hi)
+        at = X.rsi(np.append(px, P), n)[-1]
+        assert abs(at - r) < 1e-6 or (P == px[-1] and at == 100.0)
+        hit += P > px[-1]
+    assert hit > 0                                     # 也測到「漲一點也會超賣」的情況
+    flat = np.full(10, 100.0)                          # 都沒動：au＝ad＝0 → 只要跌一點點 RSI 就是 0
+    AU, AD = X.wilder_avgs(flat, 2)
+    assert X.rsi_below_price(100.0, float(AU[-1]), float(AD[-1]), 2, 10) == 100.0
 
 
 # ── 交易型 ──
@@ -243,9 +276,41 @@ def test_real_markets_structure_and_now():
             n = r["now"]
             assert n["d"] == r["z"] and n["st"] in S.STATE_NAMES
             if r["kind"] == "trade":
-                assert n["st"] in ("buy", "hold", "sell", "wait")
+                assert r["lag"] == (None if k == "tom" else S.lag(mk, k)) and r["cost"] == S.cost(mk, k)
+                if r["lag"] == 0:                       # 當天收盤進出：沒有「明天收盤買／賣」
+                    assert n["st"] in ("hold", "wait", "near") and n["lag"] == 0
+                else:
+                    assert n["st"] in ("buy", "hold", "sell", "wait")
+                if k != "tom":
+                    assert r["ref_lag"] == S.ref_lag(mk, k) and r["ref"]["n"] > 0
                 assert len(r["tr"]) == r["full"]["n"]
             else:
                 assert n["st"] in ("in", "out", "turn_in", "turn_out")
             e = r["eq"]
             assert len(e["d"]) == len(e["s"]) == len(e["b"]) and e["d"][-1] == r["z"]
+
+
+def test_taiwan_rsi2_same_day_levels_are_exact():
+    """台股 RSI(2)（VER 2 當天收盤）：拿最後一天的價位接一個收盤上去，用規則本身檢查是不是剛好成立。"""
+    D = X.data("tw")
+    C = X.Ctx(D)
+    p = S.BY_KEY["rsi2"]["p"]
+    px = C.px
+    lv = X.same_day_levels(C, p, "wait")
+    lo, hi = lv["lo_px"], lv["hi_px"]
+
+    def rule(P):
+        x = np.append(px, P)
+        return x[-1] > X.sma(x, p["ma"])[-1], X.rsi(x, p["rsi_n"])[-1] < p["rsi_max"]
+
+    eps = 0.05                                          # 價位四捨五入到 0.01
+    assert rule(lo + eps)[0] and not rule(lo - eps)[0]
+    assert rule(hi - eps)[1] and not rule(hi + eps)[1]
+    ex = X.same_day_levels(C, p, "hold")["ex_px"]
+    x = np.append(px, ex + eps)
+    assert x[-1] > X.sma(x, p["exit_ma"])[-1]
+    x = np.append(px, ex - eps)
+    assert not x[-1] > X.sma(x, p["exit_ma"])[-1]
+    assert lv.get("st") in (None, "near")
+    if lv.get("st") == "near":
+        assert hi > lo and hi / px[-1] - 1 >= -S.NEAR

@@ -1,4 +1,4 @@
-"""大神策略（規格 arm/lab/xstratspec.py VER 1；docs/lab_expert_plan.md）：照原作者的規則交易，算成績、判定與現在的狀態。
+"""大神策略（規格 arm/lab/xstratspec.py；docs/lab_expert_plan.md）：照原作者的規則交易，算成績、判定與現在的狀態。
 
 只用指數收盤與 VIX 收盤，五個市場全部算一次只要幾秒，所以每天建頁時重算（不另存研究檔；規則與門檻寫死在規格裡）：
   data(mk)              日曆、收盤、VIX（美股）
@@ -67,6 +67,33 @@ def rsi(x: np.ndarray, n: int) -> np.ndarray:
         ad = (ad * (n - 1) + dn[i - 1]) / n
         out[i] = 100.0 if ad == 0 else 100.0 - 100.0 / (1.0 + au / ad)
     return out
+
+
+def wilder_avgs(x: np.ndarray, n: int) -> tuple[np.ndarray, np.ndarray]:
+    """每一天的 Wilder 平均漲幅、跌幅（和 rsi() 同一條公式；前 n 天＝nan）。"""
+    x = np.asarray(x, dtype=float)
+    T = len(x)
+    AU, AD = np.full(T, np.nan), np.full(T, np.nan)
+    if T <= n:
+        return AU, AD
+    d = np.diff(x)
+    up, dn = np.where(d > 0, d, 0.0), np.where(d < 0, -d, 0.0)
+    au, ad = float(up[:n].mean()), float(dn[:n].mean())
+    AU[n], AD[n] = au, ad
+    for i in range(n + 1, T):
+        au = (au * (n - 1) + up[i - 1]) / n
+        ad = (ad * (n - 1) + dn[i - 1]) / n
+        AU[i], AD[i] = au, ad
+    return AU, AD
+
+
+def rsi_below_price(close: float, au: float, ad: float, n: int, r: float) -> float | None:
+    """下一個交易日收盤要低於多少，n 日 RSI 才會 ＜ r（規格第 8 節 VER 2 的 P*；嚴格小於）。au、ad＝今天的 Wilder 平均。"""
+    if not (au == au and ad == ad) or r <= 0 or r >= 100:
+        return None
+    k = r / (100.0 - r)
+    d = (n - 1) * (k * ad - au) if k * ad > au else (n - 1) * (ad - au / k)
+    return close + d
 
 
 def month_ends(cal: list[str], last_is_end: bool = False) -> list[int]:
@@ -434,7 +461,7 @@ class Ctx:
         self.mk, self.cal, self.px = D["mk"], list(D["cal"]), np.asarray(D["px"], dtype=float)
         self.vix = D.get("vix")
         self.T = len(self.cal)
-        self.c = S.COST[self.mk]
+        self.c = S.COST[self.mk]                         # 進出型（ETF）；交易型用 S.cost(市場, 策略)
         self.s0 = _idx_from(self.cal, S.EVAL_START[self.mk])
         self.r0 = _idx_from(self.cal, _recent_from(self.cal))
         self.fut = future_days(self.mk, self.cal[-1], 45) if self.T else []
@@ -449,6 +476,11 @@ class Ctx:
         if n not in self._sma:
             self._sma[n] = sma(self.px, n)
         return self._sma[n]
+
+    def wilder(self, n: int) -> tuple[np.ndarray, np.ndarray]:
+        if ("w", n) not in self._sma:
+            self._sma[("w", n)] = wilder_avgs(self.px, n)
+        return self._sma[("w", n)]
 
     # 交易型
     def trades(self, k: str, p: dict, lag: int, now: bool = False) -> tuple[list[tuple], dict]:
@@ -486,10 +518,11 @@ class Ctx:
 
 
 def _trade_eval(C: Ctx, k: str, p: dict, lag: int) -> dict:
+    c = S.cost(C.mk, k)
     tr, _ = C.trades(k, p, lag)
-    full = trade_stats(C.px, tr, C.s0, C.c)
+    full = trade_stats(C.px, tr, C.s0, c)
     full["ok"] = trade_pass(full)
-    eq = trade_equity(C.px, tr, C.s0, C.c)
+    eq = trade_equity(C.px, tr, C.s0, c)
     full.update({kk: v for kk, v in curve_stats(eq, C.cal, C.s0).items() if kk in ("cagr", "mdd")})
     full["expo"] = float(trade_held(C.T, [t for t in tr if t[1] >= C.s0])[C.s0 + 1:].mean()) if C.T > C.s0 + 1 else None
     return {"tr": tr, "full": full, "eq": eq}
@@ -518,17 +551,19 @@ def strategy(C: Ctx, spec: dict) -> dict:
     out = {"k": k, "mk": C.mk, "kind": kind, "grp": spec["grp"], "a": C.cal[C.s0], "z": C.cal[-1], "r0": C.cal[C.r0],
            "bh": bh, "bh_r": bh_r}
     if kind == "trade":
-        M = _trade_eval(C, k, p, S.LAG)
-        rec = trade_stats(C.px, M["tr"], C.r0, C.c)
+        c, lag = S.cost(C.mk, k), S.lag(C.mk, k)
+        out.update({"cost": c, "lag": None if k == "tom" else lag})          # 月底月初照排定的日子，沒有落後
+        M = _trade_eval(C, k, p, lag)
+        rec = trade_stats(C.px, M["tr"], C.r0, c)
         rec_ok = trade_pass_recent(rec)
-        eq_r = trade_equity(C.px, M["tr"], C.r0, C.c)
+        eq_r = trade_equity(C.px, M["tr"], C.r0, c)
         rec.update({kk: v for kk, v in curve_stats(eq_r, C.cal, C.r0).items() if kk in ("cagr", "mdd")})
         if C.T > C.r0 + 1:
             rec["expo"] = float(trade_held(C.T, [t for t in M["tr"] if t[1] >= C.r0])[C.r0 + 1:].mean())
         grid = []
         for q in _combos(spec["grid"]):
             pp = {**p, **q}
-            g = M if pp == p else _trade_eval(C, k, pp, S.LAG)
+            g = M if pp == p else _trade_eval(C, k, pp, lag)
             f = g["full"]
             grid.append({"p": q, "ok": f["ok"], "n": f["n"], "win": f.get("win"), "base": f.get("base"), "avg": f.get("avg"),
                          "pf": f.get("pf")})
@@ -536,14 +571,16 @@ def strategy(C: Ctx, spec: dict) -> dict:
         few = M["full"]["n"] < S.TR_N_MIN
         out.update({"full": M["full"], "rec": rec, "rec_ok": rec_ok, "grid": grid, "grid_ok": share,
                     "tier": tier(kind, M["full"]["ok"], rec_ok, share, few),
-                    "p": luck_trade(C.px, M["tr"], C.s0, C.c, key)})
+                    "p": luck_trade(C.px, M["tr"], C.s0, c, key)})
         if k != "tom":
-            R = _trade_eval(C, k, p, S.LAG_REF)
+            R = _trade_eval(C, k, p, S.ref_lag(C.mk, k))
             out["ref"] = R["full"]
+            out["ref_lag"] = S.ref_lag(C.mk, k)
         out["eq"] = _sample(C, M["eq"], C.s0)
-        out["tr"] = [[C.cal[e], _r(C.px[e], 2), C.cal[q], _r(C.px[q], 2), q - e, _r(net(C.px[e], C.px[q], C.c), 5)]
+        out["tr"] = [[C.cal[e], _r(C.px[e], 2), C.cal[q], _r(C.px[q], 2), q - e, _r(net(C.px[e], C.px[q], c), 5)]
                      for _, e, _, q in M["tr"] if e >= C.s0]
     else:
+        out.update({"cost": C.c, "lag": S.LAG})
         M = _alloc_eval(C, k, p, S.LAG)
         full = M["s"]
         full["ok"] = alloc_pass(full, bh)
@@ -562,6 +599,7 @@ def strategy(C: Ctx, spec: dict) -> dict:
                     "tier": tier(kind, full["ok"], rec_ok, share, few), "p": luck_alloc(C.px, M["pos"], C.s0, C.c, C.cal, key)})
         if k != "hal":
             out["ref"] = _alloc_eval(C, k, p, S.LAG_REF)["s"]
+            out["ref_lag"] = S.LAG_REF
         out["eq"] = _sample(C, M["eq"], C.s0)
         out["tr"] = _spans(C, M["pos"])
     out["now"] = now_state(C, spec)
@@ -617,14 +655,42 @@ def season(C: Ctx, p: dict) -> dict:
 
 # ── 現在（規格第 8 節） ───────────────────────────────────────────────────────
 
+def same_day_levels(C: Ctx, p: dict, st: str) -> dict:
+    """當天收盤進出的 RSI(2)（規格第 8 節 VER 2）：下一個交易日的價位。
+    空手：收盤在 lo 以上（站在 200 日線上）、hi 以下（2 日 RSI ＜ rsi_max）＝買進訊號；hi 比今天收盤低不到 NEAR 而且 hi ＞ lo＝near。
+    持有：收盤高於 ex（站上 exit_ma 日線）＝出場訊號。"""
+    t, px = C.T - 1, C.px
+    out: dict = {}
+    if st == "hold":
+        m = p["exit_ma"] - 1
+        if t + 1 >= m and m > 0:
+            out["ex_px"] = _r(float(px[t - m + 1:t + 1].mean()), 2)
+        return out
+    if st != "wait":
+        return out
+    m = p["ma"] - 1
+    lo = float(px[t - m + 1:t + 1].mean()) if t + 1 >= m else None
+    AU, AD = C.wilder(p["rsi_n"])
+    hi = rsi_below_price(float(px[t]), float(AU[t]), float(AD[t]), p["rsi_n"], p["rsi_max"])
+    out.update({"lo_px": _r(lo, 2), "hi_px": _r(hi, 2)})
+    if hi is not None and lo is not None:
+        out["hi_chg"] = _r(hi / px[t] - 1.0, 4)
+        out["lo_chg"] = _r(lo / px[t] - 1.0, 4)
+        out["can"] = bool(hi > lo)
+        if hi > lo and hi / px[t] - 1.0 >= -S.NEAR:
+            out["st"] = "near"
+    return out
+
+
 def now_state(C: Ctx, spec: dict) -> dict:
     k, p = spec["k"], spec["p"]
     t = C.T - 1
     px = C.px
     nx = C.fut[0] if C.fut else None                   # 下一個交易日（照休市表）
     if spec["kind"] == "trade":
-        _, st = C.trades(k, p, S.LAG, now=True)
-        out = {"st": st.get("st", "wait"), "d": C.cal[t], "nx": nx}
+        lag = S.lag(C.mk, k)
+        _, st = C.trades(k, p, lag, now=True)
+        out = {"st": st.get("st", "wait"), "d": C.cal[t], "nx": nx, "lag": None if k == "tom" else lag, "px": _r(px[t], 2)}
         if k == "tom":
             out.update({kk: st[kk] for kk in ("ed", "qd") if kk in st})
             if "e" in st and st["e"] <= t:
@@ -641,6 +707,8 @@ def now_state(C: Ctx, spec: dict) -> dict:
         if k == "rsi2":
             m5 = C.ma(p["exit_ma"])[t]
             out["ex"] = _r(px[t] / m5 - 1.0, 4) if m5 == m5 else None
+            if lag == 0:
+                out.update(same_day_levels(C, p, out["st"]))
         else:
             v, m = C.vix, sma(C.vix, p["vix_ma"])
             out["vix"] = _r(v[t], 2)

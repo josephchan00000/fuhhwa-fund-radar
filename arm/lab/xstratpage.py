@@ -46,7 +46,23 @@ def num(v, d: int = 0) -> str:
     return "—" if v is None else f"{v:,.{d}f}"
 
 
-COST_TXT = {"tw": "台股 ETF 每買或賣一次 0.1%", "us": "美股 ETF 每買或賣一次 0.025%"}
+COST_TXT = {"tw": "台股 ETF 每買或賣一次 0.1%", "us": "美股 ETF 每買或賣一次 0.025%",
+            "fut": "台指期每買或賣一次約 0.005%（期交稅十萬分之二＋手續費）"}
+FUT_NOTE = ("價格用加權指數收盤（不含股息）：台指期的正逆價差、轉倉沒有算；台指期的價格已經扣掉預期的股息，"
+            "抱過除息日不會因為除息而跌，這裡會把除息算成跌。")
+
+
+def cost_txt(mk: str, k: str) -> str:
+    if (mk, k) in S.FUT:
+        return COST_TXT["fut"]
+    return COST_TXT["tw" if mk == "tw" else "us"]
+
+
+def ref_label(mk: str, k: str, kind: str) -> list[str]:
+    """參考列的名稱與小字：當天收盤進出的參考隔天收盤（看網頁再做），其他參考原作者的當天收盤。"""
+    if (mk, k) in S.SAME_DAY:
+        return ["隔天收盤", "看網頁再做（訊號隔一個交易日收盤買賣），參考"]
+    return ["原作者時點", "訊號當天收盤買賣，參考" if kind == "trade" else "當天收盤買賣，全期間，參考"]
 PARAM_NAMES = {"rsi2": {"rsi_max": "RSI 低於", "exit_ma": "站上幾日均線賣"},
                "vixs": {"stretch": "VIX 比均線高", "exit_rsi": "RSI 高於幾賣"},
                "tom": {"before": "月底前幾天買", "after": "下個月第幾天賣"},
@@ -66,9 +82,16 @@ def pval(k: str, name: str, v) -> str:
 
 def rule_lines(k: str, mk: str) -> list[str]:
     p = S.BY_KEY[k]["p"]
-    cost = COST_TXT["tw" if mk == "tw" else "us"]
+    cost = cost_txt(mk, k)
     lag = "原作者是訊號當天收盤買賣（另列一列「原作者時點」參考）；這裡用隔天收盤，是看網頁做得到的最早時點。"
-    if k == "rsi2":
+    fut = [FUT_NOTE] if (mk, k) in S.FUT else []
+    if k == "rsi2" and (mk, k) in S.SAME_DAY:
+        out = [f"買：收盤在 {p['ma']} 日均線上，而且 {p['rsi_n']} 日 RSI 低於 {p['rsi_max']} → 當天收盤前用台指期買。",
+               f"賣：收盤站上 {p['exit_ma']} 日均線 → 當天收盤前用台指期賣。",
+               "現貨 13:30 收盤就知道當天的 RSI 與均線，台指期 13:45 才收盤，還來得及買賣（和原作者一樣是訊號當天收盤）。"
+               "頁面每天寫下一個交易日收盤在多少以下就是買進訊號、高於多少就是出場訊號（「現在」那一段）。",
+               "另列一列「隔天收盤」＝看網頁再做的成績，參考。"]
+    elif k == "rsi2":
         out = [f"買：收盤在 {p['ma']} 日均線上，而且 {p['rsi_n']} 日 RSI 低於 {p['rsi_max']} → 隔天收盤買。",
                f"賣：收盤站上 {p['exit_ma']} 日均線 → 隔天收盤賣。", lag]
     elif k == "vixs":
@@ -76,7 +99,8 @@ def rule_lines(k: str, mk: str) -> list[str]:
                f"賣：指數的 2 日 RSI 高於 {p['exit_rsi']} → 隔天收盤賣。", lag]
     elif k == "tom":
         out = [f"買：每個月倒數第 {p['before'] + 1} 個交易日收盤（持有月底最後 {p['before']} 天）。",
-               f"賣：下個月第 {p['after']} 個交易日收盤。", "日子事先排定，照那天收盤買賣。"]
+               f"賣：下個月第 {p['after']} 個交易日收盤。",
+               "日子事先排定，照那天收盤買賣" + ("（用台指期）。" if (mk, k) in S.FUT else "。")]
     elif k == "hal":
         out = ["買：10 月最後一個交易日收盤；賣：4 月最後一個交易日收盤。5～10 月空手。", "日子事先排定，照那天收盤買賣。"]
     elif k == "faber":
@@ -87,11 +111,40 @@ def rule_lines(k: str, mk: str) -> list[str]:
     else:
         out = [f"每個月最後一個交易日看：收盤比 {p['n']} 個月前的月底高 → 持有；比較低 → 空手。",
                "隔天收盤買賣。" + lag.split("；")[0] + "。"]
+    if fut:
+        return out + [f"成本：{cost}。空手時不算利息。"] + fut
     return out + [f"成本：{cost}。指數不含股息、空手時不算利息。"]
 
 
-TAG = {"buy": "訊號出現", "hold": "持有中", "sell": "出場訊號", "wait": "沒有訊號",
+TAG = {"buy": "訊號出現", "hold": "持有中", "sell": "出場訊號", "wait": "沒有訊號", "near": "接近訊號",
        "in": "持有", "out": "空手", "turn_in": "要買回", "turn_out": "要賣出"}
+
+
+def _same_day_rsi2(n: dict, p: dict, D: str, NX: str, d: str) -> str:
+    """當天收盤進出的 RSI(2)（台股，台指期）：下一個交易日的價位。"""
+    st, ed, ret, held = n["st"], n.get("ed"), n.get("ret"), n.get("held")
+    how = "13:30 現貨收盤確認、13:45 台指期收盤前"
+    if st == "hold":
+        ex, c = n.get("ex_px"), n.get("px")
+        rel = f"，比 {D} 收盤{'高' if ex >= c else '低'} {pc(abs(ex / c - 1.0))}" if ex is not None and c else ""
+        out = (f"{NX} 收盤高於 {num(ex)}（站上 {p['exit_ma']} 日均線{rel}）就賣——{how}賣出。" if ex is not None
+               else f"收盤站上 {p['exit_ma']} 日均線就賣。")
+        if not held:
+            return f"{D} 收盤出現訊號，照規則 {D} 收盤前買進（{num(n.get('ep'))}）；{out}"
+        return f"持有中：{md(ed, d)} 收盤買進（{num(n.get('ep'))}），到 {D} {pc(ret, sign=True)}（第 {held} 個交易日）；{out}"
+    hi, lo = n.get("hi_px"), n.get("lo_px")
+    if st == "near":
+        return (f"接近訊號：{NX} 收盤在 {num(hi)}（比 {D} 收盤 {pc(n.get('hi_chg'), sign=True)}）以下、"
+                f"{num(lo)}（200 日均線）以上，就是買進訊號——{how}買進。")
+    if n.get("ma") is not None and n["ma"] < 0:
+        return f"沒有訊號：收盤在 200 日均線下 {pc(-n['ma'])}（在線上才做）；2 日 RSI {n['rsi2']:.0f}。"
+    if hi is None or lo is None:
+        return f"沒有訊號：2 日 RSI {n['rsi2']:.0f}（低於 {p['rsi_max']} 才買）；收盤在 200 日均線上 {pc(n.get('ma'))}。"
+    if not n.get("can"):
+        return (f"沒有訊號：{NX} 收盤要低於 {num(hi)}（{pc(n.get('hi_chg'), sign=True)}）2 日 RSI 才會低於 {p['rsi_max']}，"
+                f"但那樣會跌破 200 日均線（{num(lo)}），所以 {NX} 不會出現買進訊號。")
+    return (f"沒有訊號：{NX} 收盤低於 {num(hi)}（{pc(n.get('hi_chg'), sign=True)}）而且在 {num(lo)}（200 日均線）以上才是買進訊號；"
+            f"2 日 RSI {n['rsi2']:.0f}。")
 
 
 def now_text(r: dict) -> str:
@@ -100,7 +153,9 @@ def now_text(r: dict) -> str:
     st, d = n["st"], n["d"]
     p = S.BY_KEY[k]["p"]
     ed, ret, held = n.get("ed"), n.get("ret"), n.get("held")
-    D, NX = md(d), md(n.get("nx"), d) or "下一個交易日"
+    D, NX = md(d, d), md(n.get("nx"), d) or "下一個交易日"
+    if k == "rsi2" and n.get("lag") == 0:
+        return _same_day_rsi2(n, p, D, NX, d)
     if k == "rsi2":
         if st == "buy":
             return f"{D} 收盤出現訊號：2 日 RSI {n['rsi2']:.1f}（低於 {p['rsi_max']}）、收盤在 200 日均線上 {pc(n['ma'])} → {NX} 收盤買。"
@@ -177,6 +232,10 @@ def now_text(r: dict) -> str:
 def now_short(r: dict) -> str:
     """清單「現在」那一格：一個關鍵數字。"""
     k, n = r["k"], r["now"]
+    if k == "rsi2" and n["st"] == "near":
+        return f"{md(n.get('nx'), n['d'])} 收盤低於 {num(n.get('hi_px'))} 就買"
+    if k == "rsi2" and n["st"] == "hold" and n.get("ex_px") is not None:
+        return f"持有中・{md(n.get('nx'), n['d'])} 收盤高於 {num(n.get('ex_px'))} 就賣"
     if k == "rsi2":
         return f"RSI(2) {n['rsi2']:.0f}・200 日線 {pc(n.get('ma'), 0, sign=True)}"
     if k == "vixs":
@@ -298,7 +357,8 @@ def payload(R: dict) -> dict:
     for mk in S.MARKETS:
         for k, r in (R.get(mk) or {}).items():
             n = r["now"]
-            x = {"t": r["tier"], "a": r["a"], "z": r["z"], "r0": r["r0"], "st": n["st"], "side": side(r),
+            ol = ref_label(mk, k, r["kind"])
+            x = {"t": r["tier"], "a": r["a"], "z": r["z"], "r0": r["r0"], "st": n["st"], "side": side(r), "ol": ol[0], "os": ol[1],
                  "now": now_text(r), "nv": now_short(r), "line": result_line(r), "why": why(r), "rules": rule_lines(k, mk),
                  "gok": round(r["grid_ok"], 3), "g": _grid(r), "p": None if r.get("p") is None else round(r["p"] * 100, 2)}
             if r["kind"] == "trade":
@@ -327,7 +387,7 @@ def detail(R: dict) -> dict:
 # ── 景氣頁 ─────────────────────────────────────────────────────────────────
 
 def board(mk: str, R: dict | None = None) -> list[dict]:
-    """今天的重點要列的策略：★ 而且現在有動作（交易型買／持有／賣、進出型買回列偏多；空手、賣出列警示）。"""
+    """今天的重點要列的策略：★ 而且現在有動作（交易型買／持有／賣／接近訊號、進出型買回列偏多；空手、賣出列警示）。"""
     R = results() if R is None else R
     out = []
     for s in S.STRATS:

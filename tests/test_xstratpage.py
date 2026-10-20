@@ -52,6 +52,25 @@ def test_now_text_every_state_has_dates_and_no_banned_words():
         assert "今天" not in t and "明天" not in t, t           # 美股的資料日是前一個美股交易日：一律寫日期
         if r["now"]["st"] in ("buy", "sell", "turn_in", "turn_out") and r["k"] not in ("tom", "hal"):
             assert "10/20" in t, t                                 # 下一個交易日寫日期
+    same = [  # 台股 RSI(2)（VER 2）：當天收盤前用台指期，寫下一個交易日的價位
+        _fake("rsi2", "trade", "hold", lag=0, ed="2026-10-13", ep=48341.31, ret=-0.042, held=5, ex_px=46799.04, px=46292.93,
+              rsi2=5.6, ma=0.15),
+        _fake("rsi2", "trade", "hold", lag=0, ed="2026-10-19", ep=46292.93, ret=0.0, held=0, ex_px=46800.0, px=46292.93,
+              rsi2=5.6, ma=0.15),
+        _fake("rsi2", "trade", "near", lag=0, hi_px=45800.12, lo_px=41000.5, hi_chg=-0.0107, can=True, rsi2=30, ma=0.15),
+        _fake("rsi2", "trade", "wait", lag=0, hi_px=44800.12, lo_px=41000.5, hi_chg=-0.031, can=True, rsi2=45, ma=0.15),
+        _fake("rsi2", "trade", "wait", lag=0, hi_px=40800.12, lo_px=41000.5, hi_chg=-0.12, can=False, rsi2=45, ma=0.01),
+        _fake("rsi2", "trade", "wait", lag=0, hi_px=40800.12, lo_px=46000.5, hi_chg=-0.12, can=False, rsi2=45, ma=-0.02),
+    ]
+    for r in same:
+        t = P.now_text(r)
+        assert t and not any(w in t for w in BANNED) and "今天" not in t and "明天" not in t, t
+        if r["now"]["st"] in ("hold", "near"):
+            assert "10/20" in t and "台指期" in t, t
+    assert "46,799" in P.now_text(same[0]) and "比 10/19 收盤高 1.1%" in P.now_text(same[0])
+    assert "45,800" in P.now_text(same[2]) and "41,000" in P.now_text(same[2]) and P.side(same[2]) == "up"
+    assert "不會出現買進訊號" in P.now_text(same[4]) and P.side(same[3]) is None
+    assert "低於 45,800 就買" in P.now_short(same[2])
     assert "低 2.0 個百分點" in P._trade_why({"n": 40, "win": 0.6, "base": 0.62, "avg": 0.001})
     assert "多跌" in P._alloc_why({"cagr": 0.05, "mdd": 0.4, "mar": 0.125}, {"cagr": 0.08, "mdd": 0.3})
 
@@ -64,6 +83,8 @@ def test_payload_and_detail_from_real_results():
         assert set(pl["m"][mk]) == {s["k"] for s in S.STRATS if mk in s["mk"]}
         for k, x in pl["m"][mk].items():
             assert x["t"] in S.TIERS and x["st"] in P.TAG and x["now"] and x["line"] and x["rules"] and x["why"]
+            assert x["ol"] == ("隔天收盤" if (mk, k) in S.SAME_DAY else "原作者時點") and x["os"]
+            assert any("台指期" in t for t in x["rules"]) == ((mk, k) in S.FUT)
             assert all(ok in (0, 1, None) for ok, _ in x["why"])
             assert len(x["g"]) == len(R[mk][k]["grid"])
             assert x["side"] in (None, "up", "warn")
