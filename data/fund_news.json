@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/20 20:10",
+  "as_of": "2026/10/20 22:45",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -111,25 +111,11 @@
       ],
       "items": [
         {
-          "title": "科技股震盪、資金別全押同一處 00998A配息創新高 抗跌又能領息",
-          "url": "https://sunmedia.tw/news/finance/%E7%A7%91%E6%8A%80%E8%82%A1%E9%9C%87%E7%9B%AA%E3%80%81%E8%B3%87%E9%87%91%E5%88%A5%E5%85%A8%E6%8A%BC%E5%90%8C%E4%B8%80%E8%99%95-00998A%E9%85%8D%E6%81%AF%E5%89%B5%E6%96%B0%E9%AB%98-%E6%8A%97%E8%B7%8C%E5%8F%88%E8%83%BD%E9%A0%98%E6%81%AF-1792495497527",
-          "source": "商傳媒 - SUN MEDIA",
-          "date": "2026-10-20 19:29",
-          "datetime": "2026-10-20T19:29:01+08:00"
-        },
-        {
           "title": "科技型ETF買再多也是同一籃 00998A大跌時抗震 為組合補上另一種選擇",
           "url": "https://tw.news.yahoo.com/%E7%A7%91%E6%8A%80%E5%9E%8Betf%E8%B2%B7%E5%86%8D%E5%A4%9A%E4%B9%9F%E6%98%AF%E5%90%8C-%E7%B1%83-00998a%E5%A4%A7%E8%B7%8C%E6%99%82%E6%8A%97%E9%9C%87-%E7%82%BA%E7%B5%84%E5%90%88%E8%A3%9C%E4%B8%8A%E5%8F%A6-%E7%A8%AE%E9%81%B8%E6%93%87-105654818.html",
           "source": "Yahoo新聞",
           "date": "2026-10-20 18:56",
           "datetime": "2026-10-20T18:56:54+08:00"
-        },
-        {
-          "title": "費半連八跌、台股量縮至8,251億 資產配置別過度集中科技 00998A逆風翻紅成配置選擇",
-          "url": "https://sunmedia.tw/news/finance/%E8%B2%BB%E5%8D%8A%E9%80%A3%E5%85%AB%E8%B7%8C%E3%80%81%E5%8F%B0%E8%82%A1%E9%87%8F%E7%B8%AE%E8%87%B38251%E5%84%84-%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE%E5%88%A5%E9%81%8E%E5%BA%A6%E9%9B%86%E4%B8%AD%E7%A7%91%E6%8A%80-00998A%E9%80%86%E9%A2%A8%E7%BF%BB%E7%B4%85%E6%88%90%E9%85%8D%E7%BD%AE%E9%81%B8%E6%93%87-1792407480800",
-          "source": "商傳媒",
-          "date": "2026-10-19 19:02",
-          "datetime": "2026-10-19T19:02:06+08:00"
         }
       ]
     },
@@ -156,13 +142,6 @@
           "source": "ENN台灣電報",
           "date": "2026-10-19 01:36",
           "datetime": "2026-10-19T01:36:43+08:00"
-        },
-        {
-          "title": "美國把晶片製造拉回本土 00409A早已佈局美國半導體大趨勢 一張約1萬元輕鬆布局",
-          "url": "https://enn.tw/795064/",
-          "source": "ENN台灣電報",
-          "date": "2026-10-19 02:32",
-          "datetime": "2026-10-19T02:32:26+08:00"
         }
       ]
     },
@@ -184,16 +163,23 @@
         {
           "title": "科技股遭調節 下一波飆股在哪？00418A鎖定AI轉型黑馬 明天正式募集！",
           "url": "https://sunmedia.tw/news/finance/%E7%A7%91%E6%8A%80%E8%82%A1%E9%81%AD%E8%AA%BF%E7%AF%80-%E4%B8%8B%E4%B8%80%E6%B3%A2%E9%A3%86%E8%82%A1%E5%9C%A8%E5%93%AA%EF%BC%9F00418A%E9%8E%96%E5%AE%9AAI%E8%BD%89%E5%9E%8B%E9%BB%91%E9%A6%AC-%E6%98%8E%E5%A4%A9%E6%AD%A3%E5%BC%8F%E5%8B%9F%E9%9B%86%EF%BC%81-1792488969289",
-          "source": "商傳媒 - SUN MEDIA",
+          "source": "ENN台灣電報",
           "date": "2026-10-20 17:36",
           "datetime": "2026-10-20T17:36:32+08:00"
         },
         {
           "title": "台股拉回考驗選股眼光！ 00418A雙軌布局龍頭與轉型股 10/21募集起跑",
           "url": "https://sunmedia.tw/news/finance/%E5%8F%B0%E8%82%A1%E6%8B%89%E5%9B%9E%E8%80%83%E9%A9%97%E9%81%B8%E8%82%A1%E7%9C%BC%E5%85%89%EF%BC%81-00418A%E9%9B%99%E8%BB%8C%E5%B8%83%E5%B1%80%E9%BE%8D%E9%A0%AD%E8%88%87%E8%BD%89%E5%9E%8B%E8%82%A1%E3%80%801021%E5%8B%9F%E9%9B%86%E8%B5%B7%E8%B7%91-1792488815647",
-          "source": "商傳媒 - SUN MEDIA",
+          "source": "ENN台灣電報",
           "date": "2026-10-20 17:36",
           "datetime": "2026-10-20T17:36:31+08:00"
+        },
+        {
+          "title": "昔日傳產變AI新貴！台股資金重新洗牌00418A明天開幕鎖定轉型新星| 生活",
+          "url": "https://www.ctwant.com/article/503123",
+          "source": "CTWANT",
+          "date": "2026-10-20 17:29",
+          "datetime": "2026-10-20T17:29:35+08:00"
         },
         {
           "title": "00418A 復華台灣新星主動式 ETF｜成分股？配息？優缺點？募集時間？",
@@ -571,7 +557,16 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
       "date": "2026-10-18",
-      "views": 3515
+      "views": 3972
+    },
+    {
+      "platform": "youtube",
+      "title": "00929年度報酬率逼近八成賺贏0050！達人拆解月配息填息關鍵與選股策略｜三立財經iNEWS",
+      "channel": "三立財經iNEWS",
+      "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
+      "date": "2026-10-20",
+      "views": 1717,
+      "short": true
     },
     {
       "platform": "youtube",
@@ -583,20 +578,11 @@
     },
     {
       "platform": "youtube",
-      "title": "0050 vs 00991A｜主動選股更賺？2026前九月含息績效比一比！ #被動收入 #理財觀念 #財務自由 #財商教育 #上班族理財 #金錢觀 #富人思維 #擺脫窮忙 #現金流 #人生滾雪球",
-      "channel": "人生滾雪球",
-      "url": "https://www.youtube.com/shorts/1dRmWvkVPY4",
-      "date": "2026-10-16",
-      "views": 866,
-      "short": true
-    },
-    {
-      "platform": "youtube",
       "title": "一缸子全是台積電！主動式ETF遭外資提款引爆共伴效應...神山慘挨刀！11月前最難熬該怎麼避險？ - 黃世聰 林友銘 蘇威元 劉寶傑《寶傑點兵》20261016-1",
       "channel": "寶傑點兵／寶傑怎麼說",
       "url": "https://www.youtube.com/watch?v=sWtVhEHFKoI",
       "date": "2026-10-16",
-      "views": 160981,
+      "views": 161054,
       "peer": true,
       "cat": "主動式"
     },
@@ -606,7 +592,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
       "date": "2026-10-17",
-      "views": 137454,
+      "views": 138198,
       "peer": true,
       "cat": "高股息"
     },
@@ -616,7 +602,7 @@
       "channel": "九八新聞台",
       "url": "https://www.youtube.com/watch?v=A8QXBj_oWj4",
       "date": "2026-10-17",
-      "views": 118453,
+      "views": 118452,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -626,7 +612,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=0U1OMDn2AAQ",
       "date": "2026-10-18",
-      "views": 117722,
+      "views": 117905,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -636,7 +622,7 @@
       "channel": "HSBC Hong Kong",
       "url": "https://www.youtube.com/shorts/lTkYQAOPZ_Q",
       "date": "2026-10-16",
-      "views": 80714,
+      "views": 83943,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -647,7 +633,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=QgfhIwj8uRc",
       "date": "2026-10-17",
-      "views": 76052,
+      "views": 76427,
       "peer": true,
       "cat": "高股息"
     },
@@ -657,18 +643,19 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
       "date": "2026-10-17",
-      "views": 65146,
+      "views": 65166,
       "peer": true,
       "cat": "主動式"
     },
     {
       "platform": "youtube",
-      "title": "【精華】美國升息，股市要崩？蕭碧燕教你類仰天長笑、母子投資法抱更久，不設低檔加碼一樣賺！｜蕭碧燕、葉芷娟｜ETF錢滾錢",
+      "title": "台股跌了才想加碼？她用這招不用苦等低點｜ft.基金教母蕭碧燕、葉芷娟 #低檔加碼 #定時定額 #ETF錢滾錢",
       "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/watch?v=e8lRkHckkkw",
-      "date": "2026-10-18",
-      "views": 61171,
+      "url": "https://www.youtube.com/shorts/7NxiVHoPy3g",
+      "date": "2026-10-19",
+      "views": 63044,
       "peer": true,
+      "short": true,
       "cat": "綜合"
     },
     {
@@ -677,19 +664,20 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
       "date": "2026-10-19",
-      "views": 28923,
+      "views": 33088,
       "peer": true,
       "short": true,
       "cat": "市值型"
     },
     {
       "platform": "youtube",
-      "title": "台股回檔散戶越挫越勇! ETF稱霸零股交易 0050成交量逾2100萬股 與0056受益人數再創新高｜非凡財經新聞｜20261019",
-      "channel": "USTV 非凡電視",
-      "url": "https://www.youtube.com/watch?v=i00WZc5N9A0",
+      "title": "【買點到?】獨家數據公開! 到底現在買 ETF 還是再等等...？ #台股 #美股 #大盤  #櫃買",
+      "channel": "陳智霖股票分析師 Equity Research Analyst",
+      "url": "https://www.youtube.com/shorts/Dx2D_E6LksY",
       "date": "2026-10-19",
-      "views": 12823,
+      "views": 15793,
       "peer": true,
+      "short": true,
       "cat": "市值型"
     }
   ],
@@ -697,6 +685,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全球創新金融指數（詳下方新聞標籤）",
     "品牌焦點：00991A 是什麼？主動復華未來 50 成分股、配息、與 0050 、00981A差異一次看（經理人）",
     "社群聲量最高：請教現有投資部位與現金的選擇問題（0 推）",
-    "YouTube 熱片：一缸子全是台積電！主動式ETF遭外資提款引爆共伴效應...神山慘挨刀！11月前最難熬該怎麼避險？ - 黃世聰 林友銘 蘇威元 劉寶傑《寶傑點兵》20261016-1（寶傑點兵／寶傑怎麼說・160,981 次觀看）"
+    "YouTube 熱片：一缸子全是台積電！主動式ETF遭外資提款引爆共伴效應...神山慘挨刀！11月前最難熬該怎麼避險？ - 黃世聰 林友銘 蘇威元 劉寶傑《寶傑點兵》20261016-1（寶傑點兵／寶傑怎麼說・161,054 次觀看）"
   ]
 }
