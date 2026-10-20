@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/21 05:49",
+  "as_of": "2026/10/21 06:50",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -580,7 +580,7 @@
       "channel": "下班後的投資所",
       "url": "https://www.youtube.com/watch?v=Hlp_-pEy3EE",
       "date": "2026-10-15",
-      "views": 720
+      "views": 719
     },
     {
       "platform": "youtube",
@@ -596,7 +596,7 @@
       "channel": "寶傑點兵／寶傑怎麼說",
       "url": "https://www.youtube.com/watch?v=sWtVhEHFKoI",
       "date": "2026-10-16",
-      "views": 161170,
+      "views": 161167,
       "peer": true,
       "cat": "主動式"
     },
@@ -606,7 +606,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
       "date": "2026-10-17",
-      "views": 139601,
+      "views": 139649,
       "peer": true,
       "cat": "高股息"
     },
@@ -616,7 +616,7 @@
       "channel": "HSBC Hong Kong",
       "url": "https://www.youtube.com/shorts/lTkYQAOPZ_Q",
       "date": "2026-10-16",
-      "views": 88413,
+      "views": 88714,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -627,19 +627,9 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=QgfhIwj8uRc",
       "date": "2026-10-17",
-      "views": 76987,
+      "views": 77044,
       "peer": true,
       "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "【錢線百分百】20261019完整版(上集)《央行罕見盤中發聲! 外資砍.內資硬扛?跌夠了? 昨天買.今天賣! AI熱門股變臉 新資金往哪?》│非凡財經新聞│",
-      "channel": "USTV 非凡電視",
-      "url": "https://www.youtube.com/watch?v=ejzp9mxB36U",
-      "date": "2026-10-19",
-      "views": 72212,
-      "peer": true,
-      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -647,7 +637,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/7NxiVHoPy3g",
       "date": "2026-10-19",
-      "views": 69730,
+      "views": 69817,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -658,7 +648,7 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
       "date": "2026-10-17",
-      "views": 65478,
+      "views": 65494,
       "peer": true,
       "cat": "主動式"
     },
@@ -668,7 +658,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
       "date": "2026-10-19",
-      "views": 38959,
+      "views": 39022,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -679,7 +669,17 @@
       "channel": "東森新聞 CH51",
       "url": "https://www.youtube.com/watch?v=XGAFM--pVJQ",
       "date": "2026-10-16",
-      "views": 26957,
+      "views": 26954,
+      "peer": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "【週末鈔能力】台股抓緊最後上車機會！看3指標進場「勝率100%」穩賺！ft.阿斯匹靈、蕭碧燕｜應佳臻 #財經鈔能力",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=ouZfQ1balA0",
+      "date": "2026-10-18",
+      "views": 26053,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -689,7 +689,7 @@
       "channel": "陳智霖股票分析師 Equity Research Analyst",
       "url": "https://www.youtube.com/shorts/Dx2D_E6LksY",
       "date": "2026-10-19",
-      "views": 18661,
+      "views": 18762,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -699,6 +699,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全球創新金融指數（詳下方新聞標籤）",
     "品牌焦點：主動復華台灣新星 10／21開募 聚焦3大類股（中時新聞網）",
     "社群聲量最高：請教現有投資部位與現金的選擇問題（0 推）",
-    "YouTube 熱片：一缸子全是台積電！主動式ETF遭外資提款引爆共伴效應...神山慘挨刀！11月前最難熬該怎麼避險？ - 黃世聰 林友銘 蘇威元 劉寶傑《寶傑點兵》20261016-1（寶傑點兵／寶傑怎麼說・161,170 次觀看）"
+    "YouTube 熱片：一缸子全是台積電！主動式ETF遭外資提款引爆共伴效應...神山慘挨刀！11月前最難熬該怎麼避險？ - 黃世聰 林友銘 蘇威元 劉寶傑《寶傑點兵》20261016-1（寶傑點兵／寶傑怎麼說・161,167 次觀看）"
   ]
 }
