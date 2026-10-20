@@ -430,3 +430,47 @@ def test_sig_items_feed_overview(built, monkeypatch):
     monkeypatch.setattr(SPG, "CARDS", {})
     VZ.stash_cards(V)
     assert SPG.ITEMS == {V["mk"]: it}
+
+
+def _it(k, name, ago, heat, n, rec=None):
+    return {"k": k, "name": name, "ago": ago, "heat": heat, "dpull": (heat - ago) / n, "pos": {"rec": rec or {}}}
+
+
+def test_moves_one_row_per_dimension_with_main_reasons():
+    """這週變化（2026-10-20 使用者：「這週變化那邊看不懂，有點亂」）：每個面向一列＝上週 → 現在、換區、主要原因
+    （拉動最多、和變化同方向的兩項），動 ±3 分以內收成一行；3 年以上新高新低照舊列在最後。"""
+    tech = [_it("t1", "對 20 日線乖離", 74, 8, 4), _it("t2", "RSI", 72, 12, 4), _it("t3", "美國 VIX", 30, 17, 4),
+            _it("t4", "距高點", 60, 70, 4)]
+    liq = [_it("g1", "高收益債", 62, 27, 5), _it("g2", "2 年債", 10, 13, 5), _it("g3", "貨幣基金", 5, 2, 5),
+           _it("g4", "聯準會", 20, 27, 5), _it("g5", "10 年債", 8, 12, 5)]
+    fund = [_it("f1", "燈號", 93, 94, 2, {"kind": "since_y", "n": 42, "side": "hi"}), _it("f2", "PMI", 95, 94, 2)]
+    sc = lambda its: 50 + sum((it["heat"] - 50) / len(its) for it in its)  # noqa: E731
+    ag = lambda its: 50 + sum((it["ago"] - 50) / len(its) for it in its)  # noqa: E731
+    V = {"viz": {"t0": "2026-10-12"}, "dims": {
+        "fund": {"score": sc(fund), "ago": ag(fund), "items": fund},
+        "gliq": {"score": sc(liq), "ago": ag(liq), "items": liq},
+        "tech": {"score": sc(tech), "ago": ag(tech), "items": tech}}}
+    h = VZ.moves_html(V)
+    txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h)))
+    rows = re.findall(r'<li class="wr">.*?</li>', h)
+    assert len(rows) == 2 and 'data-k="tech"' in rows[0] and 'data-k="gliq"' in rows[1]   # 依變化大小排序
+    assert "和 10/12（一）比" in txt
+    assert "59 → 27 −32 中性 → 偏冷" in txt and "21 → 16 −5 偏冷 → 過冷" in txt
+    assert "主要是 對 20 日線乖離 74→8 （−16.5） 進入過冷 、 RSI 72→12 （−15.0） 進入過冷 ；另外 美國 VIX 進入過冷" in txt
+    assert "距高點" not in rows[0]                                            # 反方向的不算主要原因
+    assert "主要是 高收益債 62→27 （−7.0） ；其他項目往反方向拉回 +2.2" in txt  # 只有一項同方向超過 1 分
+    assert "貨幣基金" not in rows[1]                                          # 拉動不到 1 分不算
+    assert "其他沒什麼變 燈號" not in txt and "其他沒什麼變 基本面 94（0）" in txt
+    assert "創新高、新低 燈號 42 年新高" in txt
+    assert txt.count("wtk") == 0 and h.count('class="wtk"') == 2             # 每列一條小軌道
+    assert 'style="left:66.5%;width:' not in h and re.search(r'class="wo" style="left:\d', h)
+    assert not any(w in txt for w in BANNED)
+
+
+def test_moves_empty_week():
+    its = [_it("f1", "燈號", 50, 51, 1)]
+    V = {"viz": {"t0": "2026-10-12"}, "dims": {"fund": {"score": 51, "ago": 50, "items": its}}}
+    txt = html.unescape(re.sub(r"<[^>]+>", " ", VZ.moves_html(V)))
+    assert "其他沒什麼變" in txt and "創新高" not in txt
+    V["dims"]["fund"] = {"score": None, "ago": 50, "items": its}
+    assert "這週各面向都沒什麼變" in VZ.moves_html(V)
