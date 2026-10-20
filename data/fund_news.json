@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/21 05:18",
+  "as_of": "2026/10/21 05:49",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -567,28 +567,28 @@
     },
     {
       "platform": "youtube",
-      "title": "00929年度報酬率逼近八成賺贏0050！達人拆解月配息填息關鍵與選股策略｜三立財經iNEWS",
-      "channel": "三立財經iNEWS",
-      "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
-      "date": "2026-10-20",
-      "views": 9390,
+      "title": "0050 vs 00991A｜主動選股更賺？2026前九月含息績效比一比！ #被動收入 #理財觀念 #財務自由 #財商教育 #上班族理財 #金錢觀 #富人思維 #擺脫窮忙 #現金流 #人生滾雪球",
+      "channel": "人生滾雪球",
+      "url": "https://www.youtube.com/shorts/1dRmWvkVPY4",
+      "date": "2026-10-16",
+      "views": 867,
       "short": true
     },
     {
       "platform": "youtube",
-      "title": "都是月配息 ETF 00929 VS 00406A 該選誰？",
-      "channel": "Lydia聊人生",
-      "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
-      "date": "2026-10-18",
-      "views": 4763
+      "title": "【台股高檔必看】操盤手曾創 73 個月 920% 績效！主動式 ETF 00418A 值得買嗎？",
+      "channel": "下班後的投資所",
+      "url": "https://www.youtube.com/watch?v=Hlp_-pEy3EE",
+      "date": "2026-10-15",
+      "views": 720
     },
     {
       "platform": "youtube",
-      "title": "00929科技月配息ETF！今年漲79%奪冠，配息率15.8%。#財富自由 #被動收入",
-      "channel": "財富閒叔跡",
-      "url": "https://www.youtube.com/watch?v=0Fqy5W9z8JM",
+      "title": "高股息非最佳解？捨棄配息賺更兇！揭秘 00924 極致複利真相｜物流策略師供應鏈視角解析美股S&amp;P500成長 ETF ：拆解科技巨頭資本運籌與零配息戰略｜復華S&amp;P500成長 ETF｜00924...",
+      "channel": "物流策展人",
+      "url": "https://www.youtube.com/watch?v=VuCeDAPXs6g",
       "date": "2026-10-15",
-      "views": 957
+      "views": 176
     },
     {
       "platform": "youtube",
@@ -596,7 +596,7 @@
       "channel": "寶傑點兵／寶傑怎麼說",
       "url": "https://www.youtube.com/watch?v=sWtVhEHFKoI",
       "date": "2026-10-16",
-      "views": 161167,
+      "views": 161170,
       "peer": true,
       "cat": "主動式"
     },
@@ -606,29 +606,9 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
       "date": "2026-10-17",
-      "views": 139578,
+      "views": 139601,
       "peer": true,
       "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "週一台股要崩千點？該賣股票嗎？我該怎麼辦？#台股",
-      "channel": "一綺聊股",
-      "url": "https://www.youtube.com/watch?v=0U1OMDn2AAQ",
-      "date": "2026-10-18",
-      "views": 118579,
-      "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "&#39;26.10.17【理財週末派】摩爾投顧林鈺凱談「台股3天內見低點 股票先買再說」",
-      "channel": "九八新聞台",
-      "url": "https://www.youtube.com/watch?v=A8QXBj_oWj4",
-      "date": "2026-10-17",
-      "views": 118489,
-      "peer": true,
-      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -636,7 +616,7 @@
       "channel": "HSBC Hong Kong",
       "url": "https://www.youtube.com/shorts/lTkYQAOPZ_Q",
       "date": "2026-10-16",
-      "views": 88251,
+      "views": 88413,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -653,11 +633,21 @@
     },
     {
       "platform": "youtube",
+      "title": "【錢線百分百】20261019完整版(上集)《央行罕見盤中發聲! 外資砍.內資硬扛?跌夠了? 昨天買.今天賣! AI熱門股變臉 新資金往哪?》│非凡財經新聞│",
+      "channel": "USTV 非凡電視",
+      "url": "https://www.youtube.com/watch?v=ejzp9mxB36U",
+      "date": "2026-10-19",
+      "views": 72212,
+      "peer": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
       "title": "台股跌了才想加碼？她用這招不用苦等低點｜ft.基金教母蕭碧燕、葉芷娟 #低檔加碼 #定時定額 #ETF錢滾錢",
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/7NxiVHoPy3g",
       "date": "2026-10-19",
-      "views": 69651,
+      "views": 69730,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -668,7 +658,7 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
       "date": "2026-10-17",
-      "views": 65426,
+      "views": 65478,
       "peer": true,
       "cat": "主動式"
     },
@@ -678,10 +668,20 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
       "date": "2026-10-19",
-      "views": 38906,
+      "views": 38959,
       "peer": true,
       "short": true,
       "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股漲太高別怕！100萬如何滾出近5倍獲利？專家曝「長抱」致富術【理財密碼】",
+      "channel": "東森新聞 CH51",
+      "url": "https://www.youtube.com/watch?v=XGAFM--pVJQ",
+      "date": "2026-10-16",
+      "views": 26957,
+      "peer": true,
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -689,7 +689,7 @@
       "channel": "陳智霖股票分析師 Equity Research Analyst",
       "url": "https://www.youtube.com/shorts/Dx2D_E6LksY",
       "date": "2026-10-19",
-      "views": 18590,
+      "views": 18661,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -699,6 +699,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全球創新金融指數（詳下方新聞標籤）",
     "品牌焦點：主動復華台灣新星 10／21開募 聚焦3大類股（中時新聞網）",
     "社群聲量最高：請教現有投資部位與現金的選擇問題（0 推）",
-    "YouTube 熱片：一缸子全是台積電！主動式ETF遭外資提款引爆共伴效應...神山慘挨刀！11月前最難熬該怎麼避險？ - 黃世聰 林友銘 蘇威元 劉寶傑《寶傑點兵》20261016-1（寶傑點兵／寶傑怎麼說・161,167 次觀看）"
+    "YouTube 熱片：一缸子全是台積電！主動式ETF遭外資提款引爆共伴效應...神山慘挨刀！11月前最難熬該怎麼避險？ - 黃世聰 林友銘 蘇威元 劉寶傑《寶傑點兵》20261016-1（寶傑點兵／寶傑怎麼說・161,170 次觀看）"
   ]
 }
