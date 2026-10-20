@@ -23,12 +23,16 @@ on:
       flow_days:
         description: "籌碼回補日曆天數"
         default: "95"
+      mode:
+        description: "指定模式（同 .ping/lab 第一行，例 mgnfill）；空白＝依 probe 勾選"
+        default: ""
   push:
     branches: ['claude/**']
     paths: ['.ping/lab']
 
 concurrency:
-  group: lab-backfill
+  # push（.ping/lab）與 workflow_dispatch 分兩組：mgnfill 用 dispatch 跑好幾個小時，期間推 .ping/lab 的其他模式照樣能跑
+  group: lab-backfill-${{ github.event_name }}
   cancel-in-progress: false
 
 permissions:
@@ -62,11 +66,10 @@ jobs:
             # 哨兵檔被刪（例如合併前清理）也會觸發 push → 沒有檔就什麼都不做
             if [ ! -f .ping/lab ]; then echo "無 .ping/lab，略過"; exit 0; fi
             MODE=$(head -1 .ping/lab 2>/dev/null | tr -d '[:space:]')
+          elif [ -n "${{ inputs.mode }}" ]; then
+            MODE="${{ inputs.mode }}"
           elif [ "${{ inputs.probe }}" = "true" ]; then
             MODE="probe"
-          elif [ -f .ping/lab ] && [ "$(head -1 .ping/lab | cut -c1-7)" = "mgnfill" ]; then
-            # mgnfill 自己再派的那一輪（workflow_dispatch 沒有 .ping/lab 以外的地方可以帶模式）
-            MODE=$(head -1 .ping/lab | tr -d '[:space:]')
           fi
           PX="${{ inputs.px_days || '380' }}"
           FL="${{ inputs.flow_days || '95' }}"
@@ -78,7 +81,8 @@ jobs:
             timeout 1500 python3 scripts/probe_s3.py
           elif [ "${MODE#mgnfill}" != "$MODE" ]; then
             # 台股融資維持率回補（docs/lab_expert_plan.md 第 10 節）：FinMind 逐檔，每小時最多 280 個請求（未登入 300）。
-            # 每 50 分鐘存檔＋commit 一次，跑到約 330 分鐘；沒做完就自己再派一輪（同一個分支、同一個模式）。
+            # 用 workflow_dispatch 帶 mode=mgnfill 跑（不佔 push 那一組）；每 50 分鐘存檔＋commit 一次，跑到約 330 分鐘，
+            # 沒做完就自己再派一輪（同一個分支、同一個模式）。
             git config user.name "josephchan00000"
             git config user.email "51159474+josephchan00000@users.noreply.github.com"
             T_END=$(( $(date +%s) + 330 * 60 ))
@@ -102,7 +106,7 @@ jobs:
             done
             if ! grep -q "^DONE\|^STUCK" /tmp/mr_status.txt; then
               echo "還沒做完：再派一輪"
-              gh workflow run lab_backfill.yml --ref "${{ github.ref_name }}" || echo "::warning::再派失敗，請手動推 .ping/lab"
+              gh workflow run lab_backfill.yml --ref "${{ github.ref_name }}" -f mode=mgnfill || echo "::warning::再派失敗，請手動派 mode=mgnfill"
             fi
           elif [ "$MODE" = "probe2" ]; then
             python3 scripts/backfill_lab.py --probe2
