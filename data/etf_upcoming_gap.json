@@ -1,9 +1,18 @@
 {
- "as_of": "2026-10-20 13:52",
+ "as_of": "2026-10-20 14:18",
  "count": 0,
  "items": [],
  "pipeline_n": 6,
  "pipeline": [
+  {
+   "code": null,
+   "name": "凱基全球AI生態系主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "applied",
+   "cat": "主動式ETF"
+  },
   {
    "code": null,
    "name": "群益動態增益非投資等級債券主動式ETF基金",
@@ -25,15 +34,6 @@
   {
    "code": null,
    "name": "統一台股千里馬主動式ETF基金",
-   "first_seen": null,
-   "kind": "offering",
-   "src": "cnyes",
-   "stage": "applied",
-   "cat": "主動式ETF"
-  },
-  {
-   "code": null,
-   "name": "凱基全球AI生態系主動式ETF基金",
    "first_seen": null,
    "kind": "offering",
    "src": "cnyes",
