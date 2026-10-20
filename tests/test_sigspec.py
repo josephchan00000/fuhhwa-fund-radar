@@ -38,6 +38,9 @@ def test_sig_spec_v1_is_locked():
     assert X.STRAT_N_MIN == X.N_MIN == 10 and X.STRAT_FEW == 30          # VER 2：次數不夠沒關係（使用者 2026-10-19）
     assert X.STRAT_CAP == {"good": 0.05, "ref": 0.02, "none": 0.0, "few": 0.0}
     assert (X.TODAY_MAX, X.TODAY_REF) == (8, 3)
+    # 景氣頁「今天的重點」2026-10-20 起：只改呈現、不改判定（VER 不變）
+    assert X.TODAY_SIDE == 6 and X.THERMO_W == {"good": 2, "ref": 1} and X.THERMO_LEAN == 0.6
+    assert [k for k, *_ in X.THERMO_HZ] == ["short", "mid", "long"]
 
 
 def test_sig_spec_refers_to_existing_definitions():

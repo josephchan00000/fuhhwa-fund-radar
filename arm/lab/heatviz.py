@@ -435,28 +435,83 @@ def _radar_card() -> str:
             '<p class="rsmc" id="rsmc"></p></div>')
 
 
-def today_html(V: dict) -> str:
-    """今天的重點（docs/lab_signal_plan.md 第 6.1 節）：這個市場現在有效的 ★ 好訊號（訊號總覽的實務判定），沒有就列 ● 可參考。
-    取代原本的「關鍵狀態」（依學術判定），點一列到訊號總覽看細節。"""
+TZ_SIDE = {"up": "偏多", "warn": "警示"}
+TZ_LEAN = {"up": "偏多", "warn": "偏警示", "even": "差不多"}
+
+
+def _tz_counts(n: dict) -> str:
+    """{tier: 次數} → 「★3 ●2」；沒有就「0」。"""
+    from . import sigspec as SS
+    s = " ".join(f"{SS.TIER_MARK[t]}{c}" for t, c in n.items() if c)
+    return s or "0"
+
+
+def thermo_html(T: dict) -> str:
+    """三支溫度計（sigspec 第 5 節）：一條 100% 的長條，左＝偏多（★ 深、● 淺）、右＝警示；中線＝一半。"""
+    from . import sigspec as SS
+    rows = []
+    for th in T["thermo"]:
+        w, n = th["w"], th["n"]
+        tot = w["up"] + w["warn"]
+        if tot:
+            segs = []
+            for s, order in (("up", ("good", "ref")), ("warn", ("ref", "good"))):
+                for t in order:
+                    pct = SS.THERMO_W[t] * n[s][t] / tot * 100
+                    if pct:
+                        segs.append(f'<i class="tzs tzs-{s} tzs-{t}" style="width:{pct:.1f}%"></i>')
+            bar = "".join(segs)
+            word = (f'<b class="tzw tzw-{th["lean"]}">{_e(TZ_LEAN[th["lean"]])}</b>'
+                    f'<span class="tzp">偏多占 {th["share"] * 100:.0f}%</span>')
+        else:
+            bar = ""
+            word = '<b class="tzw tzw-none">沒有訊號</b>'
+        cnt = f'偏多 {_tz_counts(n["up"])}・警示 {_tz_counts(n["warn"])}'
+        lab = f'{th["name"]}（{th["h"]}）：{cnt}' + (f'，偏多占 {th["share"] * 100:.0f}%' if tot else "，沒有訊號")
+        rows.append(f'<div class="tzr"><span class="tzn"><b>{_e(th["name"])}</b><i>{_e(th["h"])}</i></span>'
+                    f'<span class="tzb" role="img" aria-label="{_e(lab)}">{bar}</span>'
+                    f'<span class="tzv"><span>{word}</span><span class="tzct">{_e(cnt)}</span></span></div>')
+    return '<div class="tzt">' + "".join(rows) + "</div>"
+
+
+def _tz_item(r: dict, d: str | None) -> str:
     from . import sigpage as SPG
+    from . import sigspec as SS
+    return (f'<li><a class="tzi" href="x9o.html#s={_e(r["id"])}"><span class="tzh">'
+            f'<span class="tzk tzk-{r["tier"]}">{SS.TIER_MARK[r["tier"]]}</span><b>{_e(r["name"])}</b>'
+            f'<span class="tzd">{_e(SPG._hz(r))}</span></span>'
+            f'<span class="tzl">{SPG._line(r)}・{_e(SPG._since(r["now"], d))}</span></a></li>')
+
+
+def today_html(V: dict) -> str:
+    """今天的重點（docs/lab_heatviz_v2_plan.md 第 3 節；sigspec 第 5 節）：三支溫度計＋偏多、警示兩欄
+    （這個市場現在有效的 ★ 與 ●，同一個項目只算一次）。點一列到訊號總覽看細節。"""
     from . import sigspec as SS
     T = V.get("sigtoday")
     if not T:
         return ('<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div>'
                 '<p class="note">訊號總覽的研究結果還沒產生（scripts/run_sig.py）。</p></section>')
-    items = T["good"] or T["ref"]
-    sub = ("過去出現之後，「中了」的比例明顯比平常高、近 10 年也成立的訊號（★ 好訊號）；同一個項目只列一種。"
-           if T["good"] else "今天沒有好訊號出現，以下是比平常好一些的（● 可參考）。")
-    lis = []
-    for r in items:
-        lis.append(f'<li><a class="tzi" href="x9o.html#s={_e(r["id"])}"><span class="tzh">'
-                   f'<span class="tzk tzk-{r["tier"]}">{SS.TIER_MARK[r["tier"]]}</span><b>{_e(r["name"])}</b>'
-                   f'<span class="tzd tzd-{r["d"]}">{_e(SS.DIR_NAMES[r["d"]])}</span></span>'
-                   f'<span class="tzl">{SPG._line(r)}・{_e(SPG._since(r["now"], T.get("d")))}</span></a></li>')
-    body = ('<ul class="tzu">' + "".join(lis) + "</ul>") if lis else '<p class="note">今天沒有好訊號，也沒有可參考的訊號出現。</p>'
-    kn = f'<span class="kn">{len(T["good"])} 個好訊號</span>' if T["good"] else ""
-    return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2>{kn}</div><p class="ksub">{_e(sub)}</p>'
-            f'{body}<p class="tzm"><a href="x9o.html">全部訊號、研究細節（訊號總覽）→</a></p></section>')
+    cols = []
+    for s in ("up", "warn"):
+        xs = [r for r in T[s] if r.get("show", True)]
+        low = len(T[s]) - len(xs)
+        pct = f'{SS.HIT_MIN[s] * 100:.0f}%'
+        head = (f'<h3><span class="tzcl tzcl-{s}">{_e(TZ_SIDE[s])}</span><span class="sub">{len(xs)} 個'
+                + (f'・另 {low} 個機率較低，只算進溫度計' if low else "") + "</span></h3>")
+        if not xs:
+            cols.append(f'<div class="tzcol">{head}<p class="note">現在沒有機率夠高（{pct} 以上）的{_e(TZ_SIDE[s])}訊號。</p></div>')
+            continue
+        top, rest = xs[:SS.TODAY_SIDE], xs[SS.TODAY_SIDE:]
+        more = (f'<details class="tzmore"><summary>還有 {len(rest)} 個</summary><ul class="tzu">'
+                + "".join(_tz_item(r, T.get("d")) for r in rest) + "</ul></details>") if rest else ""
+        cols.append(f'<div class="tzcol">{head}<ul class="tzu">' + "".join(_tz_item(r, T.get("d")) for r in top)
+                    + f"</ul>{more}</div>")
+    sub = ("溫度計：現在成立、過去出現之後「中了」的比例比平常高的訊號（★ 好訊號、● 可參考），依看多久分三支，"
+           f"★ 算 {SS.THERMO_W['good']}、● 算 {SS.THERMO_W['ref']}，同一個項目在同一支只算一次；只是數一數，溫度計本身沒有驗證過能預測漲跌。"
+           f"下面的清單只列機率夠高的（偏多 {SS.HIT_MIN['up'] * 100:.0f}% 以上、警示 {SS.HIT_MIN['warn'] * 100:.0f}% 以上）。")
+    return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div><p class="ksub">{_e(sub)}</p>'
+            f'{thermo_html(T)}<div class="tzcols">{"".join(cols)}</div>'
+            '<p class="tzm"><a href="x9o.html">全部訊號、研究細節（訊號總覽）→</a></p></section>')
 
 
 def stash_cards(V: dict) -> None:
@@ -484,7 +539,7 @@ def main_view(V: dict, ks: list[dict]) -> str:
            + '<button type="button" class="snv" data-goview="research">研究與驗證 →</button></nav>')
     nores = "" if (V.get("R") or {}).get("dims") else f'<p class="warn">驗證結果還沒產生（{_e(HP.MK["res"])}），先只列各項的 0～100。</p>'
     top = (f'<section class="vtop" id="top"><p class="sum">{_e(V.get("summary") or "")}</p>{nores}'
-           f'<div class="vgrid">{_radar_card()}<div class="vside">{today_html(V)}{moves_html(V)}</div></div>'
+           f'{today_html(V)}<div class="vgrid">{_radar_card()}<div class="vside">{moves_html(V)}</div></div>'
            f'<p class="hz">{_e(S.HORIZON_NOTE)}。<span class="mu">（資料到 {_e(HP._md(asof))}）</span></p></section>')
     items = ('<section class="sec" id="items"><div class="ish2"><h2>全部項目<span class="sub" id="isub"></span></h2>'
              '<div class="seg"><button type="button" class="tb" id="itabb" aria-pressed="false">表格</button></div></div>'
@@ -1013,13 +1068,28 @@ body.drw-on{overflow:hidden}
 @media (min-width:1100px){body.drw-on{overflow:auto}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 /* 今天的重點（訊號總覽的實務判定）與頁首的市場狀態一行 */
-.tzc{padding:12px 14px;min-width:0}
+.tzc{padding:12px 14px;min-width:0;margin:0 0 14px;--bull:#d33a34;--bear:#159c94}
+@media (prefers-color-scheme:dark){.tzc{--bull:#f15b50;--bear:#24a89d}}
+.tzt{display:grid;gap:7px;margin:4px 0 12px}
+.tzr{display:grid;grid-template-columns:92px minmax(0,1fr) 210px;align-items:center;gap:10px}
+.tzn{display:flex;flex-direction:column;line-height:1.2}.tzn b{font-size:14px}.tzn i{font-style:normal;font-size:11.5px;color:var(--mut)}
+.tzb{position:relative;display:flex;height:16px;border-radius:4px;background:var(--card2);overflow:hidden;gap:2px}
+.tzb::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:var(--ink2);opacity:.55}
+.tzs{display:block;height:100%}.tzs-up{background:var(--bull)}.tzs-warn{background:var(--bear)}.tzs-ref{opacity:.42}
+.tzv{display:flex;flex-direction:column;line-height:1.3;font-size:12.5px;color:var(--ink2)}
+.tzw{font-size:14px}.tzw-up{color:var(--bull)}.tzw-warn{color:var(--bear)}.tzw-even{color:var(--ink)}.tzw-none{color:var(--mut);font-weight:500}
+.tzp{margin-left:6px;font-size:12.5px;color:var(--ink2)}.tzct{font-size:12px;color:var(--mut)}
+.tzcols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 22px}
+.tzcol h3{margin:4px 0 2px;font-size:15px;display:flex;align-items:baseline;gap:8px}.tzcol h3 .sub{font-size:12px;color:var(--mut);font-weight:400}
+.tzcl{padding:0 0 1px;border-bottom:3px solid}.tzcl-up{border-color:var(--bull)}.tzcl-warn{border-color:var(--bear)}
+.tzmore summary{cursor:pointer;font-size:13px;color:var(--acc);padding:4px 2px}
+@media (max-width:720px){.tzr{grid-template-columns:62px minmax(0,1fr);gap:4px 8px}.tzv{grid-column:2;flex-direction:row;flex-wrap:wrap;gap:0 8px;align-items:baseline}
+.tzcols{grid-template-columns:1fr}}
 .tzu{list-style:none;margin:0;padding:0}.tzu li+li{border-top:1px solid var(--line)}
 .tzi{display:block;padding:7px 2px;color:var(--ink);text-decoration:none;border-radius:8px}.tzi:hover{background:var(--card2)}
 .tzh{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}.tzh b{font-weight:600;font-size:14px}
 .tzk{width:14px;text-align:center;font-weight:700}.tzk-good{color:var(--acc)}.tzk-ref{color:var(--ink2)}
 .tzd{font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--line2);white-space:nowrap}
-.tzd-up{color:var(--t4);border-color:var(--t4)}.tzd-warn{color:var(--t3);border-color:var(--t3)}.tzd-buy{color:var(--p0);border-color:var(--p0)}
 .tzl{display:block;font-size:12.5px;color:var(--ink2);padding-left:20px;line-height:1.55}.tzl b{color:var(--ink)}
 .tzm{margin:6px 0 0;font-size:13px}
 .stl{max-width:1080px;margin:4px auto 0;padding:0 16px;display:flex;flex-wrap:wrap;gap:6px}
