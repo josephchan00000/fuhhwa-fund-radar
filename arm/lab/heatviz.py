@@ -27,8 +27,10 @@ SWING_N = 8            # 最近幾個已確認的轉折點
 SWING_GAP = 15         # 讀法：高點和低點的面向平均差幾分以上才寫
 SWING_SHOW = 3
 KEY_SHOW = 4           # 關鍵狀態先列幾個
-MOVE_MIN = 20          # 這週 0～100 變動多少算大幅移動
-MOVE_SHOW = 6
+MOVE_FLAT = 3          # 這週變化：面向分數動 ±3 分以內收成「其他沒什麼變」（docs/lab_heatviz_v2_plan.md 第 4 節）
+MOVE_WHY = 2           # 每個面向列幾個主要原因（拉動最多的項目）
+MOVE_WHY_MIN = 1.0     # 拉動不到 1 分的項目不算主要原因
+MOVE_BACK = 2.0        # 其他項目往反方向拉回 2 分以上才寫出來
 REC_YEARS = 3          # 幾年新高新低以上才列進「這週變化」
 HOT, COLD = 80, 20
 # 地形圖每條山脊的身分色（CSS 變數，深淺兩套在 heatpage._CSS）。不用紅、藍（紅＝過熱、藍＝過冷）；
@@ -362,32 +364,65 @@ def _nmb(k: str, name: str) -> str:
     return f'<button type="button" class="nmb" data-k="{_e(k)}">{_e(name)}</button>'
 
 
+def _why_items(L: dict, dlt: float) -> tuple[list, list]:
+    """面向這週變化的主要原因：拉動（這週 0～100 變化 ÷ 有值的項數）和變化同方向、最大的 MOVE_WHY 項；
+    另外回傳其餘這週進入過熱、過冷的項目（不在主要原因裡的）。"""
+    have = [it for it in L["items"] if it.get("dpull") is not None and it["heat"] is not None and it["ago"] is not None]
+    sg = 1 if dlt > 0 else -1
+    top = sorted((it for it in have if it["dpull"] * sg >= MOVE_WHY_MIN), key=lambda it: (-abs(it["dpull"]), it["k"]))[:MOVE_WHY]
+    tk = {it["k"] for it in top}
+    cross = [it for it in have if it["k"] not in tk and (it["heat"] >= HOT > it["ago"] or it["heat"] < COLD <= it["ago"])]
+    return top, cross
+
+
+def _cross_tag(it: dict) -> str:
+    if it["heat"] >= HOT > it["ago"]:
+        return '<em class="wx zt4">進入過熱</em>'
+    if it["heat"] < COLD <= it["ago"]:
+        return '<em class="wx zt0">進入過冷</em>'
+    return ""
+
+
+def _wtrack(a: float, b: float) -> str:
+    """0～100 小軌道：上週（空心）→ 現在（實心，依區上色），中間一段＝這週走過的距離。"""
+    lo, hi = min(a, b), max(a, b)
+    return (f'<span class="wtk" aria-hidden="true"><i class="wseg" style="left:{lo:.1f}%;width:{hi - lo:.1f}%"></i>'
+            f'<i class="wo" style="left:{a:.1f}%"></i><i class="wn wc{_zc(b)}" style="left:{b:.1f}%"></i></span>')
+
+
 def moves_html(V: dict) -> str:
-    """這週變化：面向換區、進入過熱過冷、0～100 大幅移動、歷史新高新低（和上週＝5 個交易日前比）。"""
-    lines = []
+    """這週變化（docs/lab_heatviz_v2_plan.md 第 4 節）：每個面向一列＝上週 → 現在、換到哪一區、主要原因
+    （拉動最多的兩項）；動 ±MOVE_FLAT 分以內的面向收成一行。最下面是 3 年以上新高、新低的項目。和 5 個交易日前比。"""
+    rows, flat = [], []
     for d, L in V["dims"].items():
         a, b = L["ago"], L["score"]
         if a is None or b is None:
             continue
+        dlt = b - a
+        if abs(round(dlt)) <= MOVE_FLAT:
+            flat.append(f'{_nmb(d, S.DSHORT[d])} {HP.n0(b)}（{HP._sgn(dlt, 0) or "0"}）')
+            continue
         ba, bb = S.band(a), S.band(b)
-        if ba != bb:
-            lines.append(f'<li><span class="wtag">面向換區</span>{_nmb(d, S.DSHORT[d])} {HP.n0(a)} → '
-                         f'<b class="zt{_zc(b)}">{HP.n0(b)}</b>（{_e(ba)} → {_e(bb)}）</li>')
-    its = [(d, it) for d, L in V["dims"].items() for it in L["items"] if it["heat"] is not None and it["ago"] is not None]
-    into_h = [(d, it) for d, it in its if it["heat"] >= HOT > it["ago"]]
-    into_c = [(d, it) for d, it in its if it["heat"] < COLD <= it["ago"]]
-    for lab, xs in (("進入過熱", into_h), ("進入過冷", into_c)):
-        if xs:
-            lines.append(f'<li><span class="wtag">{lab}</span>' + "、".join(
-                f'{_nmb(it["k"], it["name"])} {HP.n0(it["ago"])}→<b class="zt{_zc(it["heat"])}">{HP.n0(it["heat"])}</b>'
-                for _, it in xs) + "</li>")
-    seen = {it["k"] for _, it in into_h + into_c}
-    big = sorted((x for x in its if abs(x[1]["heat"] - x[1]["ago"]) >= MOVE_MIN and x[1]["k"] not in seen),
-                 key=lambda x: (-abs(x[1]["heat"] - x[1]["ago"]), x[1]["k"]))[:MOVE_SHOW]
-    if big:
-        lines.append('<li><span class="wtag">大幅移動</span>' + "、".join(
-            f'{_nmb(it["k"], it["name"])} {HP.n0(it["ago"])}→<b class="zt{_zc(it["heat"])}">{HP.n0(it["heat"])}</b>'
-            for _, it in big) + "</li>")
+        bd = f'<span class="wbd">{_e(ba)} → <b class="zt{_zc(b)}">{_e(bb)}</b></span>' if ba != bb else \
+            f'<span class="wbd mu">仍在{_e(bb)}</span>'
+        top, cross = _why_items(L, dlt)
+        why = "、".join(f'{_nmb(it["k"], it["name"])} {HP.n0(it["ago"])}→{HP.n0(it["heat"])}'
+                       f'<span class="wp">（{HP._sgn(it["dpull"])}）</span>{_cross_tag(it)}' for it in top)
+        why = f'主要是 {why}' if why else '各項都只動一點，沒有特別突出的'
+        back = dlt - sum(it["dpull"] for it in top)
+        if top and back * dlt < 0 and abs(back) >= MOVE_BACK:
+            why += f'；其他項目往反方向拉回 {HP._sgn(back)}'
+        if cross:
+            why += "；另外 " + "、".join(f'{_nmb(it["k"], it["name"])}{_cross_tag(it)}' for it in cross)
+        rows.append((-abs(dlt), d,
+                     f'<li class="wr"><div class="wrh">{_nmb(d, S.DSHORT[d])}'
+                     f'<span class="wsc">{HP.n0(a)} → <b class="zt{_zc(b)}">{HP.n0(b)}</b></span>'
+                     f'<span class="wd {"up" if dlt > 0 else "dn"}">{HP._sgn(dlt, 0)}</span>{bd}</div>'
+                     f'{_wtrack(a, b)}<p class="wwy">{why}。</p></li>'))
+    rows.sort(key=lambda r: (r[0], r[1]))
+    body = "".join(r[2] for r in rows)
+    if flat:
+        body += (f'<li class="wfl"><span class="wtag">其他沒什麼變</span>' + "、".join(flat) + "</li>")
     rec = []
     for d, L in V["dims"].items():
         for it in L["items"]:
@@ -398,10 +433,12 @@ def moves_html(V: dict) -> str:
             elif r.get("kind") == "since_y" and (r.get("n") or 0) >= REC_YEARS:
                 rec.append(f'{_nmb(it["k"], it["name"])} {r["n"]} 年新{w}')
     if rec:
-        lines.append('<li><span class="wtag">歷史極端</span>' + "、".join(rec) + "</li>")
-    body = "".join(lines) or '<li class="mu">這週沒有換區、進入過熱過冷或大幅移動的項目。</li>'
+        body += '<li class="wfl"><span class="wtag">創新高、新低</span>' + "、".join(rec) + "</li>"
+    body = body or '<li class="mu">這週各面向都沒什麼變，也沒有項目創 3 年以上新高、新低。</li>'
     return (f'<section class="wchg card" id="wchg"><div class="khd"><h2>這週變化</h2><span class="kn">和 '
-            f'{_e(HP._md(V.get("viz", {}).get("t0")))}比</span></div><ul>{body}</ul></section>')
+            f'{_e(HP._md(V.get("viz", {}).get("t0")))}比</span></div>'
+            '<p class="ksub">軌道上空心＝上週、實心＝現在。主要原因＝把面向分數拉動最多的兩項，括號＝拉高或拉低幾分。</p>'
+            f'<ul>{body}</ul></section>')
 
 
 def items_table(V: dict) -> str:
@@ -993,8 +1030,22 @@ CSS = """
 .klist{list-style:none;margin:4px 0 0;padding:0}
 .kmini{display:block;width:100%;text-align:left;border:0;background:none;padding:6px 4px;border-top:1px solid var(--line);font:inherit;color:inherit;cursor:pointer;border-radius:8px}
 .kmini:hover{background:var(--card2)}.kmini .vt{margin-top:2px}
-.wchg ul{list-style:none;margin:6px 0 0;padding:0}.wchg li{font-size:13px;line-height:1.75;margin:3px 0;color:var(--ink2)}
-.wtag{display:inline-block;font-size:11.5px;color:var(--mut);margin-right:6px;min-width:4.6em}
+.wchg ul{list-style:none;margin:6px 0 0;padding:0}.wchg li{font-size:13px;line-height:1.7;color:var(--ink2)}
+.wchg .wr{border-top:1px solid var(--line);padding:8px 0 6px}.wchg .wr:first-child{border-top:0;padding-top:2px}
+.wrh{display:flex;align-items:baseline;gap:4px 10px;flex-wrap:wrap}.wchg .wrh>.nmb{font-size:14.5px;font-weight:700}
+.wsc{font-size:13px;color:var(--ink2)}.wsc b{font-size:15px}
+.wd{font-size:13px;font-weight:800}.wd.up{color:var(--t4)}.wd.dn{color:var(--t0)}
+.wbd{font-size:12px;color:var(--ink2)}.wbd.mu{color:var(--mut)}
+.wtk{position:relative;display:block;height:10px;margin:5px 6px 3px;border-radius:5px;
+background:linear-gradient(90deg,var(--zc) 0 20%,var(--card2) 20% 80%,var(--zh) 80% 100%);box-shadow:inset 0 0 0 1px var(--line)}
+.wtk i{position:absolute;top:50%}.wseg{height:4px;margin-top:-2px;background:var(--ink2);opacity:.35;border-radius:2px}
+.wo,.wn{width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;box-sizing:border-box}
+.wo{border:2px solid var(--ink2);background:var(--panel)}.wn{border:2px solid var(--panel)}
+.wc0{background:var(--c0)}.wc1{background:var(--c1)}.wc2{background:var(--c2)}.wc3{background:var(--c3)}.wc4{background:var(--c4)}.wcx{background:var(--mut)}
+.wwy{margin:2px 0 0;font-size:12.5px;line-height:1.65;color:var(--ink2)}.wp{color:var(--mut);font-size:11.5px;white-space:nowrap}
+.wx{font-style:normal;font-size:11px;font-weight:700;margin-left:4px;white-space:nowrap}
+.wchg .wfl{border-top:1px solid var(--line);padding:7px 0 2px;font-size:12.5px}
+.wtag{display:inline-block;font-size:11.5px;color:var(--mut);margin-right:6px}
 .wchg .nmb{font-size:13px}
 .ish2{display:flex;align-items:baseline;justify-content:space-between;gap:6px 10px;flex-wrap:wrap;margin:0 0 6px}.ish2 h2{margin:0;font-size:17px}
 .imap{position:relative}.imap svg{display:block;width:100%;height:auto}
