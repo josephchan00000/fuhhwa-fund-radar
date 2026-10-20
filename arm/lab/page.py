@@ -750,7 +750,7 @@ function drawStk(){
 /* ---------- 訊號（版面 v4）：籌碼頁列今天名單＋一句結論；照做的成績表（實際報酬、同期大盤、能不能照做）在後台 ---------- */
 const SIGST={cons:'s1'};                     // 加上條件後成為策略頁的哪一條策略
 /* 訊號總覽的實務判定（docs/lab_signal_plan.md 第 6.3 節）：{訊號: [判定, 方向, 次數, 命中率%, 平常%]}；隔天開盤買、持有 20 個交易日 */
-const SJ=D.sigj||{},SJN={good:'好訊號',ref:'可參考',none:'沒有比平常好',few:'次數不夠'};
+const SJ=D.sigj||{},SJN={good:'好訊號',ref:'可能是運氣',none:'沒有比平常好',few:'次數不夠'};
 function sjTxt(k){const j=SJ[k];if(!j||!j[2])return '';
   return `${TMK[j[0]]} ${SJN[j[0]]}：${j[1]==='warn'?'之後 20 天內最大回撤 10% 以上':'持有 20 天扣成本後賺錢'} <b>${f(j[3],0)}%</b>（平常 ${f(j[4],0)}%・${j[2]} 次）`;}
 function sjLink(k,t){return `<a href="x9o.html#s=stk:sig:${esc(k)}">${t||'訊號總覽 →'}</a>`;}
@@ -781,7 +781,7 @@ function sigShort(){const ks=Object.keys(SD).filter(k=>SJ[k]&&SJ[k][2]);if(!ks.l
   const g=ks.filter(k=>SJ[k][0]==='good').length,r=ks.filter(k=>SJ[k][0]==='ref').length;
   let t=up.length?`${up.length} 種訊號（隔天開盤買、持有 20 個交易日）扣成本後賺錢 ${rg(up,3)}，同一段期間加權指數上漲 ${rg(up,4)}`:'';
   if(wn.length)t+=(t?'；':'')+wn.map(k=>`${esc(SD[k][0])}之後 20 天收盤比買價低 ${f(SJ[k][3],0)}%（加權指數下跌 ${f(SJ[k][4],0)}%）`).join('；');
-  return t+`。${g?`${g} 種是 ★ 好訊號`:r?`沒有 ★，${r} 種 ● 可參考`:'沒有一種比平常好'}，只當觀察線索，不是買點。<a data-go="bo" data-at="bo-sig">訊號成績 →</a>`;}
+  return t+`。${g?`${g} 種是 ★ 好訊號`:r?`沒有 ★，${r} 種過了門檻但可能是運氣（●）`:'沒有一種比平常好'}，只當觀察線索，不是買點。<a data-go="bo" data-at="bo-sig">訊號成績 →</a>`;}
 function sigTodaySec(){
   const ks=Object.keys(SD),cnt={};ROWS.forEach(r=>(r.sg||[]).forEach(k=>cnt[k]=(cnt[k]||0)+1));
   let b=`<div class=sgs>${ks.map(k=>`<a class="sgc${RISK.has(k)?' rk':''}${cnt[k]?'':' z'}" data-sg="${k}">${esc(SD[k][0])}<b>${cnt[k]||0}</b></a>`).join('')}</div>`;
