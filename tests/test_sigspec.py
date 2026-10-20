@@ -1,7 +1,8 @@
 """訊號總覽實務判定的規格（docs/lab_signal_plan.md）：規格鎖定。
 
 規格是在算任何訊號的命中率之前寫定的（VER 1，2026-10-19；VER 2 同日只改個股策略的次數下限，規劃第 15 節；
-VER 3，2026-10-20，警示改看最大回撤，docs/lab_warn_mdd_plan.md；VER 4 同日加情境；VER 5 同日加報酬與相似的日子；VER 6 同日加法人買賣超；VER 7 同日法人只當訊號）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
+VER 3，2026-10-20，警示改看最大回撤，docs/lab_warn_mdd_plan.md；VER 4 同日加情境；VER 5 同日加報酬與相似的日子；VER 6 同日加法人買賣超；VER 7 同日法人只當訊號；
+VER 8 同日判定改用打折後的機率、運氣檢查、同類合併，docs/lab_noise_plan.md）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import analyze as AN
 from arm.lab import backtest as BT
 from arm.lab import bottomspec as BS
@@ -13,7 +14,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 7 and X.SPEC_DATE == "2026-10-20"
+    assert X.VER == 8 and X.SPEC_DATE == "2026-10-20"
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
     assert X.LAG == 1 and X.DIRS == ("up", "warn", "buy") and X.WARN_LONG == 0.20
     assert X.WARN_TH_IDX == {20: 1, 60: 2}
@@ -93,6 +94,16 @@ def test_sig_spec_v6_institutional_flows_are_locked():
     assert X.INST_DAY == (95, 5) and X.INST_RUN == (5, 10) and X.INST_H == {1: 20, 5: 20, 20: 60, 60: 60, "run": 20}
     assert not [k for k in HS.KEYS if k in ("C9", "C10", "C11", "C12", "C13", "C14")]
     assert HS.DIM_OF["L3"] == "tliq" and HS.HOT["L3"] == 1
+
+
+def test_sig_spec_v8_discount_noise_and_families_are_locked():
+    """VER 8（2026-10-20）：打折後的機率（★ K＝30、● K＝20，使用者選定）、運氣檢查、同類合併（docs/lab_noise_plan.md）。
+    門檻、次數下限、近 10 年規則照舊（使用者：近 10 年照原本的保留）。"""
+    assert (X.K_GOOD, X.K_REF) == (30, 20) and X.K_GOOD > X.K_REF > 0
+    assert X.HIT_MIN == {"up": 0.60, "warn": 0.50, "buy": 0.60} and X.EDGE_GOOD == 0.10 and X.N_MIN == 10
+    assert (X.RECENT_YEARS, X.RECENT_N) == (10, 5)
+    assert (X.NOISE_DRAWS, X.NOISE_SEED, X.NOISE_SHIFT) == (60, 20261021, (0.15, 0.85))
+    assert X.FAMILY_J == 0.40
 
 
 def test_sig_spec_refers_to_existing_definitions():
