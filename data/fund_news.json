@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/20 15:59",
+  "as_of": "2026/10/20 17:29",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -35,6 +35,13 @@
       ],
       "items": [
         {
+          "title": "00929 復華台灣科技優息- 沒想到會一直跌跌不休- 股市爆料同學會",
+          "url": "https://www.cmoney.tw/forum/article/186285607",
+          "source": "CMoney",
+          "date": "2026-10-20 16:11",
+          "datetime": "2026-10-20T16:11:14+08:00"
+        },
+        {
           "title": "年化配息率衝15%！00929再增2.2萬股民搶領錢 月配0.38元今最後買進日",
           "url": "https://tw.stock.yahoo.com/news/%E5%B9%B4%E5%8C%96%E9%85%8D%E6%81%AF%E7%8E%87%E8%A1%9D15-00929%E5%86%8D%E5%A2%9E2-2%E8%90%AC%E8%82%A1%E6%B0%91%E6%90%B6%E9%A0%98%E9%8C%A2-%E6%9C%88%E9%85%8D0-38%E5%85%83%E4%BB%8A%E6%9C%80%E5%BE%8C%E8%B2%B7%E9%80%B2%E6%97%A5-021100991.html",
           "source": "Yahoo股市",
@@ -54,13 +61,6 @@
           "source": "https://www.yesmedia.com.tw/",
           "date": "2026-10-20 08:00",
           "datetime": "2026-10-20T08:00:31+08:00"
-        },
-        {
-          "title": "月配息ETF有哪些？2檔熱門台股ETF—00929、00936",
-          "url": "https://www.pocket.tw/school/videos/964/",
-          "source": "口袋證券",
-          "date": "2026-10-20 04:46",
-          "datetime": "2026-10-20T04:46:37+08:00"
         }
       ]
     },
@@ -550,7 +550,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
       "date": "2026-10-18",
-      "views": 2906
+      "views": 3164
     },
     {
       "platform": "youtube",
@@ -558,7 +558,7 @@
       "channel": "財富閒叔跡",
       "url": "https://www.youtube.com/watch?v=0Fqy5W9z8JM",
       "date": "2026-10-15",
-      "views": 928
+      "views": 926
     },
     {
       "platform": "youtube",
@@ -571,11 +571,21 @@
     },
     {
       "platform": "youtube",
+      "title": "台積法說救全村？杜金龍加碼「這2檔」！拉回上車指標股「鎖定它」穩賺！【#賺錢放大術】20261015｜杜金龍、白昀霏",
+      "channel": "賺錢放大術",
+      "url": "https://www.youtube.com/watch?v=u5AthGjZiPI",
+      "date": "2026-10-15",
+      "views": 197022,
+      "peer": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
       "title": "台股急殺 3檔大戶青睞拚逆轉？ Q4作帳行情南電先卡位 自配基金月加薪5萬元《鈔錢部署》盧燕俐 ft.杜金龍 陳顗全 20261015",
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=aBJQT2o2VfQ",
       "date": "2026-10-15",
-      "views": 166610,
+      "views": 166854,
       "peer": true,
       "cat": "基金"
     },
@@ -595,7 +605,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
       "date": "2026-10-17",
-      "views": 135616,
+      "views": 136347,
       "peer": true,
       "cat": "高股息"
     },
@@ -605,7 +615,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=0U1OMDn2AAQ",
       "date": "2026-10-18",
-      "views": 117590,
+      "views": 117593,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -615,7 +625,7 @@
       "channel": "吳淡如人生實用商學院（Official官方唯一頻道）",
       "url": "https://www.youtube.com/watch?v=MjDKs_Few4E",
       "date": "2026-10-15",
-      "views": 105408,
+      "views": 106436,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -625,19 +635,8 @@
       "channel": "StayRich小資理財藍圖",
       "url": "https://www.youtube.com/watch?v=rSU0ut-V30M",
       "date": "2026-10-15",
-      "views": 80321,
+      "views": 80572,
       "peer": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "投資唔知點開始好？用滙豐Portfolio+等專家幫手！",
-      "channel": "HSBC Hong Kong",
-      "url": "https://www.youtube.com/shorts/lTkYQAOPZ_Q",
-      "date": "2026-10-16",
-      "views": 76597,
-      "peer": true,
-      "short": true,
       "cat": "綜合"
     },
     {
@@ -646,7 +645,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=QgfhIwj8uRc",
       "date": "2026-10-17",
-      "views": 75579,
+      "views": 75769,
       "peer": true,
       "cat": "高股息"
     },
@@ -656,7 +655,7 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
       "date": "2026-10-17",
-      "views": 64843,
+      "views": 64962,
       "peer": true,
       "cat": "主動式"
     },
@@ -666,7 +665,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
       "date": "2026-10-19",
-      "views": 22774,
+      "views": 25908,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -676,6 +675,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全球創新金融指數（詳下方新聞標籤）",
     "品牌焦點：群益證×復華投信剖析算力基建與光通訊新商機 | 金融脈動 | 金融（經濟日報）",
     "社群聲量最高：印尼股市被降評為獨立市場，印尼基金風險有多高？（0 推）",
-    "YouTube 熱片：台股急殺 3檔大戶青睞拚逆轉？ Q4作帳行情南電先卡位 自配基金月加薪5萬元《鈔錢部署》盧燕俐 ft.杜金龍 陳顗全 20261015（鈔錢部署–華視優選・166,610 次觀看）"
+    "YouTube 熱片：台積法說救全村？杜金龍加碼「這2檔」！拉回上車指標股「鎖定它」穩賺！【#賺錢放大術】20261015｜杜金龍、白昀霏（賺錢放大術・197,022 次觀看）"
   ]
 }
