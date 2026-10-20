@@ -777,13 +777,30 @@ def frame_from_B(B: dict) -> dict | None:
     return frame(mk, B, I, IB, BX)
 
 
+def crash_now(F: dict) -> dict:
+    """大跌風險項目（台股 W1～W4、美股 VOL）的現在：最後一個有值的 0～100、區、日期、近 53 個週末的 0～100
+    （訊號總覽依指標整理的「現在」與小走勢圖，docs/lab_sigview_plan.md；景氣頁沒有這幾項）。"""
+    from . import heatspec as HS
+    out = {}
+    we = list(F["we"])[-53:]
+    for v in F["cvars"]:
+        x = np.asarray(v["x"], dtype=float)
+        ok = np.nonzero(~np.isnan(x))[0]
+        if not len(ok):
+            continue
+        i = int(ok[-1])
+        out[v["key"]] = {"h": round(float(x[i]), 1), "band": HS.band(float(x[i])), "d": F["cal"][i],
+                         "sp": [None if np.isnan(x[j]) else int(math.floor(x[j] + 0.5)) for j in we]}
+    return out
+
+
 def now_for_B(B: dict) -> dict | None:
     """景氣頁建頁時呼叫：算這個市場現在有效的訊號，存進 NOW（訊號總覽沿用）。失敗回 None、不擋景氣頁。"""
     try:
         F = frame_from_B(B)
         if F is None:
             return None
-        NOW[F["mk"]] = {"mk": F["mk"], "d": F["cal"][-1], "on": now_market(F)}
+        NOW[F["mk"]] = {"mk": F["mk"], "d": F["cal"][-1], "on": now_market(F), "cv": crash_now(F)}
         return NOW[F["mk"]]
     except Exception as e:                            # noqa: BLE001
         print(f"[訊號總覽] 現在的狀態算不出來：{type(e).__name__}: {e}")

@@ -540,6 +540,7 @@ def sig_items(B: dict, V: dict) -> dict:
                       "dv": HP.acc_label(k, dv) if dv and k in HP.DLABEL else "",
                       "why": "用美國 VIX 的排名代替，不算進分數" if it["proxy"] else (it["why"] or ""),
                       "u": S.IND[S.KEYS.index(k)][3], "dec": HP.DEC.get(k, 2), "hot": it["hot"], "sp": sp(B["heat"][k])}
+    out.update((V.get("signow") or {}).get("cv") or {})      # 大跌風險項目（景氣頁沒有這幾項，sigcat.crash_now）
     return out
 
 

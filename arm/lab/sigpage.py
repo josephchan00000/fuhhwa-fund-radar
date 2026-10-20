@@ -44,7 +44,7 @@ def ind_of(r: dict) -> tuple[str, str, str, str | None]:
     if cat == "multi":
         return f"{mk}:{var}", "dim", r["vn"], None
     if cat == "crash":
-        return f"{mk}:{var}", "crash", r["vn"], None
+        return f"{mk}:{var}", "crash", r["vn"], var
     if cat == "tech":
         return f"{mk}:tech:{var}", "tech", r["vn"], None
     if cat == "bub":
@@ -69,6 +69,12 @@ def indicators(rows: list[dict]) -> list[list]:
             x[4] = r.get("grp")
         x[5].append(i)
     return list(out.values())
+
+
+def ind_names() -> dict:
+    """產業泡沫每一段的產業代碼 → 中文（美股 49 細產業、美股類股 ETF；台股本來就是中文）。"""
+    from . import bubindspec as BIS
+    return {**BIS.FF_NAMES, **{k: f"{v}（{k}）" for k, v in BIS.US_ETF.items()}}
 
 
 def dim_names() -> dict:
@@ -174,7 +180,7 @@ def page_json(V: dict) -> str:
            "asof": V["asof"], "tiers": {t: [S.TIER_MARK[t], S.TIER_NAMES[t]] for t in S.TIERS},
            "dirs": S.DIR_NAMES, "words": S.VARIANT_NAMES, "rmk": V.get("rmk") or [], "cards": CARD_NAMES,
            "inds": indicators(V["rows"]), "icat": IND_CATS, "it": V.get("items") or {}, "dimn": dim_names(),
-           "chart": CHART, "pxn": PX_NAMES,
+           "chart": CHART, "pxn": PX_NAMES, "inm": ind_names(),
            "hit": {d: round(100 * v) for d, v in S.HIT_MIN.items()}, "eg": round(100 * S.EDGE_GOOD), "er": round(100 * S.EDGE_REF),
            "n10": S.RECENT_N}
     return json.dumps(out, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
@@ -493,6 +499,8 @@ CSS = """
 .sgchart .mk{fill:var(--panel);stroke:var(--t3);stroke-width:1.6}.sgchart .mk.y{fill:var(--t3)}
 .sgchart .mk.now{fill:none;stroke:var(--ink);stroke-width:2}
 .sgchart .hv{stroke:var(--ink2);stroke-width:1;stroke-dasharray:2 2}.sgchart .hit{fill:transparent;cursor:crosshair}
+.sghint{display:block;color:var(--ink);font-weight:600;margin-bottom:2px}
+.sgmore2{font:inherit;font-size:12px;margin-left:6px;padding:1px 8px;border:1px solid var(--acc);border-radius:7px;background:var(--accbg);color:var(--ink);cursor:pointer}
 .sgread{font-size:12.5px;margin:4px 0 0;min-height:1.4em;color:var(--ink2)}.sgread b{color:var(--ink)}
 .sgsw{overflow-x:auto}
 .sgst2,.sgrt{width:100%;border-collapse:collapse;font-size:12.5px}
@@ -721,7 +729,8 @@ function occHtml(r, oc){
   else if (r[I.kind] === 'state' && c !== 'buy') {
     const j = d === 'warn' ? 4 : 3, k = c === 'ind' ? 6 : 5;
     title = '每一段（最近 40 段；共 ' + oc.length + ' 段）：起訖、天數、這一段中了的比例' + (d === 'warn' ? '、段內每一天之後最大回撤的平均' : '');
-    items = oc.slice(-40).reverse().map(o => '<li class="' + (o[j] >= 0.5 ? 'y' : '') + '">' + ymd(o[0]) + (o[1] !== o[0] ? '～' + ymd(o[1]) : '') + ' <span class="x">' + o[2] + (r[I.x] && r[I.x].monthly ? ' 個月' : ' 天') + '</span> ' + Math.round(o[j] * 100) + '%' +
+    items = oc.slice(-40).reverse().map(o => '<li class="' + (o[j] >= 0.5 ? 'y' : '') + '">' + (c === 'ind' ? '<b>' + esc((SG.inm || {})[o[5]] || o[5]) + '</b> ' : '') +
+      ymd(o[0]) + (o[1] !== o[0] ? '～' + ymd(o[1]) : '') + ' <span class="x">' + o[2] + (r[I.x] && r[I.x].monthly ? ' 個月' : ' 天') + '</span> ' + Math.round(o[j] * 100) + '%' +
       (d === 'warn' && o[k] != null ? ' <span class="x">回撤 ' + Math.round(o[k] * 100) + '%</span>' : '') + '</li>'); }
   else { const j = c === 'buy' ? 1 : (d === 'warn' ? 2 : 1);
     title = '每一次（最近 60 次；共 ' + oc.length + ' 次）：' + (c === 'buy' ? '✓＝買在相對低點' : '✓＝中了');
@@ -736,6 +745,9 @@ const PV = document.getElementById('sgpv'), PB = document.getElementById('sgp');
 let CUR = null, SEL = null, PUSHED = false;
 const VIEW = {span: '1y', raw: false};
 function ckOf(x){ return !x.ik || !SG.chart[x.mk] ? null : x.cat === 'dim' ? x.ik.slice(1) : x.ik; }
+const PXC = ['tech', 'crash', 'dim', 'bub', 'buy'];                     // 沒有自己的 0～100 走勢的，畫指數＋打點
+function chartable(x){ return !!SG.chart[x.mk] && (!!x.ik || PXC.includes(x.cat)); }
+function sck(x){ const J = CJ[x.mk], ck = ckOf(x); return ck && J && J.s && J.s[ck] ? ck : null; }
 function cell(k, v, sub){ return '<div class="sgnc"><span class="k">' + k + '</span><span class="v">' + v + '</span>' + (sub ? '<span class="s">' + sub + '</span>' : '') + '</div>'; }
 function nowHtml(x){ const it = x.it; let h = '<div class="sgnow">';
   if (it) {
@@ -766,7 +778,7 @@ function sigTable(x){
         '<td data-h="判定">' + mark(s ? s[6] : 'few') + '</td></tr>'; }).join('') + '</tbody>'; }).join('');
   return '<div class="sgwrap sgsw"><table class="sgst2">' + head + body + '</table></div>'; }
 function panelHtml(x){
-  const ck = ckOf(x);
+  const ck = chartable(x);
   let h = '<div class="sgph"><div><p class="sgkick">' + esc(meta(x)) + '</p><h3 id="sgpt">' + esc(x.name) + '</h3></div>' +
     '<button type="button" class="sgx" id="sgx" aria-label="關閉">×</button></div><div class="sgpc">';
   h += '<h4>現在</h4>' + nowHtml(x);
@@ -821,7 +833,7 @@ function recHtml(r, oc){
   if (!oc || !oc.length) return '<p class="note">沒有每一次的清單（窗口還沒走完的不列）。</p>';
   const c = r[I.cat];
   if (!['heat', 'deriv', 'crash', 'multi', 'tech', 'bub'].includes(c)) return occHtml(r, oc);
-  const d = r[I.dir][0], x = CUR, J = x ? CJ[x.mk] : null, ck = x ? ckOf(x) : null, ev = r[I.kind] === 'event';
+  const d = r[I.dir][0], x = CUR, J = x ? CJ[x.mk] : null, ck = x ? sck(x) : null, ev = r[I.kind] === 'event';
   const mo = (r[I.x] || {}).monthly, h = hz(r), list = oc.slice(-12).reverse();
   const vv = dt => { const v = valAt(J, ck, dt); return v == null ? '<span class="mu">—</span>' : '<span class="zt' + zi(v) + '">' + Math.round(v) + '</span>'; };
   const cls = v => v == null || isNaN(v) ? '' : v >= 0 ? ' class="up"' : ' class="dn"';
@@ -860,21 +872,27 @@ function idxOf(ds, d){ let lo = 0, hi = ds.length - 1, k = -1; while (lo <= hi) 
 function fmtV(x, v, raw){ if (v == null) return '—'; if (!raw) return String(Math.round(v)); const it = x.it || {}, u = it.u || '';
   return (+v).toLocaleString('en-US', {minimumFractionDigits: it.dec ?? 2, maximumFractionDigits: it.dec ?? 2}) + (u === '%' ? '%' : u ? ' ' + u : ''); }
 function pathOf(xs, X, Y){ let d = '', pen = false; xs.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1); pen = true; }); return d; }
+function pxSeries(J){ const span = VIEW.span;
+  if (span === '1y') return {d: J.d.d, px: J.d.px, v: null, raw: false, po: true};
+  const d = J.w.d, n = d.length, a = span === '5y' ? Math.max(0, n - 261) : 0;
+  return {d: d.slice(a), px: J.w.px.slice(a), v: null, raw: false, po: true}; }
 function drawChart(){
-  const x = CUR, box = document.getElementById('sgcv'); if (!x || !box) return; const ck = ckOf(x); if (!ck) return;
+  const x = CUR, box = document.getElementById('sgcv'); if (!x || !box || !chartable(x)) return; const ck = ckOf(x);
   loadChart(x.mk).then(J => {
     if (CUR !== x || !box.isConnected) return;
-    const S = J && series(J, ck);
+    const S = J && (ck && J.s && J.s[ck] ? series(J, ck) : (J.d && J.w ? pxSeries(J) : null));
     if (!S) { box.innerHTML = '<p class="note">這一項沒有走勢資料。</p>'; return; }
     const rb = document.getElementById('sgrec');                                // 走勢資料到了：最近幾次補上「當時 0～100」
     if (rb && OCC && SEL) rb.innerHTML = recHtml(SEL, OCC.occ[SEL[I.id]]);
-    const W = Math.max(280, Math.round(box.clientWidth || 520)), L = 40, R = 8, T = 8, H1 = 150, G = 20, H2 = 72, BH = 18;
+    const po = !!S.po;                                                           // 只有指數（技術事件、大跌風險、泡沫、買點…）
+    const W = Math.max(280, Math.round(box.clientWidth || 520)), L = po ? 50 : 40, R = 8, T = 8, H1 = po ? 190 : 150, G = po ? 0 : 20, H2 = po ? 0 : 72, BH = 18;
     const n = S.d.length, X = i => L + (n > 1 ? i / (n - 1) : 0) * (W - L - R);
-    const vs = S.v.filter(v => v != null);
-    let lo = 0, hi = 100; if (S.raw && vs.length) { lo = Math.min(...vs); hi = Math.max(...vs); const pd = (hi - lo) * 0.06 || 1; lo -= pd; hi += pd; }
-    const Y1 = v => T + (1 - (v - lo) / (hi - lo)) * H1;
     const ps = S.px.filter(p => p != null && p > 0), pl = Math.log(Math.min(...ps)), ph = Math.log(Math.max(...ps)) + 1e-9;
+    let lo = 0, hi = 100;
+    if (!po && S.raw) { const vs = S.v.filter(v => v != null); if (vs.length) { lo = Math.min(...vs); hi = Math.max(...vs); const pd = (hi - lo) * 0.06 || 1; lo -= pd; hi += pd; } }
+    const Y1 = po ? (p => T + (1 - (Math.log(p) - pl) / (ph - pl)) * H1) : (v => T + (1 - (v - lo) / (hi - lo)) * H1);
     const Y2 = p => T + H1 + G + (1 - (Math.log(p) - pl) / (ph - pl)) * H2;
+    const ypx = i => po ? Y1(S.px[i]) : Y2(S.px[i]);
     const Ht = T + H1 + G + H2 + BH;
     let g = '';
     // 訊號：狀態型畫色帶、事件型打點（實心＝之後中了、空心＝沒中）
@@ -884,42 +902,56 @@ function drawChart(){
       g += '<rect class="bd" x="' + xa.toFixed(1) + '" y="' + T + '" width="' + Math.max(2, xz - xa).toFixed(1) + '" height="' + H1 + '" style="opacity:' + (0.10 + 0.35 * sh).toFixed(2) + '"/>'; });
     const on = r && ON[r[I.id]];
     if (on && !ev && on.since) { const a = idxOf(S.d, on.since); if (a < n) g += '<rect class="bdn" x="' + X(Math.max(0, a)).toFixed(1) + '" y="' + T + '" width="' + (X(n - 1) - X(Math.max(0, a)) + 1.5).toFixed(1) + '" height="' + H1 + '"/>'; }
-    if (!S.raw) [[80, '80 過熱'], [20, '20 過冷']].forEach(([v, t]) => { g += '<line class="tl" x1="' + L + '" x2="' + (W - R) + '" y1="' + Y1(v).toFixed(1) + '" y2="' + Y1(v).toFixed(1) + '"/>'; });
-    const ticks = S.raw ? [lo + (hi - lo) * 0.06, (lo + hi) / 2, hi - (hi - lo) * 0.06] : [0, 20, 50, 80, 100];
-    ticks.forEach(v => { g += '<text class="ax" x="' + (L - 4) + '" y="' + (Y1(v) + 4).toFixed(1) + '" text-anchor="end">' + (S.raw ? fmtV(x, v, true).replace(/ .*$/, '') : v) + '</text>'; });
-    g += '<path class="lv" d="' + pathOf(S.v, X, Y1) + '"/>';
-    g += '<path class="lp" d="' + pathOf(S.px.map(p => p > 0 ? p : null), X, Y2) + '"/>';
-    g += '<text class="ax" x="' + (L + 2) + '" y="' + (T + H1 + G - 5) + '">' + esc(SG.pxn[x.mk] || '') + '</text>';
+    if (po) {
+      [Math.exp(pl + (ph - pl) * 0.05), Math.exp((pl + ph) / 2), Math.exp(ph - (ph - pl) * 0.05)].forEach(p => {
+        g += '<text class="ax" x="' + (L - 4) + '" y="' + (Y1(p) + 4).toFixed(1) + '" text-anchor="end">' + Math.round(p).toLocaleString('en-US') + '</text>'; });
+      g += '<path class="lv" d="' + pathOf(S.px.map(p => p > 0 ? p : null), X, Y1) + '"/>';
+      g += '<text class="ax" x="' + (L + 2) + '" y="' + (T + 11) + '">' + esc(SG.pxn[x.mk] || '') + '（對數）</text>';
+    } else {
+      if (!S.raw) [80, 20].forEach(v => { g += '<line class="tl" x1="' + L + '" x2="' + (W - R) + '" y1="' + Y1(v).toFixed(1) + '" y2="' + Y1(v).toFixed(1) + '"/>'; });
+      const ticks = S.raw ? [lo + (hi - lo) * 0.06, (lo + hi) / 2, hi - (hi - lo) * 0.06] : [0, 20, 50, 80, 100];
+      ticks.forEach(v => { g += '<text class="ax" x="' + (L - 4) + '" y="' + (Y1(v) + 4).toFixed(1) + '" text-anchor="end">' + (S.raw ? fmtV(x, v, true).replace(/ .*$/, '') : v) + '</text>'; });
+      g += '<path class="lv" d="' + pathOf(S.v, X, Y1) + '"/>';
+      g += '<path class="lp" d="' + pathOf(S.px.map(p => p > 0 ? p : null), X, Y2) + '"/>';
+      g += '<text class="ax" x="' + (L + 2) + '" y="' + (T + H1 + G - 5) + '">' + esc(SG.pxn[x.mk] || '') + '</text>';
+    }
     if (oc && ev) oc.forEach(o => { const i = idxOf(S.d, o[0]); if (i < 0 || (i === n - 1 && S.d[n - 1] < o[0]) || o[0] < S.d[0]) return;
-      const v = S.v[i], hit = d0 === 'warn' ? o[2] : o[1], cy = v != null ? Y1(v) : Y2(S.px[i]);
+      const v = po ? null : S.v[i], hit = d0 === 'warn' ? o[2] : o[1], cy = v != null ? Y1(v) : ypx(i);
       g += '<circle class="mk' + (hit ? ' y' : '') + '" cx="' + X(i).toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="3.6"/>'; });
-    if (on && ev && on.since) { const i = idxOf(S.d, on.since); if (i >= 0 && on.since >= S.d[0]) { const v = S.v[i];
-      g += '<circle class="mk now" cx="' + X(i).toFixed(1) + '" cy="' + (v != null ? Y1(v) : Y2(S.px[i])).toFixed(1) + '" r="4.2"/>'; } }
+    if (on && ev && on.since) { const i = idxOf(S.d, on.since); if (i >= 0 && on.since >= S.d[0]) { const v = po ? null : S.v[i];
+      g += '<circle class="mk now" cx="' + X(i).toFixed(1) + '" cy="' + (v != null ? Y1(v) : ypx(i)).toFixed(1) + '" r="4.2"/>'; } }
     const nt = Math.min(6, Math.max(2, Math.floor(W / 110)));
     for (let k = 0; k < nt; k++) { const i = Math.round(k * (n - 1) / (nt - 1)), dt = S.d[i] || '';
-      const t = VIEW.span === '1y' ? (+dt.slice(5, 7)) + '月' : dt.slice(0, 4); const anc = k === 0 ? 'start' : k === nt - 1 ? 'end' : 'middle';
+      const t = VIEW.span === '1y' ? (+dt.slice(5, 7)) + '月' : VIEW.span === '5y' ? dt.slice(0, 4) + '/' + (+dt.slice(5, 7)) : dt.slice(0, 4); const anc = k === 0 ? 'start' : k === nt - 1 ? 'end' : 'middle';
       g += '<text class="ax" x="' + X(i).toFixed(1) + '" y="' + (Ht - 4) + '" text-anchor="' + anc + '">' + t + '</text>'; }
     g += '<line class="hv" id="sghv" x1="0" x2="0" y1="' + T + '" y2="' + (T + H1 + G + H2) + '" style="display:none"/>';
     g += '<rect class="hit" x="' + L + '" y="0" width="' + (W - L - R) + '" height="' + Ht + '"/>';
     box.innerHTML = '<svg class="sgchart" viewBox="0 0 ' + W + ' ' + Ht + '" width="' + W + '" height="' + Ht + '" role="img" aria-label="' + esc(x.name) + '的走勢">' + g + '</svg>';
     const svg = box.querySelector('svg'), hv = svg.querySelector('#sghv'), rd = document.getElementById('sgread');
+    const pxt = i => S.px[i] == null ? '—' : Math.round(S.px[i]).toLocaleString('en-US');
     const show = i => { const xx = X(i).toFixed(1); hv.setAttribute('x1', xx); hv.setAttribute('x2', xx); hv.style.display = '';
-      rd.innerHTML = '<b>' + ymd(S.d[i]) + '</b>　' + esc(x.name) + ' ' + fmtV(x, S.v[i], S.raw) + '　' + esc(SG.pxn[x.mk] || '') + ' ' +
-        (S.px[i] == null ? '—' : Math.round(S.px[i]).toLocaleString('en-US')); };
+      rd.innerHTML = '<b>' + ymd(S.d[i]) + '</b>　' + (po ? '' : esc(x.name) + ' ' + fmtV(x, S.v[i], S.raw) + '　') + esc(SG.pxn[x.mk] || '') + ' ' + pxt(i); };
     const mv = e => { const b = svg.getBoundingClientRect(), cx = (e.touches ? e.touches[0].clientX : e.clientX) - b.left;
       show(Math.max(0, Math.min(n - 1, Math.round((cx * W / b.width - L) / ((W - L - R) / Math.max(1, n - 1)))))); };
     svg.addEventListener('mousemove', mv); svg.addEventListener('touchmove', mv, {passive: true}); svg.addEventListener('touchstart', mv, {passive: true});
-    svg.addEventListener('mouseleave', () => { hv.style.display = 'none'; show(n - 1); hv.style.display = 'none'; });
+    svg.addEventListener('mouseleave', () => { show(n - 1); hv.style.display = 'none'; });
     show(n - 1); hv.style.display = 'none';
-    const lab = r ? label(r) : '';
-    document.getElementById('sgleg').textContent = '上＝' + x.name + (S.raw ? '（原始值）' : '（0～100，虛線＝80 過熱、20 過冷）') + '；下＝' + (SG.pxn[x.mk] || '') + '（對數）。' +
-      (r ? (ev ? '點＝「' + lab + '」出現的日子：實心＝之後' + (d0 === 'warn' ? '大跌' : '上漲') + '（中了）、空心＝沒中' + (on ? '、大點＝這一次（還在觀察）' : '') + '。'
-        : '色帶＝「' + lab + '」的期間，越深＝那一段之後' + (d0 === 'warn' ? '大跌' : '上漲') + '的比例越高' + (on ? '；虛線框＝現在這一段（還在觀察）' : '') + '。') : '') +
-      (OCC ? '' : '（訊號的日子載入中）'); }); }
+    const lab = r ? label(r) : '', hitw = d0 === 'warn' ? '大跌' : d0 === 'buy' ? '買在相對低點' : '上漲';
+    const evw = r && r[I.cat] === 'buy' ? '大跌事件（' + esc(x.name) + '）那天' : '「' + lab + '」出現的日子';
+    const lastO = oc && oc.length ? oc[oc.length - 1][ev ? 0 : 1] : null, lastD = on && on.since && (!lastO || on.since > lastO) ? on.since : lastO;
+    const hint = r && lastD && lastD < S.d[0] ? '<span class="sghint">這段期間沒有出現；最近一次 ' + ymd(lastD) + '。' +
+      (VIEW.span !== 'all' ? '<button type="button" class="sgmore2" data-span="' + (VIEW.span === '1y' ? '5y' : 'all') + '">看' + (VIEW.span === '1y' ? '近 5 年' : '全部') + '</button>' : '') + '</span>' : '';
+    document.getElementById('sgleg').innerHTML = hint + esc((po ? '線＝' + (SG.pxn[x.mk] || '') + '（對數）。' :
+      '上＝' + x.name + (S.raw ? '（原始值）' : '（0～100，虛線＝80 過熱、20 過冷）') + '；下＝' + (SG.pxn[x.mk] || '') + '（對數）。') +
+      (r ? (ev ? '點＝' + evw + '：實心＝之後' + hitw + '（中了）、空心＝沒中' + (on ? '、大圈＝這一次（還在觀察）' : '') + '。'
+        : '色帶＝「' + lab + '」的期間，越深＝那一段之後' + hitw + '的比例越高' + (on ? '；虛線框＝現在這一段（還在觀察）' : '') + '。') : '') +
+      (OCC ? '' : '（訊號的日子載入中）')); }); }
 let rzT = null;
 window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (CUR) drawChart(); }, 200); });
 PB.addEventListener('click', e => {
   if (e.target.closest('#sgx')) { closeP(); return; }
+  const mb = e.target.closest('.sgmore2');
+  if (mb) { VIEW.span = mb.dataset.span; segSync(); drawChart(); fillSel(); return; }
   const sb = e.target.closest('.sgseg button');
   if (sb) { const g = sb.closest('.sgseg').dataset.g; if (g === 'span') VIEW.span = sb.dataset.v; else VIEW.raw = sb.dataset.v === '1'; segSync(); drawChart(); fillSel(); return; }
   const tb = e.target.closest('tbody.sgsb');
