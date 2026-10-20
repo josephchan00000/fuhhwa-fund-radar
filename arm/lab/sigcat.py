@@ -19,7 +19,7 @@ from . import sigspec as S
 ROOT = Path(__file__).resolve().parents[2]
 RESEARCH = ROOT / "data" / "lab" / "sig_research.json"
 
-CAT_NAMES = {"heat": "景氣項目", "multi": "景氣面向", "scen": "情境", "tech": "技術事件", "deriv": "邊際變化",
+CAT_NAMES = {"heat": "景氣項目", "multi": "景氣面向", "scen": "情境", "inst": "法人買賣超", "tech": "技術事件", "deriv": "邊際變化",
              "crash": "大跌風險", "bub": "泡沫", "ind": "產業泡沫", "buy": "大跌後買點", "stock": "個股訊號", "strat": "個股策略"}
 TIER_ORDER = {t: i for i, t in enumerate(S.TIERS)}
 
@@ -346,10 +346,13 @@ def frame(mk: str, B: dict, I: dict, IB: dict | None = None, BX: dict | None = N
     nm = _names(HS)
     dims = list(HP.shown_dims())
     V = []
+    icodes = set(S.INST_HEAT.values()) if mk == "tw" else set()
     for d in dims:
         V.append({"key": "D" + d, "name": HS.DIMS[d]["name"], "grp": d, "H": S.H_DIM[d],
                   "x": CR.align(cal, B["cal"], B["comp"][d])})
         for k in HS.ITEMS[d]:
+            if k in icodes:                                   # C9～C14 的訊號列在法人買賣超（sigspec 第 4.13 節）
+                continue
             V.append({"key": k, "name": nm[k], "grp": d, "H": S.H_DIM[d],
                       "x": CR.align(cal, B["cal"], B["hc"].get(k) or [None] * len(B["cal"]))})
     CV = []
@@ -366,6 +369,7 @@ def frame(mk: str, B: dict, I: dict, IB: dict | None = None, BX: dict | None = N
         DV.append({"key": k, "name": nm[k], "kind": HS.DERIV[k]["kind"], "x": x, "have": ~np.isnan(flat)})
     rows = ((BX or {}).get(mk) or {}).get("_C", {}).get("rows") or []
     return {"mk": mk, "cal": cal, "px": px, "we": P.week_ends(cal), "vars": V, "cvars": CV, "comp": comp, "dims": dims,
+            "ivars": inst_vars(cal, B) if mk == "tw" else [],
             "deriv": DV, "deriv_words": dict(HS.DERIV_WORDS), "bub": rows, "IB": IB, "r0": recent_from(cal)}
 
 
@@ -424,6 +428,115 @@ def _var_signals(F: dict, v: dict, cat: str) -> list[dict]:
         elif sg == "hot_out":
             sd["days"] = HDD.exits(xl, F["we"], S.EXIT_MIN)
         out.append(sd)
+    return out
+
+
+# ── 法人買賣超（sigspec VER 6 第 4.13 節） ─────────────────────────────────────
+
+def inst_code(var: str) -> str | None:
+    """法人變數（例 fi5）→ 景氣頁的項目代號（C9～C14），沒有就 None。"""
+    for (who, w), code in S.INST_HEAT.items():
+        if var == f"{who}{w}":
+            return code
+    return None
+
+
+def inst_vars(cal: list, B: dict) -> list[dict]:
+    """15 個法人變數在這個日曆上的 0～100（賣超＝熱；和景氣項目同一套：交易日對齊、和過去 750 天比、至少 375 天）
+    與單日買賣超金額（元，連續買賣超用；沒有資料＝NaN）。C9～C14 直接用景氣頁算好的 0～100。"""
+    from . import crash as CR
+    from . import heat as H
+    from . import heatcalc as HC
+    from . import heatspec as HS
+    D = B.get("D") or {}
+    if not D.get("inst"):
+        return []
+    A = HC.inst_amounts(D["inst"])
+    out = []
+    for who in S.INST_WHO:
+        amt = np.array([np.nan if A[who].get(d) is None else float(A[who][d]) for d in cal], dtype=float)
+        for w in S.INST_WIN:
+            if (who, w) in S.INST_SKIP:
+                continue
+            code = S.INST_HEAT.get((who, w))
+            if code and code in (B.get("hc") or {}):
+                hb = B["hc"][code]
+            else:
+                raw = H.asof_daily(B["cal"], HC.inst_ratio(B["cal"], D, who, w, A), stale=7)
+                hb = [H.to_heat(p, -1) for p in H.pct_series(raw, HS.PCT_WIN["d"], HS.PCT_MIN["d"])]
+            name = f"{S.INST_NAMES[who]}{'單日' if w == 1 else f' {w} 日'}買賣超"
+            out.append({"key": f"{who}{w}", "who": who, "w": w, "code": code, "name": name, "H": S.INST_H[w],
+                        "x": CR.align(cal, B["cal"], hb), "amt": amt})
+    return out
+
+
+def cold_exits(x: list, we: list[int], n: int) -> list[int]:
+    """大買超結束（hotdd.exits 的鏡像）：連續 ≥ n 週的週末都 < COLD 之後，第一個有值而且 ≥ COLD 的週末。"""
+    out, run = [], 0
+    for i in we:
+        v = x[i]
+        if v is not None and not _nan(v) and v < S.COLD:
+            run += 1
+            continue
+        if v is not None and not _nan(v) and run >= n:
+            out.append(i)
+        run = 0
+    return out
+
+
+def run_days(amt: np.ndarray, sign: int, n: int) -> list[int]:
+    """連續 n 個交易日買超（sign＝1，金額 > 0）或賣超（−1，< 0）的第 n 天；沒有資料或等於 0 算中斷，同一段只算一次。"""
+    out, c = [], 0
+    for t, a in enumerate(amt):
+        c = c + 1 if (not np.isnan(a) and a * sign > 0) else 0
+        if c == n:
+            out.append(t)
+    return out
+
+
+def inst_signals(F: dict) -> list[dict]:
+    """位階 6 種（5、20、60 日）、單日極端、連續買超／賣超（sigspec 第 4.13 節）。"""
+    from . import hotdd as HDD
+    from .heatrel import heat_events
+    mk = F["mk"]
+    out = []
+    for v in F.get("ivars") or []:
+        x = np.asarray(v["x"], dtype=float)
+        samp = np.nonzero(~np.isnan(x))[0]
+        xl = _lst(x)
+        base = {"cat": "inst", "grp": v["who"], "var": f"{v['who']}1" if v["w"] == 1 else v["key"], "vn": v["name"],
+                "H": v["H"]}
+        if v["w"] in S.INST_POS_WIN:
+            for sg in S.INST_VARIANTS:
+                sd = {**base, "id": f"{mk}:inst:{v['key']}:{sg}", "sig": sg, "name": f"{v['name']}・{S.INST_VARIANT_NAMES[sg]}",
+                      "kind": "state" if sg in ("hot", "cold") else "event", "samp": samp}
+                if sg == "hot":
+                    sd["state"] = x[samp] >= S.HOT
+                elif sg == "cold":
+                    sd["state"] = x[samp] < S.COLD
+                elif sg == "hot_in":
+                    sd["days"] = heat_events(xl, "hot")
+                elif sg == "cold_in":
+                    sd["days"] = heat_events(xl, "cold")
+                elif sg == "hot_out":
+                    sd["days"] = HDD.exits(xl, F["we"], S.EXIT_MIN)
+                else:
+                    sd["days"] = cold_exits(xl, F["we"], S.EXIT_MIN)
+                out.append(sd)
+            continue
+        hi, lo = S.INST_DAY
+        out.append({**base, "id": f"{mk}:inst:{v['key']}:day_sell", "sig": "day_sell", "kind": "event", "samp": samp,
+                    "name": f"{v['name']}・單日大賣（過去 3 年賣超最多的 5%）", "days": [int(t) for t in samp if x[t] >= hi]})
+        out.append({**base, "id": f"{mk}:inst:{v['key']}:day_buy", "sig": "day_buy", "kind": "event", "samp": samp,
+                    "name": f"{v['name']}・單日大買（過去 3 年買超最多的 5%）", "days": [int(t) for t in samp if x[t] <= lo]})
+        amt = np.asarray(v["amt"], dtype=float)
+        sa = np.nonzero(~np.isnan(amt))[0]
+        who = S.INST_NAMES[v["who"]]
+        for sign, tag, word in ((-1, "sell", "賣超"), (1, "buy", "買超")):
+            for n in S.INST_RUN:
+                out.append({**base, "H": S.INST_H["run"], "id": f"{mk}:inst:{v['key']}:{tag}_run{n}", "sig": f"{tag}_run{n}",
+                            "kind": "event", "samp": sa, "name": f"{v['name']}・{who}連續 {n} 天{word}",
+                            "days": run_days(amt, sign, n)})
     return out
 
 
@@ -494,6 +607,8 @@ def signals(F: dict) -> list[dict]:
                 "days": HDD.multi(comp, dims, S.MULTI_K)})
     # 情境（VER 4）
     out += scen_signals(F)
+    # 法人買賣超（VER 6）
+    out += inst_signals(F)
     # 技術事件
     ev = TT.all_events([None if _nan(p) else float(p) for p in px])
     samp = np.arange(S.EV_START, T)
@@ -1013,6 +1128,18 @@ def crash_now(F: dict) -> dict:
             continue
         i = int(ok[-1])
         out[v["key"]] = {"h": round(float(x[i]), 1), "band": HS.band(float(x[i])), "d": F["cal"][i],
+                         "sp": [None if np.isnan(x[j]) else int(math.floor(x[j] + 0.5)) for j in we]}
+    for v in F.get("ivars") or []:                     # 法人買賣超（景氣頁沒有的那幾個；C9～C14 在景氣頁的項目裡）
+        if v.get("code"):
+            continue
+        x = np.asarray(v["x"], dtype=float)
+        ok = np.nonzero(~np.isnan(x))[0]
+        if not len(ok):
+            continue
+        i = int(ok[-1])
+        seg = np.asarray(v["amt"], dtype=float)[max(0, i - v["w"] + 1):i + 1]
+        txt = f"{seg.sum() / 1e8:+,.1f} 億" if len(seg) == v["w"] and not np.isnan(seg).any() else ""
+        out[v["key"]] = {"h": round(float(x[i]), 1), "band": HS.band(float(x[i])), "d": F["cal"][i], "v": txt, "hot": -1,
                          "sp": [None if np.isnan(x[j]) else int(math.floor(x[j] + 0.5)) for j in we]}
     return out
 

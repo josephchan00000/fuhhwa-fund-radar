@@ -27,7 +27,7 @@ MK_ORDER = ("tw", "spx", "ixic", "ndx", "sox", "us", "stk")
 TODAY_MK = ("tw", "spx", "ixic", "ndx", "sox")
 H_TXT = {20: "1 個月", 60: "3 個月", 250: "12 個月"}
 # 依指標整理（docs/lab_sigview_plan.md）：指標的類別、走勢圖的資料檔（景氣頁對照圖同一份）、指數名稱
-IND_CATS = {"heat": "景氣項目", "dim": "景氣面向", "scen": "情境", "crash": "大跌風險", "tech": "技術事件", "bub": "泡沫", "ind": "產業泡沫",
+IND_CATS = {"heat": "景氣項目", "dim": "景氣面向", "scen": "情境", "inst": "法人買賣超", "crash": "大跌風險", "tech": "技術事件", "bub": "泡沫", "ind": "產業泡沫",
             "buy": "大跌後買點", "stock": "個股訊號", "strat": "個股策略"}
 CHART = {"tw": "x9mh.json", "spx": "x9muh-spx.json", "ixic": "x9muh-ixic.json", "ndx": "x9muh-ndx.json", "sox": "x9muh-sox.json"}
 PX_NAMES = {"tw": "加權指數", "spx": "S&P 500", "ixic": "那斯達克", "ndx": "那斯達克 100", "sox": "費半"}
@@ -47,6 +47,8 @@ def ind_of(r: dict) -> tuple[str, str, str, str | None]:
         return f"{mk}:scen:{var}", "scen", r["vn"], None
     if cat == "crash":
         return f"{mk}:{var}", "crash", r["vn"], var
+    if cat == "inst":                                     # 法人買賣超：一個期間一個指標（單日極端與連續同一個）
+        return f"{mk}:inst:{var}", "inst", r["vn"], G.inst_code(var) or var
     if cat == "tech":
         return f"{mk}:tech:{var}", "tech", r["vn"], None
     if cat == "bub":
@@ -652,7 +654,7 @@ function nowTxt(r){ const n = ON[r[I.id]]; if (!n) return '';
   if (n.event) return mdy(n.since) + ' 出現';
   return mdy(n.since) + ' 起'; }
 function label(r){ const nm = r[I.name];
-  if (['heat','deriv','crash','buy','ind'].includes(r[I.cat])) { const i = nm.lastIndexOf('・'); return i >= 0 ? nm.slice(i + 1) : nm; }
+  if (['heat','deriv','crash','buy','ind','inst'].includes(r[I.cat])) { const i = nm.lastIndexOf('・'); return i >= 0 ? nm.slice(i + 1) : nm; }
   return nm; }
 function what(r, d){ const c = r[I.cat];
   if (c === 'strat') return '每筆賺錢';
@@ -790,8 +792,18 @@ document.addEventListener('click', e => { const q = e.target.closest && e.target
 const TRIG = {hot:'0～100 在 80 以上的每一天（同一段連續過熱算 1 次）', hot13:'已連續 13 週以上在 80 以上的每一天（同一段算 1 次）',
   hot_in:'從低於 80 升到 80 以上那一天（前 20 個交易日都低於 80）', hot_out:'連續過熱 4 週以上之後，第一個低於 80 的週末',
   cold:'0～100 低於 20 的每一天（同一段連續過冷算 1 次）', cold_in:'從 20 以上降到低於 20 那一天（前 20 個交易日都在 20 以上）'};
+const ITRIG = {hot:'0～100 在 80 以上的每一天（大賣超：賣超占成交金額的比例，和自己過去 3 年比，賣超越多越高；同一段算 1 次）',
+  hot_in:'0～100 從低於 80 升到 80 以上那一天（前 20 個交易日都低於 80）', hot_out:'連續 4 週以上的週末都在 80 以上之後，第一個低於 80 的週末',
+  cold:'0～100 低於 20 的每一天（大買超；同一段算 1 次）', cold_in:'0～100 從 20 以上降到低於 20 那一天（前 20 個交易日都在 20 以上）',
+  cold_out:'連續 4 週以上的週末都低於 20 之後，第一個 20 以上的週末',
+  day_sell:'當天賣超占成交金額的比例，在過去 3 年裡賣超最多的 5%（0～100 在 95 以上）',
+  day_buy:'當天買超占成交金額的比例，在過去 3 年裡買超最多的 5%（0～100 在 5 以下）'};
+function itrig(x){ const m = /^(sell|buy)_run(\d+)$/.exec(x.sig || '');
+  if (m) return '連續 ' + m[2] + ' 個交易日' + (m[1] === 'sell' ? '賣超' : '買超') + '的第 ' + m[2] + ' 天（當天沒有資料或剛好 0 算中斷；同一段連續只算 1 次）';
+  return ITRIG[x.sig] || ''; }
 function trig(r){ const c = r[I.cat], x = r[I.x] || {}, nm = r[I.name];
   if (c === 'heat' || c === 'crash') return x.vn + '：' + TRIG[x.sig];
+  if (c === 'inst') return x.vn + '：' + itrig(x);
   if (c === 'scen') { const q = SG.scen[x.var] || []; return '在「' + (q[0] || nm) + '」情境裡的每一天：' + (q[1] || '') + (r[I.mk] === 'tw' ? '（資金＝全球資金與台灣資金的平均）' : '') + '；同一段算 1 次'; }
   if (c === 'multi') return x.sig === 'hot' ? '景氣頁的面向裡，同時 2 個以上在 80 以上的每一天（至少 3 個面向有值；同一段算 1 次）' : '從不到 2 個面向過熱，變成 2 個以上那一天';
   if (c === 'tech') return nm + '出現那一天（用指數收盤；轉折與均線的定義同景氣頁）';
@@ -840,7 +852,7 @@ const PV = document.getElementById('sgpv'), PB = document.getElementById('sgp');
 let CUR = null, SEL = null, PUSHED = false;
 const VIEW = {span: '1y', raw: false};
 function ckOf(x){ return !x.ik || !SG.chart[x.mk] ? null : x.cat === 'dim' ? x.ik.slice(1) : x.ik; }
-const PXC = ['tech', 'crash', 'dim', 'scen', 'bub', 'buy'];                     // 沒有自己的 0～100 走勢的，畫指數＋打點
+const PXC = ['tech', 'crash', 'dim', 'scen', 'inst', 'bub', 'buy'];                     // 沒有自己的 0～100 走勢的，畫指數＋打點
 function chartable(x){ return !!SG.chart[x.mk] && (!!x.ik || PXC.includes(x.cat)); }
 function sck(x){ const J = CJ[x.mk], ck = ckOf(x); return ck && J && J.s && J.s[ck] ? ck : null; }
 function cell(k, v, sub){ return '<div class="sgnc"><span class="k">' + k + '</span><span class="v">' + v + '</span>' + (sub ? '<span class="s">' + sub + '</span>' : '') + '</div>'; }
