@@ -68,6 +68,9 @@ jobs:
           echo "模式：$MODE（價量 $PX 天、籌碼 $FL 天）"
           if [ "$MODE" = "probe" ]; then
             python3 scripts/backfill_lab.py --probe
+          elif [ "$MODE" = "s3probe" ]; then
+            # 大神策略第三段的資料探針（FinMind 逐檔融資與收盤、終止上市櫃名單、美股漲跌家數來源）：只印不寫
+            timeout 1500 python3 scripts/probe_s3.py
           elif [ "$MODE" = "probe2" ]; then
             python3 scripts/backfill_lab.py --probe2
           elif [ "$MODE" = "probe3" ]; then
