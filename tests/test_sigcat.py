@@ -154,3 +154,50 @@ def test_strat_judge_uses_closed_trades_and_count_floor_10():
     assert J["c"]["tier"] == "none" and J["d"]["tier"] == "few" and not J["d"]["few"]
     pay, st = G.strat_pay({"res": {"tr": good}})
     assert st["tier"] == J["a"]["tier"] and st["base"] == 1.0 and pay["path"] == "一般"
+
+
+def _scen_direct(X, cond, i):
+    """逐日直接判斷（sigspec 第 4.10 節），用來對照向量化版本。"""
+    if cond in ("many_hi", "many_lo"):
+        vals = [X[g][i] for g in S.SCEN_DIMS if not np.isnan(X[g][i])]
+        if len(vals) < S.SCEN_MIN_DIMS:
+            return False, False
+        n = sum(1 for v in vals if (v >= S.SCEN_HI if cond == "many_hi" else v < S.SCEN_LO))
+        return True, n >= S.SCEN_MANY
+    if any(np.isnan(X[g][i]) for g, _ in cond):
+        return False, False
+    return True, all((X[g][i] >= S.SCEN_HI) if o == "hi" else (X[g][i] < S.SCEN_LO) for g, o in cond)
+
+
+def test_scenarios_match_direct_rules_and_tw_liquidity_average():
+    rng = np.random.default_rng(7)
+    T = 400
+    comp = {d: rng.uniform(0, 100, T) for d in ("fund", "chip", "gliq", "tliq", "tech")}
+    comp["chip"][:150] = np.nan                                 # 籌碼晚開始（台股 2019-12 起）
+    comp["gliq"][:60] = np.nan                                  # 資金要兩個都有值
+    comp["fund"][200:205] = [60.0, 59.99, 40.0, 39.99, np.nan]  # 門檻：≥ 60、< 40
+    F = {"mk": "tw", "cal": [f"d{i:04d}" for i in range(T)], "comp": comp}
+    X = G.scen_series(F)
+    assert np.isnan(X["liq"][:60]).all() and np.allclose(X["liq"][60:], (comp["gliq"][60:] + comp["tliq"][60:]) / 2)
+    assert np.isnan(X["chip"][:150]).all()
+    for key, _, cond, _ in S.SCENARIOS:
+        have, on = G.scen_flags(X, cond)
+        for i in range(T):
+            h, o = _scen_direct(X, cond, i)
+            assert (bool(have[i]), bool(on[i])) == (h, o), (key, i)
+    sig = {s["var"]: s for s in G.scen_signals(F)}
+    assert list(sig) == [k for k, *_ in S.SCENARIOS]
+    s5 = sig["SC5"]                                             # 籌碼 × 技術：籌碼有值才是樣本
+    assert s5["samp"][0] == 150 and s5["kind"] == "state" and s5["H"] == S.H_SCEN and s5["cat"] == "scen"
+    assert s5["id"] == "tw:scen:SC5" and len(s5["state"]) == len(s5["samp"])
+    s8 = sig["SC8"]                                             # 多數面向：前 60 天只有基本面、技術 2 個有值 → 不是樣本
+    assert s8["samp"][0] == 60
+
+
+def test_scenarios_us_use_sentiment_and_liquidity():
+    T = 10
+    comp = {"fund": np.full(T, 70.0), "sent": np.full(T, 65.0), "liq": np.full(T, 30.0), "tech": np.full(T, 20.0)}
+    F = {"mk": "spx", "cal": [f"d{i}" for i in range(T)], "comp": comp}
+    on = {s["var"]: bool(s["state"].all()) for s in G.scen_signals(F)}
+    assert on == {"SC1": False, "SC2": True, "SC3": False, "SC4": False, "SC5": True, "SC6": False, "SC7": True,
+                  "SC8": False, "SC9": False}

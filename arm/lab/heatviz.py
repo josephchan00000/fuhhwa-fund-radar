@@ -517,7 +517,7 @@ def _tz_item(r: dict, d: str | None) -> str:
     both = ('<span class="tzo" title="同一個項目偏多、警示兩邊都成立：之後上漲的機率比平常高，'
             '中間出現一段大回撤的機率也比平常高">震盪</span>') if r.get("both") else ""
     return (f'<li><a class="tzi" href="x9o.html#s={_e(r["id"])}"><span class="tzh">'
-            f'<span class="tzk tzk-{r["tier"]}">{SS.TIER_MARK[r["tier"]]}</span><b>{_e(r["name"])}</b>'
+            f'<span class="tzk tzk-{r["tier"]}">{SS.TIER_MARK[r["tier"]]}</span><b>{_e(("情境・" if r.get("cat") == "scen" else "") + r["name"])}</b>'
             f'<span class="tzd">{_e(SPG._hz(r))}</span>{both}</span>'
             f'<span class="tzl">{SPG._line(r)}・{_e(SPG._since(r["now"], d))}</span></a></li>')
 
@@ -599,11 +599,122 @@ def stash_cards(V: dict) -> None:
                      "hotdd": XP.card(V.get("hotdd"), note=QP.hotdd_note(V.get("hotch")) if hotch else None), "hotch": hotch}
 
 
+# ── 情境（sigspec VER 4 第 4.10 節；docs/lab_heatviz_v2_plan.md 第 5、11 節）──────────────────────────────────
+
+def scen_now(V: dict) -> dict:
+    """四個共通面向現在的分數（台股資金＝全球與台灣資金平均，兩個都有值才算）。"""
+    from . import sigspec as SS
+    src = SS.SCEN_SRC["tw" if (V.get("mk") or "tw") == "tw" else "us"]
+    out = {}
+    for g, ds in src.items():
+        vs = [(V["dims"].get(d) or {}).get("score") for d in ds]
+        out[g] = sum(vs) / len(vs) if vs and all(v is not None for v in vs) else None
+    return out
+
+
+def _sq_dims(cond) -> tuple:
+    from . import sigspec as SS
+    return SS.SCEN_DIMS if cond in ("many_hi", "many_lo") else tuple(g for g, _ in cond)
+
+
+def _sq_cond(cond, now: dict) -> str:
+    """條件（附現在的分數）：「基本面 ≥ 60（現在 94）・技術 < 40（現在 33）」。"""
+    from . import sigspec as SS
+    def cur(g):
+        v = now.get(g)
+        return "—" if v is None else f'<span class="zt{_zc(v)}">{HP.n0(v)}</span>'
+    if cond in ("many_hi", "many_lo"):
+        lab = _e(f"≥ {SS.SCEN_HI}" if cond == "many_hi" else f"< {SS.SCEN_LO}")
+        cnt = sum(1 for g in SS.SCEN_DIMS if now.get(g) is not None
+                  and (now[g] >= SS.SCEN_HI if cond == "many_hi" else now[g] < SS.SCEN_LO))
+        return (f'四個面向裡 {SS.SCEN_MANY} 個以上 {lab}（現在 {cnt} 個：'
+                + "、".join(f'{_e(SS.SCEN_DIM_NAMES[g])} {cur(g)}' for g in SS.SCEN_DIMS) + "）")
+    return "・".join(f'{_e(SS.SCEN_DIM_NAMES[g])} {_e(f"≥ {SS.SCEN_HI}" if o == "hi" else f"< {SS.SCEN_LO}")}（現在 {cur(g)}）'
+                    for g, o in cond)
+
+
+def _sq_stat(r: dict, d: str) -> str:
+    from . import sigpage as SPG
+    from . import sigspec as SS
+    st = r.get(d) or {}
+    if st.get("hit") is None:
+        return f'<p class="sqx"><span class="sqd sqd-{d}">{"上漲" if d == "up" else "大跌"}</span><span class="mu">次數不夠</span></p>'
+    t = st.get("tier") or "few"
+    what = "之後 3 個月上漲" if d == "up" else f'之後 3 個月內大跌（回撤 {SPG._th(r["th"])}% 以上）'
+    return (f'<p class="sqx"><span class="sqk sqk-{t}" title="{_e(SS.TIER_NAMES[t])}">{SS.TIER_MARK[t]}</span>'
+            f'<span class="sqd sqd-{d}">{"上漲" if d == "up" else "大跌"}</span>'
+            f'{_e(what)} <b>{st["hit"] * 100:.0f}%</b><span class="sqb">（隨便挑一天 {st["base"] * 100:.0f}%）</span></p>')
+
+
+def _sq_strip(r: dict, now: dict | None) -> str:
+    """過去出現在哪些時候：從這個情境有資料的第一天到最後一天，一段一條。"""
+    from datetime import date as _dt
+    a, z = r.get("a"), r.get("z")
+    if not a or not z or a >= z:
+        return ""
+    t0, t1 = _dt.fromisoformat(a).toordinal(), _dt.fromisoformat(z).toordinal()
+    span = t1 - t0
+    def x(d):
+        return 100 * (_dt.fromisoformat(d).toordinal() - t0) / span
+    segs, seen = [], set()
+    for o in r.get("occ") or []:
+        s0, s1 = o[0], o[1]
+        seen.add(s0)
+        w = max(0.35, x(s1) - x(s0))
+        segs.append(f'<i style="left:{x(s0):.2f}%;width:{w:.2f}%" title="{_e(HP._ymd(s0))}～{_e(HP._ymd(s1))}"></i>')
+    if now and now.get("since") and now["since"] not in seen:
+        segs.append(f'<i class="nw" style="left:{x(now["since"]):.2f}%;width:{max(0.6, 100 - x(now["since"])):.2f}%" '
+                    f'title="{_e(HP._ymd(now["since"]))} 起，現在"></i>')
+    return (f'<div class="sqt" aria-hidden="true"><div class="sqtb">{"".join(segs)}</div>'
+            f'<span>{a[:4]}</span><span>{z[:4]}</span></div>')
+
+
+def scen_html(V: dict) -> str:
+    """情境卡（取代對照圖的交互分析）：事先定義好的 9 種面向組合，過去出現之後 3 個月上漲、大跌的機率（判定同訊號總覽），
+    現在落在哪幾個、過去出現在哪些時候。研究檔沒有就只寫一句。"""
+    from . import sigcat as G
+    from . import sigspec as SS
+    mk = V.get("mk") or "tw"
+    rows = {r["var"]: r for r in G.research_rows() if r.get("mk") == mk and r.get("cat") == "scen"}
+    head = '<h2>情境<span class="sub">事先定義好的面向組合；過去出現之後 3 個月的結果</span></h2>'
+    if not rows:
+        return f'<section class="sec sqc" id="scen">{head}<p class="note">情境的研究結果還沒產生（scripts/run_sig.py）。</p></section>'
+    on = (V.get("signow") or {}).get("on") or {}
+    now = scen_now(V)
+    src = SS.SCEN_SRC["tw" if mk == "tw" else "us"]
+    cards, act = [], []
+    for key, name, cond, why in SS.SCENARIOS:
+        r = rows.get(key)
+        if not r:
+            continue
+        o = on.get(r["id"])
+        if o:
+            act.append(f'<a href="#sq-{key}">{_e(name)}</a>')
+        dims = " ".join(",".join(src[g]) for g in _sq_dims(cond))
+        n = (r.get("up") or {}).get("n") or 0
+        badge = (f'<span class="sqn">現在・{_e(HP._ymd(o["since"]))} 起</span>' if o else "")
+        cards.append(f'<article class="sqi{" on" if o else ""}" id="sq-{key}" data-dims="{_e(dims)}">'
+                     f'<div class="sqh"><b>{_e(name)}</b>{badge}</div><p class="sqw">{_e(why)}</p>'
+                     f'<p class="sqcd">{_sq_cond(cond, now)}</p>{_sq_stat(r, "up")}{_sq_stat(r, "warn")}'
+                     f'{_sq_strip(r, o)}<p class="sqm">過去 {n} 段・{_e(r["a"][:4])} 年起'
+                     f'<a href="x9o.html#s={_e(r["id"])}">每一次 →</a></p></article>')
+    lead = ("現在落在：" + "、".join(act) + "。") if act else "現在沒有落在任何一個情境。"
+    tw_note = ("台股的資金＝全球資金與台灣資金的平均（兩個都有值才算，2009 年起）；籌碼 2019 年 12 月起才有，"
+               "所以「多數面向」在那之前是 3 個面向都偏熱（偏冷），之後是 4 個裡 3 個。" if mk == "tw" else
+               "情緒籌碼 2008 年起才有，「多數面向」在那之前是 3 個面向都偏熱（偏冷），之後是 4 個裡 3 個。")
+    return (f'<section class="sec sqc" id="scen">{head}<p class="sqlead">{lead}</p>'
+            f'<p class="note">偏熱以上＝{SS.SCEN_HI} 以上、偏冷以下＝未滿 {SS.SCEN_LO}。★ 好訊號、● 可參考、○ 沒有比隨便挑一天好、'
+            '— 次數不夠（判定同訊號總覽）。一段＝連續在這個情境裡的日子；下面的長條是過去出現的時候。</p>'
+            f'<div class="sqg">{"".join(cards)}</div>'
+            f'<p class="note">情境之間可以同時成立。9 個情境 × 5 個市場 × 偏多、警示兩個方向＝90 個比較，比得越多越容易碰到巧合，'
+            f'只當參考。{_e(tw_note)}</p></section>')
+
+
 def main_view(V: dict, ks: list[dict]) -> str:
     asof = V["asof"]
     stash_cards(V)
     nav = ('<nav class="snav"><a href="#top">雷達</a><a href="#today">今天的重點</a><a href="#items">全部項目</a>'
-           f'<a href="#cmp">{_e(HP.MK["cmp"])}</a>' + ('<a href="#ta">價位事件</a>' if V.get("ta") else "")
+           f'<a href="#cmp">{_e(HP.MK["cmp"])}</a><a href="#scen">情境</a>' + ('<a href="#ta">價位事件</a>' if V.get("ta") else "")
            + '<a href="x9o.html">訊號總覽</a>'
            + '<button type="button" class="snv" data-goview="research">研究與驗證 →</button></nav>')
     nores = "" if (V.get("R") or {}).get("dims") else f'<p class="warn">驗證結果還沒產生（{_e(HP.MK["res"])}），先只列各項的 0～100。</p>'
@@ -615,7 +726,7 @@ def main_view(V: dict, ks: list[dict]) -> str:
              '<div class="imap" id="imap"></div>'
              '<p class="note">每一點是一項：位置＝現在的 0～100；短線＝和上週比從哪裡移過來；點越大＝拉動面向分數越多。點一下打開右邊的面板。</p>'
              f'{items_table(V)}</section>')
-    return (f'<div class="hview" data-view="radar">{nav}{top}{items}{HP._cmp_section()}{HP._ta_main(V)}'
+    return (f'<div class="hview" data-view="radar">{nav}{top}{items}{HP._cmp_section()}{scen_html(V)}{HP._ta_main(V)}'
             '<p class="vmore"><button type="button" class="tb" data-goview="research">研究與驗證（各項和指數的關係、多層回歸、事件研究、資料來源）→</button></p></div>')
 
 
@@ -1150,6 +1261,31 @@ background:linear-gradient(90deg,var(--zc) 0 20%,var(--card2) 20% 80%,var(--zh) 
 body.drw-on{overflow:hidden}
 @media (min-width:1100px){body.drw-on{overflow:auto}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+/* 情境（sigspec 第 4.10 節） */
+.sqc{--bull:#d33a34;--bear:#159c94}
+@media (prefers-color-scheme:dark){.sqc{--bull:#f15b50;--bear:#24a89d}}
+.sqlead{margin:2px 0 4px;font-size:14px}.sqlead a{font-weight:600}
+.sqg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:8px 0}
+@media (max-width:900px){.sqg{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:600px){.sqg{grid-template-columns:minmax(0,1fr)}}
+.sqi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0;scroll-margin-top:110px}
+.sqi.on{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+.sqi.hl{outline:2px dashed var(--acc);outline-offset:2px}
+.sqh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}.sqh b{font-size:15px}
+.sqn{font-size:11.5px;padding:0 8px;border-radius:999px;background:var(--accbg);color:var(--acc);font-weight:600;white-space:nowrap}
+.sqw{margin:1px 0 4px;font-size:12.5px;color:var(--mut)}
+.sqcd{margin:0 0 6px;font-size:12.5px;line-height:1.6;color:var(--ink2)}.sqcd span{font-weight:700}
+.sqx{margin:2px 0;font-size:12.5px;line-height:1.55;color:var(--ink2);padding-left:20px;text-indent:-20px}.sqx b{color:var(--ink);font-size:13.5px}
+.sqk{display:inline-block;width:14px;text-indent:0;text-align:center;font-weight:700;margin-right:6px}.sqk-good{color:var(--acc)}.sqk-ref{color:var(--ink2)}.sqk-none,.sqk-few{color:var(--mut)}
+.sqd{font-size:11px;font-weight:700;padding:0 6px;border-radius:999px;margin-right:6px;text-indent:0;display:inline-block}
+.sqd-up{color:var(--bull);box-shadow:inset 0 0 0 1px var(--bull)}.sqd-warn{color:var(--bear);box-shadow:inset 0 0 0 1px var(--bear)}
+.sqb{color:var(--mut)}
+.sqt{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px;margin:8px 0 2px;font-size:10.5px;color:var(--mut)}
+.sqt span:first-of-type{grid-column:1;grid-row:1}.sqt span:last-of-type{grid-column:3;grid-row:1}
+.sqtb{grid-column:2;grid-row:1;position:relative;height:10px;border-radius:3px;background:var(--card2);overflow:hidden}
+.sqtb i{position:absolute;top:0;bottom:0;background:var(--ink2);opacity:.55}.sqtb i.nw{background:var(--acc);opacity:1}
+.sqi.on .sqtb i:last-child{background:var(--acc);opacity:1}
+.sqm{display:flex;justify-content:space-between;gap:8px;margin:4px 0 0;font-size:12px;color:var(--mut)}.sqm a{white-space:nowrap}
 /* 今天的重點（訊號總覽的實務判定）與頁首的市場狀態一行 */
 .tzc{padding:12px 14px;min-width:0;margin:0;--bull:#d33a34;--bear:#159c94}
 .tzx{margin:-2px 0 6px;font-size:12.5px;color:var(--ink2)}.tzx summary{cursor:pointer;color:var(--acc);font-size:12.5px}.tzx p{margin:4px 0 0;line-height:1.6}
@@ -1182,6 +1318,7 @@ font-size:13px;color:var(--ink2);background:var(--panel);text-decoration:none;wh
 .stz0{border-color:var(--c0)}.stz1{border-color:var(--c1)}.stz3{border-color:var(--c3)}.stz4{border-color:var(--c4);background:var(--sbg)}
 .stz0 i,.stz1 i{color:var(--t0)}.stz3 i{color:var(--t3)}.stz4 i{color:var(--t4)}.stc i{font-style:normal;font-weight:600}
 .stx{border-color:var(--c4);color:var(--t4)}
+.stc.stw{white-space:normal}
 """
 
 
