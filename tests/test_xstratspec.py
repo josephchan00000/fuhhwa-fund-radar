@@ -1,6 +1,7 @@
 """大神策略的規格（docs/lab_expert_plan.md 第 4.1、6 節；arm/lab/xstratspec.py）：規格鎖定。
 
-VER 1（2026-10-20）在算正式成績之前寫定；VER 2（2026-10-21，台股短線改台指期＋當天收盤）也在重算成績之前寫定。
+VER 1（2026-10-20）在算正式成績之前寫定；VER 2（2026-10-21，台股短線改台指期＋當天收盤）也在重算成績之前寫定；
+VER 3（2026-10-21，第二段落底型）在算落底型的正式成績之前寫定。
 要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from datetime import date
 
@@ -11,17 +12,17 @@ BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會
           "零風險", "無風險", "穩賺不賠")
 
 
-def test_xstrat_spec_v2_is_locked():
-    assert X.VER == 2 and X.SPEC_DATE == "2026-10-21" and X.SPEC_DATE_V1 == "2026-10-20"
+def test_xstrat_spec_v3_is_locked():
+    assert X.VER == 3 and X.SPEC_DATE == "2026-10-21" and X.SPEC_DATE_V1 == "2026-10-20"
     assert X.MARKETS == SS.MARKETS and X.NAMES == SS.NAMES
     assert X.EVAL_START == {"tw": "1991-07-01", "spx": "1990-01-01", "ixic": "1990-01-01", "ndx": "1990-01-01",
                             "sox": "1995-10-01"}
     assert X.WARMUP_MONTHS == 17 and X.RECENT_YEARS == SS.RECENT_YEARS == 10
     assert X.COST == {"tw": 0.001, "spx": 0.00025, "ixic": 0.00025, "ndx": 0.00025, "sox": 0.00025}
     assert (X.LAG, X.LAG_REF) == (1, 0)
-    assert X.GROUP_ORDER == ("short", "season", "risk") and set(X.GROUPS) == set(X.GROUP_ORDER)
-    assert X.KINDS == {"trade": "交易型", "alloc": "進出型"}
-    assert X.KEYS == ("rsi2", "vixs", "tom", "hal", "faber", "ma200", "mom12")
+    assert X.GROUP_ORDER == ("short", "bottom", "season", "risk") and set(X.GROUPS) == set(X.GROUP_ORDER)
+    assert X.KINDS == {"trade": "交易型", "dip": "落底型", "alloc": "進出型"}
+    assert X.KEYS == ("rsi2", "vixs", "tom", "coppock", "vix40", "zweig", "ftd", "dev60", "hal", "faber", "ma200", "mom12")
     assert (X.TR_N_MIN, X.TR_N10, X.TR_WIN, X.TR_EDGE) == (30, 10, 0.60, 0.05)
     assert (X.AL_MDD, X.AL_YEARS_MIN, X.GRID_OK) == (2 / 3, 5, 2 / 3)
     assert X.TIERS == ("good", "ref", "none", "few") and set(X.TIER_NAMES) == set(X.TIER_MARK) == set(X.TIERS)
@@ -66,7 +67,21 @@ def test_strategy_params_are_the_original_authors():
         assert set(s["mk"]) <= set(X.MARKETS) and s["name"] and s["who"] and s["src"] and s["logic"]
     assert {s["k"] for s in X.STRATS if s["kind"] == "trade"} == {"rsi2", "vixs", "tom"}
     assert X.BY_KEY["vixs"]["mk"] == ("spx", "ixic", "ndx", "sox")                          # VIX 衝刺只有美股
-    assert all(X.BY_KEY[k]["mk"] == X.MARKETS for k in X.KEYS if k != "vixs")
+    only = {"vixs": X.US, "zweig": ("tw",), "ftd": ("tw", "spx", "ixic", "ndx"), "dev60": ("tw",)}
+    assert all(X.BY_KEY[k]["mk"] == only.get(k, X.MARKETS) for k in X.KEYS)
+    # VER 3 落底型：原作者或常見說法的參數、抱的天數
+    assert P["coppock"] == {"r1": 14, "r2": 11, "wma": 10} and X.BY_KEY["coppock"]["H"] == 250       # Coppock（月線）
+    assert P["vix40"] == {"level": 40, "reset": 60} and X.BY_KEY["vix40"]["H"] == 60
+    assert P["zweig"] == {"ema": 10, "lo": 0.40, "hi": 0.615, "days": 10} and X.BY_KEY["zweig"]["H"] == 120   # Zweig
+    assert P["ftd"] == {"corr": 0.10, "up": 0.0125, "day": 4} and X.BY_KEY["ftd"]["H"] == 60         # O'Neil
+    assert P["dev60"] == {"ma": 60, "th": -0.15} and X.BY_KEY["dev60"]["H"] == 20
+    assert G["coppock"] == {"wma": (8, 10, 12)} and G["vix40"] == {"level": (35, 40, 45)}
+    assert G["zweig"] == {"lo": (0.38, 0.40, 0.42), "hi": (0.60, 0.615, 0.63)}
+    assert G["ftd"] == {"corr": (0.08, 0.10, 0.12), "up": (0.01, 0.0125, 0.017)} and G["dev60"] == {"th": (-0.12, -0.15, -0.18)}
+    assert {s["k"] for s in X.STRATS if s["kind"] == "dip"} == {"coppock", "vix40", "zweig", "ftd", "dev60"}
+    assert all(s["grp"] == "bottom" for s in X.STRATS if s["kind"] == "dip")
+    assert (X.DIP_N_MIN, X.DIP_N10, X.DIP_WIN, X.DIP_EDGE) == (5, 5, 0.60, 0.10)
+    assert X.DIP_HS == (20, 60, 120, 250) and (X.BREADTH_MIN, X.FTD_HIGH, X.FTD_RESET) == (100, 252, 0.999)
 
 
 def test_no_banned_words_in_strategy_text():
