@@ -520,6 +520,29 @@ def today_html(V: dict) -> str:
             '<p class="tzm"><a href="x9o.html">全部訊號、研究細節（訊號總覽）→</a></p></section>')
 
 
+def sig_items(B: dict, V: dict) -> dict:
+    """訊號總覽「依指標」的現在（docs/lab_sigview_plan.md 第 2.1 節）：每一項與每個面向的現值、資料日、0～100、區、
+    歷史位置一句、邊際變化、近一年每週 0～100（小走勢圖，53 個週末）。景氣頁建頁時算好，stash_cards 交給訊號總覽。"""
+    cal = B["cal"]
+    if not cal:
+        return {}
+    we = PO.week_ends(cal)[-53:]
+    sp = lambda xs: [None if xs[i] is None else _ri(xs[i]) for i in we]
+    out = {}
+    for d, L in V["dims"].items():
+        out["D" + d] = {"h": _r1(L["score"]), "band": L["band"], "d": cal[-1], "sp": sp(B["comp"][d])}
+        for it in L["items"]:
+            k = it["k"]
+            pos, dv = it.get("pos"), it.get("dv")
+            out[k] = {"v": it["val"], "d": it["src"], "h": _r1(it["heat"]),
+                      "band": S.band(it["heat"]) if it["heat"] is not None else None,
+                      "pos": HP.pos_line(k, pos) if pos else "",
+                      "dv": HP.acc_label(k, dv) if dv and k in HP.DLABEL else "",
+                      "why": "用美國 VIX 的排名代替，不算進分數" if it["proxy"] else (it["why"] or ""),
+                      "u": S.IND[S.KEYS.index(k)][3], "dec": HP.DEC.get(k, 2), "hot": it["hot"], "sp": sp(B["heat"][k])}
+    return out
+
+
 def stash_cards(V: dict) -> None:
     """四張研究卡（短線大跌風險、大跌後檢查、過熱之後 3 個月的最大回撤、反向檢查）2026-10-19 起搬到訊號總覽
     （docs/lab_signal_plan.md 第 10 節 Q3）：這裡照樣算好 HTML，存進 sigpage.CARDS，訊號總覽建頁時寫成各市場的檔。"""
@@ -532,6 +555,8 @@ def stash_cards(V: dict) -> None:
     if not mk:
         return
     hotch = QP.card(V.get("hotch"))
+    if V.get("sigitems"):
+        SPG.ITEMS[mk] = V["sigitems"]
     SPG.CARDS[mk] = {"d": V["asof"], "crash": CP.card(V.get("crash")), "bottom": BP.card(V.get("bottom")),
                      "hotdd": XP.card(V.get("hotdd"), note=QP.hotdd_note(V.get("hotch")) if hotch else None), "hotch": hotch}
 
