@@ -679,43 +679,68 @@ def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
     return row
 
 
-# ── 大跌後買點（bottomspec VER 3） ─────────────────────────────────────────────
+# ── 大跌後買點（sigspec 第 4.7 節，VER 10） ──────────────────────────────────────
+
+BUY_RULES = ("B1", "W10")
+
 
 def buy_rows(F: dict, bases: dict | None = None) -> list[dict]:
-    """兩種大跌 × 規則：命中＝買在這一波的相對低點；平常＝同一批事件固定等 10 天（固定等 10 天＝事件隔天買）。
-    報酬（VER 5）：買進日收盤進場（RA 第 b−LAG 格＝第 b 天收盤進場）；平常＝同一批事件的對照規則。"""
+    """兩種大跌 × 規則（大跌隔天就買、固定等 10 天、落底訊號）：每個事件的買進日當成事件型訊號（訊號日＝買進日 − LAG）；
+    命中＝買進後 H_BUY 天收盤比買價高、平常＝隨便挑一天、打亂測試＝事件型平移（同偏多訊號）。
+    另列（不判定）：同一批事件大跌隔天就買的上漲比例、買在相對低點的比例。報酬（VER 5）：買進日收盤進場。"""
     from . import bottom as BO
     from . import bottomspec as BS
     I = F["IB"]
     if not I:
         return []
-    mk, cal = F["mk"], F["cal"]
-    RA = ret_arrays(I["px"])
+    mk = F["mk"]
+    cal = list(I["cal"])
+    px = np.asarray(I["px"], dtype=float)
+    T = len(px)
+    H = S.H_BUY
+    Yu, Yw, Yd = outcomes(px, H, warn_th(mk, H))
+    Yr = fwd_ret(px, H)
+    RA = ret_arrays(px)
+    samp = np.arange(BS.E10_WIN - 1, T, dtype=np.int64)
+    samp = samp[~np.isnan(px[samp])]
+    r0 = bisect.bisect_left(cal, F["r0"])
     bases = {} if bases is None else bases
     out = []
     for ev in BS.EVENTS:
         recs = BO.event_recs(I, ev)
-        for k in ("W10",) + tuple(BS.SIG_MK[mk]):
-            base = "b1" if k == "W10" else BS.SIG_BASE
-            rows = BO._lp_rows(recs, k, base)
-            occ = [[cal[t], int(o["lp"]), int(ob["lp"])] for t, o, ob, _ in rows]
-            r10 = [o for o in occ if o[0] >= F["r0"]]
-            st = {"n": len(occ), "hit": _mean([o[1] for o in occ]), "base": _mean([o[2] for o in occ]),
-                  "n10": len(r10), "hit10": _mean([o[1] for o in r10]), "base10": _mean([o[2] for o in r10]),
-                  "p": LK.sign_p(sum(1 for o in occ if o[1] and not o[2]), sum(1 for o in occ if o[2] and not o[1]))}
+        for k in BUY_RULES + tuple(BS.SIG_MK[mk]):
+            buys = []
+            for r in recs:
+                o = r["b1"] if k == "B1" else (((r["rules"].get(k) or {}).get("o")) or None)
+                if o and o.get("b") is not None and 0 <= o["b"] - S.LAG:
+                    buys.append((r["t"], int(o["b"]), o, r["b1"]))
+            days = [b - S.LAG for _, b, _, _ in buys]
+            rid = f"{mk}:buy:{ev}:{k}"
+            sd = {"id": rid, "kind": "event", "H": H, "samp": samp, "days": days}
+            R = ev_stat(days, Yu, Yw, samp, H, r0, Yd, Yr)
+            st = R["up"]
+            LP = LK.market_p(sd, Yu, Yw, r0, R)
+            st["p"] = LP["up"]["p"]
             judge(st, "buy")
-            r60 = [o.get("r60") for t, o, _, _ in rows]
-            ret = _ret_flat(np.asarray([o["b"] - S.LAG for _, o, _, _ in rows], dtype=np.int64), RA)
-            bk = f"{mk}:buy:{ev}:{k}:base"
-            bases[bk] = _ret_flat(np.asarray([ob["b"] - S.LAG for _, _, ob, _ in rows], dtype=np.int64), RA)
-            ret["bk"] = bk
-            out.append({"id": f"{mk}:buy:{ev}:{k}", "mk": mk, "cat": "buy", "grp": ev, "var": k,
-                        "vn": BS.RULE_NAMES[k], "sig": ev, "kind": "event", "H": None,
-                        "name": f"{BS.EVENT_NAMES[ev]}・{BS.RULE_NAMES[k]}",
-                        "base_name": "事件隔天就買" if k == "W10" else "固定等 10 天",
+            kept = {int(t) + S.LAG for t, *_ in R["occ"]}
+            by_b = {b: (o, ob) for _, b, o, ob in buys}
+            occ = []
+            for t, u, _, _, rr in R["occ"]:
+                o, ob = by_b[int(t) + S.LAG]
+                occ.append([cal[int(t) + S.LAG], int(u), None if o.get("lp") is None else int(o["lp"]),
+                            None if ob.get("r60") is None else int(ob["r60"] > 0), None if _nan(rr) else round(float(rr), 5)])
+            lps = [o[2] for o in occ if o[2] is not None]
+            b1s = [o[3] for o in occ if o[3] is not None]
+            st.update({"lp": _mean(lps), "lp_n": len(lps), "b1": None if k == "B1" else _mean(b1s)})
+            ret = _ret_flat(np.asarray(sorted(b - S.LAG for b in kept), dtype=np.int64), RA)
+            ret["bk"] = ret_base(samp, RA, bases, mk)
+            out.append({"id": rid, "mk": mk, "cat": "buy", "grp": ev, "var": k,
+                        "vn": BS.RULE_NAMES.get(k, "大跌隔天就買") if k != "B1" else "大跌隔天就買", "sig": ev, "kind": "event", "H": H,
+                        "name": f"{BS.EVENT_NAMES[ev]}・{'大跌隔天就買' if k == 'B1' else BS.RULE_NAMES[k]}",
+                        "base_name": "隨便挑一天",
                         "a": occ[0][0] if occ else None, "z": occ[-1][0] if occ else None,
-                        "buy": st, "tier": st["tier"], "dir": ["buy"], "occ": occ,
-                        "up60": _mean([1.0 if (r or 0) > 0 else 0.0 for r in r60 if r is not None]), "ret": ret})
+                        "buy": st, "tier": st["tier"], "dir": ["buy"], "occ": occ, "ret": ret,
+                        "_luck": {"up": LP["up"]["luck"], "warn": 0.0}})
     return out
 
 
@@ -926,7 +951,8 @@ def luck_summary(rows: list[dict]) -> dict:
             continue
         m = out.setdefault(r["mk"], {d: [0, 0.0] for d in ("up", "warn")})
         for d in ("up", "warn"):
-            m[d][0] += (r.get(d) or {}).get("tier") == "good"
+            st = r.get("buy") if (r.get("cat") == "buy" and d == "up") else r.get(d)
+            m[d][0] += (st or {}).get("tier") == "good"
             m[d][1] += lk[d]
     return out
 
@@ -1026,7 +1052,7 @@ def now_market(F: dict, acts: dict | None = None) -> dict:
         Nw = BO.now(I)
         for a in Nw.get("active") or []:
             evs = (a["ev"],) + ((a["also"],) if a.get("also") else ())
-            sigs = {"W10": a.get("w10") or {}, **(a.get("sig") or {})}
+            sigs = {"B1": {"st": "on", "d": a["t"]}, "W10": a.get("w10") or {}, **(a.get("sig") or {})}
             for k, v in sigs.items():
                 if v.get("st") == "on":
                     for ev in evs:

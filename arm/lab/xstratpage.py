@@ -67,12 +67,19 @@ PARAM_NAMES = {"rsi2": {"rsi_max": "RSI 低於", "exit_ma": "站上幾日均線�
                "vixs": {"stretch": "VIX 比均線高", "exit_rsi": "RSI 高於幾賣"},
                "tom": {"before": "月底前幾天買", "after": "下個月第幾天賣"},
                "hal": {"start": "從幾月開始持有 6 個月"},
-               "faber": {"n": "幾個月均線"}, "ma200": {"n": "幾日均線"}, "mom12": {"n": "看幾個月"}}
+               "faber": {"n": "幾個月均線"}, "ma200": {"n": "幾日均線"}, "mom12": {"n": "看幾個月"},
+               "coppock": {"wma": "幾個月加權平均"}, "vix40": {"level": "VIX 到多少"},
+               "zweig": {"lo": "先跌到多少以下", "hi": "再衝到多少以上"},
+               "ftd": {"corr": "修正幾 %", "up": "那天漲幾 %"}, "dev60": {"th": "季線乖離"}}
+HN = {20: "1 個月", 60: "3 個月", 120: "6 個月", 250: "1 年"}
 
 
 def pval(k: str, name: str, v) -> str:
     if name == "stretch":
         return f"{v * 100:.0f}%"
+    if name in ("lo", "hi", "corr", "up", "th"):
+        x = v * 100
+        return f"{x:.{0 if abs(x - round(x)) < 1e-9 else (2 if abs(x * 10 - round(x * 10)) > 1e-9 else 1)}f}%"
     if k == "hal":
         return f"{v} 月"
     return str(v)
@@ -97,6 +104,8 @@ def rule_lines(k: str, mk: str) -> list[str]:
     elif k == "vixs":
         out = [f"買：VIX 連 {p['days']} 天比自己的 {p['vix_ma']} 日均線高 {p['stretch'] * 100:.0f}% 以上，而且指數收盤在 {p['ma']} 日均線上 → 隔天收盤買。",
                f"賣：指數的 2 日 RSI 高於 {p['exit_rsi']} → 隔天收盤賣。", lag]
+    elif S.BY_KEY[k]["kind"] == "dip":
+        out = dip_rules(k, mk)
     elif k == "tom":
         out = [f"買：每個月倒數第 {p['before'] + 1} 個交易日收盤（持有月底最後 {p['before']} 天）。",
                f"賣：下個月第 {p['after']} 個交易日收盤。",
@@ -114,6 +123,32 @@ def rule_lines(k: str, mk: str) -> list[str]:
     if fut:
         return out + [f"成本：{cost}。空手時不算利息。"] + fut
     return out + [f"成本：{cost}。指數不含股息、空手時不算利息。"]
+
+
+def dip_rules(k: str, mk: str) -> list[str]:
+    """落底型的規則（規格第 9 節）。"""
+    sp = S.BY_KEY[k]
+    p, H = sp["p"], sp["H"]
+    sell = f"賣：買進後抱 {H} 個交易日（約 {HN[H]}）收盤賣。"
+    if k == "coppock":
+        out = [f"每個月最後一個交易日算：100 ×（收盤 ÷ {p['r1']} 個月前月底收盤 − 1）＋100 ×（收盤 ÷ {p['r2']} 個月前月底收盤 − 1），"
+               f"再取 {p['wma']} 個月加權平均（最近的最重）。",
+               "買：曲線在 0 以下、而且這個月比上個月高（由下往上轉）→ 隔天收盤買。", sell]
+    elif k == "vix40":
+        out = [f"買：VIX 收盤 ≥ {p['level']}，而且之前 {p['reset']} 個交易日都沒有到 {p['level']} → 隔天收盤買。"
+               + ("台股用前一個美股交易日的 VIX（台股收盤時已經知道的最新一個）。" if mk == "tw" else ""), sell]
+    elif k == "zweig":
+        out = ["每天算上漲家數 ÷（上漲＋下跌家數）（景氣頁同一份，月底市值 40 億以上的股票），取 10 日指數平均。",
+               f"買：指數平均衝上 {p['hi'] * 100:.1f}%（前一天還沒有），而且之前 {p['days']} 個交易日內有一天在 {p['lo'] * 100:.0f}% 以下 → 隔天收盤買。",
+               sell, "台股家數資料 2013 年起。"]
+    elif k == "ftd":
+        out = [f"修正：收盤比近 {S.FTD_HIGH} 個交易日的最高收盤低 {p['corr'] * 100:.0f}% 以上；收盤回到那個最高收盤的 99.9% 以上＝修正結束。",
+               "低點之後第一個收盤上漲的日子＝第 1 天；收盤又跌破低點就重新數。",
+               f"買：第 {p['day']} 天以後第一次收盤漲 {p['up'] * 100:.2f}% 以上、而且成交量"
+               + ("（台股用上市成交金額）" if mk == "tw" else "") + "比前一天大 → 隔天收盤買（一段修正只算第一個）。", sell]
+    else:
+        out = [f"買：收盤比 {p['ma']} 日均線（季線）低 {-p['th'] * 100:.0f}% 以上，而且前一天還沒有 → 隔天收盤買。", sell]
+    return out + ["一次訊號之後，抱的期間內再出現不算新的一次。"]
 
 
 TAG = {"buy": "訊號出現", "hold": "持有中", "sell": "出場訊號", "wait": "沒有訊號", "near": "接近訊號",
@@ -154,6 +189,8 @@ def now_text(r: dict) -> str:
     p = S.BY_KEY[k]["p"]
     ed, ret, held = n.get("ed"), n.get("ret"), n.get("held")
     D, NX = md(d, d), md(n.get("nx"), d) or "下一個交易日"
+    if S.BY_KEY[k]["kind"] == "dip":
+        return dip_now_text(k, n, D, NX, d)
     if k == "rsi2" and n.get("lag") == 0:
         return _same_day_rsi2(n, p, D, NX, d)
     if k == "rsi2":
@@ -229,9 +266,65 @@ def now_text(r: dict) -> str:
     return f"空手：上個月底收盤{'在 ' + what + '下' if k == 'faber' else '比 ' + what + '低'}。{cur}{nxt}"
 
 
+def _dip_ind(k: str, n: dict, D: str, d: str) -> str:
+    """落底型現在的指標值（一句）。"""
+    if k == "coppock":
+        if n.get("cv") is None:
+            return ""
+        up = n["cv"] > n.get("cp", n["cv"])
+        out = (f"Coppock 曲線 {n['cv']:.1f}（{int(n['cm'][5:7])} 月底，比上個月{'高' if up else '低'}；"
+               f"{'在 0 以上' if n['cv'] >= 0 else '在 0 以下'}）")
+        if n.get("cnow") is not None:
+            out += f"，以 {D} 收盤試算 {n['cnow']:.1f}"
+        return out + (f"；下一次看 {md(n.get('chk'), d)}" if n.get("chk") else "")
+    if k == "vix40":
+        return "" if n.get("vix") is None else f"VIX {n['vix']:.1f}（近 60 個交易日最高 {num(n.get('vmax'), 1)}；收盤到 40 以上才算）"
+    if k == "zweig":
+        if n.get("e") is None:
+            return ""
+        return (f"上漲家數 10 日平均 {n['e'] * 100:.1f}%（{md(n.get('ed_'), d)}；要先在 40% 以下，10 個交易日內再衝上 61.5%）")
+    if k == "ftd":
+        if n.get("in"):
+            out = f"修正中：比近 252 個交易日最高收盤低 {pc(-n['dd'])}，低點 {md(n.get('low_d'), d)}（{num(n.get('low_px'))}）"
+            if n.get("done"):
+                return out + "；這一段修正已經出現過跟進日"
+            return out + (f"，反彈第 {n['rday']} 天（第 4 天起看大漲＋量增）" if n.get("rday") else "，還沒有收盤上漲的反彈日")
+        return f"沒有在修正（比近 252 個交易日最高收盤低 {pc(-n['dd'])}，低 10% 以上才算修正）"
+    if n.get("dev") is None:
+        return ""
+    return f"收盤比季線{'高' if n['dev'] >= 0 else '低'} {pc(abs(n['dev']))}（要低 15% 以上）"
+
+
+def dip_now_text(k: str, n: dict, D: str, NX: str, d: str) -> str:
+    st, H = n["st"], n["H"]
+    ind = _dip_ind(k, n, D, d)
+    if st == "buy":
+        return f"{D} 收盤出現訊號 → {NX} 收盤買，抱 {H} 個交易日（約 {HN[H]}）。" + (f"{ind}。" if ind else "")
+    if st == "hold":
+        return (f"持有中：{md(n.get('sd'), d)} 出現訊號、{md(n.get('ed'), d)} 收盤買進（{num(n.get('ep'))}），到 {D} "
+                f"{pc(n.get('ret'), sign=True)}（第 {n.get('held')} 個交易日）；{md(n.get('qd'), d)} 收盤賣（還有 {n.get('left')} 個交易日）。")
+    last = (f"上一次 {md(n.get('ld'), d)}，抱 {HN[H]} {pc(n.get('lret'), sign=True)}。" if n.get("ld") else "")
+    return "沒有訊號" + (f"：{ind}。" if ind else "。") + last
+
+
 def now_short(r: dict) -> str:
     """清單「現在」那一格：一個關鍵數字。"""
     k, n = r["k"], r["now"]
+    if S.BY_KEY[k]["kind"] == "dip":
+        if n["st"] == "hold":
+            return f"持有中・{md(n.get('qd'), n['d'])} 賣"
+        if n["st"] == "buy":
+            return "訊號出現"
+        if k == "coppock":
+            return "—" if n.get("cv") is None else f"Coppock {n['cv']:.0f}（{'向上' if n['cv'] > n.get('cp', n['cv']) else '向下'}）"
+        if k == "vix40":
+            return "—" if n.get("vix") is None else f"VIX {n['vix']:.1f}"
+        if k == "zweig":
+            return "—" if n.get("e") is None else f"上漲家數平均 {n['e'] * 100:.0f}%"
+        if k == "ftd":
+            return (f"修正中・反彈第 {n['rday']} 天" if n.get("in") and n.get("rday") else
+                    "修正中" if n.get("in") else f"離高點 {pc(n.get('dd'), 1, sign=True)}")
+        return f"離季線 {pc(n.get('dev'), 1, sign=True)}"
     if k == "rsi2" and n["st"] == "near":
         return f"{md(n.get('nx'), n['d'])} 收盤低於 {num(n.get('hi_px'))} 就買"
     if k == "rsi2" and n["st"] == "hold" and n.get("ex_px") is not None:
@@ -253,6 +346,12 @@ def now_short(r: dict) -> str:
 
 def result_line(r: dict) -> str:
     f = r["full"]
+    if r["kind"] == "dip":
+        if not f.get("n"):
+            return "評估期間沒有出現過。"
+        H = r["H"]
+        return (f"過去 {f['n']} 次：抱 {HN[H]}賺錢 {pc(f['win'], 0)}（隨便挑一天 {pc(f.get('base'), 0)}）、"
+                f"中位數 {pc(f['med'], 1, sign=True)}（扣成本）、中途最多跌中位 {pc(f.get('mae'), 1)}")
     if r["kind"] == "trade":
         if not f.get("n"):
             return "評估期間沒有交易。"
@@ -279,11 +378,30 @@ def _alloc_why(s: dict, b: dict) -> str:
             f"年化 ÷ 最大回撤 {'—' if mar is None else f'{mar:.3f}'}（買進持有 {'—' if bmar is None else f'{bmar:.3f}'}，要不輸）")
 
 
+def _dip_why(s: dict, H: int) -> str:
+    if not s.get("n"):
+        return "沒有出現過"
+    e = (s["win"] - s["base"]) * 100 if s.get("base") is not None else None
+    et = "—" if e is None else (f"高 {e:.1f}" if e >= 0 else f"低 {-e:.1f}")
+    return (f"抱 {HN[H]}賺錢 {pc(s['win'])}（要 {S.DIP_WIN * 100:.0f}% 以上）、比隨便挑一天{et} 個百分點"
+            f"（要高 {S.DIP_EDGE * 100:.0f} 以上）、中位數 {pc(s['med'], 1, sign=True)}（要大於 0）")
+
+
 def why(r: dict) -> list[list]:
     """判定依據：[[過了沒（1／0／None＝不看）, 文字], …]。"""
     out = []
     f = r["full"]
-    if r["kind"] == "trade":
+    if r["kind"] == "dip":
+        H = r["H"]
+        if f.get("n", 0) < S.DIP_N_MIN:
+            out.append([None, f"全期間只有 {f.get('n', 0)} 次，不到 {S.DIP_N_MIN} 次，不判定。"])
+        out.append([int(bool(f.get("ok"))), f"全期間（{md(r['a'])} 起，{f.get('n', 0)} 次）：" + _dip_why(f, H)])
+        rc = r["rec"]
+        if r["rec_ok"] is None:
+            out.append([None, f"近 10 年只有 {rc.get('n', 0)} 次（不到 {S.DIP_N10} 次），不看。"])
+        else:
+            out.append([int(bool(r["rec_ok"])), f"近 10 年（{rc['n']} 次）：" + _dip_why(rc, H)])
+    elif r["kind"] == "trade":
         if f.get("n", 0) < S.TR_N_MIN:
             out.append([None, f"全期間只有 {f.get('n', 0)} 筆，不到 {S.TR_N_MIN} 筆，不判定。"])
         out.append([int(bool(f.get("ok"))), f"全期間（{md(r['a'])} 起）：" + _trade_why(f)])
@@ -299,7 +417,8 @@ def why(r: dict) -> list[list]:
     k = sum(1 for x in g if x["ok"])
     out.append([int(r["grid_ok"] >= S.GRID_OK - 1e-12), f"參數鄰近：{len(g)} 組有 {k} 組過關（要 2/3 以上）。"])
     if r.get("p") is not None:
-        out.append([None, f"打亂測試：把{'買進日' if r['kind'] == 'trade' else '持有／空手的時間'}整段挪開 {S.LUCK_DRAWS} 次，"
+        what = {"trade": "買進日", "dip": "訊號出現的日子"}.get(r["kind"], "持有／空手的時間")
+        out.append([None, f"打亂測試：把{what}整段挪開 {S.LUCK_DRAWS} 次，"
                           f"做得到一樣好的比例 {r['p'] * 100:.1f}%（只標示，不影響判定）。"])
     return out
 
@@ -328,6 +447,14 @@ def _ts(s: dict) -> dict | None:
             "ok": int(bool(s.get("ok")))}
 
 
+def _ds(s: dict | None) -> dict | None:
+    """落底型的成績（%）。"""
+    if not s or not s.get("n"):
+        return {"n": 0, "base": _r((s or {}).get("base"))}
+    return {"n": s["n"], "win": _r(s.get("win")), "base": _r(s.get("base")), "med": _r(s.get("med")), "avg": _r(s.get("avg")),
+            "mae": _r(s.get("mae")), "worst": _r(s.get("worst")), "best": _r(s.get("best")), "ok": int(bool(s.get("ok")))}
+
+
 def _as(s: dict | None) -> dict | None:
     if not s:
         return None
@@ -342,6 +469,8 @@ def _grid(r: dict) -> list:
         vals = list(g["p"].values())
         if r["kind"] == "trade":
             out.append([vals, int(g["ok"]), g.get("n"), _r(g.get("win"), 0), _r(g.get("base"), 0), _r(g.get("avg"), 2)])
+        elif r["kind"] == "dip":
+            out.append([vals, int(g["ok"]), g.get("n"), _r(g.get("win"), 0), _r(g.get("base"), 0), _r(g.get("med"), 1)])
         else:
             out.append([vals, int(g["ok"]), _r(g["cagr"]), _r(g["mdd"], 0)])
     return out
@@ -364,15 +493,21 @@ def payload(R: dict) -> dict:
             if r["kind"] == "trade":
                 x.update({"f": _ts(r["full"]), "r": _ts(r["rec"]), "o": _ts(r.get("ref")) if r.get("ref") else None,
                           "b": _as(r["bh"]), "br": _as(r["bh_r"])})
+            elif r["kind"] == "dip":
+                hs = (r["full"].get("hs") or {})
+                x.update({"f": _ds(r["full"]), "r": _ds(r["rec"]), "o": _ds(r.get("b1")), "H": r["H"],
+                          "hs": [[h, v["n"], _r(v["win"], 0), _r(v["med"]), _r(v["base"], 0)] for h, v in sorted(hs.items())],
+                          "b": _as(r["bh"]), "br": _as(r["bh_r"])})
             else:
                 x.update({"f": _as(r["full"]), "r": _as(r["rec"]), "o": _as(r.get("ref")), "b": _as(r["bh"]), "br": _as(r["bh_r"])})
             if r.get("season"):
                 ss = r["season"]
                 x["s"] = {kk: (_r(v) if isinstance(v, float) else v) for kk, v in ss.items()}
             m.setdefault(mk, {})[k] = x
-    return {"spec": spec, "m": m, "grp": S.GROUPS, "tn": S.TIER_NAMES, "sn": TAG, "ver": S.VER,
+    return {"spec": spec, "m": m, "grp": S.GROUPS, "tn": S.TIER_NAMES, "sn": TAG, "ver": S.VER, "hn": HN,
             "rule": {"n": S.TR_N_MIN, "win": round(S.TR_WIN * 100), "edge": round(S.TR_EDGE * 100), "n10": S.TR_N10,
-                     "mdd": round(S.AL_MDD, 2), "grid": "2/3", "draws": S.LUCK_DRAWS}}
+                     "mdd": round(S.AL_MDD, 2), "grid": "2/3", "draws": S.LUCK_DRAWS,
+                     "dn": S.DIP_N_MIN, "dwin": round(S.DIP_WIN * 100), "dedge": round(S.DIP_EDGE * 100)}}
 
 
 def detail(R: dict) -> dict:

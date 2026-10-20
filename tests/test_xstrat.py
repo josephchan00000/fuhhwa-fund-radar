@@ -284,6 +284,11 @@ def test_real_markets_structure_and_now():
                 if k != "tom":
                     assert r["ref_lag"] == S.ref_lag(mk, k) and r["ref"]["n"] > 0
                 assert len(r["tr"]) == r["full"]["n"]
+            elif r["kind"] == "dip":
+                assert n["st"] in ("buy", "hold", "wait") and r["H"] == S.BY_KEY[k]["H"]
+                assert len(r["tr"]) == r["full"]["n"] and all(len(t) == 8 for t in r["tr"])
+                assert r["a"] >= S.EVAL_START[mk] and r["b1"]["n"] >= 0
+                assert set(r["full"]["hs"]) == set(S.DIP_HS)
             else:
                 assert n["st"] in ("in", "out", "turn_in", "turn_out")
             e = r["eq"]
@@ -314,3 +319,130 @@ def test_taiwan_rsi2_same_day_levels_are_exact():
     assert lv.get("st") in (None, "near")
     if lv.get("st") == "near":
         assert hi > lo and hi / px[-1] - 1 >= -S.NEAR
+
+
+# ── 落底型（規格第 9 節，VER 3） ──
+
+def test_wma_ema_and_coppock_match_direct_computation():
+    rng = np.random.default_rng(41)
+    x = rng.normal(0, 1, 80)
+    w = X.wma(x, 10)
+    for i in range(9, 80):
+        exp = sum((j + 1) * x[i - 9 + j] for j in range(10)) / 55
+        assert abs(w[i] - exp) < 1e-9
+    assert np.isnan(w[:9]).all()
+    y = x.copy()
+    y[[3, 4, 20]] = np.nan
+    e = X.ema_skip(y, 10)
+    v, a = None, 2 / 11
+    for i, z in enumerate(y):
+        if np.isnan(z):
+            assert np.isnan(e[i])
+            continue
+        v = z if v is None else a * z + (1 - a) * v
+        assert abs(e[i] - v) < 1e-12
+    mc = 100 * np.exp(np.cumsum(rng.normal(0.005, 0.05, 60)))
+    c = X.coppock_curve(mc, 14, 11, 10)
+    for q in range(23, 60):
+        s_ = [100 * (mc[j] / mc[j - 14] - 1) + 100 * (mc[j] / mc[j - 11] - 1) for j in range(q - 9, q + 1)]
+        assert abs(c[q] - sum((j + 1) * s_[j] for j in range(10)) / 55) < 1e-9
+    assert np.isnan(c[:23]).all()
+
+
+def test_coppock_vix_dev_signal_days_brute_force():
+    cal = _cal(3000, "1990-01-01")
+    px = _px(3000, seed=43, drift=0.0002, vol=0.02)
+    ends = X.month_ends(cal)
+    p = S.BY_KEY["coppock"]["p"]
+    days, first = X.coppock_days(px, ends, p)
+    c = X.coppock_curve(px[ends], p["r1"], p["r2"], p["wma"])
+    exp = [ends[q] for q in range(2, len(c)) if not np.isnan(c[q - 2]) and c[q - 1] < 0 and c[q] > c[q - 1] and c[q - 1] <= c[q - 2]]
+    assert days == exp and len(days) > 0
+    v = 20 + 15 * np.abs(np.sin(np.arange(3000) / 37.0)) + np.random.default_rng(5).normal(0, 4, 3000)
+    v[:7] = np.nan
+    d2, f2 = X.vix_days(v, 30, 60)
+    exp2 = [t for t in range(67, 3000) if v[t] >= 30 and not (v[t - 60:t] >= 30).any()]
+    assert d2 == exp2 and f2 == 67
+    d3, _ = X.dev_days(px, {"ma": 60, "th": -0.10})
+    m = X.sma(px, 60)
+    dv = px / m - 1
+    assert d3 == [t for t in range(60, 3000) if dv[t] <= -0.10 and dv[t - 1] > -0.10]
+
+
+def test_zweig_days_brute_force():
+    rng = np.random.default_rng(47)
+    T = 1500
+    adv = rng.integers(0, 600, T).astype(float)
+    dec = rng.integers(0, 600, T).astype(float)
+    adv[100:110] = np.nan
+    p = {"ema": 10, "lo": 0.40, "hi": 0.615, "days": 10}
+    days, first = X.zweig_days(adv, dec, p)
+    r = [np.nan if (np.isnan(a) or a + b < 100) else a / (a + b) for a, b in zip(adv, dec)]
+    E, v = [], None
+    for z in r:
+        if np.isnan(z):
+            E.append(np.nan)
+            continue
+        v = z if v is None else 2 / 11 * z + 9 / 11 * v
+        E.append(v)
+    E = np.array(E)
+    exp = [t for t in range(10, T) if E[t] >= 0.615 and E[t - 1] < 0.615 and any(E[j] <= 0.40 for j in range(t - 10, t))]
+    assert days == exp
+
+
+def _brute_ftd(px, vol, corr, up, day):
+    T, out = len(px), []
+    inc, low, d1, done = False, None, None, False
+    for i in range(251, T):
+        hi = px[i - 251:i + 1].max()
+        if inc and px[i] >= 0.999 * hi:
+            inc, low, d1, done = False, None, None, False
+        if not inc:
+            if px[i] <= (1 - corr) * hi:
+                inc, low, d1, done = True, i, None, False
+            continue
+        if px[i] < px[low]:
+            low, d1 = i, None
+            continue
+        if done:
+            continue
+        if d1 is None:
+            if px[i] > px[i - 1]:
+                d1 = i
+            continue
+        if i - d1 + 1 >= day and px[i] / px[i - 1] - 1 >= up and vol[i] > vol[i - 1]:
+            out.append(i)
+            done = True
+    return out
+
+
+def test_ftd_matches_brute_force():
+    for seed in range(5):
+        px = _px(2500, seed=100 + seed, drift=0.0001, vol=0.02)
+        vol = np.random.default_rng(seed).uniform(1, 2, 2500)
+        for corr, up in ((0.10, 0.0125), (0.08, 0.017)):
+            d, _ = X.ftd_scan(px, vol, {"corr": corr, "up": up, "day": 4})
+            assert d == _brute_ftd(px, vol, corr, up, 4)
+
+
+def test_dip_stats_base_and_luck():
+    px = _px(2000, seed=53, drift=0.0003, vol=0.015)
+    days = [300, 340, 700, 1200, 1210, 1950]
+    kept = X.dedupe(days, 60)
+    assert kept == [300, 700, 1200, 1950]                       # 1950＋1＋60 超過資料：不算
+    c = 0.001
+    st = X.dip_stats(px, kept, 60, c, 250, (20, 60))
+    bs = [t + 1 for t in kept if t + 1 + 60 < 2000]
+    r = [px[b + 60] / px[b] * (1 - c) / (1 + c) - 1 for b in bs]
+    assert st["n"] == 3 and abs(st["win"] - np.mean([x > 0 for x in r])) < 1e-12 and abs(st["med"] - np.median(r)) < 1e-12
+    base = [px[b + 60] / px[b] * (1 - c) / (1 + c) - 1 > 0 for b in range(251, 2000 - 60)]
+    assert abs(st["base"] - np.mean(base)) < 1e-12
+    mae = [max(0, 1 - px[b + 1:b + 61].min() / px[b]) for b in bs]
+    assert abs(st["mae"] - np.median(mae)) < 1e-12
+    assert st["hs"][20]["n"] == 4 and st["hs"][60]["win"] == st["win"]              # 1950 那一次 20 天的窗口夠
+    p1 = X.luck_dip(px, days, 250, 60, c, "xs:t:dip", st["win"])
+    assert p1 == X.luck_dip(px, days, 250, 60, c, "xs:t:dip", st["win"]) and 1 / 401 <= p1 <= 1
+    ok = {"n": 6, "win": 0.70, "base": 0.58, "med": 0.01}
+    assert X.dip_pass(ok) and not X.dip_pass({**ok, "n": 4}) and not X.dip_pass({**ok, "win": 0.59})
+    assert not X.dip_pass({**ok, "base": 0.61}) and not X.dip_pass({**ok, "med": -0.001})
+    assert X.dip_pass_recent({**ok, "n": 4}) is None and X.dip_pass_recent(ok) is True

@@ -287,11 +287,11 @@ def test_research_returns_agree_with_hit_rates():
     assert R and R.get("bases")
     n = 0
     for r in R["rows"]:
-        if r["cat"] in ("buy", "ind") or r.get("H") not in S.RET_H:
+        if r["cat"] == "ind" or r.get("H") not in S.RET_H:
             continue
         i = S.RET_H.index(r["H"])
         c, b = r["ret"]["s"][i], R["bases"][r["ret"]["bk"]]["s"][i]
-        u = r["up"]
+        u = r["buy"] if r["cat"] == "buy" else r["up"]                  # VER 10：大跌後買點也看 60 天後上漲、平常＝隨便挑一天
         if not u["n"]:
             continue
         assert c[0] == u["n"] and abs(c[5] - u["hit"]) < 1e-3, r["id"]
