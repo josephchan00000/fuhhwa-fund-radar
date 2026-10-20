@@ -525,7 +525,7 @@ def _valid(mk: str, R: dict) -> str:
 
 def sig_line(mk: str, n: dict) -> str:
     """市場卡的實務判定一行（docs/lab_signal_plan.md 第 6.2 節）：現在的等級（≥ 3 看「3 以上」，其餘看「2 以上」）過去之後
-    12 個月內跌 20% 以上的比例／平常，判定同訊號總覽；研究檔沒有就不顯示。"""
+    12 個月內最大回撤 20% 以上的比例／平常（sigspec VER 3），判定同訊號總覽；研究檔沒有就不顯示。"""
     try:
         from . import sigcat as G
         from . import sigspec as SS
@@ -538,8 +538,10 @@ def sig_line(mk: str, n: dict) -> str:
     if not st:
         return ""
     pc = lambda x: "—" if x is None else f"{100 * x:.0f}%"
-    body = (f'過去 {st["n"]} 段，之後 12 個月內跌 20% 以上 <b>{pc(st["hit"])}</b>（平常 {pc(st["base"])}）' if st["n"]
+    body = (f'過去 {st["n"]} 段，之後 12 個月內最大回撤 20% 以上 <b>{pc(st["hit"])}</b>（平常 {pc(st["base"])}）' if st["n"]
             else "過去沒有出現過")
+    if st["n"] and st.get("mdd") is not None and st.get("mdd_base") is not None:
+        body += f'，回撤中位數 {pc(st["mdd"])}（平常 {pc(st["mdd_base"])}）'
     now = "" if n["L"] >= lv else f'（現在等級 {n["L"]}）'
     return (f'<p class="bsig">泡沫等級 {lv} 以上的時候{now}：{body}・<b>{SS.TIER_MARK[st["tier"]]} {_e(SS.TIER_NAMES[st["tier"]])}</b>'
             f'<a href="x9o.html#s={_e(r["id"])}">訊號總覽 →</a></p>')

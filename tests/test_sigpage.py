@@ -20,10 +20,10 @@ def _st(n, hit, base, tier, n10=0, hit10=None, base10=None):
 def _rows():
     a = {"id": "tw:heat:C1:hot", "mk": "tw", "cat": "heat", "grp": "chip", "var": "C1", "vn": "融資餘額水位", "sig": "hot",
          "name": "融資餘額水位・過熱中", "kind": "state", "H": 60, "th": 0.10, "a": "2001-01-02", "z": "2026-10-16",
-         "up": _st(12, 0.70, 0.66, "none"), "warn": _st(12, 0.58, 0.29, "good"), "tier": "good", "dir": ["warn"],
-         "occ": [["2020-01-02", "2020-03-01", 40, 0.5, 0.8]]}
+         "up": _st(12, 0.70, 0.66, "none"), "warn": dict(_st(12, 0.58, 0.29, "good"), mdd=0.124, mdd_base=0.067),
+         "tier": "good", "dir": ["warn"], "occ": [["2020-01-02", "2020-03-01", 40, 0.5, 0.8, 0.11]]}
     b = dict(a, id="tw:heat:C1:hot_in", sig="hot_in", name="融資餘額水位・進入過熱", kind="event",
-             up=_st(13, 0.85, 0.66, "good"), warn=_st(13, 0.40, 0.29, "ref"), dir=["up"], occ=[["2020-01-02", 1, 0]])
+             up=_st(13, 0.85, 0.66, "good"), warn=_st(13, 0.40, 0.29, "ref"), dir=["up"], occ=[["2020-01-02", 1, 0, 0.05]])
     c = dict(a, id="tw:tech:ma60_dn", cat="tech", grp="tech", var="ma60_dn", vn="跌破季線", sig="ev", name="跌破季線",
              kind="event", H=20, th=0.08, up=_st(40, 0.5, 0.55, "none"), warn=_st(40, 0.2, 0.16, "none"), tier="none",
              dir=["up"], occ=[])
@@ -54,7 +54,8 @@ def test_render_structure_and_data():
     assert appnav.bar("sig") in html and "<title>訊號總覽</title>" in html
     for sid in ('id="today"', 'id="all"', 'id="mth"', 'id="sgq"', 'id="sgcsv"', 'id="sgnow"'):
         assert sid in html
-    assert "融資餘額水位・過熱中" in html and "之後 3 個月內跌 10% 以上 <b>58%</b>（平常 29%）" in html
+    assert "融資餘額水位・過熱中" in html and "之後 3 個月內最大回撤 10% 以上 <b>58%</b>（平常 29%）・12 次" in html
+    assert "回撤中位數 12%（平常 7%）" in html and "最大回撤" in html.split('id="mth"')[1]           # VER 3
     assert "12/1 起" in html and "inf" not in html.split('id="all"')[0] and "每月平均 +6.8%・30 筆" in html
     data = json.loads(re.search(r'<script type="application/json" id="sgd">(.*?)</script>', html, re.S).group(1))
     assert len(data["rows"]) == 4 and all(len(r) == 16 for r in data["rows"])
@@ -62,7 +63,7 @@ def test_render_structure_and_data():
     assert data["on"]["tw:heat:C1:hot_in"] == {"since": "2026-10-01", "n": 11, "left": 49}
     assert "const I = {id:0,mk:1,cat:2,grp:3,name:4,kind:5,H:6,th:7,tier:8,dir:9,up:10,warn:11,buy:12,a:13,z:14,x:15};" in sigpage.JS
     det = json.loads(sigpage.detail_json(_view()))
-    assert det["occ"]["tw:heat:C1:hot"] == [["2020-01-02", "2020-03-01", 40, 0.5, 0.8]]
+    assert det["occ"]["tw:heat:C1:hot"] == [["2020-01-02", "2020-03-01", 40, 0.5, 0.8, 0.11]]
 
 
 def test_no_banned_words_and_no_class_collisions():
@@ -136,9 +137,12 @@ def test_heat_pages_stash_cards_and_list_today(monkeypatch):
     T = dict(sigcat.board(V["rows"], V["on"], "tw"), d="2026-10-16")
     h = VZ.today_html({"sigtoday": T})
     assert 'href="x9o.html#s=tw:heat:C1:hot"' in h and "融資餘額水位・過熱中" in h
-    assert "12/1 起" in h and 'href="x9o.html"' in h and "現在沒有機率夠高（60% 以上）的偏多訊號" in h
-    assert h.count('<div class="tzr">') == 3 and "中線" in h and "偏警示" in h and "警示 ★1" in h
-    assert 'aria-label="中線（看 3 個月）：偏多 0・警示 ★1，偏多占 0%"' in h
+    assert "12/1 起" in h and 'href="x9o.html"' in h
+    # VER 3：兩個方向各看各的——同一個項目（融資 C1、看 3 個月）偏多 ★、警示 ★ 兩欄都列、標「震盪」
+    assert 'href="x9o.html#s=tw:heat:C1:hot_in"' in h and h.count('class="tzo"') == 2
+    assert "最大回撤 10% 以上" in h and "回撤中位數 12%（平常 7%）" in h
+    assert h.count('<div class="tzr">') == 3 and "中線" in h and "差不多" in h and "警示 ★1" in h
+    assert 'aria-label="中線（看 3 個月）：偏多 ★1・警示 ★1，偏多占 50%"' in h
     assert "短線（看 1 個月）：偏多 0・警示 0，沒有訊號" in h and "溫度計本身沒有驗證過" in h
     h0 = VZ.today_html({"sigtoday": dict(sigcat.board(V["rows"], {}, "tw"), d="2026-10-16")})
     assert "現在沒有機率夠高（50% 以上）的警示訊號" in h0 and h0.count("沒有訊號") >= 3
@@ -165,18 +169,27 @@ def test_board_sides_thermometer_and_one_item_once():
     on = {r["id"]: {"since": "2026-10-01", "n": 3} for r in rs}
     B = sigcat.board(rs, on, "tw")
     assert [r["id"] for r in B["up"]] == ["tw:deriv:C1:1", "tw:buy:E5:W10", "tw:tech:x"]   # ★ 在前、同級差大的在前；買點算偏多
-    assert [r["id"] for r in B["warn"]] == ["tw:bub:L2"]                          # 融資 C1 的 heat 被同項目、同看多久的 deriv 取代
-    assert [r["hz"] for r in B["up"]] == ["mid", "mid", "short"] and B["warn"][0]["hz"] == "long"
-    assert [r["show"] for r in B["up"]] == [True, True, True] and B["warn"][0]["show"] is False   # 警示 40% < 50%：只算溫度計
+    # VER 3：警示看每一列自己的警示判定——融資 C1 過熱中（警示 ★）和同項目的 deriv（偏多 ★）不同邊，兩邊都留、標震盪
+    assert [r["id"] for r in B["warn"]] == ["tw:heat:C1:hot", "tw:bub:L2"]
+    assert B["warn"][0]["d"] == "warn" and B["warn"][0]["tier"] == "good" and B["warn"][0]["both"] is True
+    assert B["up"][0]["both"] is True and not any(r["both"] for r in B["up"][1:] + B["warn"][1:])
+    assert [r["hz"] for r in B["up"]] == ["mid", "mid", "short"] and [r["hz"] for r in B["warn"]] == ["mid", "long"]
+    assert [r["show"] for r in B["up"]] == [True, True, True] and [r["show"] for r in B["warn"]] == [True, False]
     th = {t["k"]: t for t in B["thermo"]}
     assert th["short"]["w"] == {"up": 1, "warn": 0} and th["short"]["lean"] == "up" and th["short"]["share"] == 1
-    assert th["mid"]["n"]["up"] == {"good": 2, "ref": 0} and th["mid"]["w"] == {"up": 4, "warn": 0}
+    assert th["mid"]["n"]["up"] == {"good": 2, "ref": 0} and th["mid"]["w"] == {"up": 4, "warn": 2} and th["mid"]["lean"] == "up"
     assert th["long"]["w"] == {"up": 0, "warn": 1} and th["long"]["lean"] == "warn"
     assert sigcat.horizon(dict(a, cat="ind", H=12)) == "long" and sigcat.horizon(dict(a, H=250)) == "long"
     assert sigcat.item_key(a) == sigcat.item_key(d1) != sigcat.item_key(dict(a, cat="buy"))
+    # 一列的偏多是 ★、警示是 ●：兩邊都算（VER 2 只看這一列較好的方向）
+    m = dict(e, id="tw:tech:m", var="m", up=_st(40, 0.75, 0.6, "good"), warn=_st(40, 0.3, 0.2, "ref"), tier="good", dir=["up"])
+    Bm = sigcat.board([m], {"tw:tech:m": {}}, "tw")
+    assert [r["tier"] for r in Bm["up"]] == ["good"] and [r["tier"] for r in Bm["warn"]] == ["ref"]
+    assert Bm["up"][0]["both"] and Bm["warn"][0]["both"]
     lng = dict(a, id="tw:heat:C1:hot13", sig="hot13", H=250, tier="ref", warn=_st(12, 0.4, 0.3, "ref"))
     B2 = sigcat.board(rs + [lng], dict(on, **{lng["id"]: {}}), "tw")           # 同一個項目、看多久不同 → 各算一次
-    assert [r["id"] for r in B2["warn"]] == ["tw:bub:L2", "tw:heat:C1:hot13"] and "tw:deriv:C1:1" in [r["id"] for r in B2["up"]]
+    assert [r["id"] for r in B2["warn"]] == ["tw:heat:C1:hot", "tw:bub:L2", "tw:heat:C1:hot13"]
+    assert "tw:deriv:C1:1" in [r["id"] for r in B2["up"]]
     even = sigcat.board([dict(e, id="tw:tech:y", var="y"), dict(e, id="tw:tech:z", var="z", up=_st(40, 0.1, 0.2, "none"),
                                                             warn=_st(40, 0.3, 0.2, "ref"), dir=["warn"])],
                         {"tw:tech:y": {}, "tw:tech:z": {}}, "tw")

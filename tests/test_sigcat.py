@@ -10,17 +10,47 @@ def _px(T=400, seed=1):
     return 100 * np.exp(np.cumsum(rng.normal(0.0003, 0.012, T)))
 
 
+def _mdd(xs):
+    """直接算：所有 i ≤ j 的 1 − 收盤j ÷ 收盤i 取最大。"""
+    return max(max(0.0, 1 - xs[j] / xs[i]) for i in range(len(xs)) for j in range(i, len(xs)))
+
+
 def test_outcomes_match_direct_loop():
+    """sigspec VER 3：警示＝第 e～e＋H 天收盤的最大回撤 ≥ 門檻（先漲再跌也算）。"""
     px = _px()
     for H, th in ((20, 0.08), (60, 0.10)):
-        up, wn = G.outcomes(px, H, th)
+        up, wn, dd = G.outcomes(px, H, th)
         for t in range(len(px)):
             e = t + S.LAG
             if e + H > len(px) - 1:
-                assert np.isnan(up[t]) and np.isnan(wn[t])
+                assert np.isnan(up[t]) and np.isnan(wn[t]) and np.isnan(dd[t])
                 continue
             assert up[t] == float(px[e + H] > px[e])
-            assert wn[t] == float(min(px[e + 1:e + H + 1]) <= px[e] * (1 - th))
+            m = _mdd(list(px[e:e + H + 1]))
+            assert abs(dd[t] - m) < 1e-12
+            assert wn[t] == float(m >= th)
+
+
+def test_warn_counts_rise_then_fall():
+    """先漲 20% 再從高點跌 15%：從進場價算只跌 2%（VER 1～2 不算），最大回撤 15% 算中了。"""
+    px = [100.0, 100.0] + [100 + i for i in range(1, 21)] + [120 * (1 - 0.0075 * i) for i in range(1, 21)] + [102.0] * 30
+    up, wn, dd = G.outcomes(px, 60, 0.10)
+    assert abs(dd[0] - 0.15) < 1e-9 and wn[0] == 1.0 and up[0] == 1.0
+    assert abs(G.mdd_path([100, None, 120, 102, float("nan"), 110]) - 0.15) < 1e-12
+    assert G.mdd_path([100, 101, 102]) == 0.0 and G.mdd_path([None]) is None
+
+
+def test_outcomes_with_gaps():
+    px = _px(200, 3)
+    px[50:55] = np.nan
+    up, wn, dd = G.outcomes(px, 20, 0.08)
+    for t in range(len(px) - 21):
+        e = t + 1
+        w = [x for x in px[e:e + 21] if not np.isnan(x)]
+        if np.isnan(px[e]) or np.isnan(px[e + 20]):
+            assert np.isnan(dd[t])
+            continue
+        assert abs(dd[t] - _mdd(w)) < 1e-12
 
 
 def test_dedupe_skips_repeats_within_horizon():
@@ -47,7 +77,9 @@ def test_state_stat_is_mean_of_episode_rates():
     state[100:105] = True                  # 一段
     state[110:112] = True                  # 中斷 4 天 < 20 → 同一段
     state[297:300] = True                  # 窗口都不完整 → 不算
-    R = G.st_stat(state, samp, Yu, Yw, 20, 150)
+    Yd = np.linspace(0, 0.3, T)
+    Yd[-5:] = np.nan
+    R = G.st_stat(state, samp, Yu, Yw, 20, 150, Yd)
     e1 = Yu[10:20].mean()
     e2 = np.concatenate([Yu[100:105], Yu[110:112]]).mean()
     assert R["up"]["n"] == 2 and abs(R["up"]["hit"] - (e1 + e2) / 2) < 1e-12
@@ -55,6 +87,10 @@ def test_state_stat_is_mean_of_episode_rates():
     assert R["up"]["n10"] == 0 and R["up"]["hit10"] is None
     assert abs(R["up"]["base10"] - np.nanmean(Yu[150:])) < 1e-12
     assert [o[:3] for o in R["occ"]] == [[10, 19, 10], [100, 111, 7]]
+    d1, d2 = Yd[10:20].mean(), np.concatenate([Yd[100:105], Yd[110:112]]).mean()
+    assert abs(R["occ"][1][5] - d2) < 1e-12 and abs(R["warn"]["mdd"] - (d1 + d2) / 2) < 1e-12
+    assert abs(R["warn"]["mdd_base"] - np.median(Yd[:-5])) < 1e-12
+    assert "mdd" not in G.st_stat(state, samp, Yu, Yw, 20, 150)["warn"]
 
 
 def test_event_stat_counts_and_recent():
@@ -64,8 +100,10 @@ def test_event_stat_counts_and_recent():
     Yu[-10:] = np.nan
     Yw[-10:] = np.nan
     samp = np.arange(50, T)
-    R = G.ev_stat([10, 60, 70, 100, 200, 295], Yu, Yw, samp, 20, 150)   # 10 不在樣本、70 在 60 之後 20 天內、295 窗口不完整
+    Yd = np.arange(T) / 1000.0
+    R = G.ev_stat([10, 60, 70, 100, 200, 295], Yu, Yw, samp, 20, 150, Yd)   # 10 不在樣本、70 在 60 之後 20 天內、295 窗口不完整
     assert [o[0] for o in R["occ"]] == [60, 100, 200]
+    assert abs(R["warn"]["mdd"] - 0.1) < 1e-12 and abs(R["warn"]["mdd_base"] - np.median(Yd[50:])) < 1e-12
     assert R["up"]["n"] == 3 and R["up"]["hit"] == 1.0
     assert R["up"]["n10"] == 1 and R["up"]["hit10"] == 1.0
     assert abs(R["up"]["base"] - np.nanmean(Yu[50:])) < 1e-12
