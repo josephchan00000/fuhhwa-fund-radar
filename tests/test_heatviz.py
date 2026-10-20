@@ -399,9 +399,16 @@ def test_radar_card_has_swings_not_quarters(built):
     assert "比昨日" in page or "和昨日一樣" in page                               # 面板的分數格
 
 
-def test_today_card_full_width_above_radar(built):
-    """今天的重點（溫度計＋偏多、警示兩欄）2026-10-20 起整條放在雷達上面，不再擠在雷達旁邊的窄欄。"""
+def test_today_card_beside_radar(built):
+    """今天的重點（溫度計＋偏多、警示）放在雷達右邊的窄欄、這週變化上面（2026-10-20 使用者：「我比較喜歡之前的排版」→ 雷達放回最上面）。
+    窄欄裡溫度計的讀數排在長條下面、偏多與警示上下排；說明收進「怎麼看」。"""
     _, _, V, page = built
-    assert page.index('id="today"') < page.index('<div class="vgrid">') < page.index('<div class="vside">')
     side = page[page.index('<div class="vside">'):page.index('<p class="hz">')]
-    assert 'id="today"' not in side and 'id="wchg"' in side
+    assert page.index('<div class="vgrid">') < page.index('<div class="vside">') < page.index('id="today"')
+    assert 'id="today"' in side and side.index('id="today"') < side.index('id="wchg"')
+    assert '<details class="tzx"><summary>怎麼看</summary>' in side
+    css = page[page.index(".tzcols{"):]
+    assert css.startswith(".tzcols{display:grid;grid-template-columns:1fr;")
+    assert ".vside{order:-1}" not in page                                    # 手機也是雷達在最上面
+
+

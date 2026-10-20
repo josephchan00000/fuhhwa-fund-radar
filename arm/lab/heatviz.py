@@ -508,12 +508,14 @@ def today_html(V: dict) -> str:
                 + "".join(_tz_item(r, T.get("d")) for r in rest) + "</ul></details>") if rest else ""
         cols.append(f'<div class="tzcol">{head}<ul class="tzu">' + "".join(_tz_item(r, T.get("d")) for r in top)
                     + f"</ul>{more}</div>")
-    sub = ("溫度計：現在成立、過去出現之後「中了」的比例比平常高的訊號（★ 好訊號、● 可參考），依看多久分三支，"
-           f"★ 算 {SS.THERMO_W['good']}、● 算 {SS.THERMO_W['ref']}，同一個項目在同一支、同一邊只算一次；只是數一數，溫度計本身沒有驗證過能預測漲跌。"
+    sub = "現在成立、過去出現之後「中了」的比例比平常高的訊號，依看多久分三支溫度計。"
+    how = ("★ 好訊號、● 可參考；★ 算 "
+           f"{SS.THERMO_W['good']}、● 算 {SS.THERMO_W['ref']}，同一個項目在同一支、同一邊只算一次；只是數一數，溫度計本身沒有驗證過能預測漲跌。"
            "偏多＝之後收盤比現在高；警示＝之後出現一段大回撤（期間最高到之後最低，先漲再跌也算）。"
            "同一個項目兩邊都成立的標「震盪」。"
            f"下面的清單只列機率夠高的（偏多 {SS.HIT_MIN['up'] * 100:.0f}% 以上、警示 {SS.HIT_MIN['warn'] * 100:.0f}% 以上）。")
     return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div><p class="ksub">{_e(sub)}</p>'
+            f'<details class="tzx"><summary>怎麼看</summary><p>{_e(how)}</p></details>'
             f'{thermo_html(T)}<div class="tzcols">{"".join(cols)}</div>'
             '<p class="tzm"><a href="x9o.html">全部訊號、研究細節（訊號總覽）→</a></p></section>')
 
@@ -543,7 +545,7 @@ def main_view(V: dict, ks: list[dict]) -> str:
            + '<button type="button" class="snv" data-goview="research">研究與驗證 →</button></nav>')
     nores = "" if (V.get("R") or {}).get("dims") else f'<p class="warn">驗證結果還沒產生（{_e(HP.MK["res"])}），先只列各項的 0～100。</p>'
     top = (f'<section class="vtop" id="top"><p class="sum">{_e(V.get("summary") or "")}</p>{nores}'
-           f'{today_html(V)}<div class="vgrid">{_radar_card()}<div class="vside">{moves_html(V)}</div></div>'
+           f'<div class="vgrid">{_radar_card()}<div class="vside">{today_html(V)}{moves_html(V)}</div></div>'
            f'<p class="hz">{_e(S.HORIZON_NOTE)}。<span class="mu">（資料到 {_e(HP._md(asof))}）</span></p></section>')
     items = ('<section class="sec" id="items"><div class="ish2"><h2>全部項目<span class="sub" id="isub"></span></h2>'
              '<div class="seg"><button type="button" class="tb" id="itabb" aria-pressed="false">表格</button></div></div>'
@@ -1072,23 +1074,22 @@ body.drw-on{overflow:hidden}
 @media (min-width:1100px){body.drw-on{overflow:auto}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 /* 今天的重點（訊號總覽的實務判定）與頁首的市場狀態一行 */
-.tzc{padding:12px 14px;min-width:0;margin:0 0 14px;--bull:#d33a34;--bear:#159c94}
+.tzc{padding:12px 14px;min-width:0;margin:0;--bull:#d33a34;--bear:#159c94}
+.tzx{margin:-2px 0 6px;font-size:12.5px;color:var(--ink2)}.tzx summary{cursor:pointer;color:var(--acc);font-size:12.5px}.tzx p{margin:4px 0 0;line-height:1.6}
 @media (prefers-color-scheme:dark){.tzc{--bull:#f15b50;--bear:#24a89d}}
 .tzt{display:grid;gap:7px;margin:4px 0 12px}
-.tzr{display:grid;grid-template-columns:92px minmax(0,1fr) 210px;align-items:center;gap:10px}
+.tzr{display:grid;grid-template-columns:62px minmax(0,1fr);align-items:center;gap:4px 8px}
 .tzn{display:flex;flex-direction:column;line-height:1.2}.tzn b{font-size:14px}.tzn i{font-style:normal;font-size:11.5px;color:var(--mut)}
 .tzb{position:relative;display:flex;height:16px;border-radius:4px;background:var(--card2);overflow:hidden;gap:2px}
 .tzb::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:var(--ink2);opacity:.55}
 .tzs{display:block;height:100%}.tzs-up{background:var(--bull)}.tzs-warn{background:var(--bear)}.tzs-ref{opacity:.42}
-.tzv{display:flex;flex-direction:column;line-height:1.3;font-size:12.5px;color:var(--ink2)}
+.tzv{grid-column:2;display:flex;flex-wrap:wrap;gap:0 8px;align-items:baseline;line-height:1.3;font-size:12.5px;color:var(--ink2)}
 .tzw{font-size:14px}.tzw-up{color:var(--bull)}.tzw-warn{color:var(--bear)}.tzw-even{color:var(--ink)}.tzw-none{color:var(--mut);font-weight:500}
 .tzp{margin-left:6px;font-size:12.5px;color:var(--ink2)}.tzct{font-size:12px;color:var(--mut)}
-.tzcols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 22px}
+.tzcols{display:grid;grid-template-columns:1fr;gap:6px}
 .tzcol h3{margin:4px 0 2px;font-size:15px;display:flex;align-items:baseline;gap:8px}.tzcol h3 .sub{font-size:12px;color:var(--mut);font-weight:400}
 .tzcl{padding:0 0 1px;border-bottom:3px solid}.tzcl-up{border-color:var(--bull)}.tzcl-warn{border-color:var(--bear)}
 .tzmore summary{cursor:pointer;font-size:13px;color:var(--acc);padding:4px 2px}
-@media (max-width:720px){.tzr{grid-template-columns:62px minmax(0,1fr);gap:4px 8px}.tzv{grid-column:2;flex-direction:row;flex-wrap:wrap;gap:0 8px;align-items:baseline}
-.tzcols{grid-template-columns:1fr}}
 .tzu{list-style:none;margin:0;padding:0}.tzu li+li{border-top:1px solid var(--line)}
 .tzi{display:block;padding:7px 2px;color:var(--ink);text-decoration:none;border-radius:8px}.tzi:hover{background:var(--card2)}
 .tzh{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}.tzh b{font-weight:600;font-size:14px}
@@ -1104,7 +1105,6 @@ font-size:13px;color:var(--ink2);background:var(--panel);text-decoration:none;wh
 .stz0{border-color:var(--c0)}.stz1{border-color:var(--c1)}.stz3{border-color:var(--c3)}.stz4{border-color:var(--c4);background:var(--sbg)}
 .stz0 i,.stz1 i{color:var(--t0)}.stz3 i{color:var(--t3)}.stz4 i{color:var(--t4)}.stc i{font-style:normal;font-weight:600}
 .stx{border-color:var(--c4);color:var(--t4)}
-@media (max-width:820px){.vgrid>.vside{order:-1}}
 """
 
 
