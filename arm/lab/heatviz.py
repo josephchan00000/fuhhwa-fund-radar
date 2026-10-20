@@ -415,9 +415,9 @@ def moves_html(V: dict) -> str:
         if cross:
             why += "；另外 " + "、".join(f'{_nmb(it["k"], it["name"])}{_cross_tag(it)}' for it in cross)
         rows.append((-abs(dlt), d,
-                     f'<li class="wr"><div class="wrh">{_nmb(d, S.DSHORT[d])}'
+                     f'<li class="wr"><span class="wnm">{_nmb(d, S.DSHORT[d])}</span>'
                      f'<span class="wsc">{HP.n0(a)} → <b class="zt{_zc(b)}">{HP.n0(b)}</b></span>'
-                     f'<span class="wd {"up" if dlt > 0 else "dn"}">{HP._sgn(dlt, 0)}</span>{bd}</div>'
+                     f'<span class="wd {"up" if dlt > 0 else "dn"}">{HP._sgn(dlt, 0)}</span>{bd}'
                      f'{_wtrack(a, b)}<p class="wwy">{why}。</p></li>'))
     rows.sort(key=lambda r: (r[0], r[1]))
     body = "".join(r[2] for r in rows)
@@ -719,7 +719,7 @@ def main_view(V: dict, ks: list[dict]) -> str:
            + '<button type="button" class="snv" data-goview="research">研究與驗證 →</button></nav>')
     nores = "" if (V.get("R") or {}).get("dims") else f'<p class="warn">驗證結果還沒產生（{_e(HP.MK["res"])}），先只列各項的 0～100。</p>'
     top = (f'<section class="vtop" id="top"><p class="sum">{_e(V.get("summary") or "")}</p>{nores}'
-           f'<div class="vgrid">{_radar_card()}<div class="vside">{today_html(V)}{moves_html(V)}</div></div>'
+           f'<div class="vgrid">{_radar_card()}<div class="vside">{today_html(V)}</div></div>{moves_html(V)}'
            f'<p class="hz">{_e(S.HORIZON_NOTE)}。<span class="mu">（資料到 {_e(HP._md(asof))}）</span></p></section>')
     items = ('<section class="sec" id="items"><div class="ish2"><h2>全部項目<span class="sub" id="isub"></span></h2>'
              '<div class="seg"><button type="button" class="tb" id="itabb" aria-pressed="false">表格</button></div></div>'
@@ -1075,8 +1075,8 @@ CSS = """
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px}
 .hview>.snav{margin:0 -16px 12px}
 .snv{border:0;background:var(--accbg);color:var(--acc);font:inherit;font-size:13px;border-radius:12px;padding:2px 10px;cursor:pointer;white-space:nowrap}
-.vgrid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:14px;align-items:start}
-.vside{display:flex;flex-direction:column;gap:14px;min-width:0}
+.vgrid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:14px;align-items:stretch}
+.vside{display:flex;flex-direction:column;gap:14px;min-width:0}.vside>.card:last-child{flex:1}
 .rcard,.kstate,.wchg,.ccard,.tcard,.cquad{padding:12px 14px;min-width:0}
 .khd{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.khd h2{font-size:16px;margin:0}.kn{font-size:12.5px;color:var(--mut)}
 .ksub{font-size:12.5px;color:var(--mut);margin:3px 0 8px;line-height:1.6}
@@ -1141,19 +1141,23 @@ CSS = """
 .klist{list-style:none;margin:4px 0 0;padding:0}
 .kmini{display:block;width:100%;text-align:left;border:0;background:none;padding:6px 4px;border-top:1px solid var(--line);font:inherit;color:inherit;cursor:pointer;border-radius:8px}
 .kmini:hover{background:var(--card2)}.kmini .vt{margin-top:2px}
+.vtop .wchg{margin:14px 0 10px}
 .wchg ul{list-style:none;margin:6px 0 0;padding:0}.wchg li{font-size:13px;line-height:1.7;color:var(--ink2)}
-.wchg .wr{border-top:1px solid var(--line);padding:8px 0 6px}.wchg .wr:first-child{border-top:0;padding-top:2px}
-.wrh{display:flex;align-items:baseline;gap:4px 10px;flex-wrap:wrap}.wchg .wrh>.nmb{font-size:14.5px;font-weight:700}
-.wsc{font-size:13px;color:var(--ink2)}.wsc b{font-size:15px}
-.wd{font-size:13px;font-weight:800}.wd.up{color:var(--t4)}.wd.dn{color:var(--t0)}
-.wbd{font-size:12px;color:var(--ink2)}.wbd.mu{color:var(--mut)}
-.wtk{position:relative;display:block;height:10px;margin:5px 6px 3px;border-radius:5px;
+.wchg .wr{display:grid;grid-template-columns:5.6em 6.4em 3.4em 8.4em 140px minmax(0,1fr);grid-template-areas:"nm sc d bd tk wy";
+align-items:center;gap:2px 14px;border-top:1px solid var(--line);padding:8px 0}.wchg .wr:first-child{border-top:0;padding-top:2px}
+.wnm{grid-area:nm}.wchg .wnm>.nmb{font-size:14.5px;font-weight:700}
+.wsc{grid-area:sc;font-size:13px;color:var(--ink2);white-space:nowrap}.wsc b{font-size:15px}
+.wd{grid-area:d;font-size:13px;font-weight:800;white-space:nowrap}.wd.up{color:var(--t4)}.wd.dn{color:var(--t0)}
+.wbd{grid-area:bd;font-size:12px;color:var(--ink2);white-space:nowrap}.wbd.mu{color:var(--mut)}
+@media (max-width:820px){.wchg .wr{grid-template-columns:auto auto auto minmax(0,1fr);grid-template-areas:"nm sc d bd" "tk tk tk tk" "wy wy wy wy";
+align-items:baseline;gap:2px 10px}.wchg .wr .wtk{margin:4px 6px 2px}}
+.wtk{grid-area:tk;position:relative;display:block;height:10px;margin:0 6px;border-radius:5px;
 background:linear-gradient(90deg,var(--zc) 0 20%,var(--card2) 20% 80%,var(--zh) 80% 100%);box-shadow:inset 0 0 0 1px var(--line)}
 .wtk i{position:absolute;top:50%}.wseg{height:4px;margin-top:-2px;background:var(--ink2);opacity:.35;border-radius:2px}
 .wo,.wn{width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;box-sizing:border-box}
 .wo{border:2px solid var(--ink2);background:var(--panel)}.wn{border:2px solid var(--panel)}
 .wc0{background:var(--c0)}.wc1{background:var(--c1)}.wc2{background:var(--c2)}.wc3{background:var(--c3)}.wc4{background:var(--c4)}.wcx{background:var(--mut)}
-.wwy{margin:2px 0 0;font-size:12.5px;line-height:1.65;color:var(--ink2)}.wp{color:var(--mut);font-size:11.5px;white-space:nowrap}
+.wwy{grid-area:wy;margin:0;font-size:12.5px;line-height:1.65;color:var(--ink2)}.wp{color:var(--mut);font-size:11.5px;white-space:nowrap}
 .wx{font-style:normal;font-size:11px;font-weight:700;margin-left:4px;white-space:nowrap}
 .wchg .wfl{border-top:1px solid var(--line);padding:7px 0 2px;font-size:12.5px}
 .wtag{display:inline-block;font-size:11.5px;color:var(--mut);margin-right:6px}

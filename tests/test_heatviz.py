@@ -405,7 +405,10 @@ def test_today_card_beside_radar(built):
     _, _, V, page = built
     side = page[page.index('<div class="vside">'):page.index('<p class="hz">')]
     assert page.index('<div class="vgrid">') < page.index('<div class="vside">') < page.index('id="today"')
-    assert 'id="today"' in side and side.index('id="today"') < side.index('id="wchg"')
+    # 這週變化 2026-10-20 起移到兩欄下面整條（使用者：「左邊空空的 沒對齊」）；兩欄等高
+    assert 'id="today"' in side and side.index('id="today"') < side.index('</div></div><section class="wchg card" id="wchg">')
+    assert ".vgrid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:14px;align-items:stretch}" in page
+    assert ".vside>.card:last-child{flex:1}" in page
     assert '<details class="tzx"><summary>怎麼看</summary>' in side
     css = page[page.index(".tzcols{"):]
     assert css.startswith(".tzcols{display:grid;grid-template-columns:1fr;")
