@@ -397,3 +397,11 @@ def test_radar_card_has_swings_not_quarters(built):
     assert "分數後面括號＝和前一個交易日比" in rc
     assert "P.qs" not in VZ.JS and "#cchips" not in VZ.JS and "function dlt()" in VZ.JS
     assert "比昨日" in page or "和昨日一樣" in page                               # 面板的分數格
+
+
+def test_today_card_full_width_above_radar(built):
+    """今天的重點（溫度計＋偏多、警示兩欄）2026-10-20 起整條放在雷達上面，不再擠在雷達旁邊的窄欄。"""
+    _, _, V, page = built
+    assert page.index('id="today"') < page.index('<div class="vgrid">') < page.index('<div class="vside">')
+    side = page[page.index('<div class="vside">'):page.index('<p class="hz">')]
+    assert 'id="today"' not in side and 'id="wchg"' in side

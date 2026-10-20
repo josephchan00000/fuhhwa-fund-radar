@@ -133,13 +133,54 @@ def test_heat_pages_stash_cards_and_list_today(monkeypatch):
     assert list(sigpage.CARDS) == ["spx"]
     assert "還沒產生" in VZ.today_html({"sigtoday": None})
     V = _view()
-    T = dict(V["today"]["tw"], d="2026-10-16")
-    T["good"] = [dict(r, now=V["on"][r["id"]]) for r in T["good"]]
+    T = dict(sigcat.board(V["rows"], V["on"], "tw"), d="2026-10-16")
     h = VZ.today_html({"sigtoday": T})
-    assert 'href="x9o.html#s=tw:heat:C1:hot"' in h and "融資餘額水位・過熱中" in h and "1 個好訊號" in h
-    assert "12/1 起" in h and 'href="x9o.html"' in h
-    h0 = VZ.today_html({"sigtoday": {"good": [], "ref": [], "d": "2026-10-16"}})
-    assert "沒有好訊號" in h0
+    assert 'href="x9o.html#s=tw:heat:C1:hot"' in h and "融資餘額水位・過熱中" in h
+    assert "12/1 起" in h and 'href="x9o.html"' in h and "現在沒有機率夠高（60% 以上）的偏多訊號" in h
+    assert h.count('<div class="tzr">') == 3 and "中線" in h and "偏警示" in h and "警示 ★1" in h
+    assert 'aria-label="中線（看 3 個月）：偏多 0・警示 ★1，偏多占 0%"' in h
+    assert "短線（看 1 個月）：偏多 0・警示 0，沒有訊號" in h and "溫度計本身沒有驗證過" in h
+    h0 = VZ.today_html({"sigtoday": dict(sigcat.board(V["rows"], {}, "tw"), d="2026-10-16")})
+    assert "現在沒有機率夠高（50% 以上）的警示訊號" in h0 and h0.count("沒有訊號") >= 3
+    low = dict(V["rows"][0], warn=_st(12, 0.40, 0.29, "ref"), tier="ref")      # 警示 40%：算進溫度計、不列
+    h1 = VZ.today_html({"sigtoday": dict(sigcat.board([low], V["on"], "tw"), d="2026-10-16")})
+    assert "融資餘額水位・過熱中" not in h1 and "另 1 個機率較低，只算進溫度計" in h1 and "警示 ●1" in h1
+
+
+def test_board_sides_thermometer_and_one_item_once():
+    """景氣頁「今天的重點」（sigspec 第 5 節，2026-10-20）：★ 與 ● 分偏多、警示；同一個項目只算一次（水準與邊際變化同一個）；
+    溫度計依看多久三支、★ 算 2、● 算 1。"""
+    rows = _rows()
+    a = rows[0]
+    d1 = dict(a, id="tw:deriv:C1:1", cat="deriv", sig="1", name="融資餘額水位・成長加速", up=_st(30, 0.9, 0.5, "good"),
+              warn=_st(30, 0.1, 0.3, "none"), tier="good", dir=["up"])           # 同一個項目（C1）：差 +40 > 警示 +29
+    e = dict(a, id="tw:tech:x", cat="tech", var="x", name="站回季線", H=20, up=_st(40, 0.66, 0.6, "ref"),
+             warn=_st(40, 0.1, 0.2, "none"), tier="ref", dir=["up"])
+    f = dict(a, id="tw:bub:L2", cat="bub", var="L2", name="泡沫等級 2 以上", H=250, up=_st(12, 0.5, 0.6, "none"),
+             warn=_st(12, 0.4, 0.3, "ref"), tier="ref", dir=["warn"])
+    g = dict(a, id="tw:buy:E5:W10", cat="buy", var="W10", name="急跌後固定等 10 天", H=None,
+             buy=_st(20, 0.7, 0.5, "good"), tier="good", dir=["buy"])
+    o = dict(a, id="spx:heat:F1:hot", mk="spx")                                  # 別的市場不算
+    rs = rows + [d1, e, f, g, o]
+    on = {r["id"]: {"since": "2026-10-01", "n": 3} for r in rs}
+    B = sigcat.board(rs, on, "tw")
+    assert [r["id"] for r in B["up"]] == ["tw:deriv:C1:1", "tw:buy:E5:W10", "tw:tech:x"]   # ★ 在前、同級差大的在前；買點算偏多
+    assert [r["id"] for r in B["warn"]] == ["tw:bub:L2"]                          # 融資 C1 的 heat 被同項目、同看多久的 deriv 取代
+    assert [r["hz"] for r in B["up"]] == ["mid", "mid", "short"] and B["warn"][0]["hz"] == "long"
+    assert [r["show"] for r in B["up"]] == [True, True, True] and B["warn"][0]["show"] is False   # 警示 40% < 50%：只算溫度計
+    th = {t["k"]: t for t in B["thermo"]}
+    assert th["short"]["w"] == {"up": 1, "warn": 0} and th["short"]["lean"] == "up" and th["short"]["share"] == 1
+    assert th["mid"]["n"]["up"] == {"good": 2, "ref": 0} and th["mid"]["w"] == {"up": 4, "warn": 0}
+    assert th["long"]["w"] == {"up": 0, "warn": 1} and th["long"]["lean"] == "warn"
+    assert sigcat.horizon(dict(a, cat="ind", H=12)) == "long" and sigcat.horizon(dict(a, H=250)) == "long"
+    assert sigcat.item_key(a) == sigcat.item_key(d1) != sigcat.item_key(dict(a, cat="buy"))
+    lng = dict(a, id="tw:heat:C1:hot13", sig="hot13", H=250, tier="ref", warn=_st(12, 0.4, 0.3, "ref"))
+    B2 = sigcat.board(rs + [lng], dict(on, **{lng["id"]: {}}), "tw")           # 同一個項目、看多久不同 → 各算一次
+    assert [r["id"] for r in B2["warn"]] == ["tw:bub:L2", "tw:heat:C1:hot13"] and "tw:deriv:C1:1" in [r["id"] for r in B2["up"]]
+    even = sigcat.board([dict(e, id="tw:tech:y", var="y"), dict(e, id="tw:tech:z", var="z", up=_st(40, 0.1, 0.2, "none"),
+                                                            warn=_st(40, 0.3, 0.2, "ref"), dir=["warn"])],
+                        {"tw:tech:y": {}, "tw:tech:z": {}}, "tw")
+    assert {t["k"]: t["lean"] for t in even["thermo"]} == {"short": "even", "mid": None, "long": None}
 
 
 def test_position_card_removed():

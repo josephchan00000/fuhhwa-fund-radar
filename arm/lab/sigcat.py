@@ -551,7 +551,7 @@ def today_for(now: dict | None) -> dict | None:
     rows = research_rows()
     if not now or not rows:
         return None
-    return {"mk": now["mk"], "d": now["d"], **today(rows, now["on"], now["mk"])}
+    return {"mk": now["mk"], "d": now["d"], **board(rows, now["on"], now["mk"])}
 
 
 # ── 現在有沒有效（每天建頁） ───────────────────────────────────────────────────
@@ -616,6 +616,53 @@ def today(rows: list[dict], on: dict, mk: str) -> dict:
         return sorted(best_by.values(), key=lambda x: (-x["edge"], x["id"]))
     g = pick("good")[:S.TODAY_MAX]
     return {"good": g, "ref": [] if g else pick("ref")[:S.TODAY_REF]}
+
+
+def horizon(r: dict) -> str:
+    """溫度計分哪一支（sigspec 第 5 節）：short／mid／long。"""
+    if r["cat"] == "buy":
+        return "mid"
+    if r["cat"] == "ind":
+        return "long"
+    H = r.get("H") or 0
+    return "short" if H <= S.H_TECH else "mid" if H <= S.H_CRASH else "long"
+
+
+def item_key(r: dict) -> tuple:
+    """「同一個項目」：景氣項目的水準（heat）與邊際變化（deriv）算同一個項目；其他依類別＋變數。"""
+    return ("item", r["var"]) if r["cat"] in ("heat", "deriv") else (r["cat"], r["var"])
+
+
+def board(rows: list[dict], on: dict, mk: str) -> dict:
+    """景氣頁「今天的重點」（sigspec 第 5 節，2026-10-20 起）：現在有效的 ★ 與 ●，同一個項目在同一支溫度計只留一種（★ 優先、同級差最大），
+    分偏多（含買點）與警示兩欄；溫度計＝依看多久三支，★ 算 2、● 算 1。清單只列 show（命中率 ≥ HIT_MIN），溫度計算全部。
+    → {"up": [...], "warn": [...], "thermo": [{"k", "name", "h", "n": {side: {tier: 次數}}, "w": {side: 分}, "share", "lean"}]}"""
+    rank = {"good": 1, "ref": 0}
+    best: dict = {}
+    for r in rows:
+        if r.get("mk") != mk or r["tier"] not in rank or r["id"] not in on:
+            continue
+        for d in r["dir"]:
+            e = edge(r.get(d))
+            if e is None:
+                continue
+            key = (item_key(r), horizon(r))
+            k = (rank[r["tier"]], e)
+            if key not in best or k > best[key][0]:
+                best[key] = (k, {**r, "d": d, "edge": e, "now": on[r["id"]], "side": "warn" if d == "warn" else "up",
+                                 "hz": horizon(r), "show": r[d]["hit"] >= S.HIT_MIN[d]})
+    items = sorted((x for _, x in best.values()), key=lambda x: (-rank[x["tier"]], -x["edge"], x["id"]))
+    out: dict = {s: [x for x in items if x["side"] == s] for s in ("up", "warn")}
+    th = []
+    for k, name, h in S.THERMO_HZ:
+        n = {s: {t: sum(1 for x in out[s] if x["hz"] == k and x["tier"] == t) for t in ("good", "ref")} for s in out}
+        w = {s: sum(S.THERMO_W[t] * c for t, c in n[s].items()) for s in n}
+        tot = w["up"] + w["warn"]
+        share = w["up"] / tot if tot else None
+        lean = None if share is None else "up" if share >= S.THERMO_LEAN else "warn" if share <= 1 - S.THERMO_LEAN else "even"
+        th.append({"k": k, "name": name, "h": h, "n": n, "w": w, "share": share, "lean": lean})
+    out["thermo"] = th
+    return out
 
 
 # ── 每天建頁：景氣頁的 B → 這個市場現在有沒有效（存在程序裡給訊號總覽沿用） ──────────
