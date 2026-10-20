@@ -1,7 +1,7 @@
 """訊號總覽實務判定的規格（docs/lab_signal_plan.md）：規格鎖定。
 
 規格是在算任何訊號的命中率之前寫定的（VER 1，2026-10-19；VER 2 同日只改個股策略的次數下限，規劃第 15 節；
-VER 3，2026-10-20，警示改看最大回撤，docs/lab_warn_mdd_plan.md；VER 4 同日加情境；VER 5 同日加報酬與相似的日子）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
+VER 3，2026-10-20，警示改看最大回撤，docs/lab_warn_mdd_plan.md；VER 4 同日加情境；VER 5 同日加報酬與相似的日子；VER 6 同日加法人買賣超）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import analyze as AN
 from arm.lab import backtest as BT
 from arm.lab import bottomspec as BS
@@ -13,7 +13,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 5 and X.SPEC_DATE == "2026-10-20"
+    assert X.VER == 6 and X.SPEC_DATE == "2026-10-20"
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
     assert X.LAG == 1 and X.DIRS == ("up", "warn", "buy") and X.WARN_LONG == 0.20
     assert X.WARN_TH_IDX == {20: 1, 60: 2}
@@ -80,6 +80,21 @@ def test_sig_spec_v5_returns_and_similar_days_are_locked():
                               "sox": "2005-01-01"} and set(X.NB_OOS_START) == set(X.MARKETS)
     assert (X.NB_BOOT, X.NB_BLOCK, X.NB_SEED, X.NB_OOS_MIN, X.NB_HI, X.NB_BINS) == (2000, 12, 20261020, 36, 0.70, (0.5, 0.6, 0.7))
     assert set(X.PATH_D) >= set(X.RET_H)
+
+
+def test_sig_spec_v6_institutional_flows_are_locked():
+    """VER 6（2026-10-20）：法人買賣超（docs/lab_inst_plan.md）；外資、投信、自營商 5、20 日＝景氣頁 C9～C14（heatspec VER 8）。"""
+    assert X.INST_WHO == ("tot", "fi", "it", "dl") and set(X.INST_NAMES) == set(X.INST_WHO)
+    assert X.INST_WIN == (1, 5, 20, 60) and X.INST_POS_WIN == (5, 20, 60)
+    assert X.INST_HEAT == {("fi", 5): "C9", ("fi", 20): "C10", ("it", 5): "C11", ("it", 20): "C12",
+                           ("dl", 5): "C13", ("dl", 20): "C14"}
+    assert X.INST_SKIP == {("fi", 60): "L3"}
+    assert X.INST_VARIANTS == ("hot", "hot_in", "hot_out", "cold", "cold_in", "cold_out")
+    assert set(X.INST_VARIANT_NAMES) == set(X.INST_VARIANTS) and X.INST_VARIANT_NAMES["hot"] == "大賣超中"
+    assert X.INST_DAY == (95, 5) and X.INST_RUN == (5, 10) and X.INST_H == {1: 20, 5: 20, 20: 60, 60: 60, "run": 20}
+    for (w, n), k in X.INST_HEAT.items():                               # 對到的景氣項目：籌碼面向、賣超＝熱
+        assert HS.DIM_OF[k] == "chip" and HS.HOT[k] == -1
+    assert HS.DIM_OF["L3"] == "tliq" and HS.HOT["L3"] == 1
 
 
 def test_sig_spec_refers_to_existing_definitions():
