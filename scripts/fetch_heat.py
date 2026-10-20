@@ -29,7 +29,7 @@ from arm.lab import crashfetch as CF  # noqa: E402
 
 NAMES = ["margin", "inst", "futi", "opti", "mtxoi", "pcr", "vixtw", "taiex", "vix", "hyg", "ief", "turnover",
          "usdtwd", "money", "ndc", "ndc_first", "exports", "pmi", "orders", "twcpi", "effr", "fedtgt", "uscpi", "ust",
-         "breadth", "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow", "taiexm", "twcap", "twmgn"]
+         "breadth", "mmf", "spx", "qfii", "cbcbank", "sitca", "sfbflow", "taiexm", "twcap", "twmgn", "mratio"]
 # 月資料「新的一個月該出來了」的最早日子（第 m＋1 個月的第幾天）：只用來決定要不要抓，不影響驗證（驗證用 heatspec.RELEASE）
 DUE = {"twcpi": (1, 5)}
 
@@ -131,6 +131,8 @@ def daily() -> None:
     from arm.lab import icchain                                 # 細分族群名單（櫃買產業鏈平台；落檔超過 30 天才重抓，docs/lab_crash_plan.md 第 21.5 節）
     run("產業鏈平台名單", icchain.fetch)
     run("台股產業指數", BD.indtw_update)
+    from arm.lab import mratio as MR                            # 大盤融資維持率（回補的逐檔合計＋之後的官方分片；大神策略第三段）
+    run("融資維持率", MR.update_series)
     if ok != st:
         HD.save("_state", "fetch_heat", ok)
 
