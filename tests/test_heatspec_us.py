@@ -94,4 +94,4 @@ def test_use_switches_and_restores():
             raise RuntimeError("x")
     except RuntimeError:
         pass
-    assert S.VER == 7 and S.MARKET == "tw"                             # 中途出錯也換回來
+    assert S.VER == 9 and S.MARKET == "tw"                             # 中途出錯也換回來

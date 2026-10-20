@@ -1,7 +1,8 @@
 """景氣溫度頁（docs/lab_heat_plan.md）：規格鎖定＋計算核心。
 
 規格是看任何結果之前寫定的（第三版＝四個面向，2026-10-17，規劃文件第 12.6、12.7 節）。要改就 VER＋1、
-寫進規劃文件，不在舊版本上改——這支測試鎖住現行版本（VER 7：第六版的五個面向不變，加上泡沫面向）。"""
+寫進規劃文件，不在舊版本上改——這支測試鎖住現行版本（VER 7：第六版的五個面向不變，加上泡沫面向；
+VER 8：籌碼面向加法人 5、20 日買賣超 6 項；VER 9 拿掉、法人只當訊號，docs/lab_inst_plan.md）。"""
 import random
 
 from arm.lab import heat as H
@@ -9,7 +10,7 @@ from arm.lab import heatspec as S
 
 
 def test_spec_v7_is_locked():
-    assert S.VER == 7 and S.SPEC_DATE == "2026-10-18" and S.MARKET == "tw"
+    assert S.VER == 9 and S.SPEC_DATE == "2026-10-20" and S.MARKET == "tw"
     # 第四版的計分規格（第五、六版沒有改分數；第七版只加泡沫面向）
     assert list(S.DIMS) == ["fund", "chip", "gliq", "tliq", "tech", "bubl"]
     assert {d: (v["fwd"], v["freq"]) for d, v in S.DIMS.items()} == {
@@ -37,7 +38,7 @@ def test_spec_v7_is_locked():
     assert S.DAILY_LAG == 1 and S.US == ("G1", "G2", "G3", "G4", "T9") and S.PROXY == {"T10": "T9"}
     assert S.DIRECT == {"T11": 6} and S.STALE == {"C8": 14, "L7": 10, "X5": 14} and S.AVAIL_DAYS == {"C8": 7}
     assert (S.MIN_AVAIL, S.CHG_DAYS, S.MIN_N) == (2 / 3, 5, {"d": 750, "m": 96})
-    assert [H.need(len(v)) for v in S.ITEMS.values()] == [6, 6, 4, 7, 9, 5]  # 8 要 6、8 要 6、5 要 4、10 要 7、13 要 9、7 要 5
+    assert [H.need(len(v)) for v in S.ITEMS.values()] == [6, 6, 4, 7, 9, 5]  # 8 要 6、8 要 6（VER 9 回到 8 項）、5 要 4、10 要 7、13 要 9、7 要 5
     assert (S.BOOT_N, S.BOOT_SEED, S.CI) == (2000, 20261017, 0.95)
     assert S.SPLIT_REF == {"d": (("2014-01-01", "2019-12-31"), ("2020-01-01", None)),
                            "m": (("1999-01-01", "2012-12-31"), ("2013-01-01", None))}

@@ -1,11 +1,10 @@
 """景氣溫度頁 x9m.html（arm/lab/heatpage.py；第五版：熱度色帶頁首、對照台股互動圖、五個面向卡、邊際變化、關鍵價位與事件）：
-用合成資料跑完整條管線（heatcalc → view → render）；瀏覽器端的交互分析用 node 和 Python 的 heatrel.group_stats 比對。"""
+用合成資料跑完整條管線（heatcalc → view → render）；（2026-10-20 前）瀏覽器端的交互分析用 node 和 Python 的 heatrel.group_stats 比對。"""
 import html
 import json
 import random
-import shutil
-import subprocess
 from datetime import date, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -389,8 +388,7 @@ def test_meta_matches_spec_and_is_embedded(built):
     b = page.index(";</script>", a)
     assert json.loads(page[a:b].replace("<\\/", "</")) == json.loads(json.dumps(m))
     assert "</" not in page[a:b]                                              # 內嵌 JSON 不會提前結束 script
-    assert m["cpl"]["hot"] == S.CPL_HOT and m["cpl"]["cold"] == S.CPL_COLD and m["cpl"]["boot"] == S.CPL_BOOT
-    assert m["cpl"]["minw"] == S.CPL_MIN_WEEKS and m["cpl"]["minr"] == S.CPL_MIN_RUNS and m["cpl"]["seed"] == S.BOOT_SEED
+    assert "cpl" not in m and "hdef" not in m                                 # 交互分析 2026-10-20 拿掉（改成情境卡）
     assert m["max"] == S.CH_MAX == 5 and len(m["pal"]) == S.CH_MAX and m["rdef"] in m["ranges"]
     assert set(m["items"]) == set(S.KEYS) and [d["id"] for d in m["dims"]] == list(P.shown_dims())   # 泡沫另放泡沫頁
     assert [a["id"] for a in m["acc"]] == [f"A_{g}" for g in S.M6_GROUPS] and m["acc"][0]["name"] == "景氣動能加速度"
@@ -398,51 +396,14 @@ def test_meta_matches_spec_and_is_embedded(built):
     assert page.count("<script>") == 2 and "x9mh.json" in page                 # 序列資料另外下載
 
 
-def _node_calc(payload: dict) -> dict:
-    src = P._JS
-    calc = src[src.index("// @@CALC"):src.index("// @@ENDCALC")]
-    prog = ("const M = " + json.dumps(P.meta()) + ";\n" + calc +
-            "\nconst inp = JSON.parse(require('fs').readFileSync(0, 'utf8'));\n"
-            "const out = inp.cases.map(c => gstats(c.rows, c.flag, c.L));\n"
-            "const sp = inp.sp.map(p => spear(p[0], p[1]));\n"
-            "process.stdout.write(JSON.stringify({g: out, sp: sp}));\n")
-    r = subprocess.run(["node", "-e", prog], input=json.dumps(payload), capture_output=True, text=True, timeout=60)
-    assert r.returncode == 0, r.stderr
-    return json.loads(r.stdout)
-
-
-@pytest.mark.skipif(shutil.which("node") is None, reason="沒有 node")
-def test_browser_coupling_matches_python_group_stats():
-    from arm.lab import heat as Hh
-    from arm.lab import heatrel as R
-    rnd = random.Random(21)
-    n = 420
-    wi = list(range(200)) + list(range(201, 421))                          # 中間缺一週：段數要在那裡斷開
-    ret = [rnd.gauss(0.004, 0.03) for _ in range(n)]
-    flags = [[False] * n for _ in range(3)]
-    for a in (10, 80, 150, 196, 260, 330):
-        for i in range(a, a + 7):
-            flags[0][i] = True
-            ret[i] += 0.03
-    flags[1] = [rnd.random() < 0.3 for _ in range(n)]
-    flags[2] = [i < 20 for i in range(n)]
-    dates = [f"20{10 + i // 52:02d}-01-01" for i in range(n)]
-    cases = [{"rows": [{"i": wi[k], "r": ret[k]} for k in range(n)], "flag": f, "L": 12} for f in flags]
-    x = [rnd.gauss(0, 1) for _ in range(300)]
-    y = [0.4 * v + rnd.gauss(0, 1) for v in x]
-    x[5] = x[6]                                                             # 有同值
-    out = _node_calc({"cases": cases, "sp": [[x, y]]})
-    for f, g in zip(flags, out["g"]):
-        p = R.group_stats(ret, f, dates, 12, wi)
-        assert g["n"] == p["n"] and g["runs"] == p["runs"]
-        for a, b in (("avg", "avg"), ("up", "up"), ("all", "all_avg"), ("diff", "diff"), ("d1", "d1"), ("d2", "d2")):
-            assert (g[a] is None) == (p[b] is None) and (g[a] is None or abs(g[a] - p[b]) < 1e-12), a
-        if p["lo"] is not None:                                             # 重抽亂數不同（瀏覽器 1,000 次）：區間要接近
-            w = p["hi"] - p["lo"]
-            assert abs(g["lo"] - p["lo"]) < 0.25 * w and abs(g["hi"] - p["hi"]) < 0.25 * w
-    assert out["g"][0]["runs"] == 7 and out["g"][0]["v"] == "strong"            # 第 196～202 筆跨過缺的那週 → 斷成兩段
-    assert out["g"][2]["v"] == "few"
-    assert abs(out["sp"][0] - Hh.spearman(x, y)) < 1e-12
+def test_coupling_replaced_by_scenarios():
+    """對照圖選多條線：原本瀏覽器算的交互分析拿掉（2026-10-20 使用者：「交互分析那邊超沒意義」），改成框出「所有情境」表裡用到這幾個面向的列（2026-10-20 起情境卡改成一張表）。"""
+    js = P._JS
+    for old in ("@@CALC", "function couple(", "function gstats(", "function consensus(", "function grid(", "M.cpl"):
+        assert old not in js
+    assert "function scenHint(box, ids)" in js and "#scen .sqr" in js and "#scen .sqi" not in js and "else scenHint(box, st.sel.map(x => x.id));" in js
+    src = Path(P.__file__).read_text(encoding="utf-8")
+    assert "<b>交互分析</b>" not in src and "<b>情境</b>" in src                 # 研究畫面的方法說明一起改
 
 
 def test_week_change_and_source_dates(built):

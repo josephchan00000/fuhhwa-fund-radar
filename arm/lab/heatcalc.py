@@ -199,6 +199,32 @@ def f3_foreign_opt(opti: dict) -> dict:
     return out
 
 
+# ── 法人買賣超（sigspec 第 4.13 節；只當訊號，heatspec VER 9 起不算進面向） ─────────────
+
+def inst_amounts(inst: dict) -> dict[str, dict]:
+    """FinMind 三大法人買賣金額 → {法人: {日期: 買賣超(元)}}：tot＝官方合計（含自營商避險）、fi＝外資（含外資自營商，同 L3）、
+    it＝投信、dl＝自營商自行買賣（不含避險；2014-12 起才分得出來）。"""
+    out: dict[str, dict] = {"tot": {}, "fi": {}, "it": {}, "dl": {}}
+    for d, v in inst.items():
+        if v.get("total") is not None:
+            out["tot"][d] = v["total"]
+        fs = [x for n, x in v.items() if n.startswith("Foreign") and x is not None]
+        if fs:
+            out["fi"][d] = sum(fs)
+        if v.get("Investment_Trust") is not None:
+            out["it"][d] = v["Investment_Trust"]
+        if v.get("Dealer_self") is not None:
+            out["dl"][d] = v["Dealer_self"]
+    return out
+
+
+def inst_ratio(cal: list[str], D: dict, who: str, k: int, A: dict | None = None) -> dict:
+    """某個法人買賣超金額 k 日合計 ÷ 同期上市成交金額（%），在交易日上 {日期: 值}（同 L3 的 ratio_sum）。"""
+    A = A if A is not None else inst_amounts(D.get("inst") or {})
+    to = {d: v[0] for d, v in (D.get("turnover") or {}).items() if v and v[0]}
+    return {d: v for d, v in zip(cal, ratio_sum(cal, A[who], to, k)) if v is not None}
+
+
 # ── 各項原始值 ───────────────────────────────────────────────────────
 
 def native_daily(D: dict, cal: list[str], px: list) -> dict[str, dict]:

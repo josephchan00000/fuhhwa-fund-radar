@@ -15,18 +15,22 @@ from __future__ import annotations
 import html
 import json
 import math
-from datetime import date
 
 from . import heatpage as HP
 from . import heatpos as PO
 from . import heatspec as S
 
-DD_MIN = 0.20          # 比較日期：高點到低點跌幅門檻（每週收盤）
-N_EPI = 2              # 取最近幾段
-NQ = 8                 # 每季小圖幾張（最後一張是現在）
+DD_MIN = 0.20          # 地形圖的大跌期間：高點到低點跌幅門檻
+SWING_TW = 0.10        # 雷達底下的波段高低點：收盤從高點回落 10% 才確認高點（低點反彈 10%）；
+                       # 美股換算成和台股一樣常見＝crashspec.TH 的 60 日門檻（docs/lab_heatviz_v2_plan.md 第 1 節）
+SWING_N = 8            # 最近幾個已確認的轉折點
+SWING_GAP = 15         # 讀法：高點和低點的面向平均差幾分以上才寫
+SWING_SHOW = 3
 KEY_SHOW = 4           # 關鍵狀態先列幾個
-MOVE_MIN = 20          # 這週 0～100 變動多少算大幅移動
-MOVE_SHOW = 6
+MOVE_FLAT = 3          # 這週變化：面向分數動 ±3 分以內收成「其他沒什麼變」（docs/lab_heatviz_v2_plan.md 第 4 節）
+MOVE_WHY = 2           # 每個面向列幾個主要原因（拉動最多的項目）
+MOVE_WHY_MIN = 1.0     # 拉動不到 1 分的項目不算主要原因
+MOVE_BACK = 2.0        # 其他項目往反方向拉回 2 分以上才寫出來
 REC_YEARS = 3          # 幾年新高新低以上才列進「這週變化」
 HOT, COLD = 80, 20
 # 地形圖每條山脊的身分色（CSS 變數，深淺兩套在 heatpage._CSS）。不用紅、藍（紅＝過熱、藍＝過冷）；
@@ -86,6 +90,81 @@ def episodes(dates: list[str], px: list, thr: float = DD_MIN) -> list[dict]:
     return out
 
 
+def swing_thr(mk: str | None) -> float:
+    from . import crashspec as CS
+    return SWING_TW if not mk or mk == "tw" else CS.TH[mk][2]
+
+
+def swings(cal: list[str], px: list, thr: float, start: str | None = None, n: int = SWING_N) -> list[dict]:
+    """最近 n 個已確認的轉折點（heattech.pivots：收盤回落／反彈 thr 才確認），加上目前這一段到今天為止的最高或最低（還沒確認；
+    就是今天的話不列）。→ [{"k": "H"／"L"（已確認）或 "h"／"l"（還沒確認）, "i": 那一天, "p": 收盤,
+    "chg": 之後到下一個點（最後一個已確認點＝到目前這一段的極值；還沒確認的點＝到今天）的漲跌}]。"""
+    from . import heattech as HT
+    pv = HT.pivots(px, thr)
+    T = max((i for i, v in enumerate(px) if v), default=-1)
+    out = [{"k": x["k"], "i": x["i"], "p": x["p"]} for x in pv]
+    if out:
+        a = out[-1]
+        seg = [(px[i], i) for i in range(a["i"] + 1, T + 1) if px[i]]
+        if seg:
+            v, i = (max if a["k"] == "L" else min)(seg, key=lambda z: z[0])        # 同值取最早那一天
+            if i < T:
+                out.append({"k": "h" if a["k"] == "L" else "l", "i": i, "p": v})
+            a["nxt"] = v
+    for j, x in enumerate(out):
+        if x["k"] in ("h", "l"):
+            x["chg"] = px[T] / x["p"] - 1
+        else:
+            nx = out[j + 1]["p"] if j + 1 < len(out) else x.get("nxt")
+            x["chg"] = None if nx is None else nx / x["p"] - 1
+        x.pop("nxt", None)
+    conf = [x for x in out if x["k"] in ("H", "L") and (start is None or cal[x["i"]] >= start)]
+    tent = [x for x in out if x["k"] in ("h", "l")]
+    return conf[-n:] + tent
+
+
+def swing_sub(x: dict, thr: float) -> str:
+    c = x.get("chg")
+    if c is None:
+        return ""
+    a = f"{abs(100 * c):.0f}%"
+    if x["k"] == "H":
+        return f"之後跌 {a}"
+    if x["k"] == "L":
+        return f"之後漲 {a}"
+    t = f"{100 * thr:.1f}".rstrip("0").rstrip(".")
+    return f"還沒確認（已回落 {a}，未滿 {t}%）" if x["k"] == "h" else f"還沒確認（已反彈 {a}，未滿 {t}%）"
+
+
+def swing_read(pts: list[dict], names: list[str], now: list) -> str:
+    """讀法（只描述這幾個點）：已確認的高點和低點，各面向平均差 ≥ SWING_GAP 的列出來（差大的在前），並寫現在。"""
+    H = [p["v"] for p in pts if p["k"] == "H"]
+    L = [p["v"] for p in pts if p["k"] == "L"]
+    if len(H) < 2 or len(L) < 2:
+        return ""
+    def avg(rows, k):
+        xs = [r[k] for r in rows if r[k] is not None]
+        return sum(xs) / len(xs) if xs else None
+    gaps = []
+    for k, nm in enumerate(names):
+        a, b = avg(H, k), avg(L, k)
+        if a is not None and b is not None and abs(a - b) >= SWING_GAP:
+            gaps.append((abs(a - b), nm, a, b, now[k]))
+    head = f"這 {len(H)} 個高點和 {len(L)} 個低點："
+    if not gaps:
+        return head + f"各面向在高點和低點的平均差都不到 {SWING_GAP} 分，形狀差不多。"
+    gaps.sort(key=lambda g: (-g[0], g[1]))
+    xs = [f"{nm}（高點平均 {a:.0f}、低點 {b:.0f}" + ("" if v is None else f"，現在 {HP.n0(v)}") + "）"
+          for _, nm, a, b, v in gaps[:SWING_SHOW]]
+    hot = [g for g in gaps[:SWING_SHOW] if g[2] > g[3]]
+    word = "高點時比低點熱" if len(hot) == len(gaps[:SWING_SHOW]) else ("高點時比低點冷" if not hot else "高點和低點差最多")
+    return head + word + "：" + "、".join(xs) + "。只描述這幾個點，不是訊號。"
+
+
+def _ri(x) -> int:
+    return math.floor(x + 0.5)
+
+
 def _run_weeks(series: list, we: list[int]) -> int:
     """最近連續幾週（每週最後一個交易日）在同一區。"""
     if not we or series[we[-1]] is None:
@@ -140,28 +219,6 @@ def key_states(B: dict, V: dict, we: list[int]) -> list[dict]:
     return out
 
 
-def _quarters(cal: list[str], we: list[int], n: int = NQ) -> list[int]:
-    """最近 n−1 個季底（每季最後一週）＋現在：回傳 week_ends 裡的位置。"""
-    last = date.fromisoformat(cal[we[-1]])
-    y, q = last.year, (last.month - 1) // 3          # 這一季的序號（0～3）；季底＝上一季的最後一天
-    ends = []
-    for _ in range(n - 1):
-        q -= 1
-        if q < 0:
-            q, y = 3, y - 1
-        m = 3 * (q + 1)
-        nd = date(y + (m == 12), 1 if m == 12 else m + 1, 1).toordinal() - 1
-        ends.append(date.fromordinal(nd).isoformat())
-    ds = [cal[i] for i in we]
-    pos = []
-    for e in reversed(ends):
-        j = max((x for x, d in enumerate(ds) if d <= e), default=None)
-        if j is not None and j not in pos:
-            pos.append(j)
-    pos.append(len(we) - 1)
-    return pos
-
-
 def pack(B: dict, V: dict) -> dict:
     """主畫面的小份資料（嵌在頁面裡）。"""
     cal, px = B["cal"], B["px"]
@@ -173,42 +230,32 @@ def pack(B: dict, V: dict) -> dict:
     comp = B["comp"]
     j0 = next((j for j, i in enumerate(we) if sum(comp[d][i] is not None for d in dims) >= need), len(we) - 1)
 
-    def snap(j):
-        i = we[j]
-        return {"d": cal[i], "px": _r1(px[i]), "v": [_r1(comp[d][i]) for d in dims]}
-    J = len(we) - 1
     wd = [cal[i] for i in we]
-    wp = [px[i] for i in we]
-    pre = []
-    for j, lab in ((J - 4, "4 週前"), (J - 52, "1 年前")):
-        if j >= j0:
-            pre.append({"key": "w4" if lab == "4 週前" else "y1", "lab": lab, "sub": "", **snap(j)})
-    a0 = cal.index(wd[j0])                       # 跌幅用每天收盤認（週收盤會漏掉週中急跌又反彈的段），日期換成那一週
+    a0 = cal.index(wd[j0])
     eps_all = episodes(cal[a0:], px[a0:])
-    eps = eps_all[-N_EPI:]
-    wk = lambda d: next(j for j, x in enumerate(wd) if x >= d)          # noqa: E731
-    for e in reversed(eps):
-        jp, jt = wk(e["peak"]), wk(e["trough"])
-        dd = f"{abs(100 * e['dd']):.0f}%"
-        if e["open"]:
-            pre.append({"key": f"p{jp}", "lab": f"{_ym(e['peak'])} 高點", "sub": f"之後最多跌 {dd}，還沒回到高點", **snap(jp)})
-        else:
-            pre.append({"key": f"p{jp}", "lab": f"{_ym(e['peak'])} 高點", "sub": f"之後跌 {dd}", **snap(jp)})
-            pre.append({"key": f"t{jt}", "lab": f"{_ym(e['trough'])} 低點", "sub": f"從 {_ym(e['peak'])} 高點跌 {dd}", **snap(jt)})
-    qs = [snap(j) for j in _quarters(cal, we) if j >= j0]
+    thr = swing_thr(V.get("mk"))                 # 雷達底下：近期波段高低點（每天收盤；那一天的面向分數）
+    pre = []
+    for x in swings(cal, px, thr, start=wd[j0]):
+        i = x["i"]
+        pre.append({"key": f"s{i}", "k": x["k"], "lab": "高點" if x["k"] in ("H", "h") else "低點", "sub": swing_sub(x, thr),
+                    "d": cal[i], "px": _r1(x["p"]), "v": [_r1(comp[d][i]) for d in dims]})
     t, t0 = len(cal) - 1, max(0, len(cal) - 1 - HP.WEEK)
     out_d = []
     for d, L in V["dims"].items():
         st = (V.get("strips") or {}).get(d) or {}
-        out_d.append({"id": d, "name": S.DSHORT[d], "full": L["name"], "span": L["span"], "sc": _r1(L["score"]),
-                      "ago": _r1(L["ago"]), "st": HP.strip_text(st) if st else "", "col": DCOL[d]})
+        sc, pv = L["score"], next((comp[d][i] for i in range(t - 1, -1, -1) if comp[d][i] is not None), None) if t else None
+        out_d.append({"id": d, "name": S.DSHORT[d], "full": L["name"], "span": L["span"], "sc": _r1(sc),
+                      "ago": _r1(L["ago"]), "d1": None if sc is None or pv is None else _ri(sc) - _ri(pv),
+                      "st": HP.strip_text(st) if st else "", "col": DCOL[d]})
     items = []
     for d, L in V["dims"].items():
         for it in L["items"]:
             items.append({"k": it["k"], "dim": d, "name": it["name"], "h": _r1(it["heat"]), "ago": _r1(it["ago"]),
                           "pull": _r1(it["pull"]), "px": bool(it["proxy"]), "val": it["val"]})
     ordr = {d: [it["k"] for it in _item_order(L)] for d, L in V["dims"].items()}
-    return {"asof": cal[t], "start": wd[j0], "dims": out_d, "items": items, "ord": ordr, "pre": pre, "qs": qs,
+    read = swing_read(pre, [S.DSHORT[d] for d in dims], [L["score"] for L in V["dims"].values()])
+    return {"asof": cal[t], "start": wd[j0], "dims": out_d, "items": items, "ord": ordr, "pre": pre, "sread": read,
+            "sthr": _r1(100 * thr), "npx": _r1(px[t]),
             "mkt": HP.MK["mkt"].strip(), "px": HP.MK["px"].strip(), "t0": cal[t0],
             "ph": {**PH, "n": list(PHN), "s": list(PHS)},
             "eps": [{"p": e["peak"], "t": e["trough"], "dd": _r1(100 * e["dd"]), "o": e["open"]} for e in eps_all]}
@@ -317,32 +364,65 @@ def _nmb(k: str, name: str) -> str:
     return f'<button type="button" class="nmb" data-k="{_e(k)}">{_e(name)}</button>'
 
 
+def _why_items(L: dict, dlt: float) -> tuple[list, list]:
+    """面向這週變化的主要原因：拉動（這週 0～100 變化 ÷ 有值的項數）和變化同方向、最大的 MOVE_WHY 項；
+    另外回傳其餘這週進入過熱、過冷的項目（不在主要原因裡的）。"""
+    have = [it for it in L["items"] if it.get("dpull") is not None and it["heat"] is not None and it["ago"] is not None]
+    sg = 1 if dlt > 0 else -1
+    top = sorted((it for it in have if it["dpull"] * sg >= MOVE_WHY_MIN), key=lambda it: (-abs(it["dpull"]), it["k"]))[:MOVE_WHY]
+    tk = {it["k"] for it in top}
+    cross = [it for it in have if it["k"] not in tk and (it["heat"] >= HOT > it["ago"] or it["heat"] < COLD <= it["ago"])]
+    return top, cross
+
+
+def _cross_tag(it: dict) -> str:
+    if it["heat"] >= HOT > it["ago"]:
+        return '<em class="wx zt4">進入過熱</em>'
+    if it["heat"] < COLD <= it["ago"]:
+        return '<em class="wx zt0">進入過冷</em>'
+    return ""
+
+
+def _wtrack(a: float, b: float) -> str:
+    """0～100 小軌道：上週（空心）→ 現在（實心，依區上色），中間一段＝這週走過的距離。"""
+    lo, hi = min(a, b), max(a, b)
+    return (f'<span class="wtk" aria-hidden="true"><i class="wseg" style="left:{lo:.1f}%;width:{hi - lo:.1f}%"></i>'
+            f'<i class="wo" style="left:{a:.1f}%"></i><i class="wn wc{_zc(b)}" style="left:{b:.1f}%"></i></span>')
+
+
 def moves_html(V: dict) -> str:
-    """這週變化：面向換區、進入過熱過冷、0～100 大幅移動、歷史新高新低（和上週＝5 個交易日前比）。"""
-    lines = []
+    """這週變化（docs/lab_heatviz_v2_plan.md 第 4 節）：每個面向一列＝上週 → 現在、換到哪一區、主要原因
+    （拉動最多的兩項）；動 ±MOVE_FLAT 分以內的面向收成一行。最下面是 3 年以上新高、新低的項目。和 5 個交易日前比。"""
+    rows, flat = [], []
     for d, L in V["dims"].items():
         a, b = L["ago"], L["score"]
         if a is None or b is None:
             continue
+        dlt = b - a
+        if abs(round(dlt)) <= MOVE_FLAT:
+            flat.append(f'{_nmb(d, S.DSHORT[d])} {HP.n0(b)}（{HP._sgn(dlt, 0) or "0"}）')
+            continue
         ba, bb = S.band(a), S.band(b)
-        if ba != bb:
-            lines.append(f'<li><span class="wtag">面向換區</span>{_nmb(d, S.DSHORT[d])} {HP.n0(a)} → '
-                         f'<b class="zt{_zc(b)}">{HP.n0(b)}</b>（{_e(ba)} → {_e(bb)}）</li>')
-    its = [(d, it) for d, L in V["dims"].items() for it in L["items"] if it["heat"] is not None and it["ago"] is not None]
-    into_h = [(d, it) for d, it in its if it["heat"] >= HOT > it["ago"]]
-    into_c = [(d, it) for d, it in its if it["heat"] < COLD <= it["ago"]]
-    for lab, xs in (("進入過熱", into_h), ("進入過冷", into_c)):
-        if xs:
-            lines.append(f'<li><span class="wtag">{lab}</span>' + "、".join(
-                f'{_nmb(it["k"], it["name"])} {HP.n0(it["ago"])}→<b class="zt{_zc(it["heat"])}">{HP.n0(it["heat"])}</b>'
-                for _, it in xs) + "</li>")
-    seen = {it["k"] for _, it in into_h + into_c}
-    big = sorted((x for x in its if abs(x[1]["heat"] - x[1]["ago"]) >= MOVE_MIN and x[1]["k"] not in seen),
-                 key=lambda x: (-abs(x[1]["heat"] - x[1]["ago"]), x[1]["k"]))[:MOVE_SHOW]
-    if big:
-        lines.append('<li><span class="wtag">大幅移動</span>' + "、".join(
-            f'{_nmb(it["k"], it["name"])} {HP.n0(it["ago"])}→<b class="zt{_zc(it["heat"])}">{HP.n0(it["heat"])}</b>'
-            for _, it in big) + "</li>")
+        bd = f'<span class="wbd">{_e(ba)} → <b class="zt{_zc(b)}">{_e(bb)}</b></span>' if ba != bb else \
+            f'<span class="wbd mu">仍在{_e(bb)}</span>'
+        top, cross = _why_items(L, dlt)
+        why = "、".join(f'{_nmb(it["k"], it["name"])} {HP.n0(it["ago"])}→{HP.n0(it["heat"])}'
+                       f'<span class="wp">（{HP._sgn(it["dpull"])}）</span>{_cross_tag(it)}' for it in top)
+        why = f'主要是 {why}' if why else '各項都只動一點，沒有特別突出的'
+        back = dlt - sum(it["dpull"] for it in top)
+        if top and back * dlt < 0 and abs(back) >= MOVE_BACK:
+            why += f'；其他項目往反方向拉回 {HP._sgn(back)}'
+        if cross:
+            why += "；另外 " + "、".join(f'{_nmb(it["k"], it["name"])}{_cross_tag(it)}' for it in cross)
+        rows.append((-abs(dlt), d,
+                     f'<li class="wr"><span class="wnm">{_nmb(d, S.DSHORT[d])}</span>'
+                     f'<span class="wsc">{HP.n0(a)} → <b class="zt{_zc(b)}">{HP.n0(b)}</b></span>'
+                     f'<span class="wd {"up" if dlt > 0 else "dn"}">{HP._sgn(dlt, 0)}</span>{bd}'
+                     f'{_wtrack(a, b)}<p class="wwy">{why}。</p></li>'))
+    rows.sort(key=lambda r: (r[0], r[1]))
+    body = "".join(r[2] for r in rows)
+    if flat:
+        body += (f'<li class="wfl"><span class="wtag">其他沒什麼變</span>' + "、".join(flat) + "</li>")
     rec = []
     for d, L in V["dims"].items():
         for it in L["items"]:
@@ -353,10 +433,12 @@ def moves_html(V: dict) -> str:
             elif r.get("kind") == "since_y" and (r.get("n") or 0) >= REC_YEARS:
                 rec.append(f'{_nmb(it["k"], it["name"])} {r["n"]} 年新{w}')
     if rec:
-        lines.append('<li><span class="wtag">歷史極端</span>' + "、".join(rec) + "</li>")
-    body = "".join(lines) or '<li class="mu">這週沒有換區、進入過熱過冷或大幅移動的項目。</li>'
+        body += '<li class="wfl"><span class="wtag">創新高、新低</span>' + "、".join(rec) + "</li>"
+    body = body or '<li class="mu">這週各面向都沒什麼變，也沒有項目創 3 年以上新高、新低。</li>'
     return (f'<section class="wchg card" id="wchg"><div class="khd"><h2>這週變化</h2><span class="kn">和 '
-            f'{_e(HP._md(V.get("viz", {}).get("t0")))}比</span></div><ul>{body}</ul></section>')
+            f'{_e(HP._md(V.get("viz", {}).get("t0")))}比</span></div>'
+            '<p class="ksub">軌道上空心＝上週、實心＝現在。主要原因＝把面向分數拉動最多的兩項，括號＝拉高或拉低幾分。</p>'
+            f'<ul>{body}</ul></section>')
 
 
 def items_table(V: dict) -> str:
@@ -378,39 +460,140 @@ def items_table(V: dict) -> str:
 
 def _radar_card() -> str:
     return ('<div class="rcard card"><div class="khd"><h2>面向雷達</h2><span class="kn" id="rdate"></span></div>'
-            '<p class="ksub">越外圈越熱（100 最熱）；外圈淡紅＝過熱，內圈淡藍＝過冷。點面向名稱看細項；拉下面的時間軸看過去任何一週的形狀。</p>'
+            '<p class="ksub">越外圈越熱（100 最熱）；外圈淡紅＝過熱，內圈淡藍＝過冷。分數後面括號＝和前一個交易日比。點面向名稱看細項；拉時間軸看過去任何一週；點下面的波段高低點疊上去比。</p>'
             '<div class="rad" id="rad"><p class="note">雷達要開啟 JavaScript 才看得到。</p></div>'
             '<div class="rleg" id="rleg"></div>'
             '<div class="rtl"><button type="button" class="rplay" id="rplay" aria-label="播放近兩年">▶</button>'
             '<div class="rtrk"><svg id="rtsvg" viewBox="0 0 600 44" preserveAspectRatio="none" aria-hidden="true"></svg>'
             '<input type="range" id="rtin" min="0" max="0" value="0" aria-label="選一週" disabled></div>'
             '<span class="rnow" id="rnow"></span></div>'
-            '<div class="rchips" id="rchips" role="group" aria-label="疊上比較的日期"></div>'
-            '<div class="rsm" id="rsm"></div></div>')
+            '<h3 class="rsmh">近期波段高點、低點<span class="sub" id="rsmt"></span></h3>'
+            '<div class="rsm" id="rsm" role="group" aria-label="疊上比較的波段高低點"></div>'
+            '<p class="rsmc" id="rsmc"></p></div>')
+
+
+TZ_SIDE = {"up": "偏多", "warn": "警示"}
+TZ_LEAN = {"up": "偏多", "warn": "偏警示", "even": "差不多"}
+
+
+def _tz_counts(n: dict) -> str:
+    """{tier: 次數} → 「★3 ●2」；沒有就「0」。"""
+    from . import sigspec as SS
+    s = " ".join(f"{SS.TIER_MARK[t]}{c}" for t, c in n.items() if c)
+    return s or "0"
+
+
+def thermo_html(T: dict) -> str:
+    """三支溫度計（sigspec 第 5 節）：一條 100% 的長條，左＝偏多、右＝警示（VER 9 只數 ★，一類算 1）；中線＝一半。"""
+    from . import sigspec as SS
+    rows = []
+    for th in T["thermo"]:
+        w, n = th["w"], th["n"]
+        tot = w["up"] + w["warn"]
+        if tot:
+            segs = []
+            for s in ("up", "warn"):
+                for t in SS.THERMO_W:
+                    pct = SS.THERMO_W[t] * n[s][t] / tot * 100
+                    if pct:
+                        segs.append(f'<i class="tzs tzs-{s} tzs-{t}" style="width:{pct:.1f}%"></i>')
+            bar = "".join(segs)
+            word = (f'<b class="tzw tzw-{th["lean"]}">{_e(TZ_LEAN[th["lean"]])}</b>'
+                    f'<span class="tzp">偏多占 {th["share"] * 100:.0f}%</span>')
+        else:
+            bar = ""
+            word = '<b class="tzw tzw-none">沒有訊號</b>'
+        cnt = f'偏多 {_tz_counts(n["up"])}・警示 {_tz_counts(n["warn"])}'
+        lab = f'{th["name"]}（{th["h"]}）：{cnt}' + (f'，偏多占 {th["share"] * 100:.0f}%' if tot else "，沒有訊號")
+        rows.append(f'<div class="tzr"><span class="tzn"><b>{_e(th["name"])}</b><i>{_e(th["h"])}</i></span>'
+                    f'<span class="tzb" role="img" aria-label="{_e(lab)}">{bar}</span>'
+                    f'<span class="tzv"><span>{word}</span><span class="tzct">{_e(cnt)}</span></span></div>')
+    return '<div class="tzt">' + "".join(rows) + "</div>"
+
+
+def _tz_name(r: dict) -> str:
+    return ("情境・" if r.get("cat") == "scen" else "") + r["name"]
+
+
+def _tz_item(r: dict, d: str | None) -> str:
+    """一列＝一類（同類合併）：領頭的機率與成立多久，「同時成立」列同一類的其他訊號（過去常一起出現，算同一件事）。"""
+    from . import sigpage as SPG
+    from . import sigspec as SS
+    both = ('<span class="tzo" title="同一個項目偏多、警示兩邊都成立：之後上漲的機率比平常高，'
+            '中間出現一段大回撤的機率也比平常高">震盪</span>') if r.get("both") else ""
+    fam = r.get("fam") or []
+    also = (f'<span class="tzf">同時成立：{_e("、".join(_tz_name(x) for x in fam))}（過去常一起出現，算同一件事）</span>'
+            if fam else "")
+    return (f'<li><a class="tzi" href="x9o.html#s={_e(r["id"])}"><span class="tzh">'
+            f'<span class="tzk tzk-{r["tier"]}">{SS.TIER_MARK[r["tier"]]}</span><b>{_e(_tz_name(r))}</b>'
+            f'<span class="tzd">{_e(SPG._hz(r))}</span>{both}</span>'
+            f'<span class="tzl">{SPG._line(r)}・{_e(SPG._since(r["now"], d))}</span>{also}</a></li>')
 
 
 def today_html(V: dict) -> str:
-    """今天的重點（docs/lab_signal_plan.md 第 6.1 節）：這個市場現在有效的 ★ 好訊號（訊號總覽的實務判定），沒有就列 ● 可參考。
-    取代原本的「關鍵狀態」（依學術判定），點一列到訊號總覽看細節。"""
-    from . import sigpage as SPG
+    """今天的重點（docs/lab_heatviz_v2_plan.md 第 3 節；sigspec 第 5 節）：三支溫度計＋偏多、警示兩欄
+    （這個市場現在有效的 ★，VER 9 起 ● 不列；同一類只算一次）。點一列到訊號總覽看細節。"""
     from . import sigspec as SS
     T = V.get("sigtoday")
     if not T:
         return ('<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div>'
                 '<p class="note">訊號總覽的研究結果還沒產生（scripts/run_sig.py）。</p></section>')
-    items = T["good"] or T["ref"]
-    sub = ("過去出現之後，「中了」的比例明顯比平常高、近 10 年也成立的訊號（★ 好訊號）；同一個項目只列一種。"
-           if T["good"] else "今天沒有好訊號出現，以下是比平常好一些的（● 可參考）。")
-    lis = []
-    for r in items:
-        lis.append(f'<li><a class="tzi" href="x9o.html#s={_e(r["id"])}"><span class="tzh">'
-                   f'<span class="tzk tzk-{r["tier"]}">{SS.TIER_MARK[r["tier"]]}</span><b>{_e(r["name"])}</b>'
-                   f'<span class="tzd tzd-{r["d"]}">{_e(SS.DIR_NAMES[r["d"]])}</span></span>'
-                   f'<span class="tzl">{SPG._line(r)}・{_e(SPG._since(r["now"], T.get("d")))}</span></a></li>')
-    body = ('<ul class="tzu">' + "".join(lis) + "</ul>") if lis else '<p class="note">今天沒有好訊號，也沒有可參考的訊號出現。</p>'
-    kn = f'<span class="kn">{len(T["good"])} 個好訊號</span>' if T["good"] else ""
-    return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2>{kn}</div><p class="ksub">{_e(sub)}</p>'
-            f'{body}<p class="tzm"><a href="x9o.html">全部訊號、研究細節（訊號總覽）→</a></p></section>')
+    from . import xstratpage as XSP
+    cols = []
+    for s in ("up", "warn"):
+        xs = T[s]
+        sx = [it for it in (V.get("xsb") or []) if it["side"] == s]          # ★ 大神策略（現在有動作的），排最前面
+        nf = sum(len(r.get("fam") or []) for r in xs)
+        head = (f'<h3><span class="tzcl tzcl-{s}">{_e(TZ_SIDE[s])}</span><span class="sub">{len(xs)} 類'
+                + (f'（共 {len(xs) + nf} 個訊號）' if nf else "") + (f'・{len(sx)} 個策略' if sx else "") + "</span></h3>")
+        strat = "".join(XSP.board_li(it) for it in sx)
+        if not xs:
+            body = f'<ul class="tzu">{strat}</ul>' if strat else ""
+            cols.append(f'<div class="tzcol">{head}{body}<p class="note">現在沒有可靠的{_e(TZ_SIDE[s])}訊號。</p></div>')
+            continue
+        top, rest = xs[:SS.TODAY_SIDE], xs[SS.TODAY_SIDE:]
+        more = (f'<details class="tzmore"><summary>還有 {len(rest)} 個</summary><ul class="tzu">'
+                + "".join(_tz_item(r, T.get("d")) for r in rest) + "</ul></details>") if rest else ""
+        cols.append(f'<div class="tzcol">{head}<ul class="tzu">' + strat + "".join(_tz_item(r, T.get("d")) for r in top)
+                    + f"</ul>{more}</div>")
+    sub = "現在成立的好訊號（★）：過去出現之後「中了」的比例比平常高，而且不是運氣。依看多久分三支溫度計。"
+    how = (f"★ 好訊號＝至少出現 {SS.N_MIN} 次、機率 ≥ {SS.HIT_MIN['up'] * 100:.0f}%（警示 ≥ {SS.HIT_MIN['warn'] * 100:.0f}%）、"
+           f"比隨便挑一天高 {SS.EDGE_GOOD * 100:.0f} 個百分點以上、近 10 年也成立，"
+           f"而且把它出現的日子隨便亂排 {SS.LUCK_DRAWS} 次，做得到一樣準的不到 {SS.LUCK_P * 100:.0f}%（不是運氣）。"
+           "過了門檻但亂排也常做得到的（可能是運氣）只在訊號總覽列出，這裡不列、不算。"
+           "過去常一起出現的訊號算同一件事，併成一列（「同時成立」）；溫度計一類算一次。"
+           "溫度計只是數一數現在成立的好訊號，溫度計本身沒有驗證過能預測漲跌。"
+           "偏多＝之後收盤比現在高；警示＝之後出現一段大回撤（期間最高到之後最低，先漲再跌也算）；"
+           "警示類過去的事後驗證比偏多弱，只當提醒。同一個項目兩邊都成立的標「震盪」。"
+           "標「策略」的是大神策略（照原作者的規則交易、成績判定為 ★ 好策略），現在照規則有動作才列；溫度計不算策略。")
+    return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div><p class="ksub">{_e(sub)}</p>'
+            f'<details class="tzx"><summary>怎麼看</summary><p>{_e(how)}</p></details>'
+            f'{thermo_html(T)}<div class="tzcols">{"".join(cols)}</div>'
+            '<p class="tzm"><a href="x9o.html">全部訊號、研究細節（訊號總覽）→</a></p></section>')
+
+
+def sig_items(B: dict, V: dict) -> dict:
+    """訊號總覽「依指標」的現在（docs/lab_sigview_plan.md 第 2.1 節）：每一項與每個面向的現值、資料日、0～100、區、
+    歷史位置一句、邊際變化、近一年每週 0～100（小走勢圖，53 個週末）。景氣頁建頁時算好，stash_cards 交給訊號總覽。"""
+    cal = B["cal"]
+    if not cal:
+        return {}
+    we = PO.week_ends(cal)[-53:]
+    sp = lambda xs: [None if xs[i] is None else _ri(xs[i]) for i in we]
+    out = {}
+    for d, L in V["dims"].items():
+        out["D" + d] = {"h": _r1(L["score"]), "band": L["band"], "d": cal[-1], "sp": sp(B["comp"][d])}
+        for it in L["items"]:
+            k = it["k"]
+            pos, dv = it.get("pos"), it.get("dv")
+            out[k] = {"v": it["val"], "d": it["src"], "h": _r1(it["heat"]),
+                      "band": S.band(it["heat"]) if it["heat"] is not None else None,
+                      "pos": HP.pos_line(k, pos) if pos else "",
+                      "dv": HP.acc_label(k, dv) if dv and k in HP.DLABEL else "",
+                      "why": "用美國 VIX 的排名代替，不算進分數" if it["proxy"] else (it["why"] or ""),
+                      "u": S.IND[S.KEYS.index(k)][3], "dec": HP.DEC.get(k, 2), "hot": it["hot"], "sp": sp(B["heat"][k])}
+    out.update((V.get("signow") or {}).get("cv") or {})      # 大跌風險項目（景氣頁沒有這幾項，sigcat.crash_now）
+    return out
 
 
 def stash_cards(V: dict) -> None:
@@ -425,27 +608,333 @@ def stash_cards(V: dict) -> None:
     if not mk:
         return
     hotch = QP.card(V.get("hotch"))
+    if V.get("sigitems"):
+        SPG.ITEMS[mk] = V["sigitems"]
     SPG.CARDS[mk] = {"d": V["asof"], "crash": CP.card(V.get("crash")), "bottom": BP.card(V.get("bottom")),
                      "hotdd": XP.card(V.get("hotdd"), note=QP.hotdd_note(V.get("hotch")) if hotch else None), "hotch": hotch}
+
+
+# ── 情境（sigspec VER 4 第 4.10 節；docs/lab_heatviz_v2_plan.md 第 5、11 節）──────────────────────────────────
+
+def scen_now(V: dict) -> dict:
+    """四個共通面向現在的分數（台股資金＝全球與台灣資金平均，兩個都有值才算）。"""
+    from . import sigspec as SS
+    src = SS.SCEN_SRC["tw" if (V.get("mk") or "tw") == "tw" else "us"]
+    out = {}
+    for g, ds in src.items():
+        vs = [(V["dims"].get(d) or {}).get("score") for d in ds]
+        out[g] = sum(vs) / len(vs) if vs and all(v is not None for v in vs) else None
+    return out
+
+
+def _sq_dims(cond) -> tuple:
+    from . import sigspec as SS
+    return SS.SCEN_DIMS if cond in ("many_hi", "many_lo") else tuple(g for g, _ in cond)
+
+
+def _sq_cond(cond, now: dict) -> str:
+    """條件（附現在的分數）：「基本面 ≥ 60（現在 94）・技術 < 40（現在 33）」。"""
+    from . import sigspec as SS
+    def cur(g):
+        v = now.get(g)
+        return "—" if v is None else f'<span class="zt{_zc(v)}">{HP.n0(v)}</span>'
+    if cond in ("many_hi", "many_lo"):
+        lab = _e(f"≥ {SS.SCEN_HI}" if cond == "many_hi" else f"< {SS.SCEN_LO}")
+        cnt = sum(1 for g in SS.SCEN_DIMS if now.get(g) is not None
+                  and (now[g] >= SS.SCEN_HI if cond == "many_hi" else now[g] < SS.SCEN_LO))
+        return (f'四個面向裡 {SS.SCEN_MANY} 個以上 {lab}（現在 {cnt} 個：'
+                + "、".join(f'{_e(SS.SCEN_DIM_NAMES[g])} {cur(g)}' for g in SS.SCEN_DIMS) + "）")
+    return "・".join(f'{_e(SS.SCEN_DIM_NAMES[g])} {_e(f"≥ {SS.SCEN_HI}" if o == "hi" else f"< {SS.SCEN_LO}")}（現在 {cur(g)}）'
+                    for g, o in cond)
+
+
+def _sq_strip(r: dict, now: dict | None) -> str:
+    """過去出現在哪些時候：從這個情境有資料的第一天到最後一天，一段一條。"""
+    from datetime import date as _dt
+    a, z = r.get("a"), r.get("z")
+    if not a or not z or a >= z:
+        return ""
+    t0, t1 = _dt.fromisoformat(a).toordinal(), _dt.fromisoformat(z).toordinal()
+    span = t1 - t0
+    def x(d):
+        return 100 * (_dt.fromisoformat(d).toordinal() - t0) / span
+    segs, seen = [], set()
+    for o in r.get("occ") or []:
+        s0, s1 = o[0], o[1]
+        seen.add(s0)
+        w = max(0.35, x(s1) - x(s0))
+        segs.append(f'<i style="left:{x(s0):.2f}%;width:{w:.2f}%" title="{_e(HP._ymd(s0))}～{_e(HP._ymd(s1))}"></i>')
+    if now and now.get("since") and now["since"] not in seen:
+        segs.append(f'<i class="nw" style="left:{x(now["since"]):.2f}%;width:{max(0.6, 100 - x(now["since"])):.2f}%" '
+                    f'title="{_e(HP._ymd(now["since"]))} 起，現在"></i>')
+    return (f'<div class="sqt" aria-hidden="true"><div class="sqtb">{"".join(segs)}</div>'
+            f'<span>{a[:4]}</span><span>{z[:4]}</span></div>')
+
+
+def _sq_ret(r: dict, bases: dict) -> tuple:
+    """情境看多久那一期的報酬（sigspec 第 4.11 節）→（情境, 隨便挑一天）兩格 ret_cell，沒有就 None。"""
+    from . import sigspec as SS
+    R = r.get("ret") or {}
+    if r.get("H") not in SS.RET_H or not R.get("s"):
+        return None, None
+    j = SS.RET_H.index(r["H"])
+    bs = (bases.get(R.get("bk")) or {}).get("s") or []
+    return R["s"][j], (bs[j] if j < len(bs) else None)
+
+
+def _sq_tier(r: dict, d: str) -> str:
+    from . import sigspec as SS
+    t = (r.get(d) or {}).get("tier") or "few"
+    lab = "上漲" if d == "up" else "大跌"
+    return (f'<span class="sqj sqj-{t}" title="{_e(lab)}：{_e(SS.TIER_NAMES[t])}">'
+            f'<span class="sqd sqd-{d}">{lab}</span>{SS.TIER_MARK[t]}</span>')
+
+
+def scen_html(V: dict) -> str:
+    """所有情境（一張表；docs/lab_outlook_plan.md 第 3 節）：事先定義好的 9 種面向組合，過去出現之後 3 個月上漲、大跌的機率
+    （判定同訊號總覽）、報酬中位數與中途最多跌（第 4.11 節）。現在成立的排最上面；點一列展開條件、過去出現的時候、每一次。"""
+    from . import sigcat as G
+    from . import sigpage as SPG
+    from . import sigspec as SS
+    mk = V.get("mk") or "tw"
+    rows = {r["var"]: r for r in G.research_rows() if r.get("mk") == mk and r.get("cat") == "scen"}
+    head = '<h2>所有情境<span class="sub">事先定義好的面向組合；過去出現之後 3 個月的結果</span></h2>'
+    if not rows:
+        return f'<section class="sec sqc" id="scen">{head}<p class="note">情境的研究結果還沒產生（scripts/run_sig.py）。</p></section>'
+    on = (V.get("signow") or {}).get("on") or {}
+    now = scen_now(V)
+    bases = G.research_bases()
+    src = SS.SCEN_SRC["tw" if mk == "tw" else "us"]
+    items = []
+    for k, (key, name, cond, why) in enumerate(SS.SCENARIOS):
+        r = rows.get(key)
+        if not r:
+            continue
+        o = on.get(r["id"])
+        up, wn = r.get("up") or {}, r.get("warn") or {}
+        s, b = _sq_ret(r, bases)
+        dims = " ".join(",".join(src[g]) for g in _sq_dims(cond))
+        badge = f'<span class="sqn">現在・{_e(HP._ymd(o["since"]))} 起</span>' if o else ""
+        p, q = up.get("hit"), up.get("base")
+        upc = ('<span class="mu">次數不夠</span>' if p is None else
+               f'{_pbar(p, q)}<b>{_p100(p)}</b><small>隨便挑一天 {_p100(q)}</small>')
+        wnc = ('<span class="mu">—</span>' if wn.get("hit") is None else
+               f'<b>{_p100(wn["hit"])}</b><small>隨便挑一天 {_p100(wn.get("base"))}</small>')
+        med = "—" if not s else f'<b>{_rp(s[3])}</b><small>隨便挑一天 {_rp(b[3]) if b else "—"}</small>'
+        mae = "—" if not s else f'<b>{_rp(s[6])}</b><small>隨便挑一天 {_rp(b[6]) if b else "—"}</small>'
+        n = up.get("n") or 0
+        items.append((0 if o else 1, k, (
+            f'<details class="sqr{" on" if o else ""}" id="sq-{key}" data-dims="{_e(dims)}">'
+            f'<summary class="sqg"><span class="sqnm"><b>{_e(name)}</b>{badge}<span class="sqcd">{_sq_cond(cond, now)}</span></span>'
+            f'<span class="sqv" data-h="3 個月後上漲">{upc}</span><span class="sqv" data-h="報酬中位數">{med}</span>'
+            f'<span class="sqv" data-h="中途最多跌（中位）">{mae}</span>'
+            f'<span class="sqv" data-h="3 個月內大跌（回撤 {SPG._th(r["th"])}% 以上）">{wnc}</span>'
+            f'<span class="sqv sqjs" data-h="判定">{_sq_tier(r, "up")}{_sq_tier(r, "warn")}</span>'
+            f'<span class="sqv" data-h="過去">{n} 段</span></summary>'
+            f'<div class="sqbody"><p class="sqw">{_e(why)}</p>{_sq_strip(r, o)}'
+            f'<p class="sqm">過去 {n} 段・{_e(r["a"][:4])} 年起；報酬與中途最多跌從隔一個交易日收盤算到 3 個月後，每一段一樣重'
+            f'<a href="x9o.html#s={_e(r["id"])}">每一次與 1 天～1 年的報酬 →</a></p></div></details>')))
+    items.sort(key=lambda x: (x[0], x[1]))
+    act = sum(1 for x in items if x[0] == 0)
+    tw_note = ("台股的資金＝全球資金與台灣資金的平均（兩個都有值才算，2009 年起）；籌碼 2019 年 12 月起才有，"
+               "所以「多數面向」在那之前是 3 個面向都偏熱（偏冷），之後是 4 個裡 3 個。" if mk == "tw" else
+               "情緒籌碼 2008 年起才有，「多數面向」在那之前是 3 個面向都偏熱（偏冷），之後是 4 個裡 3 個。")
+    th = next((SPG._th(r["th"]) for r in rows.values() if r.get("th") is not None), None)
+    hd = ('<div class="sqg sqhd" aria-hidden="true"><span>情境（條件・現在的分數）</span><span>3 個月後上漲</span><span>報酬中位數</span>'
+          f'<span>中途最多跌（中位）</span><span>3 個月內大跌{f"（回撤 {th}% 以上）" if th else ""}</span><span>判定</span><span>過去</span></div>')
+    return (f'<section class="sec sqc" id="scen">{head}'
+            f'<p class="note">現在成立的 {act} 個排在最上面（框起來）。偏熱以上＝{SS.SCEN_HI} 以上、偏冷以下＝未滿 {SS.SCEN_LO}。'
+            '上漲的橫條：實心＝這個情境、細線＝隨便挑一天。★ 好訊號、● 過門檻但可能是運氣、○ 沒有過門檻、— 次數不夠（判定同訊號總覽）。'
+            '點一列看過去出現的時候。</p>'
+            f'<div class="sqtab">{hd}{"".join(x[2] for x in items)}</div>'
+            f'<p class="note">一段＝連續在這個情境裡的日子。情境之間可以同時成立。9 個情境 × 5 個市場 × 偏多、警示兩個方向＝90 個比較，'
+            f'比得越多越容易碰到巧合，只當參考。{_e(tw_note)}</p></section>')
+
+
+# ── 現在的情境：相似的日子（sigspec 第 4.12 節；docs/lab_outlook_plan.md 第 2、11 節）──────────────────────────
+
+NS_H = {1: "1 天", 5: "1 週", 10: "2 週", 20: "1 個月", 60: "3 個月", 120: "6 個月", 250: "1 年"}
+NS_V = {"better": "比平常準", "worse": "比平常差", "none": "看不出比較準", "few": "次數不夠"}
+_SIM: dict = {}
+
+
+def sim_research(mk: str) -> dict:
+    """相似的日子的樣本外檢查（data/lab/sim_research.json，同一個程序裡只讀一次）→ {期間: 結果}。"""
+    if "R" not in _SIM:
+        from . import simdays
+        _SIM["R"] = simdays.load_research() or {}
+    return {o["h"]: o for o in (((_SIM["R"].get("markets") or {}).get(mk) or {}).get("oos") or [])}
+
+
+def _p100(x) -> str:
+    return "—" if x is None else f"{x * 100:.0f}%"
+
+
+def _rp(x) -> str:
+    """報酬（小數）→「+2.1%」。"""
+    return "—" if x is None else _pct(x * 100)
+
+
+def _pbar(p, b) -> str:
+    """上漲機率橫條：實心＝相似的日子（情境）、細線＝隨便挑一天。"""
+    t = "" if b is None else f'<em style="left:{b * 100:.1f}%"></em>'
+    return f'<span class="nsb" aria-hidden="true"><i style="width:{(p or 0) * 100:.1f}%"></i>{t}</span>'
+
+
+def _dist(d) -> str:
+    return "—" if d is None else (f"{d:.1f}" if d < 10 else f"{d:.0f}")
+
+
+def _ns_score(nm: str, x) -> str:
+    if x is None:
+        return f'<span class="nsd">{_e(nm)} <b class="ztx">—</b></span>'
+    return f'<span class="nsd">{_e(nm)} <b class="zt{_zc(x)}">{HP.n0(x)}</b><i>{_e(S.band(x) or "")}</i></span>'
+
+
+def now_html(V: dict) -> str:
+    """現在的情境（docs/lab_outlook_plan.md 第 2 節）：現在的面向 → 過去最像的日子之後（1 天～1 年）→ 準不準（樣本外，第 11 節）
+    → 最像的幾段 → 現在成立的情境。估計由 sigcat.now_for_B 算（simdays.estimate），樣本外讀 sim_research.json。"""
+    from . import sigspec as SS
+    mk = V.get("mk") or "tw"
+    E = (V.get("signow") or {}).get("sim")
+    head = '<h2>現在的情境<span class="sub">過去和現在最像的日子，之後怎麼走</span></h2>'
+    if not E:
+        return (f'<section class="sec nsc" id="now">{head}<p class="note">今天有面向沒有分數，沒有找相似的日子。'
+                '（比對用基本面、資金、技術三個面向，三個都要有值。）</p></section>')
+    chip_nm = "籌碼" if mk == "tw" else "情緒籌碼"
+    nm = {**SS.SCEN_DIM_NAMES, "chip": chip_nm}
+    ch = E.get("chip")
+    cx = ch["x"][ch["dims"].index("chip")] if ch else None
+    dims = ('<p class="nsdl"><span class="nsk">比對用</span>' + "".join(_ns_score(nm[g], x) for g, x in zip(E["dims"], E["x"]))
+            + f'<span class="nsk">另列</span>{_ns_score(chip_nm, cx)}</p>')
+    R = {r["h"]: r for r in E["rows"]}
+    r0 = R.get(SS.NB_LIST_H) or E["rows"][-1]
+    s, b = r0.get("s"), r0.get("b")
+    lead = ""
+    if r0.get("far"):
+        lead += (f'過去沒有很像現在的日子（平均每個面向差 {_dist(r0["dist"])} 分，超過 {SS.NB_FAR} 分），下面的數字只當參考。')
+    if s and b:
+        lead += (f'過去和現在最像的 {r0["n"]} 段（{_e((r0.get("a") or "")[:4])} 年起找，平均每個面向差 {_dist(r0["dist"])} 分），'
+                 f'之後 {NS_H[r0["h"]]}上漲 <b>{_p100(s[5])}</b>（隨便挑一天 {_p100(b[5])}）、報酬中位數 <b>{_rp(s[3])}</b>'
+                 f'（{_rp(b[3])}）、中途最多跌中位數 <b>{_rp(s[6])}</b>（{_rp(b[6])}）。')
+    O = sim_research(mk)
+    if O:
+        from collections import Counter
+        cnt = Counter(o.get("v") for o in O.values())
+        st = min((o["a"] for o in O.values() if o.get("a")), default="")
+        acc = (f'<b>這個方法準不準</b>：從 {_e(st[:4])} 年起每個月底只用當時的資料估一次，和「隨便挑一天的上漲比例」比。'
+               f'{len(O)} 個期間：比平常準 {cnt["better"]}、看不出比較準 {cnt["none"]}、比平常差 {cnt["worse"]}'
+               + (f'、次數不夠 {cnt["few"]}' if cnt["few"] else "") + "。")
+        if not cnt["better"]:
+            acc += ('所以這裡的上漲機率<b>不要當成預估</b>，一律和「隨便挑一天」一起看；'
+                    '這一區的用處是列出過去像現在的是哪幾段、後來怎麼走，讓你自己核對。')
+        accc = "nsacc" + (" bad" if not cnt["better"] else "")
+    else:
+        acc, accc = "這個方法準不準：樣本外檢查還沒產生（scripts/run_sim.py）。", "nsacc"
+    trs = []
+    for h in SS.RET_H:
+        r = R.get(h) or {}
+        s, b = r.get("s"), r.get("b")
+        o = O.get(h) or {}
+        v = o.get("v")
+        few = f'<small>只找到 {r.get("n", 0)} 段</small>' if r.get("n", 0) < SS.NB_K else ""
+        if not s:
+            trs.append(f'<tr><td class="l nsp">{NS_H[h]}{few}</td><td colspan="5" class="mu">過去走完這段期間的日子不夠</td></tr>')
+            continue
+        bt = b or [None] * 9
+        trs.append(
+            f'<tr><td class="l nsp">{NS_H[h]}{few}</td>'
+            f'<td class="l" data-h="上漲機率">{_pbar(s[5], bt[5])}<b>{_p100(s[5])}</b><small>隨便挑一天 {_p100(bt[5])}</small></td>'
+            f'<td data-h="報酬中位數"><b>{_rp(s[3])}</b><small>{_rp(bt[3])}</small></td>'
+            f'<td data-h="一半落在">{_rp(s[2])}～{_rp(s[4])}<small>{_rp(bt[2])}～{_rp(bt[4])}</small></td>'
+            f'<td data-h="中途最多跌（中位／最差 10%）">{_rp(s[6])}／{_rp(s[7])}<small>{_rp(bt[6])}／{_rp(bt[7])}</small></td>'
+            f'<td class="l" data-h="準不準"><span class="nsv nsv-{_e(v or "x")}">{_e(NS_V.get(v, "—"))}</span></td></tr>')
+    table = ('<div class="tw"><table class="nst stk"><tr><th class="l">期間</th><th class="l">上漲機率</th><th>報酬中位數</th>'
+             '<th>一半落在</th><th>中途最多跌<br>中位／最差 10%</th><th class="l">準不準</th></tr>' + "".join(trs) + '</table></div>'
+             '<p class="note">每一格的小字＝隨便挑一天（同一段期間全部的日子）。進場＝隔一個交易日收盤；中途最多跌＝持有期間最低收盤比進場價低多少。'
+             f'每個期間各自找最像的 {SS.NB_K} 段（彼此至少隔 {SS.NB_GAP} 個交易日，只用之後已經走完的日子）。</p>')
+    if ch:
+        c0 = ch["rows"][0]
+        cs, cb = c0.get("s"), c0.get("b")
+        chipl = (f'<p class="nschip">加上{_e(chip_nm)}一起比（{_e((c0.get("a") or "")[:4])} 年起才有）：最像的 {c0["n"]} 段'
+                 f'（平均每個面向差 {_dist(c0["dist"])} 分）之後 {NS_H[c0["h"]]}上漲 {_p100(cs[5]) if cs else "—"}'
+                 f'（隨便挑一天 {_p100(cb[5]) if cb else "—"}）、報酬中位數 {_rp(cs[3]) if cs else "—"}（{_rp(cb[3]) if cb else "—"}）。'
+                 '歷史短，沒有做樣本外檢查。</p>')
+    else:
+        chipl = f'<p class="nschip">{_e(chip_nm)}今天沒有分數，沒有算加上{_e(chip_nm)}的版本。</p>'
+    if O:
+        ors = []
+        for h in SS.RET_H:
+            o = O.get(h)
+            if not o:
+                continue
+            iv = (f'{HP._sgn(o["lo"], 3)}～{HP._sgn(o["hi"], 3)}' if o.get("lo") is not None else "—")
+            hv = (f'{o["hi_n"]} 個月：實際 {_p100(o.get("hi_up"))}（隨便挑一天 {_p100(o.get("hi_q"))}）'
+                  if o.get("hi_n") else "沒有")
+            ors.append(f'<tr><td class="l nsp">{NS_H[h]}</td><td data-h="月數">{o["n"]}</td>'
+                       f'<td data-h="Brier：相似／平常">{o.get("bp", 0):.3f}／{o.get("bq", 0):.3f}</td>'
+                       f'<td data-h="差（95% 區間）">{HP._sgn(o.get("d"), 3)}<small>{iv}</small></td>'
+                       f'<td data-h="前後兩半">{HP._sgn(o.get("h1"), 3)}／{HP._sgn(o.get("h2"), 3)}</td>'
+                       f'<td class="l" data-h="估 {SS.NB_HI * 100:.0f}% 以上的月份">{hv}</td>'
+                       f'<td class="l" data-h="判定"><span class="nsv nsv-{_e(o.get("v") or "x")}">{_e(NS_V.get(o.get("v"), "—"))}</span></td></tr>')
+        oos = ('<details class="nso"><summary>準不準的數字（樣本外檢查）</summary><div class="tw"><table class="nsot stk">'
+               '<tr><th class="l">期間</th><th>月數</th><th>Brier<br>相似／平常</th><th>差（95% 區間）</th><th>前後兩半</th>'
+               f'<th class="l">估 {SS.NB_HI * 100:.0f}% 以上的月份</th><th class="l">判定</th></tr>' + "".join(ors) + '</table></div>'
+               '<p class="note">Brier 分數＝（估的機率 − 實際有沒有上漲）² 的平均，越小越準。差＝平常 − 相似的日子，大於 0＝相似的日子比較準；'
+               f'區間＝以月為單位、每塊 {SS.NB_BLOCK} 個月重抽 {SS.NB_BOOT:,} 次。比平常準＝區間大於 0 而且前後兩半都大於 0；'
+               '比平常差＝區間小於 0 而且前後兩半都小於 0。規則在看結果之前寫定（sigspec 第 4.12 節）。</p></details>')
+    else:
+        oos = ""
+    L = E.get("list") or []
+    lr = []
+    for i, e in enumerate(L):
+        x = dict(zip(E["dims"], e["x"]))
+        rr = e.get("r") or {}
+        cells = "".join(f'<td data-h="{_e(nm[g])}" class="zt{_zc(x.get(g))}">{HP.n0(x[g]) if x.get(g) is not None else "—"}</td>'
+                        for g in E["dims"])
+        cv = e.get("c")
+        tr = '<tr class="nsh">' if i >= 5 else "<tr>"
+        lr.append(f'{tr}<td class="l nsp">{_e(HP._ymd(e["d"]))}</td>{cells}'
+                  f'<td data-h="{_e(chip_nm)}" class="zt{_zc(cv)}">{HP.n0(cv) if cv is not None else "—"}</td>'
+                  f'<td data-h="差幾分">{_dist(e.get("dist"))}</td>'
+                  + "".join(f'<td data-h="之後 {NS_H[h]}">{_rp(rr.get(h, rr.get(str(h))))}</td>' for h in SS.NB_LIST_EXTRA)
+                  + f'<td data-h="中途最多跌（{NS_H[SS.NB_LIST_H]}）">{_rp(e.get("mae"))}</td></tr>')
+    more = (f'<input type="checkbox" id="nsall" class="nsck"><label for="nsall" class="nsall"><span>看全部 {len(L)} 段</span>'
+            '<span>只看前 5 段</span></label>' if len(L) > 5 else "")
+    lst = ('<h3>最像的幾段</h3>' + more + '<div class="tw nslw"><table class="nslt stk"><tr><th class="l">日期</th>'
+           + "".join(f'<th>{_e(nm[g])}</th>' for g in E["dims"]) + f'<th>{_e(chip_nm)}</th><th>差幾分</th>'
+           + "".join(f'<th>之後 {NS_H[h]}</th>' for h in SS.NB_LIST_EXTRA) + f'<th>中途最多跌<br>（{NS_H[SS.NB_LIST_H]}）</th></tr>'
+           + "".join(lr) + '</table></div>'
+           f'<p class="note">依「差幾分」排（比對用的三個面向分數差的平均）；用的是看 {NS_H[SS.NB_LIST_H]}那一組。'
+           f'{_e(chip_nm)}只顯示、不算進比對。之後的漲跌還沒走完的寫 —。</p>') if L else ""
+    on = (V.get("signow") or {}).get("on") or {}
+    from . import sigcat as G
+    ids = {r["var"]: r["id"] for r in G.research_rows() if r.get("mk") == mk and r.get("cat") == "scen"}
+    act = [f'<a class="nsq" href="#sq-{_e(key)}">{_e(name)}</a>' for key, name, _c, _w in SS.SCENARIOS if ids.get(key) in on]
+    scl = ('<p class="nsscen"><span class="nsk">現在成立的情境</span>' + ("".join(act) if act else '<span class="mu">沒有</span>')
+           + '<a href="#scen" class="nsto">所有情境 ↓</a></p>')
+    return (f'<section class="sec nsc" id="now">{head}{dims}<p class="nslead">{lead}</p><p class="{accc}">{acc}</p>'
+            f'{table}{chipl}{oos}{lst}{scl}</section>')
 
 
 def main_view(V: dict, ks: list[dict]) -> str:
     asof = V["asof"]
     stash_cards(V)
-    nav = ('<nav class="snav"><a href="#top">雷達</a><a href="#today">今天的重點</a><a href="#items">全部項目</a>'
+    nav = ('<nav class="snav"><a href="#top">雷達</a><a href="#today">今天的重點</a><a href="#now">現在的情境</a>'
+           '<a href="#scen">所有情境</a><a href="#items">全部項目</a>'
            f'<a href="#cmp">{_e(HP.MK["cmp"])}</a>' + ('<a href="#ta">價位事件</a>' if V.get("ta") else "")
            + '<a href="x9o.html">訊號總覽</a>'
            + '<button type="button" class="snv" data-goview="research">研究與驗證 →</button></nav>')
     nores = "" if (V.get("R") or {}).get("dims") else f'<p class="warn">驗證結果還沒產生（{_e(HP.MK["res"])}），先只列各項的 0～100。</p>'
     top = (f'<section class="vtop" id="top"><p class="sum">{_e(V.get("summary") or "")}</p>{nores}'
-           f'<div class="vgrid">{_radar_card()}<div class="vside">{today_html(V)}{moves_html(V)}</div></div>'
+           f'<div class="vgrid">{_radar_card()}<div class="vside">{today_html(V)}</div></div>{moves_html(V)}'
            f'<p class="hz">{_e(S.HORIZON_NOTE)}。<span class="mu">（資料到 {_e(HP._md(asof))}）</span></p></section>')
     items = ('<section class="sec" id="items"><div class="ish2"><h2>全部項目<span class="sub" id="isub"></span></h2>'
              '<div class="seg"><button type="button" class="tb" id="itabb" aria-pressed="false">表格</button></div></div>'
              '<div class="imap" id="imap"></div>'
              '<p class="note">每一點是一項：位置＝現在的 0～100；短線＝和上週比從哪裡移過來；點越大＝拉動面向分數越多。點一下打開右邊的面板。</p>'
              f'{items_table(V)}</section>')
-    return (f'<div class="hview" data-view="radar">{nav}{top}{items}{HP._cmp_section()}{HP._ta_main(V)}'
+    return (f'<div class="hview" data-view="radar">{nav}{top}{now_html(V)}{scen_html(V)}{items}{HP._cmp_section()}{HP._ta_main(V)}'
             '<p class="vmore"><button type="button" class="tb" data-goview="research">研究與驗證（各項和指數的關係、多層回歸、事件研究、資料來源）→</button></p></div>')
 
 
@@ -689,7 +1178,9 @@ def dim_tpl(d: str, L: dict, V: dict) -> str:
     st = (V.get("strips") or {}).get(d) or {}
     z = _zc(sc)
     wk = "—" if sc is None or L["ago"] is None else HP._sgn(sc - L["ago"], 0)
-    cells = [("分數", f'<span class="zt{z}">{"—" if sc is None else HP.n0(sc)}</span>', _e(L["band"] or "還沒有分數")),
+    d1 = next((x.get("d1") for x in (V.get("viz") or {}).get("dims") or [] if x["id"] == d), None)
+    dtxt = "" if d1 is None else ("・和昨日一樣" if d1 == 0 else f"・比昨日 {d1:+d}".replace("-", "−"))
+    cells = [("分數", f'<span class="zt{z}">{"—" if sc is None else HP.n0(sc)}</span>', _e((L["band"] or "還沒有分數") + dtxt)),
              ("和上週比", _e(wk), f'上週 {"—" if L["ago"] is None else HP.n0(L["ago"])}'),
              ("有值的項目", f'{L["n_have"]}／{len(L["items"])}', "等權平均")]
     stt = f'<p class="dst">{_e(HP.strip_text(st))}</p>' if st else ""
@@ -792,8 +1283,8 @@ CSS = """
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px}
 .hview>.snav{margin:0 -16px 12px}
 .snv{border:0;background:var(--accbg);color:var(--acc);font:inherit;font-size:13px;border-radius:12px;padding:2px 10px;cursor:pointer;white-space:nowrap}
-.vgrid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:14px;align-items:start}
-.vside{display:flex;flex-direction:column;gap:14px;min-width:0}
+.vgrid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:14px;align-items:stretch}
+.vside{display:flex;flex-direction:column;gap:14px;min-width:0}.vside>.card:last-child{flex:1}
 .rcard,.kstate,.wchg,.ccard,.tcard,.cquad{padding:12px 14px;min-width:0}
 .khd{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.khd h2{font-size:16px;margin:0}.kn{font-size:12.5px;color:var(--mut)}
 .ksub{font-size:12.5px;color:var(--mut);margin:3px 0 8px;line-height:1.6}
@@ -830,12 +1321,18 @@ CSS = """
 .rch i{display:inline-block;width:14px;height:0;border-top:2px dashed var(--line2)}
 .rch.on{color:var(--ink);font-weight:600;border-color:var(--ink2)}.rch.on.o0 i{border-color:var(--p0)}.rch.on.o1 i{border-color:var(--p1)}.rch.on.o2 i{border-color:var(--p2)}
 .rch em{font-style:normal;color:var(--mut);font-weight:400;font-size:11.5px}
-.rsm{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
-.rsm button{border:1px solid var(--line);background:var(--card2);border-radius:10px;padding:4px 2px 3px;font:inherit;color:inherit;cursor:pointer;min-width:0}
-.rsm button.now{border-color:var(--acc)}.rsm button.sel{box-shadow:inset 0 0 0 2px var(--acc)}
-.rsm svg{display:block;width:100%;height:auto}.rsm b{display:block;font-size:12px}.rsm i{display:block;font-style:normal;font-size:10.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rsm .mr{fill:none;stroke:var(--line2)}.rsm .mp{fill:var(--accbg);stroke:var(--ink2);stroke-width:1.4}.rsm .mp.hot{fill:var(--zh);stroke:var(--c4)}
-.rsmc{font-size:11.5px;color:var(--mut);margin:4px 0 0}
+.rsmh{font-size:14px;margin:16px 0 0}.rsmh .sub{display:block;font-weight:400;font-size:11.5px;color:var(--mut);margin:2px 0 0}
+.rsm{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:8px}
+.rsm button{border:1px solid var(--line);border-top:3px solid var(--line2);background:var(--card2);border-radius:10px;padding:4px 3px 4px;font:inherit;color:inherit;cursor:pointer;min-width:0;text-align:center}
+.rsm button.sh{border-top-color:var(--c4)}.rsm button.sl{border-top-color:var(--c0)}.rsm button.tent{border-style:dashed}
+.rsm button.now{border-color:var(--acc);border-top-color:var(--acc)}.rsm button.sel{box-shadow:inset 0 0 0 2px var(--acc)}
+.rsm button.on.o0{box-shadow:inset 0 0 0 2px var(--p0)}.rsm button.on.o1{box-shadow:inset 0 0 0 2px var(--p1)}.rsm button.on.o2{box-shadow:inset 0 0 0 2px var(--p2)}
+.rsm svg{display:block;width:100%;height:auto}.rsm b{display:block;font-size:12px}.rsm .sk{font-size:10.5px;font-weight:700;margin-left:3px}
+.rsm .sh .sk{color:var(--t4)}.rsm .sl .sk{color:var(--t0)}
+.rsm i{display:block;font-style:normal;font-size:10.5px;line-height:1.3;color:var(--mut)}
+.rsm .mr{fill:none;stroke:var(--line2)}.rsm .mp{fill:var(--accbg);stroke:var(--ink2);stroke-width:1.4}
+.rsmc{font-size:12.5px;color:var(--ink2);margin:8px 0 0;line-height:1.6}
+.rdl{font-size:11.5px;font-weight:700}.rdl.up{fill:var(--t4)}.rdl.dn{fill:var(--t0)}.rdl.eq{fill:var(--mut);font-weight:400}
 .kstate .kcard{display:block;border-top:1px solid var(--line);padding:9px 6px 6px;margin:0 -6px;border-radius:10px;cursor:pointer}
 .kcard:hover{background:var(--card2)}
 .kt{display:flex;align-items:baseline;gap:6px 8px;flex-wrap:wrap}.kt b{font-size:15px}
@@ -852,8 +1349,26 @@ CSS = """
 .klist{list-style:none;margin:4px 0 0;padding:0}
 .kmini{display:block;width:100%;text-align:left;border:0;background:none;padding:6px 4px;border-top:1px solid var(--line);font:inherit;color:inherit;cursor:pointer;border-radius:8px}
 .kmini:hover{background:var(--card2)}.kmini .vt{margin-top:2px}
-.wchg ul{list-style:none;margin:6px 0 0;padding:0}.wchg li{font-size:13px;line-height:1.75;margin:3px 0;color:var(--ink2)}
-.wtag{display:inline-block;font-size:11.5px;color:var(--mut);margin-right:6px;min-width:4.6em}
+.vtop .wchg{margin:14px 0 10px}
+.wchg ul{list-style:none;margin:6px 0 0;padding:0}.wchg li{font-size:13px;line-height:1.7;color:var(--ink2)}
+.wchg .wr{display:grid;grid-template-columns:5.6em 6.4em 3.4em 8.4em 140px minmax(0,1fr);grid-template-areas:"nm sc d bd tk wy";
+align-items:center;gap:2px 14px;border-top:1px solid var(--line);padding:8px 0}.wchg .wr:first-child{border-top:0;padding-top:2px}
+.wnm{grid-area:nm}.wchg .wnm>.nmb{font-size:14.5px;font-weight:700}
+.wsc{grid-area:sc;font-size:13px;color:var(--ink2);white-space:nowrap}.wsc b{font-size:15px}
+.wd{grid-area:d;font-size:13px;font-weight:800;white-space:nowrap}.wd.up{color:var(--t4)}.wd.dn{color:var(--t0)}
+.wbd{grid-area:bd;font-size:12px;color:var(--ink2);white-space:nowrap}.wbd.mu{color:var(--mut)}
+@media (max-width:820px){.wchg .wr{grid-template-columns:auto auto auto minmax(0,1fr);grid-template-areas:"nm sc d bd" "tk tk tk tk" "wy wy wy wy";
+align-items:baseline;gap:2px 10px}.wchg .wr .wtk{margin:4px 6px 2px}}
+.wtk{grid-area:tk;position:relative;display:block;height:10px;margin:0 6px;border-radius:5px;
+background:linear-gradient(90deg,var(--zc) 0 20%,var(--card2) 20% 80%,var(--zh) 80% 100%);box-shadow:inset 0 0 0 1px var(--line)}
+.wtk i{position:absolute;top:50%}.wseg{height:4px;margin-top:-2px;background:var(--ink2);opacity:.35;border-radius:2px}
+.wo,.wn{width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;box-sizing:border-box}
+.wo{border:2px solid var(--ink2);background:var(--panel)}.wn{border:2px solid var(--panel)}
+.wc0{background:var(--c0)}.wc1{background:var(--c1)}.wc2{background:var(--c2)}.wc3{background:var(--c3)}.wc4{background:var(--c4)}.wcx{background:var(--mut)}
+.wwy{grid-area:wy;margin:0;font-size:12.5px;line-height:1.65;color:var(--ink2)}.wp{color:var(--mut);font-size:11.5px;white-space:nowrap}
+.wx{font-style:normal;font-size:11px;font-weight:700;margin-left:4px;white-space:nowrap}
+.wchg .wfl{border-top:1px solid var(--line);padding:7px 0 2px;font-size:12.5px}
+.wtag{display:inline-block;font-size:11.5px;color:var(--mut);margin-right:6px}
 .wchg .nmb{font-size:13px}
 .ish2{display:flex;align-items:baseline;justify-content:space-between;gap:6px 10px;flex-wrap:wrap;margin:0 0 6px}.ish2 h2{margin:0;font-size:17px}
 .imap{position:relative}.imap svg{display:block;width:100%;height:auto}
@@ -949,7 +1464,8 @@ CSS = """
 @media (max-width:640px){.erow,.ehead{grid-template-columns:minmax(0,126px) minmax(0,1fr) 36px;gap:6px}.er{display:none}.ehead .er{display:none}}
 @media (max-width:820px){.vgrid{grid-template-columns:1fr}.vbar{gap:6px 10px}}
 @media (max-width:640px){
- .vsw button{padding:5px 9px;font-size:13px}.rsm{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.rsm .pxn{display:none}
+ .vsw button{padding:5px 9px;font-size:13px}.rsm{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.rsm .pxn{display:none}
+ .rsm b{font-size:11px}.rsm .sk{display:block;margin:0}.rsm i{font-size:10px}.rsm button{padding:3px 1px}
  .rchips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:2px -16px 4px;padding:0 16px}.rchips::-webkit-scrollbar{display:none}.rch{flex:none}
  .rnow{min-width:4.8em;font-size:12.5px}.dnum b{font-size:17px}.drw{width:100vw;border-left:0}
  .ter{height:58vh;min-height:320px}
@@ -957,15 +1473,90 @@ CSS = """
 body.drw-on{overflow:hidden}
 @media (min-width:1100px){body.drw-on{overflow:auto}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+/* 情境（sigspec 第 4.10 節） */
+.sqc,.nsc{--bull:#d33a34;--bear:#159c94}
+@media (prefers-color-scheme:dark){.sqc,.nsc{--bull:#f15b50;--bear:#24a89d}}
+.sqtab{margin:8px 0;border-top:1px solid var(--line)}
+.sqg{display:grid;grid-template-columns:minmax(0,2.3fr) minmax(0,1.25fr) repeat(3,minmax(0,.85fr)) 74px 44px;gap:4px 10px;align-items:center}
+.sqhd{padding:6px 6px;font-size:11.5px;color:var(--mut);border-bottom:1px solid var(--line)}
+.sqr{border-bottom:1px solid var(--line);scroll-margin-top:110px}
+.sqr>summary{list-style:none;cursor:pointer;padding:8px 6px;border-radius:8px}.sqr>summary::-webkit-details-marker{display:none}
+.sqr>summary:hover{background:var(--card2)}.sqr>summary:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.sqr.on{background:var(--accbg);box-shadow:inset 3px 0 0 var(--acc)}
+.sqr.hl{outline:2px dashed var(--acc);outline-offset:-2px}
+.sqnm{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;min-width:0}.sqnm b{font-size:14.5px}
+.sqn{font-size:11.5px;padding:0 8px;border-radius:999px;background:var(--panel);color:var(--acc);font-weight:600;white-space:nowrap;box-shadow:inset 0 0 0 1px var(--acc)}
+.sqcd{flex-basis:100%;font-size:12px;line-height:1.55;color:var(--ink2)}.sqcd span{font-weight:700}
+.sqv{font-size:12.5px;line-height:1.35;font-variant-numeric:tabular-nums;min-width:0}.sqv b{font-size:14px}
+.sqv small,.nst small,.nsot small{display:block;font-size:11px;color:var(--mut);font-weight:400}
+.sqv .nsb{margin-bottom:2px}
+.sqjs{display:flex;flex-direction:column;gap:2px}.sqj{white-space:nowrap;font-weight:700}.sqj-good{color:var(--acc)}.sqj-ref{color:var(--ink2)}.sqj-none,.sqj-few{color:var(--mut)}
+.sqd{font-size:10.5px;font-weight:700;padding:0 5px;border-radius:999px;margin-right:4px;display:inline-block}
+.sqd-up{color:var(--bull);box-shadow:inset 0 0 0 1px var(--bull)}.sqd-warn{color:var(--bear);box-shadow:inset 0 0 0 1px var(--bear)}
+.sqbody{padding:0 6px 10px}
+.sqw{margin:0 0 4px;font-size:12.5px;color:var(--mut)}
+.sqt{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px;margin:6px 0 2px;font-size:10.5px;color:var(--mut);max-width:560px}
+.sqt span:first-of-type{grid-column:1;grid-row:1}.sqt span:last-of-type{grid-column:3;grid-row:1}
+.sqtb{grid-column:2;grid-row:1;position:relative;height:10px;border-radius:3px;background:var(--card2);overflow:hidden}
+.sqtb i{position:absolute;top:0;bottom:0;background:var(--ink2);opacity:.55}.sqtb i.nw{background:var(--acc);opacity:1}
+.sqr.on .sqtb i:last-child{background:var(--acc);opacity:1}
+.sqm{margin:4px 0 0;font-size:12px;color:var(--mut);line-height:1.6}.sqm a{margin-left:8px;white-space:nowrap}
+.nsb{position:relative;display:block;height:8px;border-radius:4px;background:var(--card2);max-width:160px}
+.nsb i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--bull);opacity:.85}
+.nsb em{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--ink)}
+.nsdl{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin:4px 0 6px;font-size:13.5px}
+.nsd b{font-size:17px;margin:0 2px}.nsd i{font-style:normal;font-size:12px;color:var(--mut)}
+.nsk{font-size:11.5px;color:var(--mut);padding:0 6px;border-radius:999px;border:1px solid var(--line2)}
+.nslead{margin:4px 0;font-size:14px;line-height:1.7}
+.nsacc{margin:6px 0 10px;padding:8px 12px;border-radius:10px;background:var(--card2);font-size:13px;line-height:1.7}
+.nsacc.bad{box-shadow:inset 3px 0 0 var(--bear)}
+.nst td,.nst th,.nsot td,.nsot th,.nslt td,.nslt th{font-variant-numeric:tabular-nums}
+.nst td,.nsot td{vertical-align:top}.nst td.nsp,.nsot td.nsp,.nslt td.nsp{font-weight:700;white-space:nowrap}.nsp small{font-weight:400}
+.nsv{font-size:12px;font-weight:600;white-space:nowrap}.nsv-worse{color:var(--bear)}.nsv-better{color:var(--acc)}.nsv-none,.nsv-few,.nsv-x{color:var(--mut)}
+.nschip{margin:0 0 8px;font-size:13px;color:var(--ink2);line-height:1.7}
+.nso{margin:4px 0 12px}.nso>summary{cursor:pointer;font-size:13px;color:var(--acc)}
+.nsc h3{margin:14px 0 6px;font-size:15px}
+.nsck{position:absolute;opacity:0;pointer-events:none}
+.nsall{display:inline-block;margin:0 0 6px;font-size:12.5px;color:var(--acc);cursor:pointer}
+.nsall span+span,.nsck:checked+.nsall span:first-child{display:none}.nsck:checked+.nsall span+span{display:inline}
+.nsck:focus-visible+.nsall{outline:2px solid var(--acc);outline-offset:2px}
+.nsck:not(:checked)~.nslw .nsh{display:none}
+.nsscen{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 8px;margin:10px 0 0;font-size:13px}
+.nsq{padding:1px 10px;border-radius:999px;background:var(--accbg);color:var(--acc);text-decoration:none;font-weight:600}
+.nsto{margin-left:auto;font-size:12.5px}
+@media (max-width:900px){.sqg{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)}.sqhd{display:none}
+ .sqnm{grid-column:1/-1}.sqv[data-h]::before{content:attr(data-h);display:block;font-size:11px;color:var(--mut)}}
+@media (max-width:640px){.nst td small,.nsot td small{display:inline;margin-left:4px}.nsb{max-width:none;margin:2px 0 3px}
+ table.nst tr{display:flex!important;flex-wrap:wrap;align-items:baseline;column-gap:10px}table.nst tr:first-child{display:none!important}table.nst td{flex-basis:100%;order:2}
+ table.nst td.nsp{flex-basis:auto;order:0}table.nst td:last-child{flex-basis:auto;order:1;margin-left:auto}
+ table.nst td:last-child::before{display:none}.nst .nsb{display:inline-block;width:96px;margin:0 6px 0 0;vertical-align:middle}
+ .nslt td{display:inline-block!important;margin-right:12px}.nslt td.nsp{display:block!important}}
 /* 今天的重點（訊號總覽的實務判定）與頁首的市場狀態一行 */
-.tzc{padding:12px 14px;min-width:0}
+.tzc{padding:12px 14px;min-width:0;margin:0;--bull:#d33a34;--bear:#159c94}
+.tzx{margin:-2px 0 6px;font-size:12.5px;color:var(--ink2)}.tzx summary{cursor:pointer;color:var(--acc);font-size:12.5px}.tzx p{margin:4px 0 0;line-height:1.6}
+@media (prefers-color-scheme:dark){.tzc{--bull:#f15b50;--bear:#24a89d}}
+.tzt{display:grid;gap:7px;margin:4px 0 12px}
+.tzr{display:grid;grid-template-columns:62px minmax(0,1fr);align-items:center;gap:4px 8px}
+.tzn{display:flex;flex-direction:column;line-height:1.2}.tzn b{font-size:14px}.tzn i{font-style:normal;font-size:11.5px;color:var(--mut)}
+.tzb{position:relative;display:flex;height:16px;border-radius:4px;background:var(--card2);overflow:hidden;gap:2px}
+.tzb::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:var(--ink2);opacity:.55}
+.tzs{display:block;height:100%}.tzs-up{background:var(--bull)}.tzs-warn{background:var(--bear)}.tzs-ref{opacity:.42}
+.tzv{grid-column:2;display:flex;flex-wrap:wrap;gap:0 8px;align-items:baseline;line-height:1.3;font-size:12.5px;color:var(--ink2)}
+.tzw{font-size:14px}.tzw-up{color:var(--bull)}.tzw-warn{color:var(--bear)}.tzw-even{color:var(--ink)}.tzw-none{color:var(--mut);font-weight:500}
+.tzp{margin-left:6px;font-size:12.5px;color:var(--ink2)}.tzct{font-size:12px;color:var(--mut)}
+.tzcols{display:grid;grid-template-columns:1fr;gap:6px}
+.tzcol h3{margin:4px 0 2px;font-size:15px;display:flex;align-items:baseline;gap:8px}.tzcol h3 .sub{font-size:12px;color:var(--mut);font-weight:400}
+.tzcl{padding:0 0 1px;border-bottom:3px solid}.tzcl-up{border-color:var(--bull)}.tzcl-warn{border-color:var(--bear)}
+.tzmore summary{cursor:pointer;font-size:13px;color:var(--acc);padding:4px 2px}
 .tzu{list-style:none;margin:0;padding:0}.tzu li+li{border-top:1px solid var(--line)}
 .tzi{display:block;padding:7px 2px;color:var(--ink);text-decoration:none;border-radius:8px}.tzi:hover{background:var(--card2)}
 .tzh{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}.tzh b{font-weight:600;font-size:14px}
 .tzk{width:14px;text-align:center;font-weight:700}.tzk-good{color:var(--acc)}.tzk-ref{color:var(--ink2)}
 .tzd{font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--line2);white-space:nowrap}
-.tzd-up{color:var(--t4);border-color:var(--t4)}.tzd-warn{color:var(--t3);border-color:var(--t3)}.tzd-buy{color:var(--p0);border-color:var(--p0)}
+.tzo{font-size:11.5px;padding:0 7px;border-radius:999px;white-space:nowrap;color:var(--ink);background:var(--line);cursor:help}
+.tzd.tzs{border-color:var(--acc);color:var(--acc);font-weight:600}
 .tzl{display:block;font-size:12.5px;color:var(--ink2);padding-left:20px;line-height:1.55}.tzl b{color:var(--ink)}
+.tzf{display:block;font-size:12px;color:var(--mut);padding-left:20px;line-height:1.5;margin-top:2px}
 .tzm{margin:6px 0 0;font-size:13px}
 .stl{max-width:1080px;margin:4px auto 0;padding:0 16px;display:flex;flex-wrap:wrap;gap:6px}
 .stc{display:inline-flex;align-items:baseline;gap:5px;padding:2px 10px;border-radius:999px;border:1px solid var(--line2);
@@ -974,7 +1565,7 @@ font-size:13px;color:var(--ink2);background:var(--panel);text-decoration:none;wh
 .stz0{border-color:var(--c0)}.stz1{border-color:var(--c1)}.stz3{border-color:var(--c3)}.stz4{border-color:var(--c4);background:var(--sbg)}
 .stz0 i,.stz1 i{color:var(--t0)}.stz3 i{color:var(--t3)}.stz4 i{color:var(--t4)}.stc i{font-style:normal;font-weight:600}
 .stx{border-color:var(--c4);color:var(--t4)}
-@media (max-width:820px){.vgrid>.vside{order:-1}}
+.stc.stw{white-space:normal}
 """
 
 
@@ -1195,20 +1786,27 @@ function bigChart(el, id) {
 const RS = {i: null, ov: [], cur: null, tgt: null, raf: 0, play: 0};
 const PRE = {};
 (P.pre || []).forEach(p => { PRE[p.key] = p; });
-if (PRE.w4) RS.ov.push({key: 'w4', slot: 0});
+(function () { const hs = (P.pre || []).filter(p => p.k === 'H'); if (hs.length) RS.ov.push({key: hs[hs.length - 1].key, slot: 0}); })();   // 預設疊上最近一個已確認的高點
 function iLast() { return D ? D.w.d.length - 1 : -1; }
 function iStart() { if (!D) return 0; const j = D.w.d.findIndex(d => d >= P.start); return j < 0 ? 0 : j; }
 function nowV() { return P.dims.map(d => d.sc); }
 function atV(i) { return DIM.map(id => val(D.s[id] && D.s[id].h, i)); }
 function isNow() { return RS.i == null || !D || RS.i >= iLast(); }
 function tgtV() { return isNow() ? nowV() : atV(RS.i); }
+function dlt() {                                            // 括號裡的變化：現在＝和前一個交易日比；拉到過去＝和前一週比
+  if (isNow()) return P.dims.map(d => d.d1);
+  if (!D || RS.i <= iStart()) return DIM.map(() => null);
+  const a = atV(RS.i), b = atV(RS.i - 1);
+  return a.map((v, k) => v == null || b[k] == null ? null : Math.round(v) - Math.round(b[k]));
+}
+function dtx(x) { return x == null ? '' : '（' + (x > 0 ? '+' + x : (x < 0 ? '−' + (-x) : '0')) + '）'; }
 function geo() { const b = $('#rad'), w = b ? b.clientWidth : 0; return w && w < 470 ? {W: 380, H: 356, cx: 190, cy: 180, R: 108, m: 1} : {W: 560, H: 466, cx: 280, cy: 236, R: 162, m: 0}; }
 function rp(g, k, v) { const a = -Math.PI / 2 + k * 2 * Math.PI / DIM.length, r = g.R * Math.max(0, Math.min(100, v == null ? 0 : v)) / 100; return [g.cx + Math.cos(a) * r, g.cy + Math.sin(a) * r]; }
 function rpath(g, vs) { return vs.map((v, k) => { const p = rp(g, k, v); return (k ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join('') + 'Z'; }
 function radarDraw() {
   const box = $('#rad');
   if (!box) return;
-  const g = geo(), n = DIM.length, tg = RS.tgt || tgtV(), cv = RS.cur || tg;
+  const g = geo(), n = DIM.length, tg = RS.tgt || tgtV(), cv = RS.cur || tg, dl = dlt();
   let s = '<circle class="rzh" cx="' + g.cx + '" cy="' + g.cy + '" r="' + g.R + '"/><circle class="rpn" cx="' + g.cx + '" cy="' + g.cy + '" r="' + (g.R * 0.8).toFixed(1) + '"/>'
     + '<circle class="rzc" cx="' + g.cx + '" cy="' + g.cy + '" r="' + (g.R * 0.2).toFixed(1) + '"/>';
   [20, 40, 60, 80, 100].forEach(v => { s += '<circle class="rring r' + v + '" cx="' + g.cx + '" cy="' + g.cy + '" r="' + (g.R * v / 100).toFixed(1) + '"/>'; });
@@ -1226,12 +1824,13 @@ function radarDraw() {
     const lx = g.cx + ca * (g.R + (g.m ? 14 : 22)), ly = g.cy + sa * (g.R + (g.m ? 12 : 20));
     const an = ca > 0.3 ? 'start' : (ca < -0.3 ? 'end' : 'middle');
     const y1 = ly + (sa < -0.5 ? -(g.m ? 14 : 18) : (sa > 0.5 ? (g.m ? 10 : 12) : -4));
-    const nm = NM[id], wpx = Math.max(nm.length, 6) * (g.m ? 12.5 : 14) + 10, z = zc(tg[k]);
+    const nm = NM[id], wpx = Math.max(nm.length, 8) * (g.m ? 12.5 : 14) + 10, z = zc(tg[k]);
     const rx = an === 'start' ? lx - 5 : (an === 'end' ? lx - wpx + 5 : lx - wpx / 2);
     s += '<g class="rax' + (selDim === id ? ' sel' : '') + '" data-open="dim:' + id + '" tabindex="0" role="button" aria-label="' + esc(nm + ' ' + n0(tg[k]) + ' ' + bn(tg[k]) + '：打開細項') + '">'
       + '<rect class="rhit" x="' + rx.toFixed(1) + '" y="' + (y1 - 16).toFixed(1) + '" width="' + wpx.toFixed(1) + '" height="' + (g.m ? 34 : 39) + '" rx="6"/>'
       + '<text class="ran" x="' + lx.toFixed(1) + '" y="' + y1.toFixed(1) + '" text-anchor="' + an + '"' + (g.m ? ' style="font-size:12.5px"' : '') + '>' + esc(nm) + '</text>'
-      + '<text class="ras zt' + z + '" x="' + lx.toFixed(1) + '" y="' + (y1 + (g.m ? 15 : 17)).toFixed(1) + '" text-anchor="' + an + '"' + (g.m ? ' style="font-size:12px"' : '') + '>' + n0(tg[k]) + ' ' + esc(bn(tg[k])) + '</text></g>';
+      + '<text class="ras zt' + z + '" x="' + lx.toFixed(1) + '" y="' + (y1 + (g.m ? 15 : 17)).toFixed(1) + '" text-anchor="' + an + '"' + (g.m ? ' style="font-size:12px"' : '') + '>' + n0(tg[k]) + ' ' + esc(bn(tg[k]))
+      + (dl[k] == null ? '' : '<tspan class="rdl ' + (dl[k] > 0 ? 'up' : (dl[k] < 0 ? 'dn' : 'eq')) + '">' + dtx(dl[k]) + '</tspan>') + '</text></g>';
   });
   box.innerHTML = '<svg viewBox="0 0 ' + g.W + ' ' + g.H + '" role="img" aria-label="面向雷達">' + s + '</svg>';
   legend();
@@ -1241,7 +1840,7 @@ function legend() {
   if (!el) return;
   let h = '<span><i></i>' + esc(isNow() ? '現在（' + ymd(P.asof) + '）' : ymd(D.w.d[RS.i]) + ' 那一週') + '</span>';
   if (!isNow()) h += '<span><i class="gh"></i>現在</span>';
-  RS.ov.forEach(o => { const p = PRE[o.key]; if (p) h += '<span><i class="o' + o.slot + '"></i>' + esc(p.lab + '（' + ymd(p.d) + '）') + '</span>'; });
+  RS.ov.forEach(o => { const p = PRE[o.key]; if (p) h += '<span><i class="o' + o.slot + '"></i>' + esc(ymd(p.d) + ' ' + p.lab + (p.k === 'h' || p.k === 'l' ? '（還沒確認）' : '')) + '</span>'; });
   el.innerHTML = h;
 }
 function setT(i, now) {
@@ -1307,15 +1906,6 @@ function stopPlay() {
   clearInterval(RS.play); RS.play = 0;
   const pb = $('#rplay'); if (pb) { pb.textContent = '▶'; pb.setAttribute('aria-label', '播放近兩年'); }
 }
-function chips() {
-  const el = $('#rchips');
-  if (el) el.innerHTML = (P.pre || []).map(p => {
-    const o = RS.ov.find(x => x.key === p.key);
-    return '<button type="button" class="rch' + (o ? ' on o' + o.slot : '') + '" data-ov="' + esc(p.key) + '" aria-pressed="' + (o ? 'true' : 'false') + '" title="' + esc(p.sub || '') + '"><i></i>' + esc(p.lab) + (p.sub ? '<em>' + esc(p.sub) + '</em>' : '') + '</button>';
-  }).join('');
-  const ce = $('#cchips');
-  if (ce) ce.innerHTML = '<button type="button" class="rch" data-go="now">現在</button>' + (P.pre || []).map(p => '<button type="button" class="rch" data-go="' + esc(p.d) + '" title="' + esc(p.sub || '') + '">' + esc(p.lab) + '</button>').join('');
-}
 function toggleOv(key) {
   const j = RS.ov.findIndex(x => x.key === key);
   if (j >= 0) RS.ov.splice(j, 1);
@@ -1326,7 +1916,7 @@ function toggleOv(key) {
     while (used.has(s)) s++;
     RS.ov.push({key: key, slot: s});
   }
-  chips(); radarDraw();
+  smDraw(); radarDraw();
 }
 function goDate(d) {
   if (!D) return;
@@ -1334,20 +1924,25 @@ function goDate(d) {
   const j = D.w.d.indexOf(d);
   if (j >= 0) setT(j);
 }
-function smDraw() {
+function mini(v) {
+  const g = {cx: 50, cy: 50, R: 40};
+  let s = '<circle class="mr" cx="50" cy="50" r="20"/><circle class="mr" cx="50" cy="50" r="40"/><path class="mp" d="' + rpath(g, v) + '"/>';
+  v.forEach((x, k) => { const p = rp(g, k, x), z = zc(x); s += '<circle class="' + (z === 'x' ? 'zfx' : 'zf' + z) + '" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3"/>'; });
+  return '<svg viewBox="0 0 100 100" aria-hidden="true">' + s + '</svg>';
+}
+function smDraw() {                                         // 近期波段高低點（點一下疊到雷達上比）＋現在
   const el = $('#rsm');
   if (!el) return;
-  el.innerHTML = (P.qs || []).map((q, j) => {
-    const g = {cx: 50, cy: 50, R: 40}, hot = q.v.filter(v => v != null && v >= 80).length, last = j === P.qs.length - 1;
-    let s = '<circle class="mr" cx="50" cy="50" r="20"/><circle class="mr" cx="50" cy="50" r="40"/><path class="mp' + (hot >= 3 ? ' hot' : '') + '" d="' + rpath(g, q.v) + '"/>';
-    q.v.forEach((v, k) => { const p = rp(g, k, v), z = zc(v); s += '<circle class="' + (z === 'x' ? 'zfx' : 'zf' + z) + '" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3"/>'; });
-    return '<button type="button" data-go="' + (last ? 'now' : q.d) + '" class="' + (last ? 'now' : '') + '" aria-label="' + esc((last ? '現在' : ymd(q.d)) + '的形狀') + '"><svg viewBox="0 0 100 100" aria-hidden="true">' + s + '</svg><b>' + esc(last ? '現在' : ym(q.d)) + '</b><i><span class="pxn">' + esc(PXN) + ' </span>' + fpx(q.px) + '</i></button>';
-  }).join('');
-  smMark();
+  const t = $('#rsmt'); if (t) t.textContent = '收盤回落（反彈）' + P.sthr + '% 才算一個高點（低點）；點一下疊到上面的雷達比';
+  el.innerHTML = (P.pre || []).map(p => {
+    const o = RS.ov.find(x => x.key === p.key), hi = p.k === 'H' || p.k === 'h', ten = p.k === 'h' || p.k === 'l';
+    return '<button type="button" data-ov="' + esc(p.key) + '" class="' + (hi ? 'sh' : 'sl') + (ten ? ' tent' : '') + (o ? ' on o' + o.slot : '') + '" aria-pressed="' + (o ? 'true' : 'false') + '" aria-label="' + esc(ymd(p.d) + ' ' + p.lab + ' ' + PXN + ' ' + fpx(p.px) + '：' + (p.sub || '') + '，疊到雷達上') + '">'
+      + mini(p.v) + '<b>' + esc(ym(p.d)) + '<span class="sk">' + esc(p.lab) + '</span></b><i>' + esc(p.sub || '') + '</i><i class="pxn">' + esc(PXN) + ' ' + fpx(p.px) + '</i></button>';
+  }).join('') + '<button type="button" data-go="now" class="now" aria-label="回到現在">' + mini(nowV()) + '<b>現在</b><i>' + esc(ymd(P.asof)) + '</i><i class="pxn">' + esc(PXN) + ' ' + fpx(P.npx) + '</i></button>';
+  const c = $('#rsmc'); if (c) c.textContent = P.sread || '';
 }
 function smMark() {
-  const d = isNow() ? 'now' : (D ? D.w.d[RS.i] : null);
-  $$('#rsm button').forEach(b => b.classList.toggle('sel', b.dataset.go === d && d !== 'now'));
+  const n = $('#rsm button.now'); if (n) n.classList.toggle('sel', !isNow());
 }
 
 // ── 全部項目分布：每個面向一條，位置＝0～100、短線＝和上週比從哪裡移過來、點越大＝拉動越多
@@ -1926,7 +2521,7 @@ window.addEventListener('resize', () => {
     lastW = window.innerWidth;
   }, 160);
 }, SG);
-chips(); smDraw(); radarDraw(); nowLab();
+smDraw(); radarDraw(); nowLab();
 setView(document.documentElement.dataset.hv || hget('v') || 'radar', {quiet: true});
 imapDraw();
 if (window.heatGet) window.heatGet().then(d => {

@@ -181,15 +181,15 @@ def test_future_earnings_row_and_sentence(page):
 
 
 def test_market_card_has_overview_judgement_line(monkeypatch):
-    """市場卡多一行（docs/lab_signal_plan.md 第 6.2 節）：現在的等級過去之後 12 個月跌 20% 的比例／平常與判定，連到訊號總覽。"""
+    """市場卡多一行（docs/lab_signal_plan.md 第 6.2 節）：現在的等級過去之後 12 個月內最大回撤 20% 以上的比例／平常與判定（sigspec VER 3），連到訊號總覽。"""
     from arm.lab import sigcat
-    rows = [{"id": "spx:bub:L2", "warn": {"n": 13, "hit": 0.1851, "base": 0.1155, "tier": "ref"}},
+    rows = [{"id": "spx:bub:L2", "warn": {"n": 13, "hit": 0.1851, "base": 0.1155, "tier": "ref", "mdd": 0.145, "mdd_base": 0.103}},
             {"id": "spx:bub:L3", "warn": {"n": 12, "hit": 0.1886, "base": 0.1155, "tier": "ref"}},
             {"id": "tw:bub:L2", "warn": {"n": 0, "hit": None, "base": 0.338, "tier": "few"}}]
     monkeypatch.setattr(sigcat, "research_rows", lambda: rows)
     a = BP.sig_line("spx", {"L": 2})
-    assert "泡沫等級 2 以上的時候：過去 13 段，之後 12 個月內跌 20% 以上 <b>19%</b>（平常 12%）" in a
-    assert "● 可參考" in a and 'href="x9o.html#s=spx:bub:L2"' in a
+    assert "泡沫等級 2 以上的時候：過去 13 段，之後 12 個月內最大回撤 20% 以上 <b>19%</b>（平常 12%），回撤中位數 14%（平常 10%）" in a
+    assert "● 可能是運氣" in a and 'href="x9o.html#s=spx:bub:L2"' in a   # VER 9：● 的意思
     assert "泡沫等級 3 以上的時候" in BP.sig_line("spx", {"L": 4})
     assert "（現在等級 0）" in BP.sig_line("spx", {"L": 0})
     assert "過去沒有出現過" in BP.sig_line("tw", {"L": 2}) and "— 次數不夠" in BP.sig_line("tw", {"L": 2})

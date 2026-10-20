@@ -480,7 +480,7 @@ def test_run_smoke(monkeypatch):
     A = {C.ym_add("1985-01", i): 100.0 * math.exp(0.005 * i + 0.05 * math.sin(i)) for i in range(348)}
     out = G.run(B, A)
     json.dumps(out, allow_nan=False)
-    assert out["ver"] == S.VER == 7 and set(out["items"]) == set(S.DERIV)
+    assert out["ver"] == S.VER == 9 and set(out["items"]) == set(S.DERIV)
     codes = set()
     for k, e in out["items"].items():
         assert set(e["l1"]["d"]) == {G.wkey(w) for w in G.DELAY} and set(e["l1"]["c"]) == {G.wkey(w) for w in G.CUM}
