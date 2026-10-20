@@ -15,15 +15,17 @@ from __future__ import annotations
 import html
 import json
 import math
-from datetime import date
 
 from . import heatpage as HP
 from . import heatpos as PO
 from . import heatspec as S
 
-DD_MIN = 0.20          # 比較日期：高點到低點跌幅門檻（每週收盤）
-N_EPI = 2              # 取最近幾段
-NQ = 8                 # 每季小圖幾張（最後一張是現在）
+DD_MIN = 0.20          # 地形圖的大跌期間：高點到低點跌幅門檻
+SWING_TW = 0.10        # 雷達底下的波段高低點：收盤從高點回落 10% 才確認高點（低點反彈 10%）；
+                       # 美股換算成和台股一樣常見＝crashspec.TH 的 60 日門檻（docs/lab_heatviz_v2_plan.md 第 1 節）
+SWING_N = 8            # 最近幾個已確認的轉折點
+SWING_GAP = 15         # 讀法：高點和低點的面向平均差幾分以上才寫
+SWING_SHOW = 3
 KEY_SHOW = 4           # 關鍵狀態先列幾個
 MOVE_MIN = 20          # 這週 0～100 變動多少算大幅移動
 MOVE_SHOW = 6
@@ -86,6 +88,81 @@ def episodes(dates: list[str], px: list, thr: float = DD_MIN) -> list[dict]:
     return out
 
 
+def swing_thr(mk: str | None) -> float:
+    from . import crashspec as CS
+    return SWING_TW if not mk or mk == "tw" else CS.TH[mk][2]
+
+
+def swings(cal: list[str], px: list, thr: float, start: str | None = None, n: int = SWING_N) -> list[dict]:
+    """最近 n 個已確認的轉折點（heattech.pivots：收盤回落／反彈 thr 才確認），加上目前這一段到今天為止的最高或最低（還沒確認；
+    就是今天的話不列）。→ [{"k": "H"／"L"（已確認）或 "h"／"l"（還沒確認）, "i": 那一天, "p": 收盤,
+    "chg": 之後到下一個點（最後一個已確認點＝到目前這一段的極值；還沒確認的點＝到今天）的漲跌}]。"""
+    from . import heattech as HT
+    pv = HT.pivots(px, thr)
+    T = max((i for i, v in enumerate(px) if v), default=-1)
+    out = [{"k": x["k"], "i": x["i"], "p": x["p"]} for x in pv]
+    if out:
+        a = out[-1]
+        seg = [(px[i], i) for i in range(a["i"] + 1, T + 1) if px[i]]
+        if seg:
+            v, i = (max if a["k"] == "L" else min)(seg, key=lambda z: z[0])        # 同值取最早那一天
+            if i < T:
+                out.append({"k": "h" if a["k"] == "L" else "l", "i": i, "p": v})
+            a["nxt"] = v
+    for j, x in enumerate(out):
+        if x["k"] in ("h", "l"):
+            x["chg"] = px[T] / x["p"] - 1
+        else:
+            nx = out[j + 1]["p"] if j + 1 < len(out) else x.get("nxt")
+            x["chg"] = None if nx is None else nx / x["p"] - 1
+        x.pop("nxt", None)
+    conf = [x for x in out if x["k"] in ("H", "L") and (start is None or cal[x["i"]] >= start)]
+    tent = [x for x in out if x["k"] in ("h", "l")]
+    return conf[-n:] + tent
+
+
+def swing_sub(x: dict, thr: float) -> str:
+    c = x.get("chg")
+    if c is None:
+        return ""
+    a = f"{abs(100 * c):.0f}%"
+    if x["k"] == "H":
+        return f"之後跌 {a}"
+    if x["k"] == "L":
+        return f"之後漲 {a}"
+    t = f"{100 * thr:.1f}".rstrip("0").rstrip(".")
+    return f"還沒確認（已回落 {a}，未滿 {t}%）" if x["k"] == "h" else f"還沒確認（已反彈 {a}，未滿 {t}%）"
+
+
+def swing_read(pts: list[dict], names: list[str], now: list) -> str:
+    """讀法（只描述這幾個點）：已確認的高點和低點，各面向平均差 ≥ SWING_GAP 的列出來（差大的在前），並寫現在。"""
+    H = [p["v"] for p in pts if p["k"] == "H"]
+    L = [p["v"] for p in pts if p["k"] == "L"]
+    if len(H) < 2 or len(L) < 2:
+        return ""
+    def avg(rows, k):
+        xs = [r[k] for r in rows if r[k] is not None]
+        return sum(xs) / len(xs) if xs else None
+    gaps = []
+    for k, nm in enumerate(names):
+        a, b = avg(H, k), avg(L, k)
+        if a is not None and b is not None and abs(a - b) >= SWING_GAP:
+            gaps.append((abs(a - b), nm, a, b, now[k]))
+    head = f"這 {len(H)} 個高點和 {len(L)} 個低點："
+    if not gaps:
+        return head + f"各面向在高點和低點的平均差都不到 {SWING_GAP} 分，形狀差不多。"
+    gaps.sort(key=lambda g: (-g[0], g[1]))
+    xs = [f"{nm}（高點平均 {a:.0f}、低點 {b:.0f}" + ("" if v is None else f"，現在 {HP.n0(v)}") + "）"
+          for _, nm, a, b, v in gaps[:SWING_SHOW]]
+    hot = [g for g in gaps[:SWING_SHOW] if g[2] > g[3]]
+    word = "高點時比低點熱" if len(hot) == len(gaps[:SWING_SHOW]) else ("高點時比低點冷" if not hot else "高點和低點差最多")
+    return head + word + "：" + "、".join(xs) + "。只描述這幾個點，不是訊號。"
+
+
+def _ri(x) -> int:
+    return math.floor(x + 0.5)
+
+
 def _run_weeks(series: list, we: list[int]) -> int:
     """最近連續幾週（每週最後一個交易日）在同一區。"""
     if not we or series[we[-1]] is None:
@@ -140,28 +217,6 @@ def key_states(B: dict, V: dict, we: list[int]) -> list[dict]:
     return out
 
 
-def _quarters(cal: list[str], we: list[int], n: int = NQ) -> list[int]:
-    """最近 n−1 個季底（每季最後一週）＋現在：回傳 week_ends 裡的位置。"""
-    last = date.fromisoformat(cal[we[-1]])
-    y, q = last.year, (last.month - 1) // 3          # 這一季的序號（0～3）；季底＝上一季的最後一天
-    ends = []
-    for _ in range(n - 1):
-        q -= 1
-        if q < 0:
-            q, y = 3, y - 1
-        m = 3 * (q + 1)
-        nd = date(y + (m == 12), 1 if m == 12 else m + 1, 1).toordinal() - 1
-        ends.append(date.fromordinal(nd).isoformat())
-    ds = [cal[i] for i in we]
-    pos = []
-    for e in reversed(ends):
-        j = max((x for x, d in enumerate(ds) if d <= e), default=None)
-        if j is not None and j not in pos:
-            pos.append(j)
-    pos.append(len(we) - 1)
-    return pos
-
-
 def pack(B: dict, V: dict) -> dict:
     """主畫面的小份資料（嵌在頁面裡）。"""
     cal, px = B["cal"], B["px"]
@@ -173,42 +228,32 @@ def pack(B: dict, V: dict) -> dict:
     comp = B["comp"]
     j0 = next((j for j, i in enumerate(we) if sum(comp[d][i] is not None for d in dims) >= need), len(we) - 1)
 
-    def snap(j):
-        i = we[j]
-        return {"d": cal[i], "px": _r1(px[i]), "v": [_r1(comp[d][i]) for d in dims]}
-    J = len(we) - 1
     wd = [cal[i] for i in we]
-    wp = [px[i] for i in we]
-    pre = []
-    for j, lab in ((J - 4, "4 週前"), (J - 52, "1 年前")):
-        if j >= j0:
-            pre.append({"key": "w4" if lab == "4 週前" else "y1", "lab": lab, "sub": "", **snap(j)})
-    a0 = cal.index(wd[j0])                       # 跌幅用每天收盤認（週收盤會漏掉週中急跌又反彈的段），日期換成那一週
+    a0 = cal.index(wd[j0])
     eps_all = episodes(cal[a0:], px[a0:])
-    eps = eps_all[-N_EPI:]
-    wk = lambda d: next(j for j, x in enumerate(wd) if x >= d)          # noqa: E731
-    for e in reversed(eps):
-        jp, jt = wk(e["peak"]), wk(e["trough"])
-        dd = f"{abs(100 * e['dd']):.0f}%"
-        if e["open"]:
-            pre.append({"key": f"p{jp}", "lab": f"{_ym(e['peak'])} 高點", "sub": f"之後最多跌 {dd}，還沒回到高點", **snap(jp)})
-        else:
-            pre.append({"key": f"p{jp}", "lab": f"{_ym(e['peak'])} 高點", "sub": f"之後跌 {dd}", **snap(jp)})
-            pre.append({"key": f"t{jt}", "lab": f"{_ym(e['trough'])} 低點", "sub": f"從 {_ym(e['peak'])} 高點跌 {dd}", **snap(jt)})
-    qs = [snap(j) for j in _quarters(cal, we) if j >= j0]
+    thr = swing_thr(V.get("mk"))                 # 雷達底下：近期波段高低點（每天收盤；那一天的面向分數）
+    pre = []
+    for x in swings(cal, px, thr, start=wd[j0]):
+        i = x["i"]
+        pre.append({"key": f"s{i}", "k": x["k"], "lab": "高點" if x["k"] in ("H", "h") else "低點", "sub": swing_sub(x, thr),
+                    "d": cal[i], "px": _r1(x["p"]), "v": [_r1(comp[d][i]) for d in dims]})
     t, t0 = len(cal) - 1, max(0, len(cal) - 1 - HP.WEEK)
     out_d = []
     for d, L in V["dims"].items():
         st = (V.get("strips") or {}).get(d) or {}
-        out_d.append({"id": d, "name": S.DSHORT[d], "full": L["name"], "span": L["span"], "sc": _r1(L["score"]),
-                      "ago": _r1(L["ago"]), "st": HP.strip_text(st) if st else "", "col": DCOL[d]})
+        sc, pv = L["score"], next((comp[d][i] for i in range(t - 1, -1, -1) if comp[d][i] is not None), None) if t else None
+        out_d.append({"id": d, "name": S.DSHORT[d], "full": L["name"], "span": L["span"], "sc": _r1(sc),
+                      "ago": _r1(L["ago"]), "d1": None if sc is None or pv is None else _ri(sc) - _ri(pv),
+                      "st": HP.strip_text(st) if st else "", "col": DCOL[d]})
     items = []
     for d, L in V["dims"].items():
         for it in L["items"]:
             items.append({"k": it["k"], "dim": d, "name": it["name"], "h": _r1(it["heat"]), "ago": _r1(it["ago"]),
                           "pull": _r1(it["pull"]), "px": bool(it["proxy"]), "val": it["val"]})
     ordr = {d: [it["k"] for it in _item_order(L)] for d, L in V["dims"].items()}
-    return {"asof": cal[t], "start": wd[j0], "dims": out_d, "items": items, "ord": ordr, "pre": pre, "qs": qs,
+    read = swing_read(pre, [S.DSHORT[d] for d in dims], [L["score"] for L in V["dims"].values()])
+    return {"asof": cal[t], "start": wd[j0], "dims": out_d, "items": items, "ord": ordr, "pre": pre, "sread": read,
+            "sthr": _r1(100 * thr), "npx": _r1(px[t]),
             "mkt": HP.MK["mkt"].strip(), "px": HP.MK["px"].strip(), "t0": cal[t0],
             "ph": {**PH, "n": list(PHN), "s": list(PHS)},
             "eps": [{"p": e["peak"], "t": e["trough"], "dd": _r1(100 * e["dd"]), "o": e["open"]} for e in eps_all]}
@@ -378,15 +423,16 @@ def items_table(V: dict) -> str:
 
 def _radar_card() -> str:
     return ('<div class="rcard card"><div class="khd"><h2>面向雷達</h2><span class="kn" id="rdate"></span></div>'
-            '<p class="ksub">越外圈越熱（100 最熱）；外圈淡紅＝過熱，內圈淡藍＝過冷。點面向名稱看細項；拉下面的時間軸看過去任何一週的形狀。</p>'
+            '<p class="ksub">越外圈越熱（100 最熱）；外圈淡紅＝過熱，內圈淡藍＝過冷。分數後面括號＝和前一個交易日比。點面向名稱看細項；拉時間軸看過去任何一週；點下面的波段高低點疊上去比。</p>'
             '<div class="rad" id="rad"><p class="note">雷達要開啟 JavaScript 才看得到。</p></div>'
             '<div class="rleg" id="rleg"></div>'
             '<div class="rtl"><button type="button" class="rplay" id="rplay" aria-label="播放近兩年">▶</button>'
             '<div class="rtrk"><svg id="rtsvg" viewBox="0 0 600 44" preserveAspectRatio="none" aria-hidden="true"></svg>'
             '<input type="range" id="rtin" min="0" max="0" value="0" aria-label="選一週" disabled></div>'
             '<span class="rnow" id="rnow"></span></div>'
-            '<div class="rchips" id="rchips" role="group" aria-label="疊上比較的日期"></div>'
-            '<div class="rsm" id="rsm"></div></div>')
+            '<h3 class="rsmh">近期波段高點、低點<span class="sub" id="rsmt"></span></h3>'
+            '<div class="rsm" id="rsm" role="group" aria-label="疊上比較的波段高低點"></div>'
+            '<p class="rsmc" id="rsmc"></p></div>')
 
 
 def today_html(V: dict) -> str:
@@ -689,7 +735,9 @@ def dim_tpl(d: str, L: dict, V: dict) -> str:
     st = (V.get("strips") or {}).get(d) or {}
     z = _zc(sc)
     wk = "—" if sc is None or L["ago"] is None else HP._sgn(sc - L["ago"], 0)
-    cells = [("分數", f'<span class="zt{z}">{"—" if sc is None else HP.n0(sc)}</span>', _e(L["band"] or "還沒有分數")),
+    d1 = next((x.get("d1") for x in (V.get("viz") or {}).get("dims") or [] if x["id"] == d), None)
+    dtxt = "" if d1 is None else ("・和昨日一樣" if d1 == 0 else f"・比昨日 {d1:+d}".replace("-", "−"))
+    cells = [("分數", f'<span class="zt{z}">{"—" if sc is None else HP.n0(sc)}</span>', _e((L["band"] or "還沒有分數") + dtxt)),
              ("和上週比", _e(wk), f'上週 {"—" if L["ago"] is None else HP.n0(L["ago"])}'),
              ("有值的項目", f'{L["n_have"]}／{len(L["items"])}', "等權平均")]
     stt = f'<p class="dst">{_e(HP.strip_text(st))}</p>' if st else ""
@@ -830,12 +878,18 @@ CSS = """
 .rch i{display:inline-block;width:14px;height:0;border-top:2px dashed var(--line2)}
 .rch.on{color:var(--ink);font-weight:600;border-color:var(--ink2)}.rch.on.o0 i{border-color:var(--p0)}.rch.on.o1 i{border-color:var(--p1)}.rch.on.o2 i{border-color:var(--p2)}
 .rch em{font-style:normal;color:var(--mut);font-weight:400;font-size:11.5px}
-.rsm{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
-.rsm button{border:1px solid var(--line);background:var(--card2);border-radius:10px;padding:4px 2px 3px;font:inherit;color:inherit;cursor:pointer;min-width:0}
-.rsm button.now{border-color:var(--acc)}.rsm button.sel{box-shadow:inset 0 0 0 2px var(--acc)}
-.rsm svg{display:block;width:100%;height:auto}.rsm b{display:block;font-size:12px}.rsm i{display:block;font-style:normal;font-size:10.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rsm .mr{fill:none;stroke:var(--line2)}.rsm .mp{fill:var(--accbg);stroke:var(--ink2);stroke-width:1.4}.rsm .mp.hot{fill:var(--zh);stroke:var(--c4)}
-.rsmc{font-size:11.5px;color:var(--mut);margin:4px 0 0}
+.rsmh{font-size:14px;margin:16px 0 0}.rsmh .sub{display:block;font-weight:400;font-size:11.5px;color:var(--mut);margin:2px 0 0}
+.rsm{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:8px}
+.rsm button{border:1px solid var(--line);border-top:3px solid var(--line2);background:var(--card2);border-radius:10px;padding:4px 3px 4px;font:inherit;color:inherit;cursor:pointer;min-width:0;text-align:center}
+.rsm button.sh{border-top-color:var(--c4)}.rsm button.sl{border-top-color:var(--c0)}.rsm button.tent{border-style:dashed}
+.rsm button.now{border-color:var(--acc);border-top-color:var(--acc)}.rsm button.sel{box-shadow:inset 0 0 0 2px var(--acc)}
+.rsm button.on.o0{box-shadow:inset 0 0 0 2px var(--p0)}.rsm button.on.o1{box-shadow:inset 0 0 0 2px var(--p1)}.rsm button.on.o2{box-shadow:inset 0 0 0 2px var(--p2)}
+.rsm svg{display:block;width:100%;height:auto}.rsm b{display:block;font-size:12px}.rsm .sk{font-size:10.5px;font-weight:700;margin-left:3px}
+.rsm .sh .sk{color:var(--t4)}.rsm .sl .sk{color:var(--t0)}
+.rsm i{display:block;font-style:normal;font-size:10.5px;line-height:1.3;color:var(--mut)}
+.rsm .mr{fill:none;stroke:var(--line2)}.rsm .mp{fill:var(--accbg);stroke:var(--ink2);stroke-width:1.4}
+.rsmc{font-size:12.5px;color:var(--ink2);margin:8px 0 0;line-height:1.6}
+.rdl{font-size:11.5px;font-weight:700}.rdl.up{fill:var(--t4)}.rdl.dn{fill:var(--t0)}.rdl.eq{fill:var(--mut);font-weight:400}
 .kstate .kcard{display:block;border-top:1px solid var(--line);padding:9px 6px 6px;margin:0 -6px;border-radius:10px;cursor:pointer}
 .kcard:hover{background:var(--card2)}
 .kt{display:flex;align-items:baseline;gap:6px 8px;flex-wrap:wrap}.kt b{font-size:15px}
@@ -949,7 +1003,8 @@ CSS = """
 @media (max-width:640px){.erow,.ehead{grid-template-columns:minmax(0,126px) minmax(0,1fr) 36px;gap:6px}.er{display:none}.ehead .er{display:none}}
 @media (max-width:820px){.vgrid{grid-template-columns:1fr}.vbar{gap:6px 10px}}
 @media (max-width:640px){
- .vsw button{padding:5px 9px;font-size:13px}.rsm{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.rsm .pxn{display:none}
+ .vsw button{padding:5px 9px;font-size:13px}.rsm{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.rsm .pxn{display:none}
+ .rsm b{font-size:11px}.rsm .sk{display:block;margin:0}.rsm i{font-size:10px}.rsm button{padding:3px 1px}
  .rchips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:2px -16px 4px;padding:0 16px}.rchips::-webkit-scrollbar{display:none}.rch{flex:none}
  .rnow{min-width:4.8em;font-size:12.5px}.dnum b{font-size:17px}.drw{width:100vw;border-left:0}
  .ter{height:58vh;min-height:320px}
@@ -1195,20 +1250,27 @@ function bigChart(el, id) {
 const RS = {i: null, ov: [], cur: null, tgt: null, raf: 0, play: 0};
 const PRE = {};
 (P.pre || []).forEach(p => { PRE[p.key] = p; });
-if (PRE.w4) RS.ov.push({key: 'w4', slot: 0});
+(function () { const hs = (P.pre || []).filter(p => p.k === 'H'); if (hs.length) RS.ov.push({key: hs[hs.length - 1].key, slot: 0}); })();   // 預設疊上最近一個已確認的高點
 function iLast() { return D ? D.w.d.length - 1 : -1; }
 function iStart() { if (!D) return 0; const j = D.w.d.findIndex(d => d >= P.start); return j < 0 ? 0 : j; }
 function nowV() { return P.dims.map(d => d.sc); }
 function atV(i) { return DIM.map(id => val(D.s[id] && D.s[id].h, i)); }
 function isNow() { return RS.i == null || !D || RS.i >= iLast(); }
 function tgtV() { return isNow() ? nowV() : atV(RS.i); }
+function dlt() {                                            // 括號裡的變化：現在＝和前一個交易日比；拉到過去＝和前一週比
+  if (isNow()) return P.dims.map(d => d.d1);
+  if (!D || RS.i <= iStart()) return DIM.map(() => null);
+  const a = atV(RS.i), b = atV(RS.i - 1);
+  return a.map((v, k) => v == null || b[k] == null ? null : Math.round(v) - Math.round(b[k]));
+}
+function dtx(x) { return x == null ? '' : '（' + (x > 0 ? '+' + x : (x < 0 ? '−' + (-x) : '0')) + '）'; }
 function geo() { const b = $('#rad'), w = b ? b.clientWidth : 0; return w && w < 470 ? {W: 380, H: 356, cx: 190, cy: 180, R: 108, m: 1} : {W: 560, H: 466, cx: 280, cy: 236, R: 162, m: 0}; }
 function rp(g, k, v) { const a = -Math.PI / 2 + k * 2 * Math.PI / DIM.length, r = g.R * Math.max(0, Math.min(100, v == null ? 0 : v)) / 100; return [g.cx + Math.cos(a) * r, g.cy + Math.sin(a) * r]; }
 function rpath(g, vs) { return vs.map((v, k) => { const p = rp(g, k, v); return (k ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join('') + 'Z'; }
 function radarDraw() {
   const box = $('#rad');
   if (!box) return;
-  const g = geo(), n = DIM.length, tg = RS.tgt || tgtV(), cv = RS.cur || tg;
+  const g = geo(), n = DIM.length, tg = RS.tgt || tgtV(), cv = RS.cur || tg, dl = dlt();
   let s = '<circle class="rzh" cx="' + g.cx + '" cy="' + g.cy + '" r="' + g.R + '"/><circle class="rpn" cx="' + g.cx + '" cy="' + g.cy + '" r="' + (g.R * 0.8).toFixed(1) + '"/>'
     + '<circle class="rzc" cx="' + g.cx + '" cy="' + g.cy + '" r="' + (g.R * 0.2).toFixed(1) + '"/>';
   [20, 40, 60, 80, 100].forEach(v => { s += '<circle class="rring r' + v + '" cx="' + g.cx + '" cy="' + g.cy + '" r="' + (g.R * v / 100).toFixed(1) + '"/>'; });
@@ -1226,12 +1288,13 @@ function radarDraw() {
     const lx = g.cx + ca * (g.R + (g.m ? 14 : 22)), ly = g.cy + sa * (g.R + (g.m ? 12 : 20));
     const an = ca > 0.3 ? 'start' : (ca < -0.3 ? 'end' : 'middle');
     const y1 = ly + (sa < -0.5 ? -(g.m ? 14 : 18) : (sa > 0.5 ? (g.m ? 10 : 12) : -4));
-    const nm = NM[id], wpx = Math.max(nm.length, 6) * (g.m ? 12.5 : 14) + 10, z = zc(tg[k]);
+    const nm = NM[id], wpx = Math.max(nm.length, 8) * (g.m ? 12.5 : 14) + 10, z = zc(tg[k]);
     const rx = an === 'start' ? lx - 5 : (an === 'end' ? lx - wpx + 5 : lx - wpx / 2);
     s += '<g class="rax' + (selDim === id ? ' sel' : '') + '" data-open="dim:' + id + '" tabindex="0" role="button" aria-label="' + esc(nm + ' ' + n0(tg[k]) + ' ' + bn(tg[k]) + '：打開細項') + '">'
       + '<rect class="rhit" x="' + rx.toFixed(1) + '" y="' + (y1 - 16).toFixed(1) + '" width="' + wpx.toFixed(1) + '" height="' + (g.m ? 34 : 39) + '" rx="6"/>'
       + '<text class="ran" x="' + lx.toFixed(1) + '" y="' + y1.toFixed(1) + '" text-anchor="' + an + '"' + (g.m ? ' style="font-size:12.5px"' : '') + '>' + esc(nm) + '</text>'
-      + '<text class="ras zt' + z + '" x="' + lx.toFixed(1) + '" y="' + (y1 + (g.m ? 15 : 17)).toFixed(1) + '" text-anchor="' + an + '"' + (g.m ? ' style="font-size:12px"' : '') + '>' + n0(tg[k]) + ' ' + esc(bn(tg[k])) + '</text></g>';
+      + '<text class="ras zt' + z + '" x="' + lx.toFixed(1) + '" y="' + (y1 + (g.m ? 15 : 17)).toFixed(1) + '" text-anchor="' + an + '"' + (g.m ? ' style="font-size:12px"' : '') + '>' + n0(tg[k]) + ' ' + esc(bn(tg[k]))
+      + (dl[k] == null ? '' : '<tspan class="rdl ' + (dl[k] > 0 ? 'up' : (dl[k] < 0 ? 'dn' : 'eq')) + '">' + dtx(dl[k]) + '</tspan>') + '</text></g>';
   });
   box.innerHTML = '<svg viewBox="0 0 ' + g.W + ' ' + g.H + '" role="img" aria-label="面向雷達">' + s + '</svg>';
   legend();
@@ -1241,7 +1304,7 @@ function legend() {
   if (!el) return;
   let h = '<span><i></i>' + esc(isNow() ? '現在（' + ymd(P.asof) + '）' : ymd(D.w.d[RS.i]) + ' 那一週') + '</span>';
   if (!isNow()) h += '<span><i class="gh"></i>現在</span>';
-  RS.ov.forEach(o => { const p = PRE[o.key]; if (p) h += '<span><i class="o' + o.slot + '"></i>' + esc(p.lab + '（' + ymd(p.d) + '）') + '</span>'; });
+  RS.ov.forEach(o => { const p = PRE[o.key]; if (p) h += '<span><i class="o' + o.slot + '"></i>' + esc(ymd(p.d) + ' ' + p.lab + (p.k === 'h' || p.k === 'l' ? '（還沒確認）' : '')) + '</span>'; });
   el.innerHTML = h;
 }
 function setT(i, now) {
@@ -1307,15 +1370,6 @@ function stopPlay() {
   clearInterval(RS.play); RS.play = 0;
   const pb = $('#rplay'); if (pb) { pb.textContent = '▶'; pb.setAttribute('aria-label', '播放近兩年'); }
 }
-function chips() {
-  const el = $('#rchips');
-  if (el) el.innerHTML = (P.pre || []).map(p => {
-    const o = RS.ov.find(x => x.key === p.key);
-    return '<button type="button" class="rch' + (o ? ' on o' + o.slot : '') + '" data-ov="' + esc(p.key) + '" aria-pressed="' + (o ? 'true' : 'false') + '" title="' + esc(p.sub || '') + '"><i></i>' + esc(p.lab) + (p.sub ? '<em>' + esc(p.sub) + '</em>' : '') + '</button>';
-  }).join('');
-  const ce = $('#cchips');
-  if (ce) ce.innerHTML = '<button type="button" class="rch" data-go="now">現在</button>' + (P.pre || []).map(p => '<button type="button" class="rch" data-go="' + esc(p.d) + '" title="' + esc(p.sub || '') + '">' + esc(p.lab) + '</button>').join('');
-}
 function toggleOv(key) {
   const j = RS.ov.findIndex(x => x.key === key);
   if (j >= 0) RS.ov.splice(j, 1);
@@ -1326,7 +1380,7 @@ function toggleOv(key) {
     while (used.has(s)) s++;
     RS.ov.push({key: key, slot: s});
   }
-  chips(); radarDraw();
+  smDraw(); radarDraw();
 }
 function goDate(d) {
   if (!D) return;
@@ -1334,20 +1388,25 @@ function goDate(d) {
   const j = D.w.d.indexOf(d);
   if (j >= 0) setT(j);
 }
-function smDraw() {
+function mini(v) {
+  const g = {cx: 50, cy: 50, R: 40};
+  let s = '<circle class="mr" cx="50" cy="50" r="20"/><circle class="mr" cx="50" cy="50" r="40"/><path class="mp" d="' + rpath(g, v) + '"/>';
+  v.forEach((x, k) => { const p = rp(g, k, x), z = zc(x); s += '<circle class="' + (z === 'x' ? 'zfx' : 'zf' + z) + '" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3"/>'; });
+  return '<svg viewBox="0 0 100 100" aria-hidden="true">' + s + '</svg>';
+}
+function smDraw() {                                         // 近期波段高低點（點一下疊到雷達上比）＋現在
   const el = $('#rsm');
   if (!el) return;
-  el.innerHTML = (P.qs || []).map((q, j) => {
-    const g = {cx: 50, cy: 50, R: 40}, hot = q.v.filter(v => v != null && v >= 80).length, last = j === P.qs.length - 1;
-    let s = '<circle class="mr" cx="50" cy="50" r="20"/><circle class="mr" cx="50" cy="50" r="40"/><path class="mp' + (hot >= 3 ? ' hot' : '') + '" d="' + rpath(g, q.v) + '"/>';
-    q.v.forEach((v, k) => { const p = rp(g, k, v), z = zc(v); s += '<circle class="' + (z === 'x' ? 'zfx' : 'zf' + z) + '" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3"/>'; });
-    return '<button type="button" data-go="' + (last ? 'now' : q.d) + '" class="' + (last ? 'now' : '') + '" aria-label="' + esc((last ? '現在' : ymd(q.d)) + '的形狀') + '"><svg viewBox="0 0 100 100" aria-hidden="true">' + s + '</svg><b>' + esc(last ? '現在' : ym(q.d)) + '</b><i><span class="pxn">' + esc(PXN) + ' </span>' + fpx(q.px) + '</i></button>';
-  }).join('');
-  smMark();
+  const t = $('#rsmt'); if (t) t.textContent = '收盤回落（反彈）' + P.sthr + '% 才算一個高點（低點）；點一下疊到上面的雷達比';
+  el.innerHTML = (P.pre || []).map(p => {
+    const o = RS.ov.find(x => x.key === p.key), hi = p.k === 'H' || p.k === 'h', ten = p.k === 'h' || p.k === 'l';
+    return '<button type="button" data-ov="' + esc(p.key) + '" class="' + (hi ? 'sh' : 'sl') + (ten ? ' tent' : '') + (o ? ' on o' + o.slot : '') + '" aria-pressed="' + (o ? 'true' : 'false') + '" aria-label="' + esc(ymd(p.d) + ' ' + p.lab + ' ' + PXN + ' ' + fpx(p.px) + '：' + (p.sub || '') + '，疊到雷達上') + '">'
+      + mini(p.v) + '<b>' + esc(ym(p.d)) + '<span class="sk">' + esc(p.lab) + '</span></b><i>' + esc(p.sub || '') + '</i><i class="pxn">' + esc(PXN) + ' ' + fpx(p.px) + '</i></button>';
+  }).join('') + '<button type="button" data-go="now" class="now" aria-label="回到現在">' + mini(nowV()) + '<b>現在</b><i>' + esc(ymd(P.asof)) + '</i><i class="pxn">' + esc(PXN) + ' ' + fpx(P.npx) + '</i></button>';
+  const c = $('#rsmc'); if (c) c.textContent = P.sread || '';
 }
 function smMark() {
-  const d = isNow() ? 'now' : (D ? D.w.d[RS.i] : null);
-  $$('#rsm button').forEach(b => b.classList.toggle('sel', b.dataset.go === d && d !== 'now'));
+  const n = $('#rsm button.now'); if (n) n.classList.toggle('sel', !isNow());
 }
 
 // ── 全部項目分布：每個面向一條，位置＝0～100、短線＝和上週比從哪裡移過來、點越大＝拉動越多
@@ -1926,7 +1985,7 @@ window.addEventListener('resize', () => {
     lastW = window.innerWidth;
   }, 160);
 }, SG);
-chips(); smDraw(); radarDraw(); nowLab();
+smDraw(); radarDraw(); nowLab();
 setView(document.documentElement.dataset.hv || hget('v') || 'radar', {quiet: true});
 imapDraw();
 if (window.heatGet) window.heatGet().then(d => {

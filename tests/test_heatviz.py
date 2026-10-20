@@ -55,13 +55,18 @@ def test_pack_radar_data(built):
     j0 = wd.index(viz["start"])
     assert sum(B["comp"][d][we[j0]] is not None for d in shown) >= need        # 時間軸從 2/3 的面向有分數那週開始
     assert j0 == 0 or sum(B["comp"][d][we[j0 - 1]] is not None for d in shown) < need
-    for p in viz["pre"]:                                                      # 比較日期都是每週最後一個交易日，值和那一週一樣
-        assert p["d"] in wd and p["d"] >= viz["start"]
+    want = VZ.swings(cal, B["px"], VZ.SWING_TW, start=viz["start"])         # 雷達底下＝近期波段高低點（那一天的面向分數）
+    assert [(p["d"], p["k"]) for p in viz["pre"]] == [(cal[x["i"]], x["k"]) for x in want]
+    for p in viz["pre"]:
         i = cal.index(p["d"])
-        assert p["v"] == [VZ._r1(B["comp"][d][i]) for d in shown]
-    assert viz["pre"][0]["key"] == "w4" and viz["pre"][0]["d"] == wd[-5]
-    assert 1 <= len(viz["qs"]) <= VZ.NQ and viz["qs"][-1]["d"] == cal[-1]
-    assert all(q["d"] in wd for q in viz["qs"]) and [q["d"] for q in viz["qs"]] == sorted(q["d"] for q in viz["qs"])
+        assert p["v"] == [VZ._r1(B["comp"][d][i]) for d in shown] and p["px"] == VZ._r1(B["px"][i])
+        assert p["lab"] == ("高點" if p["k"] in ("H", "h") else "低點")
+    assert "qs" not in viz and viz["sthr"] == 10.0 and viz["npx"] == VZ._r1(B["px"][-1])
+    t = len(cal) - 1
+    for d in viz["dims"]:                                                     # 括號裡的變化＝和前一個交易日比（取整數後相減）
+        c = B["comp"][d["id"]]
+        want_d1 = None if c[t] is None or c[t - 1] is None else VZ._ri(c[t]) - VZ._ri(c[t - 1])
+        assert d["d1"] == want_d1
     assert {it["k"] for it in viz["items"]} == {k for d in shown for k in S.ITEMS[d]}
     for d in shown:
         assert sorted(viz["ord"][d]) == sorted(S.ITEMS[d])
@@ -350,3 +355,45 @@ def test_evidence_track_positions():
     # 標題列（字比較小）和資料列要同一套欄寬，座標軸的 0 才會對齊零線：欄寬不可用 em
     grids = re.findall(r"\.erow,\.ehead\{[^}]*grid-template-columns:([^;}]+)", VZ.CSS)
     assert len(grids) == 2 and not any("em" in g for g in grids), grids
+
+
+def test_swings_pivots_tentative_and_change():
+    """波段高低點（docs/lab_heatviz_v2_plan.md 第 1 節）：已確認的轉折點＋目前這一段的極值（還沒確認）；之後漲跌到下一個點。"""
+    cal = [f"2026-01-{d:02d}" for d in range(1, 15)]
+    px = [115, 118, 120, 105, 100, 108, 116, 130, 125, 118, 120, 124, 119, 121]
+    sw = VZ.swings(cal, px, 0.10)
+    assert [(x["k"], x["i"]) for x in sw] == [("H", 2), ("L", 4), ("h", 7)]      # 120 → 100 回落 16.7%、100 → 130 反彈；130 之後只回落 9%
+    assert sw[0]["chg"] == pytest.approx(100 / 120 - 1) and sw[1]["chg"] == pytest.approx(130 / 100 - 1)
+    assert sw[2]["chg"] == pytest.approx(121 / 130 - 1)                          # 還沒確認的點：到今天
+    assert VZ.swing_sub(sw[0], 0.10) == "之後跌 17%" and VZ.swing_sub(sw[1], 0.10) == "之後漲 30%"
+    assert VZ.swing_sub(sw[2], 0.10) == "還沒確認（已回落 7%，未滿 10%）"
+    assert VZ.swing_sub({**sw[2], "k": "l", "chg": 0.02}, 0.066) == "還沒確認（已反彈 2%，未滿 6.6%）"
+    up = px[:8]                                                                 # 今天就是最高點 → 不列「還沒確認」那一張
+    assert [x["k"] for x in VZ.swings(cal[:8], up, 0.10)] == ["H", "L"]
+    assert [x["k"] for x in VZ.swings(cal, px, 0.10, start="2026-01-04")] == ["L", "h"]   # start 之前的已確認點不列
+    assert [x["k"] for x in VZ.swings(cal, px, 0.10, n=1)] == ["L", "h"]
+
+
+def test_swing_threshold_by_market():
+    from arm.lab import crashspec as CS
+    assert VZ.swing_thr("tw") == 0.10 and VZ.swing_thr(None) == 0.10
+    assert all(VZ.swing_thr(m) == CS.TH[m][2] for m in ("spx", "ixic", "ndx", "sox"))
+
+
+def test_swing_read_wording():
+    pts = [{"k": "H", "v": [80, 70]}, {"k": "L", "v": [30, 66]}, {"k": "H", "v": [90, 60]}, {"k": "L", "v": [20, 70]},
+           {"k": "h", "v": [10, 10]}]                                           # 還沒確認的點不算
+    r = VZ.swing_read(pts, ["技術", "籌碼"], [36, 92])
+    assert r == "這 2 個高點和 2 個低點：高點時比低點熱：技術（高點平均 85、低點 25，現在 36）。只描述這幾個點，不是訊號。"
+    flat = [{"k": "H", "v": [30, 70]}, {"k": "H", "v": [35, 60]}, {"k": "L", "v": [25, 66]}, {"k": "L", "v": [20, 70]}]
+    assert "形狀差不多" in VZ.swing_read(flat, ["技術", "籌碼"], [36, 92])
+    assert VZ.swing_read(pts[:3], ["技術", "籌碼"], [36, 92]) == ""                # 低點不到 2 個不寫
+
+
+def test_radar_card_has_swings_not_quarters(built):
+    _, _, V, page = built
+    rc = page[page.index('<div class="rcard card">'):page.index('<div class="vside">')]
+    assert 'id="rsm"' in rc and 'id="rsmc"' in rc and "近期波段高點、低點" in rc and 'id="rchips"' not in rc
+    assert "分數後面括號＝和前一個交易日比" in rc
+    assert "P.qs" not in VZ.JS and "#cchips" not in VZ.JS and "function dlt()" in VZ.JS
+    assert "比昨日" in page or "和昨日一樣" in page                               # 面板的分數格
