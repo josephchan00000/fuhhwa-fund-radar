@@ -1,7 +1,7 @@
 {
   "as_of": "2026-10-20",
   "perf_asof": "2026-10-20",
-  "fetched_at": "2026/10/20 23:39",
+  "fetched_at": "2026/10/21 01:16",
   "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算。正式對外前以各投信官網核對",
   "items": [
     {
@@ -123,9 +123,9 @@
       "ret_1w": -2.01,
       "ret_1m": 0.79,
       "last_div": 0.38,
-      "last_div_date": "2026-09-17",
-      "est_div": 0.38,
-      "est_div_date": "2026-10-21",
+      "last_div_date": "2026-10-21",
+      "est_div": null,
+      "est_div_date": null,
       "yield_pct": 15.58,
       "freq": "月配",
       "chg_pct": -0.31,
@@ -146,7 +146,7 @@
       "ret_1m_base": "2026-09-18=29.03",
       "ret_1w_div": null,
       "ret_1m_div": null,
-      "yield_is_est": true
+      "yield_is_est": false
     },
     {
       "code": "0050",
@@ -1058,10 +1058,10 @@
       "close_px": 9.98,
       "ret_1w": -6.64,
       "ret_1m": -3.48,
-      "last_div": null,
-      "last_div_date": null,
-      "est_div": 0.21,
-      "est_div_date": "2026-10-21",
+      "last_div": 0.21,
+      "last_div_date": "2026-10-21",
+      "est_div": null,
+      "est_div_date": null,
       "yield_pct": 8.42,
       "freq": "季配",
       "chg_pct": -1.29,
@@ -1082,7 +1082,7 @@
       "ret_1m_base": "2026-09-18=10.34",
       "ret_1w_div": null,
       "ret_1m_div": null,
-      "yield_is_est": true
+      "yield_is_est": false
     },
     {
       "code": "00999A",
@@ -1167,9 +1167,9 @@
       "ret_1w": 1.57,
       "ret_1m": 0.21,
       "last_div": 0.09,
-      "last_div_date": "2026-09-17",
-      "est_div": 0.09,
-      "est_div_date": "2026-10-21",
+      "last_div_date": "2026-10-21",
+      "est_div": null,
+      "est_div_date": null,
       "yield_pct": 7.59,
       "freq": "月配",
       "chg_pct": -0.07,
@@ -1190,7 +1190,7 @@
       "ret_1m_base": "2026-09-18=14.2",
       "ret_1w_div": null,
       "ret_1m_div": null,
-      "yield_is_est": true
+      "yield_is_est": false
     },
     {
       "code": "00411A",

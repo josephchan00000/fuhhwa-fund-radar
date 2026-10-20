@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/20 22:45",
+  "as_of": "2026/10/21 01:15",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -113,9 +113,9 @@
         {
           "title": "科技型ETF買再多也是同一籃 00998A大跌時抗震 為組合補上另一種選擇",
           "url": "https://tw.news.yahoo.com/%E7%A7%91%E6%8A%80%E5%9E%8Betf%E8%B2%B7%E5%86%8D%E5%A4%9A%E4%B9%9F%E6%98%AF%E5%90%8C-%E7%B1%83-00998a%E5%A4%A7%E8%B7%8C%E6%99%82%E6%8A%97%E9%9C%87-%E7%82%BA%E7%B5%84%E5%90%88%E8%A3%9C%E4%B8%8A%E5%8F%A6-%E7%A8%AE%E9%81%B8%E6%93%87-105654818.html",
-          "source": "Yahoo新聞",
+          "source": "觀傳媒",
           "date": "2026-10-20 18:56",
-          "datetime": "2026-10-20T18:56:54+08:00"
+          "datetime": "2026-10-20T18:56:51+08:00"
         }
       ]
     },
@@ -168,11 +168,11 @@
           "datetime": "2026-10-20T17:36:32+08:00"
         },
         {
-          "title": "台股拉回考驗選股眼光！ 00418A雙軌布局龍頭與轉型股 10/21募集起跑",
-          "url": "https://sunmedia.tw/news/finance/%E5%8F%B0%E8%82%A1%E6%8B%89%E5%9B%9E%E8%80%83%E9%A9%97%E9%81%B8%E8%82%A1%E7%9C%BC%E5%85%89%EF%BC%81-00418A%E9%9B%99%E8%BB%8C%E5%B8%83%E5%B1%80%E9%BE%8D%E9%A0%AD%E8%88%87%E8%BD%89%E5%9E%8B%E8%82%A1%E3%80%801021%E5%8B%9F%E9%9B%86%E8%B5%B7%E8%B7%91-1792488815647",
-          "source": "ENN台灣電報",
+          "title": "台股急殺2千點免驚！基本面強勁支撐 00418A 靠「九倍女戰神」卡位轉型重估黑馬 10/21開募",
+          "url": "https://sunmedia.tw/news/finance/%E5%8F%B0%E8%82%A1%E6%80%A5%E6%AE%BA2%E5%8D%83%E9%BB%9E%E5%85%8D%E9%A9%9A%EF%BC%81%E5%9F%BA%E6%9C%AC%E9%9D%A2%E5%BC%B7%E5%8B%81%E6%94%AF%E6%92%90-00418A-%E9%9D%A0%E3%80%8C%E4%B9%9D%E5%80%8D%E5%A5%B3%E6%88%B0%E7%A5%9E%E3%80%8D%E5%8D%A1%E4%BD%8D%E8%BD%89%E5%9E%8B%E9%87%8D%E4%BC%B0%E9%BB%91%E9%A6%AC-1021%E9%96%8B%E5%8B%9F-1792488717771",
+          "source": "商傳媒 - SUN MEDIA",
           "date": "2026-10-20 17:36",
-          "datetime": "2026-10-20T17:36:31+08:00"
+          "datetime": "2026-10-20T17:36:27+08:00"
         },
         {
           "title": "昔日傳產變AI新貴！台股資金重新洗牌00418A明天開幕鎖定轉型新星| 生活",
@@ -553,20 +553,20 @@
     },
     {
       "platform": "youtube",
-      "title": "都是月配息 ETF 00929 VS 00406A 該選誰？",
-      "channel": "Lydia聊人生",
-      "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
-      "date": "2026-10-18",
-      "views": 3972
-    },
-    {
-      "platform": "youtube",
       "title": "00929年度報酬率逼近八成賺贏0050！達人拆解月配息填息關鍵與選股策略｜三立財經iNEWS",
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
       "date": "2026-10-20",
-      "views": 1717,
+      "views": 6320,
       "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "都是月配息 ETF 00929 VS 00406A 該選誰？",
+      "channel": "Lydia聊人生",
+      "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
+      "date": "2026-10-18",
+      "views": 4502
     },
     {
       "platform": "youtube",
@@ -574,7 +574,7 @@
       "channel": "財富閒叔跡",
       "url": "https://www.youtube.com/watch?v=0Fqy5W9z8JM",
       "date": "2026-10-15",
-      "views": 939
+      "views": 947
     },
     {
       "platform": "youtube",
@@ -582,7 +582,7 @@
       "channel": "寶傑點兵／寶傑怎麼說",
       "url": "https://www.youtube.com/watch?v=sWtVhEHFKoI",
       "date": "2026-10-16",
-      "views": 161054,
+      "views": 161118,
       "peer": true,
       "cat": "主動式"
     },
@@ -592,7 +592,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
       "date": "2026-10-17",
-      "views": 138198,
+      "views": 138926,
       "peer": true,
       "cat": "高股息"
     },
@@ -602,7 +602,7 @@
       "channel": "九八新聞台",
       "url": "https://www.youtube.com/watch?v=A8QXBj_oWj4",
       "date": "2026-10-17",
-      "views": 118452,
+      "views": 118475,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -612,7 +612,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=0U1OMDn2AAQ",
       "date": "2026-10-18",
-      "views": 117905,
+      "views": 118357,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -622,7 +622,7 @@
       "channel": "HSBC Hong Kong",
       "url": "https://www.youtube.com/shorts/lTkYQAOPZ_Q",
       "date": "2026-10-16",
-      "views": 83943,
+      "views": 86857,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -633,19 +633,9 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=QgfhIwj8uRc",
       "date": "2026-10-17",
-      "views": 76427,
+      "views": 76717,
       "peer": true,
       "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "上半年股神、下半年賠光？主動ETF狂掃「這檔千元PCB」！沈萬鈞：Q4唯一翻倍買點曝光，拉回最好賺！《股民想知道》ft.沈萬鈞.俞璘",
-      "channel": "投資優我罩—優分析",
-      "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
-      "date": "2026-10-17",
-      "views": 65166,
-      "peer": true,
-      "cat": "主動式"
     },
     {
       "platform": "youtube",
@@ -653,10 +643,20 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/7NxiVHoPy3g",
       "date": "2026-10-19",
-      "views": 63044,
+      "views": 67032,
       "peer": true,
       "short": true,
       "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "上半年股神、下半年賠光？主動ETF狂掃「這檔千元PCB」！沈萬鈞：Q4唯一翻倍買點曝光，拉回最好賺！《股民想知道》ft.沈萬鈞.俞璘",
+      "channel": "投資優我罩—優分析",
+      "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
+      "date": "2026-10-17",
+      "views": 65282,
+      "peer": true,
+      "cat": "主動式"
     },
     {
       "platform": "youtube",
@@ -664,7 +664,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
       "date": "2026-10-19",
-      "views": 33088,
+      "views": 36790,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -675,7 +675,7 @@
       "channel": "陳智霖股票分析師 Equity Research Analyst",
       "url": "https://www.youtube.com/shorts/Dx2D_E6LksY",
       "date": "2026-10-19",
-      "views": 15793,
+      "views": 17209,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -685,6 +685,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、全球創新金融指數（詳下方新聞標籤）",
     "品牌焦點：00991A 是什麼？主動復華未來 50 成分股、配息、與 0050 、00981A差異一次看（經理人）",
     "社群聲量最高：請教現有投資部位與現金的選擇問題（0 推）",
-    "YouTube 熱片：一缸子全是台積電！主動式ETF遭外資提款引爆共伴效應...神山慘挨刀！11月前最難熬該怎麼避險？ - 黃世聰 林友銘 蘇威元 劉寶傑《寶傑點兵》20261016-1（寶傑點兵／寶傑怎麼說・161,054 次觀看）"
+    "YouTube 熱片：一缸子全是台積電！主動式ETF遭外資提款引爆共伴效應...神山慘挨刀！11月前最難熬該怎麼避險？ - 黃世聰 林友銘 蘇威元 劉寶傑《寶傑點兵》20261016-1（寶傑點兵／寶傑怎麼說・161,118 次觀看）"
   ]
 }
