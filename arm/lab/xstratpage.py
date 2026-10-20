@@ -70,14 +70,20 @@ PARAM_NAMES = {"rsi2": {"rsi_max": "RSI 低於", "exit_ma": "站上幾日均線�
                "faber": {"n": "幾個月均線"}, "ma200": {"n": "幾日均線"}, "mom12": {"n": "看幾個月"},
                "coppock": {"wma": "幾個月加權平均"}, "vix40": {"level": "VIX 到多少"},
                "zweig": {"lo": "先跌到多少以下", "hi": "再衝到多少以上"},
-               "ftd": {"corr": "修正幾 %", "up": "那天漲幾 %"}, "dev60": {"th": "季線乖離"}}
+               "ftd": {"corr": "修正幾 %", "up": "那天漲幾 %"}, "dev60": {"th": "季線乖離"},
+               "mmr": {"level": "維持率跌破多少"}, "mflush": {"dd": "指數至少跌幾 %"},
+               "lowry": {"th": "90% 日的門檻", "win": "下跌日後幾天內"}}
 HN = {20: "1 個月", 60: "3 個月", 120: "6 個月", 250: "1 年"}
 
 
 def pval(k: str, name: str, v) -> str:
     if name == "stretch":
         return f"{v * 100:.0f}%"
-    if name in ("lo", "hi", "corr", "up", "th"):
+    if k == "mmr" and name == "level":
+        return f"{v:.0f}%"
+    if k == "lowry" and name == "win":
+        return f"{v} 天"
+    if name in ("lo", "hi", "corr", "up", "th", "dd"):
         x = v * 100
         return f"{x:.{0 if abs(x - round(x)) < 1e-9 else (2 if abs(x * 10 - round(x * 10)) > 1e-9 else 1)}f}%"
     if k == "hal":
@@ -138,9 +144,25 @@ def dip_rules(k: str, mk: str) -> list[str]:
         out = [f"買：VIX 收盤 ≥ {p['level']}，而且之前 {p['reset']} 個交易日都沒有到 {p['level']} → 隔天收盤買。"
                + ("台股用前一個美股交易日的 VIX（台股收盤時已經知道的最新一個）。" if mk == "tw" else ""), sell]
     elif k == "zweig":
-        out = ["每天算上漲家數 ÷（上漲＋下跌家數）（景氣頁同一份，月底市值 40 億以上的股票），取 10 日指數平均。",
+        who = ("景氣頁同一份，月底市值 40 億以上的股票" if mk == "tw" else
+               "S&P 500 當時的成分股、Yahoo 有資料的；四個美股指數都用這一份")
+        out = [f"每天算上漲家數 ÷（上漲＋下跌家數）（{who}），取 10 日指數平均。",
                f"買：指數平均衝上 {p['hi'] * 100:.1f}%（前一天還沒有），而且之前 {p['days']} 個交易日內有一天在 {p['lo'] * 100:.0f}% 以下 → 隔天收盤買。",
-               sell, "台股家數資料 2013 年起。"]
+               sell, "台股家數資料 2013 年起。" if mk == "tw" else
+               "美股家數 1996 年起；已下市、改名的成分股 Yahoo 多半沒有，早年只算得到現在還在交易的公司。"]
+    elif k == "mmr":
+        out = ["大盤融資維持率＝上市股票與 ETF 的融資市值（融資餘額張數 × 收盤）÷ 上市融資金額（各家券商、媒體的算法不同，數字會差幾個百分點）。",
+               f"買：維持率收盤後第一次低於 {p['level']}%（之前 {p['reset']} 個交易日都在 {p['level']}% 以上）→ 隔天收盤買"
+               "（融資餘額晚上才公布）。", sell, "2004 年起才有（FinMind 的已下市公司收盤 2004-02 才有，之前算不準）。"]
+    elif k == "mflush":
+        out = [f"加權指數離近 {p['win']} 個交易日最高收盤跌了幾 %（跌幅），和從那個最高點以來上市融資金額減少了幾 %（融資減幅）。",
+               f"買：跌幅 ≥ {p['dd'] * 100:.0f}%，而且融資減幅第一次 ≥ 跌幅（前一天還沒有）→ 隔天收盤買。", sell]
+    elif k == "lowry":
+        th, th2 = p["th"] * 100, p["th2"] * 100
+        out = [f"90% 下跌日：下跌股的成交金額、下跌點數都占 {th:.0f}% 以上（S&P 500 成分股算；點數＝當時價格的漲跌）。",
+               f"買：90% 下跌日之後 {p['win']} 個交易日內出現 90% 上漲日（上漲股成交金額、上漲點數都 ≥ {th:.0f}%），"
+               f"或連兩天 {th2:.0f}% 上漲日 → 隔天收盤買（要再出現 90% 下跌日才會有下一次）。", sell,
+               "美股家數 1996 年起；已下市、改名的成分股 Yahoo 多半沒有。"]
     elif k == "ftd":
         out = [f"修正：收盤比近 {S.FTD_HIGH} 個交易日的最高收盤低 {p['corr'] * 100:.0f}% 以上；收盤回到那個最高收盤的 99.9% 以上＝修正結束。",
                "低點之後第一個收盤上漲的日子＝第 1 天；收盤又跌破低點就重新數。",
@@ -283,6 +305,24 @@ def _dip_ind(k: str, n: dict, D: str, d: str) -> str:
         if n.get("e") is None:
             return ""
         return (f"上漲家數 10 日平均 {n['e'] * 100:.1f}%（{md(n.get('ed_'), d)}；要先在 40% 以下，10 個交易日內再衝上 61.5%）")
+    if k == "mmr":
+        if n.get("mr") is None:
+            return ""
+        q = S.BY_KEY["mmr"]["p"]
+        return (f"大盤融資維持率 {n['mr']:.1f}%（{md(n.get('mrd'), d)}；近 {q['reset']} 個交易日最低 {num(n.get('mrmin'), 1)}%，"
+                f"跌破 {q['level']}% 才算）")
+    if k == "mflush":
+        if n.get("dd") is None:
+            return ""
+        q = S.BY_KEY["mflush"]["p"]
+        if n["dd"] < q["dd"]:
+            return f"加權指數離近 {q['win']} 個交易日高點 {pc(-n['dd'], sign=True)}（要跌 {q['dd'] * 100:.0f}% 以上才看）"
+        return f"加權指數離高點 {pc(-n['dd'], sign=True)}、融資金額從那時以來 {pc(-n['md'], sign=True)}（融資減幅要大於指數跌幅）"
+    if k == "lowry":
+        out = "" if n.get("u") is None else f"{md(n.get('ud'), d)} 上漲股成交金額占 {pc(n['u'], 0)}、上漲點數占 {pc(n['g'], 0)}"
+        if n.get("dn_d"):
+            out += f"；最近一次 90% 下跌日 {md(n['dn_d'], d)}（{n.get('dn_ago')} 個交易日前）"
+        return out
     if k == "ftd":
         if n.get("in"):
             out = f"修正中：比近 252 個交易日最高收盤低 {pc(-n['dd'])}，低點 {md(n.get('low_d'), d)}（{num(n.get('low_px'))}）"
@@ -324,6 +364,13 @@ def now_short(r: dict) -> str:
         if k == "ftd":
             return (f"修正中・反彈第 {n['rday']} 天" if n.get("in") and n.get("rday") else
                     "修正中" if n.get("in") else f"離高點 {pc(n.get('dd'), 1, sign=True)}")
+        if k == "mmr":
+            return "—" if n.get("mr") is None else f"維持率 {n['mr']:.0f}%"
+        if k == "mflush":
+            return "—" if n.get("dd") is None else f"離高點 {pc(-n['dd'], 1, sign=True)}"
+        if k == "lowry":
+            return (f"90% 下跌日 {md(n['dn_d'], n['d'])}" if n.get("dn_d") and n.get("dn_ago", 99) <= S.BY_KEY[k]["p"]["win"]
+                    else "沒有 90% 下跌日" if not n.get("dn_d") else f"上一次 90% 下跌日 {md(n['dn_d'], n['d'])}")
         return f"離季線 {pc(n.get('dev'), 1, sign=True)}"
     if k == "rsi2" and n["st"] == "near":
         return f"{md(n.get('nx'), n['d'])} 收盤低於 {num(n.get('hi_px'))} 就買"

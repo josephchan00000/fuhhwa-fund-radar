@@ -96,7 +96,8 @@ def test_payload_and_detail_from_real_results():
     pl = P.payload(R)
     assert set(pl["spec"]) == set(S.KEYS) and pl["ver"] == S.VER
     for mk in S.MARKETS:
-        assert set(pl["m"][mk]) == {s["k"] for s in S.STRATS if mk in s["mk"]}
+        D = X.data(mk)                                   # VER 4：資料還沒回補的策略先不列
+        assert set(pl["m"][mk]) == {s["k"] for s in S.STRATS if mk in s["mk"] and X.has_data(D, s["k"])}
         for k, x in pl["m"][mk].items():
             assert x["t"] in S.TIERS and x["st"] in P.TAG and x["now"] and x["line"] and x["rules"] and x["why"]
             assert x["ol"] == ("隔天收盤" if (mk, k) in S.SAME_DAY else "原作者時點") and x["os"]
