@@ -474,3 +474,58 @@ def test_moves_empty_week():
     assert "其他沒什麼變" in txt and "創新高" not in txt
     V["dims"]["fund"] = {"score": None, "ago": 50, "items": its}
     assert "這週各面向都沒什麼變" in VZ.moves_html(V)
+
+
+def _scen_row(mk, key, name, up, warn, occ, a="2009-01-02", z="2026-10-19"):
+    st = lambda hit, base, t, n=12: {"n": n, "hit": hit, "base": base, "tier": t, "n10": n, "hit10": hit, "base10": base}  # noqa: E731
+    return {"id": f"{mk}:scen:{key}", "mk": mk, "cat": "scen", "grp": "scen", "var": key, "vn": name, "name": name,
+            "kind": "state", "H": 60, "th": 0.10, "a": a, "z": z, "up": st(*up), "warn": st(*warn), "tier": up[2],
+            "dir": ["up"], "occ": occ}
+
+
+def test_scenario_card_replaces_coupling(monkeypatch):
+    """情境卡（sigspec VER 4 第 4.10 節；2026-10-20 使用者：「交互分析那邊超沒意義」）：9 個情境各一張卡＝條件附現在的分數、
+    偏多與警示的機率（和隨便挑一天比）、過去出現的時候；現在落在的標出來、頁首狀態一行也列；台股資金＝全球與台灣資金平均。"""
+    from arm.lab import sigcat as G
+    from arm.lab import sigspec as SS
+    rows = [_scen_row("tw", "SC2", "景氣好、價格回檔", (0.65, 0.63, "none"), (0.38, 0.35, "none"),
+                      [["2015-03-02", "2015-05-29", 60, 0.7, 0.3, 0.05, 0.02], ["2026-07-17", "2026-10-19", 66, 1, 0, 0.04, 0.03]]),
+            _scen_row("tw", "SC6", "資金寬鬆、價格弱", (0.67, 0.68, "few", 3), (0.33, 0.24, "few", 3), []),
+            _scen_row("spx", "SC2", "景氣好、價格回檔", (0.76, 0.66, "ref"), (0.36, 0.40, "none"), [])]
+    monkeypatch.setattr(G, "research_rows", lambda: rows)
+    dims = {"fund": {"score": 94.0, "band": "過熱"}, "chip": {"score": 88.0, "band": "過熱"},
+            "gliq": {"score": 17.0, "band": "過冷"}, "tliq": {"score": 45.0, "band": "中性"}, "tech": {"score": 33.0, "band": "偏冷"}}
+    V = {"mk": "tw", "dims": dims, "signow": {"on": {"tw:scen:SC2": {"since": "2026-07-17", "n": 66}}}}
+    assert VZ.scen_now(V) == {"fund": 94.0, "chip": 88.0, "liq": 31.0, "tech": 33.0}
+    h = VZ.scen_html(V)
+    txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h)))
+    assert h.count('class="sqi') == 2 and 'id="sq-SC2"' in h and 'class="sqi on"' in h
+    assert "現在落在： 景氣好、價格回檔 。" in txt and "現在・2026/7/17 起" in txt
+    assert "基本面 ≥ 60（現在 94 ）・技術 < 40（現在 33 ）" in txt              # 「<」要跳脫，不能被當成標籤吞掉
+    assert "&lt; 40" in h and "資金 ≥ 60（現在 31 ）" in txt                     # 台股資金＝(17＋45)÷2
+    assert "之後 3 個月上漲 65% （隨便挑一天 63%）" in txt and "之後 3 個月內大跌（回撤 10% 以上） 38%" in txt
+    assert 'data-dims="fund tech"' in h and 'data-dims="gliq,tliq tech"' in h   # 台股資金一組兩個（對照圖選到任一個就算）
+    assert h.count('class="sqtb"') == 2 and 'title="2015/3/2～2015/5/29"' in h
+    assert 'href="x9o.html#s=tw:scen:SC2"' in h and "90 個比較" in txt and "2009 年起" in txt
+    assert not any(w in txt for w in BANNED)
+    V2 = {**V, "signow": {"on": {}}}
+    assert "現在沒有落在任何一個情境。" in VZ.scen_html(V2)
+    monkeypatch.setattr(G, "research_rows", lambda: [])
+    assert "情境的研究結果還沒產生" in VZ.scen_html(V)
+    # 美股不寫台股的說明
+    monkeypatch.setattr(G, "research_rows", lambda: rows)
+    Vu = {"mk": "spx", "dims": {"fund": {"score": 65.0}, "sent": {"score": 41.0}, "liq": {"score": 38.0}, "tech": {"score": 37.0}},
+          "signow": {"on": {}}}
+    hu = VZ.scen_html(Vu)
+    assert "台股" not in hu and "情緒籌碼 2008 年起" in hu and 'data-dims="fund tech"' in hu
+    assert [k for k, *_ in SS.SCENARIOS][:2] == ["SC1", "SC2"]
+
+
+def test_scenario_card_placed_after_compare_and_in_state_line(built, monkeypatch):
+    _, _, V, page = built
+    assert page.index('id="cmp"') < page.index('id="scen"') and '<a href="#scen">情境</a>' in page
+    from arm.lab import heatpage as HP
+    V2 = {**V, "mk": "tw", "signow": {"on": {"tw:scen:SC5": {"since": "2026-07-17", "n": 66}}}}
+    line = HP.state_line(V2)
+    assert 'class="stc stw" href="#scen"' in line and "籌碼熱、價格轉弱" in line
+    assert "情境" not in HP.state_line({**V, "signow": {"on": {}}})

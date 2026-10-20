@@ -329,9 +329,7 @@ def meta() -> dict:
                   for k, dim, nm, u, hot, *_ in S.IND},
         "order": {d: S.ITEMS[d] for d in shown_dims()},
         "pal": list(PALETTE), "max": S.CH_MAX, "ranges": list(S.CH_RANGES), "rdef": S.CH_DEFAULT_RANGE,
-        "shade": list(S.CH_SHADE), "relh": list(S.REL_H), "hdef": S.CPL_DEFAULT_H, "llh": list(S.LL_H),
-        "cpl": {"hot": S.CPL_HOT, "cold": S.CPL_COLD, "minw": S.CPL_MIN_WEEKS, "minr": S.CPL_MIN_RUNS,
-                "boot": S.CPL_BOOT, "ovl": S.CPL_OVERLAP, "bmin": S.WK_BLOCK_MIN, "seed": S.BOOT_SEED},
+        "shade": list(S.CH_SHADE), "relh": list(S.REL_H), "llh": list(S.LL_H),
         "bands": [[lo, min(hi, 100), nm] for lo, hi, nm in S.BANDS], "evtfwd": list(S.EVT_FWD),
         "roll": [S.ROLL_WEEKS, S.ROLL_H], "grmain": S.GR_MAIN, "grlags": list(S.GR_LAGS), "bhq": S.BH_Q,
         "evt": {k: list(v) for k, v in S.EVT.items()},
@@ -1300,6 +1298,11 @@ def state_line(V: dict) -> str:
                      f' {_e(_sgn(100 * a["nowdd"], 1))}%</a>')
     elif nw.get("dd60") is not None:
         chips.append(f'<span class="stc"><b>離 60 日高點</b>{_e(_sgn(100 * nw["dd60"], 1))}%</span>')
+    on = (V.get("signow") or {}).get("on") or {}
+    from . import sigspec as SS
+    act = [nm for key, nm, *_ in SS.SCENARIOS if f"{mk}:scen:{key}" in on]
+    if act:                                                  # 現在落在哪幾個情境（sigspec 第 4.10 節；景氣頁情境卡）
+        chips.append(f'<a class="stc stw" href="#scen" title="點了看情境卡"><b>情境</b>{_e("、".join(act))}</a>')
     return f'<div class="stl" aria-label="市場狀態">{"".join(chips)}</div>'
 
 
@@ -1381,8 +1384,8 @@ _METHOD5 = (
     '<p><b>Granger 預測力</b>：每月一個樣本，扣掉台股自己過去 3 個月的報酬之後，這一項過去 3 個月的 0～100 能不能幫忙預測下個月的台股'
     '（異質變異穩健的 Wald 檢定）；原本 44 項一起、泡沫 7 項一組、6 個面向另一組做多重比較校正，q ≤ 0.10、前後兩半方向一樣才算。'
     '這是預測上的先後關係，不等於真正的因果。</p>'
-    '<p><b>交互分析</b>：在對照圖選 2～5 條線，瀏覽器用每週的資料算：兩條各分偏熱以上（≥ 60）、中性、偏冷以下（< 40）的九種組合，'
-    '或多條線全部偏熱、全部偏冷時，之後台股的表現；週數 ≥ 26、段數 ≥ 4 才判定。組合試得越多，越容易碰到巧合。</p></div>')
+    '<p><b>情境</b>：事先定義好的 9 種面向組合（例：景氣好、價格回檔＝基本面 60 以上、技術未滿 40），在情境裡的日子之後 3 個月'
+    '上漲、大跌的機率和隨便挑一天比，判定同訊號總覽（2026-10-20 起取代對照圖的交互分析）。</p></div>')
 
 _HTML = """<!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8">
@@ -1588,7 +1591,7 @@ const isAcc = id => Object.prototype.hasOwnProperty.call(ACC, id);
 const noRaw = id => isDim(id) || isAcc(id);
 const VERD = {strong: '之後較強', weak: '之後較弱', none: '看不出差別', few: '樣本不足'};
 let D = null, failed = false;
-const st = {sel: M.dims.slice(0, M.max).map((d, i) => ({id: d.id, slot: i})), range: M.rdef, mode: 'h', hz: M.hdef, pick: false};
+const st = {sel: M.dims.slice(0, M.max).map((d, i) => ({id: d.id, slot: i})), range: M.rdef, mode: 'h', pick: false};
 
 // ── 數字與日期
 const sgn = r => (r < 0 ? '−' : (r > 0 ? '+' : ''));
@@ -2030,131 +2033,25 @@ function single(box, id) {
   box.innerHTML = '<div class="an">' + h + llBlock(a.ll, W) + (D.m6 && D.m6[id] ? respBlock(id, W) : '') + grBlock(id, a.gr) + rollBlock(a.roll, W) + bandBlock(id, a.bands) + evtBlock(a.evt) + '</div>';
 }
 
-// ── 交互分析（瀏覽器算；規則同 heatrel.group_stats）
-// @@CALC 以下到 @@ENDCALC 只用 M，不碰頁面（tests/test_heatpage.py 用 node 和 Python 比對）
-function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-function bootDiff(r, flag, L) {
-  const n = r.length, nf = flag.filter(Boolean).length;
-  if (nf < 2 || n < 2 * L) return [null, null];
-  const P = [0], PE = [0], PF = [0];
-  for (let k = 0; k < n; k++) { P.push(P[k] + r[k]); PE.push(PE[k] + (flag[k] ? r[k] : 0)); PF.push(PF[k] + (flag[k] ? 1 : 0)); }
-  const rnd = mulberry32(M.cpl.seed), starts = n - L + 1, reps = [];
-  for (let b = 0; b < M.cpl.boot; b++) {
-    let sa = 0, se = 0, na = 0, ne = 0;
-    while (na < n) { const s0 = Math.floor(rnd() * starts); sa += P[s0 + L] - P[s0]; se += PE[s0 + L] - PE[s0]; ne += PF[s0 + L] - PF[s0]; na += L; }
-    if (ne) reps.push(se / ne - sa / na);
-  }
-  if (reps.length < M.cpl.boot / 2) return [null, null];
-  reps.sort((a, b) => a - b);
-  return [reps[Math.floor(0.025 * reps.length)], reps[Math.min(reps.length - 1, Math.floor(0.975 * reps.length))]];
-}
-const mean = a => (a.length ? a.reduce((p, c) => p + c, 0) / a.length : null);
-function gstats(rows, flag, L) {
-  const ret = rows.map(x => x.r), n = flag.filter(Boolean).length;
-  let runs = 0;
-  for (let k = 0; k < flag.length; k++) if (flag[k] && (k === 0 || !flag[k - 1] || rows[k].i !== rows[k - 1].i + 1)) runs++;
-  const sel = ret.filter((_, k) => flag[k]);
-  const out = {n: n, runs: runs, avg: mean(sel), up: n ? sel.filter(v => v > 0).length / n : null, all: mean(ret), diff: null, lo: null, hi: null, d1: null, d2: null, v: 'few', every: n > 0 && n === ret.length};
-  if (out.avg != null && out.all != null) out.diff = out.avg - out.all;
-  if (n) { const ci = bootDiff(ret, flag, L); out.lo = ci[0]; out.hi = ci[1]; }
-  const m = Math.floor(ret.length / 2);
-  [[0, m, 'd1'], [m, ret.length, 'd2']].forEach(p => {
-    const all = ret.slice(p[0], p[1]), s = [];
-    for (let k = p[0]; k < p[1]; k++) if (flag[k]) s.push(ret[k]);
-    if (all.length && s.length) out[p[2]] = mean(s) - mean(all);
+// ── 多條線一起看：框出下面「情境」裡用到這幾個面向的（2026-10-20 起取代交互分析；docs/lab_heatviz_v2_plan.md 第 5、11 節）
+function scenHint(box, ids) {                              // 卡片的 data-dims＝情境用到的面向（以空白分組；台股資金一組兩個，選到任一個就算）
+  const dims = new Set(ids.map(id => (M.items[id] && M.items[id].dim) || id));
+  const def = M.dims.slice(0, M.max).map(d => d.id), dflt = ids.length === def.length && def.every(d => ids.includes(d));   // 預設的幾條＝不框
+  let n = 0;
+  document.querySelectorAll('#scen .sqi').forEach(c => {
+    const on = !dflt && (c.dataset.dims || '').split(' ').every(g => g.split(',').some(d => dims.has(d)));
+    c.classList.toggle('hl', on);
+    if (on) n++;
   });
-  if (n >= M.cpl.minw && runs >= M.cpl.minr && out.lo != null && out.hi != null && out.d1 != null && out.d2 != null) {
-    out.v = (out.lo > 0 && out.d1 > 0 && out.d2 > 0) ? 'strong' : ((out.hi < 0 && out.d1 < 0 && out.d2 < 0) ? 'weak' : 'none');
-  }
-  return out;
+  box.innerHTML = '<div class="an"><h3>多條線一起看</h3><p class="note">幾個面向一起看，請看下面的<a href="#scen">情境</a>：事先定義好的面向組合，'
+    + '過去出現之後 3 個月上漲、大跌的機率（判定同訊號總覽）。' + (dflt ? '' : n ? '只用到這幾條線的 ' + n + ' 個情境已用虛線框起來。' : '沒有情境只用到這幾條線。') + '</p></div>';
 }
-function ranks(a) {
-  const o = a.map((v, i) => [v, i]).sort((p, q) => p[0] - q[0]), r = new Array(a.length);
-  let j = 0;
-  while (j < o.length) { let k = j; while (k + 1 < o.length && o[k + 1][0] === o[j][0]) k++; for (let m = j; m <= k; m++) r[o[m][1]] = (j + k) / 2; j = k + 1; }
-  return r;
-}
-function spear(x, y) {
-  if (x.length < 3) return null;
-  const rx = ranks(x), ry = ranks(y), mx = mean(rx), my = mean(ry);
-  let sxy = 0, sxx = 0, syy = 0;
-  for (let k = 0; k < rx.length; k++) { const a = rx[k] - mx, b = ry[k] - my; sxy += a * b; sxx += a * a; syy += b * b; }
-  return sxx && syy ? sxy / Math.sqrt(sxx * syy) : null;
-}
-// @@ENDCALC
-function joint(ids, hz) {
-  const fw = D.w.fw[String(hz)], T = ids.map(id => D.s[id] && D.s[id].h), out = [];
-  for (let i = 0; i < D.w.d.length; i++) {
-    const r = fw[i];
-    if (r == null) continue;
-    const xs = T.map(t => val(t, i));
-    if (xs.some(x => x == null)) continue;
-    out.push({i: i, r: r / 100, xs: xs});
-  }
-  return out;
-}
-function overlap(ids) {
-  const pairs = [];
-  for (let a = 0; a < ids.length; a++) for (let b = a + 1; b < ids.length; b++) {
-    const ta = D.s[ids[a]] && D.s[ids[a]].h, tb = D.s[ids[b]] && D.s[ids[b]].h, xs = [], ys = [];
-    for (let i = 0; i < D.w.d.length; i++) { const x = val(ta, i), y = val(tb, i); if (x != null && y != null) { xs.push(x); ys.push(y); } }
-    const r = spear(xs, ys);
-    pairs.push(esc(SHORT[ids[a]]) + ' × ' + esc(SHORT[ids[b]]) + ' ' + rho(r) + (r != null && Math.abs(r) >= M.cpl.ovl ? '（高度重疊）' : ''));
-  }
-  return '<p class="ovl"><b>重疊度</b>（兩兩等級相關）：' + pairs.join('；') + '。到 ±' + M.cpl.ovl + ' 以上代表兩條其實在說同一件事，一起看不會多出資訊。</p>';
-}
-const S3 = ['偏熱以上', '中性', '偏冷以下'];
-const s3 = x => (x >= M.cpl.hot ? 0 : (x < M.cpl.cold ? 2 : 1));
-function cell(g0, cur) {
-  const cls = 'c3' + (g0.v === 'strong' ? ' cs' : (g0.v === 'weak' ? ' cw' : (g0.v === 'few' ? ' cf' : ''))) + (cur ? ' cur' : '');
-  if (!g0.n) return '<td class="' + cls + '"><b>—</b><span>0 週</span>' + (cur ? '<em>現在在這格</em>' : '') + '</td>';
-  return '<td class="' + cls + '"><b>' + pct(100 * g0.avg) + '</b><span>' + g0.n + ' 週・' + g0.runs + ' 段</span><span>上漲 ' + Math.round(100 * g0.up) + '%</span>'
-    + (g0.every ? '<span>所有的週都在這格</span>' : '<span>比同一批週 ' + pct(100 * g0.diff) + '</span>' + (g0.lo != null ? '<span>［' + pct(100 * g0.lo) + ', ' + pct(100 * g0.hi) + '］</span>' : ''))
-    + '<em>' + (g0.every ? '—' : VERD[g0.v]) + (cur ? '・現在在這格' : '') + '</em></td>';
-}
-function grid(ids, rows, L) {
-  const ca = lastHeat(ids[0]), cb = lastHeat(ids[1]);
-  let h = '<p class="note">直列＝' + esc(SHORT[ids[0]]) + '、橫欄＝' + esc(SHORT[ids[1]]) + '；粗框＝現在落在的格子。</p>'
-    + '<div class="tw"><table class="g3"><tr><th></th><th class="l" colspan="3">' + esc(SHORT[ids[1]]) + '</th></tr><tr><th class="l">' + esc(SHORT[ids[0]]) + '</th>' + S3.map(x => '<th class="l">' + x + '</th>').join('') + '</tr>';
-  for (let a = 0; a < 3; a++) {
-    h += '<tr><th class="l">' + S3[a] + '</th>';
-    for (let b = 0; b < 3; b++) h += cell(gstats(rows, rows.map(r => s3(r.xs[0]) === a && s3(r.xs[1]) === b), L), ca != null && cb != null && s3(ca) === a && s3(cb) === b);
-    h += '</tr>';
-  }
-  return h + '</table></div>';
-}
-function trow(label, g0, cur) {
-  const d = g0.every ? '所有的週' : (g0.diff != null ? pct(100 * g0.diff) + (g0.lo != null ? '<span class="hw">［' + pct(100 * g0.lo) + ', ' + pct(100 * g0.hi) + '］</span>' : '') : '—');
-  return '<tr' + (cur ? ' class="cur"' : '') + '><td class="l">' + esc(label) + (cur ? '（現在）' : '') + '</td><td>' + g0.n + '<span class="hw">' + g0.runs + ' 段</span></td><td>' + (g0.n ? pct(100 * g0.avg) + '<span class="hw">上漲 ' + Math.round(100 * g0.up) + '%</span>' : '—') + '</td><td>'
-    + d + '<span class="hw mob">' + (g0.every ? '' : VERD[g0.v]) + '</span></td><td class="l dsk">' + (g0.every ? '—' : VERD[g0.v]) + '</td></tr>';
-}
-function consensus(ids, rows, L, hz) {
-  const cur = ids.map(lastHeat), have = cur.every(x => x != null);
-  const allH = xs => xs.every(x => x >= M.cpl.hot), allC = xs => xs.every(x => x < M.cpl.cold);
-  const head = '<tr><th class="l">狀態</th><th>週數</th><th>之後 ' + hz + ' 日平均</th><th>比同一批週</th><th class="l dsk">判定</th></tr>';
-  const k1 = [['全部偏熱以上', r => allH(r.xs), have && allH(cur)], ['全部偏冷以下', r => allC(r.xs), have && allC(cur)], ['其他', r => !allH(r.xs) && !allC(r.xs), have && !allH(cur) && !allC(cur)]];
-  let h = '<h4>這幾條同時偏熱、同時偏冷的時候</h4><div class="tw"><table class="ct">' + head + k1.map(k => trow(k[0], gstats(rows, rows.map(k[1]), L), k[2])).join('') + '</table></div>';
-  const avg = xs => mean(xs), cb = have ? bandName(avg(cur)) : null;
-  h += '<h4>這幾條平均成一個分數</h4><div class="tw"><table class="ct">' + head + M.bands.map(b => trow(b[2], gstats(rows, rows.map(r => bandName(avg(r.xs)) === b[2]), L), b[2] === cb)).join('') + '</table></div>';
-  return h;
-}
-function couple(box, ids) {
-  const hz = st.hz, L = Math.max(M.cpl.bmin, Math.ceil(hz / 5));
-  let h = '<h3>交互分析：' + ids.map(id => esc(SHORT[id])).join('、') + '<span class="sub">只當參考；每週一個樣本</span></h3><div class="seg hzs">' + M.relh.map(x => '<button type="button" class="tb' + (x === hz ? ' on' : '') + '" data-hz="' + x + '">之後 ' + x + ' 日</button>').join('') + '</div>';
-  const rows = joint(ids, hz);
-  if (rows.length < 52) { box.innerHTML = '<div class="an">' + h + '<p class="note">這幾條線同時有值的週太少（不到 52 週）。</p></div>'; bindHz(box); return; }
-  h += overlap(ids) + (ids.length === 2 ? grid(ids, rows, L) : consensus(ids, rows, L, hz));
-  h += '<p class="note">每格＝這幾條線同時落在那個狀態的週，之後 ' + hz + ' 日' + PXH + '的平均，和「同一批週」（' + rows.length.toLocaleString('en-US') + ' 週，' + ymd(D.w.d[rows[0].i]) + ' 起）的平均比；偏熱以上＝' + M.cpl.hot + ' 以上、偏冷以下＝未滿 ' + M.cpl.cold + '。週數 ≥ ' + M.cpl.minw + '、段數 ≥ ' + M.cpl.minr + ' 才判定；信賴區間不含 0、前後兩半方向一樣才寫較強或較弱。組合試得越多，越容易碰到巧合。</p>';
-  box.innerHTML = '<div class="an">' + h + '</div>';
-  bindHz(box);
-}
-function bindHz(box) { box.querySelectorAll('[data-hz]').forEach(b => b.addEventListener('click', () => { st.hz = +b.dataset.hz; analysis(); })); }
 function analysis() {
   const box = $('#cmp-an');
   box.textContent = '';
   if (!D || !st.sel.length) return;
-  if (st.sel.length === 1) single(box, st.sel[0].id);
-  else couple(box, st.sel.map(x => x.id));
+  if (st.sel.length === 1) { document.querySelectorAll('#scen .sqi.hl').forEach(c => c.classList.remove('hl')); single(box, st.sel[0].id); }
+  else scenHint(box, st.sel.map(x => x.id));
 }
 
 function render() { controls(); draw(); aw = $('#cmp-an').clientWidth; analysis(); }

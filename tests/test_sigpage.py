@@ -248,3 +248,24 @@ def test_crash_now_latest_value_and_weekly_spark():
     out = sigcat.crash_now(F)
     assert list(out) == ["W1"] and out["W1"]["d"] == cal[-2] and out["W1"]["h"] == round(float(x[-2]), 1)
     assert out["W1"]["band"] == "過熱" and len(out["W1"]["sp"]) == len(cal) and out["W1"]["sp"][-1] is None and out["W1"]["sp"][0] == 10
+
+
+def test_scenarios_are_their_own_indicators():
+    """情境（sigspec VER 4 第 4.10 節）：每個情境一個指標、類別「情境」；指標頁畫指數＋情境期間；現在欄寫用到的面向分數。"""
+    a = _rows()[0]
+    sc = dict(a, id="tw:scen:SC5", cat="scen", grp="scen", var="SC5", vn="籌碼熱、價格轉弱", name="籌碼熱、價格轉弱",
+              sig="on", kind="state", H=60)
+    x = sigpage.indicators([sc])[0]
+    assert x[:4] == ["tw:scen:SC5", "tw", "scen", "籌碼熱、價格轉弱"] and x[6] is None
+    assert sigpage.IND_CATS["scen"] == "情境" and sigcat.CAT_NAMES["scen"] == "情境"
+    m = sigpage.scen_meta()
+    assert list(m) == [k for k, *_ in sigspec.SCENARIOS]
+    assert m["SC5"] == ["籌碼熱、價格轉弱", "籌碼 60 以上、技術 未滿 40", "追價的人被套，會不會再跌", ["chip", "tech"]]
+    assert m["SC8"][1].startswith("四個面向（基本面、籌碼、資金、技術）至少 3 個有值") and m["SC8"][3] == list(sigspec.SCEN_DIMS)
+    items = {"tw": {"Dfund": {"h": 94.0}, "Dchip": {"h": 88.0}, "Dgliq": {"h": 17.0}, "Dtliq": {"h": 45.0}, "Dtech": {"h": 33.0}},
+             "spx": {"Dfund": {"h": 65.0}, "Dsent": {"h": 41.0}, "Dliq": {"h": 38.0}, "Dtech": {"h": None}}}
+    assert sigpage.scen_values(items) == {"tw": {"fund": 94.0, "chip": 88.0, "liq": 31.0, "tech": 33.0},
+                                          "spx": {"fund": 65.0, "chip": 41.0, "liq": 38.0, "tech": None}}
+    js = sigpage._JS if hasattr(sigpage, "_JS") else sigpage.render(_view())
+    assert "const PXC = ['tech', 'crash', 'dim', 'scen', 'bub', 'buy'];" in js and "function scenNow(x)" in js
+    assert "if (c === 'scen')" in js and "x9m.html#scen" in js

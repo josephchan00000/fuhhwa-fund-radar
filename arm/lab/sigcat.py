@@ -19,8 +19,8 @@ from . import sigspec as S
 ROOT = Path(__file__).resolve().parents[2]
 RESEARCH = ROOT / "data" / "lab" / "sig_research.json"
 
-CAT_NAMES = {"heat": "景氣項目", "multi": "景氣面向", "tech": "技術事件", "deriv": "邊際變化", "crash": "大跌風險",
-             "bub": "泡沫", "ind": "產業泡沫", "buy": "大跌後買點", "stock": "個股訊號", "strat": "個股策略"}
+CAT_NAMES = {"heat": "景氣項目", "multi": "景氣面向", "scen": "情境", "tech": "技術事件", "deriv": "邊際變化",
+             "crash": "大跌風險", "bub": "泡沫", "ind": "產業泡沫", "buy": "大跌後買點", "stock": "個股訊號", "strat": "個股策略"}
 TIER_ORDER = {t: i for i, t in enumerate(S.TIERS)}
 
 
@@ -329,6 +329,44 @@ def _var_signals(F: dict, v: dict, cat: str) -> list[dict]:
     return out
 
 
+def scen_series(F: dict) -> dict:
+    """情境用的四個共通面向（sigspec 第 4.10 節）→ {面向: 依日曆的分數陣列}；台股資金＝全球與台灣資金平均，兩個都有值才算。"""
+    src = S.SCEN_SRC["tw" if F["mk"] == "tw" else "us"]
+    T = len(F["cal"])
+    out = {}
+    for g in S.SCEN_DIMS:
+        arrs = [np.asarray(F["comp"][d], dtype=float) for d in src[g] if d in F["comp"]]
+        out[g] = np.mean(np.vstack(arrs), axis=0) if len(arrs) == len(src[g]) else np.full(T, np.nan)
+    return out
+
+
+def scen_flags(X: dict, cond) -> tuple[np.ndarray, np.ndarray]:
+    """一個情境 → (樣本：條件用到的面向都有值的日子, 每一天在不在情境中)。多數面向：至少 SCEN_MIN_DIMS 個面向有值。"""
+    if cond in ("many_hi", "many_lo"):
+        M = np.vstack([X[g] for g in S.SCEN_DIMS])
+        have = (~np.isnan(M)).sum(axis=0) >= S.SCEN_MIN_DIMS
+        on = (M >= S.SCEN_HI) if cond == "many_hi" else (M < S.SCEN_LO)
+        return have, have & ((on & ~np.isnan(M)).sum(axis=0) >= S.SCEN_MANY)
+    have = np.ones(len(next(iter(X.values()))), dtype=bool)
+    on = have.copy()
+    for g, o in cond:
+        x = X[g]
+        have &= ~np.isnan(x)
+        on &= (x >= S.SCEN_HI) if o == "hi" else (x < S.SCEN_LO)
+    return have, have & on
+
+
+def scen_signals(F: dict) -> list[dict]:
+    X = scen_series(F)
+    out = []
+    for key, name, cond, why in S.SCENARIOS:
+        have, on = scen_flags(X, cond)
+        samp = np.nonzero(have)[0]
+        out.append({"id": f"{F['mk']}:scen:{key}", "cat": "scen", "grp": "scen", "var": key, "vn": name, "sig": "on",
+                    "name": name, "kind": "state", "H": S.H_SCEN, "samp": samp, "state": on[samp], "why": why})
+    return out
+
+
 def signals(F: dict) -> list[dict]:
     """一個市場的全部市場層級訊號定義（不含結果）。"""
     from . import heatspec as HS
@@ -356,6 +394,8 @@ def signals(F: dict) -> list[dict]:
     comp = {d: _lst(F["comp"][d]) for d in dims}
     out.append({**base, "id": f"{mk}:multi:M2:hot_in", "sig": "hot_in", "name": "進入同時兩個以上面向過熱", "kind": "event",
                 "days": HDD.multi(comp, dims, S.MULTI_K)})
+    # 情境（VER 4）
+    out += scen_signals(F)
     # 技術事件
     ev = TT.all_events([None if _nan(p) else float(p) for p in px])
     samp = np.arange(S.EV_START, T)

@@ -27,7 +27,7 @@ MK_ORDER = ("tw", "spx", "ixic", "ndx", "sox", "us", "stk")
 TODAY_MK = ("tw", "spx", "ixic", "ndx", "sox")
 H_TXT = {20: "1 個月", 60: "3 個月", 250: "12 個月"}
 # 依指標整理（docs/lab_sigview_plan.md）：指標的類別、走勢圖的資料檔（景氣頁對照圖同一份）、指數名稱
-IND_CATS = {"heat": "景氣項目", "dim": "景氣面向", "crash": "大跌風險", "tech": "技術事件", "bub": "泡沫", "ind": "產業泡沫",
+IND_CATS = {"heat": "景氣項目", "dim": "景氣面向", "scen": "情境", "crash": "大跌風險", "tech": "技術事件", "bub": "泡沫", "ind": "產業泡沫",
             "buy": "大跌後買點", "stock": "個股訊號", "strat": "個股策略"}
 CHART = {"tw": "x9mh.json", "spx": "x9muh-spx.json", "ixic": "x9muh-ixic.json", "ndx": "x9muh-ndx.json", "sox": "x9muh-sox.json"}
 PX_NAMES = {"tw": "加權指數", "spx": "S&P 500", "ixic": "那斯達克", "ndx": "那斯達克 100", "sox": "費半"}
@@ -43,6 +43,8 @@ def ind_of(r: dict) -> tuple[str, str, str, str | None]:
         return f"{mk}:{var}", "heat", r["vn"], var
     if cat == "multi":
         return f"{mk}:{var}", "dim", r["vn"], None
+    if cat == "scen":
+        return f"{mk}:scen:{var}", "scen", r["vn"], None
     if cat == "crash":
         return f"{mk}:{var}", "crash", r["vn"], var
     if cat == "tech":
@@ -75,6 +77,35 @@ def ind_names() -> dict:
     """產業泡沫每一段的產業代碼 → 中文（美股 49 細產業、美股類股 ETF；台股本來就是中文）。"""
     from . import bubindspec as BIS
     return {**BIS.FF_NAMES, **{k: f"{v}（{k}）" for k, v in BIS.US_ETF.items()}}
+
+
+def scen_meta() -> dict:
+    """情境（sigspec 第 4.10 節）：{代號: [名稱, 條件（白話）, 想看的事, 用到的面向]}。"""
+    out = {}
+    for key, name, cond, why in S.SCENARIOS:
+        if cond in ("many_hi", "many_lo"):
+            lab = f"{S.SCEN_HI} 以上" if cond == "many_hi" else f"未滿 {S.SCEN_LO}"
+            txt = (f"四個面向（{'、'.join(S.SCEN_DIM_NAMES[g] for g in S.SCEN_DIMS)}）至少 {S.SCEN_MIN_DIMS} 個有值，"
+                   f"其中 {S.SCEN_MANY} 個以上{lab}")
+            dims = list(S.SCEN_DIMS)
+        else:
+            txt = "、".join(f"{S.SCEN_DIM_NAMES[g]} {f'{S.SCEN_HI} 以上' if o == 'hi' else f'未滿 {S.SCEN_LO}'}" for g, o in cond)
+            dims = [g for g, _ in cond]
+        out[key] = [name, txt, why, dims]
+    return out
+
+
+def scen_values(items: dict) -> dict:
+    """{市場: {共通面向: 現在的分數}}（景氣頁的面向分數；台股資金＝全球與台灣資金平均，兩個都有值才算）。"""
+    out = {}
+    for mk, it in items.items():
+        src = S.SCEN_SRC["tw" if mk == "tw" else "us"]
+        v = {}
+        for g, ds in src.items():
+            hs = [((it.get("D" + d) or {}).get("h")) for d in ds]
+            v[g] = round(sum(hs) / len(hs), 1) if hs and all(h is not None for h in hs) else None
+        out[mk] = v
+    return out
 
 
 def dim_names() -> dict:
@@ -180,7 +211,8 @@ def page_json(V: dict) -> str:
            "asof": V["asof"], "tiers": {t: [S.TIER_MARK[t], S.TIER_NAMES[t]] for t in S.TIERS},
            "dirs": S.DIR_NAMES, "words": S.VARIANT_NAMES, "rmk": V.get("rmk") or [], "cards": CARD_NAMES,
            "inds": indicators(V["rows"]), "icat": IND_CATS, "it": V.get("items") or {}, "dimn": dim_names(),
-           "chart": CHART, "pxn": PX_NAMES, "inm": ind_names(),
+           "chart": CHART, "pxn": PX_NAMES, "inm": ind_names(), "scen": scen_meta(),
+           "scnv": scen_values(V.get("items") or {}), "scdn": S.SCEN_DIM_NAMES,
            "hit": {d: round(100 * v) for d, v in S.HIT_MIN.items()}, "eg": round(100 * S.EDGE_GOOD), "er": round(100 * S.EDGE_REF),
            "n10": S.RECENT_N}
     return json.dumps(out, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
@@ -639,7 +671,11 @@ function spark(sp, w, h){
     '<line class="th" x1="0" x2="' + w + '" y1="' + Y(80).toFixed(1) + '" y2="' + Y(80).toFixed(1) + '"/>' +
     '<line class="tc" x1="0" x2="' + w + '" y1="' + Y(20).toFixed(1) + '" y2="' + Y(20).toFixed(1) + '"/>' +
     '<path d="' + d + '"/><circle class="zt' + zi(sp[last]) + '" cx="' + X(last).toFixed(1) + '" cy="' + Y(sp[last]).toFixed(1) + '" r="2.6"/></svg>'; }
+function scenNow(x){ const q = SG.scen[x.k.split(':').pop()], v = SG.scnv[x.mk];
+  if (!q || !v) return '';
+  return q[3].map(g => esc(SG.scdn[g]) + ' ' + (v[g] == null ? '—' : '<span class="zt' + zi(v[g]) + '">' + Math.round(v[g]) + '</span>')).join('・'); }
 function nowCell(x){ const it = x.it;
+  if (x.cat === 'scen') { const t = scenNow(x); return t ? '<span class="sgnv">' + t + '</span>' : '<span class="mu">—</span>'; }
   if (it && (it.v || it.h != null)) return (it.v ? '<span class="sgnv">' + esc(it.v) + '</span>' : '') +
     (it.h != null ? '<span class="sgnz zt' + zi(it.h) + '">' + Math.round(it.h) + ' ' + esc(it.band || '') + '</span>' : '');
   const o = x.on[0]; return o ? '<span class="sgnv">' + esc(nowTxt(o)) + '</span>' : '<span class="mu">—</span>'; }
@@ -698,6 +734,7 @@ const TRIG = {hot:'0～100 在 80 以上的每一天（同一段連續過熱算 
   cold:'0～100 低於 20 的每一天（同一段連續過冷算 1 次）', cold_in:'從 20 以上降到低於 20 那一天（前 20 個交易日都在 20 以上）'};
 function trig(r){ const c = r[I.cat], x = r[I.x] || {}, nm = r[I.name];
   if (c === 'heat' || c === 'crash') return x.vn + '：' + TRIG[x.sig];
+  if (c === 'scen') { const q = SG.scen[x.var] || []; return '在「' + (q[0] || nm) + '」情境裡的每一天：' + (q[1] || '') + (r[I.mk] === 'tw' ? '（資金＝全球資金與台灣資金的平均）' : '') + '；同一段算 1 次'; }
   if (c === 'multi') return x.sig === 'hot' ? '景氣頁的面向裡，同時 2 個以上在 80 以上的每一天（至少 3 個面向有值；同一段算 1 次）' : '從不到 2 個面向過熱，變成 2 個以上那一天';
   if (c === 'tech') return nm + '出現那一天（用指數收盤；轉折與均線的定義同景氣頁）';
   if (c === 'deriv') return x.vn + '的邊際變化是「' + nm.split('・').pop() + '」的每一天（看一階、二階的方向；同一段算 1 次）';
@@ -745,7 +782,7 @@ const PV = document.getElementById('sgpv'), PB = document.getElementById('sgp');
 let CUR = null, SEL = null, PUSHED = false;
 const VIEW = {span: '1y', raw: false};
 function ckOf(x){ return !x.ik || !SG.chart[x.mk] ? null : x.cat === 'dim' ? x.ik.slice(1) : x.ik; }
-const PXC = ['tech', 'crash', 'dim', 'bub', 'buy'];                     // 沒有自己的 0～100 走勢的，畫指數＋打點
+const PXC = ['tech', 'crash', 'dim', 'scen', 'bub', 'buy'];                     // 沒有自己的 0～100 走勢的，畫指數＋打點
 function chartable(x){ return !!SG.chart[x.mk] && (!!x.ik || PXC.includes(x.cat)); }
 function sck(x){ const J = CJ[x.mk], ck = ckOf(x); return ck && J && J.s && J.s[ck] ? ck : null; }
 function cell(k, v, sub){ return '<div class="sgnc"><span class="k">' + k + '</span><span class="v">' + v + '</span>' + (sub ? '<span class="s">' + sub + '</span>' : '') + '</div>'; }
@@ -755,6 +792,8 @@ function nowHtml(x){ const it = x.it; let h = '<div class="sgnow">';
     if (it.h != null || it.v) h += cell('0～100', it.h == null ? '—' : '<span class="zt' + zi(it.h) + '">' + Math.round(it.h) + ' ' + esc(it.band || '') + '</span>',
       it.hot === 1 ? '數值越高越熱' : it.hot === -1 ? '數值越低越熱' : '和自己過去比');
   }
+  if (x.cat === 'scen') { const q = SG.scen[x.k.split(':').pop()];
+    if (q) h += cell('條件', esc(q[1]), esc('想看的事：' + q[2])) + cell('現在的面向', scenNow(x) || '—', x.mk === 'tw' && q[3].includes('liq') ? '資金＝全球與台灣資金平均' : ''); }
   h += cell('現在成立的訊號', x.on.length ? x.on.length + ' 個' : '沒有', x.on.length ? '' : '過去的訊號見下表');
   h += '</div>';
   if (it && it.pos) h += '<p class="sgdl">' + esc(it.pos) + '</p>';
@@ -822,6 +861,8 @@ function howHtml(r){ const x = r[I.x] || {};
   const mk = r[I.mk];
   if (['heat', 'deriv', 'multi', 'crash', 'tech'].includes(r[I.cat]) && SG.chart[mk])
     h += '<p class="sgdl"><a href="' + (mk === 'tw' ? 'x9m.html' : 'x9mu.html#ix=' + mk) + '">在景氣頁看' + esc(SG.mk[mk]) + ' →</a></p>';
+  if (r[I.cat] === 'scen' && SG.chart[mk])
+    h += '<p class="sgdl"><a href="' + (mk === 'tw' ? 'x9m.html#scen' : 'x9mu.html#ix=' + mk) + '">在景氣頁看' + esc(SG.mk[mk]) + '的全部情境 →</a></p>';
   return h; }
 function valAt(J, ck, d){ if (!J || !ck || !J.s[ck]) return null;
   const at = (s, k) => { if (k < 0 || !s) return null; const i = k - s.o; return i >= 0 && i < s.v.length ? s.v[i] : null; };
@@ -832,7 +873,7 @@ function recHtml(r, oc){
   if (r[I.cat] === 'strat') return '<p class="note">逐筆交易在<a href="x9.html">個股頁</a>的策略說明卡（每一筆的買進、賣出與報酬）。</p>';
   if (!oc || !oc.length) return '<p class="note">沒有每一次的清單（窗口還沒走完的不列）。</p>';
   const c = r[I.cat];
-  if (!['heat', 'deriv', 'crash', 'multi', 'tech', 'bub'].includes(c)) return occHtml(r, oc);
+  if (!['heat', 'deriv', 'crash', 'multi', 'scen', 'tech', 'bub'].includes(c)) return occHtml(r, oc);
   const d = r[I.dir][0], x = CUR, J = x ? CJ[x.mk] : null, ck = x ? sck(x) : null, ev = r[I.kind] === 'event';
   const mo = (r[I.x] || {}).monthly, h = hz(r), list = oc.slice(-12).reverse();
   const vv = dt => { const v = valAt(J, ck, dt); return v == null ? '<span class="mu">—</span>' : '<span class="zt' + zi(v) + '">' + Math.round(v) + '</span>'; };
