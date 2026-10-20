@@ -33,13 +33,15 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write              # mgnfill 沒做完時自己再派一次（workflow_dispatch，同一個分支）
 
 jobs:
   backfill:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 350      # mgnfill（融資維持率回補）一輪約 5.5 小時；其他模式各自有 timeout／時間預算
     env:
       TZ: Asia/Taipei
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,15 +64,46 @@ jobs:
             MODE=$(head -1 .ping/lab 2>/dev/null | tr -d '[:space:]')
           elif [ "${{ inputs.probe }}" = "true" ]; then
             MODE="probe"
+          elif [ -f .ping/lab ] && [ "$(head -1 .ping/lab | cut -c1-7)" = "mgnfill" ]; then
+            # mgnfill 自己再派的那一輪（workflow_dispatch 沒有 .ping/lab 以外的地方可以帶模式）
+            MODE=$(head -1 .ping/lab | tr -d '[:space:]')
           fi
           PX="${{ inputs.px_days || '380' }}"
           FL="${{ inputs.flow_days || '95' }}"
           echo "模式：$MODE（價量 $PX 天、籌碼 $FL 天）"
           if [ "$MODE" = "probe" ]; then
             python3 scripts/backfill_lab.py --probe
-          elif [ "$MODE" = "s3probe" ]; then
+          elif [ "${MODE#s3probe}" != "$MODE" ]; then
             # 大神策略第三段的資料探針（FinMind 逐檔融資與收盤、終止上市櫃名單、美股漲跌家數來源）：只印不寫
             timeout 1500 python3 scripts/probe_s3.py
+          elif [ "${MODE#mgnfill}" != "$MODE" ]; then
+            # 台股融資維持率回補（docs/lab_expert_plan.md 第 10 節）：FinMind 逐檔，每小時最多 280 個請求（未登入 300）。
+            # 每 50 分鐘存檔＋commit 一次，跑到約 330 分鐘；沒做完就自己再派一輪（同一個分支、同一個模式）。
+            git config user.name "josephchan00000"
+            git config user.email "51159474+josephchan00000@users.noreply.github.com"
+            T_END=$(( $(date +%s) + 330 * 60 ))
+            : > /tmp/mr_status.txt
+            while [ "$(date +%s)" -lt "$T_END" ]; do
+              LEFT=$(( (T_END - $(date +%s)) / 60 ))
+              BUD=$(( LEFT < 50 ? LEFT : 50 ))
+              [ "$BUD" -lt 5 ] && break
+              timeout $(( BUD * 60 + 600 )) python3 scripts/backfill_mratio.py --budget-min "$BUD" || true
+              python3 scripts/backfill_mratio.py --status | tee /tmp/mr_status.txt
+              git add -f data/lab/mratio data/lab/heat/mratio.json.gz 2>/dev/null || true
+              if git commit -q -m "chore: 融資維持率回補 $(date '+%F %H:%M')"; then
+                for i in 1 2 3; do
+                  git push -q origin HEAD:${{ github.ref_name }} && break
+                  git pull -q --rebase origin ${{ github.ref_name }} || git rebase --abort || true
+                  sleep 5
+                done
+              fi
+              grep -q "^DONE" /tmp/mr_status.txt && break
+              grep -q "^STUCK" /tmp/mr_status.txt && break
+            done
+            if ! grep -q "^DONE\|^STUCK" /tmp/mr_status.txt; then
+              echo "還沒做完：再派一輪"
+              gh workflow run lab_backfill.yml --ref "${{ github.ref_name }}" || echo "::warning::再派失敗，請手動推 .ping/lab"
+            fi
           elif [ "$MODE" = "probe2" ]; then
             python3 scripts/backfill_lab.py --probe2
           elif [ "$MODE" = "probe3" ]; then

@@ -100,10 +100,24 @@ def finmind_part() -> None:
         ids = {str(x.get("stock_id")) for x in info}
         four = [i for i in ids if len(i) == 4 and i.isdigit()]
         p("台股總覽欄位：", sorted(info[0].keys()), "type 分布：", ty, "不重複代號", len(ids), "四碼數字", len(four))
+        for code in ("3008", "2325", "0050", "9105", "6488", "2311", "3711"):
+            p(f"總覽 {code}：", json.dumps([x for x in info if str(x.get("stock_id")) == code], ensure_ascii=False)[:400])
+        cats: dict = {}
+        for x in info:
+            if str(x.get("type")) == "twse":
+                cats[str(x.get("industry_category"))] = cats.get(str(x.get("industry_category")), 0) + 1
+        p("twse 類別：", dict(sorted(cats.items(), key=lambda kv: -kv[1])))
+        dates: dict = {}
+        for x in info:
+            if str(x.get("type")) == "twse":
+                dates[str(x.get("date"))[:7]] = dates.get(str(x.get("date"))[:7], 0) + 1
+        p("twse 總覽日期（年月→列數）：", dict(sorted(dates.items())))
     for code in ("2325", "3474", "2311", "1262"):
         m = fm("TaiwanStockMarginPurchaseShortSale", code, "2001-01-01", "2026-10-21")
         px = fm("TaiwanStockPrice", code, "2001-01-01", "2026-10-21")
         p(f"已下市 {code}：融資 {len(m or [])} 列 {span(m)}；股價 {len(px or [])} 列 {span(px)}")
+    r = fm("TaiwanStockMarginPurchaseShortSale", "0050", "2001-01-01", "2026-10-21")
+    p("融資 0050：", len(r or []), "列", span(r))
     tot = fm("TaiwanStockTotalMarginPurchaseShortSale", None, "2026-10-20", "2026-10-20")
     if tot:
         p("融資融券合計 10/20：", json.dumps(tot, ensure_ascii=False)[:800])
