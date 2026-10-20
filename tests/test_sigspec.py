@@ -1,7 +1,7 @@
 """訊號總覽實務判定的規格（docs/lab_signal_plan.md）：規格鎖定。
 
 規格是在算任何訊號的命中率之前寫定的（VER 1，2026-10-19；VER 2 同日只改個股策略的次數下限，規劃第 15 節；
-VER 3，2026-10-20，警示改看最大回撤，docs/lab_warn_mdd_plan.md；VER 4 同日加情境）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
+VER 3，2026-10-20，警示改看最大回撤，docs/lab_warn_mdd_plan.md；VER 4 同日加情境；VER 5 同日加報酬與相似的日子）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import analyze as AN
 from arm.lab import backtest as BT
 from arm.lab import bottomspec as BS
@@ -13,7 +13,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 4 and X.SPEC_DATE == "2026-10-20"
+    assert X.VER == 5 and X.SPEC_DATE == "2026-10-20"
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
     assert X.LAG == 1 and X.DIRS == ("up", "warn", "buy") and X.WARN_LONG == 0.20
     assert X.WARN_TH_IDX == {20: 1, 60: 2}
@@ -65,6 +65,21 @@ def test_sig_spec_v4_scenarios_are_locked():
     for idx in U.INDEX_ORDER:
         with HS.use(U.spec_for(idx)):
             assert {d for v in X.SCEN_SRC["us"].values() for d in v} == set(HS.DIMS) - {"bubl"}
+
+
+def test_sig_spec_v5_returns_and_similar_days_are_locked():
+    """VER 5（2026-10-20）：訊號觸發後的報酬與相似的日子（docs/lab_outlook_plan.md）；只呈現，判定不變。"""
+    assert X.RET_H == (1, 5, 10, 20, 60, 120, 250)                     # 使用者選「更細」
+    assert X.RET_H_M == (1, 3, 6, 12) and X.PATH_D == (1, 5, 10, 20, 40, 60, 90, 120, 180, 250)
+    assert X.RET_Q == (0.25, 0.5, 0.75) and X.MAE_Q == 0.10 and X.RET_N_MIN == X.N_MIN == 10
+    assert X.NB_DIMS == ("fund", "liq", "tech") and X.NB_DIMS_X == ("fund", "chip", "liq", "tech")
+    assert set(X.NB_DIMS_X) == set(X.SCEN_DIMS) and set(X.NB_DIMS) < set(X.NB_DIMS_X)
+    assert (X.NB_H_X, X.NB_K, X.NB_GAP, X.NB_FAR, X.NB_LIST_H, X.NB_LIST_EXTRA) == ((60,), 20, 60, 15, 60, (20, 60, 250))
+    assert set(X.NB_H_X) <= set(X.RET_H) and X.NB_LIST_H in X.RET_H and set(X.NB_LIST_EXTRA) <= set(X.RET_H)
+    assert X.NB_OOS_START == {"tw": "2015-01-01", "spx": "1990-01-01", "ixic": "1990-01-01", "ndx": "2000-01-01",
+                              "sox": "2005-01-01"} and set(X.NB_OOS_START) == set(X.MARKETS)
+    assert (X.NB_BOOT, X.NB_BLOCK, X.NB_SEED, X.NB_OOS_MIN, X.NB_HI, X.NB_BINS) == (2000, 12, 20261020, 36, 0.70, (0.5, 0.6, 0.7))
+    assert set(X.PATH_D) >= set(X.RET_H)
 
 
 def test_sig_spec_refers_to_existing_definitions():
