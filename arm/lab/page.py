@@ -752,7 +752,7 @@ const SIGST={cons:'s1'};                     // 加上條件後成為策略頁�
 /* 訊號總覽的實務判定（docs/lab_signal_plan.md 第 6.3 節）：{訊號: [判定, 方向, 次數, 命中率%, 平常%]}；隔天開盤買、持有 20 個交易日 */
 const SJ=D.sigj||{},SJN={good:'好訊號',ref:'可參考',none:'沒有比平常好',few:'次數不夠'};
 function sjTxt(k){const j=SJ[k];if(!j||!j[2])return '';
-  return `${TMK[j[0]]} ${SJN[j[0]]}：持有 20 天${j[1]==='warn'?'收盤比買價低':'扣成本後賺錢'} <b>${f(j[3],0)}%</b>（平常 ${f(j[4],0)}%・${j[2]} 次）`;}
+  return `${TMK[j[0]]} ${SJN[j[0]]}：${j[1]==='warn'?'之後 20 天內最大回撤 10% 以上':'持有 20 天扣成本後賺錢'} <b>${f(j[3],0)}%</b>（平常 ${f(j[4],0)}%・${j[2]} 次）`;}
 function sjLink(k,t){return `<a href="x9o.html#s=stk:sig:${esc(k)}">${t||'訊號總覽 →'}</a>`;}
 function sigRes(x,lbl){return x&&x.n?`${lbl}實際平均 ${sgn(x.r,1,'%')}（${f(x.rw,0)}% 賺錢），同期大盤 ${pctT(x.mk)}`:'';}
 /* 個股卡也用：照做的實際報酬一行 */

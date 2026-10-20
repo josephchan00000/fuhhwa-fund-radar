@@ -477,9 +477,11 @@ def thermo_html(T: dict) -> str:
 def _tz_item(r: dict, d: str | None) -> str:
     from . import sigpage as SPG
     from . import sigspec as SS
+    both = ('<span class="tzo" title="同一個項目偏多、警示兩邊都成立：之後上漲的機率比平常高，'
+            '中間出現一段大回撤的機率也比平常高">震盪</span>') if r.get("both") else ""
     return (f'<li><a class="tzi" href="x9o.html#s={_e(r["id"])}"><span class="tzh">'
             f'<span class="tzk tzk-{r["tier"]}">{SS.TIER_MARK[r["tier"]]}</span><b>{_e(r["name"])}</b>'
-            f'<span class="tzd">{_e(SPG._hz(r))}</span></span>'
+            f'<span class="tzd">{_e(SPG._hz(r))}</span>{both}</span>'
             f'<span class="tzl">{SPG._line(r)}・{_e(SPG._since(r["now"], d))}</span></a></li>')
 
 
@@ -507,7 +509,9 @@ def today_html(V: dict) -> str:
         cols.append(f'<div class="tzcol">{head}<ul class="tzu">' + "".join(_tz_item(r, T.get("d")) for r in top)
                     + f"</ul>{more}</div>")
     sub = ("溫度計：現在成立、過去出現之後「中了」的比例比平常高的訊號（★ 好訊號、● 可參考），依看多久分三支，"
-           f"★ 算 {SS.THERMO_W['good']}、● 算 {SS.THERMO_W['ref']}，同一個項目在同一支只算一次；只是數一數，溫度計本身沒有驗證過能預測漲跌。"
+           f"★ 算 {SS.THERMO_W['good']}、● 算 {SS.THERMO_W['ref']}，同一個項目在同一支、同一邊只算一次；只是數一數，溫度計本身沒有驗證過能預測漲跌。"
+           "偏多＝之後收盤比現在高；警示＝之後出現一段大回撤（期間最高到之後最低，先漲再跌也算）。"
+           "同一個項目兩邊都成立的標「震盪」。"
            f"下面的清單只列機率夠高的（偏多 {SS.HIT_MIN['up'] * 100:.0f}% 以上、警示 {SS.HIT_MIN['warn'] * 100:.0f}% 以上）。")
     return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div><p class="ksub">{_e(sub)}</p>'
             f'{thermo_html(T)}<div class="tzcols">{"".join(cols)}</div>'
@@ -1090,6 +1094,7 @@ body.drw-on{overflow:hidden}
 .tzh{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}.tzh b{font-weight:600;font-size:14px}
 .tzk{width:14px;text-align:center;font-weight:700}.tzk-good{color:var(--acc)}.tzk-ref{color:var(--ink2)}
 .tzd{font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--line2);white-space:nowrap}
+.tzo{font-size:11.5px;padding:0 7px;border-radius:999px;white-space:nowrap;color:var(--ink);background:var(--line);cursor:help}
 .tzl{display:block;font-size:12.5px;color:var(--ink2);padding-left:20px;line-height:1.55}.tzl b{color:var(--ink)}
 .tzm{margin:6px 0 0;font-size:13px}
 .stl{max-width:1080px;margin:4px auto 0;padding:0 16px;display:flex;flex-wrap:wrap;gap:6px}

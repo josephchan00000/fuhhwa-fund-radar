@@ -44,26 +44,45 @@ def warn_th(mk: str, H: int) -> float:
     return CS.TH[mk][S.WARN_TH_IDX[H]] if H in S.WARN_TH_IDX else S.WARN_LONG
 
 
-def outcomes(px, H: int, th: float) -> tuple[np.ndarray, np.ndarray]:
-    """第 t 天的訊號 → (偏多, 警示)：1／0，窗口不完整或沒有收盤＝NaN。
-    e＝t＋LAG；偏多＝第 e＋H 天收盤 > 第 e 天；警示＝第 e＋1～e＋H 天任一天收盤 ≤ 第 e 天 ×（1 − th）。"""
+def mdd_path(xs) -> float | None:
+    """一段收盤（依時間）的最大回撤：期間最高收盤到之後最低收盤的跌幅（0～1）；沒有值回 None。"""
+    pk, dd = None, 0.0
+    for x in xs:
+        if x is None or _nan(x) or x <= 0:
+            continue
+        if pk is None or x > pk:
+            pk = x
+        else:
+            dd = max(dd, 1.0 - x / pk)
+    return None if pk is None else dd
+
+
+def outcomes(px, H: int, th: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """第 t 天的訊號 → (偏多, 警示, 最大回撤)：偏多與警示 1／0、最大回撤 0～1；窗口不完整或沒有收盤＝NaN。
+    e＝t＋LAG；偏多＝第 e＋H 天收盤 > 第 e 天；警示（sigspec VER 3）＝第 e～e＋H 天收盤的最大回撤 ≥ th
+    （期間最高收盤到之後最低收盤；第 e 天也可以是高點）。窗口完整的條件和 VER 1～2 一樣（第 e、e＋H 天有收盤、中間至少一天有收盤）。"""
     px = np.asarray(px, dtype=float)
     T = len(px)
     up = np.full(T, np.nan)
     wn = np.full(T, np.nan)
+    dd = np.full(T, np.nan)
     n = T - S.LAG - H
     if n <= 0:
-        return up, wn
+        return up, wn, dd
     pe = px[S.LAG:S.LAG + n]
     pz = px[S.LAG + H:S.LAG + H + n]
-    win = np.lib.stride_tricks.sliding_window_view(px[S.LAG + 1:], H)[:n]
+    win = np.lib.stride_tricks.sliding_window_view(px[S.LAG:], H + 1)[:n]
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
-        mn = np.nanmin(win, axis=1)
+        mn = np.nanmin(win[:, 1:], axis=1)
+        pk = np.fmax.accumulate(win, axis=1)
+        mdd = np.nanmax(1.0 - win / pk, axis=1)
     ok = ~np.isnan(pe) & ~np.isnan(pz) & ~np.isnan(mn)
+    mdd = np.maximum(mdd, 0.0)
     up[:n] = np.where(ok, (pz > pe).astype(float), np.nan)
-    wn[:n] = np.where(ok, (mn <= pe * (1.0 - th)).astype(float), np.nan)
-    return up, wn
+    wn[:n] = np.where(ok, (mdd >= th).astype(float), np.nan)
+    dd[:n] = np.where(ok, mdd, np.nan)
+    return up, wn, dd
 
 
 # ── 次數、命中率、判定 ─────────────────────────────────────────────────────────
@@ -99,12 +118,25 @@ def _base(Y: np.ndarray, samp: np.ndarray) -> float | None:
     return float(v.mean()) if len(v) else None
 
 
-def ev_stat(days, Yu: np.ndarray, Yw: np.ndarray, samp: np.ndarray, H: int, r0: int) -> dict:
-    """事件型：samp＝可以算平常的日子（輸入有值）索引；r0＝近 10 年起點的索引。
-    → {"up": 統計, "warn": 統計, "occ": [[t, 偏多, 警示], …]}（只含窗口完整的次）。"""
+def _median(xs) -> float | None:
+    xs = [x for x in xs if not _nan(x)]
+    return float(np.median(xs)) if xs else None
+
+
+def _base_med(Y: np.ndarray | None, samp: np.ndarray) -> float | None:
+    if Y is None:
+        return None
+    v = Y[samp]
+    v = v[~np.isnan(v)]
+    return float(np.median(v)) if len(v) else None
+
+
+def ev_stat(days, Yu: np.ndarray, Yw: np.ndarray, samp: np.ndarray, H: int, r0: int, Yd: np.ndarray | None = None) -> dict:
+    """事件型：samp＝可以算平常的日子（輸入有值）索引；r0＝近 10 年起點的索引；Yd＝每一天的最大回撤（VER 3，只呈現）。
+    → {"up": 統計, "warn": 統計（另有 mdd、mdd_base＝最大回撤中位數）, "occ": [[t, 偏多, 警示, 最大回撤], …]}（只含窗口完整的次）。"""
     ok = set(int(i) for i in samp)
     kept = dedupe([t for t in days if t in ok], H)
-    occ = [[t, Yu[t], Yw[t]] for t in kept if not (np.isnan(Yu[t]) or np.isnan(Yw[t]))]
+    occ = [[t, Yu[t], Yw[t], np.nan if Yd is None else Yd[t]] for t in kept if not (np.isnan(Yu[t]) or np.isnan(Yw[t]))]
     samp10 = samp[samp >= r0]
     out = {"occ": occ}
     for j, (dk, Y) in enumerate((("up", Yu), ("warn", Yw))):
@@ -112,6 +144,8 @@ def ev_stat(days, Yu: np.ndarray, Yw: np.ndarray, samp: np.ndarray, H: int, r0: 
         ys10 = [o[1 + j] for o in occ if o[0] >= r0]
         out[dk] = {"n": len(ys), "hit": _mean(ys), "base": _base(Y, samp),
                    "n10": len(ys10), "hit10": _mean(ys10), "base10": _base(Y, samp10)}
+    if Yd is not None:
+        out["warn"].update(mdd=_median([o[3] for o in occ]), mdd_base=_base_med(Yd, samp))
     return out
 
 
@@ -126,9 +160,11 @@ def episodes(pos: list[int], gap: int) -> list[list[int]]:
     return out
 
 
-def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray, gap: int, r0: int) -> dict:
+def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray, gap: int, r0: int,
+            Yd: np.ndarray | None = None) -> dict:
     """狀態型：samp＝樣本日（輸入有值；月資料＝每月最後一個交易日）索引，state＝這些樣本日是否在狀態中（同長度）。
-    一段的命中率＝段內窗口完整的日子的比例；整體＝各段平均。→ {"up", "warn", "occ": [[第一天, 最後一天, 天數, 偏多, 警示], …]}。"""
+    一段的命中率＝段內窗口完整的日子的比例；整體＝各段平均。Yd＝每一天的最大回撤（VER 3，只呈現：一段＝段內平均，整體＝各段中位數）。
+    → {"up", "warn", "occ": [[第一天, 最後一天, 天數, 偏多, 警示, 最大回撤], …]}。"""
     pos = [i for i in range(len(samp)) if state[i]]
     occ = []
     for ep in episodes(pos, gap):
@@ -137,7 +173,8 @@ def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray,
         m = ~np.isnan(u) & ~np.isnan(w)
         if not m.any():
             continue
-        occ.append([int(ts[0]), int(ts[-1]), int(len(ts)), float(u[m].mean()), float(w[m].mean())])
+        occ.append([int(ts[0]), int(ts[-1]), int(len(ts)), float(u[m].mean()), float(w[m].mean()),
+                    np.nan if Yd is None else float(Yd[ts][m].mean())])
     samp10 = samp[samp >= r0]
     out = {"occ": occ}
     for j, (dk, Y) in enumerate((("up", Yu), ("warn", Yw))):
@@ -145,6 +182,8 @@ def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray,
         ys10 = [o[3 + j] for o in occ if o[0] >= r0]
         out[dk] = {"n": len(ys), "hit": _mean(ys), "base": _base(Y, samp),
                    "n10": len(ys10), "hit10": _mean(ys10), "base10": _base(Y, samp10)}
+    if Yd is not None:
+        out["warn"].update(mdd=_median([o[5] for o in occ]), mdd_base=_base_med(Yd, samp))
     return out
 
 
@@ -344,16 +383,16 @@ def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
     H = sd["H"]
     if H not in Ycache:
         Ycache[H] = outcomes(F["px"], H, warn_th(mk, H))
-    Yu, Yw = Ycache[H]
+    Yu, Yw, Yd = Ycache[H]
     r0 = bisect.bisect_left(cal, F["r0"])
     samp = np.asarray(sd["samp"], dtype=np.int64)
     if sd["kind"] == "event":
-        R = ev_stat(sd["days"], Yu, Yw, samp, H, r0)
-        occ = [[cal[t], int(u), int(w)] for t, u, w in R["occ"]]
+        R = ev_stat(sd["days"], Yu, Yw, samp, H, r0, Yd)
+        occ = [[cal[t], int(u), int(w), d] for t, u, w, d in R["occ"]]
     else:
         gap = 1 if sd.get("monthly") else S.EP_GAP
-        R = st_stat(np.asarray(sd["state"], dtype=bool), samp, Yu, Yw, gap, r0)
-        occ = [[cal[a], cal[z], n, u, w] for a, z, n, u, w in R["occ"]]
+        R = st_stat(np.asarray(sd["state"], dtype=bool), samp, Yu, Yw, gap, r0, Yd)
+        occ = [[cal[a], cal[z], n, u, w, d] for a, z, n, u, w, d in R["occ"]]
     dirs = {}
     for d in ("up", "warn"):
         st = R[d]
@@ -428,7 +467,7 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None) -> list[dict
     out = []
     for k in S.IND_SIGNALS:
         lv = int(k[1])
-        occ, base_u, base_w, b10u, b10w = [], [], [], [], []
+        occ, base_u, base_w, b10u, b10w, base_d = [], [], [], [], [], []
         for code, me, rows in pan:
             seq = []
             for r in rows:
@@ -438,14 +477,16 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None) -> list[dict
                 v0 = me[m]
                 fut = [me.get(_months_add(m, j)) for j in range(1, S.H_IND_M + 1)]
                 if not v0 or any(v is None for v in fut):
-                    u = w = None
+                    u = w = dd = None
                 else:
                     u = 1.0 if fut[-1] > v0 else 0.0
-                    w = 1.0 if min(fut) <= v0 * (1.0 - S.WARN_LONG) else 0.0
-                seq.append((m, r["L"] >= lv, u, w))
+                    dd = mdd_path([v0] + fut)                 # VER 3：第 m～m＋12 個月底的最大回撤
+                    w = 1.0 if dd >= S.WARN_LONG else 0.0
+                seq.append((m, r["L"] >= lv, u, w, dd))
                 if u is not None:
                     base_u.append(u)
                     base_w.append(w)
+                    base_d.append(dd)
                     if m >= r0m:
                         b10u.append(u)
                         b10w.append(w)
@@ -453,8 +494,10 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None) -> list[dict
             for ep in episodes(pos, 1):
                 us = [seq[i][2] for i in ep if seq[i][2] is not None]
                 ws = [seq[i][3] for i in ep if seq[i][3] is not None]
+                ds = [seq[i][4] for i in ep if seq[i][4] is not None]
                 if us:
-                    occ.append([seq[ep[0]][0], seq[ep[-1]][0], len(ep), float(np.mean(us)), float(np.mean(ws)), code])
+                    occ.append([seq[ep[0]][0], seq[ep[-1]][0], len(ep), float(np.mean(us)), float(np.mean(ws)), code,
+                                float(np.mean(ds))])
         occ.sort(key=lambda o: (o[0], o[5]))
         dirs = {}
         for j, (d, bs, b10) in enumerate((("up", base_u, b10u), ("warn", base_w, b10w))):
@@ -464,6 +507,7 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None) -> list[dict
                   "base10": _mean(b10)}
             st["tier"] = tier(st, d)
             dirs[d] = st
+        dirs["warn"].update(mdd=_median([o[6] for o in occ]), mdd_base=_median(base_d))
         tr, ds = best(dirs)
         gname = BIS.GROUP_NAMES[group] if hasattr(BIS, "GROUP_NAMES") else group
         out.append({"id": f"ind:{group}:{k}", "mk": "us" if group in ("ff", "us") else "tw", "cat": "ind", "grp": group,
@@ -634,24 +678,36 @@ def item_key(r: dict) -> tuple:
 
 
 def board(rows: list[dict], on: dict, mk: str) -> dict:
-    """景氣頁「今天的重點」（sigspec 第 5 節，2026-10-20 起）：現在有效的 ★ 與 ●，同一個項目在同一支溫度計只留一種（★ 優先、同級差最大），
-    分偏多（含買點）與警示兩欄；溫度計＝依看多久三支，★ 算 2、● 算 1。清單只列 show（命中率 ≥ HIT_MIN），溫度計算全部。
+    """景氣頁「今天的重點」（sigspec 第 5 節，2026-10-20 起）：現在有效的 ★ 與 ●，偏多（含買點）與警示兩個方向各自看自己的判定（VER 3）；
+    同一個項目在同一支溫度計、同一邊只留一種（★ 優先、同級差最大）；兩邊都成立的標 both（「震盪」）。
+    溫度計＝依看多久三支，★ 算 2、● 算 1。清單只列 show（命中率 ≥ HIT_MIN），溫度計算全部。
     → {"up": [...], "warn": [...], "thermo": [{"k", "name", "h", "n": {side: {tier: 次數}}, "w": {side: 分}, "share", "lean"}]}"""
     rank = {"good": 1, "ref": 0}
     best: dict = {}
     for r in rows:
-        if r.get("mk") != mk or r["tier"] not in rank or r["id"] not in on:
+        if r.get("mk") != mk or r["id"] not in on:
             continue
-        for d in r["dir"]:
-            e = edge(r.get(d))
+        for d in (("buy",) if r["cat"] == "buy" else ("up", "warn")):
+            st = r.get(d)
+            if not st or st.get("tier") not in rank:
+                continue
+            e = edge(st)
             if e is None:
                 continue
-            key = (item_key(r), horizon(r))
-            k = (rank[r["tier"]], e)
+            side = "warn" if d == "warn" else "up"
+            key = (item_key(r), horizon(r), side)
+            k = (rank[st["tier"]], e)
             if key not in best or k > best[key][0]:
-                best[key] = (k, {**r, "d": d, "edge": e, "now": on[r["id"]], "side": "warn" if d == "warn" else "up",
-                                 "hz": horizon(r), "show": r[d]["hit"] >= S.HIT_MIN[d]})
-    items = sorted((x for _, x in best.values()), key=lambda x: (-rank[x["tier"]], -x["edge"], x["id"]))
+                best[key] = (k, {**r, "tier": st["tier"], "d": d, "edge": e, "now": on[r["id"]], "side": side,
+                                 "hz": horizon(r), "show": st["hit"] >= S.HIT_MIN[d]})
+    sides: dict = {}
+    for (ik, hz, side) in best:
+        sides.setdefault((ik, hz), set()).add(side)
+    items = []
+    for (ik, hz, side), (_, x) in best.items():
+        x["both"] = len(sides[(ik, hz)]) == 2
+        items.append(x)
+    items.sort(key=lambda x: (-rank[x["tier"]], -x["edge"], x["id"]))
     out: dict = {s: [x for x in items if x["side"] == s] for s in ("up", "warn")}
     th = []
     for k, name, h in S.THERMO_HZ:
@@ -717,15 +773,30 @@ def now_for_B(B: dict) -> dict | None:
 STOCK = ROOT / "data" / "lab" / "sig_stock.json"
 
 
+def _stock_dd(Sx: dict, t: int, H: int) -> float | None:
+    """第 t＋1 天開盤價（沒有就用收盤）與第 t＋1～t＋H 天收盤的最大回撤（sigspec 第 4.8 節，VER 3）。"""
+    o1 = Sx["o"][t + 1] or Sx["c"][t + 1]
+    return mdd_path([o1] + list(Sx["c"][t + 1:t + H + 1]))
+
+
 def stock_signal_rows(D, sig_hist: dict, idx: list, io: list) -> list[dict]:
     """籌碼雷達 8 種訊號（sigspec 第 4.8 節）：同一檔 DEDUP 日內重複只算一次（同 backtest.signal_stats）；
-    t＋1 開盤買、第 t＋H_STOCK 天收盤賣。"""
+    t＋1 開盤買、第 t＋H_STOCK 天收盤賣。偏多：扣成本後賺錢，平常＝同一批窗口加權指數上漲。
+    警示（集體撤退，VER 3）：之後 H_STOCK 天的最大回撤 ≥ STOCK_MDD，平常＝訊號第一次出現起、所有有訊號紀錄的股票
+    每一個窗口完整的日子（窗口完整＝和 backtest._ret 同一個條件）。
+    occ＝[日期, 代號, 中了, 平常那一邊（警示＝None）, 報酬%, 最大回撤%]。"""
     from . import analyze as AN
     from . import backtest as BT
     H = S.H_STOCK
     cal = list(D.cal)
     T = len(cal)
     cache: dict = {}
+
+    def ser(code):
+        if code not in cache:
+            cache[code] = D.series(code)
+        return cache[code]
+
     out = []
     for k, (nm, desc) in AN.SIG_DEF.items():
         d = "warn" if k in S.STOCK_WARN else "up"
@@ -735,8 +806,7 @@ def stock_signal_rows(D, sig_hist: dict, idx: list, io: list) -> list[dict]:
             fired = [i for i, day in enumerate(hist) if k in day]
             if not fired:
                 continue
-            Sx = cache.get(code) or D.series(code)
-            cache[code] = Sx
+            Sx = ser(code)
             last = -999
             for t in fired:
                 if t - last <= BT.DEDUP:
@@ -748,20 +818,51 @@ def stock_signal_rows(D, sig_hist: dict, idx: list, io: list) -> list[dict]:
                 r = BT._ret(Sx, idx, t, H, io)
                 if not r:
                     continue
-                gross = r["r"] + BT.COST
-                mkr = r["r"] - r["x"]
-                hit = (r["r"] > 0) if d == "up" else (gross < 0)
-                bh = (mkr > 0) if d == "up" else (mkr < 0)
-                occ.append([cal[t], code, int(hit), int(bh), round(100 * r["r"], 2)])
-        occ.sort()
-        st = {"n": len(occ), "hit": _mean([o[2] for o in occ]), "base": _mean([o[3] for o in occ]),
+                dd = _stock_dd(Sx, t, H)
+                if d == "up":
+                    hit = r["r"] > 0
+                    bh = int(r["r"] - r["x"] > 0)
+                else:
+                    hit = dd is not None and dd >= S.STOCK_MDD
+                    bh = None
+                occ.append([cal[t], code, int(hit), bh, round(100 * r["r"], 2), None if dd is None else round(100 * dd, 2)])
+        occ.sort(key=lambda o: (o[0], o[1]))
+        if d == "up":
+            base = _mean([o[3] for o in occ])
+            bmed = None
+        else:
+            base, bmed = _stock_warn_base(D, sig_hist, idx, io, cal.index(occ[0][0]) if occ else None, H, ser)
+        st = {"n": len(occ), "hit": _mean([o[2] for o in occ]), "base": base,
               "n10": None, "hit10": None, "base10": None}
+        if d == "warn":
+            st.update(mdd=_median([None if o[5] is None else o[5] / 100 for o in occ]), mdd_base=bmed)
         st["tier"] = tier(st, d, recent=False)
         out.append({"id": f"stk:sig:{k}", "mk": "stk", "cat": "stock", "grp": "stock", "var": k, "vn": nm, "sig": k,
-                    "name": nm, "desc": desc, "kind": "event", "H": H, d: st, "tier": st["tier"], "dir": [d],
+                    "name": nm, "desc": desc, "kind": "event", "H": H, "th": S.STOCK_MDD if d == "warn" else None,
+                    d: st, "tier": st["tier"], "dir": [d],
                     "a": occ[0][0] if occ else None, "z": cal[-1], "occ": occ, "live": sorted(set(live)),
                     "avg": _mean([o[4] for o in occ])})
     return out
+
+
+def _stock_warn_base(D, sig_hist: dict, idx: list, io: list, t0: int | None, H: int, ser) -> tuple:
+    """個股警示的平常：第 t0 天起、所有有訊號紀錄的股票、每一個窗口完整的日子，最大回撤 ≥ STOCK_MDD 的比例與最大回撤中位數。"""
+    from . import backtest as BT
+    if t0 is None:
+        return None, None
+    hits, dds = [], []
+    T = len(D.cal)
+    for code in sig_hist:
+        Sx = ser(code)
+        for t in range(t0, T - H):
+            if not BT._ret(Sx, idx, t, H, io):
+                continue
+            dd = _stock_dd(Sx, t, H)
+            if dd is None:
+                continue
+            dds.append(dd)
+            hits.append(1.0 if dd >= S.STOCK_MDD else 0.0)
+    return _mean(hits), _median(dds)
 
 
 def _strat_tier(pay: dict, n: int) -> str:

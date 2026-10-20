@@ -84,8 +84,11 @@ def _pct(v) -> float | None:
 def _stat(st: dict | None):
     if not st:
         return 0
-    return [st.get("n") or 0, _pct(st.get("hit")), _pct(st.get("base")), st.get("n10"), _pct(st.get("hit10")),
-            _pct(st.get("base10")), st.get("tier")]
+    out = [st.get("n") or 0, _pct(st.get("hit")), _pct(st.get("base")), st.get("n10"), _pct(st.get("hit10")),
+           _pct(st.get("base10")), st.get("tier")]
+    if st.get("mdd") is not None or st.get("mdd_base") is not None:          # 警示（VER 3）：最大回撤中位數、平常
+        out += [_pct(st.get("mdd")), _pct(st.get("mdd_base"))]
+    return out
 
 
 def _row(r: dict) -> list:
@@ -151,10 +154,14 @@ def _line(r: dict) -> str:
     if d == "up":
         what = f"之後 {h}上漲" if r["cat"] != "stock" else "持有 20 個交易日賺錢"
     elif d == "warn":
-        what = f"之後 {h}內跌 {_th(r['th'])}% 以上" if r.get("th") else "之後下跌"
+        h = "20 個交易日" if r["cat"] == "stock" else h
+        what = f"之後 {h}內最大回撤 {_th(r['th'])}% 以上" if r.get("th") else "之後出現大回撤"
     else:
         what = "買在這一波的相對低點"
-    return (f'{what} <b>{st["hit"] * 100:.0f}%</b>（平常 {st["base"] * 100:.0f}%）・{st["n"]} 次')
+    out = f'{what} <b>{st["hit"] * 100:.0f}%</b>（平常 {st["base"] * 100:.0f}%）・{st["n"]} 次'
+    if d == "warn" and st.get("mdd") is not None and st.get("mdd_base") is not None:
+        out += f'・回撤中位數 {st["mdd"] * 100:.0f}%（平常 {st["mdd_base"] * 100:.0f}%）'
+    return out
 
 
 def _d(d: str | None) -> str:
@@ -204,7 +211,8 @@ def today_html(V: dict) -> str:
         cards.append(f'<div class="sgk">{head}{body}</div>')
     lis = []
     for r in V["stk"]:
-        st = r["up"]
+        d = r["dir"][0]
+        st = r[d]
         if r["cat"] == "strat":
             p = r.get("pay") or {}
             ln = f'賺錢比例 <b>{st["hit"] * 100:.0f}%</b>'
@@ -212,9 +220,9 @@ def today_html(V: dict) -> str:
                 ln += f'・賺賠比 {p["ratio"]:.1f}'
             ln += f'・每月平均 {p.get("m") or 0:+.1f}%・{st["n"]} 筆' + ("（次數少）" if r.get("few") else "")
         else:
-            ln = f'持有 20 個交易日賺錢 <b>{st["hit"] * 100:.0f}%</b>・{st["n"]} 次'
+            ln = _line({**r, "d": d})
         lis.append(f'<li><a class="sgi" href="#s={_e(r["id"])}"><span class="sgtk sgtk-good">★</span>'
-                   f'<span class="sgnm">{_e(r["name"])}</span><span class="sgd sgd-up">{"策略" if r["cat"] == "strat" else "偏多"}</span>'
+                   f'<span class="sgnm">{_e(r["name"])}</span><span class="sgd sgd-{d}">{"策略" if r["cat"] == "strat" else _e(S.DIR_NAMES[d])}</span>'
                    f'<span class="sgln">{ln}</span></a></li>')
     stk_body = ('<ul class="sgl">' + "".join(lis) + "</ul>") if lis else '<p class="sgnone">目前沒有判定為好策略的個股策略。</p>'
     cards.append(f'<div class="sgk"><h3>個股<span class="sub">資料到 {_e(_d(V["asof"].get("stk")))}</span></h3>{stk_body}'
@@ -229,14 +237,17 @@ METHOD = ('<section class="sec" id="mth"><details class="sgmth"><summary>判定�
           f'比平常高 {S.EDGE_GOOD * 100:.0f} 個百分點以上；近 {S.RECENT_YEARS} 年有 {S.RECENT_N} 次以上時，近 {S.RECENT_YEARS} 年也要過同樣的門檻。'
           f'<b>● 可參考</b>：至少 {S.N_MIN} 次、比平常高 {S.EDGE_REF * 100:.0f} 個百分點以上，但沒有全部達到。'
           f'<b>○</b>：沒有比平常好。<b>—</b>：不到 {S.N_MIN} 次，照列數字但不判定。</p>'
-          '<p><b>偏多</b>：觸發隔天收盤買，看多久之後收盤比買價高。<b>警示</b>：觸發隔天收盤算起，看多久之內任一天收盤比那天低到門檻'
-          '（台股 1 個月 8%、3 個月 10%；美股換算成和台股一樣常見；12 個月一律 20%）。<b>買點</b>：大跌之後，買在這一波的相對低點'
-          '（事件前高點到之後最低收盤的下三分之一）。市場的訊號偏多、警示兩個方向都算，取比較好的那一個。</p>'
+          '<p><b>偏多</b>：觸發隔天收盤買，看多久之後收盤比買價高。<b>警示</b>：觸發隔天收盤算起，看多久之內的<b>最大回撤</b>'
+          '（期間最高收盤到之後最低收盤的跌幅，先漲再跌也算）到門檻（台股 1 個月 8%、3 個月 10%；美股換算成和台股一樣常見；'
+          '12 個月一律 20%）；另列每一次最大回撤的中位數（和平常比，只當參考）。<b>買點</b>：大跌之後，買在這一波的相對低點'
+          '（事件前高點到之後最低收盤的下三分之一）。市場的訊號偏多、警示兩個方向都算，表上依比較好的那一個排；'
+          '景氣頁的今天的重點兩個方向各看各的，兩邊都成立的標「震盪」。</p>'
           '<p><b>看多久</b>：技術面與技術事件 1 個月；籌碼、資金、大跌風險、面向事件、邊際變化 3 個月；基本面與泡沫 12 個月。</p>'
           '<p><b>次數</b>：事件型（例：跌破季線）出現那天算一次，之後看多久的期間內再出現不算新的一次；狀態型（例：過熱中）'
           '狀態中的每一天都算，但同一段連續狀態只算 1 次，命中率是每一段先算、再平均。</p>'
           '<p><b>個股訊號</b>：同一檔 5 個交易日內重複只算一次，隔天開盤買、持有 20 個交易日，扣來回成本後賺錢算中；'
           '平常＝同一段期間加權指數上漲的比例（資料從 2026 年 7 月起，大多是上漲行情）。'
+          f'集體撤退是警示：之後 20 個交易日內最大回撤 {S.STOCK_MDD * 100:.0f}% 以上算中，平常＝同一段期間所有 ETF 持股的同樣比例。'
           f'<b>個股策略</b>：至少 {S.STRAT_N_MIN} 筆（不到 {S.STRAT_FEW} 筆標「次數少」，照樣判定），報酬型態過（賺錢比例 ≥ 60% 而且每月平均 ≥ 1%，'
           '或賺錢比例 ≥ 40%、賺賠比 ≥ 2.5、每月平均 ≥ 2%）＝★；平均每筆賺錢但沒過＝●。個股頁「機會」的推薦用這個判定。</p>'
           f'<p class="note">規格寫在 arm/lab/sigspec.py（VER {S.VER}），在算命中率之前寫定；改規格要升版本。只描述過去發生的比例。</p>'
@@ -478,18 +489,19 @@ function trig(r){ const c = r[I.cat], x = r[I.x] || {}, nm = r[I.name];
   return x.desc || ''; }
 function succ(r, d){ const c = r[I.cat], h = hz(r), th = r[I.th];
   if (c === 'stock') return d === 'up' ? '隔天開盤買、持有 20 個交易日收盤賣，扣來回成本後賺錢；平常＝同一段期間加權指數上漲的比例'
-    : '隔天開盤買，20 個交易日後收盤比買價低；平常＝同一段期間加權指數下跌的比例';
+    : '隔天開盤算起 20 個交易日內的最大回撤（期間最高到之後最低，先漲再跌也算）' + th + '% 以上；平常＝同一段期間所有 ETF 持股每一天的同樣比例';
   if (c === 'strat') return '每一筆扣成本後賺錢的比例；判定看報酬型態（賺錢比例 ≥ 60% 而且每月平均 ≥ 1%，或賺錢比例 ≥ 40%、賺賠比 ≥ 2.5、每月平均 ≥ 2%）';
   if (c === 'buy') return '買在這一波的相對低點（事件前高點到之後最低收盤的下三分之一）；平常＝同一批事件「' + ((r[I.x] || {}).base_name || '') + '」';
-  if (c === 'ind') return d === 'up' ? '訊號那個月底買，12 個月後的月底比買價高' : '訊號那個月底算起，12 個月內任一個月底比那時低 20% 以上';
-  return d === 'up' ? '觸發隔天收盤買，' + h + '後收盤比買價高' : '觸發隔天收盤算起，' + h + '內任一天收盤比那天低 ' + th + '% 以上'; }
+  if (c === 'ind') return d === 'up' ? '訊號那個月底買，12 個月後的月底比買價高' : '訊號那個月底算起，12 個月內的最大回撤（月底最高到之後月底最低）20% 以上';
+  return d === 'up' ? '觸發隔天收盤買，' + h + '後收盤比買價高' : '觸發隔天收盤算起，' + h + '內的最大回撤（期間最高收盤到之後最低收盤，先漲再跌也算）' + th + '% 以上'; }
 function statRows(r){
   const ds = r[I.cat] === 'buy' ? ['buy'] : (r[I.cat] === 'stock' || r[I.cat] === 'strat') ? [r[I.dir][0]] : ['up', 'warn'];
   return ds.map(d => { const s = r[d === 'up' ? I.up : d === 'warn' ? I.warn : I.buy]; if (!s) return '';
     const e = s[1] != null && s[2] != null ? s[1] - s[2] : null, t = SG.tiers[s[6]] || ['', ''];
     return '<li><span class="sgd sgd-' + d + '">' + (r[I.cat] === 'strat' ? '策略' : SG.dirs[d]) + '</span> <b>' + t[0] + ' ' + t[1] + '</b>：' +
       s[0] + ' 次，命中率 <b>' + pc(s[1]) + '</b>' + (s[2] != null ? '（平常 ' + pc(s[2]) + '，差 ' + (e >= 0 ? '+' : '') + Math.round(e) + ' 個百分點）' : '') +
-      (s[3] ? '；近 10 年 ' + s[3] + ' 次，' + pc(s[4]) + '（平常 ' + pc(s[5]) + '）' : '') + '</li>'; }).join(''); }
+      (s[3] ? '；近 10 年 ' + s[3] + ' 次，' + pc(s[4]) + '（平常 ' + pc(s[5]) + '）' : '') +
+      (d === 'warn' && s[7] != null ? '；最大回撤中位數 <b>' + pc(s[7]) + '</b>（平常 ' + pc(s[8]) + '，只當參考）' : '') + '</li>'; }).join(''); }
 function payTxt(x){ const p = x.pay; if (!p) return '';
   if (p.ins) { const f = (n, q) => q && q.n ? n + ' ' + q.n + ' 期：賺錢 ' + q.win + '%、賺賠比 ' + q.ratio + '、每期平均 ' + q.m + '%' + (q.pay_ok ? '（過）' : '（沒過）') : '';
     return [f('樣本內', p.ins), f('樣本外', p.oos)].filter(Boolean).join('；'); }
@@ -501,15 +513,18 @@ function occHtml(r, oc){
   const c = r[I.cat], d = r[I.dir][0];
   let items, title;
   if (c === 'stock') { const nm = OCC.names || {};
-    title = '每一次（最近 60 次；共 ' + oc.length + ' 次）';
-    items = oc.slice(-60).reverse().map(o => '<li class="' + (o[2] ? 'y' : '') + '">' + md(o[0]) + ' ' + esc(o[1]) + ' ' + esc(nm[o[1]] || '') + ' <span class="x">' + (o[4] >= 0 ? '+' : '') + o[4] + '%</span></li>'); }
+    title = '每一次（最近 60 次；共 ' + oc.length + ' 次）' + (d === 'warn' ? '：隔天開盤買、持有 20 個交易日的報酬・這 20 天內的最大回撤' : '');
+    items = oc.slice(-60).reverse().map(o => '<li class="' + (o[2] ? 'y' : '') + '">' + md(o[0]) + ' ' + esc(o[1]) + ' ' + esc(nm[o[1]] || '') + ' <span class="x">' + (o[4] >= 0 ? '+' : '') + o[4] + '%' +
+      (d === 'warn' && o[5] != null ? '・回撤 ' + Math.round(o[5]) + '%' : '') + '</span></li>'); }
   else if (r[I.kind] === 'state' && c !== 'buy') {
-    const j = d === 'warn' ? 4 : 3;
-    title = '每一段（最近 40 段；共 ' + oc.length + ' 段）：起訖、天數、這一段中了的比例';
-    items = oc.slice(-40).reverse().map(o => '<li class="' + (o[j] >= 0.5 ? 'y' : '') + '">' + ymd(o[0]) + (o[1] !== o[0] ? '～' + ymd(o[1]) : '') + ' <span class="x">' + o[2] + (r[I.x] && r[I.x].monthly ? ' 個月' : ' 天') + '</span> ' + Math.round(o[j] * 100) + '%</li>'); }
+    const j = d === 'warn' ? 4 : 3, k = c === 'ind' ? 6 : 5;
+    title = '每一段（最近 40 段；共 ' + oc.length + ' 段）：起訖、天數、這一段中了的比例' + (d === 'warn' ? '、段內每一天之後最大回撤的平均' : '');
+    items = oc.slice(-40).reverse().map(o => '<li class="' + (o[j] >= 0.5 ? 'y' : '') + '">' + ymd(o[0]) + (o[1] !== o[0] ? '～' + ymd(o[1]) : '') + ' <span class="x">' + o[2] + (r[I.x] && r[I.x].monthly ? ' 個月' : ' 天') + '</span> ' + Math.round(o[j] * 100) + '%' +
+      (d === 'warn' && o[k] != null ? ' <span class="x">回撤 ' + Math.round(o[k] * 100) + '%</span>' : '') + '</li>'); }
   else { const j = c === 'buy' ? 1 : (d === 'warn' ? 2 : 1);
-    title = '每一次（最近 60 次；共 ' + oc.length + ' 次）：' + (c === 'buy' ? '✓＝買在相對低點' : '✓＝中了');
-    items = oc.slice(-60).reverse().map(o => '<li class="' + (o[j] ? 'y' : '') + '">' + ymd(o[0]) + ' ' + (o[j] ? '✓' : '<span class="x">✗</span>') + '</li>'); }
+    title = '每一次（最近 60 次；共 ' + oc.length + ' 次）：' + (c === 'buy' ? '✓＝買在相對低點' : '✓＝中了' + (d === 'warn' ? '，後面是之後的最大回撤' : ''));
+    items = oc.slice(-60).reverse().map(o => '<li class="' + (o[j] ? 'y' : '') + '">' + ymd(o[0]) + ' ' + (o[j] ? '✓' : '<span class="x">✗</span>') +
+      (c !== 'buy' && d === 'warn' && o[3] != null ? ' <span class="x">' + Math.round(o[3] * 100) + '%</span>' : '') + '</li>'); }
   return '<div class="sgoc"><h4>' + title + '</h4><ul class="sgol">' + items.join('') + '</ul></div>'; }
 function detHtml(r){
   const x = r[I.x] || {}, d = r[I.dir][0];
@@ -544,10 +559,12 @@ document.getElementById('sgnow').addEventListener('change', e => { st.now = e.ta
 document.getElementById('sgmore').addEventListener('click', () => { st.limit += 200; draw(); });
 document.getElementById('sgcsv').addEventListener('click', () => {
   const list = sorted(ROWS.filter((r, i) => pass(r, i)));
-  const head = ['判定','訊號','市場','類別','方向','看多久','次數','命中率','平常','差','近10年次數','近10年命中率','近10年平常','現在','代號'];
-  const lines = [head].concat(list.map(r => { const [d, s] = sd(r), e = edge(r);
+  const head = ['判定','訊號','市場','類別','方向','看多久','次數','命中率','平常','差','近10年次數','近10年命中率','近10年平常','現在','代號',
+    '警示判定','警示命中率（最大回撤到門檻）','警示平常','最大回撤中位數','平常最大回撤中位數','門檻%'];
+  const lines = [head].concat(list.map(r => { const [d, s] = sd(r), e = edge(r), w = r[I.warn] || null;
     return [SG.tiers[r[I.tier]][1], r[I.name], SG.mk[r[I.mk]], SG.cat[r[I.cat]], dirName(r), hz(r), s ? s[0] : '', s ? s[1] : '', s ? s[2] : '',
-      e == null ? '' : e.toFixed(1), s ? (s[3] ?? '') : '', s ? (s[4] ?? '') : '', s ? (s[5] ?? '') : '', nowTxt(r), r[I.id]]; }));
+      e == null ? '' : e.toFixed(1), s ? (s[3] ?? '') : '', s ? (s[4] ?? '') : '', s ? (s[5] ?? '') : '', nowTxt(r), r[I.id],
+      w ? (SG.tiers[w[6]] || ['', ''])[1] : '', w ? w[1] : '', w ? w[2] : '', w ? (w[7] ?? '') : '', w ? (w[8] ?? '') : '', r[I.th] ?? '']; }));
   const csv = '﻿' + lines.map(l => l.map(v => { const t = String(v == null ? '' : v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); a.download = '訊號總覽.csv'; a.click(); });
 const RMK = SG.rmk || [], RCACHE = {};
