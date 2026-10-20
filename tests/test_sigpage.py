@@ -54,8 +54,14 @@ def test_render_structure_and_data():
     assert appnav.bar("sig") in html and "<title>訊號總覽</title>" in html
     for sid in ('id="today"', 'id="all"', 'id="mth"', 'id="sgq"', 'id="sgcsv"', 'id="sgnow"'):
         assert sid in html
-    assert "融資餘額水位・過熱中" in html and "之後 3 個月內最大回撤 10% 以上 <b>58%</b>（平常 29%）・12 次" in html
-    assert "回撤中位數 12%（平常 7%）" in html and "最大回撤" in html.split('id="mth"')[1]           # VER 3
+    assert "融資餘額水位・過熱中" in html and "之後 3 個月內大跌（最大回撤 10% 以上）的機率 <b>58%</b>（隨便挑一天 29%）・出現過 12 次" in html
+    assert "回撤中位數 12%（隨便挑一天 7%）" in html and "最大回撤" in html.split('id="mth"')[1]           # VER 3
+    # 白話用語（docs/lab_sigview_plan.md 第 2.3 節）：表頭與名詞說明不再用「命中率／平常」
+    vis = re.sub(r"<script.*?</script>", "", html, flags=re.S)
+    assert "命中率" not in vis and "平常" not in re.sub(r"<[^>]+>", "", vis.split('id="mth"')[0])
+    for w in ("之後上漲的機率", "之後大跌的機率", "隨便挑一天", "多幾個百分點", "近 10 年也成立嗎", "出現過幾次"):
+        assert w in html.split('id="mth"')[1], w
+    assert 'id="sgpv"' in html and 'id="sgtip"' in html and 'data-tip="now"' in html
     assert "12/1 起" in html and "inf" not in html.split('id="all"')[0] and "每月平均 +6.8%・30 筆" in html
     data = json.loads(re.search(r'<script type="application/json" id="sgd">(.*?)</script>', html, re.S).group(1))
     assert len(data["rows"]) == 4 and all(len(r) == 16 for r in data["rows"])
@@ -64,6 +70,30 @@ def test_render_structure_and_data():
     assert "const I = {id:0,mk:1,cat:2,grp:3,name:4,kind:5,H:6,th:7,tier:8,dir:9,up:10,warn:11,buy:12,a:13,z:14,x:15};" in sigpage.JS
     det = json.loads(sigpage.detail_json(_view()))
     assert det["occ"]["tw:heat:C1:hot"] == [["2020-01-02", "2020-03-01", 40, 0.5, 0.8, 0.11]]
+
+
+def test_indicators_group_signals_by_item():
+    """依指標整理（docs/lab_sigview_plan.md 第 2.1 節）：同一個景氣項目的水準與邊際變化同一個指標；面向、泡沫、產業、買點各自分組。"""
+    rows = _rows()
+    a = rows[0]
+    d1 = dict(a, id="tw:deriv:C1:1", cat="deriv", grp="deriv", sig="1", name="融資餘額水位・成長加速")
+    dm = dict(a, id="tw:heat:Dchip:hot", var="Dchip", grp="chip", vn="籌碼熱度", name="籌碼熱度・過熱中")
+    bb = [dict(a, id=f"tw:bub:{k}", cat="bub", grp="bub", var=k, vn=k, name=k, kind="state") for k in ("L2", "P1")]
+    by = dict(a, id="tw:buy:E5:W10", cat="buy", grp="E5", var="W10", vn="固定等 10 天", name="5 日急跌・固定等 10 天")
+    ind = dict(a, id="ind:ff:L2", mk="us", cat="ind", grp="ff", var="L2", vn="美股 49 細產業", name="美股 49 細產業・泡沫等級 2 以上")
+    rs = [d1] + rows + [dm] + bb + [by, ind]
+    out = {x[0]: x for x in sigpage.indicators(rs)}
+    c1 = out["tw:C1"]
+    assert c1[2] == "heat" and c1[3] == "融資餘額水位" and c1[4] == "chip" and c1[6] == "C1"     # 面向取水準那一列（deriv 那一列是 deriv）
+    assert [rs[i]["id"] for i in c1[5]] == ["tw:deriv:C1:1", "tw:heat:C1:hot", "tw:heat:C1:hot_in"]
+    assert out["tw:Dchip"][2] == "dim" and out["tw:Dchip"][6] == "Dchip"
+    assert out["tw:tech:ma60_dn"][2] == "tech" and out["tw:tech:ma60_dn"][6] is None
+    assert len(out["tw:bub"][5]) == 2 and out["tw:bub"][3] == "泡沫等級與條件"
+    assert out["tw:buy:E5"][3] == "5 日急跌" and out["ind:ff"][1] == "us" and out["stk:strat:s5"][2] == "strat"
+    assert set(sigpage.CHART) == set(sigpage.TODAY_MK) and sigpage.CHART["tw"] == "x9mh.json"
+    j = json.loads(sigpage.page_json(_view()))
+    assert [x[0] for x in j["inds"]] == ["tw:C1", "tw:tech:ma60_dn", "stk:strat:s5"]
+    assert j["dimn"]["tw"]["chip"] and j["dimn"]["spx"]["sent"] and j["hit"] == {"up": 60, "warn": 50, "buy": 60}
 
 
 def test_no_banned_words_and_no_class_collisions():
@@ -140,7 +170,7 @@ def test_heat_pages_stash_cards_and_list_today(monkeypatch):
     assert "12/1 起" in h and 'href="x9o.html"' in h
     # VER 3：兩個方向各看各的——同一個項目（融資 C1、看 3 個月）偏多 ★、警示 ★ 兩欄都列、標「震盪」
     assert 'href="x9o.html#s=tw:heat:C1:hot_in"' in h and h.count('class="tzo"') == 2
-    assert "最大回撤 10% 以上" in h and "回撤中位數 12%（平常 7%）" in h
+    assert "最大回撤 10% 以上" in h and "回撤中位數 12%（隨便挑一天 7%）" in h
     assert h.count('<div class="tzr">') == 3 and "中線" in h and "差不多" in h and "警示 ★1" in h
     assert 'aria-label="中線（看 3 個月）：偏多 ★1・警示 ★1，偏多占 50%"' in h
     assert "短線（看 1 個月）：偏多 0・警示 0，沒有訊號" in h and "溫度計本身沒有驗證過" in h

@@ -314,6 +314,7 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
         out["viz"] = VZ.pack(B, out)
+        out["sigitems"] = VZ.sig_items(B, out)     # 訊號總覽「依指標」的現在（docs/lab_sigview_plan.md）
         out["ks"] = VZ.key_states(B, out, we)
     return out
 

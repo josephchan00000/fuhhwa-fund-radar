@@ -412,3 +412,21 @@ def test_today_card_beside_radar(built):
     assert ".vside{order:-1}" not in page                                    # 手機也是雷達在最上面
 
 
+
+
+def test_sig_items_feed_overview(built, monkeypatch):
+    """訊號總覽依指標整理（docs/lab_sigview_plan.md 第 2.1 節）：景氣頁算好每一項與每個面向的現在、近一年每週 0～100，交給訊號總覽。"""
+    from arm.lab import sigpage as SPG
+    B, _, V, _ = built
+    it = V["sigitems"]
+    for d, L in V["dims"].items():
+        assert "D" + d in it and it["D" + d]["band"] == L["band"]
+        for x in L["items"]:
+            v = it[x["k"]]
+            assert v["v"] == x["val"] and v["d"] == x["src"] and len(v["sp"]) == min(53, len(VZ.PO.week_ends(B["cal"])))
+            assert all(s is None or (isinstance(s, int) and 0 <= s <= 100) for s in v["sp"])
+            assert set(v) == {"v", "d", "h", "band", "pos", "dv", "why", "u", "dec", "hot", "sp"}
+    monkeypatch.setattr(SPG, "ITEMS", {})
+    monkeypatch.setattr(SPG, "CARDS", {})
+    VZ.stash_cards(V)
+    assert SPG.ITEMS == {V["mk"]: it}

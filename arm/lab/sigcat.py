@@ -85,6 +85,19 @@ def outcomes(px, H: int, th: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]
     return up, wn, dd
 
 
+def fwd_ret(px, H: int) -> np.ndarray:
+    """第 t 天的訊號 → 第 e＋H 天收盤 ÷ 第 e 天收盤 − 1（e＝t＋LAG；只呈現，訊號總覽「最近幾次」的之後漲跌）。"""
+    px = np.asarray(px, dtype=float)
+    T = len(px)
+    out = np.full(T, np.nan)
+    n = T - S.LAG - H
+    if n > 0:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            out[:n] = px[S.LAG + H:S.LAG + H + n] / px[S.LAG:S.LAG + n] - 1.0
+    return out
+
+
 # ── 次數、命中率、判定 ─────────────────────────────────────────────────────────
 
 def recent_from(cal: list[str]) -> str:
@@ -131,12 +144,15 @@ def _base_med(Y: np.ndarray | None, samp: np.ndarray) -> float | None:
     return float(np.median(v)) if len(v) else None
 
 
-def ev_stat(days, Yu: np.ndarray, Yw: np.ndarray, samp: np.ndarray, H: int, r0: int, Yd: np.ndarray | None = None) -> dict:
-    """事件型：samp＝可以算平常的日子（輸入有值）索引；r0＝近 10 年起點的索引；Yd＝每一天的最大回撤（VER 3，只呈現）。
-    → {"up": 統計, "warn": 統計（另有 mdd、mdd_base＝最大回撤中位數）, "occ": [[t, 偏多, 警示, 最大回撤], …]}（只含窗口完整的次）。"""
+def ev_stat(days, Yu: np.ndarray, Yw: np.ndarray, samp: np.ndarray, H: int, r0: int, Yd: np.ndarray | None = None,
+            Yr: np.ndarray | None = None) -> dict:
+    """事件型：samp＝可以算平常的日子（輸入有值）索引；r0＝近 10 年起點的索引；Yd＝每一天的最大回撤（VER 3，只呈現）；
+    Yr＝每一天之後的漲跌（只呈現）。
+    → {"up": 統計, "warn": 統計（另有 mdd、mdd_base＝最大回撤中位數）, "occ": [[t, 偏多, 警示, 最大回撤, 之後漲跌], …]}（只含窗口完整的次）。"""
     ok = set(int(i) for i in samp)
     kept = dedupe([t for t in days if t in ok], H)
-    occ = [[t, Yu[t], Yw[t], np.nan if Yd is None else Yd[t]] for t in kept if not (np.isnan(Yu[t]) or np.isnan(Yw[t]))]
+    occ = [[t, Yu[t], Yw[t], np.nan if Yd is None else Yd[t], np.nan if Yr is None else Yr[t]]
+           for t in kept if not (np.isnan(Yu[t]) or np.isnan(Yw[t]))]
     samp10 = samp[samp >= r0]
     out = {"occ": occ}
     for j, (dk, Y) in enumerate((("up", Yu), ("warn", Yw))):
@@ -161,10 +177,11 @@ def episodes(pos: list[int], gap: int) -> list[list[int]]:
 
 
 def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray, gap: int, r0: int,
-            Yd: np.ndarray | None = None) -> dict:
+            Yd: np.ndarray | None = None, Yr: np.ndarray | None = None) -> dict:
     """狀態型：samp＝樣本日（輸入有值；月資料＝每月最後一個交易日）索引，state＝這些樣本日是否在狀態中（同長度）。
     一段的命中率＝段內窗口完整的日子的比例；整體＝各段平均。Yd＝每一天的最大回撤（VER 3，只呈現：一段＝段內平均，整體＝各段中位數）。
-    → {"up", "warn", "occ": [[第一天, 最後一天, 天數, 偏多, 警示, 最大回撤], …]}。"""
+    Yr＝每一天之後的漲跌（只呈現，一段＝段內平均）。
+    → {"up", "warn", "occ": [[第一天, 最後一天, 天數, 偏多, 警示, 最大回撤, 之後漲跌], …]}。"""
     pos = [i for i in range(len(samp)) if state[i]]
     occ = []
     for ep in episodes(pos, gap):
@@ -174,7 +191,7 @@ def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray,
         if not m.any():
             continue
         occ.append([int(ts[0]), int(ts[-1]), int(len(ts)), float(u[m].mean()), float(w[m].mean()),
-                    np.nan if Yd is None else float(Yd[ts][m].mean())])
+                    np.nan if Yd is None else float(Yd[ts][m].mean()), _mean(Yr[ts][m]) if Yr is not None else np.nan])
     samp10 = samp[samp >= r0]
     out = {"occ": occ}
     for j, (dk, Y) in enumerate((("up", Yu), ("warn", Yw))):
@@ -384,15 +401,18 @@ def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
     if H not in Ycache:
         Ycache[H] = outcomes(F["px"], H, warn_th(mk, H))
     Yu, Yw, Yd = Ycache[H]
+    if ("r", H) not in Ycache:
+        Ycache[("r", H)] = fwd_ret(F["px"], H)
+    Yr = Ycache[("r", H)]
     r0 = bisect.bisect_left(cal, F["r0"])
     samp = np.asarray(sd["samp"], dtype=np.int64)
     if sd["kind"] == "event":
-        R = ev_stat(sd["days"], Yu, Yw, samp, H, r0, Yd)
-        occ = [[cal[t], int(u), int(w), d] for t, u, w, d in R["occ"]]
+        R = ev_stat(sd["days"], Yu, Yw, samp, H, r0, Yd, Yr)
+        occ = [[cal[t], int(u), int(w), d, r] for t, u, w, d, r in R["occ"]]
     else:
         gap = 1 if sd.get("monthly") else S.EP_GAP
-        R = st_stat(np.asarray(sd["state"], dtype=bool), samp, Yu, Yw, gap, r0, Yd)
-        occ = [[cal[a], cal[z], n, u, w, d] for a, z, n, u, w, d in R["occ"]]
+        R = st_stat(np.asarray(sd["state"], dtype=bool), samp, Yu, Yw, gap, r0, Yd, Yr)
+        occ = [[cal[a], cal[z], n, u, w, d, r] for a, z, n, u, w, d, r in R["occ"]]
     dirs = {}
     for d in ("up", "warn"):
         st = R[d]
@@ -477,12 +497,13 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None) -> list[dict
                 v0 = me[m]
                 fut = [me.get(_months_add(m, j)) for j in range(1, S.H_IND_M + 1)]
                 if not v0 or any(v is None for v in fut):
-                    u = w = dd = None
+                    u = w = dd = rr = None
                 else:
                     u = 1.0 if fut[-1] > v0 else 0.0
                     dd = mdd_path([v0] + fut)                 # VER 3：第 m～m＋12 個月底的最大回撤
                     w = 1.0 if dd >= S.WARN_LONG else 0.0
-                seq.append((m, r["L"] >= lv, u, w, dd))
+                    rr = fut[-1] / v0 - 1.0
+                seq.append((m, r["L"] >= lv, u, w, dd, rr))
                 if u is not None:
                     base_u.append(u)
                     base_w.append(w)
@@ -495,9 +516,10 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None) -> list[dict
                 us = [seq[i][2] for i in ep if seq[i][2] is not None]
                 ws = [seq[i][3] for i in ep if seq[i][3] is not None]
                 ds = [seq[i][4] for i in ep if seq[i][4] is not None]
+                rs = [seq[i][5] for i in ep if seq[i][5] is not None]
                 if us:
                     occ.append([seq[ep[0]][0], seq[ep[-1]][0], len(ep), float(np.mean(us)), float(np.mean(ws)), code,
-                                float(np.mean(ds))])
+                                float(np.mean(ds)), float(np.mean(rs))])
         occ.sort(key=lambda o: (o[0], o[5]))
         dirs = {}
         for j, (d, bs, b10) in enumerate((("up", base_u, b10u), ("warn", base_w, b10w))):
