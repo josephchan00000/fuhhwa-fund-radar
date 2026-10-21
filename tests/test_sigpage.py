@@ -292,7 +292,7 @@ def test_scenarios_are_their_own_indicators():
                                           "spx": {"fund": 65.0, "chip": 41.0, "liq": 38.0, "tech": None}}
     js = sigpage._JS if hasattr(sigpage, "_JS") else sigpage.render(_view())
     assert "const PXC = ['tech', 'crash', 'dim', 'scen', 'inst', 'bub', 'buy'];" in js and "function scenNow(x)" in js
-    assert "if (c === 'scen')" in js and "x9m.html#scen" in js
+    assert "if (c === 'scen')" in js and "x9m.html#o=scen" in js and "'&o=scen'" in js
 
 
 def test_entry_returns_go_to_detail_file_and_panel():

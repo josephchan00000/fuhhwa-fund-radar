@@ -224,4 +224,4 @@ def load_research() -> dict | None:
         R = json.loads(RESEARCH.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
-    return R if R.get("ver") == S.VER else None
+    return R if (R.get("ver") or 0) >= S.SIM_VER else None

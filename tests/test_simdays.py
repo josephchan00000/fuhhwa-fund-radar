@@ -198,3 +198,16 @@ def test_research_shape_and_version(monkeypatch):
     R = M.research(F)
     assert R["ver"] == S.VER and set(R["markets"]) == {"spx"}
     assert [o["h"] for o in R["markets"]["spx"]["oos"]] == list(S.RET_H)
+
+
+def test_research_file_survives_later_spec_versions(tmp_path, monkeypatch):
+    """研究檔版本 ≥ SIM_VER（第 4.12 節最後一次改動的版本）就能用；2026-10-21 前要求＝VER，VER 6 起景氣頁一直寫「還沒產生」。"""
+    import json
+    from arm.lab import sigspec as SS
+    from arm.lab import simdays as SD
+    f = tmp_path / "sim.json"
+    monkeypatch.setattr(SD, "RESEARCH", f)
+    for v, ok in ((SS.SIM_VER - 1, False), (SS.SIM_VER, True), (SS.VER, True)):
+        f.write_text(json.dumps({"ver": v, "markets": {}}), encoding="utf-8")
+        assert (SD.load_research() is not None) is ok
+    assert SS.SIM_VER == 5 and SS.SIM_VER <= SS.VER
