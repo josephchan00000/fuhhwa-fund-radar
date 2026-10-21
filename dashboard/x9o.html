@@ -12,14 +12,21 @@
 --p0:#7b5ea7;--p1:#199e70;--p2:#c98500;--p3:#d55181;--p4:#4d7c0f;
 --dfund:#199e70;--dchip:#7b5ea7;--dgliq:#a88a00;--dtliq:#d55181;--dtech:#0f8fa8;--dbubl:#a0522d;
 --q0:#c8322c;--q1:#f0948d;--q2:#245fa6;--q3:#5a9fe8}
-@media (prefers-color-scheme:dark){:root{--bg:#0b111c;--panel:#121a28;--card2:#182234;--ink:#e8eef8;--ink2:#aab6c9;--mut:#8392a8;
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b111c;--panel:#121a28;--card2:#182234;--ink:#e8eef8;--ink2:#aab6c9;--mut:#8392a8;
 --line:#223049;--line2:#30425f;--acc:#6aa8ff;--accd:#8fbcff;--accbg:rgba(106,168,255,.14);--warn:#f0a24a;--ring:#0b111c;--tipbg:#182234;
 --shadow:0 8px 26px rgba(0,0,0,.5);--c0:#3d82e0;--c1:#7cb3ec;--c2:#8b96a8;--c3:#f3a35c;--c4:#f15b50;
 --t0:#6ea6f0;--t1:#93c0ef;--t2:#aab6c9;--t3:#f2a65e;--t4:#ff7d72;--sbg:rgba(241,91,80,.16);--wbg:rgba(47,191,113,.15);
 --curbg:rgba(243,163,92,.14);--bp:#4a5a74;--zh:rgba(241,91,80,.10);--zc:rgba(61,130,224,.12);
 --p0:#997ac9;--p1:#24a476;--p2:#bf7c00;--p3:#db5786;--p4:#6c9d3a;
 --dfund:#24a476;--dchip:#997ac9;--dgliq:#a68900;--dtliq:#db5786;--dtech:#22a5c0;--dbubl:#c87a4f;
---q0:#f0584b;--q1:#a04038;--q2:#5294e6;--q3:#3260a3}}
+--q0:#f0584b;--q1:#a04038;--q2:#5294e6;--q3:#3260a3}}:root[data-theme="dark"]{--bg:#0b111c;--panel:#121a28;--card2:#182234;--ink:#e8eef8;--ink2:#aab6c9;--mut:#8392a8;
+--line:#223049;--line2:#30425f;--acc:#6aa8ff;--accd:#8fbcff;--accbg:rgba(106,168,255,.14);--warn:#f0a24a;--ring:#0b111c;--tipbg:#182234;
+--shadow:0 8px 26px rgba(0,0,0,.5);--c0:#3d82e0;--c1:#7cb3ec;--c2:#8b96a8;--c3:#f3a35c;--c4:#f15b50;
+--t0:#6ea6f0;--t1:#93c0ef;--t2:#aab6c9;--t3:#f2a65e;--t4:#ff7d72;--sbg:rgba(241,91,80,.16);--wbg:rgba(47,191,113,.15);
+--curbg:rgba(243,163,92,.14);--bp:#4a5a74;--zh:rgba(241,91,80,.10);--zc:rgba(61,130,224,.12);
+--p0:#997ac9;--p1:#24a476;--p2:#bf7c00;--p3:#db5786;--p4:#6c9d3a;
+--dfund:#24a476;--dchip:#997ac9;--dgliq:#a68900;--dtliq:#db5786;--dtech:#22a5c0;--dbubl:#c87a4f;
+--q0:#f0584b;--q1:#a04038;--q2:#5294e6;--q3:#3260a3}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif;-webkit-text-size-adjust:100%}
@@ -369,7 +376,7 @@ body.drw-on{overflow:hidden}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 /* 情境（sigspec 第 4.10 節） */
 .sqc,.nsc{--bull:#d33a34;--bear:#159c94}
-@media (prefers-color-scheme:dark){.sqc,.nsc{--bull:#f15b50;--bear:#24a89d}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sqc,:root:not([data-theme="light"]) .nsc{--bull:#f15b50;--bear:#24a89d}}:root[data-theme="dark"] .sqc,:root[data-theme="dark"] .nsc{--bull:#f15b50;--bear:#24a89d}
 .sqtab{margin:8px 0;border-top:1px solid var(--line)}
 .sqg{display:grid;grid-template-columns:minmax(0,2.3fr) minmax(0,1.25fr) repeat(3,minmax(0,.85fr)) 74px 44px;gap:4px 10px;align-items:center}
 .sqhd{padding:6px 6px;font-size:11.5px;color:var(--mut);border-bottom:1px solid var(--line)}
@@ -473,7 +480,7 @@ table.oft{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-nume
 /* 今天的重點（訊號總覽的實務判定）與頁首的市場狀態一行 */
 .tzc{padding:12px 14px;min-width:0;margin:0;--bull:#d33a34;--bear:#159c94}
 .tzx{margin:-2px 0 6px;font-size:12.5px;color:var(--ink2)}.tzx summary{cursor:pointer;color:var(--acc);font-size:12.5px}.tzx p{margin:4px 0 0;line-height:1.6}
-@media (prefers-color-scheme:dark){.tzc{--bull:#f15b50;--bear:#24a89d}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tzc{--bull:#f15b50;--bear:#24a89d}}:root[data-theme="dark"] .tzc{--bull:#f15b50;--bear:#24a89d}
 .tzt{display:grid;gap:7px;margin:4px 0 12px}
 .tzr{display:grid;grid-template-columns:62px minmax(0,1fr);align-items:center;gap:4px 8px}
 .tzn{display:flex;flex-direction:column;line-height:1.2}.tzn b{font-size:14px}.tzn i{font-style:normal;font-size:11.5px;color:var(--mut)}
@@ -657,9 +664,9 @@ body.sgopen{overflow:hidden}
  .sgrr td.l{grid-column:1/-1;text-align:left;font-weight:600}.sgrr td.l small{display:inline;margin-left:6px}
  .sgrr td[data-h]::before{content:attr(data-h);display:block;font-size:10px;color:var(--mut);line-height:1.2}
  .sgrr tr.na td.mu{grid-column:1/-1;text-align:left}}
-</style></head>
+.thm{display:inline-flex;align-items:center;gap:5px;align-self:center;padding:3px 10px;border:1px solid var(--line);border-radius:999px;background:var(--bg);color:var(--ink2);font:inherit;font-size:12.5px;line-height:1.4;white-space:nowrap;cursor:pointer}.thm:hover{color:var(--ink)}.thm:focus-visible{outline:2px solid var(--acc);outline-offset:2px}.thm svg{display:none;width:14px;height:14px;flex:none}.thm[data-t="auto"] .ti-a,.thm[data-t="light"] .ti-l,.thm[data-t="dark"] .ti-d{display:block}:root[data-theme="light"]{color-scheme:light}:root[data-theme="dark"]{color-scheme:dark}</style><script>(function(){var K="labTheme",O=["auto","light","dark"],N={auto:"自動",light:"淺色",dark:"深色"},r=document.documentElement,cur="auto";try{var s=localStorage.getItem(K);if(s==="light"||s==="dark")cur=s}catch(e){}function ap(){if(cur==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",cur);var b=document.getElementById("thm");if(!b)return;b.setAttribute("data-t",cur);var t=b.querySelector(".thm-t");if(t)t.textContent=N[cur];var nx=N[O[(O.indexOf(cur)+1)%3]],lb="深淺色："+N[cur]+(cur==="auto"?"（跟系統）":"")+"，點一下換成"+nx;b.setAttribute("aria-label",lb);b.title=lb}ap();document.addEventListener("DOMContentLoaded",ap);document.addEventListener("click",function(e){var b=e.target&&e.target.closest&&e.target.closest("#thm");if(!b)return;cur=O[(O.indexOf(cur)+1)%3];try{if(cur==="auto")localStorage.removeItem(K);else localStorage.setItem(K,cur)}catch(x){}ap();try{window.dispatchEvent(new Event("labtheme"))}catch(x){}});})();</script></head>
 <body>
-<div class="top"><nav class="apptab" aria-label="頁面"><a href="x9m.html">台股景氣</a><a href="x9mu.html">美股景氣</a><a href="x9b.html">泡沫</a><a href="x9.html">個股</a><a class="on" aria-current="page" href="x9o.html">訊號總覽</a></nav><span class="asof">資料到 台股 10/20、美股 10/20、個股 10/20</span><a class="back" href="./">返回主頁</a></div>
+<div class="top"><nav class="apptab" aria-label="頁面"><a href="x9m.html">台股景氣</a><a href="x9mu.html">美股景氣</a><a href="x9b.html">泡沫</a><a href="x9.html">個股</a><a class="on" aria-current="page" href="x9o.html">訊號總覽</a></nav><span class="asof">資料到 台股 10/20、美股 10/20、個股 10/20</span><button type="button" class="thm" id="thm" data-t="auto" aria-label="深淺色：自動（跟系統），點一下換成淺色"><svg class="ti-a" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><svg class="ti-l" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.1" fill="currentColor"/><path d="M8 1.3v1.9M8 12.8v1.9M1.3 8h1.9M12.8 8h1.9M3.3 3.3l1.3 1.3M11.4 11.4l1.3 1.3M3.3 12.7l1.3-1.3M11.4 4.6l1.3-1.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><svg class="ti-d" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.2 10.3A5.7 5.7 0 0 1 5.7 3.8a5.8 5.8 0 1 0 6.5 6.5z" fill="currentColor"/></svg><span class="thm-t">自動</span></button><a class="back" href="./">返回主頁</a></div>
 <div class="vbar"><details class="purp"><summary>這頁怎麼看</summary><p>上面是今天有效的好訊號；下面依指標列出全部
 （例：RSI、融資餘額水位），點一個指標看它現在的數值、走勢，和它每一種訊號過去出現之後「上漲（或大跌）的機率」，
 跟同一段期間「隨便挑一天」比。★ 好訊號＝機率夠高、比隨便挑一天多 10 個百分點以上、近 10 年也成立，而且不是運氣（打亂日子測試）。

@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/21 08:45",
+  "as_of": "2026/10/21 08:55",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -144,18 +144,25 @@
       ],
       "items": [
         {
-          "title": "00409A 主動復華全球50 - 主動式ETF 又慘跌... 投資人自己要想好- 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/article/186112416",
-          "source": "CMoney",
-          "date": "2026-10-19 11:08",
-          "datetime": "2026-10-19T11:08:27+08:00"
-        },
-        {
           "title": "台股上下震盪 00409A一張約1萬元 一次布局美國AI晶片、光通訊、電力龍頭",
           "url": "https://enn.tw/795062/",
           "source": "ENN台灣電報",
           "date": "2026-10-19 01:36",
           "datetime": "2026-10-19T01:36:43+08:00"
+        },
+        {
+          "title": "美國晶片三強一次到位 00409A同時持有三大晶片巨頭 小資用台幣買進晶片獲利大廠",
+          "url": "https://tw.stock.yahoo.com/news/%E7%BE%8E%E5%9C%8B%E6%99%B6%E7%89%87%E4%B8%89%E5%BC%B7-%E6%AC%A1%E5%88%B0%E4%BD%8D-00409a%E5%90%8C%E6%99%82%E6%8C%81%E6%9C%89%E4%B8%89%E5%A4%A7%E6%99%B6%E7%89%87%E5%B7%A8%E9%A0%AD-%E5%B0%8F%E8%B3%87%E7%94%A8%E5%8F%B0%E5%B9%A3%E8%B2%B7%E9%80%B2%E6%99%B6%E7%89%87%E7%8D%B2%E5%88%A9%E5%A4%A7%E5%BB%A0-061759380.html",
+          "source": "Yahoo股市",
+          "date": "2026-10-15 14:17",
+          "datetime": "2026-10-15T14:17:59+08:00"
+        },
+        {
+          "title": "台股震盪 直取獲利源頭！00409A從AI晶片、光通訊到供電鎖定美國巨頭",
+          "url": "https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E9%9C%87%E7%9B%AA-%E7%9B%B4%E5%8F%96%E7%8D%B2%E5%88%A9%E6%BA%90%E9%A0%AD-00409a%E5%BE%9Eai%E6%99%B6%E7%89%87-%E5%85%89%E9%80%9A%E8%A8%8A%E5%88%B0%E4%BE%9B%E9%9B%BB%E9%8E%96%E5%AE%9A%E7%BE%8E%E5%9C%8B%E5%B7%A8%E9%A0%AD-054130607.html",
+          "source": "Yahoo新聞",
+          "date": "2026-10-15 13:41",
+          "datetime": "2026-10-15T13:41:30+08:00"
         }
       ]
     },
