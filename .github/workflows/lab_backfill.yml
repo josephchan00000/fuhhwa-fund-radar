@@ -93,7 +93,9 @@ jobs:
               [ "$BUD" -lt 5 ] && break
               timeout $(( BUD * 60 + 600 )) python3 scripts/backfill_mratio.py --budget-min "$BUD" || true
               python3 scripts/backfill_mratio.py --status | tee /tmp/mr_status.txt
-              git add -f data/lab/mratio data/lab/heat/mratio.json.gz 2>/dev/null || true
+              # 分開 add：維持率序列要涵蓋率到 95% 才有檔，路徑不存在時整行 git add 會什麼都不加（2026-10-21 第一輪就是這樣沒有 commit）
+              git add -f data/lab/mratio 2>/dev/null || true
+              git add -f data/lab/heat/mratio.json.gz 2>/dev/null || true
               if git commit -q -m "chore: 融資維持率回補 $(date '+%F %H:%M')"; then
                 for i in 1 2 3; do
                   git push -q origin HEAD:${{ github.ref_name }} && break
