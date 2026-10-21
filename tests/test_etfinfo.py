@@ -43,3 +43,18 @@ def test_active_flow_splits_meta_items(monkeypatch):
     meta, items = etfinfo.active_flow("buy")
     assert meta["date"] == "2026-06-12" and "items" not in meta
     assert len(items) == 1 and items[0]["stockCode"] == "2327"
+
+
+def test_future_rows_carry_kind(monkeypatch):
+    """期貨列（API assetType="future"）帶 kind="future"——抓取端據此另存「期貨部位」；
+    股票列格式不變（2026-10-21 CI 探針：00986D `US202612`、00987D `UB:2026-12:B`）。"""
+    doc = {"holdings": {"stocks": [
+        {"code": "US912810UW61", "name": "T 5 1/8 08/15/56", "weight": 59.66, "shares": 15920000,
+         "unit": "股", "assetType": "bond"},
+        {"code": "UB:2026-12:B", "name": "超長美債", "weight": 36.55, "shares": 87,
+         "unit": "口", "assetType": "future"}]}}
+    monkeypatch.setattr(etfinfo, "fetch_etf", lambda code: doc)
+    hs, _meta = etfinfo.holdings("00987D")
+    assert "kind" not in hs[0]
+    assert hs[1] == {"stock_id": "UB:2026-12:B", "stock_name": "超長美債", "weight": 36.55,
+                     "shares": 87, "kind": "future"}

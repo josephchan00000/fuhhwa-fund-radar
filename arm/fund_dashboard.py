@@ -1461,7 +1461,7 @@ def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
                    r.get("shares"), r.get("close") if ok else None,
                    r.get("chg_pct") if ok else None, r.get("contrib") if ok else None,
                    1 if (r.get("pend") and not ok) else 0])
-    return {
+    out = {
         "nm": name, "d": detail.get("date"), "p": detail.get("prev_date"),
         "pd": pd, "np": sum(1 for a in al if a[7]),
         "n": detail.get("n_holdings"), "sw": detail.get("sum_weight"),
@@ -1481,6 +1481,38 @@ def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
         # 多出約 200KB（實測 494→695KB）。改成全體共用 {代號: 簡介} 一份，前端依代號查。
         "al": al,
     }
+    fu = _eh_fut(detail.get("fut"))
+    if fu:
+        out["fu"] = fu
+        out["fc"] = 1 if any(r[5] or r[7] for r in fu["r"]) else 0
+    return out
+
+
+def _eh_fut(fv: dict | None) -> dict | None:
+    """「期貨部位」區塊資料（etfholdings.fut_view → 緊湊陣列）。沒有期貨 → None（不出區塊）。
+
+    FU.r：[商品代號, 名稱, 口數（空單為負）, 名目曝險%, 月份, 比前一揭露日加減口數, 動作, 轉倉（舊月份 → 新月份）]
+    期貨只付保證金、權重是名目曝險，所以不進持股權重、方塊圖與貢獻度（2026-10-21 使用者同意另列）。"""
+    if not fv or not fv.get("rows"):
+        return None
+    rows = [[r["root"], r.get("name") or "", r.get("qty"), r.get("w"), "、".join(r.get("ym") or []),
+             r.get("dq"), r.get("act") or "",
+             ("、".join(r["pym"]) + " → " + "、".join(r["ym"])) if r.get("roll") else ""]
+            for r in fv["rows"]]
+    return {"r": rows, "nw": fv.get("net_w"), "pdd": fv.get("prev_date"),
+            "cmp": 1 if fv.get("cmp") else 0, "xs": fv.get("xsrc")}
+
+
+def _eh_fut_sub(fu: dict | None) -> str:
+    """卡片標題列的期貨變動摘要（例「・期貨 +10 口」）；沒有可比的前一揭露日或沒變動 → 空字串。"""
+    if not fu or not fu.get("cmp"):
+        return ""
+    ch = [r for r in fu["r"] if r[5] or r[7]]
+    if not ch:
+        return ""
+    if len(ch) > 1:
+        return "・期貨有變動"
+    return f"・期貨 {ch[0][5]:+,} 口" if ch[0][5] else "・期貨轉倉"
 
 
 def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
@@ -1510,7 +1542,7 @@ def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
             f'<b>{_esc(code)}</b><span>{_esc(nm.removeprefix("主動"))}</span></button>')
         mv = p.get("mn") or 0
         sub = (f'異動 {mv} 檔' if mv else
-               ('無異動' if p.get("p") else '首次揭露'))
+               ('無異動' if p.get("p") else '首次揭露')) + _eh_fut_sub(p.get("fu"))
         cards.append(
             f'<details class="etfd" id="etfd-{_esc(code)}" '
             f'data-c="{_esc(code)}" data-name="{_esc(code)} {_esc(nm)}" data-group="{kind}">'
@@ -2627,6 +2659,14 @@ td.mdsublab a.mdsl{color:var(--ink2)}
    （2026-07-30 使用者：「沒有變動就要讓比例感覺收斂一些」） */
 .edempty{font-size:12.5px;color:var(--mut);background:var(--pad);border-radius:9px;
   padding:10px 12px;margin-top:8px}
+/* 期貨部位：持股＋期貨名目的合計一行（2026-10-21；00987D 看多時把美債曝險拉到 120%～130%） */
+.futexp{font-size:12.5px;color:var(--ink);background:var(--pad);border-radius:9px;
+  padding:7px 11px;margin-top:8px;line-height:1.6}
+.futexp b{color:var(--accd);font-size:13.5px}
+/* 期貨只有一兩列：名稱與轉倉月份允許換行（手機 390px 時「美國三十年期政府公債」與
+   「2026-09 → 2026-12」會把最右欄擠出畫面） */
+.futtbl .edname{max-width:none;white-space:normal}
+.futtbl .futroll{white-space:normal}
 /* 方塊圖：容器固定高度，方塊以百分比絕對定位（座標由 Python squarify 算好） */
 /* 方塊圖＝深色「圖表卡」（2026-07-30 使用者：淺底粉紅粉綠一片好醜）。
    深底的好處是同一組色階不必靠高飽和也能拉出層次、文字一律白色即可讀，
@@ -3039,6 +3079,16 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
     +'<th class="num">類型</th></tr></thead><tbody class="mvb"></tbody></table></div>'
     +'<div class="edpg"><button type="button" class="mvmore" hidden></button></div>'
     +'<div class="edfoot mvfoot"></div></div>'
+    // 期貨部位（2026-10-21）：期貨只付保證金、權重是名目曝險，不混進持股；有期貨的 ETF 才出現
+    +'<div class="edblk tbl futblk" hidden><div class="edt">期貨部位 <span class="edtsub fusub"></span></div>'
+    +'<div class="futexp" hidden></div>'
+    +'<div class="edscroll tbl"><table class="chgtbl futtbl"><thead><tr>'
+    +'<th>合約<span class="sub">月份</span></th>'
+    +'<th class="num">口數<span class="sub">多單／空單</span></th>'
+    +'<th class="num">名目曝險<span class="sub">占淨值</span></th>'
+    +'<th class="num">比上次<span class="sub">加減口數</span></th></tr></thead>'
+    +'<tbody class="fub"></tbody></table></div>'
+    +'<div class="edfoot fufoot"></div></div>'
     +'<div class="edblk tbl"><div class="edt">完整持股明細</div>'
     +'<div class="edtsub hsub"></div>'
     +'<input class="edsearch hq" type="search" placeholder="搜尋代號或名稱" aria-label="搜尋代號或名稱">'
@@ -3066,6 +3116,7 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
         ?'本次異動多為海外持股（無台股報價），方塊圖無法計算面積——請看下方明細表。'
         :'本次異動集中在少數標的，其餘幅度過小、方塊圖呈現不出比例——請看下方明細表。')
       :(e.p?'本次揭露與前一揭露日相比，持股股數沒有變化。'
+             +(e.fc?'期貨部位有變動，見下方「期貨部位」。':'')
            :'首次揭露，尚無可對比的前一揭露日——明日起可看加減碼。');
     wrap.hidden=!tm.length; tbl.hidden=!tm.length;
     fo.style.display=tm.length?'':'none';
@@ -3180,13 +3231,48 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
          +'正式對外前以各投信官網核對）。');
     markSort(box,'.hldtbl th.hsk',s.hsk,s.hsd)}
 
+  // 期貨部位：FU.r＝[商品代號, 名稱, 口數(空單為負), 名目曝險%, 月份, 比上次加減口數, 動作, 轉倉]
+  function paintFut(box,e){
+    var blk=box.querySelector('.futblk'), f=e.fu;
+    if(!f||!(f.r||[]).length){blk.hidden=true;return}
+    blk.hidden=false;
+    box.querySelector('.fusub').textContent='揭露 '+(e.d||'—')+(f.cmp&&f.pdd?'・比 '+f.pdd:'');
+    var ex=box.querySelector('.futexp'), sw=e.sw;
+    // 期貨比例照揭露的兩位小數（toFixed(1) 會把 36.55 捨成 36.5，和下表對不上）
+    if(f.nw!=null&&sw!=null&&sw>=60){
+      ex.innerHTML='持股 '+sw.toFixed(1)+'% '+(f.nw<0?'－':'＋')+' 期貨名目 '+Math.abs(f.nw).toFixed(2)
+        +'% ＝ 合計約淨值的 <b>'+(sw+f.nw).toFixed(0)+'%</b>';
+      ex.hidden=false}
+    else if(f.nw!=null){ex.innerHTML='期貨名目曝險合計 <b>'+(f.nw<0?'-':'+')+Math.abs(f.nw).toFixed(2)+'%</b>';
+      ex.hidden=false}
+    else ex.hidden=true;
+    box.querySelector('.fub').innerHTML=f.r.map(function(r){
+      var q=r[2], dq=r[5];
+      var chg=dq==null?'<span class="na">—</span>'
+        :'<span class="edmain '+(dq>0?'gain':(dq<0?'loss':''))+'">'+(dq>0?'+':(dq<0?'-':''))
+          +grp(Math.abs(dq))+' 口</span><span class="edsub2">'+esc(r[6])+'</span>'
+          +(r[7]?'<span class="edsub2 futroll">'+esc(r[7]).replace('→','→<wbr>')+'</span>':'');
+      return '<tr><td><span class="edcode">'+esc(r[0])+'</span>'
+        +'<span class="edname">'+esc(r[1])+'</span>'
+        +(r[4]?'<span class="edsub2">'+esc(r[4])+' 合約</span>':'')+'</td>'
+        +'<td class="num"><span class="edmain">'+(q==null?'—':grp(Math.abs(q))+' 口')+'</span>'
+        +'<span class="edsub2">'+(q>0?'多單':(q<0?'空單':'已平倉'))+'</span></td>'
+        +'<td class="num"><span class="edmain">'+(r[3]==null?'—':(r[3]<0?'-':'')+Math.abs(r[3]).toFixed(2)+'%')
+        +'</span></td><td class="num">'+chg+'</td></tr>'}).join('');
+    box.querySelector('.fufoot').innerHTML='名目曝險＝合約價值 ÷ 基金淨值。期貨只付保證金，這個比例不是投入的金額，'
+      +'所以持股權重加上期貨可以超過 100%；空單記為負。合計只是兩個比例相加，期貨與持股的標的不同時'
+      +'（例如公司債搭配公債期貨）只能粗看。同一商品換月份（例如 12 月合約換成 3 月）算轉倉，不算平倉再新建。'
+      +'期貨不算進上面的持股異動、方塊圖與貢獻度。'
+      +(f.cmp?'':'尚無前一揭露日的期貨資料，下一個揭露日起可看加減口數。')
+      +(f.xs?'本次揭露來源（'+esc(f.xs[1])+'）與前一揭露日（'+esc(f.xs[0])+'）不同，只比兩邊都有的合約。':'')}
+
   function render(card){
     var code=card.dataset.c, e=EH[code], box=card.querySelector('.etfd-body');
     if(!e||!box||box.dataset.done)return;
     box.dataset.c=code;
     box.innerHTML=shell();
     box.dataset.done='1';
-    paintTmap(box,e);paintMoves(box,e);paintHold(box,e)}
+    paintTmap(box,e);paintMoves(box,e);paintFut(box,e);paintHold(box,e)}
 
   root.querySelectorAll('details.etfd').forEach(function(card){
     card.addEventListener('toggle',function(){if(card.open)render(card)})});
