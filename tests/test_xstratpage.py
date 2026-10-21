@@ -124,7 +124,7 @@ def test_board_lists_only_good_strategies_with_actions():
             r = R[mk][it["id"].split(":")[2]]
             assert r["tier"] == "good" and P.side(r) == it["side"]
             li = P.board_li(it)
-            assert 'href="x9o.html#i=xs:' in li and ">策略<" in li
+            assert 'href="x9x.html#i=xs:' in li and ">策略<" in li               # 點了到大神策略頁（docs/lab_nav_plan.md）
     fake = {"tw": {"rsi2": {**R["tw"]["rsi2"], "tier": "ref"}}}
     assert P.board("tw", fake) == []                              # ● 不列
 
@@ -133,7 +133,7 @@ def test_chip_every_market():
     R = X.run_all()
     for mk in S.MARKETS:
         c = P.chip(mk, R)
-        assert "10 個月均線" in c and f"x9o.html#i=xs:{mk}:faber" in c
+        assert "10 個月均線" in c and f"x9x.html#i=xs:{mk}:faber" in c
         assert re.search(r"<i>(持有|空手|要買回|要賣出)</i>", c)
     assert P.chip("tw", {}) == ""
 
@@ -144,7 +144,7 @@ def test_mr_chip_only_taiwan_and_flags_below_level():
     R = X.run_all()
     c = P.mr_chip("tw", R)
     n = R["tw"]["mmr"]["now"]
-    assert f'{n["mr"]:.1f}%' in c and "x9o.html#i=xs:tw:mmr" in c and "融資維持率" in c
+    assert f'{n["mr"]:.1f}%' in c and "x9x.html#i=xs:tw:mmr" in c and "融資維持率" in c
     assert ("stc stx" in c) == (n["mr"] < S.BY_KEY["mmr"]["p"]["level"]) and "。。" not in c
     assert not any(w in c for w in BANNED)
     for mk in ("spx", "ixic", "ndx", "sox"):
@@ -161,15 +161,18 @@ def test_pages_wire_strategies():
     from arm.lab import heatviz as VZ
     from arm.lab import sigpage as SP
     assert SP.IND_CATS["xs"] == "大神策略"
-    for f in ("function xsPanel", "function xsOpen", "function xsEq", "function xsTr", "function xsCsv", "x.cat === 'xs'"):
-        assert f in SP.JS, f
+    for f in ("function xsPanel", "function xsFill", "function xsLoad", "function xsEq", "function xsTr", "function xsCsv"):
+        assert f in P.PANEL_JS and f in SP.JS, f                             # 面板共用（大神策略頁、訊號總覽）
+    assert "function xsOpen" in SP.JS and "x.cat === 'xs'" in SP.JS and "@@XSPANEL" not in SP.JS
+    assert "fetch('x9xh.json')" in P.PANEL_JS and "OCC" not in P.PANEL_JS and "SG." not in P.PANEL_JS
     assert ".xsg{" in SP.CSS and ".xsseg" in SP.CSS
     R = X.run_all()
     V = {"rows": [], "on": {}, "xs": R, "items": {}, "asof": {}, "today": {}, "stk": [], "bases": {}}
     pj = json.loads(SP.page_json(V).replace("<\\/", "</"))
-    assert set(pj["xs"]["m"]) == set(S.MARKETS)
+    assert set(pj["xs"]["m"]) == set(S.MARKETS) and pj["xs"]["tm"] == S.TIER_MARK and set(pj["xs"]["mkn"]) == set(S.MARKETS)
     dj = json.loads(SP.detail_json(V))
-    assert len(dj["xs"]) == sum(len(v) for v in R.values())
+    assert "xs" not in dj                                                    # 淨值與每一筆搬到 x9xh.json（大神策略頁寫）
+    assert len(P.detail(R)) == sum(len(v) for v in R.values())
     # 景氣頁：今天的重點的策略列、最上面那一行的 10 個月均線
     T = {"up": [], "warn": [], "d": "2026-10-19", "thermo": []}
     item = {"id": "xs:spx:rsi2", "side": "up", "name": "RSI(2) 超賣反彈", "st": "hold", "now": "持有中：…", "line": "過去 309 筆：…",

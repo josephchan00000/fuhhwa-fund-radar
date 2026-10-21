@@ -122,8 +122,11 @@ def test_workflows_add_overview_files_and_build_order():
         assert t.count("git add -f dashboard/x9o.html 2>/dev/null || true") == 2, wf
         assert t.count("git add -f dashboard/x9oh.json 2>/dev/null || true") == 2, wf
         assert t.count("git add -f dashboard/x9or-*.json 2>/dev/null || true") == 2, wf
+        assert t.count("git add -f dashboard/x9x.html 2>/dev/null || true") == 2, wf      # 大神策略頁（docs/lab_nav_plan.md）
+        assert t.count("git add -f dashboard/x9xh.json 2>/dev/null || true") == 2, wf
     g = (ROOT / "scripts" / "gen_fund_dashboard.py").read_text(encoding="utf-8")
-    assert g.index("heatpage.build()") < g.index("heatpage_us.build()") < g.index("bubpage.build()") < g.index("sigpage.build()")
+    assert (g.index("heatpage.build()") < g.index("heatpage_us.build()") < g.index("bubpage.build()") < g.index("sigpage.build()")
+            < g.index("xspage.build()"))
 
 
 def test_research_file_matches_spec_version():
