@@ -1424,11 +1424,27 @@ def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
     basis = detail.get("amount_basis") or "shares"
     fig = _eh_treemap(detail.get("moves") or [], basis)
     tm, hidden, unpriced = fig["blocks"], fig["hidden"], fig["unpriced"]
+    # 只放「這列報價日＝報價日 pd」的漲跌／收盤／貢獻（2026-10-21 錯日事故：晚上那幾班上市＝前一天、
+    # 上櫃＝當天，39% 的列錯日）。舊格式（沒有 pd）一律不顯示——下一班 ETF 持股更新就會補上。
+    pd = detail.get("pd")
+    al, tc, cw, n_ok = [], 0.0, 0.0, 0
+    for r in detail.get("all") or []:
+        ok = bool(pd) and r.get("qd") == pd and r.get("chg_pct") is not None
+        if ok:
+            n_ok += 1
+            if r.get("contrib") is not None:
+                tc += r["contrib"]
+                cw += r.get("weight") or 0.0
+        al.append([r["stock_id"], r.get("name") or r["stock_id"], r.get("weight"),
+                   r.get("shares"), r.get("close") if ok else None,
+                   r.get("chg_pct") if ok else None, r.get("contrib") if ok else None,
+                   1 if (r.get("pend") and not ok) else 0])
     return {
         "nm": name, "d": detail.get("date"), "p": detail.get("prev_date"),
+        "pd": pd, "np": sum(1 for a in al if a[7]),
         "n": detail.get("n_holdings"), "sw": detail.get("sum_weight"),
         "src": detail.get("src"), "basis": basis,
-        "tc": detail.get("total_contrib"), "cw": detail.get("covered_weight"),
+        "tc": round(tc, 2) if n_ok else None, "cw": round(cw, 1),
         "vf": _eh_verify_chip(detail.get("verify") or {}),
         "mn": detail.get("moves_n"), "mr": detail.get("moves_rest_n"),
         # xsrc＝本次與前一揭露日的來源不同 → 只比共同持股，新增／出清不予判定
@@ -1438,12 +1454,10 @@ def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
         # MV：[代號, 名稱, 異動股數, 金額, 類型]
         "mv": [[m["stock_id"], m.get("name") or m["stock_id"], m.get("m_shares"),
                 m.get("amount"), m.get("kind")] for m in (detail.get("moves") or [])],
-        # AL：[代號, 名稱, 權重, 股數, 收盤價, 當日漲跌%, 貢獻pp]
+        # AL：[代號, 名稱, 權重, 股數, 收盤價, 漲跌%（報價日 pd）, 貢獻pp, 待收盤(1/0)]
         # 標的簡介**不放在列裡**：同一檔股票會出現在多檔 ETF，逐檔各存一份會讓內嵌 JSON
         # 多出約 200KB（實測 494→695KB）。改成全體共用 {代號: 簡介} 一份，前端依代號查。
-        "al": [[r["stock_id"], r.get("name") or r["stock_id"], r.get("weight"),
-                r.get("shares"), r.get("close"), r.get("chg_pct"), r.get("contrib")]
-               for r in (detail.get("all") or [])],
+        "al": al,
     }
 
 
@@ -2666,6 +2680,8 @@ th .sub{display:block;font-weight:400;color:var(--mut);font-size:10.5px}
 .hnew{color:#8a5410;background:rgba(200,118,15,.14);margin-left:5px;font-size:10px;border-radius:5px;padding:0 4px}
 /* 全球型 ETF：本表僅台股部位（權重合計遠低於 100%）——橘標誠實揭露，避免被讀成完整清單 */
 .hpartial{margin-left:6px;font-size:10.5px;color:#8a5410;background:rgba(200,118,15,.14);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help}
+/* 海外持股當地還沒收盤（2026-10-21：只用已收盤的價格，盤中價一律不用） */
+.hpend{color:var(--mut);font-size:11px;font-weight:400;cursor:help}
 /* 跨源驗證章：🟢 雙源相符／單源未驗證／⚠ 兩源不符（詳情在 tooltip） */
 .hvok{margin-left:5px;font-size:10.5px;color:#1f7a43;background:rgba(31,157,87,.12);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help}
 .hvone{margin-left:5px;font-size:10.5px;color:var(--mut);background:rgba(120,120,120,.12);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help}
@@ -2978,6 +2994,13 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
     return '<span class="'+c+'">'+(v>0?'+':(v<0?'-':''))+Math.abs(v).toFixed(d)+(u||'')+'</span>'}
   function num(v,d){return v==null?'—':grp(v.toFixed(d==null?2:d))}
   function st(c){return ST[c]||(ST[c]={msk:'lots',msd:-1,hsk:'w',hsd:-1,pg:1,q:'',mvall:false})}
+  // 漲跌的報價日（2026-10-21 使用者決定：一律用最新交易日；與持股快照日不同時兩個日期都標）
+  function pdTag(e){
+    if(!e.pd)return '・漲跌更新中';
+    if(e.pd===e.d)return '・漲跌為同日收盤';
+    return '・漲跌為 '+esc(e.pd)+' 收盤 <span class="hpartial" title="持股是 '+esc(e.d)
+      +' 的揭露，漲跌與收盤價是 '+esc(e.pd)+' 的收盤；貢獻度＝'+esc(e.d)+' 的權重 × '
+      +esc(e.pd)+' 的漲跌">不同日</span>'}
 
   function shell(){return ''
     +'<div class="edblk"><div class="edt">持股異動 <span class="edtsub mvsub"></span></div>'
@@ -3052,7 +3075,7 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
           +(it.ind?'（'+it.ind+'）':''))+'">'+lab+'</div>'});
     map.innerHTML=h;
     fo.textContent=(e.basis==='amount'
-      ?'面積與亮度依異動金額（Δ股數 × 當日收盤）。'
+      ?'面積與亮度依異動金額（Δ股數 × '+(e.pd?e.pd+' ':'')+'收盤）。'
       :'本檔含無台股報價的持股（海外／債券），面積與亮度改以 Δ股數計，跨市場不宜直接比大小；'
        +'金額欄僅台股部位有值。')+'　'+(e.an||'')}
 
@@ -3100,7 +3123,9 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
       var tx=INTRO[r[0]];
       return '<tr'+(tx?' class="hasintro"':'')+'><td><span class="edcode">'+esc(r[0])+'</span>'
         +'<span class="edname">'+esc(r[1]===r[0]?'':r[1])+'</span></td>'
-        +'<td class="num"><span class="edmain">'+pct(r[5],2,'%')+'</span>'
+        +'<td class="num"><span class="edmain">'+(r[7]
+          ?'<span class="hpend" title="當地市場這一天還沒收盤（美股約台北隔天清晨收盤），下一班自動補上">待收盤</span>'
+          :pct(r[5],2,'%'))+'</span>'
         +'<span class="edsub2">'+num(r[4],2)+'</span></td>'
         +'<td class="num"><span class="edmain">'+num(r[2],2)+'%</span>'
         +'<span class="edsub2">'+(r[3]==null?'—':grp(r[3]))+'</span></td>'
@@ -3113,17 +3138,21 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
     box.querySelector('.hnext').disabled=s.pg>=tot;
     var ni=(e.al||[]).filter(function(r){return INTRO[r[0]]}).length;
     box.querySelector('.hsub').innerHTML='共 '+(e.n||rows.length)+' 檔持股・快照 '+esc(e.d||'—')
+      +pdTag(e)
       +(s.q?('・符合搜尋 '+rows.length+' 檔'):'')
       +(ni?('・'+ni+' 檔附標的簡介'):'')
       +(e.sw!=null&&e.sw>0&&e.sw<60
         ?' <span class="hpartial" title="本表僅列臺股掛牌部位（權重合計 '+e.sw
           +'%）；海外持股與現金部位不在本表，貢獻合計亦僅反映臺股部位">僅台股部位 '+e.sw+'%</span>':'');
-    box.querySelector('.hfoot').innerHTML='貢獻度＝權重 × 個股當日漲跌 ÷ 100（單位：百分點 pp）。'
+    box.querySelector('.hfoot').innerHTML='貢獻度＝權重 × 個股漲跌 ÷ 100（單位：百分點 pp）'
+      +(e.pd&&e.pd!==e.d?'；權重為 '+esc(e.d)+' 揭露、漲跌為 '+esc(e.pd)+' 收盤':'')+'。'
       +'已涵蓋權重 '+num(e.cw,1)+'%，合計貢獻 '+(e.tc==null?'—':pct(e.tc,2,'pp'))+'。'
       +'<b>合計與 ETF 市價漲跌不會完全相等</b>——現金／期貨部位、費用、以及持股揭露時點與'
       +'收盤的時間差都落在差額裡，此處不作湊平調整。'
-      +'海外持股的收盤價與漲跌取自 Yahoo Finance <b>當地市場最近收盤</b>（原幣別，'
-      +'如美股為台北時間清晨收盤），與台股同日對照時有時差屬正常。'
+      +(e.pd?'台股漲跌取證交所／櫃買 '+esc(e.pd)+' 官方收盤（除權息日對參考價）；'
+        +'海外持股取當地市場 '+esc(e.pd)+' <b>已收盤</b>的價格（Yahoo Finance，原幣別），'
+        +'當地還沒收盤的標「待收盤」，下一班自動補上'+(e.np?'（目前 '+e.np+' 檔）':'')+'。'
+       :'漲跌資料更新中，下一班 ETF 持股更新後顯示。')
       +(e.src==='fhtrust'?'資料來源：復華官網 assetsExcel（發行投信第一手揭露）。'
         :'資料來源：'+esc(e.src||'投信每日揭露')+'（Tier B 彙整站，取自投信每日揭露；'
          +'正式對外前以各投信官網核對）。');

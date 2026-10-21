@@ -9,6 +9,10 @@
 約等於該 ETF 當日淨值漲跌（差額＝現金部位／期貨／費用／揭露時點差 → 誠實列為「其他・現金」殘差，
 不硬湊）。
 
+個股漲跌／收盤一律取**最新交易日**那一天的官方值（2026-10-21 錯日事故後改；docs/etf_chg_fix_plan.md）：
+detail.pd＝報價日、每列 qd＝該列報價日、pend＝海外當地還沒收盤——網頁只顯示 qd＝pd 的數字。
+持股快照日（detail.date）可以早於 pd（被動式隔夜才發、來源停更），網頁兩個日期都標。
+
 資料層 `data/etf_holdings.json`（**必須入庫**——跨日累積才有「昨天 vs 今天」可比，
 同 etf_watch／macro_chips 的坑）：
 
@@ -275,19 +279,36 @@ def _moves(rows: list[dict], dropped: list[dict], move_n: int = _MOVE_N) -> dict
 def contributions(entry: dict | None, quotes: dict[str, dict] | None,
                   ind: dict[str, str] | None = None,
                   top_n: int = _TOP_N,
-                  names: dict[str, str] | None = None) -> dict | None:
+                  names: dict[str, str] | None = None,
+                  pd: str | None = None,
+                  pending: set[str] | None = None,
+                  prior: dict | None = None) -> dict | None:
     """單檔 ETF 的展開明細資料。
 
-    entry  ＝ data/etf_holdings.json 的 etfs[code]
-    quotes ＝ {stock_id: {"close","change","name"}}（twse/tpex.fetch_today_all 合併）
+    entry   ＝ data/etf_holdings.json 的 etfs[code]
+    quotes  ＝ {stock_id: {"close","change","name","date"}}——**全部是報價日 pd 那一天**
+               （台股 arm/dayquotes.latest、海外 yahooq.fetch_foreign_on；date≠pd 的報價一律不用）
+    pd      ＝ 報價日＝最新交易日（2026-10-21 使用者決定：漲跌一律用最新交易日，搭配各 ETF 最新揭露的持股）
+    pending ＝ 海外當地 pd 那天還沒收盤的代號（列上標 pend，網頁顯示「待收盤」）
+    prior   ＝ 上一班的 detail：這班沒拿到報價的列，沿用其中**同一報價日**（列的 qd＝pd）的值；
+               日期不同一律不沿用（寧缺勿錯）
 
-    每列：權重、Δ股數（加減碼）、Δ權重、個股當日漲跌%、貢獻 pp（＝權重% × 漲跌% ÷ 100）。
+    每列：權重、Δ股數（加減碼）、Δ權重、個股當日漲跌%、貢獻 pp（＝權重% × 漲跌% ÷ 100）、
+    qd（該列報價日；沒有漲跌＝None）、pend（待收盤）。
     依 |貢獻| 由大到小排；超過 top_n 者併成一列合計，避免展開後灌爆版面。
     無報價的持股仍列出（貢獻顯示 —），但不計入合計——寧可少算，不憑空補值。
     """
     holdings = (entry or {}).get("holdings") or []
     if not holdings:
         return None
+    pr = prior or {}
+    prior_rows = ({str(r.get("stock_id")): r for r in (pr.get("all") or []) if r.get("stock_id")}
+                  if pd else {})
+    # 出清列只用得到收盤（算金額）：上一班的 detail 也是同一報價日才沿用
+    prior_px = ({str(r.get("stock_id")): (r.get("close"), r.get("ccy"))
+                 for r in (pr.get("all") or []) + (pr.get("dropped") or [])
+                 if r.get("stock_id") and r.get("close") is not None}
+                if pd and pr.get("pd") == pd else {})
     prev = (entry or {}).get("prev") or {}
     # 跨來源比較防呆（2026-08-05 使用者：00986D「全部出清？加碼的也出清？」）：
     # prev 與今日 holdings 出自**不同來源**時，「某代號今天不在清單裡」既可能是真的出清，
@@ -306,7 +327,14 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
         d_w = (round(w - p["weight"], 2)
                if (w is not None and p.get("weight") is not None) else None)
         q = (quotes or {}).get(sid) or {}
+        if q and pd and q.get("date") not in (None, pd):
+            q = {}                                        # 報價日≠pd：不混日（2026-10-21 錯日事故）
         chg = _chg_pct(q)
+        close, ccy = q.get("close"), q.get("ccy")
+        if chg is None and pd:
+            o = prior_rows.get(sid) or {}
+            if o.get("qd") == pd and o.get("chg_pct") is not None:   # 上一班同一報價日已抓到
+                chg, close, ccy = o["chg_pct"], o.get("close"), o.get("ccy")
         contrib = round(w * chg / 100, 3) if (w is not None and chg is not None) else None
         if contrib is not None:
             total += contrib
@@ -314,10 +342,13 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
         rows.append({"stock_id": sid, "name": h.get("name") or q.get("name") or sid,
                      "weight": w, "shares": sh, "d_shares": d_sh, "d_weight": d_w,
                      "chg_pct": chg, "contrib": contrib,
+                     # qd＝這列漲跌的報價日（網頁只顯示 qd＝pd 的列）；pend＝海外當地還沒收盤
+                     "qd": pd if chg is not None else None,
+                     "pend": bool(chg is None and sid in (pending or ())),
                      # 收盤價（金額 ＝ Δ股數 × 收盤）與產業別（方塊圖外層分組）——
                      # 兩者只有 CI 端取得到（容器 proxy 擋 twse/tpex），存進落檔供渲染。
                      # ccy＝海外報價幣別（Yahoo 補源）——_moves 據此不把外幣收盤算成金額
-                     "close": q.get("close"), "ccy": q.get("ccy"),
+                     "close": close, "ccy": ccy,
                      "industry": (ind or {}).get(sid),
                      # 新進／剔除標記：prev 有整份揭露時才判定（prev 空＝首日，不亂標「新增」；
                      # 跨來源＝揭露範圍本就不同，也不判定）
@@ -335,15 +366,20 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
         return (v.get("name") or prev_named.get(sid)
                 or ((quotes or {}).get(sid) or {}).get("name")
                 or (names or {}).get(sid) or sid)
+
+    def _dropped_px(sid):
+        q = (quotes or {}).get(sid) or {}
+        if q.get("close") is not None and not (pd and q.get("date") not in (None, pd)):
+            return q.get("close"), q.get("ccy")
+        return prior_px.get(sid, (None, None))
     dropped = [{"stock_id": sid, "name": _dropped_name(sid, v), "weight": None, "shares": 0,
                 "d_shares": -(v.get("shares") or 0) if v.get("shares") else None,
                 "d_weight": (round(-v["weight"], 2) if v.get("weight") is not None else None),
                 "chg_pct": None, "contrib": None,
-                "close": ((quotes or {}).get(sid) or {}).get("close"),
-                "ccy": ((quotes or {}).get(sid) or {}).get("ccy"),
+                "close": px[0], "ccy": px[1],
                 "industry": (ind or {}).get(sid),
                 "is_new": False, "is_out": True}
-               for sid, v in prev.items()
+               for sid, v in prev.items() for px in (_dropped_px(sid),)
                # 既有落檔的 prev 可能還留著換源前抓進來的非持股列（現金／應付款／期貨）——
                # 那些不是「出清」，是本來就不該進 diff 的列
                if not xsrc and sid not in _index(holdings)
@@ -351,6 +387,7 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
     # 「完整持股明細」（ETF 詳情第三段：搜尋＋排序＋分頁）需要**全部**持股列，
     # 不能只留貢獻前 12——依權重由大到小，與截圖預設排序一致（2026-07-30 使用者需求）
     full = sorted(rows, key=lambda r: (r.get("weight") is None, -(r.get("weight") or 0)))
+    n_pend = sum(1 for r in rows if r.get("pend"))
     mv = _moves(rows, dropped)
     rows = list(rows)
     rows.sort(key=lambda r: (r["contrib"] is None, -abs(r["contrib"] or 0)))
@@ -361,6 +398,8 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
     # 全球型主動 ETF（如 00988A）的海外持股代號不符台股 4 碼格式、進不了本表——
     # sum_weight 遠低於 100 就是這種檔，儀表板據此標「僅台股部位」誠實揭露（2026-07-29）。
     return {"date": (entry or {}).get("date"), "prev_date": (entry or {}).get("prev_date"),
+            # pd＝漲跌／收盤價的報價日（最新交易日）；date＝持股快照日——兩者可以不同，網頁兩個都標
+            "pd": pd, "n_pend": n_pend,
             "src": (entry or {}).get("src"), "prev_src": prev_src,
             "xsrc": ([prev_src, src] if xsrc else None),
             "verify": (entry or {}).get("verify"),
@@ -372,20 +411,36 @@ def contributions(entry: dict | None, quotes: dict[str, dict] | None,
 
 
 def annotate(doc: dict, quotes: dict[str, dict] | None,
-             ind: dict[str, str] | None = None, top_n: int = _TOP_N) -> dict:
+             ind: dict[str, str] | None = None, top_n: int = _TOP_N,
+             pd: str | None = None, pending: set[str] | None = None,
+             prior_doc: dict | None = None) -> dict:
     """在**抓取端**（CI，連得到報價）把展開明細算好存進落檔的 `detail`。
 
     為什麼不在儀表板端算：容器內 proxy 擋 twse/tpex，建表時取不到個股報價；
     專案慣例本就是「抓取在 CI、容器內只讀落檔建表」（同 macro_chips／etf_watch）。
-    報價抓不到時保留既有 detail，不覆寫成空。"""
+
+    quotes 全是報價日 pd（最新交易日）那一天的（見 contributions）；所有 ETF 用同一個 pd。
+    這班完全拿不到台股報價（quotes 空）→ 各檔沿用上一班的報價日與各列數值（整張表仍是同一天、
+    新進持股留白），持股與異動照樣依最新揭露重算——不再整份保留舊 detail（舊 detail 的異動可能是前一次揭露的）。
+
+    prior_doc＝合併前的上一版落檔：`merge_one` 拿到新揭露時回的是新 entry（不帶舊 detail），
+    上一班的報價只剩這裡找得到——沒傳就只看 entry 自己的 detail。"""
     # 全體持股名冊：某檔 ETF 出清的股票，往往還在別檔 ETF 的持股裡——拿來補名字最直接
     names = {str(h.get("stock_id")): h.get("name")
              for e in (doc.get("etfs") or {}).values()
              for h in (e.get("holdings") or [])
              if h.get("stock_id") and (h.get("name") or "").strip()}
-    for entry in (doc.get("etfs") or {}).values():
-        got = contributions(entry, quotes, ind, top_n, names)
-        if got and (quotes or entry.get("detail") is None):
+    if quotes and not pd:                     # 呼叫端沒給報價日：報價自帶的日期一致才採用
+        ds = {v.get("date") for v in quotes.values() if v.get("date")}
+        pd = ds.pop() if len(ds) == 1 else None
+    old_etfs = (prior_doc or {}).get("etfs") or {}
+    for code, entry in (doc.get("etfs") or {}).items():
+        prior = entry.get("detail") or (old_etfs.get(code) or {}).get("detail") or {}
+        if quotes:
+            got = contributions(entry, quotes, ind, top_n, names, pd=pd, pending=pending, prior=prior)
+        else:
+            got = contributions(entry, {}, ind, top_n, names, pd=prior.get("pd"), prior=prior)
+        if got:
             entry["detail"] = got
     return doc
 
@@ -411,7 +466,8 @@ def view(doc: dict | None, code: str) -> dict | None:
         o = priced.get(r["stock_id"])
         if o:
             r["close"], r["chg_pct"], r["contrib"] = o.get("close"), o.get("chg_pct"), o.get("contrib")
-    for k in ("total_contrib", "covered_weight", "verify", "src"):
+            r["qd"], r["pend"] = o.get("qd"), bool(o.get("pend"))
+    for k in ("total_contrib", "covered_weight", "verify", "src", "pd", "n_pend"):
         if (det or {}).get(k) is not None:
             fresh[k] = det[k]
     return fresh

@@ -95,6 +95,7 @@ def fetch_foreign_quotes(sids: set[str]) -> dict[str, dict]:
 
     change＝最近收盤 − 前一交易日收盤（Yahoo 序列自算，同一來源口徑一致）。
     抓不到的檔跳過（該持股維持 —）；KS 抓不到時補試 .KQ（KOSDAQ）。
+    ⚠ 不看日期、會收到盤中價（見 fetch_foreign_on）——ETF 持股詳情已改用 fetch_foreign_on。
     """
     out: dict[str, dict] = {}
     for sid in sorted(sids):
@@ -110,3 +111,125 @@ def fetch_foreign_quotes(sids: set[str]) -> dict[str, dict]:
         out[sid] = {"close": round(close, 4), "change": round(close - prev, 4),
                     "ccy": ccy or "USD", "name": "", "volume": 0}
     return out
+
+
+# ── 指定日期、已收盤（ETF 持股詳情；2026-10-21 使用者：「漲跌幅是錯的」） ──────────────
+#
+# 舊做法（fetch_foreign_quotes）取「最後兩個非空收盤」相減，盤查 83 版落檔發現三個錯：
+#   · 22:30 以後（美股盤中）拿到的是盤中價；19:00 歐股、早上 8～10 點日韓股也是盤中；
+#   · 美股剛收盤那晚（台北隔天早上），日線最後一根的收盤是空值、被跳過 → 拿到前兩個交易日的漲跌
+#     （10/21 08:36 NVDA 顯示 +1.38%，那是 10/19 的漲跌）；
+#   · 完全不看日期，與台股報價日無從對齊。
+# 使用者決定（2026-10-21）：海外只用**已收盤**的價格、對齊台股最新交易日 T；還沒收盤標「待收盤」。
+
+def _local_date(ts, gmt: int) -> str:
+    from datetime import datetime, timezone
+    return datetime.fromtimestamp(float(ts) + gmt, timezone.utc).date().isoformat()
+
+
+def close_on(res: dict, day: str, now_ts: float) -> tuple[str, float | None, float | None]:
+    """Yahoo chart result → 當地 `day` 那天的 (狀態, 收盤, 前收)。狀態：
+      ok   ＝當地 day 已收盤（前收＝緊鄰前一根；那根空值時前收為 None）；
+      pend ＝當地 day 還沒收盤（時段還沒開始或正在交易）；
+      none ＝已過收盤時間仍查無 day（當地休市或資料缺）。
+
+    日期一律以交易所當地時區（meta.gmtoffset）換算——澳洲夏令開盤是 UTC 前一天，用 UTC 日期會錯一天。
+    正在交易的那天整根不收（同 macrochips._CLOSE_ONLY 的修法）。剛收盤那根收盤是空值時，
+    用 meta.regularMarketPrice——只在它的時戳落在當天正規時段內才用（那就是收盤價，不是盤後價）。"""
+    meta = res.get("meta") or {}
+    gmt = int(meta.get("gmtoffset") or 0)
+    ts = res.get("timestamp") or []
+    q = ((res.get("indicators") or {}).get("quote") or [{}])[0] or {}
+    closes = q.get("close") or []
+    bars: dict[str, float | None] = {}
+    for t, c in zip(ts, closes):                       # 同一天多根（偶見即時 bar 另列）→ 取最後一根
+        if t is not None:
+            bars[_local_date(t, gmt)] = c
+    order = sorted(bars)
+    reg = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
+    st, en = reg.get("start"), reg.get("end")
+    has_reg = isinstance(st, (int, float)) and isinstance(en, (int, float))
+    reg_day = _local_date(st, gmt) if has_reg else None
+
+    def prev_of(d: str) -> float | None:
+        before = [x for x in order if x < d]
+        return bars[before[-1]] if before else None
+
+    if has_reg:
+        if day > reg_day or (day == reg_day and now_ts < en):
+            return "pend", None, None                  # 當地這天的正規時段還沒結束
+    elif day >= _local_date(now_ts, gmt):
+        return "pend", None, None                      # 沒有時段資訊：當地今天以後一律視為未收盤
+    c = bars.get(day)
+    if c is None and has_reg and reg_day == day:
+        rmt, rmp = meta.get("regularMarketTime"), meta.get("regularMarketPrice")
+        if isinstance(rmt, (int, float)) and isinstance(rmp, (int, float)) and st <= rmt <= en + 900:
+            c = float(rmp)                             # 剛收盤那根是空值（2026-10-20／21 早上實測）
+    if c is None:
+        return "none", None, None
+    return "ok", float(c), prev_of(day)
+
+
+def _chart(sym: str) -> dict | None:
+    try:
+        doc = get_json("https://query1.finance.yahoo.com/v8/finance/chart/"
+                       f"{urllib.parse.quote(sym)}?range=1mo&interval=1d", cache_ttl=1800)
+        return doc["chart"]["result"][0]               # type: ignore[index]
+    except Exception:
+        return None
+
+
+def fetch_foreign_on(sids: set[str], day: str, now_ts: float | None = None
+                     ) -> tuple[dict[str, dict], set[str], dict[str, int]]:
+    """海外持股在**當地 day 那天、已收盤**的報價 → ({代號: {close, change, ccy, date, …}}, 待收盤代號, 統計)。
+
+    與 fetch_today_all 同構（多帶 ccy 幣別與 date）；前收缺時 change 為 None（只給收盤）。
+    統計 {ok, pend, none, fail}：fail＝Yahoo 抓不到（KS 抓不到補試 .KQ）。"""
+    import time
+    now_ts = time.time() if now_ts is None else now_ts
+    out: dict[str, dict] = {}
+    pend: set[str] = set()
+    stat = {"ok": 0, "pend": 0, "none": 0, "fail": 0}
+    for sid in sorted(sids):
+        sym = to_yahoo(sid)
+        if not sym:
+            continue
+        res = _chart(sym)
+        if res is None and sym.endswith(".KS"):           # 韓股兩板：KOSPI 抓不到試 KOSDAQ
+            res = _chart(sym[:-3] + ".KQ")
+        if res is None:
+            stat["fail"] += 1
+            continue
+        state, c, p = close_on(res, day, now_ts)
+        stat[state] += 1
+        if state == "pend":
+            pend.add(sid)
+        elif state == "ok":
+            ccy = (res.get("meta") or {}).get("currency")
+            out[sid] = {"close": round(c, 4), "change": (round(c - p, 4) if p is not None else None),
+                        "ccy": ccy or "USD", "name": "", "volume": 0, "date": day}
+    return out, pend, stat
+
+
+def describe_bars(sym: str, now_ts: float | None = None) -> str:
+    """探針：一檔的最後三根日線（當地日期、收盤）與正規時段／最後成交時間——CI 日誌驗證用。"""
+    import time
+    res = _chart(sym)
+    if res is None:
+        return f"{sym}：抓不到"
+    now_ts = time.time() if now_ts is None else now_ts
+    meta = res.get("meta") or {}
+    gmt = int(meta.get("gmtoffset") or 0)
+    ts = res.get("timestamp") or []
+    cl = (((res.get("indicators") or {}).get("quote") or [{}])[0] or {}).get("close") or []
+    tail = [f"{_local_date(t, gmt)}={c}" for t, c in list(zip(ts, cl))[-3:] if t is not None]
+    reg = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
+
+    def hm(x):
+        if not isinstance(x, (int, float)):
+            return "—"
+        from datetime import datetime, timezone
+        return datetime.fromtimestamp(float(x) + gmt, timezone.utc).strftime("%m-%d %H:%M")
+    return (f"{sym}：末三根 {tail}｜正規時段 {hm(reg.get('start'))}～{hm(reg.get('end'))}"
+            f"｜最後成交 {hm(meta.get('regularMarketTime'))} 價 {meta.get('regularMarketPrice')}"
+            f"｜現在 {hm(now_ts)}（當地）")

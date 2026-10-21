@@ -77,3 +77,90 @@ def test_second_round_exchange_codes():
     assert yahooq.to_yahoo("AV/ LN") == "AV.L"            # 尾斜線剝掉，非 'AV-.L'
     assert yahooq.to_yahoo("BRK/B US") == "BRK-B"         # 中段斜線仍轉 '-'
     assert yahooq.to_yahoo("/ LN") is None                # 剝完空字串不出手
+
+
+# ── 指定日期、已收盤（2026-10-21 使用者：「漲跌幅是錯的」；只用已收盤、對齊台股最新交易日） ──
+
+from datetime import datetime, timedelta, timezone
+
+_ET, _TP, _AU = -4 * 3600, 8 * 3600, 11 * 3600
+
+
+def _ts(y, m, d, hh, mm, off):
+    return int(datetime(y, m, d, hh, mm, tzinfo=timezone(timedelta(seconds=off))).timestamp())
+
+
+def _res(days, closes, off, reg_day, open_hm, close_hm, rmt=None, rmp=None, ccy="USD"):
+    y, m = 2026, 10
+    return {"meta": {"gmtoffset": off, "currency": ccy,
+                     "currentTradingPeriod": {"regular": {
+                         "start": _ts(y, m, reg_day, *open_hm, off), "end": _ts(y, m, reg_day, *close_hm, off)}},
+                     "regularMarketTime": rmt, "regularMarketPrice": rmp},
+            "timestamp": [_ts(y, m, d, *open_hm, off) for d in days],
+            "indicators": {"quote": [{"close": closes}]}}
+
+
+def _us(closes, reg_day, **kw):
+    return _res([15, 16, 19, 20][:len(closes)], closes, _ET, reg_day, (9, 30), (16, 0), **kw)
+
+
+def test_close_on_skips_intraday_bar():
+    """22:31（美東 10:31）那根是盤中價——舊碼照收（NVDA 218.135、+0.48%）。"""
+    r = _us([217.24, 214.13, 217.09, 218.135], 20)
+    assert yahooq.close_on(r, "2026-10-20", _ts(2026, 10, 20, 22, 31, _TP)) == ("pend", None, None)
+
+
+def test_close_on_just_closed_bar_null_uses_regular_market_price():
+    """台北早上（美東前一晚）剛收盤那根收盤是空值——舊碼跳過、拿到前兩個交易日的漲跌
+    （10/21 08:36 NVDA 顯示 10/19 的 +1.38%）。改用 regularMarketPrice（時戳在當天時段內）。"""
+    r = _us([217.24, 214.13, 217.09, None], 20, rmt=_ts(2026, 10, 20, 16, 0, _ET), rmp=219.5)
+    assert yahooq.close_on(r, "2026-10-20", _ts(2026, 10, 21, 8, 36, _TP)) == ("ok", 219.5, 217.09)
+    # 最後成交時戳不在當天時段內（例如盤後價）→ 不用，當作查無
+    r2 = _us([217.24, 214.13, 217.09, None], 20, rmt=_ts(2026, 10, 20, 19, 0, _ET), rmp=219.9)
+    assert yahooq.close_on(r2, "2026-10-20", _ts(2026, 10, 21, 8, 36, _TP))[0] == "none"
+
+
+def test_close_on_pending_before_the_session_ends():
+    r = _us([217.24, 214.13, 217.09], 20)            # 台北 19:00＝美東 07:00，10/20 還沒開盤
+    assert yahooq.close_on(r, "2026-10-20", _ts(2026, 10, 20, 19, 0, _TP))[0] == "pend"
+    r_old = _us([217.24, 214.13, 217.09], 19)        # 時段資訊還停在前一天 → 目標日在它之後，仍是待收盤
+    assert yahooq.close_on(r_old, "2026-10-20", _ts(2026, 10, 20, 19, 0, _TP))[0] == "pend"
+
+
+def test_close_on_earlier_day_and_holiday():
+    r = _us([217.24, 214.13, 217.09, 219.0], 20)
+    now = _ts(2026, 10, 21, 8, 36, _TP)
+    assert yahooq.close_on(r, "2026-10-19", now) == ("ok", 217.09, 214.13)
+    assert yahooq.close_on(r, "2026-10-17", now) == ("none", None, None)   # 週六沒有那一根
+
+
+def test_close_on_local_date_uses_exchange_offset():
+    """澳洲夏令 10:00 開盤＝UTC 前一天 23:00——用 UTC 日期會錯一天，必須用 gmtoffset 換當地日期。"""
+    r = _res([19, 20], [50.0, 51.0], _AU, 21, (10, 0), (16, 0), ccy="AUD")
+    assert datetime.fromtimestamp(r["timestamp"][1], timezone.utc).date().isoformat() == "2026-10-19"
+    assert yahooq.close_on(r, "2026-10-20", _ts(2026, 10, 21, 8, 36, _TP)) == ("ok", 51.0, 50.0)
+
+
+def test_close_on_prev_must_be_the_adjacent_bar():
+    """前一根是空值 → 前收 None（不可跨兩天相減）。"""
+    r = _us([217.24, None, 217.09, 219.0], 20)
+    assert yahooq.close_on(r, "2026-10-19", _ts(2026, 10, 21, 8, 36, _TP)) == ("ok", 217.09, None)
+
+
+def test_fetch_foreign_on_reports_closed_pending_and_failures(monkeypatch):
+    now = _ts(2026, 10, 20, 19, 2, _TP)              # 台北 19:02：日股已收盤、美股還沒開
+    jp = _res([16, 19, 20], [6900.0, 6797.0, 6643.0], 9 * 3600, 20, (9, 0), (15, 30), ccy="JPY")
+    us = _us([217.24, 214.13, 217.09], 20)
+
+    def fake_get_json(url, **kw):
+        if "/chart/6981.T?" in url:
+            return {"chart": {"result": [jp]}}
+        if "/chart/NVDA?" in url:
+            return {"chart": {"result": [us]}}
+        raise RuntimeError("HTTP 404")
+    monkeypatch.setattr(yahooq, "get_json", fake_get_json)
+    out, pend, st = yahooq.fetch_foreign_on({"6981 JP", "NVDA US", "LITE US", "2330"}, "2026-10-20", now)
+    assert out["6981 JP"] == {"close": 6643.0, "change": -154.0, "ccy": "JPY", "name": "", "volume": 0,
+                              "date": "2026-10-20"}
+    assert pend == {"NVDA US"} and "NVDA US" not in out
+    assert st == {"ok": 1, "pend": 1, "none": 0, "fail": 1}            # LITE 抓不到；台股代號不在範圍
