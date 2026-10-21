@@ -128,7 +128,7 @@ def test_workflows_add_overview_files_and_build_order():
 
 def test_research_file_matches_spec_version():
     R = sigcat.load_research()
-    assert R is not None and R["ver"] == sigspec.VER
+    assert R is not None and sigspec.RES_VER <= R["ver"] <= sigspec.VER     # 研究檔不比最後一次改到研究內容的版本舊
     ids = [r["id"] for r in R["rows"]]
     assert len(ids) == len(set(ids)) and len(ids) > 1500
     for r in R["rows"]:
@@ -229,7 +229,7 @@ def test_board_sides_thermometer_and_one_item_once():
 
 
 def test_board_families_merge_signals_that_appear_together():
-    """同類合併（sigspec 第 5 節 ①b）：過去一起出現的日子 ÷ 任一個出現的日子 ≥ FAMILY_J 的算一類，溫度計一類算一次；買點同一市場一類。"""
+    """同類合併（sigspec 第 5 節 ①b；VER 11 起看比較少出現的那個）：溫度計一類算一次；買點同一市場一類。"""
     import numpy as np
     rows = _rows()
     a = rows[0]
@@ -251,6 +251,51 @@ def test_board_families_merge_signals_that_appear_together():
     h = VZ.today_html({"sigtoday": dict(B, d="2026-10-16")})
     assert "同時成立：20 日線乖離過冷（過去常一起出現，算同一件事）" in h and "3 類（共 5 個訊號）" in h
 
+
+
+def test_family_rule_v11_smaller_signal_inside_and_chance_guard():
+    """VER 11（docs/lab_noise_plan.md 第 11 節）：比較少出現的那個，出現的日子裡另一個也成立的比例 ≥ 0.5，而且 ≥ 2 倍
+    「另一個在全部樣本日成立的比例」才併。持續天數不同的同一件事（舊條件 ÷ 任一個只有 0.16）要併；長期狀態碰巧重疊的不併。"""
+    import numpy as np
+    T = 200
+    act = lambda lo, hi: np.array([lo <= t < hi for t in range(T)])
+    x, w = act(0, 60), act(50, 62)                       # w 的 12 天裡 10 天 x 也成立；x 只占 30% → 0.83 ≥ 0.6
+    assert sigcat.overlap(x, w) == (10 / 12, 0.30) and sigcat.same_family(x, w)
+    assert int((x & w).sum()) / int((x | w).sum()) < 0.2   # 舊條件（÷ 任一個）只有 0.16，以前併不起來
+    big, v = act(0, 150), act(100, 110)                  # v 整段都在 big 裡，但 big 占 75%：互不相干也會有 75%
+    assert sigcat.overlap(big, v)[0] == 1.0 and not sigcat.same_family(big, v)
+    assert not sigcat.same_family(x, act(120, 140)) and not sigcat.same_family(None, x) and sigcat.overlap(x, act(0, 0)) == (0.0, 1.0)
+
+
+def test_signal_overview_today_list_merges_families():
+    """訊號總覽「今天有效的好訊號」VER 11 起同一套合併：一類一列、下面寫「同時成立」。"""
+    import numpy as np
+    a = _rows()[0]
+    mk = lambda i, nm, hit: dict(a, id=f"tw:tech:{i}", cat="tech", var=i, name=nm, H=20, up=_st(40, hit, 0.6, "good"),
+                                 warn=_st(40, 0.1, 0.2, "none"), tier="good", dir=["up"])
+    x, y, z = mk("x", "RSI 過冷", 0.80), mk("y", "上漲家數占比過冷", 0.78), mk("z", "站回月線", 0.75)
+    T = 200
+    act = lambda lo, hi: np.array([lo <= t < hi for t in range(T)])
+    acts = {"tw:tech:x": act(0, 60), "tw:tech:y": act(50, 62), "tw:tech:z": act(120, 140)}
+    on = {r["id"]: {"since": "2026-10-01", "n": 1} for r in (x, y, z)}
+    G = sigcat.today([x, y, z], on, "tw", acts)["good"]
+    assert [(r["id"], [f["id"] for f in r["fam"]]) for r in G] == [("tw:tech:x", ["tw:tech:y"]), ("tw:tech:z", [])]
+    assert [r["id"] for r in sigcat.today([x, y, z], on, "tw")["good"]] == ["tw:tech:x", "tw:tech:y", "tw:tech:z"]   # 沒有 acts：不併
+    V = {**_view(), "today": {"tw": {"good": G}}}
+    h = sigpage.today_html(V)
+    assert "同時成立：上漲家數占比過冷（過去常一起出現，算同一件事）" in h and "過去常一起出現的併成一列" in h
+    assert ".sgfm{" in sigpage.CSS
+
+
+def test_research_files_survive_presentation_only_versions(tmp_path, monkeypatch):
+    """研究檔版本 ≥ RES_VER 就能用（VER 11 只改合併，研究檔不用重跑；以前要求＝VER，一升版訊號總覽就會整個空掉）。"""
+    monkeypatch.setattr(sigcat, "RESEARCH", tmp_path / "r.json")
+    monkeypatch.setattr(sigcat, "STOCK", tmp_path / "s.json")
+    for v, ok in ((sigspec.RES_VER - 1, False), (sigspec.RES_VER, True), (sigspec.VER, True)):
+        (tmp_path / "r.json").write_text(json.dumps({"ver": v, "rows": []}), encoding="utf-8")
+        (tmp_path / "s.json").write_text(json.dumps({"ver": v, "rows": []}), encoding="utf-8")
+        assert (sigcat.load_research() is not None) is ok and (sigcat.load_stock() is not None) is ok
+    assert sigspec.RES_VER == 10 <= sigspec.VER
 
 def test_position_card_removed():
     """部位參考 2026-10-19 拿掉（docs/lab_crash_plan.md 第 20 節）：研究卡、景氣頁狀態列、相關研究連結都不得接回來。"""
