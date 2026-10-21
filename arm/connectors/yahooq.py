@@ -134,8 +134,9 @@ def close_on(res: dict, day: str, now_ts: float) -> tuple[str, float | None, flo
       none ＝已過收盤時間仍查無 day（當地休市或資料缺）。
 
     日期一律以交易所當地時區（meta.gmtoffset）換算——澳洲夏令開盤是 UTC 前一天，用 UTC 日期會錯一天。
-    正在交易的那天整根不收（同 macrochips._CLOSE_ONLY 的修法）。剛收盤那根收盤是空值時，
-    用 meta.regularMarketPrice——只在它的時戳落在當天正規時段內才用（那就是收盤價，不是盤後價）。"""
+    正在交易的那天整根不收（同 macrochips._CLOSE_ONLY 的修法）。那天時段已結束、那根收盤卻是空值時，
+    用 meta.regularMarketPrice——只在最後成交時戳落在當地 day 那天才用（正規時段的最後成交＝收盤價；
+    盤後交易另有欄位，不會寫進這裡）。"""
     meta = res.get("meta") or {}
     gmt = int(meta.get("gmtoffset") or 0)
     ts = res.get("timestamp") or []
@@ -161,10 +162,14 @@ def close_on(res: dict, day: str, now_ts: float) -> tuple[str, float | None, flo
     elif day >= _local_date(now_ts, gmt):
         return "pend", None, None                      # 沒有時段資訊：當地今天以後一律視為未收盤
     c = bars.get(day)
-    if c is None and has_reg and reg_day == day:
+    if c is None:
+        # 剛收盤那根收盤是空值：美股台北早上（美東前一晚）、歐股到隔天中午都還是空值
+        # （2026-10-21 CI 探針實測 ABN.AS／SDLF.L，且時段資訊已換到隔天）。走到這裡代表 day 的時段已結束
+        # （還在交易的情形上面已回 pend）→ 最後成交時戳就在當地 day 那天的話，最後成交價就是收盤價。
         rmt, rmp = meta.get("regularMarketTime"), meta.get("regularMarketPrice")
-        if isinstance(rmt, (int, float)) and isinstance(rmp, (int, float)) and st <= rmt <= en + 900:
-            c = float(rmp)                             # 剛收盤那根是空值（2026-10-20／21 早上實測）
+        if (isinstance(rmt, (int, float)) and isinstance(rmp, (int, float))
+                and _local_date(rmt, gmt) == day):
+            c = float(rmp)
     if c is None:
         return "none", None, None
     return "ok", float(c), prev_of(day)

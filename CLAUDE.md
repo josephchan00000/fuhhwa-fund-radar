@@ -1498,7 +1498,8 @@ ETF 分頁改成**上表 → 底部詳情**兩層：ETF 數據追蹤表的代碼
     （openapi 日期剛好是 T 就用；不是就抓 MI_INDEX／櫃買 dailyQuotes 指定日期版，正負號在「漲跌(+/-)」欄的
     HTML 裡、X＝不比價；櫃買回應日≠T 不收），自我檢查「收盤 − 漲跌 ＝ 前一交易日官方收盤（籌碼雷達分片）」
     ≥80% 才採用，拿不到換前一交易日——**絕不各取各的**。`yahooq.close_on()`：日線依 `gmtoffset` 換當地日期、
-    `currentTradingPeriod` 正在交易的那天不收、剛收盤空值改用 `regularMarketPrice`（時戳要在當天時段內）、
+    `currentTradingPeriod` 正在交易的那天不收、那根收盤是空值改用 `regularMarketPrice`（最後成交時戳要落在當地那一天；
+    歐股 10/20 那根到台北隔天中午都還是空值、時段資訊已換到 10/21——CI 探針實測）、
     前收只認緊鄰前一根。`detail.pd`＝報價日、每列 `qd`／`pend`；這班缺的列只沿用上一班**同一報價日**的值
     （`annotate(prior_doc=…)`——`merge_one` 拿到新揭露時回的新 entry 不帶舊 detail，上一班報價只在合併前那版找得到）。
     `_eh_payload` 只放 qd＝pd 的數字，舊格式（沒有 pd）顯示「漲跌更新中」。籌碼雷達 pos 分片的「揭露當下收盤」

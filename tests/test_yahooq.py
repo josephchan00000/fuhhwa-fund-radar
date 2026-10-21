@@ -115,9 +115,21 @@ def test_close_on_just_closed_bar_null_uses_regular_market_price():
     （10/21 08:36 NVDA 顯示 10/19 的 +1.38%）。改用 regularMarketPrice（時戳在當天時段內）。"""
     r = _us([217.24, 214.13, 217.09, None], 20, rmt=_ts(2026, 10, 20, 16, 0, _ET), rmp=219.5)
     assert yahooq.close_on(r, "2026-10-20", _ts(2026, 10, 21, 8, 36, _TP)) == ("ok", 219.5, 217.09)
-    # 最後成交時戳不在當天時段內（例如盤後價）→ 不用，當作查無
-    r2 = _us([217.24, 214.13, 217.09, None], 20, rmt=_ts(2026, 10, 20, 19, 0, _ET), rmp=219.9)
-    assert yahooq.close_on(r2, "2026-10-20", _ts(2026, 10, 21, 8, 36, _TP))[0] == "none"
+    # 最後成交已是隔天（那天的收盤無從得知）→ 不用，當作查無
+    r2 = _us([217.24, 214.13, 217.09, None], 21, rmt=_ts(2026, 10, 21, 10, 0, _ET), rmp=219.9)
+    assert yahooq.close_on(r2, "2026-10-20", _ts(2026, 10, 21, 22, 0, _TP))[0] == "none"
+
+
+def test_close_on_european_null_bar_after_period_rolled_over():
+    """2026-10-21 CI 探針實況：歐股 10/20 那根到台北中午還是空值，時段資訊已換到 10/21；
+    最後成交 10/20 17:35（ABN.AS 收盤競價）、倫敦 16:49（收盤後 19 分）——都是 10/20 的收盤價。"""
+    cest, bst, now = 2 * 3600, 1 * 3600, _ts(2026, 10, 21, 11, 54, _TP)
+    abn = _res([16, 19, 20], [40.99, 40.30, None], cest, 21, (9, 0), (17, 30),
+               rmt=_ts(2026, 10, 20, 17, 35, cest), rmp=40.33, ccy="EUR")
+    assert yahooq.close_on(abn, "2026-10-20", now) == ("ok", 40.33, 40.30)
+    sdlf = _res([16, 19, 20], [911.0, 911.5, None], bst, 21, (8, 0), (16, 30),
+                rmt=_ts(2026, 10, 20, 16, 49, bst), rmp=909.0, ccy="GBp")
+    assert yahooq.close_on(sdlf, "2026-10-20", now) == ("ok", 909.0, 911.5)
 
 
 def test_close_on_pending_before_the_session_ends():
