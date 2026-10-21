@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/21 16:28",
+  "as_of": "2026/10/21 16:54",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -555,7 +555,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
       "date": "2026-10-20",
-      "views": 12046,
+      "views": 12097,
       "short": true
     },
     {
@@ -564,7 +564,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
       "date": "2026-10-18",
-      "views": 5413
+      "views": 5462
     },
     {
       "platform": "youtube",
@@ -590,7 +590,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
       "date": "2026-10-17",
-      "views": 141098,
+      "views": 141229,
       "peer": true,
       "cat": "高股息"
     },
@@ -620,7 +620,7 @@
       "channel": "HSBC Hong Kong",
       "url": "https://www.youtube.com/shorts/lTkYQAOPZ_Q",
       "date": "2026-10-16",
-      "views": 93460,
+      "views": 93704,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -641,7 +641,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/7NxiVHoPy3g",
       "date": "2026-10-19",
-      "views": 73313,
+      "views": 73545,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -662,7 +662,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
       "date": "2026-10-19",
-      "views": 40965,
+      "views": 41056,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -673,7 +673,7 @@
       "channel": "陳智霖股票分析師 Equity Research Analyst",
       "url": "https://www.youtube.com/shorts/Dx2D_E6LksY",
       "date": "2026-10-19",
-      "views": 20675,
+      "views": 20958,
       "peer": true,
       "short": true,
       "cat": "市值型"
