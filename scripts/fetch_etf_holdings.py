@@ -283,6 +283,8 @@ def main() -> int:
     # 個股漲跌／收盤＝**最新交易日 pd 那一天**的官方值（2026-10-21 使用者：「漲跌幅是錯的」——
     # 舊碼抓 openapi「當下那份」：證交所隔天清晨才更新、櫃買當晚就更新，晚上那幾班上市＝前一天、
     # 上櫃＝當天，39% 的列錯日；見 docs/etf_chg_fix_plan.md）。上市、上櫃一定同一天。
+    # 除權息日的列用官方除權息參考價算漲跌：先把最近兩週的除權息計算結果補進落檔（上市、上櫃各 1 請求）。
+    _refresh_exright()
     pd, quotes, qinfo = dayquotes.latest()
     print(f"  · {dayquotes.describe(qinfo)}")
     pending: set[str] = set()
@@ -374,6 +376,14 @@ def _industry() -> dict[str, str]:
     return doc.get("industry") or {}
 
 
+def _refresh_exright() -> None:
+    """最近兩週的證交所／櫃買除權息計算結果補進 data/lab（divtw、v3div）；失敗沿用落檔、不擋持股。"""
+    try:
+        dayquotes.refresh_exright()
+    except Exception as e:                                # noqa: BLE001
+        print(f"  ⚠ 除權息計算結果更新失敗（沿用落檔）：{type(e).__name__}: {str(e)[:80]}")
+
+
 def _probe_quotes() -> None:
     """報價探針（2026-10-21）：只印不落檔——
     ① 最新交易日 pd、上市上櫃來源與自我檢查；② **指定日期版**（MI_INDEX／櫃買 dailyQuotes）對前一交易日
@@ -382,6 +392,7 @@ def _probe_quotes() -> None:
     from datetime import date
     from arm.connectors import yahooq
     print("\n[報價探針] 最新交易日官方表＋指定日期版＋海外已收盤判斷")
+    _refresh_exright()
     pd, quotes, info = dayquotes.latest()
     print(f"  · {dayquotes.describe(info)}")
     for code in ("2330", "2317", "3037", "6223", "5274"):

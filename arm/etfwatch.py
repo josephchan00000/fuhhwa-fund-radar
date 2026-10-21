@@ -727,9 +727,14 @@ def _official_day_quotes() -> dict[str, dict]:
     2026-10-21 起先走 arm/dayquotes.latest()：證交所 openapi 要到隔天清晨才更新，台北下午收盤後
     那幾班拿到的是前一天，當天的官方漲跌根本進不來；dayquotes 會改抓 MI_INDEX／櫃買 dailyQuotes
     指定日期版，上市、上櫃同一個最新交易日且過自我檢查才回（openapi 日期剛好是那天時零額外請求）。
-    拿不到 → 退回只看 openapi 當下那份（舊行為）。"""
+    拿不到 → 退回只看 openapi 當下那份（舊行為）。除權息日的列由 dayquotes 用官方除權息參考價補漲跌（帶 ref、pc），
+    先 refresh_exright 把最近兩週的除權息計算結果補進落檔（上市、上櫃各 1 請求，同一個行程只做一次）。"""
     try:
         from . import dayquotes
+        try:
+            dayquotes.refresh_exright()
+        except Exception as e:                            # noqa: BLE001 —— 沿用落檔的參考價
+            print(f"  ⚠ 除權息計算結果更新失敗（沿用落檔）：{type(e).__name__}: {str(e)[:80]}")
         t, q, info = dayquotes.latest()
         print(f"  · ETF 官方收盤：{dayquotes.describe(info)}")
         if t and q:
@@ -986,9 +991,10 @@ def fetch() -> dict:
         # ②-b 當日漲跌備案 L1＝官方全市場當日收盤表（2026-09-03 使用者：「沒辦法從其他
         # 地方補嗎？」）──序列缺當日 bar 時的**第一順位**備案：TWSE／TPEx openapi 直接給
         # 當日 close 與 change，官方權威（非 Tier B）、整輪只 2 請求、市價口徑與 close_px 一致。
-        # 漲跌基準 ref＝close − change。**除息日不用官方表**（2026-10-21 盤查）：MI_INDEX 標 X（不比價）、
+        # 漲跌基準 ref＝close − change。**除息日官方表本身沒有漲跌**（2026-10-21 盤查）：MI_INDEX 標 X（不比價）、
         # 櫃買漲跌欄寫「除息」，都解析成 None；證交所 openapi 給 0（9/23 1808、2542 實測；dayquotes.unknown_x
-        # 改成 None，但 dayquotes 失敗時的 openapi 備援迴圈沒經過它）。除息日交給序列與 L2，兩者都扣配息。
+        # 改成 None，但 dayquotes 失敗時的 openapi 備援迴圈沒經過它）。只收 dayquotes 用「除權息計算結果表」
+        # 參考價補上的（帶 ref、pc，官方值）；其餘除息日交給序列與 L2，兩者都扣 etfinfo 配息。
         # 以來源自報的 date 當 chg_asof——官方表若自己也落後，渲染端的日期判準會照樣揭露。
         # 判準是「≠ as_of」而非「< as_of」（2026-09-21）：序列日期**超前**收盤價時同樣
         # 不可信——實測超前只有兩種來路，都是壞資料：①週末／未來的假 bar（9/20 那次）；
@@ -999,13 +1005,16 @@ def fetch() -> dict:
         ao = item.get("as_of")
         q = day_q.get(code) or {}
         qc, qch, qd = q.get("close"), q.get("change"), str(q.get("date") or "")[:10]
-        exd_q = round((_DIV_EVENTS.get(code) or {}).get(qd) or _div_on(item, qd), 4) if qd else 0
+        qref, qpc = q.get("ref"), q.get("pc")
+        exd_q = 0 if qref else (round((_DIV_EVENTS.get(code) or {}).get(qd) or _div_on(item, qd), 4) if qd else 0)
         if (ao and qc and qch is not None and qd and not exd_q
                 and (qd == ao or item.get("chg_asof") != ao)):
             ref = round(qc - qch, 4)
             if ref:
+                exd = round(qpc - qref, 4) if (qref and qpc) else 0
                 item["chg_amt"], item["chg_pct"] = round(qch, 4), round(qch / ref * 100, 2)
-                item["prev_close"], item["prev_date"], item["chg_ex_div"] = ref, _prev_td(qd), None
+                item["prev_close"] = qpc if exd else ref          # 除息日：前收＝參考價＋配息（tooltip 算得回參考價）
+                item["prev_date"], item["chg_ex_div"] = _prev_td(qd), exd or None
                 item["chg_asof"], item["chg_src"] = qd, "twse_today"
                 got_chg_off += 1
 

@@ -220,20 +220,69 @@ def test_openapi_zero_change_with_moved_close_is_unknown_not_flat():
     tp = _fill(400, "2026-09-23", "P")
     prev = {**_prev_ok(tw), "1808": 35.0}
     T, q, info = DQ.latest(_now("2026-09-24T08:31"), today_all={"twse": tw, "tpex": tp},
-                           prev_closes=lambda d: prev)
+                           prev_closes=lambda d: prev, refs=lambda d: {})      # 沒有除權息參考價
     assert T == "2026-09-23"
     assert q["1808"]["change"] is None and q["1808"]["close"] == 31.9
     assert q["2330"]["change"] == 0.0
     assert tw["1808"]["change"] == 0.0                       # 不改呼叫端傳進來的表
-    assert info["x_n"] == 1 and "不比價" in DQ.describe(info)
+    assert info["x_n"] == 1 and "1 檔漲跌留空" in DQ.describe(info)
     entry = {"date": "2026-09-23", "src": "etfinfo", "prev": {},
              "holdings": [{"stock_id": "1808", "name": "潤隆", "shares": 1, "weight": 2.0},
                           {"stock_id": "2330", "name": "台積電", "shares": 1, "weight": 9.0}]}
     by = {r["stock_id"]: r for r in eh.contributions(entry, q, pd=T)["all"]}
     assert by["1808"]["chg_pct"] is None and by["2330"]["chg_pct"] == 0.0
 
+    # 有證交所除權息計算結果（前收 35.0、參考價 33.5）→ 漲跌對參考價算：31.9 − 33.5 ＝ −1.6（−4.78%）
+    T, q, info = DQ.latest(_now("2026-09-24T08:31"), today_all={"twse": tw, "tpex": tp},
+                           prev_closes=lambda d: prev, refs=lambda d: {"1808": (35.0, 33.5)})
+    assert q["1808"]["change"] == -1.6 and q["1808"]["ref"] == 33.5 and q["1808"]["pc"] == 35.0
+    assert info["x_n"] == 1 and info["xf_n"] == 1 and "1 檔依除權息參考價算" in DQ.describe(info)
+    assert DQ.check_ok(*info["tw_check"])                   # 參考價在自我檢查之後才補，不拉低成立率
+    by = {r["stock_id"]: r for r in eh.contributions(entry, q, pd=T)["all"]}
+    assert by["1808"]["chg_pct"] == -4.78
+
 
 def test_unknown_x_leaves_rows_alone_without_previous_close():
     q = {"1808": {"close": 31.9, "change": 0.0}}
     assert DQ.unknown_x(q, {}) == (q, 0)
+
+
+def test_fill_x_only_fills_unknown_rows_whose_previous_close_matches():
+    q = {"1808": {"close": 31.9, "change": None},          # MI_INDEX 標 X
+         "2542": {"close": 39.55, "change": None},
+         "2330": {"close": 1300.0, "change": -5.0}}
+    refs = {"1808": (35.0, 33.5), "2542": (45.45, 41.45), "2330": (1305.0, 1300.0)}
+    out, n = DQ.fill_x(q, refs, {"1808": 35.0, "2542": 46.0, "2330": 1305.0})
+    assert n == 1 and out["1808"]["change"] == -1.6
+    assert out["2542"]["change"] is None                    # 前收對不上前一交易日官方收盤 → 不用
+    assert out["2330"]["change"] == -5.0 and "ref" not in out["2330"]   # 有漲跌的列不動
+
+
+def test_refresh_exright_merges_recent_rows_into_lab_store_once_per_day(monkeypatch, tmp_path):
+    """divtw／v3div 原本只在回補時更新（2026 年最後一列停在 10/15）；每天補最近兩週、明天的列不收、舊列不動。"""
+    from datetime import date
+    from arm.lab import store
+    monkeypatch.setattr(store, "LAB", tmp_path)
+    monkeypatch.setattr(DQ, "_EXR_DONE", set())
+    store.write("divtw", "2026", {"rows": [["2026-10-15", "00401A", 0.131, "息", 14.39, 14.25]]})
+    calls = []
+
+    def tw(d0, d1):
+        calls.append((d0, d1))
+        return [["2026-10-15", "00401A", 0.131, "息", 14.39, 14.25],      # 已有
+                ["2026-10-21", "00929", 0.38, "息", 29.26, 28.88],
+                ["2026-10-22", "0056", 1.0, "息", 58.75, 57.75]]          # 明天：不收
+
+    def tp(d0, d1):
+        return [["2026-10-21", "00986D", 14.23, 14.14, 0.09, 0.0]]
+
+    assert DQ.refresh_exright(date(2026, 10, 21), fetch_tw=tw, fetch_tp=tp) == 2
+    assert calls == [("2026-10-07", "2026-10-21")]
+    rows = store.read("divtw", "2026")["rows"]
+    assert [r[1] for r in rows] == ["00401A", "00929"]
+    assert DQ.exright_refs("2026-10-21") == {"00929": (29.26, 28.88), "00986D": (14.23, 14.14)}
+    assert DQ.refresh_exright(date(2026, 10, 21), fetch_tw=tw, fetch_tp=tp) == 0 and len(calls) == 1
+    monkeypatch.setattr(DQ, "_EXR_DONE", set())
+    assert DQ.refresh_exright(date(2026, 10, 21), fetch_tw=lambda *a: None, fetch_tp=tp) == 0   # 抓不到：沿用落檔
+    assert len(store.read("divtw", "2026")["rows"]) == 2
 

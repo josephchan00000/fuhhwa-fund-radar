@@ -995,6 +995,30 @@ def tpex_exright_year(y: int) -> list[list] | None:
     return parse_tp_exright(doc)
 
 
+def _quick_json(url: str, what: str):
+    """每日小請求用：1 次重試、15 秒逾時、不等擋頁冷卻（抓不到下一班再來）→ doc 或 None。"""
+    try:
+        txt = get_bytes(url, retries=1, timeout=15, use_cache=False).decode("utf-8", "replace").strip()
+        return json.loads(txt)
+    except Exception as e:                                # noqa: BLE001
+        log(f"{what} ✗ {str(e)[:100]}")
+        return None
+
+
+def twse_exright_range(d0: str, d1: str) -> list[list] | None:
+    """證交所除權息計算結果表、指定區間（ISO 日期）→ parse_twt49u 的列；抓不到 None。"""
+    doc = _quick_json(f"https://www.twse.com.tw/rwd/zh/exRight/TWT49U?startDate={ymd(d0)}"
+                      f"&endDate={ymd(d1)}&response=json", f"TWT49U {d0}～{d1}")
+    return None if doc is None else parse_twt49u(doc)
+
+
+def tpex_exright_range(d0: str, d1: str) -> list[list] | None:
+    """櫃買除權息計算結果表、指定區間（ISO 日期）→ parse_tp_exright 的列；抓不到 None。"""
+    doc = _quick_json(f"https://www.tpex.org.tw/web/stock/exright/dailyquo/exDailyQ_result.php?l=zh-tw"
+                      f"&d={roc(d0)}&ed={roc(d1)}&o=json", f"櫃買除權息 {d0}～{d1}")
+    return None if doc is None else parse_tp_exright(doc)
+
+
 def probe_fs() -> None:
     """公司財報分析（docs/lab_company_plan.md）資料源探針：MOPS 彙總表（資產負債、綜合損益、現金流量候選、營益分析）
     每張表的欄名、列數、樣本列。只印不寫；總時間上限 9 分鐘、每個請求印耗時（2026-10-16 第一版卡 30 分鐘才改）。"""

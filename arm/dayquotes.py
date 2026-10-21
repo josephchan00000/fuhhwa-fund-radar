@@ -225,6 +225,95 @@ def unknown_x(q: dict[str, dict], prev: dict[str, float]) -> tuple[dict[str, dic
     return out, n
 
 
+# ── 除權息參考價（2026-10-21 使用者：「你怎麼可能不知道除權息金額」） ─────────────
+# 不比價列（除權息日）的漲跌要對「除權息參考價」算。證交所 TWT49U、櫃買除權息計算結果表本來就由籌碼雷達收著
+# （data/lab/divtw、v3div，每列有除權息前收盤與參考價），只是只在回補時更新；refresh_exright 每天補最近兩週。
+
+_EXR_DONE: set[str] = set()
+
+
+def exright_refs(d: str) -> dict[str, tuple[float, float]]:
+    """d 那天除權息的 {代號: (除權息前收盤, 參考價)}：證交所（divtw）＋櫃買（v3div）。只讀落檔、不發請求。"""
+    from .lab import store
+    out: dict[str, tuple[float, float]] = {}
+    for r in (store.read("divtw", d[:4]) or {}).get("rows") or []:
+        if len(r) >= 6 and r[0] == d and r[4] and r[5]:
+            out[str(r[1])] = (float(r[4]), float(r[5]))
+    for r in (store.read("v3div", d[:4]) or {}).get("rows") or []:
+        if len(r) >= 4 and r[0] == d and r[2] and r[3]:
+            out.setdefault(str(r[1]), (float(r[2]), float(r[3])))
+    return out
+
+
+def _merge_exright(kind: str, rows: list[list]) -> int:
+    """新列併進年度檔（同一天同一代號已有就不動；舊列順序不變、新列接在後面）→ 新增幾列。"""
+    from .lab import store
+    by: dict[str, list] = {}
+    for r in rows:
+        by.setdefault(str(r[0])[:4], []).append(list(r))
+    n = 0
+    for y, new in sorted(by.items()):
+        doc = store.read(kind, y) or {}
+        old = doc.get("rows") or []
+        have = {(str(r[0]), str(r[1])) for r in old}
+        add, seen = [], set()
+        for r in sorted(new, key=lambda r: (str(r[0]), str(r[1]))):
+            k = (str(r[0]), str(r[1]))
+            if k not in have and k not in seen:
+                add.append(r)
+                seen.add(k)
+        if add:
+            store.write(kind, y, {**doc, "rows": old + add})
+            n += len(add)
+    return n
+
+
+def refresh_exright(today: date | None = None, *, fetch_tw=None, fetch_tp=None) -> int:
+    """最近 14 天的證交所／櫃買除權息計算結果併進 divtw／v3div（各 1 請求；同一個行程同一天只做一次）→ 新增列數。
+
+    計算結果前一晚就公布，只收到今天為止的列（明天的留到明天）；抓不到就沿用落檔（fail-open）。"""
+    today = today or clock.today_tw()
+    if today.isoformat() in _EXR_DONE:
+        return 0
+    _EXR_DONE.add(today.isoformat())
+    from .lab import market as M
+    d0, d1 = (today - timedelta(days=14)).isoformat(), today.isoformat()
+    n, got = 0, []
+    for kind, name, fn in (("divtw", "上市", fetch_tw or M.twse_exright_range),
+                           ("v3div", "上櫃", fetch_tp or M.tpex_exright_range)):
+        try:
+            rows = fn(d0, d1)
+        except Exception as e:                            # noqa: BLE001 —— 沿用落檔
+            rows = None
+            print(f"  · 除權息計算結果（{name}）抓取失敗：{type(e).__name__}: {str(e)[:80]}")
+        if rows is None:
+            got.append(f"{name} ✗")
+            continue
+        k = _merge_exright(kind, [r for r in rows if r and str(r[0]) <= d1])
+        got.append(f"{name} {len(rows)} 列（新增 {k}）")
+        n += k
+    print(f"  · 除權息計算結果 {d0}～{d1}：" + "、".join(got))
+    return n
+
+
+def fill_x(q: dict[str, dict], refs: dict[str, tuple[float, float]],
+           prev: dict[str, float]) -> tuple[dict[str, dict], int]:
+    """不比價列（漲跌 None）有官方除權息參考價 → 漲跌＝收盤 − 參考價，另帶 ref、pc（除權息前收盤）。→ (報價, 補了幾檔)
+
+    除權息表的前收盤要等於前一交易日官方收盤（分片有的話）；對不上就不用（日期或資料有出入，寧缺勿錯）。"""
+    out, n = {}, 0
+    for code, v in q.items():
+        r = refs.get(code)
+        if v.get("change") is None and r and v.get("close") is not None:
+            pc, ref = r
+            p0 = prev.get(code)
+            if ref and (p0 is None or abs(p0 - pc) <= CHECK_TOL):
+                v = {**v, "change": round(v["close"] - ref, 4), "ref": ref, "pc": pc}
+                n += 1
+        out[code] = v
+    return out, n
+
+
 # ── 主流程 ───────────────────────────────────────────────────────────
 
 def _on_date(oa: dict | None, d: str) -> dict:
@@ -251,11 +340,12 @@ def _one(market: str, oa: dict | None, d: str, fetch) -> tuple[dict | None, str,
 
 
 def latest(now: datetime | None = None, *, today_all: dict | None = None,
-           fetch_tw=None, fetch_tp=None, prev_closes=None) -> tuple[str | None, dict, dict]:
+           fetch_tw=None, fetch_tp=None, prev_closes=None, refs=None) -> tuple[str | None, dict, dict]:
     """最新交易日 T 的上市＋上櫃官方報價 → (T, {代號: {close, change, name, date, src}}, 診斷)。
 
-    today_all＝{"twse": …, "tpex": …}（openapi 全市場表；None＝這裡抓）。fetch_tw／fetch_tp／prev_closes
-    供測試替換。上市、上櫃要同一天都拿到且過自我檢查才回 T；都不行 → (None, {}, 診斷)。"""
+    today_all＝{"twse": …, "tpex": …}（openapi 全市場表；None＝這裡抓）。fetch_tw／fetch_tp／prev_closes／refs
+    供測試替換。上市、上櫃要同一天都拿到且過自我檢查才回 T；都不行 → (None, {}, 診斷)。
+    除權息日（不比價）的列用除權息參考價算漲跌並帶 ref、pc；參考價讀落檔（refresh_exright 每天更新）。"""
     if today_all is None:
         from .connectors import tpex, twse
         today_all = {"twse": _safe(twse.fetch_today_all),
@@ -273,15 +363,18 @@ def latest(now: datetime | None = None, *, today_all: dict | None = None,
             info["tried"].append(f"{d} 上櫃 {tp_src} {tp_st}")
             continue
         prev = prev_closes(d) if prev_closes else _prev_closes(d)
-        (tw, x_tw), (tp, x_tp) = unknown_x(tw, prev), unknown_x(tp, prev)
+        (tw, _), (tp, _) = unknown_x(tw, prev), unknown_x(tp, prev)
         c_tw, c_tp = selfcheck(tw, d, prev), selfcheck(tp, d, prev)
         if not (check_ok(*c_tw) and check_ok(*c_tp)):
             info["tried"].append(f"{d} 自我檢查未過（上市 {c_tw[0]}/{c_tw[1]}、上櫃 {c_tp[0]}/{c_tp[1]}）")
             continue
+        x_n = sum(1 for v in (*tw.values(), *tp.values()) if v.get("change") is None)
+        rf = refs(d) if refs else exright_refs(d)        # 自我檢查之後才補（參考價≠前收，混進去會拉低成立率）
+        (tw, f_tw), (tp, f_tp) = fill_x(tw, rf, prev), fill_x(tp, rf, prev)
         out = {k: {**v, "date": d, "src": f"tp_{tp_src}"} for k, v in tp.items()}
         out.update({k: {**v, "date": d, "src": f"tw_{tw_src}"} for k, v in tw.items()})
         info.update({"T": d, "tw_src": tw_src, "tp_src": tp_src, "tw_n": len(tw), "tp_n": len(tp),
-                     "tw_check": c_tw, "tp_check": c_tp, "x_n": x_tw + x_tp})
+                     "tw_check": c_tw, "tp_check": c_tp, "x_n": x_n, "xf_n": f_tw + f_tp})
         return d, out, info
     return None, {}, info
 
@@ -296,7 +389,8 @@ def describe(info: dict) -> str:
     s = (f"台股報價日 {info['T']}：上市 {info['tw_src']} {info['tw_n']} 檔・自檢 {ck(info['tw_check'])}"
          f"｜上櫃 {info['tp_src']} {info['tp_n']} 檔・自檢 {ck(info['tp_check'])}")
     if info.get("x_n"):
-        s += f"｜不比價（除權息等）{info['x_n']} 檔漲跌留空"
+        x, f = info["x_n"], info.get("xf_n") or 0
+        s += f"｜不比價（除權息等）{x} 檔：{f} 檔依除權息參考價算" + (f"、{x - f} 檔漲跌留空" if x > f else "")
     if info.get("tried"):
         s += "｜先試過：" + "；".join(info["tried"])
     return s
