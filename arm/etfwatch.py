@@ -609,16 +609,24 @@ def _returns_from_series(close: dict[str, float], divs: dict[str, float] | None 
     # ── 當日漲跌（2026-07-29 使用者需求）：最新交易日 vs 前一交易日收盤 ──
     # 除息日特例：台股慣例當日漲跌是對「除息參考價」＝前收 − 每單位配息，否則整段配息會被
     # 當成跌幅（與 ret_1w/1m 加回配息的總報酬口徑同一個坑，2026-07-22 已在區間報酬修過）。
+    # 前一點必須是「前一個交易日」（證交所官方休市表）——2026-10-21 盤查：台北下午收盤後那幾班，
+    # Yahoo 日線常是「有今天、少昨天」（0056 序列 63 點、前一點跳到 10/19），末兩點變成今天對前天，
+    # 32 檔漲跌全錯卻標成當日（10/14、10/16、10/20、10/21 下午都有，10/16 錯了 8 小時）。
+    # 缺前一交易日就不算（chg_gap 記實際的前一點），交給官方當日表／etfinfo 前收。
     prev = dates[-2]
-    ref = close[prev]
-    ex_div = round((divs or {}).get(last) or 0, 4)
-    if ex_div:
-        ref = round(ref - ex_div, 4)
-        out["chg_ex_div"] = ex_div
-    out["prev_close"], out["prev_date"] = close[prev], prev
-    if ref:
-        out["chg_amt"] = round(close[last] - ref, 4)
-        out["chg_pct"] = round((close[last] / ref - 1) * 100, 2)
+    want = _prev_td(last)
+    if want and prev != want:
+        out["chg_gap"] = prev
+    else:
+        ref = close[prev]
+        ex_div = round((divs or {}).get(last) or 0, 4)
+        if ex_div:
+            ref = round(ref - ex_div, 4)
+            out["chg_ex_div"] = ex_div
+        out["prev_close"], out["prev_date"] = close[prev], prev
+        if ref:
+            out["chg_amt"] = round(close[last] - ref, 4)
+            out["chg_pct"] = round((close[last] / ref - 1) * 100, 2)
 
     def _ret(days: int, tag: str):
         target = last_d - timedelta(days=days)
@@ -639,6 +647,15 @@ def _returns_from_series(close: dict[str, float], divs: dict[str, float] | None 
     out["ret_1w"] = _ret(7, "ret_1w")
     out["ret_1m"] = _ret(30, "ret_1m")
     return out
+
+
+def _prev_td(iso: str) -> str | None:
+    """iso 的前一個台股交易日（證交所官方休市表，arm/dayquotes 同一支）；日期解析不了 → None。"""
+    try:
+        from . import dayquotes
+        return dayquotes.prev_trading_day(date.fromisoformat(str(iso)[:10])).isoformat()
+    except (ImportError, ValueError):
+        return None
 
 
 # 3 個月日線約 60 個交易日；序列夠密才信任（否則 1 個月基準會落孤點算出錯值）。
@@ -699,7 +716,20 @@ def _official_day_quotes() -> dict[str, dict]:
     `change` 漲跌額**，連前收都不必自己找。整輪只發 2 個請求（`get_json` 另有 30 分快取，
     同輪其他腳本打過就不重打），不違反「多班次不放大來源站請求」。
     口徑＝官方市價，與 etfinfo 的 close_px 同一種價（不是 Yahoo 的還原收盤）。
-    單邊失敗只損失該市場、不影響另一邊；全失敗回空 → 上層自動退下一層備案。"""
+    單邊失敗只損失該市場、不影響另一邊；全失敗回空 → 上層自動退下一層備案。
+
+    2026-10-21 起先走 arm/dayquotes.latest()：證交所 openapi 要到隔天清晨才更新，台北下午收盤後
+    那幾班拿到的是前一天，當天的官方漲跌根本進不來；dayquotes 會改抓 MI_INDEX／櫃買 dailyQuotes
+    指定日期版，上市、上櫃同一個最新交易日且過自我檢查才回（openapi 日期剛好是那天時零額外請求）。
+    拿不到 → 退回只看 openapi 當下那份（舊行為）。"""
+    try:
+        from . import dayquotes
+        t, q, info = dayquotes.latest()
+        print(f"  · ETF 官方收盤：{dayquotes.describe(info)}")
+        if t and q:
+            return q
+    except Exception as e:                                # noqa: BLE001 —— 退回 openapi
+        print(f"  ⚠ 官方最新交易日報價不可得（改看 openapi 當下那份）：{type(e).__name__}: {str(e)[:80]}")
     from importlib import import_module
     out: dict[str, dict] = {}
     for mod in ("twse", "tpex"):
@@ -807,8 +837,9 @@ def fetch() -> dict:
     up_freq = {it["code"]: it.get("freq") for it in UPCOMING
                if it.get("freq") and it["freq"] != "—"}
     items, got_mkt, got_ret, got_est = [], 0, 0, 0
-    got_chg_off = got_chg_l1 = 0   # 當日漲跌走備案的檔數（官方當日表／etfinfo 前收），供 CI 日誌診斷
-    day_q = _official_day_quotes()  # 迴圈外取一次：整輪 2 請求，不是逐檔
+    got_chg_off = got_chg_l1 = 0   # 當日漲跌取自官方當日表／etfinfo 前收的檔數，供 CI 日誌診斷
+    got_gap = 0                    # 報酬序列缺前一交易日（當日漲跌不採用序列）的檔數
+    day_q = _official_day_quotes()  # 迴圈外取一次：整輪 2～4 請求（下午多 MI_INDEX），不是逐檔
     for code, name, kind, cat, inception in watch_tuples():
         old = prev.get(code) or {}
         base = SEED_PERF.get(code, {}) or (
@@ -917,6 +948,8 @@ def fetch() -> dict:
                 item["ret_1m_div"] = r.get("ret_1m_div")
                 got_ret += 1
             # 當日漲跌：序列末兩點；本次算不出就保留既有值（絕不洗成空白）
+            if r.get("chg_gap"):
+                got_gap += 1                         # 序列缺前一交易日 → 這格交給下面兩道備案
             if r.get("chg_pct") is not None:
                 for k in ("chg_pct", "chg_amt", "prev_close", "prev_date", "chg_ex_div"):
                     item[k] = r.get(k)
@@ -941,18 +974,21 @@ def fetch() -> dict:
         # 不可信——實測超前只有兩種來路，都是壞資料：①週末／未來的假 bar（9/20 那次）；
         # ②盤中未收盤的 partial bar（9/17 09:28 那輪 0050 給 +2.07%，收盤實為 +1.69%）。
         # 舊版只擋「落後」，超前反而直接勝過官方備案並繞過渲染端過期章＝完全靜默。
+        # 2026-10-21 起官方表與收盤價**同一天**時一律優先（官方權威、直接給漲跌、除息日本來就對
+        # 參考價），不再只當序列的備案——序列會「有今天、少昨天」（見 _returns_from_series）。
         ao = item.get("as_of")
-        if ao and (not item.get("chg_asof") or item["chg_asof"] != ao):
-            q = day_q.get(code) or {}
-            qc, qch, qd = q.get("close"), q.get("change"), q.get("date")
-            if qc and qch is not None and qd:
-                ref = round(qc - qch, 4)
-                if ref:
-                    item["chg_amt"], item["chg_pct"] = round(qch, 4), round(qch / ref * 100, 2)
-                    item["prev_close"], item["prev_date"] = ref, None   # 官方表不給前一交易日日期
-                    item["chg_ex_div"] = None
-                    item["chg_asof"], item["chg_src"] = str(qd)[:10], "twse_today"
-                    got_chg_off += 1
+        q = day_q.get(code) or {}
+        qc, qch, qd = q.get("close"), q.get("change"), str(q.get("date") or "")[:10]
+        if ao and qc and qch is not None and qd and (qd == ao or item.get("chg_asof") != ao):
+            ref = round(qc - qch, 4)
+            if ref:
+                item["chg_amt"], item["chg_pct"] = round(qch, 4), round(qch / ref * 100, 2)
+                # 除息日 ref＝除息參考價：前收＝參考價＋配息，渲染端 tooltip 才算得回同一個參考價
+                exd = round((_DIV_EVENTS.get(code) or {}).get(qd) or 0, 4)
+                item["prev_close"] = round(ref + exd, 4) if exd else ref
+                item["prev_date"], item["chg_ex_div"] = _prev_td(qd), exd or None
+                item["chg_asof"], item["chg_src"] = qd, "twse_today"
+                got_chg_off += 1
 
         # ②-c 當日漲跌備案 L2＝etfinfo 自帶前收自算（官方當日表也拿不到時的零請求退路）──
         # 序列缺當日 bar 時（Yahoo 對台股 ETF 的當日日線不穩定，實測會跳動甚至倒退），
@@ -965,7 +1001,9 @@ def fetch() -> dict:
         if ao and (not item.get("chg_asof") or item["chg_asof"] != ao):   # 同上：超前也算不一致
             ppx, ppd = item.get("prev_px"), item.get("prev_px_date")
             px = item.get("close_px")
-            if px is not None and ppx is not None and ppd and ppd < ao:
+            # 前收必須是前一個交易日的（2026-10-21）：中間漏抓一天時 prev_px 會是更早的收盤，
+            # 算出來的是兩天的漲跌卻標成當日——寧可留舊值讓渲染端標「⚠ 基準」。
+            if px is not None and ppx is not None and ppd and ppd == _prev_td(ao):
                 # 除息日仍以「除息參考價＝前收 − 每單位配息」為基準（同 _returns_from_series；
                 # etfinfo 是市價、跨除息不還原，不扣就會把整段配息算成跌幅）
                 exd = round((_DIV_EVENTS.get(code) or {}).get(ao) or 0, 4)
@@ -1021,10 +1059,10 @@ def fetch() -> dict:
                 item["yield_pct"] = round(item["last_div"] / item["close_px"] * n * 100, 2)
 
         items.append(item)
-    # L1 備案用量進 CI 日誌：常態應為 0，持續非 0＝主序列的當日 bar 長期缺（該查來源端）
-    if got_chg_off or got_chg_l1:
-        print(f"  ℹ 當日漲跌走備案：官方當日表 {got_chg_off} 檔、etfinfo 前收自算 {got_chg_l1} 檔"
-              f"——主序列缺當日 bar，非資料錯誤；持續發生請查 Yahoo/stooq 當日日線")
+    # 當日漲跌來源進 CI 日誌：官方當日表是常態；etfinfo 前收只在官方表不是同一天時才用
+    if got_chg_off or got_chg_l1 or got_gap:
+        print(f"  ℹ 當日漲跌：官方當日表 {got_chg_off} 檔、etfinfo 前收自算 {got_chg_l1} 檔；"
+              f"報酬序列缺前一交易日 {got_gap} 檔（這幾檔的當日漲跌不用序列）")
     # 假 bar 剔除摘要（2026-09-21）：常態應為 0 行。多檔同時出現同一個日期＝來源整批回了
     # 不可能的交易日（9/20 那次 36 檔全中），這行是唯一看得見它的地方。
     if _BAD_BARS:
