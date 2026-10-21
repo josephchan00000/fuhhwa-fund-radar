@@ -138,6 +138,24 @@ def test_chip_every_market():
     assert P.chip("tw", {}) == ""
 
 
+def test_mr_chip_only_taiwan_and_flags_below_level():
+    """最上面那一行的融資維持率（docs/lab_crash_plan.md 第 22 節）：只有台股；跌破 140% 才換成警示的樣子。"""
+    from arm.lab import heatpage as HP
+    R = X.run_all()
+    c = P.mr_chip("tw", R)
+    n = R["tw"]["mmr"]["now"]
+    assert f'{n["mr"]:.1f}%' in c and "x9o.html#i=xs:tw:mmr" in c and "融資維持率" in c
+    assert ("stc stx" in c) == (n["mr"] < S.BY_KEY["mmr"]["p"]["level"]) and "。。" not in c
+    assert not any(w in c for w in BANNED)
+    for mk in ("spx", "ixic", "ndx", "sox"):
+        assert P.mr_chip(mk, R) == ""
+    assert P.mr_chip("tw", {}) == ""
+    low = {"tw": {"mmr": {**R["tw"]["mmr"], "now": {**n, "mr": 135.0}}}}
+    assert "stc stx" in P.mr_chip("tw", low) and "135.0%" in P.mr_chip("tw", low)
+    sl = HP.state_line({"dims": {}, "mrchip": c, "mk": "tw"})
+    assert "融資維持率" in sl
+
+
 def test_pages_wire_strategies():
     from arm.lab import heatpage as HP
     from arm.lab import heatviz as VZ

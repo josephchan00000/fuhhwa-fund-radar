@@ -607,3 +607,20 @@ def chip(mk: str, R: dict | None = None) -> str:
     cls = "stc" if held and st != "turn_out" else "stc stx"
     return (f'<a class="{cls}" href="x9o.html#i=xs:{_e(mk)}:faber" title="{_e(tip)}"><b>10 個月均線</b>{_e(pos)}'
             f'<i>{_e(lab)}</i></a>')
+
+
+def mr_chip(mk: str, R: dict | None = None) -> str:
+    """最上面那一行（只有台股）：大盤融資維持率的現值（不論判定；資料 data/lab/heat/mratio）。點了到「融資維持率跌破 140%」。"""
+    if mk != "tw":
+        return ""
+    R = results() if R is None else R
+    r = (R.get(mk) or {}).get("mmr")
+    n = (r or {}).get("now") or {}
+    if n.get("mr") is None:
+        return ""
+    q = S.BY_KEY["mmr"]["p"]
+    low = n["mr"] < q["level"]
+    tip = (f"大盤融資維持率（上市證券含 ETF 的融資市值 ÷ 融資金額，自己算）：{now_text(r).rstrip('。')}。"
+           f"「跌破 {q['level']}%」判定 {S.TIER_MARK[r['tier']]} {S.TIER_NAMES[r['tier']]}；{result_line(r)}。點了看細節。")
+    return (f'<a class="stc{" stx" if low else ""}" href="x9o.html#i=xs:{_e(mk)}:mmr" title="{_e(tip)}">'
+            f'<b>融資維持率</b>{n["mr"]:.1f}%</a>')
