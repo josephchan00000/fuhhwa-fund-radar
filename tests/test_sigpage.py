@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from arm.lab import appnav, sigcat, sigpage, sigspec
+from arm.lab import xstratspec as XS
 
 ROOT = Path(__file__).resolve().parents[1]
 BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "建議買賣", "建議買", "建議賣", "目標價", "零風險", "無風險")
@@ -361,6 +362,44 @@ def test_crash_now_latest_value_and_weekly_spark():
     out = sigcat.crash_now(F)
     assert list(out) == ["W1"] and out["W1"]["d"] == cal[-2] and out["W1"]["h"] == round(float(x[-2]), 1)
     assert out["W1"]["band"] == "過熱" and len(out["W1"]["sp"]) == len(cal) and out["W1"]["sp"][-1] is None and out["W1"]["sp"][0] == 10
+
+
+def test_facets_follow_heat_page_faces():
+    """分類（docs/lab_nav_plan.md 第 2.2 節）：第一層照景氣頁的面向；籌碼、技術、策略再分第二層；判定、方向、只看現在、CSV 收進「更多篩選」。"""
+    a = _rows()[0]
+    h = lambda mk, var, grp: dict(a, id=f"{mk}:heat:{var}:hot", mk=mk, cat="heat", grp=grp, var=var, vn=var, name=f"{var}・過熱中")
+    rs = [h("tw", "B1", "fund"), h("tw", "C1", "chip"), h("spx", "S1", "sent"), h("tw", "G1", "gliq"), h("tw", "L1", "tliq"),
+          h("spx", "R1", "liq"), h("tw", "T1", "tech"), h("tw", "Dchip", "chip"), h("tw", "Dfund", "fund"), h("tw", "Dtech", "tech"),
+          dict(a, id="tw:multi:hot", cat="multi", grp="multi", var="multi", vn="同時兩個面向過熱", name="同時兩個面向過熱"),
+          dict(a, id="tw:crash:W1:hot", cat="crash", grp="crash", var="W1", vn="W1", name="W1・過熱中"),
+          dict(a, id="tw:crash:W4:hot", cat="crash", grp="crash", var="W4", vn="W4", name="W4・過熱中"),
+          dict(a, id="spx:crash:VOL:hot", mk="spx", cat="crash", grp="crash", var="VOL", vn="VOL", name="VOL・過熱中"),
+          dict(a, id="tw:inst:fi5:hot", cat="inst", grp="fi", var="fi5", vn="外資 5 日", name="外資 5 日・大賣超"),
+          dict(a, id="tw:tech:ma60_dn", cat="tech", grp="tech", var="ma60_dn", vn="跌破季線", name="跌破季線"),
+          dict(a, id="tw:scen:SC5", cat="scen", grp="scen", var="SC5", vn="情境", name="情境"),
+          dict(a, id="tw:bub:L2", cat="bub", grp="bub", var="L2", vn="L2", name="L2"),
+          dict(a, id="ind:ff:L2", mk="us", cat="ind", grp="ff", var="L2", vn="美股 49 細產業", name="美股 49 細產業・L2"),
+          dict(a, id="tw:buy:E5:W10", cat="buy", grp="E5", var="W10", vn="固定等 10 天", name="5 日急跌・固定等 10 天"),
+          dict(a, id="stk:sig:cons", mk="stk", cat="stock", grp="stock", var="cons", vn="共識加碼", name="共識加碼"),
+          dict(a, id="stk:strat:s5", mk="stk", cat="strat", grp="strat", var="s5", vn="長線", name="長線")]
+    got = {x[0]: (x[7], x[8]) for x in sigpage.indicators(rs)}
+    assert got == {"tw:B1": ("fund", None), "tw:C1": ("chip", "margin"), "spx:S1": ("chip", "margin"), "tw:G1": ("liq", None),
+                   "tw:L1": ("liq", None), "spx:R1": ("liq", None), "tw:T1": ("tech", "ind"), "tw:Dchip": ("chip", "dim"),
+                   "tw:Dfund": ("fund", None), "tw:Dtech": ("tech", "dim"), "tw:multi": ("scen", None), "tw:W1": ("chip", "margin"),
+                   "tw:W4": ("liq", None), "spx:VOL": ("liq", None), "tw:inst:fi5": ("chip", "inst"), "tw:tech:ma60_dn": ("tech", "ev"),
+                   "tw:scen:SC5": ("scen", None), "tw:bub": ("bub", None), "ind:ff": ("bub", None), "tw:buy:E5": ("buy", None),
+                   "stk:sig:cons": ("stock", None), "stk:strat:s5": ("strat", "stk")}
+    assert set(sigpage.SUBS) <= set(sigpage.FACETS) and set(sigpage.SUBS["strat"]) >= set(XS.GROUPS)   # 大神策略照它自己的分組
+    assert all(v in sigpage.FACETS for v, _ in got.values())
+    j = json.loads(sigpage.page_json(_view()))
+    assert j["fac"] == sigpage.FACETS and j["sub"] == sigpage.SUBS and all(len(x) == 9 for x in j["inds"])
+    t = sigpage.TABLE
+    assert 'data-k="c1"' in t and '<div class="sgchips sgc2" data-k="c2" hidden>' in t and 'data-k="cat"' not in t
+    adv = t[t.index('<details class="sgadv">'):t.index("</details>")]
+    assert 'data-k="tier"' in adv and 'data-k="dir"' in adv and 'id="sgnow"' in adv and 'id="sgcsv"' in adv
+    assert t.index('data-k="c2"') < t.index('<details class="sgadv">') and 'href="x9x.html"' in t
+    for f in ("x.c1 !== st.c1", "if (k === 'c1') st.c2 = ''", "c1: 'strat', c2: sp.grp", "facName(x)", "sgadvn"):
+        assert f in sigpage.JS, f
 
 
 def test_scenarios_are_their_own_indicators():

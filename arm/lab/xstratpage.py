@@ -7,6 +7,7 @@
   board(mk)         景氣頁今天的重點要列的策略（★ 而且現在有動作）
   chip(mk)          景氣頁最上面那一行的「10 個月均線」
   summary_line(mk)  景氣頁今天的重點下面一行（這個市場的大神策略幾條、現在持有幾條）
+  today_line(mk)    訊號總覽今天有效的好訊號，每個市場最下面一行
 點了都連到大神策略頁（docs/lab_nav_plan.md）。只描述照規則做過去的成績，不寫建議。
 """
 from __future__ import annotations
@@ -656,6 +657,19 @@ def summary_line(mk: str, R: dict | None = None) -> str:
         return ""
     parts = [f"★ 好策略 {q['good']} 條"] + ([f"要動作 {q['act']} 條"] if q["act"] else []) + [f"有部位 {q['held']} 條"]
     return (f'<a href="{HOME}">這個市場的大神策略 {q["n"]} 條（{"・".join(parts)}）：每一條現在持有還是空手 →</a>')
+
+
+def today_line(mk: str, R: dict | None = None) -> str:
+    """訊號總覽「今天有效的好訊號」每個市場卡片最下面一行：★ 好策略現在有動作的（名稱＋狀態），連到大神策略頁。"""
+    R = results() if R is None else R
+    q = summary(mk, R)
+    if not q:
+        return ""
+    its = board(mk, R)
+    if its:
+        txt = "、".join(f"{it['name']} {TAG[it['st']]}" for it in its)
+        return f'<a href="{HOME}">大神策略 ★：{_e(txt)} →</a>'
+    return f'<a href="{HOME}">大神策略：★ 好策略 {q["good"]} 條，看每一條現在持有還是空手 →</a>'
 
 
 PANEL_JS = r"""// ── 大神策略的面板（xstratpage.PANEL_JS；訊號總覽與大神策略頁共用：出處、規則、現在、成績、判定依據、參數鄰近、照做的淨值、每一筆）
