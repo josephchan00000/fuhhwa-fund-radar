@@ -209,3 +209,31 @@ def test_describe_reports_date_sources_and_check():
                      "tp_n": 900, "tw_check": (1250, 1290), "tp_check": (0, 0), "tried": []})
     assert "2026-10-20" in s and "mi_index" in s and "1250/1290" in s and "略過" in s
     assert "⚠" in DQ.describe({"tried": ["2026-10-20 上市 mi_index err"]})
+
+
+def test_openapi_zero_change_with_moved_close_is_unknown_not_flat():
+    """證交所 openapi 不比價（除權息等）的列 Change＝0：2026-09-23 1808 除息 1.5、收 31.9（前收 35.0、
+    參考價 33.5，對參考價 −4.78%），隔天清晨那版明細顯示 0.0%。收盤≠前一交易日收盤卻漲跌 0 → 未知（None）。"""
+    tw = {**_fill(700, "2026-09-23", "T"),
+          "1808": {"date": "2026-09-23", "close": 31.9, "change": 0.0, "name": "潤隆"},
+          "2330": {"date": "2026-09-23", "close": 1300.0, "change": 0.0, "name": "台積電"}}   # 真的平盤
+    tp = _fill(400, "2026-09-23", "P")
+    prev = {**_prev_ok(tw), "1808": 35.0}
+    T, q, info = DQ.latest(_now("2026-09-24T08:31"), today_all={"twse": tw, "tpex": tp},
+                           prev_closes=lambda d: prev)
+    assert T == "2026-09-23"
+    assert q["1808"]["change"] is None and q["1808"]["close"] == 31.9
+    assert q["2330"]["change"] == 0.0
+    assert tw["1808"]["change"] == 0.0                       # 不改呼叫端傳進來的表
+    assert info["x_n"] == 1 and "不比價" in DQ.describe(info)
+    entry = {"date": "2026-09-23", "src": "etfinfo", "prev": {},
+             "holdings": [{"stock_id": "1808", "name": "潤隆", "shares": 1, "weight": 2.0},
+                          {"stock_id": "2330", "name": "台積電", "shares": 1, "weight": 9.0}]}
+    by = {r["stock_id"]: r for r in eh.contributions(entry, q, pd=T)["all"]}
+    assert by["1808"]["chg_pct"] is None and by["2330"]["chg_pct"] == 0.0
+
+
+def test_unknown_x_leaves_rows_alone_without_previous_close():
+    q = {"1808": {"close": 31.9, "change": 0.0}}
+    assert DQ.unknown_x(q, {}) == (q, 0)
+

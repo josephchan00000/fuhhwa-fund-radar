@@ -986,8 +986,9 @@ def fetch() -> dict:
         # ②-b 當日漲跌備案 L1＝官方全市場當日收盤表（2026-09-03 使用者：「沒辦法從其他
         # 地方補嗎？」）──序列缺當日 bar 時的**第一順位**備案：TWSE／TPEx openapi 直接給
         # 當日 close 與 change，官方權威（非 Tier B）、整輪只 2 請求、市價口徑與 close_px 一致。
-        # 漲跌基準 ref＝close − change：除息日證交所的 change 本就對「除息參考價」計算，
-        # 與 _returns_from_series 的除息處理同口徑，不必另外扣息。
+        # 漲跌基準 ref＝close − change。**除息日不用官方表**（2026-10-21 盤查）：MI_INDEX 標 X（不比價）、
+        # 櫃買漲跌欄寫「除息」，都解析成 None；證交所 openapi 給 0（9/23 1808、2542 實測；dayquotes.unknown_x
+        # 改成 None，但 dayquotes 失敗時的 openapi 備援迴圈沒經過它）。除息日交給序列與 L2，兩者都扣配息。
         # 以來源自報的 date 當 chg_asof——官方表若自己也落後，渲染端的日期判準會照樣揭露。
         # 判準是「≠ as_of」而非「< as_of」（2026-09-21）：序列日期**超前**收盤價時同樣
         # 不可信——實測超前只有兩種來路，都是壞資料：①週末／未來的假 bar（9/20 那次）；
@@ -998,14 +999,13 @@ def fetch() -> dict:
         ao = item.get("as_of")
         q = day_q.get(code) or {}
         qc, qch, qd = q.get("close"), q.get("change"), str(q.get("date") or "")[:10]
-        if ao and qc and qch is not None and qd and (qd == ao or item.get("chg_asof") != ao):
+        exd_q = round((_DIV_EVENTS.get(code) or {}).get(qd) or _div_on(item, qd), 4) if qd else 0
+        if (ao and qc and qch is not None and qd and not exd_q
+                and (qd == ao or item.get("chg_asof") != ao)):
             ref = round(qc - qch, 4)
             if ref:
                 item["chg_amt"], item["chg_pct"] = round(qch, 4), round(qch / ref * 100, 2)
-                # 除息日 ref＝除息參考價：前收＝參考價＋配息，渲染端 tooltip 才算得回同一個參考價
-                exd = round((_DIV_EVENTS.get(code) or {}).get(qd) or _div_on(item, qd), 4)
-                item["prev_close"] = round(ref + exd, 4) if exd else ref
-                item["prev_date"], item["chg_ex_div"] = _prev_td(qd), exd or None
+                item["prev_close"], item["prev_date"], item["chg_ex_div"] = ref, _prev_td(qd), None
                 item["chg_asof"], item["chg_src"] = qd, "twse_today"
                 got_chg_off += 1
 
