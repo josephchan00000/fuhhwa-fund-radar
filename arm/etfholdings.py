@@ -60,7 +60,7 @@ def _index(holdings: list[dict]) -> dict[str, dict]:
 # ── 非持股列過濾（來源口徑對齊；2026-08-05 使用者抓到 00986D「全部出清」） ──────
 #
 # 各來源的「列宇宙」不一樣：復華 assetsExcel（fhtrust）依舊管線慣例只給證券／債券區段、
-# 期貨避險列在 `_from_fhtrust` 就被剔除，也不列現金部位；etfinfo 的 PCF 快照卻把
+# 期貨避險列在 `_from_fhtrust` 就被剔除（另存「期貨部位」，見下），也不列現金部位；etfinfo 的 PCF 快照卻把
 # **期貨、保證金(MARGIN)、應付買回款(PAYABLES FOR UNITS REDEEMED)、扣除應付證券款
 # (AFTER DEDUCTING SECURITIES PURCHASES AMOUNT)** 一併給出來。
 # 主來源在兩者之間切換時，這批列就會整批冒出「新增」、隔天整批「出清」——00986D
@@ -90,9 +90,10 @@ def is_non_holding(sid: str, name: str = "") -> bool:
 
 
 def drop_non_holdings(rows: list[dict]) -> list[dict]:
-    """濾掉非持股列，讓各來源的列宇宙對齊（抓取端各來源共用）。"""
+    """濾掉非持股列，讓各來源的列宇宙對齊（抓取端各來源共用）。來源標明 kind="future" 的也算。"""
     return [r for r in (rows or [])
-            if not is_non_holding(r.get("stock_id"), r.get("name") or r.get("stock_name"))]
+            if r.get("kind") != "future"
+            and not is_non_holding(r.get("stock_id"), r.get("name") or r.get("stock_name"))]
 
 
 # ── 期貨部位（2026-10-21 使用者同意另列：00987D 的期貨是量化多空策略的本體） ──────────
@@ -130,7 +131,8 @@ def split_futures(rows: list[dict]) -> tuple[list[dict], list[dict]]:
     fut = [fut_row(r.get("stock_id"), r.get("name") or r.get("stock_name"),
                    r.get("shares"), r.get("weight"), r.get("market_value"))
            for r in (rows or [])
-           if is_future(r.get("stock_id"), r.get("name") or r.get("stock_name"))]
+           if r.get("kind") == "future"
+           or is_future(r.get("stock_id"), r.get("name") or r.get("stock_name"))]
     return drop_non_holdings(rows), fut
 
 
@@ -173,12 +175,16 @@ def _signed_w(w, q):
     return abs(w) if q > 0 else -abs(w)
 
 
+_FUT_NAME_YM = re.compile(r"^\s*20\d{2}(?:0[1-9]|1[0-2])\s*")    # 「202612 美國三十年期政府公債」的月份前綴
+
+
 def _fut_groups(rows: list[dict] | None) -> dict[str, dict]:
     g: dict[str, dict] = {}
     for r in rows or []:
         root, ym = fut_key(r.get("id"))
         x = g.setdefault(root, {"name": None, "qty": 0, "w": 0.0, "nw": 0, "yms": set()})
-        x["name"] = x["name"] or r.get("name")
+        # 月份另欄顯示，名稱去掉月份前綴（同商品不同月份才合得成同一列的名稱）
+        x["name"] = x["name"] or (_FUT_NAME_YM.sub("", r.get("name") or "") or None)
         x["qty"] += r.get("qty") or 0
         w = _signed_w(r.get("weight"), r.get("qty"))
         if w is not None:

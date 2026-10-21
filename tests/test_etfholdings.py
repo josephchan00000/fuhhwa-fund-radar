@@ -1603,3 +1603,150 @@ def test_same_day_graft_survives_a_new_disclosure():
     by = {r["stock_id"]: r for r in doc["etfs"]["X"]["detail"]["all"]}
     assert by["NVDA US"]["chg_pct"] == round(5.5 / 180.0 * 100, 2) and by["NVDA US"]["qd"] == PD
     assert by["NVDA US"]["shares"] == 12000                                 # 持股照新揭露
+
+
+# ── 期貨部位（2026-10-21 使用者同意另列：00987D 的期貨是量化多空策略本體） ──────────
+
+def _fu(sid, name, qty, weight):
+    return eh.fut_row(sid, name, qty, weight)
+
+
+def test_is_future_separates_futures_from_margin_and_cash():
+    """期貨另存；保證金、應付款、現金仍是非持股列丟掉；一般持股不受影響。"""
+    for sid, nm in (("UB:2026-12:B", "超長美債"), ("US202612", ""), ("202609TY", ""),
+                    ("XYZ", "臺股期貨"), ("TXF202611", "")):
+        assert eh.is_future(sid, nm), sid
+    for sid, nm in (("M_USD", "MARGIN"), ("XYZ", "期貨保證金"), ("PFUR_NTD", "PAYABLES FOR UNITS"),
+                    ("2330", "台積電"), ("TLTW US", "iShares 20+ Year Treasury"),
+                    ("US912810UW61", "T 5 1/8 08/15/56")):
+        assert not eh.is_future(sid, nm), sid
+
+
+def test_split_futures_keeps_holdings_unchanged():
+    """持股列＝drop_non_holdings 的結果（與期貨部位上線前完全相同）；期貨列轉成 fut_row 格式。"""
+    rows = [_h("US912810UW61", "T 5 1/8 08/15/56", 15920000, 59.66),
+            _h("US912810UT33", "T 5 05/15/56", 7550000, 27.75),
+            _h("UB:2026-12:B", "超長美債", 87, 36.55),
+            _h("M_USD", "MARGIN", 1, 2.0)]
+    hold, fut = eh.split_futures(rows)
+    assert hold == eh.drop_non_holdings(rows)
+    assert [h["stock_id"] for h in hold] == ["US912810UW61", "US912810UT33"]
+    assert fut == [{"id": "UB:2026-12:B", "name": "超長美債", "qty": 87, "weight": 36.55, "amt": None}]
+    # 來源標明 kind="future"（etfinfo assetType）的列：代號格式認不出也算期貨、不進持股
+    hold, fut = eh.split_futures(rows[:2] + [{**_h("ZZ9", "怪代號合約", 3, 1.0), "kind": "future"}])
+    assert [h["stock_id"] for h in hold] == ["US912810UW61", "US912810UT33"]
+    assert [f["id"] for f in fut] == ["ZZ9"]
+
+
+def test_fut_key_reads_root_and_month(monkeypatch):
+    """商品代號＋月份：同商品換月份＝轉倉。認不出格式的整串當商品代號。"""
+    from datetime import date
+    monkeypatch.setattr(eh.clock, "today_tw", lambda: date(2026, 10, 21))
+    assert eh.fut_key("UB:2026-12:B") == ("UB", "2026-12")
+    assert eh.fut_key("US202612") == ("US", "2026-12")
+    assert eh.fut_key("202609TY") == ("TY", "2026-09")
+    assert eh.fut_key("TYZ6") == ("TY", "2026-12")
+    assert eh.fut_key("TXFK6") == ("TXF", "2026-05")          # K＝5 月
+    assert eh.fut_key("USH7 Comdty") == ("US", "2027-03")
+    assert eh.fut_key("TYZ0") == ("TY", "2030-12")             # 一位數年份取最近的十年
+    assert eh.fut_key("ABC") == ("ABC", None)
+
+
+def _fe(date, fut, src="etfinfo"):
+    return {"date": date, "src": src, "holdings": [_h("US912810UW61", "T 5 1/8 08/15/56", 15920000, 59.66)],
+            "fut": fut}
+
+
+def test_merge_one_moves_fut_to_prev_fut_only_when_date_advances():
+    d1 = _fe("2026-10-20", [_fu("UB:2026-12:B", "超長美債", 87, 36.55)])
+    d2 = {**_fe("2026-10-21", [_fu("UB:2026-12:B", "超長美債", 97, 40.1)]),
+          "holdings": [_h("US912810UW61", "T 5 1/8 08/15/56", 15000000, 57.0)]}
+    m = eh.merge_one(d1, d2)
+    assert m["prev_fut"] == d1["fut"] and m["fut"] == d2["fut"]
+    again = eh.merge_one(m, dict(d2))                                  # 同日重抓：prev_fut 不動
+    assert again["prev_fut"] == d1["fut"]
+    old = {k: v for k, v in d1.items() if k != "fut"}                  # 上線前的舊落檔沒有 fut
+    assert eh.merge_one(old, d2)["prev_fut"] is None
+    fake = eh.merge_one(d1, {**d1, "date": "2026-10-21"})              # 同一份檔被標成新日期
+    assert fake["date"] == "2026-10-20" and fake.get("prev_fut") is None
+
+
+def _fv(prev, now, src="etfinfo", psrc="etfinfo"):
+    return eh.fut_view({"date": "2026-10-21", "prev_date": "2026-10-20", "src": src,
+                        "prev_src": psrc, "fut": now, "prev_fut": prev})
+
+
+def test_fut_view_changes_roll_and_short_positions():
+    v = _fv([_fu("UB:2026-12:B", "超長美債", 87, 36.55)], [_fu("UB:2026-12:B", "超長美債", 97, 40.1)])
+    r = v["rows"][0]
+    assert (r["root"], r["qty"], r["dq"], r["act"], r["roll"]) == ("UB", 97, 10, "多單加碼", False)
+    assert v["net_w"] == 40.1 and v["cmp"] is True
+    # 換月：12 月合約換成 3 月、口數不變＝轉倉，不是平倉＋新建
+    v = _fv([_fu("UB:2026-12:B", "超長美債", 87, 36.55)], [_fu("UB:2027-03:B", "超長美債", 87, 36.2)])
+    r = v["rows"][0]
+    assert (r["dq"], r["act"], r["roll"], r["pym"], r["ym"]) == (0, "轉倉", True, ["2026-12"], ["2027-03"])
+    # 空單：來源把權重寫成正數也記為負；空單變多＝空單加碼、曝險減少
+    v = _fv([_fu("UB:2026-12:B", "超長美債", -50, 18.0)], [_fu("UB:2026-12:B", "超長美債", -70, 25.0)])
+    r = v["rows"][0]
+    assert (r["w"], r["dq"], r["act"]) == (-25.0, -20, "空單加碼") and v["net_w"] == -25.0
+    v = _fv([_fu("UB:2026-12:B", "超長美債", 40, 15.0)], [_fu("UB:2026-12:B", "超長美債", -30, 11.0)])
+    assert v["rows"][0]["act"] == "多單轉空單" and v["rows"][0]["dq"] == -70
+
+
+def test_fut_view_strips_month_prefix_from_name():
+    """00986D 的期貨名稱是「202612 美國三十年期政府公債」：月份另欄顯示，名稱去掉前綴。"""
+    v = _fv([_fu("US202612", "202612 美國三十年期政府公債", 65, 11.18)],
+            [_fu("US202703", "202703 美國三十年期政府公債", 65, 11.0)], src="fhtrust", psrc="fhtrust")
+    r = v["rows"][0]
+    assert (r["root"], r["name"], r["act"], r["ym"]) == ("US", "美國三十年期政府公債", "轉倉", ["2027-03"])
+
+
+def test_fut_view_new_closed_and_nothing_to_show():
+    v = _fv([], [_fu("UB:2026-12:B", "超長美債", 87, 36.55)])
+    assert (v["rows"][0]["act"], v["rows"][0]["dq"]) == ("新建多單", 87)
+    v = _fv([_fu("TY202612", "10 年期", 10, 3.0)], [])
+    r = v["rows"][0]
+    assert (r["root"], r["qty"], r["dq"], r["act"]) == ("TY", 0, -10, "平倉") and v["net_w"] is None
+    assert _fv([], []) is None                                         # 前後都沒有期貨 → 不出區塊
+    assert eh.fut_view({"fut": None, "prev_fut": [_fu("UB:2026-12:B", "", 1, 1.0)]}) is None
+    first = eh.fut_view({"date": "2026-10-21", "fut": [_fu("UB:2026-12:B", "超長美債", 87, 36.55)]})
+    assert first["cmp"] is False and first["rows"][0]["dq"] is None    # 沒有前一揭露日 → 不比
+
+
+def test_fut_view_cross_source_compares_only_common_contracts():
+    v = _fv([_fu("UB:2026-12:B", "超長美債", 87, 36.55), _fu("TY:2026-12:B", "10 年期", 5, 2.0)],
+            [_fu("UB:2026-12:B", "超長美債", 90, 37.0), _fu("FV:2026-12:B", "5 年期", 3, 1.0)],
+            src="fhtrust", psrc="etfinfo")
+    by = {r["root"]: r for r in v["rows"]}
+    assert set(by) == {"UB", "FV"} and by["UB"]["dq"] == 3
+    assert by["FV"]["dq"] is None and by["FV"]["act"] is None          # 只有一邊有：不判定新建
+    assert v["xsrc"] == ["etfinfo", "fhtrust"]
+
+
+def test_dashboard_shows_futures_block_without_touching_holdings():
+    """期貨不進持股權重、方塊圖與貢獻；詳情卡另有「期貨部位」區塊與卡片摘要。"""
+    entry = eh.merge_one(_fe("2026-10-20", [_fu("UB:2026-12:B", "超長美債", 87, 36.55)]),
+                         {**_fe("2026-10-21", [_fu("UB:2026-12:B", "超長美債", 97, 40.1)]),
+                          "holdings": [_h("US912810UW61", "T 5 1/8 08/15/56", 15920000, 59.66),
+                                       _h("US912810UT33", "T 5 05/15/56", 7550000, 27.75)]})
+    doc = {"etfs": {"00987D": entry}}
+    eh.annotate(doc, {}, pd=None)
+    det = eh.view(doc, "00987D")
+    assert det["sum_weight"] == 87.4 and det["fut"]["net_w"] == 40.1
+    assert "fut" not in doc["etfs"]["00987D"]["detail"]                # 落檔 detail 不被改動
+    p = fd._eh_payload(det, "主動統一美國公債量化增益")
+    assert p["fu"]["r"] == [["UB", "超長美債", 97, 40.1, "2026-12", 10, "多單加碼", ""]]
+    assert p["fc"] == 1 and all(m[0] != "UB:2026-12:B" for m in p["mv"])
+    assert fd._eh_fut_sub(p["fu"]) == "・期貨 +10 口"
+    html = fd._etf_detail_view({"items": [{"code": "00987D", "name": "主動統一美國公債量化增益",
+                                           "kind": "active"}]}, doc)
+    assert "期貨 +10 口" in html and '"fu":' in html
+    # 沒有期貨的 ETF：payload 不帶 fu
+    plain = eh.merge_one(DAY1, DAY2)
+    assert "fu" not in fd._eh_payload(eh.contributions(plain, {}))
+
+
+def test_dashboard_js_paints_futures_block():
+    for s in ("futblk", "function paintFut", "paintFut(box,e)", "期貨名目", "轉倉", "e.fc?"):
+        assert s in fd._JS, s
+    assert ".futexp{" in fd._CSS

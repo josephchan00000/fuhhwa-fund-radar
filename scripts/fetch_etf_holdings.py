@@ -60,7 +60,8 @@ def _from_etfinfo(code: str) -> tuple[list[dict], str | None, str, list[dict] | 
         return [], None, f"etfinfo ✗ {type(e).__name__}: {str(e)[:90]}", None
     rows = [{"stock_id": str(r["stock_id"]), "name": r.get("stock_name") or "",
              "shares": (int(r["shares"]) if r.get("shares") else None),
-             "weight": (float(r["weight"]) if r.get("weight") else None)}
+             "weight": (float(r["weight"]) if r.get("weight") else None),
+             **({"kind": r["kind"]} if r.get("kind") else {})}
             for r in raw]
     # 非持股列（MARGIN／應付買回款／扣除應付證券款／公債期貨）：etfinfo 的 PCF 快照會給、
     # 復華 assetsExcel 不給——不濾掉的話，主來源一切換就整批假「新增」、隔天整批假「出清」
