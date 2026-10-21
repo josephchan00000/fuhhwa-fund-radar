@@ -75,12 +75,17 @@ _NH_NAME = re.compile(
 # 期貨合約代號＝年月＋商品碼（`202609US`＝2026 年 9 月美國長債期貨、`202609TY`＝10 年期）。
 # 台股代號純數字、外股 etfinfo 給的是帶空格的 `TLTW US` → 不會誤殺。
 _NH_FUT = re.compile(r"^(20\d{2})(0[1-9]|1[0-2])[A-Z]{2,3}$")
+# 另兩種寫法（2026-10-21 盤查）：商品碼在前 `US202612`（00986D 的 etfinfo）、帶冒號
+# `UB:2026-12:B`（00987D 超長美債期貨，87 口、權重 36.55%）。ISIN 是 12 碼，不會誤殺。
+_NH_FUT2 = re.compile(r"^[A-Z]{2,3}(20\d{2})(0[1-9]|1[0-2])$"
+                      r"|^[A-Z0-9]{1,4}:(20\d{2})-(0[1-9]|1[0-2])(?::[A-Z0-9]{1,3})?$")
 
 
 def is_non_holding(sid: str, name: str = "") -> bool:
     """現金／保證金／應付款／期貨等「非持股列」→ True（不進 diff、不算加減碼）。"""
     sid = str(sid or "").strip()
-    return bool(_NH_ID.match(sid) or _NH_FUT.match(sid) or _NH_NAME.search(str(name or "")))
+    return bool(_NH_ID.match(sid) or _NH_FUT.match(sid) or _NH_FUT2.match(sid)
+                or _NH_NAME.search(str(name or "")))
 
 
 def drop_non_holdings(rows: list[dict]) -> list[dict]:

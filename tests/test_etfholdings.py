@@ -1404,8 +1404,13 @@ def test_非持股列被濾掉_現金保證金應付款期貨():
     assert [r["stock_id"] for r in kept] == [b["stock_id"] for b in _BONDS]
     # 真持股不可誤殺：台股 4 碼、etfinfo 的外股（帶交易所碼、有空格）、ISIN
     for sid, nm in (("2330", "台積電"), ("TLTW US", "iShares 20+ Year Treasury Bo"),
-                    ("US83368TBT43", "SOCGEN 7.367 01/10/53"), ("00878", "國泰永續高股息")):
+                    ("US83368TBT43", "SOCGEN 7.367 01/10/53"), ("00878", "國泰永續高股息"),
+                    ("US912810UW61", "T 5 1/8 08/15/56"), ("285A", "鎧俠"),
+                    ("300476 C2", "Victory Giant Technology Huizhou Co Ltd")):
         assert not eh.is_non_holding(sid, nm), sid
+    # 期貨另兩種寫法（2026-10-21）：商品碼在前、帶冒號（00987D 的超長美債期貨）
+    for sid, nm in (("US202612", "美國長債期"), ("UB:2026-12:B", "超長美債"), ("TY202603", "")):
+        assert eh.is_non_holding(sid, nm), sid
 
 
 def test_跨來源時不判定新增出清_只比共同持股():
