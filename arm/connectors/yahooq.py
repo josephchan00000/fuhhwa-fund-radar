@@ -50,12 +50,12 @@ _BBG2Y = {
     "CN": ".TO", "CT": ".TO",                              # 加拿大（TSX）
 }
 
-_FOREIGN_RE = re.compile(r"^([A-Z0-9/.\-]+)\s+([A-Z]{2})$")
+_FOREIGN_RE = re.compile(r"^([A-Z0-9/.\-]+)\s+([A-Z][A-Z0-9])$")   # 交易所碼兩碼（陸股通 C1／C2 帶數字）
 
 
 def to_yahoo(sid: str) -> str | None:
     """'NVDA US'→'NVDA'、'6981 JP'→'6981.T'、'BRK/B US'→'BRK-B'、'AV/ LN'→'AV.L'、
-    '300408 CH'→'300408.SZ'；不符樣式／未知交易所回 None。"""
+    '300408 CH'→'300408.SZ'、'600183 C1'→'600183.SS'、'992 HK'→'0992.HK'；不符樣式／未知交易所回 None。"""
     m = _FOREIGN_RE.match(str(sid or "").strip())
     if not m:
         return None
@@ -69,6 +69,13 @@ def to_yahoo(sid: str) -> str | None:
     # 6/9 開頭＝上海、其餘（0/3 開頭）＝深圳
     if exch in ("CH", "CG", "CS"):
         return tick + (".SS" if tick[:1] in "69" else ".SZ")
+    # 陸股通（北向）：彭博 C1＝滬股通（上海）、C2＝深股通（深圳）——市場由代號本身決定
+    #（2026-10-21：00412A 持有的生益科技 600183 C1、滬電 002463 C2 等原本對不到、漲跌一直是 —）
+    if exch in ("C1", "C2"):
+        return tick + (".SS" if exch == "C1" else ".SZ")
+    # 港股：彭博不補零（'992 HK'），Yahoo 一律至少 4 碼（'0992.HK'），否則查無
+    if exch == "HK" and tick.isdigit():
+        tick = str(int(tick)).zfill(4)
     suf = _BBG2Y.get(exch)
     if suf is None:
         return None
