@@ -30,7 +30,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from arm import clock, config as prodcfg, etfholdings, etfwatch, stockmeta   # noqa: E402
+from arm import clock, config as prodcfg, dayquotes, etfholdings, etfwatch, stockmeta   # noqa: E402
 from arm.connectors import etfinfo, fhtrust              # noqa: E402
 from arm.connectors.issuers import pcf                   # noqa: E402
 
@@ -269,33 +269,47 @@ def main() -> int:
     if probe_only:
         print(f"[探針] 成功 {len(fresh)}/{len(targets)}（🟢 構成相符 {n_match}、"
               f"◯ 單源 {n_single}、◐ 副源過舊 {n_weak}、⚠ 不符 {n_mismatch}）；未落檔。")
+        try:
+            _probe_quotes()
+        except Exception:                                 # noqa: BLE001 —— 探針出錯印出來，不擋後面的第三方探針
+            import traceback
+            traceback.print_exc()
         _probe_third_party()
         return 0
 
 
-    doc = etfholdings.merge(etfholdings.load(), fresh, diag)
-    quotes = _quotes()
+    old_doc = etfholdings.load()
+    doc = etfholdings.merge(old_doc, fresh, diag)
+    # 個股漲跌／收盤＝**最新交易日 pd 那一天**的官方值（2026-10-21 使用者：「漲跌幅是錯的」——
+    # 舊碼抓 openapi「當下那份」：證交所隔天清晨才更新、櫃買當晚就更新，晚上那幾班上市＝前一天、
+    # 上櫃＝當天，39% 的列錯日；見 docs/etf_chg_fix_plan.md）。上市、上櫃一定同一天。
+    pd, quotes, qinfo = dayquotes.latest()
+    print(f"  · {dayquotes.describe(qinfo)}")
+    pending: set[str] = set()
     # 海外持股報價 ← Yahoo（2026-08-05 使用者：「海外的也幫我補」）：補當日漲跌／貢獻；
-    # 帶 ccy 幣別、_moves 不把外幣算成金額（跨幣別面積不可比）。抓不到照舊顯示 —。
-    try:
-        from arm.connectors import yahooq
-        f_sids = {str(h.get("stock_id")) for e in (doc.get("etfs") or {}).values()
-                  for h in (e.get("holdings") or [])} | \
-                 {sid for e in (doc.get("etfs") or {}).values()
-                  for sid in (e.get("prev") or {})}
-        fq = yahooq.fetch_foreign_quotes(f_sids)
-        for k, v in fq.items():
-            quotes.setdefault(k, v)                       # 不覆蓋台股官方報價
-        print(f"  · 海外報價（Yahoo）✓ {len(fq)} 檔"
-              f"（候選 {sum(1 for s in f_sids if yahooq.to_yahoo(s))} 檔）")
-    except Exception as e:                                # noqa: BLE001 —— 海外補源失敗不影響台股
-        print(f"  ⚠ 海外報價（Yahoo）不可得：{type(e).__name__}: {str(e)[:80]}")
+    # 帶 ccy 幣別、_moves 不把外幣算成金額（跨幣別面積不可比）。
+    # 2026-10-21 起只收**當地 pd 那天已收盤**的價格（盤中價不用）；還沒收盤＝待收盤，下一班補。
+    if pd:
+        try:
+            from arm.connectors import yahooq
+            f_sids = {str(h.get("stock_id")) for e in (doc.get("etfs") or {}).values()
+                      for h in (e.get("holdings") or [])} | \
+                     {sid for e in (doc.get("etfs") or {}).values()
+                      for sid in (e.get("prev") or {})}
+            fq, pending, fst = yahooq.fetch_foreign_on(f_sids, pd)
+            for k, v in fq.items():
+                quotes.setdefault(k, v)                   # 不覆蓋台股官方報價
+            print(f"  · 海外報價（Yahoo，當地 {pd} 已收盤）✓ {fst['ok']} 檔｜待收盤 {fst['pend']}"
+                  f"｜休市或查無 {fst['none']}｜抓不到 {fst['fail']}"
+                  f"（候選 {sum(1 for s in f_sids if yahooq.to_yahoo(s))} 檔）")
+        except Exception as e:                            # noqa: BLE001 —— 海外補源失敗不影響台股
+            print(f"  ⚠ 海外報價（Yahoo）不可得：{type(e).__name__}: {str(e)[:80]}")
     ind = _industry()
+    etfholdings.annotate(doc, quotes, ind, pd=pd, pending=pending, prior_doc=old_doc)
     if quotes:
-        etfholdings.annotate(doc, quotes, ind)
-        print(f"  ✓ 當日貢獻歸因：個股報價 {len(quotes)} 檔｜產業別 {len(ind)} 檔")
+        print(f"  ✓ 當日貢獻歸因：報價日 {pd}｜個股報價 {len(quotes)} 檔｜產業別 {len(ind)} 檔")
     else:
-        print("  ⚠ 個股報價不可得 → 沿用既有貢獻明細（不覆寫成空）")
+        print("  ⚠ 台股報價不可得 → 各檔沿用上一班的報價日與數值（不混日、不覆寫成空）")
     ok = etfholdings.save(doc)
     print(f"{'✓ 落檔' if ok else '⚠ 本次全空、保留既有落檔'} {etfholdings.DATA_FP}"
           f"（{len(doc.get('etfs') or {})} 檔有揭露；本次 {len(fresh)} 檔：🟢 {n_match}"
@@ -360,15 +374,35 @@ def _industry() -> dict[str, str]:
     return doc.get("industry") or {}
 
 
-def _quotes() -> dict[str, dict]:
-    out: dict[str, dict] = {}
-    for mod in ("twse", "tpex"):
-        try:
-            from importlib import import_module
-            out.update(import_module(f"arm.connectors.{mod}").fetch_today_all())
-        except Exception as e:                            # noqa: BLE001
-            print(f"  ⚠ {mod} 個股報價不可得：{type(e).__name__}: {str(e)[:80]}")
-    return out
+def _probe_quotes() -> None:
+    """報價探針（2026-10-21）：只印不落檔——
+    ① 最新交易日 pd、上市上櫃來源與自我檢查；② **指定日期版**（MI_INDEX／櫃買 dailyQuotes）對前一交易日
+    再抓一次並自檢——早上 openapi 已是最新日、正式流程不會走到指定日期版，探針要保證那條路也驗得到；
+    ③ 幾檔海外的最後三根日線與正規時段（驗證「剛收盤那根空值」與盤中判斷）。"""
+    from datetime import date
+    from arm.connectors import yahooq
+    print("\n[報價探針] 最新交易日官方表＋指定日期版＋海外已收盤判斷")
+    pd, quotes, info = dayquotes.latest()
+    print(f"  · {dayquotes.describe(info)}")
+    for code in ("2330", "2317", "3037", "6223", "5274"):
+        print(f"      {code}：{quotes.get(code)}")
+    base = pd or dayquotes.candidates()[0]
+    prev = dayquotes.prev_trading_day(date.fromisoformat(base)).isoformat()
+    for name, fn in (("上市 MI_INDEX", dayquotes.fetch_twse), ("上櫃 dailyQuotes", dayquotes.fetch_tpex)):
+        q, st = fn(prev)
+        if q:
+            ok, n = dayquotes.selfcheck(q, prev)
+            sample = {k: q[k] for k in ("2330", "3037", "6223") if k in q}
+            print(f"  · 指定日期 {prev} {name}：{len(q)} 檔｜自檢 {ok}/{n}｜樣本 {sample}")
+        else:
+            print(f"  · 指定日期 {prev} {name}：✗ {st}")
+    for sym in ("NVDA", "AAPL", "6981.T", "005930.KS", "ABN.AS", "SDLF.L"):
+        print("      " + yahooq.describe_bars(sym))
+    if pd:
+        fq, pend, st = yahooq.fetch_foreign_on({"NVDA US", "AAPL US", "6981 JP", "005930 KS",
+                                                "ABN NA", "SDLF LN"}, pd)
+        got = {k: (v["close"], v["change"]) for k, v in fq.items()}
+        print(f"  · 海外當地 {pd}：{st}｜{got}｜待收盤 {sorted(pend)}")
 
 
 def _latest_trade_date() -> str | None:

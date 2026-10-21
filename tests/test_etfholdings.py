@@ -74,18 +74,20 @@ def test_contributions_skip_unpriced_holdings():
 
 
 def test_annotate_never_wipes_detail_without_quotes():
+    """報價整段不可得 → 沿用上一班的報價日與各列數值（2026-10-21 起：同一報價日才沿用）。"""
     doc = {"etfs": {"X": {**eh.merge_one(DAY1, DAY2)}}}
-    eh.annotate(doc, QUOTES)
+    eh.annotate(doc, QUOTES, pd="2026-07-28")
     keep = doc["etfs"]["X"]["detail"]
     eh.annotate(doc, {})                                  # 報價整段不可得
     assert doc["etfs"]["X"]["detail"] == keep
+    assert keep["pd"] == "2026-07-28" and keep["total_contrib"] == 1.8
 
 
 # ── 渲染 ─────────────────────────────────────────────────────────
 
 def test_dashboard_payload_carries_moves_and_holdings():
     """ETF 詳情（2026-07-30 改版）：內容由前端依內嵌資料渲染，故渲染測試改測 payload。"""
-    d = eh.contributions(eh.merge_one(DAY1, DAY2), QUOTES)
+    d = eh.contributions(eh.merge_one(DAY1, DAY2), QUOTES, pd="2026-07-28")
     pl = fd._eh_payload(d, "測試 ETF")
     kinds = {m[4] for m in pl["mv"]}
     assert {"add", "new", "out"} <= kinds                 # 加碼／新增／出清都在異動清單
@@ -1316,7 +1318,7 @@ def test_etf_detail_holding_intro_is_shared_not_per_etf():
     data = json.loads(raw)
     assert "intro" in data and isinstance(data["intro"], dict)
     for p in data["etfs"].values():                              # 列裡不再帶簡介
-        assert all(len(r) == 7 for r in p["al"])
+        assert all(len(r) == 8 for r in p["al"])                 # 第 8 欄＝待收盤旗標（2026-10-21）
     assert "INTRO[r[0]]" in fd._JS                               # 前端依代號查
     assert 'class="introw"' in fd._JS                            # 簡介獨立整寬一列
 
@@ -1440,3 +1442,113 @@ def test_dashboard_揭露跨來源時說明清楚():
     det = eh.contributions(eh.merge_one(day1, day2), None)
     assert fd._eh_payload(det, "主動復華金融債息")["xs"] == ["etfinfo", "fhtrust"]
     assert "新增／出清不予判定" in fd._JS
+
+
+# ── 報價日（2026-10-21 使用者：「ETF持股異動那邊，漲跌幅是錯的」；docs/etf_chg_fix_plan.md） ──
+# 盤查：舊碼不看日期——晚上那幾班上市＝前一天、上櫃＝當天；快照較舊的 ETF 配到別天的漲跌；
+# 海外收到盤中價。現在：所有報價都是最新交易日 pd 那一天，每列記 qd，網頁只顯示 qd＝pd 的數字。
+
+PD = "2026-07-28"
+QD = {k: {**v, "date": PD} for k, v in QUOTES.items()}
+
+
+def test_rows_carry_quote_date_and_reject_other_day_quotes():
+    q = {**QD, "2454": {**QD["2454"], "date": "2026-07-27"}}         # 聯發科這筆是前一天的
+    d = eh.contributions(eh.merge_one(DAY1, DAY2), q, pd=PD)
+    by = {r["stock_id"]: r for r in d["all"]}
+    assert d["pd"] == PD and by["2330"]["qd"] == PD and by["2330"]["chg_pct"] == 10.0
+    assert by["2454"]["chg_pct"] is None and by["2454"]["qd"] is None  # 別天的報價不用
+    assert d["total_contrib"] == 2.2
+
+
+def test_missing_rows_reuse_prior_run_only_for_the_same_quote_date():
+    entry = eh.merge_one(DAY1, DAY2)
+    prior = eh.contributions(entry, QD, pd=PD)
+    # 這班聯發科沒抓到 → 沿用上一班同一報價日的值
+    d = eh.contributions(entry, {"2330": QD["2330"]}, pd=PD, prior=prior)
+    by = {r["stock_id"]: r for r in d["all"]}
+    assert by["2454"]["chg_pct"] == -5.0 and by["2454"]["qd"] == PD
+    # 報價日不同 → 不沿用
+    d2 = eh.contributions(entry, {"2330": {**QD["2330"], "date": "2026-07-29"}}, pd="2026-07-29", prior=prior)
+    by2 = {r["stock_id"]: r for r in d2["all"]}
+    assert by2["2454"]["chg_pct"] is None and by2["2330"]["qd"] == "2026-07-29"
+
+
+def test_pending_foreign_rows_are_flagged():
+    r1 = [_h("NVDA US", "NVIDIA", 10000, 8.0), _h("2330", "台積電", 1000, 20.0)]
+    entry = eh.merge_one({"date": "d1", "src": "etfinfo", "holdings": r1},
+                         {"date": "2026-07-28", "src": "etfinfo", "holdings": r1})
+    d = eh.contributions(entry, {"2330": QD["2330"]}, pd=PD, pending={"NVDA US"})
+    by = {r["stock_id"]: r for r in d["all"]}
+    assert by["NVDA US"]["pend"] is True and by["NVDA US"]["chg_pct"] is None
+    assert by["2330"]["pend"] is False and d["n_pend"] == 1
+
+
+def test_annotate_without_quotes_keeps_prior_quote_date_but_recomputes_holdings():
+    """這班完全拿不到台股報價：持股與異動照最新揭露重算，漲跌沿用上一班的報價日（整張表同一天）。"""
+    old = {"etfs": {"X": eh.merge_one(DAY1, DAY2)}}
+    eh.annotate(old, QD, pd=PD)
+    day3 = {"date": "2026-07-29", "src": "test",
+            "holdings": [_h("2330", "台積電", 1500, 25.0), _h("2454", "聯發科", 300, 8.0),
+                         _h("2603", "長榮", 100, 2.0)]}
+    doc = eh.merge(old, {"X": day3})
+    assert "detail" not in doc["etfs"]["X"]                # 新揭露的 entry 不帶舊 detail → 要靠 prior_doc
+    eh.annotate(doc, {}, prior_doc=old)
+    det = doc["etfs"]["X"]["detail"]
+    by = {r["stock_id"]: r for r in det["all"]}
+    assert det["date"] == "2026-07-29" and det["pd"] == PD                 # 新快照、舊報價日
+    assert by["2330"]["chg_pct"] == 10.0 and by["2330"]["shares"] == 1500
+    assert by["2603"]["chg_pct"] is None                                   # 新進持股留白
+
+
+def test_annotate_derives_quote_date_from_quotes():
+    doc = {"etfs": {"X": eh.merge_one(DAY1, DAY2)}}
+    eh.annotate(doc, QD)
+    assert doc["etfs"]["X"]["detail"]["pd"] == PD
+
+
+def test_dashboard_payload_hides_other_day_and_legacy_numbers():
+    d = eh.contributions(eh.merge_one(DAY1, DAY2), QD, pd=PD)
+    d["all"][0]["qd"] = "2026-07-27"                       # 假設有一列混進別天（防線）
+    pl = fd._eh_payload(d)
+    by = {r[0]: r for r in pl["al"]}
+    bad = d["all"][0]["stock_id"]
+    assert by[bad][4] is None and by[bad][5] is None and by[bad][6] is None
+    assert pl["pd"] == PD and pl["tc"] == round(sum(r[6] for r in pl["al"] if r[6] is not None), 2)
+    # 舊格式（沒有 pd）：漲跌、收盤、貢獻一律不顯示，合計貢獻為 —
+    legacy = eh.contributions(eh.merge_one(DAY1, DAY2), QUOTES)
+    legacy.pop("pd", None)
+    pl2 = fd._eh_payload(legacy)
+    assert all(r[5] is None and r[6] is None for r in pl2["al"]) and pl2["tc"] is None
+
+
+def test_dashboard_payload_and_js_show_pending_and_both_dates():
+    r1 = [_h("NVDA US", "NVIDIA", 10000, 8.0), _h("2330", "台積電", 1000, 20.0)]
+    r2 = [_h("NVDA US", "NVIDIA", 11000, 8.5), _h("2330", "台積電", 1000, 19.5)]   # 股數權重全等會被當成同一份快照
+    entry = eh.merge_one({"date": "2026-07-24", "src": "etfinfo", "holdings": r1},
+                         {"date": "2026-07-27", "src": "etfinfo", "holdings": r2})
+    d = eh.contributions(entry, {"2330": QD["2330"]}, pd=PD, pending={"NVDA US"})
+    pl = fd._eh_payload(d)
+    by = {r[0]: r for r in pl["al"]}
+    assert by["NVDA US"][7] == 1 and by["2330"][7] == 0 and pl["np"] == 1
+    assert pl["d"] == "2026-07-27" and pl["pd"] == PD       # 快照日與報價日不同 → 前端兩個都標
+    js = fd._JS
+    assert "function pdTag(e)" in js and "不同日" in js and "漲跌為同日收盤" in js
+    assert "待收盤" in js and "已收盤" in js
+    assert "當地市場最近收盤" not in js                      # 舊說法（收到盤中價）已移除
+
+
+def test_same_day_graft_survives_a_new_disclosure():
+    """早上那班已補到美股（報價日 pd），下一班持股換新揭露、Yahoo 剛好抓不到 → 仍沿用同一報價日的值。"""
+    r1 = [_h("NVDA US", "NVIDIA", 10000, 8.0), _h("2330", "台積電", 1000, 20.0)]
+    r2 = [_h("NVDA US", "NVIDIA", 11000, 8.5), _h("2330", "台積電", 900, 19.0)]
+    old = {"etfs": {"X": eh.merge_one({"date": "2026-07-27", "src": "etfinfo", "holdings": r1},
+                                      {"date": "2026-07-28", "src": "etfinfo", "holdings": r2})}}
+    nv = {"close": 185.5, "change": 5.5, "ccy": "USD", "date": PD}
+    eh.annotate(old, {"2330": QD["2330"], "NVDA US": nv}, pd=PD)
+    r3 = [_h("NVDA US", "NVIDIA", 12000, 9.0), _h("2330", "台積電", 900, 18.5)]
+    doc = eh.merge(old, {"X": {"date": "2026-07-29", "src": "etfinfo", "holdings": r3}})
+    eh.annotate(doc, {"2330": QD["2330"]}, pd=PD, prior_doc=old)           # 這班沒有 NVDA 報價
+    by = {r["stock_id"]: r for r in doc["etfs"]["X"]["detail"]["all"]}
+    assert by["NVDA US"]["chg_pct"] == round(5.5 / 180.0 * 100, 2) and by["NVDA US"]["qd"] == PD
+    assert by["NVDA US"]["shares"] == 12000                                 # 持股照新揭露

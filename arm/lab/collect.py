@@ -43,7 +43,9 @@ def snaps_from_holdings(doc: dict, *, skip: set[str] | None = None) -> dict:
                     h[sid] = [r.get("shares"), r.get("weight")]
             px = {}
             det = e.get("detail") or {}
-            if det.get("date") == d:
+            # 收盤要是「揭露當天」的：2026-10-21 起明細的收盤是報價日 pd（最新交易日）那天的，
+            # 持股快照較舊時 pd≠d → 不收（舊格式沒有 pd，照舊）。docs/etf_chg_fix_plan.md
+            if det.get("date") == d and det.get("pd", d) == d:
                 for r in det.get("all") or []:
                     sid = str(r.get("stock_id") or "").strip()
                     if sid and r.get("close") is not None:

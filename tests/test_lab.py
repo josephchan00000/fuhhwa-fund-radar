@@ -1556,3 +1556,23 @@ def test_opportunity_and_strategy_views_show_judgement_not_letter_grades():
     opp = js.split("function vOpp(", 1)[1].split("\nfunction ", 1)[0]
     assert "A、B 級" not in opp and "★ 好策略、● 可參考" in opp
     assert "'判定':" in js and "capTxt(e.tier)" in js
+
+
+def test_pos_px_only_takes_closes_from_the_disclosure_day():
+    """ETF 部位分片的「揭露當下收盤」：2026-10-21 起持股明細的收盤是報價日 pd（最新交易日）的——
+    快照較舊（pd≠揭露日）時不可當成揭露日的收盤（docs/etf_chg_fix_plan.md）。舊格式沒有 pd，照舊。"""
+    from arm.lab import collect
+
+    def doc(pd):
+        det = {"date": "2026-10-19", "all": [{"stock_id": "NVDA US", "close": 217.09, "ccy": "USD"},
+                                            {"stock_id": "2330", "close": 2420.0, "ccy": None}]}
+        if pd is not None:
+            det["pd"] = pd
+        return {"etfs": {"00988A": {"date": "2026-10-19", "src": "etfinfo", "detail": det,
+                                    "holdings": [{"stock_id": "2330", "shares": 1, "weight": 1.0}]}}}
+    same = collect.snaps_from_holdings(doc("2026-10-19"), skip=set())["2026-10-19"]["00988A"]
+    assert same["px"] == {"NVDA US": [217.09, "USD"], "2330": [2420.0, None]}
+    later = collect.snaps_from_holdings(doc("2026-10-20"), skip=set())["2026-10-19"]["00988A"]
+    assert later["px"] == {}
+    legacy = collect.snaps_from_holdings(doc(None), skip=set())["2026-10-19"]["00988A"]
+    assert legacy["px"] == same["px"]

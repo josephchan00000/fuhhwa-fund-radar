@@ -32,7 +32,7 @@ def _num(x) -> float | None:
         return None
 
 
-def fetch_today_all(**kw) -> dict[str, dict]:
+def fetch_today_all(rwd_fallback: bool = True, **kw) -> dict[str, dict]:
     """回傳 {code: {date,name,close,change,volume}}，與 twse.fetch_today_all 同格式。
 
     上櫃每日收盤含 Close/Change/TradingShares；date 為 ISO。取不到單欄即 None。
@@ -41,16 +41,19 @@ def fetch_today_all(**kw) -> dict[str, dict]:
     GET 失敗（同站 basic 端點正常），全部上櫃持股的當日漲跌／貢獻整片變 —。
     openapi 掛掉時自動改走官方 rwd `dailyQuotes`（同資料、不同管線），並把診斷印進
     CI 日誌（本容器 proxy 擋 tpex，日誌是唯一除錯管道）。
+    rwd_fallback=False＝只要 openapi（arm/dayquotes 自己會抓指定日期版，不需這層備援）。
     """
     try:
         rows = get_json(ALL_URL, cache_ttl=1800, **kw)
         out = _from_openapi(rows)
         if out:
             return out
-        print(f"  · tpex openapi 每日收盤 0 列（型別 {type(rows).__name__}）→ 改試 rwd dailyQuotes")
+        print(f"  · tpex openapi 每日收盤 0 列（型別 {type(rows).__name__}）"
+              + ("→ 改試 rwd dailyQuotes" if rwd_fallback else ""))
     except Exception as e:                                # noqa: BLE001 —— 換備援端點
-        print(f"  · tpex openapi 每日收盤失敗（{type(e).__name__}: {str(e)[:90]}）→ 改試 rwd dailyQuotes")
-    return _from_rwd()
+        print(f"  · tpex openapi 每日收盤失敗（{type(e).__name__}: {str(e)[:90]}）"
+              + ("→ 改試 rwd dailyQuotes" if rwd_fallback else ""))
+    return _from_rwd() if rwd_fallback else {}
 
 
 def _from_openapi(rows) -> dict[str, dict]:
@@ -80,6 +83,7 @@ def _from_rwd() -> dict[str, dict]:
     解析 0 列時把回應鍵名與首列印進日誌（同 stockmeta 慣例，一輪收斂）。"""
     from datetime import timedelta
     from .. import clock
+    from ..lab.market import tpex_date_mismatch
     d = clock.today_tw()                                  # 容器/CI 多為 UTC，台北清晨會差一天
     tried = 0
     while tried < 5:
@@ -92,6 +96,12 @@ def _from_rwd() -> dict[str, dict]:
                 except Exception as e:                    # noqa: BLE001
                     print(f"  · tpex rwd {ds} ✗ {type(e).__name__}: {str(e)[:70]}")
                     continue
+                # 回應自帶資料日≠請求日（尚未公布或休市時回最近交易日）→ 不可貼上請求日的標籤，
+                # 往前一天找（2026-10-21：舊碼照收，會把前一天的漲跌標成今天）
+                bad = tpex_date_mismatch(doc, d.isoformat())
+                if bad:
+                    print(f"  · tpex rwd {ds} {bad[7:]} → 往前一天")
+                    break
                 rows = _rwd_rows(doc)
                 if rows:
                     iso = d.isoformat()
