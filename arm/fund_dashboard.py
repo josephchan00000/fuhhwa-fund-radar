@@ -1134,6 +1134,24 @@ def chg_trust(i: dict) -> tuple[str, str]:
     ao, pa = i.get("as_of"), (i.get("chg_asof") or i.get("perf_asof"))
     if not (ao and pa):
         return "ok", ""                                  # 缺日期資訊 → fail-open 照顯示
+    # 前一點不是前一個交易日＝兩天合計的漲跌（2026-10-21：Yahoo 下午「有今天、少昨天」，0050 顯示 −0.0%、
+    # 官方 +0.84%）。日期看起來對，最容易誤導——只重建、不重抓的班次也不可把落檔裡的這種值顯示出來。
+    pd_ = i.get("prev_date")
+    if pd_ and i.get("chg_asof"):
+        from . import dayquotes
+        try:
+            want = dayquotes.prev_trading_day(date.fromisoformat(str(i["chg_asof"])[:10])).isoformat()
+        except (TypeError, ValueError):
+            want = None
+        if want and str(pd_)[:10] != want:
+            return "bad", (f"這格是 {str(pd_)[:10]} 到 {str(i['chg_asof'])[:10]} 的漲跌（中間少了 {want}），"
+                           f"不是當日漲跌，暫不顯示；下一次更新會重算")
+    # 除息日沒扣配息＝把配息算成跌幅（2026-10-21 00986D：−0.77%，對除息參考價是 −0.14%）。
+    # etfinfo 的 last_div_date 就是除息日（7/22 起 67 次除息與 Yahoo 事件日期、金額全同）。
+    ca = str(i.get("chg_asof") or "")[:10]
+    if ca and i.get("last_div") and str(i.get("last_div_date") or "")[:10] == ca and not i.get("chg_ex_div"):
+        return "bad", (f"{ca} 除息（每單位 {i['last_div']:g} 元），這格的漲跌沒有扣配息，"
+                       f"暫不顯示；下一次更新會重算")
     if pa == ao:
         return "ok", ""
     try:
