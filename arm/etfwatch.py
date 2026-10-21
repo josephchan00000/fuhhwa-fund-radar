@@ -649,6 +649,12 @@ def _returns_from_series(close: dict[str, float], divs: dict[str, float] | None 
     return out
 
 
+def _div_on(item: dict, iso: str) -> float:
+    """etfinfo 給的最近一次配息剛好在 iso 那天除息 → 每單位配息，否則 0（Yahoo 除息事件沒有時的備援）。"""
+    v = item.get("last_div")
+    return float(v) if v and str(item.get("last_div_date") or "")[:10] == iso else 0.0
+
+
 def _prev_td(iso: str) -> str | None:
     """iso 的前一個台股交易日（證交所官方休市表，arm/dayquotes 同一支）；日期解析不了 → None。"""
     try:
@@ -777,11 +783,14 @@ def _anchor_series(series: dict[str, float], anchor: dict | None) -> dict[str, f
     return out
 
 
-def _fetch_returns(code: str, today: date | None = None, anchor: dict | None = None) -> dict:
+def _fetch_returns(code: str, today: date | None = None, anchor: dict | None = None,
+                   divs: dict[str, float] | None = None) -> dict:
     """過去一週／一月報酬 —— 多來源、單檔單請求，取第一個「乾淨且夠密」的序列。
 
     來源順序：stooq（乾淨日線）→ Yahoo → FinMind → TWSE。序列須 ≥ _MIN_SERIES 點且非「重複值
-    髒序列」才採用；回傳 ret_src／ret_n／基準日供追查；全失敗回 None（上層退回底稿）。"""
+    髒序列」才採用；回傳 ret_src／ret_n／基準日供追查；全失敗回 None（上層退回底稿）。
+    divs＝其他來源已知的除息（fetch() 傳 etfinfo 最近一次配息），與 Yahoo 除息事件合併、同一天以 Yahoo 為準
+    ——除息當天 Yahoo 常還沒有事件（2026-10-21 00986D 照原始收盤算成 −0.77%，對除息參考價是 −0.14%）。"""
     today = today or clock.today_tw()
     best = None
     relax = code in bond_codes()                       # 債券型：放寬「髒序列」門檻（收盤天然重複）
@@ -798,7 +807,7 @@ def _fetch_returns(code: str, today: date | None = None, anchor: dict | None = N
             continue
         # 除息事件取自 Yahoo（_yahoo_series 順帶存 _DIV_EVENTS）；stooq 先中選時視窗除息
         # 資訊未載入（維持價格口徑）——CI 實務上 stooq 對台股 ETF 多半抓不到、以 Yahoo 為主。
-        r = _returns_from_series(series, _DIV_EVENTS.get(code))
+        r = _returns_from_series(series, {**(divs or {}), **(_DIV_EVENTS.get(code) or {})})
         r["ret_src"], r["ret_n"] = src, n
         # 註：一週==一月報酬是「該檔近月盤整（兩基準日同價）」的合理結果，非錯值——不再據此判髒
         # （2026-07-06 教訓：0056 6月盤整於 51.8，週≈月≈2.8% 是對的；曾誤攔正確資料）。
@@ -933,7 +942,9 @@ def fetch() -> dict:
             # 上市 etfinfo 實測逐日與官方同值），確保週／月報酬與收盤價永遠同一天。
             anchor = ({"date": item["as_of"], "close": item["close_px"]}
                       if item.get("as_of") and item.get("close_px") else None)
-            r = _fetch_returns(code, anchor=anchor)
+            known = ({str(item["last_div_date"])[:10]: float(item["last_div"])}
+                     if item.get("last_div") and item.get("last_div_date") else None)
+            r = _fetch_returns(code, anchor=anchor, divs=known)
             if r.get("ret_1w") is not None:
                 item["ret_1w"] = r["ret_1w"]
             if r.get("ret_1m") is not None:
@@ -964,6 +975,14 @@ def fetch() -> dict:
         except Exception as e:
             print(f"  ⚠ {code} 報酬抓取失敗（沿用既有值／週報底稿）：{e}")
 
+        # 沿用的舊漲跌也要驗：前一點不是前一個交易日（修法前存下的「今天對前天」）→ 作廢，讓下面兩道
+        # 備案重算（2026-10-21：00929、00408A 除息日官方表不比價、序列又缺昨天，舊錯值標著當天一直留著）
+        pd0, ca0 = item.get("prev_date"), item.get("chg_asof")
+        want0 = _prev_td(ca0) if ca0 else None
+        if pd0 and want0 and pd0 != want0:
+            for k in ("chg_pct", "chg_amt", "prev_close", "prev_date", "chg_ex_div", "chg_asof", "chg_src"):
+                item[k] = None
+
         # ②-b 當日漲跌備案 L1＝官方全市場當日收盤表（2026-09-03 使用者：「沒辦法從其他
         # 地方補嗎？」）──序列缺當日 bar 時的**第一順位**備案：TWSE／TPEx openapi 直接給
         # 當日 close 與 change，官方權威（非 Tier B）、整輪只 2 請求、市價口徑與 close_px 一致。
@@ -984,7 +1003,7 @@ def fetch() -> dict:
             if ref:
                 item["chg_amt"], item["chg_pct"] = round(qch, 4), round(qch / ref * 100, 2)
                 # 除息日 ref＝除息參考價：前收＝參考價＋配息，渲染端 tooltip 才算得回同一個參考價
-                exd = round((_DIV_EVENTS.get(code) or {}).get(qd) or 0, 4)
+                exd = round((_DIV_EVENTS.get(code) or {}).get(qd) or _div_on(item, qd), 4)
                 item["prev_close"] = round(ref + exd, 4) if exd else ref
                 item["prev_date"], item["chg_ex_div"] = _prev_td(qd), exd or None
                 item["chg_asof"], item["chg_src"] = qd, "twse_today"
@@ -1006,7 +1025,7 @@ def fetch() -> dict:
             if px is not None and ppx is not None and ppd and ppd == _prev_td(ao):
                 # 除息日仍以「除息參考價＝前收 − 每單位配息」為基準（同 _returns_from_series；
                 # etfinfo 是市價、跨除息不還原，不扣就會把整段配息算成跌幅）
-                exd = round((_DIV_EVENTS.get(code) or {}).get(ao) or 0, 4)
+                exd = round((_DIV_EVENTS.get(code) or {}).get(ao) or _div_on(item, ao), 4)
                 ref = round(ppx - exd, 4) if exd else ppx
                 if ref:
                     item["chg_amt"] = round(px - ref, 4)
