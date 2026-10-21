@@ -130,7 +130,7 @@
     }
   ],
   "group": "tw_balanced",
-  "fetched_at": "2026-10-21 19:14",
+  "fetched_at": "2026-10-21 21:11",
   "returns_daily": {
     "1m": -1.95224,
     "3m": 9.78087,
@@ -138,5 +138,5 @@
     "1y": 85.85879,
     "ytd": 61.30125
   },
-  "returns_daily_asof": "2026/10/20"
+  "returns_daily_asof": "2026/10/21"
 }
