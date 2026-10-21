@@ -210,6 +210,21 @@ def check_ok(ok: int, n: int) -> bool:
     return n < CHECK_MIN_N or ok >= CHECK_MIN_RATE * n
 
 
+def unknown_x(q: dict[str, dict], prev: dict[str, float]) -> tuple[dict[str, dict], int]:
+    """漲跌 0、收盤卻不等於前一交易日收盤＝不比價（除權息等）→ 漲跌改 None（未知）。→ (報價, 改了幾檔)
+
+    證交所 openapi 這種列的 Change 給 0：2026-09-23 1808 除息 1.5（對參考價 −4.78%）、2542 除息 4.0（−4.58%），
+    隔天清晨那版持股明細都顯示 0.0%。MI_INDEX 標 X、櫃買寫「除息」本來就解析成 None。前一交易日收盤不知道就不動。"""
+    out, n = {}, 0
+    for code, v in q.items():
+        pc, c = prev.get(code), v.get("close")
+        if v.get("change") == 0 and pc and c is not None and abs(c - pc) > CHECK_TOL:
+            v = {**v, "change": None}
+            n += 1
+        out[code] = v
+    return out, n
+
+
 # ── 主流程 ───────────────────────────────────────────────────────────
 
 def _on_date(oa: dict | None, d: str) -> dict:
@@ -258,6 +273,7 @@ def latest(now: datetime | None = None, *, today_all: dict | None = None,
             info["tried"].append(f"{d} 上櫃 {tp_src} {tp_st}")
             continue
         prev = prev_closes(d) if prev_closes else _prev_closes(d)
+        (tw, x_tw), (tp, x_tp) = unknown_x(tw, prev), unknown_x(tp, prev)
         c_tw, c_tp = selfcheck(tw, d, prev), selfcheck(tp, d, prev)
         if not (check_ok(*c_tw) and check_ok(*c_tp)):
             info["tried"].append(f"{d} 自我檢查未過（上市 {c_tw[0]}/{c_tw[1]}、上櫃 {c_tp[0]}/{c_tp[1]}）")
@@ -265,7 +281,7 @@ def latest(now: datetime | None = None, *, today_all: dict | None = None,
         out = {k: {**v, "date": d, "src": f"tp_{tp_src}"} for k, v in tp.items()}
         out.update({k: {**v, "date": d, "src": f"tw_{tw_src}"} for k, v in tw.items()})
         info.update({"T": d, "tw_src": tw_src, "tp_src": tp_src, "tw_n": len(tw), "tp_n": len(tp),
-                     "tw_check": c_tw, "tp_check": c_tp})
+                     "tw_check": c_tw, "tp_check": c_tp, "x_n": x_tw + x_tp})
         return d, out, info
     return None, {}, info
 
@@ -279,6 +295,8 @@ def describe(info: dict) -> str:
         return f"{ok}/{n}（{ok / n:.0%}）" if n else "略過（前一交易日分片不存在）"
     s = (f"台股報價日 {info['T']}：上市 {info['tw_src']} {info['tw_n']} 檔・自檢 {ck(info['tw_check'])}"
          f"｜上櫃 {info['tp_src']} {info['tp_n']} 檔・自檢 {ck(info['tp_check'])}")
+    if info.get("x_n"):
+        s += f"｜不比價（除權息等）{info['x_n']} 檔漲跌留空"
     if info.get("tried"):
         s += "｜先試過：" + "；".join(info["tried"])
     return s
