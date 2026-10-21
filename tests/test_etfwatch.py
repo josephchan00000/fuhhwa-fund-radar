@@ -1323,6 +1323,7 @@ def test_官方報價先走dayquotes_拿不到才看openapi(monkeypatch):
         "tw_check": (0, 0), "tp_check": (0, 0)}))
     monkeypatch.setattr(twse, "fetch_today_all", _boom)
     monkeypatch.setattr(tpex, "fetch_today_all", _boom)
+    monkeypatch.setattr(dayquotes, "refresh_exright", lambda *a, **k: 0)    # 測試不打外網
     assert _REAL_DAY_QUOTES() == q
 
     monkeypatch.setattr(dayquotes, "latest", lambda *a, **k: (None, {}, {"tried": ["x"]}))
@@ -1426,3 +1427,25 @@ def test_網頁端_除息日沒扣配息的漲跌不顯示():
     assert "0.77%" not in fund_dashboard._chg_cell(row)
     assert fund_dashboard.chg_trust(dict(row, chg_pct=-0.14, chg_ex_div=0.09))[0] == "ok"
     assert fund_dashboard.chg_trust(dict(row, last_div_date="2026-09-17"))[0] == "ok"   # 不是除息日
+
+
+def test_除息日官方表有除權息參考價時採用官方值(monkeypatch):
+    """dayquotes 用證交所除權息計算結果表補的漲跌（帶 ref、pc）是官方值：00929 10/21 前收 29.26、
+    參考價 28.88、收 29.29 → +0.41（+1.42%），前收與配息照官方表寫，tooltip 算得回參考價。"""
+    prev = {"items": [{"code": "00929", "close_px": 29.26, "as_of": "2026-10-20",
+                       "last_div": 0.38, "last_div_date": "2026-10-21"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(29.29, "2026-10-21"))
+    _yahoo_only(monkeypatch, _ramp("2026-10-21", skip={"2026-10-20"}, last=29.29,
+                                   prev={"2026-10-19": 29.35}))
+    monkeypatch.setitem(etfwatch._DIV_EVENTS, "00929", {})
+    monkeypatch.setattr(etfwatch, "_official_day_quotes", _day_q(
+        {"00929": {"date": "2026-10-21", "close": 29.29, "change": 0.41, "ref": 28.88, "pc": 29.26}}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00929"]
+    assert i["chg_src"] == "twse_today" and i["chg_pct"] == 1.42
+    assert i["prev_close"] == 29.26 and i["chg_ex_div"] == 0.38 and i["prev_date"] == "2026-10-20"
+    assert "除息參考價 28.88" in fund_dashboard._chg_cell(i)
+
