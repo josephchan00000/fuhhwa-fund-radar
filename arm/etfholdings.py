@@ -19,7 +19,8 @@ detail.pd＝報價日、每列 qd＝該列報價日、pend＝海外當地還沒�
     {"as_of": 抓取時戳,
      "etfs": {code: {"date": 揭露日, "prev_date": 前一揭露日, "src": 來源標記,
                      "holdings": [{"stock_id","name","shares","weight"}],
-                     "prev": {stock_id: {"shares","weight"}}}},
+                     "prev": {stock_id: {"shares","weight"}},
+                     "fut": [期貨列], "prev_fut": [前一揭露日的期貨列]}},   # 見「期貨部位」
      "diag": {code: 抓取診斷字串}}
 
 合併鐵則（同專案慣例）：本次抓到才推進；抓不到＝原封保留既有揭露，**絕不洗成空**。
@@ -94,6 +95,154 @@ def drop_non_holdings(rows: list[dict]) -> list[dict]:
             if not is_non_holding(r.get("stock_id"), r.get("name") or r.get("stock_name"))]
 
 
+# ── 期貨部位（2026-10-21 使用者同意另列：00987D 的期貨是量化多空策略的本體） ──────────
+#
+# 期貨照舊不進持股 diff，理由不變：①換月——代號一季一換，用代號比會變成「出清＋新增」；
+# ②權重是名目曝險——期貨只付保證金，00987D 兩檔公債 87.41%＋期貨 36.55%＝約 124%；
+# ③口數和股數／面額不能比大小。但 00987D「主動統一美國公債量化增益」看多時用期貨把美債曝險
+# 拉到 120%～130%、看空時用期貨對沖——期貨口數才是經理人現在的判斷，丟掉它，持股詳情只剩
+# 兩檔一直抱著的公債。所以**另存一區**：
+#   entry["fut"]      ＝本次揭露的期貨列 [{"id","name","qty"(口數，空單為負),"weight"(名目%),"amt"}]
+#   entry["prev_fut"] ＝前一揭露日的期貨列（揭露日推進時由 fut 降級，規則同 prev）
+# fut 為 None＝主來源沒有揭露期貨（Yahoo 月度前十大）；[]＝有揭露、沒有期貨部位。
+_FUT_NOT = re.compile(r"保證金|MARGIN|應付|應收|PAYABLE|RECEIVABLE|現金|存款|DEPOSIT", re.I)
+
+
+def is_future(sid: str, name: str = "") -> bool:
+    """期貨合約列 → True（另存「期貨部位」）。保證金、應付款等其他非持股列不算。"""
+    sid, name = str(sid or "").strip(), str(name or "")
+    if _NH_ID.match(sid) or _FUT_NOT.search(name):
+        return False
+    return bool(_NH_FUT.match(sid) or _NH_FUT2.match(sid) or "期貨" in name)
+
+
+def fut_row(sid, name, qty, weight, amt=None) -> dict:
+    """期貨列統一格式（各來源共用）。"""
+    nm = clean_name(str(name or "").strip())
+    return {"id": str(sid or "").strip(), "name": nm or None,
+            "qty": (int(round(float(qty))) if qty is not None else None),
+            "weight": (round(float(weight), 4) if weight is not None else None),
+            "amt": (round(float(amt)) if amt is not None else None)}
+
+
+def split_futures(rows: list[dict]) -> tuple[list[dict], list[dict]]:
+    """→ (持股列, 期貨列)。持股列同 drop_non_holdings；期貨列轉成 fut_row 格式另存。"""
+    fut = [fut_row(r.get("stock_id"), r.get("name") or r.get("stock_name"),
+                   r.get("shares"), r.get("weight"), r.get("market_value"))
+           for r in (rows or [])
+           if is_future(r.get("stock_id"), r.get("name") or r.get("stock_name"))]
+    return drop_non_holdings(rows), fut
+
+
+# 合約代號 → (商品代號, 月份)：`UB:2026-12:B`、`US202612`、`202609TY`、彭博式 `TYZ6`
+_FK_COLON = re.compile(r"^([A-Z0-9]{1,4}):(20\d{2})-(0[1-9]|1[0-2])(?::[A-Z0-9]{1,3})?$")
+_FK_ROOT_YM = re.compile(r"^([A-Z]{1,4})(20\d{2})(0[1-9]|1[0-2])$")
+_FK_YM_ROOT = re.compile(r"^(20\d{2})(0[1-9]|1[0-2])([A-Z]{1,4})$")
+_FK_LETTER = re.compile(r"^([A-Z]{1,4}?)([FGHJKMNQUVXZ])(\d{1,2})(?:\s+[A-Z]+)?$")
+_MCODE = "FGHJKMNQUVXZ"                  # 期貨月份代碼，依序 1～12 月
+
+
+def fut_key(sid) -> tuple[str, str | None]:
+    """期貨代號 → (商品代號, 'YYYY-MM')。同一商品換月份＝轉倉，不算平倉再新建。
+    認不出格式的代號整串當商品代號、月份 None（同代號照樣比口數，只是看不出換月）。"""
+    s = str(sid or "").strip().upper()
+    m = _FK_COLON.match(s) or _FK_ROOT_YM.match(s)
+    if m:
+        return m.group(1), f"{m.group(2)}-{m.group(3)}"
+    m = _FK_YM_ROOT.match(s)
+    if m:
+        return m.group(3), f"{m.group(1)}-{m.group(2)}"
+    m = _FK_LETTER.match(s)
+    if m:
+        y = int(m.group(3))
+        if y >= 10:
+            y += 2000
+        else:                                   # 一位數年份：取最近的那一個十年
+            now = clock.today_tw().year
+            y += now - now % 10
+            if y < now - 2:
+                y += 10
+        return m.group(1), f"{y:04d}-{_MCODE.index(m.group(2)) + 1:02d}"
+    return s, None
+
+
+def _signed_w(w, q):
+    """名目曝險帶方向（空單為負）。來源可能把空單權重寫成正數，一律看口數正負。"""
+    if w is None or not q:
+        return w
+    return abs(w) if q > 0 else -abs(w)
+
+
+def _fut_groups(rows: list[dict] | None) -> dict[str, dict]:
+    g: dict[str, dict] = {}
+    for r in rows or []:
+        root, ym = fut_key(r.get("id"))
+        x = g.setdefault(root, {"name": None, "qty": 0, "w": 0.0, "nw": 0, "yms": set()})
+        x["name"] = x["name"] or r.get("name")
+        x["qty"] += r.get("qty") or 0
+        w = _signed_w(r.get("weight"), r.get("qty"))
+        if w is not None:
+            x["w"] += w
+            x["nw"] += 1
+        if ym:
+            x["yms"].add(ym)
+    return g
+
+
+def _fut_act(a: dict | None, b: dict | None) -> str:
+    """這次相對前一揭露日做了什麼（a＝本次、b＝前次，皆為 _fut_groups 的一項）。"""
+    qa, qb = (a or {}).get("qty") or 0, (b or {}).get("qty") or 0
+    side = "多單" if qa > 0 else ("空單" if qa < 0 else "")
+    if not qb:
+        return "新建" + side if qa else "不變"
+    if not qa:
+        return "平倉"
+    if (qa > 0) != (qb > 0):
+        return "多單轉空單" if qb > 0 else "空單轉多單"
+    if qa == qb:
+        return "不變"
+    return side + ("加碼" if abs(qa) > abs(qb) else "減碼")
+
+
+def fut_view(entry: dict | None) -> dict | None:
+    """「期貨部位」區塊資料（純比較、不需網路）。主來源沒揭露期貨、或本次與前次都沒有期貨 → None。
+
+    每個商品一列（同商品不同月份合在一起）：口數、名目曝險%（空單為負）、比前一揭露日加減幾口
+    （dq＞0＝曝險變多）；月份換了＝轉倉。前一揭露日出自不同來源時，兩邊揭露範圍未必一致 →
+    只比兩邊都有的商品（同持股的 xsrc 規則：新建／平倉不判定）。"""
+    e = entry or {}
+    fut, prev = e.get("fut"), e.get("prev_fut")
+    if fut is None or not (fut or prev):
+        return None
+    cmp_ok = prev is not None and bool(e.get("prev_date"))
+    src, psrc = e.get("src"), e.get("prev_src")
+    xsrc = bool(cmp_ok and src and psrc and src != psrc)
+    now, pre = _fut_groups(fut), (_fut_groups(prev) if cmp_ok else {})
+    rows = []
+    for root in list(now) + [k for k in pre if k not in now]:
+        a, b = now.get(root), pre.get(root)
+        if xsrc and not (a and b):
+            if not a:
+                continue
+            b = None
+        r = {"root": root, "name": (a or b)["name"],
+             "qty": a["qty"] if a else 0,
+             "w": (round(a["w"], 2) if a["nw"] else None) if a else 0.0,
+             "ym": sorted(a["yms"]) if a else [], "pym": sorted(b["yms"]) if b else [],
+             "dq": None, "act": None, "roll": False}
+        if b is not None or (cmp_ok and not xsrc):
+            r["dq"] = r["qty"] - ((b or {}).get("qty") or 0)
+            r["act"] = _fut_act(a, b)
+            r["roll"] = bool(a and b and a["yms"] and b["yms"] and a["yms"] != b["yms"])
+            if r["roll"]:
+                r["act"] = "轉倉" if r["act"] == "不變" else r["act"] + "・轉倉"
+        rows.append(r)
+    ws = [r["w"] for r in rows if r["qty"] and r["w"] is not None]
+    return {"rows": rows, "net_w": round(sum(ws), 2) if ws else None,
+            "date": e.get("date"), "prev_date": e.get("prev_date") if cmp_ok else None,
+            "cmp": cmp_ok, "xsrc": [psrc, src] if xsrc else None}
+
+
 def clean_name(name):
     """還原名稱裡的 HTML／XML 實體（`M&amp;G` → `M&G`）。
 
@@ -148,7 +297,8 @@ def merge_one(old: dict | None, new: dict | None) -> dict | None:
     if old.get("date") and old["date"] == new.get("date"):
         return _drop_fake_prev({**new, "prev": old.get("prev") or {},
                                 "prev_date": old.get("prev_date"),
-                                "prev_src": old.get("prev_src")})
+                                "prev_src": old.get("prev_src"),
+                                "prev_fut": old.get("prev_fut")})
     # 「同一份檔案被標成新的揭露日」防呆（2026-07-30 使用者抓到 00991A 假的「沒有變化」）：
     # 復華 assetsExcel 的資料日是**我們請求的日期**（`fhtrust.fetch_holdings` 回 iso_date），
     # 檔案本身可能還是舊的一份 → 揭露日往前跳、內容卻一模一樣，於是舊快照被降級成 prev、
@@ -160,7 +310,8 @@ def merge_one(old: dict | None, new: dict | None) -> dict | None:
         return _drop_fake_prev({**new, "date": old["date"],
                                 "prev": old.get("prev") or {},
                                 "prev_date": old.get("prev_date"),
-                                "prev_src": old.get("prev_src")})
+                                "prev_src": old.get("prev_src"),
+                                "prev_fut": old.get("prev_fut")})
     # prev 一併存**名稱**（2026-07-30 使用者：有兩個股票代碼但沒有公司名）——
     # 出清標的今天已不在 holdings 裡，名稱只剩 prev 留得住；沒有它就只能顯示代號。
     prev = {sid: {"shares": h.get("shares"), "weight": h.get("weight"),
@@ -168,10 +319,12 @@ def merge_one(old: dict | None, new: dict | None) -> dict | None:
             for sid, h in _index(old.get("holdings") or []).items()}
     # prev_src＝那份 prev 是**哪個來源**抓的。沒有它就無從得知這次的 Δ 是跨源比較
     # （見 contributions 的來源切換防呆）。prev 沿用舊 prev 時 prev_src 也一併沿用。
+    # prev_fut＝前一揭露日的期貨列（見「期貨部位」）；舊落檔沒有 fut＝None，下一個揭露日起才比得出口數
     return _drop_fake_prev({**new, "prev": prev or (old.get("prev") or {}),
                             "prev_date": old.get("date") or old.get("prev_date"),
                             "prev_src": (old.get("src") if prev
-                                         else old.get("prev_src"))})
+                                         else old.get("prev_src")),
+                            "prev_fut": (old.get("fut") if prev else old.get("prev_fut"))})
 
 
 def _drop_fake_prev(entry: dict) -> dict:
@@ -179,7 +332,7 @@ def _drop_fake_prev(entry: dict) -> dict:
     留著它會讓儀表板顯示假的「本次無異動」；清掉後誠實顯示「尚無可對比的前一揭露日」。
     """
     if entry.get("prev") and _prev_key(entry["prev"]) == _snap_key(entry.get("holdings")):
-        return {**entry, "prev": {}, "prev_date": None, "prev_src": None}
+        return {**entry, "prev": {}, "prev_date": None, "prev_src": None, "prev_fut": None}
     return entry
 
 
@@ -485,12 +638,13 @@ def view(doc: dict | None, code: str) -> dict | None:
     """
     entry = ((doc or {}).get("etfs") or {}).get(code) or {}
     det = entry.get("detail")
+    fv = fut_view(entry)
     if (det or {}).get("all") or not entry.get("holdings"):
-        return _clean_detail(det)
+        return _with_fut(_clean_detail(det), fv)
     from . import stockmeta                     # 延遲載入：避免資料層互相 import
     fresh = contributions(entry, None, stockmeta.industry_map())
     if not fresh:
-        return det
+        return _with_fut(det, fv)
     priced = {r["stock_id"]: r for r in ((det or {}).get("rows") or [])}
     for r in fresh["all"]:
         o = priced.get(r["stock_id"])
@@ -500,4 +654,9 @@ def view(doc: dict | None, code: str) -> dict | None:
     for k in ("total_contrib", "covered_weight", "verify", "src", "pd", "n_pend"):
         if (det or {}).get(k) is not None:
             fresh[k] = det[k]
-    return _clean_detail(fresh)
+    return _with_fut(_clean_detail(fresh), fv)
+
+
+def _with_fut(det: dict | None, fv: dict | None) -> dict | None:
+    """detail 附上「期貨部位」（不改動落檔裡的 detail 物件）。"""
+    return {**det, "fut": fv} if (det and fv) else det

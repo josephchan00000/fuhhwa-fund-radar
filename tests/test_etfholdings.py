@@ -679,8 +679,9 @@ def test_fhtrust_source_maps_foreign_tickers(monkeypatch):
     monkeypatch.setattr(fh, "fetch_holdings", lambda fid, iso: {"holdings": [
         {"stock_id": f"T{i} US", "stock_name": f"Bank{i}", "kind": "equity",
          "shares": 1000 + i, "weight": 5.0 - i * 0.2} for i in range(8)]})
-    rows, asof, _self, log = m._from_fhtrust("00998A")
+    rows, asof, _self, log, fut = m._from_fhtrust("00998A")
     assert len(rows) == 8 and rows[0]["stock_id"] == "T0 US"
+    assert fut == []                                         # 有揭露、沒有期貨
     assert "fhtrust ✓" in log
 
 
@@ -693,10 +694,10 @@ def test_etfinfo_bond_etf_with_few_holdings_passes(monkeypatch):
     from arm.connectors import etfinfo as ei
     monkeypatch.setattr(ei, "fetch_etf", lambda code, cache_ttl=600: {
         "holdings": {"stocks": three, "snapshotDate": "2026-10-20"}})
-    rows, asof, log = m._from_etfinfo("00987D")
+    rows, asof, log, _fut = m._from_etfinfo("00987D")
     assert len(rows) == 3 and asof == "2026-10-20"
     assert "債券 ETF" in log and "US91282C0" in log
-    rows, asof, log = m._from_etfinfo("0050")                  # 股票 ETF：3 檔不像持股清單
+    rows, asof, log, _fut = m._from_etfinfo("0050")            # 股票 ETF：3 檔不像持股清單
     assert rows == [] and asof is None
     assert "門檻 10" in log and "US91282C0" in log              # 擋下時看得到是哪幾列
 
@@ -704,7 +705,7 @@ def test_etfinfo_bond_etf_with_few_holdings_passes(monkeypatch):
 def test_fhtrust_source_skips_unmapped_codes():
     """products.json 沒對映的檔（一般上市 ETF）回空——不會誤打復華官網。"""
     m = _fh_mod()
-    assert m._from_fhtrust("0050") == ([], None, False, "")
+    assert m._from_fhtrust("0050") == ([], None, False, "", None)
 
 
 def test_foreign_delta_and_render_without_tw_quotes():
@@ -730,8 +731,10 @@ def test_fhtrust_source_excludes_hedge_futures(monkeypatch):
           "shares": 1000, "weight": 5.0} for i in range(6)]
         + [{"stock_id": "TXF", "stock_name": "臺股期貨避險", "kind": "future",
             "shares": -20, "weight": None}])})
-    rows, _asof, _self, _log = m._from_fhtrust("00991A")
+    rows, _asof, _self, _log, fut = m._from_fhtrust("00991A")
     assert len(rows) == 6 and all(r["stock_id"] != "TXF" for r in rows)
+    # 期貨不進持股，另存「期貨部位」（2026-10-21）
+    assert fut == [{"id": "TXF", "name": "臺股期貨避險", "qty": -20, "weight": None, "amt": None}]
 
 
 def test_merge_rejects_date_regression():

@@ -52,12 +52,12 @@ _MIN_BOND_HOLDINGS = 1
 
 # ── 主來源：etfinfo ──────────────────────────────────────────────────
 
-def _from_etfinfo(code: str) -> tuple[list[dict], str | None, str]:
-    """→ (持股列, 快照日, 診斷)。抓不到／不像持股回 ([], None, 原因)。"""
+def _from_etfinfo(code: str) -> tuple[list[dict], str | None, str, list[dict] | None]:
+    """→ (持股列, 快照日, 診斷, 期貨列)。抓不到／不像持股回 ([], None, 原因, None)。"""
     try:
         raw, meta = etfinfo.holdings_fresh(code)
     except Exception as e:                                # noqa: BLE001 —— 每源獨立降級
-        return [], None, f"etfinfo ✗ {type(e).__name__}: {str(e)[:90]}"
+        return [], None, f"etfinfo ✗ {type(e).__name__}: {str(e)[:90]}", None
     rows = [{"stock_id": str(r["stock_id"]), "name": r.get("stock_name") or "",
              "shares": (int(r["shares"]) if r.get("shares") else None),
              "weight": (float(r["weight"]) if r.get("weight") else None)}
@@ -65,17 +65,18 @@ def _from_etfinfo(code: str) -> tuple[list[dict], str | None, str]:
     # 非持股列（MARGIN／應付買回款／扣除應付證券款／公債期貨）：etfinfo 的 PCF 快照會給、
     # 復華 assetsExcel 不給——不濾掉的話，主來源一切換就整批假「新增」、隔天整批假「出清」
     # （2026-08-05 使用者抓到 00986D 11 檔全標出清、其中 3 檔異動量還是正的）。
-    rows = etfholdings.drop_non_holdings(rows)
+    # 期貨列另存「期貨部位」（2026-10-21：00987D 的期貨是量化多空策略本體），不進持股。
+    rows, fut = etfholdings.split_futures(rows)
     rows = pcf._drop_value_like_shares(
         sorted(rows, key=lambda h: -(h.get("weight") or 0)))
     bond = code in etfwatch.bond_codes()
     why = pcf.implausible_reason(rows, min_n=_MIN_BOND_HOLDINGS if bond else None)
     if why:
-        return [], None, f"etfinfo {len(rows)} 檔未過驗證（{why}）｜{pcf.sample_rows(rows)}"
+        return [], None, f"etfinfo {len(rows)} 檔未過驗證（{why}）｜{pcf.sample_rows(rows)}", None
     asof = (str(meta.get("as_of"))[:10] or None) if meta.get("as_of") else None
     few = (f"｜債券 ETF、檔數少於 {pcf._MIN_HOLDINGS} 也收：{pcf.sample_rows(rows)}"
            if bond and len(rows) < pcf._MIN_HOLDINGS else "")
-    return rows, asof, f"etfinfo ✓ {len(rows)} 檔（快照日 {asof or '未標'}）{few}"
+    return rows, asof, f"etfinfo ✓ {len(rows)} 檔（快照日 {asof or '未標'}）{few}", fut
 
 
 
@@ -89,8 +90,8 @@ def _get_raw(url: str) -> bytes:
 
 # ── 本家來源：復華官網 assetsExcel（Tier A 第一手；外股/債券原生支援） ──
 
-def _from_fhtrust(code: str) -> tuple[list[dict], str | None, bool, str]:
-    """→ (持股列, 資料日, 日期是否為檔案自報, 診斷)。無對映的檔回 ([], None, False, "")。
+def _from_fhtrust(code: str) -> tuple[list[dict], str | None, bool, str, list[dict] | None]:
+    """→ (持股列, 資料日, 日期是否為檔案自報, 診斷, 期貨列)。無對映的檔回 ([], None, False, "", None)。
 
     與基金管線同一支 API（fhtrust.fetch_holdings）：外股列 stock_id 是 ticker
     （'C US'/'7167 JP'）、債券列 shares＝面額——Δ 比較照樣成立；台股報價對不到
@@ -98,7 +99,7 @@ def _from_fhtrust(code: str) -> tuple[list[dict], str | None, bool, str]:
     try:
         fid = prodcfg.product(code)["fund_id"]
     except Exception:
-        return [], None, False, ""
+        return [], None, False, "", None
     from datetime import timedelta
     d, tried, last = clock.today_tw(), 0, ""
     while tried < 5:
@@ -107,9 +108,13 @@ def _from_fhtrust(code: str) -> tuple[list[dict], str | None, bool, str]:
             iso = d.isoformat()
             try:
                 snap = fhtrust.fetch_holdings(fid, iso)
-                rows = []
+                rows, fut = [], []
                 for h in snap.get("holdings") or []:
-                    if h.get("kind") == "future":         # 期貨避險/轉倉不算持股變化（舊管線慣例）
+                    # 期貨避險/轉倉不算持股變化（舊管線慣例）——另存「期貨部位」（2026-10-21）
+                    if h.get("kind") == "future":
+                        fut.append(etfholdings.fut_row(
+                            h.get("stock_id"), h.get("stock_name"), h.get("shares"),
+                            h.get("weight"), h.get("market_value")))
                         continue
                     sid = str(h.get("stock_id") or "").strip() or str(h.get("stock_name") or "").strip()
                     if not sid:
@@ -127,12 +132,12 @@ def _from_fhtrust(code: str) -> tuple[list[dict], str | None, bool, str]:
                     src_note = ("檔案自報" if self_dated
                                 else f"⚠ 檔案未見日期、沿用請求日 {iso}")
                     return (rows, asof, self_dated,
-                            f"fhtrust ✓ {len(rows)} 檔（{fid}，{asof}・{src_note}）")
+                            f"fhtrust ✓ {len(rows)} 檔（{fid}，{asof}・{src_note}）", fut)
                 last = f"fhtrust {iso} 解析 {len(rows)} 檔/帶權重 {with_w}（未過驗證）"
             except Exception as e:                        # noqa: BLE001 —— 換前一平日再試
                 last = f"fhtrust ✗ {type(e).__name__}: {str(e)[:80]}"
         d -= timedelta(days=1)
-    return [], None, False, last
+    return [], None, False, last, None
 
 
 # ── 副來源：Yahoo 股市持股頁（SSR 內嵌 JSON、月度基準 → 只做構成驗證） ──
@@ -202,8 +207,8 @@ def main() -> int:
             for c, e in ((etfholdings.load() or {}).get("etfs") or {}).items()}
     for code, _kind in targets:
         # 本家檔（products.json 有對映）＝第一手優先；其餘 etfinfo 主
-        f_rows, f_asof, f_self, log0 = _from_fhtrust(code)
-        e_rows, e_asof, log1 = _from_etfinfo(code)
+        f_rows, f_asof, f_self, log0, f_fut = _from_fhtrust(code)
+        e_rows, e_asof, log1, e_fut = _from_etfinfo(code)
         y_rows, log3 = ([], "")
         if not (f_rows and e_rows):                       # 已有兩源就不必再打 Yahoo（節流）
             y_rows, log3 = _from_yahoo(code)
@@ -259,11 +264,20 @@ def main() -> int:
         # 名稱一律還原 HTML 實體（`M&amp;G` → `M&G`）：來源若給跳脫過的字串，網頁再跳脫一次就顯示成字面
         rows = [({**r, "name": etfholdings.clean_name(r["name"])} if "&" in str(r.get("name") or "") else r)
                 for r in rows]
+        # 期貨列跟著主來源走（同一份揭露）；Yahoo 是月度前十大、沒有期貨 → None（不顯示期貨區）
+        fut = {"fhtrust": f_fut, "etfinfo": e_fut}.get(src)
         fresh[code] = {"date": asof or fallback_date,
-                       "src": src, "verify": verify, "holdings": rows}
+                       "src": src, "verify": verify, "holdings": rows, "fut": fut}
         mark = {"match": "🟢", "single": "◯", "mismatch": "⚠", "weak": "◐"}[verify["status"]]
         logs = "｜".join(x for x in (log0, log1, log3) if x)
         print(f"  {mark} {code}：{len(rows)} 檔（{src}）｜{logs}")
+        for s, fl in (("fhtrust", f_fut), ("etfinfo", e_fut)):
+            if fl:
+                print(f"      · 期貨列（{s}{'，採用' if s == src else ''}）：" + "；".join(
+                    f"{x['id']} {x['name'] or ''} {x['qty']} 口 名目 {x['weight']}%"
+                    + (f" 金額 {x['amt']}" if x.get("amt") is not None else "") for x in fl[:6]))
+        if probe_only:
+            _probe_fut_raw(code, {x["id"] for x in e_fut or []})
         # 列宇宙差異診斷（2026-08-05）：非持股列已過濾，剩下的「只有一源有」就是**真的**
         # 涵蓋差異——例如 00986D 的 TLTW US（權重 3.5% 的 ETF 部位）只出現在 etfinfo，
         # 若復華 xlsx 也該有它，那就是 fhtrust 解析漏了某個區段。容器 proxy 擋兩站，
@@ -423,6 +437,27 @@ def _probe_quotes() -> None:
                                                 "ABN NA", "SDLF LN"}, pd)
         got = {k: (v["close"], v["change"]) for k, v in fq.items()}
         print(f"  · 海外當地 {pd}：{st}｜{got}｜待收盤 {sorted(pend)}")
+
+
+def _probe_fut_raw(code: str, ids: set[str]) -> None:
+    """探針：etfinfo 期貨列的原始欄位（全部鍵）＋其他被丟掉的非持股列——
+    確認期貨與保證金、應付款分得對（2026-10-21 加期貨部位時）。只印不落檔。"""
+    import json
+    try:
+        d = etfinfo.fetch_etf(code, cache_ttl=600)
+    except Exception as e:                                # noqa: BLE001
+        print(f"      · 期貨原始欄位（etfinfo）✗ {type(e).__name__}")
+        return
+    h = d.get("holdings") or {}
+    raw = h.get("stocks") or h.get("holdings") or []
+    for r in raw:
+        if str(r.get("code")) in ids:
+            print(f"      · 期貨原始欄位（etfinfo）：{json.dumps(r, ensure_ascii=False)[:300]}")
+    other = [f"{r.get('code')} {r.get('name') or ''}" for r in raw
+             if etfholdings.is_non_holding(r.get("code"), r.get("name"))
+             and not etfholdings.is_future(r.get("code"), r.get("name"))]
+    if other:
+        print(f"      · 其他非持股列（etfinfo，丟掉）：{'；'.join(other[:8])}")
 
 
 def _latest_trade_date() -> str | None:
