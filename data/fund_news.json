@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/21 18:42",
+  "as_of": "2026/10/21 18:38",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -578,7 +578,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
       "date": "2026-10-18",
-      "views": 5686
+      "views": 5679
     },
     {
       "platform": "youtube",
@@ -586,7 +586,7 @@
       "channel": "財富閒叔跡",
       "url": "https://www.youtube.com/watch?v=0Fqy5W9z8JM",
       "date": "2026-10-15",
-      "views": 977
+      "views": 979
     },
     {
       "platform": "youtube",
@@ -594,7 +594,7 @@
       "channel": "寶傑點兵／寶傑怎麼說",
       "url": "https://www.youtube.com/watch?v=sWtVhEHFKoI",
       "date": "2026-10-16",
-      "views": 161306,
+      "views": 161301,
       "peer": true,
       "cat": "主動式"
     },
@@ -604,7 +604,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
       "date": "2026-10-17",
-      "views": 141791,
+      "views": 141776,
       "peer": true,
       "cat": "高股息"
     },
@@ -624,7 +624,7 @@
       "channel": "九八新聞台",
       "url": "https://www.youtube.com/watch?v=A8QXBj_oWj4",
       "date": "2026-10-17",
-      "views": 118497,
+      "views": 118494,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -634,7 +634,7 @@
       "channel": "HSBC Hong Kong",
       "url": "https://www.youtube.com/shorts/lTkYQAOPZ_Q",
       "date": "2026-10-16",
-      "views": 94799,
+      "views": 94722,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -666,7 +666,7 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
       "date": "2026-10-17",
-      "views": 65711,
+      "views": 65749,
       "peer": true,
       "cat": "主動式"
     },
@@ -676,7 +676,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
       "date": "2026-10-19",
-      "views": 41383,
+      "views": 41370,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -687,7 +687,7 @@
       "channel": "陳智霖股票分析師 Equity Research Analyst",
       "url": "https://www.youtube.com/shorts/Dx2D_E6LksY",
       "date": "2026-10-19",
-      "views": 22224,
+      "views": 22169,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -697,6 +697,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A（詳下方新聞標籤）",
     "品牌焦點：「九倍女戰神」操盤00418A！00418A成分股有哪些？會配息嗎、何時上市？ | 數位時代（LINE TODAY）",
     "社群聲量最高：升息怕股市崩？低利率未必賺更多！70年藏金圖打破升降息迷思（0 推）",
-    "YouTube 熱片：一缸子全是台積電！主動式ETF遭外資提款引爆共伴效應...神山慘挨刀！11月前最難熬該怎麼避險？ - 黃世聰 林友銘 蘇威元 劉寶傑《寶傑點兵》20261016-1（寶傑點兵／寶傑怎麼說・161,306 次觀看）"
+    "YouTube 熱片：一缸子全是台積電！主動式ETF遭外資提款引爆共伴效應...神山慘挨刀！11月前最難熬該怎麼避險？ - 黃世聰 林友銘 蘇威元 劉寶傑《寶傑點兵》20261016-1（寶傑點兵／寶傑怎麼說・161,301 次觀看）"
   ]
 }
