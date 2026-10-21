@@ -517,7 +517,10 @@ def test_scenario_table(monkeypatch):
     txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h)))
     assert h.count('<details class="sqr') == 3 and 'class="sqr on" id="sq-SC2"' in h
     assert h.index('id="sq-SC2"') < h.index('id="sq-SC1"')                   # 現在成立的排最上面
-    assert "現在成立的 1 個排在最上面" in txt and "現在・2026/7/17 起" in txt
+    assert "現在成立的 1 個列在上面" in txt and "現在・2026/7/17 起" in txt
+    # 2026-10-21 起在「之後怎麼走？」面板裡：沒成立的收起來（docs/lab_noise_plan.md 第 11 節）
+    assert '<details class="osq"><summary>其他 2 個情境（現在沒有成立）</summary>' in h
+    assert h.index('id="sq-SC2"') < h.index('<details class="osq">') < h.index('id="sq-SC1"')
     assert "基本面 ≥ 60（現在 94 ）・技術 < 40（現在 33 ）" in txt              # 「<」要跳脫，不能被當成標籤吞掉
     assert "&lt; 40" in h and "資金 ≥ 60（現在 31 ）" in txt                     # 台股資金＝(17＋45)÷2
     assert "65% 隨便挑一天 63%" in txt and "38% 隨便挑一天 35%" in txt and "3 個月內大跌（回撤 10% 以上）" in txt
@@ -530,6 +533,7 @@ def test_scenario_table(monkeypatch):
     assert not any(w in txt for w in BANNED)
     V2 = {**V, "signow": {"on": {}}}
     assert "現在成立的 0 個" in html.unescape(VZ.scen_html(V2)) and 'class="sqr on"' not in VZ.scen_html(V2)
+    assert '<details class="osq" open><summary>全部 3 個情境' in VZ.scen_html(V2)       # 沒有成立的：全部列出來、展開
     monkeypatch.setattr(G, "research_rows", lambda: [])
     assert "情境的研究結果還沒產生" in VZ.scen_html(V)
     # 美股不寫台股的說明
@@ -580,7 +584,7 @@ def test_now_section(monkeypatch):
     assert "52 個月：實際 58%（隨便挑一天 66%）" in txt and "−0.054～−0.014" in txt
     assert h.count('class="nsh"') == 3 and 'id="nsall"' in h and "看全部 8 段" in txt   # 前 5 段以外收起來
     assert "2010/2/1" in txt and "−8.5%" in txt and "1.0" in txt
-    assert 'href="#sq-SC2"' in h and "景氣好、價格回檔" in txt
+    assert 'href="#sq-' not in h and "<h2" not in h                              # 面板裡：標題由收合列給、情境就在上一段
     assert not any(w in txt for w in BANNED)
     # 過去沒有很像的日子、籌碼今天沒有分數、研究檔沒有、最像的不到 5 段
     monkeypatch.setattr(VZ, "sim_research", lambda mk: {})
@@ -594,14 +598,93 @@ def test_now_section(monkeypatch):
     assert "情緒籌碼 87" in re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", hu))) and "台股" not in hu
 
 
-def test_now_and_scenario_sections_placed_before_items_and_in_state_line(built, monkeypatch):
+def test_outlook_drawer_replaces_now_and_scenario_sections(built, monkeypatch):
+    """2026-10-21（docs/lab_noise_plan.md 第 4、11 節；使用者 10/20 選「雷達按鈕打開的面板」）：「現在的情境」「所有情境」不在主畫面，
+    改成雷達卡片裡「之後怎麼走？」按鈕打開右側面板（template ot-out）；目錄、市場狀態那一行、對照圖都打開同一個面板。"""
     _, _, V, page = built
-    assert page.index('id="today"') < page.index('id="now"') < page.index('id="scen"') < page.index('id="items"') < page.index('id="cmp"')
-    assert '<a href="#now">現在的情境</a>' in page and '<a href="#scen">所有情境</a>' in page
+    i = page.index('<template id="ot-out"')
+    j = page.index("</template>", i)
+    main, body = page[:i] + page[j:], page[i:j]
+    assert 'id="now"' not in main and 'id="scen"' not in main and 'id="now"' in body and 'id="scen"' in body
+    assert page.index('id="today"') < page.index('id="items"') < page.index('id="cmp"')
+    assert 'href="#now"' not in page and 'href="#scen"' not in page
+    assert 'class="snout" data-open="out:out">之後怎麼走？</button>' in page
+    assert page.count('class="rout" data-open="out:out"') == 1 and page.index('class="rout"') < page.index('id="rtin"')
+    assert 'data-title="之後怎麼走？"' in body and '<details class="osim" id="o-sim">' in body
+    assert body.index("好訊號成立之後") < body.index("五個面向現在的位置") < body.index('id="scen"') < body.index('id="o-sim"')
+    assert 'data-open="out:out"' in page[page.index('<template id="dt-fund"'):]          # 面向面板也連得過去
     from arm.lab import heatpage as HP
     V2 = {**V, "mk": "tw", "signow": {"on": {"tw:scen:SC5": {"since": "2026-07-17", "n": 66}}}}
     line = HP.state_line(V2)
-    assert 'class="stc stw" href="#scen"' in line and "籌碼熱、價格轉弱" in line
+    assert 'data-open="out:out" data-to="scen"' in line and "籌碼熱、價格轉弱" in line
     assert "情境" not in HP.state_line({**V, "signow": {"on": {}}})
+    js = VZ.JS
+    assert "kind === 'out' ? 'ot-'" in js and "function oJump(id)" in js and "hget('o')" in js
+    assert "bx.dataset.ix !== ix0" in js                                                   # 美股頁：等切到網址上的指數再開
+    assert "window.heatScenHl(DC)" in js and "push: !!(DRW && DRW.contains(op))" in js
 
 
+def _board_v(fams_up, fams_warn, xsb=None):
+    from arm.lab import sigspec as SS
+    th = [{"k": k, "name": n, "h": h, "n": {"up": {"good": 0}, "warn": {"good": 0}}, "w": {"up": 0, "warn": 0},
+           "share": None, "lean": None} for k, n, h in SS.THERMO_HZ]
+    return {"up": fams_up, "warn": fams_warn, "thermo": th}
+
+
+def test_outlook_signals_table_and_summary(monkeypatch):
+    """面板第一段：現在成立的 ★（同類合併後一類一列），過去出現之後 1 週～1 年的上漲機率、報酬中位數、中途最多跌，
+    小字＝隨便挑一天；判定看的期間框起來；次數少的格子標次數。三支溫度計的一句話也用在雷達按鈕上。"""
+    from arm.lab import sigcat as G
+    from arm.lab import sigspec as SS
+    cells = [_cell(80 - k, 0.01 * (k + 1), 0.6 + 0.03 * k, -0.01 * (k + 1)) for k in range(len(SS.RET_H))]
+    cells[SS.RET_H.index(250)] = _cell(7, 0.15, 0.86, -0.08)
+    base = [_cell(5000, 0.005 * (k + 1), 0.55, -0.02 * (k + 1)) for k in range(len(SS.RET_H))]
+    monkeypatch.setattr(G, "research_bases", lambda: {"b9": {"s": base}})
+    up = {"id": "tw:heat:T4:cold", "name": "RSI（14 日）・過冷中", "cat": "heat", "var": "T4", "H": 20, "d": "up", "side": "up",
+          "hz": "short", "tier": "good", "edge": 0.23, "now": {"since": "2026-09-15"},
+          "up": {"hit": 0.81, "base": 0.58, "n": 82, "tier": "good"}, "ret": {"s": cells, "bk": "b9"},
+          "fam": [{"id": "tw:heat:T1:cold", "name": "對 20 日線乖離・過冷中", "cat": "heat"}]}
+    warn = {"id": "tw:multi:M2:hot_in", "name": "進入同時兩個以上面向過熱", "cat": "multi", "var": "M2", "H": 60, "d": "warn",
+            "side": "warn", "hz": "mid", "tier": "good", "edge": 0.38, "th": 0.10, "now": {"since": "2026-09-17"},
+            "warn": {"hit": 0.67, "base": 0.29, "n": 6, "tier": "good", "mdd": 0.12, "mdd_base": 0.06},
+            "ret": {"s": cells, "bk": "b9"}, "fam": []}
+    V = {"mk": "tw", "sigtoday": _board_v([up], [warn]), "xsb": [{"name": "RSI(2) 超賣反彈", "side": "up"}]}
+    assert VZ.out_summary(V) == "短線：偏多 1 類｜中線：警示 1 類｜長線：沒有好訊號"
+    h = VZ.out_sig(V)
+    txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h)))
+    assert h.count('class="ofam ofam-') == 2 and h.index("RSI（14 日）") < h.index("進入同時兩個以上面向過熱")   # 短線在前
+    assert "同時成立：對 20 日線乖離・過冷中" in txt and "之後 1 個月上漲的機率 81%" in txt
+    j20, j60 = SS.RET_H.index(20), SS.RET_H.index(60)
+    assert f"{cells[j20][5] * 100:.0f}%" in txt and f"{base[j20][5] * 100:.0f}%" in txt
+    t0 = h.index('class="ofam ofam-up"')
+    one = h[t0:h.index('class="ofam ofam-warn"')]
+    assert one.count('<th class="oj">') == 1 and '<th class="oj">1 個月</th>' in one        # 判定看 1 個月
+    assert '<th class="oj">3 個月</th>' in h[h.index('class="ofam ofam-warn"'):]
+    assert "7 次" in txt                                                                      # 次數少的格子標次數
+    assert "大跌（最大回撤 10% 以上）的機率 67%" in txt and "RSI(2) 超賣反彈" in txt
+    assert not any(w in txt for w in BANNED)
+    assert "現在沒有成立的好訊號" in VZ.out_sig({"mk": "tw", "sigtoday": _board_v([], [])})
+    assert "研究結果還沒產生" in VZ.out_sig({"mk": "tw"}) and VZ.out_summary({"mk": "tw"}) == "好訊號的研究結果還沒產生"
+
+
+def test_outlook_dims_use_zone_backtest(built):
+    """面板第二段：五個面向（泡沫不列）現在這一區，過去在這一區之後的平均、上漲機率、中途最多跌（括號＝所有日子）與研究判定。"""
+    _, _, V, _ = built
+    h = VZ.out_dims(V)
+    txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h)))
+    from arm.lab import heatpage as HP
+    shown = [d for d in V["dims"] if d not in HP.HIDE_DIMS]
+    assert h.count('class="odim"') == len(shown) and "泡沫" not in txt
+    L = next(L for d, L in V["dims"].items() if d in shown and L.get("band"))
+    e = VZ._zones(VZ._ev(L["cev"], L["fwd"][0]))
+    cur = e.get(L["band"]) or {}
+    if cur.get("n"):
+        assert f'上漲 {cur["up"]:.0f}%' in txt
+    assert not any(w in txt for w in BANNED)
+
+def test_outlook_lead_sentence():
+    from arm.lab import sigspec as SS
+    th = [{"k": k, "name": n, "h": h} for k, n, h in SS.THERMO_HZ]
+    V = {"sigtoday": {"up": [{"hz": "short"}, {"hz": "short"}, {"hz": "mid"}], "warn": [{"hz": "mid"}], "thermo": th}}
+    assert VZ.out_sentence(V) == "短線偏多 2 類；中線偏多 1 類、警示 1 類；長線沒有"
+    assert "——" not in VZ.out_tpl.__doc__ + VZ.out_sentence(V)

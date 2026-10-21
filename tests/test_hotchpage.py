@@ -166,7 +166,7 @@ def test_hotdd_note_names_chip_items_with_bigger_drawdowns():
 def test_card_is_wired_into_both_heat_pages_and_classes_are_prefixed():
     viz = (ROOT / "arm/lab/heatviz.py").read_text(encoding="utf-8")
     # 2026-10-19 起四張研究卡搬到訊號總覽（docs/lab_signal_plan.md 第 10 節 Q3）：景氣頁照樣算、不放進頁面，存給訊號總覽
-    assert "stash_cards(V)" in viz and "{top}{now_html(V)}{scen_html(V)}{items}" in viz and 'href="#hotch"' not in viz
+    assert "stash_cards(V)" in viz and "{top}{items}" in viz and 'href="#hotch"' not in viz
     sp = (ROOT / "arm/lab/sigpage.py").read_text(encoding="utf-8")
     assert "QP.CSS" in sp and '"hotch"' in sp
     assert "note=QP.hotdd_note(V.get(\"hotch\")) if hotch else None" in viz

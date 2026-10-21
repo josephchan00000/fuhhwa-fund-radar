@@ -1029,7 +1029,7 @@ function howHtml(r){ const x = r[I.x] || {};
   if (['heat', 'deriv', 'multi', 'crash', 'tech'].includes(r[I.cat]) && SG.chart[mk])
     h += '<p class="sgdl"><a href="' + (mk === 'tw' ? 'x9m.html' : 'x9mu.html#ix=' + mk) + '">在景氣頁看' + esc(SG.mk[mk]) + ' →</a></p>';
   if (r[I.cat] === 'scen' && SG.chart[mk])
-    h += '<p class="sgdl"><a href="' + (mk === 'tw' ? 'x9m.html#scen' : 'x9mu.html#ix=' + mk) + '">在景氣頁看' + esc(SG.mk[mk]) + '的全部情境 →</a></p>';
+    h += '<p class="sgdl"><a href="' + (mk === 'tw' ? 'x9m.html#o=scen' : 'x9mu.html#ix=' + mk + '&o=scen') + '">在景氣頁看' + esc(SG.mk[mk]) + '的全部情境 →</a></p>';
   return h; }
 function valAt(J, ck, d){ if (!J || !ck || !J.s[ck]) return null;
   const at = (s, k) => { if (k < 0 || !s) return null; const i = k - s.o; return i >= 0 && i < s.v.length ? s.v[i] : null; };
