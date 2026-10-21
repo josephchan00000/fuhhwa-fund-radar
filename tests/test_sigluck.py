@@ -134,6 +134,30 @@ def test_market_p_is_deterministic_and_separates_signal_from_noise():
     assert LK.rng_for("a").integers(0, 10 ** 9) == LK.rng_for("a").integers(0, 10 ** 9) != LK.rng_for("b").integers(0, 10 ** 9)
 
 
+def test_luck_count_uses_threshold_by_shifted_count():
+    """VER 14：運氣會產生幾個 ★——每一次平移用平移後的次數決定門檻（次數 < 15 是 10%，其餘 1%）。"""
+    T = 2400
+    rng = np.random.default_rng(4)
+    Yu = (rng.random(T) < 0.6).astype(float)
+    Yw = (rng.random(T) < 0.3).astype(float)
+    samp = np.arange(50, T - 30)
+    days = sorted(rng.choice(samp, size=9, replace=False).tolist())      # 次數少的訊號
+    for t in days:
+        Yu[t] = 1.0
+    sd = _event(days, samp, H=20, sid="tw:t:rare")
+    R = G.ev_stat(days, Yu, Yw, samp, 20, 2000)
+    got = LK.market_p(sd, Yu, Yw, 2000, R)["up"]["luck"]
+    sh = LK.Shift(sd, Yu, Yw)
+    rows = [LK._summ(*sh.occ(int(o)), 2000) for o in LK.offsets(LK.rng_for(sd["id"]), sh.L)]
+    hits = np.array([np.nan if x["up"][1] is None else x["up"][1] for x in rows])
+    pj = LK.loo_p(hits)
+    exp = sum(1 for j, x in enumerate(rows) if pj[j] <= S.luck_p(x["up"][0])
+              and LK.passes(*x["up"][:2], R["up"]["base"], *x["up"][2:], R["up"]["base10"], "up")) / len(rows)
+    old = sum(1 for j, x in enumerate(rows) if pj[j] <= S.LUCK_P
+              and LK.passes(*x["up"][:2], R["up"]["base"], *x["up"][2:], R["up"]["base10"], "up")) / len(rows)
+    assert abs(got - exp) < 1e-12 and got > old                # 次數少的平移多數用 10%，比只用 1% 多
+
+
 def test_tier_uses_p_and_thresholds():
     st = {"n": 7, "hit": 1.0, "base": 0.4, "n10": 0, "p": 0.003}
     assert G.tier(st, "up") == "good" and G.tier({**st, "p": 0.2}, "up") == "ref"

@@ -438,6 +438,8 @@ def test_dip_stats_base_and_luck():
     assert st["n"] == 3 and abs(st["win"] - np.mean([x > 0 for x in r])) < 1e-12 and abs(st["med"] - np.median(r)) < 1e-12
     base = [px[b + 60] / px[b] * (1 - c) / (1 + c) - 1 > 0 for b in range(251, 2000 - 60)]
     assert abs(st["base"] - np.mean(base)) < 1e-12
+    bnet = [px[b + 60] / px[b] * (1 - c) / (1 + c) - 1 for b in range(251, 2000 - 60)]
+    assert abs(st["bmed"] - np.median(bnet)) < 1e-12                               # VER 5：隨便挑一天的中位數
     mae = [max(0, 1 - px[b + 1:b + 61].min() / px[b]) for b in bs]
     assert abs(st["mae"] - np.median(mae)) < 1e-12
     assert st["hs"][20]["n"] == 4 and st["hs"][60]["win"] == st["win"]              # 1950 那一次 20 天的窗口夠
@@ -447,6 +449,14 @@ def test_dip_stats_base_and_luck():
     assert X.dip_pass(ok) and not X.dip_pass({**ok, "n": 4}) and not X.dip_pass({**ok, "win": 0.59})
     assert not X.dip_pass({**ok, "base": 0.61}) and not X.dip_pass({**ok, "med": -0.001})
     assert X.dip_pass_recent({**ok, "n": 4}) is None and X.dip_pass_recent(ok) is True
+    # VER 5：賺錢機率沒有比較高、但賺得比較多也算過關（中位數 ≥ max(1.5 × 隨便挑一天, 隨便挑一天 ＋ 3 個百分點)）
+    mmr = {"n": 7, "win": 0.714, "base": 0.715, "med": 0.213, "bmed": 0.102}      # 融資維持率跌破 140%
+    assert X.dip_pass(mmr) and X.dip_bigger(mmr) and not X.dip_more(mmr) and X.dip_pass_recent({**mmr, "n": 5}) is True
+    assert not X.dip_pass({**mmr, "med": 0.152})                                   # 1.5 × 0.102＝0.153
+    assert not X.dip_pass({**mmr, "bmed": 0.02, "med": 0.049}) and X.dip_pass({**mmr, "bmed": 0.02, "med": 0.05})   # 多 3 個百分點
+    assert X.dip_pass({**mmr, "bmed": -0.02, "med": 0.011}) and not X.dip_pass({**mmr, "bmed": -0.02, "med": 0.009})
+    assert not X.dip_pass({**mmr, "win": 0.59}) and not X.dip_pass({**mmr, "n": 4})   # 賺錢 60% 與次數下限照舊
+    assert not X.dip_bigger({**mmr, "bmed": None}) and X.dip_pass({**ok, "bmed": 0.5})   # 沒有中位數＝只看 ①
 
 
 # ── VER 4：融資維持率、融資去化、Lowry 90% 日 ──
