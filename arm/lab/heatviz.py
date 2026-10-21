@@ -477,14 +477,15 @@ TZ_LEAN = {"up": "偏多", "warn": "偏警示", "even": "差不多"}
 
 
 def _tz_counts(n: dict) -> str:
-    """{tier: 次數} → 「★3 ●2」；沒有就「0」。"""
+    """{tier: 類數} → 「★3 ●2 △1」；沒有就「0」。"""
     from . import sigspec as SS
-    s = " ".join(f"{SS.TIER_MARK[t]}{c}" for t, c in n.items() if c)
+    s = " ".join(f"{SS.THERMO_MARK[t]}{c}" for t, c in n.items() if c)
     return s or "0"
 
 
 def thermo_html(T: dict) -> str:
-    """三支溫度計（sigspec 第 5 節）：一條 100% 的長條，左＝偏多、右＝警示（VER 9 只數 ★，一類算 1）；中線＝一半。"""
+    """三支溫度計（sigspec 第 5 節 ③，VER 12）：一條 100% 的長條，左＝偏多、右＝警示；★ 2、● 1、△ 0.5（深淺分開）；中線＝一半。
+    兩邊都是 0 寫「中性」。"""
     from . import sigspec as SS
     rows = []
     for th in T["thermo"]:
@@ -496,19 +497,47 @@ def thermo_html(T: dict) -> str:
                 for t in SS.THERMO_W:
                     pct = SS.THERMO_W[t] * n[s][t] / tot * 100
                     if pct:
-                        segs.append(f'<i class="tzs tzs-{s} tzs-{t}" style="width:{pct:.1f}%"></i>')
+                        segs.append(f'<i class="tzg tzg-{s} tzg-{t}" style="width:{pct:.1f}%"></i>')
             bar = "".join(segs)
             word = (f'<b class="tzw tzw-{th["lean"]}">{_e(TZ_LEAN[th["lean"]])}</b>'
                     f'<span class="tzp">偏多占 {th["share"] * 100:.0f}%</span>')
+            cnt = f'偏多 {_tz_counts(n["up"])}・警示 {_tz_counts(n["warn"])}'
+            lab = f'{th["name"]}（{th["h"]}）：{cnt}，偏多占 {th["share"] * 100:.0f}%'
         else:
             bar = ""
-            word = '<b class="tzw tzw-none">沒有訊號</b>'
-        cnt = f'偏多 {_tz_counts(n["up"])}・警示 {_tz_counts(n["warn"])}'
-        lab = f'{th["name"]}（{th["h"]}）：{cnt}' + (f'，偏多占 {th["share"] * 100:.0f}%' if tot else "，沒有訊號")
+            word = '<b class="tzw tzw-none">中性</b>'
+            cnt = "沒有偏多或警示的訊號"
+            lab = f'{th["name"]}（{th["h"]}）：中性，沒有偏多或警示的訊號'
         rows.append(f'<div class="tzr"><span class="tzn"><b>{_e(th["name"])}</b><i>{_e(th["h"])}</i></span>'
                     f'<span class="tzb" role="img" aria-label="{_e(lab)}">{bar}</span>'
                     f'<span class="tzv"><span>{word}</span><span class="tzct">{_e(cnt)}</span></span></div>')
     return '<div class="tzt">' + "".join(rows) + "</div>"
+
+
+def thermo_more_html(T: dict) -> str:
+    """溫度計下面收起來那一段（sigspec 第 5 節 ③c，VER 12）：溫度計另外算進去的 ●（可能是運氣）、△（有傾向），
+    每支溫度計、每一邊一類一列；沒有就不顯示。"""
+    from . import sigspec as SS
+    blocks, cnt = [], {"ref": 0, "lean": 0}
+    for th in T["thermo"]:
+        more = th.get("more") or {}
+        cols = []
+        for s in ("up", "warn"):
+            xs = more.get(s) or []
+            for x in xs:
+                cnt[x["tier"]] += 1
+            if xs:
+                cols.append(f'<div class="tzqc"><h5><span class="tzcl tzcl-{s}">{_e(TZ_SIDE[s])}</span></h5><ul class="tzu">'
+                            + "".join(_tz_item(x, T.get("d")) for x in xs) + "</ul></div>")
+        if cols:
+            blocks.append(f'<div class="tzqb"><h4>{_e(th["name"])}<i>{_e(th["h"])}</i></h4>{"".join(cols)}</div>')
+    if not blocks:
+        return ""
+    bits = [f'{SS.THERMO_MARK[t]} {SS.THERMO_NAMES[t]} {c} 類' for t, c in cnt.items() if c]
+    return (f'<details class="tzq"><summary>溫度計另外算進去的（{_e("、".join(bits))}）</summary>'
+            '<p class="tzqn">這些沒有列在下面兩欄：● 過了門檻，但把出現的日子亂排也常做得到一樣準；'
+            f'△ 過去之後的機率比隨便挑一天高 {SS.THERMO_EDGE * 100:.0f} 個百分點以上，但沒過門檻。只當參考。</p>'
+            + "".join(blocks) + "</details>")
 
 
 def _tz_name(r: dict) -> str:
@@ -525,14 +554,14 @@ def _tz_item(r: dict, d: str | None) -> str:
     also = (f'<span class="tzf">同時成立：{_e("、".join(_tz_name(x) for x in fam))}（過去常一起出現，算同一件事）</span>'
             if fam else "")
     return (f'<li><a class="tzi" href="x9o.html#s={_e(r["id"])}"><span class="tzh">'
-            f'<span class="tzk tzk-{r["tier"]}">{SS.TIER_MARK[r["tier"]]}</span><b>{_e(_tz_name(r))}</b>'
+            f'<span class="tzk tzk-{r["tier"]}">{SS.THERMO_MARK[r["tier"]]}</span><b>{_e(_tz_name(r))}</b>'
             f'<span class="tzd">{_e(SPG._hz(r))}</span>{both}</span>'
             f'<span class="tzl">{SPG._line(r)}・{_e(SPG._since(r["now"], d))}</span>{also}</a></li>')
 
 
 def today_html(V: dict) -> str:
-    """今天的重點（docs/lab_heatviz_v2_plan.md 第 3 節；sigspec 第 5 節）：三支溫度計＋偏多、警示兩欄
-    （這個市場現在有效的 ★，VER 9 起 ● 不列；同一類只算一次）。點一列到訊號總覽看細節。"""
+    """今天的重點（docs/lab_heatviz_v2_plan.md 第 3 節；sigspec 第 5 節）：三支溫度計（VER 12：★、●、△ 都算，另外算進去的
+    收在溫度計下面）＋偏多、警示兩欄（這個市場現在有效的 ★；同一類只算一次）。點一列到訊號總覽看細節。"""
     from . import sigspec as SS
     T = V.get("sigtoday")
     if not T:
@@ -556,19 +585,24 @@ def today_html(V: dict) -> str:
                 + "".join(_tz_item(r, T.get("d")) for r in rest) + "</ul></details>") if rest else ""
         cols.append(f'<div class="tzcol">{head}<ul class="tzu">' + strat + "".join(_tz_item(r, T.get("d")) for r in top)
                     + f"</ul>{more}</div>")
-    sub = "現在成立的好訊號（★）：過去出現之後「中了」的比例比平常高，而且不是運氣。依看多久分三支溫度計。"
-    how = (f"★ 好訊號＝至少出現 {SS.N_MIN} 次、機率 ≥ {SS.HIT_MIN['up'] * 100:.0f}%（警示 ≥ {SS.HIT_MIN['warn'] * 100:.0f}%）、"
+    sub = "溫度計看現在整體偏哪邊（★、●、△ 都算，強的算比較多）；下面兩欄只列 ★ 好訊號。"
+    W = SS.THERMO_W
+    how = (f"溫度計：現在成立的訊號依看多久分三支，★ 好訊號算 {W['good']:g}、● 可能是運氣算 {W['ref']:g}、"
+           f"△ 有傾向算 {W['lean']:g}，一類算一次；偏多占 {SS.THERMO_LEAN * 100:.0f}% 以上寫偏多、"
+           f"{(1 - SS.THERMO_LEAN) * 100:.0f}% 以下寫偏警示，其餘差不多，兩邊都沒有寫中性。● 和 △ 收在溫度計下面（點開看）。"
+           "溫度計只是數一數現在成立的訊號，溫度計本身沒有驗證過能預測漲跌。"
+           f"★ 好訊號＝至少出現 {SS.N_MIN} 次、機率 ≥ {SS.HIT_MIN['up'] * 100:.0f}%（警示 ≥ {SS.HIT_MIN['warn'] * 100:.0f}%）、"
            f"比隨便挑一天高 {SS.EDGE_GOOD * 100:.0f} 個百分點以上、近 10 年也成立，"
            f"而且把它出現的日子隨便亂排 {SS.LUCK_DRAWS} 次，做得到一樣準的不到 {SS.LUCK_P * 100:.0f}%（不是運氣）。"
-           "過了門檻但亂排也常做得到的（可能是運氣）只在訊號總覽列出，這裡不列、不算。"
-           "過去常一起出現的訊號算同一件事，併成一列（「同時成立」）；溫度計一類算一次。"
-           "溫度計只是數一數現在成立的好訊號，溫度計本身沒有驗證過能預測漲跌。"
+           "● 可能是運氣＝過了這些門檻，但亂排也常做得到一樣準。"
+           f"△ 有傾向＝之後的機率比隨便挑一天高 {SS.THERMO_EDGE * 100:.0f} 個百分點以上，但沒過門檻。"
+           "過去常一起出現的訊號算同一件事，併成一列（「同時成立」）。"
            "偏多＝之後收盤比現在高；警示＝之後出現一段大回撤（期間最高到之後最低，先漲再跌也算）；"
-           "警示類過去的事後驗證比偏多弱，只當提醒。同一個項目兩邊都成立的標「震盪」。"
+           "警示類過去的事後驗證比偏多弱，只當提醒。同一個項目兩邊都是 ★ 的標「震盪」。"
            "標「策略」的是大神策略（照原作者的規則交易、成績判定為 ★ 好策略），現在照規則有動作才列；溫度計不算策略。")
     return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div><p class="ksub">{_e(sub)}</p>'
             f'<details class="tzx"><summary>怎麼看</summary><p>{_e(how)}</p></details>'
-            f'{thermo_html(T)}<div class="tzcols">{"".join(cols)}</div>'
+            f'{thermo_html(T)}{thermo_more_html(T)}<div class="tzcols">{"".join(cols)}</div>'
             '<p class="tzm"><a href="x9o.html">全部訊號、研究細節（訊號總覽）→</a></p></section>')
 
 
@@ -932,19 +966,26 @@ def _out_fams(V: dict) -> list[dict]:
     return sorted(xs, key=lambda x: (OUT_ORD.get(x.get("hz"), 3), x.get("side") != "up", -(x.get("edge") or 0), x["id"]))
 
 
+def _tz_read(th: dict) -> str:
+    """一支溫度計的讀數：偏多／偏警示／差不多；兩邊都沒有＝中性（VER 12）。"""
+    return TZ_LEAN.get(th.get("lean")) or "中性"
+
+
 def out_summary(V: dict) -> str:
-    """三支溫度計各一句（雷達按鈕與面板開頭共用）：「短線：偏多 1 類｜中線：偏多 1 類、警示 1 類｜長線：沒有好訊號」。"""
+    """三支溫度計的讀數（雷達按鈕上那一行）：「溫度計 短線偏多｜中線差不多｜長線偏警示」。"""
     from . import sigspec as SS
     T = V.get("sigtoday")
     if T is None:
         return "好訊號的研究結果還沒產生"
-    out = []
-    for k, name, _h in SS.THERMO_HZ:
-        u = sum(1 for x in T.get("up") or [] if x.get("hz") == k)
-        w = sum(1 for x in T.get("warn") or [] if x.get("hz") == k)
-        bits = [f"偏多 {u} 類" if u else "", f"警示 {w} 類" if w else ""]
-        out.append(f'{name}：{"、".join(b for b in bits if b) or "沒有好訊號"}')
-    return "｜".join(out)
+    th = {t["k"]: t for t in T.get("thermo") or []}
+    return "溫度計 " + "｜".join(f'{name}{_tz_read(th.get(k) or {})}' for k, name, _h in SS.THERMO_HZ)
+
+
+def out_thermo(V: dict) -> str:
+    """面板開頭的溫度計讀數：「短線偏多、中線差不多、長線偏警示」。"""
+    from . import sigspec as SS
+    th = {t["k"]: t for t in (V.get("sigtoday") or {}).get("thermo") or []}
+    return "、".join(f'{name}{_tz_read(th.get(k) or {})}' for k, name, _h in SS.THERMO_HZ)
 
 
 def out_sentence(V: dict) -> str:
@@ -1063,9 +1104,11 @@ def out_tpl(V: dict) -> str:
     if V.get("sigtoday") is None:
         lead = "訊號的研究結果還沒產生，下面先列五個面向、情境與最像現在的日子。"
     elif fams:
-        lead = f"現在成立的好訊號：{out_sentence(V)}。下面是過去同樣情況之後的報酬，和隨便挑一天比。"
+        lead = (f"溫度計：{out_thermo(V)}。現在成立的好訊號（★）：{out_sentence(V)}。"
+                "下面是過去同樣情況之後的報酬，和隨便挑一天比。")
     else:
-        lead = "現在沒有成立的好訊號（★）。下面是五個面向現在的位置、情境與最像現在的日子，只當參考。"
+        lead = (f"溫度計：{out_thermo(V)}。現在沒有成立的好訊號（★），"
+                "下面是五個面向現在的位置、情境與最像現在的日子，只當參考。")
     sim = ('<details class="osim" id="o-sim"><summary><b>最像現在的日子</b>'
            '<span>只當對照：用這個方法估機率，過去沒有比隨便挑一天準</span></summary>' + now_html(V) + "</details>")
     return ('<template id="ot-out" data-kick="過去同樣情況之後的報酬；不是預測" data-title="之後怎麼走？">'
@@ -1758,7 +1801,7 @@ table.oft{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-nume
 .tzn{display:flex;flex-direction:column;line-height:1.2}.tzn b{font-size:14px}.tzn i{font-style:normal;font-size:11.5px;color:var(--mut)}
 .tzb{position:relative;display:flex;height:16px;border-radius:4px;background:var(--card2);overflow:hidden;gap:2px}
 .tzb::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:var(--ink2);opacity:.55}
-.tzs{display:block;height:100%}.tzs-up{background:var(--bull)}.tzs-warn{background:var(--bear)}.tzs-ref{opacity:.42}
+.tzg{display:block;height:100%}.tzg-up{background:var(--bull)}.tzg-warn{background:var(--bear)}.tzg-ref{opacity:.6}.tzg-lean{opacity:.32}
 .tzv{grid-column:2;display:flex;flex-wrap:wrap;gap:0 8px;align-items:baseline;line-height:1.3;font-size:12.5px;color:var(--ink2)}
 .tzw{font-size:14px}.tzw-up{color:var(--bull)}.tzw-warn{color:var(--bear)}.tzw-even{color:var(--ink)}.tzw-none{color:var(--mut);font-weight:500}
 .tzp{margin-left:6px;font-size:12.5px;color:var(--ink2)}.tzct{font-size:12px;color:var(--mut)}
@@ -1769,7 +1812,12 @@ table.oft{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-nume
 .tzu{list-style:none;margin:0;padding:0}.tzu li+li{border-top:1px solid var(--line)}
 .tzi{display:block;padding:7px 2px;color:var(--ink);text-decoration:none;border-radius:8px}.tzi:hover{background:var(--card2)}
 .tzh{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}.tzh b{font-weight:600;font-size:14px}
-.tzk{width:14px;text-align:center;font-weight:700}.tzk-good{color:var(--acc)}.tzk-ref{color:var(--ink2)}
+.tzk{width:14px;text-align:center;font-weight:700}.tzk-good{color:var(--acc)}.tzk-ref{color:var(--ink2)}.tzk-lean{color:var(--mut)}
+.tzq{margin:-6px 0 10px;font-size:13px}.tzq>summary{cursor:pointer;color:var(--acc);padding:2px}
+.tzqn{margin:4px 0 6px;font-size:12.5px;color:var(--ink2);line-height:1.6}
+.tzqb{padding:4px 0;border-top:1px solid var(--line)}.tzqb h4{margin:4px 0 0;font-size:14px;display:flex;gap:6px;align-items:baseline}
+.tzqb h4 i{font-style:normal;font-weight:400;font-size:12px;color:var(--mut)}
+.tzqc h5{margin:6px 0 0;font-size:13px}
 .tzd{font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--line2);white-space:nowrap}
 .tzo{font-size:11.5px;padding:0 7px;border-radius:999px;white-space:nowrap;color:var(--ink);background:var(--line);cursor:help}
 .tzd.tzs{border-color:var(--acc);color:var(--acc);font-weight:600}

@@ -624,10 +624,21 @@ def test_outlook_drawer_replaces_now_and_scenario_sections(built, monkeypatch):
     assert "window.heatScenHl(DC)" in js and "push: !!(DRW && DRW.contains(op))" in js
 
 
-def _board_v(fams_up, fams_warn, xsb=None):
+def _board_v(fams_up, fams_warn, xsb=None, more=None):
+    """sigcat.board 的輸出形狀：溫度計照 sigspec 第 5 節 ③（VER 12）由這些類算（more＝溫度計另外算進去的 ●、△ 類）。"""
     from arm.lab import sigspec as SS
-    th = [{"k": k, "name": n, "h": h, "n": {"up": {"good": 0}, "warn": {"good": 0}}, "w": {"up": 0, "warn": 0},
-           "share": None, "lean": None} for k, n, h in SS.THERMO_HZ]
+    allf = {"up": list(fams_up) + [x for x in (more or []) if x["side"] == "up"],
+            "warn": list(fams_warn) + [x for x in (more or []) if x["side"] == "warn"]}
+    th = []
+    for k, nm, h in SS.THERMO_HZ:
+        n = {s: {t: sum(1 for x in allf[s] if x.get("hz") == k and x.get("tier", "good") == t) for t in SS.THERMO_W}
+             for s in allf}
+        w = {s: sum(SS.THERMO_W[t] * c for t, c in n[s].items()) for s in n}
+        tot = w["up"] + w["warn"]
+        share = w["up"] / tot if tot else None
+        lean = None if share is None else "up" if share >= SS.THERMO_LEAN else "warn" if share <= 1 - SS.THERMO_LEAN else "even"
+        mo = {s: [x for x in allf[s] if x.get("hz") == k and x.get("tier", "good") != "good"] for s in allf}
+        th.append({"k": k, "name": nm, "h": h, "n": n, "w": w, "share": share, "lean": lean, "more": mo})
     return {"up": fams_up, "warn": fams_warn, "thermo": th}
 
 
@@ -649,7 +660,7 @@ def test_outlook_signals_table_and_summary(monkeypatch):
             "warn": {"hit": 0.67, "base": 0.29, "n": 6, "tier": "good", "mdd": 0.12, "mdd_base": 0.06},
             "ret": {"s": cells, "bk": "b9"}, "fam": []}
     V = {"mk": "tw", "sigtoday": _board_v([up], [warn]), "xsb": [{"name": "RSI(2) 超賣反彈", "side": "up"}]}
-    assert VZ.out_summary(V) == "短線：偏多 1 類｜中線：警示 1 類｜長線：沒有好訊號"
+    assert VZ.out_summary(V) == "溫度計 短線偏多｜中線偏警示｜長線中性"                 # VER 12：按鈕上寫三支溫度計的讀數
     h = VZ.out_sig(V)
     txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h)))
     assert h.count('class="ofam ofam-') == 2 and h.index("RSI（14 日）") < h.index("進入同時兩個以上面向過熱")   # 短線在前
@@ -688,3 +699,10 @@ def test_outlook_lead_sentence():
     V = {"sigtoday": {"up": [{"hz": "short"}, {"hz": "short"}, {"hz": "mid"}], "warn": [{"hz": "mid"}], "thermo": th}}
     assert VZ.out_sentence(V) == "短線偏多 2 類；中線偏多 1 類、警示 1 類；長線沒有"
     assert "——" not in VZ.out_tpl.__doc__ + VZ.out_sentence(V)
+    # VER 12：面板開頭先寫三支溫度計的讀數（溫度計比 ★ 寬：長線沒有 ★ 也可能有讀數）
+    up = [{"hz": "short", "tier": "good", "side": "up"}, {"hz": "mid", "tier": "good", "side": "up"}]
+    more = [{"hz": "long", "tier": "ref", "side": "warn"}, {"hz": "long", "tier": "lean", "side": "up"},
+            {"hz": "mid", "tier": "ref", "side": "warn"}, {"hz": "mid", "tier": "lean", "side": "warn"}]
+    V2 = {"sigtoday": _board_v(up, [], more=more)}
+    assert VZ.out_thermo(V2) == "短線偏多、中線差不多、長線偏警示"        # 中線 ★2 對 ●1＋△0.5＝57%；長線 △0.5 對 ●1＝33%
+    assert VZ.out_thermo({"sigtoday": _board_v([], [])}) == "短線中性、中線中性、長線中性"
