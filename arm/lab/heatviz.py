@@ -15,6 +15,7 @@ from __future__ import annotations
 import html
 import json
 import math
+import re
 
 from . import heatpage as HP
 from . import heatpos as PO
@@ -462,7 +463,7 @@ def _radar_card(V: dict | None = None) -> str:
     return ('<div class="rcard card"><div class="khd"><h2>面向雷達</h2><span class="kn" id="rdate"></span></div>'
             '<p class="ksub">越外圈越熱（100 最熱）；外圈淡紅＝過熱，內圈淡藍＝過冷。分數後面括號＝和前一個交易日比。點面向名稱看細項；拉時間軸看過去任何一週；點下面的波段高低點疊上去比。</p>'
             '<div class="rad" id="rad"><p class="note">雷達要開啟 JavaScript 才看得到。</p></div>'
-            '<div class="rleg" id="rleg"></div>' + out_btn(V or {}) +
+            '<div class="rleg" id="rleg"></div>' +
             '<div class="rtl"><button type="button" class="rplay" id="rplay" aria-label="播放近兩年">▶</button>'
             '<div class="rtrk"><svg id="rtsvg" viewBox="0 0 600 44" preserveAspectRatio="none" aria-hidden="true"></svg>'
             '<input type="range" id="rtin" min="0" max="0" value="0" aria-label="選一週" disabled></div>'
@@ -544,8 +545,9 @@ def _tz_name(r: dict) -> str:
     return ("情境・" if r.get("cat") == "scen" else "") + r["name"]
 
 
-def _tz_item(r: dict, d: str | None) -> str:
-    """一列＝一類（同類合併）：領頭的機率與成立多久，「同時成立」列同一類的其他訊號（過去常一起出現，算同一件事）。"""
+def _tz_item(r: dict, d: str | None, panel: bool = False) -> str:
+    """一列＝一類（同類合併）：領頭的機率與成立多久，「同時成立」列同一類的其他訊號（過去常一起出現，算同一件事）。
+    panel＝點了打開「之後怎麼走？」、捲到這個訊號（兩欄的 ★；面板裡有它的報酬表），否則（●、△）連訊號總覽。"""
     from . import sigpage as SPG
     from . import sigspec as SS
     both = ('<span class="tzo" title="同一個項目偏多、警示兩邊都成立：之後上漲的機率比平常高，'
@@ -553,7 +555,8 @@ def _tz_item(r: dict, d: str | None) -> str:
     fam = r.get("fam") or []
     also = (f'<span class="tzf">同時成立：{_e("、".join(_tz_name(x) for x in fam))}（過去常一起出現，算同一件事）</span>'
             if fam else "")
-    return (f'<li><a class="tzi" href="x9o.html#s={_e(r["id"])}"><span class="tzh">'
+    op = f' data-open="out:out" data-to="{osg_id(r["id"])}"' if panel else ""
+    return (f'<li><a class="tzi" href="x9o.html#s={_e(r["id"])}"{op}><span class="tzh">'
             f'<span class="tzk tzk-{r["tier"]}">{SS.THERMO_MARK[r["tier"]]}</span><b>{_e(_tz_name(r))}</b>'
             f'<span class="tzd">{_e(SPG._hz(r))}</span>{both}</span>'
             f'<span class="tzl">{SPG._line(r)}・{_e(SPG._since(r["now"], d))}</span>{also}</a></li>')
@@ -566,7 +569,7 @@ def today_html(V: dict) -> str:
     T = V.get("sigtoday")
     if not T:
         return ('<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div>'
-                '<p class="note">訊號總覽的研究結果還沒產生（scripts/run_sig.py）。</p></section>')
+                f'<p class="note">訊號總覽的研究結果還沒產生（scripts/run_sig.py）。</p>{out_btn()}</section>')
     from . import xstratpage as XSP
     cols = []
     for s in ("up", "warn"):
@@ -582,10 +585,10 @@ def today_html(V: dict) -> str:
             continue
         top, rest = xs[:SS.TODAY_SIDE], xs[SS.TODAY_SIDE:]
         more = (f'<details class="tzmore"><summary>還有 {len(rest)} 個</summary><ul class="tzu">'
-                + "".join(_tz_item(r, T.get("d")) for r in rest) + "</ul></details>") if rest else ""
-        cols.append(f'<div class="tzcol">{head}<ul class="tzu">' + strat + "".join(_tz_item(r, T.get("d")) for r in top)
+                + "".join(_tz_item(r, T.get("d"), panel=True) for r in rest) + "</ul></details>") if rest else ""
+        cols.append(f'<div class="tzcol">{head}<ul class="tzu">' + strat + "".join(_tz_item(r, T.get("d"), panel=True) for r in top)
                     + f"</ul>{more}</div>")
-    sub = "溫度計看現在整體偏哪邊（★、●、△ 都算，強的算比較多）；下面兩欄只列 ★ 好訊號。"
+    sub = "溫度計看現在整體偏哪邊（★、●、△ 都算，強的算比較多）；下面兩欄只列 ★ 好訊號，點一列看它過去出現之後的報酬。"
     W = SS.THERMO_W
     how = (f"溫度計：現在成立的訊號依看多久分三支，★ 好訊號算 {W['good']:g}、● 可能是運氣算 {W['ref']:g}、"
            f"△ 有傾向算 {W['lean']:g}，一類算一次；偏多占 {SS.THERMO_LEAN * 100:.0f}% 以上寫偏多、"
@@ -601,10 +604,12 @@ def today_html(V: dict) -> str:
            "偏多＝之後收盤比現在高；警示＝之後出現一段大回撤（期間最高到之後最低，先漲再跌也算）；"
            "警示類過去的事後驗證比偏多弱，只當提醒。同一個項目兩邊都是 ★ 的標「震盪」。"
            "標「策略」的是大神策略（照原作者的規則交易、成績判定為 ★ 好策略），現在照規則有動作才列；溫度計不算策略。"
-           "全部的大神策略現在持有還是空手，看大神策略頁。")
+           "全部的大神策略現在持有還是空手，看大神策略頁。"
+           "「之後怎麼走？」：兩欄的訊號過去出現之後 1 週～1 年的報酬（點一列直接看那一個），"
+           "加上五個面向現在這一區、情境、最像現在的日子。")
     return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div><p class="ksub">{_e(sub)}</p>'
             f'<details class="tzx"><summary>怎麼看</summary><p>{_e(how)}</p></details>'
-            f'{thermo_html(T)}{thermo_more_html(T)}<div class="tzcols">{"".join(cols)}</div>'
+            f'{thermo_html(T)}{thermo_more_html(T)}{out_btn()}<div class="tzcols">{"".join(cols)}</div>'
             + (f'<p class="tzm">{V["xsl"]}</p>' if V.get("xsl") else "")
             + '<p class="tzm"><a href="x9o.html">全部訊號、研究細節（訊號總覽）→</a></p></section>')
 
@@ -953,8 +958,9 @@ def now_html(V: dict) -> str:
 
 
 
-# ── 之後怎麼走？（docs/lab_noise_plan.md 第 4、11 節；使用者 2026-10-20 選「雷達按鈕打開的面板」）─────────────────────
-#   主畫面不再放「現在的情境」「所有情境」兩區（頁面太長），改成雷達卡片裡一個按鈕，打開右側面板（手機全螢幕）：
+# ── 之後怎麼走？（docs/lab_noise_plan.md 第 4、11 節；docs/lab_strategy_ia_plan.md）─────────────────────────────
+#   主畫面不再放「現在的情境」「所有情境」兩區（頁面太長），改成右側面板（手機全螢幕）。入口 2026-10-22 起在今天的重點
+#   （使用者：「應該是放在今日重點那邊點進去」）：溫度計下面一顆按鈕，兩欄的每一列點了捲到那個訊號；面板內容：
 #   一句話 → 好訊號成立之後 1 週～1 年 → 五個面向現在這一區之後 → 情境 → 最像現在的日子（收起來）。
 #   數字全部讀既有的研究檔（訊號的 ret、面向的五區回測、情境、相似的日子），這裡不另外算。
 
@@ -972,16 +978,6 @@ def _out_fams(V: dict) -> list[dict]:
 def _tz_read(th: dict) -> str:
     """一支溫度計的讀數：偏多／偏警示／差不多；兩邊都沒有＝中性（VER 12）。"""
     return TZ_LEAN.get(th.get("lean")) or "中性"
-
-
-def out_summary(V: dict) -> str:
-    """三支溫度計的讀數（雷達按鈕上那一行）：「溫度計 短線偏多｜中線差不多｜長線偏警示」。"""
-    from . import sigspec as SS
-    T = V.get("sigtoday")
-    if T is None:
-        return "好訊號的研究結果還沒產生"
-    th = {t["k"]: t for t in T.get("thermo") or []}
-    return "溫度計 " + "｜".join(f'{name}{_tz_read(th.get(k) or {})}' for k, name, _h in SS.THERMO_HZ)
 
 
 def out_thermo(V: dict) -> str:
@@ -1004,11 +1000,18 @@ def out_sentence(V: dict) -> str:
     return "；".join(out)
 
 
-def out_btn(V: dict) -> str:
-    """雷達卡片裡的入口（面板裡同一個 id 的內容在 template ot-out）。"""
+def out_btn() -> str:
+    """今天的重點裡的入口（溫度計下面；使用者 2026-10-22：「應該是放在今日重點那邊點進去」，docs/lab_strategy_ia_plan.md）。
+    面板的內容在 template ot-out。"""
     return ('<button type="button" class="rout" data-open="out:out" aria-haspopup="dialog">'
-            '<span class="rout-t"><b>之後怎麼走？</b><span>過去同樣情況之後 1 週～1 年的報酬、各面向、情境</span></span>'
-            f'<span class="rout-s">{_e(out_summary(V))}</span><i aria-hidden="true">→</i></button>')
+            '<span class="rout-t"><b>之後怎麼走？</b></span>'
+            '<span class="rout-s">現在成立的好訊號、五個面向、情境：過去同樣情況之後 1 週～1 年的報酬</span>'
+            '<i aria-hidden="true">→</i></button>')
+
+
+def osg_id(sid: str) -> str:
+    """面板裡一個訊號（一類的領頭）的 id：今天的重點那一列點了捲到這裡。訊號代號有冒號，換成 CSS 選擇器可以直接用的字。"""
+    return "osg-" + re.sub(r"[^0-9A-Za-z]", lambda m: f"_{ord(m.group()):x}", sid)
 
 
 def _oh(h: int) -> str:
@@ -1058,7 +1061,7 @@ def out_sig(V: dict) -> str:
         fam = r.get("fam") or []
         also = (f'<p class="ofs">同時成立：{_e("、".join(_tz_name(x) for x in fam))}（過去常一起出現，算同一件事）</p>' if fam else "")
         both = '<span class="tzo">震盪</span>' if r.get("both") else ""
-        cards.append(f'<div class="ofam ofam-{side}"><p class="ofh"><span class="tzk tzk-good">★</span><b>{_e(_tz_name(r))}</b>'
+        cards.append(f'<div class="ofam ofam-{side}" id="{osg_id(r["id"])}"><p class="ofh"><span class="tzk tzk-good">★</span><b>{_e(_tz_name(r))}</b>'
                      f'<span class="tzcl tzcl-{side}">{_e(TZ_SIDE[side])}</span><span class="ofd">{_e(SPG._hz(r))}</span>{both}</p>'
                      f'{also}<p class="ofl">{SPG._line(r)}</p>{tbl}'
                      f'<p class="ofn"><a href="x9o.html#s={_e(r["id"])}">每一次與走勢 →</a></p></div>')
@@ -1102,7 +1105,7 @@ def out_dims(V: dict) -> str:
 
 
 def out_tpl(V: dict) -> str:
-    """「之後怎麼走？」面板的內容（template id＝ot-out，雷達按鈕、頂部目錄、市場狀態那一行的情境都打開它）。"""
+    """「之後怎麼走？」面板的內容（template id＝ot-out；今天的重點的按鈕與每一列、市場狀態那一行的情境、面向面板都打開它）。"""
     fams = _out_fams(V)
     if V.get("sigtoday") is None:
         lead = "訊號的研究結果還沒產生，下面先列五個面向、情境與最像現在的日子。"
@@ -1123,7 +1126,7 @@ def main_view(V: dict, ks: list[dict]) -> str:
     asof = V["asof"]
     stash_cards(V)
     nav = ('<nav class="snav"><a href="#top">雷達</a><a href="#today">今天的重點</a>'
-           '<button type="button" class="snout" data-open="out:out">之後怎麼走？</button><a href="#items">全部項目</a>'
+           '<a href="#items">全部項目</a>'
            f'<a href="#cmp">{_e(HP.MK["cmp"])}</a>' + ('<a href="#ta">價位事件</a>' if V.get("ta") else "")
            + '<a href="x9o.html">訊號總覽</a>'
            + '<button type="button" class="snv" data-goview="research">研究與驗證 →</button></nav>')
@@ -1750,13 +1753,12 @@ body.drw-on{overflow:hidden}
  table.nst td.nsp{flex-basis:auto;order:0}table.nst td:last-child{flex-basis:auto;order:1;margin-left:auto}
  table.nst td:last-child::before{display:none}.nst .nsb{display:inline-block;width:96px;margin:0 6px 0 0;vertical-align:middle}
  .nslt td{display:inline-block!important;margin-right:12px}.nslt td.nsp{display:block!important}}
-/* 之後怎麼走？（雷達卡片的按鈕＋右側面板；docs/lab_noise_plan.md 第 4、11 節） */
+/* 之後怎麼走？（今天的重點的按鈕＋右側面板；docs/lab_noise_plan.md 第 4、11 節、docs/lab_strategy_ia_plan.md） */
 .rout{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:3px 10px;width:100%;margin:10px 0 2px;padding:10px 12px;border:1px solid var(--acc);border-radius:12px;background:var(--accbg);color:var(--ink);text-align:left;font:inherit;cursor:pointer}
 .rout:hover{box-shadow:var(--shadow)}.rout:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .rout-t{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;min-width:0}.rout-t b{font-size:15.5px;color:var(--acc)}.rout-t span{font-size:12px;color:var(--mut)}
 .rout-s{grid-column:1;font-size:13px;line-height:1.5;color:var(--ink2)}
 .rout i{grid-column:2;grid-row:1/3;font-style:normal;font-size:20px;color:var(--acc)}
-.snout{border:0;padding:2px 10px;border-radius:12px;background:var(--accbg);color:var(--acc);font:inherit;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer}
 .drw .olead{margin:2px 0 4px;font-size:14px;line-height:1.7}
 .drw .oh{font-size:15.5px;margin:20px 0 6px;padding-top:12px;border-top:1px solid var(--line)}
 .drw .oh span{display:block;margin-top:2px;font-size:12px;font-weight:400;color:var(--mut)}
