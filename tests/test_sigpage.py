@@ -340,7 +340,7 @@ def test_research_files_survive_presentation_only_versions(tmp_path, monkeypatch
         (tmp_path / "r.json").write_text(json.dumps({"ver": v, "rows": []}), encoding="utf-8")
         (tmp_path / "s.json").write_text(json.dumps({"ver": v, "rows": []}), encoding="utf-8")
         assert (sigcat.load_research() is not None) is ok and (sigcat.load_stock() is not None) is ok
-    assert sigspec.RES_VER == 10 <= sigspec.VER
+    assert sigspec.RES_VER == 14 <= sigspec.VER
 
 def test_position_card_removed():
     """部位參考 2026-10-19 拿掉（docs/lab_crash_plan.md 第 20 節）：研究卡、景氣頁狀態列、相關研究連結都不得接回來。"""
