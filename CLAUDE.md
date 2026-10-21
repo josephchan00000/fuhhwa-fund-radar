@@ -1324,6 +1324,20 @@ Yahoo 對**全部 36 檔**都多回一個 **2026-09-20（週日）** 的 bar（`
 序列回填，etfinfo 只取規模配息）；報酬錨點改為「本列最終採用的 close_px／as_of」（上市 etfinfo
 與官方同值，官方表未更新時也能錨定當日）。
 
+**⚠ 踩過的坑：下午那幾班的當日漲跌是「今天對前天」（2026-10-21 使用者：「幫我確認都沒問題」時盤查到）**——
+收盤價對、日期也標當天，漲跌卻錯：10/21 15:43 那版 38 檔錯 32 檔（0050 顯示 −0.0%，官方 107.25→108.15＝+0.84%；
+00991A −0.06%，實際 +2.08%），10/14、10/16（15:41 錯到 23:35）、10/20 下午也一樣。原因：台北下午收盤後，
+Yahoo 日線常是**有今天、少昨天**（落檔 prev_date 跳到前天、ret_n 少一點），錨定只在「序列沒有今天」時才查缺日，
+末兩點就變成今天對前天；漲跌日期又等於收盤日期，L1／L2 備案與 chg_trust 全部放行。傍晚 Yahoo 補回昨天那根才自己變對。
+修法三處（`tests/test_etfwatch.py` 七個測試守）：①`_returns_from_series` 前一點必須是前一個交易日（證交所休市表，
+`_prev_td`），不是就不算當日漲跌（`chg_gap` 記實際前一點），週／月報酬照算；②官方報價改走 `dayquotes.latest()`
+（下午證交所 openapi 還是前一天，改抓 MI_INDEX 指定日期版），**官方表與收盤同一天時優先於序列**；
+③etfinfo 前收（L2）要是前一個交易日才用。CI 日誌「ℹ 當日漲跌：官方當日表 N 檔…報酬序列缺前一交易日 G 檔」。
+同次盤查另兩型不是現行問題：10/20 早上 5 檔是除息日（對參考價本來就對）；10/14、10/15 上櫃收盤慢一天是因為
+上一段的「上櫃不收 etfinfo」防呆 9/23 寫在分支上、**10/16 09:41（PR #242）才進 main**（之後沒再出現）——
+**修法寫進本檔不等於上線，要確認 main 上真的有**（同 Actions 額度那條的教訓）。核對方法：拿落檔每一版對 `data/lab/mkt` 官方分片
+（收盤 ÷ 前一交易日收盤，除息日扣配息），`docs/etf_chg_fix_plan.md` 第 9 節。
+
 **⚠ 踩過的坑：併檔通道把 `not_tracked` 洗掉（2026-09-23）**——09-21 週掃在排程會話的舊分支
 （分岔自 not_tracked 上線前）改 `data/etf_upcoming.json`，as_of 與 main 同為 09-21，daily.yml 併檔段
 只擋「較舊」→ 整份覆蓋，009829 又被判漏網、3 個 pytest 紅。修法＝併檔段改為「分支版缺
@@ -1701,6 +1715,8 @@ CI 從零開始會整片變 —，同 etf_watch 的坑）；`fetch_holdings.py` 
 ledger（ETF 部位帳本）／ta（技術指標）／analyze（逐檔彙整＋訊號）／backtest（成績單）／page（獨立頁）。
 建頁掛在 `scripts/gen_fund_dashboard.py` 尾端（fail-open）——**凡重建主頁的地方（含 push 重試迴圈）都會一起重建**，
 三支 workflow 的 `git add` 都已補 `data/lab dashboard/x9.html`，個股走勢序列 `dashboard/x9s.json` 另起一行 add（缺檔時 git 整行放棄，不可連累分片；tests 守）。
+**三支都要裝 numpy**（策略判定、景氣頁、訊號總覽要它）：2026-10-21 前 `etf_holdings.yml` 只裝 certifi，每班建頁都把機會頁的策略判定洗成「次數不夠」（推薦全空），
+等下一班 daily／afterhours 重建才回來（10/19～10/21 合計約 2 小時）；`tests/test_lab.py::test_workflows_that_build_pages_install_numpy` 守。
 
 **資料層 `data/lab/`（必須入庫，`.gitignore` 已加例外）**：
 - `pos/{揭露日}.json.gz`：各 ETF 每日持股股數／權重（＋揭露當下收盤，供海外估成本）。來源＝`data/etf_holdings.json`，

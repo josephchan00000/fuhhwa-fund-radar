@@ -59,8 +59,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: 安裝相依（純標準庫 + certifi）
-        run: pip install --quiet certifi
+      # numpy：建頁時籌碼雷達的策略判定、景氣頁、訊號總覽都要它。2026-10-21 踩坑：這裡原本只裝
+      # certifi，每班建頁都把機會頁的策略判定洗成「次數不夠」（推薦全空），等下一班 daily／afterhours
+      # 重建才回來；景氣頁與訊號總覽則整頁不重建。比照那兩支 workflow 安裝（失敗只告警、不擋持股落檔）。
+      - name: 安裝相依（certifi＋建頁用的 numpy）
+        run: pip install --quiet certifi && (pip install --quiet numpy || echo "::warning::numpy 安裝失敗——籌碼雷達策略判定、景氣頁與訊號總覽本班不重建")
 
       - name: 抓每日持股（第一手優先；停更或抓不到則 etfinfo 頂替＋第三方構成驗證）
         run: |

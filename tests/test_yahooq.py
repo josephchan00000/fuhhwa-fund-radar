@@ -79,6 +79,18 @@ def test_second_round_exchange_codes():
     assert yahooq.to_yahoo("/ LN") is None                # 剝完空字串不出手
 
 
+def test_stock_connect_and_hk_codes():
+    """2026-10-21 上線後核對：陸股通 C1／C2 對不到、港股沒補零 → 這幾列漲跌一直是 —。"""
+    assert yahooq.to_yahoo("600183 C1") == "600183.SS"    # 滬股通（上海）
+    assert yahooq.to_yahoo("002463 C2") == "002463.SZ"    # 深股通（深圳）
+    assert yahooq.to_yahoo("300476 C2") == "300476.SZ"
+    assert yahooq.to_yahoo("992 HK") == "0992.HK"         # Yahoo 港股至少 4 碼
+    assert yahooq.to_yahoo("700 HK") == "0700.HK"
+    assert yahooq.to_yahoo("9988 HK") == "9988.HK"
+    assert yahooq.to_yahoo("NVDA X1") is None             # 未知交易所碼照舊不猜
+    assert yahooq.to_yahoo("202612US") is None            # 期貨合約（無空白）不受放寬影響
+
+
 # ── 指定日期、已收盤（2026-10-21 使用者：「漲跌幅是錯的」；只用已收盤、對齊台股最新交易日） ──
 
 from datetime import datetime, timedelta, timezone
