@@ -145,3 +145,19 @@ def test_entry_points_link_to_strategy_page(R):
     assert f'href="{P.HOME}#i=xs:tw:faber"' in P.chip("tw", R) and f'href="{P.HOME}#i=xs:tw:mmr"' in P.mr_chip("tw", R)
     assert "在大神策略頁看" in P.PANEL_JS and "if (!XSHOME)" in P.PANEL_JS and "const XSHOME = false;" in SP.JS
     assert 'href="x9x.html">大神策略頁</a>' in SP.method_html()
+
+
+def test_overview_today_list_has_one_strategy_line_per_market(R):
+    """訊號總覽「今天有效的好訊號」：大神策略每個市場縮成一行，連到大神策略頁；卡片裡只列訊號。"""
+    from arm.lab import sigpage as SP
+    asof = XP.view(R)["asof"]
+    V = {"today": {mk: {"good": []} for mk in asof}, "asof": dict(asof), "xs": R, "stk": []}
+    h = SP.today_html(V)
+    assert h.count('<p class="sgxs"><a href="x9x.html">大神策略') == len(asof) and "策略・" not in h
+    for mk in asof:
+        its = P.board(mk, R)
+        line = P.today_line(mk, R)
+        assert line in h
+        assert all(f"{it['name']} {P.TAG[it['st']]}" in line for it in its)
+        assert ("看每一條現在持有還是空手" in line) == (not its)
+    assert P.today_line("tw", {}) == ""

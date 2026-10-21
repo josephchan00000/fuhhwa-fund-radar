@@ -31,6 +31,14 @@ H_TXT = {20: "1 個月", 60: "3 個月", 250: "12 個月"}
 # 依指標整理（docs/lab_sigview_plan.md）：指標的類別、走勢圖的資料檔（景氣頁對照圖同一份）、指數名稱
 IND_CATS = {"heat": "景氣項目", "dim": "景氣面向", "scen": "情境", "inst": "法人買賣超", "crash": "大跌風險", "tech": "技術事件", "bub": "泡沫", "ind": "產業泡沫",
             "buy": "大跌後買點", "xs": "大神策略", "stock": "個股訊號", "strat": "個股策略"}
+# 篩選用的分類（2026-10-21 起，docs/lab_nav_plan.md 第 2.2 節）：第一層照景氣頁的面向分（景氣頁看到哪個面向熱，就點哪一類），
+# 籌碼、技術、策略再分第二層。IND_CATS（資料從哪裡來）照留，搜尋時用得到。
+FACETS = {"fund": "基本面", "chip": "籌碼", "liq": "資金", "tech": "技術", "scen": "情境", "bub": "泡沫", "buy": "大跌後買點",
+          "strat": "策略", "stock": "個股訊號"}
+SUBS = {"chip": {"margin": "融資・期貨・選擇權", "inst": "法人買賣超", "dim": "面向分數"},
+        "tech": {"ind": "指標", "ev": "價位事件", "dim": "面向分數"},
+        "strat": {"short": "大神・短線", "bottom": "大神・落底", "season": "大神・季節性", "risk": "大神・風險控制", "stk": "個股策略"}}
+FACE_OF = {"fund": "fund", "chip": "chip", "sent": "chip", "gliq": "liq", "tliq": "liq", "liq": "liq", "tech": "tech"}
 CHART = {"tw": "x9mh.json", "spx": "x9muh-spx.json", "ixic": "x9muh-ixic.json", "ndx": "x9muh-ndx.json", "sox": "x9muh-sox.json"}
 PX_NAMES = {"tw": "加權指數", "spx": "S&P 500", "ixic": "那斯達克", "ndx": "那斯達克 100", "sox": "費半"}
 
@@ -62,9 +70,31 @@ def ind_of(r: dict) -> tuple[str, str, str, str | None]:
     return r["id"], cat, r.get("vn") or r["name"], None
 
 
+def facet_of(cat: str, grp: str | None, item: str | None) -> tuple[str, str | None]:
+    """指標的分類 → (第一層, 第二層)；見 FACETS、SUBS。cat、grp、item＝indicators() 的類別、面向、景氣頁的項目鍵。"""
+    if cat in ("heat", "dim"):
+        if grp == "multi":                                 # 同時兩個面向過熱：和情境放一起
+            return "scen", None
+        f = FACE_OF.get(grp or "", "fund")
+        if cat == "dim":
+            return f, ("dim" if f in ("chip", "tech") else None)
+        return f, {"chip": "margin", "tech": "ind"}.get(f)
+    if cat == "crash":                                     # 融資 ÷ 市值是籌碼，換手率、成交量能是資金
+        return ("chip", "margin") if item in ("W1", "W2", "W3") else ("liq", None)
+    if cat == "inst":
+        return "chip", "inst"
+    if cat == "tech":
+        return "tech", "ev"
+    if cat in ("bub", "ind"):
+        return "bub", None
+    if cat == "strat":
+        return "strat", "stk"
+    return cat, None                                       # scen、buy、stock
+
+
 def indicators(rows: list[dict]) -> list[list]:
-    """依指標整理：[[指標鍵, 市場, 類別, 名稱, 面向, [這個指標的訊號在 rows 的位置], 景氣頁的項目鍵], …]（照 rows 出現的順序）。
-    景氣項目的面向取水準那一列的 grp（邊際變化那一列是 deriv）。"""
+    """依指標整理：[[指標鍵, 市場, 類別, 名稱, 面向, [這個指標的訊號在 rows 的位置], 景氣頁的項目鍵, 第一層, 第二層], …]
+    （照 rows 出現的順序）。景氣項目的面向取水準那一列的 grp（邊際變化那一列是 deriv）；第一層、第二層見 facet_of。"""
     out: dict = {}
     for i, r in enumerate(rows):
         k, cat, nm, it = ind_of(r)
@@ -74,6 +104,8 @@ def indicators(rows: list[dict]) -> list[list]:
         if r["cat"] in ("heat", "multi") and x[4] is None:
             x[4] = r.get("grp")
         x[5].append(i)
+    for x in out.values():
+        x.extend(facet_of(x[2], x[4], x[6]))
     return list(out.values())
 
 
@@ -224,7 +256,7 @@ def page_json(V: dict) -> str:
            "asof": V["asof"], "tiers": {t: [S.TIER_MARK[t], S.TIER_NAMES[t]] for t in S.TIERS},
            "stiers": {t: [S.TIER_MARK[t], S.STRAT_TIER_NAMES[t]] for t in S.TIERS},
            "dirs": S.DIR_NAMES, "words": S.VARIANT_NAMES, "rmk": V.get("rmk") or [], "cards": CARD_NAMES,
-           "inds": indicators(V["rows"]), "icat": IND_CATS, "it": V.get("items") or {}, "dimn": dim_names(),
+           "inds": indicators(V["rows"]), "icat": IND_CATS, "fac": FACETS, "sub": SUBS, "it": V.get("items") or {}, "dimn": dim_names(),
            "chart": CHART, "pxn": PX_NAMES, "inm": ind_names(), "scen": scen_meta(),
            "scnv": scen_values(V.get("items") or {}), "scdn": S.SCEN_DIM_NAMES,
            "hit": {d: round(100 * v) for d, v in S.HIT_MIN.items()}, "eg": round(100 * S.EDGE_GOOD), "er": round(100 * S.EDGE_REF),
@@ -336,13 +368,6 @@ def _since(n: dict, ref: str | None = None) -> str:
     return f'{_dy(n["since"], ref)} 起'
 
 
-def _xs_li(it: dict) -> str:
-    """今天有效的好訊號：★ 大神策略（現在有動作的），標「策略」。"""
-    return (f'<li><a class="sgi" href="#i={_e(it["id"])}"><span class="sgtk sgtk-good">★</span><span class="sgnm">{_e(it["name"])}</span>'
-            f'<span class="sgd sgd-{it["side"]}">策略・{_e(XSP.TAG[it["st"]])}</span>'
-            f'<span class="sgln">{_e(it["now"])}<span class="sgs">{_e(it["line"])}</span></span></a></li>')
-
-
 def today_html(V: dict) -> str:
     cards = []
     for mk in TODAY_MK:
@@ -350,12 +375,13 @@ def today_html(V: dict) -> str:
         if T is None:
             continue
         items = T["good"]
-        sx = XSP.board(mk, V.get("xs") or {}) if V.get("xs") else []
         head = f'<h3>{_e(MK_NAMES[mk])}<span class="sub">資料到 {_e(_d(V["asof"].get(mk)))}</span></h3>'
-        if not items and not sx:
+        xl = XSP.today_line(mk, V["xs"]) if V.get("xs") else ""          # 大神策略縮成一行，連到大神策略頁
+        xl = f'<p class="sgxs">{xl}</p>' if xl else ""
+        if not items:
             body = '<p class="sgnone">今天沒有好訊號出現。</p>'
         else:
-            lis = [_xs_li(it) for it in sx]
+            lis = []
             for r in items:
                 mark = S.TIER_MARK[r["tier"]]
                 fam = r.get("fam") or []
@@ -365,7 +391,7 @@ def today_html(V: dict) -> str:
                            f'<span class="sgnm">{_e(r["name"])}</span><span class="sgd sgd-{r["d"]}">{_e(S.DIR_NAMES[r["d"]])}</span>'
                            f'<span class="sgln">{_line(r)}<span class="sgs">{_e(_since(r["now"], V["asof"].get(mk)))}</span></span>{also}</a></li>')
             body = '<ul class="sgl">' + "".join(lis) + "</ul>"
-        cards.append(f'<div class="sgk">{head}{body}</div>')
+        cards.append(f'<div class="sgk">{head}{body}{xl}</div>')
     lis = []
     for r in V["stk"]:
         d = r["dir"][0]
@@ -385,7 +411,7 @@ def today_html(V: dict) -> str:
     cards.append(f'<div class="sgk"><h3>個股<span class="sub">資料到 {_e(_d(V["asof"].get("stk")))}</span></h3>{stk_body}'
                  '<p class="note">策略現在持有什麼、下一批什麼時候買，看<a href="x9.html">個股頁</a>機會分頁。</p></div>')
     return ('<section class="sec" id="today"><h2>今天有效的好訊號<span class="sub">同一個項目只列一種；過去常一起出現的併成一列；依「比隨便挑一天多幾個百分點」排序；'
-            '★ 大神策略照規則現在有動作的排最前面（標「策略」）；點一列看那個指標</span></h2>'
+            '點一列看那個指標；大神策略每個市場一行，點了到大神策略頁</span></h2>'
             f'<div class="sgt">{"".join(cards)}</div></section>')
 
 
@@ -455,7 +481,7 @@ _HTML = """<!doctype html>
 <div class="vbar"><details class="purp"><summary>這頁怎麼看</summary><p>上面是今天有效的好訊號；下面依指標列出全部
 （例：RSI、融資餘額水位），點一個指標看它現在的數值、走勢，和它每一種訊號過去出現之後「上漲（或大跌）的機率」，
 跟同一段期間「隨便挑一天」比。★ 好訊號＝機率夠高、比隨便挑一天多 10 個百分點以上、近 10 年也成立，而且不是運氣（打亂日子測試）。
-「大神策略」一類是照原作者的規則交易的成績（勝率、少跌多少），★ 好策略＝交易成績過關、近 10 年與附近的參數也成立。
+照書上的規則買賣的「大神策略」在頂欄的<a href="x9x.html">大神策略頁</a>（這裡的「策略」一類也查得到），★ 好策略＝交易成績過關、近 10 年與附近的參數也成立。
 名詞滑過 ⓘ 或看最下面「名詞與判定方式」。</p></details></div>
 <main>{{BODY}}</main>{{PANEL}}
 <script type="application/json" id="sgd">{{DATA}}</script>
@@ -469,12 +495,14 @@ def _ii(k: str) -> str:
 
 
 TABLE = ('<section class="sec" id="all"><h2>全部指標<span class="sub" id="sgcnt"></span></h2>'
-         '<p class="note">一列一個指標（例：RSI、融資餘額水位）；點一列看它現在的數值、走勢，和它每一種訊號過去出現之後的結果。</p>'
+         '<p class="note">一列一個指標（例：RSI、融資餘額水位）；分類和景氣頁的面向一樣（基本面、籌碼、資金、技術），景氣頁看到哪個面向熱，就點哪一類。'
+         '點一列看它現在的數值、走勢，和它每一種訊號過去出現之後的結果。照書上的規則買賣的大神策略，全部的狀態在<a href="x9x.html">大神策略頁</a>。</p>'
          '<div class="sgbar"><input id="sgq" type="search" placeholder="搜尋：指標名稱（例：融資、RSI、季線）" autocomplete="off">'
-         '<div class="sgchips" data-k="mk"></div><div class="sgchips" data-k="cat"></div>'
+         '<div class="sgchips" data-k="mk"></div><div class="sgchips" data-k="c1"></div><div class="sgchips sgc2" data-k="c2" hidden></div>'
+         '<details class="sgadv"><summary>更多篩選<span id="sgadvn"></span></summary><div class="sgadvb">'
          '<div class="sgchips" data-k="tier"></div><div class="sgchips" data-k="dir"></div>'
          '<div class="sgopt"><label><input type="checkbox" id="sgnow"> 只看現在有訊號的</label>'
-         '<button type="button" id="sgcsv">下載 CSV（每一種訊號）</button></div></div>'
+         '<button type="button" id="sgcsv">下載 CSV（每一種訊號）</button></div></div></details></div>'
          '<div class="sgwrap"><table class="sgtb sgit"><thead><tr>'
          f'<th data-s="tier">判定 {_ii("tnow")}</th><th data-s="name" class="l">指標</th>'
          f'<th data-s="h" class="dsk">現在 {_ii("now")}</th><th class="dsk">近一年 {_ii("spark")}</th>'
@@ -551,6 +579,7 @@ CSS = """
 .sgnm{font-weight:600;font-size:14px;flex:0 1 auto;min-width:0}.sgln{flex:1 1 100%;font-size:12.5px;color:var(--ink2);padding-left:20px}
 .sgln b{color:var(--ink)}.sgs{color:var(--mut);margin-left:6px}
 .sgnone{font-size:13px;color:var(--ink2);margin:4px 0}
+.sgxs{margin:6px 0 0;padding-top:6px;border-top:1px dashed var(--line2);font-size:12.5px;line-height:1.6}
 .sgfm{flex:1 1 100%;font-size:12px;line-height:1.55;color:var(--mut);padding-left:20px}
 .sgtk{display:inline-block;width:14px;text-align:center;font-weight:700}
 .sgtk-good{color:var(--acc)}.sgtk-ref{color:var(--ink2)}.sgtk-none,.sgtk-few{color:var(--mut)}
@@ -563,6 +592,9 @@ CSS = """
 .sgch.on{background:var(--accbg);border-color:var(--acc);color:var(--ink);font-weight:600}
 .sgch i{font-style:normal;color:var(--mut);margin-left:3px;font-size:11.5px}
 .sgopt{display:flex;gap:14px;align-items:center;font-size:13px;flex-wrap:wrap}
+.sgc2{padding-left:10px;border-left:2px solid var(--acc)}
+.sgadv>summary{cursor:pointer;font-size:13px;color:var(--acc);width:max-content}.sgadv>summary span{color:var(--ink2)}
+.sgadvb{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 .sgopt button,.sgmore button{font:inherit;font-size:13px;padding:3px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--bg);color:var(--ink);cursor:pointer}
 .sgwrap{overflow-x:auto}
 .sgtb{width:100%;border-collapse:collapse;font-size:13px}
@@ -703,7 +735,7 @@ const I = {id:0,mk:1,cat:2,grp:3,name:4,kind:5,H:6,th:7,tier:8,dir:9,up:10,warn:
 const TORD = {good:0, ref:1, none:2, few:3};
 const MKO = ['tw','spx','ixic','ndx','sox','us','stk'];
 const HT = {20:'1 個月',60:'3 個月',250:'12 個月'};
-const st = {q:'', mk:'', cat:'', tier:'', dir:'', now:false, sort:'def', asc:false, limit:80};
+const st = {q:'', mk:'', c1:'', c2:'', tier:'', dir:'', now:false, sort:'def', asc:false, limit:80};
 let OCC = null, OCCP = null;
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pc = v => v == null ? '—' : Math.round(v) + '%';
@@ -754,8 +786,9 @@ const INDS = SG.inds.map(x => { const sig = x[5].map(i => ROWS[i]);
   const on = srt(sig.filter(r => ON[r[I.id]])), best = srt(sig)[0], ds = new Set();
   sig.forEach(r => dirsOf(r).forEach(d => { const s = stat(r, d); if (s && (s[6] === 'good' || s[6] === 'ref')) ds.add(d); }));
   const it = x[6] && IT[x[1]] ? IT[x[1]][x[6]] || null : null;
-  return {k: x[0], mk: x[1], cat: x[2], name: x[3], grp: x[4], sig, on, best, ds, it, ik: x[6],
-    hay: (x[3] + ' ' + x[0] + ' ' + (SG.mk[x[1]] || '') + ' ' + SG.icat[x[2]] + ' ' + sig.map(r => r[I.name]).join(' ')).toLowerCase()}; });
+  return {k: x[0], mk: x[1], cat: x[2], name: x[3], grp: x[4], sig, on, best, ds, it, ik: x[6], c1: x[7], c2: x[8] || '',
+    hay: (x[3] + ' ' + x[0] + ' ' + (SG.mk[x[1]] || '') + ' ' + SG.icat[x[2]] + ' ' + (SG.fac[x[7]] || '') + ' ' +
+      (x[8] && SG.sub[x[7]] ? SG.sub[x[7]][x[8]] : '') + ' ' + sig.map(r => r[I.name]).join(' ')).toLowerCase()}; });
 const BYK = {}, SIG2 = {};
 INDS.forEach(x => { BYK[x.k] = x; x.sig.forEach(r => { SIG2[r[I.id]] = x; }); });
 // 大神策略（xstratspec；文字由 arm/lab/xstratpage.py 產生）：每個市場每個策略一列，判定照交易成績
@@ -766,16 +799,22 @@ Object.entries(XS.m || {}).forEach(([mk, M]) => Object.entries(M).forEach(([k, r
   const row = [id, mk, 'xs', sp.grp, sp.name, sp.kind, null, null, r.t, [d], null, null, null, r.a, r.z, {xs: 1}];
   if (r.side) ON[id] = {xs: XS.sn[r.st] || ''};
   const x = {k: id, mk, cat: 'xs', name: sp.name, grp: sp.grp, sig: [row], on: r.side ? [row] : [], best: row,
-    ds: new Set(r.t === 'good' || r.t === 'ref' ? [d] : []), it: null, ik: null, xs: r, sp, xk: k,
-    hay: (sp.name + ' ' + id + ' ' + (SG.mk[mk] || '') + ' 大神策略 ' + (XS.grp[sp.grp] || '') + ' ' + sp.who + ' ' + sp.src).toLowerCase()};
+    ds: new Set(r.t === 'good' || r.t === 'ref' ? [d] : []), it: null, ik: null, xs: r, sp, xk: k, c1: 'strat', c2: sp.grp,
+    hay: (sp.name + ' ' + id + ' ' + (SG.mk[mk] || '') + ' 策略 大神策略 ' + (XS.grp[sp.grp] || '') + ' ' + sp.who + ' ' + sp.src).toLowerCase()};
   INDS.push(x); BYK[id] = x; SIG2[id] = x; }));
 function grpName(x){ return x.grp && SG.dimn[x.mk] ? SG.dimn[x.mk][x.grp] || '' : ''; }
-function meta(x){ if (x.cat === 'xs') return [SG.mk[x.mk], SG.icat.xs, XS.grp[x.grp]].filter(Boolean).join('・');
-  return [SG.mk[x.mk], x.cat === 'heat' ? grpName(x) : SG.icat[x.cat]].filter(Boolean).join('・'); }
+function facName(x){ return (SG.fac[x.c1] || '') + (x.c2 && SG.sub[x.c1] ? '・' + SG.sub[x.c1][x.c2] : ''); }
+function meta(x){ const f = SG.fac[x.c1] || '', g = x.cat === 'heat' ? grpName(x) : '';      // 市場・第一層・第二層（景氣項目寫面向）
+  if (x.c1 === 'strat') return x.c2 === 'stk' ? [SG.mk[x.mk], '個股策略'].join('・')               // 策略：市場・大神策略・短線
+    : [SG.mk[x.mk], '大神策略', (SG.sub.strat[x.c2] || '').replace('大神・', '')].filter(Boolean).join('・');
+  let t = x.c2 && SG.sub[x.c1] ? SG.sub[x.c1][x.c2] : (g && g !== f ? g : '');
+  if (x.grp === 'sent' && g) t = g;                                                              // 美股的籌碼面向叫情緒籌碼
+  return [SG.mk[x.mk], f, t].filter(Boolean).join('・'); }
 function pass(x, skip){
   if (st.q && !st.q.split(/\s+/).every(w => x.hay.includes(w))) return false;
   if (skip !== 'mk' && st.mk && x.mk !== st.mk) return false;
-  if (skip !== 'cat' && st.cat && x.cat !== st.cat) return false;
+  if (skip !== 'c1' && st.c1 && x.c1 !== st.c1) return false;
+  if (skip !== 'c1' && skip !== 'c2' && st.c2 && x.c2 !== st.c2) return false;
   if (skip !== 'tier' && st.tier && x.best[I.tier] !== st.tier) return false;
   if (skip !== 'dir' && st.dir && !x.ds.has(st.dir)) return false;
   if (st.now && !x.on.length) return false;
@@ -794,16 +833,20 @@ function sorted(list){
     if (ka < kb) return -dir; if (ka > kb) return dir; return a.k < b.k ? -1 : 1; }); }
 const TCH = {good: '★ 有好訊號', ref: '● 過門檻但可能是運氣', none: '○ 沒有過門檻', few: '— 次數不夠'};
 function chips(){
-  const defs = {mk: MKO.map(k => [k, SG.mk[k]]), cat: Object.entries(SG.icat), tier: Object.entries(TCH),
+  const sub = SG.sub[st.c1] || null;                                            // 第二層：選了有第二層的第一層才出現
+  const defs = {mk: MKO.map(k => [k, SG.mk[k]]), c1: Object.entries(SG.fac), c2: sub ? Object.entries(sub) : [], tier: Object.entries(TCH),
     dir: [['up','有偏多訊號'],['warn','有警示訊號'],['buy','有買點訊號']]};
   document.querySelectorAll('.sgchips[data-k]').forEach(box => {
     const k = box.dataset.k, cnt = {};
+    if (k === 'c2') { box.hidden = !sub; if (!sub) { box.innerHTML = ''; return; } }
     INDS.forEach(x => { if (!pass(x, k)) return;
       const vs = k === 'dir' ? [...x.ds] : k === 'tier' ? [x.best[I.tier]] : [x[k]]; vs.forEach(v => { cnt[v] = (cnt[v] || 0) + 1; }); });
-    box.innerHTML = '<button type="button" class="sgch' + (st[k] ? '' : ' on') + '" data-v="">全部</button>' +
+    box.innerHTML = '<button type="button" class="sgch' + (st[k] ? '' : ' on') + '" data-v="">全部' + (k === 'c2' ? esc(SG.fac[st.c1]) : '') + '</button>' +
       defs[k].filter(([v]) => cnt[v] || st[k] === v).map(([v, nm]) => '<button type="button" class="sgch' + (st[k] === v ? ' on' : '') +
         '" data-v="' + v + '">' + esc(nm) + '<i>' + (cnt[v] || 0) + '</i></button>').join('');
-    box.onclick = e => { const b = e.target.closest('.sgch'); if (!b) return; st[k] = b.dataset.v; st.limit = 80; draw(); }; }); }
+    box.onclick = e => { const b = e.target.closest('.sgch'); if (!b) return; st[k] = b.dataset.v; if (k === 'c1') st.c2 = ''; st.limit = 80; draw(); }; });
+  const n = (st.tier ? 1 : 0) + (st.dir ? 1 : 0) + (st.now ? 1 : 0), an = document.getElementById('sgadvn');
+  if (an) an.textContent = n ? '（已選 ' + n + ' 項）' : ''; }
 function spark(sp, w, h){
   if (!sp || !sp.some(v => v != null)) return '';
   const n = sp.length, X = i => (n > 1 ? i / (n - 1) : 0) * (w - 4) + 2, Y = v => h - 2 - (v / 100) * (h - 4);
@@ -1260,7 +1303,7 @@ document.getElementById('sgcsv').addEventListener('click', () => {
     '出現過幾次','判定','亂排也做得到%','最大回撤中位數%','隨便挑一天最大回撤中位數%','大跌門檻%','代號'];
   const lines = [head];
   list.forEach(x => x.cat !== 'xs' && x.sig.forEach(r => dirsOf(r).forEach(d => { const s = stat(r, d), e = dEdge(s);
-    lines.push([x.name, SG.mk[x.mk], SG.icat[x.cat], label(r), hz(r), nowTxt(r), SG.dirs[d] || d, what(r, d), s ? s[1] : '', s ? s[2] : '', e == null ? '' : e.toFixed(1),
+    lines.push([x.name, SG.mk[x.mk], facName(x), label(r), hz(r), nowTxt(r), SG.dirs[d] || d, what(r, d), s ? s[1] : '', s ? s[2] : '', e == null ? '' : e.toFixed(1),
       s ? (s[3] ?? '') : '', s ? (s[4] ?? '') : '', s ? (s[5] ?? '') : '', s ? s[0] : '', s ? (SG.tiers[s[6]] || ['', ''])[1] : '',
       s ? (s[9] ?? '') : '', d === 'warn' && s ? (s[7] ?? '') : '', d === 'warn' && s ? (s[8] ?? '') : '', d === 'warn' ? (r[I.th] ?? '') : '', r[I.id]]); })));
   const csv = '﻿' + lines.map(l => l.map(v => { const t = String(v == null ? '' : v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }).join(',')).join('\n');
