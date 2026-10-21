@@ -374,7 +374,8 @@ def latest(now: datetime | None = None, *, today_all: dict | None = None,
         out = {k: {**v, "date": d, "src": f"tp_{tp_src}"} for k, v in tp.items()}
         out.update({k: {**v, "date": d, "src": f"tw_{tw_src}"} for k, v in tw.items()})
         info.update({"T": d, "tw_src": tw_src, "tp_src": tp_src, "tw_n": len(tw), "tp_n": len(tp),
-                     "tw_check": c_tw, "tp_check": c_tp, "x_n": x_n, "xf_n": f_tw + f_tp})
+                     "tw_check": c_tw, "tp_check": c_tp, "x_n": x_n, "xf_n": f_tw + f_tp,
+                     "x_left": sorted(k for k, v in (*tw.items(), *tp.items()) if v.get("change") is None)})
         return d, out, info
     return None, {}, info
 
@@ -390,7 +391,9 @@ def describe(info: dict) -> str:
          f"｜上櫃 {info['tp_src']} {info['tp_n']} 檔・自檢 {ck(info['tp_check'])}")
     if info.get("x_n"):
         x, f = info["x_n"], info.get("xf_n") or 0
-        s += f"｜不比價（除權息等）{x} 檔：{f} 檔依除權息參考價算" + (f"、{x - f} 檔漲跌留空" if x > f else "")
+        left = info.get("x_left") or []
+        s += (f"｜不比價（除權息等）{x} 檔：{f} 檔依除權息參考價算"
+              + (f"、{x - f} 檔漲跌留空（{'、'.join(left[:8])}{'…' if len(left) > 8 else ''}）" if x > f else ""))
     if info.get("tried"):
         s += "｜先試過：" + "；".join(info["tried"])
     return s

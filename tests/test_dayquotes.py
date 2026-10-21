@@ -225,7 +225,7 @@ def test_openapi_zero_change_with_moved_close_is_unknown_not_flat():
     assert q["1808"]["change"] is None and q["1808"]["close"] == 31.9
     assert q["2330"]["change"] == 0.0
     assert tw["1808"]["change"] == 0.0                       # 不改呼叫端傳進來的表
-    assert info["x_n"] == 1 and "1 檔漲跌留空" in DQ.describe(info)
+    assert info["x_n"] == 1 and "1 檔漲跌留空（1808）" in DQ.describe(info)
     entry = {"date": "2026-09-23", "src": "etfinfo", "prev": {},
              "holdings": [{"stock_id": "1808", "name": "潤隆", "shares": 1, "weight": 2.0},
                           {"stock_id": "2330", "name": "台積電", "shares": 1, "weight": 9.0}]}
