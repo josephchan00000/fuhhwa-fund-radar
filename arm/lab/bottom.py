@@ -253,6 +253,19 @@ def first_signal(k: str, sig: dict, px: np.ndarray, t: int, end: int) -> int | N
             if _ok(v[s]) and v[s] >= S.C8_UP:
                 return s
         return None
+    if k == "C9":                                               # VER 4：融資維持率從 140% 以下回到 150% 以上
+        v = sig.get("mr")
+        if v is None or not _ok(v[t]):
+            return "na"
+        low = v[t] < S.C9_LO
+        for s in range(t + 1, end + 1):
+            if not _ok(v[s]):
+                continue
+            if low and v[s] >= S.C9_HI:
+                return s
+            if v[s] < S.C9_LO:
+                low = True
+        return None
     raise KeyError(k)
 
 
@@ -519,6 +532,22 @@ def breadth_series(br: dict) -> dict[str, dict]:
     return {"t5": t5, "adv": adv, "nl": nl}
 
 
+def us_breadth_series(br: dict) -> dict[str, dict]:
+    """（VER 4）美股漲跌家數（usbreadth：[上漲, 下跌, 平盤, 上漲成交金額, 下跌成交金額, 上漲點數, 下跌點數, 有資料檔數, 成分股數]）→
+    t5（最近 10 筆的上漲家數占比，和台股 breadth_series 同一個 breadth_ind 算法）、adv（當天上漲占比；上漲＋下跌不到 BREADTH_MIN 不算）。"""
+    from .heatdata import breadth_ind
+    bk = sorted(d for d, v in br.items() if v and v[0] is not None and v[1] is not None)
+    z = [0] * len(bk)
+    t5 = breadth_ind({"cal": bk, "adv": [br[d][0] for d in bk], "dec": [br[d][1] for d in bk],
+                      "above": z, "n60": z, "hi": z, "lo": z, "n250": z})["T5"]
+    adv = {}
+    for d in bk:
+        a, b = br[d][0], br[d][1]
+        if a + b >= S.BREADTH_MIN:
+            adv[d] = a / (a + b)
+    return {"t5": {d: v / 100.0 for d, v in t5.items()}, "adv": adv}
+
+
 def _bub_levels(cal: list[str], rows: list, done: set) -> np.ndarray:
     from .crash import rows_to_daily
     return rows_to_daily(cal, rows, lambda r: r.get("L"), done)
@@ -552,6 +581,10 @@ def inputs_tw(B: dict | None = None, IT: dict | None = None, BX: dict | None = N
     sig["pc"] = _exact(cal, pc)
     sig["pcma"] = _exact(cal, _native_ma(pc, S.C6_MA))
     sig["vol"] = _exact(cal, {d: v[0] for d, v in (D.get("turnover") or {}).items() if v and v[0]})
+    if "C9" in S.SIG_MK["tw"]:                                   # VER 4：大盤融資維持率（%）
+        from . import heatdata as HD
+        mr = D.get("mratio") or HD.load("mratio")
+        sig["mr"] = _exact(cal, {d: v[0] for d, v in mr.items() if v and v[0] is not None})
     I["sig"] = sig
     return I
 
@@ -571,6 +604,10 @@ def inputs_us(idx: str, Bu: dict, I0: dict, vol: dict | None = None, BX: dict | 
                  "net": _arr((Bu["raw"].get("S2") or [None] * len(Bu["cal"]))[c0:]), "c5floor": S.C5_FLOOR["us"]}
     if "C7" in S.SIG_MK[idx] and vol:
         sig["vol"] = _exact(cal, vol)
+    if {"C3", "C8"} & set(S.SIG_MK[idx]):                        # VER 4：S&P 500 成分股的漲跌家數（四個指數同一份）
+        from . import heatdata as HD
+        bs = us_breadth_series(HD.load("us_breadth"))
+        sig["t5"], sig["adv"] = _exact(cal, bs["t5"]), _exact(cal, bs["adv"])
     I["sig"] = sig
     return I
 
@@ -727,7 +764,7 @@ def market(I: dict) -> dict:
                  "sigma": float(np.nanstd(px[1:] / px[:-1] - 1.0, ddof=1)) if len(px) > 2 else None, "ev": {}}
     first = {}
     for k, key in (("C1", "vix"), ("C2", "mchg"), ("C3", "t5"), ("C4", "nl"), ("C5", "net"), ("C6", "pcma"),
-                   ("C7", "vol"), ("C8", "adv")):
+                   ("C7", "vol"), ("C8", "adv"), ("C9", "mr")):
         v = I["sig"].get(key)
         if v is not None and k in S.SIG_MK[mk]:
             ix = np.nonzero(~np.isnan(v))[0]
@@ -748,19 +785,23 @@ def market(I: dict) -> dict:
                     if (r["rules"].get(k) or {}).get("o") and r["rules"][k]["o"].get("px_vs_b1") is not None]
             st["px_med"] = float(np.median(vals)) if vals else None
         # BH：規則和事件隔天買比（VER 1：固定等 10 天＋全部訊號）、訊號和固定等 10 天比（VER 2：只有訊號），
-        # NL20、R60 各一個家族；分組（R60）
+        # NL20、R60 各一個家族；分組（R60）。VER 4（6.4）：新加的訊號（SIG_ADD4）在每一種比較都自成一個家族，原本的家族照舊。
+        add = set(S.SIG_ADD4.get(mk) or ())
+        old = [k for k in E["rules"] if k not in add]
+        new = [k for k in E["rules"] if k in add]
         for pre in ("nl", "r"):
-            ks = [k for k, st in E["rules"].items() if not st["few"] and st.get(f"{pre}_p") is not None]
-            for k, q in zip(ks, bh([E["rules"][k][f"{pre}_p"] for k in ks])):
-                E["rules"][k][f"{pre}_q"] = q
-            ks = [k for k, st in E["rules"].items()
-                  if k != S.SIG_BASE and not st["w10"]["few"] and st["w10"].get(f"{pre}_p") is not None]
-            for k, q in zip(ks, bh([E["rules"][k]["w10"][f"{pre}_p"] for k in ks])):
-                E["rules"][k]["w10"][f"{pre}_q"] = q
-        # VER 3（6.1c）：落底訊號 vs 固定等 10 天一個家族；固定等 10 天 vs 事件隔天買自成一個（LP、R60 各一個）
-        sig = [k for k in E["rules"] if k != S.SIG_BASE]
+            for fam in (old, new):
+                ks = [k for k in fam if not E["rules"][k]["few"] and E["rules"][k].get(f"{pre}_p") is not None]
+                for k, q in zip(ks, bh([E["rules"][k][f"{pre}_p"] for k in ks])):
+                    E["rules"][k][f"{pre}_q"] = q
+                ks = [k for k in fam if k != S.SIG_BASE and not E["rules"][k]["w10"]["few"]
+                      and E["rules"][k]["w10"].get(f"{pre}_p") is not None]
+                for k, q in zip(ks, bh([E["rules"][k]["w10"][f"{pre}_p"] for k in ks])):
+                    E["rules"][k]["w10"][f"{pre}_q"] = q
+        # VER 3（6.1c）：落底訊號 vs 固定等 10 天一個家族；固定等 10 天 vs 事件隔天買自成一個（LP、R60 各一個）；VER 4 新訊號另一個
+        sig = [k for k in old if k != S.SIG_BASE]
         for pre in ("lp", "r"):
-            for fam in (sig, [S.SIG_BASE]):
+            for fam in (sig, [S.SIG_BASE], new):
                 ks = [k for k in fam if not E["rules"][k]["lp"]["few"] and E["rules"][k]["lp"].get(f"{pre}_p") is not None]
                 for k, q in zip(ks, bh([E["rules"][k]["lp"][f"{pre}_p"] for k in ks])):
                     E["rules"][k]["lp"][f"{pre}_q"] = q
@@ -974,6 +1015,14 @@ def now(I: dict) -> dict:
             else:
                 row["sig"][k] = {"st": "on", "d": cal[s], "after": s - te}
         row["w10"] = {"st": "on", "d": cal[te + S.WAIT]} if te + S.WAIT <= t else {"st": "wait", "left": te + S.WAIT - t}
+        mr = I["sig"].get("mr")                                     # VER 4：融資維持率今天與事件以來最低（只描述）
+        if mr is not None and "C9" in S.SIG_MK[mk]:
+            seg = np.asarray(mr[te:t + 1], dtype=float)
+            ok = np.nonzero(~np.isnan(seg))[0]
+            if len(ok):
+                j = int(ok[np.argmin(seg[ok])])
+                row["mr"] = {"now": float(seg[ok[-1]]), "now_d": cal[te + int(ok[-1])],
+                             "min": float(seg[j]), "min_d": cal[te + j]}
         out["active"].append(row)
     if len(out["active"]) == 2 and out["active"][0]["t"] == out["active"][1]["t"]:
         out["active"][0]["also"] = "E10"                       # 同一天同時是兩種事件：只列一次

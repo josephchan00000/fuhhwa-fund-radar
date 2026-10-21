@@ -273,6 +273,16 @@ def xs_chip(mk: str | None) -> str:
         return ""
 
 
+def mr_chip(mk: str | None) -> str:
+    """最上面那一行的「融資維持率」（只有台股；xstratpage.mr_chip）。"""
+    try:
+        from . import xstratpage as XSP
+        return XSP.mr_chip(mk) if mk else ""
+    except Exception as e:                          # noqa: BLE001
+        print(f"[景氣溫度] 融資維持率算不出來：{type(e).__name__}: {e}")
+        return ""
+
+
 def view(B: dict | None = None, R: dict | None = None) -> dict:
     B = B if B is not None else C.build()
     R = R if R is not None else (load_research() or {})
@@ -333,6 +343,7 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
     out["sigtoday"] = sig_today(out["signow"])
     out["xsb"] = xs_board(out["mk"]) if T else []   # 大神策略（xstratspec）：今天的重點要列的 ★ 策略
     out["xschip"] = xs_chip(out["mk"]) if T else ""
+    out["mrchip"] = mr_chip(out["mk"]) if T else ""
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
         out["viz"] = VZ.pack(B, out)
@@ -1332,6 +1343,8 @@ def state_line(V: dict) -> str:
                      f'<i>{_e(BS.LEVELS[b["L"]])}</i></a>')
     if V.get("xschip"):                                      # 10 個月均線（大神策略，xstratspec；每個市場都列）
         chips.append(V["xschip"])
+    if V.get("mrchip"):                                      # 融資維持率（只有台股；docs/lab_crash_plan.md 第 22 節）
+        chips.append(V["mrchip"])
     nw = (V.get("bottom") or {}).get("now") or {}
     mk = V.get("mk") or (V.get("signow") or {}).get("mk") or ""
     if nw.get("active"):

@@ -1,4 +1,4 @@
-"""景氣頁「大跌後檢查」卡（docs/lab_crash_plan.md 第 4、13～17 節；規格 bottomspec VER 3）。
+"""景氣頁「大跌後檢查」卡（docs/lab_crash_plan.md 第 4、13～17、22 節；規格 bottomspec VER 4）。
 
 台股景氣頁、美股景氣頁（四個指數各一份）各一張卡，放在「短線大跌風險」卡下面：
   一句話          現在有沒有進行中的大跌（最近 60 個交易日內的 5 日急跌、還沒結束的「從 60 日高點跌 10%」）；
@@ -38,8 +38,10 @@ def gv_text(g: str, v: str) -> str:
 GVCLS = {"up": "strong", "down": "weak", "none": "none", "few": "few"}
 GTITLE = {"fund": "底子", "chip": "籌碼", "bub": "泡沫"}
 SHORT = {"W10": "固定等 10 天", "C1": "VIX 回落", "C2": "融資減少", "C3": "寬度衝刺", "C4": "新低家數減半",
-         "C5": "期貨淨空單減少", "C6": "P/C 回落", "C7": "跟進日", "C8": "90% 上漲日"}
-TAG = {"C1": "VIX", "C2": "融資", "C3": "寬度", "C4": "新低", "C5": "期貨", "C6": "P/C", "C7": "跟進", "C8": "90%"}
+         "C5": "期貨淨空單減少", "C6": "P/C 回落", "C7": "跟進日", "C8": "90% 上漲日", "C9": "融資維持率回升"}
+TAG = {"C1": "VIX", "C2": "融資", "C3": "寬度", "C4": "新低", "C5": "期貨", "C6": "P/C", "C7": "跟進", "C8": "90%",
+       "C9": "維持率"}
+US_BREADTH = "S&P 500 成分股，1996 年起；早年只算得到現在還在交易的公司"
 MKN = {"tw": "台股", "spx": "S&P 500", "ixic": "那斯達克", "ndx": "那斯達克 100", "sox": "費半"}
 LIST_MAX = 20
 
@@ -51,7 +53,8 @@ def sig_def(mk: str, k: str, px: str = "") -> str:
         "W10": "不看訊號，事件後第 10 個交易日收盤買",
         "C1": ("美國 VIX（用前一個美國交易日的收盤）" if tw else "VIX") + f" 比事件以來的最高點低 {S.C1_DROP * 100:g}% 以上",
         "C2": f"上市融資金額比 {S.C2_DAYS} 個交易日前少 {S.C2_DROP * 100:g}% 以上（斷頭、減碼潮）",
-        "C3": f"近 {S.C3_WIN} 個交易日上漲家數占比，從 {S.C3_LO * 100:g}% 以下衝到 {S.C3_HI * 100:g}% 以上（月底市值 40 億以上的股票）",
+        "C3": f"近 {S.C3_WIN} 個交易日上漲家數占比，從 {S.C3_LO * 100:g}% 以下衝到 {S.C3_HI * 100:g}% 以上"
+              + ("（月底市值 40 億以上的股票）" if tw else f"（{US_BREADTH}）"),
         "C4": f"當天創 250 日新低的家數占比，比事件以來的高峰少一半（高峰至少 {S.C4_FLOOR * 100:g}%）",
         "C5": (f"外資台指期淨空單比事件以來的高峰少 {S.C5_CUT * 100:g}% 以上（高峰至少 1 萬口）" if tw else
                f"大型投機者 S&P 500 期貨淨空單（占未平倉）比事件以來的高峰少 {S.C5_CUT * 100:g}% 以上"
@@ -59,7 +62,8 @@ def sig_def(mk: str, k: str, px: str = "") -> str:
         "C6": "臺指選擇權賣權 ÷ 買權成交量比，事件後先高於、再跌回自己的 20 日平均以下",
         "C7": f"事件以來的最低收盤之後第 {S.C7_GAP} 天起，{px.lstrip() or '指數'}單日漲 {S.C7_UP * 100:g}% 以上、"
               + ("成交金額" if tw else "成交量") + "比前一天大",
-        "C8": f"當天上漲家數占上漲＋下跌的 {S.C8_UP * 100:g}% 以上",
+        "C8": f"當天上漲家數占上漲＋下跌的 {S.C8_UP * 100:g}% 以上" + ("" if tw else f"（{US_BREADTH}）"),
+        "C9": f"大盤融資維持率事件後跌到 {S.C9_LO:g}% 以下，之後回到 {S.C9_HI:g}% 以上（2005 年起）",
     }[k]
 
 
@@ -248,6 +252,9 @@ def now_html(C: dict) -> str:
                 st_txt, cls = "60 個交易日內沒有出現", "xjno"
             else:
                 st_txt, cls = "沒有資料", "xjno"
+            if k == "C9" and a.get("mr"):                          # 融資維持率：今天與事件以來最低（只描述）
+                m = a["mr"]
+                st_txt += (f'；維持率 {m["now"]:.1f}%（{_d(m["now_d"])}），事件以來最低 {m["min"]:.1f}%（{_d(m["min_d"])}）')
             r = rs.get(k) or {}
             vt = r.get("v") or "few"
             c = r.get("lp") or {}
@@ -396,7 +403,8 @@ def five_html(C: dict, ev: str) -> str:
         agree = "一致" if len(nf) >= 2 and len(set(nf)) == 1 else ("—" if len(nf) < 2 else "不一致")
         rows.append(f'<tr><td class="l">{_e(SHORT[k])}</td>' + "".join(cells) + f'<td class="xjag">{agree}</td></tr>')
     head = ('<tr><th class="l">怎麼買</th>' + "".join(f"<th>{_e(MKN[m])}</th>" for m in mks) + "<th>方向</th></tr>")
-    na = "美股沒有融資、寬度、新低家數、P/C；費半沒有成交量" if C["mk"] == "tw" else "費半沒有成交量"
+    na = ("美股沒有融資、融資維持率、新低家數、P/C；費半沒有成交量；美股的寬度與 90% 上漲日用 S&P 500 成分股的家數"
+          if C["mk"] == "tw" else "費半沒有成交量；寬度與 90% 上漲日四個指數都用 S&P 500 成分股的家數")
     return (f'<div class="tw"><table class="xjft">{head}{"".join(rows)}</table></div>'
             f'<p class="note">{"、".join(f"{VMARK[v]} {VSHORT[v]}" for v in ("better", "trade", "worse", "none", "few"))}；'
             f'判定看買在這一波相對低點的比例；固定等 10 天這一列和事件隔天買比，落底訊號都和固定等 10 天比；'

@@ -42,7 +42,8 @@ def _inputs(n=1500, seed=3, mk="tw"):
     sig = {"vix": _series(n, seed + 1, 10, 60, 2.0), "mchg": _series(n, seed + 2, -0.25, 0.15, 0.02),
            "t5": _series(n, seed + 3, 0.2, 0.8, 0.05), "adv": np.array([rnd.random() for _ in range(n)]),
            "nl": _series(n, seed + 4, 0.0, 0.4, 0.02), "net": _series(n, seed + 5, -60000, 40000, 3000),
-           "c5floor": 10000.0, "pc": _series(n, seed + 6, 50, 150, 8.0), "vol": _series(n, seed + 7, 1, 100, 6.0)}
+           "c5floor": 10000.0, "pc": _series(n, seed + 6, 50, 150, 8.0), "vol": _series(n, seed + 7, 1, 100, 6.0),
+           "mr": _series(n, seed + 10, 110.0, 200.0, 4.0)}
     pc = sig["pc"]
     sig["pcma"] = np.array([pc[i - 19:i + 1].mean() if i >= 19 else np.nan for i in range(n)])
     return {"mk": mk, "cal": cal, "px": px, "fund": _series(n, seed + 8, start=80), "chip": _series(n, seed + 9, start=40),
@@ -117,7 +118,8 @@ def _direct_signal(k, sig, px, t, end):
 
     def ok(x):
         return x is not None and not math.isnan(x)
-    need = {"C1": "vix", "C2": "mchg", "C3": "t5", "C4": "nl", "C5": "net", "C6": "pc", "C7": "vol", "C8": "adv"}[k]
+    need = {"C1": "vix", "C2": "mchg", "C3": "t5", "C4": "nl", "C5": "net", "C6": "pc", "C7": "vol", "C8": "adv",
+            "C9": "mr"}[k]
     if not ok(sig[need][t]) or (k == "C6" and not ok(sig["pcma"][t])):
         return "na"
     for s in range(t + 1, end + 1):
@@ -157,6 +159,10 @@ def _direct_signal(k, sig, px, t, end):
         elif k == "C8":
             if ok(sig["adv"][s]) and sig["adv"][s] >= 0.90:
                 return s
+        elif k == "C9":                                       # 事件那天起到前一天有一天 < 140%，當天 ≥ 150%
+            v = sig["mr"]
+            if ok(v[s]) and v[s] >= 150.0 and any(ok(u) and u < 140.0 for u in v[t:s]):
+                return s
     return None
 
 
@@ -166,6 +172,7 @@ def test_signals_match_direct():
         I = _inputs(1500, seed)
         I["sig"]["vix"][700:705] = np.nan                     # 中間缺幾天：那幾天不成立
         I["sig"]["net"][400] = np.nan                         # 事件那天沒有值＝na
+        I["sig"]["mr"][300:340] = np.nan                      # 融資維持率缺一段
         px = I["px"]
         for t in range(25, 1400, 7):
             for k in S.SIGNALS:
@@ -353,12 +360,13 @@ def test_ver2_signals_are_judged_against_w10():
             assert st["v2"] == w["v"] == X.rule_verdict(w) and st["v1"] == X.rule_verdict(st)
             assert (w["nl_dir"], w["r_dir"], st["nl_dir"], st["r_dir"]) == (
                 X.sdir(w, "nl"), X.sdir(w, "r"), X.sdir(st, "nl"), X.sdir(st, "r"))
-        for pre in ("nl", "r"):                               # BH：只有訊號一起校正（固定等 10 天是對照）
-            ks = [k for k in S.SIG_MK["tw"] if not rs[k]["w10"]["few"] and rs[k]["w10"].get(f"{pre}_p") is not None]
-            for k, q in zip(ks, X.bh([rs[k]["w10"][f"{pre}_p"] for k in ks])):
-                assert rs[k]["w10"][f"{pre}_q"] == q
-            for k in set(S.SIG_MK["tw"]) - set(ks):
-                assert f"{pre}_q" not in rs[k]["w10"]
+        for pre in ("nl", "r"):                               # BH：只有訊號一起校正（固定等 10 天是對照）；VER 4 新訊號另一個家族
+            for fam in ([k for k in S.SIG_MK["tw"] if k not in S.SIG_ADD4["tw"]], list(S.SIG_ADD4["tw"])):
+                ks = [k for k in fam if not rs[k]["w10"]["few"] and rs[k]["w10"].get(f"{pre}_p") is not None]
+                for k, q in zip(ks, X.bh([rs[k]["w10"][f"{pre}_p"] for k in ks])):
+                    assert rs[k]["w10"][f"{pre}_q"] == q
+                for k in set(fam) - set(ks):
+                    assert f"{pre}_q" not in rs[k]["w10"]
 
 
 def _direct_wave(px, t, p):
@@ -460,9 +468,10 @@ def test_ver3_lp_comparisons_match_direct():
             assert (c["lp_dir"], c["r_dir"]) == (X.sdir(c, "lp"), X.sdir(c, "r"))
             assert rs[k]["v1"] in S.VERDICT and rs[k]["v2"] in S.VERDICT
         for pre in ("lp", "r"):
-            sig = [k for k in S.SIG_MK["tw"] if not rs[k]["lp"]["few"] and rs[k]["lp"].get(f"{pre}_p") is not None]
-            for k, q in zip(sig, X.bh([rs[k]["lp"][f"{pre}_p"] for k in sig])):
-                assert rs[k]["lp"][f"{pre}_q"] == q
+            for fam in ([k for k in S.SIG_MK["tw"] if k not in S.SIG_ADD4["tw"]], list(S.SIG_ADD4["tw"])):   # VER 4：新訊號另一個家族
+                sig = [k for k in fam if not rs[k]["lp"]["few"] and rs[k]["lp"].get(f"{pre}_p") is not None]
+                for k, q in zip(sig, X.bh([rs[k]["lp"][f"{pre}_p"] for k in sig])):
+                    assert rs[k]["lp"][f"{pre}_q"] == q
             w = rs["W10"]["lp"]                                       # 固定等 10 天 vs 事件隔天買自成一個家族：q＝p
             if not w["few"] and w.get(f"{pre}_p") is not None:
                 assert w[f"{pre}_q"] == w[f"{pre}_p"]
@@ -486,3 +495,79 @@ def test_now_active_events():
     I["px"] = np.array([100.0 * (1.0002 ** i) for i in range(800)])
     N = X.now(I)
     assert N["active"] == [] and N["last"]["E5"] is None
+
+
+# ── VER 4：融資維持率（C9）、美股寬度（C3、C8） ──────────────────────────────
+
+def test_us_breadth_series_matches_direct_and_tw_algorithm():
+    """美股漲跌家數 → 最近 10 筆的上漲占比（合計 ≥ 100 家）與當天上漲占比（≥ 100 家）；和台股 breadth_series 同一個算法。"""
+    rnd = random.Random(5)
+    cal = _cal(300)
+    br, tw = {}, {}
+    for i, d in enumerate(cal):
+        if i in (40, 41, 200):                                # 缺幾天：用依日期排好的最近 10 筆
+            continue
+        n = 8 if i < 12 else rnd.randint(150, 490)            # 開頭幾天家數很少
+        a = rnd.randint(0, n)
+        b = n - a - rnd.randint(0, min(5, n - a))
+        br[d] = [a, b, n - a - b, 1.0, 1.0, 1.0, 1.0, n, 500]
+        tw[d] = [a, b, 0, 0, 0, 0, 0]
+    U = X.us_breadth_series(br)
+    ks = sorted(br)
+    for i, d in enumerate(ks):
+        a, b = br[d][0], br[d][1]
+        assert (d in U["adv"]) == (a + b >= 100)
+        if d in U["adv"]:
+            assert math.isclose(U["adv"][d], a / (a + b))
+        if i >= 9:
+            A = sum(br[k][0] for k in ks[i - 9:i + 1])
+            Z = A + sum(br[k][1] for k in ks[i - 9:i + 1])
+            assert (d in U["t5"]) == (Z >= 100)
+            if d in U["t5"]:
+                assert abs(U["t5"][d] - A / Z) < 1e-5
+        else:
+            assert d not in U["t5"]
+    T = X.breadth_series(tw)
+    assert U["t5"] == T["t5"] and U["adv"] == T["adv"]
+
+
+def test_ver4_new_signals_do_not_change_original_results(monkeypatch):
+    """VER 4：新訊號在多重比較自成一個家族——拿掉新訊號重算，原本每一個規則的統計與判定都一樣。"""
+    I = _inputs(3000, 21)
+    I["px"] = _walk(3000, 21, vol=0.022)
+    with_new = X.market(I)
+    monkeypatch.setitem(S.SIG_MK, "tw", tuple(k for k in S.SIG_MK["tw"] if k not in S.SIG_ADD4["tw"]))
+    without = X.market(I)
+    for ev in S.EVENTS:
+        a, b = with_new["ev"][ev]["rules"], without["ev"][ev]["rules"]
+        assert set(a) - set(b) == set(S.SIG_ADD4["tw"])
+        for k in b:
+            assert a[k] == b[k], (ev, k)
+        assert "C9" in a and a["C9"]["v"] in S.VERDICT
+
+
+def test_c9_family_q_values_are_separate():
+    """C9 自己一個家族：只有一個檢定時 q＝p。"""
+    I = _inputs(3000, 21)
+    I["px"] = _walk(3000, 21, vol=0.022)
+    M = X.market(I)
+    for ev in S.EVENTS:
+        c = M["ev"][ev]["rules"]["C9"]
+        for blk, pre in ((c, "nl"), (c, "r"), (c["w10"], "nl"), (c["lp"], "lp")):
+            if blk.get(f"{pre}_q") is not None:
+                assert math.isclose(blk[f"{pre}_q"], blk[f"{pre}_p"])
+
+
+def test_now_reports_margin_ratio_since_event():
+    I = _inputs(800, 6)
+    I["px"] = np.array([100.0] * 700 + [100 * (0.985 ** i) for i in range(1, 101)])
+    mr = np.full(800, 170.0)
+    mr[750:760] = 135.0
+    mr[780] = np.nan
+    mr[799] = np.nan
+    I["sig"]["mr"] = mr
+    N = X.now(I)
+    a = next(x for x in N["active"] if x["ev"] == "E10")
+    assert a["mr"]["min"] == 135.0 and a["mr"]["min_d"] == I["cal"][750]
+    assert a["mr"]["now"] == 170.0 and a["mr"]["now_d"] == I["cal"][798]      # 今天沒有值：用最近有值的一天
+    assert a["sig"]["C9"]["st"] == "on"                                     # 135% → 170%：從 140% 以下回到 150% 以上
