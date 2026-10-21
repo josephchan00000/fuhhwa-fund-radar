@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/21 22:00",
+  "as_of": "2026/10/22 02:17",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -113,7 +113,7 @@
         {
           "title": "海外配息稅負較單純 00998A抗跌又適合長期存股 資產配置多一個選擇",
           "url": "https://sunmedia.tw/news/finance/%E6%B5%B7%E5%A4%96%E9%85%8D%E6%81%AF%E7%A8%85%E8%B2%A0%E8%BC%83%E5%96%AE%E7%B4%94-00998A%E6%8A%97%E8%B7%8C%E5%8F%88%E9%81%A9%E5%90%88%E9%95%B7%E6%9C%9F%E5%AD%98%E8%82%A1-%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE%E5%A4%9A%E4%B8%80%E5%80%8B%E9%81%B8%E6%93%87-1792548749276",
-          "source": "商傳媒 - SUN MEDIA",
+          "source": "商傳媒",
           "date": "2026-10-21 10:24",
           "datetime": "2026-10-21T10:24:36+08:00"
         }
@@ -137,25 +137,18 @@
       ],
       "items": [
         {
+          "title": "00409A 主動復華全球50 - 主動式ETF 又慘跌... 投資人自己要想好- 股市爆料同學會",
+          "url": "https://www.cmoney.tw/forum/article/186112416",
+          "source": "CMoney",
+          "date": "2026-10-19 11:08",
+          "datetime": "2026-10-19T11:08:27+08:00"
+        },
+        {
           "title": "台股上下震盪 00409A一張約1萬元 一次布局美國AI晶片、光通訊、電力龍頭",
           "url": "https://enn.tw/795062/",
           "source": "ENN台灣電報",
           "date": "2026-10-19 01:36",
           "datetime": "2026-10-19T01:36:43+08:00"
-        },
-        {
-          "title": "美國晶片三強一次到位 00409A同時持有三大晶片巨頭 小資用台幣買進晶片獲利大廠",
-          "url": "https://tw.stock.yahoo.com/news/%E7%BE%8E%E5%9C%8B%E6%99%B6%E7%89%87%E4%B8%89%E5%BC%B7-%E6%AC%A1%E5%88%B0%E4%BD%8D-00409a%E5%90%8C%E6%99%82%E6%8C%81%E6%9C%89%E4%B8%89%E5%A4%A7%E6%99%B6%E7%89%87%E5%B7%A8%E9%A0%AD-%E5%B0%8F%E8%B3%87%E7%94%A8%E5%8F%B0%E5%B9%A3%E8%B2%B7%E9%80%B2%E6%99%B6%E7%89%87%E7%8D%B2%E5%88%A9%E5%A4%A7%E5%BB%A0-061759380.html",
-          "source": "Yahoo股市",
-          "date": "2026-10-15 14:17",
-          "datetime": "2026-10-15T14:17:59+08:00"
-        },
-        {
-          "title": "台股震盪 直取獲利源頭！00409A從AI晶片、光通訊到供電鎖定美國巨頭",
-          "url": "https://tw.news.yahoo.com/%E5%8F%B0%E8%82%A1%E9%9C%87%E7%9B%AA-%E7%9B%B4%E5%8F%96%E7%8D%B2%E5%88%A9%E6%BA%90%E9%A0%AD-00409a%E5%BE%9Eai%E6%99%B6%E7%89%87-%E5%85%89%E9%80%9A%E8%A8%8A%E5%88%B0%E4%BE%9B%E9%9B%BB%E9%8E%96%E5%AE%9A%E7%BE%8E%E5%9C%8B%E5%B7%A8%E9%A0%AD-054130607.html",
-          "source": "Yahoo新聞",
-          "date": "2026-10-15 13:41",
-          "datetime": "2026-10-15T13:41:30+08:00"
         }
       ]
     },
@@ -194,6 +187,13 @@
           "source": "TVBS",
           "date": "2026-10-21 09:51",
           "datetime": "2026-10-21T09:51:00+08:00"
+        },
+        {
+          "title": "外銷訂單續旺、AI商機擴散！00418A今日開始募集 鎖定傳產轉型成長新星",
+          "url": "https://www.watchmedia01.com/archives/561635",
+          "source": "Yahoo新聞",
+          "date": "2026-10-21 09:22",
+          "datetime": "2026-10-21T09:22:13+08:00"
         }
       ]
     },
@@ -551,11 +551,19 @@
     },
     {
       "platform": "youtube",
+      "title": "00919＋00878＋0056 VS 00929！誰才是月月配最佳選擇？",
+      "channel": "杉本來了",
+      "url": "https://www.youtube.com/watch?v=lJNdfafhPj8",
+      "date": "2026-10-21",
+      "views": 15231
+    },
+    {
+      "platform": "youtube",
       "title": "00929年度報酬率逼近八成賺贏0050！達人拆解月配息填息關鍵與選股策略｜三立財經iNEWS",
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
       "date": "2026-10-20",
-      "views": 12742,
+      "views": 13501,
       "short": true
     },
     {
@@ -564,15 +572,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
       "date": "2026-10-18",
-      "views": 6092
-    },
-    {
-      "platform": "youtube",
-      "title": "00919＋00878＋0056 VS 00929！誰才是月月配最佳選擇？",
-      "channel": "杉本來了",
-      "url": "https://www.youtube.com/watch?v=lJNdfafhPj8",
-      "date": "2026-10-21",
-      "views": 1755
+      "views": 6887
     },
     {
       "platform": "youtube",
@@ -580,7 +580,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
       "date": "2026-10-17",
-      "views": 142555,
+      "views": 143662,
       "peer": true,
       "cat": "高股息"
     },
@@ -590,7 +590,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=0U1OMDn2AAQ",
       "date": "2026-10-18",
-      "views": 118980,
+      "views": 119224,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -600,19 +600,9 @@
       "channel": "九八新聞台",
       "url": "https://www.youtube.com/watch?v=A8QXBj_oWj4",
       "date": "2026-10-17",
-      "views": 118497,
+      "views": 118542,
       "peer": true,
       "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "【#本週精選】買不起台積電改買「平替版」ETF！00888一年報酬率120%狠甩0050？高配息又賺價差？ 台股崩跌ETF怎麼買？  │陳斐娟 主持 │20261017│關我什麼事",
-      "channel": "關我什麼事",
-      "url": "https://www.youtube.com/watch?v=QgfhIwj8uRc",
-      "date": "2026-10-17",
-      "views": 77885,
-      "peer": true,
-      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -620,10 +610,20 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/7NxiVHoPy3g",
       "date": "2026-10-19",
-      "views": 76310,
+      "views": 79727,
       "peer": true,
       "short": true,
       "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "【#本週精選】買不起台積電改買「平替版」ETF！00888一年報酬率120%狠甩0050？高配息又賺價差？ 台股崩跌ETF怎麼買？  │陳斐娟 主持 │20261017│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=QgfhIwj8uRc",
+      "date": "2026-10-17",
+      "views": 78216,
+      "peer": true,
+      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -631,7 +631,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=e8lRkHckkkw",
       "date": "2026-10-18",
-      "views": 66867,
+      "views": 68534,
       "peer": true,
       "cat": "綜合"
     },
@@ -641,7 +641,7 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
       "date": "2026-10-17",
-      "views": 65845,
+      "views": 65988,
       "peer": true,
       "cat": "主動式"
     },
@@ -651,7 +651,7 @@
       "channel": "玩股網楚狂人",
       "url": "https://www.youtube.com/shorts/0JNtpgrbRhM",
       "date": "2026-10-17",
-      "views": 59357,
+      "views": 61269,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -662,7 +662,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
       "date": "2026-10-19",
-      "views": 42149,
+      "views": 43494,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -673,7 +673,7 @@
       "channel": "陳智霖股票分析師 Equity Research Analyst",
       "url": "https://www.youtube.com/shorts/Dx2D_E6LksY",
       "date": "2026-10-19",
-      "views": 24085,
+      "views": 26790,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -683,6 +683,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A（詳下方新聞標籤）",
     "品牌焦點：「九倍女戰神」操盤00418A！00418A成分股有哪些？會配息嗎、何時上市？ | 數位時代（LINE TODAY）",
     "社群聲量最高：升息怕股市崩？低利率未必賺更多！70年藏金圖打破升降息迷思（0 推）",
-    "YouTube 熱片：年化配息上看20%！高股息ETF亂象又回來了嗎？0056、00878年化配息率竟擠不進前十名？ETF的高配息從哪來？｜峰哥｜Smart智富．投資的一千零一夜255（Smart智富月刊・142,555 次觀看）"
+    "YouTube 熱片：年化配息上看20%！高股息ETF亂象又回來了嗎？0056、00878年化配息率竟擠不進前十名？ETF的高配息從哪來？｜峰哥｜Smart智富．投資的一千零一夜255（Smart智富月刊・143,662 次觀看）"
   ]
 }
