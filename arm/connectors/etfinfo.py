@@ -55,8 +55,11 @@ def list_etfs() -> list[dict]:
 def _holdings_from(d: dict) -> tuple[list[dict], dict]:
     h = d.get("holdings") or {}
     raw = h.get("stocks") or h.get("holdings") or []
+    # 期貨列帶 kind="future"（API 的 assetType；2026-10-21 CI 探針：00986D `US202612`、
+    # 00987D `UB:2026-12:B` 皆為 "future"、unit "口"）——比代號格式可靠，抓取端據此另存「期貨部位」
     out = [{"stock_id": str(r["code"]), "stock_name": r.get("name", ""),
-            "weight": float(r.get("weight") or 0.0), "shares": int(r.get("shares") or 0)}
+            "weight": float(r.get("weight") or 0.0), "shares": int(r.get("shares") or 0),
+            **({"kind": "future"} if str(r.get("assetType") or "").lower() == "future" else {})}
            for r in raw if r.get("code")]
     info = d.get("info") or {}
     meta = {"issuer": info.get("issuer"), "name": info.get("name"),

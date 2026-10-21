@@ -409,6 +409,18 @@ def _twse(part: str, d: str):
     return fn(doc), "ok", None
 
 
+def tpex_date_mismatch(doc, d: str) -> str | None:
+    """櫃買回應自帶資料日——與請求日不同（例：假日或尚未公布時回最近交易日）→ 回 nodata 狀態字；
+    相同或回應沒帶日期 → None。（籌碼雷達分片與 ETF 持股的指定日期報價共用，arm/dayquotes.py）"""
+    rd = str((doc or {}).get("date") or "") if isinstance(doc, dict) else ""
+    rd = re.sub(r"\D", "", rd)
+    if len(rd) == 8 and rd != ymd(d):
+        return f"nodata:回應日 {rd}≠{ymd(d)}"
+    if len(rd) == 7 and f"{int(rd[:3]) + 1911}{rd[3:]}" != ymd(d):
+        return f"nodata:回應日 {rd}≠{ymd(d)}"
+    return None
+
+
 def _tpex(part: str, d: str):
     key = {"q_tp": "quotes", "i_tp": "insti", "m_tp": "margin"}[part]
     fn = {"q_tp": parse_tp_quotes, "i_tp": parse_tp_insti, "m_tp": parse_tp_margin}[part]
@@ -418,14 +430,9 @@ def _tpex(part: str, d: str):
         if st != "ok":
             last = st
             continue
-        # 櫃買回應自帶資料日——與請求日不同（例：假日回最近交易日）就不收
-        rd = str((doc or {}).get("date") or "") if isinstance(doc, dict) else ""
-        rd = re.sub(r"\D", "", rd)
-        if len(rd) == 8 and rd != ymd(d):
-            last = f"nodata:回應日 {rd}≠{ymd(d)}"
-            continue
-        if len(rd) == 7 and f"{int(rd[:3]) + 1911}{rd[3:]}" != ymd(d):
-            last = f"nodata:回應日 {rd}≠{ymd(d)}"
+        bad = tpex_date_mismatch(doc, d)
+        if bad:
+            last = bad
             continue
         out = fn(doc)
         if out:
@@ -986,6 +993,30 @@ def tpex_exright_year(y: int) -> list[list] | None:
         log(f"櫃買除權息 {y} {st}")
         return None
     return parse_tp_exright(doc)
+
+
+def _quick_json(url: str, what: str):
+    """每日小請求用：1 次重試、15 秒逾時、不等擋頁冷卻（抓不到下一班再來）→ doc 或 None。"""
+    try:
+        txt = get_bytes(url, retries=1, timeout=15, use_cache=False).decode("utf-8", "replace").strip()
+        return json.loads(txt)
+    except Exception as e:                                # noqa: BLE001
+        log(f"{what} ✗ {str(e)[:100]}")
+        return None
+
+
+def twse_exright_range(d0: str, d1: str) -> list[list] | None:
+    """證交所除權息計算結果表、指定區間（ISO 日期）→ parse_twt49u 的列；抓不到 None。"""
+    doc = _quick_json(f"https://www.twse.com.tw/rwd/zh/exRight/TWT49U?startDate={ymd(d0)}"
+                      f"&endDate={ymd(d1)}&response=json", f"TWT49U {d0}～{d1}")
+    return None if doc is None else parse_twt49u(doc)
+
+
+def tpex_exright_range(d0: str, d1: str) -> list[list] | None:
+    """櫃買除權息計算結果表、指定區間（ISO 日期）→ parse_tp_exright 的列；抓不到 None。"""
+    doc = _quick_json(f"https://www.tpex.org.tw/web/stock/exright/dailyquo/exDailyQ_result.php?l=zh-tw"
+                      f"&d={roc(d0)}&ed={roc(d1)}&o=json", f"櫃買除權息 {d0}～{d1}")
+    return None if doc is None else parse_tp_exright(doc)
 
 
 def probe_fs() -> None:

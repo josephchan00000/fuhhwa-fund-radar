@@ -59,8 +59,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: 安裝相依（純標準庫 + certifi）
-        run: pip install --quiet certifi
+      # numpy：建頁時籌碼雷達的策略判定、景氣頁、訊號總覽都要它。2026-10-21 踩坑：這裡原本只裝
+      # certifi，每班建頁都把機會頁的策略判定洗成「次數不夠」（推薦全空），等下一班 daily／afterhours
+      # 重建才回來；景氣頁與訊號總覽則整頁不重建。比照那兩支 workflow 安裝（失敗只告警、不擋持股落檔）。
+      - name: 安裝相依（certifi＋建頁用的 numpy）
+        run: pip install --quiet certifi && (pip install --quiet numpy || echo "::warning::numpy 安裝失敗——籌碼雷達策略判定、景氣頁與訊號總覽本班不重建")
 
       - name: 抓每日持股（第一手優先；停更或抓不到則 etfinfo 頂替＋第三方構成驗證）
         run: |
@@ -73,6 +76,10 @@ jobs:
       - name: 籌碼雷達 ETF 部位快照＋規模前段擴充 ETF 持股（etfinfo；失敗不擋）
         if: inputs.probe != true
         run: TZ=Asia/Taipei timeout 240 python3 scripts/fetch_lab.py --extra || true
+
+      - name: 持股簡介缺口（新換進的 ETF 持股缺簡介 → 缺口檔＋儀表板紅章，15:33 班補；不擋發佈）
+        if: inputs.probe != true
+        run: TZ=Asia/Taipei python3 scripts/check_holdings_intro.py || true
 
       - name: 重建儀表板（2026-07-30 使用者：持股更新排進每日循環——傍晚抓完直接上線，
               當日貢獻當晚可見，不等隔日早上 daily.yml）
@@ -90,6 +97,7 @@ jobs:
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
           git add -f data/etf_holdings.json 2>/dev/null || true
           git add -f data/stock_industry.json 2>/dev/null || true
+          git add -f data/holdings_intro_gap.json 2>/dev/null || true  # 持股簡介缺口（含 ETF 持股，2026-10-21）
           git add dashboard/index.html 2>/dev/null || true
           git add -f data/lab dashboard/x9.html 2>/dev/null || true   # 籌碼雷達（分片＋隱藏頁，2026-10-14）
           git add -f dashboard/x9s.json 2>/dev/null || true             # 籌碼雷達個股走勢序列（開個股卡才載入；分開 add：缺檔時不連累上一行的分片）
@@ -102,6 +110,8 @@ jobs:
           git add -f dashboard/x9o.html 2>/dev/null || true            # 訊號總覽（docs/lab_signal_plan.md；分開 add）
           git add -f dashboard/x9oh.json 2>/dev/null || true           # 訊號總覽每一次的清單（點開才下載；分開 add）
           git add -f dashboard/x9or-*.json 2>/dev/null || true         # 訊號總覽各市場的研究卡（點了才載入；分開 add）
+          git add -f dashboard/x9x.html 2>/dev/null || true            # 大神策略頁（docs/lab_nav_plan.md；分開 add）
+          git add -f dashboard/x9xh.json 2>/dev/null || true           # 大神策略的淨值與每一筆（點開才下載；分開 add）
           git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
           git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
           git commit -m "chore: ETF 每日持股更新 $(date +%F)" || { echo "無變更，跳過 push"; exit 0; }
@@ -124,6 +134,8 @@ jobs:
             git add -f dashboard/x9o.html 2>/dev/null || true            # 訊號總覽（docs/lab_signal_plan.md；分開 add）
             git add -f dashboard/x9oh.json 2>/dev/null || true           # 訊號總覽每一次的清單（點開才下載；分開 add）
             git add -f dashboard/x9or-*.json 2>/dev/null || true         # 訊號總覽各市場的研究卡（點了才載入；分開 add）
+            git add -f dashboard/x9x.html 2>/dev/null || true            # 大神策略頁（docs/lab_nav_plan.md；分開 add）
+            git add -f dashboard/x9xh.json 2>/dev/null || true           # 大神策略的淨值與每一筆（點開才下載；分開 add）
             git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
             git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
             git commit --amend --no-edit || true

@@ -304,7 +304,8 @@ def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray,
 
 
 def tier(st: dict, d: str, recent: bool = True) -> str:
-    """sigspec 第 3 節（VER 9）：★＝過門檻而且打亂測試 p ≤ LUCK_P；●＝過門檻但 p > LUCK_P（可能是運氣）；○ 沒過門檻；— 次數不夠。
+    """sigspec 第 3 節（VER 9；VER 14 起門檻依次數）：★＝過門檻而且打亂測試 p ≤ luck_p(次數)（次數 < 15 是 10%，其餘 1%）；
+    ●＝過門檻但 p 超過門檻（可能是運氣）；○ 沒過門檻；— 次數不夠。
     st["p"]＝打亂測試（sigluck；沒有算＝None，當作沒過）。用沒有四捨五入的數字。"""
     n, hit, base = st.get("n") or 0, st.get("hit"), st.get("base")
     if n < S.N_MIN or hit is None or base is None:
@@ -312,7 +313,7 @@ def tier(st: dict, d: str, recent: bool = True) -> str:
     if not LK.passes(n, hit, base, st.get("n10"), st.get("hit10"), st.get("base10"), d, recent):
         return "none"
     p = st.get("p")
-    return "good" if p is not None and p <= S.LUCK_P else "ref"
+    return "good" if p is not None and p <= S.luck_p(n) else "ref"
 
 
 def judge(st: dict, d: str, recent: bool = True) -> str:
@@ -979,7 +980,7 @@ def load_research() -> dict | None:
         R = json.loads(RESEARCH.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
-    return R if R.get("ver") == S.VER else None
+    return R if (R.get("ver") or 0) >= S.RES_VER else None
 
 
 _RCACHE: dict = {}
@@ -1066,9 +1067,10 @@ def edge(st: dict | None) -> float | None:
     return st["hit"] - st["base"]
 
 
-def today(rows: list[dict], on: dict, mk: str) -> dict:
-    """訊號總覽「今天有效的好訊號」（sigspec 第 5 節）：這個市場現在有效的 ★，同一個變數只留差最大的一種，依差排序、最多 TODAY_MAX 列；
-    沒有 ★ 就沒有（VER 9）。→ {"good": [...]}（每列＝研究列＋現在的狀態＋方向＋差）。"""
+def today(rows: list[dict], on: dict, mk: str, acts: dict | None = None) -> dict:
+    """訊號總覽「今天有效的好訊號」（sigspec 第 5 節）：這個市場現在有效的 ★，同一個變數只留差最大的一種；同類合併（VER 11，
+    同一支溫度計、同一邊，acts＝現在有效的訊號過去出現的日子），一類一列、依差排序、最多 TODAY_MAX 列；沒有 ★ 就沒有（VER 9）。
+    → {"good": [...]}（每列＝研究列＋現在的狀態＋方向＋差＋"fam"＝同時成立的其他訊號）。"""
     def pick(tr: str) -> list[dict]:
         best_by: dict = {}
         for r in rows:
@@ -1082,7 +1084,10 @@ def today(rows: list[dict], on: dict, mk: str) -> dict:
                 if key not in best_by or e > best_by[key]["edge"]:
                     best_by[key] = {**r, "d": d, "edge": e, "now": on[r["id"]]}
         return sorted(best_by.values(), key=lambda x: (-x["edge"], x["id"]))
-    return {"good": pick("good")[:S.TODAY_MAX]}
+    xs = pick("good")
+    for x in xs:
+        x["hz"], x["side"] = horizon(x), ("warn" if x["d"] == "warn" else "up")
+    return {"good": families(xs, acts)[:S.TODAY_MAX]}
 
 
 def horizon(r: dict) -> str:
@@ -1100,17 +1105,26 @@ def item_key(r: dict) -> tuple:
     return ("item", r["var"]) if r["cat"] in ("heat", "deriv") else (r["cat"], r["var"])
 
 
-def jaccard(a: np.ndarray | None, b: np.ndarray | None) -> float:
-    """過去一起出現的日子 ÷ 任一個出現的日子。"""
-    if a is None or b is None or len(a) != len(b):
-        return 0.0
-    u = int((a | b).sum())
-    return int((a & b).sum()) / u if u else 0.0
+def overlap(a: np.ndarray | None, b: np.ndarray | None) -> tuple[float, float]:
+    """（出現日子比較少的那個，出現的日子裡另一個也成立的比例，另一個在全部樣本日成立的比例）；資料不齊回 (0, 1)。"""
+    if a is None or b is None or len(a) != len(b) or not len(a):
+        return 0.0, 1.0
+    na, nb = int(a.sum()), int(b.sum())
+    if not na or not nb:
+        return 0.0, 1.0
+    lo, hi = (a, b) if na <= nb else (b, a)
+    return int((lo & hi).sum()) / int(lo.sum()), float(hi.mean())
+
+
+def same_family(a: np.ndarray | None, b: np.ndarray | None) -> bool:
+    """sigspec 第 5 節 ①b（VER 11）：比較少出現的那個出現時，另一個過半也成立，而且至少是互不相干時的 FAMILY_X 倍。"""
+    o, q = overlap(a, b)
+    return o >= S.FAMILY_O and o >= S.FAMILY_X * q
 
 
 def families(items: list[dict], acts: dict | None) -> list[dict]:
-    """同類合併（sigspec 第 5 節 ①b，VER 8 寫定、VER 9 照用）：同一支溫度計、同一邊，過去一起出現的比例 ≥ FAMILY_J 的併成一類
-    （單一連結）；大跌後買點同一個市場算一類。→ 每一類的領頭（差最大），其他放在 "fam"。"""
+    """同類合併（sigspec 第 5 節 ①b；VER 8 寫定、VER 11 改條件）：同一支溫度計、同一邊，same_family 的併成一類（單一連結）；
+    大跌後買點同一個市場算一類。→ 每一類的領頭（差最大），其他放在 "fam"。"""
     acts = acts or {}
     groups: dict = {}
     for x in items:
@@ -1127,7 +1141,7 @@ def families(items: list[dict], acts: dict | None) -> list[dict]:
         for i in range(len(xs)):
             for j in range(i + 1, len(xs)):
                 a, b = xs[i], xs[j]
-                if (a["cat"] == "buy" and b["cat"] == "buy") or jaccard(acts.get(a["id"]), acts.get(b["id"])) >= S.FAMILY_J:
+                if (a["cat"] == "buy" and b["cat"] == "buy") or same_family(acts.get(a["id"]), acts.get(b["id"])):
                     parent[find(i)] = find(j)
         cl: dict = {}
         for i, x in enumerate(xs):
@@ -1139,46 +1153,89 @@ def families(items: list[dict], acts: dict | None) -> list[dict]:
     return out
 
 
+THERMO_RANK = {"good": 3, "ref": 2, "lean": 1}
+
+
+def thermo_tier(st: dict | None) -> str | None:
+    """溫度計算不算這一個方向（sigspec 第 5 節 ③，VER 12）：★、● 照判定；○ 而且命中率 − 平常 ≥ THERMO_EDGE＝△「有傾向」；
+    其餘（— 次數不夠、○ 沒有傾向）不算。"""
+    if not st:
+        return None
+    t = st.get("tier")
+    if t in ("good", "ref"):
+        return t
+    e = edge(st)
+    return "lean" if t == "none" and e is not None and e >= S.THERMO_EDGE else None
+
+
+def thermo_families(items: list[dict], acts: dict | None) -> list[dict]:
+    """溫度計的同類合併（sigspec 第 5 節 ③b，VER 12）：★ 先照 ①b 成類（＝偏多、警示兩欄那一批類）；再把 ●、△ 依序（差大的先）
+    併進已有的類（同一支溫度計、同一邊，和類裡任一個 same_family；第一個符合的那一類），沒有就同等級之間照 ①b 自己成類。
+    → 每一類的領頭（最高等級裡差最大的），"fam"＝其他成員；一類的等級＝領頭的等級。"""
+    acts = acts or {}
+    out: list[dict] = []
+    for t in ("good", "ref", "lean"):
+        rest = []
+        for x in sorted((x for x in items if x["tier"] == t), key=lambda x: (-x["edge"], x["id"])):
+            home = None
+            for f in out:
+                if (f["hz"], f["side"]) != (x["hz"], x["side"]):
+                    continue
+                if any((m["cat"] == "buy" and x["cat"] == "buy") or same_family(acts.get(m["id"]), acts.get(x["id"]))
+                       for m in [f] + f["fam"]):
+                    home = f
+                    break
+            if home is None:
+                rest.append(x)
+            else:
+                home["fam"] = home["fam"] + [x]
+        out += families(rest, acts)
+    return out
+
+
 def board(rows: list[dict], on: dict, mk: str, acts: dict | None = None) -> dict:
-    """景氣頁「今天的重點」（sigspec 第 5 節，2026-10-20 起）：現在有效的 ★（VER 9；● 不列），偏多（含買點）與警示兩個方向
-    各自看自己的判定（VER 3）；同一個項目在同一支溫度計、同一邊只留一種（差最大）；兩邊都成立的標 both（「震盪」）。
-    同類合併（families；acts＝現在有效的訊號過去出現的日子，now_market 填），溫度計一類只算一次（THERMO_W）。
-    → {"up": [...], "warn": [...], "thermo": [{"k", "name", "h", "n": {side: {tier: 類數}}, "w": {side: 分}, "share", "lean"}]}"""
-    rank = {"good": 1}
+    """景氣頁「今天的重點」（sigspec 第 5 節）：偏多（含買點）與警示兩欄列現在有效的 ★（VER 9；● 不列），兩個方向各自看自己的判定
+    （VER 3）；同一個項目在同一支溫度計、同一邊只留一種（等級高的優先、同級取差最大）；兩邊都是 ★ 的標 both（「震盪」）。
+    兩欄的同類合併＝families（acts＝現在有效的訊號過去出現的日子，now_market 填）。
+    溫度計（VER 12）另外算 ●、△（thermo_tier），同類合併＝thermo_families，一類算 THERMO_W[這一類的等級]；
+    每支溫度計的 "more"＝最高等級是 ●、△ 的類（溫度計下面收起來那一段）。
+    → {"up": [...], "warn": [...], "thermo": [{"k", "name", "h", "n": {side: {tier: 類數}}, "w": {side: 分}, "share", "lean",
+       "more": {side: [類…]}}]}"""
     best: dict = {}
     for r in rows:
         if r.get("mk") != mk or r["id"] not in on:
             continue
         for d in (("buy",) if r["cat"] == "buy" else ("up", "warn")):
             st = r.get(d)
-            if not st or st.get("tier") not in rank:
+            t = thermo_tier(st)
+            if t is None:
                 continue
             e = edge(st)
-            if e is None:
-                continue
             side = "warn" if d == "warn" else "up"
             key = (item_key(r), horizon(r), side)
-            k = (rank[st["tier"]], e)
+            k = (THERMO_RANK[t], e)
             if key not in best or k > best[key][0]:
-                best[key] = (k, {**r, "tier": st["tier"], "d": d, "edge": e, "now": on[r["id"]], "side": side,
-                                 "hz": horizon(r)})
+                best[key] = (k, {**r, "tier": t, "d": d, "edge": e, "now": on[r["id"]], "side": side, "hz": horizon(r)})
+    allx = [x for _, x in best.values()]
+    good = [x for x in allx if x["tier"] == "good"]
     sides: dict = {}
-    for (ik, hz, side) in best:
-        sides.setdefault((ik, hz), set()).add(side)
-    items = []
-    for (ik, hz, side), (_, x) in best.items():
-        x["both"] = len(sides[(ik, hz)]) == 2
-        items.append(x)
-    items = families(items, acts)
-    out: dict = {s: [x for x in items if x["side"] == s] for s in ("up", "warn")}
+    for x in good:
+        sides.setdefault((item_key(x), x["hz"]), set()).add(x["side"])
+    for x in allx:
+        x["both"] = x["tier"] == "good" and len(sides[(item_key(x), x["hz"])]) == 2
+    fams = families(good, acts)
+    out: dict = {s: [x for x in fams if x["side"] == s] for s in ("up", "warn")}
+    tf = thermo_families(allx, acts)
     th = []
     for k, name, h in S.THERMO_HZ:
-        n = {s: {t: sum(1 for x in out[s] if x["hz"] == k and x["tier"] == t) for t in S.THERMO_W} for s in out}
+        n = {s: {t: sum(1 for x in tf if x["hz"] == k and x["side"] == s and x["tier"] == t) for t in S.THERMO_W}
+             for s in ("up", "warn")}
         w = {s: sum(S.THERMO_W[t] * c for t, c in n[s].items()) for s in n}
         tot = w["up"] + w["warn"]
         share = w["up"] / tot if tot else None
         lean = None if share is None else "up" if share >= S.THERMO_LEAN else "warn" if share <= 1 - S.THERMO_LEAN else "even"
-        th.append({"k": k, "name": name, "h": h, "n": n, "w": w, "share": share, "lean": lean})
+        more = {s: [x for x in tf if x["hz"] == k and x["side"] == s and x["tier"] != "good"] for s in ("up", "warn")}
+        th.append({"k": k, "name": name, "h": h, "n": n, "w": w, "share": share, "lean": lean, "more": more})
     out["thermo"] = th
     return out
 
@@ -1521,4 +1578,4 @@ def load_stock() -> dict | None:
         R = json.loads(STOCK.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
-    return R if R.get("ver") == S.VER else None
+    return R if (R.get("ver") or 0) >= S.RES_VER else None

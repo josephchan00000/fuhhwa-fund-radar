@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from arm.lab import appnav, sigcat, sigpage, sigspec
+from arm.lab import xstratspec as XS
 
 ROOT = Path(__file__).resolve().parents[1]
 BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "建議買賣", "建議買", "建議賣", "目標價", "零風險", "無風險")
@@ -122,13 +123,16 @@ def test_workflows_add_overview_files_and_build_order():
         assert t.count("git add -f dashboard/x9o.html 2>/dev/null || true") == 2, wf
         assert t.count("git add -f dashboard/x9oh.json 2>/dev/null || true") == 2, wf
         assert t.count("git add -f dashboard/x9or-*.json 2>/dev/null || true") == 2, wf
+        assert t.count("git add -f dashboard/x9x.html 2>/dev/null || true") == 2, wf      # 大神策略頁（docs/lab_nav_plan.md）
+        assert t.count("git add -f dashboard/x9xh.json 2>/dev/null || true") == 2, wf
     g = (ROOT / "scripts" / "gen_fund_dashboard.py").read_text(encoding="utf-8")
-    assert g.index("heatpage.build()") < g.index("heatpage_us.build()") < g.index("bubpage.build()") < g.index("sigpage.build()")
+    assert (g.index("heatpage.build()") < g.index("heatpage_us.build()") < g.index("bubpage.build()") < g.index("sigpage.build()")
+            < g.index("xspage.build()"))
 
 
 def test_research_file_matches_spec_version():
     R = sigcat.load_research()
-    assert R is not None and R["ver"] == sigspec.VER
+    assert R is not None and sigspec.RES_VER <= R["ver"] <= sigspec.VER     # 研究檔不比最後一次改到研究內容的版本舊
     ids = [r["id"] for r in R["rows"]]
     assert len(ids) == len(set(ids)) and len(ids) > 1500
     for r in R["rows"]:
@@ -175,12 +179,16 @@ def test_heat_pages_stash_cards_and_list_today(monkeypatch):
     assert "最大回撤 10% 以上" in h and "回撤中位數 12%（隨便挑一天 7%）" in h
     assert h.count('<div class="tzr">') == 3 and "中線" in h and "差不多" in h and "警示 ★1" in h
     assert 'aria-label="中線（看 3 個月）：偏多 ★1・警示 ★1，偏多占 50%"' in h
-    assert "短線（看 1 個月）：偏多 0・警示 0，沒有訊號" in h and "溫度計本身沒有驗證過" in h
+    assert 'aria-label="短線（看 1 個月）：中性，沒有偏多或警示的訊號"' in h and "溫度計本身沒有驗證過" in h
     h0 = VZ.today_html({"sigtoday": dict(sigcat.board(V["rows"], {}, "tw"), d="2026-10-16")})
-    assert "現在沒有可靠的警示訊號" in h0 and h0.count("沒有訊號") >= 3
-    low = dict(V["rows"][0], warn=_st(12, 0.58, 0.29, "ref"), tier="ref")       # VER 9：● 可能是運氣——不列、不算溫度計
+    assert "現在沒有可靠的警示訊號" in h0 and h0.count('class="tzw tzw-none">中性') == 3 and 'class="tzq"' not in h0
+    # VER 12：● 不列在兩欄，但算進溫度計（算 1），收在溫度計下面「溫度計另外算進去的」
+    low = dict(V["rows"][0], warn=_st(12, 0.58, 0.29, "ref"), tier="ref")
     h1 = VZ.today_html({"sigtoday": dict(sigcat.board([low], V["on"], "tw"), d="2026-10-16")})
-    assert "融資餘額水位・過熱中" not in h1 and "●" not in h1.split('class="tzt"')[1] and "機率較低" not in h1
+    assert "融資餘額水位・過熱中" not in h1.split('class="tzcols"')[1] and "機率較低" not in h1
+    q = h1.split('<details class="tzq">')[1].split("</details>")[0]
+    assert "融資餘額水位・過熱中" in q and "● 可能是運氣 1 類" in q and 'href="x9o.html#s=tw:heat:C1:hot"' in q
+    assert 'aria-label="中線（看 3 個月）：偏多 0・警示 ●1，偏多占 0%"' in h1 and "偏警示" in h1
     assert "亂排" in h and "可能是運氣" in h and "警示類過去的事後驗證比偏多弱" in h
 
 
@@ -210,9 +218,13 @@ def test_board_sides_thermometer_and_one_item_once():
     assert B["up"][0]["both"] is True and not any(r["both"] for r in B["up"][1:] + B["warn"][1:])
     assert [r["hz"] for r in B["up"]] == ["mid", "mid", "short"] and [r["hz"] for r in B["warn"]] == ["mid", "long"]
     th = {t["k"]: t for t in B["thermo"]}
-    assert th["short"]["w"] == {"up": 1, "warn": 0} and th["short"]["lean"] == "up" and th["short"]["share"] == 1
-    assert th["mid"]["n"]["up"] == {"good": 2} and th["mid"]["w"] == {"up": 2, "warn": 1} and th["mid"]["lean"] == "up"
-    assert th["long"]["w"] == {"up": 0, "warn": 1} and th["long"]["lean"] == "warn"
+    # VER 12：★ 2、● 1、△ 0.5——站回季線（●）不列，但算進短線溫度計
+    assert th["short"]["n"]["up"] == {"good": 1, "ref": 1, "lean": 0} and th["short"]["w"] == {"up": 3, "warn": 0}
+    assert th["short"]["lean"] == "up" and th["short"]["share"] == 1
+    assert [x["id"] for x in th["short"]["more"]["up"]] == ["tw:tech:x"] and th["short"]["more"]["warn"] == []
+    assert th["mid"]["n"]["up"] == {"good": 2, "ref": 0, "lean": 0} and th["mid"]["w"] == {"up": 4, "warn": 2}
+    assert th["mid"]["lean"] == "up"
+    assert th["long"]["w"] == {"up": 0, "warn": 2} and th["long"]["lean"] == "warn"
     assert sigcat.horizon(dict(a, cat="ind", H=12)) == "long" and sigcat.horizon(dict(a, H=250)) == "long"
     assert sigcat.item_key(a) == sigcat.item_key(d1) != sigcat.item_key(dict(a, cat="buy"))
     # 一列的偏多是 ★、警示是 ●：只列偏多（VER 9：● 不列）
@@ -229,7 +241,7 @@ def test_board_sides_thermometer_and_one_item_once():
 
 
 def test_board_families_merge_signals_that_appear_together():
-    """同類合併（sigspec 第 5 節 ①b）：過去一起出現的日子 ÷ 任一個出現的日子 ≥ FAMILY_J 的算一類，溫度計一類算一次；買點同一市場一類。"""
+    """同類合併（sigspec 第 5 節 ①b；VER 11 起看比較少出現的那個）：溫度計一類算一次；買點同一市場一類。"""
     import numpy as np
     rows = _rows()
     a = rows[0]
@@ -246,11 +258,89 @@ def test_board_families_merge_signals_that_appear_together():
     ups = {r["id"]: [f["id"] for f in r["fam"]] for r in B["up"]}
     assert ups == {"tw:tech:x": ["tw:tech:y"], "tw:tech:z": [], "tw:buy:E5:C2": ["tw:buy:E5:C1"]}
     th = {t["k"]: t for t in B["thermo"]}
-    assert th["short"]["w"]["up"] == 2 and th["mid"]["w"]["up"] == 1            # 一類算一次
+    assert th["short"]["w"]["up"] == 4 and th["mid"]["w"]["up"] == 2            # 一類算一次（★ 一類算 2）
     from arm.lab import heatviz as VZ
     h = VZ.today_html({"sigtoday": dict(B, d="2026-10-16")})
     assert "同時成立：20 日線乖離過冷（過去常一起出現，算同一件事）" in h and "3 類（共 5 個訊號）" in h
 
+
+
+def test_thermometer_v12_counts_ref_and_lean_and_merges_by_tier():
+    """VER 12（docs/lab_noise_plan.md 第 12 節；使用者：「溫度計可以標準寬鬆一些」）：溫度計算 ★ 2、● 1、△ 0.5；
+    △＝判定 ○、比平常高 5 個百分點以上（— 次數不夠的不算）；同類合併由高到低：●、△ 併進已有的類、不另外算，
+    也不會把兩個 ★ 類連成一類。兩欄照舊只列 ★。"""
+    import numpy as np
+    a = _rows()[0]
+    assert sigcat.thermo_tier(_st(30, 0.66, 0.60, "none")) == "lean"            # +6
+    assert sigcat.thermo_tier(_st(30, 0.64, 0.60, "none")) is None              # +4：沒有傾向
+    assert sigcat.thermo_tier(_st(3, 0.90, 0.60, "few")) is None                # 次數不夠不算
+    assert sigcat.thermo_tier(_st(30, 0.66, 0.60, "ref")) == "ref" and sigcat.thermo_tier(None) is None
+    mk = lambda i, tier, hit: dict(a, id=f"tw:tech:{i}", cat="tech", var=i, name=i, H=20, up=_st(40, hit, 0.6, tier),
+                                   warn=_st(40, 0.1, 0.2, "none"), tier=tier, dir=["up"])
+    s1, s2 = mk("s1", "good", 0.80), mk("s2", "good", 0.78)                    # 兩個 ★，彼此不重疊
+    r1, l1, l2 = mk("r1", "ref", 0.75), mk("l1", "none", 0.68), mk("l2", "none", 0.67)
+    T = 100
+    act = lambda lo, hi: np.array([lo <= t < hi for t in range(T)])
+    acts = {"tw:tech:s1": act(0, 10), "tw:tech:s2": act(50, 60),
+            "tw:tech:r1": act(0, 10) | act(50, 60),                            # ● 和兩個 ★ 都重疊：併進第一個，不把它們連起來
+            "tw:tech:l1": act(80, 90), "tw:tech:l2": act(82, 90)}              # 兩個 △ 自己成一類
+    on = {r["id"]: {"since": "2026-10-01"} for r in (s1, s2, r1, l1, l2)}
+    B = sigcat.board([s1, s2, r1, l1, l2], on, "tw", acts)
+    assert [r["id"] for r in B["up"]] == ["tw:tech:s1", "tw:tech:s2"] and all(not r["fam"] for r in B["up"])
+    th = {t["k"]: t for t in B["thermo"]}["short"]
+    assert th["n"]["up"] == {"good": 2, "ref": 0, "lean": 1} and th["w"]["up"] == 4.5
+    assert [x["id"] for x in th["more"]["up"]] == ["tw:tech:l1"] and [f["id"] for f in th["more"]["up"][0]["fam"]] == ["tw:tech:l2"]
+    fams = sigcat.thermo_families([dict(x, hz="short", side="up", edge=x["up"]["hit"] - 0.6) for x in (s1, s2, r1)], acts)
+    assert {f["id"]: [m["id"] for m in f["fam"]] for f in fams} == {"tw:tech:s1": ["tw:tech:r1"], "tw:tech:s2": []}
+    from arm.lab import heatviz as VZ
+    h = VZ.today_html({"sigtoday": dict(B, d="2026-10-16")})
+    assert 'aria-label="短線（看 1 個月）：偏多 ★2 △1・警示 0，偏多占 100%"' in h
+    assert "△ 有傾向 1 類" in h and h.count('class="tzg tzg-up tzg-lean"') == 1 and h.count('class="tzg tzg-up tzg-good"') == 1
+
+
+def test_family_rule_v11_smaller_signal_inside_and_chance_guard():
+    """VER 11（docs/lab_noise_plan.md 第 11 節）：比較少出現的那個，出現的日子裡另一個也成立的比例 ≥ 0.5，而且 ≥ 2 倍
+    「另一個在全部樣本日成立的比例」才併。持續天數不同的同一件事（舊條件 ÷ 任一個只有 0.16）要併；長期狀態碰巧重疊的不併。"""
+    import numpy as np
+    T = 200
+    act = lambda lo, hi: np.array([lo <= t < hi for t in range(T)])
+    x, w = act(0, 60), act(50, 62)                       # w 的 12 天裡 10 天 x 也成立；x 只占 30% → 0.83 ≥ 0.6
+    assert sigcat.overlap(x, w) == (10 / 12, 0.30) and sigcat.same_family(x, w)
+    assert int((x & w).sum()) / int((x | w).sum()) < 0.2   # 舊條件（÷ 任一個）只有 0.16，以前併不起來
+    big, v = act(0, 150), act(100, 110)                  # v 整段都在 big 裡，但 big 占 75%：互不相干也會有 75%
+    assert sigcat.overlap(big, v)[0] == 1.0 and not sigcat.same_family(big, v)
+    assert not sigcat.same_family(x, act(120, 140)) and not sigcat.same_family(None, x) and sigcat.overlap(x, act(0, 0)) == (0.0, 1.0)
+
+
+def test_signal_overview_today_list_merges_families():
+    """訊號總覽「今天有效的好訊號」VER 11 起同一套合併：一類一列、下面寫「同時成立」。"""
+    import numpy as np
+    a = _rows()[0]
+    mk = lambda i, nm, hit: dict(a, id=f"tw:tech:{i}", cat="tech", var=i, name=nm, H=20, up=_st(40, hit, 0.6, "good"),
+                                 warn=_st(40, 0.1, 0.2, "none"), tier="good", dir=["up"])
+    x, y, z = mk("x", "RSI 過冷", 0.80), mk("y", "上漲家數占比過冷", 0.78), mk("z", "站回月線", 0.75)
+    T = 200
+    act = lambda lo, hi: np.array([lo <= t < hi for t in range(T)])
+    acts = {"tw:tech:x": act(0, 60), "tw:tech:y": act(50, 62), "tw:tech:z": act(120, 140)}
+    on = {r["id"]: {"since": "2026-10-01", "n": 1} for r in (x, y, z)}
+    G = sigcat.today([x, y, z], on, "tw", acts)["good"]
+    assert [(r["id"], [f["id"] for f in r["fam"]]) for r in G] == [("tw:tech:x", ["tw:tech:y"]), ("tw:tech:z", [])]
+    assert [r["id"] for r in sigcat.today([x, y, z], on, "tw")["good"]] == ["tw:tech:x", "tw:tech:y", "tw:tech:z"]   # 沒有 acts：不併
+    V = {**_view(), "today": {"tw": {"good": G}}}
+    h = sigpage.today_html(V)
+    assert "同時成立：上漲家數占比過冷（過去常一起出現，算同一件事）" in h and "過去常一起出現的併成一列" in h
+    assert ".sgfm{" in sigpage.CSS
+
+
+def test_research_files_survive_presentation_only_versions(tmp_path, monkeypatch):
+    """研究檔版本 ≥ RES_VER 就能用（VER 11 只改合併，研究檔不用重跑；以前要求＝VER，一升版訊號總覽就會整個空掉）。"""
+    monkeypatch.setattr(sigcat, "RESEARCH", tmp_path / "r.json")
+    monkeypatch.setattr(sigcat, "STOCK", tmp_path / "s.json")
+    for v, ok in ((sigspec.RES_VER - 1, False), (sigspec.RES_VER, True), (sigspec.VER, True)):
+        (tmp_path / "r.json").write_text(json.dumps({"ver": v, "rows": []}), encoding="utf-8")
+        (tmp_path / "s.json").write_text(json.dumps({"ver": v, "rows": []}), encoding="utf-8")
+        assert (sigcat.load_research() is not None) is ok and (sigcat.load_stock() is not None) is ok
+    assert sigspec.RES_VER == 14 <= sigspec.VER
 
 def test_position_card_removed():
     """部位參考 2026-10-19 拿掉（docs/lab_crash_plan.md 第 20 節）：研究卡、景氣頁狀態列、相關研究連結都不得接回來。"""
@@ -274,6 +364,44 @@ def test_crash_now_latest_value_and_weekly_spark():
     assert out["W1"]["band"] == "過熱" and len(out["W1"]["sp"]) == len(cal) and out["W1"]["sp"][-1] is None and out["W1"]["sp"][0] == 10
 
 
+def test_facets_follow_heat_page_faces():
+    """分類（docs/lab_nav_plan.md 第 2.2 節）：第一層照景氣頁的面向；籌碼、技術、策略再分第二層；判定、方向、只看現在、CSV 收進「更多篩選」。"""
+    a = _rows()[0]
+    h = lambda mk, var, grp: dict(a, id=f"{mk}:heat:{var}:hot", mk=mk, cat="heat", grp=grp, var=var, vn=var, name=f"{var}・過熱中")
+    rs = [h("tw", "B1", "fund"), h("tw", "C1", "chip"), h("spx", "S1", "sent"), h("tw", "G1", "gliq"), h("tw", "L1", "tliq"),
+          h("spx", "R1", "liq"), h("tw", "T1", "tech"), h("tw", "Dchip", "chip"), h("tw", "Dfund", "fund"), h("tw", "Dtech", "tech"),
+          dict(a, id="tw:multi:hot", cat="multi", grp="multi", var="multi", vn="同時兩個面向過熱", name="同時兩個面向過熱"),
+          dict(a, id="tw:crash:W1:hot", cat="crash", grp="crash", var="W1", vn="W1", name="W1・過熱中"),
+          dict(a, id="tw:crash:W4:hot", cat="crash", grp="crash", var="W4", vn="W4", name="W4・過熱中"),
+          dict(a, id="spx:crash:VOL:hot", mk="spx", cat="crash", grp="crash", var="VOL", vn="VOL", name="VOL・過熱中"),
+          dict(a, id="tw:inst:fi5:hot", cat="inst", grp="fi", var="fi5", vn="外資 5 日", name="外資 5 日・大賣超"),
+          dict(a, id="tw:tech:ma60_dn", cat="tech", grp="tech", var="ma60_dn", vn="跌破季線", name="跌破季線"),
+          dict(a, id="tw:scen:SC5", cat="scen", grp="scen", var="SC5", vn="情境", name="情境"),
+          dict(a, id="tw:bub:L2", cat="bub", grp="bub", var="L2", vn="L2", name="L2"),
+          dict(a, id="ind:ff:L2", mk="us", cat="ind", grp="ff", var="L2", vn="美股 49 細產業", name="美股 49 細產業・L2"),
+          dict(a, id="tw:buy:E5:W10", cat="buy", grp="E5", var="W10", vn="固定等 10 天", name="5 日急跌・固定等 10 天"),
+          dict(a, id="stk:sig:cons", mk="stk", cat="stock", grp="stock", var="cons", vn="共識加碼", name="共識加碼"),
+          dict(a, id="stk:strat:s5", mk="stk", cat="strat", grp="strat", var="s5", vn="長線", name="長線")]
+    got = {x[0]: (x[7], x[8]) for x in sigpage.indicators(rs)}
+    assert got == {"tw:B1": ("fund", None), "tw:C1": ("chip", "margin"), "spx:S1": ("chip", "margin"), "tw:G1": ("liq", None),
+                   "tw:L1": ("liq", None), "spx:R1": ("liq", None), "tw:T1": ("tech", "ind"), "tw:Dchip": ("chip", "dim"),
+                   "tw:Dfund": ("fund", None), "tw:Dtech": ("tech", "dim"), "tw:multi": ("scen", None), "tw:W1": ("chip", "margin"),
+                   "tw:W4": ("liq", None), "spx:VOL": ("liq", None), "tw:inst:fi5": ("chip", "inst"), "tw:tech:ma60_dn": ("tech", "ev"),
+                   "tw:scen:SC5": ("scen", None), "tw:bub": ("bub", None), "ind:ff": ("bub", None), "tw:buy:E5": ("buy", None),
+                   "stk:sig:cons": ("stock", None), "stk:strat:s5": ("strat", "stk")}
+    assert set(sigpage.SUBS) <= set(sigpage.FACETS) and set(sigpage.SUBS["strat"]) >= set(XS.GROUPS)   # 大神策略照它自己的分組
+    assert all(v in sigpage.FACETS for v, _ in got.values())
+    j = json.loads(sigpage.page_json(_view()))
+    assert j["fac"] == sigpage.FACETS and j["sub"] == sigpage.SUBS and all(len(x) == 9 for x in j["inds"])
+    t = sigpage.TABLE
+    assert 'data-k="c1"' in t and '<div class="sgchips sgc2" data-k="c2" hidden>' in t and 'data-k="cat"' not in t
+    adv = t[t.index('<details class="sgadv">'):t.index("</details>")]
+    assert 'data-k="tier"' in adv and 'data-k="dir"' in adv and 'id="sgnow"' in adv and 'id="sgcsv"' in adv
+    assert t.index('data-k="c2"') < t.index('<details class="sgadv">') and 'href="x9x.html"' in t
+    for f in ("x.c1 !== st.c1", "if (k === 'c1') st.c2 = ''", "c1: 'strat', c2: sp.grp", "facName(x)", "sgadvn"):
+        assert f in sigpage.JS, f
+
+
 def test_scenarios_are_their_own_indicators():
     """情境（sigspec VER 4 第 4.10 節）：每個情境一個指標、類別「情境」；指標頁畫指數＋情境期間；現在欄寫用到的面向分數。"""
     a = _rows()[0]
@@ -292,7 +420,7 @@ def test_scenarios_are_their_own_indicators():
                                           "spx": {"fund": 65.0, "chip": 41.0, "liq": 38.0, "tech": None}}
     js = sigpage._JS if hasattr(sigpage, "_JS") else sigpage.render(_view())
     assert "const PXC = ['tech', 'crash', 'dim', 'scen', 'inst', 'bub', 'buy'];" in js and "function scenNow(x)" in js
-    assert "if (c === 'scen')" in js and "x9m.html#scen" in js
+    assert "if (c === 'scen')" in js and "x9m.html#o=scen" in js and "'&o=scen'" in js
 
 
 def test_entry_returns_go_to_detail_file_and_panel():

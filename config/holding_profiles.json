@@ -2380,7 +2380,7 @@
    "ticker": "BAC",
    "verified": true
   },
-  "JPMORGAN CHASE &amp; CO": {
+  "JPMORGAN CHASE & CO": {
    "country": "美國",
    "intro": "摩根大通（JPMorgan Chase），以資產規模計美國最大銀行；業務涵蓋消費與社區銀行、企業與投資銀行、資產與財富管理。",
    "ticker": "JPM",
@@ -2410,7 +2410,7 @@
    "ticker": "GS",
    "verified": true
   },
-  "WELLS FARGO &amp; CO": {
+  "WELLS FARGO & CO": {
    "country": "美國",
    "intro": "富國銀行（Wells Fargo），美國四大商業銀行之一，以零售與商業銀行業務為主，分行網絡遍布全美。",
    "ticker": "WFC",
@@ -2425,7 +2425,7 @@
   "ADVANTEST CORP": {
    "country": "日本",
    "intro": "日本愛德萬測試（Advantest），全球半導體測試設備龍頭；自動測試設備（ATE）市占逾六成，產品用於邏輯與記憶體晶片測試，受惠 AI 晶片測試需求成長。",
-   "ticker": "6857.T",
+   "ticker": "6857",
    "verified": true
   },
   "TAIWAN SEMICONDUCTOR-SP ADR": {
@@ -2482,7 +2482,7 @@
    "ticker": "",
    "verified": true
   },
-  "ELI LILLY &amp; CO": {
+  "ELI LILLY & CO": {
    "country": "美國",
    "intro": "美國禮來（Eli Lilly），全球大型製藥公司；主力產品涵蓋糖尿病與減重藥物（Mounjaro／Zepbound）、腫瘤、神經科學與免疫學等治療領域。",
    "ticker": "LLY",
@@ -3356,6 +3356,432 @@
    "intro": "美國零售龍頭沃爾瑪，經營量販店、會員制倉儲（Sam's Club）與電商通路，業務遍及全球 19 個國家；普通股 2025 年 12 月由紐約證交所轉至 Nasdaq 掛牌。",
    "ticker": "WMT",
    "country": "美國",
+   "verified": true
+  },
+  "玉晶光": {
+   "country": "臺灣",
+   "intro": "台灣玉晶光電（Genius Electronic Optical），光學鏡頭廠；生產智慧手機相機鏡頭與鏡片，為蘋果 iPhone 鏡頭主要供應商之一，並延伸至 AR／VR 頭戴裝置與智慧眼鏡光學元件。",
+   "ticker": "3406",
+   "verified": true
+  },
+  "由田": {
+   "country": "臺灣",
+   "intro": "台灣由田新技（Utechzone），自動光學檢測（AOI）設備廠；以機器視覺與 AI 技術提供 IC 載板、面板與 PCB 檢測設備，並跨入 CoWoS、面板級封裝等半導體先進封裝檢測。",
+   "ticker": "3455",
+   "verified": true
+  },
+  "華新": {
+   "country": "臺灣",
+   "intro": "台灣華新麗華（Walsin Lihwa），電線電纜與不鏽鋼製造商；產品涵蓋銅材、電力與通信電纜及不鏽鋼鋼胚、盤元、棒材與無縫鋼管，並投資印尼鎳鐵掌握不鏽鋼上游原料。",
+   "ticker": "1605",
+   "verified": true
+  },
+  "陽明": {
+   "country": "臺灣",
+   "intro": "台灣陽明海運（Yang Ming Marine Transport），國內第二大貨櫃航運公司；與 ONE、HMM 組成 Premier Alliance（原 THE Alliance），經營亞洲往返北美、歐洲、地中海與中東等東西向航線。",
+   "ticker": "2609",
+   "verified": true
+  },
+  "台泥": {
+   "country": "臺灣",
+   "intro": "台灣水泥（TCC Group Holdings），國內主要水泥廠，在台灣、中國大陸、土耳其與葡萄牙經營水泥事業；並轉型綠能，旗下能元科技（Molicel）生產高功率鋰電池、義大利 NHOA 經營儲能。",
+   "ticker": "1101",
+   "verified": true
+  },
+  "中再保": {
+   "country": "臺灣",
+   "intro": "台灣中央再保險（Central Reinsurance），國內本土專業再保險公司，長榮集團為主要股東；承接國內外產險與壽險再保險業務，業務以國內產險分入為主。",
+   "ticker": "2851",
+   "verified": true
+  },
+  "偉詮電": {
+   "country": "臺灣",
+   "intro": "台灣偉詮電子（Weltrend Semiconductor），無晶圓廠 IC 設計公司；產品涵蓋 USB PD 快充控制晶片等電源管理與類比 IC、MCU 與影像處理等智慧應用 IC，並兼營電子元件代銷。",
+   "ticker": "2436",
+   "verified": true
+  },
+  "鈺齊-KY": {
+   "country": "臺灣",
+   "intro": "台灣鈺齊-KY（Fulgent Sun，開曼註冊、總部雲林斗六），戶外機能鞋與運動鞋代工廠；產能以越南、柬埔寨為主，另有中國與印尼廠，客戶涵蓋 On 昂跑、The North Face、迪卡儂等品牌。",
+   "ticker": "9802",
+   "verified": true
+  },
+  "漢測": {
+   "country": "臺灣",
+   "intro": "台灣漢民測試系統（Hermes Testing Solutions），漢民集團旗下半導體測試介面廠；業務涵蓋探針卡（含自主開發薄膜式探針卡）與耗材、測試工程服務及客製化產品與設備代理。",
+   "ticker": "7856",
+   "verified": true
+  },
+  "嘉基": {
+   "country": "臺灣",
+   "intro": "台灣嘉基科技（Lintes），嘉澤端子轉投資的高速傳輸線材廠；產品以 Thunderbolt／USB 線材為主，並供應 MCIO、SlimSAS 等伺服器高速線與 AOC 主動光纖線等資料中心產品。",
+   "ticker": "6715",
+   "verified": true
+  },
+  "和益": {
+   "country": "臺灣",
+   "intro": "台灣和益化學（Formosan Union Chemical），石化中間原料廠；主要生產烷基苯（LAB）、烷基酚與石油樹脂，烷基苯為洗衣粉與清潔劑界面活性劑的上游原料，為國內主要烷基苯供應商。",
+   "ticker": "1709",
+   "verified": true
+  },
+  "飛捷": {
+   "country": "臺灣",
+   "intro": "台灣飛捷科技（Flytech），POS 銷售端點系統製造商；產品涵蓋 POS 主機、Kiosk 自助機、工業與手持平板及支付終端，主要供應歐美零售與餐飲業客戶。",
+   "ticker": "6206",
+   "verified": true
+  },
+  "雙鴻": {
+   "country": "臺灣",
+   "intro": "台灣雙鴻科技（Auras），散熱模組廠；由筆電、桌機氣冷散熱起家，現以 AI 伺服器液冷為主力，產品含水冷板、冷卻分配單元（CDU）、快接頭與均熱片。",
+   "ticker": "3324",
+   "verified": true
+  },
+  "宏致": {
+   "country": "臺灣",
+   "intro": "台灣宏致電子（ACES），精密連接器與線組廠；產品含 MCIO、PCIe 等伺服器高速連接器與高速線、電源線，應用於 AI 伺服器、消費性電子、車用與工業領域。",
+   "ticker": "3605",
+   "verified": true
+  },
+  "富采": {
+   "country": "臺灣",
+   "intro": "台灣富采投資控股（Ennostar），由晶電與隆達合組的 LED 控股公司，旗下兩子公司整併為富采光電；涵蓋 LED 磊晶晶片與封裝模組，聚焦車用、先進顯示、感測與光通訊應用。",
+   "ticker": "3714",
+   "verified": true
+  },
+  "晶豪科": {
+   "country": "臺灣",
+   "intro": "台灣晶豪科技（ESMT），利基型記憶體 IC 設計公司；產品以利基型 DRAM 為主，另有 Flash、多晶片封裝（MCP）與類比／音訊 IC，晶圓主要委由力積電代工。",
+   "ticker": "3006",
+   "verified": true
+  },
+  "家登": {
+   "country": "臺灣",
+   "intro": "台灣家登精密（Gudeng Precision），半導體傳載方案廠；主力為 EUV 光罩傳送盒與 FOUP 前開式晶圓傳送盒，EUV 光罩盒為全球主要供應商並通過 ASML 認證。",
+   "ticker": "3680",
+   "verified": true
+  },
+  "均華": {
+   "country": "臺灣",
+   "intro": "台灣均華精密（Gallant Micro Machining），均豪集團旗下半導體先進封裝設備廠；主力為晶粒挑揀機（Chip Sorter）與高精度黏晶機（Die Bonder），客戶涵蓋日月光、艾克爾、京元電等封測廠。",
+   "ticker": "6640",
+   "verified": true
+  },
+  "儒鴻": {
+   "country": "臺灣",
+   "intro": "台灣儒鴻企業（Eclat Textile），機能性針織布與成衣廠；垂直整合織布、染整到成衣製造，生產據點在台灣、越南與柬埔寨，客戶涵蓋 Lululemon、Nike 等國際運動品牌。",
+   "ticker": "1476",
+   "verified": true
+  },
+  "卜蜂": {
+   "country": "臺灣",
+   "intro": "台灣卜蜂企業（Charoen Pokphand Enterprise），泰國卜蜂（正大）集團在台子公司；垂直整合飼料生產、禽畜育種、屠宰與肉品加工，產品涵蓋飼料、雞肉、雞塊等加工食品與洗選蛋。",
+   "ticker": "1215",
+   "verified": true
+  },
+  "賽普勒斯銀行控股公開有限公司": {
+   "country": "賽普勒斯",
+   "intro": "賽普勒斯銀行（Bank of Cyprus），賽普勒斯最大的銀行與金融服務集團；業務涵蓋零售與企業金融、壽險與產險，控股公司註冊於愛爾蘭。",
+   "ticker": "BOCHGR",
+   "verified": true
+  },
+  "泛歐交易所": {
+   "country": "荷蘭",
+   "intro": "泛歐交易所（Euronext），註冊於荷蘭、營運總部在巴黎的跨國交易所集團；經營巴黎、阿姆斯特丹、米蘭、奧斯陸、雅典等地證交所，業務涵蓋上市、交易、結算與市場數據。",
+   "ticker": "ENX",
+   "verified": true
+  },
+  "公平控股公司": {
+   "country": "美國",
+   "intro": "美國公平控股（Equitable Holdings），退休金與資產管理集團；旗下有年金與壽險公司 Equitable 及資產管理公司聯博（AllianceBernstein），另經營理財顧問業務。",
+   "ticker": "EQH",
+   "verified": true
+  },
+  "德意志證交所": {
+   "country": "德國",
+   "intro": "德國德意志交易所（Deutsche Börse），總部法蘭克福的交易所集團；經營 Xetra 股票交易、Eurex 衍生性商品交易與結算及 Clearstream 證券託管交割，另有指數與資料業務。",
+   "ticker": "DB1",
+   "verified": true
+  },
+  "花旗集團公司": {
+   "country": "美國",
+   "intro": "美國花旗集團（Citigroup），全球性銀行集團；業務涵蓋跨國企業金流與證券服務、金融市場交易、投資銀行、財富管理與美國個人金融（含信用卡）。",
+   "ticker": "C",
+   "verified": true
+  },
+  "M&G公開有限公司": {
+   "country": "英國",
+   "intro": "英國 M&G（M&G plc），儲蓄與投資集團，2019 年自英國保誠分拆上市；業務涵蓋 M&G Investments 資產管理，以及以 Prudential 品牌經營的英國與歐洲壽險與退休儲蓄。",
+   "ticker": "MNG",
+   "verified": true
+  },
+  "Ageas": {
+   "country": "比利時",
+   "intro": "比利時 Ageas，總部布魯塞爾、比利時最大的保險集團；核心子公司 AG Insurance 經營比利時壽險與產險，另在歐洲及中國、印度、泰國等亞洲市場經營保險業務。",
+   "ticker": "AGS",
+   "verified": true
+  },
+  "MS&AD保險集團控股公司": {
+   "country": "日本",
+   "intro": "日本 MS&AD 保險集團（MS&AD Insurance Group），日本三大產險集團之一；核心子公司為三井住友海上與愛和誼日生同和損保，業務涵蓋國內產險、壽險與海外保險。",
+   "ticker": "8725",
+   "verified": true
+  },
+  "旅行者保險公司": {
+   "country": "美國",
+   "intro": "美國旅行者集團（Travelers Companies），美國大型產物保險公司；業務涵蓋企業保險、擔保與專業責任險及個人車險、住宅險，主要透過獨立代理人與經紀商銷售。",
+   "ticker": "TRV",
+   "verified": true
+  },
+  "東京海上控股": {
+   "country": "日本",
+   "intro": "日本東京海上控股（Tokio Marine Holdings），日本三大產險集團之一；核心子公司為東京海上日動火災保險，海外業務以美國專業保險（Philadelphia、HCC 等）為重心。",
+   "ticker": "8766",
+   "verified": true
+  },
+  "Victory Capital Holdings Inc": {
+   "country": "美國",
+   "intro": "美國 Victory Capital，總部德州聖安東尼奧的多品牌資產管理公司；旗下多個獨立投資團隊管理股票與固定收益產品，2025 年併入東方匯理美國業務。",
+   "ticker": "VCTR",
+   "verified": true
+  },
+  "凱克薩銀行有限責任公司": {
+   "country": "西班牙",
+   "intro": "西班牙凱克薩銀行（CaixaBank），西班牙國內規模最大的銀行集團；業務涵蓋零售存放款、保險（VidaCaixa）與資產管理，並全資持有葡萄牙 BPI 銀行。",
+   "ticker": "CABK",
+   "verified": true
+  },
+  "畢爾巴鄂比斯開銀行": {
+   "country": "西班牙",
+   "intro": "西班牙畢爾巴鄂比斯開銀行（BBVA），西班牙大型跨國銀行集團；主要市場為西班牙、墨西哥（BBVA México）、土耳其（Garanti BBVA）與南美洲。",
+   "ticker": "BBVA",
+   "verified": true
+  },
+  "Eurobank SA": {
+   "country": "希臘",
+   "intro": "希臘歐洲銀行（Eurobank），希臘四大系統性銀行之一；業務以零售與企業金融為主，並在賽普勒斯（2025 年併入 Hellenic Bank）、保加利亞與盧森堡經營。",
+   "ticker": "EUROB",
+   "verified": true
+  },
+  "忠意保險股份公司": {
+   "country": "義大利",
+   "intro": "義大利忠意保險（Generali），總部的里雅斯特、義大利最大的保險集團；業務涵蓋壽險、產險與資產管理，市場以義大利、法國、德國等歐洲國家為主。",
+   "ticker": "G",
+   "verified": true
+  },
+  "安盛有限責任公司": {
+   "country": "法國",
+   "intro": "法國安盛集團（AXA），總部巴黎的跨國保險集團；業務涵蓋產險（含企業險 AXA XL）、壽險與健康險，2025 年已將資產管理子公司 AXA IM 售予法國巴黎銀行。",
+   "ticker": "CS",
+   "verified": true
+  },
+  "韓國國民銀行金融集團公司": {
+   "country": "韓國",
+   "intro": "韓國 KB 金融集團（KB Financial Group），韓國主要金融控股公司之一；核心子公司為國民銀行（Kookmin Bank），另有 KB 證券、KB 國民卡、KB 產險與 KB 人壽等。",
+   "ticker": "105560",
+   "verified": true
+  },
+  "三星火災海上保險有限公司": {
+   "country": "韓國",
+   "intro": "韓國三星火災海上保險（Samsung Fire & Marine Insurance），三星集團旗下的韓國產險業龍頭；業務涵蓋長期保險、汽車險與企業一般保險。",
+   "ticker": "000810",
+   "verified": true
+  },
+  "西班牙洲際銀行有限責任公司": {
+   "country": "西班牙",
+   "intro": "西班牙洲際銀行（Bankinter），總部馬德里的商業銀行；業務涵蓋零售與私人銀行、企業金融及消費金融，並在葡萄牙與愛爾蘭（Avant Money）經營。",
+   "ticker": "BKT",
+   "verified": true
+  },
+  "第一生命集團公司": {
+   "country": "日本",
+   "intro": "日本第一生命集團（Daiichi Life Group），日本大型壽險集團，2026 年 4 月由第一生命控股更名；海外子公司包括美國 Protective Life 與澳洲 TAL。",
+   "ticker": "8750",
+   "verified": true
+  },
+  "OKTA INC": {
+   "country": "美國",
+   "intro": "美國 Okta（Okta Inc.），雲端身分與存取管理（IAM）軟體業者；提供企業單一登入、多重驗證與帳號生命週期管理，並以 Auth0 平台提供客戶身分管理服務。",
+   "ticker": "OKTA",
+   "verified": true
+  },
+  "MEIKO ELECTRONICS CO LTD": {
+   "country": "日本",
+   "intro": "日本名幸電子（Meiko Electronics），印刷電路板（PCB）製造商；產品涵蓋 HDI 任意層板、多層板與軟硬結合板，主要用於車用、通訊與工業設備，生產據點位於日本、中國與越南。",
+   "ticker": "6787",
+   "verified": true
+  },
+  "MERCK & CO. INC.": {
+   "country": "美國",
+   "intro": "美國默沙東（Merck & Co.，美加以外稱 MSD），大型製藥公司；主力產品為癌症免疫療法 Keytruda 與 HPV 疫苗 Gardasil，業務另涵蓋疫苗、感染症、心血管代謝用藥與動物保健。",
+   "ticker": "MRK",
+   "verified": true
+  },
+  "Sumitomo Electric Industries Ltd": {
+   "country": "日本",
+   "intro": "日本住友電工（Sumitomo Electric Industries），電線電纜與光通訊大廠；業務涵蓋車用線束、光纖光纜與光元件、電力電纜、軟性電路板及硬質合金刀具，以車用線束為主的汽車事業為最大營收來源。",
+   "ticker": "5802",
+   "verified": true
+  },
+  "MODERNA INC": {
+   "country": "美國",
+   "intro": "美國莫德納（Moderna），mRNA（信使核糖核酸）技術生技公司；已上市產品包括新冠疫苗 Spikevax、mNEXSPIKE 與 RSV 疫苗 mRESVIA，並開發癌症與罕見疾病 mRNA 療法。",
+   "ticker": "MRNA",
+   "verified": true
+  },
+  "RECRUIT HOLDINGS CO LTD": {
+   "country": "日本",
+   "intro": "日本瑞可利控股（Recruit Holdings），人力資源科技集團；旗下擁有全球求職平台 Indeed 與企業評價網站 Glassdoor，並經營日本求職、生活資訊媒體與人力派遣業務。",
+   "ticker": "6098",
+   "verified": true
+  },
+  "菲利普66": {
+   "country": "美國",
+   "intro": "美國菲利普 66（Phillips 66），能源煉製與中游業者；業務涵蓋煉油、燃料與潤滑油行銷、管線儲運與 NGL 處理、再生燃料，並持有雪佛龍菲利普化學（CPChem）五成股權。",
+   "ticker": "PSX",
+   "verified": true
+  },
+  "TDK CORP": {
+   "country": "日本",
+   "intro": "日本 TDK（TDK Corporation），電子零組件大廠；產品涵蓋 MLCC 與電感等被動元件、手機用鋰聚合物充電電池、MEMS 與磁性感測器，以及硬碟磁頭。",
+   "ticker": "6762",
+   "verified": true
+  },
+  "LENOVO GROUP LTD": {
+   "country": "中國",
+   "intro": "中國聯想集團（Lenovo Group），全球出貨量最大的個人電腦品牌，於香港交易所掛牌；業務涵蓋 PC、平板與手機、伺服器與儲存設備，以及 IT 解決方案服務。",
+   "ticker": "992",
+   "verified": true
+  },
+  "Resonac Holdings Corp": {
+   "country": "日本",
+   "intro": "日本力森諾科（Resonac，原昭和電工），2023 年與原日立化成整合後更名的化學與半導體材料廠；產品涵蓋 CMP 研磨液、高純度氣體、封裝用環氧樹脂與感光膜，另經營石化等化學品業務。",
+   "ticker": "4004",
+   "verified": true
+  },
+  "ROBOTECHNIK INTELLIGENT TE-A": {
+   "country": "中國",
+   "intro": "中國羅博特科（Robotechnik），自動化設備商；原以光伏電池產線設備起家，透過全資子公司德國 ficonTEC 跨足矽光子與光通訊元件的自動化封裝測試設備。",
+   "ticker": "300757",
+   "verified": true
+  },
+  "Victory Giant Technology Huizhou Co Ltd": {
+   "country": "中國",
+   "intro": "中國勝宏科技（Victory Giant Technology），印刷電路板（PCB）製造商；專精 HDI 與高層數多層板，主要供應 AI 伺服器與高效能運算應用，總部位於廣東惠州，2026 年 4 月加掛香港 H 股。",
+   "ticker": "300476",
+   "verified": true
+  },
+  "Disco Corp": {
+   "country": "日本",
+   "intro": "日本迪思科（DISCO），半導體切割與研磨設備大廠；產品涵蓋晶圓切割機、雷射切割機、研削機與拋光機，以及切割刀片、砂輪等精密加工耗材。",
+   "ticker": "6146",
+   "verified": true
+  },
+  "Mitsui Mining & Smelting Co Ltd": {
+   "country": "日本",
+   "intro": "日本三井金屬（Mitsui Kinzoku，原三井金屬礦業，2025 年 10 月更名），非鐵金屬與功能材料廠；主力為 IC 載板與 AI 伺服器用極薄銅箔（MicroThin），另經營鋅、鉛等非鐵金屬冶煉與資源回收。",
+   "ticker": "5706",
+   "verified": true
+  },
+  "Lattice Semiconductor Corp": {
+   "country": "美國",
+   "intro": "美國萊迪思半導體（Lattice Semiconductor），低功耗 FPGA（現場可程式化邏輯閘陣列）晶片設計商；產品應用於工業自動化、車用電子、通訊設備與資料中心伺服器。",
+   "ticker": "LSCC",
+   "verified": true
+  },
+  "MaxLinear Inc": {
+   "country": "美國",
+   "intro": "美國邁凌（MaxLinear），無晶圓廠 IC 設計公司；產品涵蓋寬頻與 Wi-Fi 連網晶片、資料中心光模組用 DSP 晶片，以及基礎建設與工業用類比混合訊號晶片。",
+   "ticker": "MXL",
+   "verified": true
+  },
+  "ZETA GLOBAL HOLDINGS CORP-A": {
+   "country": "美國",
+   "intro": "美國 Zeta Global，AI 行銷科技公司；以自有大型消費者資料庫結合 AI 的 Zeta Marketing Platform，提供電子郵件、社群、網站與連網電視等跨通路行銷服務。",
+   "ticker": "ZETA",
+   "verified": true
+  },
+  "GUARDANT HEALTH INC": {
+   "country": "美國",
+   "intro": "美國 Guardant Health，液態切片（血液檢測）癌症診斷公司；產品包括晚期癌症基因檢測 Guardant360、殘留病灶檢測 Reveal 與大腸癌篩檢血液檢測 Shield。",
+   "ticker": "GH",
+   "verified": true
+  },
+  "埃爾比系統公司": {
+   "country": "以色列",
+   "intro": "以色列埃爾比特系統（Elbit Systems），國防電子大廠，於那斯達克與特拉維夫證交所掛牌；產品涵蓋無人機、光電與夜視系統、指管通情與電子戰系統、陸海空作戰平台及精準彈藥。",
+   "ticker": "ESLT",
+   "verified": true
+  },
+  "思愛普": {
+   "country": "德國",
+   "intro": "德國思愛普（SAP），全球企業應用軟體大廠，於美國以 ADR 掛牌；主力為 ERP 企業資源規劃系統 S/4HANA 與雲端 ERP，並提供人資、採購、供應鏈與商業 AI 軟體。",
+   "ticker": "SAP",
+   "verified": true
+  },
+  "COINBASE GLOBAL INC -CLASS A": {
+   "country": "美國",
+   "intro": "美國 Coinbase，美國交易量最大的加密貨幣交易平台；業務涵蓋加密資產交易、機構託管與質押服務，並開發以太坊第二層區塊鏈網路 Base。",
+   "ticker": "COIN",
+   "verified": true
+  },
+  "愛惠浦公司": {
+   "country": "美國",
+   "intro": "美國 Everpure（原 Pure Storage，2026 年更名），企業資料儲存與資料管理業者；主力產品為全快閃儲存陣列 FlashArray、FlashBlade 與 Kubernetes 資料管理平台 Portworx。",
+   "ticker": "P",
+   "verified": true
+  },
+  "ISPIM 7.8 11/28/53": {
+   "country": "義大利",
+   "intro": "義大利聯合聖保羅銀行（Intesa Sanpaolo）發行之金融債；該行為義大利規模最大的銀行集團，業務涵蓋零售銀行、企業金融、保險與財富管理。",
+   "ticker": "XS2725962638",
+   "verified": true
+  },
+  "OKE 6 5/8 09/01/53": {
+   "country": "美國",
+   "intro": "美國 ONEOK 發行之公司債；該公司為美國大型能源中游業者，經營天然氣、天然氣液（NGL）、原油與成品油的集輸、處理與管線運輸。",
+   "ticker": "US682680BN20",
+   "verified": true
+  },
+  "BA 7.008 05/01/64": {
+   "country": "美國",
+   "intro": "美國波音（Boeing）發行之公司債；該公司為全球主要商用飛機製造商，並經營國防、太空與安全系統及全球維修服務業務。",
+   "ticker": "US097023DU67",
+   "verified": true
+  },
+  "VZ 6.745 09/19/56": {
+   "country": "美國",
+   "intro": "美國威訊通訊（Verizon）發行之澳幣計價次順位債；該公司為美國大型電信業者，經營行動通訊、家用寬頻與企業網路服務。",
+   "ticker": "AU3CB0332211",
+   "verified": true
+  },
+  "BATSLN 7.081 08/02/53": {
+   "country": "英國",
+   "intro": "英國英美菸草（British American Tobacco）旗下 B.A.T Capital 發行、母公司擔保之公司債；英美菸草為全球主要菸草集團，品牌包括 Dunhill、Lucky Strike 與電子菸 Vuse。",
+   "ticker": "US054989AD07",
+   "verified": true
+  },
+  "CBAAU Float 11/09/32": {
+   "country": "澳洲",
+   "intro": "澳洲聯邦銀行（Commonwealth Bank of Australia）發行之澳幣浮動利率次順位債（Tier 2）；該行為澳洲四大銀行之一，業務以零售銀行與房屋貸款為主。",
+   "ticker": "AU3FN0073029",
+   "verified": true
+  },
+  "ENBCN 6.7 11/15/53": {
+   "country": "加拿大",
+   "intro": "加拿大 Enbridge 發行之公司債；該公司為北美主要能源基礎設施業者，經營原油與天然氣管線、天然氣配送及再生能源發電。",
+   "ticker": "US29250NBZ78",
+   "verified": true
+  },
+  "T 5 1/8 08/15/56": {
+   "country": "美國",
+   "intro": "美國財政部發行之 30 年期公債，票面利率 5.125%，2056 年 8 月 15 日到期（2026 年 8 月標售）；美國公債由聯邦政府發行，為全球規模最大、流動性最高的債券市場。",
+   "ticker": "US912810UW61",
+   "verified": true
+  },
+  "T 5 05/15/56": {
+   "country": "美國",
+   "intro": "美國財政部發行之 30 年期公債，票面利率 5%，2056 年 5 月 15 日到期（2026 年 5 月標售）；美國公債由聯邦政府發行，為全球規模最大、流動性最高的債券市場。",
+   "ticker": "US912810UU06",
    "verified": true
   }
  }

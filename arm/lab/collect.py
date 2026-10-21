@@ -10,6 +10,7 @@ import time
 from datetime import date, timedelta
 
 from .. import clock, twholidays
+from ..etfholdings import clean_name
 from . import market, store
 
 HOLD_FP = store.ROOT / "data" / "etf_holdings.json"
@@ -43,7 +44,9 @@ def snaps_from_holdings(doc: dict, *, skip: set[str] | None = None) -> dict:
                     h[sid] = [r.get("shares"), r.get("weight")]
             px = {}
             det = e.get("detail") or {}
-            if det.get("date") == d:
+            # 收盤要是「揭露當天」的：2026-10-21 起明細的收盤是報價日 pd（最新交易日）那天的，
+            # 持股快照較舊時 pd≠d → 不收（舊格式沒有 pd，照舊）。docs/etf_chg_fix_plan.md
+            if det.get("date") == d and det.get("pd", d) == d:
                 for r in det.get("all") or []:
                     sid = str(r.get("stock_id") or "").strip()
                     if sid and r.get("close") is not None:
@@ -61,15 +64,15 @@ def snaps_from_holdings(doc: dict, *, skip: set[str] | None = None) -> dict:
 
 
 def names_from_holdings(doc: dict) -> dict[str, str]:
-    out = {}
+    out = {}                                     # 名稱還原 `&amp;`：舊落檔（復華 xlsx，2026-10-21 前）
     for e in (doc.get("etfs") or {}).values():
         for r in (e or {}).get("holdings") or []:
-            sid, nm = str(r.get("stock_id") or "").strip(), r.get("name")
+            sid, nm = str(r.get("stock_id") or "").strip(), clean_name(r.get("name"))
             if sid and nm and nm != sid:
                 out[sid] = nm
         for sid, v in ((e or {}).get("prev") or {}).items():
             if isinstance(v, dict) and v.get("name") and sid not in out:
-                out[sid] = v["name"]
+                out[sid] = clean_name(v["name"])
     return out
 
 

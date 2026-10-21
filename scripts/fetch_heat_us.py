@@ -33,7 +33,7 @@ NAMES = ["us_px_spx", "us_px_ixic", "us_px_ndx", "us_px_sox", "us_vxn", "us_vix3
          "us_philly", "us_ads", "us_cli", "us_claims", "us_bls", "us_umich", "us_ebp", "us_shiller", "us_wsts",
          "taiex90", "twgdp"] + [f"us_lppls_{k}" for k in U.US_INDEX_SYM] + ["tw_lppls"] \
     + ["us_ff49x", "us_ff49n", "us_ff49s"] + [f"us_etf_{s}" for s in BF.etf_names()] \
-    + [f"us_vol_{k}" for k in U.US_INDEX_SYM]
+    + [f"us_vol_{k}" for k in U.US_INDEX_SYM] + ["us_breadth"]
 YAHOO = [("us_px_spx", "^GSPC", "1927-01-01"), ("us_px_ixic", "^IXIC", "1971-01-01"),
          ("us_px_ndx", "^NDX", "1985-01-01"), ("us_px_sox", "^SOX", "1994-01-01"),
          ("us_vxn", "^VXN", "2001-01-01"), ("us_vix3m", "^VIX3M", "2006-01-01"), ("us_dxy", "DX-Y.NYB", "1971-01-01")]
@@ -115,6 +115,9 @@ def daily() -> None:
         once(key, fn)
     once("us_bls", U.bls, date.today().year - 1)
     fwd_daily(once)
+    from arm.lab import usbreadth as UB                      # 美股漲跌家數（S&P 500 成分股；大神策略第三段）
+    if HD.load(UB.NAME):
+        run("us_breadth", UB.daily)
     g = HD.load("twgdp")
     if not g or H.avail_date(next_quarter(max(g)), (1, 28)) <= today:
         once("twgdp", U.twgdp)
@@ -148,6 +151,9 @@ def backfill(only: set | None = None) -> None:
             jobs.update({"us_spf": F.spf, "us_tech": F.tech, "fwd_us": lambda: F.update_us(budget_s=900),
                          "fwd_tw": F.update_tw_agg})
         jobs.update({"ind_ff": BF.ff49, "ind_etf": BF.etf})            # 產業泡沫
+        if "usbreadth" in only:                               # 美股漲跌家數（大神策略第三段）：1996 起整段重算
+            from arm.lab import usbreadth as UB
+            jobs["usbreadth"] = UB.backfill
         if "gics" in only:
             from arm.lab import fwdfetch as F
             jobs["gics"] = F.update_gics

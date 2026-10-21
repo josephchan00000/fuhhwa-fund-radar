@@ -11,10 +11,10 @@
   "risk_level": "RR4",
   "mgmt_fee": "1.20%",
   "size_twd": 19421792008.0,
-  "nav": 45.78,
-  "nav_date": "2026/10/20",
-  "nav_change": -0.66,
-  "nav_change_pct": "-1.42%",
+  "nav": 46.44,
+  "nav_date": "2026/10/21",
+  "nav_change": 0.66,
+  "nav_change_pct": "1.44%",
   "returns": {
     "ytd": "57.91%",
     "3m": "0.93%",
@@ -89,13 +89,13 @@
   "country_alloc": [],
   "sector_alloc": [],
   "group": "tw_fof",
-  "fetched_at": "2026-10-21 05:50",
+  "fetched_at": "2026-10-22 02:17",
   "returns_daily": {
-    "1m": -2.30474,
-    "3m": 10.02163,
-    "6m": 13.42914,
-    "1y": 65.21112,
-    "ytd": 51.48908
+    "1m": -1.67267,
+    "3m": 7.00461,
+    "6m": 13.18547,
+    "1y": 66.93027,
+    "ytd": 53.67306
   },
-  "returns_daily_asof": "2026/10/20"
+  "returns_daily_asof": "2026/10/21"
 }

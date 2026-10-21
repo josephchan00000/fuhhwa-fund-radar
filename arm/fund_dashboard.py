@@ -403,10 +403,10 @@ def _factcheck_chip(today=None) -> str:
 
 
 def _intro_gap_chip() -> str:
-    """前十大簡介缺口警示章（讀 data/holdings_intro_gap.json；scripts/check_holdings_intro.py 產）。
+    """持股簡介缺口警示章（讀 data/holdings_intro_gap.json；scripts/check_holdings_intro.py 產）。
     2026-07-23 使用者需求：前十大簡介一再漏掉——缺口>0 時在網頁更新時間列顯示紅色 ⚠，
-    列出缺簡介的持股名，主會話／每日 SOP 見到即 WebSearch 補進 holding_profiles.json。
-    全覆蓋（count=0）或無檔＝不顯示。"""
+    列出缺簡介的持股名，15:33 盤後班見到即 WebSearch 補進 holding_profiles.json。
+    2026-10-21 起缺口檔也含 ETF 持股（items 的 src＝"etf"）。全覆蓋（count=0）或無檔＝不顯示。"""
     fp = ROOT_DIR / "data" / "holdings_intro_gap.json"
     try:
         doc = json.loads(fp.read_text(encoding="utf-8"))
@@ -415,10 +415,14 @@ def _intro_gap_chip() -> str:
     items = doc.get("items") or []
     if not items:
         return ""
+    n_etf = sum(1 for i in items if i.get("src") == "etf")
+    label = ("持股簡介" if n_etf else "前十大簡介")
+    split = (f"基金前十大 {len(items) - n_etf}・ETF 持股 {n_etf}；" if n_etf and n_etf < len(items)
+             else ("ETF 持股；" if n_etf else ""))
     names = "、".join(_esc(i.get("name") or "") for i in items[:8])
     more = f" 等 {len(items)} 檔" if len(items) > 8 else ""
-    return (f'<span class="chip fresh stale"><b>前十大簡介</b>　🔴 {doc.get("count")} 檔缺簡介'
-            f'（{names}{more}）</span>')
+    return (f'<span class="chip fresh stale"><b>{label}</b>　🔴 {len(items)} 檔缺簡介'
+            f'（{split}{names}{more}）</span>')
 
 
 def _new_etf_chip() -> str:
@@ -1134,6 +1138,24 @@ def chg_trust(i: dict) -> tuple[str, str]:
     ao, pa = i.get("as_of"), (i.get("chg_asof") or i.get("perf_asof"))
     if not (ao and pa):
         return "ok", ""                                  # 缺日期資訊 → fail-open 照顯示
+    # 前一點不是前一個交易日＝兩天合計的漲跌（2026-10-21：Yahoo 下午「有今天、少昨天」，0050 顯示 −0.0%、
+    # 官方 +0.84%）。日期看起來對，最容易誤導——只重建、不重抓的班次也不可把落檔裡的這種值顯示出來。
+    pd_ = i.get("prev_date")
+    if pd_ and i.get("chg_asof"):
+        from . import dayquotes
+        try:
+            want = dayquotes.prev_trading_day(date.fromisoformat(str(i["chg_asof"])[:10])).isoformat()
+        except (TypeError, ValueError):
+            want = None
+        if want and str(pd_)[:10] != want:
+            return "bad", (f"這格是 {str(pd_)[:10]} 到 {str(i['chg_asof'])[:10]} 的漲跌（中間少了 {want}），"
+                           f"不是當日漲跌，暫不顯示；下一次更新會重算")
+    # 除息日沒扣配息＝把配息算成跌幅（2026-10-21 00986D：−0.77%，對除息參考價是 −0.14%）。
+    # etfinfo 的 last_div_date 就是除息日（7/22 起 67 次除息與 Yahoo 事件日期、金額全同）。
+    ca = str(i.get("chg_asof") or "")[:10]
+    if ca and i.get("last_div") and str(i.get("last_div_date") or "")[:10] == ca and not i.get("chg_ex_div"):
+        return "bad", (f"{ca} 除息（每單位 {i['last_div']:g} 元），這格的漲跌沒有扣配息，"
+                       f"暫不顯示；下一次更新會重算")
     if pa == ao:
         return "ok", ""
     try:
@@ -1424,11 +1446,27 @@ def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
     basis = detail.get("amount_basis") or "shares"
     fig = _eh_treemap(detail.get("moves") or [], basis)
     tm, hidden, unpriced = fig["blocks"], fig["hidden"], fig["unpriced"]
-    return {
+    # 只放「這列報價日＝報價日 pd」的漲跌／收盤／貢獻（2026-10-21 錯日事故：晚上那幾班上市＝前一天、
+    # 上櫃＝當天，39% 的列錯日）。舊格式（沒有 pd）一律不顯示——下一班 ETF 持股更新就會補上。
+    pd = detail.get("pd")
+    al, tc, cw, n_ok = [], 0.0, 0.0, 0
+    for r in detail.get("all") or []:
+        ok = bool(pd) and r.get("qd") == pd and r.get("chg_pct") is not None
+        if ok:
+            n_ok += 1
+            if r.get("contrib") is not None:
+                tc += r["contrib"]
+                cw += r.get("weight") or 0.0
+        al.append([r["stock_id"], r.get("name") or r["stock_id"], r.get("weight"),
+                   r.get("shares"), r.get("close") if ok else None,
+                   r.get("chg_pct") if ok else None, r.get("contrib") if ok else None,
+                   1 if (r.get("pend") and not ok) else 0])
+    out = {
         "nm": name, "d": detail.get("date"), "p": detail.get("prev_date"),
+        "pd": pd, "np": sum(1 for a in al if a[7]),
         "n": detail.get("n_holdings"), "sw": detail.get("sum_weight"),
         "src": detail.get("src"), "basis": basis,
-        "tc": detail.get("total_contrib"), "cw": detail.get("covered_weight"),
+        "tc": round(tc, 2) if n_ok else None, "cw": round(cw, 1),
         "vf": _eh_verify_chip(detail.get("verify") or {}),
         "mn": detail.get("moves_n"), "mr": detail.get("moves_rest_n"),
         # xsrc＝本次與前一揭露日的來源不同 → 只比共同持股，新增／出清不予判定
@@ -1438,13 +1476,43 @@ def _eh_payload(detail: dict | None, name: str = "") -> dict | None:
         # MV：[代號, 名稱, 異動股數, 金額, 類型]
         "mv": [[m["stock_id"], m.get("name") or m["stock_id"], m.get("m_shares"),
                 m.get("amount"), m.get("kind")] for m in (detail.get("moves") or [])],
-        # AL：[代號, 名稱, 權重, 股數, 收盤價, 當日漲跌%, 貢獻pp]
+        # AL：[代號, 名稱, 權重, 股數, 收盤價, 漲跌%（報價日 pd）, 貢獻pp, 待收盤(1/0)]
         # 標的簡介**不放在列裡**：同一檔股票會出現在多檔 ETF，逐檔各存一份會讓內嵌 JSON
         # 多出約 200KB（實測 494→695KB）。改成全體共用 {代號: 簡介} 一份，前端依代號查。
-        "al": [[r["stock_id"], r.get("name") or r["stock_id"], r.get("weight"),
-                r.get("shares"), r.get("close"), r.get("chg_pct"), r.get("contrib")]
-               for r in (detail.get("all") or [])],
+        "al": al,
     }
+    fu = _eh_fut(detail.get("fut"))
+    if fu:
+        out["fu"] = fu
+        out["fc"] = 1 if any(r[5] or r[7] for r in fu["r"]) else 0
+    return out
+
+
+def _eh_fut(fv: dict | None) -> dict | None:
+    """「期貨部位」區塊資料（etfholdings.fut_view → 緊湊陣列）。沒有期貨 → None（不出區塊）。
+
+    FU.r：[商品代號, 名稱, 口數（空單為負）, 名目曝險%, 月份, 比前一揭露日加減口數, 動作, 轉倉（舊月份 → 新月份）]
+    期貨只付保證金、權重是名目曝險，所以不進持股權重、方塊圖與貢獻度（2026-10-21 使用者同意另列）。"""
+    if not fv or not fv.get("rows"):
+        return None
+    rows = [[r["root"], r.get("name") or "", r.get("qty"), r.get("w"), "、".join(r.get("ym") or []),
+             r.get("dq"), r.get("act") or "",
+             ("、".join(r["pym"]) + " → " + "、".join(r["ym"])) if r.get("roll") else ""]
+            for r in fv["rows"]]
+    return {"r": rows, "nw": fv.get("net_w"), "pdd": fv.get("prev_date"),
+            "cmp": 1 if fv.get("cmp") else 0, "xs": fv.get("xsrc")}
+
+
+def _eh_fut_sub(fu: dict | None) -> str:
+    """卡片標題列的期貨變動摘要（例「・期貨 +10 口」）；沒有可比的前一揭露日或沒變動 → 空字串。"""
+    if not fu or not fu.get("cmp"):
+        return ""
+    ch = [r for r in fu["r"] if r[5] or r[7]]
+    if not ch:
+        return ""
+    if len(ch) > 1:
+        return "・期貨有變動"
+    return f"・期貨 {ch[0][5]:+,} 口" if ch[0][5] else "・期貨轉倉"
 
 
 def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
@@ -1474,7 +1542,7 @@ def _etf_detail_view(doc: dict | None, holdings_doc: dict | None) -> str:
             f'<b>{_esc(code)}</b><span>{_esc(nm.removeprefix("主動"))}</span></button>')
         mv = p.get("mn") or 0
         sub = (f'異動 {mv} 檔' if mv else
-               ('無異動' if p.get("p") else '首次揭露'))
+               ('無異動' if p.get("p") else '首次揭露')) + _eh_fut_sub(p.get("fu"))
         cards.append(
             f'<details class="etfd" id="etfd-{_esc(code)}" '
             f'data-c="{_esc(code)}" data-name="{_esc(code)} {_esc(nm)}" data-group="{kind}">'
@@ -2591,6 +2659,14 @@ td.mdsublab a.mdsl{color:var(--ink2)}
    （2026-07-30 使用者：「沒有變動就要讓比例感覺收斂一些」） */
 .edempty{font-size:12.5px;color:var(--mut);background:var(--pad);border-radius:9px;
   padding:10px 12px;margin-top:8px}
+/* 期貨部位：持股＋期貨名目的合計一行（2026-10-21；00987D 看多時把美債曝險拉到 120%～130%） */
+.futexp{font-size:12.5px;color:var(--ink);background:var(--pad);border-radius:9px;
+  padding:7px 11px;margin-top:8px;line-height:1.6}
+.futexp b{color:var(--accd);font-size:13.5px}
+/* 期貨只有一兩列：名稱與轉倉月份允許換行（手機 390px 時「美國三十年期政府公債」與
+   「2026-09 → 2026-12」會把最右欄擠出畫面） */
+.futtbl .edname{max-width:none;white-space:normal}
+.futtbl .futroll{white-space:normal}
 /* 方塊圖：容器固定高度，方塊以百分比絕對定位（座標由 Python squarify 算好） */
 /* 方塊圖＝深色「圖表卡」（2026-07-30 使用者：淺底粉紅粉綠一片好醜）。
    深底的好處是同一組色階不必靠高飽和也能拉出層次、文字一律白色即可讀，
@@ -2666,6 +2742,8 @@ th .sub{display:block;font-weight:400;color:var(--mut);font-size:10.5px}
 .hnew{color:#8a5410;background:rgba(200,118,15,.14);margin-left:5px;font-size:10px;border-radius:5px;padding:0 4px}
 /* 全球型 ETF：本表僅台股部位（權重合計遠低於 100%）——橘標誠實揭露，避免被讀成完整清單 */
 .hpartial{margin-left:6px;font-size:10.5px;color:#8a5410;background:rgba(200,118,15,.14);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help}
+/* 海外持股當地還沒收盤（2026-10-21：只用已收盤的價格，盤中價一律不用） */
+.hpend{color:var(--mut);font-size:11px;font-weight:400;cursor:help}
 /* 跨源驗證章：🟢 雙源相符／單源未驗證／⚠ 兩源不符（詳情在 tooltip） */
 .hvok{margin-left:5px;font-size:10.5px;color:#1f7a43;background:rgba(31,157,87,.12);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help}
 .hvone{margin-left:5px;font-size:10.5px;color:var(--mut);background:rgba(120,120,120,.12);border-radius:5px;padding:1px 5px;white-space:nowrap;cursor:help}
@@ -2978,6 +3056,13 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
     return '<span class="'+c+'">'+(v>0?'+':(v<0?'-':''))+Math.abs(v).toFixed(d)+(u||'')+'</span>'}
   function num(v,d){return v==null?'—':grp(v.toFixed(d==null?2:d))}
   function st(c){return ST[c]||(ST[c]={msk:'lots',msd:-1,hsk:'w',hsd:-1,pg:1,q:'',mvall:false})}
+  // 漲跌的報價日（2026-10-21 使用者決定：一律用最新交易日；與持股快照日不同時兩個日期都標）
+  function pdTag(e){
+    if(!e.pd)return '・漲跌更新中';
+    if(e.pd===e.d)return '・漲跌為同日收盤';
+    return '・漲跌為 '+esc(e.pd)+' 收盤 <span class="hpartial" title="持股是 '+esc(e.d)
+      +' 的揭露，漲跌與收盤價是 '+esc(e.pd)+' 的收盤；貢獻度＝'+esc(e.d)+' 的權重 × '
+      +esc(e.pd)+' 的漲跌">不同日</span>'}
 
   function shell(){return ''
     +'<div class="edblk"><div class="edt">持股異動 <span class="edtsub mvsub"></span></div>'
@@ -2994,6 +3079,16 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
     +'<th class="num">類型</th></tr></thead><tbody class="mvb"></tbody></table></div>'
     +'<div class="edpg"><button type="button" class="mvmore" hidden></button></div>'
     +'<div class="edfoot mvfoot"></div></div>'
+    // 期貨部位（2026-10-21）：期貨只付保證金、權重是名目曝險，不混進持股；有期貨的 ETF 才出現
+    +'<div class="edblk tbl futblk" hidden><div class="edt">期貨部位 <span class="edtsub fusub"></span></div>'
+    +'<div class="futexp" hidden></div>'
+    +'<div class="edscroll tbl"><table class="chgtbl futtbl"><thead><tr>'
+    +'<th>合約<span class="sub">月份</span></th>'
+    +'<th class="num">口數<span class="sub">多單／空單</span></th>'
+    +'<th class="num">名目曝險<span class="sub">占淨值</span></th>'
+    +'<th class="num">比上次<span class="sub">加減口數</span></th></tr></thead>'
+    +'<tbody class="fub"></tbody></table></div>'
+    +'<div class="edfoot fufoot"></div></div>'
     +'<div class="edblk tbl"><div class="edt">完整持股明細</div>'
     +'<div class="edtsub hsub"></div>'
     +'<input class="edsearch hq" type="search" placeholder="搜尋代號或名稱" aria-label="搜尋代號或名稱">'
@@ -3021,6 +3116,7 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
         ?'本次異動多為海外持股（無台股報價），方塊圖無法計算面積——請看下方明細表。'
         :'本次異動集中在少數標的，其餘幅度過小、方塊圖呈現不出比例——請看下方明細表。')
       :(e.p?'本次揭露與前一揭露日相比，持股股數沒有變化。'
+             +(e.fc?'期貨部位有變動，見下方「期貨部位」。':'')
            :'首次揭露，尚無可對比的前一揭露日——明日起可看加減碼。');
     wrap.hidden=!tm.length; tbl.hidden=!tm.length;
     fo.style.display=tm.length?'':'none';
@@ -3052,7 +3148,7 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
           +(it.ind?'（'+it.ind+'）':''))+'">'+lab+'</div>'});
     map.innerHTML=h;
     fo.textContent=(e.basis==='amount'
-      ?'面積與亮度依異動金額（Δ股數 × 當日收盤）。'
+      ?'面積與亮度依異動金額（Δ股數 × '+(e.pd?e.pd+' ':'')+'收盤）。'
       :'本檔含無台股報價的持股（海外／債券），面積與亮度改以 Δ股數計，跨市場不宜直接比大小；'
        +'金額欄僅台股部位有值。')+'　'+(e.an||'')}
 
@@ -3100,7 +3196,9 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
       var tx=INTRO[r[0]];
       return '<tr'+(tx?' class="hasintro"':'')+'><td><span class="edcode">'+esc(r[0])+'</span>'
         +'<span class="edname">'+esc(r[1]===r[0]?'':r[1])+'</span></td>'
-        +'<td class="num"><span class="edmain">'+pct(r[5],2,'%')+'</span>'
+        +'<td class="num"><span class="edmain">'+(r[7]
+          ?'<span class="hpend" title="當地市場這一天還沒收盤（美股約台北隔天清晨收盤），下一班自動補上">待收盤</span>'
+          :pct(r[5],2,'%'))+'</span>'
         +'<span class="edsub2">'+num(r[4],2)+'</span></td>'
         +'<td class="num"><span class="edmain">'+num(r[2],2)+'%</span>'
         +'<span class="edsub2">'+(r[3]==null?'—':grp(r[3]))+'</span></td>'
@@ -3113,21 +3211,60 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
     box.querySelector('.hnext').disabled=s.pg>=tot;
     var ni=(e.al||[]).filter(function(r){return INTRO[r[0]]}).length;
     box.querySelector('.hsub').innerHTML='共 '+(e.n||rows.length)+' 檔持股・快照 '+esc(e.d||'—')
+      +pdTag(e)
       +(s.q?('・符合搜尋 '+rows.length+' 檔'):'')
       +(ni?('・'+ni+' 檔附標的簡介'):'')
       +(e.sw!=null&&e.sw>0&&e.sw<60
         ?' <span class="hpartial" title="本表僅列臺股掛牌部位（權重合計 '+e.sw
           +'%）；海外持股與現金部位不在本表，貢獻合計亦僅反映臺股部位">僅台股部位 '+e.sw+'%</span>':'');
-    box.querySelector('.hfoot').innerHTML='貢獻度＝權重 × 個股當日漲跌 ÷ 100（單位：百分點 pp）。'
+    box.querySelector('.hfoot').innerHTML='貢獻度＝權重 × 個股漲跌 ÷ 100（單位：百分點 pp）'
+      +(e.pd&&e.pd!==e.d?'；權重為 '+esc(e.d)+' 揭露、漲跌為 '+esc(e.pd)+' 收盤':'')+'。'
       +'已涵蓋權重 '+num(e.cw,1)+'%，合計貢獻 '+(e.tc==null?'—':pct(e.tc,2,'pp'))+'。'
       +'<b>合計與 ETF 市價漲跌不會完全相等</b>——現金／期貨部位、費用、以及持股揭露時點與'
       +'收盤的時間差都落在差額裡，此處不作湊平調整。'
-      +'海外持股的收盤價與漲跌取自 Yahoo Finance <b>當地市場最近收盤</b>（原幣別，'
-      +'如美股為台北時間清晨收盤），與台股同日對照時有時差屬正常。'
+      +(e.pd?'台股漲跌取證交所／櫃買 '+esc(e.pd)+' 官方收盤（除權息日對參考價）；'
+        +'海外持股取當地市場 '+esc(e.pd)+' <b>已收盤</b>的價格（Yahoo Finance，原幣別），'
+        +'當地還沒收盤的標「待收盤」，下一班自動補上'+(e.np?'（目前 '+e.np+' 檔）':'')+'。'
+       :'漲跌資料更新中，下一班 ETF 持股更新後顯示。')
       +(e.src==='fhtrust'?'資料來源：復華官網 assetsExcel（發行投信第一手揭露）。'
         :'資料來源：'+esc(e.src||'投信每日揭露')+'（Tier B 彙整站，取自投信每日揭露；'
          +'正式對外前以各投信官網核對）。');
     markSort(box,'.hldtbl th.hsk',s.hsk,s.hsd)}
+
+  // 期貨部位：FU.r＝[商品代號, 名稱, 口數(空單為負), 名目曝險%, 月份, 比上次加減口數, 動作, 轉倉]
+  function paintFut(box,e){
+    var blk=box.querySelector('.futblk'), f=e.fu;
+    if(!f||!(f.r||[]).length){blk.hidden=true;return}
+    blk.hidden=false;
+    box.querySelector('.fusub').textContent='揭露 '+(e.d||'—')+(f.cmp&&f.pdd?'・比 '+f.pdd:'');
+    var ex=box.querySelector('.futexp'), sw=e.sw;
+    // 期貨比例照揭露的兩位小數（toFixed(1) 會把 36.55 捨成 36.5，和下表對不上）
+    if(f.nw!=null&&sw!=null&&sw>=60){
+      ex.innerHTML='持股 '+sw.toFixed(1)+'% '+(f.nw<0?'－':'＋')+' 期貨名目 '+Math.abs(f.nw).toFixed(2)
+        +'% ＝ 合計約淨值的 <b>'+(sw+f.nw).toFixed(0)+'%</b>';
+      ex.hidden=false}
+    else if(f.nw!=null){ex.innerHTML='期貨名目曝險合計 <b>'+(f.nw<0?'-':'+')+Math.abs(f.nw).toFixed(2)+'%</b>';
+      ex.hidden=false}
+    else ex.hidden=true;
+    box.querySelector('.fub').innerHTML=f.r.map(function(r){
+      var q=r[2], dq=r[5];
+      var chg=dq==null?'<span class="na">—</span>'
+        :'<span class="edmain '+(dq>0?'gain':(dq<0?'loss':''))+'">'+(dq>0?'+':(dq<0?'-':''))
+          +grp(Math.abs(dq))+' 口</span><span class="edsub2">'+esc(r[6])+'</span>'
+          +(r[7]?'<span class="edsub2 futroll">'+esc(r[7]).replace('→','→<wbr>')+'</span>':'');
+      return '<tr><td><span class="edcode">'+esc(r[0])+'</span>'
+        +'<span class="edname">'+esc(r[1])+'</span>'
+        +(r[4]?'<span class="edsub2">'+esc(r[4])+' 合約</span>':'')+'</td>'
+        +'<td class="num"><span class="edmain">'+(q==null?'—':grp(Math.abs(q))+' 口')+'</span>'
+        +'<span class="edsub2">'+(q>0?'多單':(q<0?'空單':'已平倉'))+'</span></td>'
+        +'<td class="num"><span class="edmain">'+(r[3]==null?'—':(r[3]<0?'-':'')+Math.abs(r[3]).toFixed(2)+'%')
+        +'</span></td><td class="num">'+chg+'</td></tr>'}).join('');
+    box.querySelector('.fufoot').innerHTML='名目曝險＝合約價值 ÷ 基金淨值。期貨只付保證金，這個比例不是投入的金額，'
+      +'所以持股權重加上期貨可以超過 100%；空單記為負。合計只是兩個比例相加，期貨與持股的標的不同時'
+      +'（例如公司債搭配公債期貨）只能粗看。同一商品換月份（例如 12 月合約換成 3 月）算轉倉，不算平倉再新建。'
+      +'期貨不算進上面的持股異動、方塊圖與貢獻度。'
+      +(f.cmp?'':'尚無前一揭露日的期貨資料，下一個揭露日起可看加減口數。')
+      +(f.xs?'本次揭露來源（'+esc(f.xs[1])+'）與前一揭露日（'+esc(f.xs[0])+'）不同，只比兩邊都有的合約。':'')}
 
   function render(card){
     var code=card.dataset.c, e=EH[code], box=card.querySelector('.etfd-body');
@@ -3135,7 +3272,7 @@ document.querySelectorAll('.mdtogbtn').forEach(b=>b.addEventListener('click',e=>
     box.dataset.c=code;
     box.innerHTML=shell();
     box.dataset.done='1';
-    paintTmap(box,e);paintMoves(box,e);paintHold(box,e)}
+    paintTmap(box,e);paintMoves(box,e);paintFut(box,e);paintHold(box,e)}
 
   root.querySelectorAll('details.etfd').forEach(function(card){
     card.addEventListener('toggle',function(){if(card.open)render(card)})});

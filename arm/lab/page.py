@@ -143,7 +143,7 @@ def render(data: dict, ser_v: str | None = None) -> str:
     from . import appnav, copage, stockviz   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
                                              # （初始化會開分頁與 #s= 個股卡，這時公司分析的頂層 const 必須已經初始化）
                                              # stockviz＝機會、籌碼頁的三張圖（docs/lab_visual_plan.md 第 10 節），同樣放在初始化之前
-    return (_HTML.replace("{{APPTAB}}", appnav.bar("stk")).replace("{{SUB}}", asof_line(data))
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("stk")).replace("{{SUB}}", asof_line(data))
             .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS + stockviz.CSS + theme_css())
             .replace("{{SEARCH}}", copage.SEARCH_HTML)
             .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", stockviz.JS + copage.JS)))

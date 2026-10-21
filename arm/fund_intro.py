@@ -3,6 +3,7 @@
 """
 from __future__ import annotations
 
+import html
 import json
 from pathlib import Path
 
@@ -21,6 +22,11 @@ GROUP_LABEL = {"global_equity": "全球股票型", "global_balanced": "全球平
 _prof_cache: tuple[float, dict] | None = None   # (mtime, profiles)——render 全程重讀 50 次的熱點
 
 
+def _clean(name):
+    """名稱還原 HTML／XML 實體（`M&amp;G` → `M&G`）；非字串原樣回傳。"""
+    return html.unescape(name) if isinstance(name, str) and "&" in name else name
+
+
 def _profiles() -> dict:
     """holding_profiles.json 以 mtime 快取（審查 2026-07-18：每檔基金 load() 都重解析一次，
     render 一輪約 50 次重複 I/O；檔案變更時 mtime 失效自動重讀，行為不變）。"""
@@ -32,6 +38,9 @@ def _profiles() -> dict:
         if _prof_cache is not None and _prof_cache[0] == mt:
             return _prof_cache[1]
         d = json.loads(PROFILES.read_text(encoding="utf-8")).get("profiles", {})
+        # 鍵一律還原 HTML 實體（`JPMORGAN CHASE &amp; CO` → `& CO`）：復華 xlsx 解析 2026-10-21 前
+        # 沒還原實體，舊鍵與新抓的乾淨名稱都要對得上
+        d = {_clean(k): v for k, v in d.items()}
         _prof_cache = (mt, d)
         return d
     except Exception:
@@ -49,6 +58,7 @@ def load(fund_id: str) -> dict | None:
         return None
     profs = _profiles()
     for h in doc.get("top_holdings", []):
+        h["name"] = _clean(h.get("name"))    # 舊快照的 `&amp;`（見 _clean）——顯示與查簡介都用乾淨名稱
         p = profs.get(h.get("name")) or {}
         h["intro"] = p.get("intro")
         h["ticker"] = p.get("ticker")
@@ -112,6 +122,37 @@ def uncovered_top_holdings(n: int = 10) -> list[dict]:
     return sorted(seen.values(), key=lambda s: -s["count"])
 
 
+def uncovered_etf_holdings() -> list[dict]:
+    """ETF 持股（`data/etf_holdings.json` 每檔的完整持股）缺標的簡介的清單。
+
+    2026-07-31 使用者「當然要另外補資料啊」後 ETF 持股補到 100%，但守門只有測試的 95% 門檻、
+    沒有每日缺口檢查——主動式 ETF 天天換股，2026-10-21 已滑到 97%（72 檔，含本家 00998A 19 檔）。
+    與基金前十大同一份缺口檔、同一條 15:33 補簡介迴路。查法同儀表板（`intro_lookup`：
+    代號原樣、剝字尾，再用名稱）。回 [{name, ticker, sid, etfs, count, weight}]，
+    依「幾檔 ETF 持有」、權重排序；name＝補進 profiles 時用的鍵（快照原字串、已還原實體）。"""
+    fp = ROOT / "data" / "etf_holdings.json"
+    try:
+        doc = json.loads(fp.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    by_tk, by_nm = intro_lookup()
+    seen: dict[str, dict] = {}
+    for code, e in sorted((doc.get("etfs") or {}).items()):
+        for h in (e or {}).get("holdings") or []:
+            sid = str(h.get("stock_id") or "").strip()
+            nm = _clean(str(h.get("name") or "").strip()) or sid
+            tk = norm_ticker(sid)
+            if not sid or by_tk.get(sid) or by_tk.get(tk) or by_nm.get(nm) or by_nm.get(nm.upper()):
+                continue
+            slot = seen.setdefault(tk, {"name": nm, "ticker": tk, "sid": sid,
+                                        "etfs": [], "count": 0, "weight": 0.0})
+            if code not in slot["etfs"]:
+                slot["etfs"].append(code)
+                slot["count"] += 1
+            slot["weight"] = round(max(slot["weight"], float(h.get("weight") or 0)), 2)
+    return sorted(seen.values(), key=lambda s: (-s["count"], -s["weight"], s["ticker"]))
+
+
 def top_concentration(doc: dict, n: int = 10) -> float | None:
     """前 n 大持股權重合計（%）。"""
     hs = doc.get("top_holdings") or []
@@ -129,7 +170,8 @@ def norm_ticker(s) -> str:
     t = str(s or "").strip().upper()
     if " " in t:
         head, _, tail = t.rpartition(" ")
-        if head and tail.isalpha() and len(tail) <= 3:
+        # C1／C2＝陸股通（滬股通／深股通）字尾：`002463 C2` → `002463`
+        if head and ((tail.isalpha() and len(tail) <= 3) or tail in ("C1", "C2")):
             return head.strip()
     return t
 

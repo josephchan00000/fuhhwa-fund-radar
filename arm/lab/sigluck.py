@@ -139,7 +139,7 @@ def market_p(sd: dict, Yu: np.ndarray, Yw: np.ndarray, r0: int, R: dict, draws: 
         c = 0
         for j, x in enumerate(rows):
             n, h, n10, h10 = x[d]
-            if pj[j] <= S.LUCK_P and passes(n, h, b, n10, h10, b10, d):
+            if pj[j] <= S.luck_p(n) and passes(n, h, b, n10, h10, b10, d):     # VER 14：門檻用平移後的次數
                 c += 1
         out[d]["luck"] = c / draws
     return out

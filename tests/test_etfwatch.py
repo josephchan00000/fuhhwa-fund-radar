@@ -1184,7 +1184,7 @@ def test_上市_官方表未更新時報酬錨定etfinfo收盤(monkeypatch):
     monkeypatch.setattr(etfwatch, "_official_day_quotes", _day_q({}))
     seen = {}
 
-    def fake(code, today=None, anchor=None):
+    def fake(code, today=None, anchor=None, **k):
         seen[code] = anchor
         return {"ret_1w": None, "ret_1m": None, "perf_date": None}
     monkeypatch.setattr(etfwatch, "_fetch_returns", fake)
@@ -1192,3 +1192,260 @@ def test_上市_官方表未更新時報酬錨定etfinfo收盤(monkeypatch):
     monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
     etfwatch.fetch()
     assert seen["0050"] == {"date": "2026-09-23", "close": 112.45}
+
+
+# ── 2026-10-21 盤查：台北下午收盤後那幾班，Yahoo 日線「有今天、少昨天」──────────
+# 0056 序列 63 點、前一點跳到 10/19，末兩點變成今天對前天：10/21 15:43 那版 38 檔錯 32 檔
+# （0050 顯示 −0.0%，官方 107.25→108.15 是 +0.84%），10/14、10/16、10/20 下午也一樣。
+
+_REAL_DAY_QUOTES = etfwatch._official_day_quotes      # 模組載入時的真函式（autouse fixture 之後會換掉）
+
+
+def _ramp(end: str, skip=(), last=None, prev=None) -> dict[str, float]:
+    """2026-07-20 到 end 的交易日（證交所休市表）收盤序列；skip＝刻意缺的日子。"""
+    from arm import dayquotes
+    out, d, i = {}, date(2026, 7, 20), 0
+    while d <= date.fromisoformat(end):
+        iso = d.isoformat()
+        if dayquotes.is_trading_day(d) and iso not in skip:
+            out[iso] = round(100 + i * 0.1, 2)
+            i += 1
+        d += timedelta(days=1)
+    if prev:
+        out.update(prev)
+    if last is not None:
+        out[end] = last
+    return out
+
+
+def _yahoo_only(monkeypatch, series):
+    monkeypatch.setattr(etfwatch, "_stooq_series", lambda code: {})
+    monkeypatch.setattr(etfwatch, "_yahoo_series", lambda code: dict(series))
+    monkeypatch.setattr(etfwatch, "_finmind_series", lambda code, today: {})
+    monkeypatch.setattr(etfwatch, "_twse_series", lambda code, today: {})
+
+
+def test_序列缺前一交易日時不算當日漲跌_週月報酬照算():
+    s = _ramp("2026-10-21", skip={"2026-10-20"}, last=108.15, prev={"2026-10-19": 108.15})
+    r = etfwatch._returns_from_series(s)
+    assert r["perf_date"] == "2026-10-21"
+    assert r["chg_pct"] is None and r["chg_gap"] == "2026-10-19"   # 不再算成 10/21 對 10/19 的 0.0%
+    assert r["ret_1w"] is not None and r["ret_1m"] is not None
+    full = _ramp("2026-10-21", last=108.15, prev={"2026-10-20": 107.25})
+    assert etfwatch._returns_from_series(full)["chg_pct"] == 0.84   # 序列完整時照舊
+
+
+def test_序列跨休市日仍算前一交易日():
+    """10/9 國慶補假休市：10/12 的前一個交易日是 10/8，不可誤判成缺日。"""
+    s = _ramp("2026-10-12")
+    assert "2026-10-09" not in s
+    r = etfwatch._returns_from_series(s)
+    assert r["prev_date"] == "2026-10-08" and r["chg_pct"] is not None and "chg_gap" not in r
+
+
+def test_10月21日事故重現_序列缺昨天時改用etfinfo前收(monkeypatch):
+    prev = {"items": [{"code": "0050", "close_px": 107.25, "as_of": "2026-10-20",
+                       "prev_px": 108.15, "prev_px_date": "2026-10-19",
+                       "chg_pct": -0.83, "chg_asof": "2026-10-20", "chg_src": "yahoo"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(108.15, "2026-10-21"))
+    _yahoo_only(monkeypatch, _ramp("2026-10-21", skip={"2026-10-20"}, last=108.15,
+                                   prev={"2026-10-19": 108.15}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0050"]
+    assert i["chg_src"] == "etfinfo_prev" and i["chg_asof"] == "2026-10-21"
+    assert i["chg_pct"] == 0.84 and i["prev_date"] == "2026-10-20"   # 事故版本是 −0.0%
+    assert i["ret_1w"] is not None and i["perf_asof"] == "2026-10-21"
+
+
+def test_官方當日表與收盤同一天時優先於序列(monkeypatch):
+    prev = {"items": [{"code": "0050", "close_px": 107.25, "as_of": "2026-10-20"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(108.15, "2026-10-21"))
+    # 序列完整但 10/20 那根和官方差一點（Yahoo 107.3）→ 序列算出 0.79%
+    _yahoo_only(monkeypatch, _ramp("2026-10-21", last=108.15, prev={"2026-10-20": 107.3}))
+    monkeypatch.setattr(etfwatch, "_official_day_quotes",
+                        _day_q({"0050": {"date": "2026-10-21", "close": 108.15, "change": 0.9}}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0050"]
+    assert i["chg_src"] == "twse_today" and i["chg_asof"] == "2026-10-21"
+    assert i["chg_pct"] == 0.84 and i["prev_close"] == 107.25 and i["prev_date"] == "2026-10-20"
+
+
+def test_前收不是前一交易日時不拿來算_交給渲染端標基準(monkeypatch):
+    """10/20 那班沒跑到：落檔停在 10/19，前收會是 10/19 的收盤——算出來是兩天的漲跌，不能標成 10/21。"""
+    prev = {"items": [{"code": "0050", "close_px": 108.15, "as_of": "2026-10-19",
+                       "chg_pct": 0.09, "chg_asof": "2026-10-19", "chg_src": "yahoo"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(108.15, "2026-10-21"))
+    _yahoo_only(monkeypatch, _ramp("2026-10-21", skip={"2026-10-20"}, last=108.15,
+                                   prev={"2026-10-19": 108.15}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["0050"]
+    assert i["prev_px_date"] == "2026-10-19"
+    assert i["chg_src"] != "etfinfo_prev" and i["chg_asof"] == "2026-10-19"
+    assert "mdstale" in fund_dashboard._chg_cell(i)          # 標「⚠ 基準 2026-10-19」，不冒充當日
+
+
+def test_除息日不用官方表_前收與除息參考價都對得上(monkeypatch):
+    """00985A 10/19 除息 2.15：前收 23.14、參考價 20.99、收 20.68 → −1.48%。官方表除息日沒有能用的漲跌
+    （證交所 X／openapi 給 0、櫃買寫「除息」），即使給了數字也不用，交給 etfinfo 前收扣配息。"""
+    prev = {"items": [{"code": "00985A", "close_px": 23.14, "as_of": "2026-10-16"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(20.68, "2026-10-19"))
+    monkeypatch.setattr(etfwatch, "_fetch_returns", _boom)
+    monkeypatch.setitem(etfwatch._DIV_EVENTS, "00985A", {"2026-10-19": 2.15})
+    monkeypatch.setattr(etfwatch, "_official_day_quotes",
+                        _day_q({"00985A": {"date": "2026-10-19", "close": 20.68, "change": -0.31}}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00985A"]
+    assert i["chg_src"] == "etfinfo_prev"
+    assert i["chg_pct"] == -1.48 and i["chg_ex_div"] == 2.15
+    assert i["prev_close"] == 23.14 and i["prev_date"] == "2026-10-16"
+    assert "除息參考價 20.99" in fund_dashboard._chg_cell(i)
+
+
+def test_官方報價先走dayquotes_拿不到才看openapi(monkeypatch):
+    from arm import dayquotes
+    from arm.connectors import tpex, twse
+    q = {"0050": {"close": 108.15, "change": 0.9, "name": "元大台灣50", "date": "2026-10-21",
+                  "src": "tw_mi_index"}}
+    monkeypatch.setattr(dayquotes, "latest", lambda *a, **k: ("2026-10-21", q, {"T": "2026-10-21",
+        "tw_src": "mi_index", "tp_src": "openapi", "tw_n": 1, "tp_n": 1,
+        "tw_check": (0, 0), "tp_check": (0, 0)}))
+    monkeypatch.setattr(twse, "fetch_today_all", _boom)
+    monkeypatch.setattr(tpex, "fetch_today_all", _boom)
+    monkeypatch.setattr(dayquotes, "refresh_exright", lambda *a, **k: 0)    # 測試不打外網
+    assert _REAL_DAY_QUOTES() == q
+
+    monkeypatch.setattr(dayquotes, "latest", lambda *a, **k: (None, {}, {"tried": ["x"]}))
+    old = {"0050": {"date": "2026-10-20", "close": 107.25, "change": -0.9, "name": "元大台灣50"}}
+    monkeypatch.setattr(twse, "fetch_today_all", lambda **k: dict(old))
+    monkeypatch.setattr(tpex, "fetch_today_all", lambda **k: {})
+    assert _REAL_DAY_QUOTES() == old
+
+
+# ── 2026-10-21 第二輪：除息日的殘留錯值 ────────────────────────────────────────
+# 00929（除息 0.38）、00408A（除息 0.21）10/21 除息：證交所 MI_INDEX 當天標「X 不比價」（change＝None），
+# 序列又缺 10/20 → 兩道都算不出，落檔裡 15:43 那版「10/21 對 10/19」的錯值（00929 −0.2%）因為日期
+# 標著 10/21，L2 的「chg_asof ≠ as_of」判準看不到它，一直留著。官方：00929 29.26→29.29、除息參考價 28.88＝+1.42%。
+
+def test_除息日官方表不比價_沿用的舊錯值作廢_改用etfinfo配息算(monkeypatch):
+    prev = {"items": [{"code": "00929", "close_px": 29.29, "as_of": "2026-10-21",
+                       "prev_px": 29.26, "prev_px_date": "2026-10-20",
+                       "chg_pct": -0.2, "chg_amt": -0.06, "prev_close": 29.35, "prev_date": "2026-10-19",
+                       "chg_asof": "2026-10-21", "chg_src": "yahoo",
+                       "last_div": 0.38, "last_div_date": "2026-10-21"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(29.29, "2026-10-21"))
+    _yahoo_only(monkeypatch, _ramp("2026-10-21", skip={"2026-10-20"}, last=29.29,
+                                   prev={"2026-10-19": 29.35}))
+    monkeypatch.setitem(etfwatch._DIV_EVENTS, "00929", {})        # Yahoo 沒給除息事件 → 靠 etfinfo 的配息
+    monkeypatch.setattr(etfwatch, "_official_day_quotes",
+                        _day_q({"00929": {"date": "2026-10-21", "close": 29.29, "change": None}}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00929"]
+    assert i["chg_src"] == "etfinfo_prev" and i["chg_asof"] == "2026-10-21"
+    assert i["chg_pct"] == 1.42 and i["chg_ex_div"] == 0.38          # 錯值是 −0.2%
+    assert i["prev_close"] == 29.26 and i["prev_date"] == "2026-10-20"
+    assert "除息參考價 28.88" in fund_dashboard._chg_cell(i)
+
+
+def test_除息日openapi漲跌給0_不冒充平盤_Yahoo沒事件也用etfinfo配息算(monkeypatch):
+    """證交所 openapi 除息日 Change＝0（9/23 1808、2542 實測）：10/22 清晨那班 00929 會被寫成 0.00%。
+    官方表除息日一律不用；Yahoo 沒給除息事件時用 etfinfo 的配息。"""
+    prev = {"items": [{"code": "00929", "close_px": 29.26, "as_of": "2026-10-20",
+                       "last_div": 0.38, "last_div_date": "2026-10-21"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(29.29, "2026-10-21"))
+    monkeypatch.setattr(etfwatch, "_fetch_returns", _boom)
+    monkeypatch.setitem(etfwatch._DIV_EVENTS, "00929", {})
+    monkeypatch.setattr(etfwatch, "_official_day_quotes",
+                        _day_q({"00929": {"date": "2026-10-21", "close": 29.29, "change": 0.0}}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00929"]
+    assert i["chg_src"] == "etfinfo_prev" and i["chg_pct"] == 1.42
+    assert i["chg_ex_div"] == 0.38 and i["prev_close"] == 29.26
+
+
+def test_網頁端_前一點不是前一交易日的漲跌不顯示():
+    """只重建、不重抓的班次（afterhours 等）讀到落檔裡的舊錯值也不能印出來；列印版同一支判定。"""
+    from arm import printview
+    bad = {"code": "00929", "as_of": "2026-10-21", "chg_asof": "2026-10-21", "perf_asof": "2026-10-21",
+           "chg_pct": -0.2, "chg_amt": -0.06, "prev_close": 29.35, "prev_date": "2026-10-19"}
+    state, tip = fund_dashboard.chg_trust(bad)
+    assert state == "bad" and "2026-10-20" in tip
+    for html in (fund_dashboard._chg_cell(bad), printview._etf_chg(bad)):
+        assert "0.20%" not in html and "—" in html
+    ok = dict(bad, chg_pct=1.42, prev_close=29.26, prev_date="2026-10-20", chg_ex_div=0.38)
+    assert fund_dashboard.chg_trust(ok)[0] == "ok"
+    assert "+1.42%" in fund_dashboard._chg_cell(ok)
+    hol = dict(ok, as_of="2026-10-12", chg_asof="2026-10-12", perf_asof="2026-10-12",
+               prev_date="2026-10-08")                       # 10/9 國慶補假：前一交易日是 10/8
+    assert fund_dashboard.chg_trust(hol)[0] == "ok"
+
+
+def test_除息日Yahoo還沒有除息事件_序列漲跌用etfinfo配息扣(monkeypatch):
+    """00986D 10/21 除息 0.09：櫃買漲跌欄寫「除息」（官方表沒有數字）、Yahoo 序列完整卻沒有除息事件，
+    照原始收盤算成 14.23→14.12＝−0.77%；對除息參考價 14.14 是 −0.14%。週報酬也要把這筆息加回。"""
+    prev = {"items": [{"code": "00986D", "close_px": 14.23, "as_of": "2026-10-20",
+                       "last_div": 0.09, "last_div_date": "2026-10-21"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(14.12, "2026-10-21"))
+    _yahoo_only(monkeypatch, _ramp("2026-10-21", last=14.12, prev={"2026-10-20": 14.23}))
+    monkeypatch.setitem(etfwatch._DIV_EVENTS, "00986D", {})
+    monkeypatch.setattr(etfwatch, "_official_day_quotes",
+                        _day_q({"00986D": {"date": "2026-10-21", "close": 14.12, "change": None}}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00986D"]
+    assert i["chg_src"] == "yahoo" and i["chg_asof"] == "2026-10-21"
+    assert i["chg_pct"] == -0.14 and i["chg_ex_div"] == 0.09 and i["prev_close"] == 14.23
+    assert i["ret_1w_div"] == 0.09
+    assert fund_dashboard.chg_trust(i)[0] == "ok"
+
+
+def test_網頁端_除息日沒扣配息的漲跌不顯示():
+    row = {"code": "00986D", "as_of": "2026-10-21", "chg_asof": "2026-10-21", "perf_asof": "2026-10-21",
+           "chg_pct": -0.77, "chg_amt": -0.11, "prev_close": 14.23, "prev_date": "2026-10-20",
+           "chg_ex_div": None, "last_div": 0.09, "last_div_date": "2026-10-21"}
+    state, tip = fund_dashboard.chg_trust(row)
+    assert state == "bad" and "除息" in tip
+    assert "0.77%" not in fund_dashboard._chg_cell(row)
+    assert fund_dashboard.chg_trust(dict(row, chg_pct=-0.14, chg_ex_div=0.09))[0] == "ok"
+    assert fund_dashboard.chg_trust(dict(row, last_div_date="2026-09-17"))[0] == "ok"   # 不是除息日
+
+
+def test_除息日官方表有除權息參考價時採用官方值(monkeypatch):
+    """dayquotes 用證交所除權息計算結果表補的漲跌（帶 ref、pc）是官方值：00929 10/21 前收 29.26、
+    參考價 28.88、收 29.29 → +0.41（+1.42%），前收與配息照官方表寫，tooltip 算得回參考價。"""
+    prev = {"items": [{"code": "00929", "close_px": 29.26, "as_of": "2026-10-20",
+                       "last_div": 0.38, "last_div_date": "2026-10-21"}]}
+    monkeypatch.setattr(etfwatch, "load", lambda: prev)
+    monkeypatch.setattr(etfwatch, "_fetch_market", _mkt(29.29, "2026-10-21"))
+    _yahoo_only(monkeypatch, _ramp("2026-10-21", skip={"2026-10-20"}, last=29.29,
+                                   prev={"2026-10-19": 29.35}))
+    monkeypatch.setitem(etfwatch._DIV_EVENTS, "00929", {})
+    monkeypatch.setattr(etfwatch, "_official_day_quotes", _day_q(
+        {"00929": {"date": "2026-10-21", "close": 29.29, "change": 0.41, "ref": 28.88, "pc": 29.26}}))
+    import arm.connectors.mops as mops
+    monkeypatch.setattr(mops, "etf_distributions", lambda *a, **k: {})
+
+    i = {x["code"]: x for x in etfwatch.fetch()["items"]}["00929"]
+    assert i["chg_src"] == "twse_today" and i["chg_pct"] == 1.42
+    assert i["prev_close"] == 29.26 and i["chg_ex_div"] == 0.38 and i["prev_date"] == "2026-10-20"
+    assert "除息參考價 28.88" in fund_dashboard._chg_cell(i)
+

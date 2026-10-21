@@ -266,7 +266,8 @@ def test_real_markets_structure_and_now():
     R = X.run_all(force=True)
     assert set(R) == set(S.MARKETS)
     for mk, M in R.items():
-        assert set(M) == {s["k"] for s in S.STRATS if mk in s["mk"]}
+        D = X.data(mk)                                   # VER 4：資料還沒回補的策略先不列（融資維持率、美股漲跌家數）
+        assert set(M) == {s["k"] for s in S.STRATS if mk in s["mk"] and X.has_data(D, s["k"])}
         for k, r in M.items():
             assert r["tier"] in S.TIERS and r["a"] >= S.EVAL_START[mk]
             assert len(r["grid"]) == np.prod([len(v) for v in S.BY_KEY[k]["grid"].values()])
@@ -437,6 +438,8 @@ def test_dip_stats_base_and_luck():
     assert st["n"] == 3 and abs(st["win"] - np.mean([x > 0 for x in r])) < 1e-12 and abs(st["med"] - np.median(r)) < 1e-12
     base = [px[b + 60] / px[b] * (1 - c) / (1 + c) - 1 > 0 for b in range(251, 2000 - 60)]
     assert abs(st["base"] - np.mean(base)) < 1e-12
+    bnet = [px[b + 60] / px[b] * (1 - c) / (1 + c) - 1 for b in range(251, 2000 - 60)]
+    assert abs(st["bmed"] - np.median(bnet)) < 1e-12                               # VER 5：隨便挑一天的中位數
     mae = [max(0, 1 - px[b + 1:b + 61].min() / px[b]) for b in bs]
     assert abs(st["mae"] - np.median(mae)) < 1e-12
     assert st["hs"][20]["n"] == 4 and st["hs"][60]["win"] == st["win"]              # 1950 那一次 20 天的窗口夠
@@ -446,3 +449,94 @@ def test_dip_stats_base_and_luck():
     assert X.dip_pass(ok) and not X.dip_pass({**ok, "n": 4}) and not X.dip_pass({**ok, "win": 0.59})
     assert not X.dip_pass({**ok, "base": 0.61}) and not X.dip_pass({**ok, "med": -0.001})
     assert X.dip_pass_recent({**ok, "n": 4}) is None and X.dip_pass_recent(ok) is True
+    # VER 5：賺錢機率沒有比較高、但賺得比較多也算過關（中位數 ≥ max(1.5 × 隨便挑一天, 隨便挑一天 ＋ 3 個百分點)）
+    mmr = {"n": 7, "win": 0.714, "base": 0.715, "med": 0.213, "bmed": 0.102}      # 融資維持率跌破 140%
+    assert X.dip_pass(mmr) and X.dip_bigger(mmr) and not X.dip_more(mmr) and X.dip_pass_recent({**mmr, "n": 5}) is True
+    assert not X.dip_pass({**mmr, "med": 0.152})                                   # 1.5 × 0.102＝0.153
+    assert not X.dip_pass({**mmr, "bmed": 0.02, "med": 0.049}) and X.dip_pass({**mmr, "bmed": 0.02, "med": 0.05})   # 多 3 個百分點
+    assert X.dip_pass({**mmr, "bmed": -0.02, "med": 0.011}) and not X.dip_pass({**mmr, "bmed": -0.02, "med": 0.009})
+    assert not X.dip_pass({**mmr, "win": 0.59}) and not X.dip_pass({**mmr, "n": 4})   # 賺錢 60% 與次數下限照舊
+    assert not X.dip_bigger({**mmr, "bmed": None}) and X.dip_pass({**ok, "bmed": 0.5})   # 沒有中位數＝只看 ①
+
+
+# ── VER 4：融資維持率、融資去化、Lowry 90% 日 ──
+
+def test_mmr_days_brute_force():
+    rng = np.random.default_rng(5)
+    T = 900
+    R = 160 + np.cumsum(rng.normal(0, 2.0, T))
+    R[300:305] = np.nan
+    days, first = X.mmr_days(R, 140, 60)
+    exp = [t for t in range(60, T) if not np.isnan(R[t - 60:t + 1]).any() and R[t] < 140 and all(R[j] >= 140 for j in range(t - 60, t))]
+    assert days == exp and first == 60
+    assert X.mmr_days(np.full(100, np.nan), 140, 60) == ([], 100)
+
+
+def _brute_mflush(px, M, dd, k, win):
+    T = len(px)
+    cond = [False] * T
+    have = [False] * T
+    for t in range(win - 1, T):
+        if M[t] != M[t]:
+            continue
+        seg = list(px[t - win + 1:t + 1])
+        mx = max(seg)
+        P = max(j for j in range(t - win + 1, t + 1) if px[j] == mx)
+        ms = [M[j] for j in range(P, t + 1) if M[j] == M[j]]
+        have[t] = True
+        d = 1 - px[t] / mx
+        cond[t] = d >= dd and (1 - M[t] / max(ms)) >= k * d
+    first = next((t + 1 for t in range(T) if have[t]), T)
+    return [t for t in range(1, T) if cond[t] and not cond[t - 1] and t >= first], first
+
+
+def test_mflush_days_brute_force():
+    px = _px(1600, seed=11, drift=0.0, vol=0.02)
+    rng = np.random.default_rng(12)
+    M = 5e11 * np.exp(np.cumsum(rng.normal(0, 0.015, 1600)))
+    M[400:420] = np.nan
+    for dd in (0.08, 0.10, 0.12):
+        p = {"dd": dd, "k": 1.0, "win": 120}
+        assert X.mflush_days(px, M, p) == _brute_mflush(px, M, dd, 1.0, 120)
+    st = X.mflush_state(px, M, {"dd": 0.1, "k": 1.0, "win": 120}, 1599)
+    seg = px[1480:1600]
+    assert st[0] == 1 - px[1599] / seg.max()
+
+
+def _brute_lowry(u, g, th, th2, win):
+    out, last, used = [], None, True
+    for t in range(len(u)):
+        ok = u[t] == u[t] and g[t] == g[t]
+        if ok and 1 - u[t] >= th and 1 - g[t] >= th:
+            last, used = t, False
+            continue
+        up = ok and u[t] >= th and g[t] >= th
+        two = (t > 0 and ok and u[t - 1] == u[t - 1] and g[t - 1] == g[t - 1]
+               and min(u[t], g[t], u[t - 1], g[t - 1]) >= th2)
+        if last is not None and not used and t - last <= win and (up or two):
+            out.append(t)
+            used = True
+    return out, last
+
+
+def test_lowry_scan_brute_force_and_shares():
+    rng = np.random.default_rng(21)
+    T = 3000
+    u = rng.beta(0.6, 0.6, T)
+    g = np.clip(u + rng.normal(0, 0.05, T), 0, 1)
+    u[50:55] = np.nan
+    for th in (0.85, 0.90, 0.95):
+        for win in (3, 5, 10):
+            p = {"th": th, "th2": 0.80, "win": win}
+            assert X.lowry_scan(u, g, p) == _brute_lowry(u, g, th, 0.80, win)
+    D = {"upv": np.array([90.0, 10, 50]), "dnv": np.array([10.0, 90, 0]), "upp": np.array([9.0, 1, 0]),
+         "dnp": np.array([1.0, 9, 0]), "bn": np.array([400.0, 400, 400])}
+    uu, gg = X.lowry_shares(D)
+    assert list(uu[:2]) == [0.9, 0.1] and list(gg[:2]) == [0.9, 0.1] and np.isnan(uu[2])   # 點數分母 0＝沒有值
+    D["bn"] = np.array([99.0, 400, 400])
+    assert np.isnan(X.lowry_shares(D)[0][0])                                                # 有資料的檔數不到 100
+
+
+def test_has_data_skips_strategies_without_backfill():
+    D = {"adv": np.array([np.nan]), "dec": np.array([np.nan]), "mr": np.array([150.0])}
+    assert not X.has_data(D, "zweig") and X.has_data(D, "mmr") and not X.has_data(D, "mflush") and X.has_data(D, "rsi2")

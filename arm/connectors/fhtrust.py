@@ -8,6 +8,7 @@ xlsx 以標準庫 zipfile+正則解析，避免在 Python 3.14 安裝 openpyxl�
 """
 from __future__ import annotations
 
+import html
 import re
 import zipfile
 from io import BytesIO
@@ -36,7 +37,9 @@ def _parse_xlsx(raw: bytes) -> list[list[str]]:
         raise NoData("回傳非 xlsx")
     z = zipfile.ZipFile(BytesIO(raw))
     ss = z.read("xl/sharedStrings.xml").decode("utf-8")
-    strings = re.findall(r"<x:t[^>]*>(.*?)</x:t>", ss, re.S)
+    # sharedStrings 是 XML：`M&G`、`JPMORGAN CHASE & CO` 在檔裡寫成 `&amp;`——不還原的話名稱帶著
+    # `&amp;` 進落檔，網頁再跳脫一次就顯示成字面「M&amp;G」（2026-10-21 00998A、基金 131 實例）
+    strings = [html.unescape(s) for s in re.findall(r"<x:t[^>]*>(.*?)</x:t>", ss, re.S)]
     sheet = z.read("xl/worksheets/sheet1.xml").decode("utf-8")
     rows_xml = re.findall(r"<x:row[^>]*>(.*?)</x:row>", sheet, re.S)
 

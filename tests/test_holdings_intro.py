@@ -54,6 +54,8 @@ def test_norm_ticker_剝掉交易所字尾():
     assert fund_intro.norm_ticker("AV/ LN") == "AV/"          # 帶符號的代號原樣保留
     assert fund_intro.norm_ticker("2330") == "2330"            # 台股純代號不受影響
     assert fund_intro.norm_ticker("009150 KS") == "009150"
+    assert fund_intro.norm_ticker("002463 C2") == "002463"     # 陸股通字尾（深股通 C2／滬股通 C1）
+    assert fund_intro.norm_ticker("600183 C1") == "600183"
     assert fund_intro.norm_ticker(None) == ""
 
 
@@ -102,3 +104,96 @@ def test_etf_持股簡介覆蓋率不倒退():
     cov = 1 - miss_w / tot
     assert cov >= 0.95, (f"ETF 持股簡介權重覆蓋率 {cov:.1%} 低於 95%，"
                          f"請補進 config/holding_profiles.json：{'、'.join(sorted(set(miss))[:20])}")
+
+
+def test_名稱帶_html_實體也對得上簡介_且顯示乾淨名稱(tmp_path, monkeypatch):
+    """復華 xlsx 解析 2026-10-21 前沒還原 XML 實體，舊快照名稱是 `JPMORGAN CHASE &amp; CO`；
+    網頁再跳脫一次就顯示成字面「&amp;」。讀取端還原後，舊快照與新抓的乾淨名稱都要對得上簡介。"""
+    funds_dir = tmp_path / "funds"
+    funds_dir.mkdir()
+    (funds_dir / "01.json").write_text(json.dumps({
+        "fund_id": "01", "short_name": "甲基金",
+        "top_holdings": [{"name": "JPMORGAN CHASE &amp; CO", "weight": 3.0},
+                         {"name": "WELLS FARGO & CO", "weight": 2.0}]}), encoding="utf-8")
+    prof_fp = tmp_path / "profiles.json"
+    prof_fp.write_text(json.dumps({"profiles": {
+        "JPMORGAN CHASE & CO": {"intro": "摩根大通簡介", "ticker": "JPM"},
+        "WELLS FARGO &amp; CO": {"intro": "富國銀行簡介", "ticker": "WFC"}}}), encoding="utf-8")
+    monkeypatch.setattr(fund_intro, "FUNDS_DIR", funds_dir)
+    monkeypatch.setattr(fund_intro, "PROFILES", prof_fp)
+    monkeypatch.setattr(fund_intro, "_prof_cache", None)
+    monkeypatch.setattr(fund_intro, "config",
+                        type("C", (), {"funds": staticmethod(lambda: [{"id": "01"}])}))
+    doc = fund_intro.load("01")
+    names = [h["name"] for h in doc["top_holdings"]]
+    assert names == ["JPMORGAN CHASE & CO", "WELLS FARGO & CO"]
+    assert [h["intro"] for h in doc["top_holdings"]] == ["摩根大通簡介", "富國銀行簡介"]
+    assert fund_intro.uncovered_top_holdings(10) == []
+    _by_tk, by_nm = fund_intro.intro_lookup()
+    assert by_nm["WELLS FARGO & CO"] == "富國銀行簡介"
+
+
+def test_uncovered_etf_holdings_用代號與名稱比對並排序(tmp_path, monkeypatch):
+    """ETF 持股缺簡介（2026-10-21：只有測試 95% 門檻守、滑到 97% 沒人發現 → 納入每日缺口檔）。"""
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "etf_holdings.json").write_text(json.dumps({"etfs": {
+        "00998A": {"holdings": [{"stock_id": "C US", "name": "花旗集團公司", "weight": 1.9},
+                                {"stock_id": "MNG LN", "name": "M&amp;G公開有限公司", "weight": 1.9},
+                                {"stock_id": "002463 C2", "name": "WUS Printed Circuit", "weight": 2.1}]},
+        "00412A": {"holdings": [{"stock_id": "3406", "name": "玉晶光", "weight": 2.1}]},
+        "00993A": {"holdings": [{"stock_id": "3406", "name": "玉晶光", "weight": 1.31},
+                                {"stock_id": "2330", "name": "台積電", "weight": 9.0}]}}}),
+        encoding="utf-8")
+    monkeypatch.setattr(fund_intro, "ROOT", tmp_path)
+    monkeypatch.setattr(fund_intro, "_profiles", lambda: {
+        "台積電": {"intro": "台積電簡介", "ticker": "2330"},
+        "滬士電子股份有限公司": {"intro": "滬電簡介", "ticker": "002463"},   # 陸股通字尾剝掉才對得上
+        "花旗集團": {"intro": "花旗簡介", "ticker": "C"}})
+    gaps = fund_intro.uncovered_etf_holdings()
+    assert [g["ticker"] for g in gaps] == ["3406", "MNG"]          # 兩檔 ETF 持有的排前面
+    assert gaps[0]["etfs"] == ["00412A", "00993A"] and gaps[0]["count"] == 2
+    assert gaps[0]["weight"] == 2.1
+    assert gaps[1]["name"] == "M&G公開有限公司" and gaps[1]["sid"] == "MNG LN"   # 名稱已還原實體
+
+
+def test_check_holdings_intro_缺口檔含_etf_持股(tmp_path, monkeypatch):
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location(
+        "chk_intro", Path(fund_intro.ROOT) / "scripts" / "check_holdings_intro.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    monkeypatch.setattr(mod, "GAP_FP", tmp_path / "gap.json")
+    monkeypatch.setattr(fund_intro, "uncovered_top_holdings", lambda n=10: [
+        {"name": "新標的X", "sector": "測試", "count": 1,
+         "funds": [{"short_name": "甲基金", "weight": 3.0}]}])
+    monkeypatch.setattr(fund_intro, "uncovered_etf_holdings", lambda: [
+        {"name": "玉晶光", "ticker": "3406", "sid": "3406", "etfs": ["00412A"], "count": 1, "weight": 2.1}])
+    assert mod.main() == 1
+    doc = json.loads((tmp_path / "gap.json").read_text(encoding="utf-8"))
+    assert doc["count"] == 2 and doc["fund_count"] == 1 and doc["etf_count"] == 1
+    assert doc["items"][0] == {"src": "fund", "name": "新標的X", "sector": "測試", "count": 1,
+                               "funds": ["甲基金"]}
+    assert doc["items"][1] == {"src": "etf", "name": "玉晶光", "ticker": "3406", "count": 1,
+                               "etfs": ["00412A"], "weight": 2.1}
+    monkeypatch.setattr(fund_intro, "uncovered_top_holdings", lambda n=10: [])
+    monkeypatch.setattr(fund_intro, "uncovered_etf_holdings", lambda: [])
+    assert mod.main() == 0
+    assert json.loads((tmp_path / "gap.json").read_text(encoding="utf-8"))["count"] == 0
+
+
+def test_intro_gap_chip_分基金與_etf(tmp_path, monkeypatch):
+    from arm import fund_dashboard as fd
+    (tmp_path / "data").mkdir()
+    fp = tmp_path / "data" / "holdings_intro_gap.json"
+    monkeypatch.setattr(fd, "ROOT_DIR", tmp_path)
+    fp.write_text(json.dumps({"count": 2, "items": [
+        {"src": "fund", "name": "新標的X"}, {"src": "etf", "name": "M&G公開有限公司", "ticker": "MNG"}]}),
+        encoding="utf-8")
+    chip = fd._intro_gap_chip()
+    assert "<b>持股簡介</b>" in chip and "2 檔缺簡介" in chip
+    assert "基金前十大 1・ETF 持股 1" in chip and "M&amp;G公開有限公司" in chip   # 顯示時只跳脫一次
+    fp.write_text(json.dumps({"count": 1, "items": [{"name": "新標的X"}]}), encoding="utf-8")
+    assert "<b>前十大簡介</b>" in fd._intro_gap_chip()          # 舊格式（沒有 src）照舊
+    fp.write_text(json.dumps({"count": 0, "items": []}), encoding="utf-8")
+    assert fd._intro_gap_chip() == ""

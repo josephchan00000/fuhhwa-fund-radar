@@ -22,7 +22,9 @@ from . import xstratspec as S
 def data(mk: str) -> dict:
     """{"mk", "cal": [日期], "px": 收盤, "vix": VIX 收盤（美股，對到同一個日曆；沒有＝nan）,
     "vixa": 收盤時已經知道的 VIX（美股＝當天；台股＝前一個美股交易日，同景氣頁）, "vol": 成交量（台股成交金額；費半沒有）,
-    "adv"／"dec": 台股上漲、下跌家數（景氣頁同一份，2013 起）}。"""
+    "adv"／"dec": 上漲、下跌家數（台股景氣頁同一份 2013 起；美股 S&P 500 成分股 1996 起）,
+    "upv"／"dnv"／"upp"／"dnp"／"bn": 美股上漲／下跌股成交金額、上漲／下跌點數、有資料的檔數,
+    "mr": 台股大盤融資維持率（%）, "mg": 上市融資金額}。"""
     from . import heatdata as HD
     if mk == "tw":
         from . import heatbubble as BB
@@ -38,6 +40,11 @@ def data(mk: str) -> dict:
         vol = HD.load(f"us_vol_{mk}") if mk != "sox" else None
         if vol:
             out["vol"] = np.array([float(vol[d]) if vol.get(d) else np.nan for d in cal])
+        br = HD.load("us_breadth") or {}                  # VER 4：S&P 500 成分股自算的漲跌家數（美股四個指數同一份）
+        if br:
+            for j, f in enumerate(("adv", "dec", None, "upv", "dnv", "upp", "dnp", "bn")):
+                if f:
+                    out[f] = np.array([float(br[d][j]) if d in br and br[d][j] is not None else np.nan for d in cal])
     else:
         from . import heat as H
         out["vixa"] = np.array([np.nan if v is None else float(v) for v in H.asof_daily(cal, vx, after=True, stale=7)])
@@ -46,6 +53,10 @@ def data(mk: str) -> dict:
         br = HD.load("breadth") or {}
         out["adv"] = np.array([float(br[d][0]) if br.get(d) else np.nan for d in cal])
         out["dec"] = np.array([float(br[d][1]) if br.get(d) else np.nan for d in cal])
+        mr = HD.load("mratio") or {}                      # VER 4：大盤融資維持率（%）、上市融資金額
+        out["mr"] = np.array([float(mr[d][0]) if mr.get(d) else np.nan for d in cal])
+        mg = HD.load("margin") or {}
+        out["mg"] = np.array([float(mg[d][0]) if mg.get(d) and mg[d][0] else np.nan for d in cal])
     return out
 
 
@@ -477,6 +488,87 @@ def dev_days(px: np.ndarray, p: dict) -> tuple[list[int], int]:
     return out, (int(idx[0]) + 1 if len(idx) else len(px))
 
 
+def mmr_days(R: np.ndarray, level: float, reset: int) -> tuple[list[int], int]:
+    """融資維持率 ＜ level，而且之前 reset 天都有值、都 ≥ level（規格第 9b 節）。"""
+    T = len(R)
+    ok = ~np.isnan(R)
+    out, first = [], T
+    for t in range(reset, T):
+        if not ok[t - reset:t + 1].all():
+            continue
+        first = min(first, t)
+        if R[t] < level and (R[t - reset:t] >= level).all():
+            out.append(t)
+    return out, first
+
+
+def mflush_state(px: np.ndarray, M: np.ndarray, p: dict, t: int) -> tuple[float, float] | None:
+    """第 t 天的（指數離最近 win 天高點跌了多少, 從那個高點以來融資金額減少的比例）；M 缺值＝None。"""
+    w = p["win"]
+    if t < w - 1 or M[t] != M[t]:
+        return None
+    seg = px[t - w + 1:t + 1]
+    P = t - int(np.argmax(seg[::-1]))                    # 同價取最近的那一天
+    ms = M[P:t + 1]
+    if not np.isfinite(ms).any():
+        return None
+    return 1.0 - px[t] / px[P], 1.0 - M[t] / float(np.nanmax(ms))
+
+
+def mflush_days(px: np.ndarray, M: np.ndarray, p: dict) -> tuple[list[int], int]:
+    """融資去化大於指數跌幅（規格第 9b 節）：dd ≥ 門檻、融資減少比例 ≥ k × dd；今天成立、前一天沒有。"""
+    T = len(px)
+    cond = np.zeros(T, dtype=bool)
+    first = T
+    for t in range(T):
+        st = mflush_state(px, M, p, t)
+        if st is None:
+            continue
+        first = min(first, t + 1)
+        cond[t] = st[0] >= p["dd"] and st[1] >= p["k"] * st[0]
+    out = [t for t in range(1, T) if cond[t] and not cond[t - 1] and t >= first]
+    return out, first
+
+
+def lowry_shares(D: dict) -> tuple[np.ndarray, np.ndarray]:
+    """（上漲股成交金額占比, 上漲點數占比）；有資料的檔數 ＜ BREADTH_MIN 或分母是 0＝nan。"""
+    upv, dnv, upp, dnp, bn = (np.asarray(D[f], dtype=float) for f in ("upv", "dnv", "upp", "dnp", "bn"))
+    sv, sp = upv + dnv, upp + dnp
+    ok = (bn >= S.BREADTH_MIN) & (sv > 0) & (sp > 0)
+    u = np.where(ok, upv / np.where(sv > 0, sv, np.nan), np.nan)
+    g = np.where(ok, upp / np.where(sp > 0, sp, np.nan), np.nan)
+    return u, g
+
+
+def lowry_scan(u: np.ndarray, g: np.ndarray, p: dict) -> tuple[list[int], int | None]:
+    """Lowry 90% 日（規格第 9b 節）→ (訊號日, 最近一個 90% 下跌日)。"""
+    th, th2, win = p["th"], p["th2"], p["win"]
+    T = len(u)
+    ok = ~np.isnan(u) & ~np.isnan(g)
+    uu, gg = np.nan_to_num(u, nan=0.5), np.nan_to_num(g, nan=0.5)
+    down = ok & (1.0 - uu >= th) & (1.0 - gg >= th)
+    up = ok & (uu >= th) & (gg >= th)
+    a80 = ok & (uu >= th2) & (gg >= th2)
+    conf = up.copy()
+    conf[1:] |= a80[1:] & a80[:-1]
+    out, last, used = [], None, True
+    for t in range(T):
+        if down[t]:
+            last, used = t, False
+            continue
+        if last is not None and not used and t - last <= win and conf[t]:
+            out.append(t)
+            used = True
+    return out, last
+
+
+def lowry_days(D: dict, p: dict) -> tuple[list[int], int]:
+    u, g = lowry_shares(D)
+    out, _ = lowry_scan(u, g, p)
+    idx = np.nonzero(~np.isnan(u))[0]
+    return out, (int(idx[0]) + 1 if len(idx) else len(u))
+
+
 def dedupe(days, H: int) -> list[int]:
     """一次訊號之後 H 個交易日內再出現不算新的一次（同 sigcat.dedupe）。"""
     out, last = [], None
@@ -509,6 +601,7 @@ def dip_stats(px: np.ndarray, days: list[int], H: int, c: float, lo: int, hs: tu
     b0 = lo + S.LAG
     base = net[b0:T - H] if T - H > b0 else np.array([])
     out["base"] = float((base > 0).mean()) if len(base) else None
+    out["bmed"] = float(np.median(base)) if len(base) else None          # VER 5：隨便挑一天的淨報酬中位數
     if bs:
         r = net[bs]
         out.update({"win": float((r > 0).mean()), "med": float(np.median(r)), "avg": float(r.mean()),
@@ -526,15 +619,31 @@ def dip_stats(px: np.ndarray, days: list[int], H: int, c: float, lo: int, hs: tu
     return out
 
 
+def dip_more(s: dict) -> bool:
+    """VER 5 ①：賺錢的機率比較高——上漲比例比隨便挑一天高 DIP_EDGE 以上、中位數 ＞ 0。"""
+    return bool(s.get("win") is not None and s.get("base") is not None and s.get("med") is not None
+                and s["win"] - s["base"] >= S.DIP_EDGE and s["med"] > 0)
+
+
+def dip_bigger(s: dict) -> bool:
+    """VER 5 ②：賺得比較多——中位數 ≥ max(DIP_MED_X × 隨便挑一天的中位數, 隨便挑一天的中位數 ＋ DIP_MED_ADD)。"""
+    m, b = s.get("med"), s.get("bmed")
+    return bool(m is not None and b is not None and m >= max(S.DIP_MED_X * b, b + S.DIP_MED_ADD))
+
+
+def dip_ok(s: dict) -> bool:
+    """過關（不看次數）：上漲比例 ≥ DIP_WIN，而且 ① 或 ②（VER 3～4 只有 ①）。"""
+    return bool(s.get("win") is not None and s["win"] >= S.DIP_WIN and (dip_more(s) or dip_bigger(s)))
+
+
 def dip_pass(s: dict) -> bool:
-    return bool(s.get("n", 0) >= S.DIP_N_MIN and s.get("win") is not None and s.get("base") is not None
-                and s["win"] >= S.DIP_WIN and s["win"] - s["base"] >= S.DIP_EDGE and s["med"] > 0)
+    return bool(s.get("n", 0) >= S.DIP_N_MIN and dip_ok(s))
 
 
 def dip_pass_recent(s: dict) -> bool | None:
     if s.get("n", 0) < S.DIP_N10:
         return None
-    return bool(s.get("base") is not None and s["win"] >= S.DIP_WIN and s["win"] - s["base"] >= S.DIP_EDGE and s["med"] > 0)
+    return dip_ok(s)
 
 
 def luck_dip(px: np.ndarray, raw: list[int], lo: int, H: int, c: float, key: str, win: float | None) -> float | None:
@@ -740,6 +849,12 @@ class Ctx:
             return ftd_days(self.px, D["vol"], p)
         if k == "dev60":
             return dev_days(self.px, p)
+        if k == "mmr":
+            return mmr_days(D["mr"], p["level"], p["reset"])
+        if k == "mflush":
+            return mflush_days(self.px, D["mg"], p)
+        if k == "lowry":
+            return lowry_days(D, p)
         raise KeyError(k)
 
 
@@ -1015,6 +1130,27 @@ def dip_now(C: Ctx, spec: dict) -> dict:
     elif k == "dev60":
         m = sma(px, p["ma"])[t]
         out["dev"] = _r(px[t] / m - 1.0, 4) if m == m else None
+    elif k == "mmr":
+        val, j = _last_valid(D["mr"], t)
+        out["mr"] = _r(val, 2)
+        out["mrd"] = C.cal[j] if j is not None else None
+        w = D["mr"][max(0, t - p["reset"]):t + 1]
+        out["mrmin"] = _r(float(np.nanmin(w)), 2) if np.isfinite(w).any() else None
+    elif k == "mflush":
+        st = mflush_state(px, D["mg"], p, t)
+        if st is None:
+            j = _last_valid(D["mg"], t)[1]
+            st = mflush_state(px, D["mg"], p, j) if j is not None else None
+        if st:
+            out["dd"], out["md"] = _r(st[0], 4), _r(st[1], 4)
+    elif k == "lowry":
+        u, g = lowry_shares(D)
+        _, last = lowry_scan(u, g, p)
+        if last is not None:
+            out["dn_d"], out["dn_ago"] = C.cal[last], t - last
+        val, j = _last_valid(u, t)
+        if j is not None:
+            out["u"], out["g"], out["ud"] = _r(val, 4), _r(g[j], 4), C.cal[j]
     return out
 
 
@@ -1106,10 +1242,18 @@ def now_state(C: Ctx, spec: dict) -> dict:
 
 # ── 全部 ───────────────────────────────────────────────────────────────────
 
+NEEDS = {"zweig": ("adv", "dec"), "mmr": ("mr",), "mflush": ("mg",), "lowry": ("upv", "dnv", "upp", "dnp", "bn")}
+
+
+def has_data(D: dict, k: str) -> bool:
+    """策略要的資料都在（例：融資維持率、美股漲跌家數還沒回補＝這個市場先不列這個策略）。"""
+    return all(f in D and np.isfinite(np.asarray(D[f], dtype=float)).any() for f in NEEDS.get(k, ()))
+
+
 def market(mk: str, D: dict | None = None) -> dict:
     D = D if D is not None else data(mk)
     C = Ctx(D)
-    return {s["k"]: strategy(C, s) for s in S.STRATS if mk in s["mk"]}
+    return {s["k"]: strategy(C, s) for s in S.STRATS if mk in s["mk"] and has_data(D, s["k"])}
 
 
 _CACHE: dict = {}

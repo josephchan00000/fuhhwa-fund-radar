@@ -44,7 +44,7 @@ def test_one_page_switches_four_indices(page):
     metas = re.search(r"window\.HEAT_METAS=(\{.*?\});window\.HEAT_ASOF", html).group(1)
     for k in U.INDEX_ORDER:
         assert f'"data":"x9muh-{k}.json"' in metas
-    assert '<a class="on" aria-current="page" href="x9mu.html">美股景氣</a>' in html
+    assert '<a class="on" aria-current="page" href="x9mu.html"><span class="apl">美股景氣</span>' in html
     assert html.index("window.HEAT_METAS") < html.index("window.heatInit = function")   # 切換程式在對照圖程式之前
     for k, P in pages.items():
         assert P["meta"]["dims"][-1]["id"] == "tech" and len(P["meta"]["dims"]) == 4      # 泡沫另放泡沫頁
@@ -56,7 +56,8 @@ def test_us_page_has_no_taiwan_wording_or_banned_words(page):
     _, html = page
     text = re.sub(r"<script>.*?</script>", "", html, flags=re.S)
     assert "加權指數" not in text and "台指 VIX" not in text
-    assert text.count("台股") == text.count("台股景氣")                         # 只有頂欄的「台股景氣」
+    from arm.lab import appnav
+    assert appnav.bar("us") in text and "台股" not in text.replace(appnav.bar("us"), "")   # 只有頂欄的「台股景氣」（手機短名「台股」）
     for w in BANNED:
         assert w not in html, w
 

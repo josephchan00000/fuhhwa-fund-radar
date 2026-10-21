@@ -717,6 +717,21 @@ def test_workflows_commit_series_file_on_its_own_line():
             assert lines[i + 1].strip().startswith("git add -f dashboard/x9s.json"), (name, i)
 
 
+def test_workflows_that_build_pages_install_numpy():
+    """會重建儀表板的 workflow 都要裝 numpy（2026-10-21 踩坑：etf_holdings.yml 只裝 certifi，
+    每班建頁時策略判定算不出來 → 機會頁推薦全空、景氣頁與訊號總覽不重建）。"""
+    import re
+    wf = Path(__file__).resolve().parents[1] / ".github" / "workflows"
+    builders = []
+    for p in sorted(wf.glob("*.yml")):
+        text = p.read_text("utf-8")
+        if "gen_fund_dashboard.py" in text or "daily_fund.sh" in text:
+            builders.append(p.name)
+            pip = [ln for ln in text.splitlines() if "pip install" in ln]
+            assert any(re.search(r"\bnumpy\b", ln) for ln in pip), p.name
+    assert {"daily.yml", "afterhours_refresh.yml", "etf_holdings.yml"} <= set(builders)
+
+
 # ── 高股息四檔（0056／00878／00919／00929）換股研究與預測（2026-10-14）────────────
 
 def _hd_fake(cal, mkt, yh=None):
@@ -1556,3 +1571,23 @@ def test_opportunity_and_strategy_views_show_judgement_not_letter_grades():
     opp = js.split("function vOpp(", 1)[1].split("\nfunction ", 1)[0]
     assert "A、B 級" not in opp and "★ 好策略、● 可參考" in opp
     assert "'判定':" in js and "capTxt(e.tier)" in js
+
+
+def test_pos_px_only_takes_closes_from_the_disclosure_day():
+    """ETF 部位分片的「揭露當下收盤」：2026-10-21 起持股明細的收盤是報價日 pd（最新交易日）的——
+    快照較舊（pd≠揭露日）時不可當成揭露日的收盤（docs/etf_chg_fix_plan.md）。舊格式沒有 pd，照舊。"""
+    from arm.lab import collect
+
+    def doc(pd):
+        det = {"date": "2026-10-19", "all": [{"stock_id": "NVDA US", "close": 217.09, "ccy": "USD"},
+                                            {"stock_id": "2330", "close": 2420.0, "ccy": None}]}
+        if pd is not None:
+            det["pd"] = pd
+        return {"etfs": {"00988A": {"date": "2026-10-19", "src": "etfinfo", "detail": det,
+                                    "holdings": [{"stock_id": "2330", "shares": 1, "weight": 1.0}]}}}
+    same = collect.snaps_from_holdings(doc("2026-10-19"), skip=set())["2026-10-19"]["00988A"]
+    assert same["px"] == {"NVDA US": [217.09, "USD"], "2330": [2420.0, None]}
+    later = collect.snaps_from_holdings(doc("2026-10-20"), skip=set())["2026-10-19"]["00988A"]
+    assert later["px"] == {}
+    legacy = collect.snaps_from_holdings(doc(None), skip=set())["2026-10-19"]["00988A"]
+    assert legacy["px"] == same["px"]

@@ -273,6 +273,26 @@ def xs_chip(mk: str | None) -> str:
         return ""
 
 
+def mr_chip(mk: str | None) -> str:
+    """最上面那一行的「融資維持率」（只有台股；xstratpage.mr_chip）。"""
+    try:
+        from . import xstratpage as XSP
+        return XSP.mr_chip(mk) if mk else ""
+    except Exception as e:                          # noqa: BLE001
+        print(f"[景氣溫度] 融資維持率算不出來：{type(e).__name__}: {e}")
+        return ""
+
+
+def xs_line(mk: str | None) -> str:
+    """今天的重點下面一行：這個市場的大神策略幾條、現在有部位幾條，連到大神策略頁（xstratpage.summary_line）。"""
+    try:
+        from . import xstratpage as XSP
+        return XSP.summary_line(mk) if mk else ""
+    except Exception as e:                          # noqa: BLE001
+        print(f"[景氣溫度] 大神策略那一行算不出來：{type(e).__name__}: {e}")
+        return ""
+
+
 def view(B: dict | None = None, R: dict | None = None) -> dict:
     B = B if B is not None else C.build()
     R = R if R is not None else (load_research() or {})
@@ -333,6 +353,8 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
     out["sigtoday"] = sig_today(out["signow"])
     out["xsb"] = xs_board(out["mk"]) if T else []   # 大神策略（xstratspec）：今天的重點要列的 ★ 策略
     out["xschip"] = xs_chip(out["mk"]) if T else ""
+    out["mrchip"] = mr_chip(out["mk"]) if T else ""
+    out["xsl"] = xs_line(out["mk"]) if T else ""     # 今天的重點下面一行（連到大神策略頁）
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
         out["viz"] = VZ.pack(B, out)
@@ -1332,6 +1354,8 @@ def state_line(V: dict) -> str:
                      f'<i>{_e(BS.LEVELS[b["L"]])}</i></a>')
     if V.get("xschip"):                                      # 10 個月均線（大神策略，xstratspec；每個市場都列）
         chips.append(V["xschip"])
+    if V.get("mrchip"):                                      # 融資維持率（只有台股；docs/lab_crash_plan.md 第 22 節）
+        chips.append(V["mrchip"])
     nw = (V.get("bottom") or {}).get("now") or {}
     mk = V.get("mk") or (V.get("signow") or {}).get("mk") or ""
     if nw.get("active"):
@@ -1346,7 +1370,8 @@ def state_line(V: dict) -> str:
     from . import sigspec as SS
     act = [nm for key, nm, *_ in SS.SCENARIOS if f"{mk}:scen:{key}" in on]
     if act:                                                  # 現在落在哪幾個情境（sigspec 第 4.10 節；景氣頁情境卡）
-        chips.append(f'<a class="stc stw" href="#scen" title="點了看所有情境"><b>情境</b>{_e("、".join(act))}</a>')
+        chips.append(f'<a class="stc stw" href="#o=scen" data-open="out:out" data-to="scen" title="點了看「之後怎麼走？」裡的情境">'
+                     f'<b>情境</b>{_e("、".join(act))}</a>')
     return f'<div class="stl" aria-label="市場狀態">{"".join(chips)}</div>'
 
 
@@ -1377,10 +1402,10 @@ def render(V: dict) -> str:
     from . import appnav
     from . import heatviz as VZ
     P = parts(V)
-    return (_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS)
-            .replace("{{TITLE}}", _e(MK["title"])).replace("{{PURP}}", _e(MK["purp"])).replace("{{PRE}}", MK["pre"])
-            .replace("{{ASOF}}", _e(_md(P["asof"]))).replace("{{VSW}}", VZ.switch_html()).replace("{{DRAWER}}", VZ.DRAWER)
-            .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS))
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS)
+                         .replace("{{TITLE}}", _e(MK["title"])).replace("{{PURP}}", _e(MK["purp"])).replace("{{PRE}}", MK["pre"])
+                         .replace("{{ASOF}}", _e(_md(P["asof"]))).replace("{{VSW}}", VZ.switch_html()).replace("{{DRAWER}}", VZ.DRAWER)
+                         .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS))
 
 
 def _write(out: Path, text: str) -> bool:
@@ -2077,24 +2102,32 @@ function single(box, id) {
   box.innerHTML = '<div class="an">' + h + llBlock(a.ll, W) + (D.m6 && D.m6[id] ? respBlock(id, W) : '') + grBlock(id, a.gr) + rollBlock(a.roll, W) + bandBlock(id, a.bands) + evtBlock(a.evt) + '</div>';
 }
 
-// ── 多條線一起看：框出下面「情境」裡用到這幾個面向的（2026-10-20 起取代交互分析；docs/lab_heatviz_v2_plan.md 第 5、11 節）
+// ── 多條線一起看：「之後怎麼走？」面板裡的情境，框出只用到這幾個面向的（2026-10-20 起取代交互分析；docs/lab_heatviz_v2_plan.md 第 5、11 節；
+//    2026-10-21 情境從主畫面搬進面板，docs/lab_noise_plan.md 第 11 節）
+let SQSEL = null;                                          // 選到的面向（null＝不框）
+function sqOn(c) { return !!SQSEL && (c.dataset.dims || '').split(' ').every(g => g.split(',').some(d => SQSEL.has(d))); }
+function sqMark(root) {                                    // 面板開著（或剛打開）時框起來；框到的收在「其他情境」裡就展開
+  if (!root) return;
+  root.querySelectorAll('#scen .sqr').forEach(c => { const on = sqOn(c); c.classList.toggle('hl', on); if (on) { const f = c.closest('details.osq'); if (f) f.open = true; } });
+}
+window.heatScenHl = sqMark;
 function scenHint(box, ids) {                              // 每一列的 data-dims＝情境用到的面向（以空白分組；台股資金一組兩個，選到任一個就算）
   const dims = new Set(ids.map(id => (M.items[id] && M.items[id].dim) || id));
   const def = M.dims.slice(0, M.max).map(d => d.id), dflt = ids.length === def.length && def.every(d => ids.includes(d));   // 預設的幾條＝不框
+  SQSEL = dflt ? null : dims;
+  const t = document.getElementById('ot-out');
   let n = 0;
-  document.querySelectorAll('#scen .sqr').forEach(c => {
-    const on = !dflt && (c.dataset.dims || '').split(' ').every(g => g.split(',').some(d => dims.has(d)));
-    c.classList.toggle('hl', on);
-    if (on) n++;
-  });
-  box.innerHTML = '<div class="an"><h3>多條線一起看</h3><p class="note">幾個面向一起看，請看上面的<a href="#scen">所有情境</a>：事先定義好的面向組合，'
-    + '過去出現之後 3 個月上漲、大跌的機率（判定同訊號總覽）。' + (dflt ? '' : n ? '只用到這幾條線的 ' + n + ' 個情境已用虛線框起來。' : '沒有情境只用到這幾條線。') + '</p></div>';
+  if (t && SQSEL) t.content.querySelectorAll('.sqr').forEach(c => { if (sqOn(c)) n++; });
+  sqMark(document.getElementById('drw-c'));
+  box.innerHTML = '<div class="an"><h3>多條線一起看</h3><p class="note">幾個面向一起看，請看「之後怎麼走？」裡的情境：事先定義好的面向組合，'
+    + '過去出現之後 3 個月上漲、大跌的機率（判定同訊號總覽）。' + (dflt ? '' : n ? '只用到這幾條線的有 ' + n + ' 個，打開後會用虛線框起來。' : '沒有情境只用到這幾條線。')
+    + '</p><p><button type="button" class="tb" data-open="out:out" data-to="scen">看情境 →</button></p></div>';
 }
 function analysis() {
   const box = $('#cmp-an');
   box.textContent = '';
   if (!D || !st.sel.length) return;
-  if (st.sel.length === 1) { document.querySelectorAll('#scen .sqr.hl').forEach(c => c.classList.remove('hl')); single(box, st.sel[0].id); }
+  if (st.sel.length === 1) { SQSEL = null; sqMark(document.getElementById('drw-c')); single(box, st.sel[0].id); }
   else scenHint(box, st.sel.map(x => x.id));
 }
 

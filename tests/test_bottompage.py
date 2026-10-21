@@ -160,7 +160,8 @@ def test_position_cells():
 def test_five_markets_and_lists():
     C = _C("spx")
     f = _text(BP.five_html(C, "E5"))
-    assert f.count("不算") >= 5 * 4                           # 美股四個指數沒有融資、寬度、新低、P/C、90% 上漲日
+    assert f.count("不算") >= 4 * 4                           # 美股四個指數沒有融資、新低、P/C、融資維持率（VER 4 起有寬度、90% 上漲日）
+    assert "S&P 500 成分股的家數" in f
     for k in S.RULES:
         vs = [((C["all"][m]["ev"]["E5"]["rules"].get(k) or {}).get("v")) for m in S.MARKETS
               if k == "W10" or k in S.SIG_MK[m]]
@@ -186,7 +187,7 @@ def test_primary_html():
 def test_card_is_wired_into_both_heat_pages_and_classes_are_prefixed():
     viz = (ROOT / "arm/lab/heatviz.py").read_text(encoding="utf-8")
     # 2026-10-19 起四張研究卡搬到訊號總覽（docs/lab_signal_plan.md 第 10 節 Q3）：景氣頁照樣算、不放進頁面，存給訊號總覽
-    assert "stash_cards(V)" in viz and "{top}{now_html(V)}{scen_html(V)}{items}" in viz and 'href="#bottom"' not in viz
+    assert "stash_cards(V)" in viz and "{top}{items}" in viz and 'href="#bottom"' not in viz
     sp = (ROOT / "arm/lab/sigpage.py").read_text(encoding="utf-8")
     assert "BP.CSS" in sp and '"bottom"' in sp
     hp = (ROOT / "arm/lab/heatpage.py").read_text(encoding="utf-8")
@@ -236,3 +237,18 @@ def test_group_verdict_names_the_group():
     assert "第一組" not in t
     if C["R"]["ev"]["E5"]["groups"]["fund"]["v"] == "up":
         assert "底子好之後較好" in t
+
+
+def test_ver4_signals_on_card():
+    """VER 4（docs/lab_crash_plan.md 第 22 節）：台股多融資維持率回升（這一次另寫今天與事件以來最低的維持率）；
+    美股多寬度衝刺、90% 上漲日（註明 S&P 500 成分股與存活偏誤）。"""
+    a = _active("tw", fired="C9")
+    a["mr"] = {"now": 152.3, "now_d": "2026-10-20", "min": 136.4, "min_d": "2026-10-16"}
+    t = _text(BP.now_html(_C("tw", [a])))
+    assert "融資維持率回升" in t and "維持率 152.3%（2026/10/20），事件以來最低 136.4%（2026/10/16）" in t
+    assert "跌到 140% 以下，之後回到 150% 以上" in t
+    for mk in ("spx", "sox"):
+        rt = _text(BP.rule_table(_C(mk), "E5"))
+        assert "寬度衝刺" in rt and "90% 上漲日" in rt and "S&P 500 成分股，1996 年起" in rt
+        assert "融資維持率" not in rt
+    assert "月底市值 40 億以上的股票" in BP.sig_def("tw", "C3") and "S&P 500" not in BP.sig_def("tw", "C8")
