@@ -304,7 +304,8 @@ def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray,
 
 
 def tier(st: dict, d: str, recent: bool = True) -> str:
-    """sigspec 第 3 節（VER 9）：★＝過門檻而且打亂測試 p ≤ LUCK_P；●＝過門檻但 p > LUCK_P（可能是運氣）；○ 沒過門檻；— 次數不夠。
+    """sigspec 第 3 節（VER 9；VER 14 起門檻依次數）：★＝過門檻而且打亂測試 p ≤ luck_p(次數)（次數 < 15 是 10%，其餘 1%）；
+    ●＝過門檻但 p 超過門檻（可能是運氣）；○ 沒過門檻；— 次數不夠。
     st["p"]＝打亂測試（sigluck；沒有算＝None，當作沒過）。用沒有四捨五入的數字。"""
     n, hit, base = st.get("n") or 0, st.get("hit"), st.get("base")
     if n < S.N_MIN or hit is None or base is None:
@@ -312,7 +313,7 @@ def tier(st: dict, d: str, recent: bool = True) -> str:
     if not LK.passes(n, hit, base, st.get("n10"), st.get("hit10"), st.get("base10"), d, recent):
         return "none"
     p = st.get("p")
-    return "good" if p is not None and p <= S.LUCK_P else "ref"
+    return "good" if p is not None and p <= S.luck_p(n) else "ref"
 
 
 def judge(st: dict, d: str, recent: bool = True) -> str:

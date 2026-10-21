@@ -110,8 +110,9 @@ def test_event_stat_counts_and_recent():
 
 
 def test_tier_rules():
-    """VER 9：★＝過門檻而且打亂測試 p ≤ 1%；●＝過門檻但 p > 1%（可能是運氣）；○ 沒過門檻；— 不到 5 次。"""
-    st = {"n": 12, "hit": 0.72, "base": 0.60, "n10": 3, "hit10": 0.2, "base10": 0.6, "p": 0.005}
+    """VER 9：★＝過門檻而且打亂測試 p ≤ 1%；●＝過門檻但 p > 1%（可能是運氣）；○ 沒過門檻；— 不到 5 次。
+    VER 14：次數 < 15 的門檻放寬到 10%。"""
+    st = {"n": 22, "hit": 0.72, "base": 0.60, "n10": 3, "hit10": 0.2, "base10": 0.6, "p": 0.005}
     assert G.tier(st, "up") == "good"                      # 近 10 年不到 5 次：不檢查
     st.update(n10=6)
     assert G.tier(st, "up") == "none"                      # 近 10 年沒過 → 沒過門檻
@@ -119,6 +120,11 @@ def test_tier_rules():
     assert G.tier(st, "up") == "good"
     assert G.tier({**st, "p": 0.0125}, "up") == "ref"      # 門檻都過、但亂排也做得到 1.25% → 可能是運氣
     assert G.tier({**st, "p": None}, "up") == "ref"        # 沒算打亂測試 → 不能給 ★
+    few = {**st, "n": 14}
+    assert G.tier({**few, "p": 0.0125}, "up") == "good"     # VER 14：次數少於 15 次，亂排做得到 10% 以內就算
+    assert G.tier({**few, "p": 0.10}, "up") == "good" and G.tier({**few, "p": 0.1025}, "up") == "ref"
+    assert G.tier({**few, "n": 15, "p": 0.0125}, "up") == "ref"   # 15 次以上照舊 1%
+    assert G.tier({**few, "p": None}, "up") == "ref"
     assert G.tier({"n": 12, "hit": 0.58, "base": 0.40, "n10": 0, "p": 0.001}, "up") == "none"     # 命中率不到 60%
     assert G.tier({"n": 12, "hit": 0.52, "base": 0.40, "n10": 0, "p": 0.001}, "warn") == "good"  # 警示門檻 50%
     assert G.tier({"n": 12, "hit": 0.63, "base": 0.60, "n10": 0, "p": 0.001}, "up") == "none"

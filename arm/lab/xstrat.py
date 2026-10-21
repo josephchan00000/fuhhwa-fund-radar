@@ -601,6 +601,7 @@ def dip_stats(px: np.ndarray, days: list[int], H: int, c: float, lo: int, hs: tu
     b0 = lo + S.LAG
     base = net[b0:T - H] if T - H > b0 else np.array([])
     out["base"] = float((base > 0).mean()) if len(base) else None
+    out["bmed"] = float(np.median(base)) if len(base) else None          # VER 5：隨便挑一天的淨報酬中位數
     if bs:
         r = net[bs]
         out.update({"win": float((r > 0).mean()), "med": float(np.median(r)), "avg": float(r.mean()),
@@ -618,15 +619,31 @@ def dip_stats(px: np.ndarray, days: list[int], H: int, c: float, lo: int, hs: tu
     return out
 
 
+def dip_more(s: dict) -> bool:
+    """VER 5 ①：賺錢的機率比較高——上漲比例比隨便挑一天高 DIP_EDGE 以上、中位數 ＞ 0。"""
+    return bool(s.get("win") is not None and s.get("base") is not None and s.get("med") is not None
+                and s["win"] - s["base"] >= S.DIP_EDGE and s["med"] > 0)
+
+
+def dip_bigger(s: dict) -> bool:
+    """VER 5 ②：賺得比較多——中位數 ≥ max(DIP_MED_X × 隨便挑一天的中位數, 隨便挑一天的中位數 ＋ DIP_MED_ADD)。"""
+    m, b = s.get("med"), s.get("bmed")
+    return bool(m is not None and b is not None and m >= max(S.DIP_MED_X * b, b + S.DIP_MED_ADD))
+
+
+def dip_ok(s: dict) -> bool:
+    """過關（不看次數）：上漲比例 ≥ DIP_WIN，而且 ① 或 ②（VER 3～4 只有 ①）。"""
+    return bool(s.get("win") is not None and s["win"] >= S.DIP_WIN and (dip_more(s) or dip_bigger(s)))
+
+
 def dip_pass(s: dict) -> bool:
-    return bool(s.get("n", 0) >= S.DIP_N_MIN and s.get("win") is not None and s.get("base") is not None
-                and s["win"] >= S.DIP_WIN and s["win"] - s["base"] >= S.DIP_EDGE and s["med"] > 0)
+    return bool(s.get("n", 0) >= S.DIP_N_MIN and dip_ok(s))
 
 
 def dip_pass_recent(s: dict) -> bool | None:
     if s.get("n", 0) < S.DIP_N10:
         return None
-    return bool(s.get("base") is not None and s["win"] >= S.DIP_WIN and s["win"] - s["base"] >= S.DIP_EDGE and s["med"] > 0)
+    return dip_ok(s)
 
 
 def luck_dip(px: np.ndarray, raw: list[int], lo: int, H: int, c: float, key: str, win: float | None) -> float | None:

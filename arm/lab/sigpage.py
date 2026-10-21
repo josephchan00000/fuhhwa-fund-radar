@@ -260,7 +260,7 @@ def page_json(V: dict) -> str:
            "chart": CHART, "pxn": PX_NAMES, "inm": ind_names(), "scen": scen_meta(),
            "scnv": scen_values(V.get("items") or {}), "scdn": S.SCEN_DIM_NAMES,
            "hit": {d: round(100 * v) for d, v in S.HIT_MIN.items()}, "eg": round(100 * S.EDGE_GOOD), "er": round(100 * S.EDGE_REF),
-           "n10": S.RECENT_N, "nmin": S.N_MIN, "lp": round(100 * S.LUCK_P), "ld": S.LUCK_DRAWS, "rh": list(S.RET_H), "pd": list(S.PATH_D), "rhm": list(S.RET_H_M), "rmin": S.RET_N_MIN}
+           "n10": S.RECENT_N, "nmin": S.N_MIN, "lp": round(100 * S.LUCK_P), "lfn": S.LUCK_FEW_N, "lpf": round(100 * S.LUCK_P_FEW), "ld": S.LUCK_DRAWS, "rh": list(S.RET_H), "pd": list(S.PATH_D), "rhm": list(S.RET_H_M), "rmin": S.RET_N_MIN}
     out["xs"] = XSP.payload(V.get("xs") or {})          # 大神策略（xstratspec；點開的淨值與每一筆在 x9xh.json）
     return json.dumps(out, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
@@ -439,11 +439,16 @@ def method_html(luck: dict | None = None) -> str:
             '連續的一段算一次，機率是每一段先算、再平均。</dd>'
             f'<dt>打亂日子測試</dt><dd>把這個訊號出現的日子整段挪到別的時間（保留它自己出現的節奏，只打斷和之後漲跌的對應），亂排 {S.LUCK_DRAWS} 次，'
             '看有多少比例做得到一樣高的機率——比例越小，越不像運氣。次數少但每次都中的訊號照樣過（例：7 次中 7 次、平常 40%），'
-            '次數少又不穩的過不了。大跌後買點與個股偏多訊號是和同一批事件的對照比，改成在每一次事件裡隨機對調「訊號」和「對照」的結果。</dd>'
+            '次數少又不穩的過不了。大跌後買點與個股偏多訊號是和同一批事件的對照比，改成在每一次事件裡隨機對調「訊號」和「對照」的結果。'
+            f'次數少於 {S.LUCK_FEW_N} 次的訊號門檻放寬到 {S.LUCK_P_FEW * 100:.0f}%（2026-10-22 起）：次數少的訊號就算每次都中，'
+            f'亂排做得到一樣準的比例也常超過 {S.LUCK_P * 100:.0f}%（例：8 次、平常 59%，每次都中時亂排也有約 2.5% 做得到），'
+            '放寬後這一類的 ★ 比較可能是運氣，'
+            '請一起看出現過幾次。</dd>'
             f'{lk}'
             f'<dt>判定</dt><dd><b>★ 好訊號</b>：至少 {S.N_MIN} 次、機率 ≥ {S.HIT_MIN["up"] * 100:.0f}%（警示 ≥ {S.HIT_MIN["warn"] * 100:.0f}%）、'
-            f'多 {S.EDGE_GOOD * 100:.0f} 個百分點以上、近 10 年也成立，而且亂排做得到一樣準的不到 {S.LUCK_P * 100:.0f}%。'
-            f'<b>● 可能是運氣</b>：上面的門檻都過了，但亂排也常做得到（{S.LUCK_P * 100:.0f}% 以上）；只列在這裡，景氣頁今天的重點不列。'
+            f'多 {S.EDGE_GOOD * 100:.0f} 個百分點以上、近 10 年也成立，而且亂排做得到一樣準的不到 {S.LUCK_P * 100:.0f}%'
+            f'（次數少於 {S.LUCK_FEW_N} 次的不到 {S.LUCK_P_FEW * 100:.0f}%）。'
+            '<b>● 可能是運氣</b>：上面的門檻都過了，但亂排也常做得到（超過上面的比例）；只列在這裡，景氣頁今天的重點不列。'
             f'<b>○</b>：沒有過門檻。<b>—</b>：不到 {S.N_MIN} 次，照列數字但不判定。'
             '警示類過去的事後驗證比偏多弱（用 2016 年以前選出來的警示，2016 年以後多數沒有比平常準），只當提醒。</dd>'
             '<dt>看多久</dt><dd>技術面與技術事件 1 個月；籌碼、資金、大跌風險、面向事件、邊際變化 3 個月；基本面與泡沫 12 個月。</dd>'
@@ -452,8 +457,9 @@ def method_html(luck: dict | None = None) -> str:
             f'在指數上做一遍，看交易成績（使用者 2026-10-20 選定：成績過關就算，打亂測試只標示）。交易型＝至少 {XS.TR_N_MIN} 筆、'
             f'勝率 ≥ {XS.TR_WIN * 100:.0f}%、比「隨便挑一天、抱一樣多天」高 {XS.TR_EDGE * 100:.0f} 個百分點以上、扣成本後平均每筆賺錢；'
             '進出型＝最大回撤比買進持有少三分之一以上，而且年化 ÷ 最大回撤不輸買進持有。'
-            f'落底型＝訊號出現隔天收盤買、抱原作者說的期間（1 個月～1 年），至少 {XS.DIP_N_MIN} 次、抱完賺錢的比例 ≥ {XS.DIP_WIN * 100:.0f}%、'
-            f'比隨便挑一天高 {XS.DIP_EDGE * 100:.0f} 個百分點以上、中位數扣成本後賺錢（落底訊號一年只有幾次，交易型的 30 筆用不上）。'
+            f'落底型＝訊號出現隔天收盤買、抱原作者說的期間（1 個月～1 年），至少 {XS.DIP_N_MIN} 次、抱完賺錢的比例 ≥ {XS.DIP_WIN * 100:.0f}%，'
+            f'而且賺錢的比例比隨便挑一天高 {XS.DIP_EDGE * 100:.0f} 個百分點以上、中位數扣成本後賺錢，或報酬中位數至少是隨便挑一天的 '
+            f'{XS.DIP_MED_X:g} 倍而且多 {XS.DIP_MED_ADD * 100:.0f} 個百分點（2026-10-22 起；落底訊號一年只有幾次，交易型的 30 筆用不上）。'
             '★ 好策略＝全期間、近 10 年、參數鄰近（換附近的參數，三分之二以上也過）都過；● 可參考＝全期間過、後兩項沒過。'
             '看收盤才知道的訊號一律隔天收盤買賣（看網頁做得到的最早時點），原作者的當天收盤另列參考；'
             '台股 RSI(2) 例外：用台指期在訊號當天收盤前買賣（現貨 13:30 收盤、台指期 13:45 收盤），頁面每天寫下一個交易日的買進、出場價位，'
@@ -890,7 +896,7 @@ function draw(){
 // ── 說明（ⓘ）
 const TIP = {
   tnow: '這個指標現在成立的訊號裡，判定最好的那一個：★ 好訊號、● 過門檻但可能是運氣、○ 沒有過門檻、— 次數不夠；· 現在沒有成立的訊號。',
-  tier: '★ 好訊號：至少 ' + SG.nmin + ' 次、機率 ≥ ' + SG.hit.up + '%（警示 ≥ ' + SG.hit.warn + '%）、比隨便挑一天多 ' + SG.eg + ' 個百分點以上、近 10 年也成立，而且亂排 ' + SG.ld + ' 次做得到一樣準的不到 ' + SG.lp + '%。● 可能是運氣：門檻都過了，但亂排也常做得到。○ 沒有過門檻。— 不到 ' + SG.nmin + ' 次。下面的小字是亂排也做得到的比例。',
+  tier: '★ 好訊號：至少 ' + SG.nmin + ' 次、機率 ≥ ' + SG.hit.up + '%（警示 ≥ ' + SG.hit.warn + '%）、比隨便挑一天多 ' + SG.eg + ' 個百分點以上、近 10 年也成立，而且亂排 ' + SG.ld + ' 次做得到一樣準的不到 ' + SG.lp + '%（次數少於 ' + SG.lfn + ' 次的不到 ' + SG.lpf + '%）。● 可能是運氣：門檻都過了，但亂排也常做得到。○ 沒有過門檻。— 不到 ' + SG.nmin + ' 次。下面的小字是亂排也做得到的比例。',
   now: '現在的數值，和它的 0～100（100 最熱、0 最冷；和這個指標自己過去比）。',
   spark: '近一年每週的 0～100；上下兩條虛線是 80（過熱）和 20（過冷）。',
   p: '偏多：訊號出現的隔天收盤買，過了看多久之後收盤比買價高的比例。警示：看多久之內出現一段最大回撤到門檻的比例（期間最高收盤到之後最低收盤，先漲再跌也算）。括號是同一段期間隨便挑一天的比例。',
@@ -1009,7 +1015,8 @@ function r10(s, d){ if (!s || !s[3] || s[3] < SG.n10) return '<span class="mu">�
 function luckTxt(s, r){ if (!s || s[9] == null || (s[6] !== 'good' && s[6] !== 'ref')) return '';
   const pair = r && r[I.cat] === 'stock' && r[I.dir][0] === 'up';
   const t = pair ? '在每一次事件裡隨機對調「訊號」和「對照」的結果，做得到一樣好的比例' : '把出現的日子隨便亂排，做得到一樣準的比例';
-  return '<small title="' + t + '（' + SG.lp + '% 以下才算好訊號）">亂排 ' + (s[9] < 1 ? s[9].toFixed(1) : Math.round(s[9])) + '%</small>'; }
+  const few = s[0] < SG.lfn, th = few ? SG.lpf : SG.lp;            // sigspec VER 14：次數少於 15 次的門檻 10%
+  return '<small title="' + t + '（' + th + '% 以下才算好訊號' + (few ? '；次數少於 ' + SG.lfn + ' 次的門檻' : '') + '）">亂排 ' + (s[9] < 1 ? s[9].toFixed(1) : Math.round(s[9])) + '%</small>'; }
 function sigTable(x){
   const head = '<thead><tr><th class="l">訊號</th><th class="l">看什麼 ' + ii('what') + '</th><th>機率 ' + ii('prob') + '</th><th>隨便挑一天 ' + ii('base') + '</th>' +
     '<th>多幾個百分點 ' + ii('edge') + '</th><th>近 10 年也成立嗎 ' + ii('r10') + '</th><th>出現過幾次 ' + ii('n') + '</th><th>判定 ' + ii('tier') + '</th></tr></thead>';

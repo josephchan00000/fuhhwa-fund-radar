@@ -157,7 +157,7 @@ def dip_rules(k: str, mk: str) -> list[str]:
                sell, "台股家數資料 2013 年起。" if mk == "tw" else
                "美股家數 1996 年起；已下市、改名的成分股 Yahoo 多半沒有，早年只算得到現在還在交易的公司。"]
     elif k == "mmr":
-        out = ["大盤融資維持率＝上市股票與 ETF 的融資市值（融資餘額張數 × 收盤）÷ 上市融資金額（各家券商、媒體的算法不同，數字會差幾個百分點）。",
+        out = ["大盤融資維持率＝上市股票與 ETF 的融資市值（融資餘額張數 × 收盤）÷ 上市融資金額——和 TEJ 同一個算法，和證交所公布的整戶維持率也接近；媒體常引用的 CMoney 等推估比這裡低 10～30 個百分點。",
                f"買：維持率收盤後第一次低於 {p['level']}%（之前 {p['reset']} 個交易日都在 {p['level']}% 以上）→ 隔天收盤買"
                "（融資餘額晚上才公布）。", sell, "2004 年起才有（FinMind 的已下市公司收盤 2004-02 才有，之前算不準）。"]
     elif k == "mflush":
@@ -404,7 +404,7 @@ def result_line(r: dict) -> str:
             return "評估期間沒有出現過。"
         H = r["H"]
         return (f"過去 {f['n']} 次：抱 {HN[H]}賺錢 {pc(f['win'], 0)}（隨便挑一天 {pc(f.get('base'), 0)}）、"
-                f"中位數 {pc(f['med'], 1, sign=True)}（扣成本）、中途最多跌中位 {pc(f.get('mae'), 1)}")
+                f"中位數 {pc(f['med'], 1, sign=True)}（扣成本；隨便挑一天 {pc(f.get('bmed'), 1, sign=True)}）、中途最多跌中位 {pc(f.get('mae'), 1)}")
     if r["kind"] == "trade":
         if not f.get("n"):
             return "評估期間沒有交易。"
@@ -435,9 +435,15 @@ def _dip_why(s: dict, H: int) -> str:
     if not s.get("n"):
         return "沒有出現過"
     e = (s["win"] - s["base"]) * 100 if s.get("base") is not None else None
-    et = "—" if e is None else (f"高 {e:.1f}" if e >= 0 else f"低 {-e:.1f}")
-    return (f"抱 {HN[H]}賺錢 {pc(s['win'])}（要 {S.DIP_WIN * 100:.0f}% 以上）、比隨便挑一天{et} 個百分點"
-            f"（要高 {S.DIP_EDGE * 100:.0f} 以上）、中位數 {pc(s['med'], 1, sign=True)}（要大於 0）")
+    et = ("比隨便挑一天 — 個百分點" if e is None else "和隨便挑一天差不多" if abs(e) < 0.05
+          else f"比隨便挑一天高 {e:.1f} 個百分點" if e > 0 else f"比隨便挑一天低 {-e:.1f} 個百分點")
+    b = s.get("bmed")                                                      # xstratspec VER 5：賺得比較多也算過關
+    need = None if b is None else max(S.DIP_MED_X * b, b + S.DIP_MED_ADD)
+    big = ("" if b is None else
+           f"；②中位數 {pc(s['med'], 1, sign=True)}，隨便挑一天 {pc(b, 1, sign=True)}"
+           f"（要 {S.DIP_MED_X:g} 倍而且多 {S.DIP_MED_ADD * 100:.0f} 個百分點＝{pc(need, 1, sign=True)} 以上）")
+    return (f"抱 {HN[H]}賺錢 {pc(s['win'])}（要 {S.DIP_WIN * 100:.0f}% 以上），而且下面兩條過一條："
+            f"①賺錢的比例{et}（要高 {S.DIP_EDGE * 100:.0f} 以上）、中位數 {pc(s['med'], 1, sign=True)}（要大於 0）{big}")
 
 
 def why(r: dict) -> list[list]:
