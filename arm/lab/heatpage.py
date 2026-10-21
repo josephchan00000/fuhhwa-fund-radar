@@ -1378,10 +1378,10 @@ def render(V: dict) -> str:
     from . import appnav
     from . import heatviz as VZ
     P = parts(V)
-    return (_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS)
-            .replace("{{TITLE}}", _e(MK["title"])).replace("{{PURP}}", _e(MK["purp"])).replace("{{PRE}}", MK["pre"])
-            .replace("{{ASOF}}", _e(_md(P["asof"]))).replace("{{VSW}}", VZ.switch_html()).replace("{{DRAWER}}", VZ.DRAWER)
-            .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS))
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS)
+                         .replace("{{TITLE}}", _e(MK["title"])).replace("{{PURP}}", _e(MK["purp"])).replace("{{PRE}}", MK["pre"])
+                         .replace("{{ASOF}}", _e(_md(P["asof"]))).replace("{{VSW}}", VZ.switch_html()).replace("{{DRAWER}}", VZ.DRAWER)
+                         .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS))
 
 
 def _write(out: Path, text: str) -> bool:
