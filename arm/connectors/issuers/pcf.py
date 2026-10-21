@@ -482,15 +482,19 @@ def is_plausible(rows: list[dict]) -> bool:
     return not implausible_reason(rows)
 
 
-def implausible_reason(rows: list[dict]) -> str:
+def implausible_reason(rows: list[dict], min_n: int | None = None) -> str:
     """回「不像持股清單」的具體理由；通過則回 ""。
 
     2026-07-29 瀏覽器首跑：復華攔到 **30 檔**的 XHR、元大 6 檔，卻只看得到「未通過持股驗證」
     —— 不知道是被哪一條擋、那些列長什麼樣，就沒辦法判斷「該放寬規則」還是「該換來源」。
-    把理由與樣本列進日誌，一輪就能決斷。"""
+    把理由與樣本列進日誌，一輪就能決斷。
+
+    min_n：檔數門檻（預設 _MIN_HOLDINGS）。結構化來源的債券 ETF 可以只有幾檔
+    （00987D 美國公債只持有 3 檔，自 2026-08 掛牌一直被 10 檔門檻擋掉、詳情區沒有它）。"""
     n = len(rows)
-    if n < _MIN_HOLDINGS:
-        return f"僅 {n} 檔（門檻 {_MIN_HOLDINGS}）"
+    lim = _MIN_HOLDINGS if min_n is None else min_n
+    if n < lim:
+        return f"僅 {n} 檔（門檻 {lim}）"
     with_qty = sum(1 for r in rows if r.get("weight") is not None or r.get("shares") is not None)
     if with_qty * 2 < n:
         return f"{n} 檔中僅 {with_qty} 檔帶權重／股數（過半才算持股清單）"

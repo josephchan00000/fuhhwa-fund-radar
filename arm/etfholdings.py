@@ -30,6 +30,7 @@ prev 洗成今天自己、讓 Δ 全變 0）。
 """
 from __future__ import annotations
 
+import html
 import json
 import re
 from pathlib import Path
@@ -74,18 +75,47 @@ _NH_NAME = re.compile(
 # 期貨合約代號＝年月＋商品碼（`202609US`＝2026 年 9 月美國長債期貨、`202609TY`＝10 年期）。
 # 台股代號純數字、外股 etfinfo 給的是帶空格的 `TLTW US` → 不會誤殺。
 _NH_FUT = re.compile(r"^(20\d{2})(0[1-9]|1[0-2])[A-Z]{2,3}$")
+# 另兩種寫法（2026-10-21 盤查）：商品碼在前 `US202612`（00986D 的 etfinfo）、帶冒號
+# `UB:2026-12:B`（00987D 超長美債期貨，87 口、權重 36.55%）。ISIN 是 12 碼，不會誤殺。
+_NH_FUT2 = re.compile(r"^[A-Z]{2,3}(20\d{2})(0[1-9]|1[0-2])$"
+                      r"|^[A-Z0-9]{1,4}:(20\d{2})-(0[1-9]|1[0-2])(?::[A-Z0-9]{1,3})?$")
 
 
 def is_non_holding(sid: str, name: str = "") -> bool:
     """現金／保證金／應付款／期貨等「非持股列」→ True（不進 diff、不算加減碼）。"""
     sid = str(sid or "").strip()
-    return bool(_NH_ID.match(sid) or _NH_FUT.match(sid) or _NH_NAME.search(str(name or "")))
+    return bool(_NH_ID.match(sid) or _NH_FUT.match(sid) or _NH_FUT2.match(sid)
+                or _NH_NAME.search(str(name or "")))
 
 
 def drop_non_holdings(rows: list[dict]) -> list[dict]:
     """濾掉非持股列，讓各來源的列宇宙對齊（抓取端各來源共用）。"""
     return [r for r in (rows or [])
             if not is_non_holding(r.get("stock_id"), r.get("name") or r.get("stock_name"))]
+
+
+def clean_name(name):
+    """還原名稱裡的 HTML／XML 實體（`M&amp;G` → `M&G`）。
+
+    復華 assetsExcel 的 sharedStrings 是 XML，2026-10-21 前解析沒還原實體，00998A 的
+    `M&amp;G公開有限公司`、`MS&amp;AD保險集團控股公司` 帶著 `&amp;` 進了落檔；網頁再跳脫一次
+    就顯示成字面「&amp;」。抓取端已修，這裡給讀取端與舊落檔用。"""
+    return html.unescape(name) if isinstance(name, str) and "&" in name else name
+
+
+def _clean_detail(det: dict | None) -> dict | None:
+    """detail 裡所有名稱（完整持股、異動、報價列）還原實體；沒有要改的就原物件回傳。"""
+    if not det:
+        return det
+    keys = ("all", "moves", "rows")
+    if not any("&" in str(r.get("name") or "") for k in keys for r in (det.get(k) or [])):
+        return det
+    out = dict(det)
+    for k in keys:
+        if det.get(k):
+            out[k] = [({**r, "name": clean_name(r["name"])} if "&" in str(r.get("name") or "") else r)
+                      for r in det[k]]
+    return out
 
 
 def _snap_key(holdings: list[dict] | None) -> tuple:
@@ -456,7 +486,7 @@ def view(doc: dict | None, code: str) -> dict | None:
     entry = ((doc or {}).get("etfs") or {}).get(code) or {}
     det = entry.get("detail")
     if (det or {}).get("all") or not entry.get("holdings"):
-        return det
+        return _clean_detail(det)
     from . import stockmeta                     # 延遲載入：避免資料層互相 import
     fresh = contributions(entry, None, stockmeta.industry_map())
     if not fresh:
@@ -470,4 +500,4 @@ def view(doc: dict | None, code: str) -> dict | None:
     for k in ("total_contrib", "covered_weight", "verify", "src", "pd", "n_pend"):
         if (det or {}).get(k) is not None:
             fresh[k] = det[k]
-    return fresh
+    return _clean_detail(fresh)
