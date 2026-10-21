@@ -175,12 +175,16 @@ def test_heat_pages_stash_cards_and_list_today(monkeypatch):
     assert "最大回撤 10% 以上" in h and "回撤中位數 12%（隨便挑一天 7%）" in h
     assert h.count('<div class="tzr">') == 3 and "中線" in h and "差不多" in h and "警示 ★1" in h
     assert 'aria-label="中線（看 3 個月）：偏多 ★1・警示 ★1，偏多占 50%"' in h
-    assert "短線（看 1 個月）：偏多 0・警示 0，沒有訊號" in h and "溫度計本身沒有驗證過" in h
+    assert 'aria-label="短線（看 1 個月）：中性，沒有偏多或警示的訊號"' in h and "溫度計本身沒有驗證過" in h
     h0 = VZ.today_html({"sigtoday": dict(sigcat.board(V["rows"], {}, "tw"), d="2026-10-16")})
-    assert "現在沒有可靠的警示訊號" in h0 and h0.count("沒有訊號") >= 3
-    low = dict(V["rows"][0], warn=_st(12, 0.58, 0.29, "ref"), tier="ref")       # VER 9：● 可能是運氣——不列、不算溫度計
+    assert "現在沒有可靠的警示訊號" in h0 and h0.count('class="tzw tzw-none">中性') == 3 and 'class="tzq"' not in h0
+    # VER 12：● 不列在兩欄，但算進溫度計（算 1），收在溫度計下面「溫度計另外算進去的」
+    low = dict(V["rows"][0], warn=_st(12, 0.58, 0.29, "ref"), tier="ref")
     h1 = VZ.today_html({"sigtoday": dict(sigcat.board([low], V["on"], "tw"), d="2026-10-16")})
-    assert "融資餘額水位・過熱中" not in h1 and "●" not in h1.split('class="tzt"')[1] and "機率較低" not in h1
+    assert "融資餘額水位・過熱中" not in h1.split('class="tzcols"')[1] and "機率較低" not in h1
+    q = h1.split('<details class="tzq">')[1].split("</details>")[0]
+    assert "融資餘額水位・過熱中" in q and "● 可能是運氣 1 類" in q and 'href="x9o.html#s=tw:heat:C1:hot"' in q
+    assert 'aria-label="中線（看 3 個月）：偏多 0・警示 ●1，偏多占 0%"' in h1 and "偏警示" in h1
     assert "亂排" in h and "可能是運氣" in h and "警示類過去的事後驗證比偏多弱" in h
 
 
@@ -210,9 +214,13 @@ def test_board_sides_thermometer_and_one_item_once():
     assert B["up"][0]["both"] is True and not any(r["both"] for r in B["up"][1:] + B["warn"][1:])
     assert [r["hz"] for r in B["up"]] == ["mid", "mid", "short"] and [r["hz"] for r in B["warn"]] == ["mid", "long"]
     th = {t["k"]: t for t in B["thermo"]}
-    assert th["short"]["w"] == {"up": 1, "warn": 0} and th["short"]["lean"] == "up" and th["short"]["share"] == 1
-    assert th["mid"]["n"]["up"] == {"good": 2} and th["mid"]["w"] == {"up": 2, "warn": 1} and th["mid"]["lean"] == "up"
-    assert th["long"]["w"] == {"up": 0, "warn": 1} and th["long"]["lean"] == "warn"
+    # VER 12：★ 2、● 1、△ 0.5——站回季線（●）不列，但算進短線溫度計
+    assert th["short"]["n"]["up"] == {"good": 1, "ref": 1, "lean": 0} and th["short"]["w"] == {"up": 3, "warn": 0}
+    assert th["short"]["lean"] == "up" and th["short"]["share"] == 1
+    assert [x["id"] for x in th["short"]["more"]["up"]] == ["tw:tech:x"] and th["short"]["more"]["warn"] == []
+    assert th["mid"]["n"]["up"] == {"good": 2, "ref": 0, "lean": 0} and th["mid"]["w"] == {"up": 4, "warn": 2}
+    assert th["mid"]["lean"] == "up"
+    assert th["long"]["w"] == {"up": 0, "warn": 2} and th["long"]["lean"] == "warn"
     assert sigcat.horizon(dict(a, cat="ind", H=12)) == "long" and sigcat.horizon(dict(a, H=250)) == "long"
     assert sigcat.item_key(a) == sigcat.item_key(d1) != sigcat.item_key(dict(a, cat="buy"))
     # 一列的偏多是 ★、警示是 ●：只列偏多（VER 9：● 不列）
@@ -246,11 +254,44 @@ def test_board_families_merge_signals_that_appear_together():
     ups = {r["id"]: [f["id"] for f in r["fam"]] for r in B["up"]}
     assert ups == {"tw:tech:x": ["tw:tech:y"], "tw:tech:z": [], "tw:buy:E5:C2": ["tw:buy:E5:C1"]}
     th = {t["k"]: t for t in B["thermo"]}
-    assert th["short"]["w"]["up"] == 2 and th["mid"]["w"]["up"] == 1            # 一類算一次
+    assert th["short"]["w"]["up"] == 4 and th["mid"]["w"]["up"] == 2            # 一類算一次（★ 一類算 2）
     from arm.lab import heatviz as VZ
     h = VZ.today_html({"sigtoday": dict(B, d="2026-10-16")})
     assert "同時成立：20 日線乖離過冷（過去常一起出現，算同一件事）" in h and "3 類（共 5 個訊號）" in h
 
+
+
+def test_thermometer_v12_counts_ref_and_lean_and_merges_by_tier():
+    """VER 12（docs/lab_noise_plan.md 第 12 節；使用者：「溫度計可以標準寬鬆一些」）：溫度計算 ★ 2、● 1、△ 0.5；
+    △＝判定 ○、比平常高 5 個百分點以上（— 次數不夠的不算）；同類合併由高到低：●、△ 併進已有的類、不另外算，
+    也不會把兩個 ★ 類連成一類。兩欄照舊只列 ★。"""
+    import numpy as np
+    a = _rows()[0]
+    assert sigcat.thermo_tier(_st(30, 0.66, 0.60, "none")) == "lean"            # +6
+    assert sigcat.thermo_tier(_st(30, 0.64, 0.60, "none")) is None              # +4：沒有傾向
+    assert sigcat.thermo_tier(_st(3, 0.90, 0.60, "few")) is None                # 次數不夠不算
+    assert sigcat.thermo_tier(_st(30, 0.66, 0.60, "ref")) == "ref" and sigcat.thermo_tier(None) is None
+    mk = lambda i, tier, hit: dict(a, id=f"tw:tech:{i}", cat="tech", var=i, name=i, H=20, up=_st(40, hit, 0.6, tier),
+                                   warn=_st(40, 0.1, 0.2, "none"), tier=tier, dir=["up"])
+    s1, s2 = mk("s1", "good", 0.80), mk("s2", "good", 0.78)                    # 兩個 ★，彼此不重疊
+    r1, l1, l2 = mk("r1", "ref", 0.75), mk("l1", "none", 0.68), mk("l2", "none", 0.67)
+    T = 100
+    act = lambda lo, hi: np.array([lo <= t < hi for t in range(T)])
+    acts = {"tw:tech:s1": act(0, 10), "tw:tech:s2": act(50, 60),
+            "tw:tech:r1": act(0, 10) | act(50, 60),                            # ● 和兩個 ★ 都重疊：併進第一個，不把它們連起來
+            "tw:tech:l1": act(80, 90), "tw:tech:l2": act(82, 90)}              # 兩個 △ 自己成一類
+    on = {r["id"]: {"since": "2026-10-01"} for r in (s1, s2, r1, l1, l2)}
+    B = sigcat.board([s1, s2, r1, l1, l2], on, "tw", acts)
+    assert [r["id"] for r in B["up"]] == ["tw:tech:s1", "tw:tech:s2"] and all(not r["fam"] for r in B["up"])
+    th = {t["k"]: t for t in B["thermo"]}["short"]
+    assert th["n"]["up"] == {"good": 2, "ref": 0, "lean": 1} and th["w"]["up"] == 4.5
+    assert [x["id"] for x in th["more"]["up"]] == ["tw:tech:l1"] and [f["id"] for f in th["more"]["up"][0]["fam"]] == ["tw:tech:l2"]
+    fams = sigcat.thermo_families([dict(x, hz="short", side="up", edge=x["up"]["hit"] - 0.6) for x in (s1, s2, r1)], acts)
+    assert {f["id"]: [m["id"] for m in f["fam"]] for f in fams} == {"tw:tech:s1": ["tw:tech:r1"], "tw:tech:s2": []}
+    from arm.lab import heatviz as VZ
+    h = VZ.today_html({"sigtoday": dict(B, d="2026-10-16")})
+    assert 'aria-label="短線（看 1 個月）：偏多 ★2 △1・警示 0，偏多占 100%"' in h
+    assert "△ 有傾向 1 類" in h and h.count('class="tzg tzg-up tzg-lean"') == 1 and h.count('class="tzg tzg-up tzg-good"') == 1
 
 
 def test_family_rule_v11_smaller_signal_inside_and_chance_guard():

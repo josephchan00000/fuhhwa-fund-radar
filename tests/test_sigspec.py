@@ -15,7 +15,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 11 and X.SPEC_DATE == "2026-10-21"
+    assert X.VER == 12 and X.SPEC_DATE == "2026-10-21"
     assert X.H_BUY == 60                                                  # VER 10：大跌後買點看買進後 3 個月有沒有漲
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
     assert X.LAG == 1 and X.DIRS == ("up", "warn", "buy") and X.WARN_LONG == 0.20
@@ -44,7 +44,11 @@ def test_sig_spec_v1_is_locked():
     assert X.STRAT_CAP == {"good": 0.05, "ref": 0.02, "none": 0.0, "few": 0.0}
     assert X.TODAY_MAX == 8 and not hasattr(X, "TODAY_REF")          # VER 9：沒有 ★ 就寫沒有
     # 景氣頁「今天的重點」2026-10-20 起：只改呈現、不改判定（VER 不變）
-    assert X.TODAY_SIDE == 6 and X.THERMO_W == {"good": 1} and X.THERMO_LEAN == 0.6   # VER 9：溫度計只數 ★
+    assert X.TODAY_SIDE == 6 and X.THERMO_LEAN == 0.6
+    # VER 12（使用者 2026-10-21：「溫度計可以標準寬鬆一些」，選「有傾向就算」）：★ 2、● 1、△ 0.5；△＝比平常高 5 個百分點以上
+    assert X.THERMO_W == {"good": 2, "ref": 1, "lean": 0.5} and X.THERMO_EDGE == 0.05 == X.EDGE_REF
+    assert X.THERMO_MARK == {"good": "★", "ref": "●", "lean": "△"} and set(X.THERMO_NAMES) == set(X.THERMO_W)
+    assert X.RES_VER == 10                                          # VER 11、12 只改建頁時的呈現，研究檔不用重跑
     assert [k for k, *_ in X.THERMO_HZ] == ["short", "mid", "long"]
 
 
