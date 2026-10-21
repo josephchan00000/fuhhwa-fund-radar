@@ -1,7 +1,28 @@
 {
- "as_of": "2026-10-21 18:48",
- "count": 0,
+ "as_of": "2026-10-21 19:03",
+ "count": 2,
  "fund_count": 0,
- "etf_count": 0,
- "items": []
+ "etf_count": 2,
+ "items": [
+  {
+   "src": "etf",
+   "name": "T 5 1/8 08/15/56",
+   "ticker": "US912810UW61",
+   "count": 1,
+   "etfs": [
+    "00987D"
+   ],
+   "weight": 59.66
+  },
+  {
+   "src": "etf",
+   "name": "T 5 05/15/56",
+   "ticker": "US912810UU06",
+   "count": 1,
+   "etfs": [
+    "00987D"
+   ],
+   "weight": 27.75
+  }
+ ]
 }
