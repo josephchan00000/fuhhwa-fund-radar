@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/21 16:54",
+  "as_of": "2026/10/21 18:42",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -49,11 +49,11 @@
       ],
       "items": [
         {
-          "title": "熱門股／00929開盤秒填息！0056明除息1.72元、年化殖利率近12%",
-          "url": "https://news.ustv.com.tw/newsdetail/20261021A001012",
-          "source": "非凡新聞台",
-          "date": "2026-10-21 00:00",
-          "datetime": "2026-10-21T00:00:00+08:00"
+          "title": "00929除息首日就填息！0056大漲2.26%迎最後買進 高股息ETF跑贏0050",
+          "url": "https://news.wearn.com/c2129764.html",
+          "source": "聚財網",
+          "date": "2026-10-21 17:42",
+          "datetime": "2026-10-21T17:42:54+08:00"
         },
         {
           "title": "47萬股民嗨翻！　台股反彈00929秒填息",
@@ -61,6 +61,13 @@
           "source": "ETtoday財經雲",
           "date": "2026-10-21 10:36",
           "datetime": "2026-10-21T10:36:00+08:00"
+        },
+        {
+          "title": "熱門股／00929開盤秒填息！0056明除息1.72元、年化殖利率近12%",
+          "url": "https://news.ustv.com.tw/newsdetail/20261021A001012",
+          "source": "非凡新聞台",
+          "date": "2026-10-21 00:00",
+          "datetime": "2026-10-21T00:00:00+08:00"
         }
       ]
     },
@@ -85,13 +92,6 @@
           "source": "經理人",
           "date": "2026-10-20 13:49",
           "datetime": "2026-10-20T13:49:00+08:00"
-        },
-        {
-          "title": "台股急跌撿哪檔賺更多？比買0050還賺！00991A、00981A、00992A、00982A、00980A...選股教練曝抄底攻略：止跌3訊號",
-          "url": "https://www.businesstoday.com.tw/article/category/183013/post/202610200002/",
-          "source": "今周刊",
-          "date": "2026-10-20 10:45",
-          "datetime": "2026-10-20T10:45:00+08:00"
         }
       ]
     },
@@ -116,6 +116,20 @@
           "source": "Yahoo新聞",
           "date": "2026-10-21 09:29",
           "datetime": "2026-10-21T09:29:20+08:00"
+        },
+        {
+          "title": "核心科技加衛星配置 比重怎麼抓？專家：00998A抗跌特性 適合加入配置",
+          "url": "https://www.watchmedia01.com/archives/561651",
+          "source": "觀傳媒",
+          "date": "2026-10-21 09:35",
+          "datetime": "2026-10-21T09:35:29+08:00"
+        },
+        {
+          "title": "上市半年首次遇上大跌 00998A只小跌0.74% 新ETF的抗跌成績單亮眼",
+          "url": "https://tw.news.yahoo.com/%E4%B8%8A%E5%B8%82%E5%8D%8A%E5%B9%B4%E9%A6%96%E6%AC%A1%E9%81%87%E4%B8%8A%E5%A4%A7%E8%B7%8C-00998a%E5%8F%AA%E5%B0%8F%E8%B7%8C0-74-%E6%96%B0etf%E7%9A%84%E6%8A%97%E8%B7%8C%E6%88%90%E7%B8%BE%E5%96%AE%E4%BA%AE%E7%9C%BC-010632710.html",
+          "source": "蕃新聞",
+          "date": "2026-10-21 09:06",
+          "datetime": "2026-10-21T09:06:32+08:00"
         }
       ]
     },
@@ -555,7 +569,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
       "date": "2026-10-20",
-      "views": 12097,
+      "views": 12355,
       "short": true
     },
     {
@@ -564,7 +578,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
       "date": "2026-10-18",
-      "views": 5462
+      "views": 5686
     },
     {
       "platform": "youtube",
@@ -580,7 +594,7 @@
       "channel": "寶傑點兵／寶傑怎麼說",
       "url": "https://www.youtube.com/watch?v=sWtVhEHFKoI",
       "date": "2026-10-16",
-      "views": 161254,
+      "views": 161306,
       "peer": true,
       "cat": "主動式"
     },
@@ -590,7 +604,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
       "date": "2026-10-17",
-      "views": 141229,
+      "views": 141791,
       "peer": true,
       "cat": "高股息"
     },
@@ -610,7 +624,7 @@
       "channel": "九八新聞台",
       "url": "https://www.youtube.com/watch?v=A8QXBj_oWj4",
       "date": "2026-10-17",
-      "views": 118488,
+      "views": 118497,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -620,7 +634,7 @@
       "channel": "HSBC Hong Kong",
       "url": "https://www.youtube.com/shorts/lTkYQAOPZ_Q",
       "date": "2026-10-16",
-      "views": 93704,
+      "views": 94799,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -631,7 +645,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=QgfhIwj8uRc",
       "date": "2026-10-17",
-      "views": 77619,
+      "views": 77707,
       "peer": true,
       "cat": "高股息"
     },
@@ -641,7 +655,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/7NxiVHoPy3g",
       "date": "2026-10-19",
-      "views": 73545,
+      "views": 74432,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -662,7 +676,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
       "date": "2026-10-19",
-      "views": 41056,
+      "views": 41383,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -673,7 +687,7 @@
       "channel": "陳智霖股票分析師 Equity Research Analyst",
       "url": "https://www.youtube.com/shorts/Dx2D_E6LksY",
       "date": "2026-10-19",
-      "views": 20958,
+      "views": 22224,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -683,6 +697,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A（詳下方新聞標籤）",
     "品牌焦點：「九倍女戰神」操盤00418A！00418A成分股有哪些？會配息嗎、何時上市？ | 數位時代（LINE TODAY）",
     "社群聲量最高：升息怕股市崩？低利率未必賺更多！70年藏金圖打破升降息迷思（0 推）",
-    "YouTube 熱片：一缸子全是台積電！主動式ETF遭外資提款引爆共伴效應...神山慘挨刀！11月前最難熬該怎麼避險？ - 黃世聰 林友銘 蘇威元 劉寶傑《寶傑點兵》20261016-1（寶傑點兵／寶傑怎麼說・161,254 次觀看）"
+    "YouTube 熱片：一缸子全是台積電！主動式ETF遭外資提款引爆共伴效應...神山慘挨刀！11月前最難熬該怎麼避險？ - 黃世聰 林友銘 蘇威元 劉寶傑《寶傑點兵》20261016-1（寶傑點兵／寶傑怎麼說・161,306 次觀看）"
   ]
 }
