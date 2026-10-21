@@ -1501,7 +1501,8 @@ ETF 分頁改成**上表 → 底部詳情**兩層：ETF 數據追蹤表的代碼
     `currentTradingPeriod` 正在交易的那天不收、剛收盤空值改用 `regularMarketPrice`（時戳要在當天時段內）、
     前收只認緊鄰前一根。`detail.pd`＝報價日、每列 `qd`／`pend`；這班缺的列只沿用上一班**同一報價日**的值
     （`annotate(prior_doc=…)`——`merge_one` 拿到新揭露時回的新 entry 不帶舊 detail，上一班報價只在合併前那版找得到）。
-    `_eh_payload` 只放 qd＝pd 的數字，舊格式（沒有 pd）顯示「漲跌更新中」。CI 日誌每班一行
+    `_eh_payload` 只放 qd＝pd 的數字，舊格式（沒有 pd）顯示「漲跌更新中」。籌碼雷達 pos 分片的「揭露當下收盤」
+    （`collect.snaps_from_holdings`，估海外成本用）也只收 pd＝揭露日的明細——快照較舊時收盤是別天的。CI 日誌每班一行
     「台股報價日 T：上市 來源 N 檔・自檢 x/y｜上櫃 …」＋「海外報價（Yahoo，當地 T 已收盤）✓…｜待收盤…」。
   · **驗證**：`etf_holdings.yml` 探針模式（`probe=true`）會跑 `_probe_quotes()`——印 T 與自檢、**對前一交易日
     再抓一次指定日期版**（早上 openapi 已是 T、正式流程走不到 MI_INDEX，探針要保證那條路也驗得到）、
