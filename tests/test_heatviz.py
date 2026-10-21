@@ -415,6 +415,26 @@ def test_today_card_beside_radar(built):
     assert ".vside{order:-1}" not in page                                    # 手機也是雷達在最上面
 
 
+def test_today_rows_open_outlook_at_that_signal(built):
+    """2026-10-22（docs/lab_strategy_ia_plan.md Q1-A）：今天的重點兩欄的 ★ 每一列點了打開「之後怎麼走？」、捲到那個訊號
+    （面板裡同一個 id）；溫度計另外算進去的 ●、△ 面板裡沒有，照舊連訊號總覽。網址照舊是訊號總覽（沒有 JS 也點得到）。"""
+    _, _, V, page = built
+    T = V.get("sigtoday") or {}
+    i = page.index('<template id="ot-out"')
+    body = page[i:page.index("</template>", i)]
+    today = page[page.index('id="today"'):page.index('id="wchg"')]
+    cols = today[today.index('class="tzcols"'):]
+    fams = [r for s in ("up", "warn") for r in T.get(s) or []]
+    for r in fams:
+        oid = VZ.osg_id(r["id"])
+        assert f'href="x9o.html#s={html.escape(r["id"])}" data-open="out:out" data-to="{oid}"' in cols
+        assert f'id="{oid}"' in body and re.fullmatch(r"osg-[0-9A-Za-z_]+", oid)
+    if '<details class="tzq">' in today:
+        more = today[today.index('<details class="tzq">'):today.index("</details>", today.index('<details class="tzq">'))]
+        assert "data-open" not in more and 'href="x9o.html#s=' in more
+    assert VZ.osg_id("tw:heat:T4:cold") != VZ.osg_id("tw_heat_T4_cold")       # 換字不會撞在一起
+
+
 
 
 def test_sig_items_feed_overview(built, monkeypatch):
@@ -599,8 +619,9 @@ def test_now_section(monkeypatch):
 
 
 def test_outlook_drawer_replaces_now_and_scenario_sections(built, monkeypatch):
-    """2026-10-21（docs/lab_noise_plan.md 第 4、11 節；使用者 10/20 選「雷達按鈕打開的面板」）：「現在的情境」「所有情境」不在主畫面，
-    改成雷達卡片裡「之後怎麼走？」按鈕打開右側面板（template ot-out）；目錄、市場狀態那一行、對照圖都打開同一個面板。"""
+    """2026-10-21（docs/lab_noise_plan.md 第 4、11 節）：「現在的情境」「所有情境」不在主畫面，改成「之後怎麼走？」右側面板
+    （template ot-out）。2026-10-22 起入口在今天的重點（docs/lab_strategy_ia_plan.md，使用者：「應該是放在今日重點那邊點進去」）：
+    溫度計下面一顆按鈕、兩欄的每一列點了捲到那個訊號；頂部目錄、雷達卡片不再放。市場狀態那一行、對照圖、面向面板照舊打開同一個面板。"""
     _, _, V, page = built
     i = page.index('<template id="ot-out"')
     j = page.index("</template>", i)
@@ -608,8 +629,9 @@ def test_outlook_drawer_replaces_now_and_scenario_sections(built, monkeypatch):
     assert 'id="now"' not in main and 'id="scen"' not in main and 'id="now"' in body and 'id="scen"' in body
     assert page.index('id="today"') < page.index('id="items"') < page.index('id="cmp"')
     assert 'href="#now"' not in page and 'href="#scen"' not in page
-    assert 'class="snout" data-open="out:out">之後怎麼走？</button>' in page
-    assert page.count('class="rout" data-open="out:out"') == 1 and page.index('class="rout"') < page.index('id="rtin"')
+    assert "snout" not in page and 'class="rout"' not in page[:page.index('id="today"')]   # 頂部目錄、雷達卡片沒有入口
+    t0 = page.index('id="today"')
+    assert page.count('class="rout" data-open="out:out"') == 1 and t0 < page.index('class="rout"') < page.index('class="tzcols"')
     assert 'data-title="之後怎麼走？"' in body and '<details class="osim" id="o-sim">' in body
     assert body.index("好訊號成立之後") < body.index("五個面向現在的位置") < body.index('id="scen"') < body.index('id="o-sim"')
     assert 'data-open="out:out"' in page[page.index('<template id="dt-fund"'):]          # 面向面板也連得過去
@@ -660,7 +682,6 @@ def test_outlook_signals_table_and_summary(monkeypatch):
             "warn": {"hit": 0.67, "base": 0.29, "n": 6, "tier": "good", "mdd": 0.12, "mdd_base": 0.06},
             "ret": {"s": cells, "bk": "b9"}, "fam": []}
     V = {"mk": "tw", "sigtoday": _board_v([up], [warn]), "xsb": [{"name": "RSI(2) 超賣反彈", "side": "up"}]}
-    assert VZ.out_summary(V) == "溫度計 短線偏多｜中線偏警示｜長線中性"                 # VER 12：按鈕上寫三支溫度計的讀數
     h = VZ.out_sig(V)
     txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h)))
     assert h.count('class="ofam ofam-') == 2 and h.index("RSI（14 日）") < h.index("進入同時兩個以上面向過熱")   # 短線在前
@@ -675,7 +696,8 @@ def test_outlook_signals_table_and_summary(monkeypatch):
     assert "大跌（最大回撤 10% 以上）的機率 67%" in txt and "RSI(2) 超賣反彈" in txt
     assert not any(w in txt for w in BANNED)
     assert "現在沒有成立的好訊號" in VZ.out_sig({"mk": "tw", "sigtoday": _board_v([], [])})
-    assert "研究結果還沒產生" in VZ.out_sig({"mk": "tw"}) and VZ.out_summary({"mk": "tw"}) == "好訊號的研究結果還沒產生"
+    assert "研究結果還沒產生" in VZ.out_sig({"mk": "tw"})
+    assert f'id="{VZ.osg_id(up["id"])}"' in h and f'id="{VZ.osg_id(warn["id"])}"' in h     # 今天的重點那一列捲到這裡
 
 
 def test_outlook_dims_use_zone_backtest(built):
