@@ -15,7 +15,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 10 and X.SPEC_DATE == "2026-10-21"
+    assert X.VER == 11 and X.SPEC_DATE == "2026-10-21"
     assert X.H_BUY == 60                                                  # VER 10：大跌後買點看買進後 3 個月有沒有漲
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
     assert X.LAG == 1 and X.DIRS == ("up", "warn", "buy") and X.WARN_LONG == 0.20
@@ -106,7 +106,7 @@ def test_sig_spec_v9_luck_test_and_families_are_locked():
     assert X.HIT_MIN == {"up": 0.60, "warn": 0.50, "buy": 0.60} and X.EDGE_GOOD == 0.10 and X.N_MIN == 5
     assert (X.RECENT_YEARS, X.RECENT_N) == (10, 5)
     assert not any(hasattr(X, k) for k in ("K_GOOD", "K_REF", "NOISE_DRAWS", "NOISE_SEED", "NOISE_SHIFT"))
-    assert X.FAMILY_J == 0.40
+    assert not hasattr(X, "FAMILY_J") and (X.FAMILY_O, X.FAMILY_X) == (0.50, 2.0)   # VER 11：合併改看比較少出現的那個
     # p 的解析度：1% 要能被 LUCK_DRAWS 次平移分辨（至少要有 3 次以上「做得到」的空間）
     assert (1 + 3) / (1 + X.LUCK_DRAWS) <= X.LUCK_P
 

@@ -159,7 +159,7 @@ def view() -> dict:
         if n:
             on.update(n["on"])
             asof[mk] = n["d"]
-    today = {mk: G.today(rows, on, mk) for mk in TODAY_MK if mk in asof}
+    today = {mk: G.today(rows, on, mk, (G.NOW.get(mk) or {}).get("acts")) for mk in TODAY_MK if mk in asof}
     for r in ST.get("rows") or []:
         if r["cat"] == "stock" and r.get("live"):
             on[r["id"]] = {"live": r["live"]}
@@ -363,9 +363,12 @@ def today_html(V: dict) -> str:
             lis = [_xs_li(it) for it in sx]
             for r in items:
                 mark = S.TIER_MARK[r["tier"]]
+                fam = r.get("fam") or []
+                also = (f'<span class="sgfm">同時成立：{_e("、".join(x["name"] for x in fam))}（過去常一起出現，算同一件事）</span>'
+                        if fam else "")
                 lis.append(f'<li><a class="sgi" href="#s={_e(r["id"])}"><span class="sgtk sgtk-{r["tier"]}">{mark}</span>'
                            f'<span class="sgnm">{_e(r["name"])}</span><span class="sgd sgd-{r["d"]}">{_e(S.DIR_NAMES[r["d"]])}</span>'
-                           f'<span class="sgln">{_line(r)}<span class="sgs">{_e(_since(r["now"], V["asof"].get(mk)))}</span></span></a></li>')
+                           f'<span class="sgln">{_line(r)}<span class="sgs">{_e(_since(r["now"], V["asof"].get(mk)))}</span></span>{also}</a></li>')
             body = '<ul class="sgl">' + "".join(lis) + "</ul>"
         cards.append(f'<div class="sgk">{head}{body}</div>')
     lis = []
@@ -386,7 +389,7 @@ def today_html(V: dict) -> str:
     stk_body = ('<ul class="sgl">' + "".join(lis) + "</ul>") if lis else '<p class="sgnone">目前沒有判定為好策略的個股策略。</p>'
     cards.append(f'<div class="sgk"><h3>個股<span class="sub">資料到 {_e(_d(V["asof"].get("stk")))}</span></h3>{stk_body}'
                  '<p class="note">策略現在持有什麼、下一批什麼時候買，看<a href="x9.html">個股頁</a>機會分頁。</p></div>')
-    return ('<section class="sec" id="today"><h2>今天有效的好訊號<span class="sub">同一個項目只列一種；依「比隨便挑一天多幾個百分點」排序；'
+    return ('<section class="sec" id="today"><h2>今天有效的好訊號<span class="sub">同一個項目只列一種；過去常一起出現的併成一列；依「比隨便挑一天多幾個百分點」排序；'
             '★ 大神策略照規則現在有動作的排最前面（標「策略」）；點一列看那個指標</span></h2>'
             f'<div class="sgt">{"".join(cards)}</div></section>')
 
@@ -552,6 +555,7 @@ CSS = """
 .sgnm{font-weight:600;font-size:14px;flex:0 1 auto;min-width:0}.sgln{flex:1 1 100%;font-size:12.5px;color:var(--ink2);padding-left:20px}
 .sgln b{color:var(--ink)}.sgs{color:var(--mut);margin-left:6px}
 .sgnone{font-size:13px;color:var(--ink2);margin:4px 0}
+.sgfm{flex:1 1 100%;font-size:12px;line-height:1.55;color:var(--mut);padding-left:20px}
 .sgtk{display:inline-block;width:14px;text-align:center;font-weight:700}
 .sgtk-good{color:var(--acc)}.sgtk-ref{color:var(--ink2)}.sgtk-none,.sgtk-few{color:var(--mut)}
 .sgd{font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--line2);white-space:nowrap}

@@ -979,7 +979,7 @@ def load_research() -> dict | None:
         R = json.loads(RESEARCH.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
-    return R if R.get("ver") == S.VER else None
+    return R if (R.get("ver") or 0) >= S.RES_VER else None
 
 
 _RCACHE: dict = {}
@@ -1066,9 +1066,10 @@ def edge(st: dict | None) -> float | None:
     return st["hit"] - st["base"]
 
 
-def today(rows: list[dict], on: dict, mk: str) -> dict:
-    """訊號總覽「今天有效的好訊號」（sigspec 第 5 節）：這個市場現在有效的 ★，同一個變數只留差最大的一種，依差排序、最多 TODAY_MAX 列；
-    沒有 ★ 就沒有（VER 9）。→ {"good": [...]}（每列＝研究列＋現在的狀態＋方向＋差）。"""
+def today(rows: list[dict], on: dict, mk: str, acts: dict | None = None) -> dict:
+    """訊號總覽「今天有效的好訊號」（sigspec 第 5 節）：這個市場現在有效的 ★，同一個變數只留差最大的一種；同類合併（VER 11，
+    同一支溫度計、同一邊，acts＝現在有效的訊號過去出現的日子），一類一列、依差排序、最多 TODAY_MAX 列；沒有 ★ 就沒有（VER 9）。
+    → {"good": [...]}（每列＝研究列＋現在的狀態＋方向＋差＋"fam"＝同時成立的其他訊號）。"""
     def pick(tr: str) -> list[dict]:
         best_by: dict = {}
         for r in rows:
@@ -1082,7 +1083,10 @@ def today(rows: list[dict], on: dict, mk: str) -> dict:
                 if key not in best_by or e > best_by[key]["edge"]:
                     best_by[key] = {**r, "d": d, "edge": e, "now": on[r["id"]]}
         return sorted(best_by.values(), key=lambda x: (-x["edge"], x["id"]))
-    return {"good": pick("good")[:S.TODAY_MAX]}
+    xs = pick("good")
+    for x in xs:
+        x["hz"], x["side"] = horizon(x), ("warn" if x["d"] == "warn" else "up")
+    return {"good": families(xs, acts)[:S.TODAY_MAX]}
 
 
 def horizon(r: dict) -> str:
@@ -1100,17 +1104,26 @@ def item_key(r: dict) -> tuple:
     return ("item", r["var"]) if r["cat"] in ("heat", "deriv") else (r["cat"], r["var"])
 
 
-def jaccard(a: np.ndarray | None, b: np.ndarray | None) -> float:
-    """過去一起出現的日子 ÷ 任一個出現的日子。"""
-    if a is None or b is None or len(a) != len(b):
-        return 0.0
-    u = int((a | b).sum())
-    return int((a & b).sum()) / u if u else 0.0
+def overlap(a: np.ndarray | None, b: np.ndarray | None) -> tuple[float, float]:
+    """（出現日子比較少的那個，出現的日子裡另一個也成立的比例，另一個在全部樣本日成立的比例）；資料不齊回 (0, 1)。"""
+    if a is None or b is None or len(a) != len(b) or not len(a):
+        return 0.0, 1.0
+    na, nb = int(a.sum()), int(b.sum())
+    if not na or not nb:
+        return 0.0, 1.0
+    lo, hi = (a, b) if na <= nb else (b, a)
+    return int((lo & hi).sum()) / int(lo.sum()), float(hi.mean())
+
+
+def same_family(a: np.ndarray | None, b: np.ndarray | None) -> bool:
+    """sigspec 第 5 節 ①b（VER 11）：比較少出現的那個出現時，另一個過半也成立，而且至少是互不相干時的 FAMILY_X 倍。"""
+    o, q = overlap(a, b)
+    return o >= S.FAMILY_O and o >= S.FAMILY_X * q
 
 
 def families(items: list[dict], acts: dict | None) -> list[dict]:
-    """同類合併（sigspec 第 5 節 ①b，VER 8 寫定、VER 9 照用）：同一支溫度計、同一邊，過去一起出現的比例 ≥ FAMILY_J 的併成一類
-    （單一連結）；大跌後買點同一個市場算一類。→ 每一類的領頭（差最大），其他放在 "fam"。"""
+    """同類合併（sigspec 第 5 節 ①b；VER 8 寫定、VER 11 改條件）：同一支溫度計、同一邊，same_family 的併成一類（單一連結）；
+    大跌後買點同一個市場算一類。→ 每一類的領頭（差最大），其他放在 "fam"。"""
     acts = acts or {}
     groups: dict = {}
     for x in items:
@@ -1127,7 +1140,7 @@ def families(items: list[dict], acts: dict | None) -> list[dict]:
         for i in range(len(xs)):
             for j in range(i + 1, len(xs)):
                 a, b = xs[i], xs[j]
-                if (a["cat"] == "buy" and b["cat"] == "buy") or jaccard(acts.get(a["id"]), acts.get(b["id"])) >= S.FAMILY_J:
+                if (a["cat"] == "buy" and b["cat"] == "buy") or same_family(acts.get(a["id"]), acts.get(b["id"])):
                     parent[find(i)] = find(j)
         cl: dict = {}
         for i, x in enumerate(xs):
@@ -1521,4 +1534,4 @@ def load_stock() -> dict | None:
         R = json.loads(STOCK.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
-    return R if R.get("ver") == S.VER else None
+    return R if (R.get("ver") or 0) >= S.RES_VER else None
