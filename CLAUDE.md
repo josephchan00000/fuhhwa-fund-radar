@@ -1423,12 +1423,12 @@ Yahoo 連結），手機列高近 180px。現為兩行——`.etline` 讓**代�
   · **⚠ 2026-10-21 盤查：滑到 97%（72 檔，含本家 00998A 19 檔）**——95% 門檻擋不住慢慢倒退，
     也沒有任何每日檢查（每日缺口檔只看基金前十大）。修法＝`fund_intro.uncovered_etf_holdings()`
     併進同一份缺口檔（`src: "etf"`），走同一條 15:33 補簡介迴路；`etf_holdings.yml` 抓完也跑一次。
-    當天另補 70 檔。**陸股通代號 `002463 C2`／`600183 C1`** 原本剝不掉字尾，庫裡明明有滬電、生益
+    當天補 69 檔新簡介，Advantest 的代號 `6857.T` 改 `6857`（ETF 持股 `6857 JP` 與日股 Yahoo 連結都要純代號）。**陸股通代號 `002463 C2`／`600183 C1`** 原本剝不掉字尾，庫裡明明有滬電、生益
     也顯示不出來——`norm_ticker` 現在也剝 C1／C2。
   · **名稱帶 `&amp;`**：復華 assetsExcel 的 sharedStrings 是 XML，`fhtrust._parse_xlsx` 原本沒還原實體，
     00998A「M&amp;G公開有限公司」、基金 131「JPMORGAN CHASE &amp; CO」進了落檔，網頁再跳脫一次
     就顯示成字面「&amp;」（籌碼雷達也是）。解析端已還原；讀取端（`fund_intro.load`、
-    `etfholdings.view`、`lab/collect.names_from_holdings`）也還原，舊落檔不必重抓；profiles 鍵一律寫乾淨名稱（tests 守）。
+    `etfholdings.view`、`lab/collect.names_from_holdings`）也還原，舊落檔不必重抓；profiles 鍵寫乾淨名稱（`_profiles()` 讀取時也會還原，舊鍵照樣對得上）。
 · **代號要正規化再查（2026-07-31 踩坑，光這條就白白落空數十檔）**：ETF 快照的海外代號
   是**彭博式帶交易所碼**（`AMD US`／`8035 JP`／`IFX GY`／`009150 KS`），簡介庫存的是
   純代號 `AMD`——不剝字尾就永遠對不上，明明庫裡有卻顯示不出來。`fund_intro.norm_ticker()`
