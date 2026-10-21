@@ -2438,6 +2438,7 @@ function tInit() {
   const rs = $('#treset');
   if (rs) rs.addEventListener('click', () => { const d = tMob() ? TDEFM : TDEF; TS.yaw = d.yaw; TS.pitch = d.pitch; tDraw(); }, SG);
   if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (document.documentElement.dataset.hv === 'terrain') tDraw(); }, SG);
+  window.addEventListener('labtheme', () => { if (document.documentElement.dataset.hv === 'terrain') tDraw(); }, SG);   // 頂欄的深淺色按鈕（appnav）
 }
 function wkIdx(d) { const ds = D.w.d; let lo = 0, hi = ds.length - 1; if (d > ds[hi]) return hi; while (lo < hi) { const m = (lo + hi) >> 1; if (ds[m] >= d) hi = m; else lo = m + 1; } return lo; }
 function tData() {

@@ -664,7 +664,7 @@ def render(V: dict) -> str:
             + IP.section(I, V.get("IR") or {}, ikeys) + types_sec(V) + METHOD)
     if not V["M"]:
         body = '<p class="warn">泡沫等級還算不出來（缺 PSY 臨界值表：scripts/run_bub.py --cv）。</p>'
-    return (_HTML.replace("{{APPTAB}}", appnav.bar("bub")).replace("{{CSS}}", HCSS + appnav.CSS + CSS + IP.CSS)
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("bub")).replace("{{CSS}}", HCSS + appnav.CSS + CSS + IP.CSS)
             .replace("{{ASOF}}", _e(_md(V["asof"]))).replace("{{BODY}}", body)
             .replace("{{DATA}}", page_json(V, idata) if V["M"] else "{}")
             .replace("{{JS}}", JS + IP.JS))

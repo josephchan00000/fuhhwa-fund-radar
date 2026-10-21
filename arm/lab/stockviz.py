@@ -233,4 +233,6 @@ function spotDraw(){const box=$('#spotbox');if(!box)return;const W0=D.wl||{},Y=W
       `<div>RS ${o.rs}・近 3 月營收年增 ${o.x[5]==null?'—':pctT(o.x[5],0)}</div><div class=vzs>${wlBuy(ST[o.x[0]],o.x[3]).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()}</div><div class=vzs>點一下打開公司卡</div>`;},
     el=>{tip.hidden=true;openCo(VZS.spote[+el.dataset.spot].x[0]);});}
 let VZR=0,VZW=innerWidth;addEventListener('resize',()=>{clearTimeout(VZR);VZR=setTimeout(()=>{if(Math.abs(innerWidth-VZW)<30)return;VZW=innerWidth;tlDraw();mmDraw();spotDraw();},200);});
+function vzTheme(){tlDraw();mmDraw();spotDraw();}                     // 深淺色換了：資金地圖等用程式算顏色的圖重畫（appnav 的按鈕、系統設定）
+addEventListener('labtheme',vzTheme);if(typeof matchMedia==='function')matchMedia('(prefers-color-scheme: dark)').addEventListener('change',vzTheme);
 """

@@ -523,7 +523,7 @@ def render(V: dict) -> str:
     body = today_html(V) + TABLE + research_html(V) + method_html(V.get("luck"))
     if not V["rows"]:
         body = '<p class="warn">還沒有研究結果（scripts/run_sig.py）。</p>'
-    return (_HTML.replace("{{APPTAB}}", appnav.bar("sig")).replace("{{CSS}}", HCSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS + QP.CSS + BP.CSS + CSS)
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("sig")).replace("{{CSS}}", HCSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS + QP.CSS + BP.CSS + CSS)
             .replace("{{ASOF}}", _e(("資料到 " + asof) if asof else "")).replace("{{BODY}}", body)
             .replace("{{DATA}}", page_json(V)).replace("{{PANEL}}", PANEL).replace("{{JS}}", JS))
 

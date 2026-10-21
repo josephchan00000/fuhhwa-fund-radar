@@ -26,3 +26,37 @@ def test_both_pages_use_the_shared_bar_and_back_link():
         top = tpl.split('<div class="top">', 1)[1].split("</div>", 1)[0]
         assert top.startswith("{{APPTAB}}") and 'href="./">返回主頁' in top
         assert 'class="back" href="x9' not in top                              # 舊的小字互連拿掉，改由主分頁切換
+
+
+def test_theme_toggle_dual_dark_css_and_finish():
+    """日夜間按鈕（docs/lab_noise_plan.md 第 5、11 節；使用者選自動 → 淺色 → 深色）：深色樣式改寫成「系統深色而且沒選淺色」
+    與「選了深色」兩份；<head> 在畫面出來之前套上 data-theme；頂欄「返回主頁」前面一顆按鈕；用程式算顏色的圖聽 labtheme 重畫。"""
+    from arm.lab import appnav as A
+    css = ":root{--bg:#fff}@media (prefers-color-scheme:dark){:root{--bg:#000}.a,.b{--c:1}}.z{color:red}"
+    out = A.dual_dark(css)
+    assert out == (':root{--bg:#fff}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000}'
+                   ':root:not([data-theme="light"]) .a,:root:not([data-theme="light"]) .b{--c:1}}'
+                   ':root[data-theme="dark"]{--bg:#000}:root[data-theme="dark"] .a,:root[data-theme="dark"] .b{--c:1}.z{color:red}')
+    odd = "@media (prefers-color-scheme:dark){@supports (x:y){.a{b:c}}}"
+    assert A.dual_dark(odd) == odd                                                # 看不懂的段落照原樣保留
+    page = ('<html><head><style>:root{--bg:#fff}@media (prefers-color-scheme:dark){:root{--bg:#000}}</style></head><body>'
+            '<div class="top"><nav></nav><a class="back" href="./">返回主頁</a></div></body></html>')
+    f = A.finish(page)
+    head = f[:f.index("</head>")]
+    assert ':root[data-theme="dark"]{--bg:#000}' in head and A.THEME_CSS in head and A.THEME_HEAD in head
+    assert head.index("</style>") < head.index(A.THEME_HEAD)
+    assert f.count('id="thm"') == 1 and f.index('id="thm"') < f.index('<a class="back"')
+    assert '"labTheme"' in A.THEME_HEAD and '["auto","light","dark"]' in A.THEME_HEAD and 'new Event("labtheme")' in A.THEME_HEAD
+    assert "localStorage.removeItem(K)" in A.THEME_HEAD                             # 回到自動＝不留紀錄
+
+
+def test_all_lab_pages_finish_with_theme_toggle():
+    """五頁（台股景氣、美股景氣、泡沫、個股、訊號總覽）都經過 appnav.finish；主頁（復華雷達）不碰。"""
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parents[1] / "arm" / "lab"
+    for f in ("heatpage.py", "heatpage_us.py", "bubpage.py", "sigpage.py", "page.py"):
+        assert "return appnav.finish(_HTML" in (root / f).read_text(encoding="utf-8"), f
+    fd = (root.parent / "fund_dashboard.py").read_text(encoding="utf-8")
+    assert "appnav" not in fd and "labTheme" not in fd
+    viz, sv = (root / "heatviz.py").read_text(encoding="utf-8"), (root / "stockviz.py").read_text(encoding="utf-8")
+    assert "addEventListener('labtheme'" in viz and "addEventListener('labtheme',vzTheme)" in sv

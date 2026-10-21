@@ -2882,6 +2882,13 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
     「五條線放在一起不知道哪條是哪條」→ 選 **A 每條一個身分色＋B 點一下只看一條**（`heatviz.DCOL` → CSS `--dfund…--dbubl`，
     相鄰兩條色弱 ΔE ≥ 9，數字在規劃第 9 節）。山頂與谷底畫成「門檻線到山脊之間」的多邊形，不用 clip——只看一條時其他條半透明，clip 會露出整片藍。
   · 配色：`heatpage._CSS` 淺色 `:root`＋`@media (prefers-color-scheme:dark)` 深色；SVG 用 class 上色，**不把 `var()` 寫進 SVG 屬性**（Safari 不支援）。
+  · **日夜間按鈕**（2026-10-21；使用者 10/20：「日夜間模式我希望可以按鈕轉換」，選自動 → 淺色 → 深色三段；`docs/lab_noise_plan.md` 第 5、11 節）：
+    五頁頂欄「返回主頁」前一顆按鈕（`appnav.THEME_BTN`），選擇記在這台瀏覽器（localStorage `labTheme`，回到自動就刪掉）；`<head>` 一小段程式
+    （`appnav.THEME_HEAD`）在畫面出來之前套上 `data-theme`。**五頁的 render 一律 `return appnav.finish(…)`**：把 `<head>` 樣式裡每一段
+    `@media (prefers-color-scheme:dark){…}` 改寫成「系統深色而且沒選淺色」（`:root:not([data-theme="light"])`）與「選了深色」
+    （`:root[data-theme="dark"]`）兩份（`appnav.dual_dark`），所以**新的深色樣式照舊寫在 media 裡就好**，不用自己寫兩份。
+    用程式算顏色的圖要聽 `labtheme` 事件重畫（現在＝景氣頁 3D 地形、個股頁資金地圖／時間軸／位置圖）。主頁（復華雷達）不用這支。
+    `tests/test_appnav.py` 守 dual_dark 與五頁都經過 finish。
 - **個股頁（x9；`arm/lab/stockviz.py`＋page／copage 配色）**
   · 深淺配色同上做法；page／copage 圖表 JS 裡寫死在 SVG 屬性的顏色不改程式，由 `page.THEME_HEX`＋`theme_css()` 用屬性選擇器
     （`svg [fill="#d33a34"]{fill:var(--gain)}`）換成變數——SVG 屬性是優先順序最低的樣式，各瀏覽器都蓋得過。**新寫死的顏色要補進表**（tests 守）。
