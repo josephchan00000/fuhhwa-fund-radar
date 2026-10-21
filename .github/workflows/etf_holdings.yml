@@ -77,6 +77,10 @@ jobs:
         if: inputs.probe != true
         run: TZ=Asia/Taipei timeout 240 python3 scripts/fetch_lab.py --extra || true
 
+      - name: 持股簡介缺口（新換進的 ETF 持股缺簡介 → 缺口檔＋儀表板紅章，15:33 班補；不擋發佈）
+        if: inputs.probe != true
+        run: TZ=Asia/Taipei python3 scripts/check_holdings_intro.py || true
+
       - name: 重建儀表板（2026-07-30 使用者：持股更新排進每日循環——傍晚抓完直接上線，
               當日貢獻當晚可見，不等隔日早上 daily.yml）
         if: inputs.probe != true
@@ -93,6 +97,7 @@ jobs:
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
           git add -f data/etf_holdings.json 2>/dev/null || true
           git add -f data/stock_industry.json 2>/dev/null || true
+          git add -f data/holdings_intro_gap.json 2>/dev/null || true  # 持股簡介缺口（含 ETF 持股，2026-10-21）
           git add dashboard/index.html 2>/dev/null || true
           git add -f data/lab dashboard/x9.html 2>/dev/null || true   # 籌碼雷達（分片＋隱藏頁，2026-10-14）
           git add -f dashboard/x9s.json 2>/dev/null || true             # 籌碼雷達個股走勢序列（開個股卡才載入；分開 add：缺檔時不連累上一行的分片）

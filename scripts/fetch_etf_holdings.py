@@ -45,6 +45,9 @@ _KINDS = ("active", "other", "passive")
 # 2026-07-29 教訓：曾誤標 00998A/00986D「結構性不支援」——限制在我的 schema，不在資料。
 _TIMEOUT = 20
 _UA = {"User-Agent": "Mozilla/5.0 (fuhhwa-fund-radar; etf-holdings)"}
+# 債券 ETF 的檔數門檻（etfinfo 是結構化 API，不會刮到推薦連結；10 檔門檻是為通用網頁解析設的）。
+# 00987D 美國公債 ETF 只持有 3 檔，2026-08-26 掛牌以來一直被擋、詳情區沒有它（2026-10-21 盤查）。
+_MIN_BOND_HOLDINGS = 1
 
 
 # ── 主來源：etfinfo ──────────────────────────────────────────────────
@@ -65,11 +68,14 @@ def _from_etfinfo(code: str) -> tuple[list[dict], str | None, str]:
     rows = etfholdings.drop_non_holdings(rows)
     rows = pcf._drop_value_like_shares(
         sorted(rows, key=lambda h: -(h.get("weight") or 0)))
-    why = pcf.implausible_reason(rows)
+    bond = code in etfwatch.bond_codes()
+    why = pcf.implausible_reason(rows, min_n=_MIN_BOND_HOLDINGS if bond else None)
     if why:
-        return [], None, f"etfinfo {len(rows)} 檔未過驗證（{why}）"
+        return [], None, f"etfinfo {len(rows)} 檔未過驗證（{why}）｜{pcf.sample_rows(rows)}"
     asof = (str(meta.get("as_of"))[:10] or None) if meta.get("as_of") else None
-    return rows, asof, f"etfinfo ✓ {len(rows)} 檔（快照日 {asof or '未標'}）"
+    few = (f"｜債券 ETF、檔數少於 {pcf._MIN_HOLDINGS} 也收：{pcf.sample_rows(rows)}"
+           if bond and len(rows) < pcf._MIN_HOLDINGS else "")
+    return rows, asof, f"etfinfo ✓ {len(rows)} 檔（快照日 {asof or '未標'}）{few}"
 
 
 
@@ -250,6 +256,9 @@ def main() -> int:
             verify = {"status": "single", "other": None}
             n_single += 1
         # 資料日一律用**該來源自己的快照日**；沒有的（Yahoo／fhtrust 掃不到日期）才回退
+        # 名稱一律還原 HTML 實體（`M&amp;G` → `M&G`）：來源若給跳脫過的字串，網頁再跳脫一次就顯示成字面
+        rows = [({**r, "name": etfholdings.clean_name(r["name"])} if "&" in str(r.get("name") or "") else r)
+                for r in rows]
         fresh[code] = {"date": asof or fallback_date,
                        "src": src, "verify": verify, "holdings": rows}
         mark = {"match": "🟢", "single": "◯", "mismatch": "⚠", "weak": "◐"}[verify["status"]]

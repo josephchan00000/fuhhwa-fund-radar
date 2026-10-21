@@ -60,3 +60,17 @@ def test_fetch_bond_fund_multi_section(monkeypatch):
     bond = next(x for x in snap["holdings"] if x["stock_id"] == "US06423AAJ25")
     assert bond["shares"] == 4900000 and bond["face_ccy"] == "USD"
     assert bond["market_value"] == 10000 and bond["weight"] == 60.0
+
+
+def test_shared_strings_xml_entities_are_unescaped(monkeypatch):
+    """sharedStrings 是 XML：`M&G` 在檔裡是 `M&amp;G`。2026-10-21 前沒還原，00998A 的
+    「M&amp;G公開有限公司」帶著實體進落檔，網頁顯示成字面「&amp;」。"""
+    xlsx = make_xlsx(
+        "復華全球金融股票入息主動式ETF（00998A）", "2026/10/20",
+        {"基金資產淨值": "16850", "基金在外流通單位數": "1000", "基金每單位淨值": "16.85"},
+        [(["證券代號", "證券名稱", "股數", "金額", "權重(%)"],
+          [["MNG LN", "M&G公開有限公司", "1,000,000", "8,425", "50.000%"],
+           ["8725 JP", "MS&AD保險集團控股公司", "280,000", "8,425", "48.580%"]])])
+    monkeypatch.setattr(fhtrust, "get_bytes", lambda *a, **k: xlsx)
+    snap = fhtrust.fetch_holdings("ETF24", "2026-10-20")
+    assert [h["stock_name"] for h in snap["holdings"]] == ["M&G公開有限公司", "MS&AD保險集團控股公司"]

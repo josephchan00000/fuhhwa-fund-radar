@@ -684,6 +684,23 @@ def test_fhtrust_source_maps_foreign_tickers(monkeypatch):
     assert "fhtrust ✓" in log
 
 
+def test_etfinfo_bond_etf_with_few_holdings_passes(monkeypatch):
+    """00987D 美國公債 ETF 只持有 3 檔：2026-08 掛牌以來被 10 檔門檻擋掉、詳情區沒有它。
+    債券 ETF（追蹤清單分類含「債」）放寬到 1 檔；股票 ETF 照舊 10 檔，失敗時日誌帶樣本列。"""
+    m = _fh_mod()
+    three = [{"code": f"US91282C{i}", "name": f"T {4 + i} 08/15/2035", "weight": 30.0 - i,
+              "shares": 1000000 * (i + 1)} for i in range(3)]
+    from arm.connectors import etfinfo as ei
+    monkeypatch.setattr(ei, "fetch_etf", lambda code, cache_ttl=600: {
+        "holdings": {"stocks": three, "snapshotDate": "2026-10-20"}})
+    rows, asof, log = m._from_etfinfo("00987D")
+    assert len(rows) == 3 and asof == "2026-10-20"
+    assert "債券 ETF" in log and "US91282C0" in log
+    rows, asof, log = m._from_etfinfo("0050")                  # 股票 ETF：3 檔不像持股清單
+    assert rows == [] and asof is None
+    assert "門檻 10" in log and "US91282C0" in log              # 擋下時看得到是哪幾列
+
+
 def test_fhtrust_source_skips_unmapped_codes():
     """products.json 沒對映的檔（一般上市 ETF）回空——不會誤打復華官網。"""
     m = _fh_mod()
@@ -987,6 +1004,32 @@ def test_view_returns_stored_detail_when_complete():
     entry = eh.merge_one(DAY1, DAY2)
     entry["detail"] = eh.contributions(entry, QUOTES)
     assert eh.view({"etfs": {"X": entry}}, "X") is entry["detail"]
+
+
+def test_view_unescapes_html_entities_in_names():
+    """舊落檔名稱帶 `&amp;`（復華 xlsx 解析 2026-10-21 前沒還原實體）：網頁 JS 會再跳脫一次，
+    顯示成字面「M&amp;G」。讀取端還原，沒有要改的 detail 原物件回傳（不多做複製）。"""
+    det = {"all": [{"stock_id": "MNG LN", "name": "M&amp;G公開有限公司", "weight": 1.9},
+                   {"stock_id": "C US", "name": "花旗集團公司", "weight": 1.9}],
+           "moves": [{"stock_id": "8725 JP", "name": "MS&amp;AD保險集團控股公司", "kind": "add"}],
+           "rows": []}
+    got = eh.view({"etfs": {"X": {"detail": det, "holdings": [{"stock_id": "C US"}]}}}, "X")
+    assert [r["name"] for r in got["all"]] == ["M&G公開有限公司", "花旗集團公司"]
+    assert got["moves"][0]["name"] == "MS&AD保險集團控股公司"
+    assert det["all"][0]["name"] == "M&amp;G公開有限公司"          # 落檔物件不被改寫
+    clean = {"all": [{"stock_id": "C US", "name": "花旗集團公司"}]}
+    assert eh.view({"etfs": {"X": {"detail": clean}}}, "X") is clean
+    assert eh.clean_name("JPMORGAN CHASE &amp; CO") == "JPMORGAN CHASE & CO"
+    assert eh.clean_name(None) is None and eh.clean_name("台積電") == "台積電"
+
+
+def test_lab_names_from_holdings_unescapes_entities():
+    from arm.lab import collect
+    doc = {"etfs": {"00998A": {
+        "holdings": [{"stock_id": "MNG LN", "name": "M&amp;G公開有限公司"}],
+        "prev": {"8725 JP": {"shares": 1, "weight": 1.0, "name": "MS&amp;AD保險集團控股公司"}}}}}
+    assert collect.names_from_holdings(doc) == {"MNG LN": "M&G公開有限公司",
+                                                "8725 JP": "MS&AD保險集團控股公司"}
 
 
 def test_treemap_tint_scales_with_magnitude():
