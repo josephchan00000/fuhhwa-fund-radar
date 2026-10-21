@@ -1764,7 +1764,7 @@ CI 從零開始會整片變 —，同 etf_watch 的坑）；`fetch_holdings.py` 
 深度籌碼跟技術分析」「入口……不想要太容易被看到」。定案：**不用密語、不加密**（使用者：「不用那麼搞剛，
 就沒那麼好找到就好了」）；**入口＝主頁頁尾右下角淡色小點**，**不進導覽列、不在任何分頁出現**（tests/test_lab.py 守）。
 2026-10-18 起小點改連 `x9m.html`（台股景氣頁；使用者：「點那個 . 之後先出現景氣頁面，個股頁面放旁邊」），
-台股景氣（x9m.html）／美股景氣（x9mu.html）／泡沫（x9b.html，2026-10-18 起）／個股（x9.html，本頁）／訊號總覽（x9o.html，2026-10-19 起）五頁共用頂欄 `arm/lab/appnav.py`（不做窄欄；tests/test_appnav.py 守）。
+台股景氣（x9m.html）／美股景氣（x9mu.html）／泡沫（x9b.html，2026-10-18 起）／大神策略（x9x.html，2026-10-21 起）／個股（x9.html，本頁）／訊號總覽（x9o.html，2026-10-19 起）六頁共用頂欄 `arm/lab/appnav.py`（不做窄欄；手機 640px 以下顯示短名 台股｜美股｜泡沫｜策略｜個股｜訊號，`appnav.SHORT`；tests/test_appnav.py 守）。
 頁面＝`dashboard/x9.html`（Vercel cleanUrls → `/x9`）。
 券商分點暫不做（使用者：先不做）；海外持股只做 ETF 面；債券型 ETF 整檔排除。
 
@@ -2923,9 +2923,10 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
     「現在」照證交所／NYSE 休市表推下一個交易日、這個月底、下一次月底月初（`future_days`）；資料最後一天是否月底也照休市表判斷。
   · **呈現** `arm/lab/xstratpage.py`（文字一律寫日期，不寫今天／明天——美股的資料日是前一個美股交易日）：訊號總覽類別「大神策略」
     （每個市場每個策略一列；點開＝出處、規則、現在、成績表〔全期間／近 10 年／原作者時點〕、判定依據 ✓✗、參數鄰近表、照做的淨值對買進持有、
-    每一筆或每一段持有＋CSV；淨值與每一筆放 x9oh.json 的 `xs`，點開才下載）；今天有效的好訊號與景氣頁今天的重點列 ★ 而且現在有動作的
+    每一筆或每一段持有＋CSV；淨值與每一筆 2026-10-21 起放 `dashboard/x9xh.json`，點開才下載）；今天有效的好訊號與景氣頁今天的重點列 ★ 而且現在有動作的
     （交易型買／持有／賣、進出型買回列偏多；空手、賣出列警示，標「策略」；**溫度計不算策略**）；景氣頁最上面那一行「10 個月均線」（每個市場都列，不論判定）。
-    JS 在 sigpage 的 `xsPanel`／`xsOpen`／`xsEq`／`xsTr`；清單列用假的 row（cat＝'xs'），所有吃 row 的函式都有 xs 分支，CSV 跳過 xs。
+    面板 JS 在 `xstratpage.PANEL_JS`（`xsPanel`／`xsFill`／`xsEq`／`xsTr`／`xsCsv`，大神策略頁與訊號總覽共用，頁面各自只寫打開關閉；要先有 esc、ymd、XS、XSV、PB、CUR、XSHOME）；訊號總覽清單列用假的 row（cat＝'xs'），所有吃 row 的函式都有 xs 分支，CSV 跳過 xs。
+  · **大神策略頁**（2026-10-21；使用者：「大神策略是放在訊號那邊而已嗎？這樣很難找欸」；規劃與決定 `docs/lab_nav_plan.md`）：頂欄第四格「大神策略」`dashboard/x9x.html`（`arm/lab/xspage.py`，`tests/test_xspage.py`）。由上而下：**接下來要做的**（★、● 下一個交易日有訊號，或 14 天內排定要買賣的〔月底月初、Halloween、落底型抱滿的賣出日〕，依日期排；現在的部位每個市場一張卡；判定沒過的收起來）→ **全部策略**（每列一條策略、依短線／落底／季節性／風險控制分段，每欄一個市場；一格＝判定＋狀態〔要動作／有部位／沒有部位三種顏色〕＋現在的關鍵數字；沒有這種資料的市場寫「不適用」；手機改成一條策略一塊、五個市場一排）→ 判定方式 → 其他買賣規則的連結。點一格或一列打開同一個右側面板，網址 `#i=xs:市場:策略`。`build()` 寫 `x9x.html`＋`x9xh.json`（結果算不出來就不改寫）；`gen_fund_dashboard.py` 在訊號總覽之後建；三支 workflow 各兩行 `git add -f dashboard/x9x.html`、`dashboard/x9xh.json`（本機不 commit）。**入口**：景氣頁今天的重點的策略列、兩欄下面一行（`xstratpage.summary_line`：這個市場幾條、★ 幾條、要動作與有部位幾條）、最上面那一行的「10 個月均線」「融資維持率」、訊號總覽的策略面板（「在大神策略頁看…的全部策略」）都連到這一頁。
   · **結果**（規劃第 7 節）：★ 10（RSI(2)、VIX 衝刺在四個美股指數；200 日均線在台股、那斯達克 100）、● 8、○ 16。
     台股短線沒過＝ETF 成本（來回 0.2%）吃掉一半利潤＋隔天收盤 → 使用者選台指期＋收盤前下單＝VER 2（下面）。
     月底月初在美股已沒有優勢；風險控制長期少跌很多，但近 10 年多半少跌不到三分之一 → ●。
@@ -3005,12 +3006,12 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
     相鄰兩條色弱 ΔE ≥ 9，數字在規劃第 9 節）。山頂與谷底畫成「門檻線到山脊之間」的多邊形，不用 clip——只看一條時其他條半透明，clip 會露出整片藍。
   · 配色：`heatpage._CSS` 淺色 `:root`＋`@media (prefers-color-scheme:dark)` 深色；SVG 用 class 上色，**不把 `var()` 寫進 SVG 屬性**（Safari 不支援）。
   · **日夜間按鈕**（2026-10-21；使用者 10/20：「日夜間模式我希望可以按鈕轉換」，選自動 → 淺色 → 深色三段；`docs/lab_noise_plan.md` 第 5、11 節）：
-    五頁頂欄「返回主頁」前一顆按鈕（`appnav.THEME_BTN`），選擇記在這台瀏覽器（localStorage `labTheme`，回到自動就刪掉）；`<head>` 一小段程式
-    （`appnav.THEME_HEAD`）在畫面出來之前套上 `data-theme`。**五頁的 render 一律 `return appnav.finish(…)`**：把 `<head>` 樣式裡每一段
+    六頁頂欄「返回主頁」前一顆按鈕（`appnav.THEME_BTN`），選擇記在這台瀏覽器（localStorage `labTheme`，回到自動就刪掉）；`<head>` 一小段程式
+    （`appnav.THEME_HEAD`）在畫面出來之前套上 `data-theme`。**六頁的 render 一律 `return appnav.finish(…)`**：把 `<head>` 樣式裡每一段
     `@media (prefers-color-scheme:dark){…}` 改寫成「系統深色而且沒選淺色」（`:root:not([data-theme="light"])`）與「選了深色」
     （`:root[data-theme="dark"]`）兩份（`appnav.dual_dark`），所以**新的深色樣式照舊寫在 media 裡就好**，不用自己寫兩份。
     用程式算顏色的圖要聽 `labtheme` 事件重畫（現在＝景氣頁 3D 地形、個股頁資金地圖／時間軸／位置圖）。主頁（復華雷達）不用這支。
-    `tests/test_appnav.py` 守 dual_dark 與五頁都經過 finish。
+    `tests/test_appnav.py` 守 dual_dark 與六頁都經過 finish。
 - **個股頁（x9；`arm/lab/stockviz.py`＋page／copage 配色）**
   · 深淺配色同上做法；page／copage 圖表 JS 裡寫死在 SVG 屬性的顏色不改程式，由 `page.THEME_HEX`＋`theme_css()` 用屬性選擇器
     （`svg [fill="#d33a34"]{fill:var(--gain)}`）換成變數——SVG 屬性是優先順序最低的樣式，各瀏覽器都蓋得過。**新寫死的顏色要補進表**（tests 守）。

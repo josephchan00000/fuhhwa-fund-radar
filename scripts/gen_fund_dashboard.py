@@ -60,6 +60,13 @@ def main() -> None:
         print(f"[訊號總覽] {'已更新' if changed else '無變更'} {sigpage.OUT}")
     except Exception as e:                                # noqa: BLE001
         print(f"[訊號總覽] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
+    # 大神策略頁（dashboard/x9x.html＋淨值與每一筆 x9xh.json；docs/lab_nav_plan.md）。訊號總覽點開策略也讀 x9xh.json；分開建、分開失敗。
+    try:
+        from arm.lab import xspage
+        changed = xspage.build()
+        print(f"[大神策略] {'已更新' if changed else '無變更'} {xspage.OUT}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[大神策略] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
     if "--open" in sys.argv[1:]:
         webbrowser.open(OUT.as_uri())
 

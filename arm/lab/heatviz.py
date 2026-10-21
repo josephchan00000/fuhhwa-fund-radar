@@ -599,11 +599,13 @@ def today_html(V: dict) -> str:
            "過去常一起出現的訊號算同一件事，併成一列（「同時成立」）。"
            "偏多＝之後收盤比現在高；警示＝之後出現一段大回撤（期間最高到之後最低，先漲再跌也算）；"
            "警示類過去的事後驗證比偏多弱，只當提醒。同一個項目兩邊都是 ★ 的標「震盪」。"
-           "標「策略」的是大神策略（照原作者的規則交易、成績判定為 ★ 好策略），現在照規則有動作才列；溫度計不算策略。")
+           "標「策略」的是大神策略（照原作者的規則交易、成績判定為 ★ 好策略），現在照規則有動作才列；溫度計不算策略。"
+           "全部的大神策略現在持有還是空手，看大神策略頁。")
     return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div><p class="ksub">{_e(sub)}</p>'
             f'<details class="tzx"><summary>怎麼看</summary><p>{_e(how)}</p></details>'
             f'{thermo_html(T)}{thermo_more_html(T)}<div class="tzcols">{"".join(cols)}</div>'
-            '<p class="tzm"><a href="x9o.html">全部訊號、研究細節（訊號總覽）→</a></p></section>')
+            + (f'<p class="tzm">{V["xsl"]}</p>' if V.get("xsl") else "")
+            + '<p class="tzm"><a href="x9o.html">全部訊號、研究細節（訊號總覽）→</a></p></section>')
 
 
 def sig_items(B: dict, V: dict) -> dict:

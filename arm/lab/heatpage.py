@@ -283,6 +283,16 @@ def mr_chip(mk: str | None) -> str:
         return ""
 
 
+def xs_line(mk: str | None) -> str:
+    """今天的重點下面一行：這個市場的大神策略幾條、現在有部位幾條，連到大神策略頁（xstratpage.summary_line）。"""
+    try:
+        from . import xstratpage as XSP
+        return XSP.summary_line(mk) if mk else ""
+    except Exception as e:                          # noqa: BLE001
+        print(f"[景氣溫度] 大神策略那一行算不出來：{type(e).__name__}: {e}")
+        return ""
+
+
 def view(B: dict | None = None, R: dict | None = None) -> dict:
     B = B if B is not None else C.build()
     R = R if R is not None else (load_research() or {})
@@ -344,6 +354,7 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
     out["xsb"] = xs_board(out["mk"]) if T else []   # 大神策略（xstratspec）：今天的重點要列的 ★ 策略
     out["xschip"] = xs_chip(out["mk"]) if T else ""
     out["mrchip"] = mr_chip(out["mk"]) if T else ""
+    out["xsl"] = xs_line(out["mk"]) if T else ""     # 今天的重點下面一行（連到大神策略頁）
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
         out["viz"] = VZ.pack(B, out)
