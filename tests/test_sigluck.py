@@ -1,4 +1,4 @@
-"""打亂日子測試（arm/lab/sigluck.py；sigspec 第 3.5 節，VER 9）——和逐筆直接算的版本、正式統計函式比對。"""
+"""打亂日子測試（arm/lab/sigluck.py；sigspec 第 3.5 節，VER 9；VER 17 起市場層級只呈現）——和逐筆直接算的版本、正式統計函式比對。"""
 import math
 
 import numpy as np
@@ -134,28 +134,35 @@ def test_market_p_is_deterministic_and_separates_signal_from_noise():
     assert LK.rng_for("a").integers(0, 10 ** 9) == LK.rng_for("a").integers(0, 10 ** 9) != LK.rng_for("b").integers(0, 10 ** 9)
 
 
-def test_luck_count_uses_threshold_by_shifted_count():
-    """VER 14：運氣會產生幾個 ★——每一次平移用平移後的次數決定門檻（次數 < 15 是 10%，其餘 1%）。"""
+def test_luck_count_uses_absolute_rule_by_shifted_count():
+    """VER 17：運氣會產生幾個 ★、◆——每一次平移用新判定的命中率部分（≥ 60%、不低於平常、近 10 年同一條），
+    平移後次數 ≥ STAR_N 算 ★、N_MIN～STAR_N − 1 算 ◆（報酬兩條不算）；p 照算、只呈現。"""
     T = 2400
     rng = np.random.default_rng(4)
     Yu = (rng.random(T) < 0.6).astype(float)
     Yw = (rng.random(T) < 0.3).astype(float)
     samp = np.arange(50, T - 30)
-    days = sorted(rng.choice(samp, size=9, replace=False).tolist())      # 次數少的訊號
-    for t in days:
-        Yu[t] = 1.0
-    sd = _event(days, samp, H=20, sid="tw:t:rare")
-    R = G.ev_stat(days, Yu, Yw, samp, 20, 2000)
-    got = LK.market_p(sd, Yu, Yw, 2000, R)["up"]["luck"]
-    sh = LK.Shift(sd, Yu, Yw)
-    rows = [LK._summ(*sh.occ(int(o)), 2000) for o in LK.offsets(LK.rng_for(sd["id"]), sh.L)]
-    hits = np.array([np.nan if x["up"][1] is None else x["up"][1] for x in rows])
-    pj = LK.loo_p(hits)
-    exp = sum(1 for j, x in enumerate(rows) if pj[j] <= S.luck_p(x["up"][0])
-              and LK.passes(*x["up"][:2], R["up"]["base"], *x["up"][2:], R["up"]["base10"], "up")) / len(rows)
-    old = sum(1 for j, x in enumerate(rows) if pj[j] <= S.LUCK_P
-              and LK.passes(*x["up"][:2], R["up"]["base"], *x["up"][2:], R["up"]["base10"], "up")) / len(rows)
-    assert abs(got - exp) < 1e-12 and got > old                # 次數少的平移多數用 10%，比只用 1% 多
+    for n_days, sid in ((9, "tw:t:rare"), (40, "tw:t:many")):
+        days = sorted(rng.choice(samp, size=n_days, replace=False).tolist())
+        for t in days:
+            Yu[t] = 1.0
+        sd = _event(days, samp, H=20, sid=sid)
+        R = G.ev_stat(days, Yu, Yw, samp, 20, 2000)
+        got = LK.market_p(sd, Yu, Yw, 2000, R)["up"]
+        sh = LK.Shift(sd, Yu, Yw)
+        rows = [LK._summ(*sh.occ(int(o)), 2000) for o in LK.offsets(LK.rng_for(sd["id"]), sh.L)]
+
+        def ok(x):
+            n, h, n10, h10 = x["up"]
+            if not n or n < S.N_MIN or h is None or h < 0.60 or h < R["up"]["base"]:
+                return False
+            return n10 < S.RECENT_N or (h10 is not None and h10 >= 0.60 and h10 >= R["up"]["base10"])
+        exp_g = sum(1 for x in rows if ok(x) and x["up"][0] >= S.STAR_N) / len(rows)
+        exp_r = sum(1 for x in rows if ok(x) and x["up"][0] < S.STAR_N) / len(rows)
+        assert abs(got["luck"] - exp_g) < 1e-12 and abs(got["luck_rare"] - exp_r) < 1e-12
+        hits = np.array([np.nan if x["up"][1] is None else x["up"][1] for x in rows])
+        assert got["p"] == LK.p_of(hits, R["up"]["hit"])            # p 照舊（只呈現）
+        assert (exp_g + exp_r) > 0                                     # 平常 60% 的市場，平移後的訊號也常常過命中率門檻
 
 
 def test_tier_uses_p_and_thresholds():

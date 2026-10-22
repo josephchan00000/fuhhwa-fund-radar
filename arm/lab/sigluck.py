@@ -4,7 +4,7 @@
 看平移後命中率 ≥ 實際命中率的比例。和 sigcat.ev_stat／st_stat 同一套計次與命中率（tests/test_sigluck.py 逐一比對）。
 
   Shift          一個市場層級訊號的平移計算（事件型、狀態型）
-  market_p(...)  一個市場層級訊號 → 偏多、警示的 p（＋運氣會產生的 ★ 期望個數，只呈現）
+  market_p(...)  一個市場層級訊號 → 偏多、警示的 p（＋運氣會產生的 ★、◆ 期望個數；VER 17 起 p 也只呈現）
   sign_p(b, c)   兩兩成對（大跌後買點、個股偏多）：單尾精確符號檢定
   shift_p(...)   通用：給「第 j 次平移的命中率」函式 → p
 """
@@ -122,11 +122,24 @@ def passes(n, hit, base, n10, hit10, base10, d: str, recent: bool = True) -> boo
     return True
 
 
+def passes_win(n, hit, base, n10, hit10, base10, d: str) -> bool:
+    """VER 17（sigspec 第 3.5 節）：運氣個數用的判定＝第 3 節新判定的命中率部分（報酬兩條沒有算）。"""
+    if not n or n < S.N_MIN or hit is None or base is None:
+        return False
+    hm = S.HIT_MIN[d]
+    if hit < hm or hit < base:
+        return False
+    if (n10 or 0) >= S.RECENT_N:
+        return hit10 is not None and base10 is not None and hit10 >= hm and hit10 >= base10
+    return True
+
+
 def market_p(sd: dict, Yu: np.ndarray, Yw: np.ndarray, r0: int, R: dict, draws: int = S.LUCK_DRAWS) -> dict:
-    """一個市場層級訊號 → {方向: {"p": p, "luck": 運氣會產生 ★ 的機率（把每一次平移當成真的、同一套判定）}}。
-    R＝sigcat.ev_stat／st_stat 的實際結果（用它的命中率與平常，確保和判定同一組數字）。"""
+    """一個市場層級訊號 → {方向: {"p": p, "luck": 運氣會產生 ★ 的機率, "luck_rare": 運氣會產生 ◆ 的機率}}
+    （把每一次平移當成真的、用 VER 17 判定的命中率部分：平移後次數 ≥ STAR_N 算 ★、N_MIN～STAR_N − 1 算 ◆）。
+    R＝sigcat.ev_stat／st_stat 的實際結果（用它的命中率與平常，確保和判定同一組數字）。p 只呈現（VER 17）。"""
     sh = Shift(sd, Yu, Yw)
-    out = {d: {"p": None, "luck": 0.0} for d in ("up", "warn")}
+    out = {d: {"p": None, "luck": 0.0, "luck_rare": 0.0} for d in ("up", "warn")}
     if sh.L == 0:
         return out
     rows = [_summ(*sh.occ(int(o)), r0) for o in offsets(rng_for(sd["id"]), sh.L, draws)]
@@ -134,14 +147,17 @@ def market_p(sd: dict, Yu: np.ndarray, Yw: np.ndarray, r0: int, R: dict, draws: 
         st = R[d]
         hits = np.array([np.nan if x[d][1] is None else x[d][1] for x in rows])
         out[d]["p"] = p_of(hits, st.get("hit"))
-        pj = loo_p(hits)
         b, b10 = st.get("base"), st.get("base10")
-        c = 0
-        for j, x in enumerate(rows):
+        c = cr = 0
+        for x in rows:
             n, h, n10, h10 = x[d]
-            if pj[j] <= S.luck_p(n) and passes(n, h, b, n10, h10, b10, d):     # VER 14：門檻用平移後的次數
-                c += 1
+            if passes_win(n, h, b, n10, h10, b10, d):
+                if n >= S.STAR_N:
+                    c += 1
+                else:
+                    cr += 1
         out[d]["luck"] = c / draws
+        out[d]["luck_rare"] = cr / draws
     return out
 
 

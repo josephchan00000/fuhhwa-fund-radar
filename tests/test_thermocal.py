@@ -62,10 +62,14 @@ def test_stats_before_uses_only_windows_finished_before_cut():
 
 
 def test_vote_rule_is_thermometer_lean_rule():
+    """VER 17：票＝命中率門檻過了（次數 ≥ 5、≥ 60%／50%、不低於平常；sigcat.win_pass），同溫度計的 △。"""
     st = lambda n, hit, base: {"n": n, "hit": hit, "base": base}
-    assert TC.vote({"up": st(5, 0.71, 0.65), "warn": st(5, 0.30, 0.20)}) == "uw"
-    assert TC.vote({"up": st(5, 0.69, 0.65), "warn": st(4, 0.60, 0.20)}) == ""    # +4 點；次數 4
-    assert TC.vote({"up": st(9, None, 0.65), "warn": st(9, 0.26, 0.20)}) == "w" and TC.vote(None) == ""
+    assert TC.vote({"up": st(5, 0.61, 0.60), "warn": st(5, 0.50, 0.45)}) == "uw"
+    assert TC.vote({"up": st(5, 0.62, 0.65), "warn": st(4, 0.60, 0.20)}) == ""    # 比平常低；次數 4
+    assert TC.vote({"up": st(9, 0.59, 0.50), "warn": st(9, 0.49, 0.30)}) == ""    # 沒到 60%／50%
+    assert TC.vote({"up": st(9, None, 0.65), "warn": st(9, 0.55, 0.20)}) == "w" and TC.vote(None) == ""
+    for d, x in (("up", st(7, 0.64, 0.6)), ("warn", st(7, 0.52, 0.52))):
+        assert G.win_pass(x, d) == (TC.vote({"up": x, "warn": {}} if d == "up" else {"up": {}, "warn": x}) != "")
 
 
 def test_rank_and_group_compare_with_own_past():
@@ -212,8 +216,8 @@ def test_calibration_lines_text():
     C = {"H": 20, "th": 0.057, "up": dict(base, v="none"), "warn": dict(base, v="rel")}
     h = VZ.cal_html(C)
     assert h.count('class="tzca"') == 2 and VZ.cal_html(None) == "" and not [x for x in BANNED if x in plain(h)]
-    T = {"thermo": [{"k": "short", "name": "短線", "h": "看 1 個月", "n": {"up": {"good": 0, "ref": 0, "lean": 1},
-                                                                    "warn": {"good": 0, "ref": 0, "lean": 0}},
+    T = {"thermo": [{"k": "short", "name": "短線", "h": "看 1 個月", "n": {"up": {"good": 0, "rare": 0, "lean": 1},
+                                                                    "warn": {"good": 0, "rare": 0, "lean": 0}},
                      "w": {"up": 0.5, "warn": 0}, "share": 1.0, "lean": "up", "more": {}}], "cal": {"short": C}}
     assert VZ.thermo_html(T).count('class="tzca"') == 2 and VZ.thermo_html(dict(T, cal=None)).count("tzca") == 0
 

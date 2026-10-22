@@ -123,7 +123,7 @@ def test_calendar_and_summary(B):
 
 def test_build_is_small_and_serializable(B):
     assert B["mks"] == [mk for mk in S.MARKETS if mk in B["m"]] and B["ver"] == S.VER
-    assert set(B["rule"]) >= {"n", "win", "edge", "dn", "dwin", "dedge", "dmx", "dadd", "mdd", "grid"}
+    assert set(B["rule"]) >= {"n", "win", "edge", "dn", "dwin", "dtq", "dtn", "mdd", "grid"}         # xstratspec VER 6
     assert set(B["spec"]) == {b["k"] for M in B["m"].values() for b in M["book"]}
     assert all(set(v) == {"src", "logic", "pnote"} and v["src"] and v["logic"] for v in B["spec"].values())
     size = len(json.dumps(B, ensure_ascii=False, separators=(",", ":")))

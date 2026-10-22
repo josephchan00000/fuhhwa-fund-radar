@@ -4,8 +4,8 @@
                 過去同一組的週之後上漲／大回撤的比例、區塊重抽判定有沒有關係 → data/lab/thermo_research.json（scripts/run_thermo.py）
   now(mk, ...)  每天建頁：今天的票數（研究檔存的今年 1 月 1 日統計 × 現在有效）→ 每支溫度計兩邊的位置與一句話
 
-票數＝這支溫度計、這一邊，現在有效的 THERMO_X_CATS 訊號裡統計「次數 ≥ N_MIN、比平常高 THERMO_EDGE 以上」的項目數（同一個項目一票；
-不分 ★●△、不做同類合併）。只是描述，不參與任何判定。
+票數＝這支溫度計、這一邊，現在有效的 THERMO_X_CATS 訊號裡「命中率門檻過了」（VER 17：次數 ≥ N_MIN、命中率 ≥ HIT_MIN、
+≥ 平常；VER 16 是比平常高 THERMO_EDGE 以上）的項目數（同一個項目一票；不分 ★◆△、不做同類合併）。只是描述，不參與任何判定。
 """
 from __future__ import annotations
 
@@ -71,14 +71,13 @@ def stats_before(sd: dict, cut: int, Y: tuple, H: int) -> dict | None:
 
 
 def vote(R: dict | None) -> str:
-    """會投哪一邊："u"＝偏多、"w"＝警示（兩邊都會就 "uw"）：次數 ≥ N_MIN 而且這個方向比平常高 THERMO_EDGE 以上。"""
+    """會投哪一邊："u"＝偏多、"w"＝警示（兩邊都會就 "uw"）：VER 17 起＝這個方向的命中率門檻過了（sigcat.win_pass：
+    次數 ≥ N_MIN、命中率 ≥ HIT_MIN、≥ 平常；VER 16 是「比平常高 THERMO_EDGE 以上」）。"""
     if R is None:
         return ""
     out = ""
     for d, c in (("up", "u"), ("warn", "w")):
-        st = R[d]
-        e = G.edge(st)
-        if (st.get("n") or 0) >= S.N_MIN and e is not None and e >= S.THERMO_EDGE:
+        if G.win_pass(R[d], d):
             out += c
     return out
 

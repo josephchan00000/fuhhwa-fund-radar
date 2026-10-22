@@ -647,7 +647,7 @@ def test_outlook_drawer_replaces_now_and_scenario_sections(built, monkeypatch):
 
 
 def _board_v(fams_up, fams_warn, xsb=None, more=None):
-    """sigcat.board 的輸出形狀：溫度計照 sigspec 第 5 節 ③（VER 12）由這些類算（more＝溫度計另外算進去的 ●、△ 類）。"""
+    """sigcat.board 的輸出形狀：溫度計照 sigspec 第 5 節 ③（VER 17）由這些類算（more＝溫度計另外算進去的 ◆、△ 類）。"""
     from arm.lab import sigspec as SS
     allf = {"up": list(fams_up) + [x for x in (more or []) if x["side"] == "up"],
             "warn": list(fams_warn) + [x for x in (more or []) if x["side"] == "warn"]}
@@ -721,10 +721,10 @@ def test_outlook_lead_sentence():
     V = {"sigtoday": {"up": [{"hz": "short"}, {"hz": "short"}, {"hz": "mid"}], "warn": [{"hz": "mid"}], "thermo": th}}
     assert VZ.out_sentence(V) == "短線偏多 2 類；中線偏多 1 類、警示 1 類；長線沒有"
     assert "——" not in VZ.out_tpl.__doc__ + VZ.out_sentence(V)
-    # VER 12：面板開頭先寫三支溫度計的讀數（溫度計比 ★ 寬：長線沒有 ★ 也可能有讀數）
+    # VER 12 起：面板開頭先寫三支溫度計的讀數（溫度計比 ★ 寬：長線沒有 ★ 也可能有讀數）；VER 17：★ 2、◆ 1、△ 0.5
     up = [{"hz": "short", "tier": "good", "side": "up"}, {"hz": "mid", "tier": "good", "side": "up"}]
-    more = [{"hz": "long", "tier": "ref", "side": "warn"}, {"hz": "long", "tier": "lean", "side": "up"},
-            {"hz": "mid", "tier": "ref", "side": "warn"}, {"hz": "mid", "tier": "lean", "side": "warn"}]
+    more = [{"hz": "long", "tier": "rare", "side": "warn"}, {"hz": "long", "tier": "lean", "side": "up"},
+            {"hz": "mid", "tier": "rare", "side": "warn"}, {"hz": "mid", "tier": "lean", "side": "warn"}]
     V2 = {"sigtoday": _board_v(up, [], more=more)}
-    assert VZ.out_thermo(V2) == "短線偏多、中線差不多、長線偏警示"        # 中線 ★2 對 ●1＋△0.5＝57%；長線 △0.5 對 ●1＝33%
+    assert VZ.out_thermo(V2) == "短線偏多、中線差不多、長線偏警示"        # 中線 ★2 對 ◆1＋△0.5＝57%；長線 △0.5 對 ◆1＝33%
     assert VZ.out_thermo({"sigtoday": _board_v([], [])}) == "短線中性、中線中性、長線中性"
