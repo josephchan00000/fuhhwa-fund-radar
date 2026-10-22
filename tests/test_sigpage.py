@@ -50,7 +50,8 @@ def test_today_one_row_per_variable_sorted_by_edge():
     assert sigcat.today(V["rows"], {}, "tw") == {"good": [], "rare": []}                      # VER 17：◆ 另列
 
 
-def test_render_structure_and_data():
+def test_render_structure_and_data(monkeypatch):
+    monkeypatch.setattr(sigpage.OOS, "load", lambda path=None: None)           # 預估之後另外測（test_forward_estimate_*）
     html = sigpage.render(_view())
     assert appnav.bar("sig") in html and "<title>訊號總覽</title>" in html
     for sid in ('id="today"', 'id="all"', 'id="mth"', 'id="sgq"', 'id="sgcsv"', 'id="sgnow"'):
@@ -555,3 +556,56 @@ def test_thermometer_v15_cross_horizon_votes():
     h = VZ.today_html({"sigtoday": dict(B, d="2026-10-16")})
     assert "3 個月・原本看 1 個月" in h and "之後 3 個月上漲的機率 <b>75%</b>（隨便挑一天 65%）・出現過 30 次" in h
     assert "標「原本看…」的是原本看別的期間的訊號" in h and "每個訊號三支溫度計都算" in h
+
+
+def _fwd_table():
+    return {"ver": sigspec.FWD_VER, "nrec": 1234,
+            "cells": {"warn|60|0|4": {"k": 0.2, "kr": None, "n": 150, "ncl": 40}, "up|60|*|3": {"k": 0.25, "kr": 0.5, "n": 300, "ncl": 60},
+                      "warn|60|*|p": {"k": 0.1, "kr": None}, "up|60|*|p": {"k": 0.1, "kr": 0.3}, "up|20|*|p": {"k": 0.5, "kr": 0.6}},
+            "own": {"tw:heat:C1:hot": {"warn": [6, 0.25, 0.03, None, None]}}}
+
+
+def test_forward_estimate_lines_panel_and_method(monkeypatch):
+    """預估之後（sigspec 第 4.14 節，VER 18～19）：今天的清單與指標頁寫「過去 X% → 預估之後 Y%」，只算 ★、◆（跨期間的票、△ 不算）；
+    判定方式加衰退表；研究檔沒有就不列。"""
+    T = _fwd_table()
+    monkeypatch.setattr(sigpage.OOS, "load", lambda path=None: T)
+    V = _view()
+    a = V["rows"][0]
+    line = sigpage._line({**a, "d": "warn", "tier": "good"})
+    assert "大跌（最大回撤 10% 以上）的機率：過去 58% → 預估之後 <b>35%</b>（隨便挑一天 29%）" in line      # 0.29 ＋ 0.2 × 0.29
+    assert sigpage._fe({**a, "d": "warn", "tier": "lean"}) is None and sigpage._fe({**a, "d": "warn", "tier": "good", "xk": "short"}) is None
+    b = dict(V["rows"][1], ret={"s": [None] * 4 + [[13, 0, 0, 0.06, 0, 0, 0, 0, 0, 0.05, 0.04]], "bk": "kb"})
+    sigcat._RCACHE["rows"], sigcat._RCACHE["bases"] = [], {"kb": {"s": [None] * 4 + [[1, 0, 0, 0.02, 0]]}}
+    try:
+        lb = sigpage._line({**b, "d": "up", "tier": "good"})
+        assert "過去 85% → 預估之後 <b>71%</b>（隨便挑一天 66%）" in lb and "預估之後比隨便挑一天多 2.0%" in lb   # 0.66 ＋ 0.25 × 0.19；0.5 × 4%
+        fe, ow = sigpage._fe_pack(b, {})
+        assert fe["up"] == [71, 25, 0, 2.0, 50, 0] and "warn" in fe and len(fe["warn"]) == 3
+    finally:
+        sigcat._RCACHE.clear()
+    j = json.loads(sigpage.page_json(V))
+    assert j["fwd"]["ok"] and set(j["fwd"]) >= {"nb", "eb", "sg", "keys", "omin"}
+    ra = next(r for r in j["rows"] if r[0] == "tw:heat:C1:hot")
+    assert ra[15]["fe"]["warn"][:2] == [35, 20] and j["fwd"]["keys"][ra[15]["fe"]["warn"][2]] == "warn|60|0|4"
+    assert ra[15]["ow"]["warn"] == [6, 25.0, 3.0]
+    assert all("fe" not in r[15] for r in j["rows"] if r[2] == "strat")                      # 策略沒有預估之後
+    m = sigpage.method_html()
+    assert "<dt>預估之後</dt>" in m and 'class="sgfw"' in m and "1,234 筆" in m and "偏多的優勢看 1 個月留下 50%" in m
+    for f in ("function feOf", "function feHtml", "function cellTxt", "function moreTxt", 'id="sgfe"', "預估之後的機率%"):
+        assert f in sigpage.JS, f
+    monkeypatch.setattr(sigpage.OOS, "load", lambda path=None: None)
+    assert sigpage.fwd_html() == "" and sigpage._fe({**a, "d": "warn", "tier": "good"}) is None
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="沒有 node")
+def test_forward_estimate_js_cells_text():
+    """頁面把衰退表的格子（sigoos.key）寫成白話、多賺寫成多／少／差不多。"""
+    fns = [re.search(r"^function " + n + r"\(.*?\n(?=function |const |// )", sigpage.JS, re.S | re.M).group(0) for n in ("moreTxt", "cellTxt")]
+    prog = ("const SG = {dirs: {up: '偏多', warn: '警示', buy: '買點'}, fwd: " + json.dumps(sigpage.fwd_meta({}), ensure_ascii=False) + "};\n"
+            "const HT = {20:'1 個月',60:'3 個月',250:'12 個月'};\n" + "".join(fns) +
+            "console.log(JSON.stringify([moreTxt(0.94), moreTxt(-0.2), moreTxt(0.04), cellTxt('up|20|1|3'), cellTxt('warn|250|*|0'), cellTxt('buy|60|*|p')]));")
+    r = subprocess.run(["node", "-"], input=prog, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stderr
+    assert json.loads(r.stdout) == ["多 0.9%", "少 0.2%", "差不多", "偏多・看 1 個月・出現過 15～39 次・過去比平常高 10～20 點",
+                                    "警示・看 12 個月・過去比平常低", "大跌後買點・看 3 個月・過去不比平常低"]

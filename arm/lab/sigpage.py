@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 
 from . import sigcat as G
+from . import sigoos as OOS
 from . import sigspec as S
 from . import xstratpage as XSP
 from . import xstratspec as XS
@@ -224,7 +225,41 @@ def _stat(st: dict | None):
     return out
 
 
-def _row(r: dict) -> list:
+def _fe_pack(r: dict, keys: dict) -> tuple[dict, dict]:
+    """預估之後（sigspec 第 4.14 節）→ ({方向: [預估機率%（整數）, k%, 格子, 預估多賺%（一位小數）, k_r%, k_r 的格子]},
+    {方向: [年數, 當時過去多幾點, 之後多幾點]}＝這個訊號自己的逐年樣本外)。格子＝keys（鍵 → 編號，頁面的 SG.fwd.keys）；
+    尾端沒有的不列（警示只有前三個）。不在範圍、次數不夠的方向不列。"""
+    fe, ow = {}, {}
+
+    def ki(k):
+        if k is None:
+            return None
+        return keys.setdefault(k, len(keys))
+    for d in (("buy",) if r.get("cat") == "buy" else ("up", "warn")):
+        try:
+            e = OOS.est(r, d)
+        except Exception as ex:                                     # 只影響這一列的預估
+            print(f"[sigpage] 預估之後算不出來 {r.get('id')}：{type(ex).__name__}: {ex}", flush=True)
+            e = None
+        if not e:
+            continue
+        v = [round(100 * e["fh"]), round(100 * e["k"]), ki(e.get("key"))]
+        if e.get("fx") is not None:
+            v += [round(100 * e["fx"], 1) + 0.0, round(100 * e["kr"]), ki(e.get("keyr") or e.get("key"))]   # + 0.0：不寫成 −0.0
+        fe[d] = v
+        o = e.get("own")
+        if o:
+            ow[d] = [o[0], round(100 * o[1], 1) + 0.0, round(100 * o[2], 1) + 0.0]
+    return fe, ow
+
+
+def fwd_meta(keys: dict) -> dict:
+    """頁面解讀衰退表格子用的名稱（sigoos）＋這一頁用到的格子（編號 → 鍵）。"""
+    return {"nb": list(OOS.NB_NAMES), "eb": list(OOS.EB_NAMES), "sg": OOS.SIGN_NAMES,
+            "keys": [k for k, _ in sorted(keys.items(), key=lambda kv: kv[1])], "omin": S.FWD_OWN_MIN, "ok": OOS.load() is not None}
+
+
+def _row(r: dict, keys: dict | None = None) -> list:
     x = {"vn": r.get("vn"), "sig": r.get("sig"), "var": r.get("var")}
     for k in ("desc", "base_name", "old", "unit", "monthly", "few"):
         if r.get(k) is not None:
@@ -245,6 +280,11 @@ def _row(r: dict) -> list:
         x["med"] = _pct(c[3])
         if len(c) > 9 and c[9] is not None:
             x["trm"] = _pct(c[9])
+    fe, ow = _fe_pack(r, {} if keys is None else keys)              # VER 18～19：預估之後（逐年樣本外校正）
+    if fe:
+        x["fe"] = fe
+    if ow:
+        x["ow"] = ow
     th = r.get("th")
     return [r["id"], r["mk"], r["cat"], r.get("grp"), r["name"], r.get("kind"), r.get("H"),
             None if th is None else round(100 * th, 1), r["tier"], r["dir"], _stat(r.get("up")), _stat(r.get("warn")),
@@ -258,7 +298,8 @@ def page_json(V: dict) -> str:
             on[k] = {"live": len(v["live"])}
         else:
             on[k] = {kk: v[kk] for kk in ("since", "n", "left", "event") if kk in v}
-    out = {"rows": [_row(r) for r in V["rows"]], "on": on, "mk": MK_NAMES, "cat": G.CAT_NAMES,
+    keys: dict = {}
+    out = {"rows": [_row(r, keys) for r in V["rows"]], "on": on, "mk": MK_NAMES, "cat": G.CAT_NAMES,
            "asof": V["asof"], "tiers": {t: [S.TIER_MARK[t], S.TIER_NAMES[t]] for t in S.TIERS},
            "stiers": {t: [S.TIER_MARK[t], S.STRAT_TIER_NAMES[t]] for t in S.TIERS if t in S.STRAT_TIER_NAMES},
            "dirs": S.DIR_NAMES, "words": S.VARIANT_NAMES, "rmk": V.get("rmk") or [], "cards": CARD_NAMES,
@@ -266,7 +307,7 @@ def page_json(V: dict) -> str:
            "chart": CHART, "pxn": PX_NAMES, "inm": ind_names(), "scen": scen_meta(),
            "scnv": scen_values(V.get("items") or {}), "scdn": S.SCEN_DIM_NAMES,
            "hit": {d: round(100 * v) for d, v in S.HIT_MIN.items()}, "eg": round(100 * S.EDGE_GOOD), "er": round(100 * S.EDGE_REF),
-           "n10": S.RECENT_N, "nmin": S.N_MIN, "sn": S.STAR_N, "lp": round(100 * S.LUCK_P), "lfn": S.LUCK_FEW_N, "lpf": round(100 * S.LUCK_P_FEW), "ld": S.LUCK_DRAWS, "rh": list(S.RET_H), "pd": list(S.PATH_D), "rhm": list(S.RET_H_M), "rmin": S.RET_N_MIN}
+           "fwd": fwd_meta(keys), "n10": S.RECENT_N, "nmin": S.N_MIN, "sn": S.STAR_N, "lp": round(100 * S.LUCK_P), "lfn": S.LUCK_FEW_N, "lpf": round(100 * S.LUCK_P_FEW), "ld": S.LUCK_DRAWS, "rh": list(S.RET_H), "pd": list(S.PATH_D), "rhm": list(S.RET_H_M), "rmin": S.RET_N_MIN}
     out["xs"] = XSP.payload(V.get("xs") or {})          # 總經策略（xstratspec；點開的淨值與每一筆在 x9xh.json）
     return json.dumps(out, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
@@ -344,14 +385,39 @@ def _line(r: dict) -> str:
         what = f"之後 {h}內大跌（最大回撤 {_th(r['th'])}% 以上）的機率" if r.get("th") else "之後大跌的機率"
     else:
         what = f"買進之後 {h}上漲的機率"
-    out = f'{what} <b>{st["hit"] * 100:.0f}%</b>（隨便挑一天 {st["base"] * 100:.0f}%）'
+    fe = _fe(r)
+    if fe:                                            # VER 18～19：預估之後（逐年樣本外校正）
+        out = (f'{what}：過去 {st["hit"] * 100:.0f}% → 預估之後 <b>{fe["fh"] * 100:.0f}%</b>'
+               f'（隨便挑一天 {st["base"] * 100:.0f}%）')
+    else:
+        out = f'{what} <b>{st["hit"] * 100:.0f}%</b>（隨便挑一天 {st["base"] * 100:.0f}%）'
     med = _med(r) if d != "warn" else None
     if med is not None:
         out += f'・報酬中位數 {_sgn(med)}'
+        if fe and fe.get("fx") is not None:
+            out += f'，預估之後比隨便挑一天{_more(fe["fx"])}'
     out += f'・出現過 {st["n"]} 次'
     if d == "warn" and st.get("mdd") is not None and st.get("mdd_base") is not None:
         out += f'・回撤中位數 {st["mdd"] * 100:.0f}%（隨便挑一天 {st["mdd_base"] * 100:.0f}%）'
     return out
+
+
+def _fe(r: dict) -> dict | None:
+    """預估之後（sigspec 第 4.14 節，VER 18～19）：★、◆ 的列（今天的重點、難得機會、訊號總覽今天的清單）才算；
+    跨期間的票（xk）與 △ 不算。研究檔沒有、不在範圍＝None。"""
+    if r.get("tier") not in ("good", "rare") or r.get("xk") or not r.get("d"):
+        return None
+    try:
+        return OOS.est(r, r["d"])
+    except Exception as ex:                           # 只影響這一行的預估，不擋頁面
+        print(f"[sigpage] 預估之後算不出來 {r.get('id')}：{type(ex).__name__}: {ex}", flush=True)
+        return None
+
+
+def _more(v: float) -> str:
+    """多賺（0～1）→「多 0.9%」／「少 0.2%」／「差不多」（一位小數）。"""
+    x = round(100.0 * v, 1)
+    return f"多 {x:.1f}%" if x > 0 else f"少 {abs(x):.1f}%" if x < 0 else "差不多"
 
 
 def _med(r: dict) -> float | None:
@@ -446,6 +512,55 @@ def today_html(V: dict) -> str:
             f'<div class="sgt">{"".join(cards)}</div></section>')
 
 
+FWD_ROWS = (("偏多・看 1 個月", "up", S.H_TECH), ("偏多・看 3 個月", "up", S.H_CRASH), ("偏多・看 12 個月", "up", S.H_BUB),
+            ("警示・看 1 個月", "warn", S.H_TECH), ("警示・看 3 個月", "warn", S.H_CRASH), ("警示・看 12 個月", "warn", S.H_BUB),
+            ("大跌後買點・看 3 個月", "buy", S.H_BUY))
+
+
+def _kp(c: dict | None, f: str = "k") -> str:
+    return "—" if not c or c.get(f) is None else f"{c[f] * 100:.0f}%"
+
+
+def fwd_html() -> str:
+    """預估之後怎麼算（sigspec 第 4.14 節，VER 18～19）：衰退表（次數合併的 L2 格、留下來的比例）＋一句結論，數字都由研究檔算；
+    研究檔沒有就不列。"""
+    T = OOS.load()
+    if not T:
+        return ""
+    C = T.get("cells") or {}
+
+    def c(d, H, b, g):
+        return C.get(OOS.key(d, H, b, g))
+
+    def tbl(rows, f):
+        head = ('<tr><th class="l">過去比隨便挑一天</th>' + "".join(f"<th>{_e(n)}</th>" for n in OOS.EB_NAMES)
+                + "<th>不比平常低（全部）</th></tr>")
+        body = "".join(f'<tr><td class="l">{_e(nm)}</td>' + "".join(f"<td>{_kp(c(d, H, None, g), f)}</td>" for g in range(5))
+                       + f"<td><b>{_kp(c(d, H, None, 'p'), f)}</b></td></tr>" for nm, d, H in rows)
+        return f'<div class="sgfwr"><table class="sgfw"><thead>{head}</thead><tbody>{body}</tbody></table></div>'
+
+    def pk(d, H, f="k"):
+        return _kp(c(d, H, None, "p"), f)
+    up = [(nm, d, H) for nm, d, H in FWD_ROWS if d != "warn"]
+    big = [_kp(c("up", S.H_TECH, b, 4)) for b in range(3)]
+    txt = (f'偏多的優勢看 1 個月留下 {pk("up", S.H_TECH)}、3 個月 {pk("up", S.H_CRASH)}、12 個月 {pk("up", S.H_BUB)}；'
+           f'警示看 1 個月 {pk("warn", S.H_TECH)}、3 個月 {pk("warn", S.H_CRASH)}、12 個月 {pk("warn", S.H_BUB)}。'
+           f'報酬多賺（比隨便挑一天多賺的部分）偏多看 1 個月留下 {pk("up", S.H_TECH, "kr")}、3 個月 {pk("up", S.H_CRASH, "kr")}、'
+           f'12 個月 {pk("up", S.H_BUB, "kr")}。次數越多留越多（偏多看 1 個月、過去高 20 點以上：'
+           + "、".join(f"{n} {k}" for n, k in zip(OOS.NB_NAMES, big)) + "）。")
+    return ('<dt>預估之後</dt><dd>上面的機率與報酬都是「過去」的成績；之後通常會往下修。做法：每年 1 月 1 日只用之前的資料算每個訊號的機率與報酬，'
+            '再看那一年訊號出現之後實際的結果，和同一年隨便哪天買比（五個市場、所有訊號合併，'
+            f'{T.get("nrec") or 0:,} 筆「訊號 × 年」）。過去比隨便挑一天多 X 個百分點的訊號，之後平均只多「留下來的比例 × X」。'
+            f'<b>{_e(txt)}</b>'
+            '預估之後的機率＝隨便挑一天 ＋ 留下來的比例 ×（過去 − 隨便挑一天）；預估之後多賺＝報酬留下來的比例 ×（過去的報酬中位數 − 隨便挑一天的報酬中位數）。'
+            f'每個訊號用和它同一類的格子（方向、看多久、出現過幾次：{"、".join(OOS.NB_NAMES)}、過去比平常高幾點）；'
+            f'一格至少 {S.FWD_MIN_N} 筆、{S.FWD_MIN_CL} 個「市場 × 年」才算，不夠就把次數合併、再不夠只分比平常高或低；'
+            '留下來的比例截在 0～100%（之後沒有優勢＝跟隨便挑一天一樣）。這是所有訊號平均下來的修正，個別訊號之後可能更好或更差；'
+            '產業泡沫、個股訊號、策略沒有預估之後。下面兩張表是次數合併後的比例。'
+            f'<p class="sgfwh">上漲（或大跌）的機率，優勢留下多少</p>{tbl(FWD_ROWS, "k")}'
+            f'<p class="sgfwh">報酬多賺留下多少（偏多、大跌後買點）</p>{tbl(up, "kr")}</dd>')
+
+
 def method_html(luck: dict | None = None) -> str:
     """名詞與判定方式（sigspec 第 3、3.5 節；VER 17）；luck＝研究檔的「運氣會產生幾個 ★、◆」
     （{市場: {方向: [實際 ★, 運氣會產生的 ★, 實際 ◆, 運氣會產生的 ◆]}}）。"""
@@ -484,7 +599,7 @@ def method_html(luck: dict | None = None) -> str:
             '看有多少比例做得到一樣高的機率——比例越小，越不像運氣。2026-10-22 起只當參考、不參與判定（個股訊號照舊參與）。'
             '大跌後買點與個股偏多訊號是和同一批事件的對照比，改成在每一次事件裡隨機對調「訊號」和「對照」的結果。'
             f'次數少的訊號就算每次都中，亂排做得到一樣準的比例也常超過 {S.LUCK_P * 100:.0f}%（例：8 次、平常 59%，每次都中時亂排也有約 2.5% 做得到）。</dd>'
-            f'{lk}'
+            f'{lk}{fwd_html()}'
             f'<dt>判定</dt><dd><b>★ 好訊號</b>（2026-10-22 起看絕對成績）：至少 {S.STAR_N} 次、機率 ≥ {S.HIT_MIN["up"] * 100:.0f}%（警示 ≥ {S.HIT_MIN["warn"] * 100:.0f}%）、'
             f'不比隨便挑一天差、近 10 年也成立（近 10 年有 {S.RECENT_N} 次以上時）；偏多與大跌後買點另外要報酬中位數與排除極端的平均都比來回成本高（{cost}）。'
             f'<b>◆ 難得機會</b>：同樣的門檻都過了，但只出現 {S.N_MIN}～{S.STAR_N - 1} 次；另列一區、不算 ★（次數少的機率，之後通常會往下修不少，只當參考）。'
@@ -732,6 +847,9 @@ CSS = """
 .sgrch .rp{fill:var(--acc)}
 .sghow{margin-top:12px}.sghow summary{cursor:pointer;color:var(--acc);font-size:13px}
 .sgdl2{margin:6px 0;font-size:13.5px;line-height:1.7}.sgdl2 dt{font-weight:600;margin-top:6px}.sgdl2 dd{margin:0 0 2px 0;color:var(--ink2)}
+.sgfw{border-collapse:collapse;font-size:12.5px;margin:2px 0 8px}.sgfw th,.sgfw td{padding:3px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}.sgfw th{font-weight:600;color:var(--ink2);font-size:12px}.sgfw .l{text-align:left}
+.sgfwh{margin:8px 0 2px;font-weight:600;color:var(--ink)}.sgfwr{overflow-x:auto;max-width:100%}
+.sgfe{margin:4px 0 6px;font-size:13.5px;line-height:1.7}.sgfe p{margin:2px 0}.sgfe .mu{color:var(--mut)}
 /* 總經策略（xstratspec；2026-10-22 前叫大神策略） */
 .xsv{font-size:14px;line-height:1.6;margin:10px 0 0;padding:8px 10px;border-radius:10px;background:var(--card2)}
 .xsr{margin:4px 0 6px;padding-left:20px;font-size:13px;line-height:1.7}
@@ -823,8 +941,38 @@ function phr(r, d){ if (r[I.cat] === 'xs') { const x = SIG2[r[I.id]]; return x ?
   else if (d === 'up') w = c === 'stock' ? '持有 20 天賺錢的機率' : '之後 ' + h + '上漲的機率';
   else w = '之後 ' + h + '內大跌（最大回撤 ' + r[I.th] + '% 以上）的機率';
   const m = d !== 'warn' && c !== 'strat' ? (r[I.x] || {}).med : null;       // VER 17：報酬中位數
-  return w + ' <b>' + pc(s[1]) + '</b>' + (s[2] != null ? '（隨便挑一天 ' + pc(s[2]) + '）' : '') +
-    (m != null ? '・報酬中位數 ' + (m > 0 ? '+' : m < 0 ? '−' : '') + Math.abs(m).toFixed(1) + '%' : ''); }
+  const f = feOf(r, d);                                                         // VER 18～19：預估之後
+  return w + (f ? ' 過去 ' + pc(s[1]) + ' → 預估之後 <b>' + pc(f[0]) + '</b>' : ' <b>' + pc(s[1]) + '</b>') + (s[2] != null ? '（隨便挑一天 ' + pc(s[2]) + '）' : '') +
+    (m != null ? '・報酬中位數 ' + (m > 0 ? '+' : m < 0 ? '−' : '') + Math.abs(m).toFixed(1) + '%' + (f && f[3] != null ? '，預估之後比隨便挑一天' + moreTxt(f[3]) : '') : ''); }
+function feOf(r, d){ const f = ((r[I.x] || {}).fe || {})[d]; return f || null; }
+function moreTxt(v){ const x = Math.round(v * 10) / 10; return x > 0 ? '多 ' + x.toFixed(1) + '%' : x < 0 ? '少 ' + Math.abs(x).toFixed(1) + '%' : '差不多'; }
+function cellTxt(key){                                 // 衰退表的格子（sigoos.key）→ 白話：偏多・看 1 個月・出現過 15～39 次・過去比平常高 10～20 點
+  if (!key) return ''; const [d, H, b, g] = key.split('|'), F = SG.fwd;
+  const parts = [d === 'buy' ? '大跌後買點' : (SG.dirs[d] || d), '看 ' + (HT[+H] || H + ' 個交易日')];
+  if (b !== '*') parts.push('出現過 ' + F.nb[+b]);
+  parts.push(g === 'p' || g === 'n' ? '過去' + F.sg[g] : +g === 0 ? '過去比平常低' : '過去比平常' + F.eb[+g]);
+  return parts.join('・'); }
+function feHtml(r){
+  const c = r[I.cat];
+  if (['ind', 'stock', 'strat', 'xs'].includes(c)) return '<p class="note">產業泡沫、個股訊號、策略沒有預估之後（逐年樣本外只做市場層級的訊號與大跌後買點）。</p>';
+  if (!SG.fwd || !SG.fwd.ok) return '<p class="note">預估之後的研究檔還沒產生。</p>';
+  const x = r[I.x] || {}, O = x.ow || {}, out = [];
+  dirsOf(r).forEach(d => { const s = stat(r, d), f = feOf(r, d); if (!s) return;
+    const tag = '<span class="sgd sgd-' + d + '">' + esc(SG.dirs[d] || d) + '</span> ';
+    if (!f) { out.push('<p>' + tag + '出現不到 ' + SG.nmin + ' 次，不估。</p>'); return; }
+    const w = d === 'warn' ? '之後 ' + hz(r) + '內大跌的機率' : d === 'buy' ? '買進之後 ' + hz(r) + '上漲的機率' : '之後 ' + hz(r) + '上漲的機率';
+    let h = '<p>' + tag + w + '：過去 ' + pc(s[1]) + ' → 預估之後 <b>' + pc(f[0]) + '</b>（隨便挑一天 ' + pc(s[2]) + '）';
+    if (f[3] != null) h += '；報酬中位數預估之後比隨便挑一天<b>' + moreTxt(f[3]) + '</b>';
+    const K = SG.fwd.keys || [];
+    h += '。<br><span class="mu">依據：' + (f[2] == null ? '同一類的格子筆數都不夠，當作之後沒有優勢' :
+      '同一類的訊號（' + esc(cellTxt(K[f[2]])) + '）每年 1 月 1 日只用之前的資料看、之後那一年，優勢平均留下 ' + f[1] + '%') +
+      (f[3] != null && f[4] != null ? '，報酬多賺留下 ' + f[4] + '%' + (f[5] != null && f[5] !== f[2] ? '（' + esc(cellTxt(K[f[5]])) + '）' : '') : '') + '。</span>';
+    const o = O[d];
+    if (o) h += '<br><span class="mu">這個訊號自己：' + o[0] + ' 年有出現，那些年之後平均比隨便挑一天' + (o[2] >= 0 ? '多 ' : '少 ') +
+      Math.abs(o[2]).toFixed(1) + ' 個百分點（當時看過去是' + (o[1] >= 0 ? '多 ' : '少 ') + Math.abs(o[1]).toFixed(1) + '）' +
+      (o[0] < SG.fwd.omin ? '，年數少，只當參考' : '') + '。</span>';
+    out.push(h + '</p>'); });
+  return out.join('') || '<p class="note">沒有預估之後。</p>'; }
 function mark(t, r){ const x = ((r && (r[I.cat] === 'strat' || r[I.cat] === 'xs')) ? SG.stiers : SG.tiers)[t] || ['', ''];
   return '<span class="sgtk sgtk-' + t + '" title="' + esc(x[1]) + '">' + x[0] + '</span>'; }
 function sent(r){ const [d, s] = sd(r); return mark(s ? s[6] : r[I.tier], r) + ' <b>' + esc(label(r)) + '</b>：' + phr(r, d); }
@@ -956,6 +1104,7 @@ const TIP = {
   dd: '期間最高收盤到之後最低收盤的跌幅（先漲再跌也算）。狀態型是這一段每一天的平均。',
   rup: '持有到這一天收盤，比進場價高的比例。',
   rmed: '持有到這一天收盤的報酬，由小到大排在正中間的那一個（一半比它好、一半比它差）。',
+  fwd: '上面的機率是過去的成績，之後通常會往下修。每年 1 月 1 日只用之前的資料看，同一類訊號（方向、看多久、出現過幾次、過去比平常高幾點）之後那一年平均留下多少優勢；預估之後＝隨便挑一天 ＋ 留下來的比例 ×（過去 − 隨便挑一天）。報酬多賺同樣算。只當參考。',
   rhalf: '報酬由小到大排，中間一半落在這個範圍（25%～75%）。',
   rmae: '進場之後到這一天之間，最低收盤比進場價低多少（比進場價低才算，沒跌過＝0）。中位數＝一半的時候跌得比這少。',
   rmae10: '中途最多跌由差到好排，最差的一成跌超過這個數字。'};
@@ -1065,7 +1214,9 @@ function medCell(r, d, s){                                   // VER 17：報酬�
   const x = r[I.x] || {};
   if (d === 'warn') return s && s[7] != null ? '<span class="mu">回撤</span> ' + dn1(s[7]) : '—';
   if (x.med == null) return '—';
-  return '<b class="' + (x.med > 0 ? 'up' : x.med < 0 ? 'dn' : '') + '">' + sr1(x.med) + '</b>' + (x.trm != null ? '<small>排除極端 ' + sr1(x.trm) + '</small>' : ''); }
+  const f = feOf(r, d);
+  return '<b class="' + (x.med > 0 ? 'up' : x.med < 0 ? 'dn' : '') + '">' + sr1(x.med) + '</b>' + (x.trm != null ? '<small>排除極端 ' + sr1(x.trm) + '</small>' : '') +
+    (f && f[3] != null ? '<small>預估之後' + moreTxt(f[3]) + '</small>' : ''); }
 function luckTxt(s, r){ if (!s || s[9] == null || (s[6] !== 'good' && s[6] !== 'rare' && s[6] !== 'ref')) return '';
   const stk = r && r[I.cat] === 'stock', pair = stk && r[I.dir][0] === 'up';
   const t = pair ? '在每一次事件裡隨機對調「訊號」和「對照」的結果，做得到一樣好的比例' : '把出現的日子隨便亂排，做得到一樣準的比例';
@@ -1080,7 +1231,7 @@ function sigTable(x){
       const w = what(r, d) + (d === 'warn' ? '<small>最大回撤 ' + r[I.th] + '% 以上</small>' : '');
       return '<tr>' + (i ? '' : '<td class="l nm" rowspan="' + ds.length + '"><b>' + esc(label(r)) + '</b><small>看 ' + esc(hz(r)) +
           (on ? '・<span class="sgon">現在成立</span>' : '') + '</small></td>') +
-        '<td class="l wt"><span class="sgd sgd-' + d + '">' + w + '</span></td><td data-h="機率"><b>' + (s ? pc(s[1]) : '—') + '</b></td><td data-h="隨便挑一天">' + (s ? pc(s[2]) : '—') + '</td>' +
+        '<td class="l wt"><span class="sgd sgd-' + d + '">' + w + '</span></td><td data-h="機率"><b>' + (s ? pc(s[1]) : '—') + '</b>' + (feOf(r, d) ? '<small>預估之後 ' + pc(feOf(r, d)[0]) + '</small>' : '') + '</td><td data-h="隨便挑一天">' + (s ? pc(s[2]) : '—') + '</td>' +
         '<td data-h="多幾個百分點">' + (e == null ? '—' : (e >= 0 ? '+' : '−') + Math.abs(Math.round(e))) + '</td>' +
         '<td data-h="報酬中位數">' + (r[I.cat] === 'strat' ? '—' : medCell(r, d, s)) + '</td>' +
         '<td class="r10" data-h="近 10 年">' + r10(s, d, r[I.cat] === 'stock') + '</td><td data-h="出現">' + (s ? s[0] : '—') + '</td>' +
@@ -1096,6 +1247,7 @@ function panelHtml(x){
     (x.cat === 'heat' ? '<div class="sgseg" data-g="raw"><button type="button" data-v="0">0～100</button><button type="button" data-v="1">原始值</button></div>' : '') +
     '</div><div class="sgcv" id="sgcv"><p class="note">走勢載入中…</p></div><p class="sgread" id="sgread"></p><p class="note" id="sgleg"></p>';
   h += '<h4>這個指標的訊號</h4><p class="note">每一種訊號都分偏多、警示兩個方向各算一次。點一列，' + (ck ? '走勢圖的打點和' : '') + '下面的「最近幾次」換成那個訊號。</p>' + sigTable(x);
+  h += '<h4>預估之後：<span id="sgfsel"></span> ' + ii('fwd') + '</h4><div id="sgfe" class="sgfe"></div>';
   h += '<h4>進場之後：<span id="sgrsel"></span></h4><div id="sgret"></div>';
   h += '<h4>最近幾次：<span id="sgsel"></span></h4><div id="sgrec"></div>';
   h += '<details class="sghow"><summary>怎樣算出現、怎樣算中了</summary><div id="sghow"></div></details>';
@@ -1168,6 +1320,7 @@ function fillSel(){ const r = SEL, box = document.getElementById('sgrec'); if (!
   document.getElementById('sgsel').textContent = label(r);
   document.getElementById('sgrsel').textContent = label(r);
   document.getElementById('sghow').innerHTML = howHtml(r);
+  const fe = document.getElementById('sgfe'); if (fe) { document.getElementById('sgfsel').textContent = label(r); fe.innerHTML = feHtml(r); }
   PB.querySelectorAll('.sgsb').forEach(b => b.classList.toggle('sel', b.dataset.id === r[I.id]));
   const rt = document.getElementById('sgret');
   if (OCC) { box.innerHTML = recHtml(r, OCC.occ[r[I.id]]); rt.innerHTML = retHtml(r, OCC); drawRet(r, OCC); return; }
@@ -1372,13 +1525,13 @@ document.getElementById('sgmore').addEventListener('click', () => { st.limit += 
 document.getElementById('sgcsv').addEventListener('click', () => {
   const list = sorted(INDS.filter(x => pass(x)));
   const head = ['指標','市場','類別','訊號','看多久','現在成立','方向','看什麼','機率%','隨便挑一天%','多幾個百分點','近10年次數','近10年機率%','近10年隨便挑一天%',
-    '出現過幾次','判定','亂排也做得到%','最大回撤中位數%','隨便挑一天最大回撤中位數%','大跌門檻%','報酬中位數%','排除極端的平均%','代號'];
+    '出現過幾次','判定','亂排也做得到%','最大回撤中位數%','隨便挑一天最大回撤中位數%','大跌門檻%','報酬中位數%','排除極端的平均%','預估之後的機率%','預估之後比隨便挑一天多賺%','代號'];
   const lines = [head];
   list.forEach(x => x.cat !== 'xs' && x.sig.forEach(r => dirsOf(r).forEach(d => { const s = stat(r, d), e = dEdge(s);
     lines.push([x.name, SG.mk[x.mk], facName(x), label(r), hz(r), nowTxt(r), SG.dirs[d] || d, what(r, d), s ? s[1] : '', s ? s[2] : '', e == null ? '' : e.toFixed(1),
       s ? (s[3] ?? '') : '', s ? (s[4] ?? '') : '', s ? (s[5] ?? '') : '', s ? s[0] : '', s ? (SG.tiers[s[6]] || ['', ''])[1] : '',
       s ? (s[9] ?? '') : '', d === 'warn' && s ? (s[7] ?? '') : '', d === 'warn' && s ? (s[8] ?? '') : '', d === 'warn' ? (r[I.th] ?? '') : '',
-      (r[I.x] || {}).med ?? '', (r[I.x] || {}).trm ?? '', r[I.id]]); })));
+      (r[I.x] || {}).med ?? '', (r[I.x] || {}).trm ?? '', feOf(r, d) ? feOf(r, d)[0] : '', feOf(r, d) && feOf(r, d)[3] != null ? feOf(r, d)[3] : '', r[I.id]]); })));
   const csv = '﻿' + lines.map(l => l.map(v => { const t = String(v == null ? '' : v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); a.download = '訊號總覽.csv'; a.click(); });
 

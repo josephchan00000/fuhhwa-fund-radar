@@ -5,7 +5,8 @@ VER 3，2026-10-20，警示改看最大回撤，docs/lab_warn_mdd_plan.md；VER 
 VER 8 同日判定改用打折後的機率、運氣檢查、同類合併，docs/lab_noise_plan.md（沒有上線）；VER 9 同日改用打亂日子測試，同文件第 10 節；
 VER 10，2026-10-21，大跌後買點改看實際報酬，docs/lab_expert_plan.md 第 9 節；VER 13 同日，落底訊號跟著 bottomspec VER 4 多三個；
 VER 14，2026-10-22，次數少的訊號打亂測試門檻放寬到 10%，docs/lab_noise_plan.md 第 13 節；VER 15 同日，溫度計三個看多久都算，同文件第 14 節；VER 16 同日，溫度計下面加「過去讀數這樣的時候」，同文件第 14.10 節；
-VER 17 同日，判定改看絕對成績、次數少的另列難得機會、報酬加排除極端，docs/lab_practical_plan.md）。
+VER 17 同日，判定改看絕對成績、次數少的另列難得機會、報酬加排除極端，docs/lab_practical_plan.md；VER 18 同日，「預估之後」，同文件第 10 節；
+VER 19 同日，「預估之後」的報酬留下來的比例改用平均量，同文件第 10.5 節）。
 要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import analyze as AN
 from arm.lab import backtest as BT
@@ -18,7 +19,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 17 and X.SPEC_DATE == "2026-10-22"
+    assert X.VER == 19 and X.SPEC_DATE == "2026-10-22"
     assert BS.VER == 4 and "C9" in BS.SIG_MK["tw"] and "C8" in BS.SIG_MK["spx"]   # VER 13：大跌後買點的規則跟著 bottomspec VER 4
     assert X.H_BUY == 60                                                  # VER 10：大跌後買點看買進後 3 個月有沒有漲
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
@@ -156,8 +157,21 @@ def test_sig_spec_v17_absolute_judgment_is_locked():
     assert {mk: X.ABS_COST[mk] for mk in XS.COST} == XS.COST and X.ABS_COST["us"] == XS.COST["spx"]   # 成本同總經策略
     assert (X.TRIM_Q, X.TRIM_N) == (0.05, 20) == (XS.DIP_TRIM_Q, XS.DIP_TRIM_N)
     assert XS.VER == 6 and XS.DIP_WIN == 0.60 and XS.DIP_N_MIN == 5
-    assert X.RES_VER == X.VER == X.CAL_VER == 17
+    assert X.RES_VER == X.CAL_VER == 17 and X.VER >= 17
     assert X.THERMO_W == {"good": 2, "rare": 1, "lean": 0.5} and X.THERMO_NAMES["lean"] == "勝率過了"
+
+
+def test_sig_spec_v18_forward_estimate_is_locked():
+    """VER 18（2026-10-22，docs/lab_practical_plan.md 第 10 節）：「預估之後」＝逐年樣本外的衰退表（方向 × 看多久 × 次數 × 過去的優勢），
+    預估之後的命中率＝平常 ＋ k ×（命中率 − 平常）、多賺＝k_r ×（報酬中位數 − 平常的報酬中位數），k 截在 0～1；只呈現，判定與研究檔不變。"""
+    assert X.VER == 19 and X.FWD_VER == 19 and X.RES_VER == 17 and X.CAL_VER == 17   # sig_research.json、thermo_research.json 不重跑
+    # VER 19：報酬留下來的比例改用平均量（次數少時中位數的期望值比全部日子的中位數低，VER 18 的之後多賺系統性偏低）
+    assert X.FWD_NB == (15, 40) and X.FWD_NB[0] == X.STAR_N                         # 5～14（難得機會）、15～39、40 以上
+    assert X.FWD_EB == (0.0, 0.05, 0.10, 0.20)
+    assert (X.FWD_MIN_N, X.FWD_MIN_CL, X.FWD_EPS, X.FWD_EPS_R) == (100, 30, 0.01, 0.001)
+    assert (X.FWD_DRAWS, X.FWD_SEED, X.FWD_SPLIT, X.FWD_OWN_MIN) == (1000, 20261023, 2010, 5)
+    assert (X.CAL_WARM_Y, X.CAL_MIN_SAMP, X.N_MIN, X.RECENT_YEARS) == (10, 50, 5, 10)   # 逐年滾動、訓練樣本日下限同 thermocal
+    assert X.H_BUY == 60
 
 
 def test_sig_spec_refers_to_existing_definitions():
