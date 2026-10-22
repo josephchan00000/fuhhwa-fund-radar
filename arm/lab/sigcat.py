@@ -1038,7 +1038,14 @@ def today_for(now: dict | None) -> dict | None:
     rows = research_rows()
     if not now or not rows:
         return None
-    return {"mk": now["mk"], "d": now["d"], **board(rows, now["on"], now["mk"], now.get("acts"), now.get("xon"))}
+    out = {"mk": now["mk"], "d": now["d"], **board(rows, now["on"], now["mk"], now.get("acts"), now.get("xon"))}
+    try:                                              # 溫度計下面「過去讀數這樣的時候」（VER 16，第 5 節 ③d）；研究檔沒有就不顯示
+        from . import thermocal as TC
+        out["cal"] = TC.now(now["mk"], now["on"], now.get("xon"), now["d"])
+    except Exception as e:                            # noqa: BLE001
+        print(f"[訊號總覽] 過去讀數這樣的時候算不出來：{type(e).__name__}: {e}")
+        out["cal"] = None
+    return out
 
 
 # ── 現在有沒有效（每天建頁） ───────────────────────────────────────────────────

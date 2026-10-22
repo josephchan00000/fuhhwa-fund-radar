@@ -509,10 +509,60 @@ def thermo_html(T: dict) -> str:
             word = '<b class="tzw tzw-none">中性</b>'
             cnt = "沒有偏多或警示的訊號"
             lab = f'{th["name"]}（{th["h"]}）：中性，沒有偏多或警示的訊號'
+        cal = cal_html((T.get("cal") or {}).get(th["k"]))
         rows.append(f'<div class="tzr"><span class="tzn"><b>{_e(th["name"])}</b><i>{_e(th["h"])}</i></span>'
                     f'<span class="tzb" role="img" aria-label="{_e(lab)}">{bar}</span>'
-                    f'<span class="tzv"><span>{word}</span><span class="tzct">{_e(cnt)}</span></span></div>')
+                    f'<span class="tzv"><span>{word}</span><span class="tzct">{_e(cnt)}</span></span>{cal}</div>')
     return '<div class="tzt">' + "".join(rows) + "</div>"
+
+
+CAL_GRP = {"hi": "一樣多", "mid": "數量也在中間", "lo": "一樣少"}
+
+
+def _cal_pos(pct: float | None) -> str:
+    if pct is None:
+        return "過去的週數不夠排位置"
+    if pct >= 0.995:
+        return "比過去 10 年所有的週都多"
+    if pct <= 0.005:
+        return "過去 10 年最少（或一樣少）"
+    return f"比過去 10 年 <b>{pct * 100:.0f}%</b> 的週多"
+
+
+def cal_line(side: str, x: dict, H: int, th: float) -> str:
+    """「過去讀數這樣的時候」一邊一行（sigspec 第 5 節 ③d，VER 16）：票數在過去 10 年的位置＋過去同一組的週之後怎麼走。"""
+    from . import sigpage as SPG
+    h = SPG.H_TXT.get(H, f"{H} 個交易日")
+    nm = TZ_SIDE[side]
+    if side == "up":
+        what, rel_what, few_what = f"之後 {h}上漲", "上漲", "漲不漲"
+    else:
+        what = f"之後 {h}內大回撤 {SPG._th(th)}% 以上"
+        rel_what, few_what = "大回撤", "大回撤"
+    pos = _cal_pos(x.get("pct"))
+    v = x.get("v")
+    pc = lambda r: "—" if r is None else f"{r * 100:.0f}%"
+    g = x.get("grp")
+    if v == "rel" and g:
+        ref = {"hi": f"少的週 {pc(x.get('lo'))}", "lo": f"多的週 {pc(x.get('hi'))}",
+               "mid": f"多的週 {pc(x.get('hi'))}、少的週 {pc(x.get('lo'))}"}[g]
+        tail = f"過去{nm}{CAL_GRP[g]}的週，{what} <b>{pc(x.get('rate'))}</b>（{ref}）"
+    elif v == "rev" and g:
+        tail = f"過去{nm}越多、之後{rel_what}反而越少（多的週 {pc(x.get('hi'))}、少的週 {pc(x.get('lo'))}）"
+    elif v == "few":
+        tail = "過去的週數不夠，看不出和之後" + few_what + "有沒有關係"
+    else:
+        tail = f"過去看不出和之後{few_what}有關係"
+    return f'<span class="tzca"><span class="tzcs tzcs-{side}">{nm}</span>{pos}・{tail}</span>'
+
+
+def cal_html(C: dict | None) -> str:
+    """每支溫度計下面兩行（偏多、警示）；沒有研究檔就不顯示。"""
+    if not C:
+        return ""
+    return ('<span class="tzcal" title="用之前的資料逐年檢查（每年 1 月 1 日只用之前的資料重算每個訊號），'
+            '現在的票數和過去 10 年每週比；有關係才寫過去票數一樣多（或一樣少）的週之後的比例">'
+            + "".join(cal_line(sd, C[sd], C["H"], C["th"]) for sd in ("up", "warn") if C.get(sd)) + "</span>")
 
 
 def thermo_more_html(T: dict) -> str:
@@ -602,7 +652,10 @@ def today_html(V: dict) -> str:
     how = (f"溫度計：現在成立的訊號依看多久分三支，★ 好訊號算 {W['good']:g}、● 可能是運氣算 {W['ref']:g}、"
            f"△ 有傾向算 {W['lean']:g}，一類算一次；偏多占 {SS.THERMO_LEAN * 100:.0f}% 以上寫偏多、"
            f"{(1 - SS.THERMO_LEAN) * 100:.0f}% 以下寫偏警示，其餘差不多，兩邊都沒有寫中性。● 和 △ 收在溫度計下面（點開看）。"
-           "溫度計只是數一數現在成立的訊號，溫度計本身沒有驗證過能預測漲跌。"
+           "溫度計的偏多占比只是數一數現在成立的訊號，本身沒有驗證過能預測漲跌；"
+           "每支溫度計下面兩行是用之前的資料逐年檢查的結果（每年 1 月 1 日只用之前的資料重算每個訊號、不偷看之後）："
+           "現在偏多、警示各有幾個訊號，和過去 10 年每週比多不多；過去票數多的週和少的週之後走勢有明顯差別，"
+           "才寫過去票數和現在一樣多（或一樣少）的週之後上漲或大回撤的比例，看不出就直接寫看不出。"
            f"★ 好訊號＝至少出現 {SS.N_MIN} 次、機率 ≥ {SS.HIT_MIN['up'] * 100:.0f}%（警示 ≥ {SS.HIT_MIN['warn'] * 100:.0f}%）、"
            f"比隨便挑一天高 {SS.EDGE_GOOD * 100:.0f} 個百分點以上、近 10 年也成立，"
            f"而且把它出現的日子隨便亂排 {SS.LUCK_DRAWS} 次，做得到一樣準的不到 {SS.LUCK_P * 100:.0f}%"
@@ -1821,6 +1874,10 @@ table.oft{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-nume
 .tzv{grid-column:2;display:flex;flex-wrap:wrap;gap:0 8px;align-items:baseline;line-height:1.3;font-size:12.5px;color:var(--ink2)}
 .tzw{font-size:14px}.tzw-up{color:var(--bull)}.tzw-warn{color:var(--bear)}.tzw-even{color:var(--ink)}.tzw-none{color:var(--mut);font-weight:500}
 .tzp{margin-left:6px;font-size:12.5px;color:var(--ink2)}.tzct{font-size:12px;color:var(--mut)}
+.tzcal{grid-column:2;display:flex;flex-direction:column;gap:1px;margin:1px 0 3px}
+.tzca{font-size:12px;line-height:1.5;color:var(--ink2)}.tzca b{color:var(--ink);font-weight:600}
+.tzcs{display:inline-block;font-size:11px;padding:0 5px;margin-right:5px;border-radius:4px;border:1px solid;line-height:1.4}
+.tzcs-up{color:var(--bull);border-color:var(--bull)}.tzcs-warn{color:var(--bear);border-color:var(--bear)}
 .tzcols{display:grid;grid-template-columns:1fr;gap:6px}
 .tzcol h3{margin:4px 0 2px;font-size:15px;display:flex;align-items:baseline;gap:8px}.tzcol h3 .sub{font-size:12px;color:var(--mut);font-weight:400}
 .tzcl{padding:0 0 1px;border-bottom:3px solid}.tzcl-up{border-color:var(--bull)}.tzcl-warn{border-color:var(--bear)}
