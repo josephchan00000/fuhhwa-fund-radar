@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/22 14:14",
+  "as_of": "2026/10/22 16:06",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -56,7 +56,7 @@
       ],
       "items": [
         {
-          "title": "績效1表看》981A、00929...主動式高股息全掉榜「這5檔」今年飆逾100％ 超狂原因曝光- 基金",
+          "title": "績效1表看》00981A、00929...主動式高股息全掉榜「這5檔」今年飆逾100％ 超狂原因曝光- 基金",
           "url": "https://wantrich.chinatimes.com/news/20261022900145-420401",
           "source": "旺得富理財網",
           "date": "2026-10-22 10:37",
@@ -356,7 +356,22 @@
       "short_names": [
         "復華"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華再推主動式ETF！00418A今起募集「每股10元、不配息」",
+          "url": "https://news.tvbs.com.tw/money/4038968",
+          "source": "TVBS",
+          "date": "2026-10-21 09:51",
+          "datetime": "2026-10-21T09:51:00+08:00"
+        },
+        {
+          "title": "主動復華台灣新星 10／21開募 聚焦3大類股",
+          "url": "https://www.chinatimes.com/newspapers/20261021000331-260206",
+          "source": "中時新聞網",
+          "date": "2026-10-21 04:10",
+          "datetime": "2026-10-21T04:10:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華高成長基金",
@@ -580,34 +595,138 @@
     },
     {
       "platform": "youtube",
-      "title": "【台股高檔必看】操盤手曾創 73 個月 920% 績效！主動式 ETF 00418A 值得買嗎？",
-      "channel": "下班後的投資所",
-      "url": "https://www.youtube.com/watch?v=Hlp_-pEy3EE",
-      "date": "2026-10-15",
-      "views": 873
+      "title": "00919＋00878＋0056 VS 00929！誰才是月月配最佳選擇？",
+      "channel": "杉本來了",
+      "url": "https://www.youtube.com/watch?v=lJNdfafhPj8",
+      "date": "2026-10-21",
+      "views": 27402
     },
     {
       "platform": "youtube",
-      "title": "0050 vs 00991A｜主動選股更賺？2026前九月含息績效比一比！ #被動收入 #理財觀念 #財務自由 #財商教育 #上班族理財 #金錢觀 #富人思維 #擺脫窮忙 #現金流 #人生滾雪球",
-      "channel": "人生滾雪球",
-      "url": "https://www.youtube.com/shorts/1dRmWvkVPY4",
-      "date": "2026-10-16",
-      "views": 870,
+      "title": "00929年度報酬率逼近八成賺贏0050！達人拆解月配息填息關鍵與選股策略｜三立財經iNEWS",
+      "channel": "三立財經iNEWS",
+      "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
+      "date": "2026-10-20",
+      "views": 14406,
       "short": true
     },
     {
       "platform": "youtube",
-      "title": "9倍女戰神操盤！00418A復華台灣新星主動式ETF可以買嗎？",
+      "title": "都是月配息 ETF 00929 VS 00406A 該選誰？",
       "channel": "Lydia聊人生",
-      "url": "https://www.youtube.com/watch?v=t7HEKH3_aa0",
+      "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
+      "date": "2026-10-18",
+      "views": 7500
+    },
+    {
+      "platform": "youtube",
+      "title": "週一台股要崩千點？該賣股票嗎？我該怎麼辦？#台股",
+      "channel": "一綺聊股",
+      "url": "https://www.youtube.com/watch?v=0U1OMDn2AAQ",
+      "date": "2026-10-18",
+      "views": 119484,
+      "peer": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "美股大跌台股跟風，人工智慧又發生什麼事？#shorts",
+      "channel": "曲博科技教室 Dr. J Class",
+      "url": "https://www.youtube.com/shorts/LjDDHVaDM4E",
       "date": "2026-10-19",
-      "views": 716
+      "views": 119364,
+      "peer": true,
+      "short": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股跌了才想加碼？她用這招不用苦等低點｜ft.基金教母蕭碧燕、葉芷娟 #低檔加碼 #定時定額 #ETF錢滾錢",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/shorts/7NxiVHoPy3g",
+      "date": "2026-10-19",
+      "views": 84259,
+      "peer": true,
+      "short": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "【#本週精選】買不起台積電改買「平替版」ETF！00888一年報酬率120%狠甩0050？高配息又賺價差？ 台股崩跌ETF怎麼買？  │陳斐娟 主持 │20261017│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=QgfhIwj8uRc",
+      "date": "2026-10-17",
+      "views": 78838,
+      "peer": true,
+      "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "【精華】美國升息，股市要崩？蕭碧燕教你類仰天長笑、母子投資法抱更久，不設低檔加碼一樣賺！｜蕭碧燕、葉芷娟｜ETF錢滾錢",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/watch?v=e8lRkHckkkw",
+      "date": "2026-10-18",
+      "views": 71211,
+      "peer": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "上半年股神、下半年賠光？主動ETF狂掃「這檔千元PCB」！沈萬鈞：Q4唯一翻倍買點曝光，拉回最好賺！《股民想知道》ft.沈萬鈞.俞璘",
+      "channel": "投資優我罩—優分析",
+      "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
+      "date": "2026-10-17",
+      "views": 66169,
+      "peer": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "ETF低價最熱門?!00406A破發為何爆紅?高配息陷阱? 上市4個月規模衝千億!00406A拚配息還是輸0050?│陳斐娟 主持 │20261021│關我什麼事",
+      "channel": "關我什麼事",
+      "url": "https://www.youtube.com/watch?v=0U0YA-MIQgg",
+      "date": "2026-10-21",
+      "views": 50016,
+      "peer": true,
+      "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "ETF存股最新排行榜！0050雖霸榜，但最猛黑馬單月狂增11%！00878狠甩0056？#口袋證券 #etf #0050",
+      "channel": "口袋證券",
+      "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
+      "date": "2026-10-19",
+      "views": 45150,
+      "peer": true,
+      "short": true,
+      "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股高檔震盪不敢追？台積電抱到這價位再賣！1關鍵決定進出場最佳時機！｜20261021 趙慶翔 ft.Ryan爸爸 #主動式ETF #0050 #鴻海 #緯創 #台積電",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=e1Q5b32TcW4",
+      "date": "2026-10-21",
+      "views": 30258,
+      "peer": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "【買點到?】獨家數據公開! 到底現在買 ETF 還是再等等...？ #台股 #美股 #大盤  #櫃買",
+      "channel": "陳智霖股票分析師 Equity Research Analyst",
+      "url": "https://www.youtube.com/shorts/Dx2D_E6LksY",
+      "date": "2026-10-19",
+      "views": 29523,
+      "peer": true,
+      "short": true,
+      "cat": "市值型"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、台灣菁英50指數（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、 等 7 檔（詳下方新聞標籤）",
     "品牌焦點：00418A可以買？配息、價格、成分股、上市時間…雙經理人分工！「9倍女戰神」揭挑股原則：目標吃整條魚（今周刊）",
     "社群聲量最高：升息怕股市崩？低利率未必賺更多！70年藏金圖打破升降息迷思（0 推）",
-    "YouTube 熱片：【台股高檔必看】操盤手曾創 73 個月 920% 績效！主動式 ETF 00418A 值得買嗎？（下班後的投資所・873 次觀看）"
+    "YouTube 熱片：週一台股要崩千點？該賣股票嗎？我該怎麼辦？#台股（一綺聊股・119,484 次觀看）"
   ]
 }
