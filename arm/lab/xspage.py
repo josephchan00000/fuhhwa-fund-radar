@@ -3,7 +3,8 @@
 2026-10-21 大神策略頁上線（docs/lab_nav_plan.md）；2026-10-22 使用者：「你的策略頁面好亂，應該是策略點進去，分成總經策略跟個股策略」
 → 改成策略頁・總經策略（個股頁同一支程式 page.py 的「策略」身分，docs/lab_strategy_ia_plan.md）。這支只剩兩件事：
   x9x.html   轉址頁：舊網址 #i=xs:市場:策略 轉到 x9.html#v=mac&m=市場&x=策略（舊書籤、舊連結照樣到得了）
-  x9xh.json  每條策略的淨值與每一筆（訊號總覽的面板點開才下載；之後總經策略的說明卡也讀它）
+  x9xh.json  每條策略的淨值與每一筆＋判定依據（訊號總覽的面板點開才下載；策略頁・總經策略打開「規則與成績」才下載，
+             說明卡的 1 元變多少、逐筆交易、判定依據讀它）
 成績與現在的狀態每天建頁時算（xstrat.run_all，程序內快取）。
 """
 from __future__ import annotations
@@ -41,8 +42,13 @@ def render() -> str:
 
 
 def detail_json(V: dict) -> str:
-    """點開才下載的淨值與每一筆（訊號總覽的面板讀這一份）。"""
-    return json.dumps(XSP.detail(V["R"]), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    """點開才下載的淨值與每一筆（訊號總覽的面板、總經策略的說明卡）＋判定依據 jd（說明卡最下面，xsadvice.judge）。"""
+    from . import xsadvice as XA
+    out = XSP.detail(V["R"])
+    for mk, M in V["R"].items():
+        for k, r in (M or {}).items():
+            out[f"xs:{mk}:{k}"]["jd"] = XA.judge(r)
+    return json.dumps(out, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def build(out: Path = OUT, data_out: Path = OUT_DATA) -> bool:

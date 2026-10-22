@@ -47,7 +47,9 @@ def test_build_writes_detail_and_keeps_old_files_when_empty(R, tmp_path, monkeyp
     assert XP.build(out, data_out) is True
     dj = json.loads(data_out.read_text(encoding="utf-8"))
     assert set(dj) == {f"xs:{mk}:{k}" for mk, M in R.items() for k in M}
-    assert all(set(v) == {"eq", "tr"} for v in dj.values())
+    assert all(set(v) == {"eq", "tr", "jd"} for v in dj.values())             # jd＝說明卡的判定依據（xsadvice.judge）
+    from arm.lab import xsadvice as XA
+    assert all(dj[f"xs:{mk}:{k}"]["jd"] == json.loads(json.dumps(XA.judge(r), ensure_ascii=False)) for mk, M in R.items() for k, r in M.items())
     assert out.read_text(encoding="utf-8") == XP.render()
     assert XP.build(out, data_out) is False                                # 內容沒變不改寫
     monkeypatch.setattr(XP, "view", lambda: {"R": {}})
