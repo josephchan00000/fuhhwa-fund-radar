@@ -210,7 +210,7 @@ def view() -> dict:
 
 def find_data(dirpath: Path | None = None) -> dict:
     """研究結論（findings）第 2～6 則的資料：景氣頁在同一個程序裡建頁時放在 CARDS[市場]["find"]；
-    單獨建這一頁時讀上一版的 x9or-{市場}.json（沒有就只有第 1、7 則）。"""
+    單獨建這一頁時讀上一版的 x9or-{市場}.json（沒有就只有第 1、2、8 則）。"""
     d = dirpath or OUT_DATA.parent
     out = {}
     for mk in TODAY_MK:
@@ -760,7 +760,7 @@ PANEL = ('<div class="sgpv" id="sgpv" hidden><div class="sgpb" id="sgpb"></div>'
 
 
 def research_html(V: dict) -> str:
-    """研究結論（2026-10-22 改版，docs/lab_research_v2_plan.md）：每個市場七則白話問答（findings），最上面「現在適用」；
+    """研究結論（2026-10-22 改版，docs/lab_research_v2_plan.md）：每個市場八則白話問答（findings），最上面「現在適用」；
     原本的實測細節與四張研究卡（每個市場一個檔、點了才載入）收在最下面的「完整研究表」。"""
     from . import findings as FD
     from . import practpage as PP
@@ -776,7 +776,13 @@ def research_html(V: dict) -> str:
     try:
         kp = FD.keep()
     except Exception as e:                                # noqa: BLE001
-        print(f"[研究結論] 第 7 則算不出來：{type(e).__name__}: {e}", flush=True)
+        print(f"[研究結論] 第 8 則算不出來：{type(e).__name__}: {e}", flush=True)
+    TR = None
+    try:
+        from . import tilt as TL
+        TR = TL.load()
+    except Exception as e:                                # noqa: BLE001
+        print(f"[研究結論] 期貨加碼研究檔讀不到：{type(e).__name__}: {e}", flush=True)
     first = mks[0]
     chips = "".join(f'<button type="button" class="sgch{" on" if mk == first else ""}" data-r="{mk}">{_e(MK_NAMES[mk])}</button>'
                     for mk in mks)
@@ -787,7 +793,12 @@ def research_html(V: dict) -> str:
         except Exception as e:                            # noqa: BLE001 —— 第 1 則算不出來只少那一則
             print(f"[研究結論] {mk} 第 1 則算不出來：{type(e).__name__}: {e}", flush=True)
             mx = None
-        blocks.append(FD.market_html(mk, find.get(mk), mx, kp, show=(mk == first)))
+        tx = None
+        try:
+            tx = FD.tilt(TR, mk) if TR else None
+        except Exception as e:                            # noqa: BLE001 —— 第 2 則算不出來只少那一則
+            print(f"[研究結論] {mk} 第 2 則算不出來：{type(e).__name__}: {e}", flush=True)
+        blocks.append(FD.market_html(mk, find.get(mk), mx, kp, show=(mk == first), tilt_x=tx))
     pr = PP.html(P)
     full = ""
     if pr or rmk:
@@ -797,7 +808,7 @@ def research_html(V: dict) -> str:
                 + (f'<h3 class="sgrh">研究卡<span class="sub">{_e("、".join(CARD_NAMES[c] for c in CARD_ORDER))}；跟著上面選的市場</span></h3>'
                    '<div id="rbox"><p class="note">打開這一區時載入上面選的市場的研究卡。</p></div>' if rmk else "")
                 + "</div></details>")
-    return ('<section class="sec" id="research"><h2>研究結論<span class="sub">研究過的 7 個問題：答案、和平常比、現在是不是這樣</span></h2>'
+    return ('<section class="sec" id="research"><h2>研究結論<span class="sub">研究過的 8 個問題：答案、和平常比、現在是不是這樣</span></h2>'
             f'<div class="sgchips" id="rmk">{chips}</div>' + "".join(blocks)
             + '<p class="rffoot">數字都是過去發生的比例，不是買賣指示。每一則下面的「過去每一次」列出每次發生的日期與之後的結果，可以自己核對。</p>'
             + full + "</section>")
@@ -1691,7 +1702,7 @@ function xsOpen(x, push){
   const tr = document.querySelector('tr.sgr[data-k="' + CSS.escape(x.k) + '"]'); if (tr) tr.classList.add('open');
   xsFill(x); }
 
-// ── 研究結論（findings）：選市場切換七則問答；最下面「完整研究表」打開時才載入那個市場的研究卡
+// ── 研究結論（findings）：選市場切換八則問答；最下面「完整研究表」打開時才載入那個市場的研究卡
 const RMK = SG.rmk || [], RCACHE = {};
 let RSEL = (document.querySelector('#rmk .sgch.on') || {dataset: {}}).dataset.r || null;
 function rfShow(mk){

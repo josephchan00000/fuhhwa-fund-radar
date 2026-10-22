@@ -431,3 +431,45 @@ def load(path: Path | None = None) -> dict | None:
     except (OSError, ValueError):
         return None
     return R if (R.get("ver") or 0) >= S.VER else None
+
+
+# ── 前瞻（網頁每天算；只呈現） ─────────────────────────────────────────────────
+LIVE_START = "2026-10-23"          # 「200 日均線上加碼」放上網頁那天（tiltspec 第 8 節：前瞻驗證中）
+LIVE_MIN_DAYS = 63                 # 滿 3 個月才寫成績
+
+
+def ma_state(px: np.ndarray, cal: list[str]) -> dict:
+    """K4 今天的狀態：收盤在 200 日均線上／下、從哪一天起（同一邊連續的第一天）、均線的值。"""
+    m = XT.sma(px, S.MA_N)
+    T = len(px)
+    if T == 0 or not np.isfinite(m[-1]):
+        return {}
+    up = bool(px[-1] > m[-1])
+    i = T - 1
+    while i > 0 and np.isfinite(m[i - 1]) and bool(px[i - 1] > m[i - 1]) == up:
+        i -= 1
+    return {"d": cal[-1], "up": up, "since": cal[i], "ma": float(m[-1]), "px": float(px[-1])}
+
+
+def live(mk: str, abar: float, D: dict | None = None, carry: dict | None = None, since: str = LIVE_START) -> dict:
+    """K4 前瞻：since 起（第一個 ≥ since 的交易日收盤＝1）照做、固定加碼同樣多（abar＝研究檔全期間的平均加碼）、一直抱著的漲跌。"""
+    D = D if D is not None else XT.data(mk)
+    cal = list(D["cal"])
+    px = np.asarray(D["px"], dtype=float)
+    out = {"since": since, "state": ma_state(px, cal)}
+    a0 = bisect.bisect_left(cal, since)
+    T = len(cal)
+    out["days"] = max(0, T - 1 - a0)
+    if a0 >= T - 1:
+        return out
+    Cy = carry_inputs(mk, cal, px, carry)
+    roll = roll_flags(mk, cal)
+    r = PS.daily_ret(px)
+    a = np.nan_to_num(ma_overlay(px), nan=0.0)
+    f = fixed(T, abar)
+    out["rule"] = float(np.prod(1.0 + day_ret(r, Cy, a, costs(a, roll, a0), a0, T)) - 1.0)
+    out["fix"] = float(np.prod(1.0 + day_ret(r, Cy, f, costs(f, roll, a0), a0, T)) - 1.0)
+    out["bh"] = float(px[-1] / px[a0] - 1.0)
+    out["a"] = cal[a0]
+    out["z"] = cal[-1]
+    return out

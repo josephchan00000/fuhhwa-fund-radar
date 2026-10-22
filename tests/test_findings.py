@@ -194,3 +194,78 @@ def test_research_section_layout_and_js():
     assert "研究細節" not in h and "各市場的研究卡" not in h
     for k in ("function rfShow(", "RPEND", "rfShow(m[1]); if (m[2]) loadR(m[1], m[2])", "addEventListener('toggle'"):
         assert k in SP.JS, k
+
+
+def _tilt_R():
+    from arm.lab import tilt as TL
+    R = TL.load()
+    if not R:
+        pytest.skip("沒有期貨加碼研究檔")
+    return R
+
+
+def test_tilt_matches_research_file_and_page_rule():
+    """第 2 則（期貨加碼）：數字跟研究檔一致；放上網頁的規則（tiltspec 第 8 節）當主角；版面沒有術語與禁用詞、手機改直排。"""
+    from arm.lab import tiltspec as TS
+    R = _tilt_R()
+    ok = [k for k in TS.PAGE_RULES if R["page"][k]["ok"]]
+    for mk in ("tw", "spx", "ndx", "ixic", "sox"):
+        X = FD.tilt(R, mk, live=False)
+        M = R["mk"][mk]
+        assert X["main"] == (ok[0] if ok else X["main"]) and X["judged"] == (mk in TS.JUDGED)
+        for k, r in X["rows"].items():
+            x = M["rules"][k]
+            assert r["m"] == x["man"] / 1e6 and r["fm"] == x["man_fix"] / 1e6 and r["v"] == x["v"]
+            assert r["dd"] == x["full"]["rule"]["mdd"] and r["fdd"] == x["full"]["fix"]["mdd"]
+        h, line = FD.tilt_card(mk, X)
+        v = _vis(h)
+        k = X["main"]
+        for w in (f"{X['bh']['m'] * 100:,.0f} 萬", f"{X['rows'][k]['m'] * 100:,.0f} 萬", f"{X['rows'][k]['fm'] * 100:,.0f} 萬"):
+            assert w in v, (mk, w)
+        for w in BANNED + JARGON:
+            assert w not in v, (mk, w)
+        assert 'class="rftb rftk"' in h and 'id="rf-tilt"' in h and f"<i>{FD.QN['tilt']}</i>" in h
+        assert ("沒有對應的期貨" in v) == (mk not in TS.JUDGED)
+    assert ".rftk tr{display:grid" in FD.CSS
+
+
+def test_tilt_answer_follows_verdict_and_live_state():
+    import copy
+    R = copy.deepcopy(_tilt_R())
+    k = FD.tilt(R, "tw", live=False)["main"]
+    R["page"][k]["ok"] = True
+    ans = lambda mk, **kw: re.sub("<[^>]+>", " ", re.search(r'<div class="rfa[^"]*">(.*?)</div>', FD.tilt_card(mk, FD.tilt(R, mk, live=False) | kw)[0]).group(1))
+    R["mk"]["tw"]["rules"][k]["v"] = "better"
+    assert ans("tw").startswith("可以參考")
+    R["mk"]["tw"]["rules"][k]["v"] = "same"
+    assert ans("tw").startswith("差不多")
+    R["mk"]["tw"]["rules"][k]["v"] = "worse"
+    assert ans("tw").startswith("比固定多拿差")
+    assert ans("sox").startswith("沒有對應的期貨")
+    for q in R["page"]:
+        R["page"][q]["ok"] = False
+    assert ans("tw").startswith("多賺的是多拿股票")
+    R["page"][k]["ok"] = True
+    R["mk"]["tw"]["rules"][k]["v"] = "better"
+    X = FD.tilt(R, "tw", live=False)
+    if k == "K4":
+        up = {"since": "2026-10-23", "days": 70, "rule": 0.05, "fix": 0.04, "bh": 0.03, "a": "2026-10-23",
+              "state": {"up": True, "since": "2025-06-25", "d": "2027-01-30"}}
+        h, line = FD.tilt_card("tw", X | {"live": up})
+        assert line[0] == "side" and "正在加碼" in _vis(h) and "+5.0%" in _vis(h)
+        dn = dict(up, days=10, state={"up": False, "since": "2027-01-20", "d": "2027-01-30"})
+        h, line = FD.tilt_card("tw", X | {"live": dn})
+        assert line == "" and "不加碼" in _vis(h) and "還在累積" in _vis(h)
+
+
+def test_market_html_with_tilt_has_eight_cards():
+    R = _tilt_R()
+    h = FD.market_html("tw", {}, None, None, show=True, tilt_x=FD.tilt(R, "tw", live=False))
+    assert h.count('<article class="rfc') == 1 and 'id="rf-tilt"' in h
+    F = {"d": "2026-10-22", "chip": FD.chip(_hotch()), "hotin": FD.hotin(_hotdd()), "ma60": FD.ma60(_hotch()),
+         "bottom": FD.bottom(_bottom()), "crash": FD.crash(_crash())}
+    kp = {"u1": 0.0, "u3": 0.03, "u12": 0.03, "w1": 0.22, "w3": 0.0}
+    h = FD.market_html("tw", F, FD.money(_practsim(), "tw"), kp, show=True, tilt_x=FD.tilt(R, "tw", live=False))
+    assert h.count('<article class="rfc') == 8
+    nums = re.findall(r'<div class="rfq"><i>(\d+)</i>', h)
+    assert nums == [str(i) for i in range(1, 9)]

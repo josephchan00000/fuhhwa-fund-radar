@@ -137,3 +137,22 @@ def test_page_check_counts_judged_markets_only():
     pc = T.page_check(res)
     assert pc["K1"] == {"n": 3, "better": 2, "worse": 1, "ok": False}
     assert pc["K2"]["ok"] and not pc["K5"]["ok"]         # K5 只描述
+
+
+def test_ma_state_and_live_since_start():
+    n = 260
+    cal = _cal("2025-01-01", n)
+    px = np.concatenate([np.linspace(100, 120, 230), np.linspace(120, 140, 30)])
+    st = T.ma_state(px, cal)
+    assert st["up"] and st["since"] <= cal[230] and st["d"] == cal[-1]
+    px2 = np.concatenate([px[:250], np.full(10, 90.0)])
+    st2 = T.ma_state(px2, cal)
+    assert not st2["up"] and st2["since"] == cal[250]
+    D = {"cal": cal, "px": px}
+    carry = {"tr": {}, "effr": {d: 4.0 for d in cal}, "shiller": {}, "cbc": {}}
+    L = T.live("spx", 0.3, D=D, carry=carry, since=cal[240])
+    assert L["a"] == cal[240] and L["days"] == n - 1 - 240
+    assert math.isclose(L["bh"], px[-1] / px[240] - 1)
+    assert L["rule"] > L["bh"]                               # 均線上加碼、指數一路漲
+    L2 = T.live("spx", 0.3, D=D, carry=carry, since="2099-01-01")
+    assert L2["days"] == 0 and "rule" not in L2
