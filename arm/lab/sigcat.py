@@ -776,27 +776,21 @@ def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
 BUY_RULES = ("B1", "W10")
 
 
-def buy_rows(F: dict, bases: dict | None = None) -> list[dict]:
-    """兩種大跌 × 規則（大跌隔天就買、固定等 10 天、落底訊號）：每個事件的買進日當成事件型訊號（訊號日＝買進日 − LAG）；
-    命中＝買進後 H_BUY 天收盤比買價高、平常＝隨便挑一天、打亂測試＝事件型平移（同偏多訊號）。
-    另列（不判定）：同一批事件大跌隔天就買的上漲比例、買在相對低點的比例。報酬（VER 5）：買進日收盤進場。"""
+def buy_signals(F: dict) -> tuple[dict | None, list[dict]]:
+    """大跌後買點（第 4.7 節）每一條規則的事件型訊號（訊號日＝買進日 − LAG）：buy_rows 與逐年樣本外（sigoos，第 4.14 節）共用。
+    → (輸入 {"cal", "px", "samp"}, [{"id", "ev", "k", "kind": "event", "H", "samp", "days", "buys": [(事件日, 買進日, o, 隔天就買的 o)…]}…])；
+    沒有 bottom 的輸入 → (None, [])。"""
     from . import bottom as BO
     from . import bottomspec as BS
     I = F["IB"]
     if not I:
-        return []
+        return None, []
     mk = F["mk"]
     cal = list(I["cal"])
     px = np.asarray(I["px"], dtype=float)
     T = len(px)
-    H = S.H_BUY
-    Yu, Yw, Yd = outcomes(px, H, warn_th(mk, H))
-    Yr = fwd_ret(px, H)
-    RA = ret_arrays(px)
     samp = np.arange(BS.E10_WIN - 1, T, dtype=np.int64)
     samp = samp[~np.isnan(px[samp])]
-    r0 = bisect.bisect_left(cal, F["r0"])
-    bases = {} if bases is None else bases
     out = []
     for ev in BS.EVENTS:
         recs = BO.event_recs(I, ev)
@@ -806,33 +800,55 @@ def buy_rows(F: dict, bases: dict | None = None) -> list[dict]:
                 o = r["b1"] if k == "B1" else (((r["rules"].get(k) or {}).get("o")) or None)
                 if o and o.get("b") is not None and 0 <= o["b"] - S.LAG:
                     buys.append((r["t"], int(o["b"]), o, r["b1"]))
-            days = [b - S.LAG for _, b, _, _ in buys]
-            rid = f"{mk}:buy:{ev}:{k}"
-            sd = {"id": rid, "kind": "event", "H": H, "samp": samp, "days": days}
-            R = ev_stat(days, Yu, Yw, samp, H, r0, Yd, Yr)
-            st = R["up"]
-            LP = LK.market_p(sd, Yu, Yw, r0, R)
-            st["p"] = LP["up"]["p"]
-            kept = {int(t) + S.LAG for t, *_ in R["occ"]}
-            ret = _ret_flat(np.asarray(sorted(b - S.LAG for b in kept), dtype=np.int64), RA)
-            judge_abs(st, "buy", ret_at(ret, H), S.ABS_COST[mk])   # VER 17：絕對成績（報酬＝買進後 H_BUY 天）
-            by_b = {b: (o, ob) for _, b, o, ob in buys}
-            occ = []
-            for t, u, _, _, rr in R["occ"]:
-                o, ob = by_b[int(t) + S.LAG]
-                occ.append([cal[int(t) + S.LAG], int(u), None if o.get("lp") is None else int(o["lp"]),
-                            None if ob.get("r60") is None else int(ob["r60"] > 0), None if _nan(rr) else round(float(rr), 5)])
-            lps = [o[2] for o in occ if o[2] is not None]
-            b1s = [o[3] for o in occ if o[3] is not None]
-            st.update({"lp": _mean(lps), "lp_n": len(lps), "b1": None if k == "B1" else _mean(b1s)})
-            ret["bk"] = ret_base(samp, RA, bases, mk)
-            out.append({"id": rid, "mk": mk, "cat": "buy", "grp": ev, "var": k,
-                        "vn": BS.RULE_NAMES.get(k, "大跌隔天就買") if k != "B1" else "大跌隔天就買", "sig": ev, "kind": "event", "H": H,
-                        "name": f"{BS.EVENT_NAMES[ev]}・{'大跌隔天就買' if k == 'B1' else BS.RULE_NAMES[k]}",
-                        "base_name": "隨便挑一天",
-                        "a": occ[0][0] if occ else None, "z": occ[-1][0] if occ else None,
-                        "buy": st, "tier": st["tier"], "dir": ["buy"], "occ": occ, "ret": ret,
-                        "_luck": {"up": [LP["up"]["luck"], LP["up"]["luck_rare"]], "warn": [0.0, 0.0]}})
+            out.append({"id": f"{mk}:buy:{ev}:{k}", "ev": ev, "k": k, "kind": "event", "H": S.H_BUY, "samp": samp,
+                        "days": [b - S.LAG for _, b, _, _ in buys], "buys": buys})
+    return {"cal": cal, "px": px, "samp": samp}, out
+
+
+def buy_rows(F: dict, bases: dict | None = None) -> list[dict]:
+    """兩種大跌 × 規則（大跌隔天就買、固定等 10 天、落底訊號）：每個事件的買進日當成事件型訊號（訊號日＝買進日 − LAG）；
+    命中＝買進後 H_BUY 天收盤比買價高、平常＝隨便挑一天、打亂測試＝事件型平移（同偏多訊號）。
+    另列（不判定）：同一批事件大跌隔天就買的上漲比例、買在相對低點的比例。報酬（VER 5）：買進日收盤進場。"""
+    from . import bottomspec as BS
+    I, sds = buy_signals(F)
+    if I is None:
+        return []
+    mk = F["mk"]
+    cal, px, samp = I["cal"], I["px"], I["samp"]
+    H = S.H_BUY
+    Yu, Yw, Yd = outcomes(px, H, warn_th(mk, H))
+    Yr = fwd_ret(px, H)
+    RA = ret_arrays(px)
+    r0 = bisect.bisect_left(cal, F["r0"])
+    bases = {} if bases is None else bases
+    out = []
+    for sd0 in sds:
+        ev, k, days, buys, rid = sd0["ev"], sd0["k"], sd0["days"], sd0["buys"], sd0["id"]
+        sd = {"id": rid, "kind": "event", "H": H, "samp": samp, "days": days}
+        R = ev_stat(days, Yu, Yw, samp, H, r0, Yd, Yr)
+        st = R["up"]
+        LP = LK.market_p(sd, Yu, Yw, r0, R)
+        st["p"] = LP["up"]["p"]
+        kept = {int(t) + S.LAG for t, *_ in R["occ"]}
+        ret = _ret_flat(np.asarray(sorted(b - S.LAG for b in kept), dtype=np.int64), RA)
+        judge_abs(st, "buy", ret_at(ret, H), S.ABS_COST[mk])   # VER 17：絕對成績（報酬＝買進後 H_BUY 天）
+        by_b = {b: (o, ob) for _, b, o, ob in buys}
+        occ = []
+        for t, u, _, _, rr in R["occ"]:
+            o, ob = by_b[int(t) + S.LAG]
+            occ.append([cal[int(t) + S.LAG], int(u), None if o.get("lp") is None else int(o["lp"]),
+                        None if ob.get("r60") is None else int(ob["r60"] > 0), None if _nan(rr) else round(float(rr), 5)])
+        lps = [o[2] for o in occ if o[2] is not None]
+        b1s = [o[3] for o in occ if o[3] is not None]
+        st.update({"lp": _mean(lps), "lp_n": len(lps), "b1": None if k == "B1" else _mean(b1s)})
+        ret["bk"] = ret_base(samp, RA, bases, mk)
+        out.append({"id": rid, "mk": mk, "cat": "buy", "grp": ev, "var": k,
+                    "vn": BS.RULE_NAMES.get(k, "大跌隔天就買") if k != "B1" else "大跌隔天就買", "sig": ev, "kind": "event", "H": H,
+                    "name": f"{BS.EVENT_NAMES[ev]}・{'大跌隔天就買' if k == 'B1' else BS.RULE_NAMES[k]}",
+                    "base_name": "隨便挑一天",
+                    "a": occ[0][0] if occ else None, "z": occ[-1][0] if occ else None,
+                    "buy": st, "tier": st["tier"], "dir": ["buy"], "occ": occ, "ret": ret,
+                    "_luck": {"up": [LP["up"]["luck"], LP["up"]["luck_rare"]], "warn": [0.0, 0.0]}})
     return out
 
 
