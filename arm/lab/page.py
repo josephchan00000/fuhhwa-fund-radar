@@ -1201,12 +1201,17 @@ function conclTxt(b){const e=b.exp||{},u=b.unit||'次',A=b.all||{},one=u==='檔'
   if(A.cagr!=null)t+=`全部資金照做年化 <b>${pctT(A.cagr)}</b>，同期大盤 ${pctT(A.tr_cagr)}；資金從高點最多跌 ${f(A.mdd,0)}%（大盤 ${f(A.tr_mdd,0)}%）。`;
   const mo=moSpan(e.d0,e.d1);if(mo!=null&&mo<12)t+=`資料只有約 ${mo} 個月，參考性低。`;
   return `<div>${t}</div>`+(REC.includes(b.tier)?'':'<div class=sm2>判定不是 ★ 或 ●：不下單，只做紙上記錄。</div>');}
-function yearTbl(b){const Y=b.yearly||[],A=b.all||{},n=Y.length;if(!n)return '';const ly=String(ADV.last||'').slice(0,4);
+function yearTbl(b,lb,last,keep){const Y=b.yearly||[],A=b.all||{},n=Y.length;if(!n)return '';const ly=String(last===undefined?ADV.last||'':last).slice(0,4);
+  /* lb、last、keep：總經策略（對照＝買進持有；資料 30 多年，只先列最近 keep 年，較早的點開才列） */
+  const cut=keep&&n>keep+2?n-keep:0;
   const rows=Y.map((y,i)=>{const tag=i===0&&A.d0&&A.d0.slice(5,7)!=='01'?`（${+A.d0.slice(5,7)} 月起）`:i===n-1&&y[0]===ly&&y[3]?`（到 ${md(y[3])}）`:'';
-    return `<tr><td>${esc(y[0])}<span class=mu>${tag}</span></td><td>${sgn(y[1],1,'%')}</td><td>${sgn(y[2],1,'%')}</td></tr>`;}).join('');
-  return `<h4 class=sh style="margin-top:0">逐年報酬（全部資金照做）</h4><div class=tw><table class=yrt><thead><tr><th>年</th><th>本策略</th><th>大盤</th></tr></thead><tbody>${rows}</tbody></table></div>`;}
+    return `<tr${i<cut?' class=yo':''}><td>${esc(y[0])}<span class=mu>${tag}</span></td><td>${sgn(y[1],1,'%')}</td><td>${sgn(y[2],1,'%')}</td></tr>`;}).join('');
+  const more=cut?`<tr class=yrx><td colspan=3><a data-yr data-lb="較早的 ${cut} 年（${esc(Y[0][0])}～${esc(Y[cut-1][0])}）">較早的 ${cut} 年（${esc(Y[0][0])}～${esc(Y[cut-1][0])}）</a></td></tr>`:'';
+  return `<h4 class=sh style="margin-top:0">逐年報酬（全部資金照做）</h4><div class=tw><table class=yrt><thead><tr><th>年</th><th>本策略</th><th>${esc(lb||'大盤')}</th></tr></thead><tbody>${more}${rows}</tbody></table></div>`;}
 /* 1 元變多少：本策略（資金帳戶，含放現金的日子）與買進持有加權報酬指數，對數刻度 */
-function acurveChart(C){if(!C||!(C.d||[]).length)return '';const n=C.d.length,W=innerWidth>=980?Math.max(320,Math.min(720,($('#main').clientWidth||900)-470)):stW(),HH=200,pl=46,pr=8,pt=14,pb=22;
+function acW(){return innerWidth>=980?Math.max(320,Math.min(720,($('#main').clientWidth||900)-470)):stW();}   // 圖寬（總經策略載入前的佔位也用）
+function acLg(s,t,d0,lb){return `<div class=lg><span><i style="background:#2563c9"></i>本策略（扣成本）${f(s,1)} 倍</span><span><i style="background:#9aa5b1"></i>${esc(lb||'大盤（加權報酬指數）')}${t?f(t,1)+' 倍':'—'}</span><span>${esc(d0.slice(0,7))} 起</span></div>`;}
+function acurveChart(C,lb){if(!C||!(C.d||[]).length)return '';const n=C.d.length,W=acW(),HH=200,pl=46,pr=8,pt=14,pb=22;
   const vs=[...C.s,...C.t].filter(v=>v>0);if(!vs.length)return '';const lo=Math.log(Math.min(...vs)),hi=Math.log(Math.max(...vs)),rg=Math.max(.2,hi-lo);
   const x=i=>pl+(W-pl-pr)*(n>1?i/(n-1):.5),y=v=>pt+(HH-pt-pb)*(1-(Math.log(v)-lo)/rg);let s='';
   for(const t of [0.2,0.5,1,2,5,10,20,50,100,200,500]){const lt=Math.log(t);if(lt<lo-1e-9||lt>hi+1e-9)continue;const yy=y(t).toFixed(1);
@@ -1215,7 +1220,7 @@ function acurveChart(C){if(!C||!(C.d||[]).length)return '';const n=C.d.length,W=
   const path=a=>{let p='',m=true;a.forEach((v,i)=>{if(!(v>0)){m=true;return;}p+=`${m?'M':'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`;m=false;});return p;};
   s+=`<path d="${path(C.t)}" fill=none stroke="#9aa5b1" stroke-width=1.5 /><path d="${path(C.s)}" fill=none stroke="#2563c9" stroke-width=2 />`;
   const lt=[...C.t].reverse().find(v=>v>0);
-  return `<h4 class=sh style="margin-top:0">1 元變多少（對數刻度）</h4><svg width=${W} height=${HH} viewBox="0 0 ${W} ${HH}">${s}</svg><div class=lg><span><i style="background:#2563c9"></i>本策略（扣成本）${f(C.s[n-1],1)} 倍</span><span><i style="background:#9aa5b1"></i>大盤（加權報酬指數）${lt?f(lt,1)+' 倍':'—'}</span><span>${esc(C.d[0].slice(0,7))} 起</span></div>`;}
+  return `<h4 class=sh style="margin-top:0">1 元變多少（對數刻度）</h4><svg width=${W} height=${HH} viewBox="0 0 ${W} ${HH}">${s}</svg>`+acLg(C.s[n-1],lt,C.d[0],lb);}
 function hdPast(){const g=gOf('hd')||{},ef=g.exit||{},dl=g.del||{},HA=((D.idx||{}).hd||{}).alert||{},aft=HA.after||10,e=(BK.hd||{}).exp||{},L=[];
   if(e.n)L.push(`名單公開後追買（估計被動買盤 ≥${HA.big_th||5} 日量的納入股、買盤最後一天賣）：${e.n} 次，每次平均 ${pctT(e.avg)}、中位 ${pctT(e.med)}，同期大盤 ${pctT(e.mk)}`);
   if(ef.n)L.push(`被動買盤結束後 ${aft} 個交易日：納入股平均${ef.avg<0?'輸':'贏'}大盤 ${f(Math.abs(ef.avg),1)}%，${ef.n} 次中 ${ef.neg} 次輸`);
@@ -2019,7 +2024,7 @@ $$('.apptab a').forEach(a=>{const h=a.getAttribute('href')||'';if(h==='x9.html'|
 {const q=new URLSearchParams(location.search),hm=location.hash.match(/^#v=([a-z]+)(.*)$/);let v=q.get('v'),m=q.get('m'),x='';
   if(hm){v=hm[1];const p=new URLSearchParams(hm[2].replace(/^&/,''));m=p.get('m')||m;x=p.get('x')||'';}
   if(m&&MCM[m])S.mmk=m;if(!VIEWS[v])v='stk';
-  let at;if(x&&TABG[v]==='mac'){const M=MCM[S.mmk]||{};if((M.cards||[]).some(c=>c.k===x)){v='mac';at='m-'+x;}else{v='macst';at='mb-'+x;}}
+  let at;if(x&&TABG[v]==='mac'){const M=MCM[S.mmk]||{};if((M.cards||[]).some(c=>c.k===x)){v='mac';at='m-'+x;}else{v='macst';at='ms-'+x;}}
   go(v,at);}
 if(isPane())setTimeout(()=>{loadSer().catch(()=>{});},1500);
 {const m=location.hash.match(/^#s=(.+)$/);if(m)renderStock(decodeURIComponent(m[1]));}

@@ -68,11 +68,13 @@ def test_cards_mirror_stock_strategy_rows(R, B):
             assert c["how"] and c["now"] == P.now_text(r) and c["tag"] == P.TAG[c["st"]] and c["why"] == XA.why(r)
             assert e["unit"] == XA.UNIT[c["kind"]] and e["d0"] == r["a"] and e["d1"] == r["z"]
             assert e["bcagr"] == round(r["bh"]["cagr"] * 100, 1)
+            # 每筆的平均、中位、賺錢比例、最差＝逐筆交易那一份（x9xh.json，取到小數第 5 位）重算；和 xstrat 原始數字只差四捨五入
             if c["kind"] == "trade" and f.get("n"):
-                assert e["n"] == f["n"] and e["win"] == round(f["win"] * 100) and e["base"] == round(f["base"] * 100)
-                assert e["avg"] == round(f["avg"] * 100, 2) and e["cagr"] == round(f["cagr"] * 100, 1)
+                assert e["n"] == f["n"] and abs(e["win"] - f["win"] * 100) <= 0.5 + 1e-9 and e["base"] == round(f["base"] * 100)
+                assert abs(e["avg"] - f["avg"] * 100) <= 0.006 and abs(e["med"] - f["med"] * 100) <= 0.006   # 顯示 2 位＋每筆取 5 位的誤差
+                assert e["cagr"] == round(f["cagr"] * 100, 1)
             if c["kind"] == "dip" and f.get("n"):
-                assert e["n"] == f["n"] and e["med"] == round(f["med"] * 100, 1) and e["bmed"] == round(f["bmed"] * 100, 1)
+                assert e["n"] == f["n"] and abs(e["med"] - f["med"] * 100) <= 0.051 and e["bmed"] == round(f["bmed"] * 100, 1)
                 assert e["cagr"] == round(r["curve"]["cagr"] * 100, 1) and 0 <= e["expo"] <= 100
             if c["kind"] == "alloc":
                 assert e["cagr"] == round(f["cagr"] * 100, 1) and e["mdd"] == round(f["mdd"] * 100)
@@ -122,5 +124,139 @@ def test_calendar_and_summary(B):
 def test_build_is_small_and_serializable(B):
     assert B["mks"] == [mk for mk in S.MARKETS if mk in B["m"]] and B["ver"] == S.VER
     assert set(B["rule"]) >= {"n", "win", "edge", "dn", "dwin", "dedge", "dmx", "dadd", "mdd", "grid"}
+    assert set(B["spec"]) == {b["k"] for M in B["m"].values() for b in M["book"]}
+    assert all(set(v) == {"src", "logic", "pnote"} and v["src"] and v["logic"] for v in B["spec"].values())
     size = len(json.dumps(B, ensure_ascii=False, separators=(",", ":")))
-    assert size < 90_000, size                                                      # 內嵌在個股頁，別讓頁面變太大
+    # 內嵌在個股頁（x9.html），別讓頁面變太大：卡片、比較表約 5 萬字，說明卡（結論、規則、逐年報酬、風險）約 6.5 萬字；
+    # 判定依據、1 元變多少、逐筆交易放 x9xh.json（打開規則與成績才下載）
+    assert size < 130_000, size
+
+
+# ── 說明卡（規則與成績；docs/lab_strategy_ia_plan.md 第三段） ─────────────────────────
+
+def _closed(r):
+    return [t for t in r["tr"] if t[2] is not None and t[5] is not None]
+
+
+def test_explain_card_fields(R, B):
+    """每一條策略（比較表全部，含 ○、—）都有說明卡：結論、判定一句、規則（＝訊號總覽同一份）、風險、成本；
+    交易型與進出型有逐年報酬、落底型有抱多久比較（判定看的那一期標出來）；圖例的最後倍數＝淨值最後一個點。"""
+    from arm.lab import xstratpage as XSP
+    for mk, M in B["m"].items():
+        for b in M["book"]:
+            r, e = R[mk][b["k"]], b["ex"]
+            assert e["concl"].startswith(f"{r['a'][:7]}～{r['z'][:7]}") and e["tl"] == XA.tier_line(r)
+            assert e["rules"] == XSP.rule_lines(b["k"], mk) and e["cost"] == XSP.cost_txt(mk, b["k"])
+            assert e["risk"] and any("不含股息" in x for x in e["risk"])
+            assert e["cv"] == [r["eq"]["s"][-1], r["eq"]["b"][-1]] and b["how"] == XA.how(b["k"], mk)
+            if r["kind"] == "dip":
+                assert "yr" not in e and [h[1] for h in e["hs"]] == [v["n"] for _, v in sorted(r["full"]["hs"].items())]
+                assert sum(h[5] for h in e["hs"]) == 1 and next(h for h in e["hs"] if h[5])[0] == XSP.HN[r["H"]]
+            else:
+                assert "hs" not in e and e["yr"]
+            assert ("season" in e) == (b["k"] == "hal" and bool(r.get("season", {}).get("n")))
+            assert b["exp"]["nt"] == len(r["tr"])
+            txt = json.dumps(e, ensure_ascii=False)
+            assert not [w for w in BANNED if w in txt], (mk, b["k"])
+
+
+def test_tier_line_matches_tier(R):
+    for mk, M in R.items():
+        for k, r in M.items():
+            t = XA.tier_line(r)
+            if r["tier"] == "good":
+                assert t.startswith("全期間過關，") and "但" not in t
+            elif r["tier"] == "ref":
+                assert t.startswith("全期間過關，但") and ("近 10 年沒過關" in t or "換附近的參數只有" in t)
+            elif r["tier"] == "none":
+                assert t.startswith("全期間沒過關：") and t.endswith("不列在「這一期」。")
+            else:
+                assert t.endswith("不判定。")
+
+
+def test_yearly_compounds_to_final_value(R, B):
+    """逐年報酬連乘＝淨值最後一個點（策略、買進持有都是；四捨五入到 0.1%，累積誤差有限）；年份連續、從評估起點那年到資料最後一年；
+    今年還沒過完才標「到哪一天」。"""
+    for mk, M in B["m"].items():
+        for b in M["book"]:
+            Y = b["ex"].get("yr")
+            if not Y:
+                continue
+            r = R[mk][b["k"]]
+            n = len(Y["s"])
+            assert len(Y["b"]) == n and Y["y0"] == r["a"][:4] and int(Y["y0"]) + n - 1 == int(r["z"][:4])
+            ps, pb = 1.0, 1.0
+            for v, w in zip(Y["s"], Y["b"]):
+                ps *= 1 + v / 100
+                pb *= 1 + w / 100
+            assert abs(ps / r["eq"]["s"][-1] - 1) < 0.0006 * n and abs(pb / r["eq"]["b"][-1] - 1) < 0.0006 * n, (mk, b["k"])
+            nx = r["now"].get("nx")
+            assert ("to" in Y) == (nx[:4] == r["z"][:4] if nx else r["z"][5:7] != "12")
+            if "to" in Y:
+                assert Y["to"] == r["z"]
+
+
+def test_ex_best_removes_best_full_year(R):
+    """成績集中在哪一年：最好的完整年份；去掉這一年之後的年化（策略與買進持有去掉同一年）。直接用淨值重算一次對照。"""
+    from datetime import date
+    r = R["tw"]["rsi2"]
+    X = XA.ex_best(r)
+    raw = XA._yr_raw(r)
+    rets, ps = {}, 1.0
+    brets, pb = {}, 1.0
+    for y, s_, b_ in raw:
+        rets[y], brets[y] = s_ / ps, b_ / pb
+        ps, pb = s_, b_
+    full = [y for i, y in enumerate(rets) if not (i == 0 and r["a"][5:7] != "01") and not (i == len(rets) - 1 and XA._part_last(r, raw))]
+    best = max(full, key=lambda y: rets[y])
+    yrs = (date.fromisoformat(r["z"]) - date.fromisoformat(r["a"])).days / 365.25
+    assert X["y"] == best and X["r"] == round((rets[best] - 1) * 100, 1)
+    assert X["cagr"] == round(((raw[-1][1] / rets[best]) ** (1 / (yrs - 1)) - 1) * 100, 1)
+    assert X["bcagr"] == round(((raw[-1][2] / brets[best]) ** (1 / (yrs - 1)) - 1) * 100, 1)
+
+
+def test_trade_list_numbers_equal_card_numbers(R, B):
+    """逐筆交易上方那一句（頁面由每一筆重算）寫「就是上方結論的數字」：已賣出的每一筆（x9xh.json，報酬取到小數第 5 位）
+    依時間順序加總的平均、中位、賺錢比例，照頁面的進位方式（.5 進位）就是卡片上的數字。node 實際跑頁面那一段在 test_macpage。"""
+    from decimal import ROUND_HALF_UP, Decimal
+    import statistics
+    up = lambda x, d: float(Decimal(repr(x)).quantize(Decimal(1).scaleb(-d), rounding=ROUND_HALF_UP))   # 頁面 toLocaleString 的進位
+    for mk, M in B["m"].items():
+        for b in M["book"]:
+            r, e = R[mk][b["k"]], b["exp"]
+            cl = [t[5] * 100 for t in _closed(r)]
+            if not cl or not e.get("n"):
+                continue
+            dd = 2 if r["kind"] == "trade" else 1
+            if r["kind"] != "alloc":
+                assert len(cl) == e["n"] == r["full"]["n"]
+            tot = 0.0
+            for v in cl:
+                tot += v
+            assert up(tot / len(cl), dd) == e["avg"] and up(statistics.median(cl), dd) == e["med"], (mk, b["k"])
+            assert int(100 * sum(1 for v in cl if v > 0) / len(cl) + 0.5) == e["win"], (mk, b["k"])
+            assert up(min(cl), 1) == e["lo"]
+            assert b["why"] == XA.why(r)
+            if r["kind"] != "alloc":
+                assert f"{e['win']}%" in b["why"]                                  # 推薦順序旁那一句也是同一份數字
+
+
+def test_judge_rows_and_grid(R):
+    """判定依據（x9xh.json）：每一項過了沒＝訊號總覽同一份（xstratpage.why）；參數鄰近表格數＝組數、原作者參數剛好一格、過關數一致。"""
+    from arm.lab import xstratpage as XSP
+    for mk, M in R.items():
+        for k, r in M.items():
+            j = XA.judge(r)
+            assert j["why"] == XSP.why(r)
+            G = j["grid"]
+            cells = [c for row in G["c"] for c in row]
+            assert len(cells) == len(r["grid"]) == G["n"] and all(cells)
+            assert sum(c[1] for c in cells) == 1 and sum(c[0] for c in cells) == G["ok"] == sum(1 for g in r["grid"] if g["ok"])
+            sp = S.BY_KEY[k]
+            assert len(G["pn"]) == len(sp["grid"]) and len(G["a"]) == len(list(sp["grid"].values())[0])
+            if r["kind"] == "dip":
+                assert (j["ref"] is None) == (not (r.get("b1") or {}).get("n"))
+            elif k not in ("hal", "tom"):                                    # 日子事先排定的沒有落後一天的問題，沒有對照
+                assert j["ref"] and ("原作者時點" in j["ref"] or "隔天收盤" in j["ref"])
+            txt = json.dumps(j, ensure_ascii=False)
+            assert not [w for w in BANNED if w in txt], (mk, k)
