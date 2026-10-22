@@ -1,7 +1,28 @@
 {
- "as_of": "2026-10-22 18:15",
- "count": 0,
+ "as_of": "2026-10-22 19:01",
+ "count": 2,
  "fund_count": 0,
- "etf_count": 0,
- "items": []
+ "etf_count": 2,
+ "items": [
+  {
+   "src": "etf",
+   "name": "上品",
+   "ticker": "4770",
+   "count": 1,
+   "etfs": [
+    "00995A"
+   ],
+   "weight": 0.48
+  },
+  {
+   "src": "etf",
+   "name": "視陽",
+   "ticker": "6782",
+   "count": 1,
+   "etfs": [
+    "00993A"
+   ],
+   "weight": 0.18
+  }
+ ]
 }
