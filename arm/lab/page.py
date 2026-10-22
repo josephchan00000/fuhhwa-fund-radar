@@ -34,6 +34,11 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         data["sigj"] = sigcat.stock_brief(srows)   # 籌碼頁、後台的訊號成績（命中率／平常）
     except Exception as e:                   # noqa: BLE001 —— 失敗不影響建頁
         print(f"[籌碼雷達] ⚠ 訊號總覽的個股資料沒有更新：{type(e).__name__}: {e}")
+    try:                                     # 策略頁・總經策略（docs/lab_strategy_ia_plan.md；計算在 xstrat，整理在 xsadvice）
+        from . import xsadvice
+        data["mac"] = xsadvice.build()
+    except Exception as e:                   # noqa: BLE001 —— 失敗只是總經策略那兩頁空著
+        print(f"[籌碼雷達] ⚠ 總經策略沒有放進頁面：{type(e).__name__}: {e}")
     try:                                     # 後台自我驗證紀錄（只有 CI 寫回 data/lab/val_log.json）
         from . import valog
         data["vlog"] = valog.update(data)
@@ -140,13 +145,13 @@ def render(data: dict, ser_v: str | None = None) -> str:
     main = {k: v for k, v in data.items() if k not in ("ser", "mtab")}
     main["serv"] = ser_v or _ver(ser_json(data))
     blob = _dump(main).replace("</", "<\\/")
-    from . import appnav, copage, stockviz   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
+    from . import appnav, copage, macpage, stockviz   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
                                              # （初始化會開分頁與 #s= 個股卡，這時公司分析的頂層 const 必須已經初始化）
                                              # stockviz＝機會、籌碼頁的三張圖（docs/lab_visual_plan.md 第 10 節），同樣放在初始化之前
     return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("stk")).replace("{{SUB}}", asof_line(data))
-            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS + stockviz.CSS + theme_css())
+            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS + stockviz.CSS + macpage.CSS + theme_css())
             .replace("{{SEARCH}}", copage.SEARCH_HTML)
-            .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", stockviz.JS + copage.JS)))
+            .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", stockviz.JS + macpage.JS + copage.JS)))
 
 
 _HTML = """<!doctype html>
@@ -157,10 +162,11 @@ _HTML = """<!doctype html>
 <style>{{CSS}}</style></head>
 <body>
 <div class="top">{{APPTAB}}<span class="asof">{{SUB}}</span>{{SEARCH}}<a class="back" href="./">返回主頁</a></div>
-<p class="purp">用固定規則的選股策略，列出每條策略這一期選到的股票、哪天買賣，以及同樣做法過去實際賺多少。</p>
+<p class="purp" id="purp">ETF 持股、法人籌碼與技術面：每一檔股票誰在買賣、在什麼位置；點一檔看公司分析。</p>
 <header class="hd"><div class="hdi">
   <nav class="tabs" id="tabs">
-    <a data-t="opp">機會</a><a data-t="st">策略</a><a data-t="stk">個股</a><a data-t="chip">籌碼</a><a data-t="idx">指數</a>
+    <a data-t="mac" data-p="st" hidden>總經策略</a><a data-t="stg" data-p="st" hidden>個股策略</a>
+    <a data-t="stk" data-p="stk">個股</a><a data-t="chip" data-p="stk">籌碼</a><a data-t="idx" data-p="stk">指數</a>
     <a class="vlb" data-t="bo">後台</a><a class="glb" id="glb"><i class="gi">i</i>名詞</a>
   </nav>
   <nav class="snav" id="snav"></nav>
@@ -473,7 +479,7 @@ function sgChips(arr){return (arr||[]).map(k=>`<span class="sg${RISK.has(k)?' rk
 function issOf(etfs){return [...new Set((etfs||[]).map(e=>(E[e]||{}).is||e))];}
 function sec(id,nav,title,sub,body,rt=''){return `<section class=sec id="${id}" data-nav="${esc(nav)}"><h2>${title}${sub?`<span class=sub>${sub}</span>`:''}${rt?`<span class=rt>${rt}</span>`:''}</h2>${body}</section>`;}
 const MK={tw:'上市',tp:'上櫃',os:'海外'};const MKF={twall:'台股',tw:'上市',tp:'上櫃',os:'海外',all:'全部'};
-const S={tab:'opp',stf:false,q:'',mk:'twall',sig:'',liq:false,sort:'a5v',dir:-1,n:60,vw:'etf'};let STK=[];
+const S={tab:'stk',stf:false,q:'',mk:'twall',sig:'',liq:false,sort:'a5v',dir:-1,n:60,vw:'etf',mmk:'tw'};let STK=[];
 try{const z=JSON.parse(localStorage.getItem('lab.s')||'{}');for(const k of ['mk','sort','dir','liq','vw'])if(k in z)S[k]=z[k];}catch(e){}
 if(!({etf:1,chip:1,ta:1})[S.vw])S.vw='etf';
 function save(){try{localStorage.setItem('lab.s',JSON.stringify({mk:S.mk,sort:S.sort,dir:S.dir,liq:S.liq,vw:S.vw}));}catch(e){}}
@@ -574,7 +580,7 @@ const GL={
 '配對比較':'同一期（同一次審核、同一個訊號）把候選和現行的報酬相減，看這串差值的平均與 t 值。同一期的大盤漲跌會互相抵掉，比兩個平均各算各的準。',
 '多重檢定校正':'同一條策略一次測好幾個候選時，總會有幾個剛好看起來比較好。這裡用 Holm 校正：p 值由小到大排，第 i 個要小於 5% ÷（還沒檢查的候選數），有一個沒過，後面全部不過。',
 '改良分級':'證據強＝六項檢查全過：①校正後仍顯著 ②複驗期間（2021-10 之前）同方向且 t ≥ 1（沒有複驗期間的策略改成校正前 t ≥ 2.5）③相鄰數字也不比現行差 ④去掉差距最大的一年後仍較好 ⑤成本加倍後仍較好 ⑥最大回落沒有變差超過 3 個百分點。待觀察＝校正前 t ≥ 1.645 但沒有全過；比較差＝明顯比現行差；樣本不足＝期數或筆數不夠。',
-'影子版本':'通過「證據強」的改法，只在紙上和現行規則一起記錄（不上機會頁、不推播買賣）。前瞻滿門檻（月營收 10 期、財報與臺灣50 2 次、共識加碼與長線 10 筆）、平均贏過現行、回落沒有變差，而且每週重跑仍是證據強，才會通知你；你回「好」才換成新版本。沒有贏就淘汰，182 天內不再試同一個改法。',
+'影子版本':'通過「證據強」的改法，只在紙上和現行規則一起記錄（不上個股策略「這一期」、不推播買賣）。前瞻滿門檻（月營收 10 期、財報與臺灣50 2 次、共識加碼與長線 10 筆）、平均贏過現行、回落沒有變差，而且每週重跑仍是證據強，才會通知你；你回「好」才換成新版本。沒有贏就淘汰，182 天內不再試同一個改法。',
 };
 const GLG=[['ETF 面',['真加碼','申贖倍率','主動 5 日淨買','加碼／減碼家數','持有 ETF','新建倉','建倉日','主動成本','成本乖離','超配','ETF 持股率','消化天數']],
  ['法人籌碼',['投信 5 日','外資 5 日','連買','60 日買超均價','融資','借券賣出','千張大戶']],
@@ -629,7 +635,7 @@ function vChip(){
   if(cons.length)L.push(`<b>${cons.length} 檔</b>有 3 家以上投信同時加碼${gi('cons')}，最多的是 ${cntGroup(cons.slice(0,3).map(r=>[nmL(r),(r.ia5||[]).length]))}。`);
   if(exits.length)L.push(`<b>${exits.length} 檔</b>被 3 家以上投信同時減碼${gi('exit')}，賣最多的是 ${exits.slice(0,3).map(r=>`${nmL(r)}（${f(r.a5v,1)} 億）`).join('、')}。`);
   if(nbs.length)L.push(`10 日內主動 ETF 新建倉的台股 <b>${nbs.length} 檔</b>${gi('新建倉')}，最多家同時進場的是 ${cntGroup(nbs.slice(0,3).map(x=>[nmL(x.r),x.is.length]))}。`);
-  let h=`<div class=intro>主動 ETF、投信最近在買賣什麼，出現哪些訊號。這頁是策略的原料，不是買進清單；要買什麼、哪天買，看「<a data-go="opp">機會</a>」。</div>`;
+  let h=`<div class=intro>主動 ETF、投信最近在買賣什麼，出現哪些訊號。這頁是策略的原料，不是買進清單；要買什麼、哪天買，看策略頁的「<a data-go="opp">個股策略</a>」。</div>`;
   h+=mmSec();                                         /* 主動 ETF 資金地圖（stockviz.py） */
   h+=sec('c-lead','重點','籌碼重點',`近 5 個交易日（${win}）`,`<div class=lead><ul>${L.map(x=>`<li>${x}</li>`).join('')||'<li>近 5 日沒有主動 ETF 資料</li>'}</ul></div>`);
   const m=Math.max(1,...buys.slice(0,8).map(r=>r.a5v),...sells.slice(0,8).map(r=>-r.a5v));
@@ -773,7 +779,7 @@ function sigConcl(ks){const S=ks.map(k=>(D.stats||{})[k]||{}).filter(s=>(s['5']|
   const lose5=A.filter(x=>x.x<0).length,win20=B.filter(x=>x.x>0).length,allW=B.length&&B.every(x=>x.w<50);
   let t=`${A.length} 種訊號照做（訊號隔天開盤買、扣成本，${md((D.asof||{}).start)} 起）：持有 5 天實際平均 ${rg(A,'r')}，同期大盤 ${rg(A,'mk')}，${lose5===A.length?'全部輸大盤':`${lose5} 種輸大盤`}`;
   if(B.length)t+=`；持有 20 天實際平均 ${rg(B,'r')}，同期大盤 ${rg(B,'mk')}，${win20?`${win20} 種平均贏大盤${allW?'，但每一種都有一半以上的股票輸大盤':''}`:'全部輸大盤'}`;
-  return t+'。<b>訊號只當觀察線索，不是買點</b>；要照做的看「機會」與「策略」分頁。';}
+  return t+'。<b>訊號只當觀察線索，不是買點</b>；要照做的看策略頁的個股策略。';}
 /* 籌碼頁：一句結論（由成績算）＋訊號按鈕＋各訊號今天的股票 */
 function sigShort(){const ks=Object.keys(SD).filter(k=>SJ[k]&&SJ[k][2]);if(!ks.length)return '';
   const up=ks.filter(k=>SJ[k][1]!=='warn'),wn=ks.filter(k=>SJ[k][1]==='warn');
@@ -1161,7 +1167,7 @@ function oCard(c){const nx=oNext(c),rows=[['做法',esc(c.how||'')],[`隱含獲�
   return sec('o-'+c.k,STN[c.k]||c.name,`<span class=orank>${c.rank}</span>${esc(c.name)} ${tBadge(c.tier)}`,`推薦順序 ${c.rank}：${esc(c.why||'')}${/事後驗證/.test(c.why||'')?gi('事後驗證'):''}`,
     `<div class="card stc">${rows.map(([a,b])=>sq(a,b)).join('')}<div class=vlk><a data-go="st" data-at="st-${esc(c.k)}">怎麼做、逐年成績、風險 →</a></div></div>`);}
 function vOpp(){
-  let h=`<div class=intro>各策略這一期選到的股票、哪天買賣，以及同樣做法過去照做的實際報酬（扣成本），旁邊是同一段期間的大盤。只列推薦的策略（★ 好策略、● 可參考${gi('判定')}），依推薦順序${gi('推薦順序')}；報酬是歷史統計，不是預測。</div>`;
+  let h=`<div class=intro>各策略這一期選到的股票、哪天買賣，以及同樣做法過去照做的實際報酬（扣成本），旁邊是同一段期間的大盤。只列推薦的策略（★ 好策略、● 可參考${gi('判定')}），依推薦順序${gi('推薦順序')}；報酬是歷史統計，不是預測。</div>`+`<div class=xmbar>${pgSeg('opp','opp','st')}</div>`;
   if(ADV.err)h+=`<div class=st>評級資料錯誤：${esc(ADV.err)}</div>`;
   if((D.adv||{}).v3err)h+=`<div class=st>月營收驚喜、財報驚喜資料錯誤：${esc(D.adv.v3err)}</div>`;
   h+=sec('o-sum','摘要','這一期的機會',`${md(ADV.last)} 收盤後更新`,oSum()+tlNext()+tlSec()+`<details class=mr><summary>逐筆時間表（文字）</summary>${oTl()}</details>`,
@@ -1170,13 +1176,13 @@ function vOpp(){
   h+=(OPP.cards||[]).map(oCard).join('');
   h+=sec('o-avoid','避開','避開清單','持有中的照規則處理；沒持有的這段期間不買',`${hdGroups(false)}${gapList()}`);
   const C=(ADV.grades3||[]).filter(g=>!REC.includes(g.tier)&&g.k!=='hd');
-  if(C.length)h+=`<div class=note>不推薦（○、—）的策略不列在這頁：${C.map(g=>`<a data-go="st" data-at="st-${esc(g.k)}">${esc(g.name||g.k)}</a>`).join('、')}，在「策略」分頁灰字列出。</div>`;
+  if(C.length)h+=`<div class=note>不推薦（○、—）的策略不列在這頁：${C.map(g=>`<a data-go="st" data-at="st-${esc(g.k)}">${esc(g.name||g.k)}</a>`).join('、')}，在「規則與成績」灰字列出。</div>`;
   $('#main').innerHTML=h;tlDraw();spotDraw();
   $$('#main [data-to]').forEach(a=>a.onclick=e=>{e.preventDefault();jump(a.dataset.to);});
 }
 
 /* ---------- 策略（版面 v4）：比較表（推薦順序、隱含獲利、年化對大盤）→ 各策略說明（結論／怎麼做／過去成績／風險）→ 部位。
-   這一期的股票與買賣日期在「機會」；評級怎麼訂、怎麼驗證的在「後台」。 ---------- */
+   這一期的股票與買賣日期在「這一期」；評級怎麼訂、怎麼驗證的在「後台」。2026-10-22 起兩頁放在策略頁的個股策略底下。 ---------- */
 function bookSec(){const B=ADV.book||[];if(!B.length)return '';
   const row=b=>{const e=b.exp||{},u=b.unit||'次',A=b.all||{};
     return `<tr class="${REC.includes(b.tier)&&b.k!=='hd'?'':'grey'}"><td class=l><a data-to="st-${esc(b.k)}"><span class=nm>${b.rank?`<span class="orank sm">${b.rank}</span>`:''}${esc(b.name)}</span></a><span class=bkg>${b.k==='hd'?tBadge('none','不追買'):tBadge(b.tier)}</span><span class=cd>${b.rank?esc(b.rank_why||''):b.k==='hd'?'只當出場與避開的規則':'不推薦，只做紙上記錄'}</span><span class=cd>持有${hz(b.hold)}・每${u}</span></td>`+
@@ -1383,7 +1389,7 @@ function posSec(){return sec('st-pos','部位','部位怎麼算','',`<div class=
     '停損：有停損價時，部位另以「停損時虧損 ≤ 總資金 0.5%」計算，取較小者','檔數：每條策略每次最多 5 檔；同一檔被兩條策略選到時不重複加碼',
     '流動性：買進張數 ≤ 20 日均量 2%','排除：注意股、處置股不買'])}</div></div>`);}
 function vSt(){const X=D.strat||{};
-  let h=`<div class=intro>每條策略怎麼選股、推薦程度，以及同樣做法過去照做的實際報酬（扣成本）與同期大盤。推薦順序${gi('推薦順序')}：★ 好策略在前，同一級依逐筆賺錢比例${gi('判定')}。這一期選到的股票與買賣日期在「<a data-go="opp">機會</a>」；原本的 A／B／C 評級與驗證在「<a data-go="bo">後台</a>」。</div>`;
+  let h=`<div class=intro>每條策略怎麼選股、推薦程度，以及同樣做法過去照做的實際報酬（扣成本）與同期大盤。推薦順序${gi('推薦順序')}：★ 好策略在前，同一級依逐筆賺錢比例${gi('判定')}。這一期選到的股票與買賣日期在「<a data-go="opp">這一期</a>」；原本的 A／B／C 評級與驗證在「<a data-go="bo">後台</a>」。</div>`+`<div class=xmbar>${pgSeg('st','opp','st')}</div>`;
   if(X.err)h+=`<div class=st>策略資料錯誤：${esc(X.err)}</div>`;
   if(ADV.err)h+=`<div class=st>評級資料錯誤：${esc(ADV.err)}</div>`;
   if((D.adv||{}).v3err)h+=`<div class=st>月營收驚喜、財報驚喜資料錯誤：${esc(D.adv.v3err)}</div>`;
@@ -1973,7 +1979,22 @@ $('#glb').onclick=e=>{e.preventDefault();openGl();};
 $('#gl').addEventListener('click',e=>{if(e.target.id==='gl')closeGl();});
 
 /* ---------- 分頁＋跳段目錄 ---------- */
-const VIEWS={opp:vOpp,st:vSt,stk:vStk,chip:vChip,idx:vIdx,bo:vBo};
+const VIEWS={opp:vOpp,st:vSt,mac:vMac,macst:vMacSt,stk:vStk,chip:vChip,idx:vIdx,bo:vBo};
+/* 一份頁面兩種身分（2026-10-22；docs/lab_strategy_ia_plan.md）：「策略」＝總經策略、個股策略（各兩頁：這一期、規則與成績）；
+   「個股」＝個股、籌碼、指數。後台兩邊都有、不換身分。頂欄的「策略」（x9.html#v=mac）、「個股」（x9.html）都連到這一頁，點了不重新載入。
+   網址：?v=分頁（＋&m=市場）；別頁連進來用 #v=分頁&m=市場&x=策略（轉址也帶得過去），載入後改寫成 ?v=。 */
+const TABG={opp:'stg',st:'stg',mac:'mac',macst:'mac',stk:'stk',chip:'chip',idx:'idx',bo:'bo'};
+const PERS={opp:'st',st:'st',mac:'st',macst:'st',stk:'stk',chip:'stk',idx:'stk'};
+const LAST={st:'mac',stk:'stk',mac:'mac',stg:'opp'};
+const PURP={st:'照固定規則買賣：總經策略看大盤指數（台股、美股），個股策略挑台股個股；列出哪天買賣、現在持有什麼，以及同樣做法過去照做賺多少。',
+  stk:'ETF 持股、法人籌碼與技術面：每一檔股票誰在買賣、在什麼位置；點一檔看公司分析。'};
+let PER='';
+function setPer(p){if(p===PER)return;PER=p;$$('#tabs a[data-p]').forEach(a=>{a.hidden=a.dataset.p!==p;});
+  $$('.apptab a').forEach(a=>{const h=a.getAttribute('href')||'',on=p==='st'?h.indexOf('x9.html#v=')===0:h==='x9.html';
+    a.classList.toggle('on',on);if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+  const pp=$('#purp');if(pp)pp.textContent=PURP[p];document.title=p==='st'?'策略':'個股';}
+function urlSet(){const t=S.tab,q=t==='stk'?'':'?v='+t+(TABG[t]==='mac'?'&m='+S.mmk:''),h=location.hash.indexOf('#s=')===0?location.hash:'';
+  try{history.replaceState(history.state,'',location.pathname+q+h);}catch(e){}}
 function hdh(){return $('.hd').offsetHeight;}
 function jump(id){const t=document.getElementById(id);if(t&&t.tagName==='DETAILS')t.open=true;if(t)window.scrollTo({top:t.getBoundingClientRect().top+scrollY-hdh()-8,behavior:'smooth'});}
 function buildNav(){const secs=$$('#main .sec[data-nav]');
@@ -1986,13 +2007,20 @@ function spy(){const secs=$$('#main .sec[data-nav]');const nav=$('#snav');if(sec
   nav.querySelectorAll('a').forEach(a=>{const on=a.dataset.to===cur;if(on===a.classList.contains('on'))return;a.classList.toggle('on',on);
     if(on){const l=a.offsetLeft-nav.offsetLeft;if(l<nav.scrollLeft||l+a.offsetWidth>nav.scrollLeft+nav.clientWidth)nav.scrollLeft=Math.max(0,l-24);}});}
 addEventListener('scroll',()=>{if(!spyRaf)spyRaf=requestAnimationFrame(()=>{spyRaf=0;spy();});},{passive:true});
-function go(t,anchor){S.tab=t;$$('#tabs a[data-t]').forEach(a=>a.classList.toggle('on',a.dataset.t===t));VIEWS[t]();buildNav();
+function go(t,anchor){if(!VIEWS[t])t='stk';S.tab=t;const g=TABG[t];setPer(PERS[t]||PER||'stk');LAST[PER]=t;if(g==='mac'||g==='stg')LAST[g]=t;
+  $$('#tabs a[data-t]').forEach(a=>a.classList.toggle('on',a.dataset.t===g));VIEWS[t]();buildNav();urlSet();
+  $$('#main [data-mmk]').forEach(a=>a.onclick=e=>{e.preventDefault();S.mmk=a.dataset.mmk;go(S.tab);});
   $$('#main [data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();const d=a.dataset;
     if(d.fsig!==undefined){S.sig=d.fsig;S.q='';S.n=60;S.stf=false;}if(d.fstf!==undefined){S.stf=true;S.sig='';S.q='';S.n=60;}if(d.sort){S.vw='etf';S.sort=d.sort;S.dir=+(d.dir||-1);}go(d.go,d.at);});
   window.scrollTo(0,0);if(anchor)requestAnimationFrame(()=>jump(anchor));}
 /*@@COPAGE@@*/
-$$('#tabs a[data-t]').forEach(a=>a.onclick=()=>go(a.dataset.t));
-go('opp');
+$$('#tabs a[data-t]').forEach(a=>a.onclick=()=>{const g=a.dataset.t;go(g==='mac'||g==='stg'?LAST[g]:g);});
+$$('.apptab a').forEach(a=>{const h=a.getAttribute('href')||'';if(h==='x9.html'||h.indexOf('x9.html#v=')===0)a.onclick=e=>{e.preventDefault();go(h==='x9.html'?LAST.stk:LAST.st);};});
+{const q=new URLSearchParams(location.search),hm=location.hash.match(/^#v=([a-z]+)(.*)$/);let v=q.get('v'),m=q.get('m'),x='';
+  if(hm){v=hm[1];const p=new URLSearchParams(hm[2].replace(/^&/,''));m=p.get('m')||m;x=p.get('x')||'';}
+  if(m&&MCM[m])S.mmk=m;if(!VIEWS[v])v='stk';
+  let at;if(x&&TABG[v]==='mac'){const M=MCM[S.mmk]||{};if((M.cards||[]).some(c=>c.k===x)){v='mac';at='m-'+x;}else{v='macst';at='mb-'+x;}}
+  go(v,at);}
 if(isPane())setTimeout(()=>{loadSer().catch(()=>{});},1500);
 {const m=location.hash.match(/^#s=(.+)$/);if(m)renderStock(decodeURIComponent(m[1]));}
 """

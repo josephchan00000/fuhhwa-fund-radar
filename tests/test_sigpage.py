@@ -397,7 +397,7 @@ def test_facets_follow_heat_page_faces():
     assert 'data-k="c1"' in t and '<div class="sgchips sgc2" data-k="c2" hidden>' in t and 'data-k="cat"' not in t
     adv = t[t.index('<details class="sgadv">'):t.index("</details>")]
     assert 'data-k="tier"' in adv and 'data-k="dir"' in adv and 'id="sgnow"' in adv and 'id="sgcsv"' in adv
-    assert t.index('data-k="c2"') < t.index('<details class="sgadv">') and 'href="x9x.html"' in t
+    assert t.index('data-k="c2"') < t.index('<details class="sgadv">') and 'href="x9.html#v=mac"' in t
     for f in ("x.c1 !== st.c1", "if (k === 'c1') st.c2 = ''", "c1: 'strat', c2: sp.grp", "facName(x)", "sgadvn"):
         assert f in sigpage.JS, f
 

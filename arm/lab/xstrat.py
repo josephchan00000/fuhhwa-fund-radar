@@ -962,7 +962,11 @@ def strategy(C: Ctx, spec: dict) -> dict:
                     "p": luck_dip(C.px, M["raw"], lo, H, c, key, full.get("win")),
                     "b1": _b1_ref(C, H, c, lo)})
         tr = [(t, t + S.LAG, t + S.LAG + H, t + S.LAG + H) for t in M["days"] if t + S.LAG + H < C.T]
-        out["eq"] = _sample(C, trade_equity(C.px, tr, lo, c), lo)
+        eqd = trade_equity(C.px, tr, lo, c)
+        out["eq"] = _sample(C, eqd, lo)
+        cs = curve_stats(eqd, C.cal, lo)                 # 全部資金照做（策略頁的隱含獲利；不影響判定）
+        out["curve"] = {"cagr": cs["cagr"], "mdd": cs["mdd"],
+                        "expo": float(trade_held(C.T, tr)[lo + 1:].mean()) if C.T > lo + 1 else None}
         out["tr"] = [[C.cal[e], _r(C.px[e], 2), C.cal[q], _r(C.px[q], 2), q - e, _r(net(C.px[e], C.px[q], c), 5),
                       _r(dip_mae(C.px, e, H), 5), C.cal[t]] for t, e, _, q in tr]
     else:
@@ -1196,7 +1200,7 @@ def now_state(C: Ctx, spec: dict) -> dict:
         return out
     pos = C.pos(k, p, S.LAG, now=True)
     cur = pos[t]
-    out = {"d": C.cal[t], "st": "in" if cur == 1 else "out", "nx": nx}
+    out = {"d": C.cal[t], "st": "in" if cur == 1 else "out", "nx": nx, "px": _r(px[t], 2)}
     nxt = None
     if k == "ma200":
         m = C.ma(p["n"])[t]
@@ -1236,7 +1240,7 @@ def now_state(C: Ctx, spec: dict) -> dict:
         out["st"] = "turn_in" if nxt == 1 else "turn_out"
     sp = _spans(C, pos)
     if sp and sp[-1][2] is None and cur == 1:
-        out.update({"ed": sp[-1][0], "ret": sp[-1][5]})
+        out.update({"ed": sp[-1][0], "ep": sp[-1][1], "ret": sp[-1][5]})
     return out
 
 

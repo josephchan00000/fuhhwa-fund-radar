@@ -574,7 +574,7 @@ def today_html(V: dict) -> str:
     cols = []
     for s in ("up", "warn"):
         xs = T[s]
-        sx = [it for it in (V.get("xsb") or []) if it["side"] == s]          # ★ 大神策略（現在有動作的），排最前面
+        sx = [it for it in (V.get("xsb") or []) if it["side"] == s]          # ★ 總經策略（現在有動作的），排最前面
         nf = sum(len(r.get("fam") or []) for r in xs)
         head = (f'<h3><span class="tzcl tzcl-{s}">{_e(TZ_SIDE[s])}</span><span class="sub">{len(xs)} 類'
                 + (f'（共 {len(xs) + nf} 個訊號）' if nf else "") + (f'・{len(sx)} 個策略' if sx else "") + "</span></h3>")
@@ -603,8 +603,8 @@ def today_html(V: dict) -> str:
            "過去常一起出現的訊號算同一件事，併成一列（「同時成立」）。"
            "偏多＝之後收盤比現在高；警示＝之後出現一段大回撤（期間最高到之後最低，先漲再跌也算）；"
            "警示類過去的事後驗證比偏多弱，只當提醒。同一個項目兩邊都是 ★ 的標「震盪」。"
-           "標「策略」的是大神策略（照原作者的規則交易、成績判定為 ★ 好策略），現在照規則有動作才列；溫度計不算策略。"
-           "全部的大神策略現在持有還是空手，看大神策略頁。"
+           "標「策略」的是總經策略（照原作者的規則買賣指數、成績判定為 ★ 好策略），現在照規則有動作才列；溫度計不算策略。"
+           "全部的總經策略現在持有還是空手，看策略頁。"
            "「之後怎麼走？」：兩欄的訊號過去出現之後 1 週～1 年的報酬（點一列直接看那一個），"
            "加上五個面向現在這一區、情境、最像現在的日子。")
     return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div><p class="ksub">{_e(sub)}</p>'
@@ -1066,7 +1066,7 @@ def out_sig(V: dict) -> str:
                      f'{also}<p class="ofl">{SPG._line(r)}</p>{tbl}'
                      f'<p class="ofn"><a href="x9o.html#s={_e(r["id"])}">每一次與走勢 →</a></p></div>')
     xsb = V.get("xsb") or []
-    xs = ('<p class="note">照規則交易的大神策略（' + _e("、".join(dict.fromkeys(x["name"] for x in xsb))) + '）現在的動作列在「今天的重點」。</p>'
+    xs = ('<p class="note">照規則買賣指數的總經策略（' + _e("、".join(dict.fromkeys(x["name"] for x in xsb))) + '）現在的動作列在「今天的重點」。</p>'
           if xsb else "")
     return (head + "".join(cards)
             + '<p class="note">進場＝隔一個交易日收盤；中途最多跌＝持有期間最低收盤比進場價低多少（中位數）。框起來的那一欄＝判定看的期間。'
