@@ -1003,6 +1003,58 @@ def strategy(C: Ctx, spec: dict) -> dict:
     return out
 
 
+def judge(C: Ctx, spec: dict) -> str:
+    """只算判定（good／ref／none／few），不算打亂測試、淨值、每一筆、現在——實戰模擬每年 1 月 1 日重新判定用（practspec 第 3 節）。
+    和 strategy() 的 tier 一樣（tests/test_practsim.py 守）。"""
+    k, kind, p = spec["k"], spec["kind"], spec["p"]
+    if kind == "trade":
+        c, lg = S.cost(C.mk, k), S.lag(C.mk, k)
+        M = _trade_eval(C, k, p, lg)
+        rec_ok = trade_pass_recent(trade_stats(C.px, M["tr"], C.r0, c))
+        oks = [(M if {**p, **q} == p else _trade_eval(C, k, {**p, **q}, lg))["full"]["ok"] for q in _combos(spec["grid"])]
+        return tier(kind, M["full"]["ok"], rec_ok, sum(oks) / len(oks), M["full"]["n"] < S.TR_N_MIN)
+    if kind == "dip":
+        H, c = spec["H"], S.cost(C.mk, k)
+        M = _dip_eval(C, k, p, H)
+        rlo = max(M["lo"], C.r0)
+        rec_ok = dip_pass_recent(dip_stats(C.px, [t for t in M["days"] if t >= rlo], H, c, rlo))
+        oks = [(M if {**p, **q} == p else _dip_eval(C, k, {**p, **q}, H))["full"]["ok"] for q in _combos(spec["grid"])]
+        return tier(kind, M["full"]["ok"], rec_ok, sum(oks) / len(oks), M["full"]["n"] < S.DIP_N_MIN)
+    bh, bh_r = bh_stats(C.px, C.cal, C.s0), bh_stats(C.px, C.cal, C.r0)
+    M = _alloc_eval(C, k, p, S.LAG)
+    rec_ok = alloc_pass(_alloc_eval(C, k, p, S.LAG, lo=C.r0)["s"], bh_r)
+    oks = [alloc_pass((M if {**p, **q} == p else _alloc_eval(C, k, {**p, **q}, S.LAG))["s"], bh) for q in _combos(spec["grid"])]
+    return tier(kind, alloc_pass(M["s"], bh), rec_ok, sum(oks) / len(oks), _years(C.cal, C.s0) < S.AL_YEARS_MIN)
+
+
+def held_pos(C: Ctx, spec: dict) -> np.ndarray:
+    """照規則的部位：pos[k]＝第 k 天收盤之後有沒有拿（0／1）。交易型＝買進那天收盤到賣出那天收盤之前；落底型＝訊號隔天收盤買、
+    抱 H 天；進出型＝策略的部位。資料最後還在持有中的也算（實戰模擬用；只用到當天以前的價格）。"""
+    k, kind, p = spec["k"], spec["kind"], spec["p"]
+    T = C.T
+    out = np.zeros(T)
+    if kind == "trade":
+        if k == "tom":
+            tr, st = tom_trades(C.cal, C.s0, p["before"], p["after"], C.mk)
+        else:
+            tr, st = C.trades(k, p, S.lag(C.mk, k))
+        for _, e, _, q in tr:
+            out[e:q] = 1.0
+        if st.get("st") in ("hold", "sell") and st.get("e") is not None and st["e"] < T:
+            out[st["e"]:] = 1.0
+        return out
+    if kind == "dip":
+        H = spec["H"]
+        raw, first = C.dip_raw(k, p)
+        lo = max(C.s0, first)
+        for t in dedupe([t for t in raw if t >= lo], H):
+            b = t + S.LAG
+            if b < T:
+                out[b:min(T, b + H)] = 1.0
+        return out
+    return np.nan_to_num(C.pos(k, p, S.LAG), nan=0.0)
+
+
 def _sample(C: Ctx, eq: np.ndarray, lo: int) -> dict:
     """淨值月底取樣（＋最後一天）：{"d": [日期], "s": 策略, "b": 買進持有}（都從 1 起）。"""
     idx = [k for k in month_ends(C.cal) if k >= lo] + [C.T - 1]
