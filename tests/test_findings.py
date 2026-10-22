@@ -269,3 +269,15 @@ def test_market_html_with_tilt_has_eight_cards():
     assert h.count('<article class="rfc') == 8
     nums = re.findall(r'<div class="rfq"><i>(\d+)</i>', h)
     assert nums == [str(i) for i in range(1, 9)]
+
+
+def test_plan_link_only_where_the_plan_has_that_rule():
+    """第 1、2 則的「現在」連到策略頁的交易計畫：那個市場有收這個做法（planspec.AVAIL）才連。"""
+    from arm.lab import findings as F
+    from arm.lab import planspec as PS
+    for mk in PS.MARKETS:
+        for plan in ("def", "atk"):
+            h = F.plan_link(mk, plan)
+            assert bool(h) == (mk in PS.AVAIL[plan]), (mk, plan)
+            if h:
+                assert f'href="x9.html#v=mac&amp;m={mk}&amp;x=plan"' in h

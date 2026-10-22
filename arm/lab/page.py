@@ -39,6 +39,12 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         data["mac"] = xsadvice.build()
     except Exception as e:                   # noqa: BLE001 —— 失敗只是總經策略那兩頁空著
         print(f"[籌碼雷達] ⚠ 總經策略沒有放進頁面：{type(e).__name__}: {e}")
+    try:                                     # 策略頁・總經策略最上面的交易計畫（planspec；docs/lab_practical_plan.md 第 13 節）
+        from . import plan
+        if data.get("mac"):
+            data["mac"]["plan"] = plan.build()
+    except Exception as e:                   # noqa: BLE001 —— 失敗只是交易計畫那一塊不顯示
+        print(f"[籌碼雷達] ⚠ 交易計畫沒有放進頁面：{type(e).__name__}: {e}")
     try:                                     # 後台自我驗證紀錄（只有 CI 寫回 data/lab/val_log.json）
         from . import valog
         data["vlog"] = valog.update(data)
@@ -2037,7 +2043,7 @@ $$('.apptab a').forEach(a=>{const h=a.getAttribute('href')||'';if(h==='x9.html'|
 {const q=new URLSearchParams(location.search),hm=location.hash.match(/^#v=([a-z]+)(.*)$/);let v=q.get('v'),m=q.get('m'),x='';
   if(hm){v=hm[1];const p=new URLSearchParams(hm[2].replace(/^&/,''));m=p.get('m')||m;x=p.get('x')||'';}
   if(m&&MCM[m])S.mmk=m;if(!VIEWS[v])v='stk';
-  let at;if(x&&TABG[v]==='mac'){const M=MCM[S.mmk]||{};if((M.cards||[]).some(c=>c.k===x)){v='mac';at='m-'+x;}else{v='macst';at='ms-'+x;}}
+  let at;if(x==='plan'&&TABG[v]==='mac'){v='mac';at='m-plan';}else if(x&&TABG[v]==='mac'){const M=MCM[S.mmk]||{};if((M.cards||[]).some(c=>c.k===x)){v='mac';at='m-'+x;}else{v='macst';at='ms-'+x;}}
   go(v,at);}
 if(isPane())setTimeout(()=>{loadSer().catch(()=>{});},1500);
 {const m=location.hash.match(/^#s=(.+)$/);if(m)renderStock(decodeURIComponent(m[1]));}

@@ -460,7 +460,16 @@ def money_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
            '每一條一份、平均分。每年的判定都只用當時拿得到的資料。點「每週走勢」看那一種做法的走勢圖、逐年成績與每一段大跌。</p>')
     risk = ""
     return _card("money", QN["money"], "照網頁的訊號調整持股，能不能比一直抱著賺更多？", ans, small, "no" if X["ans"] == "no" else "yes",
-                 body, _e(now), risk, det), ""
+                 body, _e(now) + plan_link(mk, "def"), risk, det), ""
+
+
+def plan_link(mk: str, plan: str) -> str:
+    """「現在」後面的連結：這個市場的交易計畫有收這個做法（planspec.AVAIL）才連到策略頁・總經策略最上面那一塊。"""
+    from . import planspec as PS
+    from . import xstratpage as XSP
+    if mk not in PS.AVAIL.get(plan, ()):
+        return ""
+    return f' <a class="rfln" href="{_e(XSP.link(mk, "plan"))}">照著做的規則與今天要做的事 →</a>'
 
 
 def _wan(m: float) -> str:
@@ -570,7 +579,7 @@ def tilt_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
            '期貨帳戶的錢另外準備（加碼 5 成時，指數跌 20% 要補進帳戶約 1 成的錢）。總經策略的買點每年 1 月 1 日只用之前的資料重新判定。'
            '結果：全期間與前後兩段都比固定多拿同樣多賺得多、最慘時也沒有跌得比較兇＝訊號有用；溫度計那一種的類似做法之前看過結果，只描述。'
            f'{_e(fut)}</p>')
-    return _card("tilt", QN["tilt"], "平常抱著，買點出現時用期貨多拿 5 成，能不能賺更多？", ans, small, acls, body, _e(now), nflag, det), line
+    return _card("tilt", QN["tilt"], "平常抱著，買點出現時用期貨多拿 5 成，能不能賺更多？", ans, small, acls, body, _e(now) + plan_link(mk, "atk"), nflag, det), line
 
 
 def chip_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
