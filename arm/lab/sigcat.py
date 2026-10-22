@@ -1359,9 +1359,15 @@ def same_family(a: np.ndarray | None, b: np.ndarray | None) -> bool:
     return o >= S.FAMILY_O and o >= S.FAMILY_X * q
 
 
+def _frank(x: dict) -> tuple:
+    """同一類裡誰領頭、清單怎麼排（第 5 節 ④b，VER 23）：之後也成立的優先、再依過去的差 e 大到小、再取代號小的（回傳值小的優先）。"""
+    return (not x.get("ok"), -x["edge"], x["id"])
+
+
 def families(items: list[dict], acts: dict | None) -> list[dict]:
     """同類合併（sigspec 第 5 節 ①b；VER 8 寫定、VER 11 改條件）：同一支溫度計、同一邊，same_family 的併成一類（單一連結）；
-    大跌後買點同一個市場算一類。→ 每一類的領頭（差最大），其他放在 "fam"。"""
+    大跌後買點同一個市場算一類。→ 每一類的領頭（_frank：VER 23 起之後也成立的優先、再取差最大），其他放在 "fam"；
+    類裡有一個之後也成立，領頭就是它（"ok" True）。"""
     acts = acts or {}
     groups: dict = {}
     for x in items:
@@ -1384,108 +1390,113 @@ def families(items: list[dict], acts: dict | None) -> list[dict]:
         for i, x in enumerate(xs):
             cl.setdefault(find(i), []).append(x)
         for ms in cl.values():
-            ms.sort(key=lambda x: (-x["edge"], x["id"]))
+            ms.sort(key=_frank)
             out.append({**ms[0], "fam": ms[1:]})
-    out.sort(key=lambda x: (-x["edge"], x["id"]))
+    out.sort(key=_frank)
     return out
 
 
-def list_cls(d: str, H: int, g: float) -> str | None:
-    """sigspec 第 5 節 ④（VER 21）：預估之後的差 g（預估之後的命中率 − 平常）→ 偏多 up／買點 buy／偏弱 weak（只看 WEAK_H）／
-    大跌風險 risk；不列＝None。"""
-    if d == "buy":
-        return "buy" if g >= S.LIST_GAP else None
-    if d == "warn":
-        return "risk" if g >= S.LIST_GAP else None
-    if g >= S.LIST_GAP:
-        return "up"
-    return "weak" if H == S.WEAK_H and g <= -S.LIST_GAP else None
+def list_cls(d: str, e: float | None) -> str | None:
+    """sigspec 第 5 節 ④b（VER 23）：過去的差 e（命中率 − 平常）≥ THERMO_EDGE → 偏多 up／買點 buy／大跌風險 risk；不列＝None。
+    （VER 21～22 看預估之後的差 g、另有偏弱 weak；VER 22 的逐年檢查偏弱是反過來的，VER 23 拿掉。）"""
+    if e is None or e < S.THERMO_EDGE:
+        return None
+    return "buy" if d == "buy" else "risk" if d == "warn" else "up"
 
 
 def _lrank(c: dict) -> tuple:
-    """同一個項目、同一支溫度計留哪一個（第 5 節 ④）：|g| 大的；同分＝訊號自己的看多久優先，再取代號小的（回傳值小的優先）。"""
-    return (-abs(c["g"]), c.get("xk") is not None, c["id"])
+    """同一個項目、同一支溫度計、同一邊留哪一個（第 5 節 ④b）：過去的差 e 大的；同分＝訊號自己的看多久優先，再取代號小的。"""
+    return (-c["edge"], c.get("xk") is not None, c["id"])
+
+
+def _robust(fe: dict | None) -> tuple[float | None, bool]:
+    """預估之後的差 g 與「之後也成立」（g ≥ LIST_GAP；第 5 節 ④b，只標示）。"""
+    if not fe or fe.get("fh") is None or fe.get("base") is None:
+        return None, False
+    g = fe["fh"] - fe["base"]
+    return g, g >= S.LIST_GAP
 
 
 def listing(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: dict | None = None,
-            T: dict | None = None) -> list[dict] | None:
-    """第 5 節 ④ 列出來的規則（VER 21）：這個市場現在有效的市場層級訊號（MARKET_CATS 與大跌後買點），預估之後和隨便挑一天差
-    LIST_GAP 以上的（訊號自己的看多久＝研究列的統計；跨期間＝xon 現在有效、xh 的統計、sigoos.est_x）；同一個項目同一支溫度計
-    一邊留一個、「震盪」（both）、同類合併（families）。→ 每一類的領頭："cls"（偏多／買點／偏弱／大跌風險）、"side"、"hz"、
-    "g"＝預估之後的差、"edge"＝|g|、"fe"＝預估之後（sigoos.est／est_x）、"now"、"fam"＝同一類的其他訊號；跨期間的列另有
-    "xk"、"H0"、"ak"，H、th、up、warn 換成那支溫度計的。預估之後的研究檔沒有（或版本不夠）＝None。"""
+            T: dict | None = None) -> list[dict]:
+    """第 5 節 ④b 列出來的規則（VER 23）：這個市場現在有效的市場層級訊號（MARKET_CATS 與大跌後買點），次數 ≥ N_MIN、
+    過去的命中率比平常高 THERMO_EDGE 以上（訊號自己的看多久＝研究列的統計；跨期間＝xon 現在有效、xh 的統計）；
+    同一個項目同一支溫度計一邊留一個、「震盪」（both）、同類合併（families）。
+    → 每一類的領頭："cls"（偏多／買點／大跌風險）、"side"、"hz"、"edge"＝過去的差 e、"st"＝那一邊的統計、"now"、"fam"；
+    預估之後（sigoos.est／est_x）有的話另有 "fe"、"g"、"ok"＝之後也成立；跨期間的列另有 "xk"、"H0"、"ak"，H、th、up、warn
+    換成那支溫度計的。預估之後的研究檔沒有（或版本不夠）照樣列，只是沒有 fe、ok 都是 False。"""
     from . import sigoos as OOS
     T = OOS.load() if T is None else T
-    if not T:
-        return None
     best: dict = {}
 
     def put(c: dict) -> None:
-        key = (item_key(c), c["hz"], "w" if c["d"] == "warn" else "u")
+        key = (item_key(c), c["hz"], c["side"])
         if key not in best or _lrank(c) < _lrank(best[key]):
             best[key] = c
+
+    def ok_st(st: dict | None) -> bool:
+        return bool(st) and st.get("hit") is not None and st.get("base") is not None and (st.get("n") or 0) >= S.N_MIN
     for r in rows:
         if r.get("mk") != mk or r["id"] not in on or r.get("cat") not in OOS.MARKET_CATS + ("buy",):
             continue
         for d in (("buy",) if r["cat"] == "buy" else ("up", "warn")):
-            fe = OOS.est(r, d, T)
-            if not fe:
+            st = r.get(d)
+            if not ok_st(st):
                 continue
-            g = fe["fh"] - fe["base"]
-            cls = list_cls(d, int(r["H"]), g)
+            e = st["hit"] - st["base"]
+            cls = list_cls(d, e)
             if cls:
-                put({**r, "d": d, "cls": cls, "side": S.LIST_SIDE[cls], "hz": horizon(r), "g": g, "edge": abs(g), "fe": fe,
-                     "now": on[r["id"]]})
-    for r in rows:                                    # 跨期間（第 5 節 ③a 的現在有效 × 第 4.14 節 ⑧）
-        if r.get("mk") != mk or not xon or r["id"] not in xon or not r.get("xh"):
+                fe = OOS.est(r, d, T) if T else None
+                g, ok = _robust(fe)
+                put({**r, "d": d, "cls": cls, "side": S.LIST_SIDE[cls], "hz": horizon(r), "edge": e, "st": st,
+                     "fe": fe, "g": g, "ok": ok, "now": on[r["id"]]})
+    for r in rows:                                    # 跨期間（第 5 節 ③a 的現在有效）
+        if r.get("mk") != mk or not xon or r["id"] not in xon or not r.get("xh") or r.get("cat") not in OOS.MARKET_CATS:
             continue
         for k, nk in xon[r["id"]].items():
             X = r["xh"].get(k)
             if not X:
                 continue
             for d in ("up", "warn"):
-                fe = OOS.est_x(r, d, k, T)
-                if not fe:
+                st = X.get(d)
+                if not ok_st(st):
                     continue
-                g = fe["fh"] - fe["base"]
-                cls = list_cls(d, int(X["H"]), g)
+                e = st["hit"] - st["base"]
+                cls = list_cls(d, e)
                 if cls:
+                    fe = OOS.est_x(r, d, k, T) if T else None
+                    g, ok = _robust(fe)
                     put({**r, "H": X["H"], "th": X["th"], "up": X["up"], "warn": X["warn"], "H0": r["H"], "d": d, "cls": cls,
-                         "side": S.LIST_SIDE[cls], "hz": k, "g": g, "edge": abs(g), "fe": fe, "now": nk, "xk": k,
-                         "ak": xkey(r["id"], k)})
+                         "side": S.LIST_SIDE[cls], "hz": k, "edge": e, "st": st, "fe": fe, "g": g, "ok": ok, "now": nk,
+                         "xk": k, "ak": xkey(r["id"], k)})
     items: dict = {}
-    for (ik, hz, slot), c in best.items():
-        items.setdefault((ik, hz), {})[slot] = c
+    for (ik, hz, side), c in best.items():
+        items.setdefault((ik, hz), {})[side] = c
     out = []
     for sl in items.values():
-        u, w = sl.get("u"), sl.get("w")
-        if u is not None and w is not None and u["cls"] == "weak":    # 兩個都在警示那一邊：只留 |g| 大的
-            out.append({**min((u, w), key=_lrank), "both": False})
-            continue
-        both = u is not None and w is not None                        # 偏多（買點）＋大跌風險＝震盪
-        out += [{**c, "both": both} for c in (u, w) if c is not None]
+        both = len(sl) == 2                                           # 偏多（買點）＋大跌風險＝震盪
+        out += [{**c, "both": both} for c in sl.values()]
     return families(out, acts)
 
 
 def today(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: dict | None = None,
           T: dict | None = None) -> dict:
-    """訊號總覽「今天有效的訊號」（sigspec 第 5 節 ④，VER 21）：同 listing 的規則，偏多、警示兩邊各依 |g| 排序。
-    → {"ok": 預估之後的研究檔有沒有, "up": [...], "warn": [...]}。"""
+    """訊號總覽「今天有效的訊號」（sigspec 第 5 節 ④b，VER 23）：同 listing 的規則，偏多、警示兩邊各依 _frank 排序。
+    → {"ok": True（VER 23 起不依賴預估之後的研究檔）, "fwd": 預估之後的研究檔有沒有, "up": [...], "warn": [...]}。"""
+    from . import sigoos as OOS
+    T = OOS.load() if T is None else T
     fams = listing(rows, on, mk, acts, xon, T)
-    if fams is None:
-        return {"ok": False, "up": [], "warn": []}
-    return {"ok": True, **{s: [f for f in fams if f["side"] == s] for s in ("up", "warn")}}
+    return {"ok": True, "fwd": bool(T), **{s: [f for f in fams if f["side"] == s] for s in ("up", "warn")}}
 
 
 def board(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: dict | None = None,
           T: dict | None = None) -> dict:
-    """景氣頁「今天的重點」（sigspec 第 5 節 ④，VER 21）：listing 的每一類依溫度計分三段，每段偏多、警示兩張清單（依 |g| 排序）；
+    """景氣頁「今天的重點」（sigspec 第 5 節 ④b，VER 23）：listing 的每一類依溫度計分三段，每段偏多、警示兩張清單（_frank 排序）；
     溫度計＝每一支、每一邊的類數（一類算 1），偏多占比 ≥ THERMO_LEAN 偏多、≤ 1 − THERMO_LEAN 偏警示、其他差不多，兩邊都沒有＝中性。
-    → {"ok", "up": [...], "warn": [...], "thermo": [{"k", "name", "h", "H", "n": {side: 類數}, "share", "lean", "up": [...], "warn": [...]}]}；
-    預估之後的研究檔沒有＝ok False、全部空的。"""
+    → {"ok", "fwd", "up": [...], "warn": [...], "thermo": [{"k", "name", "h", "H", "n": {side: 類數}, "share", "lean", "up": [...], "warn": [...]}]}。"""
+    from . import sigoos as OOS
+    T = OOS.load() if T is None else T
     fams = listing(rows, on, mk, acts, xon, T)
-    ok = fams is not None
-    fams = fams or []
     th = []
     for k, name, h in S.THERMO_HZ:
         L = {s: [f for f in fams if f["hz"] == k and f["side"] == s] for s in ("up", "warn")}
@@ -1494,7 +1505,8 @@ def board(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: di
         share = n["up"] / tot if tot else None
         lean = None if share is None else "up" if share >= S.THERMO_LEAN else "warn" if share <= 1 - S.THERMO_LEAN else "even"
         th.append({"k": k, "name": name, "h": h, "H": S.THERMO_H[k], "n": n, "share": share, "lean": lean, **L})
-    return {"ok": ok, "up": [f for f in fams if f["side"] == "up"], "warn": [f for f in fams if f["side"] == "warn"], "thermo": th}
+    return {"ok": True, "fwd": bool(T), "up": [f for f in fams if f["side"] == "up"],
+            "warn": [f for f in fams if f["side"] == "warn"], "thermo": th}
 
 
 # ── 每天建頁：景氣頁的 B → 這個市場現在有沒有效（存在程序裡給訊號總覽沿用） ──────────

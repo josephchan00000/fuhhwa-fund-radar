@@ -410,29 +410,27 @@ def test_today_card_beside_radar(built):
     assert ".vgrid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:14px;align-items:stretch}" in page
     assert ".vside>.card:last-child{flex:1}" in page
     assert '<details class="tzx"><summary>怎麼看</summary>' in side
-    css = page[page.index(".tzcols{"):]
-    assert css.startswith(".tzcols{display:grid;grid-template-columns:1fr;")
+    assert ".tqpn{display:none}" in page and ".tqrb:nth-of-type(2):checked~.tqps .tqpn:nth-child(2)" in page   # VER 23：切換用 radio＋CSS
     assert ".vside{order:-1}" not in page                                    # 手機也是雷達在最上面
 
 
 def test_today_rows_open_outlook_at_that_signal(built):
-    """2026-10-22（docs/lab_strategy_ia_plan.md Q1-A）：今天的重點兩欄的 ★ 每一列點了打開「之後怎麼走？」、捲到那個訊號
-    （面板裡同一個 id）；溫度計另外算進去的 ●、△ 面板裡沒有，照舊連訊號總覽。網址照舊是訊號總覽（沒有 JS 也點得到）。"""
+    """2026-10-22（docs/lab_strategy_ia_plan.md Q1-A）：今天的重點清單的每一列（VER 23：收起來的也是）點了打開「之後怎麼走？」、
+    捲到那個訊號（面板裡同一個 id；id 帶溫度計與哪一邊，同一個訊號列在好幾段也不會撞）。網址照舊是訊號總覽（沒有 JS 也點得到）。"""
     _, _, V, page = built
     T = V.get("sigtoday") or {}
     i = page.index('<template id="ot-out"')
     body = page[i:page.index("</template>", i)]
     today = page[page.index('id="today"'):page.index('id="wchg"')]
-    cols = today[today.index('class="tzcols"'):]
+    cols = today[today.index('class="tqps"'):]
     fams = [r for s in ("up", "warn") for r in T.get(s) or []]
-    for r in fams:
-        oid = VZ.osg_id(r["id"])
+    ids = [VZ.osg_id(r["id"], r["hz"], r["side"]) for r in fams]
+    assert len(ids) == len(set(ids))
+    for r, oid in zip(fams, ids):
         assert f'href="x9o.html#s={html.escape(r["id"])}" data-open="out:out" data-to="{oid}"' in cols
-        assert f'id="{oid}"' in body and re.fullmatch(r"osg-[0-9A-Za-z_]+", oid)
-    if '<details class="tzq">' in today:
-        more = today[today.index('<details class="tzq">'):today.index("</details>", today.index('<details class="tzq">'))]
-        assert "data-open" not in more and 'href="x9o.html#s=' in more
+        assert body.count(f'id="{oid}"') == 1 and re.fullmatch(r"osg-[0-9A-Za-z_-]+", oid)
     assert VZ.osg_id("tw:heat:T4:cold") != VZ.osg_id("tw_heat_T4_cold")       # 換字不會撞在一起
+    assert VZ.osg_id("x", "short", "up") != VZ.osg_id("x", "mid", "up") != VZ.osg_id("x", "mid", "warn")
 
 
 
@@ -631,7 +629,7 @@ def test_outlook_drawer_replaces_now_and_scenario_sections(built, monkeypatch):
     assert 'href="#now"' not in page and 'href="#scen"' not in page
     assert "snout" not in page and 'class="rout"' not in page[:page.index('id="today"')]   # 頂部目錄、雷達卡片沒有入口
     t0 = page.index('id="today"')
-    assert page.count('class="rout" data-open="out:out"') == 1 and t0 < page.index('class="tzhz"') < page.index('class="rout"')
+    assert page.count('class="rout" data-open="out:out"') == 1 and t0 < page.index('class="tqk"') < page.index('class="rout"')
     assert page.index('class="rout"') < page.index("</section>", t0)                     # 在今天的重點裡、三段溫度計下面
     assert 'data-title="之後怎麼走？"' in body and '<details class="osim" id="o-sim">' in body
     assert body.index("列出來的訊號成立之後") < body.index("五個面向現在的位置") < body.index('id="scen"') < body.index('id="o-sim"')
@@ -648,7 +646,7 @@ def test_outlook_drawer_replaces_now_and_scenario_sections(built, monkeypatch):
 
 
 def _board_v(fams_up, fams_warn):
-    """sigcat.board 的輸出形狀（VER 21，sigspec 第 5 節 ④）：每支溫度計＝這一段的類數（一類算 1）＋偏多、警示兩張清單。"""
+    """sigcat.board 的輸出形狀（VER 23，sigspec 第 5 節 ④b）：每支溫度計＝這一段的類數（一類算 1）＋偏多、警示兩張清單。"""
     from arm.lab import sigspec as SS
     th = []
     for k, nm, h in SS.THERMO_HZ:
@@ -697,7 +695,10 @@ def test_outlook_signals_table_and_summary(monkeypatch):
     assert not any(w in txt for w in BANNED)
     assert "現在沒有列出來的訊號" in VZ.out_sig({"mk": "tw", "sigtoday": _board_v([], [])})
     assert "研究結果還沒產生" in VZ.out_sig({"mk": "tw"})
-    assert f'id="{VZ.osg_id(up["id"])}"' in h and f'id="{VZ.osg_id(warn["id"])}"' in h     # 今天的重點那一列捲到這裡
+    assert f'id="{VZ.osg_id(up["id"], "short", "up")}"' in h and f'id="{VZ.osg_id(warn["id"], "mid", "warn")}"' in h   # 今天的重點那一列捲到這裡
+    more = [dict(up, id=f"tw:tech:{i}", name=f"訊號{i}", edge=0.2 - 0.01 * i) for i in range(5)]
+    hm = VZ.out_sig({**V, "sigtoday": _board_v(more, [])})                       # VER 23：清單先列的那幾類有表格，其他一行
+    assert hm.count('class="ofam ofam-up"') == SS.TODAY_PER_SIDE and hm.count('class="ofam ofam-up ofc"') == 5 - SS.TODAY_PER_SIDE
 
 
 def test_outlook_dims_use_zone_backtest(built):

@@ -477,30 +477,37 @@ TZ_SIDE = {"up": "偏多", "warn": "警示"}
 TZ_LEAN = {"up": "偏多", "warn": "偏警示", "even": "差不多"}
 
 
-def thermo_row(th: dict, cal: dict | None = None) -> str:
-    """一支溫度計（sigspec 第 5 節 ④，VER 21）：一條 100% 的長條，左＝偏多、右＝警示，寬度＝類數（一類算 1）；中線＝一半。
-    兩邊都是 0 寫「中性」。下面兩行＝過去讀數這樣的時候（cal_html）。"""
-    n = th["n"]
-    tot = n["up"] + n["warn"]
-    if tot:
-        bar = "".join(f'<i class="tzg tzg-{s}" style="width:{n[s] / tot * 100:.1f}%"></i>' for s in ("up", "warn") if n[s])
-        word = (f'<b class="tzw tzw-{th["lean"]}">{_e(TZ_LEAN[th["lean"]])}</b>'
-                f'<span class="tzp">偏多占 {th["share"] * 100:.0f}%</span>')
-        cnt = f'偏多 {n["up"]} 類・警示 {n["warn"]} 類'
-        lab = f'{th["name"]}（{th["h"]}）：{cnt}，偏多占 {th["share"] * 100:.0f}%'
-    else:
-        bar = ""
-        word = '<b class="tzw tzw-none">中性</b>'
-        cnt = "沒有列出來的訊號"
-        lab = f'{th["name"]}（{th["h"]}）：中性，沒有列出來的訊號'
-    return (f'<div class="tzr"><span class="tzn"><b>{_e(th["name"])}</b><i>{_e(th["h"])}</i></span>'
-            f'<span class="tzb" role="img" aria-label="{_e(lab)}">{bar}</span>'
-            f'<span class="tzv"><span>{word}</span><span class="tzct">{_e(cnt)}</span></span>{cal_html(cal)}</div>')
+def _tq_hz(th: dict) -> str:
+    """「看 1 個月」→「1 個月」。"""
+    return th["h"].replace("看 ", "")
 
 
-def thermo_html(T: dict) -> str:
-    """三支溫度計（一列一支；今天的重點每一段的開頭用 thermo_row，這個給只要讀數的地方）。"""
-    return '<div class="tzt">' + "".join(thermo_row(th, (T.get("cal") or {}).get(th["k"])) for th in T["thermo"]) + "</div>"
+def _tq_rid(mk: str | None, k: str) -> str:
+    """溫度計那一段的切換鈕 id（一頁可能有好幾個市場：訊號總覽五個、美股景氣頁一次一個）。"""
+    return f"tqr-{mk or 'm'}-{k}"
+
+
+def thermo_card(T: dict, mk: str | None) -> str:
+    """溫度計（sigspec 第 5 節 ④b，VER 23）：短線、中線、長線三列；中線＝0，警示往左、偏多往右的細長條，長度＝類數
+    （三列共用同一把尺）；右邊＝讀數（偏多／偏警示／差不多／中性）。每一列是切換下面清單的標籤（label for 那一段的 radio）。"""
+    ths = T.get("thermo") or []
+    mx = max([1] + [th["n"][s] for th in ths for s in ("up", "warn")])
+    rows = []
+    for th in ths:
+        n = th["n"]
+        lean = th.get("lean")
+        word = TZ_LEAN.get(lean) or "中性"
+        lab = f'{th["name"]}（持有 {_tq_hz(th)}）：警示 {n["warn"]} 類、偏多 {n["up"]} 類，{word}'
+        bar = (f'<span class="tqh tqh-w"><i style="width:{n["warn"] / mx * 100:.1f}%"></i></span>'
+               f'<span class="tqh tqh-u"><i style="width:{n["up"] / mx * 100:.1f}%"></i></span>')
+        rows.append(f'<label class="tqq" for="{_tq_rid(mk, th["k"])}" title="點了看{_e(th["name"])}列出來的訊號">'
+                    f'<span class="tqn"><b>{_e(th["name"])}</b><i>{_e(_tq_hz(th))}</i></span>'
+                    f'<span class="tqc tqc-w">{n["warn"]}</span>'
+                    f'<span class="tqb" role="img" aria-label="{_e(lab)}">{bar}</span>'
+                    f'<span class="tqc tqc-u">{n["up"]}</span>'
+                    f'<span class="tqw"><i class="tqd tqd-{lean or "none"}"></i>{_e(word)}</span></label>')
+    return ('<div class="tqm"><div class="tqax" aria-hidden="true"><span class="tqa3"><span>◀ 警示</span><span>偏多 ▶</span></span></div>'
+            + "".join(rows) + "</div>")
 
 
 CAL_GRP = {"hi": "一樣多", "mid": "數量也在中間", "lo": "一樣少"}
@@ -543,13 +550,30 @@ def cal_line(side: str, x: dict, H: int, th: float) -> str:
     return f'<span class="tzca"><span class="tzcs tzcs-{side}">{nm}</span>{pos}・{tail}</span>'
 
 
-def cal_html(C: dict | None) -> str:
-    """每支溫度計下面兩行（偏多、警示）；沒有研究檔就不顯示。"""
+def cal_block(C: dict | None) -> str:
+    """溫度計下面「過去讀數這樣的時候」（sigspec 第 5 節 ③d）：只列過去數量多和少的週，之後走勢有明顯差別的（有關係、相反），
+    其他（看不出、週數不夠）併成一句。研究檔沒有就不顯示。"""
+    from . import sigspec as SS
     if not C:
         return ""
-    return ('<span class="tzcal" title="用之前的資料逐年檢查（每年 1 月 1 日只用之前的資料重算每個訊號），'
-            '現在的票數和過去 10 年每週比；有關係才寫過去票數一樣多（或一樣少）的週之後的比例">'
-            + "".join(cal_line(sd, C[sd], C["H"], C["th"]) for sd in ("up", "warn") if C.get(sd)) + "</span>")
+    lines, quiet = [], 0
+    for k, name, _h in SS.THERMO_HZ:
+        c = C.get(k)
+        if not c:
+            continue
+        for sd in ("warn", "up"):
+            x = c.get(sd)
+            if not x:
+                continue
+            if x.get("v") in ("rel", "rev"):
+                lines.append(f'<li><b class="tqcn">{_e(name)}</b>{cal_line(sd, x, c["H"], c["th"])}</li>')
+            else:
+                quiet += 1
+    tail = ("<li class=\"tqcq\">" + ("其他" if lines else "三支溫度計")
+            + "都看不出數量多少和之後漲跌有關係</li>") if quiet else ""
+    return ('<div class="tqcal" title="用之前的資料逐年檢查（每年 1 月 1 日只用之前的資料重算每個訊號），現在的數量和過去 10 年每週比；'
+            '過去數量多的週和少的週之後走勢有明顯差別，才寫過去數量一樣多（或一樣少）的週之後的比例">'
+            '<p class="tqch">過去讀數這樣的時候<span>逐年檢查，不偷看之後</span></p><ul>' + "".join(lines) + tail + "</ul></div>")
 
 
 def _tz_name(r: dict) -> str:
@@ -565,110 +589,156 @@ def _tz_orig(r: dict) -> str:
 
 
 def tz_cls(r: dict) -> str:
-    """類別章（sigspec 第 5 節 ④）：偏多／買點／偏弱／大跌風險。"""
+    """類別章（sigspec 第 5 節 ④b）：偏多／買點／大跌風險。"""
     from . import sigspec as SS
     c = r.get("cls") or ("buy" if r.get("d") == "buy" else "risk" if r.get("d") == "warn" else "up")
     return f'<span class="tzy tzy-{c}">{_e(SS.LIST_CLS_NAMES[c])}</span>'
 
 
-def _tz_item(r: dict, d: str | None, panel: bool = False) -> str:
-    """一列＝一類（同類合併）：類別、名稱、預估之後的機率與照規則的那一筆；「同時成立」列同一類的其他訊號（過去常一起出現，算同一件事）。
-    panel＝點了打開「之後怎麼走？」、捲到這個訊號（面板裡有它的報酬表），否則連訊號總覽。"""
+TQ_OK = "用逐年檢查校正之後（每年 1 月 1 日只用之前的資料，看同一類訊號之後那一年留下多少優勢），仍比隨便挑一天高 3 點以上"
+
+
+def tq_item(r: dict, ref: str | None, panel: bool = True) -> str:
+    """清單一列（一類，同類合併）：名稱（買點、原本看別的期間、震盪、之後也成立另外標）；過去的機率（隨便挑一天）、報酬或回撤中位數、
+    次數；哪天出現、照規則哪天進場、持有到哪天；同一類的其他訊號只寫幾個（滑過看名稱）。
+    panel＝景氣頁：點了打開「之後怎麼走？」捲到這個訊號，沒有 JS 就連訊號總覽；否則（訊號總覽）連這一頁的指標。"""
     from . import sigpage as SPG
-    both = ('<span class="tzo" title="同一個項目同一段：之後上漲的機率比隨便挑一天高，'
-            '中間出現一段大回撤的機率也比較高">震盪</span>') if r.get("both") else ""
-    fam = r.get("fam") or []
-    nm = "、".join(_e(_tz_name(x)) for x in fam)
-    also = f'<span class="tzf">同時成立：{nm}（過去常一起出現，算同一件事）</span>' if fam else ""
-    op = f' data-open="out:out" data-to="{osg_id(r["id"])}"' if panel else ""
+    tags = []
+    if r.get("cls") == "buy":
+        tags.append('<span class="tqy">買點</span>')
     orig = _tz_orig(r)
-    og = f'<span class="tzd">{_e(orig.lstrip("・"))}</span>' if orig else ""
-    return (f'<li><a class="tzi" href="x9o.html#s={_e(r["id"])}"{op}><span class="tzh">'
-            f'{tz_cls(r)}<b>{_e(_tz_name(r))}</b>{og}{both}</span>'
-            f'<span class="tzl">{SPG._line(r)}・{_e(SPG._since(r["now"], d))}</span>{also}</a></li>')
+    if orig:
+        tags.append(f'<span class="tqg">{_e(orig.lstrip("・"))}</span>')
+    if r.get("both"):
+        tags.append('<span class="tqo" title="同一個項目同一段：之後上漲的機率比隨便挑一天高，中間出現一段大回撤的機率也比較高">震盪</span>')
+    if r.get("ok"):
+        tags.append(f'<span class="tqok" title="{_e(TQ_OK)}">之後也成立</span>')
+    fam = r.get("fam") or []
+    ft = ""
+    if fam:
+        nm = "、".join(_tz_name(x) for x in fam)
+        ft = f'<span class="tqf" title="同時成立（過去常一起出現，算同一件事）：{_e(nm)}">・同時成立 {len(fam)} 個</span>'
+    if panel:
+        href, op = f'x9o.html#s={_e(r["id"])}', f' data-open="out:out" data-to="{osg_id(r["id"], r.get("hz"), r.get("side"))}"'
+    else:
+        href, op = f'#s={_e(r["id"])}', ""
+    return (f'<li><a class="tqi" href="{href}"{op}><span class="tqt"><b>{_e(_tz_name(r))}</b>{"".join(tags)}</span>'
+            f'<span class="tql">{SPG.tq_stats(r)}</span>'
+            f'<span class="tqs">{_e(SPG._since(r["now"], ref))}{ft}</span></a></li>')
 
 
-def _tz_list(xs: list[dict], s: str, d: str | None) -> str:
-    """一段裡偏多或警示的清單：先列 TODAY_PER_HZ 類，其餘收起來；沒有就一行「沒有」。"""
+def _tq_side(xs: list[dict], s: str, th: dict, mk: str | None, ref: str | None, panel: bool) -> str:
+    """一段裡偏多或警示的清單：標題寫看什麼；先列 TODAY_PER_SIDE 類，其餘收起來；沒有就一行「沒有」。"""
+    from . import sigcat as G
+    from . import sigpage as SPG
     from . import sigspec as SS
+    hz = _tq_hz(th)
+    edge = f"{SS.THERMO_EDGE * 100:g}"
+    if s == "up":
+        what = f"之後 {hz}上漲的機率比隨便挑一天高 {edge} 點以上"
+    else:
+        x = next((r.get("th") for r in xs if r.get("th")), None) or (G.warn_th(mk, th["H"]) if mk and th.get("H") else None)
+        what = (f"之後 {hz}內回撤 {SPG._th(x)}% 以上的機率" if x else f"之後 {hz}內大跌的機率") + f"比隨便挑一天高 {edge} 點以上"
     nf = sum(len(r.get("fam") or []) for r in xs)
-    head = (f'<h4><span class="tzcl tzcl-{s}">{_e(TZ_SIDE[s])}</span><span class="sub">{len(xs)} 類'
-            + (f'（共 {len(xs) + nf} 個訊號）' if nf else "") + "</span></h4>")
+    head = (f'<h4 class="tqsh"><i class="tqd tqd-{s}"></i>{_e(TZ_SIDE[s])}<b>{len(xs)}</b>類'
+            + (f'<small>（{len(xs) + nf} 個訊號）</small>' if nf else "") + f'<span class="sub">{_e(what)}</span></h4>')
     if not xs:
-        return f'<div class="tzcol">{head}<p class="tzno">沒有</p></div>'
-    top, rest = xs[:SS.TODAY_PER_HZ], xs[SS.TODAY_PER_HZ:]
-    more = (f'<details class="tzmore"><summary>還有 {len(rest)} 類</summary><ul class="tzu">'
-            + "".join(_tz_item(r, d, panel=True) for r in rest) + "</ul></details>") if rest else ""
-    return f'<div class="tzcol">{head}<ul class="tzu">' + "".join(_tz_item(r, d, panel=True) for r in top) + f"</ul>{more}</div>"
+        return f'<div class="tqsd tqsd-{s}">{head}<p class="tqno">沒有</p></div>'
+    top, rest = xs[:SS.TODAY_PER_SIDE], xs[SS.TODAY_PER_SIDE:]
+    more = (f'<details class="tqmore"><summary>還有 {len(rest)} 類</summary><ul class="tqu">'
+            + "".join(tq_item(r, ref, panel) for r in rest) + "</ul></details>") if rest else ""
+    return (f'<div class="tqsd tqsd-{s}">{head}<ul class="tqu">' + "".join(tq_item(r, ref, panel) for r in top)
+            + f"</ul>{more}</div>")
 
 
-TZ_HOW = ("每一列是現在成立、而且「預估之後」的機率和隨便挑一天差 {gap} 個百分點以上的訊號。"
-          "預估之後＝過去的機率用逐年檢查校正過：每年 1 月 1 日只用之前的資料，看同一類訊號（方向、看多久、出現過幾次、比平常高幾點）"
-          "之後那一年實際留下多少優勢；過去的機率之後通常會往下修，修完還差 {gap} 點以上的才列。"
-          "依持有多久分三段：1 個月、3 個月、12 個月（照規則隔一個交易日收盤進場、持有到那一天；過去的機率就是這樣算的）。"
+def today_core(T: dict, mk: str | None, ref: str | None, panel: bool = True, cal: bool = True) -> str:
+    """今天的重點的本體（景氣頁與訊號總覽共用，sigspec 第 5 節 ④b）：溫度計卡、過去讀數這樣的時候、短線｜中線｜長線切換、
+    每一段偏多與警示兩張清單。切換用 radio＋CSS（沒有 JS 也能切）；預設短線。"""
+    ths = T.get("thermo") or []
+    radios = "".join(f'<input type="radio" class="tqrb" name="tqr-{mk or "m"}" id="{_tq_rid(mk, th["k"])}"'
+                     + (" checked" if i == 0 else "") + ">" for i, th in enumerate(ths))
+    tabs = "".join(f'<label for="{_tq_rid(mk, th["k"])}"><b>{_e(th["name"])}</b><span>持有 {_e(_tq_hz(th))}</span></label>'
+                   for th in ths)
+    pid = (lambda k: f"tz-{k}") if panel else (lambda k: f"tz-{mk}-{k}")       # 訊號總覽一頁有五個市場
+    panes = "".join(f'<div class="tqpn" id="{pid(th["k"])}">'
+                    + _tq_side(th["up"], "up", th, mk, ref, panel) + _tq_side(th["warn"], "warn", th, mk, ref, panel) + "</div>"
+                    for th in ths)
+    kl = keep_vals()
+    lg = ('沒有標「之後也成立」的只代表過去的成績。' + (
+          f'逐年檢查（每年 1 月 1 日只用之前的資料）之後的年份留下的優勢：偏多看 1 個月 {kl["u1"]}、3 個月 {kl["u3"]}、'
+          f'12 個月 {kl["u12"]}；警示看 1 個月 {kl["w1"]}、3 個月 {kl["w3"]}。' if kl else ""))
+    return (f'<div class="tqk">{radios}{thermo_card(T, mk)}{cal_block(T.get("cal")) if cal else ""}'
+            f'<div class="tqsg" aria-label="選持有多久">{tabs}</div><div class="tqps">{panes}</div>'
+            f'<p class="tqlg">{_e(lg)}</p></div>')
+
+
+TZ_HOW = ("每一列是現在成立、出現過 {nmin} 次以上、而且過去出現之後的機率比隨便挑一天高 {edge} 個百分點以上的訊號"
+          "（使用者 2026-10-21 定的寬鬆規則：溫度計是看現在整體偏哪邊，不是挑好策略）。"
+          "依持有多久分三段：1 個月、3 個月、12 個月（照規則隔一個交易日收盤進場、持有到那一天；機率就是這樣算的）。"
           "偏多＝之後上漲的機率比隨便挑一天高；買點＝大跌之後照規則買進，之後 3 個月上漲的機率比隨便挑一天高；"
-          "偏弱＝之後 1 個月上漲的機率比隨便挑一天低（條件變差，實務上是不加碼、降部位、等一等，不是放空；"
-          "3 個月、12 個月的「比平常低」之後沒有留下，不列）；大跌風險＝之後那段期間內出現一段大回撤（期間最高到之後最低，"
-          "先漲再跌也算）的機率比隨便挑一天高。同一個項目同一段只留差最多的一個；偏多和大跌風險同時有的標「震盪」；"
-          "過去常一起出現的訊號併成一列（同時成立）。原本看別的期間的訊號（標「原本看 3 個月」等）也用它過去在這一段期間的機率、"
-          "同樣校正後才列。出現不到 {star} 次的標「次數少」。訊號總覽的 ★／◆ 判定只看過去的成績，不決定這裡列不列。"
+          "警示＝之後那段期間內出現一段大回撤（期間最高到之後最低，先漲再跌也算）的機率比隨便挑一天高。"
+          "上漲機率比平常低的不列：逐年檢查看，這種訊號之後反而比平常容易漲（漲多了休息、跌多了反彈），當成負面會誤導。"
+          "同一個項目同一段只留差最多的一個；偏多和警示同時有的標「震盪」；過去常一起出現的訊號併成一列（同時成立）。"
+          "原本看別的期間的訊號（標「原本看 3 個月」等）用它過去在這一段期間的機率。出現不到 {star} 次的標「次數少」。"
+          "「之後也成立」＝用逐年檢查校正之後（每年 1 月 1 日只用之前的資料，看同一類訊號之後那一年實際留下多少優勢），"
+          "仍比隨便挑一天高 {gap} 點以上，排在前面。訊號總覽的 ★／◆ 判定只看過去的成績，不決定這裡列不列。"
           "溫度計＝這一段偏多、警示各有幾類（一類算 1）：偏多占 {lean}% 以上寫偏多、{lean2}% 以下寫偏警示、其餘差不多，"
-          "兩邊都沒有寫中性。溫度計本身沒有驗證過能預測漲跌；下面兩行是逐年檢查（每年 1 月 1 日只用之前的資料、不偷看之後）："
-          "現在的數量（照今年 1 月 1 日那時的成績算，所以和上面的類數不一定一樣）和過去 10 年每週比多不多，過去數量多的週和少的週之後走勢有明顯差別，才寫過去數量一樣多（或一樣少）的週之後的比例。"
+          "兩邊都沒有寫中性；溫度計本身沒有驗證過能預測漲跌。「過去讀數這樣的時候」是逐年檢查（每年 1 月 1 日只用之前的資料、不偷看之後）："
+          "現在的數量（照今年 1 月 1 日那時的成績算，所以和溫度計的類數不一定一樣）和過去 10 年每週比多不多，"
+          "過去數量多的週和少的週之後走勢有明顯差別，才寫過去數量一樣多（或一樣少）的週之後的比例。"
           "同一個項目之後出現相反的讀數（例：RSI 進入過熱之後又變過冷），舊的事件就不算現在成立。"
-          "狀態型（例：過冷中）的機率是狀態中的每一天一樣重（2026-10-22 起；之前每一段一樣重，會把很快反轉的短段放大、"
-          "高估過冷之後上漲的機率）。"
+          "狀態型（例：過冷中）的機率是狀態中的每一天一樣重。"
           "標「策略」的是總經策略（照原作者的規則買賣指數、判定為 ★ 好策略），現在照規則有動作才列，不算進溫度計。"
           "「之後怎麼走？」：列出來的訊號過去出現之後 1 週～1 年的報酬（點一列直接看那一個），加上五個面向現在這一區、情境、最像現在的日子。")
 
 
-def keep_line() -> str:
-    """逐年檢查留下來的比例（sigoos 衰退表的 L3 格，數字由研究檔算）：偏多看 1／3／12 個月、大跌風險看 1／3 個月。研究檔沒有＝空字串。"""
+def keep_vals() -> dict | None:
+    """逐年檢查留下來的比例（sigoos 衰退表的 L3 格，數字由研究檔算）：偏多看 1／3／12 個月、大跌風險看 1／3 個月（「12%」字串）。
+    研究檔沒有＝None。"""
     from . import sigoos as OOS
     from . import sigspec as SS
     T = OOS.load()
     if not T:
-        return ""
+        return None
     C = T.get("cells") or {}
 
     def k(d, H):
         c = C.get(OOS.key(d, H, None, "p")) or {}
         return "—" if c.get("k") is None else f'{c["k"] * 100:.0f}%'
-    return (f'目前的逐年檢查：偏多訊號之後的年份留下的優勢，看 1 個月 {k("up", SS.H_TECH)}、3 個月 {k("up", SS.H_CRASH)}、'
-            f'12 個月 {k("up", SS.H_BUB)}；大跌風險看 1 個月 {k("warn", SS.H_TECH)}、3 個月 {k("warn", SS.H_CRASH)}。')
+    return {"u1": k("up", SS.H_TECH), "u3": k("up", SS.H_CRASH), "u12": k("up", SS.H_BUB),
+            "w1": k("warn", SS.H_TECH), "w3": k("warn", SS.H_CRASH)}
+
+
+def keep_line() -> str:
+    """怎麼看最後一句：目前的逐年檢查留下的比例。研究檔沒有＝空字串。"""
+    v = keep_vals()
+    if not v:
+        return ""
+    return (f'目前的逐年檢查：偏多訊號之後的年份留下的優勢，看 1 個月 {v["u1"]}、3 個月 {v["u3"]}、'
+            f'12 個月 {v["u12"]}；大跌風險看 1 個月 {v["w1"]}、3 個月 {v["w3"]}。')
+
+
+def tz_how() -> str:
+    from . import sigspec as SS
+    return TZ_HOW.format(nmin=SS.N_MIN, edge=f"{SS.THERMO_EDGE * 100:g}", gap=f"{SS.LIST_GAP * 100:g}", star=SS.STAR_N,
+                         lean=f"{SS.THERMO_LEAN * 100:.0f}", lean2=f"{(1 - SS.THERMO_LEAN) * 100:.0f}") + keep_line()
 
 
 def today_html(V: dict) -> str:
-    """今天的重點（sigspec 第 5 節 ④，VER 21）：依溫度計分三段（持有 1 個月、3 個月、12 個月），每段一支溫度計＋偏多、警示兩張清單
-    （預估之後和隨便挑一天差 LIST_GAP 以上的；同一類只算一次）；最後總經策略（現在有動作的 ★）。點一列打開「之後怎麼走？」。"""
-    from . import sigspec as SS
+    """今天的重點（sigspec 第 5 節 ④b，VER 23）：溫度計卡（三支）＋過去讀數這樣的時候＋短線｜中線｜長線切換的偏多、警示兩張清單；
+    最後總經策略（現在有動作的 ★）。點一列打開「之後怎麼走？」。"""
     T = V.get("sigtoday")
     if not T:
         return ('<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div>'
                 f'<p class="note">訊號總覽的研究結果還沒產生（scripts/run_sig.py）。</p>{out_btn()}</section>')
     from . import xstratpage as XSP
-    d = T.get("d")
-    cal = T.get("cal") or {}
-    if T.get("ok", True):
-        nu = sum(th["n"]["up"] for th in T["thermo"])
-        nw = sum(th["n"]["warn"] for th in T["thermo"])
-        lead = ("" if nu else
-                '<p class="tzlead">今天只列出警示：偏多訊號用逐年檢查校正之後，在之後的年份多半沒有比隨便挑一天好，所以沒有列出來'
-                '（不是偏多訊號都不成立，是成立了也沒有比平常好）。</p>' if nw else
-                '<p class="tzlead">今天沒有預估之後和隨便挑一天差 3 點以上的訊號。</p>')
-        blocks = lead + "".join(f'<div class="tzhz" id="tz-{th["k"]}">{thermo_row(th, cal.get(th["k"]))}<div class="tzcols">'
-                                + "".join(_tz_list(th[s], s, d) for s in ("up", "warn")) + "</div></div>" for th in T["thermo"])
-    else:
-        blocks = '<p class="note">預估之後（逐年檢查）的研究結果還沒產生（scripts/run_sigoos.py），先不列。</p>'
     sx = V.get("xsb") or []
     strat = (f'<div class="tzst"><h4>總經策略<span class="sub">{len(sx)} 個策略現在照規則有動作（★ 好策略）</span></h4><ul class="tzu">'
              + "".join(XSP.board_li(it) for it in sx) + "</ul></div>") if sx else ""
-    sub = "現在成立、預估之後的機率和隨便挑一天差 3 點以上的訊號，依持有多久分三段；點一列看它過去出現之後的報酬。"
-    how = TZ_HOW.format(gap=f"{SS.LIST_GAP * 100:g}", star=SS.STAR_N, lean=f"{SS.THERMO_LEAN * 100:.0f}",
-                        lean2=f"{(1 - SS.THERMO_LEAN) * 100:.0f}") + keep_line()
+    sub = "現在成立的訊號，過去之後比隨便挑一天好 5 點以上的各算一類；點溫度計的一列切換那一段的清單，點清單的一列看過去的報酬。"
     return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div><p class="ksub">{_e(sub)}</p>'
-            f'<details class="tzx"><summary>怎麼看</summary><p>{_e(how)}</p></details>'
-            f'{blocks}{out_btn()}{strat}'
+            f'<details class="tzx"><summary>怎麼看</summary><p>{_e(tz_how())}</p></details>'
+            f'{today_core(T, T.get("mk") or V.get("mk"), T.get("d"))}{out_btn()}{strat}'
             + (f'<p class="tzm">{V["xsl"]}</p>' if V.get("xsl") else "")
             + '<p class="tzm"><a href="x9o.html">全部訊號、研究細節（訊號總覽）→</a></p></section>')
 
@@ -1029,10 +1099,12 @@ OUT_ORD = {"short": 0, "mid": 1, "long": 2}
 
 
 def _out_fams(V: dict) -> list[dict]:
-    """今天的重點列出來的訊號（同類合併後，一類一個領頭；sigspec 第 5 節 ④）：短線→中線→長線，同一支偏多在前、差大的在前。"""
+    """今天的重點列出來的訊號（同類合併後，一類一個領頭；sigspec 第 5 節 ④b）：短線→中線→長線，同一支偏多在前，
+    同一支同一邊照清單的順序（之後也成立的在前、再依差大到小）。"""
+    from . import sigcat as G
     T = V.get("sigtoday") or {}
     xs = [x for s in ("up", "warn") for x in (T.get(s) or [])]
-    return sorted(xs, key=lambda x: (OUT_ORD.get(x.get("hz"), 3), x.get("side") != "up", -(x.get("edge") or 0), x["id"]))
+    return sorted(xs, key=lambda x: (OUT_ORD.get(x.get("hz"), 3), x.get("side") != "up", G._frank(x)))
 
 
 def _tz_read(th: dict) -> str:
@@ -1048,7 +1120,7 @@ def out_thermo(V: dict) -> str:
 
 
 def out_sentence(V: dict) -> str:
-    """面板開頭那一句：「短線偏多 3 類；中線偏多 1 類、警示 1 類；長線沒有」。"""
+    """面板開頭那一句：「短線偏多 9 類、警示 2 類；中線…；長線沒有」。"""
     from . import sigspec as SS
     T = V.get("sigtoday") or {}
     out = []
@@ -1069,9 +1141,11 @@ def out_btn() -> str:
             '<i aria-hidden="true">→</i></button>')
 
 
-def osg_id(sid: str) -> str:
-    """面板裡一個訊號（一類的領頭）的 id：今天的重點那一列點了捲到這裡。訊號代號有冒號，換成 CSS 選擇器可以直接用的字。"""
-    return "osg-" + re.sub(r"[^0-9A-Za-z]", lambda m: f"_{ord(m.group()):x}", sid)
+def osg_id(sid: str, hz: str | None = None, side: str | None = None) -> str:
+    """面板裡一個訊號（一類的領頭）的 id：今天的重點那一列點了捲到這裡。同一個訊號可能同時列在好幾段（跨期間）或兩邊，
+    所以帶溫度計與哪一邊（VER 23）。訊號代號有冒號，換成 CSS 選擇器可以直接用的字。"""
+    pre = f"{hz}-{side}-" if hz and side else ""
+    return "osg-" + pre + re.sub(r"[^0-9A-Za-z]", lambda m: f"_{ord(m.group()):x}", sid)
 
 
 def _oh(h: int) -> str:
@@ -1098,11 +1172,24 @@ def out_sig(V: dict) -> str:
         return head + '<p class="note">訊號的研究結果還沒產生（scripts/run_sig.py）。</p>'
     fams = _out_fams(V)
     if not fams:
-        return head + '<p class="note">現在沒有列出來的訊號（預估之後和隨便挑一天差 3 點以上的）。</p>'
+        return head + '<p class="note">現在沒有列出來的訊號（過去之後的機率比隨便挑一天高 5 點以上的）。</p>'
     bases = G.research_bases()
     cols = [h for h in OUT_H if h in SS.RET_H]
     cards = []
+    seen: dict = {}
     for r in fams:
+        side = r.get("side") or "up"
+        k = (r.get("hz"), side)
+        seen[k] = seen.get(k, 0) + 1
+        orig = _tz_orig(r)
+        both = '<span class="tzo">震盪</span>' if r.get("both") else ""
+        ok = f'<span class="tqok" title="{_e(TQ_OK)}">之後也成立</span>' if r.get("ok") else ""
+        hd = (f'<p class="ofh">{tz_cls(r)}<b>{_e(_tz_name(r))}</b>'
+              f'<span class="ofd">持有 {_e(SPG._hz(r))}{_e(orig)}</span>{both}{ok}</p>')
+        if seen[k] > SS.TODAY_PER_SIDE:               # 清單裡收起來的那些：一行（表格只給清單先列的那幾類，面板才不會太長）
+            cards.append(f'<div class="ofam ofam-{side} ofc" id="{osg_id(r["id"], r.get("hz"), side)}">{hd}<p class="ofl">{SPG._line(r)}</p>'
+                         f'<p class="ofn"><a href="x9o.html#s={_e(r["id"])}">報酬表、每一次與走勢 →</a></p></div>')
+            continue
         R = r.get("ret") or {}
         s = R.get("s") or []
         b = (bases.get(R.get("bk")) or {}).get("s") or []
@@ -1117,13 +1204,9 @@ def out_sig(V: dict) -> str:
         tbl = ('<div class="tw"><table class="oft">' f'<tr><th class="l"></th>{th}</tr>'
                + row("上漲機率", 5, _p100) + row("報酬中位數", 3, _rp) + row("中途最多跌", 6, _rp)
                + '</table></div>') if s else '<p class="note">沒有報酬的統計。</p>'
-        side = r.get("side") or "up"
         fam = r.get("fam") or []
         also = (f'<p class="ofs">同時成立：{_e("、".join(_tz_name(x) for x in fam))}（過去常一起出現，算同一件事）</p>' if fam else "")
-        both = '<span class="tzo">震盪</span>' if r.get("both") else ""
-        orig = _tz_orig(r)
-        cards.append(f'<div class="ofam ofam-{side}" id="{osg_id(r["id"])}"><p class="ofh">{tz_cls(r)}<b>{_e(_tz_name(r))}</b>'
-                     f'<span class="ofd">持有 {_e(SPG._hz(r))}{_e(orig)}</span>{both}</p>'
+        cards.append(f'<div class="ofam ofam-{side}" id="{osg_id(r["id"], r.get("hz"), side)}">{hd}'
                      f'{also}<p class="ofl">{SPG._line(r)}</p>{tbl}'
                      f'<p class="ofn"><a href="x9o.html#s={_e(r["id"])}">每一次與走勢 →</a></p></div>')
     xsb = V.get("xsb") or []
@@ -1172,10 +1255,10 @@ def out_tpl(V: dict) -> str:
     if V.get("sigtoday") is None:
         lead = "訊號的研究結果還沒產生，下面先列五個面向、情境與最像現在的日子。"
     elif fams:
-        lead = (f"溫度計：{out_thermo(V)}。現在成立的好訊號（★）：{out_sentence(V)}。"
+        lead = (f"溫度計：{out_thermo(V)}。列出來的訊號：{out_sentence(V)}。"
                 "下面是過去同樣情況之後的報酬，和隨便挑一天比。")
     else:
-        lead = (f"溫度計：{out_thermo(V)}。現在沒有成立的好訊號（★），"
+        lead = (f"溫度計：{out_thermo(V)}。現在沒有列出來的訊號，"
                 "下面是五個面向現在的位置、情境與最像現在的日子，只當參考。")
     sim = ('<details class="osim" id="o-sim"><summary><b>最像現在的日子</b>'
            '<span>只當對照：用這個方法估機率，過去沒有比隨便挑一天準</span></summary>' + now_html(V) + "</details>")
@@ -1827,6 +1910,7 @@ body.drw-on{overflow:hidden}
 .drw .oh{font-size:15.5px;margin:20px 0 6px;padding-top:12px;border-top:1px solid var(--line)}
 .drw .oh span{display:block;margin-top:2px;font-size:12px;font-weight:400;color:var(--mut)}
 .ofam{margin:10px 0 12px;padding:10px 10px 6px;border-radius:10px;background:var(--card2)}
+.ofam.ofc{margin:6px 0;padding:7px 10px 3px}
 .ofh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin:0}.ofh b{font-size:14.5px}.ofd{font-size:12px;color:var(--mut)}
 .ofs{margin:4px 0 0;font-size:12px;line-height:1.55;color:var(--mut)}
 .ofl{margin:6px 0;font-size:13px;line-height:1.6}
@@ -1862,33 +1946,61 @@ table.oft{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-nume
 .drw table.stk td[data-h]::before{content:attr(data-h) "：";color:var(--mut);font-size:12px}
 .drw .nslt td{display:inline-block!important;margin-right:12px}.drw .nslt td.nsp{display:block!important}
 /* 今天的重點（訊號總覽的實務判定）與頁首的市場狀態一行 */
-.tzc{padding:12px 14px;min-width:0;margin:0;--bull:#d33a34;--bear:#159c94}
+.tzc{padding:12px 14px;min-width:0;margin:0}
+.tqk,.tzc,.drw{--bull:#d33a34;--bear:#159c94}
+@media (prefers-color-scheme:dark){.tqk,.tzc,.drw{--bull:#f15b50;--bear:#24a89d}}
 .tzx{margin:-2px 0 6px;font-size:12.5px;color:var(--ink2)}.tzx summary{cursor:pointer;color:var(--acc);font-size:12.5px}.tzx p{margin:4px 0 0;line-height:1.6}
-@media (prefers-color-scheme:dark){.tzc{--bull:#f15b50;--bear:#24a89d}}
-.tzt{display:grid;gap:7px;margin:4px 0 12px}
-.tzr{display:grid;grid-template-columns:62px minmax(0,1fr);align-items:center;gap:4px 8px}
-.tzn{display:flex;flex-direction:column;line-height:1.2}.tzn b{font-size:14px}.tzn i{font-style:normal;font-size:11.5px;color:var(--mut)}
-.tzb{position:relative;display:flex;height:16px;border-radius:4px;background:var(--card2);overflow:hidden;gap:2px}
-.tzb::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:var(--ink2);opacity:.55}
-.tzg{display:block;height:100%}.tzg-up{background:var(--bull)}.tzg-warn{background:var(--bear)}
-.tzv{grid-column:2;display:flex;flex-wrap:wrap;gap:0 8px;align-items:baseline;line-height:1.3;font-size:12.5px;color:var(--ink2)}
-.tzw{font-size:14px}.tzw-up{color:var(--bull)}.tzw-warn{color:var(--bear)}.tzw-even{color:var(--ink)}.tzw-none{color:var(--mut);font-weight:500}
-.tzp{margin-left:6px;font-size:12.5px;color:var(--ink2)}.tzct{font-size:12px;color:var(--mut)}
-.tzcal{grid-column:2;display:flex;flex-direction:column;gap:1px;margin:1px 0 3px}
+.tqk{position:relative;min-width:0}
+.tqrb{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.tqm{display:grid;gap:1px;margin:2px 0 8px}
+.tqax,.tqq{display:grid;grid-template-columns:62px 26px minmax(0,1fr) 26px 64px;align-items:center;column-gap:6px}
+.tqax{padding:0 6px;font-size:11px;color:var(--mut);line-height:1.2}
+.tqa3{grid-column:3;display:flex;justify-content:space-between}
+.tqq{padding:5px 6px;border-radius:8px;cursor:pointer}.tqq:hover{background:var(--card2)}
+.tqn{display:flex;flex-direction:column;line-height:1.15}.tqn b{font-size:14px}.tqn i{font-style:normal;font-size:11px;color:var(--mut)}
+.tqc{font-size:13px;font-variant-numeric:tabular-nums;color:var(--ink2)}.tqc-w{text-align:right}
+.tqb{position:relative;display:grid;grid-template-columns:1fr 1fr;align-items:center;height:16px}
+.tqb::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;margin-left:-.5px;background:var(--ink2);opacity:.5}
+.tqh{display:flex;height:8px;background:var(--card2);overflow:hidden}
+.tqh-w{justify-content:flex-end;border-radius:4px 0 0 4px;margin-right:2px}.tqh-u{border-radius:0 4px 4px 0;margin-left:2px}
+.tqh i{display:block;height:100%}.tqh-w i{background:var(--bear);border-radius:4px 0 0 4px}.tqh-u i{background:var(--bull);border-radius:0 4px 4px 0}
+.tqw{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap}
+.tqd{display:inline-block;width:8px;height:8px;border-radius:50%;flex:none}
+.tqd-up{background:var(--bull)}.tqd-warn{background:var(--bear)}.tqd-even{background:linear-gradient(90deg,var(--bear) 50%,var(--bull) 50%)}.tqd-none{background:var(--line2)}
+.tqcal{margin:0 0 4px;padding:6px 8px;border-radius:8px;background:var(--card2)}
+.tqch{margin:0 0 2px;font-size:12px;font-weight:600;color:var(--ink2)}.tqch span{font-weight:400;color:var(--mut);margin-left:6px}
+.tqcal ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}.tqcal li{font-size:12px;line-height:1.5;color:var(--ink2)}
+.tqcn{display:inline-block;min-width:2.7em;color:var(--ink);font-weight:600}.tqcq{color:var(--mut)}
 .tzca{font-size:12px;line-height:1.5;color:var(--ink2)}.tzca b{color:var(--ink);font-weight:600}
-.tzcs{display:inline-block;font-size:11px;padding:0 5px;margin-right:5px;border-radius:4px;border:1px solid;line-height:1.4}
-.tzcs-up{color:var(--bull);border-color:var(--bull)}.tzcs-warn{color:var(--bear);border-color:var(--bear)}
-.tzcols{display:grid;grid-template-columns:1fr;gap:6px}
-.tzcol h3,.tzcol h4,.tzst h4{margin:4px 0 2px;font-size:14px;display:flex;align-items:baseline;gap:8px}.tzcol h3 .sub,.tzcol h4 .sub,.tzst h4 .sub{font-size:12px;color:var(--mut);font-weight:400}
-.tzhz{padding:8px 0 6px;border-top:1px solid var(--line)}.tzx+.tzhz{border-top:0;padding-top:2px}
-.tzhz .tzr{margin-bottom:4px}.tzno{margin:0 0 2px;font-size:12.5px;color:var(--mut)}
+.tzcs{display:inline-block;font-size:11px;padding:0 5px;margin-right:5px;border-radius:4px;border:1px solid;line-height:1.4;color:var(--ink)}
+.tzcs-up{border-color:var(--bull)}.tzcs-warn{border-color:var(--bear)}
+.tqsg{display:flex;gap:3px;margin:8px 0 4px;padding:3px;border-radius:10px;background:var(--card2)}
+.tqsg label{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;padding:4px 4px;border-radius:8px;cursor:pointer;font-size:13px;line-height:1.25;color:var(--ink2)}
+.tqsg label span{font-size:11px;color:var(--mut);white-space:nowrap}
+.tqrb:nth-of-type(1):checked~.tqm .tqq:nth-of-type(1),.tqrb:nth-of-type(2):checked~.tqm .tqq:nth-of-type(2),.tqrb:nth-of-type(3):checked~.tqm .tqq:nth-of-type(3){background:var(--accbg)}
+.tqrb:nth-of-type(1):checked~.tqsg label:nth-child(1),.tqrb:nth-of-type(2):checked~.tqsg label:nth-child(2),.tqrb:nth-of-type(3):checked~.tqsg label:nth-child(3){background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(15,25,40,.16)}
+.tqrb:nth-of-type(1):focus-visible~.tqsg label:nth-child(1),.tqrb:nth-of-type(2):focus-visible~.tqsg label:nth-child(2),.tqrb:nth-of-type(3):focus-visible~.tqsg label:nth-child(3){outline:2px solid var(--acc);outline-offset:1px}
+.tqpn{display:none}.tqrb:nth-of-type(1):checked~.tqps .tqpn:nth-child(1),.tqrb:nth-of-type(2):checked~.tqps .tqpn:nth-child(2),.tqrb:nth-of-type(3):checked~.tqps .tqpn:nth-child(3){display:block}
+.tqsh{margin:8px 0 2px;font-size:14px;display:flex;flex-wrap:wrap;align-items:center;gap:1px 6px}
+.tqsh b{font-size:15px}.tqsh small{font-weight:400;font-size:12px;color:var(--mut)}
+.tqsh .sub{flex:1 1 100%;font-size:12px;color:var(--mut);font-weight:400;padding-left:14px;line-height:1.45}
+.tqu{list-style:none;margin:0;padding:0}.tqu li+li{border-top:1px solid var(--line)}
+.tqi{display:block;padding:6px 4px 6px 14px;color:var(--ink);text-decoration:none;border-radius:8px}.tqi:hover{background:var(--card2)}
+.tqt{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}.tqt b{font-size:14px;font-weight:600}
+.tql{display:block;font-size:12.5px;color:var(--ink2);line-height:1.55}.tql b{color:var(--ink)}
+.tqs{display:block;font-size:11.5px;color:var(--mut);line-height:1.5}
+.tqf{cursor:help;text-decoration:underline dotted;text-underline-offset:2px}
+.tqy,.tqg,.tqo,.tqok{font-size:11px;padding:0 6px;border-radius:999px;white-space:nowrap;line-height:1.6;border:1px solid var(--line2);color:var(--ink2)}
+.tqy{border-color:var(--bull);color:var(--ink)}.tqo{background:var(--line);border-color:transparent;color:var(--ink);cursor:help}
+.tqok{border-color:var(--acc);color:var(--acc);font-weight:600;cursor:help}
+.tqno{margin:2px 0 4px 14px;font-size:12.5px;color:var(--mut)}
+.tqmore summary{cursor:pointer;font-size:12.5px;color:var(--acc);padding:4px 14px}
+.tqlg{margin:8px 0 0;font-size:11.5px;line-height:1.55;color:var(--mut)}
+@media (max-width:640px){.tqax,.tqq{grid-template-columns:54px 22px minmax(0,1fr) 22px 60px;column-gap:4px}.tqq{padding:5px 4px}.tqax{padding:0 4px}}
 .tzst{margin-top:8px;padding-top:6px;border-top:1px solid var(--line)}
-.tzlead{margin:2px 0 6px;font-size:12.5px;line-height:1.6;color:var(--ink2);padding:6px 8px;border-radius:8px;background:var(--card2)}
+.tzst h4{margin:4px 0 2px;font-size:14px;display:flex;align-items:baseline;gap:8px}.tzst h4 .sub{font-size:12px;color:var(--mut);font-weight:400}
 .tzy{font-size:11.5px;padding:0 6px;border-radius:4px;border:1px solid;white-space:nowrap;font-weight:600;line-height:1.5}
-.tzy-up,.tzy-buy{color:var(--bull);border-color:var(--bull)}.tzy-weak,.tzy-risk{color:var(--bear);border-color:var(--bear)}
-.tzy-weak{border-style:dashed}
-.tzcl{padding:0 0 1px;border-bottom:3px solid}.tzcl-up{border-color:var(--bull)}.tzcl-warn{border-color:var(--bear)}
-.tzmore summary{cursor:pointer;font-size:13px;color:var(--acc);padding:4px 2px}
+.tzy-up,.tzy-buy{color:var(--bull);border-color:var(--bull)}.tzy-risk{color:var(--bear);border-color:var(--bear)}
 .tzu{list-style:none;margin:0;padding:0}.tzu li+li{border-top:1px solid var(--line)}
 .tzi{display:block;padding:7px 2px;color:var(--ink);text-decoration:none;border-radius:8px}.tzi:hover{background:var(--card2)}
 .tzh{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}.tzh b{font-weight:600;font-size:14px}
@@ -1897,7 +2009,6 @@ table.oft{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-nume
 .tzo{font-size:11.5px;padding:0 7px;border-radius:999px;white-space:nowrap;color:var(--ink);background:var(--line);cursor:help}
 .tzd.tzs{border-color:var(--acc);color:var(--acc);font-weight:600}
 .tzl{display:block;font-size:12.5px;color:var(--ink2);padding-left:20px;line-height:1.55}.tzl b{color:var(--ink)}
-.tzf{display:block;font-size:12px;color:var(--mut);padding-left:20px;line-height:1.5;margin-top:2px}
 .tzm{margin:6px 0 0;font-size:13px}
 .stl{max-width:1080px;margin:4px auto 0;padding:0 16px;display:flex;flex-wrap:wrap;gap:6px}
 .stc{display:inline-flex;align-items:baseline;gap:5px;padding:2px 10px;border-radius:999px;border:1px solid var(--line2);

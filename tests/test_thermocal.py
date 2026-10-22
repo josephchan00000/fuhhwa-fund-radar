@@ -4,7 +4,6 @@ from datetime import date, timedelta
 import numpy as np
 
 from arm.lab import sigcat as G
-from arm.lab import sigoos
 from arm.lab import sigspec as S
 from arm.lab import thermocal as TC
 
@@ -63,33 +62,19 @@ def test_stats_before_uses_only_windows_finished_before_cut():
 
 
 def test_vote_rule_is_listing_rule():
-    """VER 21：票＝第 5 節 ④ 列出來的規則——預估之後的差 g＝k ×（命中率 − 平常），k 從那時的格子找（跨期間只找 x 的格子）：
-    偏多方向 g ≥ 3 點 → u；警示方向 g ≥ 3 點，或看 1 個月的偏多方向 g ≤ −3 點（偏弱）→ w。"""
+    """VER 23：票＝第 5 節 ④b 列出來的規則——次數 ≥ 5、這個方向命中率比平常高 5 點以上（偏多方向 → u、警示方向 → w）；
+    偏弱拿掉（上漲機率比平常低不投警示）；跨期間與訊號自己的看多久同一條。"""
     st = lambda n, hit, base: {"n": n, "hit": hit, "base": base}
-    cells = {"up|60|*|p": {"k": 0.5}, "warn|60|*|p": {"k": 0.5}, "up|20|*|n": {"k": 0.5}, "x:up|20|*|p": {"k": 0.2}}
-    assert TC.vote({"up": st(20, 0.75, 0.65), "warn": st(20, 0.40, 0.30)}, cells, 60) == "uw"     # g 5 點
-    assert TC.vote({"up": st(20, 0.70, 0.65), "warn": st(20, 0.35, 0.30)}, cells, 60) == ""       # g 2.5 點
-    weak = {"up": st(20, 0.50, 0.60), "warn": st(20, 0.30, 0.30)}
-    assert TC.vote(weak, cells, 20) == "w" and TC.vote(weak, cells, 60) == ""                     # 偏弱只看 1 個月
-    hi = {"up": st(20, 0.80, 0.60), "warn": st(20, 0.3, 0.3)}
-    assert TC.vote(hi, cells, 20, x=True) == "u" and TC.vote(hi, cells, 20) == ""                # 跨期間用 x 的格子
-    assert TC.vote({"up": st(4, 0.90, 0.60), "warn": st(4, 0.9, 0.3)}, cells, 60) == ""          # 次數 4
-    assert TC.vote({"up": st(20, None, 0.6), "warn": st(20, 0.45, 0.30)}, cells, 60) == "w"
-    assert TC.vote(None, cells, 60) == "" and TC.vote(hi, {}, 20) == ""
-    for d, x, H in (("up", st(20, 0.75, 0.65), 60), ("warn", st(20, 0.40, 0.30), 60), ("up", st(20, 0.50, 0.60), 20)):
-        g = sigoos.lookup(cells, d, H, 20, x["hit"] - x["base"])["k"] * (x["hit"] - x["base"])
-        cls = G.list_cls(d, H, g)
-        assert (TC.vote({"up": x, "warn": {}} if d == "up" else {"up": {}, "warn": x}, cells, H) != "") == (cls is not None)
-
-
-class _Cells(dict):
-    """假的格子：每一個鍵都找得到 k（給 market 的測試用）。"""
-    def __init__(self, k):
-        super().__init__(dummy={"k": k})
-        self.kv = k
-
-    def get(self, key, default=None):
-        return {"k": self.kv}
+    assert TC.vote({"up": st(20, 0.71, 0.65), "warn": st(20, 0.36, 0.30)}) == "uw"                # 差 6 點
+    assert TC.vote({"up": st(20, 0.69, 0.65), "warn": st(20, 0.34, 0.30)}) == ""                  # 差 4 點
+    assert TC.vote({"up": st(20, 0.50, 0.60), "warn": st(20, 0.30, 0.30)}) == ""                  # 偏弱不投（VER 23）
+    assert TC.vote({"up": st(4, 0.90, 0.60), "warn": st(4, 0.9, 0.3)}) == ""                     # 次數 4
+    assert TC.vote({"up": st(5, 0.70, 0.60), "warn": {}}) == "u"                                   # 次數 5 就算
+    assert TC.vote({"up": st(20, None, 0.6), "warn": st(20, 0.45, 0.30)}) == "w"
+    assert TC.vote(None) == ""
+    for d, x in (("up", st(20, 0.70, 0.65)), ("warn", st(20, 0.40, 0.30)), ("up", st(20, 0.50, 0.60)), ("warn", st(9, 0.349, 0.30))):
+        cls = G.list_cls(d, x["hit"] - x["base"])
+        assert (TC.vote({"up": x, "warn": {}} if d == "up" else {"up": {}, "warn": x}) != "") == (cls is not None)
 
 
 def test_rank_and_group_compare_with_own_past():
@@ -123,7 +108,7 @@ def test_verdict_bootstrap_is_deterministic_and_reads_direction():
 
 
 def test_market_counts_items_with_yearly_rolling_votes(monkeypatch):
-    """逐年滾動：每年 1 月 1 日用之前走完的窗口重算統計、用那一年的格子（VER 21，sigoos.ktab）決定會投哪一邊；同一個項目一票；
+    """逐年滾動：每年 1 月 1 日用之前走完的窗口重算統計、照 ④b 的規則（VER 23）決定會投哪一邊；同一個項目一票；
     週末的票數＝有效而且會投的項目數；今天的票數用最後一年那一次的統計（votes）。"""
     T = 260 * 14
     cal = _cal(T)
@@ -142,16 +127,8 @@ def test_market_counts_items_with_yearly_rolling_votes(monkeypatch):
                 "days": sorted(set(int(x) for x in rng.integers(0, T, 80)))})
     sds.append({"id": "tw:buy:x", "cat": "buy", "var": "x", "kind": "event", "H": 60, "samp": samp, "days": [100]})   # 不算
     monkeypatch.setattr(G, "signals", lambda F: sds)
-    seen = []
-
-    def fake_ktab(yk, yr):                                                    # 每年 1 月 1 日用那一年的格子（VER 21）
-        seen.append(yr)
-        return _Cells(1.0 if yr >= 2015 else 0.3)
-    monkeypatch.setattr(sigoos, "ktab", fake_ktab)
     F = {"mk": "tw", "cal": cal, "px": px, "we": we, "r0": cal[0]}
-    M = TC.market(F, {"zz": {}})
-    assert seen == sorted(set(seen)) and seen[0] == 2011 and seen[-1] == int(cal[-1][:4])
-    cells = lambda y: _Cells(1.0 if y >= 2015 else 0.3)                       # noqa: E731
+    M = TC.market(F)
     assert M["y0"] == TC.first_year(cal) == 2011 and M["cut"] == f"{cal[-1][:4]}-01-01"
     # 直接算某一年某一週的票數
     k, H = "mid", 60
@@ -163,13 +140,13 @@ def test_market_counts_items_with_yearly_rolling_votes(monkeypatch):
     for t in wk:
         items = set()
         for sd in sds[:-1]:
-            v = TC.vote(TC.stats_before(sd, cut, Y, H), cells(yr), H, H != sd["H"])
+            v = TC.vote(TC.stats_before(sd, cut, Y, H))
             if "w" in v and TC.active(sd, T, H)[t]:
                 items.add(TC.item_of(sd))
         want_w.append(len(items))
     i0 = sum(1 for t in we if cal[t][:4] < str(yr) and cal[t][:4] >= str(M["y0"]))
     assert len(M["hz"][k]["wk"]) == len(M["hz"][k]["w"]) <= S.CAL_RANK_W + 1
-    full = TC.market(F, {"zz": {}})                                            # 同資料同結果
+    full = TC.market(F)                                                        # 同資料同結果
     assert full == M
     # 從頭重建一次歷史（不截尾）來比對那一年
     hist = []
@@ -177,7 +154,7 @@ def test_market_counts_items_with_yearly_rolling_votes(monkeypatch):
         c = next(i for i, d in enumerate(cal) if d >= f"{y}-01-01")
         for t in [t for t in we if cal[t][:4] == str(y)]:
             its = {TC.item_of(sd) for sd in sds[:-1]
-                   if "w" in TC.vote(TC.stats_before(sd, c, Y, H), cells(y), H, H != sd["H"]) and TC.active(sd, T, H)[t]}
+                   if "w" in TC.vote(TC.stats_before(sd, c, Y, H)) and TC.active(sd, T, H)[t]}
             hist.append(len(its))
     assert hist[i0:i0 + len(wk)] == want_w and M["hz"][k]["w"] == hist[-(S.CAL_RANK_W + 1):]
     assert "tw:buy:x" not in M["votes"] and set(M["votes"]) <= {sd["id"] for sd in sds[:-1]}
@@ -186,8 +163,7 @@ def test_market_counts_items_with_yearly_rolling_votes(monkeypatch):
         assert x["i"] == TC.item_of(sd)
         for kk, v in x["v"].items():
             Hk = S.THERMO_H[kk]
-            assert v == TC.vote(TC.stats_before(sd, cut_last(cal), G.outcomes(px, Hk, G.warn_th("tw", Hk)), Hk),
-                                cells(int(cal[-1][:4])), Hk, Hk != sd["H"])
+            assert v == TC.vote(TC.stats_before(sd, cut_last(cal), G.outcomes(px, Hk, G.warn_th("tw", Hk)), Hk))
 
 
 def cut_last(cal):
@@ -245,11 +221,15 @@ def test_calibration_lines_text():
     f = plain(VZ.cal_line("warn", dict(base, v="few", pct=0.0), 250, 0.2))
     assert f == "警示過去 10 年最少（或一樣少）・過去的週數不夠，看不出和之後大回撤有沒有關係"
     C = {"H": 20, "th": 0.057, "up": dict(base, v="none"), "warn": dict(base, v="rel")}
-    h = VZ.cal_html(C)
-    assert h.count('class="tzca"') == 2 and VZ.cal_html(None) == "" and not [x for x in BANNED if x in plain(h)]
-    T = {"thermo": [{"k": "short", "name": "短線", "h": "看 1 個月", "n": {"up": 1, "warn": 0}, "share": 1.0, "lean": "up",
+    h = VZ.cal_block({"short": C})                                             # VER 23：只列有關係、相反的，其他併成一句
+    assert h.count('class="tzca"') == 1 and "短線" in plain(h) and "其他都看不出數量多少和之後漲跌有關係" in plain(h)
+    assert VZ.cal_block(None) == "" and not [x for x in BANNED if x in plain(h)]
+    h2 = plain(VZ.cal_block({"short": dict(C, warn=dict(base, v="few"))}))
+    assert "tzca" not in h2 and "三支溫度計都看不出數量多少和之後漲跌有關係" in h2
+    T = {"thermo": [{"k": "short", "name": "短線", "h": "看 1 個月", "H": 20, "n": {"up": 1, "warn": 0}, "share": 1.0, "lean": "up",
                      "up": [], "warn": []}], "cal": {"short": C}}
-    assert VZ.thermo_html(T).count('class="tzca"') == 2 and VZ.thermo_html(dict(T, cal=None)).count("tzca") == 0
+    assert VZ.today_core(T, "tw", None).count('class="tzca"') == 1 and VZ.today_core(dict(T, cal=None), "tw", None).count("tzca") == 0
+    assert VZ.today_core(T, "tw", None, cal=False).count("tzca") == 0                     # 訊號總覽不放
 
 
 def test_research_file_covers_markets_and_is_this_year():

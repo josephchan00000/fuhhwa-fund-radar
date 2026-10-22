@@ -21,7 +21,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 22 and X.SPEC_DATE == "2026-10-22"
+    assert X.VER == 23 and X.SPEC_DATE == "2026-10-22"
     assert BS.VER == 4 and "C9" in BS.SIG_MK["tw"] and "C8" in BS.SIG_MK["spx"]   # VER 13：大跌後買點的規則跟著 bottomspec VER 4
     assert X.H_BUY == 60                                                  # VER 10：大跌後買點看買進後 3 個月有沒有漲
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
@@ -54,6 +54,7 @@ def test_sig_spec_v1_is_locked():
     assert X.TODAY_SIDE == 6 and X.THERMO_LEAN == 0.6
     # VER 12（使用者 2026-10-21：「溫度計可以標準寬鬆一些」，選「有傾向就算」）：★ 2、● 1、△ 0.5；△＝比平常高 5 個百分點以上
     # VER 17（使用者選「溫度計照新的 ★ 算」）：★ 2、◆ 1、△ 0.5；△＝勝率門檻過了但沒過完整的判定（THERMO_EDGE 只留給 VER 12～16 的紀錄）
+    # VER 23：列出來與溫度計改回「比平常高 THERMO_EDGE 以上」（第 5 節 ④b）
     assert X.THERMO_W == {"good": 2, "rare": 1, "lean": 0.5} and X.THERMO_EDGE == 0.05 == X.EDGE_REF
     assert X.THERMO_MARK == {"good": "★", "rare": "◆", "lean": "△"} and set(X.THERMO_NAMES) == set(X.THERMO_W)
     assert X.RES_VER == 22                                          # VER 17 改了判定與報酬欄位、VER 20 改了分段、VER 22 狀態型的權重，研究檔要重跑
@@ -144,7 +145,7 @@ def test_sig_spec_v15_thermometer_all_horizons_is_locked():
 def test_sig_spec_v16_thermometer_calibration_is_locked():
     """VER 16（2026-10-22，docs/lab_noise_plan.md 第 14.10 節）：溫度計下面加「過去讀數這樣的時候」——逐年滾動（不偷看之後）的票數、
     和自己的過去 10 年比的位置、過去同一組的週之後怎麼走；只是描述，判定與溫度計的算法都不變。"""
-    assert X.CAL_VER == 22 and (X.CAL_WARM_Y, X.CAL_MIN_SAMP) == (10, 50)              # VER 17 投票規則、VER 20 分段與事件失效、VER 21 票的規則、VER 22 權重改了，研究檔重跑
+    assert X.CAL_VER == 23 and (X.CAL_WARM_Y, X.CAL_MIN_SAMP) == (10, 50)              # VER 17 投票規則、VER 20 分段與事件失效、VER 21 票的規則、VER 22 權重、VER 23 票改回比平常高 5 點，研究檔重跑
     assert (X.CAL_RANK_W, X.CAL_RANK_MIN, X.CAL_TERC) == (520, 260, (1 / 3, 2 / 3))
     assert (X.CAL_BLOCK, X.CAL_DRAWS, X.CAL_SEED, X.CAL_MIN_WEEKS) == (52, 1000, 20261022, 104)
     assert X.N_MIN == 5 and X.RES_VER == 22                                          # 投票規則同 △（VER 17：勝率門檻過了）
@@ -159,14 +160,14 @@ def test_sig_spec_v17_absolute_judgment_is_locked():
     assert {mk: X.ABS_COST[mk] for mk in XS.COST} == XS.COST and X.ABS_COST["us"] == XS.COST["spx"]   # 成本同總經策略
     assert (X.TRIM_Q, X.TRIM_N) == (0.05, 20) == (XS.DIP_TRIM_Q, XS.DIP_TRIM_N)
     assert XS.VER == 6 and XS.DIP_WIN == 0.60 and XS.DIP_N_MIN == 5
-    assert X.RES_VER == 22 and X.CAL_VER == 22 and X.VER >= 17    # VER 20 分段改了、VER 21 溫度計的票改了、VER 22 狀態型的權重，研究檔重跑
+    assert X.RES_VER == 22 and X.CAL_VER >= 22 and X.VER >= 17    # VER 20 分段改了、VER 21 溫度計的票改了、VER 22 狀態型的權重，研究檔重跑（VER 23 只重跑溫度計校正）
     assert X.THERMO_W == {"good": 2, "rare": 1, "lean": 0.5} and X.THERMO_NAMES["lean"] == "勝率過了"
 
 
 def test_sig_spec_v18_forward_estimate_is_locked():
     """VER 18（2026-10-22，docs/lab_practical_plan.md 第 10 節）：「預估之後」＝逐年樣本外的衰退表（方向 × 看多久 × 次數 × 過去的優勢），
     預估之後的命中率＝平常 ＋ k ×（命中率 − 平常）、多賺＝k_r ×（報酬中位數 − 平常的報酬中位數），k 截在 0～1；只呈現，判定與研究檔不變。"""
-    assert X.VER >= 19 and X.FWD_VER == 22 and X.RES_VER == 22 and X.CAL_VER == 22   # VER 18～19 只動 sigoos；VER 20 分段改了，三個都重跑；VER 21 多跨期間；VER 22 權重
+    assert X.VER >= 19 and X.FWD_VER == 22 and X.RES_VER == 22 and X.CAL_VER >= 22   # VER 18～19 只動 sigoos；VER 20 分段改了，三個都重跑；VER 21 多跨期間；VER 22 權重
     # VER 19：報酬留下來的比例改用平均量（次數少時中位數的期望值比全部日子的中位數低，VER 18 的之後多賺系統性偏低）
     assert X.FWD_NB == (15, 40) and X.FWD_NB[0] == X.STAR_N                         # 5～14（難得機會）、15～39、40 以上
     assert X.FWD_EB == (0.0, 0.05, 0.10, 0.20)
@@ -235,6 +236,17 @@ def test_sig_spec_v22_state_days_weighted_is_locked():
     """VER 22（docs/lab_audit_plan.md 第 12 節）：狀態型的命中率與報酬改成每一天一樣重（每一段一樣重有長短偏誤）；
     次數仍是段數、分段規則不變；三個研究檔都重跑。"""
     from arm.lab import sigspec as X
-    assert X.VER == 22 and X.STATE_W == "day" and X.RES_VER == X.FWD_VER == X.CAL_VER == 22
+    assert X.VER >= 22 and X.STATE_W == "day" and X.RES_VER == X.FWD_VER == 22 and X.CAL_VER >= 22
     assert X.EP_GAP == 20 and X.EP_BREAK == {"hot": "lt_cold", "hot13": "lt_cold", "cold": "ge_hot"}
     assert (X.TRIM_Q, X.TRIM_N) == (0.05, 20) and X.LIST_GAP == 0.03 and X.N_MIN == 5 and X.STAR_N == 15
+
+
+def test_sig_spec_v23_loose_thermometer_is_locked():
+    """VER 23（docs/lab_audit_plan.md 第 13 節）：使用者看過 VER 21～22 之後的景氣頁——「溫度計什麼屁都沒有了」。今天的重點、溫度計、
+    訊號總覽的今天清單改回 VER 12 的「次數 ≥ 5、過去比隨便挑一天高 5 點以上就算」（每一天一樣重的數字），拿掉偏弱（VER 22 逐年檢查是反過來的），
+    預估之後只用來標「之後也成立」；「過去讀數這樣的時候」的票同一條（CAL_VER 23 重跑）；sig_research、sigoos_research 不動。"""
+    assert X.VER == 23 and X.CAL_VER == 23 and X.RES_VER == X.FWD_VER == 22 and X.STATE_W == "day"
+    assert X.THERMO_EDGE == 0.05 and X.N_MIN == 5 and X.LIST_GAP == 0.03 and X.STAR_N == 15
+    assert X.THERMO_CLS == ("up", "buy", "risk") and "weak" not in X.THERMO_CLS
+    assert set(X.THERMO_CLS) <= set(X.LIST_CLS_NAMES) and {X.LIST_SIDE[c] for c in X.THERMO_CLS} == {"up", "warn"}
+    assert X.TODAY_PER_SIDE == 3 and X.THERMO_LEAN == 0.6 and [k for k, *_ in X.THERMO_HZ] == ["short", "mid", "long"]

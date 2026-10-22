@@ -193,8 +193,8 @@ def view() -> dict:
         if n:
             on.update(n["on"])
             asof[mk] = n["d"]
-    today = {mk: G.today(rows, on, mk, (G.NOW.get(mk) or {}).get("acts"), (G.NOW.get(mk) or {}).get("xon"))
-             for mk in TODAY_MK if mk in asof}
+    today = {mk: G.board(rows, on, mk, (G.NOW.get(mk) or {}).get("acts"), (G.NOW.get(mk) or {}).get("xon"))
+             for mk in TODAY_MK if mk in asof}                       # VER 23：和景氣頁同一個溫度計＋清單
     for r in ST.get("rows") or []:
         if r["cat"] == "stock" and r.get("live"):
             on[r["id"]] = {"live": r["live"]}
@@ -404,6 +404,21 @@ def _line(r: dict) -> str:
     return out
 
 
+def tq_stats(r: dict) -> str:
+    """今天的重點一列的數字（sigspec 第 5 節 ④b，VER 23；看什麼寫在清單標題）：過去的機率（隨便挑一天）、報酬中位數（偏多、買點，
+    訊號自己的看多久才有）或回撤中位數（警示）、出現過幾次。"""
+    d = r["d"]
+    st = r.get("st") or r[d]
+    out = f'<b>{st["hit"] * 100:.0f}%</b>（隨便挑一天 {st["base"] * 100:.0f}%）'
+    if d != "warn":
+        med = _med(r) if not r.get("xk") else None                  # 跨期間的列只有機率（報酬是訊號自己看多久的）
+        if med is not None:
+            out += f'・報酬中位數 {_sgn(med)}'
+    elif st.get("mdd") is not None and st.get("mdd_base") is not None:
+        out += f'・回撤中位數 {st["mdd"] * 100:.0f}%（隨便挑一天 {st["mdd_base"] * 100:.0f}%）'
+    return out + f'・出現過 {st["n"]} 次' + ("（次數少）" if st["n"] < S.STAR_N else "")
+
+
 def _fe(r: dict) -> dict | None:
     """預估之後（sigspec 第 4.14 節）：今天的清單（第 5 節 ④，VER 21）每一列都帶好了（"fe"；跨期間的是 sigoos.est_x）；
     沒帶的★、◆ 列才在這裡算（VER 18～20 的用法）。研究檔沒有、不在範圍＝None。"""
@@ -468,38 +483,10 @@ def _since(n: dict, ref: str | None = None) -> str:
     return f'{_dy(n["since"], ref)} 起成立{tr}'
 
 
-def _cls_tag(r: dict) -> str:
-    """類別章（sigspec 第 5 節 ④）：偏多／買點／偏弱／大跌風險。"""
-    c = r.get("cls") or ("buy" if r["d"] == "buy" else "risk" if r["d"] == "warn" else "up")
-    return f'<span class="sgy sgy-{c}">{_e(S.LIST_CLS_NAMES[c])}</span>'
-
-
-def _today_li(r: dict, ref: str | None) -> str:
-    """今天有效的一列（第 5 節 ④，VER 21）：類別、持有多久（跨期間的寫原本看多久）、名稱、預估之後、照規則的那一筆；
-    「同時成立」＝同一類的其他訊號。"""
-    fam = r.get("fam") or []
-    also = ""
-    if fam:
-        also = f'<span class="sgfm">同時成立：{"、".join(_e(x["name"]) for x in fam)}（過去常一起出現，算同一件事）</span>'
-    hz = f"持有 {_hz(r)}" + (f"・原本看 {H_TXT.get(r.get('H0'), str(r.get('H0')) + ' 個交易日')}" if r.get("xk") else "")
-    both = '<span class="sgo" title="同一個項目同一段：偏多和大跌風險都列出來">震盪</span>' if r.get("both") else ""
-    return (f'<li><a class="sgi" href="#s={_e(r["id"])}">{_cls_tag(r)}'
-            f'<span class="sgnm">{_e(r["name"])}</span><span class="sgd">{_e(hz)}</span>{both}'
-            f'<span class="sgln">{_line(r)}<span class="sgs">{_e(_since(r["now"], ref))}</span></span>{also}</a></li>')
-
-
-def _today_side(xs: list[dict], s: str, ref: str | None) -> str:
-    nm = {"up": "偏多", "warn": "警示"}[s]
-    if not xs:
-        return f'<p class="sgsd sgsd-{s}"><b>{nm}</b><span class="mu">沒有</span></p>'
-    top, rest = xs[:S.TODAY_SIDE], xs[S.TODAY_SIDE:]
-    more = (f'<details class="sgmore"><summary>還有 {len(rest)} 類</summary><ul class="sgl">'
-            + "".join(_today_li(r, ref) for r in rest) + "</ul></details>") if rest else ""
-    return (f'<p class="sgsd sgsd-{s}"><b>{nm}</b><span class="mu">{len(xs)} 類</span></p><ul class="sgl">'
-            + "".join(_today_li(r, ref) for r in top) + f"</ul>{more}")
-
-
 def today_html(V: dict) -> str:
+    """今天有效的訊號（sigspec 第 5 節 ④b，VER 23）：每個市場一張卡＝和景氣頁同一個溫度計＋短線｜中線｜長線切換的偏多、警示清單
+    （heatviz.today_core；點一列看這一頁的指標）＋總經策略一行；最後個股。"""
+    from . import heatviz as VZ
     cards = []
     for mk in TODAY_MK:
         T = V["today"].get(mk)
@@ -508,13 +495,7 @@ def today_html(V: dict) -> str:
         head = f'<h3>{_e(MK_NAMES[mk])}<span class="sub">資料到 {_e(_d(V["asof"].get(mk)))}</span></h3>'
         xl = XSP.today_line(mk, V["xs"]) if V.get("xs") else ""          # 總經策略縮成一行，連到策略頁
         xl = f'<p class="sgxs">{xl}</p>' if xl else ""
-        ref = V["asof"].get(mk)
-        if not T.get("ok"):
-            body = '<p class="sgnone">預估之後（逐年檢查）的研究結果還沒產生，先不列。</p>'
-        elif not T["up"] and not T["warn"]:
-            body = '<p class="sgnone">今天沒有預估之後和隨便挑一天差 3 點以上的訊號。</p>'
-        else:
-            body = _today_side(T["up"], "up", ref) + _today_side(T["warn"], "warn", ref)
+        body = VZ.today_core(T, mk, V["asof"].get(mk), panel=False, cal=False)
         cards.append(f'<div class="sgk">{head}{body}{xl}</div>')
     lis = []
     for r in V["stk"]:
@@ -535,9 +516,9 @@ def today_html(V: dict) -> str:
     cards.append(f'<div class="sgk"><h3>個股<span class="sub">資料到 {_e(_d(V["asof"].get("stk")))}</span></h3>{stk_body}'
                  '<p class="note">個股是另一套判定（★ 好訊號、好策略），沒有預估之後；策略現在持有什麼、下一批什麼時候買，看'
                  '<a href="x9.html#v=opp">策略頁的個股策略</a>。</p></div>')
-    return ('<section class="sec" id="today"><h2>今天有效的訊號<span class="sub">現在成立、預估之後的機率和隨便挑一天差 3 點以上的；'
-            '偏多（含大跌後買點）、警示（偏弱、大跌風險）兩邊；同一個項目同一段只列一種；過去常一起出現的併成一列；'
-            '依差多少排序；點一列看那個指標；總經策略每個市場一行，點了到策略頁</span></h2>'
+    return ('<section class="sec" id="today"><h2>今天有效的訊號<span class="sub">現在成立、過去之後的機率比隨便挑一天高 5 點以上的'
+            '（和景氣頁的溫度計同一套）；偏多（含大跌後買點）、警示兩邊；同一個項目同一段只列一種；過去常一起出現的併成一列；'
+            '點溫度計的一列切換持有多久，點清單的一列看那個指標；總經策略每個市場一行，點了到策略頁</span></h2>'
             f'<div class="sgt">{"".join(cards)}</div></section>')
 
 
@@ -646,13 +627,14 @@ def method_html(luck: dict | None = None) -> str:
             '大跌後買點與個股偏多訊號是和同一批事件的對照比，改成在每一次事件裡隨機對調「訊號」和「對照」的結果。'
             f'次數少的訊號就算每次都中，亂排做得到一樣準的比例也常超過 {S.LUCK_P * 100:.0f}%（例：8 次、平常 59%，每次都中時亂排也有約 2.5% 做得到）。</dd>'
             f'{lk}{fwd_html()}'
-            f'<dt>今天有效的訊號（景氣頁今天的重點、溫度計也一樣）</dt><dd>2026-10-22 起：現在成立、而且<b>預估之後</b>的機率和隨便挑一天差 '
-            f'{S.LIST_GAP * 100:g} 個百分點以上的才列，★／◆ 判定不決定列不列（判定只看過去的成績）。四類：<b>偏多</b>＝之後上漲的機率高；'
-            '<b>買點</b>＝大跌後照規則買進、之後 3 個月上漲的機率高；<b>偏弱</b>＝之後 1 個月上漲的機率比隨便挑一天低'
-            '（條件變差：實務上是不加碼、降部位、等一等，不是放空；3 個月、12 個月的「比平常低」之後沒有留下，不列）；'
-            '<b>大跌風險</b>＝之後出現大回撤的機率高。同一個項目同一段（持有 1／3／12 個月）只留差最多的一個，偏多和大跌風險同時有的標「震盪」；'
-            '過去常一起出現的併成一列。原本看別的期間的訊號也用它過去在另外兩段期間的機率算一次（同樣逐年檢查、校正後才列，標「原本看…」）。'
-            f'出現不到 {S.STAR_N} 次的標「次數少」。</dd>'
+            f'<dt>今天有效的訊號（景氣頁今天的重點、溫度計也一樣）</dt><dd>現在成立、出現過 {S.N_MIN} 次以上、而且過去出現之後的機率比隨便挑一天高 '
+            f'{S.THERMO_EDGE * 100:g} 個百分點以上的就列（使用者 2026-10-21 定的寬鬆規則：溫度計是看現在整體偏哪邊），★／◆ 判定不決定列不列。'
+            '三類：<b>偏多</b>＝之後上漲的機率高；<b>買點</b>＝大跌後照規則買進、之後 3 個月上漲的機率高；'
+            '<b>大跌風險</b>＝之後出現大回撤的機率高。上漲機率比平常低的不列：逐年檢查看，這種訊號之後反而比平常容易漲。'
+            '同一個項目同一段（持有 1／3／12 個月）只留差最多的一個，偏多和大跌風險同時有的標「震盪」；過去常一起出現的併成一列。'
+            '原本看別的期間的訊號也用它過去在另外兩段期間的機率算一次（標「原本看…」）。'
+            f'<b>之後也成立</b>＝預估之後（上一段的逐年檢查）仍比隨便挑一天高 {S.LIST_GAP * 100:g} 點以上，排在前面；沒有標的只代表過去的成績。'
+            f'出現不到 {S.STAR_N} 次的標「次數少」。（2026-10-22 白天曾改成只列預估之後仍差 {S.LIST_GAP * 100:g} 點以上的，偏多那一邊幾乎全空，同日改回。）</dd>'
             f'<dt>判定</dt><dd><b>★ 好訊號</b>（2026-10-22 起看絕對成績）：至少 {S.STAR_N} 次、機率 ≥ {S.HIT_MIN["up"] * 100:.0f}%（警示 ≥ {S.HIT_MIN["warn"] * 100:.0f}%）、'
             f'不比隨便挑一天差、近 10 年也成立（近 10 年有 {S.RECENT_N} 次以上時）；偏多與大跌後買點另外要報酬中位數與排除極端的平均都比來回成本高（{cost}）。'
             f'<b>◆ 難得機會</b>：同樣的門檻都過了，但只出現 {S.N_MIN}～{S.STAR_N - 1} 次；不算 ★（次數少的機率，之後通常會往下修不少，只當參考）。'
@@ -795,15 +777,8 @@ CSS = """
 .sgln b{color:var(--ink)}.sgs{color:var(--mut);margin-left:6px}
 .sgnone{font-size:13px;color:var(--ink2);margin:4px 0}
 .sgxs{margin:6px 0 0;padding-top:6px;border-top:1px dashed var(--line2);font-size:12.5px;line-height:1.6}
-.sgfm{flex:1 1 100%;font-size:12px;line-height:1.55;color:var(--mut);padding-left:20px}
 .sgtk{display:inline-block;width:14px;text-align:center;font-weight:700}
 .sgtk-good{color:var(--acc)}.sgtk-rare,.sgtk-ref{color:var(--ink2)}.sgtk-none,.sgtk-few{color:var(--mut)}
-.sgy{font-size:11.5px;padding:0 6px;border-radius:4px;border:1px solid;white-space:nowrap;font-weight:600;line-height:1.5}
-.sgy-up,.sgy-buy{color:var(--t4);border-color:var(--t4)}.sgy-weak,.sgy-risk{color:var(--t3);border-color:var(--t3)}.sgy-weak{border-style:dashed}
-.sgsd{margin:10px 0 2px;font-size:13px;display:flex;align-items:baseline;gap:6px}.sgk h3+.sgsd{margin-top:2px}
-.sgsd b{padding-bottom:1px;border-bottom:3px solid}.sgsd-up b{border-color:var(--t4)}.sgsd-warn b{border-color:var(--t3)}.sgsd .mu{font-size:12px;color:var(--mut)}
-.sgo{font-size:11.5px;padding:0 7px;border-radius:999px;white-space:nowrap;background:var(--line);color:var(--ink)}
-.sgmore summary{cursor:pointer;font-size:12.5px;color:var(--acc);padding:3px 0}
 .sgd{font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--line2);white-space:nowrap}
 .sgd-up{color:var(--t4);border-color:var(--t4)}.sgd-warn{color:var(--t3);border-color:var(--t3)}.sgd-buy{color:var(--p0);border-color:var(--p0)}
 .sgbar{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px}
