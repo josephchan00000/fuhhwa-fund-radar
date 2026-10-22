@@ -17,6 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
+from . import heatpos as HP
 from . import practspec as S
 from . import sigspec as SS
 from . import thermocal as TC
@@ -165,6 +166,22 @@ def evaluate(key: str, cal: list[str], px: np.ndarray, p: np.ndarray, cost: np.n
             "bears": bears(cal, px, r, p, cost, s0, full["wbar"]), "now": float(p[T - 1])}
 
 
+def series(px: np.ndarray, p: np.ndarray, cost: np.ndarray, a: int, wbar: float, idx: list[int]) -> dict:
+    """畫圖用（只呈現）：idx 那幾天收盤的淨值（規則、固定持有；第 a 天＝1）與部位。"""
+    r = daily_ret(px)
+    T = len(px)
+    nav = np.concatenate([[1.0], np.cumprod(1.0 + day_ret(r, p, cost, a, T))])
+    fix = np.concatenate([[1.0], np.cumprod(1.0 + wbar * r[a + 1:T])])
+    j = np.asarray(idx, dtype=np.int64) - a
+    return {"nav": [round(float(x), 4) for x in nav[j]], "fix": [round(float(x), 4) for x in fix[j]],
+            "pos": [round(float(p[i]), 3) for i in idx]}
+
+
+def group_series(cal: list[str], px: np.ndarray, a: int, idx: list[int]) -> dict:
+    """同一個起點的規則共用：取樣的日子與一直持有的淨值。"""
+    return {"d": [cal[i] for i in idx], "bh": [round(float(px[i] / px[a]), 4) for i in idx]}
+
+
 # ── 溫度計規則 ───────────────────────────────────────────────────────────────
 
 def decide(R: dict, g: dict, n: dict) -> float:
@@ -215,9 +232,15 @@ def thermo_market(F: dict, W: dict | None = None) -> dict:
     if s0 is None or T - s0 < 2 * S.BOOT_BLOCK:
         return out
     c = XS.COST[mk]
+    wk = [w for w in weeks if w["t"] >= s0]                # 評估從 s0 收盤開始（第一個決定的週末＝s0 − LAG，不畫）
+    idx = [w["t"] for w in wk]
+    ser = {**group_series(cal, px, s0, idx), "r": {},
+           "rd": {k: {cc: [w["pct"][k][cc] for w in wk] for cc in ("u", "w")} for k in SS.THERMO_H}}
     for k, p in pos.items():
         pp = np.nan_to_num(p, nan=1.0)
         out["rules"][k] = evaluate(f"{k}:{mk}", cal, px, pp, turn_cost(pp, c), s0)
+        ser["r"][k] = series(px, pp, turn_cost(pp, c), s0, out["rules"][k]["full"]["wbar"], idx)
+    out["series"] = ser
     last = weeks[-1]
     out["last"] = {"d": cal[last["t"]], "n": last["n"], "pct": last["pct"], "g": last["g"],
                    "pending": last["t"] + S.LAG >= T,
@@ -304,6 +327,8 @@ def xs_market(mk: str, D: dict | None = None) -> dict:
     out = {"a": cal[a] if a < T else None, "tiers": {str(y): t for y, t in tiers.items()}, "rules": {}, "sel": {}}
     if a >= T - 2 * S.BOOT_BLOCK:
         return out
+    idx = [i for i in HP.week_ends(cal) if i >= a]
+    ser = {**group_series(cal, px, a, idx), "r": {}}
     for name, R in S.STRAT_RULES.items():
         sel = {y: sorted(k for k, t in tiers[y].items() if t in R["tiers"]) for y in years}
         expo, cost, _ = xs_positions(D, sel, a)
@@ -311,6 +336,10 @@ def xs_market(mk: str, D: dict | None = None) -> dict:
         res["empty"] = [y for y in years if not sel[y]]
         out["rules"][name] = res
         out["sel"][name] = {str(y): v for y, v in sel.items()}
+        ser["r"][name] = series(px, expo, cost, a, res["full"]["wbar"], idx)
+    out["series"] = ser
+    C = XT.Ctx(D)
+    out["held"] = {"d": cal[-1], "p": {s["k"]: float(XT.held_pos(C, s)[-1]) for s in xs_specs(mk, D)}}
     return out
 
 

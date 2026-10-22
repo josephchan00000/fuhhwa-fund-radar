@@ -205,7 +205,35 @@ def view() -> dict:
     rmk = [mk for mk in TODAY_MK if mk in CARDS or (OUT_DATA.parent / f"x9or-{mk}.json").exists()]
     return {"rows": rows, "on": on, "today": today, "stk": stk, "asof": asof, "run": R.get("run"), "bases": R.get("bases") or {},
             "last": R.get("last") or {}, "rmk": rmk, "items": {mk: ITEMS[mk] for mk in TODAY_MK if mk in ITEMS},
-            "luck": R.get("luck"), "xs": XSP.results()}
+            "luck": R.get("luck"), "xs": XSP.results(), "pr": practice()}
+
+
+def practice() -> dict:
+    """實測區（practpage；docs/lab_practice_page_plan.md）：研究檔＋今天每種用法該拿幾成（記進前瞻紀錄，只有 CI 寫回）＋前瞻成績。
+    算不出來只印日誌、不擋訊號總覽。→ {"P": SG.pr, "R": 研究檔}。"""
+    from . import practlive as PL
+    from . import practpage as PP
+    from . import practsim as PS
+    from . import xstrat as XT
+    R = PS.load()
+    if not R:
+        return {"P": {"ok": False}, "R": None}
+    live, fw = {}, {}
+    try:
+        data = {mk: XT.data(mk) for mk in PS.S.MARKETS}
+        for mk in PS.S.MARKETS:
+            x = PL.targets(mk, G.NOW.get(mk), R, data[mk])
+            if x:
+                live[mk] = x
+        L = PL.update(live)
+        for mk, lg in (L.get("mk") or {}).items():
+            if mk in data and lg:
+                fw[mk] = PL.forward(lg, data[mk])
+        since = {mk: min(lg) for mk, lg in (L.get("mk") or {}).items() if lg}
+    except Exception as e:                                # noqa: BLE001
+        print(f"[實測] 今天的部位或前瞻紀錄算不出來：{type(e).__name__}: {e}")
+        since = {}
+    return {"P": PP.payload(R, live, fw, since), "R": R}
 
 
 def _pct(v) -> float | None:
@@ -310,6 +338,7 @@ def page_json(V: dict) -> str:
            "hit": {d: round(100 * v) for d, v in S.HIT_MIN.items()}, "eg": round(100 * S.EDGE_GOOD), "er": round(100 * S.EDGE_REF),
            "fwd": fwd_meta(keys), "n10": S.RECENT_N, "nmin": S.N_MIN, "sn": S.STAR_N, "lp": round(100 * S.LUCK_P), "lfn": S.LUCK_FEW_N, "lpf": round(100 * S.LUCK_P_FEW), "ld": S.LUCK_DRAWS, "rh": list(S.RET_H), "pd": list(S.PATH_D), "rhm": list(S.RET_H_M), "rmin": S.RET_N_MIN}
     out["xs"] = XSP.payload(V.get("xs") or {})          # 總經策略（xstratspec；點開的淨值與每一筆在 x9xh.json）
+    out["pr"] = (V.get("pr") or {}).get("P") or {"ok": False}   # 實測區（practpage；每一格的細節在 x9pr-{市場}.json）
     return json.dumps(out, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
 
@@ -713,15 +742,23 @@ PANEL = ('<div class="sgpv" id="sgpv" hidden><div class="sgpb" id="sgpb"></div>'
 
 
 def research_html(V: dict) -> str:
-    """研究細節：原本在景氣頁的四張研究卡（2026-10-19 起搬到這裡，docs/lab_signal_plan.md 第 10 節 Q3），每個市場一個檔、點了才載入。"""
+    """研究細節：最上面是實測區（practpage，2026-10-22，docs/lab_practice_page_plan.md），下面是原本在景氣頁的四張研究卡
+    （2026-10-19 起搬到這裡，docs/lab_signal_plan.md 第 10 節 Q3），每個市場一個檔、點了才載入。"""
+    from . import practpage as PP
     rmk = V.get("rmk") or []
-    if not rmk:
+    P = (V.get("pr") or {}).get("P") or {"ok": False}
+    pr = PP.html(P)
+    if not rmk and not pr:
         return ""
-    chips = "".join(f'<button type="button" class="sgch" data-r="{mk}">{_e(MK_NAMES[mk])}</button>' for mk in rmk)
     names = "、".join(CARD_NAMES[c] for c in CARD_ORDER)
-    return ('<section class="sec" id="research"><h2>研究細節<span class="sub">' + _e(names) + '</span></h2>'
-            f'<div class="sgchips" id="rmk">{chips}</div>'
-            '<div id="rbox"><p class="note">選一個市場，載入那個市場的研究卡。訊號點開之後的「相關研究」也會連到這裡。</p></div></section>')
+    cards = ""
+    if rmk:
+        chips = "".join(f'<button type="button" class="sgch" data-r="{mk}">{_e(MK_NAMES[mk])}</button>' for mk in rmk)
+        cards = ((f'<h3 class="sgrh">各市場的研究卡<span class="sub">{_e(names)}</span></h3>' if pr else "")
+                 + f'<div class="sgchips" id="rmk">{chips}</div>'
+                 '<div id="rbox"><p class="note">選一個市場，載入那個市場的研究卡。訊號點開之後的「相關研究」也會連到這裡。</p></div>')
+    sub = ("實測、" if pr else "") + names
+    return '<section class="sec" id="research"><h2>研究細節<span class="sub">' + _e(sub) + '</span></h2>' + pr + cards + '</section>'
 
 
 def card_json(mk: str, c: dict) -> str:
@@ -747,7 +784,8 @@ def render(V: dict) -> str:
     body = today_html(V) + TABLE + research_html(V) + method_html(V.get("luck"))
     if not V["rows"]:
         body = '<p class="warn">還沒有研究結果（scripts/run_sig.py）。</p>'
-    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("sig")).replace("{{CSS}}", HCSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS + QP.CSS + BP.CSS + CSS)
+    from . import practpage as PP
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("sig")).replace("{{CSS}}", HCSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS + QP.CSS + BP.CSS + CSS + PP.CSS)
             .replace("{{ASOF}}", _e(("資料到 " + asof) if asof else "")).replace("{{BODY}}", body)
             .replace("{{DATA}}", page_json(V)).replace("{{PANEL}}", PANEL).replace("{{JS}}", JS))
 
@@ -756,6 +794,10 @@ def build(out: Path = OUT, data_out: Path = OUT_DATA) -> bool:
     V = view()
     changed = False
     files = [(data_out.parent / f"x9or-{mk}.json", card_json(mk, c)) for mk, c in sorted(CARDS.items())]
+    PR = (V.get("pr") or {}).get("R")
+    if PR:                                                # 實測區每個市場的細節與每週序列（點到那個市場才下載）
+        from . import practpage as PP
+        files += [(data_out.parent / f"x9pr-{mk}.json", PP.market_json(PR, mk)) for mk in S.MARKETS if mk in (PR.get("mk") or {})]
     for path, text in files + [(data_out, detail_json(V)), (out, render(V))]:
         if path.exists() and path.read_text(encoding="utf-8") == text:
             continue
@@ -1627,15 +1669,26 @@ function rel(r){ const c = r[I.cat], x = r[I.x] || {}, mk = r[I.mk], out = [];
 // ── 網址：#i=指標（#s=訊號 也會打開那個指標、選那個訊號），#r=市場:研究卡
 function fromHash(ev){
   const h = location.hash;
-  let m = h.match(/^#r=(\w+)(?::(\w+))?$/);
+  let m = h.match(/^#p=(\w+):(\w+)$/);                                     // 實測區的一格（practpage）
+  if (m) { closeP(true); prOpen(m[1], m[2], true); return; }
+  m = h.match(/^#r=(\w+)(?::(\w+))?$/);
   if (m) { closeP(true); loadR(m[1], m[2]); const sec = document.getElementById('research'); if (sec && !m[2]) sec.scrollIntoView({block: 'start'}); return; }
   m = h.match(/^#i=([^&]+)$/);
   if (m) { const x = BYK[decodeURIComponent(m[1])]; if (x) { if (ev) PUSHED = true; if (CUR !== x) openInd(x, null, false); return; } }
   m = h.match(/^#s=(.+)$/);
   if (m) { const id = decodeURIComponent(m[1]), x = SIG2[id]; if (x) { if (ev) PUSHED = true; openInd(x, id, false); return; } }
   closeP(true); }
+/*@@PRACTICE@@*/
 window.addEventListener('hashchange', fromHash);
 draw(); fromHash();
 })();
 """
 JS = JS.replace("/*@@XSPANEL@@*/", XSP.PANEL_JS)
+
+
+def _practice_js() -> str:
+    from . import practpage as PP
+    return PP.JS
+
+
+JS = JS.replace("/*@@PRACTICE@@*/", _practice_js())
