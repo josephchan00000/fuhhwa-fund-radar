@@ -689,6 +689,9 @@ def today_html(V: dict) -> str:
            "每個訊號三支溫度計都算：原本看別的期間的訊號（例：原本看 3 個月），也用它過去之後 1 個月、12 個月的機率各算一次，"
            "只算 △（標「原本看 3 個月」）。"
            "過去常一起出現的訊號算同一件事，併成一列（「同時成立」）。"
+           "每一列寫出照規則的那一筆：事件型＝出現隔天收盤進場、持有到哪一天；狀態型＝今天看到、下一個交易日收盤進場、持有到哪一天"
+           "（過去的機率與報酬都是這樣算的；事件出現幾天之後才進場不是這筆成績）。同一個項目之後出現相反的讀數"
+           "（例：RSI 進入過熱之後又變過冷），舊的事件就不算現在成立。"
            "偏多＝之後收盤比現在高；警示＝之後出現一段大回撤（期間最高到之後最低，先漲再跌也算）；"
            "警示類過去的事後驗證比偏多弱，只當提醒。同一個項目兩邊都是 ★ 的標「震盪」。"
            "標「策略」的是總經策略（照原作者的規則買賣指數、成績判定為 ★ 好策略），現在照規則有動作才列；溫度計不算策略。"
@@ -720,7 +723,8 @@ def sig_items(B: dict, V: dict) -> dict:
                       "band": S.band(it["heat"]) if it["heat"] is not None else None,
                       "pos": HP.pos_line(k, pos) if pos else "",
                       "dv": HP.acc_label(k, dv) if dv and k in HP.DLABEL else "",
-                      "why": "用美國 VIX 的排名代替，不算進分數" if it["proxy"] else (it["why"] or ""),
+                      "why": (HP.stale_txt(it["stale"]) if it.get("stale") else
+                              "用美國 VIX 的排名代替，不算進分數" if it["proxy"] else (it["why"] or "")),
                       "u": S.IND[S.KEYS.index(k)][3], "dec": HP.DEC.get(k, 2), "hot": it["hot"], "sp": sp(B["heat"][k])}
     out.update((V.get("signow") or {}).get("cv") or {})      # 大跌風險項目（景氣頁沒有這幾項，sigcat.crash_now）
     return out
@@ -1524,7 +1528,9 @@ def item_tpl(it: dict, d: str, L: dict, V: dict) -> str:
     share = "" if it["share"] is None else f'佔{_e(dname)} {it["share"]:.0f}%'
     wk = "" if h is None or it["ago"] is None else f'・上週 {HP.n0(it["ago"])}'
     why = ""
-    if it["proxy"]:
+    if it.get("stale"):
+        why = f'<p class="warn">{_e(HP.stale_txt(it["stale"]))}。</p>'
+    elif it["proxy"]:
         why = '<p class="warn">用美國 VIX 的排名代替，不算進分數。</p>'
     elif it["why"]:
         why = f'<p class="warn">{_e(it["why"])}</p>'

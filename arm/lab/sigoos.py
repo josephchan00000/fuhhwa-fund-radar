@@ -91,7 +91,7 @@ def prep(sd: dict) -> dict:
     gap = 1 if sd.get("monthly") else S.EP_GAP
     st = np.asarray(sd["state"], dtype=bool)
     epid = np.full(len(samp), -1, dtype=np.int64)
-    for j, ep in enumerate(G.episodes(np.nonzero(st)[0].tolist(), gap)):
+    for j, ep in enumerate(G.episodes(np.nonzero(st)[0].tolist(), gap, sd.get("brk"))):
         epid[ep] = j
     return {"st": st, "epid": epid}
 
@@ -112,8 +112,9 @@ def train(sd: dict, c: int, r0: int, Yu: np.ndarray, Yw: np.ndarray, ra: dict) -
     else:
         gap = 1 if sd.get("monthly") else S.EP_GAP
         st = np.asarray(sd["state"], dtype=bool)[m]
-        R = G.st_stat(st, ts, Yu, Yw, gap, r0)
-        groups = [ts[ep] for ep in G.episodes(np.nonzero(st)[0].tolist(), gap)]
+        brk = None if sd.get("brk") is None else np.asarray(sd["brk"], dtype=bool)[m]
+        R = G.st_stat(st, ts, Yu, Yw, gap, r0, brk=brk)
+        groups = [ts[ep] for ep in G.episodes(np.nonzero(st)[0].tolist(), gap, brk)]
     cell = G.ret_stats(groups, ra)["s"][0] if groups else None
     rb = ra["R"][H][ts]
     rb = rb[np.isfinite(rb)]

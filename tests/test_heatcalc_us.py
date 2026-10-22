@@ -87,7 +87,7 @@ def built():
 
 def test_build_all_indices_and_spec_restored(built):
     D, SH, BS = built
-    assert S.MARKET == "tw" and S.VER == 9                                    # 算完換回台股規格
+    assert S.MARKET == "tw" and S.VER == 10                                    # 算完換回台股規格
     for idx, B in BS.items():
         keys = U.keys_for(idx)
         assert B["idx"] == idx and set(B["comp"]) == set(U.DIMS)

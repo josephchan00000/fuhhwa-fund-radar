@@ -15,6 +15,16 @@
   · 美國資料當天收盤就用（台股頁的「美國資料晚一天」不適用）；有效聯邦基金利率隔天才公布，晚一天。
 資料來源由 CI 探針四輪確認（規劃文件第 14 節）：芝加哥聯準銀行兩個指數停更、FINRA 融資 403，都不收。
 
+VER 2（2026-10-22，docs/lab_audit_plan.md 第 3.1、6 節；資料與訊號盤查）：美國政府停擺，勞工統計局沒有公布 2025-10 的失業率、CPI、
+核心 CPI。「失業率離 12 個月低點」（F5）要連續 15 個月都有資料，所以從 2025-10 起每個月都算不出來，一直沿用 2025-09 的值（28 分）；
+CAPE（X6、X7，泡沫面向，景氣頁不顯示）要 10 年的 CPI，2026-04 起也算不出來。改兩件事（同台股頁 heatspec VER 10），其他都不變：
+  ①勞工統計局的月資料（us_bls 三欄）連續缺 ≤ GAP_FILL_MAX 個月時用前後兩個月內插：失業率用算術內插（只缺一個月＝前後兩個月平均），
+    CPI、核心 CPI 用幾何內插（同泡沫頁 bubble.fill_cpi）。只補「前後都有值」的缺口。
+  ②月資料過期 STALE_M（同台股頁）：應該已經拿得到卻還沒有的期數 ≥ STALE_M（季資料一期＝3 個月）＝資料過期，景氣頁標示、
+    訊號總覽這一項的訊號不算現在成立；面向分數與歷史不改。
+  寫這一版之前已經看過的：補上 2025-10 之後 F5 今天 28 → 59 分、基本面 65.0 → 68.3、泡沫面向 75.4 → 78.5（規劃第 3.1 節）；
+  沒有看過補缺月之後任何驗證結果。
+
 和台股頁共用、而且被當成函式預設參數的統計常數（重抽次數、種子、信賴水準、t＋1 起算、均線天數、
 第六版的變體與模型設定）直接從 heatspec 匯入，保證兩邊一樣（tests 守）。
 """
@@ -36,9 +46,10 @@ from .heatspec import (BANDS, BH_Q, BOOT_N, BOOT_SEED, CH_DAILY, CH_DEFAULT_RANG
 from .heatspec import (BUB_BLOCK, BUB_BOOT, BUB_DD, BUB_EPI_GAP, BUB_EPI_MIN, BUB_HOT, BUB_MIN_HOT,  # noqa: F401
                        BUB_SEED, BUB_VERDICT, LPPLS, PSY, TREND, RUNUP_DAYS, ACC_DAYS)
 from .heatspec import band  # noqa: F401
+from .heatspec import GAP_FILL_MAX, STALE_M  # noqa: F401  （VER 2：補缺月、資料過期，兩邊同一份）
 
-VER = 1
-SPEC_DATE = "2026-10-18"
+VER = 2
+SPEC_DATE = "2026-10-22"
 MARKET = "us"
 
 # ── 四個指數（使用者選定：一頁切換、那斯達克兩個都做） ─────────────────────────

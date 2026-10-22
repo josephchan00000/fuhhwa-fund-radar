@@ -327,6 +327,7 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
                 "first": (rd.get("first") or {}).get(k), "ev": (rd.get("items") or {}).get(k) or {},
                 "pos": HP.position(B, k, t) if T else None,
                 "dv": dvn.get(k),
+                "stale": (B.get("stale") or {}).get(k),      # VER 10：資料過期（應該已經有的月份還沒有）
             })
         comp = B["comp"][dim]
         sc = comp[t] if T else None
@@ -501,6 +502,12 @@ def _verdict_line(L: dict) -> str:
     return f'<p class="vd">過去關係（只當參考，不拿來刪項目）：{"、".join(vs)}。</p>'
 
 
+def stale_txt(st: dict) -> str:
+    """資料過期（heatspec VER 10）的一句話。"""
+    return (f'資料停在 {st["last"]}（照公布時程應該已經有到 {st["due"][-1]}）；這一項的訊號暫停，'
+            f'分數照舊用最後一個值')
+
+
 def _items(L: dict) -> str:
     out = ['<div class="ith"><span>項目</span><span>0～100</span><span>拉動分數</span><span>佔比</span><span>本週</span></div>']
     have = sorted((it for it in L["items"] if it["pull"] is not None), key=lambda x: -abs(x["pull"]))
@@ -510,7 +517,9 @@ def _items(L: dict) -> str:
         sh = "—" if it["share"] is None else f'{it["share"]:.0f}%'
         dp = _sgn(it["dpull"])
         tag = ""
-        if it["proxy"]:
+        if it.get("stale"):
+            tag = f'<em class="px">{_e(stale_txt(it["stale"]))}</em>'
+        elif it["proxy"]:
             tag = '<em class="px">用美國 VIX 的排名代替，不算進分數</em>'
         elif it["why"]:
             tag = f'<em class="px">{_e(it["why"])}</em>'

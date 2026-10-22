@@ -70,6 +70,8 @@ class Shift:
         else:
             self.st = np.asarray(sd["state"], dtype=bool)
             self.gap = 1 if sd.get("monthly") else S.EP_GAP
+            b = sd.get("brk")                              # VER 20：相反的極端跟著狀態一起平移
+            self.brk = None if b is None else np.asarray(b, dtype=bool)
 
     def occ(self, o: int = 0) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         empty = (np.zeros(0, dtype=np.int64), np.zeros(0), np.zeros(0))
@@ -93,7 +95,12 @@ class Shift:
         pos = np.nonzero(st)[0]
         if not len(pos):
             return empty
-        starts = np.concatenate([[0], np.nonzero(np.diff(pos) - 1 >= self.gap)[0] + 1]).astype(np.int64)
+        cut = np.diff(pos) - 1 >= self.gap
+        if self.brk is not None:                           # 中斷的樣本裡有相反的極端＝新的一段（同 sigcat.episodes）
+            br = np.roll(self.brk, o) if o else self.brk
+            cb = np.concatenate([[0], np.cumsum(br.astype(np.int64))])
+            cut = cut | (cb[pos[1:]] - cb[pos[:-1] + 1] > 0)
+        starts = np.concatenate([[0], np.nonzero(cut)[0] + 1]).astype(np.int64)
         v = self.valid[pos]
         cnt = np.add.reduceat(v.astype(np.int64), starts)
         su = np.add.reduceat(np.where(v, self.yu[pos], 0.0), starts)
