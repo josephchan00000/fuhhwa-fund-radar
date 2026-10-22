@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-10-22 16:07",
+  "as_of": "2026-10-22 17:14",
   "funds": [
     {
       "id": "47",
@@ -117,8 +117,8 @@
       "group": "global_balanced",
       "category": "跨國投資平衡型",
       "region": "大中華地區",
-      "nav": 15.56,
-      "nav_date": "2026/10/20",
+      "nav": 15.87,
+      "nav_date": "2026/10/21",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -139,8 +139,8 @@
       "group": "global_fof",
       "category": "組合型",
       "region": "全球",
-      "nav": 26.48,
-      "nav_date": "2026/10/20",
+      "nav": 26.62,
+      "nav_date": "2026/10/21",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -150,8 +150,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 123.21,
-      "nav_date": "2026/10/21",
+      "nav": 119.16,
+      "nav_date": "2026/10/22",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -183,8 +183,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 436.55,
-      "nav_date": "2026/10/21",
+      "nav": 423.15,
+      "nav_date": "2026/10/22",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -227,8 +227,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 18.38,
-      "nav_date": "2026/10/21",
+      "nav": 18.07,
+      "nav_date": "2026/10/22",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -238,8 +238,8 @@
       "group": "tw_equity",
       "category": "國內股票型",
       "region": "台灣",
-      "nav": 16.11,
-      "nav_date": "2026/10/21",
+      "nav": 15.83,
+      "nav_date": "2026/10/22",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -304,8 +304,8 @@
       "group": "global_equity",
       "category": "跨國投資指數型",
       "region": "全球",
-      "nav": 27.35,
-      "nav_date": "2026/10/20",
+      "nav": 27.43,
+      "nav_date": "2026/10/21",
       "as_of": "2026/09/30",
       "n_top": 10
     },
@@ -337,8 +337,8 @@
       "group": "tw_equity",
       "category": "國內投資指數型",
       "region": "台灣",
-      "nav": 10.04,
-      "nav_date": "2026/10/21",
+      "nav": 9.86,
+      "nav_date": "2026/10/22",
       "as_of": null,
       "n_top": 10
     }
