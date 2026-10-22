@@ -187,7 +187,8 @@ def test_heat_pages_stash_cards_and_list_today(monkeypatch):
     from arm.lab import heatviz as VZ
     monkeypatch.setattr(sigpage, "CARDS", {})
     VZ.stash_cards({"mk": "spx", "asof": "2026-10-16"})
-    assert sigpage.CARDS == {"spx": {"d": "2026-10-16", "crash": "", "bottom": "", "hotdd": "", "hotch": ""}}
+    assert sigpage.CARDS == {"spx": {"d": "2026-10-16", "crash": "", "bottom": "", "hotdd": "", "hotch": "",
+                                     "find": {"mk": "spx", "d": "2026-10-16"}}}       # 研究結論（findings）：沒有狀態就只有市場與日期
     VZ.stash_cards({"mk": None, "asof": "2026-10-16"})                     # 不知道哪個市場就不存
     assert list(sigpage.CARDS) == ["spx"]
     assert "還沒產生" in VZ.today_html({"sigtoday": None})

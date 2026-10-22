@@ -740,7 +740,7 @@ def today_html(V: dict) -> str:
             f'<details class="tzx"><summary>怎麼看</summary><p>{_e(tz_how())}</p></details>'
             f'{today_core(T, T.get("mk") or V.get("mk"), T.get("d"))}{out_btn()}{strat}'
             + (f'<p class="tzm">{V["xsl"]}</p>' if V.get("xsl") else "")
-            + '<p class="tzm"><a href="x9o.html">全部訊號、研究細節（訊號總覽）→</a></p></section>')
+            + '<p class="tzm"><a href="x9o.html">全部訊號、研究結論（訊號總覽）→</a></p></section>')
 
 
 def sig_items(B: dict, V: dict) -> dict:
@@ -784,6 +784,11 @@ def stash_cards(V: dict) -> None:
         SPG.ITEMS[mk] = V["sigitems"]
     SPG.CARDS[mk] = {"d": V["asof"], "crash": CP.card(V.get("crash")), "bottom": BP.card(V.get("bottom")),
                      "hotdd": XP.card(V.get("hotdd"), note=QP.hotdd_note(V.get("hotch")) if hotch else None), "hotch": hotch}
+    try:                                            # 研究結論（findings，docs/lab_research_v2_plan.md）：七則問答要的「現在」
+        from . import findings as FD
+        SPG.CARDS[mk]["find"] = FD.compute(V)
+    except Exception as e:                          # noqa: BLE001 —— 算不出來只少了研究結論，不擋研究卡
+        print(f"[研究結論] {mk} 算不出來：{type(e).__name__}: {e}", flush=True)
 
 
 # ── 情境（sigspec VER 4 第 4.10 節；docs/lab_heatviz_v2_plan.md 第 5、11 節）──────────────────────────────────

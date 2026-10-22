@@ -110,26 +110,28 @@ def _fake_R():
     return {"ver": 1, "run": "x", "mk": mk_out, "page": P.page_check(mk_out)}
 
 
-def test_payload_grid_and_html():
+def test_payload_and_fold_html():
+    """完整研究表裡的實測（2026-10-22 改版）：選做法的按鈕＋細節的位置；原本的判定總表、前瞻紀錄格子、內部術語都拿掉。"""
     R = _fake_R()
     Pl = PP.payload(R)
     assert Pl["ok"] and [r["k"] for r in Pl["rules"]] == list(S.RULES)
     h = PP.html(Pl)
-    assert h.count('class="prc prv') == len(S.RULES) * len(S.MARKETS)
-    assert h.count('<tr class="prgh">') == 2 and 'id="prd"' in h and 'id="prfw"' in h
-    for k in S.PAGE_RULES:
-        assert f'data-r="{k}"' in h
+    assert h.count('class="prpk"') == len(S.RULES) and 'id="prd"' in h and 'id="prfw"' not in h and 'class="prc' not in h
     txt = re.sub(r"<[^>]+>", "", h)
-    for w in BANNED:
+    for w in BANNED + ("候選", "門檻", "夏普", "固定持有", "practspec", "VER"):
         assert w not in txt, w
+    assert "起每天記下" not in txt
+    assert "台股 2026/10/22、美股 2026/10/21 起每天記下" in re.sub(r"<[^>]+>", "", PP.html(PP.payload(R, {}, {}, {"tw": "2026-10-22", "spx": "2026-10-21"})))
     J = json.loads(PP.market_json(R, "tw"))
     assert set(J["det"]) == set(S.RULES) and J["det"]["A1"]["y"][0] == ["2001", 10.0, 8.0, 12.0]
+    for k in ("固定", "報酬 ÷ 波動", "候選"):
+        assert k not in PP.JS, k                                # 細節也不再和「每天固定拿一樣多」比
 
 
 def test_css_and_js_are_prefixed_and_do_not_collide():
     classes = set(re.findall(r"\.([a-zA-Z][\w-]*)", PP.CSS))
-    shared = {"note", "sub", "on", "ng", "mu", "lb", "vl", "cp", "lk", "cap", "gl", "bz", "lr", "lf", "lb2", "ar", "hv", "hit", "l", "lbx",
-              "r", "f", "b", "z", "prs", "prl"}
+    shared = {"note", "sub", "on", "ng", "mu", "lb", "vl", "cp", "lk", "cap", "gl", "bz", "lr", "lb2", "ar", "hv", "hit", "l", "lbx",
+              "r", "b", "z"}
     assert all(c.startswith("pr") or c in shared for c in classes), sorted(c for c in classes if not c.startswith("pr") and c not in shared)
     fn_pr = set(re.findall(r"function (\w+)\(", PP.JS))
     assert fn_pr and all(f.startswith("pr") for f in fn_pr)
@@ -140,11 +142,16 @@ def test_css_and_js_are_prefixed_and_do_not_collide():
     assert SP.JS.index(PP.JS) < SP.JS.index("draw(); fromHash();")      # 插在初始化之前（否則 #p= 直連會碰到還沒初始化的 const）
 
 
-def test_research_section_has_practice_block():
+def test_research_section_has_practice_in_fold():
+    """實測的細節收在研究結論最下面的「完整研究表」；研究結論第 1 則在上面。"""
     R = _fake_R()
+    d = ["2006-01-06", "2016-01-08", "2026-01-09"]
+    R["mk"]["tw"]["t_series"] = {"d": d, "bh": [1.0, 2.0, 4.0], "r": {"A1": {"nav": [1.0, 1.5, 2.5], "pos": [1, 0.5, 1], "fix": [1, 1, 1]}}}
+    R["mk"]["tw"]["x_series"] = {"d": d, "bh": [1.0, 2.0, 4.0], "r": {"M2": {"nav": [1.0, 1.4, 2.0], "pos": [0.4, 0.4, 0.4]}}}
     V = {"rmk": ["tw"], "pr": {"P": PP.payload(R), "R": R}}
     h = SP.research_html(V)
-    assert h.index('id="pr"') < h.index('id="rmk"') and "各市場的研究卡" in h
+    assert h.index('id="rf-money"') < h.index('id="rfull"') < h.index('id="pr"') < h.index('id="rbox"')
+    assert "250 萬" in h and "400 萬" in h and "不能" in h
     assert SP.research_html({"rmk": [], "pr": {"P": {"ok": False}}}) == ""
 
 
@@ -156,18 +163,3 @@ def test_workflows_commit_practice_files():
         s = (root / f).read_text(encoding="utf-8")
         assert s.count("git add -f dashboard/x9pr-*.json 2>/dev/null || true") == 2, f
         assert "git add -f data/lab " in s, f
-
-
-def test_forward_block_first_day_and_later():
-    """前瞻紀錄：第一天只有部位＋說明；之後有報酬與「累積中」；開始日台股、美股分開寫。"""
-    R = _fake_R()
-    live = {"tw": {"d": "2026-10-22", "xd": "2026-10-22", "t": {"A1": 0.5, "M2": 0.22}},
-            "spx": {"d": "2026-10-21", "xd": "2026-10-21", "t": {"A1": 1.0, "M2": 0.4}}}
-    since = {"tw": "2026-10-22", "spx": "2026-10-21"}
-    h = PP._forward(PP.payload(R, live, {"tw": {"M2": {"a": "2026-10-22", "z": "2026-10-22", "n": 0, "now": 0.22, "ok": False}}}, since))
-    assert "台股 2026/10/22、美股 2026/10/21 開始記" in h and "開始記的第一天" in h
-    assert '<b><span class="prfx">拿 </span>22%</b>' in h and '<b><span class="prfx">拿 </span>100%</b>' in h
-    fw = {"tw": {"M2": {"a": "2026-10-22", "z": "2026-12-01", "n": 27, "now": 0.3, "ok": False, "ret": 0.012, "fix": 0.008, "bh": 0.02, "w": 0.3}}}
-    h2 = PP._forward(PP.payload(R, live, fw, since))
-    assert "開始記的第一天" not in h2 and "照做 +1.2%" in h2 and "累積中・27 天" in h2 and "拿 </span>30%" in h2
-    assert "還沒有紀錄" in PP._forward(PP.payload(R, {}, {}, {}))
