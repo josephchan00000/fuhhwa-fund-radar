@@ -124,7 +124,8 @@ def test_board_lists_only_good_strategies_with_actions():
             r = R[mk][it["id"].split(":")[2]]
             assert r["tier"] == "good" and P.side(r) == it["side"]
             li = P.board_li(it)
-            assert 'href="x9x.html#i=xs:' in li and ">策略<" in li               # 點了到大神策略頁（docs/lab_nav_plan.md）
+            _, mk_, k_ = it["id"].split(":")
+            assert f'href="x9.html#v=mac&amp;m={mk_}&amp;x={k_}"' in li and ">策略<" in li   # 點了到策略頁・總經策略那一條（docs/lab_strategy_ia_plan.md）
     fake = {"tw": {"rsi2": {**R["tw"]["rsi2"], "tier": "ref"}}}
     assert P.board("tw", fake) == []                              # ● 不列
 
@@ -133,7 +134,7 @@ def test_chip_every_market():
     R = X.run_all()
     for mk in S.MARKETS:
         c = P.chip(mk, R)
-        assert "10 個月均線" in c and f"x9x.html#i=xs:{mk}:faber" in c
+        assert "10 個月均線" in c and f"x9.html#v=mac&amp;m={mk}&amp;x=faber" in c
         assert re.search(r"<i>(持有|空手|要買回|要賣出)</i>", c)
     assert P.chip("tw", {}) == ""
 
@@ -144,7 +145,7 @@ def test_mr_chip_only_taiwan_and_flags_below_level():
     R = X.run_all()
     c = P.mr_chip("tw", R)
     n = R["tw"]["mmr"]["now"]
-    assert f'{n["mr"]:.1f}%' in c and "x9x.html#i=xs:tw:mmr" in c and "融資維持率" in c
+    assert f'{n["mr"]:.1f}%' in c and "x9.html#v=mac&amp;m=tw&amp;x=mmr" in c and "融資維持率" in c
     assert ("stc stx" in c) == (n["mr"] < S.BY_KEY["mmr"]["p"]["level"]) and "。。" not in c
     assert not any(w in c for w in BANNED)
     for mk in ("spx", "ixic", "ndx", "sox"):
@@ -160,9 +161,9 @@ def test_pages_wire_strategies():
     from arm.lab import heatpage as HP
     from arm.lab import heatviz as VZ
     from arm.lab import sigpage as SP
-    assert SP.IND_CATS["xs"] == "大神策略"
+    assert SP.IND_CATS["xs"] == "總經策略"
     for f in ("function xsPanel", "function xsFill", "function xsLoad", "function xsEq", "function xsTr", "function xsCsv"):
-        assert f in P.PANEL_JS and f in SP.JS, f                             # 面板共用（大神策略頁、訊號總覽）
+        assert f in P.PANEL_JS and f in SP.JS, f                             # 訊號總覽的面板（xstratpage.PANEL_JS）
     assert "function xsOpen" in SP.JS and "x.cat === 'xs'" in SP.JS and "@@XSPANEL" not in SP.JS
     assert "fetch('x9xh.json')" in P.PANEL_JS and "OCC" not in P.PANEL_JS and "SG." not in P.PANEL_JS
     assert ".xsg{" in SP.CSS and ".xsseg" in SP.CSS
@@ -171,7 +172,7 @@ def test_pages_wire_strategies():
     pj = json.loads(SP.page_json(V).replace("<\\/", "</"))
     assert set(pj["xs"]["m"]) == set(S.MARKETS) and pj["xs"]["tm"] == S.TIER_MARK and set(pj["xs"]["mkn"]) == set(S.MARKETS)
     dj = json.loads(SP.detail_json(V))
-    assert "xs" not in dj                                                    # 淨值與每一筆搬到 x9xh.json（大神策略頁寫）
+    assert "xs" not in dj                                                    # 淨值與每一筆在 x9xh.json（xspage 寫）
     assert len(P.detail(R)) == sum(len(v) for v in R.values())
     # 景氣頁：今天的重點的策略列、最上面那一行的 10 個月均線
     T = {"up": [], "warn": [], "d": "2026-10-19", "thermo": []}
@@ -184,6 +185,6 @@ def test_pages_wire_strategies():
         h = VZ.today_html({"sigtoday": T, "xsb": [item]})
     finally:
         HV.thermo_html = orig
-    assert "xs:spx:rsi2" in h and "1 個策略" in h and "tzs" in h
+    assert "x9.html#v=mac&amp;m=spx&amp;x=rsi2" in h and "1 個策略" in h and "tzs" in h
     sl = HP.state_line({"dims": {}, "xschip": P.chip("spx", R), "mk": "spx"})
     assert "10 個月均線" in sl

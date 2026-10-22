@@ -30,14 +30,14 @@ TODAY_MK = ("tw", "spx", "ixic", "ndx", "sox")
 H_TXT = {20: "1 個月", 60: "3 個月", 250: "12 個月"}
 # 依指標整理（docs/lab_sigview_plan.md）：指標的類別、走勢圖的資料檔（景氣頁對照圖同一份）、指數名稱
 IND_CATS = {"heat": "景氣項目", "dim": "景氣面向", "scen": "情境", "inst": "法人買賣超", "crash": "大跌風險", "tech": "技術事件", "bub": "泡沫", "ind": "產業泡沫",
-            "buy": "大跌後買點", "xs": "大神策略", "stock": "個股訊號", "strat": "個股策略"}
+            "buy": "大跌後買點", "xs": "總經策略", "stock": "個股訊號", "strat": "個股策略"}
 # 篩選用的分類（2026-10-21 起，docs/lab_nav_plan.md 第 2.2 節）：第一層照景氣頁的面向分（景氣頁看到哪個面向熱，就點哪一類），
 # 籌碼、技術、策略再分第二層。IND_CATS（資料從哪裡來）照留，搜尋時用得到。
 FACETS = {"fund": "基本面", "chip": "籌碼", "liq": "資金", "tech": "技術", "scen": "情境", "bub": "泡沫", "buy": "大跌後買點",
           "strat": "策略", "stock": "個股訊號"}
 SUBS = {"chip": {"margin": "融資・期貨・選擇權", "inst": "法人買賣超", "dim": "面向分數"},
         "tech": {"ind": "指標", "ev": "價位事件", "dim": "面向分數"},
-        "strat": {"short": "大神・短線", "bottom": "大神・落底", "season": "大神・季節性", "risk": "大神・風險控制", "stk": "個股策略"}}
+        "strat": {"short": "總經・短線", "bottom": "總經・落底", "season": "總經・季節性", "risk": "總經・風險控制", "stk": "個股策略"}}
 FACE_OF = {"fund": "fund", "chip": "chip", "sent": "chip", "gliq": "liq", "tliq": "liq", "liq": "liq", "tech": "tech"}
 CHART = {"tw": "x9mh.json", "spx": "x9muh-spx.json", "ixic": "x9muh-ixic.json", "ndx": "x9muh-ndx.json", "sox": "x9muh-sox.json"}
 PX_NAMES = {"tw": "加權指數", "spx": "S&P 500", "ixic": "那斯達克", "ndx": "那斯達克 100", "sox": "費半"}
@@ -261,7 +261,7 @@ def page_json(V: dict) -> str:
            "scnv": scen_values(V.get("items") or {}), "scdn": S.SCEN_DIM_NAMES,
            "hit": {d: round(100 * v) for d, v in S.HIT_MIN.items()}, "eg": round(100 * S.EDGE_GOOD), "er": round(100 * S.EDGE_REF),
            "n10": S.RECENT_N, "nmin": S.N_MIN, "lp": round(100 * S.LUCK_P), "lfn": S.LUCK_FEW_N, "lpf": round(100 * S.LUCK_P_FEW), "ld": S.LUCK_DRAWS, "rh": list(S.RET_H), "pd": list(S.PATH_D), "rhm": list(S.RET_H_M), "rmin": S.RET_N_MIN}
-    out["xs"] = XSP.payload(V.get("xs") or {})          # 大神策略（xstratspec；點開的淨值與每一筆在 x9xh.json）
+    out["xs"] = XSP.payload(V.get("xs") or {})          # 總經策略（xstratspec；點開的淨值與每一筆在 x9xh.json）
     return json.dumps(out, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
 
@@ -300,7 +300,7 @@ def ret_json(V: dict) -> tuple[dict, dict]:
 
 
 def detail_json(V: dict) -> str:
-    """每一次的清單（點開才下載）＋個股代號的名稱＋訊號觸發後的報酬（VER 5）。大神策略的淨值與每一筆在 x9xh.json（xspage）。"""
+    """每一次的清單（點開才下載）＋個股代號的名稱＋訊號觸發後的報酬（VER 5）。總經策略的淨值與每一筆在 x9xh.json（xspage）。"""
     from . import store
     occ = {r["id"]: r.get("occ") or [] for r in V["rows"]}
     ret, rb = ret_json(V)
@@ -376,7 +376,7 @@ def today_html(V: dict) -> str:
             continue
         items = T["good"]
         head = f'<h3>{_e(MK_NAMES[mk])}<span class="sub">資料到 {_e(_d(V["asof"].get(mk)))}</span></h3>'
-        xl = XSP.today_line(mk, V["xs"]) if V.get("xs") else ""          # 大神策略縮成一行，連到大神策略頁
+        xl = XSP.today_line(mk, V["xs"]) if V.get("xs") else ""          # 總經策略縮成一行，連到策略頁
         xl = f'<p class="sgxs">{xl}</p>' if xl else ""
         if not items:
             body = '<p class="sgnone">今天沒有好訊號出現。</p>'
@@ -409,9 +409,9 @@ def today_html(V: dict) -> str:
                    f'<span class="sgln">{ln}</span></a></li>')
     stk_body = ('<ul class="sgl">' + "".join(lis) + "</ul>") if lis else '<p class="sgnone">目前沒有判定為好策略的個股策略。</p>'
     cards.append(f'<div class="sgk"><h3>個股<span class="sub">資料到 {_e(_d(V["asof"].get("stk")))}</span></h3>{stk_body}'
-                 '<p class="note">策略現在持有什麼、下一批什麼時候買，看<a href="x9.html">個股頁</a>機會分頁。</p></div>')
+                 '<p class="note">策略現在持有什麼、下一批什麼時候買，看<a href="x9.html#v=opp">策略頁的個股策略</a>。</p></div>')
     return ('<section class="sec" id="today"><h2>今天有效的好訊號<span class="sub">同一個項目只列一種；過去常一起出現的併成一列；依「比隨便挑一天多幾個百分點」排序；'
-            '點一列看那個指標；大神策略每個市場一行，點了到大神策略頁</span></h2>'
+            '點一列看那個指標；總經策略每個市場一行，點了到策略頁</span></h2>'
             f'<div class="sgt">{"".join(cards)}</div></section>')
 
 
@@ -452,7 +452,7 @@ def method_html(luck: dict | None = None) -> str:
             f'<b>○</b>：沒有過門檻。<b>—</b>：不到 {S.N_MIN} 次，照列數字但不判定。'
             '警示類過去的事後驗證比偏多弱（用 2016 年以前選出來的警示，2016 年以後多數沒有比平常準），只當提醒。</dd>'
             '<dt>看多久</dt><dd>技術面與技術事件 1 個月；籌碼、資金、大跌風險、面向事件、邊際變化 3 個月；基本面與泡沫 12 個月。</dd>'
-            f'<dt>大神策略</dt><dd>照原作者的規則與參數（RSI(2)、VIX 衝刺、月底月初；Coppock 曲線、VIX 衝上 40、Zweig 寬度衝刺、跟進日、季線乖離 −15%；'
+            f'<dt>總經策略</dt><dd>照原作者的規則與參數（RSI(2)、VIX 衝刺、月底月初；Coppock 曲線、VIX 衝上 40、Zweig 寬度衝刺、跟進日、季線乖離 −15%；'
             f'Halloween、10 個月均線、200 日均線、12 個月動能）'
             f'在指數上做一遍，看交易成績（使用者 2026-10-20 選定：成績過關就算，打亂測試只標示）。交易型＝至少 {XS.TR_N_MIN} 筆、'
             f'勝率 ≥ {XS.TR_WIN * 100:.0f}%、比「隨便挑一天、抱一樣多天」高 {XS.TR_EDGE * 100:.0f} 個百分點以上、扣成本後平均每筆賺錢；'
@@ -465,12 +465,12 @@ def method_html(luck: dict | None = None) -> str:
             '台股 RSI(2) 例外：用台指期在訊號當天收盤前買賣（現貨 13:30 收盤、台指期 13:45 收盤），頁面每天寫下一個交易日的買進、出場價位，'
             '隔天收盤另列參考。台股 RSI(2)、月底月初用台指期的成本（使用者 2026-10-21 選定）。'
             f'規格 arm/lab/xstratspec.py（VER {XS.VER}），在算正式成績之前寫定。'
-            '全部策略現在的狀態、每一條的細節在<a href="x9x.html">大神策略頁</a>。</dd></dl>'
+            '全部策略現在的狀態、每一條的細節在<a href="x9.html#v=mac">策略頁的總經策略</a>。</dd></dl>'
             '<p><b>個股訊號</b>：同一檔 5 個交易日內重複只算一次，隔天開盤買、持有 20 個交易日，扣來回成本後賺錢算中；'
             '隨便挑一天＝同一段期間加權指數上漲的比例（資料從 2026 年 7 月起，大多是上漲行情）。'
             f'集體撤退是警示：之後 20 個交易日內最大回撤 {S.STOCK_MDD * 100:.0f}% 以上算中，隨便挑一天＝同一段期間所有 ETF 持股的同樣比例。'
             f'<b>個股策略</b>：至少 {S.STRAT_N_MIN} 筆（不到 {S.STRAT_FEW} 筆標「次數少」，照樣判定），報酬型態過（賺錢比例 ≥ 60% 而且每月平均 ≥ 1%，'
-            '或賺錢比例 ≥ 40%、賺賠比 ≥ 2.5、每月平均 ≥ 2%）＝★；平均每筆賺錢但沒過＝●。個股頁「機會」的推薦用這個判定。</p>'
+            '或賺錢比例 ≥ 40%、賺賠比 ≥ 2.5、每月平均 ≥ 2%）＝★；平均每筆賺錢但沒過＝●。策略頁個股策略的推薦用這個判定。</p>'
             f'<p class="note">規格寫在 arm/lab/sigspec.py（VER {S.VER}），在算機率之前寫定；改規格要升版本。</p>'
             '</details></section>')
 
@@ -487,7 +487,7 @@ _HTML = """<!doctype html>
 <div class="vbar"><details class="purp"><summary>這頁怎麼看</summary><p>上面是今天有效的好訊號；下面依指標列出全部
 （例：RSI、融資餘額水位），點一個指標看它現在的數值、走勢，和它每一種訊號過去出現之後「上漲（或大跌）的機率」，
 跟同一段期間「隨便挑一天」比。★ 好訊號＝機率夠高、比隨便挑一天多 10 個百分點以上、近 10 年也成立，而且不是運氣（打亂日子測試）。
-照書上的規則買賣的「大神策略」在頂欄的<a href="x9x.html">大神策略頁</a>（這裡的「策略」一類也查得到），★ 好策略＝交易成績過關、近 10 年與附近的參數也成立。
+照書上的規則買賣大盤指數的「總經策略」在頂欄的<a href="x9.html#v=mac">策略頁</a>（這裡的「策略」一類也查得到），★ 好策略＝交易成績過關、近 10 年與附近的參數也成立。
 名詞滑過 ⓘ 或看最下面「名詞與判定方式」。</p></details></div>
 <main>{{BODY}}</main>{{PANEL}}
 <script type="application/json" id="sgd">{{DATA}}</script>
@@ -502,7 +502,7 @@ def _ii(k: str) -> str:
 
 TABLE = ('<section class="sec" id="all"><h2>全部指標<span class="sub" id="sgcnt"></span></h2>'
          '<p class="note">一列一個指標（例：RSI、融資餘額水位）；分類和景氣頁的面向一樣（基本面、籌碼、資金、技術），景氣頁看到哪個面向熱，就點哪一類。'
-         '點一列看它現在的數值、走勢，和它每一種訊號過去出現之後的結果。照書上的規則買賣的大神策略，全部的狀態在<a href="x9x.html">大神策略頁</a>。</p>'
+         '點一列看它現在的數值、走勢，和它每一種訊號過去出現之後的結果。照書上的規則買賣大盤指數的總經策略，全部的狀態在<a href="x9.html#v=mac">策略頁</a>。</p>'
          '<div class="sgbar"><input id="sgq" type="search" placeholder="搜尋：指標名稱（例：融資、RSI、季線）" autocomplete="off">'
          '<div class="sgchips" data-k="mk"></div><div class="sgchips" data-k="c1"></div><div class="sgchips sgc2" data-k="c2" hidden></div>'
          '<details class="sgadv"><summary>更多篩選<span id="sgadvn"></span></summary><div class="sgadvb">'
@@ -689,7 +689,7 @@ CSS = """
 .sgrch .rp{fill:var(--acc)}
 .sghow{margin-top:12px}.sghow summary{cursor:pointer;color:var(--acc);font-size:13px}
 .sgdl2{margin:6px 0;font-size:13.5px;line-height:1.7}.sgdl2 dt{font-weight:600;margin-top:6px}.sgdl2 dd{margin:0 0 2px 0;color:var(--ink2)}
-/* 大神策略（xstratspec） */
+/* 總經策略（xstratspec；2026-10-22 前叫大神策略） */
 .xsv{font-size:14px;line-height:1.6;margin:10px 0 0;padding:8px 10px;border-radius:10px;background:var(--card2)}
 .xsr{margin:4px 0 6px;padding-left:20px;font-size:13px;line-height:1.7}
 .xsw{list-style:none;margin:4px 0;padding:0;font-size:13px;line-height:1.65}.xsw li{display:flex;gap:6px}.xsw li+li{margin-top:3px}
@@ -797,7 +797,7 @@ const INDS = SG.inds.map(x => { const sig = x[5].map(i => ROWS[i]);
       (x[8] && SG.sub[x[7]] ? SG.sub[x[7]][x[8]] : '') + ' ' + sig.map(r => r[I.name]).join(' ')).toLowerCase()}; });
 const BYK = {}, SIG2 = {};
 INDS.forEach(x => { BYK[x.k] = x; x.sig.forEach(r => { SIG2[r[I.id]] = x; }); });
-// 大神策略（xstratspec；文字由 arm/lab/xstratpage.py 產生）：每個市場每個策略一列，判定照交易成績
+// 總經策略（xstratspec；文字由 arm/lab/xstratpage.py 產生）：每個市場每個策略一列，判定照交易成績
 const XS = SG.xs || {spec: {}, m: {}, grp: {}, sn: {}};
 const XSV = {span: 'all', all: false};
 Object.entries(XS.m || {}).forEach(([mk, M]) => Object.entries(M).forEach(([k, r]) => {
@@ -806,13 +806,13 @@ Object.entries(XS.m || {}).forEach(([mk, M]) => Object.entries(M).forEach(([k, r
   if (r.side) ON[id] = {xs: XS.sn[r.st] || ''};
   const x = {k: id, mk, cat: 'xs', name: sp.name, grp: sp.grp, sig: [row], on: r.side ? [row] : [], best: row,
     ds: new Set(r.t === 'good' || r.t === 'ref' ? [d] : []), it: null, ik: null, xs: r, sp, xk: k, c1: 'strat', c2: sp.grp,
-    hay: (sp.name + ' ' + id + ' ' + (SG.mk[mk] || '') + ' 策略 大神策略 ' + (XS.grp[sp.grp] || '') + ' ' + sp.who + ' ' + sp.src).toLowerCase()};
+    hay: (sp.name + ' ' + id + ' ' + (SG.mk[mk] || '') + ' 策略 總經策略 大神策略 ' + (XS.grp[sp.grp] || '') + ' ' + sp.who + ' ' + sp.src).toLowerCase()};
   INDS.push(x); BYK[id] = x; SIG2[id] = x; }));
 function grpName(x){ return x.grp && SG.dimn[x.mk] ? SG.dimn[x.mk][x.grp] || '' : ''; }
 function facName(x){ return (SG.fac[x.c1] || '') + (x.c2 && SG.sub[x.c1] ? '・' + SG.sub[x.c1][x.c2] : ''); }
 function meta(x){ const f = SG.fac[x.c1] || '', g = x.cat === 'heat' ? grpName(x) : '';      // 市場・第一層・第二層（景氣項目寫面向）
-  if (x.c1 === 'strat') return x.c2 === 'stk' ? [SG.mk[x.mk], '個股策略'].join('・')               // 策略：市場・大神策略・短線
-    : [SG.mk[x.mk], '大神策略', (SG.sub.strat[x.c2] || '').replace('大神・', '')].filter(Boolean).join('・');
+  if (x.c1 === 'strat') return x.c2 === 'stk' ? [SG.mk[x.mk], '個股策略'].join('・')               // 策略：市場・總經策略・短線
+    : [SG.mk[x.mk], '總經策略', (SG.sub.strat[x.c2] || '').replace('總經・', '')].filter(Boolean).join('・');
   let t = x.c2 && SG.sub[x.c1] ? SG.sub[x.c1][x.c2] : (g && g !== f ? g : '');
   if (x.grp === 'sent' && g) t = g;                                                              // 美股的籌碼面向叫情緒籌碼
   return [SG.mk[x.mk], f, t].filter(Boolean).join('・'); }
@@ -1069,7 +1069,7 @@ function howHtml(r){ const x = r[I.x] || {};
   h += dirsOf(r).map(d => '<p class="sgdl"><b>' + (r[I.cat] === 'strat' ? '怎樣算中了' : what(r, d) + '：怎樣算中了') + '</b>：' + esc(succ(r, d)) + '</p>').join('');
   const w = stat(r, 'warn');
   if (w && w[7] != null) h += '<p class="sgdl">每一次之後最大回撤的中位數 ' + pc(w[7]) + '（隨便挑一天 ' + pc(w[8]) + '，只當參考）。</p>';
-  if (x.pay) h += '<p class="sgdl">' + esc(payTxt(x)) + (x.old ? '（後台的 A／B／C 評級：' + esc(x.old) + '；機會頁的推薦用這裡的判定）' : '') + '</p>';
+  if (x.pay) h += '<p class="sgdl">' + esc(payTxt(x)) + (x.old ? '（後台的 A／B／C 評級：' + esc(x.old) + '；個股策略的推薦用這裡的判定）' : '') + '</p>';
   if (r[I.cat] === 'buy' && (x.b1 != null || x.lp != null)) h += '<p class="sgdl">另列（不判定）：' +
     [x.b1 != null ? '同一批大跌「隔天就買」3 個月後上漲 ' + pc(x.b1) : '', x.lp != null ? '買在這一波相對低點（事件前高點到之後最低收盤的下三分之一）' + pc(x.lp) + '（' + x.lpn + ' 次，這一波已經結束的）' : '']
       .filter(Boolean).join('；') + '。</p>';
@@ -1317,8 +1317,7 @@ document.getElementById('sgcsv').addEventListener('click', () => {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); a.download = '訊號總覽.csv'; a.click(); });
 
 
-// ── 大神策略的面板（共用的部分在 xstratpage.PANEL_JS，建頁時接在這裡）
-const XSHOME = false;
+// ── 總經策略的面板（xstratpage.PANEL_JS，建頁時接在這裡）
 /*@@XSPANEL@@*/
 function xsOpen(x, push){
   const first = PV.hidden;

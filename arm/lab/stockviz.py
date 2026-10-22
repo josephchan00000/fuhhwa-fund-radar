@@ -63,7 +63,7 @@ CSS = r"""
 JS = r"""
 /* ── 個股頁的三張圖（stockviz.py；docs/lab_visual_plan.md 第 10 節）：機會頁的行動時間軸、籌碼頁的主動 ETF 資金地圖、飆股段的位置圖。
    顏色都用 CSS 變數（深淺跟著系統）；點了開個股卡或公司卡。 */
-const VZS={tl:'all',tlpin:null,tle:[],mmsz:'cap',mmcol:'a5v',spote:[]};
+const VZS={tl:'all',mtl:'all',tlpin:null,tle:[],mmsz:'cap',mmcol:'a5v',spote:[]};
 function vzDay(d){return Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10))/864e5;}
 function vzVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
 function vzRgb(c){const m=/^#?([0-9a-f]{6})$/i.exec(c||'');if(!m)return [136,136,136];const n=parseInt(m[1],16);return [n>>16&255,n>>8&255,n&255];}
@@ -88,6 +88,13 @@ function tlSec(){if(!(OPP.cards||[]).length)return '';
     `<span class=tllg><span><span class="tlk b">▲</span>買進</span><span><span class="tlk s">▼</span>賣出</span><span><span class="tlk w">◆</span>換股</span><span><span class="tlk a">●</span>調整</span>`+
     `<span class=tlsw><i class=tlsh></i>持有中（顏色＝目前漲跌）</span><span class=tlsw><i class=tlsb></i>排定的買進</span></span></div>`+
     `<div class=tlbox id=tlbox></div><div class=vztip id=tltip hidden></div></div>`;}
+/* 時間軸設定：個股策略（TLO）；總經策略的在 macpage.py（TLM）。box／tip＝元素 id、rk＝VZS 裡記範圍的鍵、back＝「全部」最多往回幾天 */
+const TLO={box:'tlbox',tip:'tltip',rk:'tl',back:0,cards:()=>OPP.cards||[],
+  last:()=>ADV.last||((ADV.cal||[])[0]||{d:'2026-01-01'}).d,dl:()=>ADV.last,nx:()=>((ADV.cal||[])[0]||{}).d,
+  lb:x=>{const e=x.e,n=(e.items||[]).map(o=>o.n);return x.k==='held'?`${n.length} 檔 ${pctT(tlAvg(e))}`:x.k==='buy'?n.slice(0,4).join('、')+(n.length>4?` 等 ${n.length} 檔`:'')+(e.tent?'（試算）':''):x.k==='next'?`名單 ${md(e.fix)} 產生`:'';},
+  nm:c=>`${c.rank?c.rank+'. ':''}${STN[c.k]||c.name}`,
+  sub:c=>{const hd=c.hold||'';return `${TMK[c.tier]||''} ${TN[c.tier]||''}・持有${/^\d/.test(hd)?' ':''}${hd}`;},
+  avg:e=>tlAvg(e),tipf:(x,pin)=>tlTip(x,pin)};
 function tlAvg(e){const r=(e.items||[]).map(i=>i.now_r).filter(v=>v!=null);return r.length?r.reduce((a,b)=>a+b,0)/r.length:null;}
 function tlTip(x,pin){const e=x.e,nm=esc(STN[x.c.k]||x.c.name),lk=i=>BY[i.c]?`<a data-c="${esc(i.c)}">${esc(i.n)}</a>`:esc(i.n);let h='';
   if(x.k==='held'){const a=tlAvg(e);h=`<b>${nm}・${md(e.ent)} 買進的 ${(e.items||[]).length} 檔</b><div class=vzs>到 ${md(ADV.last)} 收盤平均 <span class=${a>=0?'up':'dn'}>${pctT(a)}</span>；${mdw(e.d)} ${esc(e.at)}${esc(e.act)}</div>`+
@@ -98,21 +105,20 @@ function tlTip(x,pin){const e=x.e,nm=esc(STN[x.c.k]||x.c.name),lk=i=>BY[i.c]?`<a
   else if(x.k==='next')h=`<b>${nm}</b><div>名單 ${mdw(e.fix)} 收盤產生，${mdw(e.d)} 開盤買進</div>`;
   else h=`<b>${mdw(e.d)} ${esc(e.at||'開盤')}調整・${nm}</b><div class=vzs>${esc(e.note||'')}</div>`;
   return h+(pin?`<a class=vzgo data-to="o-${esc(x.c.k)}">看這條策略 →</a>`:'<div class=vzs>點一下可以開股票</div>');}
-function tlDraw(){const box=$('#tlbox');if(!box)return;const C=(OPP.cards||[]).slice().sort((a,b)=>(a.rank||99)-(b.rank||99));
-  const W=box.clientWidth||720,mob=W<560,LB=mob?8:150,HD=mob?22:0,T=30,RH=22,R=W-14,now=vzDay(ADV.last||((ADV.cal||[])[0]||{d:'2026-01-01'}).d);
-  const E=[];C.forEach((c,li)=>{(c.held||[]).forEach(e=>E.push({li,c,k:'held',e,a:vzDay(e.ent),b:vzDay(e.d)}));
+function tlDraw(Q){Q=Q||TLO;const box=$('#'+Q.box);if(!box)return;const C=Q.cards().slice().sort((a,b)=>(a.rank||99)-(b.rank||99));
+  const W=box.clientWidth||720,mob=W<560,LB=mob?8:150,HD=mob?22:0,T=30,RH=22,R=W-14,now=vzDay(Q.last());
+  const E=[];C.forEach((c,li)=>{(c.held||[]).forEach(e=>E.push({li,c,k:'held',e,a:vzDay(e.ent),b:e.d?vzDay(e.d):null}));
     (c.buy||[]).forEach(e=>E.push({li,c,k:'buy',e,a:vzDay(e.d),b:e.out?vzDay(e.out):null}));
     if(c.next&&c.next.d)E.push({li,c,k:'next',e:c.next,a:vzDay(c.next.d),b:null});(c.adj||[]).forEach(e=>E.push({li,c,k:'adj',e,a:vzDay(e.d),b:null}));});
-  let t0,t1;if(VZS.tl==='m1'){t0=now-6;t1=now+35;}else{t0=Math.min(now,...E.map(x=>x.a))-4;t1=Math.max(now+21,...E.map(x=>x.b||x.a))+6;}
+  let t0,t1;if(VZS[Q.rk]==='m1'){t0=now-6;t1=now+35;}else{t0=Math.min(now,...E.map(x=>x.a))-4;if(Q.back)t0=Math.max(t0,now-Q.back);t1=Math.max(now+21,...E.map(x=>x.b||x.a))+6;}
   const X=n=>LB+(n-t0)/(t1-t0)*(R-LB),cl=v=>Math.max(LB,Math.min(R,v)),tw=(s,fs)=>[...String(s)].reduce((a,ch)=>a+(/[⺀-￿]/.test(ch)?fs:fs*0.6),0);
   /* 每件事的文字與占用寬度：條太短放不下字，字移到條的右邊（靠右邊界就放左邊） */
-  const V=E.filter(x=>(x.b==null?x.a:x.b)>=t0&&x.a<=t1);
-  V.forEach(x=>{const e=x.e,n=(e.items||[]).map(o=>o.n);
-    x.lb=x.k==='held'?`${n.length} 檔 ${pctT(tlAvg(e))}`:x.k==='buy'?n.slice(0,4).join('、')+(n.length>4?` 等 ${n.length} 檔`:'')+(e.tent?'（試算）':''):x.k==='next'?`名單 ${md(e.fix)} 產生`:'';
+  const V=E.filter(x=>(x.b==null?(x.k==='held'?t1:x.a):x.b)>=t0&&x.a<=t1);   // 還沒排定賣出日的持有中＝畫到右邊
+  V.forEach(x=>{x.lb=Q.lb(x);
     x.x0=cl(X(x.a));x.x1=x.k==='next'||x.k==='adj'?x.x0:x.b!=null?cl(X(x.b)):R;
     const lw=tw(x.lb,11.5),need=lw+(x.k==='held'?16:24);
     x.out=(x.k==='held'||x.k==='next'||(x.k==='buy'&&x.b!=null))&&!!x.lb&&x.x1-x.x0<need;x.outL=x.out&&x.x1+12+lw>R;
-    x.rule=x.k==='buy'&&x.b==null&&x.x1-x.x0>=tw(x.lb,11)+24+84;
+    x.rule=(x.k==='buy'||(x.k==='held'&&!V.some(o=>o.li===x.li&&o.k==='adj')))&&x.b==null&&x.x1-x.x0>=tw(x.lb,11)+24+84;   // 同一列有「月底看」就不寫，免得疊在一起
     x.s0=x.outL?x.x0-16-lw:x.x0-12;x.e1=x.out&&!x.outL?x.x1+12+lw:x.x1;});
   /* 同一條策略依時間排：放得下就同一行，重疊才往下；調整（●）疊在包含它的那條上 */
   const rows=C.map((c,li)=>{const ends=[],put=(x,s,e)=>{let r=ends.findIndex(v=>v<s);if(r<0){r=ends.length;ends.push(0);}ends[r]=e;x.r=r;};
@@ -121,32 +127,33 @@ function tlDraw(){const box=$('#tlbox');if(!box)return;const C=(OPP.cards||[]).s
     return Math.max(1,ends.length);});
   let y=T;const Y=rows.map(n=>{const y0=y,h=Math.max(mob?0:48,HD+8+n*RH);y+=h+6;return [y0,h];}),H=y+16;
   VZS.tle=V;let s='',m='';
-  let ln='';C.forEach((c,i)=>{const [y0,h]=Y[i],nm=`${c.rank?c.rank+'. ':''}${STN[c.k]||c.name}`,hd=c.hold||'',sub=`${TMK[c.tier]||''} ${TN[c.tier]||''}・持有${/^\d/.test(hd)?' ':''}${hd}`,al=i%2?' alt':'';
+  let ln='';C.forEach((c,i)=>{const [y0,h]=Y[i],nm=Q.nm(c),sub=Q.sub(c),al=i%2?' alt':'';
     s+=`<rect class="tl-lane${al}" x=0 y=${y0} width=${W} height=${h} rx=8 />`;
     ln+=mob?`<text class="tl-ln${al}" x=10 y=${y0+16}>${esc(nm)}<tspan class=tl-lg dx=8>${esc(vzFit(sub,R-24-tw(nm,12.5),11))}</tspan></text>`
       :`<text class="tl-ln${al}" x=10 y=${y0+20}>${esc(vzFit(nm,LB-18,12.5))}</text><text class=tl-lg x=10 y=${y0+37}>${esc(vzFit(sub,LB-18,11))}</text>`;});
   const d=new Date(t0*864e5);d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+1);
   for(;d.getTime()/864e5<t1;d.setUTCMonth(d.getUTCMonth()+1)){const x=X(d.getTime()/864e5);if(x<LB)continue;s+=`<line class=tl-grid x1=${x.toFixed(1)} x2=${x.toFixed(1)} y1=${T-8} y2=${H-16} /><text class=tl-at x=${(x+3).toFixed(1)} y=${T-11}>${d.getUTCMonth()+1} 月</text>`;}
   if(VZS.tl==='m1'){for(let n=Math.ceil(t0);n<t1;n++){const dd=new Date(n*864e5);if(dd.getUTCDay()!==1)continue;const x=X(n);s+=`<text class=tl-at x=${(x+3).toFixed(1)} y=${T-1} style="font-size:10px">${dd.getUTCMonth()+1}/${dd.getUTCDate()}</text>`;}}
-  const nx=(ADV.cal||[])[0];if(nx){const x=X(vzDay(nx.d));if(x>=LB&&x<=R)s+=`<rect class=tl-nx x=${(x-5).toFixed(1)} y=${T-4} width=10 height=${H-T-12} rx=4 />`;}
-  const xn=X(now);if(xn>=LB&&xn<=R)s+=`<line class=tl-now x1=${xn.toFixed(1)} x2=${xn.toFixed(1)} y1=${T-6} y2=${H-14} /><text class=tl-nowt x=${(xn>R-90?xn-4:xn+4).toFixed(1)} y=${H-2}${xn>R-90?' text-anchor=end':''}>資料日 ${md(ADV.last)}</text>`;
+  const nx=Q.nx();if(nx){const x=X(vzDay(nx));if(x>=LB&&x<=R)s+=`<rect class=tl-nx x=${(x-5).toFixed(1)} y=${T-4} width=10 height=${H-T-12} rx=4 />`;}
+  const xn=X(now);if(xn>=LB&&xn<=R)s+=`<line class=tl-now x1=${xn.toFixed(1)} x2=${xn.toFixed(1)} y1=${T-6} y2=${H-14} /><text class=tl-nowt x=${(xn>R-90?xn-4:xn+4).toFixed(1)} y=${H-2}${xn>R-90?' text-anchor=end':''}>資料日 ${md(Q.dl())}</text>`;
   s+=ln;
   const mk=(x,yy,cls,sym,i)=>x<LB-2||x>R+2?'':`<g class="tl-m ${cls}" data-tl=${i} transform="translate(${x.toFixed(1)},${yy.toFixed(1)})"><circle r=8 /><text>${sym}</text></g>`;
   V.forEach((x,i)=>{const [y0,h]=Y[x.li],off=Math.max(0,(h-(HD+8+rows[x.li]*RH))/2),yy=y0+HD+4+off+x.r*RH,w=Math.max(4,x.x1-x.x0);
     const lab=(cls,fs,pad)=>{if(!x.lb)return '';
       if(x.out)return `<text class="${cls} tl-to" data-tl=${i} x=${(x.outL?x.x0-12:x.x1+12).toFixed(1)} y=${yy+13}${x.outL?' text-anchor=end':''}>${esc(x.lb)}</text>`;
       const t=vzFit(x.lb,w-pad-(x.rule?84:0),fs);return t?`<text class=${cls} x=${(x.x0+(x.k==='held'?6:12)).toFixed(1)} y=${yy+13}>${esc(t)}</text>`:'';};
-    if(x.k==='held'){const a=tlAvg(x.e);s+=`<rect class="tl-h ${a!=null&&a<0?'dn':'up'}" data-tl=${i} x=${x.x0.toFixed(1)} y=${yy} width=${w.toFixed(1)} height=17 rx=5 />`+lab('tl-t',11.5,16);
-      m+=mk(X(x.b),yy+8.5,x.e.act==='換股'?'w':'s',x.e.act==='換股'?'◆':'▼',i);}
+    if(x.k==='held'){const a=Q.avg(x.e);s+=`<rect class="tl-h ${a!=null&&a<0?'dn':'up'}" data-tl=${i} x=${x.x0.toFixed(1)} y=${yy} width=${w.toFixed(1)} height=17 rx=5 />`+lab('tl-t',11.5,16);
+      if(x.rule)s+=`<text class=tl-t2 x=${(R-6).toFixed(1)} y=${yy+13} text-anchor=end>依規則賣出 →</text>`;
+      if(x.b!=null)m+=mk(X(x.b),yy+8.5,x.e.act==='換股'?'w':'s',x.e.act==='換股'?'◆':'▼',i);}
     else if(x.k==='buy'){s+=`<rect class=tl-b data-tl=${i} x=${x.x0.toFixed(1)} y=${yy} width=${w.toFixed(1)} height=17 rx=5 />`+lab('tl-t2',11,24);
       if(x.rule)s+=`<text class=tl-t2 x=${(R-6).toFixed(1)} y=${yy+13} text-anchor=end>依規則賣出 →</text>`;
       m+=mk(X(x.a),yy+8.5,'b','▲',i);if(x.b!=null)m+=mk(X(x.b),yy+8.5,'s o','▼',i);}
     else if(x.k==='next'){s+=lab('tl-t2',11,22);m+=mk(X(x.a),yy+8.5,'b o','▲',i);}
     else m+=mk(X(x.a),yy+8.5,'a','●',i);});
   box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width=${W} height=${H} role=img aria-label="行動時間軸">${s}${m}</svg>`;
-  const tip=$('#tltip'),wrap=box.closest('.tlx');tip.hidden=true;tip.classList.remove('pin');
-  vzBind(box,tip,wrap,'data-tl',(el,pin)=>tlTip(VZS.tle[+el.dataset.tl],pin),(el,ev)=>{tip.innerHTML=tlTip(VZS.tle[+el.dataset.tl],true);tip.hidden=false;tip.classList.add('pin');vzPlace(tip,wrap,ev);});
-  $$('[data-tlr]').forEach(a=>a.onclick=e=>{e.preventDefault();VZS.tl=a.dataset.tlr;$$('[data-tlr]').forEach(b=>b.classList.toggle('on',b===a));tlDraw();});}
+  const tip=$('#'+Q.tip),wrap=box.closest('.tlx');tip.hidden=true;tip.classList.remove('pin');
+  vzBind(box,tip,wrap,'data-tl',(el,pin)=>Q.tipf(VZS.tle[+el.dataset.tl],pin),(el,ev)=>{tip.innerHTML=Q.tipf(VZS.tle[+el.dataset.tl],true);tip.hidden=false;tip.classList.add('pin');vzPlace(tip,wrap,ev);});
+  $$('[data-tlr]').forEach(a=>a.onclick=e=>{e.preventDefault();VZS[Q.rk]=a.dataset.tlr;$$('[data-tlr]').forEach(b=>b.classList.toggle('on',b===a));tlDraw(Q);});}
 
 /* 主動 ETF 資金地圖：一格一檔、依產業分區；大小＝市值（開根號）或 5 日買賣金額，顏色＝選的籌碼（紅＝買、綠＝賣，深＝大） */
 const MMC={a5v:['主動 ETF 5 日淨買','億'],t5:['投信 5 日','張'],f5:['外資 5 日','張'],rs20:['20 日相對大盤','個百分點']};
@@ -232,7 +239,7 @@ function spotDraw(){const box=$('#spotbox');if(!box)return;const W0=D.wl||{},Y=W
     return `<b>${esc(o.x[1])}</b> <span class=vzs>${esc(o.x[0])}</span><div>${esc(WLST[st]||'—')}・收盤 ${fp(o.x[3])}・離 52 週高點 ${pctT(o.gap,1)}</div>`+
       `<div>RS ${o.rs}・近 3 月營收年增 ${o.x[5]==null?'—':pctT(o.x[5],0)}</div><div class=vzs>${wlBuy(ST[o.x[0]],o.x[3]).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()}</div><div class=vzs>點一下打開公司卡</div>`;},
     el=>{tip.hidden=true;openCo(VZS.spote[+el.dataset.spot].x[0]);});}
-let VZR=0,VZW=innerWidth;addEventListener('resize',()=>{clearTimeout(VZR);VZR=setTimeout(()=>{if(Math.abs(innerWidth-VZW)<30)return;VZW=innerWidth;tlDraw();mmDraw();spotDraw();},200);});
-function vzTheme(){tlDraw();mmDraw();spotDraw();}                     // 深淺色換了：資金地圖等用程式算顏色的圖重畫（appnav 的按鈕、系統設定）
+let VZR=0,VZW=innerWidth;addEventListener('resize',()=>{clearTimeout(VZR);VZR=setTimeout(()=>{if(Math.abs(innerWidth-VZW)<30)return;VZW=innerWidth;tlDraw();if(typeof TLM!=='undefined')tlDraw(TLM);mmDraw();spotDraw();},200);});
+function vzTheme(){tlDraw();if(typeof TLM!=='undefined')tlDraw(TLM);mmDraw();spotDraw();}                     // 深淺色換了：資金地圖等用程式算顏色的圖重畫（appnav 的按鈕、系統設定）
 addEventListener('labtheme',vzTheme);if(typeof matchMedia==='function')matchMedia('(prefers-color-scheme: dark)').addEventListener('change',vzTheme);
 """

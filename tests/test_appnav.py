@@ -9,10 +9,12 @@ def test_bar_marks_the_current_page():
     assert '<a href="x9.html">個股</a>' in tw
     stk = appnav.bar("stk")
     assert '<a class="on" aria-current="page" href="x9.html">個股</a>' in stk and '<a href="x9m.html"><span class="apl">台股景氣</span>' in stk
-    # 景氣排第一個（點「·」先到景氣頁）；泡沫獨立一頁；大神策略 2026-10-21 起自己一頁（docs/lab_nav_plan.md）；訊號總覽最後
-    assert [k for k, _, _ in appnav.TABS] == ["tw", "us", "bub", "xs", "stk", "sig"]
+    # 景氣排第一個（點「·」先到景氣頁）；泡沫獨立一頁；策略（2026-10-22 起；原大神策略頁，docs/lab_strategy_ia_plan.md）是
+    # 個股頁 x9.html 的另一種身分；訊號總覽最後
+    assert [k for k, _, _ in appnav.TABS] == ["tw", "us", "bub", "st", "stk", "sig"]
     assert '<a class="on" aria-current="page" href="x9o.html"><span class="apl">訊號總覽</span><span class="aps">訊號</span></a>' in appnav.bar("sig")
-    assert '<a class="on" aria-current="page" href="x9x.html"><span class="apl">大神策略</span><span class="aps">策略</span></a>' in appnav.bar("xs")
+    assert '<a class="on" aria-current="page" href="x9.html#v=mac">策略</a>' in appnav.bar("st")
+    assert "x9x.html" not in appnav.bar("tw")                                       # 舊的大神策略頁只剩轉址
     bub = appnav.bar("bub")
     assert '<a class="on" aria-current="page" href="x9b.html">泡沫</a>' in bub and '<a href="x9.html">個股</a>' in bub
     us = appnav.bar("us")
@@ -33,8 +35,8 @@ def test_both_pages_use_the_shared_bar_and_back_link():
     lab = page.render({"etfs": {}, "asof": {}})
     assert appnav.bar("stk") in lab and appnav.CSS in lab
     assert '<a class="back" href="./">返回主頁</a>' in lab and "<b>籌碼雷達</b>" not in lab
-    from arm.lab import bubpage, sigpage, xspage
-    for tpl in (page._HTML, heatpage._HTML, heatpage_us._HTML, bubpage._HTML, sigpage._HTML, xspage._HTML):
+    from arm.lab import bubpage, sigpage
+    for tpl in (page._HTML, heatpage._HTML, heatpage_us._HTML, bubpage._HTML, sigpage._HTML):
         top = tpl.split('<div class="top">', 1)[1].split("</div>", 1)[0]
         assert top.startswith("{{APPTAB}}") and 'href="./">返回主頁' in top
         assert 'class="back" href="x9' not in top                              # 舊的小字互連拿掉，改由主分頁切換
@@ -63,10 +65,11 @@ def test_theme_toggle_dual_dark_css_and_finish():
 
 
 def test_all_lab_pages_finish_with_theme_toggle():
-    """六頁（台股景氣、美股景氣、泡沫、大神策略、個股、訊號總覽）都經過 appnav.finish；主頁（復華雷達）不碰。"""
+    """五支頁面程式（台股景氣、美股景氣、泡沫、策略與個股、訊號總覽）都經過 appnav.finish；主頁（復華雷達）不碰。
+    原大神策略頁 x9x.html 2026-10-22 起只是轉址頁（xspage），不需要頂欄與深淺色。"""
     import pathlib
     root = pathlib.Path(__file__).resolve().parents[1] / "arm" / "lab"
-    for f in ("heatpage.py", "heatpage_us.py", "bubpage.py", "sigpage.py", "page.py", "xspage.py"):
+    for f in ("heatpage.py", "heatpage_us.py", "bubpage.py", "sigpage.py", "page.py"):
         assert "return appnav.finish(_HTML" in (root / f).read_text(encoding="utf-8"), f
     fd = (root.parent / "fund_dashboard.py").read_text(encoding="utf-8")
     assert "appnav" not in fd and "labTheme" not in fd

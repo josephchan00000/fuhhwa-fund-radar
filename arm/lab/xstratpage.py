@@ -1,21 +1,27 @@
-"""大神策略的文字與頁面資料（規格 xstratspec 第 8 節；計算在 xstrat.py）。
+"""總經策略（2026-10-22 前叫大神策略）的文字與頁面資料（規格 xstratspec 第 8 節；計算在 xstrat.py）。
 
-大神策略頁（xspage，x9x.html）、訊號總覽「大神策略」一類、景氣頁今天的重點（只列 ★、標「策略」）與最上面那一行共用同一套說法：
-  payload(R)        頁面裡的小份資料（成績、判定依據、參數鄰近、現在）
-  detail(R)         點開才下載的淨值與每一筆（x9xh.json，大神策略頁建頁時寫；2026-10-21 前放在 x9oh.json）
-  PANEL_JS          點開一條策略的右側面板（大神策略頁與訊號總覽共用）
+策略頁・總經策略（個股頁同一支程式 page.py，資料整理在 xsadvice.py）、訊號總覽「總經策略」一類、景氣頁今天的重點
+（只列 ★、標「策略」）與最上面那一行共用同一套說法：
+  payload(R)        訊號總覽面板的小份資料（成績、判定依據、參數鄰近、現在）
+  detail(R)         點開才下載的淨值與每一筆（x9xh.json，xspage 建頁時寫；2026-10-21 前放在 x9oh.json）
+  PANEL_JS          訊號總覽點開一條策略的右側面板
   board(mk)         景氣頁今天的重點要列的策略（★ 而且現在有動作）
   chip(mk)          景氣頁最上面那一行的「10 個月均線」
-  summary_line(mk)  景氣頁今天的重點下面一行（這個市場的大神策略幾條、現在持有幾條）
+  summary_line(mk)  景氣頁今天的重點下面一行（這個市場的總經策略幾條、現在持有幾條）
   today_line(mk)    訊號總覽今天有效的好訊號，每個市場最下面一行
-點了都連到大神策略頁（docs/lab_nav_plan.md）。只描述照規則做過去的成績，不寫建議。
+點了都連到策略頁・總經策略（link(mk, k)；docs/lab_strategy_ia_plan.md）。只描述照規則做過去的成績，不寫建議。
 """
 from __future__ import annotations
 
 from . import xstratspec as S
 from .heatpage import _e
 
-HOME = "x9x.html"                                        # 大神策略頁（xspage）
+HOME = "x9.html#v=mac"                                   # 策略頁・總經策略（2026-10-22 起；docs/lab_strategy_ia_plan.md）
+
+
+def link(mk: str, k: str | None = None) -> str:
+    """策略頁・總經策略的網址：那個市場（＋捲到那一條）。舊的大神策略頁 x9x.html 留成轉址頁。"""
+    return f"{HOME}&m={mk}" + (f"&x={k}" if k else "")
 MK_NAMES = {"tw": "台股", "spx": "S&P 500", "ixic": "那斯達克", "ndx": "那斯達克 100", "sox": "費半"}
 
 
@@ -25,7 +31,7 @@ def results() -> dict:
         from . import xstrat as X
         return X.run_all()
     except Exception as e:                                # noqa: BLE001
-        print(f"[大神策略] 算不出來：{type(e).__name__}: {e}")
+        print(f"[總經策略] 算不出來：{type(e).__name__}: {e}")
         return {}
 
 
@@ -598,7 +604,8 @@ def board(mk: str, R: dict | None = None) -> list[dict]:
 
 
 def board_li(it: dict) -> str:
-    return (f'<li><a class="tzi" href="{HOME}#i={_e(it["id"])}"><span class="tzh"><span class="tzk tzk-good">★</span>'
+    _, mk, k = it["id"].split(":")
+    return (f'<li><a class="tzi" href="{_e(link(mk, k))}"><span class="tzh"><span class="tzk tzk-good">★</span>'
             f'<b>{_e(it["name"])}</b><span class="tzd tzs">策略</span><span class="tzd">{_e(TAG[it["st"]])}</span></span>'
             f'<span class="tzl">{_e(it["now"])}<br>{_e(it["line"])}</span></a></li>')
 
@@ -618,7 +625,7 @@ def chip(mk: str, R: dict | None = None) -> str:
     tip = (f"10 個月均線（Faber）：{now_text(r)} 判定 {S.TIER_MARK[r['tier']]} {S.TIER_NAMES[r['tier']]}；"
            f"{result_line(r)}。點了看細節。")
     cls = "stc" if held and st != "turn_out" else "stc stx"
-    return (f'<a class="{cls}" href="{HOME}#i=xs:{_e(mk)}:faber" title="{_e(tip)}"><b>10 個月均線</b>{_e(pos)}'
+    return (f'<a class="{cls}" href="{_e(link(mk, "faber"))}" title="{_e(tip)}"><b>10 個月均線</b>{_e(pos)}'
             f'<i>{_e(lab)}</i></a>')
 
 
@@ -635,18 +642,18 @@ def mr_chip(mk: str, R: dict | None = None) -> str:
     low = n["mr"] < q["level"]
     tip = (f"大盤融資維持率（上市證券含 ETF 的融資市值 ÷ 融資金額，自己算）：{now_text(r).rstrip('。')}。"
            f"「跌破 {q['level']}%」判定 {S.TIER_MARK[r['tier']]} {S.TIER_NAMES[r['tier']]}；{result_line(r)}。點了看細節。")
-    return (f'<a class="stc{" stx" if low else ""}" href="{HOME}#i=xs:{_e(mk)}:mmr" title="{_e(tip)}">'
+    return (f'<a class="stc{" stx" if low else ""}" href="{_e(link(mk, "mmr"))}" title="{_e(tip)}">'
             f'<b>融資維持率</b>{n["mr"]:.1f}%</a>')
 
 
-# 現在的狀態分三種（大神策略頁「接下來要做的」與景氣頁那一行共用）：要動作＝下一個交易日照規則買或賣（或接近訊號）；
+# 現在的狀態分三種（策略頁・總經策略與景氣頁那一行共用）：要動作＝下一個交易日照規則買或賣（或接近訊號）；
 # 有部位＝持有中（交易型、落底型）或持有（進出型）；其他＝沒有訊號、空手。
 ACT = ("buy", "sell", "turn_in", "turn_out", "near")
 HELD = ("hold", "in", "sell", "turn_out")                # 要賣出的那一天收盤前還在手上
 
 
 def summary(mk: str, R: dict | None = None) -> dict | None:
-    """這個市場的大神策略：幾條、★ 幾條、要動作幾條、有部位幾條。"""
+    """這個市場的總經策略：幾條、★ 幾條、要動作幾條、有部位幾條。"""
     R = results() if R is None else R
     M = R.get(mk) or {}
     if not M:
@@ -657,16 +664,16 @@ def summary(mk: str, R: dict | None = None) -> dict | None:
 
 
 def summary_line(mk: str, R: dict | None = None) -> str:
-    """景氣頁今天的重點下面一行：連到大神策略頁。"""
+    """景氣頁今天的重點下面一行：連到策略頁・總經策略（這個市場）。"""
     q = summary(mk, R)
     if not q:
         return ""
     parts = [f"★ 好策略 {q['good']} 條"] + ([f"要動作 {q['act']} 條"] if q["act"] else []) + [f"有部位 {q['held']} 條"]
-    return (f'<a href="{HOME}">這個市場的大神策略 {q["n"]} 條（{"・".join(parts)}）：每一條現在持有還是空手 →</a>')
+    return (f'<a href="{_e(link(mk))}">這個市場的總經策略 {q["n"]} 條（{"・".join(parts)}）：每一條現在持有還是空手 →</a>')
 
 
 def today_line(mk: str, R: dict | None = None) -> str:
-    """訊號總覽「今天有效的好訊號」每個市場卡片最下面一行：★ 好策略現在有動作的（名稱＋狀態），連到大神策略頁。"""
+    """訊號總覽「今天有效的好訊號」每個市場卡片最下面一行：★ 好策略現在有動作的（名稱＋狀態），連到策略頁・總經策略。"""
     R = results() if R is None else R
     q = summary(mk, R)
     if not q:
@@ -674,19 +681,19 @@ def today_line(mk: str, R: dict | None = None) -> str:
     its = board(mk, R)
     if its:
         txt = "、".join(f"{it['name']} {TAG[it['st']]}" for it in its)
-        return f'<a href="{HOME}">大神策略 ★：{_e(txt)} →</a>'
-    return f'<a href="{HOME}">大神策略：★ 好策略 {q["good"]} 條，看每一條現在持有還是空手 →</a>'
+        return f'<a href="{_e(link(mk))}">總經策略 ★：{_e(txt)} →</a>'
+    return f'<a href="{_e(link(mk))}">總經策略：★ 好策略 {q["good"]} 條，看每一條現在持有還是空手 →</a>'
 
 
-PANEL_JS = r"""// ── 大神策略的面板（xstratpage.PANEL_JS；訊號總覽與大神策略頁共用：出處、規則、現在、成績、判定依據、參數鄰近、照做的淨值、每一筆）
-// 放進頁面的同一個函式裡；頁面要先有 esc、ymd、XS（xstratpage.payload）、XSV＝{span, all}、PB（面板）、CUR（現在打開的）、XSHOME（是不是大神策略頁）。
-// 淨值與每一筆在 x9xh.json（xstratpage.detail，大神策略頁建頁時寫），點開才下載。
+PANEL_JS = r"""// ── 總經策略的面板（xstratpage.PANEL_JS；訊號總覽用：出處、規則、現在、成績、判定依據、參數鄰近、照做的淨值、每一筆）
+// 放進頁面的同一個函式裡；頁面要先有 esc、ymd、XS（xstratpage.payload）、XSV＝{span, all}、PB（面板）、CUR（現在打開的）。
+// 淨值與每一筆在 x9xh.json（xstratpage.detail，xspage 建頁時寫），點開才下載。
 let XD = null, XDP = null;
 function xsLoad(){ if (XDP) return XDP;
   XDP = fetch('x9xh.json').then(r => r.json()).then(j => { XD = j; return j; }).catch(() => { XDP = null; return null; });
   return XDP; }
 function xsMark(t){ return '<span class="sgtk sgtk-' + t + '" title="' + esc((XS.tn || {})[t] || '') + '">' + ((XS.tm || {})[t] || '') + '</span>'; }
-function xsKick(x){ return [(XS.mkn || {})[x.mk], '大神策略', XS.grp[x.grp]].filter(Boolean).join('・'); }
+function xsKick(x){ return [(XS.mkn || {})[x.mk], '總經策略', XS.grp[x.grp]].filter(Boolean).join('・'); }
 function xsFill(x){
   if (XD) { xsEq(x); xsTr(x); return; }
   xsLoad().then(j => { if (CUR !== x) return; if (!j) { ['xscv', 'xstr'].forEach(i => { const b = document.getElementById(i); if (b) b.innerHTML = '<p class="note">載入失敗，請重新整理。</p>'; }); return; }
@@ -777,7 +784,7 @@ function xsPanel(x){ const r = x.xs, sp = x.sp, tn = (XS.tn || {})[r.t] || '', t
   h += '<h4>' + (tr ? '每一筆' : dp ? '每一次' : '每一段持有') + '</h4><div id="xstr"><p class="note">載入中…</p></div>';
   h += '<p class="note">指數不含股息、空手不算利息：買進持有少算了股息（台股每年約 3～4%、美股約 1.5～2%），照規則空手時少算了利息。' +
     '這些是照規則在歷史上做一遍的結果，只描述過去。</p>';
-  if (!XSHOME) h += '<p class="sgdl"><a href="x9x.html#i=' + encodeURIComponent(x.k) + '">在大神策略頁看' + esc((XS.mkn || {})[x.mk] || '') + '的全部策略 →</a></p>';
+  h += '<p class="sgdl"><a href="x9.html#v=mac&amp;m=' + encodeURIComponent(x.mk) + '&amp;x=' + encodeURIComponent(x.k.split(':')[2] || '') + '">在策略頁看' + esc((XS.mkn || {})[x.mk] || '') + '的全部總經策略 →</a></p>';
   return h + '</div>'; }
 function xsSeg(){ PB.querySelectorAll('.xsseg button').forEach(b => b.classList.toggle('on', b.dataset.v === XSV.span)); }
 function xsEq(x){ const box = document.getElementById('xscv'), rd = document.getElementById('xsread'); if (!box) return;
@@ -831,7 +838,7 @@ function xsCsv(x){ const j = XD ? XD[x.k] || null : null; if (!j) return;
       : [t[0], t[1], t[2] || '持有中', t[3], t[4], (t[5] * 100).toFixed(2)]));
   const csv = '﻿' + lines.map(l => l.join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
-  a.download = '大神策略_' + ((XS.mkn || {})[x.mk] || x.mk) + '_' + x.name + '.csv'; a.click(); }
+  a.download = '總經策略_' + ((XS.mkn || {})[x.mk] || x.mk) + '_' + x.name + '.csv'; a.click(); }
 function xsClick(e){
   const sb = e.target.closest('.xsseg button'); if (sb) { XSV.span = sb.dataset.v; xsSeg(); xsEq(CUR); return; }
   if (e.target.closest('#xsall')) { XSV.all = !XSV.all; xsTr(CUR); return; }
