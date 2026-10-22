@@ -4,7 +4,7 @@
 VER 3，2026-10-20，警示改看最大回撤，docs/lab_warn_mdd_plan.md；VER 4 同日加情境；VER 5 同日加報酬與相似的日子；VER 6 同日加法人買賣超；VER 7 同日法人只當訊號；
 VER 8 同日判定改用打折後的機率、運氣檢查、同類合併，docs/lab_noise_plan.md（沒有上線）；VER 9 同日改用打亂日子測試，同文件第 10 節；
 VER 10，2026-10-21，大跌後買點改看實際報酬，docs/lab_expert_plan.md 第 9 節；VER 13 同日，落底訊號跟著 bottomspec VER 4 多三個；
-VER 14，2026-10-22，次數少的訊號打亂測試門檻放寬到 10%，docs/lab_noise_plan.md 第 13 節）。
+VER 14，2026-10-22，次數少的訊號打亂測試門檻放寬到 10%，docs/lab_noise_plan.md 第 13 節；VER 15 同日，溫度計三個看多久都算，同文件第 14 節）。
 要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import analyze as AN
 from arm.lab import backtest as BT
@@ -17,7 +17,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 14 and X.SPEC_DATE == "2026-10-22"
+    assert X.VER == 15 and X.SPEC_DATE == "2026-10-22"
     assert BS.VER == 4 and "C9" in BS.SIG_MK["tw"] and "C8" in BS.SIG_MK["spx"]   # VER 13：大跌後買點的規則跟著 bottomspec VER 4
     assert X.H_BUY == 60                                                  # VER 10：大跌後買點看買進後 3 個月有沒有漲
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
@@ -124,6 +124,16 @@ def test_sig_spec_v14_rare_signals_threshold_is_locked():
     assert (X.LUCK_FEW_N, X.LUCK_P_FEW, X.LUCK_P) == (15, 0.10, 0.01)
     assert [X.luck_p(n) for n in (None, 0, 5, 14, 15, 16, 400)] == [0.10, 0.10, 0.10, 0.10, 0.01, 0.01, 0.01]
     assert X.N_MIN < X.LUCK_FEW_N and X.HIT_MIN == {"up": 0.60, "warn": 0.50, "buy": 0.60} and X.EDGE_GOOD == 0.10
+
+
+def test_sig_spec_v15_thermometer_all_horizons_is_locked():
+    """VER 15（2026-10-22，使用者選「三個看多久都算」、台股一起改，docs/lab_noise_plan.md 第 14 節）：只改溫度計——
+    市場層級訊號在另外兩支溫度計也投票，只算 △；判定、兩欄、訊號總覽、研究檔原本的欄位都不變（RES_VER 不改）。"""
+    assert X.THERMO_H == {"short": 20, "mid": 60, "long": 250} and list(X.THERMO_H) == [k for k, *_ in X.THERMO_HZ]
+    assert X.THERMO_H["short"] == X.H_TECH and X.THERMO_H["mid"] == X.H_CRASH == X.H_DERIV == X.H_SCEN and X.THERMO_H["long"] == X.H_BUB
+    assert X.THERMO_X_CATS == ("heat", "crash", "multi", "scen", "inst", "tech", "deriv", "bub")
+    assert "buy" not in X.THERMO_X_CATS and "ind" not in X.THERMO_X_CATS            # 大跌後買點、產業泡沫不跨期間
+    assert X.THERMO_W["lean"] == 0.5 and X.THERMO_EDGE == 0.05 and X.N_MIN == 5 and X.RES_VER == 14
 
 
 def test_sig_spec_refers_to_existing_definitions():
