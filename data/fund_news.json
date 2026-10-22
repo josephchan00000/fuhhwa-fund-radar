@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/22 07:52",
+  "as_of": "2026/10/22 08:28",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -56,18 +56,18 @@
       ],
       "items": [
         {
-          "title": "熱門股／00929開盤秒填息！0056明除息1.72元、年化殖利率近12%",
-          "url": "https://news.ustv.com.tw/newsdetail/20261021A001012",
-          "source": "非凡新聞台",
-          "date": "2026-10-21 00:00",
-          "datetime": "2026-10-21T00:00:00+08:00"
-        },
-        {
           "title": "00929除息首日就填息！0056大漲2.26%迎最後買進 高股息ETF跑贏0050",
           "url": "https://news.wearn.com/c2129764.html",
           "source": "聚財網",
           "date": "2026-10-21 17:42",
           "datetime": "2026-10-21T17:42:54+08:00"
+        },
+        {
+          "title": "熱門股／00929開盤秒填息！0056明除息1.72元、年化殖利率近12%",
+          "url": "https://news.ustv.com.tw/newsdetail/20261021A001012",
+          "source": "非凡新聞台",
+          "date": "2026-10-21 00:00",
+          "datetime": "2026-10-21T00:00:00+08:00"
         },
         {
           "title": "47萬股民嗨翻！　台股反彈00929秒填息",
@@ -512,7 +512,7 @@
       "board": "股票基金",
       "title": "0050年賺88％，它竟賺207％！從TISA挖到超強基金",
       "url": "https://fundhot.com/forum/%E8%82%A1%E7%A5%A8%E5%9F%BA%E9%87%91/0050%E5%B9%B4%E8%B3%BA88%EF%BC%85%EF%BC%8C%E5%AE%83%E7%AB%9F%E8%B3%BA207%EF%BC%85%EF%BC%81%E5%BE%9ETISA%E6%8C%96%E5%88%B0%E8%B6%85%E5%BC%B7%E5%9F%BA%E9%87%91/14017",
-      "date": "2026-10-21"
+      "first_seen": "2026-10-22"
     },
     {
       "platform": "fundhot",
@@ -551,20 +551,20 @@
     },
     {
       "platform": "youtube",
-      "title": "0050 vs 00991A｜主動選股更賺？2026前九月含息績效比一比！ #被動收入 #理財觀念 #財務自由 #財商教育 #上班族理財 #金錢觀 #富人思維 #擺脫窮忙 #現金流 #人生滾雪球",
-      "channel": "人生滾雪球",
-      "url": "https://www.youtube.com/shorts/1dRmWvkVPY4",
-      "date": "2026-10-16",
-      "views": 868,
-      "short": true
-    },
-    {
-      "platform": "youtube",
       "title": "【台股高檔必看】操盤手曾創 73 個月 920% 績效！主動式 ETF 00418A 值得買嗎？",
       "channel": "下班後的投資所",
       "url": "https://www.youtube.com/watch?v=Hlp_-pEy3EE",
       "date": "2026-10-15",
-      "views": 865
+      "views": 873
+    },
+    {
+      "platform": "youtube",
+      "title": "0050 vs 00991A｜主動選股更賺？2026前九月含息績效比一比！ #被動收入 #理財觀念 #財務自由 #財商教育 #上班族理財 #金錢觀 #富人思維 #擺脫窮忙 #現金流 #人生滾雪球",
+      "channel": "人生滾雪球",
+      "url": "https://www.youtube.com/shorts/1dRmWvkVPY4",
+      "date": "2026-10-16",
+      "views": 870,
+      "short": true
     },
     {
       "platform": "youtube",
@@ -572,97 +572,13 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=t7HEKH3_aa0",
       "date": "2026-10-19",
-      "views": 714
-    },
-    {
-      "platform": "youtube",
-      "title": "年化配息上看20%！高股息ETF亂象又回來了嗎？0056、00878年化配息率竟擠不進前十名？ETF的高配息從哪來？｜峰哥｜Smart智富．投資的一千零一夜255",
-      "channel": "Smart智富月刊",
-      "url": "https://www.youtube.com/watch?v=tm-6SqqP5fk",
-      "date": "2026-10-17",
-      "views": 144166,
-      "peer": true,
-      "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股跌了才想加碼？她用這招不用苦等低點｜ft.基金教母蕭碧燕、葉芷娟 #低檔加碼 #定時定額 #ETF錢滾錢",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/shorts/7NxiVHoPy3g",
-      "date": "2026-10-19",
-      "views": 81208,
-      "peer": true,
-      "short": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "【精華】美國升息，股市要崩？蕭碧燕教你類仰天長笑、母子投資法抱更久，不設低檔加碼一樣賺！｜蕭碧燕、葉芷娟｜ETF錢滾錢",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/watch?v=e8lRkHckkkw",
-      "date": "2026-10-18",
-      "views": 69130,
-      "peer": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "上半年股神、下半年賠光？主動ETF狂掃「這檔千元PCB」！沈萬鈞：Q4唯一翻倍買點曝光，拉回最好賺！《股民想知道》ft.沈萬鈞.俞璘",
-      "channel": "投資優我罩—優分析",
-      "url": "https://www.youtube.com/watch?v=lTI_SKI0lyA",
-      "date": "2026-10-17",
-      "views": 66065,
-      "peer": true,
-      "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "00406A別急著當退休金存｜楚狂人｜玩股網20261011",
-      "channel": "玩股網楚狂人",
-      "url": "https://www.youtube.com/shorts/0JNtpgrbRhM",
-      "date": "2026-10-17",
-      "views": 62125,
-      "peer": true,
-      "short": true,
-      "cat": "主動式"
-    },
-    {
-      "platform": "youtube",
-      "title": "ETF存股最新排行榜！0050雖霸榜，但最猛黑馬單月狂增11%！00878狠甩0056？#口袋證券 #etf #0050",
-      "channel": "口袋證券",
-      "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
-      "date": "2026-10-19",
-      "views": 44043,
-      "peer": true,
-      "short": true,
-      "cat": "市值型"
-    },
-    {
-      "platform": "youtube",
-      "title": "ETF穩衝靈活三配置！領息還能跟上AI行情｜楚狂人 ft. 金融理財規劃師 郭俊宏 ｜財富狂犇｜玩股網20261014",
-      "channel": "玩股網楚狂人",
-      "url": "https://www.youtube.com/watch?v=lyN5yoG7Sm4",
-      "date": "2026-10-17",
-      "views": 32576,
-      "peer": true,
-      "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "【買點到?】獨家數據公開! 到底現在買 ETF 還是再等等...？ #台股 #美股 #大盤  #櫃買",
-      "channel": "陳智霖股票分析師 Equity Research Analyst",
-      "url": "https://www.youtube.com/shorts/Dx2D_E6LksY",
-      "date": "2026-10-19",
-      "views": 27778,
-      "peer": true,
-      "short": true,
-      "cat": "市值型"
+      "views": 716
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A（詳下方新聞標籤）",
     "品牌焦點：00418A可以買？配息、價格、成分股、上市時間…雙經理人分工！「9倍女戰神」揭挑股原則：目標吃整條魚（今周刊）",
     "社群聲量最高：升息怕股市崩？低利率未必賺更多！70年藏金圖打破升降息迷思（0 推）",
-    "YouTube 熱片：年化配息上看20%！高股息ETF亂象又回來了嗎？0056、00878年化配息率竟擠不進前十名？ETF的高配息從哪來？｜峰哥｜Smart智富．投資的一千零一夜255（Smart智富月刊・144,166 次觀看）"
+    "YouTube 熱片：【台股高檔必看】操盤手曾創 73 個月 920% 績效！主動式 ETF 00418A 值得買嗎？（下班後的投資所・873 次觀看）"
   ]
 }
