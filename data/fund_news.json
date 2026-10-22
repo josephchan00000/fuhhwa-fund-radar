@@ -1,8 +1,15 @@
 {
-  "as_of": "2026/10/22 21:02",
+  "as_of": "2026/10/23 00:17",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
+    {
+      "title": "主動復華台灣新星 募集期順延至10月27日",
+      "url": "https://udn.com/news/amp/story/7239/9832220",
+      "source": "UDN",
+      "date": "2026-10-22 21:10",
+      "datetime": "2026-10-22T21:10:28+08:00"
+    },
     {
       "title": "「九倍女戰神」來了！3大主動式ETF一次看",
       "url": "https://www.mirrormedia.mg/external/setn_1926795",
@@ -44,13 +51,6 @@
       "source": "經理人",
       "date": "2026-10-20 13:49",
       "datetime": "2026-10-20T13:49:00+08:00"
-    },
-    {
-      "title": "群益證×復華投信 剖析算力基建與光通訊新商機",
-      "url": "https://tw.news.yahoo.com/%E7%BE%A4%E7%9B%8A%E8%AD%89-%E5%BE%A9%E8%8F%AF%E6%8A%95%E4%BF%A1-%E5%89%96%E6%9E%90%E7%AE%97%E5%8A%9B%E5%9F%BA%E5%BB%BA%E8%88%87%E5%85%89%E9%80%9A%E8%A8%8A%E6%96%B0%E5%95%86%E6%A9%9F-195140775.html",
-      "source": "Yahoo新聞",
-      "date": "2026-10-17 03:51",
-      "datetime": "2026-10-17T03:51:40+08:00"
     }
   ],
   "funds": [
@@ -99,7 +99,15 @@
       "short_names": [
         "00991A"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "1表看》最新ETF定期定額看人氣 0050、00878、0056...前5大霸榜 00981A、00991A卻人氣倒退？",
+          "url": "https://wantrich.chinatimes.com/news/20261020900440-420401",
+          "source": "旺得富理財網",
+          "date": "2026-10-20 15:56",
+          "datetime": "2026-10-20T15:56:36+08:00"
+        }
+      ]
     },
     {
       "base": "主動復華金融股息",
@@ -576,7 +584,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=lJNdfafhPj8",
       "date": "2026-10-21",
-      "views": 29889
+      "views": 34096
     },
     {
       "platform": "youtube",
@@ -584,7 +592,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
       "date": "2026-10-20",
-      "views": 14521,
+      "views": 14746,
       "short": true
     },
     {
@@ -593,7 +601,17 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
       "date": "2026-10-18",
-      "views": 7772
+      "views": 8044
+    },
+    {
+      "platform": "youtube",
+      "title": "0050不是唯一選擇！這檔ETF配息價差兩手賺！【#財經鈔能力】｜20261019 趙慶翔 ft.鐵蛋 #0050 #高股息 #台積電 #ESG #永豐00888",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=wWF9OMqS174",
+      "date": "2026-10-19",
+      "views": 140953,
+      "peer": true,
+      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -601,7 +619,7 @@
       "channel": "曲博科技教室 Dr. J Class",
       "url": "https://www.youtube.com/shorts/LjDDHVaDM4E",
       "date": "2026-10-19",
-      "views": 121577,
+      "views": 123502,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -612,7 +630,7 @@
       "channel": "一綺聊股",
       "url": "https://www.youtube.com/watch?v=0U1OMDn2AAQ",
       "date": "2026-10-18",
-      "views": 119576,
+      "views": 119768,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -622,7 +640,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/7NxiVHoPy3g",
       "date": "2026-10-19",
-      "views": 85832,
+      "views": 88246,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -633,7 +651,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=e8lRkHckkkw",
       "date": "2026-10-18",
-      "views": 72038,
+      "views": 72729,
       "peer": true,
       "cat": "綜合"
     },
@@ -643,7 +661,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=0U0YA-MIQgg",
       "date": "2026-10-21",
-      "views": 52159,
+      "views": 53731,
       "peer": true,
       "cat": "高股息"
     },
@@ -653,7 +671,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
       "date": "2026-10-19",
-      "views": 46084,
+      "views": 47298,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -664,7 +682,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=e1Q5b32TcW4",
       "date": "2026-10-21",
-      "views": 36811,
+      "views": 41005,
       "peer": true,
       "cat": "主動式"
     },
@@ -674,36 +692,26 @@
       "channel": "陳智霖股票分析師 Equity Research Analyst",
       "url": "https://www.youtube.com/shorts/Dx2D_E6LksY",
       "date": "2026-10-19",
-      "views": 30407,
+      "views": 31348,
       "peer": true,
       "short": true,
       "cat": "市值型"
     },
     {
       "platform": "youtube",
-      "title": "ETF不能全都買！0050＋高股息＋AI怎麼配？專家揭配置黃金法則【理財密碼】",
-      "channel": "57東森財經新聞",
-      "url": "https://www.youtube.com/watch?v=mNDkpIYpx64",
-      "date": "2026-10-21",
-      "views": 29826,
+      "title": "美債ETF撐盤！00679B、00937B關鍵區域如何規劃？ ｜股市童樂會 童奕霆分析師 2026.10.22",
+      "channel": "小童 x Happy Trading Life",
+      "url": "https://www.youtube.com/watch?v=-h3wlmYyrDg",
+      "date": "2026-10-22",
+      "views": 23014,
       "peer": true,
-      "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "主動式ETF背後都在買什麼？怎麼看？經理人進出步調有「這習慣」？｜董事長投資課EP17",
-      "channel": "⚡️雷老闆 Remus⚡",
-      "url": "https://www.youtube.com/watch?v=h0E8UXou8nM",
-      "date": "2026-10-20",
-      "views": 15026,
-      "peer": true,
-      "cat": "主動式"
+      "cat": "債券"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A、台灣菁英50指數（詳下方新聞標籤）",
-    "品牌焦點：「九倍女戰神」來了！3大主動式ETF一次看（鏡週刊Mirror Media）",
+    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、台灣菁英50指數（詳下方新聞標籤）",
+    "品牌焦點：主動復華台灣新星 募集期順延至10月27日（UDN）",
     "社群聲量最高：升息怕股市崩？低利率未必賺更多！70年藏金圖打破升降息迷思（0 推）",
-    "YouTube 熱片：美股大跌台股跟風，人工智慧又發生什麼事？#shorts（曲博科技教室 Dr. J Class・121,577 次觀看）"
+    "YouTube 熱片：0050不是唯一選擇！這檔ETF配息價差兩手賺！【#財經鈔能力】｜20261019 趙慶翔 ft.鐵蛋 #0050 #高股息 #台積電 #ESG #永豐00888（TVBS財經・140,953 次觀看）"
   ]
 }
