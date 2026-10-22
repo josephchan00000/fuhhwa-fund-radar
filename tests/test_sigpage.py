@@ -579,3 +579,18 @@ def test_forward_estimate_js_cells_text():
     assert r.returncode == 0, r.stderr
     assert json.loads(r.stdout) == ["多 0.9%", "少 0.2%", "差不多", "偏多・看 1 個月・出現過 15～39 次・過去比平常高 10～20 點",
                                     "警示・看 12 個月・過去比平常低", "大跌後買點・看 3 個月・過去不比平常低"]
+
+
+def test_now_cell_short_text_and_mobile_wrap():
+    """「現在」欄只寫哪天出現（2026-10-22：整句「出現・收盤進場、持有到…」放在不換行的格子，手機整頁撐到 478px）；手機那一行可以換行。"""
+    fns = [re.search(r"^function " + n + r"\(.*?\n(?=function |const |// )", sigpage.JS, re.S | re.M).group(0) for n in ("nowShort",)]
+    prog = ("const I = {id: 0}; const ON = {a: {since: '2026-10-16', left: 3, buy: '2026-10-19', sell: '2026-11-16', rem: 18},"
+            " b: {since: '2026-10-01', buy: '2026-10-23', sell: '2026-11-23'}, c: {live: 4}};\n"
+            "function mdy(s){ const p = s.split('-'); return +p[1] + '/' + +p[2]; }\n" + "".join(fns) +
+            "console.log(JSON.stringify([nowShort(['a']), nowShort(['b']), nowShort(['c']), nowShort(['z'])]));")
+    r = subprocess.run(["node", "-"], input=prog, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stderr
+    assert json.loads(r.stdout) == ["10/16 出現", "10/1 起成立", "今天 4 檔", ""]
+    cell = re.search(r"^function nowCell\(.*?\n(?=function )", sigpage.JS, re.S | re.M).group(0)
+    assert "nowShort(o)" in cell and "nowTxt(o)" not in cell
+    assert ".sgmn{display:flex;flex-wrap:wrap" in sigpage.CSS

@@ -933,7 +933,7 @@ body.sgopen{overflow:hidden}
 @media (max-width:640px){.xsg td,.xsg th{padding:3px 4px}.xsg td small{font-size:10px}.sgt{grid-template-columns:minmax(0,1fr)}.sgtb .dsk{display:none}.sgln{padding-left:0}
  .sgtb td.l{min-width:150px}.sgwrap{overflow-x:visible}.sgtb td.l .sgm{display:block}
  .sgsw{overflow-x:auto}
- .sgmob{display:block;margin-top:4px}.sgmn{display:flex;align-items:center;gap:10px}.sgmn .sgnv,.sgmn .sgnz{display:inline;white-space:nowrap}
+ .sgmob{display:block;margin-top:4px}.sgmn{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px}.sgmn .sgnv,.sgmn .sgnz{display:inline;white-space:nowrap}
  .sgms{font-size:12.5px;color:var(--ink2);line-height:1.55;margin-top:3px}.sgms b{color:var(--ink)}.sgms .sgs{display:block;font-size:11.5px}
  .sgp{width:100%;padding:0 12px 28px}
  .sgst2,.sgst2 tbody{display:block}.sgst2 thead{display:none}.sgsw{overflow-x:visible}
@@ -985,6 +985,10 @@ function nowTxt(r){ const n = ON[r[I.id]]; if (!n) return '';
   if (n.left != null) return mdy(n.since) + ' 出現' + (tr ? tr + (n.rem != null ? '（還有 ' + n.rem + ' 個交易日）' : '') : '・還看 ' + n.left + ' 天');
   if (n.event) return mdy(n.since) + ' 出現' + tr;
   return mdy(n.since) + ' 起成立' + tr; }
+function nowShort(r){ const n = ON[r[I.id]]; if (!n) return '';   // 「現在」欄只寫哪天出現（進場、持有到哪天寫在訊號那一欄）
+  if (n.xs != null) return n.xs;
+  if (n.live != null) return '今天 ' + n.live + ' 檔';
+  return mdy(n.since) + (n.left != null || n.event ? ' 出現' : ' 起成立'); }
 function label(r){ const nm = r[I.name];
   if (['heat','deriv','crash','buy','ind','inst'].includes(r[I.cat])) { const i = nm.lastIndexOf('・'); return i >= 0 ? nm.slice(i + 1) : nm; }
   return nm; }
@@ -1123,7 +1127,7 @@ function nowCell(x){ const it = x.it;
   if (x.cat === 'scen') { const t = scenNow(x); return t ? '<span class="sgnv">' + t + '</span>' : '<span class="mu">—</span>'; }
   if (it && (it.v || it.h != null)) return (it.v ? '<span class="sgnv">' + esc(it.v) + '</span>' : '') +
     (it.h != null ? '<span class="sgnz zt' + zi(it.h) + '">' + Math.round(it.h) + ' ' + esc(it.band || '') + '</span>' : '');
-  const o = x.on[0]; return o ? '<span class="sgnv">' + esc(nowTxt(o)) + '</span>' : '<span class="mu">—</span>'; }
+  const o = x.on[0]; return o ? '<span class="sgnv">' + esc(nowShort(o)) + '</span>' : '<span class="mu">—</span>'; }
 function sigCell(x){
   if (x.cat === 'xs') return mark(x.xs.t, x.best) + ' ' + esc(x.xs.line) + '<span class="sgs">' + esc(x.xs.now) + '</span>';
   if (x.on.length) { const o = x.on[0];
