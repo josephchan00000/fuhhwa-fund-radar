@@ -374,3 +374,120 @@ def test_research_has_inst_rows_and_no_duplicate_heat_rows():
         else:
             w = int(r["var"][len(r["grp"]):])
             assert r["H"] == S.INST_H[w] and (r["grp"], w) not in S.INST_SKIP
+
+
+# ── 溫度計跨期間（sigspec 第 5 節 ③a，VER 15） ─────────────────────────────────────
+
+def _cross_direct(px, days, samp, state, kind, H, th):
+    """直接算：成功條件同第 2 節（第 e＋H 天收盤 > 第 e 天；第 e～e＋H 天最大回撤 ≥ th）；事件型同一次觀察期間內再出現不算；
+    狀態型一段＝連續在狀態中（中斷 < EP_GAP 個樣本），每段先算再平均；平常＝樣本日的平均（窗口不完整的不算）。"""
+    T = len(px)
+
+    def out(t):
+        e = t + S.LAG
+        if e + H >= T:
+            return None
+        return float(px[e + H] > px[e]), float(_mdd(list(px[e:e + H + 1])) >= th)
+    ok = [t for t in samp if out(t) is not None]
+    base = [np.mean([out(t)[j] for t in ok]) for j in (0, 1)]
+    if kind == "event":
+        kept, last = [], None
+        for t in days:
+            if t in set(samp) and (last is None or t - last >= H):
+                kept.append(t)
+                last = t
+        ys = [out(t) for t in kept if out(t) is not None]
+        hit = [np.mean([y[j] for y in ys]) if ys else None for j in (0, 1)]
+        n = len(ys)
+    else:
+        segs, cur, gap = [], [], 0
+        for i, t in enumerate(samp):
+            if state[i]:
+                if cur and gap >= S.EP_GAP:
+                    segs.append(cur)
+                    cur = []
+                cur.append(t)
+                gap = 0
+            elif cur:
+                gap += 1
+        if cur:
+            segs.append(cur)
+        rates = []
+        for sg in segs:
+            ys = [out(t) for t in sg if out(t) is not None]
+            if ys:
+                rates.append([np.mean([y[j] for y in ys]) for j in (0, 1)])
+        hit = [np.mean([r[j] for r in rates]) if rates else None for j in (0, 1)]
+        n = len(rates)
+    return {"up": (n, hit[0], base[0]), "warn": (n, hit[1], base[1])}
+
+
+def test_cross_stats_match_direct_and_skip_native_horizon():
+    px = _px(700, seed=7)
+    cal = [f"2020-{1 + i // 28:02d}-{1 + i % 28:02d}" for i in range(len(px))]
+    F = {"mk": "tw", "cal": cal, "px": px, "r0": cal[400]}
+    rng = np.random.default_rng(3)
+    samp = np.arange(30, len(px))
+    st = rng.random(len(samp)) < 0.15
+    ev = sorted(set(int(t) for t in rng.integers(30, len(px), 40)))
+    sds = [{"id": "tw:tech:e", "cat": "tech", "kind": "event", "H": 20, "samp": samp, "days": ev},
+           {"id": "tw:heat:s", "cat": "heat", "kind": "state", "H": 60, "samp": samp, "state": st}]
+    for sd in sds:
+        X = G.cross_stats(F, sd, {})
+        assert set(X) == {k for k, H in S.THERMO_H.items() if H != sd["H"]}         # 原本那個看多久不重複存
+        for k, x in X.items():
+            H = S.THERMO_H[k]
+            assert x["H"] == H and x["th"] == G.warn_th("tw", H)
+            want = _cross_direct(px, ev, samp, st, sd["kind"], H, x["th"])
+            for d in ("up", "warn"):
+                n, hit, base = want[d]
+                assert x[d]["n"] == n, (sd["id"], k, d)
+                assert (x[d]["hit"] is None and hit is None) or abs(x[d]["hit"] - hit) < 1e-12
+                assert abs(x[d]["base"] - base) < 1e-12
+    assert G.cross_stats(F, dict(sds[0], cat="buy"), {}) == {} and G.cross_stats(F, dict(sds[0], cat="ind"), {}) == {}
+
+
+def test_now_market_cross_horizon_activity(monkeypatch):
+    """現在有效（第 5 節 ③a）：事件型在最後 THERMO_H[k] 個交易日內出現就算那支溫度計有效；狀態型同原本。
+    出現的日子：事件型每一次出現那天起 THERMO_H[k] 個交易日（acts 的鍵 xkey）；狀態型和原本同一份。"""
+    T = 400
+    cal = [f"d{i:03d}" for i in range(T)]
+    samp = np.arange(T)
+    state = np.zeros(T, dtype=bool)
+    state[-30:] = True
+    sds = [{"id": "e", "cat": "tech", "kind": "event", "H": 20, "samp": samp, "days": [100, T - 1 - 30]},
+           {"id": "s", "cat": "heat", "kind": "state", "H": 60, "samp": samp, "state": state},
+           {"id": "old", "cat": "tech", "kind": "event", "H": 20, "samp": samp, "days": [T - 1 - 300]}]
+    monkeypatch.setattr(G, "signals", lambda F: sds)
+    acts, xon = {}, {}
+    on = G.now_market({"cal": cal}, acts, xon)
+    assert set(on) == {"s"}                                                     # 事件 e 已過 30 天 > 20
+    assert xon["e"] == {"mid": {"since": cal[T - 31], "n": 30, "left": 30}, "long": {"since": cal[T - 31], "n": 30, "left": 220}}
+    assert set(xon["s"]) == {"short", "long"} and xon["s"]["long"] == on["s"]
+    assert "old" not in xon                                                     # 300 天前：12 個月（250 天）也過了
+    a = acts[G.xkey("e", "long")]
+    assert a[100:350].all() and not a[350:T - 31].any() and a[T - 31:].all()
+    assert acts[G.xkey("s", "short")] is acts["s"] and "e" not in acts
+    assert G.now_market({"cal": cal}) == on                                    # 沒給 xon：同 VER 14
+
+
+def test_research_cross_stats_agree_with_returns_table():
+    """研究檔（VER 15）：市場層級訊號都有另外兩支溫度計的統計 xh；狀態型的段數、上漲比例、平常要和報酬表（ret，另一套程式算的）
+    在那個看多久那一期相同（事件型去重用的看多久不同，次數本來就不同，不比）。原本的欄位不變由 test_research_returns_agree_with_hit_rates 守。"""
+    R = G.load_research()
+    rows = [r for r in R["rows"] if r["cat"] in S.THERMO_X_CATS]
+    assert rows and all(set(r["xh"]) == {k for k, H in S.THERMO_H.items() if H != r["H"]} for r in rows)
+    assert not [r for r in R["rows"] if r["cat"] not in S.THERMO_X_CATS and r.get("xh")]
+    n = 0
+    for r in rows:
+        if r["kind"] != "state":
+            continue
+        for k, x in r["xh"].items():
+            i = S.RET_H.index(x["H"])
+            c, b = r["ret"]["s"][i], R["bases"][r["ret"]["bk"]]["s"][i]
+            if not x["up"]["n"]:
+                continue
+            assert c[0] == x["up"]["n"] and abs(c[5] - x["up"]["hit"]) < 1e-3, (r["id"], k)
+            assert abs(b[5] - x["up"]["base"]) < 1e-3, (r["id"], k)
+            n += 1
+    assert n > 1500

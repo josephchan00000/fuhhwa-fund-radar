@@ -537,12 +537,21 @@ def thermo_more_html(T: dict) -> str:
     bits = [f'{SS.THERMO_MARK[t]} {SS.THERMO_NAMES[t]} {c} 類' for t, c in cnt.items() if c]
     return (f'<details class="tzq"><summary>溫度計另外算進去的（{_e("、".join(bits))}）</summary>'
             '<p class="tzqn">這些沒有列在下面兩欄：● 過了門檻，但把出現的日子亂排也常做得到一樣準；'
-            f'△ 過去之後的機率比隨便挑一天高 {SS.THERMO_EDGE * 100:.0f} 個百分點以上，但沒過門檻。只當參考。</p>'
+            f'△ 過去之後的機率比隨便挑一天高 {SS.THERMO_EDGE * 100:.0f} 個百分點以上，但沒過門檻；'
+            '標「原本看…」的是原本看別的期間的訊號，用它過去之後這支溫度計那段期間的機率算一次。只當參考。</p>'
             + "".join(blocks) + "</details>")
 
 
 def _tz_name(r: dict) -> str:
     return ("情境・" if r.get("cat") == "scen" else "") + r["name"]
+
+
+def _tz_orig(r: dict) -> str:
+    """跨期間的票（sigspec 第 5 節 ③a，VER 15）：「・原本看 3 個月」——機率是這支溫度計的看多久，訊號原本看別的期間。"""
+    from . import sigpage as SPG
+    if not r.get("xk"):
+        return ""
+    return f'・原本看 {SPG.H_TXT.get(r.get("H0"), str(r.get("H0")) + " 個交易日")}'
 
 
 def _tz_item(r: dict, d: str | None, panel: bool = False) -> str:
@@ -558,7 +567,7 @@ def _tz_item(r: dict, d: str | None, panel: bool = False) -> str:
     op = f' data-open="out:out" data-to="{osg_id(r["id"])}"' if panel else ""
     return (f'<li><a class="tzi" href="x9o.html#s={_e(r["id"])}"{op}><span class="tzh">'
             f'<span class="tzk tzk-{r["tier"]}">{SS.THERMO_MARK[r["tier"]]}</span><b>{_e(_tz_name(r))}</b>'
-            f'<span class="tzd">{_e(SPG._hz(r))}</span>{both}</span>'
+            f'<span class="tzd">{_e(SPG._hz(r))}{_e(_tz_orig(r))}</span>{both}</span>'
             f'<span class="tzl">{SPG._line(r)}・{_e(SPG._since(r["now"], d))}</span>{also}</a></li>')
 
 
@@ -600,6 +609,8 @@ def today_html(V: dict) -> str:
            f"（次數少於 {SS.LUCK_FEW_N} 次的不到 {SS.LUCK_P_FEW * 100:.0f}%，這一類比較可能是運氣）。"
            "● 可能是運氣＝過了這些門檻，但亂排也常做得到一樣準。"
            f"△ 有傾向＝之後的機率比隨便挑一天高 {SS.THERMO_EDGE * 100:.0f} 個百分點以上，但沒過門檻。"
+           "每個訊號三支溫度計都算：原本看別的期間的訊號（例：原本看 3 個月），也用它過去之後 1 個月、12 個月的機率各算一次，"
+           "只算 △（標「原本看 3 個月」）。"
            "過去常一起出現的訊號算同一件事，併成一列（「同時成立」）。"
            "偏多＝之後收盤比現在高；警示＝之後出現一段大回撤（期間最高到之後最低，先漲再跌也算）；"
            "警示類過去的事後驗證比偏多弱，只當提醒。同一個項目兩邊都是 ★ 的標「震盪」。"

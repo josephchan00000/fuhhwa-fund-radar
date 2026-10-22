@@ -484,3 +484,52 @@ def test_bottom_chip_lists_rules_regardless_of_tier():
     assert 'href="x9o.html#r=sox:bottom"' in h and "<b>落底訊號</b>1／3 出現" in h
     assert "固定等 10 個交易日：還沒（再 7 個交易日）" in h and "10/17 出現" in h and "這一次沒有出現" in h
     assert "台股" not in h and "加權指數" not in h
+
+
+def test_thermometer_v15_cross_horizon_votes():
+    """VER 15（docs/lab_noise_plan.md 第 14 節；使用者選「三個看多久都算」）：研究列的 xh 有另外兩支溫度計的統計，
+    現在有效（xon）而且次數 ≥ 5、比平常高 5 個百分點以上 → 那支溫度計算 △；不給 ★／●、不進兩欄；
+    同一個項目同一支溫度計同一邊只算一種（原本那個看多久的 ★ 優先）；沒有 xon 就和 VER 14 一樣。"""
+    import numpy as np
+    a = _rows()[0]
+    xh = lambda up, wn: {"H": 60, "th": 0.10, "up": up, "warn": wn}
+    s = lambda n, hit, base: {"n": n, "hit": hit, "base": base}
+    r1 = dict(a, id="tw:heat:x:cold", cat="heat", var="x", name="RSI・進入過冷", H=20, up=_st(40, 0.62, 0.60, "none"),
+              warn=_st(40, 0.20, 0.20, "none"), tier="none", dir=["up"],
+              xh={"mid": xh(s(30, 0.75, 0.65), s(30, 0.30, 0.29)), "long": dict(xh(s(4, 0.95, 0.70), s(4, 0.0, 0.2)), H=250, th=0.2)})
+    r2 = dict(a, id="tw:tech:y", cat="tech", var="y", name="跌破季線", H=20, up=_st(40, 0.60, 0.60, "none"),
+              warn=_st(40, 0.20, 0.20, "none"), tier="none", dir=["up"],
+              xh={"mid": xh(s(30, 0.69, 0.65), s(30, 0.36, 0.29))})                 # 偏多 +4 不算、警示 +7 算
+    nat = dict(a, id="tw:heat:x:hot", cat="heat", var="x", name="RSI・過冷中", H=60, up=_st(20, 0.90, 0.65, "good"),
+               warn=_st(20, 0.2, 0.29, "none"), tier="good", dir=["up"])            # 同一個項目（var x）原本看 3 個月的 ★
+    rows = [r1, r2]
+    on = {}                                                                      # 原本那個看多久都沒有成立
+    xon = {"tw:heat:x:cold": {"mid": {"since": "2026-09-01", "n": 30, "left": 30}, "long": {"since": "2026-09-01", "n": 30, "left": 220}},
+           "tw:tech:y": {"mid": {"since": "2026-10-01", "n": 10, "left": 50}}}
+    assert {t["k"]: t["w"] for t in sigcat.board(rows, on, "tw")["thermo"]}["mid"] == {"up": 0, "warn": 0}   # 沒有 xon：同 VER 14
+    B = sigcat.board(rows, on, "tw", {}, xon)
+    th = {t["k"]: t for t in B["thermo"]}
+    assert th["mid"]["n"]["up"] == {"good": 0, "ref": 0, "lean": 1} and th["mid"]["n"]["warn"] == {"good": 0, "ref": 0, "lean": 1}
+    assert th["long"]["w"] == {"up": 0, "warn": 0}                                # 次數 4 < 5 不算
+    assert th["short"]["w"] == {"up": 0, "warn": 0} and B["up"] == [] and B["warn"] == []   # 只進溫度計
+    x = th["mid"]["more"]["up"][0]
+    assert (x["id"], x["H"], x["H0"], x["xk"], x["ak"], x["tier"]) == ("tw:heat:x:cold", 60, 20, "mid", "tw:heat:x:cold@mid", "lean")
+    assert abs(x["edge"] - 0.10) < 1e-12 and x["up"]["hit"] == 0.75 and x["now"]["left"] == 30
+    # 同一個項目（景氣項目 x）原本看 3 個月的 ★ 成立：中線偏多算 ★，跨期間的 △ 不另外算（實際上同一個項目的訊號看多久都一樣，這裡只測規則）
+    B2 = sigcat.board(rows + [nat], {nat["id"]: {"since": "2026-10-01"}}, "tw", {}, xon)
+    th2 = {t["k"]: t for t in B2["thermo"]}
+    assert th2["mid"]["n"]["up"] == {"good": 1, "ref": 0, "lean": 0} and [r["id"] for r in B2["up"]] == ["tw:heat:x:hot"]
+    # 同類合併用跨期間的出現日子（ak）：兩個跨期間的 △ 重疊就併成一類
+    T = 100
+    act = lambda lo, hi: np.array([lo <= t < hi for t in range(T)])
+    r3 = dict(r2, id="tw:tech:z", var="z", name="跌破月線", xh={"mid": xh(s(30, 0.30, 0.29), s(30, 0.37, 0.29))})
+    xon3 = dict(xon, **{"tw:tech:z": {"mid": {"since": "2026-10-02", "n": 9, "left": 51}}})
+    acts = {"tw:tech:y@mid": act(0, 40), "tw:tech:z@mid": act(5, 40)}
+    B3 = sigcat.board(rows + [r3], on, "tw", acts, xon3)
+    w3 = {t["k"]: t for t in B3["thermo"]}["mid"]
+    assert w3["n"]["warn"]["lean"] == 1 and [f["id"] for f in w3["more"]["warn"][0]["fam"]] == ["tw:tech:y"]
+    # 頁面：寫這支溫度計的看多久與機率，標「原本看 1 個月」
+    from arm.lab import heatviz as VZ
+    h = VZ.today_html({"sigtoday": dict(B, d="2026-10-16")})
+    assert "3 個月・原本看 1 個月" in h and "之後 3 個月上漲的機率 <b>75%</b>（隨便挑一天 65%）・出現過 30 次" in h
+    assert "標「原本看…」的是原本看別的期間的訊號" in h and "每個訊號三支溫度計都算" in h

@@ -635,8 +635,37 @@ def signals(F: dict) -> list[dict]:
     return out
 
 
+def _small(st: dict) -> dict:
+    return {k: st[k] for k in ("n", "hit", "base")}
+
+
+def cross_stats(F: dict, sd: dict, Ycache: dict) -> dict:
+    """溫度計跨期間（sigspec 第 5 節 ③a，VER 15）：同一個訊號在另外兩支溫度計的看多久（THERMO_H）的統計——
+    成功條件、次數、平常照第 2、3.4 節，只是 H 換掉。→ {k: {"H", "th", "up": {n, hit, base}, "warn": {n, hit, base}}}；
+    不跨期間的類別回 {}。"""
+    if sd["cat"] not in S.THERMO_X_CATS:
+        return {}
+    mk, cal = F["mk"], F["cal"]
+    r0 = bisect.bisect_left(cal, F["r0"])
+    samp = np.asarray(sd["samp"], dtype=np.int64)
+    out = {}
+    for k, H in S.THERMO_H.items():
+        if H == sd["H"]:
+            continue
+        if H not in Ycache:
+            Ycache[H] = outcomes(F["px"], H, warn_th(mk, H))
+        Yu, Yw, _ = Ycache[H]
+        if sd["kind"] == "event":
+            R = ev_stat(sd["days"], Yu, Yw, samp, H, r0)
+        else:
+            gap = 1 if sd.get("monthly") else S.EP_GAP
+            R = st_stat(np.asarray(sd["state"], dtype=bool), samp, Yu, Yw, gap, r0)
+        out[k] = {"H": H, "th": warn_th(mk, H), "up": _small(R["up"]), "warn": _small(R["warn"])}
+    return out
+
+
 def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
-    """一個訊號 → 一列（含每一次）。"""
+    """一個訊號 → 一列（含每一次；VER 15 起另有 "xh"＝另外兩支溫度計的看多久的統計）。"""
     mk, cal = F["mk"], F["cal"]
     H = sd["H"]
     if H not in Ycache:
@@ -676,6 +705,9 @@ def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
                 "tier": tr, "dir": ds, "occ": occ, "ret": ret})
     if sd.get("monthly"):
         row["monthly"] = True
+    xh = cross_stats(F, sd, Ycache)
+    if xh:
+        row["xh"] = xh
     row["_luck"] = {d: LP[d]["luck"] for d in ("up", "warn")}   # 運氣會產生 ★ 的機率（research 加總後拿掉）
     return row
 
@@ -1006,32 +1038,43 @@ def today_for(now: dict | None) -> dict | None:
     rows = research_rows()
     if not now or not rows:
         return None
-    return {"mk": now["mk"], "d": now["d"], **board(rows, now["on"], now["mk"], now.get("acts"))}
+    return {"mk": now["mk"], "d": now["d"], **board(rows, now["on"], now["mk"], now.get("acts"), now.get("xon"))}
 
 
 # ── 現在有沒有效（每天建頁） ───────────────────────────────────────────────────
 
-def activity(sd: dict, T: int) -> np.ndarray:
-    """過去「出現」的日子（sigspec 第 5 節 ①b，同類合併用）：狀態型＝樣本日裡在狀態中的日子；事件型＝每一次出現那天起 H 個交易日。"""
+def activity(sd: dict, T: int, H: int | None = None) -> np.ndarray:
+    """過去「出現」的日子（sigspec 第 5 節 ①b，同類合併用）：狀態型＝樣本日裡在狀態中的日子；事件型＝每一次出現那天起 H 個交易日
+    （H 沒給＝這個訊號自己的看多久；跨期間的票用那支溫度計的 THERMO_H，第 5 節 ③a）。"""
     a = np.zeros(T, dtype=bool)
     samp = np.asarray(sd["samp"], dtype=np.int64)
     if sd["kind"] == "state":
         a[samp[np.asarray(sd["state"], dtype=bool)]] = True
     else:
+        H = sd["H"] if H is None else H
         for t in sd["days"]:
-            a[int(t):int(t) + sd["H"]] = True
+            a[int(t):int(t) + H] = True
     return a
 
 
-def now_market(F: dict, acts: dict | None = None) -> dict:
+def xkey(sid: str, k: str) -> str:
+    """跨期間的票在 acts 裡的鍵（同一個訊號在另一支溫度計）。"""
+    return f"{sid}@{k}"
+
+
+def now_market(F: dict, acts: dict | None = None, xon: dict | None = None) -> dict:
     """一個市場 → {訊號 id: {"since": 開始日, "n": 已經幾天（月資料＝幾個月）, "left": 事件型剩幾天}}，只列現在有效的。
     狀態型＝資料最後一天在狀態中（月資料＝最後一個過完的月份）；事件型＝最近一次出現在最後 H 個交易日內；
-    買點＝目前一段大跌（bottom.now 進行中）之後已經出現。acts＝給了就順便填現在有效的訊號過去出現的日子（同類合併用）。"""
+    買點＝目前一段大跌（bottom.now 進行中）之後已經出現。acts＝給了就順便填現在有效的訊號過去出現的日子（同類合併用）。
+    xon＝給了就填跨期間（sigspec 第 5 節 ③a，VER 15）：{訊號 id: {溫度計: 同上的現在狀態}}，只列原本那個看多久以外、現在有效的；
+    acts 同時填 xkey(id, 溫度計)＝那支溫度計的看多久下出現的日子。"""
     cal = F["cal"]
     T = len(cal)
     out: dict = {}
     for sd in signals(F):
         samp = np.asarray(sd["samp"], dtype=np.int64)
+        xs = ([(k, H) for k, H in S.THERMO_H.items() if H != sd["H"]]
+              if xon is not None and sd["cat"] in S.THERMO_X_CATS else [])
         if sd["kind"] == "state":
             st = np.asarray(sd["state"], dtype=bool)
             if not len(samp) or not st[-1]:
@@ -1041,12 +1084,21 @@ def now_market(F: dict, acts: dict | None = None) -> dict:
             gap = 1 if sd.get("monthly") else S.EP_GAP
             ep = episodes([i for i in range(len(samp)) if st[i]], gap)[-1]
             out[sd["id"]] = {"since": cal[int(samp[ep[0]])], "n": len(ep)}
+            for k, _ in xs:                              # 狀態型：現在有效、出現的日子都和原本一樣
+                xon.setdefault(sd["id"], {})[k] = dict(out[sd["id"]])
         else:
             ds = [t for t in sd["days"] if t >= (samp[0] if len(samp) else 0)]
             if ds and T - 1 - ds[-1] < sd["H"]:
                 out[sd["id"]] = {"since": cal[ds[-1]], "n": T - 1 - ds[-1], "left": sd["H"] - (T - 1 - ds[-1])}
+            for k, H in xs:
+                if ds and T - 1 - ds[-1] < H:
+                    xon.setdefault(sd["id"], {})[k] = {"since": cal[ds[-1]], "n": T - 1 - ds[-1], "left": H - (T - 1 - ds[-1])}
         if acts is not None and sd["id"] in out:
             acts[sd["id"]] = activity(sd, T)
+        if acts is not None and xon is not None:
+            for k, H in xs:
+                if k in xon.get(sd["id"], {}):
+                    acts[xkey(sd["id"], k)] = acts[sd["id"]] if sd["kind"] == "state" else activity(sd, T, H)
     I = F.get("IB")
     if I:
         from . import bottom as BO
@@ -1116,6 +1168,11 @@ def overlap(a: np.ndarray | None, b: np.ndarray | None) -> tuple[float, float]:
     return int((lo & hi).sum()) / int(lo.sum()), float(hi.mean())
 
 
+def _ak(x: dict) -> str:
+    """同類合併查「出現的日子」用的鍵：跨期間的票（VER 15）是 xkey(id, 溫度計)，其他就是訊號 id。"""
+    return x.get("ak") or x["id"]
+
+
 def same_family(a: np.ndarray | None, b: np.ndarray | None) -> bool:
     """sigspec 第 5 節 ①b（VER 11）：比較少出現的那個出現時，另一個過半也成立，而且至少是互不相干時的 FAMILY_X 倍。"""
     o, q = overlap(a, b)
@@ -1141,7 +1198,7 @@ def families(items: list[dict], acts: dict | None) -> list[dict]:
         for i in range(len(xs)):
             for j in range(i + 1, len(xs)):
                 a, b = xs[i], xs[j]
-                if (a["cat"] == "buy" and b["cat"] == "buy") or same_family(acts.get(a["id"]), acts.get(b["id"])):
+                if (a["cat"] == "buy" and b["cat"] == "buy") or same_family(acts.get(_ak(a)), acts.get(_ak(b))):
                     parent[find(i)] = find(j)
         cl: dict = {}
         for i, x in enumerate(xs):
@@ -1181,7 +1238,7 @@ def thermo_families(items: list[dict], acts: dict | None) -> list[dict]:
             for f in out:
                 if (f["hz"], f["side"]) != (x["hz"], x["side"]):
                     continue
-                if any((m["cat"] == "buy" and x["cat"] == "buy") or same_family(acts.get(m["id"]), acts.get(x["id"]))
+                if any((m["cat"] == "buy" and x["cat"] == "buy") or same_family(acts.get(_ak(m)), acts.get(_ak(x)))
                        for m in [f] + f["fam"]):
                     home = f
                     break
@@ -1193,12 +1250,15 @@ def thermo_families(items: list[dict], acts: dict | None) -> list[dict]:
     return out
 
 
-def board(rows: list[dict], on: dict, mk: str, acts: dict | None = None) -> dict:
+def board(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: dict | None = None) -> dict:
     """景氣頁「今天的重點」（sigspec 第 5 節）：偏多（含買點）與警示兩欄列現在有效的 ★（VER 9；● 不列），兩個方向各自看自己的判定
     （VER 3）；同一個項目在同一支溫度計、同一邊只留一種（等級高的優先、同級取差最大）；兩邊都是 ★ 的標 both（「震盪」）。
     兩欄的同類合併＝families（acts＝現在有效的訊號過去出現的日子，now_market 填）。
     溫度計（VER 12）另外算 ●、△（thermo_tier），同類合併＝thermo_families，一類算 THERMO_W[這一類的等級]；
     每支溫度計的 "more"＝最高等級是 ●、△ 的類（溫度計下面收起來那一段）。
+    跨期間（VER 15，第 5 節 ③a）：xon＝now_market 填的 {訊號 id: {溫度計: 現在狀態}}，研究列的 "xh" 有那支溫度計的統計、
+    次數 ≥ N_MIN 而且差 ≥ THERMO_EDGE → △；這種票的 H、th、up、warn 換成那支溫度計的（頁面寫那個看多久的機率），
+    "H0"＝原本的看多久、"xk"＝溫度計、"ak"＝xkey(id, 溫度計)。只進溫度計，不進兩欄。
     → {"up": [...], "warn": [...], "thermo": [{"k", "name", "h", "n": {side: {tier: 類數}}, "w": {side: 分}, "share", "lean",
        "more": {side: [類…]}}]}"""
     best: dict = {}
@@ -1216,6 +1276,25 @@ def board(rows: list[dict], on: dict, mk: str, acts: dict | None = None) -> dict
             k = (THERMO_RANK[t], e)
             if key not in best or k > best[key][0]:
                 best[key] = (k, {**r, "tier": t, "d": d, "edge": e, "now": on[r["id"]], "side": side, "hz": horizon(r)})
+    for r in rows:                                    # 跨期間的票（VER 15）
+        if r.get("mk") != mk or not xon or r["id"] not in xon or not r.get("xh"):
+            continue
+        for k, nk in xon[r["id"]].items():
+            X = r["xh"].get(k)
+            if not X:
+                continue
+            for d in ("up", "warn"):
+                st = X.get(d) or {}
+                e = edge(st)
+                if (st.get("n") or 0) < S.N_MIN or e is None or e < S.THERMO_EDGE:
+                    continue
+                side = "warn" if d == "warn" else "up"
+                key = (item_key(r), k, side)
+                kr = (THERMO_RANK["lean"], e)
+                if key not in best or kr > best[key][0]:
+                    best[key] = (kr, {**r, "H": X["H"], "th": X["th"], "up": X["up"], "warn": X["warn"], "H0": r["H"],
+                                      "tier": "lean", "d": d, "edge": e, "now": nk, "side": side, "hz": k, "xk": k,
+                                      "ak": xkey(r["id"], k)})
     allx = [x for _, x in best.values()]
     good = [x for x in allx if x["tier"] == "good"]
     sides: dict = {}
@@ -1318,8 +1397,10 @@ def now_for_B(B: dict) -> dict | None:
         if F is None:
             return None
         acts: dict = {}
-        on = now_market(F, acts)
-        NOW[F["mk"]] = {"mk": F["mk"], "d": F["cal"][-1], "on": on, "acts": acts, "cv": crash_now(F), "sim": _sim_now(F)}
+        xon: dict = {}
+        on = now_market(F, acts, xon)
+        NOW[F["mk"]] = {"mk": F["mk"], "d": F["cal"][-1], "on": on, "acts": acts, "xon": xon, "cv": crash_now(F),
+                        "sim": _sim_now(F)}
         return NOW[F["mk"]]
     except Exception as e:                            # noqa: BLE001
         print(f"[訊號總覽] 現在的狀態算不出來：{type(e).__name__}: {e}")
