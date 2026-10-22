@@ -205,7 +205,25 @@ def view() -> dict:
     rmk = [mk for mk in TODAY_MK if mk in CARDS or (OUT_DATA.parent / f"x9or-{mk}.json").exists()]
     return {"rows": rows, "on": on, "today": today, "stk": stk, "asof": asof, "run": R.get("run"), "bases": R.get("bases") or {},
             "last": R.get("last") or {}, "rmk": rmk, "items": {mk: ITEMS[mk] for mk in TODAY_MK if mk in ITEMS},
-            "luck": R.get("luck"), "xs": XSP.results(), "pr": practice()}
+            "luck": R.get("luck"), "xs": XSP.results(), "pr": practice(), "find": find_data()}
+
+
+def find_data(dirpath: Path | None = None) -> dict:
+    """研究結論（findings）第 2～6 則的資料：景氣頁在同一個程序裡建頁時放在 CARDS[市場]["find"]；
+    單獨建這一頁時讀上一版的 x9or-{市場}.json（沒有就只有第 1、7 則）。"""
+    d = dirpath or OUT_DATA.parent
+    out = {}
+    for mk in TODAY_MK:
+        f = (CARDS.get(mk) or {}).get("find")
+        if f is None:
+            path = d / f"x9or-{mk}.json"
+            try:
+                f = json.loads(path.read_text(encoding="utf-8")).get("find") if path.exists() else None
+            except (OSError, ValueError):
+                f = None
+        if f:
+            out[mk] = f
+    return out
 
 
 def practice() -> dict:
@@ -742,30 +760,58 @@ PANEL = ('<div class="sgpv" id="sgpv" hidden><div class="sgpb" id="sgpb"></div>'
 
 
 def research_html(V: dict) -> str:
-    """研究細節：最上面是實測區（practpage，2026-10-22，docs/lab_practice_page_plan.md），下面是原本在景氣頁的四張研究卡
-    （2026-10-19 起搬到這裡，docs/lab_signal_plan.md 第 10 節 Q3），每個市場一個檔、點了才載入。"""
+    """研究結論（2026-10-22 改版，docs/lab_research_v2_plan.md）：每個市場七則白話問答（findings），最上面「現在適用」；
+    原本的實測細節與四張研究卡（每個市場一個檔、點了才載入）收在最下面的「完整研究表」。"""
+    from . import findings as FD
     from . import practpage as PP
     rmk = V.get("rmk") or []
-    P = (V.get("pr") or {}).get("P") or {"ok": False}
-    pr = PP.html(P)
-    if not rmk and not pr:
+    PRV = V.get("pr") or {}
+    P = PRV.get("P") or {"ok": False}
+    R = PRV.get("R")
+    find = V.get("find") or {}
+    mks = [mk for mk in TODAY_MK if mk in find or mk in rmk or (R and mk in (R.get("mk") or {}))]
+    if not mks:
         return ""
-    names = "、".join(CARD_NAMES[c] for c in CARD_ORDER)
-    cards = ""
-    if rmk:
-        chips = "".join(f'<button type="button" class="sgch" data-r="{mk}">{_e(MK_NAMES[mk])}</button>' for mk in rmk)
-        cards = ((f'<h3 class="sgrh">各市場的研究卡<span class="sub">{_e(names)}</span></h3>' if pr else "")
-                 + f'<div class="sgchips" id="rmk">{chips}</div>'
-                 '<div id="rbox"><p class="note">選一個市場，載入那個市場的研究卡。訊號點開之後的「相關研究」也會連到這裡。</p></div>')
-    sub = ("實測、" if pr else "") + names
-    return '<section class="sec" id="research"><h2>研究細節<span class="sub">' + _e(sub) + '</span></h2>' + pr + cards + '</section>'
+    kp = None
+    try:
+        kp = FD.keep()
+    except Exception as e:                                # noqa: BLE001
+        print(f"[研究結論] 第 7 則算不出來：{type(e).__name__}: {e}", flush=True)
+    first = mks[0]
+    chips = "".join(f'<button type="button" class="sgch{" on" if mk == first else ""}" data-r="{mk}">{_e(MK_NAMES[mk])}</button>'
+                    for mk in mks)
+    blocks = []
+    for mk in mks:
+        try:
+            mx = FD.money(R, mk, P) if R else None
+        except Exception as e:                            # noqa: BLE001 —— 第 1 則算不出來只少那一則
+            print(f"[研究結論] {mk} 第 1 則算不出來：{type(e).__name__}: {e}", flush=True)
+            mx = None
+        blocks.append(FD.market_html(mk, find.get(mk), mx, kp, show=(mk == first)))
+    pr = PP.html(P)
+    full = ""
+    if pr or rmk:
+        full = ('<details class="rffull" id="rfull"><summary><b>完整研究表</b>：每週走勢、逐年成績、四張研究卡的全部數字（要核對時再打開）</summary>'
+                '<div class="rffb">'
+                + (f'<h3 class="sgrh">照網頁做：每週走勢與逐年成績</h3>{pr}' if pr else "")
+                + (f'<h3 class="sgrh">研究卡<span class="sub">{_e("、".join(CARD_NAMES[c] for c in CARD_ORDER))}；跟著上面選的市場</span></h3>'
+                   '<div id="rbox"><p class="note">打開這一區時載入上面選的市場的研究卡。</p></div>' if rmk else "")
+                + "</div></details>")
+    return ('<section class="sec" id="research"><h2>研究結論<span class="sub">研究過的 7 個問題：答案、和平常比、現在是不是這樣</span></h2>'
+            f'<div class="sgchips" id="rmk">{chips}</div>' + "".join(blocks)
+            + '<p class="rffoot">數字都是過去發生的比例，不是買賣指示。每一則下面的「過去每一次」列出每次發生的日期與之後的結果，可以自己核對。</p>'
+            + full + "</section>")
 
 
 def card_json(mk: str, c: dict) -> str:
-    """一個市場的研究卡，各自收在一個 <details>（點開才展開；#r=市場:卡 會打開那一張）。"""
+    """一個市場的研究卡，各自收在一個 <details>（點開才展開；#r=市場:卡 會打開那一張）；find＝研究結論第 2～6 則的資料
+    （單獨建訊號總覽時從這裡讀回來）。"""
     html = "".join(f'<details class="sgrc" id="rc-{k}"><summary>{_e(CARD_NAMES[k])}</summary>{c[k]}</details>'
                    for k in CARD_ORDER if c.get(k))
-    return json.dumps({"mk": mk, "d": c.get("d"), "html": html}, ensure_ascii=False, separators=(",", ":"))
+    out = {"mk": mk, "d": c.get("d"), "html": html}
+    if c.get("find"):
+        out["find"] = c["find"]
+    return json.dumps(out, ensure_ascii=False, separators=(",", ":"))
 
 
 def render(V: dict) -> str:
@@ -784,8 +830,9 @@ def render(V: dict) -> str:
     body = today_html(V) + TABLE + research_html(V) + method_html(V.get("luck"))
     if not V["rows"]:
         body = '<p class="warn">還沒有研究結果（scripts/run_sig.py）。</p>'
+    from . import findings as FD
     from . import practpage as PP
-    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("sig")).replace("{{CSS}}", HCSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS + QP.CSS + BP.CSS + CSS + PP.CSS)
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("sig")).replace("{{CSS}}", HCSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS + QP.CSS + BP.CSS + CSS + PP.CSS + FD.CSS)
             .replace("{{ASOF}}", _e(("資料到 " + asof) if asof else "")).replace("{{BODY}}", body)
             .replace("{{DATA}}", page_json(V)).replace("{{PANEL}}", PANEL).replace("{{JS}}", JS))
 
@@ -1644,18 +1691,36 @@ function xsOpen(x, push){
   const tr = document.querySelector('tr.sgr[data-k="' + CSS.escape(x.k) + '"]'); if (tr) tr.classList.add('open');
   xsFill(x); }
 
-// ── 研究細節（研究卡，點了才載入）
+// ── 研究結論（findings）：選市場切換七則問答；最下面「完整研究表」打開時才載入那個市場的研究卡
 const RMK = SG.rmk || [], RCACHE = {};
+let RSEL = (document.querySelector('#rmk .sgch.on') || {dataset: {}}).dataset.r || null;
+function rfShow(mk){
+  if (!document.querySelector('.rfm[data-mk="' + mk + '"]')) return false;
+  RSEL = mk;
+  document.querySelectorAll('#rmk .sgch').forEach(b => b.classList.toggle('on', b.dataset.r === mk));
+  document.querySelectorAll('.rfm').forEach(el => { el.hidden = el.dataset.mk !== mk; });
+  const f = document.getElementById('rfull'); if (f && f.open) loadR(mk);
+  return true; }
+let RPEND = null;                                    // 要打開的研究卡（載入完才打開）
+function rcOpen(mk){
+  if (!RPEND || RPEND[0] !== mk) return;
+  const el = document.getElementById('rc-' + RPEND[1]); RPEND = null;
+  if (el) { el.open = true; el.scrollIntoView({block: 'start'}); } }
 function loadR(mk, card){
   const box = document.getElementById('rbox'); if (!box || !RMK.includes(mk)) return;
-  document.querySelectorAll('#rmk .sgch').forEach(b => b.classList.toggle('on', b.dataset.r === mk));
-  const show = h => { box.innerHTML = h; if (card) { const el = document.getElementById('rc-' + card); if (el) { el.open = true; el.scrollIntoView({block: 'start'}); } } };
+  if (card) { RPEND = [mk, card]; const f = document.getElementById('rfull'); if (f && !f.open) f.open = true; }
+  if (box.dataset.mk === mk) { if (!box.dataset.ld) rcOpen(mk); return; }
+  box.dataset.mk = mk;
+  const show = h => { if (box.dataset.mk !== mk) return; delete box.dataset.ld; box.innerHTML = h; rcOpen(mk); };
   if (RCACHE[mk]) { show(RCACHE[mk]); return; }
+  box.dataset.ld = '1';
   box.innerHTML = '<p class="note">' + esc(SG.mk[mk]) + ' 的研究卡載入中…</p>';
   fetch('x9or-' + mk + '.json').then(x => x.json()).then(j => { RCACHE[mk] = j.html || '<p class="note">這個市場沒有研究卡。</p>'; show(RCACHE[mk]); })
-    .catch(() => { box.innerHTML = '<p class="note">載入失敗，請重新整理。</p>'; }); }
+    .catch(() => { if (box.dataset.mk === mk) { box.innerHTML = '<p class="note">載入失敗，請重新整理。</p>'; delete box.dataset.mk; delete box.dataset.ld; } }); }
 const rm = document.getElementById('rmk');
-if (rm) rm.addEventListener('click', e => { const b = e.target.closest('.sgch'); if (b) loadR(b.dataset.r); });
+if (rm) rm.addEventListener('click', e => { const b = e.target.closest('.sgch'); if (b) rfShow(b.dataset.r); });
+const rfl = document.getElementById('rfull');
+if (rfl) rfl.addEventListener('toggle', () => { if (rfl.open && RSEL) loadR(RSEL); });
 function rel(r){ const c = r[I.cat], x = r[I.x] || {}, mk = r[I.mk], out = [];
   if (c === 'bub') return '<a href="x9b.html#' + mk + '">泡沫頁（' + esc(SG.mk[mk]) + '）</a>';
   if (c === 'ind') return '<a href="x9b.html#ind">泡沫頁・產業</a>';
@@ -1672,7 +1737,7 @@ function fromHash(ev){
   let m = h.match(/^#p=(\w+):(\w+)$/);                                     // 實測區的一格（practpage）
   if (m) { closeP(true); prOpen(m[1], m[2], true); return; }
   m = h.match(/^#r=(\w+)(?::(\w+))?$/);
-  if (m) { closeP(true); loadR(m[1], m[2]); const sec = document.getElementById('research'); if (sec && !m[2]) sec.scrollIntoView({block: 'start'}); return; }
+  if (m) { closeP(true); rfShow(m[1]); if (m[2]) loadR(m[1], m[2]); else { const sec = document.getElementById('research'); if (sec) sec.scrollIntoView({block: 'start'}); } return; }
   m = h.match(/^#i=([^&]+)$/);
   if (m) { const x = BYK[decodeURIComponent(m[1])]; if (x) { if (ev) PUSHED = true; if (CUR !== x) openInd(x, null, false); return; } }
   m = h.match(/^#s=(.+)$/);
