@@ -15,6 +15,7 @@ from datetime import date, timedelta
 
 import numpy as np
 
+from . import robust as RB
 from . import xstratspec as S
 
 # ── 資料 ───────────────────────────────────────────────────────────────────
@@ -606,6 +607,7 @@ def dip_stats(px: np.ndarray, days: list[int], H: int, c: float, lo: int, hs: tu
         r = net[bs]
         out.update({"win": float((r > 0).mean()), "med": float(np.median(r)), "avg": float(r.mean()),
                     "worst": float(r.min()), "best": float(r.max()),
+                    "trim": RB.trim_mean(r, S.DIP_TRIM_Q, S.DIP_TRIM_N), "lbo": RB.lbo_mean(r),   # VER 6：排除極端、去掉最好一次
                     "mae": float(np.median([dip_mae(px, b, H) for b in bs]))})
     hx = {}
     for h in hs:
@@ -632,8 +634,11 @@ def dip_bigger(s: dict) -> bool:
 
 
 def dip_ok(s: dict) -> bool:
-    """過關（不看次數）：上漲比例 ≥ DIP_WIN，而且 ① 或 ②（VER 3～4 只有 ①）。"""
-    return bool(s.get("win") is not None and s["win"] >= S.DIP_WIN and (dip_more(s) or dip_bigger(s)))
+    """過關（不看次數；VER 6）：上漲比例 ≥ DIP_WIN、不低於隨便挑一天、淨報酬中位數 ＞ 0、排除極端的平均 ＞ 0
+    （VER 3～5：上漲比例 ≥ DIP_WIN，而且 dip_more 或 dip_bigger）。"""
+    w, b, m, t = s.get("win"), s.get("base"), s.get("med"), s.get("trim")
+    return bool(w is not None and b is not None and m is not None and t is not None
+                and w >= S.DIP_WIN and w >= b and m > 0 and t > 0)
 
 
 def dip_pass(s: dict) -> bool:
@@ -962,7 +967,11 @@ def strategy(C: Ctx, spec: dict) -> dict:
                     "p": luck_dip(C.px, M["raw"], lo, H, c, key, full.get("win")),
                     "b1": _b1_ref(C, H, c, lo)})
         tr = [(t, t + S.LAG, t + S.LAG + H, t + S.LAG + H) for t in M["days"] if t + S.LAG + H < C.T]
-        out["eq"] = _sample(C, trade_equity(C.px, tr, lo, c), lo)
+        eqd = trade_equity(C.px, tr, lo, c)
+        out["eq"] = _sample(C, eqd, lo)
+        cs = curve_stats(eqd, C.cal, lo)                 # 全部資金照做（策略頁的隱含獲利；不影響判定）
+        out["curve"] = {"cagr": cs["cagr"], "mdd": cs["mdd"],
+                        "expo": float(trade_held(C.T, tr)[lo + 1:].mean()) if C.T > lo + 1 else None}
         out["tr"] = [[C.cal[e], _r(C.px[e], 2), C.cal[q], _r(C.px[q], 2), q - e, _r(net(C.px[e], C.px[q], c), 5),
                       _r(dip_mae(C.px, e, H), 5), C.cal[t]] for t, e, _, q in tr]
     else:
@@ -992,6 +1001,58 @@ def strategy(C: Ctx, spec: dict) -> dict:
     if k == "hal":
         out["season"] = season(C, p)
     return out
+
+
+def judge(C: Ctx, spec: dict) -> str:
+    """只算判定（good／ref／none／few），不算打亂測試、淨值、每一筆、現在——實戰模擬每年 1 月 1 日重新判定用（practspec 第 3 節）。
+    和 strategy() 的 tier 一樣（tests/test_practsim.py 守）。"""
+    k, kind, p = spec["k"], spec["kind"], spec["p"]
+    if kind == "trade":
+        c, lg = S.cost(C.mk, k), S.lag(C.mk, k)
+        M = _trade_eval(C, k, p, lg)
+        rec_ok = trade_pass_recent(trade_stats(C.px, M["tr"], C.r0, c))
+        oks = [(M if {**p, **q} == p else _trade_eval(C, k, {**p, **q}, lg))["full"]["ok"] for q in _combos(spec["grid"])]
+        return tier(kind, M["full"]["ok"], rec_ok, sum(oks) / len(oks), M["full"]["n"] < S.TR_N_MIN)
+    if kind == "dip":
+        H, c = spec["H"], S.cost(C.mk, k)
+        M = _dip_eval(C, k, p, H)
+        rlo = max(M["lo"], C.r0)
+        rec_ok = dip_pass_recent(dip_stats(C.px, [t for t in M["days"] if t >= rlo], H, c, rlo))
+        oks = [(M if {**p, **q} == p else _dip_eval(C, k, {**p, **q}, H))["full"]["ok"] for q in _combos(spec["grid"])]
+        return tier(kind, M["full"]["ok"], rec_ok, sum(oks) / len(oks), M["full"]["n"] < S.DIP_N_MIN)
+    bh, bh_r = bh_stats(C.px, C.cal, C.s0), bh_stats(C.px, C.cal, C.r0)
+    M = _alloc_eval(C, k, p, S.LAG)
+    rec_ok = alloc_pass(_alloc_eval(C, k, p, S.LAG, lo=C.r0)["s"], bh_r)
+    oks = [alloc_pass((M if {**p, **q} == p else _alloc_eval(C, k, {**p, **q}, S.LAG))["s"], bh) for q in _combos(spec["grid"])]
+    return tier(kind, alloc_pass(M["s"], bh), rec_ok, sum(oks) / len(oks), _years(C.cal, C.s0) < S.AL_YEARS_MIN)
+
+
+def held_pos(C: Ctx, spec: dict) -> np.ndarray:
+    """照規則的部位：pos[k]＝第 k 天收盤之後有沒有拿（0／1）。交易型＝買進那天收盤到賣出那天收盤之前；落底型＝訊號隔天收盤買、
+    抱 H 天；進出型＝策略的部位。資料最後還在持有中的也算（實戰模擬用；只用到當天以前的價格）。"""
+    k, kind, p = spec["k"], spec["kind"], spec["p"]
+    T = C.T
+    out = np.zeros(T)
+    if kind == "trade":
+        if k == "tom":
+            tr, st = tom_trades(C.cal, C.s0, p["before"], p["after"], C.mk)
+        else:
+            tr, st = C.trades(k, p, S.lag(C.mk, k))
+        for _, e, _, q in tr:
+            out[e:q] = 1.0
+        if st.get("st") in ("hold", "sell") and st.get("e") is not None and st["e"] < T:
+            out[st["e"]:] = 1.0
+        return out
+    if kind == "dip":
+        H = spec["H"]
+        raw, first = C.dip_raw(k, p)
+        lo = max(C.s0, first)
+        for t in dedupe([t for t in raw if t >= lo], H):
+            b = t + S.LAG
+            if b < T:
+                out[b:min(T, b + H)] = 1.0
+        return out
+    return np.nan_to_num(C.pos(k, p, S.LAG), nan=0.0)
 
 
 def _sample(C: Ctx, eq: np.ndarray, lo: int) -> dict:
@@ -1196,7 +1257,7 @@ def now_state(C: Ctx, spec: dict) -> dict:
         return out
     pos = C.pos(k, p, S.LAG, now=True)
     cur = pos[t]
-    out = {"d": C.cal[t], "st": "in" if cur == 1 else "out", "nx": nx}
+    out = {"d": C.cal[t], "st": "in" if cur == 1 else "out", "nx": nx, "px": _r(px[t], 2)}
     nxt = None
     if k == "ma200":
         m = C.ma(p["n"])[t]
@@ -1236,7 +1297,7 @@ def now_state(C: Ctx, spec: dict) -> dict:
         out["st"] = "turn_in" if nxt == 1 else "turn_out"
     sp = _spans(C, pos)
     if sp and sp[-1][2] is None and cur == 1:
-        out.update({"ed": sp[-1][0], "ret": sp[-1][5]})
+        out.update({"ed": sp[-1][0], "ep": sp[-1][1], "ret": sp[-1][5]})
     return out
 
 

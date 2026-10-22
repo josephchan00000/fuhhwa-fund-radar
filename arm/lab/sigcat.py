@@ -14,6 +14,7 @@ from pathlib import Path
 
 import numpy as np
 
+from . import robust as RB
 from . import sigluck as LK
 from . import sigspec as S
 
@@ -129,23 +130,28 @@ def wquant(v: np.ndarray, w: np.ndarray, q: float) -> float:
     return float(v[o][min(k, len(v) - 1)])
 
 
-def ret_cell(r: np.ndarray, a: np.ndarray, w: np.ndarray, n: int) -> list | None:
-    """→ [次數, 平均, 25%, 中位數, 75%, 上漲比例, 中途最多跌中位數, 中途最多跌最差 10%, 最差一次]。"""
+def ret_cell(r: np.ndarray, a: np.ndarray, w: np.ndarray, n: int, occ=None, occ_w=None) -> list | None:
+    """→ [次數, 平均, 25%, 中位數, 75%, 上漲比例, 中途最多跌中位數, 中途最多跌最差 10%, 最差一次, 排除極端, 去掉最好一次]。
+    最後兩個（VER 17，第 4.11 節）用 occ＝每一次（狀態型＝每一段的平均）的報酬；沒給＝r 的每一個值各算一次（每一天等權）。
+    occ_w＝每一次的權重（VER 22：狀態型＝段內天數；排序與去掉幾個照段算，其餘照天數平均）。"""
     if n <= 0 or not len(r):
         return None
     W = float(w.sum())
+    o = r if occ is None else occ
+    rob = (RB.trim_mean(o), RB.lbo_mean(o)) if occ_w is None else (RB.trim_mean_w(o, occ_w), RB.lbo_mean_w(o, occ_w))
     return [int(n), float((r * w).sum() / W), *(wquant(r, w, q) for q in S.RET_Q), float(w[r > 0].sum() / W),
-            wquant(a, w, 0.5), wquant(a, w, S.MAE_Q), float(a.min())]
+            wquant(a, w, 0.5), wquant(a, w, S.MAE_Q), float(a.min()), *rob]
 
 
 def ret_stats(groups: list, RA: dict) -> dict:
-    """groups＝每一次在 RA 陣列裡的索引（事件：一天；狀態：一段的樣本日）；每一段一樣重（段內窗口完整的日子平分）。
+    """groups＝每一次在 RA 陣列裡的索引（事件：一天；狀態：一段的樣本日）；每一天一樣重（VER 22；VER 5～21 是每一段一樣重：
+    段內窗口完整的日子平分）。排除極端、去掉最好一次的單位＝每一次（一段），權重＝段內窗口完整的天數。
     → {"s": RET_H 每一期一格（ret_cell）, "p": PATH_D 每一天 [25%, 中位數, 75%]}。"""
     gs = [np.asarray(g, dtype=np.int64) for g in groups]
     gs = [g for g in gs if len(g)]
 
     def pick(Y, Z=None):
-        rs, zs, ws, n = [], [], [], 0
+        rs, zs, ws, ms, mw, n = [], [], [], [], [], 0
         for g in gs:
             m = np.isfinite(Y[g]) if Z is None else (np.isfinite(Y[g]) & np.isfinite(Z[g]))
             k = g[m]
@@ -153,17 +159,19 @@ def ret_stats(groups: list, RA: dict) -> dict:
                 continue
             n += 1
             rs.append(Y[k])
-            ws.append(np.full(len(k), 1.0 / len(k)))
+            ws.append(np.ones(len(k)))                     # VER 22：每一天一樣重
+            ms.append(float(Y[k].mean()))                 # VER 17：每一段的平均（排除極端、去掉最好一次的單位）
+            mw.append(float(len(k)))                      # VER 22：這一段的權重＝天數
             if Z is not None:
                 zs.append(Z[k])
         if not n:
             return None
-        return (np.concatenate(rs), np.concatenate(zs) if Z is not None else None, np.concatenate(ws), n)
+        return (np.concatenate(rs), np.concatenate(zs) if Z is not None else None, np.concatenate(ws), n, ms, mw)
 
     out_s = []
     for h in RA["hs"]:
         P = pick(RA["R"][h], RA["A"][h])
-        out_s.append(None if P is None else ret_cell(P[0], P[1], P[2], P[3]))
+        out_s.append(None if P is None else ret_cell(P[0], P[1], P[2], P[3], P[4], P[5]))
     out_p = []
     for d in RA["ps"]:
         P = pick(RA["R"][d])
@@ -243,6 +251,23 @@ def _base_med(Y: np.ndarray | None, samp: np.ndarray) -> float | None:
     return float(np.median(v)) if len(v) else None
 
 
+def skipped(days, ok: set, H: int, Yu: np.ndarray, cal: list[str]) -> list[list]:
+    """事件型「出現了但沒算進次數」的日子（訊號總覽「最近幾次」與走勢圖標灰，docs/lab_audit_plan.md 第 3.4 節；只呈現）：
+    → [[日期, 原因, 算進去的那一次的日期]]：原因 "d"＝和上一次算進去的相隔不到 H 個交易日（之後的漲跌和那一次重疊，算同一次）、
+    "i"＝之後 H 個交易日還沒走完。輸入沒有值的日子（不在 ok）不列。"""
+    kept = dedupe([t for t in days if t in ok], H)
+    ks = set(kept)
+    out = []
+    for t in sorted(int(x) for x in days if int(x) in ok):
+        if t in ks:
+            if np.isnan(Yu[t]):
+                out.append([cal[t], "i", None])
+        else:
+            j = bisect.bisect_right(kept, t) - 1
+            out.append([cal[t], "d", cal[kept[j]] if j >= 0 else None])
+    return out
+
+
 def ev_stat(days, Yu: np.ndarray, Yw: np.ndarray, samp: np.ndarray, H: int, r0: int, Yd: np.ndarray | None = None,
             Yr: np.ndarray | None = None) -> dict:
     """事件型：samp＝可以算平常的日子（輸入有值）索引；r0＝近 10 年起點的索引；Yd＝每一天的最大回撤（VER 3，只呈現）；
@@ -264,26 +289,43 @@ def ev_stat(days, Yu: np.ndarray, Yw: np.ndarray, samp: np.ndarray, H: int, r0: 
     return out
 
 
-def episodes(pos: list[int], gap: int) -> list[list[int]]:
-    """pos＝狀態中的樣本在樣本序列裡的位置（遞增）→ 每一段的位置；中斷的樣本數 < gap 算同一段。"""
+def episodes(pos: list[int], gap: int, brk=None) -> list[list[int]]:
+    """pos＝狀態中的樣本在樣本序列裡的位置（遞增）→ 每一段的位置；中斷的樣本數 < gap 算同一段。
+    brk（sigspec VER 20）＝每個樣本是不是相反的極端（和樣本序列同長度）：中斷的樣本裡有一個是，就切成兩段。"""
+    cb = None if brk is None else np.concatenate([[0], np.cumsum(np.asarray(brk, dtype=np.int64))])
     out: list[list[int]] = []
     for p in pos:
-        if out and p - out[-1][-1] - 1 < gap:
+        if out and p - out[-1][-1] - 1 < gap and (cb is None or cb[p] == cb[out[-1][-1] + 1]):
             out[-1].append(p)
         else:
             out.append([p])
     return out
 
 
+def exp_end(sd: dict, days, H: int) -> np.ndarray:
+    """事件型每一次出現 t 的「有效到」（不含）：min(t＋H, 之後第一個相反讀數的那天)（sigspec VER 20 第 5 節；
+    sd["exp"]＝同一個項目相反讀數的日子，沒有就只看 H）。"""
+    D = np.asarray(days, dtype=np.int64)
+    end = D + int(H)
+    ex = sd.get("exp")
+    if ex is not None and len(ex) and len(D):
+        ex = np.asarray(ex, dtype=np.int64)
+        j = np.searchsorted(ex, D, side="right")
+        has = j < len(ex)
+        nxt = np.where(has, ex[np.minimum(j, len(ex) - 1)], end)
+        end = np.minimum(end, nxt)
+    return end
+
+
 def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray, gap: int, r0: int,
-            Yd: np.ndarray | None = None, Yr: np.ndarray | None = None) -> dict:
+            Yd: np.ndarray | None = None, Yr: np.ndarray | None = None, brk=None) -> dict:
     """狀態型：samp＝樣本日（輸入有值；月資料＝每月最後一個交易日）索引，state＝這些樣本日是否在狀態中（同長度）。
-    一段的命中率＝段內窗口完整的日子的比例；整體＝各段平均。Yd＝每一天的最大回撤（VER 3，只呈現：一段＝段內平均，整體＝各段中位數）。
-    Yr＝每一天之後的漲跌（只呈現，一段＝段內平均）。
-    → {"up", "warn", "occ": [[第一天, 最後一天, 天數, 偏多, 警示, 最大回撤, 之後漲跌], …]}。"""
+    命中率＝狀態中、窗口完整的每一天的比例（VER 22，第 3.4 節；VER 1～21 是各段平均）；次數＝段數；近 10 年＝第一天在 r0 以後的段裡的每一天。
+    Yd＝每一天的最大回撤（VER 3，只呈現：狀態中每一天的中位數）。Yr＝每一天之後的漲跌（只呈現，一段＝段內平均）。
+    → {"up", "warn", "occ": [[第一天, 最後一天, 天數, 偏多, 警示, 最大回撤, 之後漲跌], …]}（每一段的列表照舊是段內平均）。"""
     pos = [i for i in range(len(samp)) if state[i]]
-    occ = []
-    for ep in episodes(pos, gap):
+    occ, days = [], []
+    for ep in episodes(pos, gap, brk):
         ts = samp[ep]
         u, w = Yu[ts], Yw[ts]
         m = ~np.isnan(u) & ~np.isnan(w)
@@ -291,15 +333,17 @@ def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray,
             continue
         occ.append([int(ts[0]), int(ts[-1]), int(len(ts)), float(u[m].mean()), float(w[m].mean()),
                     np.nan if Yd is None else float(Yd[ts][m].mean()), _mean(Yr[ts][m]) if Yr is not None else np.nan])
+        days.append(ts[m])
     samp10 = samp[samp >= r0]
     out = {"occ": occ}
-    for j, (dk, Y) in enumerate((("up", Yu), ("warn", Yw))):
-        ys = [o[3 + j] for o in occ]
-        ys10 = [o[3 + j] for o in occ if o[0] >= r0]
-        out[dk] = {"n": len(ys), "hit": _mean(ys), "base": _base(Y, samp),
-                   "n10": len(ys10), "hit10": _mean(ys10), "base10": _base(Y, samp10)}
+    alld = np.concatenate(days) if days else np.zeros(0, dtype=np.int64)
+    d10 = [d for o, d in zip(occ, days) if o[0] >= r0]
+    alld10 = np.concatenate(d10) if d10 else np.zeros(0, dtype=np.int64)
+    for dk, Y in (("up", Yu), ("warn", Yw)):                  # alld 只有偏多、警示都有值的日子
+        out[dk] = {"n": len(occ), "hit": float(Y[alld].mean()) if len(alld) else None, "base": _base(Y, samp),
+                   "n10": len(d10), "hit10": float(Y[alld10].mean()) if len(alld10) else None, "base10": _base(Y, samp10)}
     if Yd is not None:
-        out["warn"].update(mdd=_median([o[5] for o in occ]), mdd_base=_base_med(Yd, samp))
+        out["warn"].update(mdd=_base_med(Yd, alld) if len(alld) else None, mdd_base=_base_med(Yd, samp))
     return out
 
 
@@ -318,6 +362,60 @@ def tier(st: dict, d: str, recent: bool = True) -> str:
 
 def judge(st: dict, d: str, recent: bool = True) -> str:
     st["tier"] = tier(st, d, recent)
+    return st["tier"]
+
+
+# ── VER 17：絕對成績（第 3 節；個股訊號以外都用這一套） ────────────────────────────
+
+def ret_at(ret: dict | None, H: int, monthly: bool = False) -> list | None:
+    """這個訊號自己看多久那一期的報酬格（第 4.11 節 ret_cell；monthly＝產業泡沫的 RET_H_M 個月）。"""
+    hs = S.RET_H_M if monthly else S.RET_H
+    s = (ret or {}).get("s") or []
+    if H not in hs:
+        return None
+    i = hs.index(H)
+    return s[i] if i < len(s) else None
+
+
+def win_pass(st: dict | None, d: str) -> bool:
+    """第 3 節 VER 17 的命中率部分：次數 ≥ N_MIN、命中率 ≥ HIT_MIN[方向]、命中率 ≥ 平常（溫度計的 △、跨期間的票、
+    「過去讀數這樣的時候」也用這一條）。"""
+    if not st:
+        return False
+    n, hit, base = st.get("n") or 0, st.get("hit"), st.get("base")
+    return bool(n >= S.N_MIN and hit is not None and base is not None and hit >= S.HIT_MIN[d] and hit >= base)
+
+
+def abs_pass(st: dict, d: str, cell: list | None, cost: float) -> bool:
+    """第 3 節 VER 17 的過門檻：命中率部分（win_pass）、近 10 年同一條；偏多與買點另外要報酬中位數與排除極端的平均都高於來回成本
+    （cell＝ret_at 的那一格，cost＝每一邊的成本）。"""
+    if not win_pass(st, d):
+        return False
+    if (st.get("n10") or 0) >= S.RECENT_N:
+        h10, b10 = st.get("hit10"), st.get("base10")
+        if h10 is None or b10 is None or h10 < S.HIT_MIN[d] or h10 < b10:
+            return False
+    if d == "warn":
+        return True
+    if not cell or len(cell) < 11:
+        return False
+    rt = 2 * cost
+    med, trim = cell[3], cell[9]
+    return bool(med is not None and trim is not None and med > rt and trim > rt)
+
+
+def tier_abs(st: dict, d: str, cell: list | None, cost: float) -> str:
+    """第 3 節 VER 17：★ good＝次數 ≥ STAR_N、過門檻；◆ rare＝次數 N_MIN～STAR_N − 1、過門檻；○ none；— few。"""
+    n, hit, base = st.get("n") or 0, st.get("hit"), st.get("base")
+    if n < S.N_MIN or hit is None or base is None:
+        return "few"
+    if not abs_pass(st, d, cell, cost):
+        return "none"
+    return "good" if n >= S.STAR_N else "rare"
+
+
+def judge_abs(st: dict, d: str, cell: list | None, cost: float) -> str:
+    st["tier"] = tier_abs(st, d, cell, cost)
     return st["tier"]
 
 
@@ -370,7 +468,8 @@ def frame(mk: str, B: dict, I: dict, IB: dict | None = None, BX: dict | None = N
     rows = ((BX or {}).get(mk) or {}).get("_C", {}).get("rows") or []
     return {"mk": mk, "cal": cal, "px": px, "we": P.week_ends(cal), "vars": V, "cvars": CV, "comp": comp, "dims": dims,
             "ivars": inst_vars(cal, B) if mk == "tw" else [],
-            "deriv": DV, "deriv_words": dict(HS.DERIV_WORDS), "bub": rows, "IB": IB, "r0": recent_from(cal)}
+            "deriv": DV, "deriv_words": dict(HS.DERIV_WORDS), "bub": rows, "IB": IB, "r0": recent_from(cal),
+            "stale": sorted((B.get("stale") or {}).keys())}
 
 
 def frames(BT: dict | None = None, BA: dict | None = None, BX: dict | None = None) -> dict:
@@ -428,7 +527,40 @@ def _var_signals(F: dict, v: dict, cat: str) -> list[dict]:
         elif sg == "hot_out":
             sd["days"] = HDD.exits(xl, F["we"], S.EXIT_MIN)
         out.append(sd)
+    return _opposite(out, x, cat)
+
+
+def _opposite(out: list[dict], x: np.ndarray, cat: str) -> list[dict]:
+    """sigspec VER 20：0～100 的變數——狀態型加 "brk"（每個樣本是不是相反的極端，第 3.4 節分段用）、
+    事件型加 "exp"（之後出現就不再算現在有效的日子，第 5 節 EXPIRE_ON）。"""
+    if cat not in S.EP_BREAK_CATS:
+        return out
+    x = np.asarray(x, dtype=float)
+    ok = ~np.isnan(x)
+    cond = {"lt_cold": np.nonzero(ok & (np.nan_to_num(x, nan=50.0) < S.COLD))[0],
+            "ge_hot": np.nonzero(ok & (np.nan_to_num(x, nan=50.0) >= S.HOT))[0]}
+    ev = {sd["sig"]: np.asarray(sd["days"], dtype=np.int64) for sd in out if sd["kind"] == "event"}
+    for sd in out:
+        if sd["kind"] == "state" and sd["sig"] in S.EP_BREAK:
+            xs = x[np.asarray(sd["samp"], dtype=np.int64)]
+            sd["brk"] = (xs < S.COLD) if S.EP_BREAK[sd["sig"]] == "lt_cold" else (xs >= S.HOT)
+        elif sd["kind"] == "event" and sd["sig"] in S.EXPIRE_ON:
+            parts = [cond[c] if c in cond else ev.get(c, np.zeros(0, dtype=np.int64)) for c in S.EXPIRE_ON[sd["sig"]]]
+            sd["exp"] = np.unique(np.concatenate(parts)).astype(np.int64)
     return out
+
+
+def _sides(out: list[dict], side: dict) -> None:
+    """sigspec VER 20：成對的事件（技術事件 TECH_PAIRS、法人單日與連續 INST_SIDE）——另一邊的事件之後出現就不再算現在有效。
+    side＝{訊號 sig: 哪一邊}；同一邊的不算相反。"""
+    by: dict = {}
+    for sd in out:
+        if sd["sig"] in side:
+            by.setdefault(side[sd["sig"]], []).append(np.asarray(sd["days"], dtype=np.int64))
+    for sd in out:
+        if sd["sig"] in side:
+            other = [d for k, ds in by.items() if k != side[sd["sig"]] for d in ds]
+            sd["exp"] = np.unique(np.concatenate(other)).astype(np.int64) if other else np.zeros(0, dtype=np.int64)
 
 
 # ── 法人買賣超（sigspec VER 6 第 4.13 節） ─────────────────────────────────────
@@ -495,6 +627,7 @@ def inst_signals(F: dict) -> list[dict]:
         base = {"cat": "inst", "grp": v["who"], "var": f"{v['who']}1" if v["w"] == 1 else v["key"], "vn": v["name"],
                 "H": v["H"]}
         if v["w"] in S.INST_POS_WIN:
+            pos_out = []
             for sg in S.INST_VARIANTS:
                 sd = {**base, "id": f"{mk}:inst:{v['key']}:{sg}", "sig": sg, "name": f"{v['name']}・{S.INST_VARIANT_NAMES[sg]}",
                       "kind": "state" if sg in ("hot", "cold") else "event", "samp": samp}
@@ -510,21 +643,25 @@ def inst_signals(F: dict) -> list[dict]:
                     sd["days"] = HDD.exits(xl, F["we"], S.EXIT_MIN)
                 else:
                     sd["days"] = cold_exits(xl, F["we"], S.EXIT_MIN)
-                out.append(sd)
+                pos_out.append(sd)
+            out += _opposite(pos_out, x, "inst")
             continue
         hi, lo = S.INST_DAY
-        out.append({**base, "id": f"{mk}:inst:{v['key']}:day_sell", "sig": "day_sell", "kind": "event", "samp": samp,
+        day_out = []
+        day_out.append({**base, "id": f"{mk}:inst:{v['key']}:day_sell", "sig": "day_sell", "kind": "event", "samp": samp,
                     "name": f"{v['name']}・單日大賣（過去 3 年賣超最多的 5%）", "days": [int(t) for t in samp if x[t] >= hi]})
-        out.append({**base, "id": f"{mk}:inst:{v['key']}:day_buy", "sig": "day_buy", "kind": "event", "samp": samp,
+        day_out.append({**base, "id": f"{mk}:inst:{v['key']}:day_buy", "sig": "day_buy", "kind": "event", "samp": samp,
                     "name": f"{v['name']}・單日大買（過去 3 年買超最多的 5%）", "days": [int(t) for t in samp if x[t] <= lo]})
         amt = np.asarray(v["amt"], dtype=float)
         sa = np.nonzero(~np.isnan(amt))[0]
         who = S.INST_NAMES[v["who"]]
         for sign, tag, word in ((-1, "sell", "賣超"), (1, "buy", "買超")):
             for n in S.INST_RUN:
-                out.append({**base, "H": S.INST_H["run"], "id": f"{mk}:inst:{v['key']}:{tag}_run{n}", "sig": f"{tag}_run{n}",
-                            "kind": "event", "samp": sa, "name": f"{v['name']}・{who}連續 {n} 天{word}",
-                            "days": run_days(amt, sign, n)})
+                day_out.append({**base, "H": S.INST_H["run"], "id": f"{mk}:inst:{v['key']}:{tag}_run{n}", "sig": f"{tag}_run{n}",
+                                "kind": "event", "samp": sa, "name": f"{v['name']}・{who}連續 {n} 天{word}",
+                                "days": run_days(amt, sign, n)})
+        _sides(day_out, S.INST_SIDE)                    # VER 20：另一邊（買超／賣超）的事件之後出現就不再算現在有效
+        out += day_out
     return out
 
 
@@ -600,9 +737,15 @@ def signals(F: dict) -> list[dict]:
     # 技術事件
     ev = TT.all_events([None if _nan(p) else float(p) for p in px])
     samp = np.arange(S.EV_START, T)
-    for k, nm in HS.EVENTS.items():
-        out.append({"id": f"{mk}:tech:{k}", "cat": "tech", "grp": "tech", "var": k, "vn": nm, "sig": "ev", "name": nm,
-                    "kind": "event", "H": S.H_TECH, "samp": samp, "days": [t for t in ev[k] if t >= S.EV_START]})
+    tech = [{"id": f"{mk}:tech:{k}", "cat": "tech", "grp": "tech", "var": k, "vn": nm, "sig": "ev", "name": nm,
+             "kind": "event", "H": S.H_TECH, "samp": samp, "days": [t for t in ev[k] if t >= S.EV_START]}
+            for k, nm in HS.EVENTS.items()]
+    days = {sd["var"]: sd["days"] for sd in tech}
+    for a, b in S.TECH_PAIRS:                           # VER 20：成對的另一個之後出現就不再算現在有效
+        for sd in tech:
+            if sd["var"] in (a, b):
+                sd["exp"] = np.unique(np.asarray(days.get(b if sd["var"] == a else a, []), dtype=np.int64))
+    out += tech
     # 邊際變化
     for v in F["deriv"]:
         samp = np.nonzero(v["have"])[0]
@@ -635,8 +778,37 @@ def signals(F: dict) -> list[dict]:
     return out
 
 
+def _small(st: dict) -> dict:
+    return {k: st[k] for k in ("n", "hit", "base")}
+
+
+def cross_stats(F: dict, sd: dict, Ycache: dict) -> dict:
+    """溫度計跨期間（sigspec 第 5 節 ③a，VER 15）：同一個訊號在另外兩支溫度計的看多久（THERMO_H）的統計——
+    成功條件、次數、平常照第 2、3.4 節，只是 H 換掉。→ {k: {"H", "th", "up": {n, hit, base}, "warn": {n, hit, base}}}；
+    不跨期間的類別回 {}。"""
+    if sd["cat"] not in S.THERMO_X_CATS:
+        return {}
+    mk, cal = F["mk"], F["cal"]
+    r0 = bisect.bisect_left(cal, F["r0"])
+    samp = np.asarray(sd["samp"], dtype=np.int64)
+    out = {}
+    for k, H in S.THERMO_H.items():
+        if H == sd["H"]:
+            continue
+        if H not in Ycache:
+            Ycache[H] = outcomes(F["px"], H, warn_th(mk, H))
+        Yu, Yw, _ = Ycache[H]
+        if sd["kind"] == "event":
+            R = ev_stat(sd["days"], Yu, Yw, samp, H, r0)
+        else:
+            gap = 1 if sd.get("monthly") else S.EP_GAP
+            R = st_stat(np.asarray(sd["state"], dtype=bool), samp, Yu, Yw, gap, r0, brk=sd.get("brk"))
+        out[k] = {"H": H, "th": warn_th(mk, H), "up": _small(R["up"]), "warn": _small(R["warn"])}
+    return out
+
+
 def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
-    """一個訊號 → 一列（含每一次）。"""
+    """一個訊號 → 一列（含每一次；VER 15 起另有 "xh"＝另外兩支溫度計的看多久的統計）。"""
     mk, cal = F["mk"], F["cal"]
     H = sd["H"]
     if H not in Ycache:
@@ -650,33 +822,41 @@ def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
     if "ra" not in Ycache:
         Ycache["ra"] = ret_arrays(F["px"])
     RA = Ycache["ra"]
+    skip = None
     if sd["kind"] == "event":
         R = ev_stat(sd["days"], Yu, Yw, samp, H, r0, Yd, Yr)
         occ = [[cal[t], int(u), int(w), d, r] for t, u, w, d, r in R["occ"]]
         ok = set(int(i) for i in samp)
         ret = _ret_flat(np.asarray(dedupe([t for t in sd["days"] if t in ok], H), dtype=np.int64), RA)
+        skip = skipped(sd["days"], ok, H, Yu, cal)
     else:
         gap = 1 if sd.get("monthly") else S.EP_GAP
         state = np.asarray(sd["state"], dtype=bool)
-        R = st_stat(state, samp, Yu, Yw, gap, r0, Yd, Yr)
+        R = st_stat(state, samp, Yu, Yw, gap, r0, Yd, Yr, brk=sd.get("brk"))
         occ = [[cal[a], cal[z], n, u, w, d, r] for a, z, n, u, w, d, r in R["occ"]]
-        ret = ret_stats([samp[ep] for ep in episodes([i for i in range(len(samp)) if state[i]], gap)], RA)
+        ret = ret_stats([samp[ep] for ep in episodes([i for i in range(len(samp)) if state[i]], gap, sd.get("brk"))], RA)
     ret["bk"] = ret_base(samp, RA, Ycache.setdefault("bases", {}), mk)
-    LP = LK.market_p(sd, Yu, Yw, r0, R)                 # 打亂日子測試（VER 9）
+    LP = LK.market_p(sd, Yu, Yw, r0, R)                 # 打亂日子測試（VER 9；VER 17 起只呈現）
+    cell = ret_at(ret, H)
     dirs = {}
     for d in ("up", "warn"):
         st = R[d]
         st["p"] = LP[d]["p"]
-        judge(st, d)
+        judge_abs(st, d, cell, S.ABS_COST[mk])             # VER 17：絕對成績
         dirs[d] = st
     tr, ds = best(dirs)
     row = {k: sd[k] for k in ("id", "cat", "grp", "var", "vn", "sig", "name", "kind", "H")}
     row.update({"mk": mk, "th": warn_th(mk, H), "a": cal[int(samp[0])] if len(samp) else None,
                 "z": cal[int(samp[-1])] if len(samp) else None, "up": dirs["up"], "warn": dirs["warn"],
                 "tier": tr, "dir": ds, "occ": occ, "ret": ret})
+    if skip:
+        row["skip"] = skip
     if sd.get("monthly"):
         row["monthly"] = True
-    row["_luck"] = {d: LP[d]["luck"] for d in ("up", "warn")}   # 運氣會產生 ★ 的機率（research 加總後拿掉）
+    xh = cross_stats(F, sd, Ycache)
+    if xh:
+        row["xh"] = xh
+    row["_luck"] = {d: [LP[d]["luck"], LP[d]["luck_rare"]] for d in ("up", "warn")}   # 運氣會產生 ★、◆ 的機率（research 加總後拿掉）
     return row
 
 
@@ -685,27 +865,21 @@ def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
 BUY_RULES = ("B1", "W10")
 
 
-def buy_rows(F: dict, bases: dict | None = None) -> list[dict]:
-    """兩種大跌 × 規則（大跌隔天就買、固定等 10 天、落底訊號）：每個事件的買進日當成事件型訊號（訊號日＝買進日 − LAG）；
-    命中＝買進後 H_BUY 天收盤比買價高、平常＝隨便挑一天、打亂測試＝事件型平移（同偏多訊號）。
-    另列（不判定）：同一批事件大跌隔天就買的上漲比例、買在相對低點的比例。報酬（VER 5）：買進日收盤進場。"""
+def buy_signals(F: dict) -> tuple[dict | None, list[dict]]:
+    """大跌後買點（第 4.7 節）每一條規則的事件型訊號（訊號日＝買進日 − LAG）：buy_rows 與逐年樣本外（sigoos，第 4.14 節）共用。
+    → (輸入 {"cal", "px", "samp"}, [{"id", "ev", "k", "kind": "event", "H", "samp", "days", "buys": [(事件日, 買進日, o, 隔天就買的 o)…]}…])；
+    沒有 bottom 的輸入 → (None, [])。"""
     from . import bottom as BO
     from . import bottomspec as BS
     I = F["IB"]
     if not I:
-        return []
+        return None, []
     mk = F["mk"]
     cal = list(I["cal"])
     px = np.asarray(I["px"], dtype=float)
     T = len(px)
-    H = S.H_BUY
-    Yu, Yw, Yd = outcomes(px, H, warn_th(mk, H))
-    Yr = fwd_ret(px, H)
-    RA = ret_arrays(px)
     samp = np.arange(BS.E10_WIN - 1, T, dtype=np.int64)
     samp = samp[~np.isnan(px[samp])]
-    r0 = bisect.bisect_left(cal, F["r0"])
-    bases = {} if bases is None else bases
     out = []
     for ev in BS.EVENTS:
         recs = BO.event_recs(I, ev)
@@ -715,33 +889,55 @@ def buy_rows(F: dict, bases: dict | None = None) -> list[dict]:
                 o = r["b1"] if k == "B1" else (((r["rules"].get(k) or {}).get("o")) or None)
                 if o and o.get("b") is not None and 0 <= o["b"] - S.LAG:
                     buys.append((r["t"], int(o["b"]), o, r["b1"]))
-            days = [b - S.LAG for _, b, _, _ in buys]
-            rid = f"{mk}:buy:{ev}:{k}"
-            sd = {"id": rid, "kind": "event", "H": H, "samp": samp, "days": days}
-            R = ev_stat(days, Yu, Yw, samp, H, r0, Yd, Yr)
-            st = R["up"]
-            LP = LK.market_p(sd, Yu, Yw, r0, R)
-            st["p"] = LP["up"]["p"]
-            judge(st, "buy")
-            kept = {int(t) + S.LAG for t, *_ in R["occ"]}
-            by_b = {b: (o, ob) for _, b, o, ob in buys}
-            occ = []
-            for t, u, _, _, rr in R["occ"]:
-                o, ob = by_b[int(t) + S.LAG]
-                occ.append([cal[int(t) + S.LAG], int(u), None if o.get("lp") is None else int(o["lp"]),
-                            None if ob.get("r60") is None else int(ob["r60"] > 0), None if _nan(rr) else round(float(rr), 5)])
-            lps = [o[2] for o in occ if o[2] is not None]
-            b1s = [o[3] for o in occ if o[3] is not None]
-            st.update({"lp": _mean(lps), "lp_n": len(lps), "b1": None if k == "B1" else _mean(b1s)})
-            ret = _ret_flat(np.asarray(sorted(b - S.LAG for b in kept), dtype=np.int64), RA)
-            ret["bk"] = ret_base(samp, RA, bases, mk)
-            out.append({"id": rid, "mk": mk, "cat": "buy", "grp": ev, "var": k,
-                        "vn": BS.RULE_NAMES.get(k, "大跌隔天就買") if k != "B1" else "大跌隔天就買", "sig": ev, "kind": "event", "H": H,
-                        "name": f"{BS.EVENT_NAMES[ev]}・{'大跌隔天就買' if k == 'B1' else BS.RULE_NAMES[k]}",
-                        "base_name": "隨便挑一天",
-                        "a": occ[0][0] if occ else None, "z": occ[-1][0] if occ else None,
-                        "buy": st, "tier": st["tier"], "dir": ["buy"], "occ": occ, "ret": ret,
-                        "_luck": {"up": LP["up"]["luck"], "warn": 0.0}})
+            out.append({"id": f"{mk}:buy:{ev}:{k}", "ev": ev, "k": k, "kind": "event", "H": S.H_BUY, "samp": samp,
+                        "days": [b - S.LAG for _, b, _, _ in buys], "buys": buys})
+    return {"cal": cal, "px": px, "samp": samp}, out
+
+
+def buy_rows(F: dict, bases: dict | None = None) -> list[dict]:
+    """兩種大跌 × 規則（大跌隔天就買、固定等 10 天、落底訊號）：每個事件的買進日當成事件型訊號（訊號日＝買進日 − LAG）；
+    命中＝買進後 H_BUY 天收盤比買價高、平常＝隨便挑一天、打亂測試＝事件型平移（同偏多訊號）。
+    另列（不判定）：同一批事件大跌隔天就買的上漲比例、買在相對低點的比例。報酬（VER 5）：買進日收盤進場。"""
+    from . import bottomspec as BS
+    I, sds = buy_signals(F)
+    if I is None:
+        return []
+    mk = F["mk"]
+    cal, px, samp = I["cal"], I["px"], I["samp"]
+    H = S.H_BUY
+    Yu, Yw, Yd = outcomes(px, H, warn_th(mk, H))
+    Yr = fwd_ret(px, H)
+    RA = ret_arrays(px)
+    r0 = bisect.bisect_left(cal, F["r0"])
+    bases = {} if bases is None else bases
+    out = []
+    for sd0 in sds:
+        ev, k, days, buys, rid = sd0["ev"], sd0["k"], sd0["days"], sd0["buys"], sd0["id"]
+        sd = {"id": rid, "kind": "event", "H": H, "samp": samp, "days": days}
+        R = ev_stat(days, Yu, Yw, samp, H, r0, Yd, Yr)
+        st = R["up"]
+        LP = LK.market_p(sd, Yu, Yw, r0, R)
+        st["p"] = LP["up"]["p"]
+        kept = {int(t) + S.LAG for t, *_ in R["occ"]}
+        ret = _ret_flat(np.asarray(sorted(b - S.LAG for b in kept), dtype=np.int64), RA)
+        judge_abs(st, "buy", ret_at(ret, H), S.ABS_COST[mk])   # VER 17：絕對成績（報酬＝買進後 H_BUY 天）
+        by_b = {b: (o, ob) for _, b, o, ob in buys}
+        occ = []
+        for t, u, _, _, rr in R["occ"]:
+            o, ob = by_b[int(t) + S.LAG]
+            occ.append([cal[int(t) + S.LAG], int(u), None if o.get("lp") is None else int(o["lp"]),
+                        None if ob.get("r60") is None else int(ob["r60"] > 0), None if _nan(rr) else round(float(rr), 5)])
+        lps = [o[2] for o in occ if o[2] is not None]
+        b1s = [o[3] for o in occ if o[3] is not None]
+        st.update({"lp": _mean(lps), "lp_n": len(lps), "b1": None if k == "B1" else _mean(b1s)})
+        ret["bk"] = ret_base(samp, RA, bases, mk)
+        out.append({"id": rid, "mk": mk, "cat": "buy", "grp": ev, "var": k,
+                    "vn": BS.RULE_NAMES.get(k, "大跌隔天就買") if k != "B1" else "大跌隔天就買", "sig": ev, "kind": "event", "H": H,
+                    "name": f"{BS.EVENT_NAMES[ev]}・{'大跌隔天就買' if k == 'B1' else BS.RULE_NAMES[k]}",
+                    "base_name": "隨便挑一天",
+                    "a": occ[0][0] if occ else None, "z": occ[-1][0] if occ else None,
+                    "buy": st, "tier": st["tier"], "dir": ["buy"], "occ": occ, "ret": ret,
+                    "_luck": {"up": [LP["up"]["luck"], LP["up"]["luck_rare"]], "warn": [0.0, 0.0]}})
     return out
 
 
@@ -753,9 +949,10 @@ def _months_add(m: str, k: int) -> str:
 
 
 def _ret_groups(groups: list[list[dict]], hs: tuple, ps: tuple | None = None) -> dict:
-    """每一次＝一組樣本（每個樣本 {期間: (報酬, 中途最多跌)}），每一組一樣重 → 同 ret_stats 的格式（路徑 ps 預設＝同一批期間）。"""
+    """每一次＝一組樣本（每個樣本 {期間: (報酬, 中途最多跌)}），每一個樣本一樣重（VER 22；產業泡沫的一段＝多個月份，
+    VER 5～21 是每一組一樣重）→ 同 ret_stats 的格式（路徑 ps 預設＝同一批期間）。排除極端、去掉最好一次的單位＝一組，權重＝組內樣本數。"""
     def pool(h):
-        rs, as_, ws, n = [], [], [], 0
+        rs, as_, ms, mw, n = [], [], [], [], 0
         for g in groups:
             v = [x[h] for x in g if x.get(h) is not None]
             if not v:
@@ -763,15 +960,16 @@ def _ret_groups(groups: list[list[dict]], hs: tuple, ps: tuple | None = None) ->
             n += 1
             rs += [a for a, _ in v]
             as_ += [b for _, b in v]
-            ws += [1.0 / len(v)] * len(v)
-        return n, np.asarray(rs, dtype=float), np.asarray(as_, dtype=float), np.asarray(ws, dtype=float)
+            ms.append(float(np.mean([a for a, _ in v])))     # VER 17：每一組（一次／一段）的平均
+            mw.append(float(len(v)))
+        return n, np.asarray(rs, dtype=float), np.asarray(as_, dtype=float), np.ones(len(rs)), ms, mw
 
     out_s, out_p = [], []
     for h in hs:
-        n, r, a, w = pool(h)
-        out_s.append(ret_cell(r, a, w, n) if n else None)
+        n, r, a, w, ms, mw = pool(h)
+        out_s.append(ret_cell(r, a, w, n, ms, mw) if n else None)
     for d in (hs if ps is None else ps):
-        n, r, _, w = pool(d)
+        n, r, _, w, _, _ = pool(d)
         out_p.append([wquant(r, w, q) for q in S.RET_Q] if n else None)
     return {"s": out_s, "p": out_p}
 
@@ -840,6 +1038,7 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None, bases: dict 
     for k in S.IND_SIGNALS:
         lv = int(k[1])
         occ, base_u, base_w, b10u, b10w, base_d = [], [], [], [], [], []
+        days: list = []                                 # VER 22：每一段的（第一個月, 偏多, 警示, 最大回撤）每一個月
         rgroups = []
         seqs = []                                     # 打亂日子測試用：每個產業（狀態, 偏多, 警示）
         for code, me, rows in pan:
@@ -877,29 +1076,31 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None, bases: dict 
                 if us:
                     occ.append([seq[ep[0]][0], seq[ep[-1]][0], len(ep), float(np.mean(us)), float(np.mean(ws)), code,
                                 float(np.mean(ds)), float(np.mean(rs))])
+                    days.append((seq[ep[0]][0], us, ws, ds))      # VER 22：每一個月一樣重
                 rgroups.append([_me_ret(me, seq[i][0]) for i in ep])
         occ.sort(key=lambda o: (o[0], o[5]))
         dirs = {}
         for j, (d, bs, b10) in enumerate((("up", base_u, b10u), ("warn", base_w, b10w))):
-            ys = [o[3 + j] for o in occ]
-            ys10 = [o[3 + j] for o in occ if o[0] >= r0m]
-            dirs[d] = {"n": len(ys), "hit": _mean(ys), "base": _mean(bs), "n10": len(ys10), "hit10": _mean(ys10),
-                       "base10": _mean(b10)}
-        # 打亂日子測試（VER 9）：只對過門檻的方向算（其他方向的判定和 p 無關）
-        need = {d: st["hit"] for d, st in dirs.items()
-                if LK.passes(st["n"], st["hit"], st["base"], st["n10"], st["hit10"], st["base10"], d)}
+            ys = [y for x in days for y in x[1 + j]]
+            ys10 = [y for x in days if x[0] >= r0m for y in x[1 + j]]
+            dirs[d] = {"n": len(days), "hit": _mean(ys), "base": _mean(bs),
+                       "n10": sum(1 for x in days if x[0] >= r0m), "hit10": _mean(ys10), "base10": _mean(b10)}
+        # 打亂日子測試（VER 9；VER 17 起只呈現）：次數夠的方向都算
+        need = {d: st["hit"] for d, st in dirs.items() if st["n"] >= S.N_MIN and st["hit"] is not None}
         pv = LK.ind_p(f"ind:{group}:{k}", seqs, need) if need else {}
+        ret = {**_ret_groups(rgroups, S.RET_H_M), "bk": bk, "hm": True}
+        cell = ret_at(ret, S.H_IND_M, monthly=True)
+        cost = S.ABS_COST["us" if group in ("ff", "us") else "tw"]
         for d, st in dirs.items():
             st["p"] = pv.get(d)
-            judge(st, d)
-        dirs["warn"].update(mdd=_median([o[6] for o in occ]), mdd_base=_median(base_d))
+            judge_abs(st, d, cell, cost)                    # VER 17：絕對成績（報酬＝12 個月）
+        dirs["warn"].update(mdd=_median([v for x in days for v in x[3]]), mdd_base=_median(base_d))
         tr, ds = best(dirs)
         gname = BIS.GROUP_NAMES[group] if hasattr(BIS, "GROUP_NAMES") else group
         out.append({"id": f"ind:{group}:{k}", "mk": "us" if group in ("ff", "us") else "tw", "cat": "ind", "grp": group,
                     "var": k, "vn": gname, "sig": k, "name": f"{gname}・{S.BUB_NAMES[k]}", "kind": "state",
                     "H": S.H_IND_M, "monthly": True, "th": S.WARN_LONG, "a": occ[0][0] if occ else None, "z": zl,
-                    "up": dirs["up"], "warn": dirs["warn"], "tier": tr, "dir": ds, "occ": occ,
-                    "ret": {**_ret_groups(rgroups, S.RET_H_M), "bk": bk, "hm": True}})
+                    "up": dirs["up"], "warn": dirs["warn"], "tier": tr, "dir": ds, "occ": occ, "ret": ret})
     return out
 
 
@@ -943,18 +1144,21 @@ def _r(x):
 
 
 def luck_summary(rows: list[dict]) -> dict:
-    """運氣會產生幾個 ★（sigspec 第 3.5 節，只呈現）：市場層級訊號 → {市場: {方向: [實際 ★, 運氣會產生的 ★]}}。
-    會把列裡的 _luck 拿掉。"""
+    """運氣會產生幾個 ★、◆（sigspec 第 3.5 節，只呈現；VER 17 起用新判定的命中率部分）：市場層級訊號與大跌後買點 →
+    {市場: {方向: [實際 ★, 運氣會產生的 ★, 實際 ◆, 運氣會產生的 ◆]}}。會把列裡的 _luck 拿掉。"""
     out: dict = {}
     for r in rows:
         lk = r.pop("_luck", None)
         if lk is None:
             continue
-        m = out.setdefault(r["mk"], {d: [0, 0.0] for d in ("up", "warn")})
+        m = out.setdefault(r["mk"], {d: [0, 0.0, 0, 0.0] for d in ("up", "warn")})
         for d in ("up", "warn"):
             st = r.get("buy") if (r.get("cat") == "buy" and d == "up") else r.get(d)
-            m[d][0] += (st or {}).get("tier") == "good"
-            m[d][1] += lk[d]
+            t = (st or {}).get("tier")
+            m[d][0] += t == "good"
+            m[d][1] += lk[d][0]
+            m[d][2] += t == "rare"
+            m[d][3] += lk[d][1]
     return out
 
 
@@ -1006,32 +1210,69 @@ def today_for(now: dict | None) -> dict | None:
     rows = research_rows()
     if not now or not rows:
         return None
-    return {"mk": now["mk"], "d": now["d"], **board(rows, now["on"], now["mk"], now.get("acts"))}
+    out = {"mk": now["mk"], "d": now["d"], **board(rows, now["on"], now["mk"], now.get("acts"), now.get("xon"))}
+    try:                                              # 溫度計下面「過去讀數這樣的時候」（VER 16，第 5 節 ③d）；研究檔沒有就不顯示
+        from . import thermocal as TC
+        out["cal"] = TC.now(now["mk"], now["on"], now.get("xon"), now["d"])
+    except Exception as e:                            # noqa: BLE001
+        print(f"[訊號總覽] 過去讀數這樣的時候算不出來：{type(e).__name__}: {e}")
+        out["cal"] = None
+    return out
 
 
 # ── 現在有沒有效（每天建頁） ───────────────────────────────────────────────────
 
-def activity(sd: dict, T: int) -> np.ndarray:
-    """過去「出現」的日子（sigspec 第 5 節 ①b，同類合併用）：狀態型＝樣本日裡在狀態中的日子；事件型＝每一次出現那天起 H 個交易日。"""
+def activity(sd: dict, T: int, H: int | None = None) -> np.ndarray:
+    """過去「出現」的日子（sigspec 第 5 節 ①b，同類合併用）：狀態型＝樣本日裡在狀態中的日子；事件型＝每一次出現那天起 H 個交易日
+    （H 沒給＝這個訊號自己的看多久；跨期間的票用那支溫度計的 THERMO_H，第 5 節 ③a）。"""
     a = np.zeros(T, dtype=bool)
     samp = np.asarray(sd["samp"], dtype=np.int64)
     if sd["kind"] == "state":
         a[samp[np.asarray(sd["state"], dtype=bool)]] = True
     else:
-        for t in sd["days"]:
-            a[int(t):int(t) + sd["H"]] = True
+        H = sd["H"] if H is None else H
+        D = np.asarray(sd["days"], dtype=np.int64)
+        for t, e in zip(D.tolist(), exp_end(sd, D, H).tolist()):   # VER 20：相反的讀數出現就不再算
+            a[t:e] = True
     return a
 
 
-def now_market(F: dict, acts: dict | None = None) -> dict:
-    """一個市場 → {訊號 id: {"since": 開始日, "n": 已經幾天（月資料＝幾個月）, "left": 事件型剩幾天}}，只列現在有效的。
+def xkey(sid: str, k: str) -> str:
+    """跨期間的票在 acts 裡的鍵（同一個訊號在另一支溫度計）。"""
+    return f"{sid}@{k}"
+
+
+def trade_dates(mk: str, cal: list[str], t: int, H: int) -> dict:
+    """訊號第 t 天 → 照規則的那一筆交易（sigspec 第 2 節）：第 t＋LAG 天收盤進場、第 t＋LAG＋H 天收盤出場；
+    超過資料最後一天的日子用休市表往後推（xstrat.future_days）。→ {"buy", "sell", "rem": 出場前還有幾個交易日（今天＝資料最後一天）}。"""
+    from . import xstrat as XS
+    T = len(cal)
+    e, z = t + S.LAG, t + S.LAG + H
+    need = z - (T - 1)
+    fut = XS.future_days(mk, cal[-1], need) if need > 0 else []
+    at = lambda i: cal[i] if i <= T - 1 else fut[i - T]   # noqa: E731
+    return {"buy": at(e), "sell": at(z), "rem": max(0, z - (T - 1))}
+
+
+def now_market(F: dict, acts: dict | None = None, xon: dict | None = None) -> dict:
+    """一個市場 → {訊號 id: {"since": 開始日, "n": 已經幾天（月資料＝幾個月）, "left": 事件型剩幾天,
+    "buy"／"sell"／"rem"：照規則的那一筆交易（trade_dates；狀態型＝今天看到、下一個交易日收盤進場）}}，只列現在有效的。
     狀態型＝資料最後一天在狀態中（月資料＝最後一個過完的月份）；事件型＝最近一次出現在最後 H 個交易日內；
-    買點＝目前一段大跌（bottom.now 進行中）之後已經出現。acts＝給了就順便填現在有效的訊號過去出現的日子（同類合併用）。"""
+    買點＝目前一段大跌（bottom.now 進行中）之後已經出現。acts＝給了就順便填現在有效的訊號過去出現的日子（同類合併用）。
+    xon＝給了就填跨期間（sigspec 第 5 節 ③a，VER 15）：{訊號 id: {溫度計: 同上的現在狀態}}，只列原本那個看多久以外、現在有效的；
+    acts 同時填 xkey(id, 溫度計)＝那支溫度計的看多久下出現的日子。"""
     cal = F["cal"]
     T = len(cal)
     out: dict = {}
+    stale = set(F.get("stale") or ())                  # VER 20：資料過期的項目不算現在有效
+    mk = F.get("mk")
+    trd = (lambda t, H: trade_dates(mk, cal, t, H)) if mk else (lambda t, H: {})   # noqa: E731（沒有市場代號＝不排交易日）
     for sd in signals(F):
+        if stale and sd["cat"] in ("heat", "deriv") and sd.get("var") in stale:
+            continue
         samp = np.asarray(sd["samp"], dtype=np.int64)
+        xs = ([(k, H) for k, H in S.THERMO_H.items() if H != sd["H"]]
+              if xon is not None and sd["cat"] in S.THERMO_X_CATS else [])
         if sd["kind"] == "state":
             st = np.asarray(sd["state"], dtype=bool)
             if not len(samp) or not st[-1]:
@@ -1039,14 +1280,26 @@ def now_market(F: dict, acts: dict | None = None) -> dict:
             if not sd.get("monthly") and samp[-1] != T - 1:
                 continue
             gap = 1 if sd.get("monthly") else S.EP_GAP
-            ep = episodes([i for i in range(len(samp)) if st[i]], gap)[-1]
-            out[sd["id"]] = {"since": cal[int(samp[ep[0]])], "n": len(ep)}
+            ep = episodes([i for i in range(len(samp)) if st[i]], gap, sd.get("brk"))[-1]   # VER 20：遇到相反的極端就是新的一段
+            out[sd["id"]] = {"since": cal[int(samp[ep[0]])], "n": len(ep), **trd(T - 1, sd["H"])}
+            for k, H in xs:                              # 狀態型：現在有效、出現的日子都和原本一樣（交易照那支溫度計的看多久）
+                xon.setdefault(sd["id"], {})[k] = {**out[sd["id"]], **trd(T - 1, H)}
         else:
             ds = [t for t in sd["days"] if t >= (samp[0] if len(samp) else 0)]
-            if ds and T - 1 - ds[-1] < sd["H"]:
-                out[sd["id"]] = {"since": cal[ds[-1]], "n": T - 1 - ds[-1], "left": sd["H"] - (T - 1 - ds[-1])}
+            alive = bool(ds) and int(exp_end(sd, [ds[-1]], T)[0]) >= T   # VER 20：之後出現相反的讀數就不再算
+            if alive and T - 1 - ds[-1] < sd["H"]:
+                out[sd["id"]] = {"since": cal[ds[-1]], "n": T - 1 - ds[-1], "left": sd["H"] - (T - 1 - ds[-1]),
+                                 **trd(ds[-1], sd["H"])}
+            for k, H in xs:
+                if alive and T - 1 - ds[-1] < H:
+                    xon.setdefault(sd["id"], {})[k] = {"since": cal[ds[-1]], "n": T - 1 - ds[-1], "left": H - (T - 1 - ds[-1]),
+                                                       **trd(ds[-1], H)}
         if acts is not None and sd["id"] in out:
             acts[sd["id"]] = activity(sd, T)
+        if acts is not None and xon is not None:
+            for k, H in xs:
+                if k in xon.get(sd["id"], {}):
+                    acts[xkey(sd["id"], k)] = acts[sd["id"]] if sd["kind"] == "state" else activity(sd, T, H)
     I = F.get("IB")
     if I:
         from . import bottom as BO
@@ -1056,8 +1309,10 @@ def now_market(F: dict, acts: dict | None = None) -> dict:
             sigs = {"B1": {"st": "on", "d": a["t"]}, "W10": a.get("w10") or {}, **(a.get("sig") or {})}
             for k, v in sigs.items():
                 if v.get("st") == "on":
+                    j = bisect.bisect_left(cal, v["d"])
+                    tr = trd(j, S.H_BUY) if j < T and cal[j] == v["d"] else {}
                     for ev in evs:
-                        out[f"{F['mk']}:buy:{ev}:{k}"] = {"since": v["d"], "event": a["t"]}
+                        out[f"{F['mk']}:buy:{ev}:{k}"] = {"since": v["d"], "event": a["t"], **tr}
     return out
 
 
@@ -1065,29 +1320,6 @@ def edge(st: dict | None) -> float | None:
     if not st or st.get("hit") is None or st.get("base") is None:
         return None
     return st["hit"] - st["base"]
-
-
-def today(rows: list[dict], on: dict, mk: str, acts: dict | None = None) -> dict:
-    """訊號總覽「今天有效的好訊號」（sigspec 第 5 節）：這個市場現在有效的 ★，同一個變數只留差最大的一種；同類合併（VER 11，
-    同一支溫度計、同一邊，acts＝現在有效的訊號過去出現的日子），一類一列、依差排序、最多 TODAY_MAX 列；沒有 ★ 就沒有（VER 9）。
-    → {"good": [...]}（每列＝研究列＋現在的狀態＋方向＋差＋"fam"＝同時成立的其他訊號）。"""
-    def pick(tr: str) -> list[dict]:
-        best_by: dict = {}
-        for r in rows:
-            if r.get("mk") != mk or r["tier"] != tr or r["id"] not in on:
-                continue
-            for d in r["dir"]:
-                e = edge(r.get(d))
-                if e is None:
-                    continue
-                key = (r["cat"], r["var"])
-                if key not in best_by or e > best_by[key]["edge"]:
-                    best_by[key] = {**r, "d": d, "edge": e, "now": on[r["id"]]}
-        return sorted(best_by.values(), key=lambda x: (-x["edge"], x["id"]))
-    xs = pick("good")
-    for x in xs:
-        x["hz"], x["side"] = horizon(x), ("warn" if x["d"] == "warn" else "up")
-    return {"good": families(xs, acts)[:S.TODAY_MAX]}
 
 
 def horizon(r: dict) -> str:
@@ -1116,15 +1348,26 @@ def overlap(a: np.ndarray | None, b: np.ndarray | None) -> tuple[float, float]:
     return int((lo & hi).sum()) / int(lo.sum()), float(hi.mean())
 
 
+def _ak(x: dict) -> str:
+    """同類合併查「出現的日子」用的鍵：跨期間的票（VER 15）是 xkey(id, 溫度計)，其他就是訊號 id。"""
+    return x.get("ak") or x["id"]
+
+
 def same_family(a: np.ndarray | None, b: np.ndarray | None) -> bool:
     """sigspec 第 5 節 ①b（VER 11）：比較少出現的那個出現時，另一個過半也成立，而且至少是互不相干時的 FAMILY_X 倍。"""
     o, q = overlap(a, b)
     return o >= S.FAMILY_O and o >= S.FAMILY_X * q
 
 
+def _frank(x: dict) -> tuple:
+    """同一類裡誰領頭、清單怎麼排（第 5 節 ④b，VER 23）：之後也成立的優先、再依過去的差 e 大到小、再取代號小的（回傳值小的優先）。"""
+    return (not x.get("ok"), -x["edge"], x["id"])
+
+
 def families(items: list[dict], acts: dict | None) -> list[dict]:
     """同類合併（sigspec 第 5 節 ①b；VER 8 寫定、VER 11 改條件）：同一支溫度計、同一邊，same_family 的併成一類（單一連結）；
-    大跌後買點同一個市場算一類。→ 每一類的領頭（差最大），其他放在 "fam"。"""
+    大跌後買點同一個市場算一類。→ 每一類的領頭（_frank：VER 23 起之後也成立的優先、再取差最大），其他放在 "fam"；
+    類裡有一個之後也成立，領頭就是它（"ok" True）。"""
     acts = acts or {}
     groups: dict = {}
     for x in items:
@@ -1141,103 +1384,129 @@ def families(items: list[dict], acts: dict | None) -> list[dict]:
         for i in range(len(xs)):
             for j in range(i + 1, len(xs)):
                 a, b = xs[i], xs[j]
-                if (a["cat"] == "buy" and b["cat"] == "buy") or same_family(acts.get(a["id"]), acts.get(b["id"])):
+                if (a["cat"] == "buy" and b["cat"] == "buy") or same_family(acts.get(_ak(a)), acts.get(_ak(b))):
                     parent[find(i)] = find(j)
         cl: dict = {}
         for i, x in enumerate(xs):
             cl.setdefault(find(i), []).append(x)
         for ms in cl.values():
-            ms.sort(key=lambda x: (-x["edge"], x["id"]))
+            ms.sort(key=_frank)
             out.append({**ms[0], "fam": ms[1:]})
-    out.sort(key=lambda x: (-x["edge"], x["id"]))
+    out.sort(key=_frank)
     return out
 
 
-THERMO_RANK = {"good": 3, "ref": 2, "lean": 1}
-
-
-def thermo_tier(st: dict | None) -> str | None:
-    """溫度計算不算這一個方向（sigspec 第 5 節 ③，VER 12）：★、● 照判定；○ 而且命中率 − 平常 ≥ THERMO_EDGE＝△「有傾向」；
-    其餘（— 次數不夠、○ 沒有傾向）不算。"""
-    if not st:
+def list_cls(d: str, e: float | None) -> str | None:
+    """sigspec 第 5 節 ④b（VER 23）：過去的差 e（命中率 − 平常）≥ THERMO_EDGE → 偏多 up／買點 buy／大跌風險 risk；不列＝None。
+    （VER 21～22 看預估之後的差 g、另有偏弱 weak；VER 22 的逐年檢查偏弱是反過來的，VER 23 拿掉。）"""
+    if e is None or e < S.THERMO_EDGE:
         return None
-    t = st.get("tier")
-    if t in ("good", "ref"):
-        return t
-    e = edge(st)
-    return "lean" if t == "none" and e is not None and e >= S.THERMO_EDGE else None
+    return "buy" if d == "buy" else "risk" if d == "warn" else "up"
 
 
-def thermo_families(items: list[dict], acts: dict | None) -> list[dict]:
-    """溫度計的同類合併（sigspec 第 5 節 ③b，VER 12）：★ 先照 ①b 成類（＝偏多、警示兩欄那一批類）；再把 ●、△ 依序（差大的先）
-    併進已有的類（同一支溫度計、同一邊，和類裡任一個 same_family；第一個符合的那一類），沒有就同等級之間照 ①b 自己成類。
-    → 每一類的領頭（最高等級裡差最大的），"fam"＝其他成員；一類的等級＝領頭的等級。"""
-    acts = acts or {}
-    out: list[dict] = []
-    for t in ("good", "ref", "lean"):
-        rest = []
-        for x in sorted((x for x in items if x["tier"] == t), key=lambda x: (-x["edge"], x["id"])):
-            home = None
-            for f in out:
-                if (f["hz"], f["side"]) != (x["hz"], x["side"]):
-                    continue
-                if any((m["cat"] == "buy" and x["cat"] == "buy") or same_family(acts.get(m["id"]), acts.get(x["id"]))
-                       for m in [f] + f["fam"]):
-                    home = f
-                    break
-            if home is None:
-                rest.append(x)
-            else:
-                home["fam"] = home["fam"] + [x]
-        out += families(rest, acts)
-    return out
+def _lrank(c: dict) -> tuple:
+    """同一個項目、同一支溫度計、同一邊留哪一個（第 5 節 ④b）：過去的差 e 大的；同分＝訊號自己的看多久優先，再取代號小的。"""
+    return (-c["edge"], c.get("xk") is not None, c["id"])
 
 
-def board(rows: list[dict], on: dict, mk: str, acts: dict | None = None) -> dict:
-    """景氣頁「今天的重點」（sigspec 第 5 節）：偏多（含買點）與警示兩欄列現在有效的 ★（VER 9；● 不列），兩個方向各自看自己的判定
-    （VER 3）；同一個項目在同一支溫度計、同一邊只留一種（等級高的優先、同級取差最大）；兩邊都是 ★ 的標 both（「震盪」）。
-    兩欄的同類合併＝families（acts＝現在有效的訊號過去出現的日子，now_market 填）。
-    溫度計（VER 12）另外算 ●、△（thermo_tier），同類合併＝thermo_families，一類算 THERMO_W[這一類的等級]；
-    每支溫度計的 "more"＝最高等級是 ●、△ 的類（溫度計下面收起來那一段）。
-    → {"up": [...], "warn": [...], "thermo": [{"k", "name", "h", "n": {side: {tier: 類數}}, "w": {side: 分}, "share", "lean",
-       "more": {side: [類…]}}]}"""
+def _robust(fe: dict | None) -> tuple[float | None, bool]:
+    """預估之後的差 g 與「之後也成立」（g ≥ LIST_GAP；第 5 節 ④b，只標示）。"""
+    if not fe or fe.get("fh") is None or fe.get("base") is None:
+        return None, False
+    g = fe["fh"] - fe["base"]
+    return g, g >= S.LIST_GAP
+
+
+def listing(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: dict | None = None,
+            T: dict | None = None) -> list[dict]:
+    """第 5 節 ④b 列出來的規則（VER 23）：這個市場現在有效的市場層級訊號（MARKET_CATS 與大跌後買點），次數 ≥ N_MIN、
+    過去的命中率比平常高 THERMO_EDGE 以上（訊號自己的看多久＝研究列的統計；跨期間＝xon 現在有效、xh 的統計）；
+    同一個項目同一支溫度計一邊留一個、「震盪」（both）、同類合併（families）。
+    → 每一類的領頭："cls"（偏多／買點／大跌風險）、"side"、"hz"、"edge"＝過去的差 e、"st"＝那一邊的統計、"now"、"fam"；
+    預估之後（sigoos.est／est_x）有的話另有 "fe"、"g"、"ok"＝之後也成立；跨期間的列另有 "xk"、"H0"、"ak"，H、th、up、warn
+    換成那支溫度計的。預估之後的研究檔沒有（或版本不夠）照樣列，只是沒有 fe、ok 都是 False。"""
+    from . import sigoos as OOS
+    T = OOS.load() if T is None else T
     best: dict = {}
+
+    def put(c: dict) -> None:
+        key = (item_key(c), c["hz"], c["side"])
+        if key not in best or _lrank(c) < _lrank(best[key]):
+            best[key] = c
+
+    def ok_st(st: dict | None) -> bool:
+        return bool(st) and st.get("hit") is not None and st.get("base") is not None and (st.get("n") or 0) >= S.N_MIN
     for r in rows:
-        if r.get("mk") != mk or r["id"] not in on:
+        if r.get("mk") != mk or r["id"] not in on or r.get("cat") not in OOS.MARKET_CATS + ("buy",):
             continue
         for d in (("buy",) if r["cat"] == "buy" else ("up", "warn")):
             st = r.get(d)
-            t = thermo_tier(st)
-            if t is None:
+            if not ok_st(st):
                 continue
-            e = edge(st)
-            side = "warn" if d == "warn" else "up"
-            key = (item_key(r), horizon(r), side)
-            k = (THERMO_RANK[t], e)
-            if key not in best or k > best[key][0]:
-                best[key] = (k, {**r, "tier": t, "d": d, "edge": e, "now": on[r["id"]], "side": side, "hz": horizon(r)})
-    allx = [x for _, x in best.values()]
-    good = [x for x in allx if x["tier"] == "good"]
-    sides: dict = {}
-    for x in good:
-        sides.setdefault((item_key(x), x["hz"]), set()).add(x["side"])
-    for x in allx:
-        x["both"] = x["tier"] == "good" and len(sides[(item_key(x), x["hz"])]) == 2
-    fams = families(good, acts)
-    out: dict = {s: [x for x in fams if x["side"] == s] for s in ("up", "warn")}
-    tf = thermo_families(allx, acts)
+            e = st["hit"] - st["base"]
+            cls = list_cls(d, e)
+            if cls:
+                fe = OOS.est(r, d, T) if T else None
+                g, ok = _robust(fe)
+                put({**r, "d": d, "cls": cls, "side": S.LIST_SIDE[cls], "hz": horizon(r), "edge": e, "st": st,
+                     "fe": fe, "g": g, "ok": ok, "now": on[r["id"]]})
+    for r in rows:                                    # 跨期間（第 5 節 ③a 的現在有效）
+        if r.get("mk") != mk or not xon or r["id"] not in xon or not r.get("xh") or r.get("cat") not in OOS.MARKET_CATS:
+            continue
+        for k, nk in xon[r["id"]].items():
+            X = r["xh"].get(k)
+            if not X:
+                continue
+            for d in ("up", "warn"):
+                st = X.get(d)
+                if not ok_st(st):
+                    continue
+                e = st["hit"] - st["base"]
+                cls = list_cls(d, e)
+                if cls:
+                    fe = OOS.est_x(r, d, k, T) if T else None
+                    g, ok = _robust(fe)
+                    put({**r, "H": X["H"], "th": X["th"], "up": X["up"], "warn": X["warn"], "H0": r["H"], "d": d, "cls": cls,
+                         "side": S.LIST_SIDE[cls], "hz": k, "edge": e, "st": st, "fe": fe, "g": g, "ok": ok, "now": nk,
+                         "xk": k, "ak": xkey(r["id"], k)})
+    items: dict = {}
+    for (ik, hz, side), c in best.items():
+        items.setdefault((ik, hz), {})[side] = c
+    out = []
+    for sl in items.values():
+        both = len(sl) == 2                                           # 偏多（買點）＋大跌風險＝震盪
+        out += [{**c, "both": both} for c in sl.values()]
+    return families(out, acts)
+
+
+def today(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: dict | None = None,
+          T: dict | None = None) -> dict:
+    """訊號總覽「今天有效的訊號」（sigspec 第 5 節 ④b，VER 23）：同 listing 的規則，偏多、警示兩邊各依 _frank 排序。
+    → {"ok": True（VER 23 起不依賴預估之後的研究檔）, "fwd": 預估之後的研究檔有沒有, "up": [...], "warn": [...]}。"""
+    from . import sigoos as OOS
+    T = OOS.load() if T is None else T
+    fams = listing(rows, on, mk, acts, xon, T)
+    return {"ok": True, "fwd": bool(T), **{s: [f for f in fams if f["side"] == s] for s in ("up", "warn")}}
+
+
+def board(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: dict | None = None,
+          T: dict | None = None) -> dict:
+    """景氣頁「今天的重點」（sigspec 第 5 節 ④b，VER 23）：listing 的每一類依溫度計分三段，每段偏多、警示兩張清單（_frank 排序）；
+    溫度計＝每一支、每一邊的類數（一類算 1），偏多占比 ≥ THERMO_LEAN 偏多、≤ 1 − THERMO_LEAN 偏警示、其他差不多，兩邊都沒有＝中性。
+    → {"ok", "fwd", "up": [...], "warn": [...], "thermo": [{"k", "name", "h", "H", "n": {side: 類數}, "share", "lean", "up": [...], "warn": [...]}]}。"""
+    from . import sigoos as OOS
+    T = OOS.load() if T is None else T
+    fams = listing(rows, on, mk, acts, xon, T)
     th = []
     for k, name, h in S.THERMO_HZ:
-        n = {s: {t: sum(1 for x in tf if x["hz"] == k and x["side"] == s and x["tier"] == t) for t in S.THERMO_W}
-             for s in ("up", "warn")}
-        w = {s: sum(S.THERMO_W[t] * c for t, c in n[s].items()) for s in n}
-        tot = w["up"] + w["warn"]
-        share = w["up"] / tot if tot else None
+        L = {s: [f for f in fams if f["hz"] == k and f["side"] == s] for s in ("up", "warn")}
+        n = {s: len(L[s]) for s in L}
+        tot = n["up"] + n["warn"]
+        share = n["up"] / tot if tot else None
         lean = None if share is None else "up" if share >= S.THERMO_LEAN else "warn" if share <= 1 - S.THERMO_LEAN else "even"
-        more = {s: [x for x in tf if x["hz"] == k and x["side"] == s and x["tier"] != "good"] for s in ("up", "warn")}
-        th.append({"k": k, "name": name, "h": h, "n": n, "w": w, "share": share, "lean": lean, "more": more})
-    out["thermo"] = th
-    return out
+        th.append({"k": k, "name": name, "h": h, "H": S.THERMO_H[k], "n": n, "share": share, "lean": lean, **L})
+    return {"ok": True, "fwd": bool(T), "up": [f for f in fams if f["side"] == "up"],
+            "warn": [f for f in fams if f["side"] == "warn"], "thermo": th}
 
 
 # ── 每天建頁：景氣頁的 B → 這個市場現在有沒有效（存在程序裡給訊號總覽沿用） ──────────
@@ -1318,8 +1587,10 @@ def now_for_B(B: dict) -> dict | None:
         if F is None:
             return None
         acts: dict = {}
-        on = now_market(F, acts)
-        NOW[F["mk"]] = {"mk": F["mk"], "d": F["cal"][-1], "on": on, "acts": acts, "cv": crash_now(F), "sim": _sim_now(F)}
+        xon: dict = {}
+        on = now_market(F, acts, xon)
+        NOW[F["mk"]] = {"mk": F["mk"], "d": F["cal"][-1], "on": on, "acts": acts, "xon": xon, "cv": crash_now(F),
+                        "sim": _sim_now(F)}
         return NOW[F["mk"]]
     except Exception as e:                            # noqa: BLE001
         print(f"[訊號總覽] 現在的狀態算不出來：{type(e).__name__}: {e}")

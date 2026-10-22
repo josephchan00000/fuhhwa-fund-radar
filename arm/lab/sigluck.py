@@ -4,7 +4,7 @@
 看平移後命中率 ≥ 實際命中率的比例。和 sigcat.ev_stat／st_stat 同一套計次與命中率（tests/test_sigluck.py 逐一比對）。
 
   Shift          一個市場層級訊號的平移計算（事件型、狀態型）
-  market_p(...)  一個市場層級訊號 → 偏多、警示的 p（＋運氣會產生的 ★ 期望個數，只呈現）
+  market_p(...)  一個市場層級訊號 → 偏多、警示的 p（＋運氣會產生的 ★、◆ 期望個數；VER 17 起 p 也只呈現）
   sign_p(b, c)   兩兩成對（大跌後買點、個股偏多）：單尾精確符號檢定
   shift_p(...)   通用：給「第 j 次平移的命中率」函式 → p
 """
@@ -56,7 +56,8 @@ def sign_p(b: int, c: int) -> float:
 
 
 class Shift:
-    """一個市場層級訊號（sigcat.signals 的 sd）。occ(o)＝平移 o 個樣本後的（每一次的第一天、偏多結果、警示結果）。"""
+    """一個市場層級訊號（sigcat.signals 的 sd）。occ(o)＝平移 o 個樣本後的（每一次的第一天、偏多結果、警示結果、天數）：
+    事件型每一次一天；狀態型每一段＝段內平均與窗口完整的天數（VER 22：命中率＝每一天一樣重＝依天數加權）。"""
 
     def __init__(self, sd: dict, Yu: np.ndarray, Yw: np.ndarray):
         self.kind, self.H = sd["kind"], sd["H"]
@@ -70,9 +71,11 @@ class Shift:
         else:
             self.st = np.asarray(sd["state"], dtype=bool)
             self.gap = 1 if sd.get("monthly") else S.EP_GAP
+            b = sd.get("brk")                              # VER 20：相反的極端跟著狀態一起平移
+            self.brk = None if b is None else np.asarray(b, dtype=bool)
 
-    def occ(self, o: int = 0) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        empty = (np.zeros(0, dtype=np.int64), np.zeros(0), np.zeros(0))
+    def occ(self, o: int = 0) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        empty = (np.zeros(0, dtype=np.int64), np.zeros(0), np.zeros(0), np.zeros(0))
         if self.L == 0:
             return empty
         if self.kind == "event":
@@ -88,26 +91,32 @@ class Shift:
                 last = t
             kp = np.array(kept, dtype=np.int64)
             kp = kp[self.valid[kp]]
-            return self.samp[kp], self.yu[kp], self.yw[kp]
+            return self.samp[kp], self.yu[kp], self.yw[kp], np.ones(len(kp))
         st = np.roll(self.st, o) if o else self.st
         pos = np.nonzero(st)[0]
         if not len(pos):
             return empty
-        starts = np.concatenate([[0], np.nonzero(np.diff(pos) - 1 >= self.gap)[0] + 1]).astype(np.int64)
+        cut = np.diff(pos) - 1 >= self.gap
+        if self.brk is not None:                           # 中斷的樣本裡有相反的極端＝新的一段（同 sigcat.episodes）
+            br = np.roll(self.brk, o) if o else self.brk
+            cb = np.concatenate([[0], np.cumsum(br.astype(np.int64))])
+            cut = cut | (cb[pos[1:]] - cb[pos[:-1] + 1] > 0)
+        starts = np.concatenate([[0], np.nonzero(cut)[0] + 1]).astype(np.int64)
         v = self.valid[pos]
         cnt = np.add.reduceat(v.astype(np.int64), starts)
         su = np.add.reduceat(np.where(v, self.yu[pos], 0.0), starts)
         sw = np.add.reduceat(np.where(v, self.yw[pos], 0.0), starts)
         ok = cnt > 0
-        return self.samp[pos[starts[ok]]], su[ok] / cnt[ok], sw[ok] / cnt[ok]
+        return self.samp[pos[starts[ok]]], su[ok] / cnt[ok], sw[ok] / cnt[ok], cnt[ok].astype(float)
 
 
-def _summ(first, u, w, r0) -> dict:
-    """→ {方向: (次數, 命中率, 近 10 年次數, 近 10 年命中率)}。"""
+def _summ(first, u, w, cnt, r0) -> dict:
+    """→ {方向: (次數, 命中率, 近 10 年次數, 近 10 年命中率)}；命中率依天數加權（VER 22：每一天一樣重；事件型天數都是 1）。"""
     m10 = first >= r0
     out = {}
     for d, y in (("up", u), ("warn", w)):
-        out[d] = (len(y), float(y.mean()) if len(y) else None, int(m10.sum()), float(y[m10].mean()) if m10.any() else None)
+        out[d] = (len(y), float((y * cnt).sum() / cnt.sum()) if len(y) else None, int(m10.sum()),
+                  float((y[m10] * cnt[m10]).sum() / cnt[m10].sum()) if m10.any() else None)
     return out
 
 
@@ -122,11 +131,24 @@ def passes(n, hit, base, n10, hit10, base10, d: str, recent: bool = True) -> boo
     return True
 
 
+def passes_win(n, hit, base, n10, hit10, base10, d: str) -> bool:
+    """VER 17（sigspec 第 3.5 節）：運氣個數用的判定＝第 3 節新判定的命中率部分（報酬兩條沒有算）。"""
+    if not n or n < S.N_MIN or hit is None or base is None:
+        return False
+    hm = S.HIT_MIN[d]
+    if hit < hm or hit < base:
+        return False
+    if (n10 or 0) >= S.RECENT_N:
+        return hit10 is not None and base10 is not None and hit10 >= hm and hit10 >= base10
+    return True
+
+
 def market_p(sd: dict, Yu: np.ndarray, Yw: np.ndarray, r0: int, R: dict, draws: int = S.LUCK_DRAWS) -> dict:
-    """一個市場層級訊號 → {方向: {"p": p, "luck": 運氣會產生 ★ 的機率（把每一次平移當成真的、同一套判定）}}。
-    R＝sigcat.ev_stat／st_stat 的實際結果（用它的命中率與平常，確保和判定同一組數字）。"""
+    """一個市場層級訊號 → {方向: {"p": p, "luck": 運氣會產生 ★ 的機率, "luck_rare": 運氣會產生 ◆ 的機率}}
+    （把每一次平移當成真的、用 VER 17 判定的命中率部分：平移後次數 ≥ STAR_N 算 ★、N_MIN～STAR_N − 1 算 ◆）。
+    R＝sigcat.ev_stat／st_stat 的實際結果（用它的命中率與平常，確保和判定同一組數字）。p 只呈現（VER 17）。"""
     sh = Shift(sd, Yu, Yw)
-    out = {d: {"p": None, "luck": 0.0} for d in ("up", "warn")}
+    out = {d: {"p": None, "luck": 0.0, "luck_rare": 0.0} for d in ("up", "warn")}
     if sh.L == 0:
         return out
     rows = [_summ(*sh.occ(int(o)), r0) for o in offsets(rng_for(sd["id"]), sh.L, draws)]
@@ -134,14 +156,17 @@ def market_p(sd: dict, Yu: np.ndarray, Yw: np.ndarray, r0: int, R: dict, draws: 
         st = R[d]
         hits = np.array([np.nan if x[d][1] is None else x[d][1] for x in rows])
         out[d]["p"] = p_of(hits, st.get("hit"))
-        pj = loo_p(hits)
         b, b10 = st.get("base"), st.get("base10")
-        c = 0
-        for j, x in enumerate(rows):
+        c = cr = 0
+        for x in rows:
             n, h, n10, h10 = x[d]
-            if pj[j] <= S.luck_p(n) and passes(n, h, b, n10, h10, b10, d):     # VER 14：門檻用平移後的次數
-                c += 1
+            if passes_win(n, h, b, n10, h10, b10, d):
+                if n >= S.STAR_N:
+                    c += 1
+                else:
+                    cr += 1
         out[d]["luck"] = c / draws
+        out[d]["luck_rare"] = cr / draws
     return out
 
 
@@ -154,16 +179,9 @@ def shift_p(actual: float | None, hit_of, L: int, key: str, draws: int = S.LUCK_
 
 
 def _ep_hits(flag: np.ndarray, y: np.ndarray, gap: int = 1) -> list[float]:
-    """一個序列：flag 為真的位置分段（中斷 < gap 算同一段）→ 每一段有值的 y 平均（沒有值的段不算）。"""
-    pos = np.nonzero(flag)[0]
-    if not len(pos):
-        return []
-    starts = np.concatenate([[0], np.nonzero(np.diff(pos) - 1 >= gap)[0] + 1]).astype(np.int64)
-    v = ~np.isnan(y[pos])
-    cnt = np.add.reduceat(v.astype(np.int64), starts)
-    sm = np.add.reduceat(np.where(v, y[pos], 0.0), starts)
-    ok = cnt > 0
-    return (sm[ok] / cnt[ok]).tolist()
+    """一個序列：flag 為真、y 有值的每一個月（VER 22：每一個月一樣重；VER 9～21 是每一段的平均）。"""
+    v = y[np.nonzero(flag)[0]]
+    return v[~np.isnan(v)].tolist()
 
 
 def ind_p(key: str, seqs: list[tuple[np.ndarray, np.ndarray, np.ndarray]], actual: dict,

@@ -67,10 +67,11 @@ def _defs(js: str):
 
 
 def test_three_scripts_have_no_name_collisions():
-    """三支 JS 串成同一個 <script>：同名函式會被後面的蓋掉（2026-10-18 位置圖原本叫 sxSec，和飆股段既有的 sxSec 撞名），
-    同名的頂層 const／let 會讓整頁報錯。"""
+    """四支 JS 串成同一個 <script>：同名函式會被後面的蓋掉（2026-10-18 位置圖原本叫 sxSec，和飆股段既有的 sxSec 撞名），
+    同名的頂層 const／let 會讓整頁報錯。macpage＝策略頁・總經策略（2026-10-22，docs/lab_strategy_ia_plan.md）。"""
+    from arm.lab import macpage
     names = {}
-    for nm, js in (("page", page._JS), ("stockviz", stockviz.JS), ("copage", copage.JS)):
+    for nm, js in (("page", page._JS), ("stockviz", stockviz.JS), ("macpage", macpage.JS), ("copage", copage.JS)):
         fn, top = _defs(js)
         for n in fn + top:
             names.setdefault(n, []).append(nm)
@@ -82,11 +83,12 @@ def test_charts_wired_into_opp_chip_and_watchlist():
     html = page.render({"rows": [], "asof": {}})
     assert stockviz.CSS in html
     js = html[html.index("<script>"):]
-    # stockviz 在 copage 前面、頁面初始化之前（初始化會開機會頁，這時函式與 VZS 必須已經定義）
-    i_vz, i_co, i_init = js.index("const VZS="), js.index(copage.JS[:200]), js.index("go('opp');")
-    assert i_vz < i_co < i_init
+    # stockviz、macpage（總經策略）在 copage 前面、頁面初始化之前（初始化依網址開分頁，這時函式與 VZS、TLM 必須已經定義）
+    from arm.lab import macpage
+    i_vz, i_mac, i_co, i_init = js.index("const VZS="), js.index("const MAC=D.mac||{}"), js.index(copage.JS[:200]), js.index("go(v,at);}")
+    assert i_vz < i_mac < i_co < i_init and macpage.CSS in html
     assert "/*@@COPAGE@@*/" not in html
-    for f in ("function tlDraw(", "function mmDraw(", "function spotDraw(", "function sxSec("):
+    for f in ("function tlDraw(", "function mmDraw(", "function spotDraw(", "function sxSec(", "function vMac(", "function vMacSt("):
         assert js.count(f) == 1, f
     # 機會：摘要＝四格數字＋下一個交易日＋時間軸，文字版時間表收在展開
     assert "oSum()+tlNext()+tlSec()+`<details class=mr><summary>逐筆時間表（文字）</summary>${oTl()}</details>`" in page._JS
@@ -99,8 +101,11 @@ def test_charts_wired_into_opp_chip_and_watchlist():
     # 飆股段：一行摘要之後接位置圖
     wl = copage.JS[copage.JS.index("function wlSec("):]
     assert wl.index("b+=spotSec();") < wl.index("<h4 class=sh>到買點")
-    # 寬度改變才重畫，三張圖都重畫
-    assert "tlDraw();mmDraw();spotDraw();" in stockviz.JS
+    # 寬度改變才重畫，三張圖都重畫（總經策略的時間軸也是）
+    assert "tlDraw();if(typeof TLM!=='undefined')tlDraw(TLM);mmDraw();spotDraw();" in stockviz.JS
+    # 時間軸吃設定：個股策略 TLO（原本寫死的部分）、總經策略 TLM（macpage.py）
+    assert "function tlDraw(Q){Q=Q||TLO;" in stockviz.JS and "const TLO={box:'tlbox',tip:'tltip',rk:'tl'" in stockviz.JS
+    assert "const TLM={box:'xmtlbox',tip:'xmtltip',rk:'mtl'" in macpage.JS and "tlDraw(TLM);" in macpage.JS
 
 
 def test_no_banned_words_in_charts():

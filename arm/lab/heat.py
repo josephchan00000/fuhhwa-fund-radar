@@ -228,6 +228,53 @@ def asof_monthly(dates: list[str], ser: dict, rel: tuple[int, int]) -> list:
     return out
 
 
+def _ym_add(ym: str, k: int) -> str:
+    y, m = int(ym[:4]), int(ym[5:7]) + k
+    y += (m - 1) // 12
+    m = (m - 1) % 12 + 1
+    return f"{y:04d}-{m:02d}"
+
+
+def _ym_diff(a: str, b: str) -> int:
+    return (int(b[:4]) - int(a[:4])) * 12 + int(b[5:7]) - int(a[5:7])
+
+
+def fill_gaps(ser: dict, maxgap: int, geo: bool = False) -> dict:
+    """月資料 {YYYY-MM: 值} 連續缺 ≤ maxgap 個月時，用前後兩個月內插（heatspec VER 10、heatspec_us VER 2）：
+    geo＝幾何內插（CPI 這類指數；只缺一個月＝前後兩個月的幾何平均），否則算術內插（只缺一個月＝前後兩個月平均）。
+    只補前後都有值的缺口；值是 None 的當成缺。"""
+    ks = sorted(k for k, v in ser.items() if v is not None)
+    out = {k: ser[k] for k in ks}
+    for a, b in zip(ks, ks[1:]):
+        gap = _ym_diff(a, b) - 1
+        if not 1 <= gap <= maxgap:
+            continue
+        va, vb = ser[a], ser[b]
+        for j in range(1, gap + 1):
+            w = j / (gap + 1)
+            if geo and va > 0 and vb > 0:
+                out[_ym_add(a, j)] = va * (vb / va) ** w
+            else:
+                out[_ym_add(a, j)] = va + (vb - va) * w
+    return dict(sorted(out.items()))
+
+
+def stale_info(months: list[str], rel: tuple[int, int], today: str) -> tuple[str | None, list[str]]:
+    """月資料過期（heatspec VER 10）：有值的月份 → (最後一期, 照這一項過去的間隔應該已經拿得到、卻還沒有的期)。
+    間隔＝最近 12 期相鄰兩期相差月數的中位數（月資料 1、季資料 3）；第 last＋間隔、last＋2×間隔…裡公布日 ≤ today 的都算缺。"""
+    ks = sorted(months)
+    if not ks:
+        return None, []
+    tail = ks[-13:]
+    gaps = sorted(_ym_diff(a, b) for a, b in zip(tail, tail[1:]))
+    step = max(1, gaps[len(gaps) // 2]) if gaps else 1
+    due, m = [], _ym_add(ks[-1], step)
+    while avail_date(m, rel) <= today and len(due) < 120:
+        due.append(m)
+        m = _ym_add(m, step)
+    return ks[-1], due
+
+
 def chg(xs: list, k: int, pct: bool = True) -> list:
     """和 k 期前比：變化率（%）或差。"""
     out: list = [None] * len(xs)

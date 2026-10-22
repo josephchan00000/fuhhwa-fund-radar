@@ -3,14 +3,16 @@
 台股景氣（x9m.html）、美股景氣（x9mu.html）、泡沫（x9b.html）、個股（x9.html，籌碼雷達）四頁的頂欄是同一組主分頁，右邊「返回主頁」。
 泡沫頁 2026-10-18 起獨立（docs/lab_risk_plan.md 第 7 節：使用者「泡沫單獨拉出來、自己一個頁面不要混淆」）。
 訊號總覽（x9o.html）2026-10-19 加入（docs/lab_signal_plan.md：「有一個地方是訊號總覽，所有訊號跟所有的策略妥善分類」）。
-大神策略（x9x.html）2026-10-21 加入（docs/lab_nav_plan.md：使用者「大神策略是放在訊號那邊而已嗎？這樣很難找」）。
+大神策略（x9x.html）2026-10-21 加入（docs/lab_nav_plan.md：使用者「大神策略是放在訊號那邊而已嗎？這樣很難找」）；
+2026-10-22 改成「策略」（docs/lab_strategy_ia_plan.md：「策略點進去，分成總經策略跟個股策略」）：策略與個股是同一頁 x9.html 的兩種身分，
+策略＝x9.html#v=mac（頁面載入後依網址換身分、亮頂欄的「策略」）；x9x.html 留成轉址頁。
 手機（640px 以下）六格放不下全名，改顯示短名（SHORT）。
 """
 from __future__ import annotations
 
-TABS = (("tw", "台股景氣", "x9m.html"), ("us", "美股景氣", "x9mu.html"), ("bub", "泡沫", "x9b.html"), ("xs", "大神策略", "x9x.html"),
+TABS = (("tw", "台股景氣", "x9m.html"), ("us", "美股景氣", "x9mu.html"), ("bub", "泡沫", "x9b.html"), ("st", "策略", "x9.html#v=mac"),
         ("stk", "個股", "x9.html"), ("sig", "訊號總覽", "x9o.html"))
-SHORT = {"tw": "台股", "us": "美股", "xs": "策略", "sig": "訊號"}
+SHORT = {"tw": "台股", "us": "美股", "sig": "訊號"}
 
 CSS = (".apptab{display:flex;gap:2px;background:var(--card2);border-radius:10px;padding:3px;align-self:center}"
        ".apptab a{padding:5px 12px;border-radius:8px;font-size:14.5px;font-weight:600;color:var(--ink2);"

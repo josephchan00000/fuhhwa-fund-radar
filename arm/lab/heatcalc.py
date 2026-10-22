@@ -60,6 +60,7 @@ def rev_sums(shards, fin: set[str]) -> dict:
 
 def load() -> dict:
     D = {n: HD.load(n) for n in FILES}
+    D["uscpi"] = H.fill_gaps(D.get("uscpi") or {}, S.GAP_FILL_MAX, geo=True)   # VER 10：2025-10 政府停擺缺 CPI
     D["rev"] = rev_sums(store.load("rev"), fin_codes())
     from .heatcalc_bub import load_tw_val            # 第七版：上市櫃市值與近四季淨利（本益比、市值 ÷ GDP）
     D["twval"] = load_tw_val()
@@ -384,7 +385,7 @@ def score(D: dict, cal: list[str], px: list, info: dict, N: dict, M: dict, PRE: 
     → {"cal", "px", "cal_info", "raw": {k: 逐日值}, "heat": {k: 逐日 0～100（頁面顯示，含代替）},
     "hc": {k: 逐日 0～100（算進總分的）}, "proxy": {k: 逐日是否用代替}, "ym": {k: 逐日用到的月份},
     "mraw": {k: 月序列}, "nat": {k: 來源日期上的值}, "comp": {面向: 逐日總分}, "vixcorr": {...}, "ref": REF,
-    "pre": PRE, "D": D}"""
+    "pre": PRE, "D": D, "stale": {k: {"last": 最後一期, "due": 應該已經拿得到卻還沒有的期}}（VER 10，只列過期的月資料項目）}"""
     PRE = PRE or {}
     T = len(cal)
     raw = align_daily(cal, N)
@@ -430,8 +431,14 @@ def score(D: dict, cal: list[str], px: list, info: dict, N: dict, M: dict, PRE: 
         pairs = [(raw[k][i], raw[src][i]) for i in range(T) if raw[k][i] is not None and raw[src][i] is not None]
         vc = {"n": len(pairs), "r": H._pearson([a for a, _ in pairs], [b for _, b in pairs]) if len(pairs) >= 3 else None,
               "a": next((cal[i] for i in range(T) if raw[k][i] is not None), None)}
+    stale = {}                                         # VER 10：月資料過期（只標示、不改分數與歷史）
+    for k in monthly_keys():
+        ms = [ym for ym, v in ((PRE.get(k) or {}) if k in S.PRESCORED else M[k]).items() if v is not None]
+        last, due = H.stale_info(ms, S.RELEASE[k], cal[-1]) if cal else (None, [])
+        if last and len(due) >= S.STALE_M:
+            stale[k] = {"last": last, "due": due}
     return {"cal": cal, "px": px, "cal_info": info, "raw": raw, "heat": heat, "hc": hc, "proxy": proxy, "ym": ymu,
-            "mraw": M, "nat": N, "comp": comp, "vixcorr": vc, "ref": REF or {}, "pre": PRE, "D": D}
+            "mraw": M, "nat": N, "comp": comp, "vixcorr": vc, "ref": REF or {}, "pre": PRE, "D": D, "stale": stale}
 
 
 # ── 驗證（第 12.7 節） ─────────────────────────────────────────────────

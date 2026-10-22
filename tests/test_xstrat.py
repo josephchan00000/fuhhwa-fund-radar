@@ -445,18 +445,16 @@ def test_dip_stats_base_and_luck():
     assert st["hs"][20]["n"] == 4 and st["hs"][60]["win"] == st["win"]              # 1950 那一次 20 天的窗口夠
     p1 = X.luck_dip(px, days, 250, 60, c, "xs:t:dip", st["win"])
     assert p1 == X.luck_dip(px, days, 250, 60, c, "xs:t:dip", st["win"]) and 1 / 401 <= p1 <= 1
-    ok = {"n": 6, "win": 0.70, "base": 0.58, "med": 0.01}
+    assert abs(st["trim"] - np.mean(sorted(r)[1:-1])) < 1e-12 and abs(st["lbo"] - np.mean(sorted(r)[:-1])) < 1e-12   # VER 6
+    # VER 6：絕對成績——上漲比例 ≥ 60%、不低於隨便挑一天、淨報酬中位數 ＞ 0、排除極端的平均 ＞ 0
+    ok = {"n": 6, "win": 0.70, "base": 0.58, "med": 0.01, "trim": 0.02}
     assert X.dip_pass(ok) and not X.dip_pass({**ok, "n": 4}) and not X.dip_pass({**ok, "win": 0.59})
-    assert not X.dip_pass({**ok, "base": 0.61}) and not X.dip_pass({**ok, "med": -0.001})
+    assert not X.dip_pass({**ok, "base": 0.71}) and not X.dip_pass({**ok, "med": -0.001}) and not X.dip_pass({**ok, "trim": -0.001})
+    assert X.dip_pass({**ok, "base": 0.69}) and X.dip_pass({**ok, "base": 0.70})       # 不用比隨便挑一天高 10 點，不低於就好
+    assert not X.dip_pass({**ok, "trim": None})
     assert X.dip_pass_recent({**ok, "n": 4}) is None and X.dip_pass_recent(ok) is True
-    # VER 5：賺錢機率沒有比較高、但賺得比較多也算過關（中位數 ≥ max(1.5 × 隨便挑一天, 隨便挑一天 ＋ 3 個百分點)）
-    mmr = {"n": 7, "win": 0.714, "base": 0.715, "med": 0.213, "bmed": 0.102}      # 融資維持率跌破 140%
-    assert X.dip_pass(mmr) and X.dip_bigger(mmr) and not X.dip_more(mmr) and X.dip_pass_recent({**mmr, "n": 5}) is True
-    assert not X.dip_pass({**mmr, "med": 0.152})                                   # 1.5 × 0.102＝0.153
-    assert not X.dip_pass({**mmr, "bmed": 0.02, "med": 0.049}) and X.dip_pass({**mmr, "bmed": 0.02, "med": 0.05})   # 多 3 個百分點
-    assert X.dip_pass({**mmr, "bmed": -0.02, "med": 0.011}) and not X.dip_pass({**mmr, "bmed": -0.02, "med": 0.009})
-    assert not X.dip_pass({**mmr, "win": 0.59}) and not X.dip_pass({**mmr, "n": 4})   # 賺錢 60% 與次數下限照舊
-    assert not X.dip_bigger({**mmr, "bmed": None}) and X.dip_pass({**ok, "bmed": 0.5})   # 沒有中位數＝只看 ①
+    mmr = {"n": 7, "win": 0.714, "base": 0.715, "med": 0.213, "bmed": 0.102, "trim": 0.2}   # 融資維持率跌破 140%：比隨便挑一天低一點點
+    assert not X.dip_pass(mmr) and X.dip_bigger(mmr) and not X.dip_more(mmr)            # VER 5 的兩條照留（不再參與判定）
 
 
 # ── VER 4：融資維持率、融資去化、Lowry 90% 日 ──

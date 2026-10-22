@@ -254,12 +254,12 @@ def sig_today(now: dict | None) -> dict | None:
 
 
 def xs_board(mk: str | None) -> list:
-    """今天的重點：現在有動作的 ★ 大神策略（xstratpage.board）；算不出來回空的、不擋景氣頁。"""
+    """今天的重點：現在有動作的 ★ 總經策略（xstratpage.board）；算不出來回空的、不擋景氣頁。"""
     try:
         from . import xstratpage as XSP
         return XSP.board(mk) if mk else []
     except Exception as e:                          # noqa: BLE001
-        print(f"[景氣溫度] 大神策略算不出來：{type(e).__name__}: {e}")
+        print(f"[景氣溫度] 總經策略算不出來：{type(e).__name__}: {e}")
         return []
 
 
@@ -284,12 +284,12 @@ def mr_chip(mk: str | None) -> str:
 
 
 def xs_line(mk: str | None) -> str:
-    """今天的重點下面一行：這個市場的大神策略幾條、現在有部位幾條，連到大神策略頁（xstratpage.summary_line）。"""
+    """今天的重點下面一行：這個市場的總經策略幾條、現在有部位幾條，連到策略頁（xstratpage.summary_line）。"""
     try:
         from . import xstratpage as XSP
         return XSP.summary_line(mk) if mk else ""
     except Exception as e:                          # noqa: BLE001
-        print(f"[景氣溫度] 大神策略那一行算不出來：{type(e).__name__}: {e}")
+        print(f"[景氣溫度] 總經策略那一行算不出來：{type(e).__name__}: {e}")
         return ""
 
 
@@ -327,6 +327,7 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
                 "first": (rd.get("first") or {}).get(k), "ev": (rd.get("items") or {}).get(k) or {},
                 "pos": HP.position(B, k, t) if T else None,
                 "dv": dvn.get(k),
+                "stale": (B.get("stale") or {}).get(k),      # VER 10：資料過期（應該已經有的月份還沒有）
             })
         comp = B["comp"][dim]
         sc = comp[t] if T else None
@@ -351,10 +352,10 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
             "hotdd": hotdd_now(B) if T else None, "hotch": hotch_now(B) if T else None,
             "bottom": bottom_now(B) if T else None, "signow": sig_now(B) if T else None}
     out["sigtoday"] = sig_today(out["signow"])
-    out["xsb"] = xs_board(out["mk"]) if T else []   # 大神策略（xstratspec）：今天的重點要列的 ★ 策略
+    out["xsb"] = xs_board(out["mk"]) if T else []   # 總經策略（xstratspec）：今天的重點要列的 ★ 策略
     out["xschip"] = xs_chip(out["mk"]) if T else ""
     out["mrchip"] = mr_chip(out["mk"]) if T else ""
-    out["xsl"] = xs_line(out["mk"]) if T else ""     # 今天的重點下面一行（連到大神策略頁）
+    out["xsl"] = xs_line(out["mk"]) if T else ""     # 今天的重點下面一行（連到策略頁）
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
         out["viz"] = VZ.pack(B, out)
@@ -501,6 +502,12 @@ def _verdict_line(L: dict) -> str:
     return f'<p class="vd">過去關係（只當參考，不拿來刪項目）：{"、".join(vs)}。</p>'
 
 
+def stale_txt(st: dict) -> str:
+    """資料過期（heatspec VER 10）的一句話。"""
+    return (f'資料停在 {st["last"]}（照公布時程應該已經有到 {st["due"][-1]}）；這一項的訊號暫停，'
+            f'分數照舊用最後一個值')
+
+
 def _items(L: dict) -> str:
     out = ['<div class="ith"><span>項目</span><span>0～100</span><span>拉動分數</span><span>佔比</span><span>本週</span></div>']
     have = sorted((it for it in L["items"] if it["pull"] is not None), key=lambda x: -abs(x["pull"]))
@@ -510,7 +517,9 @@ def _items(L: dict) -> str:
         sh = "—" if it["share"] is None else f'{it["share"]:.0f}%'
         dp = _sgn(it["dpull"])
         tag = ""
-        if it["proxy"]:
+        if it.get("stale"):
+            tag = f'<em class="px">{_e(stale_txt(it["stale"]))}</em>'
+        elif it["proxy"]:
             tag = '<em class="px">用美國 VIX 的排名代替，不算進分數</em>'
         elif it["why"]:
             tag = f'<em class="px">{_e(it["why"])}</em>'
@@ -1352,7 +1361,7 @@ def state_line(V: dict) -> str:
         tip = f'泡沫等級 {b["L"]} {BS.LEVELS[b["L"]]}' + (f'（{cs}）' if cs else "") + "，點了看泡沫頁"
         chips.append(f'<a class="stc" href="x9b.html#{_e(b["mk"])}" title="{_e(tip)}"><b>泡沫</b>{b["L"]}'
                      f'<i>{_e(BS.LEVELS[b["L"]])}</i></a>')
-    if V.get("xschip"):                                      # 10 個月均線（大神策略，xstratspec；每個市場都列）
+    if V.get("xschip"):                                      # 10 個月均線（總經策略，xstratspec；每個市場都列）
         chips.append(V["xschip"])
     if V.get("mrchip"):                                      # 融資維持率（只有台股；docs/lab_crash_plan.md 第 22 節）
         chips.append(V["mrchip"])

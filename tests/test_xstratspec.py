@@ -3,6 +3,7 @@
 VER 1（2026-10-20）在算正式成績之前寫定；VER 2（2026-10-21，台股短線改台指期＋當天收盤）也在重算成績之前寫定；
 VER 3（2026-10-21，第二段落底型）在算落底型的正式成績之前寫定；VER 4（2026-10-21，第三段新資料）在讀回補資料之前寫定；
 VER 5（2026-10-22，落底型加看「賺多少」）在重算判定之前寫定（記憶體試算看過的數字寫在規劃第 11 節）。
+VER 6（2026-10-22，落底型改看絕對成績、至少不比隨便挑一天差）在重算判定之前寫定（docs/lab_practical_plan.md）。
 要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from datetime import date
 
@@ -14,7 +15,7 @@ BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會
 
 
 def test_xstrat_spec_v4_is_locked():
-    assert X.VER == 5 and X.SPEC_DATE == "2026-10-22" and X.SPEC_DATE_V1 == "2026-10-20"
+    assert X.VER == 6 and X.SPEC_DATE == "2026-10-22" and X.SPEC_DATE_V1 == "2026-10-20"
     assert X.MARKETS == SS.MARKETS and X.NAMES == SS.NAMES
     assert X.EVAL_START == {"tw": "1991-07-01", "spx": "1990-01-01", "ixic": "1990-01-01", "ndx": "1990-01-01",
                             "sox": "1995-10-01"}
@@ -92,7 +93,8 @@ def test_strategy_params_are_the_original_authors():
                                                                 "lowry"}
     assert all(s["grp"] == "bottom" for s in X.STRATS if s["kind"] == "dip")
     assert (X.DIP_N_MIN, X.DIP_N10, X.DIP_WIN, X.DIP_EDGE) == (5, 5, 0.60, 0.10)
-    assert (X.DIP_MED_X, X.DIP_MED_ADD) == (1.5, 0.03)                    # VER 5：賺得比較多也算過關
+    assert (X.DIP_MED_X, X.DIP_MED_ADD) == (1.5, 0.03)                    # VER 5：賺得比較多也算過關（VER 6 起不用）
+    assert (X.DIP_TRIM_Q, X.DIP_TRIM_N) == (0.05, 20)                     # VER 6：排除極端的平均 ＞ 0
     assert X.DIP_HS == (20, 60, 120, 250) and (X.BREADTH_MIN, X.FTD_HIGH, X.FTD_RESET) == (100, 252, 0.999)
 
 

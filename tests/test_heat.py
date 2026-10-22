@@ -10,7 +10,7 @@ from arm.lab import heatspec as S
 
 
 def test_spec_v7_is_locked():
-    assert S.VER == 9 and S.SPEC_DATE == "2026-10-20" and S.MARKET == "tw"
+    assert S.VER == 10 and S.SPEC_DATE == "2026-10-22" and S.MARKET == "tw"     # VER 10：補缺月、資料過期（docs/lab_audit_plan.md）
     # 第四版的計分規格（第五、六版沒有改分數；第七版只加泡沫面向）
     assert list(S.DIMS) == ["fund", "chip", "gliq", "tliq", "tech", "bubl"]
     assert {d: (v["fwd"], v["freq"]) for d, v in S.DIMS.items()} == {

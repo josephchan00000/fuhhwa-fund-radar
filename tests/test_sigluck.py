@@ -1,4 +1,4 @@
-"""打亂日子測試（arm/lab/sigluck.py；sigspec 第 3.5 節，VER 9）——和逐筆直接算的版本、正式統計函式比對。"""
+"""打亂日子測試（arm/lab/sigluck.py；sigspec 第 3.5 節，VER 9；VER 17 起市場層級只呈現）——和逐筆直接算的版本、正式統計函式比對。"""
 import math
 
 import numpy as np
@@ -46,18 +46,22 @@ def test_shift_zero_matches_production_stats():
         days = sorted(rng.choice(np.arange(0, 900), size=int(rng.integers(3, 60)), replace=False).tolist())
         sd = _event(days, samp, H=int(rng.choice([5, 20, 60])))
         R = G.ev_stat(sd["days"], Yu, Yw, samp, sd["H"], 600)
-        first, u, w = LK.Shift(sd, Yu, Yw).occ(0)
-        assert len(u) == R["up"]["n"] and (not len(u) or abs(u.mean() - R["up"]["hit"]) < 1e-12)
+        first, u, w, cnt = LK.Shift(sd, Yu, Yw).occ(0)
+        assert len(u) == R["up"]["n"] and (not len(u) or abs(u.mean() - R["up"]["hit"]) < 1e-12) and (cnt == 1).all()
         assert not len(w) or abs(w.mean() - R["warn"]["hit"]) < 1e-12
         st = rng.random(len(samp)) < rng.choice([0.05, 0.3])
         sd2 = _state(st, samp, monthly=bool(trial % 3 == 0))
         gap = 1 if sd2.get("monthly") else S.EP_GAP
         R2 = G.st_stat(st, samp, Yu, Yw, gap, 600)
-        first, u, w = LK.Shift(sd2, Yu, Yw).occ(0)
+        first, u, w, cnt = LK.Shift(sd2, Yu, Yw).occ(0)
         assert len(u) == R2["up"]["n"]
-        if len(u):
-            assert abs(u.mean() - R2["up"]["hit"]) < 1e-12 and abs(w.mean() - R2["warn"]["hit"]) < 1e-12
-            assert [int(x) for x in first] == [o[0] for o in R2["occ"]]
+        if len(u):                                        # VER 22：每一天一樣重＝每一段依天數加權
+            su = LK._summ(first, u, w, cnt, 600)
+            assert abs(su["up"][1] - R2["up"]["hit"]) < 1e-12 and abs(su["warn"][1] - R2["warn"]["hit"]) < 1e-12
+            assert su["up"][2] == R2["up"]["n10"] and (su["up"][3] is None) == (R2["up"]["hit10"] is None)
+            if su["up"][3] is not None:
+                assert abs(su["up"][3] - R2["up"]["hit10"]) < 1e-12
+            assert [int(x) for x in first] == [o[0] for o in R2["occ"]] and all(c <= o[2] for c, o in zip(cnt, R2["occ"]))
 
 
 def test_shifted_events_match_brute_force():
@@ -69,7 +73,7 @@ def test_shifted_events_match_brute_force():
         sd = _event(days, samp, H=int(rng.choice([3, 20])))
         sh = LK.Shift(sd, Yu, Yw)
         for o in rng.integers(0, len(samp), size=5):
-            first, u, w = sh.occ(int(o))
+            first, u, w, _ = sh.occ(int(o))
             n, hu, hw = _brute_event(sd, Yu, Yw, int(o))
             assert len(u) == n and (n == 0 or (abs(u.mean() - hu) < 1e-12 and abs(w.mean() - hw) < 1e-12))
 
@@ -83,9 +87,9 @@ def test_shifted_state_equals_rolled_state():
     sd = _state(st, samp)
     sh = LK.Shift(sd, Yu, Yw)
     for o in (0, 37, 300, 700):
-        first, u, _ = sh.occ(o)
+        first, u, w, cnt = sh.occ(o)
         R = G.st_stat(np.roll(st, o), samp, Yu, Yw, S.EP_GAP, 10 ** 9)
-        assert len(u) == R["up"]["n"] and abs(u.mean() - R["up"]["hit"]) < 1e-12
+        assert len(u) == R["up"]["n"] and abs((u * cnt).sum() / cnt.sum() - R["up"]["hit"]) < 1e-12
 
 
 def test_p_values_and_leave_one_out():
@@ -134,28 +138,35 @@ def test_market_p_is_deterministic_and_separates_signal_from_noise():
     assert LK.rng_for("a").integers(0, 10 ** 9) == LK.rng_for("a").integers(0, 10 ** 9) != LK.rng_for("b").integers(0, 10 ** 9)
 
 
-def test_luck_count_uses_threshold_by_shifted_count():
-    """VER 14：運氣會產生幾個 ★——每一次平移用平移後的次數決定門檻（次數 < 15 是 10%，其餘 1%）。"""
+def test_luck_count_uses_absolute_rule_by_shifted_count():
+    """VER 17：運氣會產生幾個 ★、◆——每一次平移用新判定的命中率部分（≥ 60%、不低於平常、近 10 年同一條），
+    平移後次數 ≥ STAR_N 算 ★、N_MIN～STAR_N − 1 算 ◆（報酬兩條不算）；p 照算、只呈現。"""
     T = 2400
     rng = np.random.default_rng(4)
     Yu = (rng.random(T) < 0.6).astype(float)
     Yw = (rng.random(T) < 0.3).astype(float)
     samp = np.arange(50, T - 30)
-    days = sorted(rng.choice(samp, size=9, replace=False).tolist())      # 次數少的訊號
-    for t in days:
-        Yu[t] = 1.0
-    sd = _event(days, samp, H=20, sid="tw:t:rare")
-    R = G.ev_stat(days, Yu, Yw, samp, 20, 2000)
-    got = LK.market_p(sd, Yu, Yw, 2000, R)["up"]["luck"]
-    sh = LK.Shift(sd, Yu, Yw)
-    rows = [LK._summ(*sh.occ(int(o)), 2000) for o in LK.offsets(LK.rng_for(sd["id"]), sh.L)]
-    hits = np.array([np.nan if x["up"][1] is None else x["up"][1] for x in rows])
-    pj = LK.loo_p(hits)
-    exp = sum(1 for j, x in enumerate(rows) if pj[j] <= S.luck_p(x["up"][0])
-              and LK.passes(*x["up"][:2], R["up"]["base"], *x["up"][2:], R["up"]["base10"], "up")) / len(rows)
-    old = sum(1 for j, x in enumerate(rows) if pj[j] <= S.LUCK_P
-              and LK.passes(*x["up"][:2], R["up"]["base"], *x["up"][2:], R["up"]["base10"], "up")) / len(rows)
-    assert abs(got - exp) < 1e-12 and got > old                # 次數少的平移多數用 10%，比只用 1% 多
+    for n_days, sid in ((9, "tw:t:rare"), (40, "tw:t:many")):
+        days = sorted(rng.choice(samp, size=n_days, replace=False).tolist())
+        for t in days:
+            Yu[t] = 1.0
+        sd = _event(days, samp, H=20, sid=sid)
+        R = G.ev_stat(days, Yu, Yw, samp, 20, 2000)
+        got = LK.market_p(sd, Yu, Yw, 2000, R)["up"]
+        sh = LK.Shift(sd, Yu, Yw)
+        rows = [LK._summ(*sh.occ(int(o)), 2000) for o in LK.offsets(LK.rng_for(sd["id"]), sh.L)]
+
+        def ok(x):
+            n, h, n10, h10 = x["up"]
+            if not n or n < S.N_MIN or h is None or h < 0.60 or h < R["up"]["base"]:
+                return False
+            return n10 < S.RECENT_N or (h10 is not None and h10 >= 0.60 and h10 >= R["up"]["base10"])
+        exp_g = sum(1 for x in rows if ok(x) and x["up"][0] >= S.STAR_N) / len(rows)
+        exp_r = sum(1 for x in rows if ok(x) and x["up"][0] < S.STAR_N) / len(rows)
+        assert abs(got["luck"] - exp_g) < 1e-12 and abs(got["luck_rare"] - exp_r) < 1e-12
+        hits = np.array([np.nan if x["up"][1] is None else x["up"][1] for x in rows])
+        assert got["p"] == LK.p_of(hits, R["up"]["hit"])            # p 照舊（只呈現）
+        assert (exp_g + exp_r) > 0                                     # 平常 60% 的市場，平移後的訊號也常常過命中率門檻
 
 
 def test_tier_uses_p_and_thresholds():

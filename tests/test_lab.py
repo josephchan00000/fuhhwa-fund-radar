@@ -237,14 +237,19 @@ def test_page_layout_v4_tabs_opp_first_and_backend():
     建議的策略、還有隱含的獲利如何」；docs/lab_ia_v4_plan.md）：機會｜策略｜個股｜籌碼｜指數，一打開是「機會」；
     後台（自我驗證與研究）與名詞在頂欄右側小字；頁首一句話說明網頁目的。"""
     import re
-    tabs = re.findall(r'<a data-t="(\w+)">([^<]+)</a>', page._HTML)
-    assert tabs == [("opp", "機會"), ("st", "策略"), ("stk", "個股"), ("chip", "籌碼"), ("idx", "指數")]
+    # 2026-10-22（docs/lab_strategy_ia_plan.md）：同一頁兩種身分——策略（總經策略｜個股策略，各兩頁：這一期、規則與成績）、
+    # 個股（個股｜籌碼｜指數）；原「機會」「策略」兩頁＝個股策略的「這一期」「規則與成績」。後台兩邊都有。
+    tabs = re.findall(r'<a data-t="(\w+)" data-p="(\w+)"(?: hidden)?>([^<]+)</a>', page._HTML)
+    assert tabs == [("mac", "st", "總經策略"), ("stg", "st", "個股策略"), ("stk", "stk", "個股"), ("chip", "stk", "籌碼"), ("idx", "stk", "指數")]
     assert 'id="glb"' in page._HTML and "說明</a>" not in page._HTML
     assert '<a class="vlb" data-t="bo">後台</a><a class="glb" id="glb">' in page._HTML
-    assert '<p class="purp">用固定規則的選股策略，列出每條策略這一期選到的股票、哪天買賣，以及同樣做法過去實際賺多少。</p>' in page._HTML
-    assert "go('opp');" in page._JS and "const S={tab:'opp'," in page._JS
+    assert '<p class="purp" id="purp">' in page._HTML and "const PURP={st:" in page._JS
+    assert "const S={tab:'stk'," in page._JS and "go(v,at);}" in page._JS
     js_views = re.search(r"const VIEWS=\{([^}]*)\}", page._JS).group(1)
-    assert [k.split(":")[0] for k in js_views.split(",")] == [t for t, _ in tabs] + ["bo"]
+    assert [k.split(":")[0] for k in js_views.split(",")] == ["opp", "st", "mac", "macst", "stk", "chip", "idx", "bo"]
+    tabg = re.search(r"const TABG=\{([^}]*)\}", page._JS).group(1)
+    assert dict(x.split(":") for x in tabg.replace("'", "").split(",")) == {
+        "opp": "stg", "st": "stg", "mac": "mac", "macst": "mac", "stk": "stk", "chip": "chip", "idx": "idx", "bo": "bo"}
     for k in ("today", "iss", "sig", "val"):                                 # 舊分頁已併入機會、籌碼、後台
         assert f'data-t="{k}"' not in page._HTML and f'data-go="{k}"' not in page._JS, k
 

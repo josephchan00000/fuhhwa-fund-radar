@@ -90,9 +90,10 @@ def test_analyze_does_not_shadow_page_rows():
 
 
 def test_company_js_runs_before_page_init():
-    """頁面初始化（go('opp')、#s= 個股卡）會呼叫公司分析的函式；公司分析的頂層 const 要先初始化（2026-10-16 踩到 TDZ）。"""
+    """頁面初始化（go(分頁)、#s= 個股卡）會呼叫公司分析的函式；公司分析的頂層 const 要先初始化（2026-10-16 踩到 TDZ）。
+    2026-10-22 起初始化依網址決定分頁（策略／個股兩種身分，docs/lab_strategy_ia_plan.md）。"""
     html = page.render({"rows": [], "asof": {}})
     js = html[html.rindex("<script>"):]
     init = "{const m=location.hash.match(/^#s=(.+)$/);if(m)renderStock(decodeURIComponent(m[1]));}"
-    assert js.index("const CO={},COP={}") < js.index("go('opp');") < js.index(init)
+    assert max(js.index("const CO={},COP={}"), js.index("const MAC=D.mac||{}")) < js.index("go(v,at);}") < js.index(init)
     assert "/*@@COPAGE@@*/" not in html

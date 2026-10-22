@@ -7,7 +7,7 @@ from arm.lab import heatspec_us as U
 
 
 def test_us_spec_v1_is_locked():
-    assert U.VER == 1 and U.SPEC_DATE == "2026-10-18" and U.MARKET == "us"
+    assert U.VER == 2 and U.SPEC_DATE == "2026-10-22" and U.MARKET == "us"     # VER 2：補缺月、資料過期（docs/lab_audit_plan.md）
     assert list(U.INDICES) == list(U.INDEX_ORDER) == ["spx", "ixic", "ndx", "sox"]
     assert {k: v["sym"] for k, v in U.INDICES.items()} == {"spx": "^GSPC", "ixic": "^IXIC", "ndx": "^NDX", "sox": "^SOX"}
     assert U.IVOL == {"spx": "vix", "ixic": "vxn", "ndx": "vxn", "sox": "vix"}
@@ -85,7 +85,7 @@ def test_spec_for_each_index():
 def test_use_switches_and_restores():
     tw = (S.VER, S.MARKET, list(S.KEYS), dict(S.ITEMS), S.US, S.DSHORT)
     with S.use(U.spec_for("ndx")):
-        assert (S.VER, S.MARKET, S.INDEX) == (1, "us", "ndx")
+        assert (S.VER, S.MARKET, S.INDEX) == (2, "us", "ndx")
         assert S.ITEMS["tech"][-1] == "T14" and S.US == ("R1",) and S.band(85) == "過熱"
     assert (S.VER, S.MARKET, list(S.KEYS), dict(S.ITEMS), S.US, S.DSHORT) == tw
     assert not hasattr(S, "INDEX") and not hasattr(S, "INDICES")      # 美股才有的名稱離開時拿掉
@@ -94,4 +94,4 @@ def test_use_switches_and_restores():
             raise RuntimeError("x")
     except RuntimeError:
         pass
-    assert S.VER == 9 and S.MARKET == "tw"                             # 中途出錯也換回來
+    assert S.VER == 10 and S.MARKET == "tw"                             # 中途出錯也換回來
