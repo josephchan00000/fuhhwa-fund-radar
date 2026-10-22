@@ -409,8 +409,9 @@ def result_line(r: dict) -> str:
         if not f.get("n"):
             return "評估期間沒有出現過。"
         H = r["H"]
+        tr = "" if f.get("trim") is None else f"、排除極端的平均 {pc(f['trim'], 1, sign=True)}"
         return (f"過去 {f['n']} 次：抱 {HN[H]}賺錢 {pc(f['win'], 0)}（隨便挑一天 {pc(f.get('base'), 0)}）、"
-                f"中位數 {pc(f['med'], 1, sign=True)}（扣成本；隨便挑一天 {pc(f.get('bmed'), 1, sign=True)}）、中途最多跌中位 {pc(f.get('mae'), 1)}")
+                f"中位數 {pc(f['med'], 1, sign=True)}（扣成本；隨便挑一天 {pc(f.get('bmed'), 1, sign=True)}）{tr}、中途最多跌中位 {pc(f.get('mae'), 1)}")
     if r["kind"] == "trade":
         if not f.get("n"):
             return "評估期間沒有交易。"
@@ -438,18 +439,16 @@ def _alloc_why(s: dict, b: dict) -> str:
 
 
 def _dip_why(s: dict, H: int) -> str:
+    """xstratspec VER 6：賺錢的比例 ≥ DIP_WIN 而且不比隨便挑一天差、扣成本後的中位數與排除極端的平均都賺錢。"""
     if not s.get("n"):
         return "沒有出現過"
     e = (s["win"] - s["base"]) * 100 if s.get("base") is not None else None
-    et = ("比隨便挑一天 — 個百分點" if e is None else "和隨便挑一天差不多" if abs(e) < 0.05
-          else f"比隨便挑一天高 {e:.1f} 個百分點" if e > 0 else f"比隨便挑一天低 {-e:.1f} 個百分點")
-    b = s.get("bmed")                                                      # xstratspec VER 5：賺得比較多也算過關
-    need = None if b is None else max(S.DIP_MED_X * b, b + S.DIP_MED_ADD)
-    big = ("" if b is None else
-           f"；②中位數 {pc(s['med'], 1, sign=True)}，隨便挑一天 {pc(b, 1, sign=True)}"
-           f"（要 {S.DIP_MED_X:g} 倍而且多 {S.DIP_MED_ADD * 100:.0f} 個百分點＝{pc(need, 1, sign=True)} 以上）")
-    return (f"抱 {HN[H]}賺錢 {pc(s['win'])}（要 {S.DIP_WIN * 100:.0f}% 以上），而且下面兩條過一條："
-            f"①賺錢的比例{et}（要高 {S.DIP_EDGE * 100:.0f} 以上）、中位數 {pc(s['med'], 1, sign=True)}（要大於 0）{big}")
+    d = 2 if e is not None and abs(e) < 0.05 else 1                     # 差不到 0.05 個百分點也寫出高或低（判定看的是 ≥）
+    et = ("比隨便挑一天 — 個百分點" if e is None else "和隨便挑一天一樣" if e == 0
+          else f"比隨便挑一天高 {e:.{d}f} 個百分點" if e > 0 else f"比隨便挑一天低 {-e:.{d}f} 個百分點")
+    tr = s.get("trim")
+    return (f"抱 {HN[H]}賺錢 {pc(s['win'])}（要 {S.DIP_WIN * 100:.0f}% 以上）、{et}（要不低於）、"
+            f"中位數 {pc(s['med'], 1, sign=True)}、排除極端的平均 {pc(tr, 1, sign=True) if tr is not None else '—'}（扣成本，都要大於 0）")
 
 
 def why(r: dict) -> list[list]:

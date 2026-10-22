@@ -37,11 +37,12 @@ const XMA={'買進':'b','賣出':'s','可能買進':'a'};
 (function(){const R=MAC.rule||{};
   Object.assign(GL,{
   '推薦順序（總經）':'總經策略只排 ★ 好策略與 ● 可參考：★ 在前；同一級照類型（短線、落底、季節性、風險控制），同類型依比對照好多少（交易型、落底型看賺錢的比例多幾個百分點，進出型看最大回撤少多少）。',
-  '判定（總經）':`照書上、論文裡的規則在指數上做一遍，看過去照做的成績（扣成本）。交易型（短線、月底月初）：至少 ${R.n} 筆、勝率 ≥ ${R.win}%、比隨便挑同樣天數高 ${R.edge} 個百分點以上、平均每筆賺錢。落底型：至少 ${R.dn} 次、抱完賺錢 ≥ ${R.dwin}%，而且賺錢的比例比隨便挑一天高 ${R.dedge} 個百分點以上（中位數賺錢），或中位數至少是隨便挑一天的 ${R.dmx} 倍、而且多 ${R.dadd} 個百分點。進出型（風險控制、Halloween）：最大回撤比一直持有少 ${R.mdd}% 以上，而且年化 ÷ 最大回撤不輸一直持有。★ 好策略＝全期間、近 10 年、換附近的參數（${R.grid} 以上也過關）都過；● 可參考＝全期間過、後兩項沒過；○ 不推薦＝全期間沒過；— 次數不夠。`,
+  '判定（總經）':`照書上、論文裡的規則在指數上做一遍，看過去照做的成績（扣成本）。交易型（短線、月底月初）：至少 ${R.n} 筆、勝率 ≥ ${R.win}%、比隨便挑同樣天數高 ${R.edge} 個百分點以上、平均每筆賺錢。落底型：至少 ${R.dn} 次、抱完賺錢 ≥ ${R.dwin}% 而且不比隨便挑一天差，扣成本後的報酬中位數與排除極端（去掉最好和最差各 ${R.dtq}%）的平均都賺錢（2026-10-22 起看絕對成績）。進出型（風險控制、Halloween）：最大回撤比一直持有少 ${R.mdd}% 以上，而且年化 ÷ 最大回撤不輸一直持有。★ 好策略＝全期間、近 10 年、換附近的參數（${R.grid} 以上也過關）都過；● 可參考＝全期間過、後兩項沒過；○ 不推薦＝全期間沒過；— 次數不夠。`,
   '隱含獲利（總經）':'同一套規則過去照做的實際報酬（扣成本）：每筆（交易型）、每次（落底型，抱固定天數）、每段（進出型，一次持有到賣出）。對照＝隨便挑一天、抱一樣久（交易型、落底型），或一直持有（進出型）。價格是指數本身、不含股息。是歷史統計，不是預測。',
   '隨便挑一天':'每一個交易日都當成買進日、抱一樣多天，賺錢的比例（或報酬中位數）：不用這條規則、隨便買的成績。和它比，才看得出規則有沒有多賺。',
   '全部資金照做':'全部資金只照這條策略操作的年化報酬：有訊號才持有，其他時間放現金（不算利息）；買進持有＝同一段期間一直抱著指數（不含股息）。',
-  '參數鄰近（總經）':'把規則裡的數字換成附近的值（例如 RSI 門檻 10 換成 5、15、20），每一組都照做一遍。★ 好策略要 2/3 以上的組合全期間也過關：換附近的數字成績差不多，才不是剛好挑到的參數。'});
+  '參數鄰近（總經）':'把規則裡的數字換成附近的值（例如 RSI 門檻 10 換成 5、15、20），每一組都照做一遍。★ 好策略要 2/3 以上的組合全期間也過關：換附近的數字成績差不多，才不是剛好挑到的參數。',
+  });
   GLG.push(['總經策略',['推薦順序（總經）','判定（總經）','隱含獲利（總經）','隨便挑一天','全部資金照做','參數鄰近（總經）']]);})();
 function xmM(){if(!MCM[S.mmk])S.mmk=(MAC.mks||[])[0]||'tw';return MCM[S.mmk]||null;}
 function xmNm(k){return XMS[k]||k;}
@@ -83,6 +84,9 @@ function xmTlSec(){return `<div class=tlx><div class=tlhd><div class="seg tlrg">
   `<span class=tllg><span><span class="tlk b">▲</span>買進</span><span><span class="tlk s">▼</span>賣出</span><span><span class="tlk a">●</span>月底看</span>`+
   `<span class=tlsw><i class=tlsh></i>持有中（顏色＝目前漲跌）</span><span class=tlsw><i class=tlsb></i>排定的買進</span></span></div>`+
   `<div class=tlbox id=xmtlbox></div><div class=vztip id=xmtltip hidden></div></div>`;}
+/* 排除極端、去掉最好一筆（xstratspec VER 6；e＝xsadvice.stats，和逐筆交易同一份）；去掉最好一筆剩不到平均的一半＝靠少數幾筆 */
+function xmRob(e,d){if(e.trim==null)return '';const u=e.unit||'筆';
+  return `排除極端${gi('排除極端')} ${pctT(e.trim,d)}、去掉最好一${u} ${pctT(e.lbo,d)}`+(e.avg>0&&e.lbo!=null&&e.lbo<e.avg/2?`（<b class=dn>靠少數幾${u}</b>）`:'')+'；';}
 /* 卡片四行：做法／隱含獲利／現在／下一次（同個股策略的做法／隱含獲利／現在／下一批） */
 function xmExp(c){const e=c.exp||{},span=`${ym(e.d0)}～${ym(e.d1)}`;
   if(c.kind==='alloc'){const sp=e.n?`每段平均 ${pctT(e.avg)}、${e.win}% 賺錢，最差一段 ${pctT(e.lo)}・`:'';
@@ -90,9 +94,9 @@ function xmExp(c){const e=c.exp||{},span=`${ym(e.d0)}～${ym(e.d1)}`;
       `<div class=sm2>有部位的時間 ${xmPc(e.expo)}${e.sw!=null?`、一年進出約 ${f(e.sw,1)} 次`:''}；${sp}${span}，${e.n||0} 段</div>`;}
   if(!e.n)return `<span class=mu>評估期間（${span}）沒有${c.kind==='dip'?'出現過':'交易'}。</span>`;
   if(c.kind==='dip')return `每次平均 <b>${pctT(e.avg)}</b>、中位 <b>${pctT(e.med)}</b>，<b>${e.win}%</b> 賺錢（隨便挑一天抱一樣久${gi('隨便挑一天')} ${e.base}%、中位 ${pctT(e.bmed)}），最差一次 ${pctT(e.lo)}`+
-    `<div class=sm2>抱 ${esc(e.hn||'')}，中途最多跌中位 ${f(e.mae,1)}%；全部資金照做年化 ${pctT(e.cagr)}（買進持有 ${pctT(e.bcagr)}），有部位的時間 ${xmPc(e.expo)}・${span}，${e.n} 次</div>`;
+    `<div class=sm2>${xmRob(e,1)}抱 ${esc(e.hn||'')}，中途最多跌中位 ${f(e.mae,1)}%；全部資金照做年化 ${pctT(e.cagr)}（買進持有 ${pctT(e.bcagr)}），有部位的時間 ${xmPc(e.expo)}・${span}，${e.n} 次</div>`;
   return `每筆平均 <b>${pctT(e.avg,2)}</b>、中位 <b>${pctT(e.med,2)}</b>，<b>${e.win}%</b> 賺錢（隨便挑同樣天數${gi('隨便挑一天')} ${e.base}%），最差一筆 ${pctT(e.lo)}`+
-    `<div class=sm2>平均抱 ${f(e.hold,1)} 天；全部資金照做年化 ${pctT(e.cagr)}（買進持有 ${pctT(e.bcagr)}），有部位的時間 ${xmPc(e.expo)}・${span}，${e.n} 筆</div>`;}
+    `<div class=sm2>${xmRob(e,2)}平均抱 ${f(e.hold,1)} 天；全部資金照做年化 ${pctT(e.cagr)}（買進持有 ${pctT(e.bcagr)}），有部位的時間 ${xmPc(e.expo)}・${span}，${e.n} 筆</div>`;}
 function xmNow(c){const T=c.tl||{},ix=XMI[S.mmk]||'';
   const ka=c.sk==='a'?((c.st==='sell'||c.st==='turn_out')?'s':c.st==='near'?'a':'b'):c.sk==='h'?'w':'a';
   let top=`<span class="kact ka-${ka}">${esc(c.tag)}</span>`;
@@ -136,7 +140,7 @@ function xmBook(M){const B=M.book||[];
 function xmMethod(){const R=MAC.rule||{};
   return sec('mb-mth','判定方式','判定方式','','<details class=mr><summary>★ 好策略、● 可參考怎麼判定</summary><div class=rls>'+ruleRows([
     `交易型：短線、月底月初。至少 ${R.n} 筆、勝率 ≥ ${R.win}%、比隨便挑同樣天數高 ${R.edge} 個百分點以上、扣成本後平均每筆賺錢`,
-    `落底型：至少 ${R.dn} 次、抱完賺錢 ≥ ${R.dwin}%，而且兩條過一條：賺錢的比例比隨便挑一天高 ${R.dedge} 個百分點以上、中位數賺錢；或報酬中位數至少是隨便挑一天的 ${R.dmx} 倍、而且多 ${R.dadd} 個百分點`,
+    `落底型：至少 ${R.dn} 次、抱完賺錢 ≥ ${R.dwin}% 而且不比隨便挑一天差，扣成本後的報酬中位數與排除極端（去掉最好和最差各 ${R.dtq}%，不到 ${R.dtn} 次各去掉一次）的平均都賺錢（2026-10-22 起；之前要比隨便挑一天高 10 個百分點，或報酬中位數夠大）`,
     `進出型：風險控制、Halloween。最大回撤比一直持有少 ${R.mdd}% 以上，而且年化 ÷ 最大回撤不輸一直持有`,
     `判定：★ 好策略＝全期間、近 10 年、參數鄰近（換附近的參數，${R.grid} 以上也過關）都過；● 可參考＝全期間過、後兩項沒過；○ 不推薦＝全期間沒過；— 次數不夠。打亂測試只標示、不影響判定`,
     '買賣時點：看收盤才知道的訊號一律隔天收盤買賣（看網頁做得到的最早時點）；台股 RSI(2) 用台指期在訊號當天收盤前買賣；月底月初、Halloween 照排定的日子收盤',

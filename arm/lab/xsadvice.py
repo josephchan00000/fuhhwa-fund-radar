@@ -14,6 +14,7 @@ import math
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
+from . import robust as RB
 from . import xstratpage as XSP
 from . import xstratspec as S
 
@@ -174,7 +175,7 @@ def _list_stats(tr: list, d: int) -> dict:
     srt = sorted(rs)
     med = srt[m // 2] if m % 2 else (srt[m // 2 - 1] + srt[m // 2]) / 2
     return {"n": m, "avg": _q(sum(rs) / m, d), "med": _q(med, d), "win": math.floor(100 * sum(1 for v in rs if v > 0) / m + 0.5),
-            "lo": _q(min(rs), 1)}
+            "lo": _q(min(rs), 1), "trim": _q(RB.trim_mean(rs), d), "lbo": _q(RB.lbo_mean(rs), d)}   # VER 6：排除極端、去掉最好一筆
 
 
 def _pp(v, d: int = 1, sign: bool = True) -> str:
@@ -320,8 +321,13 @@ def _fail(r: dict) -> str:
     if kind == "dip":
         if f.get("win") is not None and f["win"] < S.DIP_WIN:
             return f"抱完賺錢的比例 {pc(f['win'], 0)}，不到 {S.DIP_WIN * 100:.0f}%"
-        return (f"賺錢的比例沒有比隨便挑一天高 {S.DIP_EDGE * 100:.0f} 個百分點，"
-                f"中位數也沒有到隨便挑一天的 {S.DIP_MED_X:g} 倍")
+        if f.get("base") is not None and f["win"] < f["base"]:          # xstratspec VER 6：不比隨便挑一天差
+            e = (f["base"] - f["win"]) * 100
+            return (f"抱完賺錢的比例 {pc(f['win'], 1)}，比隨便挑一天（{pc(f['base'], 1)}）低 "
+                    f"{e:.{2 if e < 0.05 else 1}f} 個百分點")
+        if f.get("med") is None or f["med"] <= 0:
+            return f"扣成本後的報酬中位數 {pc(f.get('med'), 1, sign=True)}，沒有賺錢"
+        return f"排除極端（去掉最好和最差幾次）的平均 {pc(f.get('trim'), 1, sign=True)}，沒有賺錢"
     b = r["bh"]
     if f["mdd"] > S.AL_MDD * b["mdd"]:
         return f"最大回撤 {pc(f['mdd'], 0)}，比買進持有（{pc(b['mdd'], 0)}）少不到三分之一"
@@ -359,7 +365,8 @@ def concl(r: dict) -> str:
         if not e.get("n"):
             return f"{span} 沒有交易。"
         return (f"{span} 照規則做 {e['n']} 筆：每筆平均 {_pp(e['avg'], 2)}、中位 {_pp(e['med'], 2)}，"
-                f"{e['win']}% 賺錢（隨便挑同樣天數 {_pp(e['base'], 0, sign=False)}），最差一筆 {_pp(e['lo'])}。"
+                f"{e['win']}% 賺錢（隨便挑同樣天數 {_pp(e['base'], 0, sign=False)}），最差一筆 {_pp(e['lo'])}；"
+                f"排除極端的平均 {_pp(e.get('trim'), 2)}、去掉最好一筆 {_pp(e.get('lbo'), 2)}。"
                 f"全部資金照做年化 {_pp(e['cagr'])}（買進持有 {_pp(e['bcagr'])}），"
                 f"資金從高點最多跌 {_pp(e['mdd'], 0, sign=False)}（買進持有 {_pp(e['bmdd'], 0, sign=False)}），有部位的時間 {_pp(e['expo'], 0, sign=False)}。")
     if kind == "dip":
@@ -367,7 +374,8 @@ def concl(r: dict) -> str:
             return f"{span} 沒有出現過。"
         return (f"{span} 出現 {e['n']} 次，每次抱 {e['hn']}：平均 {_pp(e['avg'])}、中位 {_pp(e['med'])}，"
                 f"{e['win']}% 賺錢（隨便挑一天抱一樣久 {_pp(e['base'], 0, sign=False)}、中位 {_pp(e['bmed'])}），"
-                f"最差一次 {_pp(e['lo'])}。全部資金照做年化 {_pp(e['cagr'])}（買進持有 {_pp(e['bcagr'])}），"
+                f"最差一次 {_pp(e['lo'])}；排除極端的平均 {_pp(e.get('trim'))}、去掉最好一次 {_pp(e.get('lbo'))}。"
+                f"全部資金照做年化 {_pp(e['cagr'])}（買進持有 {_pp(e['bcagr'])}），"
                 f"有部位的時間 {_pp(e['expo'], 0, sign=False)}。")
     seg = f"{e['n']} 段持有平均 {_pp(e['avg'])}、中位 {_pp(e['med'])}、{e['win']}% 賺錢，" if e.get("n") else ""
     return (f"{span} 全部資金照做年化 {_pp(e['cagr'])}（買進持有 {_pp(e['bcagr'])}），"
@@ -395,6 +403,8 @@ def risk(r: dict) -> list[str]:
     if X:
         out.append(f"成績集中在少數年份：最好的 {X['y']} 年 {X['r']:+.1f}%；去掉這一年，年化 {X['cagr']:+.1f}%"
                    f"（買進持有也去掉這一年 {X['bcagr']:+.1f}%）")
+    if kind == "trade" and e.get("lbo") is not None and e.get("avg") and e["avg"] > 0 and e["lbo"] < e["avg"] / 2:
+        out.append(f"成績靠少數幾筆：每筆平均 {_pp(e['avg'], 2)}，去掉最好一筆只剩 {_pp(e['lbo'], 2)}")
     if kind == "dip" and len(closed) >= 3:
         best = max(closed, key=lambda t: t[5])
         rest = [t[5] for t in closed if t is not best]
@@ -561,8 +571,8 @@ def build(R: dict | None = None) -> dict:
     R = XSP.results() if R is None else R
     m = {mk: market(mk, R[mk]) for mk in S.MARKETS if R.get(mk)}
     rule = {"n": S.TR_N_MIN, "win": round(S.TR_WIN * 100), "edge": round(S.TR_EDGE * 100), "n10": S.TR_N10,
-            "dn": S.DIP_N_MIN, "dwin": round(S.DIP_WIN * 100), "dedge": round(S.DIP_EDGE * 100), "dn10": S.DIP_N10,
-            "dmx": S.DIP_MED_X, "dadd": round(S.DIP_MED_ADD * 100), "mdd": round((1 - S.AL_MDD) * 100, 1),
+            "dn": S.DIP_N_MIN, "dwin": round(S.DIP_WIN * 100), "dn10": S.DIP_N10, "dtq": round(S.DIP_TRIM_Q * 100),
+            "dtn": S.DIP_TRIM_N, "mdd": round((1 - S.AL_MDD) * 100, 1),
             "grid": "2/3", "draws": S.LUCK_DRAWS}
     spec = {sp["k"]: {"src": f"{sp['who']}《{sp['src']}》", "logic": sp["logic"], "pnote": sp.get("pnote") or ""}
             for sp in S.STRATS if any(sp["k"] in (R.get(mk) or {}) for mk in m)}

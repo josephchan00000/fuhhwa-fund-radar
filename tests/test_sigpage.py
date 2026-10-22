@@ -47,7 +47,7 @@ def test_today_one_row_per_variable_sorted_by_edge():
     T = V["today"]["tw"]
     assert [r["id"] for r in T["good"]] == ["tw:heat:C1:hot"]           # 同一個變數只留差最大的（警示 +29 > 偏多 +19）
     assert T["good"][0]["d"] == "warn" and abs(T["good"][0]["edge"] - 0.29) < 1e-9 and "ref" not in T   # VER 9：沒有 ★ 不補 ●
-    assert sigcat.today(V["rows"], {}, "tw") == {"good": []}
+    assert sigcat.today(V["rows"], {}, "tw") == {"good": [], "rare": []}                      # VER 17：◆ 另列
 
 
 def test_render_structure_and_data():
@@ -183,25 +183,27 @@ def test_heat_pages_stash_cards_and_list_today(monkeypatch):
     assert "每支溫度計下面兩行是用之前的資料逐年檢查的結果" in h                    # VER 16
     h0 = VZ.today_html({"sigtoday": dict(sigcat.board(V["rows"], {}, "tw"), d="2026-10-16")})
     assert "現在沒有可靠的警示訊號" in h0 and h0.count('class="tzw tzw-none">中性') == 3 and 'class="tzq"' not in h0
-    # VER 12：● 不列在兩欄，但算進溫度計（算 1），收在溫度計下面「溫度計另外算進去的」
-    low = dict(V["rows"][0], warn=_st(12, 0.58, 0.29, "ref"), tier="ref")
+    # VER 17：◆ 難得機會不列在兩欄，列在下面「難得機會」一區，溫度計算 1；偏多 70%／平常 66% 的 ○＝△ 勝率過了（算 0.5）
+    low = dict(V["rows"][0], warn=_st(12, 0.58, 0.29, "rare"), tier="rare")
     h1 = VZ.today_html({"sigtoday": dict(sigcat.board([low], V["on"], "tw"), d="2026-10-16")})
-    assert "融資餘額水位・過熱中" not in h1.split('class="tzcols"')[1] and "機率較低" not in h1
+    main, rz = h1.split('<div class="tzrare">')
+    assert "融資餘額水位・過熱中" not in main.split('class="tzcols"')[1] and "機率較低" not in h1
+    assert "融資餘額水位・過熱中" in rz and "難得機會" in rz and 'href="x9o.html#s=tw:heat:C1:hot"' in rz
+    assert 'aria-label="中線（看 3 個月）：偏多 △1・警示 ◆1，偏多占 33%"' in h1 and "偏警示" in h1
     q = h1.split('<details class="tzq">')[1].split("</details>")[0]
-    assert "融資餘額水位・過熱中" in q and "● 可能是運氣 1 類" in q and 'href="x9o.html#s=tw:heat:C1:hot"' in q
-    assert 'aria-label="中線（看 3 個月）：偏多 0・警示 ●1，偏多占 0%"' in h1 and "偏警示" in h1
-    assert "亂排" in h and "可能是運氣" in h and "警示類過去的事後驗證比偏多弱" in h
+    assert "△ 勝率過了 1 類" in q and "融資餘額水位・過熱中" in q
+    assert "亂排" in h and "大盤本身" in h and "警示類過去的事後驗證比偏多弱" in h
 
 
 def test_board_sides_thermometer_and_one_item_once():
     """景氣頁「今天的重點」（sigspec 第 5 節）：VER 9 起只列 ★，分偏多、警示；同一個項目只算一次（水準與邊際變化同一個）；
-    溫度計依看多久三支、一類 ★ 算 1；● 不列、不算。"""
+    溫度計依看多久三支（VER 17：★ 2、◆ 1、△ 0.5）；◆ 不列在兩欄、另列「難得機會」；個股訊號才有的 ● 不算。"""
     rows = _rows()
     a = rows[0]
     d1 = dict(a, id="tw:deriv:C1:1", cat="deriv", sig="1", name="融資餘額水位・成長加速", up=_st(30, 0.9, 0.5, "good"),
               warn=_st(30, 0.1, 0.3, "none"), tier="good", dir=["up"])           # 同一個項目（C1）：差 +40 > 進入過熱的 +19
-    e = dict(a, id="tw:tech:x", cat="tech", var="x", name="站回季線", H=20, up=_st(40, 0.66, 0.6, "ref"),
-             warn=_st(40, 0.1, 0.2, "none"), tier="ref", dir=["up"])             # ●：不列
+    e = dict(a, id="tw:tech:x", cat="tech", var="x", name="站回季線", H=20, up=_st(12, 0.66, 0.6, "rare"),
+             warn=_st(12, 0.1, 0.2, "none"), tier="rare", dir=["up"])            # ◆：不列在兩欄（另列難得機會）
     e2 = dict(e, id="tw:tech:x2", var="x2", name="站回月線", up=_st(40, 0.75, 0.6, "good"), tier="good")
     f = dict(a, id="tw:bub:L2", cat="bub", var="L2", name="泡沫等級 2 以上", H=250, up=_st(12, 0.5, 0.6, "none"),
              warn=_st(12, 0.55, 0.3, "good"), tier="good", dir=["warn"])
@@ -211,7 +213,8 @@ def test_board_sides_thermometer_and_one_item_once():
     rs = rows + [d1, e, e2, f, g, o]
     on = {r["id"]: {"since": "2026-10-01", "n": 3} for r in rs}
     B = sigcat.board(rs, on, "tw")
-    assert [r["id"] for r in B["up"]] == ["tw:deriv:C1:1", "tw:buy:E5:W10", "tw:tech:x2"]   # 差大的在前；買點算偏多；● 不列
+    assert [r["id"] for r in B["up"]] == ["tw:deriv:C1:1", "tw:buy:E5:W10", "tw:tech:x2"]   # 差大的在前；買點算偏多；◆ 不列
+    assert [r["id"] for r in B["rare"]["up"]] == ["tw:tech:x"] and B["rare"]["warn"] == []
     assert all(r["tier"] == "good" for r in B["up"] + B["warn"])
     # VER 3：警示看每一列自己的警示判定——融資 C1 過熱中（警示 ★）和同項目的 deriv（偏多 ★）不同邊，兩邊都留、標震盪
     assert [r["id"] for r in B["warn"]] == ["tw:heat:C1:hot", "tw:bub:L2"]
@@ -219,16 +222,16 @@ def test_board_sides_thermometer_and_one_item_once():
     assert B["up"][0]["both"] is True and not any(r["both"] for r in B["up"][1:] + B["warn"][1:])
     assert [r["hz"] for r in B["up"]] == ["mid", "mid", "short"] and [r["hz"] for r in B["warn"]] == ["mid", "long"]
     th = {t["k"]: t for t in B["thermo"]}
-    # VER 12：★ 2、● 1、△ 0.5——站回季線（●）不列，但算進短線溫度計
-    assert th["short"]["n"]["up"] == {"good": 1, "ref": 1, "lean": 0} and th["short"]["w"] == {"up": 3, "warn": 0}
+    # VER 17：★ 2、◆ 1、△ 0.5——站回季線（◆）不列在兩欄，但算進短線溫度計；「溫度計另外算進去的」只收 △
+    assert th["short"]["n"]["up"] == {"good": 1, "rare": 1, "lean": 0} and th["short"]["w"] == {"up": 3, "warn": 0}
     assert th["short"]["lean"] == "up" and th["short"]["share"] == 1
-    assert [x["id"] for x in th["short"]["more"]["up"]] == ["tw:tech:x"] and th["short"]["more"]["warn"] == []
-    assert th["mid"]["n"]["up"] == {"good": 2, "ref": 0, "lean": 0} and th["mid"]["w"] == {"up": 4, "warn": 2}
+    assert th["short"]["more"]["up"] == [] and th["short"]["more"]["warn"] == []
+    assert th["mid"]["n"]["up"] == {"good": 2, "rare": 0, "lean": 0} and th["mid"]["w"] == {"up": 4, "warn": 2}
     assert th["mid"]["lean"] == "up"
     assert th["long"]["w"] == {"up": 0, "warn": 2} and th["long"]["lean"] == "warn"
     assert sigcat.horizon(dict(a, cat="ind", H=12)) == "long" and sigcat.horizon(dict(a, H=250)) == "long"
     assert sigcat.item_key(a) == sigcat.item_key(d1) != sigcat.item_key(dict(a, cat="buy"))
-    # 一列的偏多是 ★、警示是 ●：只列偏多（VER 9：● 不列）
+    # 一列的偏多是 ★、警示是 ●（個股訊號的判定，市場訊號 VER 17 不會出現）：只列偏多、溫度計也不算
     m = dict(e, id="tw:tech:m", var="m", up=_st(40, 0.75, 0.6, "good"), warn=_st(40, 0.3, 0.2, "ref"), tier="good", dir=["up"])
     Bm = sigcat.board([m], {"tw:tech:m": {}}, "tw")
     assert [r["tier"] for r in Bm["up"]] == ["good"] and Bm["warn"] == [] and not Bm["up"][0]["both"]
@@ -266,37 +269,50 @@ def test_board_families_merge_signals_that_appear_together():
 
 
 
-def test_thermometer_v12_counts_ref_and_lean_and_merges_by_tier():
-    """VER 12（docs/lab_noise_plan.md 第 12 節；使用者：「溫度計可以標準寬鬆一些」）：溫度計算 ★ 2、● 1、△ 0.5；
-    △＝判定 ○、比平常高 5 個百分點以上（— 次數不夠的不算）；同類合併由高到低：●、△ 併進已有的類、不另外算，
-    也不會把兩個 ★ 類連成一類。兩欄照舊只列 ★。"""
+def test_thermometer_v17_counts_rare_and_lean_and_merges_by_tier():
+    """VER 17（docs/lab_practical_plan.md；使用者選「溫度計照新的 ★ 算」）：溫度計算 ★ 2、◆ 1、△ 0.5；
+    △＝判定 ○、這個方向的命中率門檻過了（次數 ≥ 5、機率 ≥ 60%（警示 50%）、不比平常差）；— 次數不夠、● 都不算。
+    同類合併由高到低：◆、△ 併進已有的類、不另外算，也不會把兩個 ★ 類連成一類；兩欄照舊只列 ★，「同時成立」列併進來的 ◆。"""
     import numpy as np
     a = _rows()[0]
-    assert sigcat.thermo_tier(_st(30, 0.66, 0.60, "none")) == "lean"            # +6
-    assert sigcat.thermo_tier(_st(30, 0.64, 0.60, "none")) is None              # +4：沒有傾向
+    assert sigcat.thermo_tier(_st(30, 0.66, 0.60, "none")) == "lean"
+    assert sigcat.thermo_tier(_st(30, 0.64, 0.60, "none")) == "lean"            # VER 12～16 要比平常高 5 點，VER 17 不用
+    assert sigcat.thermo_tier(_st(30, 0.58, 0.50, "none")) is None              # 機率不到 60%
+    assert sigcat.thermo_tier(_st(30, 0.62, 0.65, "none")) is None              # 比平常差
+    assert sigcat.thermo_tier(_st(30, 0.52, 0.40, "none"), "warn") == "lean"    # 警示的門檻 50%
+    assert sigcat.thermo_tier(_st(30, 0.52, 0.40, "none")) is None
     assert sigcat.thermo_tier(_st(3, 0.90, 0.60, "few")) is None                # 次數不夠不算
-    assert sigcat.thermo_tier(_st(30, 0.66, 0.60, "ref")) == "ref" and sigcat.thermo_tier(None) is None
+    assert sigcat.thermo_tier(_st(30, 0.66, 0.60, "ref")) is None and sigcat.thermo_tier(None) is None
+    assert sigcat.thermo_tier(_st(9, 0.80, 0.60, "rare")) == "rare"
     mk = lambda i, tier, hit: dict(a, id=f"tw:tech:{i}", cat="tech", var=i, name=i, H=20, up=_st(40, hit, 0.6, tier),
                                    warn=_st(40, 0.1, 0.2, "none"), tier=tier, dir=["up"])
     s1, s2 = mk("s1", "good", 0.80), mk("s2", "good", 0.78)                    # 兩個 ★，彼此不重疊
-    r1, l1, l2 = mk("r1", "ref", 0.75), mk("l1", "none", 0.68), mk("l2", "none", 0.67)
+    r1, l1, l2 = mk("r1", "rare", 0.75), mk("l1", "none", 0.68), mk("l2", "none", 0.67)
     T = 100
     act = lambda lo, hi: np.array([lo <= t < hi for t in range(T)])
     acts = {"tw:tech:s1": act(0, 10), "tw:tech:s2": act(50, 60),
-            "tw:tech:r1": act(0, 10) | act(50, 60),                            # ● 和兩個 ★ 都重疊：併進第一個，不把它們連起來
+            "tw:tech:r1": act(0, 10) | act(50, 60),                            # ◆ 和兩個 ★ 都重疊：併進第一個，不把它們連起來
             "tw:tech:l1": act(80, 90), "tw:tech:l2": act(82, 90)}              # 兩個 △ 自己成一類
     on = {r["id"]: {"since": "2026-10-01"} for r in (s1, s2, r1, l1, l2)}
     B = sigcat.board([s1, s2, r1, l1, l2], on, "tw", acts)
-    assert [r["id"] for r in B["up"]] == ["tw:tech:s1", "tw:tech:s2"] and all(not r["fam"] for r in B["up"])
+    assert [(r["id"], [f["id"] for f in r["fam"]]) for r in B["up"]] == [("tw:tech:s1", ["tw:tech:r1"]), ("tw:tech:s2", [])]
+    assert B["rare"] == {"up": [], "warn": []}                                # 和 ★ 同一類的 ◆ 不另列
     th = {t["k"]: t for t in B["thermo"]}["short"]
-    assert th["n"]["up"] == {"good": 2, "ref": 0, "lean": 1} and th["w"]["up"] == 4.5
+    assert th["n"]["up"] == {"good": 2, "rare": 0, "lean": 1} and th["w"]["up"] == 4.5
     assert [x["id"] for x in th["more"]["up"]] == ["tw:tech:l1"] and [f["id"] for f in th["more"]["up"][0]["fam"]] == ["tw:tech:l2"]
     fams = sigcat.thermo_families([dict(x, hz="short", side="up", edge=x["up"]["hit"] - 0.6) for x in (s1, s2, r1)], acts)
     assert {f["id"]: [m["id"] for m in f["fam"]] for f in fams} == {"tw:tech:s1": ["tw:tech:r1"], "tw:tech:s2": []}
     from arm.lab import heatviz as VZ
     h = VZ.today_html({"sigtoday": dict(B, d="2026-10-16")})
     assert 'aria-label="短線（看 1 個月）：偏多 ★2 △1・警示 0，偏多占 100%"' in h
-    assert "△ 有傾向 1 類" in h and h.count('class="tzg tzg-up tzg-lean"') == 1 and h.count('class="tzg tzg-up tzg-good"') == 1
+    assert "△ 勝率過了 1 類" in h and h.count('class="tzg tzg-up tzg-lean"') == 1 and h.count('class="tzg tzg-up tzg-good"') == 1
+    assert '同時成立：r1<span class="tzfr">◆</span>' in h                       # 併進 ★ 那一列的 ◆ 標出來
+    # ◆ 自己一類（和 ★ 不重疊）→ 列在「難得機會」
+    B2 = sigcat.board([s1, dict(r1, id="tw:tech:r2", var="r2", name="r2")],
+                      {"tw:tech:s1": {"since": "2026-10-01"}, "tw:tech:r2": {"since": "2026-10-01"}}, "tw", acts)
+    assert [r["id"] for r in B2["rare"]["up"]] == ["tw:tech:r2"]
+    h2 = VZ.today_html({"sigtoday": dict(B2, d="2026-10-16")})
+    assert '<div class="tzrare"><h3>難得機會' in h2 and "r2" in h2.split('<div class="tzrare">')[1]
 
 
 def test_family_rule_v11_smaller_signal_inside_and_chance_guard():
@@ -341,7 +357,7 @@ def test_research_files_survive_presentation_only_versions(tmp_path, monkeypatch
         (tmp_path / "r.json").write_text(json.dumps({"ver": v, "rows": []}), encoding="utf-8")
         (tmp_path / "s.json").write_text(json.dumps({"ver": v, "rows": []}), encoding="utf-8")
         assert (sigcat.load_research() is not None) is ok and (sigcat.load_stock() is not None) is ok
-    assert sigspec.RES_VER == 14 <= sigspec.VER
+    assert sigspec.RES_VER == 17 <= sigspec.VER
 
 def test_position_card_removed():
     """部位參考 2026-10-19 拿掉（docs/lab_crash_plan.md 第 20 節）：研究卡、景氣頁狀態列、相關研究連結都不得接回來。"""
@@ -465,13 +481,17 @@ def test_inst_indicators_and_trigger_text():
         assert k + ":" in js.split("const ITRIG = {")[1].split("};")[0], k
 
 
-def test_ver9_method_text_and_luck_summary():
-    """VER 9：名詞與判定方式寫打亂日子測試、● 可能是運氣、運氣會產生幾個 ★（研究檔的 luck）；警示寫明只當提醒。"""
-    luck = {"tw": {"up": [20, 2.2], "warn": [9, 1.1]}, "spx": {"up": [11, 1.2], "warn": [0, 0.8]}}
+def test_ver17_method_text_and_luck_summary():
+    """VER 17：名詞與判定方式寫絕對成績的 ★、◆ 難得機會、報酬中位數與排除極端、打亂日子測試只當參考（個股訊號照舊，● 可能是運氣）、
+    運氣會產生幾個 ★、◆（研究檔的 luck，[★, 運氣 ★, ◆, 運氣 ◆]）；警示寫明只當提醒。"""
+    luck = {"tw": {"up": [20, 2.2, 5, 4.1], "warn": [9, 1.1, 3, 2.0]}, "spx": {"up": [11, 1.2, 2, 1.5], "warn": [0, 0.8, 1, 0.4]}}
     h = sigpage.method_html(luck)
-    assert "打亂日子測試" in h and "● 可能是運氣" in h and "亂排 400 次" in h
-    assert "偏多 ★ 31 個，運氣大約會產生 3 個；警示 ★ 9 個，運氣大約 2 個" in h
-    assert "只當提醒" in h and "至少 5 次" in h
+    assert "打亂日子測試" in h and "● 可能是運氣" in h and "亂排 400 次" in h and "只當參考、不參與判定" in h
+    assert "偏多（含大跌後買點）★ 31 個，運氣大約也會產生 3 個；◆ 7 個，運氣大約 6 個" in h
+    assert "警示 ★ 9 個、運氣大約 2 個；◆ 4 個、運氣大約 2 個" in h and "大部分是大盤本身就會給的" in h
+    assert "只當提醒" in h and "至少 15 次" in h and "只出現 5～14 次" in h and "◆ 難得機會" in h
+    assert "報酬中位數與排除極端的平均都比來回成本高（台股 0.2%、美股 0.05%）" in h
+    assert "去掉最好和最差各 5%（不到 20 次時各去掉一次）" in h
     assert "運氣會產生幾個" not in sigpage.method_html(None)
     for w in BANNED:
         assert w not in h
@@ -489,7 +509,8 @@ def test_bottom_chip_lists_rules_regardless_of_tier():
 
 def test_thermometer_v15_cross_horizon_votes():
     """VER 15（docs/lab_noise_plan.md 第 14 節；使用者選「三個看多久都算」）：研究列的 xh 有另外兩支溫度計的統計，
-    現在有效（xon）而且次數 ≥ 5、比平常高 5 個百分點以上 → 那支溫度計算 △；不給 ★／●、不進兩欄；
+    現在有效（xon）而且那個方向的命中率門檻過了（VER 17：次數 ≥ 5、機率 ≥ 60%（警示 50%）、不比平常差）→ 那支溫度計算 △；
+    不給 ★／◆、不進兩欄；
     同一個項目同一支溫度計同一邊只算一種（原本那個看多久的 ★ 優先）；沒有 xon 就和 VER 14 一樣。"""
     import numpy as np
     a = _rows()[0]
@@ -500,7 +521,7 @@ def test_thermometer_v15_cross_horizon_votes():
               xh={"mid": xh(s(30, 0.75, 0.65), s(30, 0.30, 0.29)), "long": dict(xh(s(4, 0.95, 0.70), s(4, 0.0, 0.2)), H=250, th=0.2)})
     r2 = dict(a, id="tw:tech:y", cat="tech", var="y", name="跌破季線", H=20, up=_st(40, 0.60, 0.60, "none"),
               warn=_st(40, 0.20, 0.20, "none"), tier="none", dir=["up"],
-              xh={"mid": xh(s(30, 0.69, 0.65), s(30, 0.36, 0.29))})                 # 偏多 +4 不算、警示 +7 算
+              xh={"mid": xh(s(30, 0.62, 0.65), s(30, 0.55, 0.29))})                 # 偏多比平常差不算、警示 55% 算
     nat = dict(a, id="tw:heat:x:hot", cat="heat", var="x", name="RSI・過冷中", H=60, up=_st(20, 0.90, 0.65, "good"),
                warn=_st(20, 0.2, 0.29, "none"), tier="good", dir=["up"])            # 同一個項目（var x）原本看 3 個月的 ★
     rows = [r1, r2]
@@ -510,7 +531,7 @@ def test_thermometer_v15_cross_horizon_votes():
     assert {t["k"]: t["w"] for t in sigcat.board(rows, on, "tw")["thermo"]}["mid"] == {"up": 0, "warn": 0}   # 沒有 xon：同 VER 14
     B = sigcat.board(rows, on, "tw", {}, xon)
     th = {t["k"]: t for t in B["thermo"]}
-    assert th["mid"]["n"]["up"] == {"good": 0, "ref": 0, "lean": 1} and th["mid"]["n"]["warn"] == {"good": 0, "ref": 0, "lean": 1}
+    assert th["mid"]["n"]["up"] == {"good": 0, "rare": 0, "lean": 1} and th["mid"]["n"]["warn"] == {"good": 0, "rare": 0, "lean": 1}
     assert th["long"]["w"] == {"up": 0, "warn": 0}                                # 次數 4 < 5 不算
     assert th["short"]["w"] == {"up": 0, "warn": 0} and B["up"] == [] and B["warn"] == []   # 只進溫度計
     x = th["mid"]["more"]["up"][0]
@@ -519,11 +540,11 @@ def test_thermometer_v15_cross_horizon_votes():
     # 同一個項目（景氣項目 x）原本看 3 個月的 ★ 成立：中線偏多算 ★，跨期間的 △ 不另外算（實際上同一個項目的訊號看多久都一樣，這裡只測規則）
     B2 = sigcat.board(rows + [nat], {nat["id"]: {"since": "2026-10-01"}}, "tw", {}, xon)
     th2 = {t["k"]: t for t in B2["thermo"]}
-    assert th2["mid"]["n"]["up"] == {"good": 1, "ref": 0, "lean": 0} and [r["id"] for r in B2["up"]] == ["tw:heat:x:hot"]
+    assert th2["mid"]["n"]["up"] == {"good": 1, "rare": 0, "lean": 0} and [r["id"] for r in B2["up"]] == ["tw:heat:x:hot"]
     # 同類合併用跨期間的出現日子（ak）：兩個跨期間的 △ 重疊就併成一類
     T = 100
     act = lambda lo, hi: np.array([lo <= t < hi for t in range(T)])
-    r3 = dict(r2, id="tw:tech:z", var="z", name="跌破月線", xh={"mid": xh(s(30, 0.30, 0.29), s(30, 0.37, 0.29))})
+    r3 = dict(r2, id="tw:tech:z", var="z", name="跌破月線", xh={"mid": xh(s(30, 0.30, 0.29), s(30, 0.56, 0.29))})
     xon3 = dict(xon, **{"tw:tech:z": {"mid": {"since": "2026-10-02", "n": 9, "left": 51}}})
     acts = {"tw:tech:y@mid": act(0, 40), "tw:tech:z@mid": act(5, 40)}
     B3 = sigcat.board(rows + [r3], on, "tw", acts, xon3)

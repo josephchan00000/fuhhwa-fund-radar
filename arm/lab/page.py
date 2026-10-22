@@ -486,6 +486,8 @@ function save(){try{localStorage.setItem('lab.s',JSON.stringify({mk:S.mk,sort:S.
 
 /* ---------- 名詞辭典（ⓘ 與「名詞」頁共用） ---------- */
 const GL={
+'排除極端':'每一筆（每一次、每一段、每一期）的報酬由小到大排，去掉最好和最差各 5%（不到 20 筆時各去掉一筆）之後的平均：不讓一兩次特別好或特別差的結果拉動平均。'+
+  '旁邊的「去掉最好一筆」＝去掉最好的那一筆之後的平均；剩不到原本平均的一半，代表成績靠少數幾筆撐起來。',
 '真加碼':'ETF 有人申購時，所有持股會照比例一起增加，那不代表看好。扣掉這個「申購帶來的等比例增加」後剩下的部分，才算經理人主動加碼（真減碼同理）。',
 '申贖倍率':'同一檔 ETF 兩次揭露之間，共同持股股數比值的中位數；大於 1＝有申購、小於 1＝有贖回。',
 '主動 5 日淨買':'近 5 個交易日，所有主動式 ETF 對這檔的真加碼減掉真減碼，乘以現價換算成金額（億元）。正＝淨買、負＝淨賣。',
@@ -585,7 +587,7 @@ const GL={
 const GLG=[['ETF 面',['真加碼','申贖倍率','主動 5 日淨買','加碼／減碼家數','持有 ETF','新建倉','建倉日','主動成本','成本乖離','超配','ETF 持股率','消化天數']],
  ['法人籌碼',['投信 5 日','外資 5 日','連買','60 日買超均價','融資','借券賣出','千張大戶']],
  ['技術面',['趨勢','乖離','量比','RSI','KD','MACD','一年區間位置','相對大盤','ATR','日均成交']],
- ['成績與策略',['推薦順序','判定','事後驗證','隱含獲利','過去照做','同期大盤','年化','賺錢比例','贏大盤比例','評級','同一批股票的平均','t 值','賺錢機率','每月平均','賺賠比','報酬型態','樣本外','樣本內','前瞻','前瞻驗證','前 5 檔','大型股','中型股','超額','信賴區間','獲利比例','贏大盤','勝率','每 10 萬預估','隔夜跳空','樣本','紙上交易']],
+ ['成績與策略',['推薦順序','判定','事後驗證','隱含獲利','過去照做','排除極端','同期大盤','年化','賺錢比例','贏大盤比例','評級','同一批股票的平均','t 值','賺錢機率','每月平均','賺賠比','報酬型態','樣本外','樣本內','前瞻','前瞻驗證','前 5 檔','大型股','中型股','超額','信賴區間','獲利比例','贏大盤','勝率','每 10 萬預估','隔夜跳空','樣本','紙上交易']],
  ['回測方法與策略',['穩健度檢查','成本加倍','參數鄰近','去掉最好 5%','低回落例外','因子檢定','資金帳戶','最大回落','存活者偏誤','大盤年線','成交檢查','月營收驚喜','SUE','相對強勢','趨勢樣板','CAN SLIM']],
  ['指數換股',['資料截止日','漲勢前一半','估計權重','被動買盤','週轉率','等級相關','被動買賣期間','對其他成分股','被動買賣日量','被動買賣提醒']],
  ['策略健檢與改良',['健檢燈號','百分位','改良候選','配對比較','多重檢定校正','改良分級','影子版本']]];
@@ -1198,6 +1200,7 @@ function conclTxt(b){const e=b.exp||{},u=b.unit||'次',A=b.all||{},one=u==='檔'
     return `<div>名單公開後追買沒有贏大盤（${e.n||0} 次，每次平均 ${pctT(e.avg)}，同期大盤 ${pctT(e.mk)}）。有效的是出場時點：持有納入股的，在被動買盤最後一天收盤前賣出；被動買賣結束後 ${aft} 個交易日內，納入股與刪除股都不買${ef.n?`（過去 ${ef.n} 次，納入股在這段期間平均${ef.avg<0?'輸':'贏'}大盤 ${f(Math.abs(ef.avg),1)}%）`:''}。</div>`;}
   if(!e.n)return '<span class=mu>尚無已出場交易。</span>';
   let t=`${esc(e.d0)}～${esc(e.d1)} 照做 ${e.n} ${u}：每${u}平均 <b>${pctT(e.avg)}</b>、中位 <b>${pctT(e.med)}</b>，${e.win}% 賺錢，最差一${one} ${pctT(e.lo)}；同期大盤每${u}平均 ${pctT(e.mk)}。`;
+  const RS=unitRs(b.k);if(RS&&RS.length===e.n&&trimOf(RS)!=null)t+=robTxt(RS,one)+'。';
   if(A.cagr!=null)t+=`全部資金照做年化 <b>${pctT(A.cagr)}</b>，同期大盤 ${pctT(A.tr_cagr)}；資金從高點最多跌 ${f(A.mdd,0)}%（大盤 ${f(A.tr_mdd,0)}%）。`;
   const mo=moSpan(e.d0,e.d1);if(mo!=null&&mo<12)t+=`資料只有約 ${mo} 個月，參考性低。`;
   return `<div>${t}</div>`+(REC.includes(b.tier)?'':'<div class=sm2>判定不是 ★ 或 ●：不下單，只做紙上記錄。</div>');}
@@ -1258,6 +1261,16 @@ function tnD(n){return n==null?null:new Date(TRB+n*864e5).toISOString().slice(0,
 function avgOf(xs){xs=xs.filter(v=>v!=null);return xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:null;}
 function medOf(xs){xs=xs.filter(v=>v!=null).sort((a,b)=>a-b);const n=xs.length;return n?(n%2?xs[(n-1)/2]:(xs[n/2-1]+xs[n/2])/2):null;}
 function winOf(xs){xs=xs.filter(v=>v!=null);return xs.length?Math.round(100*xs.filter(v=>v>0).length/xs.length):null;}
+/* 排除極端（去掉最好和最差各 5%，不到 20 筆各去掉一筆）、去掉最好一筆（sigspec 第 4.11 節、arm/lab/robust.py 同一套） */
+function trimOf(xs){xs=xs.filter(v=>v!=null).sort((a,b)=>a-b);const n=xs.length;if(n<3)return null;const k=n<20?1:Math.max(1,Math.floor(0.05*n+1e-9));return avgOf(xs.slice(k,n-k));}
+function lboOf(xs){xs=xs.filter(v=>v!=null).sort((a,b)=>a-b);return xs.length<2?null:avgOf(xs.slice(0,-1));}
+function robTxt(xs,one){const t=trimOf(xs),l=lboOf(xs),a=avgOf(xs);if(t==null)return '';
+  return `排除極端${gi('排除極端')} ${pctT(t)}、去掉最好一${one} ${pctT(l)}`+(a>0&&l!=null&&l<a/2?`（<b class=dn>成績靠少數幾${one}</b>）`:'');}
+/* 卡片上「每次／每檔平均」的那一份（同 trCheck：每期、每次審核、已出場的逐筆；前瞻不算） */
+function unitRs(k){const X=trData(k);if(!X)return null;
+  if(X.kind==='per')return X.per.filter(p=>!p.fw).map(p=>p.r);
+  if(X.kind==='rev')return X.grp.filter(g=>!g.fw).map(g=>g.r);
+  return X.tr.filter(t=>!t.fw&&t.st==='c').map(t=>t.r);}
 function prevYm(d){let y=+d.slice(0,4),m=+d.slice(5,7)-1;if(m<1){m=12;y--;}return `${y}-${String(m).padStart(2,'0')}`;}
 function trData(k){const T=(ADV.trades||{})[k];if(!T)return null;if(T._n)return T._n;
   const since=T.since||'9999',NM=ADV.tnames||{},two=!!T.fwd;
@@ -1296,7 +1309,7 @@ function trSellWhy(t){return t.st==='o'?'':esc(HOWT[t.how]||t.how||'');}
 /* 核對說明：由資料算，和卡片上方的數字同一個來源 */
 function trCheck(k,X){const T=ADV.trades[k],h=X.tr.filter(t=>!t.fw),cl=h.filter(t=>t.st==='c').map(t=>t.r),
     fw=X.tr.filter(t=>t.fw),fwc=fw.filter(t=>t.st==='c');
-  const st=(xs,u)=>`${xs.length} ${u}，平均 <b>${pctT(avgOf(xs))}</b>、中位 ${pctT(medOf(xs))}，${winOf(xs)}% 賺錢`;
+  const st=(xs,u)=>`${xs.length} ${u}，平均 <b>${pctT(avgOf(xs))}</b>、中位 ${pctT(medOf(xs))}，${winOf(xs)}% 賺錢`+(trimOf(xs)!=null?`；${robTxt(xs,u)}`:'');
   let s='';
   if(X.kind==='per'){const ps=X.per.filter(p=>!p.fw).map(p=>p.r),u=X.unit==='季'?'季':'月';
     s=`每期報酬（下表「本期報酬」，同一期 5 檔等額）：${st(ps,'期')}，就是上方「每${u}平均」的來源。`+

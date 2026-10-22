@@ -15,6 +15,7 @@ from datetime import date, timedelta
 
 import numpy as np
 
+from . import robust as RB
 from . import xstratspec as S
 
 # ── 資料 ───────────────────────────────────────────────────────────────────
@@ -606,6 +607,7 @@ def dip_stats(px: np.ndarray, days: list[int], H: int, c: float, lo: int, hs: tu
         r = net[bs]
         out.update({"win": float((r > 0).mean()), "med": float(np.median(r)), "avg": float(r.mean()),
                     "worst": float(r.min()), "best": float(r.max()),
+                    "trim": RB.trim_mean(r, S.DIP_TRIM_Q, S.DIP_TRIM_N), "lbo": RB.lbo_mean(r),   # VER 6：排除極端、去掉最好一次
                     "mae": float(np.median([dip_mae(px, b, H) for b in bs]))})
     hx = {}
     for h in hs:
@@ -632,8 +634,11 @@ def dip_bigger(s: dict) -> bool:
 
 
 def dip_ok(s: dict) -> bool:
-    """過關（不看次數）：上漲比例 ≥ DIP_WIN，而且 ① 或 ②（VER 3～4 只有 ①）。"""
-    return bool(s.get("win") is not None and s["win"] >= S.DIP_WIN and (dip_more(s) or dip_bigger(s)))
+    """過關（不看次數；VER 6）：上漲比例 ≥ DIP_WIN、不低於隨便挑一天、淨報酬中位數 ＞ 0、排除極端的平均 ＞ 0
+    （VER 3～5：上漲比例 ≥ DIP_WIN，而且 dip_more 或 dip_bigger）。"""
+    w, b, m, t = s.get("win"), s.get("base"), s.get("med"), s.get("trim")
+    return bool(w is not None and b is not None and m is not None and t is not None
+                and w >= S.DIP_WIN and w >= b and m > 0 and t > 0)
 
 
 def dip_pass(s: dict) -> bool:
