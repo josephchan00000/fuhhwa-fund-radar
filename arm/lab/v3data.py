@@ -366,6 +366,28 @@ def me_from_mkt() -> int:
     return n
 
 
+def backfill_tr(y0: int = 2003, y1: int = 2012) -> int:
+    """加權報酬指數往前回補（期貨加碼研究的含息報酬，docs/lab_tilt_plan.md 第 3 節）：y0～y1 年每個月一請求，
+    已標完成的月份跳過；證交所明示查無的月份也標完成（報酬指數 2003 年才開始）。→ 新增天數"""
+    tr = store.read_json("v3_tr.json", {}) or {}
+    q, done = dict(tr.get("q") or {}), set(tr.get("m") or [])
+    n0, d0 = len(q), set(done)
+    for y in range(y0, y1 + 1):
+        for m in range(1, 13):
+            ym = f"{y:04d}-{m:02d}"
+            if ym in done:
+                continue
+            rows = market.twse_tr_month(y, m)
+            if rows is None:
+                continue
+            q.update(rows)
+            done.add(ym)
+    if len(q) > n0 or done != d0:
+        store.write_json("v3_tr.json", {"q": q, "m": sorted(done)})
+    market.log(f"[v3] 加權報酬指數 {y0}～{y1}：新增 {len(q) - n0} 天、完成 {len(done) - len(d0)} 個月")
+    return len(q) - n0
+
+
 def update_tr_recent() -> int:
     """每日維護：加權報酬指數（含息）補到官方分片的最新交易日——給前瞻紀錄的「同期大盤」（v4 後台驗證）。
     只查上個月（還沒標完成時）與本月，一輪最多 2 請求；已經到最新交易日就零請求。→ 新增天數"""

@@ -142,6 +142,11 @@ def _indtw(force: bool = False) -> int:
     return BD.indtw_update(force)
 
 
+def _twtr() -> int:
+    from arm.lab import v3data
+    return v3data.backfill_tr(2003, 2012)
+
+
 def backfill(budget_min: float, only: set[str] | None) -> None:
     t_end = time.time() + budget_min * 60
 
@@ -179,6 +184,7 @@ def backfill(budget_min: float, only: set[str] | None) -> None:
         ("twcap", "上市股票總市值（央行）", CF.cbc_stock, ()),           # 大跌風險研究（docs/lab_crash_plan.md）
         ("twmgn", "融資融券（央行）", CF.cbc_margin, ()),
         ("usvol", "美股指數成交量", CF.us_volume_all, ()),
+        ("twtr", "加權報酬指數 2003～2012（期貨加碼研究）", _twtr, ()),   # docs/lab_tilt_plan.md 第 3 節
     ]
     for key, name, fn, a in jobs:
         if want(key):

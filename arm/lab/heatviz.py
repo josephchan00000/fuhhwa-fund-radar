@@ -784,7 +784,7 @@ def stash_cards(V: dict) -> None:
         SPG.ITEMS[mk] = V["sigitems"]
     SPG.CARDS[mk] = {"d": V["asof"], "crash": CP.card(V.get("crash")), "bottom": BP.card(V.get("bottom")),
                      "hotdd": XP.card(V.get("hotdd"), note=QP.hotdd_note(V.get("hotch")) if hotch else None), "hotch": hotch}
-    try:                                            # 研究結論（findings，docs/lab_research_v2_plan.md）：七則問答要的「現在」
+    try:                                            # 研究結論（findings，docs/lab_research_v2_plan.md）：問答要的「現在」
         from . import findings as FD
         SPG.CARDS[mk]["find"] = FD.compute(V)
     except Exception as e:                          # noqa: BLE001 —— 算不出來只少了研究結論，不擋研究卡

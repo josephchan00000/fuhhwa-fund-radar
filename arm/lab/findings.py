@@ -1,18 +1,20 @@
 """研究結論（訊號總覽「研究結論」段；docs/lab_research_v2_plan.md，2026-10-22 使用者決定）。
 
-原本的「研究細節」（實測區＋四張研究卡，展開後台股一個市場就有 4 萬多像素高）改成每個市場七則白話問答：
+原本的「研究細節」（實測區＋四張研究卡，展開後台股一個市場就有 4 萬多像素高）改成每個市場八則白話問答：
 問題 → 答案（由研究判定決定，不寫死）→ 一個「這種時候 vs 平常」的對照 → 現在是不是這樣 → 過去每一次（收起）。
 最上面一行「現在適用」彙整現在成立的那幾則。原本的研究卡與實測細節照留，收在最下面的「完整研究表」。
 
   第 1 則  照網頁調整持股，能不能比一直抱著賺更多？      實測研究檔（practsim）＋前瞻紀錄；訊號總覽建頁時算（money）
-  第 2 則  籌碼一直很熱，之後會不會跌比較深？            反向檢查（hotchpage.state）
-  第 3 則  剛進入過熱，之後會不會跌比較多？              過熱之後回撤（hotddpage.state）
-  第 4 則  跌破季線之後，會不會再大跌？                  反向檢查的技術面轉空與大跌時訊號位置
-  第 5 則  大跌後等落底訊號再買，會不會買得比較低？      大跌後檢查（bottompage.state）
-  第 6 則  哪些指標熱的時候，之後比較容易急跌？          短線大跌風險（crashpage.state）
-  第 7 則  網頁上的好訊號，之後還準嗎？                  訊號的逐年檢查（sigoos）
+  第 2 則  平常抱著、買點出現時用期貨多拿，能不能賺更多？ 期貨加碼研究檔（tilt，docs/lab_tilt_plan.md）；訊號總覽建頁時算
+  第 3 則  籌碼一直很熱，之後會不會跌比較深？            反向檢查（hotchpage.state）
+  第 4 則  剛進入過熱，之後會不會跌比較多？              過熱之後回撤（hotddpage.state）
+  第 5 則  跌破季線之後，會不會再大跌？                  反向檢查的技術面轉空與大跌時訊號位置
+  第 6 則  大跌後等落底訊號再買，會不會買得比較低？      大跌後檢查（bottompage.state）
+  第 7 則  哪些指標熱的時候，之後比較容易急跌？          短線大跌風險（crashpage.state）
+  第 8 則  網頁上的好訊號，之後還準嗎？                  訊號的逐年檢查（sigoos）
+第幾則照 QS 的順序（QN）。
 
-第 2～6 則要景氣頁算好的「現在」：景氣頁建頁時 compute(V) 存進 sigpage.CARDS[市場]["find"]（同研究卡的機制），
+第 3～7 則要景氣頁算好的「現在」：景氣頁建頁時 compute(V) 存進 sigpage.CARDS[市場]["find"]（同研究卡的機制），
 訊號總覽建頁時寫進 x9or-{市場}.json；單獨建訊號總覽時讀上一版的檔。只改呈現：研究規格與判定一律不動。
 用字照專案禁用詞；問題寫成描述句（「會不會」），不寫成要不要買賣。class 一律 rf 開頭。
 """
@@ -21,16 +23,23 @@ from __future__ import annotations
 import html as _h
 import math
 
-QS = ("money", "chip", "hotin", "ma60", "bottom", "crash", "keep")
+QS = ("money", "tilt", "chip", "hotin", "ma60", "bottom", "crash", "keep")
+QN = {q: i + 1 for i, q in enumerate(QS)}                     # 第幾則（照 QS 的順序）
 MK_NAMES = {"tw": "台股", "spx": "S&P 500", "ixic": "那斯達克", "ndx": "那斯達克 100", "sox": "費半"}
 PX_NAMES = {"tw": "加權指數", "spx": "S&P 500", "ixic": "那斯達克", "ndx": "那斯達克 100", "sox": "費半"}
 STATE_WEEKS = {"H1": 1, "H4": 4, "H13": 13, "H26": 26}
 LIST_MAX = 20
+TL_MIN_DAYS = 63                                               # 前瞻滿 3 個月才寫成績（同 tilt.LIVE_MIN_DAYS）
 MONEY_RULES = ("A1", "A2", "A3", "A4", "B1", "M1", "M2")       # 會調整持股的做法（D1＝偏多全部照做，幾乎一直拿滿，只當對照）
 MONEY_NAMES = {"bh": "一直抱著", "A1": "溫度計：短線警示多就減半", "A2": "溫度計：中線警示多就減半", "A3": "溫度計：長線警示多就減半",
                "A4": "溫度計：兩支以上警示多就減半", "B1": "溫度計：短線偏多多才拿滿", "D1": "溫度計：偏多有東西就拿滿（幾乎一直拿滿）",
                "M1": "總經策略：只照 ★ 做", "M2": "總經策略全部照做（★＋●）"}
 MONEY_SHORT = {"bh": "一直抱著", "A1": "溫度計", "M2": "總經策略"}
+TILT_NAMES = {"K1": "短線買點出現才加碼", "K2": "落底買點出現才加碼", "K3": "策略頁的買點全部加碼",
+              "K4": "200 日均線上才加碼", "K5": "溫度計短線偏多多才加碼"}
+TILT_SHORT = {"bh": "一直抱著", "fix": "固定多拿同樣多", "K1": "短線買點加碼", "K2": "落底買點加碼", "K3": "買點全部加碼",
+              "K4": "200 日均線上加碼", "K5": "溫度計偏多加碼"}
+TILT_V = {"better": "訊號有用", "same": "差不多", "worse": "比固定多拿差"}
 
 
 def _e(x) -> str:
@@ -267,7 +276,7 @@ def crash(C: dict) -> dict | None:
             "vol": [_r(vs.get("vol")), _r(vs.get("pct")), vs.get("g")]}
 
 
-# ── 第 1、7 則：訊號總覽建頁時算 ──────────────────────────────────────────────
+# ── 第 1、2、8 則：訊號總覽建頁時算 ──────────────────────────────────────────────
 
 def _mdd(v: list[float]) -> float:
     pk, m = v[0], 0.0
@@ -315,8 +324,42 @@ def money(R: dict | None, mk: str, P: dict | None = None) -> dict | None:
     return out
 
 
+def tilt(R: dict | None, mk: str, live: bool = True) -> dict | None:
+    """第 2 則（期貨加碼研究檔 tilt，docs/lab_tilt_plan.md）：每條規則和一直抱著、固定多拿同樣多比的 100 萬變多少、最慘時跌多少、判定；
+    放上網頁的規則（tiltspec 第 8 節）另外算今天的狀態與前瞻（live＝False 時不算，測試用）。"""
+    from . import tiltspec as TS
+    M = ((R or {}).get("mk") or {}).get(mk) or {}
+    rules = M.get("rules") or {}
+    if not rules:
+        return None
+    rows = {}
+    for k in TS.RULES:
+        x = rules.get(k)
+        if not x:
+            continue
+        f, h1, h2 = x["full"], x["h1"], x["h2"]
+        rows[k] = {"m": x["man"] / 1e6, "dd": f["rule"]["mdd"], "fm": x["man_fix"] / 1e6, "fdd": f["fix"]["mdd"], "v": x["v"],
+                   "share": f["rule"]["share"], "abar": f["abar"], "cagr": f["rule"]["cagr"], "fcagr": f["fix"]["cagr"],
+                   "h": [h1["rule"]["cagr"], h1["fix"]["cagr"], h2["rule"]["cagr"], h2["fix"]["cagr"]],
+                   "worst": f["rule"]["worst"], "fworst": f["fix"]["worst"], "bears": x.get("bears") or []}
+    x0 = rules[next(iter(rows))]
+    bh = {"m": x0["man_bh"] / 1e6, "dd": x0["full"]["bh"]["mdd"], "cagr": x0["full"]["bh"]["cagr"], "worst": x0["full"]["bh"]["worst"]}
+    page = (R or {}).get("page") or {}
+    ok = [k for k in TS.PAGE_RULES if (page.get(k) or {}).get("ok") and k in rows]
+    main = ok[0] if ok else max((k for k in rows if k in TS.PAGE_RULES), key=lambda k: rows[k]["m"] - rows[k]["fm"])
+    out = {"start": M.get("a"), "end": M.get("z"), "rows": rows, "bh": bh, "ok": ok, "main": main, "judged": mk in TS.JUDGED,
+           "fut": TS.FUT.get(mk), "h2a": x0["h2"]["rule"]["a"]}
+    if live and main == "K4":
+        try:
+            from . import tilt as TL
+            out["live"] = TL.live(mk, rows["K4"]["abar"])
+        except Exception as e:                        # noqa: BLE001 —— 前瞻算不出來只少那一句
+            print(f"[研究結論] {mk} 第 2 則前瞻算不出來：{type(e).__name__}: {e}", flush=True)
+    return out
+
+
 def keep() -> dict | None:
-    """第 7 則（sigoos 衰退表的 L3 格，同景氣頁「怎麼看」那一句）：偏多看 1／3／12 個月、大跌風險看 1／3 個月，之後留下的比例。"""
+    """第 8 則（sigoos 衰退表的 L3 格，同景氣頁「怎麼看」那一句）：偏多看 1／3／12 個月、大跌風險看 1／3 個月，之後留下的比例。"""
     from . import sigoos as OOS
     from . import sigspec as SS
     T = OOS.load()
@@ -416,8 +459,118 @@ def money_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
            '<p class="rfnote">溫度計的做法每週最後一個交易日看一次溫度計、下一個交易日收盤調整；總經策略每年 1 月 1 日只用之前的資料重新判定，'
            '每一條一份、平均分。每年的判定都只用當時拿得到的資料。點「每週走勢」看那一種做法的走勢圖、逐年成績與每一段大跌。</p>')
     risk = ""
-    return _card("money", 1, "照網頁的訊號調整持股，能不能比一直抱著賺更多？", ans, small, "no" if X["ans"] == "no" else "yes",
+    return _card("money", QN["money"], "照網頁的訊號調整持股，能不能比一直抱著賺更多？", ans, small, "no" if X["ans"] == "no" else "yes",
                  body, _e(now), risk, det), ""
+
+
+def _wan(m: float) -> str:
+    """100 萬的倍數 → 「1,852 萬」。"""
+    return f"{m * 100:,.0f} 萬"
+
+
+def tilt_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
+    if not X:
+        return "", ""
+    from . import tiltspec as TS
+    rw, bh, k = X["rows"], X["bh"], X["main"]
+    r = rw[k]
+    yr, h2y = (X["start"] or "")[:4], (X.get("h2a") or "")[:4]
+    here = r["v"] == "better"
+    if not X["judged"]:
+        ans, small, acls = "沒有對應的期貨", "只當參考", "mid"
+    elif k in X["ok"] and here:
+        ans, small, acls = "可以參考", f"{TILT_NAMES[k]}（前瞻驗證中）", "ac"
+    elif k in X["ok"] and r["v"] == "worse":
+        ans, small, acls = "比固定多拿差", f"{TILT_NAMES[k]}在這裡不如每天固定多拿同樣多", "no"
+    elif k in X["ok"]:
+        ans, small, acls = "差不多", f"{TILT_NAMES[k]}和固定多拿同樣多差不多", "mid"
+    else:
+        ans, small, acls = "多賺的是多拿股票", "訊號沒有比固定多拿好", "no"
+    pick = [("bh", bh["m"], bh["dd"]), (k, r["m"], r["dd"]), ("fix", r["fm"], r["fdd"])]
+    mx_v = max(v for _, v, _ in pick) * 1.05
+    mx_d = max(d for _, _, d in pick) * 1.15
+    bars = ('<div class="rftwo"><div><div class="rfbh">100 萬變多少</div>'
+            + _bars([(TILT_SHORT[q], v, _wan(v)) for q, v, _ in pick], mx_v, {1}, "ac")
+            + '</div><div><div class="rfbh">最慘時帳面跌多少</div>'
+            + _bars([(TILT_SHORT[q], d, _pc(d)) for q, _, d in pick], mx_d, {1}, "ac") + "</div></div>")
+    h = r["h"]
+    cmp = f"{yr}～{h2y} 年 {_sp(h[0])} 對 {_sp(h[1])}、{h2y} 年起 {_sp(h[2])} 對 {_sp(h[3])}，都是年化"
+    if here:
+        why = f"前後兩段都比較好（{cmp}）。"
+    elif r["v"] == "worse":
+        why = f"前後兩段都比較少賺（{cmp}），算比固定多拿差。"
+    elif h[0] > h[1] and h[2] > h[3]:
+        why = f"前後兩段都比較好（{cmp}），但最慘時跌得比較兇，所以算差不多。"
+    else:
+        why = f"前後兩段不一致（{cmp}），所以算差不多。"
+    dm, ddd, dbh = r["m"] - r["fm"], r["fdd"] - r["dd"], r["dd"] - bh["dd"]
+    vs_bh = ("最慘時跌得差不多" if abs(dbh) < 0.005 else
+             f"最慘時{'多' if dbh > 0 else '少'}跌 {abs(dbh) * 100:.0f} 個百分點")
+    others = [q for q in ("K1", "K2", "K3") if q in rw and q != k]
+    ob = [q for q in others if rw[q]["v"] == "better"]
+    ow = [q for q in others if rw[q]["v"] == "worse"]
+    if ob:
+        oth = (f"用總經策略買點加碼的 {len(others)} 種做法裡，" + "、".join(TILT_NAMES[q] for q in ob)
+               + "在這裡也訊號有用（但其他市場不成立）" + ("，" + "、".join(TILT_NAMES[q] for q in ow) + "比固定多拿差" if ow else "") + "。")
+    elif ow:
+        oth = (f"用總經策略買點加碼的 {len(others)} 種做法，" + "、".join(TILT_NAMES[q] for q in ow) + "比固定多拿差，其他差不多。")
+    else:
+        oth = f"用總經策略買點加碼的 {len(others)} 種做法，在這裡都和固定多拿差不多。"
+    sub = (f"加碼＝用期貨多拿帳戶 5 成。多拿股票本來就會多賺：每天固定多拿 {r['abar'] * 100:.0f}%，100 萬也會變 {_wan(r['fm'])}。"
+           f"{TILT_NAMES[k]}比固定多拿{'多' if dm >= 0 else '少'} {abs(dm) * 100:,.0f} 萬、"
+           f"最慘時{'少' if ddd >= 0 else '多'}跌 {abs(ddd) * 100:.0f} 個百分點；{why}和一直抱著比，{vs_bh}。{oth}")
+    if not X["judged"]:
+        sub += "這個指數沒有對應的期貨，要加碼只能融資買 ETF，成本比期貨高。"
+    body = (f'<p class="rfl">{_e(yr)} 年起放 100 萬到今天（{_e(_d(X["end"]))}）：</p>' + bars + f'<p class="rfs">{_e(sub)}</p>')
+    L = X.get("live") or {}
+    st = L.get("state") or {}
+    nflag, line = "", ""
+    if k == "K4" and st:
+        if st["up"]:
+            now = f"收盤在 200 日均線上（{_d(st['since'])} 起），照這個做法正在加碼。"
+        else:
+            now = f"收盤在 200 日均線下（{_d(st['since'])} 起），照這個做法不加碼，只抱本金。"
+        if k in X["ok"] and here and X["judged"]:
+            if (L.get("days") or 0) >= TL_MIN_DAYS and L.get("rule") is not None:
+                now += f"{_d(L['a'])} 起真的照做 {_sp(L['rule'])}，固定多拿 {_sp(L['fix'])}，一直抱著 {_sp(L['bh'])}。"
+            else:
+                now += f"{_d(L.get('since'))} 起每天記錄照做的成績（不到 3 個月，還在累積）。"
+            if st["up"]:
+                nflag = "side"
+                line = ("side", f"200 日均線上：照「{TILT_NAMES[k]}」正在加碼（前瞻驗證中）")
+    else:
+        now = "今天的狀態還沒算出來。"
+    head = ('<tr><th class="l">做法</th><th>加碼的時間</th><th>100 萬變</th><th>最慘時跌</th>'
+            '<th>固定多拿同樣多<small>100 萬變・最慘時跌</small></th><th class="l">結果</th></tr>')
+    trs = [f'<tr class="rfbhr"><td class="l">一直抱著</td><td class="mu" data-h="加碼的時間">—</td><td data-h="100 萬變">{_wan(bh["m"])}</td>'
+           f'<td data-h="最慘時跌">{_pc(bh["dd"])}</td><td class="mu rfkx">—</td><td class="rfkx"></td></tr>']
+    for q in TS.RULES:
+        if q not in rw:
+            continue
+        v = rw[q]
+        res = TILT_V[v["v"]] + ("（只描述）" if q not in TS.PAGE_RULES else "")
+        trs.append(f'<tr><td class="l">{_e(TILT_NAMES[q])}</td><td data-h="加碼的時間">{_pc(v["share"])}</td>'
+                   f'<td data-h="100 萬變">{_wan(v["m"])}</td><td data-h="最慘時跌">{_pc(v["dd"])}</td>'
+                   f'<td data-h="固定多拿同樣多">{_wan(v["fm"])}・{_pc(v["fdd"])}</td><td class="l" data-h="結果">{_e(res)}</td></tr>')
+    bt = ""
+    if r["bears"]:
+        sk = _e(TILT_SHORT[k])
+        bt = ('<div class="rfbh">每一段大跌（指數跌 20% 以上）時的變化</div>'
+              '<div class="rftw"><table class="rftb rftk"><tr><th class="l">期間</th><th>一直抱著</th>'
+              f'<th>{sk}</th><th>固定多拿同樣多</th></tr>'
+              + "".join(f'<tr><td class="l">{_e(_d(b["pk"]))}～{_e(_d(b["tr"]))}</td>'
+                        f'<td data-h="一直抱著">{_sp(b["bh"])}</td><td data-h="{sk}">{_sp(b["rule"])}</td>'
+                        f'<td data-h="固定多拿同樣多">{_sp(b["fix"])}</td></tr>' for b in r["bears"])
+              + "</table></div>")
+    fut = f"期貨：{X['fut']}。" if X.get("fut") else "這個指數沒有對應的期貨（只當參考）。"
+    det = (f"5 種加碼做法的完整成績（{_e(yr)} 年起）",
+           f'<div class="rftw"><table class="rftb rftk">{head}{"".join(trs)}</table></div>{bt}'
+           '<p class="rfnote">平常 100% 抱著指數，訊號成立時另外用期貨多拿 5 成、訊號沒了就平掉。期貨的成本照「含息報酬 − 利率」算'
+           '（台股股息高、利率低，台指期多半是逆價差，等於多拿股息），每一邊十萬分之五，每月（美股每季）換月。本金三種做法都沒算股息。'
+           '期貨帳戶的錢另外準備（加碼 5 成時，指數跌 20% 要補進帳戶約 1 成的錢）。總經策略的買點每年 1 月 1 日只用之前的資料重新判定。'
+           '結果：全期間與前後兩段都比固定多拿同樣多賺得多、最慘時也沒有跌得比較兇＝訊號有用；溫度計那一種的類似做法之前看過結果，只描述。'
+           f'{_e(fut)}</p>')
+    return _card("tilt", QN["tilt"], "平常抱著，買點出現時用期貨多拿 5 成，能不能賺更多？", ans, small, acls, body, _e(now), nflag, det), line
 
 
 def chip_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
@@ -458,7 +611,7 @@ def chip_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
         det = (f'過去每一次（{_e(X["name"])}連續過熱 {X["thr_runs"]} 週以上的 {len(X["runs"])} 段）',
                f'<div class="rftw"><table class="rftb"><tr><th class="l">開始</th><th>連續幾週</th><th>之後最多回檔</th></tr>{trs}</table></div>'
                '<p class="rfnote">之後最多回檔＝從連續過熱滿 4 週那天起，到過熱結束後 3 個月內，指數最多從高點跌多少。</p>')
-    return _card("chip", 2, title, ans, small, acls, body, now, nf, det), (
+    return _card("chip", QN["chip"], title, ans, small, acls, body, now, nf, det), (
         ("risk", f'{_e(X["name"])}已連續過熱 {X["w"]} 週：過去這種時候，之後 3 個月最多回檔的中位數 {_pc(X["ev"][0], 1)}'
                  f'（平常 {_pc(X["base"][0], 1)}），{_pc(X["ev"][1])} 的時候跌超過 10%（平常 {_pc(X["base"][1])}）。') if nf == "risk" else "")
 
@@ -482,7 +635,7 @@ def hotin_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
     det = (f"過去每一次（技術面剛進入過熱，最近 {min(LIST_MAX, X['n'])} 次）",
            f'<div class="rftw"><table class="rftb"><tr><th class="l">日期</th><th>3 個月最多回檔</th><th>高點 → 低點</th><th>3 個月漲跌</th></tr>{trs}</table></div>'
            ) if trs else ""
-    return _card("hotin", 3, "剛進入過熱，之後會不會跌比較多？", ans, small, acls, body, now, nf, det), ""
+    return _card("hotin", QN["hotin"], "剛進入過熱，之後會不會跌比較多？", ans, small, acls, body, now, nf, det), ""
 
 
 def ma60_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
@@ -523,7 +676,7 @@ def ma60_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
            '<div class="rftw"><table class="rftb"><tr><th class="l">高點 → 低點</th><th>跌幅</th><th>跌破季線</th><th>那時已跌</th><th>之後還跌</th></tr>'
            + "".join(trs) + '</table></div><p class="rfnote">大跌＝從最高收盤跌 20% 以上、從低點反彈 20% 才算結束。那時已跌＝跌破季線隔天收盤比高點低多少。</p>'
            ) if trs else ""
-    return _card("ma60", 4, "跌破季線之後，會不會再大跌？", ans, small, acls, body, _e(now), nf, det), (
+    return _card("ma60", QN["ma60"], "跌破季線之後，會不會再大跌？", ans, small, acls, body, _e(now), nf, det), (
         (nf, f"{_e(now)}：過去跌破季線之後，回檔{'比平常深' if a == 'yes' else '和任挑一天差不多'}。") if nf else "")
 
 
@@ -561,7 +714,7 @@ def bottom_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
     det = (f"過去每一次（最近 {len(X.get('list') or [])} 次 5 日急跌）",
            f'<div class="rftw"><table class="rftb"><tr><th class="l">日期</th><th>5 日跌</th><th>隔天買，3 個月後</th><th>隔天買在這一波的位置</th></tr>{trs}</table></div>'
            '<p class="rfnote">位置：0%＝這一波最低收盤、100%＝事件前高點，33% 以內算相對低點；還沒走完的不列。</p>') if trs else ""
-    return _card("bottom", 5, "大跌後等落底訊號再買，會不會買得比較低？", ans, small, acls, body, now, nf, det), line
+    return _card("bottom", QN["bottom"], "大跌後等落底訊號再買，會不會買得比較低？", ans, small, acls, body, now, nf, det), line
 
 
 def _asc(s: str) -> str:
@@ -621,7 +774,7 @@ def crash_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
     det = ("每一項在熱區與其他時候",
            f'<div class="rftw"><table class="rftb"><tr><th class="l">項目</th><th>之後</th><th>在熱區</th><th>其他時候</th><th>現在</th></tr>{trs}</table></div>'
            '<p class="rfnote">在熱區＝比過去 3 年 80% 的時候高（寫「偏低」的項目＝比 80% 的時候低）。</p>') if trs else ""
-    return _card("crash", 6, "哪些指標熱的時候，之後比較容易急跌？", ans, small, acls, body, now, nf, det), line
+    return _card("crash", QN["crash"], "哪些指標熱的時候，之後比較容易急跌？", ans, small, acls, body, now, nf, det), line
 
 
 def keep_card(X: dict | None) -> tuple[str, tuple | str]:
@@ -640,13 +793,14 @@ def keep_card(X: dict | None) -> tuple[str, tuple | str]:
             '所以今天的重點把「之後也成立」的排在前面，偏多那一邊只當參考。</p>')
     det = ("怎麼算", '<p class="rfnote">每年 1 月 1 日只用當時窗口已經走完的資料，算每個訊號過去比平常高幾個百分點；再看它之後那一年實際比平常高幾個百分點。'
            '兩者相除＝留下的比例（全部訊號、全部市場、全部年份一起算）。細節在下面「名詞與判定方式」。</p>')
-    return _card("keep", 7, "網頁上的好訊號，之後還準嗎？", ans, small, "no", body, "溫度計與今天的訊號照舊列出，偏多那一邊只當參考", "", det), ""
+    return _card("keep", QN["keep"], "網頁上的好訊號，之後還準嗎？", ans, small, "no", body, "溫度計與今天的訊號照舊列出，偏多那一邊只當參考", "", det), ""
 
 
-def market_html(mk: str, F: dict | None, money_x: dict | None, keep_x: dict | None, show: bool = False) -> str:
-    """一個市場：最上面「現在適用」＋七則。F＝compute 的結果（可能是上一版的檔，沒有就只有第 1、7 則）。"""
+def market_html(mk: str, F: dict | None, money_x: dict | None, keep_x: dict | None, show: bool = False,
+                tilt_x: dict | None = None) -> str:
+    """一個市場：最上面「現在適用」＋八則。F＝compute 的結果（可能是上一版的檔，沒有就只有第 1、2、8 則）。"""
     F = F or {}
-    parts = [money_card(mk, money_x), chip_card(mk, F.get("chip")), hotin_card(mk, F.get("hotin")), ma60_card(mk, F.get("ma60")),
+    parts = [money_card(mk, money_x), tilt_card(mk, tilt_x), chip_card(mk, F.get("chip")), hotin_card(mk, F.get("hotin")), ma60_card(mk, F.get("ma60")),
              bottom_card(mk, F.get("bottom")), crash_card(mk, F.get("crash")), keep_card(keep_x)]
     cards = [c for c, _ in parts if c]
     lines = [ln for _, ln in parts if ln]
@@ -698,6 +852,7 @@ CSS = """
 .rftb th{color:var(--ink2);font-weight:600}.rftb .l{text-align:left;white-space:normal}.rftb small{display:block;font-size:11px;color:var(--mut)}
 .rftb .mu{color:var(--mut)}.rftb tr.rfbhr td{font-weight:600}
 .rfln{font-size:12px;color:var(--acc);text-decoration:none;white-space:nowrap}
+.rfa.ac{color:var(--acc)}
 .rfnote{font-size:12px;color:var(--mut);margin:4px 0 0;line-height:1.65}
 .rffoot{font-size:12.5px;color:var(--mut);margin:12px 0 0;line-height:1.7}
 .rffull{margin:16px 0 0;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
@@ -706,5 +861,10 @@ CSS = """
 .rffb{padding:8px 14px 14px}
 @media (max-width:760px){.rfg{grid-template-columns:1fr}}
 @media (max-width:520px){.rftwo{grid-template-columns:1fr}.rfa{font-size:20px}.rfc{padding:11px 11px}.rfbl{max-width:11em}
-.rfbw{grid-template-columns:minmax(40px,1fr) auto;row-gap:1px}.rfbw .rfbl{grid-column:1/-1;max-width:none;white-space:normal;margin-top:3px}}
+.rfbw{grid-template-columns:minmax(40px,1fr) auto;row-gap:1px}.rfbw .rfbl{grid-column:1/-1;max-width:none;white-space:normal;margin-top:3px}
+.rftk tr:first-child{display:none}
+.rftk tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 10px;padding:5px 0;border-bottom:1px solid var(--line)}
+.rftk td{border:0;padding:1px 0;text-align:left;white-space:normal}.rftk td.l{grid-column:1/-1;font-weight:600}
+.rftk td[data-h]::before{content:attr(data-h) "：";color:var(--mut);font-size:11.5px}.rftk td.l[data-h]{font-weight:400}
+.rftk td.rfkx{display:none}}
 """
