@@ -1,4 +1,4 @@
-"""預估之後（sigspec 第 4.14 節，VER 18；docs/lab_practical_plan.md 第 10 節）。
+"""預估之後（sigspec 第 4.14 節，VER 18～22；docs/lab_practical_plan.md 第 10 節、docs/lab_audit_plan.md 第 11、12 節）。
 
   market(F)       一個市場的逐年紀錄（訊號 × 方向 × 年：那時看得到的成績、那一年實際的結果）
   table(recs)     衰退表：各格的筆數、市場 × 年數、平均、留下來的比例 k、k_r（截在 0～1），另列區間、前後兩段、★◆ 與其他
@@ -132,7 +132,8 @@ def train(sd: dict, c: int, r0: int, Yu: np.ndarray, Yw: np.ndarray, ra: dict) -
 
 def test(sd: dict, P: dict, c: int, c2: int, Y: np.ndarray, Yr: np.ndarray) -> tuple | None:
     """那一年實際的結果：訊號日在 [c, c2) 的每一次（窗口走完的）。→ (命中率, 報酬平均, 次數, 平常, 平常的報酬平均)；
-    這一年沒有任何一次窗口走完回 None。狀態型每一段（這一年裡的部分）一樣重。報酬用平均（VER 19；VER 18 用中位數，次數少時偏低）。"""
+    這一年沒有任何一次窗口走完回 None。狀態型這一年在狀態中的每一天一樣重（VER 22；VER 18～21 每一段一樣重），次數＝段數。
+    報酬用平均（VER 19；VER 18 用中位數，次數少時偏低）。"""
     samp = np.asarray(sd["samp"], dtype=np.int64)
     if sd["kind"] == "event":
         k = P["kept"]
@@ -148,15 +149,12 @@ def test(sd: dict, P: dict, c: int, c2: int, Y: np.ndarray, Yr: np.ndarray) -> t
         idx = idx[np.isfinite(Y[samp[idx]])]
         if not len(idx):
             return None
-        groups: dict = {}
-        for i in idx:
-            groups.setdefault(int(P["epid"][i]), []).append(int(samp[i]))
-        gs = [np.asarray(g, dtype=np.int64) for g in groups.values()]
-        hit = float(np.mean([Y[g].mean() for g in gs]))
-        rs = [Yr[g][np.isfinite(Yr[g])] for g in gs]
-        rs = [r for r in rs if len(r)]
-        rm = float(np.mean([r.mean() for r in rs])) if rs else None            # 每一段一樣重
-        cnt = len(gs)
+        tt = samp[idx]
+        hit = float(Y[tt].mean())                                        # VER 22：每一天一樣重（VER 18～21 每一段一樣重）
+        r = Yr[tt]
+        r = r[np.isfinite(r)]
+        rm = float(r.mean()) if len(r) else None
+        cnt = len(set(P["epid"][idx].tolist()))
     bs = samp[(samp >= c) & (samp < c2)]
     bs = bs[np.isfinite(Y[bs])]
     if not len(bs):

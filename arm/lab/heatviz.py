@@ -616,8 +616,26 @@ TZ_HOW = ("每一列是現在成立、而且「預估之後」的機率和隨便
           "兩邊都沒有寫中性。溫度計本身沒有驗證過能預測漲跌；下面兩行是逐年檢查（每年 1 月 1 日只用之前的資料、不偷看之後）："
           "現在的數量和過去 10 年每週比多不多，過去數量多的週和少的週之後走勢有明顯差別，才寫過去數量一樣多（或一樣少）的週之後的比例。"
           "同一個項目之後出現相反的讀數（例：RSI 進入過熱之後又變過冷），舊的事件就不算現在成立。"
+          "狀態型（例：過冷中）的機率是狀態中的每一天一樣重（2026-10-22 起；之前每一段一樣重，會把很快反轉的短段放大、"
+          "高估過冷之後上漲的機率）。"
           "標「策略」的是總經策略（照原作者的規則買賣指數、判定為 ★ 好策略），現在照規則有動作才列，不算進溫度計。"
           "「之後怎麼走？」：列出來的訊號過去出現之後 1 週～1 年的報酬（點一列直接看那一個），加上五個面向現在這一區、情境、最像現在的日子。")
+
+
+def keep_line() -> str:
+    """逐年檢查留下來的比例（sigoos 衰退表的 L3 格，數字由研究檔算）：偏多看 1／3／12 個月、大跌風險看 1／3 個月。研究檔沒有＝空字串。"""
+    from . import sigoos as OOS
+    from . import sigspec as SS
+    T = OOS.load()
+    if not T:
+        return ""
+    C = T.get("cells") or {}
+
+    def k(d, H):
+        c = C.get(OOS.key(d, H, None, "p")) or {}
+        return "—" if c.get("k") is None else f'{c["k"] * 100:.0f}%'
+    return (f'目前的逐年檢查：偏多訊號之後的年份留下的優勢，看 1 個月 {k("up", SS.H_TECH)}、3 個月 {k("up", SS.H_CRASH)}、'
+            f'12 個月 {k("up", SS.H_BUB)}；大跌風險看 1 個月 {k("warn", SS.H_TECH)}、3 個月 {k("warn", SS.H_CRASH)}。')
 
 
 def today_html(V: dict) -> str:
@@ -632,8 +650,14 @@ def today_html(V: dict) -> str:
     d = T.get("d")
     cal = T.get("cal") or {}
     if T.get("ok", True):
-        blocks = "".join(f'<div class="tzhz" id="tz-{th["k"]}">{thermo_row(th, cal.get(th["k"]))}<div class="tzcols">'
-                         + "".join(_tz_list(th[s], s, d) for s in ("up", "warn")) + "</div></div>" for th in T["thermo"])
+        nu = sum(th["n"]["up"] for th in T["thermo"])
+        nw = sum(th["n"]["warn"] for th in T["thermo"])
+        lead = ("" if nu else
+                '<p class="tzlead">今天只列出警示：偏多訊號用逐年檢查校正之後，在之後的年份多半沒有比隨便挑一天好，所以沒有列出來'
+                '（不是偏多訊號都不成立，是成立了也沒有比平常好）。</p>' if nw else
+                '<p class="tzlead">今天沒有預估之後和隨便挑一天差 3 點以上的訊號。</p>')
+        blocks = lead + "".join(f'<div class="tzhz" id="tz-{th["k"]}">{thermo_row(th, cal.get(th["k"]))}<div class="tzcols">'
+                                + "".join(_tz_list(th[s], s, d) for s in ("up", "warn")) + "</div></div>" for th in T["thermo"])
     else:
         blocks = '<p class="note">預估之後（逐年檢查）的研究結果還沒產生（scripts/run_sigoos.py），先不列。</p>'
     sx = V.get("xsb") or []
@@ -641,7 +665,7 @@ def today_html(V: dict) -> str:
              + "".join(XSP.board_li(it) for it in sx) + "</ul></div>") if sx else ""
     sub = "現在成立、預估之後的機率和隨便挑一天差 3 點以上的訊號，依持有多久分三段；點一列看它過去出現之後的報酬。"
     how = TZ_HOW.format(gap=f"{SS.LIST_GAP * 100:g}", star=SS.STAR_N, lean=f"{SS.THERMO_LEAN * 100:.0f}",
-                        lean2=f"{(1 - SS.THERMO_LEAN) * 100:.0f}")
+                        lean2=f"{(1 - SS.THERMO_LEAN) * 100:.0f}") + keep_line()
     return (f'<section class="tzc card" id="today"><div class="khd"><h2>今天的重點</h2></div><p class="ksub">{_e(sub)}</p>'
             f'<details class="tzx"><summary>怎麼看</summary><p>{_e(how)}</p></details>'
             f'{blocks}{out_btn()}{strat}'
@@ -811,7 +835,7 @@ def scen_html(V: dict) -> str:
             f'<span class="sqv sqjs" data-h="判定">{_sq_tier(r, "up")}{_sq_tier(r, "warn")}</span>'
             f'<span class="sqv" data-h="過去">{n} 段</span></summary>'
             f'<div class="sqbody"><p class="sqw">{_e(why)}</p>{_sq_strip(r, o)}'
-            f'<p class="sqm">過去 {n} 段・{_e(r["a"][:4])} 年起；報酬與中途最多跌從隔一個交易日收盤算到 3 個月後，每一段一樣重'
+            f'<p class="sqm">過去 {n} 段・{_e(r["a"][:4])} 年起；報酬與中途最多跌從隔一個交易日收盤算到 3 個月後，情境中的每一天一樣重'
             f'<a href="x9o.html#s={_e(r["id"])}">每一次與 1 天～1 年的報酬 →</a></p></div></details>')))
     items.sort(key=lambda x: (x[0], x[1]))
     act = sum(1 for x in items if x[0] == 0)
@@ -1108,7 +1132,7 @@ def out_sig(V: dict) -> str:
     return (head + "".join(cards)
             + '<p class="note">進場＝隔一個交易日收盤；中途最多跌＝持有期間最低收盤比進場價低多少（中位數）。框起來的那一欄＝這一列持有的期間。'
             '每一個訊號照自己原本的看多久去重算次數，所以「原本看 3 個月」的列，表裡的次數是 3 個月的；'
-            '狀態型訊號每一段一樣重；次數少的格子另外標次數。</p>' + xs)
+            '狀態型訊號狀態中的每一天一樣重；次數少的格子另外標次數。</p>' + xs)
 
 
 def out_dims(V: dict) -> str:
@@ -1859,6 +1883,7 @@ table.oft{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-nume
 .tzhz{padding:8px 0 6px;border-top:1px solid var(--line)}.tzx+.tzhz{border-top:0;padding-top:2px}
 .tzhz .tzr{margin-bottom:4px}.tzno{margin:0 0 2px;font-size:12.5px;color:var(--mut)}
 .tzst{margin-top:8px;padding-top:6px;border-top:1px solid var(--line)}
+.tzlead{margin:2px 0 6px;font-size:12.5px;line-height:1.6;color:var(--ink2);padding:6px 8px;border-radius:8px;background:var(--card2)}
 .tzy{font-size:11.5px;padding:0 6px;border-radius:4px;border:1px solid;white-space:nowrap;font-weight:600;line-height:1.5}
 .tzy-up,.tzy-buy{color:var(--bull);border-color:var(--bull)}.tzy-weak,.tzy-risk{color:var(--bear);border-color:var(--bear)}
 .tzy-weak{border-style:dashed}

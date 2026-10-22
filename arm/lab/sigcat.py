@@ -130,25 +130,28 @@ def wquant(v: np.ndarray, w: np.ndarray, q: float) -> float:
     return float(v[o][min(k, len(v) - 1)])
 
 
-def ret_cell(r: np.ndarray, a: np.ndarray, w: np.ndarray, n: int, occ=None) -> list | None:
+def ret_cell(r: np.ndarray, a: np.ndarray, w: np.ndarray, n: int, occ=None, occ_w=None) -> list | None:
     """→ [次數, 平均, 25%, 中位數, 75%, 上漲比例, 中途最多跌中位數, 中途最多跌最差 10%, 最差一次, 排除極端, 去掉最好一次]。
-    最後兩個（VER 17，第 4.11 節）用 occ＝每一次（狀態型＝每一段的平均）的報酬；沒給＝r 的每一個值各算一次（每一天等權）。"""
+    最後兩個（VER 17，第 4.11 節）用 occ＝每一次（狀態型＝每一段的平均）的報酬；沒給＝r 的每一個值各算一次（每一天等權）。
+    occ_w＝每一次的權重（VER 22：狀態型＝段內天數；排序與去掉幾個照段算，其餘照天數平均）。"""
     if n <= 0 or not len(r):
         return None
     W = float(w.sum())
     o = r if occ is None else occ
+    rob = (RB.trim_mean(o), RB.lbo_mean(o)) if occ_w is None else (RB.trim_mean_w(o, occ_w), RB.lbo_mean_w(o, occ_w))
     return [int(n), float((r * w).sum() / W), *(wquant(r, w, q) for q in S.RET_Q), float(w[r > 0].sum() / W),
-            wquant(a, w, 0.5), wquant(a, w, S.MAE_Q), float(a.min()), RB.trim_mean(o), RB.lbo_mean(o)]
+            wquant(a, w, 0.5), wquant(a, w, S.MAE_Q), float(a.min()), *rob]
 
 
 def ret_stats(groups: list, RA: dict) -> dict:
-    """groups＝每一次在 RA 陣列裡的索引（事件：一天；狀態：一段的樣本日）；每一段一樣重（段內窗口完整的日子平分）。
+    """groups＝每一次在 RA 陣列裡的索引（事件：一天；狀態：一段的樣本日）；每一天一樣重（VER 22；VER 5～21 是每一段一樣重：
+    段內窗口完整的日子平分）。排除極端、去掉最好一次的單位＝每一次（一段），權重＝段內窗口完整的天數。
     → {"s": RET_H 每一期一格（ret_cell）, "p": PATH_D 每一天 [25%, 中位數, 75%]}。"""
     gs = [np.asarray(g, dtype=np.int64) for g in groups]
     gs = [g for g in gs if len(g)]
 
     def pick(Y, Z=None):
-        rs, zs, ws, ms, n = [], [], [], [], 0
+        rs, zs, ws, ms, mw, n = [], [], [], [], [], 0
         for g in gs:
             m = np.isfinite(Y[g]) if Z is None else (np.isfinite(Y[g]) & np.isfinite(Z[g]))
             k = g[m]
@@ -156,18 +159,19 @@ def ret_stats(groups: list, RA: dict) -> dict:
                 continue
             n += 1
             rs.append(Y[k])
-            ws.append(np.full(len(k), 1.0 / len(k)))
+            ws.append(np.ones(len(k)))                     # VER 22：每一天一樣重
             ms.append(float(Y[k].mean()))                 # VER 17：每一段的平均（排除極端、去掉最好一次的單位）
+            mw.append(float(len(k)))                      # VER 22：這一段的權重＝天數
             if Z is not None:
                 zs.append(Z[k])
         if not n:
             return None
-        return (np.concatenate(rs), np.concatenate(zs) if Z is not None else None, np.concatenate(ws), n, ms)
+        return (np.concatenate(rs), np.concatenate(zs) if Z is not None else None, np.concatenate(ws), n, ms, mw)
 
     out_s = []
     for h in RA["hs"]:
         P = pick(RA["R"][h], RA["A"][h])
-        out_s.append(None if P is None else ret_cell(P[0], P[1], P[2], P[3], P[4]))
+        out_s.append(None if P is None else ret_cell(P[0], P[1], P[2], P[3], P[4], P[5]))
     out_p = []
     for d in RA["ps"]:
         P = pick(RA["R"][d])
@@ -316,11 +320,11 @@ def exp_end(sd: dict, days, H: int) -> np.ndarray:
 def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray, gap: int, r0: int,
             Yd: np.ndarray | None = None, Yr: np.ndarray | None = None, brk=None) -> dict:
     """狀態型：samp＝樣本日（輸入有值；月資料＝每月最後一個交易日）索引，state＝這些樣本日是否在狀態中（同長度）。
-    一段的命中率＝段內窗口完整的日子的比例；整體＝各段平均。Yd＝每一天的最大回撤（VER 3，只呈現：一段＝段內平均，整體＝各段中位數）。
-    Yr＝每一天之後的漲跌（只呈現，一段＝段內平均）。
-    → {"up", "warn", "occ": [[第一天, 最後一天, 天數, 偏多, 警示, 最大回撤, 之後漲跌], …]}。"""
+    命中率＝狀態中、窗口完整的每一天的比例（VER 22，第 3.4 節；VER 1～21 是各段平均）；次數＝段數；近 10 年＝第一天在 r0 以後的段裡的每一天。
+    Yd＝每一天的最大回撤（VER 3，只呈現：狀態中每一天的中位數）。Yr＝每一天之後的漲跌（只呈現，一段＝段內平均）。
+    → {"up", "warn", "occ": [[第一天, 最後一天, 天數, 偏多, 警示, 最大回撤, 之後漲跌], …]}（每一段的列表照舊是段內平均）。"""
     pos = [i for i in range(len(samp)) if state[i]]
-    occ = []
+    occ, days = [], []
     for ep in episodes(pos, gap, brk):
         ts = samp[ep]
         u, w = Yu[ts], Yw[ts]
@@ -329,15 +333,17 @@ def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray,
             continue
         occ.append([int(ts[0]), int(ts[-1]), int(len(ts)), float(u[m].mean()), float(w[m].mean()),
                     np.nan if Yd is None else float(Yd[ts][m].mean()), _mean(Yr[ts][m]) if Yr is not None else np.nan])
+        days.append(ts[m])
     samp10 = samp[samp >= r0]
     out = {"occ": occ}
-    for j, (dk, Y) in enumerate((("up", Yu), ("warn", Yw))):
-        ys = [o[3 + j] for o in occ]
-        ys10 = [o[3 + j] for o in occ if o[0] >= r0]
-        out[dk] = {"n": len(ys), "hit": _mean(ys), "base": _base(Y, samp),
-                   "n10": len(ys10), "hit10": _mean(ys10), "base10": _base(Y, samp10)}
+    alld = np.concatenate(days) if days else np.zeros(0, dtype=np.int64)
+    d10 = [d for o, d in zip(occ, days) if o[0] >= r0]
+    alld10 = np.concatenate(d10) if d10 else np.zeros(0, dtype=np.int64)
+    for dk, Y in (("up", Yu), ("warn", Yw)):                  # alld 只有偏多、警示都有值的日子
+        out[dk] = {"n": len(occ), "hit": float(Y[alld].mean()) if len(alld) else None, "base": _base(Y, samp),
+                   "n10": len(d10), "hit10": float(Y[alld10].mean()) if len(alld10) else None, "base10": _base(Y, samp10)}
     if Yd is not None:
-        out["warn"].update(mdd=_median([o[5] for o in occ]), mdd_base=_base_med(Yd, samp))
+        out["warn"].update(mdd=_base_med(Yd, alld) if len(alld) else None, mdd_base=_base_med(Yd, samp))
     return out
 
 
@@ -943,9 +949,10 @@ def _months_add(m: str, k: int) -> str:
 
 
 def _ret_groups(groups: list[list[dict]], hs: tuple, ps: tuple | None = None) -> dict:
-    """每一次＝一組樣本（每個樣本 {期間: (報酬, 中途最多跌)}），每一組一樣重 → 同 ret_stats 的格式（路徑 ps 預設＝同一批期間）。"""
+    """每一次＝一組樣本（每個樣本 {期間: (報酬, 中途最多跌)}），每一個樣本一樣重（VER 22；產業泡沫的一段＝多個月份，
+    VER 5～21 是每一組一樣重）→ 同 ret_stats 的格式（路徑 ps 預設＝同一批期間）。排除極端、去掉最好一次的單位＝一組，權重＝組內樣本數。"""
     def pool(h):
-        rs, as_, ws, ms, n = [], [], [], [], 0
+        rs, as_, ms, mw, n = [], [], [], [], 0
         for g in groups:
             v = [x[h] for x in g if x.get(h) is not None]
             if not v:
@@ -953,16 +960,16 @@ def _ret_groups(groups: list[list[dict]], hs: tuple, ps: tuple | None = None) ->
             n += 1
             rs += [a for a, _ in v]
             as_ += [b for _, b in v]
-            ws += [1.0 / len(v)] * len(v)
             ms.append(float(np.mean([a for a, _ in v])))     # VER 17：每一組（一次／一段）的平均
-        return n, np.asarray(rs, dtype=float), np.asarray(as_, dtype=float), np.asarray(ws, dtype=float), ms
+            mw.append(float(len(v)))
+        return n, np.asarray(rs, dtype=float), np.asarray(as_, dtype=float), np.ones(len(rs)), ms, mw
 
     out_s, out_p = [], []
     for h in hs:
-        n, r, a, w, ms = pool(h)
-        out_s.append(ret_cell(r, a, w, n, ms) if n else None)
+        n, r, a, w, ms, mw = pool(h)
+        out_s.append(ret_cell(r, a, w, n, ms, mw) if n else None)
     for d in (hs if ps is None else ps):
-        n, r, _, w, _ = pool(d)
+        n, r, _, w, _, _ = pool(d)
         out_p.append([wquant(r, w, q) for q in S.RET_Q] if n else None)
     return {"s": out_s, "p": out_p}
 
@@ -1031,6 +1038,7 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None, bases: dict 
     for k in S.IND_SIGNALS:
         lv = int(k[1])
         occ, base_u, base_w, b10u, b10w, base_d = [], [], [], [], [], []
+        days: list = []                                 # VER 22：每一段的（第一個月, 偏多, 警示, 最大回撤）每一個月
         rgroups = []
         seqs = []                                     # 打亂日子測試用：每個產業（狀態, 偏多, 警示）
         for code, me, rows in pan:
@@ -1068,14 +1076,15 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None, bases: dict 
                 if us:
                     occ.append([seq[ep[0]][0], seq[ep[-1]][0], len(ep), float(np.mean(us)), float(np.mean(ws)), code,
                                 float(np.mean(ds)), float(np.mean(rs))])
+                    days.append((seq[ep[0]][0], us, ws, ds))      # VER 22：每一個月一樣重
                 rgroups.append([_me_ret(me, seq[i][0]) for i in ep])
         occ.sort(key=lambda o: (o[0], o[5]))
         dirs = {}
         for j, (d, bs, b10) in enumerate((("up", base_u, b10u), ("warn", base_w, b10w))):
-            ys = [o[3 + j] for o in occ]
-            ys10 = [o[3 + j] for o in occ if o[0] >= r0m]
-            dirs[d] = {"n": len(ys), "hit": _mean(ys), "base": _mean(bs), "n10": len(ys10), "hit10": _mean(ys10),
-                       "base10": _mean(b10)}
+            ys = [y for x in days for y in x[1 + j]]
+            ys10 = [y for x in days if x[0] >= r0m for y in x[1 + j]]
+            dirs[d] = {"n": len(days), "hit": _mean(ys), "base": _mean(bs),
+                       "n10": sum(1 for x in days if x[0] >= r0m), "hit10": _mean(ys10), "base10": _mean(b10)}
         # 打亂日子測試（VER 9；VER 17 起只呈現）：次數夠的方向都算
         need = {d: st["hit"] for d, st in dirs.items() if st["n"] >= S.N_MIN and st["hit"] is not None}
         pv = LK.ind_p(f"ind:{group}:{k}", seqs, need) if need else {}
@@ -1085,7 +1094,7 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None, bases: dict 
         for d, st in dirs.items():
             st["p"] = pv.get(d)
             judge_abs(st, d, cell, cost)                    # VER 17：絕對成績（報酬＝12 個月）
-        dirs["warn"].update(mdd=_median([o[6] for o in occ]), mdd_base=_median(base_d))
+        dirs["warn"].update(mdd=_median([v for x in days for v in x[3]]), mdd_base=_median(base_d))
         tr, ds = best(dirs)
         gname = BIS.GROUP_NAMES[group] if hasattr(BIS, "GROUP_NAMES") else group
         out.append({"id": f"ind:{group}:{k}", "mk": "us" if group in ("ff", "us") else "tw", "cat": "ind", "grp": group,

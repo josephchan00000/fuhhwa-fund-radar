@@ -65,7 +65,7 @@ def test_episodes_gap_rule():
     assert G.episodes([3, 4, 6], 1) == [[3, 4], [6]]
 
 
-def test_state_stat_is_mean_of_episode_rates():
+def test_state_stat_is_mean_over_state_days():
     T = 300
     Yu = np.array([float(i % 3 == 0) for i in range(T)])
     Yw = 1 - Yu
@@ -80,15 +80,15 @@ def test_state_stat_is_mean_of_episode_rates():
     Yd = np.linspace(0, 0.3, T)
     Yd[-5:] = np.nan
     R = G.st_stat(state, samp, Yu, Yw, 20, 150, Yd)
-    e1 = Yu[10:20].mean()
-    e2 = np.concatenate([Yu[100:105], Yu[110:112]]).mean()
-    assert R["up"]["n"] == 2 and abs(R["up"]["hit"] - (e1 + e2) / 2) < 1e-12
+    days = np.concatenate([Yu[10:20], Yu[100:105], Yu[110:112]])       # VER 22：狀態中的每一天一樣重（次數仍是段數）
+    assert R["up"]["n"] == 2 and abs(R["up"]["hit"] - days.mean()) < 1e-12
     assert abs(R["up"]["base"] - np.nanmean(Yu)) < 1e-12
     assert R["up"]["n10"] == 0 and R["up"]["hit10"] is None
     assert abs(R["up"]["base10"] - np.nanmean(Yu[150:])) < 1e-12
     assert [o[:3] for o in R["occ"]] == [[10, 19, 10], [100, 111, 7]]
-    d1, d2 = Yd[10:20].mean(), np.concatenate([Yd[100:105], Yd[110:112]]).mean()
-    assert abs(R["occ"][1][5] - d2) < 1e-12 and abs(R["warn"]["mdd"] - (d1 + d2) / 2) < 1e-12
+    d2 = np.concatenate([Yd[100:105], Yd[110:112]]).mean()
+    dd = np.concatenate([Yd[10:20], Yd[100:105], Yd[110:112]])
+    assert abs(R["occ"][1][5] - d2) < 1e-12 and abs(R["warn"]["mdd"] - np.median(dd)) < 1e-12
     assert abs(R["warn"]["mdd_base"] - np.median(Yd[:-5])) < 1e-12
     assert "mdd" not in G.st_stat(state, samp, Yu, Yw, 20, 150)["warn"]
 
@@ -258,8 +258,9 @@ def test_fwd_mae_matches_direct_loop():
                 assert abs(r[t] - (px[e + H] / px[e] - 1)) < 1e-12
 
 
-def test_ret_stats_state_weights_each_segment_equally():
-    """狀態型：每一段一樣重（段內窗口完整的日子平分）；等權的 _ret_flat 和一天一組的 ret_stats 相同。"""
+def test_ret_stats_state_weights_each_day_equally():
+    """狀態型（VER 22）：每一天一樣重；排除極端、去掉最好一次以段為單位、依天數加權；等權的 _ret_flat 和一天一組的 ret_stats 相同。"""
+    from arm.lab import robust as RB
     px = _px(500, seed=5)
     RA = G.ret_arrays(px)
     segs = [list(range(10, 13)), list(range(100, 160)), [300]]
@@ -274,14 +275,18 @@ def test_ret_stats_state_weights_each_segment_equally():
             n += 1
             r += [RA["R"][h][t] for t in ok]
             a += [RA["A"][h][t] for t in ok]
-            w += [1 / len(ok)] * len(ok)
+            w += [1.0] * len(ok)
         c = R["s"][i]
         assert c[0] == n
         assert abs(c[1] - sum(x * y for x, y in zip(r, w)) / sum(w)) < 1e-12
         assert c[3] == _wq_direct(r, w, 0.5) and c[7] == _wq_direct(a, w, S.MAE_Q) and c[8] == min(a)
         assert abs(c[5] - sum(y for x, y in zip(r, w) if x > 0) / sum(w)) < 1e-12
-        per = [[RA["R"][h][t] > 0 for t in g if np.isfinite(RA["R"][h][t])] for g in segs]
-        assert abs(c[5] - np.mean([np.mean(x) for x in per if x])) < 1e-12           # ＝每一段的比例再平均（同命中率）
+        allr = [RA["R"][h][t] for g in segs for t in g if np.isfinite(RA["R"][h][t]) and np.isfinite(RA["A"][h][t])]
+        assert abs(c[5] - np.mean([x > 0 for x in allr])) < 1e-12                       # ＝每一天的比例（同命中率）
+        segm = [[RA["R"][h][t] for t in g if np.isfinite(RA["R"][h][t]) and np.isfinite(RA["A"][h][t])] for g in segs]
+        segm = [x for x in segm if x]
+        mm, mw = [float(np.mean(x)) for x in segm], [len(x) for x in segm]
+        assert c[9] == RB.trim_mean_w(mm, mw) and c[10] == RB.lbo_mean_w(mm, mw)
     idx = np.array([3, 50, 51, 200, 480])
     F1, F2 = G._ret_flat(idx, RA), G.ret_stats([[int(t)] for t in idx], RA)
     assert F1 == F2
@@ -380,7 +385,7 @@ def test_research_has_inst_rows_and_no_duplicate_heat_rows():
 
 def _cross_direct(px, days, samp, state, kind, H, th):
     """直接算：成功條件同第 2 節（第 e＋H 天收盤 > 第 e 天；第 e～e＋H 天最大回撤 ≥ th）；事件型同一次觀察期間內再出現不算；
-    狀態型一段＝連續在狀態中（中斷 < EP_GAP 個樣本），每段先算再平均；平常＝樣本日的平均（窗口不完整的不算）。"""
+    狀態型一段＝連續在狀態中（中斷 < EP_GAP 個樣本），命中率＝每一天一樣重（VER 22）；平常＝樣本日的平均（窗口不完整的不算）。"""
     T = len(px)
 
     def out(t):
@@ -412,13 +417,13 @@ def _cross_direct(px, days, samp, state, kind, H, th):
                 gap += 1
         if cur:
             segs.append(cur)
-        rates = []
+        alld, n = [], 0
         for sg in segs:
             ys = [out(t) for t in sg if out(t) is not None]
             if ys:
-                rates.append([np.mean([y[j] for y in ys]) for j in (0, 1)])
-        hit = [np.mean([r[j] for r in rates]) if rates else None for j in (0, 1)]
-        n = len(rates)
+                n += 1
+                alld += ys
+        hit = [np.mean([y[j] for y in alld]) if alld else None for j in (0, 1)]
     return {"up": (n, hit[0], base[0]), "warn": (n, hit[1], base[1])}
 
 

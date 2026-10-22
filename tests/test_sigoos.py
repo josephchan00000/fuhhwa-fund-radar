@@ -98,15 +98,12 @@ def test_train_state_matches_direct_and_does_not_look_ahead():
     m = samp + S.LAG + H < c
     ts, sm = samp[m], st[m]
     eps = G.episodes(np.nonzero(sm)[0].tolist(), S.EP_GAP)
-    hits = [np.mean([float(PX[t + S.LAG + H] > PX[t + S.LAG]) for t in ts[ep]]) for ep in eps]
-    assert Tn["R"]["up"]["n"] == len(eps) and math.isclose(Tn["R"]["up"]["hit"], np.mean(hits))
-    xs, ws = [], []
-    for ep in eps:
-        for t in ts[ep]:
-            xs.append(_ret(PX, t))
-            ws.append(1.0 / len(ep))
-    assert math.isclose(Tn["cell"][3], _med_direct(xs, ws))
-    assert math.isclose(Tn["cell"][1], np.mean([np.mean([_ret(PX, t) for t in ts[ep]]) for ep in eps]))   # 每一段一樣重
+    alld = [t for ep in eps for t in ts[ep]]
+    hits = [float(PX[t + S.LAG + H] > PX[t + S.LAG]) for t in alld]
+    assert Tn["R"]["up"]["n"] == len(eps) and math.isclose(Tn["R"]["up"]["hit"], np.mean(hits))   # VER 22：每一天一樣重
+    xs = [_ret(PX, t) for t in alld]
+    assert math.isclose(Tn["cell"][3], _med_direct(xs))
+    assert math.isclose(Tn["cell"][1], np.mean(xs))
     px2 = PX[:c].copy()
     Yu2, Yw2, ra2 = _arrays(px2)
     keep = samp < c
@@ -133,7 +130,7 @@ def test_test_year_matches_direct():
     bs = [int(t) for t in samp if c <= t < c2]
     assert math.isclose(te[3], np.mean([float(PX[t + S.LAG + H] > PX[t + S.LAG]) for t in bs]))
     assert math.isclose(te[4], np.mean([_ret(PX, t) for t in bs]))
-    # 狀態型：這一年在狀態中的樣本日，依全部資料的分段、每一段一樣重
+    # 狀態型：這一年在狀態中的樣本日，依全部資料的分段；VER 22 起每一天一樣重（次數＝段數）
     st = np.zeros(len(samp), dtype=bool)
     st[1440:1530] = True                              # 跨過 cut 的一段
     st[1600:1610] = True
@@ -143,8 +140,9 @@ def test_test_year_matches_direct():
     groups = [[int(samp[i]) for i in range(1440, 1530) if c <= samp[i] < c2], [int(samp[i]) for i in range(1600, 1610)],
               [int(samp[i]) for i in range(1700, 1760) if c <= samp[i] < c2]]
     assert te2[2] == 3
-    assert math.isclose(te2[0], np.mean([np.mean([float(PX[t + S.LAG + H] > PX[t + S.LAG]) for t in g]) for g in groups]))
-    assert math.isclose(te2[1], np.mean([np.mean([_ret(PX, t) for t in g]) for g in groups]))   # 每一段一樣重
+    alld = [t for g in groups for t in g]
+    assert math.isclose(te2[0], np.mean([float(PX[t + S.LAG + H] > PX[t + S.LAG]) for t in alld]))
+    assert math.isclose(te2[1], np.mean([_ret(PX, t) for t in alld]))
     assert O.test(sd2, O.prep(sd2), 2900, 3000, Yu, Yr) is None      # 窗口沒走完的不算
 
 
