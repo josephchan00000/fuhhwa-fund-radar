@@ -179,7 +179,8 @@ def test_heat_pages_stash_cards_and_list_today(monkeypatch):
     assert "最大回撤 10% 以上" in h and "回撤中位數 12%（隨便挑一天 7%）" in h
     assert h.count('<div class="tzr">') == 3 and "中線" in h and "差不多" in h and "警示 ★1" in h
     assert 'aria-label="中線（看 3 個月）：偏多 ★1・警示 ★1，偏多占 50%"' in h
-    assert 'aria-label="短線（看 1 個月）：中性，沒有偏多或警示的訊號"' in h and "溫度計本身沒有驗證過" in h
+    assert 'aria-label="短線（看 1 個月）：中性，沒有偏多或警示的訊號"' in h and "偏多占比只是數一數現在成立的訊號，本身沒有驗證過" in h
+    assert "每支溫度計下面兩行是用之前的資料逐年檢查的結果" in h                    # VER 16
     h0 = VZ.today_html({"sigtoday": dict(sigcat.board(V["rows"], {}, "tw"), d="2026-10-16")})
     assert "現在沒有可靠的警示訊號" in h0 and h0.count('class="tzw tzw-none">中性') == 3 and 'class="tzq"' not in h0
     # VER 12：● 不列在兩欄，但算進溫度計（算 1），收在溫度計下面「溫度計另外算進去的」
