@@ -631,9 +631,10 @@ def test_outlook_drawer_replaces_now_and_scenario_sections(built, monkeypatch):
     assert 'href="#now"' not in page and 'href="#scen"' not in page
     assert "snout" not in page and 'class="rout"' not in page[:page.index('id="today"')]   # 頂部目錄、雷達卡片沒有入口
     t0 = page.index('id="today"')
-    assert page.count('class="rout" data-open="out:out"') == 1 and t0 < page.index('class="rout"') < page.index('class="tzcols"')
+    assert page.count('class="rout" data-open="out:out"') == 1 and t0 < page.index('class="tzhz"') < page.index('class="rout"')
+    assert page.index('class="rout"') < page.index("</section>", t0)                     # 在今天的重點裡、三段溫度計下面
     assert 'data-title="之後怎麼走？"' in body and '<details class="osim" id="o-sim">' in body
-    assert body.index("好訊號成立之後") < body.index("五個面向現在的位置") < body.index('id="scen"') < body.index('id="o-sim"')
+    assert body.index("列出來的訊號成立之後") < body.index("五個面向現在的位置") < body.index('id="scen"') < body.index('id="o-sim"')
     assert 'data-open="out:out"' in page[page.index('<template id="dt-fund"'):]          # 面向面板也連得過去
     from arm.lab import heatpage as HP
     V2 = {**V, "mk": "tw", "signow": {"on": {"tw:scen:SC5": {"since": "2026-07-17", "n": 66}}}}
@@ -646,22 +647,18 @@ def test_outlook_drawer_replaces_now_and_scenario_sections(built, monkeypatch):
     assert "window.heatScenHl(DC)" in js and "push: !!(DRW && DRW.contains(op))" in js
 
 
-def _board_v(fams_up, fams_warn, xsb=None, more=None):
-    """sigcat.board 的輸出形狀：溫度計照 sigspec 第 5 節 ③（VER 17）由這些類算（more＝溫度計另外算進去的 ◆、△ 類）。"""
+def _board_v(fams_up, fams_warn):
+    """sigcat.board 的輸出形狀（VER 21，sigspec 第 5 節 ④）：每支溫度計＝這一段的類數（一類算 1）＋偏多、警示兩張清單。"""
     from arm.lab import sigspec as SS
-    allf = {"up": list(fams_up) + [x for x in (more or []) if x["side"] == "up"],
-            "warn": list(fams_warn) + [x for x in (more or []) if x["side"] == "warn"]}
     th = []
     for k, nm, h in SS.THERMO_HZ:
-        n = {s: {t: sum(1 for x in allf[s] if x.get("hz") == k and x.get("tier", "good") == t) for t in SS.THERMO_W}
-             for s in allf}
-        w = {s: sum(SS.THERMO_W[t] * c for t, c in n[s].items()) for s in n}
-        tot = w["up"] + w["warn"]
-        share = w["up"] / tot if tot else None
+        L = {"up": [x for x in fams_up if x.get("hz") == k], "warn": [x for x in fams_warn if x.get("hz") == k]}
+        n = {s: len(L[s]) for s in L}
+        tot = n["up"] + n["warn"]
+        share = n["up"] / tot if tot else None
         lean = None if share is None else "up" if share >= SS.THERMO_LEAN else "warn" if share <= 1 - SS.THERMO_LEAN else "even"
-        mo = {s: [x for x in allf[s] if x.get("hz") == k and x.get("tier", "good") != "good"] for s in allf}
-        th.append({"k": k, "name": nm, "h": h, "n": n, "w": w, "share": share, "lean": lean, "more": mo})
-    return {"up": fams_up, "warn": fams_warn, "thermo": th}
+        th.append({"k": k, "name": nm, "h": h, "H": SS.THERMO_H[k], "n": n, "share": share, "lean": lean, **L})
+    return {"ok": True, "up": fams_up, "warn": fams_warn, "thermo": th}
 
 
 def test_outlook_signals_table_and_summary(monkeypatch):
@@ -674,18 +671,21 @@ def test_outlook_signals_table_and_summary(monkeypatch):
     base = [_cell(5000, 0.005 * (k + 1), 0.55, -0.02 * (k + 1)) for k in range(len(SS.RET_H))]
     monkeypatch.setattr(G, "research_bases", lambda: {"b9": {"s": base}})
     up = {"id": "tw:heat:T4:cold", "name": "RSI（14 日）・過冷中", "cat": "heat", "var": "T4", "H": 20, "d": "up", "side": "up",
-          "hz": "short", "tier": "good", "edge": 0.23, "now": {"since": "2026-09-15"},
+          "hz": "short", "tier": "good", "cls": "up", "edge": 0.17, "g": 0.17, "now": {"since": "2026-09-15"},
+          "fe": {"hit": 0.81, "base": 0.58, "fh": 0.75, "k": 0.74},
           "up": {"hit": 0.81, "base": 0.58, "n": 82, "tier": "good"}, "ret": {"s": cells, "bk": "b9"},
           "fam": [{"id": "tw:heat:T1:cold", "name": "對 20 日線乖離・過冷中", "cat": "heat"}]}
     warn = {"id": "tw:multi:M2:hot_in", "name": "進入同時兩個以上面向過熱", "cat": "multi", "var": "M2", "H": 60, "d": "warn",
-            "side": "warn", "hz": "mid", "tier": "good", "edge": 0.38, "th": 0.10, "now": {"since": "2026-09-17"},
+            "side": "warn", "hz": "mid", "tier": "good", "cls": "risk", "edge": 0.04, "g": 0.04, "th": 0.10,
+            "now": {"since": "2026-09-17"}, "fe": {"hit": 0.67, "base": 0.29, "fh": 0.33, "k": 0.1},
             "warn": {"hit": 0.67, "base": 0.29, "n": 6, "tier": "good", "mdd": 0.12, "mdd_base": 0.06},
             "ret": {"s": cells, "bk": "b9"}, "fam": []}
     V = {"mk": "tw", "sigtoday": _board_v([up], [warn]), "xsb": [{"name": "RSI(2) 超賣反彈", "side": "up"}]}
     h = VZ.out_sig(V)
     txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h)))
     assert h.count('class="ofam ofam-') == 2 and h.index("RSI（14 日）") < h.index("進入同時兩個以上面向過熱")   # 短線在前
-    assert "同時成立：對 20 日線乖離・過冷中" in txt and "之後 1 個月上漲的機率 81%" in txt
+    assert "同時成立：對 20 日線乖離・過冷中" in txt and "之後 1 個月上漲的機率：過去 81% → 預估之後 75% （隨便挑一天 58%）" in txt
+    assert "列出來的訊號成立之後" in txt and "★" not in txt and "偏多" in txt and "大跌風險" in txt
     j20, j60 = SS.RET_H.index(20), SS.RET_H.index(60)
     assert f"{cells[j20][5] * 100:.0f}%" in txt and f"{base[j20][5] * 100:.0f}%" in txt
     t0 = h.index('class="ofam ofam-up"')
@@ -693,9 +693,9 @@ def test_outlook_signals_table_and_summary(monkeypatch):
     assert one.count('<th class="oj">') == 1 and '<th class="oj">1 個月</th>' in one        # 判定看 1 個月
     assert '<th class="oj">3 個月</th>' in h[h.index('class="ofam ofam-warn"'):]
     assert "7 次" in txt                                                                      # 次數少的格子標次數
-    assert "大跌（最大回撤 10% 以上）的機率 67%" in txt and "RSI(2) 超賣反彈" in txt
+    assert "大跌（最大回撤 10% 以上）的機率：過去 67% → 預估之後 33%" in txt and "RSI(2) 超賣反彈" in txt
     assert not any(w in txt for w in BANNED)
-    assert "現在沒有成立的好訊號" in VZ.out_sig({"mk": "tw", "sigtoday": _board_v([], [])})
+    assert "現在沒有列出來的訊號" in VZ.out_sig({"mk": "tw", "sigtoday": _board_v([], [])})
     assert "研究結果還沒產生" in VZ.out_sig({"mk": "tw"})
     assert f'id="{VZ.osg_id(up["id"])}"' in h and f'id="{VZ.osg_id(warn["id"])}"' in h     # 今天的重點那一列捲到這裡
 
@@ -721,10 +721,9 @@ def test_outlook_lead_sentence():
     V = {"sigtoday": {"up": [{"hz": "short"}, {"hz": "short"}, {"hz": "mid"}], "warn": [{"hz": "mid"}], "thermo": th}}
     assert VZ.out_sentence(V) == "短線偏多 2 類；中線偏多 1 類、警示 1 類；長線沒有"
     assert "——" not in VZ.out_tpl.__doc__ + VZ.out_sentence(V)
-    # VER 12 起：面板開頭先寫三支溫度計的讀數（溫度計比 ★ 寬：長線沒有 ★ 也可能有讀數）；VER 17：★ 2、◆ 1、△ 0.5
-    up = [{"hz": "short", "tier": "good", "side": "up"}, {"hz": "mid", "tier": "good", "side": "up"}]
-    more = [{"hz": "long", "tier": "rare", "side": "warn"}, {"hz": "long", "tier": "lean", "side": "up"},
-            {"hz": "mid", "tier": "rare", "side": "warn"}, {"hz": "mid", "tier": "lean", "side": "warn"}]
-    V2 = {"sigtoday": _board_v(up, [], more=more)}
-    assert VZ.out_thermo(V2) == "短線偏多、中線差不多、長線偏警示"        # 中線 ★2 對 ◆1＋△0.5＝57%；長線 △0.5 對 ◆1＝33%
+    # 面板開頭先寫三支溫度計的讀數（VER 21：一類算 1）
+    up = [{"hz": "short", "side": "up"}, {"hz": "mid", "side": "up"}]
+    warn = [{"hz": "long", "side": "warn"}, {"hz": "mid", "side": "warn"}]
+    V2 = {"sigtoday": _board_v(up, warn)}
+    assert VZ.out_thermo(V2) == "短線偏多、中線差不多、長線偏警示"        # 中線 1 對 1；長線 0 對 1
     assert VZ.out_thermo({"sigtoday": _board_v([], [])}) == "短線中性、中線中性、長線中性"

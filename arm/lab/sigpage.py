@@ -193,7 +193,8 @@ def view() -> dict:
         if n:
             on.update(n["on"])
             asof[mk] = n["d"]
-    today = {mk: G.today(rows, on, mk, (G.NOW.get(mk) or {}).get("acts")) for mk in TODAY_MK if mk in asof}
+    today = {mk: G.today(rows, on, mk, (G.NOW.get(mk) or {}).get("acts"), (G.NOW.get(mk) or {}).get("xon"))
+             for mk in TODAY_MK if mk in asof}
     for r in ST.get("rows") or []:
         if r["cat"] == "stock" and r.get("live"):
             on[r["id"]] = {"live": r["live"]}
@@ -387,25 +388,27 @@ def _line(r: dict) -> str:
     else:
         what = f"買進之後 {h}上漲的機率"
     fe = _fe(r)
-    if fe:                                            # VER 18～19：預估之後（逐年樣本外校正）
+    if fe:                                            # VER 18～19：預估之後（逐年樣本外校正）；VER 21 起今天的清單每一列都有
         out = (f'{what}：過去 {st["hit"] * 100:.0f}% → 預估之後 <b>{fe["fh"] * 100:.0f}%</b>'
                f'（隨便挑一天 {st["base"] * 100:.0f}%）')
     else:
         out = f'{what} <b>{st["hit"] * 100:.0f}%</b>（隨便挑一天 {st["base"] * 100:.0f}%）'
-    med = _med(r) if d != "warn" else None
+    med = _med(r) if d != "warn" and not r.get("xk") else None      # 跨期間的列只有機率（報酬是訊號自己看多久的）
     if med is not None:
         out += f'・報酬中位數 {_sgn(med)}'
         if fe and fe.get("fx") is not None:
             out += f'，預估之後比隨便挑一天{_more(fe["fx"])}'
-    out += f'・出現過 {st["n"]} 次'
+    out += f'・出現過 {st["n"]} 次' + ("（次數少）" if st["n"] < S.STAR_N and r.get("cat") not in ("stock", "strat") else "")
     if d == "warn" and st.get("mdd") is not None and st.get("mdd_base") is not None:
         out += f'・回撤中位數 {st["mdd"] * 100:.0f}%（隨便挑一天 {st["mdd_base"] * 100:.0f}%）'
     return out
 
 
 def _fe(r: dict) -> dict | None:
-    """預估之後（sigspec 第 4.14 節，VER 18～19）：★、◆ 的列（今天的重點、難得機會、訊號總覽今天的清單）才算；
-    跨期間的票（xk）與 △ 不算。研究檔沒有、不在範圍＝None。"""
+    """預估之後（sigspec 第 4.14 節）：今天的清單（第 5 節 ④，VER 21）每一列都帶好了（"fe"；跨期間的是 sigoos.est_x）；
+    沒帶的★、◆ 列才在這裡算（VER 18～20 的用法）。研究檔沒有、不在範圍＝None。"""
+    if "fe" in r:
+        return r["fe"]
     if r.get("tier") not in ("good", "rare") or r.get("xk") or not r.get("d"):
         return None
     try:
@@ -465,16 +468,35 @@ def _since(n: dict, ref: str | None = None) -> str:
     return f'{_dy(n["since"], ref)} 起成立{tr}'
 
 
+def _cls_tag(r: dict) -> str:
+    """類別章（sigspec 第 5 節 ④）：偏多／買點／偏弱／大跌風險。"""
+    c = r.get("cls") or ("buy" if r["d"] == "buy" else "risk" if r["d"] == "warn" else "up")
+    return f'<span class="sgy sgy-{c}">{_e(S.LIST_CLS_NAMES[c])}</span>'
+
+
 def _today_li(r: dict, ref: str | None) -> str:
-    """今天有效的一列（★ 或 ◆）；「同時成立」裡的 ◆ 另外標出來（VER 17）。"""
+    """今天有效的一列（第 5 節 ④，VER 21）：類別、持有多久（跨期間的寫原本看多久）、名稱、預估之後、照規則的那一筆；
+    「同時成立」＝同一類的其他訊號。"""
     fam = r.get("fam") or []
     also = ""
     if fam:
-        nm = "、".join(_e(x["name"]) + ('<span class="sgfr">◆</span>' if x.get("tier") == "rare" else "") for x in fam)
-        also = f'<span class="sgfm">同時成立：{nm}（過去常一起出現，算同一件事）</span>'
-    return (f'<li><a class="sgi" href="#s={_e(r["id"])}"><span class="sgtk sgtk-{r["tier"]}">{S.TIER_MARK[r["tier"]]}</span>'
-            f'<span class="sgnm">{_e(r["name"])}</span><span class="sgd sgd-{r["d"]}">{_e(S.DIR_NAMES[r["d"]])}</span>'
+        also = f'<span class="sgfm">同時成立：{"、".join(_e(x["name"]) for x in fam)}（過去常一起出現，算同一件事）</span>'
+    hz = f"持有 {_hz(r)}" + (f"・原本看 {H_TXT.get(r.get('H0'), str(r.get('H0')) + ' 個交易日')}" if r.get("xk") else "")
+    both = '<span class="sgo" title="同一個項目同一段：偏多和大跌風險都列出來">震盪</span>' if r.get("both") else ""
+    return (f'<li><a class="sgi" href="#s={_e(r["id"])}">{_cls_tag(r)}'
+            f'<span class="sgnm">{_e(r["name"])}</span><span class="sgd">{_e(hz)}</span>{both}'
             f'<span class="sgln">{_line(r)}<span class="sgs">{_e(_since(r["now"], ref))}</span></span>{also}</a></li>')
+
+
+def _today_side(xs: list[dict], s: str, ref: str | None) -> str:
+    nm = {"up": "偏多", "warn": "警示"}[s]
+    if not xs:
+        return f'<p class="sgsd sgsd-{s}"><b>{nm}</b><span class="mu">沒有</span></p>'
+    top, rest = xs[:S.TODAY_SIDE], xs[S.TODAY_SIDE:]
+    more = (f'<details class="sgmore"><summary>還有 {len(rest)} 類</summary><ul class="sgl">'
+            + "".join(_today_li(r, ref) for r in rest) + "</ul></details>") if rest else ""
+    return (f'<p class="sgsd sgsd-{s}"><b>{nm}</b><span class="mu">{len(xs)} 類</span></p><ul class="sgl">'
+            + "".join(_today_li(r, ref) for r in top) + f"</ul>{more}")
 
 
 def today_html(V: dict) -> str:
@@ -483,18 +505,16 @@ def today_html(V: dict) -> str:
         T = V["today"].get(mk)
         if T is None:
             continue
-        items = T["good"]
         head = f'<h3>{_e(MK_NAMES[mk])}<span class="sub">資料到 {_e(_d(V["asof"].get(mk)))}</span></h3>'
         xl = XSP.today_line(mk, V["xs"]) if V.get("xs") else ""          # 總經策略縮成一行，連到策略頁
         xl = f'<p class="sgxs">{xl}</p>' if xl else ""
         ref = V["asof"].get(mk)
-        body = ('<ul class="sgl">' + "".join(_today_li(r, ref) for r in items) + "</ul>") if items else \
-            '<p class="sgnone">今天沒有好訊號出現。</p>'
-        rare = T.get("rare") or []
-        if rare:
-            body += (f'<p class="sgrh"><span class="sgtk sgtk-rare">◆</span>難得機會<span class="mu">次數少（{S.N_MIN}～{S.STAR_N - 1} 次）、'
-                     '過了門檻；不算 ★，只當參考</span></p>'
-                     '<ul class="sgl sgl-rare">' + "".join(_today_li(r, ref) for r in rare) + "</ul>")
+        if not T.get("ok"):
+            body = '<p class="sgnone">預估之後（逐年檢查）的研究結果還沒產生，先不列。</p>'
+        elif not T["up"] and not T["warn"]:
+            body = '<p class="sgnone">今天沒有預估之後和隨便挑一天差 3 點以上的訊號。</p>'
+        else:
+            body = _today_side(T["up"], "up", ref) + _today_side(T["warn"], "warn", ref)
         cards.append(f'<div class="sgk">{head}{body}{xl}</div>')
     lis = []
     for r in V["stk"]:
@@ -513,9 +533,11 @@ def today_html(V: dict) -> str:
                    f'<span class="sgln">{ln}</span></a></li>')
     stk_body = ('<ul class="sgl">' + "".join(lis) + "</ul>") if lis else '<p class="sgnone">目前沒有判定為好策略的個股策略。</p>'
     cards.append(f'<div class="sgk"><h3>個股<span class="sub">資料到 {_e(_d(V["asof"].get("stk")))}</span></h3>{stk_body}'
-                 '<p class="note">策略現在持有什麼、下一批什麼時候買，看<a href="x9.html#v=opp">策略頁的個股策略</a>。</p></div>')
-    return ('<section class="sec" id="today"><h2>今天有效的好訊號<span class="sub">★ 好訊號在上、◆ 難得機會在下；同一個項目只列一種；過去常一起出現的併成一列；'
-            '依「比隨便挑一天多幾個百分點」排序；點一列看那個指標；總經策略每個市場一行，點了到策略頁</span></h2>'
+                 '<p class="note">個股是另一套判定（★ 好訊號、好策略），沒有預估之後；策略現在持有什麼、下一批什麼時候買，看'
+                 '<a href="x9.html#v=opp">策略頁的個股策略</a>。</p></div>')
+    return ('<section class="sec" id="today"><h2>今天有效的訊號<span class="sub">現在成立、預估之後的機率和隨便挑一天差 3 點以上的；'
+            '偏多（含大跌後買點）、警示（偏弱、大跌風險）兩邊；同一個項目同一段只列一種；過去常一起出現的併成一列；'
+            '依差多少排序；點一列看那個指標；總經策略每個市場一行，點了到策略頁</span></h2>'
             f'<div class="sgt">{"".join(cards)}</div></section>')
 
 
@@ -548,6 +570,9 @@ def fwd_html() -> str:
 
     def pk(d, H, f="k"):
         return _kp(c(d, H, None, "p"), f)
+
+    def px(d, H):                                     # 跨期間（第 4.14 節 ⑧，VER 21）：x 的 L3 格
+        return _kp(C.get(OOS.key(d, H, None, "p", x=True)), "k")
     up = [(nm, d, H) for nm, d, H in FWD_ROWS if d != "warn"]
     big = [_kp(c("up", S.H_TECH, b, 4)) for b in range(3)]
     txt = (f'偏多的優勢看 1 個月留下 {pk("up", S.H_TECH)}、3 個月 {pk("up", S.H_CRASH)}、12 個月 {pk("up", S.H_BUB)}；'
@@ -557,14 +582,18 @@ def fwd_html() -> str:
            + "、".join(f"{n} {k}" for n, k in zip(OOS.NB_NAMES, big)) + "）。")
     return ('<dt>預估之後</dt><dd>上面的機率與報酬都是「過去」的成績；之後通常會往下修。做法：每年 1 月 1 日只用之前的資料算每個訊號的機率與報酬，'
             '再看那一年訊號出現之後實際的結果，和同一年隨便哪天買比（五個市場、所有訊號合併，'
-            f'{T.get("nrec") or 0:,} 筆「訊號 × 年」）。過去比隨便挑一天多 X 個百分點的訊號，之後平均只多「留下來的比例 × X」。'
+            f'{(T.get("nrec") or 0) - (T.get("nrec_x") or 0):,} 筆「訊號 × 年」）。過去比隨便挑一天多 X 個百分點的訊號，之後平均只多「留下來的比例 × X」。'
             f'<b>{_e(txt)}</b>'
             '預估之後的機率＝隨便挑一天 ＋ 留下來的比例 ×（過去 − 隨便挑一天）；預估之後多賺＝報酬留下來的比例 ×（過去的報酬中位數 − 隨便挑一天的報酬中位數）。'
             f'每個訊號用和它同一類的格子（方向、看多久、出現過幾次：{"、".join(OOS.NB_NAMES)}、過去比平常高幾點）；'
             f'一格至少 {S.FWD_MIN_N} 筆、{S.FWD_MIN_CL} 個「市場 × 年」才算，不夠就把次數合併、再不夠只分比平常高或低；'
             '留下來的比例截在 0～100%（之後沒有優勢＝跟隨便挑一天一樣）。這是所有訊號平均下來的修正，個別訊號之後可能更好或更差；'
             '產業泡沫、個股訊號、策略沒有預估之後。下面兩張表是次數合併後的比例。'
-            f'<p class="sgfwh">上漲（或大跌）的機率，優勢留下多少</p>{tbl(FWD_ROWS, "k")}'
+            + (f'原本看別的期間的訊號放到另外兩段期間（今天的清單「原本看…」那幾列），另外一套逐年檢查（{T["nrec_x"]:,} 筆，'
+               f'不借上面的比例）：偏多看 1 個月留下 {px("up", S.H_TECH)}、3 個月 {px("up", S.H_CRASH)}、12 個月 {px("up", S.H_BUB)}；'
+               f'警示看 1 個月 {px("warn", S.H_TECH)}、3 個月 {px("warn", S.H_CRASH)}、12 個月 {px("warn", S.H_BUB)}。'
+               if T.get("nrec_x") else "")
+            + f'<p class="sgfwh">上漲（或大跌）的機率，優勢留下多少</p>{tbl(FWD_ROWS, "k")}'
             f'<p class="sgfwh">報酬多賺留下多少（偏多、大跌後買點）</p>{tbl(up, "kr")}</dd>')
 
 
@@ -614,9 +643,16 @@ def method_html(luck: dict | None = None) -> str:
             '大跌後買點與個股偏多訊號是和同一批事件的對照比，改成在每一次事件裡隨機對調「訊號」和「對照」的結果。'
             f'次數少的訊號就算每次都中，亂排做得到一樣準的比例也常超過 {S.LUCK_P * 100:.0f}%（例：8 次、平常 59%，每次都中時亂排也有約 2.5% 做得到）。</dd>'
             f'{lk}{fwd_html()}'
+            f'<dt>今天有效的訊號（景氣頁今天的重點、溫度計也一樣）</dt><dd>2026-10-22 起：現在成立、而且<b>預估之後</b>的機率和隨便挑一天差 '
+            f'{S.LIST_GAP * 100:g} 個百分點以上的才列，★／◆ 判定不決定列不列（判定只看過去的成績）。四類：<b>偏多</b>＝之後上漲的機率高；'
+            '<b>買點</b>＝大跌後照規則買進、之後 3 個月上漲的機率高；<b>偏弱</b>＝之後 1 個月上漲的機率比隨便挑一天低'
+            '（條件變差：實務上是不加碼、降部位、等一等，不是放空；3 個月、12 個月的「比平常低」之後沒有留下，不列）；'
+            '<b>大跌風險</b>＝之後出現大回撤的機率高。同一個項目同一段（持有 1／3／12 個月）只留差最多的一個，偏多和大跌風險同時有的標「震盪」；'
+            '過去常一起出現的併成一列。原本看別的期間的訊號也用它過去在另外兩段期間的機率算一次（同樣逐年檢查、校正後才列，標「原本看…」）。'
+            f'出現不到 {S.STAR_N} 次的標「次數少」。</dd>'
             f'<dt>判定</dt><dd><b>★ 好訊號</b>（2026-10-22 起看絕對成績）：至少 {S.STAR_N} 次、機率 ≥ {S.HIT_MIN["up"] * 100:.0f}%（警示 ≥ {S.HIT_MIN["warn"] * 100:.0f}%）、'
             f'不比隨便挑一天差、近 10 年也成立（近 10 年有 {S.RECENT_N} 次以上時）；偏多與大跌後買點另外要報酬中位數與排除極端的平均都比來回成本高（{cost}）。'
-            f'<b>◆ 難得機會</b>：同樣的門檻都過了，但只出現 {S.N_MIN}～{S.STAR_N - 1} 次；另列一區、不算 ★（次數少的機率，之後通常會往下修不少，只當參考）。'
+            f'<b>◆ 難得機會</b>：同樣的門檻都過了，但只出現 {S.N_MIN}～{S.STAR_N - 1} 次；不算 ★（次數少的機率，之後通常會往下修不少，只當參考）。'
             f'<b>○</b>：沒有過門檻。<b>—</b>：不到 {S.N_MIN} 次，照列數字但不判定。'
             f'個股訊號照舊：比隨便挑一天多 {S.EDGE_GOOD * 100:.0f} 個百分點以上、近 10 年也成立，而且亂排做得到一樣準的不到 {S.LUCK_P * 100:.0f}%'
             f'（次數少於 {S.LUCK_FEW_N} 次的不到 {S.LUCK_P_FEW * 100:.0f}%）＝★；門檻過了但亂排也常做得到＝<b>● 可能是運氣</b>。'
@@ -759,8 +795,12 @@ CSS = """
 .sgfm{flex:1 1 100%;font-size:12px;line-height:1.55;color:var(--mut);padding-left:20px}
 .sgtk{display:inline-block;width:14px;text-align:center;font-weight:700}
 .sgtk-good{color:var(--acc)}.sgtk-rare,.sgtk-ref{color:var(--ink2)}.sgtk-none,.sgtk-few{color:var(--mut)}
-.sgrh{margin:8px 0 0;padding-top:6px;border-top:1px dashed var(--line2);font-size:13px;font-weight:600;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}
-.sgrh .mu{font-weight:400;font-size:12px;color:var(--mut)}.sgfr{color:var(--ink2);font-weight:700;margin-left:1px;font-size:11px}
+.sgy{font-size:11.5px;padding:0 6px;border-radius:4px;border:1px solid;white-space:nowrap;font-weight:600;line-height:1.5}
+.sgy-up,.sgy-buy{color:var(--t4);border-color:var(--t4)}.sgy-weak,.sgy-risk{color:var(--t3);border-color:var(--t3)}.sgy-weak{border-style:dashed}
+.sgsd{margin:10px 0 2px;font-size:13px;display:flex;align-items:baseline;gap:6px}.sgk h3+.sgsd{margin-top:2px}
+.sgsd b{padding-bottom:1px;border-bottom:3px solid}.sgsd-up b{border-color:var(--t4)}.sgsd-warn b{border-color:var(--t3)}.sgsd .mu{font-size:12px;color:var(--mut)}
+.sgo{font-size:11.5px;padding:0 7px;border-radius:999px;white-space:nowrap;background:var(--line);color:var(--ink)}
+.sgmore summary{cursor:pointer;font-size:12.5px;color:var(--acc);padding:3px 0}
 .sgd{font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--line2);white-space:nowrap}
 .sgd-up{color:var(--t4);border-color:var(--t4)}.sgd-warn{color:var(--t3);border-color:var(--t3)}.sgd-buy{color:var(--p0);border-color:var(--p0)}
 .sgbar{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px}

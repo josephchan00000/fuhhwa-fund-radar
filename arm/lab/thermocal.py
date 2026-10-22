@@ -1,11 +1,12 @@
-"""溫度計「過去讀數這樣的時候」（sigspec 第 5 節 ③d，VER 16；docs/lab_noise_plan.md 第 14.10 節）。
+"""溫度計「過去讀數這樣的時候」（sigspec 第 5 節 ③d，VER 16、21；docs/lab_noise_plan.md 第 14.10 節、docs/lab_audit_plan.md 第 11.3 節）。
 
   research(F)   研究：每個市場逐年滾動（每年 1 月 1 日只用之前走完的窗口重算統計）的週末票數、和自己的過去 10 年比的位置、
                 過去同一組的週之後上漲／大回撤的比例、區塊重抽判定有沒有關係 → data/lab/thermo_research.json（scripts/run_thermo.py）
   now(mk, ...)  每天建頁：今天的票數（研究檔存的今年 1 月 1 日統計 × 現在有效）→ 每支溫度計兩邊的位置與一句話
 
-票數＝這支溫度計、這一邊，現在有效的 THERMO_X_CATS 訊號裡「命中率門檻過了」（VER 17：次數 ≥ N_MIN、命中率 ≥ HIT_MIN、
-≥ 平常；VER 16 是比平常高 THERMO_EDGE 以上）的項目數（同一個項目一票；不分 ★◆△、不做同類合併）。只是描述，不參與任何判定。
+票數＝這支溫度計、這一邊，現在有效的 THERMO_X_CATS 訊號裡照第 5 節 ④ 會列出來的（VER 21：預估之後和隨便挑一天差 LIST_GAP 以上；
+留下來的比例只用那時已經走完的逐年紀錄，sigoos.ktab）的項目數（同一個項目一票；不做同類合併）。
+（VER 17～20：命中率門檻過了；VER 16：比平常高 THERMO_EDGE 以上。）只是描述，不參與任何判定。
 """
 from __future__ import annotations
 
@@ -71,16 +72,25 @@ def stats_before(sd: dict, cut: int, Y: tuple, H: int) -> dict | None:
     return G.st_stat(np.asarray(sd["state"], dtype=bool)[m], samp[m], Yu, Yw, gap, 0, brk=brk)
 
 
-def vote(R: dict | None) -> str:
-    """會投哪一邊："u"＝偏多、"w"＝警示（兩邊都會就 "uw"）：VER 17 起＝這個方向的命中率門檻過了（sigcat.win_pass：
-    次數 ≥ N_MIN、命中率 ≥ HIT_MIN、≥ 平常；VER 16 是「比平常高 THERMO_EDGE 以上」）。"""
-    if R is None:
+def vote(R: dict | None, cells: dict | None, H: int, x: bool = False) -> str:
+    """會投哪一邊（第 5 節 ③d，VER 21＝④ 列出來的規則）："u"＝偏多、"w"＝警示（兩邊都會就 "uw"）。
+    R＝stats_before 的統計；cells＝那時已經走完的紀錄算的格子（sigoos.ktab）；H＝這支溫度計的看多久；x＝跨期間（H 不是訊號自己的）。
+    預估之後的差 g＝k ×（命中率 − 平常）：偏多方向 g ≥ LIST_GAP → u；警示方向 g ≥ LIST_GAP，或看 WEAK_H 的偏多方向 g ≤ −LIST_GAP → w。
+    （VER 17～20：命中率門檻過了〔sigcat.win_pass〕；VER 16：比平常高 THERMO_EDGE 以上。）"""
+    if R is None or not cells:
         return ""
-    out = ""
-    for d, c in (("up", "u"), ("warn", "w")):
-        if G.win_pass(R[d], d):
-            out += c
-    return out
+    from . import sigoos as OOS
+    out = set()
+    for d in ("up", "warn"):
+        st = R.get(d) or {}
+        n, hit, base = st.get("n") or 0, st.get("hit"), st.get("base")
+        if n < S.N_MIN or hit is None or base is None:
+            continue
+        e = hit - base
+        cls = G.list_cls(d, H, OOS.lookup(cells, d, H, int(n), float(e), x=x)["k"] * e)
+        if cls:
+            out.add("u" if S.LIST_SIDE[cls] == "up" else "w")
+    return "".join(c for c in "uw" if c in out)
 
 
 # ── 位置、分組、有沒有關係 ────────────────────────────────────────────────────
@@ -145,8 +155,11 @@ def first_year(cal: list[str]) -> int:
     return y if cal[0][5:] == "01-01" else y + 1
 
 
-def market(F: dict) -> dict:
-    """一個市場的研究（第 5 節 ③d）。"""
+def market(F: dict, yk: dict | None = None) -> dict:
+    """一個市場的研究（第 5 節 ③d）。yk＝預估之後研究檔的逐年加總（sigoos.yearly；VER 21 每年 1 月 1 日用 ktab 算那時的格子）。"""
+    from . import sigoos as OOS
+    if yk is None:
+        yk = (OOS.load() or {}).get("yk") or {}
     mk, cal, px = F["mk"], F["cal"], F["px"]
     T = len(cal)
     we = np.asarray(F["we"], dtype=np.int64)
@@ -162,10 +175,11 @@ def market(F: dict) -> dict:
         wk = we[(we >= cut) & (we < bisect.bisect_left(cal, f"{yr + 1}-01-01"))]
         if not len(wk) and yr != y1:
             continue
+        cells = OOS.ktab(yk, yr)
         for k, H in S.THERMO_H.items():
             on = {"u": {}, "w": {}}
             for i, sd in enumerate(sds):
-                v = vote(stats_before(sd, cut, Y[k], H))
+                v = vote(stats_before(sd, cut, Y[k], H), cells, H, H != sd["H"])
                 if not v:
                     continue
                 if yr == y1:
@@ -200,10 +214,17 @@ def market(F: dict) -> dict:
     return out
 
 
-def research(F: dict | None = None) -> dict:
+def research(F: dict | None = None, yk: dict | None = None) -> dict:
+    """yk＝預估之後研究檔的逐年加總（沒給就讀 data/lab/sigoos_research.json；VER 21 起要先跑 scripts/run_sigoos.py）。"""
+    from . import sigoos as OOS
     F = F if F is not None else G.frames()
+    if yk is None:
+        T = OOS.load()
+        if not T or not T.get("yk"):
+            raise RuntimeError("預估之後的研究檔（含逐年加總）還沒產生：先跑 scripts/run_sigoos.py")
+        yk = T["yk"]
     return {"ver": S.VER, "spec_date": S.SPEC_DATE, "run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "last": {mk: F[mk]["cal"][-1] for mk in F}, "mk": {mk: G._r(market(F[mk])) for mk in S.MARKETS if mk in F}}
+            "last": {mk: F[mk]["cal"][-1] for mk in F}, "mk": {mk: G._r(market(F[mk], yk)) for mk in S.MARKETS if mk in F}}
 
 
 def save(R: dict, path: Path | None = None) -> None:
