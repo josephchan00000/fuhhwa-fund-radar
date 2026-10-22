@@ -164,7 +164,7 @@ def test_shift_occ_matches_state_stat_with_breaks():
     sd = {"kind": "state", "H": 20, "samp": samp, "state": st, "brk": brk}
     sh = LK.Shift(sd, Yu, Yw)
     for o in (0, 37, 301):
-        f, u, w = sh.occ(o)
+        f, u, w, _ = sh.occ(o)
         R = G.st_stat(np.roll(st, o), samp, Yu, Yw, S.EP_GAP, 0, brk=np.roll(brk, o))
         assert [int(x) for x in f] == [o_[0] for o_ in R["occ"]]
         assert np.allclose(u, [o_[3] for o_ in R["occ"]]) and np.allclose(w, [o_[4] for o_ in R["occ"]])

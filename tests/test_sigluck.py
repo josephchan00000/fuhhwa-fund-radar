@@ -46,18 +46,22 @@ def test_shift_zero_matches_production_stats():
         days = sorted(rng.choice(np.arange(0, 900), size=int(rng.integers(3, 60)), replace=False).tolist())
         sd = _event(days, samp, H=int(rng.choice([5, 20, 60])))
         R = G.ev_stat(sd["days"], Yu, Yw, samp, sd["H"], 600)
-        first, u, w = LK.Shift(sd, Yu, Yw).occ(0)
-        assert len(u) == R["up"]["n"] and (not len(u) or abs(u.mean() - R["up"]["hit"]) < 1e-12)
+        first, u, w, cnt = LK.Shift(sd, Yu, Yw).occ(0)
+        assert len(u) == R["up"]["n"] and (not len(u) or abs(u.mean() - R["up"]["hit"]) < 1e-12) and (cnt == 1).all()
         assert not len(w) or abs(w.mean() - R["warn"]["hit"]) < 1e-12
         st = rng.random(len(samp)) < rng.choice([0.05, 0.3])
         sd2 = _state(st, samp, monthly=bool(trial % 3 == 0))
         gap = 1 if sd2.get("monthly") else S.EP_GAP
         R2 = G.st_stat(st, samp, Yu, Yw, gap, 600)
-        first, u, w = LK.Shift(sd2, Yu, Yw).occ(0)
+        first, u, w, cnt = LK.Shift(sd2, Yu, Yw).occ(0)
         assert len(u) == R2["up"]["n"]
-        if len(u):
-            assert abs(u.mean() - R2["up"]["hit"]) < 1e-12 and abs(w.mean() - R2["warn"]["hit"]) < 1e-12
-            assert [int(x) for x in first] == [o[0] for o in R2["occ"]]
+        if len(u):                                        # VER 22：每一天一樣重＝每一段依天數加權
+            su = LK._summ(first, u, w, cnt, 600)
+            assert abs(su["up"][1] - R2["up"]["hit"]) < 1e-12 and abs(su["warn"][1] - R2["warn"]["hit"]) < 1e-12
+            assert su["up"][2] == R2["up"]["n10"] and (su["up"][3] is None) == (R2["up"]["hit10"] is None)
+            if su["up"][3] is not None:
+                assert abs(su["up"][3] - R2["up"]["hit10"]) < 1e-12
+            assert [int(x) for x in first] == [o[0] for o in R2["occ"]] and all(c <= o[2] for c, o in zip(cnt, R2["occ"]))
 
 
 def test_shifted_events_match_brute_force():
@@ -69,7 +73,7 @@ def test_shifted_events_match_brute_force():
         sd = _event(days, samp, H=int(rng.choice([3, 20])))
         sh = LK.Shift(sd, Yu, Yw)
         for o in rng.integers(0, len(samp), size=5):
-            first, u, w = sh.occ(int(o))
+            first, u, w, _ = sh.occ(int(o))
             n, hu, hw = _brute_event(sd, Yu, Yw, int(o))
             assert len(u) == n and (n == 0 or (abs(u.mean() - hu) < 1e-12 and abs(w.mean() - hw) < 1e-12))
 
@@ -83,9 +87,9 @@ def test_shifted_state_equals_rolled_state():
     sd = _state(st, samp)
     sh = LK.Shift(sd, Yu, Yw)
     for o in (0, 37, 300, 700):
-        first, u, _ = sh.occ(o)
+        first, u, w, cnt = sh.occ(o)
         R = G.st_stat(np.roll(st, o), samp, Yu, Yw, S.EP_GAP, 10 ** 9)
-        assert len(u) == R["up"]["n"] and abs(u.mean() - R["up"]["hit"]) < 1e-12
+        assert len(u) == R["up"]["n"] and abs((u * cnt).sum() / cnt.sum() - R["up"]["hit"]) < 1e-12
 
 
 def test_p_values_and_leave_one_out():

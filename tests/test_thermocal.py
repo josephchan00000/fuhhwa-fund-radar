@@ -4,6 +4,7 @@ from datetime import date, timedelta
 import numpy as np
 
 from arm.lab import sigcat as G
+from arm.lab import sigoos
 from arm.lab import sigspec as S
 from arm.lab import thermocal as TC
 
@@ -61,15 +62,34 @@ def test_stats_before_uses_only_windows_finished_before_cut():
     assert TC.stats_before(few, T - 30, Y, H) is None
 
 
-def test_vote_rule_is_thermometer_lean_rule():
-    """VER 17：票＝命中率門檻過了（次數 ≥ 5、≥ 60%／50%、不低於平常；sigcat.win_pass），同溫度計的 △。"""
+def test_vote_rule_is_listing_rule():
+    """VER 21：票＝第 5 節 ④ 列出來的規則——預估之後的差 g＝k ×（命中率 − 平常），k 從那時的格子找（跨期間只找 x 的格子）：
+    偏多方向 g ≥ 3 點 → u；警示方向 g ≥ 3 點，或看 1 個月的偏多方向 g ≤ −3 點（偏弱）→ w。"""
     st = lambda n, hit, base: {"n": n, "hit": hit, "base": base}
-    assert TC.vote({"up": st(5, 0.61, 0.60), "warn": st(5, 0.50, 0.45)}) == "uw"
-    assert TC.vote({"up": st(5, 0.62, 0.65), "warn": st(4, 0.60, 0.20)}) == ""    # 比平常低；次數 4
-    assert TC.vote({"up": st(9, 0.59, 0.50), "warn": st(9, 0.49, 0.30)}) == ""    # 沒到 60%／50%
-    assert TC.vote({"up": st(9, None, 0.65), "warn": st(9, 0.55, 0.20)}) == "w" and TC.vote(None) == ""
-    for d, x in (("up", st(7, 0.64, 0.6)), ("warn", st(7, 0.52, 0.52))):
-        assert G.win_pass(x, d) == (TC.vote({"up": x, "warn": {}} if d == "up" else {"up": {}, "warn": x}) != "")
+    cells = {"up|60|*|p": {"k": 0.5}, "warn|60|*|p": {"k": 0.5}, "up|20|*|n": {"k": 0.5}, "x:up|20|*|p": {"k": 0.2}}
+    assert TC.vote({"up": st(20, 0.75, 0.65), "warn": st(20, 0.40, 0.30)}, cells, 60) == "uw"     # g 5 點
+    assert TC.vote({"up": st(20, 0.70, 0.65), "warn": st(20, 0.35, 0.30)}, cells, 60) == ""       # g 2.5 點
+    weak = {"up": st(20, 0.50, 0.60), "warn": st(20, 0.30, 0.30)}
+    assert TC.vote(weak, cells, 20) == "w" and TC.vote(weak, cells, 60) == ""                     # 偏弱只看 1 個月
+    hi = {"up": st(20, 0.80, 0.60), "warn": st(20, 0.3, 0.3)}
+    assert TC.vote(hi, cells, 20, x=True) == "u" and TC.vote(hi, cells, 20) == ""                # 跨期間用 x 的格子
+    assert TC.vote({"up": st(4, 0.90, 0.60), "warn": st(4, 0.9, 0.3)}, cells, 60) == ""          # 次數 4
+    assert TC.vote({"up": st(20, None, 0.6), "warn": st(20, 0.45, 0.30)}, cells, 60) == "w"
+    assert TC.vote(None, cells, 60) == "" and TC.vote(hi, {}, 20) == ""
+    for d, x, H in (("up", st(20, 0.75, 0.65), 60), ("warn", st(20, 0.40, 0.30), 60), ("up", st(20, 0.50, 0.60), 20)):
+        g = sigoos.lookup(cells, d, H, 20, x["hit"] - x["base"])["k"] * (x["hit"] - x["base"])
+        cls = G.list_cls(d, H, g)
+        assert (TC.vote({"up": x, "warn": {}} if d == "up" else {"up": {}, "warn": x}, cells, H) != "") == (cls is not None)
+
+
+class _Cells(dict):
+    """假的格子：每一個鍵都找得到 k（給 market 的測試用）。"""
+    def __init__(self, k):
+        super().__init__(dummy={"k": k})
+        self.kv = k
+
+    def get(self, key, default=None):
+        return {"k": self.kv}
 
 
 def test_rank_and_group_compare_with_own_past():
@@ -103,8 +123,8 @@ def test_verdict_bootstrap_is_deterministic_and_reads_direction():
 
 
 def test_market_counts_items_with_yearly_rolling_votes(monkeypatch):
-    """逐年滾動：每年 1 月 1 日用之前走完的窗口重算統計決定會投哪一邊；同一個項目一票；週末的票數＝有效而且會投的項目數；
-    今天的票數用最後一年那一次的統計（votes）。"""
+    """逐年滾動：每年 1 月 1 日用之前走完的窗口重算統計、用那一年的格子（VER 21，sigoos.ktab）決定會投哪一邊；同一個項目一票；
+    週末的票數＝有效而且會投的項目數；今天的票數用最後一年那一次的統計（votes）。"""
     T = 260 * 14
     cal = _cal(T)
     px = _px(T, seed=11)
@@ -122,8 +142,16 @@ def test_market_counts_items_with_yearly_rolling_votes(monkeypatch):
                 "days": sorted(set(int(x) for x in rng.integers(0, T, 80)))})
     sds.append({"id": "tw:buy:x", "cat": "buy", "var": "x", "kind": "event", "H": 60, "samp": samp, "days": [100]})   # 不算
     monkeypatch.setattr(G, "signals", lambda F: sds)
+    seen = []
+
+    def fake_ktab(yk, yr):                                                    # 每年 1 月 1 日用那一年的格子（VER 21）
+        seen.append(yr)
+        return _Cells(1.0 if yr >= 2015 else 0.3)
+    monkeypatch.setattr(sigoos, "ktab", fake_ktab)
     F = {"mk": "tw", "cal": cal, "px": px, "we": we, "r0": cal[0]}
-    M = TC.market(F)
+    M = TC.market(F, {"zz": {}})
+    assert seen == sorted(set(seen)) and seen[0] == 2011 and seen[-1] == int(cal[-1][:4])
+    cells = lambda y: _Cells(1.0 if y >= 2015 else 0.3)                       # noqa: E731
     assert M["y0"] == TC.first_year(cal) == 2011 and M["cut"] == f"{cal[-1][:4]}-01-01"
     # 直接算某一年某一週的票數
     k, H = "mid", 60
@@ -135,20 +163,21 @@ def test_market_counts_items_with_yearly_rolling_votes(monkeypatch):
     for t in wk:
         items = set()
         for sd in sds[:-1]:
-            v = TC.vote(TC.stats_before(sd, cut, Y, H))
+            v = TC.vote(TC.stats_before(sd, cut, Y, H), cells(yr), H, H != sd["H"])
             if "w" in v and TC.active(sd, T, H)[t]:
                 items.add(TC.item_of(sd))
         want_w.append(len(items))
     i0 = sum(1 for t in we if cal[t][:4] < str(yr) and cal[t][:4] >= str(M["y0"]))
     assert len(M["hz"][k]["wk"]) == len(M["hz"][k]["w"]) <= S.CAL_RANK_W + 1
-    full = TC.market(F)                                                        # 同資料同結果
+    full = TC.market(F, {"zz": {}})                                            # 同資料同結果
     assert full == M
     # 從頭重建一次歷史（不截尾）來比對那一年
     hist = []
     for y in range(M["y0"], int(cal[-1][:4]) + 1):
         c = next(i for i, d in enumerate(cal) if d >= f"{y}-01-01")
         for t in [t for t in we if cal[t][:4] == str(y)]:
-            its = {TC.item_of(sd) for sd in sds[:-1] if "w" in TC.vote(TC.stats_before(sd, c, Y, H)) and TC.active(sd, T, H)[t]}
+            its = {TC.item_of(sd) for sd in sds[:-1]
+                   if "w" in TC.vote(TC.stats_before(sd, c, Y, H), cells(y), H, H != sd["H"]) and TC.active(sd, T, H)[t]}
             hist.append(len(its))
     assert hist[i0:i0 + len(wk)] == want_w and M["hz"][k]["w"] == hist[-(S.CAL_RANK_W + 1):]
     assert "tw:buy:x" not in M["votes"] and set(M["votes"]) <= {sd["id"] for sd in sds[:-1]}
@@ -156,7 +185,9 @@ def test_market_counts_items_with_yearly_rolling_votes(monkeypatch):
         sd = next(s for s in sds if s["id"] == sid)
         assert x["i"] == TC.item_of(sd)
         for kk, v in x["v"].items():
-            assert v == TC.vote(TC.stats_before(sd, cut_last(cal), G.outcomes(px, S.THERMO_H[kk], G.warn_th("tw", S.THERMO_H[kk])), S.THERMO_H[kk]))
+            Hk = S.THERMO_H[kk]
+            assert v == TC.vote(TC.stats_before(sd, cut_last(cal), G.outcomes(px, Hk, G.warn_th("tw", Hk)), Hk),
+                                cells(int(cal[-1][:4])), Hk, Hk != sd["H"])
 
 
 def cut_last(cal):
@@ -216,9 +247,8 @@ def test_calibration_lines_text():
     C = {"H": 20, "th": 0.057, "up": dict(base, v="none"), "warn": dict(base, v="rel")}
     h = VZ.cal_html(C)
     assert h.count('class="tzca"') == 2 and VZ.cal_html(None) == "" and not [x for x in BANNED if x in plain(h)]
-    T = {"thermo": [{"k": "short", "name": "短線", "h": "看 1 個月", "n": {"up": {"good": 0, "rare": 0, "lean": 1},
-                                                                    "warn": {"good": 0, "rare": 0, "lean": 0}},
-                     "w": {"up": 0.5, "warn": 0}, "share": 1.0, "lean": "up", "more": {}}], "cal": {"short": C}}
+    T = {"thermo": [{"k": "short", "name": "短線", "h": "看 1 個月", "n": {"up": 1, "warn": 0}, "share": 1.0, "lean": "up",
+                     "up": [], "warn": []}], "cal": {"short": C}}
     assert VZ.thermo_html(T).count('class="tzca"') == 2 and VZ.thermo_html(dict(T, cal=None)).count("tzca") == 0
 
 

@@ -56,7 +56,8 @@ def sign_p(b: int, c: int) -> float:
 
 
 class Shift:
-    """一個市場層級訊號（sigcat.signals 的 sd）。occ(o)＝平移 o 個樣本後的（每一次的第一天、偏多結果、警示結果）。"""
+    """一個市場層級訊號（sigcat.signals 的 sd）。occ(o)＝平移 o 個樣本後的（每一次的第一天、偏多結果、警示結果、天數）：
+    事件型每一次一天；狀態型每一段＝段內平均與窗口完整的天數（VER 22：命中率＝每一天一樣重＝依天數加權）。"""
 
     def __init__(self, sd: dict, Yu: np.ndarray, Yw: np.ndarray):
         self.kind, self.H = sd["kind"], sd["H"]
@@ -73,8 +74,8 @@ class Shift:
             b = sd.get("brk")                              # VER 20：相反的極端跟著狀態一起平移
             self.brk = None if b is None else np.asarray(b, dtype=bool)
 
-    def occ(self, o: int = 0) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        empty = (np.zeros(0, dtype=np.int64), np.zeros(0), np.zeros(0))
+    def occ(self, o: int = 0) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        empty = (np.zeros(0, dtype=np.int64), np.zeros(0), np.zeros(0), np.zeros(0))
         if self.L == 0:
             return empty
         if self.kind == "event":
@@ -90,7 +91,7 @@ class Shift:
                 last = t
             kp = np.array(kept, dtype=np.int64)
             kp = kp[self.valid[kp]]
-            return self.samp[kp], self.yu[kp], self.yw[kp]
+            return self.samp[kp], self.yu[kp], self.yw[kp], np.ones(len(kp))
         st = np.roll(self.st, o) if o else self.st
         pos = np.nonzero(st)[0]
         if not len(pos):
@@ -106,15 +107,16 @@ class Shift:
         su = np.add.reduceat(np.where(v, self.yu[pos], 0.0), starts)
         sw = np.add.reduceat(np.where(v, self.yw[pos], 0.0), starts)
         ok = cnt > 0
-        return self.samp[pos[starts[ok]]], su[ok] / cnt[ok], sw[ok] / cnt[ok]
+        return self.samp[pos[starts[ok]]], su[ok] / cnt[ok], sw[ok] / cnt[ok], cnt[ok].astype(float)
 
 
-def _summ(first, u, w, r0) -> dict:
-    """→ {方向: (次數, 命中率, 近 10 年次數, 近 10 年命中率)}。"""
+def _summ(first, u, w, cnt, r0) -> dict:
+    """→ {方向: (次數, 命中率, 近 10 年次數, 近 10 年命中率)}；命中率依天數加權（VER 22：每一天一樣重；事件型天數都是 1）。"""
     m10 = first >= r0
     out = {}
     for d, y in (("up", u), ("warn", w)):
-        out[d] = (len(y), float(y.mean()) if len(y) else None, int(m10.sum()), float(y[m10].mean()) if m10.any() else None)
+        out[d] = (len(y), float((y * cnt).sum() / cnt.sum()) if len(y) else None, int(m10.sum()),
+                  float((y[m10] * cnt[m10]).sum() / cnt[m10].sum()) if m10.any() else None)
     return out
 
 
@@ -177,16 +179,9 @@ def shift_p(actual: float | None, hit_of, L: int, key: str, draws: int = S.LUCK_
 
 
 def _ep_hits(flag: np.ndarray, y: np.ndarray, gap: int = 1) -> list[float]:
-    """一個序列：flag 為真的位置分段（中斷 < gap 算同一段）→ 每一段有值的 y 平均（沒有值的段不算）。"""
-    pos = np.nonzero(flag)[0]
-    if not len(pos):
-        return []
-    starts = np.concatenate([[0], np.nonzero(np.diff(pos) - 1 >= gap)[0] + 1]).astype(np.int64)
-    v = ~np.isnan(y[pos])
-    cnt = np.add.reduceat(v.astype(np.int64), starts)
-    sm = np.add.reduceat(np.where(v, y[pos], 0.0), starts)
-    ok = cnt > 0
-    return (sm[ok] / cnt[ok]).tolist()
+    """一個序列：flag 為真、y 有值的每一個月（VER 22：每一個月一樣重；VER 9～21 是每一段的平均）。"""
+    v = y[np.nonzero(flag)[0]]
+    return v[~np.isnan(v)].tolist()
 
 
 def ind_p(key: str, seqs: list[tuple[np.ndarray, np.ndarray, np.ndarray]], actual: dict,

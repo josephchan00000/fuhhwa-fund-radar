@@ -1,11 +1,13 @@
-"""預估之後（sigspec 第 4.14 節，VER 18；docs/lab_practical_plan.md 第 10 節）。
+"""預估之後（sigspec 第 4.14 節，VER 18～22；docs/lab_practical_plan.md 第 10 節、docs/lab_audit_plan.md 第 11、12 節）。
 
   market(F)       一個市場的逐年紀錄（訊號 × 方向 × 年：那時看得到的成績、那一年實際的結果）
   table(recs)     衰退表：各格的筆數、市場 × 年數、平均、留下來的比例 k、k_r（截在 0～1），另列區間、前後兩段、★◆ 與其他
   research(F)     → data/lab/sigoos_research.json（scripts/run_sigoos.py）
   est(r, d)       每天建頁：研究檔的一列 → 預估之後的命中率與多賺（研究檔沒有、不在範圍＝None）
+  est_x(r, d, k)  VER 21：跨期間的票（研究列 xh[k]）→ 預估之後的命中率（第 4.14 節 ⑧，只用 x 的格子）
+  yearly(recs)    VER 21：每一格逐年的加總（第 4.14 節 ⑨）；ktab(yk, 年)＝只用那時已經走完的紀錄算的 k（溫度計校正用）
 
-只呈現，不參與任何判定（★／◆／○／—、溫度計、兩欄都不變）。
+只呈現，不參與 ★／◆／○／— 判定；VER 21 起第 5 節 ④ 用預估之後決定今天的清單與溫度計列不列。
 """
 from __future__ import annotations
 
@@ -42,16 +44,23 @@ def eb(e: float) -> int:
     return bisect.bisect_right(S.FWD_EB, e)
 
 
-def key(d: str, H: int, b, g) -> str:
-    """格子的鍵：方向|看多久|次數（* ＝合併）|優勢（0～4，或 n／p＝正負）。"""
-    return f"{d}|{H}|{'*' if b is None else b}|{g}"
+def key(d: str, H: int, b, g, x: bool = False) -> str:
+    """格子的鍵：[x:]方向|看多久|次數（* ＝合併）|優勢（0～4，或 n／p＝正負）；x＝跨期間（第 4.14 節 ⑧，VER 21）。"""
+    return f"{S.FWD_XP if x else ''}{d}|{H}|{'*' if b is None else b}|{g}"
 
 
-def chain(d: str, H: int, n: int, e: float) -> list[str]:
-    """第 4.14 節 ③ 往上找的順序：L1 → L2 → L3（大跌後買點最後接偏多 × H_BUY 那一串）。"""
+def split_key(k: str) -> tuple[bool, str, int, str, str]:
+    """格子的鍵 → (跨期間？, 方向, 看多久, 次數, 優勢)。"""
+    x = k.startswith(S.FWD_XP)
+    d, H, b, g = (k[len(S.FWD_XP):] if x else k).split("|")
+    return x, d, int(H), b, g
+
+
+def chain(d: str, H: int, n: int, e: float, x: bool = False) -> list[str]:
+    """第 4.14 節 ③ 往上找的順序：L1 → L2 → L3（大跌後買點最後接偏多 × H_BUY 那一串）；跨期間（⑧）只找 x 的格子。"""
     b, g, sg = nb(n), eb(e), ("n" if e < 0 else "p")
-    out = [key(d, H, b, g), key(d, H, None, g), key(d, H, None, sg)]
-    if d == "buy":
+    out = [key(d, H, b, g, x), key(d, H, None, g, x), key(d, H, None, sg, x)]
+    if d == "buy" and not x:
         out += [key("up", S.H_BUY, b, g), key("up", S.H_BUY, None, g), key("up", S.H_BUY, None, sg)]
     return out
 
@@ -123,7 +132,8 @@ def train(sd: dict, c: int, r0: int, Yu: np.ndarray, Yw: np.ndarray, ra: dict) -
 
 def test(sd: dict, P: dict, c: int, c2: int, Y: np.ndarray, Yr: np.ndarray) -> tuple | None:
     """那一年實際的結果：訊號日在 [c, c2) 的每一次（窗口走完的）。→ (命中率, 報酬平均, 次數, 平常, 平常的報酬平均)；
-    這一年沒有任何一次窗口走完回 None。狀態型每一段（這一年裡的部分）一樣重。報酬用平均（VER 19；VER 18 用中位數，次數少時偏低）。"""
+    這一年沒有任何一次窗口走完回 None。狀態型這一年在狀態中的每一天一樣重（VER 22；VER 18～21 每一段一樣重），次數＝段數。
+    報酬用平均（VER 19；VER 18 用中位數，次數少時偏低）。"""
     samp = np.asarray(sd["samp"], dtype=np.int64)
     if sd["kind"] == "event":
         k = P["kept"]
@@ -139,15 +149,12 @@ def test(sd: dict, P: dict, c: int, c2: int, Y: np.ndarray, Yr: np.ndarray) -> t
         idx = idx[np.isfinite(Y[samp[idx]])]
         if not len(idx):
             return None
-        groups: dict = {}
-        for i in idx:
-            groups.setdefault(int(P["epid"][i]), []).append(int(samp[i]))
-        gs = [np.asarray(g, dtype=np.int64) for g in groups.values()]
-        hit = float(np.mean([Y[g].mean() for g in gs]))
-        rs = [Yr[g][np.isfinite(Yr[g])] for g in gs]
-        rs = [r for r in rs if len(r)]
-        rm = float(np.mean([r.mean() for r in rs])) if rs else None            # 每一段一樣重
-        cnt = len(gs)
+        tt = samp[idx]
+        hit = float(Y[tt].mean())                                        # VER 22：每一天一樣重（VER 18～21 每一段一樣重）
+        r = Yr[tt]
+        r = r[np.isfinite(r)]
+        rm = float(r.mean()) if len(r) else None
+        cnt = len(set(P["epid"][idx].tolist()))
     bs = samp[(samp >= c) & (samp < c2)]
     bs = bs[np.isfinite(Y[bs])]
     if not len(bs):
@@ -157,8 +164,9 @@ def test(sd: dict, P: dict, c: int, c2: int, Y: np.ndarray, Yr: np.ndarray) -> t
     return hit, rm, cnt, float(Y[bs].mean()), (float(rb.mean()) if len(rb) else None)
 
 
-def walk(mk: str, sd: dict, cuts: list, Yu: np.ndarray, Yw: np.ndarray, ra: dict, dirs: tuple) -> list[dict]:
-    """一個訊號的逐年紀錄（第 4.14 節 ①）：一筆＝方向 × 年（訓練次數 ≥ N_MIN、那一年至少一次窗口走完）。"""
+def walk(mk: str, sd: dict, cuts: list, Yu: np.ndarray, Yw: np.ndarray, ra: dict, dirs: tuple, x: bool = False) -> list[dict]:
+    """一個訊號的逐年紀錄（第 4.14 節 ①）：一筆＝方向 × 年（訓練次數 ≥ N_MIN、那一年至少一次窗口走完）。
+    x＝跨期間（⑧）：sd 的 H 已換成那支溫度計的看多久，紀錄標 "x"。"""
     P = prep(sd)
     Yr = ra["R"][sd["H"]]
     cost = S.ABS_COST[mk]
@@ -180,6 +188,8 @@ def walk(mk: str, sd: dict, cuts: list, Yu: np.ndarray, Yw: np.ndarray, ra: dict
             rec = {"mk": mk, "id": sd["id"], "d": d, "H": int(sd["H"]), "yr": int(yr), "n": int(n),
                    "e": float(hit - base), "o": float(te[0] - te[3]), "tn": te[2],
                    "tier": G.tier_abs(st, d, Tn["cell"], cost)}
+            if x:
+                rec["x"] = 1
             cell = Tn["cell"]
             if d != "warn" and cell and cell[1] is not None and Tn["bmean"] is not None and te[1] is not None and te[4] is not None:
                 rec["er"] = float(cell[1] - Tn["bmean"])             # VER 19：過去多賺、之後多賺都用平均
@@ -205,10 +215,14 @@ def market(F: dict) -> list[dict]:
         if sd["cat"] not in MARKET_CATS:
             continue
         H = sd["H"]
-        if H not in Yc:
-            Yc[H] = (G.outcomes(px, H, G.warn_th(mk, H)), _ra1(px, H))
-        (Yu, Yw, _), ra = Yc[H]
-        out += walk(mk, sd, cuts, Yu, Yw, ra, ("up", "warn"))
+        for Hx in [H] + (sorted(set(S.THERMO_H.values()) - {H}) if sd["cat"] in S.THERMO_X_CATS else []):
+            if Hx not in Yc:
+                Yc[Hx] = (G.outcomes(px, Hx, G.warn_th(mk, Hx)), _ra1(px, Hx))
+            (Yu, Yw, _), ra = Yc[Hx]
+            if Hx == H:
+                out += walk(mk, sd, cuts, Yu, Yw, ra, ("up", "warn"))
+            else:                                      # VER 21 ⑧：跨期間（同 sigcat.cross_stats，H 換成那支溫度計的看多久）
+                out += walk(mk, {**sd, "H": Hx}, cuts, Yu, Yw, ra, ("up", "warn"), x=True)
     I, bsd = G.buy_signals(F)
     if I is not None:
         H = S.H_BUY
@@ -284,7 +298,7 @@ def table(recs: list[dict]) -> dict:
     格子依鍵排序、一個亂數產生器（FWD_SEED）依序重抽。"""
     agg: dict = defaultdict(list)
     for r in recs:
-        for k in chain(r["d"], r["H"], r["n"], r["e"])[:3]:
+        for k in chain(r["d"], r["H"], r["n"], r["e"], bool(r.get("x")))[:3]:
             agg[k].append(r)
     rng = np.random.default_rng(S.FWD_SEED)
     return {k: cell(agg[k], k, rng) for k in sorted(agg)}
@@ -294,7 +308,7 @@ def by_market(recs: list[dict]) -> dict:
     """各市場的 L3（方向 × 看多久 × 優勢 ≥ 0）k（第 4.14 節 ⑥，只描述）→ {市場: {鍵: [筆數, k（沒有截）]}}。"""
     agg: dict = defaultdict(list)
     for r in recs:
-        if r["e"] >= 0:
+        if r["e"] >= 0 and not r.get("x"):                     # VER 21：跨期間的紀錄不算（第 4.14 節 ⑧）
             agg[(r["mk"], key(r["d"], r["H"], None, "p"))].append(r)
     out: dict = {}
     for (mk, k), rs in sorted(agg.items()):
@@ -306,13 +320,50 @@ def own(recs: list[dict]) -> dict:
     """每個訊號自己的逐年樣本外（第 4.14 節 ⑤）→ {訊號: {方向: [年數, e, o, e_r, o_r 的平均]}}。"""
     agg: dict = defaultdict(list)
     for r in recs:
-        agg[(r["id"], r["d"])].append(r)
+        if not r.get("x"):                                     # VER 21：跨期間的紀錄不算（第 4.14 節 ⑧）
+            agg[(r["id"], r["d"])].append(r)
     out: dict = {}
     for (sid, d), rs in sorted(agg.items()):
         rr = [r for r in rs if "er" in r]
         out.setdefault(sid, {})[d] = [len(rs), float(np.mean([r["e"] for r in rs])), float(np.mean([r["o"] for r in rs])),
                                      float(np.mean([r["er"] for r in rr])) if rr else None,
                                      float(np.mean([r["or"] for r in rr])) if rr else None]
+    return out
+
+
+def yearly(recs: list[dict]) -> dict:
+    """第 4.14 節 ⑨（VER 21）：每一格（含 x）、每一年（之後那一年）→ [筆數, 那一年有紀錄的市場數, Σe, Σo]（溫度計校正用）。"""
+    agg: dict = defaultdict(dict)
+    for r in recs:
+        for k in chain(r["d"], r["H"], r["n"], r["e"], bool(r.get("x")))[:3]:
+            a = agg[k].setdefault(r["yr"], [0, set(), 0.0, 0.0])
+            a[0] += 1
+            a[1].add(r["mk"])
+            a[2] += r["e"]
+            a[3] += r["o"]
+    return {k: {str(y): [a[0], len(a[1]), round(a[2], 6), round(a[3], 6)] for y, a in sorted(v.items())}
+            for k, v in sorted(agg.items())}
+
+
+def ktab(yk: dict, year: int) -> dict:
+    """第 5 節 ③d（VER 21）：只用之後那一年 ≤ year − CAL_K_LAG[看多久] 的紀錄算的留下來的比例（條件同第 4.14 節 ③，只算命中率）
+    → {鍵: {"k": k 或 None}}；給 lookup 用（kr 找不到＝用 k）。"""
+    out = {}
+    for k, ys in yk.items():
+        H = split_key(k)[2]
+        upto = year - S.CAL_K_LAG[H]
+        n = ncl = 0
+        se = so = 0.0
+        for y, a in ys.items():
+            if int(y) <= upto:
+                n += a[0]
+                ncl += a[1]
+                se += a[2]
+                so += a[3]
+        me = se / n if n else None
+        ok = (n >= S.FWD_MIN_N and ncl >= S.FWD_MIN_CL and me is not None
+              and ((me <= -S.FWD_EPS) if _neg(k) else (me >= S.FWD_EPS)) and se != 0)
+        out[k] = {"k": _clip(so / se) if ok else None}
     return out
 
 
@@ -327,7 +378,8 @@ def research(F: dict | None = None, recs: list[dict] | None = None) -> dict:
                 recs += market(F[mk])
     return {"ver": S.VER, "spec_date": S.SPEC_DATE, "run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "last": {mk: F[mk]["cal"][-1] for mk in F} if F else {}, "nrec": len(recs),
-            "cells": G._r(table(recs)), "mk": G._r(by_market(recs)), "own": G._r(own(recs))}
+            "nrec_x": sum(1 for r in recs if r.get("x")),
+            "cells": G._r(table(recs)), "mk": G._r(by_market(recs)), "own": G._r(own(recs)), "yk": yearly(recs)}
 
 
 def save(R: dict, path: Path | None = None) -> None:
@@ -351,10 +403,10 @@ def load(path: Path | None = None) -> dict | None:
 
 # ── ④ 每個訊號的預估之後 ──────────────────────────────────────────────────────
 
-def lookup(cells: dict, d: str, H: int, n: int, e: float) -> dict:
+def lookup(cells: dict, d: str, H: int, n: int, e: float, x: bool = False) -> dict:
     """第 4.14 節 ③：k、k_r 各自照順序往上找第一個算得出的格子。→ {"k", "lv", "key", "kr", "lvr", "keyr"}（lv＝LEVEL_NAMES 的位置；
-    k 都找不到＝0、lv None；k_r 都找不到＝用 k、lvr None）。"""
-    ch = chain(d, H, n, e)
+    k 都找不到＝0、lv None；k_r 都找不到＝用 k、lvr None）。x＝跨期間（⑧：只找 x 的格子）。"""
+    ch = chain(d, H, n, e, x)
     out = {"k": 0.0, "lv": None, "key": None, "kr": None, "lvr": None, "keyr": None}
     for i, k in enumerate(ch):
         c = cells.get(k)
@@ -404,3 +456,19 @@ def est(r: dict, d: str, T: dict | None = None) -> dict | None:
             fx = L["kr"] * (med - bm)
             out.update(med=med, bmed=bm, ex=med - bm, fx=fx, fm=bm + fx, kr=L["kr"], lvr=L["lvr"], keyr=L["keyr"])
     return out
+
+
+def est_x(r: dict, d: str, k: str, T: dict | None = None) -> dict | None:
+    """第 4.14 節 ⑧（VER 21）：跨期間的票——研究列 xh[k]（溫度計 k 的看多久）的次數、命中率、平常 → x 的格子找 k →
+    {"hit", "base", "fh": 預估之後的命中率, "k", "lv", "key", "H"}；研究檔沒有、不在範圍、次數 < N_MIN 回 None。只估命中率。"""
+    T = load() if T is None else T
+    X = (r.get("xh") or {}).get(k)
+    if not T or not X or r.get("cat") not in S.THERMO_X_CATS or r.get("mk") not in S.MARKETS:
+        return None
+    st = X.get(d) or {}
+    n, hit, base = st.get("n") or 0, st.get("hit"), st.get("base")
+    if n < S.N_MIN or hit is None or base is None:
+        return None
+    L = lookup(T.get("cells") or {}, d, int(X["H"]), int(n), float(hit - base), x=True)
+    return {"hit": hit, "base": base, "fh": base + L["k"] * (hit - base), "k": L["k"], "lv": L["lv"], "key": L["key"],
+            "H": int(X["H"])}

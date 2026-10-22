@@ -1,6 +1,7 @@
-"""預估之後（arm/lab/sigoos.py；sigspec 第 4.14 節 VER 18；docs/lab_practical_plan.md 第 10 節）。
+"""預估之後（arm/lab/sigoos.py；sigspec 第 4.14 節 VER 18～21；docs/lab_practical_plan.md 第 10 節、docs/lab_audit_plan.md 第 11 節）。
 
-逐年紀錄和逐筆直接算的版本比對、訓練不偷看 cut 之後的資料、衰退表的比例與截斷、往上一層的順序、預估之後的公式。"""
+逐年紀錄和逐筆直接算的版本比對、訓練不偷看 cut 之後的資料、衰退表的比例與截斷、往上一層的順序、預估之後的公式、
+跨期間的格子（x:）與逐年加總（溫度計校正用）。"""
 import math
 
 import numpy as np
@@ -97,15 +98,12 @@ def test_train_state_matches_direct_and_does_not_look_ahead():
     m = samp + S.LAG + H < c
     ts, sm = samp[m], st[m]
     eps = G.episodes(np.nonzero(sm)[0].tolist(), S.EP_GAP)
-    hits = [np.mean([float(PX[t + S.LAG + H] > PX[t + S.LAG]) for t in ts[ep]]) for ep in eps]
-    assert Tn["R"]["up"]["n"] == len(eps) and math.isclose(Tn["R"]["up"]["hit"], np.mean(hits))
-    xs, ws = [], []
-    for ep in eps:
-        for t in ts[ep]:
-            xs.append(_ret(PX, t))
-            ws.append(1.0 / len(ep))
-    assert math.isclose(Tn["cell"][3], _med_direct(xs, ws))
-    assert math.isclose(Tn["cell"][1], np.mean([np.mean([_ret(PX, t) for t in ts[ep]]) for ep in eps]))   # 每一段一樣重
+    alld = [t for ep in eps for t in ts[ep]]
+    hits = [float(PX[t + S.LAG + H] > PX[t + S.LAG]) for t in alld]
+    assert Tn["R"]["up"]["n"] == len(eps) and math.isclose(Tn["R"]["up"]["hit"], np.mean(hits))   # VER 22：每一天一樣重
+    xs = [_ret(PX, t) for t in alld]
+    assert math.isclose(Tn["cell"][3], _med_direct(xs))
+    assert math.isclose(Tn["cell"][1], np.mean(xs))
     px2 = PX[:c].copy()
     Yu2, Yw2, ra2 = _arrays(px2)
     keep = samp < c
@@ -132,7 +130,7 @@ def test_test_year_matches_direct():
     bs = [int(t) for t in samp if c <= t < c2]
     assert math.isclose(te[3], np.mean([float(PX[t + S.LAG + H] > PX[t + S.LAG]) for t in bs]))
     assert math.isclose(te[4], np.mean([_ret(PX, t) for t in bs]))
-    # 狀態型：這一年在狀態中的樣本日，依全部資料的分段、每一段一樣重
+    # 狀態型：這一年在狀態中的樣本日，依全部資料的分段；VER 22 起每一天一樣重（次數＝段數）
     st = np.zeros(len(samp), dtype=bool)
     st[1440:1530] = True                              # 跨過 cut 的一段
     st[1600:1610] = True
@@ -142,8 +140,9 @@ def test_test_year_matches_direct():
     groups = [[int(samp[i]) for i in range(1440, 1530) if c <= samp[i] < c2], [int(samp[i]) for i in range(1600, 1610)],
               [int(samp[i]) for i in range(1700, 1760) if c <= samp[i] < c2]]
     assert te2[2] == 3
-    assert math.isclose(te2[0], np.mean([np.mean([float(PX[t + S.LAG + H] > PX[t + S.LAG]) for t in g]) for g in groups]))
-    assert math.isclose(te2[1], np.mean([np.mean([_ret(PX, t) for t in g]) for g in groups]))   # 每一段一樣重
+    alld = [t for g in groups for t in g]
+    assert math.isclose(te2[0], np.mean([float(PX[t + S.LAG + H] > PX[t + S.LAG]) for t in alld]))
+    assert math.isclose(te2[1], np.mean([_ret(PX, t) for t in alld]))
     assert O.test(sd2, O.prep(sd2), 2900, 3000, Yu, Yr) is None      # 窗口沒走完的不算
 
 
@@ -217,14 +216,81 @@ def test_table_is_deterministic():
     assert O.table(rs) == O.table(list(rs))
 
 
+def test_cross_horizon_keys_are_separate():
+    """VER 21 ⑧：跨期間的紀錄放另一套格子（鍵前面 x:），往上找只找 x 的格子；大跌後買點不接偏多那一串。"""
+    assert O.key("up", 20, 1, 3, x=True) == "x:up|20|1|3" and O.split_key("x:warn|250|*|n") == (True, "warn", 250, "*", "n")
+    assert O.split_key("up|60|0|2") == (False, "up", 60, "0", "2")
+    assert O.chain("up", 20, 20, 0.12, x=True) == ["x:up|20|1|3", "x:up|20|*|3", "x:up|20|*|p"]
+    assert O.chain("buy", 60, 9, 0.07, x=True) == ["x:buy|60|0|2", "x:buy|60|*|2", "x:buy|60|*|p"]
+    own = [_rec("up", 20, 20, 0.12, 0.04, yr=1990 + i % 40, mk=("tw", "spx")[i % 2]) for i in range(200)]
+    xr = [{**_rec("up", 20, 20, 0.12, 0.0, yr=1990 + i % 40, mk=("tw", "spx")[i % 2]), "x": 1} for i in range(200)]
+    cells = O.table(own + xr)
+    assert math.isclose(cells["up|20|1|3"]["k"], 0.04 / 0.12) and cells["x:up|20|1|3"]["k"] == 0.0
+    assert O.lookup(cells, "up", 20, 20, 0.12)["key"] == "up|20|1|3"
+    L = O.lookup(cells, "up", 20, 20, 0.12, x=True)
+    assert L["key"] == "x:up|20|1|3" and L["k"] == 0.0
+    only_own = O.table(own)                                         # 沒有 x 的格子＝k 0，不借訊號自己看多久的格子
+    assert O.lookup(only_own, "up", 20, 20, 0.12, x=True)["k"] == 0.0 and O.lookup(only_own, "up", 20, 20, 0.12, x=True)["lv"] is None
+    # 自己的逐年、各市場的 L3 不算跨期間的紀錄
+    assert O.by_market(own + xr) == O.by_market(own) and O.own(own + xr) == O.own(own)
+
+
+def test_yearly_sums_reproduce_table_and_respect_lag():
+    """VER 21 ⑨：逐年加總到最後一年＝衰退表的 k；加總到某一年＝只用那一年以前的紀錄（減 CAL_K_LAG）。"""
+    rng = np.random.default_rng(3)
+    rs = []
+    for i in range(900):
+        H_ = (20, 60, 250)[i % 3]
+        d = ("up", "warn")[(i // 3) % 2]
+        e = float(rng.normal(0.08, 0.06))
+        rs.append({**_rec(d, H_, int(rng.integers(5, 80)), e, float(e * 0.4 + rng.normal(0, 0.05)),
+                          yr=1985 + int(rng.integers(0, 40)), mk=S.MARKETS[i % 5]), **({"x": 1} if i % 4 == 0 else {})})
+    tab, yk = O.table(rs), O.yearly(rs)
+    assert set(yk) == set(tab)
+    full = O.ktab(yk, 3000)
+    for k, c in tab.items():
+        assert (full[k]["k"] is None) == (c["k"] is None), k
+        if c["k"] is not None:
+            assert math.isclose(full[k]["k"], c["k"], abs_tol=1e-6), k
+        ys = yk[k]
+        assert sum(a[0] for a in ys.values()) == c["n"] and sum(a[1] for a in ys.values()) == c["ncl"]
+    for year in (2005, 2012, 2020):
+        part = O.ktab(yk, year)
+        for k in tab:
+            lag = S.CAL_K_LAG[O.split_key(k)[2]]
+            sub = [r for r in rs if r["yr"] <= year - lag and k in O.chain(r["d"], r["H"], r["n"], r["e"], bool(r.get("x")))[:3]]
+            want = O.table(sub).get(k, {"k": None})["k"] if sub else None
+            assert (part[k]["k"] is None) == (want is None), (year, k)
+            if want is not None:
+                assert math.isclose(part[k]["k"], want, abs_tol=1e-6), (year, k)
+
+
+def test_est_x_uses_cross_cells_and_xh_stats():
+    cells = {"x:up|20|1|3": {"k": 0.4}, "up|20|1|3": {"k": 0.9}, "x:warn|250|0|2": {"k": 0.1}}
+    Tf = {"cells": cells, "own": {}}
+    r = {"id": "tw:heat:a:hot", "mk": "tw", "cat": "heat", "H": 60,
+         "xh": {"short": {"H": 20, "th": 0.08, "up": {"n": 20, "hit": 0.75, "base": 0.62}, "warn": {"n": 3, "hit": 0.6, "base": 0.3}},
+                "long": {"H": 250, "th": 0.2, "up": {"n": 9, "hit": 0.6, "base": 0.7}, "warn": {"n": 9, "hit": 0.35, "base": 0.28}}}}
+    u = O.est_x(r, "up", "short", Tf)
+    assert u["key"] == "x:up|20|1|3" and math.isclose(u["fh"], 0.62 + 0.4 * 0.13) and u["H"] == 20 and u["lv"] == 0
+    assert O.est_x(r, "warn", "short", Tf) is None                         # 次數 < N_MIN
+    w = O.est_x(r, "warn", "long", Tf)
+    assert w["key"] == "x:warn|250|0|2" and math.isclose(w["fh"], 0.28 + 0.1 * 0.07)
+    lu = O.est_x(r, "up", "long", Tf)                                       # 找不到 x 的格子＝k 0（預估之後＝平常）
+    assert lu["k"] == 0.0 and math.isclose(lu["fh"], 0.7) and lu["lv"] is None
+    assert O.est_x(r, "up", "mid", Tf) is None and O.est_x({**r, "cat": "ind"}, "up", "short", Tf) is None
+    assert O.est_x(r, "up", "short", {}) is None
+
+
 def test_research_file_is_consistent():
     R = O.load()
     if R is None:
         pytest.skip("研究檔要先跑：TZ=Asia/Taipei python3 scripts/run_sigoos.py")
-    assert R["ver"] >= S.FWD_VER and R["nrec"] > 10000
+    assert R["ver"] >= S.FWD_VER and R["nrec"] > 10000 and 0 < R["nrec_x"] < R["nrec"]
+    assert set(R["yk"]) == set(R["cells"])
     for k, c in R["cells"].items():
-        d, H_, b, g = k.split("|")
-        assert d in ("up", "warn", "buy") and int(H_) in (20, 60, 250)
+        x, d, H_, b, g = O.split_key(k)
+        assert d in ("up", "warn", "buy") and H_ in (20, 60, 250) and not (x and d == "buy")
         for f in ("k", "kr"):
             assert c[f] is None or 0.0 <= c[f] <= 1.0
         if c["k"] is not None:
