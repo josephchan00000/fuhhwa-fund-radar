@@ -127,7 +127,7 @@ def chip(C: dict) -> dict | None:
     also = [nm.get(k, k) for k in order if k != head and ups(k)]
     down = [nm.get(k, k) for k in order if any(QP._A(C, k, s).get("v") == "down" for s in HS.STATES_A) and not ups(k)]
     out = {"lab": "融資" if C["mk"] == "tw" else "籌碼", "start": (C["R"].get("start") or "")[:4], "also": also, "down": down,
-           "hot": [[nm.get(k, k), chipnow[k]["w"]] for k in hot]}
+           "hot": [[nm.get(k, k), chipnow[k]["w"]] for k in hot], "on": False}
     if head:
         st = QP._A(C, head, key)
         out.update({"ans": "yes" if st.get("vv") == "up" else "raw", "k": head, "name": nm.get(head, head), "st": key,
