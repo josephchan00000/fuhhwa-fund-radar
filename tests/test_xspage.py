@@ -67,13 +67,8 @@ def test_entry_points_link_to_strategy_page(R):
     assert q["n"] == len(R["tw"]) and P.summary("tw", {}) is None and P.summary_line("tw", {}) == ""
     assert P.link("spx") == "x9.html#v=mac&m=spx" and P.link("tw", "mmr") == "x9.html#v=mac&m=tw&x=mmr"
     T = {"up": [], "warn": [], "d": "2026-10-21", "thermo": []}
-    orig = VZ.thermo_html
-    VZ.thermo_html = lambda T: ""
-    try:
-        h = VZ.today_html({"sigtoday": T, "xsl": line})
-        h0 = VZ.today_html({"sigtoday": T})
-    finally:
-        VZ.thermo_html = orig
+    h = VZ.today_html({"sigtoday": T, "xsl": line})
+    h0 = VZ.today_html({"sigtoday": T})
     assert f'<p class="tzm">{line}</p>' in h and "x9.html#v=mac" not in h0
     assert 'href="x9.html#v=mac&amp;m=tw&amp;x=faber"' in P.chip("tw", R) and 'href="x9.html#v=mac&amp;m=tw&amp;x=mmr"' in P.mr_chip("tw", R)
     assert "在策略頁看" in P.PANEL_JS and "XSHOME" not in P.PANEL_JS and "XSHOME" not in SP.JS

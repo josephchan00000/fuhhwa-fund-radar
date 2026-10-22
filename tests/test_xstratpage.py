@@ -178,13 +178,7 @@ def test_pages_wire_strategies():
     T = {"up": [], "warn": [], "d": "2026-10-19", "thermo": []}
     item = {"id": "xs:spx:rsi2", "side": "up", "name": "RSI(2) 超賣反彈", "st": "hold", "now": "持有中：…", "line": "過去 309 筆：…",
             "grp": "短線（幾天）"}
-    import arm.lab.heatviz as HV
-    orig = HV.thermo_html
-    HV.thermo_html = lambda T: ""
-    try:
-        h = VZ.today_html({"sigtoday": T, "xsb": [item]})
-    finally:
-        HV.thermo_html = orig
+    h = VZ.today_html({"sigtoday": T, "xsb": [item]})
     assert "x9.html#v=mac&amp;m=spx&amp;x=rsi2" in h and "1 個策略" in h and "tzs" in h
     sl = HP.state_line({"dims": {}, "xschip": P.chip("spx", R), "mk": "spx"})
     assert "10 個月均線" in sl
