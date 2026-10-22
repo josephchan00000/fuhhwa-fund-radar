@@ -4,7 +4,8 @@
 VER 3，2026-10-20，警示改看最大回撤，docs/lab_warn_mdd_plan.md；VER 4 同日加情境；VER 5 同日加報酬與相似的日子；VER 6 同日加法人買賣超；VER 7 同日法人只當訊號；
 VER 8 同日判定改用打折後的機率、運氣檢查、同類合併，docs/lab_noise_plan.md（沒有上線）；VER 9 同日改用打亂日子測試，同文件第 10 節；
 VER 10，2026-10-21，大跌後買點改看實際報酬，docs/lab_expert_plan.md 第 9 節；VER 13 同日，落底訊號跟著 bottomspec VER 4 多三個；
-VER 14，2026-10-22，次數少的訊號打亂測試門檻放寬到 10%，docs/lab_noise_plan.md 第 13 節；VER 15 同日，溫度計三個看多久都算，同文件第 14 節；VER 16 同日，溫度計下面加「過去讀數這樣的時候」，同文件第 14.10 節）。
+VER 14，2026-10-22，次數少的訊號打亂測試門檻放寬到 10%，docs/lab_noise_plan.md 第 13 節；VER 15 同日，溫度計三個看多久都算，同文件第 14 節；VER 16 同日，溫度計下面加「過去讀數這樣的時候」，同文件第 14.10 節；
+VER 17 同日，判定改看絕對成績、次數少的另列難得機會、報酬加排除極端，docs/lab_practical_plan.md）。
 要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import analyze as AN
 from arm.lab import backtest as BT
@@ -17,7 +18,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 16 and X.SPEC_DATE == "2026-10-22"
+    assert X.VER == 17 and X.SPEC_DATE == "2026-10-22"
     assert BS.VER == 4 and "C9" in BS.SIG_MK["tw"] and "C8" in BS.SIG_MK["spx"]   # VER 13：大跌後買點的規則跟著 bottomspec VER 4
     assert X.H_BUY == 60                                                  # VER 10：大跌後買點看買進後 3 個月有沒有漲
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
@@ -25,7 +26,7 @@ def test_sig_spec_v1_is_locked():
     assert X.WARN_TH_IDX == {20: 1, 60: 2}
     assert X.HIT_MIN == {"up": 0.60, "warn": 0.50, "buy": 0.60}
     assert (X.EDGE_GOOD, X.EDGE_REF, X.N_MIN, X.RECENT_YEARS, X.RECENT_N) == (0.10, 0.05, 5, 10, 5)   # VER 9：次數下限 10 → 5
-    assert X.TIERS == ("good", "ref", "none", "few") and set(X.TIER_NAMES) == set(X.TIERS) == set(X.TIER_MARK)
+    assert X.TIERS == ("good", "rare", "ref", "none", "few") and set(X.TIER_NAMES) == set(X.TIERS) == set(X.TIER_MARK)   # VER 17 多 ◆
     assert X.TIER_NAMES["ref"] == "可能是運氣"                                  # VER 9：● 的意思
     assert X.KINDS == ("event", "state") and X.EP_GAP == 20
     assert (X.HOT, X.COLD, X.HOT_WEEKS, X.EXIT_MIN) == (80, 20, 13, 4)
@@ -49,9 +50,10 @@ def test_sig_spec_v1_is_locked():
     # 景氣頁「今天的重點」2026-10-20 起：只改呈現、不改判定（VER 不變）
     assert X.TODAY_SIDE == 6 and X.THERMO_LEAN == 0.6
     # VER 12（使用者 2026-10-21：「溫度計可以標準寬鬆一些」，選「有傾向就算」）：★ 2、● 1、△ 0.5；△＝比平常高 5 個百分點以上
-    assert X.THERMO_W == {"good": 2, "ref": 1, "lean": 0.5} and X.THERMO_EDGE == 0.05 == X.EDGE_REF
-    assert X.THERMO_MARK == {"good": "★", "ref": "●", "lean": "△"} and set(X.THERMO_NAMES) == set(X.THERMO_W)
-    assert X.RES_VER == 14                                          # VER 14 改了 ★ 的打亂測試門檻，研究檔要重跑
+    # VER 17（使用者選「溫度計照新的 ★ 算」）：★ 2、◆ 1、△ 0.5；△＝勝率門檻過了但沒過完整的判定（THERMO_EDGE 只留給 VER 12～16 的紀錄）
+    assert X.THERMO_W == {"good": 2, "rare": 1, "lean": 0.5} and X.THERMO_EDGE == 0.05 == X.EDGE_REF
+    assert X.THERMO_MARK == {"good": "★", "rare": "◆", "lean": "△"} and set(X.THERMO_NAMES) == set(X.THERMO_W)
+    assert X.RES_VER == 17                                          # VER 17 改了判定與報酬欄位，研究檔要重跑
     assert [k for k, *_ in X.THERMO_HZ] == ["short", "mid", "long"]
 
 
@@ -133,16 +135,29 @@ def test_sig_spec_v15_thermometer_all_horizons_is_locked():
     assert X.THERMO_H["short"] == X.H_TECH and X.THERMO_H["mid"] == X.H_CRASH == X.H_DERIV == X.H_SCEN and X.THERMO_H["long"] == X.H_BUB
     assert X.THERMO_X_CATS == ("heat", "crash", "multi", "scen", "inst", "tech", "deriv", "bub")
     assert "buy" not in X.THERMO_X_CATS and "ind" not in X.THERMO_X_CATS            # 大跌後買點、產業泡沫不跨期間
-    assert X.THERMO_W["lean"] == 0.5 and X.THERMO_EDGE == 0.05 and X.N_MIN == 5 and X.RES_VER == 14
+    assert X.THERMO_W["lean"] == 0.5 and X.N_MIN == 5 and X.RES_VER == 17              # VER 17 起跨期間的票＝勝率門檻過了
 
 
 def test_sig_spec_v16_thermometer_calibration_is_locked():
     """VER 16（2026-10-22，docs/lab_noise_plan.md 第 14.10 節）：溫度計下面加「過去讀數這樣的時候」——逐年滾動（不偷看之後）的票數、
     和自己的過去 10 年比的位置、過去同一組的週之後怎麼走；只是描述，判定與溫度計的算法都不變。"""
-    assert X.CAL_VER == 16 and (X.CAL_WARM_Y, X.CAL_MIN_SAMP) == (10, 50)
+    assert X.CAL_VER == 17 and (X.CAL_WARM_Y, X.CAL_MIN_SAMP) == (10, 50)              # VER 17 投票規則改了，研究檔重跑
     assert (X.CAL_RANK_W, X.CAL_RANK_MIN, X.CAL_TERC) == (520, 260, (1 / 3, 2 / 3))
     assert (X.CAL_BLOCK, X.CAL_DRAWS, X.CAL_SEED, X.CAL_MIN_WEEKS) == (52, 1000, 20261022, 104)
-    assert X.THERMO_EDGE == 0.05 and X.N_MIN == 5 and X.RES_VER == 14                # 投票規則同 △；研究檔不動
+    assert X.N_MIN == 5 and X.RES_VER == 17                                          # 投票規則同 △（VER 17：勝率門檻過了）
+
+
+def test_sig_spec_v17_absolute_judgment_is_locked():
+    """VER 17（2026-10-22，docs/lab_practical_plan.md）：使用者選「絕對成績好就算 ★」「至少不比隨便哪天差」、次數少的另開「難得機會」、
+    報酬以中位數為主另列排除極端與去掉最好一次、溫度計照新的 ★ 算；套用到警示、大跌後買點、總經策略落底型（xstratspec VER 6）。"""
+    from arm.lab import xstratspec as XS
+    assert X.STAR_N == 15 and X.N_MIN == 5 and X.HIT_MIN == {"up": 0.60, "warn": 0.50, "buy": 0.60}
+    assert X.TIER_MARK["rare"] == "◆" and X.TIER_NAMES["rare"] == "難得機會" and X.TIER_NAMES["good"] == "好訊號"
+    assert {mk: X.ABS_COST[mk] for mk in XS.COST} == XS.COST and X.ABS_COST["us"] == XS.COST["spx"]   # 成本同總經策略
+    assert (X.TRIM_Q, X.TRIM_N) == (0.05, 20) == (XS.DIP_TRIM_Q, XS.DIP_TRIM_N)
+    assert XS.VER == 6 and XS.DIP_WIN == 0.60 and XS.DIP_N_MIN == 5
+    assert X.RES_VER == X.VER == X.CAL_VER == 17
+    assert X.THERMO_W == {"good": 2, "rare": 1, "lean": 0.5} and X.THERMO_NAMES["lean"] == "勝率過了"
 
 
 def test_sig_spec_refers_to_existing_definitions():
