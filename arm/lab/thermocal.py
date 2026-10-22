@@ -153,8 +153,10 @@ def first_year(cal: list[str]) -> int:
     return y if cal[0][5:] == "01-01" else y + 1
 
 
-def market(F: dict) -> dict:
-    """一個市場的研究（第 5 節 ③d；VER 23 起不用預估之後的研究檔）。"""
+def weekly(F: dict) -> dict:
+    """逐年滾動的週末票數（第 5 節 ③d）：每年 1 月 1 日只用之前走完的窗口算統計、決定每個訊號投哪一邊，那一年每個週末的票數。
+    → {"y0", "y1", "Y": {溫度計: outcomes}, "hist": {溫度計: {"t": 週末位置, "u": 偏多票數, "w": 警示票數}},
+       "votes": 今年 1 月 1 日每個訊號會投哪一邊}。研究（market）與實戰模擬（practsim）共用。"""
     mk, cal, px = F["mk"], F["cal"], F["px"]
     T = len(cal)
     we = np.asarray(F["we"], dtype=np.int64)
@@ -187,7 +189,15 @@ def market(F: dict) -> dict:
                 for arr in on[c].values():
                     tot += arr
                 hist[k][c] += [int(x) for x in tot]
-    out = {"y0": y0, "cut": f"{y1}-01-01", "votes": votes_now, "hz": {}}
+    return {"y0": y0, "y1": y1, "Y": Y, "hist": hist, "votes": votes_now}
+
+
+def market(F: dict) -> dict:
+    """一個市場的研究（第 5 節 ③d；VER 23 起不用預估之後的研究檔）。"""
+    mk, cal = F["mk"], F["cal"]
+    W = weekly(F)
+    y0, y1, Y, hist = W["y0"], W["y1"], W["Y"], W["hist"]
+    out = {"y0": y0, "cut": f"{y1}-01-01", "votes": W["votes"], "hz": {}}
     for k, H in S.THERMO_H.items():
         h = hist[k]
         Yu, Yw, _ = Y[k]
