@@ -36,7 +36,7 @@ def item_of(sd: dict) -> str:
 def active(sd: dict, T: int, H: int) -> np.ndarray:
     """每一天這個訊號在看 H 個交易日的溫度計是不是現在有效（第 5 節 ③a，同 sigcat.now_market）：
     狀態型＝那天是樣本日而且在狀態中（月資料＝最近一個月底在狀態中，到下一個月底前都算）；
-    事件型＝最近一次出現（樣本開始以後）在 H 個交易日內。"""
+    事件型＝最近一次出現（樣本開始以後）在 H 個交易日內，而且之後還沒出現相反的讀數（VER 20）。"""
     a = np.zeros(T, dtype=bool)
     samp = np.asarray(sd["samp"], dtype=np.int64)
     if not len(samp):
@@ -50,9 +50,9 @@ def active(sd: dict, T: int, H: int) -> np.ndarray:
         else:
             a[samp[st]] = True
     else:
-        for t in sd["days"]:
-            if t >= samp[0]:
-                a[int(t):int(t) + H] = True
+        D = np.asarray([t for t in sd["days"] if t >= samp[0]], dtype=np.int64)
+        for t, e in zip(D.tolist(), G.exp_end(sd, D, H).tolist()):   # VER 20：之後出現相反的讀數就不再算
+            a[t:e] = True
     return a
 
 
@@ -67,7 +67,8 @@ def stats_before(sd: dict, cut: int, Y: tuple, H: int) -> dict | None:
     if sd["kind"] == "event":
         return G.ev_stat([t for t in sd["days"] if t + S.LAG + H < cut], Yu, Yw, samp[m], H, 0)
     gap = 1 if sd.get("monthly") else S.EP_GAP
-    return G.st_stat(np.asarray(sd["state"], dtype=bool)[m], samp[m], Yu, Yw, gap, 0)
+    brk = None if sd.get("brk") is None else np.asarray(sd["brk"], dtype=bool)[m]   # VER 20：遇到相反的極端就切開
+    return G.st_stat(np.asarray(sd["state"], dtype=bool)[m], samp[m], Yu, Yw, gap, 0, brk=brk)
 
 
 def vote(R: dict | None) -> str:

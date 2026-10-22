@@ -247,6 +247,23 @@ def _base_med(Y: np.ndarray | None, samp: np.ndarray) -> float | None:
     return float(np.median(v)) if len(v) else None
 
 
+def skipped(days, ok: set, H: int, Yu: np.ndarray, cal: list[str]) -> list[list]:
+    """事件型「出現了但沒算進次數」的日子（訊號總覽「最近幾次」與走勢圖標灰，docs/lab_audit_plan.md 第 3.4 節；只呈現）：
+    → [[日期, 原因, 算進去的那一次的日期]]：原因 "d"＝和上一次算進去的相隔不到 H 個交易日（之後的漲跌和那一次重疊，算同一次）、
+    "i"＝之後 H 個交易日還沒走完。輸入沒有值的日子（不在 ok）不列。"""
+    kept = dedupe([t for t in days if t in ok], H)
+    ks = set(kept)
+    out = []
+    for t in sorted(int(x) for x in days if int(x) in ok):
+        if t in ks:
+            if np.isnan(Yu[t]):
+                out.append([cal[t], "i", None])
+        else:
+            j = bisect.bisect_right(kept, t) - 1
+            out.append([cal[t], "d", cal[kept[j]] if j >= 0 else None])
+    return out
+
+
 def ev_stat(days, Yu: np.ndarray, Yw: np.ndarray, samp: np.ndarray, H: int, r0: int, Yd: np.ndarray | None = None,
             Yr: np.ndarray | None = None) -> dict:
     """事件型：samp＝可以算平常的日子（輸入有值）索引；r0＝近 10 年起點的索引；Yd＝每一天的最大回撤（VER 3，只呈現）；
@@ -268,26 +285,43 @@ def ev_stat(days, Yu: np.ndarray, Yw: np.ndarray, samp: np.ndarray, H: int, r0: 
     return out
 
 
-def episodes(pos: list[int], gap: int) -> list[list[int]]:
-    """pos＝狀態中的樣本在樣本序列裡的位置（遞增）→ 每一段的位置；中斷的樣本數 < gap 算同一段。"""
+def episodes(pos: list[int], gap: int, brk=None) -> list[list[int]]:
+    """pos＝狀態中的樣本在樣本序列裡的位置（遞增）→ 每一段的位置；中斷的樣本數 < gap 算同一段。
+    brk（sigspec VER 20）＝每個樣本是不是相反的極端（和樣本序列同長度）：中斷的樣本裡有一個是，就切成兩段。"""
+    cb = None if brk is None else np.concatenate([[0], np.cumsum(np.asarray(brk, dtype=np.int64))])
     out: list[list[int]] = []
     for p in pos:
-        if out and p - out[-1][-1] - 1 < gap:
+        if out and p - out[-1][-1] - 1 < gap and (cb is None or cb[p] == cb[out[-1][-1] + 1]):
             out[-1].append(p)
         else:
             out.append([p])
     return out
 
 
+def exp_end(sd: dict, days, H: int) -> np.ndarray:
+    """事件型每一次出現 t 的「有效到」（不含）：min(t＋H, 之後第一個相反讀數的那天)（sigspec VER 20 第 5 節；
+    sd["exp"]＝同一個項目相反讀數的日子，沒有就只看 H）。"""
+    D = np.asarray(days, dtype=np.int64)
+    end = D + int(H)
+    ex = sd.get("exp")
+    if ex is not None and len(ex) and len(D):
+        ex = np.asarray(ex, dtype=np.int64)
+        j = np.searchsorted(ex, D, side="right")
+        has = j < len(ex)
+        nxt = np.where(has, ex[np.minimum(j, len(ex) - 1)], end)
+        end = np.minimum(end, nxt)
+    return end
+
+
 def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray, gap: int, r0: int,
-            Yd: np.ndarray | None = None, Yr: np.ndarray | None = None) -> dict:
+            Yd: np.ndarray | None = None, Yr: np.ndarray | None = None, brk=None) -> dict:
     """狀態型：samp＝樣本日（輸入有值；月資料＝每月最後一個交易日）索引，state＝這些樣本日是否在狀態中（同長度）。
     一段的命中率＝段內窗口完整的日子的比例；整體＝各段平均。Yd＝每一天的最大回撤（VER 3，只呈現：一段＝段內平均，整體＝各段中位數）。
     Yr＝每一天之後的漲跌（只呈現，一段＝段內平均）。
     → {"up", "warn", "occ": [[第一天, 最後一天, 天數, 偏多, 警示, 最大回撤, 之後漲跌], …]}。"""
     pos = [i for i in range(len(samp)) if state[i]]
     occ = []
-    for ep in episodes(pos, gap):
+    for ep in episodes(pos, gap, brk):
         ts = samp[ep]
         u, w = Yu[ts], Yw[ts]
         m = ~np.isnan(u) & ~np.isnan(w)
@@ -428,7 +462,8 @@ def frame(mk: str, B: dict, I: dict, IB: dict | None = None, BX: dict | None = N
     rows = ((BX or {}).get(mk) or {}).get("_C", {}).get("rows") or []
     return {"mk": mk, "cal": cal, "px": px, "we": P.week_ends(cal), "vars": V, "cvars": CV, "comp": comp, "dims": dims,
             "ivars": inst_vars(cal, B) if mk == "tw" else [],
-            "deriv": DV, "deriv_words": dict(HS.DERIV_WORDS), "bub": rows, "IB": IB, "r0": recent_from(cal)}
+            "deriv": DV, "deriv_words": dict(HS.DERIV_WORDS), "bub": rows, "IB": IB, "r0": recent_from(cal),
+            "stale": sorted((B.get("stale") or {}).keys())}
 
 
 def frames(BT: dict | None = None, BA: dict | None = None, BX: dict | None = None) -> dict:
@@ -486,7 +521,40 @@ def _var_signals(F: dict, v: dict, cat: str) -> list[dict]:
         elif sg == "hot_out":
             sd["days"] = HDD.exits(xl, F["we"], S.EXIT_MIN)
         out.append(sd)
+    return _opposite(out, x, cat)
+
+
+def _opposite(out: list[dict], x: np.ndarray, cat: str) -> list[dict]:
+    """sigspec VER 20：0～100 的變數——狀態型加 "brk"（每個樣本是不是相反的極端，第 3.4 節分段用）、
+    事件型加 "exp"（之後出現就不再算現在有效的日子，第 5 節 EXPIRE_ON）。"""
+    if cat not in S.EP_BREAK_CATS:
+        return out
+    x = np.asarray(x, dtype=float)
+    ok = ~np.isnan(x)
+    cond = {"lt_cold": np.nonzero(ok & (np.nan_to_num(x, nan=50.0) < S.COLD))[0],
+            "ge_hot": np.nonzero(ok & (np.nan_to_num(x, nan=50.0) >= S.HOT))[0]}
+    ev = {sd["sig"]: np.asarray(sd["days"], dtype=np.int64) for sd in out if sd["kind"] == "event"}
+    for sd in out:
+        if sd["kind"] == "state" and sd["sig"] in S.EP_BREAK:
+            xs = x[np.asarray(sd["samp"], dtype=np.int64)]
+            sd["brk"] = (xs < S.COLD) if S.EP_BREAK[sd["sig"]] == "lt_cold" else (xs >= S.HOT)
+        elif sd["kind"] == "event" and sd["sig"] in S.EXPIRE_ON:
+            parts = [cond[c] if c in cond else ev.get(c, np.zeros(0, dtype=np.int64)) for c in S.EXPIRE_ON[sd["sig"]]]
+            sd["exp"] = np.unique(np.concatenate(parts)).astype(np.int64)
     return out
+
+
+def _sides(out: list[dict], side: dict) -> None:
+    """sigspec VER 20：成對的事件（技術事件 TECH_PAIRS、法人單日與連續 INST_SIDE）——另一邊的事件之後出現就不再算現在有效。
+    side＝{訊號 sig: 哪一邊}；同一邊的不算相反。"""
+    by: dict = {}
+    for sd in out:
+        if sd["sig"] in side:
+            by.setdefault(side[sd["sig"]], []).append(np.asarray(sd["days"], dtype=np.int64))
+    for sd in out:
+        if sd["sig"] in side:
+            other = [d for k, ds in by.items() if k != side[sd["sig"]] for d in ds]
+            sd["exp"] = np.unique(np.concatenate(other)).astype(np.int64) if other else np.zeros(0, dtype=np.int64)
 
 
 # ── 法人買賣超（sigspec VER 6 第 4.13 節） ─────────────────────────────────────
@@ -553,6 +621,7 @@ def inst_signals(F: dict) -> list[dict]:
         base = {"cat": "inst", "grp": v["who"], "var": f"{v['who']}1" if v["w"] == 1 else v["key"], "vn": v["name"],
                 "H": v["H"]}
         if v["w"] in S.INST_POS_WIN:
+            pos_out = []
             for sg in S.INST_VARIANTS:
                 sd = {**base, "id": f"{mk}:inst:{v['key']}:{sg}", "sig": sg, "name": f"{v['name']}・{S.INST_VARIANT_NAMES[sg]}",
                       "kind": "state" if sg in ("hot", "cold") else "event", "samp": samp}
@@ -568,21 +637,25 @@ def inst_signals(F: dict) -> list[dict]:
                     sd["days"] = HDD.exits(xl, F["we"], S.EXIT_MIN)
                 else:
                     sd["days"] = cold_exits(xl, F["we"], S.EXIT_MIN)
-                out.append(sd)
+                pos_out.append(sd)
+            out += _opposite(pos_out, x, "inst")
             continue
         hi, lo = S.INST_DAY
-        out.append({**base, "id": f"{mk}:inst:{v['key']}:day_sell", "sig": "day_sell", "kind": "event", "samp": samp,
+        day_out = []
+        day_out.append({**base, "id": f"{mk}:inst:{v['key']}:day_sell", "sig": "day_sell", "kind": "event", "samp": samp,
                     "name": f"{v['name']}・單日大賣（過去 3 年賣超最多的 5%）", "days": [int(t) for t in samp if x[t] >= hi]})
-        out.append({**base, "id": f"{mk}:inst:{v['key']}:day_buy", "sig": "day_buy", "kind": "event", "samp": samp,
+        day_out.append({**base, "id": f"{mk}:inst:{v['key']}:day_buy", "sig": "day_buy", "kind": "event", "samp": samp,
                     "name": f"{v['name']}・單日大買（過去 3 年買超最多的 5%）", "days": [int(t) for t in samp if x[t] <= lo]})
         amt = np.asarray(v["amt"], dtype=float)
         sa = np.nonzero(~np.isnan(amt))[0]
         who = S.INST_NAMES[v["who"]]
         for sign, tag, word in ((-1, "sell", "賣超"), (1, "buy", "買超")):
             for n in S.INST_RUN:
-                out.append({**base, "H": S.INST_H["run"], "id": f"{mk}:inst:{v['key']}:{tag}_run{n}", "sig": f"{tag}_run{n}",
-                            "kind": "event", "samp": sa, "name": f"{v['name']}・{who}連續 {n} 天{word}",
-                            "days": run_days(amt, sign, n)})
+                day_out.append({**base, "H": S.INST_H["run"], "id": f"{mk}:inst:{v['key']}:{tag}_run{n}", "sig": f"{tag}_run{n}",
+                                "kind": "event", "samp": sa, "name": f"{v['name']}・{who}連續 {n} 天{word}",
+                                "days": run_days(amt, sign, n)})
+        _sides(day_out, S.INST_SIDE)                    # VER 20：另一邊（買超／賣超）的事件之後出現就不再算現在有效
+        out += day_out
     return out
 
 
@@ -658,9 +731,15 @@ def signals(F: dict) -> list[dict]:
     # 技術事件
     ev = TT.all_events([None if _nan(p) else float(p) for p in px])
     samp = np.arange(S.EV_START, T)
-    for k, nm in HS.EVENTS.items():
-        out.append({"id": f"{mk}:tech:{k}", "cat": "tech", "grp": "tech", "var": k, "vn": nm, "sig": "ev", "name": nm,
-                    "kind": "event", "H": S.H_TECH, "samp": samp, "days": [t for t in ev[k] if t >= S.EV_START]})
+    tech = [{"id": f"{mk}:tech:{k}", "cat": "tech", "grp": "tech", "var": k, "vn": nm, "sig": "ev", "name": nm,
+             "kind": "event", "H": S.H_TECH, "samp": samp, "days": [t for t in ev[k] if t >= S.EV_START]}
+            for k, nm in HS.EVENTS.items()]
+    days = {sd["var"]: sd["days"] for sd in tech}
+    for a, b in S.TECH_PAIRS:                           # VER 20：成對的另一個之後出現就不再算現在有效
+        for sd in tech:
+            if sd["var"] in (a, b):
+                sd["exp"] = np.unique(np.asarray(days.get(b if sd["var"] == a else a, []), dtype=np.int64))
+    out += tech
     # 邊際變化
     for v in F["deriv"]:
         samp = np.nonzero(v["have"])[0]
@@ -717,7 +796,7 @@ def cross_stats(F: dict, sd: dict, Ycache: dict) -> dict:
             R = ev_stat(sd["days"], Yu, Yw, samp, H, r0)
         else:
             gap = 1 if sd.get("monthly") else S.EP_GAP
-            R = st_stat(np.asarray(sd["state"], dtype=bool), samp, Yu, Yw, gap, r0)
+            R = st_stat(np.asarray(sd["state"], dtype=bool), samp, Yu, Yw, gap, r0, brk=sd.get("brk"))
         out[k] = {"H": H, "th": warn_th(mk, H), "up": _small(R["up"]), "warn": _small(R["warn"])}
     return out
 
@@ -737,17 +816,19 @@ def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
     if "ra" not in Ycache:
         Ycache["ra"] = ret_arrays(F["px"])
     RA = Ycache["ra"]
+    skip = None
     if sd["kind"] == "event":
         R = ev_stat(sd["days"], Yu, Yw, samp, H, r0, Yd, Yr)
         occ = [[cal[t], int(u), int(w), d, r] for t, u, w, d, r in R["occ"]]
         ok = set(int(i) for i in samp)
         ret = _ret_flat(np.asarray(dedupe([t for t in sd["days"] if t in ok], H), dtype=np.int64), RA)
+        skip = skipped(sd["days"], ok, H, Yu, cal)
     else:
         gap = 1 if sd.get("monthly") else S.EP_GAP
         state = np.asarray(sd["state"], dtype=bool)
-        R = st_stat(state, samp, Yu, Yw, gap, r0, Yd, Yr)
+        R = st_stat(state, samp, Yu, Yw, gap, r0, Yd, Yr, brk=sd.get("brk"))
         occ = [[cal[a], cal[z], n, u, w, d, r] for a, z, n, u, w, d, r in R["occ"]]
-        ret = ret_stats([samp[ep] for ep in episodes([i for i in range(len(samp)) if state[i]], gap)], RA)
+        ret = ret_stats([samp[ep] for ep in episodes([i for i in range(len(samp)) if state[i]], gap, sd.get("brk"))], RA)
     ret["bk"] = ret_base(samp, RA, Ycache.setdefault("bases", {}), mk)
     LP = LK.market_p(sd, Yu, Yw, r0, R)                 # 打亂日子測試（VER 9；VER 17 起只呈現）
     cell = ret_at(ret, H)
@@ -762,6 +843,8 @@ def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
     row.update({"mk": mk, "th": warn_th(mk, H), "a": cal[int(samp[0])] if len(samp) else None,
                 "z": cal[int(samp[-1])] if len(samp) else None, "up": dirs["up"], "warn": dirs["warn"],
                 "tier": tr, "dir": ds, "occ": occ, "ret": ret})
+    if skip:
+        row["skip"] = skip
     if sd.get("monthly"):
         row["monthly"] = True
     xh = cross_stats(F, sd, Ycache)
@@ -1139,8 +1222,9 @@ def activity(sd: dict, T: int, H: int | None = None) -> np.ndarray:
         a[samp[np.asarray(sd["state"], dtype=bool)]] = True
     else:
         H = sd["H"] if H is None else H
-        for t in sd["days"]:
-            a[int(t):int(t) + H] = True
+        D = np.asarray(sd["days"], dtype=np.int64)
+        for t, e in zip(D.tolist(), exp_end(sd, D, H).tolist()):   # VER 20：相反的讀數出現就不再算
+            a[t:e] = True
     return a
 
 
@@ -1149,8 +1233,21 @@ def xkey(sid: str, k: str) -> str:
     return f"{sid}@{k}"
 
 
+def trade_dates(mk: str, cal: list[str], t: int, H: int) -> dict:
+    """訊號第 t 天 → 照規則的那一筆交易（sigspec 第 2 節）：第 t＋LAG 天收盤進場、第 t＋LAG＋H 天收盤出場；
+    超過資料最後一天的日子用休市表往後推（xstrat.future_days）。→ {"buy", "sell", "rem": 出場前還有幾個交易日（今天＝資料最後一天）}。"""
+    from . import xstrat as XS
+    T = len(cal)
+    e, z = t + S.LAG, t + S.LAG + H
+    need = z - (T - 1)
+    fut = XS.future_days(mk, cal[-1], need) if need > 0 else []
+    at = lambda i: cal[i] if i <= T - 1 else fut[i - T]   # noqa: E731
+    return {"buy": at(e), "sell": at(z), "rem": max(0, z - (T - 1))}
+
+
 def now_market(F: dict, acts: dict | None = None, xon: dict | None = None) -> dict:
-    """一個市場 → {訊號 id: {"since": 開始日, "n": 已經幾天（月資料＝幾個月）, "left": 事件型剩幾天}}，只列現在有效的。
+    """一個市場 → {訊號 id: {"since": 開始日, "n": 已經幾天（月資料＝幾個月）, "left": 事件型剩幾天,
+    "buy"／"sell"／"rem"：照規則的那一筆交易（trade_dates；狀態型＝今天看到、下一個交易日收盤進場）}}，只列現在有效的。
     狀態型＝資料最後一天在狀態中（月資料＝最後一個過完的月份）；事件型＝最近一次出現在最後 H 個交易日內；
     買點＝目前一段大跌（bottom.now 進行中）之後已經出現。acts＝給了就順便填現在有效的訊號過去出現的日子（同類合併用）。
     xon＝給了就填跨期間（sigspec 第 5 節 ③a，VER 15）：{訊號 id: {溫度計: 同上的現在狀態}}，只列原本那個看多久以外、現在有效的；
@@ -1158,7 +1255,12 @@ def now_market(F: dict, acts: dict | None = None, xon: dict | None = None) -> di
     cal = F["cal"]
     T = len(cal)
     out: dict = {}
+    stale = set(F.get("stale") or ())                  # VER 20：資料過期的項目不算現在有效
+    mk = F.get("mk")
+    trd = (lambda t, H: trade_dates(mk, cal, t, H)) if mk else (lambda t, H: {})   # noqa: E731（沒有市場代號＝不排交易日）
     for sd in signals(F):
+        if stale and sd["cat"] in ("heat", "deriv") and sd.get("var") in stale:
+            continue
         samp = np.asarray(sd["samp"], dtype=np.int64)
         xs = ([(k, H) for k, H in S.THERMO_H.items() if H != sd["H"]]
               if xon is not None and sd["cat"] in S.THERMO_X_CATS else [])
@@ -1169,17 +1271,20 @@ def now_market(F: dict, acts: dict | None = None, xon: dict | None = None) -> di
             if not sd.get("monthly") and samp[-1] != T - 1:
                 continue
             gap = 1 if sd.get("monthly") else S.EP_GAP
-            ep = episodes([i for i in range(len(samp)) if st[i]], gap)[-1]
-            out[sd["id"]] = {"since": cal[int(samp[ep[0]])], "n": len(ep)}
-            for k, _ in xs:                              # 狀態型：現在有效、出現的日子都和原本一樣
-                xon.setdefault(sd["id"], {})[k] = dict(out[sd["id"]])
+            ep = episodes([i for i in range(len(samp)) if st[i]], gap, sd.get("brk"))[-1]   # VER 20：遇到相反的極端就是新的一段
+            out[sd["id"]] = {"since": cal[int(samp[ep[0]])], "n": len(ep), **trd(T - 1, sd["H"])}
+            for k, H in xs:                              # 狀態型：現在有效、出現的日子都和原本一樣（交易照那支溫度計的看多久）
+                xon.setdefault(sd["id"], {})[k] = {**out[sd["id"]], **trd(T - 1, H)}
         else:
             ds = [t for t in sd["days"] if t >= (samp[0] if len(samp) else 0)]
-            if ds and T - 1 - ds[-1] < sd["H"]:
-                out[sd["id"]] = {"since": cal[ds[-1]], "n": T - 1 - ds[-1], "left": sd["H"] - (T - 1 - ds[-1])}
+            alive = bool(ds) and int(exp_end(sd, [ds[-1]], T)[0]) >= T   # VER 20：之後出現相反的讀數就不再算
+            if alive and T - 1 - ds[-1] < sd["H"]:
+                out[sd["id"]] = {"since": cal[ds[-1]], "n": T - 1 - ds[-1], "left": sd["H"] - (T - 1 - ds[-1]),
+                                 **trd(ds[-1], sd["H"])}
             for k, H in xs:
-                if ds and T - 1 - ds[-1] < H:
-                    xon.setdefault(sd["id"], {})[k] = {"since": cal[ds[-1]], "n": T - 1 - ds[-1], "left": H - (T - 1 - ds[-1])}
+                if alive and T - 1 - ds[-1] < H:
+                    xon.setdefault(sd["id"], {})[k] = {"since": cal[ds[-1]], "n": T - 1 - ds[-1], "left": H - (T - 1 - ds[-1]),
+                                                       **trd(ds[-1], H)}
         if acts is not None and sd["id"] in out:
             acts[sd["id"]] = activity(sd, T)
         if acts is not None and xon is not None:
@@ -1195,8 +1300,10 @@ def now_market(F: dict, acts: dict | None = None, xon: dict | None = None) -> di
             sigs = {"B1": {"st": "on", "d": a["t"]}, "W10": a.get("w10") or {}, **(a.get("sig") or {})}
             for k, v in sigs.items():
                 if v.get("st") == "on":
+                    j = bisect.bisect_left(cal, v["d"])
+                    tr = trd(j, S.H_BUY) if j < T and cal[j] == v["d"] else {}
                     for ev in evs:
-                        out[f"{F['mk']}:buy:{ev}:{k}"] = {"since": v["d"], "event": a["t"]}
+                        out[f"{F['mk']}:buy:{ev}:{k}"] = {"since": v["d"], "event": a["t"], **tr}
     return out
 
 

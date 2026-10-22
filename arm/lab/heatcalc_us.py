@@ -46,8 +46,17 @@ EMINI = 5                         # E-mini S&P 500 一口＝大型契約 1/5
 
 def load() -> dict:
     D = {n: HD.load(n) for n in FILES}
+    D["us_bls"] = fill_bls(D.get("us_bls") or {})        # VER 2：2025-10 政府停擺缺一個月
     D["tsmc"] = tsmc_rev()
     return D
+
+
+def fill_bls(bls: dict) -> dict:
+    """勞工統計局月資料 {YYYY-MM: [失業率, CPI, 核心 CPI]}：每一欄連續缺 ≤ GAP_FILL_MAX 個月用前後兩個月內插
+    （失業率算術、CPI 與核心 CPI 幾何；heatspec_us VER 2）。"""
+    cols = [H.fill_gaps({k: (v[j] if v and len(v) > j else None) for k, v in bls.items()}, U.GAP_FILL_MAX, geo=j > 0)
+            for j in range(3)]
+    return {k: [c.get(k) for c in cols] for k in sorted(set().union(*cols))}
 
 
 def tsmc_rev() -> dict:

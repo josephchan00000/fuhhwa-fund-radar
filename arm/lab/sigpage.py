@@ -297,7 +297,7 @@ def page_json(V: dict) -> str:
         if "live" in v:
             on[k] = {"live": len(v["live"])}
         else:
-            on[k] = {kk: v[kk] for kk in ("since", "n", "left", "event") if kk in v}
+            on[k] = {kk: v[kk] for kk in ("since", "n", "left", "event", "buy", "sell", "rem") if kk in v}
     keys: dict = {}
     out = {"rows": [_row(r, keys) for r in V["rows"]], "on": on, "mk": MK_NAMES, "cat": G.CAT_NAMES,
            "asof": V["asof"], "tiers": {t: [S.TIER_MARK[t], S.TIER_NAMES[t]] for t in S.TIERS},
@@ -359,8 +359,9 @@ def detail_json(V: dict) -> str:
     nm = {**(store.read_json("names_hist.json", {}) or {}), **(store.read_json("names_mkt.json", {}) or {}),
           **(store.read_json("names.json", {}) or {})}
     live = {r["id"]: r["live"] for r in V["rows"] if r.get("live")}
-    return json.dumps({"occ": occ, "names": {c: nm[c] for c in sorted(codes) if c in nm}, "live": live, "ret": ret, "rb": rb},
-                      ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    skip = {r["id"]: r["skip"] for r in V["rows"] if r.get("skip")}   # 出現了但沒算進次數的（docs/lab_audit_plan.md 第 3.4 節）
+    return json.dumps({"occ": occ, "names": {c: nm[c] for c in sorted(codes) if c in nm}, "live": live, "ret": ret, "rb": rb,
+                       "skip": skip}, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 # ── 頁面 ───────────────────────────────────────────────────────────────────
@@ -451,11 +452,17 @@ def _dy(d: str | None, ref: str | None) -> str:
 
 
 def _since(n: dict, ref: str | None = None) -> str:
+    """現在成立的那一筆（docs/lab_audit_plan.md 第 3.5 節）：哪天出現（成立）、照規則哪天收盤進場、持有到哪天
+    （sigcat.trade_dates；成績就是這樣算的：事件型＝出現隔天收盤進場，狀態型＝今天看到、下一個交易日收盤進場）。"""
+    tr = f'・{_dy(n["buy"], ref)} 收盤進場、持有到 {_dy(n["sell"], ref)}' if n.get("buy") and n.get("sell") else ""
     if n.get("left") is not None:
-        return f'{_dy(n["since"], ref)} 出現，還看 {n["left"]} 天'
+        if not tr:
+            return f'{_dy(n["since"], ref)} 出現，還看 {n["left"]} 天'
+        rem = f'（還有 {n["rem"]} 個交易日）' if n.get("rem") is not None else ""
+        return f'{_dy(n["since"], ref)} 出現{tr}{rem}'
     if n.get("event"):
-        return f'{_dy(n["since"], ref)} 出現'
-    return f'{_dy(n["since"], ref)} 起'
+        return f'{_dy(n["since"], ref)} 出現{tr}'
+    return f'{_dy(n["since"], ref)} 起成立{tr}'
 
 
 def _today_li(r: dict, ref: str | None) -> str:
@@ -593,8 +600,15 @@ def method_html(luck: dict | None = None) -> str:
             f'<dt>近 10 年也成立嗎</dt><dd>只看最近 10 年：✓ 機率過了門檻（偏多 ≥ {S.HIT_MIN["up"] * 100:.0f}%、警示 ≥ {S.HIT_MIN["warn"] * 100:.0f}%），'
             f'也不比近 10 年隨便挑一天差；△ 兩條只過一條；✗ 都沒過；— 近 10 年不到 {S.RECENT_N} 次，不看。'
             f'個股訊號照舊：✓ 多 {S.EDGE_GOOD * 100:.0f} 個百分點以上、△ 多 {S.EDGE_REF * 100:.0f} 個百分點以上。</dd>'
-            '<dt>出現過幾次</dt><dd>事件型（例：跌破季線）出現那天算一次，之後看多久的期間內再出現不算新的一次；狀態型（例：過熱中）'
-            '連續的一段算一次，機率是每一段先算、再平均。</dd>'
+            '<dt>出現過幾次</dt><dd>事件型（例：跌破季線）出現那天算一次，之後看多久的期間內再出現不算新的一次（之後的漲跌和前一次重疊，'
+            '算同一次；指標頁的「最近幾次」與走勢圖用灰色標出這些沒算進去的）；狀態型（例：過熱中）連續的一段算一次，'
+            '中間短暫中斷（不到 20 個交易日）還算同一段，但中斷時如果到過相反的極端（例：過冷中間變過熱）就是兩段。機率是每一段先算、再平均。</dd>'
+            '<dt>持有多久、哪天進場</dt><dd>機率與報酬都是「訊號出現隔一個交易日收盤進場、持有看多久那麼久（1 個月＝20 個交易日、'
+            '3 個月＝60、12 個月＝250）」算的。現在成立的訊號寫出照規則的那一筆：事件型＝出現隔天收盤進場、持有到哪一天；'
+            '狀態型＝今天看到、下一個交易日收盤進場、持有到哪一天。事件出現幾天之後才進場，不是這筆成績。</dd>'
+            '<dt>現在成立</dt><dd>狀態型＝最新一天還在狀態中；事件型＝出現之後還在看多久的期間內，而且同一個項目之後沒有出現相反的讀數'
+            '（例：RSI 進入過熱之後又變過冷，進入過熱就不算現在成立；站回月線之後又跌破月線，站回月線就不算）。'
+            '資料停住沒更新的項目（照公布時程應該已經有新資料卻沒有）不算現在成立。</dd>'
             f'<dt>打亂日子測試（亂排 X%）</dt><dd>把這個訊號出現的日子整段挪到別的時間（保留它自己出現的節奏，只打斷和之後漲跌的對應），亂排 {S.LUCK_DRAWS} 次，'
             '看有多少比例做得到一樣高的機率——比例越小，越不像運氣。2026-10-22 起只當參考、不參與判定（個股訊號照舊參與）。'
             '大跌後買點與個股偏多訊號是和同一批事件的對照比，改成在每一次事件裡隨機對調「訊號」和「對照」的結果。'
@@ -818,6 +832,8 @@ CSS = """
 .sgchart .bd{fill:var(--acc)}.sgchart .bdn{fill:var(--acc);fill-opacity:.12;stroke:var(--acc);stroke-dasharray:3 3;stroke-width:1}
 .sgchart .mk{fill:var(--panel);stroke:var(--t3);stroke-width:1.6}.sgchart .mk.y{fill:var(--t3)}
 .sgchart .mk.now{fill:none;stroke:var(--ink);stroke-width:2}
+.sgchart .mk.sk{fill:none;stroke:var(--mut);stroke-width:1.2;stroke-dasharray:2 1.5}
+.sgrt tr.sk td{color:var(--mut);font-size:12px;white-space:normal}
 .sgchart .hv{stroke:var(--ink2);stroke-width:1;stroke-dasharray:2 2}.sgchart .hit{fill:transparent;cursor:crosshair}
 .sghint{display:block;color:var(--ink);font-weight:600;margin-bottom:2px}
 .sgmore2{font:inherit;font-size:12px;margin-left:6px;padding:1px 8px;border:1px solid var(--acc);border-radius:7px;background:var(--accbg);color:var(--ink);cursor:pointer}
@@ -922,9 +938,10 @@ function hz(r){ const c = r[I.cat]; if (c === 'buy') return '3 個月'; if (c ==
 function nowTxt(r){ const n = ON[r[I.id]]; if (!n) return '';
   if (n.xs != null) return n.xs;
   if (n.live != null) return '今天 ' + n.live + ' 檔';
-  if (n.left != null) return mdy(n.since) + ' 出現・還看 ' + n.left + ' 天';
-  if (n.event) return mdy(n.since) + ' 出現';
-  return mdy(n.since) + ' 起'; }
+  const tr = n.buy && n.sell ? '・' + mdy(n.buy) + ' 收盤進場、持有到 ' + mdy(n.sell) : '';
+  if (n.left != null) return mdy(n.since) + ' 出現' + (tr ? tr + (n.rem != null ? '（還有 ' + n.rem + ' 個交易日）' : '') : '・還看 ' + n.left + ' 天');
+  if (n.event) return mdy(n.since) + ' 出現' + tr;
+  return mdy(n.since) + ' 起成立' + tr; }
 function label(r){ const nm = r[I.name];
   if (['heat','deriv','crash','buy','ind','inst'].includes(r[I.cat])) { const i = nm.lastIndexOf('・'); return i >= 0 ? nm.slice(i + 1) : nm; }
   return nm; }
@@ -1301,20 +1318,29 @@ function recHtml(r, oc){
   const c = r[I.cat];
   if (!['heat', 'deriv', 'crash', 'multi', 'scen', 'tech', 'bub'].includes(c)) return occHtml(r, oc);
   const d = r[I.dir][0], x = CUR, J = x ? CJ[x.mk] : null, ck = x ? sck(x) : null, ev = r[I.kind] === 'event';
-  const mo = (r[I.x] || {}).monthly, h = hz(r), list = oc.slice(-12).reverse();
+  const sk = ev && OCC && OCC.skip ? OCC.skip[r[I.id]] || [] : [];
+  const mo = (r[I.x] || {}).monthly, h = hz(r);
+  const list = (ev ? oc.map(o => ({o})).concat(sk.map(k => ({k}))).sort((a, b) => (a.o ? a.o[0] : a.k[0]) < (b.o ? b.o[0] : b.k[0]) ? -1 : 1)
+    : oc.map(o => ({o}))).slice(-12).reverse();
   const vv = dt => { const v = valAt(J, ck, dt); return v == null ? '<span class="mu">—</span>' : '<span class="zt' + zi(v) + '">' + Math.round(v) + '</span>'; };
   const cls = v => v == null || isNaN(v) ? '' : v >= 0 ? ' class="up"' : ' class="dn"';
   const head = '<thead><tr><th class="l">' + (ev ? '出現日' : '期間') + '</th>' + (ck ? '<th>當時 0～100</th>' : '') + '<th>之後 ' + esc(h) + '漲跌</th>' +
     '<th>期間最大回撤 ' + ii('dd') + '</th><th>' + (ev ? (d === 'warn' ? '大跌' : '上漲') : (d === 'warn' ? '大跌的比例' : '上漲的比例')) + '</th></tr></thead>';
-  const body = list.map(o => {
+  const body = list.map(e => { const o = e.o;
+    if (e.k) return '<tr class="sk"><td class="l">' + ymd(e.k[0]) + '</td><td colspan="' + (ck ? 4 : 3) + '" class="l">' +
+      (e.k[1] === 'd' ? '沒算進次數：和 ' + ymd(e.k[2]) + ' 那次相隔不到' + esc(h) + '（之後的漲跌重疊，算同一次）' : '之後' + esc(h) + '還沒走完，還沒算') + '</td></tr>';
     if (ev) { const hit = d === 'warn' ? o[2] : o[1];
       return '<tr><td class="l">' + ymd(o[0]) + '</td>' + (ck ? '<td>' + vv(o[0]) + '</td>' : '') + '<td' + cls(o[4]) + '>' + sp1(o[4]) + '</td><td>' + p1(o[3]) + '</td>' +
         '<td>' + (hit ? '✓' : '<span class="mu">✗</span>') + '</td></tr>'; }
     const j = d === 'warn' ? 4 : 3;
     return '<tr><td class="l">' + ymd(o[0]) + (o[1] !== o[0] ? '～' + ymd(o[1]) : '') + '<small>' + o[2] + (mo ? ' 個月' : ' 天') + '</small></td>' +
       (ck ? '<td>' + vv(o[0]) + '</td>' : '') + '<td' + cls(o[6]) + '>' + sp1(o[6]) + '</td><td>' + p1(o[5]) + '</td><td>' + Math.round(o[j] * 100) + '%</td></tr>'; }).join('');
-  return '<div class="sgwrap"><table class="sgrt">' + head + '<tbody>' + body + '</tbody></table></div>' +
-    '<p class="note">共 ' + oc.length + (ev ? ' 次，列最近 12 次；還在觀察期內的不列' : ' 段，列最近 12 段；漲跌、最大回撤、比例是這一段每一天的平均，還在觀察期內的日子不算') + '。' +
+  const nd = sk.filter(k => k[1] === 'd').length, ni = sk.length - nd;
+  const cnt = ev ? '<p class="note">一共出現 ' + (oc.length + sk.length) + ' 次，算進次數 ' + oc.length + ' 次' +
+    (nd ? '；' + nd + ' 次和前一次算進去的相隔不到' + esc(h) + '（之後的漲跌和那一次重疊，算同一次，灰色）' : '') +
+    (ni ? '；' + ni + ' 次之後' + esc(h) + '還沒走完（灰色）' : '') + '。</p>' : '';
+  return cnt + '<div class="sgwrap"><table class="sgrt">' + head + '<tbody>' + body + '</tbody></table></div>' +
+    '<p class="note">' + (ev ? '列最近 12 次（含沒算進次數的）' : '共 ' + oc.length + ' 段，列最近 12 段；漲跌、最大回撤、比例是這一段每一天的平均，還在觀察期內的日子不算') + '。' +
     (ck ? '「當時 0～100」是' + (ev ? '出現' : '開始') + '那一天的值（一年以前的用那一週）。' : '') + '</p>'; }
 function fillSel(){ const r = SEL, box = document.getElementById('sgrec'); if (!r || !box) return;
   document.getElementById('sgsel').textContent = label(r);
@@ -1468,6 +1494,10 @@ function drawChart(){
       g += '<path class="lp" d="' + pathOf(S.px.map(p => p > 0 ? p : null), X, Y2) + '"/>';
       g += '<text class="ax" x="' + (L + 2) + '" y="' + (T + H1 + G - 5) + '">' + esc(SG.pxn[x.mk] || '') + '</text>';
     }
+    const skl = ev && r && OCC && OCC.skip ? OCC.skip[r[I.id]] || [] : [];
+    skl.forEach(k => { const i = idxOf(S.d, k[0]); if (i < 0 || (i === n - 1 && S.d[n - 1] < k[0]) || k[0] < S.d[0]) return;
+      const v = po ? null : S.v[i], cy = v != null ? Y1(v) : ypx(i);
+      g += '<circle class="mk sk" cx="' + X(i).toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="2.6"/>'; });
     if (oc && ev) oc.forEach(o => { const i = idxOf(S.d, o[0]); if (i < 0 || (i === n - 1 && S.d[n - 1] < o[0]) || o[0] < S.d[0]) return;
       const v = po ? null : S.v[i], hit = d0 === 'warn' ? o[2] : o[1], cy = v != null ? Y1(v) : ypx(i);
       g += '<circle class="mk' + (hit ? ' y' : '') + '" cx="' + X(i).toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="3.6"/>'; });
@@ -1496,7 +1526,7 @@ function drawChart(){
       (VIEW.span !== 'all' ? '<button type="button" class="sgmore2" data-span="' + (VIEW.span === '1y' ? '5y' : 'all') + '">看' + (VIEW.span === '1y' ? '近 5 年' : '全部') + '</button>' : '') + '</span>' : '';
     document.getElementById('sgleg').innerHTML = hint + esc((po ? '線＝' + (SG.pxn[x.mk] || '') + '（對數）。' :
       '上＝' + x.name + (S.raw ? '（原始值）' : '（0～100，虛線＝80 過熱、20 過冷）') + '；下＝' + (SG.pxn[x.mk] || '') + '（對數）。') +
-      (r ? (ev ? '點＝' + evw + '：實心＝之後' + hitw + '（中了）、空心＝沒中' + (on ? '、大圈＝這一次（還在觀察）' : '') + '。'
+      (r ? (ev ? '點＝' + evw + '：實心＝之後' + hitw + '（中了）、空心＝沒中' + (skl.length ? '、灰色小虛線圈＝出現了但沒算進次數（和前一次相隔太近，或還沒走完）' : '') + (on ? '、大圈＝這一次（還在觀察）' : '') + '。'
         : '色帶＝「' + lab + '」的期間，越深＝那一段之後' + hitw + '的比例越高' + (on ? '；虛線框＝現在這一段（還在觀察）' : '') + '。') : '') +
       (OCC ? '' : '（訊號的日子載入中）')); }); }
 let rzT = null;
