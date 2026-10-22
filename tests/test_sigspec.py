@@ -6,7 +6,8 @@ VER 8 同日判定改用打折後的機率、運氣檢查、同類合併，docs/
 VER 10，2026-10-21，大跌後買點改看實際報酬，docs/lab_expert_plan.md 第 9 節；VER 13 同日，落底訊號跟著 bottomspec VER 4 多三個；
 VER 14，2026-10-22，次數少的訊號打亂測試門檻放寬到 10%，docs/lab_noise_plan.md 第 13 節；VER 15 同日，溫度計三個看多久都算，同文件第 14 節；VER 16 同日，溫度計下面加「過去讀數這樣的時候」，同文件第 14.10 節；
 VER 17 同日，判定改看絕對成績、次數少的另列難得機會、報酬加排除極端，docs/lab_practical_plan.md；VER 18 同日，「預估之後」，同文件第 10 節；
-VER 19 同日，「預估之後」的報酬留下來的比例改用平均量，同文件第 10.5 節）。
+VER 19 同日，「預估之後」的報酬留下來的比例改用平均量，同文件第 10.5 節；
+VER 20 同日，資料與訊號盤查：一段遇到相反的極端就切開、最新的讀數取代舊的事件、資料過期的項目不算現在成立，docs/lab_audit_plan.md）。
 要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import analyze as AN
 from arm.lab import backtest as BT
@@ -19,7 +20,7 @@ from arm.lab import sigspec as X
 
 
 def test_sig_spec_v1_is_locked():
-    assert X.VER == 19 and X.SPEC_DATE == "2026-10-22"
+    assert X.VER == 20 and X.SPEC_DATE == "2026-10-22"
     assert BS.VER == 4 and "C9" in BS.SIG_MK["tw"] and "C8" in BS.SIG_MK["spx"]   # VER 13：大跌後買點的規則跟著 bottomspec VER 4
     assert X.H_BUY == 60                                                  # VER 10：大跌後買點看買進後 3 個月有沒有漲
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
@@ -54,7 +55,7 @@ def test_sig_spec_v1_is_locked():
     # VER 17（使用者選「溫度計照新的 ★ 算」）：★ 2、◆ 1、△ 0.5；△＝勝率門檻過了但沒過完整的判定（THERMO_EDGE 只留給 VER 12～16 的紀錄）
     assert X.THERMO_W == {"good": 2, "rare": 1, "lean": 0.5} and X.THERMO_EDGE == 0.05 == X.EDGE_REF
     assert X.THERMO_MARK == {"good": "★", "rare": "◆", "lean": "△"} and set(X.THERMO_NAMES) == set(X.THERMO_W)
-    assert X.RES_VER == 17                                          # VER 17 改了判定與報酬欄位，研究檔要重跑
+    assert X.RES_VER == 20                                          # VER 17 改了判定與報酬欄位、VER 20 改了分段，研究檔要重跑
     assert [k for k, *_ in X.THERMO_HZ] == ["short", "mid", "long"]
 
 
@@ -136,16 +137,16 @@ def test_sig_spec_v15_thermometer_all_horizons_is_locked():
     assert X.THERMO_H["short"] == X.H_TECH and X.THERMO_H["mid"] == X.H_CRASH == X.H_DERIV == X.H_SCEN and X.THERMO_H["long"] == X.H_BUB
     assert X.THERMO_X_CATS == ("heat", "crash", "multi", "scen", "inst", "tech", "deriv", "bub")
     assert "buy" not in X.THERMO_X_CATS and "ind" not in X.THERMO_X_CATS            # 大跌後買點、產業泡沫不跨期間
-    assert X.THERMO_W["lean"] == 0.5 and X.N_MIN == 5 and X.RES_VER == 17              # VER 17 起跨期間的票＝勝率門檻過了
+    assert X.THERMO_W["lean"] == 0.5 and X.N_MIN == 5 and X.RES_VER == 20              # VER 17 起跨期間的票＝勝率門檻過了
 
 
 def test_sig_spec_v16_thermometer_calibration_is_locked():
     """VER 16（2026-10-22，docs/lab_noise_plan.md 第 14.10 節）：溫度計下面加「過去讀數這樣的時候」——逐年滾動（不偷看之後）的票數、
     和自己的過去 10 年比的位置、過去同一組的週之後怎麼走；只是描述，判定與溫度計的算法都不變。"""
-    assert X.CAL_VER == 17 and (X.CAL_WARM_Y, X.CAL_MIN_SAMP) == (10, 50)              # VER 17 投票規則改了，研究檔重跑
+    assert X.CAL_VER == 20 and (X.CAL_WARM_Y, X.CAL_MIN_SAMP) == (10, 50)              # VER 17 投票規則、VER 20 分段與事件失效改了，研究檔重跑
     assert (X.CAL_RANK_W, X.CAL_RANK_MIN, X.CAL_TERC) == (520, 260, (1 / 3, 2 / 3))
     assert (X.CAL_BLOCK, X.CAL_DRAWS, X.CAL_SEED, X.CAL_MIN_WEEKS) == (52, 1000, 20261022, 104)
-    assert X.N_MIN == 5 and X.RES_VER == 17                                          # 投票規則同 △（VER 17：勝率門檻過了）
+    assert X.N_MIN == 5 and X.RES_VER == 20                                          # 投票規則同 △（VER 17：勝率門檻過了）
 
 
 def test_sig_spec_v17_absolute_judgment_is_locked():
@@ -157,14 +158,14 @@ def test_sig_spec_v17_absolute_judgment_is_locked():
     assert {mk: X.ABS_COST[mk] for mk in XS.COST} == XS.COST and X.ABS_COST["us"] == XS.COST["spx"]   # 成本同總經策略
     assert (X.TRIM_Q, X.TRIM_N) == (0.05, 20) == (XS.DIP_TRIM_Q, XS.DIP_TRIM_N)
     assert XS.VER == 6 and XS.DIP_WIN == 0.60 and XS.DIP_N_MIN == 5
-    assert X.RES_VER == X.CAL_VER == 17 and X.VER >= 17
+    assert X.RES_VER == X.CAL_VER == 20 and X.VER >= 17           # VER 20 分段改了，兩個研究檔重跑
     assert X.THERMO_W == {"good": 2, "rare": 1, "lean": 0.5} and X.THERMO_NAMES["lean"] == "勝率過了"
 
 
 def test_sig_spec_v18_forward_estimate_is_locked():
     """VER 18（2026-10-22，docs/lab_practical_plan.md 第 10 節）：「預估之後」＝逐年樣本外的衰退表（方向 × 看多久 × 次數 × 過去的優勢），
     預估之後的命中率＝平常 ＋ k ×（命中率 − 平常）、多賺＝k_r ×（報酬中位數 − 平常的報酬中位數），k 截在 0～1；只呈現，判定與研究檔不變。"""
-    assert X.VER == 19 and X.FWD_VER == 19 and X.RES_VER == 17 and X.CAL_VER == 17   # sig_research.json、thermo_research.json 不重跑
+    assert X.VER >= 19 and X.FWD_VER == 20 and X.RES_VER == 20 and X.CAL_VER == 20   # VER 18～19 只動 sigoos；VER 20 分段改了，三個都重跑
     # VER 19：報酬留下來的比例改用平均量（次數少時中位數的期望值比全部日子的中位數低，VER 18 的之後多賺系統性偏低）
     assert X.FWD_NB == (15, 40) and X.FWD_NB[0] == X.STAR_N                         # 5～14（難得機會）、15～39、40 以上
     assert X.FWD_EB == (0.0, 0.05, 0.10, 0.20)
@@ -173,6 +174,26 @@ def test_sig_spec_v18_forward_estimate_is_locked():
     assert (X.CAL_WARM_Y, X.CAL_MIN_SAMP, X.N_MIN, X.RECENT_YEARS) == (10, 50, 5, 10)   # 逐年滾動、訓練樣本日下限同 thermocal
     assert X.H_BUY == 60
 
+
+
+def test_sig_spec_v20_audit_is_locked():
+    """VER 20（2026-10-22，docs/lab_audit_plan.md；資料與訊號盤查，使用者選「最新的取代舊的」）：①狀態型的一段，中斷的日子裡到過相反的極端
+    就切開；②事件出現之後同一個項目出現相反的讀數就不算現在有效（成績不變）；③資料過期的項目不算現在有效（heatspec VER 10、heatspec_us VER 2）。"""
+    assert X.EP_GAP == 20 and X.EP_BREAK == {"hot": "lt_cold", "hot13": "lt_cold", "cold": "ge_hot"}
+    assert X.EP_BREAK_CATS == ("heat", "crash", "inst")
+    assert set(X.EP_BREAK) <= set(X.VARIANTS) and set(X.EP_BREAK) <= set(X.VARIANTS) | set(X.INST_VARIANTS)
+    assert X.EXPIRE_ON == {"hot_in": ("lt_cold", "hot_out"), "cold_in": ("ge_hot", "cold_out"), "hot_out": ("ge_hot",),
+                           "cold_out": ("lt_cold",)}
+    assert set(X.EXPIRE_ON) <= set(X.VARIANTS) | set(X.INST_VARIANTS)
+    for v in X.EXPIRE_ON.values():
+        assert all(c in ("lt_cold", "ge_hot") or c in X.VARIANTS + X.INST_VARIANTS for c in v)
+    pairs = [k for p in X.TECH_PAIRS for k in p]
+    assert len(X.TECH_PAIRS) == 8 and sorted(pairs) == sorted(HS.EVENTS) and len(set(pairs)) == 16   # 16 種技術事件兩兩成對
+    assert X.INST_SIDE == {"day_sell": "s", "sell_run5": "s", "sell_run10": "s", "day_buy": "b", "buy_run5": "b", "buy_run10": "b"}
+    assert X.INST_RUN == (5, 10)
+    assert X.RES_VER == X.FWD_VER == X.CAL_VER == 20
+    assert HS.VER == 10 and HS.SPEC_DATE == "2026-10-22" and (HS.GAP_FILL_MAX, HS.STALE_M) == (2, 2)
+    assert U.VER == 2 and U.SPEC_DATE == "2026-10-22" and (U.GAP_FILL_MAX, U.STALE_M) == (HS.GAP_FILL_MAX, HS.STALE_M)
 
 def test_sig_spec_refers_to_existing_definitions():
     """規格引用的其他規格都還在、意思沒變。"""
