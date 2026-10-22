@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/22 09:32",
+  "as_of": "2026/10/22 09:54",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -113,7 +113,7 @@
         {
           "title": "景氣好壞都要存款買保險 金融業營運穩 00998A抗跌特性成資產配置防守選項",
           "url": "https://www.watchmedia01.com/archives/561981",
-          "source": "觀傳媒",
+          "source": "蕃新聞",
           "date": "2026-10-22 09:16",
           "datetime": "2026-10-22T09:16:13+08:00"
         },
@@ -182,18 +182,25 @@
       ],
       "items": [
         {
-          "title": "幫孩子與小資存股別再盲目選高股息！00418A 以10元發行價自動滾存打造長線複利現正募集中",
-          "url": "https://www.watchmedia01.com/archives/561990",
-          "source": "觀傳媒",
-          "date": "2026-10-22 09:22",
-          "datetime": "2026-10-22T09:22:53+08:00"
-        },
-        {
           "title": "AI砸錢潮下一關看獲利！00418A聚焦企業成長的含金量 限時熱募中！",
           "url": "https://www.watchmedia01.com/archives/561987",
-          "source": "觀傳媒",
+          "source": "Yahoo新聞",
           "date": "2026-10-22 09:21",
           "datetime": "2026-10-22T09:21:12+08:00"
+        },
+        {
+          "title": "給下一代的人生第一本金！00418A萬元親民門檻帶年輕世代參與台灣產業轉型紅利10/23募集截止",
+          "url": "https://tw.news.yahoo.com/%E7%B5%A6%E4%B8%8B-%E4%BB%A3%E7%9A%84%E4%BA%BA%E7%94%9F%E7%AC%AC-%E6%9C%AC%E9%87%91-00418a%E8%90%AC%E5%85%83%E8%A6%AA%E6%B0%91%E9%96%80%E6%AA%BB-%E5%B8%B6%E5%B9%B4%E8%BC%95%E4%B8%96%E4%BB%A3%E5%8F%83%E8%88%87%E5%8F%B0%E7%81%A3%E7%94%A2%E6%A5%AD%E8%BD%89%E5%9E%8B%E7%B4%85%E5%88%A9-012448535.html",
+          "source": "Yahoo新聞",
+          "date": "2026-10-22 09:24",
+          "datetime": "2026-10-22T09:24:48+08:00"
+        },
+        {
+          "title": "AI 賣鏟人帶勁！00418A募集中 深入前 300 大卡位「中段班」躍升黑馬",
+          "url": "https://www.watchmedia01.com/archives/561996",
+          "source": "觀傳媒",
+          "date": "2026-10-22 09:27",
+          "datetime": "2026-10-22T09:27:40+08:00"
         }
       ]
     },
