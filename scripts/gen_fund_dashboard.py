@@ -46,18 +46,19 @@ def main() -> None:
         print(f"[美股景氣] {'已更新' if changed else '無變更'} {heatpage_us.OUT}")
     except Exception as e:                                # noqa: BLE001
         print(f"[美股景氣] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
-    # 泡沫頁（dashboard/x9b.html；docs/lab_risk_plan.md 第 7、8 節）。沿用上面兩頁算好的泡沫等級；分開建、分開失敗。
+    # 泡沫頁 dashboard/x9b.html：2026-10-23 起是轉址頁（泡沫在市場頁最下面、驗證與方法在研究紀錄頁；docs/lab_ia_v5_plan.md）。分開建、分開失敗。
     try:
         from arm.lab import bubpage
         changed = bubpage.build()
-        print(f"[泡沫] {'已更新' if changed else '無變更'} {bubpage.OUT}")
+        print(f"[泡沫] {'已更新' if changed else '無變更'} {bubpage.OUT}（轉址頁）")
     except Exception as e:                                # noqa: BLE001
         print(f"[泡沫] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
-    # 訊號總覽（dashboard/x9o.html＋每一次的清單 x9oh.json；docs/lab_signal_plan.md）。沿用上面景氣頁算好的「現在有沒有效」；分開建、分開失敗。
+    # 訊號：每一次的清單 x9oh-{市場}.json（市場頁的全部指標點開才下載）、研究卡 x9or-*.json、實測區 x9pr-*.json，
+    # 以及轉址頁 x9o.html（2026-10-23 起；docs/lab_ia_v5_plan.md）。沿用上面景氣頁算好的「現在有沒有效」；分開建、分開失敗。
     try:
         from arm.lab import sigpage
         changed = sigpage.build()
-        print(f"[訊號總覽] {'已更新' if changed else '無變更'} {sigpage.OUT}")
+        print(f"[訊號] {'已更新' if changed else '無變更'} {sigpage.OUT.parent}/x9oh-*.json、x9or-*.json、x9o.html（轉址頁）")
     except Exception as e:                                # noqa: BLE001
         print(f"[訊號總覽] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
     # 配置頁（x9.html；docs/lab_ia_v5_plan.md 第 18 節）要用三種警訊今天的讀數，那是上面景氣頁算的：

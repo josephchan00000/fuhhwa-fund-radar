@@ -255,12 +255,12 @@ def h1_line(R: dict) -> str:
             f'{VERDICT.get(e.get("verdict"), "—")}）。')
 
 
-def valid_sec(R: dict) -> str:
+def valid_sec(R: dict, pre: str = "") -> str:
     if not R:
         return ('<details class="bvd"><summary><b>驗證：產業條件成立之後比較容易大跌嗎？</b></summary>'
                 '<p class="warn">驗證結果還沒產生（scripts/run_bubind.py）。</p></details>')
     ff, tw, us, tg = R.get("ff") or {}, R.get("tw") or {}, R.get("us") or {}, R.get("tg") or {}
-    out = [f'<details class="bvd" id="indv"><summary><b>驗證：產業條件成立之後比較容易大跌嗎？</b><span class="bvh">{_e(h1_line(R))}</span></summary>']
+    out = [f'<details class="bvd" id="{pre}indv"><summary><b>驗證：產業條件成立之後比較容易大跌嗎？</b><span class="bvh">{_e(h1_line(R))}</span></summary>']
     if ff:
         out.append(f'<h4>美股 49 細產業（Ken French，{_e(_ymd(ff["a"]))}～{_e(_ymd(ff["z"]))}，{ff.get("n_ind")} 個產業；判定）</h4>'
                    + vtable("ff", R, True))
@@ -284,16 +284,16 @@ NOTE = ('產業泡沫看的是「這個產業比整個市場熱」：兩年翻�
         '美股類股 3（價格、未來獲利）、美股 49 細產業 2（只有價格與家數）。「成立的條件」只列現在成立的；點一列看說明、歷史等級與指數。')
 
 
-def section(I: dict, R: dict | None, keys: dict) -> str:
-    """keys＝{"tw": {產業: 圖的鍵}, "us": {ETF: 鍵}}。"""
+def section(I: dict, R: dict | None, keys: dict, pre: str = "") -> str:
+    """keys＝{"tw": {產業: 圖的鍵}, "us": {ETF: 鍵}}；pre＝段落 id 的前綴（研究紀錄頁用 bub-）。"""
     if not I or not (I.get("tw") or I.get("us") or I.get("ff") or I.get("tg")):
-        return ('<section class="sec" id="ind"><h2>產業泡沫</h2><p class="warn">產業泡沫還算不出來'
+        return (f'<section class="sec" id="{pre}ind"><h2>產業泡沫</h2><p class="warn">產業泡沫還算不出來'
                 + (f'（{_e(I.get("tw_err"))}）' if I and I.get("tw_err") else "") + '。</p></section>')
     sub = "・".join(x for x in (f'台股 {len(I["tw"])} 個產業' if I.get("tw") else "",
                                  f'{len(I["tg"])} 個細分族群' if I.get("tg") else "",
                                  f'美股 {len(I["us"])} 個類股' if I.get("us") else "",
                                  f'美股 {len(I["ff"])} 個細產業' if I.get("ff") else "") if x)
-    out = [f'<section class="sec cd" id="ind"><div class="ch"><h2>產業泡沫<span class="sub">{_e(sub)}</span></h2></div>',
+    out = [f'<section class="sec cd" id="{pre}ind"><div class="ch"><h2>產業泡沫<span class="sub">{_e(sub)}</span></h2></div>',
            f'<p class="bsum">{_e(headline(I))}</p><p class="note">{_e(NOTE)}</p>']
     if I.get("tw"):
         out.append('<h3>台股產業</h3>' + table("tw", I["tw"], keys.get("tw")))
@@ -312,7 +312,7 @@ def section(I: dict, R: dict | None, keys: dict) -> str:
                    f'<span class="bvh">價格與家數；最高到等級 2。</span></summary>' + table("ff", I["ff"], None)
                    + '<p class="note">Ken French 49 產業的價值加權報酬（不含股利）；比大盤用 49 個產業依市值加權；'
                      '新公司＝家數 12 個月增加率在自己過去的第 90 百分位以上。資料約晚一個半月。</p></details>')
-    out.append(valid_sec(R))
+    out.append(valid_sec(R, pre))
     out.append('</section>')
     return "".join(out)
 

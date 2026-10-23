@@ -8,7 +8,6 @@
 """
 from __future__ import annotations
 
-import html
 import json
 from datetime import date
 from pathlib import Path
@@ -132,9 +131,6 @@ def chart_data(idx: str, B: dict, R: dict) -> dict:
         return HC.build_data(V, R)
 
 
-SWITCH = ("<nav class=\"ixsw\" aria-label=\"指數\">" + "".join(
-    f'<button type="button" data-ix="{k}">{html.escape(U.INDICES[k]["name"])}</button>' for k in U.INDEX_ORDER) + "</nav>")
-
 SWITCH_JS = r"""
 (function () {
 'use strict';
@@ -163,6 +159,8 @@ function show(ix, scroll) {
     cur = ix;
     window.HEAT_META = METAS[ix];
     if (window.heatInit) window.heatInit();
+    if (window.sgInit) window.sgInit();          // 全部指標：換成這個指數的列（資料在頁面層的 #sgd，四個指數共用）
+    if (window.bubDraw) window.bubDraw(ix);      // 泡沫：畫這個指數的歷史等級
   }
   mark();
   if (scroll) window.scrollTo(0, 0);
@@ -179,11 +177,6 @@ if (m && m[1] !== cur && tpl[m[1]]) show(m[1], false); else mark();
 })();
 """
 
-CSS = (".ixsw{display:flex;flex-wrap:wrap;gap:6px}"
-       ".ixsw button{border:1px solid var(--line);background:var(--bg);color:var(--ink2);border-radius:999px;"
-       "padding:5px 13px;font-size:13.5px;font-weight:600;cursor:pointer}"
-       ".ixsw button.on{background:var(--acc);border-color:var(--acc);color:var(--bg)}"
-       "@media (max-width:640px){.ixsw button{padding:5px 10px;font-size:13px}}")
 
 _HTML = """<!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8">
@@ -194,13 +187,16 @@ _HTML = """<!doctype html>
 <style>{{CSS}}</style></head>
 <body>
 <div class="top">{{APPTAB}}<span class="asof" id="ix-asof">資料到 {{ASOF}}</span><a class="back" href="./">返回主頁</a></div>
-<div class="vbar">{{SWITCH}}{{VSW}}<details class="purp"><summary>這頁怎麼看</summary><p>{{PURP}}</p></details></div>
+<div class="vbar">{{MKROW}}</div>
 <div id="ixc" data-ix="{{IX}}">{{LIVE}}</div>
 {{TEMPLATES}}
-{{DRAWER}}
+{{DRAWER}}{{PANEL}}
+<script type="application/json" id="sgd">{{SGD}}</script>
+<script type="application/json" id="bubd">{{BUBD}}</script>
 <script>window.HEAT_METAS={{METAS}};window.HEAT_ASOF={{ASOFS}};</script>
 <script>{{SWITCH_JS}}</script>
 <script>{{JS}}</script>
+<script>{{SGJS}}</script>
 </body></html>
 """
 
@@ -217,17 +213,15 @@ def render(pages: dict, default: str = DEFAULT) -> str:
     tpls = "".join(f'<template data-ix="{k}">{_content(pages[k])}</template>' for k in U.INDEX_ORDER if k != default and k in pages)
     with HP.use_market(market(default)):
         asofs = {k: HP._md(P["asof"]) for k, P in pages.items()}
-        purp = HP._e(PURP)
-    from . import bottompage as BP
-    from . import crashpage as CP
-    from . import hotchpage as QP
-    from . import hotddpage as XP
-    return appnav.finish(_HTML.replace("{{CSS}}", HP._CSS + appnav.CSS + VZ.CSS + CSS).replace("{{APPTAB}}", appnav.bar("us"))
-            .replace("{{VSW}}", VZ.switch_html()).replace("{{DRAWER}}", VZ.DRAWER)
-            .replace("{{ASOF}}", HP._e(asofs.get(default, "—"))).replace("{{PURP}}", purp)
-            .replace("{{SWITCH}}", SWITCH).replace("{{IX}}", default).replace("{{LIVE}}", _content(pages[default]))
+    G = HP.page_parts([k for k in U.INDEX_ORDER if k in pages])
+    return appnav.finish(_HTML.replace("{{CSS}}", HP._CSS + appnav.CSS + VZ.CSS + G["css"] + G["bcss"]).replace("{{APPTAB}}", appnav.bar("us"))
+            .replace("{{MKROW}}", HP.market_row("us")).replace("{{DRAWER}}", VZ.DRAWER).replace("{{PANEL}}", G["panel"])
+            .replace("{{SGD}}", G["sgd"]).replace("{{BUBD}}", G["bubd"])
+            .replace("{{ASOF}}", HP._e(asofs.get(default, "—")))
+            .replace("{{IX}}", default).replace("{{LIVE}}", _content(pages[default]))
             .replace("{{TEMPLATES}}", tpls).replace("{{METAS}}", j({k: P["meta"] for k, P in pages.items()}))
-            .replace("{{ASOFS}}", j(asofs)).replace("{{SWITCH_JS}}", SWITCH_JS).replace("{{JS}}", VZ.JS + HP._JS))
+            .replace("{{ASOFS}}", j(asofs)).replace("{{SWITCH_JS}}", SWITCH_JS).replace("{{JS}}", VZ.JS + HP._JS)
+            .replace("{{SGJS}}", G["js"] + G["bjs"]))
 
 
 def build(out: Path = OUT, data_dir: Path | None = None) -> bool:

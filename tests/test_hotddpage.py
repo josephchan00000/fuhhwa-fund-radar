@@ -177,7 +177,7 @@ def test_card_is_wired_into_both_heat_pages_and_classes_are_prefixed():
     """大跌風險下面、全部項目上面；頁首導覽多一個「過熱後回撤」；兩頁都載入卡片的樣式；class 一律 xo 開頭。"""
     viz = (ROOT / "arm/lab/heatviz.py").read_text(encoding="utf-8")
     # 2026-10-19 起四張研究卡搬到訊號總覽（docs/lab_signal_plan.md 第 10 節 Q3）：景氣頁照樣算、不放進頁面，存給訊號總覽
-    assert "stash_cards(V)" in viz and "{top}{items}" in viz and 'href="#hotdd"' not in viz
+    assert "stash_cards(V)" in viz and "{face_html(V)}{today_html(V)}{SPG.block_html()}" in viz and 'href="#hotdd"' not in viz
     sp = (ROOT / "arm/lab/sigpage.py").read_text(encoding="utf-8")
     assert "XP.CSS" in sp and '"hotdd"' in sp
     hp = (ROOT / "arm/lab/heatpage.py").read_text(encoding="utf-8")
@@ -188,7 +188,7 @@ def test_card_is_wired_into_both_heat_pages_and_classes_are_prefixed():
     from arm.lab import heatpage as HP
     from arm.lab import heatpage_us as HU
     from arm.lab import heatviz as VZ
-    other = set(re.findall(r"\.([a-zA-Z][\w-]*)", HP._CSS + VZ.CSS + appnav.CSS + HU.CSS + CP.CSS))
+    other = set(re.findall(r"\.([a-zA-Z][\w-]*)", HP._CSS + VZ.CSS + appnav.CSS + CP.CSS))
     shared = {"vt"}                                  # 景氣頁現成的 class，只在 .xo… 底下調整
     assert css - shared == {c for c in css if c.startswith("xo")} and not (css - shared) & other, \
         "卡片的 class 一律 xo 開頭、不和景氣頁撞名"

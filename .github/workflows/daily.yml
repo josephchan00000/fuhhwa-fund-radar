@@ -242,9 +242,9 @@ jobs:
           git add -f dashboard/x9m.html 2>/dev/null || true            # 景氣溫度頁（docs/lab_heat_plan.md；分開 add）
           git add -f dashboard/x9mh.json 2>/dev/null || true           # 景氣溫度頁對照圖資料（第五版；分開 add）
           git add -f dashboard/x9mu.html 2>/dev/null || true           # 美股景氣頁（docs/lab_heat_us_plan.md；分開 add）
-          git add -f dashboard/x9b.html 2>/dev/null || true            # 泡沫頁（docs/lab_risk_plan.md；分開 add）
-          git add -f dashboard/x9o.html 2>/dev/null || true            # 訊號總覽（docs/lab_signal_plan.md；分開 add）
-          git add -f dashboard/x9oh.json 2>/dev/null || true           # 訊號總覽每一次的清單（點開才下載；分開 add）
+          git add -f dashboard/x9b.html 2>/dev/null || true            # 泡沫頁（轉址到市場頁；docs/lab_ia_v5_plan.md；分開 add）
+          git add -f dashboard/x9o.html 2>/dev/null || true            # 訊號總覽（轉址到市場頁；docs/lab_ia_v5_plan.md；分開 add）
+          git add -f dashboard/x9oh-*.json 2>/dev/null || true         # 每一次的清單（每個市場一個檔，點開指標才下載；docs/lab_ia_v5_plan.md；分開 add）
           git add -f dashboard/x9or-*.json 2>/dev/null || true         # 訊號總覽各市場的研究卡（點了才載入；分開 add）
           git add -f dashboard/x9pr-*.json 2>/dev/null || true         # 訊號總覽實測區各市場的細節（點到那個市場才載入；分開 add）
           git add -f dashboard/x9x.html 2>/dev/null || true            # 大神策略頁（docs/lab_nav_plan.md；分開 add）
@@ -271,9 +271,9 @@ jobs:
             git add -f dashboard/x9m.html 2>/dev/null || true            # 景氣溫度頁（docs/lab_heat_plan.md；分開 add）
             git add -f dashboard/x9mh.json 2>/dev/null || true           # 景氣溫度頁對照圖資料（第五版；分開 add）
             git add -f dashboard/x9mu.html 2>/dev/null || true           # 美股景氣頁（docs/lab_heat_us_plan.md；分開 add）
-            git add -f dashboard/x9b.html 2>/dev/null || true            # 泡沫頁（docs/lab_risk_plan.md；分開 add）
-            git add -f dashboard/x9o.html 2>/dev/null || true            # 訊號總覽（docs/lab_signal_plan.md；分開 add）
-            git add -f dashboard/x9oh.json 2>/dev/null || true           # 訊號總覽每一次的清單（點開才下載；分開 add）
+            git add -f dashboard/x9b.html 2>/dev/null || true            # 泡沫頁（轉址到市場頁；docs/lab_ia_v5_plan.md；分開 add）
+            git add -f dashboard/x9o.html 2>/dev/null || true            # 訊號總覽（轉址到市場頁；docs/lab_ia_v5_plan.md；分開 add）
+            git add -f dashboard/x9oh-*.json 2>/dev/null || true         # 每一次的清單（每個市場一個檔，點開指標才下載；docs/lab_ia_v5_plan.md；分開 add）
             git add -f dashboard/x9or-*.json 2>/dev/null || true         # 訊號總覽各市場的研究卡（點了才載入；分開 add）
             git add -f dashboard/x9pr-*.json 2>/dev/null || true         # 訊號總覽實測區各市場的細節（點到那個市場才載入；分開 add）
             git add -f dashboard/x9x.html 2>/dev/null || true            # 大神策略頁（docs/lab_nav_plan.md；分開 add）
