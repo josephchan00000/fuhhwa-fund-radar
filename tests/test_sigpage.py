@@ -207,13 +207,14 @@ def test_heat_pages_stash_cards_and_list_today(monkeypatch):
     h = VZ.today_html({"sigtoday": T})
     assert 'href="#s=tw:heat:C1:hot"' in h and "融資餘額水位・過熱中" in h and 'href="#s=tw:heat:C1:hot_in"' in h   # 同一頁的全部指標
     assert "2025/12/1 起成立" in h and "x9o.html" not in h
-    assert h.count('class="tqo"') == 2 and "回撤中位數 12%（隨便挑一天 7%）" in h                   # 同一個項目兩邊＝震盪
-    assert "之後 3 個月內回撤 10% 以上的機率比隨便挑一天高 5 點以上" in h and "之後 3 個月上漲的機率比隨便挑一天高 5 點以上" in h
+    assert h.count('class="tqo"') == 2 and "回撤中位 12%（任一天 7%）" in h                         # 同一個項目兩邊＝震盪
+    assert '<span class="sub">之後 3 個月內回撤 10% 以上的機率</span>' in h and '<span class="sub">之後 3 個月上漲的機率</span>' in h
     assert h.count('class="tqpn"') == 3 and h.count('class="tqq"') == 3 and h.count('class="tqrb"') == 3
     assert h.count(" checked>") == 1 and 'for="tqr-tw-mid"' in h and 'id="tqr-tw-mid"' in h
     assert 'aria-label="中線（持有 3 個月）：警示 1 類、偏多 1 類，差不多"' in h
     assert 'aria-label="短線（持有 1 個月）：警示 0 類、偏多 0 類，中性"' in h and h.count('<p class="tqno">沒有</p>') == 4
-    assert h.count('class="tqok"') == 2 and "<b>85%</b>（隨便挑一天 66%）" in h and "每年 1 月 1 日只用之前的資料" in h
+    assert h.count('class="tqok"') == 2 and "過去 <b>85%</b>（任一天 66%）・次數 13" in h and f'title="{VZ.TQ_OK}">之後也成立' in h
+    assert "隨便挑一天" not in h and "預估之後" not in h                              # 用字（docs/lab_ia_v5_plan.md 第 8 節）
     assert "怎麼看" not in h and "溫度計本身沒有驗證過能預測漲跌" not in h      # 說明搬到研究紀錄頁的名詞（docs/lab_ia_v5_plan.md 第 8 節）
     m = sigpage.method_html()
     assert "溫度計本身沒有驗證過能預測漲跌" in m and "★／◆ 判定不決定列不列" in m and "上漲機率比平常低的不列" in m
@@ -264,7 +265,7 @@ def test_board_listing_classes_and_thermometers():
     assert sigcat.horizon(dict(a, cat="ind", H=12)) == "long" and sigcat.item_key(a) == sigcat.item_key(d1)
     assert sigcat.list_cls("up", -0.2) is None and sigcat.list_cls("up", 0.0499) is None and sigcat.list_cls("up", None) is None
     assert sigcat.list_cls("up", 0.05) == "up" and sigcat.list_cls("warn", 0.2) == "risk" and sigcat.list_cls("buy", 0.051) == "buy"
-    assert "（次數少）" in sigpage.tq_stats(B["up"][3]) and "（次數少）" not in sigpage.tq_stats(B["up"][2])
+    assert sigpage.tq_stats(B["up"][3]).endswith("・次數 12") and "次數" not in sigpage.tq_stats(B["up"][2])   # 次數少才寫次數
     assert "報酬中位數" not in sigpage.tq_stats(B["up"][2])                       # 沒有報酬的統計就不寫
 
 
@@ -313,8 +314,9 @@ def test_board_families_merge_signals_that_appear_together():
     assert th["short"]["n"]["up"] == 2 and th["mid"]["n"]["up"] == 1               # 一類算一次
     from arm.lab import heatviz as VZ
     h = VZ.today_html({"sigtoday": dict(B, d="2026-10-16", mk="tw")})
-    assert 'title="同時成立（過去常一起出現，算同一件事）：20 日線乖離過冷">・同時成立 1 個' in h
-    assert "偏多<b>2</b>類<small>（3 個訊號）</small>" in h and "偏多<b>1</b>類<small>（2 個訊號）</small>" in h
+    assert 'title="同時成立：20 日線乖離過冷">・同時成立 1 個' in h
+    assert ('<h4 class="tqsh" title="3 個訊號，常一起出現的併成一類"><i class="tqd tqd-up"></i>偏多<b>2</b>類' in h
+            and '<h4 class="tqsh" title="2 個訊號，常一起出現的併成一類"><i class="tqd tqd-up"></i>偏多<b>1</b>類' in h)
     assert '<span class="tqy">買點</span>' in h
 
 
@@ -570,7 +572,7 @@ def test_listing_cross_horizon_uses_x_cells():
     h = VZ.today_html({"sigtoday": dict(B, d="2026-10-16", mk="tw")})
     assert '<span class="tqg">原本看 1 個月</span>' in h
     mid = h.split('id="tz-mid"')[1].split('id="tz-long"')[0]
-    assert "<b>75%</b>（隨便挑一天 65%）・出現過 30 次" in mid and "報酬中位數" not in mid      # 跨期間的列只有機率
+    assert "過去 <b>75%</b>（任一天 65%）" in mid and "報酬中位" not in mid                    # 跨期間的列只有機率
 
 
 def _fwd_table():
@@ -581,20 +583,20 @@ def _fwd_table():
 
 
 def test_forward_estimate_lines_panel_and_method(monkeypatch):
-    """預估之後（sigspec 第 4.14 節，VER 18～19）：今天的清單與指標頁寫「過去 X% → 預估之後 Y%」，只算 ★、◆（跨期間的票、△ 不算）；
-    判定方式加衰退表；研究檔沒有就不列。"""
+    """預估之後（sigspec 第 4.14 節，VER 18～19）：研究紀錄頁的指標面板寫「預估之後」（page_json 的 fe、ow），判定方式加衰退表；
+    研究檔沒有就不列。市場頁「之後怎麼走？」那一列 2026-10-23 起只寫過去的機率（任一天），不寫預估之後（docs/lab_ia_v5_plan.md 第 8 節）。"""
     T = _fwd_table()
     monkeypatch.setattr(sigpage.OOS, "load", lambda path=None: T)
     V = _view()
     a = V["rows"][0]
     line = sigpage._line({**a, "d": "warn", "tier": "good"})
-    assert "大跌（最大回撤 10% 以上）的機率：過去 58% → 預估之後 <b>35%</b>（隨便挑一天 29%）" in line      # 0.29 ＋ 0.2 × 0.29
-    assert sigpage._fe({**a, "d": "warn", "tier": "lean"}) is None and sigpage._fe({**a, "d": "warn", "tier": "good", "xk": "short"}) is None
+    assert line == "之後 3 個月內回撤 10% 以上 <b>58%</b>（任一天 29%）・回撤中位 12%（任一天 7%）・次數 12"
+    assert not hasattr(sigpage, "_fe")
     b = dict(V["rows"][1], ret={"s": [None] * 4 + [[13, 0, 0, 0.06, 0, 0, 0, 0, 0, 0.05, 0.04]], "bk": "kb"})
     sigcat._RCACHE["rows"], sigcat._RCACHE["bases"] = [], {"kb": {"s": [None] * 4 + [[1, 0, 0, 0.02, 0]]}}
     try:
         lb = sigpage._line({**b, "d": "up", "tier": "good"})
-        assert "過去 85% → 預估之後 <b>71%</b>（隨便挑一天 66%）" in lb and "預估之後比隨便挑一天多 2.0%" in lb   # 0.66 ＋ 0.25 × 0.19；0.5 × 4%
+        assert lb == "之後 3 個月上漲 <b>85%</b>（任一天 66%）・報酬中位 +6.0%・次數 13"
         fe, ow = sigpage._fe_pack(b, {})
         assert fe["up"] == [71, 25, 0, 2.0, 50, 0] and "warn" in fe and len(fe["warn"]) == 3
     finally:
@@ -610,7 +612,7 @@ def test_forward_estimate_lines_panel_and_method(monkeypatch):
     for f in ("function feOf", "function feHtml", "function cellTxt", "function moreTxt", 'id="sgfe"', "預估之後的機率%"):
         assert f in sigpage.JS, f
     monkeypatch.setattr(sigpage.OOS, "load", lambda path=None: None)
-    assert sigpage.fwd_html() == "" and sigpage._fe({**a, "d": "warn", "tier": "good"}) is None
+    assert sigpage.fwd_html() == "" and sigpage._fe_pack(dict(a, d="warn"), {}) == ({}, {})
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="沒有 node")

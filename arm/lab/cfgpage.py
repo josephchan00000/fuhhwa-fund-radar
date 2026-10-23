@@ -143,7 +143,7 @@ def perf_line(mk: str, bundle: dict) -> str:
 
 
 def detail_html(mk: str, bundle: dict) -> str:
-    """細節（收起）：照做一年會怎樣、為什麼這樣設計、每一次換現金、逐年、不同期間、上線後怎麼檢查、要注意的事。"""
+    """細節（收起）：照做一年會怎樣、為什麼這樣設計、每一次換現金、逐年、不同期間、上線後怎麼檢查、風險。"""
     pm = PLAN_MK[mk]
     sc = _sc(mk, bundle)
     if not sc:
@@ -214,7 +214,7 @@ def _tw_next(data: dict, bundle: dict, N: dict | None, d0: str | None) -> tuple[
         later = sorted((e for e in stk.get("ev") or [] if (e.get("d") or "") > nx and e.get("k") in use),
                        key=lambda e: (e["d"], 0 if e.get("at") == "開盤" else 1))
         rows_use.append(_none_row(later[0] if later else None))
-    return (f'<div class="cfnext"><div class="cfnd"><b>{_e(_mdw(nx))}</b><span>下一個交易日要做的事</span></div>'
+    return (f'<div class="cfnext"><div class="cfnd"><b>{_e(_mdw(nx))}</b><span>要做的事</span></div>'
             f'<div class="cfna">{"".join(rows_use + rows_obs)}</div></div>'), nx
 
 
@@ -390,7 +390,7 @@ def _us_next(data: dict, bundle: dict, N: dict | None) -> tuple[str, str | None]
                             '<span class="cfob">指數型・觀察中，不在配置裡</span></div>')
     if not rows_use:
         rows_use.append(_none_row(later))
-    return (f'<div class="cfnext"><div class="cfnd"><b>{_e(_mdw(nx))}</b><span>下一個交易日要做的事</span></div>'
+    return (f'<div class="cfnext"><div class="cfnd"><b>{_e(_mdw(nx))}</b><span>要做的事</span></div>'
             f'<div class="cfna">{"".join(rows_use + rows_obs)}</div></div>'), nx
 
 
@@ -540,7 +540,7 @@ def board_html(B: dict) -> str:
             body.append('<tr class="bx" data-st="obs"><td colspan="6"><a data-bx="obs">再看更多觀察中</a></td></tr>')
     return ('<h2 class="cfh">策略<span class="sub">全部 {} 條：進配置的、看著的、新找的、試過沒有用的</span></h2>'.format(len(rows))
             + f'<div class="bfilt"><div class="seg bsts">{chips}</div><div class="seg bmks">{mks}</div></div>'
-            + f'<div class="bwrap"><table class="btbl" data-n="{BD.OBS_SHOW}"><thead><tr><th>策略</th><th>市場</th><th class="bh">做什麼</th><th class="bp">年化（對照）</th>'
+            + f'<div class="bwrap"><table class="btbl" data-n="{BD.OBS_SHOW}"><thead><tr><th>策略</th><th>市場</th><th class="bh">做什麼</th><th class="bp">成績</th>'
             + '<th class="bd">最慘跌</th><th class="bto">今天</th></tr></thead><tbody>' + "".join(body) + "</tbody></table></div>")
 
 
@@ -603,7 +603,7 @@ CSS = r"""
 .cfnext{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 18px;align-items:start;background:var(--card2);border-radius:12px;padding:10px 14px;margin:8px 0 12px}
 .cfnd b{display:block;font-size:20px;line-height:1.25}.cfnd span{font-size:12px;color:var(--mut)}
 .cfna{display:flex;flex-direction:column;gap:5px;min-width:0}
-.cfnr{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;font-size:13.5px;line-height:1.6}.cfnr .kact{flex:none}
+.cfnr{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;font-size:13.5px;line-height:1.6}.cfnr .kact{flex:none}.cfnr.cfnone{display:block}
 .cfni{color:var(--ink2)}.cfob{font-size:12px;color:var(--mut)}.cfnone{color:var(--ink2)}
 .cfobs a{cursor:pointer}
 .cfht{width:100%;border-collapse:collapse;font-size:13.5px}

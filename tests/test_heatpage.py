@@ -208,7 +208,7 @@ def test_render_structure_and_wording(built):
     assert "證期局只公開最新一期新聞稿" in page                                  # 外資淨匯入沒有 0～100 的原因
     assert "用美國 VIX 的排名代替，不算進分數" in page and "前一半" in page and "後一半" in page
     assert "熱＝散戶擁擠、槓桿高、外資站在對面" in page
-    assert "出現在 2004、2010、2021–2022 年" in page                            # 樣本集中在哪幾段要看得出來
+    assert "出現在哪幾年" in page and "2004、2010、2021–2022" in page               # 樣本集中在哪幾段要看得出來（研究畫面的分區表）
     assert P._yrs(["2021", "2022", "2024", "2025", "2026"]) == "2021–2022、2024–2026" and P._yrs(None) == ""
     assert 'href="x9.html"' in page
     for w in BANNED:                                                         # 頁面文字與 JS 都不能有

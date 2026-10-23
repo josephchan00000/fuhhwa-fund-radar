@@ -158,7 +158,7 @@ function tlDraw(Q){Q=Q||TLO;const box=$('#'+Q.box);if(!box)return;const C=Q.card
 
 /* 主動 ETF 資金地圖：一格一檔、依產業分區；大小＝市值（開根號）或 5 日買賣金額，顏色＝選的籌碼（紅＝買、綠＝賣，深＝大） */
 const MMC={a5v:['主動 ETF 5 日淨買','億'],t5:['投信 5 日','張'],f5:['外資 5 日','張'],rs20:['20 日相對大盤','個百分點']};
-function mmSec(){return sec('c-map','資金地圖','主動 ETF 資金地圖','近 5 個交易日；一格一檔、依產業分區，點一格打開個股卡',
+function mmSec(){return sec('c-map','資金地圖','主動 ETF 資金地圖','近 5 個交易日・一格一檔、依產業分區',
   `<div class=mmctl><span class=mmk>大小</span><div class="seg mmsz"><a data-mms=cap class=on>市值</a><a data-mms=amt>5 日買賣金額</a></div>`+
   `<span class=mmk>顏色</span><div class="seg mmcol">${Object.entries(MMC).map(([k,v],i)=>`<a data-mmc=${k}${i?'':' class=on'}>${v[0]}</a>`).join('')}</div></div>`+
   `<div class=mmx><div class=mmbox id=mmbox></div><div class=vztip id=mmtip hidden></div></div><div class=mmscale id=mmscale></div>`);}
@@ -197,7 +197,7 @@ function mmDraw(){const box=$('#mmbox');if(!box)return;const W=box.clientWidth||
   box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width=${W} height=${H} role=img aria-label="主動 ETF 資金地圖">${s}</svg>`;
   const lo=vzMix(K.z,K.l,1),hi=vzMix(K.z,K.g,1),u=MMC[ck];
   $('#mmscale').innerHTML=`<span>${ck==='rs20'?'弱於大盤':'賣超'}</span><i style="background:linear-gradient(90deg,rgb(${lo}),rgb(${vzRgb(K.z)}) 50%,rgb(${hi}))"></i><span>${ck==='rs20'?'強於大盤':'買超'}</span>`+
-    `<span>顏色最深＝${esc(u[0])}前 10% 的大小（約 ${f(S,ck==='a5v'||ck==='rs20'?1:0)} ${esc(u[1])}）・${amt?'面積＝5 日買賣金額':'面積＝市值（開根號，台積電才不會占掉一半）'}・${use.length} 檔</span>`;
+    `<span>顏色最深＝${esc(u[0])}前 10% 的大小（約 ${f(S,ck==='a5v'||ck==='rs20'?1:0)} ${esc(u[1])}）・${amt?'面積＝5 日買賣金額':'面積＝市值'}・${use.length} 檔</span>`;
   const tip=$('#mmtip');tip.hidden=true;
   vzBind(box,tip,box.closest('.mmx'),'data-mm',el=>mmTip(BY[el.dataset.mm]),el=>{tip.hidden=true;openStock(el.dataset.mm);});
   $$('[data-mms]').forEach(a=>a.onclick=e=>{e.preventDefault();VZS.mmsz=a.dataset.mms;$$('[data-mms]').forEach(b=>b.classList.toggle('on',b===a));mmDraw();});
