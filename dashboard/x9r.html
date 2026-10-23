@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="data:,">
+<title>研究紀錄</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--panel:#fff;--card2:#f4f6fa;--ink:#1f2733;--ink2:#44505f;--mut:#67727f;--line:#e8ebf1;--line2:#d3dae4;
+--acc:#2563c9;--accd:#1c4fa8;--accbg:rgba(37,99,201,.10);--warn:#b45309;--ring:#fff;--tipbg:#fff;--shadow:0 4px 14px rgba(20,30,50,.14);
+--c0:#2f6fb5;--c1:#7fb0de;--c2:#b8c0cc;--c3:#f0a35a;--c4:#d33a34;--t0:#2a65a8;--t1:#3572b2;--t2:#44505f;--t3:#b25f10;--t4:#c8322c;
+--sbg:#fdecea;--wbg:#e6f4ec;--curbg:#fff7e6;--bp:#c2c8d0;--zh:rgba(211,58,52,.07);--zc:rgba(47,111,181,.08);
+--p0:#7b5ea7;--p1:#199e70;--p2:#c98500;--p3:#d55181;--p4:#4d7c0f;
+--dfund:#199e70;--dchip:#7b5ea7;--dgliq:#a88a00;--dtliq:#d55181;--dtech:#0f8fa8;--dbubl:#a0522d;
+--q0:#c8322c;--q1:#f0948d;--q2:#245fa6;--q3:#5a9fe8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b111c;--panel:#121a28;--card2:#182234;--ink:#e8eef8;--ink2:#aab6c9;--mut:#8392a8;
+--line:#223049;--line2:#30425f;--acc:#6aa8ff;--accd:#8fbcff;--accbg:rgba(106,168,255,.14);--warn:#f0a24a;--ring:#0b111c;--tipbg:#182234;
+--shadow:0 8px 26px rgba(0,0,0,.5);--c0:#3d82e0;--c1:#7cb3ec;--c2:#8b96a8;--c3:#f3a35c;--c4:#f15b50;
+--t0:#6ea6f0;--t1:#93c0ef;--t2:#aab6c9;--t3:#f2a65e;--t4:#ff7d72;--sbg:rgba(241,91,80,.16);--wbg:rgba(47,191,113,.15);
+--curbg:rgba(243,163,92,.14);--bp:#4a5a74;--zh:rgba(241,91,80,.10);--zc:rgba(61,130,224,.12);
+--p0:#997ac9;--p1:#24a476;--p2:#bf7c00;--p3:#db5786;--p4:#6c9d3a;
+--dfund:#24a476;--dchip:#997ac9;--dgliq:#a68900;--dtliq:#db5786;--dtech:#22a5c0;--dbubl:#c87a4f;
+--q0:#f0584b;--q1:#a04038;--q2:#5294e6;--q3:#3260a3}}:root[data-theme="dark"]{--bg:#0b111c;--panel:#121a28;--card2:#182234;--ink:#e8eef8;--ink2:#aab6c9;--mut:#8392a8;
+--line:#223049;--line2:#30425f;--acc:#6aa8ff;--accd:#8fbcff;--accbg:rgba(106,168,255,.14);--warn:#f0a24a;--ring:#0b111c;--tipbg:#182234;
+--shadow:0 8px 26px rgba(0,0,0,.5);--c0:#3d82e0;--c1:#7cb3ec;--c2:#8b96a8;--c3:#f3a35c;--c4:#f15b50;
+--t0:#6ea6f0;--t1:#93c0ef;--t2:#aab6c9;--t3:#f2a65e;--t4:#ff7d72;--sbg:rgba(241,91,80,.16);--wbg:rgba(47,191,113,.15);
+--curbg:rgba(243,163,92,.14);--bp:#4a5a74;--zh:rgba(241,91,80,.10);--zc:rgba(61,130,224,.12);
+--p0:#997ac9;--p1:#24a476;--p2:#bf7c00;--p3:#db5786;--p4:#6c9d3a;
+--dfund:#24a476;--dchip:#997ac9;--dgliq:#a68900;--dtliq:#db5786;--dtech:#22a5c0;--dbubl:#c87a4f;
+--q0:#f0584b;--q1:#a04038;--q2:#5294e6;--q3:#3260a3}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif;-webkit-text-size-adjust:100%}
+a{color:var(--acc);text-decoration:none}
+table,.num{font-variant-numeric:tabular-nums}
+.top{display:flex;align-items:baseline;gap:4px 12px;flex-wrap:wrap;padding:10px 16px 4px;max-width:1080px;margin:0 auto}
+.top b{font-size:18px}.asof{color:var(--mut);font-size:12.5px;flex:1;min-width:0}
+.back{font-size:13px;color:var(--mut);white-space:nowrap}
+.purp{color:var(--ink2);font-size:13px;line-height:1.75}.purp>summary{cursor:pointer;color:var(--mut);font-size:12.5px;list-style:none}
+.purp>summary::-webkit-details-marker{display:none}.purp>summary::before{content:"ⓘ ";}.purp p{margin:4px 0 2px;max-width:860px}
+.snav{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:6px 16px 7px;border-bottom:1px solid var(--line);max-width:1080px;margin:0 auto}
+.snav::-webkit-scrollbar{display:none}
+.snav a{padding:2px 10px;border-radius:12px;color:var(--ink2);font-size:13px;white-space:nowrap;background:var(--card2)}
+main{padding:14px 16px 80px;max-width:1080px;margin:0 auto}
+.mu{color:var(--mut)}.warn{color:var(--warn);font-size:13.5px}
+.hz{font-size:13px;color:var(--ink2);margin:0 0 16px;line-height:1.75}.hz .mu{margin-left:4px}
+.cd{border:1px solid var(--line);border-radius:14px;padding:12px 16px 14px;margin:0 0 18px;scroll-margin-top:48px}
+.ch{display:flex;align-items:flex-start;flex-wrap:wrap;gap:4px 12px}
+.ch h2{margin:0;font-size:17px;flex:1;min-width:0}.ch h2 .sub,.sec h2 .sub,h3 .sub{font-size:12.5px;font-weight:400;color:var(--mut);margin-left:8px}
+.sv{display:flex;align-items:baseline;gap:8px}.sc{font-size:34px;line-height:1;font-weight:800}.bn{font-weight:700}
+.sc.b0,.bn.b0{color:var(--t0)}.sc.b1,.bn.b1{color:var(--t1)}.sc.b2,.bn.b2{color:var(--t2)}.sc.b3,.bn.b3{color:var(--t3)}.sc.b4,.bn.b4{color:var(--t4)}
+.wk{font-size:12.5px;color:var(--mut)}
+.hot{font-size:12.5px;color:var(--mut);margin:4px 0 0}
+.mt{position:relative;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;height:10px;margin:10px 0 2px}
+.mt i{display:block;border-radius:3px}.mt .b0{background:var(--c0)}.mt .b1{background:var(--c1)}.mt .b2{background:var(--c2)}.mt .b3{background:var(--c3)}.mt .b4{background:var(--c4)}
+.mt .mk{position:absolute;top:-5px;width:4px;height:20px;margin-left:-2px;background:var(--ink);border-radius:2px;box-shadow:0 0 0 2px var(--ring)}
+.mtl{display:grid;grid-template-columns:repeat(5,1fr);font-size:11px;color:var(--mut);text-align:center}
+.past{font-size:13.5px;color:var(--ink2);margin:8px 0 2px;line-height:1.75}
+.vd{font-size:13.5px;margin:2px 0}.eq{font-size:12px;color:var(--mut);margin:2px 0 8px}
+.its{margin-top:6px}
+.ith,.it{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(120px,1.3fr) 72px 48px 48px;gap:8px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--line)}
+.ith{font-size:11.5px;color:var(--mut);border-bottom:2px solid var(--line);padding-top:8px}
+.ith span:nth-child(n+3),.ipl,.ish,.iwk{text-align:right;white-space:nowrap}
+.inm{min-width:0;display:flex;flex-direction:column;line-height:1.35}.inm b{font-weight:600;font-size:14px}.inm i{font-style:normal;color:var(--mut);font-size:12px}
+.inm em.px{font-style:normal;color:var(--warn);font-size:11.5px}
+.it0 .ipl,.it0 .ish,.it0 .iwk{color:var(--mut);font-weight:400}
+.ihb{display:flex;align-items:center;gap:8px}.hb{flex:1;height:8px;background:var(--card2);border-radius:4px;overflow:hidden;min-width:60px}
+.hb i{display:block;height:100%;border-radius:4px}.hb .b0{background:var(--c0)}.hb .b1{background:var(--c1)}.hb .b2{background:var(--c2)}.hb .b3{background:var(--c3)}.hb .b4{background:var(--c4)}
+.hn{width:2.2em;text-align:right;font-size:14px}
+.ipl{font-weight:700}.ish,.iwk{font-size:13px;color:var(--ink2)}
+.sec{margin:28px 0 0;scroll-margin-top:48px}.sec>h2{font-size:17px;margin:0 0 10px}
+svg{display:block;width:100%;height:auto}
+svg .gl{stroke:var(--line);stroke-width:1}svg .gt{font-size:11px;fill:var(--mut)}
+.lvt td:last-child{white-space:normal;min-width:220px}.tal{margin:8px 0 4px;padding-left:20px;font-size:13.5px;line-height:1.8;color:var(--ink2)}
+.rec{font-size:13.5px;color:var(--ink2);margin:2px 0 8px;line-height:1.8}
+.evt td:first-child{white-space:nowrap}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 0 14px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:top}
+th{background:var(--card2);color:var(--mut);font-weight:600;font-size:12px}
+td.l,th.l{text-align:left}
+table.dt td:first-child{white-space:normal;min-width:170px}.hw{display:block;font-size:11.5px;color:var(--mut);font-weight:400}
+h3{font-size:15px;margin:18px 0 6px;color:var(--accd)}h4{font-size:13.5px;margin:10px 0 4px}
+.mth p{font-size:13.5px;line-height:1.8;margin:6px 0;color:var(--ink2)}
+.note{color:var(--mut);font-size:12px;line-height:1.7}
+.hd{margin:2px 0 6px}.sum{font-size:15px;font-weight:700;margin:0 0 8px;line-height:1.6}
+.strips{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.sr{display:grid;grid-template-columns:96px minmax(0,1fr) 92px minmax(0,1.1fr);gap:4px 12px;align-items:center;padding:9px 12px;border-top:1px solid var(--line);color:var(--ink)}
+.sr:first-child{border-top:0}.sr:hover{background:var(--card2)}
+.sr-n{display:flex;flex-direction:column;line-height:1.3}.sr-n b{font-size:14px}.sr-n i{font-style:normal;font-size:11px;color:var(--mut)}
+.sr-c{display:grid;grid-template-columns:repeat(52,minmax(0,1fr));gap:1px;height:20px}
+.sr-c i{display:block;border-radius:1px}.sr-c .na{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
+.sr-c .b0,.srl .b0{background:var(--c0)}.sr-c .b1,.srl .b1{background:var(--c1)}.sr-c .b2,.srl .b2{background:var(--c2)}.sr-c .b3,.srl .b3{background:var(--c3)}.sr-c .b4,.srl .b4{background:var(--c4)}
+.sr-v{display:flex;align-items:baseline;gap:6px}.sr-v .sc{font-size:26px}.sr-v em{font-style:normal;font-weight:700;font-size:13px}
+.sr-t{font-size:12.5px;color:var(--ink2);line-height:1.5}
+.srl{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--mut);margin:6px 2px 0;align-items:center}
+.srl span{display:inline-flex;align-items:center;gap:4px}.srl i{display:inline-block;width:12px;height:10px;border-radius:2px}
+.nmb{background:none;border:0;padding:0;margin:0;font:inherit;font-weight:600;font-size:14px;color:var(--ink);text-align:left;cursor:pointer}
+.nmb:hover,.nmb:focus-visible{color:var(--acc);text-decoration:underline dotted}
+.inm .ipos{color:var(--ink2);font-size:11.5px}.inm .idv{color:var(--accd);font-size:11.5px}
+.cbar{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:0 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.ck{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:3px 10px;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}
+.ck i{display:inline-block;width:14px;height:3px;border-radius:2px;background:var(--line)}
+.ck.on{border-color:var(--ink2);color:var(--ink);font-weight:600}.ck.on i{background:var(--c,var(--ink2))}
+.tb{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:3px 10px;font:inherit;font-size:12.5px;color:var(--ink2);cursor:pointer}
+.tb.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.seg{display:inline-flex;gap:4px;flex-wrap:wrap}
+.pick{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:0 0 8px;display:flex;flex-direction:column;gap:8px}
+.pg{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.pg b{font-size:12.5px;color:var(--mut);min-width:4.5em}
+.cw{position:relative;min-height:160px}
+.cw svg{display:block;width:100%;height:auto;touch-action:pan-y}
+.cw .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.cw .lpx{fill:none;stroke:var(--ink2);stroke-width:1.5}
+.cw .el{font-size:11.5px;fill:var(--ink2)}.cw .pt{font-size:11.5px;fill:var(--mut)}
+.cw .shh{fill:var(--c4);opacity:.14}.cw .shc{fill:var(--c0);opacity:.14}
+.cw .zh{fill:var(--zh)}.cw .zc{fill:var(--zc)}
+.cw .cx{stroke:var(--ink);stroke-width:1;opacity:.5}
+.tip{position:absolute;pointer-events:none;background:var(--tipbg);color:var(--ink);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:6px 9px;font-size:12px;min-width:150px;z-index:3}
+.tip b{display:block;font-size:12px;margin-bottom:2px}.tip div{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.tip i{display:inline-block;width:12px;height:3px;border-radius:2px}.tip strong{font-size:13px;min-width:2.4em}
+.tip .tpx{color:var(--mut);margin-top:2px}
+#cmp-an h3{margin-top:14px}#cmp-an h4{margin:14px 0 4px}#cmp-an p{font-size:13.5px;line-height:1.75;margin:4px 0;color:var(--ink2)}
+.an svg{display:block;width:auto;max-width:100%;height:auto}
+.an .mob{display:none}
+.an .bp{fill:var(--bp)}.an .bf{fill:var(--ink2)}.an .ci{stroke:var(--ink);stroke-width:1.5}.an .zl{stroke:var(--ink2);stroke-width:1}
+.an .lr{fill:none;stroke:var(--ink2);stroke-width:2}
+table.g3 td.c3{white-space:normal;min-width:118px;text-align:left;vertical-align:top}
+table.g3 th{white-space:normal}
+table.ct td:first-child{white-space:normal;min-width:6em}
+.an th{white-space:normal}
+.c3 b{display:block;font-size:15px}.c3 span{display:block;font-size:11.5px;color:var(--ink2)}.c3 em{display:block;font-style:normal;font-size:12px;font-weight:600;margin-top:2px}
+.c3.cs{background:var(--sbg)}.c3.cw{background:var(--wbg)}.c3.cf{color:var(--mut)}.c3.cf b{color:var(--mut)}
+.c3.cur{box-shadow:inset 0 0 0 2px var(--ink)}
+tr.cur td{background:var(--curbg)}.ovl{font-size:13px}
+.ovw{margin:14px 0}.ovw>summary{cursor:pointer;font-size:14px;line-height:1.7;color:var(--accd)}.ovw>summary .sub{display:block;font-size:12px;color:var(--mut);font-weight:400}
+table.dvt td:nth-child(2),table.dvt td:nth-child(4),table.dvt td:nth-child(5){white-space:normal;min-width:180px}
+table.rlt td{white-space:normal;min-width:120px}table.rlt td:first-child{min-width:150px}
+table.dvs td:nth-child(3){white-space:normal;min-width:180px}table.dvs tr.grow td{background:var(--card2)}
+.acl{font-weight:600;cursor:help;border-bottom:1px dotted var(--mut)}
+table.m6t{font-size:12px}table.m6t th{white-space:normal;font-size:11px}table.m6t td{padding:5px 6px}
+table.m6t td:first-child,table.m6t th:first-child{position:sticky;left:0;background:var(--bg);z-index:1;white-space:normal;min-width:7.5em}
+table.m6t th:first-child{background:var(--card2)}table.m6t td b{color:var(--accd);margin-left:2px}
+table.m6p td:nth-child(2){white-space:normal;min-width:220px}
+.rsp{display:flex;flex-wrap:wrap;gap:12px}
+.m6s{margin:6px 0;border-top:1px solid var(--line);padding-top:6px}.m6s>summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--ink)}
+.m6s>summary .sub{display:block;margin:1px 0 0;font-weight:400;font-size:12px;color:var(--mut)}.an .rp{fill:var(--acc)}.an .ri{fill:var(--ink)}.an .rn{fill:var(--bg);stroke:var(--mut);stroke-width:1.5}
+@media (max-width:640px){
+ .sr{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"n v" "c c" "t t";padding:9px 10px}
+ .sr-n{grid-area:n}.sr-v{grid-area:v}.sr-c{grid-area:c;height:16px}.sr-t{grid-area:t;font-size:12px}
+ .sr-n{flex-direction:row;align-items:baseline;gap:8px}
+ .pg b{min-width:100%}
+ .tip{min-width:130px}
+ table.g3 td.c3{min-width:0;padding:6px 4px}.c3 b{font-size:14px}.c3 span,.c3 em{font-size:11px}.c3 span{white-space:nowrap;letter-spacing:-.2px}
+ table.g3 th{padding:6px 5px}
+ .an .mob{display:block}.an .dsk{display:none}
+ .an table{font-size:12px}.an th,.an td{padding:6px 4px}
+ table.stk,table.stk tbody{display:block}table.stk tr:first-child{display:none}
+ table.stk tr{display:block;padding:8px 2px;border-bottom:1px solid var(--line)}
+ table.stk td{display:block;border:0;padding:1px 0;text-align:left;white-space:normal;min-width:0!important}
+ table.stk td[data-h]::before{content:attr(data-h) "：";color:var(--mut);font-size:12px}
+}
+@media (max-width:640px){
+ .ith{display:none}
+ .it{grid-template-columns:minmax(0,1fr) 64px 78px;row-gap:3px}
+ .it .inm{grid-column:1/2;grid-row:1}.it .ihb{grid-column:1/2;grid-row:2}
+ .it .ipl{grid-column:2/3;grid-row:1/3;align-self:center}
+ .it .ish{grid-column:3/4;grid-row:1}.it .iwk{grid-column:3/4;grid-row:2}
+ .it .ish::before{content:"佔比 "}.it .iwk::before{content:"本週 "}
+ .sc{font-size:30px}
+ .ch h2 .sub{display:block;margin-left:0}
+ .lvt,.lvt tbody{display:block}.lvt tr:first-child{display:none}
+ .lvt tr{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:2px 12px;padding:7px 2px;border-bottom:1px solid var(--line)}
+ .lvt td{border:0;padding:0}
+ .lvt td:last-child{grid-column:1/-1;min-width:0;white-space:normal;color:var(--ink2);font-size:12.5px;text-align:left}
+ .lvt td:last-child:empty{display:none}
+ .evt th:first-child,.evt td:first-child{position:sticky;left:0;background:var(--bg);z-index:1}
+}
+.apptab{display:flex;gap:2px;background:var(--card2);border-radius:10px;padding:3px;align-self:center}.apptab a{padding:5px 12px;border-radius:8px;font-size:14.5px;font-weight:600;color:var(--ink2);text-decoration:none;white-space:nowrap}.apptab a:hover{color:var(--ink)}.apptab a.on{background:var(--bg);color:var(--ink);box-shadow:0 1px 3px rgba(20,30,50,.14)}.apptab .aps{display:none}@media (max-width:640px){.top>.apptab{flex:1 1 100%}.apptab a{flex:1;text-align:center;padding:5px 2px;font-size:14px}.apptab .apl{display:none}.apptab .aps{display:inline}}
+.rmain{max-width:880px;margin:0 auto;padding:10px 16px 60px}
+.rmain h1{font-size:22px;margin:8px 0 6px}
+.rlead{font-size:14px;line-height:1.75;color:var(--ink2);margin:0 0 12px}
+.rtoc{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;margin:0 0 6px}
+.rsec{margin-top:22px}.rsec h2{font-size:17px;margin:0 0 4px}
+.rnote{font-size:13px;color:var(--mut);margin:0 0 8px;line-height:1.6}
+.rlist{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.rlist li{display:grid;grid-template-columns:minmax(12em,15em) minmax(0,1fr);gap:4px 14px;padding:9px 2px;border-bottom:1px solid var(--line);font-size:14px;line-height:1.6}
+.rlist li a{font-weight:600}.rlist li span{color:var(--ink2);font-size:13px}
+@media (max-width:640px){.rlist li{grid-template-columns:1fr;gap:0}.rmain{padding:8px 16px 50px}}
+.thm{display:inline-flex;align-items:center;gap:5px;align-self:center;padding:3px 10px;border:1px solid var(--line);border-radius:999px;background:var(--bg);color:var(--ink2);font:inherit;font-size:12.5px;line-height:1.4;white-space:nowrap;cursor:pointer}.thm:hover{color:var(--ink)}.thm:focus-visible{outline:2px solid var(--acc);outline-offset:2px}.thm svg{display:none;width:14px;height:14px;flex:none}.thm[data-t="auto"] .ti-a,.thm[data-t="light"] .ti-l,.thm[data-t="dark"] .ti-d{display:block}:root[data-theme="light"]{color-scheme:light}:root[data-theme="dark"]{color-scheme:dark}</style><script>(function(){var K="labTheme",O=["auto","light","dark"],N={auto:"自動",light:"淺色",dark:"深色"},r=document.documentElement,cur="auto";try{var s=localStorage.getItem(K);if(s==="light"||s==="dark")cur=s}catch(e){}function ap(){if(cur==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",cur);var b=document.getElementById("thm");if(!b)return;b.setAttribute("data-t",cur);var t=b.querySelector(".thm-t");if(t)t.textContent=N[cur];var nx=N[O[(O.indexOf(cur)+1)%3]],lb="深淺色："+N[cur]+(cur==="auto"?"（跟系統）":"")+"，點一下換成"+nx;b.setAttribute("aria-label",lb);b.title=lb}ap();document.addEventListener("DOMContentLoaded",ap);document.addEventListener("click",function(e){var b=e.target&&e.target.closest&&e.target.closest("#thm");if(!b)return;cur=O[(O.indexOf(cur)+1)%3];try{if(cur==="auto")localStorage.removeItem(K);else localStorage.setItem(K,cur)}catch(x){}ap();try{window.dispatchEvent(new Event("labtheme"))}catch(x){}});})();</script></head>
+<body>
+<div class="top"><nav class="apptab" aria-label="頁面"><a href="x9m.html"><span class="apl">台股景氣</span><span class="aps">台股</span></a><a href="x9mu.html"><span class="apl">美股景氣</span><span class="aps">美股</span></a><a href="x9b.html">泡沫</a><a href="x9.html">配置</a><a href="x9o.html"><span class="apl">訊號總覽</span><span class="aps">訊號</span></a></nav><button type="button" class="thm" id="thm" data-t="auto" aria-label="深淺色：自動（跟系統），點一下換成淺色"><svg class="ti-a" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><svg class="ti-l" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.1" fill="currentColor"/><path d="M8 1.3v1.9M8 12.8v1.9M1.3 8h1.9M12.8 8h1.9M3.3 3.3l1.3 1.3M11.4 11.4l1.3 1.3M3.3 12.7l1.3-1.3M11.4 4.6l1.3-1.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><svg class="ti-d" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.2 10.3A5.7 5.7 0 0 1 5.7 3.8a5.8 5.8 0 1 0 6.5 6.5z" fill="currentColor"/></svg><span class="thm-t">自動</span></button><a class="back" href="./">返回主頁</a></div>
+<main class="rmain"><h1>研究紀錄</h1>
+<p class="rlead">驗證、方法、研究表，以及原本的策略頁、後台都在這裡。主頁面（市場、配置）只放結論和要做的事；
+要查一個數字怎麼來的、一條規則過去的每一筆，從這裡進去。</p>
+<nav class="rtoc" aria-label="目錄"><a href="#cfg">配置與策略</a><a href="#mkt">市場</a><a href="#gl">名詞</a></nav><section class="rsec" id="cfg"><h2>配置與策略</h2><p class="rnote">配置頁（台股、美股、策略）每一條規則的來歷：每一期的名單、過去每一筆、評級與判定、上線後的檢查。</p><ul class="rlist"><li><a href="x9.html?v=opp">個股策略・這一期</a><span>推薦順序、時間表、每條個股策略這一期的名單與下一批、飆股、高股息換股避開清單、部位上限</span></li><li><a href="x9.html?v=st">個股策略・規則與成績</a><span>比較表；每條策略的結論、怎麼做、逐年報酬與 1 元變多少、逐筆交易（可下載）、風險</span></li><li><a href="x9.html?v=mac">總經策略・這一期</a><span>五個市場的指數型策略（RSI(2)、VIX 衝刺、Coppock、200 日均線…）：要動作的、持有中的、下一次排定</span></li><li><a href="x9.html?v=macst">總經策略・規則與成績</a><span>每條的規則與出處、逐年報酬、1 元變多少、逐筆交易、風險、判定依據與參數鄰近</span></li><li><a href="x9.html?v=bo&amp;at=bo-today">後台・今天的驗證</a><span>每天建頁時的自我驗證事件、06:35 推播會帶的兩行</span></li><li><a href="x9.html?v=bo&amp;at=bo-fwd">後台・前瞻紀錄</a><span>每條策略起算日之後照規則做的成績：已出場、持有中、同期大盤、比同一批股票</span></li><li><a href="x9.html?v=bo&amp;at=bo-hl">後台・策略健檢與改良</a><span>前瞻和回測比偏離多少（燈號）、每週一重跑的執行細節候選與影子版本</span></li><li><a href="x9.html?v=bo&amp;at=val-grade">後台・評級規則與評級總表</a><span>回測方法 v3 的 A／B／C 評級：樣本內外選股、報酬型態、穩健度三項</span></li><li><a href="x9.html?v=bo&amp;at=val-bt3">後台・全部策略總表</a><span>回測方法 v3 跑過的每一個版本（前 5 檔與整組、大型與中型）</span></li><li><a href="x9.html?v=bo&amp;at=bo-sig">後台・訊號成績</a><span>籌碼雷達 8 種個股訊號照做的實際報酬（持有 5／20 天、同期大盤）</span></li><li><a href="x9.html?v=bo&amp;at=idx-study">後台・換股研究</a><span>臺灣50 與高股息 ETF 換股的事件研究、被動買盤大小、提前卡位回測</span></li><li><a href="x9.html?v=bo&amp;at=bo-sched">後台・每日更新時程</a><span>每一班自動更新做什麼、幾點</span></li></ul></section><section class="rsec" id="mkt"><h2>市場</h2><p class="rnote">景氣溫度、泡沫、訊號的驗證與方法（市場頁改版時搬進這頁；在那之前連到原頁的段落）。</p><ul class="rlist"><li><a href="x9m.html#more">台股景氣・完整數字與方法</a><span>各項和台股的關係、Granger、邊際變化的多層回歸、五區回測、事件表現、資料來源</span></li><li><a href="x9mu.html#more">美股景氣・完整數字與方法</a><span>四個指數同一套：各項和指數的關係、邊際變化、五區回測、資料來源</span></li><li><a href="x9b.html#mth">泡沫・方法與驗證</a><span>七種條件的定義、PSY 臨界值、分級規則；每個市場「成立之後比較容易大跌嗎」</span></li><li><a href="x9b.html#ind">泡沫・產業</a><span>台股產業與細分族群、美股類股與 49 細產業的泡沫條件與驗證</span></li><li><a href="x9o.html#research">訊號・研究結論</a><span>8 個研究過的問題：照網頁調整持股、期貨加碼、籌碼過熱、跌破季線、落底訊號…</span></li><li><a href="x9o.html#rfull">訊號・完整研究表</a><span>實測區細節（8 種用法逐年）、短線大跌風險、大跌後檢查、過熱後回撤、反向檢查四張研究卡</span></li><li><a href="x9o.html#mth">訊號・名詞與判定方式</a><span>★／◆／○ 怎麼判、打亂日子測試、預估之後（逐年檢查留下的比例）</span></li><li><a href="x9o.html#all">訊號・全部指標</a><span>每一個指標、每一種訊號過去出現之後的結果與每一次的清單</span></li></ul></section><section class="rsec" id="gl"><h2>名詞</h2><p class="rnote">籌碼雷達用到的名詞（真加碼、申贖倍率、超配、成本乖離…）與方法、限制。</p><ul class="rlist"><li><a href="x9.html?v=bo#gl">名詞與方法</a><span>ETF 部位帳本、時點、公司行動、法人成本的算法與資料來源</span></li></ul></section></main>
+</body></html>
