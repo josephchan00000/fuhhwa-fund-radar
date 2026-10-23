@@ -184,8 +184,8 @@ function coBody(c,W){const C=CO[c],r=mtRow(c);if(!C)return '';const Q=C.Q,M=C.M;
     if(r.ttb)h+=`<details class=mr><summary>趨勢樣板 8 項明細（${r.tt}／8）${gi('趨勢樣板')}</summary><ul class=chk>${TTN.map((t,i)=>`<li><span class=${r.ttb[i]==='1'?'ok':'no'}>${r.ttb[i]==='1'?'✓':'✗'}</span><span>${esc(t)}</span><span></span></li>`).join('')}</ul></details>`;
     const cb=((((D.sx||{}).cnt)||{}).A)||{},cr=(cb.rows||[])[ok];
     if(cr&&cr.p!=null&&cr.n>=30)h+=`<div class=note style="margin-top:8px">過去同樣符合 ${ok} 項的股票，3 個月內漲到五成的比例是 <b>${f(cr.p*100,0)}%</b>（一般股票 ${f((cb.base||0)*100,0)}%）。</div>`;
-    const hit=(((D.sx||{}).hits)||{})[c];if(hit&&hit.length)h+=`<div class=note style="margin-top:8px">今天符合飆股研究的規則 ${hit.map(i=>{const u=(D.sx.rules||[])[i]||{};return `<span class=sxi title="${esc(u.txt||'')}">${esc(u.lab||'')}${i+1}</span>`;}).join('')}（${hit.length===1?esc(((D.sx.rules||[])[hit[0]]||{}).txt||''):'共 '+hit.length+' 條'}；<a data-go="opp" data-at="o-sx">看規則與過去成績 →</a>）</div>`;
-    h+=`<div class=st style="margin-top:6px">條件來自《超級績效》。比例用 2014 年起、月底市值 40 億以上的股票每週計算：符合的那一週之後 60 個交易日內，最高價曾經漲到五成就算。過去的比例不代表之後也一樣。</div></section>`;}
+    const hit=(((D.sx||{}).hits)||{})[c];if(hit&&hit.length)h+=`<div class=note style="margin-top:8px">今天符合飆股規則 ${hit.map(i=>{const u=(D.sx.rules||[])[i]||{};return `<span class=sxi title="${esc(u.txt||'')}">${esc(u.lab||'')}${i+1}</span>`;}).join('')}（${hit.length===1?esc(((D.sx.rules||[])[hit[0]]||{}).txt||''):'共 '+hit.length+' 條'}；<a data-go="opp" data-at="o-sx">看規則與過去成績</a>）</div>`;
+    h+=`</section>`;}
   h+=fcSec(c,C,px)+indSec(c,r);
   /* 3 成長 */
   const m24=M.filter(o=>o.rev!=null).slice(-24);
@@ -260,7 +260,7 @@ function fcSrc(c,C,src,id,txt){const sym=c+(C&&C.doc.mk==='tp'?'.TWO':'.TW');if(
     `<a href="https://finance.yahoo.com/quote/${encodeURIComponent(sym)}/analysis/" target=_blank rel=noopener>${txt}</a>`;}
 function fcWho(c,C){const nm=C?C.doc.n:coNm(c);
   return `<a href="https://news.google.com/search?q=${encodeURIComponent(nm+' 目標價')}&hl=zh-TW&gl=TW&ceid=TW%3Azh-Hant" target=_blank rel=noopener>是哪些法人（目標價新聞）</a>`;}
-function fcSec(c,C,px){let h=`<section class=csec id=co-fc><h3>法人預估<span class=sub>分析師的預估，只供參考${gi('法人預估')}</span></h3>`;
+function fcSec(c,C,px){let h=`<section class=csec id=co-fc><h3>法人預估<span class=sub>分析師的預估${gi('法人預估')}</span></h3>`;
   if(!FC)return h+`<div class=st>${FCERR?'法人預估資料暫時無法載入。':'載入中…'}</div></section>`;
   const v=(FC.s||{})[c];if(!v||(!v.pe&&!v.pt))return h+`<div class=st>沒有分析師追蹤這檔（FactSet 調查與 Yahoo Finance 都沒有資料），多半是中小型股。</div></section>`;
   const pe=v.pe,pt=v.pt,t=v.t,y=v.y||{},ae={},ar={};annualEps(C).forEach(([yr,x])=>ae[yr]=x);
@@ -289,9 +289,9 @@ function fcSec(c,C,px){let h=`<section class=csec id=co-fc><h3>法人預估<span
     const ch=tt[2]>0&&tt[0]>0?`（${pctT((tt[0]/tt[2]-1)*100,1)}）`:`（${tt[0]>=tt[2]?'+':'−'}${f(Math.abs(tt[0]-tt[2]),2)} 元）`;
     h+=`<div class=st style="margin-top:4px">近期修正（Yahoo Finance，${md(FC.yd)}）：${String(y0.end).slice(0,4)} 年 EPS 預估平均 ${f(tt[0],2)} 元，30 天前 ${f(tt[2],2)}${ch}${tt[4]?`、90 天前 ${f(tt[4],2)}`:''}；近 30 天上修 ${rv[1]||0} 位、下修 ${rv[3]||0} 位。</div>`;}
   const ev=v.ev||[];if(ev.length)h+=`<details class=mr><summary>FactSet 最近 ${ev.length} 次調整</summary><ul class=fcev>${ev.map(x=>{const lk=x[5]?` <a href="https://news.cnyes.com/news/id/${encodeURIComponent(x[5])}" target=_blank rel=noopener>原文</a>`:'';return x[1]==='e'?
-      `<li><span>${md(x[0])}</span>${x[4]} 年 EPS 中位數 ${f(x[2],2)} → <b>${f(x[3],2)}</b> 元 ${x[2]>0&&x[3]>0?sgn((x[3]/x[2]-1)*100,1,'%'):''}${lk}</li>`:
-      `<li><span>${md(x[0])}</span>目標價中位數 ${fp(x[2])} → <b>${fp(x[3])}</b> 元 ${sgn(x[4],1,'%')}${lk}</li>`;}).join('')}</ul></details>`;
-  h+=`<div class=st style="margin-top:6px">目標價、EPS 都是券商分析師的預估：FactSet 調查是多位分析師的中位數（鉅亨網「台股預估」快訊，預估有變動才發一則${FC.fs_from?`，${esc(FC.fs_from.slice(0,4))} 年起`:''}）；FactSet 超過 4 個月沒有新快訊就改用 Yahoo Finance（每天更新）。「是哪些法人」連到這檔的目標價新聞，各家券商的數字在新聞裡。分析師常常修正預估，實際數字可能差很多；只供參考，不構成投資建議。</div></section>`;
+      `<li><span>${md(x[0])}</span>${x[4]} 年 EPS 中位數 ${f(x[2],2)} 調到 <b>${f(x[3],2)}</b> 元 ${x[2]>0&&x[3]>0?sgn((x[3]/x[2]-1)*100,1,'%'):''}${lk}</li>`:
+      `<li><span>${md(x[0])}</span>目標價中位數 ${fp(x[2])} 調到 <b>${fp(x[3])}</b> 元 ${sgn(x[4],1,'%')}${lk}</li>`;}).join('')}</ul></details>`;
+  h+=`<div class=st style="margin-top:6px">目標價、EPS 都是券商分析師的預估：FactSet 調查是多位分析師的中位數（鉅亨網「台股預估」快訊，預估有變動才發一則${FC.fs_from?`，${esc(FC.fs_from.slice(0,4))} 年起`:''}）；FactSet 超過 4 個月沒有新快訊就改用 Yahoo Finance（每天更新）。「是哪些法人」連到這檔的目標價新聞，各家券商的數字在新聞裡。分析師常常修正預估，實際數字可能差很多；不構成投資建議。</div></section>`;
   return h;}
 /* 產業比較：產業別＝證交所／櫃買中心分類；產業數字由建頁算（D.ind），同業名次用 x9t 在瀏覽器排 */
 function indSec(c,r){let h=`<section class=csec id=co-ind><h3>產業比較<span class=sub>同產業的公司${gi('產業比較')}</span></h3>`;
@@ -310,7 +310,7 @@ function indSec(c,r){let h=`<section class=csec id=co-ind><h3>產業比較<span 
   const cell=(x,d,suf)=>x==null?'—':f(x,d)+suf;
   h+=`<div class=tw style="margin-top:6px"><table class=qt><thead><tr><th>市值前 6 大</th><th>營收成長</th><th>毛利率</th><th>ROE</th><th>本益比</th><th class=hm>RS</th></tr></thead><tbody>`+
     top.map(p=>`<tr${p.c===c?' class=me':''}><td><a data-co="${esc(p.c)}">${esc(coNm(p.c))}</a> <span class=cd>${esc(p.c)}</span><div class=sm2>${p.cap==null?'':f(p.cap,p.cap>=1000?0:1)+' 億'}</div></td><td>${p.ry3==null?'—':sgn(p.ry3,0,'%')}</td><td>${cell(p.gm,1,'%')}</td><td>${cell(p.roe,1,'%')}</td><td>${p.pe==null?'—':f(p.pe,1)}</td><td class=hm>${p.rs==null?'—':p.rs}</td></tr>`).join('')+
-    `</tbody></table></div><div class=st style="margin-top:6px">營收成長＝近 3 個月營收比去年同期（到 ${esc((D.ind||{}).ym||'—')}）；毛利率、ROE、本益比用最新財報。產業別用證交所／櫃買中心的分類，範圍比較大（例如「電子零組件業」包含很多不同產品）。只供參考。</div></section>`;
+    `</tbody></table></div><div class=st style="margin-top:6px">營收成長＝近 3 個月營收比去年同期（到 ${esc((D.ind||{}).ym||'—')}）；毛利率、ROE、本益比用最新財報。產業別用證交所／櫃買中心的分類，範圍比較大（例如「電子零組件業」包含很多不同產品）。</div></section>`;
   return h;}
 function coNav(){return [['co-sum','公司分析'],['co-sx','飆股檢查'],['co-fc','法人預估'],['co-ind','產業'],['co-gr','成長'],['co-pf','獲利'],['co-bs','體質'],['co-val','估值'],['co-dv','股利'],['co-qt','季報']];}
 /* 個股卡裡的一段（page.py renderStock 呼叫）：資料還沒到就先放「載入中」、到了重畫 */
@@ -418,7 +418,7 @@ function wlSec(){const W=D.wl||{};if(!W.v)return sxSec();const Y=W.lay||{},ST=Y.
   const IR=((D.ind||{}).rows||[]).filter(x=>x[8]!=null);
   if(IR.length){const th=`<thead><tr><th class=l>產業</th><th>股價</th><th>營收成長</th><th class=hm>成長加快</th></tr></thead>`;
     const row=x=>`<tr><td class=l>${esc(x[0])}<div class=sm2>${x[1]} 檔${x[9]?`・名單 ${x[9]} 檔`:''}</div></td><td>${sgn(x[7],1,'%')}</td><td>${x[3]==null?'—':sgn(x[3],0,'%')}</td><td class=hm>${x[4]==null?'—':(x[4]>0?'+':'')+f(x[4],1)+' 個百分點'}</td></tr>`;
-    b+=`<h4 class=sh>產業熱度${gi('產業比較')}</h4><div class=st>股價＝產業內股票近 3 個月（60 個交易日）漲跌的中位數，列最強的 5 個產業；營收成長＝近 3 個月營收比去年同期（到 ${esc((D.ind||{}).ym||'—')}）。只供參考。</div>`+
+    b+=`<h4 class=sh>產業熱度${gi('產業比較')}</h4><div class=st>股價＝產業內股票近 3 個月（60 個交易日）漲跌的中位數，列最強的 5 個產業；營收成長＝近 3 個月營收比去年同期（到 ${esc((D.ind||{}).ym||'—')}）。</div>`+
       `<div class=tw><table class=sxt>${th}<tbody>${IR.slice(0,5).map(row).join('')}</tbody></table></div>`+
       (IR.length>5?`<details class=mr><summary>全部 ${IR.length} 個產業</summary><div class=tw><table class=sxt>${th}<tbody>${IR.map(row).join('')}</tbody></table></div></details>`:'');}
   const sp=Y.specs||{},v1=sp.v1||{},v2=sp.v2||{};
@@ -439,7 +439,7 @@ function wlSec(){const W=D.wl||{};if(!W.v)return sxSec();const Y=W.lay||{},ST=Y.
 document.addEventListener('click',e=>{if(e.defaultPrevented)return;const a=e.target.closest&&e.target.closest('[data-co]');if(a){e.preventDefault();openCo(a.dataset.co,a.dataset.cs);return;}
   const m=e.target.closest&&e.target.closest('.sxall');if(m){e.preventDefault();$$('#sxc tr.sxmore').forEach(t=>t.hidden=false);m.remove();}});
 Object.assign(GL,{'五面向':'成長（近 3 月營收年增、最新季 EPS 年增）、獲利（近四季 ROE、營益率）、體質（負債比、流動比）、估值（本益比、淨值比，越便宜分數越高）、動能（RS、距 52 週高點）。每項先算在全市場的百分位，兩項平均後分 5 格：80 以上頂尖、60 以上良好、40 以上中性、20 以上偏弱、其餘落後。',
-  '飆股體質檢查':'《超級績效》（Minervini）找飆股看的條件：獲利與營收高成長而且在加速、毛利率變好、股價在長期上升趨勢、股價強度高。右欄是過去符合這一條的股票，之後 3 個月內漲到五成的比例；拿一般股票的比例當對照。',
+  '飆股體質檢查':'《超級績效》（Minervini）找飆股看的條件：獲利與營收高成長而且在加速、毛利率變好、股價在長期上升趨勢、股價強度高。右欄是過去符合這一條的股票，之後 3 個月內漲到五成的比例（2014 年起、月底市值 40 億以上的股票每週算：符合的那一週之後 60 個交易日內，最高價曾經漲到五成就算），和一般股票的比例一起看。過去的比例不代表之後也一樣。',
   '趨勢樣板':'Minervini 的 8 項：股價在 150 與 200 日線之上、150 日線高於 200 日線、200 日線上揚、50 日線高於 150 與 200 日線、股價在 50 日線之上、比 52 週低點高 30% 以上、在 52 週高點 25% 以內、RS ≥ 70。',
   'RS 百分位':'相對強度：0.4×近 3 個月＋0.2×近 6 個月＋0.2×近 9 個月＋0.2×近 12 個月報酬，在全市場排名（1～99，越高越強）。',
   '營收加速':'近 3 個月營收年增率比再前 3 個月的年增率高。連三季變好＝EPS 成長率、營收成長率、毛利率連續三季都一季比一季高（《超級績效》叫它 Code 33）。',

@@ -194,12 +194,13 @@ def test_render_structure_and_wording(built):
     for gone in ('id="trend"', 'id="detail"', 'class="tile"'):              # 第五版拿掉靜態走勢圖、各項明細、頁首數字卡
         assert gone not in page, gone
     assert '<a class="sr" href="#c-' not in page                                # 視覺化版面拿掉 52 週色帶，改成雷達（docs/lab_visual_plan.md）
-    assert page.count('<template id="dt-') == len(P.shown_dims()) == 5 and S.HORIZON_NOTE in page   # 每個面向一個右側面板（泡沫另放泡沫頁）
+    assert page.count('<template id="dt-') == len(P.shown_dims()) == 5                 # 每個面向一個右側面板（泡沫另放最下面）
+    assert S.HORIZON_NOTE not in page                     # 「怎麼看」的說明拿掉（docs/lab_ia_v5_plan.md 第 8 節；每個面向看多久寫在面板裡）
     for d in P.shown_dims():
         st = V["strips"][d]
         assert len(st["cells"]) == min(S.STRIP_WEEKS, len(P.HP.week_ends(built[0]["cal"])))
         assert P.strip_text(st) in page                                       # 色帶旁的說明搬到面向面板
-    assert V["summary"] and V["summary"] in page
+    assert V["summary"] and V["summary"] not in page                          # 頁首一列不寫句子（docs/lab_ia_v5_plan.md 第 3 節①）
     assert page.count('class="it"') >= 35 and "拉動分數" in page and "佔比" in page and "本週" in page
     assert page.count('<tr><td class="l">', page.index('class="evt"')) >= len(S.EVENTS)      # 16 種事件各一列
     for nm in ("月線（20 日）", "季線（60 日）", "年線（240 日）", "扣抵值", "前波高點", "近 60 個交易日的事件"):
@@ -207,7 +208,7 @@ def test_render_structure_and_wording(built):
     assert "證期局只公開最新一期新聞稿" in page                                  # 外資淨匯入沒有 0～100 的原因
     assert "用美國 VIX 的排名代替，不算進分數" in page and "前一半" in page and "後一半" in page
     assert "熱＝散戶擁擠、槓桿高、外資站在對面" in page
-    assert "出現在 2004、2010、2021–2022 年" in page                            # 樣本集中在哪幾段要看得出來
+    assert "出現在哪幾年" in page and "2004、2010、2021–2022" in page               # 樣本集中在哪幾段要看得出來（研究畫面的分區表）
     assert P._yrs(["2021", "2022", "2024", "2025", "2026"]) == "2021–2022、2024–2026" and P._yrs(None) == ""
     assert 'href="x9.html"' in page
     for w in BANNED:                                                         # 頁面文字與 JS 都不能有
@@ -393,7 +394,7 @@ def test_meta_matches_spec_and_is_embedded(built):
     assert set(m["items"]) == set(S.KEYS) and [d["id"] for d in m["dims"]] == list(P.shown_dims())   # 泡沫另放泡沫頁
     assert [a["id"] for a in m["acc"]] == [f"A_{g}" for g in S.M6_GROUPS] and m["acc"][0]["name"] == "景氣動能加速度"
     assert m["m6"] == {"delay": list(S.M6_DELAY), "win": S.M6_WIN, "cum": list(S.M6_CUM), "minn": S.M6_MIN_N}
-    assert page.count("<script>") == 3 and "x9mh.json" in page                 # 序列資料另外下載；另一個＝<head> 的深淺色（appnav）
+    assert page.count("<script>") == 4 and "x9mh.json" in page                 # HEAT_META、景氣頁程式、全部指標與泡沫的程式、<head> 的深淺色（appnav）；序列資料另外下載
 
 
 def test_coupling_replaced_by_scenarios():
@@ -456,10 +457,11 @@ def test_bubble_dimension_moved_to_bubble_page(built):
     data = HC.build_data(B, R)
     assert "bubl" not in data["s"] and not any(k in data["s"] for k in S.ITEMS["bubl"])
     V2 = dict(V, bubnow={"mk": "tw", "L": 3, "cond": ["P1", "P2"], "d": "2026-10-16"})
-    line = P.state_line(V2)                     # 泡沫只剩頁首狀態列的一格（docs/lab_signal_plan.md 第 6.1 節）
-    assert 'href="x9b.html#tw"' in line and "<b>泡沫</b>3<i>泡沫警戒</i>" in line and "（價格爆發、兩年翻倍）" in line
-    assert 'x9b.html' not in P.state_line(dict(V, bubnow=None))
-    page2 = P.render(V2)
-    assert line in page2 and page2.index(line) < page2.index('<div class="hview" data-view="radar"')
+    # 面向那一塊的標題列有一格泡沫等級，連到最下面的泡沫（docs/lab_ia_v5_plan.md 第 3 節①、第 15.1 節）
+    chip = '<a class="stc mfb" href="#bub" data-jump="bub" title="泡沫等級 3 泡沫警戒（價格爆發、兩年翻倍），點了看最下面的泡沫">'
+    page2 = P.render(dict(V2, bubblock='<section class="cd mbub" id="bub">泡沫</section>'))
+    assert chip in page2 and page2.index(chip) < page2.index('id="today"') < page2.index('id="bub"')   # 面向的標題列有一格，泡沫在最下面
+    assert 'class="stc mfb"' not in P.render(dict(V2, bubblock=""))    # 泡沫那一塊沒有（算不出來）就不放這一格
+    assert "x9b.html" not in page2
     for w in BANNED:
         assert w not in page2, w

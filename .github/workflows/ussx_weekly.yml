@@ -1,0 +1,79 @@
+name: 美股飆股資料每週更新（資料分支）
+
+# docs/lab_us_sleeve_plan.md 第 10.4 節：美股飆股前瞻記錄要的資料——下市的公司當時就記下來，才沒有存活偏誤。
+# 每週六台北 10:05（UTC 02:05，美股週五收盤以後），在資料分支 claude/ussx-data 上更新：
+#   那斯達克篩選器、財報行事曆（新的日子）、新代號的股價、全部代號最近兩週的股價、SEC 財報（有 secret SEC_CONTACT_EMAIL 才抓）。
+# 資料兩三百 MB，只 commit 回資料分支，不進 main。排程只在 main 上跑，所以這支檔放 main、checkout 資料分支。
+# 第 13.3 節（ussxspec VER 3）：更新完以後，用 main 的程式與資料（另外 checkout 到 mainrepo/）、資料分支的美股資料，
+#   從 2010 年重跑美股三成規則 QM，把每週紀錄 data/lab/ussx_qm_live.json 寫回 main（只有這一支小檔）。
+
+on:
+  schedule:
+    - cron: '5 2 * * 6'
+  workflow_dispatch:
+
+concurrency:
+  group: ussx-weekly
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/ussx-data
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安裝相依（certifi；numpy＝美股三成每週紀錄要用）
+        run: pip install --quiet certifi numpy
+
+      - name: 更新
+        env:
+          SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}   # 只有 SEC 那一段讀（arm/lab/secfin.py），不印、不存
+        run: timeout 6000 python3 scripts/backfill_ussx.py --weekly --budget-min 90
+
+      - name: commit 回資料分支
+        run: |
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          git add -f data/lab/ussx data/lab/usstk 2>/dev/null || true
+          git commit -q -m "chore: 美股飆股資料每週更新 $(date '+%F %H:%M')" || { echo "無變更"; exit 0; }
+          for i in 1 2 3; do
+            git push origin HEAD:claude/ussx-data && exit 0
+            git pull --rebase origin claude/ussx-data || git rebase --abort || true
+            sleep 5
+          done
+          echo "::error::push 失敗"; exit 1
+
+      - name: checkout main（美股三成每週紀錄用 main 的程式與資料）
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: mainrepo
+          fetch-depth: 1
+
+      - name: 美股三成每週紀錄 → main（docs/lab_us_sleeve_plan.md 第 13.3 節；失敗不影響上面的資料更新）
+        run: |
+          cd mainrepo
+          USSX_DIR="$GITHUB_WORKSPACE/data/lab/ussx" timeout 1800 python3 scripts/run_ussx.py --qm-live
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          git add -f data/lab/ussx_qm_live.json
+          git commit -q -m "chore: 美股三成每週紀錄 $(date '+%F %H:%M')" || { echo "紀錄沒有變"; exit 0; }
+          for i in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            git pull --rebase origin main || git rebase --abort || true
+            sleep 5
+          done
+          echo "::error::push 到 main 失敗"; exit 1

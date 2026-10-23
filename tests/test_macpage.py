@@ -38,13 +38,13 @@ def test_views_reuse_stock_strategy_components():
 def test_page_wires_personas_and_both_strategy_families():
     js = page._JS
     assert "pgSeg('opp','opp','st')" in js and "pgSeg('st','opp','st')" in js          # 個股策略：這一期｜規則與成績
-    assert "const PERS={opp:'st',st:'st',mac:'st',macst:'st',stk:'stk',chip:'stk',idx:'stk'};" in js
+    assert "const PERS={tw:'cfg',us:'cfg',strat:'cfg',stk:'cfg',chip:'cfg',idx:'cfg',opp:'r',st:'r',mac:'r',macst:'r',bo:'r'};" in js
     assert "function setPer(p)" in js and "function urlSet()" in js and "$$('.apptab a')" in js
     assert "if(x&&TABG[v]==='mac')" in js and "else{v='macst';at='ms-'+x;}" in js        # #v=mac&m=市場&x=策略：這一期的卡片或說明卡
     # 個股策略的逐年報酬表、1 元變多少：多出來的參數不給就跟原本一樣（總經策略才給）
     assert "function yearTbl(b,lb,last,keep)" in js and "const cut=keep&&n>keep+2?n-keep:0;" in js
     assert "function acurveChart(C,lb)" in js and "W=acW()" in js and "acLg(C.s[n-1],lt,C.d[0],lb)" in js
-    assert '<a data-t="mac" data-p="st" hidden>總經策略</a><a data-t="stg" data-p="st" hidden>個股策略</a>' in page._HTML
+    assert '<a data-t="stg" data-p="r" hidden>個股策略</a><a data-t="mac" data-p="r" hidden>總經策略</a>' in page._HTML   # 研究紀錄身分
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="沒有 node")
@@ -122,3 +122,18 @@ def test_trade_check_and_judge_render_from_detail_json():
             jd = XMD[f"xs:{mk}:{b['k']}"]["jd"]
             assert o["jd"].count("class=rbr") == len(jd["why"]) and o["jd"].count("<td") == jd["grid"]["n"]
             assert o["jd"].count('class="xmmn"') == 1 and (jd["ref"] is None or jd["ref"] in o["jd"])
+
+
+JARGON = ("VER", "候選", "門檻", "夏普", "前後兩半", "95%", "區間", "扣掉波動", "BH", "固定持有", "樣本外")
+
+
+def test_old_plan_section_is_gone():
+    """上一版交易計畫（策略頁・總經策略最上面「照著做」；planspec）2026-10-23 拿掉：使用者說比一直抱著還差。
+    新的交易計畫（核心 70%＋衛星 30%，corespec）放在訊號總覽・研究結論（docs/lab_core70_plan.md）。"""
+    js = M.JS
+    assert "xpSec" not in js and "m-plan" not in js and "xpl" not in M.CSS
+    assert "x==='plan'" not in page._JS
+    src = (page.Path(page.__file__)).read_text(encoding="utf-8")
+    assert "plan.build()" not in src and "stk_from_adv" in src
+
+

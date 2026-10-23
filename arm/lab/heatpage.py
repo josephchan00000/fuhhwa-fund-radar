@@ -193,6 +193,16 @@ def bubble_now(B: dict) -> dict | None:
         return None
 
 
+def bub_block(mk: str | None) -> str:
+    """市場頁最下面的泡沫那一塊（docs/lab_ia_v5_plan.md 第 15.1 節）；算不出來就不顯示，不擋景氣頁。"""
+    try:
+        from . import bubpage as BPG
+        return BPG.block_html(mk) if mk else ""
+    except Exception as e:                          # noqa: BLE001
+        print(f"[市場頁] 泡沫那一塊算不出來：{type(e).__name__}: {e}")
+        return ""
+
+
 def crash_now(B: dict) -> dict | None:
     """「短線大跌風險」卡的資料（crashpage.state；研究檔 data/lab/crash_research.json）；算不出來就不顯示那張卡。"""
     try:
@@ -243,6 +253,17 @@ def sig_now(B: dict) -> dict | None:
         return None
 
 
+def core_now(B: dict) -> dict | None:
+    """交易計畫（corespec；docs/lab_core70_plan.md）：三種過熱現在的讀數與該拿多少（core.now_from_B），訊號總覽・研究結論用；
+    算不出來回 None、不擋景氣頁。"""
+    try:
+        from . import core
+        return core.now_from_B(B)
+    except Exception as e:                          # noqa: BLE001  交易計畫的問題不擋景氣頁
+        print(f"[景氣溫度] 交易計畫的讀數算不出來：{type(e).__name__}: {e}")
+        return None
+
+
 def sig_today(now: dict | None) -> dict | None:
     """「今天的重點」：這個市場現在有效的好訊號（sigcat.today_for）；研究檔沒有或算不出來回 None。"""
     try:
@@ -253,43 +274,13 @@ def sig_today(now: dict | None) -> dict | None:
         return None
 
 
-def xs_board(mk: str | None) -> list:
-    """今天的重點：現在有動作的 ★ 總經策略（xstratpage.board）；算不出來回空的、不擋景氣頁。"""
-    try:
-        from . import xstratpage as XSP
-        return XSP.board(mk) if mk else []
-    except Exception as e:                          # noqa: BLE001
-        print(f"[景氣溫度] 總經策略算不出來：{type(e).__name__}: {e}")
-        return []
-
-
-def xs_chip(mk: str | None) -> str:
-    """最上面那一行的「10 個月均線」（xstratpage.chip）。"""
-    try:
-        from . import xstratpage as XSP
-        return XSP.chip(mk) if mk else ""
-    except Exception as e:                          # noqa: BLE001
-        print(f"[景氣溫度] 10 個月均線算不出來：{type(e).__name__}: {e}")
-        return ""
-
-
 def mr_chip(mk: str | None) -> str:
-    """最上面那一行的「融資維持率」（只有台股；xstratpage.mr_chip）。"""
+    """面向那一塊標題列的「融資維持率」（只有台股；xstratpage.mr_chip）。"""
     try:
         from . import xstratpage as XSP
         return XSP.mr_chip(mk) if mk else ""
     except Exception as e:                          # noqa: BLE001
         print(f"[景氣溫度] 融資維持率算不出來：{type(e).__name__}: {e}")
-        return ""
-
-
-def xs_line(mk: str | None) -> str:
-    """今天的重點下面一行：這個市場的總經策略幾條、現在有部位幾條，連到策略頁（xstratpage.summary_line）。"""
-    try:
-        from . import xstratpage as XSP
-        return XSP.summary_line(mk) if mk else ""
-    except Exception as e:                          # noqa: BLE001
-        print(f"[景氣溫度] 總經策略那一行算不出來：{type(e).__name__}: {e}")
         return ""
 
 
@@ -350,12 +341,11 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
             "dvr": R.get("deriv") or {}, "rel": R.get("rel") or {}, "m6": R.get("m6") or {}, "meta": meta(),
             "bubnow": bubble_now(B) if T else None, "crash": crash_now(B) if T else None,
             "hotdd": hotdd_now(B) if T else None, "hotch": hotch_now(B) if T else None,
-            "bottom": bottom_now(B) if T else None, "signow": sig_now(B) if T else None}
+            "bottom": bottom_now(B) if T else None, "signow": sig_now(B) if T else None,
+            "core": core_now(B) if T else None}
     out["sigtoday"] = sig_today(out["signow"])
-    out["xsb"] = xs_board(out["mk"]) if T else []   # 總經策略（xstratspec）：今天的重點要列的 ★ 策略
-    out["xschip"] = xs_chip(out["mk"]) if T else ""
-    out["mrchip"] = mr_chip(out["mk"]) if T else ""
-    out["xsl"] = xs_line(out["mk"]) if T else ""     # 今天的重點下面一行（連到策略頁）
+    out["mrchip"] = mr_chip(out["mk"]) if T else ""   # 面向標題列的融資維持率（只有台股）
+    out["bubblock"] = bub_block(out["mk"]) if T else ""   # 市場頁最下面的泡沫那一塊（bubpage.block_html）
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
         out["viz"] = VZ.pack(B, out)
@@ -444,13 +434,6 @@ def _meter(score: float | None) -> str:
     return f'<div class="mt">{seg}{mk}</div><div class="mtl">{lab}</div>'
 
 
-def _band_of(ev: dict, nm: str | None) -> dict | None:
-    for b in ev.get("bands") or []:
-        if b.get("band") == nm:
-            return b
-    return None
-
-
 def _unit(freq: str) -> str:
     return "個月" if freq == "m" else "天"
 
@@ -466,40 +449,6 @@ def _yrs(ys: list | None) -> str:
         out.append(str(v[i]) if i == j else f"{v[i]}–{v[j]}")
         i = j + 1
     return "、".join(out)
-
-
-def _past(L: dict) -> str:
-    """過去面向分數落在現在這一區時，之後加權指數的表現（全期間，兩個持有期間各自的樣本數）。"""
-    band = L["band"]
-    if band is None:
-        return ""
-    parts, allp, yrs, start = [], [], set(), None
-    for h in L["fwd"]:
-        e = _ev(L["cev"], h)
-        b, al = _band_of(e, band), _band_of(e, "全部")
-        if not b or not b.get("n") or not al or not al.get("n"):
-            continue
-        start = start or (e.get("a") or "")[:4]
-        yrs |= set(b.get("yrs") or [])
-        parts.append(f"之後 {h} 日（{b['n']:,} {_unit(L['freq'])}）{MK['px']}平均 {_pct(b['avg'])}、上漲機率 {b['up']:.0f}%、"
-                     f"期間最大跌幅中位數 {_pct(b['dd'])}")
-        allp.append(f"{h} 日 {_pct(al['avg'])}")
-    if not parts:
-        return ""
-    where = f"，出現在 {_e(_yrs(sorted(yrs)))} 年" if yrs else ""
-    return (f"過去分數在「{_e(band)}」時（{_e(start)} 年起的資料{where}）："
-            + "；".join(parts) + "。所有日子：" + "、".join(allp) + "。")
-
-
-def _verdict_line(L: dict) -> str:
-    vs = []
-    for h in L["fwd"]:
-        v = _ev(L["cev"], h).get("verdict")
-        if v:
-            vs.append(f"之後 {h} 日<b>{_e(S.VERDICT.get(v, '—'))}</b>")
-    if not vs:
-        return ""
-    return f'<p class="vd">過去關係（只當參考，不拿來刪項目）：{"、".join(vs)}。</p>'
 
 
 def stale_txt(st: dict) -> str:
@@ -682,31 +631,11 @@ def m6_conclusion(m6: dict) -> str:
 
 
 def _card(dim: str, L: dict, V: dict) -> str:
-    sc = L["score"]
-    head = (f'<b class="sc {BAND_CLS.get(L["band"], "b2")}">{n0(sc)}</b><span class="bn {BAND_CLS.get(L["band"], "b2")}">{_e(L["band"])}</span>'
-            if sc is not None else '<b class="sc mu">—</b><span class="bn mu">還沒有分數</span>')
-    wk = ""
-    if sc is not None and L["ago"] is not None:
-        wk = f'<span class="wk">和上週比 {_sgn(sc - L["ago"], 0)}</span>'
-    eq = ""
-    if sc is not None:
-        s = sum(it["pull"] for it in L["items"] if it["pull"] is not None)
-        extra = "；台指 VIX 用美國 VIX 代替的日子不算" if dim == "tech" and S.PROXY else ""
-        eq = (f'<p class="eq">分數 {sc:.1f} ＝ 50 ＋ 各項拉動合計 {_sgn(s)}（{L["n_have"]} 項有值，等權平均；'
-              f'每項拉動＝（0～100 − 50）÷ 有值的項數{extra}）</p>')
-    else:
-        need = H.need(len(L["items"]))
-        eq = f'<p class="eq">有值的項目不到 {need} 項（{len(L["items"])} 項的 2/3），不給分數。</p>'
-    vx = ""
-    vc = V.get("vixcorr") or {}
-    if dim == "tech" and S.PROXY and vc.get("n"):
-        r = "—" if vc.get("r") is None else f'{vc["r"]:.2f}'
-        vx = (f'<p class="note">台指 VIX 從 {_e(_ymd(vc.get("a")))} 起才有資料（{vc["n"]} 天），和美國 VIX 的相關係數 {r}；'
-              f'自己的歷史滿 {S.PCT_MIN["d"]} 個交易日後改用自己的排名並算進分數。</p>')
-    return (f'<section class="cd" id="c-{dim}"><div class="ch"><h2>{_e(L["name"])}<span class="sub">{_e(L["span"])}</span></h2>'
-            f'<div class="sv">{head}{wk}</div></div><p class="hot">熱＝{_e(L["hot"])}</p>{_meter(sc)}'
-            f'<p class="past">{_past(L) if sc is not None else ""}</p>{_verdict_line(L)}{eq}'
-            f'<div class="its">{_items(L)}</div>{vx}</section>')
+    """面向面板的下半部（heatviz.dim_tpl）：熱的意思、0～100 刻度、每一項（拉動分數、佔比、本週）。
+    分數、上週、各區之後的表現在面板上半部；2026-10-23 起不放算式與研究的句子（docs/lab_ia_v5_plan.md 第 8 節）。"""
+    tip = "每項拉動＝（0～100 − 50）÷ 有值的項數，加起來＋50＝面向分數"
+    return (f'<section class="cd" id="c-{dim}"><p class="hot">熱＝{_e(L["hot"])}</p>{_meter(L["score"])}'
+            f'<div class="its" title="{_e(tip)}">{_items(L)}</div></section>')
 
 
 def strip_text(st: dict) -> str:
@@ -877,10 +806,9 @@ def _ta_parts(V: dict) -> tuple[str, str]:
             when = f'（{_e(_ymd(x["d"]))}）' if x.get("d") else ""
             sr.append(f'{nm}：{_e(x["what"])}{when} {_num0(x["v"])}（距離 {_pct(x["dist"])}）')
     lis = [f'<li>月線季線：{_st_text("x", lv["st"].get("x"))}。</li>',
-           f'<li>季線方向：{_st_text("s60", lv["st"].get("s60"))}。之後 {S.DEDUCT_N} 個交易日的扣抵值：{ded}'
-           f'（收盤高於扣抵值，季線就往上）。</li>']
+           f'<li>季線方向：{_st_text("s60", lv["st"].get("s60"))}。之後 {S.DEDUCT_N} 個交易日的扣抵值：{ded}。</li>']
     if piv:
-        lis.append(f'<li>{"、".join(piv)}（收盤回落／反彈 5% 才確認是高點／低點）。</li>')
+        lis.append(f'<li title="收盤回落／反彈 5% 才確認是高點／低點">{"、".join(piv)}。</li>')
     if sr:
         lis.append(f'<li>{"；".join(sr)}。</li>')
     rec = "、".join(f'{_e(_md(d))} {_e(S.EVENTS[k])}' for d, k in ta["recent"]) or "沒有"
@@ -903,16 +831,12 @@ def _ta_parts(V: dict) -> tuple[str, str]:
              f'<th>之後 10 日平均</th><th>和所有日子差［95% 信賴區間］</th><th class="l">判定</th>'
              f'<th>之後 60 日平均</th><th>和所有日子差［95% 信賴區間］</th><th class="l">判定</th></tr>{"".join(trs)}</table></div>'
              if st else '<p class="warn">事件研究還沒產生（data/lab/heat_research.json）。</p>')
-    main = (f'<section class="cd" id="ta"><div class="ch"><h2>關鍵價位與事件<span class="sub">{_e(MK["px"])} {_e(_md(lv["t"]))}收盤 '
-            f'{_num0(lv["close"])}；不進分數，只描述位置</span></h2></div>'
-            f'<p class="hot">均線是收盤的簡單平均。跌破、站回、交叉、季線轉向一律要「之前 {S.EV_PRIOR} 個交易日是原來的狀態、'
-            f'連 {S.EV_CONF} 個交易日是新狀態」才算，第 {S.EV_CONF} 天是事件日。</p>'
+    main = (f'<section class="cd" id="ta" title="跌破、站回、交叉、季線轉向：之前 {S.EV_PRIOR} 個交易日是原來的狀態、'
+            f'連 {S.EV_CONF} 個交易日是新狀態才算，第 {S.EV_CONF} 天是事件日">'
             f'<div class="tw"><table class="lvt"><tr><th class="l">均線</th>'
             f'<th>數值</th><th>距離</th><th>方向</th><th class="l">現在的狀態</th></tr>{"".join(rows)}</table></div>'
             f'<ul class="tal">{"".join(lis)}</ul>'
-            f'<h3>近 {TA_RECENT} 個交易日的事件</h3><p class="rec">{rec}</p>'
-            '<p class="note">16 種事件之後的表現（次數、平均、判定）在研究畫面。'
-            '<button type="button" class="tb" data-goview="research" data-anchor="tas">看事件研究 →</button></p></section>')
+            f'<h3>近 {TA_RECENT} 個交易日的事件</h3><p class="rec">{rec}</p></section>')
     study = (f'<section class="sec" id="tas"><h2>事件之後{_e(MK["px"])}的表現<span class="sub">只當參考，不當買賣訊號</span></h2>'
              f'<p class="note">{allr}型態（M 頭、W 底、頭肩）用收盤轉折點認，收盤跌破／突破頸線那天才算成立。'
              f'16 種事件 × 2 個期間＝32 個比較，就算全是運氣也會有一兩個看起來「顯著」；判定要信賴區間不含 0、'
@@ -942,7 +866,7 @@ def _grb() -> dict:
 
 
 def _cmp_section() -> str:
-    return (f'<section class="sec" id="cmp"><h2>{_e(MK["cmp"])}<span class="sub">點按鈕加入或拿掉線（最多 {S.CH_MAX} 條）；滑過圖看當天的值</span></h2>'
+    return ('<section class="sec" id="cmp">'
             '<div class="cbar"><div class="chips" id="cmp-dims"></div>'
             '<button type="button" class="tb" id="cmp-more" aria-expanded="false">＋ 細項</button>'
             '<div class="seg" id="cmp-rng"></div><div class="seg" id="cmp-mode" hidden></div></div>'
@@ -1339,49 +1263,7 @@ def bottom_chip(a: dict, mk: str) -> str:
         elif st == "none":
             parts.append(f'{nm}：這一次沒有出現')
     tip = "；".join(parts) + "。點了看每個落底訊號過去的成績（大跌後檢查）。"
-    return (f'<a class="stc stx" href="x9o.html#r={_e(mk)}:bottom" title="{_e(tip)}"><b>落底訊號</b>{on}／{len(parts)} 出現</a>')
-
-
-def state_line(V: dict) -> str:
-    """頁首的市場狀態一行（docs/lab_signal_plan.md 第 6.1 節）：各面向熱度、泡沫等級、是否在一段大跌中。"""
-    names = [nm for _, _, nm in S.BANDS]
-    chips = []
-    for d, L in V["dims"].items():
-        sc = L["score"]
-        if sc is None:
-            chips.append(f'<span class="stc"><b>{_e(S.DSHORT[d])}</b>—</span>')
-            continue
-        z = names.index(L["band"]) if L["band"] in names else 2
-        chips.append(f'<span class="stc stz{z}"><b>{_e(S.DSHORT[d])}</b>{n0(sc)}<i>{_e(L["band"])}</i></span>')
-    b = V.get("bubnow")
-    if b:
-        from . import bubble as BU
-        from . import bubspec as BS
-        cs = "、".join(BU.SHORT[c] for c in b["cond"])
-        tip = f'泡沫等級 {b["L"]} {BS.LEVELS[b["L"]]}' + (f'（{cs}）' if cs else "") + "，點了看泡沫頁"
-        chips.append(f'<a class="stc" href="x9b.html#{_e(b["mk"])}" title="{_e(tip)}"><b>泡沫</b>{b["L"]}'
-                     f'<i>{_e(BS.LEVELS[b["L"]])}</i></a>')
-    if V.get("xschip"):                                      # 10 個月均線（總經策略，xstratspec；每個市場都列）
-        chips.append(V["xschip"])
-    if V.get("mrchip"):                                      # 融資維持率（只有台股；docs/lab_crash_plan.md 第 22 節）
-        chips.append(V["mrchip"])
-    nw = (V.get("bottom") or {}).get("now") or {}
-    mk = V.get("mk") or (V.get("signow") or {}).get("mk") or ""
-    if nw.get("active"):
-        a = nw["active"][0]
-        pd = a["p"]
-        chips.append(f'<a class="stc stx" href="x9o.html#r={_e(mk)}:bottom"><b>一段大跌中</b>比 {int(pd[5:7])}/{int(pd[8:10])} 高點'
-                     f' {_e(_sgn(100 * a["nowdd"], 1))}%</a>')
-        chips.append(bottom_chip(a, mk))
-    elif nw.get("dd60") is not None:
-        chips.append(f'<span class="stc"><b>離 60 日高點</b>{_e(_sgn(100 * nw["dd60"], 1))}%</span>')
-    on = (V.get("signow") or {}).get("on") or {}
-    from . import sigspec as SS
-    act = [nm for key, nm, *_ in SS.SCENARIOS if f"{mk}:scen:{key}" in on]
-    if act:                                                  # 現在落在哪幾個情境（sigspec 第 4.10 節；景氣頁情境卡）
-        chips.append(f'<a class="stc stw" href="#o=scen" data-open="out:out" data-to="scen" title="點了看「之後怎麼走？」裡的情境">'
-                     f'<b>情境</b>{_e("、".join(act))}</a>')
-    return f'<div class="stl" aria-label="市場狀態">{"".join(chips)}</div>'
+    return (f'<a class="stc stx" href="x9r.html#r={_e(mk)}:bottom" title="{_e(tip)}"><b>落底訊號</b>{on}／{len(parts)} 出現</a>')
 
 
 def parts(V: dict) -> dict:
@@ -1402,19 +1284,59 @@ def parts(V: dict) -> dict:
         + f'<section class="sec" id="src"><h2>資料來源與筆數</h2><div class="tw"><table><tr><th class="l">檔</th><th>筆數</th>'
           f'<th>起</th><th>到</th></tr>{data_rows}</table></div><p class="note">{_e(_SRC_NOTE)}</p></section>'
     )
-    body = (state_line(V) + VZ.main_view(V, V.get("ks") or []) + VZ.phase_view() + VZ.terrain_view() + VZ.research_view(V, research)
+    body = (VZ.main_view(V, V.get("ks") or []) + VZ.phase_view() + VZ.terrain_view() + VZ.research_view(V, research)
             + VZ.templates(V) + VZ.viz_json(V))
     return {"nav": "", "body": body, "asof": asof}
+
+
+MK_ROW = (("tw", "台股"), ("spx", "S&P 500"), ("ixic", "那斯達克"), ("ndx", "那斯達克 100"), ("sox", "費半"))
+
+
+def market_row(cur: str) -> str:
+    """市場頁第二排：台股｜S&P 500｜那斯達克｜那斯達克 100｜費半（台股一個檔、美股四個指數一個檔，看起來同一排；
+    docs/lab_ia_v5_plan.md 第 13 節 Q2、第 18.1 節）。美股頁（cur＝"us"）的四格是切換指數的按鈕（heatpage_us.SWITCH_JS）。"""
+    out = []
+    for k, nm in MK_ROW:
+        if k == "tw":
+            on = ' class="on" aria-current="page"' if cur == "tw" else ""
+            out.append(f'<a href="x9m.html"{on}>{_e(nm)}</a>')
+        elif cur == "us":
+            out.append(f'<button type="button" data-ix="{k}">{_e(nm)}</button>')
+        else:
+            out.append(f'<a href="x9mu.html#ix={k}">{_e(nm)}</a>')
+    return '<nav class="ixsw" aria-label="市場">' + "".join(out) + "</nav>"
+
+
+def page_parts(mks: list[str]) -> dict:
+    """市場頁共用的頁面層：全部指標的資料、面板、樣式、程式（sigpage），泡沫的資料、樣式、程式（bubpage）。
+    算不出來就少那一塊、不擋景氣頁。"""
+    from . import bubindpage as IP
+    from . import bubpage as BPG
+    from . import sigpage as SPG
+    out = {"sgd": "{}", "bubd": "{}", "css": SPG.CSS, "js": SPG.JS, "panel": SPG.PANEL, "bcss": BPG.BLOCK_CSS + IP.CSS,
+           "bjs": BPG.JS + IP.JS}
+    try:
+        out["sgd"] = SPG.block_data(mks)
+    except Exception as e:                                # noqa: BLE001
+        print(f"[市場頁] 全部指標的資料算不出來：{type(e).__name__}: {e}")
+    try:
+        out["bubd"] = BPG.block_data(mks)
+    except Exception as e:                                # noqa: BLE001
+        print(f"[市場頁] 泡沫的資料算不出來：{type(e).__name__}: {e}")
+    return out
 
 
 def render(V: dict) -> str:
     from . import appnav
     from . import heatviz as VZ
     P = parts(V)
-    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS)
-                         .replace("{{TITLE}}", _e(MK["title"])).replace("{{PURP}}", _e(MK["purp"])).replace("{{PRE}}", MK["pre"])
-                         .replace("{{ASOF}}", _e(_md(P["asof"]))).replace("{{VSW}}", VZ.switch_html()).replace("{{DRAWER}}", VZ.DRAWER)
-                         .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS))
+    G = page_parts([V.get("mk") or "tw"])
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS + G["css"] + G["bcss"])
+                         .replace("{{TITLE}}", _e(MK["title"]))
+                         .replace("{{ASOF}}", _e(_md(P["asof"]))).replace("{{MKROW}}", market_row("tw")).replace("{{DRAWER}}", VZ.DRAWER)
+                         .replace("{{PANEL}}", G["panel"]).replace("{{SGD}}", G["sgd"]).replace("{{BUBD}}", G["bubd"])
+                         .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS)
+                         .replace("{{SGJS}}", G["js"] + G["bjs"]))
 
 
 def _write(out: Path, text: str) -> bool:
@@ -1474,11 +1396,14 @@ _HTML = """<!doctype html>
 <style>{{CSS}}</style></head>
 <body>
 <div class="top">{{APPTAB}}<span class="asof">資料到 {{ASOF}}</span><a class="back" href="./">返回主頁</a></div>
-<div class="vbar">{{VSW}}<details class="purp"><summary>這頁怎麼看</summary><p>{{PURP}}</p></details></div>{{PRE}}
+<div class="vbar">{{MKROW}}</div>
 <main>{{BODY}}</main>
-{{DRAWER}}
+{{DRAWER}}{{PANEL}}
+<script type="application/json" id="sgd">{{SGD}}</script>
+<script type="application/json" id="bubd">{{BUBD}}</script>
 <script>window.HEAT_META={{META}};</script>
 <script>{{JS}}</script>
+<script>{{SGJS}}</script>
 </body></html>
 """
 
@@ -1525,8 +1450,7 @@ main{padding:14px 16px 80px;max-width:1080px;margin:0 auto}
 .mt i{display:block;border-radius:3px}.mt .b0{background:var(--c0)}.mt .b1{background:var(--c1)}.mt .b2{background:var(--c2)}.mt .b3{background:var(--c3)}.mt .b4{background:var(--c4)}
 .mt .mk{position:absolute;top:-5px;width:4px;height:20px;margin-left:-2px;background:var(--ink);border-radius:2px;box-shadow:0 0 0 2px var(--ring)}
 .mtl{display:grid;grid-template-columns:repeat(5,1fr);font-size:11px;color:var(--mut);text-align:center}
-.past{font-size:13.5px;color:var(--ink2);margin:8px 0 2px;line-height:1.75}
-.vd{font-size:13.5px;margin:2px 0}.eq{font-size:12px;color:var(--mut);margin:2px 0 8px}
+.vd{font-size:13.5px;margin:2px 0}
 .its{margin-top:6px}
 .ith,.it{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(120px,1.3fr) 72px 48px 48px;gap:8px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--line)}
 .ith{font-size:11.5px;color:var(--mut);border-bottom:2px solid var(--line);padding-top:8px}
@@ -1590,8 +1514,8 @@ h3{font-size:15px;margin:18px 0 6px;color:var(--accd)}h4{font-size:13.5px;margin
 .tip b{display:block;font-size:12px;margin-bottom:2px}.tip div{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .tip i{display:inline-block;width:12px;height:3px;border-radius:2px}.tip strong{font-size:13px;min-width:2.4em}
 .tip .tpx{color:var(--mut);margin-top:2px}
-#cmp-an h3{margin-top:14px}#cmp-an h4{margin:14px 0 4px}#cmp-an p{font-size:13.5px;line-height:1.75;margin:4px 0;color:var(--ink2)}
-.an svg{display:block;width:auto;max-width:100%;height:auto}
+#cmp-an h3,.dan h3{margin-top:14px}#cmp-an h4,.dan h4{margin:14px 0 4px}#cmp-an p,.dan p{font-size:13.5px;line-height:1.75;margin:4px 0;color:var(--ink2)}
+.an svg{display:block;width:auto;max-width:100%;height:auto}.an .an-sq{margin-left:8px}
 .an .mob{display:none}
 .an .bp{fill:var(--bp)}.an .bf{fill:var(--ink2)}.an .ci{stroke:var(--ink);stroke-width:1.5}.an .zl{stroke:var(--ink2);stroke-width:1}
 .an .lr{fill:none;stroke:var(--ink2);stroke-width:2}
@@ -1947,10 +1871,9 @@ function draw() {
   svg.addEventListener('pointermove', move);
   svg.addEventListener('pointerdown', move);
   svg.addEventListener('pointerleave', () => { cx.setAttribute('visibility', 'hidden'); tip.hidden = true; });
-  let cap = raw ? '上圖：' + NAME[st.sel[0].id] + '的原始值。' : '上圖：0～100（100 最熱；淡紅底＝80 以上、淡藍底＝20 以下）。';
-  if (st.sel.some(x => isAcc(x.id))) cap += '加速度線＝組內幾成在加速（100＝全部在加速）。';
-  if (st.sel.length === 1) cap += isAcc(st.sel[0].id) ? '下圖淡紅＝八成以上在加速的期間，淡藍＝兩成以下。' : '下圖淡紅＝這一項 ≥ 80（過熱）的期間，淡藍＝< 20（過冷）。';
-  cap += w.daily ? '近 1 年用每天的值。' : '用每週最後一個交易日的值。';
+  let cap = raw ? NAME[st.sel[0].id] + '的原始值' : '淡紅＝80 以上・淡藍＝20 以下';
+  if (st.sel.some(x => isAcc(x.id))) cap += '・加速度線＝組內幾成在加速';
+  if (st.sel.length === 1) cap += isAcc(st.sel[0].id) ? '・下圖淡紅＝八成以上在加速' : '・下圖淡紅＝這一項 80 以上、淡藍＝20 以下';
   $('#cmp-cap').textContent = cap;
 }
 
@@ -2128,17 +2051,20 @@ function scenHint(box, ids) {                              // 每一列的 data-
   let n = 0;
   if (t && SQSEL) t.content.querySelectorAll('.sqr').forEach(c => { if (sqOn(c)) n++; });
   sqMark(document.getElementById('drw-c'));
-  box.innerHTML = '<div class="an"><h3>多條線一起看</h3><p class="note">幾個面向一起看，請看「之後怎麼走？」裡的情境：事先定義好的面向組合，'
-    + '過去出現之後 3 個月上漲、大跌的機率（判定同訊號總覽）。' + (dflt ? '' : n ? '只用到這幾條線的有 ' + n + ' 個，打開後會用虛線框起來。' : '沒有情境只用到這幾條線。')
-    + '</p><p><button type="button" class="tb" data-open="out:out" data-to="scen">看情境 →</button></p></div>';
+  box.innerHTML = '<div class="an"><p class="note">' + (dflt ? '幾個面向的組合' : n ? '只用到這幾條線的情境有 ' + n + ' 個' : '沒有情境只用到這幾條線')
+    + '<button type="button" class="tb an-sq" data-open="out:out" data-to="scen">看情境</button></p></div>';
 }
-function analysis() {
+function analysis() {                                     // 市場頁只放多條線的情境提示；單項分析（研究的結果）在研究畫面的細項面板（heatSingle）
   const box = $('#cmp-an');
   box.textContent = '';
   if (!D || !st.sel.length) return;
-  if (st.sel.length === 1) { SQSEL = null; sqMark(document.getElementById('drw-c')); single(box, st.sel[0].id); }
+  if (st.sel.length === 1) { SQSEL = null; sqMark(document.getElementById('drw-c')); }
   else scenHint(box, st.sel.map(x => x.id));
 }
+window.heatSingle = (box, id) => {                        // 研究畫面打開細項面板時畫單項分析（docs/lab_ia_v5_plan.md 第 8 節）
+  const go = () => { if (box.isConnected) single(box, id); };
+  if (D) go(); else getP().then(d => { if (!AC.signal.aborted) { D = D || d; go(); } }).catch(() => {});
+};
 
 function render() { controls(); draw(); aw = $('#cmp-an').clientWidth; analysis(); }
 function getP() {                                           // 同一個檔只下載一次（雷達、階段、3D、面板共用）

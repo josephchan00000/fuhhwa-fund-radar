@@ -8,6 +8,10 @@
 今日｜個股｜投信｜訊號｜策略｜指數 六個分頁，一打開是「今日」重點；每頁頂端先給白話結論，
 分頁內各段全部展開、第二排是跳段目錄（同主頁慣例）。術語旁的 ⓘ 讀同一份辭典 GL，
 原「說明」分頁改為頂欄「ⓘ 名詞」。
+2026-10-23 起是「配置」頁（docs/lab_ia_v5_plan.md 第 18 節）：台股｜美股｜策略｜個股（工具），版面在 cfgpage.py；
+原本的個股策略、總經策略、後台留在同一頁，改從研究紀錄頁（x9r.html）進來。
+配置要用三種警訊今天的讀數，那是景氣頁算的（同一個程序裡較晚才建）：build() 先用上一版的讀數建一次，
+景氣頁建完後 finish() 用今天的讀數重建（scripts/gen_fund_dashboard.py）。
 """
 from __future__ import annotations
 
@@ -22,6 +26,7 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "dashboard" / "x9.html"
 OUT_SER = ROOT / "dashboard" / "x9s.json"      # 個股走勢序列；三支 workflow 的 git add 要跟 x9.html 一起帶
 SLUG = "x9.html"
+_LAST: dict = {}                               # build() 建好的資料，給 finish() 用今天的警訊讀數重建配置頁
 
 
 def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
@@ -39,6 +44,15 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         data["mac"] = xsadvice.build()
     except Exception as e:                   # noqa: BLE001 —— 失敗只是總經策略那兩頁空著
         print(f"[籌碼雷達] ⚠ 總經策略沒有放進頁面：{type(e).__name__}: {e}")
+    try:                                     # 訊號總覽・研究結論的交易計畫卡（corespec；docs/lab_core70_plan.md）：台股衛星的 ★ 策略與接下來要做的事
+        from . import core
+        from ..clock import today_tw
+        core.STK.clear()
+        if isinstance(data.get("adv"), dict) and not data["adv"].get("err"):
+            core.STK.update(core.stk_from_adv(data["adv"], today_tw().isoformat()))
+    except Exception as e:                   # noqa: BLE001 —— 失敗只是交易計畫卡少了台股衛星的名單
+        print(f"[籌碼雷達] ⚠ 交易計畫卡的衛星資料沒有算：{type(e).__name__}: {e}")
+    _cfg(data)                               # 配置頁（先用上一版的警訊讀數；finish() 換成今天的）
     try:                                     # 後台自我驗證紀錄（只有 CI 寫回 data/lab/val_log.json）
         from . import valog
         data["vlog"] = valog.update(data)
@@ -63,6 +77,8 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         print(f"[籌碼雷達] 公司分析檔 {st.get('n')} 檔、改寫 {st.get('write')} 檔" + (f"（{st['err']}）" if st.get("err") else ""))
     except Exception as e:                   # noqa: BLE001 —— 公司分析失敗不影響建頁
         print(f"[籌碼雷達] ⚠ 公司分析檔沒有更新：{type(e).__name__}: {e}")
+    _LAST.clear()
+    _LAST.update(data=data, out=out, ser_v=_ver(sj))
     for path, text in ((out_ser, sj), (out, render(data, ser_v=_ver(sj)))):
         if path.exists() and path.read_text(encoding="utf-8") == text:
             continue
@@ -70,6 +86,37 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         path.write_text(text, encoding="utf-8")
         changed = True
     return changed
+
+
+def _cfg(data: dict) -> bool:
+    """配置頁（cfgpage.build）放進 data["cfg"]；算不出來只印日誌、頁面寫「還沒算出來」。回傳有沒有算出來。"""
+    try:
+        from . import cfgpage, sigpage
+        data["cfg"] = cfgpage.build(data, sigpage.core_data(record=False))
+        return True
+    except Exception as e:                   # noqa: BLE001 —— 失敗只是配置頁空著
+        print(f"[配置] ⚠ 配置頁沒有算出來：{type(e).__name__}: {e}")
+        data["cfg"] = {"err": f"{type(e).__name__}: {e}"}
+        return False
+
+
+def finish(out: Path | None = None) -> bool:
+    """景氣頁建完以後（同一個程序裡），用今天的三種警訊讀數重建配置頁（x9.html）。
+    build() 沒跑過、或景氣頁沒有留下讀數 → 不動；內容和第一次一樣 → 不改寫。回傳有沒有改寫。"""
+    data = _LAST.get("data")
+    if not data:
+        return False
+    from . import sigpage
+    if not any((sigpage.CARDS.get(mk) or {}).get("core") for mk in ("tw", "spx")):
+        return False
+    if not _cfg(data):
+        return False
+    path = out or _LAST["out"]
+    text = render(data, ser_v=_LAST.get("ser_v"))
+    if path.exists() and path.read_text(encoding="utf-8") == text:
+        return False
+    path.write_text(text, encoding="utf-8")
+    return True
 
 
 def _slim(x):
@@ -145,29 +192,30 @@ def render(data: dict, ser_v: str | None = None) -> str:
     main = {k: v for k, v in data.items() if k not in ("ser", "mtab")}
     main["serv"] = ser_v or _ver(ser_json(data))
     blob = _dump(main).replace("</", "<\\/")
-    from . import appnav, copage, macpage, stockviz   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
+    from . import appnav, cfgpage, copage, macpage, stockviz   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
                                              # （初始化會開分頁與 #s= 個股卡，這時公司分析的頂層 const 必須已經初始化）
                                              # stockviz＝機會、籌碼頁的三張圖（docs/lab_visual_plan.md 第 10 節），同樣放在初始化之前
-    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("stk")).replace("{{SUB}}", asof_line(data))
-            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS + stockviz.CSS + macpage.CSS + theme_css())
+                                             # cfgpage＝配置頁（台股、美股、策略；docs/lab_ia_v5_plan.md 第 18 節），同樣放在初始化之前
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("cfg")).replace("{{SUB}}", asof_line(data))
+            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS + stockviz.CSS + macpage.CSS + cfgpage.CSS + theme_css())
             .replace("{{SEARCH}}", copage.SEARCH_HTML)
-            .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", stockviz.JS + macpage.JS + copage.JS)))
+            .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", stockviz.JS + macpage.JS + cfgpage.JS + copage.JS)))
 
 
 _HTML = """<!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>籌碼雷達</title>
+<link rel="icon" href="data:,">
+<title>配置</title>
 <style>{{CSS}}</style></head>
 <body>
 <div class="top">{{APPTAB}}<span class="asof">{{SUB}}</span>{{SEARCH}}<a class="back" href="./">返回主頁</a></div>
-<p class="purp" id="purp">ETF 持股、法人籌碼與技術面：每一檔股票誰在買賣、在什麼位置；點一檔看公司分析。</p>
 <header class="hd"><div class="hdi">
   <nav class="tabs" id="tabs">
-    <a data-t="mac" data-p="st" hidden>總經策略</a><a data-t="stg" data-p="st" hidden>個股策略</a>
-    <a data-t="stk" data-p="stk">個股</a><a data-t="chip" data-p="stk">籌碼</a><a data-t="idx" data-p="stk">指數</a>
-    <a class="vlb" data-t="bo">後台</a><a class="glb" id="glb"><i class="gi">i</i>名詞</a>
+    <a data-t="tw" data-p="cfg">台股</a><a data-t="us" data-p="cfg">美股</a><a data-t="strat" data-p="cfg">策略</a><a data-t="tool" data-p="cfg">個股</a>
+    <a class="rbk" href="x9r.html" data-p="r" hidden>‹ 研究紀錄</a><a data-t="stg" data-p="r" hidden>個股策略</a><a data-t="mac" data-p="r" hidden>總經策略</a>
+    <a class="vlb" data-t="bo" data-p="r" hidden>後台</a><a class="glb" id="glb" data-p="r" hidden><i class="gi">i</i>名詞</a>
   </nav>
   <nav class="snav" id="snav"></nav>
 </div></header>
@@ -207,6 +255,7 @@ table,.fv,.num{font-variant-numeric:tabular-nums}
 .tabs .vlb{margin-left:auto;font-weight:600;color:var(--accd)}
 .tabs .vlb.on{color:var(--ink)}
 .tabs .glb{font-weight:600;color:var(--accd);display:inline-flex;align-items:center;gap:2px}
+.tabs .rbk{font-weight:600;color:var(--accd)}
 .tabs .glb .gi{margin:0 2px 0 0;border-color:var(--acc);color:var(--acc)}
 .snav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:6px 0 7px;border-top:1px solid var(--line)}
 .snav:empty{display:none}
@@ -415,7 +464,6 @@ table.trt td,table.trt th{vertical-align:top}table.trt td .sm2{white-space:norma
 .sgr{font-size:13.5px;line-height:1.75;margin:0 0 8px;color:var(--ink2)}
 .sgt td.wr{min-width:170px;max-width:300px}.sgt tr.sgw{display:none}
 /* 版面 v4：頁首目的句、機會頁（摘要、推薦順序圓標、卡片內買賣區塊）、個股的策略標籤、後台推播預覽 */
-.purp{max-width:1180px;margin:0 auto;padding:0 16px 8px;color:var(--ink2);font-size:13px;line-height:1.6}
 .osum{grid-template-columns:repeat(4,minmax(0,1fr));margin:0 0 4px}
 .orank{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:var(--acc);color:var(--onacc);font-size:13px;font-weight:800;margin-right:6px;vertical-align:1px;line-height:1}
 .orank.sm{min-width:20px;height:20px;font-size:12px;margin-right:5px;vertical-align:0}
@@ -433,11 +481,11 @@ table.trt td,table.trt th{vertical-align:top}table.trt td .sm2{white-space:norma
 @media(min-width:1100px){
  .dv.pane{left:auto;width:min(640px,46vw);background:var(--bg);border-left:1px solid var(--line);box-shadow:-10px 0 30px rgba(15,23,42,.10)}
  .dv.pane .dvin{margin:0;max-width:none;min-height:100%;border-radius:0}
- body.pane .top,body.pane .purp,body.pane .hdi,body.pane main{margin-right:calc(min(640px,46vw) + 12px);margin-left:20px;max-width:none}
+ body.pane .top,body.pane .hdi,body.pane main{margin-right:calc(min(640px,46vw) + 12px);margin-left:20px;max-width:none}
 }
 @media(max-width:760px){.g2{grid-template-columns:1fr}.nbs{grid-auto-flow:row;grid-template-columns:1fr;grid-template-rows:none!important}}
 @media(max-width:600px){
- .top{padding:8px 12px 2px}.asof{flex-basis:100%;order:3;font-size:12px}.purp{padding:0 12px 6px;font-size:12.5px}
+ .top{padding:8px 12px 2px}.asof{flex-basis:100%;order:3;font-size:12px}
  .osum{grid-template-columns:repeat(2,minmax(0,1fr))}
  .hdi{padding:0 6px}.tabs a{padding:9px 9px 7px;font-size:14.5px}
  main{padding:14px 12px 90px}
@@ -458,7 +506,7 @@ table.trt td,table.trt th{vertical-align:top}table.trt td .sm2{white-space:norma
  .kline{grid-template-columns:1fr;gap:0}.kline>.mu{grid-column:1}
  .otl .kline{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px}.otl .kline>.mu{flex-basis:100%}
  .bkt td:first-child{min-width:100px;white-space:normal}.bkt .cd{white-space:normal}.bkt td,.bkt th{padding:7px 5px}
- .tabs a{padding:9px 7px 7px}.tabs .vlb,.tabs .glb{padding:9px 6px 7px}.tabs .glb .gi{display:none}
+ .tabs a{padding:9px 7px 7px}.tabs .vlb,.tabs .glb,.tabs .rbk{padding:9px 6px 7px}.tabs .glb .gi{display:none}
  table.hlt td:first-child,table.hlc td:first-child{min-width:104px;max-width:124px}
  .sgt tr.sgw{display:table-row}.sgt tr.sgr1 td{border-bottom:0;padding-bottom:2px}.sgt tr.sgw td{text-align:left;font-size:12.5px;color:var(--ink2);padding-top:0;white-space:normal}
 }
@@ -514,7 +562,7 @@ const GL={
 'RSI':'14 日相對強弱指標，0～100；70 以上偏熱、30 以下偏冷。',
 'KD':'9 日隨機指標，0～100；80 以上偏熱、20 以下偏冷。',
 'MACD':'MACD 柱狀體：正＝短期動能強於長期；「剛翻正／翻負」代表剛轉向。',
-'一年區間位置':'現價落在近一年最低價到最高價之間的哪裡：0%＝一年低點、100%＝一年高點。',
+'一年高低位置':'現價落在近一年最低價到最高價之間的哪裡：0%＝一年低點、100%＝一年高點。',
 '相對大盤':'近 20 日漲跌減去加權指數同期漲跌（百分點）。',
 'ATR':'平均真實區間（14 日）÷ 股價：每天正常的波動幅度。停損常設在 2～3 倍 ATR。',
 '日均成交':'近 20 日平均成交金額（億元）。',
@@ -586,7 +634,7 @@ const GL={
 };
 const GLG=[['ETF 面',['真加碼','申贖倍率','主動 5 日淨買','加碼／減碼家數','持有 ETF','新建倉','建倉日','主動成本','成本乖離','超配','ETF 持股率','消化天數']],
  ['法人籌碼',['投信 5 日','外資 5 日','連買','60 日買超均價','融資','借券賣出','千張大戶']],
- ['技術面',['趨勢','乖離','量比','RSI','KD','MACD','一年區間位置','相對大盤','ATR','日均成交']],
+ ['技術面',['趨勢','乖離','量比','RSI','KD','MACD','一年高低位置','相對大盤','ATR','日均成交']],
  ['成績與策略',['推薦順序','判定','事後驗證','隱含獲利','過去照做','排除極端','同期大盤','年化','賺錢比例','贏大盤比例','評級','同一批股票的平均','t 值','賺錢機率','每月平均','賺賠比','報酬型態','樣本外','樣本內','前瞻','前瞻驗證','前 5 檔','大型股','中型股','超額','信賴區間','獲利比例','贏大盤','勝率','每 10 萬預估','隔夜跳空','樣本','紙上交易']],
  ['回測方法與策略',['穩健度檢查','成本加倍','參數鄰近','去掉最好 5%','低回落例外','因子檢定','資金帳戶','最大回落','存活者偏誤','大盤年線','成交檢查','月營收驚喜','SUE','相對強勢','趨勢樣板','CAN SLIM']],
  ['指數換股',['資料截止日','漲勢前一半','估計權重','被動買盤','週轉率','等級相關','被動買賣期間','對其他成分股','被動買賣日量','被動買賣提醒']],
@@ -637,38 +685,23 @@ function vChip(){
   if(cons.length)L.push(`<b>${cons.length} 檔</b>有 3 家以上投信同時加碼${gi('cons')}，最多的是 ${cntGroup(cons.slice(0,3).map(r=>[nmL(r),(r.ia5||[]).length]))}。`);
   if(exits.length)L.push(`<b>${exits.length} 檔</b>被 3 家以上投信同時減碼${gi('exit')}，賣最多的是 ${exits.slice(0,3).map(r=>`${nmL(r)}（${f(r.a5v,1)} 億）`).join('、')}。`);
   if(nbs.length)L.push(`10 日內主動 ETF 新建倉的台股 <b>${nbs.length} 檔</b>${gi('新建倉')}，最多家同時進場的是 ${cntGroup(nbs.slice(0,3).map(x=>[nmL(x.r),x.is.length]))}。`);
-  let h=`<div class=intro>主動 ETF、投信最近在買賣什麼，出現哪些訊號。這頁是策略的原料，不是買進清單；要買什麼、哪天買，看策略頁的「<a data-go="opp">個股策略</a>」。</div>`;
+  let h=toolSeg('chip');
   h+=mmSec();                                         /* 主動 ETF 資金地圖（stockviz.py） */
   h+=sec('c-lead','重點','籌碼重點',`近 5 個交易日（${win}）`,`<div class=lead><ul>${L.map(x=>`<li>${x}</li>`).join('')||'<li>近 5 日沒有主動 ETF 資料</li>'}</ul></div>`);
   const m=Math.max(1,...buys.slice(0,8).map(r=>r.a5v),...sells.slice(0,8).map(r=>-r.a5v));
   h+=sec('c-flow','買賣',`主動 ETF 買最多／賣最多${gi('主動 5 日淨買')}`,`近 5 個交易日（${win}）淨買金額・已扣申贖${gi('真加碼')}`,
     `<div class=g2><div><h3 class=up>淨買最多</h3>${flowRows(buys.slice(0,8),m,'buy')}</div><div><h3 class=dn>淨賣最多</h3>${flowRows(sells.slice(0,8),m,'sell')}</div></div>`,
-    `<a data-go="stk" data-fsig="" data-sort="a5v">看全部 →</a>`);
+    `<a data-go="stk" data-fsig="" data-sort="a5v">看全部</a>`);
   const nbTop=nbs.slice(0,10);
   h+=sec('c-new','新建倉',`新建倉${gi('新建倉')}`,`10 個交易日內主動 ETF 第一次買進的台股，依同時進場的投信家數排序；右側＝主動 5 日淨買（億）${nbOs?`。另有海外股 ${nbOs} 檔`:''}`,
     (nbTop.length?`<div class=nbs style="grid-template-rows:repeat(${Math.ceil(nbTop.length/2)},auto)">${nbTop.map(x=>`<div class=nb data-c="${esc(x.r.c)}"><span class=fn><b>${esc(x.r.n)}</b><i>${esc(x.r.c)}</i></span><span>${x.is.map(i=>`<span class="tg${x.is.length>=2?' hot':''}">${esc(i)}</span>`).join('')}</span><span class=fv>${x.r.a5v==null?'':sgn(x.r.a5v,1)}</span></div>`).join('')}</div>`:'<div class=st>10 日內無新建倉</div>')+
     (nbs.length>10?`<details class=mr><summary>其餘 ${nbs.length-10} 檔</summary><div class=inl>${nbs.slice(10).map(x=>`<span class=it><a data-c="${esc(x.r.c)}">${esc(x.r.n)}</a><span class=mu>${x.is.map(esc).join(' ')}</span></span>`).join('　')}</div></details>`:''),
-    nbs.length?`<a data-go="stk" data-fsig="nb" data-sort="a5v">全部 ${nbs.length} 檔 →</a>`:'');
+    nbs.length?`<a data-go="stk" data-fsig="nb" data-sort="a5v">全部 ${nbs.length} 檔</a>`:'');
   h+=issSec(win);
-  h+=sigTodaySec();
-  const al=(D.strat||{}).alerts||[];
-  h+=sec('c-risk','風險',`風險提醒`,'',
-    `<div class=rk2><b>集體撤退 ${exits.length} 檔</b>${gi('exit')}${exits.length?` <a class=sm data-go="stk" data-fsig="exit" data-sort="a5v" data-dir="1">看表格 →</a>`:''}<span class=st>近 5 日 3 家以上投信同時減碼、主動合計淨賣（億元）</span><div class=inl>`+
-      (exits.length?exits.map(r=>`<span class=it><a data-c="${esc(r.c)}">${esc(r.n)}</a>${r.a5v!=null?`<span class=dn> ${f(r.a5v,1)}</span>`:''}</span>`).join('　'):'<span class=st>今日無</span>')+`</div></div>`+
-    `<div class=rk2><b>跳空減碼提醒</b><span class=st>前一日「共識加碼」、今日開盤跳空 ≥3%：過去這類股票之後 1～10 個交易日平均都輸大盤</span><div class=inl>`+
-      (al.length?al.map(a=>`<span class=it><a data-c="${esc(a.c)}">${esc(a.n)}</a> <span class=mu>開盤</span> ${sgn(a.gap,1,'%')}</span>`).join('　'):'<span class=st>今日無</span>')+`</div></div>`+hdRisk());
   $('#main').innerHTML=h;mmDraw();
   $$('#main [data-to]').forEach(a=>a.onclick=e=>{e.preventDefault();jump(a.dataset.to);});
-  $$('#main [data-sg]').forEach(e=>e.onclick=()=>jump('sig-'+e.dataset.sg));
   $$('#main .xm').forEach(a=>a.onclick=()=>{a.parentNode.classList.add('open');a.remove();});
 }
-
-function hdRows2(){const HA=((D.idx||{}).hd||{}).alert||{},hb=HA.big_th||HDB;return {HA,hb,rs:(HA.rows||[]).filter(r=>r[6]!=null&&r[6]>=hb)};}
-function hdRisk(){const {hb,rs}=hdRows2(),act=rs.filter(r=>r[10]==='in'||r[10]==='after'),pre=rs.filter(r=>r[10]==='pre');
-  const nx=[...new Set(pre.map(r=>r[2]))].map(e=>{const xs=pre.filter(r=>r[2]===e);return `${esc(e)} ${md(xs[0][7])}～${md(xs[0][8])}（${esc(xs[0][11])}名單 ${xs.length} 檔）`;});
-  return `<div class=rk2><b>高股息換股提醒</b>${gi('被動買賣提醒')}<span class=st>估計被動買賣 ≥${hb} 日量：納入股買盤結束後過去多半回落、刪除股賣完沒有反彈</span><div class=inl>`+
-    (act.length?act.map(r=>`<span class=it><a data-c="${esc(r[0])}">${esc(r[1])}</a> <span class=mu>${esc(r[2])}・${r[4]==='add'?'被買':'被賣'}約 ${f(r[6],0)} 日量・${r[10]==='in'?`${r[4]==='add'?'買':'賣'}到 ${md(r[8])}`:`避開到 ${md(r[9])}`}</span></span>`).join('　'):
-     nx.length?`<span class=st>目前沒有進行中的；下一次 ${nx.join('、')} <a data-go="opp" data-at="o-avoid">看名單 →</a></span>`:'<span class=st>今日無</span>')+`</div></div>`;}
 
 /* ---------- 個股（篩選表：三個視角） ---------- */
 const VW={etf:'ETF 動向',chip:'法人籌碼',ta:'技術面'},VW0={etf:'a5v',chip:'t5',ta:'rs20'};
@@ -682,7 +715,7 @@ function trend(r){const b=r.h60?'創 60 日高':r.h20?'創 20 日高':r.l20?'破
 function sigScore(r){const s=r.sg||[];return s.filter(k=>!RISK.has(k)).length-2*s.filter(k=>RISK.has(k)).length;}
 function sgShort(arr){const s=(arr||[]).slice().sort((a,b)=>RISK.has(b)-RISK.has(a));return s.slice(0,2).map(k=>`<span class="sg${RISK.has(k)?' rk':''}">${esc((SD[k]||[k])[0])}</span>`).join('')+(s.length>2?`<span class=mu> +${s.length-2}</span>`:'');}
 const C0=[
- {k:'c',t:'股票',l:1,v:r=>r.c,h:r=>`<span class=nm>${esc(r.n)}</span><span class=cd>${esc(r.c)}${r.m==='tp'?' · 櫃':r.m==='os'?' · 海外':''}${r.ind?' · '+esc(r.ind):''}</span>${PK[r.c]?`<span class=stgs>${stTags(r.c)}</span>`:''}`},
+ {k:'c',t:'股票',l:1,v:r=>r.c,h:r=>`<span class=nm>${esc(r.n)}</span><span class=cd>${esc(r.c)}${r.m==='tp'?' · 櫃':r.m==='os'?' · 海外':''}${r.ind?' · '+esc(r.ind):''}</span>${PKU[r.c]?`<span class=stgs>${stTags(r.c)}</span>`:''}`},
  {k:'ch',t:'收盤',v:r=>r.ch,h:r=>`${fp(r.px)}<br>${sgn(r.ch,2,'%')}`},
 ];
 const CV={
@@ -709,14 +742,14 @@ const CV={
   {k:'b20',t:'20 日乖離',g:'乖離',v:r=>r.b20,h:r=>sgn(r.b20,1,'%')},
   {k:'vr',t:'量比',u:'倍',g:'量比',v:r=>r.vr,h:r=>r.vr==null?'<span class=mu>—</span>':f(r.vr,2)},
   {k:'rsi',t:'RSI',g:'RSI',v:r=>r.rsi,h:r=>r.rsi==null?'<span class=mu>—</span>':`<span class=${r.rsi>=70?'up':r.rsi<=30?'dn':''}>${f(r.rsi,0)}</span>`},
-  {k:'p52',t:'一年位置',g:'一年區間位置',v:r=>r.p52,h:r=>r.p52==null?'<span class=mu>—</span>':f(r.p52,0)+'%'},
+  {k:'p52',t:'一年位置',g:'一年高低位置',v:r=>r.p52,h:r=>r.p52==null?'<span class=mu>—</span>':f(r.p52,0)+'%'},
   {k:'rs20',t:'20 日相對大盤',u:'pp',g:'相對大盤',v:r=>r.rs20,h:r=>sgn(r.rs20,1)},
   {k:'liq',t:'日均成交',u:'億',g:'日均成交',v:r=>r.liq,h:r=>r.liq==null?'<span class=mu>—</span>':f(r.liq,1)},
  ]};
 function cols(){return [...C0,...CV[S.vw]];}
 function rowsFiltered(){
   const q=S.q.trim().toLowerCase();
-  let rs=ROWS.filter(r=>(S.mk==='all'||r.m===S.mk||(S.mk==='twall'&&r.m!=='os'))&&(!S.sig||(S.sig==='nb'?(r.nb10||[]).length>0:(r.sg||[]).includes(S.sig)))&&(!S.liq||(r.liq||0)>=1)&&(!S.stf||PK[r.c])
+  let rs=ROWS.filter(r=>(S.mk==='all'||r.m===S.mk||(S.mk==='twall'&&r.m!=='os'))&&(!S.sig||(S.sig==='nb'?(r.nb10||[]).length>0:S.sig==='sx'?SXC.has(r.c):(r.sg||[]).includes(S.sig)))&&(!S.liq||(r.liq||0)>=1)&&(!S.stf||PKU[r.c])
     &&(!q||r.c.toLowerCase().includes(q)||String(r.n).toLowerCase().includes(q)||String(r.ind||'').includes(q)));
   const col=cols().find(c=>c.k===S.sort)||cols().find(c=>c.k===VW0[S.vw]);
   rs.sort((a,b)=>{const x=col.v(a),y=col.v(b);if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return (x<y?-1:x>y?1:0)*S.dir;});
@@ -726,11 +759,11 @@ function vStk(){
   if(!cols().some(c=>c.k===S.sort)){S.sort=VW0[S.vw];S.dir=-1;}
   const cnt={};ROWS.forEach(r=>(r.sg||[]).forEach(k=>cnt[k]=(cnt[k]||0)+1));
   const nbN=ROWS.filter(r=>(r.nb10||[]).length&&r.m!=='os').length;
-  $('#main').innerHTML=`<div class=fbar><input type=search id=q placeholder="搜尋代號、名稱或產業" value="${esc(S.q)}">`+
+  $('#main').innerHTML=toolSeg('stk')+`<div class=fbar><input type=search id=q placeholder="搜尋代號、名稱或產業" value="${esc(S.q)}">`+
    `<select id=mk aria-label="市場">${Object.entries(MKF2).map(([m,t])=>`<option value=${m}${S.mk===m?' selected':''}>${t}</option>`).join('')}</select>`+
-   `<select id=sgf aria-label="訊號"><option value="">全部訊號</option>${Object.keys(SD).filter(k=>cnt[k]).map(k=>`<option value=${k}${S.sig===k?' selected':''}>${RISK.has(k)?'⚠ ':''}${esc(SD[k][0])}（${cnt[k]}）</option>`).join('')}<option value=nb${S.sig==='nb'?' selected':''}>10 日內新建倉（台股 ${nbN}）</option></select>`+
+   `<select id=sgf aria-label="訊號"><option value="">全部訊號</option>${Object.keys(SD).filter(k=>cnt[k]).map(k=>`<option value=${k}${S.sig===k?' selected':''}>${RISK.has(k)?'⚠ ':''}${esc(SD[k][0])}（${cnt[k]}）</option>`).join('')}<option value=nb${S.sig==='nb'?' selected':''}>10 日內新建倉（台股 ${nbN}）</option>${SXC.size?`<option value=sx${S.sig==='sx'?' selected':''}>飆股候選（${ROWS.filter(r=>SXC.has(r.c)).length}）</option>`:''}</select>`+
    `</div><div class=vbar><span class=seg>${Object.entries(VW).map(([k,t])=>`<a data-vw=${k} class="${S.vw===k?'on':''}">${t}</a>`).join('')}</span>`+
-   `<label class=tgl title="推薦策略（A、B 級）這一期待買進或持有中的股票"><input type=checkbox id=stf${S.stf?' checked':''}>策略選到的（${Object.keys(PK).length}）</label>`+
+   `<label class=tgl title="台股配置的機動三成這一期待買進或持有中的股票"><input type=checkbox id=stf${S.stf?' checked':''}>配置裡的（${Object.keys(PKU).length}）</label>`+
    `<label class=tgl title="20 日平均成交金額 ≥ 1 億元"><input type=checkbox id=liq${S.liq?' checked':''}>成交 ≥1 億</label><span class=cnt id=cnt></span></div><div id=stkt></div>`;
   $('#q').oninput=e=>{S.q=e.target.value;S.n=60;drawStk();};
   $('#mk').onchange=e=>{S.mk=e.target.value;S.n=60;save();drawStk();};
@@ -745,9 +778,9 @@ function drawStk(){
   const rs=rowsFiltered(),cs=cols();STK=rs.map(r=>r.c);
   AMX=Math.max(1,...rs.map(r=>Math.abs(r.a5v||0)));
   $('#cnt').textContent=`共 ${rs.length} 檔`;
-  const miss=S.stf?Object.keys(PK).filter(c=>!BY[c]):[];
+  const miss=S.stf?Object.keys(PKU).filter(c=>!BY[c]):[];
   $('#stkt').innerHTML=(S.mk==='os'&&S.vw!=='etf'?'<div class=note>海外持股只有 ETF 面資料，法人籌碼與技術面無官方資料。</div>':'')+
-   (miss.length?`<div class=note>另有 ${miss.length} 檔不在 ETF 持股範圍、沒有個股資料：${miss.map(c=>`${esc(PK[c][0].n)}（${PK[c].map(p=>esc(STN[p.k]||p.sname)).join('、')}）`).join('、')}</div>`:'')+
+   (miss.length?`<div class=note>另有 ${miss.length} 檔不在 ETF 持股範圍、沒有個股資料：${miss.map(c=>`${esc(PKU[c][0].n)}（${PKU[c].map(p=>esc(STN[p.k]||p.sname)).join('、')}）`).join('、')}</div>`:'')+
    `<div class="tw stk"><table><thead><tr>`+cs.map(c=>`<th data-k=${c.k} class="${S.sort===c.k?'on':''}${c.l?' l':''}">${c.t}${c.u?`<small>${c.u}</small>`:''}${c.g?gi(c.g):''}${S.sort===c.k?(S.dir<0?' ↓':' ↑'):''}</th>`).join('')+`</tr></thead><tbody>`+
    (rs.slice(0,S.n).map(r=>`<tr data-c="${esc(r.c)}">`+cs.map(c=>`<td${c.l?' class=l':''}>${c.h(r)}</td>`).join('')+`</tr>`).join('')||`<tr><td colspan=${cs.length} class=l><span class=st>沒有符合條件的股票</span></td></tr>`)+`</tbody></table></div>`+
    (rs.length>S.n?`<button class=more id=more>再顯示 ${Math.min(60,rs.length-S.n)} 檔（剩 ${rs.length-S.n}）</button>`:'');
@@ -759,9 +792,7 @@ function drawStk(){
 const SIGST={cons:'s1'};                     // 加上條件後成為策略頁的哪一條策略
 /* 訊號總覽的實務判定（docs/lab_signal_plan.md 第 6.3 節）：{訊號: [判定, 方向, 次數, 命中率%, 平常%]}；隔天開盤買、持有 20 個交易日 */
 const SJ=D.sigj||{},SJN={good:'好訊號',ref:'可能是運氣',none:'沒有比平常好',few:'次數不夠'};
-function sjTxt(k){const j=SJ[k];if(!j||!j[2])return '';
-  return `${TMK[j[0]]} ${SJN[j[0]]}：${j[1]==='warn'?'之後 20 天內最大回撤 10% 以上':'持有 20 天扣成本後賺錢'} <b>${f(j[3],0)}%</b>（平常 ${f(j[4],0)}%・${j[2]} 次）`;}
-function sjLink(k,t){return `<a href="x9o.html#s=stk:sig:${esc(k)}">${t||'訊號總覽 →'}</a>`;}
+function sjLink(k,t){return `<a href="x9r.html#s=stk:sig:${esc(k)}">${t||'訊號紀錄 →'}</a>`;}
 function sigRes(x,lbl){return x&&x.n?`${lbl}實際平均 ${sgn(x.r,1,'%')}（${f(x.rw,0)}% 賺錢），同期大盤 ${pctT(x.mk)}`:'';}
 /* 個股卡也用：照做的實際報酬一行 */
 function statLine(k){const st=(D.stats||{})[k];if(!st)return '<span class=st>尚無歷史樣本</span>';
@@ -782,7 +813,7 @@ function sigConcl(ks){const S=ks.map(k=>(D.stats||{})[k]||{}).filter(s=>(s['5']|
   let t=`${A.length} 種訊號照做（訊號隔天開盤買、扣成本，${md((D.asof||{}).start)} 起）：持有 5 天實際平均 ${rg(A,'r')}，同期大盤 ${rg(A,'mk')}，${lose5===A.length?'全部輸大盤':`${lose5} 種輸大盤`}`;
   if(B.length)t+=`；持有 20 天實際平均 ${rg(B,'r')}，同期大盤 ${rg(B,'mk')}，${win20?`${win20} 種平均贏大盤${allW?'，但每一種都有一半以上的股票輸大盤':''}`:'全部輸大盤'}`;
   return t+'。<b>訊號只當觀察線索，不是買點</b>；要照做的看策略頁的個股策略。';}
-/* 籌碼頁：一句結論（由成績算）＋訊號按鈕＋各訊號今天的股票 */
+/* 後台訊號成績的一句結論（由成績算）；籌碼頁的今日訊號 2026-10-23 拿掉（docs/lab_ia_v5_plan.md 第 4 節：8 種個股訊號沒有一種比任一天好） */
 function sigShort(){const ks=Object.keys(SD).filter(k=>SJ[k]&&SJ[k][2]);if(!ks.length)return '';
   const up=ks.filter(k=>SJ[k][1]!=='warn'),wn=ks.filter(k=>SJ[k][1]==='warn');
   const rg=(K,i)=>{const v=K.map(k=>SJ[k][i]).filter(x=>x!=null);if(!v.length)return '—';const a=Math.min(...v),b=Math.max(...v);return a===b?`${f(a,0)}%`:`${f(a,0)}～${f(b,0)}%`;};
@@ -790,18 +821,6 @@ function sigShort(){const ks=Object.keys(SD).filter(k=>SJ[k]&&SJ[k][2]);if(!ks.l
   let t=up.length?`${up.length} 種訊號（隔天開盤買、持有 20 個交易日）扣成本後賺錢 ${rg(up,3)}，同一段期間加權指數上漲 ${rg(up,4)}`:'';
   if(wn.length)t+=(t?'；':'')+wn.map(k=>`${esc(SD[k][0])}之後 20 天收盤比買價低 ${f(SJ[k][3],0)}%（加權指數下跌 ${f(SJ[k][4],0)}%）`).join('；');
   return t+`。${g?`${g} 種是 ★ 好訊號`:r?`沒有 ★，${r} 種過了門檻但可能是運氣（●）`:'沒有一種比平常好'}，只當觀察線索，不是買點。<a data-go="bo" data-at="bo-sig">訊號成績 →</a>`;}
-function sigTodaySec(){
-  const ks=Object.keys(SD),cnt={};ROWS.forEach(r=>(r.sg||[]).forEach(k=>cnt[k]=(cnt[k]||0)+1));
-  let b=`<div class=sgs>${ks.map(k=>`<a class="sgc${RISK.has(k)?' rk':''}${cnt[k]?'':' z'}" data-sg="${k}">${esc(SD[k][0])}<b>${cnt[k]||0}</b></a>`).join('')}</div>`;
-  const sh=sigShort();if(sh)b+=`<div class=sgr style="margin-top:10px">${sh}</div>`;
-  for(const k of ks){
-    const risk=RISK.has(k),rs=ROWS.filter(r=>(r.sg||[]).includes(k));if(!rs.length)continue;
-    rs.sort((x,y)=>((x.m==='os')-(y.m==='os'))||(risk?(x.a5v??x.a5??0)-(y.a5v??y.a5??0):(y.a5v??y.a5??0)-(x.a5v??x.a5??0)));
-    const jt=sjTxt(k);
-    b+=`<div class=sgi id="sig-${k}"><b>${risk?'⚠ ':''}${esc(SD[k][0])}</b> <span class=pill>今天 ${rs.length} 檔</span>${gi(k)}<div class=st>${esc(SD[k][1])}</div>${jt?`<div class=st>${jt}・${sjLink(k)}</div>`:''}<div class=inl>`+
-      rs.slice(0,12).map(r=>`<span class=it><a data-c="${esc(r.c)}">${esc(r.n)}</a>${r.a5v!=null&&Math.abs(r.a5v)>=0.05?` <span class=${r.a5v>0?'up':'dn'}>${r.a5v>0?'+':''}${f(r.a5v,1)}</span>`:''}</span>`).join('　')+
-      (rs.length>12?` <a class=sm data-go="stk" data-fsig="${k}" data-sort="a5v"${risk?' data-dir="1"':''}>全部 ${rs.length} 檔 →</a>`:'')+`</div></div>`;}
-  return sec('c-sig','訊號','今日訊號','點訊號跳到今天的股票；股名旁數字＝主動 ETF 5 日淨買（億）',b);}
 /* 後台：訊號成績（docs/lab_signal_plan.md 第 6.3 節）：命中率／平常（訊號總覽的實務判定）；照做的實際報酬收在展開 */
 function sigAllSec(){const ks=Object.keys(SD),cnt={};ROWS.forEach(r=>(r.sg||[]).forEach(k=>cnt[k]=(cnt[k]||0)+1));
   const cell=(x,c)=>x&&x.n?`<td${c}>${sgn(x.r,1,'%')}<div class=sm2>${f(x.rw,0)}% 賺錢・${x.n} 次</div></td><td${c}>${pctT(x.mk)}</td>`:`<td${c}>—</td><td${c}>—</td>`;
@@ -834,16 +853,16 @@ function issSec(win){
   const G={};names.forEach(nm=>G[nm]=aggEv((D.iev||{})[nm]||[]));
   const cnts=nm=>{const g=G[nm];if(!g)return '<span class=mu>—</span>';const p=[['new','新'],['add','加'],['cut','減'],['exit','清']].filter(([k])=>g[k].length).map(([k,l])=>`<span class=k-${k}>${l} ${g[k].length}</span>`);return p.length?p.join(' '):'<span class=mu>無</span>';};
   const ist=Object.entries(D.iss||{}).sort((a,b)=>((b[1]['20']||{}).x??-99)-((a[1]['20']||{}).x??-99));
-  let b=`<div class=tw><table><thead><tr><th>投信</th><th>主動 ETF</th><th class=l>近 5 日動作</th><th>新建倉次數</th><th>5 日超額${gi('超額')}</th><th>20 日超額</th><th>勝率${gi('勝率')}</th><th>樣本${gi('樣本')}</th><th>先買／跟進</th></tr></thead><tbody>`+
+  let b=`<div class=tw><table><thead><tr><th>投信</th><th>主動 ETF</th><th class=l>近 5 日動作</th><th>新建倉次數</th><th>5 日超額${gi('超額')}</th><th>20 日超額</th><th>勝率${gi('勝率')}</th><th>次數${gi('樣本')}</th><th>先買／跟進</th></tr></thead><tbody>`+
     ist.map(([nm,st])=>{const x=st['5']||{},y=st['20']||{};return `<tr class="${(y.n||0)>=30?'':'grey'}"><td>${G[nm]?`<a data-to="iss-${esc(nm)}">${esc(nm)}</a>`:esc(nm)}</td><td>${act(nm).length}</td><td class=l>${cnts(nm)}</td><td>${st.new||0}</td><td>${sgn(x.x,2,'%')}</td><td>${sgn(y.x,2,'%')}</td><td>${y.n?f(y.w,0)+'%':'—'}</td><td>${y.n||0}</td><td>${st.lead||0}／${st.follow||0}</td></tr>`;}).join('')+
-    `</tbody></table></div><div class=note>近 5 日動作＝新建倉／加碼／減碼／出清的股票檔數；新建倉次數與超額＝主動 ETF 新建倉後的表現（對加權指數）。先買＝同一檔股票由這家最先建倉的次數；跟進＝別家先建倉、這家後來才買的次數。灰字＝20 日樣本不足 30 次。</div>`;
+    `</tbody></table></div><div class=note>近 5 日動作＝新建倉／加碼／減碼／出清的股票檔數；新建倉次數與超額＝主動 ETF 新建倉後的表現（對加權指數）。先買＝同一檔股票由這家最先建倉的次數；跟進＝別家先建倉、這家後來才買的次數。灰字＝20 日次數少於 30 次。</div>`;
   for(const nm of names){
     const ev=(D.iev||{})[nm]||[];const ow=(D.iow||{})[nm]||[];const st=(D.iss||{})[nm]||{};const s20=st['20']||{};const g=G[nm];
     let c=`<div class=ish>${(iss[nm]||[]).map(([cc,m])=>`<span class="tg${m.k==='a'?'':' mu'}">${esc(cc)}${m.k==='p'?'・被動':''}</span>`).join('')}</div>`;
     for(const [k,l] of [['new','新建倉'],['add','加碼'],['cut','減碼'],['exit','出清']])if(g[k].length)c+=`<div class=isr><span class="isk k-${k}">${l}<i>${g[k].length} 檔</i></span><div class=inl>${evItems(g[k])}</div></div>`;
     if(!ev.length)c+='<div class=isr><span class=isk>近 5 日</span><div class=st>沒有主動真加減碼</div></div>';
     if(ow.length)c+=`<div class=isr><span class=isk>超配最多</span><div class=inl>${ow.slice(0,6).map(o=>`<span class=it><a data-c="${esc(o[0])}">${esc(o[1])}</a> <span class=mu>${pm(o[4],2)}pp</span></span>`).join('　')}</div></div>`;
-    const stt=s20.n?`新建倉後 20 日：超額 ${sgn(s20.x,2,'%')}、勝率 ${f(s20.w,0)}%（${s20.n} 次${s20.n<30?'，樣本不足':''}）`:'新建倉後 20 日：尚無樣本';
+    const stt=s20.n?`新建倉後 20 日：超額 ${sgn(s20.x,2,'%')}、勝率 ${f(s20.w,0)}%（${s20.n} 次${s20.n<30?'，次數少':''}）`:'新建倉後 20 日：還沒有紀錄';
     b+=`<div class="card isc" id="iss-${esc(nm)}"><h4>${esc(nm)}<span class=sub>${stt}</span></h4>${c}</div>`;
   }
   return sec('c-iss','投信','投信動向',`每家投信旗下主動 ETF 近 5 個交易日（${win}）的真加減碼${gi('真加碼')}，依股票彙整，數字是張數；「超配最多」＝相對台股市值權重最看好的個股${gi('超配')}`,b);}
@@ -923,7 +942,7 @@ function studySec(S){
 const HDK=['tip_hd','tip_tech','tw_div','msci_esg30'],HDP=['tip_hd','tip_tech'],HDB=5;
 const HDN={tw_div:'0056 臺灣高股息',msci_esg30:'00878 MSCI ESG 高息30',tip_hd:'00919 精選高息',tip_tech:'00929 科技優息'};
 const HDE={tw_div:'0056',msci_esg30:'00878',tip_hd:'00919',tip_tech:'00929'};
-const HDNOTE={tip_hd:'規則公開，照規則重算（股利、EPS 用公開資料近似）',tip_tech:'規則公開，照規則重算（流動性門檻、本益比差距指標未公開，略過）',
+const HDNOTE={tip_hd:'規則公開，照規則重算（股利、EPS 用公開資料近似）',tip_tech:'規則公開，照規則重算（流動性條件、本益比差距指標未公開，沒有算進去）',
   tw_div:'官方用分析師預估股利（付費資料）排名，這裡用「近四季 EPS × 去年配發率」近似，名單準度低',msci_esg30:'ESG 評級是付費資料、母體不公開，這裡只排股利分數，名單準度低'};
 function hdAcc(a){const x=(a||{})[0];if(!x||!x.tot)return '';
   return `過去 ${x.n_rev} 次用資料截止日重算：官方納入 ${x.tot} 檔中 ${x.hit} 檔、多猜 ${x.fp} 檔；官方刪除 ${x.tot_del} 檔中 ${x.hit_del} 檔。`;}
@@ -1038,7 +1057,7 @@ function calCard(r){const d=r[10];
    `<div class=evm>${r[8]==='推算'?'日期為推算（官方未公告）':esc(r[8]||'')}・${r[12]||HDP.includes(r[0])?`<b class=up>有公告前預測</b>（信心 ${esc(r[9]||'')}）`:`未預測（信心 ${esc(r[9]||'')}）`}</div></div>`;}
 function vIdx(){
   const X=D.idx||{};
-  let h=`<div class=intro>被動 ETF 什麼時候換股、預估換哪些股票；生效日前後被動資金會集中買賣。<b>公告前預測</b>：臺灣50、00919、00929 照公開規則重算；0056、00878 的選股資料（分析師預估、ESG 評級）要付費，不做預測、只列時程。這頁是原料資料，不是買進清單：臺灣50 提前卡位的買賣在「<a data-go="opp" data-at="o-s3">機會</a>」，換股研究在「<a data-go="bo" data-at="idx-study">後台</a>」。</div>`;
+  let h=toolSeg('idx');
   if(X.err)h+=`<div class=st>指數區塊錯誤：${esc(X.err)}</div>`;
   const cal=(X.cal||[]).slice().sort((a,b)=>(a[10]??1e9)-(b[10]??1e9));
   h+=sec('idx-cal','時程','審核時程','依生效日排序',cal.length?`<div class=evs>${cal.map(calCard).join('')}</div>`:'<div class=st>尚無排定</div>');
@@ -1133,7 +1152,11 @@ const KA={'買進':'b','賣出':'s','換股':'w','調整':'a'};
 const OPP=ADV.opp||{};
 /* 個股頁與個股卡用：推薦策略這一期選到的股票（待買進／持有中） */
 const PK={};(ADV.picks||[]).forEach(p=>{(PK[p.c]=PK[p.c]||[]).push(p);});
-function stTags(c){return (PK[c]||[]).map(p=>`<span class="stg${p.act==='持有中'?' h':''}">${esc(STN[p.k]||p.sname)}・${p.act==='持有中'?'持有':'待買'}</span>`).join('');}
+/* 個股表與個股卡只標台股配置裡（使用中）的策略；PK 是全部 ★／● 策略（研究紀錄的個股策略頁用） */
+const CFU=new Set(((D.cfg||{}).use)||[]),PKU={};Object.keys(PK).forEach(c=>{const q=PK[c].filter(p=>CFU.has(p.k));if(q.length)PKU[c]=q;});
+/* 飆股候選（機會頁「飆股」那份名單，2026-10-23 起名單只在研究紀錄；個股表留一個篩選，docs/lab_ia_v5_plan.md 第 13 節其他細項 5） */
+const SXC=new Set((((D.wl||{}).cand)||[]).map(x=>x[0]));
+function stTags(c){return (PKU[c]||[]).map(p=>`<span class="stg${p.act==='持有中'?' h':''}">${esc(STN[p.k]||p.sname)}・${p.act==='持有中'?'持有':'待買'}</span>`).join('');}
 function oSum(){
   return `<div class="kpis osum">`+kp('推薦策略','推薦順序',`${OPP.n||0} 條`,'★、● 策略，依推薦順序')+
     kp('待買進','',`${OPP.nb||0} 檔`,OPP.fb?`最近 ${mdw(OPP.fb)} 開盤`:'名單產生後列出')+
@@ -1817,7 +1840,7 @@ function sumLines(r){const tw=r.m!=='os',u=tw?'張':'股',L=[];const ia=r.ia5||[
   if(r.cost!=null&&r.dev!=null)L.push(`近期新建倉的主動 ETF（${r.cn} 檔）平均買在 <b>${fp(r.cost)}</b>${gp('主動成本','，')}現價${r.dev>=0?'高':'低'} <b class=${cls(r.dev)}>${f(Math.abs(r.dev),1)}%</b>`+
     (tw&&r.ow!=null?`；平均權重比市值權重${r.ow>=0?'高':'低'} ${f(Math.abs(r.ow),2)} 個百分點${r.now!=null?`（${r.now}／${r.nact} 家投信超配）`:''}${gp('超配')}`:'。'));
   if(tw&&r.t5!==undefined)L.push(`法人：投信${r.ts?`連${r.ts>0?'買':'賣'} ${Math.abs(r.ts)} 日、`:''}5 日 ${sgn(r.t5,0)} 張；外資${r.fs?`連${r.fs>0?'買':'賣'} ${Math.abs(r.fs)} 日、`:''}5 日 ${sgn(r.f5,0)} 張${r.mb5!=null&&Math.abs(r.mb5)>=10?`；融資 5 日 ${sgn(r.mb5,1,'%')}`:''}。`);
-  if(tw&&r.al)L.push(`技術面<b>${r.al}</b>${r.h60?'、創 60 日新高':r.h20?'、創 20 日新高':r.l20?'、跌破 20 日低點':''}${r.p52!=null?`；在一年區間的 ${f(r.p52,0)}% 位置`:''}${r.rs20!=null?`，近 20 日${r.rs20>=0?'強於':'弱於'}大盤 ${f(Math.abs(r.rs20),1)} 個百分點`:''}。`);
+  if(tw&&r.al)L.push(`技術面<b>${r.al}</b>${r.h60?'、創 60 日新高':r.h20?'、創 20 日新高':r.l20?'、跌破 20 日低點':''}${r.p52!=null?`；在一年高低點之間的 ${f(r.p52,0)}% 位置`:''}${r.rs20!=null?`，近 20 日${r.rs20>=0?'強於':'弱於'}大盤 ${f(Math.abs(r.rs20),1)} 個百分點`:''}。`);
   return L;}
 function kp(lbl,g,val,sub,c=''){return `<div class=kp><span>${lbl}${g?gi(g):''}</span><b class="${c}">${val}</b>${sub?`<em>${sub}</em>`:''}</div>`;}
 function kpis(r){const tw=r.m!=='os';const k=[
@@ -1846,13 +1869,13 @@ function idxHits(c){
   if(pf)hits.push(kp('被動 ETF 近 10 日淨買賣','',pm(pf[2])+' 張',`${pf[3]!=null?'約 '+f(pf[3],2)+' 日量':''}${(pf[4]||[]).length?'・新進 '+pf[4].join(' '):''}${(pf[5]||[]).length?'・出清 '+pf[5].join(' '):''}`,cls(pf[2])));
   return hits.join('');}
 
-/* 個股卡最上面：推薦策略這一期選到這檔（狀態、買賣日期、該策略過去照做的報酬） */
-function stCardSec(c){const P=PK[c];if(!P)return '';
-  return `<section class=csec id=c-st><h3>策略<span class=sub>推薦策略這一期選到</span></h3>`+P.map(p=>{const b=BK[p.k]||{},e=b.exp||{},u=b.unit||'次',sw=(LV[p.k]||{}).src==='p7';
+/* 個股卡最上面：這檔在台股配置的哪一條策略裡（只列使用中的；docs/lab_ia_v5_plan.md 第 4 節「分頁個股」） */
+function stCardSec(c){const P=PKU[c];if(!P)return '';
+  return `<section class=csec id=c-st><h3>配置<span class=sub>台股的機動三成</span></h3>`+P.map(p=>{const b=BK[p.k]||{},e=b.exp||{},u=b.unit||'次',sw=(LV[p.k]||{}).src==='p7';
     const out=p.out?`${mdw(p.out)} 收盤${sw?'換股':'賣出'}`:esc(p.out_how||'');
-    const st=p.act==='持有中'?`持有中：${mdw(p.ent)} 買進${p.entry!=null?` ${fp(p.entry)} → 現在 ${fp(p.now)}（${sgn(p.now_r,1,'%')}）`:''}；${out}`
+    const st=p.act==='持有中'?`持有中：${mdw(p.ent)} 買進${p.entry!=null?` ${fp(p.entry)}，現在 ${fp(p.now)}（${sgn(p.now_r,1,'%')}）`:''}；${out}`
       :`待買進：${mdw(p.ent)} 開盤${p.tent?'（試算名單）':''}${p.px!=null?`，參考價 ${fp(p.px)}`:''}${p.stop!=null?`、停損 ${fp(p.stop)}`:''}；${out}`;
-    return `<div class=sgi><b><a data-go="opp" data-at="o-${esc(p.k)}">${esc(p.sname)}</a></b> ${tBadge(p.tier)}${b.rank?` <span class=pill>推薦順序 ${b.rank}</span>`:''}<div class=pasl style="margin-top:2px">${st}</div>`+
+    return `<div class=sgi><b><a data-go="tw" data-at="cf-tw-h">${esc(p.sname)}</a></b><div class=pasl style="margin-top:2px">${st}</div>`+
       (e.n?`<div class=st>過去照做：每${u}平均 ${pctT(e.avg)}、中位 ${pctT(e.med)}，${e.win}% 賺錢；同期大盤 ${pctT(e.mk)}</div>`:'')+`</div>`;}).join('')+`</section>`;}
 function renderStock(c,keep){
   const r=BY[c];if(!r){hideStock();return;}const s=SER?(SER[c]||{}):null;const tw=r.m!=='os';const u=tw?'張':'股';
@@ -1861,7 +1884,7 @@ function renderStock(c,keep){
   dv.classList.toggle('pane',pane);document.body.classList.toggle('pane',pane);dv.hidden=false;lockBody(!pane);
   const W=Math.max(300,Math.floor($('#dvin').clientWidth-32));
   const i=CTX.indexOf(c),pv=i>0,nx=i>=0&&i<CTX.length-1;
-  const secs=[...(PK[c]?[['c-st','策略']]:[]),['c-sum','重點'],['co-sum','公司'],['c-chart','走勢'],['c-hold','ETF 持有'],...(tw&&r.t5!==undefined?[['c-chip','籌碼'],['c-ta','技術']]:[]),['c-sig','訊號']];
+  const secs=[...(PKU[c]?[['c-st','配置']]:[]),['c-sum','重點'],['co-sum','公司'],['c-chart','走勢'],['c-hold','ETF 持有'],...(tw&&r.t5!==undefined?[['c-chip','籌碼'],['c-ta','技術']]:[]),['c-sig','訊號']];
   let h=`<div class=dvh><div class=dvt><a class="nv${pv?'':' off'}" id=pv title="上一檔（←）">‹</a>`+
    `<div class=ttl><b>${esc(r.n)}</b><span class=cd>${i>=0?`${i+1}／${CTX.length} · `:''}${esc(r.c)} · ${MK[r.m]||''}${r.ind?' · '+esc(r.ind):''}</span></div>`+
    `<div class=pxw><b>${fp(r.px)}</b>${sgn(r.ch,2,'%')}</div><a class="nv${nx?'':' off'}" id=nx title="下一檔（→）">›</a><a class=x id=x title="關閉（Esc）">×</a></div>`+
@@ -1904,7 +1927,7 @@ function renderStock(c,keep){
      kp('KD(9)','KD',`${f(r.k,0)}／${f(r.d,0)}`)+kp('RSI(14)','RSI',f(r.rsi,0))+
      kp('MACD 柱','MACD',pm(r.mh,2),r.mx===1?'剛翻正':r.mx===-1?'剛翻負':'',cls(r.mh))+
      kp('突破','',[r.h20?'創 20 日高':'',r.h60?'創 60 日高':'',r.l20?'破 20 日低':''].filter(Boolean).join('、')||'—')+
-     kp('一年區間位置','一年區間位置',r.p52==null?'—':f(r.p52,0)+'%',r.n52<240?`僅 ${r.n52} 日資料`:'')+
+     kp('一年高低位置','一年高低位置',r.p52==null?'—':f(r.p52,0)+'%',r.n52<240?`僅 ${r.n52} 日資料`:'')+
      kp('20 日相對大盤','相對大盤',pm(r.rs20,1)+'pp','',cls(r.rs20))+
      kp('ATR 波動','ATR',r.atrp==null?'—':f(r.atrp,2)+'%')+
      kp('日均成交','日均成交',r.liq==null?'—':f(r.liq,2)+' 億','20 日')+`</div></section>`;}
@@ -1997,21 +2020,21 @@ $('#glb').onclick=e=>{e.preventDefault();openGl();};
 $('#gl').addEventListener('click',e=>{if(e.target.id==='gl')closeGl();});
 
 /* ---------- 分頁＋跳段目錄 ---------- */
-const VIEWS={opp:vOpp,st:vSt,mac:vMac,macst:vMacSt,stk:vStk,chip:vChip,idx:vIdx,bo:vBo};
-/* 一份頁面兩種身分（2026-10-22；docs/lab_strategy_ia_plan.md）：「策略」＝總經策略、個股策略（各兩頁：這一期、規則與成績）；
-   「個股」＝個股、籌碼、指數。後台兩邊都有、不換身分。頂欄的「策略」（x9.html#v=mac）、「個股」（x9.html）都連到這一頁，點了不重新載入。
-   網址：?v=分頁（＋&m=市場）；別頁連進來用 #v=分頁&m=市場&x=策略（轉址也帶得過去），載入後改寫成 ?v=。 */
-const TABG={opp:'stg',st:'stg',mac:'mac',macst:'mac',stk:'stk',chip:'chip',idx:'idx',bo:'bo'};
-const PERS={opp:'st',st:'st',mac:'st',macst:'st',stk:'stk',chip:'stk',idx:'stk'};
-const LAST={st:'mac',stk:'stk',mac:'mac',stg:'opp'};
-const PURP={st:'照固定規則買賣：總經策略看大盤指數（台股、美股），個股策略挑台股個股；列出哪天買賣、現在持有什麼，以及同樣做法過去照做賺多少。',
-  stk:'ETF 持股、法人籌碼與技術面：每一檔股票誰在買賣、在什麼位置；點一檔看公司分析。'};
+const VIEWS={tw:vCfgTw,us:vCfgUs,strat:vCfgSt,stk:vStk,chip:vChip,idx:vIdx,opp:vOpp,st:vSt,mac:vMac,macst:vMacSt,bo:vBo};
+/* 一份頁面兩種身分（2026-10-23；docs/lab_ia_v5_plan.md 第 18 節）：
+   「配置」＝台股、美股、策略、個股（工具：個股｜籌碼｜指數）——頂欄的「配置」（x9.html）；
+   「研究紀錄」＝個股策略（這一期、規則與成績）、總經策略（同）、後台——從不在頂欄的研究紀錄頁（x9r.html）進來。
+   網址：?v=分頁（＋&m=市場、&at=段落）；舊網址 #v=分頁&m=市場&x=策略 照樣到得了，載入後改寫成 ?v=。 */
+const TABG={tw:'tw',us:'us',strat:'strat',stk:'tool',chip:'tool',idx:'tool',opp:'stg',st:'stg',mac:'mac',macst:'mac',bo:'bo'};
+const PERS={tw:'cfg',us:'cfg',strat:'cfg',stk:'cfg',chip:'cfg',idx:'cfg',opp:'r',st:'r',mac:'r',macst:'r',bo:'r'};
+const LAST={cfg:'tw',r:'bo',tool:'stk',mac:'mac',stg:'opp'};
+const PTITLE={cfg:'配置',r:'研究紀錄'};
 let PER='';
 function setPer(p){if(p===PER)return;PER=p;$$('#tabs a[data-p]').forEach(a=>{a.hidden=a.dataset.p!==p;});
-  $$('.apptab a').forEach(a=>{const h=a.getAttribute('href')||'',on=p==='st'?h.indexOf('x9.html#v=')===0:h==='x9.html';
+  $$('.apptab a').forEach(a=>{const on=p==='cfg'&&(a.getAttribute('href')||'')==='x9.html';
     a.classList.toggle('on',on);if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
-  const pp=$('#purp');if(pp)pp.textContent=PURP[p];document.title=p==='st'?'策略':'個股';}
-function urlSet(){const t=S.tab,q=t==='stk'?'':'?v='+t+(TABG[t]==='mac'?'&m='+S.mmk:''),h=location.hash.indexOf('#s=')===0?location.hash:'';
+  document.title=PTITLE[p]||'配置';}
+function urlSet(){const t=S.tab,q=t==='tw'?'':'?v='+t+(TABG[t]==='mac'?'&m='+S.mmk:''),h=/^#(s|co)=/.test(location.hash)?location.hash:'';
   try{history.replaceState(history.state,'',location.pathname+q+h);}catch(e){}}
 function hdh(){return $('.hd').offsetHeight;}
 function jump(id){const t=document.getElementById(id);if(t&&t.tagName==='DETAILS')t.open=true;if(t)window.scrollTo({top:t.getBoundingClientRect().top+scrollY-hdh()-8,behavior:'smooth'});}
@@ -2025,20 +2048,20 @@ function spy(){const secs=$$('#main .sec[data-nav]');const nav=$('#snav');if(sec
   nav.querySelectorAll('a').forEach(a=>{const on=a.dataset.to===cur;if(on===a.classList.contains('on'))return;a.classList.toggle('on',on);
     if(on){const l=a.offsetLeft-nav.offsetLeft;if(l<nav.scrollLeft||l+a.offsetWidth>nav.scrollLeft+nav.clientWidth)nav.scrollLeft=Math.max(0,l-24);}});}
 addEventListener('scroll',()=>{if(!spyRaf)spyRaf=requestAnimationFrame(()=>{spyRaf=0;spy();});},{passive:true});
-function go(t,anchor){if(!VIEWS[t])t='stk';S.tab=t;const g=TABG[t];setPer(PERS[t]||PER||'stk');LAST[PER]=t;if(g==='mac'||g==='stg')LAST[g]=t;
+function go(t,anchor){if(!VIEWS[t])t='tw';S.tab=t;const g=TABG[t];setPer(PERS[t]||'cfg');LAST[PER]=t;if(g==='mac'||g==='stg'||g==='tool')LAST[g]=t;
   $$('#tabs a[data-t]').forEach(a=>a.classList.toggle('on',a.dataset.t===g));VIEWS[t]();buildNav();urlSet();
   $$('#main [data-mmk]').forEach(a=>a.onclick=e=>{e.preventDefault();S.mmk=a.dataset.mmk;go(S.tab);});
   $$('#main [data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();const d=a.dataset;
-    if(d.fsig!==undefined){S.sig=d.fsig;S.q='';S.n=60;S.stf=false;}if(d.fstf!==undefined){S.stf=true;S.sig='';S.q='';S.n=60;}if(d.sort){S.vw='etf';S.sort=d.sort;S.dir=+(d.dir||-1);}go(d.go,d.at);});
+    if(d.fsig!==undefined){S.sig=d.fsig;S.q='';S.n=60;S.stf=false;}if(d.fstf!==undefined){S.stf=true;S.sig='';S.q='';S.n=60;}if(d.sort){S.vw='etf';S.sort=d.sort;S.dir=+(d.dir||-1);}if(d.gm)S.mmk=d.gm;if(d.bmk)S.bmk=d.bmk;go(d.go,d.at);});
   window.scrollTo(0,0);if(anchor)requestAnimationFrame(()=>jump(anchor));}
 /*@@COPAGE@@*/
-$$('#tabs a[data-t]').forEach(a=>a.onclick=()=>{const g=a.dataset.t;go(g==='mac'||g==='stg'?LAST[g]:g);});
-$$('.apptab a').forEach(a=>{const h=a.getAttribute('href')||'';if(h==='x9.html'||h.indexOf('x9.html#v=')===0)a.onclick=e=>{e.preventDefault();go(h==='x9.html'?LAST.stk:LAST.st);};});
-{const q=new URLSearchParams(location.search),hm=location.hash.match(/^#v=([a-z]+)(.*)$/);let v=q.get('v'),m=q.get('m'),x='';
+$$('#tabs a[data-t]').forEach(a=>a.onclick=()=>{const g=a.dataset.t;go(g==='mac'||g==='stg'||g==='tool'?LAST[g]:g);});
+$$('.apptab a').forEach(a=>{if((a.getAttribute('href')||'')==='x9.html')a.onclick=e=>{e.preventDefault();go(PER==='cfg'?LAST.cfg:'tw');};});
+{const q=new URLSearchParams(location.search),hm=location.hash.match(/^#v=([a-z]+)(.*)$/),gl=location.hash==='#gl';let v=q.get('v'),m=q.get('m'),x='',at=q.get('at')||undefined;
   if(hm){v=hm[1];const p=new URLSearchParams(hm[2].replace(/^&/,''));m=p.get('m')||m;x=p.get('x')||'';}
-  if(m&&MCM[m])S.mmk=m;if(!VIEWS[v])v='stk';
-  let at;if(x&&TABG[v]==='mac'){const M=MCM[S.mmk]||{};if((M.cards||[]).some(c=>c.k===x)){v='mac';at='m-'+x;}else{v='macst';at='ms-'+x;}}
-  go(v,at);}
+  if(m&&MCM[m])S.mmk=m;if(!VIEWS[v])v=/^#(s|co)=/.test(location.hash)?'stk':'tw';
+  if(x&&TABG[v]==='mac'){const M=MCM[S.mmk]||{};if((M.cards||[]).some(c=>c.k===x)){v='mac';at='m-'+x;}else{v='macst';at='ms-'+x;}}
+  go(v,at);if(gl)openGl();}
 if(isPane())setTimeout(()=>{loadSer().catch(()=>{});},1500);
 {const m=location.hash.match(/^#s=(.+)$/);if(m)renderStock(decodeURIComponent(m[1]));}
 """

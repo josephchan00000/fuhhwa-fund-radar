@@ -152,7 +152,9 @@ def test_every_item_and_dimension_has_a_panel(built):
 def test_views_and_research_moved_intact(built):
     _, _, V, page = built
     assert re.findall(r'<div class="hview" data-view="(\w+)"', page) == ["radar", "phase", "terrain", "research"]
-    assert re.findall(r'<button type="button" data-view="(\w+)"', page) == [k for k, _ in VZ.VIEWS]
+    for k in ("phase", "terrain", "research"):                               # 研究畫面最上面一列：回研究紀錄、三個畫面互切、回市場頁
+        assert page[page.index(f'<div class="hview" data-view="{k}"'):].startswith(f'<div class="hview" data-view="{k}" hidden>' + VZ.research_bar(k))
+    assert 'class="vsw"' not in page                                         # 視角切換鈕拿掉（docs/lab_ia_v5_plan.md 第 13 節：研究畫面從研究紀錄進）
     res = page[page.index('<div class="hview" data-view="research"'):page.index('<div class="dtpl"')]
     for part in (P._dv_section(V), P._rel_overview(V), P._m6_valid(V), P._ta_study(V)):
         assert part and part in res                                           # 研究內容原封搬到研究畫面
@@ -160,8 +162,9 @@ def test_views_and_research_moved_intact(built):
         assert P._valid(d, L) in res and f'id="v-{d}"' in res
     assert 'id="src"' in res and P._METHOD in res
     main = page[page.index('<div class="hview" data-view="radar"'):page.index('<div class="hview" data-view="phase"')]
-    assert P._ta_main(V) in main and P._cmp_section() in main and 'id="today"' in main and 'id="imap"' in main
-    assert "看事件研究" in P._ta_main(V) and 'class="evt"' not in P._ta_main(V)
+    assert P._ta_main(V) in main and P._cmp_section() in main and 'id="today"' in main and 'id="all"' in main
+    assert 'id="imap"' not in page and 'id="items"' not in page             # 「全部項目」拿掉：每一項在面向面板與全部指標裡（第 13 節）
+    assert 'class="evt"' not in P._ta_main(V) and "研究" not in P._ta_main(V)       # 事件研究在研究畫面；價位那一塊不放連過去的說明（第 3 段）
 
 
 def test_hviz_json_embedded_safely(built):
@@ -170,7 +173,7 @@ def test_hviz_json_embedded_safely(built):
     raw = page[a:page.index("</script>", a)]
     assert "</" not in raw
     assert json.loads(raw.replace("<\\/", "</")) == json.loads(json.dumps(V["viz"]))
-    assert page.count("<script>") == 3                                        # 雷達程式和對照圖程式在同一個 script；另一個＝<head> 的深淺色（appnav）
+    assert page.count("<script>") == 4      # HEAT_META、雷達＋對照圖程式、全部指標＋泡沫的程式、<head> 的深淺色（appnav）
 
 
 def test_theme_tokens_for_light_and_dark():
@@ -380,36 +383,26 @@ def test_swing_threshold_by_market():
     assert all(VZ.swing_thr(m) == CS.TH[m][2] for m in ("spx", "ixic", "ndx", "sox"))
 
 
-def test_swing_read_wording():
-    pts = [{"k": "H", "v": [80, 70]}, {"k": "L", "v": [30, 66]}, {"k": "H", "v": [90, 60]}, {"k": "L", "v": [20, 70]},
-           {"k": "h", "v": [10, 10]}]                                           # 還沒確認的點不算
-    r = VZ.swing_read(pts, ["技術", "籌碼"], [36, 92])
-    assert r == "這 2 個高點和 2 個低點：高點時比低點熱：技術（高點平均 85、低點 25，現在 36）。只描述這幾個點，不是訊號。"
-    flat = [{"k": "H", "v": [30, 70]}, {"k": "H", "v": [35, 60]}, {"k": "L", "v": [25, 66]}, {"k": "L", "v": [20, 70]}]
-    assert "形狀差不多" in VZ.swing_read(flat, ["技術", "籌碼"], [36, 92])
-    assert VZ.swing_read(pts[:3], ["技術", "籌碼"], [36, 92]) == ""                # 低點不到 2 個不寫
-
-
 def test_radar_card_has_swings_not_quarters(built):
     _, _, V, page = built
     rc = page[page.index('<div class="rcard card">'):page.index('<div class="vside">')]
-    assert 'id="rsm"' in rc and 'id="rsmc"' in rc and "近期波段高點、低點" in rc and 'id="rchips"' not in rc
-    assert "分數後面括號＝和前一個交易日比" in rc
+    assert 'id="rsm"' in rc and 'id="rsmc"' not in rc and "近期波段高點、低點" in rc and 'id="rchips"' not in rc
+    assert "分數後面括號" not in rc and 'class="ksub"' not in rc               # 讀法、說明句拿掉（docs/lab_ia_v5_plan.md 第 3 節④）
+    assert "（ ）比' + (isNow() ? '前一個交易日' : '前一週')" in VZ.JS          # 括號的意思寫在圖例
     assert "P.qs" not in VZ.JS and "#cchips" not in VZ.JS and "function dlt()" in VZ.JS
     assert "比昨日" in page or "和昨日一樣" in page                               # 面板的分數格
 
 
-def test_today_card_beside_radar(built):
-    """今天的重點（溫度計＋偏多、警示）放在雷達右邊的窄欄、這週變化上面（2026-10-20 使用者：「我比較喜歡之前的排版」→ 雷達放回最上面）。
-    窄欄裡溫度計的讀數排在長條下面、偏多與警示上下排；說明收進「怎麼看」。"""
+def test_today_card_below_faces(built):
+    """市場頁（docs/lab_ia_v5_plan.md 第 15.1、18 節）：面向那一塊＝標題列、五個面向、雷達＋這週變化（右欄，兩欄等高）；
+    今天的訊號在面向下面、全部指標上面。「怎麼看」拿掉（第 8 節）；溫度計切換照舊用 radio＋CSS。"""
     _, _, V, page = built
-    side = page[page.index('<div class="vside">'):page.index('<p class="hz">')]
-    assert page.index('<div class="vgrid">') < page.index('<div class="vside">') < page.index('id="today"')
-    # 這週變化 2026-10-20 起移到兩欄下面整條（使用者：「左邊空空的 沒對齊」）；兩欄等高
-    assert 'id="today"' in side and side.index('id="today"') < side.index('</div></div><section class="wchg card" id="wchg">')
+    top = page[page.index('<section class="vtop mface" id="top">'):page.index('id="today"')]
+    assert top.index('class="mfc"') < top.index('<div class="vgrid">') < top.index('<div class="vside">') < top.index('id="wchg"')
+    assert page.index('id="top"') < page.index('id="today"') < page.index('id="all"')
     assert ".vgrid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:14px;align-items:stretch}" in page
-    assert ".vside>.card:last-child{flex:1}" in page
-    assert '<details class="tzx"><summary>怎麼看</summary>' in side
+    assert ".mface .vside>.wchg{margin:0;flex:1}" in page
+    assert 'class="tzx"' not in page
     assert ".tqpn{display:none}" in page and ".tqrb:nth-of-type(2):checked~.tqps .tqpn:nth-child(2)" in page   # VER 23：切換用 radio＋CSS
     assert ".vside{order:-1}" not in page                                    # 手機也是雷達在最上面
 
@@ -421,13 +414,13 @@ def test_today_rows_open_outlook_at_that_signal(built):
     T = V.get("sigtoday") or {}
     i = page.index('<template id="ot-out"')
     body = page[i:page.index("</template>", i)]
-    today = page[page.index('id="today"'):page.index('id="wchg"')]
+    today = page[page.index('id="today"'):page.index('id="all"')]
     cols = today[today.index('class="tqps"'):]
     fams = [r for s in ("up", "warn") for r in T.get(s) or []]
     ids = [VZ.osg_id(r["id"], r["hz"], r["side"]) for r in fams]
     assert len(ids) == len(set(ids))
     for r, oid in zip(fams, ids):
-        assert f'href="x9o.html#s={html.escape(r["id"])}" data-open="out:out" data-to="{oid}"' in cols
+        assert f'href="#s={html.escape(r["id"])}" data-open="out:out" data-to="{oid}"' in cols    # 沒有 JS：同一頁的全部指標
         assert body.count(f'id="{oid}"') == 1 and re.fullmatch(r"osg-[0-9A-Za-z_-]+", oid)
     assert VZ.osg_id("tw:heat:T4:cold") != VZ.osg_id("tw_heat_T4_cold")       # 換字不會撞在一起
     assert VZ.osg_id("x", "short", "up") != VZ.osg_id("x", "mid", "up") != VZ.osg_id("x", "mid", "warn")
@@ -476,12 +469,14 @@ def test_moves_one_row_per_dimension_with_main_reasons():
     rows = re.findall(r'<li class="wr">.*?</li>', h)
     assert len(rows) == 2 and 'data-k="tech"' in rows[0] and 'data-k="gliq"' in rows[1]   # 依變化大小排序
     assert "和 10/12（一）比" in txt
-    assert "59 → 27 −32 中性 → 偏冷" in txt and "21 → 16 −5 偏冷 → 過冷" in txt
-    assert "主要是 對 20 日線乖離 74→8 （−16.5） 進入過冷 、 RSI 72→12 （−15.0） 進入過冷 ；另外 美國 VIX 進入過冷" in txt
+    assert "27 上週 59 −32 由中性轉 偏冷" in txt and "16 上週 21 −5 由偏冷轉 過冷" in txt
+    assert ("主要是 對 20 日線乖離 74 降到 8 （拉低 16.5 分） 進入過冷 、 RSI 72 降到 12 （拉低 15.0 分） 進入過冷 ；"
+            "另外 美國 VIX 進入過冷") in txt
     assert "距高點" not in rows[0]                                            # 反方向的不算主要原因
-    assert "主要是 高收益債 62→27 （−7.0） ；其他項目往反方向拉回 +2.2" in txt  # 只有一項同方向超過 1 分
+    assert "主要是 高收益債 62 降到 27 （拉低 7.0 分） ；其他項目反向拉回 2.2 分" in txt  # 只有一項同方向超過 1 分
     assert "貨幣基金" not in rows[1]                                          # 拉動不到 1 分不算
-    assert "其他沒什麼變 燈號" not in txt and "其他沒什麼變 基本面 94（0）" in txt
+    assert "其他沒什麼變 燈號" not in txt and "其他沒什麼變 基本面 94（持平）" in txt
+    assert "→" not in txt and "軌道上" not in txt                             # 不用箭頭、不放圖例句（docs/lab_ia_v5_plan.md 第 8 節）
     assert "創新高、新低 燈號 42 年新高" in txt
     assert txt.count("wtk") == 0 and h.count('class="wtk"') == 2             # 每列一條小軌道
     assert 'style="left:66.5%;width:' not in h and re.search(r'class="wo" style="left:\d', h)
@@ -513,7 +508,8 @@ def _cell(n, med, up, mae):
 
 def test_scenario_table(monkeypatch):
     """所有情境＝一張表（docs/lab_outlook_plan.md 第 3 節；2026-10-20 使用者：「交互的頁面看起來很不清楚」）：每列＝條件附現在的分數、
-    3 個月後上漲（橫條＋隨便挑一天）、報酬中位數、中途最多跌、大跌、判定、段數；現在成立的排最上面；點一列展開過去出現的時候。"""
+    3 個月後上漲（橫條＋任一天）、報酬中位數、中途最多跌、大跌、段數；現在成立的排最上面；點一列展開過去出現的時候。
+    2026-10-23 起不放判定欄與說明句（docs/lab_ia_v5_plan.md 第 8 節）。"""
     from arm.lab import sigcat as G
     from arm.lab import sigspec as SS
     j = SS.RET_H.index(60)
@@ -535,31 +531,32 @@ def test_scenario_table(monkeypatch):
     txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h)))
     assert h.count('<details class="sqr') == 3 and 'class="sqr on" id="sq-SC2"' in h
     assert h.index('id="sq-SC2"') < h.index('id="sq-SC1"')                   # 現在成立的排最上面
-    assert "現在成立的 1 個列在上面" in txt and "現在・2026/7/17 起" in txt
+    assert "現在成立的" not in txt and "現在・2026/7/17 起" in txt
     # 2026-10-21 起在「之後怎麼走？」面板裡：沒成立的收起來（docs/lab_noise_plan.md 第 11 節）
     assert '<details class="osq"><summary>其他 2 個情境（現在沒有成立）</summary>' in h
     assert h.index('id="sq-SC2"') < h.index('<details class="osq">') < h.index('id="sq-SC1"')
     assert "基本面 ≥ 60（現在 94 ）・技術 < 40（現在 33 ）" in txt              # 「<」要跳脫，不能被當成標籤吞掉
     assert "&lt; 40" in h and "資金 ≥ 60（現在 31 ）" in txt                     # 台股資金＝(17＋45)÷2
-    assert "65% 隨便挑一天 63%" in txt and "38% 隨便挑一天 35%" in txt and "3 個月內大跌（回撤 10% 以上）" in txt
-    assert "+4.4% 隨便挑一天 +2.6%" in txt and "−3.0% 隨便挑一天 −4.0%" in txt   # 報酬中位數、中途最多跌（第 4.11 節）
-    assert 'style="width:65.0%"' in h and 'style="left:63.0%"' in h           # 上漲橫條＋隨便挑一天的細線
+    assert "65% 任一天 63%" in txt and "38% 任一天 35%" in txt and "3 個月內回撤 10% 以上" in txt
+    assert "+4.4% 任一天 +2.6%" in txt and "−3.0% 任一天 −4.0%" in txt         # 報酬中位數、中途最多跌（第 4.11 節）
+    assert 'style="width:65.0%"' in h and 'style="left:63.0%"' in h           # 上漲橫條＋任一天的細線
+    assert "判定" not in txt and not any(m in h for m in "★◆○") and "隨便挑一天" not in txt
     assert 'data-dims="fund tech"' in h and 'data-dims="gliq,tliq tech"' in h   # 台股資金一組兩個（對照圖選到任一個就算）
     assert h.count('class="sqtb"') == 3 and 'title="2015/3/2～2015/5/29"' in h
-    assert 'href="x9o.html#s=tw:scen:SC2"' in h and "90 個比較" in txt and "2009 年起" in txt
+    assert 'href="#s=tw:scen:SC2" data-sg="tw:scen:SC2"' in h and "90 個比較" not in txt and "2009 年起" in txt   # 同一頁的全部指標
     assert txt.count("次數不夠") >= 1 or "—" in txt
     assert not any(w in txt for w in BANNED)
     V2 = {**V, "signow": {"on": {}}}
-    assert "現在成立的 0 個" in html.unescape(VZ.scen_html(V2)) and 'class="sqr on"' not in VZ.scen_html(V2)
+    assert 'class="sqr on"' not in VZ.scen_html(V2)
     assert '<details class="osq" open><summary>全部 3 個情境' in VZ.scen_html(V2)       # 沒有成立的：全部列出來、展開
     monkeypatch.setattr(G, "research_rows", lambda: [])
-    assert "情境的研究結果還沒產生" in VZ.scen_html(V)
+    assert "情境的資料還沒產生" in VZ.scen_html(V)
     # 美股不寫台股的說明
     monkeypatch.setattr(G, "research_rows", lambda: rows)
     Vu = {"mk": "spx", "dims": {"fund": {"score": 65.0}, "sent": {"score": 41.0}, "liq": {"score": 38.0}, "tech": {"score": 37.0}},
           "signow": {"on": {}}}
     hu = VZ.scen_html(Vu)
-    assert "台股" not in hu and "情緒籌碼 2008 年起" in hu and 'data-dims="fund tech"' in hu
+    assert "台股" not in hu and 'data-dims="fund tech"' in hu
     assert [k for k, *_ in SS.SCENARIOS][:2] == ["SC1", "SC2"]
 
 
@@ -593,13 +590,16 @@ def test_now_section(monkeypatch):
     h = VZ.now_html(V)
     txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h)))
     assert 'id="now"' in h and "基本面 94 過熱" in txt and "資金 30 偏冷" in txt and "籌碼 87 過熱" in txt
-    assert "過去和現在最像的 20 段（2009 年起找，平均每個面向差 4.2 分），之後 3 個月上漲 75% （隨便挑一天 68%）" in txt
-    assert "比平常準 0、看不出比較準 2、比平常差 5" in txt and "不要當成預估" in txt and 'class="nsacc bad"' in h
-    assert h.count('<td class="l nsp">') == len(SS.RET_H) + len(SS.RET_H) + 8   # 期間表、樣本外表、最像的幾段
-    assert "只找到 14 段" in txt and "比平常差" in txt and "看不出比較準" in txt
-    assert "+5.2% +3.2%" in txt and "−2.5%／−7.5%" in txt                         # 報酬中位數（小字＝隨便挑一天）、中途最多跌中位／最差 10%
-    assert "加上籌碼一起比（2019 年起才有）" in txt and "歷史短，沒有做樣本外檢查" in txt
-    assert "52 個月：實際 58%（隨便挑一天 66%）" in txt and "−0.054～−0.014" in txt
+    assert "過去和現在最像的 20 段（2009 年起找，平均每個面向差 4.2 分），之後 3 個月上漲 75% （任一天 68%）" in txt
+    assert h.count('<td class="l nsp">') == len(SS.RET_H) + 8                  # 期間表、最像的幾段
+    assert "只找到 14 段" in txt and "準不準" not in txt and "樣本外" not in txt and "比平常差" not in txt
+    assert "+5.2% +3.2%" in txt and "−2.5%／−7.5%" in txt                         # 報酬中位數（小字＝任一天）、中途最多跌中位／最差 10%
+    assert "加上籌碼一起比（2019 起）" in txt and "樣本外" not in txt
+    # 準不準（樣本外檢查）搬到研究畫面（docs/lab_ia_v5_plan.md 第 8 節）
+    oh = VZ.sim_oos_html(V)
+    ot = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", oh)))
+    assert "比平常準 0、看不出比較準 2、比平常差 5" in ot and "不要當成預估" in ot and 'class="nsacc bad"' in oh
+    assert oh.count('<td class="l nsp">') == len(SS.RET_H) and "52 個月：實際 58%（任一天 66%）" in ot and "−0.054～−0.014" in ot
     assert h.count('class="nsh"') == 3 and 'id="nsall"' in h and "看全部 8 段" in txt   # 前 5 段以外收起來
     assert "2010/2/1" in txt and "−8.5%" in txt and "1.0" in txt
     assert 'href="#sq-' not in h and "<h2" not in h                              # 面板裡：標題由收合列給、情境就在上一段
@@ -608,7 +608,8 @@ def test_now_section(monkeypatch):
     monkeypatch.setattr(VZ, "sim_research", lambda mk: {})
     h2 = VZ.now_html({"mk": "tw", "signow": {"on": {}, "sim": _sim_est(n_list=3, far=True, chip=False)}})
     t2 = html.unescape(re.sub(r"<[^>]+>", " ", h2))
-    assert "過去沒有很像現在的日子" in t2 and "籌碼今天沒有分數" in t2 and "樣本外檢查還沒產生" in t2
+    assert "過去沒有很像現在的日子" in t2 and "籌碼今天沒有分數" in t2 and "樣本外" not in t2
+    assert VZ.sim_oos_html({"mk": "tw"}) == ""
     assert 'id="nsall"' not in h2 and "沒有" in t2
     assert "沒有找相似的日子" in VZ.now_html({"mk": "tw", "signow": {"on": {}}})
     # 美股：情緒籌碼、沒有台股字樣
@@ -619,26 +620,22 @@ def test_now_section(monkeypatch):
 def test_outlook_drawer_replaces_now_and_scenario_sections(built, monkeypatch):
     """2026-10-21（docs/lab_noise_plan.md 第 4、11 節）：「現在的情境」「所有情境」不在主畫面，改成「之後怎麼走？」右側面板
     （template ot-out）。2026-10-22 起入口在今天的重點（docs/lab_strategy_ia_plan.md，使用者：「應該是放在今日重點那邊點進去」）：
-    溫度計下面一顆按鈕、兩欄的每一列點了捲到那個訊號；頂部目錄、雷達卡片不再放。市場狀態那一行、對照圖、面向面板照舊打開同一個面板。"""
+    溫度計下面一顆按鈕、兩欄的每一列點了捲到那個訊號；頂部目錄、雷達卡片不再放。對照圖、面向面板照舊打開同一個面板（市場狀態那一行 2026-10-23 拿掉，docs/lab_ia_v5_plan.md 第 3 節①）。"""
     _, _, V, page = built
     i = page.index('<template id="ot-out"')
     j = page.index("</template>", i)
     main, body = page[:i] + page[j:], page[i:j]
     assert 'id="now"' not in main and 'id="scen"' not in main and 'id="now"' in body and 'id="scen"' in body
-    assert page.index('id="today"') < page.index('id="items"') < page.index('id="cmp"')
+    assert page.index('id="cmp"') < page.index('id="today"') < page.index('id="all"')   # 對照圖收在面向那一塊（第 13 節）
     assert 'href="#now"' not in page and 'href="#scen"' not in page
     assert "snout" not in page and 'class="rout"' not in page[:page.index('id="today"')]   # 頂部目錄、雷達卡片沒有入口
     t0 = page.index('id="today"')
     assert page.count('class="rout" data-open="out:out"') == 1 and t0 < page.index('class="tqk"') < page.index('class="rout"')
     assert page.index('class="rout"') < page.index("</section>", t0)                     # 在今天的重點裡、三段溫度計下面
     assert 'data-title="之後怎麼走？"' in body and '<details class="osim" id="o-sim">' in body
-    assert body.index("列出來的訊號成立之後") < body.index("五個面向現在的位置") < body.index('id="scen"') < body.index('id="o-sim"')
+    assert body.index("訊號成立之後") < body.index("五個面向現在的位置") < body.index('id="scen"') < body.index('id="o-sim"')
     assert 'data-open="out:out"' in page[page.index('<template id="dt-fund"'):]          # 面向面板也連得過去
-    from arm.lab import heatpage as HP
-    V2 = {**V, "mk": "tw", "signow": {"on": {"tw:scen:SC5": {"since": "2026-07-17", "n": 66}}}}
-    line = HP.state_line(V2)
-    assert 'data-open="out:out" data-to="scen"' in line and "籌碼熱、價格轉弱" in line
-    assert "情境" not in HP.state_line({**V, "signow": {"on": {}}})
+    assert 'data-open="out:out" data-to="scen"' not in page.split('<template id="ot-out"')[0]   # 市場狀態那一行拿掉（第 3 節①）
     js = VZ.JS
     assert "kind === 'out' ? 'ot-'" in js and "function oJump(id)" in js and "hget('o')" in js
     assert "bx.dataset.ix !== ix0" in js                                                   # 美股頁：等切到網址上的指數再開
@@ -660,8 +657,9 @@ def _board_v(fams_up, fams_warn):
 
 
 def test_outlook_signals_table_and_summary(monkeypatch):
-    """面板第一段：現在成立的 ★（同類合併後一類一列），過去出現之後 1 週～1 年的上漲機率、報酬中位數、中途最多跌，
-    小字＝隨便挑一天；判定看的期間框起來；次數少的格子標次數。三支溫度計的一句話也用在雷達按鈕上。"""
+    """面板第一段：今天的重點列出來的訊號（同類合併後一類一列），過去出現之後 1 週～1 年的上漲機率、報酬中位數、中途最多跌，
+    小字＝任一天；這一列持有的期間框起來；次數少的格子標次數。2026-10-23 起不寫「過去 → 預估之後」、不寫方法字
+    （docs/lab_ia_v5_plan.md 第 8 節）。"""
     from arm.lab import sigcat as G
     from arm.lab import sigspec as SS
     cells = [_cell(80 - k, 0.01 * (k + 1), 0.6 + 0.03 * k, -0.01 * (k + 1)) for k in range(len(SS.RET_H))]
@@ -682,19 +680,21 @@ def test_outlook_signals_table_and_summary(monkeypatch):
     h = VZ.out_sig(V)
     txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h)))
     assert h.count('class="ofam ofam-') == 2 and h.index("RSI（14 日）") < h.index("進入同時兩個以上面向過熱")   # 短線在前
-    assert "同時成立：對 20 日線乖離・過冷中" in txt and "之後 1 個月上漲的機率：過去 81% → 預估之後 75% （隨便挑一天 58%）" in txt
-    assert "列出來的訊號成立之後" in txt and "★" not in txt and "偏多" in txt and "大跌風險" in txt
+    assert "同時成立 1 個 對 20 日線乖離・過冷中" in txt and "之後 1 個月上漲 81% （任一天 58%）・報酬中位 +4.0%" in txt
+    assert txt.startswith(" 訊號成立之後 小字＝任一天") and "★" not in txt and "偏多" in txt and "大跌風險" in txt
+    assert "預估之後" not in txt and "隨便挑一天" not in txt and "→" not in txt
     j20, j60 = SS.RET_H.index(20), SS.RET_H.index(60)
     assert f"{cells[j20][5] * 100:.0f}%" in txt and f"{base[j20][5] * 100:.0f}%" in txt
     t0 = h.index('class="ofam ofam-up"')
     one = h[t0:h.index('class="ofam ofam-warn"')]
-    assert one.count('<th class="oj">') == 1 and '<th class="oj">1 個月</th>' in one        # 判定看 1 個月
-    assert '<th class="oj">3 個月</th>' in h[h.index('class="ofam ofam-warn"'):]
+    assert one.count('<th class="oj"') == 1 and '<th class="oj" title="這一列持有的期間">1 個月</th>' in one   # 持有 1 個月
+    assert '<th class="oj" title="這一列持有的期間">3 個月</th>' in h[h.index('class="ofam ofam-warn"'):]
     assert "7 次" in txt                                                                      # 次數少的格子標次數
-    assert "大跌（最大回撤 10% 以上）的機率：過去 67% → 預估之後 33%" in txt and "RSI(2) 超賣反彈" in txt
+    assert "之後 3 個月內回撤 10% 以上 67% （任一天 29%）・回撤中位 12%（任一天 6%）・次數 6" in txt
+    assert "RSI(2) 超賣反彈" not in txt and "總經策略" not in txt         # 總經策略不在市場頁（docs/lab_ia_v5_plan.md 第 14 節第 4 點）
     assert not any(w in txt for w in BANNED)
     assert "現在沒有列出來的訊號" in VZ.out_sig({"mk": "tw", "sigtoday": _board_v([], [])})
-    assert "研究結果還沒產生" in VZ.out_sig({"mk": "tw"})
+    assert "訊號的資料還沒產生" in VZ.out_sig({"mk": "tw"})
     assert f'id="{VZ.osg_id(up["id"], "short", "up")}"' in h and f'id="{VZ.osg_id(warn["id"], "mid", "warn")}"' in h   # 今天的重點那一列捲到這裡
     more = [dict(up, id=f"tw:tech:{i}", name=f"訊號{i}", edge=0.2 - 0.01 * i) for i in range(5)]
     hm = VZ.out_sig({**V, "sigtoday": _board_v(more, [])})                       # VER 23：清單先列的那幾類有表格，其他一行
@@ -716,15 +716,11 @@ def test_outlook_dims_use_zone_backtest(built):
         assert f'上漲 {cur["up"]:.0f}%' in txt
     assert not any(w in txt for w in BANNED)
 
-def test_outlook_lead_sentence():
-    from arm.lab import sigspec as SS
-    th = [{"k": k, "name": n, "h": h} for k, n, h in SS.THERMO_HZ]
-    V = {"sigtoday": {"up": [{"hz": "short"}, {"hz": "short"}, {"hz": "mid"}], "warn": [{"hz": "mid"}], "thermo": th}}
-    assert VZ.out_sentence(V) == "短線偏多 2 類；中線偏多 1 類、警示 1 類；長線沒有"
-    assert "——" not in VZ.out_tpl.__doc__ + VZ.out_sentence(V)
-    # 面板開頭先寫三支溫度計的讀數（VER 21：一類算 1）
-    up = [{"hz": "short", "side": "up"}, {"hz": "mid", "side": "up"}]
-    warn = [{"hz": "long", "side": "warn"}, {"hz": "mid", "side": "warn"}]
-    V2 = {"sigtoday": _board_v(up, warn)}
-    assert VZ.out_thermo(V2) == "短線偏多、中線差不多、長線偏警示"        # 中線 1 對 1；長線 0 對 1
-    assert VZ.out_thermo({"sigtoday": _board_v([], [])}) == "短線中性、中線中性、長線中性"
+def test_outlook_panel_has_no_lead_or_footer(built):
+    """2026-10-23（docs/lab_ia_v5_plan.md 第 8 節第 1 條）：「之後怎麼走？」面板不放開頭的一句話與最下面的說明；
+    三支溫度計的讀數只在今天的訊號（溫度計卡）。"""
+    _, _, V, page = built
+    assert not hasattr(VZ, "out_sentence") and not hasattr(VZ, "out_thermo")
+    body = VZ.out_tpl(V)
+    assert body.index('data-title="之後怎麼走？">') + len('data-title="之後怎麼走？">') == body.index('<h3 class="oh">訊號成立之後')
+    assert body.endswith("</details></template>")

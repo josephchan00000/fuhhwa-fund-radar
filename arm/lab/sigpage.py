@@ -1,6 +1,10 @@
-"""訊號總覽頁（dashboard/x9o.html＋每一次的清單 x9oh.json；docs/lab_signal_plan.md 第 5 節、規格 sigspec VER 1）。
+"""訊號（docs/lab_signal_plan.md 第 5 節、規格 sigspec；2026-10-23 起 docs/lab_ia_v5_plan.md 第 3 節⑤、第 7 節）。
 
-由上而下：今天有效的好訊號（五個市場＋個股）→ 全部訊號與策略（搜尋、篩選、排序、點開看每一次、下載 CSV）→ 判定方式。
+原本的訊號總覽頁 x9o.html 拆成三處，x9o.html 留成轉址頁（REDIRECT；#s=／#i= 轉到那個市場的市場頁、其他轉到研究紀錄頁）：
+- 市場頁（x9m／x9mu）的「全部指標」：block_html()＋block_data(市場)＋同一支 JS（SG.emb 模式：固定市場、清單預設收起）；
+  點一個指標打開右側的指標面板，每一次的清單點開才下載（x9oh-{市場}.json）。
+- 研究紀錄頁（x9r.html）：research_body()＝研究結論（每個市場 8 則）、完整研究表、全部指標（五個市場＋個股訊號＋策略）、名詞與判定方式。
+- 景氣頁的「今天的訊號」（heatviz.today_core）用同一份現在有效的訊號。
 命中率讀研究檔（市場：data/lab/sig_research.json，scripts/run_sig.py；個股：data/lab/sig_stock.json，籌碼雷達建頁時寫）；
 現在有沒有效每天算（景氣頁建頁時 sigcat.now_for_B 存進程序裡，這裡沿用；沒有就自己算）。只描述過去發生的比例。
 """
@@ -18,7 +22,7 @@ from .heatpage import _e
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "dashboard" / "x9o.html"
-OUT_DATA = ROOT / "dashboard" / "x9oh.json"
+OUT_DATA = ROOT / "dashboard" / "x9oh.json"         # 只用它的資料夾：每一次的清單 2026-10-23 起每個市場一個檔（detail_name）
 
 CARDS: dict = {}                                   # 景氣頁建頁時放進來的研究卡（heatviz.stash_cards）：{市場: {"d", "crash", …}}
 ITEMS: dict = {}                                   # 景氣頁建頁時放進來的每項現在（heatviz.sig_items）：{市場: {指標: {...}}}
@@ -193,19 +197,15 @@ def view() -> dict:
         if n:
             on.update(n["on"])
             asof[mk] = n["d"]
-    today = {mk: G.board(rows, on, mk, (G.NOW.get(mk) or {}).get("acts"), (G.NOW.get(mk) or {}).get("xon"))
-             for mk in TODAY_MK if mk in asof}                       # VER 23：和景氣頁同一個溫度計＋清單
     for r in ST.get("rows") or []:
         if r["cat"] == "stock" and r.get("live"):
             on[r["id"]] = {"live": r["live"]}
-    stk = [r for r in ST.get("rows") or [] if r["tier"] == "good"
-           and ((r["cat"] == "strat" and "ins" not in (r.get("pay") or {})) or r["id"] in on)]   # 整組研究版本只列在表裡
     if ST.get("d"):
         asof["stk"] = ST["d"]
     rmk = [mk for mk in TODAY_MK if mk in CARDS or (OUT_DATA.parent / f"x9or-{mk}.json").exists()]
-    return {"rows": rows, "on": on, "today": today, "stk": stk, "asof": asof, "run": R.get("run"), "bases": R.get("bases") or {},
+    return {"rows": rows, "on": on, "asof": asof, "run": R.get("run"), "bases": R.get("bases") or {},
             "last": R.get("last") or {}, "rmk": rmk, "items": {mk: ITEMS[mk] for mk in TODAY_MK if mk in ITEMS},
-            "luck": R.get("luck"), "xs": XSP.results(), "pr": practice(), "find": find_data()}
+            "luck": R.get("luck"), "xs": XSP.results(), "pr": practice(), "find": find_data(), "core": core_data()}
 
 
 def find_data(dirpath: Path | None = None) -> dict:
@@ -224,6 +224,50 @@ def find_data(dirpath: Path | None = None) -> dict:
         if f:
             out[mk] = f
     return out
+
+
+def _prev_card(d: Path, mk: str, memo: dict) -> dict:
+    """上一版的 x9or-{市場}.json（單獨建這一頁時用）；讀不到回 {}。"""
+    if mk not in memo:
+        path = d / f"x9or-{mk}.json"
+        try:
+            memo[mk] = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        except (OSError, ValueError):
+            memo[mk] = {}
+    return memo[mk]
+
+
+def core_data(dirpath: Path | None = None, record: bool = True) -> dict:
+    """交易計畫卡（corespec；docs/lab_core70_plan.md）：研究檔＋三種過熱現在的讀數（景氣頁在同一個程序裡放在 CARDS[市場]["core"]，
+    單獨建這一頁時讀上一版的 x9or-{市場}.json）＋台股衛星（個股頁建頁時放在 core.STK，沒有就讀 x9or-tw.json 的 stk）＋前瞻。
+    今天的讀數記進前瞻紀錄（core.record，只有 CI 寫回；record＝False 時不記，配置頁 x9.html 建頁用）。算不出來只印日誌、不擋訊號總覽。"""
+    from . import core as CO
+    d = dirpath or OUT_DATA.parent
+    memo: dict = {}
+    now = {}
+    for mk in CO.S.MARKETS:
+        n = (CARDS.get(mk) or {}).get("core") or _prev_card(d, mk, memo).get("core")
+        if n:
+            now[mk] = n
+    stk = dict(CO.STK) if CO.STK else (_prev_card(d, "tw", memo).get("stk") or None)
+    from . import corepage as CPG
+    qm = None
+    try:                                                  # 美股三成（corespec VER 3；ussxqm.json 判定過了才換）
+        from . import ussxqm as QM
+        QR = QM.load()
+        if QR:
+            qm = {"R": QR, "L": QM.load_live(), "W": QM.load_watch()}
+    except Exception as e:                                # noqa: BLE001
+        print(f"[交易計畫] 美股三成的研究檔讀不到：{type(e).__name__}: {e}")
+    fw = {}
+    try:
+        if record:
+            CO.record(now, stk, {mk: CPG.qm_on(mk, qm) for mk in CO.S.MARKETS} if qm else None)
+        L = CO.load_live()
+        fw = {mk: CO.forward(mk, L) for mk in CO.S.MARKETS}
+    except Exception as e:                                # noqa: BLE001
+        print(f"[交易計畫] 前瞻紀錄算不出來：{type(e).__name__}: {e}")
+    return {"R": CO.load(), "now": now, "stk": stk, "fw": fw, "qm": qm}
 
 
 def practice() -> dict:
@@ -357,6 +401,15 @@ def page_json(V: dict) -> str:
            "fwd": fwd_meta(keys), "n10": S.RECENT_N, "nmin": S.N_MIN, "sn": S.STAR_N, "lp": round(100 * S.LUCK_P), "lfn": S.LUCK_FEW_N, "lpf": round(100 * S.LUCK_P_FEW), "ld": S.LUCK_DRAWS, "rh": list(S.RET_H), "pd": list(S.PATH_D), "rhm": list(S.RET_H_M), "rmin": S.RET_N_MIN}
     out["xs"] = XSP.payload(V.get("xs") or {})          # 總經策略（xstratspec；點開的淨值與每一筆在 x9xh.json）
     out["pr"] = (V.get("pr") or {}).get("P") or {"ok": False}   # 實測區（practpage；每一格的細節在 x9pr-{市場}.json）
+    if V.get("emb"):                                     # 市場頁的「全部指標」（block_data）：固定的市場、清單預設收起
+        out["emb"] = 1
+        out.update(V["emb"])
+        keep = set(V.get("rmk") or []) | ({"us"} if V["emb"].get("usx") else set())   # 名稱只放這一頁的市場（美股頁不出現台股的名稱）
+        out["mk"] = {k: v for k, v in MK_NAMES.items() if k in keep}
+        out["pxn"] = {k: v for k, v in PX_NAMES.items() if k in keep}
+        out["xs"]["mkn"] = {k: v for k, v in (out["xs"].get("mkn") or {}).items() if k in keep}
+        used = {k for m in (out["xs"].get("m") or {}).values() for k in m}
+        out["xs"]["spec"] = {k: v for k, v in (out["xs"].get("spec") or {}).items() if k in used}
     return json.dumps(out, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
 
@@ -395,9 +448,17 @@ def ret_json(V: dict) -> tuple[dict, dict]:
     return ret, rb
 
 
-def detail_json(V: dict) -> str:
-    """每一次的清單（點開才下載）＋個股代號的名稱＋訊號觸發後的報酬（VER 5）。總經策略的淨值與每一筆在 x9xh.json（xspage）。"""
+def detail_name(mk: str) -> str:
+    """每一次的清單：一個市場一個檔（2026-10-23 起，docs/lab_ia_v5_plan.md 第 3 節⑤；市場頁只下載自己的）。"""
+    return f"x9oh-{mk}.json"
+
+
+def detail_json(V: dict, mk: str | None = None) -> str:
+    """每一次的清單（點開才下載）＋個股代號的名稱＋訊號觸發後的報酬（VER 5）；mk＝只放這個市場的列。
+    總經策略的淨值與每一筆在 x9xh.json（xspage）。"""
     from . import store
+    if mk is not None:
+        V = {**V, "rows": [r for r in V["rows"] if r["mk"] == mk]}
     occ = {r["id"]: r.get("occ") or [] for r in V["rows"]}
     ret, rb = ret_json(V)
     codes = {o[1] for r in V["rows"] if r["cat"] == "stock" for o in (r.get("occ") or [])}
@@ -423,67 +484,42 @@ def _hz(r: dict) -> str:
 
 
 def _line(r: dict) -> str:
-    """今天的重點一行（白話，docs/lab_sigview_plan.md 第 2.3 節）：之後上漲（或大跌）的機率、隨便挑一天、出現過幾次。"""
+    """「之後怎麼走？」面板一列（白話，docs/lab_ia_v5_plan.md 第 8 節）：之後上漲（或回撤）的機率（任一天）、
+    報酬或回撤中位、次數少才寫次數。"""
     d = r["d"]
     st = r[d]
     h = _hz(r)
     if d == "up":
-        what = f"之後 {h}上漲的機率" if r["cat"] != "stock" else "持有 20 個交易日賺錢的機率"
+        what = f"之後 {h}上漲" if r["cat"] != "stock" else "持有 20 個交易日賺錢"
     elif d == "warn":
         h = "20 個交易日" if r["cat"] == "stock" else h
-        what = f"之後 {h}內大跌（最大回撤 {_th(r['th'])}% 以上）的機率" if r.get("th") else "之後大跌的機率"
+        what = f"之後 {h}內回撤 {_th(r['th'])}% 以上" if r.get("th") else "之後大跌"
     else:
-        what = f"買進之後 {h}上漲的機率"
-    fe = _fe(r)
-    if fe:                                            # VER 18～19：預估之後（逐年樣本外校正）；VER 21 起今天的清單每一列都有
-        out = (f'{what}：過去 {st["hit"] * 100:.0f}% → 預估之後 <b>{fe["fh"] * 100:.0f}%</b>'
-               f'（隨便挑一天 {st["base"] * 100:.0f}%）')
-    else:
-        out = f'{what} <b>{st["hit"] * 100:.0f}%</b>（隨便挑一天 {st["base"] * 100:.0f}%）'
+        what = f"買進之後 {h}上漲"
+    out = f'{what} <b>{st["hit"] * 100:.0f}%</b>（任一天 {st["base"] * 100:.0f}%）'
     med = _med(r) if d != "warn" and not r.get("xk") else None      # 跨期間的列只有機率（報酬是訊號自己看多久的）
     if med is not None:
-        out += f'・報酬中位數 {_sgn(med)}'
-        if fe and fe.get("fx") is not None:
-            out += f'，預估之後比隨便挑一天{_more(fe["fx"])}'
-    out += f'・出現過 {st["n"]} 次' + ("（次數少）" if st["n"] < S.STAR_N and r.get("cat") not in ("stock", "strat") else "")
+        out += f'・報酬中位 {_sgn(med)}'
     if d == "warn" and st.get("mdd") is not None and st.get("mdd_base") is not None:
-        out += f'・回撤中位數 {st["mdd"] * 100:.0f}%（隨便挑一天 {st["mdd_base"] * 100:.0f}%）'
+        out += f'・回撤中位 {st["mdd"] * 100:.0f}%（任一天 {st["mdd_base"] * 100:.0f}%）'
+    if st["n"] < S.STAR_N and r.get("cat") not in ("stock", "strat"):
+        out += f'・次數 {st["n"]}'
     return out
 
 
 def tq_stats(r: dict) -> str:
-    """今天的重點一列的數字（sigspec 第 5 節 ④b，VER 23；看什麼寫在清單標題）：過去的機率（隨便挑一天）、報酬中位數（偏多、買點，
-    訊號自己的看多久才有）或回撤中位數（警示）、出現過幾次。"""
+    """今天的訊號一列的數字（sigspec 第 5 節 ④b，VER 23；看什麼寫在清單標題）：過去的機率（任一天）、報酬中位（偏多、買點，
+    訊號自己的看多久才有）或回撤中位（警示）；次數少才寫次數（docs/lab_ia_v5_plan.md 第 3 節②）。"""
     d = r["d"]
     st = r.get("st") or r[d]
-    out = f'<b>{st["hit"] * 100:.0f}%</b>（隨便挑一天 {st["base"] * 100:.0f}%）'
+    out = f'過去 <b>{st["hit"] * 100:.0f}%</b>（任一天 {st["base"] * 100:.0f}%）'
     if d != "warn":
         med = _med(r) if not r.get("xk") else None                  # 跨期間的列只有機率（報酬是訊號自己看多久的）
         if med is not None:
-            out += f'・報酬中位數 {_sgn(med)}'
+            out += f'・報酬中位 {_sgn(med)}'
     elif st.get("mdd") is not None and st.get("mdd_base") is not None:
-        out += f'・回撤中位數 {st["mdd"] * 100:.0f}%（隨便挑一天 {st["mdd_base"] * 100:.0f}%）'
-    return out + f'・出現過 {st["n"]} 次' + ("（次數少）" if st["n"] < S.STAR_N else "")
-
-
-def _fe(r: dict) -> dict | None:
-    """預估之後（sigspec 第 4.14 節）：今天的清單（第 5 節 ④，VER 21）每一列都帶好了（"fe"；跨期間的是 sigoos.est_x）；
-    沒帶的★、◆ 列才在這裡算（VER 18～20 的用法）。研究檔沒有、不在範圍＝None。"""
-    if "fe" in r:
-        return r["fe"]
-    if r.get("tier") not in ("good", "rare") or r.get("xk") or not r.get("d"):
-        return None
-    try:
-        return OOS.est(r, r["d"])
-    except Exception as ex:                           # 只影響這一行的預估，不擋頁面
-        print(f"[sigpage] 預估之後算不出來 {r.get('id')}：{type(ex).__name__}: {ex}", flush=True)
-        return None
-
-
-def _more(v: float) -> str:
-    """多賺（0～1）→「多 0.9%」／「少 0.2%」／「差不多」（一位小數）。"""
-    x = round(100.0 * v, 1)
-    return f"多 {x:.1f}%" if x > 0 else f"少 {abs(x):.1f}%" if x < 0 else "差不多"
+        out += f'・回撤中位 {st["mdd"] * 100:.0f}%（任一天 {st["mdd_base"] * 100:.0f}%）'
+    return out + (f'・次數 {st["n"]}' if st["n"] < S.STAR_N else "")
 
 
 def _med(r: dict) -> float | None:
@@ -517,56 +553,15 @@ def _dy(d: str | None, ref: str | None) -> str:
 
 
 def _since(n: dict, ref: str | None = None) -> str:
-    """現在成立的那一筆（docs/lab_audit_plan.md 第 3.5 節）：哪天出現（成立）、照規則哪天收盤進場、持有到哪天
-    （sigcat.trade_dates；成績就是這樣算的：事件型＝出現隔天收盤進場，狀態型＝今天看到、下一個交易日收盤進場）。"""
-    tr = f'・{_dy(n["buy"], ref)} 收盤進場、持有到 {_dy(n["sell"], ref)}' if n.get("buy") and n.get("sell") else ""
+    """現在成立的那一筆（docs/lab_audit_plan.md 第 3.5 節）：照規則哪天收盤進場、持有到哪天（sigcat.trade_dates；
+    成績就是這樣算的：事件型＝出現隔天收盤進場，狀態型＝今天看到、下一個交易日收盤進場）；沒有進場日才寫哪天出現（成立）。"""
+    if n.get("buy") and n.get("sell"):
+        return f'{_dy(n["buy"], ref)} 收盤進場・持有到 {_dy(n["sell"], ref)}'
     if n.get("left") is not None:
-        if not tr:
-            return f'{_dy(n["since"], ref)} 出現，還看 {n["left"]} 天'
-        rem = f'（還有 {n["rem"]} 個交易日）' if n.get("rem") is not None else ""
-        return f'{_dy(n["since"], ref)} 出現{tr}{rem}'
+        return f'{_dy(n["since"], ref)} 出現・還有 {n["left"]} 天'
     if n.get("event"):
-        return f'{_dy(n["since"], ref)} 出現{tr}'
-    return f'{_dy(n["since"], ref)} 起成立{tr}'
-
-
-def today_html(V: dict) -> str:
-    """今天有效的訊號（sigspec 第 5 節 ④b，VER 23）：每個市場一張卡＝和景氣頁同一個溫度計＋短線｜中線｜長線切換的偏多、警示清單
-    （heatviz.today_core；點一列看這一頁的指標）＋總經策略一行；最後個股。"""
-    from . import heatviz as VZ
-    cards = []
-    for mk in TODAY_MK:
-        T = V["today"].get(mk)
-        if T is None:
-            continue
-        head = f'<h3>{_e(MK_NAMES[mk])}<span class="sub">資料到 {_e(_d(V["asof"].get(mk)))}</span></h3>'
-        xl = XSP.today_line(mk, V["xs"]) if V.get("xs") else ""          # 總經策略縮成一行，連到策略頁
-        xl = f'<p class="sgxs">{xl}</p>' if xl else ""
-        body = VZ.today_core(T, mk, V["asof"].get(mk), panel=False, cal=False)
-        cards.append(f'<div class="sgk">{head}{body}{xl}</div>')
-    lis = []
-    for r in V["stk"]:
-        d = r["dir"][0]
-        st = r[d]
-        if r["cat"] == "strat":
-            p = r.get("pay") or {}
-            ln = f'每筆賺錢的比例 <b>{st["hit"] * 100:.0f}%</b>'
-            if p.get("path") == "上漲空間大" and p.get("ratio") is not None and p["ratio"] != float("inf"):
-                ln += f'・賺賠比 {p["ratio"]:.1f}'
-            ln += f'・每月平均 {p.get("m") or 0:+.1f}%・{st["n"]} 筆' + ("（次數少）" if r.get("few") else "")
-        else:
-            ln = _line({**r, "d": d})
-        lis.append(f'<li><a class="sgi" href="#s={_e(r["id"])}"><span class="sgtk sgtk-good">★</span>'
-                   f'<span class="sgnm">{_e(r["name"])}</span><span class="sgd sgd-{d}">{"策略" if r["cat"] == "strat" else _e(S.DIR_NAMES[d])}</span>'
-                   f'<span class="sgln">{ln}</span></a></li>')
-    stk_body = ('<ul class="sgl">' + "".join(lis) + "</ul>") if lis else '<p class="sgnone">目前沒有判定為好策略的個股策略。</p>'
-    cards.append(f'<div class="sgk"><h3>個股<span class="sub">資料到 {_e(_d(V["asof"].get("stk")))}</span></h3>{stk_body}'
-                 '<p class="note">個股是另一套判定（★ 好訊號、好策略），沒有預估之後；策略現在持有什麼、下一批什麼時候買，看'
-                 '<a href="x9.html#v=opp">策略頁的個股策略</a>。</p></div>')
-    return ('<section class="sec" id="today"><h2>今天有效的訊號<span class="sub">現在成立、過去之後的機率比隨便挑一天高 5 點以上的'
-            '（和景氣頁的溫度計同一套）；偏多（含大跌後買點）、警示兩邊；同一個項目同一段只列一種；過去常一起出現的併成一列；'
-            '點溫度計的一列切換持有多久，點清單的一列看那個指標；總經策略每個市場一行，點了到策略頁</span></h2>'
-            f'<div class="sgt">{"".join(cards)}</div></section>')
+        return f'{_dy(n["since"], ref)} 出現'
+    return f'{_dy(n["since"], ref)} 起成立'
 
 
 FWD_ROWS = (("偏多・看 1 個月", "up", S.H_TECH), ("偏多・看 3 個月", "up", S.H_CRASH), ("偏多・看 12 個月", "up", S.H_BUB),
@@ -627,7 +622,9 @@ def fwd_html() -> str:
 
 def method_html(luck: dict | None = None) -> str:
     """名詞與判定方式（sigspec 第 3、3.5 節；VER 17）；luck＝研究檔的「運氣會產生幾個 ★、◆」
-    （{市場: {方向: [實際 ★, 運氣會產生的 ★, 實際 ◆, 運氣會產生的 ◆]}}）。"""
+    （{市場: {方向: [實際 ★, 運氣會產生的 ★, 實際 ◆, 運氣會產生的 ◆]}}）。
+    市場頁原本「怎麼看」的說明 2026-10-23 搬到這裡（docs/lab_ia_v5_plan.md 第 8 節、Q3：搬到研究紀錄、不刪）。"""
+    from . import heatviz as VZ
     lk = ""
     if luck:
         tot = {d: [sum(m[d][i] for m in luck.values() if len(m[d]) > i) for i in range(4)] for d in ("up", "warn")}
@@ -674,14 +671,20 @@ def method_html(luck: dict | None = None) -> str:
             '大跌後買點與個股偏多訊號是和同一批事件的對照比，改成在每一次事件裡隨機對調「訊號」和「對照」的結果。'
             f'次數少的訊號就算每次都中，亂排做得到一樣準的比例也常超過 {S.LUCK_P * 100:.0f}%（例：8 次、平常 59%，每次都中時亂排也有約 2.5% 做得到）。</dd>'
             f'{lk}{fwd_html()}'
-            f'<dt>今天有效的訊號（景氣頁今天的重點、溫度計也一樣）</dt><dd>現在成立、出現過 {S.N_MIN} 次以上、而且過去出現之後的機率比隨便挑一天高 '
+            f'<dt>今天的訊號（市場頁）</dt><dd>現在成立、出現過 {S.N_MIN} 次以上、而且過去出現之後的機率比隨便挑一天高 '
             f'{S.THERMO_EDGE * 100:g} 個百分點以上的就列（使用者 2026-10-21 定的寬鬆規則：溫度計是看現在整體偏哪邊），★／◆ 判定不決定列不列。'
             '三類：<b>偏多</b>＝之後上漲的機率高；<b>買點</b>＝大跌後照規則買進、之後 3 個月上漲的機率高；'
             '<b>大跌風險</b>＝之後出現大回撤的機率高。上漲機率比平常低的不列：逐年檢查看，這種訊號之後反而比平常容易漲。'
             '同一個項目同一段（持有 1／3／12 個月）只留差最多的一個，偏多和大跌風險同時有的標「震盪」；過去常一起出現的併成一列。'
             '原本看別的期間的訊號也用它過去在另外兩段期間的機率算一次（標「原本看…」）。'
             f'<b>之後也成立</b>＝預估之後（上一段的逐年檢查）仍比隨便挑一天高 {S.LIST_GAP * 100:g} 點以上，排在前面；沒有標的只代表過去的成績。'
-            f'出現不到 {S.STAR_N} 次的標「次數少」。（2026-10-22 白天曾改成只列預估之後仍差 {S.LIST_GAP * 100:g} 點以上的，偏多那一邊幾乎全空，同日改回。）</dd>'
+            f'出現不到 {S.STAR_N} 次的標「次數少」。（2026-10-22 白天曾改成只列預估之後仍差 {S.LIST_GAP * 100:g} 點以上的，偏多那一邊幾乎全空，同日改回。）'
+            f'溫度計＝這一段偏多、警示各有幾類（一類算 1）：偏多占 {S.THERMO_LEAN * 100:.0f}% 以上寫偏多、{(1 - S.THERMO_LEAN) * 100:.0f}% 以下寫偏警示、'
+            '其餘差不多，兩邊都沒有寫中性；溫度計本身沒有驗證過能預測漲跌。'
+            '「過去讀數這樣的時候」是逐年檢查（每年 1 月 1 日只用之前的資料、不偷看之後）：現在的數量（照今年 1 月 1 日那時的成績算，'
+            '所以和溫度計的類數不一定一樣）和過去 10 年每週比多不多，過去數量多的週和少的週之後走勢有明顯差別，才寫過去數量一樣多（或一樣少）的週之後的比例。'
+            '「之後怎麼走？」：列出來的訊號過去出現之後 1 週～1 年的報酬（點一列直接看那一個），加上五個面向現在這一區、情境、最像現在的日子。'
+            f'{_e(VZ.keep_line())}</dd>'
             f'<dt>判定</dt><dd><b>★ 好訊號</b>（2026-10-22 起看絕對成績）：至少 {S.STAR_N} 次、機率 ≥ {S.HIT_MIN["up"] * 100:.0f}%（警示 ≥ {S.HIT_MIN["warn"] * 100:.0f}%）、'
             f'不比隨便挑一天差、近 10 年也成立（近 10 年有 {S.RECENT_N} 次以上時）；偏多與大跌後買點另外要報酬中位數與排除極端的平均都比來回成本高（{cost}）。'
             f'<b>◆ 難得機會</b>：同樣的門檻都過了，但只出現 {S.N_MIN}～{S.STAR_N - 1} 次；不算 ★（次數少的機率，之後通常會往下修不少，只當參考）。'
@@ -738,33 +741,44 @@ def _ii(k: str) -> str:
     return f'<span class="sgq" tabindex="0" role="button" aria-label="說明" data-tip="{k}">ⓘ</span>'
 
 
-TABLE = ('<section class="sec" id="all"><h2>全部指標<span class="sub" id="sgcnt"></span></h2>'
-         '<p class="note">一列一個指標（例：RSI、融資餘額水位）；分類和景氣頁的面向一樣（基本面、籌碼、資金、技術），景氣頁看到哪個面向熱，就點哪一類。'
-         '點一列看它現在的數值、走勢，和它每一種訊號過去出現之後的結果。照書上的規則買賣大盤指數的總經策略，全部的狀態在<a href="x9.html#v=mac">策略頁</a>。</p>'
-         '<div class="sgbar"><input id="sgq" type="search" placeholder="搜尋：指標名稱（例：融資、RSI、季線）" autocomplete="off">'
-         '<div class="sgchips" data-k="mk"></div><div class="sgchips" data-k="c1"></div><div class="sgchips sgc2" data-k="c2" hidden></div>'
-         '<details class="sgadv"><summary>更多篩選<span id="sgadvn"></span></summary><div class="sgadvb">'
-         '<div class="sgchips" data-k="tier"></div><div class="sgchips" data-k="dir"></div>'
-         '<div class="sgopt"><label><input type="checkbox" id="sgnow"> 只看現在有訊號的</label>'
-         '<button type="button" id="sgcsv">下載 CSV（每一種訊號）</button></div></div></details></div>'
-         '<div class="sgwrap"><table class="sgtb sgit"><thead><tr>'
-         f'<th data-s="tier">判定 {_ii("tnow")}</th><th data-s="name" class="l">指標</th>'
-         f'<th data-s="h" class="dsk">現在 {_ii("now")}</th><th class="dsk">近一年 {_ii("spark")}</th>'
-         f'<th class="l dsk">現在成立的訊號 {_ii("p")}</th>'
-         '</tr></thead><tbody id="sgbody"></tbody></table></div>'
-         '<p class="sgmore"><button type="button" id="sgmore" hidden></button></p></section>')
+def table_html(emb: bool = False) -> str:
+    """全部指標的清單。研究紀錄頁（emb＝False）：全部市場、有市場篩選；市場頁（emb＝True，docs/lab_ia_v5_plan.md 第 3 節⑤）：
+    只有這個市場、沒有市場篩選、清單預設收起（搜尋框與分類一直在，選了分類、打了字或按「列出全部」才列）。"""
+    head = ('<section class="cd sgcat" id="all"><div class="ch"><h2>全部指標<span class="sub" id="sgcnt"></span></h2></div>' if emb else
+            '<section class="sec" id="all"><h2>全部指標<span class="sub" id="sgcnt"></span></h2>'
+            '<p class="note">一列一個指標（例：RSI、融資餘額水位）；分類和市場頁的面向一樣（基本面、籌碼、資金、技術）。'
+            '點一列看它現在的數值、走勢，和它每一種訊號過去出現之後的結果。</p>')
+    return (head + '<div class="sgbar"><input id="sgq" type="search" placeholder="搜尋：指標名稱（例：融資、RSI、季線）" autocomplete="off">'
+            + ('' if emb else '<div class="sgchips" data-k="mk"></div>')
+            + '<div class="sgchips" data-k="c1"></div><div class="sgchips sgc2" data-k="c2" hidden></div>'
+            '<details class="sgadv"><summary>更多篩選<span id="sgadvn"></span></summary><div class="sgadvb">'
+            + ('' if emb else '<div class="sgchips" data-k="tier"></div>') + '<div class="sgchips" data-k="dir"></div>'
+            '<div class="sgopt"><label><input type="checkbox" id="sgnow"> 只看現在有訊號的</label>'
+            + ('' if emb else '<button type="button" id="sgcsv">下載 CSV（每一種訊號）</button>') + '</div></div></details></div>'
+            f'<div class="sgwrap" id="sgwrap"{" hidden" if emb else ""}><table class="sgtb sgit"><thead><tr>'
+            + ('' if emb else f'<th data-s="tier">判定 {_ii("tnow")}</th>') + '<th data-s="name" class="l">指標</th>'
+            f'<th data-s="h" class="dsk">現在 {_ii("now")}</th><th class="dsk">近一年 {_ii("spark")}</th>'
+            f'<th class="l dsk">現在成立的訊號 {_ii("p")}</th>'
+            '</tr></thead><tbody id="sgbody"></tbody></table></div>'
+            '<p class="sgmore"><button type="button" id="sgmore" hidden></button></p></section>')
+
+
+TABLE = table_html(False)
 
 PANEL = ('<div class="sgpv" id="sgpv" hidden><div class="sgpb" id="sgpb"></div>'
          '<aside class="sgp" id="sgp" role="dialog" aria-labelledby="sgpt" tabindex="-1"></aside></div>'
          '<div class="sgtip" id="sgtip" role="tooltip" hidden></div>')
 
 
-def research_html(V: dict) -> str:
+def research_html(V: dict, plan: bool = True) -> str:
     """研究結論（2026-10-22 改版，docs/lab_research_v2_plan.md）：每個市場八則白話問答（findings），最上面「現在適用」；
-    原本的實測細節與四張研究卡（每個市場一個檔、點了才載入）收在最下面的「完整研究表」。"""
+    原本的實測細節與四張研究卡（每個市場一個檔、點了才載入）收在最下面的「完整研究表」。
+    plan＝False：不放交易計畫卡（研究紀錄頁；計畫卡 2026-10-23 起在配置頁）。"""
+    from . import corepage as CPG
     from . import findings as FD
     from . import practpage as PP
     rmk = V.get("rmk") or []
+    CO = V.get("core") or {}
     PRV = V.get("pr") or {}
     P = PRV.get("P") or {"ok": False}
     R = PRV.get("R")
@@ -798,7 +812,14 @@ def research_html(V: dict) -> str:
             tx = FD.tilt(TR, mk) if TR else None
         except Exception as e:                            # noqa: BLE001 —— 第 2 則算不出來只少那一則
             print(f"[研究結論] {mk} 第 2 則算不出來：{type(e).__name__}: {e}", flush=True)
-        blocks.append(FD.market_html(mk, find.get(mk), mx, kp, show=(mk == first), tilt_x=tx))
+        card = ""
+        try:
+            if plan:
+                card = CPG.card(mk, (CO.get("now") or {}).get(mk), CO.get("R"), CO.get("stk") if mk == "tw" else None,
+                                (CO.get("fw") or {}).get(mk), CO.get("qm") if mk in CPG.US else None)
+        except Exception as e:                            # noqa: BLE001 —— 交易計畫卡算不出來只少那一張
+            print(f"[研究結論] {mk} 交易計畫卡算不出來：{type(e).__name__}: {e}", flush=True)
+        blocks.append(FD.market_html(mk, find.get(mk), mx, kp, show=(mk == first), tilt_x=tx, plan=card))
     pr = PP.html(P)
     full = ""
     if pr or rmk:
@@ -814,49 +835,112 @@ def research_html(V: dict) -> str:
             + full + "</section>")
 
 
-def card_json(mk: str, c: dict) -> str:
-    """一個市場的研究卡，各自收在一個 <details>（點開才展開；#r=市場:卡 會打開那一張）；find＝研究結論第 2～6 則的資料
-    （單獨建訊號總覽時從這裡讀回來）。"""
+def card_json(mk: str, c: dict, stk: dict | None = None) -> str:
+    """一個市場的研究卡，各自收在一個 <details>（點開才展開；#r=市場:卡 會打開那一張）；find＝研究結論第 2～6 則的資料、
+    core＝交易計畫三種過熱現在的讀數、stk＝台股衛星（單獨建訊號總覽時從這裡讀回來）。"""
     html = "".join(f'<details class="sgrc" id="rc-{k}"><summary>{_e(CARD_NAMES[k])}</summary>{c[k]}</details>'
                    for k in CARD_ORDER if c.get(k))
     out = {"mk": mk, "d": c.get("d"), "html": html}
     if c.get("find"):
         out["find"] = c["find"]
+    if c.get("core"):
+        out["core"] = c["core"]
+    if stk:
+        out["stk"] = stk
     return json.dumps(out, ensure_ascii=False, separators=(",", ":"))
 
 
-def render(V: dict) -> str:
-    from . import appnav
+LAST: dict = {}                                     # build() 算好的 view（研究紀錄頁 research_page.build 沿用，不再算一次）
+
+# 舊網址（2026-10-23 起訊號總覽併進市場頁與研究紀錄，docs/lab_ia_v5_plan.md 第 3 節⑤、第 7 節）：
+# #s=訊號／#i=指標 是五個市場的 → 那個市場頁的指標面板（美股頁先切到那個指數）；個股、美股產業、#r=研究卡、#p=實測區 → 研究紀錄頁；
+# 沒有參數 → 台股市場頁。
+REDIRECT = """<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="data:,">
+<title>訊號總覽</title>
+<script>(function(){var h=location.hash||"",m=/(?:^#|&)(s|i)=([^&]+)/.exec(h),u="x9r.html"+h,MK={tw:1,spx:1,ixic:1,ndx:1,sox:1};
+if(m){var p=decodeURIComponent(m[2]).split(":"),k=p[0]==="xs"?p[1]:p[0];if(MK[k])u=(k==="tw"?"x9m.html#":"x9mu.html#ix="+k+"&")+m[1]+"="+m[2];}
+else if(!/(?:^#|&)(r|p)=/.test(h))u="x9m.html";location.replace(u);})();</script>
+<noscript><meta http-equiv="refresh" content="0;url=x9m.html"></noscript>
+</head>
+<body><p>訊號總覽已經併進市場頁（<a href="x9m.html">台股</a>、<a href="x9mu.html">美股</a>）；研究結論與判定方式在<a href="x9r.html">研究紀錄</a>。</p></body></html>
+"""
+
+
+def render(V: dict | None = None) -> str:
+    """x9o.html：轉址頁（見 REDIRECT）。"""
+    return REDIRECT
+
+
+def research_css() -> str:
+    """研究紀錄頁放訊號研究要的樣式（原本訊號總覽頁的那一套，不含 heatpage 的基本樣式與頂欄）。"""
     from . import bottompage as BP
+    from . import corepage as CPG
     from . import crashpage as CP
+    from . import findings as FD
     from . import heatviz as VZ
     from . import hotchpage as QP
     from . import hotddpage as XP
-    from .heatpage import _CSS as HCSS
-    grp: dict = {}
-    for mk, d in V["asof"].items():
-        if d:
-            grp.setdefault("台股" if mk == "tw" else ("個股" if mk == "stk" else "美股"), set()).add(d)
-    asof = "、".join(f'{k} {"／".join(_d(x) for x in sorted(v))}' for k, v in grp.items())
-    body = today_html(V) + TABLE + research_html(V) + method_html(V.get("luck"))
-    if not V["rows"]:
-        body = '<p class="warn">還沒有研究結果（scripts/run_sig.py）。</p>'
-    from . import findings as FD
     from . import practpage as PP
-    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("sig")).replace("{{CSS}}", HCSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS + QP.CSS + BP.CSS + CSS + PP.CSS + FD.CSS)
-            .replace("{{ASOF}}", _e(("資料到 " + asof) if asof else "")).replace("{{BODY}}", body)
-            .replace("{{DATA}}", page_json(V)).replace("{{PANEL}}", PANEL).replace("{{JS}}", JS))
+    return VZ.CSS + CP.CSS + XP.CSS + QP.CSS + BP.CSS + CSS + PP.CSS + FD.CSS + CPG.CSS
+
+
+def research_body(V: dict) -> str:
+    """研究紀錄頁的訊號研究：研究結論（每個市場、含完整研究表）＋全部指標（全部市場，含個股訊號與美股產業）＋名詞與判定方式。
+    交易計畫卡在配置頁，這裡不再放。"""
+    if not V["rows"]:
+        return '<p class="warn">還沒有研究結果（scripts/run_sig.py）。</p>'
+    return research_html(V, plan=False) + TABLE + method_html(V.get("luck"))
+
+
+def block_view(mks: list[str] | tuple) -> dict:
+    """市場頁「全部指標」的資料：只有這幾個市場（美股頁另含美股產業）。景氣頁在同一個程序裡先算好的
+    現在（sigcat.NOW）、每項現在（ITEMS）沿用；研究檔同一個程序只讀一次（sigcat.research_rows）。"""
+    mks = list(mks)
+    us = any(mk != "tw" for mk in mks)
+    rows = [r for r in G.research_rows() if r["mk"] in mks or (us and r["mk"] == "us")]
+    on: dict = {}
+    asof: dict = {}
+    for mk in mks:
+        n = G.NOW.get(mk)
+        if n:
+            on.update(n["on"])
+            asof[mk] = n["d"]
+    xs = XSP.results()
+    return {"rows": rows, "on": on, "asof": asof, "items": {mk: ITEMS[mk] for mk in mks if mk in ITEMS},
+            "xs": {mk: xs[mk] for mk in mks if mk in xs}, "rmk": mks,
+            "emb": {"mk0": mks[0] if len(mks) == 1 else None, "usx": us}}
+
+
+def block_data(mks: list[str] | tuple) -> str:
+    """市場頁的 <script type="application/json" id="sgd"> 內容。"""
+    return page_json(block_view(mks))
+
+
+def block_html() -> str:
+    """市場頁「全部指標」那一張卡（清單預設收起）。"""
+    return table_html(True)
 
 
 def build(out: Path = OUT, data_out: Path = OUT_DATA) -> bool:
+    """研究卡 x9or-{市場}.json、實測區 x9pr-{市場}.json、每一次的清單 x9oh-{市場}.json，以及轉址頁 x9o.html。
+    算好的 view 留在 LAST（研究紀錄頁沿用）。"""
     V = view()
+    LAST["V"] = V
     changed = False
-    files = [(data_out.parent / f"x9or-{mk}.json", card_json(mk, c)) for mk, c in sorted(CARDS.items())]
+    d = data_out.parent
+    stk = (V.get("core") or {}).get("stk")
+    files = [(d / f"x9or-{mk}.json", card_json(mk, c, stk if mk == "tw" else None)) for mk, c in sorted(CARDS.items())]
     PR = (V.get("pr") or {}).get("R")
     if PR:                                                # 實測區每個市場的細節與每週序列（點到那個市場才下載）
         from . import practpage as PP
-        files += [(data_out.parent / f"x9pr-{mk}.json", PP.market_json(PR, mk)) for mk in S.MARKETS if mk in (PR.get("mk") or {})]
-    for path, text in files + [(data_out, detail_json(V)), (out, render(V))]:
+        files += [(d / f"x9pr-{mk}.json", PP.market_json(PR, mk)) for mk in S.MARKETS if mk in (PR.get("mk") or {})]
+    if V["rows"]:                                         # 研究檔讀不到就留著上一版的清單，不拿空的蓋掉
+        files += [(d / detail_name(mk), detail_json(V, mk)) for mk in MK_ORDER]
+    for path, text in files + [(out, render(V))]:
         if path.exists() and path.read_text(encoding="utf-8") == text:
             continue
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1026,18 +1110,36 @@ body.sgopen{overflow:hidden}
  .sgrr td.l{grid-column:1/-1;text-align:left;font-weight:600}.sgrr td.l small{display:inline;margin-left:6px}
  .sgrr td[data-h]::before{content:attr(data-h);display:block;font-size:10px;color:var(--mut);line-height:1.2}
  .sgrr tr.na td.mu{grid-column:1/-1;text-align:left}}
+
+@media (max-width:640px){.sgcat .sgchips{flex-wrap:wrap;overflow-x:visible}}   /* 市場頁：第一層分類是打開清單的入口，手機也全部看得到 */
 """
 
 JS = r"""
-(function(){
-const SG = JSON.parse(document.getElementById('sgd').textContent);
+// sgInit：讀 #sgd 的資料畫「全部指標」與右側指標面板。市場頁（docs/lab_ia_v5_plan.md 第 3 節⑤）SG.emb＝1：只有這個市場的指標、
+// 清單預設收起；美股頁切換指數時重跑一次（先拿掉上一次掛在 document、window、面板上的事件）。研究紀錄頁（x9r.html）SG.emb＝0：全部市場。
+window.sgInit = function(){
+if (window.__sgAC) window.__sgAC.abort();
+const SGAC = window.__sgAC = new AbortController(), SGO = {signal: SGAC.signal};
+const SGD = document.getElementById('sgd'); if (!SGD) return;
+const SG = JSON.parse(SGD.textContent);
+const EMB = !!SG.emb;
+const ANY = EMB ? '任一天' : '隨便挑一天';                // 市場頁的用字（docs/lab_ia_v5_plan.md 第 8 節）；研究紀錄頁照舊
+const anyw = t => EMB ? String(t).replace(/隨便挑同樣天數|隨便挑一天/g, '任一天') : t;
+function curMk(){ if (SG.mk0) return SG.mk0; const b = document.getElementById('ixc'); return b ? b.dataset.ix || '' : ''; }
 const ROWS = SG.rows, ON = SG.on, IT = SG.it || {};
 const I = {id:0,mk:1,cat:2,grp:3,name:4,kind:5,H:6,th:7,tier:8,dir:9,up:10,warn:11,buy:12,a:13,z:14,x:15};
 const TORD = {good:0, rare:1, ref:2, none:3, few:4};
 const MKO = ['tw','spx','ixic','ndx','sox','us','stk'];
 const HT = {20:'1 個月',60:'3 個月',250:'12 個月'};
-const st = {q:'', mk:'', c1:'', c2:'', tier:'', dir:'', now:false, sort:'def', asc:false, limit:80};
-let OCC = null, OCCP = null;
+const st = {q:'', mk: EMB ? curMk() : '', c1:'', c2:'', tier:'', dir:'', now:false, sort:'def', asc:false, limit:80, open: !EMB};
+let OCC = null;
+const OCCM = {}, OCCP = {};                          // 每一次的清單：一個市場一個檔（x9oh-{市場}.json），點開才下載
+// 網址參數（#i=、#s=、#r=、#p=；美股頁還有 #ix=、#v=，改的時候保留別的）
+function hp(k){ const m = new RegExp('(?:^#|&)' + k + '=([^&]*)').exec(location.hash || ''); return m ? decodeURIComponent(m[1]) : null; }
+function hsWith(k, v){ const ps = (location.hash || '').replace(/^#/, '').split('&').filter(x => x && !/^(i|s)=/.test(x));
+  if (k) ps.push(k + '=' + encodeURIComponent(v));
+  return ps.length ? '#' + ps.join('&') : location.pathname + location.search; }
+function mkHref(mk, extra){ return mk === 'tw' ? 'x9m.html' + (extra ? '#' + extra : '') : 'x9mu.html#ix=' + mk + (extra ? '&' + extra : ''); }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pc = v => v == null ? '—' : Math.round(v) + '%';
 const md = d => d ? (+d.slice(5,7)) + '/' + (+d.slice(8,10)) : '';
@@ -1056,10 +1158,9 @@ function hz(r){ const c = r[I.cat]; if (c === 'buy') return '3 個月'; if (c ==
 function nowTxt(r){ const n = ON[r[I.id]]; if (!n) return '';
   if (n.xs != null) return n.xs;
   if (n.live != null) return '今天 ' + n.live + ' 檔';
-  const tr = n.buy && n.sell ? '・' + mdy(n.buy) + ' 收盤進場、持有到 ' + mdy(n.sell) : '';
-  if (n.left != null) return mdy(n.since) + ' 出現' + (tr ? tr + (n.rem != null ? '（還有 ' + n.rem + ' 個交易日）' : '') : '・還看 ' + n.left + ' 天');
-  if (n.event) return mdy(n.since) + ' 出現' + tr;
-  return mdy(n.since) + ' 起成立' + tr; }
+  if (n.buy && n.sell) return mdy(n.buy) + ' 收盤進場・持有到 ' + mdy(n.sell);
+  if (n.left != null) return mdy(n.since) + ' 出現・還有 ' + n.left + ' 天';
+  return mdy(n.since) + (n.event ? ' 出現' : ' 起成立'); }
 function nowShort(r){ const n = ON[r[I.id]]; if (!n) return '';   // 「現在」欄只寫哪天出現（進場、持有到哪天寫在訊號那一欄）
   if (n.xs != null) return n.xs;
   if (n.live != null) return '今天 ' + n.live + ' 檔';
@@ -1083,6 +1184,14 @@ function phr(r, d){ if (r[I.cat] === 'xs') { const x = SIG2[r[I.id]]; return x ?
   const f = feOf(r, d);                                                         // VER 18～19：預估之後
   return w + (f ? ' 過去 ' + pc(s[1]) + ' → 預估之後 <b>' + pc(f[0]) + '</b>' : ' <b>' + pc(s[1]) + '</b>') + (s[2] != null ? '（隨便挑一天 ' + pc(s[2]) + '）' : '') +
     (m != null ? '・報酬中位數 ' + (m > 0 ? '+' : m < 0 ? '−' : '') + Math.abs(m).toFixed(1) + '%' + (f && f[3] != null ? '，預估之後比隨便挑一天' + moreTxt(f[3]) : '') : ''); }
+function phrP(r, d){ if (r[I.cat] === 'xs') { const x = SIG2[r[I.id]]; return x ? esc(anyw(x.xs.line)) : ''; }
+  const s = stat(r, d); if (!s) return ''; const c = r[I.cat], h = hz(r);
+  const w = d === 'buy' ? '買進之後 ' + h + '上漲' : d === 'up' ? '之後 ' + h + '上漲' : '之後 ' + h + '內回撤 ' + r[I.th] + '% 以上';
+  const m = d !== 'warn' ? (r[I.x] || {}).med : null;
+  return w + ' <b>' + pc(s[1]) + '</b>' + (s[2] != null ? '（任一天 ' + pc(s[2]) + '）' : '') +
+    (m != null ? '・報酬中位 ' + (m > 0 ? '+' : m < 0 ? '−' : '') + Math.abs(m).toFixed(1) + '%' : '') +
+    (d === 'warn' && s[7] != null ? '・回撤中位 ' + pc(s[7]) + (s[8] != null ? '（任一天 ' + pc(s[8]) + '）' : '') : '') +
+    (s[0] < SG.sn ? '・次數 ' + s[0] : ''); }
 function feOf(r, d){ const f = ((r[I.x] || {}).fe || {})[d]; return f || null; }
 function moreTxt(v){ const x = Math.round(v * 10) / 10; return x > 0 ? '多 ' + x.toFixed(1) + '%' : x < 0 ? '少 ' + Math.abs(x).toFixed(1) + '%' : '差不多'; }
 function cellTxt(key){                                 // 衰退表的格子（sigoos.key）→ 白話：偏多・看 1 個月・出現過 15～39 次・過去比平常高 10～20 點
@@ -1114,7 +1223,9 @@ function feHtml(r){
   return out.join('') || '<p class="note">沒有預估之後。</p>'; }
 function mark(t, r){ const x = ((r && (r[I.cat] === 'strat' || r[I.cat] === 'xs')) ? SG.stiers : SG.tiers)[t] || ['', ''];
   return '<span class="sgtk sgtk-' + t + '" title="' + esc(x[1]) + '">' + x[0] + '</span>'; }
-function sent(r){ const [d, s] = sd(r); return mark(s ? s[6] : r[I.tier], r) + ' <b>' + esc(label(r)) + '</b>：' + phr(r, d); }
+function sent(r){ const [d, s] = sd(r);
+  if (EMB) return '<b>' + esc(label(r)) + '</b>：' + phrP(r, d);
+  return mark(s ? s[6] : r[I.tier], r) + ' <b>' + esc(label(r)) + '</b>：' + phr(r, d); }
 function zi(h){ return h == null ? 'x' : h >= 80 ? '4' : h >= 60 ? '3' : h >= 40 ? '2' : h >= 20 ? '1' : '0'; }
 
 // ── 依指標整理（docs/lab_sigview_plan.md）
@@ -1150,7 +1261,7 @@ function meta(x){ const f = SG.fac[x.c1] || '', g = x.cat === 'heat' ? grpName(x
   return [SG.mk[x.mk], f, t].filter(Boolean).join('・'); }
 function pass(x, skip){
   if (st.q && !st.q.split(/\s+/).every(w => x.hay.includes(w))) return false;
-  if (skip !== 'mk' && st.mk && x.mk !== st.mk) return false;
+  if (skip !== 'mk' && st.mk && x.mk !== st.mk && !(SG.usx && x.mk === 'us')) return false;   // 美股頁：美股產業跟著每個指數列
   if (skip !== 'c1' && st.c1 && x.c1 !== st.c1) return false;
   if (skip !== 'c1' && skip !== 'c2' && st.c2 && x.c2 !== st.c2) return false;
   if (skip !== 'tier' && st.tier && x.best[I.tier] !== st.tier) return false;
@@ -1182,7 +1293,7 @@ function chips(){
     box.innerHTML = '<button type="button" class="sgch' + (st[k] ? '' : ' on') + '" data-v="">全部' + (k === 'c2' ? esc(SG.fac[st.c1]) : '') + '</button>' +
       defs[k].filter(([v]) => cnt[v] || st[k] === v).map(([v, nm]) => '<button type="button" class="sgch' + (st[k] === v ? ' on' : '') +
         '" data-v="' + v + '">' + esc(nm) + '<i>' + (cnt[v] || 0) + '</i></button>').join('');
-    box.onclick = e => { const b = e.target.closest('.sgch'); if (!b) return; st[k] = b.dataset.v; if (k === 'c1') st.c2 = ''; st.limit = 80; draw(); }; });
+    box.onclick = e => { const b = e.target.closest('.sgch'); if (!b) return; st[k] = b.dataset.v; if (k === 'c1') st.c2 = ''; st.limit = 80; st.open = true; draw(); }; });
   const n = (st.tier ? 1 : 0) + (st.dir ? 1 : 0) + (st.now ? 1 : 0), an = document.getElementById('sgadvn');
   if (an) an.textContent = n ? '（已選 ' + n + ' 項）' : ''; }
 function spark(sp, w, h){
@@ -1204,24 +1315,28 @@ function nowCell(x){ const it = x.it;
     (it.h != null ? '<span class="sgnz zt' + zi(it.h) + '">' + Math.round(it.h) + ' ' + esc(it.band || '') + '</span>' : '');
   const o = x.on[0]; return o ? '<span class="sgnv">' + esc(nowShort(o)) + '</span>' : '<span class="mu">—</span>'; }
 function sigCell(x){
-  if (x.cat === 'xs') return mark(x.xs.t, x.best) + ' ' + esc(x.xs.line) + '<span class="sgs">' + esc(x.xs.now) + '</span>';
+  if (x.cat === 'xs') return (EMB ? '' : mark(x.xs.t, x.best) + ' ') + esc(anyw(x.xs.line)) + '<span class="sgs">' + esc(x.xs.now) + '</span>';
   if (x.on.length) { const o = x.on[0];
     return sent(o) + '<span class="sgs">' + esc(nowTxt(o)) + (x.on.length > 1 ? '・另 ' + (x.on.length - 1) + ' 個也成立' : '') + '</span>'; }
   const b = x.best, t = b[I.tier];
-  return '<span class="mu">現在沒有成立的訊號' + ((t === 'good' || t === 'rare' || t === 'ref') ? '；最好的是「' + esc(label(b)) + '」' + SG.tiers[t][0] : '') + '</span>'; }
+  return '<span class="mu">現在沒有成立的訊號' + (!EMB && (t === 'good' || t === 'rare' || t === 'ref') ? '；最好的是「' + esc(label(b)) + '」' + SG.tiers[t][0] : '') + '</span>'; }
 function rowHtml(x){ const t = x.cat === 'xs' ? x.xs.t : x.on.length ? x.on[0][I.tier] : null, sp = x.it && x.it.sp;
-  return '<tr class="sgr" data-k="' + esc(x.k) + '"><td class="tk">' + (t ? mark(t, x.on[0]) : '<span class="sgtk mu">·</span>') + '</td>' +
+  return '<tr class="sgr" data-k="' + esc(x.k) + '">' + (EMB ? '' : '<td class="tk">' + (t ? mark(t, x.on[0]) : '<span class="sgtk mu">·</span>') + '</td>') +
     '<td class="l"><b class="sgin">' + esc(x.name) + '</b><span class="sgm">' + esc(meta(x)) + '</span>' +
     '<div class="sgmob"><div class="sgmn">' + nowCell(x) + spark(sp, 76, 20) + '</div><div class="sgms">' + sigCell(x) + '</div></div></td>' +
     '<td class="dsk nv">' + nowCell(x) + '</td><td class="dsk spk">' + spark(sp, 110, 26) + '</td>' +
     '<td class="l dsk ss">' + sigCell(x) + '</td></tr>'; }
 function draw(){
+  if (!document.getElementById('sgbody')) return;
   chips();
   const list = sorted(INDS.filter(x => pass(x)));
-  document.getElementById('sgcnt').textContent = '共 ' + list.length + ' 個指標' + (list.length > st.limit ? '，先列前 ' + st.limit + ' 個' : '');
-  document.getElementById('sgbody').innerHTML = list.slice(0, st.limit).map(rowHtml).join('');
+  const open = st.open || !!(st.q || st.c1 || st.tier || st.dir || st.now);      // 市場頁：預設收起，選了分類、打了字或按「列出」才列
+  const wrap = document.getElementById('sgwrap'); if (wrap) wrap.hidden = !open;
+  document.getElementById('sgcnt').textContent = '共 ' + list.length + ' 個指標' + (open && list.length > st.limit ? '，先列前 ' + st.limit + ' 個' : '');
+  document.getElementById('sgbody').innerHTML = open ? list.slice(0, st.limit).map(rowHtml).join('') : '';
   const mb = document.getElementById('sgmore');
-  mb.hidden = list.length <= st.limit; mb.textContent = '再列 ' + Math.min(200, list.length - st.limit) + ' 個（還有 ' + (list.length - st.limit) + ' 個）';
+  if (!open) { mb.hidden = !list.length; mb.textContent = '列出全部 ' + list.length + ' 個 ▾'; mb.dataset.all = '1'; }
+  else { delete mb.dataset.all; mb.hidden = list.length <= st.limit; mb.textContent = '再列 ' + Math.min(200, list.length - st.limit) + ' 個（還有 ' + (list.length - st.limit) + ' 個）'; }
   document.querySelectorAll('.sgtb th[data-s]').forEach(th => { th.classList.toggle('sorted', th.dataset.s === st.sort); th.classList.toggle('asc', th.dataset.s === st.sort && st.asc); });
   if (CUR) { const tr = document.querySelector('tr.sgr[data-k="' + CSS.escape(CUR.k) + '"]'); if (tr) tr.classList.add('open'); } }
 
@@ -1247,6 +1362,9 @@ const TIP = {
   rhalf: '報酬由小到大排，中間一半落在這個範圍（25%～75%）。',
   rmae: '進場之後到這一天之間，最低收盤比進場價低多少（比進場價低才算，沒跌過＝0）。中位數＝一半的時候跌得比這少。',
   rmae10: '中途最多跌由差到好排，最差的一成跌超過這個數字。'};
+if (EMB) { Object.keys(TIP).forEach(k => { TIP[k] = anyw(TIP[k]); });
+  TIP.prob = '這個訊號過去出現之後，「看什麼」那一欄成立的比例；小字是任一天的比例。';
+  TIP.rmed = '偏多：持有到期的報酬，由小到大排在正中間的那一個。警示：期間最大回撤的中位數。'; }
 function ii(k){ return '<span class="sgq" tabindex="0" role="button" aria-label="說明" data-tip="' + k + '">ⓘ</span>'; }
 const TB = document.getElementById('sgtip');
 function showTip(el){ TB.textContent = TIP[el.dataset.tip] || ''; TB.hidden = false;
@@ -1254,12 +1372,12 @@ function showTip(el){ TB.textContent = TIP[el.dataset.tip] || ''; TB.hidden = fa
   TB.style.width = w + 'px'; TB.style.left = Math.max(12, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 12)) + 'px';
   TB.style.top = (r.bottom + 6) + 'px';
   if (r.bottom + 6 + TB.offsetHeight > window.innerHeight - 8) TB.style.top = Math.max(8, r.top - TB.offsetHeight - 6) + 'px'; }
-document.addEventListener('mouseover', e => { const q = e.target.closest && e.target.closest('.sgq'); if (q) showTip(q); });
-document.addEventListener('mouseout', e => { if (e.target.closest && e.target.closest('.sgq')) TB.hidden = true; });
-document.addEventListener('focusin', e => { const q = e.target.closest && e.target.closest('.sgq'); if (q) showTip(q); });
-document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('.sgq')) TB.hidden = true; });
+document.addEventListener('mouseover', e => { const q = e.target.closest && e.target.closest('.sgq'); if (q) showTip(q); }, SGO);
+document.addEventListener('mouseout', e => { if (e.target.closest && e.target.closest('.sgq')) TB.hidden = true; }, SGO);
+document.addEventListener('focusin', e => { const q = e.target.closest && e.target.closest('.sgq'); if (q) showTip(q); }, SGO);
+document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('.sgq')) TB.hidden = true; }, SGO);
 document.addEventListener('click', e => { const q = e.target.closest && e.target.closest('.sgq');
-  if (q) { e.stopPropagation(); e.preventDefault(); showTip(q); return; } if (!TB.hidden) TB.hidden = true; }, true);
+  if (q) { e.stopPropagation(); e.preventDefault(); showTip(q); return; } if (!TB.hidden) TB.hidden = true; }, {capture: true, signal: SGAC.signal});
 
 // ── 怎樣算（沿用第一版的說明）
 const TRIG = {hot:'0～100 在 80 以上的每一天（同一段連續過熱算 1 次）', hot13:'已連續 13 週以上在 80 以上的每一天（同一段算 1 次）',
@@ -1281,7 +1399,7 @@ function trig(r){ const c = r[I.cat], x = r[I.x] || {}, nm = r[I.name];
   if (c === 'multi') return x.sig === 'hot' ? '景氣頁的面向裡，同時 2 個以上在 80 以上的每一天（至少 3 個面向有值；同一段算 1 次）' : '從不到 2 個面向過熱，變成 2 個以上那一天';
   if (c === 'tech') return nm + '出現那一天（用指數收盤；轉折與均線的定義同景氣頁）';
   if (c === 'deriv') return x.vn + '的邊際變化是「' + nm.split('・').pop() + '」的每一天（看一階、二階的方向；同一段算 1 次）';
-  if (c === 'bub') return '泡沫頁每月判定「' + nm + '」成立的月份（每個月最後一個交易日算一天；連續的月份算 1 次）';
+  if (c === 'bub') return '每個月底「' + nm + '」成立的月份（每個月最後一個交易日算一天；連續的月份算 1 次）';
   if (c === 'ind') return x.vn + '裡任何一個產業「' + nm.split('・').pop() + '」成立的月份（每個產業各自算，再合併）';
   if (c === 'buy') return nm.split('・')[0] + '之後，' + x.vn + '出現，隔天收盤買';
   return x.desc || ''; }
@@ -1316,9 +1434,10 @@ function occHtml(r, oc){
     title = '每一次（最近 60 次；共 ' + oc.length + ' 次）：' + (c === 'buy' ? '買進日，✓＝3 個月後上漲' : '✓＝中了');
     items = oc.slice(-60).reverse().map(o => '<li class="' + (o[j] ? 'y' : '') + '">' + ymd(o[0]) + ' ' + (o[j] ? '✓' : '<span class="x">✗</span>') + '</li>'); }
   return '<div class="sgoc"><p class="note">' + title + '</p><ul class="sgol">' + items.join('') + '</ul></div>'; }
-function loadOcc(){ if (OCCP) return OCCP;
-  OCCP = fetch('x9oh.json').then(x => x.json()).then(j => { OCC = j; return j; }).catch(() => { OCCP = null; return null; });
-  return OCCP; }
+function loadOcc(mk){ if (OCCM[mk]) return Promise.resolve(OCCM[mk]);
+  if (!OCCP[mk]) OCCP[mk] = fetch('x9oh-' + mk + '.json').then(x => x.json()).then(j => { OCCM[mk] = j; return j; })
+    .catch(() => { delete OCCP[mk]; return null; });
+  return OCCP[mk].then(j => { if (j && CUR && CUR.mk === mk) OCC = j; return j; }); }
 
 // ── 指標頁（右側面板；手機全螢幕）
 const PV = document.getElementById('sgpv'), PB = document.getElementById('sgp');
@@ -1376,6 +1495,19 @@ function sigTable(x){
         '<td class="r10" data-h="近 10 年">' + r10(s, d, r[I.cat] === 'stock') + '</td><td data-h="出現">' + (s ? s[0] : '—') + '</td>' +
         '<td data-h="判定">' + mark(s ? s[6] : 'few', r) + luckTxt(s, r) + '</td></tr>'; }).join('') + '</tbody>'; }).join('');
   return '<div class="sgwrap sgsw"><table class="sgst2">' + head + body + '</table></div>'; }
+function sigTableP(x){
+  const head = '<thead><tr><th class="l">訊號</th><th class="l">看什麼</th><th>過去 ' + ii('prob') + '</th><th>報酬或回撤中位 ' + ii('rmed') + '</th><th>次數 ' + ii('n') + '</th></tr></thead>';
+  const body = x.sig.map(r => { const ds = dirsOf(r), on = ON[r[I.id]];
+    return '<tbody class="sgsb' + (on ? ' on' : '') + (SEL === r ? ' sel' : '') + '" data-id="' + esc(r[I.id]) + '">' + ds.map((d, i) => { const s = stat(r, d), m = (r[I.x] || {}).med;
+      const w = d === 'warn' ? '之後回撤 ' + r[I.th] + '% 以上' : d === 'buy' ? '買進之後上漲' : '之後上漲';
+      const med = d === 'warn' ? (s && s[7] != null ? '回撤 ' + pc(s[7]) + (s[8] != null ? '<small>任一天 ' + pc(s[8]) + '</small>' : '') : '—')
+        : (m == null ? '—' : '<b class="' + (m > 0 ? 'up' : m < 0 ? 'dn' : '') + '">' + sr1(m) + '</b>');
+      return '<tr>' + (i ? '' : '<td class="l nm" rowspan="' + ds.length + '"><b>' + esc(label(r)) + '</b><small>看 ' + esc(hz(r)) +
+          (on ? '・<span class="sgon">現在成立</span>' : '') + '</small></td>') +
+        '<td class="l wt"><span class="sgd sgd-' + d + '">' + w + '</span></td>' +
+        '<td data-h="過去"><b>' + (s ? pc(s[1]) : '—') + '</b>' + (s && s[2] != null ? '<small>任一天 ' + pc(s[2]) + '</small>' : '') + '</td>' +
+        '<td data-h="報酬或回撤中位">' + med + '</td><td data-h="次數">' + (s ? s[0] : '—') + '</td></tr>'; }).join('') + '</tbody>'; }).join('');
+  return '<div class="sgwrap sgsw"><table class="sgst2 sgst3">' + head + body + '</table></div>'; }
 function panelHtml(x){
   const ck = chartable(x);
   let h = '<div class="sgph"><div><p class="sgkick">' + esc(meta(x)) + '</p><h3 id="sgpt">' + esc(x.name) + '</h3></div>' +
@@ -1385,19 +1517,23 @@ function panelHtml(x){
     '<button type="button" data-v="5y">近 5 年</button><button type="button" data-v="all">全部</button></div>' +
     (x.cat === 'heat' ? '<div class="sgseg" data-g="raw"><button type="button" data-v="0">0～100</button><button type="button" data-v="1">原始值</button></div>' : '') +
     '</div><div class="sgcv" id="sgcv"><p class="note">走勢載入中…</p></div><p class="sgread" id="sgread"></p><p class="note" id="sgleg"></p>';
-  h += '<h4>這個指標的訊號</h4><p class="note">每一種訊號都分偏多、警示兩個方向各算一次。點一列，' + (ck ? '走勢圖的打點和' : '') + '下面的「最近幾次」換成那個訊號。</p>' + sigTable(x);
-  h += '<h4>預估之後：<span id="sgfsel"></span> ' + ii('fwd') + '</h4><div id="sgfe" class="sgfe"></div>';
+  if (EMB) h += '<h4>這個指標的訊號</h4>' + sigTableP(x);
+  else {
+    h += '<h4>這個指標的訊號</h4><p class="note">每一種訊號都分偏多、警示兩個方向各算一次。點一列，' + (ck ? '走勢圖的打點和' : '') + '下面的「最近幾次」換成那個訊號。</p>' + sigTable(x);
+    h += '<h4>預估之後：<span id="sgfsel"></span> ' + ii('fwd') + '</h4><div id="sgfe" class="sgfe"></div>'; }
   h += '<h4>進場之後：<span id="sgrsel"></span></h4><div id="sgret"></div>';
   h += '<h4>最近幾次：<span id="sgsel"></span></h4><div id="sgrec"></div>';
-  h += '<details class="sghow"><summary>怎樣算出現、怎樣算中了</summary><div id="sghow"></div></details>';
+  h += '<details class="sghow"><summary>' + (EMB ? '訊號的定義' : '怎樣算出現、怎樣算中了') + '</summary><div id="sghow"></div></details>';
   return h + '</div>'; }
 function segSync(){ PB.querySelectorAll('.sgseg').forEach(g => g.querySelectorAll('button').forEach(b =>
   b.classList.toggle('on', g.dataset.g === 'span' ? b.dataset.v === VIEW.span : b.dataset.v === (VIEW.raw ? '1' : '0')))); }
 function openInd(x, sid, push){
-  if (x.cat === 'xs') { xsOpen(x, push); return; }
+  if (window.heatClose) window.heatClose(true);                                // 市場頁：先關掉景氣的右側面板（不動瀏覽紀錄）
+  if (x.cat === 'xs') { if (EMB) { location.href = 'x9.html#v=mac&m=' + x.mk + '&x=' + x.xk; return; } xsOpen(x, push); return; }
   const first = PV.hidden;
   CUR = x; SEL = (sid && x.sig.find(r => r[I.id] === sid)) || x.on[0] || x.best;
-  if (push) { const u = '#i=' + encodeURIComponent(x.k);
+  OCC = OCCM[x.mk] || null;
+  if (push) { const u = hsWith('i', x.k);
     if (first && !PUSHED) { history.pushState({sg: 1}, '', u); PUSHED = true; } else history.replaceState(history.state, '', u); }
   if (x.cat !== 'heat') VIEW.raw = false;
   PB.innerHTML = panelHtml(x); segSync();
@@ -1410,9 +1546,28 @@ function closeP(fromHash){
   if (PV.hidden) return;
   PV.hidden = true; document.body.classList.remove('sgopen'); CUR = null; TB.hidden = true;
   document.querySelectorAll('tr.sgr.open').forEach(e => e.classList.remove('open'));
-  if (!fromHash) { if (PUSHED) { PUSHED = false; history.back(); } else history.replaceState(null, '', location.pathname + location.search); }
+  if (!fromHash) { if (PUSHED) { PUSHED = false; history.back(); } else history.replaceState(null, '', hsWith(null)); }
   else PUSHED = false; }
+window.sgClose = q => {                    // q＝true：只關面板、清掉網址的 #i=、不往回（景氣的右側面板接著要開）
+  if (!q) { closeP(); return; }
+  if (PV.hidden) return;
+  closeP(true); try { history.replaceState(history.state, '', hsWith(null)); } catch (e) { /* file:// */ } };
+document.addEventListener('click', e => {   // 景氣的右側面板裡「每一次與走勢 →」：在同一頁打開這個訊號
+  const a = e.target.closest && e.target.closest('a[data-sg]');
+  if (!a) return;
+  const sid = a.dataset.sg, x = SIG2[sid];
+  if (!x) return;
+  e.preventDefault(); openInd(x, sid, true); }, SGO);
+function succP(r, d){ const c = r[I.cat], h = hz(r), th = r[I.th];
+  if (c === 'buy') return '照規則的買進日收盤買，3 個月（60 個交易日）後收盤比買價高';
+  if (c === 'ind') return d === 'up' ? '訊號那個月底買，12 個月後的月底比買價高' : '訊號那個月底算起，12 個月內的最大回撤（月底最高到之後月底最低）20% 以上';
+  return d === 'up' ? '出現隔天收盤買，' + h + '後收盤比買價高' : '出現隔天收盤算起，' + h + '內的最大回撤（期間最高收盤到之後最低收盤）' + th + '% 以上'; }
 function howHtml(r){ const x = r[I.x] || {};
+  if (EMB) { let h = '<p class="sgdl"><b>怎樣算出現</b>：' + esc(anyw(trig(r))) + '</p>';
+    h += dirsOf(r).map(d => '<p class="sgdl"><b>' + (d === 'warn' ? '之後回撤' : d === 'buy' ? '買進之後上漲' : '之後上漲') + '</b>：' + esc(succP(r, d)) + '</p>').join('');
+    if (r[I.a]) h += '<p class="sgdl note">資料期間 ' + ymd(r[I.a]) + '～' + ymd(r[I.z]) + '。</p>';
+    if (r[I.cat] === 'scen') h += '<p class="sgdl"><a href="#" data-open="out:out" data-to="scen">看全部情境</a></p>';
+    return h; }
   let h = '<p class="sgdl"><b>怎樣算出現</b>：' + esc(trig(r)) + '</p>';
   h += dirsOf(r).map(d => '<p class="sgdl"><b>' + (r[I.cat] === 'strat' ? '怎樣算中了' : what(r, d) + '：怎樣算中了') + '</b>：' + esc(succ(r, d)) + '</p>').join('');
   const w = stat(r, 'warn');
@@ -1425,9 +1580,9 @@ function howHtml(r){ const x = r[I.x] || {};
   const rl = rel(r); if (rl) h += '<p class="sgdl"><b>相關研究</b>：' + rl + '</p>';
   const mk = r[I.mk];
   if (['heat', 'deriv', 'multi', 'crash', 'tech'].includes(r[I.cat]) && SG.chart[mk])
-    h += '<p class="sgdl"><a href="' + (mk === 'tw' ? 'x9m.html' : 'x9mu.html#ix=' + mk) + '">在景氣頁看' + esc(SG.mk[mk]) + ' →</a></p>';
+    h += '<p class="sgdl"><a href="' + mkHref(mk) + '">在' + esc(SG.mk[mk]) + '的市場頁看 →</a></p>';
   if (r[I.cat] === 'scen' && SG.chart[mk])
-    h += '<p class="sgdl"><a href="' + (mk === 'tw' ? 'x9m.html#o=scen' : 'x9mu.html#ix=' + mk + '&o=scen') + '">在景氣頁看' + esc(SG.mk[mk]) + '的全部情境 →</a></p>';
+    h += '<p class="sgdl"><a href="' + mkHref(mk, 'o=scen') + '">在' + esc(SG.mk[mk]) + '的市場頁看全部情境 →</a></p>';
   return h; }
 function valAt(J, ck, d){ if (!J || !ck || !J.s[ck]) return null;
   const at = (s, k) => { if (k < 0 || !s) return null; const i = k - s.o; return i >= 0 && i < s.v.length ? s.v[i] : null; };
@@ -1435,7 +1590,7 @@ function valAt(J, ck, d){ if (!J || !ck || !J.s[ck]) return null;
   const w = J.w.d; let k = idxOf(w, d); if (k >= 0 && w[k] < d) k += 1;                                         // 更早：那一週（含那一天的週末）
   return k < w.length ? at(J.s[ck].h, k) : null; }
 function recHtml(r, oc){
-  if (r[I.cat] === 'strat') return '<p class="note">逐筆交易在<a href="x9.html">個股頁</a>的策略說明卡（每一筆的買進、賣出與報酬）。</p>';
+  if (r[I.cat] === 'strat') return '<p class="note">逐筆交易在<a href="x9.html?v=st">個股策略・規則與成績</a>的說明卡（每一筆的買進、賣出與報酬）。</p>';
   if (!oc || !oc.length) return '<p class="note">沒有每一次的清單（窗口還沒走完的不列）。</p>';
   const c = r[I.cat];
   if (!['heat', 'deriv', 'crash', 'multi', 'scen', 'tech', 'bub'].includes(c)) return occHtml(r, oc);
@@ -1450,7 +1605,8 @@ function recHtml(r, oc){
     '<th>期間最大回撤 ' + ii('dd') + '</th><th>' + (ev ? (d === 'warn' ? '大跌' : '上漲') : (d === 'warn' ? '大跌的比例' : '上漲的比例')) + '</th></tr></thead>';
   const body = list.map(e => { const o = e.o;
     if (e.k) return '<tr class="sk"><td class="l">' + ymd(e.k[0]) + '</td><td colspan="' + (ck ? 4 : 3) + '" class="l">' +
-      (e.k[1] === 'd' ? '沒算進次數：和 ' + ymd(e.k[2]) + ' 那次相隔不到' + esc(h) + '（之後的漲跌重疊，算同一次）' : '之後' + esc(h) + '還沒走完，還沒算') + '</td></tr>';
+      (e.k[1] === 'd' ? (EMB ? '和 ' + ymd(e.k[2]) + ' 那次相隔不到' + esc(h) + '，算同一次' : '沒算進次數：和 ' + ymd(e.k[2]) + ' 那次相隔不到' + esc(h) + '（之後的漲跌重疊，算同一次）')
+        : '之後' + esc(h) + '還沒走完') + '</td></tr>';
     if (ev) { const hit = d === 'warn' ? o[2] : o[1];
       return '<tr><td class="l">' + ymd(o[0]) + '</td>' + (ck ? '<td>' + vv(o[0]) + '</td>' : '') + '<td' + cls(o[4]) + '>' + sp1(o[4]) + '</td><td>' + p1(o[3]) + '</td>' +
         '<td>' + (hit ? '✓' : '<span class="mu">✗</span>') + '</td></tr>'; }
@@ -1458,12 +1614,13 @@ function recHtml(r, oc){
     return '<tr><td class="l">' + ymd(o[0]) + (o[1] !== o[0] ? '～' + ymd(o[1]) : '') + '<small>' + o[2] + (mo ? ' 個月' : ' 天') + '</small></td>' +
       (ck ? '<td>' + vv(o[0]) + '</td>' : '') + '<td' + cls(o[6]) + '>' + sp1(o[6]) + '</td><td>' + p1(o[5]) + '</td><td>' + Math.round(o[j] * 100) + '%</td></tr>'; }).join('');
   const nd = sk.filter(k => k[1] === 'd').length, ni = sk.length - nd;
-  const cnt = ev ? '<p class="note">一共出現 ' + (oc.length + sk.length) + ' 次，算進次數 ' + oc.length + ' 次' +
+  const cnt = ev ? '<p class="note">一共出現 ' + (oc.length + sk.length) + ' 次，算進次數 ' + oc.length + ' 次' + (EMB ? (sk.length ? '（灰色＝和前一次相隔太近或還沒走完）' : '') :
     (nd ? '；' + nd + ' 次和前一次算進去的相隔不到' + esc(h) + '（之後的漲跌和那一次重疊，算同一次，灰色）' : '') +
-    (ni ? '；' + ni + ' 次之後' + esc(h) + '還沒走完（灰色）' : '') + '。</p>' : '';
+    (ni ? '；' + ni + ' 次之後' + esc(h) + '還沒走完（灰色）' : '')) + '。</p>' : '';
   return cnt + '<div class="sgwrap"><table class="sgrt">' + head + '<tbody>' + body + '</tbody></table></div>' +
+    (EMB ? (ev ? '' : '<p class="note">共 ' + oc.length + ' 段，列最近 12 段。</p>') :
     '<p class="note">' + (ev ? '列最近 12 次（含沒算進次數的）' : '共 ' + oc.length + ' 段，列最近 12 段；漲跌、最大回撤、比例是這一段每一天的平均，還在觀察期內的日子不算') + '。' +
-    (ck ? '「當時 0～100」是' + (ev ? '出現' : '開始') + '那一天的值（一年以前的用那一週）。' : '') + '</p>'; }
+    (ck ? '「當時 0～100」是' + (ev ? '出現' : '開始') + '那一天的值（一年以前的用那一週）。' : '') + '</p>'); }
 function fillSel(){ const r = SEL, box = document.getElementById('sgrec'); if (!r || !box) return;
   document.getElementById('sgsel').textContent = label(r);
   document.getElementById('sgrsel').textContent = label(r);
@@ -1473,7 +1630,7 @@ function fillSel(){ const r = SEL, box = document.getElementById('sgrec'); if (!
   const rt = document.getElementById('sgret');
   if (OCC) { box.innerHTML = recHtml(r, OCC.occ[r[I.id]]); rt.innerHTML = retHtml(r, OCC); drawRet(r, OCC); return; }
   box.innerHTML = rt.innerHTML = '<p class="note">載入中…</p>';
-  loadOcc().then(j => { if (SEL !== r) return;
+  loadOcc(CUR ? CUR.mk : r[I.mk]).then(j => { if (SEL !== r) return;
     box.innerHTML = j ? recHtml(r, j.occ[r[I.id]]) : '<p class="note">載入失敗，請重新整理。</p>';
     rt.innerHTML = j ? retHtml(r, j) : ''; if (j) drawRet(r, j); drawChart(); }); }
 
@@ -1484,7 +1641,7 @@ const dn1 = v => v == null ? '—' : (v < 0 ? '−' : '') + Math.abs(v).toFixed(
 function retSpec(r, j){ const q = j && j.ret ? j.ret[r[I.id]] : null; if (!q) return null;
   const mo = !!q.hm, c = r[I.cat];
   return {q, b: q.b && j.rb ? j.rb[q.b] || null : null, mo, hs: mo ? SG.rhm : SG.rh, ps: mo ? SG.rhm : SG.pd,
-    bn: '隨便挑一天',
+    bn: ANY,
     own: c === 'buy' ? 60 : c === 'ind' ? 12 : c === 'stock' ? 20 : r[I.H],
     entry: c === 'buy' ? '照規則的買進日收盤進場' : c === 'stock' ? '訊號隔天開盤進場' : c === 'ind' ? '那個月底進場' : '訊號出現隔一個交易日收盤進場',
     hn: h => mo ? h + ' 個月' : RHN[h] || h + ' 天'}; }
@@ -1502,7 +1659,7 @@ function retHtml(r, j){
     (ob ? '（' + esc(bn) + ' ' + sr1(ob[3]) + '）' : '') + '，一半落在 ' + sr1(os[2]) + '～' + sr1(os[4]) + '；上漲的機率 ' + Math.round(os[5]) + '%' +
     (ob ? '（' + Math.round(ob[5]) + '%）' : '') + '。<br>進場之後中途最多跌：一半的時候在 <b>' + dn1(os[6]) + '</b> 以內、最差的一成跌超過 <b>' + dn1(os[7]) + '</b>' +
     (ob ? '（' + esc(bn) + ' ' + dn1(ob[6]) + '、' + dn1(ob[7]) + '）' : '') + '，最差一次 ' + dn1(os[8]) + '。' +
-    (os[0] < SG.rmin ? '<span class="mu">（只有 ' + os[0] + ' 次，只當參考）</span>' : '') + robustTxt(os) + '</p>';
+    (os[0] < SG.rmin ? '<span class="mu">' + (EMB ? '（次數 ' + os[0] + '）' : '（只有 ' + os[0] + ' 次，只當參考）') + '</span>' : '') + robustTxt(os) + '</p>';
   const sub = (v, f) => b && v != null ? '<small>' + f(v) + '</small>' : '';
   const head = '<thead><tr><th class="l">持有</th><th>上漲的機率 ' + ii('rup') + '</th><th>報酬中位數 ' + ii('rmed') + '</th>' +
     '<th>排除極端 ' + ii('rtrim') + '</th><th>去掉最好一次 ' + ii('rlbo') + '</th><th>一半落在 ' + ii('rhalf') + '</th>' +
@@ -1510,7 +1667,7 @@ function retHtml(r, j){
   const body = hs.map((hh, i) => { const s = q.s[i], z = b ? b.s[i] : null;
     if (!s) return '<tr class="na"><td class="l">' + esc(R.hn(hh)) + '</td><td colspan="8" class="mu">資料不夠（窗口還沒走完）</td></tr>';
     return '<tr' + (hh === R.own ? ' class="own"' : '') + (s[0] < SG.rmin ? ' data-few="1"' : '') + '><td class="l">' + esc(R.hn(hh)) +
-      (hh === R.own ? '<small>判定看這一期</small>' : R.mo ? '' : '<small>' + hh + ' 個交易日</small>') + '</td>' +
+      (hh === R.own ? '<small>' + (EMB ? '這個訊號的期間' : '判定看這一期') + '</small>' : R.mo ? '' : '<small>' + hh + ' 個交易日</small>') + '</td>' +
       '<td data-h="上漲的機率"><b>' + Math.round(s[5]) + '%</b>' + sub(z && z[5], v => Math.round(v) + '%') + '</td>' +
       '<td data-h="報酬中位數" class="' + (s[3] > 0 ? 'up' : s[3] < 0 ? 'dn' : '') + '"><b>' + sr1(s[3]) + '</b>' + sub(z && z[3], sr1) + '</td>' +
       '<td data-h="排除極端">' + (s[9] == null ? '—' : sr1(s[9])) + sub(z && z[9], sr1) + '</td>' +
@@ -1520,9 +1677,10 @@ function retHtml(r, j){
       '<td data-h="中途最多跌・最差 10%">' + dn1(s[7]) + sub(z && z[7], dn1) + '</td>' +
       '<td data-h="次數">' + s[0] + (s[0] < SG.rmin ? '<small>次數少</small>' : '') + '</td></tr>'; }).join('');
   return h + '<div class="sgwrap sgrw"><table class="sgrr">' + head + '<tbody>' + body + '</tbody></table></div>' +
+    (EMB ? '<p class="note">' + (b ? '小字＝任一天。' : '') + '價格是指數本身、不含股息。</p>' :
     '<p class="note">' + (b ? '每格下面的小字＝' + esc(bn) + '（同一段期間、同樣算法）。' : '') +
     (r[I.kind] === 'state' ? '狀態型：狀態中的每一天都算進場一次，每一天一樣重。' : '') +
-    '價格是指數本身、不含股息。' + (r[I.cat] === 'stock' ? '個股訊號的判定（★／●）照上表（比隨便挑一天多幾個百分點、打亂測試）；這張表只呈現。' : '偏多與買點的判定（★／◆）看「判定看這一期」那一列：上漲的機率、報酬中位數與排除極端的平均；警示看上表大回撤的機率；其他期間只呈現。') + '</p><div class="sgrcv" id="sgrcv"></div><p class="sgread" id="sgrrd"></p>' +
+    '價格是指數本身、不含股息。' + (r[I.cat] === 'stock' ? '個股訊號的判定（★／●）照上表（比隨便挑一天多幾個百分點、打亂測試）；這張表只呈現。' : '偏多與買點的判定（★／◆）看「判定看這一期」那一列：上漲的機率、報酬中位數與排除極端的平均；警示看上表大回撤的機率；其他期間只呈現。') + '</p>') + '<div class="sgrcv" id="sgrcv"></div><p class="sgread" id="sgrrd"></p>' +
     '<p class="note">實線＝進場之後的報酬中位數、色帶＝一半落在的範圍' + (b ? '；虛線與灰色帶＝' + esc(bn) : '') + '。橫軸＝進場之後經過' + (R.mo ? '幾個月' : '幾個交易日') + '。</p>'; }
 function drawRet(r, j){
   const box = document.getElementById('sgrcv'), R = retSpec(r, j); if (!box || !R) return;
@@ -1653,7 +1811,8 @@ function drawChart(){
       (OCC ? '' : '（訊號的日子載入中）')); }); }
 let rzT = null;
 window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (!CUR) return;
-  if (CUR.cat === 'xs') { xsEq(CUR); return; } drawChart(); if (OCC && SEL) drawRet(SEL, OCC); }, 200); });
+  if (CUR.cat === 'xs') { xsEq(CUR); return; } drawChart(); if (OCC && SEL) drawRet(SEL, OCC); }, 200); }, SGO);
+if (!PV.hidden) { PV.hidden = true; document.body.classList.remove('sgopen'); }   // 美股頁換指數：上一個指數的面板關掉
 PB.addEventListener('click', e => {
   if (e.target.closest('#sgx')) { closeP(); return; }
   if (CUR && CUR.cat === 'xs') { xsClick(e); return; }
@@ -1662,19 +1821,22 @@ PB.addEventListener('click', e => {
   const sb = e.target.closest('.sgseg button');
   if (sb) { const g = sb.closest('.sgseg').dataset.g; if (g === 'span') VIEW.span = sb.dataset.v; else VIEW.raw = sb.dataset.v === '1'; segSync(); drawChart(); fillSel(); return; }
   const tb = e.target.closest('tbody.sgsb');
-  if (tb && CUR) { const r = CUR.sig.find(q => q[I.id] === tb.dataset.id); if (r && r !== SEL) { SEL = r; fillSel(); drawChart(); } } });
-document.getElementById('sgpb').addEventListener('click', () => closeP());
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !PV.hidden) closeP(); });
+  if (tb && CUR) { const r = CUR.sig.find(q => q[I.id] === tb.dataset.id); if (r && r !== SEL) { SEL = r; fillSel(); drawChart(); } } }, SGO);
+document.getElementById('sgpb').addEventListener('click', () => closeP(), SGO);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !PV.hidden) closeP(); }, SGO);
 
-// ── 清單
-document.getElementById('sgbody').addEventListener('click', e => { const tr = e.target.closest('tr.sgr'); if (tr && BYK[tr.dataset.k]) openInd(BYK[tr.dataset.k], null, true); });
+// ── 清單（市場頁的清單在每個指數的內容裡，換指數就是新的元素）
+const SGB = document.getElementById('sgbody');
+if (SGB) {
+SGB.addEventListener('click', e => { const tr = e.target.closest('tr.sgr'); if (tr && BYK[tr.dataset.k]) openInd(BYK[tr.dataset.k], null, true); }, SGO);
 document.querySelectorAll('.sgtb th[data-s]').forEach(th => th.addEventListener('click', () => {
-  const s = th.dataset.s; if (st.sort === s) st.asc = !st.asc; else { st.sort = s; st.asc = s === 'name'; } draw(); }));
+  const s = th.dataset.s; if (st.sort === s) st.asc = !st.asc; else { st.sort = s; st.asc = s === 'name'; } st.open = true; draw(); }, SGO));
 let qt = null;
-document.getElementById('sgq').addEventListener('input', e => { clearTimeout(qt); qt = setTimeout(() => { st.q = e.target.value.trim().toLowerCase(); st.limit = 80; draw(); }, 150); });
-document.getElementById('sgnow').addEventListener('change', e => { st.now = e.target.checked; st.limit = 80; draw(); });
-document.getElementById('sgmore').addEventListener('click', () => { st.limit += 200; draw(); });
-document.getElementById('sgcsv').addEventListener('click', () => {
+document.getElementById('sgq').addEventListener('input', e => { clearTimeout(qt); qt = setTimeout(() => { st.q = e.target.value.trim().toLowerCase(); st.limit = 80; draw(); }, 150); }, SGO);
+document.getElementById('sgnow').addEventListener('change', e => { st.now = e.target.checked; st.limit = 80; draw(); }, SGO);
+document.getElementById('sgmore').addEventListener('click', e => { if (e.currentTarget.dataset.all) st.open = true; else st.limit += 200; draw(); }, SGO);
+const CSVB = document.getElementById('sgcsv');
+if (CSVB) CSVB.addEventListener('click', () => {
   const list = sorted(INDS.filter(x => pass(x)));
   const head = ['指標','市場','類別','訊號','看多久','現在成立','方向','看什麼','機率%','隨便挑一天%','多幾個百分點','近10年次數','近10年機率%','近10年隨便挑一天%',
     '出現過幾次','判定','亂排也做得到%','最大回撤中位數%','隨便挑一天最大回撤中位數%','大跌門檻%','報酬中位數%','排除極端的平均%','預估之後的機率%','預估之後比隨便挑一天多賺%','代號'];
@@ -1685,7 +1847,8 @@ document.getElementById('sgcsv').addEventListener('click', () => {
       s ? (s[9] ?? '') : '', d === 'warn' && s ? (s[7] ?? '') : '', d === 'warn' && s ? (s[8] ?? '') : '', d === 'warn' ? (r[I.th] ?? '') : '',
       (r[I.x] || {}).med ?? '', (r[I.x] || {}).trm ?? '', feOf(r, d) ? feOf(r, d)[0] : '', feOf(r, d) && feOf(r, d)[3] != null ? feOf(r, d)[3] : '', r[I.id]]); })));
   const csv = '﻿' + lines.map(l => l.map(v => { const t = String(v == null ? '' : v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }).join(',')).join('\n');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); a.download = '訊號總覽.csv'; a.click(); });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); a.download = '訊號總覽.csv'; a.click(); }, SGO);
+}
 
 
 // ── 總經策略的面板（xstratpage.PANEL_JS，建頁時接在這裡）
@@ -1693,7 +1856,7 @@ document.getElementById('sgcsv').addEventListener('click', () => {
 function xsOpen(x, push){
   const first = PV.hidden;
   CUR = x; SEL = x.best; XSV.all = false;
-  if (push) { const u = '#i=' + encodeURIComponent(x.k);
+  if (push) { const u = hsWith('i', x.k);
     if (first && !PUSHED) { history.pushState({sg: 1}, '', u); PUSHED = true; } else history.replaceState(history.state, '', u); }
   PB.innerHTML = xsPanel(x); xsSeg();
   PV.hidden = false; document.body.classList.add('sgopen');
@@ -1729,35 +1892,35 @@ function loadR(mk, card){
   fetch('x9or-' + mk + '.json').then(x => x.json()).then(j => { RCACHE[mk] = j.html || '<p class="note">這個市場沒有研究卡。</p>'; show(RCACHE[mk]); })
     .catch(() => { if (box.dataset.mk === mk) { box.innerHTML = '<p class="note">載入失敗，請重新整理。</p>'; delete box.dataset.mk; delete box.dataset.ld; } }); }
 const rm = document.getElementById('rmk');
-if (rm) rm.addEventListener('click', e => { const b = e.target.closest('.sgch'); if (b) rfShow(b.dataset.r); });
+if (rm) rm.addEventListener('click', e => { const b = e.target.closest('.sgch'); if (b) rfShow(b.dataset.r); }, SGO);
 const rfl = document.getElementById('rfull');
-if (rfl) rfl.addEventListener('toggle', () => { if (rfl.open && RSEL) loadR(RSEL); });
+if (rfl) rfl.addEventListener('toggle', () => { if (rfl.open && RSEL) loadR(RSEL); }, SGO);
 function rel(r){ const c = r[I.cat], x = r[I.x] || {}, mk = r[I.mk], out = [];
-  if (c === 'bub') return '<a href="x9b.html#' + mk + '">泡沫頁（' + esc(SG.mk[mk]) + '）</a>';
-  if (c === 'ind') return '<a href="x9b.html#ind">泡沫頁・產業</a>';
+  if (c === 'bub' || c === 'ind') { if (EMB) return '';                          // 市場頁：泡沫就在同一頁最下面
+    const m2 = mk === 'us' ? 'spx' : mk; return '<a href="' + mkHref(m2, 'at=bub') + '">' + esc(SG.mk[m2]) + '的市場頁・泡沫</a>'; }
   if (!RMK.includes(mk)) return '';
   if (c === 'crash') out.push('crash'); else if (c === 'buy') out.push('bottom'); else if (c === 'multi') out.push('hotdd');
   else if (c === 'tech') out.push('hotch');
   else if (c === 'heat') { if (['hot_in', 'hot_out', 'hot13'].includes(x.sig)) out.push('hotdd');
     if (x.sig === 'hot13' && ['chip', 'sent'].includes(r[I.grp])) out.push('hotch'); }
-  return out.map(k => '<a href="#r=' + mk + ':' + k + '">' + esc(SG.cards[k]) + '（' + esc(SG.mk[mk]) + '）</a>').join('、'); }
+  return out.map(k => '<a href="' + (EMB ? 'x9r.html' : '') + '#r=' + mk + ':' + k + '">' + esc(SG.cards[k]) + '（' + esc(SG.mk[mk]) + '）</a>').join('、'); }
 
-// ── 網址：#i=指標（#s=訊號 也會打開那個指標、選那個訊號），#r=市場:研究卡
+// ── 網址：#i=指標（#s=訊號 也會打開那個指標、選那個訊號），#r=市場:研究卡、#p=實測區（研究紀錄頁）；美股頁另有 #ix=、#v=
 function fromHash(ev){
-  const h = location.hash;
-  let m = h.match(/^#p=(\w+):(\w+)$/);                                     // 實測區的一格（practpage）
-  if (m) { closeP(true); prOpen(m[1], m[2], true); return; }
-  m = h.match(/^#r=(\w+)(?::(\w+))?$/);
-  if (m) { closeP(true); rfShow(m[1]); if (m[2]) loadR(m[1], m[2]); else { const sec = document.getElementById('research'); if (sec) sec.scrollIntoView({block: 'start'}); } return; }
-  m = h.match(/^#i=([^&]+)$/);
-  if (m) { const x = BYK[decodeURIComponent(m[1])]; if (x) { if (ev) PUSHED = true; if (CUR !== x) openInd(x, null, false); return; } }
-  m = h.match(/^#s=(.+)$/);
-  if (m) { const id = decodeURIComponent(m[1]), x = SIG2[id]; if (x) { if (ev) PUSHED = true; openInd(x, id, false); return; } }
+  let v = hp('p');
+  if (v && !EMB) { const q = v.split(':'); closeP(true); prOpen(q[0], q[1], true); return; }      // 實測區的一格（practpage）
+  v = hp('r');
+  if (v && !EMB) { const q = v.split(':'); closeP(true); rfShow(q[0]); if (q[1]) loadR(q[0], q[1]); else { const sec = document.getElementById('research'); if (sec) sec.scrollIntoView({block: 'start'}); } return; }
+  v = hp('i');
+  if (v) { const x = BYK[v]; if (x) { if (ev) PUSHED = true; if (CUR !== x) openInd(x, null, false); return; } }
+  v = hp('s');
+  if (v) { const x = SIG2[v]; if (x) { if (ev) PUSHED = true; openInd(x, v, false); return; } }
   closeP(true); }
 /*@@PRACTICE@@*/
-window.addEventListener('hashchange', fromHash);
+window.addEventListener('hashchange', fromHash, SGO);
 draw(); fromHash();
-})();
+};
+window.sgInit();
 """
 JS = JS.replace("/*@@XSPANEL@@*/", XSP.PANEL_JS)
 

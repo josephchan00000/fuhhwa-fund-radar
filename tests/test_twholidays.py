@@ -71,16 +71,38 @@ def test_fetch_and_save_is_fail_open(tmp_path, monkeypatch):
     assert json.loads(p.read_text(encoding="utf-8"))["years"]["2026"] == twholidays.SEED[2026]
 
 
-def test_watchdog_trading_day_follows_official_table():
+def test_watchdog_trading_day_follows_official_table(capsys):
     fresh = importlib.import_module("check_afterhours_fresh")
     normal = "> 更新：…；市況：台股 正常交易｜美股 正常交易；本週焦點：…"
-    wrong = "> 更新：…；市況：台股 10/13 因颱風休市｜美股 正常交易"
+    wrong = "> 更新：…；市況：台股 10/13 因中秋節休市｜美股 正常交易"
     assert fresh.is_trading_day(date(2026, 10, 26), normal) is False   # 漏寫休市 → 仍判休市（不誤報）
     assert fresh.is_trading_day(date(2026, 10, 13), wrong) is True     # 誤寫休市 → 仍判交易（不靜默）
     assert fresh.is_trading_day(date(2026, 10, 13), None) is True
+    # 說明一律印 stderr：--guard 的 stdout 會寫進 GITHUB_OUTPUT（2026-10-23 多一行就讓 afterhours 整班當掉）
+    out = capsys.readouterr()
+    assert out.out == "" and "不一致" in out.err
     # 官方表未涵蓋的年份才退回文字（市況寫了日期就只認那一天）
     assert fresh.is_trading_day(date(2030, 3, 5), "> 市況：台股 3/5 因颱風休市｜美股 正常交易") is False
     assert fresh.is_trading_day(date(2030, 3, 5), wrong) is True       # 預告別天休市 → 今天照常交易
+
+
+def test_typhoon_closures_are_closed_days(capsys):
+    # 2026-10-23 薔琵颱風：證交所年度表沒有颱風停止交易，看門狗把休市當交易日、盤後班當掉
+    fresh = importlib.import_module("check_afterhours_fresh")
+    for d in ("2026-07-10", "2026-10-23"):
+        x = date.fromisoformat(d)
+        assert twholidays.is_closed(x) is True and twholidays.is_closed(x, {}) is True
+        assert x in twholidays.closed_days() and d not in twholidays.SEED[2026]
+        assert fresh.is_trading_day(x, "> 市況：台股 正常交易｜美股 正常交易") is False
+    assert (date(2026, 10, 23), "薔琵颱風停止交易", True) in twholidays.upcoming(date(2026, 10, 20))
+    # 還沒補進 ADHOC 的颱風日：只認「那一天、因颱風」——其他理由或別天照舊以官方表為準
+    assert fresh.is_trading_day(date(2026, 10, 13), "> 市況：台股 10/13 因颱風休市｜美股 正常交易") is False
+    assert fresh.is_trading_day(date(2026, 10, 13), "> 市況：台股 10/14 因颱風休市｜美股 正常交易") is True
+    assert capsys.readouterr().out == ""
+    assert twholidays.typhoon_said("10/23 因颱風休市", date(2026, 10, 23))
+    assert not twholidays.typhoon_said("10/23 因颱風提早收盤", date(2026, 10, 23))
+    assert not twholidays.typhoon_said("10/26 因光復節補假休市", date(2026, 10, 26))
+    assert not twholidays.typhoon_said(None, date(2026, 10, 23))
 
 
 def test_dashboard_closed_days_use_official_table():
@@ -114,8 +136,12 @@ def test_check_reports_holiday_gate():
     assert check._check_calendar_holidays(ok, "c.md", "2026-10-26") == []
     missed = head.format(tw="正常交易")
     assert any("10/26 台股休市" in e for e in check._check_calendar_holidays(missed, "c.md", "2026-10-26"))
-    wrong = "# 本週重點財經行事曆（10/12–10/16）\n> 更新：2026/10/13；市況：台股 10/14 因颱風休市｜美股 正常交易\n"
+    wrong = "# 本週重點財經行事曆（10/12–10/16）\n> 更新：2026/10/13；市況：台股 10/14 因中秋節休市｜美股 正常交易\n"
     assert any("官方表該日為交易日" in e for e in check._check_calendar_holidays(wrong, "c.md", "2026-10-13"))
+    typhoon = wrong.replace("中秋節", "颱風")                    # 颱風停止交易不在年度表上 → 不擋
+    assert check._check_calendar_holidays(typhoon, "c.md", "2026-10-13") == []
+    real = "# 本週重點財經行事曆（10/19–10/23）\n> 更新：2026/10/23；市況：台股 10/23 因颱風休市｜美股 正常交易\n"
+    assert check._check_calendar_holidays(real, "c.md", "2026-10-23") == []
     future = "# 本週重點財經行事曆（03/04–03/08）\n> 更新：2030/03/04；市況：台股 正常交易\n"
     assert check._check_calendar_holidays(future, "c.md", "2030-03-04") == []   # 未涵蓋年份 fail-open
 

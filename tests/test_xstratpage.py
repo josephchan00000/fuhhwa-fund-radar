@@ -117,31 +117,20 @@ def test_payload_and_detail_from_real_results():
     json.dumps(dt, ensure_ascii=False)
 
 
-def test_board_lists_only_good_strategies_with_actions():
-    R = X.run_all()
-    for mk in S.MARKETS:
-        for it in P.board(mk, R):
-            r = R[mk][it["id"].split(":")[2]]
-            assert r["tier"] == "good" and P.side(r) == it["side"]
-            li = P.board_li(it)
-            _, mk_, k_ = it["id"].split(":")
-            assert f'href="x9.html#v=mac&amp;m={mk_}&amp;x={k_}"' in li and ">策略<" in li   # 點了到策略頁・總經策略那一條（docs/lab_strategy_ia_plan.md）
-    fake = {"tw": {"rsi2": {**R["tw"]["rsi2"], "tier": "ref"}}}
-    assert P.board("tw", fake) == []                              # ● 不列
-
-
-def test_chip_every_market():
-    R = X.run_all()
-    for mk in S.MARKETS:
-        c = P.chip(mk, R)
-        assert "10 個月均線" in c and f"x9.html#v=mac&amp;m={mk}&amp;x=faber" in c
-        assert re.search(r"<i>(持有|空手|要買回|要賣出)</i>", c)
-    assert P.chip("tw", {}) == ""
+def test_market_page_no_longer_lists_strategies():
+    """2026-10-23（docs/lab_ia_v5_plan.md 第 14 節第 4 點）：市場頁今天的訊號不列總經策略（它是動作，放配置頁的策略表），
+    頂端也不再放 10 個月均線；原本的 board／chip／summary_line／today_line 拿掉。"""
+    import inspect
+    from arm.lab import heatpage as HP
+    for gone in ("board", "board_li", "chip", "summary", "summary_line", "today_line"):
+        assert not hasattr(P, gone), gone
+    src = inspect.getsource(HP.view)
+    assert "xsb" not in src and "xschip" not in src and "xsl" not in src and not hasattr(HP, "state_line")
 
 
 def test_mr_chip_only_taiwan_and_flags_below_level():
-    """最上面那一行的融資維持率（docs/lab_crash_plan.md 第 22 節）：只有台股；跌破 140% 才換成警示的樣子。"""
-    from arm.lab import heatpage as HP
+    """融資維持率那一格（docs/lab_crash_plan.md 第 22 節；2026-10-23 起在台股市場頁面向那一塊的標題列）：只有台股；
+    跌破 140% 才換成警示的樣子。"""
     R = X.run_all()
     c = P.mr_chip("tw", R)
     n = R["tw"]["mmr"]["now"]
@@ -153,13 +142,12 @@ def test_mr_chip_only_taiwan_and_flags_below_level():
     assert P.mr_chip("tw", {}) == ""
     low = {"tw": {"mmr": {**R["tw"]["mmr"], "now": {**n, "mr": 135.0}}}}
     assert "stc stx" in P.mr_chip("tw", low) and "135.0%" in P.mr_chip("tw", low)
-    sl = HP.state_line({"dims": {}, "mrchip": c, "mk": "tw"})
-    assert "融資維持率" in sl
+    from arm.lab import heatviz as VZ
+    head = VZ._face_head({"mk": "tw", "asof": "2026-10-22", "mrchip": c})          # 台股市場頁面向那一塊的標題列
+    assert c in head and VZ._face_head({"mk": "tw", "asof": "2026-10-22"}).count("融資維持率") == 0
 
 
 def test_pages_wire_strategies():
-    from arm.lab import heatpage as HP
-    from arm.lab import heatviz as VZ
     from arm.lab import sigpage as SP
     assert SP.IND_CATS["xs"] == "總經策略"
     for f in ("function xsPanel", "function xsFill", "function xsLoad", "function xsEq", "function xsTr", "function xsCsv"):
@@ -168,17 +156,9 @@ def test_pages_wire_strategies():
     assert "fetch('x9xh.json')" in P.PANEL_JS and "OCC" not in P.PANEL_JS and "SG." not in P.PANEL_JS
     assert ".xsg{" in SP.CSS and ".xsseg" in SP.CSS
     R = X.run_all()
-    V = {"rows": [], "on": {}, "xs": R, "items": {}, "asof": {}, "today": {}, "stk": [], "bases": {}}
+    V = {"rows": [], "on": {}, "xs": R, "items": {}, "asof": {}, "bases": {}}
     pj = json.loads(SP.page_json(V).replace("<\\/", "</"))
     assert set(pj["xs"]["m"]) == set(S.MARKETS) and pj["xs"]["tm"] == S.TIER_MARK and set(pj["xs"]["mkn"]) == set(S.MARKETS)
     dj = json.loads(SP.detail_json(V))
     assert "xs" not in dj                                                    # 淨值與每一筆在 x9xh.json（xspage 寫）
     assert len(P.detail(R)) == sum(len(v) for v in R.values())
-    # 景氣頁：今天的重點的策略列、最上面那一行的 10 個月均線
-    T = {"up": [], "warn": [], "d": "2026-10-19", "thermo": []}
-    item = {"id": "xs:spx:rsi2", "side": "up", "name": "RSI(2) 超賣反彈", "st": "hold", "now": "持有中：…", "line": "過去 309 筆：…",
-            "grp": "短線（幾天）"}
-    h = VZ.today_html({"sigtoday": T, "xsb": [item]})
-    assert "x9.html#v=mac&amp;m=spx&amp;x=rsi2" in h and "1 個策略" in h and "tzs" in h
-    sl = HP.state_line({"dims": {}, "xschip": P.chip("spx", R), "mk": "spx"})
-    assert "10 個月均線" in sl

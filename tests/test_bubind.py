@@ -267,13 +267,13 @@ def test_hist_data_renames_fuel_and_keys_are_stable(sec):
 def test_page_embeds_industry_charts_and_nav():
     from tests.test_bubpage import _market, _research
     V = {"asof": "2026-10-16", "M": {"tw": _market("台股", "加權指數", 2, ["P1"])}, "R": _research(), "I": _I(), "IR": _R()}
-    html = BP.render(V)
-    assert '<a href="#ind">產業</a>' in html and html.index('id="tw"') < html.index('id="ind"') < html.index('id="types"')
-    D = json.loads(re.search(r'<script type="application/json" id="bubd">(.*?)</script>', html, re.S).group(1))
+    html = BP.research_body(V)                                                               # 研究紀錄頁（段落 id 加 bub-）
+    assert '<a href="#bub-ind">產業</a>' in html and html.index('id="bub-tw"') < html.index('id="bub-ind"') < html.index('id="bub-types"')
+    D = json.loads(BP.research_data(V))
     assert {"tw", "@t0", "@t1", "@t2", "@u0"} <= set(D)
-    assert "Object.keys(D).filter(k => k[0] !== '@').forEach(draw)" in html                 # 產業圖展開才畫
+    assert "Object.keys(D).filter(k => k[0] !== '@').forEach(draw)" in BP.JS                # 產業圖展開才畫
     assert '<div class="bhw"><div class="bh" id="h-tw">' in html                            # 提示框跟著圖定位
-    assert "mk[0] === '@' ? '產業指數'" in html
+    assert "mk[0] === '@' ? '產業指數'" in BP.JS
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="沒有 node")

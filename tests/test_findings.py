@@ -192,7 +192,7 @@ def test_research_section_layout_and_js():
     assert h.index('<h2>研究結論') < h.index('id="rmk"') < h.index('class="rfm"') < h.index('id="rfull"') < h.index('id="rbox"')
     assert h.count('class="rfm"') == 2 and h.count(" hidden>") >= 1
     assert "研究細節" not in h and "各市場的研究卡" not in h
-    for k in ("function rfShow(", "RPEND", "rfShow(m[1]); if (m[2]) loadR(m[1], m[2])", "addEventListener('toggle'"):
+    for k in ("function rfShow(", "RPEND", "rfShow(q[0]); if (q[1]) loadR(q[0], q[1])", "addEventListener('toggle'"):
         assert k in SP.JS, k
 
 
@@ -269,3 +269,5 @@ def test_market_html_with_tilt_has_eight_cards():
     assert h.count('<article class="rfc') == 8
     nums = re.findall(r'<div class="rfq"><i>(\d+)</i>', h)
     assert nums == [str(i) for i in range(1, 9)]
+
+

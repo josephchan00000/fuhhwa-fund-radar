@@ -395,7 +395,8 @@ def _check_calendar_holidays(md: str, rel: str, date_iso: str) -> list[str]:
             src = "證交所官方表" if d.year in years else "人事行政總處辦公日曆（證交所表未公告）"
             errs.append(f"{rel}：{src} {d:%m/%d} 台股休市（{names.get(d, '休市')}），"
                         "市況「台股」欄沒寫——照提示包【交易日曆錨定】的官方休市表寫")
-        elif said and off is False:
+        elif said and off is False and not twholidays.typhoon_said(seg, d):
+            # 颱風停止交易不在年度表上（2026-10-23 薔琵颱風）：寫明「因颱風休市」的日子不擋，查證後補進 twholidays.ADHOC
             errs.append(f"{rel}：市況「台股」欄寫 {d:%m/%d} 休市，證交所官方表該日為交易日——勿自行推算假日")
     return errs
 

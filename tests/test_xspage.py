@@ -1,7 +1,6 @@
 """舊的大神策略頁（arm/lab/xspage.py）：2026-10-22 起只剩轉址頁＋淨值與每一筆（x9xh.json）；
-策略頁・總經策略的進入點（景氣頁、訊號總覽）都連到 x9.html#v=mac（docs/lab_strategy_ia_plan.md）。"""
+策略頁・總經策略的進入點（市場頁、全部指標）都連到 x9.html#v=mac（docs/lab_strategy_ia_plan.md）。"""
 import json
-import re
 import shutil
 import subprocess
 
@@ -58,37 +57,16 @@ def test_build_writes_detail_and_keeps_old_files_when_empty(R, tmp_path, monkeyp
 
 
 def test_entry_points_link_to_strategy_page(R):
-    """景氣頁今天的重點下面一行、10 個月均線與融資維持率兩格、訊號總覽的面板與說明都連到策略頁・總經策略。"""
+    """融資維持率那一格（台股市場頁面向標題列）、全部指標的策略面板與說明都連到策略頁・總經策略。
+    市場頁今天的訊號 2026-10-23 起不再列總經策略（docs/lab_ia_v5_plan.md 第 14 節第 4 點）。"""
     from arm.lab import heatviz as VZ
     from arm.lab import sigpage as SP
-    line = P.summary_line("tw", R)
-    q = P.summary("tw", R)
-    assert line.startswith('<a href="x9.html#v=mac&amp;m=tw">') and f"總經策略 {q['n']} 條" in line and f"★ 好策略 {q['good']} 條" in line
-    assert q["n"] == len(R["tw"]) and P.summary("tw", {}) is None and P.summary_line("tw", {}) == ""
     assert P.link("spx") == "x9.html#v=mac&m=spx" and P.link("tw", "mmr") == "x9.html#v=mac&m=tw&x=mmr"
     T = {"up": [], "warn": [], "d": "2026-10-21", "thermo": []}
-    h = VZ.today_html({"sigtoday": T, "xsl": line})
-    h0 = VZ.today_html({"sigtoday": T})
-    assert f'<p class="tzm">{line}</p>' in h and "x9.html#v=mac" not in h0
-    assert 'href="x9.html#v=mac&amp;m=tw&amp;x=faber"' in P.chip("tw", R) and 'href="x9.html#v=mac&amp;m=tw&amp;x=mmr"' in P.mr_chip("tw", R)
+    assert "x9.html#v=mac" not in VZ.today_html({"sigtoday": T})
+    assert 'href="x9.html#v=mac&amp;m=tw&amp;x=mmr"' in P.mr_chip("tw", R)
     assert "在策略頁看" in P.PANEL_JS and "XSHOME" not in P.PANEL_JS and "XSHOME" not in SP.JS
     assert "x9.html#v=mac&amp;m='" in P.PANEL_JS
     assert 'href="x9.html#v=mac">策略頁的總經策略</a>' in SP.method_html()
-    for src in (SP.JS, SP.method_html(), P.PANEL_JS, line):
+    for src in (SP.JS, SP.method_html(), P.PANEL_JS):
         assert "x9x.html" not in src and "大神策略頁" not in src
-
-
-def test_overview_today_list_has_one_strategy_line_per_market(R):
-    """訊號總覽「今天有效的好訊號」：總經策略每個市場縮成一行，連到策略頁那個市場；卡片裡只列訊號。"""
-    from arm.lab import sigpage as SP
-    asof = {mk: max(r["now"]["d"] for r in M.values()) for mk, M in R.items() if M}
-    V = {"today": {mk: {"good": []} for mk in asof}, "asof": dict(asof), "xs": R, "stk": []}
-    h = SP.today_html(V)
-    assert len(re.findall(r'<p class="sgxs"><a href="x9\.html#v=mac&amp;m=\w+">總經策略', h)) == len(asof) and "策略・" not in h
-    for mk in asof:
-        its = P.board(mk, R)
-        line = P.today_line(mk, R)
-        assert line in h
-        assert all(f"{it['name']} {P.TAG[it['st']]}" in line for it in its)
-        assert ("看每一條現在持有還是空手" in line) == (not its)
-    assert P.today_line("tw", {}) == ""

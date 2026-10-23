@@ -71,6 +71,101 @@ def test_account_rollover_limit_up_and_liquidation():
     assert acc["units"][1]["to"] == pytest.approx(0.0)                      # 續抱 A 只減碼、沒有買進
 
 
+def _rand_panel(seed: int, n: int = 6, T: int = 80):
+    """亂數價格：偶爾沒有成交、漲停開盤、整天鎖跌停（測帳戶的各種分支）。"""
+    import random
+    rnd = random.Random(seed)
+    s = {}
+    for k in range(n):
+        c, o, cl, h, lo = 100.0, [], [], [], []
+        for _ in range(T):
+            r = rnd.random()
+            if r < 0.03:
+                o.append(None), cl.append(None), h.append(None), lo.append(None)
+                continue
+            if r > 0.97:
+                v = round(c * 0.9, 2)
+                o.append(v), cl.append(v), h.append(v), lo.append(v)
+                c = v
+                continue
+            op = c * 1.1 if r < 0.06 else c * (1 + rnd.uniform(-0.04, 0.04))
+            nc = op * (1 + rnd.uniform(-0.05, 0.05))
+            o.append(round(op, 2)), cl.append(round(nc, 2)), h.append(round(max(op, nc) * 1.01, 2)), lo.append(round(min(op, nc) * 0.99, 2))
+            c = nc
+        s[f"S{k}"] = {"o": o, "c": cl, "h": h, "l": lo}
+    P = _P({}, T)
+    P.s, P.codes = s, sorted(s)
+    return P, sorted(s)
+
+
+def test_account_matches_pre_fix_reference_without_overlap():
+    """2026-10-23 修正重疊的算法：兩期不重疊（相連續抱、隔開、無效的期、漲停、鎖跌停、沒有成交、開高不追、停損）時，
+    每期報酬、淨值曲線、逐筆紀錄都要和修正前的寫法（tests/_acct_ref.py）逐位相同。"""
+    import random
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent))
+    from _acct_ref import account_ref
+    from arm.lab import optim as O
+    for seed in range(60):
+        P, cs = _rand_panel(seed)
+        rnd = random.Random(seed * 7 + 1)
+        per, t = [], rnd.randint(0, 5)
+        while t < P.T - 3:
+            x = min(P.T - 1, t + rnd.randint(2, 12))
+            per.append((t, x, rnd.sample(cs, rnd.randint(1, 4)) if rnd.random() > 0.05 else []))
+            t = x + rnd.choice([0, 0, 0, 1, 3, 5])
+        for mult in (0.0, 1.0, 2.0):
+            for limit in (True, False):
+                for g, st in ((None, None), (0.03, None), (None, 0.08)):
+                    la, lb = [], []
+                    a = account_ref(P, per, "M", mult=mult, limit=limit, gap=g, stop=st, log=la)
+                    b = O.account_v(P, per, "M", mult=mult, limit=limit, gap=g, stop=st, log=lb)
+                    assert a == b and la == lb, (seed, mult, limit, g, st)
+                    if g is None and st is None:
+                        c = bt3.account(P, per, "M", mult=mult, limit=limit)
+                        assert c["curve"] == a["curve"]
+                        assert c["units"] == [{k: v for k, v in u.items() if k not in ("gap", "stop")} for u in a["units"]]
+
+
+def test_account_overlap_splits_capital_instead_of_counting_twice():
+    """兩期重疊（財報驚喜年報那一期和第一季那一期）：新一期開盤時兩期各一半，先到期的賣掉、隔天開盤加進另一期。
+    每期自己的報酬不變；整個帳戶不再用後一天的錢買前一天的股票（修正前多算 30%）。"""
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent))
+    from _acct_ref import account_ref
+    T = 18
+    A = ([10 + i for i in range(T)], [10.5 + i for i in range(T)])
+    B = ([20 + 2 * i for i in range(T)], [21 + 2 * i for i in range(T)])
+    P = _P({"A": A, "B": B}, T)
+    per = [(0, 10, ["A"]), (5, 15, ["B"])]
+    acc, ref = bt3.account(P, per, "L", mult=0), account_ref(P, per, "L", mult=0)
+    assert [u["r"] for u in acc["units"]] == pytest.approx([u["r"] for u in ref["units"]])
+    shA = 1.0 / A[0][1]
+    shB = shA / 2 * A[0][6] / B[0][6] + shA / 2 * A[1][10] / B[0][11]       # 第 6 天開盤平分、第 10 天收盤 A 到期、第 11 天開盤加碼 B
+    assert acc["curve"][-1] == (15, pytest.approx(shB * B[1][15]))
+    assert ref["curve"][-1][1] > acc["curve"][-1][1] * 1.2                   # 修正前的寫法多算
+    days = [i for i, _ in acc["curve"]]
+    assert days == sorted(set(days)) and days[0] == 0 and days[-1] == 15     # 一天一點、不倒退
+    for i, v in acc["curve"]:                                                # 每天的淨值＝兩份持股的市值（沒有成本）
+        if 6 <= i <= 10:
+            assert v == pytest.approx(shA / 2 * (A[1][i] + A[0][6] / B[0][6] * B[1][i]))
+
+
+def test_account_overlap_log_keeps_each_list_paired():
+    """重疊的兩期持有同一檔時，逐筆紀錄依「份」排（前一份全部在前），trades.trips 才配得對。"""
+    from arm.lab import trades
+    T = 18
+    P = _P({"A": ([10] * T, [10] * T), "B": ([20 + i for i in range(T)], [20 + i for i in range(T)]),
+            "C": ([30] * T, [30] * T)}, T)
+    log: list = []
+    bt3.account(P, [(0, 10, ["A", "B"]), (5, 15, ["B", "C"])], "L", mult=0, log=log)
+    tp, _ = trades.trips(log)
+    got = sorted((q["c"], q["k0"], q["j"], q["i"]) for q in tp)
+    assert got == [("A", 0, 1, 10), ("B", 0, 1, 10), ("B", 1, 6, 15), ("C", 1, 6, 15)]
+
+
 def test_account_round_trip_cost_and_vs_ew():
     T = 4
     P = _P({"A": ([100] * T, [100] * T), "B": ([100] * T, [100, 100, 102, 104])}, T)

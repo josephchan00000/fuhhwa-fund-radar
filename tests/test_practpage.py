@@ -138,7 +138,7 @@ def test_css_and_js_are_prefixed_and_do_not_collide():
     base = SP.JS.replace(PP.JS, "")
     fn_sg = set(re.findall(r"function (\w+)\(", base))
     assert not (fn_pr & fn_sg)
-    assert "/*@@PRACTICE@@*/" not in SP.JS and "prOpen(m[1], m[2], true)" in SP.JS
+    assert "/*@@PRACTICE@@*/" not in SP.JS and "prOpen(q[0], q[1], true)" in SP.JS
     assert SP.JS.index(PP.JS) < SP.JS.index("draw(); fromHash();")      # 插在初始化之前（否則 #p= 直連會碰到還沒初始化的 const）
 
 

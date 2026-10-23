@@ -6,6 +6,8 @@ name: 籌碼雷達 策略改良每週重跑
 #   · 產出 data/lab/opt_research.json（每日建頁讀）、data/lab/opt_shadow.json（影子版本登記）→ commit 進 main。
 #   · 不重建頁面、不部署：下一班建頁（afterhours／daily）自然帶入。每次約 3～5 分鐘（每月約多 15～20 分 CI）。
 # 影子版本達標只會在每日紀錄（val_log.json）產生事件、隨 06:35 推播第二行通知；你回「好」才換規則（不會自動改）。
+# 2026-10-23 加：飆股前瞻記錄（arm/lab/sxlivespec.py）每年的規則——平常秒退；每年 1 月第一次跑時先補長歷史股價
+#   （v3data，最多 40 分鐘）、涵蓋到去年最後一個交易日後找今年的規則，寫 data/lab/sxlive_rules.json（要 numpy、pandas）。
 
 on:
   schedule:
@@ -22,7 +24,7 @@ permissions:
 jobs:
   opt:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     env:
       TZ: Asia/Taipei
     steps:
@@ -34,11 +36,14 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: 安裝相依（純標準庫 + certifi）
-        run: pip install --quiet certifi
+      - name: 安裝相依（certifi；numpy、pandas 給飆股前瞻記錄找年度規則）
+        run: pip install --quiet certifi && (pip install --quiet numpy pandas || echo "::warning::numpy／pandas 安裝失敗——飆股前瞻記錄的年度規則本週不找")
 
       - name: 改良候選重跑
         run: python3 scripts/run_opt.py
+
+      - name: 飆股前瞻記錄：今年的規則（平常秒退；每年 1 月第一次才補股價、找規則）
+        run: timeout 3600 python3 scripts/run_sxlive_rules.py --auto --refresh-min 40 || echo "::warning::飆股前瞻記錄的年度規則沒有找成——下週一再試；1/20 之後 pytest 會紅"
 
       - name: commit 結果（進 main）
         run: |
@@ -46,7 +51,11 @@ jobs:
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
           git add -f data/lab/opt_research.json 2>/dev/null || true
           git add -f data/lab/opt_shadow.json 2>/dev/null || true     # 分開 add：缺檔時不連累上一行
-          git commit -m "chore: 籌碼雷達策略改良每週重跑 $(date +%F)" || { echo "無變更"; exit 0; }
+          git add -f data/lab/sxlive_rules.json 2>/dev/null || true   # 飆股前瞻記錄的年度規則（平常沒變）
+          for d in v3px v3me_tw v3me_tp v3div v3eps v3isq rev v3_tr.json; do   # 1 月補的長歷史股價（平常沒變）
+            git add -f "data/lab/$d" 2>/dev/null || true
+          done
+          git commit -q -m "chore: 籌碼雷達策略改良每週重跑 $(date +%F)" || { echo "無變更"; exit 0; }
           for i in 1 2 3; do
             git push origin HEAD:main && exit 0
             echo "push 被拒（第 $i 次），rebase 後重試…"
