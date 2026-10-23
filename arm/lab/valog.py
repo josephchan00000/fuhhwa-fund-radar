@@ -17,6 +17,7 @@
          （逐檔策略每檔、其餘每批）第一次低於回測同一持有天數的第 5 百分位。
   shok   影子版本達標（第 6 節）：前瞻滿門檻、贏過現行、回落沒有變差、每週重跑仍是證據強——你回「好」才換。
   sout   影子版本淘汰（第 6 節）：前瞻滿門檻卻沒有贏、回落變差、每週重跑不再是證據強，或現行規則改版。
+  sxl    飆股前瞻記錄（sxlivespec；docs/lab_core70_plan.md 第 14 節）：第一次到半年、一年的檢討日；今年的規則還沒找、卻已經有訊號日。
 """
 from __future__ import annotations
 
@@ -33,7 +34,8 @@ STALE_TD = 2               # 落後幾個交易日算過期
 CLOSE_HM = (14, 30)        # 這個時間之後，今天算已收盤
 EVENT = {"s3"}             # 事件型（以「次」計、A 級門檻 2 次）；財報驚喜另由 src＝p3 判斷
 TYPES = {"grade": "評級變動", "full": "前瞻滿額", "lag": "前瞻落後", "deep": "虧損超過歷史最差",
-         "miss": "該出名單沒出", "stale": "資料過期", "dev": "表現偏離回測", "shok": "影子版本達標", "sout": "影子版本淘汰"}
+         "miss": "該出名單沒出", "stale": "資料過期", "dev": "表現偏離回測", "shok": "影子版本達標", "sout": "影子版本淘汰",
+         "sxl": "飆股觀察"}
 LOW_LIGHT = "明顯低於回測"
 
 
@@ -198,6 +200,32 @@ def events(cur: dict, prev: dict | None, last: str | None, lag: int | None) -> l
     return out
 
 
+def sx_state(L: dict | None) -> dict | None:
+    """飆股前瞻記錄的摘要（sxlive.LAST）→ 存進每天紀錄的部分（只存發提醒要比對的狀態，不存成績）。"""
+    if not L or not L.get("d"):
+        return None
+    return {"due": L.get("due"), "miss": L.get("miss")}
+
+
+def sx_events(L: dict | None, prev: dict | None) -> list[dict]:
+    """第一次到檢討日（半年／一年）、今年的規則還沒找卻已經有訊號日 → 推播第二行（數字取當天的摘要）。"""
+    cur, P = sx_state(L), prev or {}
+    if not cur:
+        return []
+    out = []
+    if cur["due"] and cur["due"] != P.get("due"):
+        v = L.get("v") or {}
+        wan = lambda x: "—" if x is None else f"{100 + x:.1f} 萬"  # noqa: E731
+        name = {"half": "滿半年", "year": "滿一年"}.get(cur["due"], cur["due"])
+        out.append({"k": None, "ty": "sxl", "txt": f"飆股觀察{name}（{_md(L.get('start'))} 起照做 100 萬）：新飆股 {wan(v.get('R60'))}、"
+                    f"舊目標 {wan(v.get('A'))}、頁面飆股 {wan(v.get('R1'))}、大盤 {wan(v.get('TR'))}；回覆「飆股觀察」看細節"
+                    + ("，一年的提議照事前寫好的門檻" if cur["due"] == "year" else "")})
+    if cur["miss"] and cur["miss"] != P.get("miss"):
+        out.append({"k": None, "ty": "sxl", "txt": f"飆股觀察：{cur['miss']} 年的規則還沒找（長歷史股價要先補到去年底），"
+                    "這幾週的新飆股、舊目標先沒記"})
+    return out
+
+
 def push_lines(rec: dict) -> list[str]:
     """06:35 推播多帶的兩行：那一天開盤（與收盤）要做的事；有驗證事件才加第二行。"""
     T = rec.get("todo") or {}
@@ -270,6 +298,14 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
         lag = None
     rec = {"st": st, "lag": lag, "todo": todo(adv)}
     rec["ev"] = events(st, prev, last, lag)
+    try:                                                  # 飆股前瞻記錄（不上頁面；只有提醒）
+        from . import sxlive
+        sx = sx_state(sxlive.LAST)
+        if sx:
+            rec["sx"] = sx
+            rec["ev"] += sx_events(sxlive.LAST, (days.get(prev_d) or {}).get("sx") if prev_d else None)
+    except Exception:                                     # noqa: BLE001 —— 摘要讀不到：不發提醒
+        pass
     rec["push"] = push_lines(rec)
     old = days.get(last) or {}
     if {k: v for k, v in old.items() if k != "t"} != rec:   # 內容沒變就不動檔（時間戳也不改）
