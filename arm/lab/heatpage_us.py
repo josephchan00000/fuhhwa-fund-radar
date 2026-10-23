@@ -134,7 +134,7 @@ def chart_data(idx: str, B: dict, R: dict) -> dict:
 SWITCH_JS = r"""
 (function () {
 'use strict';
-const METAS = window.HEAT_METAS || {}, ASOF = window.HEAT_ASOF || {}, BOX = document.getElementById('ixc');
+const METAS = window.HEAT_METAS || {}, BOX = document.getElementById('ixc');
 if (!BOX) return;
 const live = BOX.dataset.ix, tpl = {};
 document.querySelectorAll('template[data-ix]').forEach(t => { tpl[t.dataset.ix] = t; });
@@ -148,8 +148,7 @@ function mark() {
     b.classList.toggle('on', on);
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
-  const a = document.getElementById('ix-asof');
-  if (a && ASOF[cur]) a.textContent = '資料到 ' + ASOF[cur];
+  if (window.labLast) window.labLast('mkt', 'x9mu.html#ix=' + cur);   // 頂欄「市場」記住上次看的指數（appnav.NAV_HEAD）
 }
 function show(ix, scroll) {
   if (!tpl[ix] || !METAS[ix]) return;
@@ -186,14 +185,14 @@ _HTML = """<!doctype html>
 <title>美股景氣</title>
 <style>{{CSS}}</style></head>
 <body>
-<div class="top">{{APPTAB}}<span class="asof" id="ix-asof">資料到 {{ASOF}}</span><a class="back" href="./">返回主頁</a></div>
+<div class="top">{{APPTAB}}<a class="back" href="./"><span class="bk1">返回</span>主頁</a></div>
 <div class="vbar">{{MKROW}}</div>
 <div id="ixc" data-ix="{{IX}}">{{LIVE}}</div>
 {{TEMPLATES}}
 {{DRAWER}}{{PANEL}}
 <script type="application/json" id="sgd">{{SGD}}</script>
 <script type="application/json" id="bubd">{{BUBD}}</script>
-<script>window.HEAT_METAS={{METAS}};window.HEAT_ASOF={{ASOFS}};</script>
+<script>window.HEAT_METAS={{METAS}};</script>
 <script>{{SWITCH_JS}}</script>
 <script>{{JS}}</script>
 <script>{{SGJS}}</script>
@@ -211,16 +210,13 @@ def render(pages: dict, default: str = DEFAULT) -> str:
     from . import heatviz as VZ
     j = lambda x: json.dumps(x, ensure_ascii=False, separators=(",", ":"), sort_keys=True).replace("</", "<\\/")  # noqa: E731
     tpls = "".join(f'<template data-ix="{k}">{_content(pages[k])}</template>' for k in U.INDEX_ORDER if k != default and k in pages)
-    with HP.use_market(market(default)):
-        asofs = {k: HP._md(P["asof"]) for k, P in pages.items()}
     G = HP.page_parts([k for k in U.INDEX_ORDER if k in pages])
-    return appnav.finish(_HTML.replace("{{CSS}}", HP._CSS + appnav.CSS + VZ.CSS + G["css"] + G["bcss"]).replace("{{APPTAB}}", appnav.bar("us"))
+    return appnav.finish(_HTML.replace("{{CSS}}", HP._CSS + appnav.CSS + VZ.CSS + G["css"] + G["bcss"]).replace("{{APPTAB}}", appnav.bar("mkt", cur="x9mu.html"))
             .replace("{{MKROW}}", HP.market_row("us")).replace("{{DRAWER}}", VZ.DRAWER).replace("{{PANEL}}", G["panel"])
             .replace("{{SGD}}", G["sgd"]).replace("{{BUBD}}", G["bubd"])
-            .replace("{{ASOF}}", HP._e(asofs.get(default, "—")))
             .replace("{{IX}}", default).replace("{{LIVE}}", _content(pages[default]))
             .replace("{{TEMPLATES}}", tpls).replace("{{METAS}}", j({k: P["meta"] for k, P in pages.items()}))
-            .replace("{{ASOFS}}", j(asofs)).replace("{{SWITCH_JS}}", SWITCH_JS).replace("{{JS}}", VZ.JS + HP._JS)
+            .replace("{{SWITCH_JS}}", SWITCH_JS).replace("{{JS}}", VZ.JS + HP._JS)
             .replace("{{SGJS}}", G["js"] + G["bjs"]))
 
 

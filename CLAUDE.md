@@ -1775,8 +1775,9 @@ CI 從零開始會整片變 —，同 etf_watch 的坑）；`fetch_holdings.py` 
 使用者原話：「把所有 ETF 持有的個股去做分析……從量、成本、加入時間、哪間看好……實務操作可以拿來賺錢的
 深度籌碼跟技術分析」「入口……不想要太容易被看到」。定案：**不用密語、不加密**（使用者：「不用那麼搞剛，
 就沒那麼好找到就好了」）；**入口＝主頁頁尾右下角淡色小點**，**不進導覽列、不在任何分頁出現**（tests/test_lab.py 守）。
-2026-10-18 起小點改連 `x9m.html`（台股景氣頁；使用者：「點那個 . 之後先出現景氣頁面，個股頁面放旁邊」），
-台股景氣（x9m.html）／美股景氣（x9mu.html）／配置（x9.html，本頁，2026-10-23 起；原本的策略、個股兩格合成一格）三格共用頂欄 `arm/lab/appnav.py`（不做窄欄；手機 640px 以下顯示短名 台股｜美股｜配置，`appnav.SHORT`；tests/test_appnav.py 守）。泡沫（x9b.html）、訊號總覽（x9o.html）2026-10-23 起併進兩個景氣頁（市場頁），頂欄拿掉、舊網址留成轉址頁（見「市場頁」專段）；第 4 段再把頂欄改成「市場｜配置」。
+2026-10-18 起小點改連 `x9m.html`（台股景氣頁，2026-10-23 起叫市場頁；使用者：「點那個 . 之後先出現景氣頁面，個股頁面放旁邊」）。
+頂欄 2026-10-23 起只有「市場｜配置」兩格（市場＝台股 x9m.html、美股四個指數 x9mu.html；配置＝x9.html，本頁），右邊小字「研究紀錄・名詞・查公司」，
+共用 `arm/lab/appnav.py`（不做窄欄；見「導覽與入口」專段）。泡沫（x9b.html）、訊號總覽（x9o.html）、大神策略（x9x.html）是轉址頁（見「市場頁」專段）。
 **x9.html 是一頁兩種身分**：配置（台股｜美股｜策略｜個股）與研究紀錄（個股策略｜總經策略｜後台，從 x9r.html 進來）——見下方「配置頁與研究紀錄」專段（2026-10-23）；原大神策略頁 x9x.html 留成轉址頁。
 頁面＝`dashboard/x9.html`（Vercel cleanUrls → `/x9`）。
 券商分點暫不做（使用者：先不做）；海外持股只做 ETF 面；債券型 ETF 整檔排除。
@@ -2395,7 +2396,7 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   **頁面 JS**＝`heatpage._JS`（設定由 `heatpage.meta()` 嵌成 `window.HEAT_META`，`</` 要轉義）；原本瀏覽器端的交互分析計算（`// @@CALC` 段）
   2026-10-20 隨交互分析一起拿掉（`heatrel.group_stats` 研究端照留）。手機：寬表改一項一塊（`table.stk`＋`data-h`）、`.mob`／`.dsk` 切換欄位、
   單項小圖依容器寬度重畫（視窗寬度變 40px 以上會重畫），新表格在 390px 都不橫捲。
-  入口＝主頁頁尾「·」（2026-10-18 起直接連這頁）＋共用頂欄（2026-10-23 起台股景氣｜美股景氣｜配置，`arm/lab/appnav.py`；見「市場頁」節）；主頁導覽列不加入口。`gen_fund_dashboard.py` 在籌碼雷達之後**另外建**（分開失敗）；
+  入口＝主頁頁尾「·」（2026-10-18 起直接連這頁）＋共用頂欄（2026-10-23 起「市場｜配置」，`arm/lab/appnav.py`；見「導覽與入口」節）；主頁導覽列不加入口。`gen_fund_dashboard.py` 在籌碼雷達之後**另外建**（分開失敗）；
   三支 workflow 各兩行 `git add -f dashboard/x9m.html`、各兩行 `git add -f dashboard/x9mh.json`（分開 add；本機都不 commit，同 x9.html）。
   研究檔版本和規格不同（`ver` ≠ `heatspec.VER`，現在是 9）就當沒有（頁面寫「驗證結果還沒產生」，x9mh.json 不帶單項分析與 `m6`）。
 - **規格事前寫定** `arm/lab/heatspec.py`（VER 7＝第六版＋泡沫面向，`tests/test_heat.py` 鎖住；實作細節規劃文件第 12.7、13.9、14.14、15.11 節，泡沫見下一節）：項目、熱的方向、百分位視窗
@@ -3280,7 +3281,8 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   · 配置（頂欄「配置」）＝台股｜美股｜策略｜個股；**個股是工具分頁**，裡面再切 個股｜籌碼｜指數（`cfgpage.toolSeg`，記住上次看哪一個）。
     沒有參數＝台股；舊的 `#s=`／`#co=` 個股卡連結先到個股表（卡片的 ‹ › 換檔要有表）。
   · 研究紀錄＝個股策略（這一期｜規則與成績）、總經策略（同）、後台、名詞；第二排換成「‹ 研究紀錄｜個股策略｜總經策略｜後台｜名詞」，
-    「‹ 研究紀錄」連 x9r.html。舊網址 `#v=mac&m=市場&x=策略`、`?v=opp` 等照樣到得了（xstratpage.HOME 不用改）；新的 `?v=分頁&at=段落`、`?v=bo#gl`（名詞）。
+    「‹ 研究紀錄」連 x9r.html。舊網址 `#v=mac&m=市場&x=策略`、`?v=opp` 等照樣到得了（xstratpage.HOME 不用改）；新的 `?v=分頁&at=段落`、`?v=bo#gl`（名詞）、
+    `#q`（到個股工具並打開查公司，別頁頂欄小字「查公司」連過來；第 4 段）。
   · 頁首的目的句（`.purp`）拿掉（第 8 節第 1 條）。
 - **配置的台股、美股頁**（`arm/lab/cfgpage.py`，CSS class 一律 cf／b 開頭、JS 函式 cf／vCfg 開頭；資料 `D.cfg`）：每頁三塊——
   ①「時程與水位」一張卡：四格（待買進｜持有中｜股票水位｜警訊）→ 70／30 長條（長抱 70%＋機動三成的分配；手機名稱寫在長條下一行）
@@ -3362,6 +3364,36 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
 - **測試 `tests/test_plain.py`**：用真的資料建頁（約 3 分鐘），無頭瀏覽器打開所有收起的段落、每一個右側面板與指標面板（台股每一個、美股每 3 個），
   讀畫面上的字掃上面這些詞。CI 不跑 pytest——**改主頁面的字之後自己跑這支**；JS 裡組出來的字也掃得到（看的是畫面，不是原始碼）。
   第一次跑就抓到泡沫訊號定義裡的「判定」（舊的掃描只抽三分之一的列，漏掉）——別為了快把台股改成抽樣。
+
+## 「導覽與入口」（2026-10-23 IA v5 第 4 段；`docs/lab_ia_v5_plan.md` 第 2、10、22 節）
+
+照核准過的示意圖（第 18 節）：**頂欄只剩「市場｜配置」兩格**，右邊小字「研究紀錄・名詞・查公司」，再來是深淺色鈕與返回主頁。
+- **頂欄**（`arm/lab/appnav.py`：`TABS`、`bar(page, cur, search)`、`links()`）：市場＝台股 x9m.html（美股頁 `cur="x9mu.html"`）、配置＝x9.html；
+  每格帶 `data-k`（mkt／cfg）；研究紀錄頁（`bar("r")`）兩格都不亮、小字「研究紀錄」標 `aria-current`。主分頁不放研究紀錄、泡沫、訊號總覽、策略。
+  原本頂欄的「資料到…」拿掉：市場頁的面向標題有日期；配置頁的資料日（`page.asof_line` → `D.asl`）放在個股工具那一列（`cfgpage.toolSeg`）。
+- **名詞**：市場頁＝`x9r.html#mth`（名詞與判定方式）；配置頁＝頁內名詞面板（`.glk` → `openGl()`）；研究紀錄頁＝這頁的「名詞」段（兩份名詞都列）。
+- **查公司**：配置頁＝點小字打開搜尋框（`copage.SEARCH_HTML` 放在小字那一組裡、`id="cos" hidden`；`.cos` 貼齊頂欄右邊，手機寬度＝頂欄寬、
+  輸入框 16px 免得 iPhone 點進去整頁放大；Esc 或點別處關掉）；其他頁連 `x9.html#q`（到個股工具並打開搜尋框）。
+- **兩格各記住上次看到哪裡**（`appnav.NAV_HEAD`，localStorage `labLast`）：市場格記 `x9m.html`／`x9mu.html#ix=指數`（美股頁 SWITCH_JS 換指數時記），
+  配置格記 `x9.html`／`x9.html?v=us|strat|stk|chip|idx`（`page.urlSet`，研究紀錄身分不記）。畫面出來後沒亮的那一格改連到上次位置、
+  亮的那一格紀錄不是這一頁就記成這一頁；只收這幾種寫法（正規式），讀寫失敗就用預設（台股、配置台股）。
+  x9.html 的「配置」格點了是頁內切換（`$$('.apptab a[data-k="cfg"]')`，研究紀錄身分時讀它的 href 切到上次的配置分頁）。
+- **手機**：640px 以下深淺色鈕只留圖示、返回主頁寫「主頁」（`appnav.BACK` 的 `.bk1`）；360px 以上一列放得下；359px 以下小字換到第二列靠右。
+- **舊網址**（第 10 節第 4 段驗收「六個舊網址都轉得到」）：改版前頂欄六格＋大神策略頁——x9m.html、x9mu.html（同一頁，市場）、x9b.html（市場頁最下面的泡沫；
+  `#tw`／`#ndx` 那個市場、`#ind`… 研究紀錄）、x9o.html（市場頁；`#s=`／`#i=` 那個市場的指標面板、`#r=`／`#p=` 研究紀錄）、x9.html#v=mac（舊「策略」＝研究紀錄・總經策略）、
+  x9.html（舊「個股」＝配置；個股在工具分頁）、x9x.html（總經策略）；`#s=代號`、`#co=代號`、`#gl`、`?v=opp`、`?v=bo&at=…`、`#v=compass` 照舊。
+  `tests/test_old_urls.py` 用無頭瀏覽器逐一打開（24 個網址），另測頂欄記憶與手機寬度 320～414px。
+- **整站建頁的測試夾具** `tests/conftest.py` 的 `labsite`（session scope：照每天建頁的順序建配置、市場、轉址、研究紀錄頁，整個測試只建一次約 3 分鐘；
+  `test_plain.py`、`test_old_urls.py` 共用）。CI 不跑 pytest——**改頂欄、網址、轉址之後自己跑這兩支**。
+- 主頁頁尾的「·」照舊連 x9m.html（市場・台股）；tests/test_lab.py 守入口只在頁尾。
+- **配置頁要載入 corepage 的樣式**（`page.render` 的 CSS 有 `corepage.CSS`；「細節」放的是 corepage 的圖表與表格）——第 1 段漏了，
+  打開細節時圖是整片黑塊、兩張圖一起出現、表把整頁撐成 1,213px 寬，到第 4 段量手機寬度才發現。**把別的模組的 HTML 搬進一頁時，樣式要一起帶**；
+  `tests/test_old_urls.py` 會在手機寬度把收起來的段落全部打開，檢查不左右捲、圖有樣式。
+- **排程搬家（第 10 節第 4 段：「Routine 的分支要有新程式」）**：push 觸發的 daily.yml 用「被推分支」上的 workflow 檔（見「全部更新」步驟 9⑦），
+  所以要看排程綁定會話的分支有沒有新程式。2026-10-23 查：五個復華排程都綁在 10/16 開的視窗（分支 `claude/exciting-cerf-isj9q7`），
+  它從 10/17 起**每天 06:36 先把 origin/main 合併進分支**才寫新聞（`git log --first-parent` 每天一筆 merge main），10/24 那班已含第 1～3 段；
+  第 4 段也沒有改 workflow 的 `git add` 清單。所以這次不必搬家。哪天它的分支停止合併 main（first-parent 歷史上沒有 merge main），
+  新加進 workflow 的檔就不會被那一班 commit，那時再做「排程搬家」（並重設 `/model`）。
 
 ## 「策略頁：總經策略／個股策略」（2026-10-22；規劃、使用者決定、分段 `docs/lab_strategy_ia_plan.md`）
 
@@ -3531,12 +3563,12 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
     相鄰兩條色弱 ΔE ≥ 9，數字在規劃第 9 節）。山頂與谷底畫成「門檻線到山脊之間」的多邊形，不用 clip——只看一條時其他條半透明，clip 會露出整片藍。
   · 配色：`heatpage._CSS` 淺色 `:root`＋`@media (prefers-color-scheme:dark)` 深色；SVG 用 class 上色，**不把 `var()` 寫進 SVG 屬性**（Safari 不支援）。
   · **日夜間按鈕**（2026-10-21；使用者 10/20：「日夜間模式我希望可以按鈕轉換」，選自動 → 淺色 → 深色三段；`docs/lab_noise_plan.md` 第 5、11 節）：
-    六頁頂欄「返回主頁」前一顆按鈕（`appnav.THEME_BTN`），選擇記在這台瀏覽器（localStorage `labTheme`，回到自動就刪掉）；`<head>` 一小段程式
-    （`appnav.THEME_HEAD`）在畫面出來之前套上 `data-theme`。**六頁的 render 一律 `return appnav.finish(…)`**：把 `<head>` 樣式裡每一段
+    頂欄「返回主頁」前一顆按鈕（`appnav.THEME_BTN`；2026-10-23 起有頂欄的是台股市場頁、美股市場頁、配置、研究紀錄四頁），選擇記在這台瀏覽器（localStorage `labTheme`，回到自動就刪掉）；`<head>` 一小段程式
+    （`appnav.THEME_HEAD`）在畫面出來之前套上 `data-theme`。**四頁的 render 一律 `return appnav.finish(…)`**（finish 也放「記住上次位置」的 `NAV_HEAD`）：把 `<head>` 樣式裡每一段
     `@media (prefers-color-scheme:dark){…}` 改寫成「系統深色而且沒選淺色」（`:root:not([data-theme="light"])`）與「選了深色」
     （`:root[data-theme="dark"]`）兩份（`appnav.dual_dark`），所以**新的深色樣式照舊寫在 media 裡就好**，不用自己寫兩份。
     用程式算顏色的圖要聽 `labtheme` 事件重畫（現在＝景氣頁 3D 地形、個股頁資金地圖／時間軸／位置圖）。主頁（復華雷達）不用這支。
-    `tests/test_appnav.py` 守 dual_dark 與六頁都經過 finish。
+    `tests/test_appnav.py` 守 dual_dark 與四頁都經過 finish。
 - **個股頁（x9；`arm/lab/stockviz.py`＋page／copage 配色）**
   · 深淺配色同上做法；page／copage 圖表 JS 裡寫死在 SVG 屬性的顏色不改程式，由 `page.THEME_HEX`＋`theme_css()` 用屬性選擇器
     （`svg [fill="#d33a34"]{fill:var(--gain)}`）換成變數——SVG 屬性是優先順序最低的樣式，各瀏覽器都蓋得過。**新寫死的顏色要補進表**（tests 守）。

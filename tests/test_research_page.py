@@ -15,13 +15,15 @@ EMPTY = {"SV": {"rows": []}, "BV": {"M": {}}}                                  #
 def test_page_has_toc_groups_and_shared_bar():
     h = RP.render(**EMPTY)
     assert h.startswith("<!doctype html>") and "<title>研究紀錄</title>" in h
-    assert appnav.bar("") in h and 'aria-current="page"' not in h.split("</nav>", 1)[0]   # 不在頂欄：沒有一格亮
+    assert appnav.bar("r") in h and 'aria-current="page"' not in h.split("</nav>", 1)[0]   # 不在頂欄的分頁：兩格都不亮
+    assert '<a href="x9r.html" aria-current="page">研究紀錄</a>' in h                          # 右邊小字標出目前在研究紀錄
     assert 'id="thm"' in h                                                        # 深淺色按鈕（appnav.finish）
     for gid, title, _, items in RP.GROUPS:
         assert f'<section class="rsec" id="{gid}"><h2>{title}</h2>' in h and f'<a href="#{gid}">{title}</a>' in h
         for n, u, _ in items:
             assert f'<a href="{u.replace("&", "&amp;")}">{n}</a>' in h, n
-    assert "x9r.html" not in appnav.bar("cfg")                                     # 頂欄不放研究紀錄
+    tabs, small = appnav.bar("cfg").split("</nav>", 1)
+    assert "x9r.html" not in tabs and '<a href="x9r.html">研究紀錄</a>' in small       # 研究紀錄不是頂欄的分頁，是右邊小字
 
 
 def test_links_into_x9_match_views_and_sections():

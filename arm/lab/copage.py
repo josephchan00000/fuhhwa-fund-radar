@@ -6,7 +6,7 @@
 """
 
 CSS = r"""
-.cos{position:relative;flex:0 1 240px;min-width:150px}
+.top{position:relative}.top .applk{position:static}.cos{position:absolute;right:16px;top:calc(100% + 2px);z-index:60;width:min(340px,calc(100% - 32px));padding:8px;background:var(--bg);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px var(--shadow);white-space:normal}.cos[hidden]{display:none}.cos .coqd{left:8px;right:8px;top:calc(100% - 4px)}
 .cos input{width:100%;padding:5px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;font-size:13.5px;background:var(--card2)}
 .coqd{position:absolute;right:0;left:0;top:100%;z-index:40;background:var(--bg);border:1px solid var(--line);border-radius:10px;
   box-shadow:0 8px 24px rgba(20,30,50,.12);margin-top:4px;max-height:320px;overflow:auto}
@@ -35,7 +35,7 @@ CSS = r"""
 .fcev{list-style:none;margin:6px 0 0;padding:0}.fcev li{padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}.fcev li span:first-child{display:inline-block;min-width:3.6em;color:var(--mut)}
 .qt tr.me td{background:var(--hlbg)}.qt .sm2{font-size:12px;color:var(--mut)}.sxt a.fcl{display:block;color:var(--ink2);cursor:pointer}.sxt a.fcl:hover{color:var(--acc);text-decoration:underline}
 .fcev a{margin-left:4px;font-size:12px}
-@media (max-width:640px){.cgrid{grid-template-columns:minmax(0,1fr)}.co5 .r{grid-template-columns:2.6em 2.8em 54px minmax(0,1fr)}.cos{flex-basis:100%;order:4}
+@media (max-width:640px){.cos{right:12px;width:calc(100% - 24px)}.cos input{font-size:16px}.cgrid{grid-template-columns:minmax(0,1fr)}.co5 .r{grid-template-columns:2.6em 2.8em 54px minmax(0,1fr)}
   .chk li{grid-template-columns:1.4em minmax(0,1fr)}.chk .hr{grid-column:2;text-align:left;white-space:normal}
   .sxt .hm{display:none}.sxt .mo{display:block}}
 """
@@ -349,7 +349,15 @@ function coAfterStock(c){if(COJ!==c)return;const done=CO[c]&&(MT||MTERR)&&(FC||F
   q.addEventListener('focus',()=>{coIdx().then(show,()=>{dd.innerHTML='<a>代號表暫時無法載入</a>';dd.hidden=false;});mtLoad().catch(()=>{});});
   q.addEventListener('input',show);q.addEventListener('blur',()=>setTimeout(()=>dd.hidden=true,150));
   q.addEventListener('keydown',e=>{if(dd.hidden||!hits.length)return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();sel=(sel+(e.key==='ArrowDown'?1:hits.length-1))%hits.length;$$('#coqd a').forEach((a,i)=>a.classList.toggle('on',i===sel));}
-    else if(e.key==='Enter'){e.preventDefault();pick(hits[sel][0]);}});})();
+    else if(e.key==='Enter'){e.preventDefault();pick(hits[sel][0]);}});
+  /* 頂欄小字「查公司」：點一下打開搜尋框、再點或按 Esc 關掉；別頁頂欄連過來（x9.html#q）就直接打開 */
+  const box=$('#cos'),btn=$('.coqb');if(!box||!btn)return;
+  const op=()=>{box.hidden=false;btn.setAttribute('aria-expanded','true');q.focus();},
+    cl=()=>{box.hidden=true;dd.hidden=true;btn.setAttribute('aria-expanded','false');};
+  btn.addEventListener('click',e=>{e.preventDefault();if(box.hidden)op();else cl();});
+  q.addEventListener('blur',()=>setTimeout(()=>{if(document.activeElement!==q)cl();},160));
+  q.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();cl();btn.focus();}});
+  if(location.hash==='#q')op();})();
 /* ---- 機會頁「飆股候選」（superx 研究規則；docs/lab_company_plan.md 第 4.6 節） ---- */
 /* 注意：機會頁一打開就會呼叫 sxSec，這段 JS 接在頁面主程式後面——頂層 const 那時還沒初始化，常數一律放函式裡 */
 function sxRate(x){return x&&x.p!=null?`<b>${f(x.p*100,0)}%</b><div class=sm2>全體 ${f((x.base||0)*100,0)}%・${f(x.n,0)} 次</div>`:'<span class=mu>—</span>';}
@@ -455,5 +463,6 @@ Object.assign(GL,{'五面向':'成長（近 3 月營收年增、最新季 EPS �
 GLG.push(['公司分析',['五面向','飆股體質檢查','法人預估','產業比較','飆股命中率','書上的買點與停損','大盤 50 日線','趨勢樣板','RS 百分位','營收加速','ROE 拆解','自由現金流','現金流 ÷ 淨利','本益比位置']]);
 """
 
-SEARCH_HTML = ('<div class="cos"><input type="search" id="coq" placeholder="查公司：代號或名稱" autocomplete="off" '
-               'aria-label="查公司"><div id="coqd" class="coqd" hidden></div></div>')
+# 頂欄小字「查公司」點了才打開（docs/lab_ia_v5_plan.md 第 22 節；appnav.links 放在小字那一組裡）
+SEARCH_HTML = ('<div class="cos" id="cos" hidden><input type="search" id="coq" placeholder="代號或名稱" autocomplete="off" '
+               'aria-label="查公司：代號或名稱"><div id="coqd" class="coqd" hidden></div></div>')

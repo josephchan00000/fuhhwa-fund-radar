@@ -151,7 +151,7 @@ def _md(d) -> str:
 
 
 def asof_line(data: dict) -> str:
-    """頂欄資料日：多數來源同一天只寫一次，落後的另外標；集保是週資料；ETF 揭露未到齊時標檔數。"""
+    """資料日（個股工具那一列；2026-10-23 第 4 段前在頂欄）：多數來源同一天只寫一次，落後的另外標；集保是週資料；ETF 揭露未到齊時標檔數。"""
     a = data.get("asof") or {}
     keys = (("ETF 持股", "pos"), ("價量", "px"), ("法人", "chip"), ("融資券", "margin"))
     ds = [a[k] for _, k in keys if a.get(k)]
@@ -191,14 +191,14 @@ def theme_css() -> str:
 def render(data: dict, ser_v: str | None = None) -> str:
     main = {k: v for k, v in data.items() if k not in ("ser", "mtab")}
     main["serv"] = ser_v or _ver(ser_json(data))
+    main["asl"] = asof_line(data)                 # 資料日（個股工具那一列；第 4 段起不放頂欄）
     blob = _dump(main).replace("</", "<\\/")
-    from . import appnav, cfgpage, copage, macpage, stockviz   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
+    from . import appnav, cfgpage, copage, corepage, macpage, stockviz   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
                                              # （初始化會開分頁與 #s= 個股卡，這時公司分析的頂層 const 必須已經初始化）
                                              # stockviz＝機會、籌碼頁的三張圖（docs/lab_visual_plan.md 第 10 節），同樣放在初始化之前
                                              # cfgpage＝配置頁（台股、美股、策略；docs/lab_ia_v5_plan.md 第 18 節），同樣放在初始化之前
-    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("cfg")).replace("{{SUB}}", asof_line(data))
-            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS + stockviz.CSS + macpage.CSS + cfgpage.CSS + theme_css())
-            .replace("{{SEARCH}}", copage.SEARCH_HTML)
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("cfg", search=copage.SEARCH_HTML))
+            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS + stockviz.CSS + macpage.CSS + corepage.CSS + cfgpage.CSS + theme_css())
             .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", stockviz.JS + macpage.JS + cfgpage.JS + copage.JS)))
 
 
@@ -210,7 +210,7 @@ _HTML = """<!doctype html>
 <title>配置</title>
 <style>{{CSS}}</style></head>
 <body>
-<div class="top">{{APPTAB}}<span class="asof">{{SUB}}</span>{{SEARCH}}<a class="back" href="./">返回主頁</a></div>
+<div class="top">{{APPTAB}}<a class="back" href="./"><span class="bk1">返回</span>主頁</a></div>
 <header class="hd"><div class="hdi">
   <nav class="tabs" id="tabs">
     <a data-t="tw" data-p="cfg">台股</a><a data-t="us" data-p="cfg">美股</a><a data-t="strat" data-p="cfg">策略</a><a data-t="tool" data-p="cfg">個股</a>
@@ -244,7 +244,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,
 a{color:var(--acc);text-decoration:none;cursor:pointer}
 table,.fv,.num{font-variant-numeric:tabular-nums}
 .top{display:flex;align-items:baseline;gap:4px 12px;flex-wrap:wrap;padding:10px 16px 4px;max-width:1180px;margin:0 auto}
-.top b{font-size:18px}.asof{color:var(--mut);font-size:12.5px;flex:1;min-width:0}
+.top b{font-size:18px}
 .back{font-size:13px;color:var(--mut);white-space:nowrap}
 .hd{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
 .hdi{max-width:1180px;margin:0 auto;padding:0 16px}
@@ -485,7 +485,7 @@ table.trt td,table.trt th{vertical-align:top}table.trt td .sm2{white-space:norma
 }
 @media(max-width:760px){.g2{grid-template-columns:1fr}.nbs{grid-auto-flow:row;grid-template-columns:1fr;grid-template-rows:none!important}}
 @media(max-width:600px){
- .top{padding:8px 12px 2px}.asof{flex-basis:100%;order:3;font-size:12px}
+ .top{padding:8px 12px 2px}
  .osum{grid-template-columns:repeat(2,minmax(0,1fr))}
  .hdi{padding:0 6px}.tabs a{padding:9px 9px 7px;font-size:14.5px}
  main{padding:14px 12px 90px}
@@ -2031,11 +2031,13 @@ const LAST={cfg:'tw',r:'bo',tool:'stk',mac:'mac',stg:'opp'};
 const PTITLE={cfg:'配置',r:'研究紀錄'};
 let PER='';
 function setPer(p){if(p===PER)return;PER=p;$$('#tabs a[data-p]').forEach(a=>{a.hidden=a.dataset.p!==p;});
-  $$('.apptab a').forEach(a=>{const on=p==='cfg'&&(a.getAttribute('href')||'')==='x9.html';
+  $$('.apptab a[data-k]').forEach(a=>{const on=p==='cfg'&&a.dataset.k==='cfg';
     a.classList.toggle('on',on);if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   document.title=PTITLE[p]||'配置';}
+/* 頂欄「配置」記住上次看的配置分頁（appnav.NAV_HEAD；研究紀錄的分頁不記） */
 function urlSet(){const t=S.tab,q=t==='tw'?'':'?v='+t+(TABG[t]==='mac'?'&m='+S.mmk:''),h=/^#(s|co)=/.test(location.hash)?location.hash:'';
-  try{history.replaceState(history.state,'',location.pathname+q+h);}catch(e){}}
+  try{history.replaceState(history.state,'',location.pathname+q+h);}catch(e){}
+  if(PER==='cfg'&&window.labLast)labLast('cfg','x9.html'+q);}
 function hdh(){return $('.hd').offsetHeight;}
 function jump(id){const t=document.getElementById(id);if(t&&t.tagName==='DETAILS')t.open=true;if(t)window.scrollTo({top:t.getBoundingClientRect().top+scrollY-hdh()-8,behavior:'smooth'});}
 function buildNav(){const secs=$$('#main .sec[data-nav]');
@@ -2056,10 +2058,13 @@ function go(t,anchor){if(!VIEWS[t])t='tw';S.tab=t;const g=TABG[t];setPer(PERS[t]
   window.scrollTo(0,0);if(anchor)requestAnimationFrame(()=>jump(anchor));}
 /*@@COPAGE@@*/
 $$('#tabs a[data-t]').forEach(a=>a.onclick=()=>{const g=a.dataset.t;go(g==='mac'||g==='stg'||g==='tool'?LAST[g]:g);});
-$$('.apptab a').forEach(a=>{if((a.getAttribute('href')||'')==='x9.html')a.onclick=e=>{e.preventDefault();go(PER==='cfg'?LAST.cfg:'tw');};});
+/* 頂欄「配置」：在配置裡＝回到這次看過的配置分頁；在研究紀錄＝回到上次看的配置分頁（連結由 appnav.NAV_HEAD 換成上次的位置） */
+$$('.apptab a[data-k="cfg"]').forEach(a=>a.onclick=e=>{e.preventDefault();if(PER==='cfg'){go(LAST.cfg);return;}
+  const v=new URLSearchParams((a.getAttribute('href')||'').split('?')[1]||'').get('v');go(VIEWS[v]&&PERS[v]==='cfg'?v:'tw');});
+$$('.applk .glk').forEach(a=>a.onclick=e=>{e.preventDefault();openGl();});     /* 頂欄小字「名詞」 */
 {const q=new URLSearchParams(location.search),hm=location.hash.match(/^#v=([a-z]+)(.*)$/),gl=location.hash==='#gl';let v=q.get('v'),m=q.get('m'),x='',at=q.get('at')||undefined;
   if(hm){v=hm[1];const p=new URLSearchParams(hm[2].replace(/^&/,''));m=p.get('m')||m;x=p.get('x')||'';}
-  if(m&&MCM[m])S.mmk=m;if(!VIEWS[v])v=/^#(s|co)=/.test(location.hash)?'stk':'tw';
+  if(m&&MCM[m])S.mmk=m;if(!VIEWS[v])v=/^#((s|co)=|q$)/.test(location.hash)?'stk':'tw';   /* #q＝查公司（別頁頂欄的「查公司」連過來） */
   if(x&&TABG[v]==='mac'){const M=MCM[S.mmk]||{};if((M.cards||[]).some(c=>c.k===x)){v='mac';at='m-'+x;}else{v='macst';at='ms-'+x;}}
   go(v,at);if(gl)openGl();}
 if(isPane())setTimeout(()=>{loadSer().catch(()=>{});},1500);

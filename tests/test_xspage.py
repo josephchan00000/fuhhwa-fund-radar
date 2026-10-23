@@ -24,7 +24,8 @@ def test_redirect_stub_maps_old_hash_to_strategy_page():
     assert 'location.hash.match(/^#i=xs:([a-z0-9]+):([a-z0-9]+)$/)' in js and 'u+="&m="+m[1]+"&x="+m[2]' in js
     assert 'location.replace(u)' in js and f'u="{P.HOME}"' in js
     assert f'<noscript><meta http-equiv="refresh" content="0;url={P.HOME}"></noscript>' in h
-    assert f'<a href="{P.HOME}">打開策略頁 →</a>' in h and "apptab" not in h and 'name="robots" content="noindex,nofollow"' in h
+    assert f'<a href="{P.HOME}">打開總經策略</a>' in h and "apptab" not in h and 'name="robots" content="noindex,nofollow"' in h
+    assert "<title>總經策略</title>" in h and "研究紀錄" in h                      # 總經策略在研究紀錄（IA v5）
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="沒有 node")

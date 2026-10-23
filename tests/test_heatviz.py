@@ -173,7 +173,7 @@ def test_hviz_json_embedded_safely(built):
     raw = page[a:page.index("</script>", a)]
     assert "</" not in raw
     assert json.loads(raw.replace("<\\/", "</")) == json.loads(json.dumps(V["viz"]))
-    assert page.count("<script>") == 4      # HEAT_META、雷達＋對照圖程式、全部指標＋泡沫的程式、<head> 的深淺色（appnav）
+    assert page.count("<script>") == 5      # HEAT_META、雷達＋對照圖程式、全部指標＋泡沫的程式、<head> 的深淺色與記住上次位置（appnav）
 
 
 def test_theme_tokens_for_light_and_dark():
