@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>籌碼雷達 v5 示意圖（第二版）</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d222a;--mut:#69717d;--line:#e2e5ea;--red:#d33a34;--teal:#159c94;--gold:#b8860b;--blue:#2f6fdd;--warm:#fff1f0;--cool:#edf7f6}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,"Noto Sans TC","PingFang TC",system-ui,sans-serif}
+.page{max-width:1180px;margin:0 auto;padding:0 12px 28px}
+.top{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.top .tab{padding:6px 14px;border-radius:999px;background:#e9ecf1;font-weight:700}.top .tab.on{background:var(--ink);color:#fff}
+.top .r{margin-left:auto;color:var(--mut)}
+.mk{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 8px;font-size:13px}.mk span{padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:#fff}.mk .on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0;position:relative}
+.card h2{font-size:15px;margin:0 0 8px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.card h2 small{font-weight:400;color:var(--mut);font-size:12px}
+.hd{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline}.hd .px{font-size:22px;font-weight:800}.hd .d{color:var(--mut);font-size:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.chip{font-size:12px;padding:3px 9px;border-radius:999px;background:#eef1f5}
+.chip.hot{background:var(--warm);color:var(--red)}.chip.cold{background:var(--cool);color:var(--teal)}.chip.bub{background:#fff6e0;color:#8a5a00;font-weight:700}
+.therm{display:grid;grid-template-columns:3.2em 1fr auto;gap:6px 10px;align-items:center;margin-top:6px;font-size:13px}
+.therm .bar{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--teal) 0 50%,var(--red) 50%);position:relative;opacity:.9}
+.therm .bar i{position:absolute;top:-4px;width:2px;height:16px;background:var(--ink)}.therm .bar b{position:absolute;top:-3px;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--red);margin-left:-7px}
+.therm .rd{color:var(--mut)}.therm .rd b{color:var(--red)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:12px;margin:4px 0 8px}.seg span{padding:4px 12px}.seg .on{background:var(--ink);color:#fff}
+.two{display:grid;grid-template-columns:1fr;gap:10px}@media(min-width:900px){.two{grid-template-columns:1fr 1fr}}
+.list h4{margin:0 0 4px;font-size:13px}.list h4.up{color:var(--red)}.list h4.dn{color:var(--teal)}
+.row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:6px 0;border-top:1px solid var(--line);font-size:13px}.row:first-of-type{border-top:0}
+.row .n{font-weight:600}.row .s{color:var(--mut);font-size:12px;grid-column:1/3}.row .p{font-weight:700;white-space:nowrap}.row .p small{font-weight:400;color:var(--mut)}
+.tag{font-size:11px;padding:0 6px;border-radius:999px;background:#eef1f5;color:var(--mut);margin-left:6px;font-weight:400}.tag.ok{background:var(--cool);color:var(--teal)}
+.more{color:var(--blue);font-size:12px;margin-top:6px}
+.band{height:14px;border-radius:4px;margin:8px 0 4px;background:linear-gradient(90deg,#dfe3e8 0 18%,#f4d9b0 18% 24%,#dfe3e8 24% 46%,#f4d9b0 46% 50%,#e9b0a8 50% 53%,#dfe3e8 53% 70%,#f4d9b0 70% 78%,#dfe3e8 78% 91%,#f4d9b0 91% 100%)}
+.band+.ax{display:flex;justify-content:space-between;font-size:11px;color:var(--mut)}
+.cond{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.cond span{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--line)}.cond .y{border-color:var(--red);color:var(--red);font-weight:700}
+.rad{display:grid;grid-template-columns:1fr;gap:10px}@media(min-width:900px){.rad{grid-template-columns:260px 1fr}}
+.mv{display:grid;grid-template-columns:5.5em 7em 1fr;gap:4px 10px;font-size:13px;align-items:center}.mv .k{font-weight:600}.mv .v{color:var(--mut)}.mv .v b{color:var(--ink)}
+.srch{display:flex;gap:8px;align-items:center}.srch input{flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px}
+.foot{color:var(--mut);font-size:12px;text-align:center;margin-top:18px}
+/* 配置 */
+.lead{font-size:14px;margin:6px 0 2px}.lead b{color:var(--ink)}
+.sec{display:flex;align-items:baseline;gap:12px;margin:16px 0 6px}.sec b{font-size:17px}.sec span{color:var(--mut);font-size:12px}
+.lvl{margin-left:auto;font-size:13px;font-weight:700}.lvl small{font-weight:400;color:var(--mut)}
+.ht{width:100%;border-collapse:collapse;font-size:13px}.ht th{text-align:left;color:var(--mut);font-weight:600;font-size:12px;padding:4px 6px;border-bottom:1px solid var(--line)}
+.ht td{padding:5px 6px;border-top:1px solid var(--line);vertical-align:top}.ht tr.g td{background:#f7f8fa;color:var(--mut);font-size:12px;border-top:0;padding:4px 6px}
+.ht .w{text-align:right;font-weight:700;white-space:nowrap}.ht .src{color:var(--mut);white-space:nowrap}.ht .st{color:var(--mut);font-size:12px}.ht tr.tot td{font-weight:700;border-top:2px solid var(--line)}
+.ht .idx{color:#3a4a63;font-weight:700}
+.lamp{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:10px;font-size:13px;align-items:center}.lamp b.ok{color:var(--teal)}.lamp .w{display:inline-flex;align-items:center;gap:6px;color:var(--mut);font-size:12px}
+.lamp .wb{display:inline-block;width:70px;height:7px;background:#e9ecf1;border-radius:4px;position:relative;vertical-align:middle}.lamp .wb i{position:absolute;left:0;top:0;height:7px;border-radius:4px;background:#e8a35a}.lamp .wb u{position:absolute;left:80%;top:-3px;width:2px;height:13px;background:var(--ink)}
+.todo{margin-top:8px;font-size:13px}.todo div{display:grid;grid-template-columns:9em 1fr;gap:8px;padding:4px 0;border-top:1px dashed var(--line)}.todo div:first-child{border-top:0}.todo .dt{font-weight:700}.todo .act b{color:var(--red)}.todo .act b.s{color:var(--teal)}
+.perf{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-top:10px;font-size:13px;border-top:1px solid var(--line);padding-top:8px}.perf b{font-size:16px}.perf small{color:var(--mut)}
+.spark{width:120px;height:34px}
+.bt{width:100%;border-collapse:collapse;font-size:12.5px}.bt th{text-align:left;color:var(--mut);font-weight:600;padding:6px 6px;border-bottom:1px solid var(--line)}.bt td{padding:6px 6px;border-top:1px solid var(--line);vertical-align:top}.bt tr.g td{background:#f7f8fa;font-weight:700;border-top:0;padding:5px 6px}
+.bt .num{white-space:nowrap}.bt .what{color:var(--mut)}
+.pill{font-size:11px;padding:1px 7px;border-radius:999px;white-space:nowrap;font-weight:700}.pill.use{background:#e6f4ea;color:#1b7a3a}.pill.ob{background:#eef1f5;color:#4a5260}.pill.cd{background:#fff6e0;color:#8a5a00}.pill.x{background:#f3f3f3;color:#9aa0a8}
+.filt{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px;font-size:12px}.filt span{padding:3px 9px;border-radius:999px;border:1px solid var(--line)}.filt .on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.note{font-size:11px;color:var(--mut)}
+.mock{display:none;position:fixed;left:8px;bottom:8px;background:#ffe9a8;color:#5a4300;font-size:11px;padding:2px 8px;border-radius:6px;z-index:9}
+.sw{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;font-size:12px;vertical-align:middle}.sw span{padding:2px 9px}.sw .on{background:var(--ink);color:#fff}
+@media(max-width:640px){
+ .ht,.ht tbody{display:block}.ht tr{display:grid;grid-template-columns:1fr auto;border-top:1px solid var(--line);padding:5px 0}.ht th{display:none}.ht td{border:0;padding:0 4px}
+ .ht td.src,.ht td.st{grid-column:1/3;font-size:12px}.ht tr.g td,.ht tr.tot td:last-child{grid-column:1/3}.ht tr.g{background:#f7f8fa}
+ .bt th:nth-child(3),.bt td:nth-child(3),.bt th:nth-child(5),.bt td:nth-child(5){display:none}
+ .lamp .w{display:flex;width:100%}.todo div{grid-template-columns:1fr}.todo .dt{color:var(--mut)}
+}
+</style></head><body>
+<div class="mock">示意圖第二版・版面是新的，數字是 10/22 的（年化為估算）</div>
+
+<!-- ============ 市場 ============ -->
+<div class="page" id="market">
+  <div class="top"><span class="tab on">市場</span><span class="tab">配置</span><span class="r">研究紀錄・名詞・查公司</span></div>
+  <div class="mk"><span class="on">台股</span><span>S&amp;P 500</span><span>那斯達克</span><span>那斯達克 100</span><span>費半</span></div>
+
+  <div class="card">
+    <div class="hd"><span class="px">加權指數 46,041</span><span class="d">10/22（四）・離 60 日高點 −7.6%</span></div>
+    <div class="chips"><span class="chip hot">基本面 94 過熱</span><span class="chip hot">籌碼 83 過熱</span><span class="chip cold">全球資金 17 過冷</span><span class="chip">台灣資金 43</span><span class="chip cold">技術 31 偏冷</span></div>
+    <div class="rad" style="margin-top:10px">
+      <svg viewBox="0 0 220 200" width="100%" style="max-width:260px"><polygon points="110,20 196,82 163,182 57,182 24,82" fill="none" stroke="#e2e5ea"/><polygon points="110,60 153,91 136,141 84,141 67,91" fill="none" stroke="#e2e5ea"/><polygon points="110,24 190,86 120,136 80,160 55,84" fill="rgba(211,58,52,.18)" stroke="#d33a34" stroke-width="2"/><text x="110" y="12" font-size="11" text-anchor="middle">基本面 94</text><text x="200" y="80" font-size="11">籌碼 83</text><text x="166" y="196" font-size="11">技術 31</text><text x="20" y="196" font-size="11">台灣資金 43</text><text x="2" y="80" font-size="11">全球資金 17</text></svg>
+      <div class="mv">
+        <span class="k">這週</span><span class="v">上週 → 現在</span><span class="v">主要原因</span>
+        <span class="k">基本面</span><span class="v">94 → <b>94</b></span><span class="v">沒什麼變</span>
+        <span class="k">籌碼</span><span class="v">80 → <b>83</b> +3</span><span class="v">融資 20 日增減、外資台指期</span>
+        <span class="k">全球資金</span><span class="v">21 → <b>17</b> −4</span><span class="v">美債 10 年、聯準會</span>
+        <span class="k">台灣資金</span><span class="v">44 → <b>43</b></span><span class="v">沒什麼變</span>
+        <span class="k">技術</span><span class="v">38 → <b>31</b> −7</span><span class="v">RSI、20 日乖離 進入過冷</span>
+      </div>
+    </div>
+    <div class="note" style="margin-top:6px">點面向名稱看細項；雷達可以疊上近期波段高點、低點比。</div>
+  </div>
+
+  <div class="card">
+    <h2>今天的訊號 <small>點一列看之後怎麼走</small></h2>
+    <div class="therm">
+      <span>短線</span><div class="bar"><i style="left:50%"></i><b style="left:78%"></b></div><span class="rd">偏多 9・警示 2 → <b>偏多</b></span>
+      <span>中線</span><div class="bar"><i style="left:50%"></i><b style="left:72%"></b></div><span class="rd">偏多 10・警示 3 → <b>偏多</b></span>
+      <span>長線</span><div class="bar"><i style="left:50%"></i><b style="left:80%"></b></div><span class="rd">偏多 11・警示 2 → <b>偏多</b></span>
+    </div>
+    <div class="seg" style="margin-top:10px"><span class="on">短線 1 個月</span><span>中線 3 個月</span><span>長線 12 個月</span></div>
+    <div class="two">
+      <div class="list"><h4 class="up">偏多 9 類 <small style="font-weight:400;color:var(--mut)">之後 1 個月上漲的機率（任一天 58%）</small></h4>
+        <div class="row"><span class="n">自營商連續 10 天賣超<span class="tag">次數 6</span></span><span class="p">100% <small>+2.6%</small></span><span class="s">10/22 收盤進場・持有到 11/23</span></div>
+        <div class="row"><span class="n">融資 20 日增減・過熱結束</span><span class="p">72% <small>+2.3%</small></span><span class="s">10/27 收盤進場・持有到 11/24</span></div>
+        <div class="row"><span class="n">均線排列・過熱結束<span class="tag">震盪</span></span><span class="p">69% <small>+2.0%</small></span><span class="s">10/19 進場・持有到 11/18・同時成立 6 類</span></div>
+        <div class="more">還有 6 類 ▾</div>
+      </div>
+      <div class="list"><h4 class="dn">警示 2 類 <small style="font-weight:400;color:var(--mut)">之後 1 個月內回撤 8% 以上的機率（任一天 9%）</small></h4>
+        <div class="row"><span class="n">全球資金・過冷中<span class="tag ok">之後也成立</span></span><span class="p">27% <small>回撤中位 5%</small></span><span class="s">9/29 起成立・同時成立 28 個</span></div>
+        <div class="row"><span class="n">距近 120 日高點・進入過冷<span class="tag">震盪</span></span><span class="p">19%</span><span class="s">10/21 進場・持有到 11/20</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>全部指標 <small>78 個；點一個看現在、走勢、它的訊號與過去每一次</small></h2>
+    <div class="srch"><input placeholder="搜尋指標，例如 融資、RSI、VIX"></div>
+    <div class="chips"><span class="chip">基本面 8</span><span class="chip">籌碼 12</span><span class="chip">資金 18</span><span class="chip">技術 13</span><span class="chip">情境 9</span><span class="chip">泡沫 6</span><span class="chip">大跌後買點 10</span><span class="chip">指數型策略 13</span></div>
+    <div class="more">展開全部 78 個 ▾</div>
+  </div>
+
+  <div class="card" id="bub">
+    <h2>泡沫 <small>等級 2 漲勢過熱（0 沒有跡象 … 4 嚴重泡沫）</small></h2>
+    <div class="cond"><span class="y">價格爆發 ✓</span><span>兩年漲幅 ✗</span><span>偏離趨勢 ✗</span><span>估值 —</span><span>槓桿 ✗</span><span>未來獲利 ✗</span></div>
+    <div class="band"></div><div class="ax"><span>1997</span><span>2008</span><span>2021</span><span>2026</span></div>
+    <div class="mv" style="margin-top:8px"><span class="k">產業</span><span class="v"><b>電子零組件 3</b></span><span class="v">價格爆發、漲得比營收快</span><span></span><span class="v"><b>光電 2</b>・<b>半導體 2</b>・<b>PCB 族群 2</b></span><span class="v">一個價格條件</span></div>
+    <div class="more">全部 32 產業・17 族群 ▾</div>
+  </div>
+  <div class="foot">研究紀錄 ・ 名詞 ・ 資料到 10/22（四）</div>
+</div>
+
+<!-- ============ 配置 ============ -->
+<div class="page" id="cfg" hidden>
+  <div class="top"><span class="tab">市場</span><span class="tab on">配置</span><span class="r">研究紀錄・名詞・查公司</span></div>
+  <div class="mk"><span class="on">配置</span><span>個股（工具）</span></div>
+  <div class="lead">10/23（五）：台股、美股都 <b>拿 100%</b>（警訊 0／3、0／4）。最近要做：<b>10/26（一）美股開盤買 1 檔</b>、<b>11/2（一）台股開盤買 4 檔</b>。</div>
+
+  <div class="sec"><b>台股</b><span>10/22 收盤</span><span class="lvl">股票 100%<small>・現金 0%</small></span></div>
+  <div class="card">
+    <table class="ht">
+      <tr><th>建議持股</th><th style="text-align:right">比重</th><th>來源</th><th>現況</th></tr>
+      <tr class="g"><td colspan="4">長抱 70%</td></tr>
+      <tr><td class="idx">0050</td><td class="w">70%</td><td class="src">一直抱著</td><td class="st">—</td></tr>
+      <tr class="g"><td colspan="4">機動 30%：三條策略各 10%，沒部位的放 0050</td></tr>
+      <tr><td>台塑 1301</td><td class="w">2.5%</td><td class="src">臺灣50 提前卡位</td><td class="st">10/16 買・−5.2%</td></tr>
+      <tr><td>景碩 3189</td><td class="w">2.5%</td><td class="src">臺灣50 提前卡位</td><td class="st">10/16 買・−5.1%</td></tr>
+      <tr><td class="idx">0050</td><td class="w">5%</td><td class="src">臺灣50 提前卡位</td><td class="st">名單還沒補滿（11/23 截止）</td></tr>
+      <tr><td>聯電 2303</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
+      <tr><td>台積電 2330</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
+      <tr><td>台光電 2383</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
+      <tr><td>文曄 3036</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
+      <tr><td>台燿 6274</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
+      <tr><td class="idx">0050</td><td class="w">10%</td><td class="src">長線投信動能</td><td class="st">沒有部位・11/2 開盤買 4 檔</td></tr>
+      <tr class="tot"><td>合計</td><td class="w">100%</td><td colspan="2" class="st">股票 100%・現金 0%</td></tr>
+    </table>
+    <div class="lamp"><span>警訊 <b class="ok">0／3</b>（兩個以上亮 → 隔天收盤機動 30% 換現金）</span>
+      <span class="w">通膨偏高 <i class="wb"><i style="width:77%"></i><u></u></i> 76.7 分</span>
+      <span class="w">融資偏多 <i class="wb"><i style="width:55%"></i><u></u></i> 54.5 分</span>
+      <span class="w">跌破年線 <i class="wb"><i style="width:36%;background:#9bb"></i><u style="left:50%"></u></i> 比年線高 14.1%</span></div>
+    <div class="todo">
+      <div><span class="dt">11/2（一）開盤</span><span class="act"><b>買</b> 大成鋼、宏致、天鈺、高力（長線投信動能；10/30 收盤仍符合才買、開高 3% 不追）</span></div>
+      <div><span class="dt">11/13（五）收盤</span><span class="act"><b class="s">賣</b> 聯電、台積電、台光電、文曄、台燿（財報驚喜）</span></div>
+      <div><span class="dt">11/17（二）開盤</span><span class="act"><b>買</b> 財報驚喜新名單（11/16 收盤產生）</span></div>
+      <div><span class="dt">11/24（二）開盤</span><span class="act"><b>調整</b> 臺灣50 提前卡位：依 11/23 名單換到 4 檔</span></div>
+    </div>
+    <div class="perf"><span><b>1,261 萬</b> <small>2014 起 100 萬照做・0050 抱著 793 萬</small></span><span><b>23%</b> <small>最慘時跌・0050 29%</small></span><span><b>約 23%</b> <small>年化・0050 約 18%</small></span>
+      <svg class="spark" viewBox="0 0 120 34"><polyline points="2,32 15,30 28,29 40,27 52,22 64,24 76,18 88,14 100,9 112,4 118,6" fill="none" stroke="#b8860b" stroke-width="2"/><polyline points="2,32 15,31 28,30 40,29 52,26 64,27 76,23 88,21 100,17 112,13 118,14" fill="none" stroke="#9aa0a8" stroke-width="1.5"/></svg><span class="more" style="margin:0">細節 ▾</span></div>
+  </div>
+
+  <div class="sec"><b>美股</b><span>10/22 收盤・核心 <span class="sw"><span class="on">S&amp;P 500</span><span>那斯達克 100</span></span></span><span class="lvl">股票 100%<small>・現金 0%</small></span></div>
+  <div class="card">
+    <table class="ht">
+      <tr><th>建議持股</th><th style="text-align:right">比重</th><th>來源</th><th>現況</th></tr>
+      <tr class="g"><td colspan="4">長抱 70%</td></tr>
+      <tr><td class="idx">SPY／VOO</td><td class="w">70%</td><td class="src">一直抱著</td><td class="st">—</td></tr>
+      <tr class="g"><td colspan="4">機動 30%：強勢品質股最多 8 檔，空位放 S&amp;P 500</td></tr>
+      <tr><td>INSW</td><td class="w">3.2%</td><td class="src">強勢品質股</td><td class="st">7/20 買・+29%・高於 50 日線 3.3%（最接近）</td></tr>
+      <tr><td>CDNA</td><td class="w">2.9%</td><td class="src">強勢品質股</td><td class="st">8/3 買・+47%</td></tr>
+      <tr><td>VLO</td><td class="w">4.3%</td><td class="src">強勢品質股</td><td class="st">8/31 買・+18%</td></tr>
+      <tr><td>DINO</td><td class="w">4.2%</td><td class="src">強勢品質股</td><td class="st">9/8 買・+14%</td></tr>
+      <tr><td>MPC</td><td class="w">4.2%</td><td class="src">強勢品質股</td><td class="st">9/14 買・+15%</td></tr>
+      <tr><td>ANF</td><td class="w">3.9%</td><td class="src">強勢品質股</td><td class="st">10/19 買・+5%</td></tr>
+      <tr><td>ILMN</td><td class="w">3.8%</td><td class="src">強勢品質股</td><td class="st">10/19 買・+0%</td></tr>
+      <tr><td class="idx">SPY</td><td class="w">3.6%</td><td class="src">強勢品質股</td><td class="st">空位 1・10/26 開盤補</td></tr>
+      <tr class="tot"><td>合計</td><td class="w">100%</td><td colspan="2" class="st">股票 100%・現金 0%</td></tr>
+    </table>
+    <div class="lamp"><span>警訊 <b class="ok">0／4</b>（兩個以上亮，或總經策略全部空手 → 隔天收盤機動 30% 換現金）</span>
+      <span class="w">通膨偏高 <i class="wb"><i style="width:77%"></i><u></u></i> 76.7 分</span>
+      <span class="w">融資增加太快 <i class="wb"><i style="width:75%"></i><u></u></i> 75.0 分</span>
+      <span class="w">跌破年線 <i class="wb"><i style="width:44%;background:#9bb"></i><u style="left:50%"></u></i> 比年線高 5.2%</span>
+      <span class="w">總經策略空手 <i class="wb"><i style="width:25%;background:#9bb"></i><u style="left:99%"></u></i> 3 條有部位</span></div>
+    <div class="todo">
+      <div><span class="dt">10/26（一）開盤</span><span class="act"><b>買</b> 1 檔補空位（名單 10/23 收盤定案，目前 PAYC 領先）</span></div>
+      <div><span class="dt">每天收盤</span><span class="act">持股收盤跌破 50 日線 → 隔天開盤 <b class="s">賣</b>（最接近 INSW）</span></div>
+      <div><span class="dt">每週五收盤</span><span class="act">看新名單，有空位隔天開盤 <b>買</b></span></div>
+    </div>
+    <div class="perf"><span><b>886 萬</b> <small>2014 起 100 萬照做・SPY 抱著 515 萬</small></span><span><b>25%</b> <small>最慘時跌・SPY 34%</small></span><span><b>約 19%</b> <small>年化・SPY 約 14%</small></span>
+      <svg class="spark" viewBox="0 0 120 34"><polyline points="2,32 15,30 28,28 40,26 52,24 64,22 76,19 88,15 100,11 112,6 118,5" fill="none" stroke="#b8860b" stroke-width="2"/><polyline points="2,32 15,31 28,30 40,28 52,27 64,26 76,24 88,22 100,19 112,16 118,15" fill="none" stroke="#9aa0a8" stroke-width="1.5"/></svg><span class="more" style="margin:0">細節 ▾</span></div>
+  </div>
+
+  <div class="sec"><b>策略</b><span>全部 41 條：進配置的、看著的、新找的、淘汰的</span></div>
+  <div class="card">
+    <div class="filt"><span class="on">使用中 7</span><span class="on">觀察中 16</span><span class="on">候選 0</span><span>淘汰 18</span><span>｜</span><span>台股</span><span>美股</span></div>
+    <table class="bt">
+      <tr><th>策略</th><th>市場</th><th>做什麼</th><th>年化（對照）</th><th>最慘跌</th><th>今天</th></tr>
+      <tr class="g"><td colspan="6"><span class="pill use">使用中</span> 在上面的配置裡</td></tr>
+      <tr><td>七成長抱＋警訊</td><td>台股</td><td class="what">0050 70%；三成機動；警訊兩個以上換現金</td><td class="num">23%（18%）</td><td class="num">23%（29%）</td><td>拿 100%</td></tr>
+      <tr><td>臺灣50 提前卡位</td><td>台股</td><td class="what">截止前 25 日買最強 4 檔，生效前一天賣</td><td class="num">每次 +12%</td><td class="num">−20%</td><td>11/24 調整</td></tr>
+      <tr><td>財報驚喜（大型股）</td><td>台股</td><td class="what">財報期限後買最出乎意料 5 檔，抱 60 天</td><td class="num">30%（15%）</td><td class="num">−31%</td><td>11/13 賣、11/17 買</td></tr>
+      <tr><td>長線投信動能</td><td>台股</td><td class="what">投信連買＋營收成長＋走強；−20% 停損</td><td class="num">每筆 +22%</td><td class="num">−20%</td><td>11/2 買 4 檔</td></tr>
+      <tr><td>強勢品質股</td><td>美股</td><td class="what">每週五挑強勢＋賺錢的 8 檔；跌破 50 日線賣</td><td class="num">24%（14%）</td><td class="num">−28%</td><td>10/26 買 1 檔</td></tr>
+      <tr class="g"><td colspan="6"><span class="pill ob">觀察中</span> 回測過、沒進配置；要用在對話說「納入」</td></tr>
+      <tr><td>共識加碼・開低進場</td><td>台股</td><td class="what">3 家投信同時加碼、隔天開低才買，抱 3 天</td><td class="num">每筆 +1.2%</td><td class="num">—</td><td>10/27 有訊號：玉晶光</td></tr>
+      <tr><td>RSI(2) 超賣反彈</td><td>台股・台指期</td><td class="what">200 日線上、2 日 RSI&lt;10 買，站上 5 日線賣</td><td class="num">勝率 63%（54%）</td><td class="num">—</td><td>空手</td></tr>
+      <tr><td>200 日線上用期貨多拿 5 成</td><td>台股</td><td class="what">收盤在 200 日線上多拿 50%，跌破平掉</td><td class="num">15%（10%）</td><td class="num">−63%</td><td>在線上 +11.7%</td></tr>
+      <tr><td>Coppock 曲線</td><td>台股</td><td class="what">月底 Coppock 由下往上轉就買，抱 1 年</td><td class="num">抱 1 年賺錢 91%</td><td class="num">—</td><td>持有中</td></tr>
+      <tr><td>VIX 衝刺</td><td>S&amp;P 500</td><td class="what">VIX 比 10 日線高 5% 買，低於就賣</td><td class="num">勝率 64%（54%）</td><td class="num">—</td><td>空手</td></tr>
+      <tr><td colspan="6" class="more">再 11 條觀察中 ▾</td></tr>
+      <tr class="g"><td colspan="6"><span class="pill cd">候選</span> 每週日上網找、先寫規則再回測；回「試用／納入／不納入」</td></tr>
+      <tr><td colspan="6" class="note">目前沒有。第一批 10/26（日）之後出現：每一條列 來源連結、規則一句、年化（對照）、最慘跌、判定。</td></tr>
+      <tr><td colspan="6" class="more">淘汰 18 條（短期反轉：樣本內外都輸・美股飆股五本帳：選到樂透型股票・高股息追買：沒贏大盤・溫度計減碼 8 種：都比一直抱著少 …）▾</td></tr>
+    </table>
+  </div>
+  <div class="foot">研究紀錄 ・ 名詞 ・ 資料到 10/22（四）</div>
+</div>
+</body></html>
