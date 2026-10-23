@@ -12,6 +12,8 @@ from arm.lab import sigpage as SG
 
 BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "唯一", "建議買", "建議賣", "目標價", "零風險", "無風險")
 JARGON = ("VER", "候選", "門檻", "夏普", "前後兩半", "信賴", "區間", "扣掉波動", "BH", "固定持有", "樣本外", "corespec")   # 平均拿 95% 是部位、不是信賴區間
+# 2026-10-23 使用者：「白話文一點不要那麼AI」——頁面不說核心／衛星／三種過熱／亮／前瞻，也不用箭頭
+NOT_PLAIN = ("衛星", "核心", "三種過熱", "亮", "前瞻", "→")
 
 
 def _fams(inf=76.7, lev=88.2, pct=15.0):
@@ -57,8 +59,8 @@ def R():
 
 def test_card_sections_and_numbers_match_research(R):
     h = P.card("tw", _now(), R, STK, {"n": 0, "next": S.CHECKS[0]})
-    assert 'id="pln-tw"' in h and "前瞻驗證中" in h
-    order = [h.index(x) for x in ('class="plnnow"', "接下來要做的事", "每天收盤看", "好處", "可以期待的報酬與風險", "細節")]
+    assert 'id="pln-tw"' in h and "上線觀察中" in h
+    order = [h.index(x) for x in ('class="plnnow"', "接下來要做的事", "每天收盤後", "過去照做的結果", "照做一年會怎樣", "細節")]
     assert order == sorted(order)                                                 # 照示意圖的順序
     sc = R["mk"]["tw"]["sc"]
     p, hd = sc["plan"]["plan"], sc["plan"]["hold"]
@@ -69,7 +71,7 @@ def test_card_sections_and_numbers_match_research(R):
     w, n = P._wins(p, hd)
     assert f"{w}／{n} 年" in h
     assert h.count("<tr><td") >= len(sc["plan"]["eps"])                          # 每一次換成現金都列出來
-    assert "財報驚喜（大型股）、臺灣50 提前卡位、長線投信動能，各 10%" in h
+    assert "分成 3 份、每份 10%" in h and "財報驚喜（大型股）、臺灣50 提前卡位、長線投信動能。" in h
     assert "11/12" in h and "賣掉 8/17 買的 1 檔（台積電）" in h and "買新名單（11/16 收盤產生）" in h
 
 
@@ -78,7 +80,7 @@ def test_card_has_no_jargon_or_banned_words_and_classes_are_prefixed(R):
         N = dict(_now(), mk=mk)
         h = P.card(mk, N, R, STK if mk == "tw" else None, {"n": 3, "next": S.CHECKS[0]})
         t = _text(h)
-        for w in BANNED + JARGON:
+        for w in BANNED + JARGON + NOT_PLAIN:
             assert w not in t, (mk, w)
         cls = {c for a in re.findall(r'class="([^"]+)"', h) for c in a.split()}
         assert cls and all(c.startswith("pln") for c in cls), cls
@@ -89,14 +91,14 @@ def test_card_states_hold_cash_and_due(R):
     from arm.lab.xstrat import future_days
     nxt = future_days("tw", "2026-10-22", 1)[0]
     h = P.card("tw", _now(n_lit_extra=True, held=True), R, STK)                   # 兩種亮了、衛星還拿著 → 下一個交易日收盤換現金
-    assert "70%" in h and "把衛星 30% 全部賣掉、換成現金" in h and P._mdw(nxt) in h and "衛星 30% 現金" in h
-    assert "今天收盤前 100%" in h
+    assert "70%" in h and "把機動的三成全部賣掉，改放現金" in h and P._mdw(nxt) in h and "機動 30% 放現金" in h
+    assert "現在手上 100%" in h and f"{P._mdw(nxt)} 收盤要調成這樣" in h
     h = P.card("tw", _now(n_lit_extra=False, held=False), R, STK)                 # 少於兩種、衛星在現金 → 買回
-    assert "把衛星 30% 買回" in h and "100%" in h
+    assert "把機動的三成買回來" in h and "100%" in h
     h = P.card("tw", _now(), R, STK)                                              # 一種亮、拿滿、沒事
-    assert "再亮一種就換現金" in h and "換成現金</b>" not in h
+    assert "再多一個就要賣掉三成" in h and "改放現金</b>" not in h
     h = P.card("tw", None, R, STK)
-    assert "今天的讀數還沒算" in h and "好處" in h
+    assert "今天的分數還沒算出來" in h and "過去照做的結果" in h
     assert "plnoff" in P.card("ixic", None, R) and "plnoff" in P.card("sox", None, R)
 
 
@@ -106,8 +108,8 @@ def test_us_card_says_satellite_is_index_and_shows_early_period(R):
         N["fams"] = [dict(f, desc=d) for f, (_, _, d, _, _) in zip(N["fams"], S.FAMS[mk])]
         h = P.card(mk, N, R)
         e = R["mk"][mk]["sc"]["early"]
-        assert "衛星 30% 現在也放同一個指數" in h and P._wan(e["plan"]["m"]) in h
-        assert "財報驚喜" not in h and "個股策略頁" not in h and "融資 ÷ 上市市值" not in h          # 台股衛星與台股槓桿的說法不出現在美股
+        assert "另外三成現在也買同一個指數" in h and P._wan(e["plan"]["m"]) in h
+        assert "財報驚喜" not in h and "個股策略頁" not in h and "融資 ÷ 上市股票總市值" not in h and "融資偏多" not in h          # 台股衛星與台股槓桿的說法不出現在美股
 
 
 def test_chart_draws_both_lines_and_cash_spans(R):
@@ -131,7 +133,7 @@ def test_research_html_puts_plan_card_on_top_of_each_market(R):
     tw = h[h.index('data-mk="tw"'):h.index('data-mk="spx"')]
     assert tw.index('id="pln-tw"') < tw.index('class="rfnow')
     spx = h[h.index('data-mk="spx"'):]
-    assert 'id="pln-spx"' in spx and "今天的讀數還沒算" in spx                    # 沒有讀數也列過去的成績
+    assert 'id="pln-spx"' in spx and "今天的分數還沒算出來" in spx                    # 沒有讀數也列過去的成績
     import inspect
     assert "CPG.CSS" in inspect.getsource(SG.render)                              # 卡片的樣式跟著訊號總覽一起載入
 
@@ -165,9 +167,9 @@ def test_sat_weights_split_like_the_backtest():
     assert W["s5"]["rows"] == [] and W["s5"]["idle"] == pytest.approx(0.10)
     assert sum(sum(r["w"] for r in x["rows"]) + x["idle"] for x in W.values()) == pytest.approx(S.SAT)
     h = P.card("tw", _now(), CO.load(), dict(STK, **stk))
-    assert "衛星現在拿著（占全部資金）" in h and "台積電 2.5%" in h and "聯發科 5%" in h and "景碩 2.5%；大盤 7.5%" in h and "大盤 10%" in h
+    assert "三成現在買了這些（占全部資金）" in h and "台積電 2.5%" in h and "聯發科 5%" in h and "景碩 2.5%；大盤 7.5%" in h and "大盤 10%" in h
     h = P.card("tw", _now(held=False), CO.load(), dict(STK, **stk))
-    assert "衛星現在是現金；買回時照下面這樣買" in h
+    assert "三成現在放現金；買回時照這樣買" in h
 
 
 def test_trend_gauge_fills_toward_the_line():
