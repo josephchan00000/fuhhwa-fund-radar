@@ -39,8 +39,9 @@ def main() -> None:
     left = a.budget_min * 60 - (time.time() - t0)
     if left > 60:
         st = usstk.backfill_earn(budget_s=left - 30)
-        if st.get("stuck"):
-            STUCK.write_text(f"財報行事曆連續失敗（還剩 {st.get('left')} 天）\n", encoding="utf-8")
+        # 一整輪一天都沒查到也算卡住（2026-10-23：最後 14 天每次都失敗、不到 25 次，job 原地重試 3.5 小時還會再派一輪）
+        if st.get("stuck") or (st.get("todo") and not st.get("ok")):
+            STUCK.write_text(f"財報行事曆查不到（還剩 {st.get('left')} 天）\n", encoding="utf-8")
         elif STUCK.exists():
             STUCK.unlink()
     print(usstk.status())

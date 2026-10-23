@@ -89,3 +89,27 @@ def test_status_lines(tmp_path, monkeypatch):
     U.save_meta({"spans": [["AAPL", "1996-01-02", None]], "px_done": {"AAPL": 4000}})
     U.save_earn(2026, {"done": ["2026-10-19", "2026-10-20"], "rows": {}})
     assert U.status("2026-10-20").startswith("DONE")
+
+
+def test_backfill_marks_stuck_when_a_round_makes_no_progress(tmp_path, monkeypatch):
+    """2026-10-23：最後 14 天每次都失敗（不到連續 25 次），job 原地重試 3.5 小時、時間到還會再派一輪。
+    一整輪一天都沒查到＝STUCK，workflow 就停、不再派。"""
+    import importlib.util
+    import sys
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("backfill_usstk", root / "scripts" / "backfill_usstk.py")
+    B = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(B)
+    monkeypatch.setattr(B, "STUCK", tmp_path / "stuck.txt")
+    monkeypatch.setattr(B.usstk, "load_meta", lambda: {"spans": [["AAPL", "1996-01-02", None]], "px_done": {"AAPL": 1}})
+    monkeypatch.setattr(B.usstk, "wanted", lambda spans: ["AAPL"])
+    monkeypatch.setattr(B.usstk, "status", lambda: "LEFT 財報 14 天、股價 0 檔")
+    runs = iter([{"todo": 14, "ok": 0, "err": 14, "left": 14, "stuck": False},
+                 {"todo": 14, "ok": 3, "err": 11, "left": 11, "stuck": False}])
+    monkeypatch.setattr(B.usstk, "backfill_earn", lambda budget_s: next(runs))
+    monkeypatch.setattr(sys, "argv", ["backfill_usstk.py", "--budget-min", "5"])
+    B.main()
+    assert "還剩 14 天" in (tmp_path / "stuck.txt").read_text(encoding="utf-8")
+    B.main()                                    # 有進展就不算卡住
+    assert not (tmp_path / "stuck.txt").exists()
