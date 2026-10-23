@@ -176,17 +176,46 @@ def curve_stats(curve: list[tuple[int, float]], cal: list[str]) -> dict:
 def account(P, periods: list, b: str, *, mult: float = 1.0, limit: bool = True, log: list | None = None) -> dict:
     """periods＝[(t, x, picks)] 依 t 排序：t 收盤決定名單、t+1 開盤換成等權、x 收盤為期末。
     下一期 t 等於本期 x 時續抱（下一期開盤再調權重），否則 x 收盤全部賣出、持有現金到下一期。
+    兩期重疊（下一期的 t ＜ 本期的 x，例：財報驚喜年報那一期持有 60 天、和第一季那一期重疊約 30 天）＝兩份名單同時持有，
+    錢平分：新一期開盤時把還在持有的那一期等比例賣掉一部分，兩期各一半；先到期的那一期收盤賣出，錢隔天開盤等比例加進還在持有的那一期
+    （2026-10-23 修正：之前會用後一期到期賣出的錢、回頭在前一天開盤買新名單，每年那一個月的報酬算兩次）。
     mult＝成本倍數（0＝不扣成本）；limit＝檢查漲停開盤買不到、整天鎖跌停順延賣出。
     log＝逐筆紀錄（給頁面「逐筆交易」；不影響任何數字）：每一筆整檔買進／整檔賣出／沒買到，
       ("b", 期, 代號, 日索引, 價) 買進（開盤）；("s", 期, 代號, 日索引, 價, 開盤?, 原因) 賣出；("x", 期, 代號, 日索引, 原因)。
       賣出原因：drop＝不在新名單、開盤賣；lock＝不在新名單但整天鎖跌停、順延收盤賣；end＝期末收盤賣（下一期不相連）；
-      endlock＝期末遇鎖跌停順延。沒買到：lim＝漲停開盤、noopen＝沒有開盤價。價＝面板價格（還原權息）；續抱時的調回等額不記。
-    → {"units": 每期 {d, t, x, r(%), hd, to, cost(%), n, lim, lock}, "curve": [(日索引, 淨值)]}"""
+      endlock＝期末遇鎖跌停順延。沒買到：lim＝漲停開盤、noopen＝沒有開盤價。價＝面板價格（還原權息）；續抱時的調回等額、
+      重疊時的平分與加碼都不記（不是整檔買賣）。重疊時紀錄依「份」排：前一份的買賣全部在前。
+    → {"units": 每期 {d, t, x, r(%), hd, to, cost(%), n, lim, lock}, "curve": [(日索引, 淨值)]}
+    每期的 r 是那一份名單自己的報酬（平分、加碼按比例，不改變每一單位的報酬）；curve 是整個帳戶。"""
+    return engine(P, periods, b, mult=mult, limit=limit, log=log)
+
+
+class _Sub:
+    """資金帳戶裡的一份（一期名單的持股與現金；續抱時下一期接手同一份）。"""
+    __slots__ = ("k", "hold", "cash", "pend", "ref", "units", "V0", "Vo", "buy", "cost", "cpu", "lim", "lock", "ngap", "nstop",
+                 "log")
+
+    def __init__(self, cash: float):
+        self.k, self.hold, self.cash, self.pend, self.ref = -1, {}, cash, {}, {}
+        self.units = self.V0 = self.Vo = 0.0
+        self.buy = self.cost = self.cpu = 0.0
+        self.lim = self.lock = self.ngap = self.nstop = 0
+        self.log: list = []
+
+
+def engine(P, periods: list, b: str, *, mult: float = 1.0, limit: bool = True, log: list | None = None,
+           gap: float | None = None, stop: float | None = None, knobs: bool = False) -> dict:
+    """資金帳戶（account 的本體；optim.account_v 多兩個候選旋鈕：gap＝不在原持股的新名單股票開盤 ≥ 前一日收盤 ×（1＋gap）
+    當期不買；stop＝當期第一天開盤為參考價、收盤跌破參考價 ×（1 − stop）當天收盤賣出、持有現金到期末；knobs＝每期多記
+    gap、stop 兩欄）。兩期不重疊時和 2026-10-23 以前的寫法逐位相同（tests/test_bt3.py 用舊版逐期、逐日、逐筆比對）。"""
     S, T, cal = P.s, P.T, P.cal
-    cash = 1.0
-    hold: dict[str, float] = {}
     last: dict[str, float] = {}
-    curve, units = [], []
+    curve: list = []
+    out_units: dict[int, dict] = {}
+    free = 1.0                                           # 不屬於任何一份的現金（期與期之間）
+    act: list[_Sub] = []                                 # 持有中的份（建立順序）
+    carry: _Sub | None = None                            # 期末和下一期相連、等下一期接手的那一份
+    subs_made: list[_Sub] = []
 
     def px(c: str, i: int) -> float | None:
         v = S[c]["c"][i]
@@ -194,88 +223,197 @@ def account(P, periods: list, b: str, *, mult: float = 1.0, limit: bool = True, 
             last[c] = v
         return v or last.get(c)
 
-    def value(i: int) -> float:
-        return cash + sum(sh * (px(c, i) or 0.0) for c, sh in hold.items())
+    def sval(s: _Sub, i: int) -> float:
+        return s.cash + sum(sh * (px(c, i) or 0.0) for c, sh in s.hold.items())
 
-    for k, (t, x, picks) in enumerate(periods):
-        j = t + 1
-        if j > x or j >= T or not picks:
-            continue
-        V0 = value(t)
-        if not curve:
-            curve.append((t, V0))
-        cost = 0.0
-        lim = lock = 0
-        pend: dict[str, int] = {}                         # 鎖跌停賣不掉：代號 → 實際賣出日（收盤）
-        tgt = set(picks)
-        for c in [c for c in hold if c not in tgt]:
-            s = S[c]
-            if limit and locked_down(s, j):
-                pend[c] = exit_day(s, j, T)
-                lock += 1
-                continue
-            p = s["o"][j] or px(c, t)
-            amt = hold.pop(c) * p
-            cash += amt * (1 - side_cost(b, True, mult))
-            cost += amt * side_cost(b, True, mult)
-            if log is not None:
-                log.append(("s", k, c, j, p, True, "drop"))
-        Vo = cash + sum(sh * ((S[c]["o"][j] or px(c, t)) or 0.0) for c, sh in hold.items())
-        tv = Vo * (1 - side_cost(b, False, mult)) / len(picks)
-        buy = 0.0
-        for c in picks:
-            s = S[c]
-            o = s["o"][j]
-            if not o:
-                if log is not None and c not in hold:
-                    log.append(("x", k, c, j, "noopen"))
-                continue
-            cur = hold.get(c, 0.0) * o
-            diff = tv - cur
-            if diff > 0:
-                if limit and o >= (s["c"][t] or px(c, t) or o) * LIMIT_UP:
-                    lim += c not in hold
-                    if log is not None and c not in hold:
-                        log.append(("x", k, c, j, "lim"))
+    def sval_open(s: _Sub, j: int, t: int) -> float:
+        return s.cash + sum(sh * ((S[c]["o"][j] or px(c, t)) or 0.0) for c, sh in s.hold.items())
+
+    def total(i: int) -> float:
+        v = free
+        for s in act:
+            v += sval(s, i)
+        if carry is not None:
+            v += sval(carry, i)
+        return v
+
+    def units_changed(s: _Sub, m: float) -> None:      # 平分、加碼：每一單位的報酬不變
+        s.cpu += s.cost / s.units if s.units > 0 else 0.0
+        s.cost = 0.0
+        s.units *= m
+
+    valid = [k for k, (t, x, picks) in enumerate(periods) if picks and t + 1 <= x and t + 1 < T]
+    if not valid:
+        return {"units": [], "curve": []}
+    starts: dict[int, list[int]] = {}
+    for k in valid:
+        starts.setdefault(periods[k][0] + 1, []).append(k)
+    i_end = max(periods[k][1] for k in valid)
+    i0 = min(starts)
+    for i in range(i0, i_end + 1):
+        # ── 開盤：新的一期 ────────────────────────────────────────────
+        for k in starts.get(i, ()):
+            t, x, picks = periods[k]
+            j = i
+            if carry is not None:                            # 續抱：上一期的那一份接手
+                s, carry = carry, None
+                act.append(s)
+                s.V0 = sval(s, t)
+            elif not act:                                    # 期與期之間：拿全部現金
+                s = _Sub(free)
+                free = 0.0
+                act.append(s)
+                subs_made.append(s)
+                s.V0 = sval(s, t)
+            else:                                            # 重疊：和持有中的各份平分
+                s = _Sub(free)
+                free = 0.0
+                vs = [(o, sval_open(o, j, t)) for o in act]
+                tgt = (s.cash + sum(v for _, v in vs)) / (len(act) + 1)
+                for o, v in vs:
+                    if v <= tgt or v <= 0:
+                        continue
+                    f = (v - tgt) / v
+                    for c in list(o.hold):
+                        p = S[c]["o"][j] or px(c, t)
+                        if not p:
+                            continue                         # 沒有價格的不動（它在 v 裡也算 0）
+                        q = o.hold[c] * f
+                        o.hold[c] -= q
+                        s.cash += q * p * (1 - side_cost(b, True, mult))
+                    s.cash += o.cash * f
+                    o.cash -= o.cash * f
+                    units_changed(o, 1 - f)
+                act.append(s)
+                subs_made.append(s)
+                s.V0 = s.cash
+            if not curve:
+                curve.append((t, s.V0 if len(act) == 1 else total(t)))
+            s.k, s.units = k, s.V0
+            s.buy = s.cost = s.cpu = 0.0
+            s.lim = s.lock = s.ngap = s.nstop = 0
+            s.pend = {}
+            tgt_set = set(picks)
+            for c in [c for c in s.hold if c not in tgt_set]:
+                st = S[c]
+                if limit and locked_down(st, j):
+                    s.pend[c] = exit_day(st, j, T)
+                    s.lock += 1
                     continue
-                if log is not None and c not in hold:
-                    log.append(("b", k, c, j, o))
-                cash -= diff * (1 + side_cost(b, False, mult))
-                cost += diff * side_cost(b, False, mult)
-                hold[c] = hold.get(c, 0.0) + diff / o
-                buy += diff
-            elif diff < 0:
-                cash += -diff * (1 - side_cost(b, True, mult))
-                cost += -diff * side_cost(b, True, mult)
-                hold[c] = hold.get(c, 0.0) + diff / o
-        for i in range(j, x + 1):
-            for c in [c for c, d2 in pend.items() if d2 == i]:
+                p = st["o"][j] or px(c, t)
+                amt = s.hold.pop(c) * p
+                s.cash += amt * (1 - side_cost(b, True, mult))
+                s.cost += amt * side_cost(b, True, mult)
+                s.log.append(("s", k, c, j, p, True, "drop"))
+            s.Vo = s.cash + sum(sh * ((S[c]["o"][j] or px(c, t)) or 0.0) for c, sh in s.hold.items())
+            tv = s.Vo * (1 - side_cost(b, False, mult)) / len(picks)
+            for c in picks:
+                st = S[c]
+                o = st["o"][j]
+                if not o:
+                    if c not in s.hold:
+                        s.log.append(("x", k, c, j, "noopen"))
+                    continue
+                cur = s.hold.get(c, 0.0) * o
+                diff = tv - cur
+                if diff > 0:
+                    if limit and o >= (st["c"][t] or px(c, t) or o) * LIMIT_UP:
+                        s.lim += c not in s.hold
+                        if c not in s.hold:
+                            s.log.append(("x", k, c, j, "lim"))
+                        continue
+                    if gap is not None and c not in s.hold and o >= (st["c"][t] or px(c, t) or o) * (1 + gap):
+                        s.ngap += 1
+                        s.log.append(("x", k, c, j, "gap"))
+                        continue
+                    if c not in s.hold:
+                        s.log.append(("b", k, c, j, o))
+                    s.cash -= diff * (1 + side_cost(b, False, mult))
+                    s.cost += diff * side_cost(b, False, mult)
+                    s.hold[c] = s.hold.get(c, 0.0) + diff / o
+                    s.buy += diff
+                elif diff < 0:
+                    s.cash += -diff * (1 - side_cost(b, True, mult))
+                    s.cost += -diff * side_cost(b, True, mult)
+                    s.hold[c] = s.hold.get(c, 0.0) + diff / o
+            s.ref = {c: S[c]["o"][j] for c in s.hold if S[c]["o"][j]} if stop is not None else {}
+        # ── 開盤：前一天到期那一份的錢加進還在持有的各份（等比例） ─────────────
+        if free > 0 and act and i not in starts:
+            a = free / len(act)
+            for s in act:
+                wh = sum(sh * ((S[c]["o"][i] or px(c, i - 1)) or 0.0) for c, sh in s.hold.items())
+                den = wh * (1 + side_cost(b, False, mult)) + s.cash
+                if den <= 0:
+                    continue
+                g = a / den
+                for c in s.hold:
+                    s.hold[c] *= 1 + g
+                s.cash += s.cash * g
+                free -= a
+                units_changed(s, 1 + g)
+            if free < 1e-15:
+                free = 0.0
+        if not act:
+            continue
+        # ── 收盤：順延賣出、停損、記淨值 ─────────────────────────────────
+        for s in act:
+            k = s.k
+            for c in [c for c, d2 in s.pend.items() if d2 == i]:
                 p = px(c, i) or 0.0
-                amt = hold.pop(c) * p
-                cash += amt * (1 - side_cost(b, True, mult))
-                cost += amt * side_cost(b, True, mult)
-                del pend[c]
-                if log is not None:
-                    log.append(("s", k, c, i, p, False, "lock"))
-            curve.append((i, value(i)))
-        nxt = periods[k + 1][0] if k + 1 < len(periods) else None
-        if nxt != x:                                      # 與下一期不相連 → 期末收盤全部賣出
-            for c in list(hold):
-                s = S[c]
-                i2 = exit_day(s, x, T) if limit else x
-                lock += i2 != x
-                p = px(c, i2) or px(c, x) or 0.0
-                amt = hold.pop(c) * p
-                cash += amt * (1 - side_cost(b, True, mult))
-                cost += amt * side_cost(b, True, mult)
-                if log is not None:
-                    log.append(("s", k, c, i2, p, False, "end" if i2 == x else "endlock"))
-            curve[-1] = (x, cash)
-        V1 = curve[-1][1]
-        units.append({"d": cal[t], "t": t, "x": x, "r": (V1 / V0 - 1) * 100 if V0 > 0 else None, "hd": x - t,
-                      "to": buy / Vo if Vo > 0 else None, "cost": cost / V0 * 100 if V0 > 0 else None,
-                      "n": len(picks), "lim": lim, "lock": lock})
-    return {"units": units, "curve": curve}
+                amt = s.hold.pop(c) * p
+                s.cash += amt * (1 - side_cost(b, True, mult))
+                s.cost += amt * side_cost(b, True, mult)
+                del s.pend[c]
+                s.log.append(("s", k, c, i, p, False, "lock"))
+            if stop is not None:
+                for c in [c for c in s.hold if c not in s.pend and s.ref.get(c)]:
+                    cl = S[c]["c"][i]
+                    if not cl or cl >= s.ref[c] * (1 - stop):
+                        continue
+                    s.nstop += 1
+                    i2 = exit_day(S[c], i, T)
+                    if i2 != i:
+                        s.pend[c] = i2                        # 鎖跌停賣不掉：順延（超過期末就留給期末處理）
+                        continue
+                    amt = s.hold.pop(c) * cl
+                    s.cash += amt * (1 - side_cost(b, True, mult))
+                    s.cost += amt * side_cost(b, True, mult)
+                    s.log.append(("s", k, c, i, cl, False, "stop"))
+        curve.append((i, sval(act[0], i) if len(act) == 1 and free == 0.0 else total(i)))
+        # ── 收盤：到期 ──────────────────────────────────────────────────
+        for s in [s for s in act if periods[s.k][1] == i]:
+            k = s.k
+            t, x, picks = periods[k]
+            nxt = periods[k + 1][0] if k + 1 < len(periods) else None
+            act.remove(s)
+            if nxt != x:
+                for c in list(s.hold):
+                    st = S[c]
+                    i2 = exit_day(st, x, T) if limit else x
+                    s.lock += i2 != x
+                    p = px(c, i2) or px(c, x) or 0.0
+                    amt = s.hold.pop(c) * p
+                    s.cash += amt * (1 - side_cost(b, True, mult))
+                    s.cost += amt * side_cost(b, True, mult)
+                    s.log.append(("s", k, c, i2, p, False, "end" if i2 == x else "endlock"))
+                V1 = s.cash
+                free = free + s.cash if act or free else s.cash
+                s.cash = 0.0
+                curve[-1] = (x, free if not act else total(x))
+            else:
+                V1 = sval(s, x)
+                carry = s
+            u = {"d": cal[t], "t": t, "x": x, "r": (V1 / s.units - 1) * 100 if s.units > 0 else None, "hd": x - t,
+                 "to": s.buy / s.Vo if s.Vo > 0 else None,
+                 "cost": (s.cpu + s.cost / s.units) * 100 if s.units > 0 else None,
+                 "n": len(picks), "lim": s.lim, "lock": s.lock}
+            if knobs:
+                u.update({"gap": s.ngap, "stop": s.nstop})
+            out_units[k] = u
+    if log is not None:
+        for s in subs_made:
+            log.extend(s.log)
+    return {"units": [out_units[k] for k in valid if k in out_units], "curve": curve}
 
 
 def vs_ew(acc: dict, ew: dict) -> list[dict]:
