@@ -127,46 +127,13 @@ def test_trade_check_and_judge_render_from_detail_json():
 JARGON = ("VER", "候選", "門檻", "夏普", "前後兩半", "95%", "區間", "扣掉波動", "BH", "固定持有", "樣本外")
 
 
-def test_plan_section_wired_first_on_this_period():
-    """交易計畫（planspec；docs/lab_practical_plan.md 第 13 節）：這一期的市場切換下面第一塊；#v=mac&m=市場&x=plan 捲到它；建頁時算。"""
+def test_old_plan_section_is_gone():
+    """上一版交易計畫（策略頁・總經策略最上面「照著做」；planspec）2026-10-23 拿掉：使用者說比一直抱著還差。
+    新的交易計畫（核心 70%＋衛星 30%，corespec）放在訊號總覽・研究結論（docs/lab_core70_plan.md）。"""
     js = M.JS
-    assert "h+=xpSec();\n  h+=sec('m-sum','摘要'," in js
-    assert "return sec('m-plan','交易計畫'," in js and "function xpDef(" in js and "function xpAtk(" in js
-    assert "if(x==='plan'&&TABG[v]==='mac'){v='mac';at='m-plan';}" in page._JS
+    assert "xpSec" not in js and "m-plan" not in js and "xpl" not in M.CSS
+    assert "x==='plan'" not in page._JS
     src = (page.Path(page.__file__)).read_text(encoding="utf-8")
-    assert 'data["mac"]["plan"] = plan.build()' in src
-    assert not [w for w in BANNED if w in js + M.CSS]
+    assert "plan.build()" not in src and "stk_from_adv" in src
 
 
-@pytest.mark.skipif(shutil.which("node") is None, reason="沒有 node")
-def test_plan_section_renders_in_node():
-    """用真的資料在 node 裡畫交易計畫：有收的做法才有那一欄；S&P 500 照實寫沒有；沒有禁用詞與內部術語。"""
-    from arm.lab import plan as PN
-    from arm.lab import planspec as PS
-    from arm.lab import xsadvice as XA
-    D = {"mac": XA.build(), "adv": {}, "rows": []}
-    D["mac"]["plan"] = PN.build()
-    stub = ("const document={querySelector:()=>null,querySelectorAll:()=>[],addEventListener(){},documentElement:{}};"
-            "const window={};const MAIN={innerHTML:''};const $=s=>s==='#main'?MAIN:null,$$=()=>[];"
-            "const innerWidth=1200,addEventListener=()=>{};const D=" + json.dumps(D, ensure_ascii=False) + ";const S={mmk:'tw'};const GL={},GLG=[];"
-            "function f(x,d=1){if(x===null||x===undefined||Number.isNaN(x))return '—';return Number(x).toLocaleString('zh-TW',{minimumFractionDigits:d,maximumFractionDigits:d});}"
-            "function esc(s){return String(s??'');}function md(d){return d?`${+d.slice(5,7)}/${+d.slice(8,10)}`:'—';}function mdw(d){return md(d);}"
-            "function pctT(x,d=1){return x==null?'—':(x>0?'+':x<0?'−':'')+f(Math.abs(x),d)+'%';}function fp(x){return String(x);}function gi(){return '';}"
-            "function sq(k,v){return `<div class=sq>${k}｜${v}</div>`;}function sec(id,nav,t,sub,body){return `<section id=${id}>${t}${sub}${body}</section>`;}"
-            "const TN={},TMK={};function tBadge(t){return t;}const VZS={};")
-    prog = stub + M.JS + "\nconst out={};for(const mk of MAC.mks){S.mmk=mk;out[mk]=xpSec();}console.log(JSON.stringify(out));"
-    r = subprocess.run(["node", "-"], input=prog, capture_output=True, text=True, timeout=60)
-    assert r.returncode == 0, r.stderr[-2000:]
-    out = json.loads(r.stdout)
-    for mk, h in out.items():
-        assert h.startswith("<section id=m-plan>"), mk
-        txt = re.sub(r"<[^>]+>", "", h)
-        assert ("防守：總經策略全部照做" in txt) == (mk in PS.AVAIL["def"]), mk
-        assert ("現在拿" in txt) == (mk in PS.AVAIL["def"]) and ("下一個交易日收盤平掉" in txt or "收盤加碼" in txt) == (mk in PS.AVAIL["atk"]), mk
-        if mk not in PS.AVAIL["def"] and mk not in PS.AVAIL["atk"]:
-            assert "沒有比一直抱著穩定好的照做方法" in txt
-        if mk in PS.AVAIL["atk"]:
-            assert "口" in txt and "期貨帳戶" in txt and "最差的一天" in txt
-        elif mk in PS.AVAIL["def"]:
-            assert "這個指數沒有對應的期貨" in txt
-        assert not [w for w in BANNED + JARGON if w in txt], (mk, [w for w in BANNED + JARGON if w in txt])

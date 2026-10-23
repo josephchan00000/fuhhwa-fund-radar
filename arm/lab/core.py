@@ -422,7 +422,8 @@ def stk_from_adv(A: dict, asof: str | None = None) -> dict:
                    "items": [{"c": x.get("c"), "n": x.get("n")} for x in (e.get("items") or [])][:8],
                    "n_items": len(e.get("items") or [])})
     ev.sort(key=lambda e: (e["d"], 0 if e.get("at") == "開盤" else 1, e["k"]))
-    return {"d": asof, "st": [{"k": b["k"], "name": b.get("name"), "kind": b.get("kind")} for b in book],
+    kinds = {k: (v or {}).get("kind") for k, v in (A.get("trades") or {}).items() if isinstance(v, dict)}
+    return {"d": asof, "st": [{"k": b["k"], "name": b.get("name"), "kind": b.get("kind") or kinds.get(b["k"])} for b in book],
             "hold": hold, "ev": ev, "w": S.SAT / len(ks) if ks else None}
 
 

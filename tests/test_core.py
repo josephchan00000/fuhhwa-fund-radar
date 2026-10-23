@@ -97,8 +97,10 @@ def test_stk_from_adv_keeps_only_star_strategies_and_next_45_days():
                   "items": [{"c": "2330", "n": "台積電"}], "sname": "財報驚喜（大型股）"},
                  {"k": "v3l", "d": "2026-11-17", "at": "開盤", "act": "買進", "pending": True, "fix": "2026-11-16", "items": []},
                  {"k": "s1", "d": "2026-10-27", "at": "收盤", "act": "賣出", "items": []},
-                 {"k": "s3", "d": "2027-01-30", "at": "收盤", "act": "賣出", "items": []}]}
+                 {"k": "s3", "d": "2027-01-30", "at": "收盤", "act": "賣出", "items": []}],
+         "trades": {"v3l": {"kind": "per"}, "s3": {"kind": "rev"}, "s1": {"kind": "trade"}}}
     X = C.stk_from_adv(A, "2026-10-23")
+    assert [s["kind"] for s in X["st"]] == ["rev", "per"]                         # 定期換股的分法要看 kind
     assert [s["k"] for s in X["st"]] == ["s3", "v3l"] and X["w"] == pytest.approx(0.15)
     assert [h["c"] for h in X["hold"]["v3l"]] == ["2330"] and X["hold"]["s3"] == []
     assert [(e["k"], e["d"]) for e in X["ev"]] == [("v3l", "2026-11-12"), ("v3l", "2026-11-17")]   # ● 的、45 天以後的不列

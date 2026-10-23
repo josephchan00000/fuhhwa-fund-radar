@@ -243,6 +243,17 @@ def sig_now(B: dict) -> dict | None:
         return None
 
 
+def core_now(B: dict) -> dict | None:
+    """交易計畫（corespec；docs/lab_core70_plan.md）：三種過熱現在的讀數與該拿多少（core.now_from_B），訊號總覽・研究結論用；
+    算不出來回 None、不擋景氣頁。"""
+    try:
+        from . import core
+        return core.now_from_B(B)
+    except Exception as e:                          # noqa: BLE001  交易計畫的問題不擋景氣頁
+        print(f"[景氣溫度] 交易計畫的讀數算不出來：{type(e).__name__}: {e}")
+        return None
+
+
 def sig_today(now: dict | None) -> dict | None:
     """「今天的重點」：這個市場現在有效的好訊號（sigcat.today_for）；研究檔沒有或算不出來回 None。"""
     try:
@@ -350,7 +361,8 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
             "dvr": R.get("deriv") or {}, "rel": R.get("rel") or {}, "m6": R.get("m6") or {}, "meta": meta(),
             "bubnow": bubble_now(B) if T else None, "crash": crash_now(B) if T else None,
             "hotdd": hotdd_now(B) if T else None, "hotch": hotch_now(B) if T else None,
-            "bottom": bottom_now(B) if T else None, "signow": sig_now(B) if T else None}
+            "bottom": bottom_now(B) if T else None, "signow": sig_now(B) if T else None,
+            "core": core_now(B) if T else None}
     out["sigtoday"] = sig_today(out["signow"])
     out["xsb"] = xs_board(out["mk"]) if T else []   # 總經策略（xstratspec）：今天的重點要列的 ★ 策略
     out["xschip"] = xs_chip(out["mk"]) if T else ""

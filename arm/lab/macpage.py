@@ -23,23 +23,6 @@ table.yrt.xmhs{max-width:440px}table.yrt tr.xmon td{font-weight:600}
 table.yrt:not(.yall) tr.yo{display:none}table.yrt tr.yrx td{text-align:left;padding:5px 8px}table.yrt tr.yrx a{cursor:pointer;font-size:13px}
 .xmtl{margin-top:6px}
 .xmsrc{margin-top:6px}
-/* 交易計畫（planspec；docs/lab_practical_plan.md 第 13 節）：防守、進攻兩欄 */
-.xpli{color:var(--ink2);font-size:13.5px;margin:0 0 10px;line-height:1.7}
-.xpl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 6px}
-.xplc{border:1px solid var(--line);border-radius:12px;padding:10px 14px 6px;min-width:0}
-.xplh{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}.xplh b{font-size:15px}
-.xplb{flex:none;font-size:11.5px;font-weight:700;color:var(--accd);background:var(--accbg);border-radius:10px;padding:1px 8px;white-space:nowrap}
-.xplb.bad{color:var(--warn);background:var(--gbbg)}
-.xplnow{font-size:14px;margin:6px 0 0}.xplnow b{font-size:24px;margin:0 2px}
-.xplsub{color:var(--mut);font-size:12.5px;margin:0 0 4px}
-.xplc .sq{grid-template-columns:5.4em minmax(0,1fr);font-size:13.5px;padding:8px 0}.xplc .sq .sqk{font-size:13px}
-.xplf{color:var(--warn);font-weight:700;margin-top:3px}
-.xplna{align-self:start}.xplna p{font-size:13px;margin:8px 0 6px;color:var(--ink2)}
-.xplno{margin:0;font-size:14px;line-height:1.7}
-.xplhow p{font-size:13.5px;margin:6px 0;line-height:1.75}
-.xplm{margin:2px 0 4px}.xplm p{font-size:13px;margin:6px 0;line-height:1.7;color:var(--ink2)}
-@media (max-width:760px){.xpl{grid-template-columns:1fr}}
-@media (max-width:600px){.xplc .sq{grid-template-columns:1fr;gap:2px}.xplc{padding:9px 12px 5px}}
 @media (max-width:600px){.xmbar{gap:8px}.xmmk{display:flex;flex-wrap:wrap;width:100%}.xmmk a{flex:1 1 auto;text-align:center;padding:5px 7px}
  .xmmk a small{display:block;margin:0;line-height:1.2}}
 """
@@ -134,81 +117,9 @@ function xmCard(c){const nx=xmNext(c),rows=[['做法',esc(c.how)],[`隱含獲利
     `<div class="card stc">${rows.map(([a,b])=>sq(a,b)).join('')}<div class=vlk><a data-go="macst" data-at="ms-${esc(c.k)}">規則與過去成績 →</a></div></div>`);}
 function xmBind(){$$('#main [data-to]').forEach(a=>a.onclick=e=>{e.preventDefault();jump(a.dataset.to);});
   $$('#main [data-yr]').forEach(a=>a.onclick=e=>{e.preventDefault();const t=a.closest('table');t.classList.toggle('yall');a.textContent=t.classList.contains('yall')?'收起較早的年份':a.dataset.lb;});}
-/* ---------- 交易計畫（planspec VER 1；docs/lab_practical_plan.md 第 13 節）：上網頁條件過了的兩條寫成照著做的規則＋事先定好的前瞻檢查。
-   數字全部由 plan.py 算（研究檔、前瞻紀錄、價格），這裡只排版；只描述照規則做的結果。 ---------- */
-const XPN={wait:'累積中',ok:'和過去同樣行情差不多',bad:'比過去同樣行情差很多',good:'比過去同樣行情好很多',dd:'跌得比過去最慘的一次還深',fut:'期貨部位虧得比過去最多的一次還多'};
-function xpP(x,d=1){return x==null?'—':pctT(x*100,d);}           // 比例 → +4.7%
-function xpA(x,d=0){return x==null?'—':f(Math.abs(x)*100,d)+'%';}  // 比例 → 21%（不帶正負）
-function xpW(m){return m==null?'—':f(m*100,0)+' 萬';}             // 100 萬的倍數 → 311 萬
-function xpYr(Y){if(!Y||!Y.q)return '<span class=mu>—</span>';const q=Y.q,b=Y.bq;
-  return `一半的時候在 <b>${xpP(q[1])}～${xpP(q[3])}</b>（中位 ${xpP(q[2])}）；最差的 5% 低於 ${xpP(q[0])}；賠錢的一年占 ${xpA(Y.loss)}`+
-    `<div class=sm2>一直抱著：一半在 ${xpP(b[1])}～${xpP(b[3])}（中位 ${xpP(b[2])}）、最差的 5% 低於 ${xpP(b[0])}、賠錢占 ${xpA(Y.bloss)}。研究期間每一週起算的 ${f(Y.n,0)} 個一年。</div>`;}
-function xpLive(L){if(!L||!L.a)return '<span class=mu>還沒開始記錄。</span>';
-  const C=L.chk||[],nx=L.next?`${C.length?'下一次':'第一次'}檢查 ${xmYmd(L.next.d)}（滿 ${L.next.n} 個交易日）`:'';
-  let h;
-  if(!C.length)h=`${xmYmd(L.a)} 起照規則記錄，還在累積（不到 3 個月不寫成績）${nx?'；'+nx:''}。`;
-  else{const c=C[C.length-1];
-    h=`${xmYmd(L.a)} 起照做 <b>${xpP(L.ret)}</b>（一直抱著 ${xpP(L.bh)}），最大回撤 ${xpA(L.mdd,1)}。`;
-    h+=c.st?`<div class=sm2>第 ${c.n} 個交易日（${md(c.d)}）檢查：<b class="${c.st==='bad'?'xplf':''}">${XPN[c.st]}</b>——過去一直抱著漲跌 ${xpP(c.nx[0])}～${xpP(c.nx[1])} 的 ${c.k} 段同樣長的期間，照做一半落在 ${xpP(c.nq[0])}～${xpP(c.nq[2])}；這次 ${xpP(c.y)}，排在 ${f(c.p*100,0)}%。${nx}</div>`
-      :`<div class=sm2>第 ${c.n} 個交易日：過去同樣長的期間不夠，沒有比。${nx}</div>`;}
-  for(const g of L.flags||[])h+=`<div class=xplf>⚠ ${XPN[g]}</div>`;
-  return h;}
-function xpBad(L){return !!L&&((L.flags||[]).length>0||((L.chk||[]).slice(-1)[0]||{}).st==='bad');}
-function xpHead(nm,L){const b=xpBad(L);return `<div class=xplh><b>${esc(nm)}</b><span class="xplb${b?' bad':''}">${b?'偏離過去':'前瞻驗證中'}</span></div>`;}
-function xpDef(X,nm){const n=X.now||{},p=X.past||{},bh=p.bh||{},A=n.acts||[],H=n.held||[];
-  let nxt=!n.nx?'<span class=mu>—</span>':!A.length?`照規則沒有要動的，維持 ${xpA(n.w)}`
-    :A.map(a=>`<span class="kact ka-${XMA[a.act]||'a'}">收盤${esc(a.act)}</span> ${esc(xmNm(a.k))}`).join('　')+(n.wn!=null?` → 合計 <b>${xpA(n.wn)}</b>`:'')
-      +((n.maybe||[]).length?'<div class=sm2>「可能買進」要看那天收盤才知道，合計沒有算進去。</div>':'');
-  const rows=[['下一個交易日',`${n.nx?mdw(n.nx)+' 收盤：':''}${nxt}`],
-    ['過去',`${(p.a||'').slice(0,4)} 年起 100 萬變 <b>${xpW(p.man)}</b>（一直抱著 ${xpW(p.bman)}）；最慘時跌 <b>${xpA(p.mdd)}</b>（${xpA(bh.mdd)}）`],
-    ['前瞻',xpLive(X.live)]];
-  const more=`<p>年化 ${xpP(p.cagr)}（一直抱著 ${xpP(bh.cagr)}）；最差一年 ${xpP(p.worst,0)}（${xpP(bh.worst,0)}）。平均只拿 ${xpA(p.w)} 股票，多頭的年份賺得少很多；一年調整約 ${f(p.adj,0)} 次（多半一次只動一份）。</p>`+
-    `<p><b>照做一年</b>：${xpYr(p.yr)}</p>`;
-  return `<div class=xplc>${xpHead(nm,X.live)}<div class=xplnow>現在拿<b>${xpA(n.w)}</b>股票</div>`+
-    `<div class=xplsub>今年選到的 ${n.n||0} 條裡 ${H.length} 條持有中${H.length?`（${H.map(k=>esc(xmNm(k))).join('、')}）`:''}，每條一份、平均分</div>`+
-    rows.map(([a,b])=>sq(a,b)).join('')+`<details class="mr xplm"><summary>過去的細節與照做一年的範圍</summary>${more}</details></div>`;}
-function xpAtk(X,nm){const n=X.now||{},p=X.past||{},bh=p.bh||{},fu=p.fut||{},ep=p.ep||{},cur=n.cur||'',L=n.lots||[];
-  const gap=n.px&&n.ma?n.px/n.ma-1:null,fl=`<b>${fp(n.flip)}</b>`;
-  const nxt=n.act==='加碼'?'照規則收盤<b>加碼</b>（用期貨多拿帳戶 5 成）':n.act==='平掉'?'照規則收盤<b>平掉加碼</b>'
-    :n.on?`維持加碼；那天收盤若低於 ${fl}（那天的 200 日均線），再下一個交易日收盤平掉`:`維持不加碼；那天收盤若高於 ${fl}（那天的 200 日均線），再下一個交易日收盤加碼`;
-  const money=v=>cur==='元'?`${f(v/1e4,v>=1e5?0:1)} 萬元`:`${f(v,0)} 美元`;
-  let lots='';
-  if(L.length&&n.cap)lots=`本金 ${money(n.cap)}時，加碼的名目約 ${money(n.cap*(n.add||0.5))}：`+
-    L.map(([k,m,per,x,c,sh])=>c>0?`${esc(k)} 約 ${c} 口（一口 ${money(per)}，帳戶的 ${xpA(sh)}）`:`${esc(k)} 一口就 ${money(per)}`).join('；')+'。';
-  if(fu.day!=null)lots+=`<div class=sm2>過去最差的一天，期貨部位虧掉帳戶的 <b>${xpA(fu.day,1)}</b>（${xmYmd(fu.dday)}）；交易所與期貨商要求放在期貨帳戶的金額另計。</div>`;
-  const rows=[['下一個交易日',`${n.nx?mdw(n.nx)+' 收盤：':''}${nxt}`],['期貨',lots],
-    ['過去',`${(p.a||'').slice(0,4)} 年起 100 萬變 <b>${xpW(p.man)}</b>（一直抱著 ${xpW(p.bman)}）；最慘時跌 <b>${xpA(p.mdd)}</b>（${xpA(bh.mdd)}）`],
-    ['前瞻',xpLive(X.live)]];
-  const more=`<p>年化 ${xpP(p.cagr)}（一直抱著 ${xpP(bh.cagr)}）；最差一年 ${xpP(p.worst,0)}（${xpP(bh.worst,0)}）。加碼的時間 ${xpA(p.share)}，一年開始加碼約 ${f(p.starts,1)} 次；每一段加碼只有 ${xpA(ep.win)} 賺錢（多數小賠出場、少數長多頭賺很多）。`+
-    `每天固定多拿同樣多，100 萬也會變 ${xpW(p.fman)}：多賺的大部分來自多拿股票（訊號總覽・研究結論第 2 則）。</p>`+
-    (fu.n?`<p><b>期貨帳戶</b>：過去 ${fu.n} 段加碼，賺的錢留在期貨帳戶的話，期貨部位比那一段開始時最多虧掉帳戶的 ${xpA(fu.worst,1)}（${xmYmd(fu.wa)}～${fu.wz?xmYmd(fu.wz):'還在加碼中'}）：加碼從剛站上 200 日均線開始、收盤跌破就平掉，開始和平倉多半都在均線附近，多數是小賠出場；虧最多的是急跌的單日（上面那一天，收盤跌破之後隔天才平得掉）。一口的名目＝指數 × 每點金額（${L.map(([k,m])=>`${esc(k)} ${m} ${esc(cur)}`).join('、')}），以 ${md(n.d)} 收盤計。</p>`:'')+
-    `<p><b>照做一年</b>：${xpYr(p.yr)}</p>`;
-  return `<div class=xplc>${xpHead(nm,X.live)}<div class=xplnow>現在<b>${n.on?'加碼中':'不加碼'}</b>${n.on?'（股票 100%＋期貨 50%）':'（只有股票 100%）'}</div>`+
-    `<div class=xplsub>收盤 ${fp(n.px)}，比 200 日均線（${fp(n.ma)}）${(gap||0)>=0?'高':'低'} ${xpA(gap,1)}；${xmYmd(n.since)} 起在均線${n.up?'上':'下'}</div>`+
-    rows.map(([a,b])=>sq(a,b)).join('')+`<details class="mr xplm"><summary>過去的細節、期貨帳戶與照做一年的範圍</summary>${more}</details></div>`;}
-function xpHow(X,mk){const d=X.def,a=X.atk,n=(d||{}).now||{},P=MAC.plan||{};let h='';
-  if(d)h+=`<p><b>${esc(P.plans.def)}</b>：每年 1 月 1 日只用之前的資料判定，★ 好策略與 ● 可參考的每一條分一份、平均分（今年 ${n.n||'—'} 條，每條約 ${n.n?xpA(1/n.n):'—'}）。每個交易日收盤後看，每一份照那條策略自己的規則買賣（多半是下一個交易日收盤${mk==='tw'?'；RSI(2)、月底月初用台指期在訊號當天收盤前下單':''}）；持有中的份數 ÷ 條數＝要拿幾成股票，其餘放現金。每一條的規則與現在的狀態在下面的策略卡。</p>`;
-  if(a)h+=`<p><b>${esc(P.plans.atk)}</b>：股票一直抱著（本金 100%）。收盤在 200 日均線上，下一個交易日收盤用期貨加碼到帳戶的 5 成（名目）；收盤跌破，下一個交易日收盤平掉。`+
-    `${mk==='tw'?'台指期每個月第三個星期三':'期貨每季（3、6、9、12 月第三個星期五）'}換月，換月的成本已算。研究用期貨的理論價（含息報酬減利率），實際價格會偏離${mk==='tw'?'（台指期在空頭時常比理論價便宜）':''}。</p>`;
-  h+=`<p class=note>研究的成本：ETF 每一邊 ${mk==='tw'?'0.1%':'0.025%'}、期貨每一邊 0.005%。股票部分是指數本身（不含股息，現金沒有利息）。只描述照規則做過去的成績。</p>`;
-  return `<details class="mr xplhow"><summary>照著做的說明（時點、工具、成本）</summary>${h}</details>`;}
-function xpChk(){return `<details class="mr xplhow"><summary>上線後怎麼檢查（事先定好的）</summary>`+
-  `<p>從上線那天起照規則記錄，滿 3、6、12、24、36 個月各檢查一次：這段期間一直抱著漲跌多少，就找過去一直抱著漲跌最接近的兩成同樣長的期間，看照做的成績排在哪裡——排在最差的 5% 以內＝<b>比過去同樣行情差很多</b>，最好的 5% 以內＝好很多。</p>`+
-  `<p>另外每天看兩件事：照做的最大回撤有沒有比過去最慘的一次還深；進攻的期貨部位有沒有虧得比過去最多的一次還多。出現這些會標在這裡（「偏離過去」），不會自動停用，要不要停你決定。只檢查五次也可能碰巧差，所以一次「差很多」是警訊、不是結論。</p></details>`;}
-function xpSec(){const P=MAC.plan||{},X=(P.mk||{})[S.mmk];if(!X)return '';
-  const mk=S.mmk,nm=esc((MAC.mkn||{})[mk]||mk),pl=P.plans||{};
-  if(!X.def&&!X.atk){const b=X.bh||{};
-    return sec('m-plan','交易計畫',`${nm}・照著做：交易計畫`,'',`<div class=card><p class=xplno>${nm} 沒有比一直抱著穩定好的照做方法：總經策略全部照做、200 日均線上加碼，過去都和「每天固定拿一樣多」差不多（訊號總覽・研究結論第 1、2 則）。`+
-      (b.cagr!=null?`一直抱著：${(b.a||'').slice(0,4)} 年起年化 ${xpP(b.cagr)}、最慘時跌 ${xpA(b.mdd)}、最差一年 ${xpP(b.worst,0)}。`:'')+`</p></div>`);}
-  const cols=(X.def?xpDef(X.def,pl.def):'')+(X.atk?xpAtk(X.atk,pl.atk)
-    :`<div class="xplc xplna"><div class=xplh><b>${esc(pl.atk)}</b></div><p>這個指數沒有對應的期貨，要加碼只能融資買 ETF（成本比期貨高），沒有放進交易計畫。</p></div>`);
-  return sec('m-plan','交易計畫',`${nm}・照著做：交易計畫`,'前瞻驗證中',
-    `<p class=xpli>過去驗證過、每年只用當時的資料決定的照做方式（各自事先定好上網頁的條件，過了才列）。防守少跌也少賺，進攻多賺也多跌。</p>`+
-    `<div class=xpl>${cols}</div>`+xpHow(X,mk)+xpChk());}
 function vMac(){const M=xmM();
   let h=`<div class=intro>大盤指數照書上、論文裡的固定規則買賣（總經策略）：先選市場，看照規則哪天買賣、現在持有什麼，以及同樣做法過去照做的實際報酬（扣成本）。只列 ★ 好策略、● 可參考${gi('判定（總經）')}，依推薦順序${gi('推薦順序（總經）')}；報酬是歷史統計，不是預測。</div>`+xmHead('mac');
   if(!M){$('#main').innerHTML=h+'<div class=st>總經策略的資料還沒產生。</div>';return;}
-  h+=xpSec();
   h+=sec('m-sum','摘要',`${esc(M.name)}・這一期`,`${md(M.d)} 收盤後更新`,xmSum(M)+xmNextDay(M)+xmTlSec()+`<details class=mr><summary>時間表（文字）</summary>${xmCalTxt(M)}</details>`);
   h+=(M.cards||[]).map(xmCard).join('');
   const lo=(M.book||[]).filter(b=>b.rank==null);
