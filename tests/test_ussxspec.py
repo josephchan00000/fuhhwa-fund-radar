@@ -9,7 +9,7 @@ from arm.lab import ussxspec as X
 
 
 def test_ussx_spec_v1_is_locked():
-    assert X.VER == 2 and X.SPEC_DATE == "2026-10-23" and X.DATA_BRANCH == "claude/ussx-data"
+    assert X.VER == 3 and X.SPEC_DATE == "2026-10-23" and X.DATA_BRANCH == "claude/ussx-data"
     assert X.PX_START == "2006-01-01"
     assert (X.LIQ_MIN, X.PX_MIN, X.AGE_MIN, X.EPS_RECENT, X.SMALL_LIQ) == (20e6, 5.0, 252, 270, 5e6)
     assert X.BOOKS == {"R60": {"n": 60, "g": 0.20, "how": "close"}, "A": {"n": 60, "g": 0.50, "how": "high"},
@@ -86,7 +86,7 @@ def test_rule_search_settings_are_the_existing_ones():
     assert SX.VER == 2
     assert X.RULE == SX.RULE and X.QS == SX.QS and X.KEEP_FINAL == SX.KEEP_FINAL and X.OVERLAP_MAX == SX.OVERLAP_MAX
     assert X.FALLBACK == SF.FALLBACK and X.VAL_YEARS == SF.VAL_YEARS
-    assert CS.VER == 2 and CS.COST["us"] == X.COST["idx"] and CS.SAT == 0.30
+    assert CS.VER == 3 and CS.COST["us"] == X.COST["idx"] and CS.SAT == 0.30
     assert set(X.PLANS) <= set(CS.MARKETS)
 
 
@@ -96,3 +96,16 @@ def test_spec_text_has_no_banned_words():
     for w in ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "唯一", "建議買賣", "建議買", "建議賣", "目標價",
               "零風險", "無風險"):
         assert w not in s, w
+
+
+def test_qm_rule_v3_is_locked():
+    """VER 3（規劃第 13 節）：使用者 2026-10-23 選的 A 穩健版，寫死之後不再調參數。"""
+    assert X.QM == {"rs": 80.0, "d52h": -0.25, "om": 0.10, "roe": 0.15, "cap": 2e9}
+    assert {"rs", "d52h", "om", "roe", "cap"} <= {f[0] for f in X.FEATS}          # 條件的算法沿用 FEATS
+    assert X.QM_SLOTS == 8 and X.QM_EXIT == {"ma": 50} and X.QM_STYLE == "trend"
+    assert (X.QM_Y0, X.QM_EVAL, X.QM_PLANS) == (2010, 2014, ("spx", "ndx"))
+    assert X.QM_REF == {"cagr": 0.2444, "plan_m": 8.8625} and X.QM_REPRO == {"cagr": 0.001, "plan_m": 0.01}
+    assert X.QM_NB == {"rs": (70.0, 90.0), "d52h": (-0.15, -0.35), "om": (0.05, 0.15), "roe": (0.10, 0.20), "cap": (1e9, 5e9)}
+    assert X.QM_DROP == (1, 2, 3, 5, 8)
+    assert (X.QM_LIVE, X.QM_LIST, X.QM_REVIEW, X.QM_P_LOW) == ("2026-10-23", 20, (63, 126, 252), 0.20)
+    assert X.QM_P_LOW == CS.P_LOW and CS.US_SLEEVE_FILE == "ussx_qm.json"
