@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""美股飆股研究（ussxspec VER 1；docs/lab_us_sleeve_plan.md 第 9 節）。資料在資料分支 claude/ussx-data：
+"""美股飆股研究（ussxspec VER 2；docs/lab_us_sleeve_plan.md 第 9、10.5 節）。資料在資料分支 claude/ussx-data：
 
   git worktree add --detach <資料夾> origin/claude/ussx-data
   USSX_DIR=<資料夾>/data/lab/ussx TZ=Asia/Taipei python3 scripts/run_ussx.py --surv   # A 存活偏誤 → data/lab/ussx_surv.json
@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 import time
 from pathlib import Path
@@ -25,9 +26,22 @@ from arm.lab import ussxswap as SW  # noqa: E402
 OUT = ROOT / "data" / "lab"
 
 
+def _clean(x):
+    """nan／inf → None（跑很久的研究不要在最後寫檔時因為一個 nan 整個丟掉）。"""
+    if isinstance(x, float):
+        return x if math.isfinite(x) else None
+    if isinstance(x, dict):
+        return {k: _clean(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [_clean(v) for v in x]
+    if hasattr(x, "item") and not isinstance(x, (str, bytes)):          # numpy 純量
+        return _clean(x.item())
+    return x
+
+
 def _save(name: str, doc: dict) -> None:
     p = OUT / name
-    p.write_text(json.dumps(doc, ensure_ascii=False, sort_keys=True, indent=1, allow_nan=False), encoding="utf-8")
+    p.write_text(json.dumps(_clean(doc), ensure_ascii=False, sort_keys=True, indent=1, allow_nan=False), encoding="utf-8")
     print(f"[ussx] 寫入 {p.relative_to(ROOT)}")
 
 

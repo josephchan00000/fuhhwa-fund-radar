@@ -1,4 +1,5 @@
 """美股飆股（美股三成的研究）的規格。VER 1：2026-10-23，算任何報酬、任何標籤之前寫定（docs/lab_us_sleeve_plan.md 第 9 節）。
+VER 2：同日，SEC 財報抓好、檢查資料之後、算任何報酬之前，只改營收與成本的取法（規劃第 10.5 節；其他全部不變）。
 
 使用者 2026-10-23：「幫我深度強化分析規劃」→「我要飆股啊 飆股策略啊」。兩輪決定（規劃第 0 節）：美股怎麼買還沒決定（海外券商、
 複委託都算）；換掉現在的指數的門檻＝錢多優先、最慘時可以比現在多跌 10 個百分點；股價先用免費資料、先量存活偏誤（一年 2 個百分點
@@ -15,7 +16,10 @@
     比兩季時，較早那一季除以兩次公布日之間每一次分割的倍數（換成較新那一季的基準）。
   財報（SEC）：每一季第一次公布的數字（secfin；起日、迄日、數值、公布日）。公布日的下一個交易日收盤才算拿得到。
     單季＝期間 80～100 天的數字；第四季＝全年（350～380 天）減同一個起日的前三季累計（260～290 天），公布日取兩者較晚的。
-    營收依序取 REV_TAGS 第一個有那一季的；毛利＝GrossProfit，沒有就營收減 COST_TAGS 第一個有的。
+    營收（VER 2）：每一季在 REV_TAGS 裡取最早公布的那個數字（同一天公布依 REV_TAGS 順序）；REV_TAGS 都沒有那一季時，
+    用 REV_EXTRA（商品營收＋勞務營收；這家公司有申報過的項目那一季都要有才算，公布日取較晚的）。成本同一套（COST_TAGS，沒有備用）。
+    毛利＝GrossProfit，沒有就營收減成本。（VER 1 是「依 REV_TAGS 順序取第一個有那一季的」：2017 年改用新營收項目的公司，
+    2017 年各季會取到 2018 年申報裡的比較數字、晚一年才算拿得到；只用商品／勞務營收申報的公司整段沒有營收。）
   產業：那斯達克篩選器現在的產業（screen.json.gz 第 3 欄；不是當時的分類，只用在族群強弱）。
 
 範圍（每一天；研究用每週最後一個交易日的收盤，ISO 週）
@@ -102,7 +106,7 @@ from __future__ import annotations
 
 import math
 
-VER = 1
+VER = 2
 SPEC_DATE = "2026-10-23"
 DATA_BRANCH = "claude/ussx-data"
 PX_START = "2006-01-01"
@@ -194,6 +198,8 @@ SEC_9M_DAYS = (260, 290)
 REV_TAGS = ("Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax",
             "RevenueFromContractWithCustomerIncludingAssessedTax", "SalesRevenueNet", "RevenuesNetOfInterestExpense")
 COST_TAGS = ("CostOfRevenue", "CostOfGoodsAndServicesSold", "CostOfGoodsSold", "CostOfServices")
+REV_EXTRA = ("SalesRevenueGoodsNet", "SalesRevenueServicesNet")   # VER 2：REV_TAGS 都沒有那一季時的備用（加總）
+SEC_PICK = "earliest"            # VER 2：同一季有好幾個項目時取最早公布的（VER 1＝依項目順序）
 
 # ── 照做 ─────────────────────────────────────────────────────────────────────
 TRADE = {"capital": 1_000_000, "weight": 0.125, "max_pos": 8, "max_weight": 0.20, "max_adv": 0.05}

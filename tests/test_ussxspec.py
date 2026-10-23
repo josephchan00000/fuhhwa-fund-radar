@@ -9,7 +9,7 @@ from arm.lab import ussxspec as X
 
 
 def test_ussx_spec_v1_is_locked():
-    assert X.VER == 1 and X.SPEC_DATE == "2026-10-23" and X.DATA_BRANCH == "claude/ussx-data"
+    assert X.VER == 2 and X.SPEC_DATE == "2026-10-23" and X.DATA_BRANCH == "claude/ussx-data"
     assert X.PX_START == "2006-01-01"
     assert (X.LIQ_MIN, X.PX_MIN, X.AGE_MIN, X.EPS_RECENT, X.SMALL_LIQ) == (20e6, 5.0, 252, 270, 5e6)
     assert X.BOOKS == {"R60": {"n": 60, "g": 0.20, "how": "close"}, "A": {"n": 60, "g": 0.50, "how": "high"},
@@ -49,6 +49,11 @@ def test_features_and_thresholds():
     assert (X.BIG_UP, X.GROUP_MIN, X.EPS_FLOOR, X.SUR_FLOOR, X.EPS_TOL_M, X.SEC_TOL_D) == (0.10, 5, 0.05, 0.10, 1, 15)
     assert (X.SEC_Q_DAYS, X.SEC_FY_DAYS, X.SEC_9M_DAYS) == ((80, 100), (350, 380), (260, 290))
     assert X.REV_TAGS[0] == "Revenues" and X.COST_TAGS[0] == "CostOfRevenue"
+    # VER 2（規劃第 10.5 節）：同一季取最早公布的、商品＋勞務營收當備用
+    assert X.SEC_PICK == "earliest" and X.REV_EXTRA == ("SalesRevenueGoodsNet", "SalesRevenueServicesNet")
+    assert X.REV_TAGS == ("Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax",
+                          "RevenueFromContractWithCustomerIncludingAssessedTax", "SalesRevenueNet", "RevenuesNetOfInterestExpense")
+    assert X.COST_TAGS == ("CostOfRevenue", "CostOfGoodsAndServicesSold", "CostOfGoodsSold", "CostOfServices")
 
 
 def test_folds_wait_for_labels():

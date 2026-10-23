@@ -2906,15 +2906,16 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
     `lab_backfill.yml` mode `ussxfill` 只准在資料分支跑）。研究時 `git worktree add --detach <資料夾> origin/claude/ussx-data`、
     `USSX_DIR=<資料夾>/data/lab/ussx`（財報行事曆也跟著讀資料分支的 `data/lab/usstk`）。
     每週更新 `.github/workflows/ussx_weekly.yml`（週六台北 10:05，checkout 資料分支、只 push 回資料分支）：下市的公司當時就記下來。
-  · **規格** `arm/lab/ussxspec.py` VER 1（算任何報酬之前 commit，`tests/test_ussxspec.py` 鎖住）：範圍＝20 日平均成交值 ≥ 2,000 萬美元、
+  · **規格** `arm/lab/ussxspec.py` VER 1（算任何報酬之前 commit，`tests/test_ussxspec.py` 鎖住；**VER 2 同日、SEC 抓好檢查資料後、算報酬之前**：
+    營收與成本每一季取最早公布的那個項目〔VER 1 依項目順序會取到 2018 年申報裡的 2017 年比較數字、晚一年才拿得到〕，沒有一般營收項目時用商品＋勞務營收，規劃第 10.5 節）：範圍＝20 日平均成交值 ≥ 2,000 萬美元、
     股價 ≥ 5 美元、有股價滿一年、270 個交易日內有財報；五本帳逐年重新找規則（W7 同一套門檻；第一個交易年 R60、A 2014，B 2015，M3 2016，
     M10 2019）；8 檔各 12.5%、閒置放指數；R60、A 抱 60 天，B、M3、M10 抱到「比買進後最高收盤跌 30% 或跌破年線」；
     判定四條（三成本身贏 S&P 500 含息與同一批等權、前後兩半；放進交易計畫錢多、兩半不少、最慘最多深 10 點；複委託成本也成立；存活偏誤 < 2 點）。
   · **程式**：`ussxpanel`（面板）、`ussxsurv`（A 存活偏誤）、`ussxswap`（B 換指數）、`ussxfeat`（每週樣本與標籤）、
     `ussxmine`（找規則；欄式改寫，`tests/test_ussxmine.py` 和 superx 逐項比對）、`ussxbook`（資金帳戶）、`ussxrun`（C 主流程）；
-    `scripts/run_ussx.py --surv／--swap`（--books 還沒接上，等 SEC）。
+    `scripts/run_ussx.py --surv／--swap／--books`（--books 要先有 SEC 資料：資料分支的 `sec_meta` 有日期才跑）。
   · **結果**：存活偏誤一年 1.09 個百分點（大多在 2009 年）→ 不用先停；**換指數：S&P 500 計畫三成放 QQQ 2006 年起 1,135 → 1,451 萬、
-    最慘一樣 44%，照規則過**（IVW 也過；SOXX 前半比現在少）。計畫還沒改——等美股飆股的結果一起決定。美股飆股等 SEC 財報抓好才跑正式結果。
+    最慘一樣 44%，照規則過**（IVW 也過；SOXX 前半比現在少）。計畫還沒改——使用者：「我如果只是要放指數長期我找你幹嘛，我就是要有穩定的超額報酬還有獨特的交易策略可以找到超級飆股」＝換指數只是退路，主軸是美股飆股。SEC 2026-10-23 抓好（4,078 家；每週六那一輪會更新）。
 - **修正飆股（W7，2026-10-23；使用者：「修正飆股策略吧」）**：規格 `arm/lab/superfixspec.py` VER 1（`tests/test_superfixspec.py` 鎖住）、
   計畫與結果 `tw-superstock-lab/reports/W7_plan.md`／`W7_results.md`／`W7_summary.md`、程式 `tw-superstock-lab/scripts/run_w7.py`（約 5 分鐘）。
   只換目標（60 天後的收盤還在 +20%），**每一年只用以前已經走完的資料重新找規則**（2019～2026），現行目標用同一套流程當對照。
