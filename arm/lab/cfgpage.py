@@ -599,7 +599,7 @@ CSS = r"""
 .cfdue{font-size:13.5px;margin:6px 0;padding:7px 10px;border-radius:8px;background:var(--gbbg)}.cfdue b{color:var(--warn)}.cfdue.ok b{color:var(--acc)}
 .cfperf{font-size:13px;color:var(--ink2);margin:4px 0}.cfperf b{color:var(--ink)}.cfq{font-size:12.5px;color:var(--mut)}
 .cfdet{margin:6px 0 10px}.cfdet>summary{cursor:pointer;font-size:13px;color:var(--acc);width:max-content}
-.cfpln{margin-top:8px}
+.pln.cfpln{border:0;border-radius:0;padding:0;background:none;margin:8px 0 0}   /* 細節＝corepage 的圖表與表格（樣式 corepage.CSS，配置頁一起載入）；外框用時程與水位卡自己的 */
 .cfnext{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 18px;align-items:start;background:var(--card2);border-radius:12px;padding:10px 14px;margin:8px 0 12px}
 .cfnd b{display:block;font-size:20px;line-height:1.25}.cfnd span{font-size:12px;color:var(--mut)}
 .cfna{display:flex;flex-direction:column;gap:5px;min-width:0}
@@ -638,7 +638,7 @@ CSS = r"""
 .btbl tr.bnone td{color:var(--mut);font-size:12.5px}
 .btbl tr.bx td a{color:var(--acc);cursor:pointer;font-size:12.5px}
 .btbl tr.bhide{display:none}
-.cftool{display:flex;width:max-content;max-width:100%;margin:0 0 12px}
+.cftoolr{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 12px}.cftool{display:flex;width:max-content;max-width:100%}.cfasof{color:var(--mut);font-size:12.5px;min-width:0}
 @media (max-width:640px){.cftiles{grid-template-columns:1fr 1fr}.cfv{font-size:19px}
  .cfstack .cfss,.cfstack .cfsx{font-size:0}.cfstlg{display:block}
  .cfnext{grid-template-columns:1fr;gap:6px}.cfnd b{display:inline;font-size:17px;margin-right:6px}
@@ -715,5 +715,6 @@ function cfBApply(){const t=$('#main .btbl');if(!t)return;const N=+t.dataset.n||
     r.classList.toggle('bhide',!on);});
   const x=$('#main .btbl tr.bx');if(x){x.classList.toggle('bhide',!hid);const a=x.querySelector('a');if(a)a.textContent=`再 ${hid} 條觀察中`;}}
 /* 個股（工具）：個股｜籌碼｜指數 */
-function toolSeg(t){return `<div class="seg cftool" role=group aria-label="工具">${[['stk','個股'],['chip','籌碼'],['idx','指數']].map(([k,n])=>`<a data-go="${k}"${t===k?' class=on':''}>${n}</a>`).join('')}</div>`;}
+function toolSeg(t){return `<div class=cftoolr><div class="seg cftool" role=group aria-label="工具">${[['stk','個股'],['chip','籌碼'],['idx','指數']].map(([k,n])=>`<a data-go="${k}"${t===k?' class=on':''}>${n}</a>`).join('')}</div>`+
+  (D.asl?`<span class=cfasof>${D.asl}</span>`:'')+`</div>`;}
 """

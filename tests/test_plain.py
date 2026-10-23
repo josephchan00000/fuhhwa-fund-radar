@@ -3,17 +3,9 @@
 不得出現：第 2 條的方法字（只當參考、樣本外、隨便挑一天……）、第 4 條研究用的狀態符號（★●○◆△、好策略、可參考、A／B／C 級）、
 第 6 條的字（核心、衛星、前瞻、箭頭……）。研究紀錄頁、市場頁的研究畫面（#v=research／phase／terrain）不掃；
 細項面板裡只在研究畫面才看得到的部分（.rsx）也不算。要用真的資料建頁（約 3 分鐘），瀏覽器或資料不在就跳過。"""
-import functools
-import glob
-import http.server
-import re
-import threading
-
 import pytest
 
-sync_api = pytest.importorskip("playwright.sync_api")
-
-CHROME = next(iter(sorted(glob.glob("/opt/pw-browsers/chromium-*/chrome-linux/chrome"))), None)
+pytest.importorskip("playwright.sync_api")
 METHOD = ("只當參考", "不當成預估", "看不出", "樣本不足", "亂排", "打亂", "預估之後", "逐年檢查", "判定依據", "前後兩半",
           "樣本外", "穩健度", "對照", "規格", "VER", "門檻", "區間", "研究", "候選", "注意", "教訓", "本頁", "我們",
           "隨便挑一天", "判定", "樣本", "信賴", "顯著", "p 值")
@@ -45,31 +37,11 @@ def test_bad_finds_words_and_skips_allowed():
     assert bad("使用中 4・候選 0", allow=CFG_ALLOW) == []
 
 
-class _Q(http.server.SimpleHTTPRequestHandler):
-    def log_message(self, *a):
-        pass
-
-
 @pytest.fixture(scope="module")
-def site(tmp_path_factory):
-    if not CHROME:
-        pytest.skip("沒有 Chromium")
-    from arm.lab import heatpage, heatpage_us, page, sigpage
-    O = tmp_path_factory.mktemp("plain")
-    if not page.build(O / "x9.html", O / "x9s.json") and not (O / "x9.html").exists():
-        pytest.skip("配置頁建不起來（資料不在）")
-    heatpage.build(O / "x9m.html", O / "x9mh.json")
-    heatpage_us.build(O / "x9mu.html", O)
-    sigpage.build(O / "x9o.html", O / "x9oh.json")             # 指標面板每一次的清單 x9oh-{市場}.json
-    page.finish()                                             # 配置頁用今天的警訊讀數
-    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(_Q, directory=str(O)))
-    th = threading.Thread(target=srv.serve_forever, daemon=True)
-    th.start()
-    with sync_api.sync_playwright() as p:
-        b = p.chromium.launch(executable_path=CHROME)
-        yield b, f"http://127.0.0.1:{srv.server_address[1]}"
-        b.close()
-    srv.shutdown()
+def site(labsite):
+    """整站（tests/conftest.py 的 labsite，和舊網址測試共用同一次建頁）。"""
+    b, base, _ = labsite
+    return b, base
 
 
 def _page(b, url):

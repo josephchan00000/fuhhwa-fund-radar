@@ -160,14 +160,16 @@ def test_page_tabs_personas_and_script_order():
         assert f'data-t="{t}" data-p="r" hidden' in html, t
     assert '<a class="rbk" href="x9r.html" data-p="r" hidden>‹ 研究紀錄</a>' in html
     from arm.lab import appnav, copage, macpage
-    assert appnav.bar("cfg") in html and CF.CSS in html
+    assert appnav.bar("cfg", search=copage.SEARCH_HTML) in html and CF.CSS in html
+    from arm.lab import corepage
+    assert corepage.CSS.split("\n", 1)[0] in html                                   # 「細節」用 corepage 的圖表與表格，樣式要一起載入
     js = html[html.index("<script>"):]
     i_mac, i_cf, i_co, i_init = js.index("const MAC=D.mac||{}"), js.index("const CFG=D.cfg||{}"), js.index(copage.JS[:200]), js.index("go(v,at);")
     assert i_mac < i_cf < i_co < i_init                                            # 配置的 JS 在初始化之前（頂層 const 已經初始化）
     J = page._JS
     assert "const VIEWS={tw:vCfgTw,us:vCfgUs,strat:vCfgSt,stk:vStk,chip:vChip,idx:vIdx,opp:vOpp,st:vSt,mac:vMac,macst:vMacSt,bo:vBo};" in J
     assert "const LAST={cfg:'tw',r:'bo',tool:'stk',mac:'mac',stg:'opp'};" in J
-    assert "if(!VIEWS[v])v=/^#(s|co)=/.test(location.hash)?'stk':'tw';" in J      # 預設台股；舊的個股卡連結先到個股表
+    assert "if(!VIEWS[v])v=/^#((s|co)=|q$)/.test(location.hash)?'stk':'tw';" in J   # 預設台股；舊的個股卡連結、查公司（#q）先到個股表
     assert "if(d.gm)S.mmk=d.gm;if(d.bmk)S.bmk=d.bmk;" in J
     for v in ("vStk", "vChip", "vIdx"):                                            # 個股（工具）三頁最上面切換
         seg = J[J.index(f"function {v}("):]

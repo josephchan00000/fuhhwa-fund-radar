@@ -52,8 +52,9 @@ GROUPS = (
         ("七種條件代表什麼", "#bub-types", "價格爆發、兩年翻倍、偏離趨勢、漲得比基本面快、估值、未來獲利、槓桿的出處與限制"),
         ("方法與資料", "#bub-mth", "分級規則、PSY 臨界值、價格 ÷ 基本面、未來獲利、資料來源"),
     )),
-    ("gl", "名詞", "籌碼雷達用到的名詞（真加碼、申贖倍率、超配、成本乖離…）與方法、限制。", (
-        ("名詞與方法", "x9.html?v=bo#gl", "ETF 部位帳本、時點、公司行動、法人成本的算法與資料來源"),
+    ("gl", "名詞", "市場頁（今天的訊號、溫度計、任一天…）與配置頁個股工具（真加碼、申贖倍率、超配、成本乖離…）的名詞與方法。", (
+        ("名詞與判定方式（市場頁、訊號）", "#mth", "今天的訊號怎麼列、溫度計怎麼讀、任一天、★／◆／○ 怎麼判、預估之後"),
+        ("名詞與方法（個股工具）", "x9.html?v=bo#gl", "ETF 部位帳本、時點、公司行動、法人成本的算法與資料來源"),
     )),
 )
 
@@ -100,7 +101,7 @@ def render(SV: dict | None = None, BV: dict | None = None) -> str:
     host = {"sig": SPG.research_body(SV), "bub": BPG.research_body(BV)}
     css = HCSS + appnav.CSS + SPG.research_css() + BPG.research_css() + CSS
     js = (SPG.JS if has_sig else "") + BPG.JS + IP.JS
-    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("")).replace("{{CSS}}", css)
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("r")).replace("{{CSS}}", css)
                          .replace("{{BODY}}", body(host)).replace("{{PANEL}}", SPG.PANEL if has_sig else "")
                          .replace("{{SGD}}", f'<script type="application/json" id="sgd">{SPG.page_json(SV)}</script>' if has_sig else "")
                          .replace("{{BUBD}}", BPG.research_data(BV)).replace("{{JS}}", js))
@@ -123,7 +124,7 @@ _HTML = """<!doctype html>
 <title>研究紀錄</title>
 <style>{{CSS}}</style></head>
 <body>
-<div class="top">{{APPTAB}}<a class="back" href="./">返回主頁</a></div>
+<div class="top">{{APPTAB}}<a class="back" href="./"><span class="bk1">返回</span>主頁</a></div>
 <main class="rpm"><h1>研究紀錄</h1>
 <p class="rlead">驗證、方法、研究表，以及原本的策略頁、訊號總覽、泡沫頁、後台都在這裡。主頁面（市場、配置）只放結論和要做的事；
 要查一個數字怎麼來的、一條規則過去的每一筆，從這裡進去。</p>

@@ -879,7 +879,7 @@ BLOCK_CSS = CHART_CSS + """
 .mbi{list-style:none;margin:6px 0 0;padding:0;font-size:13.5px;line-height:1.7}
 .mbi li{display:flex;flex-wrap:wrap;gap:0 12px;padding:4px 0;border-top:1px solid var(--line)}
 .mbi li>b{flex:0 0 7em;color:var(--ink2);font-weight:600}
-.mbn{white-space:nowrap}.mbn b{font-weight:800}.mbn em{font-style:normal;font-size:12px;color:var(--mut);margin-left:4px}
+.mbn{white-space:nowrap}.mbn b{font-weight:800}.mbn em{font-style:normal;font-size:12px;color:var(--mut);margin-left:4px;white-space:normal}
 .mbt{margin-top:10px}.mbt h3{font-size:14.5px;margin:12px 0 6px}
 @media (max-width:640px){.mbi li>b{flex-basis:100%}}
 """

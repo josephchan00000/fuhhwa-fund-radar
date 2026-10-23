@@ -41,10 +41,11 @@ def test_one_page_switches_four_indices(page):
     assert html.count('<div id="ixc" data-ix="spx">') == 1                       # 預設 S&P 500 直接放在頁面
     assert [m for m in re.findall(r'<template data-ix="(\w+)">', html)] == ["ixic", "ndx", "sox"]
     assert re.findall(r'<button type="button" data-ix="(\w+)">', html) == list(U.INDEX_ORDER)
-    metas = re.search(r"window\.HEAT_METAS=(\{.*?\});window\.HEAT_ASOF", html).group(1)
+    metas = re.search(r"window\.HEAT_METAS=(\{.*?\});</script>", html).group(1)
     for k in U.INDEX_ORDER:
         assert f'"data":"x9muh-{k}.json"' in metas
-    assert '<a class="on" aria-current="page" href="x9mu.html"><span class="apl">美股景氣</span>' in html
+    assert '<a class="on" aria-current="page" data-k="mkt" href="x9mu.html">市場</a>' in html     # 頂欄「市場」亮
+    assert "HEAT_ASOF" not in html and 'id="ix-asof"' not in html                  # 資料日不放頂欄（面向標題有）
     assert html.index("window.HEAT_METAS") < html.index("window.heatInit = function")   # 切換程式在對照圖程式之前
     for k, P in pages.items():
         assert P["meta"]["dims"][-1]["id"] == "tech" and len(P["meta"]["dims"]) == 4      # 泡沫另放泡沫頁
@@ -61,8 +62,8 @@ def test_us_page_has_no_taiwan_wording_or_banned_words(page):
     assert set(sgd["mk"]) <= {"spx", "ixic", "ndx", "sox", "us"} and "tw" not in sgd["pxn"] and "tw" not in sgd["xs"]["m"]   # 全部指標只放美股
     from arm.lab import appnav
     row = HP.market_row("us")                                                       # 市場列：台股（連到台股頁）＋四個美股指數
-    assert appnav.bar("us") in text and row in text
-    assert "台股" not in text.replace(appnav.bar("us"), "").replace(row, "")   # 只有頂欄的「台股景氣」（手機短名「台股」）與市場列的「台股」
+    assert appnav.bar("mkt", cur="x9mu.html") in text and row in text
+    assert "台股" not in text.replace(row, "")                                    # 只有市場列的「台股」
     for w in BANNED:
         assert w not in html, w
 

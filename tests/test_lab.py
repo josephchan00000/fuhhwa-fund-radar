@@ -318,7 +318,8 @@ def test_asof_line_merges_same_day_and_flags_lagging():
 
 
 def test_entrance_is_low_key_footer_link_only():
-    """入口只在頁尾、不進導覽列（使用者：沒那麼好找到就好）；點了先到景氣頁（2026-10-18 使用者：個股頁放旁邊）。"""
+    """入口只在頁尾、不進導覽列（使用者：沒那麼好找到就好）；點了先到市場頁・台股（2026-10-18 使用者：先出現景氣頁面；
+    2026-10-23 IA v5 起景氣頁＝市場頁，頂欄「市場｜配置」的第一格）。"""
     from pathlib import Path
     src = Path(__file__).resolve().parents[1].joinpath("arm", "fund_dashboard.py").read_text("utf-8")
     assert src.count('href="x9m.html"') == 1 and 'href="x9.html"' not in src

@@ -1331,9 +1331,9 @@ def render(V: dict) -> str:
     from . import heatviz as VZ
     P = parts(V)
     G = page_parts([V.get("mk") or "tw"])
-    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar(MK["tab"])).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS + G["css"] + G["bcss"])
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("mkt")).replace("{{CSS}}", _CSS + appnav.CSS + VZ.CSS + G["css"] + G["bcss"])
                          .replace("{{TITLE}}", _e(MK["title"]))
-                         .replace("{{ASOF}}", _e(_md(P["asof"]))).replace("{{MKROW}}", market_row("tw")).replace("{{DRAWER}}", VZ.DRAWER)
+                         .replace("{{MKROW}}", market_row("tw")).replace("{{DRAWER}}", VZ.DRAWER)
                          .replace("{{PANEL}}", G["panel"]).replace("{{SGD}}", G["sgd"]).replace("{{BUBD}}", G["bubd"])
                          .replace("{{BODY}}", P["body"]).replace("{{META}}", _meta_json(V)).replace("{{JS}}", VZ.JS + _JS)
                          .replace("{{SGJS}}", G["js"] + G["bjs"]))
@@ -1395,7 +1395,7 @@ _HTML = """<!doctype html>
 <title>{{TITLE}}</title>
 <style>{{CSS}}</style></head>
 <body>
-<div class="top">{{APPTAB}}<span class="asof">資料到 {{ASOF}}</span><a class="back" href="./">返回主頁</a></div>
+<div class="top">{{APPTAB}}<a class="back" href="./"><span class="bk1">返回</span>主頁</a></div>
 <div class="vbar">{{MKROW}}</div>
 <main>{{BODY}}</main>
 {{DRAWER}}{{PANEL}}
@@ -1429,7 +1429,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,
 a{color:var(--acc);text-decoration:none}
 table,.num{font-variant-numeric:tabular-nums}
 .top{display:flex;align-items:baseline;gap:4px 12px;flex-wrap:wrap;padding:10px 16px 4px;max-width:1080px;margin:0 auto}
-.top b{font-size:18px}.asof{color:var(--mut);font-size:12.5px;flex:1;min-width:0}
+.top b{font-size:18px}
 .back{font-size:13px;color:var(--mut);white-space:nowrap}
 .purp{color:var(--ink2);font-size:13px;line-height:1.75}.purp>summary{cursor:pointer;color:var(--mut);font-size:12.5px;list-style:none}
 .purp>summary::-webkit-details-marker{display:none}.purp>summary::before{content:"ⓘ ";}.purp p{margin:4px 0 2px;max-width:860px}

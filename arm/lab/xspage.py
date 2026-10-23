@@ -24,12 +24,12 @@ _HTML = """<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="data:,">
-<title>策略</title>
+<title>總經策略</title>
 <script>(function(){var m=location.hash.match(/^#i=xs:([a-z0-9]+):([a-z0-9]+)$/),u="{{NEW}}";
 if(m)u+="&m="+m[1]+"&x="+m[2];location.replace(u);})();</script>
 <noscript><meta http-equiv="refresh" content="0;url={{NEW}}"></noscript>
 </head>
-<body><p>總經策略（原大神策略）搬到策略頁：<a href="{{NEW}}">打開策略頁 →</a></p></body></html>
+<body><p>總經策略（原大神策略）在研究紀錄：<a href="{{NEW}}">打開總經策略</a></p></body></html>
 """
 
 
