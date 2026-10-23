@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""美股飆股研究（ussxspec VER 2；docs/lab_us_sleeve_plan.md 第 9、10.5 節）。資料在資料分支 claude/ussx-data：
+"""美股飆股研究（ussxspec VER 2、VER 3；docs/lab_us_sleeve_plan.md 第 9、10.5、13 節）。資料在資料分支 claude/ussx-data：
 
   git worktree add --detach <資料夾> origin/claude/ussx-data
   USSX_DIR=<資料夾>/data/lab/ussx TZ=Asia/Taipei python3 scripts/run_ussx.py --surv   # A 存活偏誤 → data/lab/ussx_surv.json
   USSX_DIR=… python3 scripts/run_ussx.py --swap                                        # B 換一個指數 → data/lab/ussx_swap.json
   USSX_DIR=… python3 scripts/run_ussx.py --books                                       # C 美股飆股 → data/lab/ussx_books.json
                                                                                        # （規格要 SEC 財報：資料夾沒有 sec/ 就不跑）
+  USSX_DIR=… python3 scripts/run_ussx.py --qm                                          # VER 3 美股三成規則 QM → data/lab/ussx_qm.json
+  USSX_DIR=… python3 scripts/run_ussx.py --qm-live                                     # 每週紀錄（ussx_weekly.yml）→ data/lab/ussx_qm_live.json
 """
 from __future__ import annotations
 
@@ -92,11 +94,44 @@ def books(P, force: bool = False) -> None:
               f"同一批 {_pct(r['ew']['cagr'], 1)}%）；判定 {v['pass']}")
 
 
+def qm(P) -> None:
+    from arm.lab import ussxqm as QM
+    R = QM.research(QM.context(P))
+    QM.save(R)
+    print(f"[ussx] 寫入 {QM.RES.relative_to(ROOT)}")
+    rp, v = R["repro"], R["verdict"]
+    print(f"[ussx] QM 三成本身 {R['eval']} 起 {_pct(R['sleeve']['main']['cagr'])}%（第 12 節 {_pct(rp['ref']['cagr'])}%）、"
+          f"計畫 {rp['plan_m'] * 100:,.1f} 萬（第 12 節 {rp['ref']['plan_m'] * 100:,.1f} 萬）→ 重現 {'✓' if rp['ok'] else '✗'}")
+    for mk in ("spx", "ndx"):
+        pl, j = R["plans"][f"{mk}_main"], R["plans"][f"{mk}_main"]["judge"]
+        print(f"  {mk}：現在 {pl['cur']['plan']['m'] * 100:,.0f} 萬 → QM {pl['new']['plan']['m'] * 100:,.0f} 萬；"
+              f"錢 {'✓' if j['money'] else '✗'} 兩半 {'✓' if j['halves'] else '✗'} 最慘 {'✓' if j['mdd'] else '✗'}；"
+              f"判定 {'過' if v['pass'][mk] else '沒過'}、換 {'✓' if R['switch'][mk] else '✗'}")
+
+
+def qm_live(P) -> None:
+    from arm.lab import ussxqm as QM
+    C = QM.context(P)
+    sig = QM.signals(C, QM.qm_mask(C["cols"]["f"]))
+    r = QM.run(C, sig, "spx")
+    L = QM.live_update(C, r, sig)
+    ch = QM.save_live(L)
+    n = L.get("now") or {}
+    print(f"[ussx] 美股三成紀錄（{'有更新' if ch else '沒有變'}）：起點 {L.get('start')}、已記 {len(L.get('weeks') or {})} 週、"
+          f"資料到 {n.get('d')}（這一週{'已結束' if n.get('wk_done') else '還沒結束'}）")
+    print(f"  持股 {len(n.get('hold') or [])} 檔：{'、'.join(h['c'] for h in n.get('hold') or [])}；"
+          f"下一個交易日 {n.get('next')} 開盤賣 {n.get('sell') or '—'}、買 {n.get('buy') or '—'}")
+    for x in (L.get("diff") or [])[-3:]:
+        print(f"  ⚠ {x['d']} {x['what']}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--surv", action="store_true")
     ap.add_argument("--swap", action="store_true")
     ap.add_argument("--books", action="store_true")
+    ap.add_argument("--qm", action="store_true")
+    ap.add_argument("--qm-live", action="store_true")
     a = ap.parse_args()
     t0 = time.time()
     P = UP.load()
@@ -107,6 +142,10 @@ def main() -> None:
         swap(P)
     if a.books:
         books(P)
+    if a.qm:
+        qm(P)
+    if a.qm_live:
+        qm_live(P)
     print(f"[ussx] 完成（{time.time() - t0:.0f}s）")
 
 

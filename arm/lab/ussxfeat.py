@@ -502,8 +502,9 @@ def vcp_flags(pb: dict, P: dict, ii: np.ndarray, jj: np.ndarray, workers: int = 
 # ── 組成一份樣本 ─────────────────────────────────────────────────────────────────
 
 def build(P: dict, liq: float = X.LIQ_MIN, earn: dict | None = None, sec: dict | None = None, screen: dict | None = None,
-          workers: int = 4, log=print) -> dict:
-    """earn＝ussxpanel.earnings()；sec＝{代號: secfin 的檔}（None＝讀資料夾的 sec/，還沒抓過＝財報條件全部 nan）；screen＝篩選器。"""
+          workers: int = 4, log=print, vcp: bool = True, labels_on: bool = True) -> dict:
+    """earn＝ussxpanel.earnings()；sec＝{代號: secfin 的檔}（None＝讀資料夾的 sec/，還沒抓過＝財報條件全部 nan）；screen＝篩選器。
+    vcp、labels_on＝False：不算 VCP（全部 False）、不算標籤（y＝{}）——美股三成規則 QM 用不到（ussxspec VER 3），省一半時間。"""
     import time
     t0 = time.time()
     cal = P["cal"]
@@ -544,7 +545,7 @@ def build(P: dict, liq: float = X.LIQ_MIN, earn: dict | None = None, sec: dict |
                 grs[mm] = float(np.median(rsv[mm]))
     f["grs"] = grs
     log(f"[ussxfeat] 族群 {time.time() - t0:.0f}s")
-    f["vcp"] = vcp_flags(pb, P, ii, jj, workers=workers)
+    f["vcp"] = vcp_flags(pb, P, ii, jj, workers=workers) if vcp else np.zeros(n, dtype=bool)
     log(f"[ussxfeat] VCP {time.time() - t0:.0f}s")
     # EPS 與財報
     eps_keys = [k for k, _, _, s in X.FEATS if s == "eps"]
@@ -589,7 +590,7 @@ def build(P: dict, liq: float = X.LIQ_MIN, earn: dict | None = None, sec: dict |
                 raw = float(P["RAW"][i, j])
                 f["cap"][k] = sh[q]["v"] * mult * raw if np.isfinite(raw) else np.nan
     log(f"[ussxfeat] EPS／財報 {time.time() - t0:.0f}s（有 SEC 資料 {n_sec} 檔）")
-    y = labels(pb, P, ii, jj)
+    y = labels(pb, P, ii, jj) if labels_on else {}
     log(f"[ussxfeat] 標籤 {time.time() - t0:.0f}s")
     return {"d": np.array([cal[i] for i in ii]), "di": ii, "c": np.array([P["sym"][j] for j in jj]), "j": jj, "w": ww,
             "f": f, "y": y, "wk": wk, "el": el, "D20": D20}
