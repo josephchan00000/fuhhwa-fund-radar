@@ -71,6 +71,7 @@ jobs:
         id: pre
         run: |
           DECISION=$(python3 scripts/check_afterhours_fresh.py --guard)
+          DECISION=${DECISION##*$'\n'}   # 只取最後一行（RUN／SKIP）：說明印 stderr，這行是保險（2026-10-23 多一行就整班當掉）
           echo "decision=$DECISION" >> "$GITHUB_OUTPUT"
           echo "守門判定：$DECISION"
 
