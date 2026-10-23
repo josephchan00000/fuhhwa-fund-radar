@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/24 06:49",
+  "as_of": "2026/10/24 07:42",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -32,9 +32,9 @@
       "datetime": "2026-10-21T11:38:00+08:00"
     },
     {
-      "title": "復華再推主動式ETF！00418A今起募集「每股10元、不配息」",
+      "title": "復華再推主動式ETF！00418A今起募集「每股10元、不配息」 | TVBS",
       "url": "https://news.tvbs.com.tw/money/4038968",
-      "source": "TVBS",
+      "source": "LINE TODAY",
       "date": "2026-10-21 09:51",
       "datetime": "2026-10-21T09:51:00+08:00"
     },
@@ -136,18 +136,18 @@
       ],
       "items": [
         {
-          "title": "00409A 主動復華全球50 - 主動式ETF 又慘跌... 投資人自己要想好- 股市爆料同學會",
-          "url": "https://www.cmoney.tw/forum/article/186112416",
-          "source": "CMoney",
-          "date": "2026-10-19 11:08",
-          "datetime": "2026-10-19T11:08:27+08:00"
-        },
-        {
           "title": "台股上下震盪 00409A一張約1萬元 一次布局美國AI晶片、光通訊、電力龍頭",
           "url": "https://enn.tw/795062/",
           "source": "ENN台灣電報",
           "date": "2026-10-19 01:36",
           "datetime": "2026-10-19T01:36:43+08:00"
+        },
+        {
+          "title": "美國把晶片製造拉回本土 00409A早已佈局美國半導體大趨勢 一張約1萬元輕鬆布局",
+          "url": "https://enn.tw/795064/",
+          "source": "ENN台灣電報",
+          "date": "2026-10-19 01:36",
+          "datetime": "2026-10-19T01:36:40+08:00"
         }
       ]
     },
@@ -548,7 +548,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=lJNdfafhPj8",
       "date": "2026-10-21",
-      "views": 58912
+      "views": 58989
     },
     {
       "platform": "youtube",
@@ -556,7 +556,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
       "date": "2026-10-20",
-      "views": 15353,
+      "views": 15354,
       "short": true
     },
     {
@@ -565,7 +565,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
       "date": "2026-10-18",
-      "views": 9443
+      "views": 9459
     },
     {
       "platform": "youtube",
@@ -573,7 +573,7 @@
       "channel": "元大投信",
       "url": "https://www.youtube.com/shorts/BAFCSimIvW0",
       "date": "2026-10-22",
-      "views": 315456,
+      "views": 310110,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -584,7 +584,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=Al47SwnDMWo",
       "date": "2026-10-22",
-      "views": 201219,
+      "views": 201546,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -594,7 +594,7 @@
       "channel": "City Spotlight 傾城計話",
       "url": "https://www.youtube.com/watch?v=fMHfTr51OfM",
       "date": "2026-10-19",
-      "views": 148074,
+      "views": 148304,
       "peer": true,
       "cat": "綜合"
     },
@@ -614,7 +614,7 @@
       "channel": "曲博科技教室 Dr. J Class",
       "url": "https://www.youtube.com/shorts/LjDDHVaDM4E",
       "date": "2026-10-19",
-      "views": 137333,
+      "views": 137653,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -636,7 +636,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
       "date": "2026-10-19",
-      "views": 53486,
+      "views": 53509,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -647,7 +647,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=e1Q5b32TcW4",
       "date": "2026-10-21",
-      "views": 53348,
+      "views": 53424,
       "peer": true,
       "cat": "主動式"
     },
@@ -657,7 +657,7 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/watch?v=7hLSHozmm68",
       "date": "2026-10-23",
-      "views": 50214,
+      "views": 51438,
       "peer": true,
       "cat": "高股息"
     },
@@ -667,7 +667,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/Cm9GbtBO57I",
       "date": "2026-10-22",
-      "views": 36032,
+      "views": 36113,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -677,6 +677,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A、台灣菁英50指數（詳下方新聞標籤）",
     "品牌焦點：主動復華台灣新星 募集期順延至10月27日（UDN）",
     "社群聲量最高：沈伯洋夫妻持股拆解，看懂個股、ETF與台股美股如何配置（0 推）",
-    "YouTube 熱片：AI如何創造未來？00990A掌握全球AI投資機會｜全片由Google Gemini製作｜元大投信 Yuanta Funds（元大投信・315,456 次觀看）"
+    "YouTube 熱片：AI如何創造未來？00990A掌握全球AI投資機會｜全片由Google Gemini製作｜元大投信 Yuanta Funds（元大投信・310,110 次觀看）"
   ]
 }
