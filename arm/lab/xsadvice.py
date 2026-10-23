@@ -334,6 +334,16 @@ def _fail(r: dict) -> str:
     return "年化 ÷ 最大回撤輸給買進持有"
 
 
+def fail_txt(r: dict) -> str | None:
+    """沒過的原因一句（配置頁・策略總覽「淘汰」那一列用）：次數不夠或全期間沒過的主要原因；過了回 None。"""
+    if r["tier"] == "few":
+        n = (r.get("full") or {}).get("n")
+        return f"次數不夠（{n} 次）" if n is not None else "次數不夠"
+    if r["tier"] == "none":
+        return _fail(r)
+    return None
+
+
 def tier_line(r: dict) -> str:
     """判定的一句話：過了哪幾項、沒過哪一項。"""
     t, kind, f = r["tier"], r["kind"], r["full"]
@@ -556,7 +566,8 @@ def market(mk: str, M: dict) -> dict:
     for i, r in enumerate(rs):
         book.append({"k": r["k"], "rank": i + 1 if r["tier"] in REC else None, "tier": r["tier"], "name": S.BY_KEY[r["k"]]["name"],
                      "grp": r["grp"], "gname": S.GROUPS[r["grp"]], "kind": r["kind"], "why": why(r), "exp": stats(r),
-                     "st": r["now"]["st"], "tag": XSP.TAG[r["now"]["st"]], "how": how(r["k"], mk), "ex": explain(r)})
+                     "st": r["now"]["st"], "tag": XSP.TAG[r["now"]["st"]], "how": how(r["k"], mk), "ex": explain(r),
+                     "fail": fail_txt(r)})
     act = sorted({e["k"] for e in cal if e["d"] == nx})
     later = [e for e in cal if nx and e["d"] > nx and e["act"] in ("買進", "賣出")]
     summ = {"n": len(cards), "ng": sum(1 for c in cards if c["tier"] == "good"), "nr": sum(1 for c in cards if c["tier"] == "ref"),

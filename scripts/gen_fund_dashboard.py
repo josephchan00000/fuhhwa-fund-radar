@@ -60,14 +60,29 @@ def main() -> None:
         print(f"[訊號總覽] {'已更新' if changed else '無變更'} {sigpage.OUT}")
     except Exception as e:                                # noqa: BLE001
         print(f"[訊號總覽] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
+    # 配置頁（x9.html；docs/lab_ia_v5_plan.md 第 18 節）要用三種警訊今天的讀數，那是上面景氣頁算的：
+    # 籌碼雷達建頁時先用上一版的讀數，這裡換成今天的重建一次（讀數沒變就不改寫）。分開失敗。
+    try:
+        from arm.lab import page as lab_page
+        changed = lab_page.finish()
+        print(f"[配置] {'用今天的警訊讀數重建' if changed else '警訊讀數沒變，不改寫'} {lab_page.OUT}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[配置] 重建失敗（保留第一次建的版本）：{type(e).__name__}: {e}")
     # 總經策略的淨值與每一筆 x9xh.json（訊號總覽點開策略讀它）＋舊大神策略頁 x9x.html（轉址到策略頁；docs/lab_strategy_ia_plan.md）。
-    # 策略頁本身是個股頁 x9.html 的「策略」身分（上面籌碼雷達建）。分開建、分開失敗。
+    # 總經策略本身在 x9.html 的研究紀錄身分（上面籌碼雷達建）。分開建、分開失敗。
     try:
         from arm.lab import xspage
         changed = xspage.build()
         print(f"[總經策略] {'已更新' if changed else '無變更'} {xspage.OUT_DATA}")
     except Exception as e:                                # noqa: BLE001
         print(f"[總經策略] 建檔失敗（不影響其他頁）：{type(e).__name__}: {e}")
+    # 研究紀錄頁（x9r.html；docs/lab_ia_v5_plan.md 第 7 節；不在頂欄，配置頁頁尾小字進）。分開建、分開失敗。
+    try:
+        from arm.lab import research_page
+        changed = research_page.build()
+        print(f"[研究紀錄] {'已更新' if changed else '無變更'} {research_page.OUT}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[研究紀錄] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
     if "--open" in sys.argv[1:]:
         webbrowser.open(OUT.as_uri())
 

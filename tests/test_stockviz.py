@@ -67,11 +67,13 @@ def _defs(js: str):
 
 
 def test_three_scripts_have_no_name_collisions():
-    """四支 JS 串成同一個 <script>：同名函式會被後面的蓋掉（2026-10-18 位置圖原本叫 sxSec，和飆股段既有的 sxSec 撞名），
-    同名的頂層 const／let 會讓整頁報錯。macpage＝策略頁・總經策略（2026-10-22，docs/lab_strategy_ia_plan.md）。"""
+    """五支 JS 串成同一個 <script>：同名函式會被後面的蓋掉（2026-10-18 位置圖原本叫 sxSec，和飆股段既有的 sxSec 撞名），
+    同名的頂層 const／let 會讓整頁報錯。macpage＝總經策略（2026-10-22，docs/lab_strategy_ia_plan.md）；
+    cfgpage＝配置頁（2026-10-23，docs/lab_ia_v5_plan.md 第 18 節）。"""
     from arm.lab import macpage
     names = {}
-    for nm, js in (("page", page._JS), ("stockviz", stockviz.JS), ("macpage", macpage.JS), ("copage", copage.JS)):
+    from arm.lab import cfgpage
+    for nm, js in (("page", page._JS), ("stockviz", stockviz.JS), ("macpage", macpage.JS), ("cfgpage", cfgpage.JS), ("copage", copage.JS)):
         fn, top = _defs(js)
         for n in fn + top:
             names.setdefault(n, []).append(nm)
@@ -85,7 +87,7 @@ def test_charts_wired_into_opp_chip_and_watchlist():
     js = html[html.index("<script>"):]
     # stockviz、macpage（總經策略）在 copage 前面、頁面初始化之前（初始化依網址開分頁，這時函式與 VZS、TLM 必須已經定義）
     from arm.lab import macpage
-    i_vz, i_mac, i_co, i_init = js.index("const VZS="), js.index("const MAC=D.mac||{}"), js.index(copage.JS[:200]), js.index("go(v,at);}")
+    i_vz, i_mac, i_co, i_init = js.index("const VZS="), js.index("const MAC=D.mac||{}"), js.index(copage.JS[:200]), js.index("go(v,at);")
     assert i_vz < i_mac < i_co < i_init and macpage.CSS in html
     assert "/*@@COPAGE@@*/" not in html
     for f in ("function tlDraw(", "function mmDraw(", "function spotDraw(", "function sxSec(", "function vMac(", "function vMacSt("):

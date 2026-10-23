@@ -237,10 +237,10 @@ def _prev_card(d: Path, mk: str, memo: dict) -> dict:
     return memo[mk]
 
 
-def core_data(dirpath: Path | None = None) -> dict:
+def core_data(dirpath: Path | None = None, record: bool = True) -> dict:
     """交易計畫卡（corespec；docs/lab_core70_plan.md）：研究檔＋三種過熱現在的讀數（景氣頁在同一個程序裡放在 CARDS[市場]["core"]，
     單獨建這一頁時讀上一版的 x9or-{市場}.json）＋台股衛星（個股頁建頁時放在 core.STK，沒有就讀 x9or-tw.json 的 stk）＋前瞻。
-    今天的讀數記進前瞻紀錄（core.record，只有 CI 寫回）。算不出來只印日誌、不擋訊號總覽。"""
+    今天的讀數記進前瞻紀錄（core.record，只有 CI 寫回；record＝False 時不記，配置頁 x9.html 建頁用）。算不出來只印日誌、不擋訊號總覽。"""
     from . import core as CO
     d = dirpath or OUT_DATA.parent
     memo: dict = {}
@@ -261,7 +261,8 @@ def core_data(dirpath: Path | None = None) -> dict:
         print(f"[交易計畫] 美股三成的研究檔讀不到：{type(e).__name__}: {e}")
     fw = {}
     try:
-        CO.record(now, stk, {mk: CPG.qm_on(mk, qm) for mk in CO.S.MARKETS} if qm else None)
+        if record:
+            CO.record(now, stk, {mk: CPG.qm_on(mk, qm) for mk in CO.S.MARKETS} if qm else None)
         L = CO.load_live()
         fw = {mk: CO.forward(mk, L) for mk in CO.S.MARKETS}
     except Exception as e:                                # noqa: BLE001

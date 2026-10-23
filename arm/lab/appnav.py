@@ -6,12 +6,14 @@
 大神策略（x9x.html）2026-10-21 加入（docs/lab_nav_plan.md：使用者「大神策略是放在訊號那邊而已嗎？這樣很難找」）；
 2026-10-22 改成「策略」（docs/lab_strategy_ia_plan.md：「策略點進去，分成總經策略跟個股策略」）：策略與個股是同一頁 x9.html 的兩種身分，
 策略＝x9.html#v=mac（頁面載入後依網址換身分、亮頂欄的「策略」）；x9x.html 留成轉址頁。
-手機（640px 以下）六格放不下全名，改顯示短名（SHORT）。
+2026-10-23 起策略與個股合成「配置」（docs/lab_ia_v5_plan.md 第 18 節：台股｜美股｜策略｜個股（工具）），頂欄一格、連 x9.html；
+原本的總經策略、個股策略、後台改從不在頂欄的研究紀錄頁（x9r.html）進去（還是 x9.html 裡的分頁）。
+手機（640px 以下）放不下全名，改顯示短名（SHORT）。
 """
 from __future__ import annotations
 
-TABS = (("tw", "台股景氣", "x9m.html"), ("us", "美股景氣", "x9mu.html"), ("bub", "泡沫", "x9b.html"), ("st", "策略", "x9.html#v=mac"),
-        ("stk", "個股", "x9.html"), ("sig", "訊號總覽", "x9o.html"))
+TABS = (("tw", "台股景氣", "x9m.html"), ("us", "美股景氣", "x9mu.html"), ("bub", "泡沫", "x9b.html"), ("cfg", "配置", "x9.html"),
+        ("sig", "訊號總覽", "x9o.html"))
 SHORT = {"tw": "台股", "us": "美股", "sig": "訊號"}
 
 CSS = (".apptab{display:flex;gap:2px;background:var(--card2);border-radius:10px;padding:3px;align-self:center}"

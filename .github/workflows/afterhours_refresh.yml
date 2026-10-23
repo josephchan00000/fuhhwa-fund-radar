@@ -168,6 +168,7 @@ jobs:
           git add -f dashboard/x9pr-*.json 2>/dev/null || true         # 訊號總覽實測區各市場的細節（點到那個市場才載入；分開 add）
           git add -f dashboard/x9x.html 2>/dev/null || true            # 大神策略頁（docs/lab_nav_plan.md；分開 add）
           git add -f dashboard/x9xh.json 2>/dev/null || true           # 大神策略的淨值與每一筆（點開才下載；分開 add）
+          git add -f dashboard/x9r.html 2>/dev/null || true            # 研究紀錄頁（docs/lab_ia_v5_plan.md 第 7 節；分開 add）
           git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
           git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
           git commit -m "chore: 盤後數據刷新 $(date '+%F %H:%M')" || { echo "無變更，跳過 push"; exit 0; }
@@ -193,6 +194,7 @@ jobs:
             git add -f dashboard/x9pr-*.json 2>/dev/null || true         # 訊號總覽實測區各市場的細節（點到那個市場才載入；分開 add）
             git add -f dashboard/x9x.html 2>/dev/null || true            # 大神策略頁（docs/lab_nav_plan.md；分開 add）
             git add -f dashboard/x9xh.json 2>/dev/null || true           # 大神策略的淨值與每一筆（點開才下載；分開 add）
+            git add -f dashboard/x9r.html 2>/dev/null || true            # 研究紀錄頁（docs/lab_ia_v5_plan.md 第 7 節；分開 add）
             git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
             git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
             git commit --amend --no-edit || true
