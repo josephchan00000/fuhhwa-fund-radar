@@ -167,7 +167,7 @@ def test_research_html_puts_plan_card_on_top_of_each_market(R):
     spx = h[h.index('data-mk="spx"'):]
     assert 'id="pln-spx"' in spx and "今天的分數還沒算出來" in spx                    # 沒有讀數也列過去的成績
     import inspect
-    assert "CPG.CSS" in inspect.getsource(SG.render)                              # 卡片的樣式跟著訊號總覽一起載入
+    assert "CPG.CSS" in inspect.getsource(SG.research_css)                        # 卡片的樣式跟著研究紀錄頁的訊號研究一起載入
 
 
 def test_card_json_keeps_core_and_stk_and_core_data_reads_them_back(tmp_path, monkeypatch):

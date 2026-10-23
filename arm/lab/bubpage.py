@@ -1,10 +1,12 @@
-"""泡沫頁（dashboard/x9b.html；docs/lab_risk_plan.md 第 7～9 節；規格 bubspec VER 2）。
+"""泡沫（docs/lab_risk_plan.md 第 7～9 節；規格 bubspec VER 4；2026-10-23 起 docs/lab_ia_v5_plan.md 第 3 節③、第 15.1 節）。
 
-五個市場（台股、S&P 500、那斯達克、那斯達克 100、費半）的泡沫等級 0～4：
-  頁首等級磚 → 各市場一張卡（歷史等級圖、現在的六個條件與兩年拆解、等級 ≥ 3 的泡沫段、驗證）→ 條件說明 → 方法與資料。
+五個市場（台股、S&P 500、那斯達克、那斯達克 100、費半）的泡沫等級 0～4。原本的泡沫頁 x9b.html 拆成兩處、x9b.html 留成轉址頁（REDIRECT）：
+- 市場頁最下面的「泡沫」一塊（block_html／block_data）：等級、七個條件 ✓／✗、歷史等級圖（預設近 30 年）、等級 ≥ 2 的產業一行、全部產業表（收起）。
+- 研究紀錄頁（research_body／research_data）：原本泡沫頁的全部內容——每個市場一張卡（一句話、歷史等級、現在的七個條件與兩年拆解、
+  等級 ≥ 3 的泡沫段、驗證）、產業（含驗證）、七種條件代表什麼、方法與資料；段落 id 加 bub- 前綴。
 VER 2：價格過熱而且價格漲得比基本面快（E）才到等級 3；只有價格過熱最多到 2。
-現在的狀態每天重算（bubble.market_for；同一個程序裡景氣頁先算、這裡沿用），驗證讀研究檔 data/lab/bub_research.json
-（scripts/run_bub.py，資料或規格改了才重跑）。只描述位置，不是買賣訊號。
+現在的狀態每天重算（bubble.market_for；同一個程序裡景氣頁先算、這裡沿用），產業 bubind.compute 同一個程序只算一次（industries）；
+驗證讀研究檔 data/lab/bub_research.json（scripts/run_bub.py，資料或規格改了才重跑）。只描述位置，不是買賣訊號。
 """
 from __future__ import annotations
 
@@ -13,7 +15,7 @@ from pathlib import Path
 
 from . import bubble as BU
 from . import bubspec as BS
-from .heatpage import _e, _md, _ymd
+from .heatpage import _e, _ymd
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "dashboard" / "x9b.html"
@@ -69,11 +71,26 @@ def view() -> dict:
     R = BU.load_research() or {}
     asof = max((m["now"]["d"] for m in M.values()), default=None)
     from . import bubind
-    try:
-        I = bubind.compute()
-    except Exception as e:                                    # noqa: BLE001 —— 產業段失敗不影響市場層級
-        I = {"tw_err": f"{type(e).__name__}: {e}"}
-    return {"asof": asof, "M": M, "R": R, "I": I, "IR": bubind.load_research() or {}}
+    return {"asof": asof, "M": M, "R": R, "I": industries(), "IR": bubind.load_research() or {}}
+
+
+_IND: dict = {}
+
+
+def industries() -> dict:
+    """產業泡沫的現在狀態（bubind.compute，約 5～9 秒）：同一個程序只算一次——市場頁（台股、美股兩個檔）的泡沫那一塊
+    與研究紀錄頁共用。算不出來就回 {"tw_err": …}，不擋市場層級。"""
+    if "I" not in _IND:
+        from . import bubind
+        try:
+            _IND["I"] = bubind.compute()
+        except Exception as e:                                # noqa: BLE001 —— 產業段失敗不影響市場層級
+            _IND["I"] = {"tw_err": f"{type(e).__name__}: {e}"}
+    return _IND["I"]
+
+
+def clear_cache() -> None:
+    _IND.clear()
 
 
 # ── 文字小工具 ───────────────────────────────────────────────────────────────
@@ -335,7 +352,7 @@ def _f_text(mk: str, n: dict) -> str:
 
 # ── 區塊 ───────────────────────────────────────────────────────────────────
 
-def tiles(V: dict) -> str:
+def tiles(V: dict, pre: str = "") -> str:
     out = []
     for mk in BS.MARKETS:
         m = V["M"].get(mk)
@@ -350,10 +367,10 @@ def tiles(V: dict) -> str:
             key.append(f'PSY 連 {n["p1"]["run"]} 個月超過臨界值' if n["p1"]["run"] else "PSY 沒超過臨界值")
         if (n.get("p3") or {}).get("z") is not None:
             key.append(f'偏離趨勢 {n["p3"]["z"]:.1f}σ')
-        out.append(f'<a class="bt bt{n["L"]}" href="#{mk}"><span class="btn">{_e(m["name"])}<i>{_e(m["index"])}</i></span>'
+        out.append(f'<a class="bt bt{n["L"]}" href="#{pre}{mk}"><span class="btn">{_e(m["name"])}<i>{_e(m["index"])}</i></span>'
                    f'<span class="btv"><b class="btl">{n["L"]}</b><span class="btt">{_e(BS.LEVELS[n["L"]])}</span></span>'
                    f'<span class="bcs">{chips}</span><span class="btk">{_e("・".join(key))}</span></a>')
-    return ('<section class="sec" id="lv"><h2>五個市場的泡沫等級<span class="sub">0 沒有跡象・1 偏貴・2 漲勢過熱・3 泡沫警戒・4 嚴重泡沫</span></h2>'
+    return (f'<section class="sec" id="{pre}lv"><h2>五個市場的泡沫等級<span class="sub">0 沒有跡象・1 偏貴・2 漲勢過熱・3 泡沫警戒・4 嚴重泡沫</span></h2>'
             f'<div class="btg">{"".join(out)}</div>'
             '<p class="note">價格過熱，而且「漲得比基本面快」「估值在歷史前 5%」「未來獲利跟不上」至少一個成立，才到「泡沫警戒」；'
             '只有價格過熱最多到「漲勢過熱」。紅色＝成立，虛線＝這個市場沒有資料判定。</p></section>')
@@ -544,15 +561,15 @@ def sig_line(mk: str, n: dict) -> str:
         body += f'，回撤中位數 {pc(st["mdd"])}（平常 {pc(st["mdd_base"])}）'
     now = "" if n["L"] >= lv else f'（現在等級 {n["L"]}）'
     return (f'<p class="bsig">泡沫等級 {lv} 以上的時候{now}：{body}・<b>{SS.TIER_MARK[st["tier"]]} {_e(SS.TIER_NAMES[st["tier"]])}</b>'
-            f'<a href="x9o.html#s={_e(r["id"])}">訊號總覽 →</a></p>')
+            f'<a href="#s={_e(r["id"])}">全部指標 →</a></p>')
 
 
-def market_card(mk: str, m: dict, R: dict) -> str:
+def market_card(mk: str, m: dict, R: dict, pre: str = "") -> str:
     n = m["now"]
     ext = ((R or {}).get("tw") or {}).get("ext") if mk == "tw" else None
     rg = "".join(f'<button type="button" class="tb{" on" if y == 0 else ""}" data-br="{y}" data-mk="{mk}" '
                  f'aria-pressed="{"true" if y == 0 else "false"}">{"全部" if y == 0 else f"近 {y} 年"}</button>' for y in (0, 30, 10))
-    return (f'<section class="sec cd bm" id="{mk}"><div class="ch"><h2>{_e(m["name"])}<span class="sub">{_e(m["index"])}</span></h2>'
+    return (f'<section class="sec cd bm" id="{pre}{mk}"><div class="ch"><h2>{_e(m["name"])}<span class="sub">{_e(m["index"])}</span></h2>'
             f'<div class="sv"><b class="sc bl{n["L"]}">{n["L"]}</b><span class="bn bl{n["L"]}">{_e(BS.LEVELS[n["L"]])}</span></div></div>'
             f'<p class="bsum">{_e(summary(mk, m))}</p>{sig_line(mk, n)}'
             f'<div class="seg brg" role="group" aria-label="期間">{rg}</div>'
@@ -598,13 +615,13 @@ TYPES = (
 )
 
 
-def types_sec(V: dict) -> str:
+def types_sec(V: dict, pre: str = "") -> str:
     out = []
     for c, nm, txt in TYPES:
         on = [V["M"][mk]["name"] for mk in BS.MARKETS if mk in V["M"] and V["M"][mk]["now"].get(c)]
         st = f'現在成立：{"、".join(on)}' if on else "現在沒有市場成立"
         out.append(f'<div class="bty"><h3>{_e(nm)}</h3><p>{_e(txt)}</p><p class="note">{_e(st)}</p></div>')
-    return ('<section class="sec" id="types"><h2>七種條件代表什麼</h2>' + "".join(out)
+    return (f'<section class="sec" id="{pre}types"><h2>七種條件代表什麼</h2>' + "".join(out)
             + '<p class="note">參考讀數（LPPLS、上漲加速度、集中度、本益比、超額 CAPE 殖利率）只列數字，不進等級：'
               '我們的 LPPLS 是網格近似，歷史上很少亮燈；其他項目沒有公認的泡沫門檻。</p></section>')
 
@@ -652,26 +669,14 @@ def page_json(V: dict, extra: dict | None = None) -> str:
     return json.dumps(out, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
 
-def render(V: dict) -> str:
-    from . import appnav
-    from . import bubindpage as IP
-    from .heatpage import _CSS as HCSS
-    I = V.get("I") or {}
-    idata, ikeys = IP.hist_data(I)
-    nav = "".join(f'<a href="#{mk}">{_e(BS.NAMES[mk])}</a>' for mk in BS.MARKETS if mk in V["M"])
-    body = (tiles(V) + f'<nav class="snav bnav" aria-label="段落">{nav}<a href="#ind">產業</a><a href="#types">條件說明</a><a href="#mth">方法</a></nav>'
-            + "".join(market_card(mk, V["M"][mk], V["R"]) for mk in BS.MARKETS if mk in V["M"])
-            + IP.section(I, V.get("IR") or {}, ikeys) + types_sec(V) + METHOD)
-    if not V["M"]:
-        body = '<p class="warn">泡沫等級還算不出來（缺 PSY 臨界值表：scripts/run_bub.py --cv）。</p>'
-    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("bub")).replace("{{CSS}}", HCSS + appnav.CSS + CSS + IP.CSS)
-            .replace("{{ASOF}}", _e(_md(V["asof"]))).replace("{{BODY}}", body)
-            .replace("{{DATA}}", page_json(V, idata) if V["M"] else "{}")
-            .replace("{{JS}}", JS + IP.JS))
+def render(V: dict | None = None) -> str:
+    """x9b.html：轉址頁（見 REDIRECT；docs/lab_ia_v5_plan.md 第 9.2 節）。"""
+    return REDIRECT
 
 
 def build(out: Path = OUT) -> bool:
-    text = render(view())
+    """泡沫頁改成轉址頁：等級與產業在市場頁最下面（block_html），驗證與方法在研究紀錄頁（research_body）。"""
+    text = render()
     if out.exists() and out.read_text(encoding="utf-8") == text:
         return False
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -679,65 +684,204 @@ def build(out: Path = OUT) -> bool:
     return True
 
 
-_HTML = """<!doctype html>
-<html lang="zh-Hant"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
-<link rel="icon" href="data:,">
-<title>泡沫等級</title>
-<style>{{CSS}}</style></head>
-<body>
-<div class="top">{{APPTAB}}<span class="asof">資料到 {{ASOF}}</span><a class="back" href="./">返回主頁</a></div>
-<div class="vbar"><details class="purp"><summary>這頁怎麼看</summary><p>泡沫等級 0～4：價格過熱（價格爆發、兩年翻倍、偏離長期趨勢），
-而且價格漲得比基本面快（價格 ÷ 盈餘、出口、銷售額的比值也在爆發），才到「泡沫警戒」；只有價格過熱、基本面有跟上，最多到「漲勢過熱」。
-門檻取自文獻，不用結果去調。每個市場下面有歷史等級、現在的讀數與兩年拆解、過去的泡沫段，以及「成立之後比較容易大跌嗎」的驗證。
-只描述位置，不是買賣訊號。</p></details></div>
-<main>{{BODY}}</main>
-<script type="application/json" id="bubd">{{DATA}}</script>
-<script>{{JS}}</script>
-</body></html>
+# 舊網址：#tw、#spx…→ 那個市場頁的泡沫那一塊；#lv、#ind、#indv、#types、#mth → 研究紀錄頁的同一段；沒有＝台股市場頁。
+REDIRECT = """<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><link rel="icon" href="data:,">
+<title>泡沫</title>
+<script>(function(){var h=(location.hash||"").replace(/^#/,""),MK={tw:1,spx:1,ixic:1,ndx:1,sox:1},RS={lv:1,ind:1,indv:1,types:1,mth:1},u;
+if(RS[h])u="x9r.html#bub-"+h;else{var k=MK[h]?h:"tw";u=k==="tw"?"x9m.html#at=bub":"x9mu.html#ix="+k+"&at=bub";}
+location.replace(u);})();</script>
+<noscript><meta http-equiv="refresh" content="0;url=x9m.html#at=bub"></noscript></head>
+<body><p><a href="x9m.html#at=bub">泡沫等級在市場頁最下面 →</a></p></body></html>
 """
 
-CSS = """
+
+# ── 研究紀錄頁的泡沫（原本泡沫頁的全部內容；段落 id 加 bub- 前綴，免得和訊號研究撞名）──────────────────────
+
+RES_PRE = "bub-"
+
+
+def research_body(V: dict) -> str:
+    """五個市場的等級、每個市場一張卡（一句話、歷史等級、七個條件、泡沫段、驗證）、產業（含驗證）、七種條件代表什麼、方法與資料。"""
+    if not V["M"]:
+        return '<p class="warn">泡沫等級還算不出來（缺 PSY 臨界值表：scripts/run_bub.py --cv）。</p>'
+    from . import bubindpage as IP
+    I = V.get("I") or {}
+    _, ikeys = IP.hist_data(I)
+    pre = RES_PRE
+    nav = "".join(f'<a href="#{pre}{mk}">{_e(BS.NAMES[mk])}</a>' for mk in BS.MARKETS if mk in V["M"])
+    return (tiles(V, pre) + f'<nav class="snav bnav" aria-label="段落">{nav}<a href="#{pre}ind">產業</a>'
+            f'<a href="#{pre}types">條件說明</a><a href="#{pre}mth">方法</a></nav>'
+            + "".join(market_card(mk, V["M"][mk], V["R"], pre) for mk in BS.MARKETS if mk in V["M"])
+            + IP.section(I, V.get("IR") or {}, ikeys, pre) + types_sec(V, pre) + METHOD.replace('id="mth"', f'id="{pre}mth"'))
+
+
+def research_data(V: dict) -> str:
+    """研究紀錄頁的 <script type="application/json" id="bubd">：五個市場（台股含 1990 年以前的延伸樣本）＋產業的歷史等級。"""
+    from . import bubindpage as IP
+    idata, _ = IP.hist_data(V.get("I") or {})
+    return page_json(V, idata) if V["M"] else "{}"
+
+
+def research_css() -> str:
+    from . import bubindpage as IP
+    return CSS + IP.CSS
+
+
+# ── 市場頁最下面的泡沫那一塊（docs/lab_ia_v5_plan.md 第 3 節③、第 13 節其他細項 2、第 15.1 節）────────────────
+# 等級、七個條件 ✓／✗、歷史等級圖（預設近 30 年）、等級 ≥ 2 的產業一行、全部產業表（收起）。方法與驗證在研究紀錄頁。
+
+BLOCK_GROUPS = {"tw": (("tw", "台股產業"), ("tg", "細分族群")), "us": (("us", "美股類股"), ("ff", "美股細產業"))}
+BLOCK_RANGE = 30                                       # 歷史等級圖預設的期間（年；0＝全部）
+BLOCK_TOP = 8                                          # 等級 ≥ 2 的產業一組最多列幾個
+
+
+def _ind_name(grp: str, k: str) -> str:
+    from . import bubindspec as BI
+    if grp == "us":
+        return BI.US_ETF.get(k, k)
+    if grp == "ff":
+        return BI.FF_NAMES.get(k, k)
+    if grp == "tg":
+        return BI.TG_NAMES.get(k, k)
+    return k
+
+
+def _hot_line(grp: str, label: str, I: dict) -> str:
+    """一組產業裡等級 ≥ 2 的（等級高的在前）；等級 ≥ 3 的另寫成立的條件。"""
+    from . import bubindpage as IP
+    G = I.get(grp) or {}
+    if not G:
+        return ""
+    hot = [k for k in IP._order(G) if G[k]["now"]["L"] >= 2]
+    sh = IP.SHORT_FF if grp == "ff" else IP.SHORT
+    xs = []
+    for k in hot[:BLOCK_TOP]:
+        n = G[k]["now"]
+        cs = "、".join(sh[c] for c in IP.GRP_COND[grp] if n.get(c)) if n["L"] >= 3 else ""
+        xs.append(f'<span class="mbn">{_e(_ind_name(grp, k))} <b class="bl{n["L"]}">{n["L"]}</b>'
+                  + (f'<em>{_e(cs)}</em>' if cs else "") + '</span>')
+    if len(hot) > BLOCK_TOP:
+        xs.append(f'<span class="mbn">等 {len(hot)} 個</span>')
+    lab = label + (f'（到 {_ymd(I["ff_last"])}）' if grp == "ff" and I.get("ff_last") else "")
+    return f'<li><b>{_e(lab)}</b>' + ("".join(xs) if xs else '<span class="mbn">沒有等級 2 以上</span>') + '</li>'
+
+
+def _ind_tables(side: str, I: dict, keys: dict) -> str:
+    from . import bubindpage as IP
+    out = []
+    if side == "tw":
+        if I.get("tw"):
+            out.append('<h3>台股產業</h3>' + IP.table("tw", I["tw"], keys.get("tw")))
+        if I.get("tg"):
+            names = {}
+            try:
+                from .company import names as _names
+                names = _names()
+            except Exception:                              # noqa: BLE001 —— 名稱只是顯示用
+                pass
+            out.append('<h3>細分族群</h3>' + IP.table("tg", I["tg"], keys.get("tg"), I.get("tg_list"), names))
+    else:
+        if I.get("us"):
+            out.append('<h3>美股類股</h3>' + IP.table("us", I["us"], keys.get("us")))
+        if I.get("ff"):
+            out.append('<h3>美股細產業</h3>' + IP.table("ff", I["ff"], None))
+    return "".join(out)
+
+
+def block_html(mk: str) -> str:
+    """市場頁的泡沫那一塊（mk＝tw／spx／ixic／ndx／sox）；這個程序裡景氣頁算過的等級（bubble.last）沒有就不顯示。"""
+    m = BU.last(mk)
+    if not m:
+        return ""
+    n = m["now"]
+    lv = n["L"]
+    side = "tw" if mk == "tw" else "us"
+
+    def chip(c):
+        v = n.get(c)
+        cls, mark = ("on", "✓") if v else (("na", "—") if v is None else ("", "✗"))
+        return f'<i class="{cls}">{_e(SHORT[c])} {mark}</i>'
+    rg = "".join(f'<button type="button" class="tb{" on" if y == BLOCK_RANGE else ""}" data-br="{y}" data-mk="{mk}" '
+                 f'aria-pressed="{"true" if y == BLOCK_RANGE else "false"}">{"全部" if y == 0 else f"近 {y} 年"}</button>' for y in (0, 30, 10))
+    from . import bubindpage as IP
+    I = industries()
+    _, keys = IP.hist_data(I)
+    lines = "".join(_hot_line(g, lab, I) for g, lab in BLOCK_GROUPS[side])
+    tbl = _ind_tables(side, I, keys)
+    ind = (f'<ul class="mbi">{lines}</ul>' if lines else "") + (f'<details class="mfx mbt"><summary>全部產業</summary>{tbl}</details>' if tbl else "")
+    return (f'<section class="cd mbub" id="bub"><div class="ch"><h2>泡沫</h2>'
+            f'<div class="sv"><b class="sc bl{lv}">{lv}</b><span class="bn bl{lv}">{_e(BS.LEVELS[lv])}</span></div></div>'
+            f'<div class="bcs mbc">{"".join(chip(c) for c in COND_ORDER)}</div>'
+            f'<div class="seg brg" role="group" aria-label="期間">{rg}</div>'
+            f'<div class="bhw"><div class="bh" id="h-{mk}"><p class="note">歷史等級載入中…</p></div><div class="tip" id="t-{mk}" hidden></div></div>'
+            + _legend(False) + ind + '</section>')
+
+
+def block_data(mks) -> str:
+    """市場頁的 <script type="application/json" id="bubd">：這幾個市場的歷史等級（不含延伸樣本）＋同一邊產業的歷史等級。"""
+    from . import bubindpage as IP
+    M = {mk: BU.last(mk) for mk in mks if BU.last(mk)}
+    data, _ = IP.hist_data(industries())
+    pre = ("@t", "@g") if "tw" in mks else ("@u",)
+    return page_json({"M": M, "R": {}}, {k: v for k, v in data.items() if k.startswith(pre)})
+
+
+
+# 歷史等級圖、條件小章、等級色塊與圖例（泡沫頁、市場頁的泡沫那一塊共用；docs/lab_ia_v5_plan.md 第 3 節③）
+CHART_CSS = """
 :root{--lv0:#e4e8ef;--lv1:#b9c4d4;--lv2:#f1c25a;--lv3:#ea8a3a;--lv4:#d33a34}
 @media (prefers-color-scheme:dark){:root{--lv0:#243047;--lv1:#4a5a76;--lv2:#b98f2e;--lv3:#d9782f;--lv4:#f15b50}}
-.btg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
-.bt{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--ink);background:var(--panel)}
-.bt:hover{border-color:var(--line2)}
-.btn{font-weight:700;font-size:14.5px}.btn i{display:block;font-style:normal;color:var(--mut);font-size:11.5px;font-weight:400}
-.btv{display:flex;align-items:baseline;gap:6px}.btl{font-size:30px;line-height:1;font-weight:800}.btt{font-weight:700;font-size:13.5px}
-.bt0 .btl,.bt1 .btl,.bt0 .btt,.bt1 .btt,.bl0,.bl1{color:var(--ink2)}.bt2 .btl,.bt2 .btt,.bl2{color:var(--t3)}
-.bt3 .btl,.bt4 .btl,.bt3 .btt,.bt4 .btt,.bl3,.bl4{color:var(--t4)}.bt3,.bt4{border-color:var(--c4)}
 .bcs{display:flex;flex-wrap:wrap;gap:4px}.bcs i{font-style:normal;font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--line2);color:var(--mut)}
 .bcs i.on{background:var(--sbg);border-color:var(--c4);color:var(--t4);font-weight:600}.bcs i.na{border-style:dashed}
-.btk{font-size:12px;color:var(--ink2);line-height:1.5}
-.vbar{max-width:1080px;margin:2px auto 6px;padding:0 16px}
-.bnav{margin-top:18px}
-.bvd{margin:14px 0 0;border-top:1px solid var(--line);padding-top:10px}.bvd>summary{cursor:pointer;list-style:none;font-size:14px}
-.bvd>summary::-webkit-details-marker{display:none}.bvd>summary::before{content:"▸ ";color:var(--mut)}.bvd[open]>summary::before{content:"▾ "}
-.bvh{display:block;font-size:12.5px;color:var(--ink2);margin:2px 0 0 14px}
-.bsum{font-size:14px;line-height:1.75;margin:6px 0 8px}
-.bsig{font-size:13px;line-height:1.7;color:var(--ink2);margin:-2px 0 10px}.bsig a{margin-left:8px;white-space:nowrap}
 .brg{margin:0 0 6px}
 .bhw{position:relative}.bh{position:relative;min-height:120px}.bh svg{touch-action:pan-y}
 .bh .gd{stroke:var(--ink2);stroke-width:1;stroke-dasharray:3 3}.bh .px{fill:none;stroke:var(--ink);stroke-width:1.5}
 .bh .pxx{fill:none;stroke:var(--ink2);stroke-width:1.4;stroke-dasharray:4 3}.hint{border-bottom:1px dotted var(--line2);cursor:help}
-.rat{display:block}.rat+.rat{margin-top:8px}.dec{display:block;color:var(--ink2);font-size:12.5px;margin-top:2px}.note.cyc{color:var(--ink);font-weight:600}
 .bh .ax{font-size:11px;fill:var(--mut)}.bh .gl{stroke:var(--line);stroke-width:1}
 .lv0{fill:var(--lv0)}.lv1{fill:var(--lv1)}.lv2{fill:var(--lv2)}.lv3{fill:var(--lv3)}.lv4{fill:var(--lv4)}.lvx{opacity:.55}
 .blg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--mut);margin:4px 0 10px}
 .blg i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 .lvk0{background:var(--lv0)}.lvk1{background:var(--lv1)}.lvk2{background:var(--lv2)}.lvk3{background:var(--lv3)}.lvk4{background:var(--lv4)}
 .blg i.lvx{background:repeating-linear-gradient(45deg,var(--lv3),var(--lv3) 2px,var(--panel) 2px,var(--panel) 4px);opacity:1}
-.yes{color:var(--t4);font-weight:700}.no{color:var(--mut)}.na{color:var(--mut);border-bottom:1px dashed var(--line2)}
+.bl0,.bl1{color:var(--ink2)}.bl2{color:var(--t3)}.bl3,.bl4{color:var(--t4)}
+"""
+
+CSS = CHART_CSS + """
+.btg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.bt{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--ink);background:var(--panel)}
+.bt:hover{border-color:var(--line2)}
+.btn{font-weight:700;font-size:14.5px}.btn i{display:block;font-style:normal;color:var(--mut);font-size:11.5px;font-weight:400}
+.btv{display:flex;align-items:baseline;gap:6px}.btl{font-size:30px;line-height:1;font-weight:800}.btt{font-weight:700;font-size:13.5px}
+.bt0 .btl,.bt1 .btl,.bt0 .btt,.bt1 .btt{color:var(--ink2)}.bt2 .btl,.bt2 .btt{color:var(--t3)}
+.bt3 .btl,.bt4 .btl,.bt3 .btt,.bt4 .btt{color:var(--t4)}.bt3,.bt4{border-color:var(--c4)}
+.btk{font-size:12px;color:var(--ink2);line-height:1.5}
+.bnav{margin-top:18px}
+.bvd{margin:14px 0 0;border-top:1px solid var(--line);padding-top:10px}.bvd>summary{cursor:pointer;list-style:none;font-size:14px}
+.bvd>summary::-webkit-details-marker{display:none}.bvd>summary::before{content:"▸ ";color:var(--mut)}.bvd[open]>summary::before{content:"▾ "}
+.bvh{display:block;font-size:12.5px;color:var(--ink2);margin:2px 0 0 14px}
+.bsum{font-size:14px;line-height:1.75;margin:6px 0 8px}
+.bsig{font-size:13px;line-height:1.7;color:var(--ink2);margin:-2px 0 10px}.bsig a{margin-left:8px;white-space:nowrap}
+.rat{display:block}.rat+.rat{margin-top:8px}.dec{display:block;color:var(--ink2);font-size:12.5px;margin-top:2px}.note.cyc{color:var(--ink);font-weight:600}
+.bm .yes{color:var(--t4);font-weight:700}.bm .no{color:var(--mut)}.bm .na{color:var(--mut);border-bottom:1px dashed var(--line2)}
 table.bnow td:nth-child(2){white-space:normal;min-width:240px}table.bnow td:nth-child(3){white-space:normal;min-width:150px}
 table.bval td em{display:block;font-style:normal;font-size:11.5px;color:var(--mut)}
 table.bepi td:last-child{white-space:normal}
 .bty{border-left:3px solid var(--line2);padding:2px 0 2px 12px;margin:0 0 12px}.bty h3{margin:4px 0 4px;font-size:14.5px}
 .bty p{margin:0 0 4px;font-size:13.5px;line-height:1.75;color:var(--ink2)}
-#mth details>summary{cursor:pointer}#mth p{font-size:13px;line-height:1.75;color:var(--ink2)}
+#bub-mth details>summary{cursor:pointer}#bub-mth p{font-size:13px;line-height:1.75;color:var(--ink2)}
 @media (max-width:900px){.btg{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){table.bnow td:nth-child(2),table.bnow td:nth-child(3){min-width:0}.btl{font-size:26px}}
+"""
+
+BLOCK_CSS = CHART_CSS + """
+.mbub .ch{margin-bottom:4px}.mbc{margin:2px 0 8px}
+.mbi{list-style:none;margin:6px 0 0;padding:0;font-size:13.5px;line-height:1.7}
+.mbi li{display:flex;flex-wrap:wrap;gap:0 12px;padding:4px 0;border-top:1px solid var(--line)}
+.mbi li>b{flex:0 0 7em;color:var(--ink2);font-weight:600}
+.mbn{white-space:nowrap}.mbn b{font-weight:800}.mbn em{font-style:normal;font-size:12px;color:var(--mut);margin-left:4px}
+.mbt{margin-top:10px}.mbt h3{font-size:14.5px;margin:12px 0 6px}
+@media (max-width:640px){.mbi li>b{flex-basis:100%}}
 """
 
 JS = r"""
@@ -750,10 +894,11 @@ const NS = 'http://www.w3.org/2000/svg';
 function el(t, a){ const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); return e; }
 function ym(d){ return (+d.slice(0,4)) + '/' + (+d.slice(5,7)); }
 function fmt(x){ return x >= 1000 ? Math.round(x).toLocaleString() : x.toFixed(1); }
+function defRg(mk){ const b = document.querySelector('[data-br].on[data-mk="' + mk + '"]'); return b ? +b.dataset.br : 0; }
 function rows(mk){
   const H = D[mk]; const out = [];
   if (!H) return out;
-  const yrs = RG[mk] || 0;
+  const yrs = mk in RG ? RG[mk] : defRg(mk);
   const last = H.d.length ? +H.d[H.d.length - 1].slice(0,4) : 0;
   const keep = d => !yrs || +d.slice(0,4) > last - yrs;
   if (!yrs && H.xd) H.xd.forEach((d, i) => out.push({d, L: H.xL[i], c: H.xc ? H.xc[i] : '', p: H.xp ? H.xp[i] : null, x: true}));

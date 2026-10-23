@@ -1,15 +1,14 @@
 """總經策略（2026-10-22 前叫大神策略）的文字與頁面資料（規格 xstratspec 第 8 節；計算在 xstrat.py）。
 
-策略頁・總經策略（個股頁同一支程式 page.py，資料整理在 xsadvice.py）、訊號總覽「總經策略」一類、景氣頁今天的重點
-（只列 ★、標「策略」）與最上面那一行共用同一套說法：
-  payload(R)        訊號總覽面板的小份資料（成績、判定依據、參數鄰近、現在）
+策略頁・總經策略（個股頁同一支程式 page.py，資料整理在 xsadvice.py）、全部指標的「總經策略」一類（市場頁與研究紀錄頁）
+共用同一套說法：
+  payload(R)        全部指標面板的小份資料（成績、判定依據、參數鄰近、現在）
   detail(R)         點開才下載的淨值與每一筆（x9xh.json，xspage 建頁時寫；2026-10-21 前放在 x9oh.json）
-  PANEL_JS          訊號總覽點開一條策略的右側面板
-  board(mk)         景氣頁今天的重點要列的策略（★ 而且現在有動作）
-  chip(mk)          景氣頁最上面那一行的「10 個月均線」
-  summary_line(mk)  景氣頁今天的重點下面一行（這個市場的總經策略幾條、現在持有幾條）
-  today_line(mk)    訊號總覽今天有效的好訊號，每個市場最下面一行
+  PANEL_JS          點開一條策略的右側面板
+  mr_chip(mk)       台股市場頁面向標題列的「融資維持率」
 點了都連到策略頁・總經策略（link(mk, k)；docs/lab_strategy_ia_plan.md）。只描述照規則做過去的成績，不寫建議。
+2026-10-23 起（docs/lab_ia_v5_plan.md 第 14 節第 4 點）：市場頁今天的訊號不再列總經策略（它是動作，放配置頁的策略表），
+原本的 board／chip（10 個月均線）／summary_line／today_line 拿掉。
 """
 from __future__ import annotations
 
@@ -585,51 +584,10 @@ def detail(R: dict) -> dict:
     return out
 
 
-# ── 景氣頁 ─────────────────────────────────────────────────────────────────
-
-def board(mk: str, R: dict | None = None) -> list[dict]:
-    """今天的重點要列的策略：★ 而且現在有動作（交易型買／持有／賣／接近訊號、進出型買回列偏多；空手、賣出列警示）。"""
-    R = results() if R is None else R
-    out = []
-    for s in S.STRATS:
-        r = (R.get(mk) or {}).get(s["k"])
-        if not r or r["tier"] != "good":
-            continue
-        sd = side(r)
-        if sd:
-            out.append({"id": f"xs:{mk}:{s['k']}", "side": sd, "name": s["name"], "st": r["now"]["st"], "now": now_text(r),
-                        "line": result_line(r), "grp": S.GROUPS[s["grp"]]})
-    return out
-
-
-def board_li(it: dict) -> str:
-    _, mk, k = it["id"].split(":")
-    return (f'<li><a class="tzi" href="{_e(link(mk, k))}"><span class="tzh"><span class="tzk tzk-good">★</span>'
-            f'<b>{_e(it["name"])}</b><span class="tzd tzs">策略</span><span class="tzd">{_e(TAG[it["st"]])}</span></span>'
-            f'<span class="tzl">{_e(it["now"])}<br>{_e(it["line"])}</span></a></li>')
-
-
-def chip(mk: str, R: dict | None = None) -> str:
-    """最上面那一行：10 個月均線的狀態（不論判定，每個市場都列）。"""
-    R = results() if R is None else R
-    r = (R.get(mk) or {}).get("faber")
-    if not r:
-        return ""
-    n = r["now"]
-    st = n["st"]
-    dist = n.get("dist")
-    held = st in ("in", "turn_out")
-    lab = TAG[st]
-    pos = "" if dist is None else f"線{'上' if dist > 0 else '下'} {pc(abs(dist))}"
-    tip = (f"10 個月均線（Faber）：{now_text(r)} 判定 {S.TIER_MARK[r['tier']]} {S.TIER_NAMES[r['tier']]}；"
-           f"{result_line(r)}。點了看細節。")
-    cls = "stc" if held and st != "turn_out" else "stc stx"
-    return (f'<a class="{cls}" href="{_e(link(mk, "faber"))}" title="{_e(tip)}"><b>10 個月均線</b>{_e(pos)}'
-            f'<i>{_e(lab)}</i></a>')
-
+# ── 市場頁 ───────────────────────────────────────────────────────────────────
 
 def mr_chip(mk: str, R: dict | None = None) -> str:
-    """最上面那一行（只有台股）：大盤融資維持率的現值（不論判定；資料 data/lab/heat/mratio）。點了到「融資維持率跌破 140%」。"""
+    """台股市場頁面向標題列：大盤融資維持率的現值（不論判定；資料 data/lab/heat/mratio）。點了到「融資維持率跌破 140%」。"""
     if mk != "tw":
         return ""
     R = results() if R is None else R
@@ -645,43 +603,10 @@ def mr_chip(mk: str, R: dict | None = None) -> str:
             f'<b>融資維持率</b>{n["mr"]:.1f}%</a>')
 
 
-# 現在的狀態分三種（策略頁・總經策略與景氣頁那一行共用）：要動作＝下一個交易日照規則買或賣（或接近訊號）；
+# 現在的狀態分三種（策略頁・總經策略與全部指標的面板共用）：要動作＝下一個交易日照規則買或賣（或接近訊號）；
 # 有部位＝持有中（交易型、落底型）或持有（進出型）；其他＝沒有訊號、空手。
 ACT = ("buy", "sell", "turn_in", "turn_out", "near")
 HELD = ("hold", "in", "sell", "turn_out")                # 要賣出的那一天收盤前還在手上
-
-
-def summary(mk: str, R: dict | None = None) -> dict | None:
-    """這個市場的總經策略：幾條、★ 幾條、要動作幾條、有部位幾條。"""
-    R = results() if R is None else R
-    M = R.get(mk) or {}
-    if not M:
-        return None
-    rs = [M[s["k"]] for s in S.STRATS if s["k"] in M]
-    return {"n": len(rs), "good": sum(r["tier"] == "good" for r in rs), "act": sum(r["now"]["st"] in ACT for r in rs),
-            "held": sum(r["now"]["st"] in HELD for r in rs)}
-
-
-def summary_line(mk: str, R: dict | None = None) -> str:
-    """景氣頁今天的重點下面一行：連到策略頁・總經策略（這個市場）。"""
-    q = summary(mk, R)
-    if not q:
-        return ""
-    parts = [f"★ 好策略 {q['good']} 條"] + ([f"要動作 {q['act']} 條"] if q["act"] else []) + [f"有部位 {q['held']} 條"]
-    return (f'<a href="{_e(link(mk))}">這個市場的總經策略 {q["n"]} 條（{"・".join(parts)}）：每一條現在持有還是空手 →</a>')
-
-
-def today_line(mk: str, R: dict | None = None) -> str:
-    """訊號總覽「今天有效的好訊號」每個市場卡片最下面一行：★ 好策略現在有動作的（名稱＋狀態），連到策略頁・總經策略。"""
-    R = results() if R is None else R
-    q = summary(mk, R)
-    if not q:
-        return ""
-    its = board(mk, R)
-    if its:
-        txt = "、".join(f"{it['name']} {TAG[it['st']]}" for it in its)
-        return f'<a href="{_e(link(mk))}">總經策略 ★：{_e(txt)} →</a>'
-    return f'<a href="{_e(link(mk))}">總經策略：★ 好策略 {q["good"]} 條，看每一條現在持有還是空手 →</a>'
 
 
 PANEL_JS = r"""// ── 總經策略的面板（xstratpage.PANEL_JS；訊號總覽用：出處、規則、現在、成績、判定依據、參數鄰近、照做的淨值、每一筆）

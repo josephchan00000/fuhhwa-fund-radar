@@ -54,10 +54,15 @@ def test_one_page_switches_four_indices(page):
 
 def test_us_page_has_no_taiwan_wording_or_banned_words(page):
     _, html = page
-    text = re.sub(r"<script>.*?</script>", "", html, flags=re.S)
+    text = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.S)        # 看得到的文字（內嵌資料是面板打開才用）
     assert "加權指數" not in text and "台指 VIX" not in text
+    import json
+    sgd = json.loads(re.search(r'<script type="application/json" id="sgd">(.*?)</script>', html, re.S).group(1).replace("<\\/", "</"))
+    assert set(sgd["mk"]) <= {"spx", "ixic", "ndx", "sox", "us"} and "tw" not in sgd["pxn"] and "tw" not in sgd["xs"]["m"]   # 全部指標只放美股
     from arm.lab import appnav
-    assert appnav.bar("us") in text and "台股" not in text.replace(appnav.bar("us"), "")   # 只有頂欄的「台股景氣」（手機短名「台股」）
+    row = HP.market_row("us")                                                       # 市場列：台股（連到台股頁）＋四個美股指數
+    assert appnav.bar("us") in text and row in text
+    assert "台股" not in text.replace(appnav.bar("us"), "").replace(row, "")   # 只有頂欄的「台股景氣」（手機短名「台股」）與市場列的「台股」
     for w in BANNED:
         assert w not in html, w
 

@@ -1556,7 +1556,7 @@ def test_signal_sections_use_overview_judgement():
     照做的實際報酬收在展開。籌碼頁的「今日訊號」2026-10-23 拿掉（docs/lab_ia_v5_plan.md 第 4 節）。"""
     from arm.lab import sigcat
     js = page._JS
-    for k in ("const SJ=D.sigj||{}", "x9o.html#s=stk:sig:", "<th>命中率</th><th>平常</th>"):
+    for k in ("const SJ=D.sigj||{}", "x9r.html#s=stk:sig:", "<th>命中率</th><th>平常</th>"):
         assert k in js, k
     rows = [{"cat": "stock", "var": "cons", "dir": ["up"], "up": {"tier": "none", "n": 103, "hit": 0.5926, "base": 1.0}},
             {"cat": "stock", "var": "exit", "dir": ["warn"], "warn": {"tier": "ref", "n": 90, "hit": 0.3556, "base": 0.0111}},

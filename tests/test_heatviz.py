@@ -152,7 +152,9 @@ def test_every_item_and_dimension_has_a_panel(built):
 def test_views_and_research_moved_intact(built):
     _, _, V, page = built
     assert re.findall(r'<div class="hview" data-view="(\w+)"', page) == ["radar", "phase", "terrain", "research"]
-    assert re.findall(r'<button type="button" data-view="(\w+)"', page) == [k for k, _ in VZ.VIEWS]
+    for k in ("phase", "terrain", "research"):                               # 研究畫面最上面一列：回研究紀錄、三個畫面互切、回市場頁
+        assert page[page.index(f'<div class="hview" data-view="{k}"'):].startswith(f'<div class="hview" data-view="{k}" hidden>' + VZ.research_bar(k))
+    assert 'class="vsw"' not in page                                         # 視角切換鈕拿掉（docs/lab_ia_v5_plan.md 第 13 節：研究畫面從研究紀錄進）
     res = page[page.index('<div class="hview" data-view="research"'):page.index('<div class="dtpl"')]
     for part in (P._dv_section(V), P._rel_overview(V), P._m6_valid(V), P._ta_study(V)):
         assert part and part in res                                           # 研究內容原封搬到研究畫面
@@ -160,7 +162,8 @@ def test_views_and_research_moved_intact(built):
         assert P._valid(d, L) in res and f'id="v-{d}"' in res
     assert 'id="src"' in res and P._METHOD in res
     main = page[page.index('<div class="hview" data-view="radar"'):page.index('<div class="hview" data-view="phase"')]
-    assert P._ta_main(V) in main and P._cmp_section() in main and 'id="today"' in main and 'id="imap"' in main
+    assert P._ta_main(V) in main and P._cmp_section() in main and 'id="today"' in main and 'id="all"' in main
+    assert 'id="imap"' not in page and 'id="items"' not in page             # 「全部項目」拿掉：每一項在面向面板與全部指標裡（第 13 節）
     assert "看事件研究" in P._ta_main(V) and 'class="evt"' not in P._ta_main(V)
 
 
@@ -170,7 +173,7 @@ def test_hviz_json_embedded_safely(built):
     raw = page[a:page.index("</script>", a)]
     assert "</" not in raw
     assert json.loads(raw.replace("<\\/", "</")) == json.loads(json.dumps(V["viz"]))
-    assert page.count("<script>") == 3                                        # 雷達程式和對照圖程式在同一個 script；另一個＝<head> 的深淺色（appnav）
+    assert page.count("<script>") == 4      # HEAT_META、雷達＋對照圖程式、全部指標＋泡沫的程式、<head> 的深淺色（appnav）
 
 
 def test_theme_tokens_for_light_and_dark():
@@ -399,17 +402,16 @@ def test_radar_card_has_swings_not_quarters(built):
     assert "比昨日" in page or "和昨日一樣" in page                               # 面板的分數格
 
 
-def test_today_card_beside_radar(built):
-    """今天的重點（溫度計＋偏多、警示）放在雷達右邊的窄欄、這週變化上面（2026-10-20 使用者：「我比較喜歡之前的排版」→ 雷達放回最上面）。
-    窄欄裡溫度計的讀數排在長條下面、偏多與警示上下排；說明收進「怎麼看」。"""
+def test_today_card_below_faces(built):
+    """市場頁（docs/lab_ia_v5_plan.md 第 15.1、18 節）：面向那一塊＝標題列、五個面向、雷達＋這週變化（右欄，兩欄等高）；
+    今天的訊號在面向下面、全部指標上面。「怎麼看」拿掉（第 8 節）；溫度計切換照舊用 radio＋CSS。"""
     _, _, V, page = built
-    side = page[page.index('<div class="vside">'):page.index('<p class="hz">')]
-    assert page.index('<div class="vgrid">') < page.index('<div class="vside">') < page.index('id="today"')
-    # 這週變化 2026-10-20 起移到兩欄下面整條（使用者：「左邊空空的 沒對齊」）；兩欄等高
-    assert 'id="today"' in side and side.index('id="today"') < side.index('</div></div><section class="wchg card" id="wchg">')
+    top = page[page.index('<section class="vtop mface" id="top">'):page.index('id="today"')]
+    assert top.index('class="mfc"') < top.index('<div class="vgrid">') < top.index('<div class="vside">') < top.index('id="wchg"')
+    assert page.index('id="top"') < page.index('id="today"') < page.index('id="all"')
     assert ".vgrid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:14px;align-items:stretch}" in page
-    assert ".vside>.card:last-child{flex:1}" in page
-    assert '<details class="tzx"><summary>怎麼看</summary>' in side
+    assert ".mface .vside>.wchg{margin:0;flex:1}" in page
+    assert 'class="tzx"' not in page
     assert ".tqpn{display:none}" in page and ".tqrb:nth-of-type(2):checked~.tqps .tqpn:nth-child(2)" in page   # VER 23：切換用 radio＋CSS
     assert ".vside{order:-1}" not in page                                    # 手機也是雷達在最上面
 
@@ -421,13 +423,13 @@ def test_today_rows_open_outlook_at_that_signal(built):
     T = V.get("sigtoday") or {}
     i = page.index('<template id="ot-out"')
     body = page[i:page.index("</template>", i)]
-    today = page[page.index('id="today"'):page.index('id="wchg"')]
+    today = page[page.index('id="today"'):page.index('id="all"')]
     cols = today[today.index('class="tqps"'):]
     fams = [r for s in ("up", "warn") for r in T.get(s) or []]
     ids = [VZ.osg_id(r["id"], r["hz"], r["side"]) for r in fams]
     assert len(ids) == len(set(ids))
     for r, oid in zip(fams, ids):
-        assert f'href="x9o.html#s={html.escape(r["id"])}" data-open="out:out" data-to="{oid}"' in cols
+        assert f'href="#s={html.escape(r["id"])}" data-open="out:out" data-to="{oid}"' in cols    # 沒有 JS：同一頁的全部指標
         assert body.count(f'id="{oid}"') == 1 and re.fullmatch(r"osg-[0-9A-Za-z_-]+", oid)
     assert VZ.osg_id("tw:heat:T4:cold") != VZ.osg_id("tw_heat_T4_cold")       # 換字不會撞在一起
     assert VZ.osg_id("x", "short", "up") != VZ.osg_id("x", "mid", "up") != VZ.osg_id("x", "mid", "warn")
@@ -546,7 +548,7 @@ def test_scenario_table(monkeypatch):
     assert 'style="width:65.0%"' in h and 'style="left:63.0%"' in h           # 上漲橫條＋隨便挑一天的細線
     assert 'data-dims="fund tech"' in h and 'data-dims="gliq,tliq tech"' in h   # 台股資金一組兩個（對照圖選到任一個就算）
     assert h.count('class="sqtb"') == 3 and 'title="2015/3/2～2015/5/29"' in h
-    assert 'href="x9o.html#s=tw:scen:SC2"' in h and "90 個比較" in txt and "2009 年起" in txt
+    assert 'href="#s=tw:scen:SC2" data-sg="tw:scen:SC2"' in h and "90 個比較" in txt and "2009 年起" in txt   # 同一頁的全部指標
     assert txt.count("次數不夠") >= 1 or "—" in txt
     assert not any(w in txt for w in BANNED)
     V2 = {**V, "signow": {"on": {}}}
@@ -619,13 +621,13 @@ def test_now_section(monkeypatch):
 def test_outlook_drawer_replaces_now_and_scenario_sections(built, monkeypatch):
     """2026-10-21（docs/lab_noise_plan.md 第 4、11 節）：「現在的情境」「所有情境」不在主畫面，改成「之後怎麼走？」右側面板
     （template ot-out）。2026-10-22 起入口在今天的重點（docs/lab_strategy_ia_plan.md，使用者：「應該是放在今日重點那邊點進去」）：
-    溫度計下面一顆按鈕、兩欄的每一列點了捲到那個訊號；頂部目錄、雷達卡片不再放。市場狀態那一行、對照圖、面向面板照舊打開同一個面板。"""
+    溫度計下面一顆按鈕、兩欄的每一列點了捲到那個訊號；頂部目錄、雷達卡片不再放。對照圖、面向面板照舊打開同一個面板（市場狀態那一行 2026-10-23 拿掉，docs/lab_ia_v5_plan.md 第 3 節①）。"""
     _, _, V, page = built
     i = page.index('<template id="ot-out"')
     j = page.index("</template>", i)
     main, body = page[:i] + page[j:], page[i:j]
     assert 'id="now"' not in main and 'id="scen"' not in main and 'id="now"' in body and 'id="scen"' in body
-    assert page.index('id="today"') < page.index('id="items"') < page.index('id="cmp"')
+    assert page.index('id="cmp"') < page.index('id="today"') < page.index('id="all"')   # 對照圖收在面向那一塊（第 13 節）
     assert 'href="#now"' not in page and 'href="#scen"' not in page
     assert "snout" not in page and 'class="rout"' not in page[:page.index('id="today"')]   # 頂部目錄、雷達卡片沒有入口
     t0 = page.index('id="today"')
@@ -634,11 +636,7 @@ def test_outlook_drawer_replaces_now_and_scenario_sections(built, monkeypatch):
     assert 'data-title="之後怎麼走？"' in body and '<details class="osim" id="o-sim">' in body
     assert body.index("列出來的訊號成立之後") < body.index("五個面向現在的位置") < body.index('id="scen"') < body.index('id="o-sim"')
     assert 'data-open="out:out"' in page[page.index('<template id="dt-fund"'):]          # 面向面板也連得過去
-    from arm.lab import heatpage as HP
-    V2 = {**V, "mk": "tw", "signow": {"on": {"tw:scen:SC5": {"since": "2026-07-17", "n": 66}}}}
-    line = HP.state_line(V2)
-    assert 'data-open="out:out" data-to="scen"' in line and "籌碼熱、價格轉弱" in line
-    assert "情境" not in HP.state_line({**V, "signow": {"on": {}}})
+    assert 'data-open="out:out" data-to="scen"' not in page.split('<template id="ot-out"')[0]   # 市場狀態那一行拿掉（第 3 節①）
     js = VZ.JS
     assert "kind === 'out' ? 'ot-'" in js and "function oJump(id)" in js and "hget('o')" in js
     assert "bx.dataset.ix !== ix0" in js                                                   # 美股頁：等切到網址上的指數再開
@@ -691,7 +689,8 @@ def test_outlook_signals_table_and_summary(monkeypatch):
     assert one.count('<th class="oj">') == 1 and '<th class="oj">1 個月</th>' in one        # 判定看 1 個月
     assert '<th class="oj">3 個月</th>' in h[h.index('class="ofam ofam-warn"'):]
     assert "7 次" in txt                                                                      # 次數少的格子標次數
-    assert "大跌（最大回撤 10% 以上）的機率：過去 67% → 預估之後 33%" in txt and "RSI(2) 超賣反彈" in txt
+    assert "大跌（最大回撤 10% 以上）的機率：過去 67% → 預估之後 33%" in txt
+    assert "RSI(2) 超賣反彈" not in txt and "總經策略" not in txt         # 總經策略不在市場頁（docs/lab_ia_v5_plan.md 第 14 節第 4 點）
     assert not any(w in txt for w in BANNED)
     assert "現在沒有列出來的訊號" in VZ.out_sig({"mk": "tw", "sigtoday": _board_v([], [])})
     assert "研究結果還沒產生" in VZ.out_sig({"mk": "tw"})

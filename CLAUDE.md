@@ -1776,7 +1776,7 @@ CI 從零開始會整片變 —，同 etf_watch 的坑）；`fetch_holdings.py` 
 深度籌碼跟技術分析」「入口……不想要太容易被看到」。定案：**不用密語、不加密**（使用者：「不用那麼搞剛，
 就沒那麼好找到就好了」）；**入口＝主頁頁尾右下角淡色小點**，**不進導覽列、不在任何分頁出現**（tests/test_lab.py 守）。
 2026-10-18 起小點改連 `x9m.html`（台股景氣頁；使用者：「點那個 . 之後先出現景氣頁面，個股頁面放旁邊」），
-台股景氣（x9m.html）／美股景氣（x9mu.html）／泡沫（x9b.html，2026-10-18 起）／配置（x9.html，本頁，2026-10-23 起；原本的策略、個股兩格合成一格）／訊號總覽（x9o.html，2026-10-19 起）五格共用頂欄 `arm/lab/appnav.py`（不做窄欄；手機 640px 以下顯示短名 台股｜美股｜泡沫｜配置｜訊號，`appnav.SHORT`；tests/test_appnav.py 守）。
+台股景氣（x9m.html）／美股景氣（x9mu.html）／配置（x9.html，本頁，2026-10-23 起；原本的策略、個股兩格合成一格）三格共用頂欄 `arm/lab/appnav.py`（不做窄欄；手機 640px 以下顯示短名 台股｜美股｜配置，`appnav.SHORT`；tests/test_appnav.py 守）。泡沫（x9b.html）、訊號總覽（x9o.html）2026-10-23 起併進兩個景氣頁（市場頁），頂欄拿掉、舊網址留成轉址頁（見「市場頁」專段）；第 4 段再把頂欄改成「市場｜配置」。
 **x9.html 是一頁兩種身分**：配置（台股｜美股｜策略｜個股）與研究紀錄（個股策略｜總經策略｜後台，從 x9r.html 進來）——見下方「配置頁與研究紀錄」專段（2026-10-23）；原大神策略頁 x9x.html 留成轉址頁。
 頁面＝`dashboard/x9.html`（Vercel cleanUrls → `/x9`）。
 券商分點暫不做（使用者：先不做）；海外持股只做 ETF 面；債券型 ETF 整檔排除。
@@ -2395,7 +2395,7 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   **頁面 JS**＝`heatpage._JS`（設定由 `heatpage.meta()` 嵌成 `window.HEAT_META`，`</` 要轉義）；原本瀏覽器端的交互分析計算（`// @@CALC` 段）
   2026-10-20 隨交互分析一起拿掉（`heatrel.group_stats` 研究端照留）。手機：寬表改一項一塊（`table.stk`＋`data-h`）、`.mob`／`.dsk` 切換欄位、
   單項小圖依容器寬度重畫（視窗寬度變 40px 以上會重畫），新表格在 390px 都不橫捲。
-  入口＝主頁頁尾「·」（2026-10-18 起直接連這頁）＋四頁共用頂欄（台股景氣｜美股景氣｜泡沫｜個股，`arm/lab/appnav.py`）；主頁導覽列不加入口。`gen_fund_dashboard.py` 在籌碼雷達之後**另外建**（分開失敗）；
+  入口＝主頁頁尾「·」（2026-10-18 起直接連這頁）＋共用頂欄（2026-10-23 起台股景氣｜美股景氣｜配置，`arm/lab/appnav.py`；見「市場頁」節）；主頁導覽列不加入口。`gen_fund_dashboard.py` 在籌碼雷達之後**另外建**（分開失敗）；
   三支 workflow 各兩行 `git add -f dashboard/x9m.html`、各兩行 `git add -f dashboard/x9mh.json`（分開 add；本機都不 commit，同 x9.html）。
   研究檔版本和規格不同（`ver` ≠ `heatspec.VER`，現在是 9）就當沒有（頁面寫「驗證結果還沒產生」，x9mh.json 不帶單項分析與 `m6`）。
 - **規格事前寫定** `arm/lab/heatspec.py`（VER 7＝第六版＋泡沫面向，`tests/test_heat.py` 鎖住；實作細節規劃文件第 12.7、13.9、14.14、15.11 節，泡沫見下一節）：項目、熱的方向、百分位視窗
@@ -2560,11 +2560,12 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   臨界值表 `data/lab/heat/psy_cv_drift.json.gz`＝`TZ=Asia/Taipei python3 scripts/run_bub.py --cv`（8 檔漂移 × 2,000 次，約 26 分鐘；規格沒變不用重算）；
   研究檔 `data/lab/bub_research.json`＝`TZ=Asia/Taipei python3 scripts/run_bub.py`（約 15 秒；資料或規格改了才重跑；兩個檔都要入庫）。
   美國企業獲利回補：`.ping/lab` 第一行 `usfill:us_cp`（`fetch_heat_us.py --backfill --only`；`cp_probe` 列出 DBnomics 上可用的序列）。
-- **頁面** `dashboard/x9b.html`：頁首五個市場的等級磚 → 每個市場一張卡（一句話、歷史等級色帶＋指數線〔全部／近 30 年／近 10 年〕、現在的七個條件
+- **2026-10-23 起 x9b.html 是轉址頁**（見「市場頁」專段）：等級、條件、產業在市場頁最下面（`bubpage.block_html`），以下這些內容整個搬到研究紀錄頁（`bubpage.research_body`，段落 id 加 `bub-`）。
+- **頁面** `dashboard/x9b.html`（10/18～10/23 的獨立頁）：頁首五個市場的等級磚 → 每個市場一張卡（一句話、歷史等級色帶＋指數線〔全部／近 30 年／近 10 年〕、現在的七個條件
   〔未來獲利那一列並列分析師預估與過去驗證用的替代資料、修正影響最大的 3 家〕、參考讀數、等級 ≥ 3 的泡沫段、驗證收起來＋摘要一句）→ 七種條件代表什麼 → 方法。台股圖 1990 年以前接國發會月平均（虛線、色塊斜線），
   只當延伸樣本、不決定現在的等級。`gen_fund_dashboard.py` 在美股景氣頁之後建（分開失敗）；三支 workflow 各兩行 `git add -f dashboard/x9b.html`（本機不 commit）。
 - **景氣頁**：heatspec VER 7、heatspec_us VER 1、研究檔都不動，只是頁面不顯示泡沫面向（`heatpage.HIDE_DIMS`／`shown_dims()`；面向卡、雷達、地形、
-  對照圖都用它），頁首下一行「泡沫等級 N …（條件）泡沫頁 →」連到 `x9b.html#市場`。
+  對照圖都用它），頁首下一行「泡沫等級 N …（條件）泡沫頁 →」連到 `x9b.html#市場`（2026-10-23 起改成面向那一塊標題列的「泡沫」一格，捲到同一頁最下面的泡沫；見「市場頁」節）。
 - **結果（2026-10-18，規劃第 8.7 節）**：等級 ≥ 3 只占 1～7% 的月份（舊面向太常亮燈的問題解決）。之後一年內跌 20%：那斯達克價格爆發 93% 對 33%、
   那斯達克 100 等級 ≥ 2 72% 對 29%（較容易大跌）；**S&P 500 每個條件都看不出差別**（估值與趨勢偏離可以維持很多年）；台股主樣本等級 ≥ 3 只有 2026 這一段，
   延伸樣本（1987–1990）樣本不足。現在：台股 2、S&P 500 2、那斯達克 0、那斯達克 100 0、費半 3（但已比 6/22 高點低 24%）。
@@ -2970,7 +2971,8 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   （約 90 秒；資料或規格改了才重跑）；個股訊號與策略由籌碼雷達建頁時寫 `data/lab/sig_stock.json`（`page.build` → `sigcat.write_stock`；
   算不出來或資料不全就不寫，不拿殘缺資料蓋掉前一版——2026-10-19 測試曾把它洗成只剩策略、已加守門）。
   **現在有沒有效**每天算：景氣頁 `heatpage.view()` 的 `sig_now(B)` → `sigcat.now_for_B`（存進程序裡的 `sigcat.NOW`），訊號總覽沿用；單獨建總覽時自己算（約 60 秒）。
-- **頁面** `dashboard/x9o.html`（`arm/lab/sigpage.py`，`tests/test_sigpage.py`）＋每一次的清單 `dashboard/x9oh.json`（點開一列才下載，約 2MB／壓縮 0.5MB）：
+- **2026-10-23 起 x9o.html 是轉址頁**（見「市場頁」專段）：全部指標在每個市場頁（只列那個市場；`sigpage.block_html`／`block_data`），每一次的清單每個市場一個檔 `x9oh-{市場}.json`；研究結論、完整研究表、全部指標（含個股）、名詞與判定方式在研究紀錄頁（`sigpage.research_body`）。
+- **頁面** `dashboard/x9o.html`（10/19～10/23 的獨立頁；`arm/lab/sigpage.py`，`tests/test_sigpage.py`）＋每一次的清單 `dashboard/x9oh.json`（點開一列才下載，約 2MB／壓縮 0.5MB）：
   今天有效的好訊號（五個市場＋個股；同一個項目只列一種、依比平常高多少排序、最多 8 個）→ 全部訊號與策略（搜尋、市場／類別／判定／方向篩選、只看現在有效、
   排序、點開看怎樣算出現與中了、兩個方向的數字、每一次、下載 CSV；網址 `#s=訊號代號` 直接打開那一列）→ 判定方式。
   `gen_fund_dashboard.py` 在泡沫頁之後建（分開失敗）；三支 workflow 各兩行 `git add -f dashboard/x9o.html`、`dashboard/x9oh.json`（本機不 commit）。
@@ -3298,15 +3300,48 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   （讀數沒變就不改寫）。單獨跑 page.build 也能用（只是讀數是上一版的）。
 - **個股（工具）的改動**：籌碼頁的「今日訊號」「風險提醒」拿掉（8 種個股訊號沒有一種比任一天好，列在策略頁的淘汰區）；
   個股表的策略標籤、「配置裡的」篩選、個股卡最上面那段只列**台股配置裡（使用中）**的策略（`PKU`＝`PK` 只留 `D.cfg.use`），不放 ★／●。
-- **研究紀錄頁** `dashboard/x9r.html`（`arm/lab/research_page.py`；不在頂欄，配置頁頁尾「研究紀錄」小字進）：第 1 段是目錄——
-  配置與策略（x9.html 的研究紀錄身分各分頁與後台各段，`?v=bo&at=段落`）、市場（先連到景氣頁、泡沫頁、訊號總覽原本的段落，第 2 段搬進來）、名詞。
-  後台等分頁的資料都內嵌在 x9.html（約 1MB），不再抄一份。三支 workflow 各兩行 `git add -f dashboard/x9r.html`。
+- **研究紀錄頁** `dashboard/x9r.html`（`arm/lab/research_page.py`；不在頂欄，配置頁與市場頁頁尾「研究紀錄」小字進）：目錄——
+  配置與策略（x9.html 的研究紀錄身分各分頁與後台各段，`?v=bo&at=段落`）、景氣（市場頁的研究畫面 `x9m.html#v=research／phase／terrain`）、
+  訊號與泡沫（第 2 段起直接放在這頁，見「市場頁」專段）、名詞。後台等分頁的資料都內嵌在 x9.html（約 1MB），不再抄一份。
+  三支 workflow 各兩行 `git add -f dashboard/x9r.html`。
 - **時間軸設定新增**：`Q.rtx`（還沒排定賣出日時畫在右邊的字；配置頁寫「依規則賣出」不帶箭頭）；`VZS[Q.rk]==='m1'`（原本寫死 `VZS.tl`，
   別的時間軸切到「接下來 5 週」不會畫週標）。提示框裡「規則與成績」的連結在時間軸外框上接一次（範圍切換會重畫、換掉提示框的 onclick）。
 - 本機驗版：`page.build(暫存路徑)` 之後 `page._LAST` 有資料，改 CSS／JS 只要 `page._cfg(data)`＋`page.render(data)` 重畫（秒級）；
   `python3 -m http.server` 起頁才載得到 x9s.json 等。截圖、可見字數：台股 935 字、美股 910 字、策略 672 字（手機），第 10 節上限 15,000 字。
 - 測試：`tests/test_cfgpage.py`（卡片順序、比重合計 100%、警訊換現金與買回、美股 QM、策略表、分頁與身分、finish）、
   `tests/test_board.py`（四種狀態、淘汰都有原因、override、設定檔格式）、`tests/test_research_page.py`（目錄連結對得到分頁與段落、建頁接線）。
+
+## 「市場頁」（2026-10-23 IA v5 第 2 段；`docs/lab_ia_v5_plan.md` 第 15.1、18.1、20 節）
+
+兩個景氣頁（台股 x9m.html、美股四個指數 x9mu.html）＝市場頁；泡沫頁、訊號總覽併進來，驗證與方法搬到研究紀錄頁。**只改呈現，數字、規格、研究檔都不動。**
+- **由上而下四塊**（`heatviz.main_view`）：面向（`face_html`：標題列 `_face_head`＝指數收盤・資料日・離 60 日高點或一段大跌中＋落底訊號・
+  泡沫等級〔點了捲到最下面〕・融資維持率〔只有台股，`xstratpage.mr_chip`〕；五個面向分數〔點了開面向面板〕；雷達＋這週變化〔電腦左右，這週變化在窄欄用三行版〕；
+  收起：和指數走勢比較 `#cmpd`〔打開時重畫〕、價位 `#tad`）→ 今天的訊號（`today_html`：溫度計＋清單＋「之後怎麼走？」）→ 全部指標（`sigpage.block_html`）
+  → 泡沫（`bubpage.block_html`）→ 頁尾一行（研究紀錄・名詞・資料日，`foot_html`）。市場切換一排 `heatpage.market_row`（台股是連結、美股四個是切換按鈕，`.ixsw`）。
+- **拿掉的**（第 3 節①、第 8 節、第 13 節、第 14 節第 4 點）：市場狀態那一行 `state_line`（10 個月均線、情境兩格不再放；情境在「之後怎麼走？」）、
+  頁首說明句與「怎麼看」（說明搬到研究紀錄頁「名詞與判定方式」的「今天的訊號（市場頁）」，`sigpage.method_html`）、全部項目 `#items`（每一項在面向面板與全部指標）、
+  今天的訊號裡的總經策略（它是動作，放配置頁；`xstratpage.board／chip／summary／summary_line／today_line` 一併刪掉）、
+  原本訊號總覽的五市場＋個股「今天有效的訊號」（`sigpage.today_html` 刪掉；個股訊號在研究紀錄頁的全部指標）、舊的 `dashboard/x9oh.json`。
+- **研究畫面留在市場頁**：`#v=research／phase／terrain`（資料在 x9mh.json／x9muh-*.json），最上面一列 `research_bar`（‹ 研究紀錄｜三個畫面｜回到市場頁）；
+  主畫面的視角切換鈕拿掉。研究紀錄頁列入口。
+- **全部指標**（sigpage 的 JS 改成 `window.sgInit()`，可重跑：AbortController 拿掉上一次的事件；`SG.emb`＝固定市場、清單預設收起〔點分類、搜尋、「列出全部」才展開〕）：
+  頁面層一份 `#sgd`（`heatpage.page_parts`→`sigpage.block_data(市場)`；美股頁四個指數＋美股產業共用，`SG.usx`；目前市場讀 `#ixc` 的 data-ix），
+  面板 `sigpage.PANEL` 在模板外面；每一次的清單 `x9oh-{市場}.json`（`detail_name`，點開才下載；三支 workflow 各兩行 `git add -f dashboard/x9oh-*.json`）。
+  市場頁的 `#sgd` 只放這一頁的市場名稱（`page_json` 的 emb 分支：mk／pxn／總經策略的 mkn 與 spec），美股頁看不到台股的文字。
+  網址：`#i=指標`、`#s=訊號`（`hsWith` 保留 `#ix=`、`#v=`）。**景氣的右側面板與指標面板不同時開**：`openD` 先 `sgClose(true)`、`openInd` 先 `heatClose(true)`
+  （q＝true＝只關面板、不動瀏覽紀錄——兩邊都用 pushState，非同步的 history.back 會把剛開的另一個關掉）；
+  面板裡的 `<a data-sg="訊號">` 由 sigpage 攔下、在同一頁開指標面板。`data-open` 是景氣面板專用的屬性（「列出全部」改用 `data-all`）。
+- **泡沫**（`bubpage.block_html(mk)`：`bubble.last(mk)`＝景氣頁同一個程序算好的等級；`industries()`＝`bubind.compute` 一個程序只算一次）：
+  `#bubd`＝`block_data`（不含 1990 年以前的延伸樣本）；圖的預設期間＝按下去的那顆（`defRg`，市場頁近 30 年、研究紀錄全部）；
+  美股頁四個指數各一塊、產業表四塊相同（換指數時 `SWITCH_JS` 呼叫 `bubDraw(ix)`、`sgInit()`）。CSS 拆成 `CHART_CSS`（共用）＋頁面專用。
+- **跳段**：`#at=段落`（例 `x9m.html#at=bub`、`x9mu.html#ix=sox&at=bub`）在整頁 load 之後才捲（全部指標、泡沫的程式在後面，先捲位置會跑掉）；捲完拿掉參數。
+- **轉址**：`x9o.html`（`sigpage.REDIRECT`：`#s=`／`#i=` 是市場的 → 那個市場頁；其他 → `x9r.html`＋原 hash；沒有 → x9m）、
+  `x9b.html`（`bubpage.REDIRECT`：`#tw`… → `#at=bub`；`#lv／ind／indv／types／mth` → `x9r.html#bub-…`）。頂欄拿掉這兩格。
+- **研究紀錄頁**放：訊號研究（`sigpage.research_body`＝研究結論、完整研究表、全部指標〔含個股訊號與策略；籌碼頁 `sjLink` 連 `x9r.html#s=stk:sig:…`〕、名詞與判定方式，
+  非 emb 模式的同一支 JS）＋泡沫研究（`bubpage.research_body／research_data`）。`research_page.render(SV, BV)`：不給就讀 `sigpage.LAST`／`bubpage.view()`。
+- 大小：x9m.html 1.56MB（壓縮 285KB）、x9mu.html 4.04MB（壓縮 618KB）；可見文字台股 2,147 字、美股 1,893 字（手機）。美股頁體積第 6 段處理。
+- 測試：`tests/test_sigpage.py`（block、轉址、每個市場一個清單檔）、`tests/test_bubpage.py`（市場頁那一塊、研究紀錄的內容、轉址 node 實跑）、
+  `tests/test_research_page.py`（放進來的研究、景氣入口）、`tests/test_heatviz.py`／`test_heatpage*.py`（四塊順序、研究畫面列、跳段）。
 
 ## 「策略頁：總經策略／個股策略」（2026-10-22；規劃、使用者決定、分段 `docs/lab_strategy_ia_plan.md`）
 

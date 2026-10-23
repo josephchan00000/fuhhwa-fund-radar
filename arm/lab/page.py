@@ -792,7 +792,7 @@ function drawStk(){
 const SIGST={cons:'s1'};                     // 加上條件後成為策略頁的哪一條策略
 /* 訊號總覽的實務判定（docs/lab_signal_plan.md 第 6.3 節）：{訊號: [判定, 方向, 次數, 命中率%, 平常%]}；隔天開盤買、持有 20 個交易日 */
 const SJ=D.sigj||{},SJN={good:'好訊號',ref:'可能是運氣',none:'沒有比平常好',few:'次數不夠'};
-function sjLink(k,t){return `<a href="x9o.html#s=stk:sig:${esc(k)}">${t||'訊號總覽 →'}</a>`;}
+function sjLink(k,t){return `<a href="x9r.html#s=stk:sig:${esc(k)}">${t||'訊號紀錄 →'}</a>`;}
 function sigRes(x,lbl){return x&&x.n?`${lbl}實際平均 ${sgn(x.r,1,'%')}（${f(x.rw,0)}% 賺錢），同期大盤 ${pctT(x.mk)}`:'';}
 /* 個股卡也用：照做的實際報酬一行 */
 function statLine(k){const st=(D.stats||{})[k];if(!st)return '<span class=st>尚無歷史樣本</span>';
