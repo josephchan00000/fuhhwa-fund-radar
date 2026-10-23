@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>籌碼雷達 v5 示意圖（第三版）</title>
+<title>籌碼雷達 v5 示意圖（第四版）</title>
 <style>
 :root{--bg:#f6f7f9;--card:#fff;--ink:#1d222a;--mut:#69717d;--line:#e2e5ea;--red:#d33a34;--teal:#159c94;--gold:#b8860b;--blue:#2f6fdd;--warm:#fff1f0;--cool:#edf7f6;--navy:#3a4a63}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,"Noto Sans TC","PingFang TC",system-ui,sans-serif}
@@ -77,12 +77,18 @@
  .ht td.src,.ht td.st{grid-column:1/3;font-size:12px}.ht tr.g td,.ht tr.tot td:last-child{grid-column:1/3}.ht tr.g{background:#f7f8fa}
  .bt th:nth-child(3),.bt td:nth-child(3),.bt th:nth-child(5),.bt td:nth-child(5){display:none}
 }
-</style></head><body>
 
-<!-- ============ 市場（同第二版） ============ -->
+/* 第四版新增 */
+.oth{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12.5px;color:var(--mut);margin-top:8px}.oth b{color:var(--ink)}
+.slim{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px}.slim b{font-size:15px}.slim a{color:var(--blue);text-decoration:none}
+.bub{display:grid;grid-template-columns:9em 5em 1fr;gap:4px 10px;font-size:13px;align-items:center}.bub .lv{font-weight:800}.bub .lv.y{color:var(--red)}
+@media(max-width:640px){.bub{grid-template-columns:7em 3.5em 1fr}}
+.lvc.full{max-width:none}
+.qq{font-size:12.5px;color:var(--mut);margin-top:4px}.qq b{color:var(--ink)}
+</style></head><body>
 <div class="page" id="market">
   <div class="top"><span class="tab on">市場</span><span class="tab">配置</span><span class="r">研究紀錄・名詞・查公司</span></div>
-  <div class="mk"><span class="on">台股</span><span>S&amp;P 500</span><span>那斯達克</span><span>那斯達克 100</span><span>費半</span></div>
+  <div class="mk"><span class="on">台股</span><span>美股</span></div>
   <div class="card">
     <div class="hd"><span class="px">加權指數 46,041</span><span class="d">10/22（四）・離 60 日高點 −7.6%</span></div>
     <div class="chips"><span class="chip hot">基本面 94 過熱</span><span class="chip hot">籌碼 83 過熱</span><span class="chip cold">全球資金 17 過冷</span><span class="chip">台灣資金 43</span><span class="chip cold">技術 31 偏冷</span></div>
@@ -135,88 +141,161 @@
   <div class="foot">研究紀錄 ・ 名詞 ・ 資料到 10/22（四）</div>
 </div>
 
-<!-- ============ 配置（第三版） ============ -->
-<div class="page" id="cfg" hidden>
-  <div class="top"><span class="tab">市場</span><span class="tab on">配置</span><span class="r">研究紀錄・名詞・查公司</span></div>
-  <div class="mk"><span class="on">配置</span><span>個股（工具）</span></div>
-
+<div class="page" id="market-us" hidden>
+  <div class="top"><span class="tab on">市場</span><span class="tab">配置</span><span class="r">研究紀錄・名詞・查公司</span></div>
+  <div class="mk"><span class="">台股</span><span class="on">美股</span></div>
   <div class="card">
-    <h2>時程 <small>10/22 收盤後更新</small></h2>
-    <div class="tiles">
-      <div class="tile"><div class="l">待買進</div><div class="v">6 檔</div><div class="s">最近 10/26（一）開盤</div></div>
-      <div class="tile"><div class="l">持有中</div><div class="v">14 檔</div><div class="s">台股 7・美股 7</div></div>
-      <div class="tile"><div class="l">台股水位</div><div class="v">100%</div><div class="s">警訊 0／3</div></div>
-      <div class="tile"><div class="l">美股水位</div><div class="v">100%</div><div class="s">警訊 0／4</div></div>
+    <div class="hd"><span class="px">S&amp;P 500 6,735</span><span class="d">10/22（四）・離 60 日高點 −1.9%</span><span class="d">那斯達克 100 24,980・−2.4%</span><span class="d">費半 6,410・−8.7%（6/22 高點起 −24%）</span></div>
+    <div class="chips"><span class="chip hot">基本面 68 偏熱</span><span class="chip">情緒籌碼 55</span><span class="chip">資金 40</span><span class="chip hot">技術 62 偏熱</span></div>
+    <div class="rad" style="margin-top:10px">
+      <svg viewBox="0 0 220 200" width="100%" style="max-width:260px"><polygon points="110,20 200,100 110,180 20,100" fill="none" stroke="#e2e5ea"/><polygon points="110,60 160,100 110,140 60,100" fill="none" stroke="#e2e5ea"/><polygon points="110,46 150,100 110,130 74,100" fill="rgba(211,58,52,.18)" stroke="#d33a34" stroke-width="2"/><text x="110" y="12" font-size="11" text-anchor="middle">基本面 68</text><text x="204" y="104" font-size="11" text-anchor="end" dx="12">情緒籌碼 55</text><text x="110" y="196" font-size="11" text-anchor="middle">技術 62</text><text x="2" y="104" font-size="11">資金 40</text></svg>
+      <div>
+        <div class="mv">
+          <span class="k">這週</span><span class="v">上週 → 現在</span><span class="v">主要原因</span>
+          <span class="k">基本面</span><span class="v">65 → <b>68</b> +3</span><span class="v">失業率、製造業指數</span>
+          <span class="k">情緒籌碼</span><span class="v">52 → <b>55</b> +3</span><span class="v">VIX 回落、期貨淨多單</span>
+          <span class="k">資金</span><span class="v">42 → <b>40</b> −2</span><span class="v">10 年債、高收益債利差</span>
+          <span class="k">技術</span><span class="v">66 → <b>62</b> −4</span><span class="v">RSI、20 日乖離</span>
+        </div>
+        <div class="oth"><span>技術面依指數：</span><span>S&amp;P 500 <b>62</b></span><span>那斯達克 100 <b>58</b></span><span>費半 <b>71</b> 偏熱</span><span class="note">基本面、情緒籌碼、資金三個面向是整個美股共用的</span></div>
+      </div>
     </div>
-    <div class="nextbox">
-      <div><div class="d">10/26（一）<small>美股・下一個交易日要做的事</small></div><div><span class="pillb">開盤買進</span>強勢品質股 補 1 檔（名單 10/23 收盤定案，目前 PAYC 領先）</div></div>
-      <div><div class="d">10/27（二）<small>台股・下一個交易日要做的事</small></div><div><span class="pillb">開盤買進</span>共識加碼 玉晶光（開盤價 &lt; 1,160）<span class="note">・觀察中的策略，不在配置裡</span></div></div>
+  </div>
+  <div class="card">
+    <h2>今天的訊號 <small>S&amp;P 500；點一列看之後怎麼走</small></h2>
+    <div class="therm">
+      <span>短線</span><div class="bar"><i style="left:50%"></i><b style="left:40%"></b></div><span class="rd">偏多 3・警示 4 → <b style="color:var(--teal)">偏警示</b></span>
+      <span>中線</span><div class="bar"><i style="left:50%"></i><b style="left:68%"></b></div><span class="rd">偏多 5・警示 2 → <b>偏多</b></span>
+      <span>長線</span><div class="bar"><i style="left:50%"></i><b style="left:76%"></b></div><span class="rd">偏多 6・警示 1 → <b>偏多</b></span>
+    </div>
+    <div class="seg" style="margin-top:10px"><span class="on">短線 1 個月</span><span>中線 3 個月</span><span>長線 12 個月</span></div>
+    <div class="two">
+      <div class="list"><h4 class="up">偏多 3 類 <small style="font-weight:400;color:var(--mut)">之後 1 個月上漲的機率（任一天 62%）</small></h4>
+        <div class="row"><span class="n">上漲家數占比・進入過冷</span><span class="p">70% <small>+2.1%</small></span><span class="s">10/21 收盤進場・持有到 11/20</span></div>
+        <div class="row"><span class="n">20 日乖離・過冷結束<span class="tag">震盪</span></span><span class="p">66% <small>+1.8%</small></span><span class="s">10/17 進場・持有到 11/17・同時成立 3 類</span></div>
+        <div class="row"><span class="n">10 年減 3 個月利差・過冷結束</span><span class="p">64% <small>+1.5%</small></span><span class="s">10/9 進場・持有到 11/9</span></div>
+      </div>
+      <div class="list"><h4 class="dn">警示 4 類 <small style="font-weight:400;color:var(--mut)">之後 1 個月內回撤 5.7% 以上的機率（任一天 8%）</small></h4>
+        <div class="row"><span class="n">M2 年增率・過熱中<span class="tag ok">之後也成立</span></span><span class="p">31% <small>回撤中位 4%</small></span><span class="s">8/29 起成立</span></div>
+        <div class="row"><span class="n">期貨淨多單・進入過熱</span><span class="p">24%</span><span class="s">10/14 進場・持有到 11/13</span></div>
+        <div class="row"><span class="n">隱含波動率・過冷中</span><span class="p">22%</span><span class="s">10/2 起成立・同時成立 2 個</span></div>
+        <div class="more">還有 1 類 ▾</div>
+      </div>
+    </div>
+    <div class="oth" style="margin-top:10px"><span>其他指數：</span><span>那斯達克 100 短線 偏多 <b>2</b>・警示 <b>3</b></span><span>費半 短線 偏多 <b>1</b>・警示 <b>5</b></span><span class="more" style="margin:0">看它們的清單 ▾</span></div>
+  </div>
+  <div class="card">
+    <h2>全部指標 <small>92 個；三個指數共用 60 個，技術面與泡沫依指數各算</small></h2>
+    <div class="srch"><input placeholder="搜尋指標，例如 VIX、失業率、M2"></div>
+    <div class="chips"><span class="chip">基本面 11</span><span class="chip">情緒籌碼 5</span><span class="chip">資金 10</span><span class="chip">技術 9</span><span class="chip">情境 9</span><span class="chip">泡沫 11</span><span class="chip">大跌後買點 7</span><span class="chip">指數型策略 14</span></div>
+    <div class="more">展開全部 92 個 ▾</div>
+  </div>
+  <div class="card" id="bub-us">
+    <h2>泡沫 <small>三個指數各自的等級（0 沒有跡象 … 4 嚴重泡沫）</small></h2>
+    <div class="bub">
+      <span>S&amp;P 500</span><span class="lv y">2</span><span class="cond" style="margin:0"><span class="y">價格爆發 ✓</span><span>估值 ✗</span><span>槓桿 ✗</span><span>未來獲利 ✗</span></span>
+      <span>那斯達克 100</span><span class="lv">0</span><span class="note">沒有跡象</span>
+      <span>費半</span><span class="lv y">2</span><span class="cond" style="margin:0"><span class="y">價格爆發 ✓</span><span>漲得比獲利快 ✗</span><span>未來獲利 ✗</span></span>
+    </div>
+    <div class="band"></div><div class="ax"><span>1950</span><span>2000</span><span>2008</span><span>2021</span><span>2026</span></div>
+    <div class="mv" style="margin-top:8px"><span class="k">產業</span><span class="v"><b>科技 XLK 2</b></span><span class="v">一個價格條件</span><span></span><span class="v">49 個細產業裡 <b>8 個等級 2</b>（2026-08）</span><span class="v">兩年翻倍、比大盤多漲</span></div>
+    <div class="more">全部類股與細產業 ▾</div>
+  </div>
+  <div class="foot">研究紀錄 ・ 名詞 ・ 資料到 10/22（四）</div>
+</div>
+<div class="page" id="cfg-tw" hidden>
+  <div class="top"><span class="tab">市場</span><span class="tab on">配置</span><span class="r">研究紀錄・名詞・查公司</span></div>
+  <div class="mk"><span class="on">台股</span><span class="">美股</span><span class="">策略</span><span class="">個股（工具）</span></div>
+  <div class="card">
+    <h2>時程 <small>台股・10/22 收盤後更新</small></h2>
+    <div class="tiles"><div class="tile"><div class="l">待買進</div><div class="v">4 檔</div><div class="s">11/2（一）開盤・長線投信動能</div></div><div class="tile"><div class="l">持有中</div><div class="v">7 檔</div><div class="s">臺灣50 2・財報驚喜 5</div></div><div class="tile"><div class="l">股票水位</div><div class="v">100%</div><div class="s">現金 0%</div></div><div class="tile"><div class="l">警訊</div><div class="v">0／3</div><div class="s">通膨偏高・融資偏多・跌破年線</div></div></div>
+    <div class="nextbox" style="grid-template-columns:1fr">
+      <div><div class="d">10/27（二）<small>下一個交易日要做的事</small></div><div>使用中的策略沒有排定的買賣。</div><div style="margin-top:4px"><span class="pillb">開盤買進</span>共識加碼 玉晶光（開盤價 &lt; 1,160）<span class="note">・觀察中的策略，不在配置裡</span></div></div>
     </div>
     <div class="tlbar"><span class="seg" style="margin:0"><span class="on">全部</span><span>接下來 5 週</span></span><span class="lg"><b style="color:#d33a34">▲ 買進</b><b style="color:#159c94">▼ 賣出</b><b style="color:#2f6fdd">◆ 調整</b><b>▭ 持有中（顏色＝目前漲跌）</b><b>▭ 排定的買進</b></span><span style="margin-left:auto"><span class="sw"><span class="on">使用中</span><span>＋觀察中</span></span></span></div>
-    <div id="tl"></div>
+    <div id="tl-tw" class="tlbox"></div>
   </div>
-
   <div class="card">
-    <h2>水位總覽 <small>兩個市場現在各拿多少、三成放什麼、警訊</small></h2>
-    <div class="lv">
-      <div class="lvc">
-        <div class="h"><b>台股</b><span class="note">長抱 0050・10/22 收盤</span><span class="w">股票 100%<small>・現金 0%</small></span></div>
-        <div class="stack"><div class="c">長抱 70%　0050</div><div class="s1">臺灣50 10%</div><div class="s2">財報 10%</div><div class="s3">長線 10%</div></div><div class="stlg">機動：臺灣50 10%・財報驚喜 10%・長線 10%</div>
-        <div class="lvr"><span>警訊 <span class="ok">0／3</span></span><span>通膨偏高<i class="wb"><i style="width:77%"></i><u></u></i>76.7</span><span>融資偏多<i class="wb"><i style="width:55%"></i><u></u></i>54.5</span><span>年線<i class="wb"><i style="width:36%;background:#9bb"></i><u style="left:50%"></u></i>高 14.1%</span></div>
-        <div class="note">兩個以上成立：隔天收盤把機動 30% 換成現金，解除滿兩週才買回</div>
-        <div class="perf">2014 起 100 萬變 <b>1,261 萬</b>（0050 抱著 793 萬）・最慘跌 <b>23%</b>（29%）・年化約 23%（18%）　<span class="more" style="margin:0">細節 ▾</span></div>
-      </div>
-      <div class="lvc">
-        <div class="h"><b>美股</b><span class="note">長抱 <span class="sw"><span class="on">S&amp;P 500</span><span>那斯達克 100</span></span>・10/22 收盤</span><span class="w">股票 100%<small>・現金 0%</small></span></div>
-        <div class="stack"><div class="c">長抱 70%　SPY／VOO</div><div class="s30">強勢品質股 30%（8 檔）</div></div><div class="stlg">機動：強勢品質股 30%（8 檔，空位放 S&amp;P 500）</div>
-        <div class="lvr"><span>警訊 <span class="ok">0／4</span></span><span>通膨<i class="wb"><i style="width:77%"></i><u></u></i>76.7</span><span>融資增加<i class="wb"><i style="width:75%"></i><u></u></i>75.0</span><span>年線<i class="wb"><i style="width:44%;background:#9bb"></i><u style="left:50%"></u></i>高 5.2%</span><span>總經策略<i class="wb"><i style="width:25%;background:#9bb"></i><u style="left:99%"></u></i>3 條有部位</span></div>
-        <div class="note">兩個以上成立，或總經策略全部空手：隔天收盤把機動 30% 換成現金</div>
-        <div class="perf">2014 起 100 萬變 <b>886 萬</b>（SPY 抱著 515 萬）・最慘跌 <b>25%</b>（34%）・年化約 19%（14%）　<span class="more" style="margin:0">細節 ▾</span></div>
-      </div>
+    <h2>水位 <small>現在拿多少、三成放什麼、警訊</small></h2>
+    <div class="lvc full">
+      <div class="h"><b>台股</b><span class="note">長抱 0050・10/22 收盤</span><span class="w">股票 100%<small>・現金 0%</small></span></div>
+      <div class="stack"><div class="c">長抱 70%　0050</div><div class="s1">臺灣50 10%</div><div class="s2">財報驚喜 10%</div><div class="s3">長線 10%</div></div><div class="stlg">機動：臺灣50 10%・財報驚喜 10%・長線 10%</div>
+      <div class="lvr"><span>警訊 <span class="ok">0／3</span></span><span>通膨偏高<i class="wb"><i style="width:77%"></i><u></u></i>76.7</span><span>融資偏多<i class="wb"><i style="width:55%"></i><u></u></i>54.5</span><span>年線<i class="wb"><i style="width:36%;background:#9bb"></i><u style="left:50%"></u></i>高 14.1%</span></div>
+      <div class="note">兩個以上成立：隔天收盤把機動 30% 換成現金，解除滿兩週才買回</div>
+      <div class="perf">2014 起 100 萬變 <b>1,261 萬</b>（0050 抱著 793 萬）・最慘跌 <b>23%</b>（29%）・年化約 23%（18%）　<span class="more" style="margin:0">細節 ▾</span></div>
     </div>
   </div>
-
   <div class="card">
-    <h2>持股細節 <small>比重＝占全部資金</small></h2>
-    <div class="lv">
-      <div>
-        <div class="sec" style="margin:4px 0 6px"><b style="font-size:15px">台股</b><span>合計 100%</span></div>
-        <table class="ht">
-          <tr><th>標的</th><th style="text-align:right">比重</th><th>來源</th><th>現況</th></tr>
-          <tr class="g"><td colspan="4">長抱 70%</td></tr>
-          <tr><td class="idx">0050</td><td class="w">70%</td><td class="src">一直抱著</td><td class="st">—</td></tr>
-          <tr class="g"><td colspan="4">機動 30%：三條策略各 10%，沒部位的放 0050</td></tr>
-          <tr><td>台塑 1301</td><td class="w">2.5%</td><td class="src">臺灣50 提前卡位</td><td class="st">10/16 買・−5.2%</td></tr>
-          <tr><td>景碩 3189</td><td class="w">2.5%</td><td class="src">臺灣50 提前卡位</td><td class="st">10/16 買・−5.1%</td></tr>
-          <tr><td class="idx">0050</td><td class="w">5%</td><td class="src">臺灣50 提前卡位</td><td class="st">名單還沒補滿（11/23 截止）</td></tr>
-          <tr><td>聯電 2303</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
-          <tr><td>台積電 2330</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
-          <tr><td>台光電 2383</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
-          <tr><td>文曄 3036</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
-          <tr><td>台燿 6274</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
-          <tr><td class="idx">0050</td><td class="w">10%</td><td class="src">長線投信動能</td><td class="st">沒有部位・11/2 開盤買 4 檔</td></tr>
-        </table>
-      </div>
-      <div>
-        <div class="sec" style="margin:4px 0 6px"><b style="font-size:15px">美股</b><span>合計 100%</span></div>
-        <table class="ht">
-          <tr><th>標的</th><th style="text-align:right">比重</th><th>來源</th><th>現況</th></tr>
-          <tr class="g"><td colspan="4">長抱 70%</td></tr>
-          <tr><td class="idx">SPY／VOO</td><td class="w">70%</td><td class="src">一直抱著</td><td class="st">—</td></tr>
-          <tr class="g"><td colspan="4">機動 30%：強勢品質股最多 8 檔，空位放 S&amp;P 500</td></tr>
-          <tr><td>INSW</td><td class="w">3.2%</td><td class="src">強勢品質股</td><td class="st">7/20 買・+29%・高於 50 日線 3.3%（最接近）</td></tr>
-          <tr><td>CDNA</td><td class="w">2.9%</td><td class="src">強勢品質股</td><td class="st">8/3 買・+47%</td></tr>
-          <tr><td>VLO</td><td class="w">4.3%</td><td class="src">強勢品質股</td><td class="st">8/31 買・+18%</td></tr>
-          <tr><td>DINO</td><td class="w">4.2%</td><td class="src">強勢品質股</td><td class="st">9/8 買・+14%</td></tr>
-          <tr><td>MPC</td><td class="w">4.2%</td><td class="src">強勢品質股</td><td class="st">9/14 買・+15%</td></tr>
-          <tr><td>ANF</td><td class="w">3.9%</td><td class="src">強勢品質股</td><td class="st">10/19 買・+5%</td></tr>
-          <tr><td>ILMN</td><td class="w">3.8%</td><td class="src">強勢品質股</td><td class="st">10/19 買・+0%</td></tr>
-          <tr><td class="idx">SPY</td><td class="w">3.6%</td><td class="src">強勢品質股</td><td class="st">空位 1・10/26 開盤補</td></tr>
-        </table>
-      </div>
+    <h2>持股細節 <small>比重＝占全部資金・合計 100%</small></h2>
+    <table class="ht">
+      <tr><th>標的</th><th>比重</th><th>來源</th><th>現況</th></tr>
+      <tr class="g"><td colspan="4">長抱 70%</td></tr>
+      <tr><td class="idx">0050</td><td class="w">70%</td><td class="src">一直抱著</td><td class="st">—</td></tr>
+      <tr class="g"><td colspan="4">機動 30%：三條策略各 10%，沒部位的放 0050</td></tr>
+      <tr><td>台塑 1301</td><td class="w">2.5%</td><td class="src">臺灣50 提前卡位</td><td class="st">10/16 買・−5.2%</td></tr>
+      <tr><td>景碩 3189</td><td class="w">2.5%</td><td class="src">臺灣50 提前卡位</td><td class="st">10/16 買・−5.1%</td></tr>
+      <tr><td class="idx">0050</td><td class="w">5%</td><td class="src">臺灣50 提前卡位</td><td class="st">名單還沒補滿（11/23 截止）</td></tr>
+      <tr><td>聯電 2303</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
+      <tr><td>台積電 2330</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
+      <tr><td>台光電 2383</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
+      <tr><td>文曄 3036</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
+      <tr><td>台燿 6274</td><td class="w">2%</td><td class="src">財報驚喜（大型股）</td><td class="st">8/17 買・11/13 收盤賣</td></tr>
+      <tr><td class="idx">0050</td><td class="w">10%</td><td class="src">長線投信動能</td><td class="st">沒有部位・11/2 開盤買 4 檔</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <div class="slim"><b>台股的策略</b><span>使用中 <b>4</b></span><span>觀察中 <b>9</b></span><span>候選 <b>0</b></span><span>淘汰 <b>10</b></span><a href="#">全部在「策略」頁 →</a></div>
+  </div>
+  <div class="foot">研究紀錄 ・ 名詞 ・ 資料到 10/22（四）</div>
+</div>
+<div class="page" id="cfg-us" hidden>
+  <div class="top"><span class="tab">市場</span><span class="tab on">配置</span><span class="r">研究紀錄・名詞・查公司</span></div>
+  <div class="mk"><span class="">台股</span><span class="on">美股</span><span class="">策略</span><span class="">個股（工具）</span></div>
+  <div class="card">
+    <h2>時程 <small>美股・10/22 收盤後更新</small></h2>
+    <div class="tiles"><div class="tile"><div class="l">待買進</div><div class="v">1 檔</div><div class="s">10/26（一）開盤・強勢品質股</div></div><div class="tile"><div class="l">持有中</div><div class="v">7 檔</div><div class="s">強勢品質股・平均 +18.5%</div></div><div class="tile"><div class="l">股票水位</div><div class="v">100%</div><div class="s">現金 0%</div></div><div class="tile"><div class="l">警訊</div><div class="v">0／4</div><div class="s">通膨・融資增加・跌破年線・總經策略全部空手</div></div></div>
+    <div class="nextbox" style="grid-template-columns:1fr">
+      <div><div class="d">10/26（一）<small>下一個交易日要做的事</small></div><div><span class="pillb">開盤買進</span>強勢品質股 補 1 檔（名單 10/23 收盤定案，目前 PAYC 領先）</div><div style="margin-top:4px"><span class="note">觀察中：200 日線上用期貨多拿 5 成，在線上（+11.7%），不用動</span></div></div>
+    </div>
+    <div class="tlbar"><span class="seg" style="margin:0"><span class="on">全部</span><span>接下來 5 週</span></span><span class="lg"><b style="color:#d33a34">▲ 買進</b><b style="color:#159c94">▼ 賣出</b><b style="color:#2f6fdd">◆ 調整</b><b>▭ 持有中（顏色＝目前漲跌）</b><b>▭ 排定的買進</b></span><span style="margin-left:auto"><span class="sw"><span>使用中</span><span class="on">＋觀察中</span></span></span></div>
+    <div id="tl-us" class="tlbox"></div>
+  </div>
+  <div class="card">
+    <h2>水位 <small>現在拿多少、三成放什麼、警訊</small></h2>
+    <div class="lvc full">
+      <div class="h"><b>美股</b><span class="note">長抱 S&amp;P 500（SPY／VOO）・10/22 收盤</span><span class="w">股票 100%<small>・現金 0%</small></span></div>
+      <div class="stack"><div class="c">長抱 70%　SPY／VOO</div><div class="s30">強勢品質股 30%（8 檔）</div></div><div class="stlg">機動：強勢品質股 30%（8 檔，空位放 S&amp;P 500）</div>
+      <div class="lvr"><span>警訊 <span class="ok">0／4</span></span><span>通膨<i class="wb"><i style="width:77%"></i><u></u></i>76.7</span><span>融資增加<i class="wb"><i style="width:75%"></i><u></u></i>75.0</span><span>年線<i class="wb"><i style="width:44%;background:#9bb"></i><u style="left:50%"></u></i>高 5.2%</span><span>總經策略<i class="wb"><i style="width:25%;background:#9bb"></i><u style="left:99%"></u></i>3 條有部位</span></div>
+      <div class="note">兩個以上成立，或總經策略全部空手：隔天收盤把機動 30% 換成現金</div>
+      <div class="perf">2014 起 100 萬變 <b>886 萬</b>（SPY 抱著 515 萬）・最慘跌 <b>25%</b>（34%）・年化約 19%（14%）　<span class="more" style="margin:0">細節 ▾</span></div>
+      <div class="qq">長抱改成那斯達克 100（QQQ）的版本：同一套規則 100 萬變 <b>1,281 萬</b>（QQQ 抱著 947 萬）・最慘跌 <b>31%</b>（35%）。只是對照，配置照 S&amp;P 500。</div>
     </div>
   </div>
-
+  <div class="card">
+    <h2>持股細節 <small>比重＝占全部資金・合計 100%</small></h2>
+    <table class="ht">
+      <tr><th>標的</th><th>比重</th><th>來源</th><th>現況</th></tr>
+      <tr class="g"><td colspan="4">長抱 70%</td></tr>
+      <tr><td class="idx">SPY／VOO</td><td class="w">70%</td><td class="src">一直抱著</td><td class="st">—</td></tr>
+      <tr class="g"><td colspan="4">機動 30%：強勢品質股最多 8 檔，空位放 S&amp;P 500</td></tr>
+      <tr><td>INSW</td><td class="w">3.2%</td><td class="src">強勢品質股</td><td class="st">7/20 買・+29%・高於 50 日線 3.3%（最接近）</td></tr>
+      <tr><td>CDNA</td><td class="w">2.9%</td><td class="src">強勢品質股</td><td class="st">8/3 買・+47%</td></tr>
+      <tr><td>VLO</td><td class="w">4.3%</td><td class="src">強勢品質股</td><td class="st">8/31 買・+18%</td></tr>
+      <tr><td>DINO</td><td class="w">4.2%</td><td class="src">強勢品質股</td><td class="st">9/8 買・+14%</td></tr>
+      <tr><td>MPC</td><td class="w">4.2%</td><td class="src">強勢品質股</td><td class="st">9/14 買・+15%</td></tr>
+      <tr><td>ANF</td><td class="w">3.9%</td><td class="src">強勢品質股</td><td class="st">10/19 買・+5%</td></tr>
+      <tr><td>ILMN</td><td class="w">3.8%</td><td class="src">強勢品質股</td><td class="st">10/19 買・+0%</td></tr>
+      <tr><td class="idx">SPY</td><td class="w">3.6%</td><td class="src">強勢品質股</td><td class="st">空位 1・10/26 開盤補</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <div class="slim"><b>美股的策略</b><span>使用中 <b>1</b></span><span>觀察中 <b>9</b></span><span>候選 <b>0</b></span><span>淘汰 <b>8</b></span><a href="#">全部在「策略」頁 →</a></div>
+  </div>
+  <div class="foot">研究紀錄 ・ 名詞 ・ 資料到 10/22（四）</div>
+</div>
+<div class="page" id="cfg-strat" hidden>
+  <div class="top"><span class="tab">市場</span><span class="tab on">配置</span><span class="r">研究紀錄・名詞・查公司</span></div>
+  <div class="mk"><span class="">台股</span><span class="">美股</span><span class="on">策略</span><span class="">個股（工具）</span></div>
   <div class="card">
     <h2>策略 <small>全部 41 條：進配置的、看著的、新找的、淘汰的</small></h2>
     <div class="filt"><span class="on">使用中 5</span><span class="on">觀察中 18</span><span class="on">候選 0</span><span>淘汰 18</span><span class="sep">｜</span><span>台股</span><span>美股</span></div>
@@ -237,6 +316,8 @@
       <tr><td colspan="6" class="note">目前沒有。第一批 10/26（日）之後出現：每一條列 來源連結、規則一句、年化（對照）、最慘跌、判定。</td></tr>
       <tr><td colspan="6" class="more">淘汰 18 條（短期反轉：樣本內外都輸・美股飆股五本帳：選到樂透型股票・高股息追買：沒贏大盤 …）▾</td></tr>
     </table>
+    
+  
   </div>
   <div class="foot">研究紀錄 ・ 名詞 ・ 資料到 10/22（四）</div>
 </div>
@@ -245,17 +326,19 @@
 (function(){
 const DAY=864e5,U=(m,d)=>Date.UTC(2026,m-1,d)/DAY;
 const t0=U(8,15),t1=U(12,31),now=U(10,22),nx=U(10,26);
-const L=[
- {nm:'1. 臺灣50 提前卡位',sub:'台股・使用中・持有約 2 個月',it:[{k:'held',a:U(10,16),b:U(12,18),lb:'2 檔 −5.1%',up:false},{k:'m',d:U(11,24),s:'◆',c:'adj'},{k:'m',d:U(12,18),s:'▼',c:'sell'}]},
- {nm:'2. 財報驚喜（大型股）',sub:'台股・使用中・持有約 3 個月',it:[{k:'held',a:U(8,17),b:U(11,13),lb:'5 檔 −5.9%',up:false},{k:'m',d:U(11,13),s:'▼',c:'sell'},{k:'m',d:U(11,17),s:'▲',c:'buy dash'},{k:'txt',d:U(11,17),lb:'名單 11/16 產生'}]},
- {nm:'3. 長線投信動能',sub:'台股・使用中・平均持有 4 個月',it:[{k:'plan',a:U(11,2),b:t1,lb:'大成鋼、宏致、天鈺、高力',rule:true},{k:'m',d:U(11,2),s:'▲',c:'buy dash'}]},
- {nm:'4. 強勢品質股',sub:'美股・使用中・跌破 50 日線賣',it:[{k:'held',a:U(7,20),b:t1,lb:'7 檔 +18.5%',up:true,rule:true},{k:'m',d:U(10,26),s:'▲',c:'buy dash'},{k:'txt',d:U(10,26),lb:'補 1 檔',dy:-12}]},
- {nm:'5. 共識加碼',sub:'台股・觀察中・持有 3 個交易日',it:[{k:'held',a:U(10,22),b:U(10,27),lb:'1 檔 +1.4%',up:true},{k:'m',d:U(10,27),s:'▲',c:'buy dash'},{k:'txt',d:U(10,27),lb:'玉晶光'}]}
+const LTW=[
+ {nm:'1. 臺灣50 提前卡位',sub:'使用中・持有約 2 個月',it:[{k:'held',a:U(10,16),b:U(12,18),lb:'2 檔 −5.1%',up:false},{k:'m',d:U(11,24),s:'◆',c:'adj'},{k:'m',d:U(12,18),s:'▼',c:'sell'}]},
+ {nm:'2. 財報驚喜（大型股）',sub:'使用中・持有約 3 個月',it:[{k:'held',a:U(8,17),b:U(11,13),lb:'5 檔 −5.9%',up:false},{k:'m',d:U(11,13),s:'▼',c:'sell'},{k:'m',d:U(11,17),s:'▲',c:'buy dash'},{k:'txt',d:U(11,17),lb:'名單 11/16 產生'}]},
+ {nm:'3. 長線投信動能',sub:'使用中・平均持有 4 個月',it:[{k:'plan',a:U(11,2),b:t1,lb:'大成鋼、宏致、天鈺、高力',rule:true},{k:'m',d:U(11,2),s:'▲',c:'buy dash'}]}
 ];
-const box=document.getElementById('tl');
+const LUS=[
+ {nm:'1. 強勢品質股',sub:'使用中・跌破 50 日線賣',it:[{k:'held',a:U(7,20),b:t1,lb:'7 檔 +18.5%',up:true,rule:true},{k:'m',d:U(10,26),s:'▲',c:'buy dash'},{k:'txt',d:U(10,26),lb:'補 1 檔'}]},
+ {nm:'2. 200 日線上用期貨多拿 5 成',sub:'觀察中・在線上',it:[{k:'held',a:U(5,12),b:t1,lb:'期貨多拿 50% +11.7%',up:true,rule:true}]},
+ {nm:'3. RSI(2) 超賣反彈',sub:'觀察中・空手',it:[{k:'txt',d:now,lb:'空手・等 2 日 RSI < 10',dy:0}]}
+];
 const esc=s=>s.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
-function draw(){
-const W=box.clientWidth;if(!W)return;const mob=W<560,LB=mob?0:200,T=30,RH=mob?66:54,H=T+L.length*RH+22,R=W-6;
+function draw(box,L){
+const W=box.clientWidth;if(!W)return;const mob=W<560,LB=mob?0:220,T=30,RH=mob?66:54,H=T+L.length*RH+22,R=W-6;
 const X=t=>LB+(t-t0)/(t1-t0)*(R-LB);
 let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
 L.forEach((l,i)=>{const y=T+i*RH;s+=`<rect class="tl-lane${i%2?' al':''}" x=0 y=${y} width=${W} height=${RH} rx=8 />`;
@@ -272,7 +355,7 @@ L.forEach((l,i)=>{const y=T+i*RH,yy=y+(mob?28:18);let lastM=-99;const nd={};
   else if(it.k==='txt'){const x=X(it.d),dy=mob?(nd[it.d]||0):(it.dy||0);s+=`<text class="tl-t2" x=${x+12} y=${yy+13+dy}>${esc(it.lb)}</text>`;}});});
 const xn=X(now);s+=`<line class="tl-now" x1=${xn} x2=${xn} y1=${T-6} y2=${H-14} /><text class="tl-nowt" x=${xn+4} y=${H-2}>資料日 10/22</text></svg>`;
 box.innerHTML=s;}
-draw();new ResizeObserver(draw).observe(box);
+for(const [id,L] of [['tl-tw',LTW],['tl-us',LUS]]){const b=document.getElementById(id);draw(b,L);new ResizeObserver(()=>draw(b,L)).observe(b);}
 })();
 </script>
 </body></html>
