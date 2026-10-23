@@ -1,4 +1,5 @@
-"""交易計畫（arm/lab/core.py；corespec VER 1）：三種過熱、部位、觸發價位、回測、個股頁的衛星資料、前瞻紀錄。"""
+"""交易計畫（arm/lab/core.py；corespec VER 2）：三種過熱、美股「總經策略全部空手」、台股買回要等幾天、部位、觸發價位、
+回測、個股頁的衛星資料、前瞻紀錄。"""
 import json
 import math
 import random
@@ -20,6 +21,59 @@ def test_families_lit_rules_and_missing_data():
     assert not F["lit"]["trend"][199] and F["lit"]["trend"][200]         # 收盤低於含當天的 200 日均線才亮
     assert F["lit"]["inf"][199] and not F["lit"]["inf"][200]             # 80 以上算亮、沒有資料不亮
     assert list(F["n"][199:]) == [1, 2] and list(F["on"][199:]) == [True, False]
+
+
+def test_decide_sells_at_once_and_waits_for_clear_days_to_buy_back():
+    ok = np.array([1, 0, 1, 1, 0, 1, 1, 1, 1, 0], dtype=bool)
+    on1, c1 = C.decide(ok, 1)
+    assert list(on1) == list(ok) and list(c1) == [1, 0, 1, 2, 0, 1, 2, 3, 4, 0]      # need＝1：和 VER 1 一樣
+    on3, _ = C.decide(ok, 3)
+    assert list(on3) == [1, 0, 0, 0, 0, 0, 0, 1, 1, 0]                              # 連續 3 天 ok 那天才決定買回；不 ok 當天就賣
+    rnd = random.Random(5)
+    ok = np.array([rnd.random() > 0.2 for _ in range(500)])
+    for need in (1, 2, 5, 10):                                                       # 和逐日直接算的版本一樣
+        on, _ = C.decide(ok, need)
+        st, run, exp = True, 0, []
+        for x in ok:
+            run = run + 1 if x else 0
+            st = False if not x else (True if (st or run >= need) else False)
+            exp.append(st)
+        assert list(on) == exp
+
+
+def test_families_flat_cuts_alone_and_tw_waits_ten_days():
+    T = 260
+    px = np.linspace(100, 130, T)                                                   # 一路漲：年線不會跌破
+    inf, lev = np.full(T, 50.0), np.full(T, 50.0)
+    flat = np.zeros(T, dtype=bool)
+    flat[230:235] = True
+    F = C.families(px, inf, lev, flat, "spx")
+    assert F["n"][232] == 0 and not F["ok"][232] and not F["on"][232] and F["lit"]["flat"][232]   # 全部空手單獨就換現金
+    assert F["on"][235] and F["need"] == 1                                          # 美股隔天就買回
+    lev2 = lev.copy()
+    inf2 = inf.copy()
+    inf2[200:203], lev2[200:203] = 90.0, 90.0                                      # 台股：兩種亮三天
+    F = C.families(px, inf2, lev2, None, "tw")
+    assert F["need"] == S.REENTRY["tw"] == 10 and "flat" not in F["lit"]
+    assert not F["on"][200] and not F["on"][211] and F["on"][212]                  # 203～212 連續 10 天 ok，212 收盤決定買回
+    assert F["clear"][212] == 10
+
+
+def test_macro_flat_matches_held_positions():
+    from arm.lab import practsim as PS
+    from arm.lab import xstrat as XT
+    assert C.macro_flat("tw", ["2026-10-22"]) is None
+    D = XT.data("spx")
+    Cx = XT.Ctx(D)
+    held_any = np.zeros(len(D["cal"]), dtype=bool)
+    for s in PS.xs_specs("spx", D):
+        held_any |= np.asarray(XT.held_pos(Cx, s)) > 0.5
+    pick = [D["cal"][k] for k in range(1000, len(D["cal"]), 997)]
+    got = C.macro_flat("spx", ["1900-01-02"] + pick)
+    assert not got[0]                                                               # 總經策略資料以前＝不算
+    assert list(got[1:]) == [not held_any[D["cal"].index(d)] for d in pick]
+    H = C.macro_holding("spx")
+    assert H["n"] == len(PS.xs_specs("spx", D)) and H["d"] == D["cal"][-1]
 
 
 def test_held_lags_one_day_and_trigger_price():
@@ -120,6 +174,12 @@ def test_record_only_in_ci_and_overwrites_same_day(tmp_path, monkeypatch):
     assert C.record({"tw": dict(n, n=2, next=0.7)}, None) is True
     assert json.loads(C.LIVE.read_text(encoding="utf-8"))["days"]["2026-10-23"]["tw"]["E"] == 0.7
     assert C.forward("tw")["n"] == 1 and C.forward("tw")["next"] == S.CHECKS[0]
+    C.LIVE.write_text(json.dumps({"ver": S.VER - 1, "days": {"2026-10-23": {"tw": {}}}}), encoding="utf-8")
+    assert C.load_live() == {"ver": S.VER, "days": {}}                            # 規則改過＝前瞻從頭記
+    fl = {"k": "flat", "lit": False, "held": ["10 個月均線", "200 日均線"]}
+    assert C.record({"spx": dict(n, fams=n["fams"] + [fl], clear=4)}, None) is True
+    r = json.loads(C.LIVE.read_text(encoding="utf-8"))["days"]["2026-10-23"]["spx"]
+    assert r["held"] == 2 and r["clear"] == 4 and "flat" not in r["v"]
 
 
 def test_research_file_matches_spec():

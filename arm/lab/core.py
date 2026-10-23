@@ -1,4 +1,4 @@
-"""交易計畫：核心 70%＋衛星 30%（corespec VER 1；docs/lab_core70_plan.md 第 9～10 節）。
+"""交易計畫：核心 70%＋衛星 30%（corespec VER 2；docs/lab_core70_plan.md 第 9～12 節）。
 
 研究與每天建頁共用同一支 families()：
   research()        回測（scripts/run_core.py → data/lab/core_research.json；資料或規格改了才重跑）
@@ -22,12 +22,15 @@ ROOT = Path(__file__).resolve().parents[2]
 RES = ROOT / "data" / "lab" / "core_research.json"
 LIVE = ROOT / "data" / "lab" / "core_live.json"
 STK: dict = {}                       # 個股頁建頁時放進來（stk_from_adv 的結果）
+FLAT_NAME = "總經策略全部空手"          # VER 2 美股的第四個警訊（換現金表、前瞻紀錄用這個名字）
 
 
 # ── 規則 ─────────────────────────────────────────────────────────────────────
 
-def families(px, inf, lev) -> dict:
-    """每天收盤：三種過熱亮不亮（沒有資料＝不亮）、亮幾種、衛星拿不拿著（on＝收盤後決定的）。"""
+def families(px, inf, lev, flat=None, mk: str | None = None) -> dict:
+    """每天收盤：三種過熱亮不亮（沒有資料＝不亮）、亮幾種；flat＝總經策略全部空手（VER 2，FLAT 的市場）。
+    ok＝那天收盤「沒有該賣的理由」（亮的少於 NEED 種、而且不是全部空手）；clear＝ok 連續了幾天；
+    on＝收盤後決定的衛星拿不拿著：不 ok 那天就換現金，現金時要 ok 連續 REENTRY 天才買回（VER 2，台股 10 天）。"""
     from .xstrat import sma
     px = np.asarray(px, dtype=float)
     ma = sma(px, S.MA)
@@ -35,7 +38,57 @@ def families(px, inf, lev) -> dict:
            "lev": np.nan_to_num(np.asarray(lev, dtype=float), nan=-1.0) >= S.HOT,
            "trend": np.isfinite(ma) & (px < np.nan_to_num(ma, nan=-1.0))}
     n = lit["inf"].astype(int) + lit["lev"].astype(int) + lit["trend"].astype(int)
-    return {"ma": ma, "lit": lit, "n": n, "on": n < S.NEED}
+    ok = n < S.NEED
+    if flat is not None:
+        lit["flat"] = np.asarray(flat, dtype=bool)
+        ok = ok & ~lit["flat"]
+    need = S.REENTRY.get(mk, 1) if mk else 1
+    on, clear = decide(ok, need)
+    return {"ma": ma, "lit": lit, "n": n, "ok": ok, "clear": clear, "on": on, "need": need}
+
+
+def decide(ok: np.ndarray, need: int = 1) -> tuple[np.ndarray, np.ndarray]:
+    """不 ok 的那天收盤決定換現金；現金時要 ok 連續 need 天（含那天）才決定買回。→ (on, clear＝ok 連續了幾天)。"""
+    ok = np.asarray(ok, dtype=bool)
+    on = np.ones(len(ok), dtype=bool)
+    clear = np.zeros(len(ok), dtype=int)
+    st, c = True, 0
+    for k in range(len(ok)):
+        c = c + 1 if ok[k] else 0
+        if not ok[k]:
+            st = False
+        elif not st and c >= need:
+            st = True
+        on[k], clear[k] = st, c
+    return on, clear
+
+
+def macro_flat(mk: str, cal: list[str]) -> np.ndarray | None:
+    """總經策略全部空手（VER 2）：這個市場有資料的全部總經策略（不看判定）在那天收盤之後都沒有部位。
+    對到 cal 的日期（cal 某天沒有總經策略的資料＝用那天以前最近一天的）；不是 FLAT 的市場回 None。"""
+    if mk not in S.FLAT:
+        return None
+    from . import practsim as PS
+    from . import xstrat as XT
+    D = XT.data(mk)
+    C = XT.Ctx(D)
+    held_any = np.zeros(len(D["cal"]), dtype=bool)
+    for s in PS.xs_specs(mk, D):
+        held_any |= np.asarray(XT.held_pos(C, s), dtype=float) > 0.5
+    xc = np.array(D["cal"])
+    j = np.searchsorted(xc, np.array(cal), side="right") - 1
+    return np.where(j >= 0, ~held_any[np.clip(j, 0, None)], False)
+
+
+def macro_holding(mk: str) -> dict:
+    """現在（總經策略資料的最後一天）哪幾條總經策略有部位：{"d", "held": [(鍵, 名稱)], "n": 全部幾條}。"""
+    from . import practsim as PS
+    from . import xstrat as XT
+    D = XT.data(mk)
+    C = XT.Ctx(D)
+    specs = PS.xs_specs(mk, D)
+    held = [(s["k"], s["name"]) for s in specs if float(XT.held_pos(C, s)[-1]) > 0.5]
+    return {"d": D["cal"][-1], "held": held, "n": len(specs)}
 
 
 def held(on: np.ndarray) -> np.ndarray:
@@ -200,7 +253,7 @@ def scenario(key: str, mk: str, cal, px, tot, rf, F: dict, a: int, b: int, c_idx
     eps = []
     for k0, k1 in cash_runs(sat, a, b):
         d0 = k0 - S.LAG
-        lit = [f[1] for f in S.FAMS[mk] if F["lit"][f[0]][d0]]
+        lit = [f[1] for f in S.FAMS[mk] if F["lit"][f[0]][d0]] + ([FLAT_NAME] if "flat" in F["lit"] and F["lit"]["flat"][d0] else [])
         x1 = min(k1 + 1, b - 1)
         asset = sl if sl is not None else tot
         ia = float(np.prod(1 + np.asarray(asset, dtype=float)[k0 + 1:x1 + 1]) - 1)
@@ -310,7 +363,7 @@ def research() -> dict:
     for mk in S.MARKETS:
         M = market_inputs(mk)
         cal, px, tot, rf = M["cal"], M["px"], M["tot"], M["rf"]
-        F = families(px, M["inf"], M["lev"])
+        F = families(px, M["inf"], M["lev"], macro_flat(mk, cal), mk)
         T = len(cal)
         c = S.COST["tw" if mk == "tw" else "us"]
         a = next(k for k, d in enumerate(cal) if d >= S.RULE_START[mk])
@@ -368,7 +421,7 @@ def _now(mk: str, B: dict) -> dict:
     from . import heatpage as HP
     X = inputs_from_B(mk, B)
     cal, px = X["cal"], X["px"]
-    F = families(px, X["inf"], X["lev"])
+    F = families(px, X["inf"], X["lev"], macro_flat(mk, cal), mk)
     t = len(cal) - 1
     while t > 0 and np.isnan(px[t]):
         t -= 1
@@ -393,8 +446,17 @@ def _now(mk: str, B: dict) -> dict:
                 except Exception:                           # noqa: BLE001 —— 資料日只是顯示用
                     f["src"] = None
         fams.append(f)
+    if "flat" in F["lit"]:
+        try:
+            H = macro_holding(mk)
+        except Exception as e:                               # noqa: BLE001 —— 名單只是顯示用
+            print(f"[交易計畫] {mk} 總經策略名單算不出來：{type(e).__name__}: {e}")
+            H = {"d": None, "held": [], "n": None}
+        fams.append({"k": "flat", "name": FLAT_NAME, "desc": "全部總經策略都沒有部位", "lit": bool(F["lit"]["flat"][t]),
+                     "held": [nm for _, nm in H["held"]], "n_all": H["n"], "vd": H["d"]})
     sat = held(F["on"][:t + 1])
     return {"mk": mk, "d": cal[t], "fams": fams, "n": int(F["n"][t]), "on": bool(F["on"][t]),
+            "ok": bool(F["ok"][t]), "clear": int(F["clear"][t]), "need": int(F["need"]),
             "now": float(S.CORE + S.SAT * sat[t]), "next": float(S.CORE + S.SAT * (1.0 if F["on"][t] else 0.0)),
             "due": bool((sat[t] > 0.5) != bool(F["on"][t]))}
 
@@ -430,10 +492,12 @@ def stk_from_adv(A: dict, asof: str | None = None) -> dict:
 # ── 前瞻 ─────────────────────────────────────────────────────────────────────
 
 def load_live() -> dict:
+    """前瞻紀錄；版本不同（規則改過）＝從頭記。"""
     try:
-        return json.loads(LIVE.read_text(encoding="utf-8"))
+        L = json.loads(LIVE.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {"ver": S.VER, "days": {}}
+    return L if L.get("ver") == S.VER else {"ver": S.VER, "days": {}}
 
 
 def record(nows: dict, stk: dict | None) -> bool:
@@ -447,7 +511,10 @@ def record(nows: dict, stk: dict | None) -> bool:
             continue
         rec = {"E": n["next"], "n": n["n"], "lit": [f["k"] for f in n["fams"] if f["lit"]],
                "v": {f["k"]: (round(f["pct"], 2) if f.get("pct") is not None else None) if f["k"] == "trend" else f.get("v")
-                     for f in n["fams"]}}
+                     for f in n["fams"] if f["k"] != "flat"}, "clear": n.get("clear")}
+        fl = next((f for f in n["fams"] if f["k"] == "flat"), None)
+        if fl is not None:
+            rec["held"] = len(fl.get("held") or [])
         if mk == "tw" and stk:
             rec["sat"] = [s["k"] for s in stk.get("st") or []]
         days.setdefault(n["d"], {})[mk] = rec

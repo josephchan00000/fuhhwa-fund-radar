@@ -16,8 +16,8 @@ WD = "一二三四五六日"
 CORE_HOW = {"tw": "大盤 ETF（0050 或 006208）", "spx": " S&P 500 ETF（例如 SPY、VOO）", "ndx": "那斯達克 100 ETF（例如 QQQ）"}
 # 三個警訊的白話名稱（頁面只用這些，不用「通膨／槓桿／趨勢」「亮」）
 PLAIN = {"tw": {"inf": "通膨偏高", "lev": "融資偏多", "trend": "跌破年線"},
-         "spx": {"inf": "通膨偏高", "lev": "融資增加太快", "trend": "跌破年線"},
-         "ndx": {"inf": "通膨偏高", "lev": "融資增加太快", "trend": "跌破年線"}}
+         "spx": {"inf": "通膨偏高", "lev": "融資增加太快", "trend": "跌破年線", "flat": "總經策略全部空手"},
+         "ndx": {"inf": "通膨偏高", "lev": "融資增加太快", "trend": "跌破年線", "flat": "總經策略全部空手"}}
 SUB = {"tw": {"inf": "美國 CPI 年增率，跟過去 10 年比", "lev": "融資 ÷ 上市股票總市值，跟過去 3 年比"},
        "spx": {"inf": "美國 CPI 年增率，跟過去 10 年比", "lev": "美國家計部門證券融資年增率，跟過去 10 年比"},
        "ndx": {"inf": "美國 CPI 年增率，跟過去 10 年比", "lev": "美國家計部門證券融資年增率，跟過去 10 年比"}}
@@ -89,6 +89,15 @@ def _next_day(mk: str, d: str) -> str | None:
         return None
 
 
+def _next_day_n(mk: str, d: str, n: int) -> str | None:
+    """d 之後第 n 個交易日（休市表）。"""
+    try:
+        from .xstrat import future_days
+        return future_days(mk, d, n)[-1]
+    except Exception:                                    # noqa: BLE001
+        return None
+
+
 def now_html(mk: str, N: dict, stk: dict | None) -> str:
     nxt, cur = N["next"], N["now"]
     cash = nxt < 0.99
@@ -111,14 +120,23 @@ def now_html(mk: str, N: dict, stk: dict | None) -> str:
                "美股的個股策略資料還在補，做好、驗證過再換。")
     due = ""
     names = "、".join(plain(mk, f["k"]) for f in N["fams"] if f["lit"])
+    need = N.get("need") or 1
     if day and cash:
         due = (f'<p class="plndue"><b>{_e(_mdw(day))} 收盤：把機動的三成全部賣掉，改放現金</b>'
-               f'（{_e(names)}同時出現），之後只留七成。</p>')
+               f'（{_e(names)}），之後只留七成。</p>')
     elif day:
-        due = (f'<p class="plndue plndok"><b>{_e(_mdw(day))} 收盤：把機動的三成買回來</b>（警訊剩不到兩個）'
+        why = f"警訊少於兩個滿 {need} 個交易日" if need > 1 else "警訊解除"
+        due = (f'<p class="plndue plndok"><b>{_e(_mdw(day))} 收盤：把機動的三成買回來</b>（{why}）'
                + ("。照各策略當時該有的股票買，沒有股票的那一份買大盤" if mk == "tw" else "") + '。</p>')
+    elif cash and N.get("ok") and need > 1:
+        c = N.get("clear") or 0
+        buy = _next_day_n(mk, N["d"], need - c + 1)
+        due = (f'<p class="plndue">機動的三成現在放現金。警訊已經少於兩個（第 {c} 天），要滿 {need} 個交易日才買回：'
+               f'接下來都沒有警訊的話，最快 {_e(_mdw(buy))} 收盤買回。</p>')
     elif cash:
-        due = '<p class="plndue">機動的三成現在放現金。等警訊剩不到兩個，下一個交易日收盤再買回來。</p>'
+        due = ('<p class="plndue">機動的三成現在放現金。'
+               + (f"等警訊少於兩個、而且連續 {need} 個交易日都這樣，下一個交易日收盤再買回來。</p>" if need > 1
+                  else "等警訊解除，下一個交易日收盤再買回來。</p>"))
     was = "" if abs(cur - nxt) < 0.001 else f'<small class="plnwas">現在手上 {round(cur * 100)}%</small>'
     return (f'<div class="plnnow"><div class="plnbig">{big}<small>{sub}</small>{was}</div>{bar}'
             f'<p class="plnnt">{txt}</p>{due}</div>')
@@ -211,7 +229,7 @@ def todo_html(mk: str, N: dict, stk: dict | None) -> str:
         else:
             rows = '<div class="plnw">—</div><div class="plnt">接下來 45 天，三成裡的個股策略沒有排定的買賣。</div>'
     else:
-        rows = '<div class="plnw">平常</div><div class="plnt">三成也買同一個指數，不用動，只要注意下面三個警訊。</div>'
+        rows = '<div class="plnw">平常</div><div class="plnt">三成也買同一個指數，不用動，只要注意下面四個警訊。</div>'
     return f'<h4 class="plnh">接下來要做的事</h4>' + (f'<div class="plntodo">{rows}</div>' if rows else "") + _fam_html(mk, N)
 
 
@@ -232,6 +250,15 @@ def _fam_html(mk: str, N: dict) -> str:
                 if not on:
                     near.append((abs(pct) / 10, f"跌破年線（下一個交易日收盤低於 {_px(trig)} 點就算）"))
             sub = f'{IDX.get(mk, "指數")}收盤 vs 年線' + (f'（200 日均線 {_px(ma)}）' if ma else "")
+        elif f["k"] == "flat":
+            held, na = f.get("held") or [], f.get("n_all") or 0
+            w = 100.0 * (1 - len(held) / na) if na else (100.0 if on else 0.0)   # 越長越接近警訊：全部空手＝滿
+            val = "全部空手（警訊）" if on else f"{len(held)} 條有部位"
+            bar = (f'<div class="plngz"><i class="{"plngdn" if on else ""}" style="width:{w:.1f}%"></i>'
+                   '<b style="left:calc(100% - 2px)"></b></div>')
+            sub = ("有部位的：" + "、".join(_e(x) for x in held)) if held else "所有總經策略都沒有部位"
+            if not on and len(held) == 1:
+                near.append((0.4, f"總經策略全部空手（只剩{held[0]}有部位）"))
         else:
             v = f.get("v")
             w = 0 if v is None else max(0.0, min(100.0, v))
@@ -246,21 +273,35 @@ def _fam_html(mk: str, N: dict) -> str:
         rows += (f'<div class="plnn">{_e(nm)}<small>{sub}</small></div>{bar}'
                  f'<div class="plnv{" plnvon" if on else ""}">{_e(val)}</div>')
     n = N["n"]
-    lit = "、".join(plain(mk, f["k"]) for f in N["fams"] if f["lit"])
-    if n == 0:
-        lead = "現在沒有警訊，拿 <b>100%</b>。"
-    elif n < S.NEED:
-        lead = f"現在有 {n} 個警訊（{_e(lit)}），還是拿 <b>100%</b>。"
+    flat = any(f["k"] == "flat" and f["lit"] for f in N["fams"])
+    lit = "、".join(plain(mk, f["k"]) for f in N["fams"] if f["lit"] and f["k"] != "flat")
+    cut = n >= S.NEED or flat
+    if cut:
+        parts = ([f"{n} 個警訊（{lit}）"] if n else []) + (["總經策略全部空手"] if flat else [])
+        lead = f"現在{'，而且'.join(parts)}，只拿 <b>70%</b>。"
     else:
-        lead = f"現在有 {n} 個警訊（{_e(lit)}），只拿 <b>70%</b>。"
-    if n < S.NEED and near:
-        near.sort()
-        if n == S.NEED - 1:
-            lead += f'<span class="plnw2">再多一個就要賣掉三成；最接近的是{_e(near[0][1])}。</span>'
-        else:
-            lead += f'最接近的是{_e(near[0][1])}。'
-    return ('<div class="plntrig"><div class="plnw">每天收盤後<small>看三個警訊</small></div><div class="plnt">'
-            '<b>兩個以上同時出現：下一個交易日收盤把機動的三成賣掉換現金，只留七成。警訊少於兩個，下一個交易日收盤再買回來。</b>'
+        hold = N["next"] >= 0.99
+        lead = "現在沒有警訊，" if n == 0 else f"現在有 {n} 個警訊（{_e(lit)}），"
+        lead += ("拿 <b>100%</b>。" if n == 0 else "還是拿 <b>100%</b>。") if hold else \
+            f"三成還在等買回（警訊少於兩個第 {N.get('clear') or 0} 天，要滿 {N.get('need') or 1} 天），現在拿 <b>70%</b>。"
+    if not cut:
+        if near:
+            near.sort()
+            if n == S.NEED - 1:
+                lead += f'<span class="plnw2">再多一個就要賣掉三成；最接近的是{_e(near[0][1])}。</span>'
+            else:
+                lead += f'最接近的是{_e(near[0][1])}。'
+    need = N.get("need") or 1
+    if mk in S.FLAT:
+        rule = ("<b>兩個以上同時出現，或總經策略全部空手：下一個交易日收盤把機動的三成賣掉換現金，只留七成。"
+                "都解除了，下一個交易日收盤再買回來。</b>")
+        head = "看四個警訊"
+    else:
+        rule = ("<b>兩個以上同時出現：下一個交易日收盤把機動的三成賣掉換現金，只留七成。"
+                + (f"之後警訊少於兩個滿 {need} 個交易日（約兩週），下一個交易日收盤再買回來。</b>" if need > 1
+                   else "警訊少於兩個，下一個交易日收盤再買回來。</b>"))
+        head = "看三個警訊"
+    return (f'<div class="plntrig"><div class="plnw">每天收盤後<small>{head}</small></div><div class="plnt">{rule}'
             '<small class="plngl">分數＝跟自己過去比的高低（0～100），到 80 分算警訊；長條碰到直線就是警訊。</small>'
             f'<div class="plnfam">{rows}</div><p class="plnsum">{lead}</p></div></div>')
 
@@ -371,9 +412,17 @@ def details_html(mk: str, sc: dict, fw: dict | None) -> str:
                '<b>通膨偏高</b>（美國 CPI 年增率在過去 10 年的高檔）、<b>融資增加太快</b>（美國家計部門證券融資年增率）。']
     why += ['三個警訊一起看，<b>兩個以上同時出現才賣</b>：台股、S&amp;P 500、那斯達克 100 不管看全部期間、前一半、後一半還是最近 10 年，'
             '都比一直抱著賺得多（三成也買大盤時）。',
-            '「平常只拿七成、看好才加到十成」照目前的試法，三個市場都比一直抱著少賺，所以現在先用平常拿滿、有警訊才減。',
-            '台股多賺的錢，大部分是三成買的個股策略賺的；有警訊時換現金，主要是讓大跌那幾年少賠。' if mk == "tw"
-            else '多賺的錢來自大跌那幾年：三成換成現金，那幾年少賠。']
+            '「看多」就是沒有兩個以上警訊：要等到有明確的看多訊號（站上年線、12 個月是漲的、總經策略多數有部位……）才加到十成，'
+            '三個市場都比一直抱著少賺——沒看多的日子市場平均還是在漲，只拿七成就把那段漲幅讓掉了。']
+    if mk == "tw":
+        why += ['賣掉之後要<b>警訊少於兩個滿兩週（10 個交易日）才買回</b>（2026/10/23 起）：台股常在年線附近上下穿，原本 5 天內就買回的有 23 次、'
+                '合計少賺 3.7 個百分點；改成等兩週之後，一年買賣從 3.9 次降到 1.4 次。同樣的做法用在那斯達克 100 會少賺（V 型反彈買太晚），所以只用在台股。',
+                '台股多賺的錢，大部分是三成買的個股策略賺的；有警訊時換現金，主要是讓大跌那幾年少賠。']
+    else:
+        why += ['<b>總經策略全部空手時也賣</b>（2026/10/23 起）：RSI(2)、月底月初、Halloween、10 個月均線、200 日均線、12 個月動能、'
+                '各種落底策略全部都沒有部位，通常是空頭行情裡的 5～10 月。加了之後 2000 年起和訂規則時沒看的更早期間都比較好，但這種情況次數不多'
+                '（那斯達克 100 1986 年起只有 6 次，主要在 1990、2001 年）。',
+                '多賺的錢來自大跌那幾年：三成換成現金，那幾年少賠。']
     out.append('<details class="plnd"><summary>為什麼這樣設計</summary><ul>' + "".join(f"<li>{x}</li>" for x in why) + "</ul></details>")
     eps = s.get("eps") or []
     if eps:
@@ -427,7 +476,7 @@ def details_html(mk: str, sc: dict, fw: dict | None) -> str:
                  '這三個策略都是看過成績才挑的，真正的考驗是上線後的紀錄。',
                  '財報驚喜的帳 2026/10/23 修正過：年報那一期和第一季那一期每年重疊約一個月，之前同一筆錢算了兩次報酬；'
                  '修正後它自己的年化從 49.5% 變 30.4%。',
-                 '換現金賺到的多半在大跌的年份（台股主要是 2008 年）；平常的年份跟一直抱著差不多。',
+                 '換現金賺到的多半在大跌的年份（台股 2008 年那一次最多）；平常的年份跟一直抱著差不多。',
                  '三成分成很多檔，100 萬的帳戶每檔大約 1～2 萬，高價股要買零股。']
         if s["plan"].get("ex_best") is not None:
             care.append(f'去掉最好的一年（{_e(s["plan"].get("best_y") or "")}），年化還有 {_pc(s["plan"]["ex_best"], 1, False)}'
