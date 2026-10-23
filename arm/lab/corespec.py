@@ -61,10 +61,21 @@ VER 2（2026-10-23，看過第 11 節的探索結果之後訂的；docs/lab_core
   其他（三種過熱、門檻、衛星、成本、回測期間、前瞻比對）不變；前瞻從 LIVE_START 起照 VER 2 記（VER 1 沒有記到任何一天）。
   寫這一版之前已經看過的：第 11 節所有數字（探索程式 scratchpad core70/diag1～7.py）——兩個改法的參數（全部策略、10 天）
   是在那些結果裡挑的；三成放大盤時 3～20 天都比現行好，美股全部策略版和逐年判定版都比現行好，挑的是最簡單的寫法。
+
+VER 3（2026-10-23；ussxspec VER 3、docs/lab_us_sleeve_plan.md 第 13 節）
+  使用者看完美股三成的研究（第 12 節）選「A 穩健版」＋「現在就換」：美股（spx、ndx）的衛星＝美股三成規則 QM 的資金帳戶
+  （ussxspec VER 3：每週五收盤的名單、8 檔、收盤跌破 50 日線就賣；空的位子放那個計畫的指數）。
+  US_SLEEVE_FILE 判定那個計畫沒過的，那個計畫照舊放指數，頁面寫是哪一條沒過。
+  換現金：衛星裡的股票和指數在下一個交易日收盤全部賣掉（股票付股票的成本）；QM 的帳照樣往下記。
+  買回：照 QM 當時拿著的股票、空的位子放指數，在下一個交易日收盤買（股票付股票的成本）。
+  警訊、門檻、台股的一切、成本、現金利息都不變。
+  回測：美股「照計畫」＝US_SLEEVE_FILE 裡的 scenario（ussxspec QM_EVAL 起到資料最後一天；資料分支的資料，scripts/run_ussx.py --qm 算），
+    「只靠警訊進出、三成放指數」（RULE_START 起）與更早的期間照舊（core_research.json）。
+  前瞻：LIVE_START 起照 VER 3 記（VER 2 的紀錄從頭記）；美股衛星放 QM 時，三成的實際報酬照 ussx_qm_live.json 的資金帳戶淨值算。
 """
 from __future__ import annotations
 
-VER = 2
+VER = 3
 SPEC_DATE = "2026-10-23"
 
 MARKETS = ("tw", "spx", "ndx")
@@ -96,6 +107,7 @@ PERIOD_KINDS = ("per",)          # 定期換股（trade_book 的 kind）：平�
 SLOTS = {"s3": 4, "s5": 16}      # 其他：每一檔固定那一份 ÷ SLOTS（臺灣50 提前卡位一次 4 檔；長線投信動能回測同時最多常見 16 檔）
 SLOTS_DEFAULT = 5
 BACKTEST_SLEEVE = ("v3l",)       # 回測期間有紀錄的 ★（財報驚喜（大型股）；bt3l.top5 的 p3 L）
+US_SLEEVE_FILE = "ussx_qm.json"   # VER 3：美股衛星＝QM（data/lab/ 底下；這個檔判定過的計畫才換）
 
 # 回測
 RULE_START = {"tw": "2006-01-25", "spx": "2000-01-03", "ndx": "2000-12-29"}

@@ -118,9 +118,11 @@ def run(O: np.ndarray, Cf: np.ndarray, Cr: np.ndarray, last: np.ndarray, sig: di
         if i in sig and i + 1 < b:
             orders = [(j, sc) for j, sc in sig[i] if j not in pos]
             orders_si = i
+    state = {"pos": {j: dict(q) for j, q in pos.items()}, "pend": dict(pend), "orders": list(orders), "orders_si": orders_si,
+             "idle": idle}                                   # 最後一天收盤後的狀態（美股三成上線用：持股、明天開盤要賣的、要買的）
     for j, q in pos.items():                                 # 資料最後一天還拿著的：照收盤算（只記錄、不賣）
         trades.append([j, q["si"], q["ei"], b - 1, q["k"] * Cf[b - 1, j] * (1 - c_stk) / q["cin"] - 1, "open", q["cin"]])
-    return {"eq": eq, "stk": stk, "n": npos, "div": divs, "trades": trades}
+    return {"eq": eq, "stk": stk, "n": npos, "div": divs, "trades": trades, "state": state}
 
 
 def daily_ret(eq: np.ndarray) -> np.ndarray:

@@ -1,4 +1,4 @@
-"""美股飆股的每週樣本（arm/lab/ussxfeat.py；ussxspec VER 1）：股價條件對照 superx.Px、標籤對照逐筆直接算、EPS 與 SEC 條件的算法。
+"""美股飆股的每週樣本（arm/lab/ussxfeat.py；ussxspec VER 2）：股價條件對照 superx.Px、標籤對照逐筆直接算、EPS 與 SEC 條件的算法。
 不連網、不用真的資料。"""
 from __future__ import annotations
 
@@ -184,6 +184,38 @@ def test_sec_quarters_derive_q4_and_reports():
     assert q["roe"] == pytest.approx((20 + 15 + 12 + 10) / 500)
     assert q["c33"] is None and q["filed"] == "2020-05-01"
     assert sh == [{"filed": "2020-05-01", "end": "2020-04-20", "v": 1000}]
+
+
+def test_first_filed_picks_earliest_tag_and_goods_services_fallback():
+    """VER 2：同一季取最早公布的營收（2017 年的數字不可以拿 2018 年申報裡的比較數字）；只有商品＋勞務營收時用加總。"""
+    Q = {"RevenueFromContractWithCustomerExcludingAssessedTax": {"2017-03-31": (110, "2018-05-01"), "2018-03-31": (120, "2018-05-01")},
+         "SalesRevenueNet": {"2016-03-31": (95, "2016-05-02"), "2017-03-31": (100, "2017-05-02")},
+         "Revenues": {"2018-03-31": (121, "2018-05-01")}}
+    r = F.first_filed(Q, X.REV_TAGS, X.REV_EXTRA)
+    assert r["2017-03-31"] == (100, "2017-05-02")                     # 最早公布的（VER 1 會取到 2018 年的 110）
+    assert r["2018-03-31"] == (121, "2018-05-01")                     # 同一天公布：依 REV_TAGS 順序（Revenues 在前）
+    assert r["2016-03-31"] == (95, "2016-05-02")
+    G = {"SalesRevenueGoodsNet": {"2015-03-31": (60, "2015-05-01"), "2015-06-30": (70, "2015-08-01")},
+         "SalesRevenueServicesNet": {"2015-03-31": (40, "2015-05-03")}}
+    g = F.first_filed(G, X.REV_TAGS, X.REV_EXTRA)
+    assert g == {"2015-03-31": (100, "2015-05-03")}                    # 有申報過的兩個都要有；6 月那季缺勞務營收 → 不算
+    G2 = {"SalesRevenueGoodsNet": {"2015-03-31": (60, "2015-05-01")}, "Revenues": {"2015-06-30": (75, "2015-08-01")}}
+    assert F.first_filed(G2, X.REV_TAGS, X.REV_EXTRA) == {"2015-03-31": (60, "2015-05-01"), "2015-06-30": (75, "2015-08-01")}
+    C = {"CostOfRevenue": {"2017-03-31": (70, "2018-05-01")}, "CostOfGoodsSold": {"2017-03-31": (66, "2017-05-02")}}
+    assert F.first_filed(C, X.COST_TAGS) == {"2017-03-31": (66, "2017-05-02")}
+
+
+def test_sec_reports_use_first_available_revenue_after_tag_switch():
+    """2018 年改用新營收項目：2017 年各季的財報日期是 2017 年當時的申報日，年增率拿 2018 年對 2017 年當時公布的數字。"""
+    def q(s, e, v, fd):
+        return [s, e, v, fd, "10-Q"]
+    f = {"SalesRevenueNet": [q("2016-01-01", "2016-03-31", 80, "2016-05-02"), q("2017-01-01", "2017-03-31", 100, "2017-05-02")],
+         "RevenueFromContractWithCustomerExcludingAssessedTax": [q("2017-01-01", "2017-03-31", 101, "2018-05-01"),
+                                                                 q("2018-01-01", "2018-03-31", 130, "2018-05-01")]}
+    sr, _ = F.sec_reports({"f": f}, [])
+    by = {x["end"]: x for x in sr}
+    assert by["2017-03-31"]["filed"] == "2017-05-02" and by["2017-03-31"]["sy"] == pytest.approx(100 / 80 - 1)
+    assert by["2018-03-31"]["sy"] == pytest.approx(130 / 100 - 1)
 
 
 def test_split_between_and_week_ends():

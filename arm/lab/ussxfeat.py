@@ -318,18 +318,29 @@ def _near(keys: list[str], target: str, tol: int) -> str | None:
     return best
 
 
+def first_filed(Q: dict, tags: tuple, extra: tuple = ()) -> dict[str, tuple]:
+    """（ussxspec VER 2）每一季在 tags 裡取最早公布的那個 (數值, 公布日)，同一天公布依 tags 順序；
+    tags 都沒有那一季時用 extra 的加總（這家公司有申報過的 extra 項目，那一季都要有才算；公布日取較晚的）。"""
+    out: dict[str, tuple] = {}
+    for tag in tags:
+        for e, (v, fd) in (Q.get(tag) or {}).items():
+            if e not in out or fd < out[e][1]:
+                out[e] = (v, fd)
+    used = [t for t in extra if Q.get(t)]
+    if used:
+        for e in sorted(set().union(*[set(Q[t]) for t in used])):
+            if e in out or not all(e in Q[t] for t in used):
+                continue
+            out[e] = (sum(Q[t][e][0] for t in used), max(Q[t][e][1] for t in used))
+    return out
+
+
 def sec_reports(doc: dict, eps: list[dict]) -> list[dict]:
     """一檔的 SEC 資料 → 每一季的財報條件（依申報日排序）：[{"filed", "end", "sy", "sacc", "gm", "gmd", "om", "omd", "roe", "c33"}]
     ＋流通股數 [{"filed", "end", "v"}]。eps＝eps_reports 的結果（連三季變好用 EPS 年增）。"""
     Q = sec_quarters((doc or {}).get("f") or {})
-    rev: dict[str, tuple] = {}
-    for tag in X.REV_TAGS:
-        for e, x in (Q.get(tag) or {}).items():
-            rev.setdefault(e, x)
-    cost: dict[str, tuple] = {}
-    for tag in X.COST_TAGS:
-        for e, x in (Q.get(tag) or {}).items():
-            cost.setdefault(e, x)
+    rev = first_filed(Q, X.REV_TAGS, X.REV_EXTRA)
+    cost = first_filed(Q, X.COST_TAGS)
     gp = dict(Q.get("GrossProfit") or {})
     for e, (r, fd) in rev.items():
         if e not in gp and e in cost:
@@ -491,8 +502,9 @@ def vcp_flags(pb: dict, P: dict, ii: np.ndarray, jj: np.ndarray, workers: int = 
 # ── 組成一份樣本 ─────────────────────────────────────────────────────────────────
 
 def build(P: dict, liq: float = X.LIQ_MIN, earn: dict | None = None, sec: dict | None = None, screen: dict | None = None,
-          workers: int = 4, log=print) -> dict:
-    """earn＝ussxpanel.earnings()；sec＝{代號: secfin 的檔}（None＝讀資料夾的 sec/，還沒抓過＝財報條件全部 nan）；screen＝篩選器。"""
+          workers: int = 4, log=print, vcp: bool = True, labels_on: bool = True) -> dict:
+    """earn＝ussxpanel.earnings()；sec＝{代號: secfin 的檔}（None＝讀資料夾的 sec/，還沒抓過＝財報條件全部 nan）；screen＝篩選器。
+    vcp、labels_on＝False：不算 VCP（全部 False）、不算標籤（y＝{}）——美股三成規則 QM 用不到（ussxspec VER 3），省一半時間。"""
     import time
     t0 = time.time()
     cal = P["cal"]
@@ -533,7 +545,7 @@ def build(P: dict, liq: float = X.LIQ_MIN, earn: dict | None = None, sec: dict |
                 grs[mm] = float(np.median(rsv[mm]))
     f["grs"] = grs
     log(f"[ussxfeat] 族群 {time.time() - t0:.0f}s")
-    f["vcp"] = vcp_flags(pb, P, ii, jj, workers=workers)
+    f["vcp"] = vcp_flags(pb, P, ii, jj, workers=workers) if vcp else np.zeros(n, dtype=bool)
     log(f"[ussxfeat] VCP {time.time() - t0:.0f}s")
     # EPS 與財報
     eps_keys = [k for k, _, _, s in X.FEATS if s == "eps"]
@@ -578,7 +590,7 @@ def build(P: dict, liq: float = X.LIQ_MIN, earn: dict | None = None, sec: dict |
                 raw = float(P["RAW"][i, j])
                 f["cap"][k] = sh[q]["v"] * mult * raw if np.isfinite(raw) else np.nan
     log(f"[ussxfeat] EPS／財報 {time.time() - t0:.0f}s（有 SEC 資料 {n_sec} 檔）")
-    y = labels(pb, P, ii, jj)
+    y = labels(pb, P, ii, jj) if labels_on else {}
     log(f"[ussxfeat] 標籤 {time.time() - t0:.0f}s")
     return {"d": np.array([cal[i] for i in ii]), "di": ii, "c": np.array([P["sym"][j] for j in jj]), "j": jj, "w": ww,
             "f": f, "y": y, "wk": wk, "el": el, "D20": D20}
