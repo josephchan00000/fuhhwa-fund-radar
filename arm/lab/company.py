@@ -191,10 +191,11 @@ def _pct(x, d=1):
     return None if x is None else round(x * 100, d)
 
 
-def market_table(DL, today_ix: int | None = None, rules: list | None = None) -> dict:
+def market_table(DL, today_ix: int | None = None, rules: list | None = None, keep: dict | None = None) -> dict:
     """最新交易日全市場：飆股特徵（superx，與研究同一套）＋估值與體質 → {"d", "cols", "rows": {代號: [...]}}。
     rules＝研究定案的規則（[(代號, [條件…])]）→ 另回 "hits"：{代號: [規則序號]}（只算研究樣本條件內的股票）。
     市值：合格判斷用最近月底快照（同研究）；表上的市值欄用當天收盤 × 發行股數。
+    keep＝給一個 dict → 交出這次建好的物件（價量、特徵、基本面、月底市值快照），飆股前瞻記錄（sxlive）沿用、不再算一次。
     一年價格不夠算技術面的股票（多半是 40 億以下的小股票）只放基本面欄位。"""
     import bisect
     from . import bt3d, v3data
@@ -220,6 +221,8 @@ def market_table(DL, today_ix: int | None = None, rules: list | None = None) -> 
     funds = {c: SX.Fund(quarters(fs.get(c), eps.get(c)), rev.get(c) or {}) for c in P.codes}
     qs, rf = SX.avail_index(cal)
     qitems = sorted((t, q) for q, t in qs.items())
+    if keep is not None:
+        keep.update(DL=DL, P=P, pxs=pxs, funds=funds, qitems=qitems, rf=rf, snaps=snaps, listed=set(lst))
     F = SX.feats_on(i, P, pxs, funds, qitems, rf, all_rows=True)
     q = SX.latest_q(qitems, i)
     kr = bisect.bisect_right([t for t, _ in rf], i) - 1
