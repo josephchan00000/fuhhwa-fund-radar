@@ -39,6 +39,14 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         data["mac"] = xsadvice.build()
     except Exception as e:                   # noqa: BLE001 —— 失敗只是總經策略那兩頁空著
         print(f"[籌碼雷達] ⚠ 總經策略沒有放進頁面：{type(e).__name__}: {e}")
+    try:                                     # 訊號總覽・研究結論的交易計畫卡（corespec；docs/lab_core70_plan.md）：台股衛星的 ★ 策略與接下來要做的事
+        from . import core
+        from ..clock import today_tw
+        core.STK.clear()
+        if isinstance(data.get("adv"), dict) and not data["adv"].get("err"):
+            core.STK.update(core.stk_from_adv(data["adv"], today_tw().isoformat()))
+    except Exception as e:                   # noqa: BLE001 —— 失敗只是交易計畫卡少了台股衛星的名單
+        print(f"[籌碼雷達] ⚠ 交易計畫卡的衛星資料沒有算：{type(e).__name__}: {e}")
     try:                                     # 後台自我驗證紀錄（只有 CI 寫回 data/lab/val_log.json）
         from . import valog
         data["vlog"] = valog.update(data)

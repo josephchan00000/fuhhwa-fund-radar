@@ -797,8 +797,8 @@ def keep_card(X: dict | None) -> tuple[str, tuple | str]:
 
 
 def market_html(mk: str, F: dict | None, money_x: dict | None, keep_x: dict | None, show: bool = False,
-                tilt_x: dict | None = None) -> str:
-    """一個市場：最上面「現在適用」＋八則。F＝compute 的結果（可能是上一版的檔，沒有就只有第 1、2、8 則）。"""
+                tilt_x: dict | None = None, plan: str = "") -> str:
+    """一個市場：交易計畫卡（plan，corepage.card 的 HTML）→「現在適用」＋八則。F＝compute 的結果（可能是上一版的檔，沒有就只有第 1、2、8 則）。"""
     F = F or {}
     parts = [money_card(mk, money_x), tilt_card(mk, tilt_x), chip_card(mk, F.get("chip")), hotin_card(mk, F.get("hotin")), ma60_card(mk, F.get("ma60")),
              bottom_card(mk, F.get("bottom")), crash_card(mk, F.get("crash")), keep_card(keep_x)]
@@ -815,7 +815,7 @@ def market_html(mk: str, F: dict | None, money_x: dict | None, keep_x: dict | No
     asof = f'<p class="rfas">資料到 {_e(_d(d))}</p>' if d else ""
     if not F.get("chip") and not F.get("crash") and not F.get("bottom"):
         asof += '<p class="rfas">這個市場的研究狀態還沒產生（景氣頁建頁時會算）。</p>'
-    return (f'<div class="rfm" data-mk="{_e(mk)}"' + ("" if show else " hidden") + f">{asof}{ban}"
+    return (f'<div class="rfm" data-mk="{_e(mk)}"' + ("" if show else " hidden") + f">{plan}{asof}{ban}"
             f'<div class="rfg">{"".join(cards)}</div></div>')
 
 

@@ -122,3 +122,18 @@ def test_trade_check_and_judge_render_from_detail_json():
             jd = XMD[f"xs:{mk}:{b['k']}"]["jd"]
             assert o["jd"].count("class=rbr") == len(jd["why"]) and o["jd"].count("<td") == jd["grid"]["n"]
             assert o["jd"].count('class="xmmn"') == 1 and (jd["ref"] is None or jd["ref"] in o["jd"])
+
+
+JARGON = ("VER", "候選", "門檻", "夏普", "前後兩半", "95%", "區間", "扣掉波動", "BH", "固定持有", "樣本外")
+
+
+def test_old_plan_section_is_gone():
+    """上一版交易計畫（策略頁・總經策略最上面「照著做」；planspec）2026-10-23 拿掉：使用者說比一直抱著還差。
+    新的交易計畫（核心 70%＋衛星 30%，corespec）放在訊號總覽・研究結論（docs/lab_core70_plan.md）。"""
+    js = M.JS
+    assert "xpSec" not in js and "m-plan" not in js and "xpl" not in M.CSS
+    assert "x==='plan'" not in page._JS
+    src = (page.Path(page.__file__)).read_text(encoding="utf-8")
+    assert "plan.build()" not in src and "stk_from_adv" in src
+
+

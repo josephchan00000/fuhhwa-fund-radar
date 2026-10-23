@@ -205,7 +205,7 @@ def view() -> dict:
     rmk = [mk for mk in TODAY_MK if mk in CARDS or (OUT_DATA.parent / f"x9or-{mk}.json").exists()]
     return {"rows": rows, "on": on, "today": today, "stk": stk, "asof": asof, "run": R.get("run"), "bases": R.get("bases") or {},
             "last": R.get("last") or {}, "rmk": rmk, "items": {mk: ITEMS[mk] for mk in TODAY_MK if mk in ITEMS},
-            "luck": R.get("luck"), "xs": XSP.results(), "pr": practice(), "find": find_data()}
+            "luck": R.get("luck"), "xs": XSP.results(), "pr": practice(), "find": find_data(), "core": core_data()}
 
 
 def find_data(dirpath: Path | None = None) -> dict:
@@ -224,6 +224,40 @@ def find_data(dirpath: Path | None = None) -> dict:
         if f:
             out[mk] = f
     return out
+
+
+def _prev_card(d: Path, mk: str, memo: dict) -> dict:
+    """上一版的 x9or-{市場}.json（單獨建這一頁時用）；讀不到回 {}。"""
+    if mk not in memo:
+        path = d / f"x9or-{mk}.json"
+        try:
+            memo[mk] = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        except (OSError, ValueError):
+            memo[mk] = {}
+    return memo[mk]
+
+
+def core_data(dirpath: Path | None = None) -> dict:
+    """交易計畫卡（corespec；docs/lab_core70_plan.md）：研究檔＋三種過熱現在的讀數（景氣頁在同一個程序裡放在 CARDS[市場]["core"]，
+    單獨建這一頁時讀上一版的 x9or-{市場}.json）＋台股衛星（個股頁建頁時放在 core.STK，沒有就讀 x9or-tw.json 的 stk）＋前瞻。
+    今天的讀數記進前瞻紀錄（core.record，只有 CI 寫回）。算不出來只印日誌、不擋訊號總覽。"""
+    from . import core as CO
+    d = dirpath or OUT_DATA.parent
+    memo: dict = {}
+    now = {}
+    for mk in CO.S.MARKETS:
+        n = (CARDS.get(mk) or {}).get("core") or _prev_card(d, mk, memo).get("core")
+        if n:
+            now[mk] = n
+    stk = dict(CO.STK) if CO.STK else (_prev_card(d, "tw", memo).get("stk") or None)
+    fw = {}
+    try:
+        CO.record(now, stk)
+        L = CO.load_live()
+        fw = {mk: CO.forward(mk, L) for mk in CO.S.MARKETS}
+    except Exception as e:                                # noqa: BLE001
+        print(f"[交易計畫] 前瞻紀錄算不出來：{type(e).__name__}: {e}")
+    return {"R": CO.load(), "now": now, "stk": stk, "fw": fw}
 
 
 def practice() -> dict:
@@ -762,9 +796,11 @@ PANEL = ('<div class="sgpv" id="sgpv" hidden><div class="sgpb" id="sgpb"></div>'
 def research_html(V: dict) -> str:
     """研究結論（2026-10-22 改版，docs/lab_research_v2_plan.md）：每個市場八則白話問答（findings），最上面「現在適用」；
     原本的實測細節與四張研究卡（每個市場一個檔、點了才載入）收在最下面的「完整研究表」。"""
+    from . import corepage as CPG
     from . import findings as FD
     from . import practpage as PP
     rmk = V.get("rmk") or []
+    CO = V.get("core") or {}
     PRV = V.get("pr") or {}
     P = PRV.get("P") or {"ok": False}
     R = PRV.get("R")
@@ -798,7 +834,13 @@ def research_html(V: dict) -> str:
             tx = FD.tilt(TR, mk) if TR else None
         except Exception as e:                            # noqa: BLE001 —— 第 2 則算不出來只少那一則
             print(f"[研究結論] {mk} 第 2 則算不出來：{type(e).__name__}: {e}", flush=True)
-        blocks.append(FD.market_html(mk, find.get(mk), mx, kp, show=(mk == first), tilt_x=tx))
+        plan = ""
+        try:
+            plan = CPG.card(mk, (CO.get("now") or {}).get(mk), CO.get("R"), CO.get("stk") if mk == "tw" else None,
+                            (CO.get("fw") or {}).get(mk))
+        except Exception as e:                            # noqa: BLE001 —— 交易計畫卡算不出來只少那一張
+            print(f"[研究結論] {mk} 交易計畫卡算不出來：{type(e).__name__}: {e}", flush=True)
+        blocks.append(FD.market_html(mk, find.get(mk), mx, kp, show=(mk == first), tilt_x=tx, plan=plan))
     pr = PP.html(P)
     full = ""
     if pr or rmk:
@@ -814,14 +856,18 @@ def research_html(V: dict) -> str:
             + full + "</section>")
 
 
-def card_json(mk: str, c: dict) -> str:
-    """一個市場的研究卡，各自收在一個 <details>（點開才展開；#r=市場:卡 會打開那一張）；find＝研究結論第 2～6 則的資料
-    （單獨建訊號總覽時從這裡讀回來）。"""
+def card_json(mk: str, c: dict, stk: dict | None = None) -> str:
+    """一個市場的研究卡，各自收在一個 <details>（點開才展開；#r=市場:卡 會打開那一張）；find＝研究結論第 2～6 則的資料、
+    core＝交易計畫三種過熱現在的讀數、stk＝台股衛星（單獨建訊號總覽時從這裡讀回來）。"""
     html = "".join(f'<details class="sgrc" id="rc-{k}"><summary>{_e(CARD_NAMES[k])}</summary>{c[k]}</details>'
                    for k in CARD_ORDER if c.get(k))
     out = {"mk": mk, "d": c.get("d"), "html": html}
     if c.get("find"):
         out["find"] = c["find"]
+    if c.get("core"):
+        out["core"] = c["core"]
+    if stk:
+        out["stk"] = stk
     return json.dumps(out, ensure_ascii=False, separators=(",", ":"))
 
 
@@ -841,9 +887,10 @@ def render(V: dict) -> str:
     body = today_html(V) + TABLE + research_html(V) + method_html(V.get("luck"))
     if not V["rows"]:
         body = '<p class="warn">還沒有研究結果（scripts/run_sig.py）。</p>'
+    from . import corepage as CPG
     from . import findings as FD
     from . import practpage as PP
-    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("sig")).replace("{{CSS}}", HCSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS + QP.CSS + BP.CSS + CSS + PP.CSS + FD.CSS)
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("sig")).replace("{{CSS}}", HCSS + appnav.CSS + VZ.CSS + CP.CSS + XP.CSS + QP.CSS + BP.CSS + CSS + PP.CSS + FD.CSS + CPG.CSS)
             .replace("{{ASOF}}", _e(("資料到 " + asof) if asof else "")).replace("{{BODY}}", body)
             .replace("{{DATA}}", page_json(V)).replace("{{PANEL}}", PANEL).replace("{{JS}}", JS))
 
@@ -851,7 +898,8 @@ def render(V: dict) -> str:
 def build(out: Path = OUT, data_out: Path = OUT_DATA) -> bool:
     V = view()
     changed = False
-    files = [(data_out.parent / f"x9or-{mk}.json", card_json(mk, c)) for mk, c in sorted(CARDS.items())]
+    stk = (V.get("core") or {}).get("stk")
+    files = [(data_out.parent / f"x9or-{mk}.json", card_json(mk, c, stk if mk == "tw" else None)) for mk, c in sorted(CARDS.items())]
     PR = (V.get("pr") or {}).get("R")
     if PR:                                                # 實測區每個市場的細節與每週序列（點到那個市場才下載）
         from . import practpage as PP

@@ -269,3 +269,5 @@ def test_market_html_with_tilt_has_eight_cards():
     assert h.count('<article class="rfc') == 8
     nums = re.findall(r'<div class="rfq"><i>(\d+)</i>', h)
     assert nums == [str(i) for i in range(1, 9)]
+
+
