@@ -10,3 +10,17 @@
 2026-10-23 14:11,W7_R60_25_wf,{"data": "lab-A8", "max_hold": 60, "spec": "superfixspec VER 1", "start": "2019-01-02", "w7": "R60_25", "weight": 0.125}
 2026-10-23 14:11,W7_A_wf,{"data": "lab-A8", "max_hold": 60, "spec": "superfixspec VER 1", "start": "2019-01-02", "w7": "A", "weight": 0.125}
 2026-10-23 14:11,W7_R1_page,{"data": "lab-A8", "max_hold": 60, "spec": "superfixspec VER 1", "start": "2019-01-02", "w7": "R1", "weight": 0.125}
+2026-10-23 15:22,W8_R60_X0,{"data": "lab-A8", "exit": {"hold": 60}, "label": "R60", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X0", "weight": 0.125}
+2026-10-23 15:22,W8_R60_X1,{"data": "lab-A8", "exit": {"ma": 50}, "label": "R60", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X1", "weight": 0.125}
+2026-10-23 15:22,W8_R60_X2,{"data": "lab-A8", "exit": {"ma": 20}, "label": "R60", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X2", "weight": 0.125}
+2026-10-23 15:22,W8_R60_X3,{"data": "lab-A8", "exit": {"trail": 0.2}, "label": "R60", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X3", "weight": 0.125}
+2026-10-23 15:22,W8_R60_X4,{"data": "lab-A8", "exit": {"trail": 0.3}, "label": "R60", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X4", "weight": 0.125}
+2026-10-23 15:22,W8_R60_X5,{"data": "lab-A8", "exit": {"ma": 50, "stop": 0.08}, "label": "R60", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X5", "weight": 0.125}
+2026-10-23 15:22,W8_R60_X6,{"data": "lab-A8", "exit": {"stop": 0.2, "trail": 0.3}, "label": "R60", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X6", "weight": 0.125}
+2026-10-23 15:22,W8_A_X0,{"data": "lab-A8", "exit": {"hold": 60}, "label": "A", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X0", "weight": 0.125}
+2026-10-23 15:22,W8_A_X1,{"data": "lab-A8", "exit": {"ma": 50}, "label": "A", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X1", "weight": 0.125}
+2026-10-23 15:22,W8_A_X2,{"data": "lab-A8", "exit": {"ma": 20}, "label": "A", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X2", "weight": 0.125}
+2026-10-23 15:22,W8_A_X3,{"data": "lab-A8", "exit": {"trail": 0.2}, "label": "A", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X3", "weight": 0.125}
+2026-10-23 15:22,W8_A_X4,{"data": "lab-A8", "exit": {"trail": 0.3}, "label": "A", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X4", "weight": 0.125}
+2026-10-23 15:22,W8_A_X5,{"data": "lab-A8", "exit": {"ma": 50, "stop": 0.08}, "label": "A", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X5", "weight": 0.125}
+2026-10-23 15:22,W8_A_X6,{"data": "lab-A8", "exit": {"stop": 0.2, "trail": 0.3}, "label": "A", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X6", "weight": 0.125}
