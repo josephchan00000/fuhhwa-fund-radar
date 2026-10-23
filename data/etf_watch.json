@@ -1,7 +1,7 @@
 {
   "as_of": "2026-10-22",
   "perf_asof": "2026-10-22",
-  "fetched_at": "2026/10/23 12:05",
+  "fetched_at": "2026/10/23 16:13",
   "source": "規模／配息殖利率 ← etfinfo.tw（Tier B）；過去一週／一月報酬 ← Yahoo 還原收盤（總報酬口徑）／FinMind／TWSE 官方自算。正式對外前以各投信官網核對",
   "items": [
     {
@@ -1329,7 +1329,7 @@
       "perf_asof": "2026-10-22",
       "ret_src": "yahoo",
       "src": "official_px+etfinfo",
-      "ret_n": 9,
+      "ret_n": 17,
       "ret_1w_base": "2026-10-15=9.33",
       "ret_1m_base": null,
       "ret_1w_div": null,
@@ -1344,7 +1344,7 @@
       "inception": "2026/10/20",
       "aum_e8": 126.4,
       "close_px": 9.3,
-      "ret_1w": null,
+      "ret_1w": -2.72,
       "ret_1m": null,
       "last_div": null,
       "last_div_date": null,
@@ -1362,9 +1362,14 @@
       "chg_asof": "2026-10-22",
       "chg_src": "twse_today",
       "as_of": "2026-10-22",
-      "perf_asof": "2026-07-03",
-      "ret_src": "seed",
+      "perf_asof": "2026-10-22",
+      "ret_src": "yahoo",
       "src": "official_px+etfinfo",
+      "ret_n": 12,
+      "ret_1w_base": "2026-10-15=9.56",
+      "ret_1m_base": null,
+      "ret_1w_div": null,
+      "ret_1m_div": null,
       "yield_is_est": false
     }
   ]
