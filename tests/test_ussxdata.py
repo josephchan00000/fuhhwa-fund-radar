@@ -180,3 +180,57 @@ def test_workflow_mode_only_on_data_branch_and_secret_from_secrets():
     assert "scripts/backfill_ussx.py --budget-min" in block and "git add -f data/lab/ussx" in block
     assert "mode=ussxfill" in block
     assert "SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}" in y
+
+
+def test_merge_px_appends_recent_and_detects_new_splits():
+    old = {"asof": "2026-10-23", "d": ["2026-10-20", "2026-10-21", "2026-10-22"], "c": [10.0, 11.0, 12.0],
+           "o": [10.0, 11.0, 12.0], "h": [10.0, 11.0, 12.0], "l": [10.0, 11.0, 12.0], "v": [1.0, 2.0, 3.0],
+           "div": [["2026-10-21", 0.1]], "spl": []}
+    new = {"d": ["2026-10-22", "2026-10-23", "2026-10-26"], "c": [12.05, 13.0, 14.0], "o": [12.0, 13.0, 14.0],
+           "h": [12.1, 13.0, 14.0], "l": [11.9, 13.0, 14.0], "v": [3.0, 4.0, 5.0], "div": [["2026-10-26", 0.2]], "spl": []}
+    m = UD.merge_px(old, new)
+    assert m["d"] == ["2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-26"]
+    assert m["c"] == [10.0, 11.0, 12.05, 13.0, 14.0]                    # 重疊的日子用新的
+    assert m["div"] == [["2026-10-21", 0.1], ["2026-10-26", 0.2]]
+    assert UD.merge_px(old, {**new, "spl": [["2026-10-26", 2.0]]}) is None    # 抓完以後才分割 → 整段重抓
+    assert UD.merge_px(old, {**new, "c": [6.0, 6.5, 7.0]}) is None            # 重疊的日子對不上 → 整段重抓
+    assert UD.merge_px(old, {"d": []}) is old                                 # 查不到（下市）→ 原封不動
+
+
+def test_update_recent_keeps_delisted_and_refetches_on_split(tmpdata, monkeypatch):
+    def put(sym, closes):
+        s = {"d": ["2026-10-20", "2026-10-21", "2026-10-22"], "c": closes, "o": closes, "h": closes, "l": closes,
+             "v": [1.0, 1.0, 1.0], "div": [], "spl": []}
+        UD._write(UD.px_path(sym), UD.enc_px(s, "2026-10-23"))
+    for s_ in ("AAA", "BBB", "CCC"):
+        put(s_, [10.0, 10.0, 10.0])
+    UD.save_meta({"px_done": {"AAA": 3, "BBB": 3, "CCC": 3, "SPY": 0}, "fail": {}, "screen": "2026-10-23"})
+
+    def since(sym, start, now=None):
+        if sym == "AAA":
+            return sym, {"d": ["2026-10-22", "2026-10-23"], "c": [10.0, 11.0], "o": [10.0, 11.0], "h": [10.0, 11.0],
+                         "l": [10.0, 11.0], "v": [1.0, 1.0], "div": [], "spl": []}, "ok"
+        if sym == "BBB":
+            return sym, {"d": []}, "404"
+        return sym, {"d": ["2026-10-23"], "c": [5.0], "o": [5.0], "h": [5.0], "l": [5.0], "v": [2.0], "div": [],
+                     "spl": [["2026-10-23", 2.0]]}, "ok"
+
+    def full(sym, now=None):
+        return sym, {"d": ["2026-10-22", "2026-10-23"], "c": [5.0, 5.0], "o": [5.0, 5.0], "h": [5.0, 5.0], "l": [5.0, 5.0],
+                     "v": [2.0, 2.0], "div": [], "spl": [["2026-10-23", 2.0]]}, "ok"
+    monkeypatch.setattr(UD, "fetch_since", since)
+    monkeypatch.setattr(UD, "fetch_chart", full)
+    st = UD.update_recent(budget_s=60, workers=1)
+    assert st["ok"] == 1 and st["same"] == 1 and st["full"] == 1 and st["err"] == 0
+    assert UD.load_px("AAA")["d"][-1] == "2026-10-23"
+    assert UD.load_px("BBB")["d"] == ["2026-10-20", "2026-10-21", "2026-10-22"]           # 下市的留著
+    assert UD.load_px("CCC")["spl"] == [["2026-10-23", 2.0]] and len(UD.load_px("CCC")["d"]) == 2
+    assert UD.load_meta()["updated"]
+
+
+def test_weekly_workflow_targets_data_branch_only():
+    y = (ROOT / ".github" / "workflows" / "ussx_weekly.yml").read_text(encoding="utf-8")
+    assert "cron: '5 2 * * 6'" in y and "ref: claude/ussx-data" in y
+    assert "git push origin HEAD:claude/ussx-data" in y and "scripts/backfill_ussx.py --weekly" in y
+    assert "SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}" in y
+    assert "main" not in y.split("on:")[1].split("jobs:")[0]                  # 不推 main

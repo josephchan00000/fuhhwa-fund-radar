@@ -76,7 +76,7 @@ def px_path(sym: str) -> Path:
 
 def load_meta() -> dict:
     m = _read(data_dir() / "meta.json.gz") or {}
-    return {"px_done": m.get("px_done") or {}, "fail": m.get("fail") or {}, "screen": m.get("screen")}
+    return {"px_done": m.get("px_done") or {}, "fail": m.get("fail") or {}, "screen": m.get("screen"), "updated": m.get("updated")}
 
 
 def save_meta(doc: dict) -> bool:
@@ -94,9 +94,19 @@ def ysym(s: str) -> str:
     return s.strip().upper().replace(".", "-").replace("/", "-")
 
 
+def point_usstk() -> None:
+    """研究時資料在別的資料夾（USSX_DIR）：財報行事曆也讀同一個資料分支的 data/lab/usstk（每週更新的那一份）。"""
+    from . import usstk
+    if os.environ.get("USSX_DIR"):
+        d = data_dir().parent / "usstk"
+        if d.exists():
+            usstk.DIR = d
+
+
 def calendar_symbols() -> list[str]:
     """那斯達克財報行事曆出現過的全部代號（usstk 的 earn/，是今天的代號）。"""
     from . import usstk
+    point_usstk()
     out = set()
     for y in range(int(usstk.EARN_START[:4]), date.today().year + 1):
         for rows in (usstk.load_earn(y).get("rows") or {}).values():
@@ -328,6 +338,99 @@ def backfill_px(*, budget_s: float = 2700, workers: int = 4) -> dict:
     st["left"] = left
     _log(f"股價：範圍 {len(syms)} 檔、這次要抓 {len(todo)} 檔（有 {st['ok']}、Yahoo 沒有 {st['none']}、失敗 {st['err']}）；"
          f"還剩 {left} 檔（{time.time() - t0:.0f}s）")
+    return st
+
+
+# ── 每週更新（前瞻記錄用：下市的公司當時就記下來；docs/lab_us_sleeve_plan.md 第 10.4 節） ──────────────
+
+RECENT_DAYS = 14             # 從存的最後一天往前幾個日曆天重抓（蓋掉那幾天）
+JUMP_TOL = 0.01              # 重疊的日子收盤差超過 1%（分割、資料修正）→ 整段重抓
+
+
+def fetch_since(sym: str, start: str, now: float | None = None) -> tuple[str, dict | None, str]:
+    p1 = int((datetime.fromisoformat(start).replace(tzinfo=timezone.utc) - timedelta(days=RECENT_DAYS)).timestamp())
+    p2 = int(time.time() if now is None else now)
+    url = CHART_URL.format(sym=urllib.parse.quote(sym), p1=p1, p2=p2)
+    for k in range(3):
+        try:
+            s = parse_chart(json.loads(_get(url, timeout=60).decode("utf-8")))
+            return sym, (s if s is not None else {"d": []}), "ok"
+        except Exception as e:                                # noqa: BLE001
+            msg = str(e)
+            if "404" in msg or "Not Found" in msg:
+                return sym, {"d": []}, "404"
+            if "429" in msg:
+                time.sleep(5 * (k + 1))
+                continue
+            return sym, None, f"{type(e).__name__}: {msg[:160]}"
+    return sym, None, "429"
+
+
+def merge_px(old: dict, new: dict) -> dict | None:
+    """old＝dec_px 的結果（含 asof）；new＝parse_chart（從 old 最後一天往前 RECENT_DAYS 天起）。
+    新的資料裡有 old 抓的那天（含）以後生效的分割、或重疊的日子收盤對不上 → None（要整段重抓）；
+    否則 old 在 new 第一天以前的部分＋new 全部（配息、分割取聯集）。new 沒有任何一天＝原封不動。"""
+    if not new.get("d"):
+        return old
+    asof = old.get("asof") or ""
+    if any(d >= asof for d, _ in new.get("spl") or []):         # 抓的那一天生效的分割：舊檔有沒有換算不一定 → 一律重抓
+        return None
+    oc = dict(zip(old["d"], old["c"]))
+    for d, c in zip(new["d"], new["c"]):
+        if d in oc and abs(c / oc[d] - 1) > JUMP_TOL:
+            return None
+    k = sum(1 for d in old["d"] if d < new["d"][0])
+    out = {key: list(old[key][:k]) + list(new[key]) for key in ("d", "o", "h", "l", "c", "v")}
+    out["div"] = sorted({tuple(x) for x in (old.get("div") or [])} | {tuple(x) for x in (new.get("div") or [])})
+    out["div"] = [list(x) for x in out["div"]]
+    out["spl"] = [list(x) for x in sorted({tuple(x) for x in (old.get("spl") or [])} | {tuple(x) for x in (new.get("spl") or [])})]
+    return out
+
+
+def update_recent(*, budget_s: float = 2700, workers: int = 4) -> dict:
+    """抓過而且有資料的代號：從最後一天往前 RECENT_DAYS 天重抓、接上去；分割或資料對不上就整段重抓；
+    查不到（下市）就原封不動（前瞻記錄要的就是留住它）。"""
+    from concurrent.futures import ThreadPoolExecutor
+    t0 = time.time()
+    meta = load_meta()
+    asof = datetime.now(timezone.utc).date().isoformat()
+    syms = sorted(s for s, n in meta["px_done"].items() if n)
+    st = {"syms": len(syms), "ok": 0, "same": 0, "full": 0, "err": 0, "left": 0}
+
+    def one(sym):
+        old = load_px(sym)
+        if not old["d"]:
+            return sym, "same", None
+        _, new, why = fetch_since(sym, old["d"][-1])
+        if new is None:
+            return sym, "err", why
+        m = merge_px(old, new)
+        if m is None:
+            _, full, why = fetch_chart(sym)
+            if not full or not full.get("d"):
+                return sym, "err", why
+            _write(px_path(sym), enc_px(full, asof))
+            return sym, "full", None
+        if m is old:
+            return sym, "same", None
+        _write(px_path(sym), enc_px(m, asof))
+        return sym, "ok", None
+    done = 0
+    for a in range(0, len(syms), SAVE_EVERY):
+        if time.time() - t0 > budget_s:
+            break
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            for sym, what, why in ex.map(one, syms[a:a + SAVE_EVERY]):
+                st[what] += 1
+                if what == "err" and st["err"] <= 8:
+                    _log(f"更新 {sym} ✗ {why}")
+        done = a + SAVE_EVERY
+    st["left"] = max(0, len(syms) - done)
+    if st["left"] == 0:
+        meta["updated"] = asof
+        save_meta(meta)
+    _log(f"每週更新：{st['syms']} 檔、接上 {st['ok']}、沒有新資料 {st['same']}、整段重抓 {st['full']}、失敗 {st['err']}；"
+         f"還剩 {st['left']} 檔（{time.time() - t0:.0f}s）")
     return st
 
 

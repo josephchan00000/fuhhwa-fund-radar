@@ -4,6 +4,8 @@
   git worktree add --detach <資料夾> origin/claude/ussx-data
   USSX_DIR=<資料夾>/data/lab/ussx TZ=Asia/Taipei python3 scripts/run_ussx.py --surv   # A 存活偏誤 → data/lab/ussx_surv.json
   USSX_DIR=… python3 scripts/run_ussx.py --swap                                        # B 換一個指數 → data/lab/ussx_swap.json
+  USSX_DIR=… python3 scripts/run_ussx.py --books                                       # C 美股飆股 → data/lab/ussx_books.json
+                                                                                       # （規格要 SEC 財報：資料夾沒有 sec/ 就不跑）
 """
 from __future__ import annotations
 
@@ -62,10 +64,25 @@ def swap(P) -> None:
                       f"{lg['swap']['plan']['mdd'] * 100:.0f}%；方向{'相同' if lg['same_dir'] else '相反'}")
 
 
+def books(P, force: bool = False) -> None:
+    from arm.lab import secfin as SF
+    from arm.lab import ussxrun as UR
+    if not SF.load_meta().get("asof") and not force:
+        print("[ussx] 還沒有 SEC 財報（規格要用）：先建 secret SEC_CONTACT_EMAIL、跑 ussxfill；不跑")
+        return
+    R = UR.books(P)
+    _save("ussx_books.json", R)
+    for b, r in R["books"].items():
+        v = r["verdict"]
+        print(f"[ussx] {b}：三成本身 {_pct(r['sleeve_main']['cagr'], 1)}%（S&P 500 {_pct(r['spx_tr']['cagr'], 1)}%、"
+              f"同一批 {_pct(r['ew']['cagr'], 1)}%）；判定 {v['pass']}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--surv", action="store_true")
     ap.add_argument("--swap", action="store_true")
+    ap.add_argument("--books", action="store_true")
     a = ap.parse_args()
     t0 = time.time()
     P = UP.load()
@@ -74,6 +91,8 @@ def main() -> None:
         surv(P)
     if a.swap:
         swap(P)
+    if a.books:
+        books(P)
     print(f"[ussx] 完成（{time.time() - t0:.0f}s）")
 
 

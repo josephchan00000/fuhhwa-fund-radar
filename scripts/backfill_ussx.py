@@ -3,6 +3,8 @@
 
   python3 scripts/backfill_ussx.py --budget-min 50   # 篩選器（一天一次）→ 股價（沒抓過的）→ SEC（有 secret、一天一次）
   python3 scripts/backfill_ussx.py --status           # 第一行 DONE／LEFT／STUCK（給 workflow 判斷要不要再派一輪）
+  python3 scripts/backfill_ussx.py --weekly --budget-min 90   # 每週更新（.github/workflows/ussx_weekly.yml）：篩選器、財報行事曆、
+                                                               # 新代號、全部代號最近兩週的股價、SEC（有 secret 才抓）
 """
 from __future__ import annotations
 
@@ -31,13 +33,31 @@ def line() -> str:
     return out
 
 
+def weekly(budget: float) -> None:
+    """每週更新：下市的公司當時就記下來（前瞻記錄沒有存活偏誤）。"""
+    from arm.lab import usstk
+    t0 = time.time()
+    left = lambda: budget - (time.time() - t0)
+    UD.update_screen()
+    usstk.backfill_earn(budget_s=min(900.0, max(60.0, left() / 4)))
+    UD.backfill_px(budget_s=max(60.0, min(1200.0, left() / 3)))
+    UD.update_recent(budget_s=max(60.0, left() - SEC_MIN * 60))
+    if left() >= SEC_MIN * 60:
+        SF.run()
+    print(line())
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--budget-min", type=float, default=50)
     ap.add_argument("--status", action="store_true")
+    ap.add_argument("--weekly", action="store_true")
     a = ap.parse_args()
     if a.status:
         print(line())
+        return
+    if a.weekly:
+        weekly(a.budget_min * 60)
         return
     t0 = time.time()
     budget = a.budget_min * 60

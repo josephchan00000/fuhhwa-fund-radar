@@ -2897,6 +2897,24 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   **2026-10-23 回補完成**（#352 併進 main）：股價 900／900 檔；財報行事曆只缺 2016-06-06～06-30 這 14 天（那斯達克每次都回錯誤）。
   那一輪原地重試 3.5 小時、時間到還會再派——之後一整輪一天都沒查到就標 STUCK、不再派（`backfill_usstk.py`）。
 - **美股個股策略（2026-10-23；使用者：「繼續做美股個股策略」）**：規格 `arm/lab/usstratspec.py` VER 1（算報酬之前寫定）、計畫與結果 `docs/lab_core70_plan.md` 第 15 節、程式 `arm/lab/usstrat.py`＋`scripts/run_usstrat.py`（約 30 秒；`--data` 可指到回補分支的資料）。三條（財報驚喜每週 8 位子抱 60 天、動能 12-1 每月 10 檔、52 週新高每月 10 檔）**都沒有比同一批成分股等權好**（14.5%／15.2%／7.2% 對等權 15.2%、S&P 500 含息 14.6%，2009～2026）→ **美股三成維持放指數**。財報驚喜用 `sxlive.Book`（開盤＝收盤、零股、沒有漲跌停）。存活偏誤：主要對照一律是同一批有股價的成分股等權。
+- **美股三成：美股飆股研究（2026-10-23；使用者：「我要飆股啊 飆股策略啊」；規劃、決定、結果 `docs/lab_us_sleeve_plan.md`）**：
+  兩輪決定＝美股怎麼買還沒決定（海外券商 0.05%、複委託 0.25% 每一邊都算）、錢多優先但最慘時最多比現在多跌 10 個百分點、
+  股價先用免費資料並量存活偏誤（一年 ≥ 2 個百分點先停下來討論）、財報加 SEC（聯絡 email **只從 Actions secret `SEC_CONTACT_EMAIL` 讀**，
+  程式、日誌、存檔都不出現；`tests/test_secfin.py` 守）、飆股五本帳全都要（R60、A、B、M3、M10）。
+  · **資料只放資料分支 `claude/ussx-data`（約 135MB，絕不合併進 main）**：Yahoo 開高低收量＋配息分割（5,194 檔，2006 起）、
+    11 檔 ETF、那斯達克篩選器、SEC 第一次公布的財報（`arm/lab/ussxdata.py`、`secfin.py`、`scripts/backfill_ussx.py`；
+    `lab_backfill.yml` mode `ussxfill` 只准在資料分支跑）。研究時 `git worktree add --detach <資料夾> origin/claude/ussx-data`、
+    `USSX_DIR=<資料夾>/data/lab/ussx`（財報行事曆也跟著讀資料分支的 `data/lab/usstk`）。
+    每週更新 `.github/workflows/ussx_weekly.yml`（週六台北 10:05，checkout 資料分支、只 push 回資料分支）：下市的公司當時就記下來。
+  · **規格** `arm/lab/ussxspec.py` VER 1（算任何報酬之前 commit，`tests/test_ussxspec.py` 鎖住）：範圍＝20 日平均成交值 ≥ 2,000 萬美元、
+    股價 ≥ 5 美元、有股價滿一年、270 個交易日內有財報；五本帳逐年重新找規則（W7 同一套門檻；第一個交易年 R60、A 2014，B 2015，M3 2016，
+    M10 2019）；8 檔各 12.5%、閒置放指數；R60、A 抱 60 天，B、M3、M10 抱到「比買進後最高收盤跌 30% 或跌破年線」；
+    判定四條（三成本身贏 S&P 500 含息與同一批等權、前後兩半；放進交易計畫錢多、兩半不少、最慘最多深 10 點；複委託成本也成立；存活偏誤 < 2 點）。
+  · **程式**：`ussxpanel`（面板）、`ussxsurv`（A 存活偏誤）、`ussxswap`（B 換指數）、`ussxfeat`（每週樣本與標籤）、
+    `ussxmine`（找規則；欄式改寫，`tests/test_ussxmine.py` 和 superx 逐項比對）、`ussxbook`（資金帳戶）、`ussxrun`（C 主流程）；
+    `scripts/run_ussx.py --surv／--swap`（--books 還沒接上，等 SEC）。
+  · **結果**：存活偏誤一年 1.09 個百分點（大多在 2009 年）→ 不用先停；**換指數：S&P 500 計畫三成放 QQQ 2006 年起 1,135 → 1,451 萬、
+    最慘一樣 44%，照規則過**（IVW 也過；SOXX 前半比現在少）。計畫還沒改——等美股飆股的結果一起決定。美股飆股等 SEC 財報抓好才跑正式結果。
 - **修正飆股（W7，2026-10-23；使用者：「修正飆股策略吧」）**：規格 `arm/lab/superfixspec.py` VER 1（`tests/test_superfixspec.py` 鎖住）、
   計畫與結果 `tw-superstock-lab/reports/W7_plan.md`／`W7_results.md`／`W7_summary.md`、程式 `tw-superstock-lab/scripts/run_w7.py`（約 5 分鐘）。
   只換目標（60 天後的收盤還在 +20%），**每一年只用以前已經走完的資料重新找規則**（2019～2026），現行目標用同一套流程當對照。
