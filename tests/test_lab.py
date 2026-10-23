@@ -233,30 +233,30 @@ def test_page_has_no_banned_words():
 
 
 def test_page_layout_v4_tabs_opp_first_and_backend():
-    """版面 v4（2026-10-15 使用者：「每個分頁想表達什麼沒辦法一眼看出…應該是要幫助瀏覽者知道各個不同的策略找出了哪些有機會的股票、
-    建議的策略、還有隱含的獲利如何」；docs/lab_ia_v4_plan.md）：機會｜策略｜個股｜籌碼｜指數，一打開是「機會」；
-    後台（自我驗證與研究）與名詞在頂欄右側小字；頁首一句話說明網頁目的。"""
+    """分頁（2026-10-23 起，docs/lab_ia_v5_plan.md 第 18 節）：同一頁兩種身分——
+    配置（台股｜美股｜策略｜個股；一打開是台股）與研究紀錄（個股策略｜總經策略｜後台＋名詞，從 x9r.html 進來）。
+    原「機會」「策略」兩頁＝研究紀錄的個股策略「這一期」「規則與成績」；頁首的目的句拿掉。"""
     import re
-    # 2026-10-22（docs/lab_strategy_ia_plan.md）：同一頁兩種身分——策略（總經策略｜個股策略，各兩頁：這一期、規則與成績）、
-    # 個股（個股｜籌碼｜指數）；原「機會」「策略」兩頁＝個股策略的「這一期」「規則與成績」。後台兩邊都有。
     tabs = re.findall(r'<a data-t="(\w+)" data-p="(\w+)"(?: hidden)?>([^<]+)</a>', page._HTML)
-    assert tabs == [("mac", "st", "總經策略"), ("stg", "st", "個股策略"), ("stk", "stk", "個股"), ("chip", "stk", "籌碼"), ("idx", "stk", "指數")]
+    assert tabs == [("tw", "cfg", "台股"), ("us", "cfg", "美股"), ("strat", "cfg", "策略"), ("tool", "cfg", "個股"),
+                    ("stg", "r", "個股策略"), ("mac", "r", "總經策略")]
     assert 'id="glb"' in page._HTML and "說明</a>" not in page._HTML
-    assert '<a class="vlb" data-t="bo">後台</a><a class="glb" id="glb">' in page._HTML
-    assert '<p class="purp" id="purp">' in page._HTML and "const PURP={st:" in page._JS
-    assert "const S={tab:'stk'," in page._JS and "go(v,at);}" in page._JS
+    assert '<a class="vlb" data-t="bo" data-p="r" hidden>後台</a><a class="glb" id="glb" data-p="r" hidden>' in page._HTML
+    assert 'class="purp"' not in page._HTML and "const PURP=" not in page._JS
+    assert "const S={tab:'stk'," in page._JS and "go(v,at);if(gl)openGl();}" in page._JS
     js_views = re.search(r"const VIEWS=\{([^}]*)\}", page._JS).group(1)
-    assert [k.split(":")[0] for k in js_views.split(",")] == ["opp", "st", "mac", "macst", "stk", "chip", "idx", "bo"]
+    assert [k.split(":")[0] for k in js_views.split(",")] == ["tw", "us", "strat", "stk", "chip", "idx", "opp", "st", "mac", "macst", "bo"]
     tabg = re.search(r"const TABG=\{([^}]*)\}", page._JS).group(1)
     assert dict(x.split(":") for x in tabg.replace("'", "").split(",")) == {
-        "opp": "stg", "st": "stg", "mac": "mac", "macst": "mac", "stk": "stk", "chip": "chip", "idx": "idx", "bo": "bo"}
+        "tw": "tw", "us": "us", "strat": "strat", "stk": "tool", "chip": "tool", "idx": "tool",
+        "opp": "stg", "st": "stg", "mac": "mac", "macst": "mac", "bo": "bo"}
     for k in ("today", "iss", "sig", "val"):                                 # 舊分頁已併入機會、籌碼、後台
         assert f'data-t="{k}"' not in page._HTML and f'data-go="{k}"' not in page._JS, k
 
 
 def test_opp_strategy_chip_backend_v4_structure():
     """版面 v4：機會＝摘要（含時間表）→ 推薦策略卡（做法／隱含獲利／現在／下一批）→ 避開；
-    策略＝比較表（推薦順序）→ 各策略說明 → 部位；籌碼＝重點、買賣、新建倉、投信、今日訊號、風險；
+    策略＝比較表（推薦順序）→ 各策略說明 → 部位；籌碼＝資金地圖、重點、買賣、新建倉、投信（今日訊號、風險提醒 2026-10-23 拿掉）；
     後台＝今天的驗證、前瞻紀錄、策略健檢與改良（2026-10-16）、事件紀錄 → 評級規則、評級總表、各策略依據、全部策略總表
     → 訊號成績 → 換股研究 → 更新時程。"""
     js = page._JS
@@ -266,7 +266,7 @@ def test_opp_strategy_chip_backend_v4_structure():
     assert "sec('bo-hl'" in js and "function hlDet(" in js
     for k in ("sec('o-sum'", "sec('o-'+c.k", "sec('o-avoid'", "sec('st-book'", "sec('st-pos'", "sec('val-rule'", "sec('val-grade'",
               "sec('bo-today'", "sec('bo-fwd'", "sec('bo-hist'", "sec('bo-sig'", "sec('bo-sched'",
-              "sec('c-lead'", "sec('c-flow'", "sec('c-new'", "sec('c-iss'", "sec('c-sig'", "sec('c-risk'",
+              "sec('c-lead'", "sec('c-flow'", "sec('c-new'", "sec('c-iss'",
               "valSec('s1'", "valSec('s3'", "valSec('hd'", "valSec('s5'", "valSec(k,V3NAV[k]||L.name", "function valSecs(",
               "ADV.grades3", "ADV.opp", "['做法',", "`隱含獲利${gi('隱含獲利')}`", "['現在',", "['下一批',",
               "['結論',", "['怎麼做',", "['過去成績',", "['風險',", "['評級',", "['評級依據',",
@@ -276,7 +276,8 @@ def test_opp_strategy_chip_backend_v4_structure():
         assert k in js, k
     for k in ("function calEv(", "function expTxt(", "function calLine(", "function vToday(", "function vSig(", "function vIss(",
               "function vVal(", "sec('st-cal'", "sec('st-avoid'", "sec('t-", "function nowSec(", "function pickBlocks(",
-              "function pickCard(", "function stSecs(", "function riskSec(", "sec('st-now'", "sec('st-grade'", "sec('st-bt3'"):
+              "function pickCard(", "function stSecs(", "function riskSec(", "sec('st-now'", "sec('st-grade'", "sec('st-bt3'",
+              "sec('c-sig'", "sec('c-risk'", "function sigTodaySec(", "function sjTxt(", "function hdRisk("):   # 籌碼頁的今日訊號、風險提醒 2026-10-23 拿掉
         assert k not in js, k
     # 機會、策略兩頁不出現驗證用語（使用者：驗證跟我沒關係，切開來）
     import re
@@ -901,8 +902,8 @@ def test_hdflow_phase_and_per_review_weighting():
 def test_hd_flow_sections_alert_card_and_today_row():
     js = page._JS
     for k in ("function hdFlowSec(", "'idx-hdw'", "+hdStudySec(I.hd)+hdFlowSec(I.hd)+hdPreSec(I.hd)+",
-              "function hdGroups(", "valSec('hd'", "hdGroups(false)", "+hdRisk());", "function hdRisk(",
-              "'被動買賣日量':", "'被動買賣提醒':", "data-at=\"o-avoid\""):
+              "function hdGroups(", "valSec('hd'", "hdGroups(false)",
+              "'被動買賣日量':", "'被動買賣提醒':"):
         assert k in js, k
     assert "12 月首次觀察" not in js and "function hdAlertCard(" not in js
 
@@ -1447,7 +1448,7 @@ def test_signal_stats_report_actual_return_and_market():
     assert a["mk"] == round(((0.01) + (0.02) + (0.04)) / 3 * 100, 2) and a["w"] == 33.0
     js = page._JS
     for k in ("function sigVerdict(", "function sigConcl(", "const SIGST={cons:'s1'}", "照做的實際報酬（持有 5／20 天、同期大盤）",
-              "不是買點", "function sigShort(", "function sigTodaySec(", "function sigAllSec("):
+              "不是買點", "function sigShort(", "function sigAllSec("):
         assert k in js, k
     assert "勝率" not in js.split("/* ---------- 訊號（版面 v4", 1)[1].split("/* ---------- 投信動向", 1)[0]
 
@@ -1551,11 +1552,11 @@ def test_trade_book_collects_all_strategies_without_duplicates(monkeypatch):
 
 
 def test_signal_sections_use_overview_judgement():
-    """籌碼頁「今日訊號」與後台「訊號成績」：命中率／平常（訊號總覽同一套，docs/lab_signal_plan.md 第 6.3 節），
-    每個訊號連到訊號總覽那一列；照做的實際報酬收在展開。"""
+    """後台「訊號成績」：命中率／平常（訊號總覽同一套，docs/lab_signal_plan.md 第 6.3 節），每個訊號連到訊號總覽那一列；
+    照做的實際報酬收在展開。籌碼頁的「今日訊號」2026-10-23 拿掉（docs/lab_ia_v5_plan.md 第 4 節）。"""
     from arm.lab import sigcat
     js = page._JS
-    for k in ("const SJ=D.sigj||{}", "function sjTxt(", "x9o.html#s=stk:sig:", "<th>命中率</th><th>平常</th>"):
+    for k in ("const SJ=D.sigj||{}", "x9o.html#s=stk:sig:", "<th>命中率</th><th>平常</th>"):
         assert k in js, k
     rows = [{"cat": "stock", "var": "cons", "dir": ["up"], "up": {"tier": "none", "n": 103, "hit": 0.5926, "base": 1.0}},
             {"cat": "stock", "var": "exit", "dir": ["warn"], "warn": {"tier": "ref", "n": 90, "hit": 0.3556, "base": 0.0111}},
@@ -1567,12 +1568,15 @@ def test_signal_sections_use_overview_judgement():
 
 
 def test_opportunity_and_strategy_views_show_judgement_not_letter_grades():
-    """機會頁、策略頁、個股卡用 ★／●（sigspec VER 2）；A／B／C 只留在後台。"""
+    """機會頁、策略頁（研究紀錄的個股策略）用 ★／●（sigspec VER 2）；A／B／C 只留在後台。
+    個股卡（配置的工具分頁）2026-10-23 起只列台股配置裡的策略，不放 ★／●（docs/lab_ia_v5_plan.md 第 8 節第 4 條）。"""
     js = page._JS
     assert "function tBadge(" in js and "const TN={good:'好策略',ref:'可參考',none:'不推薦',few:'次數不夠'}" in js
-    for fn in ("function oCard(", "function bookSec(", "function stCard(", "function stCardSec("):
+    for fn in ("function oCard(", "function bookSec(", "function stCard("):
         body = js.split(fn, 1)[1].split("\nfunction ", 1)[0]
         assert "tBadge(" in body and "gBadge(" not in body, fn
+    body = js.split("function stCardSec(", 1)[1].split("\nfunction ", 1)[0]
+    assert "tBadge(" not in body and "gBadge(" not in body and "推薦順序" not in body
     opp = js.split("function vOpp(", 1)[1].split("\nfunction ", 1)[0]
     assert "A、B 級" not in opp and "★ 好策略、● 可參考" in opp
     assert "'判定':" in js and "capTxt(e.tier)" in js

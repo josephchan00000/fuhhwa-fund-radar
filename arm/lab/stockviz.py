@@ -88,7 +88,8 @@ function tlSec(){if(!(OPP.cards||[]).length)return '';
     `<span class=tllg><span><span class="tlk b">▲</span>買進</span><span><span class="tlk s">▼</span>賣出</span><span><span class="tlk w">◆</span>換股</span><span><span class="tlk a">●</span>調整</span>`+
     `<span class=tlsw><i class=tlsh></i>持有中（顏色＝目前漲跌）</span><span class=tlsw><i class=tlsb></i>排定的買進</span></span></div>`+
     `<div class=tlbox id=tlbox></div><div class=vztip id=tltip hidden></div></div>`;}
-/* 時間軸設定：個股策略（TLO）；總經策略的在 macpage.py（TLM）。box／tip＝元素 id、rk＝VZS 裡記範圍的鍵、back＝「全部」最多往回幾天 */
+/* 時間軸設定：個股策略（TLO）；總經策略的在 macpage.py（TLM）、配置頁的在 cfgpage.py（cfQ）。box／tip＝元素 id、rk＝VZS 裡記範圍的鍵、
+   back＝「全部」最多往回幾天、rtx＝還沒排定賣出日時畫在右邊的字（預設「依規則賣出 →」） */
 const TLO={box:'tlbox',tip:'tltip',rk:'tl',back:0,cards:()=>OPP.cards||[],
   last:()=>ADV.last||((ADV.cal||[])[0]||{d:'2026-01-01'}).d,dl:()=>ADV.last,nx:()=>((ADV.cal||[])[0]||{}).d,
   lb:x=>{const e=x.e,n=(e.items||[]).map(o=>o.n);return x.k==='held'?`${n.length} 檔 ${pctT(tlAvg(e))}`:x.k==='buy'?n.slice(0,4).join('、')+(n.length>4?` 等 ${n.length} 檔`:'')+(e.tent?'（試算）':''):x.k==='next'?`名單 ${md(e.fix)} 產生`:'';},
@@ -133,7 +134,7 @@ function tlDraw(Q){Q=Q||TLO;const box=$('#'+Q.box);if(!box)return;const C=Q.card
       :`<text class="tl-ln${al}" x=10 y=${y0+20}>${esc(vzFit(nm,LB-18,12.5))}</text><text class=tl-lg x=10 y=${y0+37}>${esc(vzFit(sub,LB-18,11))}</text>`;});
   const d=new Date(t0*864e5);d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+1);
   for(;d.getTime()/864e5<t1;d.setUTCMonth(d.getUTCMonth()+1)){const x=X(d.getTime()/864e5);if(x<LB)continue;s+=`<line class=tl-grid x1=${x.toFixed(1)} x2=${x.toFixed(1)} y1=${T-8} y2=${H-16} /><text class=tl-at x=${(x+3).toFixed(1)} y=${T-11}>${d.getUTCMonth()+1} 月</text>`;}
-  if(VZS.tl==='m1'){for(let n=Math.ceil(t0);n<t1;n++){const dd=new Date(n*864e5);if(dd.getUTCDay()!==1)continue;const x=X(n);s+=`<text class=tl-at x=${(x+3).toFixed(1)} y=${T-1} style="font-size:10px">${dd.getUTCMonth()+1}/${dd.getUTCDate()}</text>`;}}
+  if(VZS[Q.rk]==='m1'){for(let n=Math.ceil(t0);n<t1;n++){const dd=new Date(n*864e5);if(dd.getUTCDay()!==1)continue;const x=X(n);s+=`<text class=tl-at x=${(x+3).toFixed(1)} y=${T-1} style="font-size:10px">${dd.getUTCMonth()+1}/${dd.getUTCDate()}</text>`;}}
   const nx=Q.nx();if(nx){const x=X(vzDay(nx));if(x>=LB&&x<=R)s+=`<rect class=tl-nx x=${(x-5).toFixed(1)} y=${T-4} width=10 height=${H-T-12} rx=4 />`;}
   const xn=X(now);if(xn>=LB&&xn<=R)s+=`<line class=tl-now x1=${xn.toFixed(1)} x2=${xn.toFixed(1)} y1=${T-6} y2=${H-14} /><text class=tl-nowt x=${(xn>R-90?xn-4:xn+4).toFixed(1)} y=${H-2}${xn>R-90?' text-anchor=end':''}>資料日 ${md(Q.dl())}</text>`;
   s+=ln;
@@ -143,10 +144,10 @@ function tlDraw(Q){Q=Q||TLO;const box=$('#'+Q.box);if(!box)return;const C=Q.card
       if(x.out)return `<text class="${cls} tl-to" data-tl=${i} x=${(x.outL?x.x0-12:x.x1+12).toFixed(1)} y=${yy+13}${x.outL?' text-anchor=end':''}>${esc(x.lb)}</text>`;
       const t=vzFit(x.lb,w-pad-(x.rule?84:0),fs);return t?`<text class=${cls} x=${(x.x0+(x.k==='held'?6:12)).toFixed(1)} y=${yy+13}>${esc(t)}</text>`:'';};
     if(x.k==='held'){const a=Q.avg(x.e);s+=`<rect class="tl-h ${a!=null&&a<0?'dn':'up'}" data-tl=${i} x=${x.x0.toFixed(1)} y=${yy} width=${w.toFixed(1)} height=17 rx=5 />`+lab('tl-t',11.5,16);
-      if(x.rule)s+=`<text class=tl-t2 x=${(R-6).toFixed(1)} y=${yy+13} text-anchor=end>依規則賣出 →</text>`;
+      if(x.rule)s+=`<text class=tl-t2 x=${(R-6).toFixed(1)} y=${yy+13} text-anchor=end>${esc(Q.rtx||'依規則賣出 →')}</text>`;
       if(x.b!=null)m+=mk(X(x.b),yy+8.5,x.e.act==='換股'?'w':'s',x.e.act==='換股'?'◆':'▼',i);}
     else if(x.k==='buy'){s+=`<rect class=tl-b data-tl=${i} x=${x.x0.toFixed(1)} y=${yy} width=${w.toFixed(1)} height=17 rx=5 />`+lab('tl-t2',11,24);
-      if(x.rule)s+=`<text class=tl-t2 x=${(R-6).toFixed(1)} y=${yy+13} text-anchor=end>依規則賣出 →</text>`;
+      if(x.rule)s+=`<text class=tl-t2 x=${(R-6).toFixed(1)} y=${yy+13} text-anchor=end>${esc(Q.rtx||'依規則賣出 →')}</text>`;
       m+=mk(X(x.a),yy+8.5,'b','▲',i);if(x.b!=null)m+=mk(X(x.b),yy+8.5,'s o','▼',i);}
     else if(x.k==='next'){s+=lab('tl-t2',11,22);m+=mk(X(x.a),yy+8.5,'b o','▲',i);}
     else m+=mk(X(x.a),yy+8.5,'a','●',i);});

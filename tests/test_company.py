@@ -95,5 +95,5 @@ def test_company_js_runs_before_page_init():
     html = page.render({"rows": [], "asof": {}})
     js = html[html.rindex("<script>"):]
     init = "{const m=location.hash.match(/^#s=(.+)$/);if(m)renderStock(decodeURIComponent(m[1]));}"
-    assert max(js.index("const CO={},COP={}"), js.index("const MAC=D.mac||{}")) < js.index("go(v,at);}") < js.index(init)
+    assert max(js.index("const CO={},COP={}"), js.index("const MAC=D.mac||{}")) < js.index("go(v,at);") < js.index(init)
     assert "/*@@COPAGE@@*/" not in html

@@ -38,13 +38,13 @@ def test_views_reuse_stock_strategy_components():
 def test_page_wires_personas_and_both_strategy_families():
     js = page._JS
     assert "pgSeg('opp','opp','st')" in js and "pgSeg('st','opp','st')" in js          # 個股策略：這一期｜規則與成績
-    assert "const PERS={opp:'st',st:'st',mac:'st',macst:'st',stk:'stk',chip:'stk',idx:'stk'};" in js
+    assert "const PERS={tw:'cfg',us:'cfg',strat:'cfg',stk:'cfg',chip:'cfg',idx:'cfg',opp:'r',st:'r',mac:'r',macst:'r',bo:'r'};" in js
     assert "function setPer(p)" in js and "function urlSet()" in js and "$$('.apptab a')" in js
     assert "if(x&&TABG[v]==='mac')" in js and "else{v='macst';at='ms-'+x;}" in js        # #v=mac&m=市場&x=策略：這一期的卡片或說明卡
     # 個股策略的逐年報酬表、1 元變多少：多出來的參數不給就跟原本一樣（總經策略才給）
     assert "function yearTbl(b,lb,last,keep)" in js and "const cut=keep&&n>keep+2?n-keep:0;" in js
     assert "function acurveChart(C,lb)" in js and "W=acW()" in js and "acLg(C.s[n-1],lt,C.d[0],lb)" in js
-    assert '<a data-t="mac" data-p="st" hidden>總經策略</a><a data-t="stg" data-p="st" hidden>個股策略</a>' in page._HTML
+    assert '<a data-t="stg" data-p="r" hidden>個股策略</a><a data-t="mac" data-p="r" hidden>總經策略</a>' in page._HTML   # 研究紀錄身分
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="沒有 node")
