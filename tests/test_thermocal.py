@@ -221,11 +221,10 @@ def test_calibration_lines_text():
     f = plain(VZ.cal_line("warn", dict(base, v="few", pct=0.0), 250, 0.2))
     assert f == "警示過去 10 年最少（或一樣少）・過去的週數不夠，看不出和之後大回撤有沒有關係"
     C = {"H": 20, "th": 0.057, "up": dict(base, v="none"), "warn": dict(base, v="rel")}
-    h = VZ.cal_block({"short": C})                                             # VER 23：只列有關係、相反的，其他併成一句
-    assert h.count('class="tzca"') == 1 and "短線" in plain(h) and "其他都看不出數量多少和之後漲跌有關係" in plain(h)
+    h = VZ.cal_block({"short": C})                         # 只列有關係、相反的；其他不寫（2026-10-23，docs/lab_ia_v5_plan.md 第 3 節②）
+    assert h.count('class="tzca"') == 1 and "短線" in plain(h) and "看不出" not in plain(h) and "其他" not in plain(h)
     assert VZ.cal_block(None) == "" and not [x for x in BANNED if x in plain(h)]
-    h2 = plain(VZ.cal_block({"short": dict(C, warn=dict(base, v="few"))}))
-    assert "tzca" not in h2 and "三支溫度計都看不出數量多少和之後漲跌有關係" in h2
+    assert VZ.cal_block({"short": dict(C, warn=dict(base, v="few"))}) == ""          # 一個都沒有＝整塊不出現
     T = {"thermo": [{"k": "short", "name": "短線", "h": "看 1 個月", "H": 20, "n": {"up": 1, "warn": 0}, "share": 1.0, "lean": "up",
                      "up": [], "warn": []}], "cal": {"short": C}}
     assert VZ.today_core(T, "tw", None).count('class="tzca"') == 1 and VZ.today_core(dict(T, cal=None), "tw", None).count("tzca") == 0

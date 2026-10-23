@@ -656,11 +656,11 @@ def details_html(mk: str, sc: dict, fw: dict | None, qm: dict | None = None) -> 
     qmo = mk in US and s["key"] == "plan"
     out = []
     if mk == "tw":
-        why = ['訊號總覽上的台股訊號（517 個），每一個都試過「出現就把三成換成現金」。台股和美股都有用的只有兩個：'
+        why = ['台股的每一個市場訊號（517 個）都試過「出現就把三成換成現金」。台股和美股都有用的只有兩個：'
                '<b>通膨偏高</b>（美國 CPI 年增率在過去 10 年的高檔）、<b>融資偏多</b>（融資 ÷ 上市股票總市值）。'
                '只看跌破年線或技術面過熱就賣，台股反而少賺。']
     else:
-        why = ['訊號總覽上的美股訊號（每個指數 333～343 個），每一個都試過「出現就把三成換成現金」。台股和美股都有用的只有兩個：'
+        why = ['美股的每一個市場訊號（每個指數 333～343 個）都試過「出現就把三成換成現金」。台股和美股都有用的只有兩個：'
                '<b>通膨偏高</b>（美國 CPI 年增率在過去 10 年的高檔）、<b>融資增加太快</b>（美國家計部門證券融資年增率）。']
     why += ['三個警訊一起看，<b>兩個以上同時出現才賣</b>：台股、S&amp;P 500、那斯達克 100 不管看全部期間、前一半、後一半還是最近 10 年，'
             '都比一直抱著賺得多（三成也買大盤時）。',
@@ -745,7 +745,7 @@ def details_html(mk: str, sc: dict, fw: dict | None, qm: dict | None = None) -> 
             care.append(('警訊的規則（三成也買指數）在' if qmo else "") + f'訂規則時沒有看的 {e["a"][:4]}～{e["b"][:4]} 年：100 萬變 {_wan(e["plan"]["m"])}（一直抱著 {_wan(e["hold"]["m"])}），'
                         f'最慘時跌 {_ab(e["plan"]["mdd"])}（一直抱著 {_ab(e["hold"]["mdd"])}）：錢{"多一點" if e["plan"]["m"] >= e["hold"]["m"] else "少一點"}、跌得比較少。')
     care.append('以上都是過去照規則做的結果，不代表以後也會一樣。')
-    out.append('<details class="plnd"><summary>要注意的事</summary><ul>' + "".join(f"<li>{x}</li>" for x in care) + "</ul></details>")
+    out.append('<details class="plnd"><summary>風險</summary><ul>' + "".join(f"<li>{x}</li>" for x in care) + "</ul></details>")
     return '<h4 class="plnh">細節</h4>' + "".join(out)
 
 

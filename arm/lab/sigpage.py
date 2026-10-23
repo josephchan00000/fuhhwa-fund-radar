@@ -484,67 +484,42 @@ def _hz(r: dict) -> str:
 
 
 def _line(r: dict) -> str:
-    """今天的重點一行（白話，docs/lab_sigview_plan.md 第 2.3 節）：之後上漲（或大跌）的機率、隨便挑一天、出現過幾次。"""
+    """「之後怎麼走？」面板一列（白話，docs/lab_ia_v5_plan.md 第 8 節）：之後上漲（或回撤）的機率（任一天）、
+    報酬或回撤中位、次數少才寫次數。"""
     d = r["d"]
     st = r[d]
     h = _hz(r)
     if d == "up":
-        what = f"之後 {h}上漲的機率" if r["cat"] != "stock" else "持有 20 個交易日賺錢的機率"
+        what = f"之後 {h}上漲" if r["cat"] != "stock" else "持有 20 個交易日賺錢"
     elif d == "warn":
         h = "20 個交易日" if r["cat"] == "stock" else h
-        what = f"之後 {h}內大跌（最大回撤 {_th(r['th'])}% 以上）的機率" if r.get("th") else "之後大跌的機率"
+        what = f"之後 {h}內回撤 {_th(r['th'])}% 以上" if r.get("th") else "之後大跌"
     else:
-        what = f"買進之後 {h}上漲的機率"
-    fe = _fe(r)
-    if fe:                                            # VER 18～19：預估之後（逐年樣本外校正）；VER 21 起今天的清單每一列都有
-        out = (f'{what}：過去 {st["hit"] * 100:.0f}% → 預估之後 <b>{fe["fh"] * 100:.0f}%</b>'
-               f'（隨便挑一天 {st["base"] * 100:.0f}%）')
-    else:
-        out = f'{what} <b>{st["hit"] * 100:.0f}%</b>（隨便挑一天 {st["base"] * 100:.0f}%）'
+        what = f"買進之後 {h}上漲"
+    out = f'{what} <b>{st["hit"] * 100:.0f}%</b>（任一天 {st["base"] * 100:.0f}%）'
     med = _med(r) if d != "warn" and not r.get("xk") else None      # 跨期間的列只有機率（報酬是訊號自己看多久的）
     if med is not None:
-        out += f'・報酬中位數 {_sgn(med)}'
-        if fe and fe.get("fx") is not None:
-            out += f'，預估之後比隨便挑一天{_more(fe["fx"])}'
-    out += f'・出現過 {st["n"]} 次' + ("（次數少）" if st["n"] < S.STAR_N and r.get("cat") not in ("stock", "strat") else "")
+        out += f'・報酬中位 {_sgn(med)}'
     if d == "warn" and st.get("mdd") is not None and st.get("mdd_base") is not None:
-        out += f'・回撤中位數 {st["mdd"] * 100:.0f}%（隨便挑一天 {st["mdd_base"] * 100:.0f}%）'
+        out += f'・回撤中位 {st["mdd"] * 100:.0f}%（任一天 {st["mdd_base"] * 100:.0f}%）'
+    if st["n"] < S.STAR_N and r.get("cat") not in ("stock", "strat"):
+        out += f'・次數 {st["n"]}'
     return out
 
 
 def tq_stats(r: dict) -> str:
-    """今天的重點一列的數字（sigspec 第 5 節 ④b，VER 23；看什麼寫在清單標題）：過去的機率（隨便挑一天）、報酬中位數（偏多、買點，
-    訊號自己的看多久才有）或回撤中位數（警示）、出現過幾次。"""
+    """今天的訊號一列的數字（sigspec 第 5 節 ④b，VER 23；看什麼寫在清單標題）：過去的機率（任一天）、報酬中位（偏多、買點，
+    訊號自己的看多久才有）或回撤中位（警示）；次數少才寫次數（docs/lab_ia_v5_plan.md 第 3 節②）。"""
     d = r["d"]
     st = r.get("st") or r[d]
-    out = f'<b>{st["hit"] * 100:.0f}%</b>（隨便挑一天 {st["base"] * 100:.0f}%）'
+    out = f'過去 <b>{st["hit"] * 100:.0f}%</b>（任一天 {st["base"] * 100:.0f}%）'
     if d != "warn":
         med = _med(r) if not r.get("xk") else None                  # 跨期間的列只有機率（報酬是訊號自己看多久的）
         if med is not None:
-            out += f'・報酬中位數 {_sgn(med)}'
+            out += f'・報酬中位 {_sgn(med)}'
     elif st.get("mdd") is not None and st.get("mdd_base") is not None:
-        out += f'・回撤中位數 {st["mdd"] * 100:.0f}%（隨便挑一天 {st["mdd_base"] * 100:.0f}%）'
-    return out + f'・出現過 {st["n"]} 次' + ("（次數少）" if st["n"] < S.STAR_N else "")
-
-
-def _fe(r: dict) -> dict | None:
-    """預估之後（sigspec 第 4.14 節）：今天的清單（第 5 節 ④，VER 21）每一列都帶好了（"fe"；跨期間的是 sigoos.est_x）；
-    沒帶的★、◆ 列才在這裡算（VER 18～20 的用法）。研究檔沒有、不在範圍＝None。"""
-    if "fe" in r:
-        return r["fe"]
-    if r.get("tier") not in ("good", "rare") or r.get("xk") or not r.get("d"):
-        return None
-    try:
-        return OOS.est(r, r["d"])
-    except Exception as ex:                           # 只影響這一行的預估，不擋頁面
-        print(f"[sigpage] 預估之後算不出來 {r.get('id')}：{type(ex).__name__}: {ex}", flush=True)
-        return None
-
-
-def _more(v: float) -> str:
-    """多賺（0～1）→「多 0.9%」／「少 0.2%」／「差不多」（一位小數）。"""
-    x = round(100.0 * v, 1)
-    return f"多 {x:.1f}%" if x > 0 else f"少 {abs(x):.1f}%" if x < 0 else "差不多"
+        out += f'・回撤中位 {st["mdd"] * 100:.0f}%（任一天 {st["mdd_base"] * 100:.0f}%）'
+    return out + (f'・次數 {st["n"]}' if st["n"] < S.STAR_N else "")
 
 
 def _med(r: dict) -> float | None:
@@ -578,17 +553,15 @@ def _dy(d: str | None, ref: str | None) -> str:
 
 
 def _since(n: dict, ref: str | None = None) -> str:
-    """現在成立的那一筆（docs/lab_audit_plan.md 第 3.5 節）：哪天出現（成立）、照規則哪天收盤進場、持有到哪天
-    （sigcat.trade_dates；成績就是這樣算的：事件型＝出現隔天收盤進場，狀態型＝今天看到、下一個交易日收盤進場）。"""
-    tr = f'・{_dy(n["buy"], ref)} 收盤進場、持有到 {_dy(n["sell"], ref)}' if n.get("buy") and n.get("sell") else ""
+    """現在成立的那一筆（docs/lab_audit_plan.md 第 3.5 節）：照規則哪天收盤進場、持有到哪天（sigcat.trade_dates；
+    成績就是這樣算的：事件型＝出現隔天收盤進場，狀態型＝今天看到、下一個交易日收盤進場）；沒有進場日才寫哪天出現（成立）。"""
+    if n.get("buy") and n.get("sell"):
+        return f'{_dy(n["buy"], ref)} 收盤進場・持有到 {_dy(n["sell"], ref)}'
     if n.get("left") is not None:
-        if not tr:
-            return f'{_dy(n["since"], ref)} 出現，還看 {n["left"]} 天'
-        rem = f'（還有 {n["rem"]} 個交易日）' if n.get("rem") is not None else ""
-        return f'{_dy(n["since"], ref)} 出現{tr}{rem}'
+        return f'{_dy(n["since"], ref)} 出現・還有 {n["left"]} 天'
     if n.get("event"):
-        return f'{_dy(n["since"], ref)} 出現{tr}'
-    return f'{_dy(n["since"], ref)} 起成立{tr}'
+        return f'{_dy(n["since"], ref)} 出現'
+    return f'{_dy(n["since"], ref)} 起成立'
 
 
 FWD_ROWS = (("偏多・看 1 個月", "up", S.H_TECH), ("偏多・看 3 個月", "up", S.H_CRASH), ("偏多・看 12 個月", "up", S.H_BUB),
@@ -779,11 +752,11 @@ def table_html(emb: bool = False) -> str:
             + ('' if emb else '<div class="sgchips" data-k="mk"></div>')
             + '<div class="sgchips" data-k="c1"></div><div class="sgchips sgc2" data-k="c2" hidden></div>'
             '<details class="sgadv"><summary>更多篩選<span id="sgadvn"></span></summary><div class="sgadvb">'
-            '<div class="sgchips" data-k="tier"></div><div class="sgchips" data-k="dir"></div>'
+            + ('' if emb else '<div class="sgchips" data-k="tier"></div>') + '<div class="sgchips" data-k="dir"></div>'
             '<div class="sgopt"><label><input type="checkbox" id="sgnow"> 只看現在有訊號的</label>'
-            '<button type="button" id="sgcsv">下載 CSV（每一種訊號）</button></div></div></details></div>'
+            + ('' if emb else '<button type="button" id="sgcsv">下載 CSV（每一種訊號）</button>') + '</div></div></details></div>'
             f'<div class="sgwrap" id="sgwrap"{" hidden" if emb else ""}><table class="sgtb sgit"><thead><tr>'
-            f'<th data-s="tier">判定 {_ii("tnow")}</th><th data-s="name" class="l">指標</th>'
+            + ('' if emb else f'<th data-s="tier">判定 {_ii("tnow")}</th>') + '<th data-s="name" class="l">指標</th>'
             f'<th data-s="h" class="dsk">現在 {_ii("now")}</th><th class="dsk">近一年 {_ii("spark")}</th>'
             f'<th class="l dsk">現在成立的訊號 {_ii("p")}</th>'
             '</tr></thead><tbody id="sgbody"></tbody></table></div>'
@@ -1150,6 +1123,8 @@ const SGAC = window.__sgAC = new AbortController(), SGO = {signal: SGAC.signal};
 const SGD = document.getElementById('sgd'); if (!SGD) return;
 const SG = JSON.parse(SGD.textContent);
 const EMB = !!SG.emb;
+const ANY = EMB ? '任一天' : '隨便挑一天';                // 市場頁的用字（docs/lab_ia_v5_plan.md 第 8 節）；研究紀錄頁照舊
+const anyw = t => EMB ? String(t).replace(/隨便挑同樣天數|隨便挑一天/g, '任一天') : t;
 function curMk(){ if (SG.mk0) return SG.mk0; const b = document.getElementById('ixc'); return b ? b.dataset.ix || '' : ''; }
 const ROWS = SG.rows, ON = SG.on, IT = SG.it || {};
 const I = {id:0,mk:1,cat:2,grp:3,name:4,kind:5,H:6,th:7,tier:8,dir:9,up:10,warn:11,buy:12,a:13,z:14,x:15};
@@ -1183,10 +1158,9 @@ function hz(r){ const c = r[I.cat]; if (c === 'buy') return '3 個月'; if (c ==
 function nowTxt(r){ const n = ON[r[I.id]]; if (!n) return '';
   if (n.xs != null) return n.xs;
   if (n.live != null) return '今天 ' + n.live + ' 檔';
-  const tr = n.buy && n.sell ? '・' + mdy(n.buy) + ' 收盤進場、持有到 ' + mdy(n.sell) : '';
-  if (n.left != null) return mdy(n.since) + ' 出現' + (tr ? tr + (n.rem != null ? '（還有 ' + n.rem + ' 個交易日）' : '') : '・還看 ' + n.left + ' 天');
-  if (n.event) return mdy(n.since) + ' 出現' + tr;
-  return mdy(n.since) + ' 起成立' + tr; }
+  if (n.buy && n.sell) return mdy(n.buy) + ' 收盤進場・持有到 ' + mdy(n.sell);
+  if (n.left != null) return mdy(n.since) + ' 出現・還有 ' + n.left + ' 天';
+  return mdy(n.since) + (n.event ? ' 出現' : ' 起成立'); }
 function nowShort(r){ const n = ON[r[I.id]]; if (!n) return '';   // 「現在」欄只寫哪天出現（進場、持有到哪天寫在訊號那一欄）
   if (n.xs != null) return n.xs;
   if (n.live != null) return '今天 ' + n.live + ' 檔';
@@ -1210,6 +1184,14 @@ function phr(r, d){ if (r[I.cat] === 'xs') { const x = SIG2[r[I.id]]; return x ?
   const f = feOf(r, d);                                                         // VER 18～19：預估之後
   return w + (f ? ' 過去 ' + pc(s[1]) + ' → 預估之後 <b>' + pc(f[0]) + '</b>' : ' <b>' + pc(s[1]) + '</b>') + (s[2] != null ? '（隨便挑一天 ' + pc(s[2]) + '）' : '') +
     (m != null ? '・報酬中位數 ' + (m > 0 ? '+' : m < 0 ? '−' : '') + Math.abs(m).toFixed(1) + '%' + (f && f[3] != null ? '，預估之後比隨便挑一天' + moreTxt(f[3]) : '') : ''); }
+function phrP(r, d){ if (r[I.cat] === 'xs') { const x = SIG2[r[I.id]]; return x ? esc(anyw(x.xs.line)) : ''; }
+  const s = stat(r, d); if (!s) return ''; const c = r[I.cat], h = hz(r);
+  const w = d === 'buy' ? '買進之後 ' + h + '上漲' : d === 'up' ? '之後 ' + h + '上漲' : '之後 ' + h + '內回撤 ' + r[I.th] + '% 以上';
+  const m = d !== 'warn' ? (r[I.x] || {}).med : null;
+  return w + ' <b>' + pc(s[1]) + '</b>' + (s[2] != null ? '（任一天 ' + pc(s[2]) + '）' : '') +
+    (m != null ? '・報酬中位 ' + (m > 0 ? '+' : m < 0 ? '−' : '') + Math.abs(m).toFixed(1) + '%' : '') +
+    (d === 'warn' && s[7] != null ? '・回撤中位 ' + pc(s[7]) + (s[8] != null ? '（任一天 ' + pc(s[8]) + '）' : '') : '') +
+    (s[0] < SG.sn ? '・次數 ' + s[0] : ''); }
 function feOf(r, d){ const f = ((r[I.x] || {}).fe || {})[d]; return f || null; }
 function moreTxt(v){ const x = Math.round(v * 10) / 10; return x > 0 ? '多 ' + x.toFixed(1) + '%' : x < 0 ? '少 ' + Math.abs(x).toFixed(1) + '%' : '差不多'; }
 function cellTxt(key){                                 // 衰退表的格子（sigoos.key）→ 白話：偏多・看 1 個月・出現過 15～39 次・過去比平常高 10～20 點
@@ -1241,7 +1223,9 @@ function feHtml(r){
   return out.join('') || '<p class="note">沒有預估之後。</p>'; }
 function mark(t, r){ const x = ((r && (r[I.cat] === 'strat' || r[I.cat] === 'xs')) ? SG.stiers : SG.tiers)[t] || ['', ''];
   return '<span class="sgtk sgtk-' + t + '" title="' + esc(x[1]) + '">' + x[0] + '</span>'; }
-function sent(r){ const [d, s] = sd(r); return mark(s ? s[6] : r[I.tier], r) + ' <b>' + esc(label(r)) + '</b>：' + phr(r, d); }
+function sent(r){ const [d, s] = sd(r);
+  if (EMB) return '<b>' + esc(label(r)) + '</b>：' + phrP(r, d);
+  return mark(s ? s[6] : r[I.tier], r) + ' <b>' + esc(label(r)) + '</b>：' + phr(r, d); }
 function zi(h){ return h == null ? 'x' : h >= 80 ? '4' : h >= 60 ? '3' : h >= 40 ? '2' : h >= 20 ? '1' : '0'; }
 
 // ── 依指標整理（docs/lab_sigview_plan.md）
@@ -1331,13 +1315,13 @@ function nowCell(x){ const it = x.it;
     (it.h != null ? '<span class="sgnz zt' + zi(it.h) + '">' + Math.round(it.h) + ' ' + esc(it.band || '') + '</span>' : '');
   const o = x.on[0]; return o ? '<span class="sgnv">' + esc(nowShort(o)) + '</span>' : '<span class="mu">—</span>'; }
 function sigCell(x){
-  if (x.cat === 'xs') return mark(x.xs.t, x.best) + ' ' + esc(x.xs.line) + '<span class="sgs">' + esc(x.xs.now) + '</span>';
+  if (x.cat === 'xs') return (EMB ? '' : mark(x.xs.t, x.best) + ' ') + esc(anyw(x.xs.line)) + '<span class="sgs">' + esc(x.xs.now) + '</span>';
   if (x.on.length) { const o = x.on[0];
     return sent(o) + '<span class="sgs">' + esc(nowTxt(o)) + (x.on.length > 1 ? '・另 ' + (x.on.length - 1) + ' 個也成立' : '') + '</span>'; }
   const b = x.best, t = b[I.tier];
-  return '<span class="mu">現在沒有成立的訊號' + ((t === 'good' || t === 'rare' || t === 'ref') ? '；最好的是「' + esc(label(b)) + '」' + SG.tiers[t][0] : '') + '</span>'; }
+  return '<span class="mu">現在沒有成立的訊號' + (!EMB && (t === 'good' || t === 'rare' || t === 'ref') ? '；最好的是「' + esc(label(b)) + '」' + SG.tiers[t][0] : '') + '</span>'; }
 function rowHtml(x){ const t = x.cat === 'xs' ? x.xs.t : x.on.length ? x.on[0][I.tier] : null, sp = x.it && x.it.sp;
-  return '<tr class="sgr" data-k="' + esc(x.k) + '"><td class="tk">' + (t ? mark(t, x.on[0]) : '<span class="sgtk mu">·</span>') + '</td>' +
+  return '<tr class="sgr" data-k="' + esc(x.k) + '">' + (EMB ? '' : '<td class="tk">' + (t ? mark(t, x.on[0]) : '<span class="sgtk mu">·</span>') + '</td>') +
     '<td class="l"><b class="sgin">' + esc(x.name) + '</b><span class="sgm">' + esc(meta(x)) + '</span>' +
     '<div class="sgmob"><div class="sgmn">' + nowCell(x) + spark(sp, 76, 20) + '</div><div class="sgms">' + sigCell(x) + '</div></div></td>' +
     '<td class="dsk nv">' + nowCell(x) + '</td><td class="dsk spk">' + spark(sp, 110, 26) + '</td>' +
@@ -1378,6 +1362,9 @@ const TIP = {
   rhalf: '報酬由小到大排，中間一半落在這個範圍（25%～75%）。',
   rmae: '進場之後到這一天之間，最低收盤比進場價低多少（比進場價低才算，沒跌過＝0）。中位數＝一半的時候跌得比這少。',
   rmae10: '中途最多跌由差到好排，最差的一成跌超過這個數字。'};
+if (EMB) { Object.keys(TIP).forEach(k => { TIP[k] = anyw(TIP[k]); });
+  TIP.prob = '這個訊號過去出現之後，「看什麼」那一欄成立的比例；小字是任一天的比例。';
+  TIP.rmed = '偏多：持有到期的報酬，由小到大排在正中間的那一個。警示：期間最大回撤的中位數。'; }
 function ii(k){ return '<span class="sgq" tabindex="0" role="button" aria-label="說明" data-tip="' + k + '">ⓘ</span>'; }
 const TB = document.getElementById('sgtip');
 function showTip(el){ TB.textContent = TIP[el.dataset.tip] || ''; TB.hidden = false;
@@ -1412,7 +1399,7 @@ function trig(r){ const c = r[I.cat], x = r[I.x] || {}, nm = r[I.name];
   if (c === 'multi') return x.sig === 'hot' ? '景氣頁的面向裡，同時 2 個以上在 80 以上的每一天（至少 3 個面向有值；同一段算 1 次）' : '從不到 2 個面向過熱，變成 2 個以上那一天';
   if (c === 'tech') return nm + '出現那一天（用指數收盤；轉折與均線的定義同景氣頁）';
   if (c === 'deriv') return x.vn + '的邊際變化是「' + nm.split('・').pop() + '」的每一天（看一階、二階的方向；同一段算 1 次）';
-  if (c === 'bub') return '泡沫頁每月判定「' + nm + '」成立的月份（每個月最後一個交易日算一天；連續的月份算 1 次）';
+  if (c === 'bub') return '每個月底「' + nm + '」成立的月份（每個月最後一個交易日算一天；連續的月份算 1 次）';
   if (c === 'ind') return x.vn + '裡任何一個產業「' + nm.split('・').pop() + '」成立的月份（每個產業各自算，再合併）';
   if (c === 'buy') return nm.split('・')[0] + '之後，' + x.vn + '出現，隔天收盤買';
   return x.desc || ''; }
@@ -1508,6 +1495,19 @@ function sigTable(x){
         '<td class="r10" data-h="近 10 年">' + r10(s, d, r[I.cat] === 'stock') + '</td><td data-h="出現">' + (s ? s[0] : '—') + '</td>' +
         '<td data-h="判定">' + mark(s ? s[6] : 'few', r) + luckTxt(s, r) + '</td></tr>'; }).join('') + '</tbody>'; }).join('');
   return '<div class="sgwrap sgsw"><table class="sgst2">' + head + body + '</table></div>'; }
+function sigTableP(x){
+  const head = '<thead><tr><th class="l">訊號</th><th class="l">看什麼</th><th>過去 ' + ii('prob') + '</th><th>報酬或回撤中位 ' + ii('rmed') + '</th><th>次數 ' + ii('n') + '</th></tr></thead>';
+  const body = x.sig.map(r => { const ds = dirsOf(r), on = ON[r[I.id]];
+    return '<tbody class="sgsb' + (on ? ' on' : '') + (SEL === r ? ' sel' : '') + '" data-id="' + esc(r[I.id]) + '">' + ds.map((d, i) => { const s = stat(r, d), m = (r[I.x] || {}).med;
+      const w = d === 'warn' ? '之後回撤 ' + r[I.th] + '% 以上' : d === 'buy' ? '買進之後上漲' : '之後上漲';
+      const med = d === 'warn' ? (s && s[7] != null ? '回撤 ' + pc(s[7]) + (s[8] != null ? '<small>任一天 ' + pc(s[8]) + '</small>' : '') : '—')
+        : (m == null ? '—' : '<b class="' + (m > 0 ? 'up' : m < 0 ? 'dn' : '') + '">' + sr1(m) + '</b>');
+      return '<tr>' + (i ? '' : '<td class="l nm" rowspan="' + ds.length + '"><b>' + esc(label(r)) + '</b><small>看 ' + esc(hz(r)) +
+          (on ? '・<span class="sgon">現在成立</span>' : '') + '</small></td>') +
+        '<td class="l wt"><span class="sgd sgd-' + d + '">' + w + '</span></td>' +
+        '<td data-h="過去"><b>' + (s ? pc(s[1]) : '—') + '</b>' + (s && s[2] != null ? '<small>任一天 ' + pc(s[2]) + '</small>' : '') + '</td>' +
+        '<td data-h="報酬或回撤中位">' + med + '</td><td data-h="次數">' + (s ? s[0] : '—') + '</td></tr>'; }).join('') + '</tbody>'; }).join('');
+  return '<div class="sgwrap sgsw"><table class="sgst2 sgst3">' + head + body + '</table></div>'; }
 function panelHtml(x){
   const ck = chartable(x);
   let h = '<div class="sgph"><div><p class="sgkick">' + esc(meta(x)) + '</p><h3 id="sgpt">' + esc(x.name) + '</h3></div>' +
@@ -1517,17 +1517,19 @@ function panelHtml(x){
     '<button type="button" data-v="5y">近 5 年</button><button type="button" data-v="all">全部</button></div>' +
     (x.cat === 'heat' ? '<div class="sgseg" data-g="raw"><button type="button" data-v="0">0～100</button><button type="button" data-v="1">原始值</button></div>' : '') +
     '</div><div class="sgcv" id="sgcv"><p class="note">走勢載入中…</p></div><p class="sgread" id="sgread"></p><p class="note" id="sgleg"></p>';
-  h += '<h4>這個指標的訊號</h4><p class="note">每一種訊號都分偏多、警示兩個方向各算一次。點一列，' + (ck ? '走勢圖的打點和' : '') + '下面的「最近幾次」換成那個訊號。</p>' + sigTable(x);
-  h += '<h4>預估之後：<span id="sgfsel"></span> ' + ii('fwd') + '</h4><div id="sgfe" class="sgfe"></div>';
+  if (EMB) h += '<h4>這個指標的訊號</h4>' + sigTableP(x);
+  else {
+    h += '<h4>這個指標的訊號</h4><p class="note">每一種訊號都分偏多、警示兩個方向各算一次。點一列，' + (ck ? '走勢圖的打點和' : '') + '下面的「最近幾次」換成那個訊號。</p>' + sigTable(x);
+    h += '<h4>預估之後：<span id="sgfsel"></span> ' + ii('fwd') + '</h4><div id="sgfe" class="sgfe"></div>'; }
   h += '<h4>進場之後：<span id="sgrsel"></span></h4><div id="sgret"></div>';
   h += '<h4>最近幾次：<span id="sgsel"></span></h4><div id="sgrec"></div>';
-  h += '<details class="sghow"><summary>怎樣算出現、怎樣算中了</summary><div id="sghow"></div></details>';
+  h += '<details class="sghow"><summary>' + (EMB ? '訊號的定義' : '怎樣算出現、怎樣算中了') + '</summary><div id="sghow"></div></details>';
   return h + '</div>'; }
 function segSync(){ PB.querySelectorAll('.sgseg').forEach(g => g.querySelectorAll('button').forEach(b =>
   b.classList.toggle('on', g.dataset.g === 'span' ? b.dataset.v === VIEW.span : b.dataset.v === (VIEW.raw ? '1' : '0')))); }
 function openInd(x, sid, push){
   if (window.heatClose) window.heatClose(true);                                // 市場頁：先關掉景氣的右側面板（不動瀏覽紀錄）
-  if (x.cat === 'xs') { xsOpen(x, push); return; }
+  if (x.cat === 'xs') { if (EMB) { location.href = 'x9.html#v=mac&m=' + x.mk + '&x=' + x.xk; return; } xsOpen(x, push); return; }
   const first = PV.hidden;
   CUR = x; SEL = (sid && x.sig.find(r => r[I.id] === sid)) || x.on[0] || x.best;
   OCC = OCCM[x.mk] || null;
@@ -1556,7 +1558,16 @@ document.addEventListener('click', e => {   // 景氣的右側面板裡「每一
   const sid = a.dataset.sg, x = SIG2[sid];
   if (!x) return;
   e.preventDefault(); openInd(x, sid, true); }, SGO);
+function succP(r, d){ const c = r[I.cat], h = hz(r), th = r[I.th];
+  if (c === 'buy') return '照規則的買進日收盤買，3 個月（60 個交易日）後收盤比買價高';
+  if (c === 'ind') return d === 'up' ? '訊號那個月底買，12 個月後的月底比買價高' : '訊號那個月底算起，12 個月內的最大回撤（月底最高到之後月底最低）20% 以上';
+  return d === 'up' ? '出現隔天收盤買，' + h + '後收盤比買價高' : '出現隔天收盤算起，' + h + '內的最大回撤（期間最高收盤到之後最低收盤）' + th + '% 以上'; }
 function howHtml(r){ const x = r[I.x] || {};
+  if (EMB) { let h = '<p class="sgdl"><b>怎樣算出現</b>：' + esc(anyw(trig(r))) + '</p>';
+    h += dirsOf(r).map(d => '<p class="sgdl"><b>' + (d === 'warn' ? '之後回撤' : d === 'buy' ? '買進之後上漲' : '之後上漲') + '</b>：' + esc(succP(r, d)) + '</p>').join('');
+    if (r[I.a]) h += '<p class="sgdl note">資料期間 ' + ymd(r[I.a]) + '～' + ymd(r[I.z]) + '。</p>';
+    if (r[I.cat] === 'scen') h += '<p class="sgdl"><a href="#" data-open="out:out" data-to="scen">看全部情境</a></p>';
+    return h; }
   let h = '<p class="sgdl"><b>怎樣算出現</b>：' + esc(trig(r)) + '</p>';
   h += dirsOf(r).map(d => '<p class="sgdl"><b>' + (r[I.cat] === 'strat' ? '怎樣算中了' : what(r, d) + '：怎樣算中了') + '</b>：' + esc(succ(r, d)) + '</p>').join('');
   const w = stat(r, 'warn');
@@ -1568,9 +1579,6 @@ function howHtml(r){ const x = r[I.x] || {};
   if (r[I.a]) h += '<p class="sgdl note">資料期間 ' + ymd(r[I.a]) + '～' + ymd(r[I.z]) + '。</p>';
   const rl = rel(r); if (rl) h += '<p class="sgdl"><b>相關研究</b>：' + rl + '</p>';
   const mk = r[I.mk];
-  if (EMB) {                                                                     // 市場頁：情境在同一頁的「之後怎麼走？」
-    if (r[I.cat] === 'scen') h += '<p class="sgdl"><a href="#" data-open="out:out" data-to="scen">看全部情境 →</a></p>';
-    return h; }
   if (['heat', 'deriv', 'multi', 'crash', 'tech'].includes(r[I.cat]) && SG.chart[mk])
     h += '<p class="sgdl"><a href="' + mkHref(mk) + '">在' + esc(SG.mk[mk]) + '的市場頁看 →</a></p>';
   if (r[I.cat] === 'scen' && SG.chart[mk])
@@ -1597,7 +1605,8 @@ function recHtml(r, oc){
     '<th>期間最大回撤 ' + ii('dd') + '</th><th>' + (ev ? (d === 'warn' ? '大跌' : '上漲') : (d === 'warn' ? '大跌的比例' : '上漲的比例')) + '</th></tr></thead>';
   const body = list.map(e => { const o = e.o;
     if (e.k) return '<tr class="sk"><td class="l">' + ymd(e.k[0]) + '</td><td colspan="' + (ck ? 4 : 3) + '" class="l">' +
-      (e.k[1] === 'd' ? '沒算進次數：和 ' + ymd(e.k[2]) + ' 那次相隔不到' + esc(h) + '（之後的漲跌重疊，算同一次）' : '之後' + esc(h) + '還沒走完，還沒算') + '</td></tr>';
+      (e.k[1] === 'd' ? (EMB ? '和 ' + ymd(e.k[2]) + ' 那次相隔不到' + esc(h) + '，算同一次' : '沒算進次數：和 ' + ymd(e.k[2]) + ' 那次相隔不到' + esc(h) + '（之後的漲跌重疊，算同一次）')
+        : '之後' + esc(h) + '還沒走完') + '</td></tr>';
     if (ev) { const hit = d === 'warn' ? o[2] : o[1];
       return '<tr><td class="l">' + ymd(o[0]) + '</td>' + (ck ? '<td>' + vv(o[0]) + '</td>' : '') + '<td' + cls(o[4]) + '>' + sp1(o[4]) + '</td><td>' + p1(o[3]) + '</td>' +
         '<td>' + (hit ? '✓' : '<span class="mu">✗</span>') + '</td></tr>'; }
@@ -1605,12 +1614,13 @@ function recHtml(r, oc){
     return '<tr><td class="l">' + ymd(o[0]) + (o[1] !== o[0] ? '～' + ymd(o[1]) : '') + '<small>' + o[2] + (mo ? ' 個月' : ' 天') + '</small></td>' +
       (ck ? '<td>' + vv(o[0]) + '</td>' : '') + '<td' + cls(o[6]) + '>' + sp1(o[6]) + '</td><td>' + p1(o[5]) + '</td><td>' + Math.round(o[j] * 100) + '%</td></tr>'; }).join('');
   const nd = sk.filter(k => k[1] === 'd').length, ni = sk.length - nd;
-  const cnt = ev ? '<p class="note">一共出現 ' + (oc.length + sk.length) + ' 次，算進次數 ' + oc.length + ' 次' +
+  const cnt = ev ? '<p class="note">一共出現 ' + (oc.length + sk.length) + ' 次，算進次數 ' + oc.length + ' 次' + (EMB ? (sk.length ? '（灰色＝和前一次相隔太近或還沒走完）' : '') :
     (nd ? '；' + nd + ' 次和前一次算進去的相隔不到' + esc(h) + '（之後的漲跌和那一次重疊，算同一次，灰色）' : '') +
-    (ni ? '；' + ni + ' 次之後' + esc(h) + '還沒走完（灰色）' : '') + '。</p>' : '';
+    (ni ? '；' + ni + ' 次之後' + esc(h) + '還沒走完（灰色）' : '')) + '。</p>' : '';
   return cnt + '<div class="sgwrap"><table class="sgrt">' + head + '<tbody>' + body + '</tbody></table></div>' +
+    (EMB ? (ev ? '' : '<p class="note">共 ' + oc.length + ' 段，列最近 12 段。</p>') :
     '<p class="note">' + (ev ? '列最近 12 次（含沒算進次數的）' : '共 ' + oc.length + ' 段，列最近 12 段；漲跌、最大回撤、比例是這一段每一天的平均，還在觀察期內的日子不算') + '。' +
-    (ck ? '「當時 0～100」是' + (ev ? '出現' : '開始') + '那一天的值（一年以前的用那一週）。' : '') + '</p>'; }
+    (ck ? '「當時 0～100」是' + (ev ? '出現' : '開始') + '那一天的值（一年以前的用那一週）。' : '') + '</p>'); }
 function fillSel(){ const r = SEL, box = document.getElementById('sgrec'); if (!r || !box) return;
   document.getElementById('sgsel').textContent = label(r);
   document.getElementById('sgrsel').textContent = label(r);
@@ -1631,7 +1641,7 @@ const dn1 = v => v == null ? '—' : (v < 0 ? '−' : '') + Math.abs(v).toFixed(
 function retSpec(r, j){ const q = j && j.ret ? j.ret[r[I.id]] : null; if (!q) return null;
   const mo = !!q.hm, c = r[I.cat];
   return {q, b: q.b && j.rb ? j.rb[q.b] || null : null, mo, hs: mo ? SG.rhm : SG.rh, ps: mo ? SG.rhm : SG.pd,
-    bn: '隨便挑一天',
+    bn: ANY,
     own: c === 'buy' ? 60 : c === 'ind' ? 12 : c === 'stock' ? 20 : r[I.H],
     entry: c === 'buy' ? '照規則的買進日收盤進場' : c === 'stock' ? '訊號隔天開盤進場' : c === 'ind' ? '那個月底進場' : '訊號出現隔一個交易日收盤進場',
     hn: h => mo ? h + ' 個月' : RHN[h] || h + ' 天'}; }
@@ -1649,7 +1659,7 @@ function retHtml(r, j){
     (ob ? '（' + esc(bn) + ' ' + sr1(ob[3]) + '）' : '') + '，一半落在 ' + sr1(os[2]) + '～' + sr1(os[4]) + '；上漲的機率 ' + Math.round(os[5]) + '%' +
     (ob ? '（' + Math.round(ob[5]) + '%）' : '') + '。<br>進場之後中途最多跌：一半的時候在 <b>' + dn1(os[6]) + '</b> 以內、最差的一成跌超過 <b>' + dn1(os[7]) + '</b>' +
     (ob ? '（' + esc(bn) + ' ' + dn1(ob[6]) + '、' + dn1(ob[7]) + '）' : '') + '，最差一次 ' + dn1(os[8]) + '。' +
-    (os[0] < SG.rmin ? '<span class="mu">（只有 ' + os[0] + ' 次，只當參考）</span>' : '') + robustTxt(os) + '</p>';
+    (os[0] < SG.rmin ? '<span class="mu">' + (EMB ? '（次數 ' + os[0] + '）' : '（只有 ' + os[0] + ' 次，只當參考）') + '</span>' : '') + robustTxt(os) + '</p>';
   const sub = (v, f) => b && v != null ? '<small>' + f(v) + '</small>' : '';
   const head = '<thead><tr><th class="l">持有</th><th>上漲的機率 ' + ii('rup') + '</th><th>報酬中位數 ' + ii('rmed') + '</th>' +
     '<th>排除極端 ' + ii('rtrim') + '</th><th>去掉最好一次 ' + ii('rlbo') + '</th><th>一半落在 ' + ii('rhalf') + '</th>' +
@@ -1657,7 +1667,7 @@ function retHtml(r, j){
   const body = hs.map((hh, i) => { const s = q.s[i], z = b ? b.s[i] : null;
     if (!s) return '<tr class="na"><td class="l">' + esc(R.hn(hh)) + '</td><td colspan="8" class="mu">資料不夠（窗口還沒走完）</td></tr>';
     return '<tr' + (hh === R.own ? ' class="own"' : '') + (s[0] < SG.rmin ? ' data-few="1"' : '') + '><td class="l">' + esc(R.hn(hh)) +
-      (hh === R.own ? '<small>判定看這一期</small>' : R.mo ? '' : '<small>' + hh + ' 個交易日</small>') + '</td>' +
+      (hh === R.own ? '<small>' + (EMB ? '這個訊號的期間' : '判定看這一期') + '</small>' : R.mo ? '' : '<small>' + hh + ' 個交易日</small>') + '</td>' +
       '<td data-h="上漲的機率"><b>' + Math.round(s[5]) + '%</b>' + sub(z && z[5], v => Math.round(v) + '%') + '</td>' +
       '<td data-h="報酬中位數" class="' + (s[3] > 0 ? 'up' : s[3] < 0 ? 'dn' : '') + '"><b>' + sr1(s[3]) + '</b>' + sub(z && z[3], sr1) + '</td>' +
       '<td data-h="排除極端">' + (s[9] == null ? '—' : sr1(s[9])) + sub(z && z[9], sr1) + '</td>' +
@@ -1667,9 +1677,10 @@ function retHtml(r, j){
       '<td data-h="中途最多跌・最差 10%">' + dn1(s[7]) + sub(z && z[7], dn1) + '</td>' +
       '<td data-h="次數">' + s[0] + (s[0] < SG.rmin ? '<small>次數少</small>' : '') + '</td></tr>'; }).join('');
   return h + '<div class="sgwrap sgrw"><table class="sgrr">' + head + '<tbody>' + body + '</tbody></table></div>' +
+    (EMB ? '<p class="note">' + (b ? '小字＝任一天。' : '') + '價格是指數本身、不含股息。</p>' :
     '<p class="note">' + (b ? '每格下面的小字＝' + esc(bn) + '（同一段期間、同樣算法）。' : '') +
     (r[I.kind] === 'state' ? '狀態型：狀態中的每一天都算進場一次，每一天一樣重。' : '') +
-    '價格是指數本身、不含股息。' + (r[I.cat] === 'stock' ? '個股訊號的判定（★／●）照上表（比隨便挑一天多幾個百分點、打亂測試）；這張表只呈現。' : '偏多與買點的判定（★／◆）看「判定看這一期」那一列：上漲的機率、報酬中位數與排除極端的平均；警示看上表大回撤的機率；其他期間只呈現。') + '</p><div class="sgrcv" id="sgrcv"></div><p class="sgread" id="sgrrd"></p>' +
+    '價格是指數本身、不含股息。' + (r[I.cat] === 'stock' ? '個股訊號的判定（★／●）照上表（比隨便挑一天多幾個百分點、打亂測試）；這張表只呈現。' : '偏多與買點的判定（★／◆）看「判定看這一期」那一列：上漲的機率、報酬中位數與排除極端的平均；警示看上表大回撤的機率；其他期間只呈現。') + '</p>') + '<div class="sgrcv" id="sgrcv"></div><p class="sgread" id="sgrrd"></p>' +
     '<p class="note">實線＝進場之後的報酬中位數、色帶＝一半落在的範圍' + (b ? '；虛線與灰色帶＝' + esc(bn) : '') + '。橫軸＝進場之後經過' + (R.mo ? '幾個月' : '幾個交易日') + '。</p>'; }
 function drawRet(r, j){
   const box = document.getElementById('sgrcv'), R = retSpec(r, j); if (!box || !R) return;
@@ -1824,7 +1835,8 @@ let qt = null;
 document.getElementById('sgq').addEventListener('input', e => { clearTimeout(qt); qt = setTimeout(() => { st.q = e.target.value.trim().toLowerCase(); st.limit = 80; draw(); }, 150); }, SGO);
 document.getElementById('sgnow').addEventListener('change', e => { st.now = e.target.checked; st.limit = 80; draw(); }, SGO);
 document.getElementById('sgmore').addEventListener('click', e => { if (e.currentTarget.dataset.all) st.open = true; else st.limit += 200; draw(); }, SGO);
-document.getElementById('sgcsv').addEventListener('click', () => {
+const CSVB = document.getElementById('sgcsv');
+if (CSVB) CSVB.addEventListener('click', () => {
   const list = sorted(INDS.filter(x => pass(x)));
   const head = ['指標','市場','類別','訊號','看多久','現在成立','方向','看什麼','機率%','隨便挑一天%','多幾個百分點','近10年次數','近10年機率%','近10年隨便挑一天%',
     '出現過幾次','判定','亂排也做得到%','最大回撤中位數%','隨便挑一天最大回撤中位數%','大跌門檻%','報酬中位數%','排除極端的平均%','預估之後的機率%','預估之後比隨便挑一天多賺%','代號'];

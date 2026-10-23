@@ -58,12 +58,12 @@ def _chips(grp: str, n: dict) -> str:
 
 
 def _g_cell(n: dict) -> tuple[str, float | None]:
-    """未來獲利欄：分析師預估（今年→明年、明年預估 3 個月修正）或營收替代資料；回傳 (文字, 排序值)。"""
+    """未來獲利欄：分析師預估（今年／明年、明年預估 3 個月修正）或營收替代資料；回傳 (文字, 排序值)。"""
     g = n.get("g") or {}
     if n.get("gsrc") == "est" or (g and g.get("g0") is not None and "y12" not in g):
         if g.get("g0") is None or g.get("g1") is None:
             return "—", None
-        s = f'{_pct(100 * g["g0"])} → {_pct(100 * g["g1"])}'
+        s = f'{_pct(100 * g["g0"])}／{_pct(100 * g["g1"])}'
         if g.get("rev") is not None:
             s += f'｜{"上修" if g["rev"] >= 0 else "下修"} {abs(100 * g["rev"]):.0f}%'
         return s, 100 * g["g1"]
@@ -163,7 +163,7 @@ def _head(grp: str) -> str:
     ths = [f'<th class="l" data-si="0">{"族群" if grp == "tg" else "產業"}</th>', '<th data-si="1">等級</th>', '<th class="l dsk">成立的條件</th>',
            '<th data-si="3">兩年漲幅</th>', '<th class="dsk" data-si="4">離最高點</th>']
     if grp in ("tw", "us", "tg"):
-        ths.append('<th class="l dsk" data-si="5">未來獲利：今年→明年｜明年預估近 3 個月</th>')
+        ths.append('<th class="l dsk" data-si="5">未來獲利：今年／明年｜明年預估近 3 個月</th>')
     if grp == "ff":
         ths.append('<th class="dsk" data-si="5">家數增加（百分位）</th>')
     return f'<thead><tr>{"".join(ths)}</tr></thead>'
