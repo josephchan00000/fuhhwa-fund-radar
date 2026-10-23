@@ -121,10 +121,11 @@ def test_book_matches_the_engine_when_a_held_stock_stops_trading():
 
 
 def test_week_ends_follow_the_official_holidays():
-    # 9/25（五）中秋、9/28（一）教師節、10/9（五）國慶補假都休市
-    assert L.week_ends("2026-09-21", "2026-10-23") == ["2026-09-24", "2026-10-02", "2026-10-08", "2026-10-16", "2026-10-23"]
-    assert L.week_ends("2026-10-19", "2026-10-22") == []            # 這一週還沒結束
-    assert L.week_ends(S.START, S.START) == [S.START]
+    # 9/25（五）中秋、9/28（一）教師節、10/9（五）國慶補假、10/23（五）薔琵颱風都休市
+    assert L.week_ends("2026-09-21", "2026-10-23") == ["2026-09-24", "2026-10-02", "2026-10-08", "2026-10-16", "2026-10-22"]
+    assert L.week_ends("2026-10-26", "2026-10-29") == []            # 這一週還沒結束
+    assert L.week_ends("2026-10-30", "2026-10-30") == ["2026-10-30"]
+    assert L.week_ends(S.START, S.START) == []                      # START 當天颱風休市：那一週不記（第一筆 10/30）
 
 
 def test_add_week_is_append_only_and_marks_late_books():

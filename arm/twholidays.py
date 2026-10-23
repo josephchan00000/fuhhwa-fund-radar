@@ -11,6 +11,7 @@
 年度公告；CI 每日抓入 `data/tw_holidays.json`），行事曆文字只在官方表未涵蓋的年份當後備。
 容器 proxy 擋 twse——抓取只在 CI；為了不必等 CI 首輪，2026 年以兩來源核對過的種子 `SEED`
 內建（官方表抓到後以官方為準，兩者不一致時 CI 日誌會印出差異）。
+颱風停止交易不在年度表上（2026-10-23 薔琵颱風踩坑）→ 查證過的日子寫進 `ADHOC`，任何呼叫端都算休市。
 """
 from __future__ import annotations
 
@@ -79,6 +80,19 @@ PROVISIONAL: dict[int, dict[str, str]] = {
     },
 }
 
+# **臨時休市**（颱風停止交易）：證交所年度表（holidaySchedule）只列事先排定的假日，颱風停止交易**不會**
+# 出現在表上——2026-10-23 薔琵颱風當天實測：12:06 抓的官方表沒有這一天，看門狗把休市當交易日、盤後班當掉。
+# 這裡逐筆寫入查證過的日子（證交所／櫃買公告，兩家以上主流媒體）；任何年份、任何呼叫端都一律休市。
+# 還沒補進來的颱風日，看門狗與行事曆閘門另認市況段明寫「M/D 因颱風休市」（typhoon_said）。
+ADHOC: dict[str, str] = {
+    # 雙北停止上班，證交所、櫃買、期交所、外匯同步休市；經濟日報／工商時報／鉅亨 2026-07-09～10；
+    # 官方收盤表該日查無（data/lab/mkt_nodata.json）
+    "2026-07-10": "巴威颱風停止交易",
+    # 證交所 10/22 公告全日休市（櫃買、期貨、外匯同步）；經濟日報 money.udn.com/money/story/5607/9832123、
+    # 工商時報 ctee.com.tw/news/20261022702278-430201；10/26 光復節補假，連休到 10/27
+    "2026-10-23": "薔琵颱風停止交易",
+}
+
 _OPEN_MARK = re.compile(r"開始交易|最後交易")      # 這兩種列是「交易日」的註記、不是休市
 _NO_TRADE = re.compile(r"無交易")
 
@@ -142,7 +156,10 @@ def provisional(years: dict | None = None) -> dict[int, dict[str, str]]:
 
 def is_closed(d: date, years: dict | None = None) -> bool | None:
     """證交所表涵蓋該年 → True／False（週末一律 True）；只有暫代層 → 辦公日曆放假日 True、
-    其餘平日 None（證交所可能另加休市日，不猜）；都沒有 → None。None＝呼叫端自行退回後備判斷。"""
+    其餘平日 None（證交所可能另加休市日，不猜）；都沒有 → None。None＝呼叫端自行退回後備判斷。
+    臨時休市（ADHOC，颱風）任何情況都回 True。"""
+    if d.isoformat() in ADHOC:
+        return True
     years = load() if years is None else years
     if d.weekday() >= 5 and (d.year in years or d.year in PROVISIONAL):
         return True
@@ -158,7 +175,20 @@ def closed_days(years: dict | None = None, with_provisional: bool = False) -> di
     out = {date.fromisoformat(k): n for v in years.values() for k, n in v.items()}
     if with_provisional:
         out.update({date.fromisoformat(k): n for v in provisional(years).values() for k, n in v.items()})
+    out.update({date.fromisoformat(k): n for k, n in ADHOC.items()})
     return out
+
+
+_TYPHOON = re.compile(r"颱風")
+
+
+def typhoon_said(clause: str | None, d: date) -> bool:
+    """行事曆市況段的台股欄明寫 d 那天因颱風休市（例「10/23 因颱風休市」）。颱風停止交易不在年度表上，
+    還沒補進 ADHOC 之前看門狗與行事曆閘門用它；**只認颱風**——其他理由的休市文字照舊以官方表為準。"""
+    s = clause or ""
+    if "休市" not in s or not _TYPHOON.search(s):
+        return False
+    return (d.month, d.day) in {(int(a), int(b)) for a, b in re.findall(r"(\d{1,2})/(\d{1,2})", s)}
 
 
 def covers(d: date) -> bool:

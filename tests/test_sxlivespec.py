@@ -26,15 +26,16 @@ def test_sxlive_spec_v1_is_locked():
     assert S.SUGGEST == {"mdd_extra": 10.0}
 
 
-def test_start_is_the_last_trading_day_of_its_week():
-    from datetime import date, timedelta
+def test_start_is_the_spec_date_and_first_week_follows_the_official_calendar():
+    # 寫規格時 10/23（五）是這一週最後一個交易日；當天臨時因薔琵颱風休市（twholidays.ADHOC）。
+    # 「START 起每週最後一個交易日」照字面：10/19 那一週的最後交易日 10/22 早於 START、不記，第一筆＝10/30。
+    from datetime import date
     from arm import twholidays
+    from arm.lab import sxlive as L
     d = date.fromisoformat(S.START)
-    assert not twholidays.is_closed(d)
-    nxt = d + timedelta(days=1)
-    while nxt.weekday() < 5 and twholidays.is_closed(nxt):
-        nxt += timedelta(days=1)
-    assert nxt.weekday() >= 5 or nxt.isocalendar()[1] != d.isocalendar()[1]
+    assert S.START == S.SPEC_DATE and d.weekday() == 4
+    assert twholidays.is_closed(d) is True
+    assert L.week_ends(S.START, "2026-11-06") == ["2026-10-30", "2026-11-06"]
 
 
 def test_seed_rules_are_the_w7_2026_fold_unchanged():

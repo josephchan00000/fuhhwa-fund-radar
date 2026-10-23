@@ -22,7 +22,8 @@
             不得早於上一交易日（境內 NAV 傍晚公布、海外 T+1——只驗「沒有連兩天斷更」，
             避免對正常 T+1 誤報）。
 
-交易日判定：週一~五 且 **證交所官方休市表**（arm/twholidays；2026-10-13 起）未列為休市。
+交易日判定：週一~五 且 **證交所官方休市表**（arm/twholidays；2026-10-13 起）未列為休市
+（含 twholidays.ADHOC 颱風停止交易；年度表沒有颱風日，還沒補進 ADHOC 的另認市況段「M/D 因颱風休市」）。
 舊版只讀 reports/macrocal/{today}.md 市況段——那是子代理每天依搜尋摘要重寫的文字，漏寫或誤寫
 都會讓看門狗誤報或靜默放行；現僅在官方表未涵蓋該年時退回讀它（兩者不一致時印日誌）。
 官方表與行事曆皆缺＝視為交易日：寧可誤報一次，也不要在「連新聞都沒產」的壞日子靜默。
@@ -75,9 +76,15 @@ def is_trading_day(d: date, macrocal_text: str | None) -> bool:
     official = twholidays.is_closed(d)
     if official is None:
         return not text_closed
+    # 說明一律印 stderr：--guard 的 stdout 會整段寫進 GITHUB_OUTPUT，多一行就讓整班當掉
+    # （2026-10-23 薔琵颱風：這一行警告混進判定，afterhours 第 24 秒就失敗）
+    if official is False and m and twholidays.typhoon_said(m.group(1), d):
+        print(f"  ⚠ 行事曆市況寫 {d} 因颱風休市，證交所年度表沒有（颱風停止交易不在年度表上）——當作休市；"
+              "查證後請補進 arm/twholidays.ADHOC", file=sys.stderr)
+        return False
     if macrocal_text is not None and text_closed != official:
         print(f"  ⚠ 行事曆市況與證交所官方休市表不一致：{d} 官方＝{'休市' if official else '交易日'}"
-              f"、行事曆＝{'休市' if text_closed else '交易'}（以官方為準）")
+              f"、行事曆＝{'休市' if text_closed else '交易'}（以官方為準）", file=sys.stderr)
     return not official
 
 
