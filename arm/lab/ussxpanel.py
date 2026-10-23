@@ -44,7 +44,8 @@ def tr_factor(p: dict) -> np.ndarray:
 
 
 def load(syms: list[str] | None = None, start: str = X.PX_START, etfs: tuple = UD.ETFS) -> dict:
-    """{"cal", "sym", "col", "etf"（是不是 ETF）, "O","H","L","C"（含息）, "RAW"（實際成交價）, "DV"（成交值）, "V"（分割還原量）,
+    """{"cal", "sym", "col", "etf"（是不是 ETF）, "O","H","L","C"（含息）, "RAW"（實際成交價）, "CS"（分割還原收盤，不含息）,
+    "DV"（成交值）, "V"（分割還原量）,
     "first","last"（第一天、最後一天有收盤的索引；沒有＝−1）}。沒有收盤的格子是 nan（成交值、量是 0）。"""
     cal = calendar(start)
     ix = {d: i for i, d in enumerate(cal)}
@@ -55,6 +56,7 @@ def load(syms: list[str] | None = None, start: str = X.PX_START, etfs: tuple = U
     T, N = len(cal), len(syms)
     O, H, L, C = (np.full((T, N), np.nan) for _ in range(4))
     RAW = np.full((T, N), np.nan, dtype=np.float32)
+    CS = np.full((T, N), np.nan, dtype=np.float32)
     DV = np.zeros((T, N))
     V = np.zeros((T, N), dtype=np.float32)
     first = np.full(N, -1, dtype=np.int64)
@@ -76,13 +78,14 @@ def load(syms: list[str] | None = None, start: str = X.PX_START, etfs: tuple = U
         L[ii, j] = np.asarray(p["l"])[ks] * f[ks]
         C[ii, j] = c * f[ks]
         RAW[ii, j] = c * mu[ks]
+        CS[ii, j] = c
         v = np.asarray(p["v"])[ks]
         DV[ii, j] = c * v
         V[ii, j] = v
         first[j], last[j] = ii[0], ii[-1]
     etf = np.array([s in set(etfs) for s in syms])
     return {"cal": cal, "sym": syms, "col": {s: j for j, s in enumerate(syms)}, "etf": etf,
-            "O": O, "H": H, "L": L, "C": C, "RAW": RAW, "DV": DV, "V": V, "first": first, "last": last}
+            "O": O, "H": H, "L": L, "C": C, "RAW": RAW, "CS": CS, "DV": DV, "V": V, "first": first, "last": last}
 
 
 def dv20(P: dict, n: int = 20) -> np.ndarray:
