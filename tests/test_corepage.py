@@ -213,3 +213,113 @@ def test_trend_gauge_fills_toward_the_line():
         return float(re.findall(r'<i class="[^"]*" style="width:([0-9.]+)%"></i><b style="left:50%">', h)[0])
     assert fill(25.0) == 0.0 and fill(14.1) == pytest.approx(14.75, abs=0.06) and fill(0.0) == 50.0 and fill(-30.0) == 100.0
 
+
+
+# ── corespec VER 3：美股三成換成「美股強勢品質股」（ussxspec QM；docs/lab_us_sleeve_plan.md 第 13 節）──────────
+
+@pytest.fixture(scope="module")
+def QMX():
+    from arm.lab import ussxqm as QM
+    R = QM.load()
+    assert R is not None, "研究檔 data/lab/ussx_qm.json 要先跑 scripts/run_ussx.py --qm"
+    L = QM.load_live()
+    assert (L.get("now") or {}).get("hold"), "每週紀錄 data/lab/ussx_qm_live.json 要有最新的持股"
+    return {"R": R, "L": L, "W": None}
+
+
+def test_qm_card_shows_holdings_todo_and_new_numbers(R, QMX):
+    from arm.lab import ussxspec as X
+    for mk in ("spx", "ndx"):
+        assert P.qm_on(mk, QMX), mk                                               # 判定過了才換（研究檔 switch）
+        h = P.card(mk, _us(mk), R, None, {"n": 0, "next": S.CHECKS[0]}, QMX)
+        t = _text(h)
+        assert "新規則驗證中" in t and P.QM_NAME in t and "另外三成現在也買同一個指數" not in t
+        order = [h.index(x) for x in ('class="plnnow"', "接下來要做的事", "每天收盤後", "過去照做的結果", "照做一年會怎樣", "細節")]
+        assert order == sorted(order)
+        n = QMX["L"]["now"]
+        for x in n["hold"]:                                                       # 現在拿著的每一檔：比重、買進日、到最新一天漲跌
+            assert f'{x["c"]} {P._wp(x["w"] * S.SAT)}' in t and f'{P._md(x["ent"])} 買，到 {P._md(n["d"])} {P._pc(x["r"])}' in t
+        assert f"最多 {X.QM_SLOTS} 檔、每檔約占全部資金 {P._qm_per()}" in t and "收盤跌破 50 日線，就在下一個交易日開盤賣" in t
+        assert "看這一週的新名單" in t and "每天收盤" in t                                # 接下來要做的事
+        sc = QMX["R"]["sc"][mk]
+        cur = QMX["R"]["plans"][f"{mk}_main"]["cur"]
+        assert P._wan(sc["plan"]["m"]) in t and P._wan(sc["hold"]["m"]) in t and P._ab(sc["plan"]["mdd"]) in t   # 好處＝三成放 QM
+        assert f'如果三成也買{P._ixn(mk)}、只靠警訊進出：100 萬變 {P._wan(cur["plan"]["m"])}' in h                 # 同一段時間的舊做法
+        assert P._wan(R["mk"][mk]["sc"]["rule"]["plan"]["m"]) in t                 # 只靠警訊進出的長紀錄仍列在拆期間表
+        alt = QMX["R"]["plans"][f"{mk}_alt"]["new"]["plan"]["m"]
+        assert f"放進計畫 100 萬變 {P._wan(alt)}" in t                               # 複委託的成本
+        assert "美股個股策略做好、驗證過才會換" not in t
+        for w in BANNED + JARGON + NOT_PLAIN:
+            assert w not in t, (mk, w)
+        cls = {c for a in re.findall(r'class="([^"]+)"', h) for c in a.split()}
+        assert all(c.startswith("pln") for c in cls), cls
+
+
+def test_qm_card_sell_buy_and_watch(R, QMX):
+    import copy
+    from arm.lab import ussxqm as QM
+    from arm.lab import ussxspec as X
+    q = copy.deepcopy(QMX)
+    n = q["L"]["now"]
+    c0 = n["hold"][0]["c"]
+    nd = QM.next_day(n["d"])
+    q["W"] = {"ver": X.VER, "base": n["d"], "d": nd, "hold": [{"c": c0, "pct": -0.012, "trig": nd}],
+              "sell": [{"c": c0, "trig": nd, "on": QM.next_day(nd)}]}
+    t = _text(P.card("spx", _us(), R, None, None, q))
+    assert f"賣掉 {c0}" in t and f"{P._md(nd)} 收盤跌破 50 日線，{P._md(QM.next_day(nd))} 開盤賣" in t
+    q["W"]["base"] = "2000-01-03"                                                 # 對不上最新一週紀錄的檢查不採用
+    assert f"賣掉 {c0}" not in _text(P.card("spx", _us(), R, None, None, q))
+    q = copy.deepcopy(QMX)                                                        # 一週結束：下一個交易日開盤補空位
+    q["L"]["now"].update(wk=q["L"]["now"]["d"], wk_done=True, buy=["PAYC"])
+    t = _text(P.card("spx", _us(), R, None, None, q))
+    assert f'{P._mdw(q["L"]["now"]["next"])}' in t and "買進 PAYC" in t and "PAYC 約" in t
+    N = _us(flat=True, held=())                                                   # 有警訊、還拿著：下一個交易日收盤換現金
+    t = _text(P.card("spx", N, R, None, None, QMX))
+    assert "三成現在買了這些" in t and "把機動的三成全部賣掉，改放現金" in t
+    N.update(now=S.CORE, due=False)                                               # 已經是現金：照樣列出買回時的持股
+    t = _text(P.card("spx", N, R, None, None, QMX))
+    assert "三成現在放現金；買回時照這樣買" in t
+    N = _us()
+    N.update(now=S.CORE, next=1.0, due=True)
+    t = _text(P.card("spx", N, R, None, None, QMX))
+    assert "照美股強勢品質股當時拿著的股票買，空的位子買指數" in t
+
+
+def test_qm_off_keeps_index_and_says_why(R, QMX):
+    import copy
+    q = copy.deepcopy(QMX)
+    q["R"]["switch"]["ndx"] = False
+    q["R"]["verdict"]["c2"]["ndx"] = False
+    q["R"]["verdict"]["pass"]["ndx"] = False
+    assert not P.qm_on("ndx", q) and P.qm_on("spx", q) and not P.qm_on("tw", q)
+    t = _text(P.card("ndx", _us("ndx"), R, None, None, q))
+    assert "三成照舊買指數" in t and "放進計畫的錢沒有比較多" in t and "新規則驗證中" not in t
+    assert P._wan(R["mk"]["ndx"]["sc"]["rule"]["plan"]["m"]) in t                 # 好處照舊用三成也買指數的回測
+    assert not P.qm_on("spx", {"R": None}) and not P.qm_on("spx", None)
+
+
+def test_core_data_loads_qm_and_record_marks_sleeve(tmp_path, monkeypatch, R, QMX):
+    from arm.lab import ussxqm as QM
+    monkeypatch.setattr(SG, "CARDS", {"spx": {"core": _us()}, "tw": {"core": _now()}})
+    monkeypatch.setattr(CO, "STK", dict(STK))
+    monkeypatch.setattr(CO, "LIVE", tmp_path / "core_live.json")
+    monkeypatch.setattr(QM, "WATCH", tmp_path / "none.json")
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    X = SG.core_data(tmp_path)
+    assert X["qm"] and X["qm"]["R"]["ver"] == QMX["R"]["ver"] and X["qm"]["W"] is None
+    L = json.loads((tmp_path / "core_live.json").read_text(encoding="utf-8"))
+    day = L["days"][_us()["d"]] if _us()["d"] >= S.LIVE_START else {}
+    if day:                                                                       # LIVE_START 之後的資料日才記
+        assert day["spx"]["sat"] == ["qm"] and day["tw"]["sat"] == [s["k"] for s in STK["st"]]
+    V = {"rmk": [], "pr": {}, "find": {"spx": {}}, "core": dict(X, now={"spx": _us()})}
+    h = SG.research_html(V)
+    assert 'id="pln-spx"' in h and P.QM_NAME in h and "新規則驗證中" in h
+
+
+def test_core_record_writes_qm_sleeve(tmp_path, monkeypatch):
+    monkeypatch.setattr(CO, "LIVE", tmp_path / "core_live.json")
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    N = dict(_us(), d="2026-10-26")
+    assert CO.record({"spx": N, "ndx": dict(N, mk="ndx")}, None, {"spx": True, "ndx": False})
+    L = json.loads((tmp_path / "core_live.json").read_text(encoding="utf-8"))
+    assert L["ver"] == S.VER and L["days"]["2026-10-26"]["spx"]["sat"] == ["qm"] and "sat" not in L["days"]["2026-10-26"]["ndx"]

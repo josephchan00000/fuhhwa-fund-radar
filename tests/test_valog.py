@@ -7,6 +7,13 @@ import pytest
 from arm.lab import advice, store, v3live, valog
 
 
+@pytest.fixture(autouse=True)
+def _no_us_sleeve(monkeypatch, request):
+    """美股三成的狀態讀真的研究檔與每週紀錄；這裡的測試只看台股那一段（美股三成另外用 test_valog_us_sleeve_* 測）。"""
+    if "us_sleeve" not in request.node.name:
+        monkeypatch.setattr(valog, "uqm_state", lambda now: None)
+
+
 def _g(k, grade, oos=None, ev=None):
     return {"k": k, "grade": grade, "name": k, "has_oos": bool(oos), "oos": oos, "why": ["x"]}
 
@@ -178,3 +185,41 @@ def test_update_tr_recent_zero_requests_when_current(tmp_path, monkeypatch):
     calls = []
     monkeypatch.setattr(market, "twse_tr_month", lambda y, m: calls.append((y, m)) or {"2026-10-15": 2.0})
     assert v3data.update_tr_recent() == 1 and calls == [(2026, 10)]   # 上個月已完成，只查本月
+
+
+def test_valog_us_sleeve_line_events_and_dedup(monkeypatch):
+    """美股三成（corespec VER 3）：推播多一行要賣、要買的股票；停在舊的一週、第一次滿檢討日、多一筆重跑差異才記事件。"""
+    cur = {"d": "2026-10-23", "td": [["2026-10-26", "買", "PAYC"], ["2026-10-26", "賣", "INSW"]], "rv": {}, "stale": None,
+           "exp": "2026-10-23", "nd": 0}
+    assert valog.uqm_line(cur) == "美股三成：10/26（一）開盤賣 INSW、買 PAYC。" and valog.uqm_line({"td": []}) is None
+    rec = {"todo": {"d": "2026-10-26", "items": []}, "ev": [], "uqm": cur}
+    assert valog.push_lines(rec) == ["10/26（一）沒有排定的買賣。", "美股三成：10/26（一）開盤賣 INSW、買 PAYC。"]
+    assert valog.uqm_events(cur, None) == []
+    st = dict(cur, stale="2026-10-16", exp="2026-10-23")
+    ev = valog.uqm_events(st, cur)
+    assert len(ev) == 1 and ev[0]["ty"] == "uqm" and "停在 10/16（應該要有 10/23 那一週）" in ev[0]["txt"]
+    assert valog.uqm_events(st, st) == []                                  # 同一個停住的日子只記一次
+    rv = dict(cur, rv={"63": {"d": "2027-01-26", "ex": -0.0513, "pct": 0.12, "low": True}}, nd=1)
+    ev = valog.uqm_events(rv, cur)
+    assert [e["ty"] for e in ev] == ["uqm", "uqm"]
+    assert "滿 63 個交易日（1/26）：三成比 S&P 500 含息少賺 5.0%，在回測同樣長度的期間裡排在最差的 12%，比回測差" in ev[0]["txt"]
+    assert "第 1 筆" in ev[1]["txt"] and valog.uqm_events(rv, rv) == []
+    assert "uqm" in valog.TYPES
+
+
+def test_valog_us_sleeve_state_reads_watch_and_record(monkeypatch, tmp_path):
+    from arm.lab import ussxqm as QM
+    from arm.lab import ussxspec as X
+    L = QM.load_live()
+    n = L["now"]
+    nd = QM.next_day(n["d"])
+    W = {"ver": X.VER, "base": n["d"], "d": nd, "hold": [], "sell": [{"c": n["hold"][0]["c"], "trig": nd, "on": QM.next_day(nd)}]}
+    (tmp_path / "w.json").write_text(json.dumps(W), encoding="utf-8")
+    monkeypatch.setattr(QM, "WATCH", tmp_path / "w.json")
+    u = valog.uqm_state(datetime(2026, 10, 24, 6, 35))
+    assert u and u["d"] == n["d"] and [QM.next_day(nd), "賣", n["hold"][0]["c"]] in u["td"]
+    W["base"] = "2000-01-03"                                               # 對不上最新一週紀錄：不採用
+    (tmp_path / "w.json").write_text(json.dumps(W), encoding="utf-8")
+    assert not [t for t in valog.uqm_state(datetime(2026, 10, 24, 6, 35))["td"] if t[1] == "賣" and t[2] == n["hold"][0]["c"]]
+    monkeypatch.setattr(QM, "load", lambda path=None: None)               # 研究檔沒有（或判定沒過）：沒有美股三成
+    assert valog.uqm_state(datetime(2026, 10, 24, 6, 35)) is None

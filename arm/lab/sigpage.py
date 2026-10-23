@@ -250,14 +250,23 @@ def core_data(dirpath: Path | None = None) -> dict:
         if n:
             now[mk] = n
     stk = dict(CO.STK) if CO.STK else (_prev_card(d, "tw", memo).get("stk") or None)
+    from . import corepage as CPG
+    qm = None
+    try:                                                  # 美股三成（corespec VER 3；ussxqm.json 判定過了才換）
+        from . import ussxqm as QM
+        QR = QM.load()
+        if QR:
+            qm = {"R": QR, "L": QM.load_live(), "W": QM.load_watch()}
+    except Exception as e:                                # noqa: BLE001
+        print(f"[交易計畫] 美股三成的研究檔讀不到：{type(e).__name__}: {e}")
     fw = {}
     try:
-        CO.record(now, stk)
+        CO.record(now, stk, {mk: CPG.qm_on(mk, qm) for mk in CO.S.MARKETS} if qm else None)
         L = CO.load_live()
         fw = {mk: CO.forward(mk, L) for mk in CO.S.MARKETS}
     except Exception as e:                                # noqa: BLE001
         print(f"[交易計畫] 前瞻紀錄算不出來：{type(e).__name__}: {e}")
-    return {"R": CO.load(), "now": now, "stk": stk, "fw": fw}
+    return {"R": CO.load(), "now": now, "stk": stk, "fw": fw, "qm": qm}
 
 
 def practice() -> dict:
@@ -837,7 +846,7 @@ def research_html(V: dict) -> str:
         plan = ""
         try:
             plan = CPG.card(mk, (CO.get("now") or {}).get(mk), CO.get("R"), CO.get("stk") if mk == "tw" else None,
-                            (CO.get("fw") or {}).get(mk))
+                            (CO.get("fw") or {}).get(mk), CO.get("qm") if mk in CPG.US else None)
         except Exception as e:                            # noqa: BLE001 —— 交易計畫卡算不出來只少那一張
             print(f"[研究結論] {mk} 交易計畫卡算不出來：{type(e).__name__}: {e}", flush=True)
         blocks.append(FD.market_html(mk, find.get(mk), mx, kp, show=(mk == first), tilt_x=tx, plan=plan))

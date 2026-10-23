@@ -517,7 +517,7 @@ def watch(L: dict | None = None, fetch=None, made: str | None = None) -> dict:
     from . import ussxdata as UD
     L = L if L is not None else load_live()
     now = L.get("now") or {}
-    fetch = fetch or UD.fetch_since
+    fetch = fetch or (lambda c, st: UD.fetch_since(c, st, timeout=20))    # 每天的檢查最多 8 檔：一檔最多等 20 秒（整支 180 秒內跑完）
     out = {"ver": X.VER, "made": made or date.today().isoformat(), "base": now.get("d"), "hold": [], "sell": [], "err": []}
     for h in now.get("hold") or []:
         start = (date.fromisoformat(h["ent"]) - timedelta(days=150)).isoformat()

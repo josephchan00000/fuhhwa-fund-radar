@@ -347,13 +347,13 @@ RECENT_DAYS = 14             # 從存的最後一天往前幾個日曆天重抓�
 JUMP_TOL = 0.01              # 重疊的日子收盤差超過 1%（分割、資料修正）→ 整段重抓
 
 
-def fetch_since(sym: str, start: str, now: float | None = None) -> tuple[str, dict | None, str]:
+def fetch_since(sym: str, start: str, now: float | None = None, timeout: int = 60) -> tuple[str, dict | None, str]:
     p1 = int((datetime.fromisoformat(start).replace(tzinfo=timezone.utc) - timedelta(days=RECENT_DAYS)).timestamp())
     p2 = int(time.time() if now is None else now)
     url = CHART_URL.format(sym=urllib.parse.quote(sym), p1=p1, p2=p2)
     for k in range(3):
         try:
-            s = parse_chart(json.loads(_get(url, timeout=60).decode("utf-8")))
+            s = parse_chart(json.loads(_get(url, timeout=timeout).decode("utf-8")))
             return sym, (s if s is not None else {"d": []}), "ok"
         except Exception as e:                                # noqa: BLE001
             msg = str(e)

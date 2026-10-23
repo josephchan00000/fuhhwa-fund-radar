@@ -109,6 +109,9 @@ jobs:
       - name: 美股景氣頁資料（指數、聯準會、CFTC、BLS、Shiller、LPPLS 每週；docs/lab_heat_us_plan.md，失敗不擋）
         run: timeout 420 python3 scripts/fetch_heat_us.py || echo "  ⚠ 美股景氣資料抓取失敗，沿用既有落檔"
 
+      - name: 美股三成：持股有沒有跌破 50 日線（Yahoo 日線，最多 8 檔；docs/lab_us_sleeve_plan.md 第 13.3 節，失敗不擋）
+        run: TZ=Asia/Taipei timeout 180 python3 scripts/fetch_ussx_watch.py || echo "  ⚠ 美股三成檢查失敗，沿用既有落檔"
+
       - name: 當日完整性看門狗（寫/清 data/afterhours_alert.json——儀表板紅章資料源）
         run: python3 scripts/check_afterhours_fresh.py --write
 

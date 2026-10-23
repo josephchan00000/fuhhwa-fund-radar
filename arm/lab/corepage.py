@@ -3,7 +3,10 @@
 版面照使用者確認過的示意圖：現在拿多少 → 接下來要做的事（含三個警訊的分數）→ 過去照做的結果 → 照做一年會怎樣＋1 元變多少 → 收起來的細節。
 用字（2026-10-23 使用者：「白話文一點不要那麼AI」）：頁面上說「七成長抱、三成機動」「警訊（通膨偏高、融資偏多、跌破年線）」，
 不說核心／衛星／三種過熱／亮；規格與程式裡照舊叫核心、衛星、通膨／槓桿／趨勢（PLAIN 對照）。
-數字全部由 core.py 算（研究檔、景氣頁的現在讀數、個股頁的衛星資料），這裡只排版；只描述照規則做的過去結果。"""
+數字全部由 core.py 算（研究檔、景氣頁的現在讀數、個股頁的衛星資料），這裡只排版；只描述照規則做的過去結果。
+corespec VER 3（2026-10-23）：美股三成換成「美股強勢品質股」（ussxspec VER 3 的規則 QM；ussxqm.json 判定那個計畫過了才換）——
+現在的持股、要買賣的、過去的成績讀 qm＝{"R": ussx_qm.json, "L": ussx_qm_live.json, "W": ussx_qm_watch.json}。
+頁面不說「前瞻」，說「新規則驗證中」。"""
 from __future__ import annotations
 
 import html
@@ -11,6 +14,7 @@ import math
 from datetime import date
 
 from . import corespec as S
+from . import ussxspec as QX
 
 WD = "一二三四五六日"
 CORE_HOW = {"tw": "大盤 ETF（0050 或 006208）", "spx": " S&P 500 ETF（例如 SPY、VOO）", "ndx": "那斯達克 100 ETF（例如 QQQ）"}
@@ -22,6 +26,8 @@ SUB = {"tw": {"inf": "美國 CPI 年增率，跟過去 10 年比", "lev": "融�
        "spx": {"inf": "美國 CPI 年增率，跟過去 10 年比", "lev": "美國家計部門證券融資年增率，跟過去 10 年比"},
        "ndx": {"inf": "美國 CPI 年增率，跟過去 10 年比", "lev": "美國家計部門證券融資年增率，跟過去 10 年比"}}
 IDX = {"tw": "加權指數", "spx": "S&P 500", "ndx": "那斯達克 100"}
+US = ("spx", "ndx")
+QM_NAME = "美股強勢品質股"
 
 
 def _e(x) -> str:
@@ -98,7 +104,145 @@ def _next_day_n(mk: str, d: str, n: int) -> str | None:
         return None
 
 
-def now_html(mk: str, N: dict, stk: dict | None) -> str:
+# ── 美股三成：美股強勢品質股（corespec VER 3；ussxspec QM）──────────────────────────
+
+def qm_on(mk: str, qm: dict | None) -> bool:
+    """美股三成換成 QM：研究檔判定那個計畫過了（ussx_qm.json 的 switch）。"""
+    R = (qm or {}).get("R") or {}
+    return mk in US and bool((R.get("switch") or {}).get(mk))
+
+
+def _ixn(mk: str) -> str:
+    """接在中文後面的指數名（英文開頭前面空一格，同 CORE_HOW 的寫法）。"""
+    n = IDX.get(mk, "指數")
+    return _e((" " if n[:1].isascii() else "") + n)
+
+
+def _qm_now(qm: dict | None) -> dict:
+    return (((qm or {}).get("L") or {}).get("now")) or {}
+
+
+def _qm_watch(qm: dict | None) -> dict:
+    """每天的 50 日線檢查（只認對得上最新一週紀錄的那一份）。"""
+    W = (qm or {}).get("W") or {}
+    return W if W.get("base") and W.get("base") == _qm_now(qm).get("d") else {}
+
+
+def _qm_per() -> str:
+    return f"{S.SAT / QX.QM_SLOTS * 100:.2f}".rstrip("0").rstrip(".") + "%"
+
+
+def _qm_rule() -> str:
+    q = QX.QM
+    return (f"每週五（休市就看那一週最後一個交易日）收盤，挑股價強勢（漲幅在美股前 {100 - q['rs']:.0f}%、離一年高點 {-q['d52h'] * 100:.0f}% 以內）、"
+            f"本業賺錢（營益率 {q['om'] * 100:.0f}% 以上、股東權益報酬率 {q['roe'] * 100:.0f}% 以上）、市值 {q['cap'] / 1e8:.0f} 億美元以上的公司，"
+            f"依強勢程度排；有空位就在下一個交易日開盤買，最多 {QX.QM_SLOTS} 檔、每檔約占全部資金 {_qm_per()}；"
+            f"收盤跌破 50 日線，就在下一個交易日開盤賣。")
+
+
+def _qm_pct_ma(h: dict, w: dict) -> float | None:
+    if w.get("pct") is not None:
+        return w["pct"]
+    return h["px"] / h["ma"] - 1 if h.get("px") and h.get("ma") else None
+
+
+def _qm_hold(mk: str, qm: dict | None, cash: bool) -> str:
+    """美股三成現在拿著什麼。接在 plnnt 段落後面（同 _sat_now 的寫法）。"""
+    n, W = _qm_now(qm), _qm_watch(qm)
+    if not n:
+        return '</p><p class="plnnt">每週紀錄還沒產生（每週六更新），先照上面的規則挑。'
+    wl = {w["c"]: w for w in W.get("hold") or []}
+    sold = {x["c"]: x for x in W.get("sell") or []}
+    rows = ""
+    for h in n.get("hold") or []:
+        bits = [f'{_md(h["ent"])} 買，到 {_md(n["d"])} {_pc(h.get("r"))}']
+        pct = _qm_pct_ma(h, wl.get(h["c"]) or {})
+        if h["c"] in sold:
+            x = sold[h["c"]]
+            bits.append(f'{_md(x["trig"])} 收盤跌破 50 日線，{_md(x["on"])} 開盤賣')
+        elif h.get("sell"):
+            bits.append(f'{_md(n["d"])} 收盤跌破 50 日線，{_md(n.get("next"))} 開盤賣')
+        elif pct is not None:
+            bits.append(f'比 50 日線{"高" if pct >= 0 else "低"} {abs(pct) * 100:.1f}%')
+        rows += (f'<div class="plnsn">{_e(h["c"])} {_wp((h.get("w") or 0) * S.SAT)}</div>'
+                 f'<div class="plnsv">{"；".join(bits)}</div>')
+    buys = n.get("buy") or []
+    for c in buys:
+        rows += (f'<div class="plnsn">{_e(c)} 約 {_qm_per()}</div>'
+                 f'<div class="plnsv">{_md(n.get("next"))} 開盤買（{_md(n.get("wk"))} 的名單）</div>')
+    idle = max(0.0, (n.get("idle") or 0.0) - len(buys) / QX.QM_SLOTS)
+    if idle > 1e-3:
+        rows += f'<div class="plnsn">{_e(IDX[mk])} {_wp(idle * S.SAT)}</div><div class="plnsv">空的位子先買指數</div>'
+    hd = (f"三成現在放現金；買回時照這樣買（占全部資金，{_md(n['d'])} 收盤的比重）" if cash
+          else f"三成現在買了這些（占全部資金，{_md(n['d'])} 收盤的比重）")
+    return f'</p><div class="plnsat"><div class="plnsh">{hd}</div>{rows}</div><p class="plnnt plnhide">'
+
+
+def _qm_next_week_end(d: str) -> str | None:
+    from . import ussxqm as QM
+    if not d:
+        return None
+    x = QM.next_day(d)
+    while not QM.week_done(x):
+        x = QM.next_day(x)
+    return x
+
+
+def _qm_todo(mk: str, qm: dict | None, cash: bool) -> str:
+    n, W = _qm_now(qm), _qm_watch(qm)
+    if not n:
+        return ('<div class="plnw">—</div><div class="plnt">美股三成的每週紀錄還沒產生；每週六更新之後，這裡會列出要買賣的股票。</div>')
+    last = W.get("d") or n.get("d")
+    ev = []
+    for x in W.get("sell") or []:
+        done = bool(last and x["on"] <= last)
+        ev.append((x["on"], "開盤", f'<b>賣掉 {_e(x["c"])}</b>' + ("（已經賣了）" if done else ""), f'{_md(x["trig"])} 收盤跌破 50 日線'))
+    for c in n.get("sell") or []:
+        ev.append((n["next"], "開盤", f'<b>賣掉 {_e(c)}</b>', f'{_md(n["d"])} 收盤跌破 50 日線'))
+    if n.get("buy"):
+        sub = f'{_md(n["wk"])} 的名單裡最前面、手上沒有的；每檔約占全部資金 {_qm_per()}' + ("；三成放現金中，先不買" if cash else "")
+        ev.append((n["next"], "開盤", f'<b>買進 {"、".join(_e(c) for c in n["buy"])}</b>', sub))
+    nf = _qm_next_week_end(last)
+    sold0 = {x["c"] for x in W.get("sell") or []} | set(n.get("sell") or [])
+    held = [h["c"] for h in n.get("hold") or [] if h["c"] not in sold0]
+    free = max(0, QX.QM_SLOTS - len(held) - len(n.get("buy") or []))
+    have = set(held) | set(n.get("buy") or [])
+    cand = [x["c"] for x in n.get("list") or [] if x["c"] not in have][:3]
+    if nf:
+        sub = (f'現在有 {free} 個空位' if free else "現在沒有空位，有股票賣掉才會買") + (
+            f'；{_md(n.get("wk"))} 的名單（{n.get("n_list", 0)} 檔）裡手上沒有的前幾名：{"、".join(_e(c) for c in cand)}'
+            + ("（這一週還沒結束，名單會變）" if not n.get("wk_done") else "") if cand else "")
+        ev.append((nf, "收盤", "<b>看這一週的新名單</b>：有空位就在下一個交易日開盤買", sub))
+    ev.sort(key=lambda e: (e[0] or "", 0 if e[1] == "開盤" else 1))
+    rows = "".join(f'<div class="plnw">{_e(_mdw(d))}<small>{_e(at)}</small></div><div class="plnt">{what}'
+                   + (f'<span class="plnsub">{sub}</span>' if sub else "") + '</div>' for d, at, what, sub in ev)
+    sold = {x["c"] for x in W.get("sell") or []} | set(n.get("sell") or [])
+    wl = {w["c"]: w for w in W.get("hold") or []}
+    near = sorted((p, h["c"]) for h in n.get("hold") or [] if h["c"] not in sold
+                  for p in [_qm_pct_ma(h, wl.get(h["c"]) or {})] if p is not None)
+    sub = f'最接近的是 {_e(near[0][1])}（比 50 日線高 {near[0][0] * 100:.1f}%）' if near and near[0][0] >= 0 else ""
+    rows += ('<div class="plnw">每天收盤</div><div class="plnt">拿著的股票收盤跌破 50 日線，就在下一個交易日開盤賣'
+             + (f'<span class="plnsub">{sub}</span>' if sub else "") + '</div>')
+    return rows
+
+
+def _qm_why_not(mk: str, qm: dict | None) -> str:
+    """研究檔在、但那個計畫判定沒過：一句話說哪一條沒過（三成照舊放指數）。"""
+    R = (qm or {}).get("R") or {}
+    if mk not in US or not R:
+        return ""
+    if not (R.get("repro") or {}).get("ok"):
+        return f"{QM_NAME}的規則重算和研究對不上，先不換（三成照舊買指數）。"
+    v = R.get("verdict") or {}
+    miss = [t for k, t in (("c1", "三成本身沒有贏 S&amp;P 500"), ("c2", "放進計畫的錢沒有比較多"), ("c3", "用複委託的手續費不成立"),
+                           ("c4", "已下市公司缺資料的影響太大")) if not (v.get(k) if k in ("c1", "c4") else (v.get(k) or {}).get(mk))]
+    if k_c1 := v.get("c1"):
+        if isinstance(k_c1, dict) and all(k_c1.values()):
+            miss = [m for m in miss if not m.startswith("三成本身")]
+    return f"{QM_NAME}放進這個計畫的判定沒過（{'、'.join(miss) or '—'}），三成照舊買指數。" if miss else ""
+
+
+def now_html(mk: str, N: dict, stk: dict | None, qm: dict | None = None) -> str:
     nxt, cur = N["next"], N["now"]
     cash = nxt < 0.99
     day = _next_day(mk, N["d"]) if N.get("due") else None
@@ -115,9 +259,12 @@ def now_html(mk: str, N: dict, stk: dict | None) -> str:
                    f"跟著個股策略頁打 ★ 的策略買賣：{names}。哪個策略手上沒有股票，那一份就先買大盤。") + _sat_now(stk, cur < 0.99)
         else:
             txt = f"七成買{_e(CORE_HOW[mk])}一直抱著。另外三成跟著個股策略頁打 ★ 的策略買賣（現在讀不到名單，先買大盤）。"
+    elif qm_on(mk, qm):
+        txt = (f"七成買{_e(CORE_HOW[mk])}一直抱著。另外三成買<b>{QM_NAME}</b>（2026/10/23 換上的新規則，驗證中）：{_qm_rule()}"
+               f"空的位子先買{_ixn(mk)}。") + _qm_hold(mk, qm, cur < 0.99)
     else:
-        txt = (f"七成買{_e(CORE_HOW[mk])}一直抱著。另外三成現在也買同一個指數；"
-               "美股的個股策略資料還在補，做好、驗證過再換。")
+        why = _qm_why_not(mk, qm)
+        txt = (f"七成買{_e(CORE_HOW[mk])}一直抱著。另外三成現在也買同一個指數；" + (why or "美股的個股策略資料還在補，做好、驗證過再換。"))
     due = ""
     names = "、".join(plain(mk, f["k"]) for f in N["fams"] if f["lit"])
     need = N.get("need") or 1
@@ -127,7 +274,8 @@ def now_html(mk: str, N: dict, stk: dict | None) -> str:
     elif day:
         why = f"警訊少於兩個滿 {need} 個交易日" if need > 1 else "警訊解除"
         due = (f'<p class="plndue plndok"><b>{_e(_mdw(day))} 收盤：把機動的三成買回來</b>（{why}）'
-               + ("。照各策略當時該有的股票買，沒有股票的那一份買大盤" if mk == "tw" else "") + '。</p>')
+               + ("。照各策略當時該有的股票買，沒有股票的那一份買大盤" if mk == "tw" else
+                  "。照美股強勢品質股當時拿著的股票買，空的位子買指數" if qm_on(mk, qm) else "") + '。</p>')
     elif cash and N.get("ok") and need > 1:
         c = N.get("clear") or 0
         buy = _next_day_n(mk, N["d"], need - c + 1)
@@ -215,7 +363,7 @@ def _ev_line(e: dict, cash: bool, w: int) -> tuple[str, str]:
     return when, what + f'<span class="plnsub">{"・".join(sub)}</span>'
 
 
-def todo_html(mk: str, N: dict, stk: dict | None) -> str:
+def todo_html(mk: str, N: dict, stk: dict | None, qm: dict | None = None) -> str:
     cash = N["next"] < 0.99
     rows = ""
     if mk == "tw":
@@ -228,6 +376,8 @@ def todo_html(mk: str, N: dict, stk: dict | None) -> str:
                 rows += f'<div class="plnw">{a}</div><div class="plnt">{b}</div>'
         else:
             rows = '<div class="plnw">—</div><div class="plnt">接下來 45 天，三成裡的個股策略沒有排定的買賣。</div>'
+    elif qm_on(mk, qm):
+        rows = _qm_todo(mk, qm, cash)
     else:
         rows = '<div class="plnw">平常</div><div class="plnt">三成也買同一個指數，不用動，只要注意下面四個警訊。</div>'
     return f'<h4 class="plnh">接下來要做的事</h4>' + (f'<div class="plntodo">{rows}</div>' if rows else "") + _fam_html(mk, N)
@@ -311,13 +461,20 @@ def _fam_html(mk: str, N: dict) -> str:
 def _label(mk: str, s: dict) -> str:
     if mk == "tw" and s["key"] == "plan":
         return f'{_ym(s["a"])}～{_ym(s["b"])}；這段時間三成放財報驚喜（大型股）'
+    if mk in US and s["key"] == "plan":
+        return f'{QX.QM_EVAL}/1～{_ym(s["b"])}；這段時間三成放{QM_NAME}'
     if s["key"] == "early":
         return f'{s["a"][:4]}～{s["b"][:4]}'
     return f'{s["a"][:4]} 年起'
 
 
-def benefit_html(mk: str, sc: dict) -> str:
-    s = sc.get("plan") if mk == "tw" and sc.get("plan") else sc.get("rule")
+def _qm_plan(mk: str, qm: dict | None, ck: str = "main") -> dict:
+    """研究檔裡那個計畫的摘要：{"new": 三成放 QM, "cur": 三成也買指數（同一段期間）, "judge"}。"""
+    return ((((qm or {}).get("R") or {}).get("plans") or {}).get(f"{mk}_{ck}")) or {}
+
+
+def benefit_html(mk: str, sc: dict, qm: dict | None = None) -> str:
+    s = sc.get("plan") or sc.get("rule")
     if not s:
         return ""
     p, h = s["plan"], s["hold"]
@@ -326,7 +483,12 @@ def benefit_html(mk: str, sc: dict) -> str:
           f'<div><div class="plnkl">最慘時從高點跌</div><div class="plnkv">{_ab(p["mdd"])}</div><div class="plnkr">一直抱著 {_ab(h["mdd"])}</div></div>'
           f'<div><div class="plnkl">比一直抱著多賺的年份</div><div class="plnkv">{w}／{n} 年</div><div class="plnkr">最差的一年 {_pc(p.get("worst"))}（一直抱著 {_pc(h.get("worst"))}）</div></div></div>')
     note = ""
-    if mk == "tw" and sc.get("rule"):
+    cur = _qm_plan(mk, qm).get("cur") if mk in US and s["key"] == "plan" else None
+    if cur:
+        note = (f'<p class="plnnote">同一段時間，如果三成也買{_ixn(mk)}、只靠警訊進出：100 萬變 {_wan(cur["plan"]["m"])}'
+                f'（一直抱著 {_wan(cur["hold"]["m"])}），最慘時跌 {_ab(cur["plan"]["mdd"])}。'
+                '多出來的錢是三成買的股票賺的。</p>')
+    elif mk == "tw" and sc.get("rule"):
         r = sc["rule"]
         note = (f'<p class="plnnote">如果三成也買大盤、只靠警訊進出：{r["a"][:4]} 年起 100 萬變 {_wan(r["plan"]["m"])}（一直抱著 {_wan(r["hold"]["m"])}），'
                 f'最慘時跌 {_ab(r["plan"]["mdd"])}（一直抱著 {_ab(r["hold"]["mdd"])}）。</p>')
@@ -338,7 +500,7 @@ def benefit_html(mk: str, sc: dict) -> str:
 
 
 def expect_html(mk: str, sc: dict) -> str:
-    s = sc.get("plan") if mk == "tw" and sc.get("plan") else sc.get("rule")
+    s = sc.get("plan") or sc.get("rule")
     if not s or not s["plan"].get("q"):
         return ""
     p, h = s["plan"], s["hold"]
@@ -398,10 +560,100 @@ def chart(C: dict, W: int, H: int, fs: int, cls: str) -> str:
     return "".join(s)
 
 
-def details_html(mk: str, sc: dict, fw: dict | None) -> str:
-    s = sc.get("plan") if mk == "tw" and sc.get("plan") else sc.get("rule")
+def _qm_wins(R: dict, base: str = "spx_tr") -> tuple[int, int]:
+    """三成本身贏 base 的年份（研究檔逐年；起算那一年不算）。"""
+    sy = ((R.get("sleeve") or {}).get("main") or {}).get("years") or {}
+    by = ((R.get("bench") or {}).get(base) or {}).get("years") or {}
+    ys = [y for y in sorted(sy) if y > R.get("eval", "")[:4] and y in by]
+    return sum(1 for y in ys if sy[y] > by[y]), len(ys)
+
+
+def _qm_why(qm: dict | None) -> list[str]:
+    R = (qm or {}).get("R") or {}
+    sl = ((R.get("sleeve") or {}).get("main")) or {}
+    bn = R.get("bench") or {}
+    w, n = _qm_wins(R)
+    r3 = ((R.get("desc") or {}).get("roll3")) or []
+    out = [f'三成買<b>{QM_NAME}</b>（2026/10/23 起）：只挑漲得兇的股票，會買到很多不賺錢、上下震盪很大的公司，2014 年起反而輸大盤；'
+           '加上「本業賺錢」（營益率、股東權益報酬率）和「市值夠大」之後才穩定贏。',
+           '這套是 2,016 種做法裡挑的（21 類條件 × 檔數 × 賣法 × 看不看大盤）。同一類條件的 96 種做法有 82% 在 2014～2019、2020 以後兩段都贏 S&amp;P 500；'
+           '只用 2010～2017 年（或 2010～2019 年）的成績替 21 類條件排名，排第 1 的也都是這一類，之後一年也多賺約 4 個百分點。']
+    if sl.get("cagr") is not None and (bn.get("spx_tr") or {}).get("cagr") is not None:
+        t = (f'三成本身 {QX.QM_EVAL} 年起一年賺 {_pc(sl["cagr"], 1, False)}（S&amp;P 500 含息 {_pc(bn["spx_tr"]["cagr"], 1, False)}'
+             + (f'、QQQ {_pc(bn["qqq"]["cagr"], 1, False)}' if (bn.get("qqq") or {}).get("cagr") is not None else "") + '）'
+             + (f'，{n} 年裡 {w} 年贏 S&amp;P 500' if n else "")
+             + (f'；從任一個月起算的三年，{r3[1]} 次裡 {r3[0]} 次贏' if len(r3) == 2 and r3[1] else "") + '。')
+        out.append(t)
+    out.append('多賺的錢大部分是三成買的股票賺的；有警訊時換現金，主要是讓大跌那幾年少賠。')
+    return out
+
+
+def _qm_check(qm: dict | None) -> str:
+    """上線後怎麼檢查（美股三成那一段）。"""
+    from . import ussxqm as QM
+    L, R = (qm or {}).get("L") or {}, (qm or {}).get("R") or {}
+    nw = len(L.get("weeks") or {})
+    t = (f'{QM_NAME}另外每週六記一次（{_md(QX.QM_LIVE)} 起；' + (f"已記 {nw} 週" if nw else "還沒有紀錄") + '）：那一週的名單、買賣、週末的持股和三成的淨值。'
+         f'滿 {"、".join(str(k) for k in QX.QM_REVIEW)} 個交易日時，三成本身比 S&amp;P 500 含息多賺多少，跟回測裡同樣長度的期間比，'
+         f'落在最差的 {round(QX.QM_P_LOW * 100)}% 就標「比回測差」。回測裡也有落後大盤的年份，只看幾個月不準，一年那一次比較有參考價值。'
+         '不會自動換回指數，要不要換回由你決定。')
+    try:
+        rv = [x for x in QM.review_now(L, R) if x.get("d")]
+    except Exception:                                    # noqa: BLE001
+        rv = []
+    for x in rv:
+        t += (f'第 {x["k"]} 個交易日（{_md(x["d"])}）：三成比 S&amp;P 500 含息{"多" if x["ex"] >= 0 else "少"}賺 {abs(math.expm1(x["ex"])) * 100:.1f}%'
+              + (f'，在回測同樣長度的期間裡排在最差的 {x["pct"] * 100:.0f}%' if x.get("pct") is not None else "")
+              + ('（比回測差）' if x.get("low") else "") + '。')
+    return f'<p>{t}</p>'
+
+
+def _qm_care(mk: str, qm: dict | None) -> list[str]:
+    R = (qm or {}).get("R") or {}
+    out = ['這套規則是看過 2014 年以後的成績才挑的，回測的數字會比以後實際做的好；真正的考驗是 2026/10/23 起的紀錄。']
+    top = [c for c, _ in (R.get("top") or [])[:5]]
+    tv = [v for _, v in (R.get("top") or [])[:5] if v is not None]
+    dr = ((R.get("desc") or {}).get("drop") or {})
+    kk = max((int(k) for k in dr), default=0)
+    spx = ((R.get("bench") or {}).get("spx_tr") or {}).get("cagr")
+    if top:
+        t = f'賺的錢集中在少數幾檔大飆股（賺最多的是 {"、".join(_e(c) for c in top)}'
+        t += f'，每檔占淨賺的 {min(tv) * 100:.0f}%～{max(tv) * 100:.0f}%）' if tv else "）"
+        if kk and dr.get(str(kk), {}).get("cagr") is not None:
+            t += (f'。拿掉賺最多的 {kk} 檔（當它們不存在），三成本身一年剩 {_pc(dr[str(kk)]["cagr"], 1, False)}'
+                  + (f'（S&amp;P 500 含息 {_pc(spx, 1, False)}）' if spx is not None else ""))
+        out.append(t + '。')
+    tr = R.get("trades") or {}
+    if tr.get("n"):
+        yrs = max(1e-9, (date.fromisoformat(R["last"]) - date.fromisoformat(R["a"])).days / 365.25)
+        out.append(f'{QX.QM_Y0} 年起 {tr["n"]:,} 筆交易（一年約 {tr["n"] / yrs:.0f} 筆），'
+                   f'賺錢的 {_ab(tr.get("win"))}、每筆中位數 {_pc(tr.get("med"))}：很多小賠、少數大賺。')
+    ys = ((R.get("desc") or {}).get("years")) or {}
+    lag = [(y, v[0], v[1]) for y, v in sorted(ys.items()) if y > R.get("eval", "")[:4] and v[0] is not None and v[1] is not None and v[0] < v[1]]
+    if lag:
+        out.append('輸 S&amp;P 500 的年份：' + "、".join(f'{y} 年 {_pc(a)}（S&amp;P 500 含息 {_pc(b)}）' for y, a, b in lag) + '。')
+    pm, pa = _qm_plan(mk, qm).get("new") or {}, _qm_plan(mk, qm, "alt").get("new") or {}
+    sa = ((R.get("sleeve") or {}).get("alt") or {}).get("cagr")
+    if pm.get("plan") and pa.get("plan"):
+        out.append(f'用複委託的手續費（每邊 {QX.COST["stk_alt"] * 100:.2f}%）算：'
+                   + (f'三成本身一年 {_pc(sa, 1, False)}，' if sa is not None else "")
+                   + f'放進計畫 100 萬變 {_wan(pa["plan"]["m"])}（海外券商每邊 {QX.COST["stk"] * 100:.2f}% 是 {_wan(pm["plan"]["m"])}）。')
+    G = (R.get("verdict") or {}).get("surv_G")
+    out.append((f'已下市公司的資料有缺：全市場量過，一年約多算 {G * 100:.1f} 個百分點。' if G is not None else "已下市公司的資料有缺。")
+               + '財報資料 2009 年才有，沒有經歷過 2008 年那種崩盤；那種時候靠警訊把三成換成現金。')
+    amt = f"{S.SAT / QX.QM_SLOTS * 100:.2f}".rstrip("0").rstrip(".")
+    out.append(f'每檔約占全部資金 {_qm_per()}：100 萬的帳戶每檔約 {amt} 萬台幣，股價高的要買零股。')
+    if mk != "spx":
+        out.append(f'三成本身的數字和現在拿的比重，是照 S&amp;P 500 計畫的帳算的（空的位子放 S&amp;P 500）；{_e(IDX[mk])} 計畫拿的股票一樣，'
+                   f'空的位子改買{_ixn(mk)}，數字差一點點。')
+    return out
+
+
+def details_html(mk: str, sc: dict, fw: dict | None, qm: dict | None = None) -> str:
+    s = sc.get("plan") or sc.get("rule")
     if not s:
         return ""
+    qmo = mk in US and s["key"] == "plan"
     out = []
     if mk == "tw":
         why = ['訊號總覽上的台股訊號（517 個），每一個都試過「出現就把三成換成現金」。台股和美股都有用的只有兩個：'
@@ -421,8 +673,8 @@ def details_html(mk: str, sc: dict, fw: dict | None) -> str:
     else:
         why += ['<b>總經策略全部空手時也賣</b>（2026/10/23 起）：RSI(2)、月底月初、Halloween、10 個月均線、200 日均線、12 個月動能、'
                 '各種落底策略全部都沒有部位，通常是空頭行情裡的 5～10 月。加了之後 2000 年起和訂規則時沒看的更早期間都比較好，但這種情況次數不多'
-                '（那斯達克 100 1986 年起只有 6 次，主要在 1990、2001 年）。',
-                '多賺的錢來自大跌那幾年：三成換成現金，那幾年少賠。']
+                '（那斯達克 100 1986 年起只有 6 次，主要在 1990、2001 年）。']
+        why += _qm_why(qm) if qmo else ['多賺的錢來自大跌那幾年：三成換成現金，那幾年少賠。']
     out.append('<details class="plnd"><summary>為什麼這樣設計</summary><ul>' + "".join(f"<li>{x}</li>" for x in why) + "</ul></details>")
     eps = s.get("eps") or []
     if eps:
@@ -444,7 +696,7 @@ def details_html(mk: str, sc: dict, fw: dict | None) -> str:
     idx = "大盤" if mk == "tw" else "指數"
     for key, nm in (("plan", "照計畫做"), ("rule", f"只靠警訊進出（三成也買{idx}）"), ("early", "訂規則時沒有看的期間")):
         x = sc.get(key)
-        if not x or (mk != "tw" and key == "plan"):
+        if not x:
             continue
         h1, h2, rc = x["halves"][0], x["halves"][1], x["recent"]
         rows.append(f'<tr><td class="plntl">{_e(nm)}<small>{_e(x["a"][:7])}～{_e(x["b"][:7])}</small></td>'
@@ -469,7 +721,7 @@ def details_html(mk: str, sc: dict, fw: dict | None) -> str:
                '如果落在過去最差的兩成就標出來。每天也會看照做的跌幅有沒有比過去最慘的一次'
                f'（{_ab(s["plan"]["mdd"])}）還深。' + (f"下一次比是第 {nxt} 個交易日。" if nxt else "")
                + ("台股三成的實際報酬，之後會用各策略自己的每一筆交易重算。" if mk == "tw" else "")
-               + '有狀況會標在這裡，不會自動停掉，要不要停由你決定。</p></details>')
+               + '有狀況會標在這裡，不會自動停掉，要不要停由你決定。</p>' + (_qm_check(qm) if qmo else "") + '</details>')
     care = []
     if mk == "tw":
         care += ['回測裡的三成只有財報驚喜（大型股）：臺灣50 提前卡位 2024 年底、長線投信動能 2025 年才有紀錄，上線後才照規則加進來。'
@@ -483,10 +735,14 @@ def details_html(mk: str, sc: dict, fw: dict | None) -> str:
                         f'（一直抱著 {_pc(s["hold"].get("ex_best"), 1, False)}）。')
     else:
         e = sc.get("early")
-        care += ['賺到的多半在大跌的年份（2000～2002、2008、2020、2022）；平常的年份兩邊都拿 100%，跟一直抱著一樣。',
-                 '美股的三成現在買指數；美股個股策略做好、驗證過才會換。']
+        if qmo:
+            care += _qm_care(mk, qm)
+            care.append('警訊換現金賺到的多半在大跌的年份（2000～2002、2008、2020、2022）。')
+        else:
+            care += ['賺到的多半在大跌的年份（2000～2002、2008、2020、2022）；平常的年份兩邊都拿 100%，跟一直抱著一樣。',
+                     '美股的三成現在買指數；美股個股策略做好、驗證過才會換。']
         if e:
-            care.append(f'訂規則時沒有看的 {e["a"][:4]}～{e["b"][:4]} 年：100 萬變 {_wan(e["plan"]["m"])}（一直抱著 {_wan(e["hold"]["m"])}），'
+            care.append(('警訊的規則（三成也買指數）在' if qmo else "") + f'訂規則時沒有看的 {e["a"][:4]}～{e["b"][:4]} 年：100 萬變 {_wan(e["plan"]["m"])}（一直抱著 {_wan(e["hold"]["m"])}），'
                         f'最慘時跌 {_ab(e["plan"]["mdd"])}（一直抱著 {_ab(e["hold"]["mdd"])}）：錢{"多一點" if e["plan"]["m"] >= e["hold"]["m"] else "少一點"}、跌得比較少。')
     care.append('以上都是過去照規則做的結果，不代表以後也會一樣。')
     out.append('<details class="plnd"><summary>要注意的事</summary><ul>' + "".join(f"<li>{x}</li>" for x in care) + "</ul></details>")
@@ -495,17 +751,22 @@ def details_html(mk: str, sc: dict, fw: dict | None) -> str:
 
 # ── 卡片 ─────────────────────────────────────────────────────────────────────
 
-def card(mk: str, N: dict | None, R: dict | None, stk: dict | None = None, fw: dict | None = None) -> str:
+def card(mk: str, N: dict | None, R: dict | None, stk: dict | None = None, fw: dict | None = None,
+         qm: dict | None = None) -> str:
     if mk not in S.MARKETS:
         return '<div class="pln plnoff"><b>交易計畫</b>目前只做台股、S&amp;P 500、那斯達克 100，請在上面切換市場。</div>'
     sc = (((R or {}).get("mk") or {}).get(mk) or {}).get("sc") or {}
-    hd = '<div class="plnhd"><h3>交易計畫：七成長抱，三成機動</h3><span class="plntag">上線觀察中</span></div>'
+    on = qm_on(mk, qm)
+    if on and ((qm["R"].get("sc") or {}).get(mk)):
+        sc = {**sc, "plan": qm["R"]["sc"][mk]}
+    hd = ('<div class="plnhd"><h3>交易計畫：七成長抱，三成機動</h3><span class="plntag">上線觀察中</span>'
+          + ('<span class="plntag">美股三成：新規則驗證中</span>' if on else "") + '</div>')
     if not N:
         body = '<p class="plnnote">今天的分數還沒算出來（景氣頁建頁時會算），先列過去的成績。</p>'
     else:
-        body = now_html(mk, N, stk) + todo_html(mk, N, stk)
+        body = now_html(mk, N, stk, qm) + todo_html(mk, N, stk, qm)
     if sc:
-        body += benefit_html(mk, sc) + expect_html(mk, sc) + details_html(mk, sc, fw)
+        body += benefit_html(mk, sc, qm) + expect_html(mk, sc) + details_html(mk, sc, fw, qm)
     else:
         body += '<p class="plnnote">過去的成績還沒算出來。</p>'
     return f'<div class="pln" id="pln-{_e(mk)}">{hd}{body}</div>'

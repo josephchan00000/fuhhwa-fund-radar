@@ -500,8 +500,9 @@ def load_live() -> dict:
     return L if L.get("ver") == S.VER else {"ver": S.VER, "days": {}}
 
 
-def record(nows: dict, stk: dict | None) -> bool:
-    """今天的紀錄（只有 CI，GITHUB_ACTIONS＝true 才寫回）：{資料日: {市場: {E, n, lit, v, sat}}}，同一個資料日覆蓋。"""
+def record(nows: dict, stk: dict | None, qm: dict | None = None) -> bool:
+    """今天的紀錄（只有 CI，GITHUB_ACTIONS＝true 才寫回）：{資料日: {市場: {E, n, lit, v, sat}}}，同一個資料日覆蓋。
+    qm＝{市場: 美股三成是不是放 QM}（corespec VER 3）；是的話 sat＝["qm"]（持股與淨值在 ussx_qm_live.json）。"""
     if os.environ.get("GITHUB_ACTIONS") != "true":
         return False
     L = load_live()
@@ -517,6 +518,8 @@ def record(nows: dict, stk: dict | None) -> bool:
             rec["held"] = len(fl.get("held") or [])
         if mk == "tw" and stk:
             rec["sat"] = [s["k"] for s in stk.get("st") or []]
+        elif (qm or {}).get(mk):
+            rec["sat"] = ["qm"]
         days.setdefault(n["d"], {})[mk] = rec
     L["ver"] = S.VER
     txt = json.dumps(L, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -527,7 +530,7 @@ def record(nows: dict, stk: dict | None) -> bool:
 
 
 def forward(mk: str, L: dict | None = None) -> dict:
-    """前瞻：紀錄從 LIVE_START 起有幾個交易日、還要幾天才比。美股（衛星＝指數）照紀錄算照做與一直抱著；台股衛星之後用逐筆交易重算。"""
+    """前瞻：紀錄從 LIVE_START 起有幾個交易日、還要幾天才比。美股（衛星＝指數或美股強勢品質股）照紀錄算照做與一直抱著；台股衛星之後用逐筆交易重算。"""
     L = L if L is not None else load_live()
     ds = sorted(d for d, v in (L.get("days") or {}).items() if mk in v)
     n = len(ds)

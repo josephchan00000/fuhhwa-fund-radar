@@ -18,6 +18,9 @@
   shok   影子版本達標（第 6 節）：前瞻滿門檻、贏過現行、回落沒有變差、每週重跑仍是證據強——你回「好」才換。
   sout   影子版本淘汰（第 6 節）：前瞻滿門檻卻沒有贏、回落變差、每週重跑不再是證據強，或現行規則改版。
   sxl    飆股前瞻記錄（sxlivespec；docs/lab_core70_plan.md 第 14 節）：第一次到半年、一年的檢討日；今年的規則還沒找、卻已經有訊號日。
+  uqm    美股三成（corespec VER 3、ussxspec QM；docs/lab_us_sleeve_plan.md 第 13.3～13.4 節；研究檔判定換了才有）：
+         每週紀錄停在比該有的還早的一週（美股週五收盤＋36 小時以後算該有）、第一次滿 63／126／252 個交易日的檢討、
+         每週重跑和之前的紀錄不一樣（多一筆差異時）。另外推播多一行：美股下一個交易日開盤要賣、要買的股票（每天的 50 日線檢查＋每週紀錄）。
 """
 from __future__ import annotations
 
@@ -35,7 +38,7 @@ CLOSE_HM = (14, 30)        # 這個時間之後，今天算已收盤
 EVENT = {"s3"}             # 事件型（以「次」計、A 級門檻 2 次）；財報驚喜另由 src＝p3 判斷
 TYPES = {"grade": "評級變動", "full": "前瞻滿額", "lag": "前瞻落後", "deep": "虧損超過歷史最差",
          "miss": "該出名單沒出", "stale": "資料過期", "dev": "表現偏離回測", "shok": "影子版本達標", "sout": "影子版本淘汰",
-         "sxl": "飆股觀察"}
+         "sxl": "飆股觀察", "uqm": "美股三成"}
 LOW_LIGHT = "明顯低於回測"
 
 
@@ -226,6 +229,76 @@ def sx_events(L: dict | None, prev: dict | None) -> list[dict]:
     return out
 
 
+def _us_week_end(now: datetime) -> str | None:
+    """現在應該已經記好的那一週（美股週五收盤＋36 小時，＝台北週六中午以後；休市就是那一週最後一個交易日）。"""
+    from . import ussxqm as QM
+    try:
+        d = (now - timedelta(hours=36)).date()
+        for _ in range(14):
+            x = d.isoformat()
+            if QM.next_day((d - timedelta(days=1)).isoformat()) == x and QM.week_done(x):
+                return x
+            d -= timedelta(days=1)
+    except Exception:                                     # noqa: BLE001 —— 休市表讀不到：不判
+        return None
+    return None
+
+
+def uqm_state(now: datetime) -> dict | None:
+    """美股三成（ussxqm）：研究檔判定換了才有。→ 存進每天紀錄的部分（要做的買賣、已到的檢討、停在哪一週、差異筆數）。"""
+    from . import corepage as CPG
+    from . import ussxqm as QM
+    R = QM.load()
+    if not R or not any(CPG.qm_on(mk, {"R": R}) for mk in CPG.US):
+        return None
+    L, W = QM.load_live(), QM.load_watch() or {}
+    n = L.get("now") or {}
+    if not n.get("d"):
+        return None
+    if W.get("base") != n["d"]:                           # 對不上最新一週紀錄的檢查不採用
+        W = {}
+    last = W.get("d") or n["d"]
+    td = [[x["on"], "賣", x["c"]] for x in W.get("sell") or [] if x.get("on") and x["on"] > last]
+    td += [[n["next"], "賣", c] for c in n.get("sell") or []] + [[n["next"], "買", c] for c in n.get("buy") or []]
+    rv = {str(x["k"]): {"d": x["d"], "ex": round(x["ex"], 4), "pct": None if x.get("pct") is None else round(x["pct"], 3),
+                        "low": bool(x.get("low"))} for x in QM.review_now(L, R) if x.get("d")}
+    exp = _us_week_end(now)
+    return {"d": n["d"], "td": sorted(td), "rv": rv, "stale": n["d"] if exp and n["d"] < exp else None, "exp": exp,
+            "nd": len(L.get("diff") or [])}
+
+
+def uqm_events(cur: dict | None, prev: dict | None) -> list[dict]:
+    """停在舊的一週（同一個停住的日子只記一次）、第一次滿檢討日、多一筆重跑差異。"""
+    if not cur:
+        return []
+    P, out = prev or {}, []
+    if cur.get("stale") and cur["stale"] != P.get("stale"):
+        out.append({"k": None, "ty": "uqm", "txt": f"美股三成的每週紀錄停在 {_md(cur['stale'])}（應該要有 {_md(cur['exp'])} 那一週），"
+                    "這一週的名單和買賣沒有更新"})
+    for k, x in sorted((cur.get("rv") or {}).items(), key=lambda kv: int(kv[0])):
+        if k in (P.get("rv") or {}):
+            continue
+        g = (2.718281828459045 ** x["ex"] - 1) * 100
+        out.append({"k": None, "ty": "uqm", "txt": f"美股三成滿 {k} 個交易日（{_md(x['d'])}）：三成比 S&P 500 含息{'多' if g >= 0 else '少'}賺 {abs(g):.1f}%"
+                    + (f"，在回測同樣長度的期間裡排在最差的 {x['pct'] * 100:.0f}%" if x.get("pct") is not None else "")
+                    + ("，比回測差；要不要換回指數由你決定" if x.get("low") else "")})
+    if (cur.get("nd") or 0) > (P.get("nd") or 0):
+        out.append({"k": None, "ty": "uqm", "txt": f"美股三成：每週重跑和之前的紀錄不一樣（第 {cur['nd']} 筆），要查原因"})
+    return out
+
+
+def uqm_line(cur: dict | None) -> str | None:
+    """推播多一行：美股下一個交易日開盤要賣、要買的股票。沒有要做的就不加。"""
+    by: dict[str, dict[str, list]] = {}
+    for d, act, c in (cur or {}).get("td") or []:
+        by.setdefault(d, {}).setdefault(act, []).append(c)
+    if not by:
+        return None
+    parts = [f"{_md(d)}（{_wd(d)}）開盤" + "、".join(f"{a} {'、'.join(by[d][a])}" for a in ("賣", "買") if by[d].get(a))
+             for d in sorted(by)]
+    return "美股三成：" + "；".join(parts) + "。"
+
+
 def push_lines(rec: dict) -> list[str]:
     """06:35 推播多帶的兩行：那一天開盤（與收盤）要做的事；有驗證事件才加第二行。"""
     T = rec.get("todo") or {}
@@ -245,6 +318,9 @@ def push_lines(rec: dict) -> list[str]:
                     ("（試算名單）" if i.get("tent") else "") for i in xs))
         a = f"{_md(d)}（{_wd(d)}）" + "；".join(parts) + "。"
     out = [a]
+    u = uqm_line(rec.get("uqm"))
+    if u:
+        out.append(u)
     ev = rec.get("ev") or []
     if ev:
         out.append("策略驗證：" + "；".join(e["txt"] for e in ev) + "。")
@@ -305,6 +381,13 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
             rec["sx"] = sx
             rec["ev"] += sx_events(sxlive.LAST, (days.get(prev_d) or {}).get("sx") if prev_d else None)
     except Exception:                                     # noqa: BLE001 —— 摘要讀不到：不發提醒
+        pass
+    try:                                                  # 美股三成（研究檔判定換了才有）
+        uq = uqm_state(now)
+        if uq:
+            rec["uqm"] = uq
+            rec["ev"] += uqm_events(uq, (days.get(prev_d) or {}).get("uqm") if prev_d else None)
+    except Exception:                                     # noqa: BLE001 —— 讀不到：不發提醒
         pass
     rec["push"] = push_lines(rec)
     old = days.get(last) or {}
