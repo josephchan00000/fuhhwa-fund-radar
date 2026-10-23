@@ -31,7 +31,17 @@ def _now(n_lit_extra=False, held=True):
     on = n < S.NEED
     sat = 1.0 if held else 0.0
     return {"mk": "tw", "d": "2026-10-22", "fams": f, "n": n, "on": on, "now": S.CORE + S.SAT * sat,
-            "next": S.CORE + S.SAT * (1.0 if on else 0.0), "due": (sat > 0.5) != on}
+            "next": S.CORE + S.SAT * (1.0 if on else 0.0), "due": (sat > 0.5) != on,
+            "ok": on, "clear": 30 if on else 0, "need": S.REENTRY["tw"]}
+
+
+def _us(mk="spx", held=("10 個月均線", "200 日均線", "12 個月動能"), flat=False):
+    N = dict(_now(), mk=mk, need=1)
+    N["fams"] = [dict(f, desc=d) for f, (_, _, d, _, _) in zip(N["fams"], S.FAMS[mk])] + [
+        {"k": "flat", "name": "總經策略全部空手", "desc": "", "lit": flat, "held": list(held), "n_all": 12, "vd": "2026-10-22"}]
+    if flat:
+        N.update(on=False, ok=False, clear=0, next=S.CORE, due=True)
+    return N
 
 
 STK = {"d": "2026-10-23", "w": 0.10,
@@ -104,12 +114,34 @@ def test_card_states_hold_cash_and_due(R):
 
 def test_us_card_says_satellite_is_index_and_shows_early_period(R):
     for mk in ("spx", "ndx"):
-        N = dict(_now(), mk=mk)
-        N["fams"] = [dict(f, desc=d) for f, (_, _, d, _, _) in zip(N["fams"], S.FAMS[mk])]
+        N = _us(mk)
         h = P.card(mk, N, R)
         e = R["mk"][mk]["sc"]["early"]
         assert "另外三成現在也買同一個指數" in h and P._wan(e["plan"]["m"]) in h
         assert "財報驚喜" not in h and "個股策略頁" not in h and "融資 ÷ 上市股票總市值" not in h and "融資偏多" not in h          # 台股衛星與台股槓桿的說法不出現在美股
+
+
+def test_v2_us_fourth_warning_and_tw_two_week_buy_back(R):
+    """VER 2：美股多一列「總經策略全部空手」（單獨就換現金）；台股換現金後要警訊少於兩個滿 10 個交易日才買回。"""
+    from arm.lab.xstrat import future_days
+    h = P.card("spx", _us(), R)
+    t = _text(h)
+    assert "看四個警訊" in t and "或總經策略全部空手" in t and "總經策略全部空手" in t
+    assert "3 條有部位" in t and "有部位的：10 個月均線、200 日均線、12 個月動能" in t
+    assert "只拿" not in t.split("每天收盤後")[1].split("過去照做的結果")[0]          # 沒有觸發
+    h = P.card("spx", _us(held=(), flat=True), R)
+    t = _text(h)
+    assert "全部空手（警訊）" in t and "總經策略全部空手，只拿" in t and "把機動的三成全部賣掉，改放現金" in t
+    t = _text(P.card("spx", _us(held=("200 日均線",)), R))
+    assert "1 條有部位" in t and "有部位的：200 日均線" in t
+    th = _text(P.card("tw", _now(), R, STK))
+    assert "看三個警訊" in th and "滿 10 個交易日（約兩週）" in th and "總經策略全部空手" not in th
+    N = _now(n_lit_extra=False, held=False)                                     # 台股：三成是現金、警訊少於兩個第 4 天
+    N.update(on=False, ok=True, clear=4, next=S.CORE, now=S.CORE, due=False)
+    t = _text(P.card("tw", N, R, STK))
+    buy = future_days("tw", "2026-10-22", S.REENTRY["tw"] - 4 + 1)[-1]
+    assert "警訊已經少於兩個（第 4 天），要滿 10 個交易日才買回" in t and f"最快 {P._mdw(buy)} 收盤買回" in t
+    assert "三成還在等買回（警訊少於兩個第 4 天，要滿 10 天）" in t and "70%" in t
 
 
 def test_chart_draws_both_lines_and_cash_spans(R):
