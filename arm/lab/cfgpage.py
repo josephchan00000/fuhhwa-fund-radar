@@ -662,10 +662,10 @@ def us_hold(bundle: dict, N: dict | None) -> str:
                 bits.append(f'比 50 日線{"高" if pct >= 0 else "低"} {abs(pct) * 100:.1f}%')
             rows.append(f'<tr><td>{_usn(h["c"], nms)}</td><td class="w">{_wp((h.get("w") or 0) * w)}</td>'
                         f'<td class="src">強勢品質股</td><td class="st">{"・".join(bits)}</td></tr>')
-        for x in n.get("buy") or []:
-            rows.append(f'<tr><td>{_usn(x, nms)}</td><td class="w">約 {CPG._qm_per()}</td><td class="src">強勢品質股</td>'
-                        f'<td class="st">{_e(_md(n.get("next")))} 開盤買</td></tr>')
-        idle = max(0.0, (n.get("idle") or 0.0) - len(n.get("buy") or []) / QX.QM_SLOTS)
+        split, idle = CPG.qm_buy_split(n, W)
+        for x, wb in split:
+            rows.append(f'<tr><td>{_usn(x, nms)}</td><td class="w">約 {_wp(wb * w)}</td><td class="src">強勢品質股</td>'
+                        f'<td class="st">{_e(_md(n.get("next")))} ' + ("開盤買" if wb > 1e-3 else "現金不夠，先不買") + '</td></tr>')
         if idle > 1e-3:
             nf = CPG._qm_next_week_end(W.get("d") or n.get("d"))
             rows.append(f'<tr><td class="idx">現金</td><td class="w">{_wp(idle * w)}</td><td class="src">強勢品質股</td>'
@@ -729,7 +729,11 @@ def board_html(B: dict) -> str:
             body.append(f'<tr class="bnone" data-st="{s}"><td colspan="6">{"目前沒有；第一批在每週日新找之後出現" if s == "cand" else "目前沒有"}</td></tr>')
             continue
         for r in rs:
-            nm = f'<a{_go_attrs(r.get("go"))}>{_e(r["name"])}</a>' if (r.get("go") or {}).get("go") else _e(r["name"])
+            nm = (f'<a href="{_e(r["href"])}">{_e(r["name"])}</a>' if r.get("href") else
+                  f'<a{_go_attrs(r.get("go"))}>{_e(r["name"])}</a>' if (r.get("go") or {}).get("go") else _e(r["name"]))
+            if r.get("src"):
+                nm += f' <a class="bsrc" href="{_e(r["src"])}" target="_blank" rel="noopener">來源</a>'
+
             if s == "out":
                 body.append(f'<tr class="br" data-st="{s}" data-mk="{_e(r.get("mkk"))}"><td class="bn">{nm}</td><td class="bm">{_e(r["mk"])}</td>'
                             f'<td class="bw" colspan="4">{_e(r.get("why") or "")}</td></tr>')
@@ -837,6 +841,7 @@ CSS = r"""
 .bpill.bcand{background:var(--gbbg);color:var(--warn)}.bpill.bout{background:var(--line);color:var(--mut)}
 .btbl td.bn a{color:var(--ink);font-weight:600;cursor:pointer}.btbl td.bn a:hover{color:var(--acc)}
 .btbl .bt{display:block;font-size:11.5px;color:var(--mut);font-weight:400}
+.btbl td.bn a.bsrc{font-size:11.5px;font-weight:400;color:var(--mut);text-decoration:underline}
 .btbl td.bm{white-space:nowrap;color:var(--ink2)}.btbl td.bh{color:var(--ink2);min-width:220px}
 .btbl td.bp,.btbl td.bd{white-space:nowrap;font-variant-numeric:tabular-nums}
 .btbl .bref{color:var(--mut);font-size:12px}.btbl .bsub{display:block;font-size:11.5px;color:var(--mut)}
