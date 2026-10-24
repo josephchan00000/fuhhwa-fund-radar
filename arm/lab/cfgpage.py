@@ -815,7 +815,7 @@ def _qm_cands(G: dict) -> str:
         return ""
     nf = G["nf"]
     sub = (f'{_md(n.get("wk"))} 收盤・名單共 {n.get("n_list", 0)} 檔'
-           + (f'・{_md(nf)} 收盤定案' if nf and not n.get("wk_done") else ""))
+           + (f'・{_md(nf)} 收盤定案' if nf and not n.get("wk_done") else "") + "・右邊的數字＝漲勢勝過幾 % 的美股")   # 手機不顯示表頭
     rows = "".join(f'<tr><td><a {_yf(x["c"])}>{_usn(x["c"], nms)}</a></td><td class="w">{x["rs"]:.0f}</td></tr>' for x in L)
     return (f'<h3 class="cfh3">有空位時依序買：名單前 {len(L)} 名（手上沒有的）<span class="sub">{sub}</span></h3>'
             '<table class="cfht cfql"><tr><th>公司</th><th title="漲幅勝過多少比例的美股（1～99）">強度</th></tr>'
