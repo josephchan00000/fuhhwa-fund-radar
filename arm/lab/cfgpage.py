@@ -1036,7 +1036,7 @@ CSS = r"""
 .cfdue{font-size:13.5px;margin:6px 0;padding:7px 10px;border-radius:8px;background:var(--gbbg)}.cfdue b{color:var(--warn)}.cfdue.ok b{color:var(--acc)}
 .cfperf{font-size:13px;color:var(--ink2);margin:4px 0}.cfperf b{color:var(--ink)}.cfq{font-size:12.5px;color:var(--mut)}
 .cfdet{margin:6px 0 10px}.cfdet>summary{cursor:pointer;font-size:13px;color:var(--acc);width:max-content}
-.pln.cfpln{border:0;border-radius:0;padding:0;background:none;margin:8px 0 0}   /* 細節＝corepage 的圖表與表格（樣式 corepage.CSS，配置頁一起載入）；外框用時程與水位卡自己的 */
+.pln.cfpln{border:0;border-radius:0;padding:0;background:none;margin:8px 0 0}   /* 細節＝corepage 的圖表與表格（樣式 corepage.CSS，配置頁一起載入）；外框用「過去照做」那一塊自己的 */
 .cfht{width:100%;border-collapse:collapse;font-size:13.5px}
 .cfht th{text-align:left;font-weight:600;color:var(--ink2);font-size:12.5px;padding:5px 8px;border-bottom:1px solid var(--line2)}
 .cfht td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left;white-space:normal}

@@ -172,6 +172,11 @@ jobs:
               echo "還沒做完：再派一輪"
               gh workflow run lab_backfill.yml --ref "${{ github.ref_name }}" -f mode=mgnfill || echo "::warning::再派失敗，請手動派 mode=mgnfill"
             fi
+          elif [ "${MODE#uscard}" != "$MODE" ]; then
+            # 美股個股卡的每天資料（docs/lab_cfg_v2_plan.md 第 4 節）：一年日線＋Yahoo 分析師預估、目標價、下次財報日。
+            # 先在分支上跑一輪確認抓得到（不管這個收盤有沒有抓過都重抓）；結果 commit 回這個分支
+            pip install --quiet numpy || true
+            TZ=Asia/Taipei timeout 300 python3 scripts/fetch_ussx_watch.py --card-force
           elif [ "$MODE" = "probe2" ]; then
             python3 scripts/backfill_lab.py --probe2
           elif [ "$MODE" = "probe3" ]; then

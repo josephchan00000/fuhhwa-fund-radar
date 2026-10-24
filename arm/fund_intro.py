@@ -163,6 +163,12 @@ def us_qm_codes(k: int = US_QM_SHOW) -> tuple[list[str], dict]:
         doc = json.loads((ROOT / "data" / "lab" / "ussx_qm_live.json").read_text(encoding="utf-8"))
     except Exception:
         return [], {}
+    return qm_codes(doc, k)
+
+
+def qm_codes(doc: dict | None, k: int = US_QM_SHOW) -> tuple[list[str], dict]:
+    """us_qm_codes 的本體：doc＝每週紀錄（美股個股卡的每天資料 arm/lab/uscard.py 也用這一批）。"""
+    doc = doc or {}
     n = doc.get("now") or {}
     held = [str(h.get("c") or "") for h in n.get("hold") or []]
     buy = [str(c) for c in n.get("buy") or []]

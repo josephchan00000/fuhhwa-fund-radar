@@ -305,9 +305,29 @@ def _raw(C: dict, A: np.ndarray, i: int, j: int) -> float | None:
     return float(x * raw / c)
 
 
+def _met(C: dict, i: int, js) -> dict[int, list]:
+    """第 i 天（週訊號日）那一週 QM 的五個條件，順序同 KEYS（強度、離 52 週高點、營益率、近四季 ROE、市值）：
+    {代號欄: [五個數]}。那一週不在範圍內（沒有樣本列）的代號不列。"""
+    def rd(key, x):                                          # 強度一位小數、市值到百萬美元、比例四位小數；沒有值＝存成 null
+        if not math.isfinite(x):
+            return x
+        return round(x, 1) if key == "rs" else round(x / 1e6) * 1e6 if key == "cap" else round(x, 4)
+
+    cols = C["cols"]
+    want = {int(j) for j in js}
+    out = {}
+    for k in np.nonzero(cols["di"] == i)[0]:
+        j = int(cols["j"][k])
+        if j in want:
+            out[j] = [rd(key, float(cols["f"][key][k])) for key in KEYS]
+    return out
+
+
 def snapshot(C: dict, r: dict, sig: dict[int, list]) -> dict:
     """最新一天收盤後：持股（買進日、買進價、收盤、50 日線、占三成多少、曾經站上均線沒有）、明天開盤要賣的、
-    最新一週的名單（前 QM_LIST 名）與明天開盤要買的（有空位才買，依名單順序）。價格都是實際成交價。"""
+    最新一週的名單（前 QM_LIST 名）與明天開盤要買的（有空位才買，依名單順序）。價格都是實際成交價。
+    met＝這一週（wk）手上、要買、名單前 QM_LIST 名的五個條件；met0＝手上的股票買進那一週的五個條件（為什麼選它；
+    docs/lab_cfg_v2_plan.md 第 4 節）。"""
     P, cal, T = C["P"], C["cal"], C["T"]
     t = T - 1
     S = r["state"]
@@ -324,7 +344,7 @@ def snapshot(C: dict, r: dict, sig: dict[int, list]) -> dict:
     wd = wks[-1] if wks else None
     lst = [{"c": _sym(C, j), "rs": round(sc, 1)} for j, sc in (sig.get(wd) or [])[:X.QM_LIST]] if wd is not None else []
     done = wd is not None and week_done(cal[wd])
-    buy = []
+    buy, bj = [], []
     if wd == t and done:                                     # 最新一天就是（已經結束的一週的）週訊號日：明天開盤照名單補空位
         free = X.QM_SLOTS - (len(S["pos"]) - len(S["pend"]))
         for j, sc in sig[t]:
@@ -332,10 +352,20 @@ def snapshot(C: dict, r: dict, sig: dict[int, list]) -> dict:
                 break
             if j not in S["pos"]:
                 buy.append(_sym(C, j))
+                bj.append(j)
+    met, met0 = {}, {}
+    if wd is not None:
+        js = list(S["pos"]) + bj + [j for j, _ in (sig.get(wd) or [])[:X.QM_LIST]]
+        met = {_sym(C, j): v for j, v in _met(C, wd, js).items()}
+    for j, q in S["pos"].items():
+        si = q.get("si")
+        v = _met(C, si, [j]).get(j) if si is not None else None
+        if v is not None:
+            met0[_sym(C, j)] = {"wk": cal[si], "v": v}
     return {"d": cal[t], "wk": cal[wd] if wd is not None else None, "wk_done": bool(done), "hold": hold,
             "sell": [h["c"] for h in hold if h["sell"]], "buy": buy, "list": lst,
             "n_list": len(sig.get(wd) or []) if wd is not None else 0, "idle": float(S["idle"] / eq) if eq > 0 else None,
-            "next": next_day(cal[t])}
+            "next": next_day(cal[t]), "met": met, "met0": met0}
 
 
 def next_day(d: str) -> str:
