@@ -174,3 +174,52 @@ def test_phone_no_sideways_scroll_with_everything_open(labsite, w):
               p && getComputedStyle(p).fill]; }""")
             assert st[0] == "none" and st[1] == "block" and st[2] == "none", (url, st)   # 手機只顯示手機版圖、線不是填滿的黑塊
         pg.close()
+
+
+def test_us_card_clicks_and_direct_link(labsite):
+    """美股個股卡（配置頁 v2 第 4 步）：配置頁美股列點了打開卡片（#us=代號）、‹ › 與左右鍵照配置頁的順序換檔、Esc 關掉回到原頁；
+    直接打開 x9.html#us=代號 落在配置・美股並打開卡片；手機 320～414px 卡片不左右捲。"""
+    b, base, _ = labsite
+    pg, errs = _open(b, f"{base}/x9.html?v=us", wait=1000)
+    try:
+        codes = pg.evaluate("() => [...document.querySelectorAll('#main a.cfrow[data-us]')].map(a => a.dataset.us)")
+        if not codes:
+            pytest.skip("美股強勢品質股沒在用（判定沒過或還沒有每週紀錄）")
+        st = "() => [location.hash, !document.getElementById('dv').hidden, (document.querySelector('#dvin .ttl b') || {}).textContent || '']"
+        pg.click("#main a.cfrow[data-us] >> nth=0")
+        pg.wait_for_timeout(400)
+        h, vis, ttl = pg.evaluate(st)
+        assert h == f"#us={codes[0]}" and vis and ttl, (h, vis, ttl)
+        for s in ("#uc-st", "#uc-why", "#uc-px", "#uc-an", "#uc-co"):
+            assert pg.query_selector(f"#dvin {s}") is not None, s
+        order = pg.evaluate("() => UCD.o")
+        if len(order) > 1:
+            pg.click("#nx")
+            pg.wait_for_timeout(300)
+            assert pg.evaluate(st)[0] == f"#us={order[1]}"
+            pg.keyboard.press("ArrowLeft")
+            pg.wait_for_timeout(300)
+            assert pg.evaluate(st)[0] == f"#us={order[0]}"
+        pg.keyboard.press("Escape")
+        pg.wait_for_timeout(400)
+        h, vis, _ = pg.evaluate(st)
+        assert h == "" and not vis and pg.evaluate("() => location.search") == "?v=us"
+        assert not errs, errs
+    finally:
+        pg.close()
+    pg, errs = _open(b, f"{base}/x9.html#us={codes[0]}", wait=1200)
+    try:
+        assert pg.evaluate("() => [S.tab, location.search, !document.getElementById('dv').hidden]") == ["us", "?v=us", True]
+        assert not errs, errs
+    finally:
+        pg.close()
+    for w in (320, 360, 390, 414):
+        pg = b.new_page(viewport={"width": w, "height": 800})
+        try:
+            pg.goto(f"{base}/x9.html?v=us#us={codes[0]}", wait_until="load")
+            pg.wait_for_timeout(900)
+            sw = pg.evaluate("() => [document.documentElement.scrollWidth, document.getElementById('dv').scrollWidth]")
+            assert max(sw) <= w, (w, sw)
+        finally:
+            pg.close()
+

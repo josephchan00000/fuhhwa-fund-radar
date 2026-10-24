@@ -20,6 +20,7 @@ from .. import fund_intro as FI
 from . import board as BD
 from . import corepage as CPG
 from . import corespec as S
+from . import uscardpage as UCP
 from . import ussxspec as QX
 
 PLAN_MK = {"tw": "tw", "us": "spx"}             # 配置頁的市場 → 交易計畫的市場鍵
@@ -622,9 +623,15 @@ YF = "https://finance.yahoo.com/quote/"
 
 
 def _yf(c: str) -> str:
-    """美股點了開 Yahoo Finance（美股個股卡做好之前的過渡，docs/lab_cfg_v2_plan.md 第 5 節第 2 步）。
-    代號的「.」「/」在 Yahoo 寫成「-」（BRK.B → BRK-B）。"""
+    """開 Yahoo Finance（S&P 500 ETF 那一列；美股個股卡沒有這一檔時的退路）。代號的「.」「/」在 Yahoo 寫成「-」（BRK.B → BRK-B）。"""
     return f'href="{YF}{_e(re.sub(r"[./]", "-", str(c)))}" target="_blank" rel="noopener"'
+
+
+def _ua(c: str, G: dict) -> str:
+    """美股的股票點了打開美股個股卡（uscardpage；網址 #us=代號，docs/lab_cfg_v2_plan.md 第 3.3 節）；卡片沒有這一檔＝開 Yahoo Finance。"""
+    if c in (G.get("uc") or ()):
+        return f'href="#us={_e(c)}" data-us="{_e(c)}"'
+    return _yf(c)
 
 
 def us_state(bundle: dict) -> dict:
@@ -694,9 +701,9 @@ def _uname(c: str, nms: dict) -> str:
     return CPG.us_label(c, nms)[0]
 
 
-def _ulink(c: str, nms: dict) -> str:
-    """句子裡的美股名字（可以點，開 Yahoo Finance）。"""
-    return f'<a {_yf(c)}>{_e(_uname(c, nms))}</a>'
+def _ulink(c: str, G: dict) -> str:
+    """句子裡的美股名字（可以點，開美股個股卡）。"""
+    return f'<a {_ua(c, G)}>{_e(_uname(c, G["nms"]))}</a>'
 
 
 def _us_cash_why(G: dict) -> str:
@@ -770,7 +777,7 @@ def us_money(G: dict, N: dict | None) -> str:
 
 
 def _urow(r: dict, G: dict, todo: bool = False) -> str:
-    """美股持股的一列：整列點了開 Yahoo Finance（美股個股卡做好之前）。第二行本業，第三行哪天買、離 50 日線多遠或哪天賣，
+    """美股持股的一列：整列點了開美股個股卡。第二行本業，第三行哪天買、離 50 日線多遠或哪天賣，
     第四行為什麼（這一週名單的第幾名）。"""
     nm, what = CPG.us_label(r["c"], G["nms"])
     wk = G["n"].get("wk")
@@ -791,7 +798,7 @@ def _urow(r: dict, G: dict, todo: bool = False) -> str:
                + f'，漲勢勝過 {r["rs"]:.0f}% 的美股')
     w = (("約 " if todo else "") + _wp(r["w"])) if r["w"] > 1e-3 else ""
     head = f'<b>{_e(nm)}</b>' + (f'<span class="cd">{_e(r["c"])}</span>' if nm != r["c"] else "")
-    return (f'<a class="cfrow{" todo" if todo else ""}" {_yf(r["c"])}><span class="cfra">{head}'
+    return (f'<a class="cfrow{" todo" if todo else ""}" {_ua(r["c"], G)}><span class="cfra">{head}'
             + ('<span class="cftag">待買進</span>' if todo else "") + '<span class="go">›</span>'
             f'<span class="w">{w}</span>{rr}</span>' + (f'<span class="cfri">{_e(what)}</span>' if what else "")
             + f'<span class="cfrb">{_e(b)}</span>' + (f'<span class="cfrc">為什麼：{_e(why)}</span>' if why else "") + "</a>")
@@ -807,7 +814,7 @@ def _usn(c: str, nms: dict | None) -> str:
 
 def _qm_cands(G: dict) -> str:
     """名單前幾名（手上沒有的）：有空位時就照這個順序買（每週五收盤定案）。數量＝fund_intro.US_QM_SHOW（缺口檢查涵蓋同一批）。
-    名字點了開 Yahoo Finance。"""
+    名字點了開美股個股卡。"""
     n, nms = G["n"], G["nms"]
     have = {r["c"] for r in G["rows"]} | {x["c"] for x in G["todo"]} | {x["c"] for x in G["gone"]}
     L = [x for x in n.get("list") or [] if x["c"] not in have][:FI.US_QM_SHOW]
@@ -816,14 +823,14 @@ def _qm_cands(G: dict) -> str:
     nf = G["nf"]
     sub = (f'{_md(n.get("wk"))} 收盤・名單共 {n.get("n_list", 0)} 檔'
            + (f'・{_md(nf)} 收盤定案' if nf and not n.get("wk_done") else "") + "・右邊的數字＝漲勢勝過幾 % 的美股")   # 手機不顯示表頭
-    rows = "".join(f'<tr><td><a {_yf(x["c"])}>{_usn(x["c"], nms)}</a></td><td class="w">{x["rs"]:.0f}</td></tr>' for x in L)
+    rows = "".join(f'<tr><td><a {_ua(x["c"], G)}>{_usn(x["c"], nms)}</a></td><td class="w">{x["rs"]:.0f}</td></tr>' for x in L)
     return (f'<h3 class="cfh3">有空位時依序買：名單前 {len(L)} 名（手上沒有的）<span class="sub">{sub}</span></h3>'
             '<table class="cfht cfql"><tr><th>公司</th><th title="漲幅勝過多少比例的美股（1～99）">強度</th></tr>'
             f'{rows}</table>')
 
 
 def us_hold(G: dict, N: dict | None) -> str:
-    """② 持股（美股）：美股強勢品質股一組（判定沒過＝S&P 500 ETF），每一檔點了開 Yahoo Finance；現金只在最下面一列；
+    """② 持股（美股）：美股強勢品質股一組（判定沒過＝S&P 500 ETF），每一檔點了開美股個股卡；現金只在最下面一列；
     下面是名單前幾名（有空位時依序買）。"""
     cash_mode = bool(N) and N["now"] < 0.99
     sw = G["sw"]
@@ -856,16 +863,16 @@ def us_hold(G: dict, N: dict | None) -> str:
         stock = G["c0"] + (0.0 if cash_mode else held)
     cash = max(0.0, 1.0 - stock)
     cw = "警訊：全部持股放現金中" if cash_mode and G["c0"] <= 0 else "警訊：機動放現金中" if cash_mode else "空的位子"
-    return ('<h2 class="cfh">持股<span class="sub">點股票開 Yahoo Finance 看走勢、財報</span></h2>' + note + "".join(grs)
+    tip = "點股票看走勢、為什麼選它、分析師預估" if G.get("uc") else "點股票開 Yahoo Finance 看走勢、財報"
+    return (f'<h2 class="cfh">持股<span class="sub">{tip}</span></h2>' + note + "".join(grs)
             + f'<div class="cfcash"><b>現金</b><span>{cw}</span><em>{_wp(cash)}</em></div>'
             + (_qm_cands(G) if G["on"] and G["n"] else ""))
 
 
 def us_sched(G: dict, N: dict | None) -> str:
-    """③ 接下來照規則的買賣（美股）：依日期；拿著的股票每天收盤看 50 日線那一列放在第一天後面。股票名點了開 Yahoo Finance。"""
+    """③ 接下來照規則的買賣（美股）：依日期；拿著的股票每天收盤看 50 日線那一列放在第一天後面。股票名點了開美股個股卡。"""
     ev = []                                                   # (日期, 開盤 0／收盤 1, 標籤, HTML, 小字)
     cash = bool(N) and N["next"] < 0.99
-    nms = G["nms"]
     if N and N.get("due"):
         day = CPG._next_day("spx", N["d"])
         if day:
@@ -877,12 +884,12 @@ def us_sched(G: dict, N: dict | None) -> str:
                 by.setdefault(r["sell"], []).append(r)
         for d, rs in sorted(by.items()):
             trig = {r["trig"] for r in rs}
-            ev.append((d, 0, "賣出", "強勢品質股：" + "、".join(_ulink(r["c"], nms) for r in rs),
+            ev.append((d, 0, "賣出", "強勢品質股：" + "、".join(_ulink(r["c"], G) for r in rs),
                        (f'{_e(_md(trig.pop()))} 收盤跌破 50 日線' if len(trig) == 1 and None not in trig else "收盤跌破 50 日線")))
         ok = [x for x in G["todo"] if x["w"] > 1e-3]
         if ok:
             wk = G["n"].get("wk")
-            ev.append((ok[0]["d"], 0, "買進", "強勢品質股：" + "、".join(f'{_ulink(x["c"], nms)}（約 {_wp(x["w"])}）' for x in ok),
+            ev.append((ok[0]["d"], 0, "買進", "強勢品質股：" + "、".join(f'{_ulink(x["c"], G)}（約 {_wp(x["w"])}）' for x in ok),
                        f'{_e(_md(wk))} 收盤的名單裡手上還沒有的' + ("；全部持股放現金中，先不買" if cash else "")))
         nf = G["nf"]
         if nf:
@@ -909,7 +916,7 @@ def us_sched(G: dict, N: dict | None) -> str:
         out.append("</div>")
     if G["on"] and G["rows"]:                               # 每天的 50 日線檢查：放在第一天後面（同示意圖）
         near = sorted((r["pct"], r["c"]) for r in G["rows"] if r.get("pct") is not None and not r.get("sell"))
-        sub = f'最接近的是 {_ulink(near[0][1], nms)}，比 50 日線高 {near[0][0] * 100:.1f}%' if near and near[0][0] >= 0 else ""
+        sub = f'最接近的是 {_ulink(near[0][1], G)}，比 50 日線高 {near[0][0] * 100:.1f}%' if near and near[0][0] >= 0 else ""
         daily = ('<div class="cfev"><div class="cfevd"><b>每天</b><span>收盤</span></div><div class="cfevx"><span class="cftg tl">檢查</span>'
                  '拿著的股票收盤跌破 50 日線，就在下一個交易日開盤賣' + (f'<span class="cfevs">{sub}</span>' if sub else "") + "</div></div>")
         i = next((k for k, s in enumerate(out) if k > 0 and s == "</div>"), None)
@@ -917,7 +924,7 @@ def us_sched(G: dict, N: dict | None) -> str:
     if not out:
         txt = "接下來沒有排定的買賣；有警訊時才會換成現金。" if not G["on"] else "接下來沒有排定的買賣。"
         return f'<h2 class="cfh">接下來照規則的買賣</h2><p class="cfwhy">{txt}</p>'
-    return ('<h2 class="cfh">接下來照規則的買賣<span class="sub">點股票開 Yahoo Finance</span></h2>'
+    return (f'<h2 class="cfh">接下來照規則的買賣<span class="sub">{"點股票看個股卡" if G.get("uc") else "點股票開 Yahoo Finance"}</span></h2>'
             f'<div class="cfsch">{"".join(out)}</div>'
             + ('<details class="cftlw"><summary>看時間軸</summary>' + tl_shell("us") + "</details>" if G["on"] and G["n"] else ""))
 
@@ -927,10 +934,16 @@ def us_parts(data: dict, bundle: dict) -> dict:
     G = us_state(bundle)
     d0 = G["d"] or (N or {}).get("d")
     nx = CPG._next_day("spx", d0) if d0 else None
+    uc = None
+    try:                                                  # 美股個股卡（第 4 步；卡片資料＝qm 的 C，sigpage.core_data 放進去）
+        uc = UCP.build(G, ((bundle.get("qm") or {}).get("C")) or {}, cash=bool(N) and N["now"] < 0.99)
+    except Exception as e:                                # noqa: BLE001 —— 卡片算不出來：股票照舊連 Yahoo Finance
+        print(f"[配置] 美股個股卡算不出來：{type(e).__name__}: {e}")
+    G["uc"] = set((uc or {}).get("s") or ())
     perf = '<h2 class="cfh">過去照做</h2>' + perf_line("us", bundle) + detail_html("us", bundle)
     return {"card": us_money(G, N), "hold": us_hold(G, N), "sched": us_sched(G, N),
             "warn": warn_html("us", N) if N else '<h2 class="cfh">警訊</h2><p class="cfwhy">今天的讀數還沒算出來。</p>',
-            "perf": perf, "d": d0, "nx": nx, "tl": {"qm": _qm_lane(G)}}
+            "perf": perf, "d": d0, "nx": nx, "tl": {"qm": _qm_lane(G)}, "uc": uc}
 
 
 # ── 時間軸（stockviz.tlDraw；設定在 JS 的 cfQ） ──────────────────────────────────
