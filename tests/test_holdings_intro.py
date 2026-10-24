@@ -169,15 +169,18 @@ def test_check_holdings_intro_缺口檔含_etf_持股(tmp_path, monkeypatch):
          "funds": [{"short_name": "甲基金", "weight": 3.0}]}])
     monkeypatch.setattr(fund_intro, "uncovered_etf_holdings", lambda: [
         {"name": "玉晶光", "ticker": "3406", "sid": "3406", "etfs": ["00412A"], "count": 1, "weight": 2.1}])
+    monkeypatch.setattr(fund_intro, "uncovered_us_qm", lambda: [{"name": "Paycom Software, Inc.", "ticker": "PAYC"}])
     assert mod.main() == 1
     doc = json.loads((tmp_path / "gap.json").read_text(encoding="utf-8"))
-    assert doc["count"] == 2 and doc["fund_count"] == 1 and doc["etf_count"] == 1
+    assert doc["count"] == 3 and doc["fund_count"] == 1 and doc["etf_count"] == 1 and doc["usqm_count"] == 1
     assert doc["items"][0] == {"src": "fund", "name": "新標的X", "sector": "測試", "count": 1,
                                "funds": ["甲基金"]}
     assert doc["items"][1] == {"src": "etf", "name": "玉晶光", "ticker": "3406", "count": 1,
                                "etfs": ["00412A"], "weight": 2.1}
+    assert doc["items"][2] == {"src": "usqm", "name": "Paycom Software, Inc.", "ticker": "PAYC"}
     monkeypatch.setattr(fund_intro, "uncovered_top_holdings", lambda n=10: [])
     monkeypatch.setattr(fund_intro, "uncovered_etf_holdings", lambda: [])
+    monkeypatch.setattr(fund_intro, "uncovered_us_qm", lambda: [])
     assert mod.main() == 0
     assert json.loads((tmp_path / "gap.json").read_text(encoding="utf-8"))["count"] == 0
 
@@ -197,3 +200,36 @@ def test_intro_gap_chip_分基金與_etf(tmp_path, monkeypatch):
     assert "<b>前十大簡介</b>" in fd._intro_gap_chip()          # 舊格式（沒有 src）照舊
     fp.write_text(json.dumps({"count": 0, "items": []}), encoding="utf-8")
     assert fd._intro_gap_chip() == ""
+
+
+def test_uncovered_us_qm_配置頁美股列的股票(tmp_path, monkeypatch):
+    """2026-10-24 使用者：美股只有代號看不懂 → 配置頁美股列的股票（手上的、要買的、名單前 5 名裡手上沒有的）缺簡介就進缺口檔；
+    依代號查、名稱用每週紀錄的英文名（沒有就是代號）。"""
+    (tmp_path / "data" / "lab").mkdir(parents=True)
+    (tmp_path / "data" / "lab" / "ussx_qm_live.json").write_text(json.dumps({
+        "names": {"PAYC": "Paycom Software, Inc."},
+        "now": {"hold": [{"c": "INSW"}, {"c": "VLO"}], "buy": ["MPC"],
+                "list": [{"c": c, "rs": 90} for c in ["VLO", "PAYC", "QLYS", "FTNT", "HALO", "NTAP", "CON"]]}}),
+        encoding="utf-8")
+    monkeypatch.setattr(fund_intro, "ROOT", tmp_path)
+    monkeypatch.setattr(fund_intro, "_profiles", lambda: {"International Seaways Inc": {"intro": "美國 …", "ticker": "INSW"},
+                                                          "Fortinet": {"intro": "美國 Fortinet…", "ticker": "FTNT"}})
+    codes, names = fund_intro.us_qm_codes()
+    assert codes == ["INSW", "VLO", "MPC", "PAYC", "QLYS", "FTNT", "HALO", "NTAP"]      # 名單前 5 名不含手上的 VLO、要買的 MPC
+    assert fund_intro.uncovered_us_qm() == [{"name": c, "ticker": c} for c in ("VLO", "MPC")] + [
+        {"name": "Paycom Software, Inc.", "ticker": "PAYC"}] + [{"name": c, "ticker": c} for c in ("QLYS", "HALO", "NTAP")]
+    (tmp_path / "data" / "lab" / "ussx_qm_live.json").unlink()
+    assert fund_intro.uncovered_us_qm() == []                                             # 沒有紀錄＝沒有缺口
+
+
+def test_intro_gap_chip_含美股三成(tmp_path, monkeypatch):
+    from arm import fund_dashboard as fd
+    (tmp_path / "data").mkdir()
+    fp = tmp_path / "data" / "holdings_intro_gap.json"
+    monkeypatch.setattr(fd, "ROOT_DIR", tmp_path)
+    fp.write_text(json.dumps({"count": 2, "items": [{"src": "etf", "name": "玉晶光"}, {"src": "usqm", "name": "PAYC"}]}),
+                  encoding="utf-8")
+    chip = fd._intro_gap_chip()
+    assert "<b>持股簡介</b>" in chip and "ETF 持股 1・美股三成 1" in chip
+    fp.write_text(json.dumps({"count": 1, "items": [{"src": "usqm", "name": "PAYC"}]}), encoding="utf-8")
+    assert "美股三成；PAYC" in fd._intro_gap_chip()

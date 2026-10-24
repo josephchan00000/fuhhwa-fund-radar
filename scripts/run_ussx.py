@@ -21,6 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from arm.lab import ussxdata as UD  # noqa: E402
 from arm.lab import ussxpanel as UP  # noqa: E402
 from arm.lab import ussxsurv as SV  # noqa: E402
 from arm.lab import ussxswap as SW  # noqa: E402
@@ -115,6 +116,9 @@ def qm_live(P) -> None:
     sig = QM.signals(C, QM.qm_mask(C["cols"]["f"]))
     r = QM.run(C, sig, "spx")
     L = QM.live_update(C, r, sig)
+    n0 = L.get("now") or {}                                  # 配置頁美股列的股票的英文名稱（中文簡介在 holding_profiles）
+    codes = [h["c"] for h in n0.get("hold") or []] + list(n0.get("buy") or []) + [x["c"] for x in n0.get("list") or []]
+    L["names"] = UD.names_for(codes, old=L.get("names"))
     ch = QM.save_live(L)
     n = L.get("now") or {}
     print(f"[ussx] 美股三成紀錄（{'有更新' if ch else '沒有變'}）：起點 {L.get('start')}、已記 {len(L.get('weeks') or {})} 週、"

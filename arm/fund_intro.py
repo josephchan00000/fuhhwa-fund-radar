@@ -153,6 +153,35 @@ def uncovered_etf_holdings() -> list[dict]:
     return sorted(seen.values(), key=lambda s: (-s["count"], -s["weight"], s["ticker"]))
 
 
+US_QM_SHOW = 5          # 配置頁美股列出名單前幾名（手上沒有的）；缺口檢查涵蓋同一批（arm/lab/cfgpage.py 也用這個數）
+
+
+def us_qm_codes(k: int = US_QM_SHOW) -> tuple[list[str], dict]:
+    """配置頁美股會列的股票：手上的、下一個交易日要買的、名單前 k 名（手上沒有的）。
+    來源＝美股三成每週紀錄 data/lab/ussx_qm_live.json 的 now；→ (代號清單, {代號: 英文公司名})。"""
+    try:
+        doc = json.loads((ROOT / "data" / "lab" / "ussx_qm_live.json").read_text(encoding="utf-8"))
+    except Exception:
+        return [], {}
+    n = doc.get("now") or {}
+    held = [str(h.get("c") or "") for h in n.get("hold") or []]
+    buy = [str(c) for c in n.get("buy") or []]
+    have = set(held) | set(buy)
+    cand = [str(x.get("c") or "") for x in n.get("list") or [] if str(x.get("c") or "") not in have][:k]
+    out = list(dict.fromkeys(c for c in held + buy + cand if c))
+    return out, doc.get("names") or {}
+
+
+def uncovered_us_qm() -> list[dict]:
+    """美股三成（美股強勢品質股）在配置頁會列的股票缺簡介的清單（2026-10-24 使用者：「美股那些公司誰知道你是什麼公司…
+    台股不都有列嗎？比照著做」）。與基金前十大、ETF 持股同一份缺口檔、同一條 15:33 補簡介迴路；依代號查（`intro_lookup`）。
+    回 [{name, ticker}]；name＝每週紀錄的英文公司名（沒有就是代號），補進 profiles 時當鍵、ticker 填代號。"""
+    codes, names = us_qm_codes()
+    by_tk, by_nm = intro_lookup()
+    return [{"name": names.get(c) or c, "ticker": c} for c in codes
+            if not (by_tk.get(c) or by_tk.get(c.upper()) or by_nm.get(names.get(c) or ""))]
+
+
 def top_concentration(doc: dict, n: int = 10) -> float | None:
     """前 n 大持股權重合計（%）。"""
     hs = doc.get("top_holdings") or []

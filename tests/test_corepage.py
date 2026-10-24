@@ -266,13 +266,14 @@ def test_qm_card_sell_buy_and_watch(R, QMX):
     q["W"] = {"ver": X.VER, "base": n["d"], "d": nd, "hold": [{"c": c0, "pct": -0.012, "trig": nd}],
               "sell": [{"c": c0, "trig": nd, "on": QM.next_day(nd)}]}
     t = _text(P.card("spx", _us(), R, None, None, q))
-    assert f"賣掉 {c0}" in t and f"{P._md(nd)} 收盤跌破 50 日線，{P._md(QM.next_day(nd))} 開盤賣" in t
+    nm0 = _text(P.us_name(c0, P._qm_names(q)))                                     # 公司名（代號）（2026-10-24 起）
+    assert f"賣掉 {nm0}" in t and f"{P._md(nd)} 收盤跌破 50 日線，{P._md(QM.next_day(nd))} 開盤賣" in t
     q["W"]["base"] = "2000-01-03"                                                 # 對不上最新一週紀錄的檢查不採用
-    assert f"賣掉 {c0}" not in _text(P.card("spx", _us(), R, None, None, q))
+    assert f"賣掉 {nm0}" not in _text(P.card("spx", _us(), R, None, None, q))
     q = copy.deepcopy(QMX)                                                        # 一週結束：下一個交易日開盤補空位
     q["L"]["now"].update(wk=q["L"]["now"]["d"], wk_done=True, buy=["PAYC"])
     t = _text(P.card("spx", _us(), R, None, None, q))
-    assert f'{P._mdw(q["L"]["now"]["next"])}' in t and "買進 PAYC" in t and "PAYC 約" in t
+    assert f'{P._mdw(q["L"]["now"]["next"])}' in t and f"買進 {P.us_name('PAYC')}" in t and "PAYC 約" in t
     N = _us(flat=True, held=())                                                   # 有警訊、還拿著：下一個交易日收盤換現金
     t = _text(P.card("spx", N, R, None, None, QMX))
     assert "三成現在買了這些" in t and "把機動的三成全部賣掉，改放現金" in t

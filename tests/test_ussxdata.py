@@ -99,13 +99,33 @@ def test_universe_has_calendar_symbols_and_etfs():
 def test_parse_screen():
     doc = {"data": {"rows": [
         {"symbol": "BRK.B", "marketCap": "1,000,000,000", "sector": "Finance", "industry": "Insurance",
-         "country": "United States", "ipoyear": ""},
+         "country": "United States", "ipoyear": "", "name": "Berkshire Hathaway Inc. Class B Common Stock"},
         {"symbol": "XYZ", "marketCap": "", "sector": "", "industry": "", "country": "", "ipoyear": "2021"},
         {"symbol": ""}]}}
     got = UD.parse_screen(doc, "nyse")
-    assert got["BRK-B"] == ["nyse", "Finance", "Insurance", "United States", None, 1e9]
-    assert got["XYZ"] == ["nyse", "", "", "", 2021, None]
+    assert got["BRK-B"] == ["nyse", "Finance", "Insurance", "United States", None, 1e9, "Berkshire Hathaway Inc."]
+    assert got["XYZ"] == ["nyse", "", "", "", 2021, None, ""]
     assert len(got) == 2
+
+
+def test_names_for_prefers_saved_screen_then_fetch_then_old(tmp_path, monkeypatch):
+    """配置頁美股的英文名稱：資料夾的篩選器檔有名稱欄就用；舊檔（6 欄）沒有就抓一次篩選器；都沒有沿用 old。"""
+    monkeypatch.setenv("USSX_DIR", str(tmp_path))
+    UD._write(tmp_path / "screen.json.gz", {"AAA": ["nyse", "", "", "", None, None, "Aaa Corp"],
+                                            "BBB": ["nyse", "", "", "", None, None]})
+    calls = []
+
+    def fetch():
+        calls.append(1)
+        return {"BBB": ["nasdaq", "", "", "", None, None, "Bbb Inc."]}
+    assert UD.names_for(["AAA", "BBB", "CCC"], old={"CCC": "Ccc Ltd", "ZZZ": "gone"}, fetch=fetch) == \
+        {"AAA": "Aaa Corp", "BBB": "Bbb Inc.", "CCC": "Ccc Ltd"}
+    assert calls == [1]
+    assert UD.names_for(["AAA"], fetch=fetch) == {"AAA": "Aaa Corp"} and calls == [1]     # 都有就不抓
+
+    def boom():
+        raise OSError("blocked")
+    assert UD.names_for(["BBB"], old={"BBB": "Old Name"}, fetch=boom) == {"BBB": "Old Name"}
 
 
 @pytest.fixture()

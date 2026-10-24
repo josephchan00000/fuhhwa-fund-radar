@@ -406,7 +406,8 @@ def _intro_gap_chip() -> str:
     """持股簡介缺口警示章（讀 data/holdings_intro_gap.json；scripts/check_holdings_intro.py 產）。
     2026-07-23 使用者需求：前十大簡介一再漏掉——缺口>0 時在網頁更新時間列顯示紅色 ⚠，
     列出缺簡介的持股名，15:33 盤後班見到即 WebSearch 補進 holding_profiles.json。
-    2026-10-21 起缺口檔也含 ETF 持股（items 的 src＝"etf"）。全覆蓋（count=0）或無檔＝不顯示。"""
+    2026-10-21 起缺口檔也含 ETF 持股（items 的 src＝"etf"）；2026-10-24 起也含配置頁美股列的股票（src＝"usqm"）。
+    全覆蓋（count=0）或無檔＝不顯示。"""
     fp = ROOT_DIR / "data" / "holdings_intro_gap.json"
     try:
         doc = json.loads(fp.read_text(encoding="utf-8"))
@@ -416,9 +417,11 @@ def _intro_gap_chip() -> str:
     if not items:
         return ""
     n_etf = sum(1 for i in items if i.get("src") == "etf")
-    label = ("持股簡介" if n_etf else "前十大簡介")
-    split = (f"基金前十大 {len(items) - n_etf}・ETF 持股 {n_etf}；" if n_etf and n_etf < len(items)
-             else ("ETF 持股；" if n_etf else ""))
+    n_us = sum(1 for i in items if i.get("src") == "usqm")
+    nz = [(n, t) for n, t in ((len(items) - n_etf - n_us, "基金前十大"), (n_etf, "ETF 持股"), (n_us, "美股三成")) if n]
+    label = ("持股簡介" if n_etf or n_us else "前十大簡介")
+    split = ("・".join(f"{t} {n}" for n, t in nz) + "；" if len(nz) > 1
+             else (f"{nz[0][1]}；" if nz and nz[0][1] != "基金前十大" else ""))
     names = "、".join(_esc(i.get("name") or "") for i in items[:8])
     more = f" 等 {len(items)} 檔" if len(items) > 8 else ""
     return (f'<span class="chip fresh stale"><b>{label}</b>　🔴 {len(items)} 檔缺簡介'
