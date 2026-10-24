@@ -2,9 +2,17 @@
 自動列依研究檔判定、config/strategy_board.json 的列與使用者決定（override）、排序與計數、用字。"""
 import json
 
+import pytest
+
 from arm.lab import board as BD
 
 BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會", "唯一", "建議買", "建議賣", "目標價", "零風險", "無風險")
+
+
+@pytest.fixture(autouse=True)
+def _no_real_candidates(monkeypatch):
+    """新策略候選讀 config/strategy_candidates.json（每週會變多）；這裡的計數只看假資料，候選列另在 test_candpage 測。"""
+    monkeypatch.setattr(BD, "cand_rows", lambda: [])
 
 
 def _adv():
