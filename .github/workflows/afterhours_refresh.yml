@@ -170,6 +170,7 @@ jobs:
           git add -f dashboard/x9xh.json 2>/dev/null || true           # 大神策略的淨值與每一筆（點開才下載；分開 add）
           git add -f dashboard/x9r.html 2>/dev/null || true            # 研究紀錄頁（docs/lab_ia_v5_plan.md 第 7 節；分開 add）
           git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
+          git add -f dashboard/x9mup-*.json 2>/dev/null || true        # 美股景氣頁各指數細項面板與內容（點到才下載，分開 add）
           git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
           git commit -m "chore: 盤後數據刷新 $(date '+%F %H:%M')" || { echo "無變更，跳過 push"; exit 0; }
           # main 可能被其他 workflow 推進 → rebase 重試；rebase 後必須用合併結果重建再推
@@ -196,6 +197,7 @@ jobs:
             git add -f dashboard/x9xh.json 2>/dev/null || true           # 大神策略的淨值與每一筆（點開才下載；分開 add）
             git add -f dashboard/x9r.html 2>/dev/null || true            # 研究紀錄頁（docs/lab_ia_v5_plan.md 第 7 節；分開 add）
             git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
+            git add -f dashboard/x9mup-*.json 2>/dev/null || true        # 美股景氣頁各指數細項面板與內容（點到才下載，分開 add）
             git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
             git commit --amend --no-edit || true
             sleep 5

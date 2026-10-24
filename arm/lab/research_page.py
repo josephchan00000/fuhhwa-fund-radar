@@ -114,7 +114,7 @@ def render(SV: dict | None = None, BV: dict | None = None) -> str:
     from . import candpage as CP
     host = {"sig": SPG.research_body(SV), "bub": BPG.research_body(BV), "cand": cand_body()}
     css = HCSS + appnav.CSS + SPG.research_css() + BPG.research_css() + CP.CSS + CSS
-    js = (SPG.JS if has_sig else "") + BPG.JS + IP.JS
+    js = (SPG.JS if has_sig else "") + BPG.JS + IP.JS + OPEN_JS
     return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("r")).replace("{{CSS}}", css)
                          .replace("{{BODY}}", body(host)).replace("{{PANEL}}", SPG.PANEL if has_sig else "")
                          .replace("{{SGD}}", f'<script type="application/json" id="sgd">{SPG.page_json(SV)}</script>' if has_sig else "")
@@ -128,6 +128,23 @@ def build(out: Path = OUT, SV: dict | None = None, BV: dict | None = None) -> bo
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text, encoding="utf-8")
     return True
+
+
+OPEN_JS = r"""
+(function () {                                              // 網址 #段落（例 配置頁候選列的 #cand-c001）：打開那一段與外層收起來的段落，再捲過去
+  function go() {
+    let h = '';
+    try { h = decodeURIComponent((location.hash || '').slice(1)); } catch (e) { return; }
+    if (!h || /[=&]/.test(h)) return;                         // #s=、#i=、#r=、#p= 由全部指標的程式處理
+    const el = document.getElementById(h);
+    if (!el) return;
+    for (let d = el; d; d = d.parentElement ? d.parentElement.closest('details') : null) if (d.tagName === 'DETAILS') d.open = true;
+    el.scrollIntoView({block: 'start'});
+  }
+  window.addEventListener('hashchange', go);
+  if (document.readyState === 'complete') go(); else window.addEventListener('load', go, {once: true});
+})();
+"""
 
 
 _HTML = """<!doctype html>

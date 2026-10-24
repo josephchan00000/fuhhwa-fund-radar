@@ -106,7 +106,7 @@ def test_all_lab_pages_finish_with_theme_toggle():
     import pathlib
     root = pathlib.Path(__file__).resolve().parents[1] / "arm" / "lab"
     for f in ("heatpage.py", "heatpage_us.py", "page.py", "research_page.py"):
-        assert "return appnav.finish(_HTML" in (root / f).read_text(encoding="utf-8"), f
+        assert "appnav.finish(_HTML" in (root / f).read_text(encoding="utf-8"), f      # 美股頁：assemble 先組好頁面再分檔
     fd = (root.parent / "fund_dashboard.py").read_text(encoding="utf-8")
     assert "appnav" not in fd and "labTheme" not in fd
     viz, sv = (root / "heatviz.py").read_text(encoding="utf-8"), (root / "stockviz.py").read_text(encoding="utf-8")

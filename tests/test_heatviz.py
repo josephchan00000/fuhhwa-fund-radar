@@ -222,10 +222,11 @@ def test_us_page_items_use_us_wording():
     D = fake_D()
     SH = CU.shared(D)
     pages = {k: PU.index_page(k, CU.build(k, D, SH), {}) for k in U.INDEX_ORDER}
-    page = PU.render(pages)
+    page, panes = PU.assemble(pages)
     assert page.count('<aside class="drw" id="drw"') == 1 and "{{VSW}}" not in page and "{{DRAWER}}" not in page
-    assert page.count('<script type="application/json" class="hviz">') == len(U.INDEX_ORDER)   # 每個指數一份雷達資料
-    assert "來源：證交所" not in page                                         # 台股項目的來源表不用在美股頁
+    assert page.count('<script type="application/json" class="hviz">') == 1           # 頁面只放預設指數的雷達資料
+    assert sum(d.get("main", "").count('<script type="application/json" class="hviz">') for d in panes.values()) == len(U.INDEX_ORDER) - 1
+    assert "來源：證交所" not in page and all("來源：證交所" not in d["tpl"] for d in panes.values())   # 台股項目的來源表不用在美股頁
     assert S.MARKET == "tw" and P.MK["mkt"] == "台股"
 
 
