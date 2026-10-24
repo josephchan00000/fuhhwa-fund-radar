@@ -1899,7 +1899,7 @@ function fromHash(ev){
 window.addEventListener('hashchange', fromHash, SGO);
 draw(); fromHash();
 };
-window.sgInit();
+if (!window.__heatWait) window.sgInit();   // 美股頁網址指到別的指數：等換好內容再畫（heatpage_us.SWITCH_JS）
 """
 JS = JS.replace("/*@@XSPANEL@@*/", XSP.PANEL_JS)
 

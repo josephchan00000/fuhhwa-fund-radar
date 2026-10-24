@@ -1284,9 +1284,10 @@ def parts(V: dict) -> dict:
         + f'<section class="sec" id="src"><h2>資料來源與筆數</h2><div class="tw"><table><tr><th class="l">檔</th><th>筆數</th>'
           f'<th>起</th><th>到</th></tr>{data_rows}</table></div><p class="note">{_e(_SRC_NOTE)}</p></section>'
     )
-    body = (VZ.main_view(V, V.get("ks") or []) + VZ.phase_view() + VZ.terrain_view() + VZ.research_view(V, research)
-            + VZ.templates(V) + VZ.viz_json(V))
-    return {"nav": "", "body": body, "asof": asof}
+    views = VZ.main_view(V, V.get("ks") or []) + VZ.phase_view() + VZ.terrain_view() + VZ.research_view(V, research)
+    tpl, viz = VZ.templates(V), VZ.viz_json(V)
+    # main＋tpl：美股頁把細項面板（tpl）另放 x9mup-{指數}.json、點到才下載（docs/lab_ia_v5_plan.md 第 10 節第 6 段）；台股頁照舊用 body
+    return {"nav": "", "body": views + tpl + viz, "main": views + viz, "tpl": tpl, "asof": asof}
 
 
 MK_ROW = (("tw", "台股"), ("spx", "S&P 500"), ("ixic", "那斯達克"), ("ndx", "那斯達克 100"), ("sox", "費半"))
@@ -2048,11 +2049,20 @@ function scenHint(box, ids) {                              // 每一列的 data-
   const def = M.dims.slice(0, M.max).map(d => d.id), dflt = ids.length === def.length && def.every(d => ids.includes(d));   // 預設的幾條＝不框
   SQSEL = dflt ? null : dims;
   const t = document.getElementById('ot-out');
+  const say = s => { box.innerHTML = '<div class="an"><p class="note">' + s + '<button type="button" class="tb an-sq" data-open="out:out" data-to="scen">看情境</button></p></div>'; };
+  if (!t && SQSEL && window.heatPanels) {                  // 美股頁：情境在細項面板檔裡（x9mup），下載完再數；數之前不寫個數
+    if (!box.dataset.pw) {
+      box.dataset.pw = '1';
+      window.heatPanels().then(ok => { if (!AC.signal.aborted && ok && document.getElementById('ot-out')) analysis(); else delete box.dataset.pw; })
+        .catch(() => { delete box.dataset.pw; });
+    }
+    say('只用到這幾條線的情境');
+    return;
+  }
   let n = 0;
   if (t && SQSEL) t.content.querySelectorAll('.sqr').forEach(c => { if (sqOn(c)) n++; });
   sqMark(document.getElementById('drw-c'));
-  box.innerHTML = '<div class="an"><p class="note">' + (dflt ? '幾個面向的組合' : n ? '只用到這幾條線的情境有 ' + n + ' 個' : '沒有情境只用到這幾條線')
-    + '<button type="button" class="tb an-sq" data-open="out:out" data-to="scen">看情境</button></p></div>';
+  say(dflt ? '幾個面向的組合' : n ? '只用到這幾條線的情境有 ' + n + ' 個' : '沒有情境只用到這幾條線');
 }
 function analysis() {                                     // 市場頁只放多條線的情境提示；單項分析（研究的結果）在研究畫面的細項面板（heatSingle）
   const box = $('#cmp-an');
@@ -2096,5 +2106,5 @@ controls();
 load();
 if (window.heatViz) window.heatViz();
 };
-window.heatInit();
+if (!window.__heatWait) window.heatInit();   // 美股頁網址指到別的指數：等 heatpage_us.SWITCH_JS 換好內容再畫
 """

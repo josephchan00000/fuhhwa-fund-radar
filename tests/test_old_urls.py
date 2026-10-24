@@ -82,6 +82,22 @@ def test_old_url_lands(labsite, old, page, query, cond, what):
         pg.close()
 
 
+def test_candidate_link_opens_card(labsite):
+    """配置頁策略表的候選列連到 x9r.html#cand-c###：研究紀錄頁打開那張卡（research_page.OPEN_JS）並捲到那裡。"""
+    import re
+    b, base, out = labsite
+    ids = re.findall(r'<details[^>]* id="(cand-c\d{3})"', (out / "x9r.html").read_text(encoding="utf-8"))
+    if not ids:
+        pytest.skip("還沒有候選")
+    pg, errs = _open(b, f"{base}/x9r.html#{ids[-1]}", wait=1500)
+    try:
+        st = pg.evaluate("(k) => { const e = document.getElementById(k); return [e.open, Math.round(e.getBoundingClientRect().top)]; }", ids[-1])
+        assert st[0] is True and abs(st[1]) < 200, st
+        assert not errs, errs
+    finally:
+        pg.close()
+
+
 def test_top_bar_links_and_memory(labsite):
     """頂欄：兩格各記住上次看到哪裡；右邊小字的名詞、查公司在配置頁是頁內打開，其他頁連到研究紀錄、配置頁。"""
     b, base, _ = labsite

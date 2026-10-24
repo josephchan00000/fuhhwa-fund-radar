@@ -1696,6 +1696,7 @@ background:linear-gradient(90deg,var(--zc) 0 20%,var(--card2) 20% 80%,var(--zh) 
 .drw-h button{flex:none;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--ink);font-size:17px;line-height:1;cursor:pointer}
 .drw-h button:disabled{opacity:.35;cursor:default}
 .drw-c{flex:1;overflow-y:auto;padding:12px 14px 48px;container-type:inline-size;overscroll-behavior:contain}
+.dwait{color:var(--mut);margin:14px 2px}
 .dnum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 8px}
 .dnum div{background:var(--card2);border-radius:10px;padding:7px 9px;min-width:0}
 .dnum>div>span{display:block;font-size:11.5px;color:var(--mut)}.dnum>div>b{display:block;font-size:19px;line-height:1.3;overflow-wrap:anywhere}
@@ -2085,13 +2086,15 @@ function oJump(id) {                                  // 面板裡跳到某一�
 function openD(kind, k, o) {
   o = o || {};
   const t = tplOf(kind, k);
-  if (!t || !DRW) return false;
+  const lazy = !t && !o.lazy && !!window.heatPanels;          // 美股頁：細項面板點到才下載（heatpage_us.SWITCH_JS）
+  if ((!t && !lazy) || !DRW) return false;
   if (window.sgClose) window.sgClose(true);
   if (o.push && cur) stack.push(cur); else if (!o.keep) stack = [];
-  cur = {kind: kind, k: k};
-  document.getElementById('drw-k').textContent = t.dataset.kick || '';
-  document.getElementById('drw-t').textContent = t.dataset.title || '';
-  DC.replaceChildren(t.content.cloneNode(true));
+  const me = cur = {kind: kind, k: k};
+  document.getElementById('drw-k').textContent = t ? t.dataset.kick || '' : '';
+  document.getElementById('drw-t').textContent = t ? t.dataset.title || '' : NM[k] || (kind === 'out' ? '之後怎麼走？' : '');
+  if (t) DC.replaceChildren(t.content.cloneNode(true));
+  else DC.innerHTML = '<p class="dwait">載入中…</p>';
   DC.scrollTop = 0;
   const L = listOf(kind, k), j = L.indexOf(k);
   bPrev.disabled = j <= 0; bNext.disabled = j < 0 || j >= L.length - 1;
@@ -2103,6 +2106,14 @@ function openD(kind, k, o) {
     lastFocus = document.activeElement;
     document.body.classList.add('drw-on');
     try { history.pushState({hdrw: 1}, ''); } catch (e) { /* file:// */ }
+  }
+  if (!t) {                                                  // 下載完再用同一個面板打開（使用者在等的時候換了別的就不打開）
+    mark(kind === 'dim' ? k : null, kind === 'item' ? k : null);
+    window.heatPanels().then(ok => {
+      if (ok && cur === me && !openD(kind, k, Object.assign({}, o, {keep: true, push: false, lazy: true}))) DC.innerHTML = '<p class="dwait">找不到這一項的細節。</p>';
+    })
+      .catch(() => { if (cur === me) DC.innerHTML = '<p class="dwait">載入失敗，請重新整理頁面。</p>'; });
+    return true;
   }
   $$('.dchart', DC).forEach(el => bigChart(el, el.dataset.k));
   if (document.documentElement.dataset.hv === 'research' && window.heatSingle) $$('.dan', DC).forEach(el => window.heatSingle(el, el.dataset.k));

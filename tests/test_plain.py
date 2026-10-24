@@ -57,6 +57,10 @@ def _market(b, url, name, every):
     """市場頁一個指數：主畫面（收起來的全部打開、全部指標列出全部）、每個右側面板、指標面板（每 every 個打開一個）。"""
     pg, errs = _page(b, url)
     found = []
+    if "#ix=" in url:                                         # 美股頁：預設以外的指數下載完才換上（x9mup-{指數}.json）
+        pg.wait_for_function(f"() => document.getElementById('ixc').dataset.ix === '{name}' && !document.getElementById('ixc').hasAttribute('aria-busy')",
+                             timeout=15000)
+        assert pg.evaluate("() => window.heatPanels()") is True    # 細項面板：預設的指數點到才下載，這裡先載好
     pg.evaluate(OPEN, ".hview[data-view=radar]")
     for _ in range(3):
         pg.evaluate("() => { const m = document.getElementById('sgmore'); if (m && !m.hidden) m.click(); }")
@@ -78,6 +82,8 @@ def _market(b, url, name, every):
     rows = [r for r in pg.evaluate("() => [...document.querySelectorAll('tr.sgr[data-k]')].map(t => t.dataset.k)")
             if not r.startswith("xs:")]                       # 總經策略那幾列連到研究紀錄的說明卡
     assert rows, name
+    if "#ix=" in url:                                         # 這個指數自己的列（預設以外的指數由 x9mup 併進來）
+        assert any(r.startswith(name + ":") for r in rows), name
     for k in rows[::every]:
         pg.evaluate("(k) => document.querySelector('tr.sgr[data-k=\"' + CSS.escape(k) + '\"]').click()", k)
         pg.wait_for_function("() => { const r = document.getElementById('sgrec'); return r && !/載入中/.test(r.innerText); }",

@@ -2543,10 +2543,11 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   勞工部初領救濟金、勞工統計局（失業率、CPI、核心 CPI）、密西根大學、聯準會超額債券溢酬、Shiller 資料檔、WSTS、證交所 FMTQIK 1990～1998、主計總處季 GDP。
   每天：afterhours 每班與 `daily_fund.sh` 跑 `fetch_heat_us.py`（timeout 420；已到最近美股收盤日就不再打 Yahoo、週月季資料一天一次、LPPLS 有新週才算）；
   回補：`.ping/lab` 第一行 `usfill`。daily／afterhours 安裝 numpy xlrd openpyxl（失敗只告警）。U1 探針確認不收：芝加哥聯準銀行兩個指數的檔案停在 2026-04（改用費城聯準銀行 ADS）、FINRA 融資 403（改用 Z.1 家計證券融資）。
-- **頁面** `dashboard/x9mu.html`（一頁四個指數：預設 S&P 500 直接放在頁面，另外三個放 `<template>`；切換時複製 template、換 `window.HEAT_META`、
-  呼叫 `window.heatInit()`，用 AbortController 拿掉上一次掛在 document／window 的事件；網址 `#ix=ndx` 可直開）＋對照圖資料每個指數一檔
-  `dashboard/x9muh-{spx,ixic,ndx,sox}.json`（選到才下載；S&P 500 約 3.3MB、壓縮 735KB）。台股頁的「泡沫」卡與「泡沫事件」驗證表 2026-10-18 起搬到泡沫頁（見「泡沫頁」節），
-  對照圖預設只選前 5 條。三支 workflow 各兩行 `git add -f dashboard/x9mu.html`、各兩行 `git add -f dashboard/x9muh-*.json`（分開 add；本機不 commit，同 x9m.html）。
+- **頁面** `dashboard/x9mu.html`（一頁四個指數：頁面只放 S&P 500 的主畫面；細項面板與其他三個指數放 `dashboard/x9mup-{指數}.json`，點到才下載，
+  2026-10-24 起，見「市場頁」專段最後一條；切換時換上內容、換 `window.HEAT_META`、呼叫 `window.heatInit()`，用 AbortController 拿掉上一次掛在
+  document／window 的事件；網址 `#ix=ndx` 可直開）＋對照圖資料每個指數一檔 `dashboard/x9muh-{spx,ixic,ndx,sox}.json`（選到才下載；S&P 500 約 2.5MB、
+  壓縮 595KB）。台股頁的「泡沫」卡與「泡沫事件」驗證表 2026-10-18 起搬到泡沫頁（見「泡沫頁」節），對照圖預設只選前 5 條。三支 workflow 各兩行
+  `git add -f dashboard/x9mu.html`、各兩行 `git add -f dashboard/x9muh-*.json`、各兩行 `git add -f dashboard/x9mup-*.json`（分開 add；本機不 commit，同 x9m.html）。
 - **結果（2026-10-18，規劃文件第 16 節；只當參考）**：台美一致的只有三件事——基本面熱了之後較弱（台股、S&P 500、那斯達克）、美國貨幣基金 ÷ S&P 500
   熱了之後較強（只有 2015-12 起）、泡沫面向分數本身看不出。泡沫項目「熱了之後較容易大跌」只在 PSY（S&P 500 一年內 32% 對 16%、那斯達克 64% 對 33%、
   台股延伸樣本 71% 對 33%）、那斯達克兩年漲幅、費半的估值（兩年內）出現，多半兩年內就看不出；S&P 500 的 CAPE、巴菲特指標、Tobin's Q 反而是兩年內較少大跌
@@ -3406,7 +3407,20 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   `x9b.html`（`bubpage.REDIRECT`：`#tw`… → `#at=bub`；`#lv／ind／indv／types／mth` → `x9r.html#bub-…`）。頂欄拿掉這兩格。
 - **研究紀錄頁**放：訊號研究（`sigpage.research_body`＝研究結論、完整研究表、全部指標〔含個股訊號與策略；籌碼頁 `sjLink` 連 `x9r.html#s=stk:sig:…`〕、名詞與判定方式，
   非 emb 模式的同一支 JS）＋泡沫研究（`bubpage.research_body／research_data`）。`research_page.render(SV, BV)`：不給就讀 `sigpage.LAST`／`bubpage.view()`。
-- 大小：x9m.html 1.56MB（壓縮 285KB）、x9mu.html 4.04MB（壓縮 618KB）；可見文字台股 2,147 字、美股 1,893 字（手機）。美股頁體積第 6 段處理。
+- 大小：x9m.html 1.56MB（壓縮 285KB）；可見文字台股 2,147 字、美股 1,893 字（手機）。美股頁 4.04MB（壓縮 618KB）是第 6 段處理的（下一條）。
+- **美股頁點到才下載（IA v5 第 6 段，2026-10-24；`docs/lab_ia_v5_plan.md` 第 25 節）**：x9mu.html 3.97MB（壓縮 619KB）降到約 1.07MB（壓縮 223KB），
+  第一次打開（頁面＋S&P 500 對照圖資料）手機下載 1.21MB 降到約 0.82MB（壓縮後）。頁面只放 S&P 500 的主畫面與全部指標的 S&P 500＋美股產業列；
+  每個指數一個 `x9mup-{指數}.json`（`heatpage_us.assemble`）＝細項面板 `tpl`（S&P 500 的約 31KB 壓縮）＋其他三個指數的整份內容 `main` 與
+  全部指標的列 `sg`（各約 130KB 壓縮）。
+  · 切換指數（`SWITCH_JS`）：下載那個指數的檔，市場列旁邊寫「載入中…」、內容變淡（`aria-busy`），換上後重跑 heatInit／sgInit／bubDraw；載不到寫「載入失敗，請重新整理頁面」。
+  · 細項面板：S&P 500 第一次打開面板（面向分數、項目名稱、今天的訊號、「之後怎麼走？」、`#o=scen`）才下載 `x9mup-spx.json`，
+    面板先寫「載入中…」再換上（`heatviz.openD` 的 lazy、`window.heatPanels`）；對照圖選多條線時情境個數也等下載完才寫（`heatpage.scenHint`）。
+  · 全部指標：`#sgd` 只放頁面那個指數＋美股產業；指標用列的位置對到列（`inds` 第 6 欄），`heatpage_us.split_sgd` 拆的時候兩邊各自重新編號、
+    `sgAdd` 併回去時把位置往後挪（對不起來就整份留在頁面）。**sigpage 改 #sgd 的格式時（尤其新增依市場分的欄位），要一起改 split_sgd 與 sgAdd**。
+  · 網址指到別的指數（`#ix=ndx`）：`window.__heatWait` 讓頁面程式先不畫 S&P 500（省下它 595KB 的對照圖資料），換好內容才初始化；
+    heatpage、sigpage 的 JS 最後一行都看這個旗標（台股頁、研究紀錄頁沒有這個旗標，照常初始化）。
+  · 測試：`tests/test_heatpage_us.py`（分檔、拆列與併回、初始化順序）、`tests/test_plain.py`（美股每個指數先 `window.heatPanels()` 再掃面板、
+    要有自己指數的列）、`tests/test_old_urls.py`。
 - 測試：`tests/test_sigpage.py`（block、轉址、每個市場一個清單檔）、`tests/test_bubpage.py`（市場頁那一塊、研究紀錄的內容、轉址 node 實跑）、
   `tests/test_research_page.py`（放進來的研究、景氣入口）、`tests/test_heatviz.py`／`test_heatpage*.py`（四塊順序、研究畫面列、跳段）。
 
@@ -3495,7 +3509,8 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   滿 63 個交易日才列照做對一直抱著。納入＝「納入，等計畫改版」，交易計畫出新版本（corespec VER＋1，另外規劃、先問使用者）才改使用中。
 - **頁面**（`arm/lab/candpage.py`）：配置頁策略表的列（`board.cand_rows` → `candpage.board_rows`：名稱連 `x9r.html#cand-編號`、旁邊「來源」連原文、
   成績一行＋「放進計畫：100 萬變 X 萬（現在 Y 萬）」、今天＝「過關，等你決定」「試用中・記了 N 天」…；照主頁面用字）；
-  研究紀錄頁「策略候選」一段（`#cand`：總表＋每條一張卡：來源、為什麼挑、規則與參數、判定依據、放進計畫試算、試用紀錄、決定）。
+  研究紀錄頁「策略候選」一段（`#cand`：總表＋每條一張卡：來源、為什麼挑、規則與參數、判定依據、放進計畫試算、試用紀錄、決定）；
+  從策略表點進來（`x9r.html#cand-c001`）會打開那張卡並捲過去（`research_page.OPEN_JS`，2026-10-24 起；任何 `#段落 id` 都適用，`#s=` 等帶 = 的照舊給全部指標）。
   06:35 推播：第一次有結果的候選多一行「策略候選：新增 X（市場），過去成績…；回「試用／納入／不納入」。」（`valog.cand_state`／`cand_line`，
   對前一個資料日的編號比；還沒決定的第一次到 10 條時同一行寫「週報先停」）。
 - 測試：`tests/test_candspec.py`（規格鎖定）、`tests/test_cands.py`（格式、合併、只拿那三個地方、外掛結果等於內建、兩道檢查抓得到偷看、
