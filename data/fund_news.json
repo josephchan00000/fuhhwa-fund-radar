@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/24 07:42",
+  "as_of": "2026/10/24 08:25",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -32,9 +32,9 @@
       "datetime": "2026-10-21T11:38:00+08:00"
     },
     {
-      "title": "復華再推主動式ETF！00418A今起募集「每股10元、不配息」 | TVBS",
+      "title": "復華再推主動式ETF！00418A今起募集「每股10元、不配息」",
       "url": "https://news.tvbs.com.tw/money/4038968",
-      "source": "LINE TODAY",
+      "source": "TVBS",
       "date": "2026-10-21 09:51",
       "datetime": "2026-10-21T09:51:00+08:00"
     },
@@ -89,32 +89,32 @@
       ],
       "items": [
         {
-          "title": "科技起落看題材　00998A大跌時守得住　為組合增添穩定感 | 生活 | CTWANT",
-          "url": "https://www.ctwant.com/amp/article/503403/",
-          "source": "CTWANT",
-          "date": "2026-10-22 15:19",
-          "datetime": "2026-10-22T15:19:09+08:00"
-        },
-        {
-          "title": "怕買在高點、又怕錯過 定期定額搭配00998A 讓科技股以外的資產慢慢累積",
-          "url": "https://www.watchmedia01.com/archives/561984",
-          "source": "觀傳媒",
-          "date": "2026-10-22 09:18",
-          "datetime": "2026-10-22T09:18:11+08:00"
-        },
-        {
-          "title": "景氣好壞都要存款買保險 金融業營運穩 00998A抗跌特性成資產配置防守選項",
-          "url": "https://www.watchmedia01.com/archives/561981",
-          "source": "蕃新聞",
-          "date": "2026-10-22 09:16",
-          "datetime": "2026-10-22T09:16:13+08:00"
-        },
-        {
           "title": "美國10月底再開利率會議 銀行股有望受惠 00998A抗跌之外多一層布局理由",
           "url": "https://tw.stock.yahoo.com/news/%E7%BE%8E%E5%9C%8B10%E6%9C%88%E5%BA%95%E5%86%8D%E9%96%8B%E5%88%A9%E7%8E%87%E6%9C%83%E8%AD%B0-%E9%8A%80%E8%A1%8C%E8%82%A1%E6%9C%89%E6%9C%9B%E5%8F%97%E6%83%A0-00998a%E6%8A%97%E8%B7%8C%E4%B9%8B%E5%A4%96%E5%A4%9A-%E5%B1%A4%E5%B8%83%E5%B1%80%E7%90%86%E7%94%B1-201836071.html",
-          "source": "Yahoo股市",
+          "source": "ENN台灣電報",
           "date": "2026-10-22 04:18",
           "datetime": "2026-10-22T04:18:36+08:00"
+        },
+        {
+          "title": "上市半年首次遇上大跌 00998A只小跌0.74% 新ETF的抗跌成績單亮眼",
+          "url": "https://tw.news.yahoo.com/%E4%B8%8A%E5%B8%82%E5%8D%8A%E5%B9%B4%E9%A6%96%E6%AC%A1%E9%81%87%E4%B8%8A%E5%A4%A7%E8%B7%8C-00998a%E5%8F%AA%E5%B0%8F%E8%B7%8C0-74-%E6%96%B0etf%E7%9A%84%E6%8A%97%E8%B7%8C%E6%88%90%E7%B8%BE%E5%96%AE%E4%BA%AE%E7%9C%BC-010632710.html",
+          "source": "Yahoo新聞",
+          "date": "2026-10-21 09:06",
+          "datetime": "2026-10-21T09:06:32+08:00"
+        },
+        {
+          "title": "核心之外加一塊 資產配置更穩 00998A抗跌特性補位科技股",
+          "url": "https://tw.stock.yahoo.com/news/%E6%A0%B8%E5%BF%83%E4%B9%8B%E5%A4%96%E5%8A%A0-%E5%A1%8A-%E8%B3%87%E7%94%A2%E9%85%8D%E7%BD%AE%E6%9B%B4%E7%A9%A9-00998a%E6%8A%97%E8%B7%8C%E7%89%B9%E6%80%A7%E8%A3%9C%E4%BD%8D%E7%A7%91%E6%8A%80%E8%82%A1-202435463.html",
+          "source": "Yahoo股市",
+          "date": "2026-10-21 04:24",
+          "datetime": "2026-10-21T04:24:35+08:00"
+        },
+        {
+          "title": "日本升息效益已反映獲利！00998A持股瑞穗金融淨利增45% 日銀10月底動向受矚",
+          "url": "https://www.watchmedia01.com/archives/560899",
+          "source": "觀傳媒",
+          "date": "2026-10-19 09:25",
+          "datetime": "2026-10-19T09:25:01+08:00"
         }
       ]
     },
@@ -135,6 +135,13 @@
         "00409A"
       ],
       "items": [
+        {
+          "title": "00409A 主動復華全球50 - 主動式ETF 又慘跌... 投資人自己要想好- 股市爆料同學會",
+          "url": "https://www.cmoney.tw/forum/article/186112416",
+          "source": "CMoney",
+          "date": "2026-10-19 11:08",
+          "datetime": "2026-10-19T11:08:27+08:00"
+        },
         {
           "title": "台股上下震盪 00409A一張約1萬元 一次布局美國AI晶片、光通訊、電力龍頭",
           "url": "https://enn.tw/795062/",
@@ -320,7 +327,22 @@
       "short_names": [
         "復華"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "主動復華台灣新星 募集期順延至10月27日",
+          "url": "https://udn.com/news/amp/story/7239/9832220",
+          "source": "UDN",
+          "date": "2026-10-22 21:10",
+          "datetime": "2026-10-22T21:10:28+08:00"
+        },
+        {
+          "title": "復華再推主動式ETF！00418A今起募集「每股10元、不配息」",
+          "url": "https://news.tvbs.com.tw/money/4038968",
+          "source": "TVBS",
+          "date": "2026-10-21 09:51",
+          "datetime": "2026-10-21T09:51:00+08:00"
+        }
+      ]
     },
     {
       "base": "復華高成長基金",
@@ -548,7 +570,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=lJNdfafhPj8",
       "date": "2026-10-21",
-      "views": 58989
+      "views": 59120
     },
     {
       "platform": "youtube",
@@ -556,7 +578,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
       "date": "2026-10-20",
-      "views": 15354,
+      "views": 15353,
       "short": true
     },
     {
@@ -565,7 +587,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
       "date": "2026-10-18",
-      "views": 9459
+      "views": 9480
     },
     {
       "platform": "youtube",
@@ -584,19 +606,9 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=Al47SwnDMWo",
       "date": "2026-10-22",
-      "views": 201546,
+      "views": 201984,
       "peer": true,
       "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "【Eng Sub】AI泡沫會爆嗎？美股一直升？基金經理教你選ETF與科技股｜US Stocks 101",
-      "channel": "City Spotlight 傾城計話",
-      "url": "https://www.youtube.com/watch?v=fMHfTr51OfM",
-      "date": "2026-10-19",
-      "views": 148304,
-      "peer": true,
-      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -604,7 +616,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=wWF9OMqS174",
       "date": "2026-10-19",
-      "views": 141986,
+      "views": 142007,
       "peer": true,
       "cat": "高股息"
     },
@@ -614,10 +626,20 @@
       "channel": "曲博科技教室 Dr. J Class",
       "url": "https://www.youtube.com/shorts/LjDDHVaDM4E",
       "date": "2026-10-19",
-      "views": 137653,
+      "views": 138156,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "0050分割後又翻倍！現在進場買誰好？0050 vs 009816 大對決：老本別買錯！「這種人」買它賺更多！EP77 ft.財經雪倫《投資嗨什麼》",
+      "channel": "投資嗨什麼",
+      "url": "https://www.youtube.com/watch?v=Bem1OTti05k",
+      "date": "2026-10-20",
+      "views": 137787,
+      "peer": true,
+      "cat": "市值型"
     },
     {
       "platform": "youtube",
@@ -632,11 +654,21 @@
     },
     {
       "platform": "youtube",
+      "title": "【全程字幕】蘇貞昌女兒&quot;4500萬投資案&quot;審計部要查了! 吳子嘉嗆蘇巧慧&quot;小偷家族&quot;毫無羞恥之心! 預言新北結局&quot;輸贏5萬票&quot; @dongsshow",
+      "channel": "中天新聞",
+      "url": "https://www.youtube.com/watch?v=iL1lUxpW1cY",
+      "date": "2026-10-21",
+      "views": 68456,
+      "peer": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
       "title": "ETF存股最新排行榜！0050雖霸榜，但最猛黑馬單月狂增11%！00878狠甩0056？#口袋證券 #etf #0050",
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
       "date": "2026-10-19",
-      "views": 53509,
+      "views": 53547,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -647,7 +679,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=e1Q5b32TcW4",
       "date": "2026-10-21",
-      "views": 53424,
+      "views": 53532,
       "peer": true,
       "cat": "主動式"
     },
@@ -657,24 +689,13 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/watch?v=7hLSHozmm68",
       "date": "2026-10-23",
-      "views": 51438,
+      "views": 53358,
       "peer": true,
       "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "買ETF只看績效，小心這筆費用差了10倍？檔熱門ETF費用大評比！#口袋證券 #etf #0050",
-      "channel": "口袋證券",
-      "url": "https://www.youtube.com/shorts/Cm9GbtBO57I",
-      "date": "2026-10-22",
-      "views": 36113,
-      "peer": true,
-      "short": true,
-      "cat": "市值型"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A、台灣菁英50指數（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A、、台灣菁英50指數（詳下方新聞標籤）",
     "品牌焦點：主動復華台灣新星 募集期順延至10月27日（UDN）",
     "社群聲量最高：沈伯洋夫妻持股拆解，看懂個股、ETF與台股美股如何配置（0 推）",
     "YouTube 熱片：AI如何創造未來？00990A掌握全球AI投資機會｜全片由Google Gemini製作｜元大投信 Yuanta Funds（元大投信・310,110 次觀看）"
