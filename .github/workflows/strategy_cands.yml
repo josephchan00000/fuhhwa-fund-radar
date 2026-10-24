@@ -41,6 +41,7 @@ jobs:
     timeout-minutes: 120
     env:
       TZ: Asia/Taipei
+      PYTHONDONTWRITEBYTECODE: "1"
       BR: ${{ github.event_name == 'push' && github.ref_name || github.event.inputs.ref }}
       FORCE: ${{ github.event.inputs.force }}
     steps:
@@ -106,7 +107,8 @@ jobs:
         run: |
           git config user.name "josephchan00000"
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
-          git add -f config/strategy_candidates.json arm/lab/cands config/strategy_board.json data/lab/cands_research.json data/lab/cands_live.json 2>/dev/null || true
+          git add -f config/strategy_candidates.json config/strategy_board.json data/lab/cands_research.json data/lab/cands_live.json 2>/dev/null || true
+          git add -- 'arm/lab/cands/c[0-9][0-9][0-9].py' 2>/dev/null || true     # 只拿候選程式（不要 -f：__pycache__ 會被一起加進來）
           git commit -q -m "chore: 策略候選 $(date '+%F %H:%M')${BR:+（${BR}）}" || { echo "沒有變更"; exit 0; }
           for i in 1 2 3; do
             if git push origin HEAD:main; then echo "changed=true" >> "$GITHUB_OUTPUT"; exit 0; fi
