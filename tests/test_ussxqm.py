@@ -133,6 +133,33 @@ def test_snapshot_buys_fill_free_slots_on_week_end(y0):
     assert n["buy"] == want
 
 
+def test_snapshot_met_five_numbers_this_week_and_at_buy(y0):
+    """docs/lab_cfg_v2_plan.md 第 4 節：美股個股卡「為什麼選它」——這一週（手上、要買、名單前 20 名）的五個條件，
+    與手上的股票買進那一週（帳戶記的訊號日）的五個條件。"""
+    cal = _cal("2024-11-01", "2025-09-26")
+    C = _ctx(cal)
+    C["cols"]["f"]["cap"] = C["cols"]["f"]["cap"] + 123456.0                  # 市值存到百萬美元
+    sig = QM.signals(C, QM.qm_mask(C["cols"]["f"]))
+    r = QM.run(C, sig)
+    n = QM.snapshot(C, r, sig)
+    cols = C["cols"]
+
+    def row(i, c):
+        k = next(k for k in range(len(cols["di"])) if cols["di"][k] == i and cols["c"][k] == c)
+        f = cols["f"]
+        return [round(f["rs"][k], 1), round(f["d52h"][k], 4), round(f["om"][k], 4), round(f["roe"][k], 4), 5e9]
+
+    want = {h["c"] for h in n["hold"]} | set(n["buy"]) | {x["c"] for x in n["list"]}
+    assert set(n["met"]) == want and n["wk"] == cal[-1]
+    for c, v in n["met"].items():
+        assert v == row(C["T"] - 1, c)
+    assert sorted(n["met0"]) == sorted(h["c"] for h in n["hold"])
+    for j, q in r["state"]["pos"].items():
+        c = C["P"]["sym"][j]
+        assert n["met0"][c] == {"wk": cal[q["si"]], "v": row(q["si"], c)} and q["si"] in sig
+        assert n["met0"][c]["v"][0] >= X.QM["rs"]                            # 買進那一週五個條件都過
+
+
 def test_live_update_records_finished_weeks_once(y0, monkeypatch):
     monkeypatch.setattr(X, "QM_LIVE", "2025-06-06")
     cal = _cal("2024-11-01", "2025-07-30")                                   # 7/30 週三：最後一週還沒結束

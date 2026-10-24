@@ -11,6 +11,11 @@ on:
   schedule:
     - cron: '5 2 * * 6'
   workflow_dispatch:
+    inputs:
+      live_only:
+        description: "只重跑美股三成每週紀錄（資料分支的資料這一次不更新）"
+        type: boolean
+        default: false
 
 concurrency:
   group: ussx-weekly
@@ -39,11 +44,13 @@ jobs:
         run: pip install --quiet certifi numpy
 
       - name: 更新
+        if: ${{ !inputs.live_only }}
         env:
           SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}   # 只有 SEC 那一段讀（arm/lab/secfin.py），不印、不存
         run: timeout 6000 python3 scripts/backfill_ussx.py --weekly --budget-min 90
 
       - name: commit 回資料分支
+        if: ${{ !inputs.live_only }}
         run: |
           git config user.name "josephchan00000"
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
