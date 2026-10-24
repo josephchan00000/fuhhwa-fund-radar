@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/24 19:04",
+  "as_of": "2026/10/24 20:09",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -85,29 +85,7 @@
       "short_names": [
         "00991A"
       ],
-      "items": [
-        {
-          "title": "1表看》最新ETF定期定額看人氣 0050、00878、0056...前5大霸榜 00981A、00991A卻人氣倒退？",
-          "url": "https://wantrich.chinatimes.com/news/20261020900440-420401",
-          "source": "旺得富理財網",
-          "date": "2026-10-20 15:56",
-          "datetime": "2026-10-20T15:56:36+08:00"
-        },
-        {
-          "title": "00991A 是什麼？主動復華未來 50 成分股、配息、與 0050 、00981A差異一次看",
-          "url": "https://www.managertoday.com.tw/articles/view/73138",
-          "source": "經理人",
-          "date": "2026-10-20 13:49",
-          "datetime": "2026-10-20T13:49:00+08:00"
-        },
-        {
-          "title": "台股急跌撿哪檔賺更多？比買0050還賺！00991A、00981A、00992A、00982A、00980A...選股教練曝抄底攻略：止跌3訊號",
-          "url": "https://www.businesstoday.com.tw/article/category/183013/post/202610200002/",
-          "source": "今周刊",
-          "date": "2026-10-20 10:45",
-          "datetime": "2026-10-20T10:45:00+08:00"
-        }
-      ]
+      "items": []
     },
     {
       "base": "主動復華金融股息",
@@ -118,18 +96,32 @@
       ],
       "items": [
         {
-          "title": "ETF買了兩檔卻像一檔？00998A與0050走勢不同調 分散配置更有感",
-          "url": "https://www.yesmedia.com.tw/etf%E8%B2%B7%E4%BA%86%E5%85%A9%E6%AA%94%E5%8D%BB%E5%83%8F%E4%B8%80%E6%AA%94%EF%BC%9F00998a%E8%88%870050%E8%B5%B0%E5%8B%A2%E4%B8%8D%E5%90%8C%E8%AA%BF-%E5%88%86%E6%95%A3%E9%85%8D%E7%BD%AE%E6%9B%B4/",
-          "source": "www.yesmedia.com.tw",
-          "date": "2026-10-20 18:58",
-          "datetime": "2026-10-20T18:58:17+08:00"
+          "title": "科技起落看題材　00998A大跌時守得住　為組合增添穩定感 | 生活 | CTWANT",
+          "url": "https://www.ctwant.com/amp/article/503403/",
+          "source": "CTWANT",
+          "date": "2026-10-22 15:19",
+          "datetime": "2026-10-22T15:19:09+08:00"
         },
         {
-          "title": "日本升息效益已反映獲利！00998A持股瑞穗金融淨利增45% 日銀10月底動向受矚",
-          "url": "https://www.watchmedia01.com/archives/560899",
+          "title": "怕買在高點、又怕錯過 定期定額搭配00998A 讓科技股以外的資產慢慢累積",
+          "url": "https://www.watchmedia01.com/archives/561984",
           "source": "觀傳媒",
-          "date": "2026-10-19 09:25",
-          "datetime": "2026-10-19T09:25:01+08:00"
+          "date": "2026-10-22 09:18",
+          "datetime": "2026-10-22T09:18:11+08:00"
+        },
+        {
+          "title": "景氣好壞都要存款買保險 金融業營運穩 00998A抗跌特性成資產配置防守選項",
+          "url": "https://www.watchmedia01.com/archives/561981",
+          "source": "蕃新聞",
+          "date": "2026-10-22 09:16",
+          "datetime": "2026-10-22T09:16:13+08:00"
+        },
+        {
+          "title": "美國10月底再開利率會議 銀行股有望受惠 00998A抗跌之外多一層布局理由",
+          "url": "https://tw.stock.yahoo.com/news/%E7%BE%8E%E5%9C%8B10%E6%9C%88%E5%BA%95%E5%86%8D%E9%96%8B%E5%88%A9%E7%8E%87%E6%9C%83%E8%AD%B0-%E9%8A%80%E8%A1%8C%E8%82%A1%E6%9C%89%E6%9C%9B%E5%8F%97%E6%83%A0-00998a%E6%8A%97%E8%B7%8C%E4%B9%8B%E5%A4%96%E5%A4%9A-%E5%B1%A4%E5%B8%83%E5%B1%80%E7%90%86%E7%94%B1-201836071.html",
+          "source": "Yahoo股市",
+          "date": "2026-10-22 04:18",
+          "datetime": "2026-10-22T04:18:36+08:00"
         }
       ]
     },
@@ -563,7 +555,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=lJNdfafhPj8",
       "date": "2026-10-21",
-      "views": 62666
+      "views": 62955
     },
     {
       "platform": "youtube",
@@ -571,7 +563,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
       "date": "2026-10-20",
-      "views": 15469,
+      "views": 15502,
       "short": true
     },
     {
@@ -580,7 +572,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
       "date": "2026-10-18",
-      "views": 10042
+      "views": 10083
     },
     {
       "platform": "youtube",
@@ -588,7 +580,7 @@
       "channel": "元大投信",
       "url": "https://www.youtube.com/shorts/BAFCSimIvW0",
       "date": "2026-10-22",
-      "views": 483988,
+      "views": 514483,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -599,7 +591,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=Al47SwnDMWo",
       "date": "2026-10-22",
-      "views": 219420,
+      "views": 221467,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -609,7 +601,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/watch?v=Bem1OTti05k",
       "date": "2026-10-20",
-      "views": 147988,
+      "views": 149028,
       "peer": true,
       "cat": "市值型"
     },
@@ -619,20 +611,10 @@
       "channel": "曲博科技教室 Dr. J Class",
       "url": "https://www.youtube.com/shorts/LjDDHVaDM4E",
       "date": "2026-10-19",
-      "views": 147382,
+      "views": 148229,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "0050不是唯一選擇！這檔ETF配息價差兩手賺！【#財經鈔能力】｜20261019 趙慶翔 ft.鐵蛋 #0050 #高股息 #台積電 #ESG #永豐00888",
-      "channel": "TVBS財經",
-      "url": "https://www.youtube.com/watch?v=wWF9OMqS174",
-      "date": "2026-10-19",
-      "views": 142397,
-      "peer": true,
-      "cat": "高股息"
     },
     {
       "platform": "youtube",
@@ -640,7 +622,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/7NxiVHoPy3g",
       "date": "2026-10-19",
-      "views": 99688,
+      "views": 99906,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -651,17 +633,17 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/watch?v=7hLSHozmm68",
       "date": "2026-10-23",
-      "views": 92280,
+      "views": 94204,
       "peer": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "【大神幫幫忙】股魚重押 ETF feat.股魚",
-      "channel": "財商名人堂",
-      "url": "https://www.youtube.com/watch?v=wmwEr7OJTrU",
-      "date": "2026-10-23",
-      "views": 64543,
+      "title": "【全程字幕】蘇貞昌女兒&quot;4500萬投資案&quot;審計部要查了! 吳子嘉嗆蘇巧慧&quot;小偷家族&quot;毫無羞恥之心! 預言新北結局&quot;輸贏5萬票&quot; @dongsshow",
+      "channel": "中天新聞",
+      "url": "https://www.youtube.com/watch?v=iL1lUxpW1cY",
+      "date": "2026-10-21",
+      "views": 84842,
       "peer": true,
       "cat": "綜合"
     },
@@ -671,26 +653,36 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=e1Q5b32TcW4",
       "date": "2026-10-21",
-      "views": 56509,
+      "views": 56800,
       "peer": true,
       "cat": "主動式"
     },
     {
       "platform": "youtube",
-      "title": "ETF存股最新排行榜！0050雖霸榜，但最猛黑馬單月狂增11%！00878狠甩0056？#口袋證券 #etf #0050",
+      "title": "【00878配息1.XXX元超乎預期？】｜今年配息增加150%！｜11月份還有機會提升現金股利嗎？｜3檔高股息ETF，誰排最後一名？｜00878（國泰永續高股息）｜知美JiMMY",
+      "channel": "知美JiMMY",
+      "url": "https://www.youtube.com/watch?v=cH70pqlSaXo",
+      "date": "2026-10-22",
+      "views": 52503,
+      "peer": true,
+      "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "買ETF只看績效，小心這筆費用差了10倍？檔熱門ETF費用大評比！#口袋證券 #etf #0050",
       "channel": "口袋證券",
-      "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
-      "date": "2026-10-19",
-      "views": 55098,
+      "url": "https://www.youtube.com/shorts/Cm9GbtBO57I",
+      "date": "2026-10-22",
+      "views": 39468,
       "peer": true,
       "short": true,
       "cat": "市值型"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、台灣菁英50指數（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A、台灣菁英50指數（詳下方新聞標籤）",
     "品牌焦點：主動復華台灣新星 募集期順延至10月27日（UDN）",
     "社群聲量最高：沈伯洋夫妻持股拆解，看懂個股、ETF與台股美股如何配置（0 推）",
-    "YouTube 熱片：AI如何創造未來？00990A掌握全球AI投資機會｜全片由Google Gemini製作｜元大投信 Yuanta Funds（元大投信・483,988 次觀看）"
+    "YouTube 熱片：AI如何創造未來？00990A掌握全球AI投資機會｜全片由Google Gemini製作｜元大投信 Yuanta Funds（元大投信・514,483 次觀看）"
   ]
 }
