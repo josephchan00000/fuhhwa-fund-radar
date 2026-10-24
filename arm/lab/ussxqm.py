@@ -1,4 +1,7 @@
-"""美股三成的規則 QM（ussxspec VER 3；docs/lab_us_sleeve_plan.md 第 13 節）：每週名單、資金帳戶、研究、上線狀態。
+"""美股三成的規則 QM（ussxspec VER 3～7；docs/lab_us_sleeve_plan.md 第 13 節、docs/lab_core70_plan.md 第 19、20 節）：
+每週名單、資金帳戶、研究、上線狀態。VER 4：空的位子放現金（不付指數的成本）、放進交易計畫照 corespec 的核心比例（美股 0%）。
+VER 5：判定 ② 跟現在在用的計畫比（VER 3 的設定）。VER 6：③ 複委託只描述（使用者用海外券商）。
+VER 7：名單多扣掉一次性收入撐起來的營益率暴增（om_fix_block；omfixspec 的 D）。
 
   research(C)  → data/lab/ussx_qm.json（scripts/run_ussx.py --qm；資料分支的資料）：重現第 12 節、判定 ①～④、只描述的項目、
                  交易計畫卡要的 scenario（spx、ndx 各一份）。
@@ -31,11 +34,14 @@ KEYS = ("rs", "d52h", "om", "roe", "cap")
 
 # ── 資料 ─────────────────────────────────────────────────────────────────────
 
-def context(P: dict | None = None, earn: dict | None = None, workers: int = 4, log=print, plans: bool = True) -> dict:
+def context(P: dict | None = None, earn: dict | None = None, workers: int = 4, log=print, plans: bool = True,
+            extra: tuple = ()) -> dict:
+    """extra＝另外要填的財報欄位（ussxfeat.build）；QM_EXTRA（VER 7 名單條件要的上一季營益率、oxr）一律填。"""
     t0 = time.time()
     P = P if P is not None else UP.load()
     earn = earn if earn is not None else UP.earnings()
-    cols = UF.build(P, X.LIQ_MIN, earn=earn, workers=workers, log=log, vcp=False, labels_on=False)
+    keys = tuple(dict.fromkeys(tuple(X.QM_EXTRA) + tuple(extra)))
+    cols = UF.build(P, X.LIQ_MIN, earn=earn, workers=workers, log=log, vcp=False, labels_on=False, extra=keys)
     el, D20 = cols.pop("el"), cols.pop("D20")
     Cf = UF.ffill(P["C"])
     S = UF.ffill(P["CS"].astype(float))
@@ -58,13 +64,28 @@ def a_of(cal: list[str], year: int) -> int:
 
 # ── 規則 ─────────────────────────────────────────────────────────────────────
 
-def qm_mask(f: dict, th: dict | None = None) -> np.ndarray:
-    """五個條件同時成立（每一個都是「≥」；沒有值＝不成立）。"""
+def om_fix_block(f: dict, fix: dict | None = None) -> np.ndarray:
+    """VER 7（omfixspec 的 D）：營益率暴增而且營業利益增加的比營收多的列（一次性收入撐起來的）＝不算。
+    上一季營益率 < 門檻、這一季比上一季與去年同一季都高 spike 以上、營業利益比營收多增加（oxr > 0）；任一個沒有值＝不擋。"""
+    fix = X.QM_OM_FIX if fix is None else fix
+    om = np.asarray(f["om"], dtype=float)
+    if not fix:
+        return np.zeros(len(om), dtype=bool)
+    om1, omd, oxr = (np.asarray(f[k], dtype=float) for k in ("om1", "omd", "oxr"))
+    th = fix["spike"]
+    with np.errstate(invalid="ignore"):
+        return (om1 < X.QM["om"]) & (om - om1 >= th) & (omd >= th) & (oxr > 0)
+
+
+def qm_mask(f: dict, th: dict | None = None, fix: dict | bool | None = None) -> np.ndarray:
+    """五個條件同時成立（每一個都是「≥」；沒有值＝不成立），再扣掉 om_fix_block（VER 7；fix＝False＝不扣，重現檢查用）。"""
     th = th or X.QM
     with np.errstate(invalid="ignore"):
         m = np.ones(len(f["rs"]), dtype=bool)
         for k in KEYS:
             m &= np.asarray(f[k], dtype=float) >= th[k]
+    if fix is not False:
+        m &= ~om_fix_block(f, None if fix is None or fix is True else fix)
     return m
 
 
@@ -89,14 +110,24 @@ def lag_week(C: dict, sig: dict[int, list], n: int = 1) -> dict[int, list]:
     return {wk[pos[i] + n]: v for i, v in sig.items() if pos[i] + n < len(wk)}
 
 
-def run(C: dict, sig: dict[int, list], mk: str = "spx", c_stk: float = X.COST["stk"], b: int | None = None) -> dict:
-    """QM 的資金帳戶：QM_Y0 起，閒置放那個計畫的指數。"""
+def idle_of(C: dict, mk: str, mode: str | None = None) -> tuple[np.ndarray, float]:
+    """閒置的錢每天的報酬與進出的成本：cash＝現金利息、不付成本（ussxspec VER 4）；index＝那個計畫的指數（VER 3）。"""
+    Q = C["PQ"][mk]
+    if (mode or X.QM_IDLE) == "cash":
+        return Q["cash"], 0.0
+    return Q["idle"], X.COST["idx"]
+
+
+def run(C: dict, sig: dict[int, list], mk: str = "spx", c_stk: float = X.COST["stk"], b: int | None = None,
+        idle: str | None = None) -> dict:
+    """QM 的資金帳戶：QM_Y0 起；閒置的錢照 idle（None＝QM_IDLE：VER 4 放現金）。"""
     P = C["P"]
     a = a_of(C["cal"], X.QM_Y0)
     w = 1.0 / X.QM_SLOTS
-    r = BK.run(P["O"], C["Cf"], P["C"], P["last"], sig, a, b or C["T"], C["PQ"][mk]["idle"], ex=X.QM_EXIT, style=X.QM_STYLE,
+    ir, ci = idle_of(C, mk, idle)
+    r = BK.run(P["O"], C["Cf"], P["C"], P["last"], sig, a, b or C["T"], ir, ex=X.QM_EXIT, style=X.QM_STYLE,
                MA=C["MA"], D20=C["D20"], DIV=C["DIV"], weight=w, max_pos=X.QM_SLOTS,
-               max_weight=max(w, X.TRADE["max_weight"]), c_stk=c_stk)
+               max_weight=max(w, X.TRADE["max_weight"]), c_stk=c_stk, c_idx=ci)
     r["a"] = a
     return r
 
@@ -112,8 +143,10 @@ def stk_share(C: dict, r: dict) -> np.ndarray:
 
 # ── 放進交易計畫 ───────────────────────────────────────────────────────────────
 
-def plan_scenarios(C: dict, mk: str, rr: np.ndarray, st: np.ndarray, a: int, b: int, c_stk: float) -> tuple[dict, dict]:
-    """三成換成 QM（閒置放那個計畫的指數）vs 現在的計畫：同一段期間的 core.scenario（完整，頁面用）。同 ussxrun.plan_level。"""
+def plan_scenarios(C: dict, mk: str, rr: np.ndarray, st: np.ndarray, a: int, b: int, c_stk: float,
+                   core: float | None = None) -> tuple[dict, dict]:
+    """機動換成 QM vs 機動放指數：同一段期間的 core.scenario（完整，頁面用）。同 ussxrun.plan_level。
+    core＝核心比例（None＝corespec 現在的 core_of：VER 4 美股 0%；重現第 12 節用 0.70）。"""
     from . import core as CO
     P, Q = C["P"], C["PQ"][mk]
     cal = Q["cal"]
@@ -126,8 +159,9 @@ def plan_scenarios(C: dict, mk: str, rr: np.ndarray, st: np.ndarray, a: int, b: 
             sl[q] = rr[k]
             inpos[q] = st[k] > 0
     c = CS.COST["us"]
-    cur = CO.scenario("cur", mk, cal, Q["px"], Q["tot"], Q["rf"], Q["F"], pa, pb, c)
-    new = CO.scenario("plan", mk, cal, Q["px"], Q["tot"], Q["rf"], Q["F"], pa, pb, c, sl=sl, inpos=inpos, c_stk=c_stk, sleeve="qm")
+    cur = CO.scenario("cur", mk, cal, Q["px"], Q["tot"], Q["rf"], Q["F"], pa, pb, c, core=core)
+    new = CO.scenario("plan", mk, cal, Q["px"], Q["tot"], Q["rf"], Q["F"], pa, pb, c, sl=sl, inpos=inpos, c_stk=c_stk, sleeve="qm",
+                      core=core)
     return new, cur
 
 
@@ -182,11 +216,13 @@ def review_dist(C: dict, rr: np.ndarray, base: np.ndarray, a: int) -> dict:
     return out
 
 
-def research(C: dict, log=print) -> dict:
+def research(C: dict, log=print, mask: np.ndarray | None = None, desc: bool = True) -> dict:
+    """mask＝名單條件（None＝qm_mask：VER 6）；desc＝False 不算只描述的項目（拿掉賺最多的、晚一週、門檻鄰近、檢討分布）——
+    omfixspec 的候選研究用，預設和原本完全相同。"""
     t0 = time.time()
     cal, T = C["cal"], C["T"]
     a, a14 = a_of(cal, X.QM_Y0), a_of(cal, X.QM_EVAL)
-    m = qm_mask(C["cols"]["f"])
+    m = qm_mask(C["cols"]["f"]) if mask is None else mask
     sig = signals(C, m)
     spx_idle = C["PQ"]["spx"]["idle"]
     out = {"ver": X.VER, "spec": X.SPEC_DATE, "made": date.today().isoformat(), "last": cal[-1], "a": cal[a], "eval": cal[a14],
@@ -214,11 +250,15 @@ def research(C: dict, log=print) -> dict:
     out["top"] = _pnl_top(C, rs)
     # 放進交易計畫
     plans, sc = {}, {}
+    JB = X.QM_JUDGE_BASE
     for mk in X.QM_PLANS:
         for ck, c in (("main", X.COST["stk"]), ("alt", X.COST["stk_alt"])):
             r = R[(mk, ck)]
             new, cur = plan_scenarios(C, mk, rets(C, r), stk_share(C, r), a14, T, c)
-            plans[f"{mk}_{ck}"] = {"new": SW._brief(new), "cur": SW._brief(cur), "judge": SW.judge(new, cur)}
+            # VER 5：判定 ② 跟現在在用的計畫比（VER 3 的設定：核心 70%、機動放 QM、空位放指數；同一個成本）；cur＝機動放指數（只描述）
+            rb = run(C, sig, mk, c, idle=JB["idle"])
+            base = plan_scenarios(C, mk, rets(C, rb), stk_share(C, rb), a14, T, c, core=JB["core"])[0]
+            plans[f"{mk}_{ck}"] = {"new": SW._brief(new), "cur": SW._brief(cur), "base": SW._brief(base), "judge": SW.judge(new, base)}
             if ck == "main":
                 sc[mk] = new
     out["plans"], out["sc"] = plans, sc
@@ -237,35 +277,46 @@ def research(C: dict, log=print) -> dict:
     v["c3"] = {mk: bool(v["c1_alt"]["spx"] and v["c1_alt"]["ew"] and plans[f"{mk}_alt"]["judge"]["pass"]) for mk in X.QM_PLANS}
     v["c4"] = bool(G is not None and G * 100 < X.PASS["surv_max"])
     c1 = v["c1"]["spx"] and v["c1"]["ew"]
-    v["pass"] = {mk: bool(c1 and v["c2"][mk] and v["c3"][mk] and v["c4"]) for mk in X.QM_PLANS}
+    v["need_alt"] = X.QM_NEED_ALT                                         # VER 6：③（複委託）照算、只描述
+    v["pass"] = {mk: bool(c1 and v["c2"][mk] and (v["c3"][mk] or not X.QM_NEED_ALT) and v["c4"]) for mk in X.QM_PLANS}
     out["verdict"] = v
-    # 重現第 12 節
-    rc, rm = sleeve["main"]["cagr"], plans["spx_main"]["new"]["plan"]["m"]
-    out["repro"] = {"cagr": rc, "plan_m": rm, "ref": X.QM_REF, "tol": X.QM_REPRO,
+    # 重現第 12 節：照 VER 3 的設定（空位放指數、核心 70%）另外跑一次（ussxspec VER 4 ③）；VER 7：名單用 VER 6 的條件（沒有 QM_OM_FIX）
+    RS = X.QM_REPRO_SET
+    sig3 = sig if X.QM_REPRO_FIX or mask is not None else signals(C, qm_mask(C["cols"]["f"], fix=False))
+    bR = cal.index(X.QM_REF_END) + 1 if X.QM_REF_END in cal else T        # VER 7：只算到第 12 節資料的最後一天
+    r3 = run(C, sig3, "spx", X.COST["stk"], b=bR, idle=RS["idle"])
+    rc = BK.curve_stats(cal, rets(C, r3), a14, bR)["cagr"]
+    rm = plan_scenarios(C, "spx", rets(C, r3), stk_share(C, r3), a14, bR, X.COST["stk"], core=RS["core"])[0]["plan"]["m"]
+    out["repro"] = {"cagr": rc, "plan_m": rm, "ref": X.QM_REF, "tol": X.QM_REPRO, "set": RS, "end": cal[bR - 1],
                     "ok": bool(abs(rc - X.QM_REF["cagr"]) <= X.QM_REPRO["cagr"] and abs(rm - X.QM_REF["plan_m"]) <= X.QM_REPRO["plan_m"])}
     out["switch"] = {mk: bool(out["repro"]["ok"] and v["pass"][mk]) for mk in X.QM_PLANS}
     # 只描述
     rr = rets(C, rs)
-    desc: dict = {"roll3": roll_wins(C, rr, spx_idle, a14), "years": {y: [sleeve["main"]["years"].get(y), spx_tr["years"].get(y),
-                                                                         ew["years"].get(y)] for y in sleeve["main"]["years"]}}
-    top = [s for s, _ in out["top"]]
-    drop = {}
-    for k in X.QM_DROP:
-        js = frozenset(C["P"]["col"][s] for s in top[:k])
-        drop[str(k)] = {"syms": top[:k], **_brief_stats(BK.curve_stats(cal, rets(C, run(C, signals(C, m, drop=js))), a14, T))}
-    desc["drop"] = drop
-    desc["lag1"] = _brief_stats(BK.curve_stats(cal, rets(C, run(C, lag_week(C, sig))), a14, T))
-    nb = {}
-    for key, vals in X.QM_NB.items():
-        for val in vals:
-            mm = qm_mask(C["cols"]["f"], {**X.QM, key: val})
-            nb[f"{key}={val:g}"] = _brief_stats(BK.curve_stats(cal, rets(C, run(C, signals(C, mm))), a14, T))
-    desc["nb"] = nb
-    out["desc"] = desc
-    out["review"] = review_dist(C, rr, spx_idle, a14)
+    if desc:
+        dsc: dict = {"roll3": roll_wins(C, rr, spx_idle, a14), "years": {y: [sleeve["main"]["years"].get(y), spx_tr["years"].get(y),
+                                                                            ew["years"].get(y)] for y in sleeve["main"]["years"]}}
+        top = [s for s, _ in out["top"]]
+        drop = {}
+        for k in X.QM_DROP:
+            js = frozenset(C["P"]["col"][s] for s in top[:k])
+            drop[str(k)] = {"syms": top[:k], **_brief_stats(BK.curve_stats(cal, rets(C, run(C, signals(C, m, drop=js))), a14, T))}
+        dsc["drop"] = drop
+        dsc["lag1"] = _brief_stats(BK.curve_stats(cal, rets(C, run(C, lag_week(C, sig))), a14, T))
+        nb = {}
+        for key, vals in X.QM_NB.items():
+            for val in vals:
+                mm = qm_mask(C["cols"]["f"], {**X.QM, key: val})
+                nb[f"{key}={val:g}"] = _brief_stats(BK.curve_stats(cal, rets(C, run(C, signals(C, mm))), a14, T))
+        dsc["nb"] = nb
+        out["desc"] = dsc
+        out["review"] = review_dist(C, rr, spx_idle, a14)
+    else:
+        out["_rs"] = rs                                                   # 候選研究要比較逐筆交易（不寫進研究檔）
     out["now"] = snapshot(C, rs, sig)
-    log(f"[ussxqm] 完成 {time.time() - t0:.0f}s：三成本身 {rc * 100:.2f}%、計畫 {rm * 100:,.1f} 萬；重現 {out['repro']['ok']}；"
-        f"判定 {v['pass']}")
+    out["idle"] = X.QM_IDLE
+    out["core"] = {mk: CS.core_of(mk) for mk in X.QM_PLANS}
+    log(f"[ussxqm] 完成 {time.time() - t0:.0f}s：重現（VER 3 設定）三成本身 {rc * 100:.2f}%、計畫 {rm * 100:,.1f} 萬 → {out['repro']['ok']}；"
+        f"VER {X.VER} 三成本身 {sleeve['main']['cagr'] * 100:.2f}%、計畫 {sc['spx']['plan']['m'] * 100:,.1f} 萬；判定 {v['pass']}")
     return out
 
 
@@ -280,9 +331,29 @@ def _raw(C: dict, A: np.ndarray, i: int, j: int) -> float | None:
     return float(x * raw / c)
 
 
+def _met(C: dict, i: int, js) -> dict[int, list]:
+    """第 i 天（週訊號日）那一週 QM 的五個條件，順序同 KEYS（強度、離 52 週高點、營益率、近四季 ROE、市值）：
+    {代號欄: [五個數]}。那一週不在範圍內（沒有樣本列）的代號不列。"""
+    def rd(key, x):                                          # 強度一位小數、市值到百萬美元、比例四位小數；沒有值＝存成 null
+        if not math.isfinite(x):
+            return x
+        return round(x, 1) if key == "rs" else round(x / 1e6) * 1e6 if key == "cap" else round(x, 4)
+
+    cols = C["cols"]
+    want = {int(j) for j in js}
+    out = {}
+    for k in np.nonzero(cols["di"] == i)[0]:
+        j = int(cols["j"][k])
+        if j in want:
+            out[j] = [rd(key, float(cols["f"][key][k])) for key in KEYS]
+    return out
+
+
 def snapshot(C: dict, r: dict, sig: dict[int, list]) -> dict:
     """最新一天收盤後：持股（買進日、買進價、收盤、50 日線、占三成多少、曾經站上均線沒有）、明天開盤要賣的、
-    最新一週的名單（前 QM_LIST 名）與明天開盤要買的（有空位才買，依名單順序）。價格都是實際成交價。"""
+    最新一週的名單（前 QM_LIST 名）與明天開盤要買的（有空位才買，依名單順序）。價格都是實際成交價。
+    met＝這一週（wk）手上、要買、名單前 QM_LIST 名的五個條件；met0＝手上的股票買進那一週的五個條件（為什麼選它；
+    docs/lab_cfg_v2_plan.md 第 4 節）。"""
     P, cal, T = C["P"], C["cal"], C["T"]
     t = T - 1
     S = r["state"]
@@ -299,7 +370,7 @@ def snapshot(C: dict, r: dict, sig: dict[int, list]) -> dict:
     wd = wks[-1] if wks else None
     lst = [{"c": _sym(C, j), "rs": round(sc, 1)} for j, sc in (sig.get(wd) or [])[:X.QM_LIST]] if wd is not None else []
     done = wd is not None and week_done(cal[wd])
-    buy = []
+    buy, bj = [], []
     if wd == t and done:                                     # 最新一天就是（已經結束的一週的）週訊號日：明天開盤照名單補空位
         free = X.QM_SLOTS - (len(S["pos"]) - len(S["pend"]))
         for j, sc in sig[t]:
@@ -307,10 +378,20 @@ def snapshot(C: dict, r: dict, sig: dict[int, list]) -> dict:
                 break
             if j not in S["pos"]:
                 buy.append(_sym(C, j))
+                bj.append(j)
+    met, met0 = {}, {}
+    if wd is not None:
+        js = list(S["pos"]) + bj + [j for j, _ in (sig.get(wd) or [])[:X.QM_LIST]]
+        met = {_sym(C, j): v for j, v in _met(C, wd, js).items()}
+    for j, q in S["pos"].items():
+        si = q.get("si")
+        v = _met(C, si, [j]).get(j) if si is not None else None
+        if v is not None:
+            met0[_sym(C, j)] = {"wk": cal[si], "v": v}
     return {"d": cal[t], "wk": cal[wd] if wd is not None else None, "wk_done": bool(done), "hold": hold,
             "sell": [h["c"] for h in hold if h["sell"]], "buy": buy, "list": lst,
             "n_list": len(sig.get(wd) or []) if wd is not None else 0, "idle": float(S["idle"] / eq) if eq > 0 else None,
-            "next": next_day(cal[t])}
+            "next": next_day(cal[t]), "met": met, "met0": met0}
 
 
 def next_day(d: str) -> str:

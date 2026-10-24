@@ -6,6 +6,7 @@
 - 景氣：證據地圖、完整數字與方法、階段時間軸、熱度地形的資料都在市場頁（x9m／x9mu），留在市場頁的研究畫面（#v=research／phase／terrain），
   這頁只列入口（第 2 段）。
 - 訊號（原本訊號總覽的研究結論、完整研究表、全部指標、名詞與判定方式）與泡沫（原本泡沫頁的全部內容）直接放在這頁（第 2 段）。
+- 策略候選（第 5 段，docs 第 24 節）：每一條候選一張卡（candpage.research_body），配置頁策略表的候選列點名稱連到這裡（#cand-編號）。
 用字不受主頁面的規則限制（第 8 節：讀這頁的人是要查證的人）。輸出決定性（沒有時戳），內容沒變不改寫。
 """
 from __future__ import annotations
@@ -32,6 +33,7 @@ GROUPS = (
         ("後台・換股研究", "x9.html?v=bo&at=idx-study", "臺灣50 與高股息 ETF 換股的事件研究、被動買盤大小、提前卡位回測"),
         ("後台・每日更新時程", "x9.html?v=bo&at=bo-sched", "每一班自動更新做什麼、幾點"),
     )),
+    ("cand", "策略候選", "配置頁策略表「候選」那幾列的細節：每一條的來源、規則、回測、放進交易計畫的試算、試用紀錄與你的決定。", ()),
     ("mkt", "景氣", "台股、美股景氣（市場頁）的研究畫面：資料都在市場頁，打開後最上面一列可以在三個研究畫面之間切換、回到市場頁。", (
         ("台股・證據地圖與完整數字", "x9m.html#v=research", "各項和台股的關係、Granger、邊際變化的多層回歸、五區回測、事件表現、資料來源"),
         ("台股・階段時間軸", "x9m.html#v=phase", "每個面向每一週在哪個階段（熱還在升溫、熱開始降溫、冷還在降溫、冷開始回溫）"),
@@ -52,8 +54,9 @@ GROUPS = (
         ("七種條件代表什麼", "#bub-types", "價格爆發、兩年翻倍、偏離趨勢、漲得比基本面快、估值、未來獲利、槓桿的出處與限制"),
         ("方法與資料", "#bub-mth", "分級規則、PSY 臨界值、價格 ÷ 基本面、未來獲利、資料來源"),
     )),
-    ("gl", "名詞", "籌碼雷達用到的名詞（真加碼、申贖倍率、超配、成本乖離…）與方法、限制。", (
-        ("名詞與方法", "x9.html?v=bo#gl", "ETF 部位帳本、時點、公司行動、法人成本的算法與資料來源"),
+    ("gl", "名詞", "市場頁（今天的訊號、溫度計、任一天…）與配置頁個股工具（真加碼、申贖倍率、超配、成本乖離…）的名詞與方法。", (
+        ("名詞與判定方式（市場頁、訊號）", "#mth", "今天的訊號怎麼列、溫度計怎麼讀、任一天、★／◆／○ 怎麼判、預估之後"),
+        ("名詞與方法（個股工具）", "x9.html?v=bo#gl", "ETF 部位帳本、時點、公司行動、法人成本的算法與資料來源"),
     )),
 )
 
@@ -69,7 +72,8 @@ def body(host: dict | None = None) -> str:
     out = [f'<nav class="rtoc" aria-label="目錄">{toc}</nav>']
     for gid, title, note, items in GROUPS:
         li = "".join(f'<li><a href="{_e(u)}">{_e(n)}</a><span>{_e(d)}</span></li>' for n, u, d in items)
-        out.append(f'<section class="rsec" id="{gid}"><h2>{_e(title)}</h2><p class="rnote">{_e(note)}</p><ul class="rlist">{li}</ul></section>')
+        out.append(f'<section class="rsec" id="{gid}"><h2>{_e(title)}</h2><p class="rnote">{_e(note)}</p>'
+                   + (f'<ul class="rlist">{li}</ul>' if li else "") + '</section>')
         if host.get(gid):
             out.append(f'<div class="rhost" data-g="{gid}">{host[gid]}</div>')
     return "".join(out)
@@ -87,6 +91,16 @@ def bub_view() -> dict:
     return BPG.view()
 
 
+def cand_body() -> str:
+    """新策略候選（candpage.research_body）；讀不到只寫一句。"""
+    try:
+        from . import candpage as CP
+        return CP.research_body()
+    except Exception as e:                               # noqa: BLE001
+        print(f"[研究紀錄] 策略候選讀不到：{type(e).__name__}: {e}")
+        return '<p class="rnote">策略候選讀不到。</p>'
+
+
 def render(SV: dict | None = None, BV: dict | None = None) -> str:
     """SV＝訊號研究的 view（sigpage.view）、BV＝泡沫研究的 view（bubpage.view）；不給就照上面兩個函式取得。"""
     from . import appnav
@@ -97,10 +111,11 @@ def render(SV: dict | None = None, BV: dict | None = None) -> str:
     SV = sig_view() if SV is None else SV
     BV = bub_view() if BV is None else BV
     has_sig = bool(SV.get("rows"))
-    host = {"sig": SPG.research_body(SV), "bub": BPG.research_body(BV)}
-    css = HCSS + appnav.CSS + SPG.research_css() + BPG.research_css() + CSS
-    js = (SPG.JS if has_sig else "") + BPG.JS + IP.JS
-    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("")).replace("{{CSS}}", css)
+    from . import candpage as CP
+    host = {"sig": SPG.research_body(SV), "bub": BPG.research_body(BV), "cand": cand_body()}
+    css = HCSS + appnav.CSS + SPG.research_css() + BPG.research_css() + CP.CSS + CSS
+    js = (SPG.JS if has_sig else "") + BPG.JS + IP.JS + OPEN_JS
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("r")).replace("{{CSS}}", css)
                          .replace("{{BODY}}", body(host)).replace("{{PANEL}}", SPG.PANEL if has_sig else "")
                          .replace("{{SGD}}", f'<script type="application/json" id="sgd">{SPG.page_json(SV)}</script>' if has_sig else "")
                          .replace("{{BUBD}}", BPG.research_data(BV)).replace("{{JS}}", js))
@@ -115,6 +130,23 @@ def build(out: Path = OUT, SV: dict | None = None, BV: dict | None = None) -> bo
     return True
 
 
+OPEN_JS = r"""
+(function () {                                              // 網址 #段落（例 配置頁候選列的 #cand-c001）：打開那一段與外層收起來的段落，再捲過去
+  function go() {
+    let h = '';
+    try { h = decodeURIComponent((location.hash || '').slice(1)); } catch (e) { return; }
+    if (!h || /[=&]/.test(h)) return;                         // #s=、#i=、#r=、#p= 由全部指標的程式處理
+    const el = document.getElementById(h);
+    if (!el) return;
+    for (let d = el; d; d = d.parentElement ? d.parentElement.closest('details') : null) if (d.tagName === 'DETAILS') d.open = true;
+    el.scrollIntoView({block: 'start'});
+  }
+  window.addEventListener('hashchange', go);
+  if (document.readyState === 'complete') go(); else window.addEventListener('load', go, {once: true});
+})();
+"""
+
+
 _HTML = """<!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -123,7 +155,7 @@ _HTML = """<!doctype html>
 <title>研究紀錄</title>
 <style>{{CSS}}</style></head>
 <body>
-<div class="top">{{APPTAB}}<a class="back" href="./">返回主頁</a></div>
+<div class="top">{{APPTAB}}<a class="back" href="./"><span class="bk1">返回</span>主頁</a></div>
 <main class="rpm"><h1>研究紀錄</h1>
 <p class="rlead">驗證、方法、研究表，以及原本的策略頁、訊號總覽、泡沫頁、後台都在這裡。主頁面（市場、配置）只放結論和要做的事；
 要查一個數字怎麼來的、一條規則過去的每一筆，從這裡進去。</p>

@@ -294,6 +294,10 @@
      **2026-10-21 起缺口檔也含 ETF 持股**（`items[].src`＝`fund` 基金前十大／`etf` ETF 完整持股；
      ETF 那幾筆另帶 `ticker`＝補進 profiles 的代號、`etfs`＝哪幾檔持有）——ETF 持股原本只有測試的
      95% 門檻守，主動式天天換股、滑到 97%（72 檔）沒人發現；`etf_holdings.yml` 抓完持股也跑一次檢查。
+     **2026-10-24 起也含美股三成**（`src`＝`usqm`：配置頁美股列的股票＝手上的、要買的、名單前 5 名裡手上沒有的，
+     `fund_intro.uncovered_us_qm`；`name`＝每週紀錄的英文公司名、`ticker`＝代號）——使用者：「美股那些公司誰知道你是什麼公司…
+     台股不都有列嗎？比照著做」。美股簡介**照「美國 公司名（中文名若有），本業；細節」寫**：配置頁取「；」前那一段，
+     「，」前＝公司名（去掉「美國」與結尾括號）、後＝本業一行（`corepage.us_label`）。名單每週六換，新進前 5 名的公司週一下午這班補。
      **極簡迴路**（15:33 班與晨間 backstop 共用；全程 ~5 分鐘、不跑任何抓取腳本）：
      ① gap 檔 `items[].name` 就是快照原字串（已還原 `&amp;` 等實體）——**每檔 1 次 WebSearch** 查證（公司本業／代號／國別）；
      ② 補進 `config/holding_profiles.json`（`{原字串: {intro, ticker, country, verified, url?}}`，
@@ -344,7 +348,7 @@
      機制與坑見下方「新 ETF『自動發現』層」專節。
    - **⑨ 籌碼雷達兩行（2026-10-15 使用者同意：「06:35 推播多帶兩行」）**：成功推播在 3 條市場重點之後，附上
      `git show origin/main:data/lab/val_log.json` 最新資料日（`days` 最後一個鍵）的 `push` 欄**原文照貼**：
-     第一行＝下一個交易日開盤／收盤要做的買賣（例「10/16（五）沒有排定的買賣。」），美股三成有要賣要買時多一行（例「美股三成：10/26（一）開盤賣 INSW、買 PAYC。」），
+     第一行＝下一個交易日開盤／收盤要做的買賣（例「10/16（五）沒有排定的買賣。」），台股新飆股有要賣要買時多一行（例「新飆股：11/2（一）開盤賣 奇鋐、買 金像電。」，2026-10-24 起），美股三成有要賣要買時多一行（例「美股三成：10/26（一）開盤賣 INSW、買 PAYC。」），
      最後一行＝策略驗證事件（有事件才有）。
      檔案讀不到或沒有 `push` 就省略這兩行、**不擋推播**。這兩行由 CI 重建籌碼雷達時產生（`arm/lab/valog.py`，見「版面 v4」專節），
      不必自己算、也不要改寫內容。
@@ -387,30 +391,61 @@
 4. 結果：**有異動 → PushNotification 一句話**（改了哪幾檔）；無異動 → 安靜結束不推播；
    失敗 → 推播卡在哪一步。
 
-## 指令：「排程搬家」（2026-07-24 建立；2026-08-03 擴為三個；2026-08-07 四個；2026-08-10 起**五個 Routine 一起搬**）
+## 指令：「策略探勘週報」（2026-10-24 建立；IA v5 第 5 段，docs/lab_ia_v5_plan.md 第 6、24 節）
 
-使用者在**任何**對話窗打**「排程搬家」**（或「搬排程」）＝把**全部五個** Routine（每日：06:35 全部更新、
-15:33 盤後籌碼、18:58 晚間 NAV·PCF、05:08 美股收盤序列；每週：週一 08:05 ETF 募集週掃）改綁到**當前**
-對話窗。**不要詢問、不要查證其他東西、不改任何檔案、不 commit**——固定「list → 建五個 → 刪舊的」收工（最省 token）：
+每週日台北 19:47 Routine 火進綁定會話執行；使用者手動打「策略探勘週報」也照跑。框架規格 `arm/lab/candspec.py`（VER 2），
+程式 `arm/lab/candrun.py`、`scripts/run_cands.py`，合併通道 `.github/workflows/strategy_cands.yml`。**全程不跑資料抓取腳本、不動 reports/**：
+
+1. 先把 origin/main 合併進本會話分支（候選的程式與檢查要最新的）。讀 `config/strategy_candidates.json` 與
+   `config/strategy_board.json` 的 `cand`：還沒決定的已有 10 條 → 不找，推播提醒使用者回「試用／納入／不納入」。
+2. **找**（WebSearch）：來源限學術（SSRN、arXiv q-fin、期刊）、大型資產管理公司與知名量化部落格（AQR、Alpha Architect、
+   Quantpedia、Research Affiliates…）、台灣投信券商研究報告。每週**最多 2 條**，四個條件都要：規則寫得清楚（參數有數字、
+   能直接寫成程式）、有公開成績、**現有資料做得到**（指數收盤、VIX、漲跌家數、融資維持率；台股長歷史價量、月營收、季財報、EPS；
+   美股資料分支的價量與 SEC 財報）、和已有的候選與頁面上的策略不重複。找不到就不湊、安靜結束。
+3. **先寫規格再算**：規格一筆（`config/strategy_candidates.json` 的 `items`；欄位照 candspec：id 接續編號、found＝今天、name、
+   mk、engine、kind、how 一句白話規則、src 至少一條 https 原文連結、why、p、grid、各型態要的 H／b／pick／ex、sha）＋
+   程式一支 `arm/lab/cands/{編號}.py`（照 `arm/lab/cands/__init__.py` 的範本；參數從 p 讀、只用那一天收盤以前的資料、
+   台股財報與月營收一律經過 `cands.Fin`）。sha＝`python3 -c "from arm.lab import candrun as R; print(R.sha_file(R.PROG/'c00X.py'))"`。
+   資料不夠的只寫規格、`need`＝「需要資料：…」、不寫程式（使用者說要才去補資料）。
+4. `TZ=Asia/Taipei python3 scripts/run_cands.py --check` 與 `python3 -m pytest -q tests/test_cands.py tests/test_candspec.py` 全綠
+   → `git add config/strategy_candidates.json arm/lab/cands` → commit「chore: 策略候選 {編號} {名稱}」→ push 本會話分支。
+   **push 就觸發合併通道**：用 main 的檢查、回測（指數型＝xstrat、台股個股＝回測方法 v3、美股個股＝ussxbook；有美股的另外拿資料分支）、
+   用到未來資料的兩道檢查、放進計畫試算；**新候選乾淨地算完才併進 main**（規格、程式、結果同一筆 commit），再派 daily.yml 重建頁面。
+5. 等結果（Bash `run_in_background` until 迴圈，每 2 分鐘 `git fetch origin main`，最多 45 分鐘）：`origin/main` 的
+   `data/lab/cands_research.json` 出現這幾個編號＝安靜結束（星期一 06:35 推播會帶「策略候選：新增…」一行）。
+   沒出現＝讀那一輪 strategy_cands.yml 的日誌：程式出錯或「用到未來的資料」→ 修程式（**還沒進 main 的候選可以改**；修的是程式錯誤，
+   不是看了成績調參數）、重填 sha、再推一次；第二次還是不行 → 推播一句卡在哪裡。
+- **使用者的決定**（任何對話回「試用 X／納入 X／不納入 X」）：改 `config/strategy_board.json` 的 `cand`（`{編號: {dec: trial／adopt／reject,
+  d: 日期, why: 原因}}`）→ push 任何 `claude/**` 分支 → 合併通道只拿 `cand` 那一段併進 main（其他欄位照 main）。
+  試用＝每週日排程記紙上成績（`data/lab/cands_live.json`，只增不改），滿 63 個交易日列照做對一直抱著；
+  納入＝策略表「觀察中・納入，等計畫改版」，交易計畫要出新版本（corespec VER＋1，另外規劃、先問使用者）才改「使用中」；不納入＝淘汰一行。
+- **不做**：通用規則語言（每條候選都是一支小程式＋鎖定）、看過結果改參數（要改＝新的編號，`prev` 指到舊的）、網頁上的按鈕。
+
+## 指令：「排程搬家」（2026-07-24 建立；2026-08-03 擴為三個；2026-08-07 四個；2026-08-10 五個；2026-10-24 起**六個 Routine 一起搬**）
+
+使用者在**任何**對話窗打**「排程搬家」**（或「搬排程」）＝把**全部六個** Routine（每日：06:35 全部更新、
+15:33 盤後籌碼、18:58 晚間 NAV·PCF、05:08 美股收盤序列；每週：週一 08:05 ETF 募集週掃、週日 19:47 策略探勘週報）改綁到**當前**
+對話窗。**不要詢問、不要查證其他東西、不改任何檔案、不 commit**——固定「list → 建六個 → 刪舊的」收工（最省 token）：
 
 1. `list_triggers`（先用預設 limit；找不到再用 cursor 翻頁）→ 找**名稱以「復華基金雷達」開頭且
-   `enabled:true`** 的 Routine（正常應有 5 個；歷史上只有 1／3／4 個＝尚未擴編，照樣往下走）。
+   `enabled:true`** 的 Routine（正常應有 6 個；歷史上只有 1／3／4／5 個＝尚未擴編，照樣往下走）。
    全部的 `persistent_session_id` 都已是本會話 → 回一句「排程已綁本視窗」結束。
    · **⚠ 輸出會超過工具上限**（2026-08-07 實測 70KB／一行）：帳號裡累積數十個 `send_later` 一次性
      trigger，`list_triggers` 回應會被截斷並存成檔案。**別開子代理讀全文**——直接
      `python3 -c` 讀那支檔 `json.loads` 後只印 `id｜name｜cron_expression｜enabled｜persistent_session_id`
      一行一個，秒級收斂。要看某支的 prompt 原文則印
      `job_config.ccr.events[*].data.message.content`（**頂層沒有 `prompt` 欄位**，只有這裡有）。
-2. `create_trigger` ×5（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`；
+2. `create_trigger` ×6（預設自綁本會話，**不帶** `persistent_session_id`／`create_new_session_on_fire`；
    prompt 用下方各自的原文照抄、一字不改）：
    - `復華基金雷達 每日全部更新(台北 06:35・07:03 前完成)`｜cron `35 22 * * *`
    - `復華基金雷達 盤後籌碼即時更新(台北 15:33)`｜cron `33 7 * * 1-5`
    - `復華基金雷達 晚間NAV·PCF即時更新(台北 18:58)`｜cron `58 10 * * 1-5`
    - `復華基金雷達 美股收盤序列更新(台北 05:08)`｜cron `8 21 * * 1-5`
    - `復華基金雷達 ETF募集週掃(台北週一 08:05)`｜cron `5 0 * * 1`
+   - `復華基金雷達 策略探勘週報(台北週日 19:47)`｜cron `47 11 * * 0`
 3. `delete_trigger` 逐一刪掉步驟 1 找到的舊 Routine（機制備忘：`update_trigger` 改不了綁定會話、跨會話
    update 也被組織政策擋，但**跨會話 delete 可行**——2026-07-24 實證；所以搬家＝建新＋刪舊，不是改舊）。
-4. 一句話回報：五個新 trigger id＋各自下次觸發時間。create_trigger 若警告「no MCP connectors」**可忽略**
+4. 一句話回報：六個新 trigger id＋各自下次觸發時間。create_trigger 若警告「no MCP connectors」**可忽略**
    （SOP 第 7 步走 push 自動觸發、驗證用 git，不依賴 MCP）。
    · **步驟 1 若查到「本檔沒記載」的復華 Routine**（2026-08-07 就是這樣發現 05:08 那支）：照樣搬，
      prompt 從舊 trigger 的 `job_config` 原文照抄，並在回報時提一句「本檔要補記」。
@@ -439,6 +474,10 @@ Routine prompt 原文④——美股收盤序列更新（05:08，2026-08-05 建�
 Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建立）：
 
 > （排程自動觸發）ETF 募集週掃——找到新 ETF 募集資訊、主動更新「即將登場」（使用者 2026-08-10 指示：主動更新、一週一次）。依 repo CLAUDE.md「指令：ETF 募集週掃」SOP 執行：全程不跑資料抓取腳本、不動 reports/**、只改 data/etf_upcoming.json。① git fetch origin main 讀 origin/main 的 data/etf_upcoming_gap.json（CI 自動發現的漏網檔）與 data/etf_upcoming.json 現況，pytest tests/test_etfwatch.py 看 stale guard 有無紅；② WebSearch 盤點（鉅亨 IPO 頁 fund.cnyes.com/IPO/index.htm＋MoneyDJ 新基金頁＋工商時報／經濟日報「投信新基金」稿，容器擋原頁就用搜尋摘要），逐檔兩來源核對：新核准檔補登（時程未定 raise_hint＋asof、未派碼 code:null）、hint 檔補正式日期、募集期間／掛牌日／配息頻率異動修正、掛牌逾期條目清理；海外被動指數檔 track:false；本家復華新檔最優先、絕不可漏；③ 更新頂層 as_of＝今日 → pytest 全綠 → commit「chore: ETF 募集週掃 {日期}」push 本會話指定分支（push 動到該檔自動觸發 daily.yml 併入 main 重建上線，不需人工 merge）；③-b 依 CLAUDE.md 週掃步驟 2.5 維護 config/index_reviews.json（被動指數審核時程與官方結果：只改查得到官方公告的日期與名單、不猜，as_of＝今日，pytest tests/test_lab.py 須綠，與 etf_upcoming 同一個 commit push）；④ 有異動 → PushNotification 一句話列出異動檔；無異動 → 安靜結束不推播；失敗 → 推播卡在哪一步。
+
+Routine prompt 原文⑥——策略探勘週報（週日 19:47，2026-10-24 建立）：
+
+> （排程自動觸發）策略探勘週報——依 repo CLAUDE.md「指令：策略探勘週報」SOP 執行；全程不跑資料抓取腳本、不動 reports/**。① git fetch origin main 後把 origin/main 合併進本會話指定分支（候選的程式與檢查要是最新的）；讀 config/strategy_candidates.json 與 config/strategy_board.json 的 cand：還沒決定的已有 10 條 → 不找，PushNotification 一句「策略候選已有 N 條還沒決定，請回試用／納入／不納入」後結束。② WebSearch 找新策略：來源限學術（SSRN、arXiv q-fin、期刊）、AQR／Alpha Architect／Quantpedia／Research Affiliates 等量化研究、台灣投信券商研究報告；挑最多 2 條「規則寫得清楚、有公開成績、現有資料做得出來」、和已有的候選與頁面上的策略不重複的；找不到就安靜結束、不推播。③ 每條寫規格一筆（config/strategy_candidates.json 的 items；欄位照 arm/lab/candspec.py：id 接續編號、found＝今天、name、mk、engine、kind、how 一句白話規則、src 至少一條 https 原文連結、why、p、grid、各型態要的 H／b／pick／ex、sha）＋程式一支 arm/lab/cands/{編號}.py（照 arm/lab/cands/__init__.py 的範本；參數從 p 讀、只用那一天收盤以前的資料、台股財報與月營收一律經過 cands.Fin）；sha 用 python3 -c "from arm.lab import candrun as R; print(R.sha_file(R.PROG/'c00X.py'))" 填；資料不夠的只寫規格、need＝「需要資料：…」、不寫程式。④ TZ=Asia/Taipei python3 scripts/run_cands.py --check 與 python3 -m pytest -q tests/test_cands.py tests/test_candspec.py 全綠 → git add config/strategy_candidates.json arm/lab/cands → commit「chore: 策略候選 {編號} {名稱}」→ push 本會話指定分支（push 自動觸發 strategy_cands.yml：用 main 的檢查、回測、乾淨算完才併進 main、重建頁面）。⑤ 等結果：Bash run_in_background 的 until 迴圈（每 2 分鐘 git fetch origin main，最多 45 分鐘）等 origin/main 的 data/lab/cands_research.json 出現這幾個編號：出現＝安靜結束（星期一 06:35 推播會帶「策略候選」一行）；45 分鐘沒出現＝讀 strategy_cands.yml 那一輪的日誌（mcp__github__actions_list／get_job_logs）：程式出錯或用到未來的資料就修程式（還沒進 main 的候選可以改；修的是程式錯誤，不是看了成績調參數）、重填 sha、再推一次；第二次還是不行 → PushNotification 一句卡在哪裡。
 
 ## 每日固定時間自動更新（2026-07-18 建立；同日改「火進主會話」模式）
 
@@ -484,7 +523,8 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
   基金 NAV＋主動式 ETF 當日 PCF 上線**（19:10 cron 兜底；etf_holdings 17:40 cron 遲到自癒）／
   22:05 cron·融資融券（~21:30 公布）、P/C 比、NAV 掃尾／23:20 夜檢（Routine 鏈的 send_later，
   只驗不抓）。**週頻**：週一 08:05 Routine → ETF 募集週掃（WebSearch 查證後更新
-  `data/etf_upcoming.json`，push 經 daily.yml 併檔自動上線）。
+  `data/etf_upcoming.json`，push 經 daily.yml 併檔自動上線）；週日 19:00 strategy_cands.yml 排程（試用中的候選補紀錄、補算）、
+  19:47 Routine → 策略探勘週報（新候選 push 經 strategy_cands.yml 合併通道回測、併進 main、重建）。
 - **備援**：repo cron 移至**台北週一~六 07:15**（2026-07-20 起，原 06:50）——改為「事後兜底」：Routine 失敗時
   新聞沿用前日（或撿分支已推的今日新聞），但 NAV／持股／ETF 照樣更新；頁面瀏覽器端有「逾 2 天未重建」
   紅色警示橫幅當最後防線。
@@ -788,6 +828,8 @@ Routine prompt 原文⑤——ETF 募集週掃（週一 08:05，2026-08-10 建�
   **唯一例外（2026-10-17 使用者：「直接說目標價不就好了」）**：籌碼雷達公司卡「法人預估」段與飆股段的法人小字，
   引述券商分析師的目標價（附來源連結）時直接寫「目標價」；新聞報告、策略文字、我們自己的參考價位照舊禁用
   （位置由 `tests/test_fcst.py` 的 `FC_FUNCS` 守，見「法人預估與產業比較」專段）。
+  **2026-10-24 起同一個例外也用在美股個股卡的「分析師」段**（引述 Yahoo Finance 分析師的目標價、附 Yahoo 分析頁連結；
+  只准出現在 `uscardpage.py` 的 JS 函式 `ucAn`，`tests/test_uscardpage.py` 守）。
 
 ## 列印版／存 PDF（2026-09-07 使用者需求：「每天早上可以列印出來的版本」）
 
@@ -1775,8 +1817,9 @@ CI 從零開始會整片變 —，同 etf_watch 的坑）；`fetch_holdings.py` 
 使用者原話：「把所有 ETF 持有的個股去做分析……從量、成本、加入時間、哪間看好……實務操作可以拿來賺錢的
 深度籌碼跟技術分析」「入口……不想要太容易被看到」。定案：**不用密語、不加密**（使用者：「不用那麼搞剛，
 就沒那麼好找到就好了」）；**入口＝主頁頁尾右下角淡色小點**，**不進導覽列、不在任何分頁出現**（tests/test_lab.py 守）。
-2026-10-18 起小點改連 `x9m.html`（台股景氣頁；使用者：「點那個 . 之後先出現景氣頁面，個股頁面放旁邊」），
-台股景氣（x9m.html）／美股景氣（x9mu.html）／配置（x9.html，本頁，2026-10-23 起；原本的策略、個股兩格合成一格）三格共用頂欄 `arm/lab/appnav.py`（不做窄欄；手機 640px 以下顯示短名 台股｜美股｜配置，`appnav.SHORT`；tests/test_appnav.py 守）。泡沫（x9b.html）、訊號總覽（x9o.html）2026-10-23 起併進兩個景氣頁（市場頁），頂欄拿掉、舊網址留成轉址頁（見「市場頁」專段）；第 4 段再把頂欄改成「市場｜配置」。
+2026-10-18 起小點改連 `x9m.html`（台股景氣頁，2026-10-23 起叫市場頁；使用者：「點那個 . 之後先出現景氣頁面，個股頁面放旁邊」）。
+頂欄 2026-10-23 起只有「市場｜配置」兩格（市場＝台股 x9m.html、美股四個指數 x9mu.html；配置＝x9.html，本頁），右邊小字「研究紀錄・名詞・查公司」，
+共用 `arm/lab/appnav.py`（不做窄欄；見「導覽與入口」專段）。泡沫（x9b.html）、訊號總覽（x9o.html）、大神策略（x9x.html）是轉址頁（見「市場頁」專段）。
 **x9.html 是一頁兩種身分**：配置（台股｜美股｜策略｜個股）與研究紀錄（個股策略｜總經策略｜後台，從 x9r.html 進來）——見下方「配置頁與研究紀錄」專段（2026-10-23）；原大神策略頁 x9x.html 留成轉址頁。
 頁面＝`dashboard/x9.html`（Vercel cleanUrls → `/x9`）。
 券商分點暫不做（使用者：先不做）；海外持股只做 ETF 面；債券型 ETF 整檔排除。
@@ -2395,7 +2438,7 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   **頁面 JS**＝`heatpage._JS`（設定由 `heatpage.meta()` 嵌成 `window.HEAT_META`，`</` 要轉義）；原本瀏覽器端的交互分析計算（`// @@CALC` 段）
   2026-10-20 隨交互分析一起拿掉（`heatrel.group_stats` 研究端照留）。手機：寬表改一項一塊（`table.stk`＋`data-h`）、`.mob`／`.dsk` 切換欄位、
   單項小圖依容器寬度重畫（視窗寬度變 40px 以上會重畫），新表格在 390px 都不橫捲。
-  入口＝主頁頁尾「·」（2026-10-18 起直接連這頁）＋共用頂欄（2026-10-23 起台股景氣｜美股景氣｜配置，`arm/lab/appnav.py`；見「市場頁」節）；主頁導覽列不加入口。`gen_fund_dashboard.py` 在籌碼雷達之後**另外建**（分開失敗）；
+  入口＝主頁頁尾「·」（2026-10-18 起直接連這頁）＋共用頂欄（2026-10-23 起「市場｜配置」，`arm/lab/appnav.py`；見「導覽與入口」節）；主頁導覽列不加入口。`gen_fund_dashboard.py` 在籌碼雷達之後**另外建**（分開失敗）；
   三支 workflow 各兩行 `git add -f dashboard/x9m.html`、各兩行 `git add -f dashboard/x9mh.json`（分開 add；本機都不 commit，同 x9.html）。
   研究檔版本和規格不同（`ver` ≠ `heatspec.VER`，現在是 9）就當沒有（頁面寫「驗證結果還沒產生」，x9mh.json 不帶單項分析與 `m6`）。
 - **規格事前寫定** `arm/lab/heatspec.py`（VER 7＝第六版＋泡沫面向，`tests/test_heat.py` 鎖住；實作細節規劃文件第 12.7、13.9、14.14、15.11 節，泡沫見下一節）：項目、熱的方向、百分位視窗
@@ -2502,10 +2545,11 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   勞工部初領救濟金、勞工統計局（失業率、CPI、核心 CPI）、密西根大學、聯準會超額債券溢酬、Shiller 資料檔、WSTS、證交所 FMTQIK 1990～1998、主計總處季 GDP。
   每天：afterhours 每班與 `daily_fund.sh` 跑 `fetch_heat_us.py`（timeout 420；已到最近美股收盤日就不再打 Yahoo、週月季資料一天一次、LPPLS 有新週才算）；
   回補：`.ping/lab` 第一行 `usfill`。daily／afterhours 安裝 numpy xlrd openpyxl（失敗只告警）。U1 探針確認不收：芝加哥聯準銀行兩個指數的檔案停在 2026-04（改用費城聯準銀行 ADS）、FINRA 融資 403（改用 Z.1 家計證券融資）。
-- **頁面** `dashboard/x9mu.html`（一頁四個指數：預設 S&P 500 直接放在頁面，另外三個放 `<template>`；切換時複製 template、換 `window.HEAT_META`、
-  呼叫 `window.heatInit()`，用 AbortController 拿掉上一次掛在 document／window 的事件；網址 `#ix=ndx` 可直開）＋對照圖資料每個指數一檔
-  `dashboard/x9muh-{spx,ixic,ndx,sox}.json`（選到才下載；S&P 500 約 3.3MB、壓縮 735KB）。台股頁的「泡沫」卡與「泡沫事件」驗證表 2026-10-18 起搬到泡沫頁（見「泡沫頁」節），
-  對照圖預設只選前 5 條。三支 workflow 各兩行 `git add -f dashboard/x9mu.html`、各兩行 `git add -f dashboard/x9muh-*.json`（分開 add；本機不 commit，同 x9m.html）。
+- **頁面** `dashboard/x9mu.html`（一頁四個指數：頁面只放 S&P 500 的主畫面；細項面板與其他三個指數放 `dashboard/x9mup-{指數}.json`，點到才下載，
+  2026-10-24 起，見「市場頁」專段最後一條；切換時換上內容、換 `window.HEAT_META`、呼叫 `window.heatInit()`，用 AbortController 拿掉上一次掛在
+  document／window 的事件；網址 `#ix=ndx` 可直開）＋對照圖資料每個指數一檔 `dashboard/x9muh-{spx,ixic,ndx,sox}.json`（選到才下載；S&P 500 約 2.5MB、
+  壓縮 595KB）。台股頁的「泡沫」卡與「泡沫事件」驗證表 2026-10-18 起搬到泡沫頁（見「泡沫頁」節），對照圖預設只選前 5 條。三支 workflow 各兩行
+  `git add -f dashboard/x9mu.html`、各兩行 `git add -f dashboard/x9muh-*.json`、各兩行 `git add -f dashboard/x9mup-*.json`（分開 add；本機不 commit，同 x9m.html）。
 - **結果（2026-10-18，規劃文件第 16 節；只當參考）**：台美一致的只有三件事——基本面熱了之後較弱（台股、S&P 500、那斯達克）、美國貨幣基金 ÷ S&P 500
   熱了之後較強（只有 2015-12 起）、泡沫面向分數本身看不出。泡沫項目「熱了之後較容易大跌」只在 PSY（S&P 500 一年內 32% 對 16%、那斯達克 64% 對 33%、
   台股延伸樣本 71% 對 33%）、那斯達克兩年漲幅、費半的估值（兩年內）出現，多半兩年內就看不出；S&P 500 的 CAPE、巴菲特指標、Tobin's Q 反而是兩年內較少大跌
@@ -2870,6 +2914,19 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
 - **VER 2（2026-10-23，第四輪；`docs/lab_core70_plan.md` 第 11～12 節）**：使用者：「如果發現績效不好的話應該要像你現在的策略哪邊有問題哪邊可以優化 然後跟我討論後不斷修改」→ 把沒採用的想法逐一找原因、試改法（約 80 種，全部列在第 11 節），使用者選了：「看多」＝沒有兩個以上警訊（不變；要有看多訊號才拉高，三個市場都比一直抱著少賺——沒看多的日子市場平均還是在漲）；**美股多一個單獨的觸發條件「總經策略全部空手」**（這個市場有資料的全部總經策略、不看判定，那天收盤後都沒有部位 → 換現金；`core.macro_flat`／`macro_holding`）；**台股換現金後要警訊少於兩個連續 10 個交易日才買回**（`corespec.REENTRY`、`core.decide`）。正式數字：台股規則本身 1,819 → 1,979 萬、一年動 3.9 → 1.4 次、贏 13／21 年；照計畫 1,175 → 1,261 萬、最慘 26% → 23%；S&P 500 1,214 → 1,228 萬（更早期間 15,868 → 17,239 萬）；那斯達克 100 2,148 → 2,186 萬、最慘 62% → 60%（更早期間 1,595 → 1,673 萬）。**兩個參數是看過探索結果才挑的**（規格寫明）。不採用的：三成照總經策略進出、用落底策略提早買回（跌勢中段就出現）、警訊只賣大盤那份（2022 多賠）、飆股的停損停利與濾網（使用者另要求修正飆股，見第 13 節）。
 - **VER 3（2026-10-23）**：美股三成換成「美股強勢品質股」（`ussxspec` 的規則 QM；研究檔 `data/lab/ussx_qm.json` 判定那個計畫過了才換，
   沒過或版本不同就照舊放指數）。警訊、換現金、買回的規則都不變；有警訊時三成裡的股票和指數一起賣、買回時照這套規則當時拿著的股票買。細節見下面「美股三成」那一條。
+- **VER 4（2026-10-24；規劃第 16～20 節）**：使用者看過「沒有部位為什麼是放0050不是空手？」「我的飆股策略為什麼沒有被放進去」的回答後決定：空檔「改放現金」、飆股「放啊」、
+  「各半吧 然後你也不用堅持70%核心 你找到最優解就好」、配置頁的飆股名單「換成新飆股」、美股空位「也改放現金」。
+  ①**長抱比例照市場**（`corespec.CORE_OF`＝台股 20%、美股 0%）：第 18 節在算任何比例之前寫定的選法——每一段期間 100 萬不少於 70% 的版本、前後兩半都不少、最慘時跌不比 70% 深超過 10 個百分點，選過關裡最低的。
+  **頁面所有比例由 `corepage.core_w／sat_w／plan_title／sat_name／left_txt` 算，不寫死「七成／三成」**（標題「兩成長抱，八成機動」、美股「全部機動」；`tests/test_corepage.py`、`test_cfgpage.py` 守）。
+  ②**台股機動＝新飆股一半（飆股前瞻記錄的 R60 那本帳）＋★ 策略一半**，機動裡沒有部位的那一份放現金（不再放 0050）。回測 2019 年起（新飆股的淨值 `data/lab/sx_r60_curve.json`＝`scripts/run_sx_curve.py`
+  重跑 W7 的引擎，和 W7 的年化對不上就不寫檔）；★ 那一半＝財報驚喜 × 0.69＋利息（三條 ★ 平均只用到 59% 的位子）。
+  ③**美股機動＝全部美股強勢品質股**（ussxspec VER 5～6，見「美股三成」那一條）。
+  **股票水位＝實際股票占全部資金**（`corepage.stock_w`：長抱＋機動裡有股票的部分；空位是現金，所以不是計畫的 100%）；警訊那一句改成「不用換現金」。
+  正式結果（第 20 節；只當參考）：台股照計畫（2019-01～2026-08）100 萬 → 1,307 萬（一直抱著 611 萬）、最慘 30%（29%）、8／8 年贏；機動只放個股策略（2014-05 起）1,125 萬對 793 萬、20%（29%）；
+  規則本身（2006 起，機動放大盤）3,019 萬對 1,485 萬、27%（56%）。新飆股那本帳本身 2019 年起年化 43.3%、最慘 46%（同一段大盤 27.4%、28.6%）。
+  美股 S&P 500 計畫（2014 起，全部強勢品質股）2,033 萬（原本七成長抱＋三成 886 萬、一直抱著 515 萬）、最慘 34.0%（24.5%、33.8%）；規則本身（2000 起，全部指數）2,457 萬對 844 萬、33%（55%）。
+  **風險要一起看**：美股平常整個帳戶只有 8 檔股票、台股機動 80% 裡一半是新飆股（每檔約 5%）；新飆股的逐年規則照判定沒過、只有 7 年半而且大多是多頭；美股強勢品質股的規則是看過結果才挑的；
+  長抱比例越低，警訊錯的時候（賣早了）少賺越多。前瞻 `core_live.json` 2026-10-26 起從頭記（10/26 光復節補假，第一筆 10/27）。
 - **⚠ 寫規格時發現 `bt3.account` 兩期重疊時同一筆錢算兩次**：財報驚喜年報那一期（3/31 決定、抱 60 個交易日到 6 月底）和第一季那一期（5/15）
   每年重疊約 30 天，舊寫法一期接一期＝用 6 月底賣出的錢回頭在 5/16 買第一季名單。修正＝`bt3.engine`（子帳戶：新一期開盤時等比例賣掉還在持有的那一期、
   兩期各一半；先到期的錢隔天開盤等比例加進另一期；每一期自己的報酬與逐筆交易不變）。財報驚喜大型前 5 檔整段年化 49.5% → 30.4%、中型 12.2% → 5.1%，
@@ -2930,7 +2987,7 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
     **研究檔判定沒過或版本不同 → 那個計畫照舊放指數**（頁面寫是哪一條沒過）。
   · **上線（規劃第 13.3 節）**：起點 10/23，接手從 2010 年照做下來的持股。**每週六** `ussx_weekly.yml` 資料更新後，另外 checkout main 到 `mainrepo/`、
     `USSX_DIR` 指到資料分支的資料，跑 `run_ussx.py --qm-live` → `data/lab/ussx_qm_live.json`（每週名單前 20、這週買賣、週末持股、下週一開盤要賣要買、
-    淨值對 S&P 500 含息；**只增不改**，重跑不同另記 `diff`），只把這一支小檔 push 回 main。**每天**（`daily_fund.sh`、afterhours 每班）
+    淨值對 S&P 500 含息；**只增不改**，重跑不同另記 `diff`；2026-10-24 起另記 `names`＝手上、要買、名單前 20 的英文公司名），只把這一支小檔 push 回 main。**每天**（`daily_fund.sh`、afterhours 每班）
     `scripts/fetch_ussx_watch.py` 抓手上每一檔的 Yahoo 日線（還在交易中的那一天不收）→ `data/lab/ussx_qm_watch.json`：收盤跌破 50 日線＝下一個交易日開盤賣
     （只是提醒，帳以每週重跑為準；只認對得上最新一週紀錄的那一份）。一週還沒結束（資料停在週中）的名單不算數、不買（`ussxqm.week_done`）。
   · **頁面**：交易計畫卡 S&P 500、那斯達克 100 的三成改列美股強勢品質股（`corepage.qm_on`、`_qm_*`）：現在拿哪幾檔、各占全部資金多少、買進後漲跌、離 50 日線多遠；
@@ -2938,18 +2995,32 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
     另寫同一段時間三成也買指數的錢；細節多為什麼、上線後怎麼檢查（63／126／252 個交易日跟回測同長度的期間比，最差兩成標「比回測差」）、要注意的事
     （看過結果才挑、賺的集中在少數大飆股、拿掉賺最多的 8 檔剩 13.4%、複委託成本、存活偏誤、2008 沒有財報資料）。標「美股三成：新規則驗證中」，**頁面不說「前瞻」**。
     資料流：`sigpage.core_data()` 的 `qm`＝{R: 研究檔, L: 每週紀錄, W: 每天的檢查}；`core.record` 那天美股三成換了就記 `sat: ["qm"]`。
+  · **VER 4～6（2026-10-24；corespec 第 19～20 節）**：空位放現金（不付指數的成本）；美股計畫全部機動（corespec VER 4 核心 0%）。判定 ② 原本寫成跟「同樣核心 0%、機動買指數」比（634 萬、19.4%），
+    QM 多跌 14.6 點沒過——那不是使用者條件裡的「現在」；問使用者後改成跟**現在在用的計畫**比（VER 5，`QM_JUDGE_BASE`＝VER 3 的設定：886 萬、24.5%，多跌 9.5 點過）。
+    接著 ③ 複委託成本時多跌 10.5 點（超過上限 0.5 點）沒過，再問使用者，決定**美股用海外券商**（VER 6，`QM_NEED_ALT=False`：複委託照算、頁面寫出來）。兩次都是看過結果才改，規劃第 20 節照實記。
+    研究檔多 `plans[…].base`（原本在用的計畫）；`cur`＝機動也買指數（只描述）。配置頁成績下面多一行「原本的計畫…同一段：100 萬變…」，那斯達克 100 那一行寫「警訊改看那斯達克 100」。
   · **推播**：`valog.uqm_state`——06:35 推播多一行「美股三成：10/26（一）開盤賣 INSW、買 PAYC。」（有要做的才有）；事件 `uqm`：每週紀錄停在比該有的還早的一週
     （美股週五收盤＋36 小時後算該有）、第一次滿 63／126／252 個交易日、多一筆重跑差異。**不會自動換回指數**，要不要換回由使用者決定。
+  · **一次性收入修法研究（2026-10-24；`arm/lab/omfixspec.py` VER 2、`arm/lab/ussxomfix.py`、`run_ussx.py --omfix`、規劃第 14 節）**：
+    CareDx 賣部門的利得算進營業利益 → 單季營益率 85.8% 進了名單、8/3 買進。SEC 的「出售利得」項目抓不到它（`scripts/probe_secgain.py`），
+    只用季資料。候選 A 暴增要確認（VER 1 建議）會誤擋真的轉盈（Moderna 2021）；**D＝A＋「營業利益增加的比營收增加的多」**（VER 2，看過 VER 1 才加）
+    只擋 73 列、11 檔，三成本身 23.22%（現行 23.09%）、兩個計畫判定都過 → 建議 D。**研究期間 ussxspec 不動**（網頁、每週紀錄都比對它的 VER）。
+    **使用者選 D → ussxspec VER 7（同日上線）**：`ussxqm.om_fix_block`＋`QM_OM_FIX`，`context` 一律填 `QM_EXTRA`（om1、oxr；
+    其他 om4／omm 只有研究 `extra=` 才填）；重算 ussx_qm.json（23.22%、2,034 萬，和研究的 D 相同）、每週紀錄從頭記（持股少 CDNA、多 FTNT）。
+    **重現檢查只算到 `QM_REF_END`（2026-10-22）**：原本算到資料最後一天，多一天資料就超過容許差 → `switch` 變 False、網頁把美股退回放指數；
+    以後重算 ussx_qm.json 不會再踩。近四季 ROE 也會被一次性收入墊高——還沒處理。
 - **修正飆股（W7，2026-10-23；使用者：「修正飆股策略吧」）**：規格 `arm/lab/superfixspec.py` VER 1（`tests/test_superfixspec.py` 鎖住）、
   計畫與結果 `tw-superstock-lab/reports/W7_plan.md`／`W7_results.md`／`W7_summary.md`、程式 `tw-superstock-lab/scripts/run_w7.py`（約 5 分鐘）。
   只換目標（60 天後的收盤還在 +20%），**每一年只用以前已經走完的資料重新找規則**（2019～2026），現行目標用同一套流程當對照。
   判定沒過（前半輸現行目標、門檻改 +15% 就變差）；但不偷看的逐年做法新舊目標 2019 年以來都比一般股票與大盤賺得多（回落近一半）。
   **頁面與交易計畫都沒改**；使用者選「先記錄觀察」（下一條）。要再做飆股研究，沿用這支逐年流程，不要再用固定的 2014–2019 找、2020–2022 挑。
 - **飆股前瞻記錄（2026-10-23；使用者看完 W7 選「先記錄觀察」）**：規格 `arm/lab/sxlivespec.py` VER 1（記下任何一週之前寫定、`tests/test_sxlivespec.py` 鎖住）、計畫 `docs/lab_core70_plan.md` 第 14 節。**第一筆是 10/30**（START 10/23 當天臨時颱風休市，10/19 那一週的最後交易日 10/22 早於 START，照「START 起每週最後一個交易日」不記）。三本帳：新飆股（R60）與舊目標（A）每年只用以前的資料重找規則、頁面飆股（R1）跟著頁面；每週最後一個交易日收盤記訊號（**只增不改**，`add_week`），照 W7 引擎同一套買賣（`arm/lab/sxlive.py` 的 `Book`，`tests/test_sxlive.py` 用同一份價格對照 tw-superstock-lab 引擎：每天的資產、每一筆交易都相同），價格＝頁面同一份官方收盤×除權息還原。
-  · **不上頁面、不放錢**：`analyze.run` 在 `company.market_table(..., keep=)` 之後呼叫 `sxlive.update`（沿用同一份物件、約 2 秒），只有 CI 寫回 `data/lab/sxlive.json`（每週、每天、每筆各一行）；建頁的程式不得讀它（測試守）。
+  · **紀錄不上頁面**：`analyze.run` 在 `company.market_table(..., keep=)` 之後呼叫 `sxlive.update`（沿用同一份物件、約 2 秒），只有 CI 寫回 `data/lab/sxlive.json`（每週、每天、每筆各一行）；建頁的程式不得讀它（測試守）。
+  · **VER 2（2026-10-24）：新飆股（R60）放錢、上配置頁**——使用者：「各半吧」「換成新飆股」＝台股機動的一半（corespec VER 4）。`sxlive.plan_state` 算那本帳現在的持股（買進日、到期日、下一個交易日開盤要賣的）、下一個交易日開盤要買的（最新一週的名單依 RS、現金夠才買；Book 在最後一天不下單，所以由當週名單列出）、最新一週名單（前 20）、週中試算、下一次看名單的日子 → `sxlive.LAST["plan"]` → `page.build` 的 `core.stk_from_adv(..., boom=)`；**page.py 只准 `from . import sxlive` 與 `sxlive.LAST.get("plan")`**，其他頁面模組一律不准出現 sxlive（`tests/test_sxlive.py`）。START 10/23 颱風休市：起算日＝之後第一個交易日（`start_index`，10/26 光復節補假所以是 10/27）；資料停在 START 之前時也照算下一次看名單的日子（10/30）。A、R1 兩本照舊只記；一年時「三成改各半」的提議不再適用（已經放進去）。
+    2026-10-24 起每週紀錄另有 `why`（新飆股每一檔符合哪幾條規則與當時的數字，配置頁寫「符合：…」；見「配置頁 v2」那一節第 5 步）。
   · **年度規則**：2026＝`data/lab/sxlive_rules.json`（W7 的 2026 那一折，測試逐字比對；`scripts/run_sxlive_rules.py --check 2026` 重找逐字相同）。長歷史股價 v3px 平常不更新（停在 10/14），所以**每年 1 月** lab_opt.yml 先補 v3px（v3data.run，最多 40 分鐘）、涵蓋到去年最後一個交易日才找；1/20 還沒有今年的規則 → pytest 紅（dispatch lab_opt.yml）。還沒找到的那幾週新飆股、舊目標先不記，找到後補記、標 late。
   · **出場法 W8（同日，使用者問「沒滿足出場條件就一直持有吧？」）**：`arm/lab/sxexitspec.py` VER 1、`tw-superstock-lab/reports/W8_*`。新目標改成抱到出場條件（跌破 50／20 日線、從買進後最高收盤回落 20／30%、書上 8% 停損＋50 日線、長線式）六種都比固定 60 天差很多（43.3% 對最好的 20.5%）→ **前瞻記錄維持固定 60 天，別再拿這幾種出場去改**。
-  · **提醒**：valog 事件 `sxl`——第一次到半年（2027-04-23）、一年（2027-10-22）與「今年規則還沒找」，隨 06:35 推播第二行。回報照第 14 節的清單；半年只回報，一年照事前寫好的門檻提議（新飆股同時贏現行三成與大盤、最慘跌不深於現行三成 10 個百分點 → 三成改各半），使用者決定。
+  · **提醒**：valog 事件 `sxl`——第一次到半年（2027-04-23）、一年（2027-10-22）與「今年規則還沒找」，隨 06:35 推播第二行。回報照第 14 節的清單（半年、一年都只回報；VER 2 已經放錢，提議不再適用）。另外 06:35 推播多一行「新飆股：…開盤賣…、買…」（`valog.boom_state`／`boom_line`，機動放現金中加註「買的先不買」）。
 
 ## 「訊號總覽」與實務判定（2026-10-19；規劃、規格、使用者決定、結果 `docs/lab_signal_plan.md`）
 
@@ -3280,16 +3351,67 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   · 配置（頂欄「配置」）＝台股｜美股｜策略｜個股；**個股是工具分頁**，裡面再切 個股｜籌碼｜指數（`cfgpage.toolSeg`，記住上次看哪一個）。
     沒有參數＝台股；舊的 `#s=`／`#co=` 個股卡連結先到個股表（卡片的 ‹ › 換檔要有表）。
   · 研究紀錄＝個股策略（這一期｜規則與成績）、總經策略（同）、後台、名詞；第二排換成「‹ 研究紀錄｜個股策略｜總經策略｜後台｜名詞」，
-    「‹ 研究紀錄」連 x9r.html。舊網址 `#v=mac&m=市場&x=策略`、`?v=opp` 等照樣到得了（xstratpage.HOME 不用改）；新的 `?v=分頁&at=段落`、`?v=bo#gl`（名詞）。
+    「‹ 研究紀錄」連 x9r.html。舊網址 `#v=mac&m=市場&x=策略`、`?v=opp` 等照樣到得了（xstratpage.HOME 不用改）；新的 `?v=分頁&at=段落`、`?v=bo#gl`（名詞）、
+    `#q`（到個股工具並打開查公司，別頁頂欄小字「查公司」連過來；第 4 段）。
   · 頁首的目的句（`.purp`）拿掉（第 8 節第 1 條）。
 - **配置的台股、美股頁**（`arm/lab/cfgpage.py`，CSS class 一律 cf／b 開頭、JS 函式 cf／vCfg 開頭；資料 `D.cfg`）：每頁三塊——
-  ①「時程與水位」一張卡：四格（待買進｜持有中｜股票水位｜警訊）→ 70／30 長條（長抱 70%＋機動三成的分配；手機名稱寫在長條下一行）
+  ①「時程與水位」一張卡：四格（待買進｜持有中｜股票水位＝實際股票占全部資金〔`corepage.stock_w`；空位是現金〕｜警訊）→ 長抱／機動長條（比例照 corespec 的 core_of，長抱 0% 只畫機動；手機名稱寫在長條下一行）
   → 警訊一行（每個警訊一條小長條與分數）→ 規則一句 → 成績一行（100 萬變多少、最慘跌、年化，括號＝一直抱著；美股多一行 QQQ 的版本）
   → 細節（收起：corepage 的 expect_html＋details_html）→ 要做的事（下一個交易日、使用中的策略；那天沒事就寫「下一件是 …」；
   觀察中的策略有訊號也列、標「不在配置裡」）→ 時間軸（`stockviz.tlDraw(cfQ(mk))`：全部｜接下來 5 週、使用中｜＋觀察中）；
-  ②持股細節：標的｜比重（占全部資金、合計 100%）｜來源｜現況，沒部位的那一份寫在 0050／SPY 那一列；
+  ②持股細節：標的｜比重（占全部資金、合計 100%）｜來源｜現況，沒部位的那一份寫成「現金」（VER 4 起；之前寫在 0050／SPY 那一列）；
+  **美股每一列＝公司名＋代號、下一行本業**（2026-10-24 使用者：「美股那些公司誰知道你是什麼公司…台股不都有列嗎？比照著做」；
+  `cfgpage._usn`＝`corepage.us_label`：簡介庫依代號查，沒有簡介用每週紀錄的英文名 `names`〔`run_ussx.py --qm-live` 寫，
+  `ussxdata.names_for`：篩選器檔沒有名稱欄就重抓一次篩選器〕，再沒有＝只寫代號），表下多一張「有空位時依序買：名單前 5 名（手上沒有的）」
+  （`_qm_cands`，數量＝`fund_intro.US_QM_SHOW`，缺簡介檢查涵蓋同一批）；「要做的事」、時間軸、研究紀錄的計畫卡也寫公司名（`us_name`）；
+  **台股多一段「新飆股」**（`cfgpage.boom_html`，段 `cf-tw-sx`；2026-10-24 使用者先要「飆股的選股名單要放進去啊」〔PR #360 放了到買點／快到買點名單〕，同日改成「換成新飆股」）：
+  那本帳一句說明（每檔約占全部資金 5%、抱 60 個交易日、2019 年起回測年化與最慘跌）、最新一週的名單（前 20，標「M/D 開盤買／現金不夠／已經有」）、週中試算、下一份名單的日子；
+  持股在持股細節、時間軸多一列「新飆股」（`_boom_lane`，提示框 JS 的 boom 分支）；原本的到買點／快到買點名單留在研究紀錄（JS `cfSx` 已拿掉）；
   ③一行「這個市場的策略：使用中 N・觀察中 N・候選 N・淘汰 N」＋看全部策略。
-  **美股整合成一個計畫**（長抱 70% S&P 500＋三成美股強勢品質股，QM 判定過才放 QM，否則照舊放指數）；那斯達克 100 的版本只在成績下面一行。
+  **美股整合成一個計畫**（VER 4：長抱 0%、全部機動＝美股強勢品質股，QM 判定過才放 QM，否則全部 S&P 500；空位現金）；那斯達克 100 的版本只在成績下面一行。
+- **配置頁 v2（2026-10-24；規劃、示意圖、使用者決定 `docs/lab_cfg_v2_plan.md`）**：使用者：「我完全看不懂你的配置 持股只剩40%是為什麼…
+  現金就現金搞那麼複雜幹嘛…你要我持有的股票我根本沒辦法點進去看…配置比例在手機版也跑版 字都沒出來」。上面那一條（三塊）是 v1；
+  **台股（第 1 步）、美股（第 2 步）都已換成 v2**（舊的三塊版面、四格、計畫比例長條、「＋觀察中」時間軸都已拿掉）。台股由上到下五段：
+  ① **現在的錢**（`tw_money`，段 `cf-tw`）：股票、現金兩個數字；**實際的錢**的長條（長抱＋每條策略手上的股票＋現金斜線，不是計畫的比例）、
+  長條下面一列一列寫名字和比例（手機也看得到；舊版 `font-size:0` 把字藏起來的規則已拿掉）、一句話講現金為什麼多（`_cash_why`：每一組還沒買滿的原因，依日期排）
+  和下一次排定的買進之後股票約多少（那天以前有賣出就不估）；分類色 `--cfc1～8`（dataviz 參考調色盤，深色另一組）在 page.py 的 :root。
+  ② **持股**（`tw_groups`／`tw_hold`，段 `cf-tw-h`）：依策略分組（長抱、新飆股、★ 策略照個股策略頁的順序；組頭＝分到多少、現在用到多少、策略頁那一句規則），
+  **每一檔整列可以點**（`cfgpage._ck`＝`data-c`＋`data-co`：籌碼雷達範圍內由 page.py 的 data-c 開個股卡、從最上面的「配置」段開始，‹ › 換同一段的其他股票；範圍外 page.py 不處理，交給 copage 的 data-co 開公司卡。**只寫 data-co 的話範圍內的也會捲到公司分析、跳過配置段**——第一版就是這樣），寫買進價、現價、哪天賣或停損、為什麼（advice pick 的 `why`）；
+  待買進列在同一組、標「待買進」；**現金只有最下面一列**。
+  ③ **接下來照規則的買賣**（`tw_sched`，段 `cf-tw-s`）：45 天內、依日期，**只列配置裡的策略**（使用者決定：觀察中策略的訊號不放配置頁）；股票名可以點；
+  時間軸收在「看時間軸」（打開才畫、沒有「＋觀察中」）。④ **警訊**（`warn_html`，段 `cf-tw-w`）：每一個寫「現在多少、到多少才算」＋一句規則。
+  ⑤ **過去照做**（段 `cf-tw-p`）＋細節收起；新飆股名單（`cf-tw-sx`，名字可以點）。
+  · **美股（第 2 步；`us_state`／`us_money`／`us_hold`／`us_sched`，段 `cf-us`、`cf-us-h`、`cf-us-s`、`cf-us-w`、`cf-us-p`）**：同樣五段。
+    `us_state` 把每週紀錄（週六）和每天的 50 日線檢查（W）合起來：W 比較新時漲跌與比重照 W 的收盤更新；賣出日已過的算現金（`gone`）；
+    買進日已過的算持有（新價格要等下一份每週紀錄）。現在的錢那一句寫空的位子，與第一次排定的買賣之後股票約多少。
+    **每一檔整列點了開 Yahoo Finance**（`_yf`，`BRK.B` 寫成 `BRK-B`；第 4 步美股個股卡做好前的過渡）；每列＝公司名＋代號、本業（`.cfri`）、
+    哪天買・離 50 日線多遠（或哪天開盤賣）、為什麼（這一週名單第幾名、漲勢勝過幾 % 的美股）；名單前 5 名（手上沒有的）也可以點。
+    接下來的買賣：要賣的、要買的、「每天 收盤 檢查」（放在第一天後面，寫最接近 50 日線的那一檔）、下一份名單（週五收盤）、有空位的話下一個交易日開盤買。
+    判定沒過＝全部 S&P 500 ETF 一列（點了開 SPY）。警訊名稱「總經策略」（「全部空手」寫在後面的「才算」，名稱太長會折成兩行）。
+  · 個股卡、公司卡最上面的「配置」段（page.py `stCardSec`）多寫占全部資金多少與為什麼；**新飆股**不在 ADV.picks，靠 `D.cfg.tw.pos`（`pos_map`）補進 `PKU`
+    （個股表「配置裡的」篩選、策略標籤也看得到）；公司卡（`copage.renderCo`）也放這一段。財報驚喜的理由改白話（v3live：「成長幅度是過去兩年平常起伏的 X 倍」）。
+  · 使用者其他決定：美股做完整個股卡（第 3、4 步：每週選股數字、每天一年走勢與分析師資料）；空著的錢維持現金（10/24 的決定不變）。
+  · **美股個股卡的資料（第 3 步，2026-10-24；規劃第 4 節「實作」）**：每週紀錄 `now` 多 `met`（這一週手上、要買、名單前 20 名的五個條件，順序同 `ussxqm.KEYS`）與 `met0`（手上的股票**買進那一週**的五個條件＝為什麼選它；`met` 是現在的樣子，強度掉到 80 以下也照樣拿著）；`ussx_weekly.yml` dispatch 勾 `live_only`＝只重跑每週紀錄。每天 `fetch_ussx_watch.py` 在 50 日線檢查之後跑 `arm/lab/uscard.py` → `data/lab/ussx_card.json`（`fund_intro.qm_codes` 那一批〔13 檔〕的近一年收盤、50 日線〔和跌破檢查同一條〕、Yahoo 分析師預估〔`fcst.parse_yahoo`〕、目標價、下次財報日〔calendarEvents；**已經過去的日期＝上次財報**，Yahoo 公布後才換，例 VLO 10/24 還寫 10/22〕；同一個美股收盤只抓一次〔紐約 16:20 以後、NYSE 休市表〕、日線和跌破檢查共用同一次抓取〔`uscard.cached`〕、抓不到沿用舊的）。步驟時間上限 180 → 300 秒。CI 探針＝`.ping/lab` 第一行 `uscard`（10/24 首輪：13 檔日線與分析師全部抓到、0.5 秒；跌破檢查結果和原本相同）。
+  · **美股個股卡（第 4 步，2026-10-24；規劃第 3.3 節）** `arm/lab/uscardpage.py`：配置頁美股的持股列、名單前 5 名、接下來的買賣裡的股票名
+    都開卡片（`href="#us=代號" data-us="代號"`；`cfgpage._ua`，卡片沒有那一檔才開 Yahoo），用同一個右側面板 `#dv`（電腦右側、手機全螢幕），
+    ‹ › 與左右鍵照配置頁的順序（持有中、待買進、這週賣掉的、名單前 5 名；`UCD.o`），Esc／× 關掉回到原頁，直接打開 `x9.html#us=代號` 落在配置・美股。
+    五段：**配置**（持有中＝哪天買、買進價、現在、占全部資金〔`us_state`，和配置頁那一列一樣〕、跌破 50 日線就賣或已排定哪天開盤賣；待買進；這週賣掉了；名單上手上沒有的）、
+    **為什麼選它**（五個條件的數字與要多少，拿著的股票兩欄＝買進那一週 `met0`＋這一週 `met`；表格裡市值寫「1,207 億」，單位寫在「要 20 億美元以上」，手機 320px 才放得下）、
+    **走勢**（近一年收盤、50 日線、買進 ▲／賣出 ▼，游標看每天的數字）、**分析師**（今年／明年 EPS 預估與 90 天前、營收預估、目標價〔中位數，沒有才用平均〕、評等、
+    下次財報日；已經過去的日期寫「上次財報」、Yahoo 估的日期另外註明）、**公司**（簡介、Yahoo Finance 與 SEC 申報文件連結）。
+    配置、為什麼選它、公司三段在 Python 組好（`D.cfg.us.uc.s[代號]` 的 st／why／co），走勢與分析師在瀏覽器畫（JS 函式一律 `uc` 開頭）；
+    卡片資料＝`sigpage.core_data` 的 `qm["C"]`（`uscard.load()`）。頁面 JS 插在 cfgpage 後面、copage 前面（要用 `CFG`）；
+    `page.closeStock`／`stepStock`／`urlSet`／初始路由都認 `#us=`。測試：`tests/test_uscardpage.py`（資料、配置頁連結、分析師文字用 node 跑、頁面接線）、
+    `tests/test_old_urls.py::test_us_card_clicks_and_direct_link`（點擊、換檔、Esc、直接打開、手機寬度）、`tests/test_plain.py`（每一檔卡片的用字）。
+    CareDx（CDNA）的營益率 85.8% 是 2026-06-30 賣掉實驗室產品部門的一次性利得算進營業利益——10/24 研究後使用者選 D、ussxspec VER 7 上線
+    （見「美股三成」那一條的 VER 7）；一次性收入也會撐高近四季 ROE，這一點還沒處理。
+  · **新飆股名單寫符合哪一條（第 5 步，2026-10-24；規劃第 3.1 節⑥「實作」）**：每週記名單時同一筆另記 `why`
+    （`data/lab/sxlive.json` 那一週：`{"R60": {代號: {"k": [第幾條規則], "v": {條件: 當時的數字}}}}`，前 60 檔，`sxlive.WHY_MAX`；
+    只記新飆股那一本、只增不改；晚找到規則補記的週也一起記）。頁面寫第一條符合的規則＋每個條件的數字和要多少
+    （`superx.cond_value_text`／`sxlive.why_text`：「符合：近 20 日漲停 3 次、20 日均成交值 107.5 億（要 6.5 億以上）、月營收創歷史新高（另外也符合 2 條）」），
+    放在名單每一列、週中試算（滑過名字）、持股與待買進的「為什麼」（持股另寫「10/30 那週名單第 N 名」）。沒有 `why` 的週不寫。
+    10/30 收盤第一份名單才看得到——`tests/test_plain.py` 建頁時名單還沒出來，所以 `tests/test_sxlive.py::test_why_text_uses_plain_words`
+    逐一條件檢查用字；示意頁用 10/22 收盤試算 48 檔驗版。
 - **策略頁＝全部策略一張表**（`arm/lab/board.py`＋`config/strategy_board.json`）：狀態只有四種（`board.STATUS`）——使用中（在配置裡）／
   觀察中（回測過、沒進配置：個股策略 ●、總經策略 ★／●、期貨加碼、紙上記錄的飆股）／候選（第 5 段才有）／淘汰（一列一句原因）。
   自動列讀研究檔的判定（advice、xsadvice、core、ussxqm、tilt），**不重算回測**；沒有研究檔判定的列（試過沒用的做法、紙上記錄）與
@@ -3339,7 +3461,20 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   `x9b.html`（`bubpage.REDIRECT`：`#tw`… → `#at=bub`；`#lv／ind／indv／types／mth` → `x9r.html#bub-…`）。頂欄拿掉這兩格。
 - **研究紀錄頁**放：訊號研究（`sigpage.research_body`＝研究結論、完整研究表、全部指標〔含個股訊號與策略；籌碼頁 `sjLink` 連 `x9r.html#s=stk:sig:…`〕、名詞與判定方式，
   非 emb 模式的同一支 JS）＋泡沫研究（`bubpage.research_body／research_data`）。`research_page.render(SV, BV)`：不給就讀 `sigpage.LAST`／`bubpage.view()`。
-- 大小：x9m.html 1.56MB（壓縮 285KB）、x9mu.html 4.04MB（壓縮 618KB）；可見文字台股 2,147 字、美股 1,893 字（手機）。美股頁體積第 6 段處理。
+- 大小：x9m.html 1.56MB（壓縮 285KB）；可見文字台股 2,147 字、美股 1,893 字（手機）。美股頁 4.04MB（壓縮 618KB）是第 6 段處理的（下一條）。
+- **美股頁點到才下載（IA v5 第 6 段，2026-10-24；`docs/lab_ia_v5_plan.md` 第 25 節）**：x9mu.html 3.97MB（壓縮 619KB）降到約 1.07MB（壓縮 223KB），
+  第一次打開（頁面＋S&P 500 對照圖資料）手機下載 1.21MB 降到約 0.82MB（壓縮後）。頁面只放 S&P 500 的主畫面與全部指標的 S&P 500＋美股產業列；
+  每個指數一個 `x9mup-{指數}.json`（`heatpage_us.assemble`）＝細項面板 `tpl`（S&P 500 的約 31KB 壓縮）＋其他三個指數的整份內容 `main` 與
+  全部指標的列 `sg`（各約 130KB 壓縮）。
+  · 切換指數（`SWITCH_JS`）：下載那個指數的檔，市場列旁邊寫「載入中…」、內容變淡（`aria-busy`），換上後重跑 heatInit／sgInit／bubDraw；載不到寫「載入失敗，請重新整理頁面」。
+  · 細項面板：S&P 500 第一次打開面板（面向分數、項目名稱、今天的訊號、「之後怎麼走？」、`#o=scen`）才下載 `x9mup-spx.json`，
+    面板先寫「載入中…」再換上（`heatviz.openD` 的 lazy、`window.heatPanels`）；對照圖選多條線時情境個數也等下載完才寫（`heatpage.scenHint`）。
+  · 全部指標：`#sgd` 只放頁面那個指數＋美股產業；指標用列的位置對到列（`inds` 第 6 欄），`heatpage_us.split_sgd` 拆的時候兩邊各自重新編號、
+    `sgAdd` 併回去時把位置往後挪（對不起來就整份留在頁面）。**sigpage 改 #sgd 的格式時（尤其新增依市場分的欄位），要一起改 split_sgd 與 sgAdd**。
+  · 網址指到別的指數（`#ix=ndx`）：`window.__heatWait` 讓頁面程式先不畫 S&P 500（省下它 595KB 的對照圖資料），換好內容才初始化；
+    heatpage、sigpage 的 JS 最後一行都看這個旗標（台股頁、研究紀錄頁沒有這個旗標，照常初始化）。
+  · 測試：`tests/test_heatpage_us.py`（分檔、拆列與併回、初始化順序）、`tests/test_plain.py`（美股每個指數先 `window.heatPanels()` 再掃面板、
+    要有自己指數的列）、`tests/test_old_urls.py`。
 - 測試：`tests/test_sigpage.py`（block、轉址、每個市場一個清單檔）、`tests/test_bubpage.py`（市場頁那一塊、研究紀錄的內容、轉址 node 實跑）、
   `tests/test_research_page.py`（放進來的研究、景氣入口）、`tests/test_heatviz.py`／`test_heatpage*.py`（四塊順序、研究畫面列、跳段）。
 
@@ -3362,6 +3497,78 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
 - **測試 `tests/test_plain.py`**：用真的資料建頁（約 3 分鐘），無頭瀏覽器打開所有收起的段落、每一個右側面板與指標面板（台股每一個、美股每 3 個），
   讀畫面上的字掃上面這些詞。CI 不跑 pytest——**改主頁面的字之後自己跑這支**；JS 裡組出來的字也掃得到（看的是畫面，不是原始碼）。
   第一次跑就抓到泡沫訊號定義裡的「判定」（舊的掃描只抽三分之一的列，漏掉）——別為了快把台股改成抽樣。
+
+## 「導覽與入口」（2026-10-23 IA v5 第 4 段；`docs/lab_ia_v5_plan.md` 第 2、10、22 節）
+
+照核准過的示意圖（第 18 節）：**頂欄只剩「市場｜配置」兩格**，右邊小字「研究紀錄・名詞・查公司」，再來是深淺色鈕與返回主頁。
+- **頂欄**（`arm/lab/appnav.py`：`TABS`、`bar(page, cur, search)`、`links()`）：市場＝台股 x9m.html（美股頁 `cur="x9mu.html"`）、配置＝x9.html；
+  每格帶 `data-k`（mkt／cfg）；研究紀錄頁（`bar("r")`）兩格都不亮、小字「研究紀錄」標 `aria-current`。主分頁不放研究紀錄、泡沫、訊號總覽、策略。
+  原本頂欄的「資料到…」拿掉：市場頁的面向標題有日期；配置頁的資料日（`page.asof_line` → `D.asl`）放在個股工具那一列（`cfgpage.toolSeg`）。
+- **名詞**：市場頁＝`x9r.html#mth`（名詞與判定方式）；配置頁＝頁內名詞面板（`.glk` → `openGl()`）；研究紀錄頁＝這頁的「名詞」段（兩份名詞都列）。
+- **查公司**：配置頁＝點小字打開搜尋框（`copage.SEARCH_HTML` 放在小字那一組裡、`id="cos" hidden`；`.cos` 貼齊頂欄右邊，手機寬度＝頂欄寬、
+  輸入框 16px 免得 iPhone 點進去整頁放大；Esc 或點別處關掉）；其他頁連 `x9.html#q`（到個股工具並打開搜尋框）。
+- **兩格各記住上次看到哪裡**（`appnav.NAV_HEAD`，localStorage `labLast`）：市場格記 `x9m.html`／`x9mu.html#ix=指數`（美股頁 SWITCH_JS 換指數時記），
+  配置格記 `x9.html`／`x9.html?v=us|strat|stk|chip|idx`（`page.urlSet`，研究紀錄身分不記）。畫面出來後沒亮的那一格改連到上次位置、
+  亮的那一格紀錄不是這一頁就記成這一頁；只收這幾種寫法（正規式），讀寫失敗就用預設（台股、配置台股）。
+  x9.html 的「配置」格點了是頁內切換（`$$('.apptab a[data-k="cfg"]')`，研究紀錄身分時讀它的 href 切到上次的配置分頁）。
+- **手機**：640px 以下深淺色鈕只留圖示、返回主頁寫「主頁」（`appnav.BACK` 的 `.bk1`）；360px 以上一列放得下；359px 以下小字換到第二列靠右。
+- **舊網址**（第 10 節第 4 段驗收「六個舊網址都轉得到」）：改版前頂欄六格＋大神策略頁——x9m.html、x9mu.html（同一頁，市場）、x9b.html（市場頁最下面的泡沫；
+  `#tw`／`#ndx` 那個市場、`#ind`… 研究紀錄）、x9o.html（市場頁；`#s=`／`#i=` 那個市場的指標面板、`#r=`／`#p=` 研究紀錄）、x9.html#v=mac（舊「策略」＝研究紀錄・總經策略）、
+  x9.html（舊「個股」＝配置；個股在工具分頁）、x9x.html（總經策略）；`#s=代號`、`#co=代號`、`#gl`、`?v=opp`、`?v=bo&at=…`、`#v=compass` 照舊。
+  `tests/test_old_urls.py` 用無頭瀏覽器逐一打開（24 個網址），另測頂欄記憶與手機寬度 320～414px。
+- **整站建頁的測試夾具** `tests/conftest.py` 的 `labsite`（session scope：照每天建頁的順序建配置、市場、轉址、研究紀錄頁，整個測試只建一次約 3 分鐘；
+  `test_plain.py`、`test_old_urls.py` 共用）。CI 不跑 pytest——**改頂欄、網址、轉址之後自己跑這兩支**。
+- 主頁頁尾的「·」照舊連 x9m.html（市場・台股）；tests/test_lab.py 守入口只在頁尾。
+- **配置頁要載入 corepage 的樣式**（`page.render` 的 CSS 有 `corepage.CSS`；「細節」放的是 corepage 的圖表與表格）——第 1 段漏了，
+  打開細節時圖是整片黑塊、兩張圖一起出現、表把整頁撐成 1,213px 寬，到第 4 段量手機寬度才發現。**把別的模組的 HTML 搬進一頁時，樣式要一起帶**；
+  `tests/test_old_urls.py` 會在手機寬度把收起來的段落全部打開，檢查不左右捲、圖有樣式。
+- **排程搬家（第 10 節第 4 段：「Routine 的分支要有新程式」）**：push 觸發的 daily.yml 用「被推分支」上的 workflow 檔（見「全部更新」步驟 9⑦），
+  所以要看排程綁定會話的分支有沒有新程式。2026-10-23 查：五個復華排程都綁在 10/16 開的視窗（分支 `claude/exciting-cerf-isj9q7`），
+  它從 10/17 起**每天 06:36 先把 origin/main 合併進分支**才寫新聞（`git log --first-parent` 每天一筆 merge main），10/24 那班已含第 1～3 段；
+  第 4 段也沒有改 workflow 的 `git add` 清單。所以這次不必搬家。哪天它的分支停止合併 main（first-parent 歷史上沒有 merge main），
+  新加進 workflow 的檔就不會被那一班 commit，那時再做「排程搬家」（並重設 `/model`）。
+
+## 「新策略候選」（2026-10-24 IA v5 第 5 段；框架規格 `arm/lab/candspec.py` VER 2、規劃 `docs/lab_ia_v5_plan.md` 第 6、24 節）
+
+使用者（第 13 節 Q4 選 A）：每週找新的策略，先寫規則與程式再回測，配置頁策略表「候選」分組列出，使用者在對話回「試用／納入／不納入」。
+每週怎麼找、怎麼推、怎麼等結果見上面「指令：策略探勘週報」；這一段寫機制與踩過的坑。
+- **一條候選＝規格一筆＋程式一支**：`config/strategy_candidates.json` 的 `items`（欄位 `candspec.FIELDS`／`PROGRAM`／`NEED_BY`）＋
+  `arm/lab/cands/c###.py`（範本與 `Fin` 在 `arm/lab/cands/__init__.py`；程式的 sha256 寫在規格）。**進 main 之後一個字都不能改**：
+  要改規則或參數＝新的編號、`prev` 指到舊的。資料不夠＝只寫規格＋`need`（「需要資料：…」），不寫程式、不回測。
+- **三種引擎，判定和頁面上同一類的策略一樣**（`arm/lab/candrun.py`）：
+  · 指數型（tw、spx、ixic、ndx、sox；trade／dip／alloc）＝總經策略的 xstrat：程式註冊成 `xstrat.PLUGINS["cand_編號"]`
+    （`Ctx.trades／pos／dip_raw` 先查外掛；沒有外掛時原本的策略結果逐位相同），判定照 xstratspec VER 6，一律 ETF 成本、隔天收盤。
+  · 台股個股（per；b＝L 大型、M 中型）＝回測方法 v3 的長歷史面板 `bt3d.Panel`＋`bt3.account`；程式回傳每個形成日的分數（`rows`），
+    財報與月營收一律經過 `cands.Fin`（`fs_q`＝法定期限已過的最新一季、`rev_ym`＝次月 10 日以後才能用）；
+    判定＝報酬型態（全部、後一半、參數鄰近 ≥ 2/3），另列帳戶年化對加權報酬指數與同一批股票等權。
+  · 美股個股（book）＝資料分支的 `ussxqm.context`＋`ussxbook.run`（閒置的錢放現金、海外券商成本；ex 寫檔數與出場）；
+    判定＝年化贏 S&P 500 含息（全部、後一半、參數鄰近 ≥ 2/3）。2010 起照做、2014 起算成績。
+  · 頁面說法：過關／部分過關／沒過／次數不夠；另有需要資料、沒算出來、用到未來的資料（`candspec.VERDICT`）。
+- **用到未來的資料：兩道檢查**（指數型 `peek_index`、台股個股 `peek_tw`；美股面板太大不做）：①資料截在 70%、85%、97% 重算，截點以前的部位／
+  交易／訊號／名單要和完整資料一模一樣；②VER 2：檢查日（那一天、之後最近的月底與週末；台股＝最近的形成日）以後的價格、量、市值乘上亂數，
+  檢查日以前就決定好的要一模一樣。**只做①抓不到「每月換股、偷看 5 天後收盤」的程式**（截點前面剛好沒有換股日；寫測試時實測），所以加②。
+  沒過＝判「用到未來的資料」、不判定；新候選沒過就不合併。
+- **放進計畫試算**（只描述，不影響判定）：台股＝★ 那一半平分給 N＋1 條（N＝`data/lab/sig_stock.json` 判定 good 的個股策略條數，讀不到＝3）；
+  美股＝機動一半照原本（強勢品質股判定過＝它，否則指數）、一半這條；三條（100 萬較多、前後兩半都不少、最慘最多深 10 點）都過＝「有幫助」。
+  台股的「現在」重算要能重現研究檔的計畫（`tw_plan_parts`，實測 100 萬 → 1,307.2 萬逐位相同）。
+- **合併通道 `.github/workflows/strategy_cands.yml`**：push 到 `claude/**` 而且動到規格、`arm/lab/cands/**` 或 `config/strategy_board.json` 就跑——
+  從那個分支**只拿**規格、`c###.py`、board 的 `cand` 一段（其他欄位照 main），用 **main 的** `run_cands.py --merge-from`＋`tests/test_cands.py` 驗
+  （舊的一字不差、新的最多 2 條、還沒決定的最多 10 條、sha 對、決定的格式對；**分支比 main 舊**時 main 上有、分支沒有的候選照留，
+  決定逐條併、日期新的贏——舊分支推上來不會洗掉較新的候選或決定）→ 回測新的（有美股的另外 sparse checkout 資料分支）→
+  **新候選乾淨地算完才 commit 進 main**（規格、程式、結果、決定同一筆）→ 派 daily.yml 重建。每週日台北 19:00 排程：試用中的補紀錄、沒結果的補算。
+  main 上還沒有機制時（`scripts/run_cands.py` 不在）整輪略過。**分支改不了規則**：檢查程式一律用 main 的。
+- **使用者的決定**＝`config/strategy_board.json` 的 `cand`（`{編號: {dec: trial|adopt|reject, d, why}}`），也走同一條通道進 main
+  （board.json 原本沒有自動通道，只能 PR）。狀態：沒決定＝候選、試用與納入＝觀察中、不納入＝淘汰（`candspec.DEC_STATUS`）。
+  試用＝每週把照做的每天報酬記進 `data/lab/cands_live.json`（只增不改；台股個股用 `v3live.live_panel(Data(long=True))`，長歷史 v3px 平常不更新），
+  滿 63 個交易日才列照做對一直抱著。納入＝「納入，等計畫改版」，交易計畫出新版本（corespec VER＋1，另外規劃、先問使用者）才改使用中。
+- **頁面**（`arm/lab/candpage.py`）：配置頁策略表的列（`board.cand_rows` → `candpage.board_rows`：名稱連 `x9r.html#cand-編號`、旁邊「來源」連原文、
+  成績一行＋「放進計畫：100 萬變 X 萬（現在 Y 萬）」、今天＝「過關，等你決定」「試用中・記了 N 天」…；照主頁面用字）；
+  研究紀錄頁「策略候選」一段（`#cand`：總表＋每條一張卡：來源、為什麼挑、規則與參數、判定依據、放進計畫試算、試用紀錄、決定）；
+  從策略表點進來（`x9r.html#cand-c001`）會打開那張卡並捲過去（`research_page.OPEN_JS`，2026-10-24 起；任何 `#段落 id` 都適用，`#s=` 等帶 = 的照舊給全部指標）。
+  06:35 推播：第一次有結果的候選多一行「策略候選：新增 X（市場），過去成績…；回「試用／納入／不納入」。」（`valog.cand_state`／`cand_line`，
+  對前一個資料日的編號比；還沒決定的第一次到 10 條時同一行寫「週報先停」）。
+- 測試：`tests/test_candspec.py`（規格鎖定）、`tests/test_cands.py`（格式、合併、只拿那三個地方、外掛結果等於內建、兩道檢查抓得到偷看、
+  計畫試算、試用只增不改、workflow 內容）、`tests/test_candpage.py`（列、白話、研究卡、推播一行）。
 
 ## 「策略頁：總經策略／個股策略」（2026-10-22；規劃、使用者決定、分段 `docs/lab_strategy_ia_plan.md`）
 
@@ -3401,7 +3608,7 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
 - **時間軸共用**（`stockviz.tlDraw(Q)`）：原本寫死個股策略的部分改成設定物件——個股 `TLO`、總經 `TLM`（`box`／`tip` 元素 id、`rk` 範圍狀態鍵、
   `back`「全部」最多往回幾天、`cards`、`last`、`nx`、`lb` 標籤、`nm`／`sub` 列名、`avg` 顏色、`tipf` 提示）；持有中沒有排定賣出日的畫到右邊、
   寫「依規則賣出 →」（同一列有「月底看」就不寫）。改寫前後個股策略的時間軸 SVG 逐字相同（同一份資料新舊程式各畫一次比對過）。
-- **四支 JS 串成同一個 `<script>`**（page、stockviz、macpage、copage）：不可有同名函式或頂層 const（`tests/test_stockviz.py` 守）；
+- **四支 JS 串成同一個 `<script>`**（page、stockviz、macpage、copage；2026-10-23 起加 cfgpage、2026-10-24 起加 uscardpage）：不可有同名函式或頂層 const（`tests/test_stockviz.py` 守）；
   page.py 的 `VIEWS` 參照 `vMac`／`vMacSt` 靠函式宣告提升，macpage 的頂層 const（MAC、MCM、TLM）只在初始化之後用。
 - **x9x.html** 改成轉址頁（`xspage.render()`：`#i=xs:市場:策略` → `x9.html#v=mac&m=市場&x=策略`，沒有 JS 走 noscript meta refresh），
   `x9xh.json`（淨值與每一筆＋判定依據 jd，訊號總覽的面板與總經策略的說明卡讀）照寫；三支 workflow 的 `git add` 不用改。頁面上的「大神策略」都改叫「總經策略」（訊號總覽搜尋兩個詞都認）。
@@ -3531,12 +3738,12 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
     相鄰兩條色弱 ΔE ≥ 9，數字在規劃第 9 節）。山頂與谷底畫成「門檻線到山脊之間」的多邊形，不用 clip——只看一條時其他條半透明，clip 會露出整片藍。
   · 配色：`heatpage._CSS` 淺色 `:root`＋`@media (prefers-color-scheme:dark)` 深色；SVG 用 class 上色，**不把 `var()` 寫進 SVG 屬性**（Safari 不支援）。
   · **日夜間按鈕**（2026-10-21；使用者 10/20：「日夜間模式我希望可以按鈕轉換」，選自動 → 淺色 → 深色三段；`docs/lab_noise_plan.md` 第 5、11 節）：
-    六頁頂欄「返回主頁」前一顆按鈕（`appnav.THEME_BTN`），選擇記在這台瀏覽器（localStorage `labTheme`，回到自動就刪掉）；`<head>` 一小段程式
-    （`appnav.THEME_HEAD`）在畫面出來之前套上 `data-theme`。**六頁的 render 一律 `return appnav.finish(…)`**：把 `<head>` 樣式裡每一段
+    頂欄「返回主頁」前一顆按鈕（`appnav.THEME_BTN`；2026-10-23 起有頂欄的是台股市場頁、美股市場頁、配置、研究紀錄四頁），選擇記在這台瀏覽器（localStorage `labTheme`，回到自動就刪掉）；`<head>` 一小段程式
+    （`appnav.THEME_HEAD`）在畫面出來之前套上 `data-theme`。**四頁的 render 一律 `return appnav.finish(…)`**（finish 也放「記住上次位置」的 `NAV_HEAD`）：把 `<head>` 樣式裡每一段
     `@media (prefers-color-scheme:dark){…}` 改寫成「系統深色而且沒選淺色」（`:root:not([data-theme="light"])`）與「選了深色」
     （`:root[data-theme="dark"]`）兩份（`appnav.dual_dark`），所以**新的深色樣式照舊寫在 media 裡就好**，不用自己寫兩份。
     用程式算顏色的圖要聽 `labtheme` 事件重畫（現在＝景氣頁 3D 地形、個股頁資金地圖／時間軸／位置圖）。主頁（復華雷達）不用這支。
-    `tests/test_appnav.py` 守 dual_dark 與六頁都經過 finish。
+    `tests/test_appnav.py` 守 dual_dark 與四頁都經過 finish。
 - **個股頁（x9；`arm/lab/stockviz.py`＋page／copage 配色）**
   · 深淺配色同上做法；page／copage 圖表 JS 裡寫死在 SVG 屬性的顏色不改程式，由 `page.THEME_HEX`＋`theme_css()` 用屬性選擇器
     （`svg [fill="#d33a34"]{fill:var(--gain)}`）換成變數——SVG 屬性是優先順序最低的樣式，各瀏覽器都蓋得過。**新寫死的顏色要補進表**（tests 守）。

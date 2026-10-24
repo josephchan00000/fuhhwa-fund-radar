@@ -59,11 +59,11 @@ def research(P: dict, ctx: dict | None = None) -> dict:
         T = len(cal)
         a = next(k for k, d in enumerate(cal) if d >= X.SWAP_START)
         c = CS.COST["us"]
-        cur = CO.scenario("cur", mk, cal, px, tot, rf, F, a, T, c)
+        cur = CO.scenario("cur", mk, cal, px, tot, rf, F, a, T, c, core=CS.CORE)    # ussxspec VER 1～2：核心 70%
         row = {"cur": _brief(cur), "swap": {}, "long": {}}
         for e in etfs:
             sl = etf_daily(P, e, cal)
-            sw = CO.scenario(e, mk, cal, px, tot, rf, F, a, T, c, sl=sl)
+            sw = CO.scenario(e, mk, cal, px, tot, rf, F, a, T, c, sl=sl, core=CS.CORE)
             row["swap"][e] = {**_brief(sw), "judge": judge(sw, cur)}
             lk = X.SWAP_LONG.get(e)
             if lk:                                          # 長歷史：核心與三成都用指數本身（不含息）
@@ -83,8 +83,8 @@ def research(P: dict, ctx: dict | None = None) -> dict:
                 lg = {}
                 for nm, k1 in (("early", a + 1), ("all", T)):     # early＝ETF 期間以前（獨立的一段）；all＝到最後
                     if k1 - k0 > 2 * CS.ROLL:
-                        c0 = CO.scenario("long_cur", mk, cal, px, r_core, rf, F, k0, k1, c)
-                        s0 = CO.scenario("long_" + e, mk, cal, px, r_core, rf, F, k0, k1, c, sl=r_sl)
+                        c0 = CO.scenario("long_cur", mk, cal, px, r_core, rf, F, k0, k1, c, core=CS.CORE)
+                        s0 = CO.scenario("long_" + e, mk, cal, px, r_core, rf, F, k0, k1, c, sl=r_sl, core=CS.CORE)
                         lg[nm] = {"cur": _brief(c0), "swap": _brief(s0), "judge": judge(s0, c0),
                                   "same_dir": bool((s0["plan"]["m"] > c0["plan"]["m"]) == (sw["plan"]["m"] > cur["plan"]["m"]))}
                 row["long"][e] = lg

@@ -40,11 +40,12 @@ def _ctx(cal: list[str], N: int = 6, seed: int = 7) -> dict:
             cc.append(syms[j])
             rs.append(float(round(r[j])))
     n = len(di)
-    f = {"rs": np.array(rs), "d52h": np.full(n, -0.1), "om": np.full(n, 0.2), "roe": np.full(n, 0.2), "cap": np.full(n, 5e9)}
+    f = {"rs": np.array(rs), "d52h": np.full(n, -0.1), "om": np.full(n, 0.2), "roe": np.full(n, 0.2), "cap": np.full(n, 5e9),
+         "om1": np.full(n, 0.2), "omd": np.zeros(n), "oxr": np.zeros(n)}
     cols = {"di": np.array(di), "j": np.array(jj), "c": np.array(cc), "d": np.array([cal[i] for i in di]), "f": f, "wk": wk}
     return {"P": P, "cal": cal, "T": T, "cols": cols, "D20": np.full((T, N), 1e12), "Cf": C.copy(), "DIV": np.zeros((T, N)),
             "MA": UF.roll_mean(C, X.QM_EXIT["ma"]), "yr": np.array([int(d[:4]) for d in cols["d"]]),
-            "PQ": {"spx": {"idle": np.full(T, 0.0003)}}}
+            "PQ": {"spx": {"idle": np.full(T, 0.0003), "cash": np.full(T, 0.0001)}}}
 
 
 @pytest.fixture
@@ -56,9 +57,24 @@ def y0(monkeypatch):
 def test_mask_is_inclusive_and_missing_fails():
     f = {"rs": np.array([80, 79.9, 90, 90, np.nan]), "d52h": np.array([-0.25, 0, 0, 0, 0]),
          "om": np.array([0.10, 0.2, 0.2, np.nan, 0.2]), "roe": np.array([0.15, 0.2, 0.2, 0.2, 0.2]),
-         "cap": np.array([2e9, 3e9, 1.99e9, 3e9, 3e9])}
+         "cap": np.array([2e9, 3e9, 1.99e9, 3e9, 3e9]),
+         "om1": np.full(5, 0.2), "omd": np.zeros(5), "oxr": np.zeros(5)}
     assert QM.qm_mask(f).tolist() == [True, False, False, False, False]
     assert QM.qm_mask(f, {**X.QM, "cap": 1e9}).tolist() == [True, False, True, False, False]
+
+
+def test_mask_drops_one_off_income_spikes():
+    """VER 7（omfixspec 的 D）：上一季 < 10%、比上一季與去年同季都高 20 點以上、營業利益比營收多增加 → 不算；
+    營收一起增加（真的轉盈）照算；任一個沒有值照算；fix=False＝VER 6 的條件（重現檢查用）。"""
+    n = 5
+    f = {"rs": np.full(n, 99.0), "d52h": np.zeros(n), "roe": np.full(n, 0.3), "cap": np.full(n, 5e9),
+         "om": np.array([0.858, 0.654, 0.858, 0.858, 0.30]),          # CareDx、Moderna、沒有 oxr、上一季已經 ≥10%、小跳升
+         "om1": np.array([0.010, -0.482, 0.010, 0.55, 0.05]),
+         "omd": np.array([0.986, 16.25, 0.986, 0.986, 0.15]),
+         "oxr": np.array([0.599, -0.275, np.nan, 0.5, 0.2])}
+    assert QM.om_fix_block(f).tolist() == [True, False, False, False, False]
+    assert QM.qm_mask(f).tolist() == [False, True, True, True, True]
+    assert QM.qm_mask(f, fix=False).tolist() == [True] * 5
 
 
 def test_signals_sorted_by_rs_then_code_and_drop(y0):
@@ -89,10 +105,17 @@ def test_run_is_ussxbook_with_qm_settings(y0):
     r = QM.run(C, sig)
     a = QM.a_of(cal, 2025)
     w = 1 / X.QM_SLOTS
-    r0 = BK.run(C["P"]["O"], C["Cf"], C["P"]["C"], C["P"]["last"], sig, a, C["T"], C["PQ"]["spx"]["idle"], ex={"ma": 50},
-                style="trend", MA=C["MA"], D20=C["D20"], DIV=C["DIV"], weight=w, max_pos=8, max_weight=max(w, 0.20))
+    # VER 4：空位放現金、進出不付指數的成本
+    r0 = BK.run(C["P"]["O"], C["Cf"], C["P"]["C"], C["P"]["last"], sig, a, C["T"], C["PQ"]["spx"]["cash"], ex={"ma": 50},
+                style="trend", MA=C["MA"], D20=C["D20"], DIV=C["DIV"], weight=w, max_pos=8, max_weight=max(w, 0.20), c_idx=0.0)
     assert r["a"] == a and np.array_equal(r["eq"], r0["eq"]) and r["trades"] == r0["trades"]
     assert len(r["trades"]) > 0 and max(r["n"]) <= X.QM_SLOTS
+    # VER 3 的設定（重現檢查用）：空位放指數、付指數的成本
+    r3 = QM.run(C, sig, idle="index")
+    r30 = BK.run(C["P"]["O"], C["Cf"], C["P"]["C"], C["P"]["last"], sig, a, C["T"], C["PQ"]["spx"]["idle"], ex={"ma": 50},
+                 style="trend", MA=C["MA"], D20=C["D20"], DIV=C["DIV"], weight=w, max_pos=8, max_weight=max(w, 0.20))
+    assert np.array_equal(r3["eq"], r30["eq"]) and r3["trades"] == r30["trades"]
+    assert not np.array_equal(r["eq"], r3["eq"])
 
 
 def test_snapshot_matches_state_and_trades(y0):
@@ -124,6 +147,33 @@ def test_snapshot_buys_fill_free_slots_on_week_end(y0):
     free = X.QM_SLOTS - (len(S["pos"]) - len(S["pend"]))
     want = [C["P"]["sym"][j] for j, _ in sig[C["T"] - 1] if j not in S["pos"]][:free]
     assert n["buy"] == want
+
+
+def test_snapshot_met_five_numbers_this_week_and_at_buy(y0):
+    """docs/lab_cfg_v2_plan.md 第 4 節：美股個股卡「為什麼選它」——這一週（手上、要買、名單前 20 名）的五個條件，
+    與手上的股票買進那一週（帳戶記的訊號日）的五個條件。"""
+    cal = _cal("2024-11-01", "2025-09-26")
+    C = _ctx(cal)
+    C["cols"]["f"]["cap"] = C["cols"]["f"]["cap"] + 123456.0                  # 市值存到百萬美元
+    sig = QM.signals(C, QM.qm_mask(C["cols"]["f"]))
+    r = QM.run(C, sig)
+    n = QM.snapshot(C, r, sig)
+    cols = C["cols"]
+
+    def row(i, c):
+        k = next(k for k in range(len(cols["di"])) if cols["di"][k] == i and cols["c"][k] == c)
+        f = cols["f"]
+        return [round(f["rs"][k], 1), round(f["d52h"][k], 4), round(f["om"][k], 4), round(f["roe"][k], 4), 5e9]
+
+    want = {h["c"] for h in n["hold"]} | set(n["buy"]) | {x["c"] for x in n["list"]}
+    assert set(n["met"]) == want and n["wk"] == cal[-1]
+    for c, v in n["met"].items():
+        assert v == row(C["T"] - 1, c)
+    assert sorted(n["met0"]) == sorted(h["c"] for h in n["hold"])
+    for j, q in r["state"]["pos"].items():
+        c = C["P"]["sym"][j]
+        assert n["met0"][c] == {"wk": cal[q["si"]], "v": row(q["si"], c)} and q["si"] in sig
+        assert n["met0"][c]["v"][0] >= X.QM["rs"]                            # 買進那一週五個條件都過
 
 
 def test_live_update_records_finished_weeks_once(y0, monkeypatch):
@@ -216,13 +266,17 @@ def test_review_percentile_and_low_flag():
     assert all(x["due"] is None for x in short)
 
 
-def test_saved_research_reproduces_section_12_and_switches_both_plans():
-    """入庫的研究檔（scripts/run_ussx.py --qm）：重現第 12 節、四條判定都過、兩個計畫都換。"""
+def test_saved_research_reproduces_section_12_and_follows_the_verdict():
+    """入庫的研究檔（scripts/run_ussx.py --qm）：照 VER 3 的設定重現第 12 節（ussxspec VER 4 ③）；
+    VER 4 的設定（空位現金、核心＝corespec 的 core_of）算判定，換不換照判定。"""
+    from arm.lab import corespec as CS
     R = QM.load()
-    assert R and R["ver"] == X.VER and R["repro"]["ok"]
-    assert abs(R["sleeve"]["main"]["cagr"] - X.QM_REF["cagr"]) <= X.QM_REPRO["cagr"]
-    assert R["switch"] == {"spx": True, "ndx": True}
+    assert R and R["ver"] == X.VER and R["repro"]["ok"] and R["repro"]["set"] == X.QM_REPRO_SET
+    assert abs(R["repro"]["cagr"] - X.QM_REF["cagr"]) <= X.QM_REPRO["cagr"]
+    assert R["idle"] == X.QM_IDLE == "cash" and R["core"] == {mk: CS.core_of(mk) for mk in X.QM_PLANS}
+    assert R["switch"] == {mk: bool(R["repro"]["ok"] and R["verdict"]["pass"][mk]) for mk in X.QM_PLANS}
     for mk in X.QM_PLANS:
         sc = R["sc"][mk]
-        assert sc["key"] == "plan" and sc["sleeve"] == "qm" and sc["plan"]["m"] > R["plans"][f"{mk}_main"]["cur"]["plan"]["m"]
+        assert sc["key"] == "plan" and sc["sleeve"] == "qm" and sc["core"] == CS.core_of(mk)
+        assert sc["plan"]["m"] > R["plans"][f"{mk}_main"]["cur"]["plan"]["m"]
     assert set(R["review"]) == {str(k) for k in X.QM_REVIEW}

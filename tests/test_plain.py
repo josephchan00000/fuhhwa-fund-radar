@@ -3,17 +3,9 @@
 不得出現：第 2 條的方法字（只當參考、樣本外、隨便挑一天……）、第 4 條研究用的狀態符號（★●○◆△、好策略、可參考、A／B／C 級）、
 第 6 條的字（核心、衛星、前瞻、箭頭……）。研究紀錄頁、市場頁的研究畫面（#v=research／phase／terrain）不掃；
 細項面板裡只在研究畫面才看得到的部分（.rsx）也不算。要用真的資料建頁（約 3 分鐘），瀏覽器或資料不在就跳過。"""
-import functools
-import glob
-import http.server
-import re
-import threading
-
 import pytest
 
-sync_api = pytest.importorskip("playwright.sync_api")
-
-CHROME = next(iter(sorted(glob.glob("/opt/pw-browsers/chromium-*/chrome-linux/chrome"))), None)
+pytest.importorskip("playwright.sync_api")
 METHOD = ("只當參考", "不當成預估", "看不出", "樣本不足", "亂排", "打亂", "預估之後", "逐年檢查", "判定依據", "前後兩半",
           "樣本外", "穩健度", "對照", "規格", "VER", "門檻", "區間", "研究", "候選", "注意", "教訓", "本頁", "我們",
           "隨便挑一天", "判定", "樣本", "信賴", "顯著", "p 值")
@@ -45,31 +37,11 @@ def test_bad_finds_words_and_skips_allowed():
     assert bad("使用中 4・候選 0", allow=CFG_ALLOW) == []
 
 
-class _Q(http.server.SimpleHTTPRequestHandler):
-    def log_message(self, *a):
-        pass
-
-
 @pytest.fixture(scope="module")
-def site(tmp_path_factory):
-    if not CHROME:
-        pytest.skip("沒有 Chromium")
-    from arm.lab import heatpage, heatpage_us, page, sigpage
-    O = tmp_path_factory.mktemp("plain")
-    if not page.build(O / "x9.html", O / "x9s.json") and not (O / "x9.html").exists():
-        pytest.skip("配置頁建不起來（資料不在）")
-    heatpage.build(O / "x9m.html", O / "x9mh.json")
-    heatpage_us.build(O / "x9mu.html", O)
-    sigpage.build(O / "x9o.html", O / "x9oh.json")             # 指標面板每一次的清單 x9oh-{市場}.json
-    page.finish()                                             # 配置頁用今天的警訊讀數
-    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(_Q, directory=str(O)))
-    th = threading.Thread(target=srv.serve_forever, daemon=True)
-    th.start()
-    with sync_api.sync_playwright() as p:
-        b = p.chromium.launch(executable_path=CHROME)
-        yield b, f"http://127.0.0.1:{srv.server_address[1]}"
-        b.close()
-    srv.shutdown()
+def site(labsite):
+    """整站（tests/conftest.py 的 labsite，和舊網址測試共用同一次建頁）。"""
+    b, base, _ = labsite
+    return b, base
 
 
 def _page(b, url):
@@ -85,6 +57,10 @@ def _market(b, url, name, every):
     """市場頁一個指數：主畫面（收起來的全部打開、全部指標列出全部）、每個右側面板、指標面板（每 every 個打開一個）。"""
     pg, errs = _page(b, url)
     found = []
+    if "#ix=" in url:                                         # 美股頁：預設以外的指數下載完才換上（x9mup-{指數}.json）
+        pg.wait_for_function(f"() => document.getElementById('ixc').dataset.ix === '{name}' && !document.getElementById('ixc').hasAttribute('aria-busy')",
+                             timeout=15000)
+        assert pg.evaluate("() => window.heatPanels()") is True    # 細項面板：預設的指數點到才下載，這裡先載好
     pg.evaluate(OPEN, ".hview[data-view=radar]")
     for _ in range(3):
         pg.evaluate("() => { const m = document.getElementById('sgmore'); if (m && !m.hidden) m.click(); }")
@@ -106,6 +82,8 @@ def _market(b, url, name, every):
     rows = [r for r in pg.evaluate("() => [...document.querySelectorAll('tr.sgr[data-k]')].map(t => t.dataset.k)")
             if not r.startswith("xs:")]                       # 總經策略那幾列連到研究紀錄的說明卡
     assert rows, name
+    if "#ix=" in url:                                         # 這個指數自己的列（預設以外的指數由 x9mup 併進來）
+        assert any(r.startswith(name + ":") for r in rows), name
     for k in rows[::every]:
         pg.evaluate("(k) => document.querySelector('tr.sgr[data-k=\"' + CSS.escape(k) + '\"]').click()", k)
         pg.wait_for_function("() => { const r = document.getElementById('sgrec'); return r && !/載入中/.test(r.innerText); }",
@@ -125,7 +103,7 @@ def test_market_pages_have_no_method_words(site):
 
 
 def test_config_pages_have_no_method_words(site):
-    """配置頁：台股、美股、策略、個股工具（個股、籌碼、指數），個股卡、公司卡。時間軸（.cftl：圖例、範圍切換、圖）的 ▲▼◆●
+    """配置頁：台股、美股、策略、個股工具（個股、籌碼、指數），個股卡、公司卡、美股個股卡。時間軸（.cftl：圖例、範圍切換、圖）的 ▲▼◆●
     是買賣的記號、不是評級，時間軸只檢查方法字。"""
     b, base = site
     found = []
@@ -138,6 +116,18 @@ def test_config_pages_have_no_method_words(site):
         found += [f"{v} 時間軸 {x}" for x in bad(tl, METHOD + NOT_PLAIN, CFG_ALLOW)]
         found += [f"{v} JS 錯誤：{e}" for e in errs]
         pg.close()
+    pg, errs = _page(b, f"{base}/x9.html?v=us")                  # 美股個股卡（配置頁 v2 第 4 步）：每一檔都打開
+    codes = pg.evaluate("() => (typeof UCD !== 'undefined' && UCD && UCD.o) || []")   # 頂層 const 不在 window 上
+    for c in codes:
+        pg.evaluate("(c) => ucOpen(c)", c)
+        pg.wait_for_timeout(200)
+        t = pg.evaluate("() => document.getElementById('dv').innerText")
+        assert len(t) > 200, c
+        intro = pg.evaluate("() => [...document.querySelectorAll('#uc-co .ucl')].map(e => e.innerText).join('')")
+        t = t.replace(intro, "") if intro else t                 # 公司簡介是公司本身的描述（例「基因體研究中心」），不是頁面的方法用字
+        found += [f"美股卡 {c} {x}" for x in bad(t, allow=CFG_ALLOW)]
+    found += [f"美股卡 JS 錯誤：{e}" for e in errs]
+    pg.close()
     for h, nm in (("#s=2330", "個股卡"), ("#co=2330", "公司卡")):
         pg, errs = _page(b, f"{base}/x9.html?v=stk{h}")
         pg.wait_for_timeout(1500)

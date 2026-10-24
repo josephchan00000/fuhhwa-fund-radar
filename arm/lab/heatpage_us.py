@@ -2,7 +2,8 @@
 
 一頁、上方切換「S&P 500｜那斯達克｜那斯達克 100｜費半」（使用者選定）。版面和台股頁同一套（heatpage）：
 每個指數在 heatspec.use(美股規格) 與 heatpage.use_market(美股說法) 底下各產生一份內容，預設的指數直接放在頁面裡、
-其他三個放在 <template>；切換時換上那一份內容、重跑對照圖的程式（heatpage._JS 的 heatInit），對照圖資料各指數一個檔、
+其他三個的整份內容與四個指數的細項面板放在 x9mup-{指數}.json（docs/lab_ia_v5_plan.md 第 10 節第 6 段：手機下載量），
+切到那個指數、或第一次打開細項面板才下載；換上內容之後重跑對照圖的程式（heatpage._JS 的 heatInit），對照圖資料各指數一個檔、
 點到才下載。基本面、情緒籌碼、資金四個指數共用（同一套資料），技術、泡沫依指數；驗證都用所選指數之後的漲跌。
 輸出決定性：資料沒變時位元組相同。
 """
@@ -26,6 +27,11 @@ DEFAULT = "spx"
 
 def data_name(idx: str) -> str:
     return f"x9muh-{idx}.json"
+
+
+def pane_name(idx: str) -> str:
+    """細項面板（＋預設以外的指數的整份內容）：點到才下載。"""
+    return f"x9mup-{idx}.json"
 
 
 def _closed(d: date) -> bool:
@@ -134,36 +140,79 @@ def chart_data(idx: str, B: dict, R: dict) -> dict:
 SWITCH_JS = r"""
 (function () {
 'use strict';
-const METAS = window.HEAT_METAS || {}, ASOF = window.HEAT_ASOF || {}, BOX = document.getElementById('ixc');
+const METAS = window.HEAT_METAS || {}, BOX = document.getElementById('ixc'), MSG = document.getElementById('ixmsg');
 if (!BOX) return;
-const live = BOX.dataset.ix, tpl = {};
-document.querySelectorAll('template[data-ix]').forEach(t => { tpl[t.dataset.ix] = t; });
-const keep = document.createElement('template');              // 預設指數在初始化之前先留一份乾淨的內容
-keep.innerHTML = BOX.innerHTML;
-tpl[live] = keep;
-let cur = live;
+const live = BOX.dataset.ix, keep = BOX.innerHTML;            // 預設指數在初始化之前先留一份乾淨的內容（細項面板另外下載）
+const PJ = {}, PP = {};                                       // x9mup-{指數}.json：細項面板（＋預設以外的指數的整份內容）
+let cur = live, want = live;
+function say(t) { if (MSG) { MSG.textContent = t || ''; MSG.hidden = !t; } }
 function mark() {
   document.querySelectorAll('.ixsw button').forEach(b => {
-    const on = b.dataset.ix === cur;
+    const on = b.dataset.ix === want;
     b.classList.toggle('on', on);
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
-  const a = document.getElementById('ix-asof');
-  if (a && ASOF[cur]) a.textContent = '資料到 ' + ASOF[cur];
+  if (want === cur && window.labLast) window.labLast('mkt', 'x9mu.html#ix=' + cur);   // 頂欄「市場」記住上次看的指數（appnav.NAV_HEAD）
+}
+function pane(ix) {
+  if (!PP[ix]) PP[ix] = fetch('x9mup-' + ix + '.json', {cache: 'no-cache'}).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(j => (PJ[ix] = j)).catch(e => { delete PP[ix]; throw e; });
+  return PP[ix];
+}
+window.heatPanels = function () {                             // heatviz.openD：這個指數的細項面板還沒放進頁面 → 下載後放進去
+  const ix = cur;
+  if (BOX.querySelector('.dtpl')) return Promise.resolve(true);
+  return pane(ix).then(j => {
+    if (cur !== ix) return false;
+    if (!BOX.querySelector('.dtpl')) BOX.insertAdjacentHTML('beforeend', j.tpl);
+    return true;
+  });
+};
+const SGE = document.getElementById('sgd'), SGM = {};
+function sgAdd(ix, g) {                                       // 全部指標：這個指數的列在 x9mup 裡，第一次切過來時併進 #sgd（指標對到列的位置往後挪）
+  if (!SGE || !g || SGM[ix]) return;
+  try {
+    const S = JSON.parse(SGE.textContent), off = S.rows.length;
+    S.rows = S.rows.concat(g.rows || []);
+    S.inds = S.inds.concat((g.inds || []).map(x => x.slice(0, 5).concat([x[5].map(i => i + off)], x.slice(6))));
+    S.on = Object.assign(S.on || {}, g.on || {});
+    (S.it = S.it || {})[ix] = g.it || {};
+    if (S.xs) (S.xs.m = S.xs.m || {})[ix] = g.xsm || {};
+    SGE.textContent = JSON.stringify(S);
+    SGM[ix] = 1;
+  } catch (e) { /* 全部指標少這個指數的列，其他照常 */ }
+}
+function put(ix, html, sg) {
+  BOX.innerHTML = html;
+  BOX.dataset.ix = ix;
+  cur = ix;
+  window.HEAT_META = METAS[ix];
+  window.__heatWait = 0;                       // 網址指到別的指數時，頁面程式等這裡換好內容才初始化（heatpage、sigpage 的最後一行）
+  sgAdd(ix, sg);
+  if (window.heatInit) window.heatInit();
+  if (window.sgInit) window.sgInit();          // 全部指標：換成這個指數的列
+  if (window.bubDraw) window.bubDraw(ix);      // 泡沫：畫這個指數的歷史等級
 }
 function show(ix, scroll) {
-  if (!tpl[ix] || !METAS[ix]) return;
-  if (ix !== cur) {
-    BOX.replaceChildren(tpl[ix].content.cloneNode(true));
-    BOX.dataset.ix = ix;
-    cur = ix;
-    window.HEAT_META = METAS[ix];
-    if (window.heatInit) window.heatInit();
-    if (window.sgInit) window.sgInit();          // 全部指標：換成這個指數的列（資料在頁面層的 #sgd，四個指數共用）
-    if (window.bubDraw) window.bubDraw(ix);      // 泡沫：畫這個指數的歷史等級
-  }
+  if (!METAS[ix]) return;
+  want = ix;
   mark();
-  if (scroll) window.scrollTo(0, 0);
+  if (ix === cur) { say(''); BOX.removeAttribute('aria-busy'); if (scroll) window.scrollTo(0, 0); return; }
+  const done = (html, sg) => { if (want !== ix) return; say(''); BOX.removeAttribute('aria-busy'); put(ix, html, sg); mark(); if (scroll) window.scrollTo(0, 0); };
+  if (ix === live) { done(keep + (PJ[ix] ? PJ[ix].tpl : '')); return; }
+  if (PJ[ix]) { done(PJ[ix].main + PJ[ix].tpl, PJ[ix].sg); return; }
+  say('載入中…');
+  BOX.setAttribute('aria-busy', 'true');
+  pane(ix).then(j => done(j.main + j.tpl, j.sg)).catch(() => {
+    if (want !== ix) return;
+    BOX.removeAttribute('aria-busy');
+    want = cur; mark(); say('載入失敗，請重新整理頁面');
+    if (window.__heatWait) {                                  // 網址指到的指數載不到：照預設的指數畫
+      window.__heatWait = 0;
+      if (window.heatInit) window.heatInit();
+      if (window.sgInit) window.sgInit();
+    }
+  });
 }
 document.querySelectorAll('.ixsw button').forEach(b => b.addEventListener('click', () => {
   show(b.dataset.ix, true);
@@ -173,7 +222,7 @@ document.querySelectorAll('.ixsw button').forEach(b => b.addEventListener('click
 }));
 const m = /ix=(\w+)/.exec(location.hash || '');
 window.HEAT_META = METAS[cur];
-if (m && m[1] !== cur && tpl[m[1]]) show(m[1], false); else mark();
+if (m && m[1] !== cur && METAS[m[1]]) { window.__heatWait = 1; show(m[1], false); } else mark();   // 先不畫預設的指數（省下它的對照圖資料）
 })();
 """
 
@@ -186,14 +235,13 @@ _HTML = """<!doctype html>
 <title>美股景氣</title>
 <style>{{CSS}}</style></head>
 <body>
-<div class="top">{{APPTAB}}<span class="asof" id="ix-asof">資料到 {{ASOF}}</span><a class="back" href="./">返回主頁</a></div>
-<div class="vbar">{{MKROW}}</div>
+<div class="top">{{APPTAB}}<a class="back" href="./"><span class="bk1">返回</span>主頁</a></div>
+<div class="vbar">{{MKROW}}<span id="ixmsg" class="ixmsg" role="status" aria-live="polite" hidden></span></div>
 <div id="ixc" data-ix="{{IX}}">{{LIVE}}</div>
-{{TEMPLATES}}
 {{DRAWER}}{{PANEL}}
 <script type="application/json" id="sgd">{{SGD}}</script>
 <script type="application/json" id="bubd">{{BUBD}}</script>
-<script>window.HEAT_METAS={{METAS}};window.HEAT_ASOF={{ASOFS}};</script>
+<script>window.HEAT_METAS={{METAS}};</script>
 <script>{{SWITCH_JS}}</script>
 <script>{{JS}}</script>
 <script>{{SGJS}}</script>
@@ -202,30 +250,81 @@ _HTML = """<!doctype html>
 
 
 def _content(P: dict) -> str:
-    return f'<main>{P["body"]}</main>'
+    """一個指數的整份內容（細項面板另外放，panes）。"""
+    return f'<main>{P["main"]}</main>'
 
 
-def render(pages: dict, default: str = DEFAULT) -> str:
-    """pages＝{指數: index_page(...)} → 整頁。"""
+def split_sgd(sgd: str, default: str = DEFAULT) -> tuple[str, dict]:
+    """全部指標的資料（sigpage.block_data）：頁面只留預設指數與美股產業的列，其他指數的列、指標、現在、每項現值、總經策略
+    放進各自的 x9mup（第一次切到那個指數時，SWITCH_JS 的 sgAdd 併回去）。指標用列的位置對到列（inds 第 6 欄），兩邊各自重新編號；
+    有指標對到別的市場的列（對不起來）就不拆、整份留在頁面。"""
+    try:
+        G = json.loads(sgd)
+    except ValueError:
+        return sgd, {}
+    rows, inds = G.get("rows") or [], G.get("inds") or []
+    mk_of = [r[1] for r in rows]
+    moved = [k for k in U.INDEX_ORDER if k != default and k in mk_of]
+    if not moved or any(mk_of[i] != x[1] for x in inds for i in x[5]):
+        return sgd, {}
+    on, it, xm = G.get("on") or {}, G.get("it") or {}, (G.get("xs") or {}).get("m") or {}
+
+    def take(keep) -> tuple[list, list]:
+        idx = [i for i, m in enumerate(mk_of) if keep(m)]
+        loc = {i: n for n, i in enumerate(idx)}
+        return [rows[i] for i in idx], [x[:5] + [[loc[i] for i in x[5]]] + x[6:] for x in inds if keep(x[1])]
+
+    out = {}
+    for k in moved:
+        r, x = take(lambda m, k=k: m == k)
+        out[k] = {"rows": r, "inds": x, "on": {kk: v for kk, v in on.items() if kk.split(":", 1)[0] == k},
+                  "it": it.get(k) or {}, "xsm": xm.get(k) or {}}
+    G["rows"], G["inds"] = take(lambda m: m not in moved)
+    G["on"] = {kk: v for kk, v in on.items() if kk.split(":", 1)[0] not in moved}
+    G["it"] = {kk: v for kk, v in it.items() if kk not in moved}
+    if isinstance(G.get("xs"), dict) and "m" in G["xs"]:
+        G["xs"]["m"] = {kk: v for kk, v in xm.items() if kk not in moved}
+    return json.dumps(G, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"), out
+
+
+def assemble(pages: dict, default: str = DEFAULT) -> tuple[str, dict]:
+    """pages＝{指數: index_page(...)} → (整頁, {x9mup 檔名: 內容})。頁面只放預設指數的內容（細項面板另放）；每個指數一個檔＝
+    細項面板（tpl），預設以外的指數另放整份內容（main）與全部指標的列（sg）。"""
     from . import appnav
     from . import heatviz as VZ
     j = lambda x: json.dumps(x, ensure_ascii=False, separators=(",", ":"), sort_keys=True).replace("</", "<\\/")  # noqa: E731
-    tpls = "".join(f'<template data-ix="{k}">{_content(pages[k])}</template>' for k in U.INDEX_ORDER if k != default and k in pages)
-    with HP.use_market(market(default)):
-        asofs = {k: HP._md(P["asof"]) for k, P in pages.items()}
     G = HP.page_parts([k for k in U.INDEX_ORDER if k in pages])
-    return appnav.finish(_HTML.replace("{{CSS}}", HP._CSS + appnav.CSS + VZ.CSS + G["css"] + G["bcss"]).replace("{{APPTAB}}", appnav.bar("us"))
+    sgd, sg = split_sgd(G["sgd"], default)
+    html = appnav.finish(_HTML.replace("{{CSS}}", HP._CSS + appnav.CSS + VZ.CSS + G["css"] + G["bcss"] + CSS)
+            .replace("{{APPTAB}}", appnav.bar("mkt", cur="x9mu.html"))
             .replace("{{MKROW}}", HP.market_row("us")).replace("{{DRAWER}}", VZ.DRAWER).replace("{{PANEL}}", G["panel"])
-            .replace("{{SGD}}", G["sgd"]).replace("{{BUBD}}", G["bubd"])
-            .replace("{{ASOF}}", HP._e(asofs.get(default, "—")))
+            .replace("{{SGD}}", sgd).replace("{{BUBD}}", G["bubd"])
             .replace("{{IX}}", default).replace("{{LIVE}}", _content(pages[default]))
-            .replace("{{TEMPLATES}}", tpls).replace("{{METAS}}", j({k: P["meta"] for k, P in pages.items()}))
-            .replace("{{ASOFS}}", j(asofs)).replace("{{SWITCH_JS}}", SWITCH_JS).replace("{{JS}}", VZ.JS + HP._JS)
+            .replace("{{METAS}}", j({k: P["meta"] for k, P in pages.items()}))
+            .replace("{{SWITCH_JS}}", SWITCH_JS).replace("{{JS}}", VZ.JS + HP._JS)
             .replace("{{SGJS}}", G["js"] + G["bjs"]))
+    out = {}
+    for k in U.INDEX_ORDER:
+        if k in pages:
+            d = {"tpl": pages[k]["tpl"]}
+            if k != default:
+                d["main"] = _content(pages[k])
+            if k in sg:
+                d["sg"] = sg[k]
+            out[pane_name(k)] = d
+    return html, out
+
+
+def render(pages: dict, default: str = DEFAULT) -> str:
+    """整頁（assemble 的頁面那一份）。"""
+    return assemble(pages, default)[0]
+
+
+CSS = ".ixmsg{font-size:12.5px;color:var(--mut)}#ixc[aria-busy=true]{opacity:.55}"
 
 
 def build(out: Path = OUT, data_dir: Path | None = None) -> bool:
-    """建美股景氣頁與四個對照圖資料檔；內容都沒變時不改寫。"""
+    """建美股景氣頁、四個對照圖資料檔、四個細項面板檔（x9mup）；內容都沒變時不改寫。"""
     data_dir = data_dir or out.parent
     D = CU.load()
     SH = CU.shared(D)
@@ -236,4 +335,7 @@ def build(out: Path = OUT, data_dir: Path | None = None) -> bool:
         R = ((RA.get("idx") or {}).get(idx)) or {}
         pages[idx] = index_page(idx, B, R)
         changed = HC.write(chart_data(idx, B, R), data_dir / data_name(idx)) or changed
-    return HP._write(out, render(pages)) or changed
+    html, P = assemble(pages)
+    for name, d in P.items():
+        changed = HC.write(d, data_dir / name) or changed
+    return HP._write(out, html) or changed

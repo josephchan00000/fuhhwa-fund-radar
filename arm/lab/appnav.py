@@ -8,33 +8,81 @@
 策略＝x9.html#v=mac（頁面載入後依網址換身分、亮頂欄的「策略」）；x9x.html 留成轉址頁。
 2026-10-23 起策略與個股合成「配置」（docs/lab_ia_v5_plan.md 第 18 節：台股｜美股｜策略｜個股（工具）），頂欄一格、連 x9.html；
 原本的總經策略、個股策略、後台改從不在頂欄的研究紀錄頁（x9r.html）進去（還是 x9.html 裡的分頁）。
-2026-10-23 第 2 段（市場頁改版）：泡沫頁、訊號總覽併進兩個景氣頁（市場頁），頂欄拿掉這兩格（x9b.html、x9o.html 留成轉址頁）；
-第 4 段再把頂欄改成「市場｜配置」。
-手機（640px 以下）放不下全名，改顯示短名（SHORT）。
+2026-10-23 第 2 段（市場頁改版）：泡沫頁、訊號總覽併進兩個景氣頁（市場頁），頂欄拿掉這兩格（x9b.html、x9o.html 留成轉址頁）。
+2026-10-23 第 4 段（docs/lab_ia_v5_plan.md 第 2、22 節，照核准過的示意圖）：頂欄只剩「市場｜配置」兩格，右邊小字「研究紀錄・名詞・查公司」，
+再來是深淺色鈕與返回主頁；原本擠在頂欄的「資料到…」移到各區塊（市場頁的面向標題、配置頁個股工具那一列）。
+- 市場＝台股 x9m.html、美股四個指數 x9mu.html（第二排切換）；配置＝x9.html。研究紀錄頁（x9r.html）兩格都不亮。
+- 兩格各記住上次看到哪裡（這台瀏覽器的 localStorage "labLast"）：從配置點「市場」回到上次看的市場、從市場點「配置」回到上次看的配置分頁；
+  沒有紀錄（或瀏覽器擋 localStorage）就是台股、配置台股。只記看得到的位置（市場與指數、配置的台股｜美股｜策略｜個股工具），不記個股卡與研究紀錄。
+- 名詞：市場頁＝研究紀錄頁的「名詞與判定方式」、配置頁＝頁內的名詞面板、研究紀錄頁＝這一頁的名詞段。
+  查公司：配置頁＝頂欄打開搜尋框；其他頁＝到配置頁打開搜尋框（x9.html#q）。
+- 手機（640px 以下）：深淺色鈕只留圖示、返回主頁寫「主頁」，360px 以上一列放得下兩格＋小字＋兩顆鈕；更窄的（320px）小字換到第二列靠右。
 """
 from __future__ import annotations
 
-TABS = (("tw", "台股景氣", "x9m.html"), ("us", "美股景氣", "x9mu.html"), ("cfg", "配置", "x9.html"))
-SHORT = {"tw": "台股", "us": "美股"}
+TABS = (("mkt", "市場", "x9m.html"), ("cfg", "配置", "x9.html"))
+LAST_KEY = "labLast"
 
-CSS = (".apptab{display:flex;gap:2px;background:var(--card2);border-radius:10px;padding:3px;align-self:center}"
-       ".apptab a{padding:5px 12px;border-radius:8px;font-size:14.5px;font-weight:600;color:var(--ink2);"
+CSS = (".top{align-items:center}"
+       ".apptab{display:flex;gap:2px;background:var(--card2);border-radius:10px;padding:3px;align-self:center}"
+       ".apptab a{padding:5px 14px;border-radius:8px;font-size:14.5px;font-weight:600;color:var(--ink2);"
        "text-decoration:none;white-space:nowrap}"
        ".apptab a:hover{color:var(--ink)}"
        ".apptab a.on{background:var(--bg);color:var(--ink);box-shadow:0 1px 3px rgba(20,30,50,.14)}"
-       ".apptab .aps{display:none}"
-       "@media (max-width:640px){.top>.apptab{flex:1 1 100%}.apptab a{flex:1;text-align:center;padding:5px 2px;font-size:14px}"
-       ".apptab .apl{display:none}.apptab .aps{display:inline}}")
+       ".applk{display:flex;align-items:center;margin-left:auto;position:relative;font-size:12.5px;color:var(--mut);white-space:nowrap}"
+       ".applk>a{color:var(--mut);text-decoration:none;padding:5px 3px;border-radius:6px}"
+       ".applk>a:hover{color:var(--ink)}.applk>a[aria-current]{color:var(--ink);font-weight:600}"
+       ".applk>a:focus-visible{outline:2px solid var(--acc);outline-offset:0}"
+       ".applk .als{padding:0 1px}"
+       ".top>.back{align-self:center}"
+       "@media (max-width:640px){.top{gap:6px}.apptab a{padding:5px 10px;font-size:14px}.applk{font-size:12px}.applk>a{padding:5px 2px}"
+       ".top .thm{padding:4px 7px}.top .thm-t{display:none}.top .bk1{display:none}}"
+       "@media (max-width:400px){.applk{font-size:11.5px}}"
+       "@media (max-width:359px){.applk{order:5;flex-basis:100%;justify-content:flex-end;margin-left:0}.top .thm{margin-left:auto}}")
 
 
-def bar(active: str) -> str:
-    """主分頁：目前所在的頁加 class="on"、aria-current="page"。"""
+def links(page: str = "", search: str = "") -> str:
+    """頂欄右邊小字：研究紀錄・名詞・查公司（第 4 段；見本檔開頭）。page＝"mkt"／"cfg"／"r"（研究紀錄頁）；
+    search＝配置頁的查公司搜尋框（copage.SEARCH_HTML），放在這一組裡、點「查公司」才打開。"""
+    rec = '<a href="x9r.html"' + (' aria-current="page"' if page == "r" else "") + ">研究紀錄</a>"
+    if page == "cfg":
+        gl = '<a href="#gl" class="glk">名詞</a>'
+    elif page == "r":
+        gl = '<a href="#gl">名詞</a>'
+    else:
+        gl = '<a href="x9r.html#mth">名詞</a>'
+    if page == "cfg" and search:
+        co = '<a href="#q" class="coqb" role="button" aria-expanded="false" aria-controls="cos">查公司</a>' + search
+    else:
+        co = '<a href="x9.html#q">查公司</a>'
+    sep = '<span class="als" aria-hidden="true">・</span>'
+    return f'<nav class="applk" aria-label="研究紀錄、名詞、查公司">{rec}{sep}{gl}{sep}{co}</nav>'
+
+
+def bar(page: str = "", cur: str = "", search: str = "") -> str:
+    """頂欄：主分頁（市場｜配置；目前所在的加 class="on"、aria-current="page"）＋右邊小字。
+    cur＝目前這一格連到哪裡（美股頁傳 x9mu.html；不給就是那一格的預設頁）。"""
     out = []
     for key, label, href in TABS:
-        on = ' class="on" aria-current="page"' if key == active else ""
-        txt = f'<span class="apl">{label}</span><span class="aps">{SHORT[key]}</span>' if key in SHORT else label
-        out.append(f'<a{on} href="{href}">{txt}</a>')
-    return '<nav class="apptab" aria-label="頁面">' + "".join(out) + "</nav>"
+        on = key == page
+        attr = ' class="on" aria-current="page"' if on else ""
+        out.append(f'<a{attr} data-k="{key}" href="{cur if on and cur else href}">{label}</a>')
+    return '<nav class="apptab" aria-label="頁面">' + "".join(out) + "</nav>" + links(page, search)
+
+
+# 兩格各記住上次看到哪裡（見本檔開頭）。<head> 裡定義 labLast(格, 位置)，美股頁換指數、配置頁換分頁時呼叫；
+# 畫面出來後：亮的那一格＝現在的位置（紀錄不是這一頁的就記成這一頁，例如台股市場頁），沒亮的那一格改連到上次的位置。
+# 位置只收這幾種寫法（其他一律不理），讀寫失敗就用預設。
+NAV_HEAD = ('<script>(function(){var K="' + LAST_KEY + '",O={},'
+            'OK={mkt:/^x9mu?\\.html(#ix=(spx|ixic|ndx|sox))?$/,cfg:/^x9\\.html(\\?v=(us|strat|stk|chip|idx))?$/};'
+            'try{O=JSON.parse(localStorage.getItem(K)||"{}")||{}}catch(e){O={}}'
+            'window.labLast=function(k,v){if(!OK[k]||!OK[k].test(v)||O[k]===v)return;O[k]=v;'
+            'try{localStorage.setItem(K,JSON.stringify(O))}catch(e){}};'
+            'document.addEventListener("DOMContentLoaded",function(){var a=document.querySelectorAll(".apptab a[data-k]");'
+            'for(var i=0;i<a.length;i++){var k=a[i].getAttribute("data-k"),v=O[k],h=a[i].getAttribute("href")||"";'
+            'if(a[i].classList.contains("on")){if(!v||v.indexOf(h)!==0)window.labLast(k,h)}'
+            'else if(v&&OK[k]&&OK[k].test(v))a[i].setAttribute("href",v)}});'
+            '})();</script>')
 
 
 # ── 日夜間模式（docs/lab_noise_plan.md 第 5、11 節；使用者 2026-10-20 選「自動 → 淺色 → 深色」三段）──────────────
@@ -79,7 +127,7 @@ THEME_CSS = (".thm{display:inline-flex;align-items:center;gap:5px;align-self:cen
              '.thm[data-t="auto"] .ti-a,.thm[data-t="light"] .ti-l,.thm[data-t="dark"] .ti-d{display:block}'
              ':root[data-theme="light"]{color-scheme:light}:root[data-theme="dark"]{color-scheme:dark}')
 
-_BACK = '<a class="back" href="./">返回主頁</a>'
+BACK = '<a class="back" href="./"><span class="bk1">返回</span>主頁</a>'
 
 
 def _rules(body: str) -> list[tuple[str, str]] | None:
@@ -131,7 +179,7 @@ def dual_dark(css: str) -> str:
 
 
 def finish(page: str) -> str:
-    """六頁輸出前最後一步：<head> 的樣式改寫成可切換深淺色、加切換程式，頂欄「返回主頁」前面加按鈕。"""
+    """頁面輸出前最後一步：<head> 的樣式改寫成可切換深淺色、加切換程式與「記住上次位置」的程式，頂欄「返回主頁」前面加按鈕。"""
     h = page.find("</head>")
     if h < 0:
         return page
@@ -139,5 +187,5 @@ def finish(page: str) -> str:
     a, b = head.find("<style>"), head.find("</style>")
     if a >= 0 and b > a:
         head = head[:a + 7] + dual_dark(head[a + 7:b]) + THEME_CSS + head[b:]
-    rest = page[h:].replace(_BACK, THEME_BTN + _BACK, 1)
-    return head + THEME_HEAD + rest
+    rest = page[h:].replace(BACK, THEME_BTN + BACK, 1)
+    return head + THEME_HEAD + NAV_HEAD + rest

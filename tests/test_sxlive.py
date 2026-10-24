@@ -1,4 +1,4 @@
-"""飆股前瞻記錄（arm/lab/sxlive.py；規格 sxlivespec VER 1）。"""
+"""飆股前瞻記錄（arm/lab/sxlive.py；規格 sxlivespec VER 2：R60 放進交易計畫、上配置頁）。"""
 import json
 import sys
 from datetime import date
@@ -199,17 +199,168 @@ def test_this_years_rules_exist_after_mid_january():
         f"飆股前瞻記錄缺 {today.year} 年的規則：dispatch lab_opt.yml，或跑 scripts/run_sxlive_rules.py --auto --refresh-min 40")
 
 
-def test_record_never_reaches_a_page():
-    """不上頁面：建頁的程式都不讀紀錄；只有 analyze.run 呼叫 update、valog 讀摘要發提醒。"""
-    for f in ("page.py", "sigpage.py", "findings.py", "corepage.py", "heatpage.py", "macpage.py", "copage.py",
+def test_only_the_plan_book_reaches_a_page():
+    """VER 2：只有 PLAN_BOOK（R60）現在的狀態上配置頁（page.py 讀 sxlive.LAST["plan"] 放進交易計畫的台股機動）；
+    紀錄檔、A、R1 兩本不上頁面。只有 analyze.run 呼叫 update、valog 讀摘要發提醒。"""
+    for f in ("sigpage.py", "findings.py", "corepage.py", "cfgpage.py", "heatpage.py", "macpage.py", "copage.py",
               "xspage.py", "stockviz.py", "printview.py"):
         p = ROOT / "arm" / "lab" / f
         if p.exists():
             assert "sxlive" not in p.read_text(encoding="utf-8"), f
+    pg = (ROOT / "arm" / "lab" / "page.py").read_text(encoding="utf-8")
+    assert pg.count("sxlive") == pg.count('sxlive.LAST.get("plan")') + pg.count("from . import sxlive") >= 2
     assert "sxlive.update(" in (ROOT / "arm" / "lab" / "analyze.py").read_text(encoding="utf-8")
+    assert S.PLAN_BOOK == S.BOOKS[0] == "R60"
+
+
+def _plan_fixture():
+    """合成價格跑一本帳到第 n−1 天，第 n−1 天剛好有一批訊號（明天開盤要買）、有一檔到期（明天開盤要賣）。"""
+    np, pd, dates, codes, o, h, l, c, f, val, vol, sig = _synthetic(5, n=90, m=24)
+    n, hold = len(dates), 12
+    av = pd.DataFrame(val).rolling(20, min_periods=1).mean().to_numpy()
+    avv = pd.DataFrame(vol).rolling(20, min_periods=1).mean().to_numpy()
+    lst = lambda a, j: [None if x != x else float(x) for x in a[:, j]]  # noqa: E731
+    px = {code: L.series(lst(o, j), lst(h, j), lst(l, j), lst(c, j), lst(f, j), lst(av, j), lst(avv, j))
+          for j, code in enumerate(codes)}
+    sig = {i: v for i, v in sig.items() if i < n - 1}
+    sig[n - 1] = [(codes[j], 90 - j) for j in range(10)]
+    T = {**S.TRADE, "hold": hold}
+    bk = L.Book(px, n, set(codes), T)
+    for i in range(n):
+        bk.step(i, sig.get(i))
+    cal = [str(d.date()) for d in dates]
+
+    class P:
+        pass
+    P.cal = cal
+    wk = {cal[i]: {"R60": [[k, s] for k, s in v]} for i, v in sig.items()}
+    rec = {"last": cal[-1], "weeks": wk, "_book": bk, "_px": px}
+    return rec, {"P": P}, bk, px, cal, sig, hold
+
+
+def test_plan_state_lists_holdings_sells_and_buys(monkeypatch):
+    rec, ctx, bk, px, cal, sig, hold = _plan_fixture()
+    monkeypatch.setitem(S.TRADE, "hold", hold)
+    st = L.plan_state(rec, ctx, {"1101": "台泥"})
+    i1 = len(cal) - 1
+    assert st["book"] == "R60" and st["d"] == cal[-1] and st["wk"] == cal[-1] and st["n_list"] == 10
+    assert [h["c"] for h in st["hold"]] == [c for c, q in sorted(bk.pos.items(), key=lambda x: (x[1]["ei"], x[0]))]
+    assert sum(h["w"] for h in st["hold"]) + st["cash"] == pytest.approx(1.0, abs=1e-9)
+    for h in st["hold"]:
+        q = bk.pos[h["c"]]
+        assert h["ent"] == cal[q["ei"]] and h["sell"] == bool(q["pend"])
+        if q["ei"] + hold < len(cal):
+            assert h["due"] == cal[q["ei"] + hold]
+        p = px[h["c"]]
+        assert h["epx"] == pytest.approx(p["o"][q["ei"]] / p["f"][q["ei"]])
+    assert st["sell"] == [h["c"] for h in st["hold"] if h["sell"]]
+    # 明天開盤要買的＝最後一天的訊號裡手上沒有的，依 RS 高到低；估計買得到的在前面
+    want = [c for c, _ in sorted(sig[i1], key=lambda x: -x[1]) if c not in bk.pos]
+    assert [b["c"] for b in st["buy"]] == want
+    fills = [b["fill"] for b in st["buy"]]
+    assert fills == sorted(fills, reverse=True) and st["n_buy"] == sum(fills)
+    assert st["list"][0]["c"] == "1101" and st["list"][0]["n"] == "台泥"
+
+
+def test_plan_state_before_any_week():
+    """還沒有任何一週的紀錄（第一個訊號日之前）：沒有持股、全部現金、下一次看名單的日子照休市表。"""
+    class P:
+        cal = ["2026-10-20", "2026-10-21", "2026-10-22", "2026-10-26"]
+    st = L.plan_state({"last": "2026-10-26", "weeks": {}}, {"P": P})
+    assert st["hold"] == [] and st["buy"] == [] and st["cash"] == 1.0 and st["wk"] is None
+    assert st["next"] == "2026-10-27" and st["next_wk"] == "2026-10-30" and not st["wk_today"]
+
+
+def test_start_index_skips_the_typhoon_day():
+    assert L.start_index(["2026-10-21", "2026-10-22", "2026-10-26", "2026-10-27"]) == 2
 
 
 def test_lab_opt_finds_this_years_rules():
     y = (ROOT / ".github" / "workflows" / "lab_opt.yml").read_text(encoding="utf-8")
     assert "scripts/run_sxlive_rules.py --auto" in y and "pandas" in y
     assert "data/lab/sxlive_rules.json" in y or "git add -f data/lab" in y
+
+
+RULES_Y = [[("rs", ">=", 90), ("lu20", ">=", 1), ("rnha", "=", True)], [("liq", ">=", 6.5e8), ("rnha", "=", True)]]
+
+
+def test_day_signals_records_which_rules_each_stock_matched(monkeypatch):
+    """配置頁第 5 步：每週記下每一檔符合今年第幾條規則、那幾條用到的數字（只給頁面顯示，訊號照舊）。"""
+    from arm.lab import superx as SX
+
+    class P:
+        cal = ["2026-10-30"]
+        codes = ["1101", "2330", "9999"]
+        cap = {c: [None] for c in codes}
+        s = {c: {"c": [10.0]} for c in codes}
+    F = {"1101": {"el": True, "rs": 96.4, "lu20": 2, "rnha": True, "liq": 1.2e9},
+         "2330": {"el": True, "rs": 91.0, "lu20": 0, "rnha": True, "liq": 9e9},
+         "9999": {"el": True, "rs": 99.0, "lu20": 3, "rnha": False, "liq": 1e9}}
+    monkeypatch.setattr(SX, "feats_on", lambda *a, **k: F)
+    ctx = {"P": P, "snaps": [], "pxs": None, "funds": None, "qitems": None, "rf": None}
+    plain = L.day_signals(0, ctx, {"R60": RULES_Y})
+    why = {}
+    sig = L.day_signals(0, ctx, {"R60": RULES_Y}, why=why)
+    assert sig == plain == {"R60": [["1101", 96.4], ["2330", 91.0]]}                  # 訊號不受影響
+    assert why["R60"]["1101"] == {"k": [0, 1], "v": {"liq": 1200000000, "lu20": 2, "rnha": True, "rs": 96.4}}
+    assert why["R60"]["2330"] == {"k": [1], "v": {"liq": 9000000000, "rnha": True}}
+    assert "9999" not in why["R60"]
+
+
+def test_add_week_keeps_why_only_with_newly_added_books():
+    W = {}
+    w1 = {"R60": {"3017": {"k": [0], "v": {"rs": 95}}}}
+    assert L.add_week(W, "2026-10-30", {"R60": [["3017", 95]], "A": []}, "2026-10-30 15:40", why=w1)
+    assert W["2026-10-30"]["why"] == w1
+    assert not L.add_week(W, "2026-10-30", {"R60": [["1111", 99]]}, "2026-11-02 06:40", why={"R60": {"1111": {"k": [1]}}})
+    assert W["2026-10-30"]["why"] == w1                                             # 已經記過的本不改
+
+
+def test_why_text_writes_first_matched_rule_with_numbers():
+    w = {"k": [0, 1], "v": {"rs": 96.4, "lu20": 2, "rnha": True, "liq": 1.2e9}}
+    t, more = L.why_text(RULES_Y, w)
+    assert t == "強度 96（要 90 以上）、近 20 日漲停 2 次、月營收創歷史新高" and more == 1
+    assert L._why_lines(RULES_Y, w) == ["符合：強度 96（要 90 以上）、近 20 日漲停 2 次、月營收創歷史新高（另外也符合 1 條）"]
+    assert L.why_text(RULES_Y, {"k": [1], "v": {"liq": 1.2e9, "rnha": True}}) == ("20 日均成交值 12.0 億（要 6.5 億以上）、月營收創歷史新高", 0)
+    assert L.why_text(RULES_Y, None) == (None, 0) and L._why_lines(None, {"k": [0]}) == []
+    assert L.why_text(RULES_Y, {"k": [5]}) == (None, 0)                             # 規則清單對不上：不寫
+
+
+def test_plan_state_explains_list_buys_and_holdings(monkeypatch):
+    rec, ctx, bk, px, cal, sig, hold = _plan_fixture()
+    monkeypatch.setitem(S.TRADE, "hold", hold)
+    i1 = len(cal) - 1
+    top = sig[i1][0][0]
+    rec["weeks"][cal[i1]]["why"] = {"R60": {top: {"k": [0], "v": {"rs": 96.4, "lu20": 2, "rnha": True}}}}
+    held = next(iter(bk.pos))                                                     # 一檔持股：買進那一週記了它符合第 2 條
+    sd = cal[bk.pos[held]["si"]]
+    rec["weeks"][sd]["why"] = {"R60": {held: {"k": [1], "v": {"liq": 1.2e9, "rnha": True}}}}
+    Ry = {cal[i1][:4]: {"R60": {"rules": [{"conds": [list(c) for c in r]} for r in RULES_Y]}}}
+    if sd[:4] != cal[i1][:4]:
+        Ry[sd[:4]] = Ry[cal[i1][:4]]
+    st = L.plan_state(rec, ctx, {}, None, Ry)
+    lw = {x["c"]: x["why"] for x in st["list"]}
+    assert lw[top] == ["符合：強度 96（要 90 以上）、近 20 日漲停 2 次、月營收創歷史新高"]
+    assert all(v == [] for c, v in lw.items() if c != top)
+    bw = {x["c"]: x["why"] for x in st["buy"]}
+    assert all(v == lw.get(c, []) for c, v in bw.items())
+    h = next(x for x in st["hold"] if x["c"] == held)
+    rank = [c for c, _ in rec["weeks"][sd]["R60"]].index(held) + 1
+    assert h["why"] == [f"{int(sd[5:7])}/{int(sd[8:])} 那週名單第 {rank} 名", "符合：20 日均成交值 12.0 億（要 6.5 億以上）、月營收創歷史新高"]
+
+
+def test_why_text_uses_plain_words():
+    """名單「符合：…」每一種條件的寫法都不得有主頁面不用的字（tests/test_plain.py 的清單）。
+    那支測試用今天的資料建頁，10/30 以前名單還沒出來，掃不到這一句，所以這裡逐一條件檢查。"""
+    import ast
+    from arm.lab import superx as SX
+    words = []
+    for node in ast.parse((ROOT / "tests" / "test_plain.py").read_text(encoding="utf-8")).body:
+        if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") in ("METHOD", "STATUS", "NOT_PLAIN"):
+            words += list(ast.literal_eval(node.value))
+    assert len(words) > 30
+    keys = sorted(set(SX.SHORT) | set(SX.FNAME))
+    txt = [SX.cond_value_text((k, op, 0.5), v) for k in keys for op in (">=", "<=", "=") for v in (0.7, 3, None)]
+    txt += [L._why_lines([[(k, ">=", 0.5)], [(k, "<=", 0.5)]], {"k": [0, 1], "v": {k: 0.7}})[0] for k in keys]
+    hits = [(w, t) for t in txt for w in words if w in t]
+    assert not hits, hits[:5]

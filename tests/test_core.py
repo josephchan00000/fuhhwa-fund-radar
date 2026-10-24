@@ -155,7 +155,8 @@ def test_stk_from_adv_keeps_only_star_strategies_and_next_45_days():
          "trades": {"v3l": {"kind": "per"}, "s3": {"kind": "rev"}, "s1": {"kind": "trade"}}}
     X = C.stk_from_adv(A, "2026-10-23")
     assert [s["kind"] for s in X["st"]] == ["rev", "per"]                         # 定期換股的分法要看 kind
-    assert [s["k"] for s in X["st"]] == ["s3", "v3l"] and X["w"] == pytest.approx(0.15)
+    assert [s["k"] for s in X["st"]] == ["s3", "v3l"] and X["w"] == pytest.approx(0.80 * 0.5 / 2)   # VER 4：★ 那一半平分
+    assert X["bw"] == pytest.approx(0.40) and X["boom"] is None
     assert [h["c"] for h in X["hold"]["v3l"]] == ["2330"] and X["hold"]["s3"] == []
     assert [(e["k"], e["d"]) for e in X["ev"]] == [("v3l", "2026-11-12"), ("v3l", "2026-11-17")]   # ● 的、45 天以後的不列
     assert X["ev"][1]["pending"] and X["ev"][1]["fix"] == "2026-11-16"
@@ -163,22 +164,23 @@ def test_stk_from_adv_keeps_only_star_strategies_and_next_45_days():
 
 def test_record_only_in_ci_and_overwrites_same_day(tmp_path, monkeypatch):
     monkeypatch.setattr(C, "LIVE", tmp_path / "core_live.json")
-    n = {"d": "2026-10-23", "fams": [{"k": "inf", "lit": False, "v": 76.7}, {"k": "lev", "lit": False, "v": 54.5},
-                                     {"k": "trend", "lit": False, "pct": 14.1}], "n": 0, "next": 1.0}
+    d = S.LIVE_START
+    n = {"d": d, "fams": [{"k": "inf", "lit": False, "v": 76.7}, {"k": "lev", "lit": False, "v": 54.5},
+                          {"k": "trend", "lit": False, "pct": 14.1}], "n": 0, "next": 1.0}
     monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
     assert C.record({"tw": n}, None) is False and not C.LIVE.exists()
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
-    assert C.record({"tw": n, "spx": dict(n, d="2026-10-22")}, {"st": [{"k": "v3l"}]}) is True
+    assert C.record({"tw": n, "spx": dict(n, d="2026-10-23")}, {"st": [{"k": "v3l"}], "boom": {"book": "R60"}}) is True
     L = json.loads(C.LIVE.read_text(encoding="utf-8"))
-    assert list(L["days"]) == ["2026-10-23"] and L["days"]["2026-10-23"]["tw"]["sat"] == ["v3l"]   # 起點以前的不記
-    assert C.record({"tw": dict(n, n=2, next=0.7)}, None) is True
-    assert json.loads(C.LIVE.read_text(encoding="utf-8"))["days"]["2026-10-23"]["tw"]["E"] == 0.7
+    assert list(L["days"]) == [d] and L["days"][d]["tw"]["sat"] == ["v3l", "R60"]   # 起點以前的不記；VER 4 台股機動另有新飆股
+    assert C.record({"tw": dict(n, n=2, next=0.2)}, None) is True
+    assert json.loads(C.LIVE.read_text(encoding="utf-8"))["days"][d]["tw"]["E"] == 0.2
     assert C.forward("tw")["n"] == 1 and C.forward("tw")["next"] == S.CHECKS[0]
-    C.LIVE.write_text(json.dumps({"ver": S.VER - 1, "days": {"2026-10-23": {"tw": {}}}}), encoding="utf-8")
+    C.LIVE.write_text(json.dumps({"ver": S.VER - 1, "days": {d: {"tw": {}}}}), encoding="utf-8")
     assert C.load_live() == {"ver": S.VER, "days": {}}                            # 規則改過＝前瞻從頭記
     fl = {"k": "flat", "lit": False, "held": ["10 個月均線", "200 日均線"]}
     assert C.record({"spx": dict(n, fams=n["fams"] + [fl], clear=4)}, None) is True
-    r = json.loads(C.LIVE.read_text(encoding="utf-8"))["days"]["2026-10-23"]["spx"]
+    r = json.loads(C.LIVE.read_text(encoding="utf-8"))["days"][d]["spx"]
     assert r["held"] == 2 and r["clear"] == 4 and "flat" not in r["v"]
 
 
@@ -186,11 +188,15 @@ def test_research_file_matches_spec():
     R = C.load()
     assert R is not None and R["ver"] == S.VER
     assert set(R["mk"]) == set(S.MARKETS)
-    assert set(R["mk"]["tw"]["sc"]) == {"rule", "plan"} and set(R["mk"]["spx"]["sc"]) == {"rule", "early"}
+    assert set(R["mk"]["tw"]["sc"]) == {"rule", "long", "plan"} and set(R["mk"]["spx"]["sc"]) == {"rule", "early"}
+    for mk, M in R["mk"].items():                                                # VER 4：每段都照這個市場的核心比例
+        assert all(s["core"] == S.core_of(mk) for s in M["sc"].values())
     for mk, M in R["mk"].items():
         for key, s in M["sc"].items():
             assert s["plan"]["m"] > 0 and 0 < s["plan"]["mdd"] < 1 and s["chart"]["pts"]
             assert s["a"] >= S.RULE_START[mk] if key == "rule" else True
             assert all(e["sell"] <= (e["buy"] or "9999") for e in s["eps"])
-    assert R["mk"]["tw"]["sc"]["plan"]["sleeve"] == "v3l" and R["mk"]["tw"]["sc"]["plan"]["a"] >= S.PLAN_START
+    tw = R["mk"]["tw"]["sc"]
+    assert tw["plan"]["sleeve"] == "R60+star" and tw["plan"]["a"] >= S.PLAN4_START and tw["long"]["a"] >= S.PLAN_START
+    assert tw["plan"]["b"] == tw["long"]["b"] and 0.9 < tw["plan"]["boom_x"] < 1
     assert R["mk"]["spx"]["sc"]["early"]["b"] <= S.EARLY["spx"] and R["mk"]["ndx"]["sc"]["early"]["b"] <= S.EARLY["ndx"]

@@ -21,6 +21,9 @@
   uqm    美股三成（corespec VER 3、ussxspec QM；docs/lab_us_sleeve_plan.md 第 13.3～13.4 節；研究檔判定換了才有）：
          每週紀錄停在比該有的還早的一週（美股週五收盤＋36 小時以後算該有）、第一次滿 63／126／252 個交易日的檢討、
          每週重跑和之前的紀錄不一樣（多一筆差異時）。另外推播多一行：美股下一個交易日開盤要賣、要買的股票（每天的 50 日線檢查＋每週紀錄）。
+台股機動的新飆股（corespec VER 4；飆股前瞻記錄的 R60 那本帳）：推播多一行，下一個交易日開盤要賣、要買的股票（不是事件）。
+新策略候選（docs/lab_ia_v5_plan.md 第 24 節）：第一次有結果的候選推播多一行「策略候選：新增 X（市場），過去成績…；回『試用／納入／不納入』」；
+  還沒決定的第一次到 candspec.MAX_OPEN 條時同一行提醒「週報先停」。
 """
 from __future__ import annotations
 
@@ -287,6 +290,29 @@ def uqm_events(cur: dict | None, prev: dict | None) -> list[dict]:
     return out
 
 
+def boom_state(P: dict | None, N: dict | None = None) -> dict | None:
+    """台股機動的新飆股（corespec VER 4）：P＝那本帳現在的狀態（sxlive.LAST["plan"]），N＝配置頁台股的警訊讀數
+    （機動放現金中就先不買）。→ 存進每天紀錄的部分：下一個交易日開盤要賣、要買的股票。"""
+    if not P or not P.get("d") or not P.get("next"):
+        return None
+    nx = P["next"]
+    td = [[nx, "賣", h.get("n") or h["c"]] for h in P.get("hold") or [] if h.get("sell")]
+    td += [[nx, "買", x.get("n") or x["c"]] for x in P.get("buy") or [] if x.get("fill")]
+    return {"d": P["d"], "td": td, "cash": bool(N and N.get("next") is not None and N["next"] < 0.99)}
+
+
+def boom_line(cur: dict | None) -> str | None:
+    """推播多一行：新飆股下一個交易日開盤要賣、要買的股票。沒有要做的就不加。"""
+    by: dict[str, dict[str, list]] = {}
+    for d, act, c in (cur or {}).get("td") or []:
+        by.setdefault(d, {}).setdefault(act, []).append(c)
+    if not by:
+        return None
+    parts = [f"{_md(d)}（{_wd(d)}）開盤" + "、".join(f"{a} {'、'.join(by[d][a])}" for a in ("賣", "買") if by[d].get(a))
+             for d in sorted(by)]
+    return "新飆股：" + "；".join(parts) + ("（機動放現金中，買的先不買）" if cur.get("cash") and any("買" in v for v in by.values()) else "") + "。"
+
+
 def uqm_line(cur: dict | None) -> str | None:
     """推播多一行：美股下一個交易日開盤要賣、要買的股票。沒有要做的就不加。"""
     by: dict[str, dict[str, list]] = {}
@@ -297,6 +323,40 @@ def uqm_line(cur: dict | None) -> str | None:
     parts = [f"{_md(d)}（{_wd(d)}）開盤" + "、".join(f"{a} {'、'.join(by[d][a])}" for a in ("賣", "買") if by[d].get(a))
              for d in sorted(by)]
     return "美股三成：" + "；".join(parts) + "。"
+
+
+def cand_state(prev: dict | None = None) -> dict | None:
+    """新策略候選：有結果的編號（過關／部分過關／沒過／次數不夠／需要資料）、還沒決定的條數、比前一個資料日新增的。"""
+    from . import candpage as CP
+    from . import candrun as CR
+    from . import candspec as CS
+    B = CP.load()
+    if not B["items"]:
+        return None
+    ok = CS.TIERS + ("need",)
+    ids = [it["id"] for it in B["items"] if (B["res"].get(it["id"]) or {}).get("v") in ok or it.get("need") is not None]
+    seen = set((prev or {}).get("ids") or [])
+    new = []
+    for it in B["items"]:
+        if it["id"] in ids and it["id"] not in seen:
+            x = B["res"].get(it["id"])
+            what = it["need"] if it.get("need") is not None else f"過去成績{CP.verdict(x)}"
+            pl = CP.plan_line(it, x)
+            new.append(f"{it['name']}（{CS.MK_NAMES.get(it['mk'], it['mk'])}），{what}" + (f"，{pl}" if pl else ""))
+    n_open = len(CR.open_ids({"items": B["items"]}, B["dec"]))
+    full = n_open >= CS.MAX_OPEN and (prev or {}).get("open", 0) < CS.MAX_OPEN
+    return {"ids": ids, "open": n_open, "new": new, "full": bool(full)}
+
+
+def cand_line(cur: dict | None) -> str | None:
+    if not cur or not (cur.get("new") or cur.get("full")):
+        return None
+    out = "策略候選："
+    if cur.get("new"):
+        out += "新增 " + "；".join(cur["new"]) + "；回「試用／納入／不納入」"
+    if cur.get("full"):
+        out += ("；" if cur.get("new") else "") + f"還沒決定的已經 {cur['open']} 條，週報先停"
+    return out + "。"
 
 
 def push_lines(rec: dict) -> list[str]:
@@ -318,9 +378,15 @@ def push_lines(rec: dict) -> list[str]:
                     ("（試算名單）" if i.get("tent") else "") for i in xs))
         a = f"{_md(d)}（{_wd(d)}）" + "；".join(parts) + "。"
     out = [a]
+    b = boom_line(rec.get("boom"))
+    if b:
+        out.append(b)
     u = uqm_line(rec.get("uqm"))
     if u:
         out.append(u)
+    c = cand_line(rec.get("cand"))
+    if c:
+        out.append(c)
     ev = rec.get("ev") or []
     if ev:
         out.append("策略驗證：" + "；".join(e["txt"] for e in ev) + "。")
@@ -380,6 +446,9 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
         if sx:
             rec["sx"] = sx
             rec["ev"] += sx_events(sxlive.LAST, (days.get(prev_d) or {}).get("sx") if prev_d else None)
+        bm = boom_state(sxlive.LAST.get("plan"), ((data.get("cfg") or {}).get("now") or {}).get("tw"))
+        if bm:
+            rec["boom"] = bm
     except Exception:                                     # noqa: BLE001 —— 摘要讀不到：不發提醒
         pass
     try:                                                  # 美股三成（研究檔判定換了才有）
@@ -387,6 +456,12 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
         if uq:
             rec["uqm"] = uq
             rec["ev"] += uqm_events(uq, (days.get(prev_d) or {}).get("uqm") if prev_d else None)
+    except Exception:                                     # noqa: BLE001 —— 讀不到：不發提醒
+        pass
+    try:                                                  # 新策略候選（第一次有結果的推播一行）
+        cs = cand_state((days.get(prev_d) or {}).get("cand") if prev_d else None)
+        if cs:
+            rec["cand"] = cs
     except Exception:                                     # noqa: BLE001 —— 讀不到：不發提醒
         pass
     rec["push"] = push_lines(rec)

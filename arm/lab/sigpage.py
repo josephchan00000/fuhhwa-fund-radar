@@ -256,7 +256,8 @@ def core_data(dirpath: Path | None = None, record: bool = True) -> dict:
         from . import ussxqm as QM
         QR = QM.load()
         if QR:
-            qm = {"R": QR, "L": QM.load_live(), "W": QM.load_watch()}
+            from . import uscard as UC
+            qm = {"R": QR, "L": QM.load_live(), "W": QM.load_watch(), "C": UC.load()}   # C＝美股個股卡的每天資料（配置頁用）
     except Exception as e:                                # noqa: BLE001
         print(f"[交易計畫] 美股三成的研究檔讀不到：{type(e).__name__}: {e}")
     fw = {}
@@ -714,27 +715,6 @@ def method_html(luck: dict | None = None) -> str:
             f'<p class="note">規格寫在 arm/lab/sigspec.py（VER {S.VER}），在算機率之前寫定；改規格要升版本。</p>'
             '</details></section>')
 
-
-_HTML = """<!doctype html>
-<html lang="zh-Hant"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
-<link rel="icon" href="data:,">
-<title>訊號總覽</title>
-<style>{{CSS}}</style></head>
-<body>
-<div class="top">{{APPTAB}}<span class="asof">{{ASOF}}</span><a class="back" href="./">返回主頁</a></div>
-<div class="vbar"><details class="purp"><summary>這頁怎麼看</summary><p>上面是今天有效的好訊號；下面依指標列出全部
-（例：RSI、融資餘額水位），點一個指標看它現在的數值、走勢，和它每一種訊號過去出現之後「上漲（或大跌）的機率」，
-跟同一段期間「隨便挑一天」比，以及進場之後報酬的中位數。★ 好訊號＝出現過 15 次以上、機率夠高、不比隨便挑一天差、近 10 年也成立，
-偏多的報酬中位數扣掉成本也賺錢；◆ 難得機會＝門檻都過了、但只出現 5～14 次。機率高不一定是時機好（大盤本身長期往上），比隨便挑一天多幾個百分點才是。
-照書上的規則買賣大盤指數的「總經策略」在頂欄的<a href="x9.html#v=mac">策略頁</a>（這裡的「策略」一類也查得到），★ 好策略＝交易成績過關、近 10 年與附近的參數也成立。
-名詞滑過 ⓘ 或看最下面「名詞與判定方式」。</p></details></div>
-<main>{{BODY}}</main>{{PANEL}}
-<script type="application/json" id="sgd">{{DATA}}</script>
-<script>{{JS}}</script>
-</body></html>
-"""
 
 def _ii(k: str) -> str:
     """名詞旁的 ⓘ（滑過或點一下看一句說明；說明文字在 JS 的 TIP）。"""
@@ -1920,7 +1900,7 @@ function fromHash(ev){
 window.addEventListener('hashchange', fromHash, SGO);
 draw(); fromHash();
 };
-window.sgInit();
+if (!window.__heatWait) window.sgInit();   // 美股頁網址指到別的指數：等換好內容再畫（heatpage_us.SWITCH_JS）
 """
 JS = JS.replace("/*@@XSPANEL@@*/", XSP.PANEL_JS)
 

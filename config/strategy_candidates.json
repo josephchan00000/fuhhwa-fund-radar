@@ -1,0 +1,99 @@
+{
+  "as_of": "2026-10-24",
+  "note": "新策略候選（docs/lab_ia_v5_plan.md 第 6、24 節；框架規格 arm/lab/candspec.py）。一條一筆，程式在 arm/lab/cands/{編號}.py；寫定之後一字不改，要改就用新的編號（prev 指到舊的）。使用者的決定記在 config/strategy_board.json 的 cand。",
+  "items": [
+    {
+      "id": "c001",
+      "found": "2026-10-24",
+      "name": "毛利÷總資產（大型股）",
+      "mk": "tw",
+      "engine": "tw_stock",
+      "kind": "per",
+      "how": "每季財報公布期限後，大型股依近四季營業毛利÷總資產排序，買最高的兩成，抱到下一次公布期限",
+      "src": [
+        {
+          "t": "Novy-Marx, The Other Side of Value: The Gross Profitability Premium（NBER 工作論文 15940；Journal of Financial Economics 2013）",
+          "u": "https://www.nber.org/system/files/working_papers/w15940/w15940.pdf"
+        },
+        {
+          "t": "AQR Insight Award 2012：The Other Side of Value",
+          "u": "https://www.aqr.com/Our-Firm/AQR-Insight-Award/2012/Distinguished-Paper-1"
+        }
+      ],
+      "why": "本業賺錢效率高（毛利占總資產高）的公司之後報酬較高，預測力和股價淨值比差不多，美國長期資料與已開發市場都成立；頁面上的個股策略沒有獲利能力這一類。原論文用年報資料；這裡改成每季財報公布期限後用近四季毛利更新。",
+      "p": {
+        "q": 4
+      },
+      "grid": {
+        "q": [
+          2,
+          4,
+          8
+        ],
+        "pick": [
+          [
+            0.1,
+            5
+          ],
+          [
+            0.2,
+            5
+          ],
+          [
+            0.3,
+            5
+          ]
+        ]
+      },
+      "b": "L",
+      "pick": {
+        "top": 0.2,
+        "nmin": 5
+      },
+      "note": "財報是公開資訊觀測站彙總表回補的數字（可能含之後的更正）；金融業沒有營業毛利、不排。",
+      "sha": "eb0fccef4c2452e4497a1f1002f19dcd16dfa9c497d4e17175e72b3123061fba"
+    },
+    {
+      "id": "c002",
+      "found": "2026-10-24",
+      "name": "選擇權到期週",
+      "mk": "spx",
+      "engine": "index",
+      "kind": "alloc",
+      "how": "每個月第三個星期五那一週拿 S&P 500（前一個星期五收盤買、第三個星期五收盤賣），其他時間空手",
+      "src": [
+        {
+          "t": "Stivers & Sun, Returns and option activity over the option-expiration week for S&P 100 stocks（Journal of Banking & Finance 2013）",
+          "u": "https://ideas.repec.org/a/eee/jbfina/v37y2013i11p4226-4240.html"
+        },
+        {
+          "t": "Quantpedia：Option-Expiration Week Effect",
+          "u": "https://quantpedia.com/strategies/option-expiration-week-effect"
+        },
+        {
+          "t": "CXO Advisory：Option Expiration Week Stock Return Drill-down",
+          "u": "https://cxoadvisory.com/calendar-effects/option-expiration-week-stock-return-drill-down"
+        }
+      ],
+      "why": "選擇權到期週（每個月第三個星期五那一週）大型股與 S&P 500 的週報酬偏高，作者認為和造市商的避險部位調整、到期前隱含波動率下降有關；頁面上的季節性策略只有月底月初與 Halloween。日曆排定，照排定那天收盤進出（同月底月初）。",
+      "p": {
+        "pre": 0,
+        "post": 0
+      },
+      "grid": {
+        "pre": [
+          -1,
+          0,
+          1
+        ],
+        "post": [
+          -1,
+          0,
+          1
+        ]
+      },
+      "note": "原論文是 S&P 100 的個股；這裡用 S&P 500 指數（作者 2010 年工作論文的指數結果），一律照 ETF 成本。",
+      "sha": "88ac36c1f7ea5636fe6569d4a50b0d18c426e7813e1d14ba1c383ec8dd6bdac8"
+    }
+  ]
+}

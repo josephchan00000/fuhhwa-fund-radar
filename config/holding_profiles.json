@@ -3795,6 +3795,120 @@
    "ticker": "6782",
    "country": "台灣",
    "verified": true
+  },
+  "International Seaways Inc": {
+   "intro": "美國 International Seaways，油輪航運公司；船隊涵蓋超大型（VLCC）、蘇伊士型、阿芙拉型等原油輪與 LR1／LR2／MR 成品油輪，客戶為石油公司、貿易商與煉油廠。",
+   "ticker": "INSW",
+   "country": "美國",
+   "verified": true
+  },
+  "CareDx Inc": {
+   "intro": "美國 CareDx，器官移植檢測公司；AlloSure（捐贈者游離 DNA 檢測）與 AlloMap Heart 用於腎、心、肺移植後的排斥監測，另有 HLA 配型產品與移植病患管理軟體。",
+   "ticker": "CDNA",
+   "country": "美國",
+   "verified": true
+  },
+  "Valero Energy Corp": {
+   "intro": "美國瓦萊羅能源（Valero Energy），大型煉油商；在美國、加拿大、英國擁有 15 座煉油廠，另有合資的再生柴油廠（Diamond Green Diesel）與乙醇廠。",
+   "ticker": "VLO",
+   "country": "美國",
+   "verified": true
+  },
+  "HF Sinclair Corp": {
+   "intro": "美國 HF Sinclair（前身 HollyFrontier），煉油商；在堪薩斯、奧克拉荷馬、新墨西哥、猶他、華盛頓、懷俄明州擁有 7 座煉油廠，另有再生柴油、特用潤滑油與加油站經銷網路。",
+   "ticker": "DINO",
+   "country": "美國",
+   "verified": true
+  },
+  "Marathon Petroleum Corp": {
+   "intro": "美國馬拉松石油（Marathon Petroleum），美國最大煉油商之一；13 座煉油廠日煉能約 300 萬桶，並持有中游管線公司 MPLX 約六成股權，另經營再生柴油事業。",
+   "ticker": "MPC",
+   "country": "美國",
+   "verified": true
+  },
+  "Abercrombie & Fitch Co": {
+   "intro": "美國 Abercrombie & Fitch，服飾零售商；旗下有 Abercrombie & Fitch、abercrombie kids、Hollister、Gilly Hicks 等品牌，經營門市與網路銷售。",
+   "ticker": "ANF",
+   "country": "美國",
+   "verified": true
+  },
+  "Illumina Inc": {
+   "intro": "美國因美納（Illumina），基因定序儀器與試劑廠；九成以上營收來自定序儀器、試劑耗材與服務，客戶包括基因體研究中心、醫院與藥廠。",
+   "ticker": "ILMN",
+   "country": "美國",
+   "verified": true
+  },
+  "Paycom Software Inc": {
+   "intro": "美國 Paycom，薪資與人資雲端軟體公司；平台涵蓋薪資發放、人資管理、出勤與招募等功能，客戶以美國中型企業為主。",
+   "ticker": "PAYC",
+   "country": "美國",
+   "verified": true
+  },
+  "Qualys Inc": {
+   "intro": "美國 Qualys，雲端資安公司；以訂閱制提供弱點管理與合規檢測，找出企業網路的安全漏洞並排定修補先後。",
+   "ticker": "QLYS",
+   "country": "美國",
+   "verified": true
+  },
+  "Halozyme Therapeutics Inc": {
+   "intro": "美國 Halozyme，藥物遞送技術授權公司；ENHANZE 技術讓原本靜脈注射的生物藥改成皮下注射，向羅氏、argenx 等藥廠收取授權金、里程碑款與銷售權利金。",
+   "ticker": "HALO",
+   "country": "美國",
+   "verified": true
+  },
+  "NetApp Inc": {
+   "intro": "美國 NetApp，企業資料儲存與管理公司；產品有 ONTAP 儲存軟體與全快閃儲存設備，並在 Azure 等公有雲提供儲存服務。",
+   "ticker": "NTAP",
+   "country": "美國",
+   "verified": true
+  },
+  "Concentra Group Holdings Parent Inc": {
+   "intro": "美國 Concentra，職業醫療服務公司；在全美經營 500 多家職業健康中心與企業駐點診所，提供工傷治療、職前體檢與藥物檢測，自 Select Medical 分拆上市。",
+   "ticker": "CON",
+   "country": "美國",
+   "verified": true
+  },
+  "Caris Life Sciences Inc": {
+   "intro": "美國 Caris Life Sciences，癌症分子檢測公司；主力為組織檢測 MI Profile 與血液檢測 Caris Assure，並把分子資料提供給百餘家藥廠研發新藥。",
+   "ticker": "CAI",
+   "country": "美國",
+   "verified": true
+  },
+  "DocuSign Inc": {
+   "intro": "美國 DocuSign，電子簽署軟體公司；以雲端訂閱提供電子簽名與合約流程管理，讓企業在各種裝置上簽署具法律效力的文件。",
+   "ticker": "DOCU",
+   "country": "美國",
+   "verified": true
+  },
+  "Dorian LPG Ltd": {
+   "intro": "美國 Dorian LPG，液化石油氣運輸船東；經營 25 艘超大型液化氣船（VLGC），船隊由公司自行管理。",
+   "ticker": "LPG",
+   "country": "美國",
+   "verified": true
+  },
+  "Par Pacific Holdings Inc": {
+   "intro": "美國 Par Pacific，煉油商；在夏威夷、華盛頓、懷俄明、蒙大拿州擁有煉油廠，其中夏威夷煉油廠是當地最大，另經營加油站與物流事業。",
+   "ticker": "PARR",
+   "country": "美國",
+   "verified": true
+  },
+  "Victoria's Secret & Co": {
+   "intro": "美國維多利亞的秘密（Victoria's Secret & Co.），內衣與美妝零售商；旗下有 Victoria's Secret、PINK、Adore Me 品牌，2026 年 6 月股票代號由 VSCO 改為 VSXY。",
+   "ticker": "VSXY",
+   "country": "美國",
+   "verified": true
+  },
+  "SM Energy Co": {
+   "intro": "美國 SM Energy，石油與天然氣開採公司；產區涵蓋德州二疊紀盆地、南德州、DJ 盆地與猶他州 Uinta 盆地。",
+   "ticker": "SM",
+   "country": "美國",
+   "verified": true
+  },
+  "Iridium Communications Inc": {
+   "intro": "美國銥星通訊（Iridium），衛星通訊業者；以 66 顆低軌衛星提供全球語音、數據與物聯網連線，客戶涵蓋海事、航空與美國政府。",
+   "ticker": "IRDM",
+   "country": "美國",
+   "verified": true
   }
  }
 }

@@ -51,27 +51,22 @@ def _why(src: str, c: str, sc: float, ym: str | None, rev: dict, eps: dict, q: s
     if src == "p7":
         x = ((store.read("rev", ym) or {}).get("s") or {}).get(c) if ym else None
         out = [f"{int(ym[5:7])} 月營收年增 {x[1]:.0f}%" if x and x[1] is not None else None,
-               f"比過去一年的變化幅度高出 {sc:.1f} 個標準差"]
+               f"成長幅度是過去一年平常起伏的 {sc:.1f} 倍"]
     else:
         e = eps.get(c) or {}
         py = PT._prev_year(q) if q else None
         out = [f"{q[:4]} 年第 {int(q[5:7]) // 3} 季 EPS {e[q]:.2f} 元（去年同季 {e[py]:.2f} 元）" if q and q in e and py in e else None,
-               f"比過去兩年的變化幅度高出 {sc:.1f} 個標準差"]
+               f"成長幅度是過去兩年平常起伏的 {sc:.1f} 倍"]
     return [x for x in out if x]
 
 
-def run(DL, names: dict | None = None) -> dict:
-    """→ {鍵: {名單、進出場日、前瞻成績、研究成績與評級}}；研究檔不存在時回 {}（頁面不顯示這幾條）。"""
-    res = store.read_json("bt3_research.json", {}) or {}
-    R = {r["k"]: r for r in res.get("rows") or []}
-    if not R:
-        return {}
+def live_panel(DL):
+    """每天的資料（analyze.Data）做成 packtest.Px 面板：市值口徑同研究（最近一個月底的官方收盤 × 發行股數，
+    每日官方分片補快照、不發請求）。新策略候選試用中的每週紀錄（candrun.forward）也用這一個。"""
     from .collect import yh_codes, yhl_codes
-    names = names or DL.names
     iss = DL.issued()
     stock = lambda c: len(c) == 4 and c.isdigit() and not c.startswith("0")
     P = PT.Px(DL, [c for c in sorted(set(yh_codes()) | set(yhl_codes())) if stock(c)], iss)
-    # 市值口徑同研究：最近一個月底（含當天）的官方收盤 × 發行股數（每日官方分片補快照，不發請求）
     from . import v3data
     try:
         v3data.me_from_mkt()
@@ -84,6 +79,17 @@ def run(DL, names: dict | None = None) -> dict:
     for c in P.codes:
         P.cap[c] = [snaps[k][1].get(c) if k >= 0 else None for k in kof]
     P._el = {}
+    return P
+
+
+def run(DL, names: dict | None = None) -> dict:
+    """→ {鍵: {名單、進出場日、前瞻成績、研究成績與評級}}；研究檔不存在時回 {}（頁面不顯示這幾條）。"""
+    res = store.read_json("bt3_research.json", {}) or {}
+    R = {r["k"]: r for r in res.get("rows") or []}
+    if not R:
+        return {}
+    names = names or DL.names
+    P = live_panel(DL)
     E = bt3.Elig(P)
     rev = PT.load_rev()
     eps = bt3d.load_eps()

@@ -394,7 +394,7 @@ def test_meta_matches_spec_and_is_embedded(built):
     assert set(m["items"]) == set(S.KEYS) and [d["id"] for d in m["dims"]] == list(P.shown_dims())   # 泡沫另放泡沫頁
     assert [a["id"] for a in m["acc"]] == [f"A_{g}" for g in S.M6_GROUPS] and m["acc"][0]["name"] == "景氣動能加速度"
     assert m["m6"] == {"delay": list(S.M6_DELAY), "win": S.M6_WIN, "cum": list(S.M6_CUM), "minn": S.M6_MIN_N}
-    assert page.count("<script>") == 4 and "x9mh.json" in page                 # HEAT_META、景氣頁程式、全部指標與泡沫的程式、<head> 的深淺色（appnav）；序列資料另外下載
+    assert page.count("<script>") == 5 and "x9mh.json" in page                 # HEAT_META、景氣頁程式、全部指標與泡沫的程式、<head> 的深淺色與記住上次位置（appnav）；序列資料另外下載
 
 
 def test_coupling_replaced_by_scenarios():

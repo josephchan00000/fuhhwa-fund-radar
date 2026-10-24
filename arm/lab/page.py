@@ -44,12 +44,13 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         data["mac"] = xsadvice.build()
     except Exception as e:                   # noqa: BLE001 —— 失敗只是總經策略那兩頁空著
         print(f"[籌碼雷達] ⚠ 總經策略沒有放進頁面：{type(e).__name__}: {e}")
-    try:                                     # 訊號總覽・研究結論的交易計畫卡（corespec；docs/lab_core70_plan.md）：台股衛星的 ★ 策略與接下來要做的事
+    try:                                     # 交易計畫（corespec；docs/lab_core70_plan.md）：台股機動的 ★ 策略、接下來要做的事、新飆股那本帳（VER 4）
         from . import core
+        from . import sxlive
         from ..clock import today_tw
         core.STK.clear()
         if isinstance(data.get("adv"), dict) and not data["adv"].get("err"):
-            core.STK.update(core.stk_from_adv(data["adv"], today_tw().isoformat()))
+            core.STK.update(core.stk_from_adv(data["adv"], today_tw().isoformat(), boom=sxlive.LAST.get("plan")))
     except Exception as e:                   # noqa: BLE001 —— 失敗只是交易計畫卡少了台股衛星的名單
         print(f"[籌碼雷達] ⚠ 交易計畫卡的衛星資料沒有算：{type(e).__name__}: {e}")
     _cfg(data)                               # 配置頁（先用上一版的警訊讀數；finish() 換成今天的）
@@ -151,7 +152,7 @@ def _md(d) -> str:
 
 
 def asof_line(data: dict) -> str:
-    """頂欄資料日：多數來源同一天只寫一次，落後的另外標；集保是週資料；ETF 揭露未到齊時標檔數。"""
+    """資料日（個股工具那一列；2026-10-23 第 4 段前在頂欄）：多數來源同一天只寫一次，落後的另外標；集保是週資料；ETF 揭露未到齊時標檔數。"""
     a = data.get("asof") or {}
     keys = (("ETF 持股", "pos"), ("價量", "px"), ("法人", "chip"), ("融資券", "margin"))
     ds = [a[k] for _, k in keys if a.get(k)]
@@ -191,15 +192,16 @@ def theme_css() -> str:
 def render(data: dict, ser_v: str | None = None) -> str:
     main = {k: v for k, v in data.items() if k not in ("ser", "mtab")}
     main["serv"] = ser_v or _ver(ser_json(data))
+    main["asl"] = asof_line(data)                 # 資料日（個股工具那一列；第 4 段起不放頂欄）
     blob = _dump(main).replace("</", "<\\/")
-    from . import appnav, cfgpage, copage, macpage, stockviz   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
+    from . import appnav, cfgpage, copage, corepage, macpage, stockviz, uscardpage   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
                                              # （初始化會開分頁與 #s= 個股卡，這時公司分析的頂層 const 必須已經初始化）
                                              # stockviz＝機會、籌碼頁的三張圖（docs/lab_visual_plan.md 第 10 節），同樣放在初始化之前
                                              # cfgpage＝配置頁（台股、美股、策略；docs/lab_ia_v5_plan.md 第 18 節），同樣放在初始化之前
-    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("cfg")).replace("{{SUB}}", asof_line(data))
-            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS + stockviz.CSS + macpage.CSS + cfgpage.CSS + theme_css())
-            .replace("{{SEARCH}}", copage.SEARCH_HTML)
-            .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", stockviz.JS + macpage.JS + cfgpage.JS + copage.JS)))
+                                             # uscardpage＝美股個股卡（docs/lab_cfg_v2_plan.md 第 3.3 節；要用 cfgpage 的 CFG），放在 cfgpage 後面
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("cfg", search=copage.SEARCH_HTML))
+            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS + stockviz.CSS + macpage.CSS + corepage.CSS + cfgpage.CSS + uscardpage.CSS + theme_css())
+            .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", stockviz.JS + macpage.JS + cfgpage.JS + uscardpage.JS + copage.JS)))
 
 
 _HTML = """<!doctype html>
@@ -210,7 +212,7 @@ _HTML = """<!doctype html>
 <title>配置</title>
 <style>{{CSS}}</style></head>
 <body>
-<div class="top">{{APPTAB}}<span class="asof">{{SUB}}</span>{{SEARCH}}<a class="back" href="./">返回主頁</a></div>
+<div class="top">{{APPTAB}}<a class="back" href="./"><span class="bk1">返回</span>主頁</a></div>
 <header class="hd"><div class="hdi">
   <nav class="tabs" id="tabs">
     <a data-t="tw" data-p="cfg">台股</a><a data-t="us" data-p="cfg">美股</a><a data-t="strat" data-p="cfg">策略</a><a data-t="tool" data-p="cfg">個股</a>
@@ -233,18 +235,20 @@ _CSS = """
 --accd:#1c4fa8;--gain:#d33a34;--loss:#1f9d57;--gold:#a16207;--inset:#eef2f8;--warn:#b45309;--hlbg:#dce7fa;
 --gainbg:#fdecea;--lossbg:#e6f5ec;--line2:#b6bfcb;--mut2:#9aa5b1;--grid2:#c9d0da;--hover:#f8fafd;--onacc:#fff;
 --popbg:#1f2733;--popink:#fff;--tipbg:rgba(31,39,51,.94);--fwbg:#fbfcf3;--gbbg:#fdf1dc;--accbg:rgba(37,99,201,.1);
---amber:#f59e0b;--bar2:#8fa6c8;--band:#b8c7e0;--hlcol:#e8effb;--inset2:#f7f9fc;--shadow:rgba(15,23,42,.14);--vio:#7b5ea7}
+--amber:#f59e0b;--bar2:#8fa6c8;--band:#b8c7e0;--hlcol:#e8effb;--inset2:#f7f9fc;--shadow:rgba(15,23,42,.14);--vio:#7b5ea7;
+--cfc1:#2a78d6;--cfc2:#eb6834;--cfc3:#1baf7a;--cfc4:#eda100;--cfc5:#e87ba4;--cfc6:#008300;--cfc7:#6250d6;--cfc8:#e34948}
 @media (prefers-color-scheme:dark){:root{--bg:#0b111c;--card2:#182234;--ink:#e8eef8;--ink2:#aab6c9;--mut:#8392a8;--line:#223049;
 --acc:#6aa8ff;--accd:#8fbcff;--gain:#f2665c;--loss:#3fbf7a;--gold:#e0a64a;--inset:#1c2840;--warn:#f0a24a;--hlbg:rgba(106,168,255,.18);
 --gainbg:rgba(242,102,92,.16);--lossbg:rgba(63,191,122,.15);--line2:#3a4d6b;--mut2:#5f6f86;--grid2:#30425f;--hover:#141d2d;--onacc:#0b111c;
 --popbg:#24324a;--popink:#e8eef8;--tipbg:rgba(36,50,74,.96);--fwbg:#1d2618;--gbbg:rgba(240,162,74,.16);--accbg:rgba(106,168,255,.14);
---amber:#f5b041;--bar2:#5a7aa8;--band:#3a5584;--hlcol:rgba(106,168,255,.12);--inset2:#141d2d;--shadow:rgba(0,0,0,.45);--vio:#997ac9}}
+--amber:#f5b041;--bar2:#5a7aa8;--band:#3a5584;--hlcol:rgba(106,168,255,.12);--inset2:#141d2d;--shadow:rgba(0,0,0,.45);--vio:#997ac9;
+--cfc1:#3987e5;--cfc2:#d95926;--cfc3:#199e70;--cfc4:#c98500;--cfc5:#d55181;--cfc6:#008300;--cfc7:#9085e9;--cfc8:#e66767}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,"PingFang TC","Noto Sans TC",Segoe UI,sans-serif;-webkit-text-size-adjust:100%}
 a{color:var(--acc);text-decoration:none;cursor:pointer}
 table,.fv,.num{font-variant-numeric:tabular-nums}
 .top{display:flex;align-items:baseline;gap:4px 12px;flex-wrap:wrap;padding:10px 16px 4px;max-width:1180px;margin:0 auto}
-.top b{font-size:18px}.asof{color:var(--mut);font-size:12.5px;flex:1;min-width:0}
+.top b{font-size:18px}
 .back{font-size:13px;color:var(--mut);white-space:nowrap}
 .hd{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
 .hdi{max-width:1180px;margin:0 auto;padding:0 16px}
@@ -485,7 +489,7 @@ table.trt td,table.trt th{vertical-align:top}table.trt td .sm2{white-space:norma
 }
 @media(max-width:760px){.g2{grid-template-columns:1fr}.nbs{grid-auto-flow:row;grid-template-columns:1fr;grid-template-rows:none!important}}
 @media(max-width:600px){
- .top{padding:8px 12px 2px}.asof{flex-basis:100%;order:3;font-size:12px}
+ .top{padding:8px 12px 2px}
  .osum{grid-template-columns:repeat(2,minmax(0,1fr))}
  .hdi{padding:0 6px}.tabs a{padding:9px 9px 7px;font-size:14.5px}
  main{padding:14px 12px 90px}
@@ -763,7 +767,7 @@ function vStk(){
    `<select id=mk aria-label="市場">${Object.entries(MKF2).map(([m,t])=>`<option value=${m}${S.mk===m?' selected':''}>${t}</option>`).join('')}</select>`+
    `<select id=sgf aria-label="訊號"><option value="">全部訊號</option>${Object.keys(SD).filter(k=>cnt[k]).map(k=>`<option value=${k}${S.sig===k?' selected':''}>${RISK.has(k)?'⚠ ':''}${esc(SD[k][0])}（${cnt[k]}）</option>`).join('')}<option value=nb${S.sig==='nb'?' selected':''}>10 日內新建倉（台股 ${nbN}）</option>${SXC.size?`<option value=sx${S.sig==='sx'?' selected':''}>飆股候選（${ROWS.filter(r=>SXC.has(r.c)).length}）</option>`:''}</select>`+
    `</div><div class=vbar><span class=seg>${Object.entries(VW).map(([k,t])=>`<a data-vw=${k} class="${S.vw===k?'on':''}">${t}</a>`).join('')}</span>`+
-   `<label class=tgl title="台股配置的機動三成這一期待買進或持有中的股票"><input type=checkbox id=stf${S.stf?' checked':''}>配置裡的（${Object.keys(PKU).length}）</label>`+
+   `<label class=tgl title="台股配置的機動這一期待買進或持有中的股票"><input type=checkbox id=stf${S.stf?' checked':''}>配置裡的（${Object.keys(PKU).length}）</label>`+
    `<label class=tgl title="20 日平均成交金額 ≥ 1 億元"><input type=checkbox id=liq${S.liq?' checked':''}>成交 ≥1 億</label><span class=cnt id=cnt></span></div><div id=stkt></div>`;
   $('#q').oninput=e=>{S.q=e.target.value;S.n=60;drawStk();};
   $('#mk').onchange=e=>{S.mk=e.target.value;S.n=60;save();drawStk();};
@@ -1139,7 +1143,7 @@ function eAt(E,k){const i=(E.k||[]).indexOf(k);return i<0||E.avg[i]==null?null:{
    推薦策略（A、B 級）依推薦順序，一條一張卡：做法／隱含獲利／現在／下一批；最上面摘要與時間表，最後避開清單。
    報酬一律是扣成本後的實際報酬，旁邊只放同期大盤（加權報酬指數，含息）。評級依據與驗證都在「後台」。 ---------- */
 const BK={};(ADV.book||[]).forEach(b=>BK[b.k]=b);
-const STN={v3l:'財報大型',v7m:'營收中型',v7l:'營收大型',v3m:'財報中型',s3:'臺灣50',s5:'長線',s1:'共識加碼',hd:'高股息'};
+const STN={v3l:'財報大型',v7m:'營收中型',v7l:'營收大型',v3m:'財報中型',s3:'臺灣50',s5:'長線',s1:'共識加碼',hd:'高股息',boom:'新飆股'};
 const S5COND='四項條件：投信 20 日買超 ≥ 股本 0.5%，且 20 天中 ≥12 天買超（另認：主動 ETF 20 日內 ≥2 家投信新建倉、投信 20 日未淨賣）；最新月營收年增 ≥20%、累計年增 ≥15%；收盤 > 60 日線 > 120 日線、60 日線上揚、距 120 日高點 20% 內、比低點高 30% 以上、120 日報酬全市場前 30%；市值 50～1,500 億、20 日均成交值 ≥1 億';
 function hz(h){h=esc(h||'');return /^\d/.test(h)?' '+h:h;}
 function capTxt(t){const c=(ADV.caps||{})[t];return c?`每檔 ≤ 資金 ${f(c*100,0)}%`:'不下單';}
@@ -1154,6 +1158,9 @@ const OPP=ADV.opp||{};
 const PK={};(ADV.picks||[]).forEach(p=>{(PK[p.c]=PK[p.c]||[]).push(p);});
 /* 個股表與個股卡只標台股配置裡（使用中）的策略；PK 是全部 ★／● 策略（研究紀錄的個股策略頁用） */
 const CFU=new Set(((D.cfg||{}).use)||[]),PKU={};Object.keys(PK).forEach(c=>{const q=PK[c].filter(p=>CFU.has(p.k));if(q.length)PKU[c]=q;});
+/* 配置頁 v2（cfgpage.pos_map）：台股每一檔占全部資金多少、第二行、為什麼；新飆股不在 ADV.picks，補進個股表的「配置裡的」與個股卡 */
+const CPOS=(((D.cfg||{}).tw)||{}).pos||{},BXT=(((D.cfg||{}).tw)||{}).bx||'';
+Object.keys(CPOS).forEach(c=>CPOS[c].forEach(q=>{if(q.k==='boom')(PKU[c]=PKU[c]||[]).push({k:'boom',c,n:q.n,sname:'新飆股',act:q.h?'持有中':'佈局',_q:q});}));
 /* 飆股候選（機會頁「飆股」那份名單，2026-10-23 起名單只在研究紀錄；個股表留一個篩選，docs/lab_ia_v5_plan.md 第 13 節其他細項 5） */
 const SXC=new Set((((D.wl||{}).cand)||[]).map(x=>x[0]));
 function stTags(c){return (PKU[c]||[]).map(p=>`<span class="stg${p.act==='持有中'?' h':''}">${esc(STN[p.k]||p.sname)}・${p.act==='持有中'?'持有':'待買'}</span>`).join('');}
@@ -1820,8 +1827,9 @@ function openStock(c){if(!$('#dv').hidden){history.replaceState(null,'','#s='+en
   PUSHED=true;location.hash='s='+encodeURIComponent(c);}
 function lockBody(on){document.body.style.overflow=on?'hidden':'';}
 function hideStock(){$('#dv').hidden=true;$('#dv').classList.remove('pane');document.body.classList.remove('pane');lockBody(!$('#gl').hidden);}
-function closeStock(){if(PUSHED&&location.hash.startsWith('#s=')){PUSHED=false;history.back();}else{history.replaceState(null,'',location.pathname+location.search);hideStock();}}
-function stepStock(d){const c=decodeURIComponent((location.hash.match(/^#s=(.+)$/)||[])[1]||'');const i=CTX.indexOf(c);const t=CTX[i+d];if(i>=0&&t)openStock(t);}
+function closeStock(){if(PUSHED&&/^#(s|us)=/.test(location.hash)){PUSHED=false;history.back();}else{history.replaceState(null,'',location.pathname+location.search);hideStock();}}
+function stepStock(d){if(/^#us=/.test(location.hash)){ucStep(d);return;}   /* 美股個股卡（uscardpage）：‹ › 照配置頁美股的順序 */
+  const c=decodeURIComponent((location.hash.match(/^#s=(.+)$/)||[])[1]||'');const i=CTX.indexOf(c);const t=CTX[i+d];if(i>=0&&t)openStock(t);}
 window.addEventListener('hashchange',()=>{const m=location.hash.match(/^#s=(.+)$/);if(m)renderStock(decodeURIComponent(m[1]));else hideStock();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!POP.hidden){hidePop();return;}if(!$('#gl').hidden)closeGl();else if(!$('#dv').hidden)closeStock();return;}
   if($('#dv').hidden||!$('#gl').hidden||/INPUT|SELECT|TEXTAREA/.test((e.target||{}).tagName||''))return;
@@ -1870,12 +1878,18 @@ function idxHits(c){
   return hits.join('');}
 
 /* 個股卡最上面：這檔在台股配置的哪一條策略裡（只列使用中的；docs/lab_ia_v5_plan.md 第 4 節「分頁個股」） */
-function stCardSec(c){const P=PKU[c];if(!P)return '';
-  return `<section class=csec id=c-st><h3>配置<span class=sub>台股的機動三成</span></h3>`+P.map(p=>{const b=BK[p.k]||{},e=b.exp||{},u=b.unit||'次',sw=(LV[p.k]||{}).src==='p7';
-    const out=p.out?`${mdw(p.out)} 收盤${sw?'換股':'賣出'}`:esc(p.out_how||'');
-    const st=p.act==='持有中'?`持有中：${mdw(p.ent)} 買進${p.entry!=null?` ${fp(p.entry)}，現在 ${fp(p.now)}（${sgn(p.now_r,1,'%')}）`:''}；${out}`
-      :`待買進：${mdw(p.ent)} 開盤${p.tent?'（試算名單）':''}${p.px!=null?`，參考價 ${fp(p.px)}`:''}${p.stop!=null?`、停損 ${fp(p.stop)}`:''}；${out}`;
-    return `<div class=sgi><b><a data-go="tw" data-at="cf-tw-h">${esc(p.sname)}</a></b><div class=pasl style="margin-top:2px">${st}</div>`+
+function stCardSec(c){const P=PKU[c];if(!P)return '';const Q=CPOS[c]||[];
+  const wp=w=>(w*100).toFixed(1).replace(/\.0$/,'')+'%';
+  return `<section class=csec id=c-st><h3>配置<span class=sub>台股</span></h3>`+P.map(p=>{const q=Q.find(x=>x.k===p.k)||{},b=BK[p.k]||{},e=b.exp||{},u=b.unit||'次',sw=(LV[p.k]||{}).src==='p7';
+    const wt=q.w!=null?`；占全部資金${p.act==='持有中'?' ':'約 '}${wp(q.w)}`:'';
+    const why=q.y||(p.why||[]).join('；');
+    if(p.k==='boom')return `<div class=sgi><b><a data-go="tw" data-at="cf-tw-h">新飆股</a></b><div class=pasl style="margin-top:2px">${p.act==='持有中'?'持有中':'待買進'}：${esc(q.t||'')}${wt}</div>`+
+      (why?`<div class=st>為什麼：${esc(why)}</div>`:'')+(BXT?`<div class=st>${esc(BXT)}</div>`:'')+`</div>`;
+    const out=p.out?`${mdw(p.out)}收盤${sw?'換股':'賣出'}`:esc(p.out_how||'');
+    const st=p.act==='持有中'?`持有中：${mdw(p.ent)}買進${p.entry!=null?` ${fp(p.entry)}，現在 ${fp(p.now)}（${sgn(p.now_r,1,'%')}）`:''}；${out}`
+      :`待買進：${mdw(p.ent)}開盤${p.tent?'（試算名單）':''}${p.px!=null?`，參考價 ${fp(p.px)}`:''}${p.stop!=null?`、停損 ${fp(p.stop)}`:''}；${out}`;
+    return `<div class=sgi><b><a data-go="tw" data-at="cf-tw-h">${esc(p.sname)}</a></b><div class=pasl style="margin-top:2px">${st}${wt}</div>`+
+      (why?`<div class=st>為什麼：${esc(why)}</div>`:'')+
       (e.n?`<div class=st>過去照做：每${u}平均 ${pctT(e.avg)}、中位 ${pctT(e.med)}，${e.win}% 賺錢；同期大盤 ${pctT(e.mk)}</div>`:'')+`</div>`;}).join('')+`</section>`;}
 function renderStock(c,keep){
   const r=BY[c];if(!r){hideStock();return;}const s=SER?(SER[c]||{}):null;const tw=r.m!=='os';const u=tw?'張':'股';
@@ -2031,11 +2045,13 @@ const LAST={cfg:'tw',r:'bo',tool:'stk',mac:'mac',stg:'opp'};
 const PTITLE={cfg:'配置',r:'研究紀錄'};
 let PER='';
 function setPer(p){if(p===PER)return;PER=p;$$('#tabs a[data-p]').forEach(a=>{a.hidden=a.dataset.p!==p;});
-  $$('.apptab a').forEach(a=>{const on=p==='cfg'&&(a.getAttribute('href')||'')==='x9.html';
+  $$('.apptab a[data-k]').forEach(a=>{const on=p==='cfg'&&a.dataset.k==='cfg';
     a.classList.toggle('on',on);if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   document.title=PTITLE[p]||'配置';}
-function urlSet(){const t=S.tab,q=t==='tw'?'':'?v='+t+(TABG[t]==='mac'?'&m='+S.mmk:''),h=/^#(s|co)=/.test(location.hash)?location.hash:'';
-  try{history.replaceState(history.state,'',location.pathname+q+h);}catch(e){}}
+/* 頂欄「配置」記住上次看的配置分頁（appnav.NAV_HEAD；研究紀錄的分頁不記） */
+function urlSet(){const t=S.tab,q=t==='tw'?'':'?v='+t+(TABG[t]==='mac'?'&m='+S.mmk:''),h=/^#(s|co|us)=/.test(location.hash)?location.hash:'';
+  try{history.replaceState(history.state,'',location.pathname+q+h);}catch(e){}
+  if(PER==='cfg'&&window.labLast)labLast('cfg','x9.html'+q);}
 function hdh(){return $('.hd').offsetHeight;}
 function jump(id){const t=document.getElementById(id);if(t&&t.tagName==='DETAILS')t.open=true;if(t)window.scrollTo({top:t.getBoundingClientRect().top+scrollY-hdh()-8,behavior:'smooth'});}
 function buildNav(){const secs=$$('#main .sec[data-nav]');
@@ -2056,12 +2072,16 @@ function go(t,anchor){if(!VIEWS[t])t='tw';S.tab=t;const g=TABG[t];setPer(PERS[t]
   window.scrollTo(0,0);if(anchor)requestAnimationFrame(()=>jump(anchor));}
 /*@@COPAGE@@*/
 $$('#tabs a[data-t]').forEach(a=>a.onclick=()=>{const g=a.dataset.t;go(g==='mac'||g==='stg'||g==='tool'?LAST[g]:g);});
-$$('.apptab a').forEach(a=>{if((a.getAttribute('href')||'')==='x9.html')a.onclick=e=>{e.preventDefault();go(PER==='cfg'?LAST.cfg:'tw');};});
+/* 頂欄「配置」：在配置裡＝回到這次看過的配置分頁；在研究紀錄＝回到上次看的配置分頁（連結由 appnav.NAV_HEAD 換成上次的位置） */
+$$('.apptab a[data-k="cfg"]').forEach(a=>a.onclick=e=>{e.preventDefault();if(PER==='cfg'){go(LAST.cfg);return;}
+  const v=new URLSearchParams((a.getAttribute('href')||'').split('?')[1]||'').get('v');go(VIEWS[v]&&PERS[v]==='cfg'?v:'tw');});
+$$('.applk .glk').forEach(a=>a.onclick=e=>{e.preventDefault();openGl();});     /* 頂欄小字「名詞」 */
 {const q=new URLSearchParams(location.search),hm=location.hash.match(/^#v=([a-z]+)(.*)$/),gl=location.hash==='#gl';let v=q.get('v'),m=q.get('m'),x='',at=q.get('at')||undefined;
   if(hm){v=hm[1];const p=new URLSearchParams(hm[2].replace(/^&/,''));m=p.get('m')||m;x=p.get('x')||'';}
-  if(m&&MCM[m])S.mmk=m;if(!VIEWS[v])v=/^#(s|co)=/.test(location.hash)?'stk':'tw';
+  if(m&&MCM[m])S.mmk=m;if(!VIEWS[v])v=/^#((s|co)=|q$)/.test(location.hash)?'stk':/^#us=/.test(location.hash)?'us':'tw';   /* #q＝查公司（別頁頂欄的「查公司」連過來）；#us＝美股個股卡 */
   if(x&&TABG[v]==='mac'){const M=MCM[S.mmk]||{};if((M.cards||[]).some(c=>c.k===x)){v='mac';at='m-'+x;}else{v='macst';at='ms-'+x;}}
   go(v,at);if(gl)openGl();}
 if(isPane())setTimeout(()=>{loadSer().catch(()=>{});},1500);
 {const m=location.hash.match(/^#s=(.+)$/);if(m)renderStock(decodeURIComponent(m[1]));}
+{const m=location.hash.match(/^#us=(.+)$/);if(m)ucRender(decodeURIComponent(m[1]));}
 """

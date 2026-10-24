@@ -8,6 +8,7 @@
                                                                                        # （規格要 SEC 財報：資料夾沒有 sec/ 就不跑）
   USSX_DIR=… python3 scripts/run_ussx.py --qm                                          # VER 3 美股三成規則 QM → data/lab/ussx_qm.json
   USSX_DIR=… python3 scripts/run_ussx.py --qm-live                                     # 每週紀錄（ussx_weekly.yml）→ data/lab/ussx_qm_live.json
+  USSX_DIR=… python3 scripts/run_ussx.py --omfix                                       # 一次性收入修法研究（omfixspec）→ data/lab/ussx_omfix.json
 """
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from arm.lab import ussxdata as UD  # noqa: E402
 from arm.lab import ussxpanel as UP  # noqa: E402
 from arm.lab import ussxsurv as SV  # noqa: E402
 from arm.lab import ussxswap as SW  # noqa: E402
@@ -104,7 +106,9 @@ def qm(P) -> None:
           f"計畫 {rp['plan_m'] * 100:,.1f} 萬（第 12 節 {rp['ref']['plan_m'] * 100:,.1f} 萬）→ 重現 {'✓' if rp['ok'] else '✗'}")
     for mk in ("spx", "ndx"):
         pl, j = R["plans"][f"{mk}_main"], R["plans"][f"{mk}_main"]["judge"]
-        print(f"  {mk}：現在 {pl['cur']['plan']['m'] * 100:,.0f} 萬 → QM {pl['new']['plan']['m'] * 100:,.0f} 萬；"
+        b = pl.get("base") or pl["cur"]
+        print(f"  {mk}：現在在用的計畫 {b['plan']['m'] * 100:,.0f} 萬（最慘 {b['plan']['mdd'] * 100:.1f}%）→ QM {pl['new']['plan']['m'] * 100:,.0f} 萬"
+              f"（最慘 {pl['new']['plan']['mdd'] * 100:.1f}%；機動也買指數 {pl['cur']['plan']['m'] * 100:,.0f} 萬）；"
               f"錢 {'✓' if j['money'] else '✗'} 兩半 {'✓' if j['halves'] else '✗'} 最慘 {'✓' if j['mdd'] else '✗'}；"
               f"判定 {'過' if v['pass'][mk] else '沒過'}、換 {'✓' if R['switch'][mk] else '✗'}")
 
@@ -114,7 +118,14 @@ def qm_live(P) -> None:
     C = QM.context(P)
     sig = QM.signals(C, QM.qm_mask(C["cols"]["f"]))
     r = QM.run(C, sig, "spx")
+    try:                                                     # 名稱跟版本無關：規則升版（紀錄從頭記）時也沿用舊檔的名稱
+        old_names = json.loads(QM.LIVE.read_text(encoding="utf-8")).get("names") or {}
+    except (OSError, ValueError, AttributeError):
+        old_names = {}
     L = QM.live_update(C, r, sig)
+    n0 = L.get("now") or {}                                  # 配置頁美股列的股票的英文名稱（中文簡介在 holding_profiles）
+    codes = [h["c"] for h in n0.get("hold") or []] + list(n0.get("buy") or []) + [x["c"] for x in n0.get("list") or []]
+    L["names"] = UD.names_for(codes, old={**old_names, **(L.get("names") or {})})
     ch = QM.save_live(L)
     n = L.get("now") or {}
     print(f"[ussx] 美股三成紀錄（{'有更新' if ch else '沒有變'}）：起點 {L.get('start')}、已記 {len(L.get('weeks') or {})} 週、"
@@ -125,6 +136,16 @@ def qm_live(P) -> None:
         print(f"  ⚠ {x['d']} {x['what']}")
 
 
+def omfix(P) -> None:
+    """一次性收入修法研究（omfixspec VER 1）→ data/lab/ussx_omfix.json（研究用，頁面不讀）。"""
+    from arm.lab import omfixspec as OS
+    from arm.lab import ussxomfix as OF
+    from arm.lab import ussxqm as QM
+    R = OF.research(QM.context(P, extra=OS.KEYS))
+    OF.save(R)
+    print(f"[ussx] 寫入 {OF.RES.relative_to(ROOT)}；建議 {R['pick']}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--surv", action="store_true")
@@ -132,6 +153,7 @@ def main() -> None:
     ap.add_argument("--books", action="store_true")
     ap.add_argument("--qm", action="store_true")
     ap.add_argument("--qm-live", action="store_true")
+    ap.add_argument("--omfix", action="store_true")
     a = ap.parse_args()
     t0 = time.time()
     P = UP.load()
@@ -146,6 +168,8 @@ def main() -> None:
         qm(P)
     if a.qm_live:
         qm_live(P)
+    if a.omfix:
+        omfix(P)
     print(f"[ussx] 完成（{time.time() - t0:.0f}s）")
 
 

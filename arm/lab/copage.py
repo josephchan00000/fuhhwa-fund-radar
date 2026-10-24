@@ -6,7 +6,7 @@
 """
 
 CSS = r"""
-.cos{position:relative;flex:0 1 240px;min-width:150px}
+.top{position:relative}.top .applk{position:static}.cos{position:absolute;right:16px;top:calc(100% + 2px);z-index:60;width:min(340px,calc(100% - 32px));padding:8px;background:var(--bg);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px var(--shadow);white-space:normal}.cos[hidden]{display:none}.cos .coqd{left:8px;right:8px;top:calc(100% - 4px)}
 .cos input{width:100%;padding:5px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;font-size:13.5px;background:var(--card2)}
 .coqd{position:absolute;right:0;left:0;top:100%;z-index:40;background:var(--bg);border:1px solid var(--line);border-radius:10px;
   box-shadow:0 8px 24px rgba(20,30,50,.12);margin-top:4px;max-height:320px;overflow:auto}
@@ -35,7 +35,7 @@ CSS = r"""
 .fcev{list-style:none;margin:6px 0 0;padding:0}.fcev li{padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}.fcev li span:first-child{display:inline-block;min-width:3.6em;color:var(--mut)}
 .qt tr.me td{background:var(--hlbg)}.qt .sm2{font-size:12px;color:var(--mut)}.sxt a.fcl{display:block;color:var(--ink2);cursor:pointer}.sxt a.fcl:hover{color:var(--acc);text-decoration:underline}
 .fcev a{margin-left:4px;font-size:12px}
-@media (max-width:640px){.cgrid{grid-template-columns:minmax(0,1fr)}.co5 .r{grid-template-columns:2.6em 2.8em 54px minmax(0,1fr)}.cos{flex-basis:100%;order:4}
+@media (max-width:640px){.cos{right:12px;width:calc(100% - 24px)}.cos input{font-size:16px}.cgrid{grid-template-columns:minmax(0,1fr)}.co5 .r{grid-template-columns:2.6em 2.8em 54px minmax(0,1fr)}
   .chk li{grid-template-columns:1.4em minmax(0,1fr)}.chk .hr{grid-column:2;text-align:left;white-space:normal}
   .sxt .hm{display:none}.sxt .mo{display:block}}
 """
@@ -324,8 +324,8 @@ function renderCo(c,keep){const dv=$('#dv'),pane=isPane(),st0=keep?dv.scrollTop:
   const mk=C?(C.doc.mk==='tp'?'上櫃':'上市'):'';
   let h=`<div class=dvh><div class=dvt><div class=ttl><b>${esc(nm)}</b><span class=cd>${esc(c)}${mk?' · '+mk:''}${C&&C.doc.ind?' · '+esc(C.doc.ind):''}</span></div>`+
     `<div class=pxw><b>${r?fp(r.px):''}</b>${r&&r.ch!=null?sgn(r.ch,2,'%'):''}</div><a class=x id=x title="關閉（Esc）">×</a></div>`+
-    `<nav class=cnav>${coNav().map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
-  h+=coSec(c,W,()=>renderCo(c,true));
+    `<nav class=cnav>${(PKU[c]?[['c-st','配置']]:[]).concat(coNav()).map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
+  h+=stCardSec(c)+coSec(c,W,()=>renderCo(c,true));   /* 配置頁的股票不在籌碼雷達範圍（例：長線待買的天鈺）：公司卡最上面也放「配置」段 */
   $('#dvin').innerHTML=h;dv.scrollTop=st0;$('#x').onclick=closeStock;
   $$('#dvin [data-cto]').forEach(a=>a.onclick=()=>{const t=document.getElementById(a.dataset.cto);if(t)dv.scrollTo({top:dv.scrollTop+t.getBoundingClientRect().top-dv.getBoundingClientRect().top-$('#dvin .dvh').offsetHeight+2,behavior:'smooth'});});
   if(COSEC&&CO[c]&&(FC||FCERR)&&coJump(COSEC))COSEC=null;
@@ -349,7 +349,15 @@ function coAfterStock(c){if(COJ!==c)return;const done=CO[c]&&(MT||MTERR)&&(FC||F
   q.addEventListener('focus',()=>{coIdx().then(show,()=>{dd.innerHTML='<a>代號表暫時無法載入</a>';dd.hidden=false;});mtLoad().catch(()=>{});});
   q.addEventListener('input',show);q.addEventListener('blur',()=>setTimeout(()=>dd.hidden=true,150));
   q.addEventListener('keydown',e=>{if(dd.hidden||!hits.length)return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();sel=(sel+(e.key==='ArrowDown'?1:hits.length-1))%hits.length;$$('#coqd a').forEach((a,i)=>a.classList.toggle('on',i===sel));}
-    else if(e.key==='Enter'){e.preventDefault();pick(hits[sel][0]);}});})();
+    else if(e.key==='Enter'){e.preventDefault();pick(hits[sel][0]);}});
+  /* 頂欄小字「查公司」：點一下打開搜尋框、再點或按 Esc 關掉；別頁頂欄連過來（x9.html#q）就直接打開 */
+  const box=$('#cos'),btn=$('.coqb');if(!box||!btn)return;
+  const op=()=>{box.hidden=false;btn.setAttribute('aria-expanded','true');q.focus();},
+    cl=()=>{box.hidden=true;dd.hidden=true;btn.setAttribute('aria-expanded','false');};
+  btn.addEventListener('click',e=>{e.preventDefault();if(box.hidden)op();else cl();});
+  q.addEventListener('blur',()=>setTimeout(()=>{if(document.activeElement!==q)cl();},160));
+  q.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();cl();btn.focus();}});
+  if(location.hash==='#q')op();})();
 /* ---- 機會頁「飆股候選」（superx 研究規則；docs/lab_company_plan.md 第 4.6 節） ---- */
 /* 注意：機會頁一打開就會呼叫 sxSec，這段 JS 接在頁面主程式後面——頂層 const 那時還沒初始化，常數一律放函式裡 */
 function sxRate(x){return x&&x.p!=null?`<b>${f(x.p*100,0)}%</b><div class=sm2>全體 ${f((x.base||0)*100,0)}%・${f(x.n,0)} 次</div>`:'<span class=mu>—</span>';}
@@ -388,14 +396,16 @@ function fcLine(c){const b=((D.wl||{}).fc||{})[c];if(!b)return '';const [n,eg,dr
   if(eg!=null)it.push(`今年 EPS ${eg>0?'+':''}${f(eg,0)}%`);if(dr===1)it.push('30 天上修');else if(dr===-1)it.push('30 天下修');
   if(tp)it.push(`目標價 ${fp(tp)}${up==null?'':Math.abs(up)<0.5?'（和現價差不多）':`（比現價${up>0?'高':'低'} ${f(Math.abs(up),0)}%）`}`);
   return `<a class="sm2 fcl" data-co="${esc(c)}" data-cs="co-fc">${n?`${n} 位分析師`:'分析師'}${it.length?'：'+it.join('・'):''}</a>`;}
-function wlRows(L,ST,T){return L.map(x=>{const s=ST[x[0]]||{},p=s.p||{},st=p.st==null?-1:p.st;
+/* nt＝不列「來自哪份名單」那行（配置頁用） */
+function wlRows(L,ST,T,nt){return L.map(x=>{const s=ST[x[0]]||{},p=s.p||{},st=p.st==null?-1:p.st;
   return `<tr><td class=l><a data-co="${esc(x[0])}"><b>${esc(x[1])}</b></a> <span class=cd>${esc(x[0])}</span>`+
-    `<div class=sm2>${x[2].map(t=>esc(T[t]||t)).join('・')}</div>${fcLine(x[0])}${PK[x[0]]?`<span class=stgs>${stTags(x[0])}</span>`:''}</td>`+
+    `${nt?'':`<div class=sm2>${x[2].map(t=>esc(T[t]||t)).join('・')}</div>`}${fcLine(x[0])}${PK[x[0]]?`<span class=stgs>${stTags(x[0])}</span>`:''}</td>`+
     `<td class=wlp><span class="wlst s${st}">${WLST[st]}</span><div class=mo>${wlBuy(s,x[3])}</div></td>`+
     `<td>${fp(x[3])}<div class="sm2 mo">RS ${x[4]==null?'—':x[4]}</div></td><td class="wlb hm">${wlBuy(s,x[3])}</td>`+
     `<td class=hm>${x[4]==null?'—':x[4]}</td><td class=hm>${sgn(x[5],0,'%')}</td></tr>`;}).join('');}
-function wlTable(L,ST,T,id,h){return `<div class=tw><table class=sxt${id?` id=${id}`:''}><thead><tr><th class=l>股票</th><th class=wlp>位置${gi('書上的買點與停損')}</th><th>收盤</th><th class="wlb hm">${h}</th><th class=hm>RS${gi('RS 百分位')}</th><th class=hm>近 3 月營收年增</th></tr></thead><tbody>${wlRows(L,ST,T)}</tbody></table></div>`;}
-function wlSec(){const W=D.wl||{};if(!W.v)return sxSec();const Y=W.lay||{},ST=Y.stocks||{},C=W.cand||[],T=W.tags||{},R=Y.ps||{},MK=Y.mkt||{},MS=Y.mnow||{},YR=Y.years||[],W5=Y.w5||{};
+function wlTable(L,ST,T,id,h,nt){return `<div class=tw><table class=sxt${id?` id=${id}`:''}><thead><tr><th class=l>股票</th><th class=wlp>位置${gi('書上的買點與停損')}</th><th>收盤</th><th class="wlb hm">${h}</th><th class=hm>RS${gi('RS 百分位')}</th><th class=hm>近 3 月營收年增</th></tr></thead><tbody>${wlRows(L,ST,T,nt)}</tbody></table></div>`;}
+/* 名單分組（研究紀錄的飆股段、配置頁的飆股名單共用）：到買點 A、快到買點 B（強勢、離 52 週高點 NEAR 內、打底中）、其他強勢 B2、其餘 Rr */
+function wlPick(){const W=D.wl||{},Y=W.lay||{},ST=Y.stocks||{},C=W.cand||[];
   const CK=(Y.ck||[]).map(x=>x[0]),bit=(c,k)=>{const s=ST[c],i=CK.indexOf(k);return !!(s&&i>=0&&((s.x>>>i)&1));};
   const stOf=c=>{const p=(ST[c]||{}).p||{};return p.st==null?-1:p.st;},hiGap=x=>{const p=(ST[x[0]]||{}).p||{};return p.hi&&x[3]?p.hi/x[3]-1:9;};
   const strong=c=>bit(c,'rs90')||bit(c,'mom10'),byRs=(a,b)=>(b[4]||0)-(a[4]||0),ORD={0:0,5:1,4:2},NEAR=0.10;
@@ -403,6 +413,9 @@ function wlSec(){const W=D.wl||{};if(!W.v)return sxSec();const Y=W.lay||{},ST=Y.
   const inA=new Set(A.map(x=>x[0])),wait=(a,b)=>((ORD[stOf(a[0])]??3)-(ORD[stOf(b[0])]??3))||(stOf(a[0])===0?hiGap(a)-hiGap(b):byRs(a,b));
   const S2=C.filter(x=>!inA.has(x[0])&&strong(x[0])),B=S2.filter(x=>stOf(x[0])===0&&hiGap(x)<=NEAR).sort(wait);
   const inB=new Set(B.map(x=>x[0])),B2=S2.filter(x=>!inB.has(x[0])).sort(wait),Rr=C.filter(x=>!inA.has(x[0])&&!strong(x[0])).sort(wait);
+  return {A,B,B2,Rr,NEAR};}
+function wlSec(){const W=D.wl||{};if(!W.v)return sxSec();const Y=W.lay||{},ST=Y.stocks||{},C=W.cand||[],T=W.tags||{},R=Y.ps||{},MK=Y.mkt||{},MS=Y.mnow||{},YR=Y.years||[],W5=Y.w5||{};
+  const {A,B,B2,Rr,NEAR}=wlPick();
   const p0=x=>x==null?'—':f(x*100,0)+'%',per=R.per||{},P=(k,t)=>((per[k]||{})[t]||{}).B||{};
   const yr=YR.filter(y=>y.ps!=null&&y.s9!=null),win=yr.filter(y=>y.ps>y.s9).length;
   const rg=t=>{const xs=['IS','VAL','HO'].map(k=>P(k,t).p).filter(x=>x!=null);return xs.length?p0(Math.min(...xs))+'～'+p0(Math.max(...xs)):'—';};
@@ -455,5 +468,6 @@ Object.assign(GL,{'五面向':'成長（近 3 月營收年增、最新季 EPS �
 GLG.push(['公司分析',['五面向','飆股體質檢查','法人預估','產業比較','飆股命中率','書上的買點與停損','大盤 50 日線','趨勢樣板','RS 百分位','營收加速','ROE 拆解','自由現金流','現金流 ÷ 淨利','本益比位置']]);
 """
 
-SEARCH_HTML = ('<div class="cos"><input type="search" id="coq" placeholder="查公司：代號或名稱" autocomplete="off" '
-               'aria-label="查公司"><div id="coqd" class="coqd" hidden></div></div>')
+# 頂欄小字「查公司」點了才打開（docs/lab_ia_v5_plan.md 第 22 節；appnav.links 放在小字那一組裡）
+SEARCH_HTML = ('<div class="cos" id="cos" hidden><input type="search" id="coq" placeholder="代號或名稱" autocomplete="off" '
+               'aria-label="查公司：代號或名稱"><div id="coqd" class="coqd" hidden></div></div>')

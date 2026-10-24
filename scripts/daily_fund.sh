@@ -58,7 +58,7 @@ echo "[3.7/4] 籌碼雷達落檔（ETF 部位＋官方個股價量／籌碼，�
 TZ=Asia/Taipei timeout 300 python3 scripts/fetch_lab.py || true   # 不擋發佈：抓不到沿用既有分片
 TZ=Asia/Taipei timeout 420 python3 scripts/fetch_heat.py || true  # 景氣溫度頁（docs/lab_heat_plan.md）：抓不到沿用既有落檔
 TZ=Asia/Taipei timeout 420 python3 scripts/fetch_heat_us.py || true  # 美股景氣頁（docs/lab_heat_us_plan.md）：一天抓一次、抓不到沿用
-TZ=Asia/Taipei timeout 180 python3 scripts/fetch_ussx_watch.py || true  # 美股三成：持股跌破 50 日線的提醒（docs/lab_us_sleeve_plan.md 第 13.3 節；最多 8 檔）
+TZ=Asia/Taipei timeout 300 python3 scripts/fetch_ussx_watch.py || true  # 美股三成：持股跌破 50 日線的提醒（docs/lab_us_sleeve_plan.md 第 13.3 節；最多 8 檔）＋美股個股卡的資料（docs/lab_cfg_v2_plan.md 第 4 節）
 
 echo "[4/4] 產儀表板（今日重點 + 新聞 + 總經政策 + 總覽 + 持股介紹）→ dashboard/index.html …"
 python3 scripts/gen_fund_dashboard.py || echo "  ⚠ 儀表板產製失敗"
