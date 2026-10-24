@@ -426,3 +426,24 @@ def test_finish_rebuilds_with_todays_readings(tmp_path, monkeypatch, R):
     assert page.finish() is True and out.exists()
     assert data["cfg"]["now"]["tw"]["n"] == 2                                     # 用今天的讀數
     assert page.finish() is False                                                 # 內容一樣：不改寫
+
+
+def test_tw_boom_rows_say_which_rule_they_matched(R):
+    """配置頁第 5 步：新飆股名單、待買進、持股都寫符合哪一條規則（實際數字＋要多少）。"""
+    import copy
+    stk = copy.deepcopy(STK)
+    B = stk["boom"]
+    why = "符合：強度 95（要 90 以上）、近 20 日漲停 2 次、月營收創歷史新高"
+    for x in B["list"] + B["buy"]:
+        if x["c"] == "2368":
+            x["why"] = [why + "（另外也符合 1 條）"]
+    B["hold"][0]["why"] = ["10/30 那週名單第 2 名", "符合：20 日均成交值 12.0 億（要 6.5 億以上）、月營收創歷史新高"]
+    X = CF.tw_parts(_data(), dict(_bundle(R), stk=stk))
+    t = _text(X["boom"])
+    assert why + "（另外也符合 1 條）" in t                                            # 名單那一列的名字下面
+    assert X["boom"].count('class="cfin"') == 1                                     # 沒有紀錄的不寫
+    h = _text(X["hold"])
+    assert "為什麼：10/30 那週名單第 2 名；符合：20 日均成交值 12.0 億（要 6.5 億以上）、月營收創歷史新高" in h
+    assert "為什麼：強度 95（漲勢勝過 95% 的股票）；" + why in h                      # 待買進：強度＋符合哪一條
+    for w in NOT_PLAIN + BANNED:
+        assert w not in t and w not in h, w

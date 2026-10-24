@@ -1,6 +1,7 @@
 """飆股前瞻記錄（規格 sxlivespec VER 2；docs/lab_core70_plan.md 第 14、19 節）。
 VER 2：R60（PLAN_BOOK）那本帳放進交易計畫（台股機動的一半）、上配置頁——plan_state() 給頁面現在的持股、要買賣的、名單；
 A、R1 兩本照舊只記、不上頁面、不放錢。
+每週紀錄另記 why（R60 每一檔符合哪幾條規則與當時的數字；配置頁寫「符合：…」，docs/lab_cfg_v2_plan.md 第 3.1 節⑥）。
 
   update(DL, ctx)   每次建頁算一次：補記新的訊號週（只增不改）、從 START 起重算三本帳照做的成績與兩個對照；
                     只有 CI（GITHUB_ACTIONS＝true）寫回 data/lab/sxlive.json。摘要放 LAST（valog 讀，檢討日推播提醒）。
@@ -91,8 +92,26 @@ def context(DL) -> dict:
             "snaps": bt3d.month_end_caps(), "listed": set(lst)}
 
 
-def day_signals(j: int, ctx: dict, sets: dict) -> dict:
-    """第 j 天收盤：合格（superx）、那天有成交、符合任一條規則 → {本: [[代號, RS]…]}，RS 高到低、同分依代號。"""
+WHY_MAX = 60                          # 每週每本最多記幾檔「符合哪幾條」（配置頁只列前 20）
+
+
+def _jv(x):
+    """記進紀錄的數字（JSON；整數、布林照原樣，小數四位有效）。"""
+    if x is None or isinstance(x, bool):
+        return x
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return None
+    if v != v or math.isinf(v):
+        return None
+    return int(v) if v == int(v) and abs(v) < 1e15 else float(f"{v:.4g}")
+
+
+def day_signals(j: int, ctx: dict, sets: dict, why: dict | None = None) -> dict:
+    """第 j 天收盤：合格（superx）、那天有成交、符合任一條規則 → {本: [[代號, RS]…]}，RS 高到低、同分依代號。
+    why（dict）＝另外記每一檔符合哪幾條（規則在那一年清單裡的順序）與那幾條用到的數字：
+    {本: {代號: {"k": [第幾條…], "v": {條件: 數字}}}}（前 WHY_MAX 檔；只給頁面顯示，不影響訊號）。"""
     from . import superx as SX
     P = ctx["P"]
     cal = P.cal
@@ -109,11 +128,39 @@ def day_signals(j: int, ctx: dict, sets: dict) -> dict:
                       if f.get("el") and P.s[c]["c"][j] is not None and any(p(f) for p in preds)),
                      key=lambda x: (-x[1], x[0]))
         out[b] = [[c, rs] for c, rs in hit]
+        if why is not None:
+            wb = {}
+            for c, _ in hit[:WHY_MAX]:
+                f = F[c]
+                ks = [k for k, p in enumerate(preds) if p(f)]
+                feats = sorted({cond[0] for k in ks for cond in rules[k]})
+                wb[c] = {"k": ks, "v": {x: _jv(f.get(x)) for x in feats}}
+            why[b] = wb
     return out
 
 
-def add_week(weeks: dict, d: str, sig: dict, t: str, r1v: str | None = None) -> bool:
-    """把第 d 週算出來的訊號併進紀錄：已經記過的本不改；這一週先記過、後來才補上的本標 late。→ 有沒有變。"""
+def why_text(rules: list | None, w: dict | None) -> tuple[str | None, int]:
+    """符合的第一條規則寫成「實際數字（要多少）」、另外還符合幾條（只影響顯示）。沒有紀錄＝(None, 0)。"""
+    from . import superx as SX
+    if not rules or not w or not w.get("k"):
+        return None, 0
+    ks = [k for k in w["k"] if 0 <= k < len(rules)]
+    if not ks:
+        return None, 0
+    v = w.get("v") or {}
+    return "、".join(SX.cond_value_text(tuple(c), v.get(c[0])) for c in rules[ks[0]]), len(ks) - 1
+
+
+def _why_lines(rules: list | None, w: dict | None) -> list[str]:
+    t, more = why_text(rules, w)
+    if not t:
+        return []
+    return [f"符合：{t}" + (f"（另外也符合 {more} 條）" if more else "")]
+
+
+def add_week(weeks: dict, d: str, sig: dict, t: str, r1v: str | None = None, why: dict | None = None) -> bool:
+    """把第 d 週算出來的訊號併進紀錄：已經記過的本不改；這一週先記過、後來才補上的本標 late。→ 有沒有變。
+    why＝day_signals 記的「符合哪幾條」（只記跟著這一本一起新增的；配置頁顯示用）。"""
     old = weeks.get(d)
     new = dict(old) if old else {"t": t}
     changed = False
@@ -125,6 +172,8 @@ def add_week(weeks: dict, d: str, sig: dict, t: str, r1v: str | None = None) -> 
                 new["late"] = sorted(set(new.get("late") or []) | {b})
             if b == "R1" and r1v:
                 new["r1v"] = r1v
+            if why and b in why:
+                new["why"] = {**(new.get("why") or {}), b: why[b]}
     if changed:
         weeks[d] = new
     return changed
@@ -422,10 +471,11 @@ def next_week_end(d: str) -> str | None:
     return ws[0] if ws else None
 
 
-def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | None = None) -> dict:
+def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | None = None, R: dict | None = None) -> dict:
     """配置頁（台股）要的 PLAN_BOOK 狀態（sxlivespec VER 2 ②）：持股（買進日、買進價、收盤、報酬、占那本帳多少、到期與賣出日、
     明天開盤要賣）、明天開盤要買的（最新一週名單依 RS，估計現金夠買幾檔）、最新一週的名單、下一次看名单的日子、週中的試算名單。
-    比重都是占那本帳；頁面再乘 corespec 的新飆股比重。"""
+    比重都是占那本帳；頁面再乘 corespec 的新飆股比重。
+    why（名單、要買的、持股）＝那一週符合哪一條規則與實際數字（紀錄的 why；沒有＝空），持股另寫那一週名單第幾名。"""
     from .strategy import trading_days_after
     P = ctx["P"]
     cal = P.cal
@@ -440,11 +490,22 @@ def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | No
     out["next_wk"] = next_week_end(last)
     out["wk_today"] = last in week_ends(last, last)
     wks = sorted(d for d, w in (rec.get("weeks") or {}).items() if S.PLAN_BOOK in w)
+    _rules: dict = {}
+
+    def why_of(wd: str, c: str) -> list[str]:
+        y = int(wd[:4])
+        if y not in _rules:
+            try:
+                _rules[y] = rules_for(y, S.PLAN_BOOK, R)
+            except Exception:                              # noqa: BLE001
+                _rules[y] = None
+        w = (((rec.get("weeks") or {}).get(wd) or {}).get("why") or {}).get(S.PLAN_BOOK) or {}
+        return _why_lines(_rules[y], w.get(c))
     if wks:
         wd = wks[-1]
         L = rec["weeks"][wd][S.PLAN_BOOK]
         out.update({"wk": wd, "n_list": len(L),
-                    "list": [{"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1)} for c, rs in L[:S.LIST_SHOW]]})
+                    "list": [{"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1), "why": why_of(wd, c)} for c, rs in L[:S.LIST_SHOW]]})
     bk, px = rec.get("_book"), rec.get("_px") or {}
     if bk is None:
         return out
@@ -457,7 +518,10 @@ def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | No
         cl = p["c"][i1] if _ok(p["c"][i1]) else p["cff"][i1]
         o = p["o"][ei]
         due, sell = exit_day(cal[ei], cal)
-        out["hold"].append({"c": c, "n": nm.get(c, c), "ent": cal[ei], "sig": cal[q["si"]], "epx": _raw(p, "o", ei),
+        sd = cal[q["si"]]
+        rank = next((k + 1 for k, (cc, _) in enumerate(((rec.get("weeks") or {}).get(sd) or {}).get(S.PLAN_BOOK) or []) if cc == c), None)
+        why = ([f"{int(sd[5:7])}/{int(sd[8:])} 那週名單第 {rank} 名"] if rank else []) + why_of(sd, c)
+        out["hold"].append({"c": c, "n": nm.get(c, c), "ent": cal[ei], "sig": sd, "epx": _raw(p, "o", ei), "why": why,
                             "px": (cl / p["f"][i1]) if _ok(cl) and _ok(p["f"][i1]) and p["f"][i1] else None,
                             "r": float(cl / o - 1) if _ok(cl) and _ok(o) and o else None,
                             "w": float(q["k"] * cl / eq) if _ok(cl) and eq else None, "due": due,
@@ -471,7 +535,7 @@ def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | No
         cand = [(c, rs) for c, rs in rec["weeks"][last][S.PLAN_BOOK] if c not in bk.pos and c in px]
         for c, rs in sorted(cand, key=lambda x: -x[1]):
             fill = cash >= 0.25 * tgt and len(bk.pos) - len(out["sell"]) + nbuy < S.TRADE["max_positions"]
-            out["buy"].append({"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1), "fill": bool(fill)})
+            out["buy"].append({"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1), "fill": bool(fill), "why": why_of(last, c)})
             if fill:
                 nbuy += 1
                 cash -= min(tgt, cash)
@@ -479,12 +543,17 @@ def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | No
     return out
 
 
-def trial_list(ctx: dict, d: str, R: dict | None = None) -> list:
-    """週中：到 d 收盤為止符合 PLAN_BOOK 那一年規則的股票（day_signals 同一套；只是試算、不記錄）。"""
+def trial_list(ctx: dict, d: str, R: dict | None = None, why: dict | None = None) -> list:
+    """週中：到 d 收盤為止符合 PLAN_BOOK 那一年規則的股票（day_signals 同一套；只是試算、不記錄）。
+    why（dict）＝另外填 {代號: {"k", "v"}}（符合哪幾條）。"""
     rules = rules_for(int(d[:4]), S.PLAN_BOOK, R)
     if not rules or d not in ctx["P"].cal:
         return []
-    return day_signals(ctx["P"].cal.index(d), ctx, {S.PLAN_BOOK: rules}).get(S.PLAN_BOOK) or []
+    wy: dict = {}
+    out = day_signals(ctx["P"].cal.index(d), ctx, {S.PLAN_BOOK: rules}, why=wy).get(S.PLAN_BOOK) or []
+    if why is not None:
+        why.update(wy.get(S.PLAN_BOOK) or {})
+    return out
 
 
 # ── 紀錄 ─────────────────────────────────────────────────────────────
@@ -575,7 +644,9 @@ def update(DL, ctx: dict | None = None, now=None, write_file: bool | None = None
                 if rs is not None:
                     sets[b] = rs
             if sets:
-                add_week(rec["weeks"], d, day_signals(ix[d], ctx, sets), t, r1v)
+                wy: dict = {}
+                sg = day_signals(ix[d], ctx, sets, why=wy)
+                add_week(rec["weeks"], d, sg, t, r1v, why={b: v for b, v in wy.items() if b == S.PLAN_BOOK})
         rec["last"] = last
         i0 = start_index(cal)
         if i0 is not None and i0 <= ix[last]:
@@ -589,8 +660,11 @@ def update(DL, ctx: dict | None = None, now=None, write_file: bool | None = None
         nm = company.names()
         tr = []
         if last and last not in week_ends(last, last):      # 這一週還沒結束：試算到今天收盤為止符合的股票
-            tr = [{"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1)} for c, rs in trial_list(ctx, last, R)[:S.LIST_SHOW]]
-        plan = plan_state(dict(rec, last=last), ctx, nm, tr)  # START 之前（資料停在 START 前一天）也要算下一次看名單的日子
+            tw: dict = {}
+            rl = rules_for(int(last[:4]), S.PLAN_BOOK, R)
+            tr = [{"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1), "why": _why_lines(rl, tw.get(c))}
+                  for c, rs in trial_list(ctx, last, R, why=tw)[:S.LIST_SHOW]]
+        plan = plan_state(dict(rec, last=last), ctx, nm, tr, R)  # START 之前（資料停在 START 前一天）也要算下一次看名單的日子
     except Exception as e:                                 # noqa: BLE001
         print(f"[sxlive] ⚠ 新飆股的配置頁狀態算不出來：{type(e).__name__}: {e}")
     rec.pop("_book", None)

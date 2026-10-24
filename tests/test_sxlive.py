@@ -279,3 +279,88 @@ def test_lab_opt_finds_this_years_rules():
     y = (ROOT / ".github" / "workflows" / "lab_opt.yml").read_text(encoding="utf-8")
     assert "scripts/run_sxlive_rules.py --auto" in y and "pandas" in y
     assert "data/lab/sxlive_rules.json" in y or "git add -f data/lab" in y
+
+
+RULES_Y = [[("rs", ">=", 90), ("lu20", ">=", 1), ("rnha", "=", True)], [("liq", ">=", 6.5e8), ("rnha", "=", True)]]
+
+
+def test_day_signals_records_which_rules_each_stock_matched(monkeypatch):
+    """配置頁第 5 步：每週記下每一檔符合今年第幾條規則、那幾條用到的數字（只給頁面顯示，訊號照舊）。"""
+    from arm.lab import superx as SX
+
+    class P:
+        cal = ["2026-10-30"]
+        codes = ["1101", "2330", "9999"]
+        cap = {c: [None] for c in codes}
+        s = {c: {"c": [10.0]} for c in codes}
+    F = {"1101": {"el": True, "rs": 96.4, "lu20": 2, "rnha": True, "liq": 1.2e9},
+         "2330": {"el": True, "rs": 91.0, "lu20": 0, "rnha": True, "liq": 9e9},
+         "9999": {"el": True, "rs": 99.0, "lu20": 3, "rnha": False, "liq": 1e9}}
+    monkeypatch.setattr(SX, "feats_on", lambda *a, **k: F)
+    ctx = {"P": P, "snaps": [], "pxs": None, "funds": None, "qitems": None, "rf": None}
+    plain = L.day_signals(0, ctx, {"R60": RULES_Y})
+    why = {}
+    sig = L.day_signals(0, ctx, {"R60": RULES_Y}, why=why)
+    assert sig == plain == {"R60": [["1101", 96.4], ["2330", 91.0]]}                  # 訊號不受影響
+    assert why["R60"]["1101"] == {"k": [0, 1], "v": {"liq": 1200000000, "lu20": 2, "rnha": True, "rs": 96.4}}
+    assert why["R60"]["2330"] == {"k": [1], "v": {"liq": 9000000000, "rnha": True}}
+    assert "9999" not in why["R60"]
+
+
+def test_add_week_keeps_why_only_with_newly_added_books():
+    W = {}
+    w1 = {"R60": {"3017": {"k": [0], "v": {"rs": 95}}}}
+    assert L.add_week(W, "2026-10-30", {"R60": [["3017", 95]], "A": []}, "2026-10-30 15:40", why=w1)
+    assert W["2026-10-30"]["why"] == w1
+    assert not L.add_week(W, "2026-10-30", {"R60": [["1111", 99]]}, "2026-11-02 06:40", why={"R60": {"1111": {"k": [1]}}})
+    assert W["2026-10-30"]["why"] == w1                                             # 已經記過的本不改
+
+
+def test_why_text_writes_first_matched_rule_with_numbers():
+    w = {"k": [0, 1], "v": {"rs": 96.4, "lu20": 2, "rnha": True, "liq": 1.2e9}}
+    t, more = L.why_text(RULES_Y, w)
+    assert t == "強度 96（要 90 以上）、近 20 日漲停 2 次、月營收創歷史新高" and more == 1
+    assert L._why_lines(RULES_Y, w) == ["符合：強度 96（要 90 以上）、近 20 日漲停 2 次、月營收創歷史新高（另外也符合 1 條）"]
+    assert L.why_text(RULES_Y, {"k": [1], "v": {"liq": 1.2e9, "rnha": True}}) == ("20 日均成交值 12.0 億（要 6.5 億以上）、月營收創歷史新高", 0)
+    assert L.why_text(RULES_Y, None) == (None, 0) and L._why_lines(None, {"k": [0]}) == []
+    assert L.why_text(RULES_Y, {"k": [5]}) == (None, 0)                             # 規則清單對不上：不寫
+
+
+def test_plan_state_explains_list_buys_and_holdings(monkeypatch):
+    rec, ctx, bk, px, cal, sig, hold = _plan_fixture()
+    monkeypatch.setitem(S.TRADE, "hold", hold)
+    i1 = len(cal) - 1
+    top = sig[i1][0][0]
+    rec["weeks"][cal[i1]]["why"] = {"R60": {top: {"k": [0], "v": {"rs": 96.4, "lu20": 2, "rnha": True}}}}
+    held = next(iter(bk.pos))                                                     # 一檔持股：買進那一週記了它符合第 2 條
+    sd = cal[bk.pos[held]["si"]]
+    rec["weeks"][sd]["why"] = {"R60": {held: {"k": [1], "v": {"liq": 1.2e9, "rnha": True}}}}
+    Ry = {cal[i1][:4]: {"R60": {"rules": [{"conds": [list(c) for c in r]} for r in RULES_Y]}}}
+    if sd[:4] != cal[i1][:4]:
+        Ry[sd[:4]] = Ry[cal[i1][:4]]
+    st = L.plan_state(rec, ctx, {}, None, Ry)
+    lw = {x["c"]: x["why"] for x in st["list"]}
+    assert lw[top] == ["符合：強度 96（要 90 以上）、近 20 日漲停 2 次、月營收創歷史新高"]
+    assert all(v == [] for c, v in lw.items() if c != top)
+    bw = {x["c"]: x["why"] for x in st["buy"]}
+    assert all(v == lw.get(c, []) for c, v in bw.items())
+    h = next(x for x in st["hold"] if x["c"] == held)
+    rank = [c for c, _ in rec["weeks"][sd]["R60"]].index(held) + 1
+    assert h["why"] == [f"{int(sd[5:7])}/{int(sd[8:])} 那週名單第 {rank} 名", "符合：20 日均成交值 12.0 億（要 6.5 億以上）、月營收創歷史新高"]
+
+
+def test_why_text_uses_plain_words():
+    """名單「符合：…」每一種條件的寫法都不得有主頁面不用的字（tests/test_plain.py 的清單）。
+    那支測試用今天的資料建頁，10/30 以前名單還沒出來，掃不到這一句，所以這裡逐一條件檢查。"""
+    import ast
+    from arm.lab import superx as SX
+    words = []
+    for node in ast.parse((ROOT / "tests" / "test_plain.py").read_text(encoding="utf-8")).body:
+        if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") in ("METHOD", "STATUS", "NOT_PLAIN"):
+            words += list(ast.literal_eval(node.value))
+    assert len(words) > 30
+    keys = sorted(set(SX.SHORT) | set(SX.FNAME))
+    txt = [SX.cond_value_text((k, op, 0.5), v) for k in keys for op in (">=", "<=", "=") for v in (0.7, 3, None)]
+    txt += [L._why_lines([[(k, ">=", 0.5)], [(k, "<=", 0.5)]], {"k": [0, 1], "v": {k: 0.7}})[0] for k in keys]
+    hits = [(w, t) for t in txt for w in words if w in t]
+    assert not hits, hits[:5]

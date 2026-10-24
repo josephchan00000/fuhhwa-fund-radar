@@ -176,7 +176,9 @@ def boom_html(stk: dict, bundle: dict) -> str:
                 tag = f'{_md(B.get("next"))} 開盤買' if buy[x["c"]].get("fill") else "現金不夠"
             else:
                 tag = ""
-            rows.append(f'<tr><td><a {_ck(x["c"])}>{_e(x.get("n") or x["c"])}</a> <span class="cd">{_e(x["c"])}</span></td>'
+            wy = "；".join(x.get("why") or [])
+            rows.append(f'<tr><td><a {_ck(x["c"])}>{_e(x.get("n") or x["c"])}</a> <span class="cd">{_e(x["c"])}</span>'
+                        + (f'<div class="cfin">{_e(wy)}</div>' if wy else "") + '</td>'
                         f'<td class="w">{x["rs"]:.0f}</td><td class="st">{_e(tag)}</td></tr>')
         more = (B.get("n_list") or 0) - len(B["list"])
         h += (f'<h3 class="cfh3">{_e(_mdw(B["wk"]))} 收盤的名單（{B.get("n_list", 0)} 檔）'
@@ -189,7 +191,8 @@ def boom_html(stk: dict, bundle: dict) -> str:
         tr = B["trial"]
         h += (f'<h3 class="cfh3">這一週到 {_e(_md(B.get("d")))} 收盤為止符合的（{len(tr)} 檔）'
               f'<span class="sub">試算；{_e(_mdw(B.get("next_wk")))} 收盤才定案</span></h3>'
-              f'<div class="cfsxl">' + "、".join(f'<a {_ck(x["c"])}>{_e(x.get("n") or x["c"])}</a> <span class="cd">{_e(x["c"])}</span>' for x in tr[:12])
+              f'<div class="cfsxl">' + "、".join(f'<a {_ck(x["c"])}' + (f' title="{_e("；".join(x["why"]))}"' if x.get("why") else "")
+                                                 + f'>{_e(x.get("n") or x["c"])}</a> <span class="cd">{_e(x["c"])}</span>' for x in tr[:12])
               + (f" 等 {len(tr)} 檔" if len(tr) > 12 else "") + "</div>")
     elif B.get("next_wk") and B.get("next_wk") != B.get("wk"):
         h += f'<div class="cfsxn">下一份名單：{_e(_mdw(B["next_wk"]))} 收盤。</div>'
