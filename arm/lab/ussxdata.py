@@ -21,6 +21,7 @@ import io
 import json
 import math
 import os
+import re
 import time
 import urllib.parse
 from datetime import date, datetime, timedelta, timezone
@@ -435,7 +436,8 @@ def update_recent(*, budget_s: float = 2700, workers: int = 4) -> dict:
 
 
 def parse_screen(doc: dict, ex: str) -> dict:
-    """那斯達克篩選器一個交易所 → {代號: [交易所, 產業大類, 產業, 國家, IPO 年, 市值]}。"""
+    """那斯達克篩選器一個交易所 → {代號: [交易所, 產業大類, 產業, 國家, IPO 年, 市值, 公司名]}。
+    公司名（第 7 欄）2026-10-24 起才有：配置頁美股要列公司名（ussxqm 每週紀錄的 names）；之前存的檔只有 6 欄。"""
     rows = (((doc or {}).get("data") or {}).get("rows")) or []
     out = {}
     for r in rows:
@@ -449,7 +451,45 @@ def parse_screen(doc: dict, ex: str) -> dict:
         ipo = str(r.get("ipoyear") or "").strip()
         out[sym] = [ex, str(r.get("sector") or "").strip(), str(r.get("industry") or "").strip(),
                     str(r.get("country") or "").strip(), int(ipo) if ipo.isdigit() else None,
-                    cap if math.isfinite(cap) else None]
+                    cap if math.isfinite(cap) else None, clean_name(r.get("name"))]
+    return out
+
+
+_NAME_TAIL = re.compile(r"\s+(?:Class [A-Z] )?(?:Common Stock|Common Shares|Ordinary Shares|Subordinate Voting Shares|"
+                        r"American Depositary Shares|Depositary Shares|Shares of Beneficial Interest)\b.*$", re.I)
+
+
+def clean_name(x) -> str:
+    """篩選器的名稱去掉股別說明：「International Seaways, Inc. Common Stock」→「International Seaways, Inc.」。"""
+    return _NAME_TAIL.sub("", str(x or "").strip()).strip().rstrip(",")
+
+
+def names_for(codes, old: dict | None = None, fetch=None) -> dict:
+    """{代號: 英文公司名}（配置頁美股的名稱後備；中文簡介在 config/holding_profiles.json）。先看資料夾裡的篩選器檔
+    （2026-10-24 以前存的沒有名稱欄），缺的再抓一次篩選器（三個請求）；都沒有就沿用 old。只回 codes 裡的代號。"""
+    codes = [c for c in dict.fromkeys(codes or []) if c]
+    out = {}
+    try:
+        scr = load_screen()
+    except Exception:                                       # noqa: BLE001
+        scr = {}
+    for c in codes:
+        r = scr.get(c) or []
+        if len(r) > 6 and r[6]:
+            out[c] = r[6]
+    if any(c not in out for c in codes):
+        try:
+            got = (fetch or fetch_screen)()
+        except Exception as e:                              # noqa: BLE001
+            _log(f"名稱：篩選器抓不到（{type(e).__name__}），沿用舊的")
+            got = {}
+        for c in codes:
+            r = got.get(c) or []
+            if c not in out and len(r) > 6 and r[6]:
+                out[c] = r[6]
+    for c in codes:
+        if c not in out and (old or {}).get(c):
+            out[c] = old[c]
     return out
 
 

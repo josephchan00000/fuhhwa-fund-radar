@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import html
 import math
+import re
 from datetime import date
 
 from . import corespec as S
@@ -122,6 +123,47 @@ def _qm_now(qm: dict | None) -> dict:
     return (((qm or {}).get("L") or {}).get("now")) or {}
 
 
+def _qm_names(qm: dict | None) -> dict:
+    """每週紀錄裡的英文公司名（scripts/run_ussx.py --qm-live 寫的 names；2026-10-24 起）。"""
+    return (((qm or {}).get("L") or {}).get("names")) or {}
+
+
+_US_INTRO: dict | None = None
+
+
+def _us_intros() -> dict:
+    """{代號: 簡介}（config/holding_profiles.json，fund_intro.intro_lookup 的代號索引）。一個程序讀一次。"""
+    global _US_INTRO
+    if _US_INTRO is None:
+        try:
+            from .. import fund_intro as FI
+            _US_INTRO = FI.intro_lookup()[0]
+        except Exception:                                        # noqa: BLE001
+            _US_INTRO = {}
+    return _US_INTRO
+
+
+def us_label(c: str, names: dict | None = None) -> tuple[str, str]:
+    """美股代號 → (名稱, 本業一句)（2026-10-24 使用者：「美股那些公司誰知道你是什麼公司…台股不都有列嗎？比照著做」）。
+    簡介第一段照「美國 公司名（英文），本業；細節」寫：名稱＝「，」前面（去掉「美國」與括號裡的英文），本業＝「，」到「；」。
+    沒有簡介就用每週紀錄的英文名（names），再沒有＝(代號, "")——缺的會列進持股簡介缺口檔，下午那班補。"""
+    it = _us_intros().get(str(c).upper())
+    if it:
+        head = re.split(r"[；。]", it, maxsplit=1)[0]
+        nm, _, what = re.sub(r"^美國\s*", "", head).partition("，")
+        nm = re.sub(r"（[^（）]*）\s*$", "", nm).strip()
+        if nm:
+            return nm, what.strip()
+    nm = str((names or {}).get(c) or "").strip()
+    return (nm or c), ""
+
+
+def us_name(c: str, names: dict | None = None) -> str:
+    """接在句子裡的寫法：「International Seaways（INSW）」；只有代號就只寫代號。"""
+    nm = us_label(c, names)[0]
+    return c if nm == c else f"{nm}（{c}）"
+
+
 def _qm_watch(qm: dict | None) -> dict:
     """每天的 50 日線檢查（只認對得上最新一週紀錄的那一份）。"""
     W = (qm or {}).get("W") or {}
@@ -148,14 +190,18 @@ def _qm_pct_ma(h: dict, w: dict) -> float | None:
 
 def _qm_hold(mk: str, qm: dict | None, cash: bool) -> str:
     """美股三成現在拿著什麼。接在 plnnt 段落後面（同 _sat_now 的寫法）。"""
-    n, W = _qm_now(qm), _qm_watch(qm)
+    n, W, nms = _qm_now(qm), _qm_watch(qm), _qm_names(qm)
     if not n:
         return '</p><p class="plnnt">每週紀錄還沒產生（每週六更新），先照上面的規則挑。'
+
+    def who(c):                                              # 公司名，本業（2026-10-24 起；沒有簡介＝空）
+        nm, what = us_label(c, nms)
+        return [] if nm == c else [f"{nm}，{what}" if what else nm]
     wl = {w["c"]: w for w in W.get("hold") or []}
     sold = {x["c"]: x for x in W.get("sell") or []}
     rows = ""
     for h in n.get("hold") or []:
-        bits = [f'{_md(h["ent"])} 買，到 {_md(n["d"])} {_pc(h.get("r"))}']
+        bits = who(h["c"]) + [f'{_md(h["ent"])} 買，到 {_md(n["d"])} {_pc(h.get("r"))}']
         pct = _qm_pct_ma(h, wl.get(h["c"]) or {})
         if h["c"] in sold:
             x = sold[h["c"]]
@@ -165,11 +211,12 @@ def _qm_hold(mk: str, qm: dict | None, cash: bool) -> str:
         elif pct is not None:
             bits.append(f'比 50 日線{"高" if pct >= 0 else "低"} {abs(pct) * 100:.1f}%')
         rows += (f'<div class="plnsn">{_e(h["c"])} {_wp((h.get("w") or 0) * S.SAT)}</div>'
-                 f'<div class="plnsv">{"；".join(bits)}</div>')
+                 f'<div class="plnsv">{_e("；".join(bits))}</div>')
     buys = n.get("buy") or []
     for c in buys:
+        what = who(c) + [f'{_md(n.get("next"))} 開盤買（{_md(n.get("wk"))} 的名單）']
         rows += (f'<div class="plnsn">{_e(c)} 約 {_qm_per()}</div>'
-                 f'<div class="plnsv">{_md(n.get("next"))} 開盤買（{_md(n.get("wk"))} 的名單）</div>')
+                 f'<div class="plnsv">{_e("；".join(what))}</div>')
     idle = max(0.0, (n.get("idle") or 0.0) - len(buys) / QX.QM_SLOTS)
     if idle > 1e-3:
         rows += f'<div class="plnsn">{_e(IDX[mk])} {_wp(idle * S.SAT)}</div><div class="plnsv">空的位子先買指數</div>'
@@ -189,19 +236,20 @@ def _qm_next_week_end(d: str) -> str | None:
 
 
 def _qm_todo(mk: str, qm: dict | None, cash: bool) -> str:
-    n, W = _qm_now(qm), _qm_watch(qm)
+    n, W, nms = _qm_now(qm), _qm_watch(qm), _qm_names(qm)
+    un = lambda c: _e(us_name(c, nms))                       # noqa: E731  公司名（代號）
     if not n:
         return ('<div class="plnw">—</div><div class="plnt">美股三成的每週紀錄還沒產生；每週六更新之後，這裡會列出要買賣的股票。</div>')
     last = W.get("d") or n.get("d")
     ev = []
     for x in W.get("sell") or []:
         done = bool(last and x["on"] <= last)
-        ev.append((x["on"], "開盤", f'<b>賣掉 {_e(x["c"])}</b>' + ("（已經賣了）" if done else ""), f'{_md(x["trig"])} 收盤跌破 50 日線'))
+        ev.append((x["on"], "開盤", f'<b>賣掉 {un(x["c"])}</b>' + ("（已經賣了）" if done else ""), f'{_md(x["trig"])} 收盤跌破 50 日線'))
     for c in n.get("sell") or []:
-        ev.append((n["next"], "開盤", f'<b>賣掉 {_e(c)}</b>', f'{_md(n["d"])} 收盤跌破 50 日線'))
+        ev.append((n["next"], "開盤", f'<b>賣掉 {un(c)}</b>', f'{_md(n["d"])} 收盤跌破 50 日線'))
     if n.get("buy"):
         sub = f'{_md(n["wk"])} 的名單裡最前面、手上沒有的；每檔約占全部資金 {_qm_per()}' + ("；三成放現金中，先不買" if cash else "")
-        ev.append((n["next"], "開盤", f'<b>買進 {"、".join(_e(c) for c in n["buy"])}</b>', sub))
+        ev.append((n["next"], "開盤", f'<b>買進 {"、".join(un(c) for c in n["buy"])}</b>', sub))
     nf = _qm_next_week_end(last)
     sold0 = {x["c"] for x in W.get("sell") or []} | set(n.get("sell") or [])
     held = [h["c"] for h in n.get("hold") or [] if h["c"] not in sold0]
@@ -210,7 +258,7 @@ def _qm_todo(mk: str, qm: dict | None, cash: bool) -> str:
     cand = [x["c"] for x in n.get("list") or [] if x["c"] not in have][:3]
     if nf:
         sub = (f'現在有 {free} 個空位' if free else "現在沒有空位，有股票賣掉才會買") + (
-            f'；{_md(n.get("wk"))} 的名單（{n.get("n_list", 0)} 檔）裡手上沒有的前幾名：{"、".join(_e(c) for c in cand)}'
+            f'；{_md(n.get("wk"))} 的名單（{n.get("n_list", 0)} 檔）裡手上沒有的前幾名：{"、".join(un(c) for c in cand)}'
             + ("（這一週還沒結束，名單會變）" if not n.get("wk_done") else "") if cand else "")
         ev.append((nf, "收盤", "<b>看這一週的新名單</b>：有空位就在下一個交易日開盤買", sub))
     ev.sort(key=lambda e: (e[0] or "", 0 if e[1] == "開盤" else 1))
@@ -220,7 +268,7 @@ def _qm_todo(mk: str, qm: dict | None, cash: bool) -> str:
     wl = {w["c"]: w for w in W.get("hold") or []}
     near = sorted((p, h["c"]) for h in n.get("hold") or [] if h["c"] not in sold
                   for p in [_qm_pct_ma(h, wl.get(h["c"]) or {})] if p is not None)
-    sub = f'最接近的是 {_e(near[0][1])}（比 50 日線高 {near[0][0] * 100:.1f}%）' if near and near[0][0] >= 0 else ""
+    sub = f'最接近的是 {un(near[0][1])}，比 50 日線高 {near[0][0] * 100:.1f}%' if near and near[0][0] >= 0 else ""
     rows += ('<div class="plnw">每天收盤</div><div class="plnt">拿著的股票收盤跌破 50 日線，就在下一個交易日開盤賣'
              + (f'<span class="plnsub">{sub}</span>' if sub else "") + '</div>')
     return rows

@@ -396,14 +396,16 @@ function fcLine(c){const b=((D.wl||{}).fc||{})[c];if(!b)return '';const [n,eg,dr
   if(eg!=null)it.push(`今年 EPS ${eg>0?'+':''}${f(eg,0)}%`);if(dr===1)it.push('30 天上修');else if(dr===-1)it.push('30 天下修');
   if(tp)it.push(`目標價 ${fp(tp)}${up==null?'':Math.abs(up)<0.5?'（和現價差不多）':`（比現價${up>0?'高':'低'} ${f(Math.abs(up),0)}%）`}`);
   return `<a class="sm2 fcl" data-co="${esc(c)}" data-cs="co-fc">${n?`${n} 位分析師`:'分析師'}${it.length?'：'+it.join('・'):''}</a>`;}
-function wlRows(L,ST,T){return L.map(x=>{const s=ST[x[0]]||{},p=s.p||{},st=p.st==null?-1:p.st;
+/* nt＝不列「來自哪份名單」那行（配置頁用） */
+function wlRows(L,ST,T,nt){return L.map(x=>{const s=ST[x[0]]||{},p=s.p||{},st=p.st==null?-1:p.st;
   return `<tr><td class=l><a data-co="${esc(x[0])}"><b>${esc(x[1])}</b></a> <span class=cd>${esc(x[0])}</span>`+
-    `<div class=sm2>${x[2].map(t=>esc(T[t]||t)).join('・')}</div>${fcLine(x[0])}${PK[x[0]]?`<span class=stgs>${stTags(x[0])}</span>`:''}</td>`+
+    `${nt?'':`<div class=sm2>${x[2].map(t=>esc(T[t]||t)).join('・')}</div>`}${fcLine(x[0])}${PK[x[0]]?`<span class=stgs>${stTags(x[0])}</span>`:''}</td>`+
     `<td class=wlp><span class="wlst s${st}">${WLST[st]}</span><div class=mo>${wlBuy(s,x[3])}</div></td>`+
     `<td>${fp(x[3])}<div class="sm2 mo">RS ${x[4]==null?'—':x[4]}</div></td><td class="wlb hm">${wlBuy(s,x[3])}</td>`+
     `<td class=hm>${x[4]==null?'—':x[4]}</td><td class=hm>${sgn(x[5],0,'%')}</td></tr>`;}).join('');}
-function wlTable(L,ST,T,id,h){return `<div class=tw><table class=sxt${id?` id=${id}`:''}><thead><tr><th class=l>股票</th><th class=wlp>位置${gi('書上的買點與停損')}</th><th>收盤</th><th class="wlb hm">${h}</th><th class=hm>RS${gi('RS 百分位')}</th><th class=hm>近 3 月營收年增</th></tr></thead><tbody>${wlRows(L,ST,T)}</tbody></table></div>`;}
-function wlSec(){const W=D.wl||{};if(!W.v)return sxSec();const Y=W.lay||{},ST=Y.stocks||{},C=W.cand||[],T=W.tags||{},R=Y.ps||{},MK=Y.mkt||{},MS=Y.mnow||{},YR=Y.years||[],W5=Y.w5||{};
+function wlTable(L,ST,T,id,h,nt){return `<div class=tw><table class=sxt${id?` id=${id}`:''}><thead><tr><th class=l>股票</th><th class=wlp>位置${gi('書上的買點與停損')}</th><th>收盤</th><th class="wlb hm">${h}</th><th class=hm>RS${gi('RS 百分位')}</th><th class=hm>近 3 月營收年增</th></tr></thead><tbody>${wlRows(L,ST,T,nt)}</tbody></table></div>`;}
+/* 名單分組（研究紀錄的飆股段、配置頁的飆股名單共用）：到買點 A、快到買點 B（強勢、離 52 週高點 NEAR 內、打底中）、其他強勢 B2、其餘 Rr */
+function wlPick(){const W=D.wl||{},Y=W.lay||{},ST=Y.stocks||{},C=W.cand||[];
   const CK=(Y.ck||[]).map(x=>x[0]),bit=(c,k)=>{const s=ST[c],i=CK.indexOf(k);return !!(s&&i>=0&&((s.x>>>i)&1));};
   const stOf=c=>{const p=(ST[c]||{}).p||{};return p.st==null?-1:p.st;},hiGap=x=>{const p=(ST[x[0]]||{}).p||{};return p.hi&&x[3]?p.hi/x[3]-1:9;};
   const strong=c=>bit(c,'rs90')||bit(c,'mom10'),byRs=(a,b)=>(b[4]||0)-(a[4]||0),ORD={0:0,5:1,4:2},NEAR=0.10;
@@ -411,6 +413,9 @@ function wlSec(){const W=D.wl||{};if(!W.v)return sxSec();const Y=W.lay||{},ST=Y.
   const inA=new Set(A.map(x=>x[0])),wait=(a,b)=>((ORD[stOf(a[0])]??3)-(ORD[stOf(b[0])]??3))||(stOf(a[0])===0?hiGap(a)-hiGap(b):byRs(a,b));
   const S2=C.filter(x=>!inA.has(x[0])&&strong(x[0])),B=S2.filter(x=>stOf(x[0])===0&&hiGap(x)<=NEAR).sort(wait);
   const inB=new Set(B.map(x=>x[0])),B2=S2.filter(x=>!inB.has(x[0])).sort(wait),Rr=C.filter(x=>!inA.has(x[0])&&!strong(x[0])).sort(wait);
+  return {A,B,B2,Rr,NEAR};}
+function wlSec(){const W=D.wl||{};if(!W.v)return sxSec();const Y=W.lay||{},ST=Y.stocks||{},C=W.cand||[],T=W.tags||{},R=Y.ps||{},MK=Y.mkt||{},MS=Y.mnow||{},YR=Y.years||[],W5=Y.w5||{};
+  const {A,B,B2,Rr,NEAR}=wlPick();
   const p0=x=>x==null?'—':f(x*100,0)+'%',per=R.per||{},P=(k,t)=>((per[k]||{})[t]||{}).B||{};
   const yr=YR.filter(y=>y.ps!=null&&y.s9!=null),win=yr.filter(y=>y.ps>y.s9).length;
   const rg=t=>{const xs=['IS','VAL','HO'].map(k=>P(k,t).p).filter(x=>x!=null);return xs.length?p0(Math.min(...xs))+'～'+p0(Math.max(...xs)):'—';};

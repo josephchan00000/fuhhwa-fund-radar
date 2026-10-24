@@ -94,12 +94,58 @@ def test_us_card_uses_qm_and_qqq_line(R, QMX):
     if CPG.qm_on("spx", QMX):
         n = CPG._qm_now(QMX)
         for x in n.get("hold") or []:
-            assert f'<td>{x["c"]}</td>' in h, x["c"]
+            assert f'<span class="cd">{x["c"]}</span>' in h or f'<td>{x["c"]}</td>' in h, x["c"]
         assert X["tl"]["qm"] and X["tl"]["qm"]["k"] == "qm"
-        w = _ws(h)
+        w = _ws(h.split('class="cfh3"')[0])                                    # 名單前幾名那張表沒有比重
         assert abs(sum(w) - 100) < 1.0, w
     if CPG.qm_on("ndx", QMX):
         assert "長抱改成那斯達克 100（QQQ）" in t and "配置照 S&amp;P 500" in c
+
+
+def test_us_rows_show_company_name_and_business(R, QMX, monkeypatch):
+    """2026-10-24 使用者：「美股那些公司誰知道你是什麼公司…台股不都有列嗎？比照著做」——美股每一列＝公司名＋代號、下一行本業；
+    名單前幾名（手上沒有的）一張表；名稱也進「接下來要做的事」與時間軸。"""
+    from arm import fund_intro as FI
+    monkeypatch.setattr(CPG, "_US_INTRO", {"INSW": "美國 International Seaways，油輪航運公司；船隊…",
+                                           "VLO": "美國瓦萊羅能源（Valero Energy），大型煉油商；…"})
+    qm = {"R": QMX["R"], "W": None, "L": {"names": {"CDNA": "CareDx, Inc."}, "now": {
+        "d": "2026-10-22", "wk": "2026-10-22", "wk_done": False, "next": "2026-10-23", "idle": 0.25, "n_list": 58,
+        "hold": [{"c": "INSW", "ent": "2026-07-20", "epx": 88.0, "px": 108.4, "ma": 105.0, "r": 0.29, "w": 0.4, "sell": False},
+                 {"c": "VLO", "ent": "2026-08-31", "epx": 360.0, "px": 426.0, "ma": 391.0, "r": 0.18, "w": 0.35, "sell": False}],
+        "buy": [], "sell": [],
+        "list": [{"c": c, "rs": 99.0 - i} for i, c in enumerate(["VLO", "CDNA", "PAYC", "QLYS", "HALO", "NTAP", "CON", "CAI"])]}}}
+    monkeypatch.setattr(CPG, "qm_on", lambda mk, q: True)
+    X = CF.us_parts(_data(), _bundle(R, qm=qm))
+    h = X["hold"]
+    assert 'International Seaways <span class="cd">INSW</span><div class="cfin">油輪航運公司</div>' in h
+    assert '瓦萊羅能源 <span class="cd">VLO</span><div class="cfin">大型煉油商</div>' in h
+    top, cand = h.split('class="cfh3"')
+    assert "有空位時依序買：名單前 5 名（手上沒有的）" in _text(cand) and "名單共 58 檔" in _text(cand)
+    got = re.findall(r'<span class="cd">(\w+)</span>', cand) + re.findall(r"<td>(\w+)</td>", cand)
+    assert set(got) == {"CDNA", "PAYC", "QLYS", "HALO", "NTAP"} and FI.US_QM_SHOW == 5     # VLO 手上有，不列；只列前 5
+    assert 'CareDx, Inc. <span class="cd">CDNA</span>' in cand                    # 沒有中文簡介：用每週紀錄的英文名
+    lane = X["tl"]["qm"]
+    assert [i["n"] for i in lane["held"][0]["items"]] == ["International Seaways（INSW）", "瓦萊羅能源（VLO）"]
+
+
+def test_us_label_parses_intro_first_clause(monkeypatch):
+    monkeypatch.setattr(CPG, "_US_INTRO", {"AMD": "美國超微（AMD），CPU、GPU 設計廠；EPYC…",
+                                           "FTNT": "美國 Fortinet，網路資安業者；產品…", "XX": "美國 某公司"})
+    assert CPG.us_label("AMD") == ("超微", "CPU、GPU 設計廠")
+    assert CPG.us_label("FTNT") == ("Fortinet", "網路資安業者") and CPG.us_name("FTNT") == "Fortinet（FTNT）"
+    assert CPG.us_label("XX") == ("某公司", "")
+    assert CPG.us_label("ZZ", {"ZZ": "Zz Corp"}) == ("Zz Corp", "") and CPG.us_label("ZZ") == ("ZZ", "")
+    assert CPG.us_name("ZZ") == "ZZ"
+
+
+def test_tw_page_has_superstock_list():
+    """2026-10-24 使用者：「飆股的選股名單要放進去啊」——台股配置頁多一段飆股名單（觀察中、沒有放錢）：到買點、快到買點兩張表，
+    其餘收起來；分組和研究紀錄的飆股段同一支 wlPick。"""
+    js = CF.JS
+    assert "function cfSx()" in js and "wlPick()" in js and "(mk==='tw'?cfSx():'')" in js
+    assert 'data-nav="飆股名單"' in js and "觀察中，沒有放錢" in js
+    from arm.lab import copage as CP
+    assert "function wlPick()" in CP.JS and "const {A,B,B2,Rr,NEAR}=wlPick();" in CP.JS
 
 
 def test_us_without_qm_keeps_index(R):
