@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/24 16:22",
+  "as_of": "2026/10/24 17:24",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -506,7 +506,7 @@
       "board": "ETF",
       "title": "沈伯洋夫妻持股拆解，看懂個股、ETF與台股美股如何配置",
       "url": "https://fundhot.com/forum/ETF/%E6%B2%88%E4%BC%AF%E6%B4%8B%E5%A4%AB%E5%A6%BB%E6%8C%81%E8%82%A1%E6%8B%86%E8%A7%A3%EF%BC%8C%E7%9C%8B%E6%87%82%E5%80%8B%E8%82%A1%E3%80%81ETF%E8%88%87%E5%8F%B0%E8%82%A1%E7%BE%8E%E8%82%A1%E5%A6%82%E4%BD%95%E9%85%8D%E7%BD%AE/14023",
-      "date": "2026-10-23"
+      "first_seen": "2026-10-24"
     },
     {
       "platform": "fundhot",
@@ -563,7 +563,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=lJNdfafhPj8",
       "date": "2026-10-21",
-      "views": 61657
+      "views": 62083
     },
     {
       "platform": "youtube",
@@ -571,7 +571,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
       "date": "2026-10-20",
-      "views": 15433,
+      "views": 15437,
       "short": true
     },
     {
@@ -580,7 +580,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
       "date": "2026-10-18",
-      "views": 9880
+      "views": 9917
     },
     {
       "platform": "youtube",
@@ -588,7 +588,7 @@
       "channel": "元大投信",
       "url": "https://www.youtube.com/shorts/BAFCSimIvW0",
       "date": "2026-10-22",
-      "views": 443155,
+      "views": 457357,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -599,7 +599,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=Al47SwnDMWo",
       "date": "2026-10-22",
-      "views": 213796,
+      "views": 215854,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -609,7 +609,7 @@
       "channel": "曲博科技教室 Dr. J Class",
       "url": "https://www.youtube.com/shorts/LjDDHVaDM4E",
       "date": "2026-10-19",
-      "views": 145160,
+      "views": 146050,
       "peer": true,
       "short": true,
       "cat": "市場趨勢"
@@ -620,7 +620,7 @@
       "channel": "投資嗨什麼",
       "url": "https://www.youtube.com/watch?v=Bem1OTti05k",
       "date": "2026-10-20",
-      "views": 144366,
+      "views": 146043,
       "peer": true,
       "cat": "市值型"
     },
@@ -640,7 +640,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/shorts/7NxiVHoPy3g",
       "date": "2026-10-19",
-      "views": 98759,
+      "views": 99198,
       "peer": true,
       "short": true,
       "cat": "綜合"
@@ -651,7 +651,7 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/watch?v=7hLSHozmm68",
       "date": "2026-10-23",
-      "views": 85860,
+      "views": 88692,
       "peer": true,
       "cat": "高股息"
     },
@@ -661,7 +661,7 @@
       "channel": "財商名人堂",
       "url": "https://www.youtube.com/watch?v=wmwEr7OJTrU",
       "date": "2026-10-23",
-      "views": 61505,
+      "views": 62859,
       "peer": true,
       "cat": "綜合"
     },
@@ -671,7 +671,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=e1Q5b32TcW4",
       "date": "2026-10-21",
-      "views": 55573,
+      "views": 55948,
       "peer": true,
       "cat": "主動式"
     },
@@ -681,7 +681,7 @@
       "channel": "口袋證券",
       "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
       "date": "2026-10-19",
-      "views": 54663,
+      "views": 54822,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -691,6 +691,6 @@
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00409A、00418A、台灣菁英50指數（詳下方新聞標籤）",
     "品牌焦點：主動復華台灣新星 募集期順延至10月27日（UDN）",
     "社群聲量最高：沈伯洋夫妻持股拆解，看懂個股、ETF與台股美股如何配置（0 推）",
-    "YouTube 熱片：AI如何創造未來？00990A掌握全球AI投資機會｜全片由Google Gemini製作｜元大投信 Yuanta Funds（元大投信・443,155 次觀看）"
+    "YouTube 熱片：AI如何創造未來？00990A掌握全球AI投資機會｜全片由Google Gemini製作｜元大投信 Yuanta Funds（元大投信・457,357 次觀看）"
   ]
 }
