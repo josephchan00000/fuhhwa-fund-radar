@@ -72,15 +72,48 @@ VER 3（2026-10-23；ussxspec VER 3、docs/lab_us_sleeve_plan.md 第 13 節）
   回測：美股「照計畫」＝US_SLEEVE_FILE 裡的 scenario（ussxspec QM_EVAL 起到資料最後一天；資料分支的資料，scripts/run_ussx.py --qm 算），
     「只靠警訊進出、三成放指數」（RULE_START 起）與更早的期間照舊（core_research.json）。
   前瞻：LIVE_START 起照 VER 3 記（VER 2 的紀錄從頭記）；美股衛星放 QM 時，三成的實際報酬照 ussx_qm_live.json 的資金帳戶淨值算。
+
+VER 4（2026-10-24；docs/lab_core70_plan.md 第 16～19 節）
+  使用者看過第 16、17 節回答：空檔「改放現金」；飆股要不要放錢「放啊」；「各半吧 然後你也不用堅持70%核心 你找到最優解就好」；
+  配置頁的飆股名單換成新飆股；美股三成空的位子也改放現金。核心比例照第 18 節（算任何核心比例的結果之前 commit）的選法，
+  第 19 節的表：台股 20%、美股（S&P 500、那斯達克 100）0%。
+  ① 核心＝CORE_OF[市場]（一直抱著大盤），機動＝1 − 核心（sat_of）；最高 100%、不加槓桿。
+     警訊、門檻、換現金與買回的時點全部不變（台股 REENTRY 10、美股 FLAT）。核心 0%＝平常全部機動、換現金時整個帳戶都是現金。
+     CORE、SAT（0.70、0.30）留著給 VER 1～3 與 ussxspec VER 1～2 的研究重現用（ussxswap、ussxrun 明寫 core＝CORE）。
+  ② 台股機動＝新飆股一半（BOOM_SHARE；sxlivespec VER 2 的 R60 那本帳）＋個股策略頁 ★ 的每一條平分另一半。
+     新飆股那一半照 R60 那本帳的持股比例（那本帳每檔 12.5%、最多約 8 檔；那本帳的現金就是現金）。
+     ★ 那一半每一條照 VER 1～3 的規則買賣；沒有部位的那一份放現金（IDLE；VER 1～3＝放大盤）。
+     實際買賣時，每一檔照當時的總資金算比重；兩半之間不另外調整（回測裡兩半每天調回各半，是近似）。
+  ③ 美股機動＝QM（ussxspec VER 4：空的位子放現金）；QM 判定沒過的計畫照舊放指數（核心 0% 時＝整個帳戶在指數與現金之間）。
+  ④ 換現金：機動裡的股票（★ 策略、新飆股、QM）與指數在下一個交易日收盤全部賣掉；各本帳（R60、★ 策略、QM）照樣往下記。
+     買回：照各本帳當時拿著的股票，在下一個交易日收盤買；本帳裡的現金那一份不動。
+  回測（研究檔 core_research.json；scripts/run_core.py）：成本、利息、比較方式同 VER 1～3（「每天固定拿一樣多」＝核心＋機動 × 平均拿著的比例）。
+    台股・規則本身（rule）：機動放大盤，RULE_START 起（第 18 節 T1）。
+    台股・照計畫（plan）：PLAN4_START 起到財報驚喜（大型股）最後一期出場日（第 18 節 T3 保守版）。機動每天的報酬＝
+      新飆股 × BOOM_SHARE＋★ 那一半 ×（1 − BOOM_SHARE）：
+      新飆股＝R60 那本帳的淨值（W7 已經找好的逐年規則、同一個引擎；scripts/run_sx_curve.py → data/lab/SX_CURVE_FILE），
+        引擎的現金不算利息，照前一天收盤沒有投入的比例補上現金利息；
+      ★ 那一半＝財報驚喜（大型股）資金帳戶 × STAR_ACTIVE＋利息 ×（1 − STAR_ACTIVE）（現在三條 ★ 平均只用到 59% 的位子、
+        財報驚喜自己 86%，第 16 節；VER 1～3 的回測全放財報驚喜）；財報驚喜沒有部位的日子＝利息、不付大盤的成本。
+      換現金、買回付個股的成本（COST["tw_stk"]）。
+    台股・較長期間（long）：PLAN_START 起到同一天，機動全放 ★ 那一半的算法（新飆股的逐年規則 2019 年起才有；第 18 節 T2 保守版）。
+    美股・規則本身（rule）、更早期間（early）：機動放指數（核心 0%）。美股・照計畫（plan）：ussx_qm.json 的 scenario（ussxspec VER 4）。
+  前瞻：LIVE_START（VER 4）起從頭記（VER 3 的紀錄不沿用）；台股另記機動裡新飆股那本帳的持股（sxlive.json 已經在記）。
+  寫這一版之前已經看過的：第 16～18 節所有數字（探索程式 scratchpad v4x/：curves.py、mix.py、grid_tw.py、grid_us.py），
+    包括第 18 節每個核心比例在七段期間的結果（核心比例照寫定的選法選出來）；「各半」是使用者看過第 17 節的表選的，0.69 是第 16 節量的。
+    探索時美股空位放現金仍付了指數的成本（ussxbook 的 c_idx），正式版不付（ussxspec VER 4）。
+    沒有算過：VER 4 的正式研究檔（前後兩半、最近 10 年、換現金表、12 個月分布）、美股判定 ② 在核心 0% 的結果。
 """
 from __future__ import annotations
 
-VER = 3
-SPEC_DATE = "2026-10-23"
+VER = 4
+SPEC_DATE = "2026-10-24"
 
 MARKETS = ("tw", "spx", "ndx")
 NAMES = {"tw": "台股", "spx": "S&P 500", "ndx": "那斯達克 100"}
-CORE, SAT = 0.70, 0.30
+CORE, SAT = 0.70, 0.30            # VER 1～3（ussxspec VER 1～2 的研究照這個比例重現）
+CORE_OF = {"tw": 0.20, "spx": 0.0, "ndx": 0.0}     # VER 4：核心（一直抱著大盤）的比例，第 18 節的選法、第 19 節的表
+CORE_GRID = (0.70, 0.60, 0.50, 0.40, 0.30, 0.20, 0.10, 0.0)   # 第 18 節的候選
 HOT = 80.0                       # 0～100 ≥ 80＝過熱（景氣頁「過熱」區）
 NEED = 2                         # 三種裡幾種同時亮才換現金
 MA = 200                         # 年線＝200 日均線（含當天收盤）
@@ -108,6 +141,12 @@ SLOTS = {"s3": 4, "s5": 16}      # 其他：每一檔固定那一份 ÷ SLOTS（
 SLOTS_DEFAULT = 5
 BACKTEST_SLEEVE = ("v3l",)       # 回測期間有紀錄的 ★（財報驚喜（大型股）；bt3l.top5 的 p3 L）
 US_SLEEVE_FILE = "ussx_qm.json"   # VER 3：美股衛星＝QM（data/lab/ 底下；這個檔判定過的計畫才換）
+BOOM_SHARE = {"tw": 0.5}          # VER 4：台股機動裡新飆股的比例（其餘給 ★ 策略平分）
+BOOM_BOOK = "R60"                 # VER 4：新飆股＝sxlivespec 的 R60 那本帳
+IDLE = "cash"                     # VER 4：機動裡沒有部位的那一份放現金（VER 1～3＝放大盤）
+STAR_ACTIVE = 0.69                # VER 4 回測：★ 那一半＝財報驚喜 × 0.69＋利息 × 0.31（第 16 節）
+PLAN4_START = "2019-01-02"        # VER 4 台股照計畫的回測起點（新飆股逐年規則的第一個交易日；superfixspec OOS_START）
+SX_CURVE_FILE = "sx_r60_curve.json"   # VER 4：R60 那本帳的回測淨值與每天的持股比例（data/lab/；scripts/run_sx_curve.py）
 
 # 回測
 RULE_START = {"tw": "2006-01-25", "spx": "2000-01-03", "ndx": "2000-12-29"}
@@ -120,7 +159,17 @@ ROLL = 252
 Q = (0.10, 0.50, 0.90)
 
 # 前瞻
-LIVE_START = "2026-10-23"
+LIVE_START = "2026-10-26"          # VER 4 起從頭記（VER 1～3＝2026-10-23）
 CHECKS = (63, 126, 252, 504, 756)
 WEEK = 5
 P_LOW = 0.20
+
+
+def core_of(mk: str) -> float:
+    """這個市場核心（一直抱著大盤）的比例（VER 4）。"""
+    return CORE_OF.get(mk, CORE)
+
+
+def sat_of(mk: str) -> float:
+    """這個市場機動的比例＝1 − 核心。"""
+    return 1.0 - core_of(mk)
