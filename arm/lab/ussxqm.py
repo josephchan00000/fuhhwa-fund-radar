@@ -33,11 +33,13 @@ KEYS = ("rs", "d52h", "om", "roe", "cap")
 
 # ── 資料 ─────────────────────────────────────────────────────────────────────
 
-def context(P: dict | None = None, earn: dict | None = None, workers: int = 4, log=print, plans: bool = True) -> dict:
+def context(P: dict | None = None, earn: dict | None = None, workers: int = 4, log=print, plans: bool = True,
+            extra: tuple = ()) -> dict:
+    """extra＝另外要填的財報欄位（ussxfeat.build；只給研究用）。"""
     t0 = time.time()
     P = P if P is not None else UP.load()
     earn = earn if earn is not None else UP.earnings()
-    cols = UF.build(P, X.LIQ_MIN, earn=earn, workers=workers, log=log, vcp=False, labels_on=False)
+    cols = UF.build(P, X.LIQ_MIN, earn=earn, workers=workers, log=log, vcp=False, labels_on=False, extra=extra)
     el, D20 = cols.pop("el"), cols.pop("D20")
     Cf = UF.ffill(P["C"])
     S = UF.ffill(P["CS"].astype(float))
