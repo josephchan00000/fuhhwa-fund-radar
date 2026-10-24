@@ -1,8 +1,9 @@
 """新策略候選（規格 arm/lab/candspec.py；docs/lab_ia_v5_plan.md 第 24 節）。
 
   TZ=Asia/Taipei python3 scripts/run_cands.py --check                 規格與程式的格式、sha（容器裡也可以跑；不回測）
-  python3 scripts/run_cands.py --merge-from <資料夾>                  合併通道：<資料夾>＝分支的 config/strategy_candidates.json
-                                                                       與 arm/lab/cands/；只拿這兩個地方，用 main 的檢查
+  python3 scripts/run_cands.py --merge-from <資料夾>                  合併通道：<資料夾>＝分支的 config/strategy_candidates.json、
+                                                                       arm/lab/cands/、config/strategy_board.json 的 cand（使用者的決定）；
+                                                                       只拿這三個地方，用 main 的檢查
   python3 scripts/run_cands.py --need-us                              這一輪要不要美股資料（寫進 GITHUB_OUTPUT 的 us=true／false）
   USSX_DIR=… python3 scripts/run_cands.py --compute [--force] [--ids c001,c002] [--new c005]
                                                                        回測還沒有結果的候選 → data/lab/cands_research.json；
@@ -13,6 +14,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import sys
@@ -47,7 +49,8 @@ def check() -> int:
 
 
 def merge_from(src: str) -> int:
-    """分支的規格與程式放進 main 的工作目錄，用 main 的規則檢查；不過就不合併（exit 1，工作目錄不 commit）。"""
+    """分支的規格與程式放進 main 的工作目錄，用 main 的規則檢查；不過就不合併（exit 1，工作目錄不 commit）。
+    分支比 main 舊：main 上有、分支上沒有的候選照留；決定逐條併、日期新的贏（candrun.union_spec／merge_decisions）。"""
     base = Path(src)
     sp = base / CS.SPEC_FILE
     if not sp.exists():
@@ -56,12 +59,39 @@ def merge_from(src: str) -> int:
         return 0
     old = R.load_spec()
     new = R.load_spec(sp)
+    chk, out, stale = R.union_spec(old, new)                # 分支比 main 舊：main 上較新的候選照留，不算刪掉
+    if stale:
+        print(f"分支上沒有 {', '.join(stale)}（分支比 main 舊）：照 main 留著")
+    bp = base / "config" / "strategy_board.json"
+    if bp.exists():                                        # 使用者的決定：只拿 cand 那一段，其他照 main
+        try:
+            cand = json.loads(bp.read_text(encoding="utf-8")).get("cand") or {}
+        except ValueError:
+            print("✗ 分支上的 strategy_board.json 讀不到")
+            return 1
+        errs = R.check_decisions(cand, out)
+        for e in errs:
+            print(f"✗ {e}")
+        if errs:
+            print("🔴 不合併：決定的格式不對")
+            return 1
+        B = R.load_board()
+        now = B.get("cand") or {}
+        merged = R.merge_decisions(now, cand)             # 逐條併、日期新的贏：舊分支不會把較新的決定洗掉
+        if merged != now:
+            B["cand"] = merged
+            R.BOARD.write_text(json.dumps(B, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            told = "、".join(f"{k} {CS.DECISIONS[v['dec']]}" for k, v in sorted(merged.items()) if now.get(k) != v)
+            print(f"決定：{told}")
     pd = base / CS.PROG_DIR
     for f in sorted(pd.glob("c*.py")) if pd.exists() else []:
         if f.stem[1:].isdigit() and len(f.stem) == 4:
             shutil.copyfile(f, R.PROG / f.name)
-    R.SPEC.write_bytes(sp.read_bytes())
-    errs, fresh = R.merge_check(old, new, R.PROG, R.decisions(), clock.today_tw().isoformat())
+    if stale:
+        R.SPEC.write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    else:
+        R.SPEC.write_bytes(sp.read_bytes())
+    errs, fresh = R.merge_check(old, chk, R.PROG, R.decisions(), clock.today_tw().isoformat())
     for e in errs:
         print(f"✗ {e}")
     if errs:

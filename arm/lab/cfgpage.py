@@ -729,7 +729,11 @@ def board_html(B: dict) -> str:
             body.append(f'<tr class="bnone" data-st="{s}"><td colspan="6">{"目前沒有；第一批在每週日新找之後出現" if s == "cand" else "目前沒有"}</td></tr>')
             continue
         for r in rs:
-            nm = f'<a{_go_attrs(r.get("go"))}>{_e(r["name"])}</a>' if (r.get("go") or {}).get("go") else _e(r["name"])
+            nm = (f'<a href="{_e(r["href"])}">{_e(r["name"])}</a>' if r.get("href") else
+                  f'<a{_go_attrs(r.get("go"))}>{_e(r["name"])}</a>' if (r.get("go") or {}).get("go") else _e(r["name"]))
+            if r.get("src"):
+                nm += f' <a class="bsrc" href="{_e(r["src"])}" target="_blank" rel="noopener">來源</a>'
+
             if s == "out":
                 body.append(f'<tr class="br" data-st="{s}" data-mk="{_e(r.get("mkk"))}"><td class="bn">{nm}</td><td class="bm">{_e(r["mk"])}</td>'
                             f'<td class="bw" colspan="4">{_e(r.get("why") or "")}</td></tr>')
@@ -837,6 +841,7 @@ CSS = r"""
 .bpill.bcand{background:var(--gbbg);color:var(--warn)}.bpill.bout{background:var(--line);color:var(--mut)}
 .btbl td.bn a{color:var(--ink);font-weight:600;cursor:pointer}.btbl td.bn a:hover{color:var(--acc)}
 .btbl .bt{display:block;font-size:11.5px;color:var(--mut);font-weight:400}
+.btbl td.bn a.bsrc{font-size:11.5px;font-weight:400;color:var(--mut);text-decoration:underline}
 .btbl td.bm{white-space:nowrap;color:var(--ink2)}.btbl td.bh{color:var(--ink2);min-width:220px}
 .btbl td.bp,.btbl td.bd{white-space:nowrap;font-variant-numeric:tabular-nums}
 .btbl .bref{color:var(--mut);font-size:12px}.btbl .bsub{display:block;font-size:11.5px;color:var(--mut)}

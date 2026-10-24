@@ -22,6 +22,8 @@
          每週紀錄停在比該有的還早的一週（美股週五收盤＋36 小時以後算該有）、第一次滿 63／126／252 個交易日的檢討、
          每週重跑和之前的紀錄不一樣（多一筆差異時）。另外推播多一行：美股下一個交易日開盤要賣、要買的股票（每天的 50 日線檢查＋每週紀錄）。
 台股機動的新飆股（corespec VER 4；飆股前瞻記錄的 R60 那本帳）：推播多一行，下一個交易日開盤要賣、要買的股票（不是事件）。
+新策略候選（docs/lab_ia_v5_plan.md 第 24 節）：第一次有結果的候選推播多一行「策略候選：新增 X（市場），過去成績…；回『試用／納入／不納入』」；
+  還沒決定的第一次到 candspec.MAX_OPEN 條時同一行提醒「週報先停」。
 """
 from __future__ import annotations
 
@@ -323,6 +325,40 @@ def uqm_line(cur: dict | None) -> str | None:
     return "美股三成：" + "；".join(parts) + "。"
 
 
+def cand_state(prev: dict | None = None) -> dict | None:
+    """新策略候選：有結果的編號（過關／部分過關／沒過／次數不夠／需要資料）、還沒決定的條數、比前一個資料日新增的。"""
+    from . import candpage as CP
+    from . import candrun as CR
+    from . import candspec as CS
+    B = CP.load()
+    if not B["items"]:
+        return None
+    ok = CS.TIERS + ("need",)
+    ids = [it["id"] for it in B["items"] if (B["res"].get(it["id"]) or {}).get("v") in ok or it.get("need") is not None]
+    seen = set((prev or {}).get("ids") or [])
+    new = []
+    for it in B["items"]:
+        if it["id"] in ids and it["id"] not in seen:
+            x = B["res"].get(it["id"])
+            what = it["need"] if it.get("need") is not None else f"過去成績{CP.verdict(x)}"
+            pl = CP.plan_line(it, x)
+            new.append(f"{it['name']}（{CS.MK_NAMES.get(it['mk'], it['mk'])}），{what}" + (f"，{pl}" if pl else ""))
+    n_open = len(CR.open_ids({"items": B["items"]}, B["dec"]))
+    full = n_open >= CS.MAX_OPEN and (prev or {}).get("open", 0) < CS.MAX_OPEN
+    return {"ids": ids, "open": n_open, "new": new, "full": bool(full)}
+
+
+def cand_line(cur: dict | None) -> str | None:
+    if not cur or not (cur.get("new") or cur.get("full")):
+        return None
+    out = "策略候選："
+    if cur.get("new"):
+        out += "新增 " + "；".join(cur["new"]) + "；回「試用／納入／不納入」"
+    if cur.get("full"):
+        out += ("；" if cur.get("new") else "") + f"還沒決定的已經 {cur['open']} 條，週報先停"
+    return out + "。"
+
+
 def push_lines(rec: dict) -> list[str]:
     """06:35 推播多帶的兩行：那一天開盤（與收盤）要做的事；有驗證事件才加第二行。"""
     T = rec.get("todo") or {}
@@ -348,6 +384,9 @@ def push_lines(rec: dict) -> list[str]:
     u = uqm_line(rec.get("uqm"))
     if u:
         out.append(u)
+    c = cand_line(rec.get("cand"))
+    if c:
+        out.append(c)
     ev = rec.get("ev") or []
     if ev:
         out.append("策略驗證：" + "；".join(e["txt"] for e in ev) + "。")
@@ -417,6 +456,12 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
         if uq:
             rec["uqm"] = uq
             rec["ev"] += uqm_events(uq, (days.get(prev_d) or {}).get("uqm") if prev_d else None)
+    except Exception:                                     # noqa: BLE001 —— 讀不到：不發提醒
+        pass
+    try:                                                  # 新策略候選（第一次有結果的推播一行）
+        cs = cand_state((days.get(prev_d) or {}).get("cand") if prev_d else None)
+        if cs:
+            rec["cand"] = cs
     except Exception:                                     # noqa: BLE001 —— 讀不到：不發提醒
         pass
     rec["push"] = push_lines(rec)

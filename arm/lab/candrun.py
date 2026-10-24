@@ -229,6 +229,61 @@ def decisions(conf: dict | None = None) -> dict:
     return out
 
 
+def check_decisions(cand: dict, doc: dict) -> list[str]:
+    """config/strategy_board.json 的 cand（使用者的決定）：編號在規格裡、dec 是 trial／adopt／reject、d 是日期。"""
+    if not isinstance(cand, dict):
+        return ["cand 要是物件"]
+    ids = {it.get("id") for it in doc.get("items") or [] if isinstance(it, dict)}
+    out = []
+    for k, v in cand.items():
+        if k not in ids:
+            out.append(f"決定的 {k} 不在規格裡")
+        if not isinstance(v, dict) or v.get("dec") not in CS.DECISIONS:
+            out.append(f"{k}：dec 要是 {list(CS.DECISIONS)}")
+            continue
+        try:
+            date.fromisoformat(str(v.get("d")))
+        except ValueError:
+            out.append(f"{k}：d 要是日期")
+        if set(v) - {"dec", "d", "why"}:
+            out.append(f"{k}：只能有 dec、d、why")
+    return out
+
+
+DEC_RANK = {"trial": 0, "adopt": 1, "reject": 1}       # 同一天兩個決定：試用之後的納入／不納入算比較新
+
+
+def merge_decisions(main: dict, br: dict) -> dict:
+    """使用者的決定（cand）：分支上的逐條併進 main 的。同一條兩邊不同時，日期新的贏（同一天＝DEC_RANK 大的贏，再一樣就照分支）；
+    main 有、分支沒有的照留——分支比 main 舊時，不會把較新的決定洗掉（撤回決定不支援；要改就寫一個新的決定）。"""
+    out = dict(main or {})
+    for k, v in (br or {}).items():
+        m = out.get(k)
+        if m is None or m == v:
+            out[k] = v
+            continue
+        if (str(v.get("d") or ""), DEC_RANK.get(v.get("dec"), 0)) >= (str(m.get("d") or ""), DEC_RANK.get(m.get("dec"), 0)):
+            out[k] = v
+    return out
+
+
+def union_spec(old: dict, new: dict) -> tuple[dict, dict, list[str]]:
+    """分支上的規格（new）併進 main 的（old）。→ (要檢查的、要寫回 main 的、分支上沒有的編號)。
+    要檢查的＝分支的每一筆＋main 有、分支沒有的（分支比 main 舊）；分支上同編號的那一筆照舊由 merge_check 比對一字不差。
+    要寫回的＝main 的每一筆照原樣、照原順序，分支上新的編號接在後面；as_of 取兩邊較新的。"""
+    o = [it for it in old.get("items") or [] if isinstance(it, dict) and it.get("id")]
+    n = [it for it in new.get("items") or [] if isinstance(it, dict)]
+    nids = {it.get("id") for it in n}
+    oids = {it["id"] for it in o}
+    stale = [it["id"] for it in o if it["id"] not in nids]
+    chk = {**new, "items": n + [it for it in o if it["id"] not in nids]}
+    out = {**new, "items": o + [it for it in n if it.get("id") not in oids]}
+    a = max(str(old.get("as_of") or ""), str(new.get("as_of") or ""))
+    if a:
+        out["as_of"] = a
+    return chk, out, stale
+
+
 def open_ids(doc: dict, dec: dict) -> list[str]:
     """還沒決定的候選。"""
     return [it["id"] for it in doc.get("items") or [] if isinstance(it, dict) and it.get("id") not in dec]

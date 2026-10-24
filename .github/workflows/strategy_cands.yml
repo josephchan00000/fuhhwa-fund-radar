@@ -1,7 +1,8 @@
 name: 新策略候選（合併、回測、試用紀錄）
 
 # docs/lab_ia_v5_plan.md 第 24 節；框架規格 arm/lab/candspec.py。
-# ① push 到 claude/** 而且動到 config/strategy_candidates.json 或 arm/lab/cands/：從那個分支「只拿」這兩個地方的檔案，
+# ① push 到 claude/** 而且動到 config/strategy_candidates.json、arm/lab/cands/ 或 config/strategy_board.json：從那個分支「只拿」
+#   規格、候選程式、strategy_board.json 的 cand（使用者在對話回的「試用／納入／不納入」；其他欄位照 main）這三個地方，
 #   用 main 上的檢查（scripts/run_cands.py --merge-from、tests/test_cands.py）驗過才合併——舊的一字不差、沒有刪、新的最多 2 條、
 #   還沒決定的最多 10 條。驗過就回測新候選；新的候選要乾淨地算完（沒有出錯、沒有用到未來的資料）才合併——
 #   規格、程式、結果一起 commit 進 main，再派一輪 daily.yml 重建頁面。沒算完＝這一輪紅、什麼都不合併（還沒進 main 的候選可以修好再推）。
@@ -12,7 +13,7 @@ name: 新策略候選（合併、回測、試用紀錄）
 on:
   push:
     branches: ['claude/**']
-    paths: ['config/strategy_candidates.json', 'arm/lab/cands/**']
+    paths: ['config/strategy_candidates.json', 'arm/lab/cands/**', 'config/strategy_board.json']
   schedule:
     - cron: '0 11 * * 0'
   workflow_dispatch:
@@ -67,14 +68,16 @@ jobs:
         run: |
           git fetch -q --depth 1 origin "$BR"
           mkdir -p br
-          git archive FETCH_HEAD config/strategy_candidates.json arm/lab/cands 2>/dev/null | tar -x -C br || true
+          for p in config/strategy_candidates.json arm/lab/cands config/strategy_board.json; do
+            git archive FETCH_HEAD "$p" 2>/dev/null | tar -x -C br || true
+          done
           python3 scripts/run_cands.py --merge-from br
           python3 -m pytest -q tests/test_cands.py tests/test_candspec.py
 
       - name: 這一輪要不要美股資料
         id: need
         if: steps.guard.outputs.ok == 'true'
-        run: python3 scripts/run_cands.py --need-us $([ "${{ github.event_name }}" = "schedule" ] && echo --forward)
+        run: python3 scripts/run_cands.py --need-us --forward
 
       - name: 美股資料（資料分支，只拿美股那兩個資料夾）
         if: steps.need.outputs.us == 'true'
@@ -92,9 +95,8 @@ jobs:
         if: steps.guard.outputs.ok == 'true'
         run: |
           [ -d ussxdata/data/lab/ussx ] && export USSX_DIR="$GITHUB_WORKSPACE/ussxdata/data/lab/ussx"
-          ARGS="--compute"
+          ARGS="--compute --forward"
           [ "$FORCE" = "true" ] && ARGS="$ARGS --force"
-          [ "${{ github.event_name }}" = "schedule" ] && ARGS="$ARGS --forward"
           timeout 6000 python3 scripts/run_cands.py $ARGS --new "${{ steps.merge.outputs.new }}"
 
       - name: commit 進 main
@@ -103,7 +105,7 @@ jobs:
         run: |
           git config user.name "josephchan00000"
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
-          git add -f config/strategy_candidates.json arm/lab/cands data/lab/cands_research.json data/lab/cands_live.json 2>/dev/null || true
+          git add -f config/strategy_candidates.json arm/lab/cands config/strategy_board.json data/lab/cands_research.json data/lab/cands_live.json 2>/dev/null || true
           git commit -q -m "chore: 策略候選 $(date '+%F %H:%M')${BR:+（${BR}）}" || { echo "沒有變更"; exit 0; }
           for i in 1 2 3; do
             if git push origin HEAD:main; then echo "changed=true" >> "$GITHUB_OUTPUT"; exit 0; fi
@@ -112,8 +114,8 @@ jobs:
           done
           echo "::error::push 到 main 失敗"; exit 1
 
-      - name: 重建頁面（有新結果時；daily.yml 留空 news_ref＝只用 main 現有新聞重刷）
-        if: steps.commit.outputs.changed == 'true' && steps.run.outputs.computed != ''
+      - name: 重建頁面（有新結果或新決定時；daily.yml 留空 news_ref＝只用 main 現有新聞重刷）
+        if: steps.commit.outputs.changed == 'true' && github.event_name != 'schedule'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run daily.yml --ref main || echo "::warning::派 daily.yml 失敗（下一班自然會重建）"

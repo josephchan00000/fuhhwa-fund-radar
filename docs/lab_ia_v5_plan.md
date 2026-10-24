@@ -835,8 +835,9 @@
 
 ### 24.6 合併通道（strategy_cands.yml）
 
-- push 到 `claude/**` 而且動到候選的兩個地方就跑（被推分支的 workflow 檔；排程會話的分支每天早上會合併 main，所以會有）。也可以 dispatch（`ref`＝分支）。
-- 從分支**只拿** `config/strategy_candidates.json` 與 `arm/lab/cands/*.py`；用 **main 上**的 `scripts/run_cands.py --merge-from` 與 `tests/test_cands.py` 驗：JSON、欄位、舊的幾筆與程式一字不差、新程式的 sha、沒有刪任何一筆、新的最多 2 條、還沒決定的最多 10 條。不過＝不合併、run 紅（寄信）。
+- push 到 `claude/**` 而且動到候選的兩個地方或 `config/strategy_board.json` 就跑（被推分支的 workflow 檔；排程會話的分支每天早上會合併 main，所以會有）。也可以 dispatch（`ref`＝分支）。
+- 從分支**只拿** `config/strategy_candidates.json`、`arm/lab/cands/c###.py` 與 `config/strategy_board.json` 的 `cand` 一段（使用者的決定；board 其他欄位照 main）；用 **main 上**的 `scripts/run_cands.py --merge-from` 與 `tests/test_cands.py` 驗：JSON、欄位、舊的幾筆與程式一字不差、新程式的 sha、新的最多 2 條、還沒決定的最多 10 條、決定的格式。不過＝不合併、run 紅（寄信）。
+- **分支比 main 舊**（2026-10-24 寫程式時補）：main 上有、分支上沒有的候選照留（不算刪掉，寫回 main 的規格＝main 的每一筆照原樣＋分支上新的編號）；決定逐條併、同一條兩邊不同時日期新的贏（同一天＝試用之後的納入／不納入贏）——舊分支推上來不會把較新的候選或決定洗掉。撤回決定不支援，要改就寫一個新的決定。
 - 過了：回測新候選（美股的候選另外 checkout 資料分支）；**新的候選要乾淨地算完**（沒有出錯、沒有用到未來的資料）→ 規格、程式、結果一起 commit 進 main → dispatch daily.yml（news_ref 留空）重建頁面。沒算完＝這一輪紅、什麼都不合併；還沒進 main 的候選可以修好程式再推（修的是程式錯誤，不是看了成績再調參數；分支上的 commit 留著當紀錄）。
 - 每週日 19:00（台北）排程：試用中的候選補紀錄、還沒結果的補算。
 

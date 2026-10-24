@@ -167,6 +167,53 @@ def test_merge_from_copies_only_candidate_files(tmp_path, monkeypatch):
     assert R.load_spec(main / "config" / "strategy_candidates.json")["items"][0]["id"] == "c001"
     (bp / "c001.py").write_text(PROG_MA + "\n# 改了\n", encoding="utf-8")
     assert RC.merge_from(str(br)) == 1                                   # 程式改了、sha 對不上
+    (bp / "c001.py").write_text(PROG_MA, encoding="utf-8")
+    board = main / "config" / "strategy_board.json"
+    board.write_text(json.dumps({"rows": [{"id": "x"}], "override": {"a": "use"}, "cand": {}}), encoding="utf-8")
+    monkeypatch.setattr(R, "BOARD", board)
+    (br / "config" / "strategy_board.json").write_text(json.dumps({"rows": [], "override": {}, "cand": {
+        "c001": {"dec": "trial", "d": "2026-10-27"}}}), encoding="utf-8")
+    assert RC.merge_from(str(br)) == 0                                   # 決定只拿 cand 那一段，其他照 main
+    B = json.loads(board.read_text(encoding="utf-8"))
+    assert B["cand"] == {"c001": {"dec": "trial", "d": "2026-10-27"}} and B["rows"] == [{"id": "x"}] and B["override"] == {"a": "use"}
+    (br / "config" / "strategy_board.json").write_text(json.dumps({"cand": {"c009": {"dec": "trial", "d": "2026-10-27"}}}),
+                                                     encoding="utf-8")
+    assert RC.merge_from(str(br)) == 1                                   # 決定的編號不在規格裡
+
+
+def test_merge_from_stale_branch_keeps_newer_main(tmp_path, monkeypatch):
+    """分支比 main 舊（少了 main 上較新的候選、決定是舊的）：main 上的候選照留、不算刪掉；決定逐條併、日期新的贏。"""
+    import scripts.run_cands as RC
+    main = tmp_path / "main"
+    (main / "config").mkdir(parents=True)
+    prog = main / "arm" / "lab" / "cands"
+    prog.mkdir(parents=True)
+    s1, s2 = _write(prog, "c001", PROG_MA), _write(prog, "c002", PROG_MA)
+    spec = main / "config" / "strategy_candidates.json"
+    spec.write_text(json.dumps({"as_of": "2026-11-01", "items": [_item("c001", sha=s1, found="2026-10-24"),
+                                                                  _item("c002", sha=s2, found="2026-10-24")]}), encoding="utf-8")
+    board = main / "config" / "strategy_board.json"
+    board.write_text(json.dumps({"rows": [], "cand": {"c002": {"dec": "adopt", "d": "2026-11-01"}}}), encoding="utf-8")
+    br = tmp_path / "br"
+    (br / "config").mkdir(parents=True)
+    bp = br / "arm" / "lab" / "cands"
+    bp.mkdir(parents=True)
+    _write(bp, "c001", PROG_MA)
+    s3 = _write(bp, "c003", PROG_MA)
+    (br / "config" / "strategy_candidates.json").write_text(json.dumps({"as_of": "2026-10-24", "items": [
+        _item("c001", sha=s1, found="2026-10-24"), _item("c003", sha=s3, found="2026-10-24")]}), encoding="utf-8")
+    (br / "config" / "strategy_board.json").write_text(json.dumps({"cand": {
+        "c002": {"dec": "trial", "d": "2026-10-27"}, "c001": {"dec": "reject", "d": "2026-10-28", "why": "x"}}}), encoding="utf-8")
+    monkeypatch.setattr(R, "SPEC", spec)
+    monkeypatch.setattr(R, "PROG", prog)
+    monkeypatch.setattr(R, "BOARD", board)
+    assert RC.merge_from(str(br)) == 0
+    doc = R.load_spec(spec)
+    assert [it["id"] for it in doc["items"]] == ["c001", "c002", "c003"] and doc["as_of"] == "2026-11-01"
+    assert json.loads(board.read_text(encoding="utf-8"))["cand"] == {
+        "c002": {"dec": "adopt", "d": "2026-11-01"}, "c001": {"dec": "reject", "d": "2026-10-28", "why": "x"}}
+    assert R.merge_decisions({"c1": {"dec": "trial", "d": "2026-10-27"}}, {"c1": {"dec": "reject", "d": "2026-10-27"}})["c1"]["dec"] == "reject"
+    assert R.merge_decisions({"c1": {"dec": "reject", "d": "2026-10-27"}}, {"c1": {"dec": "trial", "d": "2026-10-27"}})["c1"]["dec"] == "reject"
 
 
 # ── ③ 指數型 ───────────────────────────────────────────────────────────────
@@ -440,6 +487,8 @@ def test_workflow_uses_main_checks_and_only_candidate_paths():
     assert "config/strategy_candidates.json" in wf and "arm/lab/cands/**" in wf
     assert "ref: main" in wf and "--merge-from" in wf and "tests/test_cands.py" in wf
     assert "claude/ussx-data" in wf and "sparse-checkout" in wf               # 美股候選才拿資料分支（只拿美股資料）
-    assert "git add -f config/strategy_candidates.json arm/lab/cands data/lab/cands_research.json data/lab/cands_live.json" in wf
+    assert ("git add -f config/strategy_candidates.json arm/lab/cands config/strategy_board.json data/lab/cands_research.json "
+            "data/lab/cands_live.json") in wf
+    assert "config/strategy_board.json" in wf.split("paths:")[1].split("\n")[0]     # 使用者的決定也走這個通道
     assert "daily.yml" in wf                                                  # 有新結果才重建頁面
     assert "0 11 * * 0" in wf                                                 # 每週日台北 19:00（試用紀錄、補算）
