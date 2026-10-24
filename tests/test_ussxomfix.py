@@ -29,6 +29,15 @@ def test_block_spike_needs_both_jumps_and_weak_previous_quarter():
     assert OF.block(f, None).tolist() == [False] * 5
 
 
+def test_block_spike_ox_only_when_operating_income_outgrew_revenue():
+    """D：A 的條件之外，營業利益比去年同季增加的要比營收增加的多（oxr > 0）；oxr 沒有值＝不擋。"""
+    f = _f(om=[0.858, 0.654, 0.858, 0.30], om1=[0.010, -0.482, 0.010, 0.0], omd=[0.986, 16.25, 0.986, 0.25],
+           oxr=[0.599, -0.275, NAN, 0.01], om4=[0.2] * 4, omm=[0.0] * 4)
+    assert OF.block(f, S.CANDS["D"]).tolist() == [True, False, False, True]          # CareDx 擋、Moderna 不擋
+    assert OF.block(f, S.CANDS["A"]).tolist() == [True, True, True, True]
+    assert OF.block(f, S.DESC["D30"]).tolist() == [True, False, False, False]
+
+
 def test_block_prev_median_ttm_treat_missing_as_failing():
     f = _f(om=[0.12, 0.12, 0.12, 0.12], om1=[0.10, 0.09, NAN, 0.2], omd=[0.0] * 4,
            om4=[0.10, 0.2, 0.2, NAN], omm=[0.10, 0.099, NAN, 0.3])

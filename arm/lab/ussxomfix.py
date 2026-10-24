@@ -2,8 +2,8 @@
 
   block(f, spec)  → 那個候選「多擋掉」的列（bool；QM 五個條件之外）
   research(C)     → data/lab/ussx_omfix.json（scripts/run_ussx.py --omfix；資料分支的資料）：
-                    VER 6（同一份資料重算）、候選 A／B／C、只描述的 A10／A30／T，各自的判定、錢、少買與多買的股票、現在的持股；
-                    建議＝ORDER 裡第一個「擋得到 CareDx、兩個計畫的判定都過」的候選。
+                    VER 6（同一份資料重算）、候選 A／B／C／D、只描述的 A10／A30／D10／D30／T，各自的判定、錢、少買與多買的股票、現在的持股；
+                    建議（VER 2）＝D 兩條都過就 D，否則 ORDER 裡第一個「擋得到 CareDx、兩個計畫的判定都過」的候選。
 C＝ussxqm.context(..., extra=omfixspec.KEYS)。"""
 from __future__ import annotations
 
@@ -30,9 +30,12 @@ def block(f: dict, spec: dict | None) -> np.ndarray:
         return np.zeros(n, dtype=bool)
     k = spec["kind"]
     with np.errstate(invalid="ignore"):
-        if k == "spike":
+        if k in ("spike", "spike_ox"):
             om1, omd, th = np.asarray(f["om1"], dtype=float), np.asarray(f["omd"], dtype=float), spec["spike"]
-            return (om1 < S.OM_MIN) & (om - om1 >= th) & (omd >= th)
+            b = (om1 < S.OM_MIN) & (om - om1 >= th) & (omd >= th)
+            if k == "spike_ox":                                   # VER 2 D：營業利益增加的比營收增加的多（不是賣得多）
+                b &= np.asarray(f["oxr"], dtype=float) > 0
+            return b
         if k == "prev":
             return ~(np.asarray(f["om1"], dtype=float) >= S.OM_MIN)
         if k == "median":
@@ -115,7 +118,8 @@ def research(C: dict, log=print) -> dict:
         ok2 = all(bool(r["verdict"]["pass"].get(mk)) for mk in S.PLANS)
         judge[k] = {"target": ok1, "rule": ok2, "pass": bool(ok1 and ok2)}
     out["judge"] = judge
-    out["pick"] = next((k for k in S.ORDER if judge[k]["pass"]), None)
+    out["pick_v1"] = next((k for k in S.ORDER if judge[k]["pass"]), None)          # VER 1 的建議（A、B、C 的順序）
+    out["pick"] = S.PREFER if judge[S.PREFER]["pass"] else out["pick_v1"]          # VER 2：D 兩條都過就建議 D
     log(f"[omfix] 判定 {judge}；建議 {out['pick']}（{time.time() - t0:.0f}s）")
     return out
 
