@@ -17,6 +17,13 @@ from arm.lab import candspec as CS
 ROOT = Path(__file__).resolve().parents[1]
 
 
+@pytest.fixture(autouse=True)
+def _no_gh_output(monkeypatch):
+    """合併通道在同一步先跑 --merge-from（把新候選寫進 GITHUB_OUTPUT）再跑這支測試：測試裡呼叫 merge_from 不可以也寫進去，
+    否則最後一行蓋掉這一輪真正的新候選（2026-10-24 第一次試跑：測試寫的 new=c003 讓回測那一步找不到、整輪不合併）。"""
+    monkeypatch.delenv("GITHUB_OUTPUT", raising=False)
+
+
 # ── ① 規格檔與程式（main 上的檢查） ──────────────────────────────────────────────────
 
 def test_committed_spec_and_programs_are_valid():
@@ -486,9 +493,12 @@ def test_workflow_uses_main_checks_and_only_candidate_paths():
     wf = (ROOT / ".github" / "workflows" / "strategy_cands.yml").read_text(encoding="utf-8")
     assert "config/strategy_candidates.json" in wf and "arm/lab/cands/**" in wf
     assert "ref: main" in wf and "--merge-from" in wf and "tests/test_cands.py" in wf
+    assert "env -u GITHUB_OUTPUT python3 -m pytest" in wf                     # 測試不可以改到這一輪的輸出
     assert "claude/ussx-data" in wf and "sparse-checkout" in wf               # 美股候選才拿資料分支（只拿美股資料）
-    assert ("git add -f config/strategy_candidates.json arm/lab/cands config/strategy_board.json data/lab/cands_research.json "
+    assert ("git add -f config/strategy_candidates.json config/strategy_board.json data/lab/cands_research.json "
             "data/lab/cands_live.json") in wf
+    assert "git add -- 'arm/lab/cands/c[0-9][0-9][0-9].py'" in wf                # 只拿程式，不要 __pycache__
+    assert "add -f config/strategy_candidates.json arm/lab/cands" not in wf and 'PYTHONDONTWRITEBYTECODE: "1"' in wf
     assert "config/strategy_board.json" in wf.split("paths:")[1].split("\n")[0]     # 使用者的決定也走這個通道
     assert "daily.yml" in wf                                                  # 有新結果才重建頁面
     assert "0 11 * * 0" in wf                                                 # 每週日台北 19:00（試用紀錄、補算）
