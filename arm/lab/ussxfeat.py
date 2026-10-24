@@ -405,6 +405,11 @@ def sec_reports(doc: dict, eps: list[dict]) -> list[dict]:
         f["om4"] = (sum(ois) / sum(rvs) if None not in ois and None not in rvs and sum(rvs) > 0 else None)
         oms = [om(c) for c in chain] if None not in chain else [None]
         f["omm"] = float(np.median(oms)) if None not in oms else None       # 近四季營益率的中位數
+        # 和去年同一季比：營業利益增加的比營收增加的多多少（÷ 這一季營收；> 0＝不是靠賣得多，是一次性收入或成本變少）
+        oy, ry = (val(oi, p4), rev[p4][0]) if p4 else (None, None)
+        o_now = val(oi, e)
+        f["oxr"] = (((o_now - oy) - (rev[e][0] - ry)) / rev[e][0]
+                    if o_now is not None and oy is not None and ry is not None and rev[e][0] and rev[e][0] > 0 else None)
         nis = [val(ni, c) for c in chain] if None not in chain else [None]
         e0, e4 = val(eq, e), val(eq, p4) if p4 else None
         f["roe"] = (sum(nis) / ((e0 + e4) / 2) if None not in nis and e0 and e4 and e0 > 0 and e4 > 0 else None)

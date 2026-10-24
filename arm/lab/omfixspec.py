@@ -31,11 +31,25 @@
   上線紀錄：CDNA 8/3 買 47.22、10/23 收 69.21；VLO、MPC、ANF（B 會擋）也在手上。
 沒有算過：任何候選的報酬、交易、計畫的錢。
 不在這一版：一次性收入讓近四季 ROE 變高（不經過營業利益的利得、遞延所得稅迴轉等）——要另外研究再說。
+
+VER 2（2026-10-24，看過 VER 1 的結果之後；docs/lab_us_sleeve_plan.md 第 14.6 節）
+  VER 1 結果：A 過（建議 A）；但 A 少賺的大部分是 Moderna 2021-05-24 那一筆（+141%，回測裡最賺的一筆）——那一季營益率暴增是
+  疫苗真的開始大賣、第一次轉盈，不是一次性收入，A 也擋了一季。A 的本意是擋一次性收入，這是 A 自己的誤擋。
+  分辨方法：一次性收入（或成本突然變少）時，營業利益增加的比營收增加的還多；真的賣得多時，營收增加的比較多。
+  加一個候選（A、B、C 的定義與 VER 1 結果不變）：
+  D 暴增而且不是賣得多：A 的三個條件都成立，而且和去年同一季比，營業利益增加的比營收增加的多（oxr > 0：
+    ((這一季營業利益 − 去年同季營業利益) − (這一季營收 − 去年同季營收)) ÷ 這一季營收）→ 這一週不算。去年同季沒有資料＝不擋。
+  只描述：D 的 SPIKE 改 10、30 個百分點（D10、D30）。
+  判定同 VER 1（① 擋得到 CareDx、② 兩個計畫的判定都過）。建議：D 兩條都過就建議 D（只擋一次性收入、不擋真的轉盈，
+  比 A 接近本意）；D 沒過就照 VER 1 建議 A。
+  寫這一版之前已經看過的：VER 1 的全部結果（各候選的錢、最慘跌、判定、少買與多買的每一筆，包括 Moderna 那一筆、CareDx 現在 +46%）；
+  D 擋掉的列數與股票（73 列、11 檔：CDNA、RMBS、OVV、OUT、HUT、CVI、CENX、PEGA、EXEL、ATEX、LNG；D10 160 列、D30 67 列；不含報酬）。
+  所以 D 是看過結果才加的，回測的錢不能當作 D 比較好的證據；選 D 的理由是它只擋本意要擋的。
 要改就 VER＋1、寫進計畫文件，不在舊版本上改。
 """
 from __future__ import annotations
 
-VER = 1
+VER = 2
 SPEC_DATE = "2026-10-24"
 
 OM_MIN = 0.10                    # 同 ussxspec.QM["om"]
@@ -44,13 +58,17 @@ CANDS = {
     "A": {"kind": "spike", "spike": SPIKE},
     "B": {"kind": "prev"},
     "C": {"kind": "median"},
+    "D": {"kind": "spike_ox", "spike": SPIKE},                   # VER 2
 }
-ORDER = ("A", "B", "C")
+ORDER = ("A", "B", "C")          # VER 1 的建議順序（VER 1 的建議＝A）
+PREFER = "D"                     # VER 2：D 兩條都過就建議 D，否則照 ORDER
 DESC = {
     "A10": {"kind": "spike", "spike": 0.10},
     "A30": {"kind": "spike", "spike": 0.30},
+    "D10": {"kind": "spike_ox", "spike": 0.10},                  # VER 2
+    "D30": {"kind": "spike_ox", "spike": 0.30},                  # VER 2
     "T": {"kind": "ttm"},
 }
 TARGET = ("CDNA", "2026-07-31")
-KEYS = ("om1", "om4", "omm")     # ussxfeat.build 另外要填的欄位（上一季、近四季合計、近四季中位數）
+KEYS = ("om1", "om4", "omm", "oxr")   # ussxfeat.build 另外要填的欄位（上一季、近四季合計、近四季中位數、營業利益比營收多增加；oxr＝VER 2）
 PLANS = ("spx", "ndx")           # ② 兩個計畫都要過

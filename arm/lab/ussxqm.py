@@ -199,11 +199,13 @@ def review_dist(C: dict, rr: np.ndarray, base: np.ndarray, a: int) -> dict:
     return out
 
 
-def research(C: dict, log=print) -> dict:
+def research(C: dict, log=print, mask: np.ndarray | None = None, desc: bool = True) -> dict:
+    """mask＝名單條件（None＝qm_mask：VER 6）；desc＝False 不算只描述的項目（拿掉賺最多的、晚一週、門檻鄰近、檢討分布）——
+    omfixspec 的候選研究用，預設和原本完全相同。"""
     t0 = time.time()
     cal, T = C["cal"], C["T"]
     a, a14 = a_of(cal, X.QM_Y0), a_of(cal, X.QM_EVAL)
-    m = qm_mask(C["cols"]["f"])
+    m = qm_mask(C["cols"]["f"]) if mask is None else mask
     sig = signals(C, m)
     spx_idle = C["PQ"]["spx"]["idle"]
     out = {"ver": X.VER, "spec": X.SPEC_DATE, "made": date.today().isoformat(), "last": cal[-1], "a": cal[a], "eval": cal[a14],
@@ -271,23 +273,26 @@ def research(C: dict, log=print) -> dict:
     out["switch"] = {mk: bool(out["repro"]["ok"] and v["pass"][mk]) for mk in X.QM_PLANS}
     # 只描述
     rr = rets(C, rs)
-    desc: dict = {"roll3": roll_wins(C, rr, spx_idle, a14), "years": {y: [sleeve["main"]["years"].get(y), spx_tr["years"].get(y),
-                                                                         ew["years"].get(y)] for y in sleeve["main"]["years"]}}
-    top = [s for s, _ in out["top"]]
-    drop = {}
-    for k in X.QM_DROP:
-        js = frozenset(C["P"]["col"][s] for s in top[:k])
-        drop[str(k)] = {"syms": top[:k], **_brief_stats(BK.curve_stats(cal, rets(C, run(C, signals(C, m, drop=js))), a14, T))}
-    desc["drop"] = drop
-    desc["lag1"] = _brief_stats(BK.curve_stats(cal, rets(C, run(C, lag_week(C, sig))), a14, T))
-    nb = {}
-    for key, vals in X.QM_NB.items():
-        for val in vals:
-            mm = qm_mask(C["cols"]["f"], {**X.QM, key: val})
-            nb[f"{key}={val:g}"] = _brief_stats(BK.curve_stats(cal, rets(C, run(C, signals(C, mm))), a14, T))
-    desc["nb"] = nb
-    out["desc"] = desc
-    out["review"] = review_dist(C, rr, spx_idle, a14)
+    if desc:
+        dsc: dict = {"roll3": roll_wins(C, rr, spx_idle, a14), "years": {y: [sleeve["main"]["years"].get(y), spx_tr["years"].get(y),
+                                                                            ew["years"].get(y)] for y in sleeve["main"]["years"]}}
+        top = [s for s, _ in out["top"]]
+        drop = {}
+        for k in X.QM_DROP:
+            js = frozenset(C["P"]["col"][s] for s in top[:k])
+            drop[str(k)] = {"syms": top[:k], **_brief_stats(BK.curve_stats(cal, rets(C, run(C, signals(C, m, drop=js))), a14, T))}
+        dsc["drop"] = drop
+        dsc["lag1"] = _brief_stats(BK.curve_stats(cal, rets(C, run(C, lag_week(C, sig))), a14, T))
+        nb = {}
+        for key, vals in X.QM_NB.items():
+            for val in vals:
+                mm = qm_mask(C["cols"]["f"], {**X.QM, key: val})
+                nb[f"{key}={val:g}"] = _brief_stats(BK.curve_stats(cal, rets(C, run(C, signals(C, mm))), a14, T))
+        dsc["nb"] = nb
+        out["desc"] = dsc
+        out["review"] = review_dist(C, rr, spx_idle, a14)
+    else:
+        out["_rs"] = rs                                                   # 候選研究要比較逐筆交易（不寫進研究檔）
     out["now"] = snapshot(C, rs, sig)
     out["idle"] = X.QM_IDLE
     out["core"] = {mk: CS.core_of(mk) for mk in X.QM_PLANS}

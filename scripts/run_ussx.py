@@ -8,6 +8,7 @@
                                                                                        # （規格要 SEC 財報：資料夾沒有 sec/ 就不跑）
   USSX_DIR=… python3 scripts/run_ussx.py --qm                                          # VER 3 美股三成規則 QM → data/lab/ussx_qm.json
   USSX_DIR=… python3 scripts/run_ussx.py --qm-live                                     # 每週紀錄（ussx_weekly.yml）→ data/lab/ussx_qm_live.json
+  USSX_DIR=… python3 scripts/run_ussx.py --omfix                                       # 一次性收入修法研究（omfixspec）→ data/lab/ussx_omfix.json
 """
 from __future__ import annotations
 
@@ -131,6 +132,16 @@ def qm_live(P) -> None:
         print(f"  ⚠ {x['d']} {x['what']}")
 
 
+def omfix(P) -> None:
+    """一次性收入修法研究（omfixspec VER 1）→ data/lab/ussx_omfix.json（研究用，頁面不讀）。"""
+    from arm.lab import omfixspec as OS
+    from arm.lab import ussxomfix as OF
+    from arm.lab import ussxqm as QM
+    R = OF.research(QM.context(P, extra=OS.KEYS))
+    OF.save(R)
+    print(f"[ussx] 寫入 {OF.RES.relative_to(ROOT)}；建議 {R['pick']}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--surv", action="store_true")
@@ -138,6 +149,7 @@ def main() -> None:
     ap.add_argument("--books", action="store_true")
     ap.add_argument("--qm", action="store_true")
     ap.add_argument("--qm-live", action="store_true")
+    ap.add_argument("--omfix", action="store_true")
     a = ap.parse_args()
     t0 = time.time()
     P = UP.load()
@@ -152,6 +164,8 @@ def main() -> None:
         qm(P)
     if a.qm_live:
         qm_live(P)
+    if a.omfix:
+        omfix(P)
     print(f"[ussx] 完成（{time.time() - t0:.0f}s）")
 
 
