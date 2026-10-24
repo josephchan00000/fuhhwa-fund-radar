@@ -72,7 +72,8 @@ jobs:
             git archive FETCH_HEAD "$p" 2>/dev/null | tar -x -C br || true
           done
           python3 scripts/run_cands.py --merge-from br
-          python3 -m pytest -q tests/test_cands.py tests/test_candspec.py
+          # 測試裡也會呼叫 merge_from：拿掉 GITHUB_OUTPUT 才不會蓋掉上面寫的新候選
+          env -u GITHUB_OUTPUT python3 -m pytest -q tests/test_cands.py tests/test_candspec.py
 
       - name: 這一輪要不要美股資料
         id: need
