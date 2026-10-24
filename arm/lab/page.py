@@ -194,13 +194,14 @@ def render(data: dict, ser_v: str | None = None) -> str:
     main["serv"] = ser_v or _ver(ser_json(data))
     main["asl"] = asof_line(data)                 # 資料日（個股工具那一列；第 4 段起不放頂欄）
     blob = _dump(main).replace("</", "<\\/")
-    from . import appnav, cfgpage, copage, corepage, macpage, stockviz   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
+    from . import appnav, cfgpage, copage, corepage, macpage, stockviz, uscardpage   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
                                              # （初始化會開分頁與 #s= 個股卡，這時公司分析的頂層 const 必須已經初始化）
                                              # stockviz＝機會、籌碼頁的三張圖（docs/lab_visual_plan.md 第 10 節），同樣放在初始化之前
                                              # cfgpage＝配置頁（台股、美股、策略；docs/lab_ia_v5_plan.md 第 18 節），同樣放在初始化之前
+                                             # uscardpage＝美股個股卡（docs/lab_cfg_v2_plan.md 第 3.3 節；要用 cfgpage 的 CFG），放在 cfgpage 後面
     return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("cfg", search=copage.SEARCH_HTML))
-            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS + stockviz.CSS + macpage.CSS + corepage.CSS + cfgpage.CSS + theme_css())
-            .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", stockviz.JS + macpage.JS + cfgpage.JS + copage.JS)))
+            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS + stockviz.CSS + macpage.CSS + corepage.CSS + cfgpage.CSS + uscardpage.CSS + theme_css())
+            .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", stockviz.JS + macpage.JS + cfgpage.JS + uscardpage.JS + copage.JS)))
 
 
 _HTML = """<!doctype html>
@@ -1826,8 +1827,9 @@ function openStock(c){if(!$('#dv').hidden){history.replaceState(null,'','#s='+en
   PUSHED=true;location.hash='s='+encodeURIComponent(c);}
 function lockBody(on){document.body.style.overflow=on?'hidden':'';}
 function hideStock(){$('#dv').hidden=true;$('#dv').classList.remove('pane');document.body.classList.remove('pane');lockBody(!$('#gl').hidden);}
-function closeStock(){if(PUSHED&&location.hash.startsWith('#s=')){PUSHED=false;history.back();}else{history.replaceState(null,'',location.pathname+location.search);hideStock();}}
-function stepStock(d){const c=decodeURIComponent((location.hash.match(/^#s=(.+)$/)||[])[1]||'');const i=CTX.indexOf(c);const t=CTX[i+d];if(i>=0&&t)openStock(t);}
+function closeStock(){if(PUSHED&&/^#(s|us)=/.test(location.hash)){PUSHED=false;history.back();}else{history.replaceState(null,'',location.pathname+location.search);hideStock();}}
+function stepStock(d){if(/^#us=/.test(location.hash)){ucStep(d);return;}   /* 美股個股卡（uscardpage）：‹ › 照配置頁美股的順序 */
+  const c=decodeURIComponent((location.hash.match(/^#s=(.+)$/)||[])[1]||'');const i=CTX.indexOf(c);const t=CTX[i+d];if(i>=0&&t)openStock(t);}
 window.addEventListener('hashchange',()=>{const m=location.hash.match(/^#s=(.+)$/);if(m)renderStock(decodeURIComponent(m[1]));else hideStock();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!POP.hidden){hidePop();return;}if(!$('#gl').hidden)closeGl();else if(!$('#dv').hidden)closeStock();return;}
   if($('#dv').hidden||!$('#gl').hidden||/INPUT|SELECT|TEXTAREA/.test((e.target||{}).tagName||''))return;
@@ -2047,7 +2049,7 @@ function setPer(p){if(p===PER)return;PER=p;$$('#tabs a[data-p]').forEach(a=>{a.h
     a.classList.toggle('on',on);if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   document.title=PTITLE[p]||'配置';}
 /* 頂欄「配置」記住上次看的配置分頁（appnav.NAV_HEAD；研究紀錄的分頁不記） */
-function urlSet(){const t=S.tab,q=t==='tw'?'':'?v='+t+(TABG[t]==='mac'?'&m='+S.mmk:''),h=/^#(s|co)=/.test(location.hash)?location.hash:'';
+function urlSet(){const t=S.tab,q=t==='tw'?'':'?v='+t+(TABG[t]==='mac'?'&m='+S.mmk:''),h=/^#(s|co|us)=/.test(location.hash)?location.hash:'';
   try{history.replaceState(history.state,'',location.pathname+q+h);}catch(e){}
   if(PER==='cfg'&&window.labLast)labLast('cfg','x9.html'+q);}
 function hdh(){return $('.hd').offsetHeight;}
@@ -2076,9 +2078,10 @@ $$('.apptab a[data-k="cfg"]').forEach(a=>a.onclick=e=>{e.preventDefault();if(PER
 $$('.applk .glk').forEach(a=>a.onclick=e=>{e.preventDefault();openGl();});     /* 頂欄小字「名詞」 */
 {const q=new URLSearchParams(location.search),hm=location.hash.match(/^#v=([a-z]+)(.*)$/),gl=location.hash==='#gl';let v=q.get('v'),m=q.get('m'),x='',at=q.get('at')||undefined;
   if(hm){v=hm[1];const p=new URLSearchParams(hm[2].replace(/^&/,''));m=p.get('m')||m;x=p.get('x')||'';}
-  if(m&&MCM[m])S.mmk=m;if(!VIEWS[v])v=/^#((s|co)=|q$)/.test(location.hash)?'stk':'tw';   /* #q＝查公司（別頁頂欄的「查公司」連過來） */
+  if(m&&MCM[m])S.mmk=m;if(!VIEWS[v])v=/^#((s|co)=|q$)/.test(location.hash)?'stk':/^#us=/.test(location.hash)?'us':'tw';   /* #q＝查公司（別頁頂欄的「查公司」連過來）；#us＝美股個股卡 */
   if(x&&TABG[v]==='mac'){const M=MCM[S.mmk]||{};if((M.cards||[]).some(c=>c.k===x)){v='mac';at='m-'+x;}else{v='macst';at='ms-'+x;}}
   go(v,at);if(gl)openGl();}
 if(isPane())setTimeout(()=>{loadSer().catch(()=>{});},1500);
 {const m=location.hash.match(/^#s=(.+)$/);if(m)renderStock(decodeURIComponent(m[1]));}
+{const m=location.hash.match(/^#us=(.+)$/);if(m)ucRender(decodeURIComponent(m[1]));}
 """

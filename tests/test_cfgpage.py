@@ -126,6 +126,11 @@ def _yhref(c):
     return f'href="https://finance.yahoo.com/quote/{c}" target="_blank" rel="noopener"'
 
 
+def _uhref(c):
+    """美股的股票點了開美股個股卡（配置頁 v2 第 4 步；uscardpage）。"""
+    return f'href="#us={c}" data-us="{c}"'
+
+
 def _qm(QMX, hold, buy=(), sell=(), idle=0.0, d="2026-10-23", nxt="2026-10-26", lst=None, names=None, W=None):
     """假的美股強勢品質股紀錄（每週紀錄 L＋每天的 50 日線檢查 W）。"""
     return {"R": QMX["R"], "W": W, "L": {"names": names or {}, "now": {
@@ -138,8 +143,8 @@ def _h(c, w, ent="2026-08-03", r=0.1, px=100.0, ma=95.0, sell=False):
 
 
 def test_us_v2_sections_with_real_data(R, QMX):
-    """配置頁 v2 第 2 步（docs/lab_cfg_v2_plan.md 第 3.2 節）：美股同樣五段——現在的錢、持股（每一檔整列點了開 Yahoo Finance，
-    美股個股卡做好之前）、接下來照規則的買賣、警訊、過去照做。比重合計 100%。"""
+    """配置頁 v2 第 2 步（docs/lab_cfg_v2_plan.md 第 3.2 節）：美股同樣五段——現在的錢、持股（每一檔整列點了開美股個股卡，
+    第 4 步）、接下來照規則的買賣、警訊、過去照做。比重合計 100%。"""
     X = CF.us_parts(_data(), _bundle(R, qm=QMX))
     assert set(X) >= {"card", "hold", "sched", "warn", "perf", "d", "nx", "tl"}
     c, h, s = X["card"], X["hold"], X["sched"]
@@ -149,7 +154,7 @@ def test_us_v2_sections_with_real_data(R, QMX):
     if CPG.qm_on("spx", QMX):
         n = CPG._qm_now(QMX)
         for x in n.get("hold") or []:
-            assert f'<a class="cfrow" {_yhref(x["c"])}>' in h, x["c"]                      # 整列點了開 Yahoo Finance
+            assert f'<a class="cfrow" {_uhref(x["c"])}>' in h, x["c"]                      # 整列點了開美股個股卡
         held = [float(x) for x in re.findall(r'<span class="w">([0-9.]+)%</span>', h)]
         cash = float(re.search(r'class="cfcash">.*?<em>([0-9.]+)%</em>', h).group(1))
         assert abs(sum(held) + cash - 100) < 0.3, (held, cash)                          # 持有中＋現金＝100%（待買進寫「約」，不算）
@@ -166,8 +171,8 @@ def test_us_v2_sections_with_real_data(R, QMX):
         assert w not in _text(c + h + s), w
 
 
-def test_us_v2_rows_link_yahoo_and_explain(R, QMX, monkeypatch):
-    """2026-10-24 使用者：「你要我持有的股票我根本沒辦法點進去看」——美股每一列＝公司名＋代號（點了開 Yahoo Finance）、
+def test_us_v2_rows_open_card_and_explain(R, QMX, monkeypatch):
+    """2026-10-24 使用者：「你要我持有的股票我根本沒辦法點進去看」——美股每一列＝公司名＋代號（點了開美股個股卡）、
     本業、哪天買・離 50 日線多遠、為什麼（這一週名單的第幾名）；名單前幾名（手上沒有的）也可以點。"""
     from arm import fund_intro as FI
     monkeypatch.setattr(CPG, "_US_INTRO", {"INSW": "美國 International Seaways，油輪航運公司；船隊…",
@@ -181,15 +186,15 @@ def test_us_v2_rows_link_yahoo_and_explain(R, QMX, monkeypatch):
     lg = re.findall(r'<li><u class="(c\d|cx)"></u><span>([^<]+)</span><em>([0-9.]+)%</em></li>', c)
     assert lg == [("c1", "強勢品質股 2 檔", "75"), ("cx", "現金", "25")]
     assert "現金 25% 是空的位子，10/23（五）收盤看下一份名單，有空位就在下一個交易日開盤買。" in _text(c)
-    assert f'<a class="cfrow" {_yhref("INSW")}><span class="cfra"><b>International Seaways</b><span class="cd">INSW</span>' in h
+    assert f'<a class="cfrow" {_uhref("INSW")}><span class="cfra"><b>International Seaways</b><span class="cd">INSW</span>' in h
     assert '<span class="cfri">油輪航運公司</span><span class="cfrb">7/20 買・比 50 日線高 3.2%</span>' in h
     assert "為什麼：10/22 收盤的名單第 1 名，漲勢勝過 99% 的美股" in _text(h)       # VLO 在名單上；INSW 不在、不寫為什麼
-    assert _text(h).count("為什麼") == 1
+    assert _text(h).count("為什麼：") == 1
     assert "分到 100%，現在用到 75%。" in _text(h) and "最多 8 檔、每檔約 12.5%" in _text(h)
     assert re.search(r'class="cfcash"><b>現金</b><span>空的位子</span><em>25%</em>', h)
     top, cand = h.split('class="cfh3"')
     assert "有空位時依序買：名單前 5 名（手上沒有的）" in _text(cand)
-    got = re.findall(r'<a href="https://finance.yahoo.com/quote/(\w+)"', cand)
+    got = re.findall(r'<a href="#us=(\w+)" data-us="\1"', cand)
     assert got == ["CDNA", "PAYC", "QLYS", "HALO", "NTAP"] and FI.US_QM_SHOW == 5        # VLO 手上有，不列；只列前 5
     assert 'CareDx, Inc. <span class="cd">CDNA</span>' in cand                          # 沒有中文簡介：用每週紀錄的英文名
     lane = X["tl"]["qm"]
@@ -200,7 +205,7 @@ def test_us_v2_rows_link_yahoo_and_explain(R, QMX, monkeypatch):
     dates = re.findall(r'<div class="cfevd"><b>([^<]+)</b>', s)
     assert dates == ["10/23", "每天", "10/26"], dates                                    # 每天的 50 日線檢查放在第一天後面
     assert "有 6 個空位，名單前面、手上沒有的下一個交易日開盤買" in _text(s) and "名單前面的公司，每檔約 12.5%" in _text(s)
-    assert "最接近的是" in _text(s) and f'<a {_yhref("INSW")}>International Seaways</a>，比 50 日線高 3.2%' in s
+    assert "最接近的是" in _text(s) and f'<a {_uhref("INSW")}>International Seaways</a>，比 50 日線高 3.2%' in s
     assert CF._yf("BRK.B") == _yhref("BRK-B")                                         # Yahoo 的代號寫法
 
 
@@ -215,11 +220,11 @@ def test_us_v2_buy_tomorrow_fills_all_slots(R, QMX, monkeypatch):
     t = _text(X["card"])
     assert "現金 10.4% 是空的位子：10/26（一）開盤買 Fortinet（約 10.4%）之後，8 個位子都滿，股票約" in t and "100%" in t
     h = X["hold"]
-    assert f'<a class="cfrow todo" {_yhref("FTNT")}>' in h and "約 10.4%" in h and "10/26（一）開盤買" in _text(h)
+    assert f'<a class="cfrow todo" {_uhref("FTNT")}>' in h and "約 10.4%" in h and "10/26（一）開盤買" in _text(h)
     assert "為什麼：10/23 收盤的名單第 7 名（手上還沒有），漲勢勝過 97% 的美股" in _text(h)
     assert "7 檔＋1 檔待買" in _text(h)
     s = X["sched"]
-    assert f'強勢品質股：<a {_yhref("FTNT")}>Fortinet</a>（約 10.4%）' in s
+    assert f'強勢品質股：<a {_uhref("FTNT")}>Fortinet</a>（約 10.4%）' in s
     assert "8 個位子都滿，有空位才買" in _text(s)
     assert X["tl"]["qm"]["buy"][0]["d"] == "2026-10-26" and X["tl"]["qm"]["next"] is None
 
@@ -392,7 +397,7 @@ def test_page_tabs_personas_and_script_order():
     J = page._JS
     assert "const VIEWS={tw:vCfgTw,us:vCfgUs,strat:vCfgSt,stk:vStk,chip:vChip,idx:vIdx,opp:vOpp,st:vSt,mac:vMac,macst:vMacSt,bo:vBo};" in J
     assert "const LAST={cfg:'tw',r:'bo',tool:'stk',mac:'mac',stg:'opp'};" in J
-    assert "if(!VIEWS[v])v=/^#((s|co)=|q$)/.test(location.hash)?'stk':'tw';" in J   # 預設台股；舊的個股卡連結、查公司（#q）先到個股表
+    assert "if(!VIEWS[v])v=/^#((s|co)=|q$)/.test(location.hash)?'stk':/^#us=/.test(location.hash)?'us':'tw';" in J   # 預設台股；舊的個股卡連結、查公司（#q）先到個股表；美股個股卡（#us=）到配置・美股
     assert "if(d.gm)S.mmk=d.gm;if(d.bmk)S.bmk=d.bmk;" in J
     for v in ("vStk", "vChip", "vIdx"):                                            # 個股（工具）三頁最上面切換
         seg = J[J.index(f"function {v}("):]

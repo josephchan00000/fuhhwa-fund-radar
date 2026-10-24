@@ -103,7 +103,7 @@ def test_market_pages_have_no_method_words(site):
 
 
 def test_config_pages_have_no_method_words(site):
-    """配置頁：台股、美股、策略、個股工具（個股、籌碼、指數），個股卡、公司卡。時間軸（.cftl：圖例、範圍切換、圖）的 ▲▼◆●
+    """配置頁：台股、美股、策略、個股工具（個股、籌碼、指數），個股卡、公司卡、美股個股卡。時間軸（.cftl：圖例、範圍切換、圖）的 ▲▼◆●
     是買賣的記號、不是評級，時間軸只檢查方法字。"""
     b, base = site
     found = []
@@ -116,6 +116,18 @@ def test_config_pages_have_no_method_words(site):
         found += [f"{v} 時間軸 {x}" for x in bad(tl, METHOD + NOT_PLAIN, CFG_ALLOW)]
         found += [f"{v} JS 錯誤：{e}" for e in errs]
         pg.close()
+    pg, errs = _page(b, f"{base}/x9.html?v=us")                  # 美股個股卡（配置頁 v2 第 4 步）：每一檔都打開
+    codes = pg.evaluate("() => (typeof UCD !== 'undefined' && UCD && UCD.o) || []")   # 頂層 const 不在 window 上
+    for c in codes:
+        pg.evaluate("(c) => ucOpen(c)", c)
+        pg.wait_for_timeout(200)
+        t = pg.evaluate("() => document.getElementById('dv').innerText")
+        assert len(t) > 200, c
+        intro = pg.evaluate("() => [...document.querySelectorAll('#uc-co .ucl')].map(e => e.innerText).join('')")
+        t = t.replace(intro, "") if intro else t                 # 公司簡介是公司本身的描述（例「基因體研究中心」），不是頁面的方法用字
+        found += [f"美股卡 {c} {x}" for x in bad(t, allow=CFG_ALLOW)]
+    found += [f"美股卡 JS 錯誤：{e}" for e in errs]
+    pg.close()
     for h, nm in (("#s=2330", "個股卡"), ("#co=2330", "公司卡")):
         pg, errs = _page(b, f"{base}/x9.html?v=stk{h}")
         pg.wait_for_timeout(1500)
