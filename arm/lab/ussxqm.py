@@ -1,4 +1,6 @@
-"""美股三成的規則 QM（ussxspec VER 3；docs/lab_us_sleeve_plan.md 第 13 節）：每週名單、資金帳戶、研究、上線狀態。
+"""美股三成的規則 QM（ussxspec VER 3～6；docs/lab_us_sleeve_plan.md 第 13 節、docs/lab_core70_plan.md 第 19、20 節）：
+每週名單、資金帳戶、研究、上線狀態。VER 4：空的位子放現金（不付指數的成本）、放進交易計畫照 corespec 的核心比例（美股 0%）。
+VER 5：判定 ② 跟現在在用的計畫比（VER 3 的設定）。VER 6：③ 複委託只描述（使用者用海外券商）。
 
   research(C)  → data/lab/ussx_qm.json（scripts/run_ussx.py --qm；資料分支的資料）：重現第 12 節、判定 ①～④、只描述的項目、
                  交易計畫卡要的 scenario（spx、ndx 各一份）。
@@ -89,14 +91,24 @@ def lag_week(C: dict, sig: dict[int, list], n: int = 1) -> dict[int, list]:
     return {wk[pos[i] + n]: v for i, v in sig.items() if pos[i] + n < len(wk)}
 
 
-def run(C: dict, sig: dict[int, list], mk: str = "spx", c_stk: float = X.COST["stk"], b: int | None = None) -> dict:
-    """QM 的資金帳戶：QM_Y0 起，閒置放那個計畫的指數。"""
+def idle_of(C: dict, mk: str, mode: str | None = None) -> tuple[np.ndarray, float]:
+    """閒置的錢每天的報酬與進出的成本：cash＝現金利息、不付成本（ussxspec VER 4）；index＝那個計畫的指數（VER 3）。"""
+    Q = C["PQ"][mk]
+    if (mode or X.QM_IDLE) == "cash":
+        return Q["cash"], 0.0
+    return Q["idle"], X.COST["idx"]
+
+
+def run(C: dict, sig: dict[int, list], mk: str = "spx", c_stk: float = X.COST["stk"], b: int | None = None,
+        idle: str | None = None) -> dict:
+    """QM 的資金帳戶：QM_Y0 起；閒置的錢照 idle（None＝QM_IDLE：VER 4 放現金）。"""
     P = C["P"]
     a = a_of(C["cal"], X.QM_Y0)
     w = 1.0 / X.QM_SLOTS
-    r = BK.run(P["O"], C["Cf"], P["C"], P["last"], sig, a, b or C["T"], C["PQ"][mk]["idle"], ex=X.QM_EXIT, style=X.QM_STYLE,
+    ir, ci = idle_of(C, mk, idle)
+    r = BK.run(P["O"], C["Cf"], P["C"], P["last"], sig, a, b or C["T"], ir, ex=X.QM_EXIT, style=X.QM_STYLE,
                MA=C["MA"], D20=C["D20"], DIV=C["DIV"], weight=w, max_pos=X.QM_SLOTS,
-               max_weight=max(w, X.TRADE["max_weight"]), c_stk=c_stk)
+               max_weight=max(w, X.TRADE["max_weight"]), c_stk=c_stk, c_idx=ci)
     r["a"] = a
     return r
 
@@ -112,8 +124,10 @@ def stk_share(C: dict, r: dict) -> np.ndarray:
 
 # ── 放進交易計畫 ───────────────────────────────────────────────────────────────
 
-def plan_scenarios(C: dict, mk: str, rr: np.ndarray, st: np.ndarray, a: int, b: int, c_stk: float) -> tuple[dict, dict]:
-    """三成換成 QM（閒置放那個計畫的指數）vs 現在的計畫：同一段期間的 core.scenario（完整，頁面用）。同 ussxrun.plan_level。"""
+def plan_scenarios(C: dict, mk: str, rr: np.ndarray, st: np.ndarray, a: int, b: int, c_stk: float,
+                   core: float | None = None) -> tuple[dict, dict]:
+    """機動換成 QM vs 機動放指數：同一段期間的 core.scenario（完整，頁面用）。同 ussxrun.plan_level。
+    core＝核心比例（None＝corespec 現在的 core_of：VER 4 美股 0%；重現第 12 節用 0.70）。"""
     from . import core as CO
     P, Q = C["P"], C["PQ"][mk]
     cal = Q["cal"]
@@ -126,8 +140,9 @@ def plan_scenarios(C: dict, mk: str, rr: np.ndarray, st: np.ndarray, a: int, b: 
             sl[q] = rr[k]
             inpos[q] = st[k] > 0
     c = CS.COST["us"]
-    cur = CO.scenario("cur", mk, cal, Q["px"], Q["tot"], Q["rf"], Q["F"], pa, pb, c)
-    new = CO.scenario("plan", mk, cal, Q["px"], Q["tot"], Q["rf"], Q["F"], pa, pb, c, sl=sl, inpos=inpos, c_stk=c_stk, sleeve="qm")
+    cur = CO.scenario("cur", mk, cal, Q["px"], Q["tot"], Q["rf"], Q["F"], pa, pb, c, core=core)
+    new = CO.scenario("plan", mk, cal, Q["px"], Q["tot"], Q["rf"], Q["F"], pa, pb, c, sl=sl, inpos=inpos, c_stk=c_stk, sleeve="qm",
+                      core=core)
     return new, cur
 
 
@@ -214,11 +229,15 @@ def research(C: dict, log=print) -> dict:
     out["top"] = _pnl_top(C, rs)
     # 放進交易計畫
     plans, sc = {}, {}
+    JB = X.QM_JUDGE_BASE
     for mk in X.QM_PLANS:
         for ck, c in (("main", X.COST["stk"]), ("alt", X.COST["stk_alt"])):
             r = R[(mk, ck)]
             new, cur = plan_scenarios(C, mk, rets(C, r), stk_share(C, r), a14, T, c)
-            plans[f"{mk}_{ck}"] = {"new": SW._brief(new), "cur": SW._brief(cur), "judge": SW.judge(new, cur)}
+            # VER 5：判定 ② 跟現在在用的計畫比（VER 3 的設定：核心 70%、機動放 QM、空位放指數；同一個成本）；cur＝機動放指數（只描述）
+            rb = run(C, sig, mk, c, idle=JB["idle"])
+            base = plan_scenarios(C, mk, rets(C, rb), stk_share(C, rb), a14, T, c, core=JB["core"])[0]
+            plans[f"{mk}_{ck}"] = {"new": SW._brief(new), "cur": SW._brief(cur), "base": SW._brief(base), "judge": SW.judge(new, base)}
             if ck == "main":
                 sc[mk] = new
     out["plans"], out["sc"] = plans, sc
@@ -237,11 +256,15 @@ def research(C: dict, log=print) -> dict:
     v["c3"] = {mk: bool(v["c1_alt"]["spx"] and v["c1_alt"]["ew"] and plans[f"{mk}_alt"]["judge"]["pass"]) for mk in X.QM_PLANS}
     v["c4"] = bool(G is not None and G * 100 < X.PASS["surv_max"])
     c1 = v["c1"]["spx"] and v["c1"]["ew"]
-    v["pass"] = {mk: bool(c1 and v["c2"][mk] and v["c3"][mk] and v["c4"]) for mk in X.QM_PLANS}
+    v["need_alt"] = X.QM_NEED_ALT                                         # VER 6：③（複委託）照算、只描述
+    v["pass"] = {mk: bool(c1 and v["c2"][mk] and (v["c3"][mk] or not X.QM_NEED_ALT) and v["c4"]) for mk in X.QM_PLANS}
     out["verdict"] = v
-    # 重現第 12 節
-    rc, rm = sleeve["main"]["cagr"], plans["spx_main"]["new"]["plan"]["m"]
-    out["repro"] = {"cagr": rc, "plan_m": rm, "ref": X.QM_REF, "tol": X.QM_REPRO,
+    # 重現第 12 節：照 VER 3 的設定（空位放指數、核心 70%）另外跑一次（ussxspec VER 4 ③）
+    RS = X.QM_REPRO_SET
+    r3 = run(C, sig, "spx", X.COST["stk"], idle=RS["idle"])
+    rc = BK.curve_stats(cal, rets(C, r3), a14, T)["cagr"]
+    rm = plan_scenarios(C, "spx", rets(C, r3), stk_share(C, r3), a14, T, X.COST["stk"], core=RS["core"])[0]["plan"]["m"]
+    out["repro"] = {"cagr": rc, "plan_m": rm, "ref": X.QM_REF, "tol": X.QM_REPRO, "set": RS,
                     "ok": bool(abs(rc - X.QM_REF["cagr"]) <= X.QM_REPRO["cagr"] and abs(rm - X.QM_REF["plan_m"]) <= X.QM_REPRO["plan_m"])}
     out["switch"] = {mk: bool(out["repro"]["ok"] and v["pass"][mk]) for mk in X.QM_PLANS}
     # 只描述
@@ -264,8 +287,10 @@ def research(C: dict, log=print) -> dict:
     out["desc"] = desc
     out["review"] = review_dist(C, rr, spx_idle, a14)
     out["now"] = snapshot(C, rs, sig)
-    log(f"[ussxqm] 完成 {time.time() - t0:.0f}s：三成本身 {rc * 100:.2f}%、計畫 {rm * 100:,.1f} 萬；重現 {out['repro']['ok']}；"
-        f"判定 {v['pass']}")
+    out["idle"] = X.QM_IDLE
+    out["core"] = {mk: CS.core_of(mk) for mk in X.QM_PLANS}
+    log(f"[ussxqm] 完成 {time.time() - t0:.0f}s：重現（VER 3 設定）三成本身 {rc * 100:.2f}%、計畫 {rm * 100:,.1f} 萬 → {out['repro']['ok']}；"
+        f"VER {X.VER} 三成本身 {sleeve['main']['cagr'] * 100:.2f}%、計畫 {sc['spx']['plan']['m'] * 100:,.1f} 萬；判定 {v['pass']}")
     return out
 
 

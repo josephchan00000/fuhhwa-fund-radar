@@ -117,3 +117,25 @@ def test_rows_have_no_banned_words():
     txt = json.dumps(_build()["rows"], ensure_ascii=False)
     for w in BANNED + ("隨便挑",):
         assert w not in txt, w
+
+
+def test_plan_names_follow_core_share_and_boom_row():
+    """corespec VER 4：計畫的名字照長抱比例（台股兩成、美股全部機動）；台股機動的一半＝新飆股，另外一列「使用中」。"""
+    from arm.lab import core as CO
+    from arm.lab import corespec as S
+    R = CO.load()
+    stk = dict(_stk(), w=S.sat_of("tw") * 0.5 / 3, bw=S.sat_of("tw") * S.BOOM_SHARE["tw"],
+               boom={"d": "2026-10-30", "next": "2026-11-02", "next_wk": "2026-11-06", "w": 0.125,
+                     "hold": [{"c": "3017", "n": "奇鋐", "w": 0.5}], "buy": [{"c": "2368", "fill": True}, {"c": "6274", "fill": False}]})
+    rows = {r["id"]: r for r in _build(bundle={"stk": stk, "R": R})["rows"]}
+    assert rows["tw:plan"]["name"] == "兩成長抱＋警訊（台股）" and rows["us:plan"]["name"] == "全部機動＋警訊（美股）"
+    assert "0050 兩成一直抱著；八成一半買新飆股、一半跟著 3 條個股策略" in rows["tw:plan"]["how"]
+    assert rows["us:plan"]["how"].startswith("全部買") and "總經策略全部空手就把全部換成現金" in rows["us:plan"]["how"]
+    b = rows["tw:boom"]
+    assert b["st"] == "use" and b["type"] == "個股" and b["go"] == {"go": "tw", "at": "cf-tw-sx"}
+    assert b["today"] == "持有 1 檔・11/2 買 1 檔" and "每檔約占全部資金 5%" in b["how"]
+    bm = R["mk"]["tw"]["sc"]["plan"]["boom"]
+    assert b["perf"] == f"年化 {BD._pc(bm['cagr'] * 100)}" and b["ref"] == f"大盤 {BD._pc(bm['hold']['cagr'] * 100)}"
+    nb = {r["id"]: r for r in _build(bundle={"stk": dict(stk, boom={"d": "2026-10-22", "next": "2026-10-27", "next_wk": "2026-10-30"}),
+                                              "R": R})["rows"]}
+    assert nb["tw:boom"]["today"] == "空手・名單 10/30 收盤產生"

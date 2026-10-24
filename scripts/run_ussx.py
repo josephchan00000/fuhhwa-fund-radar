@@ -105,7 +105,9 @@ def qm(P) -> None:
           f"計畫 {rp['plan_m'] * 100:,.1f} 萬（第 12 節 {rp['ref']['plan_m'] * 100:,.1f} 萬）→ 重現 {'✓' if rp['ok'] else '✗'}")
     for mk in ("spx", "ndx"):
         pl, j = R["plans"][f"{mk}_main"], R["plans"][f"{mk}_main"]["judge"]
-        print(f"  {mk}：現在 {pl['cur']['plan']['m'] * 100:,.0f} 萬 → QM {pl['new']['plan']['m'] * 100:,.0f} 萬；"
+        b = pl.get("base") or pl["cur"]
+        print(f"  {mk}：現在在用的計畫 {b['plan']['m'] * 100:,.0f} 萬（最慘 {b['plan']['mdd'] * 100:.1f}%）→ QM {pl['new']['plan']['m'] * 100:,.0f} 萬"
+              f"（最慘 {pl['new']['plan']['mdd'] * 100:.1f}%；機動也買指數 {pl['cur']['plan']['m'] * 100:,.0f} 萬）；"
               f"錢 {'✓' if j['money'] else '✗'} 兩半 {'✓' if j['halves'] else '✗'} 最慘 {'✓' if j['mdd'] else '✗'}；"
               f"判定 {'過' if v['pass'][mk] else '沒過'}、換 {'✓' if R['switch'][mk] else '✗'}")
 

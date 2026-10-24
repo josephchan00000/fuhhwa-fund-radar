@@ -1,4 +1,4 @@
-"""飆股前瞻記錄（arm/lab/sxlive.py；規格 sxlivespec VER 1）。"""
+"""飆股前瞻記錄（arm/lab/sxlive.py；規格 sxlivespec VER 2：R60 放進交易計畫、上配置頁）。"""
 import json
 import sys
 from datetime import date
@@ -199,14 +199,80 @@ def test_this_years_rules_exist_after_mid_january():
         f"飆股前瞻記錄缺 {today.year} 年的規則：dispatch lab_opt.yml，或跑 scripts/run_sxlive_rules.py --auto --refresh-min 40")
 
 
-def test_record_never_reaches_a_page():
-    """不上頁面：建頁的程式都不讀紀錄；只有 analyze.run 呼叫 update、valog 讀摘要發提醒。"""
-    for f in ("page.py", "sigpage.py", "findings.py", "corepage.py", "heatpage.py", "macpage.py", "copage.py",
+def test_only_the_plan_book_reaches_a_page():
+    """VER 2：只有 PLAN_BOOK（R60）現在的狀態上配置頁（page.py 讀 sxlive.LAST["plan"] 放進交易計畫的台股機動）；
+    紀錄檔、A、R1 兩本不上頁面。只有 analyze.run 呼叫 update、valog 讀摘要發提醒。"""
+    for f in ("sigpage.py", "findings.py", "corepage.py", "cfgpage.py", "heatpage.py", "macpage.py", "copage.py",
               "xspage.py", "stockviz.py", "printview.py"):
         p = ROOT / "arm" / "lab" / f
         if p.exists():
             assert "sxlive" not in p.read_text(encoding="utf-8"), f
+    pg = (ROOT / "arm" / "lab" / "page.py").read_text(encoding="utf-8")
+    assert pg.count("sxlive") == pg.count('sxlive.LAST.get("plan")') + pg.count("from . import sxlive") >= 2
     assert "sxlive.update(" in (ROOT / "arm" / "lab" / "analyze.py").read_text(encoding="utf-8")
+    assert S.PLAN_BOOK == S.BOOKS[0] == "R60"
+
+
+def _plan_fixture():
+    """合成價格跑一本帳到第 n−1 天，第 n−1 天剛好有一批訊號（明天開盤要買）、有一檔到期（明天開盤要賣）。"""
+    np, pd, dates, codes, o, h, l, c, f, val, vol, sig = _synthetic(5, n=90, m=24)
+    n, hold = len(dates), 12
+    av = pd.DataFrame(val).rolling(20, min_periods=1).mean().to_numpy()
+    avv = pd.DataFrame(vol).rolling(20, min_periods=1).mean().to_numpy()
+    lst = lambda a, j: [None if x != x else float(x) for x in a[:, j]]  # noqa: E731
+    px = {code: L.series(lst(o, j), lst(h, j), lst(l, j), lst(c, j), lst(f, j), lst(av, j), lst(avv, j))
+          for j, code in enumerate(codes)}
+    sig = {i: v for i, v in sig.items() if i < n - 1}
+    sig[n - 1] = [(codes[j], 90 - j) for j in range(10)]
+    T = {**S.TRADE, "hold": hold}
+    bk = L.Book(px, n, set(codes), T)
+    for i in range(n):
+        bk.step(i, sig.get(i))
+    cal = [str(d.date()) for d in dates]
+
+    class P:
+        pass
+    P.cal = cal
+    wk = {cal[i]: {"R60": [[k, s] for k, s in v]} for i, v in sig.items()}
+    rec = {"last": cal[-1], "weeks": wk, "_book": bk, "_px": px}
+    return rec, {"P": P}, bk, px, cal, sig, hold
+
+
+def test_plan_state_lists_holdings_sells_and_buys(monkeypatch):
+    rec, ctx, bk, px, cal, sig, hold = _plan_fixture()
+    monkeypatch.setitem(S.TRADE, "hold", hold)
+    st = L.plan_state(rec, ctx, {"1101": "台泥"})
+    i1 = len(cal) - 1
+    assert st["book"] == "R60" and st["d"] == cal[-1] and st["wk"] == cal[-1] and st["n_list"] == 10
+    assert [h["c"] for h in st["hold"]] == [c for c, q in sorted(bk.pos.items(), key=lambda x: (x[1]["ei"], x[0]))]
+    assert sum(h["w"] for h in st["hold"]) + st["cash"] == pytest.approx(1.0, abs=1e-9)
+    for h in st["hold"]:
+        q = bk.pos[h["c"]]
+        assert h["ent"] == cal[q["ei"]] and h["sell"] == bool(q["pend"])
+        if q["ei"] + hold < len(cal):
+            assert h["due"] == cal[q["ei"] + hold]
+        p = px[h["c"]]
+        assert h["epx"] == pytest.approx(p["o"][q["ei"]] / p["f"][q["ei"]])
+    assert st["sell"] == [h["c"] for h in st["hold"] if h["sell"]]
+    # 明天開盤要買的＝最後一天的訊號裡手上沒有的，依 RS 高到低；估計買得到的在前面
+    want = [c for c, _ in sorted(sig[i1], key=lambda x: -x[1]) if c not in bk.pos]
+    assert [b["c"] for b in st["buy"]] == want
+    fills = [b["fill"] for b in st["buy"]]
+    assert fills == sorted(fills, reverse=True) and st["n_buy"] == sum(fills)
+    assert st["list"][0]["c"] == "1101" and st["list"][0]["n"] == "台泥"
+
+
+def test_plan_state_before_any_week():
+    """還沒有任何一週的紀錄（第一個訊號日之前）：沒有持股、全部現金、下一次看名單的日子照休市表。"""
+    class P:
+        cal = ["2026-10-20", "2026-10-21", "2026-10-22", "2026-10-26"]
+    st = L.plan_state({"last": "2026-10-26", "weeks": {}}, {"P": P})
+    assert st["hold"] == [] and st["buy"] == [] and st["cash"] == 1.0 and st["wk"] is None
+    assert st["next"] == "2026-10-27" and st["next_wk"] == "2026-10-30" and not st["wk_today"]
+
+
+def test_start_index_skips_the_typhoon_day():
+    assert L.start_index(["2026-10-21", "2026-10-22", "2026-10-26", "2026-10-27"]) == 2
 
 
 def test_lab_opt_finds_this_years_rules():

@@ -44,7 +44,7 @@ def _ctx(cal: list[str], N: int = 6, seed: int = 7) -> dict:
     cols = {"di": np.array(di), "j": np.array(jj), "c": np.array(cc), "d": np.array([cal[i] for i in di]), "f": f, "wk": wk}
     return {"P": P, "cal": cal, "T": T, "cols": cols, "D20": np.full((T, N), 1e12), "Cf": C.copy(), "DIV": np.zeros((T, N)),
             "MA": UF.roll_mean(C, X.QM_EXIT["ma"]), "yr": np.array([int(d[:4]) for d in cols["d"]]),
-            "PQ": {"spx": {"idle": np.full(T, 0.0003)}}}
+            "PQ": {"spx": {"idle": np.full(T, 0.0003), "cash": np.full(T, 0.0001)}}}
 
 
 @pytest.fixture
@@ -89,10 +89,17 @@ def test_run_is_ussxbook_with_qm_settings(y0):
     r = QM.run(C, sig)
     a = QM.a_of(cal, 2025)
     w = 1 / X.QM_SLOTS
-    r0 = BK.run(C["P"]["O"], C["Cf"], C["P"]["C"], C["P"]["last"], sig, a, C["T"], C["PQ"]["spx"]["idle"], ex={"ma": 50},
-                style="trend", MA=C["MA"], D20=C["D20"], DIV=C["DIV"], weight=w, max_pos=8, max_weight=max(w, 0.20))
+    # VER 4：空位放現金、進出不付指數的成本
+    r0 = BK.run(C["P"]["O"], C["Cf"], C["P"]["C"], C["P"]["last"], sig, a, C["T"], C["PQ"]["spx"]["cash"], ex={"ma": 50},
+                style="trend", MA=C["MA"], D20=C["D20"], DIV=C["DIV"], weight=w, max_pos=8, max_weight=max(w, 0.20), c_idx=0.0)
     assert r["a"] == a and np.array_equal(r["eq"], r0["eq"]) and r["trades"] == r0["trades"]
     assert len(r["trades"]) > 0 and max(r["n"]) <= X.QM_SLOTS
+    # VER 3 的設定（重現檢查用）：空位放指數、付指數的成本
+    r3 = QM.run(C, sig, idle="index")
+    r30 = BK.run(C["P"]["O"], C["Cf"], C["P"]["C"], C["P"]["last"], sig, a, C["T"], C["PQ"]["spx"]["idle"], ex={"ma": 50},
+                 style="trend", MA=C["MA"], D20=C["D20"], DIV=C["DIV"], weight=w, max_pos=8, max_weight=max(w, 0.20))
+    assert np.array_equal(r3["eq"], r30["eq"]) and r3["trades"] == r30["trades"]
+    assert not np.array_equal(r["eq"], r3["eq"])
 
 
 def test_snapshot_matches_state_and_trades(y0):
@@ -216,13 +223,17 @@ def test_review_percentile_and_low_flag():
     assert all(x["due"] is None for x in short)
 
 
-def test_saved_research_reproduces_section_12_and_switches_both_plans():
-    """入庫的研究檔（scripts/run_ussx.py --qm）：重現第 12 節、四條判定都過、兩個計畫都換。"""
+def test_saved_research_reproduces_section_12_and_follows_the_verdict():
+    """入庫的研究檔（scripts/run_ussx.py --qm）：照 VER 3 的設定重現第 12 節（ussxspec VER 4 ③）；
+    VER 4 的設定（空位現金、核心＝corespec 的 core_of）算判定，換不換照判定。"""
+    from arm.lab import corespec as CS
     R = QM.load()
-    assert R and R["ver"] == X.VER and R["repro"]["ok"]
-    assert abs(R["sleeve"]["main"]["cagr"] - X.QM_REF["cagr"]) <= X.QM_REPRO["cagr"]
-    assert R["switch"] == {"spx": True, "ndx": True}
+    assert R and R["ver"] == X.VER and R["repro"]["ok"] and R["repro"]["set"] == X.QM_REPRO_SET
+    assert abs(R["repro"]["cagr"] - X.QM_REF["cagr"]) <= X.QM_REPRO["cagr"]
+    assert R["idle"] == X.QM_IDLE == "cash" and R["core"] == {mk: CS.core_of(mk) for mk in X.QM_PLANS}
+    assert R["switch"] == {mk: bool(R["repro"]["ok"] and R["verdict"]["pass"][mk]) for mk in X.QM_PLANS}
     for mk in X.QM_PLANS:
         sc = R["sc"][mk]
-        assert sc["key"] == "plan" and sc["sleeve"] == "qm" and sc["plan"]["m"] > R["plans"][f"{mk}_main"]["cur"]["plan"]["m"]
+        assert sc["key"] == "plan" and sc["sleeve"] == "qm" and sc["core"] == CS.core_of(mk)
+        assert sc["plan"]["m"] > R["plans"][f"{mk}_main"]["cur"]["plan"]["m"]
     assert set(R["review"]) == {str(k) for k in X.QM_REVIEW}

@@ -1,4 +1,4 @@
-"""交易計畫：核心 70%＋衛星 30%（corespec VER 2；docs/lab_core70_plan.md 第 9～12 節）。
+"""交易計畫：核心＋機動（corespec VER 4：台股核心 20%、美股 0%；docs/lab_core70_plan.md 第 9～12、16～19 節）。
 
 研究與每天建頁共用同一支 families()：
   research()        回測（scripts/run_core.py → data/lab/core_research.json；資料或規格改了才重跑）
@@ -142,38 +142,42 @@ def inputs_from_B(mk: str, B: dict) -> dict:
 
 # ── 回測 ─────────────────────────────────────────────────────────────────────
 
-def simulate(tot, rf, sat, a: int, b: int, c_idx: float, sl=None, inpos=None, swc=None, c_stk: float | None = None):
-    """第 a 天收盤＝1 元、算到第 b−1 天收盤。每天：核心 CORE × 大盤＋衛星 SAT ×（拿著＝衛星資產、現金＝利息）。
-    sl＝衛星資產每天的報酬（None＝大盤）；inpos[k]＝第 k 天收盤後衛星裡的策略有持股（換現金、買回付個股的成本）；
-    swc[k]＝衛星拿著時那一天策略換倉要付的大盤成本（期初開盤賣大盤、期末收盤買大盤）。→ 淨值陣列（長度 b−a）。"""
+def simulate(tot, rf, sat, a: int, b: int, c_idx: float, sl=None, inpos=None, swc=None, c_stk: float | None = None,
+             core: float = S.CORE):
+    """第 a 天收盤＝1 元、算到第 b−1 天收盤。每天：核心 core × 大盤＋機動（1 − core）×（拿著＝機動資產、現金＝利息）。
+    sl＝機動資產每天的報酬（None＝大盤）；inpos[k]＝第 k 天收盤後機動裡的策略有持股（換現金、買回付個股的成本）；
+    swc[k]＝機動拿著時那一天策略換倉要付的大盤成本（期初開盤賣大盤、期末收盤買大盤）。→ 淨值陣列（長度 b−a）。
+    core 預設＝VER 1～3 的 70%（ussxspec 的舊研究照這個重現）；交易計畫用 scenario 傳 corespec.core_of(市場)。"""
     tot = np.asarray(tot, dtype=float)
     rf = np.asarray(rf, dtype=float)
     sl = tot if sl is None else np.asarray(sl, dtype=float)
+    w = 1.0 - core
     nav = np.ones(b - a)
     v = 1.0
     for k in range(a + 1, b):
         on = sat[k - 1] > 0.5
-        g = S.CORE * tot[k] + S.SAT * (sl[k] if on else rf[k])
+        g = core * tot[k] + w * (sl[k] if on else rf[k])
         cost = 0.0
         if on and swc is not None and swc[k]:
-            cost += S.SAT * swc[k]
+            cost += w * swc[k]
         if sat[k] != sat[k - 1]:
-            cost += S.SAT * (c_stk if (inpos is not None and c_stk is not None and inpos[k]) else c_idx)
+            cost += w * (c_stk if (inpos is not None and c_stk is not None and inpos[k]) else c_idx)
         v *= (1 + g) * (1 - cost)
         nav[k - a] = v
     return nav
 
 
-def simulate_fixed(tot, rf, share: float, a: int, b: int, sl=None, swc=None):
-    """每天固定拿一樣多：衛星一直有 share 比例拿著衛星資產、其餘現金（平均部位相同，沒有換現金的成本）。"""
+def simulate_fixed(tot, rf, share: float, a: int, b: int, sl=None, swc=None, core: float = S.CORE):
+    """每天固定拿一樣多：機動一直有 share 比例拿著機動資產、其餘現金（平均部位相同，沒有換現金的成本）。"""
     tot = np.asarray(tot, dtype=float)
     rf = np.asarray(rf, dtype=float)
     sl = tot if sl is None else np.asarray(sl, dtype=float)
+    w = 1.0 - core
     nav = np.ones(b - a)
     v = 1.0
     for k in range(a + 1, b):
-        g = S.CORE * tot[k] + S.SAT * (share * sl[k] + (1 - share) * rf[k])
-        cost = S.SAT * share * swc[k] if swc is not None and swc[k] else 0.0
+        g = core * tot[k] + w * (share * sl[k] + (1 - share) * rf[k])
+        cost = w * share * swc[k] if swc is not None and swc[k] else 0.0
         v *= (1 + g) * (1 - cost)
         nav[k - a] = v
     return nav
@@ -236,18 +240,21 @@ def cash_runs(sat: np.ndarray, a: int, b: int) -> list[tuple[int, int]]:
 
 
 def scenario(key: str, mk: str, cal, px, tot, rf, F: dict, a: int, b: int, c_idx: float, *, sl=None, inpos=None, swc=None,
-             c_stk=None, sleeve: str = "index") -> dict:
-    """一段回測：照計畫、一直抱著、每天固定拿一樣多；前後兩半、近 RECENT_Y 年；每一次換現金；逐年；每週的淨值。"""
+             c_stk=None, sleeve: str = "index", core: float | None = None) -> dict:
+    """一段回測：照計畫、一直抱著、每天固定拿一樣多；前後兩半、近 RECENT_Y 年；每一次換現金；逐年；每週的淨值。
+    core＝核心比例（None＝這個市場 corespec 現在的 core_of；舊研究的重現明寫 core＝S.CORE）。"""
+    core = S.core_of(mk) if core is None else core
+    w = 1.0 - core
     sat = held(F["on"])
-    plan = simulate(tot, rf, sat, a, b, c_idx, sl, inpos, swc, c_stk)
+    plan = simulate(tot, rf, sat, a, b, c_idx, sl, inpos, swc, c_stk, core)
     hold = np.cumprod(np.concatenate([[1.0], 1 + np.asarray(tot, dtype=float)[a + 1:b]]))
     share = float(np.mean(sat[a:b - 1])) if b - 1 > a else 1.0
-    fixed = simulate_fixed(tot, rf, share, a, b, sl, swc)
+    fixed = simulate_fixed(tot, rf, share, a, b, sl, swc, core)
     mid = a + (b - a) // 2
     i10 = next((k for k in range(a, b) if cal[k] >= _minus_years(cal[b - 1], S.RECENT_Y)), a)
 
     def part(x0, x1):
-        p = simulate(tot, rf, sat, x0, x1, c_idx, sl, inpos, swc, c_stk)
+        p = simulate(tot, rf, sat, x0, x1, c_idx, sl, inpos, swc, c_stk, core)
         h = np.cumprod(np.concatenate([[1.0], 1 + np.asarray(tot, dtype=float)[x0 + 1:x1]]))
         return {"a": cal[x0], "b": cal[x1 - 1], "plan": _brief(stats(cal, p, x0, x1)), "hold": _brief(stats(cal, h, x0, x1))}
     eps = []
@@ -260,12 +267,12 @@ def scenario(key: str, mk: str, cal, px, tot, rf, F: dict, a: int, b: int, c_idx
         ic = float(np.prod(1 + np.asarray(rf, dtype=float)[k0 + 1:x1 + 1]) - 1)
         ix = float(np.prod(1 + np.asarray(tot, dtype=float)[k0 + 1:x1 + 1]) - 1)
         eps.append({"d": cal[d0], "sell": cal[k0], "buy": cal[x1] if k1 + 1 < b else None, "lit": lit,
-                    "days": k1 - k0 + 1, "ix": ix, "diff": S.SAT * (ic - ia)})
+                    "days": k1 - k0 + 1, "ix": ix, "diff": w * (ic - ia)})
     sw = int(np.count_nonzero(np.abs(np.diff(sat[a:b])) > 0.5))
     yrs = (date.fromisoformat(cal[b - 1]) - date.fromisoformat(cal[a])).days / 365.25
-    return {"key": key, "mk": mk, "sleeve": sleeve, "a": cal[a], "b": cal[b - 1],
+    return {"key": key, "mk": mk, "sleeve": sleeve, "a": cal[a], "b": cal[b - 1], "core": core,
             "plan": stats(cal, plan, a, b), "hold": stats(cal, hold, a, b), "fixed": _brief(stats(cal, fixed, a, b)),
-            "avg": S.CORE + S.SAT * share, "sw": sw / yrs if yrs > 0 else None,
+            "avg": core + w * share, "sw": sw / yrs if yrs > 0 else None,
             "halves": [part(a, mid + 1), part(mid, b)], "recent": part(i10, b),
             "eps": eps, "chart": _chart(cal, plan, hold, sat, a, b)}
 
@@ -295,9 +302,10 @@ def _chart(cal, plan, hold, sat, a: int, b: int) -> dict:
 
 # ── 台股衛星：財報驚喜（大型股）資金帳戶的每天報酬 ────────────────────────────────
 
-def stk_sleeve(cal: list[str], tot, P=None) -> dict:
+def stk_sleeve(cal: list[str], tot, P=None, rf=None) -> dict:
     """BACKTEST_SLEEVE（財報驚喜（大型股），bt3l.top5 的 p3 L）在 cal 上的每天報酬：有持股的日子＝資金帳戶（修正後的 bt3.account），
-    沒有持股＝大盤。→ {"sl", "inpos", "swc", "a": 第一期決定日, "b": 最後一期出場日}。"""
+    沒有持股＝大盤（VER 1～3；rf 給了＝現金利息、不付大盤的成本：VER 4）。
+    → {"sl", "inpos", "swc", "act": 那一天有沒有持有任何一期, "a": 第一期決定日, "b": 最後一期出場日}。"""
     from . import bt3, bt3d, bt3s
     P = P or bt3d.Panel()
     E = bt3.Elig(P)
@@ -317,20 +325,55 @@ def stk_sleeve(cal: list[str], tot, P=None) -> dict:
     pos = {d: i for i, d in enumerate(P.cal)}
     tot = np.asarray(tot, dtype=float)
     T = len(cal)
-    sl = tot.copy()
+    cash = rf is not None
+    sl = np.asarray(rf, dtype=float).copy() if cash else tot.copy()
     inpos = np.zeros(T, dtype=bool)
+    act = np.zeros(T, dtype=bool)
     swc = np.zeros(T)
     for k, d in enumerate(cal):
         i = pos.get(d)
         if i is None or i not in active:
             continue
         sl[k] = r_s.get(d, 0.0)
+        act[k] = True
         inpos[k] = (i + 1) in active
+        if cash:
+            continue                                   # 空檔放現金：期初期末不買賣大盤
         if (i - 1) not in active:
             swc[k] += S.COST["tw"]                     # 期初：開盤賣大盤
         if (i + 1) not in active:
             swc[k] += S.COST["tw"]                     # 期末：收盤買大盤
-    return {"sl": sl, "inpos": inpos, "swc": swc, "a": P.cal[pk[0][0]], "b": P.cal[pk[-1][1]], "n": len(pk)}
+    return {"sl": sl, "inpos": inpos, "swc": swc, "act": act, "a": P.cal[pk[0][0]], "b": P.cal[pk[-1][1]], "n": len(pk)}
+
+
+def boom_sleeve(cal: list[str], rf) -> dict | None:
+    """新飆股（corespec BOOM_BOOK）那本帳在 cal 上的每天報酬（VER 4）：引擎淨值的報酬（引擎的現金不算利息）
+    ＋前一天收盤沒有投入的比例 × 現金利息。回測淨值＝data/lab/SX_CURVE_FILE（scripts/run_sx_curve.py）。
+    → {"r", "a": 第一天, "b": 最後一天, "x": 平均持股比例}；檔案沒有 → None。"""
+    try:
+        doc = json.loads((ROOT / "data" / "lab" / S.SX_CURVE_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    nav = dict(zip(doc["d"], doc["nav"]))
+    xp = dict(zip(doc["d"], doc["x"]))
+    rf = np.asarray(rf, dtype=float)
+    T = len(cal)
+    r = np.zeros(T)
+    last, lastx = None, 0.0
+    for k in range(T):
+        v = nav.get(cal[k])
+        if v is not None and last:
+            r[k] = v / last - 1 + (1 - lastx) * rf[k]
+        elif last:
+            r[k] = rf[k]
+        if v is not None:
+            last = v
+            lastx = xp.get(cal[k], lastx)
+    nv = np.asarray(doc["nav"], dtype=float)
+    yrs = (date.fromisoformat(doc["d"][-1]) - date.fromisoformat(doc["d"][0])).days / 365.25
+    return {"r": r, "a": doc["d"][0], "b": doc["d"][-1], "x": float(np.mean(doc["x"])) if doc["x"] else None,
+            "cagr": float((nv[-1] / nv[0]) ** (1 / yrs) - 1) if yrs > 0 else None,
+            "mdd": float((1 - nv / np.maximum.accumulate(nv)).max())}
 
 
 # ── 研究 ─────────────────────────────────────────────────────────────────────
@@ -369,11 +412,28 @@ def research() -> dict:
         a = next(k for k, d in enumerate(cal) if d >= S.RULE_START[mk])
         sc = {"rule": scenario("rule", mk, cal, px, tot, rf, F, a, T, c)}
         if mk == "tw":
-            st = stk_sleeve(cal, tot)
-            pa = next(k for k, d in enumerate(cal) if d >= max(S.PLAN_START, st["a"]))
+            st = stk_sleeve(cal, tot, rf=rf)                      # VER 4：財報驚喜沒有部位的日子＝現金
+            star = S.STAR_ACTIVE * st["sl"] + (1 - S.STAR_ACTIVE) * rf
             pb = next(k for k, d in enumerate(cal) if d >= st["b"]) + 1
-            sc["plan"] = scenario("plan", mk, cal, px, tot, rf, F, pa, pb, c, sl=st["sl"], inpos=st["inpos"], swc=st["swc"],
-                                  c_stk=S.COST["tw_stk"], sleeve="+".join(S.BACKTEST_SLEEVE))
+            zero = np.zeros(T)
+            la = next(k for k, d in enumerate(cal) if d >= max(S.PLAN_START, st["a"]))
+            sc["long"] = scenario("long", mk, cal, px, tot, rf, F, la, pb, c, sl=star, inpos=st["act"], swc=zero,
+                                  c_stk=S.COST["tw_stk"], sleeve="star")
+            bm = boom_sleeve(cal, rf)
+            if bm:
+                g = S.BOOM_SHARE[mk]
+                pa = next(k for k, d in enumerate(cal) if d >= max(S.PLAN4_START, bm["a"]))
+                sc["plan"] = scenario("plan", mk, cal, px, tot, rf, F, pa, pb, c, sl=g * bm["r"] + (1 - g) * star,
+                                      inpos=np.ones(T, dtype=bool), swc=zero, c_stk=S.COST["tw_stk"], sleeve=f"{S.BOOM_BOOK}+star")
+                sc["plan"]["boom_x"] = bm["x"]
+                sc["plan"]["boom"] = {"cagr": bm["cagr"], "mdd": bm["mdd"], "a": bm["a"], "b": bm["b"], "x": bm["x"]}   # 新飆股那本帳自己（頁面一行）
+                ka = next(k for k, d in enumerate(cal) if d >= bm["a"])            # 同一段期間一直抱著大盤（含息），只描述
+                kb = max((k for k, d in enumerate(cal) if d <= bm["b"]), default=ka)
+                hv = np.cumprod(np.r_[1.0, 1 + np.nan_to_num(tot[ka + 1:kb + 1])])
+                yrs = (date.fromisoformat(cal[kb]) - date.fromisoformat(cal[ka])).days / 365.25
+                if yrs > 0:
+                    sc["plan"]["boom"]["hold"] = {"cagr": float(hv[-1] ** (1 / yrs) - 1),
+                                                  "mdd": float((1 - hv / np.maximum.accumulate(hv)).max())}
         if mk in S.EARLY:
             ok = [k for k in range(T) if np.isfinite(M["inf"][k]) and np.isfinite(M["lev"][k]) and np.isfinite(F["ma"][k])]
             e0 = ok[0] if ok else None
@@ -455,16 +515,28 @@ def _now(mk: str, B: dict) -> dict:
         fams.append({"k": "flat", "name": FLAT_NAME, "desc": "全部總經策略都沒有部位", "lit": bool(F["lit"]["flat"][t]),
                      "held": [nm for _, nm in H["held"]], "n_all": H["n"], "vd": H["d"]})
     sat = held(F["on"][:t + 1])
+    core, w = S.core_of(mk), S.sat_of(mk)
     return {"mk": mk, "d": cal[t], "fams": fams, "n": int(F["n"][t]), "on": bool(F["on"][t]),
-            "ok": bool(F["ok"][t]), "clear": int(F["clear"][t]), "need": int(F["need"]),
-            "now": float(S.CORE + S.SAT * sat[t]), "next": float(S.CORE + S.SAT * (1.0 if F["on"][t] else 0.0)),
+            "ok": bool(F["ok"][t]), "clear": int(F["clear"][t]), "need": int(F["need"]), "core": core,
+            "now": float(core + w * sat[t]), "next": float(core + w * (1.0 if F["on"][t] else 0.0)),
             "due": bool((sat[t] > 0.5) != bool(F["on"][t]))}
 
 
 # ── 台股衛星（個股頁建頁時） ─────────────────────────────────────────────────────
 
-def stk_from_adv(A: dict, asof: str | None = None) -> dict:
-    """個股頁的 advice 結果 → 衛星：★ 策略（照頁面順序）、每條手上的股票、接下來 45 天要做的事。"""
+def star_share(n: int, mk: str = "tw") -> float | None:
+    """★ 策略每一條占全部資金多少：機動 ×（1 − 新飆股的比例）÷ 條數（VER 4）。"""
+    return S.sat_of(mk) * (1 - S.BOOM_SHARE.get(mk, 0.0)) / n if n else None
+
+
+def boom_share(mk: str = "tw") -> float:
+    """新飆股那本帳占全部資金多少：機動 × BOOM_SHARE（VER 4）。"""
+    return S.sat_of(mk) * S.BOOM_SHARE.get(mk, 0.0)
+
+
+def stk_from_adv(A: dict, asof: str | None = None, boom: dict | None = None) -> dict:
+    """個股頁的 advice 結果 → 台股機動：★ 策略（照頁面順序）、每條手上的股票、接下來 45 天要做的事；
+    boom＝新飆股那本帳現在的狀態（sxlive.plan_state，VER 4）。"""
     asof = asof or date.today().isoformat()
     book = [b for b in A.get("book") or [] if b.get("tier") == S.SLEEVE_TIER]
     ks = [b["k"] for b in book]
@@ -486,7 +558,7 @@ def stk_from_adv(A: dict, asof: str | None = None) -> dict:
     ev.sort(key=lambda e: (e["d"], 0 if e.get("at") == "開盤" else 1, e["k"]))
     kinds = {k: (v or {}).get("kind") for k, v in (A.get("trades") or {}).items() if isinstance(v, dict)}
     return {"d": asof, "st": [{"k": b["k"], "name": b.get("name"), "kind": b.get("kind") or kinds.get(b["k"])} for b in book],
-            "hold": hold, "ev": ev, "w": S.SAT / len(ks) if ks else None}
+            "hold": hold, "ev": ev, "w": star_share(len(ks)), "boom": boom, "bw": boom_share()}
 
 
 # ── 前瞻 ─────────────────────────────────────────────────────────────────────
@@ -502,7 +574,8 @@ def load_live() -> dict:
 
 def record(nows: dict, stk: dict | None, qm: dict | None = None) -> bool:
     """今天的紀錄（只有 CI，GITHUB_ACTIONS＝true 才寫回）：{資料日: {市場: {E, n, lit, v, sat}}}，同一個資料日覆蓋。
-    qm＝{市場: 美股三成是不是放 QM}（corespec VER 3）；是的話 sat＝["qm"]（持股與淨值在 ussx_qm_live.json）。"""
+    qm＝{市場: 美股機動是不是放 QM}（corespec VER 3～4）；是的話 sat＝["qm"]（持股與淨值在 ussx_qm_live.json）。
+    台股 sat＝★ 策略＋新飆股（VER 4；新飆股的持股與淨值在 sxlive.json）。"""
     if os.environ.get("GITHUB_ACTIONS") != "true":
         return False
     L = load_live()
@@ -517,7 +590,7 @@ def record(nows: dict, stk: dict | None, qm: dict | None = None) -> bool:
         if fl is not None:
             rec["held"] = len(fl.get("held") or [])
         if mk == "tw" and stk:
-            rec["sat"] = [s["k"] for s in stk.get("st") or []]
+            rec["sat"] = [s["k"] for s in stk.get("st") or []] + ([S.BOOM_BOOK] if stk.get("boom") else [])   # VER 4：新飆股那本帳
         elif (qm or {}).get(mk):
             rec["sat"] = ["qm"]
         days.setdefault(n["d"], {})[mk] = rec
