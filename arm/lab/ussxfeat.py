@@ -398,6 +398,18 @@ def sec_reports(doc: dict, eps: list[dict]) -> list[dict]:
              "gm": g0, "gmd": g0 - g4 if g0 is not None and g4 is not None else None,
              "om": o0, "omd": o0 - o4 if o0 is not None and o4 is not None else None}
         chain = [e, p1, back(e, 182), back(e, 273)]
+        # 只給研究用（不在 FEATS，規則不看）：上一季營益率、近四季營益率（四季營業利益合計 ÷ 四季營收合計，四季都要有）
+        f["om1"] = om(p1) if p1 else None
+        ois = [val(oi, c) for c in chain] if None not in chain else [None]
+        rvs = [rev[c][0] for c in chain] if None not in chain else [None]
+        f["om4"] = (sum(ois) / sum(rvs) if None not in ois and None not in rvs and sum(rvs) > 0 else None)
+        oms = [om(c) for c in chain] if None not in chain else [None]
+        f["omm"] = float(np.median(oms)) if None not in oms else None       # 近四季營益率的中位數
+        # 和去年同一季比：營業利益增加的比營收增加的多多少（÷ 這一季營收；> 0＝不是靠賣得多，是一次性收入或成本變少）
+        oy, ry = (val(oi, p4), rev[p4][0]) if p4 else (None, None)
+        o_now = val(oi, e)
+        f["oxr"] = (((o_now - oy) - (rev[e][0] - ry)) / rev[e][0]
+                    if o_now is not None and oy is not None and ry is not None and rev[e][0] and rev[e][0] > 0 else None)
         nis = [val(ni, c) for c in chain] if None not in chain else [None]
         e0, e4 = val(eq, e), val(eq, p4) if p4 else None
         f["roe"] = (sum(nis) / ((e0 + e4) / 2) if None not in nis and e0 and e4 and e0 > 0 and e4 > 0 else None)
@@ -502,9 +514,10 @@ def vcp_flags(pb: dict, P: dict, ii: np.ndarray, jj: np.ndarray, workers: int = 
 # ── 組成一份樣本 ─────────────────────────────────────────────────────────────────
 
 def build(P: dict, liq: float = X.LIQ_MIN, earn: dict | None = None, sec: dict | None = None, screen: dict | None = None,
-          workers: int = 4, log=print, vcp: bool = True, labels_on: bool = True) -> dict:
+          workers: int = 4, log=print, vcp: bool = True, labels_on: bool = True, extra: tuple = ()) -> dict:
     """earn＝ussxpanel.earnings()；sec＝{代號: secfin 的檔}（None＝讀資料夾的 sec/，還沒抓過＝財報條件全部 nan）；screen＝篩選器。
-    vcp、labels_on＝False：不算 VCP（全部 False）、不算標籤（y＝{}）——美股三成規則 QM 用不到（ussxspec VER 3），省一半時間。"""
+    vcp、labels_on＝False：不算 VCP（全部 False）、不算標籤（y＝{}）——美股三成規則 QM 用不到（ussxspec VER 3），省一半時間。
+    extra＝另外要填的財報欄位（sec_reports 有、FEATS 沒有的，例 om1、om4；只給研究用，預設不填＝和原本完全相同）。"""
     import time
     t0 = time.time()
     cal = P["cal"]
@@ -550,6 +563,7 @@ def build(P: dict, liq: float = X.LIQ_MIN, earn: dict | None = None, sec: dict |
     # EPS 與財報
     eps_keys = [k for k, _, _, s in X.FEATS if s == "eps"]
     sec_keys = [k for k, _, _, s in X.FEATS if s == "sec"]
+    sec_keys += [k for k in extra if k not in sec_keys]
     for k in eps_keys + sec_keys:
         f[k] = np.full(n, np.nan)
     sec_get = _sec_loader(sec)

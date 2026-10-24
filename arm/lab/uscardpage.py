@@ -111,6 +111,10 @@ def why_html(c: str, n: dict, rank: tuple | None, hold: bool) -> str:
     empty = not met and not met0
     note = ("強度＝近 3、6、9、12 個月的漲幅（近 3 個月算兩倍）勝過幾 % 的美股（1～99）；營益率＝最近一季的營業利益 ÷ 營收；"
             "近四季 ROE＝近四季淨利 ÷ 股東權益；市值＝那週最後一個交易日的收盤 × 流通股數。")
+    if QX.QM_OM_FIX:
+        fx = QX.QM_OM_FIX["spike"] * 100
+        note += (f"上一季營益率不到 {QX.QM['om'] * 100:.0f}%、這一季比上一季和去年同一季都高 {fx:.0f} 個百分點以上，"
+                 "而且營業利益增加的比營收增加的多（賣資產這類一次性收入撐起來的），那一季不算。")
     if hold:
         note += "買進以後只看 50 日線，這幾個數字變差也照樣拿著。"
     return (f'<h3>為什麼選它' + (f'<span class="sub">{_e(sub)}</span>' if sub else "") + "</h3>"
