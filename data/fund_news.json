@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/24 09:35",
+  "as_of": "2026/10/24 10:41",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -68,6 +68,13 @@
           "source": "Yahoo股市",
           "date": "2026-10-23 17:08",
           "datetime": "2026-10-23T17:08:00+08:00"
+        },
+        {
+          "title": "績效1表看》00981A、00929...主動式高股息全掉榜「這5檔」今年飆逾100％ 超狂原因曝光- 基金",
+          "url": "https://wantrich.chinatimes.com/news/20261022900145-420401",
+          "source": "旺得富理財網",
+          "date": "2026-10-22 10:37",
+          "datetime": "2026-10-22T10:37:30+08:00"
         }
       ]
     },
@@ -548,7 +555,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=lJNdfafhPj8",
       "date": "2026-10-21",
-      "views": 59350
+      "views": 59638
     },
     {
       "platform": "youtube",
@@ -556,7 +563,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
       "date": "2026-10-20",
-      "views": 15354,
+      "views": 15363,
       "short": true
     },
     {
@@ -565,7 +572,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
       "date": "2026-10-18",
-      "views": 9524
+      "views": 9568
     },
     {
       "platform": "youtube",
@@ -573,29 +580,41 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=Al47SwnDMWo",
       "date": "2026-10-22",
-      "views": 203007,
+      "views": 204447,
       "peer": true,
       "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
-      "title": "0050不是唯一選擇！這檔ETF配息價差兩手賺！【#財經鈔能力】｜20261019 趙慶翔 ft.鐵蛋 #0050 #高股息 #台積電 #ESG #永豐00888",
-      "channel": "TVBS財經",
-      "url": "https://www.youtube.com/watch?v=wWF9OMqS174",
+      "title": "美股大跌台股跟風，人工智慧又發生什麼事？#shorts",
+      "channel": "曲博科技教室 Dr. J Class",
+      "url": "https://www.youtube.com/shorts/LjDDHVaDM4E",
       "date": "2026-10-19",
-      "views": 142007,
+      "views": 140120,
       "peer": true,
-      "cat": "高股息"
+      "short": true,
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
-      "title": "【理財達人秀】台股折扣殺 4類搶便宜！輝達技術新局 光通訊誰補！TPCA登場台光電不漲 玻璃基板.PTFE上戲？｜李兆華、林漢偉、紀緯明、陳威良2026.10.20【電視完整版】",
-      "channel": "理財達人秀 EBCmoneyshow",
-      "url": "https://www.youtube.com/watch?v=Q3O5vQqTqXM",
-      "date": "2026-10-20",
-      "views": 113400,
+      "title": "台股跌了才想加碼？她用這招不用苦等低點｜ft.基金教母蕭碧燕、葉芷娟 #低檔加碼 #定時定額 #ETF錢滾錢",
+      "channel": "【CMoney理財寶】官方頻道",
+      "url": "https://www.youtube.com/shorts/7NxiVHoPy3g",
+      "date": "2026-10-19",
+      "views": 97475,
       "peer": true,
-      "cat": "市場趨勢"
+      "short": true,
+      "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "【全程字幕】蘇貞昌女兒&quot;4500萬投資案&quot;審計部要查了! 吳子嘉嗆蘇巧慧&quot;小偷家族&quot;毫無羞恥之心! 預言新北結局&quot;輸贏5萬票&quot; @dongsshow",
+      "channel": "中天新聞",
+      "url": "https://www.youtube.com/watch?v=iL1lUxpW1cY",
+      "date": "2026-10-21",
+      "views": 70303,
+      "peer": true,
+      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -603,45 +622,67 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/watch?v=7hLSHozmm68",
       "date": "2026-10-23",
-      "views": 57583,
+      "views": 62855,
       "peer": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "【錢鏡你家】科技ETF今年漲翻倍！基金教授點名3檔 教你避開重複押ft.基金教授 朱岳中",
-      "channel": "鏡發財",
-      "url": "https://www.youtube.com/watch?v=ZCJ1N81nb-E",
-      "date": "2026-10-22",
-      "views": 37652,
-      "peer": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "【大神幫幫忙】股魚重押 ETF feat.股魚",
-      "channel": "財商名人堂",
-      "url": "https://www.youtube.com/watch?v=wmwEr7OJTrU",
-      "date": "2026-10-23",
-      "views": 37266,
-      "peer": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "00406A晉升「千億旗艦戰隊」掛牌4個月暴衝至1024億 定期定額洗牌 0050穩居龍頭寶座 00881.009816成新歡│*曾鐘玉 白易弘 柯孟聰  *股市周報20261023完整版.有CC字幕",
-      "channel": "非凡Hot台股",
-      "url": "https://www.youtube.com/watch?v=yBm_7H7b-DI",
-      "date": "2026-10-23",
-      "views": 21772,
+      "title": "台股高檔震盪不敢追？台積電抱到這價位再賣！1關鍵決定進出場最佳時機！｜20261021 趙慶翔 ft.Ryan爸爸 #主動式ETF #0050 #鴻海 #緯創 #台積電",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=e1Q5b32TcW4",
+      "date": "2026-10-21",
+      "views": 53931,
       "peer": true,
       "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "ETF存股最新排行榜！0050雖霸榜，但最猛黑馬單月狂增11%！00878狠甩0056？#口袋證券 #etf #0050",
+      "channel": "口袋證券",
+      "url": "https://www.youtube.com/shorts/j_JZIn2UwFw",
+      "date": "2026-10-19",
+      "views": 53764,
+      "peer": true,
+      "short": true,
+      "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "【週二Fund愛講】EP.298 - 《市場大小勢 中信來開示》為什麼00406A人氣這麼旺？",
+      "channel": "中國信託投信",
+      "url": "https://www.youtube.com/watch?v=evyGK4YjhRs",
+      "date": "2026-10-20",
+      "views": 40976,
+      "peer": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "【買點到?】獨家數據公開! 到底現在買 ETF 還是再等等...？ #台股 #美股 #大盤  #櫃買",
+      "channel": "陳智霖股票分析師 Equity Research Analyst",
+      "url": "https://www.youtube.com/shorts/Dx2D_E6LksY",
+      "date": "2026-10-19",
+      "views": 35450,
+      "peer": true,
+      "short": true,
+      "cat": "市值型"
+    },
+    {
+      "platform": "youtube",
+      "title": "美債ETF撐盤！00679B、00937B關鍵區域如何規劃？ ｜股市童樂會 童奕霆分析師 2026.10.22",
+      "channel": "小童 x Happy Trading Life",
+      "url": "https://www.youtube.com/watch?v=-h3wlmYyrDg",
+      "date": "2026-10-22",
+      "views": 31298,
+      "peer": true,
+      "cat": "債券"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A、台灣菁英50指數（詳下方新聞標籤）",
     "品牌焦點：主動復華台灣新星 募集期順延至10月27日（UDN）",
     "社群聲量最高：沈伯洋夫妻持股拆解，看懂個股、ETF與台股美股如何配置（0 推）",
-    "YouTube 熱片：台股大跌別慌 台積電、聯發科照買？南亞科、日月光拚千金 落難千金股撿誰？ 1招汰弱留強搶千金反攻行情《鈔錢部署》盧燕俐 ft.杜金龍 20261022（鈔錢部署–華視優選・203,007 次觀看）"
+    "YouTube 熱片：台股大跌別慌 台積電、聯發科照買？南亞科、日月光拚千金 落難千金股撿誰？ 1招汰弱留強搶千金反攻行情《鈔錢部署》盧燕俐 ft.杜金龍 20261022（鈔錢部署–華視優選・204,447 次觀看）"
   ]
 }
