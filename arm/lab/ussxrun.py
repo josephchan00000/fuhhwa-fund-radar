@@ -73,6 +73,7 @@ def plan_inputs(P: dict) -> dict:
         ix = {d: k for k, d in enumerate(Q["cal"])}
         Q["ix"] = ix
         Q["idle"] = np.array([Q["tot"][ix[d]] if d in ix else 0.0 for d in P["cal"]])
+        Q["cash"] = np.array([Q["rf"][ix[d]] if d in ix else 0.0 for d in P["cal"]])     # ussxspec VER 4：空位放現金
         out[mk] = Q
     return out
 
@@ -103,8 +104,8 @@ def plan_level(P: dict, Q: dict, mk: str, eq: np.ndarray, stk: np.ndarray, a: in
             sl[q] = r[k - a]
             inpos[q] = stk[k - a] > 0
     c = CS.COST["us"]
-    cur = CO.scenario("cur", mk, cal, Q["px"], Q["tot"], Q["rf"], Q["F"], pa, pb, c)
-    new = CO.scenario("ussx", mk, cal, Q["px"], Q["tot"], Q["rf"], Q["F"], pa, pb, c, sl=sl, inpos=inpos, c_stk=c_stk)
+    cur = CO.scenario("cur", mk, cal, Q["px"], Q["tot"], Q["rf"], Q["F"], pa, pb, c, core=CS.CORE)        # ussxspec VER 2：核心 70%
+    new = CO.scenario("ussx", mk, cal, Q["px"], Q["tot"], Q["rf"], Q["F"], pa, pb, c, sl=sl, inpos=inpos, c_stk=c_stk, core=CS.CORE)
     j = SW.judge(new, cur)
     return {"cur": SW._brief(cur), "new": SW._brief(new), "judge": j}
 
