@@ -51,12 +51,12 @@ def _why(src: str, c: str, sc: float, ym: str | None, rev: dict, eps: dict, q: s
     if src == "p7":
         x = ((store.read("rev", ym) or {}).get("s") or {}).get(c) if ym else None
         out = [f"{int(ym[5:7])} 月營收年增 {x[1]:.0f}%" if x and x[1] is not None else None,
-               f"比過去一年的變化幅度高出 {sc:.1f} 個標準差"]
+               f"成長幅度是過去一年平常起伏的 {sc:.1f} 倍"]
     else:
         e = eps.get(c) or {}
         py = PT._prev_year(q) if q else None
         out = [f"{q[:4]} 年第 {int(q[5:7]) // 3} 季 EPS {e[q]:.2f} 元（去年同季 {e[py]:.2f} 元）" if q and q in e and py in e else None,
-               f"比過去兩年的變化幅度高出 {sc:.1f} 個標準差"]
+               f"成長幅度是過去兩年平常起伏的 {sc:.1f} 倍"]
     return [x for x in out if x]
 
 

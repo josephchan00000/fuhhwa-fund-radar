@@ -49,46 +49,77 @@ def _ws(h: str) -> list[float]:
     return [float(x) for x in re.findall(r'<td class="w">(?:約 )?([0-9.]+)%</td>', h)]
 
 
-def test_tw_card_blocks_in_order_and_tiles(R):
+def _ems(h: str) -> list[float]:
+    return [float(x) for x in re.findall(r"<em>([0-9.]+)%</em>", h)]
+
+
+def test_tw_v2_money_block(R):
+    """配置頁 v2（docs/lab_cfg_v2_plan.md 第 3.1 節；2026-10-24 使用者：「持股只剩40%是為什麼…配置比例在手機版也跑版 字都沒出來」）：
+    現在的錢＝實際的錢（長抱＋每條策略手上的股票＋現金），每一段一列寫名字和比例（不再把字藏起來），一句話講現金為什麼多。"""
     X = CF.tw_parts(_data(), _bundle(R))
+    assert set(X) >= {"card", "hold", "sched", "warn", "perf", "boom", "pos", "bx", "tl", "d", "nx"}
     c = X["card"]
-    order = [c.index(x) for x in ('class="cftiles"', 'class="cfstack"', 'class="cfwarn"', 'class="cfrule"', 'class="cfperf"',
-                                  'class="cfdet"', 'class="cfnext"', 'id="cftl-tw"')]
-    assert order == sorted(order)                                                 # 上半＝現在的狀態，下半＝接下來要做的事
     t = _text(c)
-    for w in ("待買進", "持有中", "股票水位", "警訊", "時程與水位"):
-        assert w in t, w
-    assert "63%" in t and "現金 37%" in t and "1／3" in t                          # 一個警訊、不用換現金；股票＝長抱＋機動裡有股票的（空位放現金）
-    assert "11/9（一） 開盤・新飆股" in t                                          # 待買進：新飆股下一個交易日開盤要買的比財報驚喜的名單早
-    sc = R["mk"]["tw"]["sc"]
-    s = sc.get("plan") or sc.get("rule")
-    assert "100 萬變" in t and CPG._wan(s["plan"]["m"]) in t and f'0050 抱著 {CPG._wan(s["hold"]["m"])}' in t
-    assert "長抱 20%" in t and "0050" in t and "機動 80%：新飆股 40%" in t
-    assert {k: X["tl"][k] for k in ("use", "obs", "mm")} == {"use": ["v3l", "s3", "s5"], "obs": [], "mm": "tw"}
-    assert X["tl"]["boom"]["k"] == "boom" and X["nx"] and X["d"] == "2026-10-22"
+    assert "現在的錢" in t and "63%" in t and "37%" in t                          # 股票＝20%＋新飆股 2 檔 30%＋財報驚喜 1 檔 13.3%
+    lg = re.findall(r'<li><u class="(c\d|cx)"></u><span>([^<]+)</span><em>([0-9.]+)%</em></li>', c)
+    assert [(k, n) for k, n, _ in lg] == [("c1", "0050（一直抱著）"), ("c2", "新飆股 2 檔"), ("c3", "財報驚喜 1 檔"), ("cx", "現金")]
+    assert abs(sum(float(w) for _, _, w in lg) - 100) < 0.2                       # 圖例合計 100%
+    assert len(re.findall(r'<i class="c\d"', c)) == 3 and '<i class="cx"' in c   # 長條：三段股票＋現金
+    assert "新飆股 11/9（一）開盤買 1 檔" in t and "臺灣50 卡位這一期沒有要買的" in t
+    assert "11/9（一）開盤買進之後股票約 <b>68%</b>" in c                           # 排定的買進之後
+    for w in ("待買進", "持有中", "要做的事", "時程與水位", "機動 80%：新飆股 40%"):   # 舊版的四格、計畫比例長條都拿掉了
+        assert w not in t, w
+    assert "font-size:0" not in CF.CSS                                            # 手機版不再把長條上的字藏起來
 
 
-def test_tw_hold_table_adds_to_100(R):
-    h = CF.tw_parts(_data(), _bundle(R))["hold"]
-    w = _ws(h)
-    assert w and abs(sum(w) - 100) < 0.6, w                                       # 比重＝占全部資金、合計 100%
+def test_tw_v2_hold_grouped_and_clickable(R):
+    """持股依策略分組、每一檔可以點（data-co：台股開個股卡、籌碼雷達範圍外的開公司卡）、現金只有一列。"""
+    X = CF.tw_parts(_data(), _bundle(R))
+    h = X["hold"]
     t = _text(h)
-    assert "台積電" in t and "8/17 買" in t and "11/12 收盤賣" in t                 # 每一檔：哪天買、到哪天賣
-    assert "8/17 買・+3.1%" in t                                                   # 買進後漲跌（advice 的 now_r 是百分比）
-    assert t.count("這一期沒有部位") == 2                                           # 沒部位的那一份放現金（VER 4；VER 1～3 放 0050）
-    assert "機動 80%：新飆股 40%（每檔約 5%）＋個股策略 40%（3 條各 13.3%），沒有部位的那一份放現金" in t
-    assert '奇鋐 <span class="cd">3017</span>' in h and "11/2 買・+10.0%・2/3 開盤賣（2/2 收盤滿 60 個交易日）" in t   # 新飆股每一檔
-    assert '金像電 <span class="cd">2368</span>' in h and "11/9 開盤買（11/6 的名單）" in t and "台燿" not in t   # 現金不夠的那一檔不列
-    assert "0050／006208" in t and "長抱 20%" in t
+    assert h.count('class="cfgr"') == 5 and h.count('class="cfcash"') == 1        # 長抱、新飆股、三條策略；現金只在最下面一列
+    assert t.count("現金") == 1
+    rows = re.findall(r'<a class="cfrow( todo)?" data-c="(\d+)" data-co="\2">', h)
+    assert rows == [("", "3017"), ("", "2383"), (" todo", "2368"), ("", "2330")]   # 新飆股兩檔＋明天要買的一檔、財報驚喜一檔
+    held = [float(x) for x in re.findall(r'<span class="w">([0-9.]+)%</span>', h)]
+    cash = float(re.search(r'class="cfcash">.*?<em>([0-9.]+)%</em>', h).group(1))
+    assert abs(20 + sum(held) + cash - 100) < 0.3, (held, cash)                    # 長抱＋持有中＋現金＝100%（待買進寫「約」，不算進去）
+    assert "11/2 買 1,000，現在 1,100・2/3 開盤賣（2/2 收盤滿 60 個交易日）" in t
+    assert "11/9（一）開盤買（11/6 的名單）" in t and "強度 95" in t
+    assert "8/17 買・11/12 收盤賣" in t and "+3.1%" in t                           # 財報驚喜：advice 的 now_r 是百分比
+    assert t.count("這一期沒有部位") == 2 and "分到 13.3%（買滿）" in t
+    assert "第一份名單" not in t                                                   # 新飆股已經有名單
+    pos = X["pos"]
+    assert {k: [q["k"] for q in v] for k, v in pos.items()} == {"3017": ["boom"], "2383": ["boom"], "2368": ["boom"], "2330": ["v3l"]}
+    assert pos["2368"][0]["h"] == 0 and pos["3017"][0]["h"] == 1 and abs(pos["3017"][0]["w"] - 0.2) < 1e-6
 
 
-def test_tw_due_cash_and_buy_back(R):
+def test_tw_v2_sched_only_configured(R):
+    """接下來照規則的買賣：依日期、只列配置裡的策略（2026-10-24 使用者決定：觀察中策略的訊號不放配置頁）；股票名可以點。"""
+    d = _data()
+    d["adv"]["cal"].append({"d": "2026-10-27", "at": "開盤", "act": "買進", "k": "s1", "sname": "共識加碼", "items": [{"c": "3406", "n": "玉晶光"}]})
+    X = CF.tw_parts(d, _bundle(R))
+    s = X["sched"]
+    t = _text(s)
+    assert "玉晶光" not in t and "共識加碼" not in t and "觀察中" not in t
+    dates = re.findall(r'<div class="cfevd"><b>([0-9/]+)</b>', s)
+    assert dates == ["11/9", "11/12", "11/13", "11/16", "11/17", "11/23"], dates   # 依日期；11/16＝新飆股看完名單、有空位的下一個交易日
+    assert '新飆股：<a data-c="2368" data-co="2368">金像電</a>' in s and '財報驚喜：<a data-c="2330" data-co="2330">台積電</a>' in s
+    assert "新飆股：這一週的名單" in t and "財報驚喜：下一批（11/16 收盤選）" in t
+    assert 'data-cfo' not in s and 'class="cftlw"' in s                           # 時間軸收在「看時間軸」裡、沒有「＋觀察中」
+
+
+def test_tw_v2_warn_thresholds_and_due(R):
+    X = CF.tw_parts(_data(), _bundle(R))
+    t = _text(X["warn"])
+    assert "1／3 成立" in t and "80 分以上算" in t and "跌破才算" in t and "收盤比年線" in t
+    assert "0050 那 20% 一直抱著" in t
     X = CF.tw_parts(_data(), _bundle(R, tw=_now(n_lit_extra=True, held=True)))   # 兩個警訊、還拿著 → 下一個交易日收盤換現金
-    t = _text(X["card"])
-    assert "收盤：把機動 80% 賣掉換成現金" in t and "機動 80% 換成現金" in t and "2／3" in t
-    assert "機動 80% 放現金" in t and "20%" in t and "現金 80%（機動 80% 放現金中）" in t   # 水位長條整段標現金；股票只剩長抱
-    X = CF.tw_parts(_data(), _bundle(R, tw=_now(held=False)))                    # 警訊解除、機動在現金 → 買回
-    assert "把機動 80% 買回來" in _text(X["card"])
+    assert "收盤：把機動 80% 賣掉換成現金" in _text(X["warn"]) and "2／3 成立" in _text(X["warn"])
+    assert "機動 80% 換成現金" in _text(X["sched"])
+    X = CF.tw_parts(_data(), _bundle(R, tw=_now(held=False)))                    # 警訊解除、機動在現金 → 買回；現在只有長抱是股票
+    assert "把機動 80% 買回來" in _text(X["card"]) and "20%" in _text(X["card"]) and "80%" in _text(X["card"])
+    assert "警訊：機動 80% 現在放現金" in _text(X["hold"])
 
 
 def test_us_card_uses_qm_and_qqq_line(R, QMX):
@@ -156,12 +187,12 @@ def test_tw_page_has_boom_book_section(R):
     下一份名單；持股在持股細節。原本的到買點／快到買點名單留在研究紀錄。"""
     X = CF.tw_parts(_data(), _bundle(R))
     b = X["boom"]
-    assert 'id="cf-tw-sx" data-nav="新飆股"' in b
+    assert 'id="cf-tw-sx" data-nav="新飆股名單"' in b
     t = _text(b)
     assert "占全部資金 40%" in t and "每檔約占全部資金 5%" in t and "抱 60 個交易日" in t
     assert "11/6（五） 收盤的名單（3 檔）" in t
-    rows = re.findall(r"<tr><td>([^<]+) <span", b)
-    assert rows == ["金像電", "台燿", "奇鋐"]
+    rows = re.findall(r'<tr><td><a data-c="(\d+)" data-co="\1">([^<]+)</a> <span', b)
+    assert [n for _, n in rows] == ["金像電", "台燿", "奇鋐"]                         # 名單的名字可以點
     assert "11/9 開盤買" in t and "現金不夠" in t and "已經有" in t                    # 名單裡：要買的、錢不夠的、手上有的
     bm = R["mk"]["tw"]["sc"]["plan"].get("boom") or {}
     if bm.get("cagr") is not None:
@@ -194,7 +225,8 @@ def test_build_shapes_and_survives_missing_pieces(R, QMX):
     assert out["board"]["n"]["use"] >= 5 and 'class="btbl"' in out["board"]["html"]
     bare = CF.build({}, None)                                                     # 研究檔、讀數都沒有：不出錯、頁面寫還沒算出來
     assert bare["use"] == [] and "tw" in bare and "us" in bare
-    assert "今天的讀數還沒算出來" in (bare["tw"].get("card") or "") or bare["tw"].get("err")
+    assert "今天的讀數還沒算出來" in (bare["tw"].get("warn") or "") or bare["tw"].get("err")
+    assert "讀不到各策略的持股" in _text(bare["tw"].get("card") or "") or bare["tw"].get("err")
 
 
 def test_cfg_text_is_plain(R, QMX):
