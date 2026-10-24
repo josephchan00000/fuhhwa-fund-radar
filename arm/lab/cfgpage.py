@@ -6,7 +6,7 @@
 ⑤過去照做（＋細節）。台股另有新飆股名單；美股是一個計畫（corespec VER 4 長抱 0%、全部放美股強勢品質股，空位放現金），
 那斯達克 100 的版本只在成績下面一行。策略頁＝全部策略一張表（board.py；使用中／觀察中／候選／淘汰）。
 
-數字全部來自現有的研究檔與當天的計算（core、corepage、advice、xsadvice、ussxqm、sxlive），這裡只組版面，不算任何新數字。
+數字全部來自現有的研究檔與當天的計算（core、corepage、advice、xsadvice、ussxqm，新飆股那本帳的狀態由 page.py 傳進來），這裡只組版面，不算任何新數字。
 警訊今天的讀數要景氣頁算（同一個程序裡較晚才建），所以 x9.html 建兩次：個股頁建頁時先用上一版的讀數
 （x9or-{市場}.json），景氣頁建完後 page.finish() 用今天的讀數重建（gen_fund_dashboard.py）。
 JS 由 page.render 插在頁面初始化之前（同 stockviz、macpage、copage）；函式一律 cf 開頭，不和其他三支撞名。
