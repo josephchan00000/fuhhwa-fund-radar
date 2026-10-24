@@ -40,7 +40,8 @@ def _ctx(cal: list[str], N: int = 6, seed: int = 7) -> dict:
             cc.append(syms[j])
             rs.append(float(round(r[j])))
     n = len(di)
-    f = {"rs": np.array(rs), "d52h": np.full(n, -0.1), "om": np.full(n, 0.2), "roe": np.full(n, 0.2), "cap": np.full(n, 5e9)}
+    f = {"rs": np.array(rs), "d52h": np.full(n, -0.1), "om": np.full(n, 0.2), "roe": np.full(n, 0.2), "cap": np.full(n, 5e9),
+         "om1": np.full(n, 0.2), "omd": np.zeros(n), "oxr": np.zeros(n)}
     cols = {"di": np.array(di), "j": np.array(jj), "c": np.array(cc), "d": np.array([cal[i] for i in di]), "f": f, "wk": wk}
     return {"P": P, "cal": cal, "T": T, "cols": cols, "D20": np.full((T, N), 1e12), "Cf": C.copy(), "DIV": np.zeros((T, N)),
             "MA": UF.roll_mean(C, X.QM_EXIT["ma"]), "yr": np.array([int(d[:4]) for d in cols["d"]]),
@@ -56,9 +57,24 @@ def y0(monkeypatch):
 def test_mask_is_inclusive_and_missing_fails():
     f = {"rs": np.array([80, 79.9, 90, 90, np.nan]), "d52h": np.array([-0.25, 0, 0, 0, 0]),
          "om": np.array([0.10, 0.2, 0.2, np.nan, 0.2]), "roe": np.array([0.15, 0.2, 0.2, 0.2, 0.2]),
-         "cap": np.array([2e9, 3e9, 1.99e9, 3e9, 3e9])}
+         "cap": np.array([2e9, 3e9, 1.99e9, 3e9, 3e9]),
+         "om1": np.full(5, 0.2), "omd": np.zeros(5), "oxr": np.zeros(5)}
     assert QM.qm_mask(f).tolist() == [True, False, False, False, False]
     assert QM.qm_mask(f, {**X.QM, "cap": 1e9}).tolist() == [True, False, True, False, False]
+
+
+def test_mask_drops_one_off_income_spikes():
+    """VER 7（omfixspec 的 D）：上一季 < 10%、比上一季與去年同季都高 20 點以上、營業利益比營收多增加 → 不算；
+    營收一起增加（真的轉盈）照算；任一個沒有值照算；fix=False＝VER 6 的條件（重現檢查用）。"""
+    n = 5
+    f = {"rs": np.full(n, 99.0), "d52h": np.zeros(n), "roe": np.full(n, 0.3), "cap": np.full(n, 5e9),
+         "om": np.array([0.858, 0.654, 0.858, 0.858, 0.30]),          # CareDx、Moderna、沒有 oxr、上一季已經 ≥10%、小跳升
+         "om1": np.array([0.010, -0.482, 0.010, 0.55, 0.05]),
+         "omd": np.array([0.986, 16.25, 0.986, 0.986, 0.15]),
+         "oxr": np.array([0.599, -0.275, np.nan, 0.5, 0.2])}
+    assert QM.om_fix_block(f).tolist() == [True, False, False, False, False]
+    assert QM.qm_mask(f).tolist() == [False, True, True, True, True]
+    assert QM.qm_mask(f, fix=False).tolist() == [True] * 5
 
 
 def test_signals_sorted_by_rs_then_code_and_drop(y0):

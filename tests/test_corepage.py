@@ -377,3 +377,8 @@ def test_qm_buy_split_respects_remaining_cash():
     W = {"sell": [{"c": "B", "on": "2026-10-26", "trig": "2026-10-23"}]}
     split, _ = P.qm_buy_split({**n, "idle": 0.0, "buy": ["X"]}, W)     # 每天的 50 日線檢查要賣的也算
     assert split == [("X", 0.125)]
+
+
+def test_qm_rule_mentions_one_off_income():
+    """ussxspec VER 7：規則句寫出一次性收入撐起來的營益率不算。"""
+    assert "一次性收入撐起來的不算" in P._qm_rule("spx")

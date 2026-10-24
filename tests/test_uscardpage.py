@@ -76,6 +76,7 @@ def test_build_order_sections_and_numbers(R, QMX, monkeypatch):
     w = v["why"]
     assert "買進時" in w and "8/28 那週" in w and "10/23 那週" in w and w.count('class="ucok"') == 10   # 兩欄、五個都過
     assert "10/23 那週的名單第 1 名（共 4 檔）" in _text(w)
+    assert "營業利益增加的比營收增加的多" in _text(w) and "那一季不算" in _text(w)          # ussxspec VER 7：一次性收入
     f = uc["s"]["F"]
     assert "待買進" in _text(f["st"]) and "10/26（一）開盤買" in _text(f["st"]) and "買進時" not in f["why"]
     p1 = uc["s"]["P1"]

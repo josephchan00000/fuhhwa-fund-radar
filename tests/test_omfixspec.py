@@ -21,6 +21,6 @@ def test_omfix_spec_v2_is_locked():
     assert S.KEYS == ("om1", "om4", "omm", "oxr") and S.PLANS == ("spx", "ndx")
 
 
-def test_research_does_not_touch_live_rule():
-    """研究期間 ussxspec 照舊（VER 6）：網頁與每週紀錄都比對它的版本號。"""
-    assert X.VER == 6 and X.QM["om"] == S.OM_MIN
+def test_live_rule_adopted_d():
+    """研究期間 ussxspec 照舊（VER 6）；使用者 2026-10-24 選 D 之後才出 VER 7，名單條件＝D。"""
+    assert X.VER == 7 and X.QM["om"] == S.OM_MIN and X.QM_OM_FIX == S.CANDS["D"]

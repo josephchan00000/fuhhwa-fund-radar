@@ -3004,9 +3004,11 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
   · **一次性收入修法研究（2026-10-24；`arm/lab/omfixspec.py` VER 2、`arm/lab/ussxomfix.py`、`run_ussx.py --omfix`、規劃第 14 節）**：
     CareDx 賣部門的利得算進營業利益 → 單季營益率 85.8% 進了名單、8/3 買進。SEC 的「出售利得」項目抓不到它（`scripts/probe_secgain.py`），
     只用季資料。候選 A 暴增要確認（VER 1 建議）會誤擋真的轉盈（Moderna 2021）；**D＝A＋「營業利益增加的比營收增加的多」**（VER 2，看過 VER 1 才加）
-    只擋 73 列、11 檔，三成本身 23.22%（現行 23.09%）、兩個計畫判定都過 → 建議 D。**研究期間 ussxspec 不動**（網頁、每週紀錄都比對它的 VER）；
-    使用者同意才出 ussxspec VER 7（名單條件＝D）、重算 ussx_qm.json、每週紀錄從頭記。`sec_reports` 另外算的 om1／om4／omm／oxr 只有
-    `build(extra=…)` 才填，預設和原本完全相同。近四季 ROE 也會被一次性收入墊高——還沒處理。
+    只擋 73 列、11 檔，三成本身 23.22%（現行 23.09%）、兩個計畫判定都過 → 建議 D。**研究期間 ussxspec 不動**（網頁、每週紀錄都比對它的 VER）。
+    **使用者選 D → ussxspec VER 7（同日上線）**：`ussxqm.om_fix_block`＋`QM_OM_FIX`，`context` 一律填 `QM_EXTRA`（om1、oxr；
+    其他 om4／omm 只有研究 `extra=` 才填）；重算 ussx_qm.json（23.22%、2,034 萬，和研究的 D 相同）、每週紀錄從頭記（持股少 CDNA、多 FTNT）。
+    **重現檢查只算到 `QM_REF_END`（2026-10-22）**：原本算到資料最後一天，多一天資料就超過容許差 → `switch` 變 False、網頁把美股退回放指數；
+    以後重算 ussx_qm.json 不會再踩。近四季 ROE 也會被一次性收入墊高——還沒處理。
 - **修正飆股（W7，2026-10-23；使用者：「修正飆股策略吧」）**：規格 `arm/lab/superfixspec.py` VER 1（`tests/test_superfixspec.py` 鎖住）、
   計畫與結果 `tw-superstock-lab/reports/W7_plan.md`／`W7_results.md`／`W7_summary.md`、程式 `tw-superstock-lab/scripts/run_w7.py`（約 5 分鐘）。
   只換目標（60 天後的收盤還在 +20%），**每一年只用以前已經走完的資料重新找規則**（2019～2026），現行目標用同一套流程當對照。

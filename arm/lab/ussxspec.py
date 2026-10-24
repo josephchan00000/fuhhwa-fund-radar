@@ -158,12 +158,25 @@ VER 6（2026-10-24，看過 VER 5 的正式結果之後；docs/lab_core70_plan.m
   ③ 不再是判定的條件（QM_NEED_ALT＝False：使用者決定美股用海外券商，成本照 COST["stk"]）；複委託成本的結果照算、只描述（頁面寫出來）。
   其他同 VER 5。前瞻從頭記（VER 5 一週都還沒記到）。
   寫這一版之前已經看過的：VER 5 的研究檔（上面的數字）。
+
+VER 7（2026-10-24，看過 omfixspec VER 1～2 的研究之後；docs/lab_us_sleeve_plan.md 第 14 節）
+  CareDx 賣部門的利得算進營業利益，單季營益率 85.8% 進了名單。研究了四種修法，使用者選 D（研究的建議）。只多一條名單條件：
+  ① QM_OM_FIX（D）：上一季營益率 < 10%、這一季比上一季、也比去年同一季都高 20 個百分點以上，而且和去年同一季比，
+    營業利益增加的比營收增加的多 → 這一週不算（一次性收入或成本突然變少撐起來的營益率）。上一季或去年同一季沒有資料＝不擋。
+    要用的季資料（QM_EXTRA）：上一季營益率 om1、營業利益比營收多增加的部分 oxr（ussxfeat.sec_reports；ussxqm.context 一律填）。
+  ② 重現檢查改用 VER 6 的名單條件（沒有 ①）加 VER 3 的設定，和 QM_REF 比（確認程式沒變；QM_REPRO_FIX＝False），
+    而且只算到 QM_REF_END（第 12 節資料的最後一天 2026-10-22）。重算時才發現：原本算到資料最後一天，多一天資料計畫的錢就會變
+    （10/23 那一天 886.3 萬變 881.3 萬，超過容許差 1 萬），重現檢查沒過網頁就會把美股退回放指數——和程式有沒有變無關。
+  其他同 VER 6。前瞻從頭記（起點不變，VER 6 只記了 10/23 那一週）。
+  寫這一版之前已經看過的：omfixspec 研究檔 data/lab/ussx_omfix.json（同一份資料：VER 6 三成本身 23.09%、S&P 500 計畫 2,024 萬；
+  D 23.22%、2,034 萬，兩個計畫判定都過；換了以後 10/23 的持股少 CDNA、多 FTNT，下週一要買 PAYC）。
+  正式重算（ussx_qm.json）要和那裡的 D 一樣（同一份資料、同一個程式）。
 """
 from __future__ import annotations
 
 import math
 
-VER = 6
+VER = 7
 SPEC_DATE = "2026-10-24"
 DATA_BRANCH = "claude/ussx-data"
 PX_START = "2006-01-01"
@@ -293,6 +306,10 @@ QM_IDLE = "cash"                 # VER 4：閒置的錢放現金、不付指數�
 QM_REPRO_SET = {"idle": "index", "core": 0.70}    # VER 4：重現檢查照 VER 3 的設定跑（和 QM_REF 比）
 QM_JUDGE_BASE = {"idle": "index", "core": 0.70}   # VER 5：判定 ② 的比較對象＝現在在用的計畫（VER 3 的設定）
 QM_NEED_ALT = False                               # VER 6：判定不再要求複委託成本也成立（使用者決定用海外券商；照算、只描述）
+QM_OM_FIX = {"kind": "spike_ox", "spike": 0.20}   # VER 7：營益率暴增而且營業利益增加的比營收多（一次性收入）的那一週不算（omfixspec 的 D）
+QM_EXTRA = ("om1", "oxr")                         # VER 7：ussxqm.context 一律多填的季資料（上一季營益率、營業利益比營收多增加的部分）
+QM_REPRO_FIX = False                              # VER 7：重現檢查用 VER 6 的名單條件（沒有 QM_OM_FIX）
+QM_REF_END = "2026-10-22"                         # VER 7：重現檢查只算到這一天（第 12 節資料的最後一天）
 
 # ── 只描述 ───────────────────────────────────────────────────────────────────
 CAPTURE_LEFT = math.sqrt(10)     # 離之後的最高收盤還有 ≥ √10 倍（台股 W1 同一個門檻）

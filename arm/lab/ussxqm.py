@@ -1,6 +1,7 @@
-"""美股三成的規則 QM（ussxspec VER 3～6；docs/lab_us_sleeve_plan.md 第 13 節、docs/lab_core70_plan.md 第 19、20 節）：
+"""美股三成的規則 QM（ussxspec VER 3～7；docs/lab_us_sleeve_plan.md 第 13 節、docs/lab_core70_plan.md 第 19、20 節）：
 每週名單、資金帳戶、研究、上線狀態。VER 4：空的位子放現金（不付指數的成本）、放進交易計畫照 corespec 的核心比例（美股 0%）。
 VER 5：判定 ② 跟現在在用的計畫比（VER 3 的設定）。VER 6：③ 複委託只描述（使用者用海外券商）。
+VER 7：名單多扣掉一次性收入撐起來的營益率暴增（om_fix_block；omfixspec 的 D）。
 
   research(C)  → data/lab/ussx_qm.json（scripts/run_ussx.py --qm；資料分支的資料）：重現第 12 節、判定 ①～④、只描述的項目、
                  交易計畫卡要的 scenario（spx、ndx 各一份）。
@@ -35,11 +36,12 @@ KEYS = ("rs", "d52h", "om", "roe", "cap")
 
 def context(P: dict | None = None, earn: dict | None = None, workers: int = 4, log=print, plans: bool = True,
             extra: tuple = ()) -> dict:
-    """extra＝另外要填的財報欄位（ussxfeat.build；只給研究用）。"""
+    """extra＝另外要填的財報欄位（ussxfeat.build）；QM_EXTRA（VER 7 名單條件要的上一季營益率、oxr）一律填。"""
     t0 = time.time()
     P = P if P is not None else UP.load()
     earn = earn if earn is not None else UP.earnings()
-    cols = UF.build(P, X.LIQ_MIN, earn=earn, workers=workers, log=log, vcp=False, labels_on=False, extra=extra)
+    keys = tuple(dict.fromkeys(tuple(X.QM_EXTRA) + tuple(extra)))
+    cols = UF.build(P, X.LIQ_MIN, earn=earn, workers=workers, log=log, vcp=False, labels_on=False, extra=keys)
     el, D20 = cols.pop("el"), cols.pop("D20")
     Cf = UF.ffill(P["C"])
     S = UF.ffill(P["CS"].astype(float))
@@ -62,13 +64,28 @@ def a_of(cal: list[str], year: int) -> int:
 
 # ── 規則 ─────────────────────────────────────────────────────────────────────
 
-def qm_mask(f: dict, th: dict | None = None) -> np.ndarray:
-    """五個條件同時成立（每一個都是「≥」；沒有值＝不成立）。"""
+def om_fix_block(f: dict, fix: dict | None = None) -> np.ndarray:
+    """VER 7（omfixspec 的 D）：營益率暴增而且營業利益增加的比營收多的列（一次性收入撐起來的）＝不算。
+    上一季營益率 < 門檻、這一季比上一季與去年同一季都高 spike 以上、營業利益比營收多增加（oxr > 0）；任一個沒有值＝不擋。"""
+    fix = X.QM_OM_FIX if fix is None else fix
+    om = np.asarray(f["om"], dtype=float)
+    if not fix:
+        return np.zeros(len(om), dtype=bool)
+    om1, omd, oxr = (np.asarray(f[k], dtype=float) for k in ("om1", "omd", "oxr"))
+    th = fix["spike"]
+    with np.errstate(invalid="ignore"):
+        return (om1 < X.QM["om"]) & (om - om1 >= th) & (omd >= th) & (oxr > 0)
+
+
+def qm_mask(f: dict, th: dict | None = None, fix: dict | bool | None = None) -> np.ndarray:
+    """五個條件同時成立（每一個都是「≥」；沒有值＝不成立），再扣掉 om_fix_block（VER 7；fix＝False＝不扣，重現檢查用）。"""
     th = th or X.QM
     with np.errstate(invalid="ignore"):
         m = np.ones(len(f["rs"]), dtype=bool)
         for k in KEYS:
             m &= np.asarray(f[k], dtype=float) >= th[k]
+    if fix is not False:
+        m &= ~om_fix_block(f, None if fix is None or fix is True else fix)
     return m
 
 
@@ -263,12 +280,14 @@ def research(C: dict, log=print, mask: np.ndarray | None = None, desc: bool = Tr
     v["need_alt"] = X.QM_NEED_ALT                                         # VER 6：③（複委託）照算、只描述
     v["pass"] = {mk: bool(c1 and v["c2"][mk] and (v["c3"][mk] or not X.QM_NEED_ALT) and v["c4"]) for mk in X.QM_PLANS}
     out["verdict"] = v
-    # 重現第 12 節：照 VER 3 的設定（空位放指數、核心 70%）另外跑一次（ussxspec VER 4 ③）
+    # 重現第 12 節：照 VER 3 的設定（空位放指數、核心 70%）另外跑一次（ussxspec VER 4 ③）；VER 7：名單用 VER 6 的條件（沒有 QM_OM_FIX）
     RS = X.QM_REPRO_SET
-    r3 = run(C, sig, "spx", X.COST["stk"], idle=RS["idle"])
-    rc = BK.curve_stats(cal, rets(C, r3), a14, T)["cagr"]
-    rm = plan_scenarios(C, "spx", rets(C, r3), stk_share(C, r3), a14, T, X.COST["stk"], core=RS["core"])[0]["plan"]["m"]
-    out["repro"] = {"cagr": rc, "plan_m": rm, "ref": X.QM_REF, "tol": X.QM_REPRO, "set": RS,
+    sig3 = sig if X.QM_REPRO_FIX or mask is not None else signals(C, qm_mask(C["cols"]["f"], fix=False))
+    bR = cal.index(X.QM_REF_END) + 1 if X.QM_REF_END in cal else T        # VER 7：只算到第 12 節資料的最後一天
+    r3 = run(C, sig3, "spx", X.COST["stk"], b=bR, idle=RS["idle"])
+    rc = BK.curve_stats(cal, rets(C, r3), a14, bR)["cagr"]
+    rm = plan_scenarios(C, "spx", rets(C, r3), stk_share(C, r3), a14, bR, X.COST["stk"], core=RS["core"])[0]["plan"]["m"]
+    out["repro"] = {"cagr": rc, "plan_m": rm, "ref": X.QM_REF, "tol": X.QM_REPRO, "set": RS, "end": cal[bR - 1],
                     "ok": bool(abs(rc - X.QM_REF["cagr"]) <= X.QM_REPRO["cagr"] and abs(rm - X.QM_REF["plan_m"]) <= X.QM_REPRO["plan_m"])}
     out["switch"] = {mk: bool(out["repro"]["ok"] and v["pass"][mk]) for mk in X.QM_PLANS}
     # 只描述

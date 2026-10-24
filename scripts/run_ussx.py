@@ -118,10 +118,14 @@ def qm_live(P) -> None:
     C = QM.context(P)
     sig = QM.signals(C, QM.qm_mask(C["cols"]["f"]))
     r = QM.run(C, sig, "spx")
+    try:                                                     # 名稱跟版本無關：規則升版（紀錄從頭記）時也沿用舊檔的名稱
+        old_names = json.loads(QM.LIVE.read_text(encoding="utf-8")).get("names") or {}
+    except (OSError, ValueError, AttributeError):
+        old_names = {}
     L = QM.live_update(C, r, sig)
     n0 = L.get("now") or {}                                  # 配置頁美股列的股票的英文名稱（中文簡介在 holding_profiles）
     codes = [h["c"] for h in n0.get("hold") or []] + list(n0.get("buy") or []) + [x["c"] for x in n0.get("list") or []]
-    L["names"] = UD.names_for(codes, old=L.get("names"))
+    L["names"] = UD.names_for(codes, old={**old_names, **(L.get("names") or {})})
     ch = QM.save_live(L)
     n = L.get("now") or {}
     print(f"[ussx] 美股三成紀錄（{'有更新' if ch else '沒有變'}）：起點 {L.get('start')}、已記 {len(L.get('weeks') or {})} 週、"

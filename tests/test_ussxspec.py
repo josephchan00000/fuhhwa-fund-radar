@@ -9,7 +9,7 @@ from arm.lab import ussxspec as X
 
 
 def test_ussx_spec_v1_is_locked():
-    assert X.VER == 6 and X.SPEC_DATE == "2026-10-24" and X.DATA_BRANCH == "claude/ussx-data"
+    assert X.VER == 7 and X.SPEC_DATE == "2026-10-24" and X.DATA_BRANCH == "claude/ussx-data"
     assert X.PX_START == "2006-01-01"
     assert (X.LIQ_MIN, X.PX_MIN, X.AGE_MIN, X.EPS_RECENT, X.SMALL_LIQ) == (20e6, 5.0, 252, 270, 5e6)
     assert X.BOOKS == {"R60": {"n": 60, "g": 0.20, "how": "close"}, "A": {"n": 60, "g": 0.50, "how": "high"},
@@ -127,3 +127,11 @@ def test_qm_v5_judge_base_is_the_plan_in_use():
 def test_qm_v6_overseas_broker_only():
     """VER 6（corespec 第 20 節）：使用者決定美股用海外券商——判定不再要求複委託成本也成立（照算、只描述）。"""
     assert X.QM_NEED_ALT is False and X.COST["stk"] < X.COST["stk_alt"]
+
+
+def test_qm_v7_one_off_income_fix_is_locked():
+    """VER 7（規劃第 14 節）：使用者選 omfixspec 的 D——營益率暴增而且營業利益增加的比營收多的那一週不算。"""
+    from arm.lab import omfixspec as OS
+    assert X.QM_OM_FIX == {"kind": "spike_ox", "spike": 0.20} == OS.CANDS["D"]
+    assert X.QM_EXTRA == ("om1", "oxr") and X.QM_REPRO_FIX is False and X.QM_REF_END == "2026-10-22"
+    assert X.QM["om"] == OS.OM_MIN
