@@ -44,12 +44,13 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         data["mac"] = xsadvice.build()
     except Exception as e:                   # noqa: BLE001 —— 失敗只是總經策略那兩頁空著
         print(f"[籌碼雷達] ⚠ 總經策略沒有放進頁面：{type(e).__name__}: {e}")
-    try:                                     # 訊號總覽・研究結論的交易計畫卡（corespec；docs/lab_core70_plan.md）：台股衛星的 ★ 策略與接下來要做的事
+    try:                                     # 交易計畫（corespec；docs/lab_core70_plan.md）：台股機動的 ★ 策略、接下來要做的事、新飆股那本帳（VER 4）
         from . import core
+        from . import sxlive
         from ..clock import today_tw
         core.STK.clear()
         if isinstance(data.get("adv"), dict) and not data["adv"].get("err"):
-            core.STK.update(core.stk_from_adv(data["adv"], today_tw().isoformat()))
+            core.STK.update(core.stk_from_adv(data["adv"], today_tw().isoformat(), boom=sxlive.LAST.get("plan")))
     except Exception as e:                   # noqa: BLE001 —— 失敗只是交易計畫卡少了台股衛星的名單
         print(f"[籌碼雷達] ⚠ 交易計畫卡的衛星資料沒有算：{type(e).__name__}: {e}")
     _cfg(data)                               # 配置頁（先用上一版的警訊讀數；finish() 換成今天的）
@@ -763,7 +764,7 @@ function vStk(){
    `<select id=mk aria-label="市場">${Object.entries(MKF2).map(([m,t])=>`<option value=${m}${S.mk===m?' selected':''}>${t}</option>`).join('')}</select>`+
    `<select id=sgf aria-label="訊號"><option value="">全部訊號</option>${Object.keys(SD).filter(k=>cnt[k]).map(k=>`<option value=${k}${S.sig===k?' selected':''}>${RISK.has(k)?'⚠ ':''}${esc(SD[k][0])}（${cnt[k]}）</option>`).join('')}<option value=nb${S.sig==='nb'?' selected':''}>10 日內新建倉（台股 ${nbN}）</option>${SXC.size?`<option value=sx${S.sig==='sx'?' selected':''}>飆股候選（${ROWS.filter(r=>SXC.has(r.c)).length}）</option>`:''}</select>`+
    `</div><div class=vbar><span class=seg>${Object.entries(VW).map(([k,t])=>`<a data-vw=${k} class="${S.vw===k?'on':''}">${t}</a>`).join('')}</span>`+
-   `<label class=tgl title="台股配置的機動三成這一期待買進或持有中的股票"><input type=checkbox id=stf${S.stf?' checked':''}>配置裡的（${Object.keys(PKU).length}）</label>`+
+   `<label class=tgl title="台股配置的機動這一期待買進或持有中的股票"><input type=checkbox id=stf${S.stf?' checked':''}>配置裡的（${Object.keys(PKU).length}）</label>`+
    `<label class=tgl title="20 日平均成交金額 ≥ 1 億元"><input type=checkbox id=liq${S.liq?' checked':''}>成交 ≥1 億</label><span class=cnt id=cnt></span></div><div id=stkt></div>`;
   $('#q').oninput=e=>{S.q=e.target.value;S.n=60;drawStk();};
   $('#mk').onchange=e=>{S.mk=e.target.value;S.n=60;save();drawStk();};
@@ -1871,7 +1872,7 @@ function idxHits(c){
 
 /* 個股卡最上面：這檔在台股配置的哪一條策略裡（只列使用中的；docs/lab_ia_v5_plan.md 第 4 節「分頁個股」） */
 function stCardSec(c){const P=PKU[c];if(!P)return '';
-  return `<section class=csec id=c-st><h3>配置<span class=sub>台股的機動三成</span></h3>`+P.map(p=>{const b=BK[p.k]||{},e=b.exp||{},u=b.unit||'次',sw=(LV[p.k]||{}).src==='p7';
+  return `<section class=csec id=c-st><h3>配置<span class=sub>台股的機動</span></h3>`+P.map(p=>{const b=BK[p.k]||{},e=b.exp||{},u=b.unit||'次',sw=(LV[p.k]||{}).src==='p7';
     const out=p.out?`${mdw(p.out)} 收盤${sw?'換股':'賣出'}`:esc(p.out_how||'');
     const st=p.act==='持有中'?`持有中：${mdw(p.ent)} 買進${p.entry!=null?` ${fp(p.entry)}，現在 ${fp(p.now)}（${sgn(p.now_r,1,'%')}）`:''}；${out}`
       :`待買進：${mdw(p.ent)} 開盤${p.tent?'（試算名單）':''}${p.px!=null?`，參考價 ${fp(p.px)}`:''}${p.stop!=null?`、停損 ${fp(p.stop)}`:''}；${out}`;

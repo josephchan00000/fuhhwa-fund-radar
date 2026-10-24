@@ -1,5 +1,6 @@
-"""美股三成的規則 QM（ussxspec VER 3～4；docs/lab_us_sleeve_plan.md 第 13 節、docs/lab_core70_plan.md 第 19 節）：
+"""美股三成的規則 QM（ussxspec VER 3～6；docs/lab_us_sleeve_plan.md 第 13 節、docs/lab_core70_plan.md 第 19、20 節）：
 每週名單、資金帳戶、研究、上線狀態。VER 4：空的位子放現金（不付指數的成本）、放進交易計畫照 corespec 的核心比例（美股 0%）。
+VER 5：判定 ② 跟現在在用的計畫比（VER 3 的設定）。VER 6：③ 複委託只描述（使用者用海外券商）。
 
   research(C)  → data/lab/ussx_qm.json（scripts/run_ussx.py --qm；資料分支的資料）：重現第 12 節、判定 ①～④、只描述的項目、
                  交易計畫卡要的 scenario（spx、ndx 各一份）。
@@ -228,11 +229,15 @@ def research(C: dict, log=print) -> dict:
     out["top"] = _pnl_top(C, rs)
     # 放進交易計畫
     plans, sc = {}, {}
+    JB = X.QM_JUDGE_BASE
     for mk in X.QM_PLANS:
         for ck, c in (("main", X.COST["stk"]), ("alt", X.COST["stk_alt"])):
             r = R[(mk, ck)]
             new, cur = plan_scenarios(C, mk, rets(C, r), stk_share(C, r), a14, T, c)
-            plans[f"{mk}_{ck}"] = {"new": SW._brief(new), "cur": SW._brief(cur), "judge": SW.judge(new, cur)}
+            # VER 5：判定 ② 跟現在在用的計畫比（VER 3 的設定：核心 70%、機動放 QM、空位放指數；同一個成本）；cur＝機動放指數（只描述）
+            rb = run(C, sig, mk, c, idle=JB["idle"])
+            base = plan_scenarios(C, mk, rets(C, rb), stk_share(C, rb), a14, T, c, core=JB["core"])[0]
+            plans[f"{mk}_{ck}"] = {"new": SW._brief(new), "cur": SW._brief(cur), "base": SW._brief(base), "judge": SW.judge(new, base)}
             if ck == "main":
                 sc[mk] = new
     out["plans"], out["sc"] = plans, sc
@@ -251,7 +256,8 @@ def research(C: dict, log=print) -> dict:
     v["c3"] = {mk: bool(v["c1_alt"]["spx"] and v["c1_alt"]["ew"] and plans[f"{mk}_alt"]["judge"]["pass"]) for mk in X.QM_PLANS}
     v["c4"] = bool(G is not None and G * 100 < X.PASS["surv_max"])
     c1 = v["c1"]["spx"] and v["c1"]["ew"]
-    v["pass"] = {mk: bool(c1 and v["c2"][mk] and v["c3"][mk] and v["c4"]) for mk in X.QM_PLANS}
+    v["need_alt"] = X.QM_NEED_ALT                                         # VER 6：③（複委託）照算、只描述
+    v["pass"] = {mk: bool(c1 and v["c2"][mk] and (v["c3"][mk] or not X.QM_NEED_ALT) and v["c4"]) for mk in X.QM_PLANS}
     out["verdict"] = v
     # 重現第 12 節：照 VER 3 的設定（空位放指數、核心 70%）另外跑一次（ussxspec VER 4 ③）
     RS = X.QM_REPRO_SET
@@ -284,7 +290,7 @@ def research(C: dict, log=print) -> dict:
     out["idle"] = X.QM_IDLE
     out["core"] = {mk: CS.core_of(mk) for mk in X.QM_PLANS}
     log(f"[ussxqm] 完成 {time.time() - t0:.0f}s：重現（VER 3 設定）三成本身 {rc * 100:.2f}%、計畫 {rm * 100:,.1f} 萬 → {out['repro']['ok']}；"
-        f"VER 4 三成本身 {sleeve['main']['cagr'] * 100:.2f}%、計畫 {sc['spx']['plan']['m'] * 100:,.1f} 萬；判定 {v['pass']}")
+        f"VER {X.VER} 三成本身 {sleeve['main']['cagr'] * 100:.2f}%、計畫 {sc['spx']['plan']['m'] * 100:,.1f} 萬；判定 {v['pass']}")
     return out
 
 

@@ -58,13 +58,14 @@ def test_tw_card_blocks_in_order_and_tiles(R):
     t = _text(c)
     for w in ("待買進", "持有中", "股票水位", "警訊", "時程與水位"):
         assert w in t, w
-    assert "100%" in t and "現金 0%" in t and "1／3" in t                         # 一個警訊、拿滿
-    assert "名單 11/16 收盤產生" in t                                              # 待買進：財報驚喜下一期名單還沒產生
+    assert "63%" in t and "現金 37%" in t and "1／3" in t                          # 一個警訊、不用換現金；股票＝長抱＋機動裡有股票的（空位放現金）
+    assert "11/9（一） 開盤・新飆股" in t                                          # 待買進：新飆股下一個交易日開盤要買的比財報驚喜的名單早
     sc = R["mk"]["tw"]["sc"]
     s = sc.get("plan") or sc.get("rule")
     assert "100 萬變" in t and CPG._wan(s["plan"]["m"]) in t and f'0050 抱著 {CPG._wan(s["hold"]["m"])}' in t
-    assert "長抱 70%" in t and "0050" in t
-    assert X["tl"] == {"use": ["v3l", "s3", "s5"], "obs": [], "mm": "tw"} and X["nx"] and X["d"] == "2026-10-22"
+    assert "長抱 20%" in t and "0050" in t and "機動 80%：新飆股 40%" in t
+    assert {k: X["tl"][k] for k in ("use", "obs", "mm")} == {"use": ["v3l", "s3", "s5"], "obs": [], "mm": "tw"}
+    assert X["tl"]["boom"]["k"] == "boom" and X["nx"] and X["d"] == "2026-10-22"
 
 
 def test_tw_hold_table_adds_to_100(R):
@@ -74,23 +75,29 @@ def test_tw_hold_table_adds_to_100(R):
     t = _text(h)
     assert "台積電" in t and "8/17 買" in t and "11/12 收盤賣" in t                 # 每一檔：哪天買、到哪天賣
     assert "8/17 買・+3.1%" in t                                                   # 買進後漲跌（advice 的 now_r 是百分比）
-    assert t.count("這一期沒有部位") == 2                                           # 沒部位的那一份寫在 0050 那一列
+    assert t.count("這一期沒有部位") == 2                                           # 沒部位的那一份放現金（VER 4；VER 1～3 放 0050）
+    assert "機動 80%：新飆股 40%（每檔約 5%）＋個股策略 40%（3 條各 13.3%），沒有部位的那一份放現金" in t
+    assert '奇鋐 <span class="cd">3017</span>' in h and "11/2 買・+10.0%・2/3 開盤賣（2/2 收盤滿 60 個交易日）" in t   # 新飆股每一檔
+    assert '金像電 <span class="cd">2368</span>' in h and "11/9 開盤買（11/6 的名單）" in t and "台燿" not in t   # 現金不夠的那一檔不列
+    assert "0050／006208" in t and "長抱 20%" in t
 
 
 def test_tw_due_cash_and_buy_back(R):
     X = CF.tw_parts(_data(), _bundle(R, tw=_now(n_lit_extra=True, held=True)))   # 兩個警訊、還拿著 → 下一個交易日收盤換現金
     t = _text(X["card"])
-    assert "收盤：把機動 30% 賣掉換成現金" in t and "機動 30% 換成現金" in t and "2／3" in t
-    assert "機動 30% 放現金" in t                                                  # 水位長條整段標現金
-    X = CF.tw_parts(_data(), _bundle(R, tw=_now(held=False)))                    # 警訊解除、三成在現金 → 買回
-    assert "把機動 30% 買回來" in _text(X["card"])
+    assert "收盤：把機動 80% 賣掉換成現金" in t and "機動 80% 換成現金" in t and "2／3" in t
+    assert "機動 80% 放現金" in t and "20%" in t and "現金 80%（機動 80% 放現金中）" in t   # 水位長條整段標現金；股票只剩長抱
+    X = CF.tw_parts(_data(), _bundle(R, tw=_now(held=False)))                    # 警訊解除、機動在現金 → 買回
+    assert "把機動 80% 買回來" in _text(X["card"])
 
 
 def test_us_card_uses_qm_and_qqq_line(R, QMX):
     X = CF.us_parts(_data(), _bundle(R, qm=QMX))
     c, h = X["card"], X["hold"]
     t = _text(c + h)
-    assert "SPY／VOO" in t and "長抱 70%" in t
+    assert 'class="cfsc"' not in c and "長抱" not in _text(h) and S.core_of("spx") == 0   # VER 4：美股不留長抱（長條沒有長抱段、持股沒有長抱列）
+    if not CPG.qm_on("spx", QMX):
+        assert "SPY／VOO" in t and "全部持股：S&amp;P 500" in t and "全部持股放 S&amp;P 500" in t
     if CPG.qm_on("spx", QMX):
         n = CPG._qm_now(QMX)
         for x in n.get("hold") or []:
@@ -99,7 +106,7 @@ def test_us_card_uses_qm_and_qqq_line(R, QMX):
         w = _ws(h.split('class="cfh3"')[0])                                    # 名單前幾名那張表沒有比重
         assert abs(sum(w) - 100) < 1.0, w
     if CPG.qm_on("ndx", QMX):
-        assert "長抱改成那斯達克 100（QQQ）" in t and "配置照 S&amp;P 500" in c
+        assert "警訊改看那斯達克 100：同一套規則 100 萬變" in t and "配置照 S&amp;P 500" in c   # 長抱 0%：差別只在看哪個指數的警訊
 
 
 def test_us_rows_show_company_name_and_business(R, QMX, monkeypatch):
@@ -117,6 +124,10 @@ def test_us_rows_show_company_name_and_business(R, QMX, monkeypatch):
     monkeypatch.setattr(CPG, "qm_on", lambda mk, q: True)
     X = CF.us_parts(_data(), _bundle(R, qm=qm))
     h = X["hold"]
+    assert "全部持股：強勢品質股最多 8 檔，空位放現金" in _text(h)                     # VER 4：空位放現金、比重＝三成本身的比重 × 100%
+    assert '<td class="idx">現金</td><td class="w">25%</td>' in h and '<td class="w">40%</td>' in h
+    assert abs(sum(_ws(h.split('class="cfh3"')[0])) - 100) < 0.6
+    assert "75%" in _text(X["card"]) and "現金 25%" in _text(X["card"])          # 股票水位＝1 − 空位
     assert 'International Seaways <span class="cd">INSW</span><div class="cfin">油輪航運公司</div>' in h
     assert '瓦萊羅能源 <span class="cd">VLO</span><div class="cfin">大型煉油商</div>' in h
     top, cand = h.split('class="cfh3"')
@@ -140,20 +151,38 @@ def test_us_label_parses_intro_first_clause(monkeypatch):
     assert CPG.us_name("ZZ") == "ZZ"
 
 
-def test_tw_page_has_superstock_list():
-    """2026-10-24 使用者：「飆股的選股名單要放進去啊」——台股配置頁多一段飆股名單（觀察中、沒有放錢）：到買點、快到買點兩張表，
-    其餘收起來；分組和研究紀錄的飆股段同一支 wlPick。"""
+def test_tw_page_has_boom_book_section(R):
+    """2026-10-24 使用者：「換成新飆股」——台股配置頁的飆股名單換成新飆股（機動的一半）那本帳：每週名單、這一週的試算、
+    下一份名單；持股在持股細節。原本的到買點／快到買點名單留在研究紀錄。"""
+    X = CF.tw_parts(_data(), _bundle(R))
+    b = X["boom"]
+    assert 'id="cf-tw-sx" data-nav="新飆股"' in b
+    t = _text(b)
+    assert "占全部資金 40%" in t and "每檔約占全部資金 5%" in t and "抱 60 個交易日" in t
+    assert "11/6（五） 收盤的名單（3 檔）" in t
+    rows = re.findall(r"<tr><td>([^<]+) <span", b)
+    assert rows == ["金像電", "台燿", "奇鋐"]
+    assert "11/9 開盤買" in t and "現金不夠" in t and "已經有" in t                    # 名單裡：要買的、錢不夠的、手上有的
+    bm = R["mk"]["tw"]["sc"]["plan"].get("boom") or {}
+    if bm.get("cagr") is not None:
+        assert f'每年賺 {CPG._pc(bm["cagr"]).lstrip("+")}' in t and f'最慘時跌 {bm["mdd"] * 100:.0f}%' in t
+    assert 'data-go="opp" data-at="o-sx"' in b                                    # 舊的飆股名單在研究紀錄
     js = CF.JS
-    assert "function cfSx()" in js and "wlPick()" in js and "(mk==='tw'?cfSx():'')" in js
-    assert 'data-nav="飆股名單"' in js and "觀察中，沒有放錢" in js
-    from arm.lab import copage as CP
-    assert "function wlPick()" in CP.JS and "const {A,B,B2,Rr,NEAR}=wlPick();" in CP.JS
+    assert "(C.boom||'')" in js and "function cfSx()" not in js and "cfSx" not in js
+    assert "if(T.boom)L.push(Object.assign({},T.boom,{_src:'boom',_st:'use'}));" in js and "c._src==='boom'" in js
+    lane = X["tl"]["boom"]                                                        # 時間軸：持有中依買進日、明天要買、下一次看名單
+    assert lane["held"][0]["ent"] == "2026-11-02" and {i["c"] for i in lane["held"][0]["items"]} == {"3017", "2383"}
+    assert lane["buy"][0]["d"] == "2026-11-09" and [i["c"] for i in lane["buy"][0]["items"]] == ["2368"]
+    assert lane["next"]["fix"] == "2026-11-13"
+    stk = dict(STK, boom=None)                                                    # 讀不到新飆股：不出這一段、時間軸沒有那一列
+    X = CF.tw_parts(_data(), dict(_bundle(R), stk=stk))
+    assert X["boom"] == "" and X["tl"]["boom"] is None
 
 
 def test_us_without_qm_keeps_index(R):
     X = CF.us_parts(_data(), _bundle(R, qm=None))
     t = _text(X["hold"])
-    assert "美股三成照舊放指數" in t and X["tl"]["qm"] is None
+    assert "全部持股：S&amp;P 500" in t and "有警訊時換成現金" in t and X["tl"]["qm"] is None
     assert abs(sum(_ws(X["hold"])) - 100) < 0.6
 
 
@@ -184,7 +213,7 @@ def test_cfg_text_is_plain(R, QMX):
 
 
 def test_board_html_groups_and_filters():
-    B = {"rows": [{"id": "tw:plan", "name": "七成長抱＋警訊（台股）", "mk": "台股", "mkk": "tw", "type": "配置", "st": "use", "how": "h",
+    B = {"rows": [{"id": "tw:plan", "name": "兩成長抱＋警訊（台股）", "mk": "台股", "mkk": "tw", "type": "配置", "st": "use", "how": "h",
                    "go": {"go": "tw"}, "perf": "年化 18.0%", "ref": "一直抱著 12.0%", "mdd": "23%", "mddr": "29%", "today": "拿 100%"}]
          + [{"id": f"tw:o{i}", "name": f"觀察 {i}", "mk": "台股", "mkk": "tw", "type": "個股", "st": "obs", "how": "h", "go": {}}
             for i in range(BD.OBS_SHOW + 2)]
@@ -195,7 +224,7 @@ def test_board_html_groups_and_filters():
     assert h.count('<tr class="br" data-st="obs" data-mk="tw">') == BD.OBS_SHOW + 2
     assert "目前沒有；第一批在每週日新找之後出現" in h                                  # 候選分組先空著
     assert '<td class="bw" colspan="4">原因一句</td>' in h                           # 淘汰一列一句原因
-    assert '<a data-go="tw">七成長抱＋警訊（台股）</a>' in h
+    assert '<a data-go="tw">兩成長抱＋警訊（台股）</a>' in h
     assert '<a data-bst="out">淘汰 1</a>' in h and '<a data-bst="use" class=on>使用中 1</a>' in h   # 淘汰預設收起
 
 

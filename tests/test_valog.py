@@ -213,6 +213,9 @@ def test_valog_us_sleeve_state_reads_watch_and_record(monkeypatch, tmp_path):
     L = QM.load_live()
     n = L["now"]
     nd = QM.next_day(n["d"])
+    R = json.loads(json.dumps(QM.load()))
+    R["switch"] = {"spx": True, "ndx": True}                                # 美股機動放 QM 的時候（判定另外測）
+    monkeypatch.setattr(QM, "load", lambda path=None: R)
     W = {"ver": X.VER, "base": n["d"], "d": nd, "hold": [], "sell": [{"c": n["hold"][0]["c"], "trig": nd, "on": QM.next_day(nd)}]}
     (tmp_path / "w.json").write_text(json.dumps(W), encoding="utf-8")
     monkeypatch.setattr(QM, "WATCH", tmp_path / "w.json")
@@ -223,3 +226,21 @@ def test_valog_us_sleeve_state_reads_watch_and_record(monkeypatch, tmp_path):
     assert not [t for t in valog.uqm_state(datetime(2026, 10, 24, 6, 35))["td"] if t[1] == "賣" and t[2] == n["hold"][0]["c"]]
     monkeypatch.setattr(QM, "load", lambda path=None: None)               # 研究檔沒有（或判定沒過）：沒有美股三成
     assert valog.uqm_state(datetime(2026, 10, 24, 6, 35)) is None
+
+
+def test_valog_boom_line_for_tw_sleeve():
+    """台股機動的新飆股（corespec VER 4）：推播多一行，下一個交易日開盤要賣、要買的股票（錢不夠的不列）；
+    機動放現金中，買的先不買；排在台股第一行之後、美股那一行之前。"""
+    P = {"d": "2026-10-30", "next": "2026-11-02",
+         "hold": [{"c": "3017", "n": "奇鋐", "sell": True}, {"c": "2383", "n": "台光電", "sell": False}],
+         "buy": [{"c": "2368", "n": "金像電", "fill": True}, {"c": "6274", "n": "台燿", "fill": False}]}
+    cur = valog.boom_state(P, {"next": 1.0})
+    assert cur == {"d": "2026-10-30", "td": [["2026-11-02", "賣", "奇鋐"], ["2026-11-02", "買", "金像電"]], "cash": False}
+    assert valog.boom_line(cur) == "新飆股：11/2（一）開盤賣 奇鋐、買 金像電。"
+    assert valog.boom_line(valog.boom_state(P, {"next": 0.2})) == "新飆股：11/2（一）開盤賣 奇鋐、買 金像電（機動放現金中，買的先不買）。"
+    assert valog.boom_state(None) is None and valog.boom_state({"d": "2026-10-22"}) is None
+    assert valog.boom_line(valog.boom_state({"d": "2026-10-22", "next": "2026-10-27"})) is None   # 沒有要做的就不加
+    uq = {"d": "2026-10-30", "td": [["2026-11-02", "買", "PAYC"]]}
+    rec = {"todo": {"d": "2026-11-02", "items": []}, "ev": [], "boom": cur, "uqm": uq}
+    assert valog.push_lines(rec) == ["11/2（一）沒有排定的買賣。", "新飆股：11/2（一）開盤賣 奇鋐、買 金像電。",
+                                     "美股三成：11/2（一）開盤買 PAYC。"]

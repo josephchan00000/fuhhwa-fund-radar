@@ -369,7 +369,11 @@ def boom_sleeve(cal: list[str], rf) -> dict | None:
         if v is not None:
             last = v
             lastx = xp.get(cal[k], lastx)
-    return {"r": r, "a": doc["d"][0], "b": doc["d"][-1], "x": float(np.mean(doc["x"])) if doc["x"] else None}
+    nv = np.asarray(doc["nav"], dtype=float)
+    yrs = (date.fromisoformat(doc["d"][-1]) - date.fromisoformat(doc["d"][0])).days / 365.25
+    return {"r": r, "a": doc["d"][0], "b": doc["d"][-1], "x": float(np.mean(doc["x"])) if doc["x"] else None,
+            "cagr": float((nv[-1] / nv[0]) ** (1 / yrs) - 1) if yrs > 0 else None,
+            "mdd": float((1 - nv / np.maximum.accumulate(nv)).max())}
 
 
 # ── 研究 ─────────────────────────────────────────────────────────────────────
@@ -422,6 +426,14 @@ def research() -> dict:
                 sc["plan"] = scenario("plan", mk, cal, px, tot, rf, F, pa, pb, c, sl=g * bm["r"] + (1 - g) * star,
                                       inpos=np.ones(T, dtype=bool), swc=zero, c_stk=S.COST["tw_stk"], sleeve=f"{S.BOOM_BOOK}+star")
                 sc["plan"]["boom_x"] = bm["x"]
+                sc["plan"]["boom"] = {"cagr": bm["cagr"], "mdd": bm["mdd"], "a": bm["a"], "b": bm["b"], "x": bm["x"]}   # 新飆股那本帳自己（頁面一行）
+                ka = next(k for k, d in enumerate(cal) if d >= bm["a"])            # 同一段期間一直抱著大盤（含息），只描述
+                kb = max((k for k, d in enumerate(cal) if d <= bm["b"]), default=ka)
+                hv = np.cumprod(np.r_[1.0, 1 + np.nan_to_num(tot[ka + 1:kb + 1])])
+                yrs = (date.fromisoformat(cal[kb]) - date.fromisoformat(cal[ka])).days / 365.25
+                if yrs > 0:
+                    sc["plan"]["boom"]["hold"] = {"cagr": float(hv[-1] ** (1 / yrs) - 1),
+                                                  "mdd": float((1 - hv / np.maximum.accumulate(hv)).max())}
         if mk in S.EARLY:
             ok = [k for k in range(T) if np.isfinite(M["inf"][k]) and np.isfinite(M["lev"][k]) and np.isfinite(F["ma"][k])]
             e0 = ok[0] if ok else None

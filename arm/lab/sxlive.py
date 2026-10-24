@@ -590,7 +590,7 @@ def update(DL, ctx: dict | None = None, now=None, write_file: bool | None = None
         tr = []
         if last and last not in week_ends(last, last):      # 這一週還沒結束：試算到今天收盤為止符合的股票
             tr = [{"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1)} for c, rs in trial_list(ctx, last, R)[:S.LIST_SHOW]]
-        plan = plan_state(rec, ctx, nm, tr)
+        plan = plan_state(dict(rec, last=last), ctx, nm, tr)  # START 之前（資料停在 START 前一天）也要算下一次看名單的日子
     except Exception as e:                                 # noqa: BLE001
         print(f"[sxlive] ⚠ 新飆股的配置頁狀態算不出來：{type(e).__name__}: {e}")
     rec.pop("_book", None)
