@@ -366,14 +366,14 @@ def test_qm_buy_split_respects_remaining_cash():
     """2026-10-24：FTNT 寫「約 12.5%」但現金只剩 10.3%，持股表加起來 102%——要買的每一檔不超過剩下的現金（同 ussxbook），
     開盤先賣的部位那一份也算進可以用的現金。"""
     n = {"next": "2026-10-26", "idle": 0.103, "hold": [{"c": "A", "w": 0.45}, {"c": "B", "w": 0.447}], "buy": ["FTNT"], "sell": []}
-    split, idle = CPG.qm_buy_split(n)
+    split, idle = P.qm_buy_split(n)
     assert split == [("FTNT", 0.103)] and idle == 0.0
     n2 = {**n, "idle": 0.30, "buy": ["X", "Y", "Z"]}
-    split, idle = CPG.qm_buy_split(n2)
+    split, idle = P.qm_buy_split(n2)
     assert [round(w, 4) for _, w in split] == [0.125, 0.125, 0.05] and idle == 0.0
     n3 = {**n, "idle": 0.05, "hold": [{"c": "A", "w": 0.5, "sell": True}, {"c": "B", "w": 0.45}], "buy": ["X"]}
-    split, idle = CPG.qm_buy_split(n3)                                    # 開盤先賣 A，賣掉的錢拿去買
+    split, idle = P.qm_buy_split(n3)                                    # 開盤先賣 A，賣掉的錢拿去買
     assert split == [("X", 0.125)] and idle == 0.0
     W = {"sell": [{"c": "B", "on": "2026-10-26", "trig": "2026-10-23"}]}
-    split, _ = CPG.qm_buy_split({**n, "idle": 0.0, "buy": ["X"]}, W)     # 每天的 50 日線檢查要賣的也算
+    split, _ = P.qm_buy_split({**n, "idle": 0.0, "buy": ["X"]}, W)     # 每天的 50 日線檢查要賣的也算
     assert split == [("X", 0.125)]
