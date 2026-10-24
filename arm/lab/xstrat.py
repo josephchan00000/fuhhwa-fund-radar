@@ -778,6 +778,9 @@ def _recent_from(cal: list[str]) -> str:
         return d.replace(year=d.year - S.RECENT_YEARS, day=28).isoformat()
 
 
+PLUGINS: dict = {}           # 新策略候選（arm/lab/cands；candrun 註冊）：鍵 → 模組（trades／pos／dip_raw），規格 candspec
+
+
 class Ctx:
     """一個市場算策略要的東西（指標只算一次）。"""
 
@@ -809,6 +812,8 @@ class Ctx:
 
     # 交易型
     def trades(self, k: str, p: dict, lag: int, now: bool = False) -> tuple[list[tuple], dict]:
+        if k in PLUGINS:
+            return PLUGINS[k].trades(self, p, lag, now)
         px = self.px
         if k == "rsi2":
             r = self.rsi2 if p["rsi_n"] == 2 else rsi(px, p["rsi_n"])
@@ -830,6 +835,8 @@ class Ctx:
 
     # 進出型
     def pos(self, k: str, p: dict, lag: int, now: bool = False) -> np.ndarray:
+        if k in PLUGINS:
+            return PLUGINS[k].pos(self, p, lag, now)
         ends = self.ends_now if now else self.ends
         if k == "faber":
             return pos_faber(self.px, ends, p["n"], lag)
@@ -843,6 +850,8 @@ class Ctx:
 
     # 落底型：去重前的訊號日、第一個可能出現訊號的日子
     def dip_raw(self, k: str, p: dict, now: bool = False) -> tuple[list[int], int]:
+        if k in PLUGINS:
+            return PLUGINS[k].dip_raw(self, p, now)
         D = self.D
         if k == "coppock":
             return coppock_days(self.px, self.ends_now if now else self.ends, p)
@@ -1236,6 +1245,8 @@ def now_state(C: Ctx, spec: dict) -> dict:
                         "held": t - st["e"]})
         if "t" in st:
             out["td"] = C.cal[st["t"]]
+        if k in PLUGINS:                                  # 候選：只有通用的狀態
+            return out
         m200 = C.ma(p["ma"])[t]
         out["ma"] = _r(px[t] / m200 - 1.0, 4) if m200 == m200 else None
         out["rsi2"] = _r(C.rsi2[t], 1)

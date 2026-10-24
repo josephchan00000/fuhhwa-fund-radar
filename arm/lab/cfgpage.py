@@ -662,10 +662,10 @@ def us_hold(bundle: dict, N: dict | None) -> str:
                 bits.append(f'比 50 日線{"高" if pct >= 0 else "低"} {abs(pct) * 100:.1f}%')
             rows.append(f'<tr><td>{_usn(h["c"], nms)}</td><td class="w">{_wp((h.get("w") or 0) * w)}</td>'
                         f'<td class="src">強勢品質股</td><td class="st">{"・".join(bits)}</td></tr>')
-        for x in n.get("buy") or []:
-            rows.append(f'<tr><td>{_usn(x, nms)}</td><td class="w">約 {CPG._qm_per()}</td><td class="src">強勢品質股</td>'
-                        f'<td class="st">{_e(_md(n.get("next")))} 開盤買</td></tr>')
-        idle = max(0.0, (n.get("idle") or 0.0) - len(n.get("buy") or []) / QX.QM_SLOTS)
+        split, idle = CPG.qm_buy_split(n, W)
+        for x, wb in split:
+            rows.append(f'<tr><td>{_usn(x, nms)}</td><td class="w">約 {_wp(wb * w)}</td><td class="src">強勢品質股</td>'
+                        f'<td class="st">{_e(_md(n.get("next")))} ' + ("開盤買" if wb > 1e-3 else "現金不夠，先不買") + '</td></tr>')
         if idle > 1e-3:
             nf = CPG._qm_next_week_end(W.get("d") or n.get("d"))
             rows.append(f'<tr><td class="idx">現金</td><td class="w">{_wp(idle * w)}</td><td class="src">強勢品質股</td>'

@@ -219,6 +219,23 @@ def _qm_per(mk: str = "spx") -> str:
     return f"{sat_w(mk) / QX.QM_SLOTS * 100:.2f}".rstrip("0").rstrip(".") + "%"
 
 
+def qm_buy_split(n: dict, W: dict | None = None) -> tuple[list[tuple[str, float]], float]:
+    """下一個交易日開盤要買的每一檔大約拿到多少（占機動；同 ussxbook：開盤先賣、再照名單順序買，每檔 1/QM_SLOTS、
+    不超過手上剩下的現金）。→ ([(代號, 比重)], 買完以後原本的現金還剩多少)。
+    2026-10-24：FTNT 那一檔表上寫「約 12.5%」，但現金只剩 10.3%，持股表加起來 102%。"""
+    W = W or {}
+    nx = n.get("next")
+    sold = {x["c"] for x in W.get("sell") or [] if x.get("on") and nx and x["on"] <= nx} | set(n.get("sell") or [])
+    idle = n.get("idle") or 0.0
+    rem = idle + sum((h.get("w") or 0.0) for h in n.get("hold") or [] if h.get("sell") or h["c"] in sold)
+    out = []
+    for c in n.get("buy") or []:
+        wb = min(1.0 / QX.QM_SLOTS, max(0.0, rem))
+        out.append((c, wb))
+        rem -= wb
+    return out, max(0.0, idle - sum(w for _, w in out))
+
+
 def _qm_rule(mk: str = "spx") -> str:
     q = QX.QM
     return (f"每週五（休市就看那一週最後一個交易日）收盤，挑股價強勢（漲幅在美股前 {100 - q['rs']:.0f}%、離一年高點 {-q['d52h'] * 100:.0f}% 以內）、"
@@ -257,12 +274,12 @@ def _qm_hold(mk: str, qm: dict | None, cash: bool) -> str:
             bits.append(f'比 50 日線{"高" if pct >= 0 else "低"} {abs(pct) * 100:.1f}%')
         rows += (f'<div class="plnsn">{_e(h["c"])} {_wp((h.get("w") or 0) * sat_w(mk))}</div>'
                  f'<div class="plnsv">{_e("；".join(bits))}</div>')
-    buys = n.get("buy") or []
-    for c in buys:
-        what = who(c) + [f'{_md(n.get("next"))} 開盤買（{_md(n.get("wk"))} 的名單）']
-        rows += (f'<div class="plnsn">{_e(c)} 約 {_qm_per(mk)}</div>'
+    split, idle = qm_buy_split(n, W)
+    for c, wb in split:
+        what = who(c) + [f'{_md(n.get("next"))} 開盤買（{_md(n.get("wk"))} 的名單）' if wb > 1e-3
+                         else f'{_md(n.get("wk"))} 的名單，現金不夠、這一檔先不買']
+        rows += (f'<div class="plnsn">{_e(c)} 約 {_wp(wb * sat_w(mk))}</div>'
                  f'<div class="plnsv">{_e("；".join(what))}</div>')
-    idle = max(0.0, (n.get("idle") or 0.0) - len(buys) / QX.QM_SLOTS)
     if idle > 1e-3:
         rows += f'<div class="plnsn">現金 {_wp(idle * sat_w(mk))}</div><div class="plnsv">空的位子放現金</div>'
     hd = (f"{sat_name(mk)}現在放現金；買回時照這樣買（占全部資金，{_md(n['d'])} 收盤的比重）" if cash
@@ -293,7 +310,12 @@ def _qm_todo(mk: str, qm: dict | None, cash: bool) -> str:
     for c in n.get("sell") or []:
         ev.append((n["next"], "開盤", f'<b>賣掉 {un(c)}</b>', f'{_md(n["d"])} 收盤跌破 50 日線'))
     if n.get("buy"):
-        sub = f'{_md(n["wk"])} 的名單裡最前面、手上沒有的；每檔約占全部資金 {_qm_per(mk)}' + ("；現在放現金中，先不買" if cash else "")
+        split, _ = qm_buy_split(n, W)
+        full = all(abs(wb - 1.0 / QX.QM_SLOTS) < 1e-9 for _, wb in split)
+        amt = (f'每檔約占全部資金 {_qm_per(mk)}' if full else
+               "約占全部資金 " + "、".join(f'{_e(us_name(c, nms))} {_wp(wb * sat_w(mk))}' for c, wb in split if wb > 1e-3)
+               + "（現金只剩這些）")
+        sub = f'{_md(n["wk"])} 的名單裡最前面、手上沒有的；{amt}' + ("；現在放現金中，先不買" if cash else "")
         ev.append((n["next"], "開盤", f'<b>買進 {"、".join(un(c) for c in n["buy"])}</b>', sub))
     nf = _qm_next_week_end(last)
     sold0 = {x["c"] for x in W.get("sell") or []} | set(n.get("sell") or [])

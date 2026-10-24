@@ -1,6 +1,6 @@
 """新策略候選的框架規格（arm/lab/candspec.py；docs/lab_ia_v5_plan.md 第 24 節）：規格鎖定。
 
-VER 1（2026-10-24）在任何一條候選算出來之前寫定。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
+VER 1、VER 2（2026-10-24，打亂之後的價格）都在任何一條候選算出來之前寫定。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import candspec as S
 from arm.lab import xstratspec as X
 
@@ -8,8 +8,8 @@ BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會
           "零風險", "無風險", "穩賺不賠")
 
 
-def test_candspec_v1_is_locked():
-    assert S.VER == 1 and S.SPEC_DATE == "2026-10-24"
+def test_candspec_v2_is_locked():
+    assert S.VER == 2 and S.SPEC_DATE == "2026-10-24"
     assert S.ID_RE == r"^c\d{3}$"
     assert S.ENGINES == {"index": ("trade", "dip", "alloc"), "tw_stock": ("per",), "us_stock": ("book",)}
     assert S.MARKETS == {"index": ("tw", "spx", "ixic", "ndx", "sox"), "tw_stock": ("tw",), "us_stock": ("us",)}
@@ -25,6 +25,7 @@ def test_candspec_v1_is_locked():
     assert S.VERDICT == {"good": "過關", "ref": "部分過關", "none": "沒過", "few": "次數不夠",
                          "need": "需要資料", "err": "沒算出來", "peek": "用到未來的資料"}
     assert S.CUTS == (0.70, 0.85, 0.97) and S.REV_DAY == 10
+    assert (S.PEEK_SIGMA, S.PEEK_SEED) == (0.08, 20261024)
     assert S.PLAN_OF == {"tw": ("tw",), "spx": ("spx",), "ndx": ("ndx",), "us": ("spx", "ndx")}
     assert (S.STAR_N_DEFAULT, S.PLAN_MDD_MORE) == (3, 0.10)
     assert S.DECISIONS == {"trial": "試用", "adopt": "納入", "reject": "不納入"}
