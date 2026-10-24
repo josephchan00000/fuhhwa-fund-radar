@@ -350,13 +350,13 @@ def _qm_lane(bundle: dict) -> dict | None:
     if hold:
         ent = min(h["ent"] for h in hold)
         lane["held"].append({"ent": ent, "d": None, "act": "賣出", "at": "開盤",
-                             "items": [{"c": h["c"], "n": CPG.us_name(h["c"], nms), "entry": h.get("epx"), "now": h.get("px"),
+                             "items": [{"c": h["c"], "n": h["c"], "nm": CPG.us_name(h["c"], nms), "entry": h.get("epx"), "now": h.get("px"),
                                         "now_r": None if h.get("r") is None else round(h["r"] * 100, 2), "ent": h["ent"]} for h in hold]})
     for c, x in sold.items():
         if x.get("on"):
             lane["adj"].append({"d": x["on"], "at": "開盤", "act": "賣出", "note": f"賣掉 {CPG.us_name(c, nms)}（收盤跌破 50 日線）"})
     if n.get("buy") and n.get("next"):
-        lane["buy"].append({"d": n["next"], "at": "開盤", "act": "買進", "items": [{"c": c, "n": CPG.us_name(c, nms)} for c in n["buy"]],
+        lane["buy"].append({"d": n["next"], "at": "開盤", "act": "買進", "items": [{"c": c, "n": c, "nm": CPG.us_name(c, nms)} for c in n["buy"]],
                             "out": None, "sell": "收盤跌破 50 日線就在下一個交易日開盤賣", "tent": False})
     else:
         free = max(0, 8 - len([h for h in hold if h["c"] not in sold]))
@@ -720,8 +720,8 @@ function cfMacLb(x){const e=x.e,M=MCM[x.c._mm]||{};if(x.k==='held')return `${e.e
 function cfTip(x,pin){const c=x.c,e=x.e;let h='';
   if(c._src==='mac'){const s=S.mmk;S.mmk=c._mm;h=xmTip(x,pin).replace(/<a class=vzgo data-to="m-[^"]*">[^<]*<\/a>/,'');S.mmk=s;
     return h+(pin?`<a class=vzgo data-go="macst" data-at="ms-${esc(c.k)}" data-gm="${esc(c._mm)}">規則與成績</a>`:'');}
-  if(c._src==='qm'){if(x.k==='held')h=`<b>${esc(c.name)}・持有 ${(e.items||[]).length} 檔</b><ul>${(e.items||[]).map(i=>`<li>${esc(i.n)} <span class=vzs>${md(i.ent)} 買</span> <span class=${(i.now_r||0)>=0?'up':'dn'}>${pctT(i.now_r)}</span></li>`).join('')}</ul><div class=vzs>收盤跌破 50 日線，下一個交易日開盤賣</div>`;
-    else if(x.k==='buy')h=`<b>${mdw(e.d)} 開盤買進・${esc(c.name)}</b><div>${(e.items||[]).map(i=>esc(i.n)).join('、')}</div>`;
+  if(c._src==='qm'){if(x.k==='held')h=`<b>${esc(c.name)}・持有 ${(e.items||[]).length} 檔</b><ul>${(e.items||[]).map(i=>`<li>${esc(i.nm||i.n)} <span class=vzs>${md(i.ent)} 買</span> <span class=${(i.now_r||0)>=0?'up':'dn'}>${pctT(i.now_r)}</span></li>`).join('')}</ul><div class=vzs>收盤跌破 50 日線，下一個交易日開盤賣</div>`;
+    else if(x.k==='buy')h=`<b>${mdw(e.d)} 開盤買進・${esc(c.name)}</b><div>${(e.items||[]).map(i=>esc(i.nm||i.n)).join('、')}</div>`;
     else if(x.k==='next')h=`<b>${esc(c.name)}</b><div>名單 ${mdw(e.fix)} 收盤定案，有空位就 ${mdw(e.d)} 開盤買</div>`;
     else h=`<b>${mdw(e.d)} 開盤・${esc(c.name)}</b><div class=vzs>${esc(e.note||'')}</div>`;
     return h;}

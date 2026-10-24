@@ -125,7 +125,9 @@ def test_us_rows_show_company_name_and_business(R, QMX, monkeypatch):
     assert set(got) == {"CDNA", "PAYC", "QLYS", "HALO", "NTAP"} and FI.US_QM_SHOW == 5     # VLO 手上有，不列；只列前 5
     assert 'CareDx, Inc. <span class="cd">CDNA</span>' in cand                    # 沒有中文簡介：用每週紀錄的英文名
     lane = X["tl"]["qm"]
-    assert [i["n"] for i in lane["held"][0]["items"]] == ["International Seaways（INSW）", "瓦萊羅能源（VLO）"]
+    its = lane["held"][0]["items"]                                                # 時間軸的條上寫代號（短）、提示框寫公司名
+    assert [i["n"] for i in its] == ["INSW", "VLO"] and [i["nm"] for i in its] == ["International Seaways（INSW）", "瓦萊羅能源（VLO）"]
+    assert "esc(i.nm||i.n)" in CF.JS
 
 
 def test_us_label_parses_intro_first_clause(monkeypatch):
