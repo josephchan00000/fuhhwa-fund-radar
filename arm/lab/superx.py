@@ -709,6 +709,38 @@ def cond_text(cond) -> str:
     return f"{nm} {'≥' if op == '>=' else '≤' if op == '<=' else '>'} {val}"
 
 
+def cond_value_text(cond, v) -> str:
+    """那一檔的實際數字＋規則要多少（只影響顯示；例「強度 96（要 90 以上）」「近 20 日漲停 2 次」）。沒有數字＝cond_text。"""
+    k, op, thr = cond
+    nm = SHORT.get(k, FNAME.get(k, k))
+    if op == "=":
+        return nm
+    if v is None or isinstance(v, bool) or not isinstance(v, (int, float)) or v != v:
+        return cond_text(cond)
+    if k == "lu20" and op == ">=" and thr <= 1:
+        return f"近 20 日漲停 {v:.0f} 次"
+    if k == "rs":
+        nm = "強度"
+
+    def fmt(x):
+        if k == "cap":
+            return f"{x / 1e8:,.0f} 億"
+        if k == "liq":
+            return f"{x / 1e8:,.1f} 億"
+        if k in PCT_PT:
+            return f"{x * 100:+.0f} 個百分點"
+        if k in ("ry", "ry3", "ey", "d52h", "r120"):
+            return f"{x * 100:+.0f}%"
+        if k in ("gm", "om", "roe"):
+            return f"{x * 100:.0f}%"
+        if k == "vdry":
+            return f"{x:.2f} 倍"
+        return f"{x:.0f}" if k in ("rs", "tt_n", "lu20") else f"{x:g}"
+    side = "以上" if op in (">=", ">") else "以下"
+    t = fmt(thr)
+    return f"{nm} {fmt(v)}（要 {t}{' ' if t[-1].isdigit() or t[-1] == '%' else ''}{side}）"
+
+
 # ── 頁面：研究結果檔 → 頁面資料 ────────────────────────────────────────────────
 RES_FILE = "super_research.json"
 
