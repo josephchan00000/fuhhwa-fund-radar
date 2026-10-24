@@ -9,7 +9,7 @@ from arm.lab import ussxspec as X
 
 
 def test_ussx_spec_v1_is_locked():
-    assert X.VER == 5 and X.SPEC_DATE == "2026-10-24" and X.DATA_BRANCH == "claude/ussx-data"
+    assert X.VER == 6 and X.SPEC_DATE == "2026-10-24" and X.DATA_BRANCH == "claude/ussx-data"
     assert X.PX_START == "2006-01-01"
     assert (X.LIQ_MIN, X.PX_MIN, X.AGE_MIN, X.EPS_RECENT, X.SMALL_LIQ) == (20e6, 5.0, 252, 270, 5e6)
     assert X.BOOKS == {"R60": {"n": 60, "g": 0.20, "how": "close"}, "A": {"n": 60, "g": 0.50, "how": "high"},
@@ -122,3 +122,8 @@ def test_qm_v5_judge_base_is_the_plan_in_use():
     """VER 5（corespec 第 20 節）：判定 ② 跟現在在用的計畫比（VER 3 的設定：核心 70%、空位放指數），不是同核心比例的指數計畫。"""
     assert X.QM_JUDGE_BASE == {"idle": "index", "core": 0.70} == X.QM_REPRO_SET
     assert X.PASS["mdd_extra"] == 10.0 and X.QM_IDLE == "cash"
+
+
+def test_qm_v6_overseas_broker_only():
+    """VER 6（corespec 第 20 節）：使用者決定美股用海外券商——判定不再要求複委託成本也成立（照算、只描述）。"""
+    assert X.QM_NEED_ALT is False and X.COST["stk"] < X.COST["stk_alt"]
