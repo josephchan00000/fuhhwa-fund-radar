@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-10-24",
+  "as_of": "2026-10-25",
   "note": "新策略候選（docs/lab_ia_v5_plan.md 第 6、24 節；框架規格 arm/lab/candspec.py）。一條一筆，程式在 arm/lab/cands/{編號}.py；寫定之後一字不改，要改就用新的編號（prev 指到舊的）。使用者的決定記在 config/strategy_board.json 的 cand。",
   "items": [
     {
@@ -94,6 +94,58 @@
       },
       "note": "原論文是 S&P 100 的個股；這裡用 S&P 500 指數（作者 2010 年工作論文的指數結果），一律照 ETF 成本。",
       "sha": "88ac36c1f7ea5636fe6569d4a50b0d18c426e7813e1d14ba1c383ec8dd6bdac8"
+    },
+    {
+      "id": "c003",
+      "found": "2026-10-25",
+      "name": "低波動（大型股）",
+      "mk": "tw",
+      "engine": "tw_stock",
+      "kind": "per",
+      "how": "每個月底，大型股依過去一年日報酬的波動排序，買波動最低的兩成，抱到下一個月底",
+      "src": [
+        {
+          "t": "Blitz & van Vliet, The Volatility Effect: Lower Risk Without Lower Return（Journal of Portfolio Management 2007；SSRN 980865）",
+          "u": "https://papers.ssrn.com/abstract=980865"
+        },
+        {
+          "t": "Alpha Architect：The Volatility Effect Revisited",
+          "u": "https://alphaarchitect.com/the-volatility-effect-revisited/"
+        }
+      ],
+      "why": "波動低的股票長期報酬不比波動高的差、跌得較少，全球、美、歐、日資料都成立（1986–2006 低對高波動十分位年化 alpha 差約 12%）；作者認為和槓桿限制、散戶偏好樂透型股票有關。頁面上的個股策略沒有低風險這一類。原論文用過去三年週報酬；這裡用過去 n 個交易日的日報酬。",
+      "p": {
+        "n": 250
+      },
+      "grid": {
+        "n": [
+          120,
+          250,
+          500
+        ],
+        "pick": [
+          [
+            0.1,
+            5
+          ],
+          [
+            0.2,
+            5
+          ],
+          [
+            0.3,
+            5
+          ]
+        ]
+      },
+      "b": "L",
+      "pick": {
+        "top": 0.2,
+        "nmin": 5,
+        "asc": true
+      },
+      "note": "價格是還原權息後的收盤（長歷史面板 2013 起，第一期約 2014 年初）；原論文是全球大型股，這裡只有台股大型股。",
+      "sha": "e533ebbd9c72133483455fc7b477b7a2e43f65ce3619ef265dc707d9dd5249ba"
     }
   ]
 }
