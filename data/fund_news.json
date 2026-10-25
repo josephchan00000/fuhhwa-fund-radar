@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/25 19:54",
+  "as_of": "2026/10/26 06:51",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -39,9 +39,9 @@
       "datetime": "2026-10-21T11:38:00+08:00"
     },
     {
-      "title": "復華再推主動式ETF！00418A今起募集「每股10元、不配息」 | TVBS",
+      "title": "復華再推主動式ETF！00418A今起募集「每股10元、不配息」",
       "url": "https://news.tvbs.com.tw/money/4038968",
-      "source": "LINE TODAY",
+      "source": "TVBS",
       "date": "2026-10-21 09:51",
       "datetime": "2026-10-21T09:51:00+08:00"
     },
@@ -186,20 +186,6 @@
           "source": "Yahoo股市",
           "date": "2026-10-22 10:50",
           "datetime": "2026-10-22T10:50:00+08:00"
-        },
-        {
-          "title": "台股高檔震盪加劇！00418A 採「槓鈴策略」配置 兼顧防禦力與 AI 爆發力 現在募集中！",
-          "url": "https://sunmedia.tw/news/finance/%E5%8F%B0%E8%82%A1%E9%AB%98%E6%AA%94%E9%9C%87%E7%9B%AA%E5%8A%A0%E5%8A%87%EF%BC%8100418A-%E6%8E%A1%E3%80%8C%E6%A7%93%E9%88%B4%E7%AD%96%E7%95%A5%E3%80%8D%E9%85%8D%E7%BD%AE-%E5%85%BC%E9%A1%A7%E9%98%B2%E7%A6%A6%E5%8A%9B%E8%88%87-AI-%E7%88%86%E7%99%BC%E5%8A%9B-%E7%8F%BE%E5%9C%A8%E5%8B%9F%E9%9B%86%E4%B8%AD%EF%BC%81-1792635436556",
-          "source": "商傳媒",
-          "date": "2026-10-22 10:18",
-          "datetime": "2026-10-22T10:18:34+08:00"
-        },
-        {
-          "title": "AI 賣鏟人帶勁！00418A募集中 深入前 300 大卡位「中段班」躍升黑馬",
-          "url": "https://www.watchmedia01.com/archives/561996",
-          "source": "觀傳媒",
-          "date": "2026-10-22 09:27",
-          "datetime": "2026-10-22T09:27:40+08:00"
         }
       ]
     },
@@ -569,7 +555,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=lJNdfafhPj8",
       "date": "2026-10-21",
-      "views": 68772
+      "views": 71107
     },
     {
       "platform": "youtube",
@@ -577,7 +563,7 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
       "date": "2026-10-20",
-      "views": 15636,
+      "views": 15684,
       "short": true
     },
     {
@@ -586,7 +572,7 @@
       "channel": "Lydia聊人生",
       "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
       "date": "2026-10-18",
-      "views": 10797
+      "views": 11372
     },
     {
       "platform": "youtube",
@@ -594,7 +580,7 @@
       "channel": "元大投信",
       "url": "https://www.youtube.com/shorts/BAFCSimIvW0",
       "date": "2026-10-22",
-      "views": 857036,
+      "views": 1093330,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -605,29 +591,18 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=Al47SwnDMWo",
       "date": "2026-10-22",
-      "views": 243730,
+      "views": 249971,
       "peer": true,
       "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
-      "title": "0050分割後又翻倍！現在進場買誰好？0050 vs 009816 大對決：老本別買錯！「這種人」買它賺更多！EP77 ft.財經雪倫《投資嗨什麼》",
-      "channel": "投資嗨什麼",
-      "url": "https://www.youtube.com/watch?v=Bem1OTti05k",
-      "date": "2026-10-20",
-      "views": 163160,
+      "title": "連魏哲家都不樂觀？AI融資爆危機！台股將面臨股匯雙殺？輝達撐得住、借錢蓋機房的卻快撐不住？比2000年網路泡沫更危險？｜峰哥｜Smart智富．投資的一千零一夜256",
+      "channel": "Smart智富月刊",
+      "url": "https://www.youtube.com/watch?v=bBb7muEJZwo",
+      "date": "2026-10-24",
+      "views": 138268,
       "peer": true,
-      "cat": "市值型"
-    },
-    {
-      "platform": "youtube",
-      "title": "台股又要重演7月股災了嗎？外資這次賣得更兇，卻出現一個奇怪現象！ #財經 #台股 #股市 #外資 #權值股",
-      "channel": "風傳媒 The Storm Media",
-      "url": "https://www.youtube.com/shorts/jI4ZKqJFXyI",
-      "date": "2026-10-20",
-      "views": 132836,
-      "peer": true,
-      "short": true,
       "cat": "市場趨勢"
     },
     {
@@ -636,9 +611,19 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/watch?v=7hLSHozmm68",
       "date": "2026-10-23",
-      "views": 113183,
+      "views": 121776,
       "peer": true,
       "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "【全程字幕】蘇貞昌女兒&quot;4500萬投資案&quot;審計部要查了! 吳子嘉嗆蘇巧慧&quot;小偷家族&quot;毫無羞恥之心! 預言新北結局&quot;輸贏5萬票&quot; @dongsshow",
+      "channel": "中天新聞",
+      "url": "https://www.youtube.com/watch?v=iL1lUxpW1cY",
+      "date": "2026-10-21",
+      "views": 101577,
+      "peer": true,
+      "cat": "綜合"
     },
     {
       "platform": "youtube",
@@ -646,17 +631,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=w0Lfe9TwsJs",
       "date": "2026-10-21",
-      "views": 85127,
-      "peer": true,
-      "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "【大神幫幫忙】股魚重押 ETF feat.股魚",
-      "channel": "財商名人堂",
-      "url": "https://www.youtube.com/watch?v=wmwEr7OJTrU",
-      "date": "2026-10-23",
-      "views": 73449,
+      "views": 85233,
       "peer": true,
       "cat": "綜合"
     },
@@ -666,7 +641,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/whNn6PCCLws",
       "date": "2026-10-24",
-      "views": 65604,
+      "views": 82169,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -677,7 +652,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=e1Q5b32TcW4",
       "date": "2026-10-21",
-      "views": 65020,
+      "views": 67005,
       "peer": true,
       "cat": "主動式"
     },
@@ -687,15 +662,25 @@
       "channel": "知美JiMMY",
       "url": "https://www.youtube.com/watch?v=cH70pqlSaXo",
       "date": "2026-10-22",
-      "views": 59974,
+      "views": 62722,
       "peer": true,
       "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "台股跌深反彈要來了？1000萬買ETF滾成3800萬！0050、00888還是台積電？黃金4000美元保衛戰 20261019-20261023【本週重點回顧 上】",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=lj9RfgFAEuk",
+      "date": "2026-10-25",
+      "views": 50310,
+      "peer": true,
+      "cat": "市值型"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A、台灣菁英50指數（詳下方新聞標籤）",
     "品牌焦點：復華中國 5G 謹慎操作（經濟日報）",
     "社群聲量最高：2027投資策略，艦長開示3類新飆股（0 推）",
-    "YouTube 熱片：AI如何創造未來？00990A掌握全球AI投資機會｜全片由Google Gemini製作｜元大投信 Yuanta Funds（元大投信・857,036 次觀看）"
+    "YouTube 熱片：AI如何創造未來？00990A掌握全球AI投資機會｜全片由Google Gemini製作｜元大投信 Yuanta Funds（元大投信・1,093,330 次觀看）"
   ]
 }
