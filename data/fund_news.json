@@ -1,5 +1,5 @@
 {
-  "as_of": "2026/10/26 06:51",
+  "as_of": "2026/10/26 08:11",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
@@ -327,7 +327,22 @@
       "short_names": [
         "復華"
       ],
-      "items": []
+      "items": [
+        {
+          "title": "復華中國 5G 謹慎操作",
+          "url": "https://money.udn.com/money/story/5618/9835256",
+          "source": "經濟日報",
+          "date": "2026-10-24 23:01",
+          "datetime": "2026-10-24T23:01:10+08:00"
+        },
+        {
+          "title": "主動復華台灣新星 募集期順延至10月27日",
+          "url": "https://udn.com/news/amp/story/7239/9832220",
+          "source": "UDN",
+          "date": "2026-10-22 21:10",
+          "datetime": "2026-10-22T21:10:28+08:00"
+        }
+      ]
     },
     {
       "base": "復華高成長基金",
@@ -555,7 +570,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=lJNdfafhPj8",
       "date": "2026-10-21",
-      "views": 71107
+      "views": 71178
     },
     {
       "platform": "youtube",
@@ -563,16 +578,16 @@
       "channel": "三立財經iNEWS",
       "url": "https://www.youtube.com/shorts/kmKBFUM87z4",
       "date": "2026-10-20",
-      "views": 15684,
+      "views": 15683,
       "short": true
     },
     {
       "platform": "youtube",
-      "title": "都是月配息 ETF 00929 VS 00406A 該選誰？",
-      "channel": "Lydia聊人生",
-      "url": "https://www.youtube.com/watch?v=b56M4D13Oxw",
-      "date": "2026-10-18",
-      "views": 11372
+      "title": "00929月領1萬，要準備多少本金？27張真的能當第二份薪水？",
+      "channel": "等號",
+      "url": "https://www.youtube.com/watch?v=QdI6_9SQ4NE",
+      "date": "2026-10-20",
+      "views": 2663
     },
     {
       "platform": "youtube",
@@ -580,7 +595,7 @@
       "channel": "元大投信",
       "url": "https://www.youtube.com/shorts/BAFCSimIvW0",
       "date": "2026-10-22",
-      "views": 1093330,
+      "views": 1096811,
       "peer": true,
       "short": true,
       "cat": "主動式"
@@ -591,7 +606,7 @@
       "channel": "鈔錢部署–華視優選",
       "url": "https://www.youtube.com/watch?v=Al47SwnDMWo",
       "date": "2026-10-22",
-      "views": 249971,
+      "views": 250168,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -601,7 +616,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=bBb7muEJZwo",
       "date": "2026-10-24",
-      "views": 138268,
+      "views": 138736,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -611,7 +626,7 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/watch?v=7hLSHozmm68",
       "date": "2026-10-23",
-      "views": 121776,
+      "views": 122087,
       "peer": true,
       "cat": "高股息"
     },
@@ -621,7 +636,7 @@
       "channel": "中天新聞",
       "url": "https://www.youtube.com/watch?v=iL1lUxpW1cY",
       "date": "2026-10-21",
-      "views": 101577,
+      "views": 101747,
       "peer": true,
       "cat": "綜合"
     },
@@ -631,7 +646,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=w0Lfe9TwsJs",
       "date": "2026-10-21",
-      "views": 85233,
+      "views": 85238,
       "peer": true,
       "cat": "綜合"
     },
@@ -641,7 +656,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/whNn6PCCLws",
       "date": "2026-10-24",
-      "views": 82169,
+      "views": 82661,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -652,7 +667,7 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=e1Q5b32TcW4",
       "date": "2026-10-21",
-      "views": 67005,
+      "views": 67072,
       "peer": true,
       "cat": "主動式"
     },
@@ -662,7 +677,7 @@
       "channel": "知美JiMMY",
       "url": "https://www.youtube.com/watch?v=cH70pqlSaXo",
       "date": "2026-10-22",
-      "views": 62722,
+      "views": 62779,
       "peer": true,
       "cat": "高股息"
     },
@@ -672,15 +687,15 @@
       "channel": "TVBS財經",
       "url": "https://www.youtube.com/watch?v=lj9RfgFAEuk",
       "date": "2026-10-25",
-      "views": 50310,
+      "views": 51017,
       "peer": true,
       "cat": "市值型"
     }
   ],
   "highlights": [
-    "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A、台灣菁英50指數（詳下方新聞標籤）",
+    "近 7 天有專屬報導的基金／ETF：00929、00998A、00409A、00418A、、台灣菁英50指數（詳下方新聞標籤）",
     "品牌焦點：復華中國 5G 謹慎操作（經濟日報）",
     "社群聲量最高：2027投資策略，艦長開示3類新飆股（0 推）",
-    "YouTube 熱片：AI如何創造未來？00990A掌握全球AI投資機會｜全片由Google Gemini製作｜元大投信 Yuanta Funds（元大投信・1,093,330 次觀看）"
+    "YouTube 熱片：AI如何創造未來？00990A掌握全球AI投資機會｜全片由Google Gemini製作｜元大投信 Yuanta Funds（元大投信・1,096,811 次觀看）"
   ]
 }
