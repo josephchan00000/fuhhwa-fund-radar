@@ -27,7 +27,10 @@ def now_s() -> float:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry", action="store_true", help="只取樣、不寫檔")
+    ap.add_argument("--selftest", action="store_true", help="現在馬上抓兩輪試試（不管時間、休市），印結果、不寫檔")
     a = ap.parse_args()
+    if a.selftest:
+        return selftest()
     d = clock.today_tw()
     if H.is_closed(d) is True:
         P.log(f"{d} 休市，不取樣")
@@ -57,6 +60,28 @@ def main() -> int:
         P.log(f"試跑：{len(doc['s'])} 筆，不寫檔")
         return 0
     P.log("寫檔" if P.save(doc) else "已經有了，不覆寫")
+    return 0
+
+
+def selftest() -> int:
+    """盤後也能跑：現在起兩輪（10 秒），印每個請求回幾檔、台積電的欄位、期交所每一列。"""
+    ds = clock.today_tw().isoformat()
+    mk = store.dates("mkt")
+    t0 = int(now_s()) + 1
+    doc = P.sample(ds, mk[-1], now_s=now_s, sleep=lambda s: time.sleep(max(0.0, s)), start=t0, end=t0 + P.STEP)
+    if not doc:
+        P.log("自我測試：一次都沒抓到")
+        return 1
+    for s in P.decode(doc):
+        P.log(f"{s['k']} 第 {s['b']} 批：{len(s['r'])} 檔，{s['t1'] - s['t0']:.2f} 秒")
+        if s["k"] == "tw" and "2330" in s["r"]:
+            P.log("  2330", s["r"]["2330"])
+        if s["k"] == "tw" and "t00" in s["r"]:
+            P.log("  t00", s["r"]["t00"])
+        if s["k"] == "tf":
+            for sid, v in s["r"].items():
+                P.log("  ", sid, v)
+    P.log(f"自我測試：{doc['n']}")
     return 0
 
 
