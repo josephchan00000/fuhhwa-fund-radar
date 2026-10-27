@@ -23,7 +23,7 @@ import sys
 import time
 import urllib.request
 import zipfile
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -64,7 +64,7 @@ def post_json(url: str, body: dict, timeout: int = 30) -> tuple[bytes | None, fl
 
 
 def tw_now() -> datetime:
-    return datetime.utcnow() + timedelta(hours=8)
+    return datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)
 
 
 # ── 期交所：近 30 個交易日每筆成交 ──────────────────────────────────────────
@@ -312,27 +312,74 @@ def mis_taifex(show: bool = True) -> list[dict]:
     return arr
 
 
-def pre_loop(until: str = "09:02:00", max_min: float = 40) -> None:
+TOP = ("2330 2317 2454 2308 2382 2412 2881 2882 3711 2891 2303 1216 2886 2357 2884 3231 2885 2892 "
+       "2603 6669 2345 3008 2207 2002 1301 1303 2880 5880 2887 3045 4904 2890 2379 3034 2395 6505 "
+       "1101 2912 2327 3017").split()
+
+
+def mis_batch(syms: list[str]) -> tuple[list[dict], float]:
+    ex = "|".join(f"tse_{c}.tw" for c in syms)
+    url = f"https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch={ex}&json=1&delay=0&_={int(time.time() * 1000)}"
+    b, dt, st = get(url, timeout=20)
+    if b is None:
+        p(f"  批次 {len(syms)} 檔 ✗ {st}（{dt:.1f}s）")
+        return [], dt
+    try:
+        return json.loads(b.decode("utf-8")).get("msgArray") or [], dt
+    except Exception:                                         # noqa: BLE001
+        p(f"  批次不是 JSON：{b[:200]!r}")
+        return [], dt
+
+
+def _stk(m: dict) -> str:
+    a = str(m.get("a", "")).split("_")[0]
+    b = str(m.get("b", "")).split("_")[0]
+    return (f"{m.get('c')} z={m.get('z')} pz={m.get('pz')} y={m.get('y')} o={m.get('o')} a1={a} b1={b} "
+            f"ts={m.get('ts')} ip={m.get('ip')} it={m.get('it')} t={m.get('t')} %={m.get('%')} oa={m.get('oa')} ob={m.get('ob')} ot={m.get('ot')}")
+
+
+def _tfx(m: dict) -> str:
+    return (f"{m.get('SymbolID')} last={m.get('CLastPrice')} t={m.get('CTime')} test={m.get('CTestPrice')}@{m.get('CTestTime')} "
+            f"bid={m.get('CBidPrice1')} ask={m.get('CAskPrice1')} open={m.get('COpenPrice')} ref={m.get('CRefPrice')} st={m.get('Status')}")
+
+
+DUMP_AT = ("08:31:00", "08:45:00", "08:55:00", "08:59:00", "08:59:30", "08:59:55", "09:00:10")
+
+
+def pre_loop(start: str = "08:29:30", until: str = "09:02:00", max_min: float = 40) -> None:
     """盤前每 5 秒抓一次：看試撮時段 MIS 給什麼（加權指數、權值股、台指期）。"""
+    now = tw_now()
+    tgt = now.replace(hour=int(start[:2]), minute=int(start[3:5]), second=int(start[6:8]), microsecond=0)
+    wait = (tgt - now).total_seconds()
+    if 0 < wait < 3 * 3600:
+        p(f"等到 {start}（{wait / 60:.1f} 分鐘）")
+        time.sleep(wait)
     t_end = time.time() + max_min * 60
-    first = True
+    first, done = True, set()
     while time.time() < t_end:
         now = tw_now()
-        if now.strftime("%H:%M:%S") >= until:
+        hms = now.strftime("%H:%M:%S")
+        if hms >= until:
             break
         tw = mis_twse(show=first)
         tf = mis_taifex(show=first)
         first = False
-        parts = [now.strftime("%H:%M:%S")]
-        for m in tw:
-            parts.append(f"{m.get('c')}:z={m.get('z')} pz={m.get('pz')} y={m.get('y')} o={m.get('o')} "
-                         f"ts={m.get('ts')} ip={m.get('ip')} t={m.get('t')} "
-                         f"a={str(m.get('a', ''))[:16]} b={str(m.get('b', ''))[:16]}")
-        for m in tf[:2]:
-            parts.append(f"{m.get('SymbolID')}:last={m.get('CLastPrice')} bid={m.get('CBidPrice1')} "
-                         f"ask={m.get('CAskPrice1')} t={m.get('CTime')} ref={m.get('CRefPrice')} "
-                         f"open={m.get('COpenPrice')} st={m.get('Status') or m.get('CStatus')}")
-        p(" | ".join(parts))
+        line = [hms] + [_stk(m) if m.get("c") not in ("t00", "o00") else
+                        f"{m.get('c')} z={m.get('z')} o={m.get('o')} y={m.get('y')} t={m.get('t')} %={m.get('%')} h={m.get('h')} l={m.get('l')}"
+                        for m in tw] + [_tfx(m) for m in tf[:2]]
+        p(" | ".join(line))
+        due = [x for x in DUMP_AT if x <= hms and x not in done]
+        if due:
+            done.update(due)
+            arr, dt = mis_batch(TOP)
+            p(f"  {hms} 權值股 {len(arr)}／{len(TOP)} 檔（{dt:.2f}s）")
+            for m in arr:
+                p("   ", _stk(m))
+            if hms >= "08:59:00" and hms < "08:59:05":
+                for m in tw[:2]:
+                    p("    全文", json.dumps(m, ensure_ascii=False))
+                for m in tf[:2]:
+                    p("    全文", json.dumps(m, ensure_ascii=False))
         time.sleep(max(0.5, 5 - (time.time() % 5)))
 
 
@@ -364,12 +411,13 @@ def finmind() -> None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--pre", action="store_true")
+    ap.add_argument("--start", default="08:29:30")
     ap.add_argument("--until", default="09:02:00")
     ap.add_argument("--max-min", type=float, default=40)
     a = ap.parse_args()
     p(f"開始 台北 {tw_now():%F %T}")
     if a.pre:
-        pre_loop(a.until, a.max_min)
+        pre_loop(a.start, a.until, a.max_min)
         return
     ds = tick_dates()
     if ds:
