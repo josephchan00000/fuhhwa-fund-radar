@@ -140,6 +140,17 @@ jobs:
               echo "還沒做完：再派一輪"
               gh workflow run lab_backfill.yml --ref "${{ github.ref_name }}" -f mode=ussxfill || echo "::warning::再派失敗，請手動派 mode=ussxfill"
             fi
+          elif [ "${MODE#futmis}" != "$MODE" ]; then
+            timeout 300 python3 scripts/probe_fut.py --mis-sizes
+          elif [ "${MODE#futpre}" != "$MODE" ]; then
+            # 台指期早盤策略（docs/lab_fut_plan.md）：盤前試撮時段每 5 秒抓一次即時報價，到台北 09:02；只印不寫
+            timeout 3300 python3 scripts/probe_fut.py --pre --max-min 50
+          elif [ "${MODE#futfill}" != "$MODE" ]; then
+            # 台指期早盤策略的資料（docs/lab_fut_plan.md）：期交所清單上現在拿得到的日子（最近 30 個交易日）一次補完＋證交所 5 秒指數
+            TZ=Asia/Taipei timeout 1500 python3 scripts/fetch_fut.py --budget 1200
+          elif [ "${MODE#futprobe}" != "$MODE" ]; then
+            # 台指期早盤策略的資料探針：期交所近 30 天每筆成交、每日行情、證交所 5 秒指數、即時報價、FinMind；只印不寫
+            timeout 1500 python3 scripts/probe_fut.py
           elif [ "${MODE#secprobe}" != "$MODE" ]; then
             # 美股財報「一次性利得／損失」項目的探針（美股三成營益率的研究，2026-10-24）：只印不寫
             timeout 1800 python3 scripts/probe_secgain.py
