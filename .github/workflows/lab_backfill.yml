@@ -140,6 +140,8 @@ jobs:
               echo "還沒做完：再派一輪"
               gh workflow run lab_backfill.yml --ref "${{ github.ref_name }}" -f mode=ussxfill || echo "::warning::再派失敗，請手動派 mode=ussxfill"
             fi
+          elif [ "${MODE#futself}" != "$MODE" ]; then
+            timeout 120 python3 scripts/fut_preopen.py --selftest
           elif [ "${MODE#futmis}" != "$MODE" ]; then
             timeout 300 python3 scripts/probe_fut.py --mis-sizes
           elif [ "${MODE#futpre}" != "$MODE" ]; then

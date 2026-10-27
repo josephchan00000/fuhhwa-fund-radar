@@ -15,6 +15,7 @@ def _no_real_candidates(monkeypatch):
     候選列另在 test_candpage、test_futpage 測。"""
     monkeypatch.setattr(BD, "cand_rows", lambda: [])
     monkeypatch.setattr(BD, "fut_rows", lambda: [])
+    monkeypatch.setattr(BD, "rare_rows", lambda: [])
 
 
 def _adv():

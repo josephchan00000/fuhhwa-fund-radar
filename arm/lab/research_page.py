@@ -8,6 +8,7 @@
 - 訊號（原本訊號總覽的研究結論、完整研究表、全部指標、名詞與判定方式）與泡沫（原本泡沫頁的全部內容）直接放在這頁（第 2 段）。
 - 策略候選（第 5 段，docs 第 24 節）：每一條候選一張卡（candpage.research_body），配置頁策略表的候選列點名稱連到這裡（#cand-編號）。
 - 台指期早盤（股票期貨人生，docs/lab_fut_plan.md 第 6 節）：futpage.research_body；配置頁策略表那一列點名稱連到這裡（#fut）。
+- 少見但勝率高的策略（docs/lab_rare_plan.md）：rarepage.research_body；配置頁策略表那九列點名稱連到這裡（#rare-規則）。
 用字不受主頁面的規則限制（第 8 節：讀這頁的人是要查證的人）。輸出決定性（沒有時戳），內容沒變不改寫。
 """
 from __future__ import annotations
@@ -35,6 +36,8 @@ GROUPS = (
         ("後台・每日更新時程", "x9.html?v=bo&at=bo-sched", "每一班自動更新做什麼、幾點"),
     )),
     ("cand", "策略候選", "配置頁策略表「候選」那幾列的細節：每一條的來源、規則、回測、放進交易計畫的試算、試用紀錄與你的決定。", ()),
+    ("rare", "少見但勝率高的策略", "配置頁策略表「觀察中」那九條（期中選舉、聖誕老人行情、封關前一週…）的細節：原說法與出處、規則、"
+     "五個市場的成績、來源發表之後與更早期間的成績、每一次的清單、現在。", ()),
     ("fut", "台指期早盤（股票期貨人生）", "配置頁策略表「台指期早盤」那一列的細節：規則、台指期逐筆存了幾天、最好情況（偷看版）的成績與每一筆、"
      "期貨之後有沒有往落差的方向走、每天的落差、開盤前取樣。", ()),
     ("mkt", "景氣", "台股、美股景氣（市場頁）的研究畫面：資料都在市場頁，打開後最上面一列可以在三個研究畫面之間切換、回到市場頁。", (
@@ -104,6 +107,16 @@ def cand_body() -> str:
         return '<p class="rnote">策略候選讀不到。</p>'
 
 
+def rare_body() -> str:
+    """少見但勝率高的策略（rarepage.research_body）；讀不到只寫一句。"""
+    try:
+        from . import rarepage as RPG
+        return RPG.research_body()
+    except Exception as e:                               # noqa: BLE001
+        print(f"[研究紀錄] 少見策略讀不到：{type(e).__name__}: {e}")
+        return '<p class="rnote">少見但勝率高的策略讀不到。</p>'
+
+
 def fut_body() -> str:
     """台指期早盤（futpage.research_body）；讀不到只寫一句。"""
     try:
@@ -126,8 +139,9 @@ def render(SV: dict | None = None, BV: dict | None = None) -> str:
     has_sig = bool(SV.get("rows"))
     from . import candpage as CP
     from . import futpage as FPG
-    host = {"sig": SPG.research_body(SV), "bub": BPG.research_body(BV), "cand": cand_body(), "fut": fut_body()}
-    css = HCSS + appnav.CSS + SPG.research_css() + BPG.research_css() + CP.CSS + FPG.CSS + CSS
+    from . import rarepage as RPG
+    host = {"sig": SPG.research_body(SV), "bub": BPG.research_body(BV), "cand": cand_body(), "rare": rare_body(), "fut": fut_body()}
+    css = HCSS + appnav.CSS + SPG.research_css() + BPG.research_css() + CP.CSS + RPG.CSS + FPG.CSS + CSS
     js = (SPG.JS if has_sig else "") + BPG.JS + IP.JS + OPEN_JS
     return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("r")).replace("{{CSS}}", css)
                          .replace("{{BODY}}", body(host)).replace("{{PANEL}}", SPG.PANEL if has_sig else "")

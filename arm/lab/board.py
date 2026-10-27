@@ -2,7 +2,8 @@
 
 使用者 2026-10-23：「妳可以有專門一個區是把所有的策略列過去，可以專門去看總策略的狀況」「沒用的策略那些全部拿掉毫無意義」。
 - 使用中＝在配置裡（交易計畫本身、台股機動的新飆股與 ★ 個股策略、美股機動的強勢品質股）。
-- 觀察中＝回測過、沒有放進配置（個股策略 ●、總經策略 ★／●、期貨加碼、紙上記錄中的飆股）；要用的話在對話裡說「納入」。
+- 觀察中＝回測過、沒有放進配置（個股策略 ●、總經策略 ★／●、期貨加碼、紙上記錄中的飆股、少見但勝率高的九條
+  ——rarepage.board_rows，docs/lab_rare_plan.md）；要用的話在對話裡說「納入」。
 - 候選＝每週新找、先寫規則再回測的（docs 第 6、24 節；candpage.board_rows，決定之後換到觀察中或淘汰），
   與還在記錄、還沒判定的（台指期早盤，futpage.board_rows；docs/lab_fut_plan.md 第 6 節）。
 - 淘汰＝試過沒有用的，一列一句原因，讓人知道試過什麼、不重複。
@@ -294,6 +295,16 @@ def fut_rows() -> list[dict]:
         return []
 
 
+def rare_rows() -> list[dict]:
+    """少見但勝率高的策略（rarepage.board_rows；docs/lab_rare_plan.md）：九條都是觀察中。讀不到就不列。"""
+    try:
+        from . import rarepage
+        return rarepage.board_rows()
+    except Exception as e:                               # noqa: BLE001 —— 讀不到不影響其他列
+        print(f"[策略] 少見策略讀不到：{type(e).__name__}: {e}")
+        return []
+
+
 def conf_rows(C: dict) -> list[dict]:
     out = []
     for r in C.get("rows") or []:
@@ -312,7 +323,7 @@ def build(data: dict | None, bundle: dict | None, conf: dict | None = None) -> d
     data = data or {}
     C = conf if conf is not None else load_conf()
     rows = plan_rows(bundle) + boom_rows(bundle) + stk_rows(data.get("adv"), (bundle or {}).get("stk")) + qm_rows(bundle) \
-        + tilt_rows() + mac_rows(data.get("mac")) + cand_rows() + fut_rows() + conf_rows(C)
+        + tilt_rows() + mac_rows(data.get("mac")) + rare_rows() + cand_rows() + fut_rows() + conf_rows(C)
     ov = C.get("override") or {}
     for r in rows:
         if r["id"] in ov and ov[r["id"]] in STATUS:
