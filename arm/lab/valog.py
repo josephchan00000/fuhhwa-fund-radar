@@ -22,6 +22,8 @@
          每週紀錄停在比該有的還早的一週（美股週五收盤＋36 小時以後算該有）、第一次滿 63／126／252 個交易日的檢討、
          每週重跑和之前的紀錄不一樣（多一筆差異時）。另外推播多一行：美股下一個交易日開盤要賣、要買的股票（每天的 50 日線檢查＋每週紀錄）。
 台股機動的新飆股（corespec VER 4；飆股前瞻記錄的 R60 那本帳）：推播多一行，下一個交易日開盤要賣、要買的股票（不是事件）。
+少見但勝率高的策略（docs/lab_rare_plan.md 第 8 節；rarepage.reminders）：建議試用的規則在主要市場接下來 2 個交易日內要買或賣，
+  推播多一行「少見機會：11/3（二）收盤 S&P 500 買進（期中選舉後抱一年，抱到 2027/11/2）。」（不是事件）。
 新策略候選（docs/lab_ia_v5_plan.md 第 24 節）：第一次有結果的候選推播多一行「策略候選：新增 X（市場），過去成績…；回『試用／納入／不納入』」；
   還沒決定的第一次到 candspec.MAX_OPEN 條時同一行提醒「週報先停」。
 """
@@ -262,7 +264,8 @@ def uqm_state(now: datetime) -> dict | None:
         W = {}
     last = W.get("d") or n["d"]
     td = [[x["on"], "賣", x["c"]] for x in W.get("sell") or [] if x.get("on") and x["on"] > last]
-    td += [[n["next"], "賣", c] for c in n.get("sell") or []] + [[n["next"], "買", c] for c in n.get("buy") or []]
+    if n.get("next") and n["next"] > last:               # 每週紀錄的下週一開盤：每天的檢查已經到那一天（美股已收盤）就是做過了，不再提
+        td += [[n["next"], "賣", c] for c in n.get("sell") or []] + [[n["next"], "買", c] for c in n.get("buy") or []]
     rv = {str(x["k"]): {"d": x["d"], "ex": round(x["ex"], 4), "pct": None if x.get("pct") is None else round(x["pct"], 3),
                         "low": bool(x.get("low"))} for x in QM.review_now(L, R) if x.get("d")}
     exp = _us_week_end(now)
@@ -359,6 +362,18 @@ def cand_line(cur: dict | None) -> str | None:
     return out + "。"
 
 
+def rare_state() -> dict | None:
+    """少見但勝率高的策略：建議試用的規則接下來幾個交易日內要買或賣的（rarepage.reminders）。沒有＝None。"""
+    from . import rarepage as RP
+    td = RP.reminders()
+    return {"td": td} if td else None
+
+
+def rare_line(cur: dict | None) -> str | None:
+    from . import rarepage as RP
+    return RP.remind_line((cur or {}).get("td") or [])
+
+
 def push_lines(rec: dict) -> list[str]:
     """06:35 推播多帶的兩行：那一天開盤（與收盤）要做的事；有驗證事件才加第二行。"""
     T = rec.get("todo") or {}
@@ -384,6 +399,9 @@ def push_lines(rec: dict) -> list[str]:
     u = uqm_line(rec.get("uqm"))
     if u:
         out.append(u)
+    r = rare_line(rec.get("rare"))
+    if r:
+        out.append(r)
     c = cand_line(rec.get("cand"))
     if c:
         out.append(c)
@@ -456,6 +474,12 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
         if uq:
             rec["uqm"] = uq
             rec["ev"] += uqm_events(uq, (days.get(prev_d) or {}).get("uqm") if prev_d else None)
+    except Exception:                                     # noqa: BLE001 —— 讀不到：不發提醒
+        pass
+    try:                                                  # 少見但勝率高的策略（接下來 2 個交易日要買或賣的推播一行）
+        rs = rare_state()
+        if rs:
+            rec["rare"] = rs
     except Exception:                                     # noqa: BLE001 —— 讀不到：不發提醒
         pass
     try:                                                  # 新策略候選（第一次有結果的推播一行）

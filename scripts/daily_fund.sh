@@ -56,8 +56,11 @@ TZ=Asia/Taipei python3 scripts/check_new_etfs.py || true         # 同上：缺�
 
 echo "[3.7/4] 籌碼雷達落檔（ETF 部位＋官方個股價量／籌碼，只補缺）…"
 TZ=Asia/Taipei timeout 300 python3 scripts/fetch_lab.py || true   # 不擋發佈：抓不到沿用既有分片
+TZ=Asia/Taipei timeout 300 python3 scripts/fetch_fut.py --budget 240 || true  # 台指期逐筆（期交所只留 30 個交易日；docs/lab_fut_plan.md）：只增不改
+TZ=Asia/Taipei timeout 120 python3 scripts/run_fut.py || true  # 台指期早盤策略研究重算（只讀已存的逐筆、幾秒）
 TZ=Asia/Taipei timeout 420 python3 scripts/fetch_heat.py || true  # 景氣溫度頁（docs/lab_heat_plan.md）：抓不到沿用既有落檔
 TZ=Asia/Taipei timeout 420 python3 scripts/fetch_heat_us.py || true  # 美股景氣頁（docs/lab_heat_us_plan.md）：一天抓一次、抓不到沿用
+TZ=Asia/Taipei timeout 120 python3 scripts/run_rare.py || true  # 少見但勝率高的策略（docs/lab_rare_plan.md）：成績重算（約 1 秒；新的一次走完才會變）
 TZ=Asia/Taipei timeout 300 python3 scripts/fetch_ussx_watch.py || true  # 美股三成：持股跌破 50 日線的提醒（docs/lab_us_sleeve_plan.md 第 13.3 節；最多 8 檔）＋美股個股卡的資料（docs/lab_cfg_v2_plan.md 第 4 節）
 
 echo "[4/4] 產儀表板（今日重點 + 新聞 + 總經政策 + 總覽 + 持股介紹）→ dashboard/index.html …"

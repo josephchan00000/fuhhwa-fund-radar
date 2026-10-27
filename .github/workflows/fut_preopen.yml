@@ -1,0 +1,57 @@
+name: 台指期早盤 盤前取樣
+
+# 2026-10-27 建立（docs/lab_fut_plan.md 第 4.4、10 節；使用者決定「GitHub 排程多排幾班」）：
+#   開盤前的試撮價只有即時的、沒有歷史檔，所以每個交易日自己存：08:58:00～09:00:15 每 5 秒抓一次
+#   證交所 MIS（前 150 大權值股＋加權指數，一輪兩個請求）、期交所 MIS（台指期），存 data/lab/fut/pre/{日期}.json.gz → commit 進 main。
+#   GitHub 排程常常遲到 1～3 小時、偶爾整班消失，所以凌晨排三班：最早開跑的那班等到 08:58 開始抓；
+#   後面的班在同一個 concurrency 群組排隊，等前一班結束才開始，看到今天已經存了就直接結束。
+#   不重建頁面、不部署（下一班 afterhours 重算研究時自然讀到）。休市日（證交所官方休市表）幾秒就結束。
+
+on:
+  schedule:
+    - cron: "31 20 * * 0-4"    # 台北週一～五 04:31
+    - cron: "3 22 * * 0-4"     # 台北 06:03
+    - cron: "17 23 * * 0-4"    # 台北 07:17
+  workflow_dispatch:
+
+concurrency:
+  group: fut-preopen
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  pre:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安裝相依（certifi）
+        run: pip install --quiet certifi
+
+      - name: 等到 08:58、每 5 秒取樣到 09:00:15（交易日才做；已經存了或太晚就直接結束）
+        run: timeout 19500 python3 scripts/fut_preopen.py
+
+      - name: commit 取樣（進 main）
+        run: |
+          git config user.name "josephchan00000"
+          git config user.email "51159474+josephchan00000@users.noreply.github.com"
+          git add -f data/lab/fut/pre 2>/dev/null || true
+          git commit -q -m "chore: 台指期盤前取樣 $(date +%F)" || { echo "無變更"; exit 0; }
+          for i in 1 2 3 4 5; do
+            git push origin HEAD:main && exit 0
+            echo "push 被拒（第 $i 次），rebase 後重試…"
+            git pull --rebase -X theirs origin main || git rebase --abort || true
+            sleep 5
+          done
+          echo "::error::push 連續失敗——今天的盤前取樣沒進 main"; exit 1
