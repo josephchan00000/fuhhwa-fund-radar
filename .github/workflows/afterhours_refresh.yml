@@ -103,6 +103,9 @@ jobs:
       - name: 台指期逐筆（期交所只留最近 30 個交易日，每天存一檔、只增不改）＋證交所 5 秒指數（docs/lab_fut_plan.md，失敗不擋）
         run: TZ=Asia/Taipei timeout 300 python3 scripts/fetch_fut.py --budget 240 || echo "  ⚠ 台指期逐筆抓取失敗，下一班再補（30 天內都補得到）"
 
+      - name: 台指期早盤策略研究重算（只讀已存的逐筆、不發請求，幾秒；docs/lab_fut_plan.md，失敗不擋）
+        run: TZ=Asia/Taipei timeout 120 python3 scripts/run_fut.py || echo "  ⚠ 台指期早盤研究重算失敗，沿用既有結果"
+
       - name: 法人預估（鉅亨 FactSet 快訊補到現在＋Yahoo 分析師一天一次；docs/lab_forward_plan.md，失敗不擋）
         run: timeout 420 python3 scripts/fetch_fcst.py || echo "  ⚠ 法人預估抓取失敗，沿用既有落檔"
 

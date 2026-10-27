@@ -6,7 +6,8 @@
 
 E 是正的：現貨估得比期貨強，做多期貨；負的做空。
 
-估算的開盤指數：偷看版＝真正的 09:00:05 開盤指數（證交所每 5 秒指數）；即時版＝盤前試撮估算（之後每天記錄）。
+估算的開盤水準：偷看版＝每檔上市普通股今天真正的開盤價、照前一天的市值比重換算（open_full；不是證交所 09:00:05 的
+「開盤指數」，那時很多股票還沒開出來）；即時版＝盤前試撮估算（futspec VER 2）。
 契約：當天的近月；結算日（每月第三個星期三，遇休市順延）改用下個月。
 """
 from __future__ import annotations
@@ -80,7 +81,7 @@ def div_points(d: str, dprev: str, i_prev: float) -> tuple[float, list]:
 
 
 def day_inputs(d: str, dprev: str) -> dict | None:
-    """一天的訊號材料（偷看版）：契約、決定時間要用的逐筆、前一天的價差、除權息點數、開盤指數。缺任何一樣回 None。"""
+    """一天的訊號材料：契約、當天的逐筆、前一天的價差、除權息點數（i_open＝證交所 09:00:05 指數，只當參考）。缺任何一樣回 None。"""
     T, Tp = F.load_day(d), F.load_day(dprev)
     I, Ip = F.load_idx(d), F.load_idx(dprev)
     if not (T and Tp and I and Ip):
@@ -99,6 +100,26 @@ def day_inputs(d: str, dprev: str) -> dict | None:
     dv, top = div_points(d, dprev, i_close)
     return {"d": d, "dprev": dprev, "c": c, "ticks": T[c], "f1330": f1330, "i_close": i_close,
             "basis": f1330 - i_close, "div": dv, "div_top": top, "i_open": I[1]}
+
+
+def open_full(d: str, dprev: str, i_prev: float, cover_min: float) -> float | None:
+    """偷看版的開盤水準：每檔上市普通股今天的開盤價，照前一天的市值比重換算（前一天收盤指數 × Σ 比重 × 開盤價／前一天收盤）。
+    開盤價找得到的比重合計不到 cover_min 回 None。除權息股開盤價本來就是除息後的價格，所以除息讓指數少掉的點數已經在裡面。"""
+    q = (store.read("mkt", d) or {}).get("q_tw") or {}
+    qp = (store.read("mkt", dprev) or {}).get("q_tw") or {}
+    if not q or not qp:
+        return None
+    w = weights(dprev)
+    num = cov = 0.0
+    for c, wi in w.items():
+        o = (q.get(c) or [None])[0]
+        cp = (qp.get(c) or [None] * 4)[3]
+        if o and cp:
+            num += wi * o / cp
+            cov += wi
+    if cov < cover_min:
+        return None
+    return i_prev * num / cov
 
 
 def edge(inp: dict, f_now: float, i_est: float) -> float:
