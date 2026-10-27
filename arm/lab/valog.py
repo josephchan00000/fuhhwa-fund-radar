@@ -264,7 +264,8 @@ def uqm_state(now: datetime) -> dict | None:
         W = {}
     last = W.get("d") or n["d"]
     td = [[x["on"], "賣", x["c"]] for x in W.get("sell") or [] if x.get("on") and x["on"] > last]
-    td += [[n["next"], "賣", c] for c in n.get("sell") or []] + [[n["next"], "買", c] for c in n.get("buy") or []]
+    if n.get("next") and n["next"] > last:               # 每週紀錄的下週一開盤：每天的檢查已經到那一天（美股已收盤）就是做過了，不再提
+        td += [[n["next"], "賣", c] for c in n.get("sell") or []] + [[n["next"], "買", c] for c in n.get("buy") or []]
     rv = {str(x["k"]): {"d": x["d"], "ex": round(x["ex"], 4), "pct": None if x.get("pct") is None else round(x["pct"], 3),
                         "low": bool(x.get("low"))} for x in QM.review_now(L, R) if x.get("d")}
     exp = _us_week_end(now)

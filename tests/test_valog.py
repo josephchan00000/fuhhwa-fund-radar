@@ -228,6 +228,31 @@ def test_valog_us_sleeve_state_reads_watch_and_record(monkeypatch, tmp_path):
     assert valog.uqm_state(datetime(2026, 10, 24, 6, 35)) is None
 
 
+def test_valog_us_sleeve_drops_weekly_actions_already_done(monkeypatch, tmp_path):
+    """每週紀錄的下週一開盤買賣：每天的檢查到了那一天（美股已收盤）就不再推播。
+    2026-10-27 那一版寫成「美股三成：10/26（一）開盤買 PAYC」——10/26 已經過了，會一直掛到週六新的一週。"""
+    from arm.lab import ussxqm as QM
+    from arm.lab import ussxspec as X
+    R = json.loads(json.dumps(QM.load()))
+    R["switch"] = {"spx": True, "ndx": True}
+    monkeypatch.setattr(QM, "load", lambda path=None: R)
+    L = {"now": {"d": "2026-10-23", "next": "2026-10-26", "buy": ["PAYC"], "sell": ["INSW"], "hold": []}}
+    monkeypatch.setattr(QM, "load_live", lambda path=None: L)
+    monkeypatch.setattr(QM, "review_now", lambda L, R: [])
+    monkeypatch.setattr(QM, "WATCH", tmp_path / "w.json")
+
+    def td(wd, sell=()):
+        W = {"ver": X.VER, "base": "2026-10-23", "d": wd, "hold": [], "sell": list(sell)}
+        (tmp_path / "w.json").write_text(json.dumps(W), encoding="utf-8")
+        return valog.uqm_state(datetime(2026, 10, 27, 6, 35))["td"]
+
+    assert td("2026-10-23") == [["2026-10-26", "買", "PAYC"], ["2026-10-26", "賣", "INSW"]]   # 週一還沒開盤：照提
+    assert td("2026-10-26") == []                                                        # 週一已收盤：做過了
+    assert td("2026-10-26", [{"c": "PAYC", "trig": "2026-10-26", "on": "2026-10-27"}]) == [["2026-10-27", "賣", "PAYC"]]
+    (tmp_path / "w.json").unlink()                                                       # 沒有每天的檢查：照每週紀錄提
+    assert valog.uqm_state(datetime(2026, 10, 27, 6, 35))["td"] == [["2026-10-26", "買", "PAYC"], ["2026-10-26", "賣", "INSW"]]
+
+
 def test_valog_boom_line_for_tw_sleeve():
     """台股機動的新飆股（corespec VER 4）：推播多一行，下一個交易日開盤要賣、要買的股票（錢不夠的不列）；
     機動放現金中，買的先不買；排在台股第一行之後、美股那一行之前。"""
