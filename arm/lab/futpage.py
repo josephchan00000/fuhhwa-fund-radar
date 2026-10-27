@@ -1,6 +1,6 @@
 """台指期早盤策略（股票期貨人生）的頁面（docs/lab_fut_plan.md 第 6 節；資料 arm/lab/futres.py、futpre.py）。
 
-  board_rows()     配置頁・策略表「候選」一列：名稱連到研究紀錄頁、一句規則、今天＝記錄了幾天（滿 60 天看結果）
+  board_rows()     配置頁・策略表「候選」一列：名稱連到研究紀錄頁、一句規則、今天＝開盤前取樣了幾天（滿 60 天看結果）
   research_body()  研究紀錄頁「台指期早盤」一段：狀態、規則、最好情況（偷看版）的成績與每一筆（可下載）、
                    期貨之後有沒有往 E 的方向走、每天的落差、開盤前取樣
 配置頁照主頁面的用字（docs/lab_ia_v5_plan.md 第 8 節）；研究紀錄頁不受限。版面借用 candpage 的 cd* 樣式（研究紀錄頁已載入）。
@@ -60,9 +60,8 @@ def board_rows(B: dict | None = None) -> list[dict]:
     B = B or load()
     R, pre = B["R"], B["pre"]
     n_la = ((R.get("lookahead") or {}).get("n_days")) or 0
-    today = (f"記錄中・開盤前取樣 {len(pre)} 天（滿 {P.JUDGE['days']} 天看結果）" if pre
-             else "記錄中・開盤前取樣還沒開始")
-    sub = f"台指期每一筆成交已存 {n_la} 天" if n_la else ""
+    today = f"記錄中・取樣 {len(pre)} 天" if pre else "記錄中・還沒開始取樣"
+    sub = (f"台指期每一筆成交已存 {n_la} 天；" if n_la else "") + f"開盤前取樣滿 {P.JUDGE['days']} 天看結果"
     return [{"id": "tw:fut", "name": "台指期早盤（股票期貨人生）", "mk": "台股", "mkk": "tw", "type": "指數型", "st": "cand",
              "how": "開盤前用權值股的試撮估算現貨開在哪，跟台指期比；差得多就順著做多或做空一口台指期，等期貨追上",
              "href": "x9r.html#fut", "go": {}, "today": today, "sub": sub}]

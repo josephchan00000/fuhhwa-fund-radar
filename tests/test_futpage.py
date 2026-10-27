@@ -41,8 +41,8 @@ def test_board_row_is_candidate_in_plain_words():
     r = FPG.board_rows(_B())[0]
     assert r["id"] == "tw:fut" and r["st"] == "cand" and r["type"] in BD.TYPES and r["mkk"] == "tw"
     assert r["href"] == "x9r.html#fut"
-    assert r["today"] == "記錄中・開盤前取樣還沒開始" and r["sub"] == "台指期每一筆成交已存 2 天"
-    assert FPG.board_rows(_B(pre=["2026-10-28"]))[0]["today"] == "記錄中・開盤前取樣 1 天（滿 60 天看結果）"
+    assert r["today"] == "記錄中・還沒開始取樣" and r["sub"] == "台指期每一筆成交已存 2 天；開盤前取樣滿 60 天看結果"
+    assert FPG.board_rows(_B(pre=["2026-10-28"]))[0]["today"] == "記錄中・取樣 1 天"
     txt = " ".join(str(v) for v in r.values())
     assert not [w for w in NOT_PLAIN + BANNED if w in txt]
 
