@@ -383,6 +383,31 @@ def pre_loop(start: str = "08:29:30", until: str = "09:02:00", max_min: float = 
         time.sleep(max(0.5, 5 - (time.time() % 5)))
 
 
+def mis_sizes() -> None:
+    """證交所 MIS 一次查幾檔回得來（50／100／150／200 檔，依前一天市值比重排；每次間隔 6 秒，避免太頻繁被擋）；
+    印回來的檔數、網址長度、一檔的全部欄位；期交所 MIS 台指期每一列的代號與欄位。"""
+    from arm.lab import futsig as G
+    from arm.lab import store
+    ds = store.dates("mkt")
+    w = G.weights(ds[-1]) if ds else {}
+    top = [c for c, _ in sorted(w.items(), key=lambda kv: -kv[1])]
+    p(f"比重表 {ds[-1] if ds else None}：{len(top)} 檔")
+    for n in (50, 100, 150, 200):
+        syms = top[:n]
+        ex = "|".join(f"tse_{c}.tw" for c in syms)
+        url = f"https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch={ex}&json=1&delay=0&_={int(time.time() * 1000)}"
+        arr, dt = mis_batch(syms)
+        got = {m.get("c") for m in arr}
+        p(f"  {n} 檔：回 {len(arr)} 檔（{dt:.2f}s），網址 {len(url)} 字，缺 {[c for c in syms if c not in got][:8]}")
+        if n == 50 and arr:
+            p("   一檔全文", json.dumps(arr[0], ensure_ascii=False))
+        time.sleep(6)
+    tf = mis_taifex(show=False)
+    p(f"期交所 MIS 台指期 {len(tf)} 列：{[m.get('SymbolID') for m in tf]}")
+    if tf:
+        p("   一列全文", json.dumps(tf[0], ensure_ascii=False))
+
+
 # ── FinMind ───────────────────────────────────────────────────────────────
 
 def finmind() -> None:
@@ -414,8 +439,12 @@ def main() -> None:
     ap.add_argument("--start", default="08:29:30")
     ap.add_argument("--until", default="09:02:00")
     ap.add_argument("--max-min", type=float, default=40)
+    ap.add_argument("--mis-sizes", action="store_true", help="只測證交所 MIS 一次查幾檔回得來")
     a = ap.parse_args()
     p(f"開始 台北 {tw_now():%F %T}")
+    if a.mis_sizes:
+        mis_sizes()
+        return
     if a.pre:
         pre_loop(a.start, a.until, a.max_min)
         return
