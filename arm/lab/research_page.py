@@ -7,6 +7,7 @@
   這頁只列入口（第 2 段）。
 - 訊號（原本訊號總覽的研究結論、完整研究表、全部指標、名詞與判定方式）與泡沫（原本泡沫頁的全部內容）直接放在這頁（第 2 段）。
 - 策略候選（第 5 段，docs 第 24 節）：每一條候選一張卡（candpage.research_body），配置頁策略表的候選列點名稱連到這裡（#cand-編號）。
+- 台指期早盤（股票期貨人生，docs/lab_fut_plan.md 第 6 節）：futpage.research_body；配置頁策略表那一列點名稱連到這裡（#fut）。
 用字不受主頁面的規則限制（第 8 節：讀這頁的人是要查證的人）。輸出決定性（沒有時戳），內容沒變不改寫。
 """
 from __future__ import annotations
@@ -34,6 +35,8 @@ GROUPS = (
         ("後台・每日更新時程", "x9.html?v=bo&at=bo-sched", "每一班自動更新做什麼、幾點"),
     )),
     ("cand", "策略候選", "配置頁策略表「候選」那幾列的細節：每一條的來源、規則、回測、放進交易計畫的試算、試用紀錄與你的決定。", ()),
+    ("fut", "台指期早盤（股票期貨人生）", "配置頁策略表「台指期早盤」那一列的細節：規則、台指期逐筆存了幾天、最好情況（偷看版）的成績與每一筆、"
+     "期貨之後有沒有往落差的方向走、每天的落差、開盤前取樣。", ()),
     ("mkt", "景氣", "台股、美股景氣（市場頁）的研究畫面：資料都在市場頁，打開後最上面一列可以在三個研究畫面之間切換、回到市場頁。", (
         ("台股・證據地圖與完整數字", "x9m.html#v=research", "各項和台股的關係、Granger、邊際變化的多層回歸、五區回測、事件表現、資料來源"),
         ("台股・階段時間軸", "x9m.html#v=phase", "每個面向每一週在哪個階段（熱還在升溫、熱開始降溫、冷還在降溫、冷開始回溫）"),
@@ -101,6 +104,16 @@ def cand_body() -> str:
         return '<p class="rnote">策略候選讀不到。</p>'
 
 
+def fut_body() -> str:
+    """台指期早盤（futpage.research_body）；讀不到只寫一句。"""
+    try:
+        from . import futpage as FPG
+        return FPG.research_body()
+    except Exception as e:                               # noqa: BLE001
+        print(f"[研究紀錄] 台指期早盤讀不到：{type(e).__name__}: {e}")
+        return '<p class="rnote">台指期早盤讀不到。</p>'
+
+
 def render(SV: dict | None = None, BV: dict | None = None) -> str:
     """SV＝訊號研究的 view（sigpage.view）、BV＝泡沫研究的 view（bubpage.view）；不給就照上面兩個函式取得。"""
     from . import appnav
@@ -112,8 +125,9 @@ def render(SV: dict | None = None, BV: dict | None = None) -> str:
     BV = bub_view() if BV is None else BV
     has_sig = bool(SV.get("rows"))
     from . import candpage as CP
-    host = {"sig": SPG.research_body(SV), "bub": BPG.research_body(BV), "cand": cand_body()}
-    css = HCSS + appnav.CSS + SPG.research_css() + BPG.research_css() + CP.CSS + CSS
+    from . import futpage as FPG
+    host = {"sig": SPG.research_body(SV), "bub": BPG.research_body(BV), "cand": cand_body(), "fut": fut_body()}
+    css = HCSS + appnav.CSS + SPG.research_css() + BPG.research_css() + CP.CSS + FPG.CSS + CSS
     js = (SPG.JS if has_sig else "") + BPG.JS + IP.JS + OPEN_JS
     return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("r")).replace("{{CSS}}", css)
                          .replace("{{BODY}}", body(host)).replace("{{PANEL}}", SPG.PANEL if has_sig else "")

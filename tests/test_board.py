@@ -11,8 +11,10 @@ BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會
 
 @pytest.fixture(autouse=True)
 def _no_real_candidates(monkeypatch):
-    """新策略候選讀 config/strategy_candidates.json（每週會變多）；這裡的計數只看假資料，候選列另在 test_candpage 測。"""
+    """新策略候選讀 config/strategy_candidates.json（每週會變多）、台指期早盤讀研究檔；這裡的計數只看假資料，
+    候選列另在 test_candpage、test_futpage 測。"""
     monkeypatch.setattr(BD, "cand_rows", lambda: [])
+    monkeypatch.setattr(BD, "fut_rows", lambda: [])
 
 
 def _adv():
