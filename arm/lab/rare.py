@@ -6,9 +6,11 @@
 from __future__ import annotations
 
 import bisect
+import json
 import math
 import zlib
 from datetime import date, timedelta
+from pathlib import Path
 
 import numpy as np
 
@@ -193,9 +195,25 @@ def tr_lny(cal: list[str], k: str, p: dict) -> list[tuple]:
     return out
 
 
+EVENTS = Path(__file__).resolve().parents[2] / "config" / "rare_events.json"
+
+
+def nsf_list() -> list[tuple[str, str]]:
+    """國安基金護盤起始日：規格寫定的九次＋之後才發生的（config/rare_events.json 的 nsf，只收規格日期之後的；讀不到＝沒有）。"""
+    out = list(S.NSF)
+    try:
+        extra = json.loads(EVENTS.read_text(encoding="utf-8")).get("nsf") or []
+    except (OSError, ValueError, AttributeError):
+        extra = []
+    for x in extra:
+        if isinstance(x, (list, tuple)) and len(x) >= 2 and str(x[0]) > S.SPEC_DATE:
+            out.append((str(x[0]), str(x[1])))
+    return sorted(set(out))
+
+
 def nsf_days(cal: list[str]) -> list[int]:
     out = []
-    for d, _ in S.NSF:
+    for d, _ in nsf_list():
         i = idx_le(cal, d)
         if i >= 0 and d <= cal[-1]:
             out.append(i)
@@ -463,6 +481,11 @@ def now(M: Mkt, R: dict, done: list[tuple], open_: list[tuple]) -> dict:
                 out.update({"close": days[C], "reopen": days[C + 1] if C + 1 < len(days) else None})
             break
         return out
+    pend = pending(M, R, fut)
+    if pend:
+        t, b, q, qd = pend
+        out.update({"st": "buy", "sd": cal[t], "bd": days[b], "qd": qd, "approx": approx(qd)})
+        return out
     if open_:
         t, b, q = open_[-1]
         qd = days[q] if q < len(days) else None
@@ -495,6 +518,57 @@ def now(M: Mkt, R: dict, done: list[tuple], open_: list[tuple]) -> dict:
         if len(fin):
             j = int(fin[-1])
             out.update({"ratio": _r(r[j]), "rd": cal[j]})
+    return out
+
+
+def pending(M: Mkt, R: dict, fut: list[str]) -> tuple | None:
+    """事件型：資料最後一天收盤剛出現訊號（t＝最後一天）→ (t, b, q, 賣出日)，b＝下一個交易日；沒有＝None。
+    一月晴雨表要知道 1 月走完了沒有：把下一個交易日接上去（價格先空著）再算。去重照評估時一樣（之前的持有期間內不算新的一次）。"""
+    k, p = R["k"], R["p"]
+    if R["when"] != "sig" or not fut:
+        return None
+    T = M.T
+    days = M.cal + fut
+    if k == "jan":
+        tr = tr_jan(M.cal + fut[:1], np.append(M.px, np.nan), p)
+    else:
+        tr = raw_trades(M.D, k, p)
+    tr = sorted(x for x in tr if x[1] >= M.s0)
+    H = hold_of(R, p)
+    if H is not None:
+        keep = set(XT.dedupe([t for t, _, _ in tr], H))
+        tr = [x for x in tr if x[0] in keep]
+    for t, b, q in tr:
+        if b == T and t == T - 1:
+            if k == "jan":
+                y = M.cal[t][:4]
+                dec = [d for d in days[T:] if d[:7] == f"{y}-12"]
+                return t, b, q, (dec[-1] if dec else None)
+            return t, b, q, (days[q] if q < len(days) else None)
+    return None
+
+
+_MK: dict = {}
+
+
+def market(mk: str) -> Mkt:
+    """同一個程序只載一次資料（配置頁、研究紀錄頁、推播共用）。"""
+    if mk not in _MK:
+        _MK[mk] = Mkt(mk)
+    return _MK[mk]
+
+
+def now_all(res: dict | None = None) -> dict:
+    """每條規則、每個市場的「現在」（每天建頁時算；成績讀研究檔）。→ {規則: {市場: now}}；算不出來的那一格不列。"""
+    out: dict = {}
+    for R in S.RULES:
+        for mk in R["mk"]:
+            try:
+                M = market(mk)
+                done, open_ = M.trades(R, R["p"])
+                out.setdefault(R["k"], {})[mk] = now(M, R, done, open_)
+            except Exception as e:                       # noqa: BLE001 —— 一格算不出來不影響其他
+                print(f"[rare] 現在算不出來 {R['k']}:{mk}：{type(e).__name__}: {e}")
     return out
 
 
