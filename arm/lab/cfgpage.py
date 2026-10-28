@@ -637,6 +637,94 @@ def past_note(mk: str, data: dict, bundle: dict) -> str:
     return f'<div class="cfperf cfq">{_e(t1)}</div><div class="cfperf cfq">{_e(t2)}</div>'
 
 
+# ── 今年逐月、逐筆（ytdspec VER 1；docs/lab_review_plan.md 第 9.2 節）──────────────
+
+def _ypc(x) -> str:
+    return "—" if x is None else _pc(x)
+
+
+def _ycell(v) -> str:
+    """一格：那個月的報酬（大）＋今年累計（小）。"""
+    if not v:
+        return '<td class=w>—</td>'
+    m, c = v
+    return (f'<td class=w><span class="{"up" if (m or 0) >= 0 else "dn"}">{_ypc(m)}</span>'
+            f'<div class=cd>今年 {_ypc(c)}</div></td>')
+
+
+def ytd_html(Y: dict | None, mk: str) -> str:
+    """配置頁「現在的錢」下面：今年每個月、每一筆（不偷看、一直抱著、上線後）。Y＝ytd.tw()／ytd.us()；沒有＝一行「還沒算出來」。"""
+    if not Y:
+        return '<h2 class="cfh">今年</h2><p class="cfwhy">今年每個月的成績還沒算出來。</p>'
+    last = Y["days"][-1]
+    hold_nm = "0050" if mk == "tw" else "S&P 500"
+    if mk == "tw":
+        w = Y["w"]
+        how = (f"不偷看＝只用去年底以前就定好的規則照做：0050 {w['0050']:.0%}、新飆股 {w['R60']:.0%}、其他 {w['cash']:.0%} 放現金，"
+               f"不看警訊（新飆股每年只用以前的資料找規則；三條個股策略和警訊是今年 10 月才定的，不放進來）。"
+               f"一直抱著＝0050（含息）。上線後＝{_md(Y['live_from'])} 起照這一頁每天收盤的持股算（不含手續費）。")
+    else:
+        how = (f"不偷看＝每年 1 月 1 日只看過去 {Y['L']} 年的成績，從 2,016 種做法裡挑最好的 {Y['k']} 種、平均分，不看警訊；"
+               f"這種挑法是 24 種挑法裡 2014～2025 年成績排第 {Y['rank']} 名的（中間，不挑最好的，也不看今年）。"
+               f"一直抱著＝S&P 500（含息）。上線後＝{_md(Y['live_from'])} 起強勢品質股每週的紀錄。資料到 {_md(Y['data_last'])}，每週六更新。")
+    t = Y["tot"]
+    head = (f'<div class="cfperf">今年到 {_md(last)}：不偷看 <b>{_ypc(t["nolook"])}</b>、一直抱著 {hold_nm} <b>{_ypc(t["hold"])}</b>'
+            + (f'、上線後（{_md(Y["live_from"])} 起）<b>{_ypc(t["live"])}</b>' if t.get("live") is not None else "") + "</div>")
+    rows = "".join(f'<tr><td>{r["m"]} 月' + ("" if r["full"] else f'<div class=cd>到 {_md(r["to"])}</div>') + "</td>"
+                   + _ycell(r.get("nolook")) + _ycell(r.get("hold")) + _ycell(r.get("live")) + "</tr>" for r in Y["rows"])
+    tbl = (f'<table class="cfyt"><thead><tr><th>月份</th><th>不偷看</th><th>一直抱著<div class=cd>{hold_nm}</div></th><th>上線後</th></tr></thead>'
+           f"<tbody>{rows}</tbody></table>")
+    extra = ""
+    if mk == "us":
+        rg = Y["range"]
+        extra = (f'<div class="cfq">今年挑到的 {len(Y["picks"])} 種：' + "；".join(_e(x.replace("｜", "・")) for x in Y["picks"]) + "。"
+                 f'24 種挑法今年的報酬：最低 {_ypc(rg["min"])}、中間 {_ypc(rg["med"])}、最高 {_ypc(rg["max"])}。</div>')
+    return (f'<h2 class="cfh">今年<span class="sub">每個月、每一筆</span></h2>' + head + tbl
+            + f'<div class="cfq">{_e(how)}</div>' + extra + ytd_trades(Y, mk))
+
+
+def ytd_trades(Y: dict, mk: str) -> str:
+    """不偷看那一欄今年的每一筆（依月份、做法篩選；預設收起）。月份＝那一筆在那個月有拿著。"""
+    tr = Y.get("trades") or []
+    if not tr:
+        return ""
+    yd, last = Y["days"][0], Y["days"][-1]
+    ks: list[str] = []
+    rows = []
+    for t in tr:
+        if mk == "tw":
+            k = "0050" if t["k"] == "0050" else "新飆股"
+            who = (f'<a {_ck(t["c"])}>{_e(t.get("n") or t["c"])} <span class=cd>{_e(t["c"])}</span></a>'
+                   if t["k"] != "0050" else "0050 <span class=cd>長抱</span>")
+            px, sub = _tp, ""
+        else:
+            k = t["k"]
+            nm = t.get("nm")
+            who = (f'{_e(nm)} <span class=cd>{_e(t["c"])}</span>' if nm else _e(t["c"]))
+            px = lambda x: "—" if x is None else f"{x:,.2f}"           # noqa: E731
+            sub = f'<div class=cd>{_e(t["m"].replace("｜", "・"))}</div>'
+        if k not in ks:
+            ks.append(k)
+        ent = "去年就拿著" if t["ent"] <= yd else f'{_md(t["ent"])} 買' + (f' {px(t["bpx"])}' if t.get("bpx") else "")
+        ex = "還拿著" if not t.get("exit") else f'{_md(t["exit"])} 賣' + (f' {px(t["spx"])}' if t.get("spx") else "")
+        m0 = 1 if t["ent"] <= yd else int(t["ent"][5:7])
+        m1 = int((t.get("exit") or last)[5:7])
+        rr = t.get("ret")
+        rows.append(f'<tr data-k="{_e(k)}" data-m=",{",".join(str(m) for m in range(m0, m1 + 1))},"><td>{who}{sub}</td>'
+                    f'<td>{ent}<div class=cd>{ex}</div></td>'
+                    f'<td class=w><span class="{"up" if (rr or 0) >= 0 else "dn"}">{_ypc(rr)}</span></td>'
+                    f'<td class=w>{_wp(t["w"]) if t.get("w") is not None else "—"}<div class=cd>帳戶 {_ypc(t.get("pnl"))}</div></td></tr>')
+    mo_btn = "".join(f'<a data-yf="m" data-v="{m}">{m} 月</a>' for m in range(1, int(last[5:7]) + 1))
+    k_btn = "".join(f'<a data-yf="k" data-v="{_e(k)}">{_e(k)}</a>' for k in ks) if len(ks) > 1 else ""
+    return (f'<details class="cfdet cfyd"><summary>今年每一筆（{len(tr)} 筆）</summary>'
+            f'<div class="seg cfyf"><a data-yf="m" data-v="" class=on>全部月份</a>{mo_btn}</div>'
+            + (f'<div class="seg cfyf"><a data-yf="k" data-v="" class=on>全部</a>{k_btn}</div>' if k_btn else "")
+            + '<table class="cfht cfytr"><thead><tr><th>股票</th><th>買進／賣出</th><th>報酬</th><th>占資金</th></tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table>'
+            '<div class="cfq">選一個月份＝那個月有拿著的。報酬＝那一筆從買進到賣出（還拿著的算到最新收盤，含息、扣手續費）；'
+            '占資金＝買進時占全部資金多少（去年就拿著的＝年初）；帳戶＝那一筆今年讓全部資金漲跌多少。</div></details>')
+
+
 def tw_parts(data: dict, bundle: dict) -> dict:
     N = (bundle.get("now") or {}).get("tw")
     stk = bundle.get("stk") or {}
@@ -654,7 +742,7 @@ def tw_parts(data: dict, bundle: dict) -> dict:
             "warn": warn_html("tw", N) if N else '<h2 class="cfh">警訊</h2><p class="cfwhy">今天的讀數還沒算出來。</p>',
             "perf": perf, "boom": boom_html(stk, bundle), "d": d0, "nx": nx,
             "tl": {"use": use, "boom": _boom_lane(stk)},
-            "pos": pos_map(G)}
+            "pos": pos_map(G), "ytd": ytd_html((data.get("ytd") or {}).get("tw"), "tw")}
 
 
 def pos_map(G: list[dict]) -> dict:
@@ -1028,7 +1116,8 @@ def us_parts(data: dict, bundle: dict) -> dict:
     perf = '<h2 class="cfh">過去照做</h2>' + perf_line("us", bundle) + past_note("us", data, bundle) + detail_html("us", bundle)
     return {"card": us_money(G, N), "hold": us_hold(G, N), "sched": us_sched(G, N),
             "warn": warn_html("us", N) if N else '<h2 class="cfh">警訊</h2><p class="cfwhy">今天的讀數還沒算出來。</p>',
-            "perf": perf, "d": d0, "nx": nx, "tl": {"qm": _qm_lane(G)}, "uc": uc}
+            "perf": perf, "d": d0, "nx": nx, "tl": {"qm": _qm_lane(G)}, "uc": uc,
+            "ytd": ytd_html((data.get("ytd") or {}).get("us"), "us")}
 
 
 # ── 時間軸（stockviz.tlDraw；設定在 JS 的 cfQ） ──────────────────────────────────
@@ -1208,10 +1297,20 @@ CSS = r"""
 .cfwv{grid-column:2;font-size:12.5px;color:var(--ink2)}.cfwv span{color:var(--mut)}.cfwv em{font-style:normal;font-weight:700;color:var(--warn);margin-left:6px}
 .cfrule2{font-size:13px;color:var(--ink2);background:var(--card2);border-radius:10px;padding:8px 12px;margin-top:8px}
 .cfmo,.cfgr,.cfcash,.cfsch,.cfws,.cfrule2,.cfht.cfql{max-width:880px}   /* 電腦版不要拉到整頁寬：名字和比重離太遠 */
+.cfyt{width:100%;max-width:880px;border-collapse:collapse;font-size:13.5px;margin:8px 0 6px}
+.cfyt th{font-weight:600;color:var(--ink2);font-size:12.5px;padding:5px 8px;border-bottom:1px solid var(--line2);text-align:right;vertical-align:bottom}
+.cfyt td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top;font-variant-numeric:tabular-nums}
+.cfyt th:first-child,.cfyt td:first-child{text-align:left;position:static;background:none;white-space:nowrap}
+.cfyt td.w{font-weight:700;white-space:nowrap}.cfyt .cd{color:var(--mut);font-size:12px;font-weight:400}
+.cfyd .cfyf{display:flex;flex-wrap:wrap;gap:2px;margin:8px 0 4px;width:max-content;max-width:100%}.cfyd .cfyf a{padding:4px 10px;font-size:13px;cursor:pointer}
+.cfytr{max-width:880px}.cfytr tr[hidden]{display:none!important}
 .cftoolr{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 12px}.cftool{display:flex;width:max-content;max-width:100%}.cfasof{color:var(--mut);font-size:12.5px;min-width:0}
 @media (max-width:640px){
  .cfht,.cfht tbody{display:block}.cfht tr{display:grid;grid-template-columns:minmax(0,1fr) auto;padding:5px 0;border-bottom:1px solid var(--line)}
  .cfht th{display:none}.cfht td{border:0;padding:0 6px}.cfht td.st{grid-column:1/-1;font-size:12.5px}
+ .cfyt{font-size:12.5px}.cfyt td,.cfyt th{padding:5px 4px}
+ .cfytr td:nth-child(1){grid-column:1;grid-row:1}.cfytr td:nth-child(2){grid-column:1;grid-row:2}
+ .cfytr td:nth-child(3){grid-column:2;grid-row:1}.cfytr td:nth-child(4){grid-column:2;grid-row:2;font-weight:400}
  .btbl{font-size:12.5px}.btbl th.bh,.btbl td.bh,.btbl th.bd,.btbl td.bd,.btbl .bsub{display:none}
  .btbl td,.btbl th{padding:6px 5px}.btbl td:first-child{min-width:0;width:34%}.btbl td.bm{white-space:nowrap}
  .btbl .bref{display:block}.btbl td.bto{min-width:0}}
@@ -1226,11 +1325,16 @@ function cfFoot(){return `<footer class=cffoot><a href="x9r.html">研究紀錄</
 function cfMk(mk){const C=CFG[mk]||{};let h='';
   if(C.err||!C.card)h+=`<div class=st>配置資料還沒算出來${C.err?`：${esc(C.err)}`:''}。</div>`;
   else h+=`<section class="sec cfsec" id="cf-${mk}" data-nav="現在的錢">${C.card}</section>`+   /* 配置頁 v2（docs/lab_cfg_v2_plan.md） */
+    (C.ytd?`<section class=sec id="cf-${mk}-y" data-nav="今年">${C.ytd}</section>`:'')+   /* 今年每個月、每一筆（ytdspec） */
     `<section class=sec id="cf-${mk}-h" data-nav="持股">${C.hold}</section><section class=sec id="cf-${mk}-s" data-nav="接下來">${C.sched}</section>`+
     `<section class=sec id="cf-${mk}-w" data-nav="警訊">${C.warn||''}</section><section class=sec id="cf-${mk}-p" data-nav="過去照做">${C.perf||''}</section>`+(C.boom||'')+(C.line||'');
   $('#main').innerHTML=h+cfFoot();
   const w=$('#main .cftl');if(w)w.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.closest('.vztip [data-go]');if(!a)return;
     ev.preventDefault();const tp=a.closest('.vztip');tp.classList.remove('pin');tp.hidden=true;go(a.dataset.go,a.dataset.at);});
+  const yd=$('#main .cfyd');if(yd)yd.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.closest('[data-yf]');if(!a)return;
+    ev.preventDefault();const Q=q=>[...yd.querySelectorAll(q)];Q('[data-yf="'+a.dataset.yf+'"]').forEach(x=>x.classList.toggle('on',x===a));
+    const on=f=>{const x=yd.querySelector('[data-yf="'+f+'"].on');return x?x.dataset.v:'';},fm=on('m'),fk=on('k');
+    Q('.cfytr tbody tr').forEach(r=>{r.hidden=!!((fm&&r.dataset.m.indexOf(','+fm+',')<0)||(fk&&r.dataset.k!==fk));});});
   const tw=$('#main .cftlw');if(tw)tw.addEventListener('toggle',()=>{if(tw.open)cfDraw(mk);});   /* 時間軸收在「看時間軸」裡：打開才畫（收起時寬度是 0） */
   if(!tw)cfDraw(mk);}
 function vCfgTw(){cfMk('tw');}

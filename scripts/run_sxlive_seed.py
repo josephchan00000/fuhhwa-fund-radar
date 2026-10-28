@@ -118,20 +118,8 @@ def w7_week(d: str, sig, rows_dc: dict, rules: list, need: set) -> dict:
     return {"R60": [[c, round(s, 4)] for c, s in lst], "why": {"R60": why}, "src": "w7"}
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--force", action="store_true")
-    a = ap.parse_args()
-    if OUT.exists() and not a.force:
-        print(f"{OUT} 已經有了（規格：只算一次）；要重算加 --force")
-        return 0
-    t0 = time.time()
-    sim, res, m, sig, rows, FO = w7_book()
-    last = str(res.equity.index[-1].date())
-    if last != S.TAKE_V3:
-        raise SystemExit(f"W7 的帳跑到 {last}，不是 TAKE_V3 {S.TAKE_V3}")
-    chk = check_curve(res)
-    print(f"W7 帳 {chk['days']} 天和 {CS.SX_CURVE_FILE} 相同（最大差 {chk['max_err']:.1e}），{time.time() - t0:.0f}s", flush=True)
+def bridge(sim, m) -> dict:
+    """② TAKE_V3 收盤的 W7 狀態接到 sxlive.Book（頁面的價格），走到 TAKE 收盤（run_ytd.py --tw 也用）。"""
     w7pos = [{"c": m.stocks[p.s], "sh": float(p.shares), "ent": str(m.dates[p.entry_i].date()),
               "sig": str(m.dates[p.signal_i].date()), "cin": float(p.cost_in), "pend": p.exit_pending,
               "epx": float(p.entry_px / m.f[p.entry_i, p.s])} for p in sim.pos.values()]
@@ -174,6 +162,27 @@ def main() -> int:
     eqs = {}
     for i in range(iv + 1, it + 1):
         eqs[cal[i]] = bk.step(i, sigs.get(cal[i]) if cal[i] != S.TAKE else None)
+    return {"bk": bk, "eqs": eqs, "sigs": sigs, "whys": whys, "cal": cal, "w7pos": w7pos, "w7cash": w7cash, "w7eq": w7eq,
+            "dropped": dropped, "eqv": eqv, "px": px}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--force", action="store_true")
+    a = ap.parse_args()
+    if OUT.exists() and not a.force:
+        print(f"{OUT} 已經有了（規格：只算一次）；要重算加 --force")
+        return 0
+    t0 = time.time()
+    sim, res, m, sig, rows, FO = w7_book()
+    last = str(res.equity.index[-1].date())
+    if last != S.TAKE_V3:
+        raise SystemExit(f"W7 的帳跑到 {last}，不是 TAKE_V3 {S.TAKE_V3}")
+    chk = check_curve(res)
+    print(f"W7 帳 {chk['days']} 天和 {CS.SX_CURVE_FILE} 相同（最大差 {chk['max_err']:.1e}），{time.time() - t0:.0f}s", flush=True)
+    B = bridge(sim, m)
+    bk, eqs, sigs, whys, cal, w7pos, w7cash, w7eq, dropped, eqv = (B[k] for k in ("bk", "eqs", "sigs", "whys", "cal", "w7pos", "w7cash",
+                                                                                "w7eq", "dropped", "eqv"))
     print(f"接到 {S.TAKE}：{len(bk.pos)} 檔、現金 {bk.cash / bk.eq_prev:.1%}，{time.time() - t0:.0f}s", flush=True)
 
     # ③ 存
