@@ -1190,6 +1190,8 @@ def _go_attrs(g: dict) -> str:
         s += f' data-at="{_e(g["at"])}"'
     if g.get("gm"):
         s += f' data-gm="{_e(g["gm"])}"'
+    if g.get("pm"):
+        s += f' data-pm="{_e(g["pm"])}"'
     return s
 
 
@@ -1377,7 +1379,7 @@ JS = r"""
    策略：全部策略一張表。 ---------- */
 const CFG=D.cfg||{};
 function cfFoot(){return `<footer class=cffoot><a href="x9r.html">研究紀錄</a></footer>`;}
-function cfMk(mk){const C=CFG[mk]||{};let h='';
+function cfMk(mk,pre){const C=CFG[mk]||{};let h=pre||'';
   if(C.err||!C.card)h+=`<div class=st>配置資料還沒算出來${C.err?`：${esc(C.err)}`:''}。</div>`;
   else h+=`<section class="sec cfsec" id="cf-${mk}" data-nav="現在的錢">${C.card}</section>`+   /* 配置頁 v2（docs/lab_cfg_v2_plan.md） */
     (C.ytd?`<section class=sec id="cf-${mk}-y" data-nav="今年">${C.ytd}</section>`:'')+   /* 今年每個月、每一筆（ytdspec） */
@@ -1421,8 +1423,11 @@ function cfSpot(){const box=$('#cfspot');if(!box)return;let P=[];try{P=JSON.pars
     return `<b>${esc(o[1])}</b> <span class=vzs>${esc(o[0])}</span><div>${KN[o[4]]}${o[5]==null?'':`・買進以來 ${pctT(o[5],1)}`}</div>`+
       `<div>離 52 週高點 ${pctT(o[2],1)}・強度 ${f(o[3],0)}</div><div class=vzs>點一下打開個股卡</div>`;},()=>{});}
 addEventListener('resize',()=>{clearTimeout(cfSpot.t);cfSpot.t=setTimeout(cfSpot,220);});addEventListener('labtheme',cfSpot);
-function vCfgTw(){cfMk('tw');}
-function vCfgUs(){cfMk('us');}
+/* 研究紀錄・交易計畫（原本的配置，2026-10-28 起；docs/lab_pick_page_plan.md 第 3 節）：台股｜美股切換，內容照舊 */
+function vCfgPlan(){const mk=S.pmk==='us'?'us':'tw';
+  const sw=`<div class=xmbar><div class="seg" role=group aria-label="市場">${[['tw','台股'],['us','美股']].map(([k,n])=>`<a data-go="plan" data-pm="${k}"${k===mk?' class=on':''}>${n}</a>`).join('')}</div></div>`+
+    `<p class=cfwhy style="margin:0 0 12px">原本的配置（兩成長抱、八成機動、警訊換現金）：回測、今年每一筆、持股、警訊與前瞻紀錄照舊在這裡；選股策略本身在頂欄「選股」。</p>`;
+  cfMk(mk,sw);}
 /* 時間軸的列：配置裡的策略（觀察中策略的訊號不放配置頁，2026-10-24 使用者決定） */
 function cfLanes(mk){const C=CFG[mk]||{},T=C.tl||{},L=[];
   const oc=k=>(OPP.cards||[]).find(c=>c.k===k);
@@ -1435,7 +1440,7 @@ function cfTip(x,pin){const c=x.c,e=x.e;let h='';
     if(x.k==='held')h=`<b>${esc(c.name)}・${md(e.ent)} 買的 ${it.length} 檔</b><ul>${it.map(i=>`<li>${esc(i.n)} <span class=vzs>買進 ${fp(i.entry)}，現在 ${fp(i.now)}</span> <span class=${(i.now_r||0)>=0?'up':'dn'}>${pctT(i.now_r)}</span></li>`).join('')}</ul><div class=vzs>${mdw(e.d)} 開盤賣（抱滿${hz(c.hold)}）</div>`;
     else if(x.k==='buy')h=`<b>${mdw(e.d)} 開盤買進・${esc(c.name)}</b><div>${it.map(i=>esc(i.n)).join('、')}</div><div class=vzs>${esc(e.sell||'')}</div>`;
     else if(x.k==='next')h=`<b>${esc(c.name)}</b><div>名單 ${mdw(e.fix)} 收盤產生，有空位就 ${mdw(e.d)} 開盤買</div>`;
-    return h+(pin?`<a class=vzgo data-go="tw" data-at="cf-tw-sx">看新飆股</a>`:'');}
+    return h+(pin?`<a class=vzgo data-go="tw" data-at="pk-boom">看新飆股</a>`:'');}
   if(c._src==='qm'){if(x.k==='held')h=`<b>${esc(c.name)}・持有 ${(e.items||[]).length} 檔</b><ul>${(e.items||[]).map(i=>`<li>${esc(i.nm||i.n)} <span class=vzs>${md(i.ent)} 買</span> <span class=${(i.now_r||0)>=0?'up':'dn'}>${pctT(i.now_r)}</span></li>`).join('')}</ul><div class=vzs>收盤跌破 50 日線，下一個交易日開盤賣</div>`;
     else if(x.k==='buy')h=`<b>${mdw(e.d)} 開盤買進・${esc(c.name)}</b><div>${(e.items||[]).map(i=>esc(i.nm||i.n)).join('、')}</div>`;
     else if(x.k==='next')h=`<b>${esc(c.name)}</b><div>名單 ${mdw(e.fix)} 收盤定案，有空位就 ${mdw(e.d)} 開盤買</div>`;
@@ -1449,7 +1454,7 @@ function cfQ(mk){const C=CFG[mk]||{};
     lb:x=>TLO.lb(x),nm:c=>`${c.rank}. ${STN[c.k]||c.name}`,sub:c=>'持有'+hz(c.hold),
     avg:e=>e.r!=null?e.r:tlAvg(e),tipf:(x,pin)=>cfTip(x,pin)};}
 function cfDraw(mk){const b=$('#cftl-'+mk),d=b&&b.closest('details');if(b&&(!d||d.open))tlDraw(cfQ(mk));}
-let CFR=0,CFW=innerWidth;addEventListener('resize',()=>{clearTimeout(CFR);CFR=setTimeout(()=>{if(Math.abs(innerWidth-CFW)<30)return;CFW=innerWidth;if(S.tab==='tw'||S.tab==='us')cfDraw(S.tab);},220);});
+let CFR=0,CFW=innerWidth;addEventListener('resize',()=>{clearTimeout(CFR);CFR=setTimeout(()=>{if(Math.abs(innerWidth-CFW)<30)return;CFW=innerWidth;if(S.tab==='plan')cfDraw(S.pmk==='us'?'us':'tw');},220);});
 /* 策略：全部策略一張表；狀態、市場篩選（淘汰預設收起） */
 const CFB={st:new Set(['use','obs','cand']),mk:'all',open:false};
 function vCfgSt(){const B=CFG.board||{};

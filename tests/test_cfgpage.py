@@ -382,30 +382,33 @@ def test_board_html_groups_and_filters():
 
 
 def test_page_tabs_personas_and_script_order():
+    """2026-10-28 起（docs/lab_pick_page_plan.md）：頂欄「選股」＝台股｜美股｜個股；原本的配置（交易計畫）與全部策略在研究紀錄身分。"""
     html = page.render({"etfs": {}, "asof": {}, "cfg": {"use": []}})
-    assert 'id="purp"' not in html and "{{" not in html
-    for t in ("tw", "us", "strat", "tool"):
-        assert f'data-t="{t}" data-p="cfg"' in html, t
-    for t in ("stg", "mac", "bo"):
+    assert 'id="purp"' not in html and "{{" not in html and "<title>選股</title>" in html
+    for t in ("tw", "us", "tool"):
+        assert f'data-t="{t}" data-p="pick"' in html, t
+    for t in ("stg", "mac", "plan", "strat", "bo"):
         assert f'data-t="{t}" data-p="r" hidden' in html, t
     assert '<a class="rbk" href="x9r.html" data-p="r" hidden>‹ 研究紀錄</a>' in html
-    from arm.lab import appnav, copage, macpage
-    assert appnav.bar("cfg", search=copage.SEARCH_HTML) in html and CF.CSS in html
+    from arm.lab import appnav, copage, macpage, pickpage
+    assert appnav.bar("pick", search=copage.SEARCH_HTML) in html and CF.CSS in html and pickpage.CSS in html
     from arm.lab import corepage
     assert corepage.CSS.split("\n", 1)[0] in html                                   # 「細節」用 corepage 的圖表與表格，樣式要一起載入
     js = html[html.index("<script>"):]
-    i_mac, i_cf, i_co, i_init = js.index("const MAC=D.mac||{}"), js.index("const CFG=D.cfg||{}"), js.index(copage.JS[:200]), js.index("go(v,at);")
-    assert i_mac < i_cf < i_co < i_init                                            # 配置的 JS 在初始化之前（頂層 const 已經初始化）
+    i_mac, i_cf, i_pk, i_uc, i_co, i_init = (js.index("const MAC=D.mac||{}"), js.index("const CFG=D.cfg||{}"), js.index("const PICK=D.pick||{}"),
+                                             js.index("const UCD="), js.index(copage.JS[:200]), js.index("go(v,at);"))
+    assert i_mac < i_cf < i_pk < i_uc < i_co < i_init                             # 選股、交易計畫的 JS 在初始化之前（頂層 const 已經初始化）
     J = page._JS
-    assert "const VIEWS={tw:vCfgTw,us:vCfgUs,strat:vCfgSt,stk:vStk,chip:vChip,idx:vIdx,opp:vOpp,st:vSt,mac:vMac,macst:vMacSt,bo:vBo};" in J
-    assert "const LAST={cfg:'tw',r:'bo',tool:'stk',mac:'mac',stg:'opp'};" in J
+    assert "const VIEWS={tw:vPkTw,us:vPkUs,stk:vStk,chip:vChip,idx:vIdx,opp:vOpp,st:vSt,mac:vMac,macst:vMacSt,plan:vCfgPlan,strat:vCfgSt,bo:vBo};" in J
+    assert "const LAST={pick:'tw',r:'bo',tool:'stk',mac:'mac',stg:'opp'};" in J
     assert "if(!VIEWS[v])v=/^#((s|co)=|q$)/.test(location.hash)?'stk':/^#us=/.test(location.hash)?'us':'tw';" in J   # 預設台股；舊的個股卡連結、查公司（#q）先到個股表；美股個股卡（#us=）到配置・美股
-    assert "if(d.gm)S.mmk=d.gm;if(d.bmk)S.bmk=d.bmk;" in J
+    assert "if(d.gm)S.mmk=d.gm;if(d.pm)S.pmk=d.pm;if(d.bmk)S.bmk=d.bmk;" in J
     for v in ("vStk", "vChip", "vIdx"):                                            # 個股（工具）三頁最上面切換
         seg = J[J.index(f"function {v}("):]
         assert "toolSeg('" in seg[:seg.index("\n}\n")], v
     assert "sec('c-sig'" not in J and "sec('c-risk'" not in J and "function sigTodaySec(" not in J   # 籌碼頁的今日訊號、風險提醒拿掉
-    assert "function stCardSec(c){const P=PKU[c];" in J and "CFU.has(p.k)" in J    # 個股卡只列配置裡的策略
+    assert "function stCardSec(c){const P=PKU[c];" in J and "CFU.has(p.k)" in J    # 個股卡只列選股頁上的策略
+    assert "<h3>配置" not in J and "data-at=\"cf-tw-h\"" not in J
     assert "S.sig==='sx'?SXC.has(r.c)" in J and "<option value=sx" in J               # 個股表留一個「飆股候選」篩選
 
 

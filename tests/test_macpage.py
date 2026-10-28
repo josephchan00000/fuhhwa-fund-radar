@@ -38,7 +38,7 @@ def test_views_reuse_stock_strategy_components():
 def test_page_wires_personas_and_both_strategy_families():
     js = page._JS
     assert "pgSeg('opp','opp','st')" in js and "pgSeg('st','opp','st')" in js          # 個股策略：這一期｜規則與成績
-    assert "const PERS={tw:'cfg',us:'cfg',strat:'cfg',stk:'cfg',chip:'cfg',idx:'cfg',opp:'r',st:'r',mac:'r',macst:'r',bo:'r'};" in js
+    assert "const PERS={tw:'pick',us:'pick',stk:'pick',chip:'pick',idx:'pick',opp:'r',st:'r',mac:'r',macst:'r',plan:'r',strat:'r',bo:'r'};" in js
     assert "function setPer(p)" in js and "function urlSet()" in js and "$$('.apptab a[data-k]')" in js
     assert "if(x&&TABG[v]==='mac')" in js and "else{v='macst';at='ms-'+x;}" in js        # #v=mac&m=市場&x=策略：這一期的卡片或說明卡
     # 個股策略的逐年報酬表、1 元變多少：多出來的參數不給就跟原本一樣（總經策略才給）

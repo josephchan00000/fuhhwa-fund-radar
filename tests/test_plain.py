@@ -1,5 +1,5 @@
-"""主頁面用字（docs/lab_ia_v5_plan.md 第 8 節第 7 條）：建好市場頁（台股、美股四個指數）與配置頁（台股、美股、策略、
-個股工具、個股卡、公司卡），用無頭瀏覽器打開，讀「看得到的字」（收起來的段落全部打開、右側面板與指標面板一個一個打開），
+"""主頁面用字（docs/lab_ia_v5_plan.md 第 8 節第 7 條）：建好市場頁（台股、美股四個指數）與選股頁（台股、美股、
+個股工具、個股卡、公司卡、美股個股卡；2026-10-28 起取代配置頁），用無頭瀏覽器打開，讀「看得到的字」（收起來的段落全部打開、右側面板與指標面板一個一個打開），
 不得出現：第 2 條的方法字（只當參考、樣本外、隨便挑一天……）、第 4 條研究用的狀態符號（★●○◆△、好策略、可參考、A／B／C 級）、
 第 6 條的字（核心、衛星、前瞻、箭頭……）。研究紀錄頁、市場頁的研究畫面（#v=research／phase／terrain）不掃；
 細項面板裡只在研究畫面才看得到的部分（.rsx）也不算。要用真的資料建頁（約 3 分鐘），瀏覽器或資料不在就跳過。"""
@@ -12,7 +12,7 @@ METHOD = ("只當參考", "不當成預估", "看不出", "樣本不足", "亂�
 STATUS = ("★", "●", "○", "◆", "△", "好策略", "可參考", "A 級", "B 級", "C 級")
 NOT_PLAIN = ("核心", "衛星", "三種過熱", "亮", "前瞻", "→", "←")
 ALLOW = ("研究紀錄", "核心 CPI", "核心 PCE")          # 連到研究紀錄頁的小字；指標名稱
-CFG_ALLOW = ("候選",)                                # 配置頁的策略狀態（使用中・觀察中・候選・淘汰）
+CFG_ALLOW = ("候選",)                                # 策略狀態（使用中・觀察中・候選・淘汰）
 OPEN = """(sel) => { const r = sel ? document.querySelector(sel) : document;
   if (r) r.querySelectorAll('details').forEach(d => { if (!d.closest('.hview[hidden]')) d.open = true; }); }"""
 
@@ -103,20 +103,20 @@ def test_market_pages_have_no_method_words(site):
 
 
 def test_config_pages_have_no_method_words(site):
-    """配置頁：台股、美股、策略、個股工具（個股、籌碼、指數），個股卡、公司卡、美股個股卡。時間軸（.cftl：圖例、範圍切換、圖）的 ▲▼◆●
-    是買賣的記號、不是評級，時間軸只檢查方法字。"""
+    """選股頁：台股、美股、個股工具（個股、籌碼、指數），個股卡、公司卡、美股個股卡。進場行事曆（.pkcalw：圖例、月曆、接下來）
+    與時間軸（.cftl）的 ◇▲▼◆●○ 是名單、買賣、財報的記號、不是評級，只檢查方法字。原本配置頁的交易計畫、全部策略搬到研究紀錄，不掃。"""
     b, base = site
     found = []
-    for v in ("tw", "us", "strat", "stk", "chip", "idx"):
+    for v in ("tw", "us", "stk", "chip", "idx"):
         pg, errs = _page(b, f"{base}/x9.html?v={v}")
         pg.evaluate(OPEN, "#main")
-        tl = pg.evaluate("() => [...document.querySelectorAll('#main .cftl')].map(e => e.innerText).join('\\n')")
-        pg.evaluate("() => document.querySelectorAll('#main .cftl').forEach(e => { e.style.display = 'none'; })")
+        tl = pg.evaluate("() => [...document.querySelectorAll('#main .cftl, #main .pkcalw')].map(e => e.innerText).join('\\n')")
+        pg.evaluate("() => document.querySelectorAll('#main .cftl, #main .pkcalw').forEach(e => { e.style.display = 'none'; })")
         found += [f"{v} {x}" for x in bad(pg.evaluate("() => document.getElementById('main').innerText"), allow=CFG_ALLOW)]
         found += [f"{v} 時間軸 {x}" for x in bad(tl, METHOD + NOT_PLAIN, CFG_ALLOW)]
         found += [f"{v} JS 錯誤：{e}" for e in errs]
         pg.close()
-    pg, errs = _page(b, f"{base}/x9.html?v=us")                  # 美股個股卡（配置頁 v2 第 4 步）：每一檔都打開
+    pg, errs = _page(b, f"{base}/x9.html?v=us")                  # 美股個股卡：每一檔都打開
     codes = pg.evaluate("() => (typeof UCD !== 'undefined' && UCD && UCD.o) || []")   # 頂層 const 不在 window 上
     for c in codes:
         pg.evaluate("(c) => ucOpen(c)", c)

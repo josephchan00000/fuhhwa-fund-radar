@@ -35,7 +35,16 @@ CASES = (
     ("x9.html#v=mac", "x9.html", "?v=mac&m=tw", "document.querySelector('#tabs a[data-t=mac]').classList.contains('on')"
      " && document.title === '研究紀錄'", "舊頂欄「策略」＝研究紀錄・總經策略"),
     ("x9.html", "x9.html", "", "document.querySelector('#tabs a[data-t=tw]').classList.contains('on')"
-     " && document.querySelector('.apptab a.on').dataset.k === 'cfg'", "舊頂欄「個股」＝配置（個股在配置的工具分頁）"),
+     " && document.querySelector('.apptab a.on').dataset.k === 'pick' && !!document.getElementById('pkcal-tw')",
+     "舊頂欄「個股」＝選股・台股（個股在選股的工具分頁）"),
+    ("x9.html?v=us", "x9.html", "?v=us", "!!document.getElementById('pkcal-us') && document.title !== '研究紀錄'", "選股・美股"),
+    ("x9.html?v=strat", "x9.html", "?v=strat", "document.querySelector('#tabs a[data-t=strat]').classList.contains('on')"
+     " && document.title === '研究紀錄'", "原本配置頁的策略表＝研究紀錄・全部策略"),
+    ("x9.html?at=cf-tw-h", "x9.html", "?v=plan&m=tw", "document.querySelector('#tabs a[data-t=plan]').classList.contains('on')"
+     " && document.title === '研究紀錄' && Math.abs(document.getElementById('cf-tw-h').getBoundingClientRect().top) < 300",
+     "原本配置頁的一段（例 06:35 推播的連結）＝研究紀錄・交易計畫的那一段"),
+    ("x9.html?v=us&at=cf-us-w", "x9.html", "?v=plan&m=us", "document.querySelector('#tabs a[data-t=plan]').classList.contains('on')"
+     " && Math.abs(document.getElementById('cf-us-w').getBoundingClientRect().top) < 300", "原本配置・美股的一段"),
     ("x9x.html", "x9.html", "?v=mac&m=tw", "document.querySelector('#tabs a[data-t=mac]').classList.contains('on')",
      "更早的大神策略頁"),
     ("x9x.html#i=xs:spx:rsi2", "x9.html", None, "S.mmk === 'spx' && !!(document.getElementById('m-rsi2') || document.getElementById('ms-rsi2'))",
@@ -83,7 +92,7 @@ def test_old_url_lands(labsite, old, page, query, cond, what):
 
 
 def test_candidate_link_opens_card(labsite):
-    """配置頁策略表的候選列連到 x9r.html#cand-c###：研究紀錄頁打開那張卡（research_page.OPEN_JS）並捲到那裡。"""
+    """全部策略表（研究紀錄）的候選列連到 x9r.html#cand-c###：研究紀錄頁打開那張卡（research_page.OPEN_JS）並捲到那裡。"""
     import re
     b, base, out = labsite
     ids = re.findall(r'<details[^>]* id="(cand-c\d{3})"', (out / "x9r.html").read_text(encoding="utf-8"))
@@ -99,12 +108,12 @@ def test_candidate_link_opens_card(labsite):
 
 
 def test_top_bar_links_and_memory(labsite):
-    """頂欄：兩格各記住上次看到哪裡；右邊小字的名詞、查公司在配置頁是頁內打開，其他頁連到研究紀錄、配置頁。"""
+    """頂欄：兩格各記住上次看到哪裡；右邊小字的名詞、查公司在選股頁是頁內打開，其他頁連到研究紀錄、選股頁。"""
     b, base, _ = labsite
     ctx = b.new_context(viewport={"width": 1280, "height": 900})  # 同一個瀏覽器設定檔（localStorage 共用）
     try:
         pg, errs = _open(b, f"{base}/x9mu.html#ix=ndx", ctx=ctx)
-        assert pg.evaluate("() => document.querySelector('.apptab a[data-k=cfg]').getAttribute('href')") == "x9.html"
+        assert pg.evaluate("() => document.querySelector('.apptab a[data-k=pick]').getAttribute('href')") == "x9.html"
         lk = pg.evaluate("() => [...document.querySelectorAll('.applk a')].map(a => [a.textContent, a.getAttribute('href')])")
         assert lk == [["研究紀錄", "x9r.html"], ["名詞", "x9r.html#mth"], ["查公司", "x9.html#q"]]
         pg.close()
@@ -118,7 +127,7 @@ def test_top_bar_links_and_memory(labsite):
         assert pg.evaluate("() => document.getElementById('cos').hidden")
         pg.close()
         pg, errs3 = _open(b, f"{base}/x9m.html", ctx=ctx)
-        assert pg.evaluate("() => document.querySelector('.apptab a[data-k=cfg]').getAttribute('href')") == "x9.html?v=us"
+        assert pg.evaluate("() => document.querySelector('.apptab a[data-k=pick]').getAttribute('href')") == "x9.html?v=us"
         pg.close()
         pg, errs4 = _open(b, f"{base}/x9.html", ctx=ctx)                 # 市場紀錄已換成台股
         assert pg.evaluate("() => document.querySelector('.apptab a[data-k=mkt]').getAttribute('href')") == "x9m.html"
@@ -158,9 +167,9 @@ def test_phone_top_bar_fits(labsite, w):
 @pytest.mark.parametrize("w", (360, 390))
 def test_phone_no_sideways_scroll_with_everything_open(labsite, w):
     """手機：收起來的段落全部打開也不能整頁左右捲（2026-10-23 第 4 段量到：配置頁「細節」裡的表 1,213px 寬、
-    市場頁泡沫的產業那一行在 320px 不換行）；配置頁「細節」的圖要有樣式（只顯示手機版那張、不是整片黑塊）。"""
+    市場頁泡沫的產業那一行在 320px 不換行）；交易計畫（原本的配置，研究紀錄）「細節」的圖要有樣式（只顯示手機版那張、不是整片黑塊）。"""
     b, base, _ = labsite
-    for url in ("x9m.html", "x9mu.html", "x9.html", "x9.html?v=us", "x9.html?v=strat"):
+    for url in ("x9m.html", "x9mu.html", "x9.html", "x9.html?v=us", "x9.html?v=strat", "x9.html?v=plan&m=tw", "x9.html?v=plan&m=us"):
         pg = b.new_page(viewport={"width": w, "height": 800})
         pg.goto(f"{base}/{url}", wait_until="load")
         pg.wait_for_timeout(1000)
@@ -177,8 +186,8 @@ def test_phone_no_sideways_scroll_with_everything_open(labsite, w):
 
 
 def test_us_card_clicks_and_direct_link(labsite):
-    """美股個股卡（配置頁 v2 第 4 步）：配置頁美股列點了打開卡片（#us=代號）、‹ › 與左右鍵照配置頁的順序換檔、Esc 關掉回到原頁；
-    直接打開 x9.html#us=代號 落在配置・美股並打開卡片；手機 320～414px 卡片不左右捲。"""
+    """美股個股卡（配置頁 v2 第 4 步；2026-10-28 起在選股・美股）：美股列點了打開卡片（#us=代號）、‹ › 與左右鍵照頁面上的順序換檔、
+    Esc 關掉回到原頁；直接打開 x9.html#us=代號 落在選股・美股並打開卡片；手機 320～414px 卡片不左右捲。"""
     b, base, _ = labsite
     pg, errs = _open(b, f"{base}/x9.html?v=us", wait=1000)
     try:

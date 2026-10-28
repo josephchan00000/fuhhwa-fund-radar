@@ -1,22 +1,22 @@
-"""市場、配置、研究紀錄共用的頂欄（arm/lab/appnav.py；docs/lab_ia_v5_plan.md 第 2、22 節）。"""
+"""市場、選股（2026-10-28 前叫配置）、研究紀錄共用的頂欄（arm/lab/appnav.py；docs/lab_ia_v5_plan.md 第 2、22 節）。"""
 from arm.lab import appnav, heatpage, heatpage_us, page
 
 
 def test_bar_marks_the_current_page():
-    """頂欄（docs/lab_ia_v5_plan.md 第 2、22 節，照核准過的示意圖）：只剩「市場｜配置」兩格，右邊小字「研究紀錄・名詞・查公司」。"""
-    assert [k for k, _, _ in appnav.TABS] == ["mkt", "cfg"]
+    """頂欄（docs/lab_ia_v5_plan.md 第 2、22 節，照核准過的示意圖）：只剩「市場｜選股」兩格（2026-10-28 前叫配置），右邊小字「研究紀錄・名詞・查公司」。"""
+    assert [k for k, _, _ in appnav.TABS] == ["mkt", "pick"]
     mkt = appnav.bar("mkt")
     assert mkt.startswith('<nav class="apptab" aria-label="頁面">') and mkt.count('data-k=') == 2
-    assert '<a class="on" aria-current="page" data-k="mkt" href="x9m.html">市場</a><a data-k="cfg" href="x9.html">配置</a>' in mkt
+    assert '<a class="on" aria-current="page" data-k="mkt" href="x9m.html">市場</a><a data-k="pick" href="x9.html">選股</a>' in mkt
     us = appnav.bar("mkt", cur="x9mu.html")                                      # 美股頁：「市場」亮、連回美股頁
     assert '<a class="on" aria-current="page" data-k="mkt" href="x9mu.html">市場</a>' in us
-    cfg = appnav.bar("cfg")
-    assert '<a data-k="mkt" href="x9m.html">市場</a><a class="on" aria-current="page" data-k="cfg" href="x9.html">配置</a>' in cfg
+    cfg = appnav.bar("pick")
+    assert '<a data-k="mkt" href="x9m.html">市場</a><a class="on" aria-current="page" data-k="pick" href="x9.html">選股</a>' in cfg
     r = appnav.bar("r")                                                          # 研究紀錄頁：兩格都不亮
     assert "aria-current=\"page\" data-k" not in r and 'class="on"' not in r
-    for page in ("mkt", "cfg", "r", ""):
+    for page in ("mkt", "pick", "r", ""):
         b = appnav.bar(page)
-        for old in ("x9x.html", "x9.html#v=mac", "x9b.html", "x9o.html", "景氣", "泡沫", "訊號總覽", ">策略<", ">個股<"):
+        for old in ("x9x.html", "x9.html#v=mac", "x9b.html", "x9o.html", "景氣", "泡沫", "訊號總覽", ">策略<", ">個股<", ">配置<"):
             assert old not in b, (page, old)                                     # 舊的分頁名稱與舊頁面都不在頂欄
 
 
@@ -29,7 +29,7 @@ def test_right_links_research_glossary_company():
     assert list(mkt) == ["研究紀錄", "名詞", "查公司"]
     assert mkt["研究紀錄"] == 'href="x9r.html"' and mkt["名詞"] == 'href="x9r.html#mth"' and mkt["查公司"] == 'href="x9.html#q"'
     search = '<div class="cos" id="cos" hidden>X</div>'
-    cb = appnav.bar("cfg", search=search)
+    cb = appnav.bar("pick", search=search)
     cfg = dict((t, a) for a, t in links(cb))
     assert cfg["名詞"] == 'href="#gl" class="glk"' and 'class="coqb"' in cfg["查公司"] and 'aria-controls="cos"' in cfg["查公司"]
     assert cb.index("查公司</a>") < cb.index(search) < cb.index("</nav>", cb.index("applk"))   # 搜尋框在小字那一組裡（點了才打開）
@@ -42,18 +42,19 @@ def test_remember_last_place_per_tab():
     import re
     js = appnav.NAV_HEAD
     assert '"labLast"' in js and "window.labLast=function(k,v)" in js and 'classList.contains("on")' in js
-    ok = dict(re.findall(r'(mkt|cfg):/(.*?)/[,}]', js))
+    ok = dict(re.findall(r'(mkt|pick):/(.*?)/[,}]', js))
     py = {k: re.compile(v.replace("\\/", "/")) for k, v in ok.items()}
     for v in ("x9m.html", "x9mu.html", "x9mu.html#ix=ndx", "x9mu.html#ix=sox"):
         assert py["mkt"].match(v), v
-    for v in ("x9.html", "x9.html?v=us", "x9.html?v=strat", "x9.html?v=stk", "x9.html?v=chip", "x9.html?v=idx"):
-        assert py["cfg"].match(v), v
-    for v in ("x9.html?v=bo", "x9.html?v=mac", "x9.html#s=2330", "x9r.html", "https://evil.example/x9m.html", "x9mu.html#ix=x"):
-        assert not py["mkt"].match(v) and not py["cfg"].match(v), v
+    for v in ("x9.html", "x9.html?v=us", "x9.html?v=stk", "x9.html?v=chip", "x9.html?v=idx"):
+        assert py["pick"].match(v), v
+    for v in ("x9.html?v=bo", "x9.html?v=mac", "x9.html?v=strat", "x9.html?v=plan", "x9.html#s=2330", "x9r.html",
+              "https://evil.example/x9m.html", "x9mu.html#ix=x"):                # 全部策略、交易計畫（研究紀錄）不記
+        assert not py["mkt"].match(v) and not py["pick"].match(v), v
     assert 'if(a[i].classList.contains("on")){if(!v||v.indexOf(h)!==0)window.labLast(k,h)}' in js   # 亮的那一格記成這一頁（台股市場頁）
     from arm.lab import heatpage_us
     assert "window.labLast('mkt', 'x9mu.html#ix=' + cur)" in heatpage_us.SWITCH_JS   # 美股市場頁（換指數時也記）
-    assert "if(PER==='cfg'&&window.labLast)labLast('cfg','x9.html'+q);" in page._JS       # 配置頁（研究紀錄的分頁不記）
+    assert "if(PER==='pick'&&window.labLast)labLast('pick','x9.html'+q);" in page._JS     # 選股頁（研究紀錄的分頁不記）
 
 
 def test_phone_top_bar_fits_one_row():
@@ -68,7 +69,7 @@ def test_phone_top_bar_fits_one_row():
 def test_both_pages_use_the_shared_bar_and_back_link():
     lab = page.render({"etfs": {}, "asof": {}})
     from arm.lab import copage
-    assert appnav.bar("cfg", search=copage.SEARCH_HTML) in lab and appnav.CSS in lab
+    assert appnav.bar("pick", search=copage.SEARCH_HTML) in lab and appnav.CSS in lab
     assert appnav.BACK in lab and "<b>籌碼雷達</b>" not in lab
     from arm.lab import research_page
     for tpl in (page._HTML, heatpage._HTML, heatpage_us._HTML, research_page._HTML):

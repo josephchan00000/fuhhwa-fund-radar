@@ -10,17 +10,18 @@
 原本的總經策略、個股策略、後台改從不在頂欄的研究紀錄頁（x9r.html）進去（還是 x9.html 裡的分頁）。
 2026-10-23 第 2 段（市場頁改版）：泡沫頁、訊號總覽併進兩個景氣頁（市場頁），頂欄拿掉這兩格（x9b.html、x9o.html 留成轉址頁）。
 2026-10-23 第 4 段（docs/lab_ia_v5_plan.md 第 2、22 節，照核准過的示意圖）：頂欄只剩「市場｜配置」兩格，右邊小字「研究紀錄・名詞・查公司」，
-再來是深淺色鈕與返回主頁；原本擠在頂欄的「資料到…」移到各區塊（市場頁的面向標題、配置頁個股工具那一列）。
-- 市場＝台股 x9m.html、美股四個指數 x9mu.html（第二排切換）；配置＝x9.html。研究紀錄頁（x9r.html）兩格都不亮。
-- 兩格各記住上次看到哪裡（這台瀏覽器的 localStorage "labLast"）：從配置點「市場」回到上次看的市場、從市場點「配置」回到上次看的配置分頁；
-  沒有紀錄（或瀏覽器擋 localStorage）就是台股、配置台股。只記看得到的位置（市場與指數、配置的台股｜美股｜策略｜個股工具），不記個股卡與研究紀錄。
-- 名詞：市場頁＝研究紀錄頁的「名詞與判定方式」、配置頁＝頁內的名詞面板、研究紀錄頁＝這一頁的名詞段。
-  查公司：配置頁＝頂欄打開搜尋框；其他頁＝到配置頁打開搜尋框（x9.html#q）。
+再來是深淺色鈕與返回主頁；原本擠在頂欄的「資料到…」移到各區塊（市場頁的面向標題、選股頁個股工具那一列）。
+2026-10-28（docs/lab_pick_page_plan.md）：「配置」拿掉、改成「選股」（x9.html：台股｜美股｜個股），原本的配置搬到研究紀錄。
+- 市場＝台股 x9m.html、美股四個指數 x9mu.html（第二排切換）；選股＝x9.html。研究紀錄頁（x9r.html）兩格都不亮。
+- 兩格各記住上次看到哪裡（這台瀏覽器的 localStorage "labLast"）：從選股點「市場」回到上次看的市場、從市場點「選股」回到上次看的選股分頁；
+  沒有紀錄（或瀏覽器擋 localStorage）就是台股、選股台股。只記看得到的位置（市場與指數、選股的台股｜美股｜個股工具），不記個股卡與研究紀錄。
+- 名詞：市場頁＝研究紀錄頁的「名詞與判定方式」、選股頁＝頁內的名詞面板、研究紀錄頁＝這一頁的名詞段。
+  查公司：選股頁＝頂欄打開搜尋框；其他頁＝到選股頁打開搜尋框（x9.html#q）。
 - 手機（640px 以下）：深淺色鈕只留圖示、返回主頁寫「主頁」，360px 以上一列放得下兩格＋小字＋兩顆鈕；更窄的（320px）小字換到第二列靠右。
 """
 from __future__ import annotations
 
-TABS = (("mkt", "市場", "x9m.html"), ("cfg", "配置", "x9.html"))
+TABS = (("mkt", "市場", "x9m.html"), ("pick", "選股", "x9.html"))
 LAST_KEY = "labLast"
 
 CSS = (".top{align-items:center}"
@@ -42,16 +43,16 @@ CSS = (".top{align-items:center}"
 
 
 def links(page: str = "", search: str = "") -> str:
-    """頂欄右邊小字：研究紀錄・名詞・查公司（第 4 段；見本檔開頭）。page＝"mkt"／"cfg"／"r"（研究紀錄頁）；
-    search＝配置頁的查公司搜尋框（copage.SEARCH_HTML），放在這一組裡、點「查公司」才打開。"""
+    """頂欄右邊小字：研究紀錄・名詞・查公司（第 4 段；見本檔開頭）。page＝"mkt"／"pick"（選股頁 x9.html）／"r"（研究紀錄頁）；
+    search＝選股頁的查公司搜尋框（copage.SEARCH_HTML），放在這一組裡、點「查公司」才打開。"""
     rec = '<a href="x9r.html"' + (' aria-current="page"' if page == "r" else "") + ">研究紀錄</a>"
-    if page == "cfg":
+    if page == "pick":
         gl = '<a href="#gl" class="glk">名詞</a>'
     elif page == "r":
         gl = '<a href="#gl">名詞</a>'
     else:
         gl = '<a href="x9r.html#mth">名詞</a>'
-    if page == "cfg" and search:
+    if page == "pick" and search:
         co = '<a href="#q" class="coqb" role="button" aria-expanded="false" aria-controls="cos">查公司</a>' + search
     else:
         co = '<a href="x9.html#q">查公司</a>'
@@ -60,7 +61,7 @@ def links(page: str = "", search: str = "") -> str:
 
 
 def bar(page: str = "", cur: str = "", search: str = "") -> str:
-    """頂欄：主分頁（市場｜配置；目前所在的加 class="on"、aria-current="page"）＋右邊小字。
+    """頂欄：主分頁（市場｜選股；目前所在的加 class="on"、aria-current="page"）＋右邊小字。
     cur＝目前這一格連到哪裡（美股頁傳 x9mu.html；不給就是那一格的預設頁）。"""
     out = []
     for key, label, href in TABS:
@@ -70,11 +71,11 @@ def bar(page: str = "", cur: str = "", search: str = "") -> str:
     return '<nav class="apptab" aria-label="頁面">' + "".join(out) + "</nav>" + links(page, search)
 
 
-# 兩格各記住上次看到哪裡（見本檔開頭）。<head> 裡定義 labLast(格, 位置)，美股頁換指數、配置頁換分頁時呼叫；
+# 兩格各記住上次看到哪裡（見本檔開頭）。<head> 裡定義 labLast(格, 位置)，美股頁換指數、選股頁換分頁時呼叫；
 # 畫面出來後：亮的那一格＝現在的位置（紀錄不是這一頁的就記成這一頁，例如台股市場頁），沒亮的那一格改連到上次的位置。
 # 位置只收這幾種寫法（其他一律不理），讀寫失敗就用預設。
 NAV_HEAD = ('<script>(function(){var K="' + LAST_KEY + '",O={},'
-            'OK={mkt:/^x9mu?\\.html(#ix=(spx|ixic|ndx|sox))?$/,cfg:/^x9\\.html(\\?v=(us|strat|stk|chip|idx))?$/};'
+            'OK={mkt:/^x9mu?\\.html(#ix=(spx|ixic|ndx|sox))?$/,pick:/^x9\\.html(\\?v=(us|stk|chip|idx))?$/};'
             'try{O=JSON.parse(localStorage.getItem(K)||"{}")||{}}catch(e){O={}}'
             'window.labLast=function(k,v){if(!OK[k]||!OK[k].test(v)||O[k]===v)return;O[k]=v;'
             'try{localStorage.setItem(K,JSON.stringify(O))}catch(e){}};'

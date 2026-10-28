@@ -149,7 +149,7 @@ def cfg_html(c: str, G: dict, h0: dict | None, W0: dict | None, px: float | None
     if c in rows:
         r = rows[c]
         if r.get("new"):
-            lines.append(f'持有中：{CPG._mdw(r["ent"])}開盤買進；買進價和漲跌等這週六的持股紀錄。占全部資金約 {CPG._wp(r["w"])}。')
+            lines.append(f'持有中：{CPG._mdw(r["ent"])}開盤買進；買進價和漲跌等這週六的持股紀錄。占這條策略的錢約 {CPG._wp(r["w"])}。')
         else:
             epx = _num((h0 or {}).get("epx"))
             rr = r.get("r")
@@ -161,7 +161,7 @@ def cfg_html(c: str, G: dict, h0: dict | None, W0: dict | None, px: float | None
             rl = (px / p0 - 1) if bt and px is not None and p0 else r.get("rl")
             live = (f'；上線以來（{CPG._md(QX.QM_LIVE)} 收盤起）<span class="{"up" if rl >= 0 else "dn"}">{CPG._pc(rl)}</span>'
                     if bt and rl is not None else "")
-            lines.append(f'持有中：{CPG._mdw(r["ent"])}買進 {_px(epx)}' + ("（回測）" if bt else "") + f'{now}{live}；占全部資金 {CPG._wp(r["w"])}。')
+            lines.append(f'持有中：{CPG._mdw(r["ent"])}買進 {_px(epx)}' + ("（回測）" if bt else "") + f'{now}{live}；占這條策略的錢 {CPG._wp(r["w"])}。')
         if r.get("sell"):
             lines.append(f'<b>{CPG._mdw(r["sell"])}開盤賣</b>（{CPG._md(r["trig"])} 收盤跌破 50 日線）。')
         else:
@@ -177,7 +177,7 @@ def cfg_html(c: str, G: dict, h0: dict | None, W0: dict | None, px: float | None
     elif c in todo:
         x = todo[c]
         if x["w"] > 1e-3:
-            lines.append(f'待買進：<b>{CPG._mdw(x["d"])}開盤買</b>，約占全部資金 {CPG._wp(x["w"])}。')
+            lines.append(f'待買進：<b>{CPG._mdw(x["d"])}開盤買</b>，約占這條策略的錢 {CPG._wp(x["w"])}。')
         else:
             lines.append(f'排在名單上，但現金不夠，{CPG._mdw(x["d"])}先不買。')
         lines.append("買了以後，收盤跌破 50 日線就在下一個交易日開盤賣。")
@@ -192,7 +192,7 @@ def cfg_html(c: str, G: dict, h0: dict | None, W0: dict | None, px: float | None
             lines.append(f'現在有 {G["free"]} 個空位' + (f'，{CPG._mdw(nf)}收盤看下一份名單，下一個交易日開盤買' if nf else "") + "。")
         else:
             lines.append(f'現在 {QX.QM_SLOTS} 個位子都滿，有空位才買' + (f'（{CPG._mdw(nf)}收盤看下一份名單）' if nf else "") + "。")
-    return (f'<h3>配置<span class="sub">{_e(CPG.QM_NAME)}</span></h3>'
+    return (f'<h3>策略<span class="sub">{_e(CPG.QM_NAME)}</span></h3>'
             + "".join(f'<p class="ucl">{t}</p>' for t in lines))
 
 
@@ -601,7 +601,7 @@ def build(G: dict, card: dict | None, cash: bool = False, fin: dict | None = Non
 JS = r"""
 /* ---------- 美股個股卡（uscardpage.py；docs/lab_cfg_v2_plan.md 第 3.3 節）：配置頁美股列點了打開，網址 #us=代號。
    配置、為什麼選它、公司三段是 Python 組好的；走勢、分析師兩段在這裡畫。用同一個右側面板（#dv；電腦右側、手機全螢幕）。 ---------- */
-const UCD=((CFG.us||{}).uc)||null;
+const UCD=(((D.pick||{}).us||{}).uc)||((CFG.us||{}).uc)||null;
 function ucOn(){return !!(UCD&&UCD.s);}
 function ucOpen(c){if(!ucOn()||!UCD.s[c])return false;if(!$('#dv').hidden&&/^#us=/.test(location.hash)){history.replaceState(null,'','#us='+encodeURIComponent(c));ucRender(c);return true;}
   PUSHED=true;location.hash='us='+encodeURIComponent(c);return true;}
@@ -613,7 +613,7 @@ function ucRender(c,keep){const S=ucOn()&&UCD.s[c];if(!S){hideStock();return;}
   const dv=$('#dv'),pane=isPane(),st0=keep?dv.scrollTop:0;
   dv.classList.toggle('pane',pane);document.body.classList.toggle('pane',pane);dv.hidden=false;lockBody(!pane);
   const o=UCD.o||[],i=o.indexOf(c),pv=i>0,nx=i>=0&&i<o.length-1;
-  const secs=[['uc-st','配置'],['uc-why','為什麼選它'],['uc-px','走勢'],['uc-sx','飆股檢查'],['uc-gr','成長'],['uc-pf','獲利'],['uc-val','估值'],['uc-ind','同產業'],['uc-ch','籌碼'],['uc-an','分析師'],['uc-co','公司']];
+  const secs=[['uc-st','策略'],['uc-why','為什麼選它'],['uc-px','走勢'],['uc-sx','飆股檢查'],['uc-gr','成長'],['uc-pf','獲利'],['uc-val','估值'],['uc-ind','同產業'],['uc-ch','籌碼'],['uc-an','分析師'],['uc-co','公司']];
   const sub=[`${i+1}／${o.length}`,c].concat(S.what?[S.what]:[]);
   let h=`<div class=dvh><div class=dvt><a class="nv${pv?'':' off'}" id=pv title="上一檔（←）">‹</a>`+
    `<div class=ttl><b>${esc(S.nm)}</b><span class=cd>${sub.map(esc).join(' · ')}</span></div>`+
