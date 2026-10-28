@@ -53,6 +53,15 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
             core.STK.update(core.stk_from_adv(data["adv"], today_tw().isoformat(), boom=sxlive.LAST.get("plan")))
     except Exception as e:                   # noqa: BLE001 —— 失敗只是交易計畫卡少了台股衛星的名單
         print(f"[籌碼雷達] ⚠ 交易計畫卡的衛星資料沒有算：{type(e).__name__}: {e}")
+    try:                                     # 配置頁「今年」每個月、每一筆（ytdspec；docs/lab_review_plan.md 第 9.2 節）
+        from . import sxlive, ussxqm, ytd
+        D0 = ctx.get("D")
+        data["ytd"] = {"tw": ytd.tw(D0, sxlive.LAST.get("plan"), dict(getattr(D0, "names", None) or {})),
+                       "us": ytd.us(ussxqm.load_live())}
+        data["ytd_day"] = D0.cal[-1] if D0 is not None and D0.cal else None
+    except Exception as e:                   # noqa: BLE001 —— 失敗只是那張表寫「還沒算出來」
+        print(f"[配置] ⚠ 今年每個月的表沒有算出來：{type(e).__name__}: {e}")
+        data["ytd"] = {}
     _cfg(data)                               # 配置頁（先用上一版的警訊讀數；finish() 換成今天的）
     try:                                     # 後台自我驗證紀錄（只有 CI 寫回 data/lab/val_log.json）
         from . import valog
@@ -94,6 +103,11 @@ def _cfg(data: dict) -> bool:
     try:
         from . import cfgpage, sigpage
         data["cfg"] = cfgpage.build(data, sigpage.core_data(record=False))
+        try:                                 # 上線後那一欄：每天收盤的台股持股比例（只有 CI 寫回 data/lab/ytd_live.json）
+            from . import corespec, ytd
+            ytd.record_tw(data.get("ytd_day"), (data["cfg"].get("tw") or {}).get("pos"), corespec.core_of("tw"))
+        except Exception as e:               # noqa: BLE001
+            print(f"[配置] ⚠ 今年上線後的持股沒有記下來：{type(e).__name__}: {e}")
         return True
     except Exception as e:                   # noqa: BLE001 —— 失敗只是配置頁空著
         print(f"[配置] ⚠ 配置頁沒有算出來：{type(e).__name__}: {e}")
@@ -190,7 +204,7 @@ def theme_css() -> str:
 
 
 def render(data: dict, ser_v: str | None = None) -> str:
-    main = {k: v for k, v in data.items() if k not in ("ser", "mtab")}
+    main = {k: v for k, v in data.items() if k not in ("ser", "mtab", "ytd", "ytd_day")}   # ytd＝配置頁的表已組成 HTML
     main["serv"] = ser_v or _ver(ser_json(data))
     main["asl"] = asof_line(data)                 # 資料日（個股工具那一列；第 4 段起不放頂欄）
     blob = _dump(main).replace("</", "<\\/")

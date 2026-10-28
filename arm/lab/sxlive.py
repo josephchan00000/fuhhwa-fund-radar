@@ -620,6 +620,30 @@ def trial_list(ctx: dict, d: str, R: dict | None = None, why: dict | None = None
     return out
 
 
+def ytd_part(rec: dict, ctx: dict, last: str | None) -> dict | None:
+    """今年逐月、逐筆表（ytdspec VER 1）要的：PLAN_BOOK 接手以後每天的總資產與每一筆（元，那本帳自己的規模）。
+    → {"take", "e0"（接手那天收盤）, "eq": {日期: 總資產}, "closed": [[代號, 買進日, 賣出日, 報酬, 原因, 賺賠, 股數, 接手以來賺賠|None]],
+       "open": [[代號, 買進日, 買進成本, 接手那天的市值|None, 最新市值, 股數]]}；沒有接手的狀態或還沒算＝None。"""
+    bk, e0, px = rec.get("_book"), rec.get("_base"), rec.get("_px")
+    if bk is None or not e0 or not px or not last:
+        return None
+    cal = ctx["P"].cal
+    i1 = cal.index(last)
+    eq = {d: round(v[0] / 100 * e0, 2) for d, v in (rec.get("nav") or {}).items() if v and v[0] is not None}
+    closed = []
+    for t in bk.trades:
+        c, si, ei, xi, r, why, sh, pnl, *tk = t
+        closed.append([c, cal[ei], cal[xi], round(float(r), 6), why, round(float(pnl), 2), float(sh),
+                       round(float(tk[1]), 2) if tk else None])
+    opens = []
+    for c, q in sorted(bk.pos.items(), key=lambda x: (x[1]["ei"], x[0])):
+        p = px[c]
+        v = q["k"] * (p["c"][i1] if _ok(p["c"][i1]) else p["cff"][i1])
+        opens.append([c, cal[q["ei"]], round(float(q["cin"]), 2), round(float(q["v0"]), 2) if q.get("v0") else None,
+                      round(float(v), 2), float(q["sh"])])
+    return {"take": S.TAKE, "e0": round(float(e0), 2), "eq": eq, "closed": closed, "open": opens}
+
+
 # ── 紀錄 ─────────────────────────────────────────────────────────────
 
 def read() -> dict:
@@ -732,6 +756,9 @@ def update(DL, ctx: dict | None = None, now=None, write_file: bool | None = None
             tr = [{"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1), "why": _why_lines(rl, tw.get(c))}
                   for c, rs in trial_list(ctx, last, R, why=tw)[:S.LIST_SHOW]]
         plan = plan_state(dict(rec, last=last), ctx, nm, tr, R, seed)  # START 之前（資料停在 START 前一天）也要算下一次看名單的日子
+        yp = ytd_part(rec, ctx, last)                      # 今年逐月、逐筆表（ytdspec）：接手以後那本帳的錢
+        if plan is not None and yp:
+            plan["ytd"] = yp
     except Exception as e:                                 # noqa: BLE001
         print(f"[sxlive] ⚠ 新飆股的配置頁狀態算不出來：{type(e).__name__}: {e}")
     for k in ("_book", "_px", "_base", "_i0"):
