@@ -257,7 +257,9 @@ def core_data(dirpath: Path | None = None, record: bool = True) -> dict:
         QR = QM.load()
         if QR:
             from . import uscard as UC
-            qm = {"R": QR, "L": QM.load_live(), "W": QM.load_watch(), "C": UC.load()}   # C＝美股個股卡的每天資料（配置頁用）
+            from . import usfin as UF
+            qm = {"R": QR, "L": QM.load_live(), "W": QM.load_watch(), "C": UC.load(),   # C＝美股個股卡的每天資料（配置頁用）
+                  "F": UF.load()}                                                        # F＝美股個股卡的季報（每週六）
     except Exception as e:                                # noqa: BLE001
         print(f"[交易計畫] 美股三成的研究檔讀不到：{type(e).__name__}: {e}")
     fw = {}

@@ -203,11 +203,11 @@ def test_page_wiring():
     assert "/^#us=/.test(location.hash)?'us':'tw'" in page._JS                              # 直接打開 #us= 到配置・美股
     assert "PUSHED&&/^#(s|us)=/.test(location.hash)" in page._JS and "ucStep(d)" in page._JS
     assert "{const m=location.hash.match(/^#us=(.+)$/);if(m)ucRender(decodeURIComponent(m[1]));}" in page._JS
-    for s in ("data-us", "#us=", "function ucRender(", "function ucSvg(", "id=uc-st", "id=uc-why", "id=uc-px", "id=uc-an", "id=uc-co"):
+    for s in ("data-us", "#us=", "function ucRender(", "function ucSvg(", "id=uc-st", "id=uc-why", "id=uc-px", "id=uc-an", "id=uc-co",
+              "id=uc-gr", "id=uc-pf", "id=uc-val", "data-ucrg"):
         assert s in UCP.JS, s
-    for col in ("#2563c9", "#f59e0b", "#d33a34", "#1f9d57", "#e3e7ec", "#727e8c", "#9aa5b1"):   # 深色模式換色（page.THEME_HEX）
-        if col in UCP.JS:
-            assert col in page.THEME_HEX, col
+    for col in set(re.findall(r"#[0-9a-f]{6}\b", UCP.JS)):                                      # 深色模式換色（page.THEME_HEX）
+        assert col in page.THEME_HEX, col
     if NODE:
         r = subprocess.run([NODE, "--check", "-"], input=UCP.JS, capture_output=True, text=True, timeout=60)
         assert r.returncode == 0, r.stderr
@@ -217,7 +217,7 @@ def test_core_data_carries_card(monkeypatch):
     """配置頁的卡片資料從 sigpage.core_data 的 qm["C"] 來（uscard.load）。"""
     from arm.lab import sigpage
     src = open(sigpage.__file__, encoding="utf-8").read()
-    assert '"C": UC.load()' in src
+    assert '"C": UC.load()' in src and '"F": UF.load()' in src
 
 
 def test_us_card_writes_return_since_live_start(R, QMX, monkeypatch):
@@ -229,3 +229,98 @@ def test_us_card_writes_return_since_live_start(R, QMX, monkeypatch):
     qm["L"]["weeks"] = {"2026-10-23": {"hold": [{"c": "VLO", "px": 400.0}]}}
     v = CF.us_parts(_data(), _bundle(R, qm=qm))["uc"]["s"]["VLO"]
     assert _has(v["st"], "8/31（一）買進 359.88（回測），現在 430.00（+19.5%）；上線以來（10/23 收盤起）+7.5%")
+
+
+# ── 走勢 5 年、成長、獲利、估值（docs/lab_review_plan.md 第 4 節 (a)(b)(c)） ─────────────────────────
+
+def _wd(a, b):
+    from datetime import date, timedelta
+    d, out = date.fromisoformat(a), []
+    while d <= date.fromisoformat(b):
+        if d.weekday() < 5:
+            out.append(d.isoformat())
+        d += timedelta(days=1)
+    return out
+
+
+def test_weekly_px_merges_boundary_week():
+    cal = _wd("2025-10-28", "2026-10-23")                                        # 2025-10-28 是週二
+    rec = {"c": [100.0 + i for i in range(len(cal))], "wk": [["2025-10-17", 90.0, 10], ["2025-10-27", 95.0, 3]]}
+    w = UCP.weekly_px(rec, cal)
+    assert w[0] == ("2025-10-17", 90.0) and w[1] == ("2025-10-31", 103.0)        # 10/27（一）那週併進近一年的那幾天
+    assert len({UCP._monday(d) for d, _ in w}) == len(w) and w[-1] == (cal[-1], 100.0 + len(cal) - 1)
+
+
+def _fin(eps=(1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0), filed_lag=40, y0=2024):
+    """len(eps) 季（y0 年第一季起）：營收 100、110…、EPS 照給的、股東權益 1000、流通股數 100 百萬股。"""
+    from datetime import date, timedelta
+    ends = [f"{y0 + i // 4}-{('03-31', '06-30', '09-30', '12-31')[i % 4]}" for i in range(len(eps))]
+    q = []
+    for i, e in enumerate(ends):
+        fd = (date.fromisoformat(e) + timedelta(days=filed_lag)).isoformat()
+        rev = 100.0 + 10 * i
+        q.append([e, fd, rev, rev * 0.5, rev * 0.2, rev * 0.1, eps[i], 1000.0])
+    return {"q": q, "sh": [["2024-04-30", "2024-05-10", 100.0], ["2025-10-30", "2026-02-09", 100.0]]}
+
+
+def test_growth_rows_yoy_margins_roe():
+    g = UCP.growth_rows(_fin())
+    last = g[-1]
+    assert last[0] == "2025-12-31" and last[2] == 1.7                           # 營收 170 百萬＝1.7 億美元
+    assert last[3] == pytest.approx(170 / 130 - 1, abs=1e-4) and last[8] == pytest.approx(1.0)   # 年增；EPS 2 比 1
+    assert last[4] == 0.5 and last[5] == 0.2 and last[6] == 0.1
+    assert last[9] == pytest.approx((14 + 15 + 16 + 17) / 1000, abs=1e-4)      # 近四季淨利 ÷ 股東權益
+    assert g[0][3] is None and g[3][9] is None                                  # 第一年沒有去年同一季；不到五季沒有期初
+    f = _fin()
+    f["q"][3][6] = -1.0
+    assert UCP.growth_rows(f)[-1][8] is None                                    # 去年同一季虧損：EPS 年增不算
+
+
+def test_valuation_split_and_own_history():
+    """分割以前公布的 EPS、股數換算成分割後（股價本來就是分割還原的）；本益比和自己近 5 年每週比。"""
+    cal = _wd("2025-10-28", "2026-10-23")
+    old = [[d, 50.0, 1000] for d in _wd("2021-10-25", "2025-10-24") if d.endswith(("-03", "-10", "-17", "-24"))]
+    rec = {"c": [60.0] * len(cal), "wk": old, "spl": [["2025-03-01", 2.0]],
+           "div": [["2020-06-01", 9.0], ["2024-06-03", 0.5], ["2025-06-02", 0.5], ["2026-06-01", 0.6]]}
+    f = _fin(eps=(2.0,) * 16 + (1.0,) * 4, y0=2021)                              # 2024 年以前的 EPS 是分割以前公布的（2 → 1）
+    v = UCP.valuation(f, rec, cal, 60.0)
+    assert v["ttm"] == pytest.approx(4.0) and v["pe"] == 15.0
+    assert v["bvps"] == pytest.approx(1000 / 100) and v["pb"] == 6.0           # 2026-02 公布的股數已經是分割後
+    assert v["cap"] == pytest.approx(60 * 100 / 100)                             # 億美元
+    assert v["yld"] == pytest.approx(0.6 / 60) and v["ndiv"] == 1
+    yrs = dict(v["dy"])
+    assert "2021" not in yrs and yrs["2022"] == 0.0 and yrs["2024"] == 0.5 and yrs["2026"] == 0.6 and v["dym"] == 10
+    ph = v.get("peh")
+    assert ph and ph["n"] >= UCP.PE_MIN_N and ph["from"].startswith("2021")
+    # 舊的那幾週：股價 50 ÷（四季 EPS 2×4 ÷ 2）＝ 12.5 倍，沒有換算會變 6.25
+    assert ph["lo"] == pytest.approx(12.5) and 0 <= ph["pct"] <= 100
+    v0 = UCP.valuation(f, {"c": [60.0] * len(cal)}, cal, 60.0)
+    assert v0.get("short") and "peh" not in v0                                  # 只有近一年的股價：還不和自己比
+    assert UCP.fin_view(None, rec, cal, 60.0, None, {}) is None
+
+
+@pytest.mark.skipif(not NODE, reason="沒有 node")
+def test_js_series_weekly_matches_python():
+    """瀏覽器端的 3 年、5 年每週點＝Python 的 weekly_px（同一週併成一點，成交量加總）；6 個月、1 年是每天。"""
+    cal = _wd("2025-10-28", "2026-10-23")
+    old = [[d, 50.0 + i, 7] for i, d in enumerate(d for d in _wd("2021-10-25", "2025-10-27") if d.endswith(("-03", "-10", "-17", "-24", "-27")))]
+    S = {"c": [100.0 + i for i in range(len(cal))], "m": [None] * len(cal), "v": [5] * len(cal), "wk": old}
+    js = UCP.JS
+    names = ("ucDay", "ucIso", "ucMon", "ucSeries")
+    fns = ""
+    for n in names:
+        i = js.index(f"function {n}(")
+        j = js.find("\nfunction ", i + 1)
+        fns += js[i:j] + "\n"
+    k = js.index("const UCRGS=")
+    prog = js[k:js.index("\n", k)] + "\n" + fns + "const UCD={cal:%s};\nconst S=%s;\n" % (json.dumps(cal), json.dumps(S)) + \
+        "process.stdout.write(JSON.stringify({y:ucSeries(S,'1y'),f:ucSeries(S,'5y'),h:ucSeries(S,'6m')}));"
+    r = subprocess.run([NODE, "-e", prog], capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stderr
+    o = json.loads(r.stdout)
+    assert not o["y"]["wk"] and len(o["y"]["d"]) == len(cal) and o["h"]["d"][0] > "2026-04-20"
+    py = UCP.weekly_px({"c": S["c"], "wk": old}, cal)
+    first = o["f"]["d"][0]
+    assert list(zip(o["f"]["d"], o["f"]["c"])) == [x for x in py if x[0] >= first]
+    i = o["f"]["d"].index("2025-10-31")                                         # 跨過近一年起點的那週：舊的 7 千股＋四天各 5 千股
+    assert o["f"]["v"][i] == 7 + 5 * 4 and o["f"]["m"][i] is None

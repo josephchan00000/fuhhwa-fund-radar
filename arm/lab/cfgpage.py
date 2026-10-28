@@ -1157,7 +1157,8 @@ def us_parts(data: dict, bundle: dict) -> dict:
     nx = CPG._next_day("spx", d0) if d0 else None
     uc = None
     try:                                                  # 美股個股卡（第 4 步；卡片資料＝qm 的 C，sigpage.core_data 放進去）
-        uc = UCP.build(G, ((bundle.get("qm") or {}).get("C")) or {}, cash=bool(N) and N["now"] < 0.99)
+        qm = bundle.get("qm") or {}
+        uc = UCP.build(G, qm.get("C") or {}, cash=bool(N) and N["now"] < 0.99, fin=qm.get("F"))
     except Exception as e:                                # noqa: BLE001 —— 卡片算不出來：股票照舊連 Yahoo Finance
         print(f"[配置] 美股個股卡算不出來：{type(e).__name__}: {e}")
     G["uc"] = set((uc or {}).get("s") or ())

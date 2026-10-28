@@ -1,5 +1,7 @@
 """美股個股卡（配置頁 v2 第 4 步；docs/lab_cfg_v2_plan.md 第 3.3 節）：配置頁美股列的股票（手上的、要買的、名單前 5 名裡
-手上沒有的）點了打開的卡片——配置、為什麼選它、走勢、分析師、公司。
+手上沒有的）點了打開的卡片——配置、為什麼選它、走勢、成長、獲利、估值、分析師、公司。
+走勢可切 6 個月／1 年／3 年／5 年、有成交量與 52 週高點；成長、獲利、估值是 2026-10-28 補的（docs/lab_review_plan.md 第 4 節 (a)(b)(c)）：
+SEC 季報（usfin.py，每週六）配上每天的股價，本益比、淨值比和自己過去 5 年比。
 
 資料：每週紀錄（ussx_qm_live.json：持股、名單、met／met0＝五個條件）＋每天的 50 日線檢查（ussx_qm_watch.json）＋
 每天的卡片資料（ussx_card.json：近一年收盤與 50 日線、Yahoo 分析師預估、財報日；uscard.py）＋簡介庫。
@@ -13,6 +15,8 @@ from __future__ import annotations
 
 import html
 import math
+
+from datetime import date, timedelta
 
 from .. import fund_intro as FI
 from . import corepage as CPG
@@ -220,6 +224,210 @@ def _an(a: dict | None) -> dict | None:
     return {k: v for k, v in out.items() if v is not None}
 
 
+# ── 成長、獲利、估值（SEC 季報＋股價；docs/lab_review_plan.md 第 4 節 (b)(c)） ─────────────────────
+
+NQ_SHOW = 12          # 成長、獲利畫近幾季
+PE_MAX = 300          # 本益比超過這個不算進自己的歷史（獲利接近 0 的那幾季）
+PE_MIN_N = 104        # 和自己比至少要幾週（兩年）
+PE_YEARS = 5
+
+
+def _d(x: str) -> date:
+    return date.fromisoformat(x)
+
+
+def _monday(d: str) -> str:
+    x = _d(d)
+    return (x - timedelta(days=x.weekday())).isoformat()
+
+
+def weekly_px(rec: dict, cal: list) -> list[tuple[str, float]]:
+    """卡片資料的一檔 → 每週一點 [(那週最後一個交易日, 收盤)]：更早的每週點（wk）＋近一年每天的收盤併成每週；同一週併成一點。"""
+    out: dict[str, list] = {}
+    for w in rec.get("wk") or []:
+        if w and w[1] is not None:
+            out[_monday(w[0])] = [w[0], float(w[1])]
+    cs = rec.get("c") or []
+    for i, d in enumerate(cal):
+        c = cs[i] if i < len(cs) else None
+        if c is not None:
+            out[_monday(d)] = [d, float(c)]
+    return [(v[0], v[1]) for _, v in sorted(out.items())]
+
+
+def _split_after(spl: list, fd: str) -> float:
+    """公布日以後的分割倍數（之後的股價都已經換算成分割後，公布的 EPS、股數要跟著換算）。"""
+    f = 1.0
+    for d, r in spl or []:
+        if d > fd and r and r > 0:
+            f *= float(r)
+    return f
+
+
+def _yoy(q: list, k: int, i: int, pos_only: bool = True) -> float | None:
+    """第 i 季的第 k 欄比去年同一季（季底差 350～380 天）；去年那一季要是正的。"""
+    e = _d(q[i][0])
+    for j in range(i - 1, max(-1, i - 7), -1):
+        n = (e - _d(q[j][0])).days
+        if 350 <= n <= 380:
+            a, b = q[i][k], q[j][k]
+            if a is None or b is None or (pos_only and b <= 0) or b == 0:
+                return None
+            return a / b - 1
+        if n > 380:
+            break
+    return None
+
+
+def _four(q: list, i: int) -> list[int] | None:
+    """第 i 季往前連續四季（第一季和第四季的季底差 250～300 天）的位置。"""
+    if i < 3:
+        return None
+    n = (_d(q[i][0]) - _d(q[i - 3][0])).days
+    return [i - 3, i - 2, i - 1, i] if 250 <= n <= 300 else None
+
+
+def _roe(q: list, i: int) -> float | None:
+    """近四季淨利 ÷ 期初期末股東權益的平均（期初＝四季以前那一季的季底；和選股的近四季 ROE 同一個算法）。"""
+    ix = _four(q, i)
+    if not ix or i < 4:
+        return None
+    ni = [q[j][5] for j in ix]
+    e0, e1 = q[i][7], q[i - 4][7]
+    if None in ni or not e0 or not e1 or e0 <= 0 or e1 <= 0:
+        return None
+    return sum(ni) / ((e0 + e1) / 2)
+
+
+def _r(x, n=4):
+    return None if x is None else round(x, n)
+
+
+def growth_rows(F: dict) -> list[list]:
+    """近 NQ_SHOW 季：[季底, 公布日, 營收（億美元）, 營收年增, 毛利率, 營益率, 淨利率, EPS, EPS 年增, 近四季 ROE]。"""
+    q = F.get("q") or []
+    out = []
+    for i in range(max(0, len(q) - NQ_SHOW), len(q)):
+        e, fd, rev, gp, oi, ni, eps, eq = q[i]
+        mg = (lambda v: None if v is None or not rev or rev <= 0 else v / rev)
+        out.append([e, fd, _r(rev / 100 if rev is not None else None, 2), _r(_yoy(q, 2, i)), _r(mg(gp)), _r(mg(oi)), _r(mg(ni)),
+                    eps, _r(_yoy(q, 6, i)), _r(_roe(q, i))])
+    return out
+
+
+def _ttm_at(q: list, spl: list, t: str) -> float | None:
+    """t 那天拿得到的近四季 EPS（公布日不晚於 t 的最後四季、要連續；換算成現在的股數）。"""
+    ok = [i for i, r in enumerate(q) if r[1] <= t]
+    if len(ok) < 4:
+        return None
+    i = ok[-1]
+    ix = _four(q, i)
+    if not ix or any(j not in ok for j in ix):
+        return None
+    es = [q[j][6] for j in ix]
+    if None in es:
+        return None
+    return sum(e / _split_after(spl, q[j][1]) for e, j in zip(es, ix))
+
+
+def _bvps_at(q: list, sh: list, spl: list, t: str) -> float | None:
+    """t 那天拿得到的每股淨值：最新一季的股東權益 ÷ 最新的流通股數（都換算成現在的股數）。"""
+    qe = [r for r in q if r[1] <= t and r[7]]
+    se = [r for r in sh if r[1] <= t and r[2]]
+    if not qe or not se:
+        return None
+    eq, n = qe[-1], se[-1]
+    shares = n[2] * _split_after(spl, n[1])
+    return eq[7] / shares if shares > 0 else None
+
+
+def _pct_below(xs: list[float], x: float) -> int:
+    return round(100 * sum(1 for v in xs if v < x) / len(xs))
+
+
+def _q(xs: list[float], p: float) -> float:
+    s = sorted(xs)
+    k = (len(s) - 1) * p
+    lo, hi = int(k), min(len(s) - 1, int(k) + 1)
+    return s[lo] + (s[hi] - s[lo]) * (k - lo)
+
+
+def valuation(F: dict, rec: dict, cal: list, px: float | None, an: dict | None = None) -> dict:
+    """本益比（股價 ÷ 近四季 EPS）、淨值比、市值、殖利率（近 12 個月配息 ÷ 股價），本益比和淨值比和自己近 5 年每週比。
+    股價是分割還原的，所以公布在分割以前的 EPS、股數都換算成分割後。"""
+    q, sh = F.get("q") or [], F.get("sh") or []
+    spl = rec.get("spl") or []
+    wk = weekly_px(rec, cal)
+    out: dict = {}
+    if not wk or px is None:
+        return out
+    last = wk[-1][0]
+    ttm = _ttm_at(q, spl, last)
+    bv = _bvps_at(q, sh, spl, last)
+    out["ttm"] = _r(ttm, 3)
+    if ttm and ttm > 0:
+        out["pe"] = round(px / ttm, 2)
+    if bv and bv > 0:
+        out["bvps"] = round(bv, 2)
+        out["pb"] = round(px / bv, 2)
+    se = [r for r in sh if r[2]]
+    if se:
+        out["cap"] = round(px * se[-1][2] * _split_after(spl, se[-1][1]) / 100, 1)       # 億美元（股數是百萬股）
+    first = (_d(last) - timedelta(days=PE_YEARS * 365 + 2)).isoformat()
+    pes, pbs, mon = [], [], {}
+    for d, c in wk:
+        if d <= first:
+            continue
+        t = _ttm_at(q, spl, d)
+        if t and t > 0 and c / t < PE_MAX:
+            pes.append(c / t)
+            mon[d[:7]] = round(c / t, 2)
+        b = _bvps_at(q, sh, spl, d)
+        if b and b > 0:
+            pbs.append(c / b)
+    if len(pes) >= PE_MIN_N and out.get("pe") and out["pe"] < PE_MAX:
+        out["peh"] = {"n": len(pes), "from": next(d for d, _ in wk if d > first)[:7], "pct": _pct_below(pes, out["pe"]),
+                      "p20": round(_q(pes, .2), 2), "p50": round(_q(pes, .5), 2), "p80": round(_q(pes, .8), 2),
+                      "lo": round(min(pes), 2), "hi": round(max(pes), 2)}
+        out["pem"] = sorted(mon.items())
+    if len(pbs) >= PE_MIN_N and out.get("pb"):
+        out["pbh"] = {"pct": _pct_below(pbs, out["pb"]), "p50": round(_q(pbs, .5), 2)}
+    # 殖利率：近 12 個月的配息（Yahoo，分割還原）÷ 股價；每年的配息
+    divs = rec.get("div") or []
+    c12 = (_d(last) - timedelta(days=365)).isoformat()
+    d12 = [a for d, a in divs if d > c12]
+    out["div12"] = round(sum(d12), 4)
+    out["ndiv"] = len(d12)
+    out["yld"] = round(sum(d12) / px, 5) if px else None
+    yrs: dict[str, float] = {}
+    y0 = int(wk[0][0][:4]) + 1                                 # 每年配息：只列走勢涵蓋整年的年份（第一年只有一部分），今年寫到幾月
+    for d, a in divs:
+        if int(d[:4]) >= y0:
+            yrs[d[:4]] = yrs.get(d[:4], 0.0) + a
+    if divs or yrs:
+        for y in range(y0, int(last[:4]) + 1):
+            yrs.setdefault(str(y), 0.0)
+    out["dy"] = [[y, round(v, 4)] for y, v in sorted(yrs.items())]
+    out["dym"] = int(last[5:7])
+    if "wk" not in rec:
+        out["short"] = True                                    # 只有近一年的股價（VER 1 的卡片資料）：自己的歷史還沒有
+    # 用分析師今年度 EPS 預估算的本益比
+    y0 = ((an or {}).get("y0") or {})
+    e0 = (y0.get("e") or [None])[0]
+    if e0 and e0 > 0:
+        out["fpe"] = round(px / e0, 2)
+        out["fend"] = y0.get("end")
+    return out
+
+
+def fin_view(F: dict | None, rec: dict, cal: list, px: float | None, an: dict | None, src: dict) -> dict | None:
+    """→ 卡片的 "fin"：{"g": growth_rows, "v": valuation, "src": {"sec": SEC 資料日, "end": 最新一季季底, "fd": 公布日}}；沒有季報＝None。"""
+    if not F or not F.get("q"):
+        return None
+    q = F["q"]
+    return {"g": growth_rows(F), "v": valuation(F, rec, cal, px, an), "src": {"sec": src.get("sec"), "end": q[-1][0], "fd": q[-1][1]}}
+
+
 # ── 組起來 ─────────────────────────────────────────────────────────────────────
 
 def order(G: dict) -> list[str]:
@@ -236,9 +444,9 @@ def order(G: dict) -> list[str]:
     return res
 
 
-def build(G: dict, card: dict | None, cash: bool = False) -> dict | None:
+def build(G: dict, card: dict | None, cash: bool = False, fin: dict | None = None) -> dict | None:
     """→ D.cfg.us.uc；美股強勢品質股沒有在用（判定沒過、還沒有每週紀錄）＝None（配置頁的列照舊連 Yahoo Finance）。
-    card＝uscard.load()（沒有＝走勢、分析師兩段寫「還沒有」）。"""
+    card＝uscard.load()（沒有＝走勢、分析師兩段寫「還沒有」）；fin＝usfin.load()（沒有＝成長、獲利、估值寫「還沒有」）。"""
     if not G.get("on") or not G.get("n"):
         return None
     n, W, nms = G["n"], G.get("W") or {}, G.get("nms") or {}
@@ -278,8 +486,20 @@ def build(G: dict, card: dict | None, cash: bool = False) -> dict | None:
              "out": (g or {}).get("on") or (rows.get(c) or {}).get("sell")}
         if cs:
             x["c"], x["m"] = cs, ms
-            if s.get("spl"):
-                x["spl"] = s["spl"]
+            vs = s.get("v")
+            if vs and len(vs) == len(cal):
+                x["v"] = vs
+            for k in ("spl", "wk", "hi"):
+                if s.get(k):
+                    x[k] = s[k]
+        F = ((fin or {}).get("s") or {}).get(c)
+        try:
+            fv = fin_view(F, s, cal, px, s.get("an"), fin or {})
+        except Exception as e:                                 # noqa: BLE001 —— 算不出來只少這三段
+            print(f"[美股個股卡] {c} 季報算不出來：{type(e).__name__}: {e}")
+            fv = None
+        if fv:
+            x["fin"] = fv
         out[c] = x
     return {"o": list(out), "cal": cal if any("c" in v for v in out.values()) else [], "d": card.get("d"), "s": out}
 
@@ -299,54 +519,140 @@ function ucRender(c,keep){const S=ucOn()&&UCD.s[c];if(!S){hideStock();return;}
   const dv=$('#dv'),pane=isPane(),st0=keep?dv.scrollTop:0;
   dv.classList.toggle('pane',pane);document.body.classList.toggle('pane',pane);dv.hidden=false;lockBody(!pane);
   const o=UCD.o||[],i=o.indexOf(c),pv=i>0,nx=i>=0&&i<o.length-1;
-  const secs=[['uc-st','配置'],['uc-why','為什麼選它'],['uc-px','走勢'],['uc-an','分析師'],['uc-co','公司']];
+  const secs=[['uc-st','配置'],['uc-why','為什麼選它'],['uc-px','走勢'],['uc-gr','成長'],['uc-pf','獲利'],['uc-val','估值'],['uc-an','分析師'],['uc-co','公司']];
   const sub=[`${i+1}／${o.length}`,c].concat(S.what?[S.what]:[]);
   let h=`<div class=dvh><div class=dvt><a class="nv${pv?'':' off'}" id=pv title="上一檔（←）">‹</a>`+
    `<div class=ttl><b>${esc(S.nm)}</b><span class=cd>${sub.map(esc).join(' · ')}</span></div>`+
    `<div class=pxw><b>${ucPx(S.px)}</b>${S.ch!=null?sgn(S.ch,2,'%'):''}</div><a class="nv${nx?'':' off'}" id=nx title="下一檔（→）">›</a><a class=x id=x title="關閉（Esc）">×</a></div>`+
    `<nav class=cnav>${secs.map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
   h+=`<section class="csec uc" id=uc-st>${S.st}</section><section class="csec uc" id=uc-why>${S.why}</section>`;
-  h+=`<section class="csec uc" id=uc-px>${ucPxSec(c,S)}</section><section class="csec uc" id=uc-an>${ucAn(c,S)}</section>`;
+  h+=`<section class="csec uc" id=uc-px>${ucPxSec(c,S)}</section><section class="csec uc" id=uc-gr>${ucGr(S)}</section>`;
+  h+=`<section class="csec uc" id=uc-pf>${ucPf(S)}</section><section class="csec uc" id=uc-val>${ucVal(S)}</section><section class="csec uc" id=uc-an>${ucAn(c,S)}</section>`;
   h+=`<section class="csec uc" id=uc-co>${S.co}</section>`;
   $('#dvin').innerHTML=h;dv.scrollTop=st0;
   $('#x').onclick=closeStock;$('#pv').onclick=()=>ucStep(-1);$('#nx').onclick=()=>ucStep(1);
   $$('#dvin [data-cto]').forEach(a=>a.onclick=()=>{const t=document.getElementById(a.dataset.cto);if(t)dv.scrollTo({top:dv.scrollTop+t.getBoundingClientRect().top-dv.getBoundingClientRect().top-$('#dvin .dvh').offsetHeight+2,behavior:'smooth'});});
-  ucBind(c,S);cspy();}
-/* 走勢：近一年收盤（分割還原）、50 日線（虛線）、買進點 ▲、賣出點 ▼；游標移上去看每天的數字 */
+  $$('#dvin [data-ucrg]').forEach(b=>b.onclick=()=>{if(b.disabled)return;UCRG=b.dataset.ucrg;$$('#dvin [data-ucrg]').forEach(x=>x.classList.toggle('on',x===b));ucDraw(S);});
+  ucDraw(S);cspy();}
+/* 走勢：6 個月、1 年＝每天（收盤、50 日線、成交量）；3 年、5 年＝每週一點（更早的每週點＋近一年每天併成每週，那週最後一個交易日的收盤）。
+   52 週高點（橫虛線）、買進點 ▲、賣出點 ▼；游標移上去看那天（那週）的數字 */
+const UCRGS=[['6m','6 個月',183],['1y','1 年',365],['3y','3 年',1096],['5y','5 年',1828]];
+let UCRG='1y';
+function ucDay(d){return Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10));}
+function ucIso(t){return new Date(t).toISOString().slice(0,10);}
+function ucMon(d){const t=ucDay(d);return ucIso(t-((new Date(t).getUTCDay()+6)%7)*864e5);}
+function ucDt(d){return d?`${d.slice(0,4)}/${+d.slice(5,7)}/${+d.slice(8,10)}`:'—';}
+function ucSeries(S,rg){const cal=UCD.cal||[],R=UCRGS.find(x=>x[0]===rg)||UCRGS[1],last=cal[cal.length-1]||'',st=last?ucIso(ucDay(last)-R[2]*864e5):'';
+  const P={d:[],c:[],m:[],v:[],wk:R[2]>365};
+  if(!P.wk){cal.forEach((d,i)=>{if(d<=st||S.c[i]==null)return;P.d.push(d);P.c.push(S.c[i]);P.m.push(S.m?S.m[i]:null);P.v.push(S.v?S.v[i]:null);});return P;}
+  const W=new Map();(S.wk||[]).forEach(w=>W.set(ucMon(w[0]),[w[0],w[1],w[2]]));
+  cal.forEach((d,i)=>{if(S.c[i]==null)return;const k=ucMon(d),v=S.v?S.v[i]:null,o=W.get(k);
+    if(!o)W.set(k,[d,S.c[i],v]);else if(o[0]<d){o[0]=d;o[1]=S.c[i];o[2]=o[2]==null||v==null?null:o[2]+v;}});
+  [...W.keys()].sort().forEach(k=>{const o=W.get(k);if(o[0]<=st)return;P.d.push(o[0]);P.c.push(o[1]);P.m.push(null);P.v.push(o[2]);});
+  return P;}
+function ucIdx(P,d){if(!d)return -1;if(P.wk){const k=ucMon(d);return P.d.findIndex(x=>ucMon(x)===k);}return P.d.indexOf(d);}
 function ucPxSec(c,S){if(!S.c)return `<h3>走勢</h3><p class=st>走勢資料還沒有（每天美股收盤後更新）。</p>`;
-  const W=Math.max(280,Math.floor($('#dvin').clientWidth-32));
-  const lg=`<div class=lg><span><i style="background:#2563c9"></i>收盤</span><span><i class=ucdsh></i>50 日線</span>`+
-    (S.ent?`<span><b class=up>▲</b>${ucMd(S.ent[0])} 買進</span>`:'')+(S.out&&S.out<=(UCD.cal||[]).slice(-1)[0]?`<span><b class=dn>▼</b>${ucMd(S.out)} 賣出</span>`:'')+`</div>`;
-  const spl=(S.spl||[]).length?`<p class=note>近一年有分割（${S.spl.map(x=>`${ucMd(x[0])} 一股變 ${x[1]} 股`).join('、')}），之前的股價已經換算成分割後的價格。</p>`:'';
-  return `<h3>走勢<span class=sub>近一年・${ucMd((UCD.cal||[]).slice(-1)[0])} 收盤</span></h3><div class=ucw id=ucw>${ucSvg(S,W)}<div class=uctip id=uctip hidden></div></div>${lg}${spl}`;}
-function ucSvg(S,W){const cal=UCD.cal||[],n=cal.length,HH=200,pl=6,pr=48,pt=10,pb=22;
-  const vs=[...S.c,...(S.m||[])].filter(v=>v!=null);if(S.ent&&S.ent[1]!=null)vs.push(S.ent[1]);
+  const lw=!!S.wk;if(!lw&&(UCRG==='3y'||UCRG==='5y'))UCRG='1y';
+  const bt=UCRGS.map(([k,t])=>`<button type=button data-ucrg=${k} class="${k===UCRG?'on':''}"${!lw&&(k==='3y'||k==='5y')?' disabled title="更早的走勢還沒有（每天美股收盤後更新）"':''}>${t}</button>`).join('');
+  return `<h3>走勢<span class=sub>${ucMd((UCD.cal||[]).slice(-1)[0])} 收盤</span></h3><div class=ucrg role=group aria-label="期間">${bt}</div><div class=ucw id=ucw></div><div id=uclg></div>`;}
+function ucDraw(S){const w=$('#ucw');if(!w||!S.c)return;const W=Math.max(280,Math.floor($('#dvin').clientWidth-32));
+  const P=ucSeries(S,UCRG);if(!P.d.length){w.innerHTML='<p class=st>這段期間沒有股價。</p>';$('#uclg').innerHTML='';return;}
+  w.innerHTML=ucSvg(S,P,W)+'<div class=uctip id=uctip hidden></div>';
+  const first=P.d[0],last=P.d[P.d.length-1],hasM=P.m.some(v=>v!=null),hasV=P.v.some(v=>v!=null);
+  const lg=`<div class=lg><span><i style="background:#2563c9"></i>收盤</span>`+(hasM?`<span><i class=ucdsh></i>50 日線</span>`:'')+
+    (S.hi?`<span><i class=uchi></i>52 週高點 ${ucPx(S.hi[1])}（${ucMd(S.hi[0])}）</span>`:'')+
+    (hasV?`<span><i style="background:#9aa5b1"></i>${P.wk?'每週':'每天'}成交量</span>`:'')+
+    (S.ent&&S.ent[0]>=first?`<span><b class=up>▲</b>${ucMd(S.ent[0])} 買進</span>`:'')+(S.out&&S.out<=last&&S.out>=first?`<span><b class=dn>▼</b>${ucMd(S.out)} 賣出</span>`:'')+`</div>`;
+  const sp=(S.spl||[]).filter(x=>x[0]>first);
+  $('#uclg').innerHTML=lg+(sp.length?`<p class=note>這段期間有分割（${sp.map(x=>`${ucDt(x[0])} 一股變 ${x[1]} 股`).join('、')}），之前的股價已經換算成分割後的價格。</p>`:'');
+  ucBind(S,P);}
+function ucSvg(S,P,W){const n=P.d.length,pl=6,pr=48,pt=10,ph=196,hasV=P.v.some(v=>v!=null),vg=hasV?10:0,vh=hasV?46:0,HH=ph+vg+vh+20;
+  const vs=[...P.c,...P.m].filter(v=>v!=null);if(S.ent&&S.ent[1]!=null&&S.ent[0]>=P.d[0])vs.push(S.ent[1]);if(S.hi)vs.push(S.hi[1]);
   let lo=Math.min(...vs),hi=Math.max(...vs);const pad=(hi-lo)*.06||hi*.05;lo-=pad;hi+=pad;
-  const x=i=>pl+(W-pl-pr)*(n>1?i/(n-1):.5),y=v=>pt+(HH-pt-pb)*(1-(v-lo)/(hi-lo));
+  const x=i=>pl+(W-pl-pr)*(n>1?i/(n-1):.5),y=v=>pt+(ph-pt)*(1-(v-lo)/(hi-lo));
   const st=(()=>{const r=(hi-lo)/4,p=Math.pow(10,Math.floor(Math.log10(r))),m=r/p;return (m<1.5?1:m<3?2:m<7?5:10)*p;})();
   let s='';for(let t=Math.ceil(lo/st)*st;t<=hi;t+=st){const yy=y(t).toFixed(1);
     s+=`<line x1=${pl} x2=${W-pr} y1=${yy} y2=${yy} stroke="#e3e7ec"/><text x=${W-pr+6} y=${(+yy+4).toFixed(0)} font-size=11 fill="#727e8c">${t.toLocaleString('en-US',{maximumFractionDigits:st<1?2:0})}</text>`;}
-  let pm='';cal.forEach((d,i)=>{const m=+d.slice(5,7);if(d.slice(0,7)===pm)return;pm=d.slice(0,7);
-    if(i>4&&i<n-6&&(m-1)%3===0)s+=`<text x=${x(i).toFixed(1)} y=${HH-6} font-size=11 fill="#727e8c" text-anchor=middle>${m} 月</text>`;});
+  const lab=(i,t)=>`<text x=${x(i).toFixed(1)} y=${HH-5} font-size=11 fill="#727e8c" text-anchor=middle>${t}</text>`;
+  if(!P.wk){let pm='';const ev=n>160?3:1;P.d.forEach((d,i)=>{const m=+d.slice(5,7);if(d.slice(0,7)===pm)return;pm=d.slice(0,7);
+      if(i>4&&i<n-6&&(m-1)%ev===0)s+=lab(i,m===1?`${d.slice(0,4)} 年`:`${m} 月`);});}
+  else{let py='';P.d.forEach((d,i)=>{const yr=d.slice(0,4);if(yr===py)return;py=yr;if(i>2&&i<n-4)s+=lab(i,yr);});}
   const path=a=>{let p='',up=false;a.forEach((v,i)=>{if(v==null){up=false;return;}p+=`${up?'L':'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`;up=true;});return p;};
-  if(S.m)s+=`<path d="${path(S.m)}" fill=none stroke="#f59e0b" stroke-width=1.5 stroke-dasharray="4 3"/>`;
-  s+=`<path d="${path(S.c)}" fill=none stroke="#2563c9" stroke-width=1.8 />`;
-  const last=S.c.length-1-[...S.c].reverse().findIndex(v=>v!=null);
-  if(last>=0&&last<n)s+=`<circle cx=${x(last).toFixed(1)} cy=${y(S.c[last]).toFixed(1)} r=3 fill="#2563c9"/>`;
-  const tri=(d,v,up)=>{const i=cal.indexOf(d);if(i<0)return '';const xx=x(i),yy=y(v!=null?v:S.c[i]);if(!isFinite(yy))return '';
+  if(S.hi){const yy=y(S.hi[1]).toFixed(1);s+=`<line class=uchl x1=${pl} x2=${W-pr} y1=${yy} y2=${yy} stroke="#727e8c" stroke-width=1 stroke-dasharray="2 3"/>`;}
+  if(P.m.some(v=>v!=null))s+=`<path d="${path(P.m)}" fill=none stroke="#f59e0b" stroke-width=1.5 stroke-dasharray="4 3"/>`;
+  s+=`<path d="${path(P.c)}" fill=none stroke="#2563c9" stroke-width=${P.wk?1.5:1.8} />`;
+  s+=`<circle cx=${x(n-1).toFixed(1)} cy=${y(P.c[n-1]).toFixed(1)} r=3 fill="#2563c9"/>`;
+  if(hasV){const vm=Math.max(...P.v.filter(v=>v!=null),1),y0=ph+vg+vh,bw=Math.max(1,(W-pl-pr)/Math.max(1,n)*.7);
+    P.v.forEach((v,i)=>{if(v==null)return;const h=Math.max(.5,v/vm*vh),upd=i===0||P.c[i]>=P.c[i-1];
+      s+=`<rect x=${(x(i)-bw/2).toFixed(1)} y=${(y0-h).toFixed(1)} width=${bw.toFixed(1)} height=${h.toFixed(1)} fill="${upd?'#d33a34':'#1f9d57'}" fill-opacity=.45 />`;});}
+  const tri=(d,v,up)=>{const i=ucIdx(P,d);if(i<0)return '';const xx=x(i),yy=y(v!=null&&!P.wk?v:P.c[i]);if(!isFinite(yy))return '';
     return up?`<path d="M${xx.toFixed(1)},${(yy+4).toFixed(1)}l-5,9h10z" fill="#d33a34"/>`:`<path d="M${xx.toFixed(1)},${(yy-4).toFixed(1)}l-5,-9h10z" fill="#1f9d57"/>`;};
   if(S.ent)s+=tri(S.ent[0],S.ent[1],true);
   if(S.out)s+=tri(S.out,null,false);
-  return `<svg width=${W} height=${HH} viewBox="0 0 ${W} ${HH}" data-pl=${pl} data-pr=${pr}>${s}<line class=uccx x1=0 x2=0 y1=${pt} y2=${HH-pb} stroke="#9aa5b1" stroke-dasharray="2 2" visibility=hidden /></svg>`;}
-function ucBind(c,S){const w=$('#ucw');if(!w||!S.c)return;const sv=w.querySelector('svg'),tip=$('#uctip'),cx=sv.querySelector('.uccx');
-  const cal=UCD.cal||[],n=cal.length,pl=+sv.dataset.pl,pr=+sv.dataset.pr,W=+sv.getAttribute('width');
+  return `<svg width=${W} height=${HH} viewBox="0 0 ${W} ${HH}" data-pl=${pl} data-pr=${pr}>${s}<line class=uccx x1=0 x2=0 y1=${pt} y2=${ph+vg+vh} stroke="#9aa5b1" stroke-dasharray="2 2" visibility=hidden /></svg>`;}
+function ucBind(S,P){const w=$('#ucw');if(!w)return;const sv=w.querySelector('svg'),tip=$('#uctip');if(!sv||!tip)return;const cx=sv.querySelector('.uccx');
+  const n=P.d.length,pl=+sv.dataset.pl,pr=+sv.dataset.pr,W=+sv.getAttribute('width');
   const show=ev=>{const r=sv.getBoundingClientRect(),px=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left;
-    let i=Math.round((px-pl)/(W-pl-pr)*(n-1));i=Math.max(0,Math.min(n-1,i));while(i>0&&S.c[i]==null)i--;if(S.c[i]==null)return;
+    let i=Math.round((px-pl)/(W-pl-pr)*(n-1));i=Math.max(0,Math.min(n-1,i));
     const xx=pl+(W-pl-pr)*(n>1?i/(n-1):.5);cx.setAttribute('x1',xx);cx.setAttribute('x2',xx);cx.setAttribute('visibility','visible');
-    const m=S.m?S.m[i]:null;tip.innerHTML=`<b>${mdw(cal[i])}</b><div>收盤 ${ucPx(S.c[i])}</div>`+(m!=null?`<div>50 日線 ${ucPx(m)}（收盤${S.c[i]>=m?'高':'低'} ${Math.abs(S.c[i]/m*100-100).toFixed(1)}%）</div>`:'');
+    const m=P.m[i],v=P.v[i];tip.innerHTML=`<b>${P.wk?ucDt(P.d[i])+' 那週':mdw(P.d[i])}</b><div>收盤 ${ucPx(P.c[i])}</div>`+
+      (m!=null?`<div>50 日線 ${ucPx(m)}（收盤${P.c[i]>=m?'高':'低'} ${Math.abs(P.c[i]/m*100-100).toFixed(1)}%）</div>`:'')+
+      (v!=null?`<div>${P.wk?'那週':''}成交 ${f(v/10,0)} 萬股</div>`:'');
     tip.hidden=false;const tw=tip.offsetWidth;tip.style.left=Math.max(0,Math.min(W-tw,xx+(xx>W/2?-tw-8:8)))+'px';};
   const hide=()=>{tip.hidden=true;cx.setAttribute('visibility','hidden');};
   sv.addEventListener('mousemove',show);sv.addEventListener('mouseleave',hide);sv.addEventListener('touchstart',show,{passive:true});sv.addEventListener('touchmove',show,{passive:true});}
+/* 成長、獲利、估值（SEC 季報＋股價；uscardpage.fin_view 算好的數字） */
+function ucQ(e){return `${e.slice(2,4)}/${+e.slice(5,7)}`;}
+function ucWd(){const w=Math.max(260,Math.floor($('#dvin').clientWidth-32));return {w,w2:isPane()||w>700?Math.floor((w-12)/2):w};}
+function ucYi(v){return v==null?'—':f(v,v>=100?0:v>=10?1:2)+' 億';}
+function ucPc(v,d=1){return v==null?'—':f(v*100,d)+'%';}
+function ucYoY(v){return v==null?'':`年增 ${pctT(v*100,0)}`;}
+function ucFinNo(t){return `<h3>${t}</h3><p class=st>季報還沒有（每週六更新）。</p>`;}
+function ucFinSub(F){return `SEC 季報・最新一季到 ${ucDt(F.src.end)}（${ucMd(F.src.fd)} 公布）`;}
+function ucGr(S){const F=S.fin;if(!F||!F.g.length)return ucFinNo('成長');
+  const {w2}=ucWd(),g=F.g,L=g.map(r=>ucQ(r[0])),l=g[g.length-1];
+  const r4=g.length>=8?[g.slice(-4),g.slice(-8,-4)].map(a=>a.every(r=>r[2]!=null)?a.reduce((t,r)=>t+r[2],0):null):[null,null];
+  let h=`<h3>成長<span class=sub>${esc(ucFinSub(F))}</span></h3><div class="kpis kps k3">`+
+    kp('最新一季營收','',ucYi(l[2]),ucYoY(l[3]),cls(l[3]))+kp('最新一季 EPS','',l[7]==null?'—':f(l[7],2),ucYoY(l[8]),cls(l[8]))+
+    kp('近四季營收','',ucYi(r4[0]),r4[0]!=null&&r4[1]?`比前四季 ${pctT((r4[0]/r4[1]-1)*100,0)}`:'',r4[0]!=null&&r4[1]?cls(r4[0]-r4[1]):'')+`</div><div class=cgrid style="margin-top:10px">`;
+  h+=`<div class=cbox><h4>季營收（億美元）・年增</h4>${svgBars(g.map(r=>r[2]),L,{W:w2,H:120,col:()=>'#8fa6c8',fmt:v=>f(v,v>=100?0:1),al:'季營收'})}`+
+    `${svgLines([{v:g.map(r=>r[3]==null?null:r[3]*100),c:'#2563c9',n:'營收年增'}],L,{W:w2,H:100,zero:1,fmt:v=>f(v,0)+'%'})}${lg([['#2563c9','營收年增（比去年同一季）']])}</div>`;
+  h+=`<div class=cbox><h4>單季 EPS（美元）・年增</h4>${svgBars(g.map(r=>r[7]),L,{W:w2,H:120,fmt:v=>f(v,2),al:'單季 EPS'})}`+
+    `${svgLines([{v:g.map(r=>r[8]==null?null:Math.max(-100,Math.min(300,r[8]*100))),c:'#d33a34',n:'EPS 年增'}],L,{W:w2,H:100,zero:1,fmt:v=>f(v,0)+'%'})}${lg([['#d33a34','EPS 年增（上限 300%；去年同一季虧損的不算）']])}</div></div>`;
+  h+=`<details class=mr><summary>近 ${g.length} 季明細</summary><div class=tw><table class=qt><thead><tr><th>季底</th><th>營收（億美元）</th><th>年增</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>EPS</th><th>EPS 年增</th></tr></thead><tbody>`+
+    g.slice().reverse().map(r=>`<tr><td>${ucDt(r[0])}</td><td>${r[2]==null?'—':f(r[2],r[2]>=100?0:2)}</td><td>${r[3]==null?'—':pctT(r[3]*100,1)}</td><td>${ucPc(r[4])}</td><td>${ucPc(r[5])}</td><td>${ucPc(r[6])}</td><td>${r[7]==null?'—':f(r[7],2)}</td><td>${r[8]==null?'—':pctT(r[8]*100,0)}</td></tr>`).join('')+
+    `</tbody></table></div></details><p class=note>單季數字；第四季＝全年減前三季（EPS 可能和公司公布的差一點）。季底照公司自己的會計年度。</p>`;
+  return h;}
+function ucPf(S){const F=S.fin;if(!F||!F.g.length)return ucFinNo('獲利');
+  const {w2}=ucWd(),g=F.g,L=g.map(r=>ucQ(r[0])),l=g[g.length-1],lr=[...g].reverse().find(r=>r[9]!=null);
+  const ms=[[4,'#a16207','毛利率'],[5,'#2563c9','營益率'],[6,'#d33a34','淨利率']].filter(([k])=>g.some(r=>r[k]!=null));
+  let h=`<h3>獲利<span class=sub>三率與近四季 ROE</span></h3><div class="kpis kps${ms.length===3?' k4':''}">`+
+    ms.map(([k,,t])=>kp(t,'',ucPc(l[k]),'最新一季')).join('')+kp('近四季 ROE','',lr?ucPc(lr[9]):'—','淨利 ÷ 股東權益')+`</div>`;
+  if(ms.length)h+=`<div class=cgrid style="margin-top:10px"><div class=cbox><h4>${ms.map(m=>m[2]).join('・')}（單季）</h4>${svgLines(ms.map(([k,c,n])=>({v:g.map(r=>r[k]==null?null:r[k]*100),c,n})),L,{W:w2,H:140,zero:1,fmt:v=>f(v,0)+'%'})}${lg(ms.map(([,c,t])=>[c,t]))}</div>`+
+    `<div class=cbox><h4>近四季 ROE</h4>${svgLines([{v:g.map(r=>r[9]==null?null:r[9]*100),c:'#d33a34',n:'ROE'}],L,{W:w2,H:140,zero:1,fmt:v=>f(v,0)+'%'})}${lg([['#d33a34','近四季淨利 ÷ 期初期末股東權益的平均']])}</div></div>`;
+  if(!g.some(r=>r[4]!=null))h+=`<p class=note>這家公司的季報沒有列毛利。</p>`;
+  if(lr&&lr[9]>1)h+=`<p class=note>ROE 很高是因為股東權益很小（多半是公司一直買回自己的股票）。</p>`;
+  return h;}
+function ucVal(S){const F=S.fin;if(!F)return ucFinNo('估值');const V=F.v||{},px=S.px;let h=`<h3>估值<span class=sub>和自己近 5 年比</span></h3>`;
+  h+=`<div class="kpis kps k4">`+kp('本益比','',V.pe==null?'—':f(V.pe,1)+' 倍',V.ttm!=null?`近四季 EPS ${f(V.ttm,2)}`:'')+
+    kp('淨值比','',V.pb==null?'—':f(V.pb,1)+' 倍',V.bvps!=null?`每股淨值 ${f(V.bvps,2)}`:'')+
+    kp('殖利率','',V.ndiv?ucPc(V.yld,2):'沒有配息',V.ndiv?`近 12 個月 ${f(V.div12,2)} 美元`:'近 12 個月')+
+    kp('市值','',V.cap==null?'—':f(V.cap,V.cap>=100?0:1)+' 億美元','')+`</div>`;
+  const ph=V.peh;
+  if(V.ttm!=null&&V.ttm<=0)h+=`<p class=ucl>近四季 EPS 是虧損，本益比不適用。</p>`;
+  else if(ph&&V.pe!=null){const tt=V.ttm,a=ph.p20*tt,b=ph.p80*tt,m=ph.p50*tt,lo=Math.min(a,px)*0.85,hi=Math.max(b,px)*1.1,pos=v=>Math.max(0,Math.min(100,(v-lo)/(hi-lo)*100));
+    h+=`<div class=colead style="margin-top:10px">本益比 ${f(V.pe,1)} 倍，比自己近 5 年 ${ph.pct}% 的日子高${ph.pct>=80?'（偏貴）':ph.pct<=20?'（偏便宜）':''}。</div>`+
+      `<div class=vband><div class=bg></div><div class=bd style="left:${pos(a)}%;width:${Math.max(1,pos(b)-pos(a))}%"></div><div class=md style="left:${pos(m)}%"></div><div class=now style="left:${pos(px)}%" title="現價 ${ucPx(px)}"></div></div>`+
+      `<div class=vlab><span>${ucPx(lo)}</span><span>現價 ${ucPx(px)}</span><span>${ucPx(hi)}</span></div>`+
+      `<p class=st style="margin-top:6px">近 5 年有 6 成的日子本益比在 ${f(ph.p20,1)}～${f(ph.p80,1)} 倍（中間 ${f(ph.p50,1)} 倍；最低 ${f(ph.lo,1)}、最高 ${f(ph.hi,1)}），乘上近四季 EPS ${f(tt,2)}，股價是 <b>${ucPx(a)}</b>～<b>${ucPx(b)}</b>（中間 ${ucPx(m)}）。獲利變了，這個位置也會跟著變。</p>`;
+    const pm=V.pem||[];if(pm.length>=12){const {w}=ucWd(),L=pm.map(x=>`${x[0].slice(2,4)}/${+x[0].slice(5,7)}`),k=pm.length;
+      h+=`<div class=cbox style="margin-top:10px"><h4>本益比（每月）</h4>${svgLines([{v:pm.map(x=>x[1]),c:'#2563c9',n:'本益比'},{v:Array(k).fill(ph.p20),c:'#9aa5b1',n:'6 成的日子以內',dash:1,w:1},{v:Array(k).fill(ph.p80),c:'#9aa5b1',n:'6 成的日子以內',dash:1,w:1}],L,{W:w,H:130,fmt:v=>f(v,0)+' 倍'})}${lg([['#2563c9','本益比'],['#9aa5b1','6 成的日子在兩條虛線之間',1]])}</div>`;}}
+  else if(V.pe!=null)h+=`<p class=st>本益比和自己的過去比，要至少兩年有獲利的資料。</p>`;
+  if(V.pbh&&V.pb!=null)h+=`<p class=ucl>淨值比 ${f(V.pb,1)} 倍，比自己近 5 年 ${V.pbh.pct}% 的日子高（中間 ${f(V.pbh.p50,1)} 倍）。</p>`;
+  if(V.fpe!=null)h+=`<p class=ucl>用分析師${V.fend&&+V.fend.slice(5,7)!==12?`到 ${+V.fend.slice(0,4)} 年 ${+V.fend.slice(5,7)} 月的年度`:'今年'}的 EPS 預估算：本益比 ${f(V.fpe,1)} 倍。</p>`;
+  const dy=(V.dy||[]).slice(-6),cy=(UCD.cal||[]).slice(-1)[0];if(dy.some(x=>x[1]>0))h+=`<p class=st>每年配息（美元／股）：${dy.map(([y,v])=>`${y}${cy&&y===cy.slice(0,4)&&V.dym<12?`（到 ${V.dym} 月）`:''} <b>${f(v,2)}</b>`).join('　')}</p>`;
+  if(V.short)h+=`<p class=note>更早的股價還沒有（每天美股收盤後更新），本益比先只和近一年比。</p>`;
+  return h;}
 /* 分析師（Yahoo Finance）：今年、明年 EPS 預估與 90 天前、營收預估、分析師的價位（引述分析師的數字，附 Yahoo 的來源連結）、評等、財報日 */
 function ucAn(c,S){const A=S.an,src=`https://finance.yahoo.com/quote/${encodeURIComponent(c.replace(/[./]/g,'-'))}/analysis/`;
   if(!A)return `<h3>分析師</h3><p class=st>分析師資料還沒有（每天美股收盤後更新）。</p>`;
@@ -393,4 +699,11 @@ CSS = r"""
 .ucw{position:relative;margin-top:4px}
 .uctip{position:absolute;top:4px;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.5;padding:5px 8px;border-radius:6px;pointer-events:none;white-space:nowrap;z-index:2}
 .lg .ucdsh{width:16px;height:0;border-top:2px dashed var(--amber);background:none}
+.lg .uchi{width:16px;height:0;border-top:1px dashed var(--mut);background:none}
+.ucrg{display:flex;gap:6px;margin:2px 0 6px}
+.csec.uc .kps.k4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:640px){.csec.uc .kps.k4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ucrg button{font:inherit;font-size:12.5px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink2);cursor:pointer}
+.ucrg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.ucrg button:disabled{opacity:.4;cursor:default}
 """

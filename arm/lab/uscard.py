@@ -1,5 +1,6 @@
-"""美股個股卡要的每天資料（docs/lab_cfg_v2_plan.md 第 3.3、4 節）：配置頁美股列的股票（手上的、要買的、名單前 5 名裡
-手上沒有的；fund_intro.qm_codes 同一批，約 15 檔）——近一年日線（收盤、50 日線）＋ Yahoo 的分析師預估、目標價、下次財報日。
+"""美股個股卡要的每天資料（docs/lab_cfg_v2_plan.md 第 3.3、4 節；VER 2＝docs/lab_review_plan.md 第 4 節 (a)）：配置頁美股列的股票
+（手上的、要買的、名單前 5 名裡手上沒有的；fund_intro.qm_codes 同一批，約 15 檔）——近 5 年走勢（近一年每天的收盤、50 日線、成交量，
+更早的每週一點）、配息、分割、52 週高點＋ Yahoo 的分析師預估、目標價、下次財報日。
 
 每天盤後那一支（scripts/fetch_ussx_watch.py）在 50 日線檢查之後跑，日線和檢查共用同一次抓取（cached）。
 同一個美股收盤只抓一次：日線已經到最近收盤那天、分析師資料這個收盤抓過＝不再抓。抓不到的那一檔沿用舊的。
@@ -7,10 +8,15 @@
 
 data/lab/ussx_card.json：
   {"ver", "made": 台北日期, "d": 最近一個已收盤的美股交易日（這一輪要的）, "codes": 這一批, "cal": [近一年的交易日],
-   "s": {代號: {"c": [收盤（分割還原）], "m": [50 日線], "at": 日線最後一天, "spl": [[日期, 倍數]]（近一年的分割）,
+   "s": {代號: {"c": [收盤（分割還原）], "m": [50 日線], "v": [成交量（千股）], "at": 日線最後一天,
+               "wk": [[那週最後一個交易日, 收盤, 那週成交量（千股）]]（近一年以前、5 年以內，每週一點）,
+               "spl": [[日期, 倍數]]、"div": [[除息日, 每股配息（美元，分割還原）]]（都是 5 年以內）,
+               "hi": [日期, 最高價]（近 252 個交易日的最高價＝52 週高點；選股條件「離 52 週高點」用的同一個）,
                "an": fcst.parse_yahoo 的紀錄＋"ed"（下次財報日；兩個＝區間）＋"ede"（日期是估的）, "an_at": 抓到分析師資料時的 d,
                "err": 這一輪沒抓到的原因}}}
-  c、m 和 cal 一樣長（那天沒有資料＝null）。50 日線＝最近 50 個交易日含息收盤的平均換成那天的價格（ussxqm.watch_one 判斷跌破用的同一條）。
+  c、m、v 和 cal 一樣長（那天沒有資料＝null）。50 日線＝最近 50 個交易日含息收盤的平均換成那天的價格（ussxqm.watch_one 判斷跌破用的同一條）。
+  wk 的最後一週可能和 cal 的第一週是同一週（那一週跨過近一年的起點）：頁面依週一的日期併成一點。
+  VER 1（只有近一年的收盤與 50 日線）的檔照樣讀得到；沒有 wk 的代號下一輪一定重抓日線。
 """
 from __future__ import annotations
 
@@ -26,9 +32,13 @@ from . import ussxspec as X
 
 ROOT = Path(__file__).resolve().parents[2]
 CARD = ROOT / "data" / "lab" / "ussx_card.json"
-VER = 1
-BACK_DAYS = 440              # 日線從今天往前幾個日曆天抓（近一年＋算 50 日線要的前 50 個交易日）
-SHOW_DAYS = 365              # 卡片畫最後一天往前幾個日曆天
+VER = 2
+VERS_OK = (1, 2)             # 讀得到的版本（VER 1 的檔沒有 wk、v、div、hi，下一輪重抓日線補上）
+YEARS = 5
+LONG_DAYS = YEARS * 365 + 2  # 走勢最長畫最後一天往前幾個日曆天（5 年）
+BACK_DAYS = LONG_DAYS + 80   # 日線從今天往前幾個日曆天抓（5 年＋算 50 日線要的前 50 個交易日）
+SHOW_DAYS = 365              # 每天一點的部分：最後一天往前幾個日曆天（更早的每週一點）
+HI_N = 252                   # 52 週高點＝近幾個交易日的最高價
 CLOSE_AFTER = time(16, 20)   # 紐約時間這個時間以後才算今天收盤了
 BUDGET_S = 150.0             # 這一段最多跑幾秒（開始抓之前看；時間到的下一輪再抓）
 WORKERS = 4
@@ -81,25 +91,54 @@ def cached(fetch=None, today: date | None = None, back_days: int = BACK_DAYS):
     return f
 
 
-def chart(s: dict | None, show_days: int = SHOW_DAYS) -> dict | None:
-    """Yahoo 日線（ussxdata.parse_chart）→ 最後一天往前 show_days 個日曆天：{"pts": {日期: [收盤, 50 日線]}, "spl": 近一年的分割}。
-    50 日線不到 50 個交易日＝None。沒有日線＝None。"""
+def _monday(d: str) -> str:
+    x = date.fromisoformat(d)
+    return (x - timedelta(days=x.weekday())).isoformat()
+
+
+def chart(s: dict | None, show_days: int = SHOW_DAYS, long_days: int = LONG_DAYS) -> dict | None:
+    """Yahoo 日線（ussxdata.parse_chart）→ {"pts": {日期: [收盤, 50 日線, 成交量（千股）]}（最後一天往前 show_days 個日曆天）,
+    "wk": [[那週最後一個交易日, 收盤, 那週成交量（千股）]]（更早、long_days 以內）, "spl"、"div"（long_days 以內）,
+    "hi": [日期, 最高價]（近 HI_N 個交易日）}。50 日線不到 50 個交易日＝None。沒有日線＝None。"""
     from . import ussxdata as UD
     ds, cs = (s or {}).get("d") or [], (s or {}).get("c") or []
     if not ds:
         return None
+    vs = s.get("v") or [None] * len(ds)
+    hs = s.get("h") or cs
     n = X.QM_EXIT["ma"]
     tr = UD.total_return_close(s)
-    first = (date.fromisoformat(ds[-1]) - timedelta(days=show_days)).isoformat()
-    pts = {}
+    last = date.fromisoformat(ds[-1])
+    first = (last - timedelta(days=show_days)).isoformat()
+    lfirst = (last - timedelta(days=long_days)).isoformat()
+
+    def vk(k):
+        v = vs[k] if k < len(vs) else None
+        return int(round(v / 1000)) if isinstance(v, (int, float)) and v >= 0 else None
+
+    pts, wk = {}, []
     for k, d in enumerate(ds):
-        if d <= first:
+        if d <= lfirst:
+            continue
+        if d <= first:                                          # 近一年以前：每週一點（那週最後一個交易日的收盤、成交量加總）
+            m0, v0 = _monday(d), vk(k)
+            if wk and wk[-1][3] == m0:
+                w = wk[-1]
+                w[0], w[1] = d, round(cs[k], 2)
+                w[2] = None if w[2] is None or v0 is None else w[2] + v0
+            else:
+                wk.append([d, round(cs[k], 2), v0, m0])
             continue
         m = None
         if k >= n - 1 and tr[k] > 0:
             m = round(sum(tr[k - n + 1:k + 1]) / n * cs[k] / tr[k], 2)
-        pts[d] = [round(cs[k], 2), m]
-    return {"pts": pts, "spl": [list(x) for x in s.get("spl") or [] if x[0] > first]}
+        pts[d] = [round(cs[k], 2), m, vk(k)]
+    h0 = max(0, len(ds) - HI_N)
+    kh = max(range(h0, len(ds)), key=lambda k: (hs[k] if k < len(hs) and hs[k] is not None else cs[k], k))
+    hi = [ds[kh], round(hs[kh] if kh < len(hs) and hs[kh] is not None else cs[kh], 2)]
+    return {"pts": pts, "wk": [w[:3] for w in wk], "hi": hi,
+            "spl": [list(x) for x in s.get("spl") or [] if x[0] > lfirst],
+            "div": [[x[0], round(float(x[1]), 4)] for x in s.get("div") or [] if x[0] > lfirst]}
 
 
 # ── 分析師與財報日 ───────────────────────────────────────────────────────────
@@ -163,12 +202,12 @@ def _yahoo():
 # ── 存讀 ─────────────────────────────────────────────────────────────────────
 
 def load(path: Path | None = None) -> dict:
-    """存檔；版本不同＝沒有。"""
+    """存檔；版本不是 VERS_OK＝沒有。"""
     try:
         doc = json.loads((path or CARD).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
-    return doc if doc.get("ver") == VER else {}
+    return doc if doc.get("ver") in VERS_OK else {}
 
 
 def save(doc: dict, path: Path | None = None) -> bool:
@@ -177,11 +216,15 @@ def save(doc: dict, path: Path | None = None) -> bool:
 
 
 def points(doc: dict, c: str) -> dict:
-    """存檔裡一檔的日線 → {日期: [收盤, 50 日線]}（沒有資料的日子不列）。"""
+    """存檔裡一檔的日線 → {日期: [收盤, 50 日線, 成交量]}（沒有資料的日子不列；VER 1 的檔沒有成交量＝None）。"""
     rec = (doc.get("s") or {}).get(c) or {}
     cal = doc.get("cal") or []
-    cs, ms = rec.get("c") or [], rec.get("m") or []
-    return {d: [cs[i], ms[i] if i < len(ms) else None] for i, d in enumerate(cal) if i < len(cs) and cs[i] is not None}
+    cs, ms, vs = rec.get("c") or [], rec.get("m") or [], rec.get("v") or []
+    return {d: [cs[i], ms[i] if i < len(ms) else None, vs[i] if i < len(vs) else None]
+            for i, d in enumerate(cal) if i < len(cs) and cs[i] is not None}
+
+
+LONG_KEYS = ("wk", "div", "hi")                               # VER 2 才有的（沒有＝要重抓日線）
 
 
 # ── 每天 ─────────────────────────────────────────────────────────────────────
@@ -202,13 +245,15 @@ def update(L: dict | None = None, *, fetch=None, force: bool = False, budget_s: 
     S = {}
     for c in codes:
         r0 = (old.get("s") or {}).get(c) or {}
-        S[c] = {"pts": points(old, c), "spl": r0.get("spl") or [], "at": r0.get("at"), "an_at": r0.get("an_at")}
-        if "an" in r0:
-            S[c]["an"] = r0["an"]
-    need_c = [c for c in codes if force or not S[c]["at"] or S[c]["at"] < want]
+        S[c] = {"pts": points(old, c), "spl": r0.get("spl") or [], "at": r0.get("at"), "an_at": r0.get("an_at"),
+                "long": all(k in r0 for k in LONG_KEYS)}
+        for k in LONG_KEYS + ("an",):
+            if k in r0:
+                S[c][k] = r0[k]
+    need_c = [c for c in codes if force or not S[c]["at"] or S[c]["at"] < want or not S[c]["long"]]
     need_a = [c for c in codes if force or S[c]["an_at"] != want]
     stat = {"want": want, "codes": len(codes), "chart": 0, "an": 0, "skip_n": 0, "err": []}
-    if not need_c and not need_a and sorted(old.get("s") or {}) == sorted(codes):
+    if not need_c and not need_a and sorted(old.get("s") or {}) == sorted(codes) and old.get("ver") == VER:
         stat["skip"] = f"已經有 {want} 收盤的資料"
         return stat
     fetch = fetch or cached(today=today)
@@ -251,6 +296,7 @@ def update(L: dict | None = None, *, fetch=None, force: bool = False, budget_s: 
                 ch = chart(x) if x is not None else None
                 if ch and ch["pts"]:
                     r["pts"], r["spl"], r["at"] = ch["pts"], ch["spl"], max(ch["pts"])
+                    r.update({k: ch[k] for k in LONG_KEYS})
                     stat["chart"] += 1
                 else:
                     r["err"] = "查不到日線" if x is not None else f"日線：{st}"
@@ -269,13 +315,16 @@ def update(L: dict | None = None, *, fetch=None, force: bool = False, budget_s: 
         r = S[c]
         o = {}
         if any(d in r["pts"] for d in cal):
-            o["c"] = [(r["pts"].get(d) or [None, None])[0] for d in cal]
-            o["m"] = [(r["pts"].get(d) or [None, None])[1] for d in cal]
+            for j, k in enumerate(("c", "m", "v")):
+                o[k] = [(r["pts"].get(d) or [None, None, None])[j] for d in cal]
         for k in ("at", "an_at", "err", "aerr"):
             if r.get(k):
                 o[k] = r[k]
         if r.get("spl"):
             o["spl"] = r["spl"]
+        for k in LONG_KEYS:
+            if k in r:
+                o[k] = r[k]
         if "an" in r:
             o["an"] = r["an"]
         out[c] = o
