@@ -1,14 +1,14 @@
 {
-  "as_of": "2026/10/28 12:35",
+  "as_of": "2026/10/28 13:28",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
     {
-      "title": "國際股市修正 新基金00418A有望搶得從容起跑點",
-      "url": "https://turnnewsapp.com/ct-featured/420425.html",
-      "source": "翻爆",
-      "date": "2026-10-26 18:05",
-      "datetime": "2026-10-26T18:05:06+08:00"
+      "title": "復華中國 5G 謹慎操作",
+      "url": "https://money.udn.com/money/story/5618/9835256",
+      "source": "經濟日報",
+      "date": "2026-10-24 23:01",
+      "datetime": "2026-10-24T23:01:10+08:00"
     },
     {
       "title": "主動復華台灣新星 募集期順延至10月27日",
@@ -16,13 +16,6 @@
       "source": "UDN",
       "date": "2026-10-22 21:10",
       "datetime": "2026-10-22T21:10:28+08:00"
-    },
-    {
-      "title": "「九倍女戰神」來了！3大主動式ETF一次看",
-      "url": "https://www.mirrormedia.mg/external/setn_1926795",
-      "source": "鏡週刊Mirror Media",
-      "date": "2026-10-22 17:23",
-      "datetime": "2026-10-22T17:23:00+08:00"
     },
     {
       "title": "00418A可以買？配息、價格、成分股、上市時間…雙經理人分工！「9倍女戰神」揭挑股原則：目標吃整條魚",
@@ -179,13 +172,6 @@
           "source": "觀傳媒",
           "date": "2026-10-26 21:02",
           "datetime": "2026-10-26T21:02:35+08:00"
-        },
-        {
-          "title": "回檔篩出好體質！00418A卡位AI轉型股 10/27最後買進日",
-          "url": "https://tw.stock.yahoo.com/news/%E5%9B%9E%E6%AA%94%E7%AF%A9%E5%87%BA%E5%A5%BD%E9%AB%94%E8%B3%AA-00418a%E5%8D%A1%E4%BD%8Dai%E8%BD%89%E5%9E%8B%E8%82%A1-10-27%E6%9C%80%E5%BE%8C%E8%B2%B7%E9%80%B2%E6%97%A5-090427137.html",
-          "source": "Yahoo股市",
-          "date": "2026-10-26 17:04",
-          "datetime": "2026-10-26T17:04:27+08:00"
         }
       ]
     },
@@ -555,7 +541,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=lJNdfafhPj8",
       "date": "2026-10-21",
-      "views": 79123
+      "views": 79246
     },
     {
       "platform": "youtube",
@@ -579,7 +565,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/watch?v=u4xcSAzbUi8",
       "date": "2026-10-26",
-      "views": 323910,
+      "views": 326095,
       "peer": true,
       "cat": "綜合"
     },
@@ -589,7 +575,7 @@
       "channel": "財經震翰彈_蔡明翰",
       "url": "https://www.youtube.com/watch?v=1GO3jgF0Q2Q",
       "date": "2026-10-25",
-      "views": 171587,
+      "views": 171650,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -599,7 +585,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=bBb7muEJZwo",
       "date": "2026-10-24",
-      "views": 165088,
+      "views": 165147,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -609,7 +595,7 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/watch?v=7hLSHozmm68",
       "date": "2026-10-23",
-      "views": 145477,
+      "views": 145853,
       "peer": true,
       "cat": "高股息"
     },
@@ -629,7 +615,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/whNn6PCCLws",
       "date": "2026-10-24",
-      "views": 111467,
+      "views": 111570,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -640,7 +626,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=WkmMZrXvm84",
       "date": "2026-10-26",
-      "views": 85095,
+      "views": 85683,
       "peer": true,
       "cat": "市值型"
     },
@@ -656,30 +642,29 @@
     },
     {
       "platform": "youtube",
+      "title": "【精華】輝達PTFE新題材加持！台郡、台虹能追？破天荒！杜大師首度買主動式ETF！點名小資族靠這招低檔大撿便宜！《股民想知道》ft. 杜金龍.智捷",
+      "channel": "投資優我罩—優分析",
+      "url": "https://www.youtube.com/watch?v=qcTagQtlBaY",
+      "date": "2026-10-25",
+      "views": 59083,
+      "peer": true,
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
       "title": "【睇中恒生管理盈富基金？】匯豐吞「恒生投資」勝貸款輸鑊甘｜中銀觀塘投降，「33%蔗渣價」照賣蝕足20億",
       "channel": "午後檔案",
       "url": "https://www.youtube.com/watch?v=ZRtvgX91bLA",
       "date": "2026-10-27",
-      "views": 51425,
+      "views": 52137,
       "peer": true,
       "cat": "基金"
-    },
-    {
-      "platform": "youtube",
-      "title": "小資族全押主動式 ETF？市值型配一半更穩｜ft.超馬芭樂 #ETF投資 #資產配置 #ETF錢滾錢",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/shorts/hdsf9pULGsQ",
-      "date": "2026-10-26",
-      "views": 42166,
-      "peer": true,
-      "short": true,
-      "cat": "主動式"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A、台灣菁英50指數（詳下方新聞標籤）",
-    "品牌焦點：國際股市修正 新基金00418A有望搶得從容起跑點（翻爆）",
+    "品牌焦點：復華中國 5G 謹慎操作（經濟日報）",
     "社群聲量最高：關於強AI連買五天是包括假日嗎？（0 推）",
-    "YouTube 熱片：存股別傻傻買0056! 退休前改1動作 月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・323,910 次觀看）"
+    "YouTube 熱片：存股別傻傻買0056! 退休前改1動作 月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・326,095 次觀看）"
   ]
 }
