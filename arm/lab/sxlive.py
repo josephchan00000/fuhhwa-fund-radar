@@ -532,7 +532,7 @@ def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | No
     比重都是占那本帳；頁面再乘 corespec 的新飆股比重。
     why（名單、要買的、持股）＝那一週符合哪一條規則與實際數字（紀錄的 why；沒有＝空），持股另寫那一週名單第幾名。
     VER 3：seed＝接手的狀態——名單與「第幾名、符合哪一條」也查接手用到的那幾週；持股另給 take（接手時就拿著）、
-    bt（買進日在接手以前＝回測）、rl（上線以來：接手那天收盤或之後實際買進起算，含息、不含成本）。"""
+    bt（買進日不晚於接手那天＝回測）、rl（上線以來：接手那天收盤或之後實際買進起算，含息、不含成本）。"""
     from .strategy import trading_days_after
     P = ctx["P"]
     cal = P.cal
@@ -588,7 +588,7 @@ def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | No
                             "px": (cl / p["f"][i1]) if _ok(cl) and _ok(p["f"][i1]) and p["f"][i1] else None, "r": r,
                             "w": float(q["k"] * cl / eq) if _ok(cl) and eq else None, "due": due,
                             "out": out["next"] if q["pend"] else sell, "sell": bool(q["pend"]),
-                            "take": take, "bt": bool(seed) and cal[ei] < S.TAKE,
+                            "take": take, "bt": bool(seed) and cal[ei] <= S.TAKE,
                             "rl": (float(cl / c0 - 1) if _ok(cl) and _ok(c0) and c0 else None) if take else r})
     out["sell"] = [h["c"] for h in out["hold"] if h["sell"]]
     cash = bk.cash + sum(q["k"] * (px[c]["c"][i1] if _ok(px[c]["c"][i1]) else px[c]["cff"][i1]) * (1 - S.TRADE["sell_tax"])

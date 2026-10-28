@@ -70,7 +70,8 @@ def test_build_order_sections_and_numbers(R, QMX, monkeypatch):
     v = uc["s"]["VLO"]
     assert v["nm"] == "瓦萊羅能源" and v["what"] == "大型煉油商" and v["px"] == card["s"]["VLO"]["c"][-1]
     st = _text(v["st"])
-    assert f"占全部資金 {CPG._wp(G['rows'][0]['w'])}" in st and _has(v["st"], "8/31（一）買進 359.88，現在 419.28（+16.5%）")
+    assert f"占全部資金 {CPG._wp(G['rows'][0]['w'])}" in st and _has(v["st"], "8/31（一）買進 359.88（回測），現在 419.28（+16.5%）")
+    assert "上線以來" not in st                                  # 沒有開始照做那一週的紀錄：不寫上線以來
     assert "收盤跌破 50 日線，就在下一個交易日開盤賣" in st and "50 日線現在" in st
     assert v["ent"] == ["2026-08-31", pytest.approx(419.26 / 1.165)] and v["out"] is None
     w = v["why"]
@@ -217,3 +218,14 @@ def test_core_data_carries_card(monkeypatch):
     from arm.lab import sigpage
     src = open(sigpage.__file__, encoding="utf-8").read()
     assert '"C": UC.load()' in src
+
+
+def test_us_card_writes_return_since_live_start(R, QMX, monkeypatch):
+    """檢討第 1 步：開始照做（QM_LIVE 10/23）以前照規則買的標「回測」，另寫上線以來＝10/23 收盤到卡片上最新的收盤。"""
+    monkeypatch.setattr(CPG, "qm_on", lambda mk, q: True)
+    card = _card(["VLO"], px={"VLO": 430.0})
+    qm = _qmc(QMX, card, hold=[_h("VLO", 0.5, ent="2026-08-31", r=0.165, px=419.26, ma=392.41)], idle=0.5,
+              lst=[{"c": "VLO", "rs": 99.0}], d="2026-10-23", nxt="2026-10-26")
+    qm["L"]["weeks"] = {"2026-10-23": {"hold": [{"c": "VLO", "px": 400.0}]}}
+    v = CF.us_parts(_data(), _bundle(R, qm=qm))["uc"]["s"]["VLO"]
+    assert _has(v["st"], "8/31（一）買進 359.88（回測），現在 430.00（+19.5%）；上線以來（10/23 收盤起）+7.5%")
