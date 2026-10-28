@@ -45,12 +45,13 @@ def month_rows(days: list[str], cols: dict[str, list[float | None]]) -> list[dic
         k_prev = ks[0] - 1
         row = {"m": m, "to": days[k1], "full": not (days[k1] == last and not _month_done(last))}
         for c, v in cols.items():
-            a, b, z = v[k_prev], v[k1], v[0]
-            if b is None:
+            s0 = next((k for k, x in enumerate(v) if x is not None), None)   # 這一欄從哪天起有值（上線後＝上線那天）
+            b = v[k1]
+            if b is None or s0 is None or s0 > k1:
                 row[c] = None
                 continue
-            mr = (b / a - 1) if a not in (None, 0) else None
-            row[c] = [mr, (b / z - 1) if z else None]
+            a, z = v[max(k_prev, s0)], v[s0]
+            row[c] = [(b / a - 1) if a else None, (b / z - 1) if z else None]
         out.append(row)
     return out
 

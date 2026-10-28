@@ -203,6 +203,7 @@ jobs:
             python3 scripts/backfill_lab.py --yahoo
           elif [ "${MODE#ytd0050}" != "$MODE" ]; then
             # 配置頁「今年」表要的 0050 今年每天收盤（官方分片 2026-06-03 以前沒有 ETF；ytdspec，docs/lab_review_plan.md 第 9.2 節）
+            pip install --quiet numpy || true
             timeout 600 python3 scripts/run_ytd.py --tw-bench
           elif [ "$MODE" = "yhl" ] || [ "${MODE#yhl}" != "$MODE" ]; then
             python3 scripts/backfill_lab.py --yhl --budget-min 45

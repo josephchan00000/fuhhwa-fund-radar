@@ -643,13 +643,13 @@ def _ypc(x) -> str:
     return "—" if x is None else _pc(x)
 
 
-def _ycell(v) -> str:
-    """一格：那個月的報酬（大）＋今年累計（小）。"""
+def _ycell(v, lab: str = "今年") -> str:
+    """一格：那個月的報酬（大）＋累計（小；上線後那一欄是上線以來）。"""
     if not v:
         return '<td class=w>—</td>'
     m, c = v
     return (f'<td class=w><span class="{"up" if (m or 0) >= 0 else "dn"}">{_ypc(m)}</span>'
-            f'<div class=cd>今年 {_ypc(c)}</div></td>')
+            f'<div class=cd>{lab} {_ypc(c)}</div></td>')
 
 
 def ytd_html(Y: dict | None, mk: str) -> str:
@@ -671,7 +671,7 @@ def ytd_html(Y: dict | None, mk: str) -> str:
     head = (f'<div class="cfperf">今年到 {_md(last)}：不偷看 <b>{_ypc(t["nolook"])}</b>、一直抱著 {hold_nm} <b>{_ypc(t["hold"])}</b>'
             + (f'、上線後（{_md(Y["live_from"])} 起）<b>{_ypc(t["live"])}</b>' if t.get("live") is not None else "") + "</div>")
     rows = "".join(f'<tr><td>{r["m"]} 月' + ("" if r["full"] else f'<div class=cd>到 {_md(r["to"])}</div>') + "</td>"
-                   + _ycell(r.get("nolook")) + _ycell(r.get("hold")) + _ycell(r.get("live")) + "</tr>" for r in Y["rows"])
+                   + _ycell(r.get("nolook")) + _ycell(r.get("hold")) + _ycell(r.get("live"), "上線以來") + "</tr>" for r in Y["rows"])
     tbl = (f'<table class="cfyt"><thead><tr><th>月份</th><th>不偷看</th><th>一直抱著<div class=cd>{hold_nm}</div></th><th>上線後</th></tr></thead>'
            f"<tbody>{rows}</tbody></table>")
     extra = ""
@@ -689,6 +689,7 @@ def ytd_trades(Y: dict, mk: str) -> str:
     if not tr:
         return ""
     yd, last = Y["days"][0], Y["days"][-1]
+    many = len({t.get("m") for t in tr}) > 1                 # 美股今年挑到不只一種做法：每一筆寫是哪一種
     ks: list[str] = []
     rows = []
     for t in tr:
@@ -699,10 +700,10 @@ def ytd_trades(Y: dict, mk: str) -> str:
             px, sub = _tp, ""
         else:
             k = t["k"]
-            nm = t.get("nm")
-            who = (f'{_e(nm)} <span class=cd>{_e(t["c"])}</span>' if nm else _e(t["c"]))
+            nm = t.get("nm") or CPG.us_label(t["c"])[0]
+            who = (f'{_e(nm)} <span class=cd>{_e(t["c"])}</span>' if nm and nm != t["c"] else _e(t["c"]))
             px = lambda x: "—" if x is None else f"{x:,.2f}"           # noqa: E731
-            sub = f'<div class=cd>{_e(t["m"].replace("｜", "・"))}</div>'
+            sub = f'<div class=cd>{_e(t["m"].replace("｜", "・"))}</div>' if many else ""
         if k not in ks:
             ks.append(k)
         ent = "去年就拿著" if t["ent"] <= yd else f'{_md(t["ent"])} 買' + (f' {px(t["bpx"])}' if t.get("bpx") else "")

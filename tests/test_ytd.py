@@ -22,7 +22,9 @@ def test_month_rows_month_and_cumulative():
     assert mar["a"][0] == pytest.approx(1.20 / 1.21 - 1)
     assert jan["full"] and feb["full"]
     assert mar["to"] == "2026-03-02" and not mar["full"]           # 這個月還沒走完
-    assert jan["b"] is None and feb["b"][0] is None                 # 上線以前沒有值；上線那個月沒有月初值
+    assert jan["b"] is None                                          # 上線以前沒有值
+    assert feb["b"] == [0.0, 0.0]                                     # 上線那個月：從上線那天算
+    assert mar["b"][0] == pytest.approx(0.05) and mar["b"][1] == pytest.approx(0.05)
 
 
 def test_weights_of_adds_long_hold_and_skips_pending():
