@@ -410,7 +410,8 @@ def result_line(r: dict) -> str:
         H = r["H"]
         tr = "" if f.get("trim") is None else f"、排除極端的平均 {pc(f['trim'], 1, sign=True)}"
         return (f"過去 {f['n']} 次：抱 {HN[H]}賺錢 {pc(f['win'], 0)}（隨便挑一天 {pc(f.get('base'), 0)}）、"
-                f"中位數 {pc(f['med'], 1, sign=True)}（扣成本；隨便挑一天 {pc(f.get('bmed'), 1, sign=True)}）{tr}、中途最多跌中位 {pc(f.get('mae'), 1)}")
+                f"中位數 {pc(f['med'], 1, sign=True)}（扣成本；隨便挑一天 {pc(f.get('bmed'), 1, sign=True)}）{tr}、"
+                f"抱的期間最大跌幅最差一次 {pc(f.get('mddw'), 1)}" + (f"（{f['mddw_d']} 買）" if f.get("mddw_d") else ""))
     if r["kind"] == "trade":
         if not f.get("n"):
             return "評估期間沒有交易。"
@@ -515,7 +516,8 @@ def _ds(s: dict | None) -> dict | None:
     if not s or not s.get("n"):
         return {"n": 0, "base": _r((s or {}).get("base"))}
     return {"n": s["n"], "win": _r(s.get("win")), "base": _r(s.get("base")), "med": _r(s.get("med")), "avg": _r(s.get("avg")),
-            "mae": _r(s.get("mae")), "worst": _r(s.get("worst")), "best": _r(s.get("best")), "ok": int(bool(s.get("ok")))}
+            "mae": _r(s.get("mae")), "mddw": _r(s.get("mddw")), "mddw_d": s.get("mddw_d"),
+            "worst": _r(s.get("worst")), "best": _r(s.get("best")), "ok": int(bool(s.get("ok")))}
 
 
 def _as(s: dict | None) -> dict | None:
@@ -634,19 +636,19 @@ function xsPv(sp, i, v){ const k = sp.pk[i];
 function xsStats(x){ const r = x.xs, sp = x.sp;
   if (sp.kind === 'dip') {
     const hn = XS.hn[r.H] || (r.H + ' 天');
-    const head = '<thead><tr><th class="l">期間</th><th>次數</th><th>抱 ' + hn + '<br>賺錢</th><th>隨便挑<br>一天</th><th>中位數<br>（扣成本）</th><th>平均</th><th>中途最多跌<br>（中位）</th><th>最差一次</th></tr></thead>';
+    const head = '<thead><tr><th class="l">期間</th><th>次數</th><th>抱 ' + hn + '<br>賺錢</th><th>隨便挑<br>一天</th><th>中位數<br>（扣成本）</th><th>平均</th><th>最大跌幅<br>（最差一次）</th><th>最差一次</th></tr></thead>';
     const row = (lab, sub, s, own) => !s || !s.n ? '<tr><td class="l">' + lab + '<small>' + sub + '</small></td><td class="mu" colspan="7">沒有出現過' +
       (s && s.base != null ? '（隨便挑一天 ' + f1(s.base) + '%）' : '') + '</td></tr>' :
       '<tr' + (own ? ' class="own"' : '') + '><td class="l">' + lab + '<small>' + sub + '</small></td><td data-h="次數">' + s.n + '</td>' +
       '<td data-h="賺錢"><b>' + f1(s.win) + '%</b></td><td data-h="隨便挑一天">' + f1(s.base) + '%</td>' +
       '<td data-h="中位數" class="' + cl(s.med) + '"><b>' + sg(s.med, 1) + '</b></td><td data-h="平均" class="' + cl(s.avg) + '">' + sg(s.avg, 1) + '</td>' +
-      '<td data-h="中途最多跌">' + (s.mae == null ? '—' : '−' + f1(s.mae) + '%') + '</td><td data-h="最差一次" class="' + cl(s.worst) + '">' + sg(s.worst, 1) + '</td></tr>';
+      '<td data-h="最大跌幅（最差一次）">' + (s.mddw == null ? '—' : '−' + f1(s.mddw) + '%' + (s.mddw_d ? '<small>' + ymd(s.mddw_d) + ' 買</small>' : '')) + '</td><td data-h="最差一次" class="' + cl(s.worst) + '">' + sg(s.worst, 1) + '</td></tr>';
     const hs = (r.hs || []).map(c => '<tr><td class="l">' + esc(XS.hn[c[0]] || c[0] + ' 天') + (c[0] === r.H ? '<small>判定看這一期</small>' : '') + '</td>' +
       '<td data-h="次數">' + c[1] + '</td><td data-h="賺錢"><b>' + (c[2] == null ? '—' : c[2] + '%') + '</b></td>' +
       '<td data-h="隨便挑一天">' + (c[4] == null ? '—' : c[4] + '%') + '</td><td data-h="中位數" class="' + cl(c[3]) + '">' + sg(c[3], 1) + '</td></tr>').join('');
     return '<div class="sgwrap sgrw"><table class="sgrr xst">' + head + '<tbody>' + row('全期間', ymd(r.a) + ' 起', r.f, true) + row('近 10 年', ymd(r.r0) + ' 起', r.r) +
       row('5 日急跌隔天就買', '對照，不判定', r.o) + '</tbody></table></div>' +
-      '<p class="note">「隨便挑一天」＝同一段期間每一天都當買進日、抱一樣多天（同樣扣成本）賺錢的比例。「中途最多跌」＝買進之後抱的期間內，收盤最多比買價低多少。</p>' +
+      '<p class="note">「隨便挑一天」＝同一段期間每一天都當買進日、抱一樣多天（同樣扣成本）賺錢的比例。「最大跌幅」＝抱的期間內從最高收盤跌到之後最低收盤的幅度（大跌的同一個算法），表上列最差的那一次。</p>' +
       (hs ? '<p class="sgdl">換別的期間看（只列，不判定）：</p><div class="sgwrap"><table class="sgrt xsh"><thead><tr><th class="l">抱多久</th><th>次數</th><th>賺錢</th>' +
         '<th>隨便挑一天</th><th>中位數</th></tr></thead><tbody>' + hs + '</tbody></table></div>' : ''); }
   if (sp.kind === 'trade') {
@@ -745,7 +747,7 @@ function xsTr(x){ const box = document.getElementById('xstr'); if (!box) return;
   const j = XD ? XD[x.k] || null : null; if (!j) { box.innerHTML = '<p class="note">' + (XD ? '沒有資料。' : '載入中…') + '</p>'; return; }
   const tr = j.tr || [], dp = x.sp.kind === 'dip', trd = x.sp.kind === 'trade' || dp, list = XSV.all ? tr.slice().reverse() : tr.slice(-20).reverse();
   const head = '<thead><tr>' + (dp ? '<th class="l">訊號</th>' : '') + '<th class="l">買進</th><th class="l">賣出</th><th>' + (trd ? '抱幾天' : '交易日數') + '</th><th>' +
-    (trd ? '淨報酬' : '這一段') + '</th>' + (dp ? '<th>中途最多跌</th>' : '') + '</tr></thead>';
+    (trd ? '淨報酬' : '這一段') + '</th>' + (dp ? '<th>最大跌幅</th>' : '') + '</tr></thead>';
   const body = list.map(t => '<tr>' + (dp ? '<td class="l">' + ymd(t[7]) + '</td>' : '') + '<td class="l">' + ymd(t[0]) + '<small>' + nfmt(t[1]) + '</small></td><td class="l">' +
     (t[2] ? ymd(t[2]) : '<b>持有中</b>') + '<small>' + nfmt(t[3]) + (t[2] ? '' : '（最新）') + '</small></td><td>' + t[4] + '</td><td class="' + cl(t[5]) + '"><b>' + sg(t[5] * 100, 1) + '</b></td>' +
     (dp ? '<td>' + (t[6] ? '−' + (t[6] * 100).toFixed(1) + '%' : '0%') + '</td>' : '') + '</tr>').join('');
@@ -757,7 +759,7 @@ function xsTr(x){ const box = document.getElementById('xstr'); if (!box) return;
     '<button type="button" id="xscsv">下載 CSV</button></p>'; }
 function xsCsv(x){ const j = XD ? XD[x.k] || null : null; if (!j) return;
   const dp = x.sp.kind === 'dip';
-  const lines = (dp ? [['訊號日', '買進日', '買進收盤', '賣出日', '賣出收盤', '交易日數', '報酬%', '中途最多跌%']] : [['買進日', '買進收盤', '賣出日', '賣出收盤', '交易日數', '報酬%']])
+  const lines = (dp ? [['訊號日', '買進日', '買進收盤', '賣出日', '賣出收盤', '交易日數', '報酬%', '最大跌幅%']] : [['買進日', '買進收盤', '賣出日', '賣出收盤', '交易日數', '報酬%']])
     .concat(j.tr.map(t => dp ? [t[7], t[0], t[1], t[2], t[3], t[4], (t[5] * 100).toFixed(2), (t[6] * 100).toFixed(2)]
       : [t[0], t[1], t[2] || '持有中', t[3], t[4], (t[5] * 100).toFixed(2)]));
   const csv = '﻿' + lines.map(l => l.join(',')).join('\n');

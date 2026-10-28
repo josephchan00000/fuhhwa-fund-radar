@@ -324,7 +324,7 @@ function renderCo(c,keep){const dv=$('#dv'),pane=isPane(),st0=keep?dv.scrollTop:
   const mk=C?(C.doc.mk==='tp'?'上櫃':'上市'):'';
   let h=`<div class=dvh><div class=dvt><div class=ttl><b>${esc(nm)}</b><span class=cd>${esc(c)}${mk?' · '+mk:''}${C&&C.doc.ind?' · '+esc(C.doc.ind):''}</span></div>`+
     `<div class=pxw><b>${r?fp(r.px):''}</b>${r&&r.ch!=null?sgn(r.ch,2,'%'):''}</div><a class=x id=x title="關閉（Esc）">×</a></div>`+
-    `<nav class=cnav>${(PKU[c]?[['c-st','配置']]:[]).concat(coNav()).map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
+    `<nav class=cnav>${(PKU[c]?[['c-st','策略']]:[]).concat(coNav()).map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
   h+=stCardSec(c)+coSec(c,W,()=>renderCo(c,true));   /* 配置頁的股票不在籌碼雷達範圍（例：長線待買的天鈺）：公司卡最上面也放「配置」段 */
   $('#dvin').innerHTML=h;dv.scrollTop=st0;$('#x').onclick=closeStock;
   $$('#dvin [data-cto]').forEach(a=>a.onclick=()=>{const t=document.getElementById(a.dataset.cto);if(t)dv.scrollTo({top:dv.scrollTop+t.getBoundingClientRect().top-dv.getBoundingClientRect().top-$('#dvin .dvh').offsetHeight+2,behavior:'smooth'});});
@@ -449,6 +449,15 @@ function wlSec(){const W=D.wl||{};if(!W.v)return sxSec();const Y=W.lay||{},ST=Y.
   d+=`<div class=note>只看月底市值 40 億以上的股票；過去的比例不代表之後也一樣。</div>`;
   b+=`<details class=mr><summary>過去成績與研究結論</summary>${d}${D.sx&&D.sx.v?`<details class=mr><summary>飆股候選規則</summary>${sxBody(false)}</details>`:''}</details>`;
   return sec('o-sx','飆股','飆股',`${W.d?md(W.d)+' 收盤':''}`,b);}
+/* 配置頁台股：原本的飆股名單與位置圖（檢討第 3 步；觀察，不在配置裡，打開才組）。只放名單、位置圖、買點，研究的說明留在研究紀錄 */
+function wlCfg(){const W=D.wl||{},C=W.cand||[];if(!W.v||!C.length)return '<div class=cfsxn>今天沒有名單。</div>';
+  const Y=W.lay||{},ST=Y.stocks||{},T=W.tags||{},{A,B,B2,Rr,NEAR}=wlPick();
+  let b=`<div class=cfsxl>${W.d?md(W.d)+' 收盤':''}名單 ${C.length} 檔：<b>到買點 ${A.length} 檔</b>、<b>快到買點 ${B.length} 檔</b>。突破買點才買，每一檔的買點和停損寫在位置欄。</div>`+spotSec();
+  b+=`<h4 class=sh>到買點（${A.length} 檔）</h4>`+(A.length?wlTable(A,ST,T,'','買點～追價上限'):`<div class=st>今天沒有股票在書上的買點。</div>`);
+  b+=`<h4 class=sh>快到買點（${B.length} 檔，強勢、離 52 週高點 ${f(NEAR*100,0)}% 內）</h4>`+(B.length?wlTable(B,ST,T,'','等什麼'):`<div class=st>今天沒有。</div>`);
+  if(B2.length)b+=`<details class=mr><summary>其他強勢 ${B2.length} 檔（離高點較遠或已漲太遠）</summary>${wlTable(B2,ST,T,'','等什麼')}</details>`;
+  if(Rr.length)b+=`<details class=mr><summary>其他 ${Rr.length} 檔（價格強度沒到前段）</summary>${wlTable(Rr,ST,T,'','等什麼')}</details>`;
+  return b+`<div class=cfsxl>過去成績在<a data-go="opp" data-at="o-sx">研究紀錄</a>。</div>`;}
 document.addEventListener('click',e=>{if(e.defaultPrevented)return;const a=e.target.closest&&e.target.closest('[data-co]');if(a){e.preventDefault();openCo(a.dataset.co,a.dataset.cs);return;}
   const m=e.target.closest&&e.target.closest('.sxall');if(m){e.preventDefault();$$('#sxc tr.sxmore').forEach(t=>t.hidden=false);m.remove();}});
 Object.assign(GL,{'五面向':'成長（近 3 月營收年增、最新季 EPS 年增）、獲利（近四季 ROE、營益率）、體質（負債比、流動比）、估值（本益比、淨值比，越便宜分數越高）、動能（RS、距 52 週高點）。每項先算在全市場的百分位，兩項平均後分 5 格：80 以上頂尖、60 以上良好、40 以上中性、20 以上偏弱、其餘落後。',

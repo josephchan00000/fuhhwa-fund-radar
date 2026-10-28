@@ -224,7 +224,7 @@ function spotDraw(){const box=$('#spotbox');if(!box)return;const W0=D.wl||{},Y=W
     `<text class=spot-zt x=${W-mr} y=${mt-9} text-anchor=end>還差 10% 內到 52 週高點</text>`;
   for(let v=y0;v<=100;v+=10)s+=`<line class=spot-grid x1=${ml} x2=${W-mr} y1=${Yv(v).toFixed(1)} y2=${Yv(v).toFixed(1)} /><text class=spot-at x=${ml-6} y=${(Yv(v)+4).toFixed(1)} text-anchor=end>${v}</text>`;
   for(let v=Math.ceil(xmin/10)*10;v<=0;v+=10)s+=`<text class=spot-at x=${X(v).toFixed(1)} y=${H-mb+16} text-anchor=middle>${v===0?'高點':v+'%'}</text>`;
-  s+=`<text class=spot-al x=${W-mr} y=${H-4} text-anchor=end>離 52 週高點 →</text><text class=spot-al x=4 y=${mt-9}>RS</text>`;
+  s+=`<text class=spot-al x=${W-mr} y=${H-4} text-anchor=end>離 52 週高點</text><text class=spot-al x=4 y=${mt-9}>RS</text>`;
   const ord={base:0,fail:1,far:2,near:3,buy:4};VZS.spote=P;
   P.map((o,i)=>[o,i]).sort((a,b)=>ord[a[0].cls]-ord[b[0].cls]||(b[0].x[5]||0)-(a[0].x[5]||0)).forEach(([o,i])=>{
     s+=`<g class="spotp ${o.cls}" data-spot=${i}><circle cx=${X(o.gap).toFixed(1)} cy=${Yv(o.rs).toFixed(1)} r=${R(o).toFixed(1)} /></g>`;});

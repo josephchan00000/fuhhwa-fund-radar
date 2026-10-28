@@ -222,7 +222,7 @@ def test_uncovered_us_qm_配置頁美股列的股票(tmp_path, monkeypatch):
     assert fund_intro.uncovered_us_qm() == []                                             # 沒有紀錄＝沒有缺口
 
 
-def test_intro_gap_chip_含美股三成(tmp_path, monkeypatch):
+def test_intro_gap_chip_含美股選股(tmp_path, monkeypatch):
     from arm import fund_dashboard as fd
     (tmp_path / "data").mkdir()
     fp = tmp_path / "data" / "holdings_intro_gap.json"
@@ -230,6 +230,6 @@ def test_intro_gap_chip_含美股三成(tmp_path, monkeypatch):
     fp.write_text(json.dumps({"count": 2, "items": [{"src": "etf", "name": "玉晶光"}, {"src": "usqm", "name": "PAYC"}]}),
                   encoding="utf-8")
     chip = fd._intro_gap_chip()
-    assert "<b>持股簡介</b>" in chip and "ETF 持股 1・美股三成 1" in chip
+    assert "<b>持股簡介</b>" in chip and "ETF 持股 1・美股選股 1" in chip
     fp.write_text(json.dumps({"count": 1, "items": [{"src": "usqm", "name": "PAYC"}]}), encoding="utf-8")
-    assert "美股三成；PAYC" in fd._intro_gap_chip()
+    assert "美股選股；PAYC" in fd._intro_gap_chip()

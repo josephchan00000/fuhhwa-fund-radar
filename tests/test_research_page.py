@@ -22,7 +22,7 @@ def test_page_has_toc_groups_and_shared_bar():
         assert f'<section class="rsec" id="{gid}"><h2>{title}</h2>' in h and f'<a href="#{gid}">{title}</a>' in h
         for n, u, _ in items:
             assert f'<a href="{u.replace("&", "&amp;")}">{n}</a>' in h, n
-    tabs, small = appnav.bar("cfg").split("</nav>", 1)
+    tabs, small = appnav.bar("pick").split("</nav>", 1)
     assert "x9r.html" not in tabs and '<a href="x9r.html">研究紀錄</a>' in small       # 研究紀錄不是頂欄的分頁，是右邊小字
 
 
@@ -35,7 +35,7 @@ def test_links_into_x9_match_views_and_sections():
             if not u.startswith("x9.html"):
                 continue
             q = dict(x.split("=", 1) for x in u.split("?", 1)[1].split("#")[0].split("&"))
-            assert q["v"] in views and q["v"] in ("opp", "st", "mac", "macst", "bo"), (n, u)   # 研究紀錄身分的分頁
+            assert q["v"] in views and q["v"] in ("opp", "st", "mac", "macst", "plan", "strat", "bo"), (n, u)   # 研究紀錄身分的分頁
             if "at" in q:
                 assert f"sec('{q['at']}'" in J, (n, q["at"])                        # 段落 id 真的存在
     assert "at=q.get('at')||undefined" in J and "gl=location.hash==='#gl'" in J and "go(v,at);if(gl)openGl();}" in J   # 改寫網址前先記下

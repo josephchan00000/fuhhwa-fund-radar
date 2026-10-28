@@ -1,8 +1,9 @@
-"""台指期早盤策略的研究（規格 arm/lab/futspec.py VER 1；docs/lab_fut_plan.md 第 4、5、9 節）。
+"""台指期早盤策略的研究（規格 arm/lab/futspec.py VER 2；docs/lab_fut_plan.md 第 4、5、9 節）。
 
 逐日照規格算：落差 E、門檻（同一版本過去 20 個有算出 E 的交易日 |E| 前 45%）、要不要做、做多或做空、模擬進出場。
 每一天先算好「做多」「做空」兩個結果（換算點數）與作者原點數的兩個結果；方向亂選的對照、每天都做多／做空的對照
 都從這幾個結果取，不用重跑。另列（不判定）「期貨之後有沒有追上」：決定時間的期貨價到幾個時點的漲跌，和 E 的方向比。
+兩個版本各算一次、門檻各自累積：偷看版（每檔真正的開盤價）、即時版（盤前取樣的試撮價，VER 2，有取樣的日子才有）。
 全部寫進 data/lab/fut_research.json（每天 CI 重算；逐筆資料只增不改，所以結果只會變長）。
 
 每一天一列（days）：
@@ -10,6 +11,8 @@
   div 除權息點數、ip 前一天收盤指數、e 落差、th 門檻（None＝過去不到 10 天）、side 做多／做空／None、
   pts [停損, 讓, 移動, 停利]（換算後點數）、L／S 做多／做空的模擬、Lr／Sr 作者原點數的做多／做空、
   mv 決定時間的期貨價到 CATCH 各時點的漲跌（點）；skip＝這天為什麼沒算。
+  即時版另有 cov 用到的比重合計、n 用到幾檔、stale 資料太舊幾檔、nopx 沒有試撮價幾檔、
+  la 同一天偷看版的開盤水準、err 即時版估算 − 偷看版（點，只列）。
   模擬一筆＝SIM_COLS 順序的陣列（沒有成交＝None）。
 """
 from __future__ import annotations
@@ -20,6 +23,7 @@ from datetime import date, timedelta
 
 from .. import twholidays as H
 from . import futdata as F
+from . import futpre as FP
 from . import futsig as G
 from . import futsim as S
 from . import futspec as P
@@ -54,6 +58,29 @@ def net(sim: list | None) -> float | None:
     return None if sim is None else sim[SIM_COLS.index("net")]
 
 
+def _fill(row: dict, inp: dict, est: float, f_dec: int, past: list[float]) -> None:
+    """有估算、有決定價的一天：落差、門檻（past＝同一版本過去的 |E|，算完把今天加進去）、方向、兩邊的模擬、之後的漲跌。"""
+    T = inp["ticks"]
+    e = G.edge(inp, f_dec, est)
+    th = P.threshold(past)
+    pts = P.points(inp["i_close"])
+    raw = P.points(inp["i_close"], raw=True)
+    side = None
+    if th is not None and abs(e) >= th and e != 0:
+        side = "long" if e > 0 else "short"
+    mv = []
+    for _, s in CATCH:
+        x = S.last_le(T, s)
+        mv.append(None if x is None else x - f_dec)
+    row.update({"c": inp["c"], "f": f_dec, "est": round(est, 2), "basis": round(inp["basis"], 2),
+                "div": round(inp["div"], 2), "ip": round(inp["i_close"], 2), "e": round(e, 2),
+                "th": None if th is None else round(th, 2), "side": side,
+                "pts": [pts[k] for k in ("stop", "buf", "clear", "target")],
+                "L": _sim(T, "long", pts), "S": _sim(T, "short", pts),
+                "Lr": _sim(T, "long", raw), "Sr": _sim(T, "short", raw), "mv": mv})
+    past.append(abs(e))
+
+
 def days_lookahead() -> list[dict]:
     """偷看版：每個存了逐筆與 5 秒指數、前一個交易日也存了的日子。"""
     out = []
@@ -72,30 +99,47 @@ def days_lookahead() -> list[dict]:
             out.append(row)
             continue
         est = G.open_full(d, dp, inp["i_close"], P.COVER_MIN)
-        T = inp["ticks"]
-        f_dec = S.last_le(T, P.DECIDE_S)
+        f_dec = S.last_le(inp["ticks"], P.DECIDE_S)
         if est is None or f_dec is None:
             row["skip"] = "缺個股開盤價" if est is None else "決定時間以前沒有成交"
             out.append(row)
             continue
-        e = G.edge(inp, f_dec, est)
-        th = P.threshold(past)
-        pts = P.points(inp["i_close"])
-        raw = P.points(inp["i_close"], raw=True)
-        side = None
-        if th is not None and abs(e) >= th and e != 0:
-            side = "long" if e > 0 else "short"
-        mv = []
-        for _, s in CATCH:
-            x = S.last_le(T, s)
-            mv.append(None if x is None else x - f_dec)
-        row.update({"c": inp["c"], "f": f_dec, "est": round(est, 2), "basis": round(inp["basis"], 2),
-                    "div": round(inp["div"], 2), "ip": round(inp["i_close"], 2), "e": round(e, 2),
-                    "th": None if th is None else round(th, 2), "side": side,
-                    "pts": [pts[k] for k in ("stop", "buf", "clear", "target")],
-                    "L": _sim(T, "long", pts), "S": _sim(T, "short", pts),
-                    "Lr": _sim(T, "long", raw), "Sr": _sim(T, "short", raw), "mv": mv})
-        past.append(abs(e))
+        _fill(row, inp, est, f_dec, past)
+        out.append(row)
+    return out
+
+
+def days_realtime() -> list[dict]:
+    """即時版（futspec VER 2）：每個有盤前取樣的交易日；逐筆、5 秒指數（當天與前一個交易日）到了才算。門檻用即時版自己的過去。"""
+    out = []
+    have = set(store.dates(F.KIND_TX)) & set(store.dates(F.KIND_IDX))
+    past: list[float] = []
+    for d in sorted(store.dates(FP.KIND)):
+        dp = prev_trading_day(d)
+        row = {"d": d, "dp": dp}
+        if d not in have or dp not in have:
+            row["skip"] = "逐筆還沒存" if d not in have else "前一個交易日沒有資料"
+            out.append(row)
+            continue
+        inp = G.day_inputs(d, dp)
+        recs = FP.load(d)
+        if not inp or not recs:
+            row["skip"] = "缺逐筆或指數" if not inp else "沒有盤前取樣"
+            out.append(row)
+            continue
+        rt = G.est_realtime(recs, dp, inp["i_close"], decide_s=P.DECIDE_S, fresh_s=P.RT_FRESH_S,
+                            cover_min=P.RT_COVER_MIN, field=P.RT_FIELD)
+        row.update({k: rt[k] for k in ("cov", "n", "stale", "nopx")})
+        f_dec = S.last_le(inp["ticks"], P.DECIDE_S)
+        if rt["est"] is None or f_dec is None:
+            row["skip"] = (f"試撮價用得到的比重只有 {rt['cov'] * 100:.0f}%（要 {P.RT_COVER_MIN * 100:.0f}%）"
+                           if rt["est"] is None else "決定時間以前沒有成交")
+            out.append(row)
+            continue
+        _fill(row, inp, rt["est"], f_dec, past)
+        la = G.open_full(d, dp, inp["i_close"], P.COVER_MIN)
+        row["la"] = None if la is None else round(la, 2)
+        row["err"] = None if la is None else round(rt["est"] - la, 2)
         out.append(row)
     return out
 
@@ -167,25 +211,38 @@ def judge_realtime(n_days: int, s: dict, p: float | None) -> str:
     return "pass" if ok else "fail"
 
 
-def run() -> dict:
-    la = days_lookahead()
-    rows = [r for r in la if "e" in r]
+def err_summary(rows: list[dict]) -> dict:
+    """即時版估算 − 偷看版開盤水準（點；只列、不判定）：平均、中位數、平均絕對誤差、差最多的一天。"""
+    xs = [(r["d"], r["err"]) for r in rows if r.get("err") is not None]
+    if not xs:
+        return {"n": 0}
+    v = [x for _, x in xs]
+    d, w = max(xs, key=lambda t: abs(t[1]))
+    return {"n": len(v), "mean": round(st.mean(v), 2), "median": round(st.median(v), 2),
+            "mae": round(st.mean(abs(x) for x in v), 2), "worst": [d, w]}
+
+
+def _block(days: list[dict], verdict) -> dict:
+    rows = [r for r in days if "e" in r]
     main = nets(rows, lambda r: SIDE_KEY.get(r.get("side")))
     s = summarize(main)
     p = placebo(rows, st.mean(main)) if main else None      # 實際平均用沒進位的（亂選出同一組時要算「不比它差」）
-    return {
-        "spec_ver": P.VER, "asof": rows[-1]["d"] if rows else None, "cols": list(SIM_COLS),
-        "catch_at": [lab for lab, _ in CATCH],
-        "lookahead": {
-            "days": la, "n_days": len(rows), "main": s, "placebo_p": p,
-            "verdict": judge_lookahead(len(rows), s),
+    return {"days": days, "n_days": len(rows), "main": s, "placebo_p": p, "verdict": verdict(len(rows), s, p),
             "compare": {"raw_points": summarize(nets(rows, lambda r: SIDE_KEY[r["side"]] + "r" if r.get("side") else None)),
                         "always_long": summarize(nets(rows, lambda r: "L")),
                         "always_short": summarize(nets(rows, lambda r: "S"))},
-            "catchup": {"all": catchup(rows), "traded": catchup(rows, only_traded=True)},
-        },
-        "realtime": {"days": [], "n_days": 0, "verdict": "wait", "note": "等即時版開始取樣（futspec VER 2）"},
-    }
+            "catchup": {"all": catchup(rows), "traded": catchup(rows, only_traded=True)}}
+
+
+def run() -> dict:
+    la = _block(days_lookahead(), lambda n, s, p: judge_lookahead(n, s))
+    rt = _block(days_realtime(), judge_realtime)
+    rt["compare"]["est_err"] = err_summary([r for r in rt["days"] if "e" in r])
+    pre = store.dates(FP.KIND)
+    rt["start"] = pre[0] if pre else None
+    rows = [r for r in la["days"] if "e" in r]
+    return {"spec_ver": P.VER, "asof": rows[-1]["d"] if rows else None, "cols": list(SIM_COLS),
+            "catch_at": [lab for lab, _ in CATCH], "lookahead": la, "realtime": rt}
 
 
 def write(doc: dict) -> bool:

@@ -342,21 +342,68 @@ def _qm_todo(mk: str, qm: dict | None, cash: bool) -> str:
     return rows
 
 
+def _qm_fail(mk: str, qm: dict | None) -> list[str]:
+    """研究檔的四個標準（ussxspec ①～④）沒過的那幾條，白話。"""
+    R = (qm or {}).get("R") or {}
+    if mk not in US or not R:
+        return []
+    v = R.get("verdict") or {}
+    c1 = v.get("c1") or {}
+    out = []
+    if isinstance(c1, dict) and not all(c1.values()):
+        who = "、".join(n for k, n in (("spx", "S&amp;P 500 含息"), ("ew", "同一批股票平均")) if not c1.get(k))
+        out.append(f"這套規則本身沒有在前後兩段都贏{who}")
+    elif not isinstance(c1, dict) and not c1:
+        out.append("這套規則本身沒有贏 S&amp;P 500")
+    if not (v.get("c2") or {}).get(mk):
+        j = ((_qm_plan(mk, qm).get("judge")) or {})
+        bits = [t for k, t in (("money", "錢沒有比較多"), ("halves", "前一半或後一半的錢沒有比較多"),
+                               ("mdd", "最慘時跌得比原本的計畫深超過 10 個百分點")) if j.get(k) is False]
+        out.append("放進計畫沒有比原本七成長抱的計畫好" + (f"（{'、'.join(bits)}）" if bits else ""))
+    if v.get("need_alt", True) and not (v.get("c3") or {}).get(mk):
+        out.append("用複委託的手續費不成立")
+    if not v.get("c4"):
+        out.append("已下市公司缺資料的影響太大")
+    return out
+
+
 def _qm_why_not(mk: str, qm: dict | None) -> str:
-    """研究檔在、但那個計畫判定沒過：一句話說哪一條沒過（三成照舊放指數）。"""
+    """研究檔在、但那個計畫沒換成 QM：一句話說為什麼（三成照舊放指數）。"""
     R = (qm or {}).get("R") or {}
     if mk not in US or not R:
         return ""
-    if not (R.get("repro") or {}).get("ok"):
+    rp = R.get("repro") or {}
+    if not rp.get("ok") and rp.get("block", True):                      # ussxspec VER 8：重現檢查只記錄、不擋
         return f"{QM_NAME}的規則重算出來和原本算的對不上，先不換（照舊買指數）。"
-    v = R.get("verdict") or {}
-    miss = [t for k, t in (("c1", "這套規則本身沒有贏 S&amp;P 500"), ("c2", "放進計畫沒有比原本七成長抱的計畫好"), ("c3", "用複委託的手續費不成立"),
-                           ("c4", "已下市公司缺資料的影響太大")) if not (v.get(k) if k in ("c1", "c4") else (v.get(k) or {}).get(mk))
-            and (k != "c3" or v.get("need_alt", True))]                     # ussxspec VER 6：複委託只描述
-    if k_c1 := v.get("c1"):
-        if isinstance(k_c1, dict) and all(k_c1.values()):
-            miss = [m for m in miss if not m.startswith("這套規則本身")]
+    miss = _qm_fail(mk, qm)
     return f"{QM_NAME}放進這個計畫沒有過關（{'、'.join(miss) or '—'}），照舊買指數。" if miss else ""
+
+
+def qm_kept(mk: str, qm: dict | None) -> str:
+    """ussxspec VER 8：四個標準沒有全過、照使用者 2026/10/28 的決定照用時的一句（過了就空字串）。"""
+    R = (qm or {}).get("R") or {}
+    if not (qm_on(mk, qm) and R.get("keep")):
+        return ""
+    miss = _qm_fail(mk, qm)
+    return (f"事先定好的四個標準沒有全過（{'、'.join(miss)}）；2026/10/28 決定先照用，看之後每週的實際紀錄再說。" if miss else "")
+
+
+def qm_fix_note(mk: str, qm: dict | None) -> str:
+    """ussxspec VER 8：2026/10/28 修正財報條件的一句（修正前、修正後的數字）。研究檔沒有修正前的數字就空字串。"""
+    R = (qm or {}).get("R") or {}
+    pf = R.get("prefix") or {}
+    if not (qm_on(mk, qm) and pf):
+        return ""
+    s0, s1 = (pf.get("sleeve") or {}).get("cagr"), ((R.get("sleeve") or {}).get("main") or {}).get("cagr")
+    m0 = ((((pf.get("plans") or {}).get(mk) or {}).get("new") or {}).get("plan") or {}).get("m")
+    m1 = ((_qm_plan(mk, qm).get("new") or {}).get("plan") or {}).get("m")
+    t = ("2026/10/28 修正：財報條件原本會用到後來才申報的數字（例如隔年才第一次公布的股東權益），"
+         "改成每一週只用那時已經申報的數字重算")
+    if m0 is not None and m1 is not None:
+        t += f"。修正前 100 萬變 {_wan(m0)}，修正後 {_wan(m1)}"
+    if s0 is not None and s1 is not None:
+        t += f"；不看警訊、只看{QM_NAME}本身，一年 {_pc(s0, 1, False)} 變 {_pc(s1, 1, False)}"
+    return t + "。"
 
 
 def _bar(mk: str, cash: bool) -> str:
@@ -741,6 +788,9 @@ def benefit_html(mk: str, sc: dict, qm: dict | None = None) -> str:
         if base and core_w(mk) <= 0:
             note += (f'<p class="plnnote">原本的計畫（2026/10/23 起：七成長抱{_ixn(mk)}、三成買{QM_NAME}）同一段時間 100 萬變 {_wan(base["plan"]["m"])}，'
                      f'最慘時跌 {_ab(base["plan"]["mdd"])}。</p>')
+        for t in (qm_fix_note(mk, qm), qm_kept(mk, qm)):                    # ussxspec VER 8
+            if t:
+                note += f'<p class="plnnote">{t}</p>'
     elif mk == "tw":
         bits = []
         if sc.get("long"):
@@ -837,7 +887,8 @@ def _qm_why(qm: dict | None) -> list[str]:
     out = [f'機動買<b>{QM_NAME}</b>（2026/10/23 起）：只挑漲得兇的股票，會買到很多不賺錢、上下震盪很大的公司，2014 年起反而輸大盤；'
            '加上「本業賺錢」（營益率、股東權益報酬率）和「市值夠大」之後才穩定贏。',
            '這套是 2,016 種做法裡挑的（21 類條件 × 檔數 × 賣法 × 看不看大盤）。同一類條件的 96 種做法有 82% 在 2014～2019、2020 以後兩段都贏 S&amp;P 500；'
-           '只用 2010～2017 年（或 2010～2019 年）的成績替 21 類條件排名，排第 1 的也都是這一類，之後一年也多賺約 4 個百分點。']
+           '只用 2010～2017 年（或 2010～2019 年）的成績替 21 類條件排名，排第 1 的也都是這一類，之後一年也多賺約 4 個百分點。'
+           '（這一段的比較是 2026/10/28 修正財報條件之前算的，用到營益率、股東權益報酬率的做法修正後多半會再低一點。）']
     if sl.get("cagr") is not None and (bn.get("spx_tr") or {}).get("cagr") is not None:
         t = (f'這套規則本身 {QX.QM_EVAL} 年起一年賺 {_pc(sl["cagr"], 1, False)}（S&amp;P 500 含息 {_pc(bn["spx_tr"]["cagr"], 1, False)}'
              + (f'、QQQ {_pc(bn["qqq"]["cagr"], 1, False)}' if (bn.get("qqq") or {}).get("cagr") is not None else "") + '）'
@@ -871,6 +922,7 @@ def _qm_check(qm: dict | None) -> str:
 def _qm_care(mk: str, qm: dict | None) -> list[str]:
     R = (qm or {}).get("R") or {}
     out = ['這套規則是看過 2014 年以後的成績才挑的，回測的數字會比以後實際做的好；真正的考驗是 2026/10/23 起的紀錄。']
+    out += [t for t in (qm_fix_note(mk, qm), qm_kept(mk, qm)) if t]                    # ussxspec VER 8
     top = [c for c, _ in (R.get("top") or [])[:5]]
     tv = [v for _, v in (R.get("top") or [])[:5] if v is not None]
     dr = ((R.get("desc") or {}).get("drop") or {})

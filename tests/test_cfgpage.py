@@ -187,7 +187,7 @@ def test_us_v2_rows_open_card_and_explain(R, QMX, monkeypatch):
     assert lg == [("c1", "強勢品質股 2 檔", "75"), ("cx", "現金", "25")]
     assert "現金 25% 是空的位子，10/23（五）收盤看下一份名單，有空位就在下一個交易日開盤買。" in _text(c)
     assert f'<a class="cfrow" {_uhref("INSW")}><span class="cfra"><b>International Seaways</b><span class="cd">INSW</span>' in h
-    assert '<span class="cfri">油輪航運公司</span><span class="cfrb">7/20 買・比 50 日線高 3.2%</span>' in h
+    assert '<span class="cfri">油輪航運公司</span><span class="cfrb">7/20 買（回測）・比 50 日線高 3.2%</span>' in h
     assert "為什麼：10/22 收盤的名單第 1 名，漲勢勝過 99% 的美股" in _text(h)       # VLO 在名單上；INSW 不在、不寫為什麼
     assert _text(h).count("為什麼：") == 1
     assert "分到 100%，現在用到 75%。" in _text(h) and "最多 8 檔、每檔約 12.5%" in _text(h)
@@ -323,7 +323,9 @@ def test_tw_page_has_boom_book_section(R):
     bm = R["mk"]["tw"]["sc"]["plan"].get("boom") or {}
     if bm.get("cagr") is not None:
         assert f'每年賺 {CPG._pc(bm["cagr"]).lstrip("+")}' in t and f'最慘時跌 {bm["mdd"] * 100:.0f}%' in t
-    assert 'data-go="opp" data-at="o-sx"' in b                                    # 舊的飆股名單在研究紀錄
+    assert 'class="cfdet cfsxo"' in b and "原本的飆股名單與位置圖（觀察，不在配置裡）" in t   # 原本的飆股名單：收起來，打開才組
+    from arm.lab import copage
+    assert "function wlCfg()" in copage.JS and 'data-go="opp" data-at="o-sx"' in copage.JS
     js = CF.JS
     assert "(C.boom||'')" in js and "function cfSx()" not in js and "cfSx" not in js
     assert "if(T.boom)L.push(Object.assign({},T.boom,{_src:'boom'}));" in js and "c._src==='boom'" in js
@@ -380,30 +382,33 @@ def test_board_html_groups_and_filters():
 
 
 def test_page_tabs_personas_and_script_order():
+    """2026-10-28 起（docs/lab_pick_page_plan.md）：頂欄「選股」＝台股｜美股｜個股；原本的配置（交易計畫）與全部策略在研究紀錄身分。"""
     html = page.render({"etfs": {}, "asof": {}, "cfg": {"use": []}})
-    assert 'id="purp"' not in html and "{{" not in html
-    for t in ("tw", "us", "strat", "tool"):
-        assert f'data-t="{t}" data-p="cfg"' in html, t
-    for t in ("stg", "mac", "bo"):
+    assert 'id="purp"' not in html and "{{" not in html and "<title>選股</title>" in html
+    for t in ("tw", "us", "tool"):
+        assert f'data-t="{t}" data-p="pick"' in html, t
+    for t in ("stg", "mac", "plan", "strat", "bo"):
         assert f'data-t="{t}" data-p="r" hidden' in html, t
     assert '<a class="rbk" href="x9r.html" data-p="r" hidden>‹ 研究紀錄</a>' in html
-    from arm.lab import appnav, copage, macpage
-    assert appnav.bar("cfg", search=copage.SEARCH_HTML) in html and CF.CSS in html
+    from arm.lab import appnav, copage, macpage, pickpage
+    assert appnav.bar("pick", search=copage.SEARCH_HTML) in html and CF.CSS in html and pickpage.CSS in html
     from arm.lab import corepage
     assert corepage.CSS.split("\n", 1)[0] in html                                   # 「細節」用 corepage 的圖表與表格，樣式要一起載入
     js = html[html.index("<script>"):]
-    i_mac, i_cf, i_co, i_init = js.index("const MAC=D.mac||{}"), js.index("const CFG=D.cfg||{}"), js.index(copage.JS[:200]), js.index("go(v,at);")
-    assert i_mac < i_cf < i_co < i_init                                            # 配置的 JS 在初始化之前（頂層 const 已經初始化）
+    i_mac, i_cf, i_pk, i_uc, i_co, i_init = (js.index("const MAC=D.mac||{}"), js.index("const CFG=D.cfg||{}"), js.index("const PICK=D.pick||{}"),
+                                             js.index("const UCD="), js.index(copage.JS[:200]), js.index("go(v,at);"))
+    assert i_mac < i_cf < i_pk < i_uc < i_co < i_init                             # 選股、交易計畫的 JS 在初始化之前（頂層 const 已經初始化）
     J = page._JS
-    assert "const VIEWS={tw:vCfgTw,us:vCfgUs,strat:vCfgSt,stk:vStk,chip:vChip,idx:vIdx,opp:vOpp,st:vSt,mac:vMac,macst:vMacSt,bo:vBo};" in J
-    assert "const LAST={cfg:'tw',r:'bo',tool:'stk',mac:'mac',stg:'opp'};" in J
+    assert "const VIEWS={tw:vPkTw,us:vPkUs,stk:vStk,chip:vChip,idx:vIdx,opp:vOpp,st:vSt,mac:vMac,macst:vMacSt,plan:vCfgPlan,strat:vCfgSt,bo:vBo};" in J
+    assert "const LAST={pick:'tw',r:'bo',tool:'stk',mac:'mac',stg:'opp'};" in J
     assert "if(!VIEWS[v])v=/^#((s|co)=|q$)/.test(location.hash)?'stk':/^#us=/.test(location.hash)?'us':'tw';" in J   # 預設台股；舊的個股卡連結、查公司（#q）先到個股表；美股個股卡（#us=）到配置・美股
-    assert "if(d.gm)S.mmk=d.gm;if(d.bmk)S.bmk=d.bmk;" in J
+    assert "if(d.gm)S.mmk=d.gm;if(d.pm)S.pmk=d.pm;if(d.bmk)S.bmk=d.bmk;" in J
     for v in ("vStk", "vChip", "vIdx"):                                            # 個股（工具）三頁最上面切換
         seg = J[J.index(f"function {v}("):]
         assert "toolSeg('" in seg[:seg.index("\n}\n")], v
     assert "sec('c-sig'" not in J and "sec('c-risk'" not in J and "function sigTodaySec(" not in J   # 籌碼頁的今日訊號、風險提醒拿掉
-    assert "function stCardSec(c){const P=PKU[c];" in J and "CFU.has(p.k)" in J    # 個股卡只列配置裡的策略
+    assert "function stCardSec(c){const P=PKU[c];" in J and "CFU.has(p.k)" in J    # 個股卡只列選股頁上的策略
+    assert "<h3>配置" not in J and "data-at=\"cf-tw-h\"" not in J
     assert "S.sig==='sx'?SXC.has(r.c)" in J and "<option value=sx" in J               # 個股表留一個「飆股候選」篩選
 
 
@@ -447,3 +452,57 @@ def test_tw_boom_rows_say_which_rule_they_matched(R):
     assert "為什麼：強度 95（漲勢勝過 95% 的股票）；" + why in h                      # 待買進：強度＋符合哪一條
     for w in NOT_PLAIN + BANNED:
         assert w not in t and w not in h, w
+
+
+def test_us_rows_mark_backtest_buys_and_return_since_live_start(R, QMX, monkeypatch):
+    """檢討第 1 步（docs/lab_review_plan.md 第 9.1 節）：開始照做（QM_LIVE）那天以前照規則買的標「回測」，
+    另寫上線以來＝開始照做那一週週末的收盤到最新的收盤；之後才買的不標。"""
+    monkeypatch.setattr(CPG, "qm_on", lambda mk, q: True)
+    qm = _qm(QMX, [_h("INSW", 0.4, ent="2026-07-20", r=0.29, px=110.0, ma=105.0), _h("PAYC", 0.12, ent="2026-10-26", r=0.02, px=200.0, ma=190.0)],
+             idle=0.48, d="2026-10-30", nxt="2026-11-02", lst=[])
+    qm["L"]["weeks"] = {"2026-10-23": {"hold": [{"c": "INSW", "px": 100.0}]}}
+    G = CF.us_state(_bundle(R, qm=qm))
+    rows = {r["c"]: r for r in G["rows"]}
+    assert rows["INSW"]["bt"] and rows["INSW"]["rl"] == pytest.approx(0.10) and rows["INSW"]["p0"] == 100.0
+    assert not rows["PAYC"]["bt"] and rows["PAYC"]["rl"] is None
+    h = CF.us_parts(_data(), _bundle(R, qm=qm))["hold"]
+    assert "7/20 買（回測）・上線以來 +10.0%・比 50 日線高 4.8%" in _text(h)
+    assert "10/26 買・比 50 日線高 5.3%" in _text(h)
+
+
+def test_tw_rows_mark_backtest_buys_and_return_since_live_start():
+    """台股持股第二行：開始照做以前照規則買的寫「（回測）」和上線以來；之後才買的照舊。"""
+    r = {"ent": "2026-08-24", "epx": 13650.0, "px": 9755.0, "bt": True, "rl": 0.0056, "sell": "11/24 開盤賣"}
+    assert CF._row_b(r) == "8/24 買（回測）13,650，現在 9,755・上線以來 +0.6%・11/24 開盤賣"
+    r2 = {"ent": "2026-10-27", "epx": 51.2, "px": 50.0, "sell": ""}
+    assert CF._row_b(r2) == "10/27 買 51.2，現在 50"
+    assert CF._row_b({"ent": "2026-08-24", "bt": True}) == "8/24 買（回測）"
+
+
+def test_past_note_lists_hindsight_and_live_start_dates():
+    """「過去照做」下面兩行：哪些規則是看過資料才訂的；開始照做的日子（新飆股接手、★ 策略的 since、警訊）。"""
+    data = {"adv": {"grades3": [{"k": "v3l", "since": "2026-10-15"}, {"k": "s3", "since": "2026-10-14"}],
+                    "book": [{"k": "s5", "since": "2026-10-14"}]}}
+    bundle = {"stk": {"st": [{"k": "s3", "name": "臺灣50 提前卡位"}, {"k": "v3l", "name": "財報驚喜"}, {"k": "s5", "name": "長線"}],
+                      "boom": {"take": "2026-10-22"}}}
+    t = _text(CF.past_note("tw", data, bundle))
+    assert "個股策略的主要設定也一樣（臺灣50 卡位、長線看過全部的資料，財報驚喜看過 2021 年以後的資料）" in t
+    assert "開始照做以後的才是實際成績：新飆股 10/22 收盤、臺灣50 卡位 10/14、財報驚喜 10/15、長線 10/14、警訊 10/27 起" in t
+    u = _text(CF.past_note("us", {}, {}))
+    assert "從 2,016 種做法裡挑的" in u and "強勢品質股 10/23 收盤、警訊 10/26 起" in u
+    assert CF._wp(0.0002) == "不到 0.1%" and CF._wp(0.0) == "0%" and CF._wp(0.125) == "12.5%"
+
+
+def test_boom_points_kinds_and_chart():
+    """檢討第 3 步：新飆股位置圖——持有中、下一個交易日開盤買、名單上其他、這一週試算；同一檔只畫一次；沒有強度或高點的不畫。"""
+    B = {"d": "2026-10-27", "hold": [{"c": "1111", "n": "甲", "r": 0.12}], "buy": [{"c": "2222", "n": "乙", "fill": True},
+         {"c": "3333", "n": "丙", "fill": False}], "list": [{"c": "1111", "n": "甲"}, {"c": "2222", "n": "乙"}, {"c": "4444", "n": "丁"},
+         {"c": "5555", "n": "戊"}], "trial": [{"c": "6666", "n": "己"}]}
+    pos = {"1111": [95, -3.2], "2222": [91, -8.0], "3333": [90, -1.0], "4444": [88, -20.5], "5555": [None, -2.0], "6666": [97, 0.0]}
+    P = CF.boom_points(B, pos)
+    assert [(x[0], x[4]) for x in P] == [("1111", "h"), ("2222", "b"), ("4444", "l"), ("6666", "t")]   # 丙現金不夠、不在名單：不畫
+    assert P[0][5] == 12.0 and P[0][2] == -3.2 and P[0][3] == 95
+    h = CF.boom_spot(B, pos)
+    assert 'id="cfspot"' in h and "data-p=" in h and "持有中" in h and "這一週到現在符合的" in h
+    assert CF.boom_spot(B, {}) == ""
+    assert "function cfSpot()" in CF.JS and "cfSpot();" in CF.JS

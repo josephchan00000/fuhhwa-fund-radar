@@ -14,6 +14,7 @@ JS 由 page.render 插在頁面初始化之前（同 stockviz、macpage、copage
 from __future__ import annotations
 
 import html
+import json
 import re
 
 from .. import fund_intro as FI
@@ -41,7 +42,8 @@ def _mdw(d) -> str:
 
 
 def _wp(w: float) -> str:
-    return CPG._wp(w)
+    """占全部資金：很小但不是 0 的部位寫「不到 0.1%」（新飆股那本帳會用剩下的現金買幾檔小部位，寫 0% 像是沒有）。"""
+    return "不到 0.1%" if w and 0 < w < 0.0005 else CPG._wp(w)
 
 
 def _pc(x, d: int = 1) -> str:
@@ -125,6 +127,10 @@ def perf_line(mk: str, bundle: dict) -> str:
     if b and S.core_of("spx") <= 0:                       # ussxspec VER 5：判定跟原本在用的計畫比
         out += (f'<div class="cfperf cfq">原本的計畫（七成長抱 S&amp;P 500＋三成強勢品質股）同一段：100 萬變 {CPG._wan(b["plan"]["m"])}'
                 f'・最慘跌 {CPG._ab(b["plan"]["mdd"])}</div>')
+    if mk == "us":                                       # ussxspec VER 8：修正財報條件、四個標準沒全過但照用
+        for t in (CPG.qm_fix_note("spx", bundle.get("qm")), CPG.qm_kept("spx", bundle.get("qm"))):
+            if t:
+                out += f'<div class="cfperf cfq">{t}</div>'
     if mk == "us" and CPG.qm_on("ndx", bundle.get("qm")):
         q = (CPG._qm_plan("ndx", bundle.get("qm")).get("new")) or {}
         if q:
@@ -147,9 +153,45 @@ def detail_html(mk: str, bundle: dict) -> str:
 
 # ── 台股 ─────────────────────────────────────────────────────────────────────
 
-def boom_html(stk: dict, bundle: dict) -> str:
-    """新飆股那一本帳（配置頁台股；取代原本的飆股名單）：一行說明、最新一週的名單（前 20，名字可以點）、這一週的試算名單。
-    持股在「持股」那一段，這裡不重複。"""
+def boom_points(B: dict, pos: dict | None) -> list:
+    """新飆股位置圖的點（檢討第 3 步，docs/lab_review_plan.md 第 3 節）：[代號, 名稱, 離 52 週高點 %, 強度, 種類, 漲跌]。
+    種類 h＝持有中、b＝下一個交易日開盤買、l＝名單上其他、t＝這一週的試算；pos＝{代號: [強度, 離 52 週高點 %]}（全市場小表，page.build 給）。"""
+    pos = pos or {}
+    out, seen = [], set()
+
+    def add(c, n, k, r=None):
+        v = pos.get(c)
+        if c in seen or not v or v[0] is None or v[1] is None:
+            return
+        seen.add(c)
+        out.append([c, n or c, round(float(v[1]), 1), round(float(v[0]), 1), k, None if r is None else round(float(r) * 100, 1)])
+    for x in B.get("hold") or []:
+        add(x["c"], x.get("n"), "h", x.get("r"))
+    for x in B.get("buy") or []:
+        if x.get("fill"):
+            add(x["c"], x.get("n"), "b")
+    for x in B.get("list") or []:
+        add(x["c"], x.get("n"), "l")
+    for x in B.get("trial") or []:
+        add(x["c"], x.get("n"), "t")
+    return out
+
+
+def boom_spot(B: dict, pos: dict | None) -> str:
+    pts = boom_points(B, pos)
+    if not pts:
+        return ""
+    kinds = {k for *_, k, _r in pts}
+    lg = "".join(f'<span><i class="{k}"></i>{t}</span>' for k, t in (("h", "持有中"), ("b", "下一個交易日開盤買"), ("l", "名單上其他的"),
+                                                                    ("t", "這一週到現在符合的")) if k in kinds)
+    return (f'<h3 class="cfh3">位置圖<span class="sub">{_e(_md(B.get("d")))} 收盤・橫軸離 52 週高點、縱軸強度</span></h3>'
+            f'<div class="spotx cfspx"><div class="spotbox" id="cfspot" data-p="{_e(json.dumps(pts, ensure_ascii=False))}"></div>'
+            f'<div class="vztip" id="cfspottip" hidden></div></div><div class="vzlg cfsplg">{lg}<span>點一下打開個股卡</span></div>')
+
+
+def boom_html(stk: dict, bundle: dict, pos: dict | None = None) -> str:
+    """新飆股那一本帳（配置頁台股；取代原本的飆股名單）：一行說明、位置圖、最新一週的名單（前 20，名字可以點）、這一週的試算名單；
+    最下面收起原本的飆股名單與位置圖（觀察，不在配置裡）。持股在「持股」那一段，這裡不重複。"""
     B = stk.get("boom")
     if B is None:
         return ""
@@ -162,9 +204,10 @@ def boom_html(stk: dict, bundle: dict) -> str:
     line = (f'每週五（休市就看那一週最後一個交易日）收盤，用之前幾年的資料找出來的條件挑股票，依強勢排；'
             f'下一個交易日開盤買，每檔約占全部資金 {_wp(slot)}，抱 {hn} 個交易日再賣。')
     if bm.get("cagr") is not None:
+        tk = B.get("take")
         line += (f' {CPG.yr0(bm["a"])} 年起照做每年賺 {_pc(bm["cagr"]).lstrip("+")}、最慘時跌 {bm["mdd"] * 100:.0f}%'
-                 f'（2026/10/30 起每週記錄驗證中）。')
-    h = f'<h2 class="cfh">新飆股名單<span class="sub">{_e(sub)}</span></h2><div class="cfsxl">{line}</div>'
+                 + (f'（{_md(tk)} 收盤照回測那本帳的持股接手，之後每週記錄驗證中）。' if tk else '（2026/10/30 起每週記錄驗證中）。'))
+    h = f'<h2 class="cfh">新飆股名單<span class="sub">{_e(sub)}</span></h2><div class="cfsxl">{line}</div>' + boom_spot(B, pos)
     have = {x["c"] for x in B.get("hold") or []}
     buy = {x["c"]: x for x in B.get("buy") or []}
     if B.get("wk") and B.get("list"):
@@ -196,7 +239,8 @@ def boom_html(stk: dict, bundle: dict) -> str:
               + (f" 等 {len(tr)} 檔" if len(tr) > 12 else "") + "</div>")
     elif B.get("next_wk") and B.get("next_wk") != B.get("wk"):
         h += f'<div class="cfsxn">下一份名單：{_e(_mdw(B["next_wk"]))} 收盤。</div>'
-    h += '<div class="cfsxl">頁面上原本的飆股名單（到買點、快到買點）放在<a data-go="opp" data-at="o-sx">研究紀錄</a>。</div>'
+    h += ('<details class="cfdet cfsxo" id="cf-tw-sxo"><summary>原本的飆股名單與位置圖（觀察，不在配置裡）</summary>'
+          '<div class="cfsxob"></div></details>')                  # 打開才畫（copage.wlCfg、stockviz.spotDraw）
     return f'<section class=sec id="cf-tw-sx" data-nav="新飆股名單">{h}</section>'
 
 
@@ -285,14 +329,18 @@ def tw_groups(data: dict, bundle: dict) -> list[dict]:
         for h in B.get("hold") or []:
             sell = f'{_md(h.get("out"))} 開盤賣' + (f"（已滿 {hn} 個交易日）" if h.get("sell") else f'（{_md(h.get("due"))} 收盤滿 {hn} 個交易日）')
             rows.append({"c": h["c"], "n": h.get("n") or h["c"], "w": (h.get("w") or 0.0) * bw, "ent": h.get("ent"),
-                         "epx": h.get("epx"), "px": h.get("px"), "r": h.get("r"), "sell": sell, "why": h.get("why") or []})
+                         "epx": h.get("epx"), "px": h.get("px"), "r": h.get("r"), "sell": sell, "why": h.get("why") or [],
+                         "bt": bool(h.get("bt")), "rl": h.get("rl")})
         todo = [{"c": x["c"], "n": x.get("n") or x["c"], "w": slot, "when": f'{_mdw(B.get("next"))}開盤買（{_md(B.get("wk"))} 的名單）',
                  "why": ([f'強度 {x["rs"]:.0f}（漲勢勝過 {x["rs"]:.0f}% 的股票）'] if x.get("rs") is not None else []) + (x.get("why") or [])}
                 for x in B.get("buy") or [] if x.get("fill")]
         n_max = round(1 / float(B.get("w") or 0.125))
+        tk = B.get("take")
         G.append({"k": "boom", "name": "新飆股", "share": bw, "held": sum(r["w"] for r in rows), "rows": rows, "todo": todo, "col": 2,
                   "B": B, "slot": slot, "n_max": n_max,
-                  "how": f"每週五收盤看名單，下一個交易日開盤買，每檔約 {_wp(slot)}、最多 {n_max} 檔，抱 {hn} 個交易日賣。"})
+                  "how": f"每週五收盤看名單，下一個交易日開盤買，每檔約 {_wp(slot)}（錢不夠就用剩下的買少一點），抱 {hn} 個交易日賣。"
+                         + (f"{_md(tk)} 收盤照回測那本帳的持股接手，標「回測」的是接手前照規則買的；"
+                            "接手不算買進成本，現在照著買要多付約 0.1%～0.7%（手續費和價差）。" if tk else "")})
     hmap = {(k, h.get("c")): h for k, hs in (stk.get("hold") or {}).items() for h in hs}
     for i, x in enumerate(CPG.sat_weights(stk)):
         k = x["k"]
@@ -302,7 +350,7 @@ def tw_groups(data: dict, bundle: dict) -> list[dict]:
             rr = p.get("now_r") if p.get("now_r") is not None else h.get("r")          # advice 的 now_r 是百分比
             rows.append({"c": r["c"], "n": r.get("n") or p.get("n") or r["c"], "w": r["w"], "ent": r.get("ent") or p.get("ent"),
                          "epx": p.get("entry"), "px": p.get("now"), "r": None if rr is None else rr / 100.0,
-                         "sell": _sell_txt(p, h), "why": p.get("why") or []})
+                         "sell": _sell_txt(p, h), "why": p.get("why") or [], "bt": bool(p.get("bt")), "rl": p.get("rl")})
         have = {r["c"] for r in rows}
         pend = [p for (kk, cc), p in P.items() if kk == k and p.get("act") != "持有中" and cc not in have]
         slots = S.SLOTS.get(k)
@@ -407,7 +455,11 @@ def _row_b(r: dict, todo: bool = False) -> str:
         if r.get("stop") is not None:
             b += f'・停損約 {_tp(r["stop"])}' + (f'（買進價跌 {r["spct"]}%）' if r.get("spct") else "")
         return b
-    b = f'{_md(r.get("ent"))} 買' + (f' {_tp(r["epx"])}，現在 {_tp(r["px"])}' if r.get("epx") is not None and r.get("px") is not None else "")
+    bt = bool(r.get("bt"))
+    b = (f'{_md(r.get("ent"))} 買' + ("（回測）" if bt else " ")
+         + (f'{_tp(r["epx"])}，現在 {_tp(r["px"])}' if r.get("epx") is not None and r.get("px") is not None else "")).rstrip()
+    if bt and r.get("rl") is not None:                     # 檢討第 1 步：開始照做以前買的，另寫開始照做那天收盤到現在
+        b += f'・上線以來 {_pc(r["rl"])}'
     return b + (f'・{r["sell"]}' if r.get("sell") else "")
 
 
@@ -563,6 +615,164 @@ def warn_html(mk: str, N: dict) -> str:
             f'<div class="cfrule2">{_e(rule)}</div>' + due_line(mk, N))
 
 
+HIND_TW = {"s3": "全部", "s5": "全部", "v3l": "2021 年以後"}   # 個股策略的主要設定看過哪一段資料才訂的（檢討第 1.4 節）
+
+
+def since_map(adv: dict | None) -> dict:
+    """{策略: 開始照做（記錄）的那一天}：advice 的 grades3 → grades → book，取第一個有的。"""
+    out: dict = {}
+    for key in ("grades3", "grades", "book"):
+        for g in (adv or {}).get(key) or []:
+            if isinstance(g, dict) and g.get("k") and g.get("since") and g["k"] not in out:
+                out[g["k"]] = g["since"]
+    return out
+
+
+def _first_td(mk: str, d: str | None) -> str | None:
+    """d 當天或之後第一個交易日（休市表）。"""
+    if not d:
+        return None
+    from datetime import date, timedelta
+    return CPG._next_day(mk, (date.fromisoformat(d) - timedelta(days=1)).isoformat())
+
+
+def past_note(mk: str, data: dict, bundle: dict) -> str:
+    """「過去照做」旁邊兩行（檢討第 1 步，docs/lab_review_plan.md 第 1.4、9.1 節）：哪些規則是看過那段資料才訂的；
+    開始照做的日子（那天以後的才是實際成績，持股標「回測」的是那天以前照規則買的）。"""
+    if mk == "tw":
+        stk = bundle.get("stk") or {}
+        st = stk.get("st") or []
+        sm = since_map(data.get("adv"))
+        grp: dict = {}
+        for x in st:
+            if x.get("k") in HIND_TW:
+                grp.setdefault(HIND_TW[x["k"]], []).append(_lbl(x["k"], x.get("name")))
+        hs = "，".join(f"{'、'.join(ns)}看過{' ' if per[:1].isdigit() else ''}{per}的資料" for per, ns in grp.items())
+        t1 = ("這些數字會比以後真的照做好看：三個警訊、警訊解除滿兩週才買回、0050 留兩成，是看過包含今年的資料才挑的"
+              + (f"；個股策略的主要設定也一樣（{hs}）" if hs else "")
+              + "。新飆股每年只用以前的資料找規則，比較接近真的照做（找規則的方法是今年才定的）。")
+        starts = []
+        tk = (stk.get("boom") or {}).get("take")
+        if tk:
+            starts.append(f"新飆股 {_md(tk)} 收盤")
+        for x in st:
+            sn = sm.get(x.get("k"))
+            if sn:
+                starts.append(f'{_lbl(x["k"], x.get("name"))} {_md(sn)}')
+        w0 = _first_td("tw", S.LIVE_START)
+        if w0:
+            starts.append(f"警訊 {_md(w0)}")
+    else:
+        t1 = ("這些數字會比以後真的照做好看：強勢品質股的五個條件、8 檔、跌破 50 日線就賣，是看過 2010 年到今年的成績、"
+              "從 2,016 種做法裡挑的；原本的比法沒過，改成跟當時在用的計畫比、成本改用海外券商才採用；"
+              "一次性收入的修正、三個警訊和「總經策略全部空手」也是看過結果才加的。"
+              "每年只用以前的資料挑做法的話，平均只比 S&P 500 好一點、跌得深很多。")
+        starts = [f"強勢品質股 {_md(QX.QM_LIVE)} 收盤"]
+        w0 = _first_td("spx", S.LIVE_START)
+        if w0:
+            starts.append(f"警訊 {_md(w0)}")
+    t2 = "開始照做以後的才是實際成績：" + "、".join(starts) + " 起。持股標「回測」的是那天以前照規則買的。"
+    return f'<div class="cfperf cfq">{_e(t1)}</div><div class="cfperf cfq">{_e(t2)}</div>'
+
+
+# ── 今年逐月、逐筆（ytdspec VER 1；docs/lab_review_plan.md 第 9.2 節）──────────────
+
+def _ypc(x) -> str:
+    return "—" if x is None else _pc(x)
+
+
+def _ycell(v, lab: str = "今年") -> str:
+    """一格：那個月的報酬（大）＋累計（小；上線後那一欄是上線以來）。"""
+    if not v:
+        return '<td class=w>—</td>'
+    m, c = v
+    return (f'<td class=w><span class="{"up" if (m or 0) >= 0 else "dn"}">{_ypc(m)}</span>'
+            f'<div class=cd>{lab} {_ypc(c)}</div></td>')
+
+
+def ytd_html(Y: dict | None, mk: str) -> str:
+    """配置頁「現在的錢」下面：今年每個月、每一筆（不偷看、一直抱著、上線後）。Y＝ytd.tw()／ytd.us()；沒有＝一行「還沒算出來」。"""
+    if not Y:
+        return '<h2 class="cfh">今年</h2><p class="cfwhy">今年每個月的成績還沒算出來。</p>'
+    last = Y["days"][-1]
+    hold_nm = "0050" if mk == "tw" else "S&P 500"
+    if mk == "tw":
+        w = Y["w"]
+        how = (f"不偷看＝只用去年底以前就定好的規則照做：0050 {w['0050']:.0%}、新飆股 {w['R60']:.0%}、其他 {w['cash']:.0%} 放現金，"
+               f"不看警訊（新飆股每年只用以前的資料找規則；三條個股策略和警訊是今年 10 月才定的，不放進來）。"
+               f"一直抱著＝0050（含息）。上線後＝{_md(Y['live_from'])} 起照這一頁每天收盤的持股算（不含手續費）。")
+    else:
+        how = (f"不偷看＝每年 1 月 1 日只看過去 {Y['L']} 年的成績，從 2,016 種做法裡挑最好的 {Y['k']} 種"
+               + ("、平均分" if Y['k'] > 1 else "") + "，不看警訊；"
+               f"這種挑法是 24 種挑法裡 2014～2025 年成績排第 {Y['rank']} 名的（中間，不挑最好的，也不看今年）。"
+               f"一直抱著＝S&P 500（含息）。上線後＝{_md(Y['live_from'])} 起強勢品質股每週的紀錄。資料到 {_md(Y['data_last'])}，每週六更新。")
+    t = Y["tot"]
+    head = (f'<div class="cfperf">今年到 {_md(last)}：不偷看 <b>{_ypc(t["nolook"])}</b>、一直抱著 {hold_nm} <b>{_ypc(t["hold"])}</b>'
+            + (f'、上線後（{_md(Y["live_from"])} 起）<b>{_ypc(t["live"])}</b>' if t.get("live") is not None else "") + "</div>")
+    rows = "".join(f'<tr><td>{r["m"]} 月' + ("" if r["full"] else f'<div class=cd>到 {_md(r["to"])}</div>') + "</td>"
+                   + _ycell(r.get("nolook")) + _ycell(r.get("hold")) + _ycell(r.get("live"), "上線以來") + "</tr>" for r in Y["rows"])
+    tbl = (f'<table class="cfyt"><thead><tr><th>月份</th><th>不偷看</th><th>一直抱著<div class=cd>{hold_nm}</div></th><th>上線後</th></tr></thead>'
+           f"<tbody>{rows}</tbody></table>")
+    extra = ""
+    if mk == "us":
+        rg = Y["range"]
+        extra = (f'<div class="cfq">今年挑到的 {len(Y["picks"])} 種：' + "；".join(_e(x.replace("｜", "・")) for x in Y["picks"]) + "。"
+                 f'24 種挑法今年的報酬：最低 {_ypc(rg["min"])}、中間 {_ypc(rg["med"])}、最高 {_ypc(rg["max"])}'
+                 + (f'——固定的這一種今年剛好排第 {Y["rank_yr"]} 名，換一種挑法差很多，看中間那個數字比較接近一般的情況'
+                    if Y.get("rank_yr", 99) <= 3 else f'——固定的這一種今年排第 {Y.get("rank_yr", "—")} 名') + "。</div>")
+    return (f'<h2 class="cfh">今年<span class="sub">每個月、每一筆</span></h2>' + head + tbl
+            + f'<div class="cfq">{_e(how)}</div>' + extra + ytd_trades(Y, mk))
+
+
+def ytd_trades(Y: dict, mk: str) -> str:
+    """不偷看那一欄今年的每一筆（依月份、做法篩選；預設收起）。月份＝那一筆在那個月有拿著。"""
+    tr = Y.get("trades") or []
+    if not tr:
+        return ""
+    yd, last = Y["days"][0], Y["days"][-1]
+    many = len({t.get("m") for t in tr}) > 1                 # 美股今年挑到不只一種做法：每一筆寫是哪一種
+    ks: list[str] = []
+    rows = []
+    for t in tr:
+        if mk == "tw":
+            k = "0050" if t["k"] == "0050" else "新飆股"
+            who = (f'<a {_ck(t["c"])}>{_e(t.get("n") or t["c"])} <span class=cd>{_e(t["c"])}</span></a>'
+                   if t["k"] != "0050" else "0050 <span class=cd>長抱</span>")
+            px, sub = _tp, ""
+        else:
+            k = t["k"]
+            nm = t.get("nm") or CPG.us_label(t["c"])[0]
+            who = (f'{_e(nm)} <span class=cd>{_e(t["c"])}</span>' if nm and nm != t["c"] else _e(t["c"]))
+            px = lambda x: "—" if x is None else f"{x:,.2f}"           # noqa: E731
+            sub = f'<div class=cd>{_e(t["m"].replace("｜", "・"))}</div>' if many else ""
+        if k not in ks:
+            ks.append(k)
+        if t["k"] == "0050":
+            ent = "去年就拿著"
+        elif t["ent"] <= yd:
+            ent = f'去年 {_md(t["ent"])} 買' + (f' {px(t["bpx"])}' if t.get("bpx") else "")
+        else:
+            ent = f'{_md(t["ent"])} 買' + (f' {px(t["bpx"])}' if t.get("bpx") else "")
+        ex = "還拿著" if not t.get("exit") else f'{_md(t["exit"])} 賣' + (f' {px(t["spx"])}' if t.get("spx") else "")
+        m0 = 1 if t["ent"] <= yd else int(t["ent"][5:7])
+        m1 = int((t.get("exit") or last)[5:7])
+        rr = t.get("ret")
+        rows.append(f'<tr data-k="{_e(k)}" data-m=",{",".join(str(m) for m in range(m0, m1 + 1))},"><td>{who}{sub}</td>'
+                    f'<td>{ent}<div class=cd>{ex}</div></td>'
+                    f'<td class=w><span class="{"up" if (rr or 0) >= 0 else "dn"}">{_ypc(rr)}</span></td>'
+                    f'<td class=w>{_wp(t["w"]) if t.get("w") is not None else "—"}<div class=cd>帳戶 {_ypc(t.get("pnl"))}</div></td></tr>')
+    mo_btn = "".join(f'<a data-yf="m" data-v="{m}">{m} 月</a>' for m in range(1, int(last[5:7]) + 1))
+    k_btn = "".join(f'<a data-yf="k" data-v="{_e(k)}">{_e(k)}</a>' for k in ks) if len(ks) > 1 else ""
+    return (f'<details class="cfdet cfyd"><summary>今年每一筆（{len(tr)} 筆）</summary>'
+            f'<div class="seg cfyf"><a data-yf="m" data-v="" class=on>全部月份</a>{mo_btn}</div>'
+            + (f'<div class="seg cfyf"><a data-yf="k" data-v="" class=on>全部</a>{k_btn}</div>' if k_btn else "")
+            + '<table class="cfht cfytr"><thead><tr><th>股票</th><th>買進／賣出</th><th>報酬</th><th>占資金</th></tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table>'
+            '<div class="cfq">選一個月份＝那個月有拿著的。報酬＝那一筆從買進到賣出（還拿著的算到最新收盤，含息、扣手續費）；'
+            '占資金＝買進時占全部資金多少（去年買的＝年初）；帳戶＝那一筆今年讓全部資金漲跌多少，全部加起來'
+            + ("約等於" if mk == "us" else "就是") + '不偷看那一欄的今年報酬。</div></details>')
+
+
 def tw_parts(data: dict, bundle: dict) -> dict:
     N = (bundle.get("now") or {}).get("tw")
     stk = bundle.get("stk") or {}
@@ -571,16 +781,16 @@ def tw_parts(data: dict, bundle: dict) -> dict:
     G = tw_groups(data, bundle)
     nx = CPG._next_day("tw", d0) if d0 else None
     card = tw_money(G, stk, N, d0)
-    perf = ('<h2 class="cfh">過去照做</h2>' + perf_line("tw", bundle) + detail_html("tw", bundle))
+    perf = ('<h2 class="cfh">過去照做</h2>' + perf_line("tw", bundle) + past_note("tw", data, bundle) + detail_html("tw", bundle))
     use = [s["k"] for s in stk.get("st") or []]
     bm = ((((bundle.get("R") or {}).get("mk") or {}).get("tw") or {}).get("sc") or {}).get("plan", {}).get("boom") or {}
     bx = (f'過去照做：{CPG.yr0(bm["a"])} 年起每年賺 {_pc(bm["cagr"]).lstrip("+")}、最慘時跌 {bm["mdd"] * 100:.0f}%'
           if bm.get("cagr") is not None else "")
     return {"card": card, "hold": tw_hold(G, stk, N), "sched": tw_sched(G, stk, N), "bx": bx,
             "warn": warn_html("tw", N) if N else '<h2 class="cfh">警訊</h2><p class="cfwhy">今天的讀數還沒算出來。</p>',
-            "perf": perf, "boom": boom_html(stk, bundle), "d": d0, "nx": nx,
+            "perf": perf, "boom": boom_html(stk, bundle, data.get("sx_pos")), "d": d0, "nx": nx,
             "tl": {"use": use, "boom": _boom_lane(stk)},
-            "pos": pos_map(G)}
+            "pos": pos_map(G), "ytd": ytd_html((data.get("ytd") or {}).get("tw"), "tw")}
 
 
 def pos_map(G: list[dict]) -> dict:
@@ -659,6 +869,9 @@ def us_state(bundle: dict) -> dict:
     wl = {x["c"]: x for x in W.get("hold") or []}
     rank = {x["c"]: (i + 1, x.get("rs")) for i, x in enumerate(n.get("list") or [])}
     wsold = {x["c"]: x for x in W.get("sell") or [] if x.get("on")}
+    Lw = ((qm or {}).get("L") or {}).get("weeks") or {}               # 開始照做那一週（QM_LIVE）週末的收盤：上線以來的起點
+    wk0 = next((Lw[d] for d in sorted(Lw) if d >= QX.QM_LIVE), None)
+    px0 = {h.get("c"): h.get("px") for h in (wk0 or {}).get("hold") or []}
     rows, gone, idle = [], [], float(n.get("idle") or 0.0)
     for h in n.get("hold") or []:
         c, w0 = h["c"], float(h.get("w") or 0.0)
@@ -676,8 +889,11 @@ def us_state(bundle: dict) -> dict:
             continue
         rk, rs = rank.get(c) or (None, None)
         r = h.get("r")
+        bt = bool(h.get("ent")) and h["ent"] <= QX.QM_LIVE              # 開始照做那天以前照規則買的＝回測
+        cur, p0 = (h.get("px") or 0.0) * g, px0.get(c)
         rows.append({"c": c, "ent": h.get("ent"), "r": None if r is None else (1 + r) * g - 1, "pct": CPG._qm_pct_ma(h, x),
-                     "sell": sell, "trig": trig, "v": w0 * g, "rk": rk, "rs": rs})
+                     "sell": sell, "trig": trig, "v": w0 * g, "rk": rk, "rs": rs, "bt": bt, "p0": p0 if bt else None,
+                     "rl": (cur / p0 - 1) if bt and p0 and cur else None})
     split, _ = CPG.qm_buy_split(n, W)
     bought = bool(nx and last and nx <= last)
     todo = []
@@ -788,7 +1004,9 @@ def _urow(r: dict, G: dict, todo: bool = False) -> str:
     if todo:
         b = f'{_mdw(r["d"])}開盤買' if r["w"] > 1e-3 else "現金不夠，這一檔先不買"
     else:
-        b = f'{_md(r["ent"])} 買'
+        b = f'{_md(r["ent"])} 買' + ("（回測）" if r.get("bt") else "")
+        if r.get("bt") and r.get("rl") is not None:
+            b += f'・上線以來 {_pc(r["rl"])}'
         if r.get("sell"):
             b += f'・{_mdw(r["sell"])}開盤賣（{_md(r["trig"])} 收盤跌破 50 日線）'
         elif r.get("pct") is not None:
@@ -939,14 +1157,16 @@ def us_parts(data: dict, bundle: dict) -> dict:
     nx = CPG._next_day("spx", d0) if d0 else None
     uc = None
     try:                                                  # 美股個股卡（第 4 步；卡片資料＝qm 的 C，sigpage.core_data 放進去）
-        uc = UCP.build(G, ((bundle.get("qm") or {}).get("C")) or {}, cash=bool(N) and N["now"] < 0.99)
+        qm = bundle.get("qm") or {}
+        uc = UCP.build(G, qm.get("C") or {}, cash=bool(N) and N["now"] < 0.99, fin=qm.get("F"))
     except Exception as e:                                # noqa: BLE001 —— 卡片算不出來：股票照舊連 Yahoo Finance
         print(f"[配置] 美股個股卡算不出來：{type(e).__name__}: {e}")
     G["uc"] = set((uc or {}).get("s") or ())
-    perf = '<h2 class="cfh">過去照做</h2>' + perf_line("us", bundle) + detail_html("us", bundle)
+    perf = '<h2 class="cfh">過去照做</h2>' + perf_line("us", bundle) + past_note("us", data, bundle) + detail_html("us", bundle)
     return {"card": us_money(G, N), "hold": us_hold(G, N), "sched": us_sched(G, N),
             "warn": warn_html("us", N) if N else '<h2 class="cfh">警訊</h2><p class="cfwhy">今天的讀數還沒算出來。</p>',
-            "perf": perf, "d": d0, "nx": nx, "tl": {"qm": _qm_lane(G)}, "uc": uc}
+            "perf": perf, "d": d0, "nx": nx, "tl": {"qm": _qm_lane(G)}, "uc": uc,
+            "ytd": ytd_html((data.get("ytd") or {}).get("us"), "us")}
 
 
 # ── 時間軸（stockviz.tlDraw；設定在 JS 的 cfQ） ──────────────────────────────────
@@ -970,6 +1190,8 @@ def _go_attrs(g: dict) -> str:
         s += f' data-at="{_e(g["at"])}"'
     if g.get("gm"):
         s += f' data-gm="{_e(g["gm"])}"'
+    if g.get("pm"):
+        s += f' data-pm="{_e(g["pm"])}"'
     return s
 
 
@@ -1003,7 +1225,7 @@ def board_html(B: dict) -> str:
                         f'<td class="bd">{mdd}</td><td class="bto">{_e(r.get("today") or "")}</td></tr>')
         if s == "obs":
             body.append('<tr class="bx" data-st="obs"><td colspan="6"><a data-bx="obs">再看更多觀察中</a></td></tr>')
-    return ('<h2 class="cfh">策略<span class="sub">全部 {} 條：進配置的、看著的、新找的、試過沒有用的</span></h2>'.format(len(rows))
+    return ('<h2 class="cfh">全部策略<span class="sub">{} 條：選股頁上的、看著的、新找的、試過沒有用的</span></h2>'.format(len(rows))
             + f'<div class="bfilt"><div class="seg bsts">{chips}</div><div class="seg bmks">{mks}</div></div>'
             + f'<div class="bwrap"><table class="btbl" data-n="{BD.OBS_SHOW}"><thead><tr><th>策略</th><th>市場</th><th class="bh">做什麼</th><th class="bp">成績</th>'
             + '<th class="bd">最慘跌</th><th class="bto">今天</th></tr></thead><tbody>' + "".join(body) + "</tbody></table></div>")
@@ -1126,10 +1348,26 @@ CSS = r"""
 .cfwv{grid-column:2;font-size:12.5px;color:var(--ink2)}.cfwv span{color:var(--mut)}.cfwv em{font-style:normal;font-weight:700;color:var(--warn);margin-left:6px}
 .cfrule2{font-size:13px;color:var(--ink2);background:var(--card2);border-radius:10px;padding:8px 12px;margin-top:8px}
 .cfmo,.cfgr,.cfcash,.cfsch,.cfws,.cfrule2,.cfht.cfql{max-width:880px}   /* 電腦版不要拉到整頁寬：名字和比重離太遠 */
+.cfyt{width:100%;max-width:880px;border-collapse:collapse;font-size:13.5px;margin:8px 0 6px}
+.cfyt th{font-weight:600;color:var(--ink2);font-size:12.5px;padding:5px 8px;border-bottom:1px solid var(--line2);text-align:right;vertical-align:bottom}
+.cfyt td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top;font-variant-numeric:tabular-nums}
+.cfyt th:first-child,.cfyt td:first-child{text-align:left;position:static;background:none;white-space:nowrap}
+.cfyt td.w{font-weight:700;white-space:nowrap}.cfyt .cd{color:var(--mut);font-size:12px;font-weight:400}
+.cfyd .cfyf{display:flex;flex-wrap:wrap;gap:2px;margin:8px 0 4px;width:max-content;max-width:100%}.cfyd .cfyf a{padding:4px 10px;font-size:13px;cursor:pointer}
+.cfytr{max-width:880px}
+.cfspx{max-width:880px;margin:4px 0 2px}.cfsplg{max-width:880px;margin-bottom:10px}
+.cfsp circle{stroke:var(--bg);stroke-width:1.5;cursor:pointer}.cfsp:hover circle{stroke:var(--ink);stroke-width:2}
+.cfsp.h circle{fill:var(--acc)}.cfsp.b circle{fill:var(--gain);stroke:var(--ink);stroke-width:1.4}.cfsp.l circle{fill:var(--mut2);fill-opacity:.6}
+.cfsp.t circle{fill:none;stroke:var(--mut);stroke-width:1.6;stroke-dasharray:2 2}.cfspl{font-weight:700}
+.cfsplg i.h{background:var(--acc)}.cfsplg i.b{background:var(--gain)}.cfsplg i.l{background:var(--mut2)}.cfsplg i.t{background:none;border:1.6px dashed var(--mut)}
+.cfsxo>summary{font-size:13.5px}.cfsxo[open]{border-top:1px solid var(--line);padding-top:6px}.cfytr tr[hidden]{display:none!important}
 .cftoolr{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 12px}.cftool{display:flex;width:max-content;max-width:100%}.cfasof{color:var(--mut);font-size:12.5px;min-width:0}
 @media (max-width:640px){
  .cfht,.cfht tbody{display:block}.cfht tr{display:grid;grid-template-columns:minmax(0,1fr) auto;padding:5px 0;border-bottom:1px solid var(--line)}
  .cfht th{display:none}.cfht td{border:0;padding:0 6px}.cfht td.st{grid-column:1/-1;font-size:12.5px}
+ .cfyt{font-size:12.5px}.cfyt td,.cfyt th{padding:5px 3px}.cfyt td.w{white-space:normal}.cfyt .cd{font-size:11.5px}
+ .cfytr td:nth-child(1){grid-column:1;grid-row:1}.cfytr td:nth-child(2){grid-column:1;grid-row:2}
+ .cfytr td:nth-child(3){grid-column:2;grid-row:1}.cfytr td:nth-child(4){grid-column:2;grid-row:2;font-weight:400}
  .btbl{font-size:12.5px}.btbl th.bh,.btbl td.bh,.btbl th.bd,.btbl td.bd,.btbl .bsub{display:none}
  .btbl td,.btbl th{padding:6px 5px}.btbl td:first-child{min-width:0;width:34%}.btbl td.bm{white-space:nowrap}
  .btbl .bref{display:block}.btbl td.bto{min-width:0}}
@@ -1141,18 +1379,55 @@ JS = r"""
    策略：全部策略一張表。 ---------- */
 const CFG=D.cfg||{};
 function cfFoot(){return `<footer class=cffoot><a href="x9r.html">研究紀錄</a></footer>`;}
-function cfMk(mk){const C=CFG[mk]||{};let h='';
+function cfMk(mk,pre){const C=CFG[mk]||{};let h=pre||'';
   if(C.err||!C.card)h+=`<div class=st>配置資料還沒算出來${C.err?`：${esc(C.err)}`:''}。</div>`;
   else h+=`<section class="sec cfsec" id="cf-${mk}" data-nav="現在的錢">${C.card}</section>`+   /* 配置頁 v2（docs/lab_cfg_v2_plan.md） */
+    (C.ytd?`<section class=sec id="cf-${mk}-y" data-nav="今年">${C.ytd}</section>`:'')+   /* 今年每個月、每一筆（ytdspec） */
     `<section class=sec id="cf-${mk}-h" data-nav="持股">${C.hold}</section><section class=sec id="cf-${mk}-s" data-nav="接下來">${C.sched}</section>`+
     `<section class=sec id="cf-${mk}-w" data-nav="警訊">${C.warn||''}</section><section class=sec id="cf-${mk}-p" data-nav="過去照做">${C.perf||''}</section>`+(C.boom||'')+(C.line||'');
   $('#main').innerHTML=h+cfFoot();
   const w=$('#main .cftl');if(w)w.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.closest('.vztip [data-go]');if(!a)return;
     ev.preventDefault();const tp=a.closest('.vztip');tp.classList.remove('pin');tp.hidden=true;go(a.dataset.go,a.dataset.at);});
+  const yd=$('#main .cfyd');if(yd)yd.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.closest('[data-yf]');if(!a)return;
+    ev.preventDefault();const Q=q=>[...yd.querySelectorAll(q)];Q('[data-yf="'+a.dataset.yf+'"]').forEach(x=>x.classList.toggle('on',x===a));
+    const on=f=>{const x=yd.querySelector('[data-yf="'+f+'"].on');return x?x.dataset.v:'';},fm=on('m'),fk=on('k');
+    Q('.cfytr tbody tr').forEach(r=>{r.hidden=!!((fm&&r.dataset.m.indexOf(','+fm+',')<0)||(fk&&r.dataset.k!==fk));});});
+  const so=$('#main .cfsxo');if(so)so.addEventListener('toggle',()=>{if(!so.open)return;   /* 原本的飆股名單（觀察，不在配置裡）：打開才組、才畫 */
+    if(!so.dataset.done){so.querySelector('.cfsxob').innerHTML=typeof wlCfg==='function'?wlCfg():'';so.dataset.done=1;}spotDraw();});
+  cfSpot();
   const tw=$('#main .cftlw');if(tw)tw.addEventListener('toggle',()=>{if(tw.open)cfDraw(mk);});   /* 時間軸收在「看時間軸」裡：打開才畫（收起時寬度是 0） */
   if(!tw)cfDraw(mk);}
-function vCfgTw(){cfMk('tw');}
-function vCfgUs(){cfMk('us');}
+/* 新飆股位置圖（boom_points：[代號, 名稱, 離 52 週高點 %, 強度, 種類 h/b/l/t, 漲跌 %]）；點一下＝個股卡（data-c，page.py 的點擊處理） */
+function cfSpot(){const box=$('#cfspot');if(!box)return;let P=[];try{P=JSON.parse(box.dataset.p||'[]');}catch(e){}
+  if(!P.length){box.innerHTML='';return;}
+  const W=box.clientWidth||720,mob=W<560,H=mob?300:340,ml=mob?34:44,mr=14,mt=26,mb=34,xmin=Math.min(-40,Math.floor(Math.min(...P.map(o=>o[2]))/5)*5-2);
+  const y0=Math.min(60,Math.max(0,Math.floor((Math.min(...P.map(o=>o[3]))-3)/10)*10));
+  const X=v=>ml+(Math.min(0,v)-xmin)/(0-xmin)*(W-ml-mr),Yv=v=>mt+(100-Math.max(y0,v))/(100-y0)*(H-mt-mb);
+  const zx=X(100/1.1-100),R={h:7,b:6.5,l:4.5,t:4.5};
+  let s=`<rect class=spot-zone x=${zx.toFixed(1)} y=${mt} width=${(X(0)-zx).toFixed(1)} height=${H-mb-mt} /><line class=spot-zl x1=${zx.toFixed(1)} x2=${zx.toFixed(1)} y1=${mt} y2=${H-mb} />`+
+    `<text class=spot-zt x=${W-mr} y=${mt-9} text-anchor=end>還差 10% 內到 52 週高點</text>`;
+  for(let v=y0;v<=100;v+=10)s+=`<line class=spot-grid x1=${ml} x2=${W-mr} y1=${Yv(v).toFixed(1)} y2=${Yv(v).toFixed(1)} /><text class=spot-at x=${ml-6} y=${(Yv(v)+4).toFixed(1)} text-anchor=end>${v}</text>`;
+  for(let v=Math.ceil(xmin/10)*10;v<=0;v+=10)s+=`<text class=spot-at x=${X(v).toFixed(1)} y=${H-mb+16} text-anchor=middle>${v===0?'高點':v+'%'}</text>`;
+  s+=`<text class=spot-al x=${W-mr} y=${H-4} text-anchor=end>離 52 週高點</text><text class=spot-al x=4 y=${mt-9}>強度</text>`;
+  const ord={t:0,l:1,b:2,h:3};
+  P.map((o,i)=>[o,i]).sort((a,b)=>ord[a[0][4]]-ord[b[0][4]]).forEach(([o,i])=>{
+    s+=`<g class="cfsp ${o[4]}" data-cfsp=${i} data-c="${esc(o[0])}" data-co="${esc(o[0])}"><circle cx=${X(o[2]).toFixed(1)} cy=${Yv(o[3]).toFixed(1)} r=${R[o[4]]} /></g>`;});
+  const used=[];let L='';
+  P.filter(o=>o[4]==='h'||o[4]==='b').forEach(o=>{const w=[...o[1]].length*11.5,cy=Yv(o[3])+4;
+    for(const sd of [1,-1]){const x=sd>0?X(o[2])+R[o[4]]+3:X(o[2])-R[o[4]]-3-w;if(x<ml||x+w>W-mr)continue;
+      if(used.some(u=>Math.abs(u[1]-cy)<14&&x<u[0]+u[2]+8&&u[0]<x+w+8))continue;used.push([x,cy,w]);
+      L+=`<text class="spotl cfspl" x=${x.toFixed(1)} y=${cy.toFixed(1)}>${esc(o[1])}</text>`;break;}});
+  box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width=${W} height=${H} role=img aria-label="新飆股位置圖">${s}${L}</svg>`;
+  const KN={h:'持有中',b:'下一個交易日開盤買',l:'名單上',t:'這一週到現在符合'},tip=$('#cfspottip');tip.hidden=true;
+  vzBind(box,tip,box.closest('.spotx'),'data-cfsp',el=>{const o=P[+el.dataset.cfsp];
+    return `<b>${esc(o[1])}</b> <span class=vzs>${esc(o[0])}</span><div>${KN[o[4]]}${o[5]==null?'':`・買進以來 ${pctT(o[5],1)}`}</div>`+
+      `<div>離 52 週高點 ${pctT(o[2],1)}・強度 ${f(o[3],0)}</div><div class=vzs>點一下打開個股卡</div>`;},()=>{});}
+addEventListener('resize',()=>{clearTimeout(cfSpot.t);cfSpot.t=setTimeout(cfSpot,220);});addEventListener('labtheme',cfSpot);
+/* 研究紀錄・交易計畫（原本的配置，2026-10-28 起；docs/lab_pick_page_plan.md 第 3 節）：台股｜美股切換，內容照舊 */
+function vCfgPlan(){const mk=S.pmk==='us'?'us':'tw';
+  const sw=`<div class=xmbar><div class="seg" role=group aria-label="市場">${[['tw','台股'],['us','美股']].map(([k,n])=>`<a data-go="plan" data-pm="${k}"${k===mk?' class=on':''}>${n}</a>`).join('')}</div></div>`+
+    `<p class=cfwhy style="margin:0 0 12px">原本的配置（兩成長抱、八成機動、警訊換現金）：回測、今年每一筆、持股、警訊與前瞻紀錄照舊在這裡；選股策略本身在頂欄「選股」。</p>`;
+  cfMk(mk,sw);}
 /* 時間軸的列：配置裡的策略（觀察中策略的訊號不放配置頁，2026-10-24 使用者決定） */
 function cfLanes(mk){const C=CFG[mk]||{},T=C.tl||{},L=[];
   const oc=k=>(OPP.cards||[]).find(c=>c.k===k);
@@ -1165,7 +1440,7 @@ function cfTip(x,pin){const c=x.c,e=x.e;let h='';
     if(x.k==='held')h=`<b>${esc(c.name)}・${md(e.ent)} 買的 ${it.length} 檔</b><ul>${it.map(i=>`<li>${esc(i.n)} <span class=vzs>買進 ${fp(i.entry)}，現在 ${fp(i.now)}</span> <span class=${(i.now_r||0)>=0?'up':'dn'}>${pctT(i.now_r)}</span></li>`).join('')}</ul><div class=vzs>${mdw(e.d)} 開盤賣（抱滿${hz(c.hold)}）</div>`;
     else if(x.k==='buy')h=`<b>${mdw(e.d)} 開盤買進・${esc(c.name)}</b><div>${it.map(i=>esc(i.n)).join('、')}</div><div class=vzs>${esc(e.sell||'')}</div>`;
     else if(x.k==='next')h=`<b>${esc(c.name)}</b><div>名單 ${mdw(e.fix)} 收盤產生，有空位就 ${mdw(e.d)} 開盤買</div>`;
-    return h+(pin?`<a class=vzgo data-go="tw" data-at="cf-tw-sx">看新飆股</a>`:'');}
+    return h+(pin?`<a class=vzgo data-go="tw" data-at="pk-boom">看新飆股</a>`:'');}
   if(c._src==='qm'){if(x.k==='held')h=`<b>${esc(c.name)}・持有 ${(e.items||[]).length} 檔</b><ul>${(e.items||[]).map(i=>`<li>${esc(i.nm||i.n)} <span class=vzs>${md(i.ent)} 買</span> <span class=${(i.now_r||0)>=0?'up':'dn'}>${pctT(i.now_r)}</span></li>`).join('')}</ul><div class=vzs>收盤跌破 50 日線，下一個交易日開盤賣</div>`;
     else if(x.k==='buy')h=`<b>${mdw(e.d)} 開盤買進・${esc(c.name)}</b><div>${(e.items||[]).map(i=>esc(i.nm||i.n)).join('、')}</div>`;
     else if(x.k==='next')h=`<b>${esc(c.name)}</b><div>名單 ${mdw(e.fix)} 收盤定案，有空位就 ${mdw(e.d)} 開盤買</div>`;
@@ -1179,7 +1454,7 @@ function cfQ(mk){const C=CFG[mk]||{};
     lb:x=>TLO.lb(x),nm:c=>`${c.rank}. ${STN[c.k]||c.name}`,sub:c=>'持有'+hz(c.hold),
     avg:e=>e.r!=null?e.r:tlAvg(e),tipf:(x,pin)=>cfTip(x,pin)};}
 function cfDraw(mk){const b=$('#cftl-'+mk),d=b&&b.closest('details');if(b&&(!d||d.open))tlDraw(cfQ(mk));}
-let CFR=0,CFW=innerWidth;addEventListener('resize',()=>{clearTimeout(CFR);CFR=setTimeout(()=>{if(Math.abs(innerWidth-CFW)<30)return;CFW=innerWidth;if(S.tab==='tw'||S.tab==='us')cfDraw(S.tab);},220);});
+let CFR=0,CFW=innerWidth;addEventListener('resize',()=>{clearTimeout(CFR);CFR=setTimeout(()=>{if(Math.abs(innerWidth-CFW)<30)return;CFW=innerWidth;if(S.tab==='plan')cfDraw(S.pmk==='us'?'us':'tw');},220);});
 /* 策略：全部策略一張表；狀態、市場篩選（淘汰預設收起） */
 const CFB={st:new Set(['use','obs','cand']),mk:'all',open:false};
 function vCfgSt(){const B=CFG.board||{};

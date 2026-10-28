@@ -87,7 +87,8 @@ def test_chip_answer_follows_verdict_and_current_state():
     F2 = FD.chip(_hotch(c1=("none", "none"), w=0))
     assert F2["ans"] == "no" and not F2["on"]
     h, line = FD.chip_card("tw", F)
-    assert "會" in _vis(h) and line[0] == "risk" and "融資餘額水位已連續過熱 47 週" in line[1] and "12.0%" in line[1]
+    assert "會" in _vis(h) and line[0] == "risk" and "融資餘額水位已連續過熱 47 週" in line[1]
+    assert "中位" not in line[1] and "中位" not in _vis(h) and "最慘的一段跌" in line[1]    # 2026-10-28：跌幅列最慘的一次
     h2, line2 = FD.chip_card("tw", F2)
     assert line2 == "" and "現在沒有融資項目過熱" in _vis(h2)
 

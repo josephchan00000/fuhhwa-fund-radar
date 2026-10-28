@@ -104,7 +104,7 @@ def today(it: dict, x: dict | None, dec: dict | None, live: dict | None) -> str:
             return f"試用中・記了 {st['n']} 天"
         return f"試用中・{st['n']} 天照做 {_pc(st['ret'], 1, True)}（一直抱著 {_pc(st['hold'], 1, True)}）"
     if d.get("dec") == "adopt":
-        return "納入，等計畫改版"
+        return "納入，等放上選股頁"
     v = verdict(x)
     return f"{v}，等你決定" if (x or {}).get("v") in CS.TIERS else v
 

@@ -1,9 +1,10 @@
-"""配置頁・策略總覽（docs/lab_ia_v5_plan.md 第 15.4、18 節）：全部策略一張表，狀態只有四種。
+"""全部策略（研究紀錄；docs/lab_ia_v5_plan.md 第 15.4、18 節，2026-10-28 起 docs/lab_pick_page_plan.md）：全部策略一張表，狀態只有四種。
 
 使用者 2026-10-23：「妳可以有專門一個區是把所有的策略列過去，可以專門去看總策略的狀況」「沒用的策略那些全部拿掉毫無意義」。
-- 使用中＝在配置裡（交易計畫本身、台股機動的新飆股與 ★ 個股策略、美股機動的強勢品質股）。
-- 觀察中＝回測過、沒有放進配置（個股策略 ●、總經策略 ★／●、期貨加碼、紙上記錄中的飆股、少見但勝率高的九條
-  ——rarepage.board_rows，docs/lab_rare_plan.md）；要用的話在對話裡說「納入」。
+- 使用中＝選股頁上的主要策略（台股：新飆股與 ★ 個股策略；美股：強勢品質股）。
+- 觀察中＝回測過、沒有放上選股頁主要那幾條（個股策略 ●——選股頁台股「其他策略」收起來的那幾條、總經策略 ★／●、期貨加碼、
+  紙上記錄中的飆股、少見但勝率高的九條——rarepage.board_rows，docs/lab_rare_plan.md、交易計畫本身——原本的配置，前瞻照記）；
+  要用的話在對話裡說「納入」。
 - 候選＝每週新找、先寫規則再回測的（docs 第 6、24 節；candpage.board_rows，決定之後換到觀察中或淘汰），
   與還在記錄、還沒判定的（台指期早盤，futpage.board_rows；docs/lab_fut_plan.md 第 6 節）。
 - 淘汰＝試過沒有用的，一列一句原因，讓人知道試過什麼、不重複。
@@ -21,11 +22,11 @@ CONF = ROOT / "config" / "strategy_board.json"
 
 STATUS = ("use", "obs", "cand", "out")
 ST_NAMES = {"use": "使用中", "obs": "觀察中", "cand": "候選", "out": "淘汰"}
-ST_NOTE = {"use": "在上面的配置裡", "obs": "回測過、沒有放進配置；要用就在對話說「納入」",
+ST_NOTE = {"use": "在選股頁上（主要的策略）", "obs": "回測過、沒有放上選股頁主要那幾條；要用就在對話說「納入」",
            "cand": "每週新找、先寫規則再回測；回「試用／納入／不納入」", "out": "試過沒有用"}
 MK_NAMES = {"tw": "台股", "spx": "S&P 500", "ixic": "那斯達克", "ndx": "那斯達克 100", "sox": "費半"}
 MK_GROUP = {"tw": "tw", "spx": "us", "ixic": "us", "ndx": "us", "sox": "us"}
-TYPES = ("配置", "個股", "指數型")
+TYPES = ("交易計畫", "個股", "指數型")
 OBS_SHOW = 8                                  # 觀察中先列幾條，其餘收起
 
 
@@ -82,7 +83,8 @@ def _plan_how(mk: str, stk: dict, qm_on: bool) -> str:
 
 
 def plan_rows(bundle: dict | None) -> list[dict]:
-    """交易計畫本身（台股、美股）：使用中。成績＝研究檔的「照計畫做」對「一直抱著」；今天＝股票占全部資金（空位放現金）。"""
+    """交易計畫本身（台股、美股；原本的配置，2026-10-28 起在研究紀錄）：觀察中（前瞻照記）。
+    成績＝研究檔的「照計畫做」對「一直抱著」；今天＝股票占全部資金（空位放現金）。"""
     from . import corepage as CPG
     B = bundle or {}
     R, nows, qm, stk = B.get("R") or {}, B.get("now") or {}, B.get("qm"), B.get("stk") or {}
@@ -95,8 +97,8 @@ def plan_rows(bundle: dict | None) -> list[dict]:
             p = CPG._qm_plan("spx", qm).get("new")
             if p:
                 s = p
-        row = {"id": f"{gid}:plan", "name": _plan_name(mk), "mk": MK_NAMES["tw"] if mk == "tw" else "美股", "mkk": gid, "type": "配置",
-               "st": "use", "how": _plan_how(mk, stk, on), "go": {"go": gid}}
+        row = {"id": f"{gid}:plan", "name": _plan_name(mk), "mk": MK_NAMES["tw"] if mk == "tw" else "美股", "mkk": gid, "type": "交易計畫",
+               "st": "obs", "how": _plan_how(mk, stk, on), "go": {"go": "plan", "pm": gid}}
         if s:
             row.update({"perf": f"年化 {_pc((s['plan'].get('cagr') or 0) * 100)}", "ref": f"一直抱著 {_pc((s['hold'].get('cagr') or 0) * 100)}",
                         "mdd": _pc(s["plan"]["mdd"] * 100, 0), "mddr": _pc(s["hold"]["mdd"] * 100, 0),
@@ -110,7 +112,7 @@ def plan_rows(bundle: dict | None) -> list[dict]:
 
 
 def boom_rows(bundle: dict | None) -> list[dict]:
-    """台股機動的一半：新飆股（corespec VER 4；飆股前瞻記錄的 R60 那本帳）。成績＝那本帳的回測（2019 起每年只用以前的資料找條件）。"""
+    """新飆股（選股頁台股的第一條；飆股前瞻記錄的 R60 那本帳）。成績＝那本帳的回測（2019 起每年只用以前的資料找條件）。"""
     from . import corepage as CPG
     B = bundle or {}
     R, stk = B.get("R") or {}, B.get("stk") or {}
@@ -122,9 +124,9 @@ def boom_rows(bundle: dict | None) -> list[dict]:
     held, buys = len(P.get("hold") or []), len([x for x in P.get("buy") or [] if x.get("fill")])
     today = (f"持有 {held} 檔" if held else "空手") + (f"・{int(P['next'][5:7])}/{int(P['next'][8:10])} 買 {buys} 檔" if buys and P.get("next") else "") \
         + ("" if held or buys or not P.get("next_wk") else f"・名單 {int(P['next_wk'][5:7])}/{int(P['next_wk'][8:10])} 收盤產生")
-    row = {"id": "tw:boom", "name": "新飆股（台股機動的一半）", "mk": "台股", "mkk": "tw", "type": "個股", "st": "use",
-           "how": f"每週五收盤用之前幾年找出來的條件挑股票、依強勢排；下一個交易日開盤買，每檔約占全部資金 {CPG._wp(CPG._boom_slot(stk))}，抱 60 個交易日",
-           "go": {"go": "tw", "at": "cf-tw-sx"}, "today": today}
+    row = {"id": "tw:boom", "name": "新飆股", "mk": "台股", "mkk": "tw", "type": "個股", "st": "use",
+           "how": "每週五收盤用之前幾年找出來的條件挑股票、依強勢排；下一個交易日開盤買，每次買進用這條策略 12.5% 的錢，抱 60 個交易日",
+           "go": {"go": "tw", "at": "pk-boom"}, "today": today}
     if bm.get("cagr") is not None:
         h = bm.get("hold") or {}
         row.update({"perf": f"年化 {_pc(bm['cagr'] * 100)}", "mdd": _pc(bm["mdd"] * 100, 0),
@@ -154,7 +156,7 @@ def _stk_today(k: str, A: dict) -> str:
 
 
 def stk_rows(A: dict | None, stk: dict | None) -> list[dict]:
-    """個股策略（advice.book）：在台股機動裡的＝使用中；其他 ★／●＝觀察中；○／—＝淘汰。高股息只當避開清單（觀察中）。"""
+    """個股策略（advice.book）：★（選股頁台股主要的）＝使用中；●（選股頁「其他策略」）＝觀察中；○／—＝淘汰。高股息只當避開清單（觀察中）。"""
     A = A or {}
     use = {s["k"] for s in (stk or {}).get("st") or []}
     out = []
@@ -184,7 +186,7 @@ def stk_rows(A: dict | None, stk: dict | None) -> list[dict]:
 
 
 def qm_rows(bundle: dict | None) -> list[dict]:
-    """美股機動：美股強勢品質股（ussx_qm.json 判定過了＝使用中）。"""
+    """美股強勢品質股（選股頁美股；ussx_qm.json 照用＝使用中）。"""
     from . import corepage as CPG
     qm = (bundle or {}).get("qm")
     R = (qm or {}).get("R") or {}
@@ -197,8 +199,8 @@ def qm_rows(bundle: dict | None) -> list[dict]:
     held = len(n.get("hold") or [])
     buys = len(n.get("buy") or [])
     today = (f"持有 {held} 檔" if held else "空手") + (f"・{int(n['next'][5:7])}/{int(n['next'][8:10])} 買 {buys} 檔" if buys and n.get("next") else "")
-    row = {"id": "us:qm", "name": "美股強勢品質股（美股機動）", "mk": "美股", "mkk": "us", "type": "個股", "st": "use" if on else "obs",
-           "how": "每週五挑強勢、賺錢的中大型股，最多 8 檔；收盤跌破 50 日線就賣", "go": {"go": "us"}, "today": today}
+    row = {"id": "us:qm", "name": "美股強勢品質股", "mk": "美股", "mkk": "us", "type": "個股", "st": "use" if on else "obs",
+           "how": "每週五挑強勢、賺錢的中大型股，最多 8 檔；收盤跌破 50 日線就賣", "go": {"go": "us", "at": "pk-qm"}, "today": today}
     if sl.get("cagr") is not None:
         row.update({"perf": f"年化 {_pc(sl['cagr'] * 100)}", "ref": f"S&P 500 含息 {_pc((bm.get('cagr') or 0) * 100)}",
                     "mdd": _pc(sl.get("mdd", 0) * 100, 0), "mddr": _pc((bm.get("mdd") or 0) * 100, 0),

@@ -88,13 +88,13 @@ def test_cached_fetch_shared_with_watch_and_floor():
         return sym, _series(_cal(st, "2026-10-23")), "ok"
 
     f = UC.cached(fetch=fake, today=date(2026, 10, 24))
-    assert f.floor == "2025-08-10"
+    assert f.floor == (date(2026, 10, 24) - timedelta(days=UC.BACK_DAYS)).isoformat() < "2021-10-01"   # 5 年走勢
     c, s, msg = f("VLO", "2026-04-01")                                      # 50 日線檢查要的比較晚 → 照 floor 抓
-    assert c == "VLO" and msg == "ok" and calls == [("VLO", "2025-08-10")]
+    assert c == "VLO" and msg == "ok" and calls == [("VLO", f.floor)]
     f("VLO", f.floor)                                                       # 個股卡要的：用同一次抓的
     assert len(calls) == 1
-    f("VLO", "2025-01-01")                                                  # 要的更早 → 重抓
-    assert calls[-1] == ("VLO", "2025-01-01") and len(calls) == 2
+    f("VLO", "2020-01-01")                                                  # 要的更早 → 重抓
+    assert calls[-1] == ("VLO", "2020-01-01") and len(calls) == 2
     f("BRK.B", f.floor)                                                     # Yahoo 的寫法
     assert calls[-1][0] == "BRK-B"
     assert f("BAD", f.floor)[1] is None and f("BAD", f.floor)[1] is None    # 沒抓到的下一次再試
@@ -251,3 +251,109 @@ def test_fetch_script_and_workflows_wired():
     assert '"${MODE#uscard}"' in lb and "fetch_ussx_watch.py --card-force" in lb
     wk = (root / ".github" / "workflows" / "ussx_weekly.yml").read_text(encoding="utf-8")
     assert "live_only" in wk and wk.count("if: ${{ !inputs.live_only }}") == 2
+
+
+def test_chart_ver2_weekly_volume_dividends_and_52w_high():
+    """VER 2（docs/lab_review_plan.md 第 4 節 (a)）：近一年每天（收盤、50 日線、成交量千股）、更早每週一點（那週最後一天的收盤、
+    成交量加總）、5 年以內的配息與分割、52 週高點＝近 252 個交易日的最高價。"""
+    ds = _cal("2020-06-01", "2026-10-23")
+    s = _series(ds, div=[["2020-09-01", 0.3], ["2022-03-01", 0.5], ["2026-09-01", 2.0]])
+    s["v"] = [1_234_567.0] * len(ds)
+    s["h"] = [c + 1 for c in s["c"]]
+    k = ds.index("2026-02-03")
+    s["h"][k] = 10_000.0                                                    # 一天的最高價很高
+    s["spl"] = [["2020-07-01", 2.0], ["2023-05-01", 4.0]]
+    ch = UC.chart(s)
+    pts, wk = ch["pts"], ch["wk"]
+    first = min(pts)
+    assert first > "2025-10-23" and pts["2026-10-23"][2] == 1235           # 千股
+    assert wk[0][0] > "2021-10-23" and wk[-1][0] <= "2025-10-23"           # 5 年以內、近一年以前
+    # 每週一點：那週最後一個交易日的收盤；成交量＝那週加總
+    d0 = date.fromisoformat(wk[5][0])
+    mon = (d0 - timedelta(days=d0.weekday())).isoformat()
+    days = [d for d in ds if UC._monday(d) == mon]
+    assert wk[5][0] == days[-1] and wk[5][1] == pytest.approx(s["c"][ds.index(days[-1])])
+    assert wk[5][2] == 1235 * len(days)
+    assert len({UC._monday(w[0]) for w in wk}) == len(wk)                  # 一週一點
+    assert ch["div"] == [["2022-03-01", 0.5], ["2026-09-01", 2.0]] and ch["spl"] == [["2023-05-01", 4.0]]
+    assert ch["hi"] == ["2026-02-03", 10000.0]
+    s["h"][k] = s["c"][k] + 1
+    s["h"][ds.index("2025-06-02")] = 99_999.0                               # 一年多以前的高點不算
+    assert UC.chart(s)["hi"][0] == ds[-1]
+
+
+def test_update_upgrades_ver1_file(tmp_path):
+    """VER 1 的檔讀得到（頁面照樣畫一年）；沒有 wk 的代號這一輪一定重抓日線，寫回去就是 VER 2。"""
+    p = tmp_path / "card.json"
+    cal = _cal("2025-10-24", "2026-10-23")
+    L = _live(hold=("VLO",), buy=(), lst=("VLO",))
+    p.write_text(json.dumps({"ver": 1, "made": "2026-10-24", "d": "2026-10-23", "codes": ["VLO"], "cal": cal,
+                             "s": {"VLO": {"c": [10.0] * len(cal), "m": [None] * len(cal), "at": "2026-10-23",
+                                           "an_at": "2026-10-23", "an": {"n": 3}}}}), encoding="utf-8")
+    assert UC.load(p)["ver"] == 1 and UC.points(UC.load(p), "VLO")["2026-10-23"] == [10.0, None, None]
+    calls = []
+
+    def fake(sym, st):
+        calls.append(sym)
+        return sym, _series(_cal(st, "2026-10-23")), "ok"
+
+    sat = datetime(2026, 10, 24, 9, 30, tzinfo=UTC)
+    Y = _Y({"VLO": (200, _qs())})
+    st = UC.update(L, fetch=UC.cached(fetch=fake, today=date(2026, 10, 24)), now=sat, Y=Y, path=p, made="2026-10-24")
+    assert calls == ["VLO"] and st["chart"] == 1 and st["an"] == 0 and not Y.calls     # 分析師這個收盤抓過了
+    doc = json.loads(p.read_text(encoding="utf-8"))
+    r = doc["s"]["VLO"]
+    assert doc["ver"] == UC.VER == 2 and len(r["v"]) == len(doc["cal"]) and r["wk"] and r["hi"] and r["an"] == {"n": 3}
+    assert UC.update(L, fetch=UC.cached(fetch=lambda s, t: pytest.fail("不該再抓")), now=sat, Y=Y, path=p)["skip"]
+
+
+def _extra():
+    """假的 quoteSummary 其他模組（欄位照 Yahoo v10；docs/lab_review_plan.md 第 4 節 (d)）。"""
+    ts = lambda d: {"raw": int(datetime.fromisoformat(d + "T14:00:00+00:00").timestamp()), "fmt": d}
+    eh = [{"quarter": ts(d), "epsActual": {"raw": a}, "epsEstimate": {"raw": e}}
+          for d, a, e in (("2025-09-30", 1.0, 0.9), ("2025-12-31", 1.1, 1.2), ("2026-03-31", 1.3, 1.2), ("2026-06-30", 1.5, 1.4),
+                          ("2025-06-30", 0.8, 0.8))]
+    ud = [{"epochGradeDate": int(datetime.fromisoformat(d + "T12:00:00+00:00").timestamp()), "firm": f, "action": a,
+           "fromGrade": g0, "toGrade": g1, "priorPriceTarget": p0, "currentPriceTarget": p1}
+          for d, f, a, g0, g1, p0, p1 in (("2026-10-20", "Morgan Stanley", "main", "Overweight", "Overweight", 200.0, 230.0),
+                                         ("2026-09-02", "Citi", "up", "Neutral", "Buy", 150.0, 210.0),
+                                         ("2026-01-05", "Old Bank", "down", "Buy", "Hold", 0, 0))]
+    tx = [{"startDate": ts(d), "filerName": n, "filerRelation": r, "transactionText": t, "shares": {"raw": s}, "value": {"raw": v}}
+          for d, n, r, t, s, v in (("2026-10-01", "XIE KEN", "CEO", "Sale at price 80.10 - 82.00 per share.", 50000, 4.05e6),
+                                   ("2026-08-15", "JANE DOE", "Director", "Stock Award(Grant) at price 0.00 per share.", 1200, 0),
+                                   ("2025-12-01", "OLD GUY", "Officer", "Sale at price 50.00 per share.", 10, 500))]
+    res = {"earningsHistory": {"history": eh}, "upgradeDowngradeHistory": {"history": ud},
+           "defaultKeyStatistics": {"shortPercentOfFloat": {"raw": 0.0206}, "shortRatio": {"raw": 2.4}, "sharesShort": {"raw": 1.5e7},
+                                    "sharesShortPriorMonth": {"raw": 1.2e7}, "dateShortInterest": {"raw": 1759190400, "fmt": "2025-09-30"},
+                                    "heldPercentInsiders": {"raw": 0.18}},
+           "majorHoldersBreakdown": {"institutionsPercentHeld": {"raw": 0.717}, "institutionsCount": {"raw": 1432}},
+           "netSharePurchaseActivity": {"period": "6m", "buyInfoCount": {"raw": 12}, "buyInfoShares": {"raw": 3.0e5},
+                                        "sellInfoCount": {"raw": 30}, "sellInfoShares": {"raw": 9.0e5}, "netInfoShares": {"raw": -6.0e5},
+                                        "netPercentInsiderShares": {"raw": -0.004}},
+           "insiderTransactions": {"transactions": tx}}
+    return {"quoteSummary": {"result": [res], "error": None}}
+
+
+def test_parse_extra_history_ratings_short_holders_insiders():
+    x = UC.parse_extra(_extra(), today="2026-10-24")
+    assert x["eh"] == [["2025-09-30", 1.0, 0.9], ["2025-12-31", 1.1, 1.2], ["2026-03-31", 1.3, 1.2], ["2026-06-30", 1.5, 1.4]]
+    assert [r[0] for r in x["ud"]] == ["2026-10-20", "2026-09-02"]                   # 新到舊；半年以前的不收
+    assert x["ud"][1] == ["2026-09-02", "Citi", "up", "Neutral", "Buy", 150.0, 210.0]
+    assert x["sh"] == [0.0206, 2.4, 1.5e7, 1.2e7, "2025-09-30"]
+    assert x["mh"] == [0.18, 0.717, 1432.0]                                            # 內部人持股沒有就用 keyStatistics 的
+    assert x["ns"] == ["6m", 12.0, 3.0e5, 30.0, 9.0e5, -6.0e5, -0.004]
+    assert [r[1] for r in x["tx"]] == ["XIE KEN", "JANE DOE"] and x["tx"][0][3].startswith("Sale at price")
+    assert UC.parse_extra({}) == {} and UC.parse_extra({"quoteSummary": {"result": [{}]}}) == {}
+    o = _extra()
+    o["quoteSummary"]["result"][0]["upgradeDowngradeHistory"]["history"] *= 6
+    assert len(UC.parse_extra(o, today="2026-10-24")["ud"]) == UC.EXTRA_N
+
+
+def test_analyst_record_carries_extra_modules():
+    o = _qs()
+    o["quoteSummary"]["result"][0].update(_extra()["quoteSummary"]["result"][0])
+    st, rec = UC.analyst(_Y({"VLO": (200, o)}), "VLO")
+    assert st == "ok" and rec["tp"][1] == 212.0 and len(rec["eh"]) == 4 and rec["mh"][1] == 0.717
+    for m in ("earningsHistory", "upgradeDowngradeHistory", "defaultKeyStatistics", "majorHoldersBreakdown",
+              "netSharePurchaseActivity", "insiderTransactions"):
+        assert m in UC.MODS

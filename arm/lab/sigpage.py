@@ -257,7 +257,9 @@ def core_data(dirpath: Path | None = None, record: bool = True) -> dict:
         QR = QM.load()
         if QR:
             from . import uscard as UC
-            qm = {"R": QR, "L": QM.load_live(), "W": QM.load_watch(), "C": UC.load()}   # C＝美股個股卡的每天資料（配置頁用）
+            from . import usfin as UF
+            qm = {"R": QR, "L": QM.load_live(), "W": QM.load_watch(), "C": UC.load(),   # C＝美股個股卡的每天資料（配置頁用）
+                  "F": UF.load()}                                                        # F＝美股個股卡的季報（每週六）
     except Exception as e:                                # noqa: BLE001
         print(f"[交易計畫] 美股三成的研究檔讀不到：{type(e).__name__}: {e}")
     fw = {}
@@ -304,13 +306,13 @@ def _pct(v) -> float | None:
 
 
 def _stat(st: dict | None):
-    """→ [次數, 機率, 平常, 近 10 年次數, 近 10 年機率, 近 10 年平常, 判定, 回撤中位數, 平常的回撤中位數, 打亂測試 p]（%；
-    回撤只有警示〔VER 3〕、p 只有算過的〔VER 9〕，尾端沒有的不列）。"""
+    """→ [次數, 機率, 平常, 近 10 年次數, 近 10 年機率, 近 10 年平常, 判定, 最大跌幅最差一次, 那一次的日期, 打亂測試 p]（%；
+    最大跌幅只有警示〔VER 3 起記每一次；VER 24 起列最差一次，原本是中位數〕、p 只有算過的〔VER 9〕，尾端沒有的不列）。"""
     if not st:
         return 0
     p = st.get("p")
     out = [st.get("n") or 0, _pct(st.get("hit")), _pct(st.get("base")), st.get("n10"), _pct(st.get("hit10")),
-           _pct(st.get("base10")), st.get("tier"), _pct(st.get("mdd")), _pct(st.get("mdd_base")),
+           _pct(st.get("base10")), st.get("tier"), _pct(st.get("mddw")), st.get("mddw_d"),
            None if p is None else round(100.0 * p, 2)]
     while out[-1] is None:
         out.pop()
@@ -372,6 +374,9 @@ def _row(r: dict, keys: dict | None = None) -> list:
         x["med"] = _pct(c[3])
         if len(c) > 9 and c[9] is not None:
             x["trm"] = _pct(c[9])
+    w = dd_worst(r)                                                  # VER 24：最大跌幅最差一次（自己的看多久）
+    if w:
+        x["dd"], x["ddd"] = _pct(w[0]), w[1]
     fe, ow = _fe_pack(r, {} if keys is None else keys)              # VER 18～19：預估之後（逐年樣本外校正）
     if fe:
         x["fe"] = fe
@@ -415,9 +420,9 @@ def page_json(V: dict) -> str:
 
 
 def _rcell(c):
-    """報酬一格 → [次數, 平均, 25%, 中位數, 75%, 上漲比例, 中途最多跌中位數, 最差 10%, 最差一次, 排除極端, 去掉最好一次]
-    （後面都是 %，一位小數；最後兩個 VER 17 起才有）。"""
-    return None if c is None else [c[0]] + [None if v is None else round(100.0 * v, 1) for v in c[1:]]
+    """報酬一格 → [次數, 平均, 25%, 中位數, 75%, 上漲比例, 中途最多跌中位數, 最差 10%, 最差一次, 排除極端, 去掉最好一次,
+    最大跌幅最差一次, 那一次的日期]（%，一位小數；排除極端、去掉最好一次 VER 17 起才有；最後兩個 VER 24 起才有，日期照原樣）。"""
+    return None if c is None else ([c[0]] + [None if v is None else round(100.0 * v, 1) for v in c[1:12]] + list(c[12:13]))
 
 
 def ret_pack(q: dict) -> dict:
@@ -486,7 +491,7 @@ def _hz(r: dict) -> str:
 
 def _line(r: dict) -> str:
     """「之後怎麼走？」面板一列（白話，docs/lab_ia_v5_plan.md 第 8 節）：之後上漲（或回撤）的機率（任一天）、
-    報酬或回撤中位、次數少才寫次數。"""
+    報酬中位、最大跌幅（最慘一次，VER 24）、次數少才寫次數。"""
     d = r["d"]
     st = r[d]
     h = _hz(r)
@@ -501,8 +506,7 @@ def _line(r: dict) -> str:
     med = _med(r) if d != "warn" and not r.get("xk") else None      # 跨期間的列只有機率（報酬是訊號自己看多久的）
     if med is not None:
         out += f'・報酬中位 {_sgn(med)}'
-    if d == "warn" and st.get("mdd") is not None and st.get("mdd_base") is not None:
-        out += f'・回撤中位 {st["mdd"] * 100:.0f}%（任一天 {st["mdd_base"] * 100:.0f}%）'
+    out += _dd_txt(r)
     if st["n"] < S.STAR_N and r.get("cat") not in ("stock", "strat"):
         out += f'・次數 {st["n"]}'
     return out
@@ -510,7 +514,7 @@ def _line(r: dict) -> str:
 
 def tq_stats(r: dict) -> str:
     """今天的訊號一列的數字（sigspec 第 5 節 ④b，VER 23；看什麼寫在清單標題）：過去的機率（任一天）、報酬中位（偏多、買點，
-    訊號自己的看多久才有）或回撤中位（警示）；次數少才寫次數（docs/lab_ia_v5_plan.md 第 3 節②）。"""
+    訊號自己的看多久才有）、最大跌幅（最慘一次，VER 24）；次數少才寫次數（docs/lab_ia_v5_plan.md 第 3 節②）。"""
     d = r["d"]
     st = r.get("st") or r[d]
     out = f'過去 <b>{st["hit"] * 100:.0f}%</b>（任一天 {st["base"] * 100:.0f}%）'
@@ -518,9 +522,40 @@ def tq_stats(r: dict) -> str:
         med = _med(r) if not r.get("xk") else None                  # 跨期間的列只有機率（報酬是訊號自己看多久的）
         if med is not None:
             out += f'・報酬中位 {_sgn(med)}'
-    elif st.get("mdd") is not None and st.get("mdd_base") is not None:
-        out += f'・回撤中位 {st["mdd"] * 100:.0f}%（任一天 {st["mdd_base"] * 100:.0f}%）'
+    out += _dd_txt(r)
     return out + (f'・次數 {st["n"]}' if st["n"] < S.STAR_N else "")
+
+
+def dd_worst(r: dict) -> tuple | None:
+    """這一列（訊號自己的看多久；跨期間的列＝那支溫度計的看多久）的最大跌幅最差一次 →（0～1, 日期）或 None（sigspec VER 24：
+    持有期間從最高收盤跌到之後最低收盤，大跌的同一個算法；過去每一次裡最大的那一個）。"""
+    w = r.get("warn") or {}
+    if w.get("mddw") is not None:
+        return w["mddw"], w.get("mddw_d")
+    q = r.get("ret") or {}
+    c = G.ret_at(q, r.get("H") or 0, monthly=bool(q.get("hm")))
+    if c and len(c) > 11 and c[11] is not None:
+        return c[11], (c[12] if len(c) > 12 else None)
+    return None
+
+
+def dday(d: str | None) -> str:
+    """最差一次的日期 → 2020/3/16（月資料 2008/9；後面帶代號的照帶，例「2008/9 光電」由呼叫端換名稱）。"""
+    if not d:
+        return ""
+    head, _, tail = str(d).partition(" ")
+    ps = head.split("-")
+    out = f"{ps[0]}/{int(ps[1])}" + (f"/{int(ps[2])}" if len(ps) > 2 else "") if len(ps) >= 2 else head
+    return out + (f" {tail}" if tail else "")
+
+
+def _dd_txt(r: dict) -> str:
+    """一列的「・最大跌幅 21%（2020/3/16 那次）」；沒有就空字串。"""
+    w = dd_worst(r)
+    if not w:
+        return ""
+    v = round(100.0 * w[0])
+    return f'・最大跌幅 {v:.0f}%' + (f'（{dday(w[1])} 那次）' if w[1] else "")
 
 
 def _med(r: dict) -> float | None:
@@ -1122,6 +1157,13 @@ function hsWith(k, v){ const ps = (location.hash || '').replace(/^#/, '').split(
 function mkHref(mk, extra){ return mk === 'tw' ? 'x9m.html' + (extra ? '#' + extra : '') : 'x9mu.html#ix=' + mk + (extra ? '&' + extra : ''); }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pc = v => v == null ? '—' : Math.round(v) + '%';
+const ddp = v => v == null ? '—' : (Math.round(v * 10) / 10).toFixed(1) + '%';      // VER 24：最大跌幅（正數、%）
+function ddDay(d){ if (!d) return ''; const [h, ...t] = String(d).split(' '), q = h.split('-');
+  let s = q[0] + (q[1] ? '/' + (+q[1]) : '') + (q[2] ? '/' + (+q[2]) : ''); const c = t.join(' ');
+  if (c) s += ' ' + ((SG.inm || {})[c] || (OCC && OCC.names && OCC.names[c]) || c); return s; }
+function ddOf(r, d){ const s = d === 'warn' ? stat(r, 'warn') : null, x = r[I.x] || {};     // 最大跌幅最慘一次 [%, 日期]（自己的看多久）
+  if (s && s[7] != null) return [s[7], s[8]]; return x.dd != null ? [x.dd, x.ddd] : null; }
+function ddTxt(r, d){ const w = ddOf(r, d); return w ? '・最大跌幅 ' + Math.round(w[0]) + '%' + (w[1] ? '（' + ddDay(w[1]) + ' 那次）' : '') : ''; }
 const md = d => d ? (+d.slice(5,7)) + '/' + (+d.slice(8,10)) : '';
 const YR = Object.values(SG.asof || {}).filter(Boolean).sort().pop() || '';
 const mdy = d => d ? (d.slice(0,4) === YR.slice(0,4) ? md(d) : d.slice(0,4) + '/' + md(d)) : '';
@@ -1163,14 +1205,15 @@ function phr(r, d){ if (r[I.cat] === 'xs') { const x = SIG2[r[I.id]]; return x ?
   const m = d !== 'warn' && c !== 'strat' ? (r[I.x] || {}).med : null;       // VER 17：報酬中位數
   const f = feOf(r, d);                                                         // VER 18～19：預估之後
   return w + (f ? ' 過去 ' + pc(s[1]) + ' → 預估之後 <b>' + pc(f[0]) + '</b>' : ' <b>' + pc(s[1]) + '</b>') + (s[2] != null ? '（隨便挑一天 ' + pc(s[2]) + '）' : '') +
-    (m != null ? '・報酬中位數 ' + (m > 0 ? '+' : m < 0 ? '−' : '') + Math.abs(m).toFixed(1) + '%' + (f && f[3] != null ? '，預估之後比隨便挑一天' + moreTxt(f[3]) : '') : ''); }
+    (m != null ? '・報酬中位數 ' + (m > 0 ? '+' : m < 0 ? '−' : '') + Math.abs(m).toFixed(1) + '%' + (f && f[3] != null ? '，預估之後比隨便挑一天' + moreTxt(f[3]) : '') : '') +
+    (c !== 'strat' ? ddTxt(r, d) : ''); }
 function phrP(r, d){ if (r[I.cat] === 'xs') { const x = SIG2[r[I.id]]; return x ? esc(anyw(x.xs.line)) : ''; }
   const s = stat(r, d); if (!s) return ''; const c = r[I.cat], h = hz(r);
   const w = d === 'buy' ? '買進之後 ' + h + '上漲' : d === 'up' ? '之後 ' + h + '上漲' : '之後 ' + h + '內回撤 ' + r[I.th] + '% 以上';
   const m = d !== 'warn' ? (r[I.x] || {}).med : null;
   return w + ' <b>' + pc(s[1]) + '</b>' + (s[2] != null ? '（任一天 ' + pc(s[2]) + '）' : '') +
     (m != null ? '・報酬中位 ' + (m > 0 ? '+' : m < 0 ? '−' : '') + Math.abs(m).toFixed(1) + '%' : '') +
-    (d === 'warn' && s[7] != null ? '・回撤中位 ' + pc(s[7]) + (s[8] != null ? '（任一天 ' + pc(s[8]) + '）' : '') : '') +
+    (c !== 'strat' ? ddTxt(r, d) : '') +
     (s[0] < SG.sn ? '・次數 ' + s[0] : ''); }
 function feOf(r, d){ const f = ((r[I.x] || {}).fe || {})[d]; return f || null; }
 function moreTxt(v){ const x = Math.round(v * 10) / 10; return x > 0 ? '多 ' + x.toFixed(1) + '%' : x < 0 ? '少 ' + Math.abs(x).toFixed(1) + '%' : '差不多'; }
@@ -1335,13 +1378,12 @@ const TIP = {
   rtrim: '去掉最好和最差各 5%（次數少於 20 次時各去掉一次）之後的平均：排除極端狀況的一般表現。',
   rlbo: '去掉最好的那一次之後的平均：看成績是不是靠一兩次撐起來。',
   n: '事件型（例：跌破季線）出現那天算一次，看多久的期間內再出現不算新的一次；狀態型（例：過熱中）連續的一段算一次。',
-  dd: '期間最高收盤到之後最低收盤的跌幅（先漲再跌也算）。狀態型是這一段每一天的平均。',
+  dd: '期間最高收盤到之後最低收盤的跌幅（先漲再跌也算）。狀態型是這一段裡最慘的那一天。',
   rup: '持有到這一天收盤，比進場價高的比例。',
   rmed: '持有到這一天收盤的報酬，由小到大排在正中間的那一個（一半比它好、一半比它差）。',
   fwd: '上面的機率是過去的成績，之後通常會往下修。每年 1 月 1 日只用之前的資料看，同一類訊號（方向、看多久、出現過幾次、過去比平常高幾點）之後那一年平均留下多少優勢；預估之後＝隨便挑一天 ＋ 留下來的比例 ×（過去 − 隨便挑一天）。報酬多賺同樣算。只當參考。',
   rhalf: '報酬由小到大排，中間一半落在這個範圍（25%～75%）。',
-  rmae: '進場之後到這一天之間，最低收盤比進場價低多少（比進場價低才算，沒跌過＝0）。中位數＝一半的時候跌得比這少。',
-  rmae10: '中途最多跌由差到好排，最差的一成跌超過這個數字。'};
+  rdd: '持有期間從最高收盤跌到之後最低收盤的幅度（先漲再跌也算，和大跌同一個算法）；列過去每一次裡最慘的那一次。'};
 if (EMB) { Object.keys(TIP).forEach(k => { TIP[k] = anyw(TIP[k]); });
   TIP.prob = '這個訊號過去出現之後，「看什麼」那一欄成立的比例；小字是任一天的比例。';
   TIP.rmed = '偏多：持有到期的報酬，由小到大排在正中間的那一個。警示：期間最大回撤的中位數。'; }
@@ -1422,7 +1464,7 @@ function loadOcc(mk){ if (OCCM[mk]) return Promise.resolve(OCCM[mk]);
 // ── 指標頁（右側面板；手機全螢幕）
 const PV = document.getElementById('sgpv'), PB = document.getElementById('sgp');
 let CUR = null, SEL = null, PUSHED = false;
-const VIEW = {span: '1y', raw: false};
+const VIEW = {span: '1y', raw: true, rawSet: false};   // 走勢圖預設原始值（2026-10-28 使用者）；自己切過就照自己選的
 function ckOf(x){ return !x.ik || !SG.chart[x.mk] ? null : x.cat === 'dim' ? x.ik.slice(1) : x.ik; }
 const PXC = ['tech', 'crash', 'dim', 'scen', 'inst', 'bub', 'buy'];                     // 沒有自己的 0～100 走勢的，畫指數＋打點
 function chartable(x){ return !!SG.chart[x.mk] && (!!x.ik || PXC.includes(x.cat)); }
@@ -1448,13 +1490,14 @@ function r10(s, d, stk){ if (!s || !s[3] || s[3] < SG.n10) return '<span class="
   if (stk) { const e = s[4] - s[5]; ok = e >= SG.eg ? '✓' : e >= SG.er ? '△' : '✗'; }          // 個股訊號照 VER 14
   else { const a = s[4] >= SG.hit[d], b = s[4] >= s[5]; ok = a && b ? '✓' : a || b ? '△' : '✗'; }    // sigspec VER 17
   return ok + '<small>' + s[3] + ' 次・' + pc(s[4]) + '</small>'; }
-function medCell(r, d, s){                                   // VER 17：報酬中位數（偏多、買點）／回撤中位數（警示）
-  const x = r[I.x] || {};
-  if (d === 'warn') return s && s[7] != null ? '<span class="mu">回撤</span> ' + dn1(s[7]) : '—';
+function medCell(r, d, s){                                   // VER 17：報酬中位數（偏多、買點）；VER 24：警示列最大跌幅（最慘一次）
+  const x = r[I.x] || {}, w = ddOf(r, d);
+  const ddc = w ? '<small>最大跌幅 ' + ddp(w[0]) + (w[1] ? '（' + esc(ddDay(w[1])) + '）' : '') + '</small>' : '';
+  if (d === 'warn') return w ? '<span class="mu">最大跌幅</span> <b class="dn">' + ddp(w[0]) + '</b>' + (w[1] ? '<small>' + esc(ddDay(w[1])) + ' 那次</small>' : '') : '—';
   if (x.med == null) return '—';
   const f = feOf(r, d);
   return '<b class="' + (x.med > 0 ? 'up' : x.med < 0 ? 'dn' : '') + '">' + sr1(x.med) + '</b>' + (x.trm != null ? '<small>排除極端 ' + sr1(x.trm) + '</small>' : '') +
-    (f && f[3] != null ? '<small>預估之後' + moreTxt(f[3]) + '</small>' : ''); }
+    (f && f[3] != null ? '<small>預估之後' + moreTxt(f[3]) + '</small>' : '') + ddc; }
 function luckTxt(s, r){ if (!s || s[9] == null || (s[6] !== 'good' && s[6] !== 'rare' && s[6] !== 'ref')) return '';
   const stk = r && r[I.cat] === 'stock', pair = stk && r[I.dir][0] === 'up';
   const t = pair ? '在每一次事件裡隨機對調「訊號」和「對照」的結果，做得到一樣好的比例' : '把出現的日子隨便亂排，做得到一樣準的比例';
@@ -1463,7 +1506,7 @@ function luckTxt(s, r){ if (!s || s[9] == null || (s[6] !== 'good' && s[6] !== '
   return '<small title="' + t + note + '">亂排 ' + (s[9] < 1 ? s[9].toFixed(1) : Math.round(s[9])) + '%</small>'; }
 function sigTable(x){
   const head = '<thead><tr><th class="l">訊號</th><th class="l">看什麼 ' + ii('what') + '</th><th>機率 ' + ii('prob') + '</th><th>隨便挑一天 ' + ii('base') + '</th>' +
-    '<th>多幾個百分點 ' + ii('edge') + '</th><th>報酬中位數 ' + ii('rmed') + '</th><th>近 10 年也成立嗎 ' + ii('r10') + '</th><th>出現過幾次 ' + ii('n') + '</th><th>判定 ' + ii('tier') + '</th></tr></thead>';
+    '<th>多幾個百分點 ' + ii('edge') + '</th><th>報酬中位數・最大跌幅 ' + ii('rmed') + '</th><th>近 10 年也成立嗎 ' + ii('r10') + '</th><th>出現過幾次 ' + ii('n') + '</th><th>判定 ' + ii('tier') + '</th></tr></thead>';
   const body = x.sig.map(r => { const ds = dirsOf(r), on = ON[r[I.id]];
     return '<tbody class="sgsb' + (on ? ' on' : '') + (SEL === r ? ' sel' : '') + '" data-id="' + esc(r[I.id]) + '">' + ds.map((d, i) => { const s = stat(r, d), e = dEdge(s);
       const w = what(r, d) + (d === 'warn' ? '<small>最大回撤 ' + r[I.th] + '% 以上</small>' : '');
@@ -1471,22 +1514,23 @@ function sigTable(x){
           (on ? '・<span class="sgon">現在成立</span>' : '') + '</small></td>') +
         '<td class="l wt"><span class="sgd sgd-' + d + '">' + w + '</span></td><td data-h="機率"><b>' + (s ? pc(s[1]) : '—') + '</b>' + (feOf(r, d) ? '<small>預估之後 ' + pc(feOf(r, d)[0]) + '</small>' : '') + '</td><td data-h="隨便挑一天">' + (s ? pc(s[2]) : '—') + '</td>' +
         '<td data-h="多幾個百分點">' + (e == null ? '—' : (e >= 0 ? '+' : '−') + Math.abs(Math.round(e))) + '</td>' +
-        '<td data-h="報酬中位數">' + (r[I.cat] === 'strat' ? '—' : medCell(r, d, s)) + '</td>' +
+        '<td data-h="報酬中位數・最大跌幅">' + (r[I.cat] === 'strat' ? '—' : medCell(r, d, s)) + '</td>' +
         '<td class="r10" data-h="近 10 年">' + r10(s, d, r[I.cat] === 'stock') + '</td><td data-h="出現">' + (s ? s[0] : '—') + '</td>' +
         '<td data-h="判定">' + mark(s ? s[6] : 'few', r) + luckTxt(s, r) + '</td></tr>'; }).join('') + '</tbody>'; }).join('');
   return '<div class="sgwrap sgsw"><table class="sgst2">' + head + body + '</table></div>'; }
 function sigTableP(x){
-  const head = '<thead><tr><th class="l">訊號</th><th class="l">看什麼</th><th>過去 ' + ii('prob') + '</th><th>報酬或回撤中位 ' + ii('rmed') + '</th><th>次數 ' + ii('n') + '</th></tr></thead>';
+  const head = '<thead><tr><th class="l">訊號</th><th class="l">看什麼</th><th>過去 ' + ii('prob') + '</th><th>報酬中位・最大跌幅 ' + ii('rdd') + '</th><th>次數 ' + ii('n') + '</th></tr></thead>';
   const body = x.sig.map(r => { const ds = dirsOf(r), on = ON[r[I.id]];
     return '<tbody class="sgsb' + (on ? ' on' : '') + (SEL === r ? ' sel' : '') + '" data-id="' + esc(r[I.id]) + '">' + ds.map((d, i) => { const s = stat(r, d), m = (r[I.x] || {}).med;
       const w = d === 'warn' ? '之後回撤 ' + r[I.th] + '% 以上' : d === 'buy' ? '買進之後上漲' : '之後上漲';
-      const med = d === 'warn' ? (s && s[7] != null ? '回撤 ' + pc(s[7]) + (s[8] != null ? '<small>任一天 ' + pc(s[8]) + '</small>' : '') : '—')
-        : (m == null ? '—' : '<b class="' + (m > 0 ? 'up' : m < 0 ? 'dn' : '') + '">' + sr1(m) + '</b>');
+      const wd = ddOf(r, d), dds = wd ? '最大跌幅 ' + ddp(wd[0]) + (wd[1] ? '（' + esc(ddDay(wd[1])) + '）' : '') : '';
+      const med = d === 'warn' ? (wd ? '<b class="dn">' + dds + '</b>' : '—')
+        : (m == null ? (dds || '—') : '<b class="' + (m > 0 ? 'up' : m < 0 ? 'dn' : '') + '">' + sr1(m) + '</b>' + (dds ? '<small>' + dds + '</small>' : ''));
       return '<tr>' + (i ? '' : '<td class="l nm" rowspan="' + ds.length + '"><b>' + esc(label(r)) + '</b><small>看 ' + esc(hz(r)) +
           (on ? '・<span class="sgon">現在成立</span>' : '') + '</small></td>') +
         '<td class="l wt"><span class="sgd sgd-' + d + '">' + w + '</span></td>' +
         '<td data-h="過去"><b>' + (s ? pc(s[1]) : '—') + '</b>' + (s && s[2] != null ? '<small>任一天 ' + pc(s[2]) + '</small>' : '') + '</td>' +
-        '<td data-h="報酬或回撤中位">' + med + '</td><td data-h="次數">' + (s ? s[0] : '—') + '</td></tr>'; }).join('') + '</tbody>'; }).join('');
+        '<td data-h="報酬中位・最大跌幅">' + med + '</td><td data-h="次數">' + (s ? s[0] : '—') + '</td></tr>'; }).join('') + '</tbody>'; }).join('');
   return '<div class="sgwrap sgsw"><table class="sgst2 sgst3">' + head + body + '</table></div>'; }
 function panelHtml(x){
   const ck = chartable(x);
@@ -1495,7 +1539,7 @@ function panelHtml(x){
   h += '<h4>現在</h4>' + nowHtml(x);
   if (ck) h += '<h4>走勢</h4><div class="sgcb"><div class="sgseg" data-g="span"><button type="button" data-v="1y">近 1 年</button>' +
     '<button type="button" data-v="5y">近 5 年</button><button type="button" data-v="all">全部</button></div>' +
-    (x.cat === 'heat' ? '<div class="sgseg" data-g="raw"><button type="button" data-v="0">0～100</button><button type="button" data-v="1">原始值</button></div>' : '') +
+    (x.cat === 'heat' ? '<div class="sgseg" data-g="raw"><button type="button" data-v="1">原始值</button><button type="button" data-v="0">0～100</button></div>' : '') +
     '</div><div class="sgcv" id="sgcv"><p class="note">走勢載入中…</p></div><p class="sgread" id="sgread"></p><p class="note" id="sgleg"></p>';
   if (EMB) h += '<h4>這個指標的訊號</h4>' + sigTableP(x);
   else {
@@ -1515,7 +1559,7 @@ function openInd(x, sid, push){
   OCC = OCCM[x.mk] || null;
   if (push) { const u = hsWith('i', x.k);
     if (first && !PUSHED) { history.pushState({sg: 1}, '', u); PUSHED = true; } else history.replaceState(history.state, '', u); }
-  if (x.cat !== 'heat') VIEW.raw = false;
+  if (x.cat !== 'heat') VIEW.raw = false; else if (!VIEW.rawSet) VIEW.raw = true;
   PB.innerHTML = panelHtml(x); segSync();
   PV.hidden = false; document.body.classList.add('sgopen');
   PB.scrollTop = 0; if (first) PB.focus({preventScroll: true});
@@ -1551,7 +1595,7 @@ function howHtml(r){ const x = r[I.x] || {};
   let h = '<p class="sgdl"><b>怎樣算出現</b>：' + esc(trig(r)) + '</p>';
   h += dirsOf(r).map(d => '<p class="sgdl"><b>' + (r[I.cat] === 'strat' ? '怎樣算中了' : what(r, d) + '：怎樣算中了') + '</b>：' + esc(succ(r, d)) + '</p>').join('');
   const w = stat(r, 'warn');
-  if (w && w[7] != null) h += '<p class="sgdl">每一次之後最大回撤的中位數 ' + pc(w[7]) + '（隨便挑一天 ' + pc(w[8]) + '，只當參考）。</p>';
+  if (w && w[7] != null) h += '<p class="sgdl">過去每一次之後的最大跌幅，最慘的一次 ' + ddp(w[7]) + (w[8] ? '（' + esc(ddDay(w[8])) + ' 那次）' : '') + '。</p>';
   if (x.pay) h += '<p class="sgdl">' + esc(payTxt(x)) + (x.old ? '（後台的 A／B／C 評級：' + esc(x.old) + '；個股策略的推薦用這裡的判定）' : '') + '</p>';
   if (r[I.cat] === 'buy' && (x.b1 != null || x.lp != null)) h += '<p class="sgdl">另列（不判定）：' +
     [x.b1 != null ? '同一批大跌「隔天就買」3 個月後上漲 ' + pc(x.b1) : '', x.lp != null ? '買在這一波相對低點（事件前高點到之後最低收盤的下三分之一）' + pc(x.lp) + '（' + x.lpn + ' 次，這一波已經結束的）' : '']
@@ -1599,7 +1643,7 @@ function recHtml(r, oc){
     (ni ? '；' + ni + ' 次之後' + esc(h) + '還沒走完（灰色）' : '')) + '。</p>' : '';
   return cnt + '<div class="sgwrap"><table class="sgrt">' + head + '<tbody>' + body + '</tbody></table></div>' +
     (EMB ? (ev ? '' : '<p class="note">共 ' + oc.length + ' 段，列最近 12 段。</p>') :
-    '<p class="note">' + (ev ? '列最近 12 次（含沒算進次數的）' : '共 ' + oc.length + ' 段，列最近 12 段；漲跌、最大回撤、比例是這一段每一天的平均，還在觀察期內的日子不算') + '。' +
+    '<p class="note">' + (ev ? '列最近 12 次（含沒算進次數的）' : '共 ' + oc.length + ' 段，列最近 12 段；漲跌、比例是這一段每一天的平均，最大回撤是這一段裡最慘的那一天，還在觀察期內的日子不算') + '。' +
     (ck ? '「當時 0～100」是' + (ev ? '出現' : '開始') + '那一天的值（一年以前的用那一週）。' : '') + '</p>'); }
 function fillSel(){ const r = SEL, box = document.getElementById('sgrec'); if (!r || !box) return;
   document.getElementById('sgsel').textContent = label(r);
@@ -1625,27 +1669,28 @@ function retSpec(r, j){ const q = j && j.ret ? j.ret[r[I.id]] : null; if (!q) re
     own: c === 'buy' ? 60 : c === 'ind' ? 12 : c === 'stock' ? 20 : r[I.H],
     entry: c === 'buy' ? '照規則的買進日收盤進場' : c === 'stock' ? '訊號隔天開盤進場' : c === 'ind' ? '那個月底進場' : '訊號出現隔一個交易日收盤進場',
     hn: h => mo ? h + ' 個月' : RHN[h] || h + ' 天'}; }
-// 報酬的穩健數字（sigspec 第 4.11 節 VER 17）：c＝[次數, 平均, 25%, 中位數, 75%, 上漲比例, 中途最多跌中位數, 最差 10%, 最差一次, 排除極端, 去掉最好一次]
+// 報酬的穩健數字（sigspec 第 4.11 節 VER 17）：c＝[次數, 平均, 25%, 中位數, 75%, 上漲比例, 中途最多跌中位數, 最差 10%, 最差一次, 排除極端, 去掉最好一次,
+//   最大跌幅最慘一次, 那一次的日期]（VER 24 起頁面只列最大跌幅最慘一次，不列中途最多跌）
 function carried(c){ return c && c[1] != null && c[10] != null && c[1] > 0 && c[10] < c[1] / 2; }   // 去掉最好一次，平均剩不到一半
 function robustTxt(c){ if (!c || c[9] == null) return '';
   return '<br>排除極端（去掉最好和最差幾次）的平均 <b>' + sr1(c[9]) + '</b>' + (c[10] != null ? '、去掉最好一次的平均 ' + sr1(c[10]) : '') +
     '（平均 ' + sr1(c[1]) + '）' + (carried(c) ? '：<b class="dn">成績靠少數幾次撐起來</b>' : '') + '。'; }
 function retHtml(r, j){
-  if (r[I.cat] === 'strat') return '<p class="note">策略照自己的規則買賣，每一筆的報酬在<a href="x9.html">個股頁</a>的策略說明卡；逐筆沒有每天的價格，不算中途最多跌。</p>';
+  if (r[I.cat] === 'strat') return '<p class="note">策略照自己的規則買賣，每一筆的報酬在<a href="x9.html">個股頁</a>的策略說明卡；逐筆沒有每天的價格，不算最大跌幅。</p>';
   const R = retSpec(r, j); if (!R) return '<p class="note">沒有進場之後的報酬資料。</p>';
   const {q, b, hs, bn} = R, oi = hs.indexOf(R.own), os = oi >= 0 ? q.s[oi] : null, ob = oi >= 0 && b ? b.s[oi] : null;
   let h = '';
   if (os) h += '<p class="sgdl">' + esc(R.entry) + '，持有 <b>' + esc(R.hn(R.own)) + '</b>：報酬中位數 <b>' + sr1(os[3]) + '</b>' +
     (ob ? '（' + esc(bn) + ' ' + sr1(ob[3]) + '）' : '') + '，一半落在 ' + sr1(os[2]) + '～' + sr1(os[4]) + '；上漲的機率 ' + Math.round(os[5]) + '%' +
-    (ob ? '（' + Math.round(ob[5]) + '%）' : '') + '。<br>進場之後中途最多跌：一半的時候在 <b>' + dn1(os[6]) + '</b> 以內、最差的一成跌超過 <b>' + dn1(os[7]) + '</b>' +
-    (ob ? '（' + esc(bn) + ' ' + dn1(ob[6]) + '、' + dn1(ob[7]) + '）' : '') + '，最差一次 ' + dn1(os[8]) + '。' +
+    (ob ? '（' + Math.round(ob[5]) + '%）' : '') + '。' + (os[11] != null ? '<br>持有期間的最大跌幅，最慘的一次 <b class="dn">' + ddp(os[11]) + '</b>' +
+    (os[12] ? '（' + esc(ddDay(os[12])) + ' 那次）' : '') + '。' : '') +
     (os[0] < SG.rmin ? '<span class="mu">' + (EMB ? '（次數 ' + os[0] + '）' : '（只有 ' + os[0] + ' 次，只當參考）') + '</span>' : '') + robustTxt(os) + '</p>';
   const sub = (v, f) => b && v != null ? '<small>' + f(v) + '</small>' : '';
   const head = '<thead><tr><th class="l">持有</th><th>上漲的機率 ' + ii('rup') + '</th><th>報酬中位數 ' + ii('rmed') + '</th>' +
     '<th>排除極端 ' + ii('rtrim') + '</th><th>去掉最好一次 ' + ii('rlbo') + '</th><th>一半落在 ' + ii('rhalf') + '</th>' +
-    '<th>中途最多跌<br>中位數 ' + ii('rmae') + '</th><th>中途最多跌<br>最差 10% ' + ii('rmae10') + '</th><th>次數</th></tr></thead>';
+    '<th>最大跌幅<br>最慘一次 ' + ii('rdd') + '</th><th>次數</th></tr></thead>';
   const body = hs.map((hh, i) => { const s = q.s[i], z = b ? b.s[i] : null;
-    if (!s) return '<tr class="na"><td class="l">' + esc(R.hn(hh)) + '</td><td colspan="8" class="mu">資料不夠（窗口還沒走完）</td></tr>';
+    if (!s) return '<tr class="na"><td class="l">' + esc(R.hn(hh)) + '</td><td colspan="7" class="mu">資料不夠（窗口還沒走完）</td></tr>';
     return '<tr' + (hh === R.own ? ' class="own"' : '') + (s[0] < SG.rmin ? ' data-few="1"' : '') + '><td class="l">' + esc(R.hn(hh)) +
       (hh === R.own ? '<small>' + (EMB ? '這個訊號的期間' : '判定看這一期') + '</small>' : R.mo ? '' : '<small>' + hh + ' 個交易日</small>') + '</td>' +
       '<td data-h="上漲的機率"><b>' + Math.round(s[5]) + '%</b>' + sub(z && z[5], v => Math.round(v) + '%') + '</td>' +
@@ -1653,8 +1698,7 @@ function retHtml(r, j){
       '<td data-h="排除極端">' + (s[9] == null ? '—' : sr1(s[9])) + sub(z && z[9], sr1) + '</td>' +
       '<td data-h="去掉最好一次">' + (s[10] == null ? '—' : sr1(s[10])) + (carried(s) ? '<small class="dn">靠少數幾次</small>' : '') + '</td>' +
       '<td data-h="一半落在">' + sr1(s[2]) + '～' + sr1(s[4]) + (z ? '<small>' + sr1(z[2]) + '～' + sr1(z[4]) + '</small>' : '') + '</td>' +
-      '<td data-h="中途最多跌・中位數">' + dn1(s[6]) + sub(z && z[6], dn1) + '</td>' +
-      '<td data-h="中途最多跌・最差 10%">' + dn1(s[7]) + sub(z && z[7], dn1) + '</td>' +
+      '<td data-h="最大跌幅・最慘一次">' + (s[11] == null ? '—' : '<b class="dn">' + ddp(s[11]) + '</b>' + (s[12] ? '<small>' + esc(ddDay(s[12])) + '</small>' : '')) + '</td>' +
       '<td data-h="次數">' + s[0] + (s[0] < SG.rmin ? '<small>次數少</small>' : '') + '</td></tr>'; }).join('');
   return h + '<div class="sgwrap sgrw"><table class="sgrr">' + head + '<tbody>' + body + '</tbody></table></div>' +
     (EMB ? '<p class="note">' + (b ? '小字＝任一天。' : '') + '價格是指數本身、不含股息。</p>' :
@@ -1799,7 +1843,7 @@ PB.addEventListener('click', e => {
   const mb = e.target.closest('.sgmore2');
   if (mb) { VIEW.span = mb.dataset.span; segSync(); drawChart(); fillSel(); return; }
   const sb = e.target.closest('.sgseg button');
-  if (sb) { const g = sb.closest('.sgseg').dataset.g; if (g === 'span') VIEW.span = sb.dataset.v; else VIEW.raw = sb.dataset.v === '1'; segSync(); drawChart(); fillSel(); return; }
+  if (sb) { const g = sb.closest('.sgseg').dataset.g; if (g === 'span') VIEW.span = sb.dataset.v; else { VIEW.raw = sb.dataset.v === '1'; VIEW.rawSet = true; } segSync(); drawChart(); fillSel(); return; }
   const tb = e.target.closest('tbody.sgsb');
   if (tb && CUR) { const r = CUR.sig.find(q => q[I.id] === tb.dataset.id); if (r && r !== SEL) { SEL = r; fillSel(); drawChart(); } } }, SGO);
 document.getElementById('sgpb').addEventListener('click', () => closeP(), SGO);
@@ -1819,12 +1863,12 @@ const CSVB = document.getElementById('sgcsv');
 if (CSVB) CSVB.addEventListener('click', () => {
   const list = sorted(INDS.filter(x => pass(x)));
   const head = ['指標','市場','類別','訊號','看多久','現在成立','方向','看什麼','機率%','隨便挑一天%','多幾個百分點','近10年次數','近10年機率%','近10年隨便挑一天%',
-    '出現過幾次','判定','亂排也做得到%','最大回撤中位數%','隨便挑一天最大回撤中位數%','大跌門檻%','報酬中位數%','排除極端的平均%','預估之後的機率%','預估之後比隨便挑一天多賺%','代號'];
+    '出現過幾次','判定','亂排也做得到%','最大跌幅最慘一次%','最慘那一次的日期','大跌門檻%','報酬中位數%','排除極端的平均%','預估之後的機率%','預估之後比隨便挑一天多賺%','代號'];
   const lines = [head];
   list.forEach(x => x.cat !== 'xs' && x.sig.forEach(r => dirsOf(r).forEach(d => { const s = stat(r, d), e = dEdge(s);
     lines.push([x.name, SG.mk[x.mk], facName(x), label(r), hz(r), nowTxt(r), SG.dirs[d] || d, what(r, d), s ? s[1] : '', s ? s[2] : '', e == null ? '' : e.toFixed(1),
       s ? (s[3] ?? '') : '', s ? (s[4] ?? '') : '', s ? (s[5] ?? '') : '', s ? s[0] : '', s ? (SG.tiers[s[6]] || ['', ''])[1] : '',
-      s ? (s[9] ?? '') : '', d === 'warn' && s ? (s[7] ?? '') : '', d === 'warn' && s ? (s[8] ?? '') : '', d === 'warn' ? (r[I.th] ?? '') : '',
+      s ? (s[9] ?? '') : '', (ddOf(r, d) || [''])[0] ?? '', (ddOf(r, d) || ['', ''])[1] || '', d === 'warn' ? (r[I.th] ?? '') : '',
       (r[I.x] || {}).med ?? '', (r[I.x] || {}).trm ?? '', feOf(r, d) ? feOf(r, d)[0] : '', feOf(r, d) && feOf(r, d)[3] != null ? feOf(r, d)[3] : '', r[I.id]]); })));
   const csv = '﻿' + lines.map(l => l.map(v => { const t = String(v == null ? '' : v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); a.download = '訊號總覽.csv'; a.click(); }, SGO);

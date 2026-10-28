@@ -98,12 +98,21 @@ def books(P, force: bool = False) -> None:
 
 def qm(P) -> None:
     from arm.lab import ussxqm as QM
-    R = QM.research(QM.context(P))
+    C = QM.context(P)                                        # ussxspec VER 8：財報條件只用當時已經申報的數字
+    C0 = QM.with_cols(C, pit=False)                          # 修正前的舊算法（重現檢查與「修正前」的數字）
+    R = QM.research(C, C0=C0)
     QM.save(R)
     print(f"[ussx] 寫入 {QM.RES.relative_to(ROOT)}")
     rp, v = R["repro"], R["verdict"]
-    print(f"[ussx] QM 三成本身 {R['eval']} 起 {_pct(R['sleeve']['main']['cagr'])}%（第 12 節 {_pct(rp['ref']['cagr'])}%）、"
-          f"計畫 {rp['plan_m'] * 100:,.1f} 萬（第 12 節 {rp['ref']['plan_m'] * 100:,.1f} 萬）→ 重現 {'✓' if rp['ok'] else '✗'}")
+    print(f"[ussx] 重現（舊算法、VER 3 設定）三成本身 {_pct(rp['cagr'])}%（第 12 節 {_pct(rp['ref']['cagr'])}%）、"
+          f"計畫 {rp['plan_m'] * 100:,.1f} 萬（第 12 節 {rp['ref']['plan_m'] * 100:,.1f} 萬）→ {'✓' if rp['ok'] else '✗（只記錄）'}")
+    pf = R.get("prefix") or {}
+    if pf:
+        print(f"[ussx] 修正前：三成本身 {_pct(pf['sleeve']['cagr'])}%、S&P 500 計畫 {pf['plans']['spx']['new']['plan']['m'] * 100:,.1f} 萬"
+              f"（最慘 {pf['plans']['spx']['new']['plan']['mdd'] * 100:.1f}%）")
+    print(f"[ussx] 修正後（VER {R['ver']}）：三成本身 {R['eval']} 起 {_pct(R['sleeve']['main']['cagr'])}%"
+          f"（前後兩半 {_pct(R['sleeve']['main']['halves'][0]['cagr'])}／{_pct(R['sleeve']['main']['halves'][1]['cagr'])}%、"
+          f"最慘 {R['sleeve']['main']['mdd'] * 100:.1f}%）；S&P 500 含息 {_pct(R['bench']['spx_tr']['cagr'])}%")
     for mk in ("spx", "ndx"):
         pl, j = R["plans"][f"{mk}_main"], R["plans"][f"{mk}_main"]["judge"]
         b = pl.get("base") or pl["cur"]

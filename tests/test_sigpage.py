@@ -21,7 +21,8 @@ def _st(n, hit, base, tier, n10=0, hit10=None, base10=None):
 def _rows():
     a = {"id": "tw:heat:C1:hot", "mk": "tw", "cat": "heat", "grp": "chip", "var": "C1", "vn": "融資餘額水位", "sig": "hot",
          "name": "融資餘額水位・過熱中", "kind": "state", "H": 60, "th": 0.10, "a": "2001-01-02", "z": "2026-10-16",
-         "up": _st(12, 0.70, 0.66, "none"), "warn": dict(_st(12, 0.58, 0.29, "good"), mdd=0.124, mdd_base=0.067),
+         "up": _st(12, 0.70, 0.66, "none"), "warn": dict(_st(12, 0.58, 0.29, "good"), mdd=0.124, mdd_base=0.067,
+                                                         mddw=0.3061, mddw_d="2008-05-20"),
          "tier": "good", "dir": ["warn"], "occ": [["2020-01-02", "2020-03-01", 40, 0.5, 0.8, 0.11]]}
     b = dict(a, id="tw:heat:C1:hot_in", sig="hot_in", name="融資餘額水位・進入過熱", kind="event",
              up=_st(13, 0.85, 0.66, "good"), warn=_st(13, 0.40, 0.29, "ref"), dir=["up"], occ=[["2020-01-02", 1, 0, 0.05]])
@@ -207,7 +208,8 @@ def test_heat_pages_stash_cards_and_list_today(monkeypatch):
     h = VZ.today_html({"sigtoday": T})
     assert 'href="#s=tw:heat:C1:hot"' in h and "融資餘額水位・過熱中" in h and 'href="#s=tw:heat:C1:hot_in"' in h   # 同一頁的全部指標
     assert "2025/12/1 起成立" in h and "x9o.html" not in h
-    assert h.count('class="tqo"') == 2 and "回撤中位 12%（任一天 7%）" in h                         # 同一個項目兩邊＝震盪
+    assert h.count('class="tqo"') == 2 and "最大跌幅 31%（2008/5/20 那次）" in h                    # 同一個項目兩邊＝震盪
+    assert "回撤中位" not in h                                                                    # VER 24：最慘一次，不列中位數
     assert '<span class="sub">之後 3 個月內回撤 10% 以上的機率</span>' in h and '<span class="sub">之後 3 個月上漲的機率</span>' in h
     assert h.count('class="tqpn"') == 3 and h.count('class="tqq"') == 3 and h.count('class="tqrb"') == 3
     assert h.count(" checked>") == 1 and 'for="tqr-tw-mid"' in h and 'id="tqr-tw-mid"' in h
@@ -379,7 +381,7 @@ def test_research_files_survive_presentation_only_versions(tmp_path, monkeypatch
         (tmp_path / "r.json").write_text(json.dumps({"ver": v, "rows": []}), encoding="utf-8")
         (tmp_path / "s.json").write_text(json.dumps({"ver": v, "rows": []}), encoding="utf-8")
         assert (sigcat.load_research() is not None) is ok and (sigcat.load_stock() is not None) is ok
-    assert sigspec.RES_VER == 22 <= sigspec.VER
+    assert sigspec.RES_VER == 24 <= sigspec.VER
 
 def test_position_card_removed():
     """部位參考 2026-10-19 拿掉（docs/lab_crash_plan.md 第 20 節）：研究卡、景氣頁狀態列、相關研究連結都不得接回來。"""
@@ -590,7 +592,7 @@ def test_forward_estimate_lines_panel_and_method(monkeypatch):
     V = _view()
     a = V["rows"][0]
     line = sigpage._line({**a, "d": "warn", "tier": "good"})
-    assert line == "之後 3 個月內回撤 10% 以上 <b>58%</b>（任一天 29%）・回撤中位 12%（任一天 7%）・次數 12"
+    assert line == "之後 3 個月內回撤 10% 以上 <b>58%</b>（任一天 29%）・最大跌幅 31%（2008/5/20 那次）・次數 12"
     assert not hasattr(sigpage, "_fe")
     b = dict(V["rows"][1], ret={"s": [None] * 4 + [[13, 0, 0, 0.06, 0, 0, 0, 0, 0, 0.05, 0.04]], "bk": "kb"})
     sigcat._RCACHE["rows"], sigcat._RCACHE["bases"] = [], {"kb": {"s": [None] * 4 + [[1, 0, 0, 0.02, 0]]}}

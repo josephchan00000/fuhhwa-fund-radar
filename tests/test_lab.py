@@ -238,18 +238,18 @@ def test_page_layout_v4_tabs_opp_first_and_backend():
     原「機會」「策略」兩頁＝研究紀錄的個股策略「這一期」「規則與成績」；頁首的目的句拿掉。"""
     import re
     tabs = re.findall(r'<a data-t="(\w+)" data-p="(\w+)"(?: hidden)?>([^<]+)</a>', page._HTML)
-    assert tabs == [("tw", "cfg", "台股"), ("us", "cfg", "美股"), ("strat", "cfg", "策略"), ("tool", "cfg", "個股"),
-                    ("stg", "r", "個股策略"), ("mac", "r", "總經策略")]
+    assert tabs == [("tw", "pick", "台股"), ("us", "pick", "美股"), ("tool", "pick", "個股"),            # 2026-10-28 起選股（docs/lab_pick_page_plan.md）
+                    ("stg", "r", "個股策略"), ("mac", "r", "總經策略"), ("plan", "r", "交易計畫"), ("strat", "r", "全部策略")]
     assert 'id="glb"' in page._HTML and "說明</a>" not in page._HTML
     assert '<a class="vlb" data-t="bo" data-p="r" hidden>後台</a><a class="glb" id="glb" data-p="r" hidden>' in page._HTML
     assert 'class="purp"' not in page._HTML and "const PURP=" not in page._JS
     assert "const S={tab:'stk'," in page._JS and "go(v,at);if(gl)openGl();}" in page._JS
     js_views = re.search(r"const VIEWS=\{([^}]*)\}", page._JS).group(1)
-    assert [k.split(":")[0] for k in js_views.split(",")] == ["tw", "us", "strat", "stk", "chip", "idx", "opp", "st", "mac", "macst", "bo"]
+    assert [k.split(":")[0] for k in js_views.split(",")] == ["tw", "us", "stk", "chip", "idx", "opp", "st", "mac", "macst", "plan", "strat", "bo"]
     tabg = re.search(r"const TABG=\{([^}]*)\}", page._JS).group(1)
     assert dict(x.split(":") for x in tabg.replace("'", "").split(",")) == {
-        "tw": "tw", "us": "us", "strat": "strat", "stk": "tool", "chip": "tool", "idx": "tool",
-        "opp": "stg", "st": "stg", "mac": "mac", "macst": "mac", "bo": "bo"}
+        "tw": "tw", "us": "us", "stk": "tool", "chip": "tool", "idx": "tool",
+        "opp": "stg", "st": "stg", "mac": "mac", "macst": "mac", "plan": "plan", "strat": "strat", "bo": "bo"}
     for k in ("today", "iss", "sig", "val"):                                 # 舊分頁已併入機會、籌碼、後台
         assert f'data-t="{k}"' not in page._HTML and f'data-go="{k}"' not in page._JS, k
 

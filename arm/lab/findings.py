@@ -209,6 +209,7 @@ def ma60(C: dict) -> dict | None:
     v = e.get("v") or "few"
     return {"ans": {"up": "yes", "down": "less", "none": "same"}.get(v, "few"), "n": e["n"], "start": (e.get("a") or "")[:4],
             "ev": _mq(e, "ev"), "base": _mq(e, "base"),
+            "worst": max(([x[0], _r(x[1])] for x in (e.get("list") or []) if x[1] is not None), key=lambda x: x[1], default=None),
             "big": {"n": d20.get("n") or 0, "hit": d20.get("hit") or 0, "lost": _r(d20.get("lost")), "rem": _r(d20.get("rem"))},
             "rows": rows[::-1], "recent": rec[-1] if rec else None,
             "below": (b60.get("days") or 0) if b60.get("on") else 0, "since": b60.get("since") if b60.get("on") else None}
@@ -573,6 +574,12 @@ def tilt_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
     return _card("tilt", QN["tilt"], "平常抱著，買點出現時用期貨多拿 5 成，能不能賺更多？", ans, small, acls, body, _e(now), nflag, det), line
 
 
+def _run_worst(X: dict) -> list | None:
+    """連續過熱每一段之後最多回檔最慘的那一段（[開始, 週數, 最多回檔, …]；2026-10-28 起句子列最慘的一段，不列中位數）。"""
+    rs = [r for r in (X.get("runs") or []) if r[2] is not None]
+    return max(rs, key=lambda r: r[2]) if rs else None
+
+
 def chip_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
     if not X:
         return "", ""
@@ -589,7 +596,9 @@ def chip_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
         s = (f"{lab}項目已連續過熱的日子，之後 3 個月最多回檔都沒有比平常深"
              + (f"（{_asc('、'.join(X['down'][:3]))}反而比較淺）" if X.get("down") else "") + "。")
     else:
-        s = f'最多回檔的中位數 {_pc(X["ev"][0], 1)}，平常 {_pc(X["base"][0], 1)}。'
+        w = _run_worst(X)
+        s = (f'這 {len(X["runs"])} 段裡，之後最多回檔最慘的一段跌 {_pc(w[2], 1)}（{_d(w[0])} 開始）。' if w
+             else "")
         if a == "raw":
             s += "那段時間本來就波動大；和同樣波動的日子比，看不出差別。"
         if X.get("also"):
@@ -612,8 +621,9 @@ def chip_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
                f'<div class="rftw"><table class="rftb"><tr><th class="l">開始</th><th>連續幾週</th><th>之後最多回檔</th></tr>{trs}</table></div>'
                '<p class="rfnote">之後最多回檔＝從連續過熱滿 4 週那天起，到過熱結束後 3 個月內，指數最多從高點跌多少。</p>')
     return _card("chip", QN["chip"], title, ans, small, acls, body, now, nf, det), (
-        ("risk", f'{_e(X["name"])}已連續過熱 {X["w"]} 週：過去這種時候，之後 3 個月最多回檔的中位數 {_pc(X["ev"][0], 1)}'
-                 f'（平常 {_pc(X["base"][0], 1)}），{_pc(X["ev"][1])} 的時候跌超過 10%（平常 {_pc(X["base"][1])}）。') if nf == "risk" else "")
+        ("risk", f'{_e(X["name"])}已連續過熱 {X["w"]} 週：過去這種時候，{_pc(X["ev"][1])} 的時候之後 3 個月跌超過 10%'
+                 f'（平常 {_pc(X["base"][1])}）' + (f'，最慘的一段跌 {_pc(_run_worst(X)[2], 1)}' if _run_worst(X) else "") + '。')
+        if nf == "risk" else "")
 
 
 def hotin_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
@@ -647,13 +657,18 @@ def ma60_card(mk: str, X: dict | None) -> tuple[str, tuple | str]:
     big = X.get("big") or {}
     body = ""
     if big.get("n"):
+        rm = [r for r in (X.get("rows") or []) if len(r) > 6 and r[4] not in (None, "na") and r[6] is not None]
+        wr = max(rm, key=lambda r: r[6]) if rm else None
         body += (f'<p class="rfl">跌 20% 以上的 {big["n"]} 次大跌，{big["hit"]} 次在低點前跌破季線，'
-                 f'但那時已經跌了 {_pc(big["lost"], 1)}（中位數），之後還跌 {_pc(big["rem"], 1)}。</p>')
+                 f'跌破的時候一半已經跌了 {_pc(big["lost"], 1)} 以上'
+                 + (f'；跌破之後最多還跌 {_pc(wr[6], 1)}（{_e(_d(wr[0]))} 那一段）' if wr else "") + '。</p>')
     body += _cmp_bars(X["ev"], X["base"], "跌破季線之後", "任挑一天", risk=a == "yes")
     if a == "same":
         body += '<p class="rfs">大跌前多半會跌破季線，但跌破之後回檔變大的機會，和任挑一天差不多：跌破季線本身不是大跌的預告。</p>'
     else:
-        body += f'<p class="rfs">跌破季線之後 3 個月最多回檔的中位數 {_pc(X["ev"][0], 1)}，任挑一天 {_pc(X["base"][0], 1)}。</p>'
+        w = X.get("worst")
+        if w:
+            body += f'<p class="rfs">跌破季線之後 3 個月最多回檔，最慘的一次跌 {_pc(w[1], 1)}（{_d(w[0])} 跌破）。</p>'
     if X.get("since"):
         now, nf = f"{_md(X['since'])} 起收盤在季線下（第 {X['below']} 天）", "side"
     elif X.get("recent"):

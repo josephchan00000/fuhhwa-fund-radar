@@ -7,7 +7,7 @@
 E 是正的：現貨估得比期貨強，做多期貨；負的做空。
 
 估算的開盤水準：偷看版＝每檔上市普通股今天真正的開盤價、照前一天的市值比重換算（open_full；不是證交所 09:00:05 的
-「開盤指數」，那時很多股票還沒開出來）；即時版＝盤前試撮估算（futspec VER 2）。
+「開盤指數」，那時很多股票還沒開出來）；即時版＝同一個式子、開盤價換成決定時間當下看得到的試撮價（est_realtime，futspec VER 2）。
 契約：當天的近月；結算日（每月第三個星期三，遇休市順延）改用下個月。
 """
 from __future__ import annotations
@@ -120,6 +120,70 @@ def open_full(d: str, dprev: str, i_prev: float, cover_min: float) -> float | No
     if cov < cover_min:
         return None
     return i_prev * num / cov
+
+
+def _sec(t) -> int | None:
+    """MIS 的資料時間 "HH:MM:SS" → 當天第幾秒（台北）。"""
+    try:
+        h, m, x = str(t).split(":")
+        return int(h) * 3600 + int(m) * 60 + int(x)
+    except (TypeError, ValueError):
+        return None
+
+
+def _num(x) -> float | None:
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return None
+    return v if v > 0 else None
+
+
+def latest_quotes(recs: list[dict], decide_s: float) -> dict[str, dict]:
+    """盤前取樣（futpre.decode 的結果）→ 每檔在決定時間當下看得到的最新資料：只看收到時間 ≤ decide_s 的回應，
+    同一檔取資料時間（MIS 的 t）最新的那一筆，資料時間相同取比較晚收到的（MIS 有時候回比上一次還舊的資料）。"""
+    best: dict[str, tuple[int, dict]] = {}
+    for r in recs:
+        if r.get("k") != "tw" or r.get("t1") is None or r["t1"] > decide_s:
+            continue
+        for c, m in (r.get("r") or {}).items():
+            if c in ("t00", "o00"):
+                continue
+            ts = _sec(m.get("t"))
+            if ts is None:
+                continue
+            if c not in best or ts >= best[c][0]:
+                best[c] = (ts, m)
+    return {c: dict(m, _ts=ts) for c, (ts, m) in best.items()}
+
+
+def est_realtime(recs: list[dict], dprev: str, i_prev: float, *, decide_s: float, fresh_s: int,
+                 cover_min: float, field: str = "pz") -> dict:
+    """即時版的開盤水準（futspec VER 2）：前一天收盤指數 × Σ 比重 × 試撮價／前一天官方收盤 ÷ Σ 比重。
+    只用決定時間當下看得到、資料時間 ≥ fresh_s、試撮價是正數、前一天有官方收盤的股票；比重＝weights(dprev)。
+    回 {"est": 估算（比重不到 cover_min 是 None）, "cov": 用到的比重合計, "n": 用到幾檔, "stale": 資料太舊幾檔, "nopx": 沒有試撮價幾檔}。"""
+    q = latest_quotes(recs, decide_s)
+    w = weights(dprev)
+    qp = (store.read("mkt", dprev) or {}).get("q_tw") or {}
+    num = cov = 0.0
+    n = stale = nopx = 0
+    for c, m in q.items():
+        wi = w.get(c)
+        if not wi:
+            continue
+        if m["_ts"] < fresh_s:
+            stale += 1
+            continue
+        px = _num(m.get(field))
+        cp = _num((qp.get(c) or [None] * 4)[3])
+        if px is None or cp is None:
+            nopx += 1
+            continue
+        num += wi * px / cp
+        cov += wi
+        n += 1
+    est = i_prev * num / cov if cov >= cover_min and cov > 0 else None
+    return {"est": est, "cov": round(cov, 4), "n": n, "stale": stale, "nopx": nopx}
 
 
 def edge(inp: dict, f_now: float, i_est: float) -> float:
