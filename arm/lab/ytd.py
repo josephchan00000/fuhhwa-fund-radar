@@ -169,7 +169,7 @@ def tw(D, plan: dict | None, names: dict | None = None, live: dict | None = None
         trades.append({"k": "R60", "c": c, "n": nm.get(c, c), "ent": ent, "exit": None, "ret": val / cin - 1 if cin else None,
                        "w": _m(ww, w["R60"]), "pnl": _m((val - base) / e0, w["R60"]), "carry": carry,
                        "bpx": hp.get("epx") if hp else (p or {}).get("bpx"), "spx": hp.get("px")})
-    trades.sort(key=lambda t: (t["ent"], t["c"]))
+    trades.sort(key=lambda t: (t["k"] != "0050", t["ent"], t["c"]))      # 長抱的 0050 放最上面
     return {"mk": "tw", "days": [days[0], days[-1]], "rows": rows, "trades": trades, "w": w, "take": st["take"],
             "live_from": lfrom, "tot": {S.NOLOOK: nolook[-1] - 1, S.HOLD: hold[-1] - 1,
                                                  S.LIVE: (lv[days[-1]] - 1) if days[-1] in lv else None}}
@@ -253,6 +253,8 @@ def us(qm_live: dict | None) -> dict | None:
                "carry": t.get("carry"), "why": t.get("why")} for t in yp["trades"]]
     return {"mk": "us", "days": [days[0], days[-1]], "rows": rows, "trades": trades, "chosen": doc["chosen"],
             "rank": [r[0] for r in doc["rank"]].index(doc["chosen"]) + 1, "n_wf": len(doc["rank"]), "picks": yp["picks"],
+            "cost": wf.get("cost") or 0.0,
+            "rank_yr": 1 + sum(1 for v in (yp["range"].get("by") or {}).values() if v is not None and v > nav[-1] - 1 + 1e-9),
             "k": wf["k"], "L": wf["L"], "pool": wf["pool"], "cagr": wf["cagr"], "range": yp["range"],
             "live_from": S.US_LIVE_FROM, "data_last": doc["data_last"],
             "tot": {S.NOLOOK: nav[-1] - 1, S.HOLD: hold[-1] - 1,

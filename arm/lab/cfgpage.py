@@ -678,7 +678,9 @@ def ytd_html(Y: dict | None, mk: str) -> str:
     if mk == "us":
         rg = Y["range"]
         extra = (f'<div class="cfq">今年挑到的 {len(Y["picks"])} 種：' + "；".join(_e(x.replace("｜", "・")) for x in Y["picks"]) + "。"
-                 f'24 種挑法今年的報酬：最低 {_ypc(rg["min"])}、中間 {_ypc(rg["med"])}、最高 {_ypc(rg["max"])}。</div>')
+                 f'24 種挑法今年的報酬：最低 {_ypc(rg["min"])}、中間 {_ypc(rg["med"])}、最高 {_ypc(rg["max"])}'
+                 + (f'——固定的這一種今年剛好排第 {Y["rank_yr"]} 名，換一種挑法差很多，看中間那個數字比較接近一般的情況'
+                    if Y.get("rank_yr", 99) <= 3 else f'——固定的這一種今年排第 {Y.get("rank_yr", "—")} 名') + "。</div>")
     return (f'<h2 class="cfh">今年<span class="sub">每個月、每一筆</span></h2>' + head + tbl
             + f'<div class="cfq">{_e(how)}</div>' + extra + ytd_trades(Y, mk))
 
@@ -706,7 +708,12 @@ def ytd_trades(Y: dict, mk: str) -> str:
             sub = f'<div class=cd>{_e(t["m"].replace("｜", "・"))}</div>' if many else ""
         if k not in ks:
             ks.append(k)
-        ent = "去年就拿著" if t["ent"] <= yd else f'{_md(t["ent"])} 買' + (f' {px(t["bpx"])}' if t.get("bpx") else "")
+        if t["k"] == "0050":
+            ent = "去年就拿著"
+        elif t["ent"] <= yd:
+            ent = f'去年 {_md(t["ent"])} 買' + (f' {px(t["bpx"])}' if t.get("bpx") else "")
+        else:
+            ent = f'{_md(t["ent"])} 買' + (f' {px(t["bpx"])}' if t.get("bpx") else "")
         ex = "還拿著" if not t.get("exit") else f'{_md(t["exit"])} 賣' + (f' {px(t["spx"])}' if t.get("spx") else "")
         m0 = 1 if t["ent"] <= yd else int(t["ent"][5:7])
         m1 = int((t.get("exit") or last)[5:7])
@@ -723,7 +730,8 @@ def ytd_trades(Y: dict, mk: str) -> str:
             + '<table class="cfht cfytr"><thead><tr><th>股票</th><th>買進／賣出</th><th>報酬</th><th>占資金</th></tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table>'
             '<div class="cfq">選一個月份＝那個月有拿著的。報酬＝那一筆從買進到賣出（還拿著的算到最新收盤，含息、扣手續費）；'
-            '占資金＝買進時占全部資金多少（去年就拿著的＝年初）；帳戶＝那一筆今年讓全部資金漲跌多少。</div></details>')
+            '占資金＝買進時占全部資金多少（去年買的＝年初）；帳戶＝那一筆今年讓全部資金漲跌多少，全部加起來'
+            + ("約等於" if mk == "us" else "就是") + '不偷看那一欄的今年報酬。</div></details>')
 
 
 def tw_parts(data: dict, bundle: dict) -> dict:
