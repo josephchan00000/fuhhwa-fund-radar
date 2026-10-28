@@ -96,6 +96,39 @@ def fwd(px: list, i: int, h: int, lag: int = S.DAILY_LAG) -> tuple[float | None,
     return px[b] / p0 - 1.0, (min(lows) / p0 - 1.0 if lows else None)
 
 
+_MDD: dict = {}
+
+
+def _mdd_all(px: list, h: int, lag: int) -> list:
+    out: list = [None] * len(px)
+    n = len(px)
+    for i in range(n):
+        a = i + lag
+        b = a + h
+        if b >= n or px[a] is None or px[b] is None:
+            continue
+        pk, dd = None, 0.0
+        for p in px[a:b + 1]:
+            if p is None:
+                continue
+            if pk is None or p > pk:
+                pk = p
+            elif 1.0 - p / pk > dd:
+                dd = 1.0 - p / pk
+        out[i] = dd
+    return out
+
+
+def fwd_mdd(px: list, i: int, h: int, lag: int = S.DAILY_LAG) -> float | None:
+    """t 日訊號 → 第 t＋lag～t＋lag＋h 天收盤的最大回撤（期間最高收盤到之後最低收盤，0～1；sigspec VER 24 的「最大跌幅」，
+    和訊號總覽的大跌同一個算法）。資料不夠回 None。同一條價格整條算一次存起來（研究要對很多項目、很多個樣本日查）。"""
+    key = (id(px), len(px), h, lag)
+    c = _MDD.get(key)
+    if c is None or c[0] is not px:
+        c = _MDD[key] = (px, _mdd_all(px, h, lag))
+    return c[1][i] if 0 <= i < len(c[1]) else None
+
+
 # ── 統計 ─────────────────────────────────────────────────────────────
 
 def _rank(xs: list) -> list[float]:
@@ -153,8 +186,9 @@ def spearman_ci(x: list, y: list, block: int, n_boot: int = S.BOOT_N, seed: int 
     return rho, reps[int(a * len(reps))], reps[min(len(reps) - 1, int((1 - a) * len(reps)))]
 
 
-def bands(scores: list, rets: list, dds: list) -> list[dict]:
-    """五段：天數、之後平均漲跌、中位數、上漲機率、期間最大跌幅中位數（%）；最後一列＝所有日子。"""
+def bands(scores: list, rets: list, dds: list, mdds: list | None = None, dates: list | None = None) -> list[dict]:
+    """五段：天數、之後平均漲跌、中位數、上漲機率、期間最大跌幅中位數（%，從進場價算；頁面 VER 24 起不列）；最後一列＝所有日子。
+    mdds＝每個樣本的最大回撤（fwd_mdd，0～1）→ 另記 ddw＝最差一次（%，負數）、ddwd＝那一次的日期（dates；sigspec VER 24 的「最大跌幅」）。"""
     out = []
     groups = [(lo, hi, nm) for lo, hi, nm in S.BANDS] + [(None, None, "全部")]
     for lo, hi, nm in groups:
@@ -162,11 +196,18 @@ def bands(scores: list, rets: list, dds: list) -> list[dict]:
                and (lo is None or lo <= s < hi)]
         r = [rets[k] for k in idx]
         d = [dds[k] for k in idx if dds[k] is not None]
-        out.append({"band": nm, "n": len(r),
-                    "avg": round(100 * statistics.mean(r), 2) if r else None,
-                    "med": round(100 * statistics.median(r), 2) if r else None,
-                    "up": round(100 * sum(1 for v in r if v > 0) / len(r), 1) if r else None,
-                    "dd": round(100 * statistics.median(d), 2) if d else None})
+        b = {"band": nm, "n": len(r),
+             "avg": round(100 * statistics.mean(r), 2) if r else None,
+             "med": round(100 * statistics.median(r), 2) if r else None,
+             "up": round(100 * sum(1 for v in r if v > 0) / len(r), 1) if r else None,
+             "dd": round(100 * statistics.median(d), 2) if d else None}
+        if mdds is not None:
+            w = [k for k in idx if mdds[k] is not None]
+            if w:
+                j = max(w, key=lambda k: (mdds[k], -k))             # 一樣大取最早的那一個
+                b["ddw"] = round(-100 * mdds[j], 2)
+                b["ddwd"] = dates[j] if dates is not None else None
+        out.append(b)
     return out
 
 

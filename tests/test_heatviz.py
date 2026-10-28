@@ -394,15 +394,19 @@ def test_radar_card_has_swings_not_quarters(built):
     assert "比昨日" in page or "和昨日一樣" in page                               # 面板的分數格
 
 
-def test_today_card_below_faces(built):
-    """市場頁（docs/lab_ia_v5_plan.md 第 15.1、18 節）：面向那一塊＝標題列、五個面向、雷達＋這週變化（右欄，兩欄等高）；
-    今天的訊號在面向下面、全部指標上面。「怎麼看」拿掉（第 8 節）；溫度計切換照舊用 radio＋CSS。"""
+def test_today_card_beside_radar(built):
+    """市場頁（docs/lab_ia_v5_plan.md 第 15.1、18 節）：面向那一塊＝標題列、五個面向、雷達＋今天的訊號（右欄，兩欄等高）、
+    這週變化（兩欄下面整條），再下面才是全部指標。2026-10-28 使用者：「電腦版的排版又把溫度計放下去了導致上面很空」——
+    今天的訊號放回雷達右邊（同 2026-10-20）。「怎麼看」拿掉（第 8 節）；溫度計切換照舊用 radio＋CSS。"""
     _, _, V, page = built
-    top = page[page.index('<section class="vtop mface" id="top">'):page.index('id="today"')]
-    assert top.index('class="mfc"') < top.index('<div class="vgrid">') < top.index('<div class="vside">') < top.index('id="wchg"')
-    assert page.index('id="top"') < page.index('id="today"') < page.index('id="all"')
+    top = page[page.index('<section class="vtop mface" id="top">'):page.index('id="all"')]
+    assert (top.index('class="mfc"') < top.index('<div class="vgrid">') < top.index('<div class="rcard card">')
+            < top.index('<div class="vside">') < top.index('id="today"') < top.index('id="wchg"') < top.index('id="cmpd"'))
+    side = top[top.index('<div class="vside">'):top.index('id="wchg"')]
+    assert 'class="tqk"' in side and 'class="rout"' in side and 'id="wchg"' not in side   # 溫度計、清單、「之後怎麼走？」都在右欄
+    assert page.index('id="top"') < page.index('id="today"') < page.index('id="wchg"') < page.index('id="all"')
     assert ".vgrid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:14px;align-items:stretch}" in page
-    assert ".mface .vside>.wchg{margin:0;flex:1}" in page
+    assert ".mface .vside>.tzc{margin:0;flex:1;scroll-margin-top:48px}" in page and ".mface .vside>.wchg" not in page
     assert 'class="tzx"' not in page
     assert ".tqpn{display:none}" in page and ".tqrb:nth-of-type(2):checked~.tqps .tqpn:nth-child(2)" in page   # VER 23：切換用 radio＋CSS
     assert ".vside{order:-1}" not in page                                    # 手機也是雷達在最上面
@@ -514,8 +518,10 @@ def test_scenario_table(monkeypatch):
     from arm.lab import sigcat as G
     from arm.lab import sigspec as SS
     j = SS.RET_H.index(60)
-    ret = {"s": [None] * j + [_cell(12, 0.044, 0.65, -0.03)] + [None] * (len(SS.RET_H) - j - 1), "bk": "b1"}
-    bases = {"b1": {"s": [None] * j + [_cell(5000, 0.026, 0.63, -0.04)] + [None] * (len(SS.RET_H) - j - 1)}}
+    ret = {"s": [None] * j + [_cell(12, 0.044, 0.65, -0.03) + [0.04, 0.035, 0.1853, "2015-04-27"]] + [None] * (len(SS.RET_H) - j - 1),
+           "bk": "b1"}
+    bases = {"b1": {"s": [None] * j + [_cell(5000, 0.026, 0.63, -0.04) + [0.026, 0.026, 0.62, "2008-05-20"]]
+                    + [None] * (len(SS.RET_H) - j - 1)}}
     rows = [_scen_row("tw", "SC1", "景氣好、價格強", (0.47, 0.63, "none"), (0.39, 0.35, "none"), []),
             _scen_row("tw", "SC2", "景氣好、價格回檔", (0.65, 0.63, "none"), (0.38, 0.35, "none"),
                       [["2015-03-02", "2015-05-29", 60, 0.7, 0.3, 0.05, 0.02], ["2026-07-17", "2026-10-19", 66, 1, 0, 0.04, 0.03]],
@@ -539,7 +545,8 @@ def test_scenario_table(monkeypatch):
     assert "基本面 ≥ 60（現在 94 ）・技術 < 40（現在 33 ）" in txt              # 「<」要跳脫，不能被當成標籤吞掉
     assert "&lt; 40" in h and "資金 ≥ 60（現在 31 ）" in txt                     # 台股資金＝(17＋45)÷2
     assert "65% 任一天 63%" in txt and "38% 任一天 35%" in txt and "3 個月內回撤 10% 以上" in txt
-    assert "+4.4% 任一天 +2.6%" in txt and "−3.0% 任一天 −4.0%" in txt         # 報酬中位數、中途最多跌（第 4.11 節）
+    assert "+4.4% 任一天 +2.6%" in txt and "−3.0%" not in txt                   # 報酬中位數；中途最多跌（中位數）不列
+    assert "最大跌幅（最慘一次）" in txt and "18.5% 2015/4/27" in txt and "62.0%" not in txt   # VER 24：最慘一次＋日期，任一天的不列
     assert 'style="width:65.0%"' in h and 'style="left:63.0%"' in h           # 上漲橫條＋任一天的細線
     assert "判定" not in txt and not any(m in h for m in "★◆○") and "隨便挑一天" not in txt
     assert 'data-dims="fund tech"' in h and 'data-dims="gliq,tliq tech"' in h   # 台股資金一組兩個（對照圖選到任一個就算）
@@ -566,9 +573,10 @@ def _sim_est(n_list=8, far=False, chip=True):
     rows = []
     for h in SS.RET_H:
         rows.append({"h": h, "n": 20 if h < 250 else 14, "dist": 16.0 if far else 4.2, "far": far, "a": "2009-03-02",
-                     "s": _cell(20, 0.052, 0.75, -0.025), "b": _cell(4000, 0.032, 0.68, -0.032)})
+                     "s": _cell(20, 0.052, 0.75, -0.025) + [0.05, 0.048, 0.137, "2011-08-01"],
+                     "b": _cell(4000, 0.032, 0.68, -0.032) + [0.03, 0.03, 0.55, "2008-05-20"]})
     lst = [{"d": f"20{10 + i}-02-0{1 + i % 8}", "dist": 1.0 + i, "x": [89.0, 31.0, 33.0], "c": None if i == 1 else 64.0,
-            "r": {20: 0.005, 60: -0.085, 250: None if i == 0 else -0.099}, "mae": -0.112} for i in range(n_list)]
+            "r": {20: 0.005, 60: -0.085, 250: None if i == 0 else -0.099}, "mae": -0.112, "dd": 0.1234} for i in range(n_list)]
     E = {"d": "2026-10-20", "dims": ["fund", "liq", "tech"], "x": [94.0, 30.0, 33.0], "rows": rows, "list": lst}
     if chip:
         E["chip"] = {"dims": ["fund", "chip", "liq", "tech"], "x": [94.0, 87.0, 30.0, 33.0],
@@ -594,7 +602,8 @@ def test_now_section(monkeypatch):
     assert "過去和現在最像的 20 段（2009 年起找，平均每個面向差 4.2 分），之後 3 個月上漲 75% （任一天 68%）" in txt
     assert h.count('<td class="l nsp">') == len(SS.RET_H) + 8                  # 期間表、最像的幾段
     assert "只找到 14 段" in txt and "準不準" not in txt and "樣本外" not in txt and "比平常差" not in txt
-    assert "+5.2% +3.2%" in txt and "−2.5%／−7.5%" in txt                         # 報酬中位數（小字＝任一天）、中途最多跌中位／最差 10%
+    assert "+5.2% +3.2%" in txt and "−2.5%／−7.5%" not in txt                     # 報酬中位數（小字＝任一天）；中途最多跌中位數不列
+    assert "13.7% 2011/8/1" in txt and "55.0%" not in txt and "12.3%" in txt     # VER 24：最大跌幅最慘一次＋日期；最像的幾段列每一段的
     assert "加上籌碼一起比（2019 起）" in txt and "樣本外" not in txt
     # 準不準（樣本外檢查）搬到研究畫面（docs/lab_ia_v5_plan.md 第 8 節）
     oh = VZ.sim_oos_html(V)
@@ -627,7 +636,7 @@ def test_outlook_drawer_replaces_now_and_scenario_sections(built, monkeypatch):
     j = page.index("</template>", i)
     main, body = page[:i] + page[j:], page[i:j]
     assert 'id="now"' not in main and 'id="scen"' not in main and 'id="now"' in body and 'id="scen"' in body
-    assert page.index('id="cmp"') < page.index('id="today"') < page.index('id="all"')   # 對照圖收在面向那一塊（第 13 節）
+    assert page.index('id="today"') < page.index('id="cmp"') < page.index('id="all"')   # 對照圖收在面向那一塊（第 13 節）
     assert 'href="#now"' not in page and 'href="#scen"' not in page
     assert "snout" not in page and 'class="rout"' not in page[:page.index('id="today"')]   # 頂部目錄、雷達卡片沒有入口
     t0 = page.index('id="today"')
@@ -675,7 +684,8 @@ def test_outlook_signals_table_and_summary(monkeypatch):
     warn = {"id": "tw:multi:M2:hot_in", "name": "進入同時兩個以上面向過熱", "cat": "multi", "var": "M2", "H": 60, "d": "warn",
             "side": "warn", "hz": "mid", "tier": "good", "cls": "risk", "edge": 0.04, "g": 0.04, "th": 0.10,
             "now": {"since": "2026-09-17"}, "fe": {"hit": 0.67, "base": 0.29, "fh": 0.33, "k": 0.1},
-            "warn": {"hit": 0.67, "base": 0.29, "n": 6, "tier": "good", "mdd": 0.12, "mdd_base": 0.06},
+            "warn": {"hit": 0.67, "base": 0.29, "n": 6, "tier": "good", "mdd": 0.12, "mdd_base": 0.06,
+                     "mddw": 0.2081, "mddw_d": "2020-03-16"},
             "ret": {"s": cells, "bk": "b9"}, "fam": []}
     V = {"mk": "tw", "sigtoday": _board_v([up], [warn]), "xsb": [{"name": "RSI(2) 超賣反彈", "side": "up"}]}
     h = VZ.out_sig(V)
@@ -691,7 +701,8 @@ def test_outlook_signals_table_and_summary(monkeypatch):
     assert one.count('<th class="oj"') == 1 and '<th class="oj" title="這一列持有的期間">1 個月</th>' in one   # 持有 1 個月
     assert '<th class="oj" title="這一列持有的期間">3 個月</th>' in h[h.index('class="ofam ofam-warn"'):]
     assert "7 次" in txt                                                                      # 次數少的格子標次數
-    assert "之後 3 個月內回撤 10% 以上 67% （任一天 29%）・回撤中位 12%（任一天 6%）・次數 6" in txt
+    assert "之後 3 個月內回撤 10% 以上 67% （任一天 29%）・最大跌幅 21%（2020/3/16 那次）・次數 6" in txt   # VER 24：最慘一次
+    assert "回撤中位" not in txt and "中途最多跌" not in txt
     assert "RSI(2) 超賣反彈" not in txt and "總經策略" not in txt         # 總經策略不在市場頁（docs/lab_ia_v5_plan.md 第 14 節第 4 點）
     assert not any(w in txt for w in BANNED)
     assert "現在沒有列出來的訊號" in VZ.out_sig({"mk": "tw", "sigtoday": _board_v([], [])})
@@ -700,6 +711,29 @@ def test_outlook_signals_table_and_summary(monkeypatch):
     more = [dict(up, id=f"tw:tech:{i}", name=f"訊號{i}", edge=0.2 - 0.01 * i) for i in range(5)]
     hm = VZ.out_sig({**V, "sigtoday": _board_v(more, [])})                       # VER 23：清單先列的那幾類有表格，其他一行
     assert hm.count('class="ofam ofam-up"') == SS.TODAY_PER_SIDE and hm.count('class="ofam ofam-up ofc"') == 5 - SS.TODAY_PER_SIDE
+
+
+def test_outlook_cross_horizon_column_uses_same_events(monkeypatch):
+    """sigspec VER 24：跨期間的列（原本看 3 個月、算在 1 個月那支溫度計）——表上那支溫度計那一欄用同一批次數的報酬格（xc），
+    和上面那一行的機率、最大跌幅最慘一次一致（原本那一欄是訊號自己看多久去重複的次數，最慘一次會對不上：2026-10-28 盤點 371 格）；
+    其他欄照訊號自己的報酬表。"""
+    from arm.lab import sigcat as G
+    from arm.lab import sigspec as SS
+    j20 = SS.RET_H.index(20)
+    own = [_cell(19, 0.01, 0.55, -0.02) + [0.01, 0.009, 0.107, "2022-09-02"] for _ in SS.RET_H]   # 第 9、10 格：排除極端、去掉最好一次
+    xc = _cell(22, 0.012, 0.68, -0.02) + [0.012, 0.011, 0.2228, "2025-03-12"]
+    base = [_cell(5000, 0.005, 0.55, -0.02) + [0.005, 0.005, 0.87, "1931-08-01"] for _ in SS.RET_H]
+    monkeypatch.setattr(G, "research_bases", lambda: {"b9": {"s": base}})
+    st = {"hit": 0.2273, "base": 0.0904, "n": 22, "mddw": 0.2228, "mddw_d": "2025-03-12"}
+    r = {"id": "tw:heat:G4:cold_in", "name": "美國高收益債相對公債・進入過冷", "cat": "heat", "var": "G4", "H": 20, "H0": 60,
+         "xk": "short", "d": "warn", "side": "warn", "hz": "short", "cls": "risk", "edge": 0.14, "g": 0.14, "th": 0.08,
+         "now": {"since": "2026-10-20"}, "warn": st, "st": st, "ret": {"s": own, "bk": "b9"}, "xc": xc, "fam": []}
+    h = VZ.out_sig({"mk": "tw", "sigtoday": _board_v([], [r])})
+    txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h)))
+    assert "最大跌幅 22%（2025/3/12 那次）" in txt                                            # 上面那一行
+    assert '<td class="oj"><b>22.3%</b>' in h and '<td class="oj"><b>68%</b>' in h             # 框起來那一欄＝同一批次數
+    assert h.count("<b>10.7%</b>") == len(VZ.OUT_H) - 1                                       # 其他欄：訊號自己的報酬表
+    assert own[j20][11] == 0.107                                                              # 不改到研究列本身
 
 
 def test_outlook_dims_use_zone_backtest(built):

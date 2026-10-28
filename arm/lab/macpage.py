@@ -94,7 +94,7 @@ function xmExp(c){const e=c.exp||{},span=`${ym(e.d0)}～${ym(e.d1)}`;
       `<div class=sm2>有部位的時間 ${xmPc(e.expo)}${e.sw!=null?`、一年進出約 ${f(e.sw,1)} 次`:''}；${sp}${span}，${e.n||0} 段</div>`;}
   if(!e.n)return `<span class=mu>評估期間（${span}）沒有${c.kind==='dip'?'出現過':'交易'}。</span>`;
   if(c.kind==='dip')return `每次平均 <b>${pctT(e.avg)}</b>、中位 <b>${pctT(e.med)}</b>，<b>${e.win}%</b> 賺錢（隨便挑一天抱一樣久${gi('隨便挑一天')} ${e.base}%、中位 ${pctT(e.bmed)}），最差一次 ${pctT(e.lo)}`+
-    `<div class=sm2>${xmRob(e,1)}抱 ${esc(e.hn||'')}，中途最多跌中位 ${f(e.mae,1)}%；全部資金照做年化 ${pctT(e.cagr)}（買進持有 ${pctT(e.bcagr)}），有部位的時間 ${xmPc(e.expo)}・${span}，${e.n} 次</div>`;
+    `<div class=sm2>${xmRob(e,1)}抱 ${esc(e.hn||'')}，最大跌幅最差一次 ${f(e.mddw,1)}%；全部資金照做年化 ${pctT(e.cagr)}（買進持有 ${pctT(e.bcagr)}），有部位的時間 ${xmPc(e.expo)}・${span}，${e.n} 次</div>`;
   return `每筆平均 <b>${pctT(e.avg,2)}</b>、中位 <b>${pctT(e.med,2)}</b>，<b>${e.win}%</b> 賺錢（隨便挑同樣天數${gi('隨便挑一天')} ${e.base}%），最差一筆 ${pctT(e.lo)}`+
     `<div class=sm2>${xmRob(e,2)}平均抱 ${f(e.hold,1)} 天；全部資金照做年化 ${pctT(e.cagr)}（買進持有 ${pctT(e.bcagr)}），有部位的時間 ${xmPc(e.expo)}・${span}，${e.n} 筆</div>`;}
 function xmNow(c){const T=c.tl||{},ix=XMI[S.mmk]||'';
@@ -171,7 +171,7 @@ function xmCvFill(){if(!XMD)return;$$('#main .xmcv').forEach(el=>{const k=el.dat
   el.innerHTML=acurveChart({d:[(b.exp||{}).d0||E.d[0],...E.d],s:[1,...E.s],t:[1,...E.b]},XMLB);});}
 function xmPast(b){const ex=b.ex||{},L=b.kind==='dip'?xmHs(b):xmYr(b);
   return `<div class=pst><div>${L}${ex.season?`<div class=note>${esc(ex.season)}</div>`:''}</div><div>${xmCvSlot(b)}</div></div>`;}
-/* 逐筆交易（同個股策略：預設收起、年份、下載 CSV）；每一筆＝[買進日, 買價, 賣出日（持有中＝null）, 賣價, 交易日數, 報酬, 中途最多跌, 訊號日] */
+/* 逐筆交易（同個股策略：預設收起、年份、下載 CSV）；每一筆＝[買進日, 買價, 賣出日（持有中＝null）, 賣價, 交易日數, 報酬, 抱的期間最大跌幅（2026-10-28 起；原本是中途最多跌）, 訊號日] */
 const XMTS={};
 function xmTrBox(b){const e=b.exp||{};if(!e.nt)return '';
   return `<details class="mr trb xmtrb" data-xk="${esc(b.k)}"><summary>${e.nt} ${esc(e.unit||'筆')}（${ym(e.d0)}～${ym(e.d1)}）</summary><div class=trin></div></details>`;}
@@ -184,8 +184,8 @@ function xmTrCheck(b,T){const e=b.exp||{},u=e.unit||'筆',dd=b.kind==='trade'?2:
 function xmTrRows(b,rows,mob){const dp=b.kind==='dip',al=b.kind==='alloc',ix=XMI[S.mmk]||'',dt=d=>d?esc(xmYmd(d)):'';
   const ret=t=>`<b>${sgn(t[5]*100,1,'%')}</b>`,mae=t=>t[6]?'−'+f(t[6]*100,1)+'%':'0%';
   if(mob)return rows.map(t=>`<div class=trl><div class=trh><span>${dt(t[0])} 買 → ${t[2]?dt(t[2])+' 賣':'<b>持有中</b>'}</span><span class=trr>${ret(t)}</span></div>`+
-    `<div class=sm2>${dp?`訊號 ${dt(t[7])}｜`:''}${esc(ix)} ${fp(t[1])} → ${fp(t[3])}${t[2]?'':'（最新）'}｜${al?'交易日數':'抱'} ${t[4]} 天${dp?`｜中途最多跌 ${mae(t)}`:''}</div></div>`).join('');
-  return `<div class=tw><table class=trt><thead><tr>${dp?'<th class=l>訊號</th>':''}<th class=l>買進（${esc(ix)}收盤）</th><th class=l>賣出</th><th>${al?'交易日數':'抱幾天'}</th><th>${al?'這一段':'報酬'}</th>${dp?'<th>中途最多跌</th>':''}</tr></thead><tbody>`+
+    `<div class=sm2>${dp?`訊號 ${dt(t[7])}｜`:''}${esc(ix)} ${fp(t[1])} → ${fp(t[3])}${t[2]?'':'（最新）'}｜${al?'交易日數':'抱'} ${t[4]} 天${dp?`｜最大跌幅 ${mae(t)}`:''}</div></div>`).join('');
+  return `<div class=tw><table class=trt><thead><tr>${dp?'<th class=l>訊號</th>':''}<th class=l>買進（${esc(ix)}收盤）</th><th class=l>賣出</th><th>${al?'交易日數':'抱幾天'}</th><th>${al?'這一段':'報酬'}</th>${dp?'<th>最大跌幅</th>':''}</tr></thead><tbody>`+
     rows.map(t=>`<tr>${dp?`<td class=l>${dt(t[7])}</td>`:''}<td class=l>${dt(t[0])}<div class=sm2>${fp(t[1])}</div></td><td class=l>${t[2]?dt(t[2]):'<b>持有中</b>'}<div class=sm2>${fp(t[3])}${t[2]?'':'（最新）'}</div></td><td>${t[4]}</td><td>${ret(t)}</td>${dp?`<td>${mae(t)}</td>`:''}</tr>`).join('')+`</tbody></table></div>`;}
 function xmTrRender(k){const d=document.querySelector(`#main details.xmtrb[data-xk="${k}"]`);if(!d)return;const box=d.querySelector('.trin'),j=(XMD||{})[xmKey(k)],b=xmBk(k);
   if(!j||!(j.tr||[]).length){box.innerHTML='<div class=mu>沒有資料。</div>';return;}
@@ -200,7 +200,7 @@ function xmTrRender(k){const d=document.querySelector(`#main details.xmtrb[data-
   const m=box.querySelector('[data-xtm]');if(m)m.onclick=()=>{Q.n=n+step;xmTrRender(k);};
   box.querySelector('[data-xtcsv]').onclick=()=>xmTrCsv(k);}
 function xmTrCsv(k){const j=(XMD||{})[xmKey(k)];if(!j)return;const b=xmBk(k),dp=b.kind==='dip';
-  const H=dp?['訊號日','買進日','買進收盤','賣出日','賣出收盤','交易日數','報酬%','中途最多跌%']:['買進日','買進收盤','賣出日','賣出收盤','交易日數','報酬%'];
+  const H=dp?['訊號日','買進日','買進收盤','賣出日','賣出收盤','交易日數','報酬%','最大跌幅%']:['買進日','買進收盤','賣出日','賣出收盤','交易日數','報酬%'];
   const R=(j.tr||[]).map(t=>dp?[t[7],t[0],t[1],t[2],t[3],t[4],(t[5]*100).toFixed(2),((t[6]||0)*100).toFixed(2)]:[t[0],t[1],t[2]||'持有中',t[3],t[4],(t[5]*100).toFixed(2)]);
   const q=x=>{x=x==null?'':String(x);return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;};
   const txt='\ufeff'+[H,...R].map(r=>r.map(q).join(',')).join('\r\n');

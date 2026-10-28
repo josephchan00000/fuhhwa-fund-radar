@@ -113,7 +113,7 @@ def now_text(k: str, n: dict, short: bool = True) -> str:
 # ── 配置頁・策略表 ───────────────────────────────────────────────────────────────
 
 def board_rows(B: dict | None = None) -> list[dict]:
-    """九列（主要市場），狀態「觀察中」；成績欄＝賺錢比例（任一天），次數、中位數、建議；最慘跌欄＝抱的期間中途最多跌（最差一次）。"""
+    """九列（主要市場），狀態「觀察中」；成績欄＝賺錢比例（任一天），次數、中位數、建議；最慘跌欄＝抱的期間最大跌幅（最差一次；2026-10-28 起和大跌同一個算法）。"""
     B = B or load()
     if not B.get("res"):
         return []
@@ -129,7 +129,7 @@ def board_rows(B: dict | None = None) -> list[dict]:
                     "st": "obs", "how": HOW[k], "href": f"x9r.html#rare-{k}", "go": {},
                     "perf": f"賺錢 {_pc(f.get('win'))}", "ref": f"任一天 {_pc(f.get('base'))}",
                     "sub": f"{f['n']} 次・每次中位數 {_pc(f.get('med'), 1, True)}・{lab}",
-                    "mdd": _pc(f.get("mae_max"), 0), "today": now_text(k, _n(B, k, mk))})
+                    "mdd": _pc(f.get("mddw", f.get("mae_max")), 0), "today": now_text(k, _n(B, k, mk))})
     return out
 
 
@@ -181,7 +181,7 @@ RULE_FULL = {
     "nsf": "國安基金每一次護盤的起始日之後第一個交易日收盤買（比國安基金第一天進場晚一天），抱 250 個交易日。",
 }
 BOM = "\ufeff"                  # Excel 直接開才認得 UTF-8
-ROW_COLS = ("訊號日", "買進日", "買進", "賣出日", "賣出", "天數", "扣成本後", "中途最多跌")
+ROW_COLS = ("訊號日", "買進日", "買進", "賣出日", "賣出", "天數", "扣成本後", "最大跌幅")
 
 
 def _summary_row(B: dict, R: dict) -> str:
@@ -205,7 +205,7 @@ def _mk_row(B: dict, k: str, mk: str) -> str:
     return (f'<tr><td>{_e(S.NAMES[mk])}</td><td>{S.TIER_MARK[t]}</td><td>{f.get("n", 0)}</td>'
             f'<td>{_pc(f.get("win"))}（{_pc(f.get("base"))}）</td><td>{_pc(f.get("med"), 1, True)}</td>'
             f'<td>{_pc(f.get("trim"), 1, True)}</td><td>{_pc(f.get("worst"), 1, True)}</td>'
-            f'<td>{_pc(f.get("mae"), 1)}／{_pc(f.get("mae_max"), 1)}</td><td>{rec}</td>'
+            f'<td>{_pc(f.get("mddw", f.get("mae_max")), 1)}</td><td>{rec}</td>'
             f'<td>{_pc(x.get("grid_ok"))}</td><td>{_pc(x.get("luck"), 1)}</td>'
             f'<td>{_bn(x.get("binom"))}</td></tr>')
 
@@ -245,7 +245,7 @@ def _events(x: dict) -> str:
 
 def _csv(B: dict) -> str:
     """每一次（全部規則、全部市場）。規則、市場寫代號（中文每個字編碼後是 9 個字元，全部寫中文頁面會多 100KB 以上），代號對照寫在第二行。"""
-    lines = ["規則,市場,訊號日,買進日,買進價,賣出日,賣出價,天數,扣成本後報酬%,中途最多跌%",
+    lines = ["規則,市場,訊號日,買進日,買進價,賣出日,賣出價,天數,扣成本後報酬%,最大跌幅%",
              "# " + " ".join(f"{R['k']}={R['name']}" for R in S.RULES) + " / " + " ".join(f"{m}={S.NAMES[m]}" for m in S.MARKETS)]
     for R in S.RULES:
         for mk in R["mk"]:
@@ -271,7 +271,7 @@ def _card(B: dict, R: dict) -> str:
     kvh = '<dl class="cdkv">' + "".join(f"<dt>{_e(a)}</dt><dd>{b}</dd>" for a, b in kv) + "</dl>"
     mks = "".join(_mk_row(B, k, m) for m in R["mk"])
     mtab = ('<div class="cdtw"><table class="cdt"><thead><tr><th>市場</th><th>判定</th><th>次數</th><th>賺錢（任一天）</th>'
-            '<th>中位數</th><th>排除極端</th><th>最差</th><th>中途最多跌（中位／最差）</th><th>近 10 年</th><th>參數鄰近</th>'
+            '<th>中位數</th><th>排除極端</th><th>最差</th><th>最大跌幅（最差一次）</th><th>近 10 年</th><th>參數鄰近</th>'
             '<th>亂排</th><th>二項</th></tr></thead><tbody>' + mks + "</tbody></table></div>")
     return (f'<details class="cdcard" id="rare-{k}"><summary><span class="cdh"><b>{_e(R["name"])}</b>'
             f'<span class="cdm">{_e(S.NAMES[mk])}・{S.TIER_MARK[t]}・{_e(lab)}</span></span></summary><div class="cdb">{kvh}'
@@ -298,7 +298,7 @@ def research_body(B: dict | None = None) -> str:
             '<th>賺錢（任一天）</th><th>每次中位數</th><th>最差一次</th><th>判定</th><th>建議</th><th>現在</th></tr></thead><tbody>'
             + "".join(_summary_row(B, R) for R in S.RULES) + "</tbody></table></div>")
     note = ('<p class="cdn">欄位：任一天＝評估期間每一天都當買進日、抱一樣多天、扣一樣的成本；排除極端＝去掉最好和最差各 5%'
-            '（次數少於 20 時各去掉一次）；中途最多跌＝買進價到抱的期間最低收盤；亂排＝把買進日整段挪動 400 次，賺錢比例不比實際差的比例；'
+            '（次數少於 20 時各去掉一次）；最大跌幅＝抱的期間從最高收盤跌到之後最低收盤（和大跌同一個算法），列最差的那一次；亂排＝把買進日整段挪動 400 次，賺錢比例不比實際差的比例；'
             '二項＝如果每次賺錢的機率等於任一天，出現這麼多次賺錢的機率。美股的日子是美國的交易日。</p>')
     return f'<div class="rzbox" id="rare-body">{head}{summ}{note}' + "".join(_card(B, R) for R in S.RULES) + "</div>"
 

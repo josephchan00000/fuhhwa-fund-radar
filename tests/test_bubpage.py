@@ -265,12 +265,14 @@ def test_future_earnings_row_and_sentence(page):
 def test_market_card_has_overview_judgement_line(monkeypatch):
     """市場卡多一行（docs/lab_signal_plan.md 第 6.2 節）：現在的等級過去之後 12 個月內最大回撤 20% 以上的比例／平常與判定（sigspec VER 3），連到訊號總覽。"""
     from arm.lab import sigcat
-    rows = [{"id": "spx:bub:L2", "warn": {"n": 13, "hit": 0.1851, "base": 0.1155, "tier": "ref", "mdd": 0.145, "mdd_base": 0.103}},
+    rows = [{"id": "spx:bub:L2", "warn": {"n": 13, "hit": 0.1851, "base": 0.1155, "tier": "ref", "mdd": 0.145, "mdd_base": 0.103,
+                                         "mddw": 0.4912, "mddw_d": "2000-03-31"}},
             {"id": "spx:bub:L3", "warn": {"n": 12, "hit": 0.1886, "base": 0.1155, "tier": "ref"}},
             {"id": "tw:bub:L2", "warn": {"n": 0, "hit": None, "base": 0.338, "tier": "few"}}]
     monkeypatch.setattr(sigcat, "research_rows", lambda: rows)
     a = BP.sig_line("spx", {"L": 2})
-    assert "泡沫等級 2 以上的時候：過去 13 段，之後 12 個月內最大回撤 20% 以上 <b>19%</b>（平常 12%），回撤中位數 14%（平常 10%）" in a
+    assert "泡沫等級 2 以上的時候：過去 13 段，之後 12 個月內最大回撤 20% 以上 <b>19%</b>（平常 12%），最慘的一次跌 49%（2000 年3 月那次）" in a
+    assert "回撤中位" not in a                                                   # sigspec VER 24：最大跌幅列最慘的一次
     assert "● 可能是運氣" in a and 'href="#s=spx:bub:L2"' in a and "全部指標 →" in a   # VER 9：● 的意思；研究紀錄頁同一頁的全部指標
     assert "泡沫等級 3 以上的時候" in BP.sig_line("spx", {"L": 4})
     assert "（現在等級 0）" in BP.sig_line("spx", {"L": 0})

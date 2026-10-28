@@ -169,7 +169,7 @@ def test_card_is_wired_into_both_heat_pages():
     """雷達下面、全部項目上面；頁首導覽多一個「大跌風險」；兩頁都載入卡片的樣式。"""
     viz = (ROOT / "arm/lab/heatviz.py").read_text(encoding="utf-8")
     # 2026-10-19 起四張研究卡搬到訊號總覽（docs/lab_signal_plan.md 第 10 節 Q3）：景氣頁照樣算、不放進頁面，存給訊號總覽
-    assert "stash_cards(V)" in viz and "{face_html(V)}{today_html(V)}{SPG.block_html()}" in viz and 'href="#crash"' not in viz
+    assert "stash_cards(V)" in viz and "{face_html(V)}{SPG.block_html()}" in viz and "{today_html(V)}</div></div>{moves_html(V)}" in viz and 'href="#crash"' not in viz
     sp = (ROOT / "arm/lab/sigpage.py").read_text(encoding="utf-8")
     assert "CP.CSS" in sp and '"crash"' in sp
     hp = (ROOT / "arm/lab/heatpage.py").read_text(encoding="utf-8")

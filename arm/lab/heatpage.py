@@ -679,6 +679,13 @@ def _strips(V: dict) -> str:
             f'滑過格子看日期與分數，點一列跳到那個面向。</span></div></section>')
 
 
+def _ddw(b: dict) -> str:
+    """五區的最大跌幅最慘一次（sigspec VER 24：從最高收盤跌到之後最低收盤）＋日期；舊研究檔沒有就「—」。"""
+    if b.get("ddw") is None:
+        return "—"
+    return f'{abs(b["ddw"]):.1f}%' + (f'<small>{_e(_ymd(b["ddwd"]))}</small>' if b.get("ddwd") else "")
+
+
 def _band_table(ev: dict, h: int, freq: str) -> str:
     bs = ev.get("bands") or []
     if not bs:
@@ -687,10 +694,10 @@ def _band_table(ev: dict, h: int, freq: str) -> str:
     def up(b):
         return "—" if b.get("up") is None else f'{b["up"]:.0f}%'
     rows = "".join(f'<tr><td>{_e(b["band"])}</td><td>{b["n"]:,}</td><td>{_pct(b["avg"], 2)}</td><td>{_pct(b["med"], 2)}</td>'
-                   f'<td>{up(b)}</td><td>{_pct(b["dd"], 2)}</td><td class="l">{_e(_yrs(b.get("yrs")) or "—")}</td></tr>'
+                   f'<td>{up(b)}</td><td>{_ddw(b)}</td><td class="l">{_e(_yrs(b.get("yrs")) or "—")}</td></tr>'
                    for b in bs)
     return (f'<div class="tw"><table><tr><th>分數區間</th><th>樣本（{_unit(freq)}）</th><th>之後 {h} 日平均</th><th>中位數</th>'
-            f'<th>上漲機率</th><th>期間最大跌幅中位數</th><th class="l">出現在哪幾年</th></tr>{rows}</table></div>')
+            f'<th>上漲機率</th><th>期間最大跌幅（最慘一次）</th><th class="l">出現在哪幾年</th></tr>{rows}</table></div>')
 
 
 def _rho(e: dict) -> str:
@@ -1631,13 +1638,13 @@ function toggle(id) {
     st.sel.push({id: id, slot: s});
   }
   msg('');
-  if (st.sel.length !== 1 || noRaw(st.sel[0].id)) st.mode = 'h';
+  st.mode = st.sel.length === 1 && !noRaw(st.sel[0].id) ? 'r' : 'h';     // 只看一項＝預設原始值（2026-10-28 使用者：「走勢圖預設要是原始值」）
   render();
 }
 function only(id) {
   if (window.heatView) window.heatView('radar', 'cmp');       // 對照圖在雷達畫面
   st.sel = [{id: id, slot: 0}];
-  st.mode = 'h';
+  st.mode = noRaw(id) ? 'h' : 'r';
   msg('');
   render();
   ROOT.scrollIntoView({behavior: 'smooth', block: 'start'});
@@ -1693,8 +1700,8 @@ function controls() {
   const can = st.sel.length === 1 && !noRaw(st.sel[0].id);
   md.hidden = !can;
   if (can) {
-    md.appendChild(btn('0～100', st.mode === 'h', () => { st.mode = 'h'; render(); }));
     md.appendChild(btn('原始值', st.mode === 'r', () => { st.mode = 'r'; render(); }));
+    md.appendChild(btn('0～100', st.mode === 'h', () => { st.mode = 'h'; render(); }));
   }
 }
 
@@ -1949,11 +1956,11 @@ function bandBlock(id, bands) {
   const rows = names.map((nm, k) => {
     const cells = M.relh.map(h => { const r = (g(bands, h) || [])[k]; return '<td>' + (r && r.n ? pct(r.avg) + '<span class="hw">上漲 ' + Math.round(r.up) + '%</span>' : '—') + '</td>'; }).join('');
     const r60 = (g(bands, 60) || [])[k];
-    const nw = r60 ? r60.n.toLocaleString('en-US') : '—', dd = r60 && r60.dd != null ? pct(r60.dd) : '—';
+    const nw = r60 ? r60.n.toLocaleString('en-US') : '—', dd = r60 && r60.ddw != null ? Math.abs(r60.ddw).toFixed(1) + '%' : '—';
     return '<tr' + (nm === cb ? ' class="cur"' : '') + '><td class="l">' + esc(nm) + (nm === cb ? '（現在）' : '') + '<span class="hw mob">' + nw + ' 週</span><span class="hw mob">跌幅 ' + dd + '</span></td><td class="dsk">' + nw + '</td>' + cells + '<td class="dsk">' + dd + '</td></tr>';
   }).join('');
-  return '<h4>回測：這一項在各區時，之後' + MKH + '的表現</h4><div class="tw"><table><tr><th class="l">這一項在</th><th class="dsk">週數</th>' + M.relh.map(h => '<th>之後 ' + h + ' 日</th>').join('') + '<th class="dsk">60 日內最大跌幅中位數</th></tr>' + rows + '</table></div>'
-    + '<p class="note">平均＝之後 N 個交易日' + PXH + '的平均漲跌（t＋1 收盤起算），小字是上漲機率。同一段行情會連續很多週落在同一區，週數不等於獨立的次數。<span class="mob">手機上「跌幅」＝之後 60 日內最大跌幅的中位數。</span></p>';
+  return '<h4>回測：這一項在各區時，之後' + MKH + '的表現</h4><div class="tw"><table><tr><th class="l">這一項在</th><th class="dsk">週數</th>' + M.relh.map(h => '<th>之後 ' + h + ' 日</th>').join('') + '<th class="dsk">60 日內最大跌幅（最慘一次）</th></tr>' + rows + '</table></div>'
+    + '<p class="note">平均＝之後 N 個交易日' + PXH + '的平均漲跌（t＋1 收盤起算），小字是上漲機率。同一段行情會連續很多週落在同一區，週數不等於獨立的次數。<span class="mob">手機上「跌幅」＝之後 60 日內最大跌幅最慘的一次。</span></p>';
 }
 function evtBlock(evt) {
   const kinds = [['hot', '進入過熱（升到 ' + M.evt.hot[0] + ' 以上）'], ['cold', '進入過冷（降到 ' + M.evt.cold[0] + ' 以下）']];

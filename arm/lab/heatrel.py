@@ -394,10 +394,11 @@ def bands_w(xw: list, we: list[int], px: list, cal: list[str]) -> dict:
                 continue
             r, dd = H.fwd(px, i, h)
             if r is not None:
-                rows.append((cal[i], x, r, dd))
-        bs = H.bands([b for _, b, _, _ in rows], [c for _, _, c, _ in rows], [d for *_, d in rows])
+                rows.append((cal[i], x, r, dd, H.fwd_mdd(px, i, h)))
+        bs = H.bands([b for _, b, *_ in rows], [c for _, _, c, *_ in rows], [d for *_, d, _ in rows],
+                     [w for *_, w in rows], [d for d, *_ in rows])          # VER 24：最大跌幅最差一次（只呈現）
         for b, (lo, hi, _) in zip(bs, S.BANDS):
-            b["yrs"] = sorted({d[:4] for d, v, _, _ in rows if lo <= v < hi})
+            b["yrs"] = sorted({d[:4] for d, v, *_ in rows if lo <= v < hi})
         out[h] = bs
     return out
 

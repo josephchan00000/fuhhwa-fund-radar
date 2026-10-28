@@ -286,7 +286,15 @@ def mae(px: np.ndarray, b: int, q: int) -> float:
     return float(max(0.0, 1.0 - px[b + 1:q + 1].min() / px[b]))
 
 
-def stats(px: np.ndarray, trades: list[tuple], lo: int, hi: int | None, c: float) -> dict:
+def mdd(px: np.ndarray, b: int, q: int) -> float:
+    """抱的期間最大跌幅：第 b～q 天收盤的最大回撤（期間最高收盤到之後最低收盤；訊號總覽「最大跌幅」同一個算法，
+    sigspec VER 24；只呈現）。"""
+    if q <= b:
+        return 0.0
+    return XT.dip_mdd(px, b, q - b)
+
+
+def stats(px: np.ndarray, trades: list[tuple], lo: int, hi: int | None, c: float, cal: list | None = None) -> dict:
     """一組已經篩好的交易 → 次數、賺錢比例、中位數、平均、排除極端、去掉最好一次、最差、最好、獲利因子、隨便挑一天、中途最多跌。"""
     if not trades:
         return {"n": 0}
@@ -299,6 +307,11 @@ def stats(px: np.ndarray, trades: list[tuple], lo: int, hi: int | None, c: float
            "worst": float(r.min()), "best": float(r.max()), "pf": (gain / loss) if loss > 0 else None,
            "hold": float(np.mean(holds)), "base": base_rate(px, lo, hi, holds, c),
            "mae": float(np.median(m)), "mae_max": float(max(m))}
+    dd = [mdd(px, b, q) for _, b, q in trades]
+    j = int(np.argmax(dd))
+    out["mddw"] = float(dd[j])                                    # 2026-10-28：最大跌幅最差一次（頁面列這個，不列中途最多跌）
+    if cal is not None:
+        out["mddw_d"] = cal[trades[j][1]]
     out["ok"] = ok(out)
     return out
 
@@ -393,7 +406,7 @@ def evaluate(M: Mkt, R: dict) -> dict:
     k, p = R["k"], R["p"]
     px, cal, c = M.px, M.cal, M.c
     done, open_ = M.trades(R, p)
-    full = stats(px, done, M.s0, None, c)
+    full = stats(px, done, M.s0, None, c, cal)
     rec_tr = [x for x in done if x[1] >= M.r0]
     rec = stats(px, rec_tr, M.r0, None, c)
     rec_ok = ok(rec) if rec.get("n", 0) >= S.N10 else None
@@ -433,7 +446,7 @@ def evaluate(M: Mkt, R: dict) -> dict:
     bh = XT.bh_stats(px, cal, M.s0)
     out["bh"] = {"cagr": _r(bh["cagr"]), "mdd": _r(bh["mdd"])}
     out["tr"] = [[cal[t], cal[b], _r(px[b], 2), cal[q], _r(px[q], 2), q - b, _r(XT.net(px[b], px[q], c), 5),
-                  _r(mae(px, b, q), 5)] for t, b, q in done]
+                  _r(mdd(px, b, q), 5)] for t, b, q in done]       # 最後一個＝抱的期間最大跌幅（2026-10-28 起；原本是中途最多跌）
     out["now"] = now(M, R, done, open_)
     out["rec_v"] = recommend(R, out) if M.mk == R["home"] else None
     return out

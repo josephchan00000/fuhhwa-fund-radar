@@ -187,7 +187,7 @@ def test_primary_html():
 def test_card_is_wired_into_both_heat_pages_and_classes_are_prefixed():
     viz = (ROOT / "arm/lab/heatviz.py").read_text(encoding="utf-8")
     # 2026-10-19 起四張研究卡搬到訊號總覽（docs/lab_signal_plan.md 第 10 節 Q3）：景氣頁照樣算、不放進頁面，存給訊號總覽
-    assert "stash_cards(V)" in viz and "{face_html(V)}{today_html(V)}{SPG.block_html()}" in viz and 'href="#bottom"' not in viz
+    assert "stash_cards(V)" in viz and "{face_html(V)}{SPG.block_html()}" in viz and "{today_html(V)}</div></div>{moves_html(V)}" in viz and 'href="#bottom"' not in viz
     sp = (ROOT / "arm/lab/sigpage.py").read_text(encoding="utf-8")
     assert "BP.CSS" in sp and '"bottom"' in sp
     hp = (ROOT / "arm/lab/heatpage.py").read_text(encoding="utf-8")
