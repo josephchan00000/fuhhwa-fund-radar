@@ -18,10 +18,10 @@
   shok   影子版本達標（第 6 節）：前瞻滿門檻、贏過現行、回落沒有變差、每週重跑仍是證據強——你回「好」才換。
   sout   影子版本淘汰（第 6 節）：前瞻滿門檻卻沒有贏、回落變差、每週重跑不再是證據強，或現行規則改版。
   sxl    飆股前瞻記錄（sxlivespec；docs/lab_core70_plan.md 第 14 節）：第一次到半年、一年的檢討日；今年的規則還沒找、卻已經有訊號日。
-  uqm    美股三成（corespec VER 3、ussxspec QM；docs/lab_us_sleeve_plan.md 第 13.3～13.4 節；研究檔判定換了才有）：
+  uqm    美股強勢品質股（原「美股三成」，2026-10-28 選股頁起改叫這個；corespec VER 3、ussxspec QM；docs/lab_us_sleeve_plan.md 第 13.3～13.4 節；研究檔判定換了才有）：
          每週紀錄停在比該有的還早的一週（美股週五收盤＋36 小時以後算該有）、第一次滿 63／126／252 個交易日的檢討、
          每週重跑和之前的紀錄不一樣（多一筆差異時）。另外推播多一行：美股下一個交易日開盤要賣、要買的股票（每天的 50 日線檢查＋每週紀錄）。
-台股機動的新飆股（corespec VER 4；飆股前瞻記錄的 R60 那本帳）：推播多一行，下一個交易日開盤要賣、要買的股票（不是事件）。
+新飆股（選股頁台股；飆股前瞻記錄的 R60 那本帳）：推播多一行，下一個交易日開盤要賣、要買的股票（不是事件）。
 少見但勝率高的策略（docs/lab_rare_plan.md 第 8 節；rarepage.reminders）：建議試用的規則在主要市場接下來 2 個交易日內要買或賣，
   推播多一行「少見機會：11/3（二）收盤 S&P 500 買進（期中選舉後抱一年，抱到 2027/11/2）。」（不是事件）。
 新策略候選（docs/lab_ia_v5_plan.md 第 24 節）：第一次有結果的候選推播多一行「策略候選：新增 X（市場），過去成績…；回『試用／納入／不納入』」；
@@ -43,7 +43,7 @@ CLOSE_HM = (14, 30)        # 這個時間之後，今天算已收盤
 EVENT = {"s3"}             # 事件型（以「次」計、A 級門檻 2 次）；財報驚喜另由 src＝p3 判斷
 TYPES = {"grade": "評級變動", "full": "前瞻滿額", "lag": "前瞻落後", "deep": "虧損超過歷史最差",
          "miss": "該出名單沒出", "stale": "資料過期", "dev": "表現偏離回測", "shok": "影子版本達標", "sout": "影子版本淘汰",
-         "sxl": "飆股觀察", "uqm": "美股三成"}
+         "sxl": "飆股觀察", "uqm": "美股強勢品質股"}
 LOW_LIGHT = "明顯低於回測"
 
 
@@ -250,7 +250,7 @@ def _us_week_end(now: datetime) -> str | None:
 
 
 def uqm_state(now: datetime) -> dict | None:
-    """美股三成（ussxqm）：研究檔判定換了才有。→ 存進每天紀錄的部分（要做的買賣、已到的檢討、停在哪一週、差異筆數）。"""
+    """美股強勢品質股（ussxqm）：研究檔判定換了才有。→ 存進每天紀錄的部分（要做的買賣、已到的檢討、停在哪一週、差異筆數）。"""
     from . import corepage as CPG
     from . import ussxqm as QM
     R = QM.load()
@@ -279,29 +279,30 @@ def uqm_events(cur: dict | None, prev: dict | None) -> list[dict]:
         return []
     P, out = prev or {}, []
     if cur.get("stale") and cur["stale"] != P.get("stale"):
-        out.append({"k": None, "ty": "uqm", "txt": f"美股三成的每週紀錄停在 {_md(cur['stale'])}（應該要有 {_md(cur['exp'])} 那一週），"
+        out.append({"k": None, "ty": "uqm", "txt": f"美股強勢品質股的每週紀錄停在 {_md(cur['stale'])}（應該要有 {_md(cur['exp'])} 那一週），"
                     "這一週的名單和買賣沒有更新"})
     for k, x in sorted((cur.get("rv") or {}).items(), key=lambda kv: int(kv[0])):
         if k in (P.get("rv") or {}):
             continue
         g = (2.718281828459045 ** x["ex"] - 1) * 100
-        out.append({"k": None, "ty": "uqm", "txt": f"美股三成滿 {k} 個交易日（{_md(x['d'])}）：三成比 S&P 500 含息{'多' if g >= 0 else '少'}賺 {abs(g):.1f}%"
+        out.append({"k": None, "ty": "uqm", "txt": f"美股強勢品質股滿 {k} 個交易日（{_md(x['d'])}）：比 S&P 500 含息{'多' if g >= 0 else '少'}賺 {abs(g):.1f}%"
                     + (f"，在回測同樣長度的期間裡排在最差的 {x['pct'] * 100:.0f}%" if x.get("pct") is not None else "")
                     + ("，比回測差；要不要換回指數由你決定" if x.get("low") else "")})
     if (cur.get("nd") or 0) > (P.get("nd") or 0):
-        out.append({"k": None, "ty": "uqm", "txt": f"美股三成：每週重跑和之前的紀錄不一樣（第 {cur['nd']} 筆），要查原因"})
+        out.append({"k": None, "ty": "uqm", "txt": f"美股強勢品質股：每週重跑和之前的紀錄不一樣（第 {cur['nd']} 筆），要查原因"})
     return out
 
 
-def boom_state(P: dict | None, N: dict | None = None) -> dict | None:
-    """台股機動的新飆股（corespec VER 4）：P＝那本帳現在的狀態（sxlive.LAST["plan"]），N＝配置頁台股的警訊讀數
-    （機動放現金中就先不買）。→ 存進每天紀錄的部分：下一個交易日開盤要賣、要買的股票。"""
+def boom_state(P: dict | None) -> dict | None:
+    """新飆股（選股頁台股的第一條；飆股前瞻記錄的 R60 那本帳）：P＝那本帳現在的狀態（sxlive.LAST["plan"]）。
+    → 存進每天紀錄的部分：下一個交易日開盤要賣、要買的股票。2026-10-28 起配置頁拿掉（docs/lab_pick_page_plan.md），
+    不再看交易計畫的警訊（原本「機動放現金中，買的先不買」那一句拿掉）。"""
     if not P or not P.get("d") or not P.get("next"):
         return None
     nx = P["next"]
     td = [[nx, "賣", h.get("n") or h["c"]] for h in P.get("hold") or [] if h.get("sell")]
     td += [[nx, "買", x.get("n") or x["c"]] for x in P.get("buy") or [] if x.get("fill")]
-    return {"d": P["d"], "td": td, "cash": bool(N and N.get("next") is not None and N["next"] < 0.99)}
+    return {"d": P["d"], "td": td}
 
 
 def boom_line(cur: dict | None) -> str | None:
@@ -313,7 +314,7 @@ def boom_line(cur: dict | None) -> str | None:
         return None
     parts = [f"{_md(d)}（{_wd(d)}）開盤" + "、".join(f"{a} {'、'.join(by[d][a])}" for a in ("賣", "買") if by[d].get(a))
              for d in sorted(by)]
-    return "新飆股：" + "；".join(parts) + ("（機動放現金中，買的先不買）" if cur.get("cash") and any("買" in v for v in by.values()) else "") + "。"
+    return "新飆股：" + "；".join(parts) + "。"
 
 
 def uqm_line(cur: dict | None) -> str | None:
@@ -325,7 +326,7 @@ def uqm_line(cur: dict | None) -> str | None:
         return None
     parts = [f"{_md(d)}（{_wd(d)}）開盤" + "、".join(f"{a} {'、'.join(by[d][a])}" for a in ("賣", "買") if by[d].get(a))
              for d in sorted(by)]
-    return "美股三成：" + "；".join(parts) + "。"
+    return "美股強勢品質股：" + "；".join(parts) + "。"
 
 
 def cand_state(prev: dict | None = None) -> dict | None:
@@ -464,12 +465,12 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
         if sx:
             rec["sx"] = sx
             rec["ev"] += sx_events(sxlive.LAST, (days.get(prev_d) or {}).get("sx") if prev_d else None)
-        bm = boom_state(sxlive.LAST.get("plan"), ((data.get("cfg") or {}).get("now") or {}).get("tw"))
+        bm = boom_state(sxlive.LAST.get("plan"))
         if bm:
             rec["boom"] = bm
     except Exception:                                     # noqa: BLE001 —— 摘要讀不到：不發提醒
         pass
-    try:                                                  # 美股三成（研究檔判定換了才有）
+    try:                                                  # 美股強勢品質股（研究檔判定換了才有）
         uq = uqm_state(now)
         if uq:
             rec["uqm"] = uq

@@ -188,12 +188,12 @@ def test_update_tr_recent_zero_requests_when_current(tmp_path, monkeypatch):
 
 
 def test_valog_us_sleeve_line_events_and_dedup(monkeypatch):
-    """美股三成（corespec VER 3）：推播多一行要賣、要買的股票；停在舊的一週、第一次滿檢討日、多一筆重跑差異才記事件。"""
+    """美股強勢品質股（原「美股三成」；corespec VER 3）：推播多一行要賣、要買的股票；停在舊的一週、第一次滿檢討日、多一筆重跑差異才記事件。"""
     cur = {"d": "2026-10-23", "td": [["2026-10-26", "買", "PAYC"], ["2026-10-26", "賣", "INSW"]], "rv": {}, "stale": None,
            "exp": "2026-10-23", "nd": 0}
-    assert valog.uqm_line(cur) == "美股三成：10/26（一）開盤賣 INSW、買 PAYC。" and valog.uqm_line({"td": []}) is None
+    assert valog.uqm_line(cur) == "美股強勢品質股：10/26（一）開盤賣 INSW、買 PAYC。" and valog.uqm_line({"td": []}) is None
     rec = {"todo": {"d": "2026-10-26", "items": []}, "ev": [], "uqm": cur}
-    assert valog.push_lines(rec) == ["10/26（一）沒有排定的買賣。", "美股三成：10/26（一）開盤賣 INSW、買 PAYC。"]
+    assert valog.push_lines(rec) == ["10/26（一）沒有排定的買賣。", "美股強勢品質股：10/26（一）開盤賣 INSW、買 PAYC。"]
     assert valog.uqm_events(cur, None) == []
     st = dict(cur, stale="2026-10-16", exp="2026-10-23")
     ev = valog.uqm_events(st, cur)
@@ -202,7 +202,7 @@ def test_valog_us_sleeve_line_events_and_dedup(monkeypatch):
     rv = dict(cur, rv={"63": {"d": "2027-01-26", "ex": -0.0513, "pct": 0.12, "low": True}}, nd=1)
     ev = valog.uqm_events(rv, cur)
     assert [e["ty"] for e in ev] == ["uqm", "uqm"]
-    assert "滿 63 個交易日（1/26）：三成比 S&P 500 含息少賺 5.0%，在回測同樣長度的期間裡排在最差的 12%，比回測差" in ev[0]["txt"]
+    assert "美股強勢品質股滿 63 個交易日（1/26）：比 S&P 500 含息少賺 5.0%，在回測同樣長度的期間裡排在最差的 12%，比回測差" in ev[0]["txt"]
     assert "第 1 筆" in ev[1]["txt"] and valog.uqm_events(rv, rv) == []
     assert "uqm" in valog.TYPES
 
@@ -254,18 +254,18 @@ def test_valog_us_sleeve_drops_weekly_actions_already_done(monkeypatch, tmp_path
 
 
 def test_valog_boom_line_for_tw_sleeve():
-    """台股機動的新飆股（corespec VER 4）：推播多一行，下一個交易日開盤要賣、要買的股票（錢不夠的不列）；
-    機動放現金中，買的先不買；排在台股第一行之後、美股那一行之前。"""
+    """新飆股（選股頁台股）：推播多一行，下一個交易日開盤要賣、要買的股票（錢不夠的不列）；
+    排在台股第一行之後、美股那一行之前。2026-10-28 起不看交易計畫的警訊（配置頁拿掉）。"""
     P = {"d": "2026-10-30", "next": "2026-11-02",
          "hold": [{"c": "3017", "n": "奇鋐", "sell": True}, {"c": "2383", "n": "台光電", "sell": False}],
          "buy": [{"c": "2368", "n": "金像電", "fill": True}, {"c": "6274", "n": "台燿", "fill": False}]}
-    cur = valog.boom_state(P, {"next": 1.0})
-    assert cur == {"d": "2026-10-30", "td": [["2026-11-02", "賣", "奇鋐"], ["2026-11-02", "買", "金像電"]], "cash": False}
+    cur = valog.boom_state(P)
+    assert cur == {"d": "2026-10-30", "td": [["2026-11-02", "賣", "奇鋐"], ["2026-11-02", "買", "金像電"]]}
     assert valog.boom_line(cur) == "新飆股：11/2（一）開盤賣 奇鋐、買 金像電。"
-    assert valog.boom_line(valog.boom_state(P, {"next": 0.2})) == "新飆股：11/2（一）開盤賣 奇鋐、買 金像電（機動放現金中，買的先不買）。"
+    assert valog.boom_line(dict(cur, cash=True)) == "新飆股：11/2（一）開盤賣 奇鋐、買 金像電。"      # 舊紀錄的 cash 不再加註
     assert valog.boom_state(None) is None and valog.boom_state({"d": "2026-10-22"}) is None
     assert valog.boom_line(valog.boom_state({"d": "2026-10-22", "next": "2026-10-27"})) is None   # 沒有要做的就不加
     uq = {"d": "2026-10-30", "td": [["2026-11-02", "買", "PAYC"]]}
     rec = {"todo": {"d": "2026-11-02", "items": []}, "ev": [], "boom": cur, "uqm": uq}
     assert valog.push_lines(rec) == ["11/2（一）沒有排定的買賣。", "新飆股：11/2（一）開盤賣 奇鋐、買 金像電。",
-                                     "美股三成：11/2（一）開盤買 PAYC。"]
+                                     "美股強勢品質股：11/2（一）開盤買 PAYC。"]
