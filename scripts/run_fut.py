@@ -35,6 +35,19 @@ def main() -> int:
     skips = [r for r in la["days"] if "skip" in r]
     for r in skips:
         print(f"  {r['d']} 沒算：{r['skip']}")
+    rt = doc["realtime"]
+    rm, er = rt["main"], rt["compare"].get("est_err") or {}
+    print(f"台指期早盤（即時版，從 {rt.get('start')} 起取樣）：算得出落差的交易日 {rt['n_days']} 天、判定：{rt['verdict']}")
+    if rm.get("n"):
+        print(f"  照規則做 {rm['n']} 筆：平均每筆 {rm['mean']:+.2f} 點、中位數 {rm['median']:+.2f}、賺錢 {rm['win']:.0%}、"
+              f"方向亂選平均不比它差的比例 {rt['placebo_p']}")
+    if er.get("n"):
+        print(f"  試撮估算 − 偷看版開盤水準：{er['n']} 天、平均 {er['mean']:+.2f} 點、平均差 {er['mae']:.2f} 點")
+    for r in rt["days"]:
+        if "skip" in r:
+            print(f"  {r['d']} 沒算：{r['skip']}")
+        else:
+            print(f"  {r['d']}：比重 {r['cov']:.0%}（{r['n']} 檔，太舊 {r['stale']}、沒試撮價 {r['nopx']}）")
     if not a.no_write:
         print("  寫檔" if R.write(doc) else "  內容沒變、不改寫")
     return 0

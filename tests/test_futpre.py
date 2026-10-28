@@ -100,10 +100,13 @@ def test_sample_without_weights_returns_none(fake, monkeypatch):
     assert P.sample("2026-10-28", "2026-10-27", now_s=f["now_s"], sleep=f["sleep"], get_tw=f["get_tw"], get_tf=f["get_tf"]) is None
 
 
-def test_workflow_schedules_three_runs_and_commits_only_samples():
+def test_workflow_schedules_five_runs_and_commits_only_samples():
     y = (ROOT / ".github/workflows/fut_preopen.yml").read_text(encoding="utf-8")
-    for c in ('"31 20 * * 0-4"', '"3 22 * * 0-4"', '"17 23 * * 0-4"'):
+    for c in ('"47 19 * * 0-4"', '"31 20 * * 0-4"', '"17 21 * * 0-4"', '"3 22 * * 0-4"', '"17 23 * * 0-4"'):
         assert c in y
+    # 最早一班（台北 03:47）準時開跑也要等得到 09:00:15：等的時間 < python 的 timeout < job 的 timeout
+    wait_min = (9 * 60 + 0.25) - (3 * 60 + 47)
+    assert wait_min < 19500 / 60 < 330 and "timeout-minutes: 330" in y
     assert "group: fut-preopen" in y and "cancel-in-progress: false" in y
     assert "ref: main" in y and "git add -f data/lab/fut/pre" in y and "HEAD:main" in y
     assert "timeout 19500 python3 scripts/fut_preopen.py" in y
