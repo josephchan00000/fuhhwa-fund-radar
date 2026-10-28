@@ -88,13 +88,13 @@ def test_cached_fetch_shared_with_watch_and_floor():
         return sym, _series(_cal(st, "2026-10-23")), "ok"
 
     f = UC.cached(fetch=fake, today=date(2026, 10, 24))
-    assert f.floor == "2025-08-10"
+    assert f.floor == (date(2026, 10, 24) - timedelta(days=UC.BACK_DAYS)).isoformat() < "2021-10-01"   # 5 年走勢
     c, s, msg = f("VLO", "2026-04-01")                                      # 50 日線檢查要的比較晚 → 照 floor 抓
-    assert c == "VLO" and msg == "ok" and calls == [("VLO", "2025-08-10")]
+    assert c == "VLO" and msg == "ok" and calls == [("VLO", f.floor)]
     f("VLO", f.floor)                                                       # 個股卡要的：用同一次抓的
     assert len(calls) == 1
-    f("VLO", "2025-01-01")                                                  # 要的更早 → 重抓
-    assert calls[-1] == ("VLO", "2025-01-01") and len(calls) == 2
+    f("VLO", "2020-01-01")                                                  # 要的更早 → 重抓
+    assert calls[-1] == ("VLO", "2020-01-01") and len(calls) == 2
     f("BRK.B", f.floor)                                                     # Yahoo 的寫法
     assert calls[-1][0] == "BRK-B"
     assert f("BAD", f.floor)[1] is None and f("BAD", f.floor)[1] is None    # 沒抓到的下一次再試
@@ -251,3 +251,57 @@ def test_fetch_script_and_workflows_wired():
     assert '"${MODE#uscard}"' in lb and "fetch_ussx_watch.py --card-force" in lb
     wk = (root / ".github" / "workflows" / "ussx_weekly.yml").read_text(encoding="utf-8")
     assert "live_only" in wk and wk.count("if: ${{ !inputs.live_only }}") == 2
+
+
+def test_chart_ver2_weekly_volume_dividends_and_52w_high():
+    """VER 2（docs/lab_review_plan.md 第 4 節 (a)）：近一年每天（收盤、50 日線、成交量千股）、更早每週一點（那週最後一天的收盤、
+    成交量加總）、5 年以內的配息與分割、52 週高點＝近 252 個交易日的最高價。"""
+    ds = _cal("2020-06-01", "2026-10-23")
+    s = _series(ds, div=[["2020-09-01", 0.3], ["2022-03-01", 0.5], ["2026-09-01", 2.0]])
+    s["v"] = [1_234_567.0] * len(ds)
+    s["h"] = [c + 1 for c in s["c"]]
+    k = ds.index("2026-02-03")
+    s["h"][k] = 10_000.0                                                    # 一天的最高價很高
+    s["spl"] = [["2020-07-01", 2.0], ["2023-05-01", 4.0]]
+    ch = UC.chart(s)
+    pts, wk = ch["pts"], ch["wk"]
+    first = min(pts)
+    assert first > "2025-10-23" and pts["2026-10-23"][2] == 1235           # 千股
+    assert wk[0][0] > "2021-10-23" and wk[-1][0] <= "2025-10-23"           # 5 年以內、近一年以前
+    # 每週一點：那週最後一個交易日的收盤；成交量＝那週加總
+    d0 = date.fromisoformat(wk[5][0])
+    mon = (d0 - timedelta(days=d0.weekday())).isoformat()
+    days = [d for d in ds if UC._monday(d) == mon]
+    assert wk[5][0] == days[-1] and wk[5][1] == pytest.approx(s["c"][ds.index(days[-1])])
+    assert wk[5][2] == 1235 * len(days)
+    assert len({UC._monday(w[0]) for w in wk}) == len(wk)                  # 一週一點
+    assert ch["div"] == [["2022-03-01", 0.5], ["2026-09-01", 2.0]] and ch["spl"] == [["2023-05-01", 4.0]]
+    assert ch["hi"] == ["2026-02-03", 10000.0]
+    s["h"][k] = s["c"][k] + 1
+    s["h"][ds.index("2025-06-02")] = 99_999.0                               # 一年多以前的高點不算
+    assert UC.chart(s)["hi"][0] == ds[-1]
+
+
+def test_update_upgrades_ver1_file(tmp_path):
+    """VER 1 的檔讀得到（頁面照樣畫一年）；沒有 wk 的代號這一輪一定重抓日線，寫回去就是 VER 2。"""
+    p = tmp_path / "card.json"
+    cal = _cal("2025-10-24", "2026-10-23")
+    L = _live(hold=("VLO",), buy=(), lst=("VLO",))
+    p.write_text(json.dumps({"ver": 1, "made": "2026-10-24", "d": "2026-10-23", "codes": ["VLO"], "cal": cal,
+                             "s": {"VLO": {"c": [10.0] * len(cal), "m": [None] * len(cal), "at": "2026-10-23",
+                                           "an_at": "2026-10-23", "an": {"n": 3}}}}), encoding="utf-8")
+    assert UC.load(p)["ver"] == 1 and UC.points(UC.load(p), "VLO")["2026-10-23"] == [10.0, None, None]
+    calls = []
+
+    def fake(sym, st):
+        calls.append(sym)
+        return sym, _series(_cal(st, "2026-10-23")), "ok"
+
+    sat = datetime(2026, 10, 24, 9, 30, tzinfo=UTC)
+    Y = _Y({"VLO": (200, _qs())})
+    st = UC.update(L, fetch=UC.cached(fetch=fake, today=date(2026, 10, 24)), now=sat, Y=Y, path=p, made="2026-10-24")
+    assert calls == ["VLO"] and st["chart"] == 1 and st["an"] == 0 and not Y.calls     # 分析師這個收盤抓過了
+    doc = json.loads(p.read_text(encoding="utf-8"))
+    r = doc["s"]["VLO"]
+    assert doc["ver"] == UC.VER == 2 and len(r["v"]) == len(doc["cal"]) and r["wk"] and r["hi"] and r["an"] == {"n": 3}
+    assert UC.update(L, fetch=UC.cached(fetch=lambda s, t: pytest.fail("不該再抓")), now=sat, Y=Y, path=p)["skip"]

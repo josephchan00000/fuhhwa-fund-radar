@@ -76,10 +76,13 @@ jobs:
           USSX_DIR="$GITHUB_WORKSPACE/data/lab/ussx" timeout 1800 python3 scripts/run_ussx.py --qm-live
           # 配置頁「今年」美股不偷看那一欄（ytdspec；docs/lab_review_plan.md 第 9.2 節）：只重跑今年挑到的做法；失敗只少這張表的更新
           USSX_DIR="$GITHUB_WORKSPACE/data/lab/ussx" TZ=Asia/Taipei timeout 1500 python3 scripts/run_ytd.py --us-week || echo "::warning::今年美股的表沒有更新"
+          # 美股個股卡的季報（成長、三率、ROE、估值；arm/lab/usfin.py，docs/lab_review_plan.md 第 4 節）：失敗只少這幾段的更新
+          USSX_DIR="$GITHUB_WORKSPACE/data/lab/ussx" TZ=Asia/Taipei timeout 300 python3 scripts/run_usfin.py || echo "::warning::美股季報沒有更新"
           git config user.name "josephchan00000"
           git config user.email "51159474+josephchan00000@users.noreply.github.com"
           git add -f data/lab/ussx_qm_live.json
           git add -f data/lab/ytd_us.json 2>/dev/null || true
+          git add -f data/lab/ussx_fin.json 2>/dev/null || true
           git commit -q -m "chore: 美股三成每週紀錄 $(date '+%F %H:%M')" || { echo "紀錄沒有變"; exit 0; }
           for i in 1 2 3; do
             git push origin HEAD:main && exit 0
