@@ -42,7 +42,11 @@ HI_N = 252                   # 52 週高點＝近幾個交易日的最高價
 CLOSE_AFTER = time(16, 20)   # 紐約時間這個時間以後才算今天收盤了
 BUDGET_S = 150.0             # 這一段最多跑幾秒（開始抓之前看；時間到的下一輪再抓）
 WORKERS = 4
-MODS = "financialData,earningsTrend,recommendationTrend,calendarEvents"     # fcst.YH_MODS＋財報日
+MODS = ("financialData,earningsTrend,recommendationTrend,calendarEvents,"     # fcst.YH_MODS＋財報日
+        "earningsHistory,upgradeDowngradeHistory,defaultKeyStatistics,majorHoldersBreakdown,"
+        "netSharePurchaseActivity,insiderTransactions")                          # 2026-10-28 第 4 步 (d)：實際 vs 預估、評等調整、做空、持股、內部人
+EXTRA_DAYS = 183          # 評等調整、內部人交易只留近幾天
+EXTRA_N = 10              # 各留幾筆
 QS_URL = "https://query2.finance.yahoo.com/v10/finance/quoteSummary/{sym}?modules={mods}&crumb={crumb}"
 
 
@@ -171,6 +175,105 @@ def parse_cal(o: dict) -> dict:
     return out
 
 
+def _rv(x):
+    """Yahoo 的 {"raw": 數字} 或數字 → 數字（不是有限的數字＝None）。"""
+    import math
+    if isinstance(x, dict):
+        x = x.get("raw")
+    return float(x) if isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x) else None
+
+
+def _dt(x) -> str | None:
+    """Yahoo 的日期（{"raw": 時間戳, "fmt": "YYYY-MM-DD"}、時間戳或日期字串）→ 紐約的日期。"""
+    fmt = x.get("fmt") if isinstance(x, dict) else x
+    if isinstance(fmt, str) and len(fmt) >= 10 and fmt[4] == "-" and fmt[7] == "-":
+        return fmt[:10]
+    raw = _rv(x)
+    if raw and raw > 0:
+        return datetime.fromtimestamp(raw, _ny()).date().isoformat()
+    return None
+
+
+def _s(x, n: int = 60) -> str:
+    return str(x or "").strip()[:n]
+
+
+def parse_extra(o: dict, today: str | None = None) -> dict:
+    """quoteSummary 的其他模組（docs/lab_review_plan.md 第 4 節 (d)）→ 緊湊紀錄（沒有的鍵不放）：
+    "eh": [[季底, 實際 EPS, 預估 EPS]]（近 4 季，舊到新）、
+    "ud": [[日期, 券商, 動作, 原評等, 新評等, 原目標價, 新目標價]]（近 EXTRA_DAYS 天、新到舊、最多 EXTRA_N 筆）、
+    "sh": [做空占流通股, 回補天數, 做空股數, 上個月做空股數, 資料日]、"mh": [內部人持股, 法人持股, 法人家數]、
+    "ns": [期間, 買進筆數, 買進股數, 賣出筆數, 賣出股數, 淨買股數, 淨買占內部人持股]、
+    "tx": [[日期, 姓名, 職稱, 內容, 股數, 金額]]（近 EXTRA_DAYS 天、新到舊、最多 EXTRA_N 筆）。"""
+    try:
+        res = ((o.get("quoteSummary") or {}).get("result") or [None])[0] or {}
+    except Exception:                                        # noqa: BLE001
+        return {}
+    today = today or datetime.now(_ny()).date().isoformat()
+    cut = (date.fromisoformat(today) - timedelta(days=EXTRA_DAYS)).isoformat()
+    out: dict = {}
+    eh = []
+    for x in (res.get("earningsHistory") or {}).get("history") or []:
+        q, a, e = _dt(x.get("quarter")), _rv(x.get("epsActual")), _rv(x.get("epsEstimate"))
+        if q and (a is not None or e is not None):
+            eh.append([q, None if a is None else round(a, 4), None if e is None else round(e, 4)])
+    if eh:
+        out["eh"] = sorted(eh)[-4:]
+    ud = []
+    for x in (res.get("upgradeDowngradeHistory") or {}).get("history") or []:
+        d = _dt(x.get("epochGradeDate"))
+        if not d or d < cut:
+            continue
+        ud.append([d, _s(x.get("firm")), _s(x.get("action"), 12), _s(x.get("fromGrade"), 30), _s(x.get("toGrade"), 30),
+                   _rv(x.get("priorPriceTarget")), _rv(x.get("currentPriceTarget"))])
+    if ud:
+        out["ud"] = sorted(ud, key=lambda r: r[0], reverse=True)[:EXTRA_N]
+    ks = res.get("defaultKeyStatistics") or {}
+    sh = [_rv(ks.get("shortPercentOfFloat")), _rv(ks.get("shortRatio")), _rv(ks.get("sharesShort")),
+          _rv(ks.get("sharesShortPriorMonth")), _dt(ks.get("dateShortInterest"))]
+    if any(v is not None for v in sh[:4]):
+        out["sh"] = sh
+    mh = res.get("majorHoldersBreakdown") or {}
+    m = [_rv(mh.get("insidersPercentHeld")), _rv(mh.get("institutionsPercentHeld")), _rv(mh.get("institutionsCount"))]
+    if m[0] is None:
+        m[0] = _rv(ks.get("heldPercentInsiders"))
+    if m[1] is None:
+        m[1] = _rv(ks.get("heldPercentInstitutions"))
+    if any(v is not None for v in m):
+        out["mh"] = m
+    ns = res.get("netSharePurchaseActivity") or {}
+    n = [_s(ns.get("period"), 8)] + [_rv(ns.get(k)) for k in ("buyInfoCount", "buyInfoShares", "sellInfoCount", "sellInfoShares",
+                                                            "netInfoShares", "netPercentInsiderShares")]
+    if any(v is not None for v in n[1:]):
+        out["ns"] = n
+    tx = []
+    for x in (res.get("insiderTransactions") or {}).get("transactions") or []:
+        d = _dt(x.get("startDate"))
+        if not d or d < cut:
+            continue
+        tx.append([d, _s(x.get("filerName"), 40), _s(x.get("filerRelation"), 40), _s(x.get("transactionText"), 80),
+                   _rv(x.get("shares")), _rv(x.get("value"))])
+    if tx:
+        out["tx"] = sorted(tx, key=lambda r: r[0], reverse=True)[:EXTRA_N]
+    return out
+
+
+def dump(Y, c: str) -> str:
+    """CI 探針：一檔 quoteSummary 新加的那幾個模組長什麼樣子（每個模組前 1,500 字）。"""
+    from . import ussxdata as UD
+    url = QS_URL.format(sym=urllib.parse.quote(UD.ysym(c)), mods=MODS, crumb=urllib.parse.quote(Y.crumb or ""))
+    st, b = Y.get(url)
+    lines = [f"[美股個股卡探針] {c} HTTP {st}，{len(b or b'')} bytes"]
+    try:
+        res = ((json.loads((b or b"{}").decode("utf-8")).get("quoteSummary") or {}).get("result") or [None])[0] or {}
+    except Exception as e:                                   # noqa: BLE001
+        return lines[0] + f"；解析失敗 {type(e).__name__}"
+    for k in MODS.split(",")[4:]:
+        lines.append(f"  {k}: {json.dumps(res.get(k), ensure_ascii=False)[:1500]}")
+    lines.append("  解析：" + json.dumps(parse_extra({"quoteSummary": {"result": [res]}}), ensure_ascii=False)[:1500])
+    return "\n".join(lines)
+
+
 def analyst(Y, c: str) -> tuple[str, dict | None]:
     """一檔的 Yahoo quoteSummary → ("ok"|"none"|"err"|"429"|"401", 紀錄)；紀錄＝fcst.parse_yahoo＋parse_cal，
     ok 但什麼都沒有（沒有分析師、沒有財報日）＝None。Y＝fcst._Yahoo（已經 login）。"""
@@ -190,6 +293,7 @@ def analyst(Y, c: str) -> tuple[str, dict | None]:
         return "err", None
     rec = fcst.parse_yahoo(o) or {}
     rec.update(parse_cal(o))
+    rec.update(parse_extra(o))
     return "ok", (rec or None)
 
 
