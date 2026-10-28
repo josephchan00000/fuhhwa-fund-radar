@@ -658,6 +658,10 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
                             "pack": pack, "v3": v3, "v3ex": v3ex, "last": D.cal[-1] if D.cal else None})
     except Exception as e:                                # noqa: BLE001
         adv = {"err": f"{type(e).__name__}: {e}"}
+    try:                                                  # 檢討第 1 步：持股標「回測」與「上線以來」（docs/lab_review_plan.md 第 9.1 節）
+        live_since(adv, D)
+    except Exception as e:                                # noqa: BLE001
+        print(f"[analyze] ⚠ 持股的上線以來沒算出來：{type(e).__name__}: {e}")
     asof = {
         "pos": D.pos[-1][0] if D.pos else None,
         "px": pxd,
@@ -806,6 +810,45 @@ def _ta_metrics(S: dict, taiex: list, T: int) -> dict:
         "rs20": _r(rs20, 1), "atrp": _r(a / px * 100, 2) if a else None,
         "liq": _r(sum(vv) / len(vv) / 1e8, 2) if vv else None,
     }
+
+
+def live_since(adv: dict, D: Data, ev: dict | None = None) -> None:
+    """持有中的每一檔（advice 的 picks）：買進日不晚於那條策略開始記錄的那一天（grades3／grades／book 的 since）＝回測買的（bt），
+    另寫 rl＝since 那天收盤到最新收盤的漲跌（含息：官方除權息參考價的還原倍數；不含成本）。之後才買的 rl＝None（頁面用 now_r）。
+    since 那天休市就用之前最後一個交易日；那一檔那天沒有收盤就往前找。"""
+    from . import bt3d
+    if not isinstance(adv, dict) or not D.cal:
+        return
+    since: dict = {}                                       # grades3（回測方法 v3 的評級，有 since）→ grades → book
+    for key in ("grades3", "grades", "book"):
+        for g in adv.get(key) or []:
+            if isinstance(g, dict) and g.get("k") and g.get("since") and g["k"] not in since:
+                since[g["k"]] = g["since"]
+    picks = [p for p in adv.get("picks") or [] if p.get("act") == "持有中" and since.get(p.get("k")) and p.get("ent")]
+    if not picks:
+        return
+    cal = D.cal
+    ev = bt3d.events() if ev is None else ev
+
+    def close(c: str, i: int, F: list) -> float | None:
+        for j in range(i, -1, -1):
+            q = D.quote(c, cal[j])
+            if q and q[3]:
+                return q[3] * F[j]
+        return None
+    for p in picks:
+        s = since[p["k"]]
+        p["since"] = s
+        if p["ent"] > s:
+            continue
+        p["bt"] = True
+        k0 = max((i for i, d in enumerate(cal) if d <= s), default=None)
+        if k0 is None:
+            continue
+        F = bt3d.factor_events(cal, sorted((d, f) for d, f, _ in ev.get(p["c"]) or []))
+        a, b = close(p["c"], k0, F), close(p["c"], len(cal) - 1, F)
+        if a and b:
+            p["rl"] = round(b / a - 1, 6)
 
 
 def _series_out(D: Data, S: dict, C: dict | None, cl: list, qa: list, tw: bool) -> dict:

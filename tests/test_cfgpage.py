@@ -187,7 +187,7 @@ def test_us_v2_rows_open_card_and_explain(R, QMX, monkeypatch):
     assert lg == [("c1", "強勢品質股 2 檔", "75"), ("cx", "現金", "25")]
     assert "現金 25% 是空的位子，10/23（五）收盤看下一份名單，有空位就在下一個交易日開盤買。" in _text(c)
     assert f'<a class="cfrow" {_uhref("INSW")}><span class="cfra"><b>International Seaways</b><span class="cd">INSW</span>' in h
-    assert '<span class="cfri">油輪航運公司</span><span class="cfrb">7/20 買・比 50 日線高 3.2%</span>' in h
+    assert '<span class="cfri">油輪航運公司</span><span class="cfrb">7/20 買（回測）・比 50 日線高 3.2%</span>' in h
     assert "為什麼：10/22 收盤的名單第 1 名，漲勢勝過 99% 的美股" in _text(h)       # VLO 在名單上；INSW 不在、不寫為什麼
     assert _text(h).count("為什麼：") == 1
     assert "分到 100%，現在用到 75%。" in _text(h) and "最多 8 檔、每檔約 12.5%" in _text(h)
@@ -447,3 +447,42 @@ def test_tw_boom_rows_say_which_rule_they_matched(R):
     assert "為什麼：強度 95（漲勢勝過 95% 的股票）；" + why in h                      # 待買進：強度＋符合哪一條
     for w in NOT_PLAIN + BANNED:
         assert w not in t and w not in h, w
+
+
+def test_us_rows_mark_backtest_buys_and_return_since_live_start(R, QMX, monkeypatch):
+    """檢討第 1 步（docs/lab_review_plan.md 第 9.1 節）：開始照做（QM_LIVE）那天以前照規則買的標「回測」，
+    另寫上線以來＝開始照做那一週週末的收盤到最新的收盤；之後才買的不標。"""
+    monkeypatch.setattr(CPG, "qm_on", lambda mk, q: True)
+    qm = _qm(QMX, [_h("INSW", 0.4, ent="2026-07-20", r=0.29, px=110.0, ma=105.0), _h("PAYC", 0.12, ent="2026-10-26", r=0.02, px=200.0, ma=190.0)],
+             idle=0.48, d="2026-10-30", nxt="2026-11-02", lst=[])
+    qm["L"]["weeks"] = {"2026-10-23": {"hold": [{"c": "INSW", "px": 100.0}]}}
+    G = CF.us_state(_bundle(R, qm=qm))
+    rows = {r["c"]: r for r in G["rows"]}
+    assert rows["INSW"]["bt"] and rows["INSW"]["rl"] == pytest.approx(0.10) and rows["INSW"]["p0"] == 100.0
+    assert not rows["PAYC"]["bt"] and rows["PAYC"]["rl"] is None
+    h = CF.us_parts(_data(), _bundle(R, qm=qm))["hold"]
+    assert "7/20 買（回測）・上線以來 +10.0%・比 50 日線高 4.8%" in _text(h)
+    assert "10/26 買・比 50 日線高 5.3%" in _text(h)
+
+
+def test_tw_rows_mark_backtest_buys_and_return_since_live_start():
+    """台股持股第二行：開始照做以前照規則買的寫「（回測）」和上線以來；之後才買的照舊。"""
+    r = {"ent": "2026-08-24", "epx": 13650.0, "px": 9755.0, "bt": True, "rl": 0.0056, "sell": "11/24 開盤賣"}
+    assert CF._row_b(r) == "8/24 買（回測）13,650，現在 9,755・上線以來 +0.6%・11/24 開盤賣"
+    r2 = {"ent": "2026-10-27", "epx": 51.2, "px": 50.0, "sell": ""}
+    assert CF._row_b(r2) == "10/27 買 51.2，現在 50"
+    assert CF._row_b({"ent": "2026-08-24", "bt": True}) == "8/24 買（回測）"
+
+
+def test_past_note_lists_hindsight_and_live_start_dates():
+    """「過去照做」下面兩行：哪些規則是看過資料才訂的；開始照做的日子（新飆股接手、★ 策略的 since、警訊）。"""
+    data = {"adv": {"grades3": [{"k": "v3l", "since": "2026-10-15"}, {"k": "s3", "since": "2026-10-14"}],
+                    "book": [{"k": "s5", "since": "2026-10-14"}]}}
+    bundle = {"stk": {"st": [{"k": "s3", "name": "臺灣50 提前卡位"}, {"k": "v3l", "name": "財報驚喜"}, {"k": "s5", "name": "長線"}],
+                      "boom": {"take": "2026-10-22"}}}
+    t = _text(CF.past_note("tw", data, bundle))
+    assert "個股策略的主要設定也一樣（臺灣50 卡位、長線看過全部的資料，財報驚喜看過 2021 年以後的資料）" in t
+    assert "開始照做以後的才是實際成績：新飆股 10/22 收盤、臺灣50 卡位 10/14、財報驚喜 10/15、長線 10/14、警訊 10/27 起" in t
+    u = _text(CF.past_note("us", {}, {}))
+    assert "從 2,016 種做法裡挑的" in u and "強勢品質股 10/23 收盤、警訊 10/26 起" in u
+    assert CF._wp(0.0002) == "不到 0.1%" and CF._wp(0.0) == "0%" and CF._wp(0.125) == "12.5%"

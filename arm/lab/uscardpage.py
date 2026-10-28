@@ -152,7 +152,11 @@ def cfg_html(c: str, G: dict, h0: dict | None, W0: dict | None, px: float | None
             if px is not None and hp and (h0 or {}).get("r") is not None:   # 漲跌照卡片的最新收盤（和標題的股價一致）
                 rr = (1 + h0["r"]) * px / hp - 1
             now = f'，現在 <b>{_px(px)}</b>（<span class="{"up" if (rr or 0) >= 0 else "dn"}">{CPG._pc(rr)}</span>）' if px is not None and rr is not None else ""
-            lines.append(f'持有中：{CPG._mdw(r["ent"])}買進 {_px(epx)}{now}；占全部資金 {CPG._wp(r["w"])}。')
+            bt, p0 = bool(r.get("bt")), _num(r.get("p0"))
+            rl = (px / p0 - 1) if bt and px is not None and p0 else r.get("rl")
+            live = (f'；上線以來（{CPG._md(QX.QM_LIVE)} 收盤起）<span class="{"up" if rl >= 0 else "dn"}">{CPG._pc(rl)}</span>'
+                    if bt and rl is not None else "")
+            lines.append(f'持有中：{CPG._mdw(r["ent"])}買進 {_px(epx)}' + ("（回測）" if bt else "") + f'{now}{live}；占全部資金 {CPG._wp(r["w"])}。')
         if r.get("sell"):
             lines.append(f'<b>{CPG._mdw(r["sell"])}開盤賣</b>（{CPG._md(r["trig"])} 收盤跌破 50 日線）。')
         else:

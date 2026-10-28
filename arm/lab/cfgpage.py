@@ -41,7 +41,8 @@ def _mdw(d) -> str:
 
 
 def _wp(w: float) -> str:
-    return CPG._wp(w)
+    """占全部資金：很小但不是 0 的部位寫「不到 0.1%」（新飆股那本帳會用剩下的現金買幾檔小部位，寫 0% 像是沒有）。"""
+    return "不到 0.1%" if w and 0 < w < 0.0005 else CPG._wp(w)
 
 
 def _pc(x, d: int = 1) -> str:
@@ -166,8 +167,9 @@ def boom_html(stk: dict, bundle: dict) -> str:
     line = (f'每週五（休市就看那一週最後一個交易日）收盤，用之前幾年的資料找出來的條件挑股票，依強勢排；'
             f'下一個交易日開盤買，每檔約占全部資金 {_wp(slot)}，抱 {hn} 個交易日再賣。')
     if bm.get("cagr") is not None:
+        tk = B.get("take")
         line += (f' {CPG.yr0(bm["a"])} 年起照做每年賺 {_pc(bm["cagr"]).lstrip("+")}、最慘時跌 {bm["mdd"] * 100:.0f}%'
-                 f'（2026/10/30 起每週記錄驗證中）。')
+                 + (f'（{_md(tk)} 收盤照回測那本帳的持股接手，之後每週記錄驗證中）。' if tk else '（2026/10/30 起每週記錄驗證中）。'))
     h = f'<h2 class="cfh">新飆股名單<span class="sub">{_e(sub)}</span></h2><div class="cfsxl">{line}</div>'
     have = {x["c"] for x in B.get("hold") or []}
     buy = {x["c"]: x for x in B.get("buy") or []}
@@ -289,14 +291,18 @@ def tw_groups(data: dict, bundle: dict) -> list[dict]:
         for h in B.get("hold") or []:
             sell = f'{_md(h.get("out"))} 開盤賣' + (f"（已滿 {hn} 個交易日）" if h.get("sell") else f'（{_md(h.get("due"))} 收盤滿 {hn} 個交易日）')
             rows.append({"c": h["c"], "n": h.get("n") or h["c"], "w": (h.get("w") or 0.0) * bw, "ent": h.get("ent"),
-                         "epx": h.get("epx"), "px": h.get("px"), "r": h.get("r"), "sell": sell, "why": h.get("why") or []})
+                         "epx": h.get("epx"), "px": h.get("px"), "r": h.get("r"), "sell": sell, "why": h.get("why") or [],
+                         "bt": bool(h.get("bt")), "rl": h.get("rl")})
         todo = [{"c": x["c"], "n": x.get("n") or x["c"], "w": slot, "when": f'{_mdw(B.get("next"))}開盤買（{_md(B.get("wk"))} 的名單）',
                  "why": ([f'強度 {x["rs"]:.0f}（漲勢勝過 {x["rs"]:.0f}% 的股票）'] if x.get("rs") is not None else []) + (x.get("why") or [])}
                 for x in B.get("buy") or [] if x.get("fill")]
         n_max = round(1 / float(B.get("w") or 0.125))
+        tk = B.get("take")
         G.append({"k": "boom", "name": "新飆股", "share": bw, "held": sum(r["w"] for r in rows), "rows": rows, "todo": todo, "col": 2,
                   "B": B, "slot": slot, "n_max": n_max,
-                  "how": f"每週五收盤看名單，下一個交易日開盤買，每檔約 {_wp(slot)}、最多 {n_max} 檔，抱 {hn} 個交易日賣。"})
+                  "how": f"每週五收盤看名單，下一個交易日開盤買，每檔約 {_wp(slot)}（錢不夠就用剩下的買少一點），抱 {hn} 個交易日賣。"
+                         + (f"{_md(tk)} 收盤照回測那本帳的持股接手，標「回測」的是接手前照規則買的；"
+                            "接手不算買進成本，現在照著買要多付約 0.1%～0.7%（手續費和價差）。" if tk else "")})
     hmap = {(k, h.get("c")): h for k, hs in (stk.get("hold") or {}).items() for h in hs}
     for i, x in enumerate(CPG.sat_weights(stk)):
         k = x["k"]
@@ -306,7 +312,7 @@ def tw_groups(data: dict, bundle: dict) -> list[dict]:
             rr = p.get("now_r") if p.get("now_r") is not None else h.get("r")          # advice 的 now_r 是百分比
             rows.append({"c": r["c"], "n": r.get("n") or p.get("n") or r["c"], "w": r["w"], "ent": r.get("ent") or p.get("ent"),
                          "epx": p.get("entry"), "px": p.get("now"), "r": None if rr is None else rr / 100.0,
-                         "sell": _sell_txt(p, h), "why": p.get("why") or []})
+                         "sell": _sell_txt(p, h), "why": p.get("why") or [], "bt": bool(p.get("bt")), "rl": p.get("rl")})
         have = {r["c"] for r in rows}
         pend = [p for (kk, cc), p in P.items() if kk == k and p.get("act") != "持有中" and cc not in have]
         slots = S.SLOTS.get(k)
@@ -411,7 +417,11 @@ def _row_b(r: dict, todo: bool = False) -> str:
         if r.get("stop") is not None:
             b += f'・停損約 {_tp(r["stop"])}' + (f'（買進價跌 {r["spct"]}%）' if r.get("spct") else "")
         return b
-    b = f'{_md(r.get("ent"))} 買' + (f' {_tp(r["epx"])}，現在 {_tp(r["px"])}' if r.get("epx") is not None and r.get("px") is not None else "")
+    bt = bool(r.get("bt"))
+    b = (f'{_md(r.get("ent"))} 買' + ("（回測）" if bt else " ")
+         + (f'{_tp(r["epx"])}，現在 {_tp(r["px"])}' if r.get("epx") is not None and r.get("px") is not None else "")).rstrip()
+    if bt and r.get("rl") is not None:                     # 檢討第 1 步：開始照做以前買的，另寫開始照做那天收盤到現在
+        b += f'・上線以來 {_pc(r["rl"])}'
     return b + (f'・{r["sell"]}' if r.get("sell") else "")
 
 
@@ -567,6 +577,66 @@ def warn_html(mk: str, N: dict) -> str:
             f'<div class="cfrule2">{_e(rule)}</div>' + due_line(mk, N))
 
 
+HIND_TW = {"s3": "全部", "s5": "全部", "v3l": "2021 年以後"}   # 個股策略的主要設定看過哪一段資料才訂的（檢討第 1.4 節）
+
+
+def since_map(adv: dict | None) -> dict:
+    """{策略: 開始照做（記錄）的那一天}：advice 的 grades3 → grades → book，取第一個有的。"""
+    out: dict = {}
+    for key in ("grades3", "grades", "book"):
+        for g in (adv or {}).get(key) or []:
+            if isinstance(g, dict) and g.get("k") and g.get("since") and g["k"] not in out:
+                out[g["k"]] = g["since"]
+    return out
+
+
+def _first_td(mk: str, d: str | None) -> str | None:
+    """d 當天或之後第一個交易日（休市表）。"""
+    if not d:
+        return None
+    from datetime import date, timedelta
+    return CPG._next_day(mk, (date.fromisoformat(d) - timedelta(days=1)).isoformat())
+
+
+def past_note(mk: str, data: dict, bundle: dict) -> str:
+    """「過去照做」旁邊兩行（檢討第 1 步，docs/lab_review_plan.md 第 1.4、9.1 節）：哪些規則是看過那段資料才訂的；
+    開始照做的日子（那天以後的才是實際成績，持股標「回測」的是那天以前照規則買的）。"""
+    if mk == "tw":
+        stk = bundle.get("stk") or {}
+        st = stk.get("st") or []
+        sm = since_map(data.get("adv"))
+        grp: dict = {}
+        for x in st:
+            if x.get("k") in HIND_TW:
+                grp.setdefault(HIND_TW[x["k"]], []).append(_lbl(x["k"], x.get("name")))
+        hs = "，".join(f"{'、'.join(ns)}看過{' ' if per[:1].isdigit() else ''}{per}的資料" for per, ns in grp.items())
+        t1 = ("這些數字會比以後真的照做好看：三個警訊、警訊解除滿兩週才買回、0050 留兩成，是看過包含今年的資料才挑的"
+              + (f"；個股策略的主要設定也一樣（{hs}）" if hs else "")
+              + "。新飆股每年只用以前的資料找規則，比較接近真的照做（找規則的方法是今年才定的）。")
+        starts = []
+        tk = (stk.get("boom") or {}).get("take")
+        if tk:
+            starts.append(f"新飆股 {_md(tk)} 收盤")
+        for x in st:
+            sn = sm.get(x.get("k"))
+            if sn:
+                starts.append(f'{_lbl(x["k"], x.get("name"))} {_md(sn)}')
+        w0 = _first_td("tw", S.LIVE_START)
+        if w0:
+            starts.append(f"警訊 {_md(w0)}")
+    else:
+        t1 = ("這些數字會比以後真的照做好看：強勢品質股的五個條件、8 檔、跌破 50 日線就賣，是看過 2010 年到今年的成績、"
+              "從 2,016 種做法裡挑的；原本的比法沒過，改成跟當時在用的計畫比、成本改用海外券商才採用；"
+              "一次性收入的修正、三個警訊和「總經策略全部空手」也是看過結果才加的。"
+              "每年只用以前的資料挑做法的話，平均只比 S&P 500 好一點、跌得深很多。")
+        starts = [f"強勢品質股 {_md(QX.QM_LIVE)} 收盤"]
+        w0 = _first_td("spx", S.LIVE_START)
+        if w0:
+            starts.append(f"警訊 {_md(w0)}")
+    t2 = "開始照做以後的才是實際成績：" + "、".join(starts) + " 起。持股標「回測」的是那天以前照規則買的。"
+    return f'<div class="cfperf cfq">{_e(t1)}</div><div class="cfperf cfq">{_e(t2)}</div>'
+
+
 def tw_parts(data: dict, bundle: dict) -> dict:
     N = (bundle.get("now") or {}).get("tw")
     stk = bundle.get("stk") or {}
@@ -575,7 +645,7 @@ def tw_parts(data: dict, bundle: dict) -> dict:
     G = tw_groups(data, bundle)
     nx = CPG._next_day("tw", d0) if d0 else None
     card = tw_money(G, stk, N, d0)
-    perf = ('<h2 class="cfh">過去照做</h2>' + perf_line("tw", bundle) + detail_html("tw", bundle))
+    perf = ('<h2 class="cfh">過去照做</h2>' + perf_line("tw", bundle) + past_note("tw", data, bundle) + detail_html("tw", bundle))
     use = [s["k"] for s in stk.get("st") or []]
     bm = ((((bundle.get("R") or {}).get("mk") or {}).get("tw") or {}).get("sc") or {}).get("plan", {}).get("boom") or {}
     bx = (f'過去照做：{CPG.yr0(bm["a"])} 年起每年賺 {_pc(bm["cagr"]).lstrip("+")}、最慘時跌 {bm["mdd"] * 100:.0f}%'
@@ -663,6 +733,9 @@ def us_state(bundle: dict) -> dict:
     wl = {x["c"]: x for x in W.get("hold") or []}
     rank = {x["c"]: (i + 1, x.get("rs")) for i, x in enumerate(n.get("list") or [])}
     wsold = {x["c"]: x for x in W.get("sell") or [] if x.get("on")}
+    Lw = ((qm or {}).get("L") or {}).get("weeks") or {}               # 開始照做那一週（QM_LIVE）週末的收盤：上線以來的起點
+    wk0 = next((Lw[d] for d in sorted(Lw) if d >= QX.QM_LIVE), None)
+    px0 = {h.get("c"): h.get("px") for h in (wk0 or {}).get("hold") or []}
     rows, gone, idle = [], [], float(n.get("idle") or 0.0)
     for h in n.get("hold") or []:
         c, w0 = h["c"], float(h.get("w") or 0.0)
@@ -680,8 +753,11 @@ def us_state(bundle: dict) -> dict:
             continue
         rk, rs = rank.get(c) or (None, None)
         r = h.get("r")
+        bt = bool(h.get("ent")) and h["ent"] <= QX.QM_LIVE              # 開始照做那天以前照規則買的＝回測
+        cur, p0 = (h.get("px") or 0.0) * g, px0.get(c)
         rows.append({"c": c, "ent": h.get("ent"), "r": None if r is None else (1 + r) * g - 1, "pct": CPG._qm_pct_ma(h, x),
-                     "sell": sell, "trig": trig, "v": w0 * g, "rk": rk, "rs": rs})
+                     "sell": sell, "trig": trig, "v": w0 * g, "rk": rk, "rs": rs, "bt": bt, "p0": p0 if bt else None,
+                     "rl": (cur / p0 - 1) if bt and p0 and cur else None})
     split, _ = CPG.qm_buy_split(n, W)
     bought = bool(nx and last and nx <= last)
     todo = []
@@ -792,7 +868,9 @@ def _urow(r: dict, G: dict, todo: bool = False) -> str:
     if todo:
         b = f'{_mdw(r["d"])}開盤買' if r["w"] > 1e-3 else "現金不夠，這一檔先不買"
     else:
-        b = f'{_md(r["ent"])} 買'
+        b = f'{_md(r["ent"])} 買' + ("（回測）" if r.get("bt") else "")
+        if r.get("bt") and r.get("rl") is not None:
+            b += f'・上線以來 {_pc(r["rl"])}'
         if r.get("sell"):
             b += f'・{_mdw(r["sell"])}開盤賣（{_md(r["trig"])} 收盤跌破 50 日線）'
         elif r.get("pct") is not None:
@@ -947,7 +1025,7 @@ def us_parts(data: dict, bundle: dict) -> dict:
     except Exception as e:                                # noqa: BLE001 —— 卡片算不出來：股票照舊連 Yahoo Finance
         print(f"[配置] 美股個股卡算不出來：{type(e).__name__}: {e}")
     G["uc"] = set((uc or {}).get("s") or ())
-    perf = '<h2 class="cfh">過去照做</h2>' + perf_line("us", bundle) + detail_html("us", bundle)
+    perf = '<h2 class="cfh">過去照做</h2>' + perf_line("us", bundle) + past_note("us", data, bundle) + detail_html("us", bundle)
     return {"card": us_money(G, N), "hold": us_hold(G, N), "sched": us_sched(G, N),
             "warn": warn_html("us", N) if N else '<h2 class="cfh">警訊</h2><p class="cfwhy">今天的讀數還沒算出來。</p>',
             "perf": perf, "d": d0, "nx": nx, "tl": {"qm": _qm_lane(G)}, "uc": uc}

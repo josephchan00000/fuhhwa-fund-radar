@@ -271,8 +271,140 @@ def test_plan_state_before_any_week():
     assert st["next"] == "2026-10-27" and st["next_wk"] == "2026-10-30" and not st["wk_today"]
 
 
-def test_start_index_skips_the_typhoon_day():
-    assert L.start_index(["2026-10-21", "2026-10-22", "2026-10-26", "2026-10-27"]) == 2
+def test_start_index_is_the_takeover_day():
+    """VER 3：成績從接手那天（TAKE＝10/22，START 10/23 颱風休市前最後一個交易日）收盤起算。"""
+    assert L.start_index(["2026-10-21", "2026-10-22", "2026-10-26", "2026-10-27"]) == 1
+    assert L.start_index(["2026-10-26", "2026-10-27"]) == 0
+
+
+def _seed_from(bk, cal: list, t: int, sig_t: list | None) -> dict:
+    """一本帳第 t 天收盤（下單之前）的狀態 → 接手檔的格式（sxlivespec VER 3 ⑥）。"""
+    return {"ver": 3, "book": "R60", "take": cal[t], "cash": bk.cash,
+            "pos": [{"c": c, "sh": q["sh"], "ent": cal[q["ei"]], "sig": cal[q["si"]], "cin": q["cin"], "pend": q["pend"]}
+                    for c, q in bk.pos.items()],
+            "weeks": {cal[t]: {"R60": [[c, s] for c, s in (sig_t or [])]}}}
+
+
+@pytest.mark.parametrize("seed", [1, 2, 3])
+def test_takeover_continues_the_same_book(seed):
+    """接手＝那本帳第 t 天收盤的狀態原封不動放進來、第 t 天的名單照規則下單：之後每天的資產、每一筆交易都和沒中斷的帳相同；
+    接手時拿著的那幾筆另記接手以來（÷ 接手那天收盤市值）。"""
+    np, pd, dates, codes, o, h, l, c, f, val, vol, sig = _synthetic(seed)
+    n, hold = len(dates), 12
+    av = pd.DataFrame(val).rolling(20, min_periods=1).mean().to_numpy()
+    avv = pd.DataFrame(vol).rolling(20, min_periods=1).mean().to_numpy()
+    lst = lambda a, j: [None if x != x else float(x) for x in a[:, j]]  # noqa: E731
+    px = {k: L.series(lst(o, j), lst(h, j), lst(l, j), lst(c, j), lst(f, j), lst(av, j), lst(avv, j)) for j, k in enumerate(codes)}
+    cal = [str(d.date()) for d in dates]
+    T = {**S.TRADE, "hold": hold}
+    full = L.Book(px, n, None, T)
+    eq_full = [full.step(i, sig.get(i)) for i in range(n)]
+    t = next(i for i in sorted(sig) if i > 60)                 # 接手那天剛好有一批訊號
+    run = L.Book(px, n, None, T)
+    for i in range(t):
+        run.step(i, sig.get(i))
+    run.step(t, None)                                          # 第 t 天：開盤、收盤照做，不下單
+    seed_doc = _seed_from(run, cal, t, sig.get(t))
+    held = set(run.pos)
+    assert held
+    bk = L.Book(px, n, None, T)
+    e0 = bk.take(seed_doc, cal, t)
+    assert e0 == pytest.approx(eq_full[t], rel=1e-12)
+    bk.place(t, seed_doc["weeks"][cal[t]]["R60"])
+    eq = [bk.step(i, sig.get(i)) for i in range(t + 1, n)]
+    assert np.allclose(eq, eq_full[t + 1:], rtol=1e-12)
+    after = [x[:8] for x in full.trades if x[3] > t]
+    got = [x[:8] for x in bk.trades]
+    assert [x[:6] for x in got] == [x[:6] for x in after] and len(got) > 5
+    assert np.allclose([x[4] for x in got], [x[4] for x in after], rtol=1e-12)
+    for x in bk.trades:                                        # 接手時拿著的：另記接手以來
+        if x[0] in held and x[2] <= t:
+            assert len(x) == 10
+            v0 = run.pos[x[0]]["k"] * (px[x[0]]["c"][t] if px[x[0]]["c"][t] is not None else px[x[0]]["cff"][t])
+            assert x[8] == pytest.approx((x[7] + run.pos[x[0]]["cin"]) / v0 - 1, rel=1e-9)
+        else:
+            assert len(x) == 8
+
+
+def test_perf_starts_at_take_and_uses_the_seed(monkeypatch):
+    """perf：TAKE 收盤＝100；R60 從接手的狀態開始（第一天就有持股），A、R1 照舊從現金開始；接手那幾筆的統計只算接手以來。"""
+    np, pd, dates, codes, o, h, l, c, f, val, vol, sig = _synthetic(7)
+    n, hold = len(dates), 12
+    av = pd.DataFrame(val).rolling(20, min_periods=1).mean().to_numpy()
+    avv = pd.DataFrame(vol).rolling(20, min_periods=1).mean().to_numpy()
+    lst = lambda a, j: [None if x != x else float(x) for x in a[:, j]]  # noqa: E731
+    px = {k: L.series(lst(o, j), lst(h, j), lst(l, j), lst(c, j), lst(f, j), lst(av, j), lst(avv, j)) for j, k in enumerate(codes)}
+    cal = [str(d.date()) for d in dates]
+    monkeypatch.setitem(S.TRADE, "hold", hold)
+    t = next(i for i in sorted(sig) if i > 60)
+    run = L.Book(px, n, None, {**S.TRADE})
+    for i in range(t):
+        run.step(i, sig.get(i))
+    run.step(t, None)
+    seed_doc = _seed_from(run, cal, t, sig.get(t))
+    later = sorted(i for i in sig if i > t)
+    weeks = {cal[i]: {"R60": [[k, s] for k, s in sig[i]], "A": [[k, s] for k, s in sig[i]][:3]} for i in later}
+    monkeypatch.setattr(S, "TAKE", cal[t])
+
+    class P:
+        pass
+    P.cal = cal
+    ctx = {"P": P, "listed": None}
+    monkeypatch.setattr(L, "panel", lambda ctx, codes, ev=None: px)
+    monkeypatch.setattr(L, "tr_series", lambda dates: [1.0] * len(dates))
+    monkeypatch.setattr(L, "ew_series", lambda ctx, i0, i1, ev=None: [1.0] * (i1 - i0 + 1))
+    out = L.perf(ctx, weeks, cal[-1], ev={}, seed=seed_doc)
+    days = sorted(out["nav"])
+    assert days[0] == cal[t] and out["nav"][cal[t]][:3] == [100.0, 100.0, 100.0]
+    full = L.Book(px, n, None, {**S.TRADE})
+    eq_full = [full.step(i, sig.get(i) if i <= t or i in later else None) for i in range(n)]
+    assert out["nav"][cal[-1]][0] == pytest.approx(round(eq_full[-1] / eq_full[t] * 100, 2), abs=0.011)
+    assert out["stats"]["R60"]["open"] == len(out["_book"].pos) and out["_base"] == pytest.approx(eq_full[t])
+    tk = [x for x in out["trades"]["R60"] if len(x) == 7]
+    assert tk and all(x[2] <= cal[t] for x in tk)              # 接手的那幾筆：買進日在接手以前，另記接手以來
+    assert out["stats"]["A"]["n"] >= 0 and out["nav"][cal[t]][1] == 100.0
+
+
+def test_plan_state_marks_backtest_buys_and_return_since_takeover(monkeypatch):
+    """配置頁：接手時就拿著的持股標 take、買進日在接手以前＝回測（bt）；rl＝接手那天收盤到最後一天收盤（含息）。"""
+    np, pd, dates, codes, o, h, l, c, f, val, vol, sig = _synthetic(8)
+    n, hold = len(dates), 40
+    av = pd.DataFrame(val).rolling(20, min_periods=1).mean().to_numpy()
+    avv = pd.DataFrame(vol).rolling(20, min_periods=1).mean().to_numpy()
+    lst = lambda a, j: [None if x != x else float(x) for x in a[:, j]]  # noqa: E731
+    px = {k: L.series(lst(o, j), lst(h, j), lst(l, j), lst(c, j), lst(f, j), lst(av, j), lst(avv, j)) for j, k in enumerate(codes)}
+    cal = [str(d.date()) for d in dates]
+    monkeypatch.setitem(S.TRADE, "hold", hold)
+    t = next(i for i in sorted(sig) if i > 100)
+    run = L.Book(px, n, None, {**S.TRADE})
+    for i in range(t):
+        run.step(i, sig.get(i))
+    run.step(t, None)
+    seed_doc = _seed_from(run, cal, t, sig.get(t))
+    monkeypatch.setattr(S, "TAKE", cal[t])
+    bk = L.Book(px, n, None, {**S.TRADE})
+    bk.take(seed_doc, cal, t)
+    bk.place(t, seed_doc["weeks"][cal[t]]["R60"])
+    last = min(n - 1, t + 6)
+    for i in range(t + 1, last + 1):
+        bk.step(i, None)
+
+    class P:
+        pass
+    P.cal = cal[:last + 1]
+    rec = {"last": cal[last], "weeks": {}, "_book": bk, "_px": px, "_base": seed_doc["cash"] + 0, "_i0": t}
+    st = L.plan_state(rec, {"P": P}, {}, None, None, seed_doc)
+    assert st["take"] == cal[t] and st["wk"] == cal[t]          # 最新一週＝接手那一週的名單
+    took = {x["c"] for x in seed_doc["pos"]}
+    for h in st["hold"]:
+        p = px[h["c"]]
+        cl = p["c"][last] if p["c"][last] is not None else p["cff"][last]
+        if h["c"] in took and h["ent"] <= cal[t]:
+            c0 = p["c"][t] if p["c"][t] is not None else p["cff"][t]
+            assert h["take"] and h["bt"] and h["rl"] == pytest.approx(cl / c0 - 1)
+        else:
+            assert not h["take"] and not h["bt"] and h["rl"] == h["r"]
+    assert any(h["take"] for h in st["hold"])
 
 
 def test_lab_opt_finds_this_years_rules():
