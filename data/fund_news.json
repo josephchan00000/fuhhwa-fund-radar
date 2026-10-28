@@ -4,13 +4,6 @@
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
     {
-      "title": "國際股市修正 新基金00418A有望搶得從容起跑點",
-      "url": "https://turnnewsapp.com/ct-featured/420425.html",
-      "source": "翻爆",
-      "date": "2026-10-26 18:05",
-      "datetime": "2026-10-26T18:05:06+08:00"
-    },
-    {
       "title": "主動復華台灣新星 募集期順延至10月27日",
       "url": "https://udn.com/news/amp/story/7239/9832220",
       "source": "UDN",
@@ -526,7 +519,7 @@
       "channel": "财富底层逻辑",
       "url": "https://www.youtube.com/watch?v=gYyMwEhSwdM",
       "date": "2026-10-26",
-      "views": 2764
+      "views": 2767
     },
     {
       "platform": "youtube",
@@ -534,7 +527,7 @@
       "channel": "夏之戀",
       "url": "https://www.youtube.com/watch?v=xaP__cQ9sac",
       "date": "2026-10-26",
-      "views": 1608
+      "views": 1587
     },
     {
       "platform": "youtube",
@@ -581,7 +574,7 @@
       "channel": "Catch大錢潮",
       "url": "https://www.youtube.com/watch?v=WsUheUsX884",
       "date": "2026-10-25",
-      "views": 131855,
+      "views": 131864,
       "peer": true,
       "cat": "綜合"
     },
@@ -591,7 +584,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/whNn6PCCLws",
       "date": "2026-10-24",
-      "views": 115454,
+      "views": 115463,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -612,7 +605,7 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=qcTagQtlBaY",
       "date": "2026-10-25",
-      "views": 62213,
+      "views": 62214,
       "peer": true,
       "cat": "主動式"
     },
@@ -622,7 +615,7 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=wGFRFwIb2k0",
       "date": "2026-10-24",
-      "views": 59459,
+      "views": 59462,
       "peer": true,
       "cat": "高股息"
     },
@@ -649,7 +642,7 @@
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
-    "品牌焦點：國際股市修正 新基金00418A有望搶得從容起跑點（翻爆）",
+    "品牌焦點：主動復華台灣新星 募集期順延至10月27日（UDN）",
     "社群聲量最高：［提醒］應該是詐騙的FB強基金 會員＂裙＂（0 推）",
     "YouTube 熱片：存股別傻傻買0056! 退休前改1動作 月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・374,294 次觀看）"
   ]
