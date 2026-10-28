@@ -428,7 +428,7 @@ def test_sx_peer_chip_sections_text():
     assert "[做空占流通股:2.1%／回補要 2.4 天]" in t and "[做空股數:1,500 萬股／比上個月 +25%]" in t
     assert "[法人持股:113.8%／1,432 家]" in t and "法人持股超過 100%" in t and "做空資料到 2026/9/30" in t
     assert "取得 12 筆、30.0 萬股" in t and "賣出 30 筆、90.0 萬股；淨減少 60.0 萬股（內部人持股的 0.4%）" in t
-    assert "XIE KEN CEO 賣出，每股 80.10 50,000 405.0" in t
+    assert "XIE KEN CEO 賣出，每股 80.10 賣出，每股 80.10 50,000 405.0" in t                    # 手機那一份在名字下面、電腦那一份自成一欄
     assert "資料還沒有" in _run_fn("ucCh", "{}")
 
 

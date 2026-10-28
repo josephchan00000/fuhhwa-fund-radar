@@ -782,8 +782,8 @@ function ucCh(S){const C=S.chip;if(!C)return `<h3>籌碼</h3><p class=st>資料�
   if(mh&&mh[1]!=null&&mh[1]>1)h+=`<p class=note>法人持股超過 100%：借出去放空的股票，被別的法人買走後又算一次。</p>`;
   if(ns)h+=`<p class=ucl>內部人近 ${ns[0]==='6m'?'6 個月':esc(ns[0])}：取得 ${ns[1]==null?'—':f(ns[1],0)} 筆、${ns[2]==null?'—':w(ns[2])}（含執行選擇權、公司給股），賣出 ${ns[3]==null?'—':f(ns[3],0)} 筆、${ns[4]==null?'—':w(ns[4])}`+
     (ns[5]!=null?`；淨${ns[5]>=0?'增加':'減少'} ${w(Math.abs(ns[5]))}${ns[6]!=null?`（內部人持股的 ${ucPc(Math.abs(ns[6]),1)}）`:''}`:'')+`。</p>`;
-  if(tx.length)h+=`<details class=mr><summary>最近的內部人交易（${tx.length} 筆）</summary><div class=tw><table class="qt ucpeer"><thead><tr><th>日期</th><th class=l>誰</th><th class=l>內容</th><th>股數</th><th>金額<span>萬美元</span></th></tr></thead><tbody>`+
-    tx.map(r=>`<tr><td>${ucMd(r[0])}</td><td class=l>${esc(r[1])}<span class=st>${esc(r[2])}</span></td><td class=l>${esc(r[3])}</td><td>${r[4]==null?'—':f(r[4],0)}</td><td>${r[5]?f(r[5]/1e4,1):'—'}</td></tr>`).join('')+`</tbody></table></div></details>`;
+  if(tx.length)h+=`<details class=mr><summary>最近的內部人交易（${tx.length} 筆）</summary><div class=tw><table class="qt ucpeer uctx"><thead><tr><th>日期</th><th class=l>誰</th><th class="l ucdk">內容</th><th>股數</th><th>金額<span>萬美元</span></th></tr></thead><tbody>`+
+    tx.map(r=>`<tr><td>${ucMd(r[0])}</td><td class=l>${esc(r[1])}<span class=st>${esc(r[2])}</span><span class="ucmb">${esc(r[3])}</span></td><td class="l ucdk">${esc(r[3])}</td><td>${r[4]==null?'—':f(r[4],0)}</td><td>${r[5]?f(r[5]/1e4,1):'—'}</td></tr>`).join('')+`</tbody></table></div></details>`;
   return h;}
 /* 分析師（Yahoo Finance）：今年、明年 EPS 預估與 90 天前、營收預估、分析師的價位（引述分析師的數字，附 Yahoo 的來源連結）、評等、財報日 */
 function ucAn(c,S){const A=S.an,src=`https://finance.yahoo.com/quote/${encodeURIComponent(c.replace(/[./]/g,'-'))}/analysis/`;
@@ -847,6 +847,9 @@ CSS = r"""
 .qt.ucpeer td.l .st{display:block;font-size:11.5px;white-space:normal;max-width:15em}
 .qt tr.ucme td{background:var(--hlcol)}
 @media (max-width:640px){.csec.uc .kps.k4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.qt.uctx .ucmb{display:none}
+@media (max-width:560px){.qt.ucpeer td,.qt.ucpeer th{padding:5px 4px;font-size:12px}.qt.ucpeer td.l .st{max-width:9em}
+.qt.uctx .ucdk{display:none}.qt.uctx .ucmb{display:block;font-size:12px;white-space:normal;margin-top:2px}.qt.uctx td.l{white-space:normal}}
 .ucrg button{font:inherit;font-size:12.5px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink2);cursor:pointer}
 .ucrg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .ucrg button:disabled{opacity:.4;cursor:default}
