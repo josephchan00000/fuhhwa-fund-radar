@@ -1318,7 +1318,7 @@ CSS = r"""
 @media (max-width:640px){
  .cfht,.cfht tbody{display:block}.cfht tr{display:grid;grid-template-columns:minmax(0,1fr) auto;padding:5px 0;border-bottom:1px solid var(--line)}
  .cfht th{display:none}.cfht td{border:0;padding:0 6px}.cfht td.st{grid-column:1/-1;font-size:12.5px}
- .cfyt{font-size:12.5px}.cfyt td,.cfyt th{padding:5px 4px}
+ .cfyt{font-size:12.5px}.cfyt td,.cfyt th{padding:5px 3px}.cfyt td.w{white-space:normal}.cfyt .cd{font-size:11.5px}
  .cfytr td:nth-child(1){grid-column:1;grid-row:1}.cfytr td:nth-child(2){grid-column:1;grid-row:2}
  .cfytr td:nth-child(3){grid-column:2;grid-row:1}.cfytr td:nth-child(4){grid-column:2;grid-row:2;font-weight:400}
  .btbl{font-size:12.5px}.btbl th.bh,.btbl td.bh,.btbl th.bd,.btbl td.bd,.btbl .bsub{display:none}
