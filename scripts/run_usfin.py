@@ -15,7 +15,6 @@ sys.path.insert(0, str(ROOT))
 import os  # noqa: E402
 
 from arm.lab import usfin as UF  # noqa: E402
-from arm.lab import ussxqm as QM  # noqa: E402
 
 
 def main() -> None:
@@ -27,6 +26,7 @@ def main() -> None:
         print(f"[美股季報] GICS 細產業：{UF.update_gics()}")
     if a.gics_only:
         return
+    from arm.lab import ussxqm as QM                       # 要 numpy（每週那一支有裝）
     L = QM.load_live()
     if not (L.get("now") or {}).get("list"):
         print("[美股季報] 還沒有每週紀錄，不算")
