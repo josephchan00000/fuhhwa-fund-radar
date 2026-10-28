@@ -64,8 +64,8 @@ def test_statuses_reasons_and_sorting():
     assert rows and all(r["st"] in BD.STATUS for r in rows)
     assert len({r["id"] for r in rows}) == len(rows)                              # id 不重複
     st = {r["id"]: r["st"] for r in rows}
-    assert st["tw:plan"] == st["us:plan"] == "use"                                # 交易計畫本身
-    assert st["tw:v3l"] == st["tw:s3"] == st["tw:s5"] == "use"                    # 台股三成的三條
+    assert st["tw:plan"] == st["us:plan"] == "obs"                                # 交易計畫本身（2026-10-28 起在研究紀錄，前瞻照記）
+    assert st["tw:v3l"] == st["tw:s3"] == st["tw:s5"] == "use"                    # 選股頁台股主要的三條
     assert st["tw:s1"] == "obs" and st["tw:v7m"] == "out" and st["tw:hd"] == "out"
     assert st["tw:rsi2"] == "obs" and st["spx:ma200"] == "obs" and st["tw:tom"] == "out"
     assert st["tw:sxlive"] == "obs" and st["tw:p5"] == "out" and st["us:qqq"] == "out"
@@ -75,9 +75,9 @@ def test_statuses_reasons_and_sorting():
     order = [BD.STATUS.index(r["st"]) for r in rows]
     assert order == sorted(order)                                                 # 依狀態排
     use = [r for r in rows if r["st"] == "use"]
-    assert [r["type"] for r in use] == sorted((r["type"] for r in use), key=BD.TYPES.index)   # 同狀態內：配置 → 個股 → 指數型
+    assert [r["type"] for r in use] == sorted((r["type"] for r in use), key=BD.TYPES.index)   # 同狀態內：交易計畫 → 個股 → 指數型
     assert B["n"] == {s: sum(r["st"] == s for r in rows) for s in BD.STATUS}
-    assert B["nm"]["tw"]["use"] == 4 and B["nm"]["us"]["use"] == 1                # 台股＝計畫＋三條；美股＝計畫
+    assert B["nm"]["tw"]["use"] == 3 and B["nm"]["us"]["use"] == 0                # 台股＝三條（這份假資料沒有新飆股、美股強勢品質股）
     why = {r["id"]: r.get("why") for r in rows}
     assert why["tw:tom"] == "勝率比任一天只高 4.6 點"                              # 「隨便挑一天」一律寫「任一天」
     assert why["tw:hd"] == "次數不夠" and why["tw:v7m"] == "每一筆賺錢的比例 61%，賺錢的比例和幅度都不夠"
@@ -104,7 +104,8 @@ def test_today_and_links():
 
 def test_missing_inputs_do_not_raise():
     B = BD.build({}, None, conf={"rows": [], "override": {}})
-    assert B["n"]["use"] == 2 and {r["id"] for r in B["rows"]} >= {"tw:plan", "us:plan"}   # 計畫本身一定在
+    st = {r["id"]: r["st"] for r in B["rows"]}
+    assert st.get("tw:plan") == st.get("us:plan") == "obs" and B["n"]["use"] == 0   # 計畫本身一定在（觀察中）
     assert BD.load_conf(BD.ROOT / "nope.json") == {"rows": [], "override": {}}
 
 
@@ -131,7 +132,7 @@ def test_rows_have_no_banned_words():
 
 
 def test_plan_names_follow_core_share_and_boom_row():
-    """corespec VER 4：計畫的名字照長抱比例（台股兩成、美股全部機動）；台股機動的一半＝新飆股，另外一列「使用中」。"""
+    """corespec VER 4：計畫的名字照長抱比例（台股兩成、美股全部機動）；新飆股另外一列「使用中」（選股頁台股的第一條）。"""
     from arm.lab import core as CO
     from arm.lab import corespec as S
     R = CO.load()
@@ -144,7 +145,7 @@ def test_plan_names_follow_core_share_and_boom_row():
     assert rows["us:plan"]["how"].startswith("全部買") and "總經策略全部空手就把全部換成現金" in rows["us:plan"]["how"]
     b = rows["tw:boom"]
     assert b["st"] == "use" and b["type"] == "個股" and b["go"] == {"go": "tw", "at": "pk-boom"}
-    assert b["today"] == "持有 1 檔・11/2 買 1 檔" and "每檔約占全部資金 5%" in b["how"]
+    assert b["today"] == "持有 1 檔・11/2 買 1 檔" and "每次買進用這條策略 12.5% 的錢" in b["how"] and b["name"] == "新飆股"
     bm = R["mk"]["tw"]["sc"]["plan"]["boom"]
     assert b["perf"] == f"年化 {BD._pc(bm['cagr'] * 100)}" and b["ref"] == f"大盤 {BD._pc(bm['hold']['cagr'] * 100)}"
     nb = {r["id"]: r for r in _build(bundle={"stk": dict(stk, boom={"d": "2026-10-22", "next": "2026-10-27", "next_wk": "2026-10-30"}),

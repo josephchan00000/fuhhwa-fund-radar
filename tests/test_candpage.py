@@ -65,7 +65,7 @@ def test_board_rows_status_today_and_perf():
     e = rows["cand:c005"]
     assert e["st"] == "cand" and e["today"] == "需要資料：每天的分點進出" and e["perf"] == "—"
     f = rows["cand:c006"]
-    assert f["st"] == "obs" and f["today"] == "納入，等計畫改版" and f["ref"] == "S&P 500 含息 13.6%"
+    assert f["st"] == "obs" and f["today"] == "納入，等放上選股頁" and f["ref"] == "S&P 500 含息 13.6%"
     assert "放進S&P 500計畫" in f["sub"]                                           # 兩個計畫都有：寫第一個並標名稱
 
 

@@ -418,7 +418,7 @@ def _intro_gap_chip() -> str:
         return ""
     n_etf = sum(1 for i in items if i.get("src") == "etf")
     n_us = sum(1 for i in items if i.get("src") == "usqm")
-    nz = [(n, t) for n, t in ((len(items) - n_etf - n_us, "基金前十大"), (n_etf, "ETF 持股"), (n_us, "美股三成")) if n]
+    nz = [(n, t) for n, t in ((len(items) - n_etf - n_us, "基金前十大"), (n_etf, "ETF 持股"), (n_us, "美股選股")) if n]
     label = ("持股簡介" if n_etf or n_us else "前十大簡介")
     split = ("・".join(f"{t} {n}" for n, t in nz) + "；" if len(nz) > 1
              else (f"{nz[0][1]}；" if nz and nz[0][1] != "基金前十大" else ""))

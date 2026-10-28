@@ -1225,7 +1225,7 @@ def board_html(B: dict) -> str:
                         f'<td class="bd">{mdd}</td><td class="bto">{_e(r.get("today") or "")}</td></tr>')
         if s == "obs":
             body.append('<tr class="bx" data-st="obs"><td colspan="6"><a data-bx="obs">再看更多觀察中</a></td></tr>')
-    return ('<h2 class="cfh">策略<span class="sub">全部 {} 條：進配置的、看著的、新找的、試過沒有用的</span></h2>'.format(len(rows))
+    return ('<h2 class="cfh">全部策略<span class="sub">{} 條：選股頁上的、看著的、新找的、試過沒有用的</span></h2>'.format(len(rows))
             + f'<div class="bfilt"><div class="seg bsts">{chips}</div><div class="seg bmks">{mks}</div></div>'
             + f'<div class="bwrap"><table class="btbl" data-n="{BD.OBS_SHOW}"><thead><tr><th>策略</th><th>市場</th><th class="bh">做什麼</th><th class="bp">成績</th>'
             + '<th class="bd">最慘跌</th><th class="bto">今天</th></tr></thead><tbody>' + "".join(body) + "</tbody></table></div>")
