@@ -309,15 +309,6 @@ def sec_quarters(f: dict) -> dict[str, dict]:
     return out
 
 
-def _near(keys: list[str], target: str, tol: int) -> str | None:
-    best, bd = None, tol + 1
-    for k in keys:
-        dd = abs(_days(target, k))
-        if dd < bd:
-            best, bd = k, dd
-    return best
-
-
 def first_filed(Q: dict, tags: tuple, extra: tuple = ()) -> dict[str, tuple]:
     """（ussxspec VER 2）每一季在 tags 裡取最早公布的那個 (數值, 公布日)，同一天公布依 tags 順序；
     tags 都沒有那一季時用 extra 的加總（這家公司有申報過的 extra 項目，那一季都要有才算；公布日取較晚的）。"""
@@ -335,10 +326,24 @@ def first_filed(Q: dict, tags: tuple, extra: tuple = ()) -> dict[str, tuple]:
     return out
 
 
-def sec_reports(doc: dict, eps: list[dict]) -> list[dict]:
-    """一檔的 SEC 資料 → 每一季的財報條件（依申報日排序）：[{"filed", "end", "sy", "sacc", "gm", "gmd", "om", "omd", "roe", "c33"}]
-    ＋流通股數 [{"filed", "end", "v"}]。eps＝eps_reports 的結果（連三季變好用 EPS 年增）。"""
-    Q = sec_quarters((doc or {}).get("f") or {})
+def _ko(keys) -> list[tuple[str, int]]:
+    """日期鍵 → [(鍵, 日序)]，照原本的順序（_near_o 用，日期只解析一次）。"""
+    return [(k, date.fromisoformat(k).toordinal()) for k in keys]
+
+
+def _near_o(ko: list[tuple[str, int]], t: int, tol: int) -> str | None:
+    """離日序 t 最近、而且差距在 tol 天以內的鍵；差距相同時取 ko 裡先遇到的（ko 的順序＝原本字典或清單的順序）。"""
+    best, bd = None, tol + 1
+    for k, o in ko:
+        dd = abs(o - t)
+        if dd < bd:
+            best, bd = k, dd
+    return best
+
+
+def _sec_ctx(Q: dict, eps: list[dict]):
+    """季資料（sec_quarters 的結果）＋EPS → (營收 {季底: (數值, 公布日)}, 季底清單, rec(季底) → 那一季的財報條件)。
+    sec_reports（全部資料）與 sec_states（每次申報後只用當時的資料，ussxspec VER 8）共用同一套算法。"""
     rev = first_filed(Q, X.REV_TAGS, X.REV_EXTRA)
     cost = first_filed(Q, X.COST_TAGS)
     gp = dict(Q.get("GrossProfit") or {})
@@ -349,15 +354,24 @@ def sec_reports(doc: dict, eps: list[dict]) -> list[dict]:
     eq = Q.get("StockholdersEquity") or {}
     ends = sorted(rev)
     tol = X.SEC_TOL_D
+    ko_ends = _ko(ends)
+    M = {"gp": (gp, _ko(gp)), "oi": (oi, _ko(oi)), "ni": (ni, _ko(ni)), "eq": (eq, _ko(eq))}
+    od: dict[str, int] = {}
+
+    def o_of(e: str) -> int:
+        v = od.get(e)
+        if v is None:
+            v = od[e] = date.fromisoformat(e).toordinal()
+        return v
 
     def back(e: str, days: int):
-        t = (date.fromisoformat(e) - timedelta(days=days)).isoformat()
-        return _near(ends, t, tol)
+        return _near_o(ko_ends, o_of(e) - days, tol)
 
-    def val(d: dict, e: str | None):
+    def val(name: str, e: str | None):
         if e is None:
             return None
-        k = _near(list(d), e, tol) if e not in d else e
+        d, kd = M[name]
+        k = _near_o(kd, o_of(e), tol) if e not in d else e
         return d[k][0] if k is not None else None
 
     def sy(e):
@@ -366,11 +380,11 @@ def sec_reports(doc: dict, eps: list[dict]) -> list[dict]:
         return max(-1.0, min(3.0, a / b - 1)) if a is not None and b and b > 0 else None
 
     def gm(e):
-        r, g = rev[e][0], val(gp, e)
+        r, g = rev[e][0], val("gp", e)
         return g / r if r and g is not None and r > 0 else None
 
     def om(e):
-        r, o = rev[e][0], val(oi, e)
+        r, o = rev[e][0], val("oi", e)
         return o / r if r and o is not None and r > 0 else None
 
     em = {}
@@ -384,8 +398,7 @@ def sec_reports(doc: dict, eps: list[dict]) -> list[dict]:
                 return em[m + dm]["ey"]
         return None
 
-    out = []
-    for e in ends:
+    def rec(e: str) -> dict:
         fd = rev[e][1]
         p1, p2, p4 = back(e, 91), back(e, 182), back(e, 365)
         s0 = sy(e)
@@ -400,28 +413,86 @@ def sec_reports(doc: dict, eps: list[dict]) -> list[dict]:
         chain = [e, p1, back(e, 182), back(e, 273)]
         # 只給研究用（不在 FEATS，規則不看）：上一季營益率、近四季營益率（四季營業利益合計 ÷ 四季營收合計，四季都要有）
         f["om1"] = om(p1) if p1 else None
-        ois = [val(oi, c) for c in chain] if None not in chain else [None]
+        ois = [val("oi", c) for c in chain] if None not in chain else [None]
         rvs = [rev[c][0] for c in chain] if None not in chain else [None]
         f["om4"] = (sum(ois) / sum(rvs) if None not in ois and None not in rvs and sum(rvs) > 0 else None)
         oms = [om(c) for c in chain] if None not in chain else [None]
         f["omm"] = float(np.median(oms)) if None not in oms else None       # 近四季營益率的中位數
         # 和去年同一季比：營業利益增加的比營收增加的多多少（÷ 這一季營收；> 0＝不是靠賣得多，是一次性收入或成本變少）
-        oy, ry = (val(oi, p4), rev[p4][0]) if p4 else (None, None)
-        o_now = val(oi, e)
+        oy, ry = (val("oi", p4), rev[p4][0]) if p4 else (None, None)
+        o_now = val("oi", e)
         f["oxr"] = (((o_now - oy) - (rev[e][0] - ry)) / rev[e][0]
                     if o_now is not None and oy is not None and ry is not None and rev[e][0] and rev[e][0] > 0 else None)
-        nis = [val(ni, c) for c in chain] if None not in chain else [None]
-        e0, e4 = val(eq, e), val(eq, p4) if p4 else None
+        nis = [val("ni", c) for c in chain] if None not in chain else [None]
+        e0, e4 = val("eq", e), val("eq", p4) if p4 else None
         f["roe"] = (sum(nis) / ((e0 + e4) / 2) if None not in nis and e0 and e4 and e0 > 0 and e4 > 0 else None)
         y0, y1, y2 = ey_at(e), ey_at(p1) if p1 else None, ey_at(p2) if p2 else None
         vals = (y0, y1, y2, s0, s1, s2, g0, g1, g2)
         f["c33"] = None if any(v is None for v in vals) else bool(y0 > y1 > y2 and s0 > s1 > s2 and g0 > g1 > g2)
-        out.append(f)
-    out.sort(key=lambda x: (x["filed"], x["end"]))
-    sh = [{"filed": fd, "end": e, "v": v} for e, (v, fd) in
-          ((Q.get("EntityCommonStockSharesOutstanding") or {}).items())]
+        return f
+
+    return rev, ends, rec
+
+
+def _shares(Q: dict) -> list[dict]:
+    """流通股數（時點項目，每一個日子只用第一次申報的那一列；本來就只用當時拿得到的）。"""
+    sh = [{"filed": fd, "end": e, "v": v} for e, (v, fd) in ((Q.get("EntityCommonStockSharesOutstanding") or {}).items())]
     sh.sort(key=lambda x: (x["filed"], x["end"]))
-    return out, sh
+    return sh
+
+
+def sec_reports(doc: dict, eps: list[dict]) -> list[dict]:
+    """一檔的 SEC 資料（全部）→ 每一季的財報條件（依申報日排序）：[{"filed", "end", "sy", "sacc", "gm", "gmd", "om", "omd", "roe", "c33"}]
+    ＋流通股數 [{"filed", "end", "v"}]。eps＝eps_reports 的結果（連三季變好用 EPS 年增）。
+    ussxspec VER 2～7 的算法：每一季的值用全部資料（會用到後來才申報的數字）；VER 8 起每週用 sec_states，這一支留著當對照與切資料測試的定義。"""
+    Q = sec_quarters((doc or {}).get("f") or {})
+    _, ends, rec = _sec_ctx(Q, eps)
+    out = [rec(e) for e in ends]
+    out.sort(key=lambda x: (x["filed"], x["end"]))
+    return out, _shares(Q)
+
+
+def sec_states(doc: dict, eps: list[dict]) -> tuple[list[dict], list[dict]]:
+    """ussxspec VER 8：每一次有新的申報（或新的 EPS 公布）就重算——只用那一天以前（含）申報的列與公布的 EPS，照 sec_reports 的算法，
+    取最新的那一季（依申報日、季底排最後的那一筆）；和上一次不一樣才記一筆，"avail"＝重算那一天（申報日或公布日）。
+    第 i 天用 avail 早於那一天的最後一筆＝把資料切在那一天以前、用 sec_reports 算的最後一筆（"filed" 照舊是那一季營收第一次申報的日子）。
+    算出來沒有任何一季（例：後來申報的項目讓營收湊不齊）也記一筆 {"avail", "filed": None, "end": None}＝那天起沒有財報條件。"""
+    f = (doc or {}).get("f") or {}
+    fds = {r[3] for rows in f.values() for r in rows}
+    cps = sorted(fds | {x["date"] for x in eps})
+    out: list[dict] = []
+    prev: dict | None = None
+    Q = None
+    k = 0
+    for cp in cps:
+        if cp in fds:
+            Q = sec_quarters({t: [r for r in rows if r[3] <= cp] for t, rows in f.items()})
+        while k < len(eps) and eps[k]["date"] <= cp:
+            k += 1
+        if Q is None:
+            continue
+        rev, ends, rec = _sec_ctx(Q, eps[:k])
+        cur = rec(max(ends, key=lambda e: (rev[e][1], e))) if ends else None
+        if cur != prev and (cur is not None or prev is not None):
+            out.append({**cur, "avail": cp} if cur is not None else {"avail": cp, "filed": None, "end": None})
+        prev = cur
+    return out, _shares(sec_quarters(f))
+
+
+def sec_index(sr: list[dict], cal: list[str], pit: bool) -> tuple[list[int], list[int | None]]:
+    """每一筆從第幾個交易日起拿得到（sec_states 用重算那一天、sec_reports 用申報日；都是下一個交易日起），
+    以及這一季營收第一次申報的交易日索引（多久沒更新從這天算；沒有任何一季的那一筆＝None）。"""
+    sa = [bisect.bisect_right(cal, x["avail" if pit else "filed"]) for x in sr]
+    fa = [bisect.bisect_right(cal, x["filed"]) if x["filed"] else None for x in sr]
+    return sa, fa
+
+
+def sec_at(sr: list[dict], sa: list[int], fa: list[int | None], i: int) -> dict | None:
+    """第 i 天用的那一筆：拿得到的最後一筆，而且這一季營收第一次申報在 EPS_RECENT 個交易日以內（太舊、或那一筆沒有任何一季＝None）。"""
+    q = bisect.bisect_right(sa, i) - 1
+    if q >= 0 and fa[q] is not None and i - fa[q] <= X.EPS_RECENT:
+        return sr[q]
+    return None
 
 
 # ── 標籤 ─────────────────────────────────────────────────────────────────────
@@ -514,10 +585,12 @@ def vcp_flags(pb: dict, P: dict, ii: np.ndarray, jj: np.ndarray, workers: int = 
 # ── 組成一份樣本 ─────────────────────────────────────────────────────────────────
 
 def build(P: dict, liq: float = X.LIQ_MIN, earn: dict | None = None, sec: dict | None = None, screen: dict | None = None,
-          workers: int = 4, log=print, vcp: bool = True, labels_on: bool = True, extra: tuple = ()) -> dict:
+          workers: int = 4, log=print, vcp: bool = True, labels_on: bool = True, extra: tuple = (), pit: bool | None = None) -> dict:
     """earn＝ussxpanel.earnings()；sec＝{代號: secfin 的檔}（None＝讀資料夾的 sec/，還沒抓過＝財報條件全部 nan）；screen＝篩選器。
     vcp、labels_on＝False：不算 VCP（全部 False）、不算標籤（y＝{}）——美股三成規則 QM 用不到（ussxspec VER 3），省一半時間。
-    extra＝另外要填的財報欄位（sec_reports 有、FEATS 沒有的，例 om1、om4；只給研究用，預設不填＝和原本完全相同）。"""
+    extra＝另外要填的財報欄位（sec_reports 有、FEATS 沒有的，例 om1、om4；只給研究用，預設不填＝和原本完全相同）。
+    pit＝財報條件只用當時已經申報的數字（sec_states；None＝ussxspec.SEC_PIT，VER 8 起 True）；False＝VER 2～7 的舊算法（sec_reports，對照用）。"""
+    pit = X.SEC_PIT if pit is None else bool(pit)
     import time
     t0 = time.time()
     cal = P["cal"]
@@ -577,10 +650,10 @@ def build(P: dict, liq: float = X.LIQ_MIN, earn: dict | None = None, sec: dict |
         er = eps_reports(earn.get(s) or [], spl)
         ra = [bisect.bisect_right(cal, x["date"]) for x in er]
         doc = sec_get(s) if sec_get else None
-        sr, sh = sec_reports(doc, er) if doc else ([], [])
+        sr, sh = (sec_states(doc, er) if pit else sec_reports(doc, er)) if doc else ([], [])
         if sr:
             n_sec += 1
-        sa = [bisect.bisect_right(cal, x["filed"]) for x in sr]
+        sa, fa = sec_index(sr, cal, pit)
         ha = [bisect.bisect_right(cal, x["filed"]) for x in sh]
         for k in ks:
             i = int(ii[k])
@@ -590,9 +663,8 @@ def build(P: dict, liq: float = X.LIQ_MIN, earn: dict | None = None, sec: dict |
                 for key in eps_keys:
                     v = x.get(key)
                     f[key][k] = np.nan if v is None else float(v)
-            q = bisect.bisect_right(sa, i) - 1
-            if q >= 0 and i - sa[q] <= X.EPS_RECENT:
-                x = sr[q]
+            x = sec_at(sr, sa, fa, i)
+            if x is not None:
                 for key in sec_keys:
                     if key == "cap":
                         continue
@@ -603,7 +675,7 @@ def build(P: dict, liq: float = X.LIQ_MIN, earn: dict | None = None, sec: dict |
                 mult = split_between(spl, sh[q]["end"], cal[i])
                 raw = float(P["RAW"][i, j])
                 f["cap"][k] = sh[q]["v"] * mult * raw if np.isfinite(raw) else np.nan
-    log(f"[ussxfeat] EPS／財報 {time.time() - t0:.0f}s（有 SEC 資料 {n_sec} 檔）")
+    log(f"[ussxfeat] EPS／財報 {time.time() - t0:.0f}s（有 SEC 資料 {n_sec} 檔；{'每次申報後只用當時的數字' if pit else '舊算法：用全部資料'}）")
     y = labels(pb, P, ii, jj) if labels_on else {}
     log(f"[ussxfeat] 標籤 {time.time() - t0:.0f}s")
     return {"d": np.array([cal[i] for i in ii]), "di": ii, "c": np.array([P["sym"][j] for j in jj]), "j": jj, "w": ww,

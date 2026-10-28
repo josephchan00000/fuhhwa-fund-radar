@@ -267,16 +267,21 @@ def test_review_percentile_and_low_flag():
 
 
 def test_saved_research_reproduces_section_12_and_follows_the_verdict():
-    """入庫的研究檔（scripts/run_ussx.py --qm）：照 VER 3 的設定重現第 12 節（ussxspec VER 4 ③）；
-    VER 4 的設定（空位現金、核心＝corespec 的 core_of）算判定，換不換照判定。"""
+    """入庫的研究檔（scripts/run_ussx.py --qm）：VER 8——財報只用當時已經申報的數字（pit）算成績與判定；換不換照使用者 2026-10-28 的決定
+    （QM_KEEP：判定照算、不擋）；重現檢查用舊算法、VER 3 的設定（只記錄），修正前的數字並列。"""
     from arm.lab import corespec as CS
     R = QM.load()
-    assert R and R["ver"] == X.VER and R["repro"]["ok"] and R["repro"]["set"] == X.QM_REPRO_SET
-    assert abs(R["repro"]["cagr"] - X.QM_REF["cagr"]) <= X.QM_REPRO["cagr"]
+    assert R and R["ver"] == X.VER and R["pit"] is True and R["keep"] is X.QM_KEEP is True
+    rp = R["repro"]
+    assert rp["set"] == X.QM_REPRO_SET and rp["pit"] is False and rp["block"] is X.QM_REPRO_BLOCK is False
+    assert rp["ok"] and abs(rp["cagr"] - X.QM_REF["cagr"]) <= X.QM_REPRO["cagr"]      # 舊算法沒有被改寫程式動到
     assert R["idle"] == X.QM_IDLE == "cash" and R["core"] == {mk: CS.core_of(mk) for mk in X.QM_PLANS}
-    assert R["switch"] == {mk: bool(R["repro"]["ok"] and R["verdict"]["pass"][mk]) for mk in X.QM_PLANS}
+    assert R["switch"] == {mk: True for mk in X.QM_PLANS}
     for mk in X.QM_PLANS:
+        assert set(R["verdict"]["pass"]) == set(X.QM_PLANS)
         sc = R["sc"][mk]
         assert sc["key"] == "plan" and sc["sleeve"] == "qm" and sc["core"] == CS.core_of(mk)
-        assert sc["plan"]["m"] > R["plans"][f"{mk}_main"]["cur"]["plan"]["m"]
+        assert R["prefix"]["plans"][mk]["new"]["plan"]["m"] != R["plans"][f"{mk}_main"]["new"]["plan"]["m"]
+    assert R["prefix"]["sleeve"]["cagr"] != R["sleeve"]["main"]["cagr"]
     assert set(R["review"]) == {str(k) for k in X.QM_REVIEW}
+    assert "nofix" in R["desc"] and R["desc"]["nofix"]["cagr"] is not None
