@@ -9,7 +9,7 @@ from arm.lab import ussxspec as X
 
 
 def test_ussx_spec_v1_is_locked():
-    assert X.VER == 7 and X.SPEC_DATE == "2026-10-24" and X.DATA_BRANCH == "claude/ussx-data"
+    assert X.VER == 8 and X.SPEC_DATE == "2026-10-28" and X.DATA_BRANCH == "claude/ussx-data"
     assert X.PX_START == "2006-01-01"
     assert (X.LIQ_MIN, X.PX_MIN, X.AGE_MIN, X.EPS_RECENT, X.SMALL_LIQ) == (20e6, 5.0, 252, 270, 5e6)
     assert X.BOOKS == {"R60": {"n": 60, "g": 0.20, "how": "close"}, "A": {"n": 60, "g": 0.50, "how": "high"},
@@ -135,3 +135,13 @@ def test_qm_v7_one_off_income_fix_is_locked():
     assert X.QM_OM_FIX == {"kind": "spike_ox", "spike": 0.20} == OS.CANDS["D"]
     assert X.QM_EXTRA == ("om1", "oxr") and X.QM_REPRO_FIX is False and X.QM_REF_END == "2026-10-22"
     assert X.QM["om"] == OS.OM_MIN
+
+
+def test_qm_v8_point_in_time_sec_is_locked():
+    """VER 8（規劃第 15 節、docs/lab_review_plan.md 第 8 節）：財報條件只用當時已經申報的數字；判定照算、不決定換不換
+    （使用者決定維持強勢品質股）；重現檢查（舊算法）只記錄、不擋。規則本身（QM、檔數、出場、D）一個字都不動。"""
+    assert X.SEC_PIT is True and X.QM_KEEP is True and X.QM_REPRO_BLOCK is False
+    assert X.QM == {"rs": 80.0, "d52h": -0.25, "om": 0.10, "roe": 0.15, "cap": 2e9}
+    assert X.QM_SLOTS == 8 and X.QM_EXIT == {"ma": 50} and X.QM_OM_FIX == {"kind": "spike_ox", "spike": 0.20}
+    assert X.QM_LIVE == "2026-10-23" and X.QM_REF == {"cagr": 0.2444, "plan_m": 8.8625} and X.QM_REF_END == "2026-10-22"
+    assert X.EPS_RECENT == 270
