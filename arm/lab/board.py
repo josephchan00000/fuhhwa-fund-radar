@@ -96,7 +96,7 @@ def plan_rows(bundle: dict | None) -> list[dict]:
             if p:
                 s = p
         row = {"id": f"{gid}:plan", "name": _plan_name(mk), "mk": MK_NAMES["tw"] if mk == "tw" else "美股", "mkk": gid, "type": "配置",
-               "st": "use", "how": _plan_how(mk, stk, on), "go": {"go": gid}}
+               "st": "use", "how": _plan_how(mk, stk, on), "go": {"go": "plan", "pm": gid}}
         if s:
             row.update({"perf": f"年化 {_pc((s['plan'].get('cagr') or 0) * 100)}", "ref": f"一直抱著 {_pc((s['hold'].get('cagr') or 0) * 100)}",
                         "mdd": _pc(s["plan"]["mdd"] * 100, 0), "mddr": _pc(s["hold"]["mdd"] * 100, 0),
@@ -124,7 +124,7 @@ def boom_rows(bundle: dict | None) -> list[dict]:
         + ("" if held or buys or not P.get("next_wk") else f"・名單 {int(P['next_wk'][5:7])}/{int(P['next_wk'][8:10])} 收盤產生")
     row = {"id": "tw:boom", "name": "新飆股（台股機動的一半）", "mk": "台股", "mkk": "tw", "type": "個股", "st": "use",
            "how": f"每週五收盤用之前幾年找出來的條件挑股票、依強勢排；下一個交易日開盤買，每檔約占全部資金 {CPG._wp(CPG._boom_slot(stk))}，抱 60 個交易日",
-           "go": {"go": "tw", "at": "cf-tw-sx"}, "today": today}
+           "go": {"go": "tw", "at": "pk-boom"}, "today": today}
     if bm.get("cagr") is not None:
         h = bm.get("hold") or {}
         row.update({"perf": f"年化 {_pc(bm['cagr'] * 100)}", "mdd": _pc(bm["mdd"] * 100, 0),
@@ -198,7 +198,7 @@ def qm_rows(bundle: dict | None) -> list[dict]:
     buys = len(n.get("buy") or [])
     today = (f"持有 {held} 檔" if held else "空手") + (f"・{int(n['next'][5:7])}/{int(n['next'][8:10])} 買 {buys} 檔" if buys and n.get("next") else "")
     row = {"id": "us:qm", "name": "美股強勢品質股（美股機動）", "mk": "美股", "mkk": "us", "type": "個股", "st": "use" if on else "obs",
-           "how": "每週五挑強勢、賺錢的中大型股，最多 8 檔；收盤跌破 50 日線就賣", "go": {"go": "us"}, "today": today}
+           "how": "每週五挑強勢、賺錢的中大型股，最多 8 檔；收盤跌破 50 日線就賣", "go": {"go": "us", "at": "pk-qm"}, "today": today}
     if sl.get("cagr") is not None:
         row.update({"perf": f"年化 {_pc(sl['cagr'] * 100)}", "ref": f"S&P 500 含息 {_pc((bm.get('cagr') or 0) * 100)}",
                     "mdd": _pc(sl.get("mdd", 0) * 100, 0), "mddr": _pc((bm.get("mdd") or 0) * 100, 0),

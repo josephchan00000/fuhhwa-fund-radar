@@ -69,12 +69,12 @@ def _defs(js: str):
 def test_three_scripts_have_no_name_collisions():
     """五支 JS 串成同一個 <script>：同名函式會被後面的蓋掉（2026-10-18 位置圖原本叫 sxSec，和飆股段既有的 sxSec 撞名），
     同名的頂層 const／let 會讓整頁報錯。macpage＝總經策略（2026-10-22，docs/lab_strategy_ia_plan.md）；
-    cfgpage＝配置頁（2026-10-23，docs/lab_ia_v5_plan.md 第 18 節）；uscardpage＝美股個股卡（2026-10-24）。"""
+    cfgpage＝配置頁（2026-10-23，docs/lab_ia_v5_plan.md 第 18 節）；uscardpage＝美股個股卡（2026-10-24）；pickpage＝選股頁（2026-10-28）。"""
     from arm.lab import macpage
     names = {}
-    from arm.lab import cfgpage, uscardpage
+    from arm.lab import cfgpage, pickpage, uscardpage
     for nm, js in (("page", page._JS), ("stockviz", stockviz.JS), ("macpage", macpage.JS), ("cfgpage", cfgpage.JS),
-                   ("uscardpage", uscardpage.JS), ("copage", copage.JS)):
+                   ("pickpage", pickpage.JS), ("uscardpage", uscardpage.JS), ("copage", copage.JS)):
         fn, top = _defs(js)
         for n in fn + top:
             names.setdefault(n, []).append(nm)

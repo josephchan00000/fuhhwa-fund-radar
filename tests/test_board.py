@@ -98,7 +98,7 @@ def test_today_and_links():
     assert rows["tw:s3"]["today"] == "空手"
     assert rows["tw:v3l"]["go"] == {"go": "st", "at": "st-v3l"}                    # 點名稱開研究紀錄的說明卡
     assert rows["tw:rsi2"]["go"] == {"go": "macst", "at": "ms-rsi2", "gm": "tw"}
-    assert rows["tw:plan"]["go"] == {"go": "tw"} and rows["us:plan"]["go"] == {"go": "us"}
+    assert rows["tw:plan"]["go"] == {"go": "plan", "pm": "tw"} and rows["us:plan"]["go"] == {"go": "plan", "pm": "us"}   # 交易計畫在研究紀錄（2026-10-28 起）
     assert rows["tw:sxlive"]["today"] in ("還沒有紀錄",) or rows["tw:sxlive"]["today"].startswith("已記 ")
 
 
@@ -143,7 +143,7 @@ def test_plan_names_follow_core_share_and_boom_row():
     assert "0050 兩成一直抱著；八成一半買新飆股、一半跟著 3 條個股策略" in rows["tw:plan"]["how"]
     assert rows["us:plan"]["how"].startswith("全部買") and "總經策略全部空手就把全部換成現金" in rows["us:plan"]["how"]
     b = rows["tw:boom"]
-    assert b["st"] == "use" and b["type"] == "個股" and b["go"] == {"go": "tw", "at": "cf-tw-sx"}
+    assert b["st"] == "use" and b["type"] == "個股" and b["go"] == {"go": "tw", "at": "pk-boom"}
     assert b["today"] == "持有 1 檔・11/2 買 1 檔" and "每檔約占全部資金 5%" in b["how"]
     bm = R["mk"]["tw"]["sc"]["plan"]["boom"]
     assert b["perf"] == f"年化 {BD._pc(bm['cagr'] * 100)}" and b["ref"] == f"大盤 {BD._pc(bm['hold']['cagr'] * 100)}"

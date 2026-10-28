@@ -66,7 +66,7 @@ def test_workflows_commit_company_files():
 def test_page_wires_company_analysis_on_demand():
     """公司分析在個股卡與「查公司」；資料點進去才抓（co/{代號}.json、x9t.json、co/index.json）。"""
     assert 'id="coq"' in copage.SEARCH_HTML and 'id="cos" hidden' in copage.SEARCH_HTML   # 頂欄小字「查公司」點了才打開
-    assert "appnav.bar(\"cfg\", search=copage.SEARCH_HTML)" in (ROOT / "arm/lab/page.py").read_text("utf-8")
+    assert "appnav.bar(\"pick\", search=copage.SEARCH_HTML)" in (ROOT / "arm/lab/page.py").read_text("utf-8")
     assert "if(location.hash==='#q')op();" in copage.JS                                  # 別頁頂欄連過來（x9.html#q）直接打開
     assert "h+=coSec(c,W,()=>reStock(c));" in page._JS and "coAfterStock(c);" in page._JS
     assert "['co-sum','公司']" in page._JS

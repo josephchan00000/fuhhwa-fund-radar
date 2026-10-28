@@ -70,7 +70,7 @@ def test_build_order_sections_and_numbers(R, QMX, monkeypatch):
     v = uc["s"]["VLO"]
     assert v["nm"] == "瓦萊羅能源" and v["what"] == "大型煉油商" and v["px"] == card["s"]["VLO"]["c"][-1]
     st = _text(v["st"])
-    assert f"占全部資金 {CPG._wp(G['rows'][0]['w'])}" in st and _has(v["st"], "8/31（一）買進 359.88（回測），現在 419.28（+16.5%）")
+    assert f"占這條策略的錢 {CPG._wp(G['rows'][0]['w'])}" in st and _has(v["st"], "8/31（一）買進 359.88（回測），現在 419.28（+16.5%）")
     assert "上線以來" not in st                                  # 沒有開始照做那一週的紀錄：不寫上線以來
     assert "收盤跌破 50 日線，就在下一個交易日開盤賣" in st and "50 日線現在" in st
     assert v["ent"] == ["2026-08-31", pytest.approx(419.26 / 1.165)] and v["out"] is None

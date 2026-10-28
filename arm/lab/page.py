@@ -8,9 +8,10 @@
 今日｜個股｜投信｜訊號｜策略｜指數 六個分頁，一打開是「今日」重點；每頁頂端先給白話結論，
 分頁內各段全部展開、第二排是跳段目錄（同主頁慣例）。術語旁的 ⓘ 讀同一份辭典 GL，
 原「說明」分頁改為頂欄「ⓘ 名詞」。
-2026-10-23 起是「配置」頁（docs/lab_ia_v5_plan.md 第 18 節）：台股｜美股｜策略｜個股（工具），版面在 cfgpage.py；
-原本的個股策略、總經策略、後台留在同一頁，改從研究紀錄頁（x9r.html）進來。
-配置要用三種警訊今天的讀數，那是景氣頁算的（同一個程序裡較晚才建）：build() 先用上一版的讀數建一次，
+2026-10-23 起是「配置」頁（docs/lab_ia_v5_plan.md 第 18 節）；2026-10-28 起是「選股」頁（docs/lab_pick_page_plan.md）：
+台股｜美股（每條選股策略的進場行事曆與卡片，pickpage.py）｜個股（工具）。原本的配置（交易計畫：台股、美股，cfgpage.py）與全部策略表
+搬到研究紀錄身分（?v=plan&m=tw|us、?v=strat），和個股策略、總經策略、後台一樣從研究紀錄頁（x9r.html）進來。
+交易計畫要用三種警訊今天的讀數，那是景氣頁算的（同一個程序裡較晚才建）：build() 先用上一版的讀數建一次，
 景氣頁建完後 finish() 用今天的讀數重建（scripts/gen_fund_dashboard.py）。
 """
 from __future__ import annotations
@@ -107,10 +108,19 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
 
 
 def _cfg(data: dict) -> bool:
-    """配置頁（cfgpage.build）放進 data["cfg"]；算不出來只印日誌、頁面寫「還沒算出來」。回傳有沒有算出來。"""
+    """選股頁（pickpage.build → data["pick"]）與研究紀錄・交易計畫（cfgpage.build → data["cfg"]）；算不出來只印日誌、頁面寫「還沒算出來」。
+    美股個股卡只放選股頁那一份（D.pick.us.uc；交易計畫的美股列點了開同一張）。回傳交易計畫有沒有算出來。"""
     try:
-        from . import cfgpage, sigpage
-        data["cfg"] = cfgpage.build(data, sigpage.core_data(record=False))
+        from . import cfgpage, pickpage, sigpage
+        bundle = sigpage.core_data(record=False)
+        try:
+            data["pick"] = pickpage.build(data, bundle)
+        except Exception as e:               # noqa: BLE001 —— 失敗只是選股頁空著
+            print(f"[選股] ⚠ 選股頁沒有算出來：{type(e).__name__}: {e}")
+            data["pick"] = {}
+        data["cfg"] = cfgpage.build(data, bundle)
+        if isinstance((data["cfg"] or {}).get("us"), dict) and ((data.get("pick") or {}).get("us") or {}).get("uc"):
+            data["cfg"]["us"].pop("uc", None)
         try:                                 # 上線後那一欄：每天收盤的台股持股比例（只有 CI 寫回 data/lab/ytd_live.json）
             from . import corespec, ytd
             ytd.record_tw(data.get("ytd_day"), (data["cfg"].get("tw") or {}).get("pos"), corespec.core_of("tw"))
@@ -216,14 +226,17 @@ def render(data: dict, ser_v: str | None = None) -> str:
     main["serv"] = ser_v or _ver(ser_json(data))
     main["asl"] = asof_line(data)                 # 資料日（個股工具那一列；第 4 段起不放頂欄）
     blob = _dump(main).replace("</", "<\\/")
-    from . import appnav, cfgpage, copage, corepage, macpage, stockviz, uscardpage   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
+    from . import appnav, cfgpage, copage, corepage, macpage, pickpage, stockviz, uscardpage   # 公司分析（docs/lab_company_plan.md 第 5 節）：CSS 接在後面；JS 放在頁面初始化之前
                                              # （初始化會開分頁與 #s= 個股卡，這時公司分析的頂層 const 必須已經初始化）
                                              # stockviz＝機會、籌碼頁的三張圖（docs/lab_visual_plan.md 第 10 節），同樣放在初始化之前
                                              # cfgpage＝配置頁（台股、美股、策略；docs/lab_ia_v5_plan.md 第 18 節），同樣放在初始化之前
-                                             # uscardpage＝美股個股卡（docs/lab_cfg_v2_plan.md 第 3.3 節；要用 cfgpage 的 CFG），放在 cfgpage 後面
-    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("cfg", search=copage.SEARCH_HTML))
-            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS + stockviz.CSS + macpage.CSS + corepage.CSS + cfgpage.CSS + uscardpage.CSS + theme_css())
-            .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", stockviz.JS + macpage.JS + cfgpage.JS + uscardpage.JS + copage.JS)))
+                                             # pickpage＝選股頁（台股、美股；docs/lab_pick_page_plan.md），放在 cfgpage 後面（用到它的 cfSpot）
+                                             # uscardpage＝美股個股卡（docs/lab_cfg_v2_plan.md 第 3.3 節；資料在選股頁的 D.pick.us.uc），放在後面
+    return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("pick", search=copage.SEARCH_HTML))
+            .replace("{{CSS}}", _CSS + copage.CSS + appnav.CSS + stockviz.CSS + macpage.CSS + corepage.CSS + cfgpage.CSS + pickpage.CSS
+                     + uscardpage.CSS + theme_css())
+            .replace("{{DATA}}", blob).replace("{{JS}}", _JS.replace("/*@@COPAGE@@*/", stockviz.JS + macpage.JS + cfgpage.JS + pickpage.JS
+                                                                    + uscardpage.JS + copage.JS)))
 
 
 _HTML = """<!doctype html>
@@ -231,14 +244,15 @@ _HTML = """<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="data:,">
-<title>配置</title>
+<title>選股</title>
 <style>{{CSS}}</style></head>
 <body>
 <div class="top">{{APPTAB}}<a class="back" href="./"><span class="bk1">返回</span>主頁</a></div>
 <header class="hd"><div class="hdi">
   <nav class="tabs" id="tabs">
-    <a data-t="tw" data-p="cfg">台股</a><a data-t="us" data-p="cfg">美股</a><a data-t="strat" data-p="cfg">策略</a><a data-t="tool" data-p="cfg">個股</a>
+    <a data-t="tw" data-p="pick">台股</a><a data-t="us" data-p="pick">美股</a><a data-t="tool" data-p="pick">個股</a>
     <a class="rbk" href="x9r.html" data-p="r" hidden>‹ 研究紀錄</a><a data-t="stg" data-p="r" hidden>個股策略</a><a data-t="mac" data-p="r" hidden>總經策略</a>
+    <a data-t="plan" data-p="r" hidden>交易計畫</a><a data-t="strat" data-p="r" hidden>全部策略</a>
     <a class="vlb" data-t="bo" data-p="r" hidden>後台</a><a class="glb" id="glb" data-p="r" hidden><i class="gi">i</i>名詞</a>
   </nav>
   <nav class="snav" id="snav"></nav>
@@ -553,7 +567,7 @@ function sgChips(arr){return (arr||[]).map(k=>`<span class="sg${RISK.has(k)?' rk
 function issOf(etfs){return [...new Set((etfs||[]).map(e=>(E[e]||{}).is||e))];}
 function sec(id,nav,title,sub,body,rt=''){return `<section class=sec id="${id}" data-nav="${esc(nav)}"><h2>${title}${sub?`<span class=sub>${sub}</span>`:''}${rt?`<span class=rt>${rt}</span>`:''}</h2>${body}</section>`;}
 const MK={tw:'上市',tp:'上櫃',os:'海外'};const MKF={twall:'台股',tw:'上市',tp:'上櫃',os:'海外',all:'全部'};
-const S={tab:'stk',stf:false,q:'',mk:'twall',sig:'',liq:false,sort:'a5v',dir:-1,n:60,vw:'etf',mmk:'tw'};let STK=[];
+const S={tab:'stk',stf:false,q:'',mk:'twall',sig:'',liq:false,sort:'a5v',dir:-1,n:60,vw:'etf',mmk:'tw',pmk:'tw'};let STK=[];
 try{const z=JSON.parse(localStorage.getItem('lab.s')||'{}');for(const k of ['mk','sort','dir','liq','vw'])if(k in z)S[k]=z[k];}catch(e){}
 if(!({etf:1,chip:1,ta:1})[S.vw])S.vw='etf';
 function save(){try{localStorage.setItem('lab.s',JSON.stringify({mk:S.mk,sort:S.sort,dir:S.dir,liq:S.liq,vw:S.vw}));}catch(e){}}
@@ -789,7 +803,7 @@ function vStk(){
    `<select id=mk aria-label="市場">${Object.entries(MKF2).map(([m,t])=>`<option value=${m}${S.mk===m?' selected':''}>${t}</option>`).join('')}</select>`+
    `<select id=sgf aria-label="訊號"><option value="">全部訊號</option>${Object.keys(SD).filter(k=>cnt[k]).map(k=>`<option value=${k}${S.sig===k?' selected':''}>${RISK.has(k)?'⚠ ':''}${esc(SD[k][0])}（${cnt[k]}）</option>`).join('')}<option value=nb${S.sig==='nb'?' selected':''}>10 日內新建倉（台股 ${nbN}）</option>${SXC.size?`<option value=sx${S.sig==='sx'?' selected':''}>飆股候選（${ROWS.filter(r=>SXC.has(r.c)).length}）</option>`:''}</select>`+
    `</div><div class=vbar><span class=seg>${Object.entries(VW).map(([k,t])=>`<a data-vw=${k} class="${S.vw===k?'on':''}">${t}</a>`).join('')}</span>`+
-   `<label class=tgl title="台股配置的機動這一期待買進或持有中的股票"><input type=checkbox id=stf${S.stf?' checked':''}>配置裡的（${Object.keys(PKU).length}）</label>`+
+   `<label class=tgl title="選股頁台股策略這一期待買進或持有中的股票"><input type=checkbox id=stf${S.stf?' checked':''}>策略選到的（${Object.keys(PKU).length}）</label>`+
    `<label class=tgl title="20 日平均成交金額 ≥ 1 億元"><input type=checkbox id=liq${S.liq?' checked':''}>成交 ≥1 億</label><span class=cnt id=cnt></span></div><div id=stkt></div>`;
   $('#q').oninput=e=>{S.q=e.target.value;S.n=60;drawStk();};
   $('#mk').onchange=e=>{S.mk=e.target.value;S.n=60;save();drawStk();};
@@ -1178,10 +1192,10 @@ const KA={'買進':'b','賣出':'s','換股':'w','調整':'a'};
 const OPP=ADV.opp||{};
 /* 個股頁與個股卡用：推薦策略這一期選到的股票（待買進／持有中） */
 const PK={};(ADV.picks||[]).forEach(p=>{(PK[p.c]=PK[p.c]||[]).push(p);});
-/* 個股表與個股卡只標台股配置裡（使用中）的策略；PK 是全部 ★／● 策略（研究紀錄的個股策略頁用） */
-const CFU=new Set(((D.cfg||{}).use)||[]),PKU={};Object.keys(PK).forEach(c=>{const q=PK[c].filter(p=>CFU.has(p.k));if(q.length)PKU[c]=q;});
-/* 配置頁 v2（cfgpage.pos_map）：台股每一檔占全部資金多少、第二行、為什麼；新飆股不在 ADV.picks，補進個股表的「配置裡的」與個股卡 */
-const CPOS=(((D.cfg||{}).tw)||{}).pos||{},BXT=(((D.cfg||{}).tw)||{}).bx||'';
+/* 個股表與個股卡標選股頁（台股）上的策略（主要＋其他，pickpage.tw_keys）；PK 是全部 ★／● 策略（研究紀錄的個股策略頁用） */
+const PKT=(((D.pick||{}).tw)||{}),CFU=new Set((PKT.ks||[]).map(x=>x[0])),PKU={};Object.keys(PK).forEach(c=>{const q=PK[c].filter(p=>CFU.has(p.k));if(q.length)PKU[c]=q;});
+/* 新飆股不在 ADV.picks：選股頁的 pos（pickpage.boom_pos）補進個股表的「策略選到的」與個股卡 */
+const CPOS=PKT.pos||{};
 Object.keys(CPOS).forEach(c=>CPOS[c].forEach(q=>{if(q.k==='boom')(PKU[c]=PKU[c]||[]).push({k:'boom',c,n:q.n,sname:'新飆股',act:q.h?'持有中':'佈局',_q:q});}));
 /* 飆股候選（機會頁「飆股」那份名單，2026-10-23 起名單只在研究紀錄；個股表留一個篩選，docs/lab_ia_v5_plan.md 第 13 節其他細項 5） */
 const SXC=new Set((((D.wl||{}).cand)||[]).map(x=>x[0]));
@@ -1899,18 +1913,17 @@ function idxHits(c){
   if(pf)hits.push(kp('被動 ETF 近 10 日淨買賣','',pm(pf[2])+' 張',`${pf[3]!=null?'約 '+f(pf[3],2)+' 日量':''}${(pf[4]||[]).length?'・新進 '+pf[4].join(' '):''}${(pf[5]||[]).length?'・出清 '+pf[5].join(' '):''}`,cls(pf[2])));
   return hits.join('');}
 
-/* 個股卡最上面：這檔在台股配置的哪一條策略裡（只列使用中的；docs/lab_ia_v5_plan.md 第 4 節「分頁個股」） */
+/* 個股卡最上面：這檔在選股頁（台股）哪一條策略裡、哪天買、預定哪天賣（docs/lab_pick_page_plan.md 第 4 節） */
 function stCardSec(c){const P=PKU[c];if(!P)return '';const Q=CPOS[c]||[];
-  const wp=w=>(w*100).toFixed(1).replace(/\.0$/,'')+'%';
-  return `<section class=csec id=c-st><h3>配置<span class=sub>台股</span></h3>`+P.map(p=>{const q=Q.find(x=>x.k===p.k)||{},b=BK[p.k]||{},e=b.exp||{},u=b.unit||'次',sw=(LV[p.k]||{}).src==='p7';
-    const wt=q.w!=null?`；占全部資金${p.act==='持有中'?' ':'約 '}${wp(q.w)}`:'';
+  return `<section class=csec id=c-st><h3>策略<span class=sub>台股</span></h3>`+P.map(p=>{const q=Q.find(x=>x.k===p.k)||{},b=BK[p.k]||{},e=b.exp||{},u=b.unit||'次',sw=(LV[p.k]||{}).src==='p7';
+    const wt='';
     const why=q.y||(p.why||[]).join('；');
-    if(p.k==='boom')return `<div class=sgi><b><a data-go="tw" data-at="cf-tw-h">新飆股</a></b><div class=pasl style="margin-top:2px">${p.act==='持有中'?'持有中':'待買進'}：${esc(q.t||'')}${wt}</div>`+
-      (why?`<div class=st>為什麼：${esc(why)}</div>`:'')+(BXT?`<div class=st>${esc(BXT)}</div>`:'')+`</div>`;
+    if(p.k==='boom')return `<div class=sgi><b><a data-go="tw" data-at="pk-boom">新飆股</a></b><div class=pasl style="margin-top:2px">${p.act==='持有中'?'持有中':'待買進'}：${esc(q.t||'')}</div>`+
+      (why?`<div class=st>為什麼：${esc(why)}</div>`:'')+`</div>`;
     const out=p.out?`${mdw(p.out)}收盤${sw?'換股':'賣出'}`:esc(p.out_how||'');
     const st=p.act==='持有中'?`持有中：${mdw(p.ent)}買進${p.entry!=null?` ${fp(p.entry)}，現在 ${fp(p.now)}（${sgn(p.now_r,1,'%')}）`:''}；${out}`
       :`待買進：${mdw(p.ent)}開盤${p.tent?'（試算名單）':''}${p.px!=null?`，參考價 ${fp(p.px)}`:''}${p.stop!=null?`、停損 ${fp(p.stop)}`:''}；${out}`;
-    return `<div class=sgi><b><a data-go="tw" data-at="cf-tw-h">${esc(p.sname)}</a></b><div class=pasl style="margin-top:2px">${st}${wt}</div>`+
+    return `<div class=sgi><b><a data-go="tw" data-at="pk-${esc(p.k)}">${esc(p.sname)}</a></b><div class=pasl style="margin-top:2px">${st}${wt}</div>`+
       (why?`<div class=st>為什麼：${esc(why)}</div>`:'')+
       (e.n?`<div class=st>過去照做：每${u}平均 ${pctT(e.avg)}、中位 ${pctT(e.med)}，${e.win}% 賺錢；同期大盤 ${pctT(e.mk)}</div>`:'')+`</div>`;}).join('')+`</section>`;}
 function renderStock(c,keep){
@@ -1920,7 +1933,7 @@ function renderStock(c,keep){
   dv.classList.toggle('pane',pane);document.body.classList.toggle('pane',pane);dv.hidden=false;lockBody(!pane);
   const W=Math.max(300,Math.floor($('#dvin').clientWidth-32));
   const i=CTX.indexOf(c),pv=i>0,nx=i>=0&&i<CTX.length-1;
-  const secs=[...(PKU[c]?[['c-st','配置']]:[]),['c-sum','重點'],['co-sum','公司'],['c-chart','走勢'],['c-hold','ETF 持有'],...(tw&&r.t5!==undefined?[['c-chip','籌碼'],['c-ta','技術']]:[]),['c-sig','訊號']];
+  const secs=[...(PKU[c]?[['c-st','策略']]:[]),['c-sum','重點'],['co-sum','公司'],['c-chart','走勢'],['c-hold','ETF 持有'],...(tw&&r.t5!==undefined?[['c-chip','籌碼'],['c-ta','技術']]:[]),['c-sig','訊號']];
   let h=`<div class=dvh><div class=dvt><a class="nv${pv?'':' off'}" id=pv title="上一檔（←）">‹</a>`+
    `<div class=ttl><b>${esc(r.n)}</b><span class=cd>${i>=0?`${i+1}／${CTX.length} · `:''}${esc(r.c)} · ${MK[r.m]||''}${r.ind?' · '+esc(r.ind):''}</span></div>`+
    `<div class=pxw><b>${fp(r.px)}</b>${sgn(r.ch,2,'%')}</div><a class="nv${nx?'':' off'}" id=nx title="下一檔（→）">›</a><a class=x id=x title="關閉（Esc）">×</a></div>`+
@@ -2056,24 +2069,24 @@ $('#glb').onclick=e=>{e.preventDefault();openGl();};
 $('#gl').addEventListener('click',e=>{if(e.target.id==='gl')closeGl();});
 
 /* ---------- 分頁＋跳段目錄 ---------- */
-const VIEWS={tw:vCfgTw,us:vCfgUs,strat:vCfgSt,stk:vStk,chip:vChip,idx:vIdx,opp:vOpp,st:vSt,mac:vMac,macst:vMacSt,bo:vBo};
+const VIEWS={tw:vPkTw,us:vPkUs,stk:vStk,chip:vChip,idx:vIdx,opp:vOpp,st:vSt,mac:vMac,macst:vMacSt,plan:vCfgPlan,strat:vCfgSt,bo:vBo};
 /* 一份頁面兩種身分（2026-10-23；docs/lab_ia_v5_plan.md 第 18 節）：
    「配置」＝台股、美股、策略、個股（工具：個股｜籌碼｜指數）——頂欄的「配置」（x9.html）；
    「研究紀錄」＝個股策略（這一期、規則與成績）、總經策略（同）、後台——從不在頂欄的研究紀錄頁（x9r.html）進來。
    網址：?v=分頁（＋&m=市場、&at=段落）；舊網址 #v=分頁&m=市場&x=策略 照樣到得了，載入後改寫成 ?v=。 */
-const TABG={tw:'tw',us:'us',strat:'strat',stk:'tool',chip:'tool',idx:'tool',opp:'stg',st:'stg',mac:'mac',macst:'mac',bo:'bo'};
-const PERS={tw:'cfg',us:'cfg',strat:'cfg',stk:'cfg',chip:'cfg',idx:'cfg',opp:'r',st:'r',mac:'r',macst:'r',bo:'r'};
-const LAST={cfg:'tw',r:'bo',tool:'stk',mac:'mac',stg:'opp'};
-const PTITLE={cfg:'配置',r:'研究紀錄'};
+const TABG={tw:'tw',us:'us',stk:'tool',chip:'tool',idx:'tool',opp:'stg',st:'stg',mac:'mac',macst:'mac',plan:'plan',strat:'strat',bo:'bo'};
+const PERS={tw:'pick',us:'pick',stk:'pick',chip:'pick',idx:'pick',opp:'r',st:'r',mac:'r',macst:'r',plan:'r',strat:'r',bo:'r'};
+const LAST={pick:'tw',r:'bo',tool:'stk',mac:'mac',stg:'opp'};
+const PTITLE={pick:'選股',r:'研究紀錄'};
 let PER='';
 function setPer(p){if(p===PER)return;PER=p;$$('#tabs a[data-p]').forEach(a=>{a.hidden=a.dataset.p!==p;});
-  $$('.apptab a[data-k]').forEach(a=>{const on=p==='cfg'&&a.dataset.k==='cfg';
+  $$('.apptab a[data-k]').forEach(a=>{const on=p==='pick'&&a.dataset.k==='pick';
     a.classList.toggle('on',on);if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
-  document.title=PTITLE[p]||'配置';}
-/* 頂欄「配置」記住上次看的配置分頁（appnav.NAV_HEAD；研究紀錄的分頁不記） */
-function urlSet(){const t=S.tab,q=t==='tw'?'':'?v='+t+(TABG[t]==='mac'?'&m='+S.mmk:''),h=/^#(s|co|us)=/.test(location.hash)?location.hash:'';
+  document.title=PTITLE[p]||'選股';}
+/* 頂欄「選股」記住上次看的選股分頁（appnav.NAV_HEAD；研究紀錄的分頁不記） */
+function urlSet(){const t=S.tab,q=t==='tw'?'':'?v='+t+(TABG[t]==='mac'?'&m='+S.mmk:t==='plan'?'&m='+S.pmk:''),h=/^#(s|co|us)=/.test(location.hash)?location.hash:'';
   try{history.replaceState(history.state,'',location.pathname+q+h);}catch(e){}
-  if(PER==='cfg'&&window.labLast)labLast('cfg','x9.html'+q);}
+  if(PER==='pick'&&window.labLast)labLast('pick','x9.html'+q);}
 function hdh(){return $('.hd').offsetHeight;}
 function jump(id){const t=document.getElementById(id);if(t&&t.tagName==='DETAILS')t.open=true;if(t)window.scrollTo({top:t.getBoundingClientRect().top+scrollY-hdh()-8,behavior:'smooth'});}
 function buildNav(){const secs=$$('#main .sec[data-nav]');
@@ -2086,21 +2099,23 @@ function spy(){const secs=$$('#main .sec[data-nav]');const nav=$('#snav');if(sec
   nav.querySelectorAll('a').forEach(a=>{const on=a.dataset.to===cur;if(on===a.classList.contains('on'))return;a.classList.toggle('on',on);
     if(on){const l=a.offsetLeft-nav.offsetLeft;if(l<nav.scrollLeft||l+a.offsetWidth>nav.scrollLeft+nav.clientWidth)nav.scrollLeft=Math.max(0,l-24);}});}
 addEventListener('scroll',()=>{if(!spyRaf)spyRaf=requestAnimationFrame(()=>{spyRaf=0;spy();});},{passive:true});
-function go(t,anchor){if(!VIEWS[t])t='tw';S.tab=t;const g=TABG[t];setPer(PERS[t]||'cfg');LAST[PER]=t;if(g==='mac'||g==='stg'||g==='tool')LAST[g]=t;
+function go(t,anchor){if(!VIEWS[t])t='tw';S.tab=t;const g=TABG[t];setPer(PERS[t]||'pick');LAST[PER]=t;if(g==='mac'||g==='stg'||g==='tool')LAST[g]=t;
   $$('#tabs a[data-t]').forEach(a=>a.classList.toggle('on',a.dataset.t===g));VIEWS[t]();buildNav();urlSet();
   $$('#main [data-mmk]').forEach(a=>a.onclick=e=>{e.preventDefault();S.mmk=a.dataset.mmk;go(S.tab);});
   $$('#main [data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();const d=a.dataset;
-    if(d.fsig!==undefined){S.sig=d.fsig;S.q='';S.n=60;S.stf=false;}if(d.fstf!==undefined){S.stf=true;S.sig='';S.q='';S.n=60;}if(d.sort){S.vw='etf';S.sort=d.sort;S.dir=+(d.dir||-1);}if(d.gm)S.mmk=d.gm;if(d.bmk)S.bmk=d.bmk;go(d.go,d.at);});
+    if(d.fsig!==undefined){S.sig=d.fsig;S.q='';S.n=60;S.stf=false;}if(d.fstf!==undefined){S.stf=true;S.sig='';S.q='';S.n=60;}if(d.sort){S.vw='etf';S.sort=d.sort;S.dir=+(d.dir||-1);}if(d.gm)S.mmk=d.gm;if(d.pm)S.pmk=d.pm;if(d.bmk)S.bmk=d.bmk;go(d.go,d.at);});
   window.scrollTo(0,0);if(anchor)requestAnimationFrame(()=>jump(anchor));}
 /*@@COPAGE@@*/
 $$('#tabs a[data-t]').forEach(a=>a.onclick=()=>{const g=a.dataset.t;go(g==='mac'||g==='stg'||g==='tool'?LAST[g]:g);});
-/* 頂欄「配置」：在配置裡＝回到這次看過的配置分頁；在研究紀錄＝回到上次看的配置分頁（連結由 appnav.NAV_HEAD 換成上次的位置） */
-$$('.apptab a[data-k="cfg"]').forEach(a=>a.onclick=e=>{e.preventDefault();if(PER==='cfg'){go(LAST.cfg);return;}
-  const v=new URLSearchParams((a.getAttribute('href')||'').split('?')[1]||'').get('v');go(VIEWS[v]&&PERS[v]==='cfg'?v:'tw');});
+/* 頂欄「選股」：在選股裡＝回到這次看過的選股分頁；在研究紀錄＝回到上次看的選股分頁（連結由 appnav.NAV_HEAD 換成上次的位置） */
+$$('.apptab a[data-k="pick"]').forEach(a=>a.onclick=e=>{e.preventDefault();if(PER==='pick'){go(LAST.pick);return;}
+  const v=new URLSearchParams((a.getAttribute('href')||'').split('?')[1]||'').get('v');go(VIEWS[v]&&PERS[v]==='pick'?v:'tw');});
 $$('.applk .glk').forEach(a=>a.onclick=e=>{e.preventDefault();openGl();});     /* 頂欄小字「名詞」 */
 {const q=new URLSearchParams(location.search),hm=location.hash.match(/^#v=([a-z]+)(.*)$/),gl=location.hash==='#gl';let v=q.get('v'),m=q.get('m'),x='',at=q.get('at')||undefined;
   if(hm){v=hm[1];const p=new URLSearchParams(hm[2].replace(/^&/,''));m=p.get('m')||m;x=p.get('x')||'';}
-  if(m&&MCM[m])S.mmk=m;if(!VIEWS[v])v=/^#((s|co)=|q$)/.test(location.hash)?'stk':/^#us=/.test(location.hash)?'us':'tw';   /* #q＝查公司（別頁頂欄的「查公司」連過來）；#us＝美股個股卡 */
+  if(m&&MCM[m])S.mmk=m;if(m==='tw'||m==='us')S.pmk=m;
+  if(at&&/^cf-(tw|us)/.test(at)&&(v==='tw'||v==='us'||!v)){S.pmk=at.slice(3,5);v='plan';}   /* 原本配置頁的段落（#cf-…）在研究紀錄・交易計畫 */
+  if(!VIEWS[v])v=/^#((s|co)=|q$)/.test(location.hash)?'stk':/^#us=/.test(location.hash)?'us':'tw';   /* #q＝查公司（別頁頂欄的「查公司」連過來）；#us＝美股個股卡 */
   if(x&&TABG[v]==='mac'){const M=MCM[S.mmk]||{};if((M.cards||[]).some(c=>c.k===x)){v='mac';at='m-'+x;}else{v='macst';at='ms-'+x;}}
   go(v,at);if(gl)openGl();}
 if(isPane())setTimeout(()=>{loadSer().catch(()=>{});},1500);
