@@ -14,6 +14,7 @@ JS 由 page.render 插在頁面初始化之前（同 stockviz、macpage、copage
 from __future__ import annotations
 
 import html
+import json
 import re
 
 from .. import fund_intro as FI
@@ -152,9 +153,45 @@ def detail_html(mk: str, bundle: dict) -> str:
 
 # ── 台股 ─────────────────────────────────────────────────────────────────────
 
-def boom_html(stk: dict, bundle: dict) -> str:
-    """新飆股那一本帳（配置頁台股；取代原本的飆股名單）：一行說明、最新一週的名單（前 20，名字可以點）、這一週的試算名單。
-    持股在「持股」那一段，這裡不重複。"""
+def boom_points(B: dict, pos: dict | None) -> list:
+    """新飆股位置圖的點（檢討第 3 步，docs/lab_review_plan.md 第 3 節）：[代號, 名稱, 離 52 週高點 %, 強度, 種類, 漲跌]。
+    種類 h＝持有中、b＝下一個交易日開盤買、l＝名單上其他、t＝這一週的試算；pos＝{代號: [強度, 離 52 週高點 %]}（全市場小表，page.build 給）。"""
+    pos = pos or {}
+    out, seen = [], set()
+
+    def add(c, n, k, r=None):
+        v = pos.get(c)
+        if c in seen or not v or v[0] is None or v[1] is None:
+            return
+        seen.add(c)
+        out.append([c, n or c, round(float(v[1]), 1), round(float(v[0]), 1), k, None if r is None else round(float(r) * 100, 1)])
+    for x in B.get("hold") or []:
+        add(x["c"], x.get("n"), "h", x.get("r"))
+    for x in B.get("buy") or []:
+        if x.get("fill"):
+            add(x["c"], x.get("n"), "b")
+    for x in B.get("list") or []:
+        add(x["c"], x.get("n"), "l")
+    for x in B.get("trial") or []:
+        add(x["c"], x.get("n"), "t")
+    return out
+
+
+def boom_spot(B: dict, pos: dict | None) -> str:
+    pts = boom_points(B, pos)
+    if not pts:
+        return ""
+    kinds = {k for *_, k, _r in pts}
+    lg = "".join(f'<span><i class="{k}"></i>{t}</span>' for k, t in (("h", "持有中"), ("b", "下一個交易日開盤買"), ("l", "名單上其他的"),
+                                                                    ("t", "這一週到現在符合的")) if k in kinds)
+    return (f'<h3 class="cfh3">位置圖<span class="sub">{_e(_md(B.get("d")))} 收盤・橫軸離 52 週高點、縱軸強度</span></h3>'
+            f'<div class="spotx cfspx"><div class="spotbox" id="cfspot" data-p="{_e(json.dumps(pts, ensure_ascii=False))}"></div>'
+            f'<div class="vztip" id="cfspottip" hidden></div></div><div class="vzlg cfsplg">{lg}<span>點一下打開個股卡</span></div>')
+
+
+def boom_html(stk: dict, bundle: dict, pos: dict | None = None) -> str:
+    """新飆股那一本帳（配置頁台股；取代原本的飆股名單）：一行說明、位置圖、最新一週的名單（前 20，名字可以點）、這一週的試算名單；
+    最下面收起原本的飆股名單與位置圖（觀察，不在配置裡）。持股在「持股」那一段，這裡不重複。"""
     B = stk.get("boom")
     if B is None:
         return ""
@@ -170,7 +207,7 @@ def boom_html(stk: dict, bundle: dict) -> str:
         tk = B.get("take")
         line += (f' {CPG.yr0(bm["a"])} 年起照做每年賺 {_pc(bm["cagr"]).lstrip("+")}、最慘時跌 {bm["mdd"] * 100:.0f}%'
                  + (f'（{_md(tk)} 收盤照回測那本帳的持股接手，之後每週記錄驗證中）。' if tk else '（2026/10/30 起每週記錄驗證中）。'))
-    h = f'<h2 class="cfh">新飆股名單<span class="sub">{_e(sub)}</span></h2><div class="cfsxl">{line}</div>'
+    h = f'<h2 class="cfh">新飆股名單<span class="sub">{_e(sub)}</span></h2><div class="cfsxl">{line}</div>' + boom_spot(B, pos)
     have = {x["c"] for x in B.get("hold") or []}
     buy = {x["c"]: x for x in B.get("buy") or []}
     if B.get("wk") and B.get("list"):
@@ -202,7 +239,8 @@ def boom_html(stk: dict, bundle: dict) -> str:
               + (f" 等 {len(tr)} 檔" if len(tr) > 12 else "") + "</div>")
     elif B.get("next_wk") and B.get("next_wk") != B.get("wk"):
         h += f'<div class="cfsxn">下一份名單：{_e(_mdw(B["next_wk"]))} 收盤。</div>'
-    h += '<div class="cfsxl">頁面上原本的飆股名單（到買點、快到買點）放在<a data-go="opp" data-at="o-sx">研究紀錄</a>。</div>'
+    h += ('<details class="cfdet cfsxo" id="cf-tw-sxo"><summary>原本的飆股名單與位置圖（觀察，不在配置裡）</summary>'
+          '<div class="cfsxob"></div></details>')                  # 打開才畫（copage.wlCfg、stockviz.spotDraw）
     return f'<section class=sec id="cf-tw-sx" data-nav="新飆股名單">{h}</section>'
 
 
@@ -750,7 +788,7 @@ def tw_parts(data: dict, bundle: dict) -> dict:
           if bm.get("cagr") is not None else "")
     return {"card": card, "hold": tw_hold(G, stk, N), "sched": tw_sched(G, stk, N), "bx": bx,
             "warn": warn_html("tw", N) if N else '<h2 class="cfh">警訊</h2><p class="cfwhy">今天的讀數還沒算出來。</p>',
-            "perf": perf, "boom": boom_html(stk, bundle), "d": d0, "nx": nx,
+            "perf": perf, "boom": boom_html(stk, bundle, data.get("sx_pos")), "d": d0, "nx": nx,
             "tl": {"use": use, "boom": _boom_lane(stk)},
             "pos": pos_map(G), "ytd": ytd_html((data.get("ytd") or {}).get("tw"), "tw")}
 
@@ -1313,7 +1351,13 @@ CSS = r"""
 .cfyt th:first-child,.cfyt td:first-child{text-align:left;position:static;background:none;white-space:nowrap}
 .cfyt td.w{font-weight:700;white-space:nowrap}.cfyt .cd{color:var(--mut);font-size:12px;font-weight:400}
 .cfyd .cfyf{display:flex;flex-wrap:wrap;gap:2px;margin:8px 0 4px;width:max-content;max-width:100%}.cfyd .cfyf a{padding:4px 10px;font-size:13px;cursor:pointer}
-.cfytr{max-width:880px}.cfytr tr[hidden]{display:none!important}
+.cfytr{max-width:880px}
+.cfspx{max-width:880px;margin:4px 0 2px}.cfsplg{max-width:880px;margin-bottom:10px}
+.cfsp circle{stroke:var(--bg);stroke-width:1.5;cursor:pointer}.cfsp:hover circle{stroke:var(--ink);stroke-width:2}
+.cfsp.h circle{fill:var(--acc)}.cfsp.b circle{fill:var(--gain);stroke:var(--ink);stroke-width:1.4}.cfsp.l circle{fill:var(--mut2);fill-opacity:.6}
+.cfsp.t circle{fill:none;stroke:var(--mut);stroke-width:1.6;stroke-dasharray:2 2}.cfspl{font-weight:700}
+.cfsplg i.h{background:var(--acc)}.cfsplg i.b{background:var(--gain)}.cfsplg i.l{background:var(--mut2)}.cfsplg i.t{background:none;border:1.6px dashed var(--mut)}
+.cfsxo>summary{font-size:13.5px}.cfsxo[open]{border-top:1px solid var(--line);padding-top:6px}.cfytr tr[hidden]{display:none!important}
 .cftoolr{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 12px}.cftool{display:flex;width:max-content;max-width:100%}.cfasof{color:var(--mut);font-size:12.5px;min-width:0}
 @media (max-width:640px){
  .cfht,.cfht tbody{display:block}.cfht tr{display:grid;grid-template-columns:minmax(0,1fr) auto;padding:5px 0;border-bottom:1px solid var(--line)}
@@ -1345,8 +1389,37 @@ function cfMk(mk){const C=CFG[mk]||{};let h='';
     ev.preventDefault();const Q=q=>[...yd.querySelectorAll(q)];Q('[data-yf="'+a.dataset.yf+'"]').forEach(x=>x.classList.toggle('on',x===a));
     const on=f=>{const x=yd.querySelector('[data-yf="'+f+'"].on');return x?x.dataset.v:'';},fm=on('m'),fk=on('k');
     Q('.cfytr tbody tr').forEach(r=>{r.hidden=!!((fm&&r.dataset.m.indexOf(','+fm+',')<0)||(fk&&r.dataset.k!==fk));});});
+  const so=$('#main .cfsxo');if(so)so.addEventListener('toggle',()=>{if(!so.open)return;   /* 原本的飆股名單（觀察，不在配置裡）：打開才組、才畫 */
+    if(!so.dataset.done){so.querySelector('.cfsxob').innerHTML=typeof wlCfg==='function'?wlCfg():'';so.dataset.done=1;}spotDraw();});
+  cfSpot();
   const tw=$('#main .cftlw');if(tw)tw.addEventListener('toggle',()=>{if(tw.open)cfDraw(mk);});   /* 時間軸收在「看時間軸」裡：打開才畫（收起時寬度是 0） */
   if(!tw)cfDraw(mk);}
+/* 新飆股位置圖（boom_points：[代號, 名稱, 離 52 週高點 %, 強度, 種類 h/b/l/t, 漲跌 %]）；點一下＝個股卡（data-c，page.py 的點擊處理） */
+function cfSpot(){const box=$('#cfspot');if(!box)return;let P=[];try{P=JSON.parse(box.dataset.p||'[]');}catch(e){}
+  if(!P.length){box.innerHTML='';return;}
+  const W=box.clientWidth||720,mob=W<560,H=mob?300:340,ml=mob?34:44,mr=14,mt=26,mb=34,xmin=Math.min(-40,Math.floor(Math.min(...P.map(o=>o[2]))/5)*5-2);
+  const y0=Math.min(60,Math.max(0,Math.floor((Math.min(...P.map(o=>o[3]))-3)/10)*10));
+  const X=v=>ml+(Math.min(0,v)-xmin)/(0-xmin)*(W-ml-mr),Yv=v=>mt+(100-Math.max(y0,v))/(100-y0)*(H-mt-mb);
+  const zx=X(100/1.1-100),R={h:7,b:6.5,l:4.5,t:4.5};
+  let s=`<rect class=spot-zone x=${zx.toFixed(1)} y=${mt} width=${(X(0)-zx).toFixed(1)} height=${H-mb-mt} /><line class=spot-zl x1=${zx.toFixed(1)} x2=${zx.toFixed(1)} y1=${mt} y2=${H-mb} />`+
+    `<text class=spot-zt x=${W-mr} y=${mt-9} text-anchor=end>還差 10% 內到 52 週高點</text>`;
+  for(let v=y0;v<=100;v+=10)s+=`<line class=spot-grid x1=${ml} x2=${W-mr} y1=${Yv(v).toFixed(1)} y2=${Yv(v).toFixed(1)} /><text class=spot-at x=${ml-6} y=${(Yv(v)+4).toFixed(1)} text-anchor=end>${v}</text>`;
+  for(let v=Math.ceil(xmin/10)*10;v<=0;v+=10)s+=`<text class=spot-at x=${X(v).toFixed(1)} y=${H-mb+16} text-anchor=middle>${v===0?'高點':v+'%'}</text>`;
+  s+=`<text class=spot-al x=${W-mr} y=${H-4} text-anchor=end>離 52 週高點</text><text class=spot-al x=4 y=${mt-9}>強度</text>`;
+  const ord={t:0,l:1,b:2,h:3};
+  P.map((o,i)=>[o,i]).sort((a,b)=>ord[a[0][4]]-ord[b[0][4]]).forEach(([o,i])=>{
+    s+=`<g class="cfsp ${o[4]}" data-cfsp=${i} data-c="${esc(o[0])}" data-co="${esc(o[0])}"><circle cx=${X(o[2]).toFixed(1)} cy=${Yv(o[3]).toFixed(1)} r=${R[o[4]]} /></g>`;});
+  const used=[];let L='';
+  P.filter(o=>o[4]==='h'||o[4]==='b').forEach(o=>{const w=[...o[1]].length*11.5,cy=Yv(o[3])+4;
+    for(const sd of [1,-1]){const x=sd>0?X(o[2])+R[o[4]]+3:X(o[2])-R[o[4]]-3-w;if(x<ml||x+w>W-mr)continue;
+      if(used.some(u=>Math.abs(u[1]-cy)<14&&x<u[0]+u[2]+8&&u[0]<x+w+8))continue;used.push([x,cy,w]);
+      L+=`<text class="spotl cfspl" x=${x.toFixed(1)} y=${cy.toFixed(1)}>${esc(o[1])}</text>`;break;}});
+  box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width=${W} height=${H} role=img aria-label="新飆股位置圖">${s}${L}</svg>`;
+  const KN={h:'持有中',b:'下一個交易日開盤買',l:'名單上',t:'這一週到現在符合'},tip=$('#cfspottip');tip.hidden=true;
+  vzBind(box,tip,box.closest('.spotx'),'data-cfsp',el=>{const o=P[+el.dataset.cfsp];
+    return `<b>${esc(o[1])}</b> <span class=vzs>${esc(o[0])}</span><div>${KN[o[4]]}${o[5]==null?'':`・買進以來 ${pctT(o[5],1)}`}</div>`+
+      `<div>離 52 週高點 ${pctT(o[2],1)}・強度 ${f(o[3],0)}</div><div class=vzs>點一下打開個股卡</div>`;},()=>{});}
+addEventListener('resize',()=>{clearTimeout(cfSpot.t);cfSpot.t=setTimeout(cfSpot,220);});addEventListener('labtheme',cfSpot);
 function vCfgTw(){cfMk('tw');}
 function vCfgUs(){cfMk('us');}
 /* 時間軸的列：配置裡的策略（觀察中策略的訊號不放配置頁，2026-10-24 使用者決定） */
