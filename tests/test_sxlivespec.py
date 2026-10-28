@@ -1,4 +1,4 @@
-"""飆股前瞻記錄的規格（sxlivespec VER 2）鎖住：要改就 VER＋1、寫進 docs/lab_core70_plan.md 第 14、19 節。"""
+"""飆股前瞻記錄的規格（sxlivespec VER 3）鎖住：要改就 VER＋1、寫進 docs/lab_core70_plan.md 第 14、19 節與 docs/lab_review_plan.md 第 9.1 節。"""
 import json
 import sys
 from pathlib import Path
@@ -11,10 +11,12 @@ sys.path.insert(0, str(ROOT))
 from arm.lab import sxlivespec as S  # noqa: E402
 
 
-def test_sxlive_spec_v2_is_locked():
-    assert S.VER == 2
-    assert S.SPEC_DATE == "2026-10-24"
+def test_sxlive_spec_v3_is_locked():
+    assert S.VER == 3
+    assert S.SPEC_DATE == "2026-10-28"
     assert S.START == "2026-10-23"
+    assert (S.TAKE, S.TAKE_V3, S.TAKE_BOOK, S.SEED_FILE) == ("2026-10-22", "2026-10-14", "R60", "sxlive_seed.json")
+    assert S.TAKE_BOOK == S.PLAN_BOOK
     assert S.BOOKS == ("R60", "A", "R1")
     assert S.PLAN_BOOK == "R60" and S.LIST_SHOW == 20       # VER 2：R60 放進交易計畫、上配置頁
     assert S.RULE_BOOKS == ("R60", "A")
@@ -61,3 +63,16 @@ def test_trade_settings_match_the_w7_engine():
     assert (c.commission, c.discount, c.min_fee, c.sell_tax, c.slip_tiers) == \
         (T["commission"], T["discount"], T["min_fee"], T["sell_tax"], T["slip_tiers"])
     assert T["weight"] == X.TRADE["weight"] and T["hold"] == X.TRADE["hold"]["R60"] == X.TRADE["hold"]["A"]
+
+
+def test_take_is_the_last_trading_day_before_start_and_v3_end_before_it():
+    """VER 3：接手那天＝START 前最後一個交易日（10/23 颱風休市 → 10/22）；長歷史股價最後一天在它之前，中間那幾天用每天記錄的引擎接上。"""
+    from datetime import date, timedelta
+    from arm import twholidays
+    t, s, v = (date.fromisoformat(x) for x in (S.TAKE, S.START, S.TAKE_V3))
+    assert twholidays.is_closed(t) is not True and t < s
+    assert all(twholidays.is_closed(t + timedelta(k)) is True or (t + timedelta(k)).weekday() >= 5
+               for k in range(1, (s - t).days + 1))
+    assert v < t and v.weekday() == 2                       # 10/14（三）不是週末，那天收盤不下單
+    from arm.lab import sxlive as L
+    assert L.week_ends(S.TAKE_V3, S.TAKE) == ["2026-10-16", "2026-10-22"]
