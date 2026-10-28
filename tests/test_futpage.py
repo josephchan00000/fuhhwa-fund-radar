@@ -71,3 +71,27 @@ def test_research_body_trades_csv_and_days():
 def test_research_body_without_data():
     h = FPG.research_body({"R": {}, "pre": []})
     assert "還沒有交易" in h and "開盤前取樣 0 天" in h
+
+
+def test_research_body_realtime_card():
+    B = _B(pre=["2026-10-28", "2026-10-29"])
+    la_days = B["R"]["lookahead"]["days"]
+    rd = [{"d": "2026-10-28", "dp": "2026-10-27", "c": "202611", "f": 47109, "est": 46769.64, "basis": 120.5, "div": 0.0,
+           "ip": 46096.23, "e": -218.86, "th": None, "side": None, "pts": [37, 8, 77, 231],
+           "L": _sim("stop", -40.0), "S": _sim("target", 229.0), "Lr": None, "Sr": None, "mv": [1, 2, 3, 4, 5],
+           "cov": 0.9198, "n": 146, "stale": 4, "nopx": 0, "la": 46800.12, "err": -30.48},
+          {"d": "2026-10-29", "dp": "2026-10-28", "skip": "逐筆還沒存"}]
+    rrows = [r for r in rd if "e" in r]
+    B["R"]["realtime"] = {"days": rd, "n_days": 1, "start": "2026-10-28", "verdict": "wait", "placebo_p": None,
+                          "main": FR.summarize([]),
+                          "compare": {"raw_points": {"n": 0}, "always_long": FR.summarize([-40.0]),
+                                      "always_short": FR.summarize([229.0]), "est_err": FR.err_summary(rrows)},
+                          "catchup": {"all": FR.catchup(rrows), "traded": FR.catchup(rrows, only_traded=True)}}
+    h = FPG.research_body(B)
+    assert "即時版（開盤前試撮）" in h and "1 天・還在記錄" in h and "即時版算出落差 1 天" in h
+    assert "試撮估算 − 偷看版的開盤水準：1 天・平均 −30.5 點" in h                     # 估算準不準
+    assert "46,769.6" in h and "46,800.1" in h and "92%・146 檔" in h and "逐筆還沒存" in h
+    assert h.index("即時版（開盤前試撮）") < h.index("最好的情況（偷看版）")
+    assert "fut_trades_realtime.csv" not in h                                       # 即時版還沒有交易：沒有下載
+    assert not [w for w in BANNED if w in h]
+    assert len(la_days) == 3

@@ -1,4 +1,4 @@
-"""台指期早盤策略的規格（futspec VER 1）鎖住：要改就 VER＋1、寫進 docs/lab_fut_plan.md。"""
+"""台指期早盤策略的規格（futspec VER 2）鎖住：要改就 VER＋1、寫進 docs/lab_fut_plan.md。"""
 from __future__ import annotations
 
 import gzip
@@ -13,8 +13,8 @@ from arm.lab import futspec as S
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_fut_spec_v1_is_locked():
-    assert S.VER == 1 and S.SPEC_DATE == "2026-10-27"
+def test_fut_spec_v2_is_locked():
+    assert S.VER == 2 and S.SPEC_DATE == "2026-10-27" and S.VER2_DATE == "2026-10-28"
     assert S.PRODUCT == "TX" and S.POINT_NTD == 200
     assert S.DECIDE_S == 32370 and S.EXIT_S == 49440 and S.REF_S == 48600
     assert S.COVER_MIN == 0.95
@@ -25,12 +25,23 @@ def test_fut_spec_v1_is_locked():
     assert S.SLIP == 1 and S.TAX == 0.00002 and S.FEE_NTD == 60
     assert S.JUDGE == {"days": 60, "min_trades": 30, "placebo_n": 1000, "placebo_p": 0.05}
     assert S.SEED == 20261027
-    assert S.COMPARE == ("raw_points", "always_long", "always_short")
+    assert S.COMPARE == ("raw_points", "always_long", "always_short", "est_err")
 
 
-def test_realtime_estimator_waits_for_ver2():
-    # 即時版用哪些欄位等 10/28 盤前探針看過再寫（VER 2），在那之前不能有即時版成績
-    assert S.REALTIME is None
+def test_realtime_estimator_v2_is_locked():
+    # VER 2（10/28 盤前探針之後、任何即時版成績之前）：試撮價 pz、08:59:30 以前收到、每檔取資料時間最新、08:59:00 以後、比重 ≥ 80%
+    assert S.RT_FIELD == "pz" and S.RT_FRESH_S == 32340 and S.RT_COVER_MIN == 0.80
+    assert S.REALTIME == {"field": "pz", "recv_le": "DECIDE_S", "pick": "latest_data_time", "fresh_s": 32340,
+                          "base": "prev_official_close", "weights": "futsig.weights", "cover_min": 0.80}
+    assert S.RT_SAMPLE == {"top_n": 150, "batch": 50, "per_tick": 2, "step": 5, "start_s": 32280, "end_s": 32415}
+
+
+def test_sampler_matches_realtime_spec():
+    # 取樣方式是估算的一部分：改了 futpre 也要 futspec VER＋1
+    from arm.lab import futpre as P
+    assert (P.TOP_N, P.BATCH, P.PER_TICK, P.STEP, P.START_S, P.END_S) == tuple(
+        S.RT_SAMPLE[k] for k in ("top_n", "batch", "per_tick", "step", "start_s", "end_s"))
+    assert "pz" in P.TW_F
 
 
 def test_scale_base_is_2025_taiex_average():
