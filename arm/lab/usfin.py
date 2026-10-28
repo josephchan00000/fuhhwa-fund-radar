@@ -225,7 +225,7 @@ def load_gics(path: Path | None = None) -> dict:
 def update_gics(fetch=None, path: Path | None = None, today: str | None = None) -> dict:
     """三頁各抓一次；解析到的家數夠才換掉那一頁的舊資料。回 {"500": 家數或錯誤, ...}；有變才寫檔。fetch(url) → HTML 文字。"""
     from .heatfetch import BROWSER, _get
-    fetch = fetch or (lambda u: _get(u, timeout=90, headers={"User-Agent": BROWSER}).decode("utf-8", "replace"))
+    fetch = fetch or (lambda u: _get(u, timeout=90, headers=BROWSER).decode("utf-8", "replace"))
     old = load_gics(path)
     cur = {k: v for k, v in (old.get("s") or {}).items()}
     st = {}
@@ -233,7 +233,7 @@ def update_gics(fetch=None, path: Path | None = None, today: str | None = None) 
         try:
             got = parse_wiki(fetch(url))
         except Exception as e:                               # noqa: BLE001
-            st[ix] = f"{type(e).__name__}"
+            st[ix] = f"{type(e).__name__}: {str(e)[:120]}"
             continue
         if len(got) < WIKI_MIN[ix]:
             st[ix] = f"只有 {len(got)} 家，沿用舊的"
