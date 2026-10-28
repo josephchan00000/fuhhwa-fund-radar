@@ -153,7 +153,7 @@ NODE = shutil.which("node")
 def _run_an(S, last="2026-10-23"):
     js = UCP.JS
     i = js.index("function ucMd(")
-    fns = "".join(js[js.index(f"function {n}("):js.index("\n", js.index(f"function {n}("))] + "\n" for n in ("ucMd", "ucPx"))
+    fns = "".join(js[js.index(f"function {n}("):js.index("\n", js.index(f"function {n}("))] + "\n" for n in ("ucMd", "ucPx", "ucDt"))
     k = js.index("function ucAn(")
     an = js[k:js.index("\n/*", k)]
     prog = r"""
@@ -204,7 +204,7 @@ def test_page_wiring():
     assert "PUSHED&&/^#(s|us)=/.test(location.hash)" in page._JS and "ucStep(d)" in page._JS
     assert "{const m=location.hash.match(/^#us=(.+)$/);if(m)ucRender(decodeURIComponent(m[1]));}" in page._JS
     for s in ("data-us", "#us=", "function ucRender(", "function ucSvg(", "id=uc-st", "id=uc-why", "id=uc-px", "id=uc-an", "id=uc-co",
-              "id=uc-gr", "id=uc-pf", "id=uc-val", "data-ucrg"):
+              "id=uc-gr", "id=uc-pf", "id=uc-val", "data-ucrg", "id=uc-sx", "id=uc-ind", "id=uc-ch"):
         assert s in UCP.JS, s
     for col in set(re.findall(r"#[0-9a-f]{6}\b", UCP.JS)):                                      # 深色模式換色（page.THEME_HEX）
         assert col in page.THEME_HEX, col
@@ -324,3 +324,123 @@ def test_js_series_weekly_matches_python():
     assert list(zip(o["f"]["d"], o["f"]["c"])) == [x for x in py if x[0] >= first]
     i = o["f"]["d"].index("2025-10-31")                                         # 跨過近一年起點的那週：舊的 7 千股＋四天各 5 千股
     assert o["f"]["v"][i] == 7 + 5 * 4 and o["f"]["m"][i] is None
+
+
+# ── 籌碼、同產業、飆股檢查（docs/lab_review_plan.md 第 4 節 (d)(e)(f)） ─────────────────────────
+
+def test_tx_text_and_chips():
+    assert UCP.tx_text("Sale at price 80.10 - 82.00 per share.") == "賣出，每股 80.10～82.00"
+    assert UCP.tx_text("Purchase at price 12.5 per share.") == "買進，每股 12.5"
+    assert UCP.tx_text("Conversion of Exercise of derivative security at price 0.00 per share.") == "執行選擇權"
+    assert UCP.tx_text("Stock Award(Grant) at price 0.00 per share.") == "公司給股"
+    assert UCP.tx_text("Stock Gift at price 0.00 per share.") == "贈與"
+    assert UCP.tx_text("") == "（沒有說明）" and UCP.tx_text("Something else") == "Something else"
+    a = {"sh": [0.02, 2.4, 1.5e7, 1.2e7, "2026-09-30"], "mh": [0.18, 0.717, 1432.0],
+         "tx": [["2026-10-01", "XIE KEN", "CEO", "Sale at price 80.10 per share.", 5e4, 4e6]] * 10}
+    c = UCP.chips(a)
+    assert c["sh"] == a["sh"] and c["mh"] == a["mh"] and "ns" not in c
+    assert len(c["tx"]) == 8 and c["tx"][0][3] == "賣出，每股 80.10"
+    assert UCP.chips(None) is None and UCP.chips({"n": 3}) is None
+
+
+def _sx_rows(eps_yoy, rev_yoy, gm, roe=0.2):
+    """growth_rows 形狀的 12 季（只填飆股檢查會看的欄）：EPS 年增、營收年增、毛利率依序給最近 3 季（舊到新）。"""
+    ends = [f"{2024 + i // 4}-{('03-31', '06-30', '09-30', '12-31')[i % 4]}" for i in range(12)]
+    g = [[e, e, 1.0, 0.1, 0.4, 0.2, 0.1, 1.0, 0.1, roe] for e in ends]
+    for k in range(3):
+        g[9 + k][8], g[9 + k][3], g[9 + k][4] = eps_yoy[k], rev_yoy[k], gm[k]
+    return g
+
+
+def test_sx_check_conditions_and_trend_template():
+    g = _sx_rows((0.3, 0.4, 0.6), (0.2, 0.25, 0.3), (0.40, 0.42, 0.45))
+    cal = _wd("2025-10-27", "2026-10-23")
+    cs = [50.0 + 0.2 * i for i in range(len(cal))]                                # 一路漲：多頭排列
+    x = UCP.sx_check(g, {"c": cs, "m": [None] * len(cal), "hi": ["2026-10-23", cs[-1] * 1.02]}, cal, 92.0)
+    ck = {r[0]: r[2] for r in x["ck"]}
+    assert ck == {"ey25": True, "eacc": True, "ry25": True, "racc": True, "gmd": True, "c33": True, "roe15": True}
+    assert len(x["tt"]) == 8 and all(r[1] is True for r in x["tt"])
+    t = x["tech"]
+    assert t["px"] == round(cs[-1], 2) and t["m50"] == round(sum(cs[-50:]) / 50, 2) and t["rs"] == 92.0
+    assert t["hi"] == round(cs[-1] * 1.02, 2) and t["lo"] == round(min(cs[-252:]), 2)
+    g2 = _sx_rows((0.6, 0.4, 0.1), (0.3, 0.2, 0.1), (0.45, 0.42, 0.40), roe=0.05)
+    cs2 = list(reversed(cs))                                                        # 一路跌
+    y = UCP.sx_check(g2, {"c": cs2, "m": [None] * len(cal)}, cal, None)
+    ck2 = {r[0]: r[2] for r in y["ck"]}
+    assert ck2["ey25"] is False and ck2["eacc"] is False and ck2["c33"] is False and ck2["roe15"] is False
+    assert ck2["gmd"] is False                                                       # 毛利率 0.40 比去年同一季 0.4 沒有高
+    tt = dict(y["tt"])
+    assert tt["股價在 50 日線之上"] is False and tt["強度 70 以上"] is None
+    z = UCP.sx_check(None, {"c": [], "m": []}, cal, None)
+    assert all(r[2] is None for r in z["ck"]) and z["tt"] == [] and z["tech"] == {}
+
+
+def _run_fn(name, S, extra=""):
+    """用 node 跑卡片的一段（ucSx／ucInd／ucCh），回純文字。"""
+    js = UCP.JS
+    names = ("ucMd", "ucPx", "ucPc", "ucDt", "ucMark", name)
+    fns = ""
+    for n in names:
+        i = js.index(f"function {n}(")
+        j = js.find("\nfunction ", i + 1)
+        k = js.find("\n/*", i + 1)
+        j = min(x for x in (j, k) if x > 0)
+        fns += js[i:j] + "\n"
+    prog = r"""
+function f(x,d=1){if(x==null)return '—';return Number(x).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function sgn(x,d=1,suf=''){if(x==null)return '—';const c=x>0?'up':x<0?'dn':'mu';return `<span class=${c}>${x>0?'+':''}${f(x,d)}${suf}</span>`;}
+function pctT(x,d=1){return x==null?'—':(x>0?'+':x<0?'−':'')+f(Math.abs(x),d)+'%';}
+function esc(s){return String(s??'');}
+function mdw(d){return d?`${+d.slice(5,7)}/${+d.slice(8,10)}（W）`:'—';}
+function kp(lbl,g,val,sub,c=''){return `[${lbl}:${val}${sub?'／'+sub:''}]`;}
+const UCD={cal:['2026-10-23']};
+@FNS@
+@EXTRA@
+process.stdout.write(@NAME@(@ARGS@));
+""".replace("@FNS@", fns).replace("@EXTRA@", extra).replace("@NAME@", name).replace("@ARGS@", S)
+    r = subprocess.run([NODE, "-e", prog], capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stderr
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", r.stdout)).replace("&amp;", "&")
+
+
+@pytest.mark.skipif(not NODE, reason="沒有 node")
+def test_sx_peer_chip_sections_text():
+    g = _sx_rows((0.3, 0.4, 0.6), (0.2, 0.25, 0.3), (0.40, 0.42, 0.45))
+    cal = _wd("2025-10-27", "2026-10-23")
+    cs = [50.0 + 0.2 * i for i in range(len(cal))]
+    sx = UCP.sx_check(g, {"c": cs, "m": [None] * len(cal)}, cal, 92.0)
+    t = _run_fn("ucSx", json.dumps({"sx": sx}))
+    assert "符合 8／8 項" in t and "趨勢樣板 8 項都符合（8／8）" in t and "均線多頭排列" in t
+    assert "52 週低點" in t and "強度 92" in t
+    assert "資料還沒有" in _run_fn("ucSx", "{}")
+    peer = {"ind": "Oil & Gas Refining & Marketing", "sec": "Energy", "n": 9, "rk": 2, "d": "2026-10-28",
+            "nm": {"MPC": "Marathon Petroleum"},
+            "rows": [["MPC", 1289.8, 0.5383, 0.092, 0.4792, 15.1, 1.3333], ["VLO", 1227.4, 0.488, 0.0718, 0.2939, 17.0, 1.4218],
+                     ["PBF", 93.9, None, None, None, None, None]]}
+    t = _run_fn("ucInd", "'VLO'," + json.dumps({"fin": {"peer": peer}}))
+    assert "GICS：Oil & Gas Refining & Marketing" in t and "這個細產業有 9 家，VLO 市值排第 2" in t
+    assert "MPC Marathon Petroleum 1,290 +54% 9.2% 48% 15.1 +133%" in t and "PBF 93.9 — — — — —" in t
+    assert "不在 S&P 500／400／600 裡" in _run_fn("ucInd", "'CDNA',{fin:{g:[]}}") and "每週六更新" in _run_fn("ucInd", "'X',{}")
+    ch = UCP.chips({"sh": [0.0206, 2.4, 1.5e7, 1.2e7, "2026-09-30"], "mh": [0.18, 1.138, 1432.0],
+                    "ns": ["6m", 12.0, 3.0e5, 30.0, 9.0e5, -6.0e5, -0.004],
+                    "tx": [["2026-10-01", "XIE KEN", "CEO", "Sale at price 80.10 per share.", 5e4, 4.05e6]]})
+    t = _run_fn("ucCh", json.dumps({"chip": ch}))
+    assert "[做空占流通股:2.1%／回補要 2.4 天]" in t and "[做空股數:1,500 萬股／比上個月 +25%]" in t
+    assert "[法人持股:113.8%／1,432 家]" in t and "法人持股超過 100%" in t and "做空資料到 2026/9/30" in t
+    assert "取得 12 筆、30.0 萬股" in t and "賣出 30 筆、90.0 萬股；淨減少 60.0 萬股（內部人持股的 0.4%）" in t
+    assert "XIE KEN CEO 賣出，每股 80.10 賣出，每股 80.10 50,000 405.0" in t                    # 手機那一份在名字下面、電腦那一份自成一欄
+    assert "資料還沒有" in _run_fn("ucCh", "{}")
+
+
+@pytest.mark.skipif(not NODE, reason="沒有 node")
+def test_analyst_rating_changes_and_eps_history_text():
+    a = {"n": 19, "tp": [423.53, 435.0, 530.0, 238.0],
+         "ud": [["2026-10-20", "Morgan Stanley", "main", "Overweight", "Overweight", 200.0, 230.0],
+                ["2026-09-02", "Citi", "up", "Neutral", "Buy", 150.0, 210.0],
+                ["2026-08-01", "UBS", "init", "", "Buy", None, 220.0]],
+         "eh": [["2026-03-31", 1.3, 1.2], ["2026-06-30", 1.5, 1.6]]}
+    t = _run_an({"px": 419.28, "an": a})
+    assert "10/20 Morgan Stanley：維持 Overweight，目標價 200.00 調到 230.00" in t
+    assert "9/2 Citi：調升 Neutral 改成 Buy，目標價 150.00 調到 210.00" in t
+    assert "8/1 UBS：首次給評等 Buy，目標價 220.00" in t
+    assert "近 2 季 EPS：實際和預估" in t and "2026/6/301.501.60-6%2026/3/311.301.20+8%" in t

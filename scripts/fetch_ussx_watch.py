@@ -23,7 +23,13 @@ from arm.lab import ussxqm as QM  # noqa: E402
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--card-force", action="store_true", help="美股個股卡的資料不管這個收盤有沒有抓過都重抓")
+    ap.add_argument("--card-dump", default="", help="CI 探針：印出這幾檔（逗號分隔）quoteSummary 新加的模組，不寫檔")
     a = ap.parse_args()
+    if a.card_dump:
+        Y = UC._yahoo()
+        for c in [x for x in a.card_dump.split(",") if x]:
+            print(UC.dump(Y, c) if Y else "[美股個股卡探針] 拿不到 Yahoo 的 crumb")
+        return
     L = QM.load_live()
     fetch = UC.cached()
     if not (L.get("now") or {}).get("hold"):

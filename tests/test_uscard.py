@@ -305,3 +305,55 @@ def test_update_upgrades_ver1_file(tmp_path):
     r = doc["s"]["VLO"]
     assert doc["ver"] == UC.VER == 2 and len(r["v"]) == len(doc["cal"]) and r["wk"] and r["hi"] and r["an"] == {"n": 3}
     assert UC.update(L, fetch=UC.cached(fetch=lambda s, t: pytest.fail("不該再抓")), now=sat, Y=Y, path=p)["skip"]
+
+
+def _extra():
+    """假的 quoteSummary 其他模組（欄位照 Yahoo v10；docs/lab_review_plan.md 第 4 節 (d)）。"""
+    ts = lambda d: {"raw": int(datetime.fromisoformat(d + "T14:00:00+00:00").timestamp()), "fmt": d}
+    eh = [{"quarter": ts(d), "epsActual": {"raw": a}, "epsEstimate": {"raw": e}}
+          for d, a, e in (("2025-09-30", 1.0, 0.9), ("2025-12-31", 1.1, 1.2), ("2026-03-31", 1.3, 1.2), ("2026-06-30", 1.5, 1.4),
+                          ("2025-06-30", 0.8, 0.8))]
+    ud = [{"epochGradeDate": int(datetime.fromisoformat(d + "T12:00:00+00:00").timestamp()), "firm": f, "action": a,
+           "fromGrade": g0, "toGrade": g1, "priorPriceTarget": p0, "currentPriceTarget": p1}
+          for d, f, a, g0, g1, p0, p1 in (("2026-10-20", "Morgan Stanley", "main", "Overweight", "Overweight", 200.0, 230.0),
+                                         ("2026-09-02", "Citi", "up", "Neutral", "Buy", 150.0, 210.0),
+                                         ("2026-01-05", "Old Bank", "down", "Buy", "Hold", 0, 0))]
+    tx = [{"startDate": ts(d), "filerName": n, "filerRelation": r, "transactionText": t, "shares": {"raw": s}, "value": {"raw": v}}
+          for d, n, r, t, s, v in (("2026-10-01", "XIE KEN", "CEO", "Sale at price 80.10 - 82.00 per share.", 50000, 4.05e6),
+                                   ("2026-08-15", "JANE DOE", "Director", "Stock Award(Grant) at price 0.00 per share.", 1200, 0),
+                                   ("2025-12-01", "OLD GUY", "Officer", "Sale at price 50.00 per share.", 10, 500))]
+    res = {"earningsHistory": {"history": eh}, "upgradeDowngradeHistory": {"history": ud},
+           "defaultKeyStatistics": {"shortPercentOfFloat": {"raw": 0.0206}, "shortRatio": {"raw": 2.4}, "sharesShort": {"raw": 1.5e7},
+                                    "sharesShortPriorMonth": {"raw": 1.2e7}, "dateShortInterest": {"raw": 1759190400, "fmt": "2025-09-30"},
+                                    "heldPercentInsiders": {"raw": 0.18}},
+           "majorHoldersBreakdown": {"institutionsPercentHeld": {"raw": 0.717}, "institutionsCount": {"raw": 1432}},
+           "netSharePurchaseActivity": {"period": "6m", "buyInfoCount": {"raw": 12}, "buyInfoShares": {"raw": 3.0e5},
+                                        "sellInfoCount": {"raw": 30}, "sellInfoShares": {"raw": 9.0e5}, "netInfoShares": {"raw": -6.0e5},
+                                        "netPercentInsiderShares": {"raw": -0.004}},
+           "insiderTransactions": {"transactions": tx}}
+    return {"quoteSummary": {"result": [res], "error": None}}
+
+
+def test_parse_extra_history_ratings_short_holders_insiders():
+    x = UC.parse_extra(_extra(), today="2026-10-24")
+    assert x["eh"] == [["2025-09-30", 1.0, 0.9], ["2025-12-31", 1.1, 1.2], ["2026-03-31", 1.3, 1.2], ["2026-06-30", 1.5, 1.4]]
+    assert [r[0] for r in x["ud"]] == ["2026-10-20", "2026-09-02"]                   # 新到舊；半年以前的不收
+    assert x["ud"][1] == ["2026-09-02", "Citi", "up", "Neutral", "Buy", 150.0, 210.0]
+    assert x["sh"] == [0.0206, 2.4, 1.5e7, 1.2e7, "2025-09-30"]
+    assert x["mh"] == [0.18, 0.717, 1432.0]                                            # 內部人持股沒有就用 keyStatistics 的
+    assert x["ns"] == ["6m", 12.0, 3.0e5, 30.0, 9.0e5, -6.0e5, -0.004]
+    assert [r[1] for r in x["tx"]] == ["XIE KEN", "JANE DOE"] and x["tx"][0][3].startswith("Sale at price")
+    assert UC.parse_extra({}) == {} and UC.parse_extra({"quoteSummary": {"result": [{}]}}) == {}
+    o = _extra()
+    o["quoteSummary"]["result"][0]["upgradeDowngradeHistory"]["history"] *= 6
+    assert len(UC.parse_extra(o, today="2026-10-24")["ud"]) == UC.EXTRA_N
+
+
+def test_analyst_record_carries_extra_modules():
+    o = _qs()
+    o["quoteSummary"]["result"][0].update(_extra()["quoteSummary"]["result"][0])
+    st, rec = UC.analyst(_Y({"VLO": (200, o)}), "VLO")
+    assert st == "ok" and rec["tp"][1] == 212.0 and len(rec["eh"]) == 4 and rec["mh"][1] == 0.717
+    for m in ("earningsHistory", "upgradeDowngradeHistory", "defaultKeyStatistics", "majorHoldersBreakdown",
+              "netSharePurchaseActivity", "insiderTransactions"):
+        assert m in UC.MODS
