@@ -53,6 +53,14 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
             core.STK.update(core.stk_from_adv(data["adv"], today_tw().isoformat(), boom=sxlive.LAST.get("plan")))
     except Exception as e:                   # noqa: BLE001 —— 失敗只是交易計畫卡少了台股衛星的名單
         print(f"[籌碼雷達] ⚠ 交易計畫卡的衛星資料沒有算：{type(e).__name__}: {e}")
+    try:                                     # 新飆股位置圖要的強度與離 52 週高點（全市場小表；檢討第 3 步）。只給配置頁用，不內嵌
+        mt0 = data.get("mtab") or {}
+        cc = list(mt0.get("cols") or [])
+        i_rs, i_hi = cc.index("rs"), cc.index("d52h")
+        data["sx_pos"] = {c: [r[i_rs], r[i_hi]] for c, r in (mt0.get("rows") or {}).items()}
+    except Exception as e:                   # noqa: BLE001 —— 沒有就不畫位置圖
+        print(f"[配置] ⚠ 新飆股位置圖沒有資料：{type(e).__name__}: {e}")
+        data["sx_pos"] = {}
     try:                                     # 配置頁「今年」每個月、每一筆（ytdspec；docs/lab_review_plan.md 第 9.2 節）
         from . import sxlive, ussxqm, ytd
         D0 = ctx.get("D")
@@ -204,7 +212,7 @@ def theme_css() -> str:
 
 
 def render(data: dict, ser_v: str | None = None) -> str:
-    main = {k: v for k, v in data.items() if k not in ("ser", "mtab", "ytd", "ytd_day")}   # ytd＝配置頁的表已組成 HTML
+    main = {k: v for k, v in data.items() if k not in ("ser", "mtab", "ytd", "ytd_day", "sx_pos")}   # ytd、sx_pos＝配置頁已組成 HTML
     main["serv"] = ser_v or _ver(ser_json(data))
     main["asl"] = asof_line(data)                 # 資料日（個股工具那一列；第 4 段起不放頂欄）
     blob = _dump(main).replace("</", "<\\/")

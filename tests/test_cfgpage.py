@@ -323,7 +323,9 @@ def test_tw_page_has_boom_book_section(R):
     bm = R["mk"]["tw"]["sc"]["plan"].get("boom") or {}
     if bm.get("cagr") is not None:
         assert f'每年賺 {CPG._pc(bm["cagr"]).lstrip("+")}' in t and f'最慘時跌 {bm["mdd"] * 100:.0f}%' in t
-    assert 'data-go="opp" data-at="o-sx"' in b                                    # 舊的飆股名單在研究紀錄
+    assert 'class="cfdet cfsxo"' in b and "原本的飆股名單與位置圖（觀察，不在配置裡）" in t   # 原本的飆股名單：收起來，打開才組
+    from arm.lab import copage
+    assert "function wlCfg()" in copage.JS and 'data-go="opp" data-at="o-sx"' in copage.JS
     js = CF.JS
     assert "(C.boom||'')" in js and "function cfSx()" not in js and "cfSx" not in js
     assert "if(T.boom)L.push(Object.assign({},T.boom,{_src:'boom'}));" in js and "c._src==='boom'" in js
@@ -486,3 +488,18 @@ def test_past_note_lists_hindsight_and_live_start_dates():
     u = _text(CF.past_note("us", {}, {}))
     assert "從 2,016 種做法裡挑的" in u and "強勢品質股 10/23 收盤、警訊 10/26 起" in u
     assert CF._wp(0.0002) == "不到 0.1%" and CF._wp(0.0) == "0%" and CF._wp(0.125) == "12.5%"
+
+
+def test_boom_points_kinds_and_chart():
+    """檢討第 3 步：新飆股位置圖——持有中、下一個交易日開盤買、名單上其他、這一週試算；同一檔只畫一次；沒有強度或高點的不畫。"""
+    B = {"d": "2026-10-27", "hold": [{"c": "1111", "n": "甲", "r": 0.12}], "buy": [{"c": "2222", "n": "乙", "fill": True},
+         {"c": "3333", "n": "丙", "fill": False}], "list": [{"c": "1111", "n": "甲"}, {"c": "2222", "n": "乙"}, {"c": "4444", "n": "丁"},
+         {"c": "5555", "n": "戊"}], "trial": [{"c": "6666", "n": "己"}]}
+    pos = {"1111": [95, -3.2], "2222": [91, -8.0], "3333": [90, -1.0], "4444": [88, -20.5], "5555": [None, -2.0], "6666": [97, 0.0]}
+    P = CF.boom_points(B, pos)
+    assert [(x[0], x[4]) for x in P] == [("1111", "h"), ("2222", "b"), ("4444", "l"), ("6666", "t")]   # 丙現金不夠、不在名單：不畫
+    assert P[0][5] == 12.0 and P[0][2] == -3.2 and P[0][3] == 95
+    h = CF.boom_spot(B, pos)
+    assert 'id="cfspot"' in h and "data-p=" in h and "持有中" in h and "這一週到現在符合的" in h
+    assert CF.boom_spot(B, {}) == ""
+    assert "function cfSpot()" in CF.JS and "cfSpot();" in CF.JS
