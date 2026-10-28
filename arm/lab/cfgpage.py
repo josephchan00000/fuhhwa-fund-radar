@@ -125,6 +125,10 @@ def perf_line(mk: str, bundle: dict) -> str:
     if b and S.core_of("spx") <= 0:                       # ussxspec VER 5：判定跟原本在用的計畫比
         out += (f'<div class="cfperf cfq">原本的計畫（七成長抱 S&amp;P 500＋三成強勢品質股）同一段：100 萬變 {CPG._wan(b["plan"]["m"])}'
                 f'・最慘跌 {CPG._ab(b["plan"]["mdd"])}</div>')
+    if mk == "us":                                       # ussxspec VER 8：修正財報條件、四個標準沒全過但照用
+        for t in (CPG.qm_fix_note("spx", bundle.get("qm")), CPG.qm_kept("spx", bundle.get("qm"))):
+            if t:
+                out += f'<div class="cfperf cfq">{t}</div>'
     if mk == "us" and CPG.qm_on("ndx", bundle.get("qm")):
         q = (CPG._qm_plan("ndx", bundle.get("qm")).get("new")) or {}
         if q:

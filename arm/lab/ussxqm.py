@@ -35,13 +35,14 @@ KEYS = ("rs", "d52h", "om", "roe", "cap")
 # ── 資料 ─────────────────────────────────────────────────────────────────────
 
 def context(P: dict | None = None, earn: dict | None = None, workers: int = 4, log=print, plans: bool = True,
-            extra: tuple = ()) -> dict:
-    """extra＝另外要填的財報欄位（ussxfeat.build）；QM_EXTRA（VER 7 名單條件要的上一季營益率、oxr）一律填。"""
+            extra: tuple = (), pit: bool | None = None) -> dict:
+    """extra＝另外要填的財報欄位（ussxfeat.build）；QM_EXTRA（VER 7 名單條件要的上一季營益率、oxr）一律填。
+    pit＝財報條件只用當時已經申報的數字（None＝ussxspec.SEC_PIT；VER 8 起 True）。"""
     t0 = time.time()
     P = P if P is not None else UP.load()
     earn = earn if earn is not None else UP.earnings()
     keys = tuple(dict.fromkeys(tuple(X.QM_EXTRA) + tuple(extra)))
-    cols = UF.build(P, X.LIQ_MIN, earn=earn, workers=workers, log=log, vcp=False, labels_on=False, extra=keys)
+    cols = UF.build(P, X.LIQ_MIN, earn=earn, workers=workers, log=log, vcp=False, labels_on=False, extra=keys, pit=pit)
     el, D20 = cols.pop("el"), cols.pop("D20")
     Cf = UF.ffill(P["C"])
     S = UF.ffill(P["CS"].astype(float))
@@ -50,11 +51,20 @@ def context(P: dict | None = None, earn: dict | None = None, workers: int = 4, l
     DIV = np.vstack([np.zeros((1, Cf.shape[1])), np.where(np.isfinite(D), D, 0.0)])
     del S, D
     C = {"P": P, "cal": P["cal"], "T": len(P["cal"]), "cols": cols, "el": el, "D20": D20, "Cf": Cf, "DIV": DIV,
-         "MA": UF.roll_mean(Cf, X.QM_EXIT["ma"]), "yr": np.array([int(d[:4]) for d in cols["d"]])}
+         "MA": UF.roll_mean(Cf, X.QM_EXIT["ma"]), "yr": np.array([int(d[:4]) for d in cols["d"]]), "earn": earn, "keys": keys,
+         "pit": X.SEC_PIT if pit is None else bool(pit)}
     if plans:
         C["PQ"] = UR.plan_inputs(P)
     log(f"[ussxqm] 資料 {time.time() - t0:.0f}s：{len(cols['d']):,} 列、到 {C['cal'][-1]}")
     return C
+
+
+def with_cols(C: dict, pit: bool, workers: int = 4, log=print) -> dict:
+    """同一個面板、只換財報條件的算法（ussxspec VER 8 ③：修正前＝pit False 的舊算法），其他（股價、範圍、計畫的指數）共用。"""
+    cols = UF.build(C["P"], X.LIQ_MIN, earn=C["earn"], workers=workers, log=log, vcp=False, labels_on=False,
+                    extra=C["keys"], pit=pit)
+    cols.pop("el"), cols.pop("D20")
+    return {**C, "cols": cols, "yr": np.array([int(d[:4]) for d in cols["d"]]), "pit": bool(pit)}
 
 
 def a_of(cal: list[str], year: int) -> int:
@@ -216,9 +226,36 @@ def review_dist(C: dict, rr: np.ndarray, base: np.ndarray, a: int) -> dict:
     return out
 
 
-def research(C: dict, log=print, mask: np.ndarray | None = None, desc: bool = True) -> dict:
+def _plan_judge(C: dict, sig: dict, mk: str, c: float) -> tuple[dict, dict]:
+    """一個計畫、一種成本：機動放 QM（new）、機動放指數（cur，只描述）、判定 ② 的比較對象（base＝現在在用的計畫，VER 5）、判定。"""
+    a14, T = a_of(C["cal"], X.QM_EVAL), C["T"]
+    JB = X.QM_JUDGE_BASE
+    r = run(C, sig, mk, c)
+    new, cur = plan_scenarios(C, mk, rets(C, r), stk_share(C, r), a14, T, c)
+    rb = run(C, sig, mk, c, idle=JB["idle"])
+    base = plan_scenarios(C, mk, rets(C, rb), stk_share(C, rb), a14, T, c, core=JB["core"])[0]
+    return {"new": SW._brief(new), "cur": SW._brief(cur), "base": SW._brief(base), "judge": SW.judge(new, base)}, new
+
+
+def prefix(C0: dict, log=print) -> dict:
+    """ussxspec VER 8 ③：修正前（舊算法 C0、VER 7 的名單條件與設定）的主要數字，和修正後並列（三成本身、兩個計畫、判定 ②）。"""
+    cal, T = C0["cal"], C0["T"]
+    a14 = a_of(cal, X.QM_EVAL)
+    sig = signals(C0, qm_mask(C0["cols"]["f"]))
+    out = {"sleeve": BK.curve_stats(cal, rets(C0, run(C0, sig, "spx")), a14, T), "plans": {}}
+    out["sleeve"] = {k: out["sleeve"][k] for k in ("cagr", "mdd", "m", "halves", "years")}
+    for mk in X.QM_PLANS:
+        out["plans"][mk] = _plan_judge(C0, sig, mk, X.COST["stk"])[0]
+    out["weeks"] = int(sum(1 for i in sig if i > a_of(cal, X.QM_Y0)))
+    out["signals"] = int(sum(len(v) for i, v in sig.items() if i > a_of(cal, X.QM_Y0)))
+    log(f"[ussxqm] 修正前：三成本身 {out['sleeve']['cagr'] * 100:.2f}%、S&P 500 計畫 {out['plans']['spx']['new']['plan']['m'] * 100:,.1f} 萬")
+    return out
+
+
+def research(C: dict, log=print, mask: np.ndarray | None = None, desc: bool = True, C0: dict | None = None) -> dict:
     """mask＝名單條件（None＝qm_mask：VER 6）；desc＝False 不算只描述的項目（拿掉賺最多的、晚一週、門檻鄰近、檢討分布）——
-    omfixspec 的候選研究用，預設和原本完全相同。"""
+    omfixspec 的候選研究用，預設和原本完全相同。
+    C0＝舊算法（財報用全部資料，ussxspec VER 7 以前）的 context：VER 8 的重現檢查用它、另外記「修正前」的數字；沒給就用 C。"""
     t0 = time.time()
     cal, T = C["cal"], C["T"]
     a, a14 = a_of(cal, X.QM_Y0), a_of(cal, X.QM_EVAL)
@@ -248,17 +285,11 @@ def research(C: dict, log=print, mask: np.ndarray | None = None, desc: bool = Tr
         t["c"] = _sym(C, t.pop("j"))
     out["exposure"] = float(np.mean(rs["stk"][a14 - a:]))
     out["top"] = _pnl_top(C, rs)
-    # 放進交易計畫
+    # 放進交易計畫（VER 5：判定 ② 跟現在在用的計畫比——VER 3 的設定：核心 70%、機動放 QM、空位放指數；同一個成本；cur＝機動放指數，只描述）
     plans, sc = {}, {}
-    JB = X.QM_JUDGE_BASE
     for mk in X.QM_PLANS:
         for ck, c in (("main", X.COST["stk"]), ("alt", X.COST["stk_alt"])):
-            r = R[(mk, ck)]
-            new, cur = plan_scenarios(C, mk, rets(C, r), stk_share(C, r), a14, T, c)
-            # VER 5：判定 ② 跟現在在用的計畫比（VER 3 的設定：核心 70%、機動放 QM、空位放指數；同一個成本）；cur＝機動放指數（只描述）
-            rb = run(C, sig, mk, c, idle=JB["idle"])
-            base = plan_scenarios(C, mk, rets(C, rb), stk_share(C, rb), a14, T, c, core=JB["core"])[0]
-            plans[f"{mk}_{ck}"] = {"new": SW._brief(new), "cur": SW._brief(cur), "base": SW._brief(base), "judge": SW.judge(new, base)}
+            plans[f"{mk}_{ck}"], new = _plan_judge(C, sig, mk, c)
             if ck == "main":
                 sc[mk] = new
     out["plans"], out["sc"] = plans, sc
@@ -280,16 +311,23 @@ def research(C: dict, log=print, mask: np.ndarray | None = None, desc: bool = Tr
     v["need_alt"] = X.QM_NEED_ALT                                         # VER 6：③（複委託）照算、只描述
     v["pass"] = {mk: bool(c1 and v["c2"][mk] and (v["c3"][mk] or not X.QM_NEED_ALT) and v["c4"]) for mk in X.QM_PLANS}
     out["verdict"] = v
-    # 重現第 12 節：照 VER 3 的設定（空位放指數、核心 70%）另外跑一次（ussxspec VER 4 ③）；VER 7：名單用 VER 6 的條件（沒有 QM_OM_FIX）
+    # 重現第 12 節：照 VER 3 的設定（空位放指數、核心 70%）另外跑一次（ussxspec VER 4 ③）；VER 7：名單用 VER 6 的條件（沒有 QM_OM_FIX）；
+    # VER 8：用舊算法（C0）跑、只記錄不擋（QM_REPRO_BLOCK）
     RS = X.QM_REPRO_SET
-    sig3 = sig if X.QM_REPRO_FIX or mask is not None else signals(C, qm_mask(C["cols"]["f"], fix=False))
+    CR = C0 if C0 is not None else C
+    sig3 = sig if (X.QM_REPRO_FIX or mask is not None) and C0 is None else signals(CR, qm_mask(CR["cols"]["f"], fix=False))
     bR = cal.index(X.QM_REF_END) + 1 if X.QM_REF_END in cal else T        # VER 7：只算到第 12 節資料的最後一天
-    r3 = run(C, sig3, "spx", X.COST["stk"], b=bR, idle=RS["idle"])
-    rc = BK.curve_stats(cal, rets(C, r3), a14, bR)["cagr"]
-    rm = plan_scenarios(C, "spx", rets(C, r3), stk_share(C, r3), a14, bR, X.COST["stk"], core=RS["core"])[0]["plan"]["m"]
+    r3 = run(CR, sig3, "spx", X.COST["stk"], b=bR, idle=RS["idle"])
+    rc = BK.curve_stats(cal, rets(CR, r3), a14, bR)["cagr"]
+    rm = plan_scenarios(CR, "spx", rets(CR, r3), stk_share(CR, r3), a14, bR, X.COST["stk"], core=RS["core"])[0]["plan"]["m"]
     out["repro"] = {"cagr": rc, "plan_m": rm, "ref": X.QM_REF, "tol": X.QM_REPRO, "set": RS, "end": cal[bR - 1],
+                    "pit": bool(CR.get("pit", X.SEC_PIT)), "block": X.QM_REPRO_BLOCK,
                     "ok": bool(abs(rc - X.QM_REF["cagr"]) <= X.QM_REPRO["cagr"] and abs(rm - X.QM_REF["plan_m"]) <= X.QM_REPRO["plan_m"])}
-    out["switch"] = {mk: bool(out["repro"]["ok"] and v["pass"][mk]) for mk in X.QM_PLANS}
+    rok = out["repro"]["ok"] or not X.QM_REPRO_BLOCK
+    out["switch"] = {mk: bool(rok and (X.QM_KEEP or v["pass"][mk])) for mk in X.QM_PLANS}   # VER 8：使用者決定維持（判定照算、頁面寫）
+    out["keep"], out["pit"] = X.QM_KEEP, bool(C.get("pit", X.SEC_PIT))
+    if C0 is not None:
+        out["prefix"] = prefix(C0, log=log)
     # 只描述
     rr = rets(C, rs)
     if desc:
@@ -308,6 +346,12 @@ def research(C: dict, log=print, mask: np.ndarray | None = None, desc: bool = Tr
                 mm = qm_mask(C["cols"]["f"], {**X.QM, key: val})
                 nb[f"{key}={val:g}"] = _brief_stats(BK.curve_stats(cal, rets(C, run(C, signals(C, mm))), a14, T))
         dsc["nb"] = nb
+        # VER 8 ④：一次性收入修法（D）在修正後的資料上——名單不扣 D 的三成本身與 S&P 500 計畫（同一段期間）
+        if mask is None:
+            sg6 = signals(C, qm_mask(C["cols"]["f"], fix=False))
+            r6 = run(C, sg6)
+            dsc["nofix"] = {**_brief_stats(BK.curve_stats(cal, rets(C, r6), a14, T)),
+                            "plan": plan_scenarios(C, "spx", rets(C, r6), stk_share(C, r6), a14, T, X.COST["stk"])[0]["plan"]}
         out["desc"] = dsc
         out["review"] = review_dist(C, rr, spx_idle, a14)
     else:

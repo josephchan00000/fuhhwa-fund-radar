@@ -3009,6 +3009,16 @@ Yahoo 無成交金額 → 均價退回收盤；週末與今日以後的 bar 一�
     其他 om4／omm 只有研究 `extra=` 才填）；重算 ussx_qm.json（23.22%、2,034 萬，和研究的 D 相同）、每週紀錄從頭記（持股少 CDNA、多 FTNT）。
     **重現檢查只算到 `QM_REF_END`（2026-10-22）**：原本算到資料最後一天，多一天資料就超過容許差 → `switch` 變 False、網頁把美股退回放指數；
     以後重算 ussx_qm.json 不會再踩。近四季 ROE 也會被一次性收入墊高——還沒處理。
+  · **財報條件只用當時已申報的數字（2026-10-28，ussxspec VER 8；規劃第 15 節、`docs/lab_review_plan.md` 第 1.3、9 節）**：
+    使用者問「你有作弊用後面的回去看買點嗎？」——切資料重算發現 VER 2～7 每一季用「營收第一次申報日」當拿得到的日子，同一季（和上一季、去年同一季）
+    的營業利益、淨利、股東權益卻直接用全部資料裡的值（VRTX 2019 年的股東權益 2020-10-30 才第一次申報；後來的單季數字也會蓋掉當時用全年減前三季算的第四季）。
+    修法 `ussxfeat.sec_states`：每一次申報或 EPS 公布就只用當時的列重算、取最新一季；`build`／`context` 預設用它（`SEC_PIT`），
+    舊算法留著 `pit=False`（`ussxqm.with_cols`，重現檢查與「修正前」數字用）；`sec_index`／`sec_at`＝第 i 天挑哪一筆（多久沒更新照舊從營收申報日算）。
+    `tests/test_ussxfeat.py` 逐天切資料比對守住；**改 `_sec_ctx` 或 `sec_quarters` 要確認那支測試仍綠**。每週多花約 30 秒。
+    結果：三成本身 23.2% → **20.1%**、S&P 500 計畫 2,034 萬 → **1,416 萬**、10/23 持股不變；判定仍過（S&P 500 計畫最慘多跌 9.9 點，上限 10）。
+    使用者決定判定沒過也照用（`QM_KEEP`：`switch` 一律 True，頁面寫哪一條沒過，`corepage.qm_kept`）；重現檢查只記錄（`QM_REPRO_BLOCK`）。
+    研究檔多 `pit`、`keep`、`prefix`（修正前）、`desc.nofix`（不扣 D）。`ussx_books.json`、`ussx_explore.json`、`ussx_omfix.json` 是修正前算的，不重跑。
+    **今年 +35.6%（修正前）裡約 15 點是 MU 那一筆買多少的運氣**（修正後 3/30 只剩 1.7 萬現金買進、佔住一格），規則「空格用剩下的現金買、不加碼」很吃時間差。
 - **修正飆股（W7，2026-10-23；使用者：「修正飆股策略吧」）**：規格 `arm/lab/superfixspec.py` VER 1（`tests/test_superfixspec.py` 鎖住）、
   計畫與結果 `tw-superstock-lab/reports/W7_plan.md`／`W7_results.md`／`W7_summary.md`、程式 `tw-superstock-lab/scripts/run_w7.py`（約 5 分鐘）。
   只換目標（60 天後的收盤還在 +20%），**每一年只用以前已經走完的資料重新找規則**（2019～2026），現行目標用同一套流程當對照。

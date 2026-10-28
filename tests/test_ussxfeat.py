@@ -224,3 +224,114 @@ def test_split_between_and_week_ends():
     assert F.split_between(spl, "2020-03-10", "2020-12-31") == 1.0           # 生效日當天公布的已經是新基準
     cal = ["2024-01-04", "2024-01-05", "2024-01-08", "2024-01-12", "2024-01-16"]
     assert F.week_ends(cal) == [1, 3, 4]
+
+
+# ── ussxspec VER 8：財報條件只用當時已經申報的數字（切資料測試）──────────────────────────────
+
+def _q(s, e, v, fd, form="10-Q"):
+    return [s, e, v, fd, form]
+
+
+def _leaky_doc():
+    """會「偷看」的寫法都放進來：股東權益晚一年才第一次申報、營業利益後來才申報、第四季的單季數字後來才出現（蓋掉全年減前三季）、
+    營收換項目、後來多申報一個勞務營收（商品＋勞務要湊齊，舊的季就湊不齊了）。"""
+    f = {
+        "Revenues": [_q("2018-01-01", "2018-03-31", 100, "2018-05-01"), _q("2018-04-01", "2018-06-30", 110, "2018-08-01"),
+                     _q("2018-07-01", "2018-09-30", 120, "2018-11-01"), _q("2018-01-01", "2018-09-30", 330, "2018-11-01"),
+                     _q("2018-01-01", "2018-12-31", 470, "2019-02-15", "10-K"),
+                     _q("2018-10-01", "2018-12-31", 135, "2020-02-14", "10-K"),                 # 第四季單季：兩年後才出現
+                     _q("2019-01-01", "2019-03-31", 150, "2019-05-01"), _q("2019-04-01", "2019-06-30", 160, "2019-08-01"),
+                     _q("2019-07-01", "2019-09-30", 170, "2019-11-01")],
+        "RevenueFromContractWithCustomerExcludingAssessedTax": [_q("2019-10-01", "2019-12-31", 190, "2020-02-14", "10-K"),
+                                                                _q("2020-01-01", "2020-03-31", 200, "2020-05-01")],
+        "CostOfRevenue": [_q("2018-01-01", "2018-03-31", 60, "2018-05-01"), _q("2019-01-01", "2019-03-31", 70, "2019-05-01"),
+                          _q("2020-01-01", "2020-03-31", 80, "2020-05-01")],
+        "OperatingIncomeLoss": [_q("2019-01-01", "2019-03-31", 30, "2020-05-01"),           # 去年同一季的營業利益：一年後才申報
+                                _q("2020-01-01", "2020-03-31", 50, "2020-05-01"),
+                                _q("2019-07-01", "2019-09-30", 25, "2019-11-01")],
+        "NetIncomeLoss": [_q("2018-10-01", "2018-12-31", 9, "2019-02-15", "10-K"), _q("2019-01-01", "2019-03-31", 8, "2019-05-01"),
+                          _q("2019-04-01", "2019-06-30", 10, "2019-08-01"), _q("2019-07-01", "2019-09-30", 12, "2019-11-01"),
+                          _q("2019-01-01", "2019-09-30", 30, "2019-11-01"), _q("2019-01-01", "2019-12-31", 45, "2020-02-14", "10-K"),
+                          _q("2020-01-01", "2020-03-31", 20, "2020-05-01")],
+        "StockholdersEquity": [["", "2018-09-30", 380, "2020-11-02", "10-Q"],               # 去年同一季的股東權益：兩年後才第一次申報
+                               ["", "2019-03-31", 400, "2020-05-01", "10-Q"],
+                               ["", "2020-03-31", 600, "2020-05-01", "10-Q"], ["", "2019-09-30", 500, "2019-11-01", "10-Q"]],
+        "SalesRevenueGoodsNet": [_q("2017-01-01", "2017-03-31", 70, "2017-05-01"), _q("2017-04-01", "2017-06-30", 72, "2017-08-01")],
+        "SalesRevenueServicesNet": [_q("2017-04-01", "2017-06-30", 20, "2018-03-01", "10-K")],  # 後來才有勞務營收：3 月那季湊不齊
+        "EntityCommonStockSharesOutstanding": [["", "2019-04-20", 1000, "2019-05-01", "10-Q"], ["", "2020-04-20", 1100, "2020-05-01", "10-Q"]],
+    }
+    for rows in f.values():
+        rows.sort()
+    return {"f": f}
+
+
+def _eps_list():
+    return [{"date": d, "m": m, "ey": ey} for d, m, ey in
+            (("2019-04-25", 2019 * 12 + 3, 0.10), ("2019-07-25", 2019 * 12 + 6, 0.20), ("2019-10-24", 2019 * 12 + 9, 0.30),
+             ("2020-02-20", 2019 * 12 + 12, 0.25), ("2020-05-06", 2020 * 12 + 3, 0.40))]
+
+
+def _trunc(doc, d):
+    return {"f": {t: [r for r in rows if r[3] < d] for t, rows in doc["f"].items()}}
+
+
+def _pick(st, d):
+    got = [x for x in st if x["avail"] < d]
+    g = got[-1] if got else None
+    return None if g is None or g["end"] is None else {k: v for k, v in g.items() if k != "avail"}
+
+
+def test_sec_states_equal_truncated_reports_every_day():
+    """VER 8 的定義：第 i 天用的那一筆＝把資料切在第 i 天以前（申報日、公布日早於那一天）、用原本的程式算出來的最後一筆。逐天比對。"""
+    doc, eps = _leaky_doc(), _eps_list()
+    st, sh = F.sec_states(doc, eps)
+    assert sh == F.sec_reports(doc, eps)[1]
+    d, n = date(2017, 4, 1), 0
+    while d <= date(2020, 12, 31):
+        ds = d.isoformat()
+        recs, _ = F.sec_reports(_trunc(doc, ds), [x for x in eps if x["date"] < ds])
+        assert _pick(st, ds) == (recs[-1] if recs else None), ds
+        d += timedelta(days=1)
+        n += 1
+    assert n > 1300
+    assert [x["avail"] for x in st] == sorted(x["avail"] for x in st)
+
+
+def test_sec_states_do_not_use_later_filings():
+    """舊算法（全部資料）在當時就看得到後來才申報的數字；新算法要等那一天。"""
+    doc, eps = _leaky_doc(), _eps_list()
+    old, _ = F.sec_reports(doc, eps)
+    st, _ = F.sec_states(doc, eps)
+    by = {x["end"]: x for x in old}
+    # 2019 年第 3 季（2019-11-01 申報）：舊算法的近四季 ROE 用到 2020-11-02 才第一次申報的 2018 年 9 月股東權益
+    q = by["2019-09-30"]
+    assert q["roe"] == pytest.approx((12 + 10 + 8 + 9) / ((500 + 380) / 2))
+    now = _pick(st, "2019-11-04")
+    assert now["end"] == "2019-09-30" and now["filed"] == "2019-11-01" and now["roe"] is None
+    # 2018 年第 4 季：當時用全年減前三季（140），舊算法被兩年後才出現的單季數字（135）蓋掉、也就變成 2020 年才拿得到
+    assert by["2018-12-31"]["filed"] == "2020-02-14"
+    q4 = _pick(st, "2019-03-01")
+    assert q4["end"] == "2018-12-31" and q4["filed"] == "2019-02-15" and q4["sy"] is None
+    # 2020 年第 1 季：去年同一季的營業利益到 2020-05-01 才有，那一天以前沒有營益率比去年同季
+    assert _pick(st, "2020-05-04")["omd"] == pytest.approx(50 / 200 - 30 / 150)
+    assert _pick(st, "2020-04-30")["end"] == "2019-12-31"
+
+
+def test_sec_at_uses_avail_day_and_staleness_from_revenue_filing():
+    """build 用的挑法（pit＝True）：重算那一天的下一個交易日起才拿得到；多久沒更新從這一季營收第一次申報算（EPS_RECENT）；
+    重算出來沒有任何一季的那一筆＝那天起沒有財報條件。"""
+    cal = _days(800, "2019-01-02")
+    st = [{"filed": "2019-02-15", "end": "2018-12-31", "om": 0.1, "avail": "2019-02-15"},
+          {"filed": "2019-02-15", "end": "2018-12-31", "om": 0.2, "avail": "2019-06-03"},
+          {"filed": None, "end": None, "avail": "2020-06-01"}]
+    sa, fa = F.sec_index(st, cal, True)
+    i = cal.index("2019-06-03")
+    assert F.sec_at(st, sa, fa, i)["om"] == 0.1                     # 重算那天當天還拿不到
+    assert F.sec_at(st, sa, fa, i + 1)["om"] == 0.2
+    f0 = cal.index("2019-02-15") + 1
+    assert F.sec_at(st, sa, fa, f0 + X.EPS_RECENT)["om"] == 0.2      # 從營收申報那天算 270 個交易日（不是從重算那天）
+    assert F.sec_at(st, sa, fa, f0 + X.EPS_RECENT + 1) is None
+    assert F.sec_at(st, sa, fa, cal.index("2020-06-02")) is None
+    assert F.sec_at(st, sa, fa, cal.index("2019-02-15")) is None     # 第一筆也是下一個交易日起
+    sa0, fa0 = F.sec_index(st[:2], cal, False)                       # 舊算法：用申報日（和原本一樣）
+    assert sa0 == fa0

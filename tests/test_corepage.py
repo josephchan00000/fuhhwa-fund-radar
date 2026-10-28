@@ -382,3 +382,23 @@ def test_qm_buy_split_respects_remaining_cash():
 def test_qm_rule_mentions_one_off_income():
     """ussxspec VER 7：規則句寫出一次性收入撐起來的營益率不算。"""
     assert "一次性收入撐起來的不算" in P._qm_rule("spx")
+
+
+def test_qm_kept_when_standards_fail_and_fix_note(R, QMX):
+    """ussxspec VER 8：四個標準沒有全過、照使用者 2026-10-28 的決定照用（研究檔 keep）——卡片照樣放強勢品質股，寫出哪一條沒過；
+    修正財報條件的一句寫修正前、修正後的錢（研究檔 prefix）。"""
+    import copy
+    q = copy.deepcopy(QMX)
+    q["R"]["keep"] = True
+    q["R"]["verdict"]["c2"]["spx"] = False
+    q["R"]["verdict"]["pass"]["spx"] = False
+    q["R"]["plans"]["spx_main"]["judge"] = {"money": True, "halves": True, "mdd": False, "pass": False}
+    q["R"]["prefix"] = {"sleeve": {"cagr": 0.2322}, "plans": {"spx": {"new": {"plan": {"m": 20.341}}}}}
+    assert P.qm_on("spx", q)
+    t = _text(P.card("spx", _us(), R, None, None, q))
+    assert "新規則驗證中" in t and "事先定好的四個標準沒有全過" in t and "最慘時跌得比原本的計畫深超過 10 個百分點" in t
+    assert "2026/10/28 決定先照用" in t and "修正前 100 萬變 2,034 萬" in t and "23.2%" in t
+    for w in BANNED + JARGON + NOT_PLAIN:
+        assert w not in t, w
+    q["R"]["keep"] = False                                                         # 沒有 keep（舊研究檔）：不寫這一句
+    assert "事先定好的四個標準沒有全過" not in _text(P.card("spx", _us(), R, None, None, q))
