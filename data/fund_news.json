@@ -1,15 +1,8 @@
 {
-  "as_of": "2026/10/28 19:31",
+  "as_of": "2026/10/28 19:39",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
-    {
-      "title": "國際股市修正 新基金00418A有望搶得從容起跑點",
-      "url": "https://turnnewsapp.com/ct-featured/420425.html",
-      "source": "翻爆",
-      "date": "2026-10-26 18:05",
-      "datetime": "2026-10-26T18:05:06+08:00"
-    },
     {
       "title": "復華中國 5G 謹慎操作",
       "url": "https://money.udn.com/money/story/5618/9835256",
@@ -23,13 +16,6 @@
       "source": "UDN",
       "date": "2026-10-22 21:10",
       "datetime": "2026-10-22T21:10:28+08:00"
-    },
-    {
-      "title": "不只瑤池金母、呂洞賓，九倍女戰神也來了！3大主動式ETF一次看",
-      "url": "https://inews.setn.com/news/1926795",
-      "source": "三立新聞",
-      "date": "2026-10-22 17:24",
-      "datetime": "2026-10-22T17:24:55+08:00"
     }
   ],
   "funds": [
@@ -54,13 +40,6 @@
           "source": "Yahoo股市",
           "date": "2026-10-23 17:08",
           "datetime": "2026-10-23T17:08:00+08:00"
-        },
-        {
-          "title": "績效1表看》00981A、00929...主動式高股息全掉榜「這5檔」今年飆逾100％ 超狂原因曝光- 基金",
-          "url": "https://wantrich.chinatimes.com/news/20261022900145-420401",
-          "source": "旺得富理財網",
-          "date": "2026-10-22 10:37",
-          "datetime": "2026-10-22T10:37:30+08:00"
         }
       ]
     },
@@ -104,18 +83,18 @@
           "datetime": "2026-10-28T17:29:42+08:00"
         },
         {
+          "title": "領高息也要看價差！00406A近期跌逾13% 00998A全球金融同期小漲",
+          "url": "https://life.tw/article/%E9%A0%98%E9%AB%98%E6%81%AF%E4%B9%9F%E8%A6%81%E7%9C%8B%E5%83%B9%E5%B7%AE-00406a%E8%BF%91%E6%9C%9F%E8%B7%8C%E9%80%BE13-00998a%E5%85%A8%E7%90%83-3195959",
+          "source": "Life 生活網",
+          "date": "2026-10-28 17:02",
+          "datetime": "2026-10-28T17:02:49+08:00"
+        },
+        {
           "title": "台股強彈、下一筆錢怎麼放？00998A全球金融近3個交易日表現勝00981A",
           "url": "https://www.watchmedia01.com/archives/563702",
           "source": "觀傳媒",
           "date": "2026-10-28 17:00",
           "datetime": "2026-10-28T17:00:43+08:00"
-        },
-        {
-          "title": "美股AI震盪資金尋分散 00998A逆勢小漲00981A跌逾15%",
-          "url": "https://n.yam.com/Article/20261028907871",
-          "source": "Yahoo新聞",
-          "date": "2026-10-28 08:16",
-          "datetime": "2026-10-28T08:16:06+08:00"
         },
         {
           "title": "金融股回檔 財報、利率成焦點 00998A主動挑全球金融龍頭 逆勢上漲0.43%",
@@ -179,13 +158,6 @@
           "source": "觀傳媒",
           "date": "2026-10-26 21:02",
           "datetime": "2026-10-26T21:02:35+08:00"
-        },
-        {
-          "title": "回檔篩出好體質！00418A卡位AI轉型股 10/27最後買進日",
-          "url": "https://tw.stock.yahoo.com/news/%E5%9B%9E%E6%AA%94%E7%AF%A9%E5%87%BA%E5%A5%BD%E9%AB%94%E8%B3%AA-00418a%E5%8D%A1%E4%BD%8Dai%E8%BD%89%E5%9E%8B%E8%82%A1-10-27%E6%9C%80%E5%BE%8C%E8%B2%B7%E9%80%B2%E6%97%A5-090427137.html",
-          "source": "Yahoo股市",
-          "date": "2026-10-26 17:04",
-          "datetime": "2026-10-26T17:04:27+08:00"
         }
       ]
     },
@@ -555,7 +527,7 @@
       "channel": "杉本來了",
       "url": "https://www.youtube.com/watch?v=lJNdfafhPj8",
       "date": "2026-10-21",
-      "views": 80258
+      "views": 80272
     },
     {
       "platform": "youtube",
@@ -563,7 +535,7 @@
       "channel": "财富底层逻辑",
       "url": "https://www.youtube.com/watch?v=gYyMwEhSwdM",
       "date": "2026-10-26",
-      "views": 2156
+      "views": 2151
     },
     {
       "platform": "youtube",
@@ -579,7 +551,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/watch?v=u4xcSAzbUi8",
       "date": "2026-10-26",
-      "views": 344187,
+      "views": 344460,
       "peer": true,
       "cat": "綜合"
     },
@@ -589,7 +561,7 @@
       "channel": "財經震翰彈_蔡明翰",
       "url": "https://www.youtube.com/watch?v=1GO3jgF0Q2Q",
       "date": "2026-10-25",
-      "views": 172121,
+      "views": 172132,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -609,7 +581,7 @@
       "channel": "今周刊",
       "url": "https://www.youtube.com/watch?v=7hLSHozmm68",
       "date": "2026-10-23",
-      "views": 149506,
+      "views": 149579,
       "peer": true,
       "cat": "高股息"
     },
@@ -619,7 +591,7 @@
       "channel": "Catch大錢潮",
       "url": "https://www.youtube.com/watch?v=WsUheUsX884",
       "date": "2026-10-25",
-      "views": 131604,
+      "views": 131610,
       "peer": true,
       "cat": "綜合"
     },
@@ -629,7 +601,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/whNn6PCCLws",
       "date": "2026-10-24",
-      "views": 112488,
+      "views": 112494,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -640,7 +612,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=WkmMZrXvm84",
       "date": "2026-10-26",
-      "views": 90063,
+      "views": 90132,
       "peer": true,
       "cat": "市值型"
     },
@@ -650,7 +622,7 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=qcTagQtlBaY",
       "date": "2026-10-25",
-      "views": 60828,
+      "views": 60850,
       "peer": true,
       "cat": "主動式"
     },
@@ -670,15 +642,15 @@
       "channel": "午後檔案",
       "url": "https://www.youtube.com/watch?v=ZRtvgX91bLA",
       "date": "2026-10-27",
-      "views": 55439,
+      "views": 55483,
       "peer": true,
       "cat": "基金"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A、台灣菁英50指數（詳下方新聞標籤）",
-    "品牌焦點：國際股市修正 新基金00418A有望搶得從容起跑點（翻爆）",
+    "品牌焦點：復華中國 5G 謹慎操作（經濟日報）",
     "社群聲量最高：［提醒］應該是詐騙的FB強基金 會員＂裙＂（0 推）",
-    "YouTube 熱片：存股別傻傻買0056! 退休前改1動作 月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・344,187 次觀看）"
+    "YouTube 熱片：存股別傻傻買0056! 退休前改1動作 月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・344,460 次觀看）"
   ]
 }
