@@ -2183,10 +2183,110 @@
 "verdict": "wait"
 },
 "realtime": {
-"days": [],
+"catchup": {
+"all": [
+{
+"agree": null,
+"at": "09:00:30",
+"mean": null,
+"median": null,
+"n": 0
+},
+{
+"agree": null,
+"at": "09:01:00",
+"mean": null,
+"median": null,
+"n": 0
+},
+{
+"agree": null,
+"at": "09:05:00",
+"mean": null,
+"median": null,
+"n": 0
+},
+{
+"agree": null,
+"at": "09:30:00",
+"mean": null,
+"median": null,
+"n": 0
+},
+{
+"agree": null,
+"at": "13:30:00",
+"mean": null,
+"median": null,
+"n": 0
+}
+],
+"traded": [
+{
+"agree": null,
+"at": "09:00:30",
+"mean": null,
+"median": null,
+"n": 0
+},
+{
+"agree": null,
+"at": "09:01:00",
+"mean": null,
+"median": null,
+"n": 0
+},
+{
+"agree": null,
+"at": "09:05:00",
+"mean": null,
+"median": null,
+"n": 0
+},
+{
+"agree": null,
+"at": "09:30:00",
+"mean": null,
+"median": null,
+"n": 0
+},
+{
+"agree": null,
+"at": "13:30:00",
+"mean": null,
+"median": null,
+"n": 0
+}
+]
+},
+"compare": {
+"always_long": {
+"n": 0
+},
+"always_short": {
+"n": 0
+},
+"est_err": {
+"n": 0
+},
+"raw_points": {
+"n": 0
+}
+},
+"days": [
+{
+"d": "2026-10-28",
+"dp": "2026-10-27",
+"skip": "逐筆還沒存"
+}
+],
+"main": {
+"n": 0
+},
 "n_days": 0,
-"note": "等即時版開始取樣（futspec VER 2）",
+"placebo_p": null,
+"start": "2026-10-28",
 "verdict": "wait"
 },
-"spec_ver": 1
+"spec_ver": 2
 }
