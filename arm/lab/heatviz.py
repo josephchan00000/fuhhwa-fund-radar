@@ -810,7 +810,7 @@ def _sq_ret(r: dict, bases: dict) -> tuple:
 
 def scen_html(V: dict) -> str:
     """情境（docs/lab_outlook_plan.md 第 3 節）：事先定義好的 9 種面向組合，過去出現之後 3 個月上漲、大跌的機率、
-    報酬中位數與中途最多跌（第 4.11 節）。2026-10-21 起放在「之後怎麼走？」面板裡（docs/lab_noise_plan.md 第 11 節）：
+    報酬中位數與最大跌幅（最慘一次；第 4.11 節，VER 24 起，原本是中途最多跌中位數）。2026-10-21 起放在「之後怎麼走？」面板裡（docs/lab_noise_plan.md 第 11 節）：
     現在成立的列在上面，其他的收起來；點一列展開條件、過去出現的時候、每一次。2026-10-23 起不放判定欄與說明（docs/lab_ia_v5_plan.md 第 8 節）。"""
     from . import sigcat as G
     from . import sigpage as SPG
@@ -840,13 +840,14 @@ def scen_html(V: dict) -> str:
         wnc = ('<span class="mu">—</span>' if wn.get("hit") is None else
                f'<b>{_p100(wn["hit"])}</b><small>任一天 {_p100(wn.get("base"))}</small>')
         med = "—" if not s else f'<b>{_rp(s[3])}</b><small>任一天 {_rp(b[3]) if b else "—"}</small>'
-        mae = "—" if not s else f'<b>{_rp(s[6])}</b><small>任一天 {_rp(b[6]) if b else "—"}</small>'
+        mae = "—" if not s or len(s) < 12 or s[11] is None else (f'<b>{_dd(s[11])}</b>'
+                                                                   + (f'<small>{_e(SPG.dday(s[12]))} 那次</small>' if len(s) > 12 and s[12] else ""))
         n = up.get("n") or 0
         items.append((0 if o else 1, k, (
             f'<details class="sqr{" on" if o else ""}" id="sq-{key}" data-dims="{_e(dims)}">'
             f'<summary class="sqg"><span class="sqnm"><b>{_e(name)}</b>{badge}<span class="sqcd">{_sq_cond(cond, now)}</span></span>'
             f'<span class="sqv" data-h="3 個月後上漲">{upc}</span><span class="sqv" data-h="報酬中位數">{med}</span>'
-            f'<span class="sqv" data-h="中途最多跌（中位）">{mae}</span>'
+            f'<span class="sqv" data-h="最大跌幅（最慘一次）">{mae}</span>'
             f'<span class="sqv" data-h="3 個月內回撤 {SPG._th(r["th"])}% 以上">{wnc}</span>'
             f'<span class="sqv" data-h="過去">{n} 段</span></summary>'
             f'<div class="sqbody"><p class="sqw">{_e(why)}</p>{_sq_strip(r, o)}'
@@ -859,7 +860,7 @@ def scen_html(V: dict) -> str:
             '（現在沒有成立）</summary>' + "".join(rest) + "</details>") if rest else ""
     th = next((SPG._th(r["th"]) for r in rows.values() if r.get("th") is not None), None)
     hd = ('<div class="sqg sqhd" aria-hidden="true"><span>情境（條件・現在的分數）</span><span>3 個月後上漲</span><span>報酬中位數</span>'
-          f'<span>中途最多跌（中位）</span><span>3 個月內回撤{f" {th}% 以上" if th else ""}</span><span>過去</span></div>')
+          f'<span>最大跌幅（最慘一次）</span><span>3 個月內回撤{f" {th}% 以上" if th else ""}</span><span>過去</span></div>')
     return (f'<section class="sec sqc" id="scen">{head}'
             f'<div class="sqtab">{hd}{"".join(x[2] for x in items if not x[0])}{fold}</div></section>')
 
@@ -886,6 +887,20 @@ def _p100(x) -> str:
 def _rp(x) -> str:
     """報酬（小數）→「+2.1%」。"""
     return "—" if x is None else _pct(x * 100)
+
+
+def _dd(x) -> str:
+    """最大跌幅（0～1）→「20.8%」（sigspec VER 24：持有期間從最高收盤跌到之後最低收盤，列最慘的那一次）。"""
+    return "—" if x is None else f"{x * 100:.1f}%"
+
+
+def _ddc(c) -> str:
+    """一格報酬（ret_cell）的最大跌幅最慘一次＋那一次的日期（小字）；沒有就「—」。"""
+    from . import sigpage as SPG
+    if not c or len(c) < 12 or c[11] is None:
+        return "—"
+    d = c[12] if len(c) > 12 else None
+    return f'<b>{_dd(c[11])}</b>' + (f'<small>{_e(SPG.dday(d))} 那次</small>' if d else "")
 
 
 def _pbar(p, b) -> str:
@@ -928,7 +943,7 @@ def now_html(V: dict) -> str:
     if s and b:
         lead += (f'過去和現在最像的 {r0["n"]} 段（{_e((r0.get("a") or "")[:4])} 年起找，平均每個面向差 {_dist(r0["dist"])} 分），'
                  f'之後 {NS_H[r0["h"]]}上漲 <b>{_p100(s[5])}</b>（任一天 {_p100(b[5])}）、報酬中位 <b>{_rp(s[3])}</b>'
-                 f'（{_rp(b[3])}）、中途最多跌中位 <b>{_rp(s[6])}</b>（{_rp(b[6])}）。')
+                 f'（{_rp(b[3])}）' + (f'、最大跌幅最慘的一次 <b>{_dd(s[11])}</b>' if len(s) > 11 and s[11] is not None else "") + '。')
     trs = []
     for h in SS.RET_H:
         r = R.get(h) or {}
@@ -943,9 +958,9 @@ def now_html(V: dict) -> str:
             f'<td class="l" data-h="上漲機率">{_pbar(s[5], bt[5])}<b>{_p100(s[5])}</b><small>任一天 {_p100(bt[5])}</small></td>'
             f'<td data-h="報酬中位數"><b>{_rp(s[3])}</b><small>{_rp(bt[3])}</small></td>'
             f'<td data-h="一半落在">{_rp(s[2])}～{_rp(s[4])}<small>{_rp(bt[2])}～{_rp(bt[4])}</small></td>'
-            f'<td data-h="中途最多跌（中位／最差 10%）">{_rp(s[6])}／{_rp(s[7])}<small>{_rp(bt[6])}／{_rp(bt[7])}</small></td></tr>')
+            f'<td data-h="最大跌幅（最慘一次）">{_ddc(s)}</td></tr>')
     table = ('<div class="tw"><table class="nst stk"><caption>小字＝任一天</caption><tr><th class="l">期間</th><th class="l">上漲機率</th>'
-             '<th>報酬中位數</th><th>一半落在</th><th>中途最多跌<br>中位／最差 10%</th></tr>' + "".join(trs) + '</table></div>')
+             '<th>報酬中位數</th><th>一半落在</th><th>最大跌幅<br>最慘一次</th></tr>' + "".join(trs) + '</table></div>')
     if ch:
         c0 = ch["rows"][0]
         cs, cb = c0.get("s"), c0.get("b")
@@ -967,12 +982,12 @@ def now_html(V: dict) -> str:
                   f'<td data-h="{_e(chip_nm)}" class="zt{_zc(cv)}">{HP.n0(cv) if cv is not None else "—"}</td>'
                   f'<td data-h="差幾分">{_dist(e.get("dist"))}</td>'
                   + "".join(f'<td data-h="之後 {NS_H[h]}">{_rp(rr.get(h, rr.get(str(h))))}</td>' for h in SS.NB_LIST_EXTRA)
-                  + f'<td data-h="中途最多跌（{NS_H[SS.NB_LIST_H]}）">{_rp(e.get("mae"))}</td></tr>')
+                  + f'<td data-h="最大跌幅（{NS_H[SS.NB_LIST_H]}）">{_dd(e.get("dd"))}</td></tr>')
     more = (f'<input type="checkbox" id="nsall" class="nsck"><label for="nsall" class="nsall"><span>看全部 {len(L)} 段</span>'
             '<span>只看前 5 段</span></label>' if len(L) > 5 else "")
     lst = ('<h3>最像的幾段</h3>' + more + '<div class="tw nslw"><table class="nslt stk"><tr><th class="l">日期</th>'
            + "".join(f'<th>{_e(nm[g])}</th>' for g in E["dims"]) + f'<th>{_e(chip_nm)}</th><th>差幾分</th>'
-           + "".join(f'<th>之後 {NS_H[h]}</th>' for h in SS.NB_LIST_EXTRA) + f'<th>中途最多跌<br>（{NS_H[SS.NB_LIST_H]}）</th></tr>'
+           + "".join(f'<th>之後 {NS_H[h]}</th>' for h in SS.NB_LIST_EXTRA) + f'<th>最大跌幅<br>（{NS_H[SS.NB_LIST_H]}）</th></tr>'
            + "".join(lr) + '</table></div>') if L else ""
     return f'<section class="sec nsc" id="now">{dims}<p class="nslead">{lead}</p>{table}{chipl}{lst}</section>'
 
@@ -1013,7 +1028,7 @@ def sim_oos_html(V: dict) -> str:
             f'區間＝以月為單位、每塊 {SS.NB_BLOCK} 個月重抽 {SS.NB_BOOT:,} 次。比平常準＝區間大於 0 而且前後兩半都大於 0；'
             '比平常差＝區間小於 0 而且前後兩半都小於 0。規則在看結果之前寫定（sigspec 第 4.12 節）。'
             f'每個期間各自找最像的 {SS.NB_K} 段（彼此至少隔 {SS.NB_GAP} 個交易日，只用之後已經走完的日子）；'
-            '進場＝隔一個交易日收盤；中途最多跌＝持有期間最低收盤比進場價低多少。</p></section>')
+            '進場＝隔一個交易日收盤；最大跌幅＝持有期間從最高收盤跌到之後最低收盤（和大跌同一個算法），列最慘的那一次。</p></section>')
 
 
 
@@ -1056,12 +1071,19 @@ def _oh(h: int) -> str:
 
 
 def _ocell(c, b, k: int, fmt, oj: bool = False) -> str:
-    """一格：粗體＝訊號、小字＝隨便挑一天；c、b＝ret_cell（[次數, 平均, 25%, 中位數, 75%, 上漲比例, 中途最多跌中位數, …]）；
+    """一格：粗體＝訊號、小字＝隨便挑一天；c、b＝ret_cell（[次數, 平均, 25%, 中位數, 75%, 上漲比例, 中途最多跌中位數, …,
+    最大跌幅最慘一次, 那一次的日期]）；k＝11（最大跌幅）時小字改成那一次的日期（任一天的最慘一次沒有比較的意義）；
     oj＝判定看的那個期間（框起來）。"""
     if not c:
         return f'<td class="mu{" oj" if oj else ""}">—</td>'
     few = f'<small class="ofw">{c[0]} 次</small>' if c[0] < 10 else ""
     cls = ' class="oj"' if oj else ""
+    if k == 11:
+        from . import sigpage as SPG
+        if len(c) < 12 or c[11] is None:
+            return f'<td class="mu{" oj" if oj else ""}">—</td>'
+        d = c[12] if len(c) > 12 else None
+        return f'<td{cls}><b>{fmt(c[11])}</b><small>{_e(SPG.dday(d)) if d else ""}</small>{few}</td>'
     return f'<td{cls}><b>{fmt(c[k])}</b><small>{fmt(b[k]) if b else "—"}</small>{few}</td>'
 
 
@@ -1094,10 +1116,12 @@ def out_sig(V: dict) -> str:
                          f'<p class="ofn"><a href="#s={_e(r["id"])}" data-sg="{_e(r["id"])}">報酬表、每一次與走勢</a></p></div>')
             continue
         R = r.get("ret") or {}
-        s = R.get("s") or []
+        s = list(R.get("s") or [])
         b = (bases.get(R.get("bk")) or {}).get("s") or []
         js = [SS.RET_H.index(h) for h in cols]
         own = r.get("H")
+        if r.get("xc") and own in SS.RET_H and SS.RET_H.index(own) < len(s):
+            s[SS.RET_H.index(own)] = r["xc"]       # 跨期間的列：這一欄和上面那一行同一批次數（sigspec VER 24）
         th = "".join((f'<th class="oj" title="這一列持有的期間">{_oh(h)}</th>' if h == own else f'<th>{_oh(h)}</th>') for h in cols)
 
         def row(lab, k, fmt):
@@ -1105,7 +1129,7 @@ def out_sig(V: dict) -> str:
                           for h, j in zip(cols, js))
             return f'<tr><th class="l">{lab}</th>{tds}</tr>'
         tbl = ('<div class="tw"><table class="oft">' f'<tr><th class="l"></th>{th}</tr>'
-               + row("上漲機率", 5, _p100) + row("報酬中位數", 3, _rp) + row("中途最多跌", 6, _rp)
+               + row("上漲機率", 5, _p100) + row("報酬中位數", 3, _rp) + row("最大跌幅", 11, _dd)
                + '</table></div>') if s else '<p class="note">沒有報酬的統計。</p>'
         fam = r.get("fam") or []
         also = (f'<details class="ofs"><summary>同時成立 {len(fam)} 個</summary>{_e("、".join(_tz_name(x) for x in fam))}</details>'
@@ -1135,9 +1159,11 @@ def out_dims(V: dict) -> str:
                 cur, al = z.get(band) or {}, z.get("全部") or {}
                 if not cur.get("n") or not al.get("n"):
                     continue
+                ddw = cur.get("ddw")
+                dtx = ("" if ddw is None else f'・最大跌幅最慘一次 {abs(ddw):.1f}%'
+                       + (f'（{_e(HP._ymd(cur["ddwd"]))} 那次）' if cur.get("ddwd") else ""))
                 li.append(f'<li><span class="odp">之後 {_oh(h)}</span>平均 <b>{_pct(cur.get("avg"))}</b>（{_pct(al.get("avg"))}）'
-                          f'・上漲 <b>{cur["up"]:.0f}%</b>（{al["up"]:.0f}%）'
-                          f'・最大跌幅中位 {_pct(cur.get("dd"))}（{_pct(al.get("dd"))}）{_vt(e.get("verdict"))}</li>')
+                          f'・上漲 <b>{cur["up"]:.0f}%</b>（{al["up"]:.0f}%）{dtx}{_vt(e.get("verdict"))}</li>')
         rows.append(f'<div class="odim">{top}' + (f'<ul>{"".join(li)}</ul>' if li else
                                                  '<p class="note">過去在這一區的日子不夠。</p>') + "</div>")
     return head + "".join(rows)
@@ -1206,13 +1232,15 @@ def _face_chips(V: dict) -> str:
 
 
 def face_html(V: dict) -> str:
-    """市場頁第一塊（docs/lab_ia_v5_plan.md 第 15.1 節）：面向——標題列、五個面向分數、雷達＋這週變化；
-    收起：和指數走勢比較（對照圖）、價位（均線、扣抵、前波高低點）。"""
+    """市場頁第一塊（docs/lab_ia_v5_plan.md 第 15.1 節）：面向——標題列、五個面向分數、雷達＋今天的訊號（電腦左右、
+    手機雷達在上）、這週變化（整條）；收起：和指數走勢比較（對照圖）、價位（均線、扣抵、前波高低點）。
+    2026-10-28 使用者：「電腦版的排版又把溫度計放下去了導致上面很空」——今天的訊號放回雷達右邊（同 2026-10-20 的版面），
+    這週變化移到兩欄下面整條。"""
     px = _e(HP.MK["px"].strip())
     nores = "" if (V.get("R") or {}).get("dims") else f'<p class="warn">驗證結果還沒產生（{_e(HP.MK["res"])}），先只列各項的 0～100。</p>'
     ta = HP._ta_main(V)
     return (f'<section class="vtop mface" id="top">{_face_head(V)}{_face_chips(V)}{nores}'
-            f'<div class="vgrid">{_radar_card(V)}<div class="vside">{moves_html(V)}</div></div>'
+            f'<div class="vgrid">{_radar_card(V)}<div class="vside">{today_html(V)}</div></div>{moves_html(V)}'
             f'<details class="mfx" id="cmpd"><summary>和{px}走勢比較</summary>{HP._cmp_section()}</details>'
             + (f'<details class="mfx" id="tad"><summary>價位：均線、扣抵、前波高低點</summary>{ta}</details>' if ta else "")
             + "</section>")
@@ -1233,11 +1261,11 @@ def research_bar(cur: str) -> str:
 
 
 def main_view(V: dict, ks: list[dict]) -> str:
-    """市場頁（docs/lab_ia_v5_plan.md 第 15.1、18 節）：面向 → 今天的訊號 → 全部指標 → 泡沫，最下面一行連研究紀錄。
+    """市場頁（docs/lab_ia_v5_plan.md 第 15.1、18 節）：面向（含今天的訊號）→ 全部指標 → 泡沫，最下面一行連研究紀錄。
     全部指標的資料（#sgd）與泡沫的資料（#bubd）放在頁面層（美股頁四個指數共用一份）。"""
     stash_cards(V)
     from . import sigpage as SPG
-    return (f'<div class="hview" data-view="radar">{face_html(V)}{today_html(V)}{SPG.block_html()}'
+    return (f'<div class="hview" data-view="radar">{face_html(V)}{SPG.block_html()}'
             f'{V.get("bubblock") or ""}{foot_html(V)}</div>')
 
 
@@ -1971,10 +1999,8 @@ button.stc{font:inherit;font-size:13px;cursor:pointer}button.stc:hover{border-co
 .mfoot{max-width:1080px;margin:24px auto 28px;padding:0 16px;font-size:12.5px;color:var(--mut);text-align:center}
 .mfoot a{color:var(--mut)}
 .rbar .rbk{padding:2px 10px;color:var(--acc);font-size:13px;white-space:nowrap}
-.vside .wchg .wr{grid-template-columns:auto auto auto minmax(0,1fr);grid-template-areas:"nm sc d bd" "tk tk tk tk" "wy wy wy wy";
-align-items:baseline;gap:2px 10px}.vside .wchg .wr .wtk{margin:4px 6px 2px}
-.mface .vside>.wchg{margin:0;flex:1}
-.mface{margin-bottom:18px}.hview>.tzc{margin:0 0 18px;scroll-margin-top:48px}
+.mface .vside>.tzc{margin:0;flex:1;scroll-margin-top:48px}
+.mface{margin-bottom:18px}
 .snv.on{background:var(--acc);color:var(--bg)}
 @media (max-width:640px){.ixsw{gap:4px}.ixsw a,.ixsw button{padding:5px 8px;font-size:13px}.mfh .mfpx{font-size:18px}}
 """
@@ -2162,28 +2188,47 @@ window.addEventListener('popstate', () => { if (DRW && !DRW.hidden) closeD(true)
 window.heatOpen = k => (DIM.indexOf(k) >= 0 ? openD('dim', k) : (IT[k] ? openD('item', k) : false));
 window.heatClose = q => closeD(!!q);     // q＝true：只關面板、不動瀏覽紀錄（全部指標的面板接著要開）
 
-// 面板裡的大張走勢：上＝0～100（淡紅＝過熱、淡藍＝過冷），下＝指數（對數），共用時間軸
+// 面板裡的大張走勢：上＝這一項（預設原始值；2026-10-28 使用者：「指標走勢圖預設要是原始值」，可切 0～100——淡紅＝過熱、淡藍＝過冷），
+// 下＝指數（對數），共用時間軸。面向分數沒有原始值，只有 0～100。
+function fmtR(id, v, tick) {
+  if (v == null) return '—';
+  const it = (M.items || {})[id];
+  if (!it) return (Math.round(v * 100) / 100).toLocaleString('en-US');
+  const dec = tick ? Math.min(it.dec, Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 10 ? 1 : 2) : it.dec;
+  const s = Math.abs(v).toLocaleString('en-US', {minimumFractionDigits: dec, maximumFractionDigits: dec}), sg = v < 0 ? '−' : (it.signed && v > 0 && !tick ? '+' : '');
+  if (tick) return sg + s + (it.unit === '%' ? '%' : '');
+  return it.unit === '%' ? sg + s + '%' : sg + s + (it.unit ? ' ' + it.unit : '');
+}
 function bigChart(el, id) {
   if (!D) { el.dataset.wait = '1'; el.innerHTML = '<p class="note">走勢載入中…</p>'; return; }
   delete el.dataset.wait;
   const s0 = D.s[id];
   if (!s0 || !s0.h || !s0.h.v.length) { el.innerHTML = '<p class="note">沒有每週的 0～100 走勢。</p>'; return; }
+  const hasR = !!(s0.r && s0.r.v && s0.r.v.length), md = hasR ? (el.dataset.md || 'r') : 'h', raw = md === 'r', ser = raw ? s0.r : s0.h;
   const rg = el.dataset.rg == null ? 3 : +el.dataset.rg, ds = D.w.d, i1 = ds.length - 1;
-  let i0 = s0.h.o;
+  let i0 = ser.o;
   if (rg) { const cut = (+ds[i1].slice(0, 4) - rg) + ds[i1].slice(4); const j = ds.findIndex(d => d > cut); i0 = Math.max(i0, j < 0 ? 0 : j); }
-  const W = Math.max(280, Math.floor(el.clientWidth || 440)), PL = 30, PR = 8, T = 6, H1 = 124, G = 26, H2 = 66;
-  const X = i => PL + (W - PL - PR) * (i - i0) / Math.max(1, i1 - i0), Y = v => T + H1 * (1 - v / 100);
-  let s = '<rect class="dzh" x="' + PL + '" y="' + Y(100) + '" width="' + (W - PL - PR) + '" height="' + (Y(80) - Y(100)).toFixed(1) + '"/>'
+  let lo = 0, hi = 100;
+  if (raw) {
+    lo = Infinity; hi = -Infinity;
+    for (let i = i0; i <= i1; i++) { const v = val(ser, i); if (v != null) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }
+    if (!isFinite(lo)) { lo = 0; hi = 1; }
+    const pd = (hi - lo) * 0.06 || Math.abs(hi) * 0.05 || 1; lo -= pd; hi += pd;
+  }
+  const W = Math.max(280, Math.floor(el.clientWidth || 440)), PL = raw ? 50 : 30, PR = 8, T = 6, H1 = 124, G = 26, H2 = 66;
+  const X = i => PL + (W - PL - PR) * (i - i0) / Math.max(1, i1 - i0), Y = v => T + H1 * (1 - (v - lo) / ((hi - lo) || 1));
+  let s = '';
+  if (!raw) s += '<rect class="dzh" x="' + PL + '" y="' + Y(100) + '" width="' + (W - PL - PR) + '" height="' + (Y(80) - Y(100)).toFixed(1) + '"/>'
     + '<rect class="dzc" x="' + PL + '" y="' + Y(20).toFixed(1) + '" width="' + (W - PL - PR) + '" height="' + (Y(0) - Y(20)).toFixed(1) + '"/>';
-  [0, 50, 100].forEach(v => { s += '<line class="dgl" x1="' + PL + '" x2="' + (W - PR) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '"/><text class="dgt" x="' + (PL - 4) + '" y="' + (Y(v) + 3.5).toFixed(1) + '" text-anchor="end">' + v + '</text>'; });
+  (raw ? [lo + (hi - lo) * 0.06, (lo + hi) / 2, hi - (hi - lo) * 0.06] : [0, 50, 100]).forEach(v => { s += '<line class="dgl" x1="' + PL + '" x2="' + (W - PR) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '"/><text class="dgt" x="' + (PL - 4) + '" y="' + (Y(v) + 3.5).toFixed(1) + '" text-anchor="end">' + esc(raw ? fmtR(id, v, true) : String(v)) + '</text>'; });
   let d = '', pen = false, li = null;
-  for (let i = i0; i <= i1; i++) { const v = val(s0.h, i); if (v == null) { pen = false; continue; } d += (pen ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1); pen = true; li = i; }
+  for (let i = i0; i <= i1; i++) { const v = val(ser, i); if (v == null) { pen = false; continue; } d += (pen ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1); pen = true; li = i; }
   s += '<path class="dln" d="' + d + '"/>';
-  if (li != null) { const v = val(s0.h, li); s += '<circle class="ddot zf' + zc(v) + '" cx="' + X(li).toFixed(1) + '" cy="' + Y(v).toFixed(1) + '" r="4.5"/>'; }
+  if (li != null) { const v = val(ser, li), hz = val(s0.h, li); s += '<circle class="ddot zf' + zc(hz == null ? 50 : hz) + '" cx="' + X(li).toFixed(1) + '" cy="' + Y(v).toFixed(1) + '" r="4.5"/>'; }
   const top2 = T + H1 + G;
-  let lo = Infinity, hi = -Infinity;
-  for (let i = i0; i <= i1; i++) { const v = D.w.px[i]; if (v > 0) { const l = Math.log(v); lo = Math.min(lo, l); hi = Math.max(hi, l); } }
-  const Y2 = l => top2 + H2 * (1 - (l - lo) / ((hi - lo) || 1));
+  let pl = Infinity, ph = -Infinity;
+  for (let i = i0; i <= i1; i++) { const v = D.w.px[i]; if (v > 0) { const l = Math.log(v); pl = Math.min(pl, l); ph = Math.max(ph, l); } }
+  const Y2 = l => top2 + H2 * (1 - (l - pl) / ((ph - pl) || 1));
   d = ''; pen = false;
   for (let i = i0; i <= i1; i++) { const v = D.w.px[i]; if (!(v > 0)) { pen = false; continue; } d += (pen ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y2(Math.log(v)).toFixed(1); pen = true; }
   s += '<path class="dpx" d="' + d + '"/><text class="dgt" x="' + PL + '" y="' + (top2 - 6) + '">' + esc(PXN) + '（對數）</text>';
@@ -2193,16 +2238,20 @@ function bigChart(el, id) {
   yrs.filter((_, k) => k % st === 0).forEach(i => { s += '<text class="dgt" x="' + X(i).toFixed(1) + '" y="' + (top2 + H2 + 14) + '" text-anchor="middle">' + ds[i].slice(0, 4) + '</text>'; });
   const Ht = top2 + H2 + 18;
   s += '<line class="dcx" x1="0" x2="0" y1="' + T + '" y2="' + (top2 + H2) + '" visibility="hidden"/>';
+  const it = (M.items || {})[id] || {}, un = it.unit && it.unit !== '%' ? '（' + it.unit + '）' : '';
   el.innerHTML = '<div class="seg">' + [3, 10, 0].map(r => '<button type="button" class="tb' + (r === rg ? ' on' : '') + '" data-rg="' + r + '" aria-pressed="' + (r === rg) + '">' + (r ? '近 ' + r + ' 年' : '全部') + '</button>').join('') + '</div>'
-    + '<svg viewBox="0 0 ' + W + ' ' + Ht + '" width="' + W + '" height="' + Ht + '" role="img" aria-label="' + esc(NM[id] || '') + '的 0～100 與' + esc(PXN) + '">' + s + '</svg><div class="tip" hidden></div>';
+    + (hasR ? '<div class="seg">' + [['r', '原始值' + un], ['h', '0～100']].map(m => '<button type="button" class="tb' + (m[0] === md ? ' on' : '') + '" data-md="' + m[0] + '" aria-pressed="' + (m[0] === md) + '">' + esc(m[1]) + '</button>').join('') + '</div>' : '')
+    + '<svg viewBox="0 0 ' + W + ' ' + Ht + '" width="' + W + '" height="' + Ht + '" role="img" aria-label="' + esc(NM[id] || '') + (raw ? '的原始值' : '的 0～100') + '與' + esc(PXN) + '">' + s + '</svg><div class="tip" hidden></div>';
   el.querySelectorAll('[data-rg]').forEach(b => b.addEventListener('click', () => { el.dataset.rg = b.dataset.rg; bigChart(el, id); }));
+  el.querySelectorAll('[data-md]').forEach(b => b.addEventListener('click', () => { el.dataset.md = b.dataset.md; bigChart(el, id); }));
   const svg = el.querySelector('svg'), tip = el.querySelector('.tip'), cx = svg.querySelector('.dcx');
   const mv = ev => {
     const r = svg.getBoundingClientRect(), x = (ev.clientX - r.left) * (W / r.width);
     const i = Math.max(i0, Math.min(i1, Math.round(i0 + (x - PL) / ((W - PL - PR) || 1) * (i1 - i0)))), xx = X(i).toFixed(1);
     cx.setAttribute('x1', xx); cx.setAttribute('x2', xx); cx.setAttribute('visibility', 'visible');
-    const v = val(s0.h, i);
-    tip.innerHTML = '<b>' + esc(ymd(ds[i])) + '</b><div><strong>' + n0(v) + '</strong> ' + esc(v == null ? '' : bn(v)) + '</div><div class="tpx">' + esc(PXN) + ' ' + fpx(D.w.px[i]) + '</div>';
+    const v = val(s0.h, i), rv = hasR ? val(s0.r, i) : null;
+    tip.innerHTML = '<b>' + esc(ymd(ds[i])) + '</b>' + (hasR ? '<div><strong>' + esc(fmtR(id, rv)) + '</strong></div>' : '')
+      + '<div>' + (hasR ? '0～100 ' : '<strong>') + n0(v) + (hasR ? ' ' : '</strong> ') + esc(v == null ? '' : bn(v)) + '</div><div class="tpx">' + esc(PXN) + ' ' + fpx(D.w.px[i]) + '</div>';
     tip.hidden = false;
     const bx = el.getBoundingClientRect(), tw = tip.offsetWidth;
     let left = ev.clientX - bx.left + 12;

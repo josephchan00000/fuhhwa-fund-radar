@@ -205,7 +205,7 @@ def stats(r: dict) -> dict:
         out.update({"H": r["H"], "hn": XSP.HN.get(r["H"], f"{r['H']} 個交易日")})
         if f.get("n"):
             out.update(L)
-            out.update({"base": _p(f.get("base"), 0), "bmed": _p(f.get("bmed")), "mae": _p(f.get("mae")),
+            out.update({"base": _p(f.get("base"), 0), "bmed": _p(f.get("bmed")), "mae": _p(f.get("mae")), "mddw": _p(f.get("mddw")),
                         "cagr": _p(c.get("cagr")), "mdd": _p(c.get("mdd"), 0), "expo": _p(c.get("expo"), 0)})
         else:
             out["n"] = 0
@@ -408,7 +408,7 @@ def risk(r: dict) -> list[str]:
         out.append(f"最差{u} {_pp(e['lo'])}（{md(w[0])} 買、{md(w[2])} 賣）")
     if kind == "dip" and closed:
         m = max(closed, key=lambda t: t[6] or 0)
-        out.append(f"抱固定時間、中途不設停損：中途最多跌中位 {_pp(e.get('mae'), 1, sign=False)}，最多一次跌 {pc(m[6], 1)}（{md(m[0])} 買）")
+        out.append(f"抱固定時間、中途不設停損：抱的期間最大跌幅最差一次 {pc(m[6], 1)}（{md(m[0])} 買）")
     X = ex_best(r) if kind != "dip" else None
     if X:
         out.append(f"成績集中在少數年份：最好的 {X['y']} 年 {X['r']:+.1f}%；去掉這一年，年化 {X['cagr']:+.1f}%"

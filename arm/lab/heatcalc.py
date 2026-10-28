@@ -474,18 +474,18 @@ def evaluate(x: list, px: list, cal: list[str], dim: str) -> dict:
                 continue
             r, dd = H.fwd(px, i, h)
             if r is not None:
-                rows.append((cal[i], x[i], r, dd))
-        xs, ys, ds = [b for _, b, _, _ in rows], [c for _, _, c, _ in rows], [d for *_, d in rows]
+                rows.append((cal[i], x[i], r, dd, H.fwd_mdd(px, i, h)))
+        xs, ys, ds = [b for _, b, *_ in rows], [c for _, _, c, *_ in rows], [d for *_, d, _ in rows]
         rho, lo, hi = H.spearman_ci(xs, ys, block)
         m = len(rows) // 2
         r1 = H.spearman(xs[:m], ys[:m])
         r2 = H.spearman(xs[m:], ys[m:])
-        bands = H.bands(xs, ys, ds)
+        bands = H.bands(xs, ys, ds, [w for *_, w in rows], [d for d, *_ in rows])   # VER 24：最大跌幅最差一次（只呈現）
         for b, (lo_, hi_, _) in zip(bands, S.BANDS):          # 這一區出現在哪幾年（只當資訊：樣本是不是集中在一段）
-            b["yrs"] = sorted({d[:4] for d, v, _, _ in rows if lo_ <= v < hi_})
+            b["yrs"] = sorted({d[:4] for d, v, *_ in rows if lo_ <= v < hi_})
         ref = []
         for rng in S.SPLIT_REF[freq]:
-            sub = [(b, c) for d, b, c, _ in rows if _in(d, rng)]
+            sub = [(b, c) for d, b, c, *_ in rows if _in(d, rng)]
             ref.append({"n": len(sub), "rho": _r(H.spearman([a for a, _ in sub], [b for _, b in sub]))})
         out[h] = {"n": len(rows), "rho": _r(rho), "lo": _r(lo), "hi": _r(hi),
                   "a": rows[0][0] if rows else None, "z": rows[-1][0] if rows else None,

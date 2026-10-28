@@ -114,12 +114,19 @@ def fwd_mae(px, H: int) -> np.ndarray:
     return out
 
 
-def ret_arrays(px, hs=None, ps=None) -> dict:
-    """報酬（PATH_D 每一天）與中途最多跌（RET_H 每一期）的逐日陣列；第 t 格＝第 t 天訊號、隔一個交易日收盤進場。"""
+def fwd_dd(px, H: int) -> np.ndarray:
+    """第 t 天的訊號 → 持有 H 天的最大跌幅＝第 e～e＋H 天收盤的最大回撤（期間最高收盤到之後最低收盤，0～1）；
+    就是 outcomes 的第三個（大跌的同一個算法；sigspec VER 24，只呈現）。"""
+    return outcomes(px, H, 1.0)[2]
+
+
+def ret_arrays(px, hs=None, ps=None, cal=None) -> dict:
+    """報酬（PATH_D 每一天）、中途最多跌與最大跌幅（RET_H 每一期）的逐日陣列；第 t 格＝第 t 天訊號、隔一個交易日收盤進場。
+    cal＝日曆（給最大跌幅最差一次的日期；VER 24）。"""
     hs = S.RET_H if hs is None else hs
     ps = S.PATH_D if ps is None else ps
     return {"R": {d: fwd_ret(px, d) for d in sorted(set(ps) | set(hs))}, "A": {h: fwd_mae(px, h) for h in hs},
-            "hs": tuple(hs), "ps": tuple(ps)}
+            "D": {h: fwd_dd(px, h) for h in hs}, "hs": tuple(hs), "ps": tuple(ps), "cal": cal}
 
 
 def wquant(v: np.ndarray, w: np.ndarray, q: float) -> float:
@@ -130,17 +137,38 @@ def wquant(v: np.ndarray, w: np.ndarray, q: float) -> float:
     return float(v[o][min(k, len(v) - 1)])
 
 
-def ret_cell(r: np.ndarray, a: np.ndarray, w: np.ndarray, n: int, occ=None, occ_w=None) -> list | None:
-    """→ [次數, 平均, 25%, 中位數, 75%, 上漲比例, 中途最多跌中位數, 中途最多跌最差 10%, 最差一次, 排除極端, 去掉最好一次]。
-    最後兩個（VER 17，第 4.11 節）用 occ＝每一次（狀態型＝每一段的平均）的報酬；沒給＝r 的每一個值各算一次（每一天等權）。
-    occ_w＝每一次的權重（VER 22：狀態型＝段內天數；排序與去掉幾個照段算，其餘照天數平均）。"""
+def worst_dd(dd, ix=None, cal=None) -> list:
+    """最大跌幅的最差一次（sigspec VER 24）→ [最大跌幅（0～1）, 那一次的日期]；dd＝每一個樣本的最大跌幅、ix＝對應的日子
+    （cal 的索引；cal 沒給就是日期字串本身）。一樣大取最早的那一個。沒有值 → []。"""
+    if dd is None:
+        return []
+    v = np.asarray(dd, dtype=float)
+    ok = np.isfinite(v)
+    if not ok.any():
+        return []
+    j = int(np.flatnonzero(ok)[np.argmax(v[ok])])
+    d = None
+    if ix is not None:
+        k = ix[j]
+        d = cal[int(k)] if cal is not None else k
+    return [float(v[j]), d]
+
+
+def ret_cell(r: np.ndarray, a: np.ndarray, w: np.ndarray, n: int, occ=None, occ_w=None, dd=None, ix=None,
+             cal=None) -> list | None:
+    """→ [次數, 平均, 25%, 中位數, 75%, 上漲比例, 中途最多跌中位數, 中途最多跌最差 10%, 最差一次, 排除極端, 去掉最好一次,
+    最大跌幅最差一次, 那一次的日期]。
+    排除極端、去掉最好一次（VER 17，第 4.11 節）用 occ＝每一次（狀態型＝每一段的平均）的報酬；沒給＝r 的每一個值各算一次（每一天等權）。
+    occ_w＝每一次的權重（VER 22：狀態型＝段內天數；排序與去掉幾個照段算，其餘照天數平均）。
+    最後兩個（VER 24，只呈現）：dd＝每一個樣本的最大跌幅（和 r 同長度）、ix／cal 給日期（worst_dd）；沒給 dd 就沒有這兩個。
+    中途最多跌（第 7～9 個）留在研究檔、頁面不再列。"""
     if n <= 0 or not len(r):
         return None
     W = float(w.sum())
     o = r if occ is None else occ
     rob = (RB.trim_mean(o), RB.lbo_mean(o)) if occ_w is None else (RB.trim_mean_w(o, occ_w), RB.lbo_mean_w(o, occ_w))
     return [int(n), float((r * w).sum() / W), *(wquant(r, w, q) for q in S.RET_Q), float(w[r > 0].sum() / W),
-            wquant(a, w, 0.5), wquant(a, w, S.MAE_Q), float(a.min()), *rob]
+            wquant(a, w, 0.5), wquant(a, w, S.MAE_Q), float(a.min()), *rob, *worst_dd(dd, ix, cal)]
 
 
 def ret_stats(groups: list, RA: dict) -> dict:
@@ -151,7 +179,7 @@ def ret_stats(groups: list, RA: dict) -> dict:
     gs = [g for g in gs if len(g)]
 
     def pick(Y, Z=None):
-        rs, zs, ws, ms, mw, n = [], [], [], [], [], 0
+        rs, zs, ws, ms, mw, ks, n = [], [], [], [], [], [], 0
         for g in gs:
             m = np.isfinite(Y[g]) if Z is None else (np.isfinite(Y[g]) & np.isfinite(Z[g]))
             k = g[m]
@@ -162,16 +190,21 @@ def ret_stats(groups: list, RA: dict) -> dict:
             ws.append(np.ones(len(k)))                     # VER 22：每一天一樣重
             ms.append(float(Y[k].mean()))                 # VER 17：每一段的平均（排除極端、去掉最好一次的單位）
             mw.append(float(len(k)))                      # VER 22：這一段的權重＝天數
+            ks.append(k)
             if Z is not None:
                 zs.append(Z[k])
         if not n:
             return None
-        return (np.concatenate(rs), np.concatenate(zs) if Z is not None else None, np.concatenate(ws), n, ms, mw)
+        return (np.concatenate(rs), np.concatenate(zs) if Z is not None else None, np.concatenate(ws), n, ms, mw,
+                np.concatenate(ks))
 
     out_s = []
+    DD = RA.get("D") or {}
     for h in RA["hs"]:
         P = pick(RA["R"][h], RA["A"][h])
-        out_s.append(None if P is None else ret_cell(P[0], P[1], P[2], P[3], P[4], P[5]))
+        dh = DD.get(h)
+        out_s.append(None if P is None else ret_cell(P[0], P[1], P[2], P[3], P[4], P[5],
+                                                    None if dh is None else dh[P[6]], P[6], RA.get("cal")))
     out_p = []
     for d in RA["ps"]:
         P = pick(RA["R"][d])
@@ -189,14 +222,21 @@ def ret_base(samp: np.ndarray, RA: dict, cache: dict, tag: str) -> str:
     return key
 
 
+def _ret_cell_h(idx: np.ndarray, RA: dict, h: int) -> list:
+    """一個期間的報酬格（每一天等權）。跨期間的列（cross_stats）也用：同一批次數（那支溫度計的看多久去重複），
+    「之後怎麼走？」表上那一欄才會和上面那一行的機率、最大跌幅一致（sigspec VER 24）。"""
+    idx = np.asarray(idx, dtype=np.int64)
+    R, A = RA["R"][h][idx], RA["A"][h][idx]
+    m = np.isfinite(R) & np.isfinite(A)
+    dh = (RA.get("D") or {}).get(h)
+    return ret_cell(R[m], A[m], np.ones(int(m.sum())), int(m.sum()),
+                    dd=None if dh is None else dh[idx][m], ix=idx[m], cal=RA.get("cal"))
+
+
 def _ret_flat(idx: np.ndarray, RA: dict) -> dict:
     """每一天等權（平常、事件）：和 ret_stats 每一天各自一組的結果相同，比較快。"""
     idx = np.asarray(idx, dtype=np.int64)
-    out_s = []
-    for h in RA["hs"]:
-        R, A = RA["R"][h][idx], RA["A"][h][idx]
-        m = np.isfinite(R) & np.isfinite(A)
-        out_s.append(ret_cell(R[m], A[m], np.ones(int(m.sum())), int(m.sum())))
+    out_s = [_ret_cell_h(idx, RA, h) for h in RA["hs"]]
     out_p = []
     for d in RA["ps"]:
         R = RA["R"][d][idx]
@@ -268,11 +308,18 @@ def skipped(days, ok: set, H: int, Yu: np.ndarray, cal: list[str]) -> list[list]
     return out
 
 
+def _mddw(dd, ix, cal) -> dict:
+    """最大跌幅最差一次（sigspec VER 24）→ {"mddw": 0～1, "mddw_d": 日期}；沒有值 → {}。"""
+    w = worst_dd(dd, ix, cal)
+    return {"mddw": w[0], "mddw_d": w[1]} if w else {}
+
+
 def ev_stat(days, Yu: np.ndarray, Yw: np.ndarray, samp: np.ndarray, H: int, r0: int, Yd: np.ndarray | None = None,
-            Yr: np.ndarray | None = None) -> dict:
+            Yr: np.ndarray | None = None, cal: list | None = None) -> dict:
     """事件型：samp＝可以算平常的日子（輸入有值）索引；r0＝近 10 年起點的索引；Yd＝每一天的最大回撤（VER 3，只呈現）；
-    Yr＝每一天之後的漲跌（只呈現）。
-    → {"up": 統計, "warn": 統計（另有 mdd、mdd_base＝最大回撤中位數）, "occ": [[t, 偏多, 警示, 最大回撤, 之後漲跌], …]}（只含窗口完整的次）。"""
+    Yr＝每一天之後的漲跌（只呈現）；cal＝日曆（最大跌幅最差一次的日期，VER 24）。
+    → {"up": 統計, "warn": 統計（另有 mdd、mdd_base＝最大回撤中位數；VER 24 起另有 mddw、mddw_d＝最差一次與日期）,
+    "occ": [[t, 偏多, 警示, 最大回撤, 之後漲跌], …]}（只含窗口完整的次）。"""
     ok = set(int(i) for i in samp)
     kept = dedupe([t for t in days if t in ok], H)
     occ = [[t, Yu[t], Yw[t], np.nan if Yd is None else Yd[t], np.nan if Yr is None else Yr[t]]
@@ -285,7 +332,8 @@ def ev_stat(days, Yu: np.ndarray, Yw: np.ndarray, samp: np.ndarray, H: int, r0: 
         out[dk] = {"n": len(ys), "hit": _mean(ys), "base": _base(Y, samp),
                    "n10": len(ys10), "hit10": _mean(ys10), "base10": _base(Y, samp10)}
     if Yd is not None:
-        out["warn"].update(mdd=_median([o[3] for o in occ]), mdd_base=_base_med(Yd, samp))
+        out["warn"].update(mdd=_median([o[3] for o in occ]), mdd_base=_base_med(Yd, samp),
+                           **_mddw([o[3] for o in occ], [o[0] for o in occ], cal))
     return out
 
 
@@ -318,11 +366,13 @@ def exp_end(sd: dict, days, H: int) -> np.ndarray:
 
 
 def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray, gap: int, r0: int,
-            Yd: np.ndarray | None = None, Yr: np.ndarray | None = None, brk=None) -> dict:
+            Yd: np.ndarray | None = None, Yr: np.ndarray | None = None, brk=None, cal: list | None = None) -> dict:
     """狀態型：samp＝樣本日（輸入有值；月資料＝每月最後一個交易日）索引，state＝這些樣本日是否在狀態中（同長度）。
     命中率＝狀態中、窗口完整的每一天的比例（VER 22，第 3.4 節；VER 1～21 是各段平均）；次數＝段數；近 10 年＝第一天在 r0 以後的段裡的每一天。
-    Yd＝每一天的最大回撤（VER 3，只呈現：狀態中每一天的中位數）。Yr＝每一天之後的漲跌（只呈現，一段＝段內平均）。
-    → {"up", "warn", "occ": [[第一天, 最後一天, 天數, 偏多, 警示, 最大回撤, 之後漲跌], …]}（每一段的列表照舊是段內平均）。"""
+    Yd＝每一天的最大回撤（VER 3，只呈現：狀態中每一天的中位數；VER 24 起另記最差一次 mddw 與日期 mddw_d，cal＝日曆）。
+    Yr＝每一天之後的漲跌（只呈現，一段＝段內平均）。
+    → {"up", "warn", "occ": [[第一天, 最後一天, 天數, 偏多, 警示, 最大回撤, 之後漲跌], …]}（偏多、警示、漲跌是段內平均；
+    最大回撤 VER 24 起是段內最差的一天，VER 3～23 是段內平均）。"""
     pos = [i for i in range(len(samp)) if state[i]]
     occ, days = [], []
     for ep in episodes(pos, gap, brk):
@@ -332,7 +382,7 @@ def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray,
         if not m.any():
             continue
         occ.append([int(ts[0]), int(ts[-1]), int(len(ts)), float(u[m].mean()), float(w[m].mean()),
-                    np.nan if Yd is None else float(Yd[ts][m].mean()), _mean(Yr[ts][m]) if Yr is not None else np.nan])
+                    np.nan if Yd is None else float(np.nanmax(Yd[ts][m])), _mean(Yr[ts][m]) if Yr is not None else np.nan])
         days.append(ts[m])
     samp10 = samp[samp >= r0]
     out = {"occ": occ}
@@ -343,7 +393,8 @@ def st_stat(state: np.ndarray, samp: np.ndarray, Yu: np.ndarray, Yw: np.ndarray,
         out[dk] = {"n": len(occ), "hit": float(Y[alld].mean()) if len(alld) else None, "base": _base(Y, samp),
                    "n10": len(d10), "hit10": float(Y[alld10].mean()) if len(alld10) else None, "base10": _base(Y, samp10)}
     if Yd is not None:
-        out["warn"].update(mdd=_base_med(Yd, alld) if len(alld) else None, mdd_base=_base_med(Yd, samp))
+        out["warn"].update(mdd=_base_med(Yd, alld) if len(alld) else None, mdd_base=_base_med(Yd, samp),
+                           **(_mddw(Yd[alld], alld, cal) if len(alld) else {}))
     return out
 
 
@@ -779,13 +830,16 @@ def signals(F: dict) -> list[dict]:
 
 
 def _small(st: dict) -> dict:
-    return {k: st[k] for k in ("n", "hit", "base")}
+    """跨期間只留次數、命中率、平常；VER 24 起另留最大跌幅最差一次與日期（有的話）。"""
+    return {k: st[k] for k in ("n", "hit", "base", "mddw", "mddw_d") if k in st}
 
 
 def cross_stats(F: dict, sd: dict, Ycache: dict) -> dict:
     """溫度計跨期間（sigspec 第 5 節 ③a，VER 15）：同一個訊號在另外兩支溫度計的看多久（THERMO_H）的統計——
     成功條件、次數、平常照第 2、3.4 節，只是 H 換掉。→ {k: {"H", "th", "up": {n, hit, base}, "warn": {n, hit, base}}}；
-    不跨期間的類別回 {}。"""
+    不跨期間的類別回 {}。事件型另有 "c"＝這個看多久、同一批次數的報酬格（第 4.11 節 ret_cell；VER 24 起
+    「之後怎麼走？」那一欄用它——訊號自己的看多久去重複的次數不一樣，最大跌幅最慘一次、上漲機率會對不上）。
+    狀態型的段不隨看多久改變，報酬格和訊號自己的那一格相同，不另存。"""
     if sd["cat"] not in S.THERMO_X_CATS:
         return {}
     mk, cal = F["mk"], F["cal"]
@@ -797,13 +851,20 @@ def cross_stats(F: dict, sd: dict, Ycache: dict) -> dict:
             continue
         if H not in Ycache:
             Ycache[H] = outcomes(F["px"], H, warn_th(mk, H))
-        Yu, Yw, _ = Ycache[H]
+        Yu, Yw, Yd = Ycache[H]
+        c = None
         if sd["kind"] == "event":
-            R = ev_stat(sd["days"], Yu, Yw, samp, H, r0)
+            R = ev_stat(sd["days"], Yu, Yw, samp, H, r0, Yd, cal=cal)
+            if "ra" not in Ycache:
+                Ycache["ra"] = ret_arrays(F["px"], cal=cal)
+            ok = set(int(i) for i in samp)
+            c = _ret_cell_h(np.asarray(dedupe([t for t in sd["days"] if t in ok], H), dtype=np.int64), Ycache["ra"], H)
         else:
             gap = 1 if sd.get("monthly") else S.EP_GAP
-            R = st_stat(np.asarray(sd["state"], dtype=bool), samp, Yu, Yw, gap, r0, brk=sd.get("brk"))
+            R = st_stat(np.asarray(sd["state"], dtype=bool), samp, Yu, Yw, gap, r0, Yd, brk=sd.get("brk"), cal=cal)
         out[k] = {"H": H, "th": warn_th(mk, H), "up": _small(R["up"]), "warn": _small(R["warn"])}
+        if c is not None:
+            out[k]["c"] = c
     return out
 
 
@@ -820,11 +881,11 @@ def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
     r0 = bisect.bisect_left(cal, F["r0"])
     samp = np.asarray(sd["samp"], dtype=np.int64)
     if "ra" not in Ycache:
-        Ycache["ra"] = ret_arrays(F["px"])
+        Ycache["ra"] = ret_arrays(F["px"], cal=cal)
     RA = Ycache["ra"]
     skip = None
     if sd["kind"] == "event":
-        R = ev_stat(sd["days"], Yu, Yw, samp, H, r0, Yd, Yr)
+        R = ev_stat(sd["days"], Yu, Yw, samp, H, r0, Yd, Yr, cal=cal)
         occ = [[cal[t], int(u), int(w), d, r] for t, u, w, d, r in R["occ"]]
         ok = set(int(i) for i in samp)
         ret = _ret_flat(np.asarray(dedupe([t for t in sd["days"] if t in ok], H), dtype=np.int64), RA)
@@ -832,7 +893,7 @@ def evaluate(F: dict, sd: dict, Ycache: dict) -> dict:
     else:
         gap = 1 if sd.get("monthly") else S.EP_GAP
         state = np.asarray(sd["state"], dtype=bool)
-        R = st_stat(state, samp, Yu, Yw, gap, r0, Yd, Yr, brk=sd.get("brk"))
+        R = st_stat(state, samp, Yu, Yw, gap, r0, Yd, Yr, brk=sd.get("brk"), cal=cal)
         occ = [[cal[a], cal[z], n, u, w, d, r] for a, z, n, u, w, d, r in R["occ"]]
         ret = ret_stats([samp[ep] for ep in episodes([i for i in range(len(samp)) if state[i]], gap, sd.get("brk"))], RA)
     ret["bk"] = ret_base(samp, RA, Ycache.setdefault("bases", {}), mk)
@@ -907,7 +968,7 @@ def buy_rows(F: dict, bases: dict | None = None) -> list[dict]:
     H = S.H_BUY
     Yu, Yw, Yd = outcomes(px, H, warn_th(mk, H))
     Yr = fwd_ret(px, H)
-    RA = ret_arrays(px)
+    RA = ret_arrays(px, cal=list(cal[S.LAG:]) + [None] * S.LAG)   # 報酬格以訊號日索引；最大跌幅的日期寫買進日（＝訊號日＋LAG，同每一次的清單）
     r0 = bisect.bisect_left(cal, F["r0"])
     bases = {} if bases is None else bases
     out = []
@@ -949,33 +1010,37 @@ def _months_add(m: str, k: int) -> str:
 
 
 def _ret_groups(groups: list[list[dict]], hs: tuple, ps: tuple | None = None) -> dict:
-    """每一次＝一組樣本（每個樣本 {期間: (報酬, 中途最多跌)}），每一個樣本一樣重（VER 22；產業泡沫的一段＝多個月份，
-    VER 5～21 是每一組一樣重）→ 同 ret_stats 的格式（路徑 ps 預設＝同一批期間）。排除極端、去掉最好一次的單位＝一組，權重＝組內樣本數。"""
+    """每一次＝一組樣本（每個樣本 {期間: (報酬, 中途最多跌, 最大跌幅), "_d": 日期}），每一個樣本一樣重（VER 22；產業泡沫的一段＝多個月份，
+    VER 5～21 是每一組一樣重）→ 同 ret_stats 的格式（路徑 ps 預設＝同一批期間）。排除極端、去掉最好一次的單位＝一組，權重＝組內樣本數。
+    最大跌幅最差一次（VER 24）的日期＝那個樣本的 "_d"。"""
     def pool(h):
-        rs, as_, ms, mw, n = [], [], [], [], 0
+        rs, as_, ds, dt, ms, mw, n = [], [], [], [], [], [], 0
         for g in groups:
-            v = [x[h] for x in g if x.get(h) is not None]
+            v = [(x[h], x.get("_d")) for x in g if x.get(h) is not None]
             if not v:
                 continue
             n += 1
-            rs += [a for a, _ in v]
-            as_ += [b for _, b in v]
-            ms.append(float(np.mean([a for a, _ in v])))     # VER 17：每一組（一次／一段）的平均
+            rs += [t[0] for t, _ in v]
+            as_ += [t[1] for t, _ in v]
+            ds += [t[2] if len(t) > 2 and t[2] is not None else np.nan for t, _ in v]
+            dt += [d for _, d in v]
+            ms.append(float(np.mean([t[0] for t, _ in v])))     # VER 17：每一組（一次／一段）的平均
             mw.append(float(len(v)))
-        return n, np.asarray(rs, dtype=float), np.asarray(as_, dtype=float), np.ones(len(rs)), ms, mw
+        return n, np.asarray(rs, dtype=float), np.asarray(as_, dtype=float), np.ones(len(rs)), ms, mw, ds, dt
 
     out_s, out_p = [], []
     for h in hs:
-        n, r, a, w, ms, mw = pool(h)
-        out_s.append(ret_cell(r, a, w, n, ms, mw) if n else None)
+        n, r, a, w, ms, mw, ds, dt = pool(h)
+        out_s.append(ret_cell(r, a, w, n, ms, mw, dd=ds, ix=dt) if n else None)
     for d in (hs if ps is None else ps):
-        n, r, _, w, _, _ = pool(d)
+        n, r, _, w, _, _, _, _ = pool(d)
         out_p.append([wquant(r, w, q) for q in S.RET_Q] if n else None)
     return {"s": out_s, "p": out_p}
 
 
-def _stock_ret(Sx: dict, t: int) -> dict:
-    """個股：第 t＋1 天開盤（沒有就用收盤）進場 → {期間: (第 t＋h 天收盤報酬, 第 t＋1～t＋h 天收盤的中途最多跌)}（VER 5）。"""
+def _stock_ret(Sx: dict, t: int, d: str | None = None) -> dict:
+    """個股：第 t＋1 天開盤（沒有就用收盤）進場 → {期間: (第 t＋h 天收盤報酬, 第 t＋1～t＋h 天收盤的中途最多跌,
+    最大跌幅＝進場價與第 t＋1～t＋h 天收盤的最大回撤), "_d": d}（VER 5；最大跌幅 VER 24，d＝訊號日，最差一次的日期用）。"""
     c, o = Sx["c"], Sx["o"]
     T = len(c)
     if t + 1 >= T:
@@ -984,20 +1049,27 @@ def _stock_ret(Sx: dict, t: int) -> dict:
     if not p0:
         return {}
     want = set(S.RET_H) | set(S.PATH_D)
-    out, lo = {}, None
+    out, lo, pk, dd = {}, None, p0, 0.0
     for h in range(1, max(want) + 1):
         if t + h >= T:
             break
         ch = c[t + h]
         if ch:
             lo = ch if lo is None else min(lo, ch)
+            if ch > pk:
+                pk = ch
+            else:
+                dd = max(dd, 1.0 - ch / pk)
             if h in want:
-                out[h] = (ch / p0 - 1.0, min(0.0, lo / p0 - 1.0))
+                out[h] = (ch / p0 - 1.0, min(0.0, lo / p0 - 1.0), dd)
+    if out and d is not None:
+        out["_d"] = d
     return out
 
 
-def _me_ret(me: dict, m: str) -> dict:
-    """產業月底值 → {RET_H_M 每一期: (報酬, 中途最多跌)}（第 m 個月底進場；走完的期間才有）。"""
+def _me_ret(me: dict, m: str, tag: str | None = None) -> dict:
+    """產業月底值 → {RET_H_M 每一期: (報酬, 中途最多跌, 最大跌幅＝第 m～m＋j 個月底的最大回撤), "_d": 月份}
+    （第 m 個月底進場；走完的期間才有；最大跌幅 VER 24。tag＝產業代號，最差一次的日期寫「月份 代號」）。"""
     v0 = me.get(m)
     out = {}
     if not v0:
@@ -1009,7 +1081,9 @@ def _me_ret(me: dict, m: str) -> dict:
             break
         fut.append(v)
         if j in S.RET_H_M:
-            out[j] = (fut[-1] / v0 - 1.0, min(0.0, min(fut) / v0 - 1.0))
+            out[j] = (fut[-1] / v0 - 1.0, min(0.0, min(fut) / v0 - 1.0), mdd_path([v0] + fut))
+    if out:
+        out["_d"] = m if tag is None else f"{m} {tag}"
     return out
 
 
@@ -1039,6 +1113,7 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None, bases: dict 
         lv = int(k[1])
         occ, base_u, base_w, b10u, b10w, base_d = [], [], [], [], [], []
         days: list = []                                 # VER 22：每一段的（第一個月, 偏多, 警示, 最大回撤）每一個月
+        dlist: list = []                                # VER 24：狀態中每一個月的（最大回撤, 「月份 代號」），最差一次用
         rgroups = []
         seqs = []                                     # 打亂日子測試用：每個產業（狀態, 偏多, 警示）
         for code, me, rows in pan:
@@ -1075,9 +1150,10 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None, bases: dict 
                 rs = [seq[i][5] for i in ep if seq[i][5] is not None]
                 if us:
                     occ.append([seq[ep[0]][0], seq[ep[-1]][0], len(ep), float(np.mean(us)), float(np.mean(ws)), code,
-                                float(np.mean(ds)), float(np.mean(rs))])
+                                float(np.max(ds)), float(np.mean(rs))])   # VER 24：最大回撤列段內最差的一個月
                     days.append((seq[ep[0]][0], us, ws, ds))      # VER 22：每一個月一樣重
-                rgroups.append([_me_ret(me, seq[i][0]) for i in ep])
+                    dlist += [(seq[i][4], f"{seq[i][0]} {code}") for i in ep if seq[i][4] is not None]
+                rgroups.append([_me_ret(me, seq[i][0], code) for i in ep])
         occ.sort(key=lambda o: (o[0], o[5]))
         dirs = {}
         for j, (d, bs, b10) in enumerate((("up", base_u, b10u), ("warn", base_w, b10w))):
@@ -1094,7 +1170,8 @@ def ind_rows(group: str, I: dict, T: dict, last: str | None = None, bases: dict 
         for d, st in dirs.items():
             st["p"] = pv.get(d)
             judge_abs(st, d, cell, cost)                    # VER 17：絕對成績（報酬＝12 個月）
-        dirs["warn"].update(mdd=_median([v for x in days for v in x[3]]), mdd_base=_median(base_d))
+        dirs["warn"].update(mdd=_median([v for x in days for v in x[3]]), mdd_base=_median(base_d),
+                            **_mddw([v for v, _ in dlist], [d for _, d in dlist], None))
         tr, ds = best(dirs)
         gname = BIS.GROUP_NAMES[group] if hasattr(BIS, "GROUP_NAMES") else group
         out.append({"id": f"ind:{group}:{k}", "mk": "us" if group in ("ff", "us") else "tw", "cat": "ind", "grp": group,
@@ -1423,8 +1500,8 @@ def listing(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: 
     過去的命中率比平常高 THERMO_EDGE 以上（訊號自己的看多久＝研究列的統計；跨期間＝xon 現在有效、xh 的統計）；
     同一個項目同一支溫度計一邊留一個、「震盪」（both）、同類合併（families）。
     → 每一類的領頭："cls"（偏多／買點／大跌風險）、"side"、"hz"、"edge"＝過去的差 e、"st"＝那一邊的統計、"now"、"fam"；
-    預估之後（sigoos.est／est_x）有的話另有 "fe"、"g"、"ok"＝之後也成立；跨期間的列另有 "xk"、"H0"、"ak"，H、th、up、warn
-    換成那支溫度計的。預估之後的研究檔沒有（或版本不夠）照樣列，只是沒有 fe、ok 都是 False。"""
+    預估之後（sigoos.est／est_x）有的話另有 "fe"、"g"、"ok"＝之後也成立；跨期間的列另有 "xk"、"H0"、"ak"、"xc"（事件型：
+    那支溫度計的看多久、同一批次數的報酬格），H、th、up、warn 換成那支溫度計的。預估之後的研究檔沒有（或版本不夠）照樣列，只是沒有 fe、ok 都是 False。"""
     from . import sigoos as OOS
     T = OOS.load() if T is None else T
     best: dict = {}
@@ -1468,7 +1545,7 @@ def listing(rows: list[dict], on: dict, mk: str, acts: dict | None = None, xon: 
                     g, ok = _robust(fe)
                     put({**r, "H": X["H"], "th": X["th"], "up": X["up"], "warn": X["warn"], "H0": r["H"], "d": d, "cls": cls,
                          "side": S.LIST_SIDE[cls], "hz": k, "edge": e, "st": st, "fe": fe, "g": g, "ok": ok, "now": nk,
-                         "xk": k, "ak": xkey(r["id"], k)})
+                         "xk": k, "ak": xkey(r["id"], k), "xc": X.get("c")})
     items: dict = {}
     for (ik, hz, side), c in best.items():
         items.setdefault((ik, hz), {})[side] = c
@@ -1646,7 +1723,7 @@ def stock_signal_rows(D, sig_hist: dict, idx: list, io: list) -> list[dict]:
                 last = t
                 if t == T - 1:
                     live.append(code)
-                rg.append([_stock_ret(Sx, t)])
+                rg.append([_stock_ret(Sx, t, f"{cal[t]} {code}")])
                 r = BT._ret(Sx, idx, t, H, io)
                 if not r:
                     continue
@@ -1669,7 +1746,8 @@ def stock_signal_rows(D, sig_hist: dict, idx: list, io: list) -> list[dict]:
         st = {"n": len(occ), "hit": _mean([o[2] for o in occ]), "base": base,
               "n10": None, "hit10": None, "base10": None}
         if d == "warn":
-            st.update(mdd=_median([None if o[5] is None else o[5] / 100 for o in occ]), mdd_base=bmed)
+            st.update(mdd=_median([None if o[5] is None else o[5] / 100 for o in occ]), mdd_base=bmed,
+                      **_mddw([np.nan if o[5] is None else o[5] / 100 for o in occ], [f"{o[0]} {o[1]}" for o in occ], None))
         # 打亂日子測試（VER 9，sigspec 第 3.5 節）：只對過門檻的算
         if LK.passes(st["n"], st["hit"], st["base"], None, None, None, d, recent=False):
             if d == "up":

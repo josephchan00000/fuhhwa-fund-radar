@@ -86,11 +86,14 @@ def test_state_stat_is_mean_over_state_days():
     assert R["up"]["n10"] == 0 and R["up"]["hit10"] is None
     assert abs(R["up"]["base10"] - np.nanmean(Yu[150:])) < 1e-12
     assert [o[:3] for o in R["occ"]] == [[10, 19, 10], [100, 111, 7]]
-    d2 = np.concatenate([Yd[100:105], Yd[110:112]]).mean()
+    d2 = np.concatenate([Yd[100:105], Yd[110:112]]).max()               # VER 24：一段的最大回撤＝段內最慘的一天
     dd = np.concatenate([Yd[10:20], Yd[100:105], Yd[110:112]])
     assert abs(R["occ"][1][5] - d2) < 1e-12 and abs(R["warn"]["mdd"] - np.median(dd)) < 1e-12
     assert abs(R["warn"]["mdd_base"] - np.median(Yd[:-5])) < 1e-12
     assert "mdd" not in G.st_stat(state, samp, Yu, Yw, 20, 150)["warn"]
+    cal = [f"d{i:03d}" for i in range(T)]                              # VER 24：最慘一次＋日期（狀態中的每一天裡最大的）
+    R2 = G.st_stat(state, samp, Yu, Yw, 20, 150, Yd, cal=cal)
+    assert abs(R2["warn"]["mddw"] - dd.max()) < 1e-12 and R2["warn"]["mddw_d"] == "d111"
 
 
 def test_event_stat_counts_and_recent():
@@ -322,7 +325,14 @@ def test_stock_and_industry_returns():
     assert abs(G._stock_ret(Sx2, 0)[1][0]) < 1e-12
     me = {"2026-01": 100.0, "2026-02": 90.0, "2026-03": 110.0, "2026-04": 120.0}
     x = G._me_ret(me, "2026-01")
-    assert set(x) == {1, 3} and abs(x[1][0] + 0.10) < 1e-12 and abs(x[3][0] - 0.20) < 1e-12 and abs(x[3][1] + 0.10) < 1e-12
+    assert set(x) == {1, 3, "_d"} and abs(x[1][0] + 0.10) < 1e-12 and abs(x[3][0] - 0.20) < 1e-12 and abs(x[3][1] + 0.10) < 1e-12
+    # VER 24：最大跌幅＝期間最高收盤到之後最低收盤（含進場價當起點），最慘一次的日期＝樣本的 "_d"
+    assert x["_d"] == "2026-01" and G._me_ret(me, "2026-01", "XLK")["_d"] == "2026-01 XLK"
+    assert abs(x[1][2] - 0.10) < 1e-12 and abs(x[3][2] - 0.10) < 1e-12
+    assert r[1][2] == 0.0 and abs(r[10][2] - (1 - 9.0 / 11.0)) < 1e-12                  # 10→10.5→9.5→11→9：從 11 跌到 9
+    assert G._stock_ret(Sx, 0, "2026-01-02 2330")["_d"] == "2026-01-02 2330"
+    cell = G._ret_groups([[r | {"_d": "a"}], [G._stock_ret(Sx2, 0, "b")]], (10,))["s"][0]
+    assert abs(cell[11] - (1 - 9.0 / 11.0)) < 1e-12 and cell[12] in ("a", "b")
 
 
 # ── 法人買賣超（sigspec 第 4.13 節；VER 7 起只當訊號） ──────────────────────────
@@ -449,6 +459,13 @@ def test_cross_stats_match_direct_and_skip_native_horizon():
                 assert x[d]["n"] == n, (sd["id"], k, d)
                 assert (x[d]["hit"] is None and hit is None) or abs(x[d]["hit"] - hit) < 1e-12
                 assert abs(x[d]["base"] - base) < 1e-12
+            if sd["kind"] == "event":                   # VER 24：同一批次數的報酬格（上漲比例、最大跌幅最慘一次和統計一致）
+                c = x["c"]
+                assert c[0] == x["up"]["n"] and abs(c[5] - x["up"]["hit"]) < 1e-3
+                if x["warn"].get("mddw") is not None:
+                    assert abs(c[11] - x["warn"]["mddw"]) < 1e-9 and c[12] == x["warn"]["mddw_d"]
+            else:
+                assert "c" not in x
     assert G.cross_stats(F, dict(sds[0], cat="buy"), {}) == {} and G.cross_stats(F, dict(sds[0], cat="ind"), {}) == {}
 
 
@@ -494,5 +511,21 @@ def test_research_cross_stats_agree_with_returns_table():
                 continue
             assert c[0] == x["up"]["n"] and abs(c[5] - x["up"]["hit"]) < 1e-3, (r["id"], k)
             assert abs(b[5] - x["up"]["base"]) < 1e-3, (r["id"], k)
+            assert "c" not in x                                                 # 狀態型的段不隨看多久改變：用自己那一格
+            if x["warn"].get("mddw") is not None:
+                assert abs(c[11] - x["warn"]["mddw"]) < 1e-9 and c[12] == x["warn"]["mddw_d"], (r["id"], k)
             n += 1
     assert n > 1500
+    m = 0
+    for r in rows:                     # 事件型（VER 24）：xh 自帶那個看多久、同一批次數的報酬格，和上面那一行的統計一致
+        if r["kind"] != "event":
+            continue
+        for k, x in r["xh"].items():
+            c = x.get("c")
+            if not x["up"]["n"]:
+                continue
+            assert c and c[0] == x["up"]["n"] and abs(c[5] - x["up"]["hit"]) < 1e-3, (r["id"], k)
+            if x["warn"].get("mddw") is not None:
+                assert abs(c[11] - x["warn"]["mddw"]) < 1e-9 and c[12] == x["warn"]["mddw_d"], (r["id"], k)
+            m += 1
+    assert m > 1000

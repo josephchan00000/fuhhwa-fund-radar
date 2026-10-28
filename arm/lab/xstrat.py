@@ -593,8 +593,16 @@ def dip_mae(px: np.ndarray, b: int, h: int) -> float:
     return float(max(0.0, 1.0 - px[b + 1:b + h + 1].min() / px[b]))
 
 
-def dip_stats(px: np.ndarray, days: list[int], H: int, c: float, lo: int, hs: tuple = ()) -> dict:
-    """落底型一組訊號日（已去重、≥ lo）→ 次數、賺錢比例、中位數、平均、中途最多跌、隨便挑一天；hs＝另列的天數。"""
+def dip_mdd(px: np.ndarray, b: int, h: int) -> float:
+    """第 b 天收盤買、抱 h 天：第 b～b＋h 天收盤的最大回撤（期間最高收盤到之後最低收盤，0～1）。
+    訊號總覽「最大跌幅」的同一個算法（sigspec VER 24；只呈現，不參與判定）。"""
+    w = px[b:b + h + 1]
+    return float(max(0.0, np.max(1.0 - w / np.maximum.accumulate(w))))
+
+
+def dip_stats(px: np.ndarray, days: list[int], H: int, c: float, lo: int, hs: tuple = (), cal: list | None = None) -> dict:
+    """落底型一組訊號日（已去重、≥ lo）→ 次數、賺錢比例、中位數、平均、中途最多跌、隨便挑一天；hs＝另列的天數。
+    mddw＝抱的期間最大跌幅的最差一次、mddw_d＝那一次的買進日（cal 給了才有；2026-10-28 起頁面列這個，不列中途最多跌中位數）。"""
     T = len(px)
     net = dip_net(px, H, c)
     bs = [t + S.LAG for t in days if t + S.LAG + H < T]
@@ -609,6 +617,11 @@ def dip_stats(px: np.ndarray, days: list[int], H: int, c: float, lo: int, hs: tu
                     "worst": float(r.min()), "best": float(r.max()),
                     "trim": RB.trim_mean(r, S.DIP_TRIM_Q, S.DIP_TRIM_N), "lbo": RB.lbo_mean(r),   # VER 6：排除極端、去掉最好一次
                     "mae": float(np.median([dip_mae(px, b, H) for b in bs]))})
+        mdds = [dip_mdd(px, b, H) for b in bs]
+        j = int(np.argmax(mdds))
+        out["mddw"] = mdds[j]
+        if cal is not None:
+            out["mddw_d"] = cal[bs[j]]
     hx = {}
     for h in hs:
         nh = dip_net(px, h, c)
@@ -889,7 +902,7 @@ def _dip_eval(C: Ctx, k: str, p: dict, H: int, hs: tuple = ()) -> dict:
     raw = [t for t in raw if t >= lo]
     days = dedupe(raw, H)
     c = S.cost(C.mk, k)
-    full = dip_stats(C.px, days, H, c, lo, hs)
+    full = dip_stats(C.px, days, H, c, lo, hs, C.cal)
     full["ok"] = dip_pass(full)
     return {"raw": raw, "days": days, "lo": lo, "full": full}
 
@@ -982,7 +995,7 @@ def strategy(C: Ctx, spec: dict) -> dict:
         out["curve"] = {"cagr": cs["cagr"], "mdd": cs["mdd"],
                         "expo": float(trade_held(C.T, tr)[lo + 1:].mean()) if C.T > lo + 1 else None}
         out["tr"] = [[C.cal[e], _r(C.px[e], 2), C.cal[q], _r(C.px[q], 2), q - e, _r(net(C.px[e], C.px[q], c), 5),
-                      _r(dip_mae(C.px, e, H), 5), C.cal[t]] for t, e, _, q in tr]
+                      _r(dip_mdd(C.px, e, H), 5), C.cal[t]] for t, e, _, q in tr]     # 第 7 個＝抱的期間最大跌幅（2026-10-28 起；原本是中途最多跌）
     else:
         out.update({"cost": C.c, "lag": S.LAG})
         M = _alloc_eval(C, k, p, S.LAG)

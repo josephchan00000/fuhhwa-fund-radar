@@ -60,11 +60,13 @@ def pick(X: np.ndarray, today: np.ndarray, cand: np.ndarray, k: int = S.NB_K, ga
 
 
 def _cell(RA: dict, h: int, idx) -> list | None:
+    """挑到的日子 → sigcat.ret_cell（最後兩個＝最大跌幅最差一次與那一天，sigspec VER 24）。"""
     idx = np.asarray(idx, dtype=np.int64)
     if not len(idx):
         return None
     r, a = RA["R"][h][idx], RA["A"][h][idx]
-    return G.ret_cell(r, a, np.ones(len(idx)), len(idx))
+    dh = (RA.get("D") or {}).get(h)
+    return G.ret_cell(r, a, np.ones(len(idx)), len(idx), dd=None if dh is None else dh[idx], ix=idx, cal=RA.get("cal"))
 
 
 def estimate(F: dict, T: int | None = None, RA: dict | None = None) -> dict | None:
@@ -72,7 +74,7 @@ def estimate(F: dict, T: int | None = None, RA: dict | None = None) -> dict | No
     s／b＝挑到的日子／全部候選的 sigcat.ret_cell；a＝候選最早的一天；list 每段另附當時的籌碼分數 c（只顯示，不算距離）。面向有缺值 → None。"""
     cal = F["cal"]
     T = len(cal) - 1 if T is None else T
-    RA = RA if RA is not None else G.ret_arrays(F["px"])
+    RA = RA if RA is not None else G.ret_arrays(F["px"], cal=cal)
     X = features(F)
     today = X[T]
     if not np.all(np.isfinite(today)):
@@ -98,6 +100,9 @@ def estimate(F: dict, T: int | None = None, RA: dict | None = None) -> dict | No
             e["r"][h] = None if not np.isfinite(v) or i + S.LAG + h > T else float(v)
         a = RA["A"][S.NB_LIST_H][i]
         e["mae"] = None if not np.isfinite(a) else float(a)
+        dd = (RA.get("D") or {}).get(S.NB_LIST_H)
+        v = np.nan if dd is None else dd[i]
+        e["dd"] = None if not np.isfinite(v) else float(v)          # VER 24：最大跌幅（大跌的同一個算法）
         lst.append(e)
     out = {"d": cal[T], "dims": list(S.NB_DIMS), "x": [float(v) for v in today], "rows": rows, "list": lst}
     tx = XX[T]
