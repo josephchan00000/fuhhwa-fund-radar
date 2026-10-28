@@ -78,10 +78,17 @@ def live_col(days: list[str], live: dict[str, float]) -> list[float | None]:
 
 # ── 台股 ─────────────────────────────────────────────────────────────────────
 
+def _bench0050() -> dict[str, float]:
+    """0050 今年的每天收盤（Yahoo，scripts/run_ytd.py --tw-bench）：官方分片 2026-06-03 以前沒有 ETF。"""
+    doc = store.read_json("ytd_0050.json", {}) or {}
+    return {d: float(v) for d, v in (doc.get("close") or {}).items() if v}
+
+
 def _adj_closes(D, codes: list[str], days: list[str]) -> dict[str, list[float | None]]:
-    """官方收盤 × 除權息還原倍數（含息）；那天沒有收盤＝往前找。"""
+    """官方收盤 × 除權息還原倍數（含息）；那天沒有收盤＝往前找。0050 官方沒有的日子用 _bench0050()。"""
     from . import bt3d
     ev = bt3d.events()
+    b50 = _bench0050() if "0050" in codes else {}
     cal = list(D.cal)
     ix = {d: i for i, d in enumerate(cal)}
     out = {}
@@ -94,8 +101,9 @@ def _adj_closes(D, codes: list[str], days: list[str]) -> dict[str, list[float | 
             j = i
             while j is not None and j >= 0 and v is None:
                 q = D.quote(c, cal[j])
-                if q and q[3]:
-                    v = q[3] * F[j]
+                px = q[3] if q and q[3] else (b50.get(cal[j]) if c == "0050" else None)
+                if px:
+                    v = px * F[j]
                 j -= 1
                 if i is not None and j is not None and i - j > 10:
                     break

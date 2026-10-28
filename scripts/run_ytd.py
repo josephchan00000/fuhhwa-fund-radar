@@ -215,17 +215,61 @@ def write_us(doc: dict) -> None:
     OUT_US.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def tw_bench() -> int:
+    """0050 今年的每天收盤（Yahoo 0050.TW，分割已調整、配息沒調整，同證交所收盤）→ data/lab/ytd_0050.json。
+    官方全市場分片 2026-06-03 以前沒有 ETF，表的「一直抱著 0050」與不偷看那兩成要用它；配息照 bt3d 的除權息表另外還原。
+    只在 CI 跑（本容器擋 Yahoo）：.ping/lab 第一行寫 ytd0050。"""
+    from datetime import datetime, timezone
+    from urllib.parse import quote
+    from arm.lab.heatfetch import _get
+    p1 = int(datetime(S.YEAR - 1, 11, 1, tzinfo=timezone.utc).timestamp())
+    url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{quote('0050.TW')}"
+           f"?period1={p1}&period2={int(time.time())}&interval=1d")
+    doc = json.loads(_get(url, timeout=60).decode("utf-8"))
+    res = (((doc.get("chart") or {}).get("result")) or [None])[0] or {}
+    off = int((res.get("meta") or {}).get("gmtoffset") or 28800)
+    reg = ((res.get("meta") or {}).get("currentTradingPeriod") or {}).get("regular") or {}
+    now = time.time()
+    open_day = (datetime.fromtimestamp(int(reg["start"]) + off, timezone.utc).date().isoformat()
+                if reg.get("start") and reg.get("end") and reg["start"] <= now < reg["end"] + 1800 else None)
+    q = (((res.get("indicators") or {}).get("quote")) or [{}])[0] or {}
+    out = {}
+    for t, c in zip(res.get("timestamp") or [], q.get("close") or []):
+        d = datetime.fromtimestamp(int(t) + off, timezone.utc).date()
+        if c and d.weekday() < 5 and d.isoformat() != open_day:
+            out[d.isoformat()] = round(float(c), 2)
+    if len(out) < 100:
+        log(f"[ytd] 0050 收盤只有 {len(out)} 天，不寫檔")
+        return 1
+    try:                                                     # 和官方分片同一天的收盤要一樣（2026-06-03 起）
+        from arm.lab import analyze
+        D = analyze.Data()
+        diff = [(d, v, D.quote("0050", d)[3]) for d, v in out.items() if D.quote("0050", d)]
+        bad = [x for x in diff if abs(x[1] - x[2]) > 0.051]
+        log(f"[ytd] 0050 和官方收盤同一天的 {len(diff)} 天，差超過 0.05 元的 {len(bad)} 天：{bad[:5]}")
+    except Exception as e:                                   # noqa: BLE001
+        log(f"[ytd] 0050 沒有和官方收盤比對：{type(e).__name__}: {e}")
+    (store.LAB / "ytd_0050.json").write_text(
+        '{"src":"yahoo 0050.TW close","close":{\n' + ",\n".join(f'"{d}":{v}' for d, v in sorted(out.items())) + "\n}}\n",
+        encoding="utf-8")
+    log(f"[ytd] 寫好 ytd_0050.json：{min(out)}～{max(out)} {len(out)} 天")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--us-grid", action="store_true")
     ap.add_argument("--us-week", action="store_true")
     ap.add_argument("--tw", action="store_true")
+    ap.add_argument("--tw-bench", action="store_true")
     ap.add_argument("--force", action="store_true")
     a = ap.parse_args()
     if a.us_grid:
         return us_grid()
     if a.us_week:
         return us_week()
+    if a.tw_bench:
+        return tw_bench()
     if a.tw:
         return tw_static(a.force)
     ap.print_help()
