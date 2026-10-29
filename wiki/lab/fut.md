@@ -15,7 +15,7 @@
 - 研究 `arm/lab/futres.py`＋`scripts/run_fut.py` → `data/lab/fut_research.json`（afterhours 每班、daily 各重算，只讀已存的資料、幾秒）。每天先算做多、做空、作者原點數的模擬，亂選方向與每天都做多／做空的對照都從裡面取；另列（不判定）「期貨之後有沒有往 E 的方向走」。
 - 每天盤前取樣 `arm/lab/futpre.py`＋`scripts/fut_preopen.py`＋`.github/workflows/fut_preopen.yml`：台北週一～五 03:47、04:31、05:17、06:03、07:17 五班，最早的那班等到 08:58，每 5 秒抓到 09:00:15（證交所 MIS 前 150 大權值股分三批、一輪兩批＋加權指數；期交所 MIS 台指期），存 `data/lab/fut/pre/{日期}.json.gz`（只記變了的欄位、只增不改）commit 進 main；後面的班排隊、看到已存就結束。只在 main 上跑。
 - `.ping/lab` 第一行的台指期模式：`futfill`（補逐筆、一次補完）、`futprobe`（盤後探針）、`futpre`（盤前探針，等到 08:29:30）、`futmis`（MIS 一次查幾檔）。
-- 頁面（`arm/lab/futpage.py`，`tests/test_futpage.py`）：配置頁策略表「候選」一列（`board.fut_rows`；今天＝「記錄中・取樣 N 天」，照主頁面用字）、研究紀錄頁「台指期早盤」一段（`#fut`：狀態、規則、即時版一張〔成績、估算準不準、每一筆、每天的落差與用到的比重〕、偷看版一張〔成績與每一筆〔CSV 下載〕、期貨之後有沒有往 E 的方向走、每天的落差〕；借用 candpage 的 cd* 樣式）。不放進配置（期貨是另一個帳戶、還沒驗證）；網頁收盤後才更新，沒辦法在 08:59 給訊號。`tests/test_board.py` 的假資料把 `fut_rows` 換成空的（同 cand_rows）。
+- 頁面（`arm/lab/futpage.py`，`tests/test_futpage.py`）：全部策略表（研究紀錄 `?v=strat`；原配置頁策略表）「候選」一列（`board.fut_rows`；今天＝「記錄中・取樣 N 天」，照主頁面用字）、研究紀錄頁「台指期早盤」一段（`#fut`：狀態、規則、即時版一張〔成績、估算準不準、每一筆、每天的落差與用到的比重〕、偷看版一張〔成績與每一筆〔CSV 下載〕、期貨之後有沒有往 E 的方向走、每天的落差〕；借用 candpage 的 cd* 樣式）。不放進配置（期貨是另一個帳戶、還沒驗證）；網頁收盤後才更新，沒辦法在 08:59 給訊號。`tests/test_board.py` 的假資料把 `fut_rows` 換成空的（同 cand_rows）。
 
 ## 不能改的規則
 
