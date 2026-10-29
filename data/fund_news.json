@@ -1,22 +1,14 @@
 {
-  "as_of": "2026/10/29 12:56",
+  "as_of": "2026/10/29 13:58",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
     {
-      "title": "才喊禁飛又髮夾彎！巴基斯坦恢復華航、長榮飛越許可 原因未明",
-      "url": "https://tw.news.yahoo.com/%E6%89%8D%E5%96%8A%E7%A6%81%E9%A3%9B%E5%8F%88%E9%AB%AE%E5%A4%BE%E5%BD%8E-%E5%B7%B4%E5%9F%BA%E6%96%AF%E5%9D%A6%E6%81%A2%E5%BE%A9%E8%8F%AF%E8%88%AA-%E9%95%B7%E6%A6%AE%E9%A3%9B%E8%B6%8A%E8%A8%B1%E5%8F%AF-%E5%8E%9F%E5%9B%A0%E6%9C%AA%E6%98%8E-033937002.html",
-      "source": "Yahoo股市",
-      "date": "2026-10-29 11:39",
-      "datetime": "2026-10-29T11:39:37+08:00",
-      "summary": "《美國之音》報導，就在巴基斯坦國防部長阿瑟夫(Khawaja Muhammad Asif)於28日公開表示，基於「一個中國」政策不允許台灣航空公司飛越領空後不久，巴基斯坦民航局又表示批准中華航空(Ch"
-    },
-    {
-      "title": "國際股市修正 新基金00418A有望搶得從容起跑點",
-      "url": "https://turnnewsapp.com/ct-featured/420425.html",
-      "source": "翻爆",
-      "date": "2026-10-26 18:05",
-      "datetime": "2026-10-26T18:05:06+08:00"
+      "title": "復華中國 5G 謹慎操作",
+      "url": "https://money.udn.com/money/story/5618/9835256",
+      "source": "經濟日報",
+      "date": "2026-10-24 23:01",
+      "datetime": "2026-10-24T23:01:10+08:00"
     },
     {
       "title": "主動復華台灣新星 募集期順延至10月27日",
@@ -36,6 +28,13 @@
       ],
       "items": [
         {
+          "title": "2026 年 11 月 ETF 配息入帳懶人包：0056、00922、00929 等 19 檔，一張最高領 2,500 元",
+          "url": "https://applealmondrealty.com/posts/54287",
+          "source": "果仁家",
+          "date": "2026-10-29 12:26",
+          "datetime": "2026-10-29T12:26:03+08:00"
+        },
+        {
           "title": "00929兩年只賺9％！0050同期大漲103％ 綠角揭高股息代價",
           "url": "https://udn.com/news/story/123006/9843835",
           "source": "UDN",
@@ -48,13 +47,6 @@
           "source": "今周刊",
           "date": "2026-10-28 17:56",
           "datetime": "2026-10-28T17:56:00+08:00"
-        },
-        {
-          "title": "【高股息不香了？1】00929、00939賺七成還被甩！75萬人落跑 分析師揭3原因",
-          "url": "https://tw.stock.yahoo.com/news/%E3%80%90%E9%AB%98%E8%82%A1%E6%81%AF%E4%B8%8D%E9%A6%99%E4%BA%86%EF%BC%9F1%E3%80%9100929%E3%80%8100939%E8%B3%BA%E4%B8%83%E6%88%90%E9%82%84%E8%A2%AB%E7%94%A9%EF%BC%8175%E8%90%AC%E4%BA%BA%E8%90%BD%E8%B7%91-%E5%88%86%E6%9E%90%E5%B8%AB%E6%8F%AD3%E5%8E%9F%E5%9B%A0-090800665.html",
-          "source": "Yahoo股市",
-          "date": "2026-10-23 17:08",
-          "datetime": "2026-10-23T17:08:00+08:00"
         }
       ]
     },
@@ -72,6 +64,13 @@
           "source": "觀傳媒",
           "date": "2026-10-28 18:34",
           "datetime": "2026-10-28T18:34:27+08:00"
+        },
+        {
+          "title": "高盛、大摩看好PCB！AI供應鏈迎升級潮 00991A布局台光電、景碩等強勢股 | 文子奇 | 地方新聞",
+          "url": "https://www.storm.mg/article/11176552",
+          "source": "風傳媒",
+          "date": "2026-10-28 18:25",
+          "datetime": "2026-10-28T18:25:00+08:00"
         }
       ]
     },
@@ -83,13 +82,6 @@
         "00998A"
       ],
       "items": [
-        {
-          "title": "Visa財報營收增13%！00998A持有支付龍頭 全球金融不只銀行股",
-          "url": "https://www.watchmedia01.com/archives/563946",
-          "source": "警政時報",
-          "date": "2026-10-29 10:31",
-          "datetime": "2026-10-29T10:31:25+08:00"
-        },
         {
           "title": "持股銀行股利提高20%！00998A布局歐洲金融 11月財報接棒受關注",
           "url": "https://tw.news.yahoo.com/%E6%8C%81%E8%82%A1%E9%8A%80%E8%A1%8C%E8%82%A1%E5%88%A9%E6%8F%90%E9%AB%9820-00998a%E5%B8%83%E5%B1%80%E6%AD%90%E6%B4%B2%E9%87%91%E8%9E%8D-11%E6%9C%88%E8%B2%A1%E5%A0%B1%E6%8E%A5%E6%A3%92%E5%8F%97%E9%97%9C%E6%B3%A8-023008598.html",
@@ -110,6 +102,13 @@
           "source": "觀傳媒",
           "date": "2026-10-29 10:32",
           "datetime": "2026-10-29T10:32:45+08:00"
+        },
+        {
+          "title": "Visa財報營收增13%！00998A持有支付龍頭 全球金融不只銀行股",
+          "url": "https://www.watchmedia01.com/archives/563946",
+          "source": "觀傳媒",
+          "date": "2026-10-29 10:31",
+          "datetime": "2026-10-29T10:31:25+08:00"
         }
       ]
     },
@@ -523,22 +522,6 @@
     },
     {
       "platform": "youtube",
-      "title": "別再盲目存 00929！0056、00878 與 00713 終極對決：誰才是真正跌不倒、配得穩的「養老真防守」？ #00878 #0056 #00713 #00929 #高股息ETF",
-      "channel": "财富底层逻辑",
-      "url": "https://www.youtube.com/watch?v=gYyMwEhSwdM",
-      "date": "2026-10-26",
-      "views": 2840
-    },
-    {
-      "platform": "youtube",
-      "title": "夏之戀 l 00929、00406A，哪檔領息回本較快？",
-      "channel": "夏之戀",
-      "url": "https://www.youtube.com/watch?v=xaP__cQ9sac",
-      "date": "2026-10-26",
-      "views": 1680
-    },
-    {
-      "platform": "youtube",
       "title": "00929配0.38元，股利竟然是0？持有幾張都不扣二代健保 #00929 #高股息",
       "channel": "SeeThrough",
       "url": "https://www.youtube.com/shorts/zFL0HoLWpmo",
@@ -548,23 +531,30 @@
     },
     {
       "platform": "youtube",
+      "title": "AI多元賽道起跑！00418A復華台灣新星主動式ETF可以買嗎？ #投資",
+      "channel": "Lydia聊人生",
+      "url": "https://www.youtube.com/shorts/bp1QSTIJRjY",
+      "date": "2026-10-22",
+      "views": 231,
+      "short": true
+    },
+    {
+      "platform": "youtube",
+      "title": "投等債竟列 RR5 高風險？去中國化如何鎖定 6.66% 殖利率與十年季配息？｜物流策略師解構 00711B 復華彭博新興債 ETF ：單一國家 10% 上限防斷鏈、 260 檔美元主權債選址、...",
+      "channel": "物流策展人",
+      "url": "https://www.youtube.com/watch?v=wsP50feJ0cE",
+      "date": "2026-10-23",
+      "views": 74
+    },
+    {
+      "platform": "youtube",
       "title": "存股別傻傻買0056! 退休前改1動作 月領14萬 ft.超馬芭樂【小宇宙大爆發】",
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/watch?v=u4xcSAzbUi8",
       "date": "2026-10-26",
-      "views": 385227,
+      "views": 386403,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "【費半破底、台股補跌？止跌反攻要等什麼訊號？】|《股市先修班》EP34_20261025 #新聞 #Meta #費半 #AI #蔡明翰 #台股 #投資 #理財",
-      "channel": "財經震翰彈_蔡明翰",
-      "url": "https://www.youtube.com/watch?v=1GO3jgF0Q2Q",
-      "date": "2026-10-25",
-      "views": 173457,
-      "peer": true,
-      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -572,19 +562,9 @@
       "channel": "Catch大錢潮",
       "url": "https://www.youtube.com/watch?v=WsUheUsX884",
       "date": "2026-10-25",
-      "views": 131883,
+      "views": 131902,
       "peer": true,
       "cat": "綜合"
-    },
-    {
-      "platform": "youtube",
-      "title": "【理財達人秀】台股反攻近千點 再1步轉強？PCB抓突破 光通訊押寶誰？輝達.博通搶錢互助 低價股.被動抓突破！｜李兆華、朱家泓、楊雲翔、阿格力2026.10.28【電視完整版】",
-      "channel": "理財達人秀 EBCmoneyshow",
-      "url": "https://www.youtube.com/watch?v=BOnMxB8Xh6M",
-      "date": "2026-10-28",
-      "views": 121509,
-      "peer": true,
-      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -592,7 +572,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/whNn6PCCLws",
       "date": "2026-10-24",
-      "views": 116711,
+      "views": 116952,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -603,7 +583,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=WkmMZrXvm84",
       "date": "2026-10-26",
-      "views": 98675,
+      "views": 98914,
       "peer": true,
       "cat": "市值型"
     },
@@ -613,9 +593,19 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=KdZ-l9pChOs",
       "date": "2026-10-28",
-      "views": 68758,
+      "views": 69820,
       "peer": true,
       "cat": "高股息"
+    },
+    {
+      "platform": "youtube",
+      "title": "【週末鈔能力】台股失守季線先賣一波？杜金龍喊「這3族群」拉回閉眼買！ft.杜金龍、蕭碧燕｜趙慶翔、應佳臻 #財經鈔能力",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=O7TqlJlmYRE",
+      "date": "2026-10-24",
+      "views": 63409,
+      "peer": true,
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -623,7 +613,7 @@
       "channel": "午後檔案",
       "url": "https://www.youtube.com/watch?v=ZRtvgX91bLA",
       "date": "2026-10-27",
-      "views": 59977,
+      "views": 60092,
       "peer": true,
       "cat": "基金"
     },
@@ -633,26 +623,35 @@
       "channel": "關我什麼事",
       "url": "https://www.youtube.com/watch?v=wGFRFwIb2k0",
       "date": "2026-10-24",
-      "views": 59483,
+      "views": 59488,
       "peer": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "小資族全押主動式 ETF？市值型配一半更穩｜ft.超馬芭樂 #ETF投資 #資產配置 #ETF錢滾錢",
-      "channel": "【CMoney理財寶】官方頻道",
-      "url": "https://www.youtube.com/shorts/hdsf9pULGsQ",
+      "title": "【AIx專家 理財健檢】台股回檔進場時機到？卡位4大AI黑馬明年大爆發！【#財經鈔能力】｜202601026 趙慶翔 ft.郭彥均、廖佑璋 #欣興 #景碩 #國巨",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=UCPJOt_1PZA",
       "date": "2026-10-26",
-      "views": 47934,
+      "views": 46583,
       "peer": true,
-      "short": true,
+      "cat": "市場趨勢"
+    },
+    {
+      "platform": "youtube",
+      "title": "選錯主動式ETF恐少賺下波AI財！財富自由別只單壓台股？【#財經鈔能力】｜20261027 趙慶翔 ft.蕭碧燕 #台股 #美股 #AI投資",
+      "channel": "TVBS財經",
+      "url": "https://www.youtube.com/watch?v=HoUCiBYXP3s",
+      "date": "2026-10-27",
+      "views": 35021,
+      "peer": true,
       "cat": "主動式"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
-    "品牌焦點：才喊禁飛又髮夾彎！巴基斯坦恢復華航、長榮飛越許可 原因未明（Yahoo股市）",
+    "品牌焦點：復華中國 5G 謹慎操作（經濟日報）",
     "社群聲量最高：別只盯AI！五張藏金圖找出美股修正後的ETF投資機會（0 推）",
-    "YouTube 熱片：存股別傻傻買0056! 退休前改1動作 月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・385,227 次觀看）"
+    "YouTube 熱片：存股別傻傻買0056! 退休前改1動作 月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・386,403 次觀看）"
   ]
 }

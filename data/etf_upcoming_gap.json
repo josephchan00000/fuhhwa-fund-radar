@@ -1,7 +1,30 @@
 {
- "as_of": "2026-10-29 12:57",
- "count": 0,
- "items": [],
+ "as_of": "2026-10-29 14:00",
+ "count": 2,
+ "items": [
+  {
+   "code": null,
+   "name": "聯博全球高息增長主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "主動式ETF",
+   "approve": "115.10.27申報生效",
+   "period": "20261118~20261124"
+  },
+  {
+   "code": null,
+   "name": "聯博未來趨勢創新龍頭主動式ETF基金",
+   "first_seen": null,
+   "kind": "offering",
+   "src": "cnyes",
+   "stage": "approved",
+   "cat": "主動式ETF",
+   "approve": "115.10.27申報生效",
+   "period": "20261118~20261124"
+  }
+ ],
  "pipeline_n": 6,
  "pipeline": [
   {
