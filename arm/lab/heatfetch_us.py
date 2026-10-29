@@ -15,6 +15,9 @@
   us_cp                     BEA 企業稅後獲利（季、年率，DBnomics）  {季底 YYYY-MM: 十億美元}  泡沫頁 VER 2
   us_cftc_am、us_cftc_vix   CFTC 交易者分類：資產管理人 E-mini S&P、槓桿基金 VIX 期貨  {週二: [多單, 空單, 未平倉]}
   us_cftc_big、us_cftc_mini CFTC 傳統：非商業 S&P 大型、E-mini S&P {週二: [多單, 空單, 未平倉]}
+  us_cftc_am_nq             CFTC 交易者分類：資產管理人 E-mini 那斯達克 100（heatspec_us VER 3 的 S8，2006-06 起）
+  us_cftc_big_nq、us_cftc_mini_nq  CFTC 傳統：非商業 那斯達克 100 大型（1996 起、2015-06 下市）、E-mini（1999 起）（S9）
+  us_lev_{代號}             Yahoo 3 倍槓桿 ETF 每天成交金額（收盤 × 成交量；分割前後不變）{日期: 美元}（S6）
   us_philly                 費城聯準製造業 目前一般活動             {YYYY-MM: 擴散指數}    1968-05 起
   us_ads                    費城聯準 ADS 每日景氣指數               {日期: 指數}           1960-03 起
   us_cli                    OECD 美國綜合領先指標（振幅調整）       {YYYY-MM: 指數}        1955 起
@@ -88,6 +91,55 @@ def yahoo_us(name: str, sym: str, start: str = "1900-01-01", adj: bool = False) 
     if adj:                                               # 含息還原會改寫整段歷史：整段換
         return _replace(name, "yahoo", new)
     return _merge(name, "yahoo", new)
+
+
+LEV_START = "2008-11-01"                                   # 最早的一檔（SPXL、SPXS）2008-11 上市
+
+
+def parse_yahoo_dv(doc: dict, now: float) -> dict:
+    """chart API → {日期: 成交金額（收盤 × 成交量，美元）}；日期與還沒收盤的判斷同 parse_yahoo。
+    Yahoo 的收盤與成交量都會依之後的分割調整，相乘後和當時的成交金額一樣，所以歷史不會因為分割改寫。"""
+    res = (((doc or {}).get("chart") or {}).get("result") or [None])[0]
+    if not res:
+        return {}
+    meta = res.get("meta") or {}
+    off = int(meta.get("gmtoffset") or -18000)
+    reg = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
+    open_day = None
+    if reg.get("start") and reg.get("end") and reg["start"] <= now < reg["end"] + CLOSE_MARGIN_S:
+        open_day = datetime.fromtimestamp(int(reg["start"]) + off, timezone.utc).date()
+    today = datetime.fromtimestamp(now + off, timezone.utc).date()
+    q = ((((res.get("indicators") or {}).get("quote") or [{}])[0]) or {})
+    out = {}
+    for t, c, v in zip(res.get("timestamp") or [], q.get("close") or [], q.get("volume") or []):
+        if c is None or v is None:
+            continue
+        d = datetime.fromtimestamp(int(t) + off, timezone.utc).date()
+        if d.weekday() >= 5 or d > today or d == open_day:
+            continue
+        out[d.isoformat()] = round(float(c) * float(v), 0)
+    return out
+
+
+def lev_names() -> list[str]:
+    from . import heatspec_us as HU
+    return sorted({s for pair in HU.LEV.values() for s in pair})
+
+
+def yahoo_dv(name: str, sym: str, start: str = LEV_START) -> int:
+    """槓桿 ETF 的每天成交金額（heatspec_us VER 3 的 S6）。Yahoo 偶爾回 429：重試兩次、每次多等一點。"""
+    p1 = int(datetime.fromisoformat(start).replace(tzinfo=timezone.utc).timestamp())
+    url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(sym)}"
+           f"?period1={p1}&period2={int(time.time())}&interval=1d")
+    err = None
+    for k in range(3):
+        try:
+            doc = json.loads(_get(url, timeout=60).decode("utf-8"))
+            return _merge(name, "yahoo", parse_yahoo_dv(doc, time.time()))
+        except Exception as e:                                # noqa: BLE001 —— 429 等一下再試
+            err = e
+            time.sleep(5 * (k + 1))
+    raise err
 
 
 # ── DBnomics（聯準會 H.15、H.4.1、H.6、Z.1、BEA） ───────────────────────────────
@@ -192,6 +244,10 @@ CFTC_JOBS = {   # 檔名: (資料集, 契約代碼, 多單欄, 空單欄)
     "us_cftc_vix": ("gpe5-46if", "1170E1", "lev_money_positions_long", "lev_money_positions_short"),
     "us_cftc_big": ("6dca-aqww", "138741", "noncomm_positions_long_all", "noncomm_positions_short_all"),
     "us_cftc_mini": ("6dca-aqww", "13874A", "noncomm_positions_long_all", "noncomm_positions_short_all"),
+    # heatspec_us VER 3：那斯達克 100（E-mini 209742、大型契約 209741；docs/lab_us_chip_plan.md 第 7 節）
+    "us_cftc_am_nq": ("gpe5-46if", "209742", "asset_mgr_positions_long", "asset_mgr_positions_short"),
+    "us_cftc_big_nq": ("6dca-aqww", "209741", "noncomm_positions_long_all", "noncomm_positions_short_all"),
+    "us_cftc_mini_nq": ("6dca-aqww", "209742", "noncomm_positions_long_all", "noncomm_positions_short_all"),
 }
 
 

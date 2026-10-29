@@ -116,3 +116,20 @@ def test_latest_us_close_day():
     assert U.latest_us_close_day(datetime(2026, 10, 18, 4, tzinfo=timezone.utc)) == "2026-10-16"     # 週日
     assert U.latest_us_close_day(datetime(2026, 10, 19, 20, tzinfo=timezone.utc)) == "2026-10-16"    # 週一盤中
     assert U.latest_us_close_day(datetime(2026, 10, 19, 22, tzinfo=timezone.utc)) == "2026-10-19"    # 週一收盤後
+
+
+def test_parse_yahoo_dv_dollar_volume_and_nq_jobs():
+    """heatspec_us VER 3：槓桿 ETF 的成交金額（收盤 × 成交量）；還沒收盤的當天與週末不收。那斯達克 100 期貨三個 CFTC 工作。"""
+    from arm.lab import heatfetch_us as U
+    day = 86400
+    t0 = 1761300000                                          # 2025-10-24（五）的某個時間
+    doc = {"chart": {"result": [{"meta": {"gmtoffset": -14400, "currentTradingPeriod": {"regular": {"start": t0 + 3 * day,
+                                                                                                    "end": t0 + 3 * day + 23400}}},
+                                 "timestamp": [t0, t0 + day, t0 + 3 * day],
+                                 "indicators": {"quote": [{"close": [10.0, 11.0, 12.0], "volume": [100, 200, 300]}]}}]}}
+    got = U.parse_yahoo_dv(doc, t0 + 3 * day + 3600)
+    assert got == {"2025-10-24": 1000.0}                     # 週六不收、週一盤中不收
+    assert U.CFTC_JOBS["us_cftc_am_nq"][:2] == ("gpe5-46if", "209742")
+    assert U.CFTC_JOBS["us_cftc_big_nq"][:2] == ("6dca-aqww", "209741")
+    assert U.CFTC_JOBS["us_cftc_mini_nq"][:2] == ("6dca-aqww", "209742")
+    assert U.lev_names() == ["SOXL", "SOXS", "SPXL", "SPXS", "SQQQ", "TQQQ"]

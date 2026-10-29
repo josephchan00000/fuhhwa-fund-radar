@@ -113,6 +113,8 @@ jobs:
         run: timeout 420 python3 scripts/fetch_heat.py || echo "  ⚠ 景氣溫度資料抓取失敗，沿用既有落檔"
 
       - name: 美股景氣頁資料（指數、聯準會、CFTC、BLS、Shiller、LPPLS 每週；docs/lab_heat_us_plan.md，失敗不擋）
+        env:
+          SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}   # 只有成分股內部人那一段讀（arm/lab/insider.py），不印、不存
         run: timeout 420 python3 scripts/fetch_heat_us.py || echo "  ⚠ 美股景氣資料抓取失敗，沿用既有落檔"
 
       - name: 美股三成：持股有沒有跌破 50 日線＋美股個股卡的一年日線與分析師資料（Yahoo；docs/lab_us_sleeve_plan.md 第 13.3 節、docs/lab_cfg_v2_plan.md 第 4 節，失敗不擋）
