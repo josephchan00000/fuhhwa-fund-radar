@@ -1,15 +1,8 @@
 {
-  "as_of": "2026/10/29 10:27",
+  "as_of": "2026/10/29 11:37",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
-    {
-      "title": "復華中國 5G 謹慎操作",
-      "url": "https://money.udn.com/money/story/5618/9835256",
-      "source": "經濟日報",
-      "date": "2026-10-24 23:01",
-      "datetime": "2026-10-24T23:01:10+08:00"
-    },
     {
       "title": "主動復華台灣新星 募集期順延至10月27日",
       "url": "https://udn.com/news/amp/story/7239/9832220",
@@ -40,6 +33,13 @@
           "source": "今周刊",
           "date": "2026-10-28 17:56",
           "datetime": "2026-10-28T17:56:00+08:00"
+        },
+        {
+          "title": "【高股息不香了？1】00929、00939賺七成還被甩！75萬人落跑 分析師揭3原因",
+          "url": "https://tw.stock.yahoo.com/news/%E3%80%90%E9%AB%98%E8%82%A1%E6%81%AF%E4%B8%8D%E9%A6%99%E4%BA%86%EF%BC%9F1%E3%80%9100929%E3%80%8100939%E8%B3%BA%E4%B8%83%E6%88%90%E9%82%84%E8%A2%AB%E7%94%A9%EF%BC%8175%E8%90%AC%E4%BA%BA%E8%90%BD%E8%B7%91-%E5%88%86%E6%9E%90%E5%B8%AB%E6%8F%AD3%E5%8E%9F%E5%9B%A0-090800665.html",
+          "source": "Yahoo股市",
+          "date": "2026-10-23 17:08",
+          "datetime": "2026-10-23T17:08:00+08:00"
         }
       ]
     },
@@ -69,32 +69,32 @@
       ],
       "items": [
         {
-          "title": "AI之外看全球刷卡商機！00998A納入Visa 近期表現勝00981A",
-          "url": "https://sunmedia.tw/news/finance/AI%E4%B9%8B%E5%A4%96%E7%9C%8B%E5%85%A8%E7%90%83%E5%88%B7%E5%8D%A1%E5%95%86%E6%A9%9F%EF%BC%8100998A%E7%B4%8D%E5%85%A5Visa%E3%80%80%E8%BF%91%E6%9C%9F%E8%A1%A8%E7%8F%BE%E5%8B%9D00981A-1793239339544",
-          "source": "商傳媒",
-          "date": "2026-10-29 10:04",
-          "datetime": "2026-10-29T10:04:07+08:00"
+          "title": "持股銀行股利提高20%！00998A布局歐洲金融 11月財報接棒受關注",
+          "url": "https://tw.news.yahoo.com/%E6%8C%81%E8%82%A1%E9%8A%80%E8%A1%8C%E8%82%A1%E5%88%A9%E6%8F%90%E9%AB%9820-00998a%E5%B8%83%E5%B1%80%E6%AD%90%E6%B4%B2%E9%87%91%E8%9E%8D-11%E6%9C%88%E8%B2%A1%E5%A0%B1%E6%8E%A5%E6%A3%92%E5%8F%97%E9%97%9C%E6%B3%A8-023008598.html",
+          "source": "Yahoo新聞",
+          "date": "2026-10-29 10:30",
+          "datetime": "2026-10-29T10:30:08+08:00"
         },
         {
-          "title": "持股銀行股利增逾26%！00998A布局英國金融 掌握股利與回購題材",
-          "url": "https://sunmedia.tw/news/finance/%E6%8C%81%E8%82%A1%E9%8A%80%E8%A1%8C%E8%82%A1%E5%88%A9%E5%A2%9E%E9%80%BE26%EF%BC%8100998A%E5%B8%83%E5%B1%80%E8%8B%B1%E5%9C%8B%E9%87%91%E8%9E%8D%E3%80%80%E6%8E%8C%E6%8F%A1%E8%82%A1%E5%88%A9%E8%88%87%E5%9B%9E%E8%B3%BC%E9%A1%8C%E6%9D%90-1793239435047",
-          "source": "商傳媒",
-          "date": "2026-10-29 10:04",
-          "datetime": "2026-10-29T10:04:05+08:00"
+          "title": "日銀決策登場！00998A布局瑞穗、東京海上 近期跌幅小於00406A、00981A",
+          "url": "https://www.watchmedia01.com/archives/563952",
+          "source": "觀傳媒",
+          "date": "2026-10-29 10:34",
+          "datetime": "2026-10-29T10:34:15+08:00"
         },
         {
-          "title": "不只買銀行股！00998A布局全球保險企業 近期表現優於00981A",
-          "url": "https://sunmedia.tw/news/finance/%E4%B8%8D%E5%8F%AA%E8%B2%B7%E9%8A%80%E8%A1%8C%E8%82%A1%EF%BC%8100998A%E5%B8%83%E5%B1%80%E5%85%A8%E7%90%83%E4%BF%9D%E9%9A%AA%E4%BC%81%E6%A5%AD%E3%80%80%E8%BF%91%E6%9C%9F%E8%A1%A8%E7%8F%BE%E5%84%AA%E6%96%BC00981A-1793179525993",
-          "source": "商傳媒",
-          "date": "2026-10-28 17:29",
-          "datetime": "2026-10-28T17:29:42+08:00"
+          "title": "國泰金、元大金、富邦金都有！00998A一次布局全球金融 近期勝00981A、00406A",
+          "url": "https://www.watchmedia01.com/archives/563949",
+          "source": "觀傳媒",
+          "date": "2026-10-29 10:32",
+          "datetime": "2026-10-29T10:32:45+08:00"
         },
         {
-          "title": "領高息也要看價差！00406A近期跌逾13% 00998A全球金融同期小漲",
-          "url": "https://life.tw/article/%E9%A0%98%E9%AB%98%E6%81%AF%E4%B9%9F%E8%A6%81%E7%9C%8B%E5%83%B9%E5%B7%AE-00406a%E8%BF%91%E6%9C%9F%E8%B7%8C%E9%80%BE13-00998a%E5%85%A8%E7%90%83-3195959",
-          "source": "蕃新聞",
-          "date": "2026-10-28 17:02",
-          "datetime": "2026-10-28T17:02:49+08:00"
+          "title": "Visa財報營收增13%！00998A持有支付龍頭 全球金融不只銀行股",
+          "url": "https://www.watchmedia01.com/archives/563946",
+          "source": "觀傳媒",
+          "date": "2026-10-29 10:31",
+          "datetime": "2026-10-29T10:31:25+08:00"
         }
       ]
     },
@@ -151,6 +151,13 @@
           "source": "觀傳媒",
           "date": "2026-10-26 21:02",
           "datetime": "2026-10-26T21:02:35+08:00"
+        },
+        {
+          "title": "回檔篩出好體質！00418A卡位AI轉型股 10/27最後買進日",
+          "url": "https://tw.stock.yahoo.com/news/%E5%9B%9E%E6%AA%94%E7%AF%A9%E5%87%BA%E5%A5%BD%E9%AB%94%E8%B3%AA-00418a%E5%8D%A1%E4%BD%8Dai%E8%BD%89%E5%9E%8B%E8%82%A1-10-27%E6%9C%80%E5%BE%8C%E8%B2%B7%E9%80%B2%E6%97%A5-090427137.html",
+          "source": "Yahoo股市",
+          "date": "2026-10-26 17:04",
+          "datetime": "2026-10-26T17:04:27+08:00"
         }
       ]
     },
@@ -476,7 +483,7 @@
       "board": "其他",
       "title": "關於強AI連買五天是包括假日嗎？",
       "url": "https://fundhot.com/forum/%E5%85%B6%E4%BB%96/%E9%97%9C%E6%96%BC%E5%BC%B7AI%E9%80%A3%E8%B2%B7%E4%BA%94%E5%A4%A9%E6%98%AF%E5%8C%85%E6%8B%AC%E5%81%87%E6%97%A5%E5%97%8E%EF%BC%9F/14028",
-      "date": "2026-10-28"
+      "first_seen": "2026-10-29"
     },
     {
       "platform": "fundhot",
@@ -537,7 +544,7 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/watch?v=u4xcSAzbUi8",
       "date": "2026-10-26",
-      "views": 381334,
+      "views": 383008,
       "peer": true,
       "cat": "綜合"
     },
@@ -547,7 +554,7 @@
       "channel": "財經震翰彈_蔡明翰",
       "url": "https://www.youtube.com/watch?v=1GO3jgF0Q2Q",
       "date": "2026-10-25",
-      "views": 173273,
+      "views": 173344,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -557,7 +564,7 @@
       "channel": "Smart智富月刊",
       "url": "https://www.youtube.com/watch?v=bBb7muEJZwo",
       "date": "2026-10-24",
-      "views": 166187,
+      "views": 166273,
       "peer": true,
       "cat": "市場趨勢"
     },
@@ -577,7 +584,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/whNn6PCCLws",
       "date": "2026-10-24",
-      "views": 116184,
+      "views": 116409,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -588,7 +595,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=WkmMZrXvm84",
       "date": "2026-10-26",
-      "views": 97999,
+      "views": 98299,
       "peer": true,
       "cat": "市值型"
     },
@@ -598,7 +605,7 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=KdZ-l9pChOs",
       "date": "2026-10-28",
-      "views": 64916,
+      "views": 66689,
       "peer": true,
       "cat": "高股息"
     },
@@ -608,7 +615,7 @@
       "channel": "投資優我罩—優分析",
       "url": "https://www.youtube.com/watch?v=qcTagQtlBaY",
       "date": "2026-10-25",
-      "views": 62558,
+      "views": 62649,
       "peer": true,
       "cat": "主動式"
     },
@@ -618,7 +625,7 @@
       "channel": "午後檔案",
       "url": "https://www.youtube.com/watch?v=ZRtvgX91bLA",
       "date": "2026-10-27",
-      "views": 59647,
+      "views": 59825,
       "peer": true,
       "cat": "基金"
     },
@@ -635,8 +642,8 @@
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
-    "品牌焦點：復華中國 5G 謹慎操作（經濟日報）",
+    "品牌焦點：主動復華台灣新星 募集期順延至10月27日（UDN）",
     "社群聲量最高：別只盯AI！五張藏金圖找出美股修正後的ETF投資機會（0 推）",
-    "YouTube 熱片：存股別傻傻買0056! 退休前改1動作 月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・381,334 次觀看）"
+    "YouTube 熱片：存股別傻傻買0056! 退休前改1動作 月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・383,008 次觀看）"
   ]
 }
