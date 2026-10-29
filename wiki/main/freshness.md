@@ -3,7 +3,7 @@
 > 版面、只列逾期、交易日口徑、不能拿來源名稱當 grep 標記。
 > 原始資料：CLAUDE.md「儀表板『🕒 資料更新時間』區塊」段；程式：`arm/fund_dashboard.py` 的 `_freshness_view()`、`_fresh_chip()`、`_trade_age`、`_tw_closed_days()`；`arm/twholidays`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

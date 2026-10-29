@@ -3,7 +3,7 @@
 > 估算開盤的想法、規格 VER 1～2、資料、盤前取樣、結果、頁面。
 > 原始資料：CLAUDE.md「台指期早盤策略（股票期貨人生）」段；規劃 `docs/lab_fut_plan.md`；程式：`arm/lab/fut*.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

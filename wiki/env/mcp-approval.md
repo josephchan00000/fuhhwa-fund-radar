@@ -3,7 +3,7 @@
 > 排程會話呼叫 send_later／create_trigger 回 -32003 是逐會話授權的問題：`.claude/settings.json` 預先核准（排程搬家後才生效）、排不了就用背景 until 迴圈自驗、或請使用者按一次「一律允許」。
 > 原始資料：CLAUDE.md「已知環境限制與防呆」段的 -32003 條（Routine prompt ②③④ 原文寫的「機制見 CLAUDE.md「已知環境限制與防呆」-32003 條」就是指這一條）；程式：`.claude/settings.json`。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> CLAUDE.md 仍留著對應的指令段落（排程照它執行）：那一段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）；其他內容以這一頁為準。
 
 ## 現在怎麼運作
 

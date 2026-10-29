@@ -3,7 +3,7 @@
 > 每週一 08:05（或使用者打「ETF 募集週掃」）WebSearch 盤點新 ETF 與指數審核時程，只改 `data/etf_upcoming.json`（＋`config/index_reviews.json`），push 即自動上線。
 > 原始資料：CLAUDE.md「指令：ETF 募集週掃」段（含週掃步驟 2.5）；Routine prompt 原文⑤ 在 [排程與「排程搬家」](routines.md)；相關：[即將登場與新 ETF 自動發現](../main/etf-upcoming.md)、[指數調整](../lab/index-changes.md)。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> CLAUDE.md 仍留著對應的指令段落（排程照它執行）：那一段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）；其他內容以這一頁為準。
 
 ## 現在怎麼運作
 

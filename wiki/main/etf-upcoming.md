@@ -3,7 +3,7 @@
 > 掛牌自動加入追蹤、上櫃檔分組、五狀態三分組、發現層、not_tracked、募集表格解析、併檔通道。
 > 原始資料：CLAUDE.md「ETF 數據追蹤」分頁段「『即將登場』→ 掛牌日自動加入追蹤」到「募集表格解析」幾條與「併檔通道把 `not_tracked` 洗掉」；程式：`arm/etfwatch.py`、`arm/etfdiscover.py`、`scripts/check_new_etfs.py`。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

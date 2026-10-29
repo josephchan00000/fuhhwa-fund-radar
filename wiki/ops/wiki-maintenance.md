@@ -3,11 +3,11 @@
 > 使用者打「整理知識庫」才全面檢查：體檢、事實比對、找矛盾與過時、修好、日誌一行、回報；平常做完事只改相關的那一頁。
 > 原始資料：CLAUDE.md「指令：整理知識庫」段；規劃 `docs/llm_wiki_plan.md` 第 5、14 節；程式 `scripts/wiki_lint.py`、`scripts/wiki_facts.py`、`scripts/wiki_split.py`、`tests/test_wiki.py`。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那一段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> CLAUDE.md 仍留著對應的指令段落（排程照它執行）：那一段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）；其他內容以這一頁為準。
 
 ## 現在怎麼運作
 
-知識庫＝`wiki/`（目錄 `wiki/index.md`、日誌 `wiki/log.md`）；第 5 段瘦身之前 CLAUDE.md 仍是正本。
+知識庫＝`wiki/`（目錄 `wiki/index.md`、日誌 `wiki/log.md`）；2026-10-29 瘦身後頁面就是正本，CLAUDE.md 只留鐵則與五個指令（指令在 `wiki/ops/` 的整理版要和 CLAUDE.md 一致）。
 
 使用者 2026-10-29 的決定：**做完事順手改**（只改相關的那一頁、`wiki/log.md` 加一行 `## [日期] 操作 | 標題`）**＋你說才整理**——
 全面檢查只在使用者打「整理知識庫」時做，不排程、不在別的指令裡順便做。
@@ -40,3 +40,4 @@
 ## 歷史
 
 - 2026-10-29：LLM Wiki 第 4 段建立這個指令、`scripts/wiki_lint.py` 與路徑規則。
+- 2026-10-29：第 5 段 CLAUDE.md 瘦身（29.9 萬字剩 4.2 萬字，只留鐵則與五個指令），其他頁面成為正本；`wiki_split.py` 只產目錄、`wiki_facts.py` 只比指令段落。

@@ -3,7 +3,7 @@
 > ETF 持股從哪抓、挑主來源與驗證、非持股列、落檔與合併、個股報價日與貢獻、期貨部位；放棄的路線與探針經過。
 > 原始資料：CLAUDE.md「ETF 詳情」底部區塊段的持股資料各條；規劃 `docs/etf_chg_fix_plan.md`；程式：`arm/etfholdings.py`、`scripts/fetch_etf_holdings.py`、`arm/connectors/issuers/pcf.py`。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 畫面在 [ETF 詳情卡畫面](etf-detail.md)。
 

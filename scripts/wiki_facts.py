@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""知識庫第二段起的事實清單比對（docs/llm_wiki_plan.md 第 4.2、10 節）。
+"""CLAUDE.md 與知識庫的事實比對（docs/llm_wiki_plan.md 第 4.2、10、15 節）。
 
-整理過的頁（scripts/wiki_split.py 的 ORGANIZED）不再是 CLAUDE.md 的逐字切片，所以改成比「事實」：
-從 CLAUDE.md 對應那幾段抽出事實記號——`程式碼片段`（檔名、路徑、函式、欄位、指令）、日期（2026-10-29、10/29）、
-帶單位的數字（50.7%、1,321 萬、30 分…）、「引號裡的字」（使用者原話、頁面上的字）、run 編號、VER 幾——
+2026-10-29 瘦身後 CLAUDE.md 只留鐵則與五個指令；指令段落在 wiki/ops/ 各有一份整理版（scripts/wiki_split.py 的 CUTS／MIRROR）。
+整理版不是逐字的，所以比「事實」：從 CLAUDE.md 那幾段抽出事實記號——`程式碼片段`（檔名、路徑、函式、欄位、指令）、
+日期（2026-10-29、10/29）、帶單位的數字（50.7%、1,321 萬、30 分…）、「引號裡的字」（使用者原話、頁面上的字）、run 編號、VER 幾——
 每一個都要還出現在知識庫裡（比對時忽略空白與 * 號）。
   · 出現在別頁＝搬到別頁了（只列出來看，不算錯）；
   · 哪裡都沒有＝不見了（算錯），除非日誌 wiki/log.md 有一行「- 刪：`記號`、`記號`…——原因」
     （2026-10-29 使用者：沒用或明顯被覆蓋的規則可以清除；一條規則一行，列出它帶走的記號）。
+瘦身前搬走的段落已在第五段用瘦身前的全文比過一次（0 個不見）；那些頁現在就是正本，不再比。
 
-  python3 scripts/wiki_facts.py               整理過的頁全部比
+  python3 scripts/wiki_facts.py               CLAUDE.md 留著的段落對應的頁全部比
   python3 scripts/wiki_facts.py ops/deploy     只比這幾頁（也會列搬到別頁的）
 """
 from __future__ import annotations
@@ -86,7 +87,7 @@ def corpus() -> dict[str, str]:
 def compare(pages: list[str] | None = None, text: str | None = None) -> dict[str, dict]:
     """→ {頁: {"n": 記號數, "missing": [哪裡都沒有], "moved": {記號: [在哪幾頁]}}}。"""
     text = text if text is not None else WS.SRC.read_text("utf-8")
-    pages = pages or sorted(WS.ORGANIZED)
+    pages = pages or sorted(WS.MIRROR)
     C, gone = corpus(), dropped()
     out = {}
     for pg in pages:
@@ -119,7 +120,7 @@ def main(argv: list[str]) -> int:
             for t, w in r["moved"].items():
                 print(f"    搬到 {', '.join(w)}：{t}")
         bad += len(r["missing"])
-    print(f"{'✗' if bad else '✓'} 整理過的 {len(R)} 頁、{tot} 個記號，不見 {bad} 個")
+    print(f"{'✗' if bad else '✓'} CLAUDE.md 對應的 {len(R)} 頁、{tot} 個記號，不見 {bad} 個")
     return 1 if bad else 0
 
 

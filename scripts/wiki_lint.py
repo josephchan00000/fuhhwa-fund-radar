@@ -8,7 +8,7 @@
 提醒（△，不擋）＝請人看一眼：
   · 「現在怎麼運作」「不能改的規則」裡提到的檔案不存在、`模組.函式` 找不到定義（多半是改名或拿掉了，頁面該更新）；
   · 沒有任何頁連到的頁（只有目錄連到）；
-  · CLAUDE.md 太長（第 5 段瘦身之前一定會出現）。
+  · CLAUDE.md 太長（超過 4.5 萬字＝又長回去了）。
 
   python3 scripts/wiki_lint.py
 """
@@ -28,7 +28,7 @@ WIKI = WS.WIKI
 RULES = ROOT / ".claude" / "rules"
 PAGE_MAX = 15_000
 INDEX_MAX = 10_000
-CLAUDE_MAX = 30_000          # 第 5 段瘦身後的上限（規劃第 5 節）
+CLAUDE_MAX = 45_000          # 第 5 段瘦身後的上限（2026-10-29 使用者選「指令一字不改」，瘦到 4.2 萬字；規劃第 15 節）
 CURRENT = ("## 現在怎麼運作", "## 不能改的規則")
 LINK = re.compile(r"\]\(([^)#\s]+\.md)(?:#[^)]*)?\)")
 CODE = re.compile(r"`([^`\n]+)`")
@@ -107,7 +107,7 @@ def lint() -> tuple[list[str], list[str]]:
         if name not in ("index.md", "log.md") and not incoming.get(name):
             warns.append(f"沒有任何頁連到（只有目錄）：{name}")
     # 事實比對
-    R = WF.compare(sorted(WS.ORGANIZED))
+    R = WF.compare(sorted(WS.MIRROR))
     for pg, r in R.items():
         for t in r["missing"]:
             errs.append(f"{pg}：CLAUDE.md 的事實不見了：{t}")
@@ -147,7 +147,7 @@ def lint() -> tuple[list[str], list[str]]:
                 errs.append(f".claude/rules/{fname} 指到不存在的頁：{ref}")
     n = len(WS.SRC.read_text("utf-8"))
     if n > CLAUDE_MAX:
-        warns.append(f"CLAUDE.md {n:,} 字，超過瘦身後的上限 {CLAUDE_MAX:,}（第 5 段之前一定會這樣）")
+        warns.append(f"CLAUDE.md {n:,} 字，超過瘦身後的上限 {CLAUDE_MAX:,}：多的內容搬進知識庫的頁")
     return errs, warns
 
 

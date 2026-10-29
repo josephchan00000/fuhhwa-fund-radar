@@ -3,7 +3,7 @@
 > 四塊版面、全部指標、泡沫與產業泡沫、轉址、美股點到才下載。
 > 原始資料：CLAUDE.md「市場頁」段；規劃 `docs/lab_ia_v5_plan.md` 第 15.1、18.1、20、25 節；程式：`heatviz`、`heatpage_us`、`sigpage`、`bubpage`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

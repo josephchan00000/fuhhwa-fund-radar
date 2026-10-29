@@ -3,7 +3,7 @@
 > 臺灣50 與高股息的審核時程、公告前預測、被動 ETF 動向。
 > 原始資料：CLAUDE.md「籌碼雷達」段「指數調整」；程式：`arm/lab/indexes.py`、`config/index_reviews.json`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

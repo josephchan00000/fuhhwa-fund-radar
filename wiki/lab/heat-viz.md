@@ -3,7 +3,7 @@
 > 雷達、比較日期、今天的重點、情境、這週變化、階段時間軸、證據地圖、3D 地形、日夜間按鈕、個股頁三張圖。
 > 原始資料：CLAUDE.md「『視覺化改版』三頁」段；規劃 `docs/lab_visual_plan.md`、`docs/lab_heatviz_v2_plan.md`；程式：`arm/lab/heatviz.py`、`arm/lab/stockviz.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

@@ -3,7 +3,7 @@
 > 當日漲跌從哪幾個來源、什麼順序拿、什麼時候不顯示數字；差一天並排、假 bar、上櫃慢一天、週月報酬錨定、今天對前天、除息日。
 > 原始資料：CLAUDE.md「ETF 數據追蹤」分頁段「差一天並排」到「L3（未實作）」那幾條；`docs/etf_chg_fix_plan.md` 第 9、10、10.5、10.6 節；程式：`arm/etfwatch.py`、`arm/dayquotes.py`、`arm/fund_dashboard.py`。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

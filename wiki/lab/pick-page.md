@@ -3,7 +3,7 @@
 > 頂欄「選股」：進場行事曆、策略卡、新飆股卡；2026-10-28 起取代配置頁。
 > 原始資料：CLAUDE.md「選股頁」段；`docs/lab_pick_page_plan.md`；`arm/lab/pickpage.py`、`pickcal.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

@@ -1,12 +1,11 @@
 # 知識庫目錄
 
-> 復華基金雷達的知識庫（做法照 Karpathy 的 LLM Wiki）：先看這份目錄，再讀相關的頁；做完事更新那一頁，[日誌](log.md) 加一行。
-> 規劃：`docs/llm_wiki_plan.md`。
-> CLAUDE.md 目前仍是正本（第 5 段瘦身之前）：CLAUDE.md 哪一段改了，對應的頁要跟著改，`python3 scripts/wiki_facts.py` 會檢查。
+> 復華基金雷達的知識庫（做法照 Karpathy 的 LLM Wiki）：先看這份目錄，再讀相關的頁；做完事更新那一頁，[日誌](log.md) 加一行。下面的連結都相對於 `wiki/`。
+> 規劃：`docs/llm_wiki_plan.md`。2026-10-29 起頁面就是正本；CLAUDE.md 只留鐵則與五個指令，指令在 `wiki/ops/` 的整理版要和 CLAUDE.md 一致（`python3 scripts/wiki_facts.py` 會檢查）。
 
 ## 跨主題
 
-- [使用者偏好與做決定的方式](user.md)：他要什麼、怎麼判斷好壞、畫面與用字的要求、怎麼一起做事；每條附原話與日期。
+- [使用者偏好與做決定的方式](user.md)：使用者要什麼、怎麼判斷好壞、畫面與用字的要求、怎麼一起做事；每條附原話與日期。
 - [跨主題的教訓](lessons.md)：踩過不只一次、換個地方還會再踩的事；一條一句，細節連到出處頁。
 
 ## 每天的作業（ops）

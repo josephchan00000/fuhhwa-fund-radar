@@ -3,7 +3,7 @@
 > 追蹤清單、雙來源、報酬與配息、預估配息、欄序、落檔與欄位級合併。
 > 原始資料：CLAUDE.md「『ETF 數據追蹤』分頁」段；程式：`arm/etfwatch.py`、`scripts/fetch_etf_watch.py`。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 主儀表板「ETF 數據追蹤」分頁（左上第四分頁）那張表；當日漲跌另見 [ETF 當日漲跌的坑](etf-daily-change.md)。
 

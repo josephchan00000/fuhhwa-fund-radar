@@ -3,7 +3,7 @@
 > 六個排程都火進同一個綁定的對話（它每天先合併 main，merge 進 main 後下一班就生效）；搬家步驟、模型重設、prompt 原文。
 > 原始資料：CLAUDE.md「指令：「排程搬家」」「每日固定時間自動更新」；`docs/llm_wiki_plan.md` 第 3.1、6 節。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> CLAUDE.md 仍留著對應的指令段落（排程照它執行）：那一段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）；其他內容以這一頁為準。
 
 ## 現在怎麼運作
 

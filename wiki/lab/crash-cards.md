@@ -3,7 +3,7 @@
 > 短線大跌風險、過熱後 3 個月回撤、反向檢查、大跌後檢查四張研究卡的規格、資料、程式、頁面、結果；部位參考做了又拿掉。
 > 原始資料：CLAUDE.md「短線大跌風險」卡、「過熱之後 3 個月的最大回撤」卡、「反向檢查」卡、「大跌後檢查」卡、「部位參考」各段；規劃 `docs/lab_crash_plan.md`、`docs/lab_hotdd_plan.md`；程式：`arm/lab/crash.py`、`arm/lab/hotdd.py`、`arm/lab/hotch.py`、`arm/lab/bottom.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

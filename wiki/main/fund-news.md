@@ -3,7 +3,7 @@
 > 「復華新聞・社群」區塊：新聞從哪抓、四層過濾、Google News 洗日期；社群 PTT、YouTube 三層清單與額度、強基金、分類篩選、落檔防呆。
 > 原始資料：CLAUDE.md「已知環境限制與防呆」段的復華新聞與社群各條；規劃 `docs/social_api_plan.md`；程式：`arm/fundnews.py`、`arm/connectors/gnews.py`。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

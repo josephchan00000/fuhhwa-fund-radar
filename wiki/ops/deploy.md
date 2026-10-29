@@ -3,7 +3,7 @@
 > 線上沒更新時照順序診斷（資料日期、產表時戳、部署步驟日誌、Vercel 部署上限，最後才查 Vercel Deployments）；「內容在 main」不等於線上已部署；Deploy Hook、對時哨兵、煙霧測試、快取。
 > 原始資料：CLAUDE.md「全部更新」步驟 9 的「內容在 main ≠ 線上已部署」條、「每日固定時間自動更新」段的「部署」「Vercel 免費方案每日部署上限」「多人化硬化」三條；規劃 `docs/multi_user_plan.md`；程式：`scripts/check_live_deploy.py`、`scripts/smoke_dashboard.py`、兩支 `vercel.json`。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> CLAUDE.md 仍留著對應的指令段落（排程照它執行）：那一段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）；其他內容以這一頁為準。
 
 ## 現在怎麼運作
 

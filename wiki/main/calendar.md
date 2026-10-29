@@ -3,7 +3,7 @@
 > 台灣區與精簡規則、台股法說財報、官方休市表與颱風、昨日版底稿與漂移閘門、核心排程錨。
 > 原始資料：CLAUDE.md 行事曆「台灣區與精簡規則」「資料可信度盤查與因應」兩段；程式：`arm/macronews.py`、`arm/twholidays.py`、`scripts/check_reports.py`；設定：`config/official_schedule.json`。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

@@ -3,7 +3,7 @@
 > 台股景氣頁 x9m.html：面向與項目、頁面、規格與研究、資料、各版結果與坑。
 > 原始資料：CLAUDE.md「『景氣溫度』頁」段；規劃 `docs/lab_heat_plan.md`；程式：`arm/lab/heat*.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

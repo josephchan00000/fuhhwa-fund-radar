@@ -3,7 +3,7 @@
 > 規格＋程式、三種引擎、用到未來資料的檢查、放進計畫試算、合併通道、使用者的決定。
 > 原始資料：CLAUDE.md「新策略候選」段；規劃 `docs/lab_ia_v5_plan.md` 第 6、24 節；程式：`arm/lab/candspec.py`（框架規格 VER 2）
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

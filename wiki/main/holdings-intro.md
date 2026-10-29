@@ -4,7 +4,7 @@
 > 原始資料：CLAUDE.md「已知環境限制與防呆」段的前十大持股簡介一條；每天怎麼補見 [全部更新](../ops/daily-update.md) 步驟 9⑤ 與 [排程](../ops/routines.md) 的 15:33 盤後籌碼班；
 > 程式：`scripts/check_holdings_intro.py`、`config/holding_profiles.json`、`tests/test_holdings_intro.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

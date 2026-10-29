@@ -3,7 +3,7 @@
 > 照網頁操作能不能比一直抱著好、研究結論的問答、200 日線上才加碼。
 > 原始資料：CLAUDE.md「實戰模擬」「研究結論」「期貨加碼」三段；規劃 `docs/lab_practical_plan.md` 第 11～12 節、`docs/lab_practice_page_plan.md`、`docs/lab_research_v2_plan.md`、`docs/lab_tilt_plan.md`；程式：`arm/lab/findings.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

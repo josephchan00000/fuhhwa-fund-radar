@@ -3,7 +3,7 @@
 > 每週日 19:47（或使用者打「策略探勘週報」）WebSearch 找最多 2 條新策略，先寫規格與程式再推，合併通道回測乾淨才併進 main；使用者回「試用／納入／不納入」。
 > 原始資料：CLAUDE.md「指令：策略探勘週報」段；規劃 `docs/lab_ia_v5_plan.md` 第 6、24 節；Routine prompt 原文⑥ 在 [排程與「排程搬家」](routines.md)；機制（三種引擎、兩道檢查、合併通道）見 [新策略候選](../lab/candidates.md)。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> CLAUDE.md 仍留著對應的指令段落（排程照它執行）：那一段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）；其他內容以這一頁為準。
 
 ## 現在怎麼運作
 

@@ -3,7 +3,7 @@
 > 飆股名單 S9 與頁面；照書買賣與選股都沒贏；縮短名單的研究。
 > 原始資料：CLAUDE.md「籌碼雷達」段「《超級績效》SEPA、綜合最優解、超級飆股觀察名單」；研究 `tw-superstock-lab/`（用 lab 長歷史＝PROGRESS A8）；程式 `arm/lab/vcp.py`、`sepa.py`、`layer.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

@@ -3,7 +3,7 @@
 > xstratspec VER 1～6：短線、落底、季節性、風險控制、融資維持率、判定。
 > 原始資料：CLAUDE.md「大神策略」段；規劃 `docs/lab_expert_plan.md`、`docs/lab_nav_plan.md`、`docs/lab_practical_plan.md` 第 7、9.4 節；程式：`arm/lab/xstrat.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 
