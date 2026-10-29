@@ -52,7 +52,7 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         core.STK.clear()
         data["n8"] = sxlive.LAST.get("n8")    # 選股頁、推播的新飆股（飆股前瞻記錄 VER 4：8 格那一本）
         if isinstance(data.get("adv"), dict) and not data["adv"].get("err"):
-            core.STK.update(core.stk_from_adv(data["adv"], today_tw().isoformat(), boom=sxlive.LAST.get("plan")))
+            core.STK.update(core.stk_from_adv(data["adv"], today_tw().isoformat(), boom=sxlive.LAST.get("n8")))   # corespec VER 5：新飆股＝N8
     except Exception as e:                   # noqa: BLE001 —— 失敗只是交易計畫卡少了台股衛星的名單
         print(f"[籌碼雷達] ⚠ 交易計畫卡的衛星資料沒有算：{type(e).__name__}: {e}")
     try:                                     # 新飆股位置圖要的強度與離 52 週高點（全市場小表；檢討第 3 步）。只給配置頁用，不內嵌
@@ -66,7 +66,7 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
     try:                                     # 配置頁「今年」每個月、每一筆（ytdspec；docs/lab_review_plan.md 第 9.2 節）
         from . import sxlive, ussxqm, ytd
         D0 = ctx.get("D")
-        data["ytd"] = {"tw": ytd.tw(D0, sxlive.LAST.get("plan"), dict(getattr(D0, "names", None) or {})),
+        data["ytd"] = {"tw": ytd.tw(D0, sxlive.LAST.get("ytd"), dict(getattr(D0, "names", None) or {})),
                        "us": ytd.us(ussxqm.load_live())}
         data["ytd_day"] = D0.cal[-1] if D0 is not None and D0.cal else None
     except Exception as e:                   # noqa: BLE001 —— 失敗只是那張表寫「還沒算出來」

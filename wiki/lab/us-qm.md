@@ -5,7 +5,7 @@
 > 這一頁目前是從 CLAUDE.md 逐字搬來的（知識庫第一段），還沒整理；有出入時以 CLAUDE.md 為準。
 > 改內容先改 CLAUDE.md，再跑 `python3 scripts/wiki_split.py` 重產這一頁。
 
-<!-- CLAUDE.md 第 2976–3043 行 -->
+<!-- CLAUDE.md 第 2982–3049 行 -->
 - **美股個股策略的資料**：`arm/lab/usstk.py`＋`scripts/backfill_usstk.py`＋`lab_backfill.yml` mode `usstkfill`（每 50 分鐘 commit、跑約 330 分鐘、
   沒做完自己再派一輪；`--status` 第一行 DONE／STUCK／LEFT）：S&P 500 歷史成分股（2008 後在指數裡的）Yahoo 還原收盤 2006 起、那斯達克財報行事曆
   2008 起逐日 → `data/lab/usstk/`（還原收盤以 1bp 精度差分存）。不用 SEC（要帶 email）。代號是現在的、已下市的多半沒有＝存活偏誤，之後做策略

@@ -131,7 +131,8 @@ def tw(D, plan: dict | None, names: dict | None = None, live: dict | None = None
         return None
     p0 = px[0]
     w = S.TW_W
-    nolook = [w["0050"] * p / p0 + w["R60"] * eq[d] / e0 + w["cash"] if p is not None else None for d, p in zip(days, px)]
+    B = S.TW_BOOM                                        # VER 2：新飆股那四成＝N8B（VER 1＝R60）
+    nolook = [w["0050"] * p / p0 + w[B] * eq[d] / e0 + w["cash"] if p is not None else None for d, p in zip(days, px)]
     hold = [p / p0 if p is not None else None for p in px]
     live = live or load_live()
     lv = live_tw(D, live, days)
@@ -145,8 +146,8 @@ def tw(D, plan: dict | None, names: dict | None = None, live: dict | None = None
     trades = [{"k": "0050", "c": "0050", "n": nm.get("0050", "元大台灣50"), "ent": d0, "exit": None, "ret": hold[-1] - 1,
                "w": w["0050"], "pnl": w["0050"] * (hold[-1] - 1), "carry": True}]
     for t in st["closed"]:
-        trades.append({"k": "R60", "c": t["c"], "n": nm.get(t["c"], t["c"]), "ent": t["ent"], "exit": t["exit"], "ret": t["ret"],
-                       "bpx": t.get("bpx"), "spx": t.get("spx"), "w": _m(t.get("w"), w["R60"]), "pnl": _m(t.get("pnl"), w["R60"]),
+        trades.append({"k": B, "c": t["c"], "n": nm.get(t["c"], t["c"]), "ent": t["ent"], "exit": t["exit"], "ret": t["ret"],
+                       "bpx": t.get("bpx"), "spx": t.get("spx"), "w": _m(t.get("w"), w[B]), "pnl": _m(t.get("pnl"), w[B]),
                        "carry": t["carry"]})
     tk = {p["c"]: p for p in st["open_take"]}
     hold_px = {h["c"]: h for h in (plan or {}).get("hold") or []}
@@ -157,18 +158,20 @@ def tw(D, plan: dict | None, names: dict | None = None, live: dict | None = None
         else:
             cin = pnl / r if r else None
             pnl26, ww, carry = pnl, (cin / eq_before(ent) if cin else None), False
-        trades.append({"k": "R60", "c": c, "n": nm.get(c, c), "ent": ent, "exit": ex, "ret": r, "w": _m(ww, w["R60"]),
-                       "pnl": _m(pnl26 / e0, w["R60"]), "carry": carry, "bpx": (p or {}).get("bpx")})
-    for c, ent, cin, v0, val, sh in yp.get("open") or []:
+        trades.append({"k": B, "c": c, "n": nm.get(c, c), "ent": ent, "exit": ex, "ret": r, "w": _m(ww, w[B]),
+                       "pnl": _m(pnl26 / e0, w[B]), "carry": carry, "bpx": (p or {}).get("bpx")})
+    for c, ent, cin, v0, val, sh, *pxs in yp.get("open") or []:
         p = tk.get(c)
         if p:
             base, ww, carry = p["base"], p.get("w"), p["carry"]
         else:
             base, ww, carry = cin, cin / eq_before(ent), False
         hp = hold_px.get(c) or {}
-        trades.append({"k": "R60", "c": c, "n": nm.get(c, c), "ent": ent, "exit": None, "ret": val / cin - 1 if cin else None,
-                       "w": _m(ww, w["R60"]), "pnl": _m((val - base) / e0, w["R60"]), "carry": carry,
-                       "bpx": hp.get("epx") if hp else (p or {}).get("bpx"), "spx": hp.get("px")})
+        if pxs:                                            # VER 2：買進價與收盤寫在 ytd_part 的每一列（N8B 沒有頁面上的持股）
+            hp = {"epx": pxs[0], "px": pxs[1] if len(pxs) > 1 else None}
+        trades.append({"k": B, "c": c, "n": nm.get(c, c), "ent": ent, "exit": None, "ret": val / cin - 1 if cin else None,
+                       "w": _m(ww, w[B]), "pnl": _m((val - base) / e0, w[B]), "carry": carry,
+                       "bpx": (p or {}).get("bpx") if p and p.get("bpx") else hp.get("epx"), "spx": hp.get("px")})
     trades.sort(key=lambda t: (t["k"] != "0050", t["ent"], t["c"]))      # 長抱的 0050 放最上面
     return {"mk": "tw", "days": [days[0], days[-1]], "rows": rows, "trades": trades, "w": w, "take": st["take"],
             "live_from": lfrom, "tot": {S.NOLOOK: nolook[-1] - 1, S.HOLD: hold[-1] - 1,
@@ -180,8 +183,10 @@ def _m(x, k):
 
 
 def load_live() -> dict:
+    """上線後的紀錄；版本不同就從頭記（LIVE_KEEP 的版本沿用：ytdspec VER 2 只換不偷看那一欄，紀錄方式沒變）。"""
     doc = store.read_json(LIVE_FILE, {}) or {}
-    return doc if isinstance(doc, dict) and doc.get("ver") == S.VER else {"ver": S.VER, "tw": {}}
+    ok = isinstance(doc, dict) and (doc.get("ver") == S.VER or doc.get("ver") in S.LIVE_KEEP)
+    return {"ver": S.VER, "tw": dict(doc.get("tw") or {})} if ok else {"ver": S.VER, "tw": {}}
 
 
 def weights_of(pos: dict | None, core: float) -> dict[str, float]:

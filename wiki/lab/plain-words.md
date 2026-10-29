@@ -5,7 +5,7 @@
 > 這一頁目前是從 CLAUDE.md 逐字搬來的（知識庫第一段），還沒整理；有出入時以 CLAUDE.md 為準。
 > 改內容先改 CLAUDE.md，再跑 `python3 scripts/wiki_split.py` 重產這一頁。
 
-<!-- CLAUDE.md 第 3697–3716 行 -->
+<!-- CLAUDE.md 第 3714–3733 行 -->
 ## 「主頁面用字」（2026-10-23 IA v5 第 3 段；`docs/lab_ia_v5_plan.md` 第 8、21 節）
 
 使用者原話（IA v5 起頭）：「你的排版超級複雜毫無重點」。**市場頁**（x9m／x9mu 的主畫面、右側面板、指標面板）與**配置頁**（x9.html 的配置身分，

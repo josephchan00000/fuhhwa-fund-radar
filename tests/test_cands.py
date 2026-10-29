@@ -487,6 +487,11 @@ def test_fresh_needs_same_spec_and_version():
     assert not R.fresh(R0, {**it, "how": "改了"})
     assert not R.fresh({"items": {"c001": {"dig": R.digest(it), "spec": CS.VER, "v": "err"}}}, it)
     assert not R.fresh({"items": {"c001": {"dig": R.digest(it), "spec": CS.VER - 1, "v": "good"}}}, it)
+    from arm.lab import corespec as CO_S                     # 放進計畫試算：交易計畫改版就要重算
+    ok = {"dig": R.digest(it), "spec": CS.VER, "v": "good", "plan": {"tw": {}}}
+    assert R.fresh({"items": {"c001": {**ok, "core": CO_S.VER}}}, it)
+    assert not R.fresh({"items": {"c001": {**ok, "core": CO_S.VER - 1}}}, it)
+    assert not R.fresh({"items": {"c001": ok}}, it)
 
 
 def test_workflow_uses_main_checks_and_only_candidate_paths():

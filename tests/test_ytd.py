@@ -1,4 +1,4 @@
-"""今年逐月、逐筆表（ytdspec VER 1；docs/lab_review_plan.md 第 9.2 節）：每月報酬、上線後的紀錄、頁面用字、美股做法名稱。"""
+"""今年逐月、逐筆表（ytdspec VER 2；docs/lab_review_plan.md 第 9.2 節）：每月報酬、上線後的紀錄、頁面用字、美股做法名稱。"""
 import json
 import re
 
@@ -73,9 +73,9 @@ def test_ytd_html_tw_plain_words():
          "rows": [_row(1, [0.05, 0.05], [0.03, 0.03], None), _row(10, [0.02, 0.4], [0.01, 0.3], [0.004, 0.004])],
          "tot": {"nolook": 0.4, "hold": 0.3, "live": 0.004},
          "trades": [{"k": "0050", "c": "0050", "n": "元大台灣50", "ent": "2025-12-31", "exit": None, "ret": 0.3, "w": 0.2, "pnl": 0.06},
-                    {"k": "R60", "c": "2408", "n": "南亞科", "ent": "2025-10-13", "exit": "2026-01-09", "ret": 1.48, "bpx": 93.55,
+                    {"k": S.TW_BOOM, "c": "2408", "n": "南亞科", "ent": "2025-10-13", "exit": "2026-01-09", "ret": 1.48, "bpx": 93.55,
                      "spx": 232.88, "w": 0.09, "pnl": 0.018},
-                    {"k": "R60", "c": "3189", "n": "景碩", "ent": "2026-07-27", "exit": None, "ret": 0.2, "w": 0.05, "pnl": 0.01}]}
+                    {"k": S.TW_BOOM, "c": "3189", "n": "景碩", "ent": "2026-07-27", "exit": None, "ret": 0.2, "w": 0.05, "pnl": 0.01}]}
     h = CF.ytd_html(Y, "tw")
     assert not _plain(h)
     assert "不偷看" in h and "一直抱著" in h and "上線後" in h and "今年每一筆（3 筆）" in h
@@ -114,3 +114,15 @@ def test_page_does_not_embed_ytd_data():
     from arm.lab import page
     src = inspect.getsource(page.render)
     assert '"ytd"' in src and '"ytd_day"' in src                   # 表已組成 HTML，資料不再內嵌一份
+
+
+def test_load_live_keeps_ver1_records(tmp_path, monkeypatch):
+    """ytdspec VER 2 只換不偷看那一欄：VER 1 記下的上線後持股沿用（LIVE_KEEP）；其他版本從頭記。"""
+    p = tmp_path / "ytd_live.json"
+    from arm.lab import store
+    monkeypatch.setattr(store, "read_json", lambda f, d=None: json.loads(p.read_text()) if f == ytd.LIVE_FILE else d)
+    p.write_text(json.dumps({"ver": 1, "tw": {"2026-10-27": {"0050": 0.2}}}))
+    assert ytd.load_live() == {"ver": S.VER, "tw": {"2026-10-27": {"0050": 0.2}}}
+    p.write_text(json.dumps({"ver": 0, "tw": {"2026-10-27": {"0050": 0.2}}}))
+    assert ytd.load_live() == {"ver": S.VER, "tw": {}}
+

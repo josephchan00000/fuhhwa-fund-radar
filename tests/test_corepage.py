@@ -341,7 +341,7 @@ def test_core_data_loads_qm_and_record_marks_sleeve(tmp_path, monkeypatch, R, QM
     L = json.loads((tmp_path / "core_live.json").read_text(encoding="utf-8"))
     day = L["days"][_us()["d"]] if _us()["d"] >= S.LIVE_START else {}
     if day:                                                                       # LIVE_START 之後的資料日才記
-        assert day["spx"]["sat"] == ["qm"] and day["tw"]["sat"] == [s["k"] for s in STK["st"]] + ["R60"]
+        assert day["spx"]["sat"] == ["qm"] and day["tw"]["sat"] == [s["k"] for s in STK["st"]] + ["N8"]
     V = {"rmk": [], "pr": {}, "find": {"spx": {}}, "core": dict(X, now={"spx": _us()})}
     h = SG.research_html(V)
     assert 'id="pln-spx"' in h and P.QM_NAME in h and "新規則驗證中" in h

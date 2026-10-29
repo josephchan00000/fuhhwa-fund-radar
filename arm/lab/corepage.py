@@ -1,6 +1,6 @@
 """交易計畫卡片：長抱＋機動（corespec VER 1～4；docs/lab_core70_plan.md 第 10、11、19 節）。
 corespec VER 4（2026-10-24）：長抱的比例照市場（台股 20%、美股 0%），標題與每一句的比例都由 core_of／sat_of 算，不寫死；
-台股機動＝新飆股一半（飆股前瞻記錄的 R60 那本帳，stk["boom"]）＋個股策略頁 ★ 一半；機動裡沒有部位的那一份放現金。
+台股機動＝新飆股一半（飆股前瞻記錄的 N8 那本帳，stk["boom"]；corespec VER 5，VER 4＝R60）＋個股策略頁 ★ 一半；機動裡沒有部位的那一份放現金。
 訊號總覽・研究結論每個市場最上面一張（台股、S&P 500、那斯達克 100；其他市場一行說明）。class 一律 pln 開頭。
 版面照使用者確認過的示意圖：現在拿多少 → 接下來要做的事（含三個警訊的分數）→ 過去照做的結果 → 照做一年會怎樣＋1 元變多少 → 收起來的細節。
 用字（2026-10-23 使用者：「白話文一點不要那麼AI」）：頁面上說「兩成長抱、八成機動」（比例照 core_of）「警訊（通膨偏高、融資偏多、跌破年線）」，
@@ -630,7 +630,8 @@ def boom_events(stk: dict | None, cash: bool = False, days: int = 45) -> list[di
         more = len(B.get("buy") or []) - len(buys)
         out.append({"d": nx, "at": "開盤", "act": "買進", "items": buys,
                     "what": f"<b>{BOOM_NAME}</b> 買進 {nm(buys[:6])}" + (f" 等 {len(buys)} 檔" if len(buys) > 6 else ""),
-                    "sub": f"{_md(B.get('wk'))} 收盤的名單，依強勢排、現金夠才買；每檔約 {per}"
+                    "sub": f"{_md(B.get('wk'))} 收盤的名單，" + ("新上名單的先買、8 格有空才買" if B.get("slots") else "依強勢排、現金夠才買")
+                           + f"；每檔約 {per}"
                            + (f"；名單後面還有 {more} 檔現金不夠" if more > 0 else "") + ("；機動放現金中，先不買" if cash else "")})
     by: dict = {}
     for h in B.get("hold") or []:

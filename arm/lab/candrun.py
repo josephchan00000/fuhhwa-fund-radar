@@ -888,6 +888,9 @@ def evaluate(it: dict, X: Ctx | None = None, today: str | None = None) -> dict:
         except Exception as e:                            # noqa: BLE001 —— 試算算不出來不影響判定
             plans[pm] = {"err": f"{type(e).__name__}: {e}"}
     out["plan"] = {k: v for k, v in plans.items() if k in CS.PLAN_OF.get(mk, ())}
+    if out["plan"]:
+        from . import corespec as CO_S
+        out["core"] = CO_S.VER                            # 放進計畫試算是拿哪一版交易計畫比的（計畫改版就要重算，見 fresh）
     return out
 
 
@@ -930,9 +933,12 @@ def save_res(R: dict, path: Path | None = None) -> bool:
 
 
 def fresh(R: dict, it: dict) -> bool:
-    """研究檔已經有這一筆、而且是同一份規格與程式、同一版框架算的。"""
+    """研究檔已經有這一筆、而且是同一份規格與程式、同一版框架算的；有放進計畫試算的，還要是拿現在這一版交易計畫比的
+    （corespec 改版＝「現在的計畫」變了，試算要重算；2026-10-29 corespec VER 5 把新飆股換成 N8 時加的）。"""
+    from . import corespec as CO_S
     x = (R.get("items") or {}).get(it["id"])
-    return bool(x) and x.get("dig") == digest(it) and x.get("spec") == CS.VER and x.get("v") != "err"
+    return (bool(x) and x.get("dig") == digest(it) and x.get("spec") == CS.VER and x.get("v") != "err"
+            and (not x.get("plan") or x.get("core") == CO_S.VER))
 
 
 def compute(ids: list[str] | None = None, *, force: bool = False, X: Ctx | None = None, log=print,

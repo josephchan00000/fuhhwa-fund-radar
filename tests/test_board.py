@@ -145,7 +145,7 @@ def test_plan_names_follow_core_share_and_boom_row():
     assert rows["us:plan"]["how"].startswith("全部買") and "總經策略全部空手就把全部換成現金" in rows["us:plan"]["how"]
     b = rows["tw:boom"]
     assert b["st"] == "use" and b["type"] == "個股" and b["go"] == {"go": "tw", "at": "pk-boom"}
-    assert b["today"] == "持有 1 檔・11/2 買 1 檔" and "每次買進用這條策略 12.5% 的錢" in b["how"] and b["name"] == "新飆股"
+    assert b["today"] == "持有 1 檔・11/2 買 1 檔" and "分 8 格、新上名單的先買" in b["how"] and b["name"] == "新飆股"
     bm = R["mk"]["tw"]["sc"]["plan"]["boom"]
     assert b["perf"] == f"年化 {BD._pc(bm['cagr'] * 100)}" and b["ref"] == f"大盤 {BD._pc(bm['hold']['cagr'] * 100)}"
     nb = {r["id"]: r for r in _build(bundle={"stk": dict(stk, boom={"d": "2026-10-22", "next": "2026-10-27", "next_wk": "2026-10-30"}),

@@ -252,16 +252,17 @@ def test_this_years_rules_exist_after_mid_january():
 
 
 def test_only_the_plan_book_reaches_a_page():
-    """VER 2：R60 現在的狀態上交易計畫（page.py 讀 sxlive.LAST["plan"]）；VER 4：N8 上選股頁（page.py 讀 sxlive.LAST["n8"]）。
-    紀錄檔、A、R1 兩本不上頁面。只有 analyze.run 呼叫 update、valog 讀摘要發提醒。"""
+    """VER 4：N8 上選股頁；VER 5（corespec VER 5）：交易計畫也讀 N8（page.py 讀 sxlive.LAST["n8"]），今年逐月表讀 N8B（LAST["ytd"]）。
+    紀錄檔、A、R1、R60 不上頁面（R60 的 plan 狀態留給推播與研究）。只有 analyze.run 呼叫 update、valog 讀摘要發提醒。"""
     for f in ("sigpage.py", "findings.py", "corepage.py", "cfgpage.py", "heatpage.py", "macpage.py", "copage.py",
               "xspage.py", "stockviz.py", "printview.py"):
         p = ROOT / "arm" / "lab" / f
         if p.exists():
             assert "sxlive" not in p.read_text(encoding="utf-8"), f
     pg = (ROOT / "arm" / "lab" / "page.py").read_text(encoding="utf-8")
-    assert pg.count("sxlive") == (pg.count('sxlive.LAST.get("plan")') + pg.count('sxlive.LAST.get("n8")')
-                                  + pg.count("from . import sxlive")) >= 3
+    assert pg.count("sxlive") == (pg.count('sxlive.LAST.get("n8")') + pg.count('sxlive.LAST.get("ytd")')
+                                  + pg.count("from . import sxlive")) >= 4
+    assert 'sxlive.LAST.get("plan")' not in pg
     assert "sxlive.update(" in (ROOT / "arm" / "lab" / "analyze.py").read_text(encoding="utf-8")
     assert S.TAKE_BOOK == S.LIST_BOOK == S.BOOKS[0] == "R60" and S.PLAN_BOOK == S.BOOKS[-1] == "N8"
 
@@ -418,6 +419,66 @@ def test_perf_starts_at_take_and_uses_the_seed(monkeypatch):
     assert out["stats"]["A"]["n"] >= 0 and out["nav"][cal[t]][1] == 100.0
 
 
+def test_perf_n8b_continues_the_n8_book_and_feeds_ytd(monkeypatch):
+    """VER 5：N8B＝N8 做法的回測延續——接手那天收盤照 seed_bt 記的順序下單、之後每週照 R60 名單、N8 的順序；
+    nav 第 7 欄＝N8B（和沒中斷的 8 格帳相同）；ytd_part 預設讀 N8B。沒有 seed_bt＝第 7 欄空、不算 N8B。"""
+    np, pd, dates, codes, o, h, l, c, f, val, vol, sig = _synthetic(9)
+    n, hold = len(dates), 12
+    av = pd.DataFrame(val).rolling(20, min_periods=1).mean().to_numpy()
+    avv = pd.DataFrame(vol).rolling(20, min_periods=1).mean().to_numpy()
+    lst = lambda a, j: [None if x != x else float(x) for x in a[:, j]]  # noqa: E731
+    px = {k: L.series(lst(o, j), lst(h, j), lst(l, j), lst(c, j), lst(f, j), lst(av, j), lst(avv, j)) for j, k in enumerate(codes)}
+    cal = [str(d.date()) for d in dates]
+    monkeypatch.setitem(S.TRADE, "hold", hold)
+    monkeypatch.setattr(S, "TRADE_N8", {**S.TRADE_N8, "hold": hold})
+    monkeypatch.setattr(L, "n8_orders", lambda d, weeks, hist: weeks[d]["R60"])
+    t = None
+    for t0 in (i for i in sorted(sig) if i > 60):           # 接手那天剛好有一批訊號、8 格帳手上有股票
+        n8 = L.Book(px, n, None, {**S.TRADE_N8})
+        for i in range(t0):
+            n8.step(i, sig.get(i))
+        n8.step(t0, None)
+        if n8.pos:
+            t = t0
+            break
+    assert t is not None
+    run = L.Book(px, n, None, {**S.TRADE})
+    for i in range(t):
+        run.step(i, sig.get(i))
+    run.step(t, None)
+    seed_doc = _seed_from(run, cal, t, sig.get(t))
+    bt = _seed_from(n8, cal, t, sig.get(t))
+    bt.update({"ver": 5, "book": S.BT_BOOK, "orders": {cal[t]: [[k, s] for k, s in sig.get(t) or []]}})
+    assert n8.pos
+    later = sorted(i for i in sig if i > t)
+    weeks = {cal[i]: {"R60": [[k, s] for k, s in sig[i]]} for i in later}
+    monkeypatch.setattr(S, "TAKE", cal[t])
+    monkeypatch.setattr(S, "START4", cal[-1])                  # N8（選股頁那本）這段期間不下單
+
+    class P:
+        pass
+    P.cal = cal
+    ctx = {"P": P, "listed": None}
+    monkeypatch.setattr(L, "panel", lambda ctx, codes, ev=None: px)
+    monkeypatch.setattr(L, "tr_series", lambda dates: [1.0] * len(dates))
+    monkeypatch.setattr(L, "ew_series", lambda ctx, i0, i1, ev=None: [1.0] * (i1 - i0 + 1))
+    out = L.perf(ctx, weeks, cal[-1], ev={}, seed=seed_doc, hist={}, seed_bt=bt)
+    full = L.Book(px, n, None, {**S.TRADE_N8})
+    eq_full = [full.step(i, sig.get(i) if i <= t or i in later else None) for i in range(n)]
+    assert out["nav"][cal[t]][6] == 100.0
+    for k in (t + 5, n - 1):
+        assert out["nav"][cal[k]][6] == pytest.approx(round(eq_full[k] / eq_full[t] * 100, 2), abs=0.011)
+    assert out["_btbase"] == pytest.approx(eq_full[t]) and len(out["_bt"].pos) == len(full.pos)
+    yp = L.ytd_part(out, ctx, cal[-1])
+    assert yp["book"] == S.BT_BOOK and yp["e0"] == pytest.approx(eq_full[t], abs=0.01)
+    assert yp["eq"][cal[-1]] == pytest.approx(out["nav"][cal[-1]][6] / 100 * eq_full[t], abs=0.01)
+    assert sorted(r[0] for r in yp["open"]) == sorted(full.pos) and all(len(r) == 8 for r in yp["open"])
+    r60 = L.ytd_part(out, ctx, cal[-1], book="R60")
+    assert r60["book"] == "R60" and r60["eq"][cal[-1]] == pytest.approx(out["nav"][cal[-1]][0] / 100 * out["_base"], abs=0.01)
+    no = L.perf(ctx, weeks, cal[-1], ev={}, seed=seed_doc, hist={})
+    assert no["nav"][cal[-1]][6] is None and no["_bt"] is None and L.ytd_part(no, ctx, cal[-1]) is None
+
+
 def test_plan_state_marks_backtest_buys_and_return_since_takeover(monkeypatch):
     """配置頁：接手時就拿著的持股標 take、買進日在接手以前＝回測（bt）；rl＝接手那天收盤到最後一天收盤（含息）。"""
     np, pd, dates, codes, o, h, l, c, f, val, vol, sig = _synthetic(8)
@@ -549,3 +610,26 @@ def test_why_text_uses_plain_words():
     txt += [L._why_lines([[(k, ">=", 0.5)], [(k, "<=", 0.5)]], {"k": [0, 1], "v": {k: 0.7}})[0] for k in keys]
     hits = [(w, t) for t in txt for w in words if w in t]
     assert not hits, hits[:5]
+
+
+def test_panel_skips_dividend_events_already_absorbed_by_the_page_basis():
+    """大比例配股（相鄰收盤差 1.8 倍以上）頁面價格已經換算成現在的單位；panel 不能再乘一次除權倍數（2026-10-29：緯穎 9/2、世紀 8/14）。"""
+    from arm.lab import packtest as PT
+    cal = ["2026-08-27", "2026-08-28", "2026-08-31", "2026-09-01", "2026-09-02", "2026-09-03"]
+    raw = [7000.0, 7100.0, None, 7800.0, 2610.0, 2700.0]
+    F = PT._basis(raw)
+    adj = [None if x is None else x / F[i] for i, x in enumerate(raw)]
+
+    class P:
+        pass
+    P.cal = cal
+    P.s = {"6669": {"o": adj, "h": adj, "l": adj, "c": adj, "v": [1.0] * 6}, "1101": {"o": adj, "h": adj, "l": adj, "c": adj,
+                                                                                        "v": [1.0] * 6}}
+    P.liq = {}
+    P.basis = {"6669": F}
+    ev = {"6669": [("2026-09-02", 0.3353, None)], "1101": [("2026-09-02", 0.3353, None)]}
+    assert L.absorbed(cal, F, adj, "2026-09-02") and not L.absorbed(cal, F, adj, "2026-08-28")
+    assert not L.absorbed(cal, None, adj, "2026-09-02")
+    px = L.panel({"P": P}, ["6669", "1101"], ev)
+    assert px["6669"]["f"][0] == 1.0 and px["6669"]["c"][0] == pytest.approx(7000 * 2610 / 7800)   # 只換算一次
+    assert px["1101"]["f"][0] == pytest.approx(0.3353)                                         # 沒有口徑資料的照舊乘

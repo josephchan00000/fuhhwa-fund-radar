@@ -8,3 +8,7 @@
 - 使用者的決定（2026-10-29）：先逐字搬、再整理；CLAUDE.md 先照舊，確定知識庫沒問題再處理；做完事順手改頁面，使用者說「整理知識庫」時才做完整整理。
 - 這段期間 CLAUDE.md 是正本：改了 CLAUDE.md 就重跑 `python3 scripts/wiki_split.py`，`tests/test_wiki.py` 會擋兩邊不一致。
 - 規劃：`docs/llm_wiki_plan.md`。
+
+## [2026-10-29] 收錄 | 交易計畫與今年逐月表改看 N8
+
+- CLAUDE.md 三處新增（交易計畫 VER 5、飆股前瞻記錄 VER 5＋頁面帳本還原兩次的坑、今年逐月表 ytdspec VER 2），重跑 `scripts/wiki_split.py`：內容進 `lab/core-plan.md`、`lab/boom-live.md`、`lab/cfg-research.md`，其他頁只有行號標記移動。

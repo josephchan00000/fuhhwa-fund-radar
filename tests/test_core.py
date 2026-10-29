@@ -170,14 +170,17 @@ def test_record_only_in_ci_and_overwrites_same_day(tmp_path, monkeypatch):
     monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
     assert C.record({"tw": n}, None) is False and not C.LIVE.exists()
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
-    assert C.record({"tw": n, "spx": dict(n, d="2026-10-23")}, {"st": [{"k": "v3l"}], "boom": {"book": "R60"}}) is True
+    assert C.record({"tw": n, "spx": dict(n, d="2026-10-23")}, {"st": [{"k": "v3l"}], "boom": {"book": "N8"}}) is True
     L = json.loads(C.LIVE.read_text(encoding="utf-8"))
-    assert list(L["days"]) == [d] and L["days"][d]["tw"]["sat"] == ["v3l", "R60"]   # 起點以前的不記；VER 4 台股機動另有新飆股
+    assert list(L["days"]) == [d] and L["days"][d]["tw"]["sat"] == ["v3l", "N8"]   # 起點以前的不記；台股機動另有新飆股（VER 5＝N8）
     assert C.record({"tw": dict(n, n=2, next=0.2)}, None) is True
     assert json.loads(C.LIVE.read_text(encoding="utf-8"))["days"][d]["tw"]["E"] == 0.2
     assert C.forward("tw")["n"] == 1 and C.forward("tw")["next"] == S.CHECKS[0]
-    C.LIVE.write_text(json.dumps({"ver": S.VER - 1, "days": {d: {"tw": {}}}}), encoding="utf-8")
+    C.LIVE.write_text(json.dumps({"ver": S.VER - 2, "days": {d: {"tw": {}}}}), encoding="utf-8")
     assert C.load_live() == {"ver": S.VER, "days": {}}                            # 規則改過＝前瞻從頭記
+    assert S.LIVE_KEEP == (4,)
+    C.LIVE.write_text(json.dumps({"ver": 4, "days": {d: {"tw": {}}}}), encoding="utf-8")
+    assert C.load_live() == {"ver": S.VER, "days": {d: {"tw": {}}}}               # VER 5 只換新飆股那一本：VER 4 記下的日子沿用
     fl = {"k": "flat", "lit": False, "held": ["10 個月均線", "200 日均線"]}
     assert C.record({"spx": dict(n, fams=n["fams"] + [fl], clear=4)}, None) is True
     r = json.loads(C.LIVE.read_text(encoding="utf-8"))["days"][d]["spx"]
@@ -197,6 +200,6 @@ def test_research_file_matches_spec():
             assert s["a"] >= S.RULE_START[mk] if key == "rule" else True
             assert all(e["sell"] <= (e["buy"] or "9999") for e in s["eps"])
     tw = R["mk"]["tw"]["sc"]
-    assert tw["plan"]["sleeve"] == "R60+star" and tw["plan"]["a"] >= S.PLAN4_START and tw["long"]["a"] >= S.PLAN_START
+    assert tw["plan"]["sleeve"] == "N8+star" and tw["plan"]["a"] >= S.PLAN4_START and tw["long"]["a"] >= S.PLAN_START
     assert tw["plan"]["b"] == tw["long"]["b"] and 0.9 < tw["plan"]["boom_x"] < 1
     assert R["mk"]["spx"]["sc"]["early"]["b"] <= S.EARLY["spx"] and R["mk"]["ndx"]["sc"]["early"]["b"] <= S.EARLY["ndx"]
