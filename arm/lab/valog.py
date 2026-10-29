@@ -294,7 +294,7 @@ def uqm_events(cur: dict | None, prev: dict | None) -> list[dict]:
 
 
 def boom_state(P: dict | None) -> dict | None:
-    """新飆股（選股頁台股的第一條；飆股前瞻記錄的 R60 那本帳）：P＝那本帳現在的狀態（sxlive.LAST["plan"]）。
+    """新飆股（選股頁台股的第一條；飆股前瞻記錄的 N8 那本帳，sxlivespec VER 4）：P＝那本帳現在的狀態（sxlive.LAST["n8"]）。
     → 存進每天紀錄的部分：下一個交易日開盤要賣、要買的股票。2026-10-28 起配置頁拿掉（docs/lab_pick_page_plan.md），
     不再看交易計畫的警訊（原本「機動放現金中，買的先不買」那一句拿掉）。"""
     if not P or not P.get("d") or not P.get("next"):
@@ -465,7 +465,7 @@ def update(data: dict, write_file: bool | None = None, now: datetime | None = No
         if sx:
             rec["sx"] = sx
             rec["ev"] += sx_events(sxlive.LAST, (days.get(prev_d) or {}).get("sx") if prev_d else None)
-        bm = boom_state(sxlive.LAST.get("plan"))
+        bm = boom_state(sxlive.LAST.get("n8"))
         if bm:
             rec["boom"] = bm
     except Exception:                                     # noqa: BLE001 —— 摘要讀不到：不發提醒

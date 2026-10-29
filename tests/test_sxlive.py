@@ -84,6 +84,58 @@ def test_book_matches_the_w7_engine(seed):
     assert sorted(bk.pos) == sorted(codes[s] for s in sim.pos)
 
 
+@pytest.mark.parametrize("seed", [1, 2, 3, 4])
+def test_n8_book_matches_the_w10_engine(seed):
+    """VER 4：同一份價格、同一批訊號（分數＝強度 − 1000 ×（週數 − 1））：8 格的 Book 和 W10 的引擎（run_w10.Sim，s8）每天的資產、
+    每一筆交易都相同。"""
+    np, pd, dates, codes, o, h, l, c, f, val, vol, sig = _synthetic(seed)
+    sys.path.insert(0, str(ROOT / "tw-superstock-lab" / "src"))
+    sys.path.insert(0, str(ROOT / "tw-superstock-lab" / "scripts"))
+    from dataclasses import replace
+    from superstock import engine as EN
+    import run_w10 as W10
+    from arm.lab import sxfixspec as FX
+    n, hold = len(dates), 12
+    rng = np.random.default_rng(seed + 100)
+    sig = {i: [(k, float(s) - 1000.0 * int(rng.integers(0, 3))) for k, s in xs] for i, xs in sig.items()}
+    av = pd.DataFrame(val).rolling(20, min_periods=1).mean().to_numpy()
+    avv = pd.DataFrame(vol).rolling(20, min_periods=1).mean().to_numpy()
+    lst = lambda a, j: [None if x != x else float(x) for x in a[:, j]]  # noqa: E731
+    px = {code: L.series(lst(o, j), lst(h, j), lst(l, j), lst(c, j), lst(f, j), lst(av, j), lst(avv, j))
+          for j, code in enumerate(codes)}
+    lu = np.array([px[k]["lu"] for k in codes]).T
+    ld = np.array([px[k]["ld"] for k in codes]).T
+    mk = EN.Market(dates, codes, o, h, l, c, factor=f, value=val, volume=vol, locked_up=lu, locked_down=ld)
+    size = FX.SIZE["s8"]
+    cfg = replace(EN.EngineConfig(costs=EN.Costs()), breakeven_r=None, market_filter=False, block_disposition=False,
+                  max_hold_days=hold, liquidate_at_end=False, max_positions=size["max_pos"])
+    col = {k: j for j, k in enumerate(codes)}
+    by = {i: [EN.Order(col[k], "open", weight=float("nan"), score=float(s)) for k, s in xs] for i, xs in sig.items()}
+    sim = W10.Sim(mk, cfg, size)
+    res = sim.run(lambda i, _s: [EN.Order(x.s, x.kind, weight=x.weight, score=x.score) for x in by.get(i, [])])
+    bk = L.Book(px, n, None, {**S.TRADE_N8, "hold": hold})
+    eq = [bk.step(i, sig.get(i)) for i in range(n)]
+    assert np.allclose(eq, res.equity.to_numpy(), rtol=1e-12, atol=1e-6)
+    ref = sorted((str(r.stock_id), dates.get_loc(r.entry_date), dates.get_loc(r.exit_date), r.reason, float(r.shares))
+                 for r in res.trades.itertuples())
+    got = sorted((k, ei, xi, why, sh) for k, si, ei, xi, r, why, sh, pnl in bk.trades)
+    assert got == ref and len(got) > 10
+    assert max(len(bk.pos), 0) <= 8
+    assert S.TRADE_N8["min_slot"] == FX.MIN_SLOT and S.TRADE_N8["slots"] == size["slots"]
+
+
+def test_n8_orders_put_new_names_first():
+    """上名單週數：START 以前用 hist、START 起用紀錄，哪一週沒有名單就斷；分數＝強度 − 1000 ×（週數 − 1）。"""
+    hist = {"2026-10-16": [["A", 90], ["B", 80]], "2026-10-22": [["A", 91], ["C", 70]]}
+    weeks = {"2026-10-30": {"R60": [["A", 95], ["B", 85], ["C", 60], ["D", 50]]}}
+    o = L.n8_orders("2026-10-30", weeks, hist)
+    wk = {c: (rs - sc) / 1000 + 1 for (c, sc), (_, rs) in zip(o, weeks["2026-10-30"]["R60"])}
+    assert wk == {"A": 3, "B": 1, "C": 2, "D": 1}          # B 在 10/16 有、10/22 沒有 → 斷掉
+    assert [c for c, _ in sorted(o, key=lambda x: -x[1])] == ["B", "D", "C", "A"]
+    lists = L.prior_lists("2026-10-30", weeks, {})          # 沒有 hist：只數紀錄那一週
+    assert L.run_len("A", lists) == 1
+
+
 def test_book_matches_the_engine_when_a_held_stock_stops_trading():
     """持有中的股票沒有資料了：下市（不在上市名單）→ 用最後收盤賣，和引擎相同；還在上市（停牌）→ 繼續抱著。"""
     np = pytest.importorskip("numpy")
@@ -200,7 +252,7 @@ def test_this_years_rules_exist_after_mid_january():
 
 
 def test_only_the_plan_book_reaches_a_page():
-    """VER 2：只有 PLAN_BOOK（R60）現在的狀態上配置頁（page.py 讀 sxlive.LAST["plan"] 放進交易計畫的台股機動）；
+    """VER 2：R60 現在的狀態上交易計畫（page.py 讀 sxlive.LAST["plan"]）；VER 4：N8 上選股頁（page.py 讀 sxlive.LAST["n8"]）。
     紀錄檔、A、R1 兩本不上頁面。只有 analyze.run 呼叫 update、valog 讀摘要發提醒。"""
     for f in ("sigpage.py", "findings.py", "corepage.py", "cfgpage.py", "heatpage.py", "macpage.py", "copage.py",
               "xspage.py", "stockviz.py", "printview.py"):
@@ -208,9 +260,10 @@ def test_only_the_plan_book_reaches_a_page():
         if p.exists():
             assert "sxlive" not in p.read_text(encoding="utf-8"), f
     pg = (ROOT / "arm" / "lab" / "page.py").read_text(encoding="utf-8")
-    assert pg.count("sxlive") == pg.count('sxlive.LAST.get("plan")') + pg.count("from . import sxlive") >= 2
+    assert pg.count("sxlive") == (pg.count('sxlive.LAST.get("plan")') + pg.count('sxlive.LAST.get("n8")')
+                                  + pg.count("from . import sxlive")) >= 3
     assert "sxlive.update(" in (ROOT / "arm" / "lab" / "analyze.py").read_text(encoding="utf-8")
-    assert S.PLAN_BOOK == S.BOOKS[0] == "R60"
+    assert S.TAKE_BOOK == S.LIST_BOOK == S.BOOKS[0] == "R60" and S.PLAN_BOOK == S.BOOKS[-1] == "N8"
 
 
 def _plan_fixture():

@@ -310,7 +310,7 @@ def boom_pos(P: dict | None) -> dict:
 
 def tw_view(data: dict, bundle: dict, today: str | None = None) -> dict:
     A = data.get("adv") or {}
-    P = ((bundle or {}).get("stk") or {}).get("boom")
+    P = data.get("n8")                                    # sxlivespec VER 4：選股頁看 8 格那一本（交易計畫照舊看 R60）
     main, other = tw_keys(A, P)
     book = {b["k"]: b for b in A.get("book") or []}
     cal = PC.tw_events(A, P, s3_plan(data), main + other, today)

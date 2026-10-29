@@ -51,7 +51,7 @@ def test_keys_boom_first_then_good_by_rank_others_folded():
 
 
 def test_tw_view_cards_calendar_and_positions():
-    V = PP.tw_view({"adv": _A()}, {"stk": {"boom": _P()}, "R": {}}, today="2026-10-28")
+    V = PP.tw_view({"adv": _A(), "n8": _P()}, {"R": {}}, today="2026-10-28")
     assert [k[0] for k in V["ks"]] == ["boom", "s3", "v3l", "v7l"] and [k[3] for k in V["ks"]] == [1, 1, 1, 0]
     assert [k[2] for k in V["ks"]] == [1, 2, 3, 0]                                    # 主要的有身分色、其他的灰色
     for k in ("boom", "s3", "v3l"):
@@ -73,7 +73,7 @@ def test_tw_view_cards_calendar_and_positions():
 
 
 def test_cards_use_plain_words():
-    V = PP.tw_view({"adv": _A()}, {"stk": {"boom": _P()}, "R": {}}, today="2026-10-28")
+    V = PP.tw_view({"adv": _A(), "n8": _P()}, {"R": {}}, today="2026-10-28")
     t = _text(V["cards"] + V["others"] + V["olist"]).replace("研究紀錄", "")      # 連到研究紀錄頁的小字（同 test_plain 的 ALLOW）
     for w in BANNED + PLAIN_BAD:
         assert w not in t, w
@@ -114,7 +114,7 @@ def _node(body: str, pick: dict):
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="沒有 node")
 def test_calendar_month_agenda_and_phone_start():
-    V = PP.tw_view({"adv": _A()}, {"stk": {"boom": _P()}, "R": {}}, today="2026-10-28")
+    V = PP.tw_view({"adv": _A(), "n8": _P()}, {"R": {}}, today="2026-10-28")
     pick = {"tw": {k: V[k] for k in ("d", "end", "ev", "ks", "hol", "names")}}
     out = _node("""const S0=pkState('tw'),ms=pkMonths('tw'),evs=pkEvs('tw');
 console.log(JSON.stringify({m:S0.m,ms,left:pkLeft(PICK.tw),on:[...S0.on],

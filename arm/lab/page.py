@@ -50,6 +50,7 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         from . import sxlive
         from ..clock import today_tw
         core.STK.clear()
+        data["n8"] = sxlive.LAST.get("n8")    # 選股頁、推播的新飆股（飆股前瞻記錄 VER 4：8 格那一本）
         if isinstance(data.get("adv"), dict) and not data["adv"].get("err"):
             core.STK.update(core.stk_from_adv(data["adv"], today_tw().isoformat(), boom=sxlive.LAST.get("plan")))
     except Exception as e:                   # noqa: BLE001 —— 失敗只是交易計畫卡少了台股衛星的名單
