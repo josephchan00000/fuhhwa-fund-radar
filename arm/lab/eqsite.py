@@ -147,7 +147,7 @@ def build(out: Path = OUT, src: Path = SRC) -> dict:
         for made, md, fp in vers:
             t2, p2 = _load(md, fp)
             v2 = R.valuation(p2, R.parse(t2)["fm"])
-            hist.append({"made": made, "rating": v2.get("rating"), "tp": v2.get("tp"), "px": v2.get("px"),
+            hist.append({"made": made, "rating": v2.get("rating"), "tp": v2.get("tp"), "px": v2.get("px"), "spec": p2.get("spec"),
                          "since": round((lp / v2["px"] - 1) * 100, 1) if lp and v2.get("px") else None})
         fm = R.parse(text)["fm"]
         ctx = {"live": live.get((mk, code)), "hist": hist, "ind": ind_meta.get(str(fm.get("ind")))}

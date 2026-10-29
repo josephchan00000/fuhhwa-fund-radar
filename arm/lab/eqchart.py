@@ -271,7 +271,8 @@ def river(labels: list[str], px: list, base: list, mults: list[float], unit="元
 
 
 def football(rows: list[tuple[str, float, float, float | None]], px: float, tp: float | None, unit="元", label="估值區間") -> str:
-    """[(名稱, 低, 高, 中)] 橫條＋現價直線、目標價直線。"""
+    """[(名稱, 低, 高, 中)] 每一列：上面一行左邊名稱、右邊「低～高」，下面一條橫條；現價、目標價各一條直線。
+    名稱放在橫條上方（不是左邊），手機上字放大也不會被切掉。"""
     rows = [r for r in rows if r[1] is not None and r[2] is not None]
     if not rows:
         return ""
@@ -280,33 +281,30 @@ def football(rows: list[tuple[str, float, float, float | None]], px: float, tp: 
     tk = ticks_cover(lo * 0.95, hi * 1.05)
     a, b = tk[0], tk[-1]
     tf = tick_fmt(tk)
-    lw = 200
-    x0, x1 = lw, W - PR
+    x0, x1 = 12, W - PR
 
     def X(v):
         return x0 + (x1 - x0) * (v - a) / (b - a)
-    rh = 26
-    h = PT + rh * len(rows) + 30
+    rh, top = 44, PT + 6
+    yb = top + rh * len(rows)
     out = []
     for t in tk:
-        out.append(f'<line class="g" x1="{X(t):.1f}" x2="{X(t):.1f}" y1="{PT}" y2="{PT + rh * len(rows):.1f}"/>'
-                   f'<text class="tx" x="{X(t):.1f}" y="{PT + rh * len(rows) + 14:.1f}" text-anchor="middle">{escape(tf(t))}</text>')
+        out.append(f'<line class="g" x1="{X(t):.1f}" x2="{X(t):.1f}" y1="{top}" y2="{yb:.1f}"/>'
+                   f'<text class="tx" x="{X(t):.1f}" y="{yb + 16:.1f}" text-anchor="middle">{escape(tf(t))}</text>')
     for j, (name, l, r, m) in enumerate(rows):
-        y = PT + rh * j + 5
-        out.append(f'<text class="ty" x="{lw - 8}" y="{y + 12:.1f}" text-anchor="end">{escape(name)}</text>'
-                   f'<rect class="k1 fb" x="{X(l):.1f}" y="{y:.1f}" width="{max(X(r) - X(l), 2):.1f}" height="16" rx="3">'
-                   f'<title>{escape(f"{name}：{fmt(l)}～{fmt(r)}{unit}")}</title></rect>'
-                   f'<text class="tv" x="{X(l) - 4:.1f}" y="{y + 12:.1f}" text-anchor="end">{escape(fmt(l))}</text>'
-                   f'<text class="tv" x="{X(r) + 4:.1f}" y="{y + 12:.1f}">{escape(fmt(r))}</text>')
+        y = top + rh * j
+        out.append(f'<text class="ty" x="{x0}" y="{y + 15:.1f}">{escape(name)}</text>'
+                   f'<text class="tv" x="{x1}" y="{y + 15:.1f}" text-anchor="end">{escape(fmt(l))}～{escape(fmt(r))} {escape(unit)}</text>'
+                   f'<rect class="k1 fb" x="{X(l):.1f}" y="{y + 22:.1f}" width="{max(X(r) - X(l), 2):.1f}" height="14" rx="3">'
+                   f'<title>{escape(f"{name}：{fmt(l)}～{fmt(r)}{unit}")}</title></rect>')
         if m is not None:
-            out.append(f'<line class="fbm" x1="{X(m):.1f}" x2="{X(m):.1f}" y1="{y:.1f}" y2="{y + 16:.1f}"/>')
-    yb = PT + rh * len(rows)
-    out.append(f'<line class="hl mu" x1="{X(px):.1f}" x2="{X(px):.1f}" y1="{PT - 4}" y2="{yb:.1f}"/>'
-               f'<text class="tl mu" x="{X(px):.1f}" y="{yb + 26:.1f}" text-anchor="middle">現價 {escape(fmt(px))}</text>')
+            out.append(f'<line class="fbm" x1="{X(m):.1f}" x2="{X(m):.1f}" y1="{y + 22:.1f}" y2="{y + 36:.1f}"/>')
+    out.append(f'<line class="hl mu" x1="{X(px):.1f}" x2="{X(px):.1f}" y1="{top - 4}" y2="{yb:.1f}"/>'
+               f'<text class="tl mu" x="{X(px):.1f}" y="{yb + 34:.1f}" text-anchor="middle">現價 {escape(fmt(px))}</text>')
     if tp:
-        out.append(f'<line class="hl k2" x1="{X(tp):.1f}" x2="{X(tp):.1f}" y1="{PT - 4}" y2="{yb:.1f}" stroke-dasharray="4 3"/>'
-                   f'<text class="tl k2" x="{X(tp):.1f}" y="{PT - 2:.1f}" text-anchor="middle">目標價 {escape(fmt(tp))}</text>')
-    return _svg(h + 6, "".join(out), label)
+        out.append(f'<line class="hl k2" x1="{X(tp):.1f}" x2="{X(tp):.1f}" y1="{top - 4}" y2="{yb:.1f}" stroke-dasharray="4 3"/>'
+                   f'<text class="tl k2" x="{X(tp):.1f}" y="{top - 8:.1f}" text-anchor="middle">目標價 {escape(fmt(tp))}</text>')
+    return _svg(yb + 40, "".join(out), label)
 
 
 def scatter(points: list[tuple[str, float, float, str]], xlabel: str, ylabel: str, label="") -> str:

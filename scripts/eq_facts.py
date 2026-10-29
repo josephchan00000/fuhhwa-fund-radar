@@ -53,7 +53,9 @@ def main() -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(pack, ensure_ascii=False, indent=1), encoding="utf-8")
     v = pack["val"]
-    print(f"{pack['name']}（{a.code}）收盤 {v['px']}（{pack['asof']}）；方法 {v['method']}；未來 12 個月 EPS {v['f12m']}")
+    print(f"{pack['name']}（{a.code}）收盤 {v['px']}（{pack['asof']}）；方法 {v['method']}（{'共識法' if v.get('basis') == 'fwd' else '近四季法'}）；"
+          f"基數 {v.get('base_label')} {v.get('base')}；未來 12 個月 EPS {v['f12m']}；近四季 EPS {v.get('eps4')}")
+    print(f"倍數範圍怎麼取：{v.get('range_how')}；預設：{v.get('dflt_how')}")
     print(f"倍數範圍 {v.get('range')}；預設目標價 {v.get('tp_dflt')}（{v.get('rating_dflt')}，上檔 {v.get('up_dflt')}%）；"
           f"範圍換算目標價 {v.get('tp_lo')}～{v.get('tp_hi')}")
     print(f"同業（{pack['peer_how']}）：{[(p['c'], p['n']) for p in pack['peers']]}；照規則的同業：{pack['peers_auto']}")
