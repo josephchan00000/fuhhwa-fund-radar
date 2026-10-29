@@ -292,7 +292,7 @@ def test_market_research_and_primary_smoke():
     for st in B["ev"].values():
         assert st["v"] in ("up", "down", "none", "few") and st["vv"] in ("up", "down", "none", "few")
     IU = {"spx": {**_fake_inputs(2400, 61), "x": {k: _score(2400, 70 + i) for i, k in
-                                                  enumerate(S.CHIP_VARS["us"] + S.CONTRAST_VARS)}}}
+                                                  enumerate(S.CHIP_VARS["spx"] + S.CONTRAST_VARS)}}}
     R = X.research(IT=I, IU=IU)
     assert R["ver"] == S.VER and set(R["markets"]) == {"tw", "spx"}
     assert set(R["primary"]) == set(S.PRIMARY)

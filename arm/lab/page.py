@@ -50,8 +50,9 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         from . import sxlive
         from ..clock import today_tw
         core.STK.clear()
+        data["n8"] = sxlive.LAST.get("n8")    # 選股頁、推播的新飆股（飆股前瞻記錄 VER 4：8 格那一本）
         if isinstance(data.get("adv"), dict) and not data["adv"].get("err"):
-            core.STK.update(core.stk_from_adv(data["adv"], today_tw().isoformat(), boom=sxlive.LAST.get("plan")))
+            core.STK.update(core.stk_from_adv(data["adv"], today_tw().isoformat(), boom=sxlive.LAST.get("n8")))   # corespec VER 5：新飆股＝N8
     except Exception as e:                   # noqa: BLE001 —— 失敗只是交易計畫卡少了台股衛星的名單
         print(f"[籌碼雷達] ⚠ 交易計畫卡的衛星資料沒有算：{type(e).__name__}: {e}")
     try:                                     # 新飆股位置圖要的強度與離 52 週高點（全市場小表；檢討第 3 步）。只給配置頁用，不內嵌
@@ -65,12 +66,18 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
     try:                                     # 配置頁「今年」每個月、每一筆（ytdspec；docs/lab_review_plan.md 第 9.2 節）
         from . import sxlive, ussxqm, ytd
         D0 = ctx.get("D")
-        data["ytd"] = {"tw": ytd.tw(D0, sxlive.LAST.get("plan"), dict(getattr(D0, "names", None) or {})),
+        data["ytd"] = {"tw": ytd.tw(D0, sxlive.LAST.get("ytd"), dict(getattr(D0, "names", None) or {})),
                        "us": ytd.us(ussxqm.load_live())}
         data["ytd_day"] = D0.cal[-1] if D0 is not None and D0.cal else None
     except Exception as e:                   # noqa: BLE001 —— 失敗只是那張表寫「還沒算出來」
         print(f"[配置] ⚠ 今年每個月的表沒有算出來：{type(e).__name__}: {e}")
         data["ytd"] = {}
+    try:                                     # 個股報告（docs/lab_equity_report_plan.md 第 11 節）：個股卡、公司卡、美股個股卡最上面的連結
+        from . import eqsite
+        data["eq"] = eqsite.links()
+    except Exception as e:                   # noqa: BLE001 —— 失敗只是卡片上少一行連結
+        print(f"[籌碼雷達] ⚠ 個股報告連結沒有放進頁面：{type(e).__name__}: {e}")
+        data["eq"] = {}
     _cfg(data)                               # 配置頁（先用上一版的警訊讀數；finish() 換成今天的）
     try:                                     # 後台自我驗證紀錄（只有 CI 寫回 data/lab/val_log.json）
         from . import valog
@@ -447,6 +454,8 @@ h3{font-size:14.5px;margin:18px 0 6px;color:var(--accd)}
 .hdt td,.hdt th{padding:6px 7px}
 
 .pasl{margin:10px 0 0;font-size:13.5px;line-height:1.8}.nw{white-space:nowrap}
+.eqrl{display:flex;gap:10px;align-items:baseline;margin:10px 0 0;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px}
+.eqrl a{font-weight:600}.eqrl span{color:var(--mut);font-size:13px}
 .sgi{padding:8px 0;border-bottom:1px solid var(--line)}
 .lg{margin-top:6px}.lg .dsh{width:16px;height:0;border-top:2px dashed var(--gold);background:none}.lg b{font-size:11px;margin-right:3px}
 .ld{padding:44px 12px;text-align:center;color:var(--mut);font-size:13.5px;background:var(--card2);border-radius:10px}
@@ -1926,6 +1935,9 @@ function stCardSec(c){const P=PKU[c];if(!P)return '';const Q=CPOS[c]||[];
     return `<div class=sgi><b><a data-go="tw" data-at="pk-${esc(p.k)}">${esc(p.sname)}</a></b><div class=pasl style="margin-top:2px">${st}${wt}</div>`+
       (why?`<div class=st>為什麼：${esc(why)}</div>`:'')+
       (e.n?`<div class=st>過去照做：每${u}平均 ${pctT(e.avg)}、中位 ${pctT(e.med)}，${e.win}% 賺錢；同期大盤 ${pctT(e.mk)}</div>`:'')+`</div>`;}).join('')+`</section>`;}
+/* 個股報告一行（docs/lab_equity_report_plan.md 第 11 節）：有報告的公司，個股卡、公司卡、美股個股卡最上面放連結（D.eq＝{"tw:代號":[報告日,評等]}） */
+function eqRepLine(k){const e=(D.eq||{})[k];if(!e)return '';const i=k.indexOf(':');
+  return `<div class=eqrl><a href="rp/${esc(k.slice(0,i))}-${esc(k.slice(i+1))}.html">個股報告</a><span>${md(e[0])}・${esc(e[1])}</span></div>`;}
 function renderStock(c,keep){
   const r=BY[c];if(!r){hideStock();return;}const s=SER?(SER[c]||{}):null;const tw=r.m!=='os';const u=tw?'張':'股';
   if(!SER&&SERST!=='err')loadSer().then(()=>reStock(c),()=>reStock(c));
@@ -1938,7 +1950,7 @@ function renderStock(c,keep){
    `<div class=ttl><b>${esc(r.n)}</b><span class=cd>${i>=0?`${i+1}／${CTX.length} · `:''}${esc(r.c)} · ${MK[r.m]||''}${r.ind?' · '+esc(r.ind):''}</span></div>`+
    `<div class=pxw><b>${fp(r.px)}</b>${sgn(r.ch,2,'%')}</div><a class="nv${nx?'':' off'}" id=nx title="下一檔（→）">›</a><a class=x id=x title="關閉（Esc）">×</a></div>`+
    `<nav class=cnav>${secs.map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
-  h+=stCardSec(c);
+  h+=eqRepLine('tw:'+c)+stCardSec(c);
   h+=`<section class=csec id=c-sum><div class=sgrow>${sgChips(r.sg)||'<span class=st>今日無觸發訊號</span>'}</div><ul class=sum>${sumLines(r).map(x=>`<li>${x}</li>`).join('')}</ul><div class=kpis>${kpis(r)}</div></section>`;
   h+=coSec(c,W,()=>reStock(c));                     /* 公司分析（copage.py；點進去才下載 co/{代號}.json） */
   const lastD=(D.dates||[]).slice(-1)[0],serD=SERD.slice(-1)[0];

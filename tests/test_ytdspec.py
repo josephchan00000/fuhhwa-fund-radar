@@ -1,4 +1,4 @@
-"""今年逐月、逐筆表的規格（ytdspec VER 1）鎖住：要改就 VER＋1、寫進 docs/lab_review_plan.md 第 9.2 節。"""
+"""今年逐月、逐筆表的規格（ytdspec VER 2；VER 2 只把新飆股那四成從 R60 換成 N8）鎖住：要改就 VER＋1、寫進 docs/lab_review_plan.md 第 9.2 節。"""
 import sys
 from pathlib import Path
 
@@ -8,10 +8,10 @@ sys.path.insert(0, str(ROOT))
 from arm.lab import ytdspec as S  # noqa: E402
 
 
-def test_ytd_spec_v1_is_locked():
-    assert (S.VER, S.SPEC_DATE, S.YEAR) == (1, "2026-10-28", 2026)
+def test_ytd_spec_v2_is_locked():
+    assert (S.VER, S.SPEC_DATE, S.YEAR) == (2, "2026-10-29", 2026)
     assert S.COLS == ("nolook", "hold", "live")
-    assert S.TW_W == {"0050": 0.20, "R60": 0.40, "cash": 0.40} and abs(sum(S.TW_W.values()) - 1) < 1e-12
+    assert S.TW_W == {"0050": 0.20, "N8": 0.40, "cash": 0.40} and S.TW_BOOM == "N8" and S.LIVE_KEEP == (1,) and abs(sum(S.TW_W.values()) - 1) < 1e-12
     assert S.TW_WARN is False and S.US_WARN is False
     assert S.TW_LIVE_FROM == "2026-10-27" and S.US_LIVE_FROM == "2026-10-23"
     assert (S.US_Y0, S.US_POOLS, S.US_L, S.US_K, S.US_SWITCH) == (2010, ("全部", "不換股", "每週換股"), (3, 5), (1, 3, 5, 10), 0.002)

@@ -13,7 +13,7 @@
 **為什麼要探針**：本 Claude 容器 proxy 擋掉所有投信站（CONNECT 403），無法在此驗證任何
 URL；正式區 CI 才連得上。盲寫十家 scraper 只會十家一起錯，改成「候選＋探針」後，
 一次 CI 就能把實際回應收進日誌，再據以收斂各家 adapter——與 cnyesfund.py 當初
-歷經 6 輪 CI 收斂的做法相同（見 CLAUDE.md）。
+歷經 6 輪 CI 收斂的做法相同（見 wiki/main/etf-holdings.md）。
 
 抓不到的檔：安靜降級（該 ETF 就沒有展開明細），絕不影響其餘欄位與其他 ETF。
 """

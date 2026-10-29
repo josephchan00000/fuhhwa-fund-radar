@@ -77,6 +77,14 @@ def main() -> None:
         print(f"[總經策略] {'已更新' if changed else '無變更'} {xspage.OUT_DATA}")
     except Exception as e:                                # noqa: BLE001
         print(f"[總經策略] 建檔失敗（不影響其他頁）：{type(e).__name__}: {e}")
+    # 個股報告與產業報告（dashboard/rp/*.html；docs/lab_equity_report_plan.md 第 11 節）：reports/eq 每家最新一版一頁，
+    # 頁首「最新收盤」讀上面籌碼雷達寫好的 x9t.json；沒有報告的舊頁拿掉。研究紀錄頁的報告清單在下面那一頁。分開建、分開失敗。
+    try:
+        from arm.lab import eqsite
+        r = eqsite.build()
+        print(f"[個股報告] 個股 {len(r['companies'])} 份、產業 {len(r['industries'])} 份，改寫 {r['wrote']} 頁 {eqsite.OUT}")
+    except Exception as e:                                # noqa: BLE001
+        print(f"[個股報告] 建頁失敗（不影響其他頁）：{type(e).__name__}: {e}")
     # 研究紀錄頁（x9r.html；docs/lab_ia_v5_plan.md 第 7 節；不在頂欄，配置頁頁尾小字進）。分開建、分開失敗。
     try:
         from arm.lab import research_page

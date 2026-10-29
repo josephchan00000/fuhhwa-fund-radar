@@ -734,7 +734,6 @@ def research_css() -> str:
 
 BLOCK_GROUPS = {"tw": (("tw", "台股產業"), ("tg", "細分族群")), "us": (("us", "美股類股"), ("ff", "美股細產業"))}
 BLOCK_RANGE = 30                                       # 歷史等級圖預設的期間（年；0＝全部）
-BLOCK_TOP = 8                                          # 等級 ≥ 2 的產業一組最多列幾個
 
 
 def _ind_name(grp: str, k: str) -> str:
@@ -748,24 +747,109 @@ def _ind_name(grp: str, k: str) -> str:
     return k
 
 
-def _hot_line(grp: str, label: str, I: dict) -> str:
-    """一組產業裡等級 ≥ 2 的（等級高的在前）；等級 ≥ 3 的另寫成立的條件。"""
+# ── 產業泡沫（市場頁泡沫下面單獨一張卡；docs/lab_us_chip_plan.md 第 3、6 節）──────────────────────────────
+# 電腦：等級 2 以上一個產業一格（底色＝等級）；手機：一個等級一列。點一格／一個名稱＝打開「全部產業」表、展開那一列（歷史等級圖與條件）。
+# 美股各指數把相關產業排最前面（只顯示、不算進指數的分數——使用者 2026-10-29 Q4）。
+
+IND_REL = {"sox": (("ff", "Chips"), ("ff", "Hardw"), ("us", "XLK")),
+           "ndx": (("us", "XLK"), ("us", "XLC"), ("ff", "Softw"), ("ff", "Hardw"), ("ff", "Chips")),
+           "ixic": (("us", "XLK"), ("us", "XLC"), ("ff", "Softw"), ("ff", "Hardw"), ("ff", "Chips"))}
+IND_HOT = 2                                            # 等級幾以上單獨列出
+
+
+def _ind_items(I: dict, side: str) -> list[dict]:
+    """這一邊（台股／美股）全部產業：{g 組, k, n 名稱, L 等級, c 成立的條件}；組內等級高、兩年漲幅高的在前。"""
     from . import bubindpage as IP
-    G = I.get(grp) or {}
-    if not G:
+    out = []
+    for g, _ in BLOCK_GROUPS[side]:
+        G = I.get(g) or {}
+        sh = IP.SHORT_FF if g == "ff" else IP.SHORT
+        for k in IP._order(G):
+            nw = G[k]["now"]
+            out.append({"g": g, "k": k, "n": _ind_name(g, k), "L": nw["L"], "c": [sh[c] for c in IP.GRP_COND[g] if nw.get(c)]})
+    return out
+
+
+def _glab(g: str, I: dict) -> str:
+    lab = dict(x for s in BLOCK_GROUPS.values() for x in s)[g]
+    return lab + (f'（到 {_ymd(I["ff_last"])}）' if g == "ff" and I.get("ff_last") else "")
+
+
+def _tile(x: dict) -> str:
+    c = "、".join(x["c"])
+    return (f'<button type="button" class="mbx mbl{x["L"]}" data-bn="{_e(x["g"])}:{_e(x["k"])}">'
+            f'<span class="mbxn">{_e(x["n"])}</span><span class="mbxv"><b class="bl{x["L"]}">{x["L"]}</b> {_e(BS.LEVELS[x["L"]])}</span>'
+            + (f'<span class="mbxc">{_e(c)}</span>' if c else "") + '</button>')
+
+
+def _li(x: dict, lv: bool = False) -> str:
+    c = "、".join(x["c"]) if x["L"] >= 3 else ""
+    return (f'<button type="button" class="mbn" data-bn="{_e(x["g"])}:{_e(x["k"])}">{_e(x["n"])}'
+            + (f' <b class="bl{x["L"]}">{x["L"]}</b>' if lv else "") + (f'<em>{_e(c)}</em>' if c else "") + '</button>')
+
+
+def ind_card(mk: str) -> str:
+    """市場頁的產業泡沫卡（mk＝tw／spx／ixic／ndx／sox）；沒有產業資料就不顯示。"""
+    side = "tw" if mk == "tw" else "us"
+    I = industries()
+    items = _ind_items(I, side)
+    if not items:
         return ""
-    hot = [k for k in IP._order(G) if G[k]["now"]["L"] >= 2]
-    sh = IP.SHORT_FF if grp == "ff" else IP.SHORT
-    xs = []
-    for k in hot[:BLOCK_TOP]:
-        n = G[k]["now"]
-        cs = "、".join(sh[c] for c in IP.GRP_COND[grp] if n.get(c)) if n["L"] >= 3 else ""
-        xs.append(f'<span class="mbn">{_e(_ind_name(grp, k))} <b class="bl{n["L"]}">{n["L"]}</b>'
-                  + (f'<em>{_e(cs)}</em>' if cs else "") + '</span>')
-    if len(hot) > BLOCK_TOP:
-        xs.append(f'<span class="mbn">等 {len(hot)} 個</span>')
-    lab = label + (f'（到 {_ymd(I["ff_last"])}）' if grp == "ff" and I.get("ff_last") else "")
-    return f'<li><b>{_e(lab)}</b>' + ("".join(xs) if xs else '<span class="mbn">沒有等級 2 以上</span>') + '</li>'
+    from . import bubindpage as IP
+    _, keys = IP.hist_data(I)
+    rel = [x for r in IND_REL.get(mk, ()) for x in items if (x["g"], x["k"]) == r]
+    rk = {(x["g"], x["k"]) for x in rel}
+    hot = [x for x in items if x["L"] >= IND_HOT and (x["g"], x["k"]) not in rk]
+    cnt = {L: sum(1 for x in items if x["L"] == L) for L in (4, 3, 2)}
+    summ = "・".join(f'{BS.LEVELS[L]} {cnt[L]}' for L in (4, 3, 2) if cnt[L]) or "沒有漲勢過熱以上的產業"
+    rlab = f'跟{BS.NAMES.get(mk, mk)}有關'
+    # 電腦：格子
+    tl = []
+    if rel:
+        tl.append(f'<div class="mbgh">{_e(rlab)}</div><div class="mbgr">{"".join(_tile(x) for x in rel)}</div>')
+    for g, _ in BLOCK_GROUPS[side]:
+        xs = [x for x in hot if x["g"] == g]
+        n0 = sum(1 for x in items if x["g"] == g and x["L"] < IND_HOT and (x["g"], x["k"]) not in rk)
+        if not xs and not n0:
+            continue
+        oth = (f'<button type="button" class="mbx mbo" data-ball="1"><span class="mbxn">其他 {n0} 個</span>'
+               f'<span class="mbxc">沒有過熱 ▸</span></button>') if n0 else ""
+        tl.append(f'<div class="mbgh">{_e(_glab(g, I))}</div><div class="mbgr">{"".join(_tile(x) for x in xs)}{oth}</div>')
+    # 手機：一個等級一列
+    ls = []
+    if rel:
+        ls.append(f'<div class="mbr mbrr"><span class="mbh">{_e(rlab)}</span><div class="mbrv"><p>{"".join(_li(x, True) for x in rel)}</p></div></div>')
+    for L in (4, 3, 2):
+        ps = []
+        for g, _ in BLOCK_GROUPS[side]:
+            xs = [x for x in hot if x["g"] == g and x["L"] == L]
+            if xs:
+                ps.append(f'<p><span class="mbg">{_e(_glab(g, I))}</span>{"".join(_li(x) for x in xs)}</p>')
+        if ps:
+            ls.append(f'<div class="mbr"><span class="mbh"><b class="bl{L}">{L}</b> {_e(BS.LEVELS[L])}</span><div class="mbrv">{"".join(ps)}</div></div>')
+    n0 = sum(1 for x in items if x["L"] < IND_HOT and (x["g"], x["k"]) not in rk)
+    if n0:
+        ls.append(f'<button type="button" class="mbo2" data-ball="1">▸ 其他 {n0} 個沒有過熱</button>')
+    tbl = _ind_tables(side, I, keys)
+    return (f'<section class="cd mbub mbii" id="bubi"><div class="ch"><h2>產業泡沫</h2><span class="mbis">{_e(summ)}</span></div>'
+            f'<div class="mbtl">{"".join(tl)}</div><div class="mbls">{"".join(ls)}</div>'
+            f'<details class="mfx mbt"><summary>全部產業</summary>{tbl}</details></section>')
+
+
+def ind_chip(mk: str) -> str:
+    """面向那一列的「產業泡沫」小段：最高等級與那個產業（同等級時相關產業優先），點了捲到產業泡沫。"""
+    side = "tw" if mk == "tw" else "us"
+    items = _ind_items(industries(), side)
+    if not items:
+        return ""
+    rel = list(IND_REL.get(mk, ()))
+    top = sorted(items, key=lambda x: (-x["L"], rel.index((x["g"], x["k"])) if (x["g"], x["k"]) in rel else len(rel)))[0]
+    cnt = {L: sum(1 for x in items if x["L"] == L) for L in (4, 3, 2)}
+    tip = "、".join(f'{BS.LEVELS[L]} {cnt[L]} 個' for L in (4, 3, 2) if cnt[L]) or "沒有漲勢過熱以上的產業"
+    if top["L"] < IND_HOT:
+        return f'<a class="stc mfb" href="#bubi" data-jump="bubi" title="{_e(tip)}"><b>產業泡沫</b><i>沒有過熱</i></a>'
+    return (f'<a class="stc mfb" href="#bubi" data-jump="bubi" title="{_e(tip + "，點了看產業泡沫")}"><b>產業泡沫</b>'
+            f'<span class="bl{top["L"]}">{top["L"]}</span><i>{_e(top["n"])}</i></a>')
 
 
 def _ind_tables(side: str, I: dict, keys: dict) -> str:
@@ -797,7 +881,6 @@ def block_html(mk: str) -> str:
         return ""
     n = m["now"]
     lv = n["L"]
-    side = "tw" if mk == "tw" else "us"
 
     def chip(c):
         v = n.get(c)
@@ -805,18 +888,12 @@ def block_html(mk: str) -> str:
         return f'<i class="{cls}">{_e(SHORT[c])} {mark}</i>'
     rg = "".join(f'<button type="button" class="tb{" on" if y == BLOCK_RANGE else ""}" data-br="{y}" data-mk="{mk}" '
                  f'aria-pressed="{"true" if y == BLOCK_RANGE else "false"}">{"全部" if y == 0 else f"近 {y} 年"}</button>' for y in (0, 30, 10))
-    from . import bubindpage as IP
-    I = industries()
-    _, keys = IP.hist_data(I)
-    lines = "".join(_hot_line(g, lab, I) for g, lab in BLOCK_GROUPS[side])
-    tbl = _ind_tables(side, I, keys)
-    ind = (f'<ul class="mbi">{lines}</ul>' if lines else "") + (f'<details class="mfx mbt"><summary>全部產業</summary>{tbl}</details>' if tbl else "")
     return (f'<section class="cd mbub" id="bub"><div class="ch"><h2>泡沫</h2>'
             f'<div class="sv"><b class="sc bl{lv}">{lv}</b><span class="bn bl{lv}">{_e(BS.LEVELS[lv])}</span></div></div>'
             f'<div class="bcs mbc">{"".join(chip(c) for c in COND_ORDER)}</div>'
             f'<div class="seg brg" role="group" aria-label="期間">{rg}</div>'
             f'<div class="bhw"><div class="bh" id="h-{mk}"><p class="note">歷史等級載入中…</p></div><div class="tip" id="t-{mk}" hidden></div></div>'
-            + _legend(False) + ind + '</section>')
+            + _legend(False) + '</section>' + ind_card(mk))
 
 
 def block_data(mks) -> str:
@@ -877,12 +954,31 @@ table.bepi td:last-child{white-space:normal}
 
 BLOCK_CSS = CHART_CSS + """
 .mbub .ch{margin-bottom:4px}.mbc{margin:2px 0 8px}
-.mbi{list-style:none;margin:6px 0 0;padding:0;font-size:13.5px;line-height:1.7}
-.mbi li{display:flex;flex-wrap:wrap;gap:0 12px;padding:4px 0;border-top:1px solid var(--line)}
-.mbi li>b{flex:0 0 7em;color:var(--ink2);font-weight:600}
-.mbn{white-space:nowrap}.mbn b{font-weight:800}.mbn em{font-style:normal;font-size:12px;color:var(--mut);margin-left:4px;white-space:normal}
 .mbt{margin-top:10px}.mbt h3{font-size:14.5px;margin:12px 0 6px}
-@media (max-width:640px){.mbi li>b{flex-basis:100%}}
+.mbii .ch{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:2px 12px}.mbis{font-size:13px;color:var(--mut)}
+.mbgh{font-size:12.5px;color:var(--mut);margin:10px 0 5px}.mbtl>.mbgh:first-child{margin-top:2px}
+.mbgr{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.mbx{font:inherit;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-height:58px;padding:7px 10px;border-radius:9px;
+ border:1px solid var(--line);border-left:5px solid var(--lv0);background:var(--panel);color:var(--ink)}
+.mbx:hover{border-color:var(--line2)}.mbx:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.mbxn{font-weight:700;font-size:13.5px;line-height:1.3}.mbxv{font-size:12px;color:var(--ink2)}.mbxv b{font-weight:800}
+.mbxc{font-size:11.5px;color:var(--mut);line-height:1.35}
+.mbl1{border-left-color:var(--lv1)}
+.mbl2{border-left-color:var(--lv2);background:color-mix(in srgb,var(--lv2) 16%,var(--panel))}
+.mbl3{border-left-color:var(--lv3);background:color-mix(in srgb,var(--lv3) 18%,var(--panel))}
+.mbl4{border-left-color:var(--lv4);background:color-mix(in srgb,var(--lv4) 18%,var(--panel))}
+.mbx.mbo{background:var(--panel);border:1px dashed var(--line2);justify-content:center}
+.mbls{display:none}
+.mbr{display:grid;grid-template-columns:1fr;gap:3px;padding:8px 0;border-top:1px solid var(--line)}.mbr:first-child{border-top:0;padding-top:2px}
+.mbh{font-size:13px;font-weight:700}.mbh b{font-size:15px;font-weight:800}
+.mbrv p{margin:0;display:flex;flex-wrap:wrap;gap:3px 12px;align-items:baseline}.mbrv p+p{margin-top:4px}
+.mbg{flex:0 0 100%;font-size:11.5px;color:var(--mut)}
+button.mbn{font:inherit;font-size:14px;background:none;border:0;padding:1px 0;color:var(--ink);cursor:pointer;text-align:left;white-space:normal}
+button.mbn em{font-style:normal;font-size:12px;color:var(--mut);margin-left:4px}button.mbn b{font-weight:800}
+.mbrr .mbh{color:var(--ink2)}
+button.mbo2{font:inherit;font-size:13px;color:var(--mut);background:none;border:0;border-top:1px solid var(--line);width:100%;text-align:left;padding:9px 0 0;cursor:pointer}
+table.bind tr.mbhl td{background:color-mix(in srgb,var(--acc) 14%,var(--panel))}
+@media (max-width:640px){.mbtl{display:none}.mbls{display:block}}
 """
 
 JS = r"""
@@ -973,4 +1069,21 @@ let rz = 0;
 addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { Object.keys(D).forEach(mk => { const box = document.getElementById('h-' + mk); if (box && box.offsetParent !== null && Math.abs((box.clientWidth || 0) - (LW[mk] || 0)) >= 40) draw(mk); }); }, 150); });
 all();
 })();
+
+// 市場頁產業泡沫：點一格／一個名稱＝打開「全部產業」表、展開那一列並捲過去；「其他 N 個」＝打開表
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-bn],[data-ball]');
+  if (!t) return;
+  const sec = t.closest('.mbii');
+  if (!sec) return;
+  e.preventDefault();
+  const det = sec.querySelector('details.mbt');
+  if (det) det.open = true;
+  if (t.dataset.ball) { if (det) det.scrollIntoView({block: 'start', behavior: 'smooth'}); return; }
+  const r = [...sec.querySelectorAll('tr[data-n]')].find(x => x.dataset.n === t.dataset.bn);
+  if (!r) return;
+  if (r.classList.contains('bir') && !r.classList.contains('open')) r.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+  r.scrollIntoView({block: 'center', behavior: 'smooth'});
+  r.classList.add('mbhl'); setTimeout(() => r.classList.remove('mbhl'), 1800);
+});
 """

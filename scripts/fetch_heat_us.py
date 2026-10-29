@@ -29,11 +29,12 @@ from arm.lab import bubindfetch as BF  # noqa: E402
 
 NAMES = ["us_px_spx", "us_px_ixic", "us_px_ndx", "us_px_sox", "us_vxn", "us_vix3m", "us_dxy", "us_rsp", "us_spy",
          "us_h15", "us_h41", "us_m2", "us_z1", "us_gdp", "us_cp", "us_spf", "us_tech_q", "us_tech_a", "fwd_agg",
-         "us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini",
+         "us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini", "us_cftc_am_nq", "us_cftc_big_nq", "us_cftc_mini_nq",
          "us_philly", "us_ads", "us_cli", "us_claims", "us_bls", "us_umich", "us_ebp", "us_shiller", "us_wsts",
          "taiex90", "twgdp"] + [f"us_lppls_{k}" for k in U.US_INDEX_SYM] + ["tw_lppls"] \
     + ["us_ff49x", "us_ff49n", "us_ff49s"] + [f"us_etf_{s}" for s in BF.etf_names()] \
-    + [f"us_vol_{k}" for k in U.US_INDEX_SYM] + ["us_breadth"]
+    + [f"us_vol_{k}" for k in U.US_INDEX_SYM] + ["us_breadth"] + [f"us_lev_{s}" for s in U.lev_names()] \
+    + ["ins_members", "ins_state"]
 YAHOO = [("us_px_spx", "^GSPC", "1927-01-01"), ("us_px_ixic", "^IXIC", "1971-01-01"),
          ("us_px_ndx", "^NDX", "1985-01-01"), ("us_px_sox", "^SOX", "1994-01-01"),
          ("us_vxn", "^VXN", "2001-01-01"), ("us_vix3m", "^VIX3M", "2006-01-01"), ("us_dxy", "DX-Y.NYB", "1971-01-01")]
@@ -103,6 +104,15 @@ def daily() -> None:
             continue
         a = BF.BI.US_START if not have else (date.fromisoformat(max(have)) - timedelta(days=10)).isoformat()
         run(name, U.yahoo_us, name, sym, a)
+    for sym in U.lev_names():                                # 槓桿 ETF 成交金額（heatspec_us VER 3 的 S6）
+        name = f"us_lev_{sym}"
+        have = HD.load(name)
+        if have and max(have) >= last:
+            continue
+        a = U.LEV_START if not have else (date.fromisoformat(max(have)) - timedelta(days=10)).isoformat()
+        run(name, U.yahoo_dv, name, sym, a)
+    from arm.lab import insider as INS                       # 成分股內部人買賣（S7）：一天一次、要 SEC_CONTACT_EMAIL
+    once("ins", INS.run, 150.0)
     once("us_ff49", BF.ff49)
     once("us_h15", U.h15)
     once("us_h41", U.h41)
@@ -151,6 +161,16 @@ def backfill(only: set | None = None) -> None:
             jobs.update({"us_spf": F.spf, "us_tech": F.tech, "fwd_us": lambda: F.update_us(budget_s=900),
                          "fwd_tw": F.update_tw_agg})
         jobs.update({"ind_ff": BF.ff49, "ind_etf": BF.etf})            # 產業泡沫
+        if "cftc_nq" in only:                                  # 美股各指數籌碼（heatspec_us VER 3）：那斯達克 100 期貨
+            for name in ("us_cftc_am_nq", "us_cftc_big_nq", "us_cftc_mini_nq"):
+                run(name, U.cftc, name)
+        if "lev" in only:                                      # 槓桿 ETF 成交金額
+            for sym in U.lev_names():
+                run(f"us_lev_{sym}", U.yahoo_dv, f"us_lev_{sym}", sym)
+                time.sleep(2)
+        if "ins" in only:                                      # 成分股內部人：季資料集＋每日索引（有時間上限，下次續做）
+            from arm.lab import insider as INS
+            run("ins", INS.run, 2900.0, True)
         if "usbreadth" in only:                               # 美股漲跌家數（大神策略第三段）：1996 起整段重算
             from arm.lab import usbreadth as UB
             jobs["usbreadth"] = UB.backfill

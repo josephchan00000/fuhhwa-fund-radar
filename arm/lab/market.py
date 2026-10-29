@@ -645,7 +645,8 @@ def parse_revenue(rows) -> tuple[str | None, dict]:
 
 
 def fetch_revenue() -> tuple[str | None, dict]:
-    ym, out = None, {}
+    """上市、上櫃各一請求；兩邊的資料年月不同時（一邊已換月、一邊還沒），只收最新那個月的。"""
+    got = []
     for url in REV_URLS:
         try:
             rows = json.loads(get_bytes(url, retries=2, timeout=30, use_cache=False).decode("utf-8"))
@@ -653,8 +654,16 @@ def fetch_revenue() -> tuple[str | None, dict]:
             log(f"月營收 ✗ {url[:60]} {str(e)[:80]}")
             continue
         y, o = parse_revenue(rows)
-        ym = ym or y
-        out.update(o)
+        if y:
+            got.append((y, o))
+        log(f"月營收 {url[:60]}：{y} {len(o)} 檔")
+    if not got:
+        return None, {}
+    ym = max(y for y, _ in got)
+    out = {}
+    for y, o in got:
+        if y == ym:
+            out.update(o)
     return ym, out
 
 

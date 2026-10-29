@@ -1,9 +1,12 @@
-"""飆股前瞻記錄（規格 sxlivespec VER 3；docs/lab_core70_plan.md 第 14、19 節、docs/lab_review_plan.md 第 9.1 節）。
+"""飆股前瞻記錄（規格 sxlivespec VER 4；docs/lab_core70_plan.md 第 14、19 節、docs/lab_review_plan.md 第 9.1 節、docs/lab_boom_v2_plan.md 第 8、9 節）。
 VER 2：R60（PLAN_BOOK）那本帳放進交易計畫（台股機動的一半）、上配置頁——plan_state() 給頁面現在的持股、要買賣的、名單；
 A、R1 兩本照舊只記、不上頁面、不放錢。
 VER 3：R60 照回測那本帳 TAKE（10/22）收盤的狀態接手（data/lab/sxlive_seed.json，scripts/run_sxlive_seed.py 只算一次）；
 成績從 TAKE 收盤起算（Book.take／place）；持股另給 take、bt（回測買的）、rl（上線以來）。
 每週紀錄另記 why（R60 每一檔符合哪幾條規則與當時的數字；配置頁寫「符合：…」，docs/lab_cfg_v2_plan.md 第 3.1 節⑥）。
+VER 4：多一本 N8（PLAN_BOOK）——買 R60 的每週名單（LIST_BOOK），固定 8 格（現金 ÷ 空格數）、新上名單的先買，START4 起從現金開始；
+選股頁與推播看它（LAST["n8"]，含 pick＝選股頁的名單）。交易計畫、今年逐月表照舊看 R60（LAST["plan"]）。
+上名單週數＝連續幾個週末在 R60 名單上：START 以前用 HIST_FILE（scripts/run_sxlive_hist.py 只算一次），START 起用紀錄。
 
   update(DL, ctx)   每次建頁算一次：補記新的訊號週（只增不改）、從 START 起重算三本帳照做的成績與兩個對照；
                     只有 CI（GITHUB_ACTIONS＝true）寫回 data/lab/sxlive.json。摘要放 LAST（valog 讀，檢討日推播提醒）。
@@ -27,7 +30,7 @@ from . import store
 
 LAST: dict = {}                       # 這一次建頁的摘要（valog 讀）
 LIM = 0.10 - 0.015                    # 一價到底漲跌停：漲跌幅 ≥ 漲跌停 − 1.5 個百分點（tw-superstock-lab labpanel.locks）
-NAMES = {"R60": "新飆股", "A": "舊目標", "R1": "頁面飆股"}
+NAMES = {"R60": "新飆股", "A": "舊目標", "R1": "頁面飆股", "N8": "新飆股（8 格）"}
 
 
 def _ok(x) -> bool:
@@ -110,19 +113,25 @@ def _jv(x):
     return int(v) if v == int(v) and abs(v) < 1e15 else float(f"{v:.4g}")
 
 
+def feats_at(ctx: dict, j: int) -> dict:
+    """第 j 天收盤的特徵（superx.feats_on，全部股票）；合格判斷的市值＝最近月底快照（同研究、同頁面）。"""
+    from . import superx as SX
+    P = ctx["P"]
+    sd = [d for d, _ in ctx["snaps"]]
+    k = bisect.bisect_right(sd, P.cal[j]) - 1
+    snap = ctx["snaps"][k][1] if k >= 0 else {}
+    for c in P.codes:
+        P.cap[c][j] = snap.get(c)
+    return SX.feats_on(j, P, ctx["pxs"], ctx["funds"], ctx["qitems"], ctx["rf"], all_rows=True)
+
+
 def day_signals(j: int, ctx: dict, sets: dict, why: dict | None = None) -> dict:
     """第 j 天收盤：合格（superx）、那天有成交、符合任一條規則 → {本: [[代號, RS]…]}，RS 高到低、同分依代號。
     why（dict）＝另外記每一檔符合哪幾條（規則在那一年清單裡的順序）與那幾條用到的數字：
     {本: {代號: {"k": [第幾條…], "v": {條件: 數字}}}}（前 WHY_MAX 檔；只給頁面顯示，不影響訊號）。"""
     from . import superx as SX
     P = ctx["P"]
-    cal = P.cal
-    sd = [d for d, _ in ctx["snaps"]]
-    k = bisect.bisect_right(sd, cal[j]) - 1
-    snap = ctx["snaps"][k][1] if k >= 0 else {}
-    for c in P.codes:                                   # 合格判斷的市值＝最近月底快照（同研究、同頁面）
-        P.cap[c][j] = snap.get(c)
-    F = SX.feats_on(j, P, ctx["pxs"], ctx["funds"], ctx["qitems"], ctx["rf"], all_rows=True)
+    F = feats_at(ctx, j)
     out = {}
     for b, rules in sets.items():
         preds = [SX.rule_pred(r) for r in rules]
@@ -203,19 +212,34 @@ def series(o: list, h: list, l: list, c: list, f: list, av: list, avv: list) -> 
     return {"o": o, "h": h, "l": l, "c": c, "cff": cff, "f": f, "av": av, "avv": avv, "lu": lu, "ld": ld, "last": last}
 
 
+def absorbed(cal: list[str], basis: list | None, close: list, d: str) -> bool:
+    """除權息日 d 那一跳是不是已經被頁面價格的口徑連續化（packtest._basis：相鄰收盤差 1.8 倍以上就把更早的價格換算）吃掉了。
+    大比例配股或分割（例 2026-08-14 世紀 5314、2026-09-02 緯穎 6669）會這樣；再乘一次除權倍數＝還原兩次，
+    持有跨過那天的部位會被算成漲好幾倍（2026-10-29 接手 N8B 時發現）。"""
+    if not basis:
+        return False
+    ie = next((i for i, x in enumerate(cal) if x >= d), None)
+    if not ie:
+        return False
+    jp = next((i for i in range(ie - 1, -1, -1) if close[i] is not None), None)
+    return jp is not None and abs(basis[jp] / basis[ie] - 1) > 1e-9
+
+
 def panel(ctx: dict, codes, ev: dict | None = None) -> dict:
-    """codes 的引擎欄位（頁面同一份價量 × 官方除權息還原倍數）。av＝頁面的 20 日均成交值（同 superx 合格判斷）。"""
+    """codes 的引擎欄位（頁面同一份價量 × 官方除權息還原倍數）。av＝頁面的 20 日均成交值（同 superx 合格判斷）。
+    已經被口徑連續化換算過的除權息（absorbed）不再乘。"""
     from . import bt3d
     from . import packtest as PT
     P = ctx["P"]
     cal = P.cal
     ev = bt3d.events() if ev is None else ev
+    bas = getattr(P, "basis", {}) or {}
     out = {}
     for c in codes:
         s = P.s.get(c)
         if not s:
             continue
-        F = bt3d.factor_events(cal, [(d, f) for d, f, _ in ev.get(c) or []])
+        F = bt3d.factor_events(cal, [(d, f) for d, f, _ in ev.get(c) or [] if not absorbed(cal, bas.get(c), s["c"], d)])
         adj = [[None if x is None else x * F[i] for i, x in enumerate(s[k])] for k in ("o", "h", "l", "c")]
         out[c] = series(*adj, F, P.liq.get(c) or [None] * len(cal), PT._rmean(s["v"], 20, 1))
     return out
@@ -271,7 +295,17 @@ class Book:
         px = pa * (1 + self._slip(self._prev(p["av"], i)))
         raw = px / f
         eq = self.eq_prev
-        sh = min(T["weight"] * eq, T["max_weight"] * eq) / raw
+        n = T.get("slots")
+        if n:                                              # VER 4（N8）：固定 n 格，有空格時把現金平分給空格；一格不到 1/n 的 min_slot 就不買
+            free = n - len(self.pos)
+            if free <= 0 or eq <= 0:
+                return False
+            tgt = self.cash / free
+            if tgt < T["min_slot"] * eq / n:
+                return False
+        else:
+            tgt = T["weight"] * eq
+        sh = min(tgt, T["max_weight"] * eq) / raw
         adv = self._prev(p["avv"], i)
         if _ok(adv) and T["max_adv"] < math.inf:
             sh = min(sh, T["max_adv"] * adv)
@@ -434,14 +468,67 @@ def load_seed() -> dict | None:
     return doc
 
 
+def load_seed_bt() -> dict | None:
+    """VER 5：N8B（N8 做法的回測延續）在 TAKE 收盤的狀態（scripts/run_sxlive_seed.py --n8 只算一次）；沒有＝None（N8B 不算）。"""
+    doc = store.read_json(S.SEED_BT_FILE, None)
+    if not isinstance(doc, dict) or doc.get("take") != S.TAKE or doc.get("book") != S.BT_BOOK or (doc.get("ver") or 0) < 5:
+        return None
+    return doc
+
+
 def seed_weeks(seed: dict | None) -> dict:
     """接手用到的幾週名單（{訊號日: {"R60": [[代號, RS]…], "why": …}}）；只給頁面查「那週名單第幾名、符合哪一條」。"""
     return dict((seed or {}).get("weeks") or {})
 
 
-def perf(ctx: dict, weeks: dict, last: str, ev: dict | None = None, seed: dict | None = None) -> dict:
+HIST_FROM = "2026-01-01"              # VER 4：HIST_FILE 從這一年開始（之前的週末沒有名單＝斷掉）
+
+
+def load_hist() -> dict:
+    """VER 4：START 以前 2026 年每個週末的 R60 名單 {週末: [[代號, 強度]…]}（scripts/run_sxlive_hist.py 只算一次）；沒有＝{}。"""
+    doc = store.read_json(S.HIST_FILE, None)
+    if not isinstance(doc, dict) or (doc.get("ver") or 0) < 4:
+        return {}
+    return dict(doc.get("weeks") or {})
+
+
+def prior_lists(d: str, weeks: dict, hist: dict, incl: bool = True) -> list[set]:
+    """d 那個週末（incl＝False：d 之前）往回每個週末的 R60 名單（新到舊）；哪一個週末沒有名單就停在那裡。
+    START 以前用 hist、START 起用紀錄（sxlivespec VER 4 ①）。"""
+    ws = week_ends(HIST_FROM, d)
+    if not incl:
+        ws = [w for w in ws if w < d]
+    out = []
+    for w in reversed(ws):
+        L = ((weeks.get(w) or {}).get(S.LIST_BOOK)) if w >= S.START else hist.get(w)
+        if L is None:
+            break
+        out.append({c for c, _ in L})
+    return out
+
+
+def run_len(c: str, lists: list[set]) -> int:
+    n = 0
+    for s in lists:
+        if c not in s:
+            break
+        n += 1
+    return n
+
+
+def n8_orders(d: str, weeks: dict, hist: dict) -> list:
+    """VER 4：d 那個週末 N8 的下單順序 [[代號, 分數]]——分數＝強度 − 1000 ×（上名單週數 − 1），名單原本的順序（強度高到低）。"""
+    L = (weeks.get(d) or {}).get(S.LIST_BOOK) or []
+    lists = prior_lists(d, weeks, hist)
+    return [[c, float(rs) - 1000.0 * (max(1, run_len(c, lists)) - 1)] for c, rs in L]
+
+
+def perf(ctx: dict, weeks: dict, last: str, ev: dict | None = None, seed: dict | None = None, hist: dict | None = None,
+         seed_bt: dict | None = None) -> dict:
     """TAKE 收盤＝100 起算，到 last 收盤：每天三本帳與兩個對照、已出場與持有中的交易、統計。
-    seed（VER 3）＝R60 接手的狀態：持股與現金原封不動放進來、TAKE 那一週的名單在 TAKE 收盤下單；沒有就從現金開始。"""
+    seed（VER 3）＝R60 接手的狀態：持股與現金原封不動放進來、TAKE 那一週的名單在 TAKE 收盤下單；沒有就從現金開始。
+    seed_bt（VER 5）＝N8B 接手的狀態（N8 做法的回測延續，今年逐月表用）：TAKE 收盤照它記的 N8 順序下單，之後每週照 R60 名單、N8 的順序；
+    沒有就不算 N8B。"""
     from . import bt3d
     P = ctx["P"]
     cal = P.cal
@@ -451,18 +538,33 @@ def perf(ctx: dict, weeks: dict, last: str, ev: dict | None = None, seed: dict |
     sw = seed_weeks(seed)
     codes = sorted({c for w in weeks.values() for b in S.BOOKS for c, _ in w.get(b) or []}
                    | {p["c"] for p in (seed or {}).get("pos") or []}
-                   | {c for c, _ in (sw.get(S.TAKE) or {}).get(S.TAKE_BOOK) or []})
+                   | {c for c, _ in (sw.get(S.TAKE) or {}).get(S.TAKE_BOOK) or []}
+                   | {p["c"] for p in (seed_bt or {}).get("pos") or []}
+                   | {c for c, _ in ((seed_bt or {}).get("orders") or {}).get(S.TAKE) or []})
     px = panel(ctx, codes, ev)
     dates = cal[i0:i1 + 1]
     cap = float(S.TRADE["capital"])
     nav, trades, opens, stats = {}, {}, {}, {}
     books, base = {}, {}
-    for b in S.BOOKS:
-        sig = {ix[d]: w[b] for d, w in weeks.items() if b in w and d in ix}
-        bk = Book(px, i1 + 1, ctx["listed"])
+    hist = load_hist() if hist is None else hist
+    for b in S.BOOKS + ((S.BT_BOOK,) if seed_bt else ()):
+        if b == S.PLAN_BOOK:                               # VER 4：N8 買 R60 的名單（START4 起），新上名單的先買
+            sig = {ix[d]: n8_orders(d, weeks, hist) for d, w in weeks.items()
+                   if d >= S.START4 and S.LIST_BOOK in w and d in ix}
+            bk = Book(px, i1 + 1, ctx["listed"], T=S.TRADE_N8)
+        elif b == S.BT_BOOK:                               # VER 5：N8B 每週照 R60 的名單、N8 的順序（START 起的紀錄）
+            sig = {ix[d]: n8_orders(d, weeks, hist) for d, w in weeks.items() if S.LIST_BOOK in w and d in ix}
+            bk = Book(px, i1 + 1, ctx["listed"], T=S.TRADE_N8)
+        else:
+            sig = {ix[d]: w[b] for d, w in weeks.items() if b in w and d in ix}
+            bk = Book(px, i1 + 1, ctx["listed"])
         if b == S.TAKE_BOOK and seed:
             e0 = bk.take(seed, cal, i0)                    # 接手：TAKE 收盤的狀態
             bk.place(i0, (sw.get(S.TAKE) or {}).get(S.TAKE_BOOK))
+            eq = [e0] + [bk.step(i, sig.get(i)) for i in range(i0 + 1, i1 + 1)]
+        elif b == S.BT_BOOK:
+            e0 = bk.take(seed_bt, cal, i0)
+            bk.place(i0, (seed_bt.get("orders") or {}).get(S.TAKE))
             eq = [e0] + [bk.step(i, sig.get(i)) for i in range(i0 + 1, i1 + 1)]
         else:
             e0 = cap
@@ -491,13 +593,16 @@ def perf(ctx: dict, weeks: dict, last: str, ev: dict | None = None, seed: dict |
     for nm, xs in (("TR", tr), ("EW", ew)):
         ok = [x for x in xs if x is not None]
         stats[nm] = {"ret": round((ok[-1] - 1) * 100, 2) if ok else None, "mdd": round((_mdd(xs) or 0) * 100, 2) if ok else None}
-    rows = {d: [None if x is None else round(x * 100, 2) for x in (nav["R60"][k], nav["A"][k], nav["R1"][k], tr[k], ew[k])]
-            for k, d in enumerate(dates)}
-    return {"nav": rows, "trades": trades, "open": opens, "stats": stats, "_book": books[S.PLAN_BOOK], "_px": px,
-            "_base": base[S.PLAN_BOOK], "_i0": i0}
+    bt = nav.get(S.BT_BOOK)
+    rows = {d: [None if x is None else round(x * 100, 2) for x in (nav["R60"][k], nav["A"][k], nav["R1"][k], tr[k], ew[k], nav["N8"][k],
+                                                                     bt[k] if bt else None)]
+            for k, d in enumerate(dates)}                  # 欄位：R60、A、R1、加權報酬指數、合格股等權、N8（VER 4）、N8B（VER 5）
+    return {"nav": rows, "trades": trades, "open": opens, "stats": stats, "_book": books[S.TAKE_BOOK], "_px": px,
+            "_base": base[S.TAKE_BOOK], "_i0": i0, "_pbook": books[S.PLAN_BOOK], "_pbase": base[S.PLAN_BOOK],
+            "_bt": books.get(S.BT_BOOK), "_btbase": base.get(S.BT_BOOK)}
 
 
-# ── 配置頁（VER 2）：PLAN_BOOK 那本帳現在的狀態 ─────────────────────────────
+# ── 頁面：R60（交易計畫）與 N8（選股頁）那本帳現在的狀態 ─────────────────────────────
 
 def _raw(p: dict, k: str, i: int):
     """含息價 → 那一天的成交價（f＝含息價 ÷ 成交價）。"""
@@ -526,21 +631,27 @@ def next_week_end(d: str) -> str | None:
 
 
 def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | None = None, R: dict | None = None,
-               seed: dict | None = None) -> dict:
-    """配置頁（台股）要的 PLAN_BOOK 狀態（sxlivespec VER 2 ②）：持股（買進日、買進價、收盤、報酬、占那本帳多少、到期與賣出日、
+               seed: dict | None = None, book: str | None = None, hist: dict | None = None) -> dict:
+    """那本帳現在的狀態（sxlivespec VER 2 ②）：持股（買進日、買進價、收盤、報酬、占那本帳多少、到期與賣出日、
     明天開盤要賣）、明天開盤要買的（最新一週名單依 RS，估計現金夠買幾檔）、最新一週的名單、下一次看名单的日子、週中的試算名單。
     比重都是占那本帳；頁面再乘 corespec 的新飆股比重。
     why（名單、要買的、持股）＝那一週符合哪一條規則與實際數字（紀錄的 why；沒有＝空），持股另寫那一週名單第幾名。
     VER 3：seed＝接手的狀態——名單與「第幾名、符合哪一條」也查接手用到的那幾週；持股另給 take（接手時就拿著）、
-    bt（買進日不晚於接手那天＝回測）、rl（上線以來：接手那天收盤或之後實際買進起算，含息、不含成本）。"""
+    bt（買進日不晚於接手那天＝回測）、rl（上線以來：接手那天收盤或之後實際買進起算，含息、不含成本）。
+    VER 4：book＝哪一本（預設 TAKE_BOOK＝R60，交易計畫與今年逐月表用；PLAN_BOOK＝N8，選股頁與推播用）。
+    名單一律是 LIST_BOOK（R60）的；N8 要買的照它的順序（新上名單的先、同週數依強度）與 8 格的買法估。"""
     from .strategy import trading_days_after
     P = ctx["P"]
     cal = P.cal
     last = rec.get("last")
     nm = names or {}
-    out: dict = {"book": S.PLAN_BOOK, "start": S.START, "take": S.TAKE if seed else None, "d": last, "hold": [], "buy": [],
-                 "sell": [], "list": [], "n_list": 0, "wk": None, "cash": 1.0, "trial": trial or [], "hold_n": S.TRADE["hold"],
-                 "w": S.TRADE["weight"]}
+    book = book or S.TAKE_BOOK
+    n8 = book == S.PLAN_BOOK
+    T = S.TRADE_N8 if n8 else S.TRADE
+    seed = None if n8 else seed                            # N8 從現金開始，不接手
+    out: dict = {"book": book, "start": S.START4 if n8 else S.START, "take": S.TAKE if seed else None, "d": last, "hold": [],
+                 "buy": [], "sell": [], "list": [], "n_list": 0, "wk": None, "cash": 1.0, "trial": trial or [],
+                 "hold_n": T["hold"], "w": (1 / T["slots"]) if n8 else T["weight"], "slots": T.get("slots")}
     if not last or last not in cal:
         return out
     i1 = cal.index(last)
@@ -548,29 +659,29 @@ def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | No
     out["next_wk"] = next_week_end(last)
     out["wk_today"] = last in week_ends(last, last)
     W = {**seed_weeks(seed), **(rec.get("weeks") or {})}   # 接手用到的幾週（10/22 以前）＋紀錄（10/30 起），日期不重疊
-    wks = sorted(d for d, w in W.items() if S.PLAN_BOOK in w and d <= last)
+    wks = sorted(d for d, w in W.items() if S.LIST_BOOK in w and d <= last)
     _rules: dict = {}
 
     def why_of(wd: str, c: str) -> list[str]:
         y = int(wd[:4])
         if y not in _rules:
             try:
-                _rules[y] = rules_for(y, S.PLAN_BOOK, R)
+                _rules[y] = rules_for(y, S.LIST_BOOK, R)
             except Exception:                              # noqa: BLE001
                 _rules[y] = None
-        w = ((W.get(wd) or {}).get("why") or {}).get(S.PLAN_BOOK) or {}
+        w = ((W.get(wd) or {}).get("why") or {}).get(S.LIST_BOOK) or {}
         return _why_lines(_rules[y], w.get(c))
     if wks:
         wd = wks[-1]
-        L = W[wd][S.PLAN_BOOK]
+        L = W[wd][S.LIST_BOOK]
         out.update({"wk": wd, "n_list": len(L),
                     "list": [{"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1), "why": why_of(wd, c)} for c, rs in L[:S.LIST_SHOW]]})
-    bk, px = rec.get("_book"), rec.get("_px") or {}
+    bk, px = rec.get("_pbook" if n8 else "_book"), rec.get("_px") or {}
     if bk is None:
         return out
     eq = bk.eq_prev or 1.0
     out["cash"] = float(bk.cash / eq) if eq else 1.0
-    out["nav"] = round(eq / float(rec.get("_base") or S.TRADE["capital"]), 6)
+    out["nav"] = round(eq / float(rec.get("_pbase" if n8 else "_base") or T["capital"]), 6)
     i0 = rec.get("_i0")
     for c, q in sorted(bk.pos.items(), key=lambda x: (x[1]["ei"], x[0])):
         p = px[c]
@@ -579,7 +690,7 @@ def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | No
         o = p["o"][ei]
         due, sell = exit_day(cal[ei], cal)
         sd = cal[q["si"]]
-        rank = next((k + 1 for k, (cc, _) in enumerate((W.get(sd) or {}).get(S.PLAN_BOOK) or []) if cc == c), None)
+        rank = next((k + 1 for k, (cc, _) in enumerate((W.get(sd) or {}).get(S.LIST_BOOK) or []) if cc == c), None)
         why = ([f"{int(sd[5:7])}/{int(sd[8:])} 那週名單第 {rank} 名"] if rank else []) + why_of(sd, c)
         r = float(cl / o - 1) if _ok(cl) and _ok(o) and o else None
         take = bool(q.get("v0")) and i0 is not None
@@ -591,45 +702,145 @@ def plan_state(rec: dict, ctx: dict, names: dict | None = None, trial: list | No
                             "take": take, "bt": bool(seed) and cal[ei] <= S.TAKE,
                             "rl": (float(cl / c0 - 1) if _ok(cl) and _ok(c0) and c0 else None) if take else r})
     out["sell"] = [h["c"] for h in out["hold"] if h["sell"]]
-    cash = bk.cash + sum(q["k"] * (px[c]["c"][i1] if _ok(px[c]["c"][i1]) else px[c]["cff"][i1]) * (1 - S.TRADE["sell_tax"])
+    cash = bk.cash + sum(q["k"] * (px[c]["c"][i1] if _ok(px[c]["c"][i1]) else px[c]["cff"][i1]) * (1 - T["sell_tax"])
                          for c, q in bk.pos.items() if q["pend"])
-    tgt = min(S.TRADE["weight"], S.TRADE["max_weight"]) * eq
     nbuy = 0
-    if wks and wks[-1] == last:                            # 最後一天就是訊號日：明天開盤照名單買（Book 在最後一天不下單，這裡照它的規則列）
-        cand = [(c, rs) for c, rs in rec["weeks"][last][S.PLAN_BOOK] if c not in bk.pos and c in px]
-        for c, rs in sorted(cand, key=lambda x: -x[1]):
-            fill = cash >= 0.25 * tgt and len(bk.pos) - len(out["sell"]) + nbuy < S.TRADE["max_positions"]
-            out["buy"].append({"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1), "fill": bool(fill), "why": why_of(last, c)})
+    if wks and wks[-1] == last and (not n8 or last >= S.START4):   # 最後一天就是訊號日：明天開盤照名單買（Book 在最後一天不下單，這裡照它的規則列）
+        if n8:
+            hist = load_hist() if hist is None else hist
+            rsd = {c: rs for c, rs in rec["weeks"][last][S.LIST_BOOK]}
+            lists = prior_lists(last, rec.get("weeks") or {}, hist)
+            cand = [(c, sc, run_len(c, lists)) for c, sc in n8_orders(last, rec.get("weeks") or {}, hist) if c not in bk.pos and c in px]
+            cand = sorted(cand, key=lambda x: -x[1])
+        else:
+            cand = sorted(((c, rs, None) for c, rs in rec["weeks"][last][S.LIST_BOOK] if c not in bk.pos and c in px),
+                          key=lambda x: -x[1])
+        held = len(bk.pos) - len(out["sell"])
+        for c, sc, wk in cand:
+            if n8:
+                free = T["slots"] - held - nbuy
+                per = cash / free if free > 0 else 0.0
+                fill = free > 0 and per >= T["min_slot"] * eq / T["slots"]
+                amt = min(per, T["max_weight"] * eq)
+            else:
+                tgt = min(T["weight"], T["max_weight"]) * eq
+                fill = cash >= 0.25 * tgt and held + nbuy < T["max_positions"]
+                amt = min(tgt, cash)
+            rs = rsd[c] if n8 else sc
+            b = {"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1), "fill": bool(fill), "why": why_of(last, c)}
+            if wk is not None:
+                b["wk"] = wk
+            if fill:
+                b["amt"] = float(amt / eq) if eq else None   # 估計買多少（占那本帳）
+            out["buy"].append(b)
             if fill:
                 nbuy += 1
-                cash -= min(tgt, cash)
+                cash -= amt
     out["n_buy"] = nbuy
     return out
 
 
+PICK_TOP = S.TRADE_N8["slots"]        # 選股頁「現在開始的話」列幾檔＝N8 的格數（docs/lab_boom_v2_plan.md 第 8、9 節）
+
+
+def _fail_text(cond, v) -> str:
+    from . import superx as SX
+    k, op, _ = cond
+    if op == "=":
+        return f"不符合「{SX.SHORT.get(k, SX.FNAME.get(k, k))}」"
+    return SX.cond_value_text(tuple(cond), v)
+
+
+def pick_state(ctx: dict, last: str, W: dict, cur: list, cur_d: str, trial: bool, rules: list | None,
+               why: dict | None = None, watch: dict | None = None, names: dict | None = None, hist: dict | None = None) -> dict:
+    """選股頁新飆股卡片（docs/lab_boom_v2_plan.md 第 8、9 節；使用者：「我現在是空手，所以應該要以即刻推薦列出最強的前十名」）：
+    cur＝最新的名單（全部，[[代號, 強度]]，強度高到低）：週五收盤後是那一週的正式名單、週中是到 last 收盤為止的試算；
+    rows＝全部，照 N8 的順序（新上名單的先、同週數依強度；sxlivespec VER 4）；top＝從現金開始會買的檔數（前 top 列）。
+    每一檔：符合哪一條、參考買點（sepa.plan_today，同原本的飆股名單）、上名單第幾週（連續幾個週末在名單上，試算的這一週也算一週）、收盤。
+    watch＝原本的飆股名單（{代號: 標籤}）：不在 cur 上的寫差在哪幾個條件（那一年規則裡差最少的一條）。
+    px＝全部股票 last 的收盤（頁面「我的」用；只存在使用者的瀏覽器）。只描述、不影響任何紀錄。"""
+    from . import sepa as SP
+    P = ctx["P"]
+    cal = P.cal
+    i = cal.index(last)
+    nm = names or {}
+    F = feats_at(ctx, i)
+    lists = prior_lists(cur_d, W, load_hist() if hist is None else hist, incl=not trial)
+
+    def weeks_on(c: str) -> int:
+        return run_len(c, lists) + (1 if trial else 0)
+
+    def raw(c):
+        x = P.s[c]["c"][i] if c in P.s else None
+        return float(x) if _ok(x) else None
+
+    def plan(c: str) -> dict:
+        try:
+            px = ctx["pxs"][c]
+            pl = SP.plan_today(px.h, px.l, px.c, px.v, P.s[c]["c"], i)
+        except Exception:                                  # noqa: BLE001 —— 算不出來＝不寫買點
+            return {}
+        r = {"st": pl.get("st"), "piv": pl.get("piv"), "stop": pl.get("stop"), "hi": pl.get("hi52"), "m50": pl.get("ma50")}
+        return {k: (round(float(v), 2) if isinstance(v, float) else v) for k, v in r.items() if v is not None}
+
+    def row(c: str, rs) -> dict:
+        w = (why or {}).get(c)
+        return {"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1), "why": _why_lines(rules, w), "wk": weeks_on(c),
+                "pl": plan(c), "px": raw(c)}
+    full = {c for c, _ in cur}
+    order = sorted(cur, key=lambda x: -(float(x[1]) - 1000.0 * (max(1, weeks_on(x[0])) - 1)))   # N8 的順序（Book 同一套，穩定排序）
+    rows = [row(c, rs) for c, rs in order]
+    old = []
+    for c, tags in sorted((watch or {}).items(), key=lambda x: -((F.get(x[0]) or {}).get("rs") or 0)):
+        f = F.get(c) or {}
+        o = {"c": c, "n": nm.get(c, c), "tags": list(tags or []), "rs": f.get("rs"), "px": raw(c), "on": c in full, "pl": plan(c)}
+        if c not in full:
+            if not f.get("el"):
+                o["miss"] = ["不在新飆股挑的範圍（月底市值不到 40 億，或 20 日均成交值不到 1,000 萬）"]
+            elif rules:
+                fails = min(([cond for cond in r if not _cond_pred(cond)(f)] for r in rules), key=len)
+                o["miss"] = [_fail_text(cond, f.get(cond[0])) for cond in fails]
+        old.append(o)
+    pxs = {c: round(float(P.s[c]["c"][i]), 2) for c in P.codes if _ok(P.s[c]["c"][i])}
+    return {"d": cur_d, "last": last, "trial": bool(trial), "n": len(cur), "top": PICK_TOP, "rows": rows, "old": old, "px": pxs}
+
+
+def _cond_pred(cond):
+    from . import superx as SX
+    return SX.rule_pred([tuple(cond)])
+
+
 def trial_list(ctx: dict, d: str, R: dict | None = None, why: dict | None = None) -> list:
-    """週中：到 d 收盤為止符合 PLAN_BOOK 那一年規則的股票（day_signals 同一套；只是試算、不記錄）。
+    """週中：到 d 收盤為止符合 LIST_BOOK（R60）那一年規則的股票（day_signals 同一套；只是試算、不記錄）。
     why（dict）＝另外填 {代號: {"k", "v"}}（符合哪幾條）。"""
-    rules = rules_for(int(d[:4]), S.PLAN_BOOK, R)
+    rules = rules_for(int(d[:4]), S.LIST_BOOK, R)
     if not rules or d not in ctx["P"].cal:
         return []
     wy: dict = {}
-    out = day_signals(ctx["P"].cal.index(d), ctx, {S.PLAN_BOOK: rules}, why=wy).get(S.PLAN_BOOK) or []
+    out = day_signals(ctx["P"].cal.index(d), ctx, {S.LIST_BOOK: rules}, why=wy).get(S.LIST_BOOK) or []
     if why is not None:
-        why.update(wy.get(S.PLAN_BOOK) or {})
+        why.update(wy.get(S.LIST_BOOK) or {})
     return out
 
 
-def ytd_part(rec: dict, ctx: dict, last: str | None) -> dict | None:
-    """今年逐月、逐筆表（ytdspec VER 1）要的：PLAN_BOOK 接手以後每天的總資產與每一筆（元，那本帳自己的規模）。
+YTD_COL = {"R60": 0, "N8B": 6}        # nav 的哪一欄（ytd_part 用）
+
+
+def ytd_part(rec: dict, ctx: dict, last: str | None, book: str | None = None) -> dict | None:
+    """今年逐月、逐筆表（ytdspec）要的：那本帳接手以後每天的總資產與每一筆（元，那本帳自己的規模）。
+    book＝R60（ytdspec VER 1）或 N8B（VER 2，預設）。
     → {"take", "e0"（接手那天收盤）, "eq": {日期: 總資產}, "closed": [[代號, 買進日, 賣出日, 報酬, 原因, 賺賠, 股數, 接手以來賺賠|None]],
-       "open": [[代號, 買進日, 買進成本, 接手那天的市值|None, 最新市值, 股數]]}；沒有接手的狀態或還沒算＝None。"""
-    bk, e0, px = rec.get("_book"), rec.get("_base"), rec.get("_px")
+       "open": [[代號, 買進日, 買進成本, 接手那天的市值|None, 最新市值, 股數, 買進價, 收盤]]}；沒有接手的狀態或還沒算＝None。
+    買進價：接手時就拿著的用接手檔記的（回測引擎的買進價），之後買的用頁面那天的原始開盤。"""
+    book = book or S.BT_BOOK
+    bk, e0 = (rec.get("_bt"), rec.get("_btbase")) if book == S.BT_BOOK else (rec.get("_book"), rec.get("_base"))
+    px = rec.get("_px")
     if bk is None or not e0 or not px or not last:
         return None
     cal = ctx["P"].cal
     i1 = cal.index(last)
-    eq = {d: round(v[0] / 100 * e0, 2) for d, v in (rec.get("nav") or {}).items() if v and v[0] is not None}
+    col = YTD_COL[book]
+    eq = {d: round(v[col] / 100 * e0, 2) for d, v in (rec.get("nav") or {}).items() if v and len(v) > col and v[col] is not None}
     closed = []
     for t in bk.trades:
         c, si, ei, xi, r, why, sh, pnl, *tk = t
@@ -639,16 +850,21 @@ def ytd_part(rec: dict, ctx: dict, last: str | None) -> dict | None:
     for c, q in sorted(bk.pos.items(), key=lambda x: (x[1]["ei"], x[0])):
         p = px[c]
         v = q["k"] * (p["c"][i1] if _ok(p["c"][i1]) else p["cff"][i1])
+        cl = p["c"][i1] if _ok(p["c"][i1]) else p["cff"][i1]
         opens.append([c, cal[q["ei"]], round(float(q["cin"]), 2), round(float(q["v0"]), 2) if q.get("v0") else None,
-                      round(float(v), 2), float(q["sh"])])
-    return {"take": S.TAKE, "e0": round(float(e0), 2), "eq": eq, "closed": closed, "open": opens}
+                      round(float(v), 2), float(q["sh"]), (q["epx"] if q.get("v0") and q.get("epx") else _raw(p, "o", q["ei"])),
+                      (cl / p["f"][i1]) if _ok(cl) and _ok(p["f"][i1]) and p["f"][i1] else None])
+    return {"book": book, "take": S.TAKE, "e0": round(float(e0), 2), "eq": eq, "closed": closed, "open": opens}
 
 
 # ── 紀錄 ─────────────────────────────────────────────────────────────
 
+KEEP_FROM = 3                         # 這一版起的每週紀錄沿用（VER 4 沒有改名單的記法，只多一本 N8）
+
+
 def read() -> dict:
     doc = store.read_json(S.LOG_FILE, {}) or {}
-    if not isinstance(doc, dict) or doc.get("ver") != S.VER:
+    if not isinstance(doc, dict) or (doc.get("ver") or 0) < KEEP_FROM:
         doc = {}
     return {"ver": S.VER, "spec": S.SPEC_DATE, "start": S.START, "weeks": dict(doc.get("weeks") or {})}
 
@@ -702,8 +918,9 @@ def missing_year(last: str | None, R: dict | None = None) -> int | None:
     return y if rules_for(y, S.RULE_BOOKS[0], R) is None else None
 
 
-def update(DL, ctx: dict | None = None, now=None, write_file: bool | None = None) -> dict:
-    """補記新的訊號週、重算成績；只有 CI 寫回。→ 紀錄（含 nav、trades、open、stats）。"""
+def update(DL, ctx: dict | None = None, now=None, write_file: bool | None = None, watch: dict | None = None) -> dict:
+    """補記新的訊號週、重算成績；只有 CI 寫回。→ 紀錄（含 nav、trades、open、stats）。
+    watch＝原本的飆股名單（{代號: 標籤}；company.market_table 的 watch），選股頁寫差在哪幾個條件。"""
     from .. import clock
     from . import superx as SX
     now = now or clock.now_tw()
@@ -737,33 +954,49 @@ def update(DL, ctx: dict | None = None, now=None, write_file: bool | None = None
             if sets:
                 wy: dict = {}
                 sg = day_signals(ix[d], ctx, sets, why=wy)
-                add_week(rec["weeks"], d, sg, t, r1v, why={b: v for b, v in wy.items() if b == S.PLAN_BOOK})
+                add_week(rec["weeks"], d, sg, t, r1v, why={b: v for b, v in wy.items() if b == S.LIST_BOOK})
         rec["last"] = last
         i0 = start_index(cal)
         if i0 is not None and i0 <= ix[last]:
-            rec.update(perf(ctx, rec["weeks"], last, seed=seed))
+            rec.update(perf(ctx, rec["weeks"], last, seed=seed, hist=load_hist(), seed_bt=load_seed_bt()))
     if write_file:
         write(rec)
     st = rec.get("stats") or {}
-    plan = None
-    try:                                                   # VER 2：配置頁（台股）要的新飆股狀態；算不出來只少那一塊
+    plan = n8 = ytdp = None
+    try:                                                   # 交易計畫（R60，VER 2～3）與選股頁（N8，VER 4）要的新飆股狀態；算不出來只少那一塊
         from . import company
         nm = company.names()
-        tr = []
+        hist = load_hist()
+        tr, tfull, tw = [], [], {}
+        rl = rules_for(int(last[:4]), S.LIST_BOOK, R) if last else None
         if last and last not in week_ends(last, last):      # 這一週還沒結束：試算到今天收盤為止符合的股票
-            tw: dict = {}
-            rl = rules_for(int(last[:4]), S.PLAN_BOOK, R)
+            tfull = trial_list(ctx, last, R, why=tw)
             tr = [{"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1), "why": _why_lines(rl, tw.get(c))}
-                  for c, rs in trial_list(ctx, last, R, why=tw)[:S.LIST_SHOW]]
-        plan = plan_state(dict(rec, last=last), ctx, nm, tr, R, seed)  # START 之前（資料停在 START 前一天）也要算下一次看名單的日子
-        yp = ytd_part(rec, ctx, last)                      # 今年逐月、逐筆表（ytdspec）：接手以後那本帳的錢
-        if plan is not None and yp:
-            plan["ytd"] = yp
+                  for c, rs in tfull[:S.LIST_SHOW]]
+        r2 = dict(rec, last=last)
+        plan = plan_state(r2, ctx, nm, tr, R, seed, book=S.TAKE_BOOK, hist=hist)   # START 之前（資料停在 START 前一天）也要算下一次看名單的日子
+        n8 = plan_state(r2, ctx, nm, tr, R, seed, book=S.PLAN_BOOK, hist=hist)
+        try:                                               # 選股頁的新飆股卡片：最新的名單（週中＝試算）照 N8 會買的、新上名單、原本的飆股名單差在哪
+            W = {**seed_weeks(seed), **(rec.get("weeks") or {})}
+            if tfull:
+                cur, cur_d, cw = tfull, last, tw
+            else:
+                wd = max((d for d, w in W.items() if S.LIST_BOOK in w and d <= last), default=None)
+                cur, cur_d = ((W[wd][S.LIST_BOOK], wd) if wd else ([], None))
+                cw = ((W.get(wd) or {}).get("why") or {}).get(S.LIST_BOOK) or {} if wd else {}
+            if cur_d:
+                n8["pick"] = pick_state(ctx, last, W, cur, cur_d, bool(tfull), rules_for(int(cur_d[:4]), S.LIST_BOOK, R),
+                                        cw, watch, nm, hist)
+        except Exception as e:                             # noqa: BLE001
+            print(f"[sxlive] ⚠ 選股頁的新飆股名單算不出來：{type(e).__name__}: {e}")
+        yp = ytd_part(rec, ctx, last)                      # 今年逐月、逐筆表（ytdspec VER 2）：接手以後 N8B 那本帳的錢
+        if yp:
+            ytdp = {"ytd": yp}
     except Exception as e:                                 # noqa: BLE001
-        print(f"[sxlive] ⚠ 新飆股的配置頁狀態算不出來：{type(e).__name__}: {e}")
-    for k in ("_book", "_px", "_base", "_i0"):
+        print(f"[sxlive] ⚠ 新飆股的狀態算不出來：{type(e).__name__}: {e}")
+    for k in ("_book", "_px", "_base", "_i0", "_pbook", "_pbase", "_bt", "_btbase"):
         rec.pop(k, None)
     LAST.clear()
     LAST.update({"d": last, "start": S.START, "weeks": len(rec["weeks"]), "due": due(last), "miss": missing_year(last, R),
-                 "v": {b: (st.get(b) or {}).get("ret") for b in (*S.BOOKS, "TR", "EW")}, "plan": plan})
+                 "v": {b: (st.get(b) or {}).get("ret") for b in (*S.BOOKS, "TR", "EW")}, "plan": plan, "n8": n8, "ytd": ytdp})
     return rec

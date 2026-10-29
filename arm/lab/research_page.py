@@ -6,6 +6,7 @@
 - 景氣：證據地圖、完整數字與方法、階段時間軸、熱度地形的資料都在市場頁（x9m／x9mu），留在市場頁的研究畫面（#v=research／phase／terrain），
   這頁只列入口（第 2 段）。
 - 訊號（原本訊號總覽的研究結論、完整研究表、全部指標、名詞與判定方式）與泡沫（原本泡沫頁的全部內容）直接放在這頁（第 2 段）。
+- 個股報告（docs/lab_equity_report_plan.md 第 11 節）：eqsite.research_body，每家最新一版一列＋產業報告；報告頁在 dashboard/rp/。
 - 策略候選（第 5 段，docs 第 24 節）：每一條候選一張卡（candpage.research_body），全部策略表的候選列點名稱連到這裡（#cand-編號）。
 - 台指期早盤（股票期貨人生，docs/lab_fut_plan.md 第 6 節）：futpage.research_body；全部策略表那一列點名稱連到這裡（#fut）。
 - 少見但勝率高的策略（docs/lab_rare_plan.md）：rarepage.research_body；全部策略表那九列點名稱連到這裡（#rare-規則）。
@@ -38,6 +39,8 @@ GROUPS = (
         ("後台・換股研究", "x9.html?v=bo&at=idx-study", "臺灣50 與高股息 ETF 換股的事件研究、被動買盤大小、提前卡位回測"),
         ("後台・每日更新時程", "x9.html?v=bo&at=bo-sched", "每一班自動更新做什麼、幾點"),
     )),
+    ("eq", "個股報告", "選股頁名單上的公司寫的深度報告（投行首次報告的格式）：評等、目標價、同業比較、估值與三個情境、催化劑；"
+     "同產業共用一份產業報告。報告裡的數字都對得回本站資料或原文連結；評等不影響任何策略與選股名單。", ()),
     ("cand", "策略候選", "全部策略表「候選」那幾列的細節：每一條的來源、規則、回測、放進交易計畫的試算、試用紀錄與你的決定。", ()),
     ("rare", "少見但勝率高的策略", "全部策略表「觀察中」那九條（期中選舉、聖誕老人行情、封關前一週…）的細節：原說法與出處、規則、"
      "五個市場的成績、來源發表之後與更早期間的成績、每一次的清單、現在。", ()),
@@ -120,6 +123,16 @@ def rare_body() -> str:
         return '<p class="rnote">少見但勝率高的策略讀不到。</p>'
 
 
+def eq_body() -> str:
+    """個股報告與產業報告清單（eqsite.research_body；「目標價」可以出現的位置之一）；讀不到只寫一句。"""
+    try:
+        from . import eqsite
+        return eqsite.research_body()
+    except Exception as e:                               # noqa: BLE001
+        print(f"[研究紀錄] 個股報告讀不到：{type(e).__name__}: {e}")
+        return '<p class="rnote">個股報告讀不到。</p>'
+
+
 def fut_body() -> str:
     """台指期早盤（futpage.research_body）；讀不到只寫一句。"""
     try:
@@ -143,8 +156,10 @@ def render(SV: dict | None = None, BV: dict | None = None) -> str:
     from . import candpage as CP
     from . import futpage as FPG
     from . import rarepage as RPG
-    host = {"sig": SPG.research_body(SV), "bub": BPG.research_body(BV), "cand": cand_body(), "rare": rare_body(), "fut": fut_body()}
-    css = HCSS + appnav.CSS + SPG.research_css() + BPG.research_css() + CP.CSS + RPG.CSS + FPG.CSS + CSS
+    from . import eqsite
+    host = {"sig": SPG.research_body(SV), "bub": BPG.research_body(BV), "eq": eq_body(), "cand": cand_body(), "rare": rare_body(),
+            "fut": fut_body()}
+    css = HCSS + appnav.CSS + SPG.research_css() + BPG.research_css() + CP.CSS + RPG.CSS + FPG.CSS + eqsite.CSS + CSS
     js = (SPG.JS if has_sig else "") + BPG.JS + IP.JS + OPEN_JS
     return appnav.finish(_HTML.replace("{{APPTAB}}", appnav.bar("r")).replace("{{CSS}}", css)
                          .replace("{{BODY}}", body(host)).replace("{{PANEL}}", SPG.PANEL if has_sig else "")

@@ -103,11 +103,25 @@ VER 4（2026-10-24；docs/lab_core70_plan.md 第 16～19 節）
     包括第 18 節每個核心比例在七段期間的結果（核心比例照寫定的選法選出來）；「各半」是使用者看過第 17 節的表選的，0.69 是第 16 節量的。
     探索時美股空位放現金仍付了指數的成本（ussxbook 的 c_idx），正式版不付（ussxspec VER 4）。
     沒有算過：VER 4 的正式研究檔（前後兩半、最近 10 年、換現金表、12 個月分布）、美股判定 ② 在核心 0% 的結果。
+
+VER 5（2026-10-29；docs/lab_boom_v2_plan.md 第 10 節）——寫在算任何 VER 5 的計畫數字之前
+  使用者 2026-10-29：交易計畫和今年逐月表要不要改看新飆股 8 格（N8）——「要改」。
+  ① 台股機動的新飆股那一半＝sxlivespec 的 PLAN_BOOK（N8：買 R60 每週的名單、8 格、新上名單的先買、抱 60 天；選股頁同一本，
+     10/30 收盤第一次下單、從現金開始），取代 VER 4 的 R60。那一半照 N8 那本帳的持股比例（每格約那本帳的 1/8；那本帳的現金就是現金）。
+     ★ 那一半、核心、警訊、換現金與買回、美股全部不變。
+  ② 回測（研究檔 core_research.json；scripts/run_core.py）：新飆股＝W10 挑出的做法（sxfixspec 的 pick：8 格・新上名單的先買・
+     不管漲太遠・抱 60 天）同一個引擎（tw-superstock-lab/scripts/run_w10.py 的 run），W7 的逐年規則與名單不變
+     → data/lab/SX_CURVE_FILE（scripts/run_sx_curve.py --book N8；年化要和 W10_results.json 那一組一樣，差超過 0.01 個百分點就不寫檔）。
+     其他算法（PLAN4_START 起、★ 那一半、利息、成本、比較）照 VER 4。VER 4 的 R60 淨值檔（SX_CURVE_R60）留著給接手的核對用。
+  ③ 生效：合併進 main 之後的第一筆紀錄起。前瞻紀錄（core_live.json）沿用 VER 4 記下的日子（LIVE_KEEP：警訊與 ★ 策略都沒變）；
+     台股 sat 從生效那天起記 N8。紀錄上 R60 的持股在生效那天收盤算賣掉；N8 第一次下單前那一半是現金。
+  ④ 寫這一版之前看過的：W10 的 24 組成績（N8 2019 起年化 50.7%、2019–2022 34.0%、2023 起 70.6%，今年到 10/14 62.5%，R60 113.3%）、
+     VER 4 的計畫數字（新飆股放 R60）。沒有算過：新飆股放 N8 的計畫回測。
 """
 from __future__ import annotations
 
-VER = 4
-SPEC_DATE = "2026-10-24"
+VER = 5
+SPEC_DATE = "2026-10-29"
 
 MARKETS = ("tw", "spx", "ndx")
 NAMES = {"tw": "台股", "spx": "S&P 500", "ndx": "那斯達克 100"}
@@ -142,11 +156,12 @@ SLOTS_DEFAULT = 5
 BACKTEST_SLEEVE = ("v3l",)       # 回測期間有紀錄的 ★（財報驚喜（大型股）；bt3l.top5 的 p3 L）
 US_SLEEVE_FILE = "ussx_qm.json"   # VER 3：美股衛星＝QM（data/lab/ 底下；這個檔判定過的計畫才換）
 BOOM_SHARE = {"tw": 0.5}          # VER 4：台股機動裡新飆股的比例（其餘給 ★ 策略平分）
-BOOM_BOOK = "R60"                 # VER 4：新飆股＝sxlivespec 的 R60 那本帳
+BOOM_BOOK = "N8"                  # VER 5：新飆股＝sxlivespec 的 PLAN_BOOK（N8，選股頁那一本）；VER 4＝R60
 IDLE = "cash"                     # VER 4：機動裡沒有部位的那一份放現金（VER 1～3＝放大盤）
 STAR_ACTIVE = 0.69                # VER 4 回測：★ 那一半＝財報驚喜 × 0.69＋利息 × 0.31（第 16 節）
 PLAN4_START = "2019-01-02"        # VER 4 台股照計畫的回測起點（新飆股逐年規則的第一個交易日；superfixspec OOS_START）
-SX_CURVE_FILE = "sx_r60_curve.json"   # VER 4：R60 那本帳的回測淨值與每天的持股比例（data/lab/；scripts/run_sx_curve.py）
+SX_CURVE_FILE = "sx_n8_curve.json"    # VER 5：N8 做法的回測淨值與每天的持股比例（data/lab/；scripts/run_sx_curve.py --book N8）
+SX_CURVE_R60 = "sx_r60_curve.json"    # VER 4：R60 那本帳的回測淨值（scripts/run_sx_curve.py；接手的核對 run_sxlive_seed.py 用）
 
 # 回測
 RULE_START = {"tw": "2006-01-25", "spx": "2000-01-03", "ndx": "2000-12-29"}
@@ -160,6 +175,7 @@ Q = (0.10, 0.50, 0.90)
 
 # 前瞻
 LIVE_START = "2026-10-26"          # VER 4 起從頭記（VER 1～3＝2026-10-23）
+LIVE_KEEP = (4,)                   # VER 5：這幾版記下的日子沿用（警訊與 ★ 策略沒變，只換新飆股那一本）
 CHECKS = (63, 126, 252, 504, 756)
 WEEK = 5
 P_LOW = 0.20

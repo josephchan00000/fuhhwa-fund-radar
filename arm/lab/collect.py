@@ -421,8 +421,15 @@ def update_revenue() -> bool:
     if not ym or len(data) < 1000:
         market.log(f"月營收解析偏少：{len(data)} 檔（{ym}）")
         return False
-    store.write("rev", ym, {"ym": ym, "s": data})
-    market.log(f"月營收 {ym}：{len(data)} 檔")
+    # 只增不減（2026-10-29 踩坑：上櫃那一支沒抓到，只剩上市 1,087 檔的結果蓋掉了 1,980 檔的 9 月，
+    # 上櫃公司的「月營收創新高」全變成沒有資料）：同一個月已有的公司保留，新抓到的覆蓋同一家公司
+    old = store.read("rev", ym) or {}
+    doc = {"ym": ym, "s": {**(old.get("s") or {}), **data}}
+    if old.get("src"):
+        doc["src"] = old["src"]
+    if not store.write("rev", ym, doc):
+        return False
+    market.log(f"月營收 {ym}：本次 {len(data)} 檔，合計 {len(doc['s'])} 檔")
     return True
 
 

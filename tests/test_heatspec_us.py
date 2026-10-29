@@ -7,7 +7,8 @@ from arm.lab import heatspec_us as U
 
 
 def test_us_spec_v1_is_locked():
-    assert U.VER == 2 and U.SPEC_DATE == "2026-10-22" and U.MARKET == "us"     # VER 2：補缺月、資料過期（docs/lab_audit_plan.md）
+    # VER 2：補缺月、資料過期（docs/lab_audit_plan.md）；VER 3：情緒籌碼改成各指數自己的項目（docs/lab_us_chip_plan.md）
+    assert U.VER == 3 and U.SPEC_DATE == "2026-10-29" and U.MARKET == "us"
     assert list(U.INDICES) == list(U.INDEX_ORDER) == ["spx", "ixic", "ndx", "sox"]
     assert {k: v["sym"] for k, v in U.INDICES.items()} == {"spx": "^GSPC", "ixic": "^IXIC", "ndx": "^NDX", "sox": "^SOX"}
     assert U.IVOL == {"spx": "vix", "ixic": "vxn", "ndx": "vxn", "sox": "vix"}
@@ -18,7 +19,7 @@ def test_us_spec_v1_is_locked():
         "bubl": ((120, 250), "m")}
     hot = {k: h for k, _, _, _, h, _, _ in U.IND}
     assert hot == {"F1": 1, "F2": 1, "F3": 1, "F4": -1, "F5": -1, "F6": 1, "F7": 1, "F8": 1, "F9": 1, "F10": 1, "F11": 1,
-                   "S1": 1, "S2": 1, "S3": -1, "S4": -1, "S5": 1,
+                   "S1": 1, "S2": 1, "S3": -1, "S4": -1, "S5": 1, "S6": 1, "S7": -1, "S8": 1, "S9": 1,
                    "R1": -1, "R2": -1, "R3": -1, "R4": 1, "R5": 1, "R6": -1, "R7": 1, "R8": 1, "R9": -1, "R10": 1,
                    "T1": 1, "T2": 1, "T3": 1, "T4": 1, "T8": -1, "T9": -1, "T11": 1, "T12": 1, "T13": 1, "T14": 1,
                    "X1": 1, "X2": 1, "X3": 1, "X4": 1, "X5": 1, "X6": 1, "X7": -1, "X8": 1, "X9": 1, "X10": 1, "X11": 1}
@@ -31,11 +32,20 @@ def test_us_spec_v1_is_locked():
                          "R6": (1, 20), "R7": (1, 28), "R10": (1, 15), "X1": (1, 1), "X4": (1, 1), "X6": (1, 1),
                          "X7": (1, 1), "X8": (1, 1), "X9": (1, 1), "X10": (1, 1)}
     assert U.ONLY == {"F10": ("sox",), "F11": ("sox",), "T14": ("ixic", "ndx", "sox"), "X10": ("spx",),
-                      "X11": ("ixic", "ndx", "sox")}
+                      "X11": ("ixic", "ndx", "sox"), "S1": ("spx",), "S2": ("spx",), "S8": ("ixic", "ndx", "sox"),
+                      "S9": ("ixic", "ndx", "sox")}
     assert U.DIRECT == {"T11": 6} and U.PRESCORED == ("X1", "X4", "X5", "X10")
     assert U.PCT_WIN_ITEM == {"X2": (2500, 1250), "X3": (2500, 1250), "X11": (2500, 1250), "S5": (40, 20)}
     assert U.US == ("R1",) and U.PROXY == {}
-    assert U.STALE == {"S1": 14, "S2": 14, "S3": 14, "R8": 14, "X5": 14} and U.AVAIL_DAYS == {"S1": 4, "S2": 4, "S3": 4, "R8": 2}
+    assert U.STALE == {"S1": 14, "S2": 14, "S3": 14, "S8": 14, "S9": 14, "R8": 14, "X5": 14}
+    assert U.AVAIL_DAYS == {"S1": 4, "S2": 4, "S3": 4, "S8": 4, "S9": 4, "R8": 2, "S7": 1}
+    # VER 3：S6 槓桿 ETF 成交金額多空比、S7 成分股內部人淨買比例
+    assert U.LEV == {"spx": ("SPXL", "SPXS"), "ixic": ("TQQQ", "SQQQ"), "ndx": ("TQQQ", "SQQQ"), "sox": ("SOXL", "SOXS")}
+    assert (U.LEV_DAYS, U.LEV_MODE) == (20, "vol")
+    assert U.INS == {"spx": "spx", "ixic": "ndx", "ndx": "ndx", "sox": "semi"}
+    assert (U.INS_DAYS, U.INS_MIN, U.INS_CODES, U.INS_SIC, U.INS_SINCE) == (
+        63, {"spx": 10, "ndx": 10, "semi": 5}, {"buy": "P", "sell": "S"}, "3674", "2006-01-01")
+    assert U.NQ_SWAP == {"S1": "S8", "S2": "S9"}
     assert U.SPLIT_REF == {"d": ((None, "1999-12-31"), ("2000-01-01", None)), "m": ((None, "1999-12-31"), ("2000-01-01", None))}
     assert [r[0] for r in U.REF] == ["Q1", "Q2", "Q3"]
     assert U.DSHORT == {"fund": "基本面", "sent": "情緒籌碼", "liq": "資金", "tech": "技術", "bubl": "泡沫"}
@@ -66,10 +76,10 @@ def test_us_shares_default_bound_constants_with_taiwan():
 
 
 def test_spec_for_each_index():
-    want = {"spx": {"fund": 9, "sent": 5, "liq": 10, "tech": 9, "bubl": 10},
-            "ixic": {"fund": 9, "sent": 5, "liq": 10, "tech": 10, "bubl": 10},
-            "ndx": {"fund": 9, "sent": 5, "liq": 10, "tech": 10, "bubl": 10},
-            "sox": {"fund": 11, "sent": 5, "liq": 10, "tech": 10, "bubl": 10}}
+    want = {"spx": {"fund": 9, "sent": 7, "liq": 10, "tech": 9, "bubl": 10},
+            "ixic": {"fund": 9, "sent": 7, "liq": 10, "tech": 10, "bubl": 10},
+            "ndx": {"fund": 9, "sent": 7, "liq": 10, "tech": 10, "bubl": 10},
+            "sox": {"fund": 11, "sent": 7, "liq": 10, "tech": 10, "bubl": 10}}
     for idx, n in want.items():
         sp = U.spec_for(idx)
         assert {d: len(v) for d, v in sp["ITEMS"].items()} == n
@@ -79,13 +89,22 @@ def test_spec_for_each_index():
         assert set(sp["PRESCORED"]) <= set(sp["KEYS"]) and set(sp["PCT_WIN_ITEM"]) <= set(sp["KEYS"])
     assert "X10" in U.keys_for("spx") and "X11" not in U.keys_for("spx") and "T14" not in U.keys_for("spx")
     assert "X11" in U.keys_for("sox") and "F10" in U.keys_for("sox") and "F10" not in U.keys_for("ndx")
-    assert [H.need(n) for n in (9, 5, 10, 11)] == [6, 4, 7, 8]
+    assert [H.need(n) for n in (9, 7, 10, 11)] == [6, 5, 7, 8]
+    # VER 3：S&P 500 用 S&P 500 期貨（S1、S2），其他三個用那斯達克 100 期貨（S8、S9）；第六版核心項目跟著換
+    assert U.spec_for("spx")["ITEMS"]["sent"] == ["S1", "S2", "S3", "S4", "S5", "S6", "S7"]
+    for idx in ("ixic", "ndx", "sox"):
+        sp = U.spec_for(idx)
+        assert sp["ITEMS"]["sent"] == ["S3", "S4", "S5", "S6", "S7", "S8", "S9"]
+        assert list(sp["DERIV"]) == ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "R7", "S8", "S9", "R1", "R2"]
+        assert sp["DERIV"]["S8"] == U.DERIV["S1"] and sp["DERIV"]["S9"] == U.DERIV["S2"]
+        assert sp["M6_GROUPS"]["lev"] == ("S8", "S9") and set(sp["DERIV"]) <= set(sp["KEYS"])
+    assert U.spec_for("spx")["DERIV"] == U.DERIV and U.spec_for("spx")["M6_GROUPS"] == U.M6_GROUPS
 
 
 def test_use_switches_and_restores():
     tw = (S.VER, S.MARKET, list(S.KEYS), dict(S.ITEMS), S.US, S.DSHORT)
     with S.use(U.spec_for("ndx")):
-        assert (S.VER, S.MARKET, S.INDEX) == (2, "us", "ndx")
+        assert (S.VER, S.MARKET, S.INDEX) == (3, "us", "ndx")
         assert S.ITEMS["tech"][-1] == "T14" and S.US == ("R1",) and S.band(85) == "過熱"
     assert (S.VER, S.MARKET, list(S.KEYS), dict(S.ITEMS), S.US, S.DSHORT) == tw
     assert not hasattr(S, "INDEX") and not hasattr(S, "INDICES")      # 美股才有的名稱離開時拿掉

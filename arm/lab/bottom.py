@@ -601,7 +601,8 @@ def inputs_us(idx: str, Bu: dict, I0: dict, vol: dict | None = None, BX: dict | 
     if rows:
         I["bublv"] = _bub_levels(cal, rows, CR.complete_months(cal))
     sig: dict = {"vix": _arr(H.asof_daily(cal, (Bu.get("D") or {}).get("vix") or {}, stale=7)),
-                 "net": _arr((Bu["raw"].get("S2") or [None] * len(Bu["cal"]))[c0:]), "c5floor": S.C5_FLOOR["us"]}
+                 "net": _arr((Bu["raw"].get("S2") or (Bu.get("xraw") or {}).get("S2")      # heatspec_us VER 3：那斯達克頁的 S2 在 xraw
+                              or [None] * len(Bu["cal"]))[c0:]), "c5floor": S.C5_FLOOR["us"]}
     if "C7" in S.SIG_MK[idx] and vol:
         sig["vol"] = _exact(cal, vol)
     if {"C3", "C8"} & set(S.SIG_MK[idx]):                        # VER 4：S&P 500 成分股的漲跌家數（四個指數同一份）

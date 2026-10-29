@@ -135,6 +135,7 @@ class Px:
         self.s: dict[str, dict] = {}
         self.cap: dict[str, list] = {}
         self.liq: dict[str, list] = {}
+        self.basis: dict[str, list] = {}                 # 每檔的口徑倍數 F（_basis；sxlive.panel 用來認出已經換算過的配股）
         off = [(i, d, D.mkt[d]) for i, d in enumerate(self.cal)
                if D.mkt.get(d) and (D.mkt[d].get("q_tw") or D.mkt[d].get("q_tp"))]
         for c in codes:
@@ -150,6 +151,7 @@ class Px:
             v = [None if x is None else x * F[i] for i, x in enumerate(S["v"])]
             val = [vl if vl else (vv * cc if vv and cc else None) for vv, cc, vl in zip(S["v"], raw, S["val"])]
             self.s[c] = {"o": o, "h": h, "l": l, "c": cl, "v": v}
+            self.basis[c] = F
             self.cap[c] = [None if x is None else x * iss[c] for x in cl]
             self.liq[c] = _rmean(val, 20, 10)
         self.codes = sorted(self.s)

@@ -24,3 +24,40 @@
 2026-10-23 15:22,W8_A_X4,{"data": "lab-A8", "exit": {"trail": 0.3}, "label": "A", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X4", "weight": 0.125}
 2026-10-23 15:22,W8_A_X5,{"data": "lab-A8", "exit": {"ma": 50, "stop": 0.08}, "label": "A", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X5", "weight": 0.125}
 2026-10-23 15:22,W8_A_X6,{"data": "lab-A8", "exit": {"stop": 0.2, "trail": 0.3}, "label": "A", "spec": "sxexitspec VER 1", "start": "2019-01-02", "w8": "X6", "weight": 0.125}
+2026-10-29 07:42,W9_main|ma50|mkt,{"data": "lab-A8", "spec": "sepaspec VER 1", "start": "2019-01-02", "w9": "main|ma50|mkt"}
+2026-10-29 07:42,W9_main|ma50|nomkt,{"data": "lab-A8", "spec": "sepaspec VER 1", "start": "2019-01-02", "w9": "main|ma50|nomkt"}
+2026-10-29 07:42,W9_main|hold60|mkt,{"data": "lab-A8", "spec": "sepaspec VER 1", "start": "2019-01-02", "w9": "main|hold60|mkt"}
+2026-10-29 07:42,W9_main|hold60|nomkt,{"data": "lab-A8", "spec": "sepaspec VER 1", "start": "2019-01-02", "w9": "main|hold60|nomkt"}
+2026-10-29 07:42,W9_strict|ma50|mkt,{"data": "lab-A8", "spec": "sepaspec VER 1", "start": "2019-01-02", "w9": "strict|ma50|mkt"}
+2026-10-29 07:42,W9_strict|ma50|nomkt,{"data": "lab-A8", "spec": "sepaspec VER 1", "start": "2019-01-02", "w9": "strict|ma50|nomkt"}
+2026-10-29 07:42,W9_strict|hold60|mkt,{"data": "lab-A8", "spec": "sepaspec VER 1", "start": "2019-01-02", "w9": "strict|hold60|mkt"}
+2026-10-29 07:42,W9_strict|hold60|nomkt,{"data": "lab-A8", "spec": "sepaspec VER 1", "start": "2019-01-02", "w9": "strict|hold60|nomkt"}
+2026-10-29 07:42,W9_trend|ma50|mkt,{"data": "lab-A8", "spec": "sepaspec VER 1", "start": "2019-01-02", "w9": "trend|ma50|mkt"}
+2026-10-29 07:42,W9_trend|ma50|nomkt,{"data": "lab-A8", "spec": "sepaspec VER 1", "start": "2019-01-02", "w9": "trend|ma50|nomkt"}
+2026-10-29 07:42,W9_trend|hold60|mkt,{"data": "lab-A8", "spec": "sepaspec VER 1", "start": "2019-01-02", "w9": "trend|hold60|mkt"}
+2026-10-29 07:42,W9_trend|hold60|nomkt,{"data": "lab-A8", "spec": "sepaspec VER 1", "start": "2019-01-02", "w9": "trend|hold60|nomkt"}
+2026-10-29 07:42,W9_main|book|mkt,{"data": "lab-A8", "spec": "sepaspec VER 1", "start": "2019-01-02", "w9": "main|book|mkt"}
+2026-10-29 10:58,W10_cur-rs-off-h60,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "cur-rs-off-h60"}
+2026-10-29 10:58,W10_cur-rs-off-renew,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "cur-rs-off-renew"}
+2026-10-29 10:58,W10_cur-rs-on-h60,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "cur-rs-on-h60"}
+2026-10-29 10:58,W10_cur-rs-on-renew,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "cur-rs-on-renew"}
+2026-10-29 10:58,W10_cur-new-off-h60,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "cur-new-off-h60"}
+2026-10-29 10:58,W10_cur-new-off-renew,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "cur-new-off-renew"}
+2026-10-29 10:58,W10_cur-new-on-h60,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "cur-new-on-h60"}
+2026-10-29 10:58,W10_cur-new-on-renew,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "cur-new-on-renew"}
+2026-10-29 10:58,W10_s10-rs-off-h60,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s10-rs-off-h60"}
+2026-10-29 10:58,W10_s10-rs-off-renew,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s10-rs-off-renew"}
+2026-10-29 10:58,W10_s10-rs-on-h60,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s10-rs-on-h60"}
+2026-10-29 10:58,W10_s10-rs-on-renew,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s10-rs-on-renew"}
+2026-10-29 10:58,W10_s10-new-off-h60,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s10-new-off-h60"}
+2026-10-29 10:58,W10_s10-new-off-renew,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s10-new-off-renew"}
+2026-10-29 10:58,W10_s10-new-on-h60,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s10-new-on-h60"}
+2026-10-29 10:58,W10_s10-new-on-renew,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s10-new-on-renew"}
+2026-10-29 10:58,W10_s8-rs-off-h60,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s8-rs-off-h60"}
+2026-10-29 10:58,W10_s8-rs-off-renew,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s8-rs-off-renew"}
+2026-10-29 10:58,W10_s8-rs-on-h60,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s8-rs-on-h60"}
+2026-10-29 10:58,W10_s8-rs-on-renew,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s8-rs-on-renew"}
+2026-10-29 10:58,W10_s8-new-off-h60,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s8-new-off-h60"}
+2026-10-29 10:58,W10_s8-new-off-renew,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s8-new-off-renew"}
+2026-10-29 10:58,W10_s8-new-on-h60,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s8-new-on-h60"}
+2026-10-29 10:58,W10_s8-new-on-renew,{"data": "lab-A8", "spec": "sxfixspec VER 1", "start": "2019-01-02", "w10": "s8-new-on-renew"}

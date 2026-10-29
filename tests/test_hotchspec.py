@@ -10,12 +10,15 @@ from arm.lab import hotddspec as D
 
 
 def test_hotch_spec_v1_is_locked():
-    assert X.VER == 1 and X.SPEC_DATE == "2026-10-19"
+    assert X.VER == 2 and X.SPEC_DATE == "2026-10-29"         # VER 2：美股籌碼變數依指數（docs/lab_us_chip_plan.md）
     assert X.MARKETS == ("tw", "spx", "ixic", "ndx", "sox") and X.TW_START == "1990-01-04" and X.EV_START == 250
     assert (X.H, X.LAG, X.H_LONG, X.DD_TH, X.PEAK_LOOK) == (60, 1, 120, (0.10, 0.20), 60)
     assert (X.HOT, X.STATE_WEEKS, X.STATES_A, X.RUN_MIN) == (80, (1, 4, 13, 26), ("H1", "H4", "H13", "H26"), 4)
     assert X.CHIP_VARS == {"tw": ("Dchip", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "W1", "W2"),
-                           "us": ("Dsent", "S1", "S2", "S3", "S4", "S5")}
+                           "spx": ("Dsent", "S1", "S2", "S3", "S4", "S5", "S6", "S7"),
+                           "ixic": ("Dsent", "S3", "S4", "S5", "S6", "S7", "S8", "S9"),
+                           "ndx": ("Dsent", "S3", "S4", "S5", "S6", "S7", "S8", "S9"),
+                           "sox": ("Dsent", "S3", "S4", "S5", "S6", "S7", "S8", "S9")}
     assert X.CONTRAST_VARS == ("Dtech",)
     assert X.TECH_EVENTS == ("ma20_dn", "ma60_dn", "ma240_dn", "x_dead", "s60_dn", "pv_dn", "dtop", "hstop",
                              "TD1", "TD2", "PH1", "PH2")
@@ -55,9 +58,9 @@ def test_spec_matches_other_studies():
     assert X.STATE_WEEKS[1:] == D.STREAK_N[:1] + D.STREAK_N[2:]
     for k in X.CHIP_VARS["tw"]:
         assert k in ("Dchip", "W1", "W2") or HS.DIM_OF[k] == "chip"
-    with HS.use(U.spec_for("spx")):
-        for k in X.CHIP_VARS["us"]:
-            assert k == "Dsent" or HS.DIM_OF[k] == "sent"
+    for idx in ("spx", "ixic", "ndx", "sox"):
+        with HS.use(U.spec_for(idx)):
+            assert set(X.CHIP_VARS[idx]) == {"Dsent"} | set(HS.ITEMS["sent"])     # 就是那個指數的情緒籌碼項目
     assert all(v["mk"] in X.MARKETS for v in X.PRIMARY.values())
     assert all(v["key"] in (X.STATES_A if v["part"] == "A" else X.TECH_EVENTS) for v in X.PRIMARY.values())
     assert all(v["var"] in X.CHIP_VARS["tw"] for v in X.PRIMARY.values() if v["part"] == "A")

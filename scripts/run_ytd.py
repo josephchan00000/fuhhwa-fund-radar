@@ -277,8 +277,9 @@ def main() -> int:
 
 
 def tw_static(force: bool = False) -> int:
-    """台股新飆股那四成（ytdspec 二②）：去年最後一個交易日到 sxlivespec.TAKE 那本帳每天的總資產、今年賣出的每一筆、
-    TAKE 收盤還拿著的每一檔今年的起算市值（只算一次；之後接每天記錄的那本帳）。"""
+    """台股新飆股那四成（ytdspec 二②；VER 2＝N8B）：去年最後一個交易日到 sxlivespec.TAKE 那本帳每天的總資產、今年賣出的每一筆、
+    TAKE 收盤還拿著的每一檔今年的起算市值（只算一次；之後接每天記錄的那本帳）。
+    VER 2：W10 挑出的做法的引擎（run_sxlive_seed.py --n8 的 w10_book）跑到 TAKE_V3，接到 TAKE 的那幾天照 N8 的順序（bridge n8=True）。"""
     if OUT_TW.exists() and not force:
         log(f"{OUT_TW} 已經有了（只算一次）；要重算加 --force")
         return 0
@@ -287,8 +288,8 @@ def tw_static(force: bool = False) -> int:
     import run_sxlive_seed as SD
     from arm.lab import sxlivespec as SS
     t0 = time.time()
-    sim, res, m, sig, rows, FO = SD.w7_book()
-    chk = SD.check_curve(res)
+    sim, res, m = SD.w10_book()
+    chk = SD.check_curve(res, SD.CURVE_N8)
     eq = res.equity.dropna()
     ds = [str(x.date()) for x in eq.index]
     d0 = max(d for d in ds if d < f"{S.YEAR}-01-01")
@@ -297,10 +298,10 @@ def tw_static(force: bool = False) -> int:
     eqd = {d: float(eq.iloc[k]) for k, d in enumerate(ds) if k >= k0}
     mi = {str(pd.Timestamp(x).date()): i for i, x in enumerate(m.dates)}
     i_d0 = mi[d0]
-    B = SD.bridge(sim, m)
+    B = SD.bridge(sim, m, n8=True)
     bk, cal = B["bk"], B["cal"]
     eqd.update({d: float(v) for d, v in B["eqs"].items()})
-    log(f"[ytd] W7 帳 {chk['days']} 天和接手的檔相同；{d0} 收盤 {e_d0:,.0f}，{SS.TAKE} 收盤 {eqd[SS.TAKE]:,.0f}（{time.time() - t0:.0f}s）")
+    log(f"[ytd] W10 帳 {chk['days']} 天和 N8 的回測淨值相同；{d0} 收盤 {e_d0:,.0f}，{SS.TAKE} 收盤 {eqd[SS.TAKE]:,.0f}（{time.time() - t0:.0f}s）")
 
     def base_of(c: str, ent: str, sh: float, cin: float) -> tuple[float, bool]:
         """今年的起算市值：去年就拿著＝去年最後一個交易日收盤的市值（W7 的還原價）；今年才買＝買進成本。"""
@@ -324,9 +325,9 @@ def tw_static(force: bool = False) -> int:
         closed.append({"c": str(t.stock_id), "ent": ed, "exit": xd, "bpx": _r(t.entry_px / m.f[mi[ed], s_], 2),
                        "spx": _r(t.exit_px / m.f[mi[xd], s_], 2), "ret": _r(t.ret), "why": str(t.reason),
                        "w": _r(base / (e_d0 if carry else eq_before(ed))), "pnl": _r((float(t.proceeds) - base) / e_d0),
-                       "carry": carry, "src": "w7"})
+                       "carry": carry, "src": "w10"})
     w7 = {p["c"]: p for p in B["w7pos"]}
-    for c, si, ei, xi, r, why, sh, pnl, *_ in bk.trades:   # 接到 TAKE 這幾天賣掉的（都是 W7 帶過來的）
+    for c, si, ei, xi, r, why, sh, pnl, *_ in bk.trades:   # 接到 TAKE 這幾天賣掉的（都是 W10 帶過來的）
         p = w7[c]
         base, carry = base_of(c, p["ent"], p["sh"], p["cin"])
         net = p["cin"] + pnl
@@ -342,7 +343,7 @@ def tw_static(force: bool = False) -> int:
         vt = q["k"] * (pxc["c"][it] if np.isfinite(pxc["c"][it]) else pxc["cff"][it])
         opens.append({"c": c, "ent": ent, "base": round(base, 2), "carry": carry, "vt": round(float(vt), 2),
                       "w": _r(base / (e_d0 if carry else eq_before(ent))), "bpx": _r(q.get("epx"), 2)})
-    doc = {"ver": S.VER, "spec": S.SPEC_DATE, "year": S.YEAR, "made": clock.today_tw().isoformat(), "book": SS.TAKE_BOOK,
+    doc = {"ver": S.VER, "spec": S.SPEC_DATE, "year": S.YEAR, "made": clock.today_tw().isoformat(), "book": SS.BT_BOOK,
            "d0": d0, "take": SS.TAKE, "e_d0": round(e_d0, 2), "eq": {d: round(v, 2) for d, v in sorted(eqd.items())},
            "closed": sorted(closed, key=lambda x: (x["exit"], x["c"])), "open_take": opens,
            "check": {"w7_days": chk["days"], "w7_max_err": chk["max_err"], "eq_take": round(eqd[SS.TAKE], 2)}}

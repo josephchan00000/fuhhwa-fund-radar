@@ -86,7 +86,7 @@ def test_rule_search_settings_are_the_existing_ones():
     assert SX.VER == 2
     assert X.RULE == SX.RULE and X.QS == SX.QS and X.KEEP_FINAL == SX.KEEP_FINAL and X.OVERLAP_MAX == SX.OVERLAP_MAX
     assert X.FALLBACK == SF.FALLBACK and X.VAL_YEARS == SF.VAL_YEARS
-    assert CS.VER == 4 and CS.COST["us"] == X.COST["idx"] and CS.SAT == 0.30
+    assert CS.VER in (4, 5) and CS.COST["us"] == X.COST["idx"] and CS.SAT == 0.30   # VER 5 只換台股的新飆股，美股不變
     assert set(X.PLANS) <= set(CS.MARKETS)
 
 

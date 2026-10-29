@@ -19,7 +19,10 @@ VCLS = {"up": "weak", "down": "strong", "none": "none", "few": "few"}     # 同�
 MARK = {"up": "▲", "down": "▼", "none": "·", "few": "—"}
 SHORT = {"up": "較大", "down": "較小", "none": "看不出", "few": "樣本不足"}
 ORDER = {"tw": ("C1", "C3", "W1", "W2", "C2", "C7", "C5", "C6", "C4", "C8", "Dchip"),
-         "us": ("S5", "S2", "S1", "S3", "S4", "Dsent")}
+         "spx": ("S5", "S2", "S1", "S7", "S6", "S3", "S4", "Dsent"),
+         "ixic": ("S5", "S9", "S8", "S7", "S6", "S3", "S4", "Dsent"),
+         "ndx": ("S5", "S9", "S8", "S7", "S6", "S3", "S4", "Dsent"),
+         "sox": ("S5", "S9", "S8", "S7", "S6", "S3", "S4", "Dsent")}
 RUN_VARS = 2                    # 「每一段」固定列出排在最前面的幾項（另加現在連續過熱 4 週以上的）
 SNAME = {"H0": "不熱", "H1": "已過熱", "H4": "4 週以上", "H13": "13 週以上", "H26": "26 週以上"}
 
@@ -57,7 +60,7 @@ def state(B: dict) -> dict | None:
     else:
         I = X.inputs_us(mk, B)
     N = X.now(I)
-    order = ORDER["tw" if mk == "tw" else "us"]
+    order = ORDER[mk]
     N["runs"] = X.runs_now(I, run_keys(order, R["markets"][mk].get("A") or {}, N["chip"]))
     names = {r[0]: r[2] for r in HS.IND}
     names.update(S.VAR_NAMES)

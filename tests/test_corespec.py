@@ -3,22 +3,23 @@
 VER 1 是在算任何正式數字之前寫定的（2026-10-23）；VER 2 是看過第 11 節的探索結果、使用者決定之後寫定的；
 VER 3 只換美股三成放什麼（ussxspec VER 3，使用者決定「現在就換」）；
 VER 4 是看過第 16～18 節之後寫定的（空檔放現金、台股機動各半放新飆股與 ★ 策略、核心比例照第 18 節寫定的選法），
-寫定之後才跑正式數字（scripts/run_core.py）。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
+寫定之後才跑正式數字（scripts/run_core.py）；VER 5 只把台股新飆股那一半從 R60 換成 N8（使用者「要改」），
+寫在算任何 VER 5 的計畫數字之前。要改就 VER＋1、寫進規劃文件，不在舊版本上改。"""
 from arm.lab import corespec as X
 from arm.lab import heatspec
 from arm.lab import heatspec_us
 
 
-def test_core_spec_v4_is_locked():
-    assert X.VER == 4 and X.SPEC_DATE == "2026-10-24"
+def test_core_spec_v5_is_locked():
+    assert X.VER == 5 and X.SPEC_DATE == "2026-10-29"
     assert X.US_SLEEVE_FILE == "ussx_qm.json"           # VER 3：美股衛星＝美股三成規則 QM（ussxspec VER 3）
     # VER 4：核心比例照第 18 節的選法（第 19 節的表）；機動＝1 − 核心
     assert X.CORE_OF == {"tw": 0.20, "spx": 0.0, "ndx": 0.0}
     assert X.CORE_GRID == (0.70, 0.60, 0.50, 0.40, 0.30, 0.20, 0.10, 0.0)
     assert set(X.CORE_OF) == set(X.MARKETS) and all(c in X.CORE_GRID for c in X.CORE_OF.values())
     assert X.core_of("tw") == 0.20 and X.sat_of("tw") == 0.80 and X.core_of("spx") == 0.0 and X.sat_of("ndx") == 1.0
-    assert X.BOOM_SHARE == {"tw": 0.5} and X.BOOM_BOOK == "R60" and X.IDLE == "cash" and X.STAR_ACTIVE == 0.69
-    assert X.PLAN4_START == "2019-01-02" and X.SX_CURVE_FILE == "sx_r60_curve.json"
+    assert X.BOOM_SHARE == {"tw": 0.5} and X.BOOM_BOOK == "N8" and X.IDLE == "cash" and X.STAR_ACTIVE == 0.69
+    assert X.PLAN4_START == "2019-01-02" and X.SX_CURVE_FILE == "sx_n8_curve.json" and X.SX_CURVE_R60 == "sx_r60_curve.json"
     assert X.FLAT == ("spx", "ndx") and X.REENTRY == {"tw": 10}
     assert X.MARKETS == ("tw", "spx", "ndx")
     assert (X.CORE, X.SAT, X.HOT, X.NEED, X.MA, X.LAG) == (0.70, 0.30, 80.0, 2, 200, 1)
@@ -32,14 +33,16 @@ def test_core_spec_v4_is_locked():
     assert X.EARLY == {"spx": "1999-12-31", "ndx": "2000-12-28"}
     assert X.COST == {"tw": 0.001, "tw_stk": 0.0024, "us": 0.00025}
     assert (X.RECENT_Y, X.YEAR_MIN, X.ROLL, X.Q) == (10, 120, 252, (0.10, 0.50, 0.90))
-    assert X.LIVE_START == "2026-10-26" and X.CHECKS == (63, 126, 252, 504, 756) and (X.WEEK, X.P_LOW) == (5, 0.20)
+    assert X.LIVE_START == "2026-10-26" and X.LIVE_KEEP == (4,) and X.CHECKS == (63, 126, 252, 504, 756) and (X.WEEK, X.P_LOW) == (5, 0.20)
 
 
 def test_v4_plan_start_is_the_w7_walk_forward_start():
-    """台股照計畫的回測起點＝新飆股逐年規則的第一個交易日（W7 的 OOS_START），新飆股＝前瞻記錄的主帳（R60）。"""
+    """台股照計畫的回測起點＝新飆股逐年規則的第一個交易日（W7 的 OOS_START）；VER 5 新飆股＝選股頁那一本（N8），
+    名單照舊是 R60 的（W7 的主帳）；回測起點和 W10 一樣。"""
     from arm.lab import superfixspec as W
+    from arm.lab import sxfixspec as F
     from arm.lab import sxlivespec as L
-    assert X.PLAN4_START == W.OOS_START and X.BOOM_BOOK == W.PRIMARY == L.BOOKS[0]
+    assert X.PLAN4_START == W.OOS_START == F.START and X.BOOM_BOOK == L.PLAN_BOOK and L.LIST_BOOK == W.PRIMARY == L.BOOKS[0]
 
 
 def test_family_items_exist_in_heat_specs():

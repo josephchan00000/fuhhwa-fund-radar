@@ -17,7 +17,7 @@ def _load(p):
 
 def test_兩支_vercel_json_皆為_no_cache():
     # no-store→no-cache（Phase 1-④）：兩支必須一致，且不得回退 no-store（省流歸零）
-    # 或改成長 max-age（會回到「線上停舊版」惡夢——CLAUDE.md 明文不建議）。
+    # 或改成長 max-age（會回到「線上停舊版」惡夢——wiki/ops/deploy.md 明文不建議）。
     for p in ("vercel.json", "dashboard/vercel.json"):
         vals = [kv["value"] for h in _load(p)["headers"] for kv in h["headers"] if kv["key"] == "Cache-Control"]
         assert vals, f"{p} 缺 Cache-Control"

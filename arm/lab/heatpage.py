@@ -203,6 +203,16 @@ def bub_block(mk: str | None) -> str:
         return ""
 
 
+def ind_chip(mk: str | None) -> str:
+    """面向標題列的「產業泡沫」小段（bubpage.ind_chip：最高等級與那個產業）；算不出來就不顯示。"""
+    try:
+        from . import bubpage as BPG
+        return BPG.ind_chip(mk) if mk else ""
+    except Exception as e:                          # noqa: BLE001
+        print(f"[市場頁] 產業泡沫小段算不出來：{type(e).__name__}: {e}")
+        return ""
+
+
 def crash_now(B: dict) -> dict | None:
     """「短線大跌風險」卡的資料（crashpage.state；研究檔 data/lab/crash_research.json）；算不出來就不顯示那張卡。"""
     try:
@@ -346,6 +356,7 @@ def view(B: dict | None = None, R: dict | None = None) -> dict:
     out["sigtoday"] = sig_today(out["signow"])
     out["mrchip"] = mr_chip(out["mk"]) if T else ""   # 面向標題列的融資維持率（只有台股）
     out["bubblock"] = bub_block(out["mk"]) if T else ""   # 市場頁最下面的泡沫那一塊（bubpage.block_html）
+    out["indchip"] = ind_chip(out["mk"]) if T and out["bubblock"] else ""   # 面向標題列的「產業泡沫」
     if T:                                          # 視覺化版面（heatviz）：雷達、關鍵狀態、這週變化的資料
         from . import heatviz as VZ
         out["viz"] = VZ.pack(B, out)

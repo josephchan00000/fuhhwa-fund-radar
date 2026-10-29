@@ -43,6 +43,9 @@ jobs:
       - name: 安裝相依（certifi）
         run: pip install --quiet certifi
 
+      - name: 這一班是哪一個排程（只印出來，診斷 GitHub 排程遲到）
+        run: echo "排程：${{ github.event.schedule || '手動' }}　開跑：$(date '+%F %T')"
+
       - name: 等到 08:58、每 5 秒取樣到 09:00:15（交易日才做；已經存了或太晚就直接結束）
         run: timeout 19500 python3 scripts/fut_preopen.py
 
