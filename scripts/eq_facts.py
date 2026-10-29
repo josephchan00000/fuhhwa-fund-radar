@@ -3,6 +3,8 @@
     TZ=Asia/Taipei python3 scripts/eq_facts.py 4958                 # → reports/eq/tw/4958/{今天}.facts.json
     TZ=Asia/Taipei python3 scripts/eq_facts.py 4958 --peers 3037,8046,3189,2368,3044,2313
     TZ=Asia/Taipei python3 scripts/eq_facts.py --ind tw-L000         # → reports/eq/ind/tw-L000/{今天}.facts.json
+    TZ=Asia/Taipei python3 scripts/eq_facts.py PAYC                  # 美股（代號是英文字母）→ reports/eq/us/PAYC/{今天}.facts.json
+    TZ=Asia/Taipei python3 scripts/eq_facts.py --ind us-human-resource-and-employment-service   # 美股產業＝GICS 細產業
     加 --out 路徑 改寫到別的地方（例如 scratchpad 試算）。
 
 只讀 repo 裡已有的資料、不連外網；印出撰寫要用的重點（評等預設、倍數範圍、同業）。
@@ -32,24 +34,33 @@ def main() -> int:
     today = clock.today_tw().isoformat()
     if a.ind:
         mk, cid = a.ind.split("-", 1)
-        if mk != "tw":
-            print("美股產業資料包還沒做")
-            return 2
-        pack = E.ind_pack_tw(cid)
+        if mk == "us":
+            from arm.lab import eqfacts_us as U
+            pack = U.ind_pack_us(a.ind)
+        else:
+            pack = E.ind_pack_tw(cid)
         pack["made"] = today
         out = Path(a.out) if a.out else ROOT / "reports" / "eq" / "ind" / a.ind / f"{today}.facts.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(pack, ensure_ascii=False, indent=1), encoding="utf-8")
-        print(f"{pack['name']}：{pack['n_members']} 家、市值合計 {pack['cap_total']:,} 億；本益比中位數 {(pack.get('pe') or {}).get('p50')}；"
+        print(f"{pack['name']}：{pack['n_members']} 家、市值合計 {pack['cap_total']}；本益比中位數 {(pack.get('pe') or {}).get('p50')}；"
               f"泡沫 {[(b['name'], b['level']) for b in pack['bubble']]}")
         print(f"寫入 {out.relative_to(ROOT) if out.is_relative_to(ROOT) else out}")
         return 0
     if not a.code:
         ap.error("要給代號或 --ind")
     peers = [c.strip() for c in a.peers.split(",")] if a.peers else None
-    pack = E.tw_pack(a.code, peers=peers)
+    mk = "tw" if a.code[:1].isdigit() else "us"
+    if mk == "us":
+        from arm.lab import eqfacts_us as U
+        if peers:
+            print("美股同業照 GICS 細產業的每週名單，不能換（要換先改 ussx_fin 的同業規則）")
+            return 2
+        pack = U.us_pack(a.code.upper())
+    else:
+        pack = E.tw_pack(a.code, peers=peers)
     pack["made"] = today
-    out = Path(a.out) if a.out else ROOT / "reports" / "eq" / "tw" / a.code / f"{today}.facts.json"
+    out = Path(a.out) if a.out else ROOT / "reports" / "eq" / mk / pack["code"] / f"{today}.facts.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(pack, ensure_ascii=False, indent=1), encoding="utf-8")
     v = pack["val"]
@@ -59,7 +70,10 @@ def main() -> int:
     print(f"倍數範圍 {v.get('range')}；預設目標價 {v.get('tp_dflt')}（{v.get('rating_dflt')}，上檔 {v.get('up_dflt')}%）；"
           f"範圍換算目標價 {v.get('tp_lo')}～{v.get('tp_hi')}")
     print(f"同業（{pack['peer_how']}）：{[(p['c'], p['n']) for p in pack['peers']]}；照規則的同業：{pack['peers_auto']}")
-    print(f"產業鏈：{[(c['cn'], c['nn']) for c in pack['chain']]}；預設產業報告 tw-{pack['chain_main']}")
+    if mk == "us":
+        print(f"GICS：{pack.get('sector')}・{pack.get('ind')}；預設產業報告 {pack.get('ind_key')}")
+    else:
+        print(f"產業鏈：{[(c['cn'], c['nn']) for c in pack['chain']]}；預設產業報告 tw-{pack['chain_main']}")
     print(f"寫入 {out.relative_to(ROOT) if out.is_relative_to(ROOT) else out}")
     return 0
 

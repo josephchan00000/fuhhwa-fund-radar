@@ -47,10 +47,22 @@ def industries(src: Path = SRC) -> dict:
 
 
 def live_prices() -> dict:
+    """最新收盤：台股讀 dashboard/x9t.json；美股讀 data/lab/ussx_card.json（選股頁美股那幾檔，每天收盤後更新）。"""
     t = json.loads((ROOT / "dashboard" / "x9t.json").read_text(encoding="utf-8")) if (ROOT / "dashboard" / "x9t.json").exists() else {}
     cols = t.get("cols") or []
     i = cols.index("px") if "px" in cols else None
-    return {("tw", c): {"px": r[i], "d": t.get("d")} for c, r in (t.get("rows") or {}).items() if i is not None and r and r[i]}
+    out = {("tw", c): {"px": r[i], "d": t.get("d")} for c, r in (t.get("rows") or {}).items() if i is not None and r and r[i]}
+    cp = ROOT / "data" / "lab" / "ussx_card.json"
+    try:
+        card = json.loads(cp.read_text(encoding="utf-8")) if cp.exists() else {}
+    except ValueError:
+        card = {}
+    cal = card.get("cal") or []
+    for c, s in (card.get("s") or {}).items():
+        cs = s.get("c") or []
+        if cs and cal and cs[-1]:
+            out[("us", c)] = {"px": cs[-1], "d": cal[len(cs) - 1] if len(cs) <= len(cal) else cal[-1]}
+    return out
 
 
 def _load(md: Path, fp: Path) -> tuple[str, dict]:

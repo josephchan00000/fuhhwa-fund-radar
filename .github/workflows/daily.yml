@@ -148,7 +148,7 @@ jobs:
           # 沒過就不併（main 還沒有檢查程式＝全部不併）。只帶 .md 與 .facts.json 兩種資料檔，程式碼一律不從這裡進 main。
           if [ -f scripts/check_eq.py ]; then
             for md in $(git ls-tree -r --name-only "$REF" -- reports/eq 2>/dev/null \
-                        | grep -E '^reports/eq/((tw|us)/[A-Za-z0-9.-]{1,12}|ind/[A-Za-z0-9-]{1,24})/20[0-9]{2}-[0-9]{2}-[0-9]{2}\.md$'); do
+                        | grep -E '^reports/eq/((tw|us)/[A-Za-z0-9.-]{1,12}|ind/[A-Za-z0-9-]{1,48})/20[0-9]{2}-[0-9]{2}-[0-9]{2}\.md$'); do
               [ -e "$md" ] && continue
               fj="${md%.md}.facts.json"
               if ! git cat-file -e "$REF:$fj" 2>/dev/null; then echo "  · $md 沒有資料包——不併"; continue; fi
