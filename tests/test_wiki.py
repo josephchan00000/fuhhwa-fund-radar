@@ -150,3 +150,59 @@ def test_log_format_and_dates_in_order():
         assert m, f"日誌格式不對：{s}"
         dates.append(m.group(1))
     assert dates == sorted(dates), "日誌只往後加，日期要由舊到新"
+
+
+# 第四段（2026-10-29 起）：路徑規則、體檢、程式註解指向知識庫
+_SPEC3 = importlib.util.spec_from_file_location("_wiki_lint", ROOT / "scripts" / "wiki_lint.py")
+WL = importlib.util.module_from_spec(_SPEC3)
+_SPEC3.loader.exec_module(WL)
+RULE_MAX = 1_500           # 規劃第 3.4 節：一份規則 1～1.5 千字
+CODE_DIRS = ("arm", "scripts", "tests", ".github", "config")
+CLAUDE_REF_OK = {          # 講知識庫本身的程式，本來就要提 CLAUDE.md
+    "scripts/wiki_split.py", "scripts/wiki_facts.py", "scripts/wiki_lint.py", "tests/test_wiki.py",
+    "config/index_reviews.json",   # note 欄改了會觸發 daily.yml 整輪重跑，留到第 5 段
+}
+
+
+def test_path_rules_load_and_point_to_pages():
+    R = WL.rules()
+    assert len(R) >= 15, "規劃第 3.4 節：約 15 份"
+    for name, paths, body in R:
+        assert paths, f".claude/rules/{name} 開頭要有 paths:"
+        for p in paths:
+            assert list(ROOT.glob(p)), f".claude/rules/{name}：{p} 一個檔都對不到"
+        refs = re.findall(r"wiki/[\w/\-]+\.md", body)
+        names = re.findall(r"`([\w\-]+\.md)`", body)          # 同一個資料夾的頁可以只寫檔名
+        assert refs or names, f".claude/rules/{name} 要寫先讀哪一頁"
+        for ref in refs:
+            assert (ROOT / ref).exists(), f".claude/rules/{name} 指到不存在的頁：{ref}"
+        for n in names:
+            assert list(WIKI.rglob(n)), f".claude/rules/{name} 指到不存在的頁：{n}"
+        assert len((ROOT / ".claude" / "rules" / name).read_text("utf-8")) <= RULE_MAX, name
+
+
+def test_lint_has_no_errors():
+    errs, _ = WL.lint()
+    assert not errs, "\n".join(errs) + "\n→ 跑 `python3 scripts/wiki_lint.py` 看細節"
+
+
+def test_lint_catches_broken_rule(tmp_path, monkeypatch):
+    d = tmp_path / "rules"
+    d.mkdir()
+    (d / "x.md").write_text('---\npaths:\n  - "arm/nope_*.py"\n---\n先讀 `wiki/lab/' + 'nope.md`。\n', "utf-8")
+    monkeypatch.setattr(WL, "RULES", d)
+    errs, _ = WL.lint()
+    assert any("一個檔都對不到" in e for e in errs) and any("不存在的頁" in e for e in errs)
+
+
+def test_code_comments_point_to_wiki_not_claude_md():
+    for top in CODE_DIRS:
+        for f in (ROOT / top).rglob("*"):
+            if not f.is_file() or f.suffix not in (".py", ".yml", ".yaml", ".sh", ".json", ".md"):
+                continue
+            rel = f.relative_to(ROOT).as_posix()
+            t = f.read_text("utf-8", errors="ignore")
+            if rel not in CLAUDE_REF_OK:
+                assert "CLAUDE.md" not in t, f"{rel} 提到 CLAUDE.md：改成指向 wiki/ 的頁"
+            for ref in re.findall(r"wiki/[\w/\-]+\.md", t):
+                assert (ROOT / ref).exists(), f"{rel} 指到不存在的頁：{ref}"

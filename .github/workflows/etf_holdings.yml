@@ -162,7 +162,7 @@ jobs:
 
       - name: 對時哨兵（驗線上頁已吃到 main 最新建表；多人化 Phase 1-①，2026-08-14）
         # 本場次無 commit 時線上「本來就該」等於 main，一樣驗＝免費的漂移偵測；
-        # 哨兵紅≠資料有問題（資料已入 main），診斷見 CLAUDE.md 步驟 9 部署踩坑條。
+        # 哨兵紅≠資料有問題（資料已入 main），診斷見 wiki/ops/deploy.md。
         if: inputs.probe != true
         run: |
           git fetch origin main --depth=1

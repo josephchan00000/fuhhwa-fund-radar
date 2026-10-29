@@ -10,7 +10,7 @@ from arm.lab import page
 from arm.lab import pickpage as PP
 from test_corepage import BANNED, _text
 
-# 主頁面用字（CLAUDE.md「主頁面用字」；test_plain 用瀏覽器掃整頁，這裡先擋 Python 組的卡片）
+# 主頁面用字（wiki/lab/plain-words.md；test_plain 用瀏覽器掃整頁，這裡先擋 Python 組的卡片）
 PLAIN_BAD = ("判定", "樣本", "研究", "注意", "門檻", "VER", "★", "●", "○", "◆", "核心", "衛星", "警訊", "占全部資金", "配置", "→")
 
 

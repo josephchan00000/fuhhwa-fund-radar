@@ -16,6 +16,7 @@
 - [部署與「線上沒更新」](ops/deploy.md)：線上沒更新時照順序診斷（資料日期、產表時戳、部署步驟日誌、Vercel 部署上限，最後才查 Vercel Deployments）；「內容在 main」不等於線上已部署；Deploy Hook、對時哨兵、煙霧測試、快取。
 - [指令「ETF 募集週掃」](ops/etf-weekly-scan.md)：每週一 08:05（或使用者打「ETF 募集週掃」）WebSearch 盤點新 ETF 與指數審核時程，只改 `data/etf_upcoming.json`（＋`config/index_reviews.json`），push 即自動上線。
 - [指令「策略探勘週報」](ops/strategy-scouting.md)：每週日 19:47（或使用者打「策略探勘週報」）WebSearch 找最多 2 條新策略，先寫規格與程式再推，合併通道回測乾淨才併進 main；使用者回「試用／納入／不納入」。
+- [指令「整理知識庫」](ops/wiki-maintenance.md)：使用者打「整理知識庫」才全面檢查：體檢、事實比對、找矛盾與過時、修好、日誌一行、回報；平常做完事只改相關的那一頁。
 - [排程與「排程搬家」](ops/routines.md)：六個排程都火進同一個綁定的對話（它每天先合併 main，merge 進 main 後下一班就生效）；搬家步驟、模型重設、prompt 原文。
 - [每日時點地圖與 cron](ops/schedule.md)：每天台北時間哪一班做什麼：Routine 負責準時、GitHub cron 只當兜底（實測系統性遲到 1~3 小時）、盤後刷新與當日完整性看門狗、07:15 備援。
 - [GitHub Actions 額度](ops/ci-budget.md)：2026-10-16 起 repo 公開、一般機器不計分鐘，額度問題解除；私有時期實測 10/1～10/16 約 1,670 分（免費 2,000 分），四個省分鐘的修法照留。

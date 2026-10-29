@@ -1,7 +1,7 @@
 # 籌碼雷達的訊號與第一代策略
 
 > 8 個訊號與成績單、紙上交易規則、S1 等策略、策略頁 v2、持有期差一天的坑。
-> 原始資料：CLAUDE.md「籌碼雷達」段訊號、策略兩條；規劃 `docs/strategy_v2_plan.md`；程式：`arm/lab/strategy.py`、`arm/lab/advice.py`
+> 原始資料：CLAUDE.md「籌碼雷達」段訊號、策略兩條；規劃 `docs/strategy_v2_plan.md`；程式：`arm/lab/strategy.py`、`arm/lab/advice.py`；總覽：[籌碼雷達總覽](overview.md)
 > 最後更新：2026-10-29
 > 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
 

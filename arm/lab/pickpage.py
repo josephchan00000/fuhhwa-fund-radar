@@ -5,7 +5,7 @@
 - 每個市場：進場行事曆（pickcal 的事件；月曆與接下來 4 週在瀏覽器畫）→ 每條策略一張卡（Python 組好的 HTML）→ 其他策略（收起）。
 - 每條策略自己一份錢：卡片寫同時幾檔、每檔多少，不寫占全部資金幾 %（投資組合層級的比例、警訊換現金在研究紀錄・交易計畫）。
 - 只整理既有的資料（advice、新飆股那本帳、美股強勢品質股的每週紀錄與每天檢查），不改任何規則、不重算回測。
-用字照主頁面的規則（CLAUDE.md「主頁面用字」；tests/test_plain.py 掃畫面）。CSS class、JS 函式一律 pk 開頭。
+用字照主頁面的規則（wiki/lab/plain-words.md；tests/test_plain.py 掃畫面）。CSS class、JS 函式一律 pk 開頭。
 """
 from __future__ import annotations
 

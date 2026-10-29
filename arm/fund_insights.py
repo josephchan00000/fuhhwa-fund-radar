@@ -43,7 +43,7 @@ def parse_period_pct(s) -> float | None:
 
 
 def _daily_ret(d: dict, key: str) -> float | None:
-    """returns_daily（鉅亨、每日基準）取值；缺鍵回 None（勿用 get(default)——CLAUDE.md 坑）。"""
+    """returns_daily（鉅亨、每日基準）取值；缺鍵回 None（勿用 get(default)——wiki/main/etf-watch.md 的 _pick 坑）。"""
     v = (d.get("returns_daily") or {}).get(key)
     if v is None:
         return None
