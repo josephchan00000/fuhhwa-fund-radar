@@ -3,7 +3,9 @@
 第一段只換位置、不改一個字：CUTS 是「CLAUDE.md 某一行的開頭 → 從這一行起放到哪一頁」，
 照檔案順序排；每一行只會落在一頁，所有頁依原順序接起來就是原本的 CLAUDE.md（`--check` 會驗）。
 這一段期間 CLAUDE.md 仍是正本：改內容先改 CLAUDE.md，再跑這支重產各頁與目錄。
-第二段整理各頁之後，就不再用這支重產（屆時改看 docs/llm_wiki_plan.md 第 4.2 節的事實清單比對）。
+第二段起（2026-10-29）：整理過的頁列在 ORGANIZED，這支不再重產、也不逐字比；改由 scripts/wiki_facts.py
+比「事實」（CLAUDE.md 那幾段的檔名、函式、日期、數字、原話都要還在知識庫裡）。還沒整理的頁照舊逐字。
+EXTRA＝不是從 CLAUDE.md 切出來的頁（跨主題的教訓、使用者偏好、整理時拆出來的頁），只進目錄。
 
 用法：
   python3 scripts/wiki_split.py          # 依 CLAUDE.md 重寫 wiki/ 各頁與目錄
@@ -237,6 +239,23 @@ CUTS = [
     ("## 「視覺化改版」三頁", "lab/heat-viz"),
 ]
 
+# 第二段起整理過的頁（scripts/wiki_facts.py 比事實；這支不重產、不逐字比）
+ORGANIZED: set[str] = {p for p in PAGES if p.split("/")[0] in ("ops", "env", "main")}   # 第二段（2026-10-29）
+
+# 不是從 CLAUDE.md 切出來的頁：(標題, 一句話摘要)；沒有「/」的放在目錄的「跨主題」，
+# 「某頁-子題」排在那一頁後面。整理過的頁與這裡的頁，目錄的標題與摘要以頁面自己的第 1、3 行為準（這裡只是備用）。
+EXTRA: dict[str, tuple[str, str]] = {
+    "user": ("使用者偏好與做決定的方式", "他要什麼、怎麼判斷好壞、畫面與用字的要求、怎麼一起做事；每條附原話與日期。"),
+    "lessons": ("跨主題的教訓", "踩過不只一次、換個地方還會再踩的事；一條一句，細節連到出處頁。"),
+    "ops/routines-prompts": ("排程 prompt 原文（六段）", "從 ops/routines 拆出來的 prompt 原文。"),
+    "ops/news-rules-scope": ("新聞報告：守備範圍、來源與選題", "從 ops/news-rules 拆出來的細則。"),
+    "ops/news-rules-depth": ("新聞報告：分析深度與漲跌分析", "從 ops/news-rules 拆出來的細則。"),
+    "ops/news-rules-style": ("新聞報告：文風與格式", "從 ops/news-rules 拆出來的細則。"),
+    "ops/news-rules-numbers": ("新聞報告：數字口徑與籌碼", "從 ops/news-rules 拆出來的細則。"),
+    "main/fund-news-social": ("復華社群：PTT、YouTube、強基金", "從 main/fund-news 拆出來的社群部分。"),
+    "main/etf-holdings-routes": ("ETF 持股：放棄的抓取路線", "從 main/etf-holdings 拆出來的放棄路線與探針經過。"),
+}
+
 NOTE = ("> 這一頁目前是從 CLAUDE.md 逐字搬來的（知識庫第一段），還沒整理；有出入時以 CLAUDE.md 為準。\n"
         "> 改內容先改 CLAUDE.md，再跑 `python3 scripts/wiki_split.py` 重產這一頁。")
 MARK = re.compile(r"^<!-- CLAUDE\.md 第 (\d+)–(\d+) 行 -->$")
@@ -274,6 +293,8 @@ def build(text: str) -> dict[str, str]:
         raise ValueError(f"這些頁沒有任何內容：{sorted(missing)}")
     out = {}
     for page, (title, summary) in PAGES.items():
+        if page in ORGANIZED:
+            continue
         body = [f"# {title}", "", f"> {summary}", ">", NOTE, ""]
         for a, b, p in ranges:
             if p != page:
@@ -285,21 +306,46 @@ def build(text: str) -> dict[str, str]:
     return out
 
 
+def head(page: str, fallback: tuple[str, str]) -> tuple[str, str]:
+    """整理過的頁與 EXTRA 的頁：標題、摘要讀頁面自己的第 1、3 行；逐字頁用 PAGES 的。"""
+    f = WIKI / f"{page}.md"
+    if (page in ORGANIZED or page in EXTRA) and f.exists():
+        t = f.read_text("utf-8").split("\n")
+        if len(t) > 2 and t[0].startswith("# ") and t[2].startswith("> "):
+            # 摘要裡的連結是相對那一頁的，放進目錄會斷：只留連結文字
+            return t[0][2:].strip(), re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", t[2][2:].strip())
+    return fallback
+
+
 def index() -> str:
     rows = [
         "# 知識庫目錄",
         "",
         "> 復華基金雷達的知識庫（做法照 Karpathy 的 LLM Wiki）：先看這份目錄，再讀相關的頁；做完事更新那一頁，[日誌](log.md) 加一行。",
         "> 規劃：`docs/llm_wiki_plan.md`。",
-        "> 目前是第一段：每一頁都從 CLAUDE.md 逐字搬來、還沒整理，以 CLAUDE.md 為準；"
-        "改內容先改 CLAUDE.md，再跑 `python3 scripts/wiki_split.py` 重產各頁與這份目錄。",
+        "> CLAUDE.md 目前仍是正本（第 5 段瘦身之前）。標「逐字」的頁是 CLAUDE.md 的原文切片，改了 CLAUDE.md 就跑 "
+        "`python3 scripts/wiki_split.py` 重產；其他頁整理過，CLAUDE.md 那幾段改了要跟著改，`scripts/wiki_facts.py` 會檢查。",
         "",
     ]
+    allp = {**PAGES, **EXTRA}
+
+    def row(page: str) -> str:
+        title, summary = head(page, allp[page])
+        mark = "" if page in ORGANIZED or page in EXTRA else "（逐字）"
+        return f"- [{title}]({page}.md){mark}：{summary}"
+
+    tops = [p for p in EXTRA if "/" not in p]
+    if tops:
+        rows += ["## 跨主題", ""] + [row(p) for p in tops] + [""]
+    subs = {p for p in EXTRA if "/" in p and any(p.startswith(q + "-") for q in PAGES)}
     for key, name in GROUPS:
         rows += [f"## {name}（{key}）", ""]
-        for page, (title, summary) in PAGES.items():
-            if page.split("/")[0] == key:
-                rows.append(f"- [{title}]({page}.md)：{summary}")
+        for page in PAGES:
+            if page.split("/")[0] != key:
+                continue
+            rows.append(row(page))
+            rows += [row(q) for q in EXTRA if q in subs and q.startswith(page + "-")]
+        rows += [row(q) for q in EXTRA if q.split("/")[0] == key and "/" in q and q not in subs]
         rows.append("")
     rows += [
         "## 原始資料（不在知識庫裡，頁面會連過去）",
@@ -347,7 +393,13 @@ def check(text: str) -> list[str]:
             errs.append(f"wiki/{name} 不存在")
         elif f.read_text("utf-8") != txt:
             errs.append(f"wiki/{name} 和 CLAUDE.md 不一致")
-    known = set(want) | {"log.md"}
+    for page in sorted(ORGANIZED | set(EXTRA)):
+        if not (WIKI / f"{page}.md").exists():
+            errs.append(f"wiki/{page}.md 不存在（ORGANIZED／EXTRA 有列）")
+    bad = sorted(p for p in ORGANIZED if p not in PAGES)
+    if bad:
+        errs.append(f"ORGANIZED 列了 PAGES 沒有的頁：{bad}")
+    known = set(want) | {"log.md"} | {f"{p}.md" for p in ORGANIZED | set(EXTRA)}
     for f in sorted(WIKI.rglob("*.md")):
         rel = f.relative_to(WIKI).as_posix()
         if rel not in known:
@@ -360,9 +412,9 @@ def check(text: str) -> list[str]:
             errs.append(f"第 {a} 行起那一段和 CLAUDE.md 不同")
         covered += range(a, a + len(body))
     head = [a for a, b, p in cut(text) if p is None]
-    skipped = sum(b - a + 1 for a, b, p in cut(text) if p is None)
-    if sorted(covered) != list(range(1 + skipped, len(src) + 1)) or head != [1]:
-        errs.append("各頁的段落沒有剛好涵蓋 CLAUDE.md 每一行一次")
+    want_lines = [k for a, b, p in cut(text) if p is not None and p not in ORGANIZED for k in range(a, b + 1)]
+    if sorted(covered) != want_lines or head != [1]:
+        errs.append("逐字的頁沒有剛好涵蓋 CLAUDE.md（整理過的頁以外）每一行一次")
     return errs
 
 
@@ -375,7 +427,7 @@ def main(argv: list[str]) -> int:
         if errs:
             print("→ 跑 `python3 scripts/wiki_split.py` 依 CLAUDE.md 重產 wiki/")
             return 1
-        print(f"✓ wiki/ 和 CLAUDE.md 一致（{len(PAGES)} 頁）")
+        print(f"✓ wiki/ 逐字的 {len(PAGES) - len(ORGANIZED)} 頁和 CLAUDE.md 一致（整理過的 {len(ORGANIZED)} 頁看 scripts/wiki_facts.py）")
         return 0
     for name, txt in build(text).items():
         f = WIKI / name
@@ -385,7 +437,7 @@ def main(argv: list[str]) -> int:
     errs = check(text)
     for e in errs:
         print("✗", e)
-    print(f"{'✗' if errs else '✓'} wiki/ 寫好 {len(PAGES)} 頁＋目錄")
+    print(f"{'✗' if errs else '✓'} wiki/ 重產逐字的 {len(PAGES) - len(ORGANIZED)} 頁＋目錄（整理過的 {len(ORGANIZED)} 頁不動）")
     return 1 if errs else 0
 
 

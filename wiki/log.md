@@ -12,3 +12,13 @@
 ## [2026-10-29] 收錄 | 交易計畫與今年逐月表改看 N8
 
 - CLAUDE.md 三處新增（交易計畫 VER 5、飆股前瞻記錄 VER 5＋頁面帳本還原兩次的坑、今年逐月表 ytdspec VER 2），重跑 `scripts/wiki_split.py`：內容進 `lab/core-plan.md`、`lab/boom-live.md`、`lab/cfg-research.md`，其他頁只有行號標記移動。
+
+## [2026-10-29] 整理 | 第二段：ops、env、main 三個資料夾
+
+- 25 頁照第 3.3 節的格式重寫（現在怎麼運作 → 不能改的規則 → 踩過的坑 → 歷史），拿掉逐字切片的行號標記；拆出 7 頁：
+  `ops/news-rules-scope`、`ops/news-rules-depth`、`ops/news-rules-style`、`ops/news-rules-numbers`、`ops/routines-prompts`、`main/fund-news-social`、`main/etf-holdings-routes`。
+- 新寫兩頁：`user.md`（使用者偏好，每條附原話與日期）、`lessons.md`（跨主題的教訓）。
+- 事實比對（`python3 scripts/wiki_facts.py`）：CLAUDE.md 那幾段的 2,296 個事實記號（程式碼片段、日期、帶單位的數字、引號裡的字、run 編號、VER）全部還在，不見 0 個；沒有刪任何記號。
+- 六段排程 prompt 原文逐行和 CLAUDE.md 比對一字不差。
+- 原文前後說法不一致的地方沒有改，列在 `docs/llm_wiki_plan.md` 第 12 節，等確認。
+- 目錄改成：整理過的頁，標題與摘要讀頁面自己的第 1、3 行；逐字的 37 頁（lab）照舊由 `scripts/wiki_split.py` 重產。
