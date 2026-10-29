@@ -223,7 +223,7 @@ def _common(p: dict, sections: tuple, req: tuple, src_min: int, pmin: int, pmax:
     b = _banned(allt + " " + str(fm.get("title", "")))
     if b:
         errs.append(f"禁用詞：{'、'.join(b)}")
-    m = PROCESS.search(allt)
+    m = PROCESS.search("\n".join(v for k, v in p["sec"].items() if k != "資料來源"))     # 資料侷限只准寫在資料來源段
     if m:
         errs.append(f"正文出現查證過程或檔名：「{m.group(0)}」")
     m = FILLER.search(allt)
