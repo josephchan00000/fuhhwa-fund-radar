@@ -461,7 +461,7 @@ def test_bubble_dimension_moved_to_bubble_page(built):
     chip = '<a class="stc mfb" href="#bub" data-jump="bub" title="泡沫等級 3 泡沫警戒（價格爆發、兩年翻倍），點了看最下面的泡沫">'
     page2 = P.render(dict(V2, bubblock='<section class="cd mbub" id="bub">泡沫</section>'))
     assert chip in page2 and page2.index(chip) < page2.index('id="today"') < page2.index('id="bub"')   # 面向的標題列有一格，泡沫在最下面
-    assert 'class="stc mfb"' not in P.render(dict(V2, bubblock=""))    # 泡沫那一塊沒有（算不出來）就不放這一格
+    assert 'class="stc mfb"' not in P.render(dict(V2, bubblock="", indchip=""))    # 泡沫那一塊沒有（算不出來）就不放這一格
     assert "x9b.html" not in page2
     for w in BANNED:
         assert w not in page2, w

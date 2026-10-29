@@ -150,10 +150,11 @@ def _row(grp: str, k: str, n: dict, key: str | None, mem: int | None = None, ext
         fv = n.get("f")
         ft = "—" if fv is None else f"第 {fv:.0f} 百分位"
         cells.append(f'<td class="dsk" data-v="{"" if fv is None else round(fv, 1)}">{ft}</td>')
+    dn = f' data-n="{_e(grp)}:{_e(k)}"'                     # 市場頁產業泡沫的格子／清單點了找這一列（bubpage.ind_card）
     if key is None:
-        return f'<tr>{"".join(cells)}</tr>'
+        return f'<tr{dn}>{"".join(cells)}</tr>'
     span = len(cells)
-    return (f'<tr class="bir" data-k="{key}" tabindex="0">{"".join(cells)}</tr>'
+    return (f'<tr class="bir" data-k="{key}"{dn} tabindex="0">{"".join(cells)}</tr>'
             f'<tr class="bid" hidden><td colspan="{span}" class="l"><p class="bsum">{_e(sentence(grp, name_of(grp, k), n))}</p>'
             f'<div class="bhw"><div class="bh" id="h-{key}"><p class="note">歷史等級載入中…</p></div><div class="tip" id="t-{key}" hidden></div></div>'
             '<p class="note">上面色塊＝每個月的等級，線＝產業指數（月底，對數座標）。</p>' + extra + '</td></tr>')

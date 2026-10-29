@@ -183,12 +183,21 @@ def test_market_block_level_conditions_chart_and_industries(blk):
     assert h.count('data-br=') == 3 and '<button type="button" class="tb on" data-br="30" data-mk="tw" aria-pressed="true">近 30 年</button>' in h
     assert '<div class="bhw"><div class="bh" id="h-tw">' in h and 'id="t-tw"' in h
     assert "1990 年以前" not in h                                                   # 延伸樣本只在研究紀錄頁
-    # 等級 ≥ 2 的產業一行（等級高的在前；等級 ≥ 3 另寫成立的條件），全部產業表收起
-    li = h[h.index('<ul class="mbi">'):h.index("</ul>")]
-    assert "<b>台股產業</b>" in li and "<b>細分族群</b>" in li
-    assert li.index("電子零組件業") < li.index("塑膠工業") and "金融保險" not in li
-    assert '電子零組件業 <b class="bl3">3</b><em>價格爆發、漲得比營收快</em>' in li and '塑膠工業 <b class="bl2">2</b></span>' in li
-    assert 'PCB 材料 <b class="bl4">4</b>' in li
+    # 產業泡沫單獨一張卡（docs/lab_us_chip_plan.md 第 6 節）：市場卡裡不再列產業
+    mkt, ind = h[:h.index('<section class="cd mbub mbii" id="bubi">')], h[h.index('<section class="cd mbub mbii" id="bubi">'):]
+    assert "電子零組件業" not in mkt and "<h2>產業泡沫</h2>" in ind
+    assert '<span class="mbis">嚴重泡沫 1・泡沫警戒 1・漲勢過熱 1</span>' in ind
+    tl = ind[ind.index('<div class="mbtl">'):ind.index('<div class="mbls">')]          # 電腦：格子（等級 2 以上＋其他 N 個）
+    assert '<div class="mbgh">台股產業</div>' in tl and '<div class="mbgh">細分族群</div>' in tl
+    assert tl.index("電子零組件業") < tl.index("塑膠工業") and "金融保險" not in tl and "其他 1 個" in tl
+    assert ('<button type="button" class="mbx mbl3" data-bn="tw:電子零組件業"><span class="mbxn">電子零組件業</span>'
+            '<span class="mbxv"><b class="bl3">3</b> 泡沫警戒</span><span class="mbxc">價格爆發、漲得比營收快</span></button>') in tl
+    assert 'data-bn="tg:pcbm"' in tl and '<b class="bl4">4</b> 嚴重泡沫' in tl
+    ls = ind[ind.index('<div class="mbls">'):ind.index('<details')]                    # 手機：一個等級一列
+    assert ls.index('<b class="bl4">4</b> 嚴重泡沫') < ls.index('<b class="bl3">3</b> 泡沫警戒') < ls.index('<b class="bl2">2</b> 漲勢過熱')
+    assert 'data-bn="tw:電子零組件業">電子零組件業<em>價格爆發、漲得比營收快</em></button>' in ls
+    assert 'data-bn="tw:塑膠工業">塑膠工業</button>' in ls and "▸ 其他 1 個沒有過熱" in ls
+    assert 'data-n="tw:電子零組件業"' in ind and 'data-n="tw:金融保險"' in ind          # 點了找得到表上的那一列
     assert '<details class="mfx mbt"><summary>全部產業</summary>' in h and "<h3>台股產業</h3>" in h and "<h3>細分族群</h3>" in h
     assert 'class="bind bsort"' in h and "成員 1 家（平台現在的名單，依市值排列）：2383 台光電" in h
     for w in ("驗證", "方法", "門檻", "樣本", "研究"):                               # 方法與驗證在研究紀錄頁
@@ -196,15 +205,28 @@ def test_market_block_level_conditions_chart_and_industries(blk):
     assert BP.block_html("ndx") == ""                                               # 沒有算好的等級：不顯示
 
 
-def test_market_block_us_side_and_data(blk):
+def test_market_block_us_side_and_data(blk, monkeypatch):
     h = BP.block_html("spx")
-    assert '<b class="sc bl2">2</b>' in h and "<b>美股類股</b>" in h and "<b>美股細產業（到 2026/8）</b>" in h
-    assert "沒有等級 2 以上" in h and '電腦硬體 <b class="bl2">2</b>' in h               # XLP 等級 0；Hardw 等級 2
-    assert "<h3>美股類股</h3>" in h and "<h3>美股細產業</h3>" in h and "台股產業" not in h
+    assert '<b class="sc bl2">2</b>' in h and '<div class="mbgh">美股類股</div>' in h and '<div class="mbgh">美股細產業（到 2026/8）</div>' in h
+    assert 'data-bn="ff:Hardw"' in h and 'data-bn="us:XLP"' not in h.split("<details")[0]  # XLP 等級 0（只在全部產業表）；Hardw 等級 2
+    assert "<h3>美股類股</h3>" in h and "<h3>美股細產業</h3>" in h and "台股" not in h and "有關</div>" not in h
     D = json.loads(BP.block_data(["spx"]))
     assert set(D) == {"spx", "@u0"} and "xd" not in D["spx"]
     D = json.loads(BP.block_data(["tw"]))
     assert {"tw", "@t0", "@t1", "@t2", "@g0"} <= set(D) and "@u0" not in D and "xd" not in D["tw"]
+    # 費半：相關產業排最前面（就算等級 0 也列），其他組不重複
+    from arm.lab import bubble as BU
+    monkeypatch.setattr(BU, "last", lambda mk: blk["spx"])
+    s = BP.block_html("sox")
+    tl = s[s.index('<div class="mbtl">'):s.index('<div class="mbls">')]
+    assert tl.index('<div class="mbgh">跟費半有關</div>') < tl.index('<div class="mbgh">美股類股</div>')
+    rel = tl[:tl.index('<div class="mbgh">美股類股</div>')]
+    assert 'data-bn="ff:Hardw"' in rel and tl.count('data-bn="ff:Hardw"') == 1
+    assert '<span class="mbh">跟費半有關</span>' in s
+    assert BP.ind_chip("sox").startswith('<a class="stc mfb" href="#bubi" data-jump="bubi"') and "電腦硬體" in BP.ind_chip("sox")
+    assert '<span class="bl4">4</span><i>PCB 材料</i>' in BP.ind_chip("tw")
+    monkeypatch.setattr(BP, "industries", lambda: {"us": {"XLP": _ind()["us"]["XLP"]}, "ff": {}})
+    assert "<i>沒有過熱</i>" in BP.ind_chip("spx")
 
 
 def test_market_block_is_wired_into_the_market_pages():
@@ -213,6 +235,8 @@ def test_market_block_is_wired_into_the_market_pages():
     import inspect
     src = inspect.getsource(HP.view)
     assert 'out["bubblock"] = bub_block(out["mk"]) if T else ""' in src
+    assert 'out["indchip"] = ind_chip(out["mk"]) if T and out["bubblock"] else ""' in src
+    assert '{dd}{bub}{V.get("indchip") or ""}' in inspect.getsource(VZ._face_head)
     mv = inspect.getsource(VZ.main_view)
     assert '{V.get("bubblock") or ""}{foot_html(V)}' in mv                           # 最下面（全部指標之後）
     assert '"bjs": BPG.JS + IP.JS' in inspect.getsource(HP.page_parts) and "BPG.block_data(mks)" in inspect.getsource(HP.page_parts)
