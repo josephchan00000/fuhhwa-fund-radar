@@ -507,7 +507,8 @@ a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
 .why,.chain,.indl{background:var(--card2);border-radius:10px;padding:9px 13px;font-size:14px;margin:10px 0}.chain ul{margin:4px 0 0}
 .disc{font-size:12px;color:var(--mut)}.foot{border-top:1px solid var(--line);padding-top:10px;margin-top:30px}
 @media (max-width:860px){.fgrid{grid-template-columns:1fr}}
-@media (max-width:760px){.p1{grid-template-columns:1fr}.eqh h1{font-size:21px}body{font-size:15px}}
+@media (max-width:760px){.p1{grid-template-columns:1fr}.eqh h1{font-size:21px}body{font-size:15px}.dt{font-size:12px}.dt th,.dt td{padding:4px 5px}}
+@media (max-width:640px){.ch text,.fgrid .ch text,.ch .tp,.ch .tl,.ch .tv,.fgrid .ch .tl,.fgrid .ch .tp{font-size:21px}}
 @media print{
  @page{size:A4;margin:12mm 11mm}
  body{font-size:10pt;line-height:1.6;background:#fff;color:#000}.top,.toc,.live,.csv{display:none!important}

@@ -90,3 +90,17 @@ def test_pick_peers_leaders_then_shared_then_size():
 
 def test_numbers_collects_all():
     assert E.numbers({"a": 1, "b": [2.5, {"c": "3.0"}], "d": True}) == {1.0, 2.5, 3.0}
+
+
+def test_implied_rest_of_year():
+    co = _co(nq=11, ms=33)                       # 2025 只有前三季、月營收到 2025-09
+    qs, mo = E.quarters(co), E.months(co)
+    yd = E.ytd(qs, mo)
+    yrs = E.annual(qs, {"2024": 5.0}, [])
+    cons = {"y": 2025, "eps": {"2025": {"med": 9.0, "rev": 80.0}}}
+    imp = E.implied(cons, yd, yrs, qs, mo)
+    assert yd["q_n"] == 3 and yd["q_eps"] == round(1.8 + 1.9 + 2.0, 2)
+    assert imp["eps_rest"] == round(9.0 - yd["q_eps"], 2)
+    assert imp["eps_rest_ly"] == round(5.0 - yd["q_eps_ly"], 2)
+    assert imp["rev_rest"] == round(80.0 - yd["m_rev"], 2)
+    assert E.implied({}, yd, yrs, qs, mo) == {}

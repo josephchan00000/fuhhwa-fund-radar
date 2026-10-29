@@ -10,7 +10,7 @@ import math
 from html import escape
 
 W = 640
-PL, PR, PT, PB = 56, 14, 22, 26
+PL, PR, PT, PB = 56, 14, 22, 32
 
 
 def fmt(v, d: int | None = None) -> str:
@@ -69,8 +69,8 @@ def ticks_cover(lo: float, hi: float, n: int = 4) -> list[float]:
 class Panel:
     """一格：x 是類別序號（0..n-1），y 線性。"""
 
-    def __init__(self, n: int, lo: float, hi: float, top: float, h: float, yfmt=None, unit: str = ""):
-        tk = ticks_cover(lo, hi)
+    def __init__(self, n: int, lo: float, hi: float, top: float, h: float, yfmt=None, unit: str = "", nt: int = 4):
+        tk = ticks_cover(lo, hi, nt)
         self.lo, self.hi = min(lo, tk[0]), max(hi, tk[-1])
         self.tk = [t for t in tk if self.lo - 1e-9 <= t <= self.hi + 1e-9]
         self.n, self.top, self.h = n, top, h
@@ -92,7 +92,7 @@ class Panel:
             out.append(f'<line class="{cls}" x1="{PL}" x2="{W - PR}" y1="{yy:.1f}" y2="{yy:.1f}"/>'
                        f'<text class="ty" x="{PL - 5}" y="{yy + 3.5:.1f}" text-anchor="end">{escape(self.yfmt(t))}</text>')
         if self.unit:
-            out.append(f'<text class="tu" x="{PL - 5}" y="{self.top - 11:.1f}" text-anchor="end">{escape(self.unit)}</text>')
+            out.append(f'<text class="tu" x="{PL + 2}" y="{self.top - 7:.1f}">{escape(self.unit)}</text>')
         return "".join(out)
 
     def bars(self, vals, cls="k1", sign=False, names=None, label=None, w=0.62, off=0.0) -> str:
@@ -146,16 +146,17 @@ def _xlabels(p: Panel, labels: list[str], y: float, every: int | None = None) ->
     n = len(labels)
     if not n:
         return ""
-    every = every or max(1, math.ceil(n / 8))
+    every = every or max(1, math.ceil(n / 6))
     out = []
     idx = list(range(0, n, every))
-    if idx[-1] != n - 1 and n - 1 - idx[-1] < every / 2:
-        idx[-1] = n - 1
-    elif idx[-1] != n - 1:
-        idx.append(n - 1)
+    if idx[-1] != n - 1:
+        if len(idx) > 1:
+            idx[-1] = n - 1                       # 最後一個一定標，換掉太近的前一個
+        else:
+            idx.append(n - 1)
     for i in idx:
         anc = "start" if i == 0 and p.x(i) - PL < 20 else "end" if i == n - 1 and W - PR - p.x(i) < 20 else "middle"
-        out.append(f'<text class="tx" x="{p.x(i):.1f}" y="{y:.1f}" text-anchor="{anc}">{escape(labels[i])}</text>')
+        out.append(f'<text class="tx" x="{p.x(i):.1f}" y="{y + 4:.1f}" text-anchor="{anc}">{escape(labels[i])}</text>')
     return "".join(out)
 
 
@@ -209,10 +210,10 @@ def bars_yoy(labels: list[str], vals: list, yoy: list, unit="億元", label="營
     lo, hi = _yr(vals, zero=True)
     p1 = Panel(n, 0 if lo >= 0 else lo, hi, PT + 4, 130, unit=unit)
     ylo, yhi = _yr(yoy, zero=True)
-    p2 = Panel(n, ylo, yhi, PT + 4 + 130 + 34, 70, unit="%", yfmt=lambda v: fmt(v, 0))
+    p2 = Panel(n, ylo, yhi, PT + 4 + 130 + 34, 70, unit="%", yfmt=lambda v: fmt(v, 0), nt=2)
     body = (p1.grid() + p1.bars(vals, "k1", names=labels, label=title_v) + p2.grid()
             + p2.bars(yoy, sign=True, names=labels, label=title_y)
-            + f'<text class="tu" x="{W - PR}" y="{p2.top - 11:.1f}" text-anchor="end">{escape(title_y)}（%）</text>'
+            + f'<text class="tu" x="{W - PR}" y="{p2.top - 7:.1f}" text-anchor="end">{escape(title_y)}（%）</text>'
             + _xlabels(p2, labels, p2.top + p2.h + 16))
     return _svg(p2.top + p2.h + PB, body, label)
 

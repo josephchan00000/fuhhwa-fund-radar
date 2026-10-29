@@ -166,6 +166,28 @@ def ytd(qs: list[dict], mo: list[dict]) -> dict:
     return out
 
 
+def implied(cons: dict, yd: dict, yrs: list[dict], qs: list[dict], mo: list[dict]) -> dict:
+    """法人共識今年全年 − 今年已公布 ＝ 剩下的期間要做到多少，和去年同一段期間比（報告常用的「共識隱含下半年」）。"""
+    out: dict = {}
+    y = str((cons or {}).get("y") or "")
+    e = ((cons or {}).get("eps") or {}).get(y) or {}
+    if not y or not yd:
+        return out
+    last = next((a for a in yrs if a["y"] == str(int(y) - 1)), None)
+    if e.get("med") is not None and yd.get("q_y") == y and yd.get("q_eps") is not None and last and last.get("eps") is not None \
+            and yd.get("q_eps_ly") is not None:
+        rest, rest_ly = e["med"] - yd["q_eps"], last["eps"] - yd["q_eps_ly"]
+        out.update({"eps_rest": round(rest, 2), "eps_rest_ly": round(rest_ly, 2), "q_done": yd.get("q_n"),
+                    "eps_rest_x": round(rest / rest_ly, 2) if rest_ly > 0 else None,
+                    "eps_rest_yoy": _pc(rest, rest_ly)})
+    if e.get("rev") is not None and yd.get("m_y") == y and yd.get("m_rev") is not None and last and last.get("rev") is not None \
+            and yd.get("m_rev_ly") is not None:
+        rest, rest_ly = e["rev"] - yd["m_rev"], last["rev"] - yd["m_rev_ly"]
+        out.update({"rev_rest": round(rest, 2), "rev_rest_ly": round(rest_ly, 2), "m_done": yd.get("m_n"),
+                    "rev_rest_yoy": _pc(rest, rest_ly), "rev_y_yoy": _pc(e["rev"], last["rev"])})
+    return out
+
+
 def months(co: dict) -> list[dict]:
     rows = co.get("mo") or []
     rev = {r[0]: r[1] for r in rows if len(r) > 1 and r[1] is not None}
@@ -550,6 +572,7 @@ def tw_pack(code: str, D=None, pos=None, asof: str | None = None, peers: list[st
             "my": {k: my.get(k) for k in ("rs", "d52h", "r120", "ry", "ry3", "racc", "ey", "eacc", "gm", "om", "roe",
                                           "pe", "pb", "yld", "dr", "cr", "liq", "tt")},
             "q": qs[-QN:], "y": yrs[-YN:], "mo": mo[-MN:], "ytd": ytd(qs, mo), "val": val, "cons": cons,
+            "implied": implied(cons, ytd(qs, mo), yrs, qs, mo),
             "peers": prow, "peers_auto": auto, "peer_me": me, "peer_med": med, "peer_how": how,
             "chain": [{k: n[k] for k in ("chain", "cn", "node", "nn")} | {"n": len(n["mem"])} for n in nodes],
             "chain_main": primary_chain(nodes),
