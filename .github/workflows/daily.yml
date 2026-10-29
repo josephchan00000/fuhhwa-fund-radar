@@ -309,7 +309,7 @@ jobs:
         # Actions 的網路可達 vercel.app（被 proxy 擋的是 Claude 容器）。輪詢至多 4 分鐘等
         # 線上 data-gen 追上 main；沒追上→run ❌ 寄 failure 信＝「部署漏接」警報（08-13 型
         # 事故從隔天人工發現變分鐘級自動警報）。哨兵紅≠資料有問題（資料已入 main），
-        # 診斷順序見 CLAUDE.md 步驟 9「主動部署」踩坑條。
+        # 診斷順序見 wiki/ops/deploy.md。
         run: |
           git fetch origin main --depth=1
           git show FETCH_HEAD:dashboard/index.html > /tmp/main_dashboard.html

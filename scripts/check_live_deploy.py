@@ -143,7 +143,7 @@ def main() -> int:
               "可能 Vercel 平台異常；資料已在 main、不受影響")
     else:
         print(f"::error::[對時哨兵] 線上頁停在 {last_seen}、未追上 main 的 {expected}（等了 {a.timeout_min} 分鐘）——"
-              "疑似部署漏接：依 CLAUDE.md 步驟 9 診斷順序，先讀本 run『觸發 Vercel 部署』步驟日誌"
+              "疑似部署漏接：依 wiki/ops/deploy.md 的診斷順序，先讀本 run『觸發 Vercel 部署』步驟日誌"
               "（印『未設…跳過』＝secret 失效；HTTP 2xx 仍舊版＝查 Vercel Deployments）")
     return 1
 

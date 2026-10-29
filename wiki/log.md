@@ -34,3 +34,10 @@
 - 刪：`heatviz._tz_orig`、`1個月・原本看3個月`——VER 15「溫度計另外算進去的」區的標示；原文寫 VER 21 起該區拿掉。
 - 刪：`thermocal.vote(R,cells,H,x)`、`ktab(yk,那一年)`——VER 21「過去讀數這樣的時候」改用 sigoos 格子投票；VER 23 原文寫「`thermocal.vote(R)` 只吃統計、不再用 sigoos 的格子」。
 - 刪：`.tzst`、`sigpage.today_html`、`今天有效的訊號`——VER 21 今天的重點裡的總經策略小區、舊訊號總覽的「今天有效的訊號」；市場頁段寫這兩個都已刪掉。
+
+## [2026-10-29] 整理 | 第四段：路徑規則、體檢、「整理知識庫」指令、程式註解
+
+- 18 份路徑規則 `.claude/rules/*.md`：讀到那幾支程式時自動載入，寫先讀哪一頁＋2～5 條不能改的規則（每份 ≤1,500 字，平常不載入）。
+- `scripts/wiki_lint.py`（只讀體檢）；CLAUDE.md 加「指令：整理知識庫」，對應新頁 [指令「整理知識庫」](ops/wiki-maintenance.md)。
+- 11 處程式註解由「見 CLAUDE.md」改成指向知識庫的頁；`config/index_reviews.json` 的 note 改了會觸發 daily.yml 整輪重跑，留到第 5 段。
+- 9 頁原本只有目錄連到，補了頁間連結；`ops/news-rules` 的「生效條件＝排程搬家」補一句現況（指到排程頁）。
