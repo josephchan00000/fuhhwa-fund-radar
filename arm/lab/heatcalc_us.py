@@ -32,7 +32,8 @@ FILES = list(PX.values()) + [
     "us_vxn", "us_vix3m", "us_dxy", "us_rsp", "us_spy", "us_h15", "us_h41", "us_m2", "us_z1", "us_gdp",
     "us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini", "us_philly", "us_ads", "us_cli", "us_claims",
     "us_bls", "us_umich", "us_ebp", "us_shiller", "us_wsts", "vix", "hyg", "ief", "effr", "mmf",
-] + list(LPPLS.values())
+    "us_cftc_am_nq", "us_cftc_big_nq", "us_cftc_mini_nq",                     # VER 3：那斯達克 100 期貨（S8、S9）
+] + list(LPPLS.values()) + sorted({f"us_lev_{s}" for pair in U.LEV.values() for s in pair})   # VER 3：槓桿 ETF（S6）
 CLAIMS_FROM = "1987-01-01"        # 各州初領救濟金：1987 年以前有些州沒有資料
 UMICH_FROM = "1978-01"            # 密大消費者信心：1978 年以前是季資料
 CMT3_FROM = "1981-09-01"          # 3 個月固定期限殖利率 1981-09 起；之前用 3 個月國庫券
@@ -188,6 +189,43 @@ def z1_ratios(D: dict, L: dict) -> tuple[dict, dict]:
     return bf, tq
 
 
+def net_share(rows: dict) -> dict:
+    """CFTC {週二: [多單, 空單, 未平倉]} →（多單 − 空單）÷ 未平倉 × 100。"""
+    return {d: 100.0 * (v[0] - v[1]) / v[2] for d, v in rows.items() if v and v[2]}
+
+
+def noncomm(big: dict, mini: dict) -> dict:
+    """大型契約與 E-mini 合計（E-mini 以 1/5 口計；S&P 500 與那斯達克 100 都是 1/5）的淨部位 ÷ 未平倉 × 100。"""
+    out = {}
+    for d in set(big) | set(mini):
+        net = oi = 0.0
+        for v, f in ((big.get(d), 1.0), (mini.get(d), 1.0 / EMINI)):
+            if v and v[2]:
+                net += f * (v[0] - v[1])
+                oi += f * v[2]
+        if oi:
+            out[d] = 100.0 * net / oi
+    return out
+
+
+def lev_share(bull: dict, bear: dict, days: int | None = None) -> dict:
+    """S6：3 倍做多 ETF 近 days 個共同交易日的成交金額 ÷（做多＋做空）× 100；兩檔都有成交金額的日子才算。"""
+    days = days or U.LEV_DAYS
+    ds = sorted(d for d in bull if d in bear and bull[d] is not None and bear[d] is not None)
+    out = {}
+    sb = st = 0.0
+    for i, d in enumerate(ds):
+        sb += bull[d]
+        st += bull[d] + bear[d]
+        if i >= days:
+            o = ds[i - days]
+            sb -= bull[o]
+            st -= bull[o] + bear[o]
+        if i >= days - 1 and st > 0:
+            out[d] = 100.0 * sb / st
+    return out
+
+
 # ── 共用（四個指數一樣）的項目 ───────────────────────────────────────────
 
 def shared(D: dict) -> dict:
@@ -197,19 +235,11 @@ def shared(D: dict) -> dict:
     PRE: dict[str, dict] = {}
     ad = U.AVAIL_DAYS
     # 情緒籌碼
-    am = D.get("us_cftc_am") or {}
-    N["S1"] = shift_days({d: 100.0 * (v[0] - v[1]) / v[2] for d, v in am.items() if v and v[2]}, ad.get("S1"))
-    big, mini = D.get("us_cftc_big") or {}, D.get("us_cftc_mini") or {}
-    s2 = {}
-    for d in set(big) | set(mini):
-        net = oi = 0.0
-        for v, f in ((big.get(d), 1.0), (mini.get(d), 1.0 / EMINI)):
-            if v and v[2]:
-                net += f * (v[0] - v[1])
-                oi += f * v[2]
-        if oi:
-            s2[d] = 100.0 * net / oi
-    N["S2"] = shift_days(s2, ad.get("S2"))
+    for k, am in (("S1", D.get("us_cftc_am")), ("S8", D.get("us_cftc_am_nq"))):         # S8：VER 3 那斯達克 100
+        N[k] = shift_days(net_share(am or {}), ad.get(k))
+    for k, big, mini in (("S2", D.get("us_cftc_big"), D.get("us_cftc_mini")),
+                         ("S9", D.get("us_cftc_big_nq"), D.get("us_cftc_mini_nq"))):
+        N[k] = shift_days(noncomm(big or {}, mini or {}), ad.get(k))
     vx = D.get("us_cftc_vix") or {}
     N["S3"] = shift_days({d: 100.0 * (v[0] - v[1]) / v[2] for d, v in vx.items() if v and v[2]}, ad.get("S3"))
     vix, v3m = D.get("vix") or {}, D.get("us_vix3m") or {}
@@ -354,6 +384,9 @@ def index_items(D: dict, idx: str, cal: list[str], px: list, SH: dict) -> tuple[
     CB.daily_runups(cal, px, N, "X2", "X3")
     PRE: dict[str, dict] = {}
     CB.lppls_item(D.get(LPPLS[idx]) or {}, N, PRE, "X5")
+    a, b = U.LEV[idx]                                         # VER 3：S6 槓桿 ETF 做多比重、S7 成分股內部人
+    N["S6"] = lev_share(D.get(f"us_lev_{a}") or {}, D.get(f"us_lev_{b}") or {})
+    N["S7"] = ins_series(cal, idx, SH)
     if idx != "spx":
         ref = H.asof_daily(cal, D.get(PX["spx"]) or {}, stale=7)
         rel = [None if a is None or b is None or not b else a / b for a, b in zip(px, ref)]
@@ -364,6 +397,15 @@ def index_items(D: dict, idx: str, cal: list[str], px: list, SH: dict) -> tuple[
     pm = L["p"] if idx == "spx" else CB.month_avg_px(dict(zip(cal, px)), cal[-1])
     CB.psy_trend(real_price(L, pm), M, PRE, "X1", "X4")
     return N, M, PRE
+
+
+def ins_series(cal: list[str], idx: str, SH: dict) -> dict:
+    """S7：成分股內部人淨買比例（arm/lab/insider.py）；資料讀一次、四個指數共用（存在 SH）。"""
+    from . import insider as INS
+    if "INS" not in SH:
+        SH["INS"] = (INS.load_all(), INS.load_members(), INS.state())
+    D, M, st = SH["INS"]
+    return INS.ratio_series(cal, U.INS[idx], D, M, st) if D and M else {}
 
 
 def build(idx: str, D: dict | None = None, SH: dict | None = None) -> dict:
@@ -378,6 +420,8 @@ def build(idx: str, D: dict | None = None, SH: dict | None = None) -> dict:
         M = {**{k: v for k, v in SH["M"].items() if k in keys}, **M}
         PRE = {**{k: v for k, v in SH["PRE"].items() if k in keys}, **PRE}
         B = C.score(D, cal, px, info, N, M, PRE, dict(SH["REF"]))
+        # 大跌後買點（bottomspec）的 C5 照原規格四個指數都用 S&P 500 期貨（S2）；VER 3 起 S2 只在 S&P 500 是面向項目，另外放
+        B["xraw"] = C.align_daily(cal, {"S2": SH["N"].get("S2") or {}}) if "S2" not in keys else {}
     B["idx"] = idx
     return B
 
