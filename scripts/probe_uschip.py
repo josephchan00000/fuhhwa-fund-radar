@@ -80,7 +80,11 @@ def yahoo() -> None:
     for sym in ("SPXL", "SPXS", "UPRO", "SPXU", "TQQQ", "SQQQ", "SOXL", "SOXS"):
         url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}?period1=0&period2={int(time.time())}"
                "&interval=1d&events=split")
-        st, b, _ = get(url, timeout=60)
+        for _ in range(4):
+            st, b, _ = get(url, timeout=60)
+            if st != 429:
+                break
+            time.sleep(8)
         try:
             res = json.loads(b.decode("utf-8"))["chart"]["result"][0]
             ts = res.get("timestamp") or []
@@ -92,7 +96,7 @@ def yahoo() -> None:
             print(f"{sym}: HTTP {st}, {len(ts)} 根 {first}～{last}，有成交量 {len(vol)} 根，分割 {[(date.fromtimestamp(s['date']).isoformat(), s.get('splitRatio')) for s in spl]}")
         except Exception as e:                            # noqa: BLE001
             print(f"{sym}: HTTP {st} 解析失敗 {type(e).__name__}: {b[:160]!r}")
-        time.sleep(0.5)
+        time.sleep(3)
 
 
 def shares() -> None:
@@ -105,6 +109,10 @@ def shares() -> None:
         "https://www.direxion.com/holdings/SOXL.csv",
         "https://www.direxion.com/uploads/SOXL_NAV_History.csv",
     ]
+    for f in ("TQQQ", "SQQQ", "UPRO", "SPXU", "USD", "SSG"):
+        st, b, ct = get(f"https://accounts.profunds.com/etfdata/ByFund/{f}-historical_nav.csv", timeout=120)
+        rows = [ln for ln in b.decode("utf-8", "replace").splitlines() if re.match(r"\d{1,2}/\d{1,2}/\d{4},", ln)]
+        print(f"ProShares {f}: HTTP {st}，{len(rows)} 天，最新 {rows[0][:80] if rows else None}，最舊 {rows[-1][:80] if rows else None}")
     for u in cands:
         st, b, ct = get(u, timeout=60, limit=200000)
         txt = b.decode("utf-8", "replace")
@@ -123,7 +131,8 @@ def sec() -> None:
         print("沒有 SEC_CONTACT_EMAIL，跳過")
         return
     h = {"User-Agent": SF._ua(email)}
-    base = "https://www.sec.gov/files/structureddata/data/form-345-data-sets/{q}_form345.zip"
+    bases = ["https://www.sec.gov/files/structureddata/data/insider-transactions-data-sets/{q}_form345.zip",
+             "https://www.sec.gov/files/structureddata/data/form-345-data-sets/{q}_form345.zip"]
     today = date.today()
     qs = ["2006q1", "2015q2"]
     y, q = today.year, (today.month - 1) // 3 + 1
@@ -132,7 +141,21 @@ def sec() -> None:
         if q == 0:
             y, q = y - 1, 4
         qs.append(f"{y}q{q}")
-    for qq in qs:
+    st, b, _ = get("https://www.sec.gov/data-research/sec-markets-data/insider-transactions-data-sets", headers=h, timeout=60)
+    t0 = b.decode("utf-8", "replace")
+    links = sorted(set(re.findall(r'href="([^"]*form345\.zip)"', t0)))
+    print(f"資料集頁：HTTP {st}，壓縮檔連結 {len(links)} 個，例 {links[:2]} … {links[-2:]}")
+    base = None
+    for bb in bases:
+        st, b, _ = get(bb.format(q=qs[-1]), headers=h, timeout=60, limit=4)
+        print(f"  試 {bb.format(q=qs[-1])}: HTTP {st}")
+        if st == 200:
+            base = bb
+            break
+    if links and not base:
+        base = "https://www.sec.gov" + re.sub(r"\d{4}q\d", "{q}", links[-1]) if links[-1].startswith("/") else re.sub(r"\d{4}q\d", "{q}", links[-1])
+        print("  用頁面上的連結格式", base)
+    for qq in (qs if base else []):
         st, b, ct = get(base.format(q=qq), headers=h, timeout=300)
         print(f"{qq}: HTTP {st} {ct} {len(b)} bytes", flush=True)
         if st == 200 and b[:2] == b"PK":
@@ -193,19 +216,27 @@ def sec() -> None:
             break
         time.sleep(0.3)
     # 產業代碼 3674
-    for start in (0, 100):
+    allc = []
+    for start in range(0, 2000, 100):
         url = ("https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&SIC=3674&type=&dateb=&owner=include"
                f"&start={start}&count=100&output=atom")
         st, b, ct = get(url, headers=h, timeout=60)
         txt = b.decode("utf-8", "replace")
         ciks = re.findall(r"<cik>(\d+)</cik>", txt) or re.findall(r"CIK=(\d{10})", txt)
-        print(f"SIC 3674 start={start}: HTTP {st} {ct}，CIK {len(ciks)} 個，例 {ciks[:5]}")
-        print("   前段", re.sub(r"\s+", " ", txt[:300]))
-        time.sleep(0.5)
+        allc += ciks
+        if start == 0:
+            print("   第一筆", re.sub(r"\s+", " ", txt[txt.find("<entry"):txt.find("<entry") + 600]))
+        if len(ciks) < 100:
+            break
+        time.sleep(0.3)
+    print(f"SIC 3674：共 {len(allc)} 個 CIK（不重複 {len(set(allc))}）")
 
 
 def main() -> int:
+    only = sys.argv[1:] or ["cftc", "yahoo", "shares", "sec"]
     for f in (cftc, yahoo, shares, sec):
+        if f.__name__ not in only:
+            continue
         try:
             f()
         except Exception as e:                            # noqa: BLE001

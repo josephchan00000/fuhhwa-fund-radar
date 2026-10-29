@@ -155,7 +155,7 @@ jobs:
             timeout 1500 python3 scripts/probe_fut.py
           elif [ "${MODE#uschipprobe}" != "$MODE" ]; then
             # 美股各指數自己的籌碼（docs/lab_us_chip_plan.md）：CFTC 那斯達克 100、槓桿 ETF、SEC 內部人資料的探針；只印不寫
-            timeout 1500 python3 scripts/probe_uschip.py
+            timeout 1500 python3 scripts/probe_uschip.py $(echo "${MODE#uschipprobe}" | tr ":," "  ")
           elif [ "${MODE#secprobe}" != "$MODE" ]; then
             # 美股財報「一次性利得／損失」項目的探針（美股三成營益率的研究，2026-10-24）：只印不寫
             timeout 1800 python3 scripts/probe_secgain.py
