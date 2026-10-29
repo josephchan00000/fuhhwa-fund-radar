@@ -203,6 +203,12 @@ def parse_index(txt: str) -> list[tuple[int, str]]:
     return out
 
 
+def no_index(status: int, body: bytes) -> bool:
+    """每日索引不存在：EDGAR 的檔案庫對不存在的檔回 403（AccessDenied）或 404；SEC 擋太快的請求也回 403，
+    但內容寫 Request Rate Threshold Exceeded——那種不算（下次再試）。"""
+    return status in (403, 404) and b"Rate Threshold" not in (body or b"")
+
+
 def parse_sic(txt: str) -> list[int]:
     return [int(c) for c in re.findall(r"<cik>(\d+)</cik>", txt)]
 
@@ -308,7 +314,10 @@ class Client:
             with urllib.request.urlopen(req, timeout=timeout, context=_CTX) as r:
                 return r.status, r.read()
         except urllib.error.HTTPError as e:
-            return e.code, b""
+            try:
+                return e.code, e.read()[:2000]
+            except Exception:                                 # noqa: BLE001
+                return e.code, b""
 
 
 def update_members(C: Client) -> dict:
@@ -423,8 +432,8 @@ def do_days(C: Client, M: dict, st: dict, budget_s: float, workers: int = 4) -> 
             log("時間到，下次續做每日索引")
             break
         s, b = C.get(DAILY_IDX.format(y=d.year, q=(d.month - 1) // 3 + 1, ymd=d.strftime("%Y%m%d")), timeout=120)
-        if s == 404 and d <= date.today() - timedelta(days=3):
-            st.setdefault("days", []).append(ds)                # SEC 休息日沒有索引
+        if no_index(s, b) and d <= date.today() - timedelta(days=3):
+            st.setdefault("days", []).append(ds)                # SEC 休息日（聯邦假日，例 10/12 哥倫布日）沒有索引
             d += timedelta(days=1)
             continue
         if s != 200:

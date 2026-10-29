@@ -135,3 +135,9 @@ def test_no_email_anywhere_in_module():
     import inspect
     src = inspect.getsource(I)
     assert "@" not in src.replace("@property", "")         # 聯絡 email 只從 secret 讀，程式裡不出現
+
+
+def test_missing_daily_index_vs_rate_limit():
+    assert I.no_index(404, b"") and I.no_index(403, b"<Error><Code>AccessDenied</Code></Error>")
+    assert not I.no_index(403, b"<h1>Your Request Originates from an Undeclared Automated Tool</h1>Request Rate Threshold Exceeded")
+    assert not I.no_index(500, b"") and not I.no_index(200, b"x")
