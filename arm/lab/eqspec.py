@@ -17,6 +17,15 @@ VER 2：2026-10-30（使用者：「我不要失真的數據」）。VER 1 的�
 - 三個情境：悲觀＝基數 ×（1 − SCEN_EPS）× 範圍下緣；基本＝目標價；樂觀＝基數 ×（1 + SCEN_EPS）× 範圍上緣（淨值比法不加減 SCEN_EPS）。
 - 法人共識目標價只當對照。要改就 VER＋1、寫進規劃文件，不在舊版本上改。
 
+VER 3：2026-10-30（做美股版之前、算任何一家美股之前寫定；台股算法不變）。補兩件 VER 2 沒寫清楚、美股才會碰到的事：
+- **會計年度**：F12M 的 w＝報告日到「法人預估的今年」那個會計年度結束還剩幾個整月（夾在 0～12）÷ 12，看預估資料帶的年度結束日；
+  今年已經結束但還沒公布（例：9 月底結束、11 月才公布）→ w＝0，F12M＝明年預估。台股的今年都是 12 月底結束，和 VER 2 一樣。
+- **美股近四季口徑**：本益比＝市值 ÷ 近四季淨利（SEC 第一次公布的數字；第四季＝全年 − 前三季）；基數＝近四季淨利 ÷ 最新公布的流通股數；
+  本公司過去每月＝月底收盤 × 當時已公布的流通股數 ÷ 當時已公布的近四季淨利；同業＝每週更新的市值 ÷ 近四季淨利（頁面寫日期）。
+  美股大量買回庫藏股時，每股盈餘（加權股數）會和「淨利 ÷ 目前股數」差很多，兩邊都用後者才是同一把尺。
+- **美股共識**：Yahoo Finance，分析師 ≥ CONS_MIN 位；同業的未來本益比＝股價 ÷ 各自的 F12M（同一個加權法、各自的會計年度）。
+  美股分析師預估多半是調整後 EPS：共識法是「調整後 × 調整後」、近四季法是「財報淨利 × 財報淨利」，不交叉，頁面標明。
+
 VER 1（2026-10-29）：基數＝F12M（沒有共識＝近四季 EPS × 營收動能，夾 0.7～1.5）；範圍＝本公司近 5 年本益比（近四季）＋同業現在本益比（近四季）。
 臻鼎-KY 樣本（中立、目標價 560 元）照 VER 1 算，留著當評等歷史。
 """
@@ -24,7 +33,7 @@ from __future__ import annotations
 
 from datetime import date
 
-VER = 2
+VER = 3
 SPEC_DATE = "2026-10-30"
 
 HORIZON_M = 12
@@ -65,16 +74,18 @@ def round_tp(x: float, mk: str = "tw") -> float:
     raise ValueError(x)
 
 
-def year_weight(d: str, fy_end: int = 12) -> float:
-    """報告日之後「今年」還剩幾個整月 ÷ 12（報告日那個月不算）；fy_end＝會計年度最後一個月（台股 12，美股看公司）。"""
-    m = date.fromisoformat(d).month
-    return ((fy_end - m) % 12) / 12
+def year_weight(d: str, y_end: str | None = None) -> float:
+    """VER 3：報告日到「今年」那個會計年度結束還剩幾個整月（報告日那個月不算，夾在 0～12）÷ 12。
+    y_end＝法人預估帶的今年年度結束日（YYYY-MM-DD）；不給＝報告日那一年的 12 月底（台股）。"""
+    a = date.fromisoformat(d)
+    e = date.fromisoformat(y_end) if y_end else date(a.year, 12, 31)
+    return min(max((e.year - a.year) * 12 + e.month - a.month, 0), 12) / 12
 
 
-def f12m(d: str, eps_y: float | None, eps_y1: float | None, fy_end: int = 12) -> float | None:
+def f12m(d: str, eps_y: float | None, eps_y1: float | None, y_end: str | None = None) -> float | None:
     if eps_y is None or eps_y1 is None:
         return None
-    w = year_weight(d, fy_end)
+    w = year_weight(d, y_end)
     return w * eps_y + (1 - w) * eps_y1
 
 
