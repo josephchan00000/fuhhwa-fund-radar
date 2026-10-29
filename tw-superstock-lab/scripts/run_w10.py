@@ -65,12 +65,13 @@ def streaks(m, mask: np.ndarray, wk: list[int]) -> np.ndarray:
     return out
 
 
-def run(ctx: CB.Ctx, mask: np.ndarray, wk: list[int], g: tuple, start: str) -> EN.Result:
+def run(ctx: CB.Ctx, mask: np.ndarray, wk: list[int], g: tuple, start: str, end: str | None = None, keep: bool = False):
+    """keep＝True：最後一天不平倉、連引擎一起回（交易計畫 corespec VER 5 的接手 run_sxlive_seed.py --n8 用）。"""
     m = ctx.m
     sz, order, ext, hold = g
     size = S.SIZE[sz]
     cfg = replace(EN.EngineConfig(costs=EN.Costs()), breakeven_r=None, market_filter=False, block_disposition=False,
-                  max_hold_days=None, max_positions=size["max_pos"])
+                  max_hold_days=None, max_positions=size["max_pos"], **({"liquidate_at_end": False} if keep else {}))
     rs = ctx.F["rs"]
     st = streaks(m, mask, wk)
     with np.errstate(invalid="ignore"):
@@ -107,7 +108,9 @@ def run(ctx: CB.Ctx, mask: np.ndarray, wk: list[int], g: tuple, start: str) -> E
         return [EN.Order(s, "open", weight=size["weight"] if size["weight"] else float("nan"), score=sc)
                 for s, sc in by_day.get(i, [])]
 
-    return Sim(m, cfg, size).run(decide, start, None)
+    sim = Sim(m, cfg, size)
+    res = sim.run(decide, start, end)
+    return (res, sim) if keep else res
 
 
 def crumbs(res: EN.Result) -> dict:
@@ -152,8 +155,8 @@ def capture(m, el: np.ndarray, res: EN.Result, years=range(2019, 2027), top: int
     return {"years": out, "bought": tot, "done_med": float(np.median(dn)) if dn else None}
 
 
-def main(smoke: bool = False) -> None:
-    t0 = time.time()
+def prep(smoke: bool = False) -> dict:
+    """面板、特徵、W7 的 R60 名單（每年只用以前的資料找的規則）、週末、引擎的 Ctx（main 與 scripts/run_sx_curve.py --book N8 共用）。"""
     rows = W9.samples(150 if smoke else None)
     codes = sorted({r["c"] for r in rows}) if smoke else None
     m, extra = LP.load(codes=codes)
@@ -177,6 +180,18 @@ def main(smoke: bool = False) -> None:
     mask = mk & el
     wk = sorted({mix[pd.Timestamp(d)] for d in {r["d"] for r in rows} if pd.Timestamp(d) in mix})
     ctx = CB.Ctx(m, F, fund, [], CB.rev_days(list(extra["cal"])))
+    return {"m": m, "extra": extra, "F": F, "el": el, "mask": mask, "wk": wk, "ctx": ctx, "W7R": W7R}
+
+
+def pick_g(name: str) -> tuple:
+    """W10_results.json 的 pick（例 s8-new-off-h60）→ GRID 裡的那一組。"""
+    return next(g for g in S.GRID if S.name(g) == name)
+
+
+def main(smoke: bool = False) -> None:
+    t0 = time.time()
+    P = prep(smoke)
+    m, el, mask, wk, ctx, W7R = P["m"], P["el"], P["mask"], P["wk"], P["ctx"], P["W7R"]
     LOG(f"[w10] 面板、特徵、名單 {time.time() - t0:.0f} 秒")
 
     runs, out = {}, {}

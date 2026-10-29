@@ -5,7 +5,7 @@
 > 這一頁目前是從 CLAUDE.md 逐字搬來的（知識庫第一段），還沒整理；有出入時以 CLAUDE.md 為準。
 > 改內容先改 CLAUDE.md，再跑 `python3 scripts/wiki_split.py` 重產這一頁。
 
-<!-- CLAUDE.md 第 3749–3790 行 -->
+<!-- CLAUDE.md 第 3766–3807 行 -->
 ## 「新策略候選」（2026-10-24 IA v5 第 5 段；框架規格 `arm/lab/candspec.py` VER 2、規劃 `docs/lab_ia_v5_plan.md` 第 6、24 節）
 
 使用者（第 13 節 Q4 選 A）：每週找新的策略，先寫規則與程式再回測，配置頁策略表「候選」分組列出，使用者在對話回「試用／納入／不納入」。

@@ -5,7 +5,7 @@
 > 這一頁目前是從 CLAUDE.md 逐字搬來的（知識庫第一段），還沒整理；有出入時以 CLAUDE.md 為準。
 > 改內容先改 CLAUDE.md，再跑 `python3 scripts/wiki_split.py` 重產這一頁。
 
-<!-- CLAUDE.md 第 3044–3077 行 -->
+<!-- CLAUDE.md 第 3050–3092 行 -->
 - **修正飆股（W7，2026-10-23；使用者：「修正飆股策略吧」）**：規格 `arm/lab/superfixspec.py` VER 1（`tests/test_superfixspec.py` 鎖住）、
   計畫與結果 `tw-superstock-lab/reports/W7_plan.md`／`W7_results.md`／`W7_summary.md`、程式 `tw-superstock-lab/scripts/run_w7.py`（約 5 分鐘）。
   只換目標（60 天後的收盤還在 +20%），**每一年只用以前已經走完的資料重新找規則**（2019～2026），現行目標用同一套流程當對照。
@@ -39,4 +39,13 @@
     · **兩份狀態**：`LAST["plan"]`＝R60（交易計畫、今年逐月表仍讀它，直到 corespec／ytdspec 改版）；`LAST["n8"]`＝N8（`page.build` 放 `data["n8"]`；選股頁、
       個股卡「策略」段、06:35 推播看它），`n8["pick"]`＝選股頁的名單（`sxlive.pick_state`：最新的名單全部、照 N8 的順序；週一到週四是到最新收盤為止的試算、
       週五收盤定案；每檔符合哪一條、參考買點 `sepa.plan_today`、上名單幾週、收盤；原本的飆股名單 `watch` 差在哪幾個條件；全部股票收盤 `px`）。
+
+  · **VER 5（2026-10-29）：多一本 N8B＝N8 做法的回測延續**（corespec VER 5、ytdspec VER 2；只給今年逐月表「不偷看」那一欄，不上選股頁、不放錢、不推播）。
+    `scripts/run_sxlive_seed.py --n8`（只算一次）把 W10 那一組的回測帳跑到 TAKE_V3（10/14，每天的淨值和 `sx_n8_curve.json` 相同），接到頁面的價格走到 TAKE
+    → `data/lab/sxlive_seed_n8.json`；`sxlive.perf(..., seed_bt=)` 之後每週照 R60 名單、N8 的順序，`nav` 第 7 欄＝N8B，`LAST["ytd"]`＝`ytd_part`（預設 N8B）。
+    `LAST["plan"]`（R60）照算、不上頁面（`tests/test_sxlive.py` 守 page.py 只讀 n8、ytd）。
+  · **⚠ 頁面帳本把大比例配股還原兩次（2026-10-29 算 N8B 時發現）**：`sxlive.panel`＝`packtest.Px` 的價格 × 官方除權息倍數，但 `packtest.Px` 已經把
+    相鄰收盤差 1.8 倍以上的跳動換算成現在的單位（`_basis`），再乘一次倍數＝還原兩次。頁面帳本期間有兩件：世紀 5314（8/14）、緯穎 6669（9/2）。
+    R60 接手帳的世紀那筆被算成 +675.9%（實際 +86.7%，接手時多約 17 萬、0.07%）→ `--force` 重算 `sxlive_seed.json`。修法：`packtest.Px.basis` 存口徑倍數、
+    `sxlive.absorbed` 認出已經換算過的除權息、`panel` 不再乘；接手檔另檢查頁面價格算的總資產和引擎差不到 1%。
 

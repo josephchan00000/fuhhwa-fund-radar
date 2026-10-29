@@ -112,7 +112,7 @@ def plan_rows(bundle: dict | None) -> list[dict]:
 
 
 def boom_rows(bundle: dict | None) -> list[dict]:
-    """新飆股（選股頁台股的第一條；飆股前瞻記錄的 R60 那本帳）。成績＝那本帳的回測（2019 起每年只用以前的資料找條件）。"""
+    """新飆股（選股頁台股的第一條；飆股前瞻記錄的 N8 那本帳，corespec VER 5）。成績＝那個做法的回測（2019 起每年只用以前的資料找條件）。"""
     from . import corepage as CPG
     B = bundle or {}
     R, stk = B.get("R") or {}, B.get("stk") or {}
@@ -125,7 +125,7 @@ def boom_rows(bundle: dict | None) -> list[dict]:
     today = (f"持有 {held} 檔" if held else "空手") + (f"・{int(P['next'][5:7])}/{int(P['next'][8:10])} 買 {buys} 檔" if buys and P.get("next") else "") \
         + ("" if held or buys or not P.get("next_wk") else f"・名單 {int(P['next_wk'][5:7])}/{int(P['next_wk'][8:10])} 收盤產生")
     row = {"id": "tw:boom", "name": "新飆股", "mk": "台股", "mkk": "tw", "type": "個股", "st": "use",
-           "how": "每週五收盤用之前幾年找出來的條件挑股票、依強勢排；下一個交易日開盤買，每次買進用這條策略 12.5% 的錢，抱 60 個交易日",
+           "how": "每週五收盤用之前幾年找出來的條件挑股票；分 8 格、新上名單的先買，下一個交易日開盤買，抱 60 個交易日",
            "go": {"go": "tw", "at": "pk-boom"}, "today": today}
     if bm.get("cagr") is not None:
         h = bm.get("hold") or {}

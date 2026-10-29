@@ -201,12 +201,14 @@ def boom_html(stk: dict, bundle: dict, pos: dict | None = None) -> str:
     bm = ((((R.get("mk") or {}).get("tw") or {}).get("sc") or {}).get("plan") or {}).get("boom") or {}
     hn = B.get("hold_n") or 60
     sub = f'{_md(B.get("d"))} 收盤・占全部資金 {CPG.pct0(bw)}'
-    line = (f'每週五（休市就看那一週最後一個交易日）收盤，用之前幾年的資料找出來的條件挑股票，依強勢排；'
+    how = ("名單上的股票分 8 格，新上名單的先買、8 格有空才買" if B.get("slots") else "依強勢排")   # corespec VER 5：新飆股＝N8
+    line = (f'每週五（休市就看那一週最後一個交易日）收盤，用之前幾年的資料找出來的條件挑股票，{how}；'
             f'下一個交易日開盤買，每檔約占全部資金 {_wp(slot)}，抱 {hn} 個交易日再賣。')
     if bm.get("cagr") is not None:
         tk = B.get("take")
         line += (f' {CPG.yr0(bm["a"])} 年起照做每年賺 {_pc(bm["cagr"]).lstrip("+")}、最慘時跌 {bm["mdd"] * 100:.0f}%'
-                 + (f'（{_md(tk)} 收盤照回測那本帳的持股接手，之後每週記錄驗證中）。' if tk else '（2026/10/30 起每週記錄驗證中）。'))
+                 + (f'（{_md(tk)} 收盤照回測那本帳的持股接手，之後每週記錄驗證中）。' if tk else
+                    '（2026/10/30 收盤第一次下單、從現金開始，之後每週記錄驗證中）。'))
     h = f'<h2 class="cfh">新飆股名單<span class="sub">{_e(sub)}</span></h2><div class="cfsxl">{line}</div>' + boom_spot(B, pos)
     have = {x["c"] for x in B.get("hold") or []}
     buy = {x["c"]: x for x in B.get("buy") or []}
@@ -546,7 +548,9 @@ def tw_sched(G: list[dict], stk: dict, N: dict | None) -> str:
             nb = CPG._next_day("tw", e["d"])
             free = gb and (gb["share"] - gb["held"]) > gb["slot"] * 0.5
             if nb and free:
-                ev.append((nb, 0, "買進", f'新飆股：名單前面的股票，每檔約 {_wp(gb["slot"])}', "依強勢排，現金夠才買" + ("；機動放現金中，先不買" if cash else "")))
+                ev.append((nb, 0, "買進", f'新飆股：名單前面的股票，每檔約 {_wp(gb["slot"])}',
+                           ("新上名單的先買，8 格有空才買" if (stk.get("boom") or {}).get("slots") else "依強勢排，現金夠才買")
+                           + ("；機動放現金中，先不買" if cash else "")))
         else:
             ev.append((e["d"], at, e["act"], f'新飆股：{_names(e.get("items"))}', _e(re.sub(r"<[^>]+>", "", e.get("sub") or ""))))
     use = {g["k"] for g in G}
@@ -698,8 +702,9 @@ def ytd_html(Y: dict | None, mk: str) -> str:
     hold_nm = "0050" if mk == "tw" else "S&P 500"
     if mk == "tw":
         w = Y["w"]
-        how = (f"不偷看＝只用去年底以前就定好的規則照做：0050 {w['0050']:.0%}、新飆股 {w['R60']:.0%}、其他 {w['cash']:.0%} 放現金，"
-               f"不看警訊（新飆股每年只用以前的資料找規則；三條個股策略和警訊是今年 10 月才定的，不放進來）。"
+        how = (f"不偷看＝只用去年底以前就定好的規則照做：0050 {w['0050']:.0%}、新飆股 {w.get('N8', w.get('R60', 0)):.0%}、"
+               f"其他 {w['cash']:.0%} 放現金，不看警訊（新飆股每年只用以前的資料找規則；8 格、新上名單的先買這個買法是 10/29 用 2019～2022 年挑的；"
+               f"三條個股策略和警訊是今年 10 月才定的，不放進來）。"
                f"一直抱著＝0050（含息）。上線後＝{_md(Y['live_from'])} 起照這一頁每天收盤的持股算（不含手續費）。")
     else:
         how = (f"不偷看＝每年 1 月 1 日只看過去 {Y['L']} 年的成績，從 2,016 種做法裡挑最好的 {Y['k']} 種"

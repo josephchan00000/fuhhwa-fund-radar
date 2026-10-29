@@ -11,8 +11,8 @@ sys.path.insert(0, str(ROOT))
 from arm.lab import sxlivespec as S  # noqa: E402
 
 
-def test_sxlive_spec_v4_is_locked():
-    assert S.VER == 4
+def test_sxlive_spec_v5_is_locked():
+    assert S.VER == 5
     assert S.SPEC_DATE == "2026-10-29"
     assert S.START == "2026-10-23"
     assert (S.TAKE, S.TAKE_V3, S.TAKE_BOOK, S.SEED_FILE) == ("2026-10-22", "2026-10-14", "R60", "sxlive_seed.json")
@@ -20,6 +20,7 @@ def test_sxlive_spec_v4_is_locked():
     assert S.BOOKS == ("R60", "A", "R1", "N8")
     assert S.PLAN_BOOK == "N8" and S.LIST_SHOW == 20        # VER 4：N8 上選股頁、推播（VER 2～3＝R60）
     assert S.START4 == "2026-10-29" and S.HIST_FILE == "sxlive_hist.json"
+    assert S.BT_BOOK == "N8B" and S.SEED_BT_FILE == "sxlive_seed_n8.json"    # VER 5：今年逐月表「不偷看」用的回測延續
     assert S.TRADE_N8 == {**S.TRADE, "weight": None, "slots": 8, "min_slot": 0.5, "max_positions": 8, "order": "new"}
     assert S.RULE_BOOKS == ("R60", "A")
     assert S.SEED_YEAR == 2026

@@ -85,10 +85,22 @@ W10（tw-superstock-lab/reports/W10_results.md）照事前寫好的判定＝換�
   ③ R60（VER 3 接手的那一本）照舊每週記、每天算，當對照；交易計畫、今年逐月表（ytdspec VER 1）仍讀它，直到那兩份規格改版。
   ④ 選股頁、06:35 推播的「新飆股」改看 N8：要買的＝最新一週名單照 N8 的順序、現金夠的前幾檔。
   ⑤ 寫這一版之前看過的：W10 的 24 組成績（含 2023 起）、10/22 與 10/28 的名單；沒有看過 N8 照做以後的任何一天。
+
+VER 5（2026-10-29；corespec VER 5、ytdspec VER 2）——寫在算出任何 N8B 的持股或淨值之前
+  使用者 2026-10-29：交易計畫和今年逐月表改看 N8——「要改」。今年逐月表「不偷看」那一欄要一本從年初照 N8 做法走下來的帳，
+  N8（PLAN_BOOK）是從現金開始的，所以另外一本：
+  ① N8B（N8 回測延續；BT_BOOK）：只給今年逐月表「不偷看」那一欄，不上選股頁、不放錢、不推播。
+     起點：W10 挑出的做法（sxfixspec 的 pick）的回測帳（2019 起、W7 的逐年規則，scripts/run_sx_curve.py --book N8 同一套），
+     跑到 TAKE_V3 收盤、最後一天不平倉（每天的淨值要和 data/lab/sx_n8_curve.json 相同，最後一天除外）；
+     TAKE_V3 收盤的狀態接到 Book（頁面的價格、TRADE_N8），TAKE_V3 之後、TAKE 以前的週末照 SEED_FILE 記的 R60 名單、
+     N8 的下單順序（上名單週數照 HIST_FILE）下單，走到 TAKE 收盤 → SEED_BT_FILE（scripts/run_sxlive_seed.py --n8，只算一次）。
+     TAKE 起每天：TAKE 收盤照 TAKE 那一週的 R60 名單下單；之後每個有紀錄的週末照 R60 的名單、N8 的下單順序。
+  ② 成績表 nav 多一欄（第 7 欄＝N8B，加在最後）；PLAN_BOOK、LIST_BOOK、選股頁、推播都不變。
+  ③ 寫這一版之前看過的：同 VER 4；沒有算過 N8B 的任何一天。
 """
 from __future__ import annotations
 
-VER = 4
+VER = 5
 SPEC_DATE = "2026-10-29"
 START = "2026-10-23"                 # 第一個訊號日（這一週的最後一個交易日）
 TAKE = "2026-10-22"                  # VER 3：接手那天收盤（START 前最後一個交易日）
@@ -100,6 +112,8 @@ BOOKS = ("R60", "A", "R1", "N8")
 PLAN_BOOK = "N8"                     # VER 4：上選股頁、推播的那一本（VER 2～3＝R60）
 LIST_BOOK = "R60"                    # VER 4：N8 買的是這一本的每週名單
 START4 = "2026-10-29"                # VER 4：N8 從現金開始，這天以後第一個週末收盤下單
+BT_BOOK = "N8B"                      # VER 5：N8 做法的回測延續（今年逐月表「不偷看」用）
+SEED_BT_FILE = "sxlive_seed_n8.json"  # VER 5：data/lab/ 底下，N8B 在 TAKE 收盤的狀態（只算一次）
 HIST_FILE = "sxlive_hist.json"       # VER 4：data/lab/ 底下，START 以前 2026 年每個週末的 R60 名單（算上名單週數用；只算一次）
 LIST_SHOW = 20                       # VER 2：配置頁列最新一週名單的前幾名
 RULE_BOOKS = ("R60", "A")            # 逐年重新找規則的兩本（R1 跟著頁面）

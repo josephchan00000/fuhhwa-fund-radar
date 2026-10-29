@@ -347,7 +347,7 @@ def stk_sleeve(cal: list[str], tot, P=None, rf=None) -> dict:
 
 
 def boom_sleeve(cal: list[str], rf) -> dict | None:
-    """新飆股（corespec BOOM_BOOK）那本帳在 cal 上的每天報酬（VER 4）：引擎淨值的報酬（引擎的現金不算利息）
+    """新飆股（corespec BOOM_BOOK；VER 5＝N8 做法）的回測在 cal 上的每天報酬：引擎淨值的報酬（引擎的現金不算利息）
     ＋前一天收盤沒有投入的比例 × 現金利息。回測淨值＝data/lab/SX_CURVE_FILE（scripts/run_sx_curve.py）。
     → {"r", "a": 第一天, "b": 最後一天, "x": 平均持股比例}；檔案沒有 → None。"""
     try:
@@ -536,7 +536,7 @@ def boom_share(mk: str = "tw") -> float:
 
 def stk_from_adv(A: dict, asof: str | None = None, boom: dict | None = None) -> dict:
     """個股頁的 advice 結果 → 台股機動：★ 策略（照頁面順序）、每條手上的股票、接下來 45 天要做的事；
-    boom＝新飆股那本帳現在的狀態（sxlive.plan_state，VER 4）。"""
+    boom＝新飆股那本帳現在的狀態（sxlive.plan_state；VER 5＝N8 那一本）。"""
     asof = asof or date.today().isoformat()
     book = [b for b in A.get("book") or [] if b.get("tier") == S.SLEEVE_TIER]
     ks = [b["k"] for b in book]
@@ -564,18 +564,19 @@ def stk_from_adv(A: dict, asof: str | None = None, boom: dict | None = None) -> 
 # ── 前瞻 ─────────────────────────────────────────────────────────────────────
 
 def load_live() -> dict:
-    """前瞻紀錄；版本不同（規則改過）＝從頭記。"""
+    """前瞻紀錄；版本不同（規則改過）＝從頭記。LIVE_KEEP 的版本沿用（VER 5 只換新飆股那一本，警訊與 ★ 策略沒變）。"""
     try:
         L = json.loads(LIVE.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {"ver": S.VER, "days": {}}
-    return L if L.get("ver") == S.VER else {"ver": S.VER, "days": {}}
+    ok = isinstance(L, dict) and (L.get("ver") == S.VER or L.get("ver") in S.LIVE_KEEP)
+    return {**L, "ver": S.VER, "days": dict(L.get("days") or {})} if ok else {"ver": S.VER, "days": {}}
 
 
 def record(nows: dict, stk: dict | None, qm: dict | None = None) -> bool:
     """今天的紀錄（只有 CI，GITHUB_ACTIONS＝true 才寫回）：{資料日: {市場: {E, n, lit, v, sat}}}，同一個資料日覆蓋。
     qm＝{市場: 美股機動是不是放 QM}（corespec VER 3～4）；是的話 sat＝["qm"]（持股與淨值在 ussx_qm_live.json）。
-    台股 sat＝★ 策略＋新飆股（VER 4；新飆股的持股與淨值在 sxlive.json）。"""
+    台股 sat＝★ 策略＋新飆股（VER 4 起；VER 5 的新飆股是 N8，持股與淨值在 sxlive.json）。"""
     if os.environ.get("GITHUB_ACTIONS") != "true":
         return False
     L = load_live()
@@ -590,7 +591,7 @@ def record(nows: dict, stk: dict | None, qm: dict | None = None) -> bool:
         if fl is not None:
             rec["held"] = len(fl.get("held") or [])
         if mk == "tw" and stk:
-            rec["sat"] = [s["k"] for s in stk.get("st") or []] + ([S.BOOM_BOOK] if stk.get("boom") else [])   # VER 4：新飆股那本帳
+            rec["sat"] = [s["k"] for s in stk.get("st") or []] + ([S.BOOM_BOOK] if stk.get("boom") else [])   # 新飆股那本帳（VER 5＝N8）
         elif (qm or {}).get(mk):
             rec["sat"] = ["qm"]
         days.setdefault(n["d"], {})[mk] = rec
