@@ -59,3 +59,7 @@
 - 改了把舊頁名當成現在的地方：全部策略表在研究紀錄（[台指期早盤](lab/fut.md)、[少見策略](lab/rare.md)）、名詞與查公司在選股頁（[導覽](lab/nav.md)）、
   主頁面用字的兩處例外（[主頁面用字](lab/plain-words.md)）、研究結論在研究紀錄頁（[研究結論](lab/practical.md)）、美股簡介是頁面上取「；」前那一段（CLAUDE.md 9⑤ 與[全部更新](ops/daily-update.md)同步改）。
 - 沒有需要使用者決定的矛盾。
+
+## [2026-10-29] 新增 | 個股深度報告與產業報告
+- 新頁 [個股深度報告與產業報告](lab/equity-report.md)；[內容鐵則](ops/content-rules.md) 的「目標價」例外由兩個變三個（個股報告）；CLAUDE.md 鐵則那一行同步改。
+- 路徑規則 `.claude/rules/equity.md`。

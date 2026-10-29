@@ -1,0 +1,36 @@
+# 個股深度報告與產業報告
+
+> 投行首次報告格式的個股報告（評等、目標價、同業比較、產業章）與同產業共用的產業報告：資料包、估值規格、檢查、頁面、技能包。
+> 原始資料：規劃 `docs/lab_equity_report_plan.md`；程式：`arm/lab/eqspec.py`、`eqfacts.py`、`eqreport.py`、`eqchart.py`、`eqpage.py`、`eqsite.py`；
+> 指令：`scripts/eq_facts.py`、`scripts/check_eq.py`、`scripts/eq_build.py`；技能 `.claude/skills/equity-report/`；測試 `tests/test_eqspec.py`、`test_eqfacts.py`、`test_eqreport.py`
+> 最後更新：2026-10-29
+> 正本就是這一頁（2026-10-29 新建，CLAUDE.md 沒有對應段落）。
+
+## 現在怎麼運作
+
+2026-10-29 使用者：「我想要針對篩選出來最強力推薦的公司，可以跑專業的個股分析報告跟同業比較表，像是投行那種的深度產業報告」。
+使用者四個決定（AskUserQuestion）：每週新進的＋隨時指定；網頁深度報告（8～12 頁、10～15 張圖、同業表可下載 CSV、可存 PDF）；
+照投行給評等與目標價（禁用詞多一個例外，見[內容鐵則](../ops/content-rules.md)）；同產業共用一份產業報告、每月更新。
+
+- **技能包**：Anthropic financial-services-plugins（Apache-2.0）的 initiating-coverage、sector-overview、comps-analysis 等，改寫成專案技能 `.claude/skills/equity-report/`；
+  不裝原外掛（綁 12 個付費資料源、產 30～50 頁英文 Word）。出處與改了什麼在技能的 `NOTICE.md`。
+- **資料包**（`eqfacts.tw_pack`）：只讀 repo 裡的資料、不連外網（`dashboard/co`、`x9t.json`、`x9f.json`、`data/lab/icchain.json`、`mkt`、`pos`）；
+  金額一律億元、比例 %。報告裡的數字只能來自資料包，或同一段附來源連結（`check_eq.py` 會抓）。產業資料包＝`eqfacts.ind_pack_tw`（產業鏈節點、成員、
+  成員合計月營收〔同一批公司〕、估值分布、細分族群泡沫等級）。
+- **評等與目標價**（`eqspec` VER 1）：目標價＝未來 12 個月 EPS（3 位以上分析師共識依今年剩幾個月加權；沒有就近四季 EPS × 營收動能）× 目標本益比；
+  倍數只能在「本公司近 5 年」與「同業現在」第 25～75 百分位的範圍內，預設兩個中位數的平均，不用預設要寫原因；評等由上檔空間決定（≥ 15% 買進、≤ −10% 減碼）。
+  金融保險、虧損或倍數 > 80 倍改用淨值比法。法人共識目標價只當對照。
+- **同業**：櫃買中心產業鏈同節點的上市櫃公司（最具體節點市值最大的 2 家＋共同節點多、市值接近的），撰寫者最多換 3 家。
+- **存放**：`reports/eq/{tw|us}/{代號}/{報告日}.md`＋同名 `.facts.json`，不覆蓋舊版（舊版＝評等歷史）；產業 `reports/eq/ind/{產業代號}/`。
+- **頁面**：`eqsite.build` → `dashboard/rp/{tw|us}-{代號}.html`、`dashboard/rp/ind-{產業代號}.html`（`<base href="../">`，錨點要寫 `rp/…html#id`）。
+  圖是伺服器端畫的 SVG（一條縱軸、兩個單位就上下兩格），列印 A4。
+
+## 不能改的規則
+
+- 規格（`eqspec`）寫在看估值結果之前；要改＝VER＋1、先問使用者。評等不能由撰寫者改，也不影響任何策略、交易計畫、選股名單。
+- 「目標價」與評等只准出現在個股報告（`reports/eq/**`、`dashboard/rp/**`）；評等名稱不用「建議」；首頁與附錄有固定的免責聲明。
+- 容器內不跑資料抓取；資料包只讀 repo。
+
+## 歷史
+
+- 2026-10-29：規劃、規格 VER 1、資料包、檢查、頁面、技能包；樣本＝臻鼎-KY（4958）＋印刷電路板產業報告，給使用者看過再接網站與週更。

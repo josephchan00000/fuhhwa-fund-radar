@@ -36,7 +36,7 @@
 
 **內容**
 - 禁用詞（正文不得出現，機構觀點也要改寫避開）：保證、穩賺、必賺、包賺、必漲、必跌、一定會、唯一、建議買賣、建議買、建議賣、目標價、零風險、無風險、穩賺不賠；
-  「目標價」只有兩個例外（`wiki/ops/content-rules.md`）。新聞來源黑名單：排除「富聯網」（moneylink）。
+  「目標價」只有三個例外（`wiki/ops/content-rules.md`；第三個＝個股報告的評等與目標價）。新聞來源黑名單：排除「富聯網」（moneylink）。
 - 主頁面（市場頁、選股頁）用字：不寫方法字、比較只寫一次「任一天」、不用箭頭；改了自己跑 `tests/test_plain.py`、`tests/test_old_urls.py`（CI 不跑；`wiki/lab/plain-words.md`）。
 
 **研究**
