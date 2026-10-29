@@ -3,7 +3,7 @@
 > 來源黑名單（富聯網）、正文禁用詞清單，以及「目標價」只准出現的兩個地方。
 > 原始資料：CLAUDE.md「已知環境限制與防呆」段最後兩條；測試：`tests/test_fcst.py`（`FC_FUNCS`）、`tests/test_uscardpage.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

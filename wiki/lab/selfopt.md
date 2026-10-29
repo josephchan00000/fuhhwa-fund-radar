@@ -3,7 +3,7 @@
 > 影子版本、事前寫定的候選、每天體檢、每週重跑、不變式。
 > 原始資料：CLAUDE.md「籌碼雷達」段的策略健檢與自我改良；規劃 `docs/lab_selfopt_plan.md`；程式：`arm/lab/optim.py`、`arm/lab/health.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

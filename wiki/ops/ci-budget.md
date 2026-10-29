@@ -3,7 +3,7 @@
 > 2026-10-16 起 repo 公開、一般機器不計分鐘，額度問題解除；私有時期實測 10/1～10/16 約 1,670 分（免費 2,000 分），四個省分鐘的修法照留。
 > 原始資料：CLAUDE.md「每日固定時間自動更新」段的「GitHub Actions 額度實測」條；程式：`tests/test_ci_budget.py`、`.github/workflows/daily.yml`、`scripts/daily_fund.sh`。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

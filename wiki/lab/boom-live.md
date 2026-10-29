@@ -3,7 +3,7 @@
 > 新飆股前瞻記錄的帳本（R60、N8、N8B）、年度規則、提醒；W7、W8、W10 的結論。
 > 原始資料：CLAUDE.md「交易計畫：核心 70%＋衛星 30%」段的「修正飆股（W7）」「飆股前瞻記錄」；規劃 `docs/lab_core70_plan.md` 第 14 節、`docs/lab_review_plan.md` 第 8、9.1 節、`docs/lab_boom_v2_plan.md`；程式 `arm/lab/sxlive.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

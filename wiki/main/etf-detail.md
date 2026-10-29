@@ -3,7 +3,7 @@
 > ETF 分頁底部的「ETF 持股詳情＆異動」：上表「詳情 ↓」、每檔一張卡與代碼泡泡、持股異動方塊圖、異動表、完整持股明細、標的簡介、本機截圖驗版。
 > 原始資料：CLAUDE.md「ETF 詳情」底部區塊段的版面與畫面各條＋「排序配對」條；程式：`arm/fund_dashboard.py`、`arm/treemap.py`。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 持股資料在 [ETF 持股資料](etf-holdings.md)，上方績效表在 [ETF 數據追蹤表](etf-watch.md)。
 
@@ -75,7 +75,7 @@
     防呆：①`tests/test_holdings_intro.py::test_etf_持股簡介覆蓋率不倒退`（權重覆蓋 < 95% 即紅——CI 抓到新持股時容器端下一輪就會逼補）；
     ②同檔既有的 `test_all_committed_funds_top10_have_intro` 顧基金前十大；
     ③**每日缺口檢查**：`fund_intro.uncovered_etf_holdings()` 併進同一份缺口檔（`src: "etf"`），走同一條 15:33 補簡介迴路；`etf_holdings.yml` 抓完也跑一次。
-    補的格式與注意事項見 [持股簡介補齊](holdings-intro.md)（CLAUDE.md「前十大持股『簡介一再漏掉』」專節；key 須是快照內原字串、含 `*` 等後綴）。
+    補的格式與注意事項見 [持股簡介補齊](holdings-intro.md)（原 CLAUDE.md「前十大持股『簡介一再漏掉』」專節，2026-10-29 起就是那一頁；key 須是快照內原字串、含 `*` 等後綴）。
 
 ### 前端資料與產業別
 

@@ -1,9 +1,8 @@
 """知識庫 wiki/（docs/llm_wiki_plan.md）。
 
-第一段（2026-10-29 起）：各頁由 scripts/wiki_split.py 從 CLAUDE.md 逐字切出來，CLAUDE.md 是正本；
-改了 CLAUDE.md 卻沒重產 wiki/，這裡會紅。
-第二段（2026-10-29 起）：整理過的頁（WS.ORGANIZED）不再逐字，改比事實清單（scripts/wiki_facts.py）——
-CLAUDE.md 那幾段的每個事實記號都要還在知識庫裡。"""
+2026-10-29 第五段瘦身後：頁面就是正本；CLAUDE.md 只留開頭、知識庫用法、鐵則與五個指令。
+指令段落在 wiki/ops/ 的整理版要和 CLAUDE.md 一致：比事實清單（scripts/wiki_facts.py，WS.MIRROR 那幾頁）。
+（第一～四段的逐字切片、整理、路徑規則見規劃第 11～14 節。）"""
 import importlib.util
 import re
 from pathlib import Path
@@ -20,15 +19,15 @@ WF = importlib.util.module_from_spec(_SPEC2)
 _SPEC2.loader.exec_module(WF)
 
 TEXT = (ROOT / "CLAUDE.md").read_text("utf-8")
-PAGE_MAX = 25_000          # 逐字頁：一頁一次讀得完
-ORG_MAX = 15_000           # 整理過的頁（規劃第 3.3 節）
+PAGE_MAX = 15_000          # 一頁一次讀得完（規劃第 3.3 節）
+CLAUDE_MAX = 45_000        # 瘦身後的上限（規劃第 15 節；scripts/wiki_lint.py 同一個數）
 INDEX_MAX = 10_000         # 之後會跟著 CLAUDE.md 一起載入，要短
 LOG = re.compile(r"^## \[(\d{4}-\d{2}-\d{2})\] (搬家|收錄|整理|查詢) \| .+")
 
 
 def test_wiki_matches_claude_md():
     errs = WS.check(TEXT)
-    assert not errs, "\n".join(errs) + "\n→ 改了 CLAUDE.md 就跑 `python3 scripts/wiki_split.py` 重產 wiki/"
+    assert not errs, "\n".join(errs) + "\n→ 跑 `python3 scripts/wiki_split.py` 重產目錄"
 
 
 def test_cuts_cover_every_line_exactly_once():
@@ -37,27 +36,7 @@ def test_cuts_cover_every_line_exactly_once():
     assert ranges[0][0] == 1 and ranges[-1][1] == n
     for (a, b, _), (c, _, _) in zip(ranges, ranges[1:]):
         assert a <= b and c == b + 1
-    assert [p for _, _, p in ranges if p is None] == [None]      # 只有檔案標題留在 CLAUDE.md
-
-
-def _verbatim_heading():
-    """一個還是逐字切片的頁的段標題（改那一段，wiki/ 沒重產要被抓到）；全部整理過就回 None。"""
-    lines = TEXT.split("\n")
-    for a, b, p in WS.cut(TEXT):
-        if p and p not in WS.ORGANIZED and lines[a - 1].startswith("## "):
-            return a - 1
-    return None
-
-
-def test_any_edit_to_claude_md_is_caught():
-    h = _verbatim_heading()
-    if h is None:
-        pytest.skip("全部頁都整理過了：改 CLAUDE.md 沒同步由 test_facts_of_organized_pages_are_all_kept 抓")
-    lines = TEXT.split("\n")
-    i = h + 3
-    edited = "\n".join(lines[:i] + ["- 新加的一行"] + lines[i:])
-    assert WS.check(edited), "CLAUDE.md 多了一行，wiki/ 沒重產卻沒被抓到"
-    assert any("新加的一行" in t for t in WS.build(edited).values())
+    assert [p for _, _, p in ranges if p is None] == [None]      # 只有開頭（知識庫用法、鐵則）沒有對應頁
 
 
 def test_anchor_must_match_exactly_one_line():
@@ -79,30 +58,28 @@ def test_index_lists_every_page_and_links_resolve():
 
 
 def _organized():
-    """整理過的頁＋新寫的頁（不是 CLAUDE.md 切出來的）。"""
-    return sorted(set(WS.ORGANIZED) | set(WS.EXTRA))
+    """全部的頁（目錄、日誌除外）。"""
+    return sorted(set(WS.PAGES) | set(WS.EXTRA))
 
 
 def test_page_sizes():
-    org = {p + ".md" for p in _organized()}
     big = {}
     for f in WIKI.rglob("*.md"):
         rel = f.relative_to(WIKI).as_posix()
-        lim = ORG_MAX if rel in org else PAGE_MAX
-        if len(f.read_text("utf-8")) > lim:
+        if rel != "index.md" and len(f.read_text("utf-8")) > PAGE_MAX:
             big[rel] = len(f.read_text("utf-8"))
-    assert not big, f"頁太長（整理過的 > {ORG_MAX:,}、逐字的 > {PAGE_MAX:,} 字）：{big}"
+    assert not big, f"頁太長（> {PAGE_MAX:,} 字）：{big}"
 
 
 def test_facts_of_organized_pages_are_all_kept():
     R = WF.compare()
     bad = {pg: r["missing"] for pg, r in R.items() if r["missing"]}
-    assert not bad, f"整理過的頁有事實不見了：{bad}\n→ 補回去，或在 wiki/log.md 記一行「- 刪：`記號`——原因」"
+    assert not bad, f"CLAUDE.md 指令段落的事實在對應的頁上不見了：{bad}\n→ 補回去，或在 wiki/log.md 記一行「- 刪：`記號`——原因」"
 
 
 def test_new_fact_in_organized_section_is_caught():
     lines = TEXT.split("\n")
-    pg = sorted(WS.ORGANIZED)[0]
+    pg = sorted(WS.MIRROR)[0]
     a = next(a for a, b, p in WS.cut(TEXT) if p == pg)
     edited = "\n".join(lines[:a] + ["- 新加的規則：`brand_new_fn_20991231()`"] + lines[a:])
     R = WF.compare([pg], edited)
@@ -119,7 +96,11 @@ def test_organized_pages_format():
         assert "> 原始資料：" in top and "> 最後更新：" in top, f"{pg}：開頭要寫原始資料與最後更新"
         h2 = [s for s in head if s.startswith("## ")]
         assert h2 and h2[0] == "## 現在怎麼運作", f"{pg}：第一個 ## 標題要是「現在怎麼運作」"
-        assert "<!-- CLAUDE.md 第" not in t, f"{pg}：整理過的頁不該留逐字切片的行號標記"
+        assert "<!-- CLAUDE.md 第" not in t, f"{pg}：不該留逐字切片的行號標記"
+        if pg in WS.MIRROR:
+            assert "CLAUDE.md 仍留著對應的指令段落" in top, f"{pg}：CLAUDE.md 有對應段落，開頭要寫兩邊要一致"
+        elif pg in WS.PAGES:
+            assert "正本就是這一頁" in top, f"{pg}：開頭要寫這一頁就是正本"
 
 
 def test_links_between_pages_resolve():
@@ -160,7 +141,7 @@ RULE_MAX = 1_500           # 規劃第 3.4 節：一份規則 1～1.5 千字
 CODE_DIRS = ("arm", "scripts", "tests", ".github", "config")
 CLAUDE_REF_OK = {          # 講知識庫本身的程式，本來就要提 CLAUDE.md
     "scripts/wiki_split.py", "scripts/wiki_facts.py", "scripts/wiki_lint.py", "tests/test_wiki.py",
-    "config/index_reviews.json",   # note 欄改了會觸發 daily.yml 整輪重跑，留到第 5 段
+    "config/index_reviews.json",   # note 指到 CLAUDE.md 的「ETF 募集週掃」，那一段還在（改它會觸發 daily.yml 整輪重跑）
 }
 
 
@@ -206,3 +187,33 @@ def test_code_comments_point_to_wiki_not_claude_md():
                 assert "CLAUDE.md" not in t, f"{rel} 提到 CLAUDE.md：改成指向 wiki/ 的頁"
             for ref in re.findall(r"wiki/[\w/\-]+\.md", t):
                 assert (ROOT / ref).exists(), f"{rel} 指到不存在的頁：{ref}"
+
+
+# 第五段（2026-10-29 起）：CLAUDE.md 瘦身
+def test_claude_md_is_slim_and_imports_index():
+    assert len(TEXT) <= CLAUDE_MAX, f"CLAUDE.md {len(TEXT):,} 字，超過 {CLAUDE_MAX:,}：多的內容搬進知識庫的頁"
+    assert CLAUDE_MAX == WL.CLAUDE_MAX
+    assert "\n@wiki/index.md\n" in TEXT, "CLAUDE.md 要把目錄一起載入"
+    assert "## 鐵則" in TEXT
+
+
+def test_routine_prompts_targets_still_in_claude_md():
+    """六個排程 prompt 指名引用的指令與步驟（排程搬家照抄原文，改不了 prompt）。"""
+    prompts = [s for s in TEXT.split("\n") if s.startswith("> （排程自動觸發）")]
+    assert len(prompts) == 6
+    for n in "①②③④⑤⑥":
+        assert f"Routine prompt 原文{n}" in TEXT
+    need = {
+        "CLAUDE.md「指令：全部更新」": "## 指令：「全部更新」／「資料更新」",
+        "CLAUDE.md 步驟 9⑤": "   - **⑤ 前十大簡介缺口",
+        "CLAUDE.md「已知環境限制與防呆」-32003 條": "## 已知環境限制與防呆",
+        "CLAUDE.md「指令：ETF 募集週掃」": "## 指令：「ETF 募集週掃」",
+        "CLAUDE.md 週掃步驟 2.5": "2.5 **指數審核維護",
+        "CLAUDE.md「指令：策略探勘週報」": "## 指令：「策略探勘週報」",
+    }
+    allp = "\n".join(prompts)
+    for ref, anchor in need.items():
+        assert ref in allp, f"prompt 不再引用 {ref}：更新這支測試"
+        assert any(s.startswith(anchor) for s in TEXT.split("\n")), f"prompt 引用的 {ref} 在 CLAUDE.md 找不到"
+    assert "MCP error -32003" in TEXT
+    assert "   - **⑨ 籌碼雷達推播行" in TEXT          # Routine prompt ① 的推播行

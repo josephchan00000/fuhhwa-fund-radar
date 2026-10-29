@@ -3,7 +3,7 @@
 > 一份頁面兩種身分、網址、說明卡、時間軸共用、x9x 轉址。
 > 原始資料：CLAUDE.md「策略頁：總經策略／個股策略」段；規劃 `docs/lab_strategy_ia_plan.md`；程式：`arm/lab/page.py`、`arm/lab/macpage.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

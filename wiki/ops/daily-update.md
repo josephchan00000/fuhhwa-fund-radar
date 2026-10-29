@@ -3,7 +3,7 @@
 > 使用者打「全部更新」就照這頁跑：容器只產新聞報告，抓資料、建表、部署交給 CI；步驟 1～9（含 9⑤～9⑨）怎麼做、怎麼驗。
 > 原始資料：CLAUDE.md「指令：「全部更新」／「資料更新」」段（步驟 2 在 [新聞報告規則](news-rules.md)，部署在 [部署](deploy.md)）；程式：`scripts/check_reports.py`、`.github/workflows/daily.yml`。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> CLAUDE.md 仍留著對應的指令段落（排程照它執行）：那一段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）；其他內容以這一頁為準。
 
 ## 現在怎麼運作
 

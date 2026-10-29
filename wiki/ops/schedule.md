@@ -3,7 +3,7 @@
 > 每天台北時間哪一班做什麼：Routine 負責準時、GitHub cron 只當兜底（實測系統性遲到 1~3 小時）、盤後刷新與當日完整性看門狗、07:15 備援。
 > 原始資料：CLAUDE.md「每日固定時間自動更新」段的盤後刷新、cron 遲到、時點地圖、備援四條；程式：`.github/workflows/afterhours_refresh.yml`、`scripts/check_afterhours_fresh.py`。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

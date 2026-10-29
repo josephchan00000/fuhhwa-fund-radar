@@ -3,7 +3,7 @@
 > 市場與個股的訊號、策略怎麼算出現與中了、怎麼判定（★◆○—）、溫度計與今天的清單、進場之後的報酬與最差一次、頁面在哪（現行 sigspec VER 24）。
 > 原始資料：CLAUDE.md「『訊號總覽』與實務判定」段；規劃 `docs/lab_signal_plan.md`；程式：`arm/lab/sigspec.py`、`arm/lab/sigcat.py`、`arm/lab/sigpage.py`（其他各節寫明）
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

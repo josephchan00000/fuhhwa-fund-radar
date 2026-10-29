@@ -1,17 +1,17 @@
-"""把 CLAUDE.md 逐字切成知識庫 wiki/ 的頁（知識庫第一段；規劃見 docs/llm_wiki_plan.md 第 4.1 節）。
+"""知識庫 wiki/ 的目錄與 CLAUDE.md 切點（規劃 docs/llm_wiki_plan.md）。
 
-第一段只換位置、不改一個字：CUTS 是「CLAUDE.md 某一行的開頭 → 從這一行起放到哪一頁」，
-照檔案順序排；每一行只會落在一頁，所有頁依原順序接起來就是原本的 CLAUDE.md（`--check` 會驗）。
-這一段期間 CLAUDE.md 仍是正本：改內容先改 CLAUDE.md，再跑這支重產各頁與目錄。
-第二段起（2026-10-29）：整理過的頁列在 ORGANIZED，這支不再重產、也不逐字比；改由 scripts/wiki_facts.py
-比「事實」（CLAUDE.md 那幾段的檔名、函式、日期、數字、原話都要還在知識庫裡）。還沒整理的頁照舊逐字。
-第三段（2026-10-29）整理完 lab 之後所有頁都整理過了：這支只產目錄、檢查切點與檔案清單；CUTS 仍用來告訴 wiki_facts.py
-CLAUDE.md 哪一段對應哪一頁（第 5 段瘦身之前）。
-EXTRA＝不是從 CLAUDE.md 切出來的頁（跨主題的教訓、使用者偏好、整理時拆出來的頁），只進目錄。
+歷史：第一段（2026-10-29）把 CLAUDE.md 逐字切成各頁；第二、三段把每一頁整理過；
+第五段（2026-10-29）CLAUDE.md 瘦身，只留鐵則與五個指令（瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
+
+現在這支只做兩件事：
+  · 產目錄 wiki/index.md（標題與摘要讀各頁第 1、3 行；頁的清單與順序看 PAGES、EXTRA）；
+  · CUTS＝CLAUDE.md 還留著的段落「某一行開頭 → 對應哪一頁」（None＝只在 CLAUDE.md：開頭、知識庫用法、鐵則）。
+    scripts/wiki_facts.py 用它檢查：CLAUDE.md 那幾段的事實記號，對應的頁上都要有（MIRROR＝有對應段落的頁）。
+    其他頁就是正本，CLAUDE.md 沒有對應段落。
 
 用法：
-  python3 scripts/wiki_split.py          # 依 CLAUDE.md 重寫 wiki/ 各頁與目錄
-  python3 scripts/wiki_split.py --check  # 只檢查，不寫檔；不一致時 exit 1
+  python3 scripts/wiki_split.py          # 重產目錄＋檢查
+  python3 scripts/wiki_split.py --check  # 只檢查，不寫檔；有錯時 exit 1
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ GROUPS = [
     ("lab", "籌碼雷達與研究"),
 ]
 
-# 頁：(標題, 一句話摘要)——摘要同時是目錄那一行
+# 頁：(標題, 一句話摘要)；目錄的標題與摘要以頁面自己的第 1、3 行為準，這裡是頁的清單與排序（摘要只是備用）
 PAGES = {
     "ops/daily-update": ("「全部更新」每日 SOP",
                          "效率原則、產提示包、合規掃描與 QA、重建驗證、commit、CI 單一 commit、步驟 9 驗證線上內容（含 9⑤～9⑨）。"),
@@ -160,7 +160,7 @@ PAGES = {
                      "雷達、比較日期、溫度計、這週變化、階段時間軸、證據地圖、3D 地形、日夜間按鈕、個股頁三張圖。"),
 }
 
-# (CLAUDE.md 某一行的開頭, 從這一行起放到哪一頁)；照檔案順序。None＝只留在 CLAUDE.md（檔案標題）。
+# (CLAUDE.md 某一行的開頭, 從這一行起對應哪一頁)；照檔案順序，第一個必須是第 1 行。None＝只在 CLAUDE.md。
 CUTS = [
     ("# CLAUDE.md — 復華基金雷達", None),
     ("## 指令：「全部更新」／「資料更新」", "ops/daily-update"),
@@ -172,92 +172,17 @@ CUTS = [
     ("## 指令：「策略探勘週報」", "ops/strategy-scouting"),
     ("## 指令：「整理知識庫」", "ops/wiki-maintenance"),
     ("## 指令：「排程搬家」", "ops/routines"),
-    ("## 每日固定時間自動更新", "ops/routines"),
-    ("- **盤後數據刷新 `afterhours_refresh.yml`", "ops/schedule"),
-    ("- **部署**：CI commit 後打", "ops/deploy"),
-    ("- **⚠ GitHub Actions 額度實測", "ops/ci-budget"),
-    ("## 已知環境限制與防呆", "env/git-history"),
-    ("- **時區**：本機/CI/雲端容器", "env/container"),
-    ("- **排程會話的 send_later／create_trigger", "env/mcp-approval"),
-    ("- **新聞卡「詳細分析消失、只剩連結」", "main/news-cards"),
-    ("- **舊公告被 Google 洗日期", "main/fund-news"),
-    ("- **前十大持股「簡介一再漏掉」", "main/holdings-intro"),
-    ("- **`check_numbers.py` 在容器內跑", "env/container"),
-    ("- **Google News RSS 的 pubDate 不可信", "main/fund-news"),
-    ("- **新聞來源黑名單**", "ops/content-rules"),
-    ("## 列印版／存 PDF", "main/print"),
-    ("## 行事曆「台灣區與精簡規則」", "main/calendar"),
-    ("## 儀表板「🕒 資料更新時間」區塊", "main/freshness"),
-    ("## 「市場溫度計」（總經分頁", "main/macro-thermometer"),
-    ("## 「ETF 數據追蹤」分頁", "main/etf-watch"),
-    ("**「即將登場」→ 掛牌日自動加入追蹤", "main/etf-upcoming"),
-    ("資料層 `data/etf_watch.json`：`scripts/fetch_etf_watch.py`", "main/etf-watch"),
-    ("**⚠ 踩過的坑：當日漲跌與收盤價「差一天並排」", "main/etf-daily-change"),
-    ("**⚠ 踩過的坑：併檔通道把 `not_tracked` 洗掉", "main/etf-upcoming"),
-    ("- **L3（未實作，要做先算請求帳）", "main/etf-daily-change"),
-    ("## 「ETF 詳情」底部區塊", "main/etf-detail"),
-    ("- **貢獻在 CI 端算好存進落檔的 `detail`", "main/etf-holdings"),
-    ("- **排序配對**：表格排序的 JS", "main/etf-detail"),
-    ("**踩過的坑（勿再犯）**：", "main/etf-watch"),
-    ("## 基金多期報酬「每日基準」覆蓋層", "main/fund-returns"),
-    ("## 「籌碼雷達」ETF 持股個股分析", "lab/overview"),
-    ("**資料層 `data/lab/`（必須入庫", "lab/chip-data"),
-    ("**訊號與成績單**：8 個訊號", "lab/chip-strategy"),
-    ("**擴充 ETF（2026-10-14 使用者", "lab/chip-data"),
-    ("**指數調整（2026-10-14 使用者", "lab/index-changes"),
-    ("**策略＋前瞻紙上交易（2026-10-14", "lab/chip-strategy"),
-    ("**臺灣50 換股研究＋兩個策略版本", "lab/tw50"),
-    ("**高股息四檔換股研究＋預估名單", "lab/high-dividend"),
-    ("**歷史價量備援（Yahoo 逐檔", "lab/chip-data"),
-    ("**資料包策略測試與回測紀律", "lab/strategy-pack"),
-    ("**回測方法 v3（2026-10-15", "lab/backtest-v3"),
-    ("**版面 v3（同日稍晚由版面 v4 取代", "lab/chip-ui"),
-    ("**逐筆交易（2026-10-15", "lab/trades"),
-    ("**策略健檢與自我改良（2026-10-16", "lab/selfopt"),
-    ("**公司分析（點進去才算）", "lab/company"),
-    ("**《超級績效》SEPA、綜合最優解", "lab/superstock"),
-    ("**法人預估與產業比較（2026-10-16", "lab/forecast"),
-    ("**長線「投信動能成長股」與 S5", "lab/growth-s5"),
-    ("**介面（2026-10-14 改版", "lab/chip-ui"),
-    ("## 「景氣溫度」頁（2026-10-17", "lab/heat-tw"),
-    ("## 「美股景氣」頁＋泡沫面向", "lab/heat-us"),
-    ("## 「泡沫頁」（2026-10-18", "lab/bubble"),
-    ("- **產業泡沫（第二段，2026-10-19", "lab/bubble-industry"),
-    ("- **踩過的坑**：①Playwright 全頁截圖", "lab/bubble"),
-    ("## 「短線大跌風險」卡", "lab/crash-cards"),
-    ("## 「實戰模擬」（2026-10-22", "lab/practical"),
-    ("## 「交易計畫：核心 70%＋衛星 30%」", "lab/core-plan"),
-    ("- **美股個股策略的資料**：", "lab/us-qm"),
-    ("- **修正飆股（W7，2026-10-23", "lab/boom-live"),
-    ("## 「台指期早盤策略（股票期貨人生）」", "lab/fut"),
-    ("## 「少見但勝率高的策略」", "lab/rare"),
-    ("## 「訊號總覽」與實務判定", "lab/signals"),
-    ("- **規格 VER 5：訊號觸發後的報酬＋相似的日子", "lab/signals-versions"),
-    ("## 「選股頁」（2026-10-28", "lab/pick-page"),
-    ("## 「配置頁」與「研究紀錄」", "lab/cfg-research"),
-    ("## 「市場頁」（2026-10-23 IA v5 第 2 段", "lab/market-page"),
-    ("## 「主頁面用字」（2026-10-23", "lab/plain-words"),
-    ("## 「導覽與入口」（2026-10-23", "lab/nav"),
-    ("## 「新策略候選」（2026-10-24", "lab/candidates"),
-    ("## 「策略頁：總經策略／個股策略」", "lab/strategy-pages"),
-    ("## 「大神策略」（2026-10-20", "lab/expert"),
-    ("## 「視覺化改版」三頁", "lab/heat-viz"),
+    ("## 已知環境限制與防呆", "env/mcp-approval"),
 ]
+MIRROR: set[str] = {p for _, p in CUTS if p}
 
-# 第二段起整理過的頁（scripts/wiki_facts.py 比事實；這支不重產、不逐字比）
-ORGANIZED: set[str] = set(PAGES)   # 第二段 ops、env、main，第三段 lab（2026-10-29）：全部整理過，這支只產目錄
-
-# 不是從 CLAUDE.md 切出來的頁：(標題, 一句話摘要)；沒有「/」的放在目錄的「跨主題」，
-# 「某頁-子題」排在那一頁後面。整理過的頁與這裡的頁，目錄的標題與摘要以頁面自己的第 1、3 行為準（這裡只是備用）。
+# 第二段起新寫的頁：(標題, 一句話摘要)；沒有「/」的放在目錄的「跨主題」，
+# 「某頁-子題」排在那一頁後面。目錄的標題與摘要以頁面自己的第 1、3 行為準（這裡只是備用）。
 EXTRA: dict[str, tuple[str, str]] = {
     "user": ("使用者偏好與做決定的方式", "他要什麼、怎麼判斷好壞、畫面與用字的要求、怎麼一起做事；每條附原話與日期。"),
     "lessons": ("跨主題的教訓", "踩過不只一次、換個地方還會再踩的事；一條一句，細節連到出處頁。"),
     "lab/signals-versions-early": ("訊號總覽：版本紀錄 VER 1～16", "從 lab/signals-versions 拆出來的早期版本紀錄。"),
 }
-
-NOTE = ("> 這一頁目前是從 CLAUDE.md 逐字搬來的（知識庫第一段），還沒整理；有出入時以 CLAUDE.md 為準。\n"
-        "> 改內容先改 CLAUDE.md，再跑 `python3 scripts/wiki_split.py` 重產這一頁。")
-MARK = re.compile(r"^<!-- CLAUDE\.md 第 (\d+)–(\d+) 行 -->$")
 
 
 def cut(text: str) -> list[tuple[int, int, str | None]]:
@@ -282,33 +207,10 @@ def cut(text: str) -> list[tuple[int, int, str | None]]:
     return out
 
 
-def build(text: str) -> dict[str, str]:
-    """回 {wiki 底下的相對路徑: 內容}（各頁＋目錄；日誌不在這裡產）。"""
-    lines = text.split("\n")
-    ranges = cut(text)
-    used = {p for _, _, p in ranges if p}
-    missing = set(PAGES) - used
-    if missing:
-        raise ValueError(f"這些頁沒有任何內容：{sorted(missing)}")
-    out = {}
-    for page, (title, summary) in PAGES.items():
-        if page in ORGANIZED:
-            continue
-        body = [f"# {title}", "", f"> {summary}", ">", NOTE, ""]
-        for a, b, p in ranges:
-            if p != page:
-                continue
-            body.append(f"<!-- CLAUDE.md 第 {a}–{b} 行 -->")
-            body.extend(lines[a - 1:b])
-        out[f"{page}.md"] = "\n".join(body) + "\n"
-    out["index.md"] = index()
-    return out
-
-
 def head(page: str, fallback: tuple[str, str]) -> tuple[str, str]:
-    """整理過的頁與 EXTRA 的頁：標題、摘要讀頁面自己的第 1、3 行；逐字頁用 PAGES 的。"""
+    """標題、摘要讀頁面自己的第 1、3 行；讀不到用 PAGES／EXTRA 的備用值。"""
     f = WIKI / f"{page}.md"
-    if (page in ORGANIZED or page in EXTRA) and f.exists():
+    if f.exists():
         t = f.read_text("utf-8").split("\n")
         if len(t) > 2 and t[0].startswith("# ") and t[2].startswith("> "):
             # 摘要裡的連結是相對那一頁的，放進目錄會斷：只留連結文字
@@ -320,19 +222,17 @@ def index() -> str:
     rows = [
         "# 知識庫目錄",
         "",
-        "> 復華基金雷達的知識庫（做法照 Karpathy 的 LLM Wiki）：先看這份目錄，再讀相關的頁；做完事更新那一頁，[日誌](log.md) 加一行。",
-        "> 規劃：`docs/llm_wiki_plan.md`。",
-        "> CLAUDE.md 目前仍是正本（第 5 段瘦身之前）：CLAUDE.md 哪一段改了，對應的頁要跟著改，`python3 scripts/wiki_facts.py` 會檢查。"
-        + ("標「逐字」的頁是 CLAUDE.md 的原文切片，改了 CLAUDE.md 就跑 `python3 scripts/wiki_split.py` 重產。"
-           if set(PAGES) - ORGANIZED else ""),
+        "> 復華基金雷達的知識庫（做法照 Karpathy 的 LLM Wiki）：先看這份目錄，再讀相關的頁；做完事更新那一頁，[日誌](log.md) 加一行。"
+        "下面的連結都相對於 `wiki/`。",
+        "> 規劃：`docs/llm_wiki_plan.md`。2026-10-29 起頁面就是正本；CLAUDE.md 只留鐵則與五個指令，"
+        "指令在 `wiki/ops/` 的整理版要和 CLAUDE.md 一致（`python3 scripts/wiki_facts.py` 會檢查）。",
         "",
     ]
     allp = {**PAGES, **EXTRA}
 
     def row(page: str) -> str:
         title, summary = head(page, allp[page])
-        mark = "" if page in ORGANIZED or page in EXTRA else "（逐字）"
-        return f"- [{title}]({page}.md){mark}：{summary}"
+        return f"- [{title}]({page}.md)：{summary}"
 
     tops = [p for p in EXTRA if "/" not in p]
     if tops:
@@ -359,85 +259,39 @@ def index() -> str:
     return "\n".join(rows)
 
 
-def rebuild(files: dict[str, str]) -> list[tuple[int, list[str]]]:
-    """由各頁的逐字段落取回 [(起行, 那一段的每一行)]，照行號排；拿來驗證一字不差。"""
-    chunks = []
-    for name, txt in files.items():
-        if name == "index.md":
-            continue
-        cur = None
-        for s in txt[:-1].split("\n"):
-            m = MARK.match(s)
-            if m:
-                cur = [int(m.group(1)), int(m.group(2)), []]
-                chunks.append(cur)
-            elif cur is not None:
-                cur[2].append(s)
-    lines = []
-    for a, b, body in sorted(chunks):
-        if len(body) != b - a + 1:
-            raise ValueError(f"第 {a}–{b} 行那一段的行數對不上（{len(body)}）")
-        lines.append((a, body))
-    return lines
-
-
 def check(text: str) -> list[str]:
     errs = []
     try:
-        want = build(text)
+        cut(text)
     except ValueError as e:
-        return [str(e)]
-    for name, txt in want.items():
-        f = WIKI / name
-        if not f.exists():
-            errs.append(f"wiki/{name} 不存在")
-        elif f.read_text("utf-8") != txt:
-            errs.append(f"wiki/{name} 和 CLAUDE.md 不一致")
-    for page in sorted(ORGANIZED | set(EXTRA)):
-        if not (WIKI / f"{page}.md").exists():
-            errs.append(f"wiki/{page}.md 不存在（ORGANIZED／EXTRA 有列）")
-    bad = sorted(p for p in ORGANIZED if p not in PAGES)
-    if bad:
-        errs.append(f"ORGANIZED 列了 PAGES 沒有的頁：{bad}")
-    known = set(want) | {"log.md"} | {f"{p}.md" for p in ORGANIZED | set(EXTRA)}
+        errs.append(str(e))
+    idx = WIKI / "index.md"
+    if not idx.exists() or idx.read_text("utf-8") != index():
+        errs.append("wiki/index.md 不是最新的")
+    known = {"index.md", "log.md"} | {f"{p}.md" for p in {**PAGES, **EXTRA}}
+    for name in sorted(known - {"index.md", "log.md"}):
+        if not (WIKI / name).exists():
+            errs.append(f"wiki/{name} 不存在（PAGES／EXTRA 有列）")
     for f in sorted(WIKI.rglob("*.md")):
         rel = f.relative_to(WIKI).as_posix()
         if rel not in known:
-            errs.append(f"wiki/{rel} 不在 PAGES 裡（目錄沒有列）")
-    src = text.split("\n")
-    got = rebuild(want)
-    covered = []
-    for a, body in got:
-        if src[a - 1:a - 1 + len(body)] != body:
-            errs.append(f"第 {a} 行起那一段和 CLAUDE.md 不同")
-        covered += range(a, a + len(body))
-    head = [a for a, b, p in cut(text) if p is None]
-    want_lines = [k for a, b, p in cut(text) if p is not None and p not in ORGANIZED for k in range(a, b + 1)]
-    if sorted(covered) != want_lines or head != [1]:
-        errs.append("逐字的頁沒有剛好涵蓋 CLAUDE.md（整理過的頁以外）每一行一次")
+            errs.append(f"wiki/{rel} 不在 PAGES／EXTRA 裡（目錄沒有列）")
     return errs
 
 
 def main(argv: list[str]) -> int:
     text = SRC.read_text("utf-8")
-    if "--check" in argv:
-        errs = check(text)
-        for e in errs:
-            print("✗", e)
-        if errs:
-            print("→ 跑 `python3 scripts/wiki_split.py` 依 CLAUDE.md 重產 wiki/")
-            return 1
-        print(f"✓ wiki/ 目錄與切點正確；逐字的 {len(PAGES) - len(ORGANIZED)} 頁和 CLAUDE.md 一致（整理過的 {len(ORGANIZED)} 頁看 scripts/wiki_facts.py）")
-        return 0
-    for name, txt in build(text).items():
-        f = WIKI / name
-        f.parent.mkdir(parents=True, exist_ok=True)
-        if not f.exists() or f.read_text("utf-8") != txt:
-            f.write_text(txt, "utf-8")
+    if "--check" not in argv:
+        idx = WIKI / "index.md"
+        txt = index()
+        if not idx.exists() or idx.read_text("utf-8") != txt:
+            idx.write_text(txt, "utf-8")
     errs = check(text)
     for e in errs:
         print("✗", e)
-    print(f"{'✗' if errs else '✓'} wiki/ 重產逐字的 {len(PAGES) - len(ORGANIZED)} 頁＋目錄（整理過的 {len(ORGANIZED)} 頁不動）")
+    if errs and "--check" in argv:
+        print("→ 跑 `python3 scripts/wiki_split.py` 重產目錄")
+    print(f"{'✗' if errs else '✓'} 知識庫目錄與切點：{len(PAGES) + len(EXTRA)} 頁，CLAUDE.md 留著的段落對應 {len(MIRROR)} 頁")
     return 1 if errs else 0
 
 

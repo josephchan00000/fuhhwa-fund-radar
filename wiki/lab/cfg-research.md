@@ -3,7 +3,7 @@
 > x9.html 的研究紀錄身分與 x9r.html、全部策略表；原配置頁（2026-10-28 起內容在研究紀錄・交易計畫）的台股／美股版面、美股個股卡、今年逐月。
 > 原始資料：CLAUDE.md「配置頁」與「研究紀錄」段；`docs/lab_ia_v5_plan.md`、`docs/lab_cfg_v2_plan.md`、`docs/lab_review_plan.md`；`arm/lab/cfgpage.py`、`uscardpage.py`、`board.py`、`research_page.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

@@ -3,7 +3,7 @@
 > 一部分長抱、其餘機動，兩個以上警訊就把機動換現金；corespec VER 1～5。
 > 原始資料：CLAUDE.md「交易計畫：核心 70%＋衛星 30%」段；`docs/lab_core70_plan.md`；`arm/lab/corespec.py`、`core.py`、`corepage.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

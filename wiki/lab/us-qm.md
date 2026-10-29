@@ -3,7 +3,7 @@
 > 美股強勢品質股（QM）的規則、紀錄、頁面、推播；資料分支；沒過的美股策略與飆股帳。
 > 原始資料：CLAUDE.md「交易計畫：核心 70%＋衛星 30%」段的「美股個股策略的資料」「美股個股策略」「美股三成：美股飆股研究」；規劃 `docs/lab_us_sleeve_plan.md`；程式 `arm/lab/ussxqm.py`、`scripts/run_ussx.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

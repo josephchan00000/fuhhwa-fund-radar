@@ -3,7 +3,7 @@
 > 頂欄、名詞、查公司、記住上次位置、舊網址、整站建頁的測試夾具。
 > 原始資料：CLAUDE.md「導覽與入口」段；規劃 `docs/lab_ia_v5_plan.md` 第 2、10、18、22 節；程式：`arm/lab/appnav.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

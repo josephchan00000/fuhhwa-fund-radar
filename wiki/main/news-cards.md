@@ -4,7 +4,7 @@
 > 原始資料：CLAUDE.md「已知環境限制與防呆」段的新聞卡三條（詳細分析消失、新聞卡順序、保底要點卡）；寫報告的規則見 [新聞報告規則](../ops/news-rules.md)；
 > 程式：`arm/usnews.extract_cards()`、`arm/fund_dashboard.py` 的 `_news_view()`、`scripts/check_reports.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

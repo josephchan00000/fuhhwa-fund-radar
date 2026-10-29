@@ -3,7 +3,7 @@
 > 2026-10-16 改寫整段 git 歷史：之後一律用 noreply 身分、舊 commit 編號已不存在、舊歷史的視窗不可再推、舊分支封存、PR 參照待 GitHub 客服清除。
 > 原始資料：CLAUDE.md「已知環境限制與防呆（曾踩過的坑，不要再犯）」段第一條（該段的其他條見 [容器的限制](container.md)、[排程會話 MCP 審批](mcp-approval.md)）；程式：`tests/test_privacy.py`。
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

@@ -3,7 +3,7 @@
 > 版面 v3、版面 v4（機會｜策略｜個股｜籌碼｜指數＋後台）、後台自我驗證、2026-10-14 介面。
 > 原始資料：CLAUDE.md「籌碼雷達」段版面 v3、v4、介面；規劃 `docs/lab_ui_plan.md`、`docs/lab_layout_v3_plan.md`、`docs/lab_ia_v4_plan.md`；程式：`arm/lab/valog.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

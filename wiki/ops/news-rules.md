@@ -3,7 +3,7 @@
 > 五份新聞檔怎麼產：守備範圍、來源、週末時窗、選題與評分、市場變動錨定、深度與漲跌分析、速覽與卡片文風、粗體標籤、數字口徑、子代理回傳。
 > 原始資料：CLAUDE.md「指令：全部更新」步驟 2；程式 `arm/usnews.py`（提示包規則）、`arm/macrochips.py`；閘門 `scripts/check_reports.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> CLAUDE.md 仍留著對應的指令段落（排程照它執行）：那一段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）；其他內容以這一頁為準。
 
 相關：[全部更新](daily-update.md)（步驟 1、3～9）、[內容鐵則](content-rules.md)（禁用詞、來源黑名單）、[新聞卡](../main/news-cards.md)（解析與排序）。
 

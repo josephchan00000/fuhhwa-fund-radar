@@ -3,7 +3,7 @@
 > 2026-10-22～10-28 訊號總覽每一版改了什麼、使用者原話、結果數字與踩過的坑：絕對成績判定、預估之後、資料盤查、每一天一樣重、溫度計改回寬鬆、跌幅列最差一次。
 > 原始資料：CLAUDE.md「『訊號總覽』與實務判定」段；規劃 `docs/lab_practical_plan.md`、`docs/lab_audit_plan.md`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

@@ -3,7 +3,7 @@
 > FactSet 與 Yahoo 資料、目標價的用字例外、產業比較、頁面。
 > 原始資料：CLAUDE.md「籌碼雷達」段「法人預估與產業比較」；規劃 `docs/lab_forward_plan.md`；程式：`arm/lab/fcst.py`、`arm/lab/industry.py`、`arm/lab/copage.py`；測試 `tests/test_fcst.py`（用真實快訊：解析、去重、一檔一行寫檔、Yahoo 0 值、頁面接線、禁用字）、`tests/test_industry.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

@@ -4,7 +4,7 @@
 > 原始資料：CLAUDE.md「基金多期報酬『每日基準』覆蓋層」「基金總覽『1週／1月』報酬」兩段；
 > 程式：`arm/connectors/cnyesfund.py`、`arm/fundnav.py`、`fetch_holdings.py`、`scripts/backfill_fund_nav.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 

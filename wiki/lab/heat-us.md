@@ -3,7 +3,7 @@
 > 美股景氣頁 x9mu.html：四個指數的規格、情緒籌碼、泡沫模型、資料、結果與坑。
 > 原始資料：CLAUDE.md「『美股景氣』頁＋泡沫面向」段；規劃 `docs/lab_heat_us_plan.md`、`docs/lab_us_chip_plan.md`；程式：`arm/lab/heat*_us.py`、`arm/lab/heatbubble.py`、`arm/lab/insider.py`
 > 最後更新：2026-10-29
-> 第 5 段瘦身之前 CLAUDE.md 仍是正本：那幾段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）。
+> 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
 
