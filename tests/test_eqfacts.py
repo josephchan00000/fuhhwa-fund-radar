@@ -2,7 +2,6 @@
 import pytest
 
 from arm.lab import eqfacts as E
-from arm.lab import eqspec as S
 
 QK = ["rev", "gp", "opex", "op", "nonop", "pti", "nip", "eps", "ca", "ta", "cl", "tl", "eqp", "bvps", "ocf", "icf", "cash"]
 
@@ -64,15 +63,12 @@ def test_bands_only_use_reported_quarters():
     assert b["pe"]["n"] == len([v for v in ser.values() if v is not None])
 
 
-def test_f12m_consensus_and_rule():
+def test_f12m_consensus_only():
     cons = {"n": 5, "eps": {"2026": {"med": 10.0}, "2027": {"med": 16.0}}}
     f = E.f12m_eps(cons, [], [], "2026-10-29")
     assert f["src"] == "cons" and f["eps"] == round(2 / 12 * 10 + 10 / 12 * 16, 2)
     co = _co()
-    f2 = E.f12m_eps({"n": 2, "eps": {}}, E.months(co), E.quarters(co), "2026-01-05")
-    last = E.months(co)[-1]
-    assert f2["src"] == "rule" and f2["mom"] == round(S.mom_factor(last["rev3"], last["rev3_ly"]), 4)
-    assert f2["eps"] == round(E.quarters(co)[-1]["eps4"] * f2["mom"], 2)
+    assert E.f12m_eps({"n": 2, "eps": {}}, E.months(co), E.quarters(co), "2026-01-05") == {"eps": None, "src": "none"}   # 不自己推估
 
 
 def test_pick_peers_leaders_then_shared_then_size():

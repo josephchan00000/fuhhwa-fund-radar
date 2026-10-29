@@ -273,12 +273,7 @@ def f12m_eps(cons: dict, mo: list[dict], qs: list[dict], asof: str) -> dict:
     if n >= S.CONS_MIN and ey is not None and ey1 is not None:
         return {"eps": round(S.f12m(asof, ey, ey1), 2), "src": "cons", "w": round(S.year_weight(asof), 4),
                 "eps_y": ey, "eps_y1": ey1, "y": y, "n": n}
-    e4 = next((q.get("eps4") for q in reversed(qs) if q.get("eps4") is not None), None)
-    last = next((o for o in reversed(mo) if o.get("rev3") is not None), None)
-    k = S.mom_factor(last["rev3"], last["rev3_ly"]) if last else None
-    if e4 is None or k is None:
-        return {"eps": None, "src": "none"}
-    return {"eps": round(e4 * k, 2), "src": "rule", "eps4": e4, "mom": round(k, 4), "ym": last["ym"]}
+    return {"eps": None, "src": "none"}                   # eqspec VER 2：沒有共識不自己推估（改用近四季法）
 
 
 # ── 同業 ───────────────────────────────────────────────────────────────────
