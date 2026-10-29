@@ -1,31 +1,34 @@
-"""個股深度報告的評等與目標價規格。VER 1：2026-10-29，寫在看任何一份報告的估值結果之前（docs/lab_equity_report_plan.md 第 6 節）。
+"""個股深度報告的評等與目標價規格。
 
-使用者 2026-10-29 選「照投行給評等與目標價」：看 12 個月；目標價＝未來 12 個月 EPS（F12M）× 目標本益比
-（淨值比法＝最近一季每股淨值 × 目標淨值比）；評等由上檔空間機械決定。
+VER 2：2026-10-30（使用者：「我不要失真的數據」）。VER 1 的同業倍數是「近四季本益比」，卻乘在「未來 12 個月 EPS」上（口徑不一致），
+沒有法人共識時又用營收動能自己推估 EPS。VER 2 的原則：**倍數和它乘的 EPS 一定是同一把尺，不自己做預估**。
 
-F12M EPS：有法人共識（≥ CONS_MIN 位、資料在 fcst.STALE_DAYS 天內）＝今年預估 × w ＋ 明年預估 ×（1 − w），
-  w＝報告日之後今年還剩幾個月 ÷ 12（10/29 → 11、12 月 → 2/12）；
-  沒有＝近四季 EPS × 營收動能（最近 3 個月營收 ÷ 去年同期；美股用最近一季營收年增），倍數夾在 MOM_CLIP。
-方法：F12M > 0 而且現價 ÷ F12M ≤ PE_MAX → 本益比法；金融保險、F12M ≤ 0、或倍數 > PE_MAX 而且每股淨值 > 0 → 淨值比法；
-  都不行 → 暫不評等。
-目標倍數的範圍：本公司近 BAND_YEARS 年每月的本益比（近四季 EPS，只收 0～BAND_PE_MAX 倍）第 25、50、75 百分位，
-  和同業（≥ PEER_MIN 家）現在本益比的第 25、50、75 百分位；可用範圍＝[兩個第 25 取小, 兩個第 75 取大]；
-  預設＝兩個中位數的平均（同業不夠只用本公司）。撰寫者可以在範圍內選別的倍數，要寫原因。淨值比法同樣做法（BAND_PB_MAX）。
-目標價進位：TICK_TP；評等：上檔空間 ≥ BUY_UP 買進、≤ SELL_DN 減碼、中間中立。
-三個情境：悲觀＝F12M × (1 − SCEN_EPS) × 範圍下緣；基本＝目標價；樂觀＝F12M × (1 + SCEN_EPS) × 範圍上緣
-  （淨值比法用每股淨值、不加減 SCEN_EPS）。
-法人共識目標價只當對照。要改就 VER＋1、寫進規劃文件，不在舊版本上改。
+- **共識法（fwd）**：本公司有法人共識（≥ CONS_MIN 位），而且同業有 ≥ PEER_MIN 家也有共識 →
+  基數＝本公司未來 12 個月 EPS（F12M）；倍數範圍＝同業「未來 12 個月本益比」（同一個加權法算的）第 25～75 百分位，預設＝中位數。
+  本公司過去的本益比是近四季口徑，只當參考、不進範圍。
+- **近四季法（ttm）**：其他情況 → 基數＝已公布的近四季 EPS；倍數範圍＝本公司近 BAND_YEARS 年每月本益比（月底收盤 ÷ 當時已公布的近四季 EPS，
+  只收 0～BAND_PE_MAX 倍）與同業現在本益比（近四季）的第 25～75 百分位，可用範圍＝[兩個第 25 取小, 兩個第 75 取大]，
+  預設＝兩個中位數的平均（同業不到 PEER_MIN 家只用本公司）。
+- **淨值比法**：金融保險、基數 ≤ 0、或現價 ÷ 基數 > PE_MAX，而且每股淨值 > 0 → 最近一季每股淨值 × 淨值比；
+  範圍取法同近四季法（本公司近 5 年＋同業現在，都是最近一季淨值口徑，只收 0～BAND_PB_MAX 倍）。都不行 → 暫不評等。
+- **F12M EPS**＝今年預估 × w ＋ 明年預估 ×（1 − w），w＝報告日之後今年（美股＝目前的會計年度）還剩幾個整月 ÷ 12；
+  共識要 ≥ CONS_MIN 位分析師。沒有共識就不算 F12M（不用營收動能推估）。
+- 撰寫者可以在範圍內選別的倍數，要寫原因。目標價進位 TICK_TP；評等：上檔空間 ≥ BUY_UP 買進、≤ SELL_DN 減碼、中間中立。
+- 三個情境：悲觀＝基數 ×（1 − SCEN_EPS）× 範圍下緣；基本＝目標價；樂觀＝基數 ×（1 + SCEN_EPS）× 範圍上緣（淨值比法不加減 SCEN_EPS）。
+- 法人共識目標價只當對照。要改就 VER＋1、寫進規劃文件，不在舊版本上改。
+
+VER 1（2026-10-29）：基數＝F12M（沒有共識＝近四季 EPS × 營收動能，夾 0.7～1.5）；範圍＝本公司近 5 年本益比（近四季）＋同業現在本益比（近四季）。
+臻鼎-KY 樣本（中立、目標價 560 元）照 VER 1 算，留著當評等歷史。
 """
 from __future__ import annotations
 
 from datetime import date
 
-VER = 1
-SPEC_DATE = "2026-10-29"
+VER = 2
+SPEC_DATE = "2026-10-30"
 
 HORIZON_M = 12
 CONS_MIN = 3
-MOM_CLIP = (0.7, 1.5)
 PE_MAX = 80.0
 BAND_YEARS = 5
 BAND_PE_MAX = 100.0
@@ -62,24 +65,29 @@ def round_tp(x: float, mk: str = "tw") -> float:
     raise ValueError(x)
 
 
-def year_weight(d: str) -> float:
-    """報告日之後今年還剩幾個月 ÷ 12（報告日那個月不算）。"""
+def year_weight(d: str, fy_end: int = 12) -> float:
+    """報告日之後「今年」還剩幾個整月 ÷ 12（報告日那個月不算）；fy_end＝會計年度最後一個月（台股 12，美股看公司）。"""
     m = date.fromisoformat(d).month
-    return (12 - m) / 12
+    return ((fy_end - m) % 12) / 12
 
 
-def f12m(d: str, eps_y: float | None, eps_y1: float | None) -> float | None:
+def f12m(d: str, eps_y: float | None, eps_y1: float | None, fy_end: int = 12) -> float | None:
     if eps_y is None or eps_y1 is None:
         return None
-    w = year_weight(d)
+    w = year_weight(d, fy_end)
     return w * eps_y + (1 - w) * eps_y1
 
 
-def mom_factor(r3: float | None, r3_ly: float | None) -> float | None:
-    if not r3 or not r3_ly or r3_ly <= 0:
+def basis(company_cons: bool, peer_fwd_n: int) -> str:
+    """'fwd'＝共識法（本公司有共識、同業 ≥ PEER_MIN 家有未來本益比）；'ttm'＝近四季法。"""
+    return "fwd" if company_cons and peer_fwd_n >= PEER_MIN else "ttm"
+
+
+def fwd_range(peer_fwd: dict | None) -> dict | None:
+    """共識法的倍數範圍：同業未來本益比第 25～75 百分位，預設＝中位數；同業不到 PEER_MIN 家 → None。"""
+    if not peer_fwd or peer_fwd.get("n", 0) < PEER_MIN:
         return None
-    lo, hi = MOM_CLIP
-    return min(max(r3 / r3_ly, lo), hi)
+    return {"lo": peer_fwd["p25"], "hi": peer_fwd["p75"], "dflt": peer_fwd["p50"]}
 
 
 def pctl(xs: list, q: float) -> float | None:
@@ -100,7 +108,7 @@ def band(xs: list) -> dict | None:
 
 
 def mult_range(own: dict | None, peer: dict | None) -> dict | None:
-    """→ {lo, hi, dflt}；同業不到 PEER_MIN 家只用本公司；本公司沒有區間只用同業。"""
+    """近四季法與淨值比法（兩邊同一個口徑）→ {lo, hi, dflt}；同業不到 PEER_MIN 家只用本公司；本公司沒有區間只用同業。"""
     if peer and peer.get("n", 0) < PEER_MIN:
         peer = None
     if not own and not peer:
@@ -110,18 +118,18 @@ def mult_range(own: dict | None, peer: dict | None) -> dict | None:
             "dflt": sum(b["p50"] for b in parts) / len(parts)}
 
 
-def method(f12m_eps: float | None, px: float | None, bvps: float | None, industry: str | None) -> str:
-    """→ 'pe'／'pb'／'none'。"""
+def method(eps: float | None, px: float | None, bvps: float | None, industry: str | None) -> str:
+    """eps＝基數（共識法 F12M、近四季法近四季 EPS）→ 'pe'／'pb'／'none'。"""
     pb_ok = bvps is not None and bvps > 0
     if industry in PB_INDUSTRIES:
         return "pb" if pb_ok else "none"
-    if f12m_eps is not None and f12m_eps > 0 and px and px / f12m_eps <= PE_MAX:
+    if eps is not None and eps > 0 and px and px / eps <= PE_MAX:
         return "pe"
     return "pb" if pb_ok else "none"
 
 
 def scenarios(base_val: float | None, rng: dict | None, tp: float | None, mk: str = "tw", pe: bool = True) -> dict | None:
-    """base_val＝F12M EPS（本益比法，±SCEN_EPS）或每股淨值（淨值比法，不加減）。"""
+    """base_val＝基數 EPS（本益比法，±SCEN_EPS）或每股淨值（淨值比法，不加減）。"""
     if not base_val or not rng or not tp:
         return None
     e = SCEN_EPS if pe else 0.0

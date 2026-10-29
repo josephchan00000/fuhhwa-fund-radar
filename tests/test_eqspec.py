@@ -1,12 +1,12 @@
-"""個股報告評等與目標價的規格鎖定：寫在看任何一份報告的估值結果之前（arm/lab/eqspec.py、docs/lab_equity_report_plan.md 第 6 節）。"""
+"""個股報告評等與目標價的規格鎖定（arm/lab/eqspec.py、docs/lab_equity_report_plan.md 第 6 節）。VER 2：2026-10-30，倍數與 EPS 同一把尺、不自己預估。"""
 import pytest
 
 from arm.lab import eqspec as S
 
 
-def test_spec_v1_is_locked():
-    assert S.VER == 1 and S.SPEC_DATE == "2026-10-29"
-    assert S.HORIZON_M == 12 and S.CONS_MIN == 3 and S.MOM_CLIP == (0.7, 1.5)
+def test_spec_v2_is_locked():
+    assert S.VER == 2 and S.SPEC_DATE == "2026-10-30"
+    assert S.HORIZON_M == 12 and S.CONS_MIN == 3 and not hasattr(S, "MOM_CLIP") and not hasattr(S, "mom_factor")   # 不自己預估
     assert S.PE_MAX == 80.0 and S.BAND_YEARS == 5 and S.BAND_PE_MAX == 100.0 and S.BAND_PB_MAX == 20.0
     assert S.PEER_MIN == 3 and S.PB_INDUSTRIES == ("金融保險",)
     assert S.BUY_UP == 0.15 and S.SELL_DN == -0.10 and S.SCEN_EPS == 0.15
@@ -29,13 +29,20 @@ def test_round_tp():
     assert S.round_tp(48.74, "us") == 48.5 and S.round_tp(123.6, "us") == 124.0
 
 
-def test_f12m_and_momentum():
+def test_f12m_and_fiscal_year():
     assert S.year_weight("2026-10-29") == pytest.approx(2 / 12)
     assert S.year_weight("2026-12-31") == 0 and S.year_weight("2026-01-05") == pytest.approx(11 / 12)
+    assert S.year_weight("2026-10-30", fy_end=1) == pytest.approx(3 / 12)          # 美股會計年度到 1 月：11、12、1 月
+    assert S.year_weight("2026-06-15", fy_end=6) == 0
     assert S.f12m("2026-10-29", 14.23, 25.7) == pytest.approx(2 / 12 * 14.23 + 10 / 12 * 25.7)
     assert S.f12m("2026-10-29", None, 25.7) is None
-    assert S.mom_factor(130, 100) == pytest.approx(1.3) and S.mom_factor(200, 100) == 1.5 and S.mom_factor(50, 100) == 0.7
-    assert S.mom_factor(100, 0) is None
+
+
+def test_basis_same_yardstick():
+    """VER 2：倍數和它乘的 EPS 同一把尺——共識法只用同業未來本益比；近四季法用本公司與同業的近四季本益比。"""
+    assert S.basis(True, 3) == "fwd" and S.basis(True, 2) == "ttm" and S.basis(False, 6) == "ttm"
+    assert S.fwd_range(S.band([10, 12, 14, 16, 18])) == {"lo": 12, "hi": 16, "dflt": 14}
+    assert S.fwd_range(S.band([10, 20])) is None and S.fwd_range(None) is None
 
 
 def test_bands_range_and_method():

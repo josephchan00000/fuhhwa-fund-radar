@@ -16,7 +16,7 @@ from . import eqreport as R
 from . import eqspec as S
 
 DISCLAIMER = ("本報告由程式依公開資料與本站固定規則產生，文字由 AI 協助撰寫並經程式檢查數字；評等與目標價依本站規則"
-              "（未來 12 個月 EPS × 目標倍數，評等依上檔空間）計算，僅供研究參考，不構成任何投資建議或買賣邀約。"
+              "（每股盈餘或每股淨值 × 同一把尺的目標倍數，評等依上檔空間）計算，僅供研究參考，不構成任何投資建議或買賣邀約。"
               "股價可能大幅波動，過去的成績不代表未來，請自行判斷並承擔風險。")
 RATING_CLS = {"買進": "rb", "中立": "rn", "減碼": "rs", "暫不評等": "rx"}
 SEC_ID = {"投資論點": "thesis", "風險": "risk", "公司概況": "co", "產業與競爭": "ind", "財務分析": "fin", "同業比較": "peer",
@@ -116,7 +116,8 @@ def rating_box(pack: dict, val: dict) -> str:
             ("上檔空間", sg(val.get("up"))),
             ("52 週區間", f"{f(px.get('lo52'))}～{f(px.get('hi52'))} 元"),
             ("市值", f"{f(pack.get('cap'), 0)} 億元"),
-            ("目標價隱含本益比", f"{f(val.get('tp_pe'), 1)} 倍" if val.get("tp_pe") else "—"),
+            ("目標價 ÷ " + ("未來 12 個月 EPS" if val.get("basis") == "fwd" else "近四季 EPS"),
+             f"{f(val.get('tp_pe'), 1)} 倍" if val.get("tp_pe") else "—"),
             ("法人共識目標價", f"{f(ct.get('v'))} 元（{ct.get('n') or '—'} 位）" if ct.get("v") else "—")]
     r = val.get("rating") or "暫不評等"
     tp = val.get("tp")
@@ -154,12 +155,14 @@ def summary_table(pack: dict) -> str:
     row("營益率", lambda a: f(a["om"], 1, "%"), lambda e: "—")
     row("稅後淨利（億元）", lambda a: f(a["nip"], 1), lambda e: "—")
     row("EPS（元）", lambda a: f(a["eps"], 2), lambda e: f(e.get("med"), 2))
-    row("本益比（倍）", lambda a: f(px / a["eps"], 1) if a["eps"] and a["eps"] > 0 and px else "—",
+    ye = {r[0][:4]: r[1] for r in ((pack.get("val") or {}).get("band") or {}).get("rows") or [] if r[0].endswith("-12") and r[1]}
+    row("本益比（倍）", lambda a: f(ye[a["y"]] / a["eps"], 1) if a["eps"] and a["eps"] > 0 and ye.get(a["y"]) else "—",
         lambda e: f(px / e["med"], 1) if e.get("med") and e["med"] > 0 and px else "—")
     row("ROE", lambda a: f(a["roe"], 1, "%"), lambda e: "—")
     row("每股現金股利（元）", lambda a: f(a["dps"], 2), lambda e: "—")
     note = (f"A＝實際；E＝法人共識（{escape(cons.get('src') or '')}，{cons.get('n') or '—'} 位，{escape(cons.get('d') or '')}）。"
-            "本益比用報告日收盤。股利＝當年除息。") if any(e for _, _, e in cols) else "A＝實際。本益比用報告日收盤。股利＝當年除息。"
+            "本益比：實際年度＝當年 12 月底收盤 ÷ 當年 EPS，預估年度＝報告日收盤 ÷ 共識 EPS。股利＝當年除息。") if any(e for _, _, e in cols) \
+        else "A＝實際。本益比＝當年 12 月底收盤 ÷ 當年 EPS。股利＝當年除息。"
     return _table(head, rows, "sum") + f'<p class="tn">{note}</p>'
 
 
@@ -227,13 +230,19 @@ def peer_section(pack: dict, F: Figs) -> str:
     note = ("同業：" + ("櫃買中心產業鏈同一節點的上市櫃公司，市值最大的兩家加上共同節點多、市值接近的" if how == "產業鏈"
                        else "證交所產業別裡市值最接近的") + "。預估本益比＝收盤 ÷ 法人共識未來 12 個月 EPS（3 位以上才列）。")
     out = [F.tab("同業比較", _table(head, rows, "peer"), f"{SRC_PX}、{SRC_CO}、{SRC_FC}", dl) + f'<p class="tn">{escape(note)}</p>']
-    pts = []
+    fwd = (pack.get("val") or {}).get("basis") == "fwd"
+    key, ylab = ("fpe", "未來 12 個月本益比（法人共識）") if fwd else ("pe", "本益比（近四季）")
+    pts, miss = [], []
     for p in ps + [me]:
-        y = p.get("fpe") if p.get("fpe") is not None else p.get("pe")
+        y = p.get(key)
         if y is not None and p.get("ry3") is not None and 0 < y <= 150:
             pts.append((p.get("n"), p.get("ry3"), y, "k2" if p is me else "k1"))
-    out.append(F.fig("同業：營收成長與本益比", C.scatter(pts, "近 3 個月營收年增（%）", "本益比（有共識用預估，否則近四季）",
-                                                    label="同業散佈"), f"{SRC_MO}、{SRC_FC}"))
+        else:
+            miss.append(p.get("n") or p.get("c") or "")
+    src = f"{SRC_MO}、{SRC_FC}" if fwd else f"{SRC_MO}、{SRC_CO}、{SRC_PX}"
+    if miss:
+        src += "；沒畫：" + "、".join(miss) + ("（沒有 3 位以上分析師的共識）" if fwd else "（虧損或超過 150 倍）")
+    out.append(F.fig("同業：營收成長與本益比", C.scatter(pts, "近 3 個月營收年增（%）", ylab, label="同業散佈"), src))
     return "".join(out)
 
 
@@ -258,19 +267,28 @@ def val_section(pack: dict, val: dict, fm: dict, F: Figs) -> str:
     out += rv
     base = v.get("base")
     fb = []
-    pe_b, pp = band.get("pe") or {}, v.get("peer_pe") or {}
+    pe_b, pp, pf = band.get("pe") or {}, v.get("peer_pe") or {}, v.get("peer_fpe") or {}
     bv = v.get("bvps")
     meth = v.get("method")
-    if meth == "pe" and base:
-        if pe_b.get("n"):
-            fb.append((f"本公司本益比 {f(pe_b['p25'], 1)}～{f(pe_b['p75'], 1)} 倍", base * pe_b["p25"], base * pe_b["p75"], base * pe_b["p50"]))
-        if pp:
-            fb.append((f"同業本益比 {f(pp['p25'], 1)}～{f(pp['p75'], 1)} 倍", base * pp["p25"], base * pp["p75"], base * pp["p50"]))
+    e4, f12e = v.get("eps4"), (v.get("f12m") or {}).get("eps")
+    # 每一條都是「同一把尺的倍數 × 同一把尺的 EPS」（eqspec VER 2）；倍數寫在圖下的說明
+    mults = []
+    if f12e and f12e > 0 and pf.get("n", 0) >= S.PEER_MIN:
+        fb.append(("同業未來本益比 × 未來 12 個月 EPS", f12e * pf["p25"], f12e * pf["p75"], f12e * pf["p50"]))
+        mults.append(f"同業未來本益比 {f(pf['p25'], 1)}～{f(pf['p75'], 1)} 倍")
+    if e4 and e4 > 0 and pe_b.get("n"):
+        fb.append(("本公司本益比 × 近四季 EPS", e4 * pe_b["p25"], e4 * pe_b["p75"], e4 * pe_b["p50"]))
+        mults.append(f"本公司近 {S.BAND_YEARS} 年本益比 {f(pe_b['p25'], 1)}～{f(pe_b['p75'], 1)} 倍")
+    if e4 and e4 > 0 and pp.get("n", 0) >= S.PEER_MIN:
+        fb.append(("同業本益比 × 近四季 EPS", e4 * pp["p25"], e4 * pp["p75"], e4 * pp["p50"]))
+        mults.append(f"同業本益比（近四季）{f(pp['p25'], 1)}～{f(pp['p75'], 1)} 倍")
     pb_b, ppb = band.get("pb") or {}, v.get("peer_pb") or {}
     if bv and pb_b.get("n"):
-        fb.append((f"本公司淨值比 {f(pb_b['p25'], 2)}～{f(pb_b['p75'], 2)} 倍", bv * pb_b["p25"], bv * pb_b["p75"], bv * pb_b["p50"]))
+        fb.append(("本公司淨值比 × 每股淨值", bv * pb_b["p25"], bv * pb_b["p75"], bv * pb_b["p50"]))
+        mults.append(f"本公司淨值比 {f(pb_b['p25'], 2)}～{f(pb_b['p75'], 2)} 倍")
     if meth == "pb" and bv and ppb:
-        fb.append((f"同業淨值比 {f(ppb['p25'], 2)}～{f(ppb['p75'], 2)} 倍", bv * ppb["p25"], bv * ppb["p75"], bv * ppb["p50"]))
+        fb.append(("同業淨值比 × 每股淨值", bv * ppb["p25"], bv * ppb["p75"], bv * ppb["p50"]))
+        mults.append(f"同業淨值比 {f(ppb['p25'], 2)}～{f(ppb['p75'], 2)} 倍")
     ct = (pack.get("cons") or {}).get("tp") or {}
     if ct.get("lo") and ct.get("hi"):
         fb.append(("法人目標價（最低～最高）", ct["lo"], ct["hi"], ct.get("v")))
@@ -279,29 +297,30 @@ def val_section(pack: dict, val: dict, fm: dict, F: Figs) -> str:
     sc = val.get("scen")
     if sc:
         fb.append(("本報告情境（悲觀～樂觀）", sc["bear"], sc["bull"], sc["base"]))
-    out.append(F.fig("估值區間", C.football(fb, px.get("c"), tp), "本站整理（區間＝第 25～75 百分位，直線＝中位數）"))
+    out.append(F.fig("估值區間", C.football(fb, px.get("c"), tp),
+                     "本站整理（區間＝第 25～75 百分位，直線＝中位數）" + ("；" + "、".join(mults) if mults else "")))
     f12 = v.get("f12m") or {}
     rng = val.get("range") or {}
     nm = "本益比" if meth == "pe" else "淨值比"
-    if meth == "pe":
-        if f12.get("src") == "cons":
-            basis = (f"法人共識：{f12.get('y')} 年 {f(f12.get('eps_y'), 2)} 元 × {f((f12.get('w') or 0) * 12, 0)}/12 ＋ "
-                     f"{(f12.get('y') or 0) + 1} 年 {f(f12.get('eps_y1'), 2)} 元 × {f((1 - (f12.get('w') or 0)) * 12, 0)}/12（{f12.get('n')} 位）")
-        else:
-            basis = f"依規則推算：近四季 EPS {f(f12.get('eps4'), 2)} 元 × 營收動能 {f(f12.get('mom'), 2)}（最近 3 個月營收 ÷ 去年同期，夾在 0.7～1.5）"
-        brow = [["未來 12 個月 EPS", f"{f(base, 2)} 元", escape(basis)]]
+    if meth == "pe" and v.get("basis") == "ttm":
+        brow = [["近四季 EPS", f"{f(base, 2)} 元", f"已公布的最近四季（到 {escape(_ql(v.get('eps4_q') or ''))}）；沒有 {S.CONS_MIN} 位以上分析師的共識，或同業有共識的不到 {S.PEER_MIN} 家"]]
+    elif meth == "pe":
+        how = (f"法人共識：{f12.get('y')} 年 {f(f12.get('eps_y'), 2)} 元 × {f((f12.get('w') or 0) * 12, 0)}/12 ＋ "
+               f"{(f12.get('y') or 0) + 1} 年 {f(f12.get('eps_y1'), 2)} 元 × {f((1 - (f12.get('w') or 0)) * 12, 0)}/12（{f12.get('n')} 位）")
+        brow = [["未來 12 個月 EPS", f"{f(base, 2)} 元", escape(how)]]
     else:
         brow = [["每股淨值（最近一季）", f"{f(base, 2)} 元", "最新一季財報"]]
     t_rows = brow + [
-        [f"可用{nm}範圍", f"{f(rng.get('lo'), 2)}～{f(rng.get('hi'), 2)} 倍", "本公司近 5 年與同業現在的第 25～75 百分位，取最寬"],
-        [f"預設{nm}", f"{f(rng.get('dflt'), 2)} 倍", "本公司中位數與同業中位數的平均"],
+        [f"可用{nm}範圍", f"{f(rng.get('lo'), 2)}～{f(rng.get('hi'), 2)} 倍",
+         escape(v.get("range_how") or "本公司近 5 年與同業現在的第 25～75 百分位，取最寬")],
+        [f"預設{nm}", f"{f(rng.get('dflt'), 2)} 倍", escape(v.get("dflt_how") or "本公司中位數與同業中位數的平均")],
         [f"本報告採用{nm}", f"<b>{f(val.get('mult'), 2)} 倍</b>", escape(str(fm.get("mult_why") or "照預設"))],
         ["目標價", f"<b>{f(tp)} 元</b>", f"{f(base, 2)} × {f(val.get('mult'), 2)}，依價位進位"],
         ["上檔空間", sg(val.get("up")), f"報告日收盤 {f(px.get('c'))} 元"],
         ["評等", f"<b>{escape(val.get('rating') or '')}</b>", f"上檔空間 ≥ {int(S.BUY_UP * 100)}% 買進、≤ {int(S.SELL_DN * 100)}% 減碼、中間中立"],
         ["和法人共識比", sg(val.get("vs_cons")) if val.get("vs_cons") is not None else "—",
          f"共識目標價 {f(ct.get('v'))} 元" if ct.get("v") else "沒有共識目標價"]]
-    out.append(F.tab("目標價怎麼算", _table(["項目", "數字", "說明"], t_rows, "tpc"), "本站規則（評等與目標價規格第 1 版）"))
+    out.append(F.tab("目標價怎麼算", _table(["項目", "數字", "說明"], t_rows, "tpc"), f"本站規則（評等與目標價規格第 {pack.get('spec') or 1} 版）"))
     if sc:
         su = val.get("scen_up") or {}
         srows = [["悲觀", f"{f(sc['bear'])} 元", sg(su.get("bear")), (f"EPS 少 {int(S.SCEN_EPS * 100)}%、" if meth == "pe" else "") + f"{nm}用範圍下緣 {f(rng.get('lo'), 2)} 倍"],
@@ -379,12 +398,17 @@ def appendix(pack: dict, ctx: dict) -> str:
     sd = pack.get("src_d") or {}
     hist = ctx.get("hist") or []
     hrows = [[h["made"], escape(h.get("rating") or ""), f(h.get("tp")), f(h.get("px")),
-              sg(h.get("since")) if h.get("since") is not None else "—"] for h in hist]
-    ht = _table(["報告日", "評等", "目標價", "當時收盤", "到最新收盤"], hrows, "hist") if hrows else "<p>這是第一份報告。</p>"
+              sg(h.get("since")) if h.get("since") is not None else "—", f"第 {h.get('spec') or 1} 版"] for h in hist]
+    ht = (_table(["報告日", "評等", "目標價", "當時收盤", "到最新收盤", "評等規格"], hrows, "hist")
+          + ('<p class="tn">評等規格第 1 版的同業倍數用近四季本益比、卻乘在未來 12 個月 EPS 上（口徑不一致），第 2 版起改成同一把尺。</p>'
+             if any((h.get("spec") or 1) == 1 for h in hist) else "")
+          if hrows else "<p>這是第一份報告。</p>")
     return (f'<section class="sec app" id="app"><h2>附錄</h2>'
-            f'<h3>評等與目標價</h3><p>看 12 個月。目標價＝未來 12 個月 EPS × 目標本益比（金融業或虧損公司用每股淨值 × 目標淨值比）。'
-            f'未來 12 個月 EPS：有 {S.CONS_MIN} 位以上分析師的共識就用共識，依今年還剩幾個月把今年和明年加權；沒有就用近四季 EPS 乘上營收動能。'
-            f'目標倍數只能在「本公司近 {S.BAND_YEARS} 年」與「同業現在」的第 25～75 百分位範圍內，預設兩個中位數的平均；不用預設時寫明原因。'
+            f'<h3>評等與目標價</h3><p>看 12 個月。倍數和它乘的 EPS 一定用同一把尺，本站不自己預估 EPS。'
+            f'本公司有 {S.CONS_MIN} 位以上分析師的共識、同業也有 {S.PEER_MIN} 家以上有共識：目標價＝未來 12 個月 EPS（今年和明年的共識依今年還剩幾個月加權）'
+            f'× 同業未來 12 個月本益比（第 25～75 百分位內，預設中位數）。其他情況：目標價＝已公布的近四季 EPS × 本益比'
+            f'（本公司近 {S.BAND_YEARS} 年與同業現在的近四季本益比，第 25～75 百分位內，預設兩個中位數的平均）。'
+            f'金融業、虧損或超過 {int(S.PE_MAX)} 倍的公司用每股淨值 × 淨值比。不用預設倍數時寫明原因。'
             f'評等：上檔空間 ≥ {int(S.BUY_UP * 100)}% 買進、≤ {int(S.SELL_DN * 100)}% 減碼、中間中立。</p>'
             f'<h3>評等歷史</h3>{ht}'
             f'<h3>本站資料</h3><ul><li>財報與月營收：公開資訊觀測站（最新一季 {escape(str((sd.get("co") or {}).get("q") or ""))}、'

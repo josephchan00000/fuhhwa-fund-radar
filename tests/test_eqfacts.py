@@ -2,7 +2,6 @@
 import pytest
 
 from arm.lab import eqfacts as E
-from arm.lab import eqspec as S
 
 QK = ["rev", "gp", "opex", "op", "nonop", "pti", "nip", "eps", "ca", "ta", "cl", "tl", "eqp", "bvps", "ocf", "icf", "cash"]
 
@@ -64,15 +63,12 @@ def test_bands_only_use_reported_quarters():
     assert b["pe"]["n"] == len([v for v in ser.values() if v is not None])
 
 
-def test_f12m_consensus_and_rule():
+def test_f12m_consensus_only():
     cons = {"n": 5, "eps": {"2026": {"med": 10.0}, "2027": {"med": 16.0}}}
     f = E.f12m_eps(cons, [], [], "2026-10-29")
     assert f["src"] == "cons" and f["eps"] == round(2 / 12 * 10 + 10 / 12 * 16, 2)
     co = _co()
-    f2 = E.f12m_eps({"n": 2, "eps": {}}, E.months(co), E.quarters(co), "2026-01-05")
-    last = E.months(co)[-1]
-    assert f2["src"] == "rule" and f2["mom"] == round(S.mom_factor(last["rev3"], last["rev3_ly"]), 4)
-    assert f2["eps"] == round(E.quarters(co)[-1]["eps4"] * f2["mom"], 2)
+    assert E.f12m_eps({"n": 2, "eps": {}}, E.months(co), E.quarters(co), "2026-01-05") == {"eps": None, "src": "none"}   # 不自己推估
 
 
 def test_pick_peers_leaders_then_shared_then_size():
@@ -104,3 +100,20 @@ def test_implied_rest_of_year():
     assert imp["eps_rest_ly"] == round(5.0 - yd["q_eps_ly"], 2)
     assert imp["rev_rest"] == round(80.0 - yd["m_rev"], 2)
     assert E.implied({}, yd, yrs, qs, mo) == {}
+
+
+def test_valuation_uses_one_yardstick():
+    """eqspec VER 2：共識法＝未來 12 個月 EPS × 同業未來本益比；同業有共識的不到 3 家或本公司沒有共識＝近四季 EPS × 近四季本益比。"""
+    qs = [{"q": "2026-06-30", "eps4": 8.0, "bvps": 60.0}]
+    bd = {"pe": {"p25": 10.0, "p50": 12.0, "p75": 14.0, "n": 60}, "pb": {"p25": 1.0, "p50": 1.2, "p75": 1.4, "n": 60}, "rows": []}
+    peers = [{"pe": pe, "fpe": fpe, "pb": 3.0} for pe, fpe in ((30, 18), (40, 20), (50, 22), (60, None))]
+    cons = {"eps": 10.0, "src": "cons"}
+    v = E.valuation(cons, qs, bd, peers, 200.0, {}, "半導體業")
+    assert v["basis"] == "fwd" and v["base"] == 10.0 and v["range"] == {"lo": 19.0, "hi": 21.0, "dflt": 20.0}
+    assert v["tp_dflt"] == 200.0 and "同業未來 12 個月本益比" in v["range_how"]
+    v2 = E.valuation({"eps": None, "src": "none"}, qs, bd, peers, 200.0, {}, "半導體業")
+    assert v2["basis"] == "ttm" and v2["base"] == 8.0 and v2["range"] == {"lo": 10.0, "hi": 52.5, "dflt": (12 + 45) / 2}
+    v3 = E.valuation(cons, qs, bd, peers[:2] + [{"pe": 50, "fpe": None, "pb": 3.0}], 200.0, {}, "半導體業")
+    assert v3["basis"] == "ttm" and v3["base"] == 8.0                      # 同業有共識的只有 2 家 → 近四季法
+    v4 = E.valuation(cons, qs, bd, peers, 200.0, {}, "金融保險")
+    assert v4["method"] == "pb" and v4["base"] == 60.0

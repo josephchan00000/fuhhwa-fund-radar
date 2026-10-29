@@ -99,8 +99,8 @@ def valuation(pack: dict, fm: dict) -> dict:
     mk = pack.get("mk", "tw")
     base = v.get("base")
     mult = fm.get("mult")
-    out = {"method": v.get("method"), "px": px, "base": base, "range": v.get("range"), "dflt": (v.get("range") or {}).get("dflt"),
-           "mult": mult, "tp_dflt": v.get("tp_dflt"), "rating_dflt": v.get("rating_dflt")}
+    out = {"method": v.get("method"), "basis": v.get("basis"), "px": px, "base": base, "range": v.get("range"),
+           "dflt": (v.get("range") or {}).get("dflt"), "mult": mult, "tp_dflt": v.get("tp_dflt"), "rating_dflt": v.get("rating_dflt")}
     if v.get("method") not in ("pe", "pb") or not base or mult is None:
         out.update({"tp": None, "rating": "暫不評等"})
         return out
@@ -115,9 +115,8 @@ def valuation(pack: dict, fm: dict) -> dict:
     out["scen"] = S.scenarios(base, rng, tp, mk, pe=v.get("method") == "pe")
     if out["scen"] and px:
         out["scen_up"] = {k: round((x / px - 1) * 100, 1) for k, x in out["scen"].items()}
-    f12 = (v.get("f12m") or {}).get("eps")
-    if v.get("method") == "pe" and f12:
-        out["tp_pe"] = round(tp / f12, 1)
+    if v.get("method") == "pe" and base:
+        out["tp_pe"] = round(tp / base, 1)                 # 目標價 ÷ 基數 EPS（共識法＝未來 12 個月、近四季法＝近四季）
     return out
 
 
