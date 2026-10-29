@@ -325,7 +325,7 @@ function renderCo(c,keep){const dv=$('#dv'),pane=isPane(),st0=keep?dv.scrollTop:
   let h=`<div class=dvh><div class=dvt><div class=ttl><b>${esc(nm)}</b><span class=cd>${esc(c)}${mk?' · '+mk:''}${C&&C.doc.ind?' · '+esc(C.doc.ind):''}</span></div>`+
     `<div class=pxw><b>${r?fp(r.px):''}</b>${r&&r.ch!=null?sgn(r.ch,2,'%'):''}</div><a class=x id=x title="關閉（Esc）">×</a></div>`+
     `<nav class=cnav>${(PKU[c]?[['c-st','策略']]:[]).concat(coNav()).map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
-  h+=stCardSec(c)+coSec(c,W,()=>renderCo(c,true));   /* 配置頁的股票不在籌碼雷達範圍（例：長線待買的天鈺）：公司卡最上面也放「配置」段 */
+  h+=eqRepLine('tw:'+c)+stCardSec(c)+coSec(c,W,()=>renderCo(c,true));   /* 配置頁的股票不在籌碼雷達範圍（例：長線待買的天鈺）：公司卡最上面也放「配置」段 */
   $('#dvin').innerHTML=h;dv.scrollTop=st0;$('#x').onclick=closeStock;
   $$('#dvin [data-cto]').forEach(a=>a.onclick=()=>{const t=document.getElementById(a.dataset.cto);if(t)dv.scrollTo({top:dv.scrollTop+t.getBoundingClientRect().top-dv.getBoundingClientRect().top-$('#dvin .dvh').offsetHeight+2,behavior:'smooth'});});
   if(COSEC&&CO[c]&&(FC||FCERR)&&coJump(COSEC))COSEC=null;
