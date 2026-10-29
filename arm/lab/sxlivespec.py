@@ -71,19 +71,36 @@ VER 3（2026-10-28；docs/lab_review_plan.md 第 8、9.1 節）——寫在算�
   ⑦ A、R1 兩本照 VER 2：只記、不上頁面、不接手，START 起每週記（第一筆 10/30）。
   ⑧ 寫這一版之前看過的：VER 2 的紀錄（一週都沒有）、SX_CURVE_FILE 的淨值與每天持股比例（10/14 收盤持股約 100%）；
      沒有看過那本帳 TAKE_V3 或 TAKE 拿著哪幾檔、名單上有哪些股票。
+VER 4（2026-10-29；docs/lab_boom_v2_plan.md 第 8～9 節、sxfixspec VER 1 的判定）
+使用者 2026-10-29：「名單太多我沒辦法選啊 那個建議比例感覺也很雞肋 …」，看過規劃選「B1～B4 都試、過關才換」；
+W10（tw-superstock-lab/reports/W10_results.md）照事前寫好的判定＝換成「8 格・新上名單的先買・不管漲太遠・抱 60 天」。
+  ① 新的一本 N8（PLAN_BOOK）：訊號＝R60 每週的名單（LIST_BOOK，規則、記錄方式都不變）；照 TRADE_N8 買賣——
+     固定 8 格：有空格時把現金平分給空格（每格＝現金 ÷ 空格數），一格不到總資產 1/8 的 MIN_SLOT 就不買；
+     同一天先買「上名單週數」少的，同週數依強度（分數＝強度 − 1000 ×（週數 − 1））；其餘照 TRADE（抱 60 天、成本、單檔上限…）。
+     上名單週數＝到訊號那個週末為止，連續幾個週末（證交所官方休市表）都在 R60 名單上；START 以前的週末用 HIST_FILE
+     （2026 年 START 以前每個週末照那一年的規則算的名單，scripts/run_sxlive_hist.py 只算一次、之後不改），START 起用紀錄；
+     哪一個週末兩邊都沒有就斷掉。
+  ② N8 從現金開始：START4 起第一個週末（10/30）收盤下單、下一個交易日開盤買；不接手任何持股（使用者是空手；
+     W10 的回測帳也不接手）。成績從 TAKE 收盤＝100 起算（和其他幾本同一個起點，10/30 以前是現金）。
+  ③ R60（VER 3 接手的那一本）照舊每週記、每天算，當對照；交易計畫、今年逐月表（ytdspec VER 1）仍讀它，直到那兩份規格改版。
+  ④ 選股頁、06:35 推播的「新飆股」改看 N8：要買的＝最新一週名單照 N8 的順序、現金夠的前幾檔。
+  ⑤ 寫這一版之前看過的：W10 的 24 組成績（含 2023 起）、10/22 與 10/28 的名單；沒有看過 N8 照做以後的任何一天。
 """
 from __future__ import annotations
 
-VER = 3
-SPEC_DATE = "2026-10-28"
+VER = 4
+SPEC_DATE = "2026-10-29"
 START = "2026-10-23"                 # 第一個訊號日（這一週的最後一個交易日）
 TAKE = "2026-10-22"                  # VER 3：接手那天收盤（START 前最後一個交易日）
 TAKE_V3 = "2026-10-14"               # VER 3：長歷史股價（v3px）最後一天；W7 的引擎跑到這一天
-TAKE_BOOK = "R60"                    # VER 3：接手的那一本（＝PLAN_BOOK）
+TAKE_BOOK = "R60"                    # VER 3：接手的那一本（VER 4 起＝LIST_BOOK，不再是 PLAN_BOOK）
 SEED_FILE = "sxlive_seed.json"       # VER 3：data/lab/ 底下，接手的狀態（只算一次）
 
-BOOKS = ("R60", "A", "R1")
-PLAN_BOOK = "R60"                    # VER 2：放進交易計畫、上配置頁的那一本（其他兩本只記）
+BOOKS = ("R60", "A", "R1", "N8")
+PLAN_BOOK = "N8"                     # VER 4：上選股頁、推播的那一本（VER 2～3＝R60）
+LIST_BOOK = "R60"                    # VER 4：N8 買的是這一本的每週名單
+START4 = "2026-10-29"                # VER 4：N8 從現金開始，這天以後第一個週末收盤下單
+HIST_FILE = "sxlive_hist.json"       # VER 4：data/lab/ 底下，START 以前 2026 年每個週末的 R60 名單（算上名單週數用；只算一次）
 LIST_SHOW = 20                       # VER 2：配置頁列最新一週名單的前幾名
 RULE_BOOKS = ("R60", "A")            # 逐年重新找規則的兩本（R1 跟著頁面）
 SEED_YEAR = 2026                     # 這一年的規則＝W7 的 2026 那一折
@@ -95,6 +112,8 @@ LOG_FILE = "sxlive.json"             # data/lab/ 底下：每週的訊號（只�
 TRADE = {"capital": 10_000_000, "weight": 0.125, "hold": 60, "lot": 1000, "max_weight": 0.20, "max_adv": 0.05,
          "max_positions": 20, "commission": 0.001425, "discount": 0.6, "min_fee": 20.0, "sell_tax": 0.003,
          "slip_tiers": ((1e9, 0.0005), (1e8, 0.0015), (1e7, 0.0030), (0.0, 0.0060))}
+
+TRADE_N8 = {**TRADE, "weight": None, "slots": 8, "min_slot": 0.5, "max_positions": 8, "order": "new"}   # VER 4（sxfixspec 挑出來的）
 
 REVIEWS = (("half", "2027-04-23"), ("year", "2027-10-22"))
 SUGGEST = None                       # VER 2：不再提議（使用者已決定放進交易計畫）；VER 1＝{"mdd_extra": 10.0}
