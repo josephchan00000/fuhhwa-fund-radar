@@ -1,15 +1,8 @@
 {
-  "as_of": "2026/10/29 13:58",
+  "as_of": "2026/10/29 16:17",
   "window_days": 7,
   "source": "Google News（品牌＋自家ETF＋各基金）＋鉅亨網/Yahoo股市/股感 RSS＋PTT 股票板/基金板＋強基金討論區＋YouTube 影片・自動擷取",
   "brand": [
-    {
-      "title": "復華中國 5G 謹慎操作",
-      "url": "https://money.udn.com/money/story/5618/9835256",
-      "source": "經濟日報",
-      "date": "2026-10-24 23:01",
-      "datetime": "2026-10-24T23:01:10+08:00"
-    },
     {
       "title": "主動復華台灣新星 募集期順延至10月27日",
       "url": "https://udn.com/news/amp/story/7239/9832220",
@@ -165,6 +158,13 @@
           "source": "觀傳媒",
           "date": "2026-10-26 21:02",
           "datetime": "2026-10-26T21:02:35+08:00"
+        },
+        {
+          "title": "回檔篩出好體質！00418A卡位AI轉型股 10/27最後買進日",
+          "url": "https://tw.stock.yahoo.com/news/%E5%9B%9E%E6%AA%94%E7%AF%A9%E5%87%BA%E5%A5%BD%E9%AB%94%E8%B3%AA-00418a%E5%8D%A1%E4%BD%8Dai%E8%BD%89%E5%9E%8B%E8%82%A1-10-27%E6%9C%80%E5%BE%8C%E8%B2%B7%E9%80%B2%E6%97%A5-090427137.html",
+          "source": "Yahoo股市",
+          "date": "2026-10-26 17:04",
+          "datetime": "2026-10-26T17:04:27+08:00"
         }
       ]
     },
@@ -522,29 +522,28 @@
     },
     {
       "platform": "youtube",
+      "title": "別再盲目存 00929！0056、00878 與 00713 終極對決：誰才是真正跌不倒、配得穩的「養老真防守」？ #00878 #0056 #00713 #00929 #高股息ETF",
+      "channel": "财富底层逻辑",
+      "url": "https://www.youtube.com/watch?v=gYyMwEhSwdM",
+      "date": "2026-10-26",
+      "views": 2913
+    },
+    {
+      "platform": "youtube",
+      "title": "夏之戀 l 00929、00406A，哪檔領息回本較快？",
+      "channel": "夏之戀",
+      "url": "https://www.youtube.com/watch?v=xaP__cQ9sac",
+      "date": "2026-10-26",
+      "views": 1898
+    },
+    {
+      "platform": "youtube",
       "title": "00929配0.38元，股利竟然是0？持有幾張都不扣二代健保 #00929 #高股息",
       "channel": "SeeThrough",
       "url": "https://www.youtube.com/shorts/zFL0HoLWpmo",
       "date": "2026-10-23",
-      "views": 1289,
+      "views": 1295,
       "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "AI多元賽道起跑！00418A復華台灣新星主動式ETF可以買嗎？ #投資",
-      "channel": "Lydia聊人生",
-      "url": "https://www.youtube.com/shorts/bp1QSTIJRjY",
-      "date": "2026-10-22",
-      "views": 231,
-      "short": true
-    },
-    {
-      "platform": "youtube",
-      "title": "投等債竟列 RR5 高風險？去中國化如何鎖定 6.66% 殖利率與十年季配息？｜物流策略師解構 00711B 復華彭博新興債 ETF ：單一國家 10% 上限防斷鏈、 260 檔美元主權債選址、...",
-      "channel": "物流策展人",
-      "url": "https://www.youtube.com/watch?v=wsP50feJ0cE",
-      "date": "2026-10-23",
-      "views": 74
     },
     {
       "platform": "youtube",
@@ -552,9 +551,19 @@
       "channel": "小宇宙大爆發",
       "url": "https://www.youtube.com/watch?v=u4xcSAzbUi8",
       "date": "2026-10-26",
-      "views": 386403,
+      "views": 390281,
       "peer": true,
       "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "【費半破底、台股補跌？止跌反攻要等什麼訊號？】|《股市先修班》EP34_20261025 #新聞 #Meta #費半 #AI #蔡明翰 #台股 #投資 #理財",
+      "channel": "財經震翰彈_蔡明翰",
+      "url": "https://www.youtube.com/watch?v=1GO3jgF0Q2Q",
+      "date": "2026-10-25",
+      "views": 173746,
+      "peer": true,
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -562,9 +571,19 @@
       "channel": "Catch大錢潮",
       "url": "https://www.youtube.com/watch?v=WsUheUsX884",
       "date": "2026-10-25",
-      "views": 131902,
+      "views": 131924,
       "peer": true,
       "cat": "綜合"
+    },
+    {
+      "platform": "youtube",
+      "title": "【理財達人秀】台股反攻近千點 再1步轉強？PCB抓突破 光通訊押寶誰？輝達.博通搶錢互助 低價股.被動抓突破！｜李兆華、朱家泓、楊雲翔、阿格力2026.10.28【電視完整版】",
+      "channel": "理財達人秀 EBCmoneyshow",
+      "url": "https://www.youtube.com/watch?v=BOnMxB8Xh6M",
+      "date": "2026-10-28",
+      "views": 124246,
+      "peer": true,
+      "cat": "市場趨勢"
     },
     {
       "platform": "youtube",
@@ -572,7 +591,7 @@
       "channel": "阿格力博識",
       "url": "https://www.youtube.com/shorts/whNn6PCCLws",
       "date": "2026-10-24",
-      "views": 116952,
+      "views": 117803,
       "peer": true,
       "short": true,
       "cat": "市值型"
@@ -583,7 +602,7 @@
       "channel": "懶錢包 Lazy Wallet",
       "url": "https://www.youtube.com/watch?v=WkmMZrXvm84",
       "date": "2026-10-26",
-      "views": 98914,
+      "views": 99721,
       "peer": true,
       "cat": "市值型"
     },
@@ -593,19 +612,29 @@
       "channel": "【CMoney理財寶】官方頻道",
       "url": "https://www.youtube.com/watch?v=KdZ-l9pChOs",
       "date": "2026-10-28",
-      "views": 69820,
+      "views": 73363,
       "peer": true,
       "cat": "高股息"
     },
     {
       "platform": "youtube",
-      "title": "【週末鈔能力】台股失守季線先賣一波？杜金龍喊「這3族群」拉回閉眼買！ft.杜金龍、蕭碧燕｜趙慶翔、應佳臻 #財經鈔能力",
-      "channel": "TVBS財經",
-      "url": "https://www.youtube.com/watch?v=O7TqlJlmYRE",
-      "date": "2026-10-24",
-      "views": 63409,
+      "title": "【精華】輝達PTFE新題材加持！台郡、台虹能追？破天荒！杜大師首度買主動式ETF！點名小資族靠這招低檔大撿便宜！《股民想知道》ft. 杜金龍.智捷",
+      "channel": "投資優我罩—優分析",
+      "url": "https://www.youtube.com/watch?v=qcTagQtlBaY",
+      "date": "2026-10-25",
+      "views": 63054,
       "peer": true,
-      "cat": "市場趨勢"
+      "cat": "主動式"
+    },
+    {
+      "platform": "youtube",
+      "title": "存00406A每月能領多少？100萬、300萬、500萬試算",
+      "channel": "葉芷娟",
+      "url": "https://www.youtube.com/watch?v=vNmwEEWgWuA",
+      "date": "2026-10-28",
+      "views": 62758,
+      "peer": true,
+      "cat": "主動式"
     },
     {
       "platform": "youtube",
@@ -613,45 +642,15 @@
       "channel": "午後檔案",
       "url": "https://www.youtube.com/watch?v=ZRtvgX91bLA",
       "date": "2026-10-27",
-      "views": 60092,
+      "views": 60416,
       "peer": true,
       "cat": "基金"
-    },
-    {
-      "platform": "youtube",
-      "title": "【#本週精選】台股回檔誰最抗跌？高股息23檔打敗大盤、5檔逆勢正報酬！主動式ETF反而重傷　「不配息0050」再掀ETF新戰局｜關我什麼事",
-      "channel": "關我什麼事",
-      "url": "https://www.youtube.com/watch?v=wGFRFwIb2k0",
-      "date": "2026-10-24",
-      "views": 59488,
-      "peer": true,
-      "cat": "高股息"
-    },
-    {
-      "platform": "youtube",
-      "title": "【AIx專家 理財健檢】台股回檔進場時機到？卡位4大AI黑馬明年大爆發！【#財經鈔能力】｜202601026 趙慶翔 ft.郭彥均、廖佑璋 #欣興 #景碩 #國巨",
-      "channel": "TVBS財經",
-      "url": "https://www.youtube.com/watch?v=UCPJOt_1PZA",
-      "date": "2026-10-26",
-      "views": 46583,
-      "peer": true,
-      "cat": "市場趨勢"
-    },
-    {
-      "platform": "youtube",
-      "title": "選錯主動式ETF恐少賺下波AI財！財富自由別只單壓台股？【#財經鈔能力】｜20261027 趙慶翔 ft.蕭碧燕 #台股 #美股 #AI投資",
-      "channel": "TVBS財經",
-      "url": "https://www.youtube.com/watch?v=HoUCiBYXP3s",
-      "date": "2026-10-27",
-      "views": 35021,
-      "peer": true,
-      "cat": "主動式"
     }
   ],
   "highlights": [
     "近 7 天有專屬報導的基金／ETF：00929、00991A、00998A、00418A（詳下方新聞標籤）",
-    "品牌焦點：復華中國 5G 謹慎操作（經濟日報）",
+    "品牌焦點：主動復華台灣新星 募集期順延至10月27日（UDN）",
     "社群聲量最高：別只盯AI！五張藏金圖找出美股修正後的ETF投資機會（0 推）",
-    "YouTube 熱片：存股別傻傻買0056! 退休前改1動作 月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・386,403 次觀看）"
+    "YouTube 熱片：存股別傻傻買0056! 退休前改1動作 月領14萬 ft.超馬芭樂【小宇宙大爆發】（小宇宙大爆發・390,281 次觀看）"
   ]
 }
