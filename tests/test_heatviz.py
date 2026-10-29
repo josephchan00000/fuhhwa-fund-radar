@@ -221,6 +221,7 @@ def test_us_page_items_use_us_wording():
     from test_heatcalc_us import fake_D
     D = fake_D()
     SH = CU.shared(D)
+    SH["INS"] = ({}, {}, {})                                                  # S7 內部人：不讀真實檔
     pages = {k: PU.index_page(k, CU.build(k, D, SH), {}) for k in U.INDEX_ORDER}
     page, panes = PU.assemble(pages)
     assert page.count('<aside class="drw" id="drw"') == 1 and "{{VSW}}" not in page and "{{DRAWER}}" not in page

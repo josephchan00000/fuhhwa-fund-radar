@@ -56,8 +56,11 @@ def fake_D() -> dict:
     wed = [d for d in days if date.fromisoformat(d).weekday() == 2]
     tue = [d for d in days if date.fromisoformat(d).weekday() == 1]
     D["us_h41"] = {d: [800000 + 500 * i, 50000 + 10 * i, 1000.0] for i, d in enumerate(wed)}
-    for n in ("us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini"):
+    for n in ("us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini",
+              "us_cftc_am_nq", "us_cftc_big_nq", "us_cftc_mini_nq"):                # VER 3：那斯達克 100 期貨
         D[n] = {d: [1000 + rnd.random() * 500, 800 + rnd.random() * 500, 5000.0] for d in tue}
+    for j, s in enumerate(sorted({s for pair in U.LEV.values() for s in pair})):     # VER 3：槓桿 ETF 成交金額
+        D[f"us_lev_{s}"] = {d: 1e8 * (1.5 + math.sin(i / 40 + j)) for i, d in enumerate(days)}
     sat = [d for d in (date(1995, 1, 7) + timedelta(days=7 * k) for k in range(940)) if d <= date(2012, 12, 31)]
     D["us_claims"] = {d.isoformat(): 300000 + 20000 * math.sin(k / 20) for k, d in enumerate(sat)}
     D["us_ads"] = {d: math.sin(i / 100) for i, d in enumerate(days)}
@@ -82,6 +85,7 @@ def fake_D() -> dict:
 def built():
     D = fake_D()
     SH = CU.shared(D)
+    SH["INS"] = ({}, {}, {})                                                  # S7 內部人：不讀真實檔
     return D, SH, {k: CU.build(k, D, SH) for k in U.INDEX_ORDER}
 
 
