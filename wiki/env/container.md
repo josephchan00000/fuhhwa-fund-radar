@@ -13,8 +13,7 @@
   資料抓取一律交給正式區 `daily.yml`（見 [全部更新](../ops/daily-update.md) 的效率原則）。被擋時各支腳本的反應：
   - `fetch_holdings.py`：抓失敗跳過該檔、保留既有 `data/funds/*.json` 與 `_index.json`，勿手動清檔。
   - `fetch_fund_news.py`／`arm/fundnews.save()`：本次擷取「全空」且既有落檔非空 → 不覆寫。
-  - NAV／持股快照抓不到就沿用既有快照，GitHub Actions（台北週一~六 06:50）會自動補抓。
-    （原文的時間；2026-07-20 起 cron 移到台北週一~六 07:15，見 [每日時點地圖](../ops/schedule.md)。）
+  - NAV／持股快照抓不到就沿用既有快照，GitHub Actions（台北週一~六 07:15 cron；2026-07-20 前是 06:50）會自動補抓（[每日時點地圖](../ops/schedule.md)）。
   - 新聞查證用 WebSearch（伺服器端、不受 proxy 擋）；WebFetch 個別站點被擋就改用搜尋結果摘要。
 
 ## 不能改的規則

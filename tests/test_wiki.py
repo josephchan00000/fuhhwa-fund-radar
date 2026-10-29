@@ -41,17 +41,20 @@ def test_cuts_cover_every_line_exactly_once():
 
 
 def _verbatim_heading():
-    """一個還是逐字切片的頁的段標題（改那一段，wiki/ 沒重產要被抓到）。"""
+    """一個還是逐字切片的頁的段標題（改那一段，wiki/ 沒重產要被抓到）；全部整理過就回 None。"""
     lines = TEXT.split("\n")
     for a, b, p in WS.cut(TEXT):
         if p and p not in WS.ORGANIZED and lines[a - 1].startswith("## "):
             return a - 1
-    raise AssertionError("找不到還是逐字的段")
+    return None
 
 
 def test_any_edit_to_claude_md_is_caught():
+    h = _verbatim_heading()
+    if h is None:
+        pytest.skip("全部頁都整理過了：改 CLAUDE.md 沒同步由 test_facts_of_organized_pages_are_all_kept 抓")
     lines = TEXT.split("\n")
-    i = _verbatim_heading() + 3
+    i = h + 3
     edited = "\n".join(lines[:i] + ["- 新加的一行"] + lines[i:])
     assert WS.check(edited), "CLAUDE.md 多了一行，wiki/ 沒重產卻沒被抓到"
     assert any("新加的一行" in t for t in WS.build(edited).values())

@@ -22,3 +22,15 @@
 - 六段排程 prompt 原文逐行和 CLAUDE.md 比對一字不差。
 - 原文前後說法不一致的地方沒有改，列在 `docs/llm_wiki_plan.md` 第 12 節，等確認。
 - 目錄改成：整理過的頁，標題與摘要讀頁面自己的第 1、3 行；逐字的 37 頁（lab）照舊由 `scripts/wiki_split.py` 重產。
+
+## [2026-10-29] 整理 | 第三段：lab 資料夾＋第二段縮回原本長度＋CLAUDE.md 11 處過時用字
+
+- lab 37 頁照第 3.3 節重寫；`lab/signals-versions.md` 原本 2 萬字，拆出 `lab/signals-versions-early.md`（VER 1～16）。
+- 第二段變長的頁縮回去：拆頁併回原頁（`ops/news-rules` 四個細則頁、`ops/routines-prompts`、`main/fund-news-social`、`main/etf-holdings-routes`），
+  整個知識庫的內文比逐字版多 5.6%（多的是每頁開頭四行），第二段結束時是多 35%。
+- CLAUDE.md 第二段列的 11 處前後不一致，逐條對程式查證後改用字（規則、門檻、步驟編號、排程 prompt 都沒動），對應的頁同步改。
+- 使用者 2026-10-29：「一些沒用或是明顯被覆蓋的規則可以清除，但我上面提到的大原則絕不要忘記」。只刪原文寫明已被取代的，每條帶走的記號如下：
+- 刪：`xstratpage.today_line`——舊訊號總覽 x9o.html 卡片底下的總經策略那一行；x9o.html 2026-10-23 起轉址，市場頁段寫「`xstratpage.board／chip／summary／summary_line／today_line` 一併刪掉」。
+- 刪：`heatviz._tz_orig`、`1個月・原本看3個月`——VER 15「溫度計另外算進去的」區的標示；原文寫 VER 21 起該區拿掉。
+- 刪：`thermocal.vote(R,cells,H,x)`、`ktab(yk,那一年)`——VER 21「過去讀數這樣的時候」改用 sigoos 格子投票；VER 23 原文寫「`thermocal.vote(R)` 只吃統計、不再用 sigoos 的格子」。
+- 刪：`.tzst`、`sigpage.today_html`、`今天有效的訊號`——VER 21 今天的重點裡的總經策略小區、舊訊號總覽的「今天有效的訊號」；市場頁段寫這兩個都已刪掉。
