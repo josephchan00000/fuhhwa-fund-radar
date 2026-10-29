@@ -717,7 +717,7 @@ def pick_state(ctx: dict, last: str, W: dict, cur: list, cur_d: str, trial: bool
                why: dict | None = None, watch: dict | None = None, names: dict | None = None, hist: dict | None = None) -> dict:
     """選股頁新飆股卡片（docs/lab_boom_v2_plan.md 第 8、9 節；使用者：「我現在是空手，所以應該要以即刻推薦列出最強的前十名」）：
     cur＝最新的名單（全部，[[代號, 強度]]，強度高到低）：週五收盤後是那一週的正式名單、週中是到 last 收盤為止的試算；
-    top＝現在從現金開始照 N8 會買的 PICK_TOP 檔（新上名單的先、同週數依強度；sxlivespec VER 4），其餘依強度在 rest。
+    rows＝全部，照 N8 的順序（新上名單的先、同週數依強度；sxlivespec VER 4）；top＝從現金開始會買的檔數（前 top 列）。
     每一檔：符合哪一條、參考買點（sepa.plan_today，同原本的飆股名單）、上名單第幾週（連續幾個週末在名單上，試算的這一週也算一週）、收盤。
     watch＝原本的飆股名單（{代號: 標籤}）：不在 cur 上的寫差在哪幾個條件（那一年規則裡差最少的一條）。
     px＝全部股票 last 的收盤（頁面「我的」用；只存在使用者的瀏覽器）。只描述、不影響任何紀錄。"""
@@ -751,10 +751,7 @@ def pick_state(ctx: dict, last: str, W: dict, cur: list, cur_d: str, trial: bool
                 "pl": plan(c), "px": raw(c)}
     full = {c for c, _ in cur}
     order = sorted(cur, key=lambda x: -(float(x[1]) - 1000.0 * (max(1, weeks_on(x[0])) - 1)))   # N8 的順序（Book 同一套，穩定排序）
-    top = [row(c, rs) for c, rs in order[:PICK_TOP]]
-    tops = {r["c"] for r in top}
-    new = [row(c, rs) for c, rs in cur if weeks_on(c) == 1]
-    rest = [{"c": c, "n": nm.get(c, c), "rs": round(float(rs), 1), "wk": weeks_on(c), "px": raw(c)} for c, rs in cur if c not in tops]
+    rows = [row(c, rs) for c, rs in order]
     old = []
     for c, tags in sorted((watch or {}).items(), key=lambda x: -((F.get(x[0]) or {}).get("rs") or 0)):
         f = F.get(c) or {}
@@ -767,8 +764,7 @@ def pick_state(ctx: dict, last: str, W: dict, cur: list, cur_d: str, trial: bool
                 o["miss"] = [_fail_text(cond, f.get(cond[0])) for cond in fails]
         old.append(o)
     pxs = {c: round(float(P.s[c]["c"][i]), 2) for c in P.codes if _ok(P.s[c]["c"][i])}
-    return {"d": cur_d, "last": last, "trial": bool(trial), "n": len(cur), "top": top, "new": new, "rest": rest,
-            "old": old, "px": pxs}
+    return {"d": cur_d, "last": last, "trial": bool(trial), "n": len(cur), "top": PICK_TOP, "rows": rows, "old": old, "px": pxs}
 
 
 def _cond_pred(cond):

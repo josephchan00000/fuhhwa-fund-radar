@@ -21,9 +21,10 @@ OTHER_TIER = "ref"
 
 # 每條策略：選什麼、時程、怎麼分錢（文字照 advice 的規則；數字寫死的只有規則本身的參數）
 META = {
-    "boom": {"what": "強勢股：每年用之前幾年的資料，找出「之後 60 個交易日容易大漲」的條件，每週挑出符合的股票、依強度排",
-             "when": "每週最後一個交易日收盤出名單，下一個交易日開盤買（有空位、現金夠才買）；買進後第 60 個交易日收盤到期，隔天開盤賣",
-             "money": "每次買進用這條策略 12.5% 的錢（現金不夠就買少一點），最多 20 檔", "freq": "每週"},
+    "boom": {"what": "強勢股：每年用之前幾年的資料，找出「之後 60 個交易日容易大漲」的條件，每週挑出符合的股票",
+             "when": "每週最後一個交易日收盤出名單，下一個交易日開盤買：新上名單的先買，同一週上名單的依強度；"
+                     "買進後第 60 個交易日收盤到期，隔天開盤賣",
+             "money": "分 8 格：有空格時把手上的現金平分給空格（一格不到總資金 1/16 就不買），最多 8 檔", "freq": "每週"},
     "s3": {"what": "可能被納入臺灣50 的股票：審核資料截止日前 25 個交易日，依當天的市值排名，挑漲勢最強的 4 檔",
            "when": "選股日收盤選、隔天開盤買；資料截止日隔天開盤照截止日的名單調整（名單沒有的賣、補到 4 檔）；"
                    "公告沒被納入的隔天開盤賣，其餘在生效前一天收盤賣",
@@ -196,7 +197,8 @@ def _notes_adv(k: str, b: dict) -> list[str]:
 
 
 def _card(k: str, name: str, col: int | None, held: list[str], todo: list[str], evs: list[dict], past: str, notes: list[str],
-          extra: str = "", link: str = "", empty: str = "") -> str:
+          extra: str = "", link: str = "", empty: str | None = "", lead: str = "") -> str:
+    """lead＝放在規則說明之前（新飆股：這週要做的事、我的、名單）；empty＝None 不寫「沒有部位」。"""
     m = META.get(k) or {}
     sty = f' style="--pkc:var(--cfc{col})"' if col else ""
     nx = _next_buys(evs, k)
@@ -211,54 +213,193 @@ def _card(k: str, name: str, col: int | None, held: list[str], todo: list[str], 
                  f'<div class="cfgr pkgr">{"".join(held)}</div>')
     if todo:
         body += f'<h3 class="cfh3">待買進 {len(todo)} 檔</h3><div class="cfgr pkgr">{"".join(todo)}</div>'
-    if not held and not todo:
+    if not held and not todo and empty is not None:
         body += f'<div class="pkempty">{_e(empty or "現在沒有部位，也沒有已經出來的名單。")}</div>'
+    if lead:
+        dl = f'<details class="cfdet pkdet pkrule"><summary>規則、過去照做、風險</summary>{dl}</details>'
     return (f'<section class="sec pkcard{" pkc" if col else " pkcx"}" id="pk-{_e(k)}" data-nav="{_e(PC.SHORT.get(k, name))}"{sty}>'
             f'<h2 class="pkh"><i class="pkdot"></i>{_e(name)}<span class="sub">{_e(m.get("freq") or "")}</span></h2>'
-            f'{dl}{body}{extra}' + (f'<div class="pklk">{link}</div>' if link else "") + '</section>')
+            f'{lead}{dl}{body}{extra}' + (f'<div class="pklk">{link}</div>' if link else "") + '</section>')
 
 
-def boom_card(P: dict, evs: list[dict], bundle: dict, pos: dict | None, col: int) -> str:
-    """新飆股：那本帳現在的持股與要買的、最新一週的名單（＋位置圖）、原本的飆股名單（收起，打開才畫）。"""
-    held, todo = boom_rows(P)
-    R = (bundle or {}).get("R") or {}
-    bm = ((((R.get("mk") or {}).get("tw") or {}).get("sc") or {}).get("plan") or {}).get("boom") or {}
-    if bm.get("cagr") is not None:
-        h = bm.get("hold") or {}
-        past = (f'{CPG.yr0(bm["a"])} 年起照做一年 <b>{_pc(bm["cagr"])}</b>、最慘時跌 {bm["mdd"] * 100:.0f}%'
-                + (f'（同一段大盤一年 {_pc(h.get("cagr"))}、最慘時跌 {(h.get("mdd") or 0) * 100:.0f}%）' if h.get("cagr") is not None else "")
-                + "。每一年只用之前幾年的資料找條件，沒有用到之後的資料。")
+W10_FILE = "tw-superstock-lab/reports/W10_results.json"   # 新飆股買法（8 格、新上名單先）的回測（sxfixspec；docs/lab_boom_v2_plan.md 第 9 節）
+
+
+def w10() -> dict:
+    """W10 回測摘要：{"pick": 換成的做法, "cur": 原本的做法, "tr": 加權報酬指數}，每個 {cagr: {all,h1,h2}, mdd, yearly, cap}。讀不到＝{}。"""
+    from pathlib import Path
+    try:
+        d = json.loads((Path(__file__).resolve().parents[2] / W10_FILE).read_text(encoding="utf-8"))
+    except Exception:                                    # noqa: BLE001
+        return {}
+    R = d.get("runs") or {}
+    if d.get("verdict") != "換" or d.get("pick") not in R:
+        return {}
+    return {"pick": R[d["pick"]], "cur": R.get(d.get("current")) or {}, "tr": d.get("bench_tr") or {}, "last": d.get("last")}
+
+
+def _tw_days(a: str, b: str) -> tuple[str, str, list[str]]:
+    """台股交易日（頁面算「照規則哪天賣」用）：範圍＋範圍內休市的平日（週末不列）。"""
+    from datetime import date, timedelta
+    x, end, hol = date.fromisoformat(a), date.fromisoformat(b), []
+    while x <= end:
+        if x.weekday() < 5 and PC._closed("tw", x):
+            hol.append(x.isoformat())
+        x += timedelta(days=1)
+    return a, b, hol
+
+
+def _buy_txt(pl: dict, px) -> list[str]:
+    """參考買點兩行（同原本的飆股名單）：到買點＝買點～追價上限與停損；打底中＝突破 52 週高點才算；漲太遠＝等拉回 50 日線。"""
+    st = (pl or {}).get("st")
+    piv, stop, hi, m50 = (pl or {}).get("piv"), (pl or {}).get("stop"), (pl or {}).get("hi"), (pl or {}).get("m50")
+    if st in (1, 2, 3) and piv:
+        return [f"{'突破 ' if st == 3 else ''}{_tp(piv)}～{_tp(piv * 1.05)}", f"停損 {_tp(stop)}" if stop else ""]
+    if st == 0 and hi and px:
+        return [f"突破 {_tp(hi)} 才算", f"52 週高點，還差 {(hi / px - 1) * 100:.1f}%"]
+    if st == 5 and m50 and px:
+        return [f"等拉回 {_tp(m50)}", f"50 日線，現價高 {(px / m50 - 1) * 100:.0f}%"]
+    if st == 4:
+        return ["等重新整理", "跌回樞紐下"]
+    return ["—", ""]
+
+
+_STN = {0: "打底中", 1: "今天突破", 2: "突破後仍在買點", 3: "準備好", 4: "突破失敗", 5: "漲太遠"}
+
+
+def boom_box(P: dict, pos: dict | None) -> dict | None:
+    """新飆股卡片在瀏覽器畫的部分（名單篩選、自己標的觀察／已買、位置圖）：
+    rows＝[代號, 名稱, 強度, 上名單週數, 符合哪一條, 位置, 買點兩行, 收盤, 現況]（照規則買的順序），
+    現況 h＝拿著、b＝照規則會買、w＝等空位；old＝原本的飆股名單 [代號, 名稱, 標籤, 強度, 收盤, 也在名單上, 差在, 位置, 買點兩行]；
+    spot＝位置圖的點 [代號, 名稱, 離 52 週高點 %, 強度, 種類（b 會買／n 新上名單／l 其他）]。"""
+    K = (P or {}).get("pick") or {}
+    if not K.get("rows"):
+        return None
+    held = {h["c"] for h in P.get("hold") or []}
+    sell = {h["c"] for h in P.get("hold") or [] if h.get("sell")}
+    slots = P.get("slots") or 8
+    rec = not K.get("trial") and P.get("wk") == K.get("d") and P.get("buy")   # 正式名單、那本帳已經照它排好要買的
+    fill = {x["c"] for x in P.get("buy") or [] if x.get("fill")}
+    free = slots - (len(held) - len(sell))
+    rows, k = [], 0
+    for r in K["rows"]:
+        c = r["c"]
+        if c in held:
+            stt = "h"
+        elif rec:
+            stt = "b" if c in fill else "w"
+        else:
+            stt = "b" if k < free else "w"
+            k += 1
+        pl = r.get("pl") or {}
+        rows.append([c, r.get("n") or c, r.get("rs"), r.get("wk") or 1, "；".join(r.get("why") or []),
+                     _STN.get(pl.get("st"), "—"), _buy_txt(pl, r.get("px")), r.get("px"), stt])
+    old = []
+    for o in K.get("old") or []:
+        pl = o.get("pl") or {}
+        old.append([o["c"], o.get("n") or o["c"], o.get("tags") or [], o.get("rs"), o.get("px"), bool(o.get("on")),
+                    "、".join(o.get("miss") or []), _STN.get(pl.get("st"), "—"), _buy_txt(pl, o.get("px"))])
+    pos = pos or {}
+    spot = []
+    for r in rows:
+        v = pos.get(r[0])
+        if v and v[0] is not None and v[1] is not None:
+            spot.append([r[0], r[1], round(float(v[1]), 1), round(float(v[0]), 1), "b" if r[8] == "b" else ("n" if r[3] == 1 else "l")])
+    from datetime import date, timedelta
+    last = K.get("last") or P.get("d")
+    d0 = (date.fromisoformat(last) - timedelta(days=240)).isoformat()
+    d1 = (date.fromisoformat(last) + timedelta(days=200)).isoformat()
+    a, b, hol = _tw_days(d0, d1)
+    nx = PC.next_day("tw", K["d"]) if K.get("d") else None
+    return {"d": K.get("d"), "last": last, "trial": bool(K.get("trial")), "fix": P.get("next_wk") if K.get("trial") else None,
+            "buyd": PC.next_day("tw", P["next_wk"]) if K.get("trial") and P.get("next_wk") else nx, "top": slots, "free": free,
+            "rows": rows, "old": old, "spot": spot, "px": K.get("px") or {}, "td": [a, b, hol], "hn": P.get("hold_n") or 60}
+
+
+def _todo_box(P: dict, X: dict | None) -> str:
+    """這週要做的事（照新飆股的規則，從現金開始）：要賣的、要買的、下一份名單。"""
+    lines = []
+    sells = [h for h in P.get("hold") or [] if h.get("sell")]
+    if sells and P.get("next"):
+        lines.append((f'{_mdw(P["next"])}開盤', f'<b class="dn">賣 {len(sells)} 檔</b>：' + "、".join(_e(h.get("n") or h["c"]) for h in sells)
+                      + f'（滿 {P.get("hold_n") or 60} 個交易日）'))
+    if X:
+        b = [r for r in X["rows"] if r[8] == "b"]
+        if X["trial"]:
+            if X.get("fix"):
+                lines.append((f'{_mdw(X["fix"])}收盤', "名單定案（這一週到現在還在變）"))
+            if b and X.get("buyd"):
+                lines.append((f'{_mdw(X["buyd"])}開盤', f'<b class="up">買 {len(b)} 檔</b>（照 {_md(X["last"])} 收盤試算）：'
+                              + "、".join(_e(r[1]) for r in b)))
+        elif b and X.get("buyd"):
+            lines.append((f'{_mdw(X["buyd"])}開盤', f'<b class="up">買 {len(b)} 檔</b>（{_md(X["d"])} 的名單）：' + "、".join(_e(r[1]) for r in b)))
+        elif X.get("free", 0) <= 0:
+            lines.append(("", "8 格都滿了：等有股票到期賣掉才買新的"))
+    if not X or not X["trial"]:
+        nw = P.get("next_wk")
+        if nw:
+            lines.append((f'{_mdw(nw)}收盤', "下一份名單"))
+    if not lines:
+        return ""
+    return ('<div class="pktodo"><h3>這週要做的事<span class="sub">照規則、從現金開始</span></h3>'
+            + "".join(f'<div class="pktl"><span>{_e(a)}</span><span>{b}</span></div>' for a, b in lines) + "</div>")
+
+
+def boom_card(P: dict, evs: list[dict], bundle: dict, X: dict | None, col: int) -> str:
+    """新飆股（docs/lab_boom_v2_plan.md 第 8、9 節）：這週要做的事 → 我的（觀察／已買，存在這台裝置）→ 這週名單（篩選、買點、上名單幾週、
+    標自己的狀態）＋位置圖 → 原本的飆股名單差在哪 → 照規則的紀錄（8 格那一本、原本每檔 12.5% 那一本）收起。名單與位置圖在瀏覽器畫（pkBoomDraw）；
+    X＝boom_box（tw_view 算一次）。"""
+    W = w10()
+    if W.get("pick"):
+        a, c, t = W["pick"], W.get("cur") or {}, W.get("tr") or {}
+        past = (f'2019 年起照做一年 <b>{_pc(a["cagr"]["all"])}</b>、最慘時跌 {a["mdd"]["all"] * 100:.0f}%'
+                f'（同一段大盤一年 {_pc((t.get("cagr") or {}).get("all"))}、最慘時跌 {(t.get("mdd") or {}).get("all", 0) * 100:.0f}%；'
+                f'原本每檔 12.5%、最多 20 檔的買法一年 {_pc((c.get("cagr") or {}).get("all"))}、最慘時跌 {(c.get("mdd") or {}).get("all", 0) * 100:.0f}%）。'
+                "每一年只用之前幾年的資料找條件。")
+        y = (a.get("yearly") or {}).get("2026")
+        yc = (c.get("yearly") or {}).get("2026")
+        notes = ["8 格、新上名單先買，是用 2019–2022 年的成績挑的；2023 年起只比原本的買法多 "
+                 f'{((a["cagr"]["h2"] - (c.get("cagr") or {}).get("h2", 0)) * 100):.1f} 個百分點'
+                 + (f'，今年到 {_md(W.get("last"))} {_pc(y)}（原本的買法 {_pc(yc)}）' if y is not None and yc is not None else "") + "。",
+                 "最多 8 檔：每年漲最多的股票買到的次數比原本少一半，但每一檔都放到一格的錢。",
+                 "為什麼抱 60 天：條件是用「買進後 60 個交易日」的漲幅找出來的；到期還在名單上就續抱，試過多半比較差。",
+                 "回測從 2019 年起，大多是上漲的年份；最慘時跌得比大盤深很多。"]
     else:
-        past = "還沒有回測的數字。"
-    tk = P.get("take")
-    notes = ["回測從 2019 年起，大多是上漲的年份；最慘時跌得比大盤深很多。"]
-    if tk:
-        notes.append(f"{_md(tk)} 收盤照回測那本帳的持股接手，之後每週照規則記錄；標「回測」的是接手前照規則買的。")
-    lst = ""
-    if P.get("wk") and P.get("list"):
-        have = {x["c"] for x in P.get("hold") or []}
-        buy = {x["c"]: x for x in P.get("buy") or []}
-        rows = []
-        for x in P["list"]:
-            tag = "已經有" if x["c"] in have else ((f'{_md(P.get("next"))} 開盤買' if buy[x["c"]].get("fill") else "現金不夠")
-                                                if x["c"] in buy else "")
-            wy = "；".join(x.get("why") or [])
-            rows.append(f'<tr><td><a {CFP._ck(x["c"])}>{_e(x.get("n") or x["c"])}</a> <span class="cd">{_e(x["c"])}</span>'
-                        + (f'<div class="cfin">{_e(wy)}</div>' if wy else "") + f'</td><td class="w">{x["rs"]:.0f}</td><td class="st">{_e(tag)}</td></tr>')
-        lst = (f'<details class="cfdet pkdet"><summary>{_e(_mdw(P["wk"]))}收盤的名單（{P.get("n_list", 0)} 檔）・位置圖</summary>'
-               + CFP.boom_spot(P, pos)
-               + '<table class="cfht cfql"><tr><th>標的</th><th title="漲幅勝過多少比例的股票（1～99）">強度</th><th>現況</th></tr>'
-               + "".join(rows) + "</table></details>")
-    if P.get("trial"):
-        tr = P["trial"]
-        lst += (f'<div class="cfsxl pktr">這一週到 {_e(_md(P.get("d")))} 收盤為止符合的（{len(tr)} 檔，{_e(_mdw(P.get("next_wk")))}收盤才定案）：'
-                + "、".join(f'<a {CFP._ck(x["c"])}>{_e(x.get("n") or x["c"])}</a>' for x in tr[:12]) + (f" 等 {len(tr)} 檔" if len(tr) > 12 else "") + "</div>")
-    lst += ('<details class="cfdet cfsxo"><summary>另一份飆股名單（到買點、快到買點；只看，不照規則買）</summary>'
-            '<div class="cfsxob"></div></details>')
-    nw = P.get("next_wk")
-    empty = f'下一份名單 {_mdw(nw)}收盤出來。' if nw else "還沒有名單。"
-    return _card("boom", NAMES["boom"], col, held, todo, evs, past, notes, extra=lst,
-                 link='<a data-go="plan" data-pm="tw" data-at="cf-tw-y">今年每一筆（研究紀錄）</a>', empty=empty)
+        past, notes = "還沒有回測的數字。", []
+    notes.append(f'{_md(sx_start())} 起照 8 格的規則記錄，還沒有上線後的成績。')
+    held, todo = boom_rows(P)
+    lead = _todo_box(P, X) + '<div class="pkmine" id="pkmine"></div>'
+    if X:
+        lead += (f'<h3 class="cfh3" id="pkbxh">這週名單<span class="sub">'
+                  + (f'{_e(_md(X["last"]))} 收盤試算・{_e(_md(X["fix"]))} 收盤定案' if X["trial"] else f'{_e(_md(X["d"]))} 收盤')
+                  + '</span></h3><div class="pkbx" id="pkbx"></div>'
+                  '<details class="cfdet pkdet pksd" open><summary>位置圖：名單上的股票在哪</summary>'
+                  '<div class="spotx cfspx"><div class="spotbox" id="pkspot"></div><div class="vztip" id="pkspottip" hidden></div></div>'
+                  '<div class="vzlg cfsplg pkslg"><span><i class="b"></i>照規則會買</span><span><i class="n"></i>新上名單</span>'
+                  '<span><i class="l"></i>名單上其他的</span><span>點一下打開個股卡</span></div></details>'
+                  '<div class="pkold" id="pkold"></div>')
+    else:
+        nw = P.get("next_wk")
+        lead += f'<div class="pkempty">{_e(f"下一份名單 {_mdw(nw)}收盤出來。" if nw else "還沒有名單。")}</div>'
+    rec = ""
+    if held or todo:
+        rec += (f'<h4 class="pkrh">8 格那一本：拿著 {len(held)} 檔</h4><div class="cfgr pkgr">{"".join(held)}</div>' if held else "") \
+            + (f'<h4 class="pkrh">待買進 {len(todo)} 檔</h4><div class="cfgr pkgr">{"".join(todo)}</div>' if todo else "")
+    else:
+        rec += f'<div class="pkempty">8 格那一本從現金開始，{_e(_mdw(P.get("next_wk") or ""))}收盤的名單起照規則買。</div>'
+    R6 = ((bundle or {}).get("stk") or {}).get("boom") or {}
+    if R6.get("hold"):
+        rec += (f'<div class="pkrl">原本每檔 12.5%、最多 20 檔的那一本（{_md(R6.get("take"))} 從回測接手）拿著 {len(R6["hold"])} 檔：'
+                + "、".join(f'<a {CFP._ck(h["c"])}>{_e(h.get("n") or h["c"])}</a>' for h in R6["hold"])
+                + '。<a data-go="plan" data-pm="tw" data-at="cf-tw-h">每一檔（研究紀錄）</a></div>')
+    extra = f'<details class="cfdet pkdet pkrec"><summary>照規則的紀錄</summary>{rec}</details>'
+    return _card("boom", NAMES["boom"], col, [], [], evs, past, notes, extra=extra, lead=lead,
+                 link='<a data-go="plan" data-pm="tw" data-at="cf-tw-y">今年每一筆（研究紀錄）</a>', empty=None)
+
+
+def sx_start() -> str:
+    from . import sxlivespec as SS
+    return PC.week_ends("tw", SS.START4, PC.horizon(SS.START4, 1))[0]
 
 
 def adv_card(k: str, b: dict, A: dict, evs: list[dict], col: int | None) -> str:
@@ -290,8 +431,9 @@ def s3_plan(data: dict) -> dict | None:
     return None
 
 
-def boom_pos(P: dict | None) -> dict:
-    """個股卡最上面「策略」段、個股表「策略選到的」要的新飆股持股與待買進：{代號: [{k, n, h, t, y}]}。"""
+def boom_pos(P: dict | None, X: dict | None = None) -> dict:
+    """個股卡最上面「策略」段、個股表「策略選到的」要的新飆股持股與待買進：{代號: [{k, n, h, t, y}]}。
+    X＝boom_box：這一週還在試算時，照規則會買的也列（寫試算、哪天定案）。"""
     out: dict = {}
     if not P:
         return out
@@ -305,6 +447,11 @@ def boom_pos(P: dict | None) -> dict:
         if x.get("fill"):
             out.setdefault(x["c"], []).append({"k": "boom", "n": x.get("n") or x["c"], "h": 0,
                                                "t": f'{_md(P.get("next"))} 開盤買（{_md(P.get("wk"))} 的名單）', "y": "；".join(x.get("why") or [])})
+    if X and X.get("trial"):
+        for r in X.get("rows") or []:
+            if r[8] == "b" and r[0] not in out:
+                out[r[0]] = [{"k": "boom", "n": r[1], "h": 0, "y": r[4],
+                              "t": f'照 {_md(X["last"])} 收盤試算，{_md(X.get("buyd"))} 開盤會買（{_md(X.get("fix"))} 收盤名單定案）'}]
     return out
 
 
@@ -315,18 +462,19 @@ def tw_view(data: dict, bundle: dict, today: str | None = None) -> dict:
     book = {b["k"]: b for b in A.get("book") or []}
     cal = PC.tw_events(A, P, s3_plan(data), main + other, today)
     evs = cal["ev"]
+    X = boom_box(P, data.get("sx_pos")) if P else None
     col = {k: i + 1 for i, k in enumerate(main[:8])}
     cards = []
     for k in main:
         if k == "boom":
-            cards.append(boom_card(P, evs, bundle, data.get("sx_pos"), col[k]))
+            cards.append(boom_card(P, evs, bundle, X, col[k]))
         elif k in book:
             cards.append(adv_card(k, book[k], A, evs, col[k]))
     others = [adv_card(k, book[k], A, evs, None) for k in other if k in book]
     olist = "".join(other_line(k, book[k], evs, A) for k in other if k in book)
     ks = [[k, PC.SHORT.get(k, k), col.get(k, 0), 1] for k in main] + [[k, PC.SHORT.get(k, k), 0, 0] for k in other]
     return {"d": cal["d"], "end": cal["end"], "ev": _pack(evs), "ks": ks, "hol": holidays("tw", cal["d"], cal["end"]),
-            "cards": "".join(cards), "others": "".join(others), "olist": olist, "pos": boom_pos(P),
+            "cards": "".join(cards), "others": "".join(others), "olist": olist, "pos": boom_pos(P, X), "bx": X,
             "names": {k: (NAMES.get(k) or (book.get(k) or {}).get("name") or k) for k in main + other}}
 
 
@@ -456,26 +604,32 @@ CSS = r"""
 .pkd.blank{background:none;cursor:default}.pkd.past{opacity:.45;cursor:default}
 .pkd.hol{background:repeating-linear-gradient(135deg,var(--line) 0 2px,transparent 2px 7px);cursor:default}
 .pkd.today{border-color:var(--ink2)}.pkd.sel{border-color:var(--acc);background:var(--hlcol)}
-.pkd .pkn{font-weight:700;font-size:12.5px;color:var(--ink2);display:flex;justify-content:space-between;gap:2px}
+.pkd .pkn{font-weight:700;font-size:12.5px;color:var(--ink2);display:flex;align-items:center;gap:3px}
 .pkd .pkn span{font-weight:400;font-size:11px;color:var(--mut)}
-.pke{display:flex;align-items:center;gap:3px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
-.pke b{flex:none;color:var(--c,var(--mut));font-size:11px;width:11px;text-align:center}
-.pke span{overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
-.pke.proj span{color:var(--ink2)}.pke.ern span{color:var(--mut)}
-.pke.pkplus{color:var(--mut);font-size:11px;padding-left:14px}
-@media (max-width:520px){.pkd{min-height:56px;padding:2px 3px}.pke span{display:none}.pke{display:inline-flex;margin-right:1px}.pke.pkplus{padding-left:0;display:inline-flex}
- .pkd .pkev{display:flex;flex-wrap:wrap;gap:0 1px}.pke b{font-size:12px;width:12px}}
+.pkdots{display:inline-flex;gap:2px;margin-left:auto}.pkdots i{width:7px;height:7px;border-radius:50%;background:var(--c,var(--mut));opacity:.85}
+.pke{display:flex;align-items:flex-start;gap:3px;line-height:1.35;margin-top:2px;border-left:3px solid var(--c,var(--mut));padding-left:3px;min-width:0}
+.pke b{flex:none;font-size:11.5px;color:var(--ink)}
+.pke span{color:var(--ink);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-all}
+.pke.ern span{color:var(--mut)}.pke.mine{border-left-style:dashed}
+.pke.pkplus{color:var(--mut);font-size:11px;border:0}
+@media (max-width:520px){.pkd{min-height:56px;padding:2px 3px}.pke{margin-top:1px;padding-left:2px;border-left-width:2px}.pke b{font-size:11px}
+ .pke span{-webkit-line-clamp:1;font-size:11px;white-space:nowrap;text-overflow:ellipsis;display:block}.pkdots i{width:6px;height:6px}}
 .pkday{margin:12px 0 0;border-top:1px solid var(--line);padding-top:10px}
 .pkday h4{font-size:14.5px;margin:0 0 6px}
 .pkdl2{list-style:none;margin:0;padding:0}
-.pkdl2 li{display:grid;grid-template-columns:3.2em 1.2em minmax(0,1fr);gap:2px 6px;align-items:baseline;font-size:13.5px;padding:4px 0;border-top:1px solid var(--line)}
+.pkdl2 li{display:grid;grid-template-columns:3.2em auto minmax(0,1fr);gap:2px 8px;align-items:baseline;font-size:13.5px;padding:5px 0;border-top:1px solid var(--line)}
 .pkdl2 li:first-child{border-top:0}
-.pkdl2 .at{color:var(--mut);font-size:12.5px}.pkdl2 .sy{color:var(--c,var(--mut));font-weight:700;text-align:center}
-.pkdl2 .tx b{font-weight:700;margin-right:4px}.pkdl2 .tx a{color:var(--acc);cursor:pointer}.pkdl2 .tx .nt{color:var(--mut);font-size:12.5px}
+.pkdl2 .at{color:var(--mut);font-size:12.5px}
+.pkdl2 .tg{font-size:12px;padding:0 7px;border-radius:999px;border:1px solid var(--c,var(--mut));color:var(--c,var(--mut));white-space:nowrap}
+.pkdl2 .tx b.a{font-weight:700;margin-right:4px}.pkdl2 .tx b.buy{color:var(--gain)}.pkdl2 .tx b.sell{color:var(--loss)}
+.pkdl2 .tx a{color:var(--ink);cursor:pointer}.pkdl2 .tx a:hover{color:var(--acc)}.pkdl2 .tx .nt{color:var(--mut);font-size:12.5px}
+.pknx2{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--ink2);margin:10px 0 0;padding-top:8px;border-top:1px solid var(--line)}
+.pknx2 b{color:var(--ink);font-weight:700;margin-right:2px}.pknx2 i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c,var(--mut));margin-right:4px}
+@media (max-width:520px){.pkdl2 li{grid-template-columns:3em minmax(0,1fr)}.pkdl2 .tg{grid-column:2;justify-self:start}.pkdl2 .tx{grid-column:2}}
 .pkag{margin:14px 0 0}.pkag h4{font-size:14.5px;margin:0 0 4px}
 .pkagd{margin:8px 0 0}.pkagd>b{font-size:13.5px}.pkagd>b span{font-weight:400;color:var(--mut);font-size:12.5px;margin-left:4px}
 .pklg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--mut);margin:8px 0 0}
-.pklg b{color:var(--ink2);margin-right:3px}
+.pklg i.pkdl{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--mut);margin-right:5px}
 .pkcard{border:1px solid var(--line);border-left:4px solid var(--pkc,var(--line2));border-radius:14px;padding:12px 14px 14px;margin:0 0 14px}
 .pkh{font-size:18px;margin:2px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .pkh .pkdot{width:11px;height:11px;border-radius:50%;background:var(--pkc,var(--mut2))}
@@ -494,6 +648,43 @@ CSS = r"""
 .pkox .pkcard{margin-top:10px}
 @media (max-width:640px){.pkdl{grid-template-columns:minmax(0,1fr);gap:0}.pkdl dt{padding-top:6px}
  .pkol li{grid-template-columns:minmax(0,1fr) auto}.pkol li em,.pkol li i{grid-column:1/-1}}
+/* 新飆股卡片 v2（docs/lab_boom_v2_plan.md 第 8 節） */
+.pktodo{background:var(--card2);border-radius:12px;padding:10px 14px;margin:2px 0 12px;max-width:880px}
+.pktodo h3{font-size:15px;margin:0 0 6px}.pktodo h3 .sub{font-size:12.5px;font-weight:400;color:var(--mut);margin-left:6px}
+.pktl{display:grid;grid-template-columns:8.6em minmax(0,1fr);gap:2px 10px;font-size:13.5px;padding:3px 0;line-height:1.6}
+.pktl span:first-child{color:var(--ink2);white-space:nowrap}.pktl b.up{color:var(--gain)}.pktl b.dn{color:var(--loss)}
+.pkmine{max-width:880px;margin:0 0 10px}.pkmh{font-size:13px;color:var(--mut);margin:0 0 8px}
+.pkmr{border-top:1px solid var(--line);padding:7px 0;font-size:13.5px}.pkmr:first-of-type{border-top:0}
+.pkma{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.pkma a{color:var(--ink);cursor:pointer}
+.pkma .r{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}.pkma .r.up{color:var(--gain)}.pkma .r.dn{color:var(--loss)}
+.pkrm{font:inherit;font-size:12px;border:1px solid var(--line2);background:var(--bg);color:var(--mut);border-radius:8px;padding:1px 8px;cursor:pointer}
+.pkmb2{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;margin-top:3px;font-size:12.5px;color:var(--ink2)}
+.pkmb2 label{display:inline-flex;align-items:center;gap:4px;color:var(--mut)}
+.pkin{font:inherit;font-size:13px;padding:2px 6px;border:1px solid var(--line2);border-radius:6px;background:var(--bg);color:var(--ink);width:9.5em}
+.pkin[type=number]{width:6.5em}.pkms2{color:var(--ink2)}
+.pkfs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.pkbn{font-size:13px;color:var(--ink2);margin:0 0 6px;max-width:880px}
+.pkt{max-width:880px}.pkt td{vertical-align:top}.pkt .pkbp{text-align:left;white-space:normal;min-width:110px}.pkt .pkdiff{text-align:left;white-space:normal;min-width:140px;font-size:13px}
+.pkt .pkwhy{max-width:420px}.pkpos{display:inline-block;font-size:12px;color:var(--mut)}
+.pkst{display:inline-block;padding:0 7px;border-radius:8px;font-size:12px;white-space:nowrap;background:var(--card2);color:var(--ink2)}
+.pkst.b{background:var(--gainbg);color:var(--gain);font-weight:700}.pkst.h{background:var(--hlbg);color:var(--accd);font-weight:700}.pkst.w{color:var(--mut)}
+.pknew{color:var(--acc);font-weight:700;white-space:nowrap}
+.pkmk{display:inline-flex;gap:4px}
+.pkmb{font:inherit;font-size:12px;padding:2px 8px;border-radius:8px;border:1px solid var(--line2);background:var(--bg);color:var(--ink2);cursor:pointer;white-space:nowrap}
+.pkmb.on{background:var(--acc);border-color:var(--acc);color:#fff}.pkmb.b.on{background:var(--gain);border-color:var(--gain)}
+.pksp circle{stroke:var(--bg);stroke-width:1.5;cursor:pointer}.pksp:hover circle{stroke:var(--ink);stroke-width:2}
+.pksp.b circle{fill:var(--gain)}.pksp.n circle{fill:var(--acc)}.pksp.l circle{fill:var(--mut2);fill-opacity:.6}.pkspl{font-weight:700}
+.pkslg i.b{background:var(--gain)}.pkslg i.n{background:var(--acc)}.pkslg i.l{background:var(--mut2)}
+.pkold{margin-top:4px}.pkrh{font-size:14px;margin:8px 0 4px}.pkrl{font-size:13px;color:var(--ink2);margin:8px 0 0;max-width:880px;line-height:1.7}
+.pkrl a{color:var(--acc);cursor:pointer}.pkrule{margin:10px 0 0}
+@media (max-width:640px){.pktl{grid-template-columns:minmax(0,1fr);gap:0}.pktl span:first-child{font-size:12.5px;color:var(--mut)}
+ .sxt.pkt,.sxt.pkt tbody{display:block;width:100%}.sxt.pkt thead{display:none}
+ .sxt.pkt tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:9px 2px;border-top:1px solid var(--line)}
+ .sxt.pkt td{display:block;padding:0;border:0;min-width:0;text-align:left;white-space:normal}
+ .sxt.pkt td.l{grid-column:1;grid-row:1}.sxt.pkt td.pkbp{grid-column:1;grid-row:2;min-width:0}
+ .sxt.pkt td.pkstc{grid-column:2;grid-row:1;text-align:right}.sxt.pkt td.pkmc{grid-column:2;grid-row:2;align-self:start}
+ .sxt.pkt.pko td.pkdiff{grid-column:1;grid-row:2}.sxt.pkt.pko td.pkbp{grid-row:3}.sxt.pkt.pko td.pkmc{grid-row:1}
+ .sxt.pkt td.hm{display:none}.pkt .pkwhy{max-width:none}.pkmk{flex-direction:column}}
 """
 
 JS = r"""
@@ -509,43 +700,58 @@ function pkMdw(d){return `${pkMd(d)}（${pkWd(d)}）`;}
 function pkLeft(P){const d=P.d||'',hol=new Set(P.hol||[]);if(!d)return 0;let n=0,t=Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10));
   for(;;){t+=864e5;const x=new Date(t),ds=x.toISOString().slice(0,10);if(ds.slice(0,7)!==d.slice(0,7))break;const w=x.getUTCDay();if(w&&w<6&&!hol.has(ds))n++;}return n;}
 function pkState(mk){const P=PICK[mk]||{};if(!PKST[mk]){const on=new Set((P.ks||[]).filter(x=>x[3]).map(x=>x[0]));
-  const d=P.d||'',ms=pkMonths(mk);let m0=d.slice(0,7);if(!matchMedia('(min-width:900px)').matches&&pkLeft(P)<5&&ms[1])m0=ms[1];
+  const d=P.d||'',ms=pkMonths(mk);let m0=d.slice(0,7);if(pkLeft(P)<5&&ms[1])m0=ms[1];
   PKST[mk]={on,more:false,m:m0,sel:null,ag:false};}return PKST[mk];}
-function pkCol(mk,k){const x=((PICK[mk]||{}).ks||[]).find(y=>y[0]===k);return x&&x[2]?`var(--cfc${x[2]})`:'var(--mut)';}
-function pkShort(mk,k){const x=((PICK[mk]||{}).ks||[]).find(y=>y[0]===k);return x?x[1]:k;}
-function pkEvs(mk){const P=PICK[mk]||{},S=pkState(mk);return (P.ev||[]).filter(e=>S.on.has(e[2]));}
+function pkCol(mk,k){if(k==='mine')return 'var(--ink)';const x=((PICK[mk]||{}).ks||[]).find(y=>y[0]===k);return x&&x[2]?`var(--cfc${x[2]})`:'var(--mut)';}
+function pkShort(mk,k){if(k==='mine')return '我的';const x=((PICK[mk]||{}).ks||[]).find(y=>y[0]===k);return x?x[1]:k;}
+/* 自己標「已買」的台股：照新飆股的規則（買進後第 60 個交易日收盤到期、隔天開盤賣）排賣出日（只在這台裝置） */
+function pkMineEvs(mk){if(mk!=='tw'||typeof pkMine!=='function')return [];const P=PICK.tw||{},M=pkMine(),out=[];
+  Object.entries(M).forEach(([c,m])=>{if(m.s!=='b'||!m.d)return;const s=pkSell(m.d);if(s.out&&s.out>P.d)out.push([s.out,'開盤','mine','賣出',[[c,m.n||c]],`${pkMd(m.d)} 買的，照規則滿 ${(pkBx()||{}).hn||60} 個交易日`,0]);});
+  return out;}
+function pkEvs(mk){const P=PICK[mk]||{},S=pkState(mk);const A=(P.ev||[]).concat(S.on.has('mine')?pkMineEvs(mk):[]);
+  const at={'開盤':0,'':1,'收盤':2};return A.filter(e=>S.on.has(e[2])).sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:(at[a[1]]??1)-(at[b[1]]??1));}
 function pkMonths(mk){const P=PICK[mk]||{};if(!P.d||!P.end)return [];const out=[];let y=+P.d.slice(0,4),m=+P.d.slice(5,7);
   const ey=+P.end.slice(0,4),em=+P.end.slice(5,7);while(y<ey||(y===ey&&m<=em)){out.push(`${y}-${String(m).padStart(2,'0')}`);m++;if(m>12){m=1;y++;}}return out;}
 function pkItems(mk,its,n){const us=mk==='us';const a=(its||[]).slice(0,n||8).map(([c,nm])=>us?`<a href="#us=${encodeURIComponent(c)}" data-us="${esc(c)}">${esc(nm)}</a>`:`<a data-c="${esc(c)}" data-co="${esc(c)}">${esc(nm)}</a>`);
   return a.join('、')+((its||[]).length>(n||8)?` 等 ${its.length} 檔`:'');}
-function pkLine(mk,e){const nm=(((PICK[mk]||{}).names)||{})[e[2]]||pkShort(mk,e[2]);
-  const its=e[4]&&e[4].length?`：${pkItems(mk,e[4])}`:'';
-  return `<li style="--c:${pkCol(mk,e[2])}"><span class=at>${esc(e[1]||'')}</span><span class=sy>${PKSY[e[3]]||'·'}</span><span class=tx><b>${esc(nm)}</b>${esc(e[3])}${its}${e[5]?` <span class=nt>${esc(e[5])}</span>`:''}</span></li>`;}
+const PKAC={'買進':'買','賣出':'賣','換股':'換','調整':'調','財報':'財報','名單':'名單'};
+function pkLine(mk,e){const nm=pkShort(mk,e[2]);
+  const its=e[4]&&e[4].length?` ${pkItems(mk,e[4])}`:'';
+  return `<li style="--c:${pkCol(mk,e[2])}"><span class=at>${esc(e[1]||'')}</span><span class=tg>${esc(nm)}</span><span class=tx><b class="a ${e[3]==='買進'?'buy':e[3]==='賣出'?'sell':''}">${esc(PKAC[e[3]]||e[3])}</b>${its}${e[5]?` <span class=nt>${esc(e[5])}</span>`:''}</span></li>`;}
 function pkMonth(mk,ym,evs){const P=PICK[mk]||{},S=pkState(mk),hol=new Set(P.hol||[]),by={};evs.forEach(e=>{(by[e[0]]=by[e[0]]||[]).push(e);});
   const y=+ym.slice(0,4),m=+ym.slice(5,7),n=new Date(Date.UTC(y,m,0)).getUTCDate();let cells='',lead=null;
   for(let d=1;d<=n;d++){const ds=`${ym}-${String(d).padStart(2,'0')}`,wd=new Date(ds+'T00:00:00Z').getUTCDay();if(wd===0||wd===6)continue;
     if(lead===null){lead=wd-1;for(let i=0;i<lead;i++)cells+='<div class="pkd blank"></div>';}
     const es=by[ds]||[],past=ds<=P.d,isH=hol.has(ds);let cls='pkd'+(past?' past':'')+(isH?' hol':'')+(ds===P.d?' today':'')+(S.sel===ds?' sel':'');
-    let h=`<div class="${cls}" data-pkd="${ds}"><div class=pkn>${d}${isH?'<span>休市</span>':ds===P.d?'<span>資料日</span>':''}</div><div class=pkev>`;
-    es.slice(0,3).forEach(e=>{h+=`<div class="pke${e[6]?' proj':''}${e[2]==='ern'?' ern':''}" style="--c:${pkCol(mk,e[2])}" title="${esc(pkShort(mk,e[2])+' '+e[3]+(e[4].length?' '+e[4].length+' 檔':''))}"><b>${PKSY[e[3]]||'·'}</b><span>${esc(pkShort(mk,e[2]))}${e[4].length?' '+e[4].length:''}</span></div>`;});
-    if(es.length>3)h+=`<div class="pke pkplus">+${es.length-3}</div>`;
+    const co=es.filter(e=>e[4].length),dots=[...new Set(es.filter(e=>!e[4].length).map(e=>e[2]))];   /* 有公司的寫公司名；還不知道是哪幾檔的縮成小點 */
+    let h=`<div class="${cls}" data-pkd="${ds}"><div class=pkn>${d}${isH?'<span>休市</span>':ds===P.d?'<span>資料日</span>':''}`+
+      (dots.length?`<i class=pkdots>${dots.map(k=>`<i style="--c:${pkCol(mk,k)}" title="${esc(pkShort(mk,k))}：照規則會出新名單或換股（還不知道是哪幾檔）"></i>`).join('')}</i>`:'')+`</div><div class=pkev>`;
+    co.slice(0,3).forEach(e=>{const n=e[4].map(x=>x[1]),t=n.slice(0,3).join('、')+(n.length>3?` 等 ${n.length} 檔`:'');
+      h+=`<div class="pke${e[2]==='ern'?' ern':''}${e[2]==='mine'?' mine':''}" style="--c:${pkCol(mk,e[2])}" title="${esc(pkShort(mk,e[2])+' '+e[3]+'：'+n.join('、'))}"><b>${esc(PKAC[e[3]]||e[3])}</b><span>${esc(t)}</span></div>`;});
+    if(co.length>3)h+=`<div class="pke pkplus">+${co.length-3}</div>`;
     cells+=h+'</div></div>';}
   return `<div class=pkm><h4>${y} 年 ${m} 月</h4><div class=pkg>${'一二三四五'.split('').map(w=>`<div class=pkw>${w}</div>`).join('')}${cells}</div></div>`;}
 function pkDay(mk,ds,evs){const es=evs.filter(e=>e[0]===ds);
   return `<h4>${pkMdw(ds)}</h4>`+(es.length?`<ul class=pkdl2>${es.map(e=>pkLine(mk,e)).join('')}</ul>`:'<div class=st>這一天沒有排定的事。</div>');}
 const PKAG=6;   /* 「接下來」先列 6 天，其餘點「再看」 */
-function pkAgenda(mk,evs){const S=pkState(mk),all=[...new Set(evs.map(e=>e[0]))].sort(),days=all.slice(0,S.ag?40:PKAG);
-  if(!days.length)return '<div class=st>接下來沒有排定的事。</div>';
-  return days.map(d=>`<div class=pkagd><b>${pkMdw(d)}</b><ul class=pkdl2>${evs.filter(e=>e[0]===d).map(e=>pkLine(mk,e)).join('')}</ul></div>`).join('')+
-    (all.length>days.length?`<button type=button class="pkk pkmo pkagm" data-pkag=1>再看 ${Math.min(40,all.length)-days.length} 天</button>`:'');}
+function pkAgenda(mk,evs){const S=pkState(mk),co=evs.filter(e=>e[4].length),all=[...new Set(co.map(e=>e[0]))].sort(),days=all.slice(0,S.ag?40:PKAG);
+  /* 只列已經知道是哪幾檔的買賣；還不知道的（照規則會出名單的日子）縮成最下面一行 */
+  const fx={};evs.filter(e=>!e[4].length&&(e[3]==='名單'||e[3]==='換股')).forEach(e=>{(fx[e[2]]=fx[e[2]]||[]).push(e[0]);});
+  const nx=Object.entries(fx).map(([k,ds])=>`<span style="--c:${pkCol(mk,k)}"><i></i>${esc(pkShort(mk,k))} ${ds.slice(0,3).map(pkMd).join('、')}${ds.length>3?' …':''}</span>`).join('');
+  let h=days.length?days.map(d=>`<div class=pkagd><b>${pkMdw(d)}</b><ul class=pkdl2>${co.filter(e=>e[0]===d).map(e=>pkLine(mk,e)).join('')}</ul></div>`).join(''):'<div class=st>接下來還沒有排定要買賣的公司。</div>';
+  if(all.length>days.length)h+=`<button type=button class="pkk pkmo pkagm" data-pkag=1>再看 ${Math.min(40,all.length)-days.length} 天</button>`;
+  if(nx)h+=`<div class=pknx2><b>會出新名單的日子</b>${nx}</div>`;
+  return h;}
 function pkCalDraw(mk){const box=$('#pkcal-'+mk);if(!box)return;const P=PICK[mk]||{},S=pkState(mk),ms=pkMonths(mk);if(!ms.length){box.innerHTML='<div class=st>行事曆還沒算出來。</div>';return;}
   if(!ms.includes(S.m))S.m=ms[0];const i=ms.indexOf(S.m),two=matchMedia('(min-width:900px)').matches,step=two?2:1;
   const evs=pkEvs(mk),main=(P.ks||[]).filter(x=>x[3]),oth=(P.ks||[]).filter(x=>!x[3]);
-  const chip=x=>`<button type=button class="pkk${S.on.has(x[0])?'':' off'}" data-pkk="${esc(x[0])}" style="--c:${x[2]?`var(--cfc${x[2]})`:'var(--mut)'}" aria-pressed="${S.on.has(x[0])}"><i></i>${esc(x[1])}</button>`;
-  let h=`<div class=pkct><div class=pkks>${main.map(chip).join('')}${oth.length?(S.more?oth.map(chip).join(''):`<button type=button class="pkk pkmo" data-pkmore=1>＋其他 ${oth.length} 條</button>`):''}</div>`+
+  const chip=x=>`<button type=button class="pkk${S.on.has(x[0])?'':' off'}" data-pkk="${esc(x[0])}" style="--c:${x[0]==='mine'?'var(--ink)':x[2]?`var(--cfc${x[2]})`:'var(--mut)'}" aria-pressed="${S.on.has(x[0])}"><i></i>${esc(x[1])}</button>`;
+  const mine=mk==='tw'&&typeof pkMine==='function'&&Object.values(pkMine()).some(m=>m.s==='b');
+  if(mine&&S.mineInit!==1){S.on.add('mine');S.mineInit=1;}
+  let h=`<div class=pkct><div class=pkks>${main.map(chip).join('')}${mine?chip(['mine','我標已買的',0,1]):''}${oth.length?(S.more?oth.map(chip).join(''):`<button type=button class="pkk pkmo" data-pkmore=1>＋其他 ${oth.length} 條</button>`):''}</div>`+
     `<div class=pkmn><button type=button data-pkm="-1" ${i<=0?'disabled':''} aria-label="上一個月">‹</button><b>${+S.m.slice(5,7)} 月${two&&ms[i+1]?`～${+ms[i+1].slice(5,7)} 月`:''}</b><button type=button data-pkm="1" ${i+step>=ms.length?'disabled':''} aria-label="下一個月">›</button></div></div>`;
   h+=`<div class=pkms>${pkMonth(mk,ms[i],evs)}${ms[i+1]?pkMonth(mk,ms[i+1],evs):''}</div>`;
-  h+=`<div class=pklg>${Object.entries(PKSY).filter(([a])=>mk==='us'||a!=='財報').map(([a,s])=>`<span><b>${s}</b>${a}</span>`).join('')}<span>灰字＝照規則排的日子，名單還沒出來</span></div>`;
+  h+=`<div class=pklg><span><i class=pkdl></i>小點＝照規則會出新名單或換股的日子（還不知道是哪幾檔），點日子看</span><span>格子裡＝已經知道是哪幾檔的買賣</span></div>`;
   if(S.sel)h+=`<div class=pkday>${pkDay(mk,S.sel,evs)}</div>`;
   box.innerHTML=h;
   const ag=$('#pkag-'+mk);if(ag){ag.innerHTML=pkAgenda(mk,evs);ag.querySelectorAll('[data-pkag]').forEach(b=>b.onclick=()=>{S.ag=true;pkCalDraw(mk);});}
@@ -565,8 +771,93 @@ function vPick(mk){const P=PICK[mk]||{};let h='';
   $$('#main [data-to]').forEach(a=>a.onclick=e=>{e.preventDefault();const t=document.getElementById(a.dataset.to);const d=t&&t.closest('details');if(d)d.open=true;jump(a.dataset.to);});
   const so=$('#main .cfsxo');if(so)so.addEventListener('toggle',()=>{if(!so.open)return;   /* 另一份飆股名單（只看）：打開才組、才畫 */
     if(!so.dataset.done){so.querySelector('.cfsxob').innerHTML=typeof wlCfg==='function'?wlCfg():'';so.dataset.done=1;}spotDraw();});
-  $$('#main .pkdet').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)cfSpot();}));}
+  $$('#main .pkdet').forEach(d=>d.addEventListener('toggle',()=>{if(!d.open)return;if(d.classList.contains('pksd'))pkSpot();else cfSpot();}));
+  if(mk==='tw')pkBoomDraw();}
+/* ---------- 新飆股卡片（docs/lab_boom_v2_plan.md 第 8 節）：這週名單（篩選、位置與參考買點、上名單幾週、照規則會不會買）、
+   自己標的觀察／已買（存在這台裝置的瀏覽器 localStorage，不會上傳）、「我的」、位置圖。資料＝PICK.tw.bx（pickpage.boom_box）。 ---------- */
+const PKMK='labPickMine',PKBS={f:'b'};
+function pkBx(){return (PICK.tw||{}).bx||null;}
+function pkMine(){try{const m=JSON.parse(localStorage.getItem(PKMK)||'{}');return m&&typeof m==='object'?m:{};}catch(e){return {};}}
+function pkMineSave(m){try{localStorage.setItem(PKMK,JSON.stringify(m));}catch(e){}}
+/* 台股交易日（週末＋證交所休市表）：照規則的賣出日＝買進後第 hn 個交易日收盤到期、隔天開盤賣 */
+function pkTd(){const X=pkBx()||{},T=X.td||[];if(pkTd.c)return pkTd.c;const out=[],hol=new Set(T[2]||[]);if(!T[0])return out;
+  for(let t=Date.parse(T[0]+'T00:00:00Z'),e=Date.parse(T[1]+'T00:00:00Z');t<=e;t+=864e5){const x=new Date(t),w=x.getUTCDay(),ds=x.toISOString().slice(0,10);if(w&&w<6&&!hol.has(ds))out.push(ds);}
+  return pkTd.c=out;}
+function pkSell(d){const td=pkTd(),hn=(pkBx()||{}).hn||60,i=td.findIndex(x=>x>=d);return i<0?{}:{due:td[i+hn]||null,out:td[i+hn+1]||null};}
+function pkToday(){return new Date(Date.now()+8*3600e3).toISOString().slice(0,10);}
+function pkLastTd(d){let r=null;for(const x of pkTd()){if(x<=d)r=x;else break;}return r;}
+function pkPx(c){const X=pkBx()||{};const v=(X.px||{})[c];return v==null?null:v;}
+function pkMarkBtns(c,n){const m=pkMine()[c]||{};
+  return `<span class=pkmk><button type=button class="pkmb${m.s==='w'?' on':''}" data-pkmk="w" data-c2="${esc(c)}" data-n2="${esc(n)}" aria-pressed="${m.s==='w'}">觀察</button>`+
+    `<button type=button class="pkmb b${m.s==='b'?' on':''}" data-pkmk="b" data-c2="${esc(c)}" data-n2="${esc(n)}" aria-pressed="${m.s==='b'}">已買</button></span>`;}
+function pkMark(c,n,s){const M=pkMine(),X=pkBx()||{};
+  if(M[c]&&M[c].s===s)delete M[c];
+  else M[c]={s,n,d:s==='b'?(pkLastTd(pkToday())||X.last):X.last,p:pkPx(c)};
+  pkMineSave(M);pkBoomDraw();if(typeof pkCalDraw==='function')pkCalDraw('tw');}
+function pkSt(r){const X=pkBx()||{};return r[8]==='h'?'<span class="pkst h">拿著</span>':r[8]==='b'?`<span class="pkst b">${X.trial?'照規則會買':`${pkMd(X.buyd)} 開盤買`}</span>`:'<span class="pkst w">等空位</span>';}
+function pkWk(w){return w<=1?'<span class=pknew>新上名單</span>':`第 ${w} 週`;}
+function pkBuyCell(pos,b){return `<span class=pkpos>${esc(pos)}</span><div>${esc(b[0]||'—')}</div>${b[1]?`<div class=sm2>${esc(b[1])}</div>`:''}`;}
+function pkRows(L){return L.map(r=>`<tr><td class=l><a data-c="${esc(r[0])}" data-co="${esc(r[0])}"><b>${esc(r[1])}</b></a> <span class=cd>${esc(r[0])}</span>`+
+    `<div class="sm2 pkwhy">${esc(r[4]||'')}</div><div class="sm2 mo">強度 ${f(r[2],0)}・${r[3]<=1?'新上名單':`上名單第 ${r[3]} 週`}・收盤 ${fp(r[7])}</div></td>`+
+    `<td class=pkbp>${pkBuyCell(r[5],r[6])}</td><td class=hm>${f(r[2],0)}</td><td class=hm>${pkWk(r[3])}</td><td class=pkstc>${pkSt(r)}</td><td class=pkmc>${pkMarkBtns(r[0],r[1])}</td></tr>`).join('');}
+function pkOldRows(L){const T=(D.wl||{}).tags||{};return L.map(o=>`<tr><td class=l><a data-c="${esc(o[0])}" data-co="${esc(o[0])}"><b>${esc(o[1])}</b></a> <span class=cd>${esc(o[0])}</span>`+
+    `<div class=sm2>${(o[2]||[]).map(t=>esc(T[t]||t)).join('・')}</div></td>`+
+    `<td class=pkdiff>${o[5]?'<span class="pkst b">也在新飆股名單上</span>':esc(o[6]||'—')}</td><td class=pkbp>${pkBuyCell(o[7],o[8])}</td>`+
+    `<td class=hm>${o[3]==null?'—':f(o[3],0)}</td><td class=pkmc>${pkMarkBtns(o[0],o[1])}</td></tr>`).join('');}
+function pkBxDraw(){const box=$('#pkbx'),X=pkBx();if(!box||!X)return;const R=X.rows||[],B=R.filter(r=>r[8]==='b'),N=R.filter(r=>r[3]<=1),O=X.old||[];
+  const F=[['b',`${X.trial?'照規則會買':'會買'}的 ${B.length} 檔`,B],['n',`新上名單 ${N.length}`,N],['a',`全部 ${R.length}`,R],['o',`原本的飆股名單 ${O.length}`,O]];
+  if(!B.length&&PKBS.f==='b')PKBS.f='a';
+  let h=`<div class=pkfs role=group aria-label="名單篩選">${F.map(([k,t])=>`<button type=button class="pkk${PKBS.f===k?'':' off'}" data-pkf="${k}" aria-pressed="${PKBS.f===k}">${esc(t)}</button>`).join('')}</div>`;
+  if(PKBS.f==='o'){const off=O.filter(o=>!o[5]).length;
+    h+=`<div class=pkbn>原本的飆股名單（三份名單合併）${O.length} 檔，${off} 檔不在新飆股名單上，差在哪一條寫在第二欄（那一年最接近的一條規則）。</div>`+
+      `<div class=tw><table class="sxt pkt pko"><thead><tr><th class=l>股票</th><th>差在</th><th>位置・參考買點</th><th class=hm>強度</th><th>我的</th></tr></thead><tbody>${pkOldRows(O)}</tbody></table></div>`;}
+  else{const L=(F.find(x=>x[0]===PKBS.f)||F[2])[2];
+    h+=(PKBS.f==='b'?`<div class=pkbn>${X.trial?`照 ${pkMd(X.last)} 收盤試算：`:''}從現金開始，這幾檔照規則會買（新上名單的先、同一週上名單的依強度），每檔約 1/${X.top} 的錢。</div>`:'')+
+      (L.length?`<div class=tw><table class="sxt pkt"><thead><tr><th class=l>股票・符合哪一條</th><th>位置・參考買點</th><th class=hm>強度</th><th class=hm>上名單</th><th>現況</th><th>我的</th></tr></thead><tbody>${pkRows(L)}</tbody></table></div>`:'<div class=st>沒有。</div>');}
+  box.innerHTML=h;
+  box.querySelectorAll('[data-pkf]').forEach(b=>b.onclick=()=>{PKBS.f=b.dataset.pkf;pkBxDraw();});}
+function pkMineDraw(){const box=$('#pkmine'),X=pkBx();if(!box)return;const M=pkMine(),ks=Object.keys(M);
+  if(!ks.length){box.innerHTML=`<div class=pkmh>在名單上按「觀察」或「已買」，會列在這裡（只存在這台裝置的瀏覽器）。</div>`;return;}
+  const on=new Set(((X||{}).rows||[]).map(r=>r[0]));
+  const L=ks.map(c=>[c,M[c]]).sort((a,b)=>(a[1].s===b[1].s?0:a[1].s==='b'?-1:1)||String(a[1].d).localeCompare(String(b[1].d)));
+  const row=([c,m])=>{const px=pkPx(c),r=px!=null&&m.p?px/m.p-1:null,rr=r==null?'':`<span class="r ${r>=0?'up':'dn'}">${pctT(r*100,1)}</span>`;
+    let l2='';
+    if(m.s==='b'){const s=pkSell(m.d||'');
+      l2=`<label>買進日 <input type=date class=pkin data-pkd2="${esc(c)}" value="${esc(m.d||'')}"></label><label>買進價 <input type=number step=any min=0 class=pkin data-pkp2="${esc(c)}" value="${m.p==null?'':m.p}"></label>`+
+        `<span class=pkms2>現在 ${fp(px)}${s.out?`・照規則 ${pkMdw(s.out)}開盤賣（${pkMd(s.due)} 收盤滿 ${(X||{}).hn||60} 個交易日）`:''}</span>`;}
+    else l2=`<span class=pkms2>${pkMd(m.d)} 標觀察 ${fp(m.p)}，現在 ${fp(px)}・${on.has(c)?'這週還在名單上':'這週不在名單上'}</span>`;
+    return `<div class="pkmr ${m.s}"><div class=pkma><a data-c="${esc(c)}" data-co="${esc(c)}"><b>${esc(m.n||c)}</b></a> <span class=cd>${esc(c)}</span>`+
+      `<span class="pkst ${m.s==='b'?'b':'w'}">${m.s==='b'?'已買':'觀察'}</span>${rr}<button type=button class=pkrm data-pkrm="${esc(c)}" aria-label="移除">移除</button></div><div class=pkmb2>${l2}</div></div>`;};
+  box.innerHTML=`<h3 class=cfh3>我的<span class=sub>只存在這台裝置的瀏覽器・換手機或清除瀏覽資料就不見</span></h3>${L.map(row).join('')}`;
+  box.querySelectorAll('[data-pkrm]').forEach(b=>b.onclick=()=>{const M2=pkMine();delete M2[b.dataset.pkrm];pkMineSave(M2);pkBoomDraw();pkCalDraw('tw');});
+  box.querySelectorAll('[data-pkd2]').forEach(i=>i.onchange=()=>{const M2=pkMine(),m=M2[i.dataset.pkd2];if(m&&/^\d{4}-\d{2}-\d{2}$/.test(i.value)){m.d=i.value;pkMineSave(M2);pkBoomDraw();pkCalDraw('tw');}});
+  box.querySelectorAll('[data-pkp2]').forEach(i=>i.onchange=()=>{const M2=pkMine(),m=M2[i.dataset.pkp2],v=parseFloat(i.value);if(m&&v>0){m.p=v;pkMineSave(M2);pkBoomDraw();}});}
+function pkSpot(){const box=$('#pkspot'),X=pkBx();if(!box||!X)return;const P=X.spot||[];if(!P.length){box.innerHTML='';return;}
+  const W=box.clientWidth||720,mob=W<560,H=mob?280:320,ml=mob?34:44,mr=14,mt=26,mb=34,xmin=Math.min(-40,Math.floor(Math.min(...P.map(o=>o[2]))/5)*5-2);
+  const y0=Math.min(60,Math.max(0,Math.floor((Math.min(...P.map(o=>o[3]))-3)/10)*10));
+  const Xp=v=>ml+(Math.min(0,v)-xmin)/(0-xmin)*(W-ml-mr),Yv=v=>mt+(100-Math.max(y0,v))/(100-y0)*(H-mt-mb);
+  const zx=Xp(100/1.1-100),R={b:7,n:6,l:4.5};
+  let s=`<rect class=spot-zone x=${zx.toFixed(1)} y=${mt} width=${(Xp(0)-zx).toFixed(1)} height=${H-mb-mt} /><line class=spot-zl x1=${zx.toFixed(1)} x2=${zx.toFixed(1)} y1=${mt} y2=${H-mb} />`+
+    `<text class=spot-zt x=${W-mr} y=${mt-9} text-anchor=end>還差 10% 內到 52 週高點</text>`;
+  for(let v=y0;v<=100;v+=10)s+=`<line class=spot-grid x1=${ml} x2=${W-mr} y1=${Yv(v).toFixed(1)} y2=${Yv(v).toFixed(1)} /><text class=spot-at x=${ml-6} y=${(Yv(v)+4).toFixed(1)} text-anchor=end>${v}</text>`;
+  for(let v=Math.ceil(xmin/10)*10;v<=0;v+=10)s+=`<text class=spot-at x=${Xp(v).toFixed(1)} y=${H-mb+16} text-anchor=middle>${v===0?'高點':v+'%'}</text>`;
+  s+=`<text class=spot-al x=${W-mr} y=${H-4} text-anchor=end>離 52 週高點</text><text class=spot-al x=4 y=${mt-9}>強度</text>`;
+  const ord={l:0,n:1,b:2};
+  P.map((o,i)=>[o,i]).sort((a,b)=>ord[a[0][4]]-ord[b[0][4]]).forEach(([o,i])=>{
+    s+=`<g class="pksp ${o[4]}" data-pksp=${i} data-c="${esc(o[0])}" data-co="${esc(o[0])}"><circle cx=${Xp(o[2]).toFixed(1)} cy=${Yv(o[3]).toFixed(1)} r=${R[o[4]]} /></g>`;});
+  const used=[];let Lb='';
+  P.filter(o=>o[4]!=='l').forEach(o=>{const w=[...o[1]].length*11.5,cy=Yv(o[3])+4;
+    for(const sd of [1,-1]){const x=sd>0?Xp(o[2])+R[o[4]]+3:Xp(o[2])-R[o[4]]-3-w;if(x<ml||x+w>W-mr)continue;
+      if(used.some(u=>Math.abs(u[1]-cy)<14&&x<u[0]+u[2]+8&&u[0]<x+w+8))continue;used.push([x,cy,w]);
+      Lb+=`<text class="spotl pkspl" x=${x.toFixed(1)} y=${cy.toFixed(1)}>${esc(o[1])}</text>`;break;}});
+  box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width=${W} height=${H} role=img aria-label="新飆股名單位置圖">${s}${Lb}</svg>`;
+  const KN={b:'照規則會買',n:'新上名單',l:'名單上'},tip=$('#pkspottip');if(tip)tip.hidden=true;
+  if(tip&&typeof vzBind==='function')vzBind(box,tip,box.closest('.spotx'),'data-pksp',el=>{const o=P[+el.dataset.pksp];
+    return `<b>${esc(o[1])}</b> <span class=vzs>${esc(o[0])}</span><div>${KN[o[4]]}</div><div>離 52 週高點 ${pctT(o[2],1)}・強度 ${f(o[3],0)}</div><div class=vzs>點一下打開個股卡</div>`;},()=>{});}
+function pkBoomDraw(){pkMineDraw();pkBxDraw();const sd=$('#main .pksd');if(sd&&sd.open)pkSpot();}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-pkmk]');if(!b)return;e.preventDefault();e.stopPropagation();pkMark(b.dataset.c2,b.dataset.n2,b.dataset.pkmk);},true);
 function vPkTw(){vPick('tw');}
 function vPkUs(){vPick('us');}
-let PKR=0,PKW=innerWidth;addEventListener('resize',()=>{clearTimeout(PKR);PKR=setTimeout(()=>{if((S.tab==='tw'||S.tab==='us')&&(innerWidth>=900)!==(PKW>=900))pkCalDraw(S.tab);PKW=innerWidth;},200);});
+let PKR=0,PKW=innerWidth;addEventListener('resize',()=>{clearTimeout(PKR);PKR=setTimeout(()=>{if((S.tab==='tw'||S.tab==='us')&&(innerWidth>=900)!==(PKW>=900))pkCalDraw(S.tab);PKW=innerWidth;if(S.tab==='tw')pkSpot();},200);});
+addEventListener('labtheme',()=>{if(S.tab==='tw')pkSpot();});
 """
