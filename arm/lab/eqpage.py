@@ -43,7 +43,7 @@ def md(text: str) -> str:
     def inline(s: str) -> str:
         s = escape(s, quote=False)
         s = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+)\)",
-                   lambda m: f'<a href="{escape(m.group(2))}" target="_blank" rel="noopener">{m.group(1)}</a>', s)
+                   lambda m: f'<a href="{m.group(2).replace(chr(34), "&quot;")}" target="_blank" rel="noopener">{m.group(1)}</a>', s)   # 網址已跳脫過一次（& → &amp;），不再跳脫
         s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
         return s
     out, ul = [], False

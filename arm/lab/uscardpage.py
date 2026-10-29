@@ -619,7 +619,7 @@ function ucRender(c,keep){const S=ucOn()&&UCD.s[c];if(!S){hideStock();return;}
    `<div class=ttl><b>${esc(S.nm)}</b><span class=cd>${sub.map(esc).join(' · ')}</span></div>`+
    `<div class=pxw><b>${ucPx(S.px)}</b>${S.ch!=null?sgn(S.ch,2,'%'):''}</div><a class="nv${nx?'':' off'}" id=nx title="下一檔（→）">›</a><a class=x id=x title="關閉（Esc）">×</a></div>`+
    `<nav class=cnav>${secs.map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
-  h+=`<section class="csec uc" id=uc-st>${S.st}</section><section class="csec uc" id=uc-why>${S.why}</section>`;
+  h+=eqRepLine('us:'+c)+`<section class="csec uc" id=uc-st>${S.st}</section><section class="csec uc" id=uc-why>${S.why}</section>`;
   h+=`<section class="csec uc" id=uc-px>${ucPxSec(c,S)}</section><section class="csec uc" id=uc-sx>${ucSx(S)}</section><section class="csec uc" id=uc-gr>${ucGr(S)}</section>`;
   h+=`<section class="csec uc" id=uc-pf>${ucPf(S)}</section><section class="csec uc" id=uc-val>${ucVal(S)}</section>`;
   h+=`<section class="csec uc" id=uc-ind>${ucInd(c,S)}</section><section class="csec uc" id=uc-ch>${ucCh(S)}</section><section class="csec uc" id=uc-an>${ucAn(c,S)}</section>`;

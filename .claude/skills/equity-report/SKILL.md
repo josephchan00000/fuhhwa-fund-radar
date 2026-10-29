@@ -14,7 +14,7 @@ description: 產生投行首次報告格式的個股深度報告（評等、目�
 - 週更排程（每週六）：`scripts/eq_queue.py` 列出的公司，每家一個子代理照這份技能做。
 - 已有報告的公司出了新的一季財報 → 更新（新檔、不覆蓋舊檔；評等歷史自動接上）。
 
-## 五個步驟（照順序，每步都要完成才做下一步）
+## 六個步驟（照順序，每步都要完成才做下一步）
 
 1. **資料包**：`TZ=Asia/Taipei python3 scripts/eq_facts.py 代號`。看印出來的：方法、未來 12 個月 EPS、倍數範圍、預設目標價、同業、產業鏈。
    **報告裡的數字只能從這個檔來**（或同一段附來源連結）。打開 `.facts.json` 找數字，不要自己心算新的數字。
@@ -26,6 +26,8 @@ description: 產生投行首次報告格式的個股深度報告（評等、目�
 5. **寫報告＋檢查**：照 `references/template.md` 寫 `reports/eq/{tw|us}/{代號}/{今天}.md`（和資料包同一個資料夾、同一天）。
    `TZ=Asia/Taipei python3 scripts/check_eq.py 那個檔` 到全 🟢 為止。
    預覽頁面：`python3 scripts/eq_build.py --one 那個檔 --out /scratchpad 某處.html`。
+6. **上線**：`git add` 那份報告的 `.md` 與 `.facts.json`（寫明路徑）→ commit → push 本會話分支。`daily.yml` 會用 main 的檢查再驗一次、
+   沒過就不併；過了跟當天資料一起進 main、建頁（`dashboard/rp/`）、研究紀錄頁清單與個股卡連結自動出現。不必開 PR。
 
 ## 不能做的
 

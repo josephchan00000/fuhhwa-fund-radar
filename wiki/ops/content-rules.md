@@ -24,7 +24,7 @@
 |---|---|---|---|
 | 籌碼雷達公司卡「法人預估」段與飆股段的法人小字，引述券商分析師的目標價 | 2026-10-17 | 那幾支 JS 函式（見 [法人預估與產業比較](../lab/forecast.md)） | `tests/test_fcst.py` 的 `FC_FUNCS` |
 | 美股個股卡的「分析師」段，引述 Yahoo Finance 分析師的目標價、附 Yahoo 分析頁連結 | 2026-10-24 | `uscardpage.py` 的 JS 函式 `ucAn` | `tests/test_uscardpage.py` |
-| 個股報告的評等（買進／中立／減碼）與目標價，照 `arm/lab/eqspec.py` 的固定規則算；首頁與附錄有免責聲明 | 2026-10-29 | `reports/eq/**`、`dashboard/rp/*.html`（`arm/lab/eqpage.py`） | `tests/test_eqreport.py`、`scripts/check_eq.py` |
+| 個股報告的評等（買進／中立／減碼）與目標價，照 `arm/lab/eqspec.py` 的固定規則算；首頁與附錄有免責聲明 | 2026-10-29 | `reports/eq/**`、`dashboard/rp/*.html`（`arm/lab/eqpage.py`）、研究紀錄頁的報告清單（`eqsite.research_body`）；卡片連結不寫 | `tests/test_eqreport.py`、`scripts/check_eq.py` |
 
 ## 歷史
 

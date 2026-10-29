@@ -68,6 +68,61 @@ def summary(mk: str, code: str, vers: list, live: dict) -> dict:
             "href": f"rp/{mk}-{code}.html", "industry": pack.get("ind")}
 
 
+def links(src: Path = SRC) -> dict:
+    """個股卡、公司卡、美股個股卡最上面的「個股報告」一行：{"tw:4958": [最新報告日, 評等]}。只讀最新一版的開頭欄位
+    （評等由檢查保證等於規則算出來的）；不寫目標價（「目標價」只准出現在報告頁與研究紀錄頁的報告清單，wiki/ops/content-rules.md）。"""
+    out = {}
+    for (mk, code), vers in companies(src).items():
+        fm = R.parse(vers[-1][1].read_text(encoding="utf-8"))["fm"]
+        out[f"{mk}:{code}"] = [vers[-1][0], str(fm.get("rating") or "")]
+    return out
+
+
+def research_body(src: Path = SRC) -> str:
+    """研究紀錄頁「個股報告」段：每家最新一版一列（新到舊）＋產業報告清單。網址相對於 dashboard/（x9r.html 所在）。"""
+    live = live_prices()
+    rows = sorted((summary(mk, c, v, live) for (mk, c), v in companies(src).items()), key=lambda r: (r["made"], r["code"]), reverse=True)
+    inds = []
+    for key, vers in industries(src).items():
+        ip = json.loads(vers[-1][2].read_text(encoding="utf-8"))
+        inds.append({"key": key, "name": ip.get("name") or key, "made": vers[-1][0], "n": ip.get("n_members")})
+    if not rows and not inds:
+        return '<p class="rnote">還沒有報告。</p>'
+    iname = {i["key"]: i["name"] for i in inds}
+    e = P.escape
+    out = []
+    if rows:
+        body = []
+        for r in rows:
+            now = r.get("live") or r.get("px")
+            gap = round((r["tp"] / now - 1) * 100, 1) if r.get("tp") and now else None
+            ind = str(r.get("ind") or "")
+            icell = f'<a href="rp/ind-{e(ind)}.html">{e(iname[ind])}</a>' if ind in iname else e(r.get("industry") or "")
+            body.append(
+                f'<tr><td class="l"><a href="{e(r["href"])}">{e(r["name"])}</a> <span class="eqc">{e(r["code"])}</span></td>'
+                f'<td><b class="eqr-{P.RATING_CLS.get(r["rating"], "rx")}">{e(r["rating"])}</b></td><td>{P.f(r["tp"], 0)}</td>'
+                f'<td>{e(r["made"])}</td><td>{P.f(r["px"])}</td><td>{P.f(r.get("live"))}</td><td>{P.sg(gap)}</td>'
+                f'<td class="l">{icell}</td></tr>')
+        out.append('<div class="eqlw"><table class="eqlt"><thead><tr><th class="l">公司</th><th>評等</th><th>目標價（元）</th><th>報告日</th>'
+                   '<th>報告日收盤</th><th>最新收盤</th><th>最新收盤到目標價</th><th class="l">產業</th></tr></thead><tbody>'
+                   + "".join(body) + '</tbody></table></div>')
+    if inds:
+        out.append('<ul class="rlist">' + "".join(
+            f'<li><a href="rp/ind-{e(i["key"])}.html">產業報告・{e(i["name"])}</a><span>{e(i["made"])}；台灣上市櫃成員 {P.f(i["n"], 0)} 家</span></li>'
+            for i in inds) + '</ul>')
+    return "".join(out)
+
+
+CSS = """
+.eqlw{overflow-x:auto;margin:4px 0 12px}
+.eqlt{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.eqlt th,.eqlt td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
+.eqlt th{font-size:12.5px;color:var(--mut);font-weight:600}.eqlt .l{text-align:left}
+.eqlt .eqc{color:var(--mut);font-size:12px}
+.eqlt .eqr-rb{color:var(--up,#c0392b)}.eqlt .eqr-rs{color:var(--dn,#1e8449)}
+"""
+
+
 def _write(path: Path, text: str) -> bool:
     if path.exists() and path.read_text(encoding="utf-8") == text:
         return False

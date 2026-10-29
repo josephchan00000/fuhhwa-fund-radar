@@ -143,6 +143,24 @@ jobs:
               cp /tmp/idx_new.json "$IRF"; echo "  併入 $IRF（as_of=$NEW_IR）"
             fi
           fi
+          # 個股報告與產業報告（2026-10-29 起；docs/lab_equity_report_plan.md 第 11 節）：只收 main 還沒有的報告
+          # （同一天的檔不覆蓋＝舊版留著當評等歷史），每份要有同名資料包、檔名合格，並用 main 的 scripts/check_eq.py 檢查，
+          # 沒過就不併（main 還沒有檢查程式＝全部不併）。只帶 .md 與 .facts.json 兩種資料檔，程式碼一律不從這裡進 main。
+          if [ -f scripts/check_eq.py ]; then
+            for md in $(git ls-tree -r --name-only "$REF" -- reports/eq 2>/dev/null \
+                        | grep -E '^reports/eq/((tw|us)/[A-Za-z0-9.-]{1,12}|ind/[A-Za-z0-9-]{1,24})/20[0-9]{2}-[0-9]{2}-[0-9]{2}\.md$'); do
+              [ -e "$md" ] && continue
+              fj="${md%.md}.facts.json"
+              if ! git cat-file -e "$REF:$fj" 2>/dev/null; then echo "  · $md 沒有資料包——不併"; continue; fi
+              mkdir -p "$(dirname "$md")"
+              git show "$REF:$md" > "$md" && git show "$REF:$fj" > "$fj"
+              if TZ=Asia/Taipei python3 scripts/check_eq.py "$md" > /tmp/eqchk.txt 2>&1; then
+                echo "  併入 $md"
+              else
+                cat /tmp/eqchk.txt; rm -f "$md" "$fj"; echo "  ⚠ $md 檢查沒過——不併"
+              fi
+            done
+          fi
           # 推送觸發、但分支上沒有 main 還沒有的今日新聞或通道檔 → 整輪跳過（不抓資料、不重建、不部署）。
           # 2026-10-16：開發分支合併 main 後再推送，推送範圍會含 main 的新聞檔而觸發本 workflow——
           # 10 月約 20 輪、每輪 6 分鐘，全是重抓一遍同樣的資料；資料刷新另有 07:15 cron 與盤後各班負責。
@@ -253,6 +271,8 @@ jobs:
           git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
           git add -f dashboard/x9mup-*.json 2>/dev/null || true        # 美股景氣頁各指數細項面板與內容（點到才下載，分開 add）
           git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
+          git add -f dashboard/rp 2>/dev/null || true                  # 個股報告與產業報告頁（docs/lab_equity_report_plan.md 第 11 節）
+          git add -f reports/eq 2>/dev/null || true                    # 個股報告原稿與資料包（併檔段帶入，舊版不覆蓋）
           git commit -m "chore: 每日持股介紹／新聞更新 $(date +%F)" || { echo "無變更，跳過 push"; exit 0; }
           # push 失敗（main 期間被推進）→ rebase 重試；rebase 衝突以本次新資料為準（-X theirs）。
           # 最終仍失敗就讓 job 真的 fail（不可吞錯綠燈——審查 #3），後面 deploy hook 自然不跑。
@@ -283,6 +303,8 @@ jobs:
             git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
             git add -f dashboard/x9mup-*.json 2>/dev/null || true        # 美股景氣頁各指數細項面板與內容（點到才下載，分開 add）
             git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
+            git add -f dashboard/rp 2>/dev/null || true                  # 個股報告與產業報告頁（docs/lab_equity_report_plan.md 第 11 節）
+            git add -f reports/eq 2>/dev/null || true                    # 個股報告原稿與資料包（併檔段帶入，舊版不覆蓋）
             git commit --amend --no-edit || true
             sleep 5
           done

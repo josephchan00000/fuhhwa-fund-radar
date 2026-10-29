@@ -1,10 +1,13 @@
 """個股報告格式、估值重算、檢查、頁面（arm/lab/eqreport.py、eqpage.py、eqsite.py）。"""
 import json
+from pathlib import Path
 
 from arm.lab import eqpage as P
 from arm.lab import eqreport as R
 from arm.lab import eqsite
 from arm.lab import eqspec as S
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _pack():
@@ -85,6 +88,11 @@ def test_numbers_with_links_and_percentage_points_pass():
     assert R.check(_md().replace("## 同業比較\n文字", "## 同業比較\n本益比不超過 80 倍才用本益比法。"), pk) == []   # 規則門檻
 
 
+def test_markdown_links_escape_once():
+    h = P.md("見[來源](https://example.com/a?x=1&y=2)。<script>")
+    assert 'href="https://example.com/a?x=1&amp;y=2"' in h and "&amp;amp;" not in h and "<script>" not in h
+
+
 def test_page_has_rating_box_figures_and_disclaimer():
     html = P.render(_md(), _pack(), {"live": {"px": 210.0, "d": "2026-10-30"}})
     assert 'class="rbox"' in html and "買進" in html and "240 元" in html
@@ -108,3 +116,105 @@ def test_site_build_history_and_industry(tmp_path):
     (out / "tw-0000.html").write_text("old", encoding="utf-8")
     eqsite.build(out, src)
     assert not (out / "tw-0000.html").exists()                                     # 沒有報告的舊頁拿掉
+
+
+def _site(tmp_path):
+    src = tmp_path / "eq"
+    d = src / "tw" / "9999"
+    d.mkdir(parents=True)
+    (d / "2026-10-30.facts.json").write_text(json.dumps(_pack(), ensure_ascii=False), encoding="utf-8")
+    (d / "2026-10-30.md").write_text(_md(made="2026-10-30"), encoding="utf-8")
+    i = src / "ind" / "tw-L000"
+    i.mkdir(parents=True)
+    (i / "2026-10-30.facts.json").write_text(json.dumps({"kind": "ind", "key": "tw-L000", "name": "印刷電路板", "n_members": 77}), encoding="utf-8")
+    (i / "2026-10-30.md").write_text("---\nkey: tw-L000\n---\n## 重點\n", encoding="utf-8")
+    return src
+
+
+def test_links_and_research_list(tmp_path):
+    """卡片上的一行只帶報告日與評等（不寫目標價）；研究紀錄頁的清單帶目標價、最新收盤、產業報告連結（content-rules 第三個例外）。"""
+    import inspect
+    src = _site(tmp_path)
+    assert eqsite.links(src) == {"tw:9999": ["2026-10-30", "買進"]}
+    h = eqsite.research_body(src)
+    assert 'href="rp/tw-9999.html"' in h and "目標價" in h and 'href="rp/ind-tw-L000.html">印刷電路板</a>' in h
+    assert "台灣上市櫃成員 77 家" in h
+    assert eqsite.research_body(tmp_path / "none") == '<p class="rnote">還沒有報告。</p>'
+    assert "目標價" not in inspect.getsource(eqsite.links).split('"""', 2)[2]          # 函式本體不寫目標價
+
+
+def test_cards_research_page_and_build_are_wired():
+    from arm.lab import copage, research_page, uscardpage
+    from arm.lab import page as lab_page
+    J = lab_page._JS
+    fn = J[J.index("function eqRepLine("):J.index("function renderStock(")]
+    assert "目標價" not in fn and 'href="rp/${' in fn                                    # 卡片只寫「個股報告」＋日期＋評等
+    assert "h+=eqRepLine('tw:'+c)+stCardSec(c);" in J
+    assert "eqRepLine('tw:'+c)+stCardSec(c)+coSec(" in copage.JS
+    assert "eqRepLine('us:'+c)+`<section" in uscardpage.JS
+    assert 'data["eq"] = eqsite.links()' in (ROOT / "arm" / "lab" / "page.py").read_text(encoding="utf-8")
+    assert [g[0] for g in research_page.GROUPS].index("eq") == 1
+    gen = (ROOT / "scripts" / "gen_fund_dashboard.py").read_text(encoding="utf-8")
+    assert gen.index("lab_page.finish()") < gen.index("eqsite.build()") < gen.index("research_page.build()")
+    for wf in ("daily.yml", "afterhours_refresh.yml", "etf_holdings.yml"):
+        t = (ROOT / ".github" / "workflows" / wf).read_text(encoding="utf-8")
+        assert t.count("git add -f dashboard/rp 2>/dev/null || true") == 2, wf
+    assert (ROOT / ".github" / "workflows" / "daily.yml").read_text(encoding="utf-8").count("git add -f reports/eq 2>/dev/null || true") == 2
+
+
+def _channel() -> str:
+    """daily.yml 併檔段裡個股報告那一段（if [ -f scripts/check_eq.py ] … 對應的 fi）。"""
+    import textwrap
+    lines = (ROOT / ".github" / "workflows" / "daily.yml").read_text(encoding="utf-8").splitlines()
+    s = next(k for k, ln in enumerate(lines) if ln.strip() == "if [ -f scripts/check_eq.py ]; then")
+    ind = lines[s][:len(lines[s]) - len(lines[s].lstrip())]
+    e = next(k for k in range(s + 1, len(lines)) if lines[k] == ind + "fi")
+    return textwrap.dedent("\n".join(lines[s:e + 1]))
+
+
+def test_daily_channel_merges_only_new_checked_reports(tmp_path):
+    """併檔通道：只收 main 沒有的報告、要有資料包、檔名合格、main 的檢查要過；同一天的舊檔不覆蓋。"""
+    import subprocess
+    r = tmp_path / "repo"
+    r.mkdir()
+
+    def sh(cmd, **kw):
+        return subprocess.run(cmd, cwd=r, shell=True, check=True, capture_output=True, text=True, **kw)
+
+    def put(path, text):
+        p = r / path
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text, encoding="utf-8")
+
+    sh("git init -q -b main && git config user.email t@example.com && git config user.name t")
+    put("scripts/check_eq.py", "import sys\nsys.exit(0 if 'OK' in open(sys.argv[1]).read() else 1)\n")
+    put("reports/eq/tw/1111/2026-01-01.md", "OK old")
+    put("reports/eq/tw/1111/2026-01-01.facts.json", "{}")
+    sh("git add -A && git commit -qm main && git checkout -qb feat")
+    put("reports/eq/tw/1111/2026-01-01.md", "OK changed")                       # 舊檔：不覆蓋
+    for code, text in (("2222", "OK"), ("3333", "BAD"), ("4444", "OK")):
+        put(f"reports/eq/tw/{code}/2026-02-01.md", text)
+        if code != "4444":                                                     # 4444 沒有資料包
+            put(f"reports/eq/tw/{code}/2026-02-01.facts.json", "{}")
+    put("reports/eq/tw/5555/notes.md", "OK")                                   # 檔名不是日期：不理
+    put("reports/eq/tw/5555/notes.facts.json", "{}")
+    put("reports/eq/ind/tw-L000/2026-02-01.md", "OK")
+    put("reports/eq/ind/tw-L000/2026-02-01.facts.json", "{}")
+    sh("git add -A && git commit -qm feat && git checkout -q main")
+    out = sh(_channel(), env={"REF": "feat", "PATH": "/usr/bin:/bin:/usr/local/bin"}, executable="/bin/bash").stdout
+    eqd = r / "reports" / "eq"
+    assert (eqd / "tw/1111/2026-01-01.md").read_text(encoding="utf-8") == "OK old"
+    assert (eqd / "tw/2222/2026-02-01.md").exists() and (eqd / "tw/2222/2026-02-01.facts.json").exists()
+    assert (eqd / "ind/tw-L000/2026-02-01.md").exists()
+    assert not (eqd / "tw/3333").exists() or not any((eqd / "tw/3333").iterdir())
+    assert not (eqd / "tw/4444").exists() and not (eqd / "tw/5555").exists()
+    assert "檢查沒過" in out and "沒有資料包" in out
+
+
+def test_checker_runs_without_third_party_packages():
+    """併檔段在 setup-python 之前跑（runner 自帶的 python3）：檢查程式只能用標準庫。"""
+    import subprocess
+    import sys
+    code = ("import sys; sys.path.insert(0, %r); import arm.lab.eqreport, arm.lab.eqfacts; "
+            "bad=[m for m in ('numpy','pandas','yaml','requests') if m in sys.modules]; print(bad); sys.exit(1 if bad else 0)") % str(ROOT)
+    subprocess.run([sys.executable, "-I", "-c", code], check=True)

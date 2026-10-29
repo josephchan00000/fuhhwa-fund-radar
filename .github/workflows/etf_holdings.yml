@@ -117,6 +117,7 @@ jobs:
           git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
           git add -f dashboard/x9mup-*.json 2>/dev/null || true        # 美股景氣頁各指數細項面板與內容（點到才下載，分開 add）
           git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
+          git add -f dashboard/rp 2>/dev/null || true                  # 個股報告與產業報告頁（docs/lab_equity_report_plan.md 第 11 節）
           git commit -m "chore: ETF 每日持股更新 $(date +%F)" || { echo "無變更，跳過 push"; exit 0; }
           # main 可能被其他 workflow 推進 → rebase 重試；rebase 後用合併結果重建再推
           #（同 daily.yml 慣例：-X theirs 會拼出新舊混雜的 index.html，必須重建）
@@ -144,6 +145,7 @@ jobs:
             git add -f dashboard/x9muh-*.json 2>/dev/null || true        # 美股景氣頁各指數對照圖資料（分開 add）
             git add -f dashboard/x9mup-*.json 2>/dev/null || true        # 美股景氣頁各指數細項面板與內容（點到才下載，分開 add）
             git add -f dashboard/co 2>/dev/null || true                  # 公司分析：每檔資料檔（點進去才下載；內容沒變不改寫）
+            git add -f dashboard/rp 2>/dev/null || true                  # 個股報告與產業報告頁（docs/lab_equity_report_plan.md 第 11 節）
             git commit --amend --no-edit || true
             sleep 5
           done
