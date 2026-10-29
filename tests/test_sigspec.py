@@ -196,7 +196,8 @@ def test_sig_spec_v20_audit_is_locked():
     assert X.INST_RUN == (5, 10)
     assert X.RES_VER >= 20 and X.FWD_VER >= 20 and X.CAL_VER >= 20
     assert HS.VER == 10 and HS.SPEC_DATE == "2026-10-22" and (HS.GAP_FILL_MAX, HS.STALE_M) == (2, 2)
-    assert U.VER == 2 and U.SPEC_DATE == "2026-10-22" and (U.GAP_FILL_MAX, U.STALE_M) == (HS.GAP_FILL_MAX, HS.STALE_M)
+    # 美股 VER 2 是補缺月、資料過期；VER 3（2026-10-29）只換情緒籌碼項目，補缺月與過期規則沿用
+    assert U.VER >= 2 and (U.GAP_FILL_MAX, U.STALE_M) == (HS.GAP_FILL_MAX, HS.STALE_M)
 
 
 def test_sig_spec_v21_listing_is_locked():

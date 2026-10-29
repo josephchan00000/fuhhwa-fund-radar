@@ -5,7 +5,7 @@ from arm.lab import crashspec as C
 
 
 def test_crash_spec_v1_is_locked():
-    assert C.VER == 1 and C.SPEC_DATE == "2026-10-19"
+    assert C.VER == 2 and C.SPEC_DATE == "2026-10-29"         # VER 2：美股情緒籌碼項目依指數（docs/lab_us_chip_plan.md）
     assert C.MARKETS == ("tw", "spx", "ixic", "ndx", "sox")
     assert C.START == {"tw": "1990-01-04", "spx": "1950-01-03", "ixic": "1971-02-05", "ndx": "1985-10-01",
                        "sox": "1994-05-04"}
@@ -20,9 +20,10 @@ def test_crash_spec_v1_is_locked():
     assert (C.PCT_DAILY, C.PCT_MONTHLY, C.VOL_MA) == ((750, 375), (36, 36), (20, 250))
     assert C.PRED["tw"] == ("W1", "W2", "W3", "W4", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "L5", "T9", "Dchip",
                             "Dfund", "BL2", "BP1")
-    us = ("Dsent", "S1", "S2", "S3", "S4", "S5", "T9")
-    assert C.PRED["spx"] == C.PRED["ixic"] == us + ("VOL", "BL2", "BP1")
-    assert C.PRED["ndx"] == C.PRED["sox"] == us + ("BL2", "BP1")
+    assert C.PRED["spx"] == ("Dsent", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "T9", "VOL", "BL2", "BP1")
+    nq = ("Dsent", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "T9")
+    assert C.PRED["ixic"] == nq + ("VOL", "BL2", "BP1")
+    assert C.PRED["ndx"] == C.PRED["sox"] == nq + ("BL2", "BP1")
     assert C.MONTHLY == ("W1", "W3", "BL2", "BP1") and C.FLAGS == ("BL2", "BP1") and C.SHORT_SAMPLE == ("Dchip",)
     assert (C.BOOT_N, C.BOOT_SEED, C.BLOCK, C.CI) == (2000, 20261019, 60, 0.95)
     assert (C.MIN_HOT_DAYS, C.MIN_EPISODES, C.EP_GAP, C.BH_Q, C.NW_Z) == (120, 4, 20, 0.10, 1.96)
