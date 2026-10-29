@@ -82,6 +82,7 @@ def test_numbers_with_links_and_percentage_points_pass():
     ok = _md().replace("## 同業比較\n文字", "## 同業比較\n市占 31.2%（[來源](https://example.com/x)）。毛利率比營益率高 15 個百分點。")
     assert R.check(ok, pk) == []
     assert R.check(_md().replace("## 同業比較\n文字", "## 同業比較\n市值約 1,200 億元。"), pk) == []   # 約＝3% 內
+    assert R.check(_md().replace("## 同業比較\n文字", "## 同業比較\n本益比不超過 80 倍才用本益比法。"), pk) == []   # 規則門檻
 
 
 def test_page_has_rating_box_figures_and_disclaimer():

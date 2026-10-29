@@ -137,6 +137,7 @@ def derived_numbers(pack: dict, fm: dict) -> set[float]:
             for y in x:
                 walk(y)
     walk(val)
+    out |= {S.PE_MAX, S.BUY_UP * 100, abs(S.SELL_DN) * 100, S.SCEN_EPS * 100, float(S.HORIZON_M), float(S.BAND_YEARS)}   # 規則本身的門檻
     for k in ("mult",):
         if fm.get(k) is not None:
             out.add(float(fm[k]))
