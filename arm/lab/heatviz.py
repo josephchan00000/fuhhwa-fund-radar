@@ -1189,7 +1189,7 @@ def out_tpl(V: dict) -> str:
 
 def _face_head(V: dict) -> str:
     """面向那一塊的標題列：指數與收盤、資料日、離 60 日高點（一段大跌中就寫比高點跌多少＋落底訊號）、泡沫等級（連到最下面）、
-    融資維持率（只有台股）。"""
+    產業泡沫最高等級（連到產業泡沫）、融資維持率（只有台股）。"""
     lv = (V.get("ta") or {}).get("lv") or {}
     px = HP.MK["px"].strip()
     close = f'{px} {HP._num0(lv["close"])}' if lv.get("close") is not None else px
@@ -1213,7 +1213,7 @@ def _face_head(V: dict) -> str:
         bub = (f'<a class="stc mfb" href="#bub" data-jump="bub" title="{_e(tip)}"><b>泡沫</b><span class="bl{b["L"]}">{b["L"]}</span>'
                f'<i>{_e(BS.LEVELS[b["L"]])}</i></a>')
     return (f'<div class="mfh"><h2 class="mfpx">{_e(close)}</h2><span class="mfd">{_e(HP._md(lv.get("t") or V.get("asof")))}</span>'
-            f'{dd}{bub}{V.get("mrchip") or ""}</div>')
+            f'{dd}{bub}{V.get("indchip") or ""}{V.get("mrchip") or ""}</div>')
 
 
 def _face_chips(V: dict) -> str:
