@@ -109,26 +109,38 @@ def _dedupe(evs: list[dict]) -> list[dict]:
 # ── 台股 ───────────────────────────────────────────────────────────────────
 
 def boom_events(P: dict | None, end: str) -> list[dict]:
-    """新飆股（sxlive.plan_state）：持股的賣出日（到期隔天開盤；明天要賣的＝明天）、明天開盤要買的、之後每週的名單日與買進日。"""
+    """新飆股（sxlive.plan_state 的 N8：8 格、新上名單的先買）：持股的賣出日（到期隔天開盤；明天要賣的＝明天）、明天開盤要買的、
+    這一週還沒結束時照試算列下一次會買的（名單週末定案、可能變動）、之後每週的名單日與買進日。"""
     P = P or {}
     last, nx = P.get("d"), P.get("next")
     if not last:
         return []
+    hn = P.get("hold_n") or 60
     out = []
     by: dict[str, list] = {}
     for h in P.get("hold") or []:
         if h.get("out"):
             by.setdefault(h["out"], []).append(h)
     for d, hs in by.items():
-        out.append(ev(d, "開盤", "boom", "賣出", hs, note=f"{_mdl(sorted({h['ent'] for h in hs if h.get('ent')}))} 買的，抱滿 60 個交易日"))
+        out.append(ev(d, "開盤", "boom", "賣出", hs, note=f"{_mdl(sorted({h['ent'] for h in hs if h.get('ent')}))} 買的，抱滿 {hn} 個交易日"))
     buys = [x for x in P.get("buy") or [] if x.get("fill")]
     if buys and nx:
         out.append(ev(nx, "開盤", "boom", "買進", buys, note=f"{_md(P.get('wk') or last)} 那週的名單"))
+    K = P.get("pick") or {}
+    tb = None
+    if K.get("trial") and P.get("next_wk"):                # 這一週還沒結束：照到今天收盤的試算，空格有幾個就列前幾檔
+        held = {h["c"] for h in P.get("hold") or []}
+        free = (P.get("slots") or 8) - (len(held) - sum(1 for h in P.get("hold") or [] if h.get("sell")))
+        its = [r for r in K.get("rows") or [] if r["c"] not in held][:max(0, free)]
+        tb = next_day("tw", P["next_wk"])
+        if its:
+            out.append(ev(tb, "開盤", "boom", "買進", its,
+                          note=f"照 {_md(K.get('last') or last)} 收盤試算，{_md(P['next_wk'])} 收盤名單定案，可能變動"))
     for w in week_ends("tw", last, end):
         b = next_day("tw", w)
-        out.append(ev(w, "收盤", "boom", "名單", note="這一週的名單（依強度排）", proj=True))
-        if not (buys and b == nx):
-            out.append(ev(b, "開盤", "boom", "買進", note="新名單，有空位才買", proj=True))
+        out.append(ev(w, "收盤", "boom", "名單", note="這一週的名單", proj=True))
+        if not (buys and b == nx) and b != tb:
+            out.append(ev(b, "開盤", "boom", "買進", note="新名單，有空格才買", proj=True))
     return out
 
 

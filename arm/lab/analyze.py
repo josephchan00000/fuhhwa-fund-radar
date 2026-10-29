@@ -573,7 +573,7 @@ def run(data: Data | None = None, keep: dict | None = None) -> dict:
             mtab = company.market_table(DL, rules=[c for _, c in SX.live_rules(res)], keep=mctx)
             try:                                          # 飆股前瞻記錄（sxlivespec；不上頁面、只有 CI 寫回 data/lab/sxlive.json）
                 from . import sxlive
-                sxlive.update(DL, mctx or None)
+                sxlive.update(DL, mctx or None, watch=mtab.get("watch") or {})
             except Exception as e:                        # noqa: BLE001 —— 記錄失敗不影響建頁
                 print(f"[sxlive] ⚠ 飆股前瞻記錄沒有更新：{type(e).__name__}: {e}")
             hits = mtab.pop("hits", {})
