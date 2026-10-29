@@ -270,7 +270,7 @@ def us_inputs(idx: str, D: dict | None = None, Bu: dict | None = None, BX: dict 
     px = np.array([_f(v) for v in Bu["px"][c0:]])
     done = complete_months(cal)
     x = {}
-    for kk in ("S1", "S2", "S3", "S4", "S5", "T9"):
+    for kk in tuple(p for p in S.PRED[idx] if p.startswith("S")) + ("T9",):
         x[kk] = np.array([_f(v) for v in (Bu["hc"].get(kk) or [None] * len(Bu["cal"]))[c0:]])
     x["Dsent"] = np.array([_f(v) for v in Bu["comp"]["sent"][c0:]])
     if "VOL" in S.PRED[idx]:

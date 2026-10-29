@@ -39,7 +39,7 @@ def _C(mk: str = "tw", **kw) -> dict:
     names = {k: k for k in RM["A"]}
     names.update({"C1": "融資餘額水位", "C3": "券資比"})
     return {"mk": mk, "px": "", "R": RM, "now": _now(mk, RM, **kw), "primary": R["primary"], "names": names,
-            "order": QP.ORDER["tw" if mk == "tw" else "us"]}
+            "order": QP.ORDER[mk]}
 
 
 def test_matched_state_falls_back_when_top_state_is_few():
@@ -78,7 +78,7 @@ def test_lead_reports_hot_chip_state_and_tech_counts():
 
 def test_card_structure_numbers_and_banned_words():
     for mk in S.MARKETS:
-        C = _C(mk, w={C0: 5 for C0 in list(QP.ORDER["tw" if mk == "tw" else "us"])[:1]},
+        C = _C(mk, w={C0: 5 for C0 in list(QP.ORDER[mk])[:1]},
                states={"below60": {"on": True, "since": "2026-09-01", "days": 30}, "below240": {"on": False}, "cold": None})
         h = QP.card(C)
         t = _text(h)

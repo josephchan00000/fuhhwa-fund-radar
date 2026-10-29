@@ -61,7 +61,7 @@ jobs:
 
       - name: 回補
         env:
-          SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}   # 只有 ussxfill 的 SEC 那一段、secprobe、uschipprobe 讀（arm/lab/secfin.py），不印、不存
+          SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}   # 只有 ussxfill 的 SEC 那一段、secprobe、uschipprobe、uschipfill 讀（arm/lab/secfin.py、insider.py），不印、不存
         run: |
           MODE="full"
           if [ "${{ github.event_name }}" = "push" ]; then
@@ -153,6 +153,11 @@ jobs:
           elif [ "${MODE#futprobe}" != "$MODE" ]; then
             # 台指期早盤策略的資料探針：期交所近 30 天每筆成交、每日行情、證交所 5 秒指數、即時報價、FinMind；只印不寫
             timeout 1500 python3 scripts/probe_fut.py
+          elif [ "${MODE#uschipfill}" != "$MODE" ]; then
+            # 美股各指數籌碼的資料回補（heatspec_us VER 3）：CFTC 那斯達克 100、槓桿 ETF、SEC 內部人（季資料集＋每日索引，做不完下次續做）
+            #   uschipfill＝三個都做；uschipfill:ins＝只做冒號後面這幾個（cftc_nq、lev、ins）
+            ONLY="${MODE#uschipfill}"; ONLY="${ONLY#:}"
+            timeout 3300 python3 scripts/fetch_heat_us.py --backfill --only "${ONLY:-cftc_nq,lev,ins}"
           elif [ "${MODE#uschipprobe}" != "$MODE" ]; then
             # 美股各指數自己的籌碼（docs/lab_us_chip_plan.md）：CFTC 那斯達克 100、槓桿 ETF、SEC 內部人資料的探針；只印不寫
             timeout 1500 python3 scripts/probe_uschip.py $(echo "${MODE#uschipprobe}" | tr ":," "  ")

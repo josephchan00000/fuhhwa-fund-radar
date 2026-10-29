@@ -26,6 +26,7 @@ BANNED = ("保證", "穩賺", "必賺", "包賺", "必漲", "必跌", "一定會
 def page():
     D = fake_D()
     SH = CU.shared(D)
+    SH["INS"] = ({}, {}, {})                                                  # S7 內部人：不讀真實檔
     pages = {k: PU.index_page(k, CU.build(k, D, SH), {}) for k in U.INDEX_ORDER}
     html, panes = PU.assemble(pages)
     return pages, html, panes

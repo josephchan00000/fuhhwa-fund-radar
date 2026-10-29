@@ -443,7 +443,7 @@ def inputs_us(idx: str, Bu: dict) -> dict:
     st = U.VAL_START.get(idx) or cal[0]
     i0 = next((i for i, d in enumerate(cal) if d >= st), len(cal))
     x = {"Dsent": _lst(Bu["comp"]["sent"]), "Dtech": _lst(Bu["comp"]["tech"])}
-    for k in S.CHIP_VARS["us"]:
+    for k in S.CHIP_VARS[idx]:
         if k != "Dsent":
             x[k] = _lst(Bu["hc"].get(k) or [None] * len(cal))
     return {"cal": cal, "px": _arr(Bu["px"]), "x": x, "i0": i0}
@@ -460,7 +460,7 @@ def market(mk: str, I: dict) -> dict:
     we = P.week_ends(cal)
     okO = ~np.isnan(O["mdd"])
     inr = np.arange(T) >= i0
-    cvars = S.CHIP_VARS["tw" if mk == "tw" else "us"]
+    cvars = S.CHIP_VARS[mk]
     # A：籌碼（＋對照技術面）
     A: dict = {}
     famA: dict[str, list] = {}

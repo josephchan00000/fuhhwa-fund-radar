@@ -56,8 +56,11 @@ def fake_D() -> dict:
     wed = [d for d in days if date.fromisoformat(d).weekday() == 2]
     tue = [d for d in days if date.fromisoformat(d).weekday() == 1]
     D["us_h41"] = {d: [800000 + 500 * i, 50000 + 10 * i, 1000.0] for i, d in enumerate(wed)}
-    for n in ("us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini"):
+    for n in ("us_cftc_am", "us_cftc_vix", "us_cftc_big", "us_cftc_mini",
+              "us_cftc_am_nq", "us_cftc_big_nq", "us_cftc_mini_nq"):                # VER 3：那斯達克 100 期貨
         D[n] = {d: [1000 + rnd.random() * 500, 800 + rnd.random() * 500, 5000.0] for d in tue}
+    for j, s in enumerate(sorted({s for pair in U.LEV.values() for s in pair})):     # VER 3：槓桿 ETF 成交金額
+        D[f"us_lev_{s}"] = {d: 1e8 * (1.5 + math.sin(i / 40 + j)) for i, d in enumerate(days)}
     sat = [d for d in (date(1995, 1, 7) + timedelta(days=7 * k) for k in range(940)) if d <= date(2012, 12, 31)]
     D["us_claims"] = {d.isoformat(): 300000 + 20000 * math.sin(k / 20) for k, d in enumerate(sat)}
     D["us_ads"] = {d: math.sin(i / 100) for i, d in enumerate(days)}
@@ -82,6 +85,7 @@ def fake_D() -> dict:
 def built():
     D = fake_D()
     SH = CU.shared(D)
+    SH["INS"] = ({}, {}, {})                                                  # S7 內部人：不讀真實檔
     return D, SH, {k: CU.build(k, D, SH) for k in U.INDEX_ORDER}
 
 
@@ -124,7 +128,7 @@ def test_research_wiring_under_us_spec(built, monkeypatch):
     assert R["ver"] == U.VER and R["idx"] == "ndx" and set(R["dims"]) == set(U.DIMS)
     bubl = {k for k, d, *_ in U.IND if d == "bubl" and k in U.keys_for("ndx")}
     assert set(R["bub"]) == bubl | {"comp"}
-    assert R["m6"] == {"hike": "R1", "ext": None, "items": sorted(U.DERIV)}
+    assert R["m6"] == {"hike": "R1", "ext": None, "items": sorted(U.spec_for("ndx")["DERIV"])}   # VER 3：那斯達克 100 用 S8、S9
     assert seen["ev"] == {("us", d) for d in U.DIMS} and seen["rel"][0] == "us"
     assert S.MARKET == "tw" and S.M6_HIKE == "G1"
     monkeypatch.setattr(CU, "trim", lambda B, start: seen.update(start=start) or B)
@@ -191,3 +195,16 @@ def test_r4_uses_bill_before_1981_09():
     D["us_h15"] = {"1981-08-31": [15.0, None, None, 14.0], "1981-09-01": [15.0, 16.0, None, 14.5]}
     N = CU.shared(D)["N"]
     assert N["R4"] == {"1981-08-31": pytest.approx(-1.0), "1981-09-01": pytest.approx(-1.5)}
+
+
+def test_ver3_chip_helpers():
+    """heatspec_us VER 3：S6 槓桿 ETF 做多比重（近 N 個共同交易日成交金額）、S8／S9 那斯達克 100 期貨（算法同 S1、S2）。"""
+    from arm.lab import heatcalc_us as CU
+    bull = {"2026-01-05": 10.0, "2026-01-06": 20.0, "2026-01-07": 30.0, "2026-01-08": 40.0}
+    bear = {"2026-01-05": 10.0, "2026-01-06": 0.0, "2026-01-08": 60.0, "2026-01-09": 5.0}
+    got = CU.lev_share(bull, bear, days=2)                  # 共同日子：1/5、1/6、1/8
+    assert got == {"2026-01-06": 100.0 * 30 / 40, "2026-01-08": 100.0 * 60 / 120}
+    assert CU.net_share({"d": [30.0, 10.0, 100.0], "e": [1.0, 1.0, 0.0]}) == {"d": 20.0}
+    s = CU.noncomm({"d": [10.0, 0.0, 100.0]}, {"d": [50.0, 0.0, 500.0], "e": [5.0, 10.0, 50.0]})
+    assert s == {"d": 100.0 * (10 + 10) / (100 + 100), "e": 100.0 * (1 - 2) / 10}
+    assert set(CU.FILES) >= {"us_cftc_am_nq", "us_cftc_big_nq", "us_cftc_mini_nq", "us_lev_TQQQ", "us_lev_SOXS"}
