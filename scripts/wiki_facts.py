@@ -6,7 +6,8 @@
 帶單位的數字（50.7%、1,321 萬、30 分…）、「引號裡的字」（使用者原話、頁面上的字）、run 編號、VER 幾——
 每一個都要還出現在知識庫裡（比對時忽略空白與 * 號）。
   · 出現在別頁＝搬到別頁了（只列出來看，不算錯）；
-  · 哪裡都沒有＝不見了（算錯），除非日誌 wiki/log.md 有一行「- 刪：`記號`——原因」。
+  · 哪裡都沒有＝不見了（算錯），除非日誌 wiki/log.md 有一行「- 刪：`記號`、`記號`…——原因」
+    （2026-10-29 使用者：沒用或明顯被覆蓋的規則可以清除；一條規則一行，列出它帶走的記號）。
 
   python3 scripts/wiki_facts.py               整理過的頁全部比
   python3 scripts/wiki_facts.py ops/deploy     只比這幾頁（也會列搬到別頁的）
@@ -31,7 +32,8 @@ PATS = [
     re.compile(r"(?<!\d)(\d{8,})(?!\d)"),
     re.compile(r"(VER\s?\d+)"),
 ]
-DROP = re.compile(r"^- 刪：`([^`]+)`")
+DROP = re.compile(r"^- 刪：(.*?)——")
+TICK = re.compile(r"`([^`]+)`")
 
 
 def norm(s: str) -> str:
@@ -62,7 +64,12 @@ def dropped() -> set[str]:
     log = WS.WIKI / "log.md"
     if not log.exists():
         return set()
-    return {norm(m.group(1)) for s in log.read_text("utf-8").split("\n") if (m := DROP.match(s))}
+    out = set()
+    for s in log.read_text("utf-8").split("\n"):
+        m = DROP.match(s)
+        if m:
+            out |= {norm(t) for t in TICK.findall(m.group(1))}
+    return out
 
 
 def corpus() -> dict[str, str]:

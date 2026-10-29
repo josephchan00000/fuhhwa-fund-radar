@@ -5,6 +5,8 @@
 這一段期間 CLAUDE.md 仍是正本：改內容先改 CLAUDE.md，再跑這支重產各頁與目錄。
 第二段起（2026-10-29）：整理過的頁列在 ORGANIZED，這支不再重產、也不逐字比；改由 scripts/wiki_facts.py
 比「事實」（CLAUDE.md 那幾段的檔名、函式、日期、數字、原話都要還在知識庫裡）。還沒整理的頁照舊逐字。
+第三段（2026-10-29）整理完 lab 之後所有頁都整理過了：這支只產目錄、檢查切點與檔案清單；CUTS 仍用來告訴 wiki_facts.py
+CLAUDE.md 哪一段對應哪一頁（第 5 段瘦身之前）。
 EXTRA＝不是從 CLAUDE.md 切出來的頁（跨主題的教訓、使用者偏好、整理時拆出來的頁），只進目錄。
 
 用法：
@@ -240,20 +242,14 @@ CUTS = [
 ]
 
 # 第二段起整理過的頁（scripts/wiki_facts.py 比事實；這支不重產、不逐字比）
-ORGANIZED: set[str] = {p for p in PAGES if p.split("/")[0] in ("ops", "env", "main")}   # 第二段（2026-10-29）
+ORGANIZED: set[str] = set(PAGES)   # 第二段 ops、env、main，第三段 lab（2026-10-29）：全部整理過，這支只產目錄
 
 # 不是從 CLAUDE.md 切出來的頁：(標題, 一句話摘要)；沒有「/」的放在目錄的「跨主題」，
 # 「某頁-子題」排在那一頁後面。整理過的頁與這裡的頁，目錄的標題與摘要以頁面自己的第 1、3 行為準（這裡只是備用）。
 EXTRA: dict[str, tuple[str, str]] = {
     "user": ("使用者偏好與做決定的方式", "他要什麼、怎麼判斷好壞、畫面與用字的要求、怎麼一起做事；每條附原話與日期。"),
     "lessons": ("跨主題的教訓", "踩過不只一次、換個地方還會再踩的事；一條一句，細節連到出處頁。"),
-    "ops/routines-prompts": ("排程 prompt 原文（六段）", "從 ops/routines 拆出來的 prompt 原文。"),
-    "ops/news-rules-scope": ("新聞報告：守備範圍、來源與選題", "從 ops/news-rules 拆出來的細則。"),
-    "ops/news-rules-depth": ("新聞報告：分析深度與漲跌分析", "從 ops/news-rules 拆出來的細則。"),
-    "ops/news-rules-style": ("新聞報告：文風與格式", "從 ops/news-rules 拆出來的細則。"),
-    "ops/news-rules-numbers": ("新聞報告：數字口徑與籌碼", "從 ops/news-rules 拆出來的細則。"),
-    "main/fund-news-social": ("復華社群：PTT、YouTube、強基金", "從 main/fund-news 拆出來的社群部分。"),
-    "main/etf-holdings-routes": ("ETF 持股：放棄的抓取路線", "從 main/etf-holdings 拆出來的放棄路線與探針經過。"),
+    "lab/signals-versions-early": ("訊號總覽：版本紀錄 VER 1～16", "從 lab/signals-versions 拆出來的早期版本紀錄。"),
 }
 
 NOTE = ("> 這一頁目前是從 CLAUDE.md 逐字搬來的（知識庫第一段），還沒整理；有出入時以 CLAUDE.md 為準。\n"
@@ -323,8 +319,9 @@ def index() -> str:
         "",
         "> 復華基金雷達的知識庫（做法照 Karpathy 的 LLM Wiki）：先看這份目錄，再讀相關的頁；做完事更新那一頁，[日誌](log.md) 加一行。",
         "> 規劃：`docs/llm_wiki_plan.md`。",
-        "> CLAUDE.md 目前仍是正本（第 5 段瘦身之前）。標「逐字」的頁是 CLAUDE.md 的原文切片，改了 CLAUDE.md 就跑 "
-        "`python3 scripts/wiki_split.py` 重產；其他頁整理過，CLAUDE.md 那幾段改了要跟著改，`scripts/wiki_facts.py` 會檢查。",
+        "> CLAUDE.md 目前仍是正本（第 5 段瘦身之前）：CLAUDE.md 哪一段改了，對應的頁要跟著改，`python3 scripts/wiki_facts.py` 會檢查。"
+        + ("標「逐字」的頁是 CLAUDE.md 的原文切片，改了 CLAUDE.md 就跑 `python3 scripts/wiki_split.py` 重產。"
+           if set(PAGES) - ORGANIZED else ""),
         "",
     ]
     allp = {**PAGES, **EXTRA}
@@ -427,7 +424,7 @@ def main(argv: list[str]) -> int:
         if errs:
             print("→ 跑 `python3 scripts/wiki_split.py` 依 CLAUDE.md 重產 wiki/")
             return 1
-        print(f"✓ wiki/ 逐字的 {len(PAGES) - len(ORGANIZED)} 頁和 CLAUDE.md 一致（整理過的 {len(ORGANIZED)} 頁看 scripts/wiki_facts.py）")
+        print(f"✓ wiki/ 目錄與切點正確；逐字的 {len(PAGES) - len(ORGANIZED)} 頁和 CLAUDE.md 一致（整理過的 {len(ORGANIZED)} 頁看 scripts/wiki_facts.py）")
         return 0
     for name, txt in build(text).items():
         f = WIKI / name

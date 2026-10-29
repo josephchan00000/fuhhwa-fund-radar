@@ -1,6 +1,6 @@
 # 持股簡介補齊
 
-> 前十大簡介一再漏掉的根因、三道防呆、補簡介格式。
+> 前十大簡介一再漏掉的根因、三道防呆（10/21 起也含 ETF 持股、10/24 起含美股）、補簡介格式。
 > 原始資料：CLAUDE.md「已知環境限制與防呆」段的前十大持股簡介一條；每天怎麼補見 [全部更新](../ops/daily-update.md) 步驟 9⑤ 與 [排程](../ops/routines.md) 的 15:33 盤後籌碼班；
 > 程式：`scripts/check_holdings_intro.py`、`config/holding_profiles.json`、`tests/test_holdings_intro.py`
 > 最後更新：2026-10-29
@@ -15,6 +15,8 @@
 2. **每日固定補齊迴路**：主責＝15:33 盤後籌碼 Routine 步驟②；晨間 9⑤ 只讀、連兩天紅才 backstop。讀 gap 檔見 🔴 → WebSearch 補 `config/holding_profiles.json` 並 push。
    **push 就落地**：該檔已入 daily.yml 自動併檔通道（防呆＝JSON 驗證＋有簡介筆數不得減少、壞檔/倒灌保 main 版），不需 PR/merge/dispatch/監看。
 3. **pytest 守覆蓋**：`tests/test_holdings_intro.py` 斷言「已入庫的基金快照前十大 100% 有簡介」，容器端一旦看到含新標的的快照就會紅、逼在發佈前補齊。
+
+範圍：1、2 從 2026-10-21 起也含 ETF 完整持股、10-24 起含美股強勢品質股的股票（見 [全部更新](../ops/daily-update.md) 9⑤）；3 只守基金，ETF 持股另有 `test_etf_持股簡介覆蓋率不倒退`。
 
 ### 補簡介格式
 
