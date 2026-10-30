@@ -133,7 +133,7 @@ def rating_box(pack: dict, val: dict) -> str:
             ("上檔空間", sg(val.get("up"))),
             ("52 週收盤區間" if px.get("close52") else "52 週區間", f"{f(px.get('lo52'), pd)}～{f(px.get('hi52'), pd)} {cu}"),
             ("市值", f"{f(pack.get('cap'), 0)} {am}"),
-            ("目標價 ÷ " + ("未來 12 個月 EPS" if val.get("basis") == "fwd" else "近四季 EPS"),
+            ("目標價 ÷ " + ("未來 12 個月 EPS" if val.get("basis") == "fwd" else "每股近四季淨利" if _us(pack) else "近四季 EPS"),
              f"{f(val.get('tp_pe'), 1)} 倍" if val.get("tp_pe") else "—"),
             ("法人共識目標價" + (f"（{cons.get('stat')}）" if cons.get("stat") else ""),
              f"{f(ct.get('v'), pd)} {cu}（{ct.get('n') or '—'} 位）" if ct.get("v") else "—")]
@@ -272,7 +272,6 @@ def fin_section(pack: dict, F: Figs) -> str:
 def peer_section(pack: dict, F: Figs) -> str:
     ps = pack.get("peers") or []
     me = pack.get("peer_me") or {}
-    med = pack.get("peer_med") or {}
     us = _us(pack)
     if us:
         cols = [("cap", "市值（億美元）", 0), ("r1y", "近一年漲跌", "pct"), ("pe", "本益比（市值 ÷ 近四季淨利）", 1),
@@ -297,7 +296,10 @@ def peer_section(pack: dict, F: Figs) -> str:
     for p in [me] + ps:
         nm = f"<b>{escape(p.get('n') or '')}</b>" if p is me else escape(p.get("n") or "")
         rows.append([f'{nm} <span class="cd">{escape(p.get("c") or "")}</span>'] + [cell(p.get(k), d) for k, _, d in cols])
-    rows.append(["同業中位數"] + [cell(med.get(k), d) for k, _, d in cols])
+    def med(k):                                       # 本益比不含虧損或超過 BAND_PE_MAX 倍（和倍數範圍同一個規則；舊報告也照這樣顯示）
+        v = sorted(p[k] for p in ps if p.get(k) is not None and (k not in ("pe", "fpe") or 0 < p[k] <= S.BAND_PE_MAX))
+        return round(S.pctl(v, 0.5), 2) if v else None
+    rows.append(["同業中位數"] + [cell(med(k), d) for k, _, d in cols])
     csv = ["代號,公司," + ",".join(c[1] for c in cols)]
     for p in [me] + ps:
         csv.append(",".join([str(p.get("c") or ""), str(p.get("n") or "")] + ["" if p.get(k) is None else str(p.get(k)) for k, _, _ in cols]))
@@ -308,11 +310,13 @@ def peer_section(pack: dict, F: Figs) -> str:
     if us:
         note = (f"同業：S&P 1500 裡和本公司同一個 GICS 細產業（{pack.get('ind') or ''}，{pack.get('peer_n') or '—'} 家）中市值最接近的。"
                 f"同業的市值、本益比、營收年增是 {sd.get('scr') or ''} 那一週的（SEC 財報＋篩選器市值）；本公司那一列用報告日收盤。"
-                "未來 12 個月本益比＝股價 ÷ Yahoo 分析師未來 12 個月 EPS（3 位以上才列，多為調整後）。")
+                "未來 12 個月本益比＝股價 ÷ Yahoo 分析師未來 12 個月 EPS（3 位以上才列，多為調整後）。"
+                f"同業中位數的本益比不含虧損或超過 {int(S.BAND_PE_MAX)} 倍的公司（和倍數範圍同一個規則）。")
         srcs = f"{US_SRC['co']}、{US_SRC['fc']}、維基百科 S&P 1500 成分股表"
     else:
         note = ("同業：" + ("櫃買中心產業鏈同一節點的上市櫃公司，市值最大的兩家加上共同節點多、市值接近的" if how == "產業鏈"
-                           else "證交所產業別裡市值最接近的") + "。預估本益比＝收盤 ÷ 法人共識未來 12 個月 EPS（3 位以上才列）。")
+                           else "證交所產業別裡市值最接近的") + "。預估本益比＝收盤 ÷ 法人共識未來 12 個月 EPS（3 位以上才列）。"
+                f"同業中位數的本益比不含虧損或超過 {int(S.BAND_PE_MAX)} 倍的公司（和倍數範圍同一個規則）。")
         srcs = f"{SRC_PX}、{SRC_CO}、{SRC_FC}"
     out = [F.tab("同業比較", _table(head, rows, "peer"), srcs, dl) + f'<p class="tn">{escape(note)}</p>']
     fwd = (pack.get("val") or {}).get("basis") == "fwd"
@@ -343,12 +347,13 @@ def val_section(pack: dict, val: dict, fm: dict, F: Figs) -> str:
     labs = [r[0][2:].replace("-", "/") for r in rows]
     tp = val.get("tp")
     rv = []
-    if band.get("pe", {}).get("n"):
+    meth = v.get("method")                            # 只畫實際用的那把尺（本益比法不畫淨值比，反之亦然）
+    if meth == "pe" and band.get("pe", {}).get("n"):
         b = band["pe"]
         rv.append(F.fig(f"本益比區間（近 {S.BAND_YEARS} 年，" + ("市值 ÷ 近四季淨利）" if us else "近四季 EPS）"),
                          C.river(labs, [r[1] for r in rows], [r[2] for r in rows], [b["p25"], b["p50"], b["p75"]], unit=cu, label="本益比區間", name="本益比", tp=tp),
                          _src(pack, "co") + "、月底收盤"))
-    if band.get("pb", {}).get("n"):
+    if meth == "pb" and band.get("pb", {}).get("n"):
         b = band["pb"]
         rv.append(F.fig(f"淨值比區間（近 {S.BAND_YEARS} 年）",
                          C.river(labs, [r[1] for r in rows], [r[3] for r in rows], [b["p25"], b["p50"], b["p75"]], unit=cu, label="淨值比區間", name="淨值比", tp=tp),
@@ -358,21 +363,20 @@ def val_section(pack: dict, val: dict, fm: dict, F: Figs) -> str:
     fb = []
     pe_b, pp, pf = band.get("pe") or {}, v.get("peer_pe") or {}, v.get("peer_fpe") or {}
     bv = v.get("bvps")
-    meth = v.get("method")
     e4, f12e = v.get("eps4"), (v.get("f12m") or {}).get("eps")
     # 每一條都是「同一把尺的倍數 × 同一把尺的 EPS」（eqspec VER 2）；倍數寫在圖下的說明
     mults = []
-    if f12e and f12e > 0 and pf.get("n", 0) >= S.PEER_MIN:
+    if meth == "pe" and f12e and f12e > 0 and pf.get("n", 0) >= S.PEER_MIN:
         fb.append(("同業未來本益比 × 未來 12 個月 EPS", f12e * pf["p25"], f12e * pf["p75"], f12e * pf["p50"]))
         mults.append(f"同業未來本益比 {f(pf['p25'], 1)}～{f(pf['p75'], 1)} 倍")
-    if e4 and e4 > 0 and pe_b.get("n"):
+    if meth == "pe" and e4 and e4 > 0 and pe_b.get("n"):
         fb.append((f"本公司本益比 × {e4lab}", e4 * pe_b["p25"], e4 * pe_b["p75"], e4 * pe_b["p50"]))
         mults.append(f"本公司近 {S.BAND_YEARS} 年本益比 {f(pe_b['p25'], 1)}～{f(pe_b['p75'], 1)} 倍")
-    if e4 and e4 > 0 and pp.get("n", 0) >= S.PEER_MIN:
+    if meth == "pe" and e4 and e4 > 0 and pp.get("n", 0) >= S.PEER_MIN:
         fb.append((f"同業本益比 × {e4lab}", e4 * pp["p25"], e4 * pp["p75"], e4 * pp["p50"]))
         mults.append(f"同業本益比（近四季）{f(pp['p25'], 1)}～{f(pp['p75'], 1)} 倍")
     pb_b, ppb = band.get("pb") or {}, v.get("peer_pb") or {}
-    if bv and pb_b.get("n"):
+    if meth == "pb" and bv and pb_b.get("n"):
         fb.append(("本公司淨值比 × 每股淨值", bv * pb_b["p25"], bv * pb_b["p75"], bv * pb_b["p50"]))
         mults.append(f"本公司淨值比 {f(pb_b['p25'], 2)}～{f(pb_b['p75'], 2)} 倍")
     if meth == "pb" and bv and ppb:
@@ -417,9 +421,9 @@ def val_section(pack: dict, val: dict, fm: dict, F: Figs) -> str:
     out.append(F.tab("目標價怎麼算", _table(["項目", "數字", "說明"], t_rows, "tpc"), f"本站規則（評等與目標價規格第 {pack.get('spec') or 1} 版）"))
     if sc:
         su = val.get("scen_up") or {}
-        srows = [["悲觀", f"{f(sc['bear'])} {cu}", sg(su.get("bear")), (f"EPS 少 {int(S.SCEN_EPS * 100)}%、" if meth == "pe" else "") + f"{nm}用範圍下緣 {f(rng.get('lo'), 2)} 倍"],
+        srows = [["悲觀", f"{f(sc['bear'])} {cu}", sg(su.get("bear")), (f"{'每股淨利' if us and v.get('basis') == 'ttm' else 'EPS'} 少 {int(S.SCEN_EPS * 100)}%、" if meth == "pe" else "") + f"{nm}用範圍下緣 {f(rng.get('lo'), 2)} 倍"],
                  ["基本", f"{f(sc['base'])} {cu}", sg(su.get("base")), "目標價"],
-                 ["樂觀", f"{f(sc['bull'])} {cu}", sg(su.get("bull")), (f"EPS 多 {int(S.SCEN_EPS * 100)}%、" if meth == "pe" else "") + f"{nm}用範圍上緣 {f(rng.get('hi'), 2)} 倍"]]
+                 ["樂觀", f"{f(sc['bull'])} {cu}", sg(su.get("bull")), (f"{'每股淨利' if us and v.get('basis') == 'ttm' else 'EPS'} 多 {int(S.SCEN_EPS * 100)}%、" if meth == "pe" else "") + f"{nm}用範圍上緣 {f(rng.get('hi'), 2)} 倍"]]
         out.append(F.tab("三個情境", _table(["情境", "價格", "和報告日收盤比", "假設"], srows, "scen"), "本站規則"))
     return "".join(out)
 
@@ -686,7 +690,7 @@ a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
 .dt th,.dt td{padding:5px 7px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}.dt thead th{white-space:normal;vertical-align:bottom}
 .dt th:first-child,.dt td:first-child{text-align:left}.dt thead th{color:var(--mut);font-weight:600;border-bottom:1px solid var(--line2)}
 .dt.tpc td:nth-child(3),.dt.rev td:nth-child(2),.dt.scen td:nth-child(4){text-align:left;white-space:normal}
-.dt.peer tbody tr:first-child td{background:var(--card2)}.dt.peer tbody tr:last-child td{font-weight:600}
+.dt.peer:not(.mem) tbody tr:first-child td{background:var(--card2)}.dt.peer:not(.mem) tbody tr:last-child td{font-weight:600}
 .cd{color:var(--mut);font-size:11.5px}.tn{font-size:12px;color:var(--mut);margin:4px 0 0}
 .csv{font-size:12px;margin-left:8px}
 .why,.chain,.indl{background:var(--card2);border-radius:10px;padding:9px 13px;font-size:14px;margin:10px 0}.chain ul{margin:4px 0 0}
@@ -743,43 +747,43 @@ def ind_render(text: str, ip: dict, ctx: dict | None = None) -> str:
     p = R.parse(text)
     fm, sec = p["fm"], p["sec"]
     F = Figs()
-    agg = ip.get("rev_agg") or []
-    labs = [a["ym"][2:].replace("-", "/") for a in agg]
-    fig_rev = F.fig("台灣成員合計月營收與年增率（同一批公司）", C.bars_yoy(labs, [a["rev"] for a in agg], [a["yoy"] for a in agg], label="成員合計月營收"),
-                    SRC_MO)
-    nrows = [[escape(n["nn"]), f(n["n"], 0), f(n.get("foreign"), 0), f(n["cap"], 0), escape("、".join(t[1] for t in n["top"][:5]))]
-             for n in ip.get("nodes") or []]
-    chain_t = F.tab("產業鏈節點與台灣成員", _table(["節點", "台灣上市櫃", "知名外國企業", "市值合計（億元）", "市值最大的公司"], nrows, "chainx"),
-                    "櫃買中心產業價值鏈平台、證交所、櫃買中心")
-    mem = (ip.get("members") or [])[:20]
-    mrows = [[f'{escape(m["n"])} <span class="cd">{escape(m["c"])}</span>', f(m["cap"], 0), f(m["pe"], 1), f(m["pb"], 2), sg(m["ry3"], 0),
-              f(m["gm"], 1, "%"), f(m["om"], 1, "%"), f(m["roe"], 1, "%"), escape("、".join(m["nodes"][:2]))] for m in mem]
-    mem_t = F.tab("市值最大的 20 家", _table(["公司", "市值（億元）", "本益比", "淨值比", "近 3 月營收年增", "毛利率", "營益率", "ROE", "節點"], mrows, "peer"),
-                  f"{SRC_PX}、{SRC_CO}")
-    pe, pb, ry = ip.get("pe") or {}, ip.get("pb") or {}, ip.get("ry3") or {}
-    vrows = [["本益比（近四季）", f(pe.get("p25"), 1), f(pe.get("p50"), 1), f(pe.get("p75"), 1), f(pe.get("n"), 0)],
-             ["淨值比", f(pb.get("p25"), 2), f(pb.get("p50"), 2), f(pb.get("p75"), 2), f(pb.get("n"), 0)],
-             ["近 3 月營收年增（%）", f(ry.get("p25"), 1), f(ry.get("p50"), 1), f(ry.get("p75"), 1), f(ry.get("n"), 0)]]
-    val_t = F.tab("成員的估值與成長分布", _table(["", "第 25 百分位", "中位數", "第 75 百分位", "家數"], vrows, "vd"), f"{SRC_PX}、{SRC_CO}")
-    brows = [[escape(b["name"]), f"{b['level']}（{BUB_NAME.get(b['level'], '')}）", sg(b.get("run2"), 0), sg(b.get("net2"), 0),
-              sg(b.get("from_hi"), 1), "、".join(k for k in ("P1", "P2", "P3", "E", "G", "F") if b.get(k))] for b in ip.get("bubble") or []]
-    bub_t = F.tab("細分族群泡沫等級", _table(["族群", "等級", "兩年漲幅", "比大盤多漲（個百分點）", "離高點", "成立的條件"], brows, "bub"),
-                  "本站泡沫頁（細分族群，市值加權含息指數）") if brows else ""
     if ip.get("mk") == "us":
         sd = ip.get("src_d") or {}
         mrows = [[f'{escape(m["n"])} <span class="cd">{escape(m["c"])}</span>', f"S&amp;P {escape(str(m.get('ix') or ''))}",
                   f(m["cap"], 0) + ("＊" if m.get("cap_src") == "fwd" else ""), f(m["pe"], 1), f(m["fpe"], 1), sg(m.get("rq"), 1),
                   f(m.get("om"), 1, "%"), f(m.get("roe"), 1, "%"), sg(m.get("r1y"), 0)] for m in ip.get("members") or []]
-        mem_t = F.tab("S&amp;P 1500 的同細產業成員", _table(["公司", "指數", "市值（億美元）", "本益比（市值 ÷ 近四季淨利）", "未來 12 個月本益比",
-                                                       "最新一季營收年增", "營益率（近四季）", "ROE（近四季）", "近一年漲跌"], mrows, "peer"),
-                      f"維基百科 S&amp;P 1500 成分股表（{escape(sd.get('gics') or '')}）、SEC 財報與篩選器市值（{escape(sd.get('scr') or '')}）、"
-                      f"Yahoo Finance 預估（{escape(sd.get('fwd') or '')}）；＊＝篩選器沒有、用 Yahoo 的市值；空白＝本站沒有這家的資料")
+        mem_t = F.tab("S&P 1500 的同細產業成員", _table(["公司", "指數", "市值（億美元）", "本益比（市值 ÷ 近四季淨利）", "未來 12 個月本益比",
+                                                       "最新一季營收年增", "營益率（近四季）", "ROE（近四季）", "近一年漲跌"], mrows, "peer mem"),
+                      f"維基百科 S&P 1500 成分股表（{sd.get('gics') or ''}）、SEC 財報與篩選器市值（{sd.get('scr') or ''}）、"
+                      f"Yahoo Finance 預估（{sd.get('fwd') or ''}）；＊＝篩選器沒有、用 Yahoo 的市值；空白＝本站沒有這家的資料")
         pe, fpe = ip.get("pe") or {}, ip.get("fpe") or {}
         vrows = [["本益比（市值 ÷ 近四季淨利）", f(pe.get("p25"), 1), f(pe.get("p50"), 1), f(pe.get("p75"), 1), f(pe.get("n"), 0)],
                  ["未來 12 個月本益比", f(fpe.get("p25"), 1), f(fpe.get("p50"), 1), f(fpe.get("p75"), 1), f(fpe.get("n"), 0)]]
         val_t = F.tab("成員的估值分布", _table(["", "第 25 百分位", "中位數", "第 75 百分位", "家數"], vrows, "vd"), "同上")
         extra = {"主要廠商": mem_t, "美股成員與估值": val_t}
     else:
+        agg = ip.get("rev_agg") or []
+        labs = [a["ym"][2:].replace("-", "/") for a in agg]
+        fig_rev = F.fig("台灣成員合計月營收與年增率（同一批公司）", C.bars_yoy(labs, [a["rev"] for a in agg], [a["yoy"] for a in agg], label="成員合計月營收"),
+                        SRC_MO)
+        nrows = [[escape(n["nn"]), f(n["n"], 0), f(n.get("foreign"), 0), f(n["cap"], 0), escape("、".join(t[1] for t in n["top"][:5]))]
+                 for n in ip.get("nodes") or []]
+        chain_t = F.tab("產業鏈節點與台灣成員", _table(["節點", "台灣上市櫃", "知名外國企業", "市值合計（億元）", "市值最大的公司"], nrows, "chainx"),
+                        "櫃買中心產業價值鏈平台、證交所、櫃買中心")
+        mem = (ip.get("members") or [])[:20]
+        mrows = [[f'{escape(m["n"])} <span class="cd">{escape(m["c"])}</span>', f(m["cap"], 0), f(m["pe"], 1), f(m["pb"], 2), sg(m["ry3"], 0),
+                  f(m["gm"], 1, "%"), f(m["om"], 1, "%"), f(m["roe"], 1, "%"), escape("、".join(m["nodes"][:2]))] for m in mem]
+        mem_t = F.tab("市值最大的 20 家", _table(["公司", "市值（億元）", "本益比", "淨值比", "近 3 月營收年增", "毛利率", "營益率", "ROE", "節點"], mrows, "peer mem"),
+                      f"{SRC_PX}、{SRC_CO}")
+        pe, pb, ry = ip.get("pe") or {}, ip.get("pb") or {}, ip.get("ry3") or {}
+        vrows = [["本益比（近四季）", f(pe.get("p25"), 1), f(pe.get("p50"), 1), f(pe.get("p75"), 1), f(pe.get("n"), 0)],
+                 ["淨值比", f(pb.get("p25"), 2), f(pb.get("p50"), 2), f(pb.get("p75"), 2), f(pb.get("n"), 0)],
+                 ["近 3 月營收年增（%）", f(ry.get("p25"), 1), f(ry.get("p50"), 1), f(ry.get("p75"), 1), f(ry.get("n"), 0)]]
+        val_t = F.tab("成員的估值與成長分布", _table(["", "第 25 百分位", "中位數", "第 75 百分位", "家數"], vrows, "vd"), f"{SRC_PX}、{SRC_CO}")
+        brows = [[escape(b["name"]), f"{b['level']}（{BUB_NAME.get(b['level'], '')}）", sg(b.get("run2"), 0), sg(b.get("net2"), 0),
+                  sg(b.get("from_hi"), 1), "、".join(k for k in ("P1", "P2", "P3", "E", "G", "F") if b.get(k))] for b in ip.get("bubble") or []]
+        bub_t = F.tab("細分族群泡沫等級", _table(["族群", "等級", "兩年漲幅", "比大盤多漲（個百分點）", "離高點", "成立的條件"], brows, "bub"),
+                      "本站泡沫頁（細分族群，市值加權含息指數）") if brows else ""
         extra = {"產業定義與產業鏈": chain_t, "主要廠商": mem_t, "台灣成員營收與估值": fig_rev + val_t + bub_t}
     parts = [f'<header class="eqh"><div class="kick">產業報告・{escape(str(fm.get("made") or ""))}（資料到 {escape(ip.get("asof") or "")}）</div>'
              f'<h1>{escape(str(fm.get("title") or ""))}</h1><div class="who">{escape(ip.get("name") or "")}・'

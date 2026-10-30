@@ -367,7 +367,7 @@ def us_pack(code: str, asof: str | None = None) -> dict:
     me.update(n=fin.get("names", {}).get(code) or g[3] or code, cap=cap, px=px, pe=pe_now, pb=pb_now, r1y=dl["px"]["ret"].get("1y"),
               fpe=_r(px / f12["eps"], 1) if f12.get("eps") and f12["eps"] > 0 else None, roe=last.get("roe4"))
     keys = ("cap", "px", "pe", "fpe", "rq", "om", "roe", "r1y")
-    med = {k: _r(E._med([p[k] for p in prow]), 2) for k in keys}
+    med = {k: _r(E._med([p[k] for p in prow if k not in ("pe", "fpe") or E._pe_ok(p[k])]), 2) for k in keys}
     my = {"pe": pe_now, "pb": pb_now, "yld": None}
     sector = g[1]
     val = E.valuation(f12, qs, bd, prow, px, my, "金融保險" if sector == "Financials" else g[2], "us")
@@ -412,11 +412,17 @@ def ind_pack_us(key: str) -> dict:
         for r in ((s.get("peer") or {}).get("rows")) or []:
             rows[r[0]] = r
     asof = fwd.get("d") or fin.get("scr")
+    card_all = _read(LAB / "ussx_card.json", {}) or {}
     out = []
     for c in mem:
         q = (fwd.get("q") or {}).get(c)
         r = rows.get(c)
         px, fpe = _fwd_pe(fwd, c, asof or date.today().isoformat())
+        cd = (card_all.get("s") or {}).get(c)
+        if fpe is None and cd and cd.get("an"):          # 預估表沒有、選股頁美股卡有（同為 Yahoo、同一個加權法）→ 和個股報告一致
+            cl = closes(cd, card_all.get("cal") or [])
+            f = f12m_eps(cd["an"], cl[-1][0]) if cl else {}
+            fpe = round(cl[-1][1] / f["eps"], 1) if f.get("eps") and f["eps"] > 0 else None
         cap = r[1] if r else (round(q[0] / 1e8, 1) if q and q[0] else None)            # 同一欄先用同一個日期的來源（每週篩選器）
         out.append({"c": c, "n": gics[c][3], "ix": gics[c][0], "cap": cap, "cap_src": "fin" if r else ("fwd" if q and q[0] else None),
                     "fpe": fpe, "pe": r[5] if r else None, "rq": _pct(r[2]) if r else None, "om": _pct(r[3]) if r else None,

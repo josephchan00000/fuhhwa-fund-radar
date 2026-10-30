@@ -5,7 +5,7 @@ description: 產生投行首次報告格式的個股深度報告（評等、目�
 
 # 個股深度報告（equity-report）
 
-規劃與使用者決定：`docs/lab_equity_report_plan.md`；評等與目標價規格：`arm/lab/eqspec.py`（VER 2：倍數和 EPS 同一把尺、不自己預估）；
+規劃與使用者決定：`docs/lab_equity_report_plan.md`；評等與目標價規格：`arm/lab/eqspec.py`（VER 3：倍數和 EPS 同一把尺、不自己預估；未來 12 個月依會計年度加權；美股近四季＝近四季淨利 ÷ 最新股數）；
 頁面：`arm/lab/eqpage.py`；檢查：`scripts/check_eq.py`。方法改寫自 Anthropic financial-services-plugins（見 `NOTICE.md`）。
 
 ## 什麼時候用

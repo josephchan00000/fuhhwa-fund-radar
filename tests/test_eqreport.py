@@ -238,6 +238,7 @@ def test_us_page_uses_us_units_sources_and_sections():
     assert "240 美元" in html and "S&amp;P 500" in html and "SEC 財報" in html
     assert "EPS（財報，美元）" in html and "EPS（法人預估，美元）" in html            # 財報和預估分兩列
     assert "分析師評等與目標價" in html and "做空股數占流通股" in html and "強度 97" in html
+    assert "淨值比 × 每股淨值" not in html and "淨值比區間" not in html          # 本益比法只畫本益比那把尺
     assert "加權指數" not in html and "張" not in html.split("<body>", 1)[1].split("免責")[0] and "每月營收" not in html
 
 
@@ -248,3 +249,17 @@ def test_us_industry_sections():
     errs = R.check_ind(md, ip)
     assert not any("段落缺" in e or "不認得" in e for e in errs)
     assert any("台灣成員營收與估值" in e for e in R.check_ind(md.replace("美股成員與估值", "台灣成員營收與估值"), ip))
+
+
+def test_us_industry_page_renders_members_without_tw_fields():
+    from arm.lab import eqpage as P
+    ip = {"kind": "ind", "mk": "us", "key": "us-x", "name": "X", "n_members": 2, "asof": "2026-10-30",
+          "pe": {"p25": 20.0, "p50": 25.0, "p75": 30.0, "n": 2}, "fpe": {},
+          "members": [{"c": "ADP", "n": "Automatic Data Processing", "ix": "500", "cap": 1128.8, "cap_src": "fwd", "fpe": 22.4,
+                       "pe": None, "rq": None, "om": None, "roe": None, "r1y": None},
+                      {"c": "PAYX", "n": "Paychex", "ix": "500", "cap": 422.9, "cap_src": "fin", "fpe": 17.7, "pe": 23.4,
+                       "rq": 5.9, "om": 39.2, "roe": 47.1, "r1y": -5.0}]}
+    md = "---\nkey: us-x\nname: X\nmk: us\nmade: 2026-10-30\nasof: 2026-10-30\ntitle: t\n---\n" + "".join(
+        f"## {s}\n文字\n" for s in R.IND_SECTIONS_US)
+    html = P.ind_render(md, ip, {"cos": []})
+    assert "S&amp;P 1500 的同細產業成員" in html and "&amp;amp;" not in html and "1,129＊" in html and "台灣成員" not in html

@@ -141,7 +141,7 @@ def derived_numbers(pack: dict, fm: dict) -> set[float]:
             for y in x:
                 walk(y)
     walk(val)
-    out |= {S.PE_MAX, S.BUY_UP * 100, abs(S.SELL_DN) * 100, S.SCEN_EPS * 100, float(S.HORIZON_M), float(S.BAND_YEARS)}   # 規則本身的門檻
+    out |= {S.PE_MAX, S.BAND_PE_MAX, S.BUY_UP * 100, abs(S.SELL_DN) * 100, S.SCEN_EPS * 100, float(S.HORIZON_M), float(S.BAND_YEARS)}   # 規則本身的門檻
     for k in ("mult",):
         if fm.get(k) is not None:
             out.add(float(fm[k]))
@@ -321,5 +321,5 @@ def check_ind(text: str, ipack: dict) -> list[str]:
     if not 3 <= len(hl) <= 4:
         errs.append(f"重點要 3～4 條（■ 開頭），現在 {len(hl)} 條")
     from .eqfacts import numbers
-    errs += number_issues(p, numbers(ipack))
+    errs += number_issues(p, numbers(ipack) | {S.BAND_PE_MAX})     # 本益比超過 100 倍不算進分布（規則本身的門檻）
     return errs

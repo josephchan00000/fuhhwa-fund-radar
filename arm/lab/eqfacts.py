@@ -535,7 +535,7 @@ def tw_pack(code: str, D=None, pos=None, asof: str | None = None, peers: list[st
     me = peer_row(code, rows, cols, nm_all, fx, px1y, asof)
     me["n"] = co.get("n")
     keys = ("cap", "px", "pe", "fpe", "pb", "yld", "ry3", "gm", "om", "roe", "r1y")
-    med = {k: _r(_med([p[k] for p in prow]), 2) for k in keys}
+    med = {k: _r(_med([p[k] for p in prow if k not in ("pe", "fpe") or _pe_ok(p[k])]), 2) for k in keys}   # 本益比中位數和倍數範圍同一個排除規則
     val = valuation(f12, qs, bd, prow, px, my, co.get("ind"), "tw")
     nq = None
     if qs:
@@ -609,6 +609,11 @@ def valuation(f12: dict, qs: list[dict], bd: dict, prow: list[dict], px: float |
     return val
 
 
+def _pe_ok(v) -> bool:
+    """本益比可以放進分布（倍數範圍、同業中位數）：有值、賺錢、不超過 BAND_PE_MAX 倍。"""
+    return v is not None and 0 < v <= S.BAND_PE_MAX
+
+
 def numbers(pack: dict) -> set[float]:
     """資料包裡出現的所有數字（給檢查用；含常見的換算：億 ↔ 百萬不換，只收原值）。"""
     out: set[float] = set()
@@ -627,6 +632,16 @@ def numbers(pack: dict) -> set[float]:
         elif isinstance(x, str) and re.fullmatch(r"-?\d+(\.\d+)?", x):
             out.add(float(x))
     walk(pack)
+    uc = pack.get("us_chips") or {}               # 美股籌碼存的是比率（0.0639），頁面與報告寫成 %
+    sh, mh = uc.get("sh") or [], uc.get("mh") or []
+    for v in sh[:1] + mh[:2]:
+        if isinstance(v, (int, float)):
+            out.add(round(v * 100, 4))
+    if len(sh) > 3 and sh[2] and sh[3]:
+        out.add(round((sh[2] / sh[3] - 1) * 100, 4))
+    for t in uc.get("tx") or []:                  # 內部人交易的價格寫在說明文字裡（"Sale at price 237.00 - 240.07 per share."）
+        for x in re.findall(r"\d+(?:\.\d+)?", str(t[3]) if len(t) > 3 else ""):
+            out.add(float(x))
     return out
 
 

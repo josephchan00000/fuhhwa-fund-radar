@@ -78,3 +78,10 @@ def test_pick_info_from_qm():
     p = U.pick_info("ME", qm)
     assert p["rank"] == 2 and p["buy"] and p["om"] == 31.7 and p["cap"] == 123.8 and p["rule"]["cap"] == 20
     assert U.pick_info("ZZ", qm) == {}
+
+
+def test_numbers_include_chip_ratios_as_percent():
+    from arm.lab import eqfacts as E
+    n = E.numbers({"us_chips": {"sh": [0.0639, 3.65, 2480096.0, 2655517.0, "2026-10-15"], "mh": [0.14067, 0.94827, 856.0],
+                                "tx": [["2026-08-28", "X", "President", "Sale at price 237.00 - 240.07 per share.", 2818.0, 670163.0]]}})
+    assert {6.39, 14.067, 94.827, 237.0, 240.07} <= n and round((2480096 / 2655517 - 1) * 100, 4) in n
