@@ -86,3 +86,6 @@
 
 ## [2026-10-30] 收錄 | 行事曆已過公布時間必補（補值規劃第四段）
 - [行事曆與資料可信度](main/calendar.md)：提示包逐列列出已過公布時間還空白的列（`macronews.late_block`）、`_check_calendar_late`（10/31 起）、景氣燈號前值核對（`calfill._ndc_prev`）；每日 SOP 步驟 2、3 補一句（[每日 SOP](ops/daily-update.md)、[新聞規則](ops/news-rules.md)）。
+
+## [2026-10-30] 收錄 | 行事曆官方補值第三段（多接官方來源）
+- [行事曆與資料可信度](main/calendar.md)：勞工統計局非農、時薪、季調 CPI、PPI、JOLTS、ECI，歐洲央行決議，主計總處 GDP 年增（`arm/calsrc.py`，有列在等才抓）；初領失業金、台灣出口、零售銷售不接（原因寫在頁上）。
