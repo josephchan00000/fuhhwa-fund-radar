@@ -1,0 +1,18 @@
+name: 個股報告申請
+description: 請排程幫這家公司寫一份個股報告（照申請順序做，做好會在這張單回連結）
+title: "個股報告："
+labels: ["eq-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        從網頁按「要個股報告」打開的話，代號已經填好，直接按下面的 **Submit new issue** 就送出了。
+        台股只收月底市值 40 億以上的上市櫃公司；美股目前只收選股頁上有財報資料的那幾檔。
+  - type: input
+    id: code
+    attributes:
+      label: 代號
+      description: 台股 4 碼（例 4958）；美股代號（例 PAYC）
+      placeholder: "4958"
+    validations:
+      required: true

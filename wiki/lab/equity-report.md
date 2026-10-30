@@ -33,6 +33,7 @@
 - **每週名單**（`eqqueue.queue`／`scripts/eq_queue.py`，每週六排程用）：①美股強勢品質股下週一要買的、②新飆股名單標 b 的（照名次）、③已有報告且出了新一季財報的；
   扣掉 90 天內做過又沒有新財報的，每週最多 4 家（`EQ_WEEKLY_MAX`）。
   排程：Routine ⑦「個股報告週更」台北週六 14:17（[排程](../ops/routines.md)）：先做需要的產業報告、再每家一個子代理，push 經 daily.yml 併檔；推播只寫公司與評等。
+- **申請收件匣**（2026-10-30 第一段，`docs/lab_eq_request_plan.md`）：GitHub 申請單 `.github/ISSUE_TEMPLATE/eq-report.yml`（只有「代號」一欄）→ `.github/workflows/eq_inbox.yml`（開單／改單／重開單、`daily.yml` 跑完、每天台北 22:23 兜底、手動）跑 `scripts/eq_inbox.py`＋`arm/lab/eqinbox.py`：每次從 API 重讀開著的單對帳、不用事件內容；看網站的人都能申請（使用者選），站長的單排前面、其餘照先後，每個帳號同時 2 件、佇列 30 件；同一家已在佇列、90 天內做過又沒有新財報（`eqqueue.need`）、資料庫沒有這家（台股 `dashboard/co`；美股要 `ussx_fin`＋`ussx_card` 都有，約 13 檔）→ 回一句並關單；報告日 ≥ 申請日 → 回報告連結並關單。結果 `data/eq_requests.json`（`items` 照做的順序、`done` 留 30 天；不存帳號名稱）。網頁按鈕與每天晚上的排程是第二、三段。
 - **存放**：`reports/eq/{tw|us}/{代號}/{報告日}.md`＋同名 `.facts.json`，不覆蓋舊版（舊版＝評等歷史）；產業 `reports/eq/ind/{產業代號}/`。
 - **頁面**：`eqsite.build` → `dashboard/rp/{tw|us}-{代號}.html`、`dashboard/rp/ind-{產業代號}.html`（`<base href="../">`，錨點要寫 `rp/…html#id`）。
   圖是伺服器端畫的 SVG（一條縱軸、兩個單位就上下兩格），列印 A4。頁首「最新收盤」每次建頁讀 `dashboard/x9t.json`，報告本文不動。
@@ -50,6 +51,7 @@
   卡片上的連結只寫報告日與評等。評等名稱不用「建議」；首頁與附錄有固定的免責聲明。
 - 報告進 main 只走 `daily.yml` 的併檔通道（main 的檢查要過、同一天的舊檔不覆蓋）；`reports/eq/**` 推到 `claude/**` 就會觸發 `daily.yml`。
 - 容器內不跑資料抓取；資料包只讀 repo。
+- 申請單是任何人都能開的外部文字：只交給 `eqinbox.parse` 取代號、不放進任何指令（workflow 不用 `github.event` 內容）；排程只讀 `data/eq_requests.json`。
 
 ## 踩過的坑
 
