@@ -73,11 +73,13 @@ def build(out: Path = OUT, out_ser: Path = OUT_SER) -> bool:
         print(f"[配置] ⚠ 今年每個月的表沒有算出來：{type(e).__name__}: {e}")
         data["ytd"] = {}
     try:                                     # 個股報告（docs/lab_equity_report_plan.md 第 11 節）：個股卡、公司卡、美股個股卡最上面的連結
-        from . import eqsite
+        from . import eqinbox, eqsite
         data["eq"] = eqsite.links()
+        data["eqreq"] = eqsite.requests_map()           # 已申請（docs/lab_eq_request_plan.md 第 3.1 節）
+        data["equs"] = eqinbox.us_codes()               # 美股收得了的代號（其他美股不放「要個股報告」）
     except Exception as e:                   # noqa: BLE001 —— 失敗只是卡片上少一行連結
         print(f"[籌碼雷達] ⚠ 個股報告連結沒有放進頁面：{type(e).__name__}: {e}")
-        data["eq"] = {}
+        data["eq"], data["eqreq"], data["equs"] = {}, {}, []
     _cfg(data)                               # 配置頁（先用上一版的警訊讀數；finish() 換成今天的）
     try:                                     # 後台自我驗證紀錄（只有 CI 寫回 data/lab/val_log.json）
         from . import valog
@@ -455,7 +457,8 @@ h3{font-size:14.5px;margin:18px 0 6px;color:var(--accd)}
 
 .pasl{margin:10px 0 0;font-size:13.5px;line-height:1.8}.nw{white-space:nowrap}
 .eqrl{display:flex;gap:10px;align-items:baseline;margin:10px 0 0;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px}
-.eqrl a{font-weight:600}.eqrl span{color:var(--mut);font-size:13px}
+.eqrl a{font-weight:600}.eqrl span{color:var(--mut);font-size:13px}.eqrl b{font-weight:600;color:var(--ink2)}
+.eqrl a.eqreq{white-space:nowrap}
 .sgi{padding:8px 0;border-bottom:1px solid var(--line)}
 .lg{margin-top:6px}.lg .dsh{width:16px;height:0;border-top:2px dashed var(--gold);background:none}.lg b{font-size:11px;margin-right:3px}
 .ld{padding:44px 12px;text-align:center;color:var(--mut);font-size:13.5px;background:var(--card2);border-radius:10px}
@@ -1935,9 +1938,23 @@ function stCardSec(c){const P=PKU[c];if(!P)return '';const Q=CPOS[c]||[];
     return `<div class=sgi><b><a data-go="tw" data-at="pk-${esc(p.k)}">${esc(p.sname)}</a></b><div class=pasl style="margin-top:2px">${st}${wt}</div>`+
       (why?`<div class=st>為什麼：${esc(why)}</div>`:'')+
       (e.n?`<div class=st>過去照做：每${u}平均 ${pctT(e.avg)}、中位 ${pctT(e.med)}，${e.win}% 賺錢；同期大盤 ${pctT(e.mk)}</div>`:'')+`</div>`;}).join('')+`</section>`;}
-/* 個股報告一行（docs/lab_equity_report_plan.md 第 11 節）：有報告的公司，個股卡、公司卡、美股個股卡最上面放連結（D.eq＝{"tw:代號":[報告日,評等]}） */
-function eqRepLine(k){const e=(D.eq||{})[k];if(!e)return '';const i=k.indexOf(':');
-  return `<div class=eqrl><a href="rp/${esc(k.slice(0,i))}-${esc(k.slice(i+1))}.html">個股報告</a><span>${md(e[0])}・${esc(e[1])}</span></div>`;}
+/* 個股報告一行（docs/lab_equity_report_plan.md 第 11 節、docs/lab_eq_request_plan.md 第 3.1 節）：個股卡、公司卡、美股個股卡最上面。
+   有報告＝連結（D.eq＝{"tw:代號":[報告日,評等]}）；已申請＝申請日（D.eqreq＝{"tw:代號":[單號,申請日]}）；都沒有＝「要個股報告」，
+   打開 GitHub 申請單、代號已填好（美股只有 D.equs 裡的才有）；按過的在這台裝置記 7 天，先寫「已送出，等排程」。 */
+const EQ_FORM='https://github.com/josephchan00000/fuhhwa-fund-radar/issues/new?template=eq-report.yml';
+function eqReqUrl(c,nm){return EQ_FORM+'&title='+encodeURIComponent('個股報告：'+(nm&&nm!==c?nm+'（'+c+'）':c))+'&code='+encodeURIComponent(c);}
+function eqSent(k){try{const t=JSON.parse(localStorage.getItem('eq.sent')||'{}')[k];return !!t&&Date.now()-t<7*864e5;}catch(e){return false;}}
+function eqRepLine(k,nm){const e=(D.eq||{})[k];const i=k.indexOf(':'),mk=k.slice(0,i),c=k.slice(i+1);
+  if(e)return `<div class=eqrl><a href="rp/${esc(mk)}-${esc(c)}.html">個股報告</a><span>${md(e[0])}・${esc(e[1])}</span></div>`;
+  const q=(D.eqreq||{})[k];
+  if(q)return `<div class=eqrl><b>個股報告</b><span>已申請（${md(q[1])}），排程照順序做</span></div>`;
+  if(mk==='us'&&(D.equs||[]).indexOf(c)<0)return '';
+  if(eqSent(k))return `<div class=eqrl><b>個股報告</b><span>已送出，等排程</span></div>`;
+  return `<div class=eqrl><a class=eqreq href="${esc(eqReqUrl(c,nm))}" target=_blank rel=noopener data-eqk="${esc(k)}">要個股報告</a><span>會打開申請單，代號已填好，按送出就好</span></div>`;}
+function eqMarkSent(root){(root||document).querySelectorAll('a.pkeq.eqreq[data-eqk]').forEach(a=>{if(eqSent(a.dataset.eqk))a.outerHTML='<span class=pkeq>已送出</span>';});}
+document.addEventListener('click',ev=>{const a=ev.target.closest&&ev.target.closest('a.eqreq[data-eqk]');if(!a)return;
+  try{const s=JSON.parse(localStorage.getItem('eq.sent')||'{}');s[a.dataset.eqk]=Date.now();localStorage.setItem('eq.sent',JSON.stringify(s));}catch(e){}
+  setTimeout(()=>{const p=a.closest('.eqrl');if(p)p.innerHTML='<b>個股報告</b><span>已送出，等排程</span>';else if(a.isConnected)a.outerHTML='<span class=pkeq>已送出</span>';},0);});
 function renderStock(c,keep){
   const r=BY[c];if(!r){hideStock();return;}const s=SER?(SER[c]||{}):null;const tw=r.m!=='os';const u=tw?'張':'股';
   if(!SER&&SERST!=='err')loadSer().then(()=>reStock(c),()=>reStock(c));
@@ -1950,7 +1967,7 @@ function renderStock(c,keep){
    `<div class=ttl><b>${esc(r.n)}</b><span class=cd>${i>=0?`${i+1}／${CTX.length} · `:''}${esc(r.c)} · ${MK[r.m]||''}${r.ind?' · '+esc(r.ind):''}</span></div>`+
    `<div class=pxw><b>${fp(r.px)}</b>${sgn(r.ch,2,'%')}</div><a class="nv${nx?'':' off'}" id=nx title="下一檔（→）">›</a><a class=x id=x title="關閉（Esc）">×</a></div>`+
    `<nav class=cnav>${secs.map(([id,t])=>`<a data-cto=${id}>${t}</a>`).join('')}</nav></div>`;
-  h+=eqRepLine('tw:'+c)+stCardSec(c);
+  h+=eqRepLine('tw:'+c,r.n)+stCardSec(c);
   h+=`<section class=csec id=c-sum><div class=sgrow>${sgChips(r.sg)||'<span class=st>今日無觸發訊號</span>'}</div><ul class=sum>${sumLines(r).map(x=>`<li>${x}</li>`).join('')}</ul><div class=kpis>${kpis(r)}</div></section>`;
   h+=coSec(c,W,()=>reStock(c));                     /* 公司分析（copage.py；點進去才下載 co/{代號}.json） */
   const lastD=(D.dates||[]).slice(-1)[0],serD=SERD.slice(-1)[0];

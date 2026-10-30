@@ -157,12 +157,12 @@ def test_boom_box_trial_statuses_and_card_sections():
     assert [r[6] for r in X["rows"]] == ["b", "b", "b", "b"] and X["trial"] and X["buyd"] == "2026-11-02" and X["fix"] == "2026-10-30"
     assert X["rows"][0] == ["6870", "騰雲", 92.0, 1, "符合：強度 92（要 90 以上）", 391.5, "b"]
     assert "old" not in X and "spot" not in X and X["td"][0] < "2026-10-28" < X["td"][1]
-    from arm.lab import eqqueue as Q                                                      # 個股報告週更讀同一張名單（10/30 列改 7 欄時漏改過）
-    assert [c["code"] for c in Q.candidates("const D=" + json.dumps({"bx": X}, ensure_ascii=False, separators=(",", ":")) + ";", {})] == \
-        [r[0] for r in X["rows"] if r[6] == "b"]
     P2 = dict(P, hold=[{"c": f"{9000 + i}", "n": "x", "sell": False} for i in range(7)])     # 7 格滿了：只剩 1 格
     assert [r[6] for r in PP.boom_box(P2)["rows"]] == ["b", "w", "w", "w"]
     V = PP.tw_view({"adv": _A(), "n8": P}, {"R": {}}, today="2026-10-28")
+    from arm.lab import eqqueue as Q                    # 個股報告每天晚上那班讀同一份事件（10/30 名單改 7 欄時，舊的讀法漏改過一次）
+    page = "const D=" + json.dumps({"pick": {"tw": V}}, ensure_ascii=False, separators=(",", ":")) + ";"
+    assert [c["code"] for c in Q.upcoming("2026-10-30", page, {})] == [r[0] for r in X["rows"] if r[6] == "b"]
     c = V["cards"][V["cards"].index('id="pk-boom"'):V["cards"].index('id="pk-s3"')]
     order = [c.index(x) for x in ("接下來", 'id="pkmine"', 'id="pkbx"', "不等買點", "名單位置圖", "規則、過去照做、風險", "照規則的紀錄")]
     assert order == sorted(order)

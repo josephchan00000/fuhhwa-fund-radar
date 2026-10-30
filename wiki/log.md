@@ -106,6 +106,9 @@
 ## [2026-10-30] 收錄 | 個股報告申請收件匣（第一段）
 - [個股深度報告與產業報告](lab/equity-report.md) 現在怎麼運作、不能改的規則各一條；路徑提醒 `.claude/rules/equity.md` 加兩個檔；規劃 `docs/lab_eq_request_plan.md` 第 7 節。
 
+## [2026-10-30] 收錄 | 個股報告申請第二、三段：網頁按鈕、每天晚上的名單、⑦ 改每天 20:47
+- [個股深度報告與產業報告](lab/equity-report.md) 每天晚上的名單、網頁上的申請；[排程](ops/routines.md) ⑦ 名稱、cron、原文；[時點地圖](ops/schedule.md) 20:47 一行。
+
 ## [2026-10-30] 收錄 | 寬度與深度規格 VER 1（第一段）
 - `arm/lab/breadthspec.py`（`tests/test_breadthspec.py` 鎖住）、規劃 `docs/lab_breadth_plan.md` 第 9 節：股票層級只當訊號、產業層級當泡沫參考讀數＋美國 48 產業 1931 起驗證；算之前 commit。
 
