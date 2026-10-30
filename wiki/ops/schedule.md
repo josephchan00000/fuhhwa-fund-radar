@@ -14,8 +14,9 @@
 - 08:58～09:00:15 台指期盤前取樣（`fut_preopen.yml` 凌晨 03:47～07:17 五班 cron，最早的那班等到 08:58；docs/lab_fut_plan.md 第 10 節）。
 - 15:33 Routine → 15:40·當日三大法人、外資期貨、ETF 當日漲跌、全球溫度計上線（15:40 cron 兜底）；**＋前十大簡介缺口順手補**（主責見 [全部更新](daily-update.md) 9⑤，2026-08-12 使用者指定掛本班）。
 - 18:58 Routine → ~19:10·基金 NAV＋主動式 ETF 當日 PCF 上線（19:10 cron 兜底；etf_holdings 17:40 cron 遲到自癒）。
+- 20:47 Routine → [個股報告](../lab/equity-report.md)（網頁申請的＋接下來 2 個交易日要買的，每班最多 3 家；沒事就安靜結束；push 經 daily.yml 併檔、建頁）。
 - 22:05 cron：融資融券（~21:30 公布）、P/C 比、NAV 掃尾。23:20 夜檢（Routine 鏈的 send_later，只驗不抓）。
-- 週頻：週一 08:05 Routine → [ETF 募集週掃](etf-weekly-scan.md)（更新 `data/etf_upcoming.json`，push 經 daily.yml 併檔上線）；週六 14:17 Routine → [個股報告週更](../lab/equity-report.md)（最多 4 家，push 經 daily.yml 併檔、建頁）；週日 19:00 strategy_cands.yml 排程（試用中的候選補紀錄、補算）、
+- 週頻：週一 08:05 Routine → [ETF 募集週掃](etf-weekly-scan.md)（更新 `data/etf_upcoming.json`，push 經 daily.yml 併檔上線）；週日 19:00 strategy_cands.yml 排程（試用中的候選補紀錄、補算）、
   19:47 Routine → [策略探勘週報](strategy-scouting.md)（新候選經 strategy_cands.yml 合併通道回測、併進 main、重建）。Routine 見 [排程搬家](routines.md)。
 
 ### 三層（2026-08-03）

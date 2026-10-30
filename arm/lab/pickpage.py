@@ -456,19 +456,36 @@ def week_rows(evs: list[dict], d: str | None, main: list[str], n: int = WEEK_N) 
     return {"a": a, "b": b, "rows": rows, "fix": [[k, v] for k, v in fix.items()]}
 
 
-def week_box(W: dict, col: dict) -> str:
-    """week_rows → 一張表（手機變成一列一張）。股票可以點（開個股卡）。"""
+def eq_mark(c: str, n: str, eq: dict | None) -> str:
+    """「這週要做的事」每一檔旁邊的個股報告小標記（docs/lab_eq_request_plan.md 第 3.1 節）：報告（連結）／已申請／要報告（開申請單）。
+    eq＝{"rep": eqsite.links(), "req": eqsite.requests_map()}；沒給＝不放。"""
+    if eq is None:
+        return ""
+    from . import eqinbox as I
+    k = f"tw:{c}"
+    if k in (eq.get("rep") or {}):
+        return f'<a class="pkeq" href="rp/tw-{_e(c)}.html">報告</a>'
+    if k in (eq.get("req") or {}):
+        return '<span class="pkeq">已申請</span>'
+    return (f'<a class="pkeq eqreq" href="{_e(I.form_url(c, n))}" target="_blank" rel="noopener" data-eqk="{_e(k)}"'
+            ' title="打開申請單，代號已填好，按送出就好">要報告</a>')
+
+
+def week_box(W: dict, col: dict, eq: dict | None = None) -> str:
+    """week_rows → 一張表（手機變成一列一張）。股票可以點（開個股卡）；買的那幾檔旁邊放個股報告的小標記（eq_mark）。"""
     if not W.get("a"):
         return ""
-    def its(L):
-        a = [f'<a {CFP._ck(c)}>{_e(n)}</a>' for c, n in L[:10]]
-        return "、".join(a) + (f" 等 {len(L)} 檔" if len(L) > 10 else "")
+    def one(c, n, buy):
+        a, m = f'<a {CFP._ck(c)}>{_e(n)}</a>', eq_mark(c, n, eq) if buy else ""
+        return f'<span class="nw">{a}{m}</span>' if m else a        # 名字和小標記不拆到兩行
+    def its(L, buy=False):
+        return "、".join(one(c, n, buy) for c, n in L[:10]) + (f" 等 {len(L)} 檔" if len(L) > 10 else "")
     tr = []
     for r in W["rows"]:
         k = r["k"]
         c = f' style="--c:var(--cfc{col[k]})"' if col.get(k) else ""
         what = (f'<b class="a {"buy" if r["act"] == "買進" else "sell" if r["act"] == "賣出" else ""}">{_ACT[r["act"]]}</b>'
-                + (f' {its(r["items"])}' if r["items"] else "") + (f'<div class="nt">{_e(r["note"])}</div>' if r["note"] else ""))
+                + (f' {its(r["items"], r["act"] == "買進")}' if r["items"] else "") + (f'<div class="nt">{_e(r["note"])}</div>' if r["note"] else ""))
         tr.append(f'<tr{c}><td class="pkwd">{_e(_mdw(r["d"]))}{_e(r["at"])}</td>'
                   f'<td class="pkwk"><a class="tg" data-to="pk-{_e(k)}">{_e(PC.SHORT.get(k, k))}</a></td><td class="pkwm">{what}</td>'
                   f'<td class="pkwc"><span class="pkwl">條件</span>{_e(r["cond"] or "—")}</td>'
@@ -528,7 +545,7 @@ def tw_view(data: dict, bundle: dict, today: str | None = None) -> dict:
     olist = "".join(other_line(k, book[k], evs, A) for k in other if k in book)
     ks = [[k, PC.SHORT.get(k, k), col.get(k, 0), 1] for k in main] + [[k, PC.SHORT.get(k, k), 0, 0] for k in other]
     return {"d": cal["d"], "end": cal["end"], "ev": _pack(evs), "ks": ks, "hol": holidays("tw", cal["d"], cal["end"]),
-            "todo": week_box(week_rows(evs, cal["d"], main), col),
+            "todo": week_box(week_rows(evs, cal["d"], main), col, {"rep": data.get("eq") or {}, "req": data.get("eqreq") or {}}),
             "cards": "".join(cards), "others": "".join(others), "olist": olist, "pos": boom_pos(P, X), "bx": X,
             "names": {k: (NAMES.get(k) or (book.get(k) or {}).get("name") or k) for k in main + other}}
 
@@ -677,6 +694,8 @@ CSS = r"""
 .pkdl2 .at{color:var(--mut);font-size:12.5px}
 .pkdl2 .tg{font-size:12px;padding:0 7px;border-radius:999px;border:1px solid var(--c,var(--mut));color:var(--c,var(--mut));white-space:nowrap}
 .pkdl2 .tx b.a{font-weight:700;margin-right:4px}.pkdl2 .tx b.buy{color:var(--gain)}.pkdl2 .tx b.sell{color:var(--loss)}
+.pkeq{font-size:11px;margin-left:3px;padding:0 5px;border-radius:999px;border:1px solid var(--line2);color:var(--mut);white-space:nowrap;vertical-align:1px}
+a.pkeq{color:var(--acc);cursor:pointer}
 .pkdl2 .tx a{color:var(--ink);cursor:pointer}.pkdl2 .tx a:hover{color:var(--acc)}.pkdl2 .tx .nt{color:var(--mut);font-size:12.5px}
 .pknx2{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--ink2);margin:10px 0 0;padding-top:8px;border-top:1px solid var(--line)}
 .pknx2 b{color:var(--ink);font-weight:700;margin-right:2px}.pknx2 i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c,var(--mut));margin-right:4px}
@@ -841,7 +860,7 @@ function vPick(mk){const P=PICK[mk]||{};let h='';
     h+=P.cards||'';
     if(P.olist)h+=`<section class=sec id="pk-${mk}-o" data-nav="其他策略"><details class=pkox><summary>其他策略（${(P.ks||[]).filter(x=>!x[3]).length} 條，過去成績比上面普通）</summary><ul class=pkol>${P.olist}</ul>${P.others||''}</details></section>`;}
   $('#main').innerHTML=h+`<footer class=cffoot><a data-go="strat">全部策略</a>・<a data-go="plan" data-pm="${mk}">原本的配置</a>・<a href="x9r.html">研究紀錄</a></footer>`;
-  pkCalDraw(mk);
+  pkCalDraw(mk);if(typeof eqMarkSent==='function')eqMarkSent($('#main'));
   $$('#main [data-to]').forEach(a=>a.onclick=e=>{e.preventDefault();const t=document.getElementById(a.dataset.to);const d=t&&t.closest('details');if(d)d.open=true;jump(a.dataset.to);});
   const so=$('#main .cfsxo');if(so)so.addEventListener('toggle',()=>{if(!so.open)return;   /* 另一份飆股名單（只看）：打開才組、才畫 */
     if(!so.dataset.done){so.querySelector('.cfsxob').innerHTML=typeof wlCfg==='function'?wlCfg():'';so.dataset.done=1;}spotDraw();});
