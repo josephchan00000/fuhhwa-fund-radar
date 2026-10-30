@@ -47,7 +47,7 @@ def run(name, fn):
 
 # ── 勞工統計局：非農、時薪、季調 CPI、PPI、JOLTS、ECI ─────────────────────────────
 
-BLS_TRY = ["CES0000000001", "CES0500000003", "CUSR0000SA0", "CUSR0000SA0L1E",
+BLS_TRY = ["CES0000000001", "CES0500000003", "CEU0500000003", "CUSR0000SA0", "CUSR0000SA0L1E",
            "WPSFD4", "WPUFD4", "WPSFD4131", "WPUFD4131", "WPSFD49116", "WPUFD49116",
            "JTS000000000000000JOL", "CIS1010000000000Q", "CIU1010000000000A", "CIS1020000000000Q"]
 
@@ -61,6 +61,7 @@ def bls():
                 f"{'(' + ','.join(f.get('code', '') for f in r.get('footnotes') or [] if f) + ')' if any(r.get('footnotes') or []) else ''}"
                 for r in d[:3]]
         print(f"{s.get('seriesID'):24s} n={len(d):3d}  {' '.join(last)}")
+        print("   all:", " ".join(f"{r.get('year')}{r.get('period')}={r.get('value')}" for r in d))
 
 
 # ── 勞工部：季調初領失業金（第二輪：claims.asp 的 wkclaim 表單送到 wkclaims/report.asp） ─────────────
@@ -207,8 +208,14 @@ def census():
 
 
 if __name__ == "__main__":
-    run("勞工部 claims.asp 表單", dol_form)
-    run("歐洲央行", ecb)
-    run("財政部 出口（data.gov.tw）", mof)
-    run("主計總處 GDP XML", dgbas)
-    run("普查局 零售銷售", census)
+    # 第三輪起：全文寫進 data/lab/_calprobe.txt（lab_backfill 會 commit 回分支，讀檔比讀 CI 日誌省），日誌只印行數
+    out = Path(__file__).resolve().parent.parent / "data" / "lab" / "_calprobe.txt"
+    with open(out, "w", encoding="utf-8") as fh:
+        sys.stdout = fh
+        run("勞工統計局（BLS v1）", bls)
+        run("勞工部 claims.asp 表單", dol_form)
+        run("歐洲央行", ecb)
+        run("財政部 出口（data.gov.tw）", mof)
+        run("主計總處 GDP XML", dgbas)
+    sys.stdout = sys.__stdout__
+    print("寫入", out, sum(1 for _ in open(out, encoding="utf-8")), "行")
