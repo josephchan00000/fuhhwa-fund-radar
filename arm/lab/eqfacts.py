@@ -445,7 +445,8 @@ def _json_obj(text: str, key: str):
 
 
 def pick_info(code: str, html_path: Path | None = None) -> dict:
-    """選股頁新飆股名單（dashboard/x9.html 的 D.pick.tw.bx）裡這一檔的那一列：符合哪一條、名次、位置、參考價位。"""
+    """選股頁新飆股名單（dashboard/x9.html 的 D.pick.tw.bx）裡這一檔的那一列：符合哪一條、名次、上名單幾週、照規則會不會買。
+    列的最後一欄＝現況（b 會買、h 拿著、w 等空位）。書上的買點 2026-10-30 起不放（新飆股不等買點；docs/lab_pick_arch_plan.md）。"""
     p = html_path or DASH / "x9.html"
     try:
         text = p.read_text(encoding="utf-8")
@@ -455,7 +456,7 @@ def pick_info(code: str, html_path: Path | None = None) -> dict:
     for i, r in enumerate(bx.get("rows") or []):
         if r and r[0] == code:
             return {"list": "新飆股", "d": bx.get("d"), "fix": bx.get("fix"), "buyd": bx.get("buyd"), "rank": i + 1,
-                    "rs": r[2], "weeks": r[3], "why": r[4], "spot": r[5], "plan": r[6], "will_buy": r[8] == "b"}
+                    "rs": r[2], "weeks": r[3], "why": r[4], "will_buy": r[-1] == "b", "hold": r[-1] == "h"}
     return {}
 
 

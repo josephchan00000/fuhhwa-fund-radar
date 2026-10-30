@@ -1,4 +1,5 @@
-"""選股頁（arm/lab/pickpage.py；docs/lab_pick_page_plan.md）：台股｜美股＝進場行事曆＋每條策略一張卡；原本的配置搬到研究紀錄。"""
+"""選股頁（arm/lab/pickpage.py；docs/lab_pick_page_plan.md）：台股｜美股＝進場行事曆＋每條策略一張卡；原本的配置搬到研究紀錄。
+台股推薦架構（docs/lab_pick_arch_plan.md 第 3 節）：買不買只看那條策略自己的規則，「買」的旁邊不放別的方法的價位。"""
 import json
 import re
 import shutil
@@ -12,6 +13,8 @@ from test_corepage import BANNED, _text
 
 # 主頁面用字（wiki/lab/plain-words.md；test_plain 用瀏覽器掃整頁，這裡先擋 Python 組的卡片）
 PLAIN_BAD = ("判定", "樣本", "研究", "注意", "門檻", "VER", "★", "●", "○", "◆", "核心", "衛星", "警訊", "占全部資金", "配置", "→")
+# 書上（《超級績效》）的位置與參考價位：新飆股不等買點，「買」的旁邊不准出現（使用者 2026-10-30：「明明很多都還沒有到買點，這樣為什麼會買」）
+BOOK = ("突破", "才算", "等拉回", "還差", "52 週高點", "參考買點", "打底中", "漲太遠")      # 「停損」不算：長線自己的出場規則有
 
 
 def _P():
@@ -24,15 +27,12 @@ def _P():
 
 
 def _P8():
-    """N8（8 格那一本）還沒有部位、這一週到 10/28 收盤的試算名單 4 檔、原本的飆股名單 2 檔。"""
-    rows = [{"c": "6870", "n": "騰雲", "rs": 92.0, "wk": 1, "why": ["符合：強度 92（要 90 以上）"], "px": 391.5,
-             "pl": {"st": 5, "hi": 391.5, "m50": 300.13}},
-            {"c": "5351", "n": "鈺創", "rs": 90.0, "wk": 1, "why": [], "px": 114.0, "pl": {"st": 3, "piv": 119.5, "stop": 109.94}},
-            {"c": "3008", "n": "大立光", "rs": 95.0, "wk": 3, "why": [], "px": 6335.0, "pl": {"st": 0, "hi": 7995.0}},
-            {"c": "3605", "n": "宏致", "rs": 95.0, "wk": 3, "why": [], "px": 171.5, "pl": {}}]
-    old = [{"c": "3189", "n": "景碩", "tags": ["s9"], "rs": 99.0, "px": 1035.0, "on": False, "miss": ["近 20 日漲停 0 次（要 1 次以上）"], "pl": {}},
-           {"c": "3605", "n": "宏致", "tags": [], "rs": 95.0, "px": 171.5, "on": True, "pl": {}}]
-    pick = {"d": "2026-10-28", "last": "2026-10-28", "trial": True, "n": 4, "top": 8, "rows": rows, "old": old,
+    """N8（8 格那一本）還沒有部位、這一週到 10/28 收盤的試算名單 4 檔（sxlive.pick_state 的格式：沒有書上的買點）。"""
+    rows = [{"c": "6870", "n": "騰雲", "rs": 92.0, "wk": 1, "why": ["符合：強度 92（要 90 以上）"], "px": 391.5},
+            {"c": "5351", "n": "鈺創", "rs": 90.0, "wk": 1, "why": [], "px": 114.0},
+            {"c": "3008", "n": "大立光", "rs": 95.0, "wk": 3, "why": [], "px": 6335.0},
+            {"c": "3605", "n": "宏致", "rs": 95.0, "wk": 3, "why": [], "px": 171.5}]
+    pick = {"d": "2026-10-28", "last": "2026-10-28", "trial": True, "n": 4, "top": 8, "rows": rows,
             "px": {r["c"]: r["px"] for r in rows}}
     return {"d": "2026-10-28", "next": "2026-10-29", "next_wk": "2026-10-30", "wk": None, "hold_n": 60, "slots": 8, "take": None,
             "n_list": 0, "list": [], "hold": [], "buy": [], "trial": [], "pick": pick}
@@ -150,20 +150,24 @@ console.log(JSON.stringify({m:S0.m,ms,left:pkLeft(PICK.tw),on:[...S0.on],
 
 
 def test_boom_box_trial_statuses_and_card_sections():
-    """新飆股（N8，從現金開始）：試算名單照規則會買前 8 格、原本的飆股名單寫差在哪；卡片＝這週要做的事 → 我的 → 這週名單 → 位置圖 → 規則（收起）→ 照規則的紀錄。"""
+    """新飆股（N8，從現金開始）：試算名單照規則會買前 8 格；列只有這條策略自己的欄（沒有書上的位置與參考價位）；
+    卡片＝接下來 → 我的 → 這週名單 → 為什麼不等買點 → 名單位置圖 → 規則（收起）→ 照規則的紀錄；原本的飆股名單只留一行連到研究紀錄。"""
     P = _P8()
-    X = PP.boom_box(P, {"6870": [92, -0.5], "3008": [95, -20.0]})
-    assert [r[8] for r in X["rows"]] == ["b", "b", "b", "b"] and X["trial"] and X["buyd"] == "2026-11-02" and X["fix"] == "2026-10-30"
-    assert X["rows"][0][6][0] == "等拉回 300.1" and X["rows"][1][6] == ["突破 119.5～125.5", "停損 109.9"]
-    assert [o[5] for o in X["old"]] == [False, True] and "漲停" in X["old"][0][6]
-    assert [p[4] for p in X["spot"]] == ["b", "b"] and X["td"][0] < "2026-10-28" < X["td"][1]
+    X = PP.boom_box(P)
+    assert [r[6] for r in X["rows"]] == ["b", "b", "b", "b"] and X["trial"] and X["buyd"] == "2026-11-02" and X["fix"] == "2026-10-30"
+    assert X["rows"][0] == ["6870", "騰雲", 92.0, 1, "符合：強度 92（要 90 以上）", 391.5, "b"]
+    assert "old" not in X and "spot" not in X and X["td"][0] < "2026-10-28" < X["td"][1]
     P2 = dict(P, hold=[{"c": f"{9000 + i}", "n": "x", "sell": False} for i in range(7)])     # 7 格滿了：只剩 1 格
-    assert [r[8] for r in PP.boom_box(P2, {})["rows"]] == ["b", "w", "w", "w"]
-    V = PP.tw_view({"adv": _A(), "n8": P, "sx_pos": {}}, {"R": {}}, today="2026-10-28")
+    assert [r[6] for r in PP.boom_box(P2)["rows"]] == ["b", "w", "w", "w"]
+    V = PP.tw_view({"adv": _A(), "n8": P}, {"R": {}}, today="2026-10-28")
     c = V["cards"][V["cards"].index('id="pk-boom"'):V["cards"].index('id="pk-s3"')]
-    order = [c.index(x) for x in ("這週要做的事", 'id="pkmine"', 'id="pkbx"', "位置圖", "規則、過去照做、風險", "照規則的紀錄")]
+    order = [c.index(x) for x in ("接下來", 'id="pkmine"', 'id="pkbx"', "不等買點", "名單位置圖", "規則、過去照做、風險", "照規則的紀錄")]
     assert order == sorted(order)
     assert "買 4 檔" in c and "騰雲" in c and "11/2（一）開盤" in c
+    assert 'id="pkold"' not in c and 'data-at="cf-tw-sx"' in c                              # 原本的飆股名單在研究紀錄
+    c2 = re.sub(r'<p class="pknw">.*?</p>', "", c)                                         # 「為什麼不等買點」那段在講回測結果
+    for w in BOOK:
+        assert w not in c2, w
     assert V["pos"]["6870"][0]["k"] == "boom" and "試算" in V["pos"]["6870"][0]["t"]          # 個股卡也看得到「照規則會買」
     if PP.w10():
         assert "2019 年起照做一年" in c and "原本每檔 12.5%" in c
@@ -189,3 +193,81 @@ const s=pkSell('2026-10-29'),m=pkMineEvs('tw');console.log(JSON.stringify({s,m,l
     assert out["s"]["due"] == PC.nth_day("tw", "2026-10-29", 60) and out["s"]["out"] == PC.nth_day("tw", "2026-10-29", 61)
     assert len(out["m"]) == 1 and out["m"][0][0] == out["s"]["out"] and out["m"][0][2] == "mine" and out["m"][0][4] == [["6870", "騰雲"]]
     assert out["lt"] == "2026-10-30"
+
+
+def test_week_rows_main_strategies_with_their_own_rules():
+    """最上面「這週要做的事」：接下來 5 個交易日、只有主要策略；買的每一列都有策略、日期、開盤／收盤、條件、什麼時候賣；
+    還不知道是哪幾檔的（會出新名單的日子）另一行。"""
+    V = PP.tw_view({"adv": _A(), "n8": _P8()}, {"R": {}}, today="2026-10-28")
+    from arm.lab import pickcal as PC
+    evs = PC.tw_events(_A(), _P8(), None, ["boom", "s3", "v3l", "v7l"], "2026-10-28")["ev"]
+    W = PP.week_rows(evs, "2026-10-28", ["boom", "s3", "v3l"])
+    assert (W["a"], W["b"]) == ("2026-10-29", "2026-11-04")                             # 10/29～11/4（週末不算）
+    assert [(r["d"], r["at"], r["k"], r["act"]) for r in W["rows"]] == [("2026-11-02", "開盤", "boom", "買進")]
+    r = W["rows"][0]
+    assert [i[1] for i in r["items"]] == ["騰雲", "鈺創", "大立光", "宏致"] and "試算" in r["note"]
+    assert r["cond"] == "開盤直接買，不等買點" and r["exit"] == "抱 60 個交易日"
+    assert W["fix"] == [["boom", [["2026-10-30", "收盤"]]]]
+    t = V["todo"]
+    assert 'id="pk-tw-todo"' in t and "這週要做的事" in t and "10/29（四）～11/4（三）" in t
+    assert 'data-c="6870" data-co="6870"' in t and 'data-to="pk-boom"' in t and "會出新名單的日子" in t
+    for w in BOOK + PLAIN_BAD:
+        assert w not in _text(t), w
+
+
+def test_buy_rows_agree_everywhere():
+    """一份動作表、處處一致（第 3.1 節第 4 條）：最上面的表、新飆股名單「會買」、個股卡的策略段是同一批股票。"""
+    from arm.lab import pickcal as PC
+    for P in (_P8(), _P()):
+        V = PP.tw_view({"adv": _A(), "n8": P}, {"R": {}}, today="2026-10-28")
+        evs = PC.tw_events(_A(), P, None, ["boom", "s3", "v3l"], "2026-10-28")["ev"]
+        W = PP.week_rows(evs, "2026-10-28", ["boom", "s3", "v3l"])
+        top = {c for r in W["rows"] if r["k"] == "boom" and r["act"] == "買進" for c, _ in r["items"]}
+        card = {c for c, v in V["pos"].items() if any(q["k"] == "boom" and not q["h"] for q in v)}
+        assert top and top == card, (top, card)
+        if V["bx"]:
+            assert top == {r[0] for r in V["bx"]["rows"] if r[6] == "b"}
+        for r in W["rows"]:
+            assert r["d"] and r["at"] in ("開盤", "收盤") and r["k"] in PC.SHORT
+            if r["act"] != "賣出":
+                assert r["cond"] and r["exit"], r
+
+
+def test_every_strategy_states_its_entry_condition_and_exit():
+    for k, m in PP.META.items():
+        if k != "qm":
+            assert m.get("cond") and m.get("exit"), k
+            for w in BOOK:
+                assert w not in m["cond"], (k, w)
+
+
+def test_nowait_text_from_the_backtests():
+    W = PP.w10()
+    t = PP.nowait_txt(W)
+    assert t.startswith("這條不等買點：名單出來，下一個交易日開盤就買。") and "到條件才買" in t
+    if W.get("pick") and W.get("skip") and W.get("book"):
+        assert "漲太遠先不買，一年" in t and "照書上的選股和買點，一年" in t and "2022 年" in t
+    assert PP.nowait_txt({}) == "這條不等買點：名單出來，下一個交易日開盤就買。之後會試「到條件才買」（開低、拉回、創新高），比較好才換。"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="沒有 node")
+def test_boom_list_and_chart_in_browser():
+    """瀏覽器畫的名單（7 欄、沒有位置・參考買點欄）與名單位置圖（橫軸上名單第幾週、縱軸強度、同一欄強度一樣的錯開）。"""
+    V = PP.tw_view({"adv": _A(), "n8": _P8()}, {"R": {}}, today="2026-10-28")
+    pick = {"tw": {k: V[k] for k in ("d", "end", "ev", "ks", "hol", "names", "bx")}}
+    out = _node("""globalThis.f=(x,d)=>String(Math.round(x));globalThis.fp=x=>String(x);
+const mk=()=>({clientWidth:360,innerHTML:'',closest(){return null;},querySelectorAll(){return [];}}),bx=mk(),sp=mk(),ky=mk();
+globalThis.$=s=>s==='#pkbx'?bx:s==='#pkspot'?sp:s==='#pkspotk'?ky:null;
+pkBxDraw();const b=bx.innerHTML;PKBS.f='a';pkBxDraw();pkSpot();
+console.log(JSON.stringify({b,a:bx.innerHTML,sp:sp.innerHTML,ky:ky.innerHTML}));""", pick)
+    assert out["b"].count("<tr><td class=l>") == 4 and "11/2（一）開盤買" in out["b"] and "11/2 開盤會買" in out["b"]
+    assert "<th class=hm>上名單</th>" in out["a"] and "位置" not in out["a"]
+    for w in BOOK:
+        assert w not in out["b"] and w not in out["a"], w
+    sp = out["sp"]
+    assert sp.count("<circle") == 4 and "新上名單" in sp and "第 3 週" in sp and "27 週以上" in sp and "上名單第幾週" in sp
+    xy = re.findall(r"cx=([\d.]+) cy=([\d.]+)", sp)
+    assert len(set(xy)) == 4                                                            # 大立光、宏致同一欄同強度：左右錯開
+    assert re.findall(r"<text class=pkspn[^>]*>(\d)</text>", sp) == ["1", "2", "3", "4"]     # 會買的點裡寫買的順序
+    assert re.findall(r'<b>(\d)</b><a data-c="\d+" data-co="\d+">([^<]+)</a>', out["ky"]) == \
+        [("1", "騰雲"), ("2", "鈺創"), ("3", "大立光"), ("4", "宏致")]                          # 名字在圖下面一行，照順序
