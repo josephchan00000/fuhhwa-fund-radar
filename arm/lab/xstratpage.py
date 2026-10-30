@@ -228,7 +228,7 @@ def now_text(r: dict) -> str:
         return _same_day_rsi2(n, p, D, NX, d)
     if k == "rsi2":
         if st == "buy":
-            return f"{D} 收盤出現訊號：2 日 RSI {n['rsi2']:.1f}（低於 {p['rsi_max']}）、收盤在 200 日均線上 {pc(n['ma'])} → {NX} 收盤買。"
+            return f"{D} 收盤出現訊號：2 日 RSI {n['rsi2']:.1f}（低於 {p['rsi_max']}）、收盤在 200 日均線上 {pc(n['ma'])}，{NX} 收盤買。"
         if st == "hold":
             if not held:
                 return f"{D} 收盤照規則買進（{num(n.get('ep'))}）；之後收盤站上 {p['exit_ma']} 日均線，隔天收盤賣。"
@@ -237,7 +237,7 @@ def now_text(r: dict) -> str:
             return (f"持有中：{md(ed, d)} 收盤買進（{num(n.get('ep'))}），到 {D} {pc(ret, sign=True)}（第 {held} 個交易日）；"
                     f"收盤站上 {p['exit_ma']} 日均線就隔天收盤賣{exs}。")
         if st == "sell":
-            return f"{D} 收盤站上 {p['exit_ma']} 日均線 → {NX} 收盤賣（{md(ed, d)} 買進，到 {D} {pc(ret, sign=True)}）。"
+            return f"{D} 收盤站上 {p['exit_ma']} 日均線，{NX} 收盤賣（{md(ed, d)} 買進，到 {D} {pc(ret, sign=True)}）。"
         if n.get("ma") is not None and n["ma"] < 0:
             return f"沒有訊號：收盤在 200 日均線下 {pc(-n['ma'])}（在線上才做）；2 日 RSI {n['rsi2']:.0f}。"
         return f"沒有訊號：2 日 RSI {n['rsi2']:.0f}（低於 {p['rsi_max']} 才買）；收盤在 200 日均線上 {pc(n.get('ma'))}。"
@@ -245,14 +245,14 @@ def now_text(r: dict) -> str:
         vs = n.get("vs")
         vtxt = f"VIX {n.get('vix'):.1f}" + ("" if vs is None else f"，比 10 日均線{'高' if vs >= 0 else '低'} {pc(abs(vs), 0)}")
         if st == "buy":
-            return f"{D} 收盤出現訊號：{vtxt}，連 {n.get('run')} 天高 {p['stretch'] * 100:.0f}% 以上、指數在 200 日均線上 → {NX} 收盤買。"
+            return f"{D} 收盤出現訊號：{vtxt}，連 {n.get('run')} 天高 {p['stretch'] * 100:.0f}% 以上、指數在 200 日均線上，{NX} 收盤買。"
         if st == "hold":
             if not held:
                 return f"{D} 收盤照規則買進（{num(n.get('ep'))}）；之後 2 日 RSI 高於 {p['exit_rsi']}，隔天收盤賣。"
             return (f"持有中：{md(ed, d)} 收盤買進，到 {D} {pc(ret, sign=True)}（第 {held} 個交易日）；"
                     f"2 日 RSI 高於 {p['exit_rsi']} 就隔天收盤賣（現在 {n['rsi2']:.0f}）。")
         if st == "sell":
-            return f"{D} 2 日 RSI {n['rsi2']:.0f} 高於 {p['exit_rsi']} → {NX} 收盤賣（{md(ed, d)} 買進，到 {D} {pc(ret, sign=True)}）。"
+            return f"{D} 2 日 RSI {n['rsi2']:.0f} 高於 {p['exit_rsi']}，{NX} 收盤賣（{md(ed, d)} 買進，到 {D} {pc(ret, sign=True)}）。"
         tail = "；指數在 200 日均線下（在線上才做）" if n.get("ma") is not None and n["ma"] < 0 else ""
         return f"沒有訊號：{vtxt}（連 {p['days']} 天高 {p['stretch'] * 100:.0f}% 以上才買）{tail}。"
     if k == "tom":
@@ -277,9 +277,9 @@ def now_text(r: dict) -> str:
     dist, chk = n.get("dist"), n.get("chk")
     if k == "ma200":
         if st == "turn_out":
-            return f"{D} 收盤跌破 {p['n']} 日均線（{pc(dist, sign=True)}）→ {NX} 收盤賣出。"
+            return f"{D} 收盤跌破 {p['n']} 日均線（{pc(dist, sign=True)}），{NX} 收盤賣出。"
         if st == "turn_in":
-            return f"{D} 收盤站回 {p['n']} 日均線（{pc(dist, sign=True)}）→ {NX} 收盤買回。"
+            return f"{D} 收盤站回 {p['n']} 日均線（{pc(dist, sign=True)}），{NX} 收盤買回。"
         if st == "in":
             return f"持有：收盤在 {p['n']} 日均線上 {pc(dist)}{since}。"
         return f"空手：收盤在 {p['n']} 日均線下 {pc(-dist if dist is not None else None)}。"
@@ -291,9 +291,9 @@ def now_text(r: dict) -> str:
         cur = "" if dist is None else f"以 {D} 收盤試算：{p['n']} 個月 {pc(dist, 0, sign=True)}。"
     nxt = f"下一次看 {md(chk, d)}。" if chk else ""
     if st == "turn_out":
-        return f"{D} 是月底，收盤{'跌破 ' + what if k == 'faber' else '比 ' + what + '低'} → {NX} 收盤賣出。"
+        return f"{D} 是月底，收盤{'跌破 ' + what if k == 'faber' else '比 ' + what + '低'}，{NX} 收盤賣出。"
     if st == "turn_in":
-        return f"{D} 是月底，收盤{'站回 ' + what if k == 'faber' else '比 ' + what + '高'} → {NX} 收盤買回。"
+        return f"{D} 是月底，收盤{'站回 ' + what if k == 'faber' else '比 ' + what + '高'}，{NX} 收盤買回。"
     if st == "in":
         return f"持有：上個月底收盤{'在 ' + what + '上' if k == 'faber' else '比 ' + what + '高'}{since}。{cur}{nxt}"
     return f"空手：上個月底收盤{'在 ' + what + '下' if k == 'faber' else '比 ' + what + '低'}。{cur}{nxt}"
@@ -350,7 +350,7 @@ def dip_now_text(k: str, n: dict, D: str, NX: str, d: str) -> str:
     st, H = n["st"], n["H"]
     ind = _dip_ind(k, n, D, d)
     if st == "buy":
-        return f"{D} 收盤出現訊號 → {NX} 收盤買，抱 {H} 個交易日（約 {HN[H]}）。" + (f"{ind}。" if ind else "")
+        return f"{D} 收盤出現訊號，{NX} 收盤買，抱 {H} 個交易日（約 {HN[H]}）。" + (f"{ind}。" if ind else "")
     if st == "hold":
         return (f"持有中：{md(n.get('sd'), d)} 出現訊號、{md(n.get('ed'), d)} 收盤買進（{num(n.get('ep'))}），到 {D} "
                 f"{pc(n.get('ret'), sign=True)}（第 {n.get('held')} 個交易日）；{md(n.get('qd'), d)} 收盤賣（還有 {n.get('left')} 個交易日）。")
