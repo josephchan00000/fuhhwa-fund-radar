@@ -102,3 +102,6 @@
 
 ## [2026-10-30] 收錄 | 個股報告每週名單讀錯新飆股的欄位（已修）
 - [個股深度報告與產業報告](lab/equity-report.md) 踩過的坑一行：`eqqueue.candidates` 改讀列的最後一欄；測試改用 `pickpage.boom_box` 產的列。
+
+## [2026-10-30] 收錄 | 個股報告申請收件匣（第一段）
+- [個股深度報告與產業報告](lab/equity-report.md) 現在怎麼運作、不能改的規則各一條；路徑提醒 `.claude/rules/equity.md` 加兩個檔；規劃 `docs/lab_eq_request_plan.md` 第 7 節。
