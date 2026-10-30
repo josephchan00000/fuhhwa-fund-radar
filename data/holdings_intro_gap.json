@@ -1,29 +1,8 @@
 {
- "as_of": "2026-10-30 11:20",
- "count": 2,
+ "as_of": "2026-10-30 15:38",
+ "count": 0,
  "fund_count": 0,
- "etf_count": 2,
+ "etf_count": 0,
  "usqm_count": 0,
- "items": [
-  {
-   "src": "etf",
-   "name": "Alpha Bank SA",
-   "ticker": "ALPHA",
-   "count": 1,
-   "etfs": [
-    "00998A"
-   ],
-   "weight": 1.25
-  },
-  {
-   "src": "etf",
-   "name": "安聯集團",
-   "ticker": "ALV",
-   "count": 1,
-   "etfs": [
-    "00998A"
-   ],
-   "weight": 1.22
-  }
- ]
+ "items": []
 }
