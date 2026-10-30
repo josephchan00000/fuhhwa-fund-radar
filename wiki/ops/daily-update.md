@@ -2,7 +2,7 @@
 
 > 使用者打「全部更新」就照這頁跑：容器只產新聞報告，抓資料、建表、部署交給 CI；步驟 1～9（含 9⑤～9⑨）怎麼做、怎麼驗。
 > 原始資料：CLAUDE.md「指令：「全部更新」／「資料更新」」段（步驟 2 在 [新聞報告規則](news-rules.md)，部署在 [部署](deploy.md)）；程式：`scripts/check_reports.py`、`.github/workflows/daily.yml`。
-> 最後更新：2026-10-29
+> 最後更新：2026-10-30
 > CLAUDE.md 仍留著對應的指令段落（排程照它執行）：那一段改了，這一頁也要跟著改（`python3 scripts/wiki_facts.py` 會檢查）；其他內容以這一頁為準。
 
 ## 現在怎麼運作
@@ -53,7 +53,7 @@
 - 6：推到本次會話指定分支，**只帶「新聞報告」**（`reports/*.md`＋提示包；不帶 `dashboard/index.html`；`data/*` 被擋未更新、不會有 diff），訊息 `chore: 每日新聞更新 {日期}`；
   不必開 PR、不必 merge 進 main。
 - 7：push 動到 `reports/**` 就自動觸發 `daily.yml`（`on: push branches claude/** paths reports/**`，2026-07-18 起），以被推分支為 `news_ref`——
-  不必再手動呼叫 GitHub API/MCP（排程 Routine 的新會話沒有 MCP 工具，靠這條就夠）。CI：①checkout main、併入該分支今日 `reports/*.md` → ②抓**真實** NAV／持股／ETF／基金新聞
+  不必再手動呼叫 GitHub API/MCP（排程 Routine 的新會話沒有 MCP 工具，靠這條就夠）。CI：①checkout main、併入該分支今日 `reports/*.md`（只收一般檔、用 `git show` 複製，符號連結不收——2026-10-30 資安檢查） → ②抓**真實** NAV／持股／ETF／基金新聞
   → ③重建儀表板 → ④擁有者身分**一次 commit 進 main（新聞＋真實資料＋建表同一筆）** → ⑤打 Deploy Hook（[部署](deploy.md)）。main 每天只有**一筆權威 commit**。
   push 觸發用**被推分支**上的 workflow 檔，分支太舊時新通道與金鑰不生效（[排程](routines.md)「生效條件」）。
   備援：push 沒觸發（如只改程式碼未動 reports）→ `mcp__github__actions_run_trigger` 帶 `inputs={"news_ref":"<分支>"}`；留空 `news_ref`＝排程 cron 行為：只用 main 現有新聞重刷資料。
