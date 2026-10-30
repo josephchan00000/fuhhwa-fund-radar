@@ -108,3 +108,13 @@
 
 ## [2026-10-30] 收錄 | 個股報告申請第二、三段：網頁按鈕、每天晚上的名單、⑦ 改每天 20:47
 - [個股深度報告與產業報告](lab/equity-report.md) 每天晚上的名單、網頁上的申請；[排程](ops/routines.md) ⑦ 名稱、cron、原文；[時點地圖](ops/schedule.md) 20:47 一行。
+
+## [2026-10-30] 收錄 | 寬度與深度規格 VER 1（第一段）
+- `arm/lab/breadthspec.py`（`tests/test_breadthspec.py` 鎖住）、規劃 `docs/lab_breadth_plan.md` 第 9 節：股票層級只當訊號、產業層級當泡沫參考讀數＋美國 48 產業 1931 起驗證；算之前 commit。
+
+## [2026-10-30] 收錄 | 寬度與深度第二段結果
+- 規劃 `docs/lab_breadth_plan.md` 第 10 節（`arm/lab/breadth.py`、`scripts/run_breadth.py` → `data/lab/breadth_research.json`）：股票層級警示 0／78 過、偏多 ★ 10 ◆ 10（多半只比平常多 1～2 個百分點）；美國 48 細產業泡沫寬度、深度 ①② 都沒過 → 只當參考讀數；頁面與訊號總覽還沒動。
+
+## [2026-10-30] 收錄 | 寬度與深度第三段：接進訊號總覽（sigspec VER 25）＋市場頁泡沫一行＋研究紀錄圖表
+- sigspec VER 25 第 4.15 節（`bd` 只當訊號、進溫度計與預估之後；RES_VER 不改、FWD_VER／CAL_VER 25）；台股讀數 CI 存 `data/lab/heat/bdepth`（`heatfetch.bdepth_update`）；三個研究檔重跑，原本 1,920 列整列一樣（同一份資料比對）。
+- 市場頁泡沫那一塊「產業過熱有多廣（參考）」、研究紀錄頁「產業過熱有多廣」四張歷史圖與驗證表；改了 `lab/signals.md`、`lab/signals-versions.md`、`lab/bubble-industry.md`、`lab/market-page.md`。

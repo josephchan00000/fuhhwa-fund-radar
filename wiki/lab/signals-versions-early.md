@@ -7,7 +7,7 @@
 
 ## 現在怎麼運作
 
-規則見 [訊號總覽](signals.md)（下面寫「見現在」）；VER 17～24 見 [這裡](signals-versions.md)。
+規則見 [訊號總覽](signals.md)（下面寫「見現在」）；VER 17～25 見 [這裡](signals-versions.md)。
 
 ## 踩過的坑
 

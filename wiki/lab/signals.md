@@ -1,8 +1,8 @@
 # 訊號總覽：現在的規則與頁面
 
-> 市場與個股的訊號、策略怎麼算出現與中了、怎麼判定（★◆○—）、溫度計與今天的清單、進場之後的報酬與最差一次、頁面在哪（現行 sigspec VER 24）。
+> 市場與個股的訊號、策略怎麼算出現與中了、怎麼判定（★◆○—）、溫度計與今天的清單、進場之後的報酬與最差一次、頁面在哪（現行 sigspec VER 25）。
 > 原始資料：CLAUDE.md「『訊號總覽』與實務判定」段；規劃 `docs/lab_signal_plan.md`；程式：`arm/lab/sigspec.py`、`arm/lab/sigcat.py`、`arm/lab/sigpage.py`（其他各節寫明）
-> 最後更新：2026-10-29
+> 最後更新：2026-10-30
 > 正本就是這一頁（2026-10-29 CLAUDE.md 瘦身時搬來；瘦身前全文 `git show d6ed51029:CLAUDE.md`）。
 
 ## 現在怎麼運作
@@ -41,6 +41,7 @@
   單日極端（0～100 ≥ 95／≤ 5）、連續 5、10 天買超／賣超。值＝買賣超 k 日合計 ÷ 同期上市成交金額（同 L3，`heatcalc.inst_amounts`／`inst_ratio`）；0～100 同景氣項目、一律賣超＝熱。
   類別「法人買賣超」（`sigcat.inst_vars`／`inst_signals`，id `tw:inst:{法人}{天數}:{訊號}`）；外資 60 日就是 L3（不重複）；單日極端與連續同一個指標（var＝{法人}1）。
   現在值與小走勢圖由 `sigcat.crash_now` 一起算（含億元）；指標頁沒有走勢圖、列每一次。
+- **寬度與深度**（VER 25 第 4.15 節，`docs/lab_breadth_plan.md`）：台股大型股撐盤、離 200 日線；美股上漲家數與成交金額占比、大型股撐盤（SPY − RSP、QQQ − QQEW）；只當訊號，類別 `bd`；台股讀數 CI 存 `data/lab/heat/bdepth`，`sigcat.bd_vars` 讀不到就沒有這一類。
 - 個股「集體撤退」＝隔天開盤價與之後 20 天收盤的最大回撤 ≥ 10%（`STOCK_MDD`；平常＝訊號第一次出現起、所有有訊號紀錄的股票每一個窗口完整的日子）。
 
 ### 判定
@@ -174,4 +175,4 @@
 
 ## 歷史
 
-每一版的日期、使用者原話與結果數字：[VER 1～16](signals-versions-early.md)、[VER 17～24](signals-versions.md)。
+每一版的日期、使用者原話與結果數字：[VER 1～16](signals-versions-early.md)、[VER 17～25](signals-versions.md)。
