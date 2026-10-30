@@ -63,74 +63,28 @@ def bls():
         print(f"{s.get('seriesID'):24s} n={len(d):3d}  {' '.join(last)}")
 
 
-# ── 勞工部：季調初領失業金 ─────────────────────────────────────────────────────────
+# ── 勞工部：季調初領失業金（第二輪：claims.asp 的 wkclaim 表單送到 wkclaims/report.asp） ─────────────
 
 def dol_form():
-    b = _get("https://oui.doleta.gov/unemploy/claims.asp", timeout=60)
-    s = b.decode("utf-8", "replace")
-    print("claims.asp", len(b), "bytes")
-    for f in re.findall(r"<form[^>]*>", s, re.I)[:4]:
-        print("FORM", f[:200])
-    for m in re.finditer(r"<(input|select)[^>]*>", s, re.I):
-        print("  ", m.group(0)[:160])
-    for m in re.finditer(r"<select[^>]*name=\"?([\w]+)\"?[^>]*>(.*?)</select>", s, re.I | re.S):
-        opts = re.findall(r"<option[^>]*value=\"?([^\">]*)\"?", m.group(2), re.I)
-        print("  select", m.group(1), opts[:3], "…", opts[-3:])
-    links = sorted(set(re.findall(r"href=\"([^\"]+\.(?:csv|xml|xls|xlsx|pdf|asp)[^\"]*)\"", s, re.I)))
-    print("links", links[:30])
-    act = re.search(r"<form[^>]*action=\"([^\"]+)\"", s, re.I)
-    if not act:
-        return
-    url = urllib.parse.urljoin("https://oui.doleta.gov/unemploy/claims.asp", act.group(1))
-    form = {}
-    for m in re.finditer(r"<input[^>]*>", s, re.I):
-        tag = m.group(0)
-        nm = re.search(r"name=\"?([\w]+)", tag, re.I)
-        val = re.search(r"value=\"?([^\" >]*)", tag, re.I)
-        tp = (re.search(r"type=\"?(\w+)", tag, re.I) or [None, "text"])[1].lower()
-        if not nm:
-            continue
-        v = val.group(1) if val else ""
-        if tp == "radio":
-            cur = form.get(nm.group(1))
-            if cur is None or re.search(r"xml|US|nation", v, re.I):
-                form[nm.group(1)] = v
-        elif tp in ("hidden", "submit", "text"):
-            form.setdefault(nm.group(1), v)
-    for m in re.finditer(r"<select[^>]*name=\"?([\w]+)\"?[^>]*>(.*?)</select>", s, re.I | re.S):
-        opts = re.findall(r"<option[^>]*value=\"?([^\">]*)\"?", m.group(2), re.I)
-        if opts:
-            form[m.group(1)] = "2026" if "2026" in opts else opts[-1]
-    print("POST", url, form)
-    r = post_form(url, form)
-    print("resp", len(r), "bytes:", r[:300].decode("utf-8", "replace"))
-    print("text:", text(r, 900))
-
-
-def dol_catalog():
-    u = ("https://catalog.data.gov/api/3/action/package_show?id="
-         "historical-unemployment-insurance-seasonally-adjusted-and-unadjusted-weekly-claims-data")
-    doc = json.loads(_get(u, timeout=60).decode("utf-8"))
-    res = ((doc.get("result") or {}).get("resources")) or []
-    for r in res[:6]:
-        print("res", r.get("format"), r.get("url"), str(r.get("name"))[:60])
-    for r in res[:2]:
-        if r.get("url"):
-            try:
-                b = _get(r["url"], timeout=90)
-                print("  ", r["url"], len(b), "bytes:", b[:300].decode("utf-8", "replace").replace("\n", " | "))
-            except Exception as ex:                           # noqa: BLE001
-                print("  ✗", r["url"], str(ex)[:120])
-
-
-def dol_pdf():
-    from pypdf import PdfReader
-    b = _get("https://www.dol.gov/ui/data.pdf", timeout=90)
-    t = re.sub(r"\s+", " ", PdfReader(io.BytesIO(b)).pages[0].extract_text() or "")
-    print("data.pdf", len(b), "bytes")
-    for m in re.finditer(r"In the week ending [^.]{0,40}, the advance figure for seasonally adjusted initial claims[^.]*\.[^.]*\.", t):
-        print("  ", m.group(0)[:400])
-    print("  head:", t[:300])
+    s = _get("https://oui.doleta.gov/unemploy/claims.asp", timeout=60).decode("utf-8", "replace")
+    for m in re.finditer(r"strtdate|enddate", s):
+        print("  ctx:", re.sub(r"\s+", " ", s[max(0, m.start() - 160):m.start() + 160])[:320])
+        break
+    for js in re.findall(r"<script[^>]*>(.*?)</script>", s, re.S | re.I):
+        if re.search(r"strtdate|option|final_yr", js):
+            print("  js:", re.sub(r"\s+", " ", js)[:500])
+    url = "https://oui.doleta.gov/unemploy/wkclaims/report.asp"
+    for ft in ("xml", "html"):
+        form = {"level": "us", "final_yr": "2027", "strtdate": "2026", "enddate": "2026", "filetype": ft, "submit": "Submit"}
+        try:
+            r = post_form(url, form)
+            print(f"POST {ft}", len(r), "bytes:", r[:200].decode("utf-8", "replace").replace("\n", " "))
+            if ft == "xml":
+                print("  tail:", r[-900:].decode("utf-8", "replace").replace("\n", " "))
+            else:
+                print("  text tail:", text(r, 100000)[-900:])
+        except Exception as ex:                               # noqa: BLE001
+            print(f"POST {ft} ✗", str(ex)[:150])
 
 
 # ── 歐洲央行：存款利率 ─────────────────────────────────────────────────────────────
@@ -157,8 +111,10 @@ def ecb():
     for h in hit[:3]:
         print("  ", h)
     if hit:
-        t = text(_get(hit[0][1], timeout=60), 6000)
-        for m in re.finditer(r"[^.]*(?:deposit facility|key ECB interest rates)[^.]*\.", t, re.I):
+        b = _get(hit[0][1].replace("//press", "/press"), timeout=60)
+        t = text(b, 10 ** 6)
+        print("  page", len(b), "bytes, text", len(t))
+        for m in list(re.finditer(r"[^.]*(?:deposit facility|interest rates? (?:unchanged|by)|decided to)[^.]*\.", t, re.I))[:4]:
             print("  >", m.group(0).strip()[:300])
 
 
@@ -180,8 +136,17 @@ def mof():
                 except UnicodeDecodeError:
                     continue
             print("     ", len(ln), "lines; head:", ln[0][:200])
+            print("       first:", ln[1][:200] if len(ln) > 1 else "")
             for x in ln[-2:]:
                 print("      ", x[:200])
+    try:
+        h = _get("https://opendata.customs.gov.tw/", timeout=60).decode("utf-8", "replace")
+        print("customs home", len(h), "bytes")
+        for m in re.finditer(r'href="([^"]+)"[^>]*>([^<]{0,80})<', h):
+            if re.search(r"美元|出口|進出口|貿易|data/\\d+", m.group(1) + m.group(2)):
+                print("   ", m.group(1)[:80], m.group(2).strip()[:50])
+    except Exception as ex:                                   # noqa: BLE001
+        print("customs home ✗", str(ex)[:150])
     try:
         q = urllib.parse.quote("出口")
         s = _get(f"https://data.gov.tw/api/v2/rest/dataset?q={q}&limit=100", timeout=60).decode("utf-8", "replace")
@@ -215,17 +180,20 @@ def dgbas():
             if k not in seen or tm > seen[k][0]:
                 seen[k] = (tm, v)
         print(fn, len(txt), "bytes;", len(seen), "item×type")
-        for (it, tp), (tm, v) in list(seen.items())[:40]:
-            print(f"   {it[:46]:46s} | {tp[:10]:10s} | {tm} = {v}")
+        for (it, tp), (tm, v) in seen.items():
+            if re.search(r"合計|實質|GDP|國內生產毛額$", it) or "當期價格" not in it:
+                print(f"   {it[:60]:60s} | {tp[:10]:10s} | {tm} = {v}")
 
 
 # ── 普查局：零售銷售 ───────────────────────────────────────────────────────────────
 
 def census():
     for q in ("get=cell_value,data_type_code,category_code,seasonally_adj,time_slot_id&for=us:*&time=from+2026-06",
-              "get=cell_value,data_type_code,category_code,seasonally_adj&time=from+2026-06"):
+              "get=cell_value,data_type_code,category_code,seasonally_adj&for=us:*&time=2026",
+              "get=cell_value,data_type_code,category_code,seasonally_adj&time=2026"):
         try:
             b = _get(f"https://api.census.gov/data/timeseries/eits/marts?{q}", timeout=60)
+            print(q[:40], "raw", len(b), "bytes:", b[:300].decode("utf-8", "replace").replace("\n", " "))
             rows = json.loads(b.decode("utf-8"))
             print(q[:40], "rows", len(rows), "hdr", rows[0])
             h = rows[0]
@@ -239,10 +207,7 @@ def census():
 
 
 if __name__ == "__main__":
-    run("勞工統計局（BLS v1）", bls)
     run("勞工部 claims.asp 表單", dol_form)
-    run("勞工部 data.gov 目錄", dol_catalog)
-    run("勞工部 data.pdf", dol_pdf)
     run("歐洲央行", ecb)
     run("財政部 出口（data.gov.tw）", mof)
     run("主計總處 GDP XML", dgbas)
