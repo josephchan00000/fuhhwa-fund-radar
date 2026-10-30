@@ -118,3 +118,6 @@
 ## [2026-10-30] 收錄 | 寬度與深度第三段：接進訊號總覽（sigspec VER 25）＋市場頁泡沫一行＋研究紀錄圖表
 - sigspec VER 25 第 4.15 節（`bd` 只當訊號、進溫度計與預估之後；RES_VER 不改、FWD_VER／CAL_VER 25）；台股讀數 CI 存 `data/lab/heat/bdepth`（`heatfetch.bdepth_update`）；三個研究檔重跑，原本 1,920 列整列一樣（同一份資料比對）。
 - 市場頁泡沫那一塊「產業過熱有多廣（參考）」、研究紀錄頁「產業過熱有多廣」四張歷史圖與驗證表；改了 `lab/signals.md`、`lab/signals-versions.md`、`lab/bubble-industry.md`、`lab/market-page.md`。
+
+## [2026-10-30] 收錄 | 新飆股名單位置圖拿掉，改成 8 格＋照規則排隊
+- 使用者：「你那個圖超爛我完全看不懂 重新設計詳細規劃後執行」。規劃 `docs/lab_pick_arch_plan.md` 第 9 節；`pickpage.boom_box` 多帶 hold、JS `pkSlots`／`pkBxDraw` 改寫、`pkSpot` 與三個篩選鈕拿掉；不改規則、不重算。改了 `lab/pick-page.md`。
