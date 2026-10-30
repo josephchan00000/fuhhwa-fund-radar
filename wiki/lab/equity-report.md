@@ -32,6 +32,7 @@
 - **同業**：台股＝櫃買中心產業鏈同節點的上市櫃公司（最具體節點市值最大的 2 家＋共同節點多、市值接近的）；美股＝同 GICS 細產業。撰寫者最多換 3 家。
 - **每週名單**（`eqqueue.queue`／`scripts/eq_queue.py`，每週六排程用）：①美股強勢品質股下週一要買的、②新飆股名單標 b 的（照名次）、③已有報告且出了新一季財報的；
   扣掉 90 天內做過又沒有新財報的，每週最多 4 家（`EQ_WEEKLY_MAX`）。
+  排程：Routine ⑦「個股報告週更」台北週六 14:17（[排程](../ops/routines.md)）：先做需要的產業報告、再每家一個子代理，push 經 daily.yml 併檔；推播只寫公司與評等。
 - **存放**：`reports/eq/{tw|us}/{代號}/{報告日}.md`＋同名 `.facts.json`，不覆蓋舊版（舊版＝評等歷史）；產業 `reports/eq/ind/{產業代號}/`。
 - **頁面**：`eqsite.build` → `dashboard/rp/{tw|us}-{代號}.html`、`dashboard/rp/ind-{產業代號}.html`（`<base href="../">`，錨點要寫 `rp/…html#id`）。
   圖是伺服器端畫的 SVG（一條縱軸、兩個單位就上下兩格），列印 A4。頁首「最新收盤」每次建頁讀 `dashboard/x9t.json`，報告本文不動。

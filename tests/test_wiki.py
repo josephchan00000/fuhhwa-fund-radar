@@ -198,11 +198,13 @@ def test_claude_md_is_slim_and_imports_index():
 
 
 def test_routine_prompts_targets_still_in_claude_md():
-    """六個排程 prompt 指名引用的指令與步驟（排程搬家照抄原文，改不了 prompt）。"""
+    """七個排程 prompt 指名引用的指令與步驟（排程搬家照抄原文，改不了 prompt）。"""
     prompts = [s for s in TEXT.split("\n") if s.startswith("> （排程自動觸發）")]
-    assert len(prompts) == 6
-    for n in "①②③④⑤⑥":
+    assert len(prompts) == 7
+    for n in "①②③④⑤⑥⑦":
         assert f"Routine prompt 原文{n}" in TEXT
+    for f in (".claude/skills/equity-report/SKILL.md", "scripts/eq_queue.py", "scripts/eq_facts.py", "scripts/check_eq.py"):
+        assert f in "\n".join(prompts) and (ROOT / f).exists(), f"⑦ 引用的 {f} 不見了"
     need = {
         "CLAUDE.md「指令：全部更新」": "## 指令：「全部更新」／「資料更新」",
         "CLAUDE.md 步驟 9⑤": "   - **⑤ 前十大簡介缺口",
