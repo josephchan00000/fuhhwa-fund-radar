@@ -96,3 +96,6 @@
 
 ## [2026-10-30] 收錄 | 新飆股到條件才買（W11）規格 VER 1
 - `arm/lab/sxentryspec.py`（`tests/test_sxentryspec.py` 鎖住）、規劃 `docs/lab_pick_arch_plan.md` 第 7 節：E0 現在、E1 開低、E2 拉回 10 日線下、E3 創 20 日新高、E4 一半一半；算報酬之前 commit。
+
+## [2026-10-30] 收錄 | 新飆股到條件才買（W11）結果：不換
+- [飆股修正與新飆股前瞻記錄](lab/boom-live.md) 歷史一行；規劃 `docs/lab_pick_arch_plan.md` 第 8 節；`tw-superstock-lab/reports/W11_results.*`。
