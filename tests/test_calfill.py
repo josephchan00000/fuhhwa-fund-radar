@@ -16,6 +16,15 @@ SER = {
                "2025-09": [4.3, 324.8, 330.82], "2026-09": [4.2, 336.94, 339.287]},
     "uscpi": {},
     "fedtgt": {"2026-10-27": [3.75, 4.0], "2026-10-28": [3.75, 4.0], "2026-10-29": [3.5, 3.75]},
+    # 第三段（arm/calsrc.py）：勞工統計局 2026-10-30 抓到的值（9 月非農 +2.9 萬、CPI 月增 0.6／核心 0.3、PPI 月增 1.3、8 月 JOLTS 707.9 萬）
+    "us_bls_cal": {"2025-09": {"CES0500000003": 36.71, "WPUFD4": 150.11},
+                   "2026-08": {"CES0000000001": 159015.0, "CES0500000003": 37.76, "CUSR0000SA0": 334.131,
+                               "CUSR0000SA0L1E": 337.765, "WPSFD4": 157.662, "JTS000000000000000JOL": 7079.0},
+                   "2026-09": {"CES0000000001": 159044.0, "CES0500000003": 37.81, "CUSR0000SA0": 336.298,
+                               "CUSR0000SA0L1E": 338.896, "WPSFD4": 159.780, "WPUFD4": 159.613},
+                   "2026-Q2": {"CIS1010000000000Q": 0.9, "CIU1010000000000A": 3.4}},
+    "ecb_dec": {"2026-10-29": [2.5, 0.0], "2026-09-10": [2.5, 0.25]},
+    "twgdp_yoy": {"2026-06": 12.93},
 }
 
 
@@ -52,7 +61,7 @@ def test_fills_blank_rows_from_official_series():
 def test_skips_what_it_cannot_fill_completely():
     md = _md([R.format(d="11/04", i="美：10月失業率", a="—", s="未公布"),                 # 還沒到
               R.format(d="10/30", i="美：10月CPI（年增）", a="—", s="未公布"),             # 序列還沒有 10 月
-              R.format(d="10/14", i="美：9月CPI（年增；月增／核心月增）", a="—", s="未公布"),  # 還要月增
+              R.format(d="10/14", i="美：9月CPI（超級核心）", a="—", s="未公布"),            # 沒有序列
               R.format(d="10/02", i="美：9月非農就業／失業率", a="—", s="未公布"),          # 還要非農
               R.format(d="10/07", i="台：9月CPI（年增；核心）", a="—", s="未公布"),          # 台灣核心沒有序列
               R.format(d="10/28", i="美：FOMC 10月會議紀要", a="—", s="未公布"),
@@ -140,3 +149,79 @@ def test_ndc_previous_value_revised_is_flagged_once():
     assert again == new and [a["new"] for a in acts2] == [False]             # 同一行不重複加
     fixed = row.replace("| 41分（紅燈） |", "| 40分（紅燈）（原41分） |")
     assert [a["kind"] for a in CF.fill(_md([fixed]), T, T, NOW, S)[1]] == ["fill"]
+
+
+def test_stage3_rows_from_bls_ecb_dgbas():
+    """第三段：非農、時薪、季調 CPI 月增、PPI、JOLTS、ECI、歐洲央行、台灣 GDP。"""
+    S3 = {**SER, "us_bls_cal": {**SER["us_bls_cal"]}}
+
+    def got(region, item, d):
+        x = CF.official({"region": region, "item": item}, d, lambda n: S3.get(n, {}))
+        return x[0] if x else None
+    d = date(2026, 10, 3)
+    assert got("美", "9月非農就業", d) == "+2.9萬"
+    assert got("美", "9月非農就業／失業率", d) is None                      # 合在一起的列不補
+    assert got("美", "9月平均時薪（年增）", d) == "+3.0%"                     # 季調，和新聞稿一致
+    assert got("美", "9月平均時薪（月增）", d) is None                        # 0.13% 只到分算不準 → 不補
+    assert got("美", "9月CPI（年增；月增／核心月增）", date(2026, 10, 14)) == "年增+3.7%、月增+0.6%（核心月增+0.3%）"
+    assert got("美", "9月CPI（月增）", date(2026, 10, 14)) == "+0.6%"
+    assert got("美", "9月PPI（月增）", date(2026, 10, 15)) == "+1.3%"
+    assert got("美", "9月PPI", date(2026, 10, 15)) == "月增+1.3%、年增+6.3%"
+    assert got("美", "9月核心PPI（年增）", date(2026, 10, 15)) is None         # 核心有兩種定義，不補
+    assert got("美", "8月JOLTS職缺", date(2026, 10, 6)) == "707.9萬"
+    assert got("美", "第二季就業成本指數ECI", date(2026, 7, 31)) == "+0.9%"
+    assert got("美", "Q2僱用成本指數ECI（季增；年增）", date(2026, 7, 31)) == "季增+0.9%、年增+3.4%"
+    assert got("歐", "ECB利率決議（存款利率）", date(2026, 10, 29)) == "維持2.50%"
+    assert got("歐", "ECB利率決議暨拉加德記者會", date(2026, 9, 10)) == "升息1碼至2.50%"
+    assert got("歐", "ECB 9月會議紀要", date(2026, 10, 9)) is None
+    assert got("台", "第二季GDP初值（年增）", date(2026, 8, 28)) == "+12.93%"
+    assert got("台", "2026年經濟成長率預測", date(2026, 8, 28)) is None
+
+
+def test_wanted_only_fetches_when_a_row_waits():
+    md = _md([R.format(d="10/29", i="美：9月非農就業", a="—", s="未公布"),        # 序列沒有 → 要抓
+              R.format(d="10/29", i="歐：ECB利率決議", a="—", s="未公布"),          # 本機已有 10/29 → 不抓
+              R.format(d="10/30", i="台：第三季GDP概估（年增）", a="—", s="未公布"),
+              R.format(d="10/20", i="美：9月PPI（月增）", a="—", s="未公布"),        # 超過 3 天 → 留給早上的 Claude
+              R.format(d="11/04", i="美：10月JOLTS職缺", a="—", s="未公布"),        # 還沒到
+              R.format(d="10/29", i="美：9月CPI（年增）", a="—", s="未公布"),        # 年增用景氣頁的序列 → 不抓
+              R.format(d="10/29", i="美：FOMC利率決議", a="—", s="未公布")])
+    empty = {**SER, "us_bls_cal": {}}
+    assert CF.wanted(md, T, T, lambda n: empty.get(n, {})) == {"bls_cal", "twgdp"}
+    assert CF.wanted(md, T, T, S) == {"twgdp"}                               # 非農那一期已經有了
+
+
+def test_run_calfill_fetches_before_filling_and_never_fails(monkeypatch, tmp_path, capsys):
+    import importlib.util
+    from pathlib import Path
+    from arm import calsrc
+    root = Path(__file__).resolve().parent.parent
+    spec = importlib.util.spec_from_file_location("run_calfill", root / "scripts" / "run_calfill.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    (tmp_path / "2026-10-30.md").write_text(_md([R.format(d="10/29", i="歐：ECB利率決議", a="—", s="未公布")]),
+                                            encoding="utf-8")
+    monkeypatch.setattr(CF.MN, "CAL_DIR", tmp_path)
+    monkeypatch.setattr(mod, "today_tw", lambda: T)
+    monkeypatch.setattr(mod, "now_tw", lambda: NOW)
+    calls = []
+    monkeypatch.setattr(calsrc, "fetch", lambda keys, today: calls.append(set(keys)) or ["ecb ✓ 1 筆更新"])
+    monkeypatch.setattr(CF.HD, "load", lambda n: {})
+    monkeypatch.setattr("sys.argv", ["run_calfill.py", "--no-fetch"])
+    assert mod.main() == 0 and calls == []                                   # 重試那一次不抓
+    monkeypatch.setattr("sys.argv", ["run_calfill.py"])
+    assert mod.main() == 0 and calls == [{"ecb"}]
+    monkeypatch.setattr(calsrc, "fetch", lambda keys, today: 1 / 0)
+    assert mod.main() == 0                                                   # 抓取出錯也不擋發佈
+    assert "[calfill]" in capsys.readouterr().out
+
+
+def test_ci_hooks_keep_fetch_inside_time_budget():
+    from pathlib import Path
+    from arm import calsrc
+    root = Path(__file__).resolve().parent.parent
+    y = (root / ".github" / "workflows" / "afterhours_refresh.yml").read_text(encoding="utf-8")
+    assert "timeout 300 python3 scripts/run_calfill.py" in y
+    assert "run_calfill.py --no-fetch" in y                                  # push 被拒重試時不再連網
+    assert "timeout 300 python3 scripts/run_calfill.py" in (root / "scripts" / "daily_fund.sh").read_text(encoding="utf-8")
+    assert calsrc.BUDGET_S + 90 + 60 < 300                                   # 預算到了才開始抓的最後一個也來得及

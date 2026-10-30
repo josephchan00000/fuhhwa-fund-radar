@@ -2,7 +2,8 @@
 
 行事曆一天只在 06:35 由 Claude 寫一次，當天 16:00、晚上才公布的數字要等到隔天早上；可是專案已經在抓這些官方序列
 （data/lab/heat/：國發會景氣燈號、主計總處 CPI、經濟部外銷訂單、紐約聯準銀行利率區間、勞工統計局失業率與 CPI——
-景氣頁在用）。CI 每一班抓完資料後跑這裡：最新一份 reports/macrocal/*.md 裡「日期已到、實際值空白、狀態未公布」
+景氣頁在用）；第三段（2026-10-30）再加只有行事曆用得到的：勞工統計局非農、時薪、季調 CPI、PPI、JOLTS、ECI，
+歐洲央行決議，主計總處實質 GDP 年增——這些由 arm/calsrc.py 在有列等著（wanted）的時候才抓。CI 每一班抓完資料後跑這裡：最新一份 reports/macrocal/*.md 裡「日期已到、實際值空白、狀態未公布」
 而且對得上這些序列的列，直接補上實際值、狀態改「已公布」，「註」加一行「官方自動補值」。隔天早上的 Claude
 以昨天版當底稿，自然沿用（漂移閘門也擋「已公布退回未公布」）。
 
@@ -42,10 +43,11 @@ def _ym_back(ym: str, k: int = 12) -> str:
     return f"{y:04d}-{m:02d}"
 
 
-def _r(v: float, nd: int) -> float | None:
-    """四捨五入到 nd 位；離進位邊界太近（官方用的位數可能和這裡差一點）就不補。"""
+def _r(v: float, nd: int, g: float = 0.02) -> float | None:
+    """四捨五入到 nd 位；離進位邊界不到 g 個單位（官方用的位數可能和這裡差一點）就不補。
+    g：指數三位小數算的月增（CPI、PPI）差不到 0.003 個單位，用 0.01；平均時薪只到分，最多差 0.276 個單位，用 0.28。"""
     x = v * 10 ** nd
-    if abs((x - math.floor(x)) - 0.5) < 0.02:
+    if abs((x - math.floor(x)) - 0.5) < g:
         return None
     return round(v, nd)
 
@@ -64,6 +66,52 @@ def _yoy(ser: dict, ym: str, j: int | None = None) -> float | None:
     if cur is None or not prev:
         return None
     return (cur / prev - 1) * 100
+
+
+def _q_key(item: str, rel: date) -> tuple[int, int] | None:
+    """項目寫的「Q3／第三季」→ (年, 季)：季資料一定在季末下一個月以後才公布（Q4 的隔年 1 月）。"""
+    m = re.search(r"Q([1-4])|第([一二三四1-4])季", item, re.I)
+    if not m:
+        return None
+    q = int(m.group(1)) if m.group(1) else "一二三四".find(m.group(2)) + 1 or int(m.group(2))
+    end = q * 3
+    if end == rel.month:
+        return None
+    return (rel.year if end < rel.month else rel.year - 1), q
+
+
+def _meas(item: str, default: tuple) -> list[str]:
+    """項目要月增、年增還是兩個都要（照項目裡出現的順序）；都沒寫＝default。"""
+    pos = {k: item.find(k) for k in ("月增", "年增") if k in item}
+    return sorted(pos, key=pos.get) or list(default)
+
+
+def _core_meas(item: str, ms: list[str]) -> list[str]:
+    """「核心」後面緊接月增／年增＝只要那一個；只寫「核心」＝每一個都要。"""
+    if "核心" not in item:
+        return []
+    got = [k for k in ("月增", "年增") if "核心" + k in item]
+    return got or list(ms)
+
+
+def _fmt(ms: list[str], head: dict, cms: list[str], core: dict, explicit: bool) -> str:
+    """一個量：「+3.7%（核心+2.6%）」（項目沒寫月增年增才加標籤）；兩個量：「年增+3.7%、月增+0.6%（核心月增+0.3%）」。"""
+    lab = len(ms) > 1 or not explicit
+    s = "、".join(f"{m if lab else ''}{_pct(head[m])}" for m in ms)
+    if cms:
+        s += "（" + "、".join(f"核心{m if lab or len(cms) > 1 else ''}{_pct(core[m])}" for m in cms) + "）"
+    return s
+
+
+def _cal(S, k: str, sid: str):
+    """us_bls_cal（arm/calsrc.py）裡某一期某條序列的值。"""
+    x = (S("us_bls_cal").get(k) or {}).get(sid)
+    return x if isinstance(x, (int, float)) and not isinstance(x, bool) else None
+
+
+def _chg(S, sid: str, ym: str, k: int) -> float | None:
+    a, b = _cal(S, ym, sid), _cal(S, _ym_back(ym, k), sid)
+    return (a / b - 1) * 100 if a is not None and b else None
 
 
 # ── 每一種列怎麼算：回傳 (實際值文字, 核對用的數字組) 或 None；每一組都要在表上的數字裡找得到（組內任一個就算）──
@@ -110,28 +158,104 @@ def _us_unemp(item: str, ym: str, rel: date, S) -> tuple | None:
 
 
 def _us_cpi(item: str, ym: str, rel: date, S) -> tuple | None:
-    bls = S("us_bls")
+    """年增用未季調指數（us_bls），月增用季調指數（us_bls_cal，第三段）；項目沒寫＝年增。"""
     core_only = bool(re.search(r"\d月核心", item))
-    want_core = core_only or "核心" in item
-    head = None
-    if not core_only:
-        y = _yoy(bls, ym, 1)
-        if y is None:
-            y = _yoy(S("uscpi"), ym)
-        head = _r(y, 1) if y is not None else None
-        if head is None:
-            return None
-    core = None
-    if want_core:
-        c = _yoy(bls, ym, 2)
-        core = _r(c, 1) if c is not None else None
-        if core is None:
-            return None
+    ms = _meas(item, ("年增",))
+    cms = list(ms) if core_only else _core_meas(item, ms)
+    bls = S("us_bls")
+
+    def one(m, core):
+        if m == "年增":
+            y = _yoy(bls, ym, 2 if core else 1)
+            if y is None and not core:
+                y = _yoy(S("uscpi"), ym)
+        else:
+            y = _chg(S, "CUSR0000SA0L1E" if core else "CUSR0000SA0", ym, 1)
+            return _r(y, 1, 0.01) if y is not None else None
+        return _r(y, 1) if y is not None else None
+
+    head = {} if core_only else {m: one(m, False) for m in ms}
+    core = {m: one(m, True) for m in cms}
+    if None in head.values() or None in core.values():
+        return None
+    nums = [[f"{v:.1f}"] for v in list(head.values()) + list(core.values())]
+    explicit = any(k in item for k in ("月增", "年增"))
     if core_only:
-        s = _pct(core)
-        return (s if "年增" in item else f"年增{s}"), [[f"{core:.1f}"]]
-    s = _pct(head) + (f"（核心{_pct(core)}）" if want_core else "")
-    return (s if "年增" in item else f"年增{s}"), [[f"{head:.1f}"]] + ([[f"{core:.1f}"]] if want_core else [])
+        s = _fmt(cms, core, [], {}, explicit)
+    else:
+        s = _fmt(ms, head, cms, core, explicit)
+    return s, nums
+
+
+def _us_ppi(item: str, ym: str, rel: date, S) -> tuple | None:
+    """PPI 最終需求：月增用季調、年增用未季調（和勞工統計局新聞稿一致）；項目沒寫＝兩個都填。核心的定義有兩種，不補。"""
+    ms = _meas(item, ("月增", "年增"))
+    head = {}
+    for m in ms:
+        y = _chg(S, "WPSFD4", ym, 1) if m == "月增" else _chg(S, "WPUFD4", ym, 12)
+        head[m] = _r(y, 1, 0.01) if y is not None else None
+    if None in head.values():
+        return None
+    return _fmt(ms, head, [], {}, any(k in item for k in ("月增", "年增"))), [[f"{v:.1f}"] for v in head.values()]
+
+
+def _us_ahe(item: str, ym: str, rel: date, S) -> tuple | None:
+    """平均時薪：月增、年增都用季調（2026 年 7～9 月對過新聞稿：季調 3.2／3.1／3.0，未季調 3.1／3.8／2.9）。"""
+    ms = _meas(item, ("月增", "年增"))
+    head = {}
+    for m in ms:
+        y = _chg(S, "CES0500000003", ym, 1 if m == "月增" else 12)
+        head[m] = _r(y, 1, 0.28) if y is not None else None
+    if None in head.values():
+        return None
+    return _fmt(ms, head, [], {}, any(k in item for k in ("月增", "年增"))), [[f"{v:.1f}"] for v in head.values()]
+
+
+def _us_nfp(item: str, ym: str, rel: date, S) -> tuple | None:
+    """非農新增＝這個月減上個月的就業人數（季調，千人；上個月是公布當下修正後的）→「+2.9萬」。"""
+    a, b = _cal(S, ym, "CES0000000001"), _cal(S, _ym_back(ym, 1), "CES0000000001")
+    if a is None or b is None:
+        return None
+    d = (a - b) / 10
+    return f"{d:+.1f}萬", [[f"{d:.1f}"]]
+
+
+def _us_jolts(item: str, ym: str, rel: date, S) -> tuple | None:
+    v = _cal(S, ym, "JTS000000000000000JOL")
+    return (f"{v / 10:.1f}萬", [[f"{v / 10:.1f}"]]) if v is not None else None
+
+
+def _us_eci(item: str, yq: str, rel: date, S) -> tuple | None:
+    """就業成本指數（季資料）：季增（季調）、年增（未季調）都是勞工統計局公布的百分比；項目沒寫＝季增。"""
+    pos = {k: item.find(k) for k in ("季增", "年增") if k in item}
+    ms = sorted(pos, key=pos.get) or ["季增"]
+    head = {m: _cal(S, yq, "CIS1010000000000Q" if m == "季增" else "CIU1010000000000A") for m in ms}
+    if None in head.values():
+        return None
+    lab = len(ms) > 1
+    return "、".join(f"{m if lab else ''}{_pct(v)}" for m, v in head.items()), [[f"{v:.1f}"] for v in head.values()]
+
+
+def _twgdp(item: str, ym: str, rel: date, S) -> tuple | None:
+    """主計總處實質 GDP 年增率（經濟成長率，兩位小數）；概估、初值都是最新一次公布的值。"""
+    v = S("twgdp_yoy").get(ym)
+    if not isinstance(v, (int, float)) or isinstance(v, bool):
+        return None
+    return _pct(v, 2), [[f"{v:.2f}"]]
+
+
+def _ecb(item: str, k, rel: date, S) -> tuple | None:
+    """決議日的新聞稿（存款利率）＋會前的存款利率序列，兩邊對得上才有（arm/calsrc.ecb_decision）。"""
+    v = S("ecb_dec").get(rel.isoformat())
+    if not v or len(v) < 2:
+        return None
+    rate, chg = v[0], v[1]
+    if chg == 0:
+        return f"維持{rate:.2f}%", [[f"{rate:.2f}"]]
+    steps = chg / 0.25
+    if abs(steps - round(steps)) > 1e-6:
+        return None
+    return f"{'升息' if chg > 0 else '降息'}{abs(int(round(steps)))}碼至{rate:.2f}%", [[f"{rate:.2f}"]]
 
 
 def _fomc(item: str, ym: str | None, rel: date, S) -> tuple | None:
@@ -159,7 +283,8 @@ def _fomc(item: str, ym: str | None, rel: date, S) -> tuple | None:
     return f"{'升息' if d > 0 else '降息'}{abs(int(round(steps)))}碼至{rng}", nums
 
 
-# 區域、項目要有的字、不能有的字（還要月增、非農、會議紀要…＝抓不到或不是決議）、算法、來源
+# 區域、項目要有的字、不能有的字（還要抓不到的東西、會議紀要…＝不補）、算法、來源；
+# per＝期別（m 月、q 季、None 看列的日期）；fetch＝本機沒有那一期時要叫 arm/calsrc.py 抓哪一個（景氣頁已在抓的不填）
 RULES = [
     {"key": "ndc", "region": "台", "re": r"(\d{1,2})月景氣(?:對策)?(?:信號|燈號)", "not": r"領先|同時|落後",
      "fn": _ndc, "src": "國發會"},
@@ -167,17 +292,32 @@ RULES = [
      "not": r"核心|不含|躉售|WPI|進口|出口|月增", "fn": _twcpi, "src": "主計總處"},
     {"key": "orders", "region": "台", "re": r"(\d{1,2})月外銷訂單", "not": r"月增|季增|地區|貨品|預估|展望",
      "fn": _orders, "src": "經濟部"},
+    {"key": "twgdp", "region": "台", "re": r"(?:Q[1-4]|第[一二三四1-4]季).*(?:GDP|經濟成長)|(?:GDP|經濟成長).*(?:Q[1-4]|第[一二三四1-4]季)",
+     "not": r"預測|預估|全年|年度|名目|平減|每人|季增|年化|季調", "per": "q", "fn": _twgdp, "src": "主計總處", "fetch": "twgdp"},
     {"key": "us_unemp", "region": "美", "re": r"(\d{1,2})月失業率", "not": r"非農|時薪|就業|申請|初領|續領",
      "fn": _us_unemp, "src": "勞工統計局"},
+    {"key": "us_nfp", "region": "美", "re": r"(\d{1,2})月非農", "not": r"失業率|時薪|基準|修正|ADP|民間",
+     "fn": _us_nfp, "src": "勞工統計局", "fetch": "bls_cal"},
+    {"key": "us_ahe", "region": "美", "re": r"(\d{1,2})月(?:平均)?時薪", "not": r"非農|失業率|實質",
+     "fn": _us_ahe, "src": "勞工統計局", "fetch": "bls_cal"},
     {"key": "us_cpi", "region": "美", "re": r"(\d{1,2})月(?:核心)?(?:CPI|消費者物價)",
-     "not": r"月增|季調|PCE|PPI|生產者|進口|出口|預期", "fn": _us_cpi, "src": "勞工統計局"},
+     "not": r"PCE|PPI|生產者|進口|出口|預期|超級核心|不含住房", "fn": _us_cpi, "src": "勞工統計局",
+     "fetch": lambda item: "bls_cal" if "月增" in item else None},
+    {"key": "us_ppi", "region": "美", "re": r"(\d{1,2})月(?:PPI|生產者物價)",
+     "not": r"核心|不含|進口|出口|貿易|服務|商品|中間|原料", "fn": _us_ppi, "src": "勞工統計局", "fetch": "bls_cal"},
+    {"key": "us_jolts", "region": "美", "re": r"(\d{1,2})月(?:JOLTS)?職缺|(\d{1,2})月JOLTS",
+     "not": r"職缺率|離職|聘僱|辭職|裁員", "fn": _us_jolts, "src": "勞工統計局", "fetch": "bls_cal"},
+    {"key": "us_eci", "region": "美", "re": r"(?:就業|僱用|雇用)成本|ECI", "not": r"薪資|福利|民間",
+     "per": "q", "fn": _us_eci, "src": "勞工統計局", "fetch": "bls_cal"},
     {"key": "fomc", "region": "美", "re": r"FOMC|聯準會|Fed", "need": r"決議",
-     "not": r"紀要|紀錄|首日|會前|褐皮書|談話|緘默|官員|聽證|證詞", "fn": _fomc, "src": "紐約聯準銀行"},
+     "not": r"紀要|紀錄|首日|會前|褐皮書|談話|緘默|官員|聽證|證詞", "per": None, "fn": _fomc, "src": "紐約聯準銀行"},
+    {"key": "ecb", "region": "歐", "re": r"ECB|歐洲央行", "need": r"決議",
+     "not": r"紀要|紀錄|談話|官員|演講|緘默|聽證", "per": None, "fn": _ecb, "src": "歐洲央行", "fetch": "ecb"},
 ]
 
 
 def match(r: dict, rel: date) -> tuple[dict, str | None] | None:
-    """列 → (規則, 資料月份)；對不上任何規則＝None。FOMC 不用月份。"""
+    """列 → (規則, 資料期別)；對不上任何規則＝None。FOMC、ECB 不用期別（看列的日期）。"""
     item = re.sub(r"\s+", "", r.get("item") or "")
     for rule in RULES:
         if (r.get("region") or "") != rule["region"]:
@@ -187,9 +327,15 @@ def match(r: dict, rel: date) -> tuple[dict, str | None] | None:
             continue
         if rule.get("need") and not re.search(rule["need"], item):
             continue
-        if rule["key"] == "fomc":
+        per = rule.get("per", "m")
+        if per is None:
             return rule, None
-        ym = _ym(int(m.group(1)), rel)
+        if per == "q":
+            yq = _q_key(item, rel)
+            if not yq:
+                return None
+            return rule, (f"{yq[0]}-{yq[1] * 3:02d}" if rule["key"] == "twgdp" else f"{yq[0]}-Q{yq[1]}")
+        ym = _ym(int(next(g for g in m.groups() if g)), rel)
         return (rule, ym) if ym else None
     return None
 
@@ -203,6 +349,34 @@ def official(r: dict, rel: date, S=HD.load) -> tuple | None:
     item = re.sub(r"\s+", "", r.get("item") or "")
     got = rule["fn"](item, ym, rel, S)
     return (got[0], got[1], rule["src"]) if got else None
+
+
+def _rows(md: str, file_date: date):
+    """表格的每一列 → (行號, 欄位, 列 dict, 結束日)。"""
+    for i, line in enumerate(md.split("\n")):
+        c = _cells(line)
+        if not c:
+            continue
+        it = c[1]
+        mr = MN._REGION_RE.match(it)
+        r = {"date": c[0], "item": it[mr.end():] if mr else it, "region": mr.group(1) if mr else "",
+             "actual": c[3], "status": c[5]}
+        yield i, c, r, MN.row_end_date(r, file_date)
+
+
+def wanted(md: str, file_date: date, today: date, S=HD.load) -> set[str]:
+    """公布後 3 天內、對得上第三段規則、本機又算不出來的列 → 要叫 arm/calsrc.py 抓的來源（例 {"bls_cal"}）。
+    公布當天在數字出來之前每一班都會抓一次（抓不到就下一班），抓到那一期就不再抓；超過 3 天留給早上的 Claude。"""
+    need: set[str] = set()
+    for _, c, r, rel in _rows(md, file_date):
+        if not rel or not 0 <= (today - rel).days <= 3 or re.search(r"休市|延|取消|改期", c[5]):
+            continue
+        hit = match(r, rel)
+        f = hit[0].get("fetch") if hit else None
+        key = f(re.sub(r"\s+", "", r["item"])) if callable(f) else f
+        if key and official(r, rel, S) is None:
+            need.add(key)
+    return need
 
 
 def _ndc_prev(r: dict, rel: date, cell: str, S) -> tuple | None:
@@ -246,15 +420,7 @@ def fill(md: str, file_date: date, today: date, now: datetime, S=HD.load) -> tup
     lines = md.split("\n")
     acts: list[dict] = []
     stamp = f"{now:%m/%d %H:%M}"
-    for i, line in enumerate(lines):
-        c = _cells(line)
-        if not c:
-            continue
-        it = c[1]
-        mr = MN._REGION_RE.match(it)
-        r = {"date": c[0], "item": it[mr.end():] if mr else it, "region": mr.group(1) if mr else "",
-             "actual": c[3], "status": c[5]}
-        rel = MN.row_end_date(r, file_date)
+    for i, c, r, rel in _rows(md, file_date):
         if not rel or rel > today or re.search(r"休市|延|取消|改期", c[5]):
             continue
         pv = _ndc_prev(r, rel, c[4], S) if (today - rel).days <= 10 else None

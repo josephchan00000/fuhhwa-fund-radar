@@ -121,7 +121,7 @@ jobs:
         run: TZ=Asia/Taipei timeout 300 python3 scripts/fetch_ussx_watch.py || echo "  ⚠ 美股三成檢查失敗，沿用既有落檔"
 
       - name: 行事曆官方自動補值（只讀上面抓好的官方序列、不連網；docs/macrocal_fill_plan.md 第二段，失敗不擋）
-        run: TZ=Asia/Taipei timeout 60 python3 scripts/run_calfill.py || true
+        run: TZ=Asia/Taipei timeout 300 python3 scripts/run_calfill.py || true   # 有列在等才連網抓（arm/calsrc.py）
 
       - name: 當日完整性看門狗（寫/清 data/afterhours_alert.json——儀表板紅章資料源）
         run: python3 scripts/check_afterhours_fresh.py --write
@@ -193,7 +193,7 @@ jobs:
             echo "push 被拒（第 $i 次），rebase 後重建儀表板再重試…"
             git pull --rebase -X theirs origin main || git rebase --abort || true
             git checkout origin/main -- reports/macrocal 2>/dev/null || true   # 行事曆以 main 最新版為準、補值重算（不讓本班的舊底稿蓋掉剛推的新版）
-            TZ=Asia/Taipei python3 scripts/run_calfill.py || true
+            TZ=Asia/Taipei python3 scripts/run_calfill.py --no-fetch || true
             git add -f reports/macrocal/*.md 2>/dev/null || true
             TZ=Asia/Taipei python3 scripts/gen_fund_dashboard.py || true
             git add dashboard/index.html 2>/dev/null || true
