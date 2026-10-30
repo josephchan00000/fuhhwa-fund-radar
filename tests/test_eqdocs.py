@@ -186,3 +186,5 @@ def test_workflow_never_feeds_request_text_to_a_shell():
     assert re.search(r"permissions:\s*\n\s*contents: write\s*\n\s*\n", wf)
     assert "grep -Eq '^[0-9]{8}-[0-9]{4}-[0-9a-f]{6}$'" in wf and "refs/heads/claude/eqdocs-tmp/$ID" in wf
     assert "git add -f eqdocs" in wf and "GIT_INDEX_FILE" in wf and "git add -A" not in wf
+    assert "cron: '23 19 * * *'" in wf and wf.count("if: github.event_name != 'schedule'") == 4   # 每天只清臨時分支
+    assert 'CUT=$(date +%Y%m%d)' in wf and "TZ: Asia/Taipei" in wf                               # 請求日期在今天以前的就刪

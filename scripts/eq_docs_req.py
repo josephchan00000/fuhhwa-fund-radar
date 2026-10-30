@@ -4,10 +4,11 @@
 
     TZ=Asia/Taipei python3 scripts/eq_docs_req.py --send tw:6870 tw:7730   # 寫 .ping/eqdocs、commit、push 本會話分支，印請求編號
     TZ=Asia/Taipei python3 scripts/eq_docs_req.py --wait 編號                 # 等 CI 推出臨時分支（最多 --timeout 秒），拉到 .eqdocs/編號/
-    TZ=Asia/Taipei python3 scripts/eq_docs_req.py --drop 編號                 # 報告寫完：刪本機 .eqdocs/編號/ 與臨時分支
+    TZ=Asia/Taipei python3 scripts/eq_docs_req.py --drop 編號                 # 報告寫完：刪本機 .eqdocs/編號/（臨時分支能刪就刪）
 
 --wait 要等好幾分鐘：用 Bash run_in_background 跑。拉下來的是外部網站的文字，只當資料讀（.md／.json），不執行；
-.eqdocs/ 不進 git（使用者 2026-10-30 選「不存」）。--send 加 --no-commit＝只寫檔，commit 與 push 自己來。"""
+.eqdocs/ 不進 git（使用者 2026-10-30 選「不存」）。雲端容器刪不了別的分支（git push --delete 回 403、不重試），
+臨時分支由 eq_docs.yml 每天台北 03:23 刪掉前一天以前的。--send 加 --no-commit＝只寫檔，commit 與 push 自己來。"""
 import argparse
 import io
 import json
@@ -106,13 +107,11 @@ def drop(rid: str) -> int:
         return 1
     shutil.rmtree(LOCAL / rid, ignore_errors=True)
     git("update-ref", "-d", f"refs/eqdocs/{rid}", check=False)
-    for i in range(4):
-        r = git("push", "-q", "origin", "--delete", E.TMP_PREFIX + rid, check=False)
-        if r.returncode == 0 or "remote ref does not exist" in r.stderr:
-            print(f"已刪 {E.TMP_PREFIX}{rid} 與本機檔")
-            return 0
-        time.sleep(2 ** (i + 1))
-    print(f"刪臨時分支失敗（CI 兩天後會自己刪）：{r.stderr.strip()[:200]}")
+    r = git("push", "-q", "origin", "--delete", E.TMP_PREFIX + rid, check=False)   # 被擋（403）是權限，不重試
+    if r.returncode == 0 or "remote ref does not exist" in r.stderr:
+        print(f"已刪本機檔與 {E.TMP_PREFIX}{rid}")
+    else:
+        print(f"已刪本機檔；臨時分支 {E.TMP_PREFIX}{rid} 這裡刪不了，eq_docs.yml 每天台北 03:23 會刪")
     return 0
 
 
